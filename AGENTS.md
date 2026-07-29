@@ -4,11 +4,12 @@
 
 ## 开工前必读
 
-任何会话开始时，先读这三份，不要凭猜测动手：
+任何会话开始时，先读这些，不要凭猜测动手：
 
-1. `docs/00-project/00-overview.md` — 最高层大纲与文档索引（**入口**）
-2. `docs/10-benchmark/14-borrow-and-differentiate.md` — 设计约束（借鉴什么、不做什么）
-3. `docs/40-process/42-devlog.md` 最新 2 条 — 当前进展与阻塞
+1. 最新的 `docs/40-process/44-session-handoff-*.md`（若有）— 跨设备／跨会话的快速上下文
+2. `docs/00-project/00-overview.md` — 最高层大纲与文档索引（**入口**）
+3. `docs/10-benchmark/14-borrow-and-differentiate.md` — 设计约束（借鉴什么、不做什么）
+4. `docs/40-process/42-devlog.md` 最新 2 条 — 当前进展与阻塞
 
 需要某个系统的细节时，从总览第六节的索引进入 `docs/20-systems/`，不要在总览里找细节。
 

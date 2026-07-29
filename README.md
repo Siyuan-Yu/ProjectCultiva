@@ -11,12 +11,13 @@
 
 新接手这个项目（包括几个月后的自己、别人、或新的 AI 会话），按这个顺序读：
 
-1. `docs/00-project/01-vision.md` — 这是什么游戏
-2. `docs/10-benchmark/14-borrow-and-differentiate.md` — 和竞品哪里不一样（**最重要**）
-3. `docs/40-process/41-roadmap.md` — 现在做到哪了
+1. 最新的 `docs/40-process/44-session-handoff-*.md` — 跨设备快速恢复上下文
+2. `docs/00-project/00-overview.md` — 最高层大纲与系统索引（**入口**）
+3. `docs/10-benchmark/14-borrow-and-differentiate.md` — 借鉴什么、做什么不一样、明确不做
 4. `docs/40-process/42-devlog.md` — 一路上发生了什么、为什么这么选
-5. `docs/30-tech/31-architecture.md` — 代码为什么长这样
+5. `docs/00-project/01-vision.md` — 愿景与成功标准
 6. `docs/00-project/03-glossary.md` — 命名规范（写代码前必读）
+7. `docs/30-tech/31-architecture.md` — 代码架构（尚无游戏代码时也可先读原则）
 
 ## 文档结构
 
