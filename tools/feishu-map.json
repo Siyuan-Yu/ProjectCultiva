@@ -1,10 +1,65 @@
 {
   "_说明": "本地 Markdown → 飞书文档的映射。docId 取文档链接 /docx/ 后面那段。同步是单向覆盖：本地为真源，飞书端会被完全重写。",
   "documents": {
+    "overview": {
+      "file": "docs/00-project/00-overview.md",
+      "title": "策划案总览",
+      "docId": "Oowtd4tyRoQBuxxMiBIcEkSbnBc"
+    },
     "vision": {
       "file": "docs/00-project/01-vision.md",
       "title": "项目愿景",
-      "docId": "Oowtd4tyRoQBuxxMiBIcEkSbnBc"
+      "docId": "<在飞书新建文档后填入 ID>"
+    },
+    "sys-opening": {
+      "file": "docs/20-systems/20-opening-experience.md",
+      "title": "系统 20 开局体验",
+      "docId": "<在飞书新建文档后填入 ID>"
+    },
+    "sys-core-loop": {
+      "file": "docs/20-systems/21-core-loop-and-time.md",
+      "title": "系统 21 核心循环与统一时间",
+      "docId": "<在飞书新建文档后填入 ID>"
+    },
+    "sys-realms": {
+      "file": "docs/20-systems/22-realms-and-abilities.md",
+      "title": "系统 22 境界与机制能力",
+      "docId": "<在飞书新建文档后填入 ID>"
+    },
+    "sys-combat": {
+      "file": "docs/20-systems/23-combat.md",
+      "title": "系统 23 战斗",
+      "docId": "<在飞书新建文档后填入 ID>"
+    },
+    "sys-world": {
+      "file": "docs/20-systems/24-world-and-settlements.md",
+      "title": "系统 24 世界与据点",
+      "docId": "<在飞书新建文档后填入 ID>"
+    },
+    "sys-cultivation": {
+      "file": "docs/20-systems/25-cultivation-and-breakthrough.md",
+      "title": "系统 25 修炼与突破",
+      "docId": "<在飞书新建文档后填入 ID>"
+    },
+    "sys-territory": {
+      "file": "docs/20-systems/26-territory-management.md",
+      "title": "系统 26 领地经营",
+      "docId": "<在飞书新建文档后填入 ID>"
+    },
+    "sys-characters": {
+      "file": "docs/20-systems/27-characters-and-population.md",
+      "title": "系统 27 角色与凡人人口",
+      "docId": "<在飞书新建文档后填入 ID>"
+    },
+    "sys-relations": {
+      "file": "docs/20-systems/28-jianghu-relations.md",
+      "title": "系统 28 江湖关系",
+      "docId": "<在飞书新建文档后填入 ID>"
+    },
+    "sys-karma": {
+      "file": "docs/20-systems/29-karma-and-consequence.md",
+      "title": "系统 29 因果与力量约束",
+      "docId": "<在飞书新建文档后填入 ID>"
     },
     "scope": {
       "file": "docs/00-project/02-scope-and-constraints.md",

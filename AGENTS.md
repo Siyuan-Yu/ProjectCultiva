@@ -6,13 +6,16 @@
 
 任何会话开始时，先读这三份，不要凭猜测动手：
 
-1. `docs/00-project/01-vision.md` — 项目定位与未定问题
+1. `docs/00-project/00-overview.md` — 最高层大纲与文档索引（**入口**）
 2. `docs/10-benchmark/14-borrow-and-differentiate.md` — 设计约束（借鉴什么、不做什么）
 3. `docs/40-process/42-devlog.md` 最新 2 条 — 当前进展与阻塞
+
+需要某个系统的细节时，从总览第六节的索引进入 `docs/20-systems/`，不要在总览里找细节。
 
 ## 硬性规则
 
 1. **文档先于代码。** 系统设计文档（`docs/20-systems/`）未定稿时，不要生成该系统的实现代码；应先补文档。
+1.1 **总览只放大纲。** `00-overview.md` 保持最高层结构；任何细节、流程、数值、示例都写进 `docs/20-systems/` 下对应文档。
 2. **命名走术语表。** 所有标识符必须匹配 `docs/00-project/03-glossary.md`。新概念先登记再使用，禁止同义词混用。
 3. **逻辑层不许引用 UnityEngine。** `XianXia.Core` 与 `XianXia.Data` 内禁止 `using UnityEngine`，包括 `Random`、`Debug`、`Time`、`Mathf`。
    - 随机 → 注入的 `IRandomSource`
