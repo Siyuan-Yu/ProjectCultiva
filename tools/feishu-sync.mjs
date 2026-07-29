@@ -51,43 +51,62 @@ async function getToken({ appId, appSecret }) {
 }
 
 async function api(token, method, endpoint, body) {
-  const res = await fetch(`${BASE}${endpoint}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json; charset=utf-8',
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  const json = await res.json().catch(() => ({ code: -1, msg: `非 JSON 响应 (HTTP ${res.status})` }));
-  if (json.code !== 0) {
-    const err = new Error(`[${json.code}] ${json.msg}`);
-    err.code = json.code;
-    err.detail = json.error;
-    throw err;
+  let lastErr;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      const res = await fetch(`${BASE}${endpoint}`, {
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+      const text = await res.text();
+      let json;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        const err = new Error(`非 JSON 响应 (HTTP ${res.status}): ${text.slice(0, 200)}`);
+        err.code = -1;
+        throw err;
+      }
+      if (json.code !== 0) {
+        const err = new Error(`[${json.code}] ${json.msg}`);
+        err.code = json.code;
+        err.detail = json.error;
+        throw err;
+      }
+      return json.data;
+    } catch (e) {
+      lastErr = e;
+      // 业务错误不重试；仅网络抖动重试
+      if (e.code !== undefined && e.code !== -1) throw e;
+      if (attempt < 4) await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+    }
   }
-  return json.data;
+  throw lastErr;
 }
 
-/** 表格块的 merge_info 是只读字段，回传会报错 */
-function stripReadonlyFields(blocks) {
+/** 转换结果里有些字段是只读的，原样回写会报 schema mismatch / invalid param */
+function sanitizeBlocks(blocks) {
   for (const b of blocks) {
-    if (b.table?.merge_info) delete b.table.merge_info;
+    delete b.parent_id;
+    delete b.revision_id;
+    if (b.table) {
+      delete b.table.cells;
+      if (b.table.property) delete b.table.property.merge_info;
+    }
   }
   return blocks;
 }
 
 /**
  * 按第一级块切分成多批，保证每批的块总数不超上限，且父子关系不被拆散。
+ * 注意：convert 结果里嵌套关系以 children 数组为准；parent_id 可能为空，不可依赖。
  */
 function splitIntoBatches(firstLevelIds, blocks) {
   const byId = new Map(blocks.map((b) => [b.block_id, b]));
-  const childrenOf = new Map();
-  for (const b of blocks) {
-    if (!b.parent_id) continue;
-    if (!childrenOf.has(b.parent_id)) childrenOf.set(b.parent_id, []);
-    childrenOf.get(b.parent_id).push(b.block_id);
-  }
 
   const subtreeOf = (rootId) => {
     const out = [];
@@ -95,8 +114,10 @@ function splitIntoBatches(firstLevelIds, blocks) {
     while (stack.length) {
       const id = stack.pop();
       const node = byId.get(id);
-      if (node) out.push(node);
-      for (const c of childrenOf.get(id) ?? []) stack.push(c);
+      if (!node) continue;
+      out.push(node);
+      const kids = node.children ?? [];
+      for (let i = kids.length - 1; i >= 0; i--) stack.push(kids[i]);
     }
     return out;
   };
@@ -122,7 +143,7 @@ async function clearDocument(token, docId) {
   if (childCount === 0) return 0;
   await api(
     token,
-    'POST',
+    'DELETE',
     `/docx/v1/documents/${docId}/blocks/${docId}/children/batch_delete?document_revision_id=-1`,
     { start_index: 0, end_index: childCount },
   );
@@ -142,7 +163,7 @@ async function syncFile(token, { key, file, docId, title }) {
   });
 
   const firstLevelIds = converted.first_level_block_ids ?? [];
-  const blocks = stripReadonlyFields(converted.blocks ?? []);
+  const blocks = sanitizeBlocks(converted.blocks ?? []);
   if (firstLevelIds.length === 0) throw new Error('转换结果为空，检查 Markdown 内容');
 
   const removed = await clearDocument(token, docId);

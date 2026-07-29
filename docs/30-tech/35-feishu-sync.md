@@ -25,9 +25,12 @@
 ```
 
 已处理的坑：
-- 表格块的 `merge_info` 是只读字段，回传会报错，同步前剥离
+- 清空子块接口是 `DELETE`，不是 `POST`（写成 POST 会得到 HTTP 404）
+- 表格块的 `table.property.merge_info` 与 `table.cells` 是只读字段，回传会报 `open schema mismatch`，同步前剥离
+- 嵌套关系以 `children` 数组为准，`parent_id` 在 convert 结果里常为空；切批时必须走 `children`，不能依赖 `parent_id`
 - 单次插入上限 1000 块，按第一级块切批且不拆散父子关系
 - Windows 编辑器写入的 UTF-8 BOM 会让 `JSON.parse` 失败，读取时统一剥离
+- 飞书开放平台偶发 TLS 断连，API 调用对网络错误自动重试
 
 ## 3. 一次性配置（需要你在飞书侧操作）
 
