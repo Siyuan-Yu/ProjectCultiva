@@ -1,0 +1,55 @@
+{
+  "_说明": "本地 Markdown → 飞书文档的映射。docId 取文档链接 /docx/ 后面那段。同步是单向覆盖：本地为真源，飞书端会被完全重写。",
+  "documents": {
+    "vision": {
+      "file": "docs/00-project/01-vision.md",
+      "title": "项目愿景",
+      "docId": "Oowtd4tyRoQBuxxMiBIcEkSbnBc"
+    },
+    "scope": {
+      "file": "docs/00-project/02-scope-and-constraints.md",
+      "title": "范围与约束",
+      "docId": "<在飞书新建文档后填入 ID>"
+    },
+    "glossary": {
+      "file": "docs/00-project/03-glossary.md",
+      "title": "术语表",
+      "docId": "<在飞书新建文档后填入 ID>"
+    },
+    "benchmark-toi": {
+      "file": "docs/10-benchmark/11-tale-of-immortal.md",
+      "title": "竞品拆解：鬼谷八荒",
+      "docId": "<在飞书新建文档后填入 ID>"
+    },
+    "benchmark-acs": {
+      "file": "docs/10-benchmark/12-cultivation-simulator.md",
+      "title": "竞品拆解：了不起的修仙模拟器",
+      "docId": "<在飞书新建文档后填入 ID>"
+    },
+    "benchmark-compare": {
+      "file": "docs/10-benchmark/13-comparison.md",
+      "title": "竞品横向对照",
+      "docId": "<在飞书新建文档后填入 ID>"
+    },
+    "differentiate": {
+      "file": "docs/10-benchmark/14-borrow-and-differentiate.md",
+      "title": "借鉴与差异化决策",
+      "docId": "<在飞书新建文档后填入 ID>"
+    },
+    "architecture": {
+      "file": "docs/30-tech/31-architecture.md",
+      "title": "技术架构",
+      "docId": "<在飞书新建文档后填入 ID>"
+    },
+    "roadmap": {
+      "file": "docs/40-process/41-roadmap.md",
+      "title": "路线图",
+      "docId": "<在飞书新建文档后填入 ID>"
+    },
+    "devlog": {
+      "file": "docs/40-process/42-devlog.md",
+      "title": "开发日志",
+      "docId": "<在飞书新建文档后填入 ID>"
+    }
+  }
+}
