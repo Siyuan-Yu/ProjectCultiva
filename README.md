@@ -4,8 +4,9 @@
 
 ## 当前阶段
 
-**M0 — 定方向**。等待确认 `docs/00-project/01-vision.md` 中的 Q1–Q5。
-在此之前不写游戏代码。
+**M1 — Demo v0.1 原型开发。** 当前以可替换 Sprite 和占位素材实现荒村垂直切片，不等待最终美术。
+
+Unity 版本锁定为 **2022.3.6f1 Built-in**。`Assets/Scenes/Demo_v0_1.unity`、占位 PNG 与 Prefab 已生成；需要时可从 `XianXia` 编辑器菜单重建。
 
 ## 从哪开始读
 
@@ -13,11 +14,14 @@
 
 1. 最新的 `docs/40-process/44-session-handoff-*.md` — 跨设备快速恢复上下文
 2. `docs/00-project/00-overview.md` — 最高层大纲与系统索引（**入口**）
-3. `docs/10-benchmark/14-borrow-and-differentiate.md` — 借鉴什么、做什么不一样、明确不做
-4. `docs/40-process/42-devlog.md` — 一路上发生了什么、为什么这么选
-5. `docs/00-project/01-vision.md` — 愿景与成功标准
-6. `docs/00-project/03-glossary.md` — 命名规范（写代码前必读）
-7. `docs/30-tech/31-architecture.md` — 代码架构（尚无游戏代码时也可先读原则）
+3. `docs/40-process/45-demo-v0.1.md` — 第一个可验证 Demo 的范围（只做闭环，不做完整游戏）
+4. `docs/40-process/46-demo-v0.1-art-assets.md` — Demo Prototype 美术资源、AI Prompt 与导入规格
+5. `docs/40-process/47-demo-v0.1-ai-art-batches.md` — AI 素材分批执行计划（先 ≤10 验风格）
+6. `docs/40-process/48-demo-v0.1-minimum-art-integration.md` — 当前占位素材、目录与替换方式
+7. `docs/10-benchmark/14-borrow-and-differentiate.md` — 借鉴什么、做什么不一样、明确不做
+8. `docs/40-process/42-devlog.md` — 一路上发生了什么、为什么这么选
+9. `docs/00-project/01-vision.md` — 愿景与成功标准
+10. `docs/00-project/03-glossary.md` — 命名规范（写代码前必读）
 
 ## 文档结构
 
@@ -66,4 +70,4 @@ git add -A && git commit -m "docs: 更新xxx" && git push
 ```
 
 远端仓库：`[待配置]`
-Unity 版本：`[待锁定，见 ADR-0001]`
+Unity 版本：`2022.3.6f1（Built-in，见 ADR-0001）`
