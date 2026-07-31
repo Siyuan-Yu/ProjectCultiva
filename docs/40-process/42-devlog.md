@@ -7,6 +7,18 @@
 
 ---
 
+## 2026-08-01 — Core M1 阶段 6 Entity 基础完成
+
+**判断：** 组合组件 + 白名单，避免配置反射创建任意组件；Dead／Removed／Incapacitated 语义先锁死。
+
+**做了什么**
+- `Entity`／`EntityStore`／`EntityIdFactory`／`EntityQuery`
+- 四核心组件：Identity／Attributes（入口）／Lifecycle／ActionState
+- Character 标签；白名单拒收未知组件
+
+**下一步**
+- 阶段 7 AttributeModifier 管道
+
 ## 2026-08-01 — Core M1 阶段 5 ContentPackage 基础完成
 
 **判断：** 官方内容也必须走 ContentPackage，且 M1 只显式加载、不扫 Mods/。
