@@ -184,6 +184,20 @@
 
 ---
 
+## 2026-07-31 — 进入架构冻结阶段
+
+Demo 功能开发结束。新增并冻结：
+
+- `33-architecture-core-rules-freeze-v0.1.md`：Modifier 管道、Tick、四层模拟、炼气能力、突破事件、隐匿三层
+- `32-prototype-to-product-bridge.md`：Demo 已验证语义 → 正式接口；重构换实现不改语义
+- `2C-attributes-and-modifier-pipeline.md`：系统展开入口
+
+同步更新：总览阶段、`AGENTS.md`、`31` 架构、`20-systems` 索引、`27`／`2F`／`21`、术语表、路线图 M2.5、handoff／`49`。
+
+**本阶段不编码**；等待下一轮规则确认（2C 数据、2E、第一次突破细则）。
+
+---
+
 ## 2026-07-31 — 文档：Demo v0.1 原型现状快照
 
 新增 `49-demo-v0.1-prototype-status.md` 作为当前可玩版本单一入口；同步更新 `45-demo-v0.1` 实现进度表、`41-roadmap` M3～M5 勾选、`44-session-handoff` 代码索引；飞书全量同步。

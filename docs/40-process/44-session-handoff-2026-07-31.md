@@ -7,13 +7,12 @@
 
 ## 30 秒摘要
 
-项目已从纯策划进入 **Demo v0.1 原型开发**。当前可玩灰盒验证：
+项目已从 Demo 灰盒进入 **架构冻结阶段**。Demo 验证了劳动／偷修／分工／NPC 日程；**不再扩展 Demo 功能**。
 
-**统一行动（M3.5）+ 秘密修炼（M4）+ NPC 日程（M5）**：角色行动／修炼可用；守卫与主管按日程巡逻／休息；村民以群体状态展示。
+主契约：`33-architecture-core-rules-freeze-v0.1.md`  
+桥接：`32-prototype-to-product-bridge.md`  
 
-**尚未做**：真战斗伤害、发现／追捕、潜行判定、突破、夺府、正式 UGUI。
-
-最新明细见下方「本轮改动汇总」与 `42-devlog.md` 顶部。
+**本阶段不写代码。** 下一步是展开 `2C`／`2E`／第一次突破细则。
 
 ## 本轮改动汇总（2026-07-31 交互验收迭代）
 
@@ -117,17 +116,19 @@
 
 ## 建议下一步
 
-1. 用户验收本轮交互后，进入 **第一次突破**
-2. 可选：愤怒／暴露的轻量反馈演出
-3. 正式 UGUI 仍后置
+1. 展开 `2C` Modifier 数据结构与 `2E` 事件账本  
+2. 细化第一次突破事件（`25`／`2G`）  
+3. **不要**继续加 Demo 功能；确认规则后再编码
 
 ## AI／人开工必读顺序
 
 1. **本文件**
-2. **`49-demo-v0.1-prototype-status.md`**（当前版本快照）
-3. `AGENTS.md`
-4. `docs/40-process/42-devlog.md` 顶部若干条
-5. `docs/40-process/45-demo-v0.1.md`
+2. **`../30-tech/33-architecture-core-rules-freeze-v0.1.md`**（架构主契约）
+3. **`../30-tech/32-prototype-to-product-bridge.md`**
+4. **`49-demo-v0.1-prototype-status.md`**（Demo 快照）
+5. `AGENTS.md`
+6. `docs/40-process/42-devlog.md` 顶部若干条
+7. `docs/40-process/45-demo-v0.1.md`
 
 ## 旧交接
 

@@ -1,9 +1,9 @@
 # 修炼与突破
 
-> 状态：设计方向已定，数值未展开 | 优先级：P0 | 最后更新：2026-07-31
+> 状态：大境界突破=事件已冻结于 `33`；细则与数值未展开 | 优先级：P0 | 最后更新：2026-07-31
 > 上级：`docs/00-project/00-overview.md`
-> 关联：`2G-first-chapter-flow.md`（第一次炼气流程草案）、`2H-manual-system-rules.md`、`22-realms-and-abilities.md`、`2B-attributes-and-affinity.md`、`2D-manuals-arts-and-equipment.md`、`24-world-and-settlements.md`、`26-territory-management.md`、`29-karma-and-consequence.md`
-> 当前只记设计方向，**不进入具体数值与平衡设计**。时间尺度见第 9 节，仅为体验目标。
+> 关联：`2G`、`2H`、`22`、`2B`、`2D`、`24`、`26`、`29`、`../30-tech/33-architecture-core-rules-freeze-v0.1.md`
+> **本阶段不写实现代码。** 突破不得做成纯按钮升境界（见 `33` §5）。
 
 ## 1. 这个系统解决什么问题
 

@@ -1,9 +1,11 @@
 # Demo v0.1 原型现状（2026-07-31）
 
-> **用途**：当前可玩版本的单一入口文档。换设备、交接、试玩验收先看这篇。  
+> **用途**：Demo 可玩版本的冻结快照。换设备、交接、对照语义时查阅。  
+> **阶段：Demo 功能开发已结束；项目进入架构冻结阶段。**  
+> 主契约：`../30-tech/33-architecture-core-rules-freeze-v0.1.md`  
+> 桥接：`../30-tech/32-prototype-to-product-bridge.md`  
 > 仓库：https://github.com/Siyuan-Yu/ProjectCultiva  
-> Unity：**2022.3.6f1 Built-in** | 场景：`Assets/Scenes/Demo_v0_1.unity`  
-> 重建场景：菜单 **XianXia → Build Demo v0.1 Prototype**
+> Unity：**2022.3.6f1 Built-in** | 场景：`Assets/Scenes/Demo_v0_1.unity`
 
 ## 1. 一句话现状
 
@@ -142,7 +144,6 @@ NPC 头顶显示：巡视中 / 工作中 / 休息中。无发现、追捕、潜�
 
 ## 10. 建议下一步
 
-1. 用户试玩验收本轮循环  
-2. 进入 **第一次突破** Milestone（仍不做完整功法树）  
-3. 可选：暴露/愤怒的轻量反馈演出  
-4. 守卫 AI 细化（发现/潜行）后置  
+1. **不要继续扩展 Demo。**  
+2. 在架构冻结阶段展开 `2C`／`2E`／第一次突破事件规格。  
+3. 规则确认后再进入正式 Core 实现（见 `32` 重构顺序）。
