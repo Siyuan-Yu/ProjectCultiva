@@ -7,6 +7,17 @@
 
 ---
 
+## 2026-08-01 — Core M1 阶段 4 随机系统完成
+
+**判断：** 存档一致性要求完整 PRNG 状态，而非仅 seed＋计数。
+
+**做了什么**
+- `IRandomSource`／`DeterministicRandom`（XorShift128+）／`RandomState`／`RandomStreamId`
+- 单测：同 seed 序列一致；Capture／Restore 后续抽取一致
+
+**下一步**
+- 阶段 5 ContentPackage 基础
+
 ## 2026-08-01 — Core M1 阶段 3 Result／Validation 完成
 
 **判断：** 业务失败必须与异常路径分离，否则 Tick 模拟会被异常控制流污染。
