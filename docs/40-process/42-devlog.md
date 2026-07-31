@@ -7,6 +7,18 @@
 
 ---
 
+## 2026-08-01 — Core M1 阶段 5 ContentPackage 基础完成
+
+**判断：** 官方内容也必须走 ContentPackage，且 M1 只显式加载、不扫 Mods/。
+
+**做了什么**
+- `ContentManifest`／`ContentPackageLoader`／`DefinitionRegistry`／`CharacterDefinition`
+- `AssetId`／`DataVersion`；`SimpleJson`（Data 层，零 UnityEngine）
+- BaseGame `Data/characters.json` 样本；重复／非法 ID／缺字段校验
+
+**下一步**
+- 阶段 6 Entity 基础
+
 ## 2026-08-01 — Core M1 阶段 4 随机系统完成
 
 **判断：** 存档一致性要求完整 PRNG 状态，而非仅 seed＋计数。

@@ -1,0 +1,15 @@
+{
+  "definitions": [
+    {
+      "id": "base:character_labor_disciple",
+      "type": "character",
+      "displayNameKey": "character.labor_disciple",
+      "baseAttributes": {
+        "MaxHp": 100,
+        "Attack": 10,
+        "Defense": 5,
+        "Speed": 8
+      }
+    }
+  ]
+}
