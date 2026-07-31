@@ -38,6 +38,11 @@ namespace XianXia.Core.Simulation
             return new Order(new OrderId(_nextOrderId++), subject, OrderType.Wait, source, waitTicks: ticks);
         }
 
+        public Order CreateCultivateOrder(EntityId subject, ulong ticks, OrderSource source = OrderSource.Player)
+        {
+            return new Order(new OrderId(_nextOrderId++), subject, OrderType.Cultivate, source, waitTicks: ticks);
+        }
+
         public Result TickOnce()
         {
             _world.Tick = _world.Tick.Add(1);

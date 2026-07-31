@@ -8,6 +8,8 @@
       "displayNameKey": "cultivation.basic_breath",
       "nameKey": "cultivation.basic_breath",
       "requiredRealm": "凡人",
+      "cultivationSpeed": 10,
+      "breakthroughProgress": 100,
       "grantedModifiers": [
         {
           "targetAttribute": "MaxHp",
@@ -17,6 +19,31 @@
         }
       ],
       "tags": ["manual", "basic"]
+    },
+    {
+      "id": "base:cultivation_qingyun_manual",
+      "type": "cultivation",
+      "name": "青云诀",
+      "displayNameKey": "cultivation.qingyun_manual",
+      "nameKey": "cultivation.qingyun_manual",
+      "requiredRealm": "Mortal",
+      "cultivationSpeed": 25,
+      "breakthroughProgress": 100,
+      "grantedModifiers": [
+        {
+          "targetAttribute": "MaxHp",
+          "operation": "Fixed",
+          "value": 30,
+          "stackingKey": "qingyun_hp"
+        },
+        {
+          "targetAttribute": "Attack",
+          "operation": "Fixed",
+          "value": 5,
+          "stackingKey": "qingyun_atk"
+        }
+      ],
+      "tags": ["manual", "qingyun"]
     }
   ]
 }

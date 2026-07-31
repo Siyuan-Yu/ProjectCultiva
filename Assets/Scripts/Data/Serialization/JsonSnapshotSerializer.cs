@@ -136,7 +136,14 @@ namespace XianXia.Data.Serialization
                     ["activeActionId"] = JsonValue.FromNumber(e.ActiveActionId),
                     ["activeTotalTicks"] = JsonValue.FromNumber(e.ActiveTotalTicks),
                     ["activeRemainingTicks"] = JsonValue.FromNumber(e.ActiveRemainingTicks),
-                    ["hasActiveClock"] = JsonValue.FromBool(e.HasActiveClock)
+                    ["hasActiveClock"] = JsonValue.FromBool(e.HasActiveClock),
+                    ["hasCultivation"] = JsonValue.FromBool(e.HasCultivation),
+                    ["realm"] = JsonValue.FromNumber(e.Realm),
+                    ["cultivationProgress"] = JsonValue.FromNumber(e.CultivationProgress),
+                    ["breakthroughProgressRequired"] = JsonValue.FromNumber(e.BreakthroughProgressRequired),
+                    ["cultivationSpeed"] = JsonValue.FromNumber(e.CultivationSpeed),
+                    ["learnedManualId"] = JsonValue.FromString(e.LearnedManualId ?? string.Empty),
+                    ["requiredRealmName"] = JsonValue.FromString(e.RequiredRealmName ?? string.Empty)
                 }));
             }
             return list;
@@ -190,7 +197,14 @@ namespace XianXia.Data.Serialization
                 ActiveActionId = (ulong)e.GetNumber("activeActionId"),
                 ActiveTotalTicks = (ulong)e.GetNumber("activeTotalTicks"),
                 ActiveRemainingTicks = (ulong)e.GetNumber("activeRemainingTicks"),
-                HasActiveClock = e.TryGetProperty("hasActiveClock", out var hac) && hac.Kind == JsonValueKind.Boolean && hac.Bool
+                HasActiveClock = e.TryGetProperty("hasActiveClock", out var hac) && hac.Kind == JsonValueKind.Boolean && hac.Bool,
+                HasCultivation = e.TryGetProperty("hasCultivation", out var hc) && hc.Kind == JsonValueKind.Boolean && hc.Bool,
+                Realm = (int)e.GetNumber("realm"),
+                CultivationProgress = (int)e.GetNumber("cultivationProgress"),
+                BreakthroughProgressRequired = (int)e.GetNumber("breakthroughProgressRequired"),
+                CultivationSpeed = (int)e.GetNumber("cultivationSpeed"),
+                LearnedManualId = e.GetString("learnedManualId", string.Empty),
+                RequiredRealmName = e.GetString("requiredRealmName", string.Empty)
             };
 
             if (e.TryGetProperty("bases", out var bases) && bases.Kind == JsonValueKind.Array)

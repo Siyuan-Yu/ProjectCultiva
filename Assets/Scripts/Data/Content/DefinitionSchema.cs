@@ -19,7 +19,8 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> CultivationFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "displayNameKey", "nameKey", "requiredRealm", "grantedModifiers", "tags"
+            "id", "type", "name", "displayNameKey", "nameKey", "requiredRealm",
+            "cultivationSpeed", "breakthroughProgress", "grantedModifiers", "tags"
         };
 
         public static readonly HashSet<string> ItemFields = new HashSet<string>(StringComparer.Ordinal)

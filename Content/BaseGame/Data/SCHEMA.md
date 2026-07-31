@@ -53,7 +53,9 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 | Field | Required | Notes |
 |---|---|---|
-| `requiredRealm` | no | 境界占位字符串；含 `:` 时按 DefinitionId 引用校验（M1-B） |
+| `requiredRealm` | no | 境界占位；Slice 0.1 支持 `Mortal`／`凡人` |
+| `cultivationSpeed` | no | 每修炼 tick 增加的 Progress（Core 解释） |
+| `breakthroughProgress` | no | 凡人→炼气所需 Progress（Core 解释） |
 | `grantedModifiers` | no | array of grant objects (config only; Core applies later) |
 
 Grant object fields: `targetAttribute`, `operation` (`Fixed`\|`Percentage`), `value` (number), optional `stackingKey`.
@@ -71,4 +73,5 @@ Grant object fields: `targetAttribute`, `operation` (`Fixed`\|`Percentage`), `va
 - `base:character_companion_a`
 - `base:character_companion_b`
 - `base:cultivation_basic_breath`
+- `base:cultivation_qingyun_manual`
 - `base:item_rough_wood`

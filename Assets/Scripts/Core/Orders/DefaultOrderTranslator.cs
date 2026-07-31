@@ -38,6 +38,11 @@ namespace XianXia.Core.Orders
                         order.ModifierValue,
                         order.ModifierSource.Value));
 
+                case OrderType.Cultivate:
+                    if (order.WaitTicks == 0)
+                        return Result.Fail<IAction>(ErrorCode.InvalidArgument, "Cultivate duration must be > 0.");
+                    return Result.Ok<IAction>(new CultivateAction(actionId, order.Subject, order.Id, order.WaitTicks));
+
                 default:
                     return Result.Fail<IAction>(ErrorCode.InvalidOperation, "Unsupported order type.");
             }

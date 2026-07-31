@@ -9,6 +9,8 @@ namespace XianXia.Core.Events
         ActionFailed = 5,
         OrderRejected = 6,
         /// <summary>Emitted once after VS0.1 / new-game world bootstrap completes.</summary>
-        WorldInitialized = 7
+        WorldInitialized = 7,
+        /// <summary>Cultivation Slice 0.1: Mortal → QiRefining breakthrough.</summary>
+        Breakthrough = 8
     }
 }

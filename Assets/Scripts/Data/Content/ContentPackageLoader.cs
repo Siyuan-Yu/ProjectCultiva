@@ -278,6 +278,38 @@ namespace XianXia.Data.Content
                 RequiredRealm = item.GetString("requiredRealm", string.Empty)
             };
 
+            if (item.TryGetProperty("cultivationSpeed", out var speedNode))
+            {
+                if (speedNode.Kind != JsonValueKind.Number)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "cultivationSpeed must be number.", id.ToString());
+                    return;
+                }
+
+                cultivation.CultivationSpeed = (int)speedNode.Number;
+                if (cultivation.CultivationSpeed < 0)
+                {
+                    report.Add(ErrorCode.InvalidArgument, "cultivationSpeed must be >= 0.", id.ToString());
+                    return;
+                }
+            }
+
+            if (item.TryGetProperty("breakthroughProgress", out var breakNode))
+            {
+                if (breakNode.Kind != JsonValueKind.Number)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "breakthroughProgress must be number.", id.ToString());
+                    return;
+                }
+
+                cultivation.BreakthroughProgress = (int)breakNode.Number;
+                if (cultivation.BreakthroughProgress < 0)
+                {
+                    report.Add(ErrorCode.InvalidArgument, "breakthroughProgress must be >= 0.", id.ToString());
+                    return;
+                }
+            }
+
             if (item.TryGetProperty("grantedModifiers", out var grants))
             {
                 if (grants.Kind != JsonValueKind.Array)

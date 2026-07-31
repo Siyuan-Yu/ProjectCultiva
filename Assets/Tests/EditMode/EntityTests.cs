@@ -18,6 +18,8 @@ namespace XianXia.Tests
             Assert.IsTrue(e.TryGet<AttributesComponent>(out _));
             Assert.IsTrue(e.TryGet<LifecycleComponent>(out var life));
             Assert.IsTrue(e.TryGet<ActionStateComponent>(out _));
+            Assert.IsTrue(e.TryGet<XianXia.Core.Cultivation.CultivationComponent>(out var cultivation));
+            Assert.AreEqual(XianXia.Core.Cultivation.RealmStage.Mortal, cultivation.Realm);
             Assert.AreEqual(LifecycleState.Alive, life.State);
             Assert.AreEqual(EntityTag.Character, e.Tags);
         }

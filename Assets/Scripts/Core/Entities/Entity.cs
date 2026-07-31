@@ -12,7 +12,8 @@ namespace XianXia.Core.Entities
             typeof(IdentityComponent),
             typeof(AttributesComponent),
             typeof(LifecycleComponent),
-            typeof(ActionStateComponent)
+            typeof(ActionStateComponent),
+            typeof(XianXia.Core.Cultivation.CultivationComponent)
         };
 
         readonly Dictionary<Type, IComponent> _components = new Dictionary<Type, IComponent>();
@@ -40,7 +41,7 @@ namespace XianXia.Core.Entities
 
             var type = component.GetType();
             if (!Whitelist.Contains(type))
-                return Result.Failure(ErrorCode.InvalidOperation, "Component type not in M1 whitelist.", type.Name);
+                return Result.Failure(ErrorCode.InvalidOperation, "Component type not in whitelist.", type.Name);
 
             if (_components.ContainsKey(type))
                 return Result.Failure(ErrorCode.AlreadyExists, "Component already present.", type.Name);

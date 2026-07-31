@@ -40,6 +40,13 @@ namespace XianXia.Core.Persistence
         public ulong ActiveTotalTicks { get; set; }
         public ulong ActiveRemainingTicks { get; set; }
         public bool HasActiveClock { get; set; }
+        public bool HasCultivation { get; set; }
+        public int Realm { get; set; }
+        public int CultivationProgress { get; set; }
+        public int BreakthroughProgressRequired { get; set; }
+        public int CultivationSpeed { get; set; }
+        public string LearnedManualId { get; set; }
+        public string RequiredRealmName { get; set; }
     }
 
     public sealed class AttrBaseDto

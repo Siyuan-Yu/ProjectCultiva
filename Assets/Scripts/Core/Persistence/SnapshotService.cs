@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using XianXia.Core.Actions;
 using XianXia.Core.Attributes;
+using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
@@ -92,18 +93,36 @@ namespace XianXia.Core.Persistence
                     }
                 }
 
+                if (entity.TryGet<CultivationComponent>(out var cultivation))
+                {
+                    dto.HasCultivation = true;
+                    dto.Realm = (int)cultivation.Realm;
+                    dto.CultivationProgress = cultivation.Progress;
+                    dto.BreakthroughProgressRequired = cultivation.BreakthroughProgressRequired;
+                    dto.CultivationSpeed = cultivation.CultivationSpeed;
+                    dto.LearnedManualId = cultivation.LearnedManualId.HasValue
+                        ? cultivation.LearnedManualId.Value.ToString()
+                        : string.Empty;
+                    dto.RequiredRealmName = cultivation.RequiredRealmName ?? string.Empty;
+                }
+
                 snap.Entities.Add(dto);
             }
 
             foreach (var kv in world.ActiveActions)
             {
                 var action = kv.Value;
+                string kind;
+                if (action is WaitAction) kind = "Wait";
+                else if (action is CultivateAction) kind = "Cultivate";
+                else kind = "ApplyModifier";
+
                 snap.ActiveActions.Add(new ActiveActionSnapshotDto
                 {
                     Id = action.Id.Value,
                     SubjectId = action.Subject.Value,
                     SourceOrderId = action.SourceOrderId.Value,
-                    Kind = action is WaitAction ? "Wait" : "ApplyModifier",
+                    Kind = kind,
                     Status = (int)action.Status,
                     TotalTicks = action.Clock.TotalDurationTicks,
                     RemainingTicks = action.Clock.RemainingTicks
@@ -192,6 +211,29 @@ namespace XianXia.Core.Persistence
                     actionState.ActiveClock = new ActionClock(e.ActiveTotalTicks, e.ActiveRemainingTicks);
                 entity.AddComponent(actionState);
 
+                if (e.HasCultivation)
+                {
+                    var cultivation = new CultivationComponent
+                    {
+                        Realm = (RealmStage)e.Realm,
+                        Progress = e.CultivationProgress,
+                        BreakthroughProgressRequired = e.BreakthroughProgressRequired,
+                        CultivationSpeed = e.CultivationSpeed,
+                        RequiredRealmName = e.RequiredRealmName ?? string.Empty
+                    };
+                    if (!string.IsNullOrEmpty(e.LearnedManualId) &&
+                        DefinitionId.TryParse(e.LearnedManualId, out var manualId))
+                    {
+                        cultivation.LearnedManualId = manualId;
+                    }
+
+                    entity.AddComponent(cultivation);
+                }
+                else
+                {
+                    entity.AddComponent(new CultivationComponent());
+                }
+
                 // Inject into store via reflection-free path: recreate through internal add
                 InjectEntity(world.Entities, entity);
             }
@@ -207,6 +249,16 @@ namespace XianXia.Core.Persistence
                         a.TotalTicks);
                     wait.Restore((ActionStatus)a.Status, new ActionClock(a.TotalTicks, a.RemainingTicks));
                     world.ActiveActions[wait.Id] = wait;
+                }
+                else if (a.Kind == "Cultivate")
+                {
+                    var cultivate = new CultivateAction(
+                        new ActionId(a.Id),
+                        new EntityId(a.SubjectId),
+                        new OrderId(a.SourceOrderId),
+                        a.TotalTicks);
+                    cultivate.Restore((ActionStatus)a.Status, new ActionClock(a.TotalTicks, a.RemainingTicks));
+                    world.ActiveActions[cultivate.Id] = cultivate;
                 }
             }
 

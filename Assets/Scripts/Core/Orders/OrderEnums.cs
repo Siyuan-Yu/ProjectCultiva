@@ -11,6 +11,7 @@ namespace XianXia.Core.Orders
     public enum OrderType
     {
         Wait = 0,
-        ApplyModifier = 1
+        ApplyModifier = 1,
+        Cultivate = 2
     }
 }
