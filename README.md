@@ -8,6 +8,9 @@
 
 Unity 版本锁定为 **2022.3.6f1 Built-in**。`Assets/Scenes/Demo_v0_1.unity`、占位 PNG 与 Prefab 已生成；需要时可从 `XianXia` 编辑器菜单重建。
 
+远端：https://github.com/Siyuan-Yu/ProjectCultiva  
+最新跨设备交接：`docs/40-process/44-session-handoff-2026-07-31.md`
+
 ## 从哪开始读
 
 新接手这个项目（包括几个月后的自己、别人、或新的 AI 会话），按这个顺序读：
@@ -69,5 +72,5 @@ git pull
 git add -A && git commit -m "docs: 更新xxx" && git push
 ```
 
-远端仓库：`[待配置]`
+远端仓库：`https://github.com/Siyuan-Yu/ProjectCultiva`
 Unity 版本：`2022.3.6f1（Built-in，见 ADR-0001）`
