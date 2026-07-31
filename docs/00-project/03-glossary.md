@@ -1,9 +1,10 @@
 # 术语表
 
-> 状态：持续维护 | 最后更新：2026-07-29
+> 状态：持续维护 | 最后更新：2026-07-31
 >
 > 规则：**代码标识符、配置表字段、文档用词必须与本表一致。**
 > 新增概念时先来这里登记，再去写代码。这一条是长期可维护性的关键，也是交接时对方最需要的文件。
+> 架构冻结相关术语以 `33`／`34`／`35`／`36`／`2C`／`2E` 为准。
 
 ## 使用约定
 
@@ -33,7 +34,14 @@
 | 斗技 | CombatArt | 战斗中可释放的核心招式 | 品阶黄／玄／地／天；战斗中最多装备 6 个；与"神通"是否同词**待确定** |
 | 技能栏 | SkillBar | 战斗中可即时释放的装备技能位 | 固定 6 格，对应快捷键 1–6 |
 | 自动释放 | AutoCast | 技能的手动／半自动／自动释放模式 | AI 细则待设计 |
-| 重伤 | Incapacitated | 生命归零后的非死亡状态 | 默认不继续攻击；可求饶／威胁／交易；玩家可关闭后主动击杀 |
+| 重伤 | Incapacitated | 生命归零后的非死亡状态；亦为 LifecycleState 之一 | 默认不继续攻击；可求饶／威胁／交易；**不是** Dead |
+| 生命周期状态 | LifecycleState | Alive／Incapacitated／Missing／Captured／Dead／Removed | 见 `34` |
+| 失踪 | Missing | 下落不明的生命周期状态 | |
+| 被俘 | Captured | 被俘生命周期状态 | 可与 FactionRole=俘虏并存 |
+| 永久死亡 | Dead | 永久世界状态 | 禁止普通复活撤销 |
+| 死亡保护模式 | DeathProtectionMode | None／TemporaryProtection | 默认 None |
+| 临时剧情保护 | TemporaryProtection | 显式配置的阶段性免死 | 须含原因／阶段／解除／替代后果；≠永久无敌 |
+| 剧情重要 | IsStoryImportant | 内容标记：剧情相关 | **不等于** CannotDie |
 | 灵力护盾 | QiShield | 额外生命层，非装备盾 | 承伤顺序：灵力护盾 → 肉身生命 |
 | 踏空 | SkyWalking | 改变移动规则的高阶空中机动 | 区别于普通飞行；可空中停留、自由转向；归属境界**待确定** |
 | 灵气汇聚 | QiConvergence | 将多据点灵气导向主洞府等修炼点 | 占领地盘的核心修炼动机；损耗与上限待确定 |
@@ -47,7 +55,10 @@
 | 宗门 | Sect | 玩家经营的组织 | 仅宗门玩法适用 |
 | 事件 | Event | 配置化的叙事/抉择单元 | |
 | 抉择 | Choice | 事件中的玩家选项 | |
-| 世界状态 | WorldLedger | 记录玩家历史抉择的全局状态表 | 差异化 1 的载体 |
+| 世界账本 | WorldLedger | 分册记录关系／势力／领地／义务／知识／历史等长期世界记忆 | **不是**万能字典；见 `2E` |
+| 领域事件 | DomainEvent | 刚刚发生的事实 | 见 `2E` |
+| 计划事件 | ScheduledEvent | 未来某 Tick 要执行的事 | 禁止系统私有逻辑倒计时 |
+| 知识账本 | KnowledgeLedger | 区分世界事实与各主体知道程度 | Known／Suspected／Unknown |
 | 传承 | Legacy | 角色死亡后传给下一代的内容 | |
 | 秘境 | Realm**Zone** | 可探索的副本区域 | 注意与"境界"英文冲突，故用 Zone |
 | 机制能力 | RealmAbility | 由大境界解锁、会改变实际操作规则的超凡能力 | 如飞行、灵气外放、护体 |
@@ -76,9 +87,14 @@
 | 家乡 | Hometown | 角色出身地，地图上真实存在 | 可回访，牵出旧识与家族 |
 | 隐藏经历 | HiddenBackground | NPC 身上未主动展示的过去、秘密或机缘 | 需玩家通过聊天、观察或感应挖掘 |
 | 据点 | Settlement | 城市区域内可探索、占领、建设和管理的区块 | 荒村、矿山、灵地等；落在格子地图上 |
-| 城市区域 | CityRegion | 一张连续可活动地图，约 10 屏 | 含城镇中心、荒村、矿山、森林、农田、妖兽区、灵气点 |
-| 格子 | Tile | 地图最小空间单位 | 角色约 1 格；建筑占多格 |
-| 区域出口 | RegionExit | 城市区域边缘的连接点 | 由地图数据决定；未设置则无连接 |
+| 世界地图 | WorldMap | 州域／城市／宗门／危险区与跨区域关系层 | 战略观察与远程下令 |
+| 区域地图 | RegionMap | 一座城市及周边大型连续区域 | 尺寸可变；可 Chunk；体验连续 |
+| 实例地图 | InstanceMap | 洞内／秘境／建筑内部等 | 由 Region 入口加载；状态永久保存 |
+| 路线 | Route | 跨 Region 旅行路径 | 含进度、危险、遭遇池；非瞬移 |
+| 遭遇地图 | EncounterMap | 途中临时或节点战斗／事件地图 | 细节可裁；后果必须保留 |
+| 城市区域 | CityRegion | RegionMap 的玩法称呼（旧文档兼容） | 对齐 `RegionMap` |
+| 格子 | Tile | 地图最小逻辑空间单位 | 角色约 1 格；建筑占多格 |
+| 区域出口 | RegionExit | 区域边缘连接点／Route 端点 | 由地图数据决定 |
 | 领地 | Territory | 玩家势力控制的一组据点及其人口、资源 | |
 | 群体模拟 | PopulationSim | 普通凡人以人口统计／岗位组模拟，不逐人存档 | 地图用代表性群体单位表现 |
 | 关键 NPC | KeyNpc | 实体化的重要凡人／功能角色 | 商人、村长、剧情人物等 |
@@ -96,16 +112,42 @@
 
 | 中文 | Code | 含义 | 备注 |
 |---|---|---|---|
-| 时间刻 | Tick | 逻辑层最小时间单位 | 1 Tick = 15 游戏分钟，一日 96 Tick |
+| 时间刻 | Tick／WorldTick | 世界逻辑最小时间单位 | 1 Tick = 15 游戏分钟，一日 96 Tick |
+| 行动钟 | ActionClock | 场景内移动／战斗／施法等过程推进 | 无独立日期；不能独自推进世界日 |
+| 世界钟 | WorldClock | 负责推进 WorldTick 的逻辑时钟 | 表现层倍速／暂停映射到此 |
 | 时段 | TimeOfDay | 清晨、上午、黄昏、深夜等表现层分段 | 仅用于 UI，逻辑层只认 Tick |
 | 时间表 | Schedule | 按身份规定的一日义务与自由时段安排 | 社会规则，非死脚本；具体时段走配置表 |
 | 时间表权限 | ScheduleAuthority | 能否查看／修改时间表 | 前期只可查看；夺取第一据点后可制定居民时间表；Demo 可临时开放修改 |
-| 指令 | Order | 玩家下达给角色的意图 | 角色自动执行，可排队、插队、取消 |
-| 指令队列 | OrderQueue | 单个角色待执行的指令序列 | 每个角色独立持有 |
-| 行动 | Action | 指令被分解后的可执行单元 | 移动、采集、制作、修炼等 |
-| 行为优先级 | ActionPriority | 玩家命令 > 紧急事件 > 时间表 > 待机 | 战斗中不强制切回时间表 |
+| 指令 | Order | 角色想做什么（玩家／AI／日程／事件生成） | 公开概念；**无**额外 Intent 层 |
+| 指令队列 | OrderQueue | 单个角色待执行的指令序列 | 每个完整 Character 独立持有 |
+| 行动 | Action | 指令分解后的可执行单元 | 必须可序列化；见 `35` |
+| 当前行动 | ActiveAction | 角色正在执行的唯一行动 | 第一版无多并行列 |
+| 中断上下文 | InterruptContext | 中断原因与损失／检查点信息 | |
+| 指令优先级 | OrderPriority | 紧急玩家＞生存战斗＞玩家队列＞义务＞时间表＞需求＞待机 | 优先级≠可执行性 |
+| 行为优先级 | ActionPriority | 同 OrderPriority（旧称兼容） | 以 OrderPriority 为准 |
 | 自动模式 | AutoMode | 跟随主角或按时间表行动 | 第一阶段无复杂自主 AI；无命令时默认待机 |
-| 自动暂停 | AutoPause | 触发条件时把控制权交还玩家 | 触发规则见 21 号文档 |
+| 自动暂停 | AutoPause | 触发条件时把控制权交还玩家 | 重大接敌等；见 `21`／`33` |
+| 定义 ID | DefinitionId | 人工维护、可读、稳定的配置 ID | 格式 `namespace:local_id`；与 EntityId 分离 |
+| 实体 ID | EntityId | 程序生成、全局唯一的实例 ID | 显示名不能当 ID |
+| 实体引用 | EntityRef | 逻辑层对实体的稳定引用 | 禁止 GameObject／Transform |
+| 来源引用 | SourceRef | Modifier／效果来源 | |
+| 随机源 | IRandomSource | 可注入、可保存状态的随机接口 | 世界保存 WorldSeed；分系统可有独立流 |
+| 军队编组 | ArmyGroup | 凡人／群体军队的聚合数据对象 | 非千人完整 AI；见 ADR-0008 |
+| 修士群体 | CultivatorPopulation | 第三层普通修士聚合模拟 | 不逐人位置 |
+| 凡人群体 | MortalPopulation | 第四层凡人统计模拟 | 关注后才实体化 |
+| 势力归属 | FactionMembership | 角色当前正式所属势力 | 可变更；离开保留历史 |
+| 势力职位 | FactionRole | 宗主／长老／执事／成员／客卿／俘虏／临时盟友等 | 预定义；≠控制权 |
+| 控制权 | ControlAuthority | 玩家可否直接控制／高层命令／纯 AI 等 | 动态权限 |
+| 玩家代理 | PlayerAgency | 玩家焦点人物与控制模式容器 | 始终有 FocusCharacter |
+| 焦点人物 | FocusCharacter | 玩家当前依附的核心人物 | FocusCharacterId |
+| 控制模式 | ActiveControlMode | Character／FactionLeadership | |
+| 内容包 | ContentPackage | 官方与 Mod 统一内容单元 | 见 `36` |
+| 模组 ID | ModId | ContentPackage 唯一 ID | |
+| 命名空间 | Namespace | DefinitionId 前缀 | 官方为 base |
+| 资源 ID | AssetId | 逻辑资源引用 | 禁止绝对路径／GUID 当公开 ID |
+| 本地化键 | LocalizationKey | 文本键 | |
+| 数据迁移 | DataMigration | DefinitionId 改名等数据迁移 | |
+| 补丁定义 | PatchDefinition | 显式修改既有定义的补丁契约 | 禁止静默覆盖 |
 
 ## 义务与隐匿
 
@@ -143,7 +185,7 @@
 | 「水」属性是否保留还是并入冰 | 待确定 |
 | 掌握程度六档的最终命名 | 待确定 |
 | 神识 / 灵魂力量 用哪个词 | 待确定，暂用神识 |
-| 凡人分层模拟的层级命名 | 待确定 |
+| 凡人分层模拟的层级命名 | **已冻结四层**：CoreCultivator／KeyNpc／CultivatorPopulation／MortalPopulation |
 | 传统五行生克 | **明确不做**为核心规则 |
 | `[新增概念先登记在这里]` | 待定 |
 

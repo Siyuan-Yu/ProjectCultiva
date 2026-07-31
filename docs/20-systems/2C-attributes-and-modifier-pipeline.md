@@ -1,35 +1,166 @@
-# 属性与 Modifier 管道（2C）
+# 属性与 AttributeModifier 管道（2C）
 
-> 状态：**形状已冻结于 `33-architecture-core-rules-freeze-v0.1.md` §1**；本文件为系统展开入口 | 优先级：P0 | 最后更新：2026-07-31  
+> 状态：**已冻结（v0.1）** | 优先级：P0 | 最后更新：2026-07-31  
 > 上级：`docs/00-project/00-overview.md`  
-> 关联：`2B-attributes-and-affinity.md`、`33-architecture-core-rules-freeze-v0.1.md`、`31-architecture.md`  
-> **本阶段不写实现代码。** 细则未填完前，不得开始属性相关正式编码。
+> 依赖：`33-architecture-core-rules-freeze-v0.1.md`、`2B-attributes-and-affinity.md`、`34-entity-and-component-model.md`  
+> 被引用：功法／装备／环境／状态／事件系统、UI 溯源面板、Core 属性模块  
+> **本阶段不写实现代码。**
 
 ## 1. 这个系统解决什么问题
 
-保证任意最终数值都能回答「怎么算出来的」，并强制所有加成走同一管道，避免各系统直接改 Final。
+保证任意最终属性都能回答「怎么算出来的」，并强制所有长期属性变化走同一管道，避免各系统直接改 Final。
 
-## 2. 已冻结规则（勿在此重复改形状）
+## 2. 冻结公式
 
-完整冻结条文见：[`33-architecture-core-rules-freeze-v0.1.md`](../30-tech/33-architecture-core-rules-freeze-v0.1.md) 第 1 节。
+```text
+Raw =
+  (Base + Σ Fixed)
+  × (1 + Σ Percentage)
 
-摘要：
+Final =
+  Clamp(
+    ApplyAllowedSpecialRules(Raw),
+    Min,
+    Max
+  )
+```
 
-- `Final = Base + Fixed + Percentage + SpecialRules`
-- 必须 `AddModifier(source, …)`；禁止 `attr += x`
-- Modifier 必须带来源；SourceKind 含天赋／灵根／功法／技能／境界／环境／建筑／状态／事件
-- 内容「词条」落地为运行时 **AttributeModifier**
+规则：
 
-## 3. 待本文件展开（下一设计轮次）
+1. **Fixed 先加**到 Base。  
+2. 普通 **Percentage 进入同一个加算池**（例如 +20% 与 +30% → 合计 +50%，再乘一次）。  
+3. **暂不**设置多个独立乘区。  
+4. **不允许**每种功法拥有独立计算顺序。  
+5. 百分比基数为 `Base + Σ Fixed`（即公式中的括号部分）。
 
-- [ ] 属性 ID 枚举与配置表列
-- [ ] Fixed／Percentage 运算顺序的最终公式表与单元测试用例
-- [ ] SpecialRules 白名单
-- [ ] 与灵力池、修为增长（非战斗属性）是否同管道或分管道
-- [ ] UI 溯源面板信息架构
+### 2.1 示例
 
-## 4. 验证方式（实现期）
+| 项 | 值 |
+|---|---|
+| Base 攻击 | 100 |
+| Fixed（装备） | +10 |
+| Percentage（火灵根） | +0.20 |
+| Percentage（火系功法） | +0.30 |
+| Raw | (100+10)×(1+0.50) = 165 |
+| SpecialRule | 无 |
+| Final | Clamp(165, Min, Max) |
 
-- 给定 Base 与一组 Modifier，Final 与手算一致
-- 移除某一 Source 后，Final 回到无该来源时的值
-- 任何系统测试中不得出现对 Final 字段的直接赋值
+## 3. 管道强制
+
+- 所有**长期属性变化**必须通过 `AttributeModifier`。  
+- 禁止直接写：`attack += 20` 或直接赋值 `finalValue = ...`。  
+- 移除来源时，只能按 `SourceRef`／`ModifierId` 撤掉 Modifier，不得倒算硬改 Final。  
+- 最终结果必须能在调试／UI 展开完整来源链。
+
+## 4. AttributeModifier 字段（最小集）
+
+| 字段 | 说明 |
+|---|---|
+| `ModifierId` | 实例 ID |
+| `TargetAttributeId` | 目标属性 |
+| `Operation` | `Fixed` / `Percentage` /（Special 见下） |
+| `Value` | 整数或缩放整数（百分比建议用 10000=100%） |
+| `SourceRef` | 来源 |
+| `ReasonRef` | 原因 |
+| `StartTick` | 生效 Tick |
+| `EndTick` | 可空；到期由 ScheduledEvent 移除 |
+| `StackingKey` | 叠加入口键 |
+| `StackingRule` | 见 §5 |
+| `ConditionId` | 可空；条件定义引用 |
+| `Priority` | 特殊规则排序等 |
+
+### 4.1 SourceKind（来源类型）
+
+至少支持：`Talent`、`SpiritRoot`、`Manual`、`Skill`、`Realm`、`Environment`、`Building`、`StatusEffect`、`Equipment`、`Event`。
+
+## 5. 叠加规则（第一版白名单）
+
+仅允许：
+
+| StackingRule | 含义 |
+|---|---|
+| `Stack` | 同 Key 可叠加 |
+| `Replace` | 后来者替换 |
+| `HighestOnly` | 只保留最高 |
+| `LowestOnly` | 只保留最低 |
+
+## 6. SpecialRule 白名单
+
+仅允许：
+
+| SpecialRule | 含义 |
+|---|---|
+| `ClampMin` | 提高下限 |
+| `ClampMax` | 降低上限 |
+| `Override` | 覆盖 Raw（必须带来源，慎用） |
+| `Disable` | 使某属性／效果失效 |
+| `Convert` | 将 A 属性按规则转入 B（登记制） |
+
+**禁止**内容配置任意执行 C# 或任意表达式修改 Final。
+
+## 7. 属性 vs 状态值／资源池
+
+### 7.1 属性（走 Modifier 管道）
+
+示例：
+
+- `MaxHealth`
+- `MaxQi`
+- `Attack`
+- `Defense`
+- `MoveSpeed`
+- `CultivationEfficiency`
+- `ConcealmentAbility`
+
+### 7.2 状态值／资源池（不硬塞进 Modifier 管道）
+
+示例：
+
+- `CurrentHealth`
+- `CurrentQi`
+- `CultivationProgress`
+- `ExposureAccumulation`／个人隐匿风险累计
+- `InventoryAmount`
+- `RelationshipValue`
+- `TaskProgress`
+
+状态值通过资源交易、行动结果、事件结算改变；可以**间接**创建 AttributeModifier（例如受伤状态加防御 Fixed），但状态值本身不是 Modifier 目标。
+
+## 8. 事件 → Modifier 的合法流程
+
+```text
+DomainEvent
+  → StatusEffect / Equipment / Environment 状态
+  → 创建 AttributeModifier
+  → 到期 ScheduledEvent
+  → 按 SourceRef 移除 Modifier
+```
+
+禁止事件处理函数直接改属性 Final。
+
+## 9. 数值约定（与 `33` 对齐）
+
+- 核心规则尽量使用整数或缩放整数。  
+- 概率：0～10000。  
+- 百分比倍率：10000 = 100%。  
+- Unity 插值／动画可用 float；逻辑属性计算在 Core 用整数／缩放整数。
+
+## 10. 与内容「词条」的关系
+
+- 配置中的「词条」（`Affix`）是内容数据。  
+- 进入运行时必须落地为一条或多条 `AttributeModifier`。  
+- 文档与代码优先写 **AttributeModifier**，避免与词条混称。
+
+## 11. 仍待确定
+
+- [ ] 完整 AttributeId 枚举与配置表列  
+- [ ] Override／Convert 的审批与极少使用准则  
+- [ ] UI 溯源面板信息架构  
+- [ ] 条件 `ConditionId` 表达式语言范围（必须仍无任意脚本）
+
+## 12. 验证方式（实现期）
+
+- 给定 Base 与 Modifier 集合，Final 与手算一致（含同池百分比）  
+- 移除某一 `SourceRef` 后 Final 回到无该来源时的值  
+- 单元测试禁止对 Final 字段直接赋值  
+- 非法 SpecialRule／未知 StackingRule 在数据校验期直接失败

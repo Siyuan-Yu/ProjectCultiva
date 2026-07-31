@@ -1,17 +1,21 @@
 ﻿# 修仙游戏策划案总览
 
-> 状态：概念框架 v0.5 | 最后更新：2026-07-31
+> 状态：概念框架 v0.7｜架构冻结增量（死亡／控制权／Mod Ready） | 最后更新：2026-07-31
 > **本页只放最高层大纲。** 任何细节都拆到独立文档，见第六节索引。
 
 ## 〇、当前项目阶段
 
-**架构冻结阶段（Architecture Freeze）。** Demo v0.1 灰盒已验证核心手感，**不再扩展 Demo 功能**。
+**架构冻结阶段 — 文档包增量收口（待审核）。** Demo 已停扩；**不写正式代码**。
 
-- 当前工作：把已确认的底层规则写入正式设计文档，避免正式开发时反复改架构。
-- 主契约：[`33-architecture-core-rules-freeze-v0.1.md`](../30-tech/33-architecture-core-rules-freeze-v0.1.md)
-- Demo → 正式桥接：[`32-prototype-to-product-bridge.md`](../30-tech/32-prototype-to-product-bridge.md)
-- Demo 玩法快照（冻结参考）：[`49-demo-v0.1-prototype-status.md`](../40-process/49-demo-v0.1-prototype-status.md)
-- **本阶段不写实现代码**；未写入冻结文档的内容仍标「待确定」，不得自行拍板。
+- 主契约：[`33`](../30-tech/33-architecture-core-rules-freeze-v0.1.md)（含 §19 死亡、§20 PlayerAgency、§21 Mod Ready）
+- 实体：[`34`](../30-tech/34-entity-and-component-model.md)
+- Order／Action：[`35`](../30-tech/35-order-and-action-system.md)
+- ContentPackage／Mod Ready：[`36`](../30-tech/36-content-package-and-mod-architecture.md)
+- Modifier／事件：[`2C`](../20-systems/2C-attributes-and-modifier-pipeline.md)、[`2E`](../20-systems/2E-events-and-world-state.md)
+- 桥接：[`32`](../30-tech/32-prototype-to-product-bridge.md)
+- Demo 快照：[`49`](../40-process/49-demo-v0.1-prototype-status.md)
+- ADR-0002～0008、0010～0016；正式 UI 仍预留 ADR-0009
+- 未写入冻结文档的内容仍标「待确定」。
 
 ## 一、一句话定位
 
@@ -52,36 +56,35 @@
 
 ## 五、世界结构
 
-三级结构：**大陆 → 城市区域 → 格子地图**。
+四类地图（已冻结于 `33` §7）：**WorldMap → RegionMap → InstanceMap／Route（EncounterMap）**。
 
-- 暂定 **3 块大陆**，每块约 **10 个城市区域**（合计约 30）。
-- **城市区域是连续地图**（约 10 屏），内部含城镇中心、荒村、矿山、森林、农田、妖兽区、灵气点等；玩家在同一张连续地图中移动。
-- 大陆间 **100 格**规模。
-- 区域四周出口由地图数据决定；未设出口则无连接。
-- 采用**小格子**：角色约 1 格，建筑占多格；未来用地图编辑器编辑，不在引擎里手摆全部内容。
-- 地图希望做到自由缩放、连续无缝的视觉切换。这是**体验目标**，具体实现方式属于技术问题，本阶段不预先锁定。
+- 暂定约 **3** 块大陆战略关系；约 **30** 个城市级 Region。
+- **RegionMap** 为大型连续区域（尺寸可变；荒村周边可约 3～4 视野；完整城市更大）；技术上可 Chunk，体验上连续。
+- 跨 Region **不**做整片大陆无缝地图；用 **Route** 行军／飞行与途中遭遇。
+- Instance（洞府／秘境／室内等）状态永久保存。
+- 小格子逻辑空间；近／中／远景缩放分层。
 
-不做 3D 开放世界。详见 `20-systems/24-world-and-settlements.md`。
+不做 3D 开放世界。详见 `33`、`24`、ADR-0006。
 
 ## 六、文档索引
 
 | 编号 | 系统 | 优先级 | 状态 |
 |---|---|---|---|
 | 20 | [开局体验](../20-systems/20-opening-experience.md) | P0 | 40分～1小时入炼气；隐藏修士 |
-| 21 | [核心循环与统一时间](../20-systems/21-core-loop-and-time.md) | P0 | Tick=15分钟已冻结；夺权后改表 |
+| 21 | [核心循环与统一时间](../20-systems/21-core-loop-and-time.md) | P0 | WorldTick+ActionClock 已冻结 |
 | 22 | [境界与机制能力](../20-systems/22-realms-and-abilities.md) | P0 | 炼气四能力方向已冻结于 `33` |
-| 23 | [战斗](../20-systems/23-combat.md) | P0 | 小队框架已定方向 |
-| 24 | [世界与据点](../20-systems/24-world-and-settlements.md) | P0 | 三级结构与格子方向已定 |
+| 23 | [战斗](../20-systems/23-combat.md) | P0 | RTS 即时+暂停；多队后台姿态预留 |
+| 24 | [世界与据点](../20-systems/24-world-and-settlements.md) | P0 | 对齐地图四类（`33` §7）；正文待同步 |
 | 25 | [修炼与突破](../20-systems/25-cultivation-and-breakthrough.md) | P0 | 大境界突破=事件；细则待展开 |
 | 26 | [领地经营](../20-systems/26-territory-management.md) | P0 | 夺取控制权 + 时间表 + 成长循环 |
-| 27 | [角色、修士与凡人人口](../20-systems/27-characters-and-population.md) | P0 | 四层模拟边界已冻结于 `33` |
+| 27 | [角色、修士与凡人人口](../20-systems/27-characters-and-population.md) | P0 | 四层+组合模块见 `33`／`34` |
 | 28 | [江湖关系](../20-systems/28-jianghu-relations.md) | P0 | 草稿 |
 | 29 | [世界观哲学：天道、因果与修仙社会结构](../20-systems/29-karma-and-consequence.md) | P1 | 设计方向已定 |
-| — | 势力与战争 | P1 | 未开始 |
+| — | 势力与战争 | P1 | 未开始；ArmyGroup 边界见 `33` |
 | 2B | [角色属性与修仙成长体系](../20-systems/2B-attributes-and-affinity.md) | P0 | 底层规则已定方向 |
-| 2C | [属性与 Modifier 管道](../20-systems/2C-attributes-and-modifier-pipeline.md) | P0 | 形状已冻结；数据结构待展开 |
+| 2C | [属性与 Modifier 管道](../20-systems/2C-attributes-and-modifier-pipeline.md) | P0 | **公式与字段已冻结** |
 | 2D | [功法、斗技与装备](../20-systems/2D-manuals-arts-and-equipment.md) | P0 | 设计方向已定 |
-| 2E | 事件与世界状态记账 | P0 | 未开始（下一设计轮次） |
+| 2E | [事件与世界状态记账](../20-systems/2E-events-and-world-state.md) | P0 | **三层+分册账本已冻结** |
 | 2F | [义务、配额与隐匿](../20-systems/2F-obligation-and-concealment.md) | P0 | 隐匿三层已冻结于 `33` |
 | 2G | [第一章流程：从凡人到炼气](../20-systems/2G-first-chapter-flow.md) | P0 | 节奏压缩至约1小时入炼气 |
 | 2H | [功法系统设计（规则层）](../20-systems/2H-manual-system-rules.md) | P0 | 核心规则已定方向 |
@@ -91,9 +94,15 @@
 | 文档 | 说明 |
 |---|---|
 | [技术架构](../30-tech/31-architecture.md) | 程序集边界、数据驱动、工程约定 |
-| [Demo→正式桥接](../30-tech/32-prototype-to-product-bridge.md) | 已验证语义冻结为接口需求 |
+| [Demo→正式桥接](../30-tech/32-prototype-to-product-bridge.md) | Demo 语义 → 正式映射 |
 | [架构核心规则冻结 v0.1](../30-tech/33-architecture-core-rules-freeze-v0.1.md) | **当前主契约** |
+| [实体与能力模块](../30-tech/34-entity-and-component-model.md) | IEntity／Character 组件／四层 |
+| [Order 与 Action](../30-tech/35-order-and-action-system.md) | 指令与行动生命周期 |
+| [ContentPackage／Mod Ready](../30-tech/36-content-package-and-mod-architecture.md) | 统一内容包；阶段 A 不写加载器 |
+| [飞书同步说明](../30-tech/37-feishu-sync.md) | 本地→飞书单向同步 |
 | [Demo v0.1 原型现状](../40-process/49-demo-v0.1-prototype-status.md) | Demo 快照（不再扩展） |
+| [架构冻结审计报告 v0.1](../40-process/50-architecture-freeze-review-report-v0.1.md) | 一致性审计（只读） |
+| ADR-0002～0008、0010～0016 | 架构贵重决策（UI=ADR-0009 预留） |
 
 其他：项目愿景 `01-vision.md`、术语表 `03-glossary.md`、借鉴与差异化 `../10-benchmark/14-borrow-and-differentiate.md`、路线图 `../40-process/41-roadmap.md`、[Demo v0.1 设计](../40-process/45-demo-v0.1.md)、美术相关 `46`～`48`。
 
@@ -102,12 +111,14 @@
 先定下层，再动上层。**下层没定稿，上层不要展开。**
 
 ```
-21 核心循环与时间（一切的时间基础）
- ├── 2F 义务与隐匿 ──→ 20 开局体验 ──→ 2G 第一章流程草案
- ├── 22 境界与机制能力 ──→ 23 战斗
- │                     └─→ 24 世界与据点（通行规则）
- ├── 2B 角色属性与灵根 · 2H 功法规则 · 2D 斗技装备边界 ──→ 25 修炼与突破 ──→ 26 领地经营
- └── 27 角色与人口 ──→ 28 江湖关系 ──→ 29 天道因果与社会结构
+33 架构冻结主契约
+ ├── 34 实体与组件 · 35 Order/Action · 2C Modifier · 2E 事件账本
+ └── 21 核心循环与时间
+      ├── 2F 义务与隐匿 ──→ 20 开局体验 ──→ 2G 第一章流程草案
+      ├── 22 境界与机制能力 ──→ 23 战斗
+      │                     └─→ 24 世界与据点（地图四类）
+      ├── 2B 角色属性与灵根 · 2H 功法规则 · 2D 斗技装备边界 ──→ 25 修炼与突破 ──→ 26 领地经营
+      └── 27 角色与人口 ──→ 28 江湖关系 ──→ 29 天道因果与社会结构
 ```
 
 ## 八、范围控制
@@ -147,9 +158,9 @@
 
 ## 十、下一步
 
-**当前：架构冻结阶段 — 只写设计，不写代码。**
+**当前：架构冻结增量等待人工审核 — 只写设计，不写代码。**
 
-1. 以 `33`／`32` 为契约，展开 `2C` 数据结构与 `2E` 事件账本。  
-2. 细化第一次突破事件（`25`／`2G`）与炼气基础术法清单（`22`）。  
-3. 规则确认后再进入正式实现：先 Core（Tick／Modifier／Action），再 Unity 换皮。  
-4. **不要继续扩展 Demo 功能**；Demo 快照见 `49`。
+1. 审核死亡／PlayerAgency／ContentPackage（`33` §19～21、`34`、`36`、ADR-0010～0016）。  
+2. 通过后细化第一次突破（`25`／`2G`）与炼气术法清单（`22`），并同步 `24`。  
+3. 再进入正式实现：asmdef → ContentPackage 加载骨架（官方也走包）→ Tick → Modifier → Order/Action。  
+4. **不要继续扩展 Demo。**

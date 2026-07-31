@@ -130,7 +130,7 @@
 
 - 脚本：`tools/feishu-sync.mjs`
 - 映射：`tools/feishu-map.json`
-- 说明：`docs/30-tech/35-feishu-sync.md`
+- 说明：`docs/30-tech/37-feishu-sync.md`
 - 凭据：复用 `~/.chatccc/config.json` 里的飞书应用，不入库
 - 当前已绑定飞书文档：总览 `overview` → `Oowtd4tyRoQBuxxMiBIcEkSbnBc`
 - 其余系统文档在映射中有占位，需要用户在飞书建空文档后填 `docId` 并分享给应用（可编辑）

@@ -2,91 +2,99 @@
 
 > 状态：**已冻结（v0.1）** | 优先级：P0 | 最后更新：2026-07-31  
 > 上级：`docs/00-project/00-overview.md`  
-> 关联：`33-architecture-core-rules-freeze-v0.1.md`、`49-demo-v0.1-prototype-status.md`、`31-architecture.md`  
-> **目的：** 把 Demo 已验证的玩法语义冻结为正式接口需求；后续重构只换实现，不改语义。  
-> **本阶段不写实现代码。**
+> 依赖：`33`、`34`、`35-order-and-action-system.md`、`2C`、`2E`、`49-demo-v0.1-prototype-status.md`、`31`  
+> 被引用：实现期重构清单、回归验收  
+> **目的：** 把 Demo 已验证玩法语义冻结为正式接口需求；后续只换实现，不改语义。  
+> **本阶段不写实现代码。不继续扩展 Prototype MonoBehaviour。**
 
 ## 1. 桥接原则
 
-1. **Demo 是语义探路，不是正式架构实现。** 当前 `Assets/Scripts` 下的 MonoBehaviour 原型可参考，不可当作 Core 边界。
-2. **已验证语义 = 接口契约。** 重构后玩家可感知行为应保持一致（或仅在文档标明的「故意升级」处变化）。
-3. **禁止借重构偷偷改玩法。** 若要改语义，先改设计文档与本桥接表，再改代码。
-4. **项目已停止扩展 Demo。** 不再增加突破／夺府／潜行判定等 Demo 功能；这些进入正式设计与后续实现阶段。
+1. Demo 是语义探路，不是正式架构实现。  
+2. 已验证语义 = 接口契约。  
+3. 禁止借重构偷偷改玩法；改语义必须先改文档。  
+4. **项目已停止扩展 Demo**（突破／夺府／潜行判定等进入正式设计阶段）。  
+5. 正式重构：**替换实现，保留玩法语义**；现有 Demo 作为行为参考与回归验证场景。
 
-## 2. Demo 已验证清单（冻结为需求）
+## 2. Demo 已验证语义（冻结为需求）
 
-| 语义 | Demo 中的表现 | 正式接口需求（不得丢） |
+| 语义 | Demo 表现 | 正式不得丢 |
 |---|---|---|
-| 三人控制 | 点选／框选／Shift；独立移动与行动 | 至少 3 名可独立下令的可控实体；可扩展到第一层修士上限 |
-| 时间推进 | 暂停／1x／2x／5x；暂停停进度 | 表现层倍速／暂停 → 逻辑层少推或不推 Tick |
-| 时间表 | 全村劳役表；可查看；测试可改 | 身份时间表；前期只读；夺权后可改（权限见 `21`） |
-| 工作循环 | 右键／下令 → 走近 → Working → 按时间产资源 | 意图式指令；到达交互距后进入工作态；可中断 |
-| 资源循环 | 木材／粮食／草药库存与任务进度 | 资源账本；任务统计「发布后新增」类规则可保留 |
-| 多角色分工 | 一人修炼、他人工作互不覆盖 | 每实体独立行动槽／指令队列 |
-| 修炼入定语义 | 走近灵地后 Cultivating；非工作式选目标战法 | 修炼是收敛行动；可与移动／工作互斥 |
-| 个人暴露显示 | 昼夜／主管附近影响数值；敛息草降低 | 映射为「个人隐匿风险」层；正式可加重罚，不合并三层 |
-| NPC 自主运转 | 守卫 Patrol/Rest、主管昼夜、村民群体状态 | 日程驱动；群体层不逐人位置（对齐四层模拟） |
-| 统一行动框架 | Move／Gather／Cultivate 状态机 | 正式 `Intent`／`Action` 模型的语义前身 |
+| 三人选择与移动 | 点选／框选／Shift；独立移动 | ≥3 可控实体，可扩至第一层上限 |
+| 玩家命令优先 | 下令覆盖时间表倾向 | Order 优先级：玩家紧急／队列高于时间表 |
+| 时间推进与暂停 | 暂停／1x／2x／5x | 映射 WorldTick + 倍速；暂停停全世界 |
+| 时间表 | 全村劳役表 | Schedule；前期只读，夺权后可改 |
+| 工作 | 右键／W → 工位 → Working → 产资源 | WorkOrder + WorkAction + 资源交易事件 |
+| 资源与任务 | 木／粮／药与每日配额 | ResourceLedger + ObligationLedger |
+| 修炼为独立行动 | 灵地入定 Cultivating | Cultivation Order/Action；与工作互斥 |
+| 多角色同时不同任务 | 一人修、他人工 | 每实体独立 OrderQueue／ActiveAction |
+| NPC 自主运转 | 守卫／主管日程；村民群体 | 层 2 实体日程 + 层 4 群体呈现 |
+| 统一行动框架 | Move／Gather／Cultivate | Order → Action 链（**无公开 Intent 层**） |
 
-## 3. Demo 明确未验证（不要假装已有）
+## 3. Demo 明确未验证
 
-| 内容 | 说明 |
+第一次突破事件、真战斗伤害与技能、发现／追捕／潜行、夺府与管理权限、AttributeModifier 管道、正式 Tick、怀疑值／势力敌意独立层、Instance／Route、多队伍离屏。
+
+## 4. Demo 类 → 正式概念映射
+
+| Demo | 正式架构 |
 |---|---|
-| 第一次突破事件 | 仅有修为增长；无事件／异象／失败 |
-| 真战斗伤害与技能 | `A` 仅为交战占位 |
-| 发现／追捕／潜行判定 | NPC 日程无感知逻辑 |
-| 夺府与管理权限 | 未做 |
-| Modifier 管道 | 直接改数值，非正式管道 |
-| Tick 逻辑层 | 连续游戏分钟，非正式 Tick |
-| 怀疑值／势力敌意 | 未做独立层 |
-
-## 4. 语义 → 正式模块映射
-
-| Demo 概念 | 正式归属 | 迁移策略 |
-|---|---|---|
-| `GameClock` | 表现层时钟 + Tick 调度器 | 显示保留；结算改走 Tick（`33` §2） |
-| `CharacterActionController` | Core：Intent／Action 执行器 | 状态名可保留；逻辑迁出 Unity |
-| `UnitCultivation` | Core：修为／灵力／个人隐匿风险 | 字段对齐 `2B`；增量改走 Modifier／Tick |
-| `ScheduleService` | Core：时间表服务 | 从「仅全村一张」扩展为多身份，语义保留 |
-| `WorkSystem`／工位 | Core：生产＋World 交互点 | 产量公式进配置；禁止脚本写死 |
-| `CultivationSystem` | Core：修炼＋环境＋隐匿层输入 | 暴露三层按 `33` §6 拆分 |
-| `AmbientNpcActor` | 第二层实体日程；第四层用群体呈现器 | 守卫／主管保留实体；村民以群体为主 |
-| `NpcScheduleConfig` | 数据驱动日程 | CSV／JSON 真源；SO 仅缓存 |
-| `ResourceInventory` | Core：资源账本 | 保持可追溯增减 |
-| `DemoPrototypeHud` | 临时 IMGUI；非正式 UI | 正式 UGUI／Toolkit 另立 ADR |
+| `GameClock` | `WorldClock`（Tick 推进）+ `ActionClock`（场景行动推进）+ 表现层显示 |
+| `CharacterActionController` | `OrderQueue` + `ActionRunner`／ActiveAction |
+| `PartyCommandController` | Unity 输入适配器 → 生成 Order（不改 Core 状态） |
+| `DemoUnitController` | Unity 表现代理；逻辑位置在 Core `Location` |
+| `UnitCultivation` | `CultivationComponent` + 状态值（修为／暴露） |
+| `CultivationSystem` | Cultivation Order/Action + 环境 + 隐匿输入 |
+| `ScheduleService` | `ScheduleComponent`／ScheduleSystem（可多身份） |
+| `ScheduleComplianceTracker` | 义务遵守查询 → 可能产生 DomainEvent |
+| `SupervisorAngerSystem` | WorldLedger／Obligation／Relationship（NPC 怀疑／态度）；**不**并入个人隐匿 |
+| `WorkSystem`／`WorkSpot`／`WorkZone` | WorkOrder + ReserveWorkPoint／Gather Action + 配置产量 |
+| 工作区资源增长 | WorkAction 结算 → `ResourceTransaction` DomainEvent → ResourceLedger |
+| `ResourceInventory` | ResourceLedger（可追溯增减） |
+| `DailyTaskSystem` | QuestAndObligationLedger + 每日结算 ScheduledEvent |
+| `AmbientNpcActor`／`NpcScheduleConfig` | 层 2 Character + Schedule；配置 CSV／JSON |
+| `VillageCrowdPresenter` | 层 4 群体呈现；Core 为 SettlementPopulation |
+| `UnitOrderPathPreview`／飘字／威胁标 | 纯 Unity 表现；订阅快照／事件 |
+| `DemoPrototypeHud` | 临时 IMGUI；正式 UI 另立 ADR-0009 |
+| `ReplaceableSprite` | 表现资源约定；与 Core 无关；正式经 AssetId |
+| `SpiritSiteZone` | Location／区域定义 + 修炼前置条件 |
+| （无）Player 类型角色 | `PlayerAgency` + FocusCharacter + ControlAuthority |
+| （无）剧情锁血 | 默认可死；`DeathProtectionMode`／TemporaryProtection |
+| （硬编码表） | 正式一律 ContentPackage（含 BaseGame） |
 
 ## 5. 重构顺序（建议，仍不编码）
 
+```text
+1. asmdef：Core / Data / Unity / Tests
+2. 基础类型：EntityId、Tick、IRandomSource、Definition 加载与校验
+3. WorldTick + ActionClock 调度
+4. AttributeModifier 管道
+5. OrderQueue + ActionRunner（对齐 Gather／Move／Cultivate）
+6. DomainEvent + ScheduledEvent + 最小 Ledger
+7. 实体分层与群体组件
+8. 用 Demo 场景做回归：三人分工劳动与偷修
+9. 再实现第一次突破事件
 ```
-1. 建立 asmdef：Core / Data / Unity / Tests（边界先于功能）
-2. Tick 调度 + 把现有分钟结算映射为 Tick
-3. AttributeModifier 管道 + 把修为／产出／暴露改为管道写入
-4. Intent／Action 对齐 Demo 行动语义
-5. 实体分层：可控修士／关键 NPC／群体组件拆分
-6. 再实现第一次突破事件（第一章）
-```
 
-每一步的验收标准：**旧 Demo 可复述的玩家操作，在新架构下行为一致。**
+每步验收：**旧 Demo 可复述的玩家操作，在新架构下行为一致。**
 
-## 6. 接口需求摘要（给实现期用）
+## 6. 接口职责摘要（签名实现期再定）
 
-正式系统对外至少保证：
+1. `IGameTime`：WorldTick、推进、暂停、倍速。  
+2. `IModifierSink`：Add／按来源移除／查询 Final 与溯源。  
+3. `IOrderBus`／`IActionRunner`：下达、插队、取消；生命周期见 `35`。  
+4. `ISchedule`：查询当前时段活动。  
+5. `IResourceLedger`：增减并记录原因。  
+6. `IConcealment`：个人风险／NPC 怀疑／势力敌意三套 API。  
+7. `IWorldLedger`：分册查询，禁止万能字典。  
+8. `IStateSnapshot`：只读给 Unity。  
 
-1. `IGameTime`：当前 Tick、推进 N Tick、暂停标志。  
-2. `IModifierSink`：`AddModifier`／按来源移除／查询 Final 与溯源列表。  
-3. `IActionQueue`：下达／插队／取消意图；状态含 Idle／MovingTo／Working／Cultivating／Interrupted。  
-4. `ISchedule`：按实体或身份查询当前时段活动。  
-5. `IResourceLedger`：增减资源并记录原因。  
-6. `IConcealment`：个人隐匿风险、按 NPC 的怀疑值、势力敌意——三套 API，不合并。
-
-具体签名在实现前可再定；**职责分离已冻结**。
-
-## 7. 文档与阶段
+## 7. 相关文档
 
 | 文档 | 作用 |
 |---|---|
-| `49-demo-v0.1-prototype-status.md` | Demo 玩法快照（冻结，不再当开发任务板） |
-| `33-architecture-core-rules-freeze-v0.1.md` | 架构核心规则 |
-| 本文 `32` | Demo ↔ 正式桥接 |
+| `49` | Demo 玩法快照 |
+| `33` | 架构主契约 |
+| `34`／`35`／`2C`／`2E` | 实体、命令、属性、事件展开 |
+| 本文 | Demo ↔ 正式映射 |
 
-**当前阶段：架构冻结阶段** — 完善设计契约，等待下一阶段规则确认后再编码。
+**当前阶段：架构冻结 — 完善契约，审核前不编码。**

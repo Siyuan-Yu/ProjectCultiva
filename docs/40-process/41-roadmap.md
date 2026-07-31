@@ -1,12 +1,13 @@
 # 路线图
 
-> 状态：**架构冻结阶段** | 最后更新：2026-07-31
+> 状态：**架构冻结增量收口，待人工审核** | 最后更新：2026-07-31
 > 原则：每个里程碑必须有**可验证的完成标准**，不能是"做完某个系统"这种模糊描述。
 
 ## 当前阶段说明
 
-Demo v0.1 灰盒已验证「劳动 → 偷修 → 分工 → 世界在动」。**不再扩展 Demo。**  
-当前里程碑：把已确认规则写入 `33`／`32` 并展开 `2C`／`2E`／第一次突破细则，**确认前不编码**。
+Demo 已停扩。当前已写入架构冻结文档包及增量（死亡／PlayerAgency／Mod Ready）。**审核通过前不编码。**  
+正式 UI 方案仍预留 **ADR-0009**。
+
 
 ## M0 — 定方向
 
@@ -17,7 +18,7 @@ Demo v0.1 灰盒已验证「劳动 → 偷修 → 分工 → 世界在动」。*
 - [ ] 回答 `01-vision.md` 的 Q1–Q5
 - [ ] 定稿差异化决策（`14-borrow-and-differentiate.md` 第 2 节）
 - [x] 确定 Unity 版本与渲染管线（2022.3.6f1 Built-in，ADR-0001）
-- [ ] 确定正式 UI 方案（ADR-0002；原型暂用最简 GUI）
+- [ ] 确定正式 UI 方案（ADR-0009；原型暂用最简 GUI）
 
 完成标准：能用三句话说清"这是什么游戏、玩家在干什么、和竞品哪里不一样"，且自己一周后看还认同。
 
@@ -66,15 +67,35 @@ Demo v0.1 灰盒已验证「劳动 → 偷修 → 分工 → 世界在动」。*
 
 目标：把底层形状写成不可轻易改动的契约，避免正式开发反复返工。
 
-- [x] `33-architecture-core-rules-freeze-v0.1.md`（Modifier／Tick／四层／炼气能力／突破事件／隐匿三层）
-- [x] `32-prototype-to-product-bridge.md`（Demo 语义 → 正式接口）
-- [x] 总览／AGENTS／系统索引阶段切换为「架构冻结」
-- [ ] 展开 `2C` 数据结构与公式表
-- [ ] 新建并定稿 `2E` 事件与世界状态
+### 架构冻结文档包（本轮收口）
+
+- [x] `33-architecture-core-rules-freeze-v0.1.md` 主契约扩写（总边界／时间／地图／多队／战斗／AI／军队／存档）
+- [x] `34-entity-and-component-model.md`
+- [x] `35-order-and-action-system.md`（原 `35-feishu-sync` 改号为 `36`）
+- [x] `2C-attributes-and-modifier-pipeline.md` 公式与字段冻结
+- [x] `2E-events-and-world-state.md` 新建并冻结三层+分册
+- [x] `32-prototype-to-product-bridge.md` 映射表更新（无公开 Intent）
+- [x] ADR-0002～0008（ECS／双时间／CSV-JSON／快照存档／地图／多队／ArmyGroup）
+- [x] 总览／术语表／系统索引／AGENTS 入口更新
+- [x] **增量：** 永久死亡＋TemporaryProtection（`33` §19、ADR-0010）
+- [x] **增量：** FactionMembership／Role／Relationship／ControlAuthority 分离与核心离开（`33` §20、ADR-0011／0012）
+- [x] **增量：** PlayerAgency（FocusCharacter + FactionLeadership）
+- [x] **增量：** `36-content-package-and-mod-architecture.md`（Mod Ready；ADR-0013～0016）
+- [x] 飞书同步文档改号为 `37`（`36` 留给 ContentPackage）
+- [ ] 人工审核通过本包（含增量）
 - [ ] 第一次突破事件规格（挂 `25`／`2G`）
 - [ ] 炼气基础术法最小清单（挂 `22`）
+- [ ] `24` 正文同步到地图四类
 
-完成标准：实现期工程师／AI 只按冻结文档搭 Core，不必再问「暴露是否合并」「要不要直接改攻击力」。
+### Mod Ready 路线（见 `36`）
+
+- [x] **阶段 A**：ContentPackage／命名空间／Manifest／白名单／存档记录契约（不写加载器）
+- [ ] **阶段 B**：Core 早期 — 官方也走 ContentPackage；测试包验证
+- [ ] **阶段 C**：垂直切片后 — 本地 Mods/ 加载与示例
+- [ ] **阶段 D**：编辑器／Patch／创作者文档
+- [ ] **阶段 E**：Workshop／管理器／脚本 API 评估
+
+完成标准：实现期只按冻结文档搭 Core，不必再问「剧情角色会不会死」「玩家是不是上帝」「Mod 现在做不做完整平台」。
 
 ## M3 — 垂直切片
 

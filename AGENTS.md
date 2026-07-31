@@ -2,62 +2,53 @@
 
 本文件供 Cursor / AI 助手在本项目中自动读取。目标是让**不同时间、不同设备、不同 AI 会话**产出一致的结果。
 
-## 当前阶段：架构冻结（Architecture Freeze）
+## 当前阶段：架构冻结文档包（待人工审核）
 
-**已于 2026-07-31 结束 Demo 功能扩展，进入架构冻结阶段。**
+**已于 2026-07-31 结束 Demo 功能扩展，进入架构冻结。本轮已写入文档包，审核前不编码。**
 
-- **只写／改设计文档**，不要开始正式编码，也不要继续堆 Demo 功能（突破、夺府、潜行判定等）。
-- 主契约：`docs/30-tech/33-architecture-core-rules-freeze-v0.1.md`
-- Demo → 正式桥接：`docs/30-tech/32-prototype-to-product-bridge.md`
-- Demo 玩法快照（只读参考）：`docs/40-process/49-demo-v0.1-prototype-status.md`
+- **只写／改设计文档**，不要开始正式 Core 编码，也不要继续堆 Demo 功能。
+- 主契约：`docs/30-tech/33-architecture-core-rules-freeze-v0.1.md`（含死亡、PlayerAgency、Mod Ready）
+- 必读展开：`34`、`35`、`36-content-package-and-mod-architecture.md`、`2C`、`2E`、`32`
+- Demo 快照：`docs/40-process/49-demo-v0.1-prototype-status.md`
+- 贵重决策：ADR-0002～0008、0010～0016（UI=0009 预留）
 - 未写入冻结文档的内容仍标「待确定」，不得为了推进而自行拍板。
 - 变更已冻结规则必须：升版本／写 ADR／记入 `42-devlog.md`。
 
-既有 Demo 原型工程可保留作语义参考；正式实现以冻结文档为准（替换实现，不改玩法语义）。
-
 ## 开工前必读
 
-任何会话开始时，先读这些，不要凭猜测动手：
-
-1. 最新的 `docs/40-process/44-session-handoff-*.md`（若有）— 跨设备／跨会话的快速上下文
-2. `docs/00-project/00-overview.md` — 最高层大纲与文档索引（**入口**）
-3. `docs/30-tech/33-architecture-core-rules-freeze-v0.1.md` — **架构冻结主契约**
-4. `docs/30-tech/32-prototype-to-product-bridge.md` — Demo 已验证语义
-5. `docs/10-benchmark/14-borrow-and-differentiate.md` — 设计约束
-6. `docs/40-process/42-devlog.md` 最新 2 条 — 当前进展与阻塞
-
-需要某个系统的细节时，从总览第六节的索引进入 `docs/20-systems/`，不要在总览里找细节。
+1. 最新的 `docs/40-process/44-session-handoff-*.md`（若有）
+2. `docs/00-project/00-overview.md`
+3. `docs/30-tech/33-architecture-core-rules-freeze-v0.1.md`
+4. `docs/30-tech/34-entity-and-component-model.md`、`35-order-and-action-system.md`、`36-content-package-and-mod-architecture.md`
+5. `docs/20-systems/2C-attributes-and-modifier-pipeline.md`、`2E-events-and-world-state.md`
+6. `docs/30-tech/32-prototype-to-product-bridge.md`
+7. `docs/10-benchmark/14-borrow-and-differentiate.md`
+8. `docs/40-process/42-devlog.md` 最新 2～3 条
 
 ## 硬性规则
 
-1. **文档先于代码。** 系统设计文档（`docs/20-systems/`）未定稿时，不要生成该系统的实现代码；应先补文档。架构冻结阶段默认**不写代码**。
-1.1 **总览只放大纲。** `00-overview.md` 保持最高层结构；任何细节、流程、数值、示例都写进 `docs/20-systems/` 或 `docs/30-tech/`。
-2. **命名走术语表。** 所有标识符必须匹配 `docs/00-project/03-glossary.md`。新概念先登记再使用，禁止同义词混用。运行时属性加成写 **AttributeModifier**，避免与内容「词条」混称。
-3. **逻辑层不许引用 UnityEngine。** `XianXia.Core` 与 `XianXia.Data` 内禁止 `using UnityEngine`，包括 `Random`、`Debug`、`Time`、`Mathf`。
-   - 随机 → 注入的 `IRandomSource`
-   - 日志 → 注入的日志接口
-   - 时间 → **Tick**（1 Tick = 15 游戏分钟，一日 96 Tick）
-4. **数值不写死。** 任何游戏数值进配置表，不出现在代码字面量里（纯技术常量除外）。
-5. **数值必须可溯源。** 属性计算走统一 Modifier 管道；禁止直接改 Final（见冻结文档 §1）。
-6. **隐匿三层不合并。** 个人隐匿风险／NPC 怀疑值／势力敌意（见冻结文档 §6）。
-7. **改了实质内容就更新 devlog。** 在 `docs/40-process/42-devlog.md` 顶部追加，重点写判断与理由，不是罗列文件。
-8. **贵的决定要写 ADR。** 涉及版本、数据格式、架构边界、第三方依赖、**已冻结规则变更**时，用 `docs/90-templates/adr-template.md` 建 ADR。
-9. **明确不做的东西不要提议。** 见 `14-borrow-and-differentiate.md` 第 3 节（即时动作战斗、3D 开放世界、多人联网等）。
+1. **文档先于代码。** 架构冻结阶段默认**不写代码**。
+1.1 **总览只放大纲。** 细节进 `20-systems/` 或 `30-tech/`。
+2. **命名走术语表。** AttributeModifier；Order／Action（无 Intent）；DefinitionId=`namespace:local_id`。
+3. **逻辑层不许引用 UnityEngine。** 随机走 `IRandomSource`；时间走 WorldTick／ActionClock。
+4. **数值不写死。** CSV／JSON 真源；官方内容走 ContentPackage，禁止专用硬编码加载路径。
+5. **数值必须可溯源。** 禁止直接改 Final；Mod 效果须经正式契约，禁止任意 C# Mod（现阶段）。
+6. **隐匿三层不合并。**
+7. **死亡默认永久。** `IsStoryImportant ≠ CannotDie`；仅显式 TemporaryProtection。
+8. **控制权分离。** 禁止 IsPlayerCharacter／单一 FactionId 包办；始终有 FocusCharacter。
+9. **改了实质内容就更新 devlog。**
+10. **贵的决定要写 ADR。**
+11. **明确不做的东西不要提议**（完整 ECS、完整回放、完整 GOAP、现阶段 Workshop／任意脚本 Mod 等）。
 
 ## 范围纪律
 
-这是单人 + AI 的项目，最大风险是范围膨胀。
-
-- 提方案时优先给**能在垂直切片里验证**的最小设计
-- 新增系统前先问"它为玩家体验贡献了什么"，答不出就不做
-- 不要为了"以后可能需要"提前抽象；但**架构边界（程序集分离、Modifier 溯源、Tick、配置表驱动、四层模拟）已冻结**，实现期必须遵守
+- 优先垂直切片可验证的最小设计。
+- 架构边界已冻结：程序集分离、组合实体、Modifier、双层时间、Order/Action、快照存档、地图四类、多队分级模拟。
 
 ## 代码约定（实现期生效；当前阶段不编码）
 
-- C#，命名遵循 .NET 规范（PascalCase 类型与方法，camelCase 局部变量与参数，`_camelCase` 私有字段）
-- 逻辑层优先写可单元测试的纯函数
-- 注释只解释"为什么"和非显而易见的约束，不解释代码在做什么
-- 配置表用文本格式（CSV/JSON）作为唯一真源；ScriptableObject 只作为导入后的运行时/编辑器缓存
+- C#；逻辑层可单测；注释写为什么。
+- 配置文本真源；校验失败阻止进游戏。
 
 ## 回答语言
 

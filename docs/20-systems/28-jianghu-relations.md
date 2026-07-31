@@ -1,7 +1,16 @@
 # 江湖关系
 
-> 状态：草稿 | 优先级：P0 | 最后更新：2026-07-30
+> 状态：草稿；归属／关系／控制权分离已对齐 `33`／`34` | 优先级：P0 | 最后更新：2026-07-31
 > 上级：`docs/00-project/00-overview.md`
+> 关联：`27`、`2E`、`../30-tech/34-entity-and-component-model.md`
+> **本阶段不写实现代码。**
+
+## 0. 与架构冻结的对齐
+
+- `Relationship` 与 `FactionMembership`／`FactionRole`／`ControlAuthority` **分离**。  
+- 离开势力后关系**不清零**；可保留仇恨／友好／师徒等。  
+- 角色死亡可使强绑定关系与剧情永久结束（允许错过内容）。  
+- 延迟报复等用 `ScheduledEvent` + Ledger，禁止系统私有倒计时。  
 
 ## 1. 这个系统解决什么问题
 

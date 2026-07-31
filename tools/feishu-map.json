@@ -162,9 +162,14 @@
       "docId": "AfG6djzJ2ojI9JxSzDtceVffnQd"
     },
     "feishu-sync-doc": {
-      "file": "docs/30-tech/35-feishu-sync.md",
+      "file": "docs/30-tech/37-feishu-sync.md",
       "title": "飞书文档同步说明",
       "docId": "NGo9ddHOZo2gH6xmJ7icJSzinfe"
+    },
+    "content-package": {
+      "file": "docs/30-tech/36-content-package-and-mod-architecture.md",
+      "title": "ContentPackage 与 Mod Ready 架构",
+      "docId": ""
     },
     "architecture": {
       "file": "docs/30-tech/31-architecture.md",
@@ -185,6 +190,21 @@
       "file": "docs/20-systems/2C-attributes-and-modifier-pipeline.md",
       "title": "系统 2C 属性与 Modifier 管道",
       "docId": "JtIgdCdmFonaDsxQQ83cwMrInwd"
+    },
+    "entity-model": {
+      "file": "docs/30-tech/34-entity-and-component-model.md",
+      "title": "实体与能力模块模型",
+      "docId": ""
+    },
+    "order-action": {
+      "file": "docs/30-tech/35-order-and-action-system.md",
+      "title": "Order 与 Action 系统",
+      "docId": ""
+    },
+    "sys-events": {
+      "file": "docs/20-systems/2E-events-and-world-state.md",
+      "title": "系统 2E 事件与世界状态记账",
+      "docId": ""
     }
   }
 }
