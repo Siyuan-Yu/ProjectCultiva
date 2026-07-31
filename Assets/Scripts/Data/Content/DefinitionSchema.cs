@@ -13,7 +13,8 @@ namespace XianXia.Data.Content
     {
         public static readonly HashSet<string> CharacterFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "displayNameKey", "nameKey", "baseAttributes", "tags"
+            "id", "type", "name", "displayNameKey", "nameKey", "baseAttributes", "tags",
+            "spiritRootPlaceholder", "initialRealmPlaceholder"
         };
 
         public static readonly HashSet<string> CultivationFields = new HashSet<string>(StringComparer.Ordinal)

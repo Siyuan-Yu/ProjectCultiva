@@ -1,6 +1,6 @@
-# BaseGame Data Schema (Data Pipeline M1-A)
+# BaseGame Data Schema (Data Pipeline M1-A / VS0.1)
 
-Runtime format: **JSON only** (Excel/CSV conversion not in M1-A runtime load path).
+Runtime format: **JSON only** (CSV is authoring input via M1-B importer; not runtime).
 
 ## File layout
 
@@ -11,6 +11,10 @@ Content/BaseGame/
     characters.json
     cultivation.json
     items.json
+  Authoring/Csv/
+    characters.csv
+    cultivation.csv
+    items.csv
 ```
 
 Each data file:
@@ -42,6 +46,8 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | Field | Required | Notes |
 |---|---|---|
 | `baseAttributes` | no | object: AttributeId name → number (`MaxHp`/`Attack`/`Defense`/`Speed`) |
+| `spiritRootPlaceholder` | no | VS0.1 灵根占位；无玩法公式 |
+| `initialRealmPlaceholder` | no | VS0.1 初始境界占位；无突破逻辑 |
 
 ## type = cultivation
 
@@ -58,8 +64,11 @@ Grant object fields: `targetAttribute`, `operation` (`Fixed`\|`Percentage`), `va
 |---|---|---|
 | `maxStack` | no | number ≥ 1；default 1 |
 
-## Sample IDs (M1-A)
+## Sample IDs
 
 - `base:character_labor_disciple`
+- `base:character_protagonist`
+- `base:character_companion_a`
+- `base:character_companion_b`
 - `base:cultivation_basic_breath`
 - `base:item_rough_wood`

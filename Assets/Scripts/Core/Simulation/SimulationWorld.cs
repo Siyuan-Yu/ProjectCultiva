@@ -6,6 +6,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Events;
 using XianXia.Core.Orders;
 using XianXia.Core.Random;
+using XianXia.Core.World;
 
 namespace XianXia.Core.Simulation
 {
@@ -40,6 +41,9 @@ namespace XianXia.Core.Simulation
         public IRandomSource Random { get; set; }
 
         public RegionId RegionId { get; set; }
+
+        /// <summary>Optional VS0.1 layout placeholders (Region/LocalMap/Settlement). Not gameplay.</summary>
+        public WorldInitData WorldLayout { get; set; }
 
         public DefaultOrderTranslator Translator { get; }
 

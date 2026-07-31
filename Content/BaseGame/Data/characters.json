@@ -14,6 +14,54 @@
         "Speed": 8
       },
       "tags": ["labor", "disciple"]
+    },
+    {
+      "id": "base:character_protagonist",
+      "type": "character",
+      "name": "主角",
+      "displayNameKey": "character.protagonist",
+      "nameKey": "character.protagonist",
+      "baseAttributes": {
+        "MaxHp": 120,
+        "Attack": 12,
+        "Defense": 6,
+        "Speed": 10
+      },
+      "tags": ["personality_persistent", "personality_cautious"],
+      "spiritRootPlaceholder": "杂灵根",
+      "initialRealmPlaceholder": "凡人"
+    },
+    {
+      "id": "base:character_companion_a",
+      "type": "character",
+      "name": "同伴甲",
+      "displayNameKey": "character.companion_a",
+      "nameKey": "character.companion_a",
+      "baseAttributes": {
+        "MaxHp": 110,
+        "Attack": 11,
+        "Defense": 7,
+        "Speed": 9
+      },
+      "tags": ["personality_loyal", "personality_steady"],
+      "spiritRootPlaceholder": "金灵根",
+      "initialRealmPlaceholder": "凡人"
+    },
+    {
+      "id": "base:character_companion_b",
+      "type": "character",
+      "name": "同伴乙",
+      "displayNameKey": "character.companion_b",
+      "nameKey": "character.companion_b",
+      "baseAttributes": {
+        "MaxHp": 105,
+        "Attack": 13,
+        "Defense": 5,
+        "Speed": 11
+      },
+      "tags": ["personality_bold", "personality_curious"],
+      "spiritRootPlaceholder": "火灵根",
+      "initialRealmPlaceholder": "凡人"
     }
   ]
 }

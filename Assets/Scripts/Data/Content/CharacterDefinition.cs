@@ -15,5 +15,9 @@ namespace XianXia.Data.Content
         public string NameKey { get; set; }
         public Dictionary<string, int> BaseAttributes { get; set; } = new Dictionary<string, int>();
         public List<string> Tags { get; set; } = new List<string>();
+        /// <summary>VS0.1 placeholder; no spirit-root formula in Data.</summary>
+        public string SpiritRootPlaceholder { get; set; }
+        /// <summary>VS0.1 placeholder; no breakthrough / realm gameplay in Data.</summary>
+        public string InitialRealmPlaceholder { get; set; }
     }
 }

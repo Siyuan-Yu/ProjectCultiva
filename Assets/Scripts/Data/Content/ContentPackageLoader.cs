@@ -215,7 +215,9 @@ namespace XianXia.Data.Content
                 Id = id,
                 Name = item.GetString("name", string.Empty),
                 DisplayNameKey = item.GetString("displayNameKey", string.Empty),
-                NameKey = item.GetString("nameKey", string.Empty)
+                NameKey = item.GetString("nameKey", string.Empty),
+                SpiritRootPlaceholder = item.GetString("spiritRootPlaceholder", string.Empty),
+                InitialRealmPlaceholder = item.GetString("initialRealmPlaceholder", string.Empty)
             };
 
             if (item.TryGetProperty("baseAttributes", out var attrs))
