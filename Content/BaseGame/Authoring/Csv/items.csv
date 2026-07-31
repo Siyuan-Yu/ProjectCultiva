@@ -1,0 +1,2 @@
+id,name,displayNameKey,nameKey,maxStack,tags
+base:item_rough_wood,粗木,item.rough_wood,item.rough_wood,99,resource;wood

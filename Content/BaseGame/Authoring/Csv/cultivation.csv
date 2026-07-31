@@ -1,0 +1,2 @@
+id,name,displayNameKey,nameKey,requiredRealm,targetAttribute,operation,value,stackingKey,tags
+base:cultivation_basic_breath,基础吐纳,cultivation.basic_breath,cultivation.basic_breath,凡人,MaxHp,Fixed,20,basic_breath_hp,manual;basic

@@ -1,0 +1,2 @@
+id,name,displayNameKey,nameKey,MaxHp,Attack,Defense,Speed,tags
+base:character_labor_disciple,劳役弟子,character.labor_disciple,character.labor_disciple,100,10,5,8,labor;disciple
