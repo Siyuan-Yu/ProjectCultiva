@@ -174,17 +174,17 @@
     "prototype-bridge": {
       "file": "docs/30-tech/32-prototype-to-product-bridge.md",
       "title": "Demo到正式开发桥接",
-      "docId": ""
+      "docId": "MM7edtl0UoiPCwxt2TrcNcGOnwc"
     },
     "arch-freeze": {
       "file": "docs/30-tech/33-architecture-core-rules-freeze-v0.1.md",
       "title": "架构核心规则冻结 v0.1",
-      "docId": ""
+      "docId": "YcU8d3OCBoDoPRxWhPucAKkQnTh"
     },
     "sys-modifier": {
       "file": "docs/20-systems/2C-attributes-and-modifier-pipeline.md",
       "title": "系统 2C 属性与 Modifier 管道",
-      "docId": ""
+      "docId": "JtIgdCdmFonaDsxQQ83cwMrInwd"
     }
   }
 }
