@@ -54,6 +54,12 @@ namespace XianXia.Core.Entities
             return Result.Ok(modifier);
         }
 
+        public void RestoreModifier(AttributeModifier modifier)
+        {
+            if (modifier == null) return;
+            _modifiers.Add(modifier);
+        }
+
         public int RemoveBySource(SourceRef source)
         {
             return _modifiers.RemoveAll(m => m.Source.Equals(source));

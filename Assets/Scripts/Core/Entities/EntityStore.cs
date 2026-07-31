@@ -32,6 +32,17 @@ namespace XianXia.Core.Entities
 
         public bool TryGet(EntityId id, out Entity entity) => _entities.TryGetValue(id, out entity);
 
+        public Result AddExisting(Entity entity)
+        {
+            if (entity == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "Entity is null.");
+            if (_entities.ContainsKey(entity.Id))
+                return Result.Failure(ErrorCode.AlreadyExists, "Entity id already present.", entity.Id.ToString());
+
+            _entities.Add(entity.Id, entity);
+            return Result.Success();
+        }
+
         public Result MarkRemoved(EntityId id)
         {
             if (!_entities.TryGetValue(id, out var entity))

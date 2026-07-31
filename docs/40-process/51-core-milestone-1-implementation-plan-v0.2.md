@@ -72,8 +72,15 @@
 | 阶段 | 状态 |
 |---|---|
 | 1 工程结构 | **已确认完成** |
-| 2 基础类型 | **完成，待确认**；Id／WorldTick／ActionClock／SourceRef；batchmode 编译通过；EditMode **24/24** |
-| 3～10 | 未开始（待阶段 2 确认） |
+| 2 基础类型 | **已确认完成** |
+| 3 Result／Validation | **完成** |
+| 4 Random | **完成** |
+| 5 ContentPackage | **完成** |
+| 6 Entity | **完成** |
+| 7 AttributeModifier | **完成** |
+| 8 DomainEvent | **完成** |
+| 9 Order／Action | **完成** |
+| 10 Snapshot | **完成，待总验收**；含整合烟测 |
 
 ---
 

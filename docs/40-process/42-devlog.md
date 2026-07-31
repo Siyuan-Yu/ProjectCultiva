@@ -7,6 +7,18 @@
 
 ---
 
+## 2026-08-01 — Core M1 阶段 10 Snapshot＋整合烟测完成
+
+**判断：** JSON 往返必须恢复 WorldTick／ActionClock／PRNG／Modifier Final；内容版本不匹配走 Result。
+
+**做了什么**
+- `WorldSnapshot`／`SnapshotService`／`JsonSnapshotSerializer`
+- 黄金：Wait 中途存档 → 新 World 续跑同 Tick 完成；Modifier／PRNG 一致；版本不匹配失败
+- `CoreM1IntegrationTests` 单 Region 闭环
+
+**下一步**
+- Core M1 编码完成，待人工总验收
+
 ## 2026-08-01 — Core M1 阶段 9 Order／Action／SimulationLoop 完成
 
 **判断：** WorldTick++ 只能由 SimulationLoop 拥有；Wait(4) 在第 4 次推进完成。
