@@ -12,7 +12,7 @@
 
 ## 2. 实现方式
 
-复用本机 ChatCCC 已配置的飞书自建应用（App ID `cli_aae0ade8d5389bdf`），凭据从 `~/.chatccc/config.json` 读取，**不写入仓库**。也可用环境变量 `FEISHU_APP_ID` / `FEISHU_APP_SECRET` 覆盖。
+复用本机 ChatCCC 已配置的飞书自建应用（App ID `cli_aa8b7ae9f0f8dccc`，机器人名「ysy的ChatCCC改名版」），凭据从 `~/.chatccc/config.json` 读取，**不写入仓库**。也可用环境变量 `FEISHU_APP_ID` / `FEISHU_APP_SECRET` 覆盖。
 
 调用链（飞书官方推荐路径）：
 
@@ -36,7 +36,7 @@
 
 ### 3.1 开通应用权限
 
-访问：<https://open.feishu.cn/app/cli_aae0ade8d5389bdf/auth?q=docx:document,docx:document.block:convert,docs:permission.member:create,drive:drive&op_from=openapi&token_type=tenant>
+访问：<https://open.feishu.cn/app/cli_aa8b7ae9f0f8dccc/auth?q=docx:document,docx:document.block:convert,docs:permission.member:create,drive:drive&op_from=openapi&token_type=tenant>
 
 开通这些权限：
 

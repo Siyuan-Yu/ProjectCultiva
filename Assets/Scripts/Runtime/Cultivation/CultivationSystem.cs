@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Unity.Actions;
 using XianXia.Unity.Presentation;
 using XianXia.Unity.Resources;
 using XianXia.Unity.Time;
@@ -7,6 +8,19 @@ using XianXia.Unity.World;
 
 namespace XianXia.Unity.Cultivation
 {
+    public enum CultivateAttemptResult
+    {
+        Started = 0,
+        AlreadyCultivating = 1,
+        /// <summary>已停下当前行动，但不在灵地，未能入定。</summary>
+        SettledOutsideSite = 2,
+        Failed = 3
+    }
+
+    /// <summary>
+    /// 修炼：停下当前工作／移动／交战，就地入定（打坐）。
+    /// 不是 RTS 选目标指令；须身在灵地才能真正入定涨修为。
+    /// </summary>
     public sealed class CultivationSystem : MonoBehaviour
     {
         [SerializeField] private GameClock clock;
@@ -72,9 +86,22 @@ namespace XianXia.Unity.Cultivation
 
                 if (cultivation.IsCultivating)
                 {
+                    CharacterActionController actions = unit.GetComponent<CharacterActionController>();
+                    if (actions != null && actions.IsActivelyCultivating())
+                    {
+                        // Milestone 3.5：修为由 CharacterActionController 推进，此处不重复、不做暴露。
+                        continue;
+                    }
+
+                    // 入定中若又被下令移动／工作／攻击，或离开灵地 → 出定。
                     if (!inSite || unit.HasActiveOrder)
                     {
                         StopCultivation(unit);
+                        WorldFeedbackOverlay.Ensure().SpawnFloatingText(
+                            unit.transform.position,
+                            "出定",
+                            new Color(0.7f, 0.8f, 0.9f),
+                            0.8f);
                         continue;
                     }
 
@@ -86,6 +113,12 @@ namespace XianXia.Unity.Cultivation
                 }
                 else if (inSite && inventory != null && gameHours > 0f)
                 {
+                    CharacterActionController actions = unit.GetComponent<CharacterActionController>();
+                    if (actions != null && actions.IsActivelyCultivating())
+                    {
+                        continue;
+                    }
+
                     GatherConcealGrass(unit, gameHours);
                 }
             }
@@ -93,27 +126,48 @@ namespace XianXia.Unity.Cultivation
             AnyUnitInSpiritSite = anyInSite;
         }
 
-        public bool TryStartCultivation(DemoUnitController unit)
+        /// <summary>
+        /// 停下当前事并尝试入定。始终先 CancelOrder；仅在灵地内才真正修炼。
+        /// </summary>
+        public CultivateAttemptResult TryStartCultivation(DemoUnitController unit)
         {
-            if (unit == null || spiritSite == null || config == null)
+            if (unit == null || config == null)
             {
-                return false;
+                return CultivateAttemptResult.Failed;
             }
 
             UnitCultivation cultivation = unit.GetComponent<UnitCultivation>();
-            if (cultivation == null || cultivation.IsCultivating)
+            if (cultivation == null)
             {
-                return false;
+                return CultivateAttemptResult.Failed;
             }
 
-            if (!spiritSite.Contains(unit.transform.position))
-            {
-                return false;
-            }
-
+            // 收敛：无论能否入定，先停掉工作／移动／交战。
             unit.CancelOrder();
+
+            if (cultivation.IsCultivating)
+            {
+                return CultivateAttemptResult.AlreadyCultivating;
+            }
+
+            bool inSite = spiritSite != null && spiritSite.Contains(unit.transform.position);
+            if (!inSite)
+            {
+                WorldFeedbackOverlay.Ensure().SpawnFloatingText(
+                    unit.transform.position,
+                    "已停下·需在灵地入定",
+                    new Color(0.75f, 0.8f, 0.9f),
+                    1.2f);
+                return CultivateAttemptResult.SettledOutsideSite;
+            }
+
             cultivation.SetCultivating(true);
-            return true;
+            WorldFeedbackOverlay.Ensure().SpawnFloatingText(
+                unit.transform.position,
+                "入定",
+                new Color(0.45f, 0.85f, 1f),
+                1.0f);
+            return CultivateAttemptResult.Started;
         }
 
         public void StopCultivation(DemoUnitController unit)
@@ -124,7 +178,10 @@ namespace XianXia.Unity.Cultivation
             }
 
             UnitCultivation cultivation = unit.GetComponent<UnitCultivation>();
-            cultivation?.SetCultivating(false);
+            if (cultivation != null && cultivation.IsCultivating)
+            {
+                cultivation.SetCultivating(false);
+            }
         }
 
         public int StartCultivationForUnits(IReadOnlyList<DemoUnitController> selected)
@@ -137,7 +194,7 @@ namespace XianXia.Unity.Cultivation
 
             foreach (DemoUnitController unit in selected)
             {
-                if (TryStartCultivation(unit))
+                if (TryStartCultivation(unit) == CultivateAttemptResult.Started)
                 {
                     started++;
                 }
@@ -155,7 +212,22 @@ namespace XianXia.Unity.Cultivation
 
             foreach (DemoUnitController unit in selected)
             {
+                if (unit == null)
+                {
+                    continue;
+                }
+
+                UnitCultivation cultivation = unit.GetComponent<UnitCultivation>();
+                bool was = cultivation != null && cultivation.IsCultivating;
                 StopCultivation(unit);
+                if (was)
+                {
+                    WorldFeedbackOverlay.Ensure().SpawnFloatingText(
+                        unit.transform.position,
+                        "出定",
+                        new Color(0.7f, 0.8f, 0.9f),
+                        0.8f);
+                }
             }
         }
 
@@ -178,6 +250,11 @@ namespace XianXia.Unity.Cultivation
             }
 
             cultivation.ReduceExposure(config.ConcealGrassExposureReduction);
+            WorldFeedbackOverlay.Ensure().SpawnFloatingText(
+                unit.transform.position,
+                "敛息",
+                new Color(0.55f, 0.9f, 0.7f),
+                0.9f);
             return true;
         }
 
@@ -238,6 +315,10 @@ namespace XianXia.Unity.Cultivation
             {
                 progress -= whole;
                 inventory.Add(ResourceType.ConcealGrass, whole);
+                WorldFeedbackOverlay.Ensure().SpawnFloatingText(
+                    unit.transform.position,
+                    $"+{whole}敛息草",
+                    new Color(0.55f, 0.9f, 0.7f));
             }
 
             _grassProgress[unit] = progress;

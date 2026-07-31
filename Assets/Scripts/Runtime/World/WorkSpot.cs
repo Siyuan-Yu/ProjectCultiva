@@ -13,7 +13,13 @@ namespace XianXia.Unity.World
         [SerializeField] private string spotName = "工位";
         [SerializeField] private float interactRadius = 0.85f;
 
+        private static readonly Color NormalColor = new(0.95f, 0.78f, 0.28f, 0.85f);
+        private static readonly Color TargetingColor = new(1f, 0.92f, 0.35f, 1f);
+        private static readonly Color HoverColor = new(1f, 1f, 0.55f, 1f);
+
         private SpriteRenderer _marker;
+        private bool _targetingActive;
+        private bool _hovered;
 
         public WorkZone OwnerZone => ownerZone;
         public string SpotName => spotName;
@@ -47,6 +53,32 @@ namespace XianXia.Unity.World
         {
             return ((Vector2)transform.position - worldPosition).sqrMagnitude
                 <= InteractRadius * InteractRadius;
+        }
+
+        public void SetTargetingVisual(bool targetingActive, bool hovered)
+        {
+            _targetingActive = targetingActive;
+            _hovered = hovered;
+            if (_marker == null)
+            {
+                return;
+            }
+
+            if (hovered)
+            {
+                _marker.color = HoverColor;
+                _marker.transform.localScale = Vector3.one * 0.75f;
+            }
+            else if (targetingActive)
+            {
+                _marker.color = TargetingColor;
+                _marker.transform.localScale = Vector3.one * 0.65f;
+            }
+            else
+            {
+                _marker.color = NormalColor;
+                _marker.transform.localScale = Vector3.one * 0.55f;
+            }
         }
 
         private void EnsureCollider()
@@ -83,9 +115,10 @@ namespace XianXia.Unity.World
                 _marker.sprite = CreateSpotSprite();
             }
 
-            _marker.color = new Color(0.95f, 0.78f, 0.28f, 0.85f);
+            _marker.color = NormalColor;
             _marker.sortingOrder = 4500;
             markerObject.transform.localScale = Vector3.one * 0.55f;
+            SetTargetingVisual(_targetingActive, _hovered);
         }
 
         private static Sprite CreateSpotSprite()

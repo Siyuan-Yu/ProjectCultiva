@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using XianXia.Unity.Actions;
 using XianXia.Unity.CameraControl;
 using XianXia.Unity.Cultivation;
 using XianXia.Unity.Input;
@@ -599,6 +600,9 @@ namespace XianXia.Unity.Editor
 
             PartyCommandController input = systems.AddComponent<PartyCommandController>();
             input.Configure(camera, workSystem, partyUnits);
+
+            systems.AddComponent<ActionSettings>();
+            systems.AddComponent<WorldFeedbackOverlay>();
 
             ZoneMapLabelOverlay zoneLabels = systems.AddComponent<ZoneMapLabelOverlay>();
             zoneLabels.Configure(camera);

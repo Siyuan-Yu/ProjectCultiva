@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Unity.Actions;
 using XianXia.Unity.Cultivation;
 using XianXia.Unity.Presentation;
 using XianXia.Unity.Resources;
@@ -60,6 +61,13 @@ namespace XianXia.Unity.World
                     continue;
                 }
 
+                // Milestone 3.5：有统一行动控制器时，由 CharacterActionController 负责产出，避免双计。
+                CharacterActionController actions = unit.GetComponent<CharacterActionController>();
+                if (actions != null)
+                {
+                    continue;
+                }
+
                 UnitCultivation cultivation = unit.GetComponent<UnitCultivation>();
                 if (cultivation != null && cultivation.IsCultivating)
                 {
@@ -93,12 +101,49 @@ namespace XianXia.Unity.World
 
                 state.Progress -= wholeUnits;
                 inventory.Add(zone.ResourceType, wholeUnits);
+                WorldFeedbackOverlay.Ensure().SpawnFloatingText(
+                    unit.transform.position,
+                    $"+{wholeUnits}{ResourceShortName(zone.ResourceType)}",
+                    ResourceColor(zone.ResourceType));
             }
+        }
+
+        private static string ResourceShortName(ResourceType type)
+        {
+            return type switch
+            {
+                ResourceType.Food => "粮",
+                ResourceType.Wood => "木",
+                ResourceType.Herb => "药",
+                _ => type.ToString()
+            };
+        }
+
+        private static Color ResourceColor(ResourceType type)
+        {
+            return type switch
+            {
+                ResourceType.Food => new Color(0.95f, 0.85f, 0.35f),
+                ResourceType.Wood => new Color(0.7f, 0.9f, 0.45f),
+                ResourceType.Herb => new Color(0.55f, 0.9f, 0.7f),
+                _ => Color.white
+            };
         }
 
         public bool IsUnitWorking(DemoUnitController unit)
         {
-            return unit != null && unit.IsActivelyWorking;
+            if (unit == null)
+            {
+                return false;
+            }
+
+            CharacterActionController actions = unit.GetComponent<CharacterActionController>();
+            if (actions != null)
+            {
+                return actions.IsActivelyWorking();
+            }
+
+            return unit.IsActivelyWorking;
         }
 
         public bool TryGetZone(Vector2 worldPosition, out WorkZone zone)
@@ -202,6 +247,36 @@ namespace XianXia.Unity.World
                     _ => 3
                 };
                 zone.EnsureDefaultSpots(count);
+            }
+        }
+
+        public void SetWorkTargetingVisuals(bool targetingActive, WorkSpot hoveredSpot)
+        {
+            EnsureAllZoneSpots();
+            if (workZones == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < workZones.Length; i++)
+            {
+                WorkZone zone = workZones[i];
+                if (zone == null)
+                {
+                    continue;
+                }
+
+                IReadOnlyList<WorkSpot> spots = zone.Spots;
+                for (int s = 0; s < spots.Count; s++)
+                {
+                    WorkSpot spot = spots[s];
+                    if (spot == null)
+                    {
+                        continue;
+                    }
+
+                    spot.SetTargetingVisual(targetingActive, targetingActive && spot == hoveredSpot);
+                }
             }
         }
     }

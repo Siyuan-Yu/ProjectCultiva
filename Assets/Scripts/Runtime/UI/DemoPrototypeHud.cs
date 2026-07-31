@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Unity.Actions;
 using XianXia.Unity.Cultivation;
 using XianXia.Unity.Input;
 using XianXia.Unity.Obligation;
@@ -171,11 +172,44 @@ namespace XianXia.Unity.UI
 
             if (UnityEngine.Input.GetKeyDown(KeyCode.C))
             {
-                cultivationSystem.StartCultivationForUnits(partyCommands.SelectedUnits);
+                partyCommands.CancelCommandTargeting();
+                // 修炼走统一行动：右键灵地优先；快捷键对选中单位下令前往灵地入定。
+                if (cultivationSystem != null && cultivationSystem.SpiritSite != null)
+                {
+                    foreach (DemoUnitController u in partyCommands.SelectedUnits)
+                    {
+                        if (u == null)
+                        {
+                            continue;
+                        }
+
+                        CharacterActionController actions = u.GetComponent<CharacterActionController>();
+                        if (actions == null)
+                        {
+                            actions = u.gameObject.AddComponent<CharacterActionController>();
+                        }
+
+                        actions.IssueCultivate(cultivationSystem.SpiritSite);
+                    }
+                }
             }
 
             if (UnityEngine.Input.GetKeyDown(KeyCode.X))
             {
+                foreach (DemoUnitController u in partyCommands.SelectedUnits)
+                {
+                    if (u == null)
+                    {
+                        continue;
+                    }
+
+                    CharacterActionController actions = u.GetComponent<CharacterActionController>();
+                    if (actions != null && actions.IsActivelyCultivating())
+                    {
+                        actions.Cancel("玩家出定");
+                    }
+                }
+
                 cultivationSystem.StopCultivationForUnits(partyCommands.SelectedUnits);
             }
 
@@ -307,14 +341,42 @@ namespace XianXia.Unity.UI
 
             if (cultivationSystem != null)
             {
-                if (GUI.Button(new Rect(x, 6f, 64f, 32f), "修炼"))
+                if (GUI.Button(new Rect(x, 6f, 64f, 32f), "入定"))
                 {
-                    cultivationSystem.StartCultivationForUnits(ResolveTargetUnits());
+                    partyCommands?.CancelCommandTargeting();
+                    if (cultivationSystem.SpiritSite != null)
+                    {
+                        foreach (DemoUnitController u in ResolveTargetUnits())
+                        {
+                            if (u == null)
+                            {
+                                continue;
+                            }
+
+                            CharacterActionController actions = u.GetComponent<CharacterActionController>()
+                                ?? u.gameObject.AddComponent<CharacterActionController>();
+                            actions.IssueCultivate(cultivationSystem.SpiritSite);
+                        }
+                    }
                 }
 
                 x += 68f;
-                if (GUI.Button(new Rect(x, 6f, 48f, 32f), "停止"))
+                if (GUI.Button(new Rect(x, 6f, 48f, 32f), "出定"))
                 {
+                    foreach (DemoUnitController u in ResolveTargetUnits())
+                    {
+                        if (u == null)
+                        {
+                            continue;
+                        }
+
+                        CharacterActionController actions = u.GetComponent<CharacterActionController>();
+                        if (actions != null && actions.IsActivelyCultivating())
+                        {
+                            actions.Cancel("玩家出定");
+                        }
+                    }
+
                     cultivationSystem.StopCultivationForUnits(ResolveTargetUnits());
                 }
 
@@ -381,7 +443,7 @@ namespace XianXia.Unity.UI
                     210f,
                     maxBottom,
                     "操作",
-                    "左键点选 / 拖拽框选\n点可控角色=底部操作栏\n工作(W)：再点黄色工位才开工\n右键工位/空地=只移动（不自动开工）\n点NPC=只读状态栏\n课表=全村劳役规则\nS停止 C修炼 X停修 G敛息草",
+                    "左键点选 / 拖拽框选 / 双击全选\n右键地面=移动\n右键工位=采集/耕作（自动走近）\n右键灵地=开始修炼\nW=工作选目标 A=攻击\nC=令选中角色前往灵地修炼\nS停止 · 暂停/倍速影响行动进度",
                     ref _showHelp);
             }
 
@@ -695,7 +757,7 @@ namespace XianXia.Unity.UI
                 ResourceType.ConcealGrass => "敛息草",
                 _ => zone.ResourceType.ToString()
             };
-            return $"{zone.DisplayName}\n产出：{resource}（{zone.UnitsPerGameHour:0.#}/游戏时）\n工位数：{zone.Spots.Count}\n区内人数：{inside}\n正在工作：{working}\n黄色圈=工位\n选人→工作(W)→点工位才开工";
+            return $"{zone.DisplayName}\n产出：{resource}（{zone.UnitsPerGameHour:0.#}/游戏时）\n工位数：{zone.Spots.Count}\n区内人数：{inside}\n正在工作：{working}\n黄色圈=工位\n选人→工作(W)→再点工位寻路开工";
         }
 
         private string BuildSpiritSiteInspectText(SpiritSiteZone site)
@@ -707,7 +769,7 @@ namespace XianXia.Unity.UI
 
             int inside = partyCommands.CountUnitsInside(site);
             int cultivating = partyCommands.CountCultivatingInside(site);
-            return $"{site.DisplayName}\n位置：地图东南角（青色菱形标记）\n可修炼；未修炼时可采敛息草\n采草：{site.ConcealGrassPerGameHour:0.#}/游戏时\n区内人数：{inside}\n正在修炼：{cultivating}\n选中后底部栏「修炼」或按 C";
+            return $"{site.DisplayName}\n位置：地图东南角（青色菱形标记）\n修炼=停下就地入定（非选目标）\n未入定时可采敛息草\n采草：{site.ConcealGrassPerGameHour:0.#}/游戏时\n区内人数：{inside}\n正在修炼：{cultivating}\n人选中后按 C 入定／X 出定";
         }
 
         private float EstimateInspectHeight()
@@ -744,6 +806,7 @@ namespace XianXia.Unity.UI
                 UnitActivityState.Idle => "空闲",
                 UnitActivityState.Moving => "移动中",
                 UnitActivityState.Working => "正在工作",
+                UnitActivityState.Attacking => "交战中",
                 _ => state.ToString()
             };
         }
@@ -970,6 +1033,7 @@ namespace XianXia.Unity.UI
             }
 
             UnitCultivation cultivation = unit.GetComponent<UnitCultivation>();
+            CharacterActionController actions = unit.GetComponent<CharacterActionController>();
             string activity = DescribeUnitOrder(unit, cultivation);
             string realm = "感应境";
             GUI.Label(
@@ -983,22 +1047,25 @@ namespace XianXia.Unity.UI
 
             float progress = cultivation == null ? 0f : cultivation.CultivationProgress;
             float exposure = cultivation == null ? 0f : cultivation.ExposureRisk;
-            bool cultivating = cultivation != null && cultivation.IsCultivating;
+            bool cultivating = actions != null
+                ? actions.IsActivelyCultivating()
+                : cultivation != null && cultivation.IsCultivating;
             bool inSpirit = cultivationSystem != null && cultivationSystem.IsUnitInSpiritSite(unit);
             float qiRate = 0f;
-            if (cultivating && cultivationSystem != null && cultivationSystem.Config != null)
+            if (cultivating)
             {
-                qiRate = cultivationSystem.Config.ProgressPerGameHour;
-            }
-            else if (inSpirit && !cultivating)
-            {
-                qiRate = 0f; // 站在灵地未修炼：采草，不涨修为
+                ActionSettings settings = FindObjectOfType<ActionSettings>();
+                qiRate = settings != null
+                    ? settings.CultivateProgressPerGameHour
+                    : (cultivationSystem != null && cultivationSystem.Config != null
+                        ? cultivationSystem.Config.ProgressPerGameHour
+                        : 80f);
             }
 
             string qiLabel = cultivating
                 ? $"灵气吸收  +{qiRate:0.#}/游戏时"
                 : inSpirit
-                    ? "灵气环境  浓郁（可修炼）"
+                    ? "灵气环境  浓郁（右键开始修炼）"
                     : "灵气环境  普通";
 
             DrawStatBar(
@@ -1019,24 +1086,34 @@ namespace XianXia.Unity.UI
                 UnitCultivation.MaxExposure,
                 _barFillExposure,
                 $"{exposure:0}/{UnitCultivation.MaxExposure:0}");
+
+            float actionProgress = actions != null && actions.IsBusy ? actions.Progress : 0f;
+            string actionRight = actions == null || !actions.IsBusy
+                ? (actions != null && !string.IsNullOrEmpty(actions.CancelReason)
+                    ? actions.CancelReason
+                    : "无行动")
+                : $"{Mathf.RoundToInt(actionProgress * 100f)}%"
+                  + (actions.IsMovingToAction ? " 移动中" : " 执行中");
             DrawStatBar(
                 x + 14f,
                 y + 88f,
                 width - 28f,
-                "灵气",
-                cultivating ? 0.75f : inSpirit ? 0.55f : 0.2f,
+                "行动",
+                actions != null && actions.IsBusy ? Mathf.Max(0.05f, actionProgress) : 0f,
                 1f,
                 _barFillQi,
-                qiLabel);
+                actionRight);
 
-            string workTarget = unit.AssignedWorkZone != null ? unit.AssignedWorkZone.DisplayName : "无";
+            string targetName = actions != null && !string.IsNullOrEmpty(actions.TargetName)
+                ? actions.TargetName
+                : (unit.AssignedWorkZone != null ? unit.AssignedWorkZone.DisplayName : "无");
             int grass = resourceInventory == null ? 0 : resourceInventory.GetAmount(ResourceType.ConcealGrass);
             string schedule = scheduleService == null
                 ? "-"
                 : ActivityShort(scheduleService.GetVillageActivity());
             GUI.Label(
                 new Rect(x + 14f, y + 114f, width - 28f, 18f),
-                $"村规:{schedule}  指令:{activity}  目标:{workTarget}  敛息草:{grass}",
+                $"村规:{schedule}  行动:{activity}  目标:{targetName}  敛息草:{grass}",
                 _tinyStyle);
 
             DrawUnitActionButtons(x + 14f, y + height - 40f);
@@ -1077,14 +1154,51 @@ namespace XianXia.Unity.UI
             }
 
             buttonX += buttonWidth + gap;
-            if (GUI.Button(new Rect(buttonX, y, buttonWidth, buttonHeight), "修炼(C)"))
+            string attackLabel = partyCommands != null && partyCommands.IsAttackTargeting
+                ? "选目标…"
+                : "攻击(A)";
+            if (GUI.Button(new Rect(buttonX, y, buttonWidth, buttonHeight), attackLabel))
             {
-                cultivationSystem?.StartCultivationForUnits(ResolveTargetUnits());
+                partyCommands.BeginAttackCommand();
             }
 
             buttonX += buttonWidth + gap;
-            if (GUI.Button(new Rect(buttonX, y, buttonWidth, buttonHeight), "停修(X)"))
+            if (GUI.Button(new Rect(buttonX, y, buttonWidth, buttonHeight), "入定(C)"))
             {
+                partyCommands.CancelCommandTargeting();
+                if (cultivationSystem != null && cultivationSystem.SpiritSite != null)
+                {
+                    foreach (DemoUnitController u in ResolveTargetUnits())
+                    {
+                        if (u == null)
+                        {
+                            continue;
+                        }
+
+                        CharacterActionController actions = u.GetComponent<CharacterActionController>()
+                            ?? u.gameObject.AddComponent<CharacterActionController>();
+                        actions.IssueCultivate(cultivationSystem.SpiritSite);
+                    }
+                }
+            }
+
+            buttonX += buttonWidth + gap;
+            if (GUI.Button(new Rect(buttonX, y, buttonWidth, buttonHeight), "出定(X)"))
+            {
+                foreach (DemoUnitController u in ResolveTargetUnits())
+                {
+                    if (u == null)
+                    {
+                        continue;
+                    }
+
+                    CharacterActionController actions = u.GetComponent<CharacterActionController>();
+                    if (actions != null && actions.IsActivelyCultivating())
+                    {
+                        actions.Cancel("玩家出定");
+                    }
+                }
+
                 cultivationSystem?.StopCultivationForUnits(ResolveTargetUnits());
             }
 
@@ -1095,12 +1209,21 @@ namespace XianXia.Unity.UI
             }
 
             buttonX += buttonWidth + gap;
-            GUI.Label(
-                new Rect(buttonX, y + 6f, 240f, 22f),
-                partyCommands != null && partyCommands.IsWorkTargeting
-                    ? "再点黄色工位开工 · Esc取消"
-                    : "工作(W)→点工位 · 右键只移动",
-                _tinyStyle);
+            string tip;
+            if (partyCommands != null && partyCommands.IsWorkTargeting)
+            {
+                tip = "黄指针：点工位开工 · 右键/Esc取消";
+            }
+            else if (partyCommands != null && partyCommands.IsAttackTargeting)
+            {
+                tip = "红指针：点NPC交战 · 右键/Esc取消";
+            }
+            else
+            {
+                tip = "右键工位/灵地下令 · W/A选目标";
+            }
+
+            GUI.Label(new Rect(buttonX, y + 6f, 280f, 22f), tip, _tinyStyle);
         }
 
         private void DrawStatBar(
@@ -1166,6 +1289,26 @@ namespace XianXia.Unity.UI
 
         private static string DescribeUnitOrder(DemoUnitController unit, UnitCultivation cultivation)
         {
+            CharacterActionController actions = unit.GetComponent<CharacterActionController>();
+            if (actions != null && (actions.IsBusy || !string.IsNullOrEmpty(actions.CancelReason)))
+            {
+                string line = actions.StatusLabel;
+                if (actions.IsBusy)
+                {
+                    line += $" {Mathf.RoundToInt(actions.Progress * 100f)}%";
+                    if (!string.IsNullOrEmpty(actions.TargetName))
+                    {
+                        line += $" → {actions.TargetName}";
+                    }
+                }
+                else if (!string.IsNullOrEmpty(actions.CancelReason))
+                {
+                    line += $"（{actions.CancelReason}）";
+                }
+
+                return line;
+            }
+
             if (cultivation != null && cultivation.IsCultivating)
             {
                 return "修炼中";
@@ -1173,10 +1316,14 @@ namespace XianXia.Unity.UI
 
             return unit.ActivityState switch
             {
+                UnitActivityState.Attacking =>
+                    $"交战中({unit.AttackTarget?.name ?? "目标"})",
                 UnitActivityState.Working when unit.AssignedWorkSpot != null =>
                     $"工作中({unit.AssignedWorkSpot.SpotName})",
                 UnitActivityState.Working when unit.AssignedWorkZone != null =>
                     $"工作中({unit.AssignedWorkZone.DisplayName})",
+                UnitActivityState.Moving when unit.IsAttacking =>
+                    $"追击({unit.AttackTarget?.name ?? "目标"})",
                 UnitActivityState.Moving when unit.IsWorking =>
                     $"前往开工({unit.AssignedWorkSpot?.SpotName ?? unit.AssignedWorkZone?.DisplayName})",
                 UnitActivityState.Moving when unit.AssignedWorkSpot != null =>

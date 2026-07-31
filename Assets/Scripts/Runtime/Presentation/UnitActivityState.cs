@@ -4,6 +4,7 @@ namespace XianXia.Unity.Presentation
     {
         Idle = 0,
         Moving = 1,
-        Working = 2
+        Working = 2,
+        Attacking = 3
     }
 }

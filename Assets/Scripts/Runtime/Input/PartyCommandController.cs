@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Unity.Actions;
 using XianXia.Unity.Cultivation;
 using XianXia.Unity.Presentation;
 using XianXia.Unity.World;
@@ -41,12 +42,20 @@ namespace XianXia.Unity.Input
         }
     }
 
+    public enum CommandTargetingMode
+    {
+        None = 0,
+        Work = 1,
+        Attack = 2
+    }
+
     /// <summary>
-    /// RTS 指令：框选／点选；点建筑／工作区／灵地查看详情；右键工作区下达工作，右键空地移动。
+    /// RTS 指令：框选／点选；工作／攻击进入选目标模式后再点目标；右键空地／工位只移动。
     /// </summary>
     public sealed class PartyCommandController : MonoBehaviour
     {
         private const float BoxSelectPixelThreshold = 8f;
+        private const float DoubleClickSeconds = 0.35f;
 
         [SerializeField] private Camera worldCamera;
         [SerializeField] private float formationSpacing = 1.25f;
@@ -59,14 +68,25 @@ namespace XianXia.Unity.Input
         private bool _leftDragActive;
         private bool _boxSelecting;
         private bool _pointerStartedOverUi;
-        private bool _workTargeting;
+        private CommandTargetingMode _targetingMode;
+        private bool _customCursorApplied;
+        private Texture2D _workCursorTexture;
+        private Texture2D _attackCursorTexture;
         private Vector2 _dragStartScreen;
         private Vector2 _dragCurrentScreen;
+        private WorkSpot _hoveredWorkSpot;
+        private WorldCharacterInspectable _hoveredAttackTarget;
+        private float _lastUnitClickTime = -999f;
+        private DemoUnitController _lastClickedUnit;
 
         public IReadOnlyList<DemoUnitController> SelectedUnits => _selectedUnits;
         public WorldInspection Inspection => _inspection;
         public bool IsBoxSelecting => _boxSelecting;
-        public bool IsWorkTargeting => _workTargeting;
+        public bool IsWorkTargeting => _targetingMode == CommandTargetingMode.Work;
+        public bool IsAttackTargeting => _targetingMode == CommandTargetingMode.Attack;
+        public bool IsCommandTargeting => _targetingMode != CommandTargetingMode.None;
+        public WorkSpot HoveredWorkSpot => _hoveredWorkSpot;
+        public WorldCharacterInspectable HoveredAttackTarget => _hoveredAttackTarget;
 
         /// <summary>
         /// 由 HUD 设置：指针落在交互 UI 上时，世界点选／框选应忽略。
@@ -116,6 +136,29 @@ namespace XianXia.Unity.Input
             EnsureSpiritSiteMapMarker();
             EnsureWorldCharacterInspectables();
             workSystem?.EnsureAllZoneSpots();
+            WorldFeedbackOverlay.Ensure();
+            EnsurePartyOverheads();
+        }
+
+        private void OnDisable()
+        {
+            CancelCommandTargeting();
+        }
+
+        private void OnDestroy()
+        {
+            ApplyCustomCursor(CommandTargetingMode.None);
+            if (_workCursorTexture != null)
+            {
+                Destroy(_workCursorTexture);
+                _workCursorTexture = null;
+            }
+
+            if (_attackCursorTexture != null)
+            {
+                Destroy(_attackCursorTexture);
+                _attackCursorTexture = null;
+            }
         }
 
         private void Update()
@@ -126,15 +169,16 @@ namespace XianXia.Unity.Input
             }
 
             HandleLeftMouse();
+            UpdateCommandTargetingFeedback();
 
             if (UnityEngine.Input.GetMouseButtonDown(1))
             {
                 Vector2 screen = UnityEngine.Input.mousePosition;
                 if (IsPointerOverUi == null || !IsPointerOverUi(screen))
                 {
-                    if (_workTargeting)
+                    if (_targetingMode != CommandTargetingMode.None)
                     {
-                        CommandWorkAtPointer();
+                        CancelCommandTargeting();
                     }
                     else
                     {
@@ -148,20 +192,24 @@ namespace XianXia.Unity.Input
                 BeginWorkCommand();
             }
 
-            if (UnityEngine.Input.GetKeyDown(KeyCode.Escape) && _workTargeting)
+            if (UnityEngine.Input.GetKeyDown(KeyCode.A))
             {
-                CancelWorkTargeting();
+                BeginAttackCommand();
+            }
+
+            if (UnityEngine.Input.GetKeyDown(KeyCode.Escape) && _targetingMode != CommandTargetingMode.None)
+            {
+                CancelCommandTargeting();
             }
 
             if (UnityEngine.Input.GetKeyDown(KeyCode.S))
             {
                 StopSelectedOrders();
-                CancelWorkTargeting();
             }
         }
 
         /// <summary>
-        /// 显式「工作」指令：已在工位旁则开工；否则进入选点模式，再点工位。
+        /// 显式「工作」指令：进入选目标模式。再点工位／工作区 → 寻路过去并开工。
         /// </summary>
         public void BeginWorkCommand()
         {
@@ -171,42 +219,42 @@ namespace XianXia.Unity.Input
             }
 
             workSystem?.EnsureAllZoneSpots();
-            int started = 0;
-            for (int i = 0; i < _selectedUnits.Count; i++)
-            {
-                DemoUnitController unit = _selectedUnits[i];
-                if (unit == null)
-                {
-                    continue;
-                }
+            _targetingMode = CommandTargetingMode.Work;
+            ApplyCustomCursor(CommandTargetingMode.Work);
+        }
 
-                WorkSpot near = FindNearestSpotTo(unit.transform.position);
-                if (near != null && near.IsInRange(unit.transform.position))
-                {
-                    UnitCultivation cultivation = unit.GetComponent<UnitCultivation>();
-                    cultivation?.SetCultivating(false);
-                    unit.StartWorkAt(near);
-                    started++;
-                }
-            }
-
-            if (started == _selectedUnits.Count)
+        /// <summary>
+        /// 攻击指令：进入选目标模式。再点 NPC → 寻路过去进入交战（尚无伤害结算）。
+        /// </summary>
+        public void BeginAttackCommand()
+        {
+            if (_selectedUnits.Count == 0)
             {
-                _workTargeting = false;
                 return;
             }
 
-            _workTargeting = true;
+            _targetingMode = CommandTargetingMode.Attack;
+            workSystem?.SetWorkTargetingVisuals(false, null);
+            ApplyCustomCursor(CommandTargetingMode.Attack);
         }
 
         public void CancelWorkTargeting()
         {
-            _workTargeting = false;
+            CancelCommandTargeting();
+        }
+
+        public void CancelCommandTargeting()
+        {
+            _targetingMode = CommandTargetingMode.None;
+            _hoveredWorkSpot = null;
+            _hoveredAttackTarget = null;
+            workSystem?.SetWorkTargetingVisuals(false, null);
+            ApplyCustomCursor(CommandTargetingMode.None);
         }
 
         public void StopSelectedOrders()
         {
-            CancelWorkTargeting();
+            CancelCommandTargeting();
             for (int i = 0; i < _selectedUnits.Count; i++)
             {
                 DemoUnitController unit = _selectedUnits[i];
@@ -215,17 +263,172 @@ namespace XianXia.Unity.Input
                     continue;
                 }
 
+                CharacterActionController actions = EnsureActions(unit);
+                actions.Cancel("玩家停止");
                 unit.CancelOrder();
                 UnitCultivation cultivation = unit.GetComponent<UnitCultivation>();
                 cultivation?.SetCultivating(false);
+                unit.SetMeditationPose(false);
             }
+        }
+
+        public void SelectAllPartyUnits()
+        {
+            ClearSelection();
+            ClearInspection();
+            DemoUnitController[] units = ResolvePartyUnits();
+            for (int i = 0; i < units.Length; i++)
+            {
+                DemoUnitController unit = units[i];
+                if (unit == null)
+                {
+                    continue;
+                }
+
+                _selectedUnits.Add(unit);
+                unit.SetSelected(true);
+            }
+        }
+
+        private void UpdateCommandTargetingFeedback()
+        {
+            if (_targetingMode == CommandTargetingMode.None)
+            {
+                if (_customCursorApplied)
+                {
+                    ApplyCustomCursor(CommandTargetingMode.None);
+                }
+
+                return;
+            }
+
+            Vector2 worldPoint = worldCamera.ScreenToWorldPoint(UnityEngine.Input.mousePosition);
+            if (_targetingMode == CommandTargetingMode.Work)
+            {
+                _hoveredAttackTarget = null;
+                _hoveredWorkSpot = ResolveWorkSpot(worldPoint);
+                workSystem?.SetWorkTargetingVisuals(true, _hoveredWorkSpot);
+            }
+            else if (_targetingMode == CommandTargetingMode.Attack)
+            {
+                _hoveredWorkSpot = null;
+                workSystem?.SetWorkTargetingVisuals(false, null);
+                ResolveClickTargets(
+                    worldPoint,
+                    out _,
+                    out WorldCharacterInspectable npc,
+                    out _,
+                    out _,
+                    out _);
+                _hoveredAttackTarget = npc;
+            }
+
+            ApplyCustomCursor(_targetingMode);
+        }
+
+        private void ApplyCustomCursor(CommandTargetingMode mode)
+        {
+            if (mode == CommandTargetingMode.Work)
+            {
+                if (_workCursorTexture == null)
+                {
+                    _workCursorTexture = CreateRingCursorTexture(new Color(1f, 0.85f, 0.2f, 1f));
+                }
+
+                Cursor.SetCursor(_workCursorTexture, new Vector2(8f, 8f), CursorMode.Auto);
+                _customCursorApplied = true;
+            }
+            else if (mode == CommandTargetingMode.Attack)
+            {
+                if (_attackCursorTexture == null)
+                {
+                    _attackCursorTexture = CreateCrossCursorTexture(new Color(1f, 0.25f, 0.25f, 1f));
+                }
+
+                Cursor.SetCursor(_attackCursorTexture, new Vector2(8f, 8f), CursorMode.Auto);
+                _customCursorApplied = true;
+            }
+            else if (_customCursorApplied)
+            {
+                Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+                _customCursorApplied = false;
+            }
+        }
+
+        private static Texture2D CreateRingCursorTexture(Color ring)
+        {
+            const int size = 24;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp
+            };
+
+            Color clear = new(0f, 0f, 0f, 0f);
+            Color fill = new(ring.r, ring.g, ring.b, 0.35f);
+            float center = (size - 1) * 0.5f;
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = x - center;
+                    float dy = y - center;
+                    float d = Mathf.Sqrt(dx * dx + dy * dy);
+                    if (d <= 3.2f)
+                    {
+                        texture.SetPixel(x, y, ring);
+                    }
+                    else if (d <= 8.5f && d >= 6.5f)
+                    {
+                        texture.SetPixel(x, y, ring);
+                    }
+                    else if (d < 6.5f)
+                    {
+                        texture.SetPixel(x, y, fill);
+                    }
+                    else
+                    {
+                        texture.SetPixel(x, y, clear);
+                    }
+                }
+            }
+
+            texture.Apply(false, true);
+            return texture;
+        }
+
+        private static Texture2D CreateCrossCursorTexture(Color color)
+        {
+            const int size = 24;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp
+            };
+
+            Color clear = new(0f, 0f, 0f, 0f);
+            int mid = size / 2;
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    bool arm =
+                        (Mathf.Abs(x - mid) <= 1 && (y < mid - 3 || y > mid + 3))
+                        || (Mathf.Abs(y - mid) <= 1 && (x < mid - 3 || x > mid + 3));
+                    bool center = Mathf.Abs(x - mid) <= 1 && Mathf.Abs(y - mid) <= 1;
+                    texture.SetPixel(x, y, arm || center ? color : clear);
+                }
+            }
+
+            texture.Apply(false, true);
+            return texture;
         }
 
         private void CommandWorkAtPointer()
         {
             if (_selectedUnits.Count == 0)
             {
-                _workTargeting = false;
+                CancelCommandTargeting();
                 return;
             }
 
@@ -237,7 +440,38 @@ namespace XianXia.Unity.Input
             }
 
             AssignWorkToSpot(spot);
-            _workTargeting = false;
+            CancelCommandTargeting();
+        }
+
+        private void CommandAttackAtPointer()
+        {
+            if (_selectedUnits.Count == 0)
+            {
+                CancelCommandTargeting();
+                return;
+            }
+
+            Vector2 worldPoint = worldCamera.ScreenToWorldPoint(UnityEngine.Input.mousePosition);
+            ResolveClickTargets(
+                worldPoint,
+                out _,
+                out WorldCharacterInspectable npc,
+                out _,
+                out _,
+                out _);
+            if (npc == null)
+            {
+                return;
+            }
+
+            AssignAttackToTarget(npc);
+            WorldFeedbackOverlay.Ensure().SpawnOrderMarker(npc.transform.position);
+            WorldFeedbackOverlay.Ensure().SpawnFloatingText(
+                npc.transform.position,
+                "交战!",
+                new Color(1f, 0.35f, 0.3f),
+                0.9f);
+            CancelCommandTargeting();
         }
 
         private WorkSpot ResolveWorkSpot(Vector2 worldPoint)
@@ -256,42 +490,6 @@ namespace XianXia.Unity.Input
             return null;
         }
 
-        private WorkSpot FindNearestSpotTo(Vector2 worldPosition)
-        {
-            if (workSystem == null || workSystem.WorkZones == null)
-            {
-                return null;
-            }
-
-            workSystem.EnsureAllZoneSpots();
-            WorkSpot best = null;
-            float bestDist = float.MaxValue;
-            IReadOnlyList<WorkZone> zones = workSystem.WorkZones;
-            for (int i = 0; i < zones.Count; i++)
-            {
-                WorkZone zone = zones[i];
-                if (zone == null)
-                {
-                    continue;
-                }
-
-                WorkSpot spot = zone.FindNearestSpot(worldPosition);
-                if (spot == null)
-                {
-                    continue;
-                }
-
-                float d = (spot.Position - worldPosition).sqrMagnitude;
-                if (d < bestDist)
-                {
-                    bestDist = d;
-                    best = spot;
-                }
-            }
-
-            return best;
-        }
-
         private void CommandSelection()
         {
             if (_selectedUnits.Count == 0)
@@ -300,10 +498,40 @@ namespace XianXia.Unity.Input
             }
 
             Vector2 worldPoint = worldCamera.ScreenToWorldPoint(UnityEngine.Input.mousePosition);
+
+            // 优先：工位／工作区 → 唯一可用工作行动。
             WorkSpot spot = ResolveWorkSpot(worldPoint);
             if (spot != null)
             {
-                MoveSelectionToSpot(spot);
+                AssignWorkToSpot(spot);
+                return;
+            }
+
+            // 灵地 → 开始修炼。
+            ResolveClickTargets(
+                worldPoint,
+                out _,
+                out _,
+                out _,
+                out _,
+                out SpiritSiteZone spiritSite);
+            if (spiritSite == null && workSystem != null)
+            {
+                // ResolveClickTargets 未命中时再扫一遍灵地包围盒。
+                SpiritSiteZone[] sites = FindObjectsOfType<SpiritSiteZone>();
+                for (int i = 0; i < sites.Length; i++)
+                {
+                    if (sites[i] != null && sites[i].Contains(worldPoint))
+                    {
+                        spiritSite = sites[i];
+                        break;
+                    }
+                }
+            }
+
+            if (spiritSite != null)
+            {
+                AssignCultivate(spiritSite);
                 return;
             }
 
@@ -330,9 +558,6 @@ namespace XianXia.Unity.Input
                     continue;
                 }
 
-                UnitCultivation cultivation = unit.GetComponent<UnitCultivation>();
-                cultivation?.SetCultivating(false);
-
                 WorkSpot target = spot;
                 if (total > 1 && spot.OwnerZone != null)
                 {
@@ -345,14 +570,18 @@ namespace XianXia.Unity.Input
                     }
                 }
 
-                unit.StartWorkAt(target);
+                EnsureActions(unit).IssueGather(target);
                 index++;
             }
         }
 
-        private void MoveSelectionToSpot(WorkSpot spot)
+        private void AssignCultivate(SpiritSiteZone site)
         {
-            int index = 0;
+            if (site == null)
+            {
+                return;
+            }
+
             for (int i = 0; i < _selectedUnits.Count; i++)
             {
                 DemoUnitController unit = _selectedUnits[i];
@@ -361,21 +590,30 @@ namespace XianXia.Unity.Input
                     continue;
                 }
 
-                UnitCultivation cultivation = unit.GetComponent<UnitCultivation>();
-                cultivation?.SetCultivating(false);
+                EnsureActions(unit).IssueCultivate(site);
+            }
+        }
 
-                WorkSpot target = spot;
-                if (_selectedUnits.Count > 1 && spot.OwnerZone != null && workSystem != null)
+        private void AssignAttackToTarget(WorldCharacterInspectable target)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < _selectedUnits.Count; i++)
+            {
+                DemoUnitController unit = _selectedUnits[i];
+                if (unit == null)
                 {
-                    WorkSpot alt = workSystem.GetSpot(spot.OwnerZone, index);
-                    if (alt != null)
-                    {
-                        target = alt;
-                    }
+                    continue;
                 }
 
-                unit.MoveToWorkSpot(target);
-                index++;
+                CharacterActionController actions = EnsureActions(unit);
+                actions.Cancel("新命令：攻击");
+                UnitCultivation cultivation = unit.GetComponent<UnitCultivation>();
+                cultivation?.SetCultivating(false);
+                unit.StartAttack(target.transform);
             }
         }
 
@@ -391,20 +629,28 @@ namespace XianXia.Unity.Input
                     continue;
                 }
 
-                UnitCultivation cultivation = unit.GetComponent<UnitCultivation>();
-                cultivation?.SetCultivating(false);
-
                 int row = i / columns;
                 int column = i % columns;
                 float x = (column - (columns - 1) * 0.5f) * formationSpacing;
                 float y = -row * formationSpacing;
-                unit.MoveTo(center + new Vector2(x, y));
+                EnsureActions(unit).IssueMove(center + new Vector2(x, y));
             }
+        }
+
+        private static CharacterActionController EnsureActions(DemoUnitController unit)
+        {
+            CharacterActionController actions = unit.GetComponent<CharacterActionController>();
+            if (actions == null)
+            {
+                actions = unit.gameObject.AddComponent<CharacterActionController>();
+            }
+
+            return actions;
         }
 
         private void ClearSelection()
         {
-            CancelWorkTargeting();
+            CancelCommandTargeting();
             foreach (DemoUnitController unit in _selectedUnits)
             {
                 if (unit != null)
@@ -423,6 +669,31 @@ namespace XianXia.Unity.Input
 
         private void OnGUI()
         {
+            if (_targetingMode == CommandTargetingMode.Work)
+            {
+                Color previous = GUI.color;
+                GUI.color = new Color(1f, 0.92f, 0.35f, 1f);
+                string hoverName = _hoveredWorkSpot != null
+                    ? $" → {_hoveredWorkSpot.SpotName}"
+                    : "（点黄色工位）";
+                GUI.Label(
+                    new Rect(12f, 12f, 560f, 28f),
+                    $"工作指令：选择目标工位{hoverName} · 左键确认 · 右键/Esc取消");
+                GUI.color = previous;
+            }
+            else if (_targetingMode == CommandTargetingMode.Attack)
+            {
+                Color previous = GUI.color;
+                GUI.color = new Color(1f, 0.4f, 0.35f, 1f);
+                string hoverName = _hoveredAttackTarget != null
+                    ? $" → {_hoveredAttackTarget.DisplayName}"
+                    : "（点 NPC）";
+                GUI.Label(
+                    new Rect(12f, 12f, 560f, 28f),
+                    $"攻击指令：选择目标{hoverName} · 左键确认 · 右键/Esc取消");
+                GUI.color = previous;
+            }
+
             if (!_boxSelecting)
             {
                 return;
@@ -432,12 +703,12 @@ namespace XianXia.Unity.Input
             float guiY = Screen.height - screenRect.yMax;
             Rect guiRect = new(screenRect.xMin, guiY, screenRect.width, screenRect.height);
 
-            Color previous = GUI.color;
+            Color prev = GUI.color;
             GUI.color = new Color(0.3f, 0.85f, 0.35f, 0.18f);
             GUI.DrawTexture(guiRect, Texture2D.whiteTexture);
             GUI.color = new Color(0.35f, 0.95f, 0.4f, 0.9f);
             DrawRectBorder(guiRect, 2f);
-            GUI.color = previous;
+            GUI.color = prev;
         }
 
         private static void DrawRectBorder(Rect rect, float thickness)
@@ -497,9 +768,13 @@ namespace XianXia.Unity.Input
                 {
                     ApplyBoxSelection(additive);
                 }
-                else if (_workTargeting)
+                else if (_targetingMode == CommandTargetingMode.Work)
                 {
                     CommandWorkAtPointer();
+                }
+                else if (_targetingMode == CommandTargetingMode.Attack)
+                {
+                    CommandAttackAtPointer();
                 }
                 else
                 {
@@ -562,6 +837,25 @@ namespace XianXia.Unity.Input
 
             if (unit != null)
             {
+                float now = UnityEngine.Time.unscaledTime;
+                bool doubleClick = !additive
+                    && unit == _lastClickedUnit
+                    && now - _lastUnitClickTime <= DoubleClickSeconds;
+                _lastUnitClickTime = now;
+                _lastClickedUnit = unit;
+
+                if (doubleClick)
+                {
+                    SelectAllPartyUnits();
+                    InspectUnit(unit);
+                    WorldFeedbackOverlay.Ensure().SpawnFloatingText(
+                        unit.transform.position,
+                        "全选",
+                        new Color(0.6f, 0.95f, 0.7f),
+                        0.7f);
+                    return;
+                }
+
                 SelectUnitClick(unit, additive);
                 if (!additive)
                 {
@@ -719,6 +1013,34 @@ namespace XianXia.Unity.Input
 
             partyUnits = FindObjectsOfType<DemoUnitController>();
             return partyUnits;
+        }
+
+        private void EnsurePartyOverheads()
+        {
+            DemoUnitController[] units = ResolvePartyUnits();
+            for (int i = 0; i < units.Length; i++)
+            {
+                DemoUnitController unit = units[i];
+                if (unit == null)
+                {
+                    continue;
+                }
+
+                if (unit.GetComponent<UnitActivityOverhead>() == null)
+                {
+                    unit.gameObject.AddComponent<UnitActivityOverhead>();
+                }
+
+                if (unit.GetComponent<UnitOrderPathPreview>() == null)
+                {
+                    unit.gameObject.AddComponent<UnitOrderPathPreview>();
+                }
+
+                if (unit.GetComponent<CharacterActionController>() == null)
+                {
+                    unit.gameObject.AddComponent<CharacterActionController>();
+                }
+            }
         }
 
         private void InspectUnit(DemoUnitController unit)
@@ -927,7 +1249,9 @@ namespace XianXia.Unity.Input
                     continue;
                 }
 
-                if (unit.IsActivelyWorking && unit.AssignedWorkZone == zone)
+                CharacterActionController actions = unit.GetComponent<CharacterActionController>();
+                bool working = actions != null ? actions.IsActivelyWorking() : unit.IsActivelyWorking;
+                if (working && zone.Contains(unit.transform.position))
                 {
                     count++;
                 }
@@ -971,6 +1295,13 @@ namespace XianXia.Unity.Input
                 DemoUnitController unit = units[i];
                 if (unit == null || !site.Contains(unit.transform.position))
                 {
+                    continue;
+                }
+
+                CharacterActionController actions = unit.GetComponent<CharacterActionController>();
+                if (actions != null && actions.IsActivelyCultivating())
+                {
+                    count++;
                     continue;
                 }
 

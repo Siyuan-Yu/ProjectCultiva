@@ -1,4 +1,5 @@
 using UnityEngine;
+using XianXia.Unity.Presentation;
 
 namespace XianXia.Unity.Cultivation
 {
@@ -28,6 +29,8 @@ namespace XianXia.Unity.Cultivation
         public void SetCultivating(bool cultivating)
         {
             isCultivating = cultivating;
+            DemoUnitController unit = GetComponent<DemoUnitController>();
+            unit?.SetMeditationPose(cultivating);
         }
 
         public void AddProgress(float amount)
