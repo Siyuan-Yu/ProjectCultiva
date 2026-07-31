@@ -7,6 +7,17 @@
 
 ---
 
+## 2026-08-01 — Core M1 阶段 9 Order／Action／SimulationLoop 完成
+
+**判断：** WorldTick++ 只能由 SimulationLoop 拥有；Wait(4) 在第 4 次推进完成。
+
+**做了什么**
+- Order／OrderQueue／DefaultOrderTranslator；WaitAction／ApplyModifierAction
+- `SimulationWorld`＋`SimulationLoop`；CanStart 失败 → OrderRejected／ActionFailed 事件
+
+**下一步**
+- 阶段 10 Snapshot JSON 往返
+
 ## 2026-08-01 — Core M1 阶段 8 DomainEvent 完成
 
 **判断：** 失败路径也必须留下事实事件，避免用异常代替世界记录。
