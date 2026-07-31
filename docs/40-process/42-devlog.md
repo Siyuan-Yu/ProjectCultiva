@@ -7,6 +7,17 @@
 
 ---
 
+## 2026-08-01 — Core M1 阶段 8 DomainEvent 完成
+
+**判断：** 失败路径也必须留下事实事件，避免用异常代替世界记录。
+
+**做了什么**
+- `DomainEvent`／`DomainEventQueue`／`EventType`（EntityCreated／Modifier*／Action*／OrderRejected）
+- Peek／Drain；稳定顺序；cursor 供 Snapshot
+
+**下一步**
+- 阶段 9 Order／Action／SimulationLoop
+
 ## 2026-08-01 — Core M1 阶段 7 AttributeModifier 完成
 
 **判断：** Final 只能经管道计算；黄金例锁定 (100+10)×(1+0.5)=165。
