@@ -59,6 +59,7 @@ namespace XianXia.Unity.Cultivation
             if (clock == null || config == null || units == null)
             {
                 AnyUnitInSpiritSite = false;
+                spiritSite?.SetPartyPresence(false, 0);
                 return;
             }
 
@@ -84,15 +85,27 @@ namespace XianXia.Unity.Cultivation
                     anyInSite = true;
                 }
 
-                if (cultivation.IsCultivating)
+                CharacterActionController actions = unit.GetComponent<CharacterActionController>();
+                bool actionCultivating = actions != null && actions.IsActivelyCultivating();
+
+                if (actionCultivating)
                 {
-                    CharacterActionController actions = unit.GetComponent<CharacterActionController>();
-                    if (actions != null && actions.IsActivelyCultivating())
+                    // 修为进度由 CharacterActionController 推进；此处只补暴露风险（昼夜／主管）。
+                    if (!cultivation.IsCultivating)
                     {
-                        // Milestone 3.5：修为由 CharacterActionController 推进，此处不重复、不做暴露。
-                        continue;
+                        cultivation.SetCultivating(true);
                     }
 
+                    if (inSite && gameHours > 0f)
+                    {
+                        ApplyExposure(cultivation, unit.transform.position, gameHours);
+                    }
+
+                    continue;
+                }
+
+                if (cultivation.IsCultivating)
+                {
                     // 入定中若又被下令移动／工作／攻击，或离开灵地 → 出定。
                     if (!inSite || unit.HasActiveOrder)
                     {
@@ -113,17 +126,42 @@ namespace XianXia.Unity.Cultivation
                 }
                 else if (inSite && inventory != null && gameHours > 0f)
                 {
-                    CharacterActionController actions = unit.GetComponent<CharacterActionController>();
-                    if (actions != null && actions.IsActivelyCultivating())
-                    {
-                        continue;
-                    }
-
                     GatherConcealGrass(unit, gameHours);
                 }
             }
 
             AnyUnitInSpiritSite = anyInSite;
+            SyncSpiritSitePresence();
+        }
+
+        private void SyncSpiritSitePresence()
+        {
+            if (spiritSite == null || units == null)
+            {
+                spiritSite?.SetPartyPresence(false, 0);
+                return;
+            }
+
+            int cultivating = 0;
+            bool anyInside = false;
+            foreach (DemoUnitController unit in units)
+            {
+                if (unit == null || !spiritSite.Contains(unit.transform.position))
+                {
+                    continue;
+                }
+
+                anyInside = true;
+                CharacterActionController actions = unit.GetComponent<CharacterActionController>();
+                UnitCultivation cultivation = unit.GetComponent<UnitCultivation>();
+                if ((actions != null && actions.IsActivelyCultivating())
+                    || (cultivation != null && cultivation.IsCultivating))
+                {
+                    cultivating++;
+                }
+            }
+
+            spiritSite.SetPartyPresence(anyInside, cultivating);
         }
 
         /// <summary>
@@ -284,8 +322,14 @@ namespace XianXia.Unity.Cultivation
                 && spiritSite.Contains(unit.transform.position);
         }
 
-        private void ApplyExposure(UnitCultivation cultivation, Vector3 position, float gameHours)
+        /// <summary>当前时段在指定位置的暴露增速（/游戏时）；只数值，不触发惩罚。</summary>
+        public float GetExposureRateAt(Vector3 position)
         {
+            if (config == null)
+            {
+                return 0f;
+            }
+
             float rate = IsNight
                 ? config.NightExposurePerGameHour
                 : config.DayExposurePerGameHour;
@@ -299,7 +343,12 @@ namespace XianXia.Unity.Cultivation
                 }
             }
 
-            cultivation.AddExposure(rate * gameHours);
+            return rate;
+        }
+
+        private void ApplyExposure(UnitCultivation cultivation, Vector3 position, float gameHours)
+        {
+            cultivation.AddExposure(GetExposureRateAt(position) * gameHours);
         }
 
         private void GatherConcealGrass(DemoUnitController unit, float gameHours)

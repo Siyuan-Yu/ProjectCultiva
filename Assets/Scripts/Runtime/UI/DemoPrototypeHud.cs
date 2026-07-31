@@ -3,6 +3,7 @@ using UnityEngine;
 using XianXia.Unity.Actions;
 using XianXia.Unity.Cultivation;
 using XianXia.Unity.Input;
+using XianXia.Unity.Npc;
 using XianXia.Unity.Obligation;
 using XianXia.Unity.Presentation;
 using XianXia.Unity.Resources;
@@ -769,7 +770,7 @@ namespace XianXia.Unity.UI
 
             int inside = partyCommands.CountUnitsInside(site);
             int cultivating = partyCommands.CountCultivatingInside(site);
-            return $"{site.DisplayName}\n位置：地图东南角（青色菱形标记）\n修炼=停下就地入定（非选目标）\n未入定时可采敛息草\n采草：{site.ConcealGrassPerGameHour:0.#}/游戏时\n区内人数：{inside}\n正在修炼：{cultivating}\n人选中后按 C 入定／X 出定";
+            return $"{site.DisplayName}\n状态：{site.InteractiveStatus}\n位置：地图东南角（青色菱形标记）\n右键灵地／C：前往入定修炼\n修为 0～{UnitCultivation.MaxProgress:0}；夜晚低暴露／白天高暴露\n主管附近额外风险；G 用敛息草降暴露\n未入定时可采敛息草 {site.ConcealGrassPerGameHour:0.#}/游戏时\n区内人数：{inside}\n正在修炼：{cultivating}";
         }
 
         private float EstimateInspectHeight()
@@ -791,7 +792,7 @@ namespace XianXia.Unity.UI
                     WorldInspectKind.Unit => 56f,
                     WorldInspectKind.NpcCharacter => 56f,
                     WorldInspectKind.WorkZone => 118f,
-                    WorldInspectKind.SpiritSite => 118f,
+                    WorldInspectKind.SpiritSite => 148f,
                     _ => 86f
                 };
             }
@@ -835,7 +836,12 @@ namespace XianXia.Unity.UI
         private string BuildCultivationText()
         {
             bool inSite = cultivationSystem != null && cultivationSystem.AnyUnitInSpiritSite;
-            string siteHint = inSite ? "灵地：可修炼" : "灵地：去东南角";
+            SpiritSiteZone site = cultivationSystem != null ? cultivationSystem.SpiritSite : null;
+            string siteHint = site != null && site.HasPartyInside
+                ? $"灵地：{site.InteractiveStatus}"
+                : inSite
+                    ? "灵地：可修炼"
+                    : "灵地：去东南角";
             string riskHint = cultivationSystem != null && cultivationSystem.IsNight
                 ? "夜晚：低暴露"
                 : "白天：暴露↑";
@@ -858,12 +864,24 @@ namespace XianXia.Unity.UI
                     continue;
                 }
 
+                CharacterActionController actions = unit.GetComponent<CharacterActionController>();
+                bool cultivating = (actions != null && actions.IsActivelyCultivating())
+                    || cultivation.IsCultivating;
                 bool unitInSite = cultivationSystem != null && cultivationSystem.IsUnitInSpiritSite(unit);
-                string state = cultivation.IsCultivating
+                string state = cultivating
                     ? "修炼中"
                     : unitInSite ? "可修" : "待机";
+                float exposureRate = 0f;
+                if (cultivating && cultivationSystem != null)
+                {
+                    exposureRate = cultivationSystem.GetExposureRateAt(unit.transform.position);
+                }
+
                 lines.Add(
-                    $"{ShortName(unit.name)} 修{cultivation.CultivationProgress:0} 露{cultivation.ExposureRisk:0} [{state}]");
+                    $"{ShortName(unit.name)} 修{cultivation.CultivationProgress:0}/{UnitCultivation.MaxProgress:0}"
+                    + $" 露{cultivation.ExposureRisk:0}/{UnitCultivation.MaxExposure:0}"
+                    + (cultivating ? $" 险速{exposureRate:0.#}/时" : string.Empty)
+                    + $" [{state}]");
             }
 
             return string.Join("\n", lines);
@@ -878,7 +896,7 @@ namespace XianXia.Unity.UI
         private float EstimateCultivationHeight()
         {
             int count = partyUnits == null ? 1 : Mathf.Max(1, partyUnits.Length);
-            return 68f + count * 18f;
+            return 78f + count * 20f;
         }
 
         private static string ShortName(string name)
@@ -973,9 +991,12 @@ namespace XianXia.Unity.UI
 
             AmbientNpcActor actor = npc.GetComponent<AmbientNpcActor>();
             string activity = actor != null ? actor.CurrentActivityLabel : "待命";
+            string runtime = actor != null
+                ? (actor.RuntimeState == NpcRuntimeState.Patrol ? "Patrol" : "Rest")
+                : "-";
             GUI.Label(
                 new Rect(x + 14f, y + 6f, barWidth * 0.58f, 24f),
-                $"{npc.DisplayName}（{activity}）",
+                $"{npc.DisplayName}（{activity} · {runtime}）",
                 _statusStyle);
             GUI.Label(
                 new Rect(x + barWidth - 200f, y + 8f, 188f, 22f),
@@ -1064,6 +1085,10 @@ namespace XianXia.Unity.UI
 
             string qiLabel = cultivating
                 ? $"灵气吸收  +{qiRate:0.#}/游戏时"
+                  + (cultivationSystem != null
+                      ? $" · 暴露+{cultivationSystem.GetExposureRateAt(unit.transform.position):0.#}/时"
+                        + (cultivationSystem.IsNight ? "（夜）" : "（昼）")
+                      : string.Empty)
                 : inSpirit
                     ? "灵气环境  浓郁（右键开始修炼）"
                     : "灵气环境  普通";

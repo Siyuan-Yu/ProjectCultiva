@@ -1,4 +1,5 @@
 using UnityEngine;
+using XianXia.Unity.Actions;
 using XianXia.Unity.Cultivation;
 
 namespace XianXia.Unity.Presentation
@@ -41,6 +42,11 @@ namespace XianXia.Unity.Presentation
             }
 
             bool cultivating = _cultivation != null && _cultivation.IsCultivating;
+            CharacterActionController actions = GetComponent<CharacterActionController>();
+            if (actions != null && actions.IsActivelyCultivating())
+            {
+                cultivating = true;
+            }
             bool attacking = unit.IsAttacking;
             UnitActivityState state = unit.ActivityState;
             if (state != _lastState || cultivating != _lastCultivating || attacking != _lastAttacking)

@@ -156,6 +156,11 @@
       "title": "第一批最小可用素材接入清单",
       "docId": "JNhpd7vx8oSTBQxvlO3cHkQYnDc"
     },
+    "prototype-status": {
+      "file": "docs/40-process/49-demo-v0.1-prototype-status.md",
+      "title": "Demo v0.1 原型现状",
+      "docId": ""
+    },
     "feishu-sync-doc": {
       "file": "docs/30-tech/35-feishu-sync.md",
       "title": "飞书文档同步说明",

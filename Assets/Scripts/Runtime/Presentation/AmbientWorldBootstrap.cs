@@ -1,21 +1,45 @@
 using UnityEngine;
+using XianXia.Unity.Npc;
 using XianXia.Unity.Time;
 using XianXia.Unity.World;
 
 namespace XianXia.Unity.Presentation
 {
     /// <summary>
-    /// 兼容未重建场景：给主管／守卫挂巡逻，并在缺劳工时用现有 Merchant 素材生成氛围劳工。
+    /// Milestone 5：按可配置 NPC 日程驱动主管／守卫；村民以群体状态展示。
     /// </summary>
     public sealed class AmbientWorldBootstrap : MonoBehaviour
     {
         [SerializeField] private GameClock clock;
         [SerializeField] private ScheduleService scheduleService;
+        [SerializeField] private NpcScheduleConfig guardSchedule;
+        [SerializeField] private NpcScheduleConfig supervisorSchedule;
+        [SerializeField] private NpcScheduleConfig villagerGroupSchedule;
 
-        public void Configure(GameClock gameClock, ScheduleService villageSchedule = null)
+        public void Configure(
+            GameClock gameClock,
+            ScheduleService villageSchedule = null,
+            NpcScheduleConfig guard = null,
+            NpcScheduleConfig supervisor = null,
+            NpcScheduleConfig villagerGroup = null)
         {
             clock = gameClock;
             scheduleService = villageSchedule;
+            if (guard != null)
+            {
+                guardSchedule = guard;
+            }
+
+            if (supervisor != null)
+            {
+                supervisorSchedule = supervisor;
+            }
+
+            if (villagerGroup != null)
+            {
+                villagerGroupSchedule = villagerGroup;
+            }
+
             EnsureBehaviors();
         }
 
@@ -41,9 +65,15 @@ namespace XianXia.Unity.Presentation
                 scheduleService = FindObjectOfType<ScheduleService>();
             }
 
-            EnsurePatrol(
+            EnsureDefaultSchedules();
+
+            // 主管：白天巡视，晚上回主管府附近住所
+            Vector2 supervisorHome = new(18f, 10f);
+            EnsureScheduledRoute(
                 "Supervisor",
+                supervisorSchedule,
                 1.0f,
+                supervisorHome,
                 new Vector2(18f, 7f),
                 new Vector2(14f, 4f),
                 new Vector2(22f, 4f),
@@ -51,24 +81,30 @@ namespace XianXia.Unity.Presentation
                 new Vector2(12f, 8f));
             AttachPatrolInspectable("Supervisor");
 
-            EnsurePatrol(
+            // 守卫：巡逻点列表 + 路线 + 休息点
+            EnsureScheduledRoute(
                 "Guard_01",
+                guardSchedule,
                 1.35f,
+                new Vector2(14f, 9f),
                 new Vector2(14f, 8f),
                 new Vector2(8f, 2f),
                 new Vector2(20f, -8f),
                 new Vector2(14f, 8f));
             AttachPatrolInspectable("Guard_01");
 
-            EnsurePatrol(
+            EnsureScheduledRoute(
                 "Guard_02",
+                guardSchedule,
                 1.35f,
+                new Vector2(22f, 9f),
                 new Vector2(22f, 8f),
                 new Vector2(28f, 2f),
                 new Vector2(24f, -10f),
                 new Vector2(22f, 8f));
             AttachPatrolInspectable("Guard_02");
 
+            // 商人仍简单游荡（无发现逻辑）
             EnsurePatrol(
                 "Merchant",
                 0.9f,
@@ -78,7 +114,49 @@ namespace XianXia.Unity.Presentation
                 new Vector2(0f, 6f));
             AttachPatrolInspectable("Merchant");
 
+            EnsureVillageCrowd();
+            // 少量氛围劳工仅作点缀；群体状态由 VillageCrowdPresenter 表达
             EnsureLaborers();
+        }
+
+        private void EnsureDefaultSchedules()
+        {
+            if (guardSchedule == null)
+            {
+                guardSchedule = NpcScheduleConfig.CreateDefaultGuard();
+            }
+
+            if (supervisorSchedule == null)
+            {
+                supervisorSchedule = NpcScheduleConfig.CreateDefaultSupervisor();
+            }
+
+            if (villagerGroupSchedule == null)
+            {
+                villagerGroupSchedule = NpcScheduleConfig.CreateDefaultVillagerGroup();
+            }
+        }
+
+        private void EnsureScheduledRoute(
+            string objectName,
+            NpcScheduleConfig schedule,
+            float speed,
+            Vector2 home,
+            params Vector2[] points)
+        {
+            GameObject go = GameObject.Find(objectName);
+            if (go == null)
+            {
+                return;
+            }
+
+            AmbientNpcActor actor = go.GetComponent<AmbientNpcActor>();
+            if (actor == null)
+            {
+                actor = go.AddComponent<AmbientNpcActor>();
+            }
+
+            actor.ConfigureScheduledRoute(clock, schedule, speed, home, points);
         }
 
         private void EnsurePatrol(string objectName, float speed, params Vector2[] points)
@@ -98,6 +176,24 @@ namespace XianXia.Unity.Presentation
             actor.ConfigurePatrol(clock, speed, points);
         }
 
+        private void EnsureVillageCrowd()
+        {
+            VillageCrowdPresenter presenter = GetComponent<VillageCrowdPresenter>();
+            if (presenter == null)
+            {
+                presenter = gameObject.AddComponent<VillageCrowdPresenter>();
+            }
+
+            Vector3 anchor = new(-14f, 10f, 0f);
+            GameObject house = GameObject.Find("House_01");
+            if (house != null)
+            {
+                anchor = house.transform.position + new Vector3(0f, 1.2f, 0f);
+            }
+
+            presenter.Configure(clock, scheduleService, villagerGroupSchedule, anchor);
+        }
+
         private void EnsureLaborers()
         {
             if (GameObject.Find("Laborer_01") != null)
@@ -112,12 +208,24 @@ namespace XianXia.Unity.Presentation
 
             WorkZone farm = FindZoneByName("WorkZone_Farm");
             WorkZone forest = FindZoneByName("WorkZone_Forest");
-            Vector2 meal = new(12f, 5f); // 仓库附近当食堂占位
+            Vector2 meal = new(12f, 5f);
 
-            CreateLaborer("Laborer_01", parent, template, new Vector2(-18f, 9f), farm != null ? farm.transform.position : new Vector2(20f, -12f), meal, 1.1f);
-            CreateLaborer("Laborer_02", parent, template, new Vector2(-12f, 11f), forest != null ? forest.transform.position : new Vector2(-34f, 0f), meal, 1.05f);
-            CreateLaborer("Laborer_03", parent, template, new Vector2(-8f, 7f), farm != null ? (Vector2)farm.transform.position + new Vector2(-3f, 2f) : new Vector2(18f, -10f), meal, 1.15f);
-            CreateLaborer("Laborer_04", parent, template, new Vector2(-16f, 5f), forest != null ? (Vector2)forest.transform.position + new Vector2(2f, -4f) : new Vector2(-30f, -4f), meal, 1.0f);
+            CreateLaborer(
+                "Laborer_01",
+                parent,
+                template,
+                new Vector2(-18f, 9f),
+                farm != null ? farm.transform.position : new Vector2(20f, -12f),
+                meal,
+                1.1f);
+            CreateLaborer(
+                "Laborer_02",
+                parent,
+                template,
+                new Vector2(-12f, 11f),
+                forest != null ? forest.transform.position : new Vector2(-34f, 0f),
+                meal,
+                1.05f);
         }
 
         private void CreateLaborer(
@@ -168,11 +276,9 @@ namespace XianXia.Unity.Presentation
             {
                 "Laborer_01" => "村民甲",
                 "Laborer_02" => "村民乙",
-                "Laborer_03" => "村民丙",
-                "Laborer_04" => "村民丁",
                 _ => "村民"
             };
-            inspectable.Configure(display, "村民", "凡人", "按课表去工作区／吃饭／睡觉", 0f);
+            inspectable.Configure(display, "村民", "凡人", "氛围点缀；群体状态见住宅旁标签", 0f);
             EnsureThreatMarker(go);
         }
 
@@ -193,13 +299,13 @@ namespace XianXia.Unity.Presentation
             switch (objectName)
             {
                 case "Supervisor":
-                    inspectable.Configure("主管", "村主管", "筑基", "管辖配额、愤怒与最终夺权目标", 0.95f);
+                    inspectable.Configure("主管", "村主管", "筑基", "白天巡视，晚上回住所（日程驱动）", 0.95f);
                     break;
                 case "Guard_01":
-                    inspectable.Configure("守卫甲", "守卫", "炼气", "巡视工作区与主管府周边", 0.55f);
+                    inspectable.Configure("守卫甲", "守卫", "炼气", "按日程巡逻／休息（无发现逻辑）", 0.55f);
                     break;
                 case "Guard_02":
-                    inspectable.Configure("守卫乙", "守卫", "炼气", "巡视工作区与主管府周边", 0.55f);
+                    inspectable.Configure("守卫乙", "守卫", "炼气", "按日程巡逻／休息（无发现逻辑）", 0.55f);
                     break;
                 case "Merchant":
                     inspectable.Configure("行商", "商人", "凡人", "在村中走动交易（占位）", 0f);

@@ -25,6 +25,7 @@ namespace XianXia.Unity.Actions
         private WorkSpot _gatherSpot;
         private WorkZone _gatherZone;
         private SpiritSiteZone _spiritSite;
+        private CultivationSystem _cultivationSystem;
         private ResourceType _gatherResource = ResourceType.Food;
         private float _unitsPerGameHour = 4f;
 
@@ -51,6 +52,7 @@ namespace XianXia.Unity.Actions
             }
 
             _inventory = FindObjectOfType<ResourceInventory>();
+            _cultivationSystem = FindObjectOfType<CultivationSystem>();
         }
 
         private void Update()
@@ -305,6 +307,8 @@ namespace XianXia.Unity.Actions
             {
                 _action.Status = ActionStatus.Cultivating;
                 _action.StatusLabel = ActionSettings.ActiveLabelFor(ActionType.Cultivate);
+                UnitCultivation cult = unit.GetComponent<UnitCultivation>();
+                cult?.SetCultivating(true);
                 unit.SetMeditationPose(true);
                 WorldFeedbackOverlay.Ensure().SpawnFloatingText(
                     unit.transform.position,
@@ -412,11 +416,23 @@ namespace XianXia.Unity.Actions
             }
 
             float before = cultivation.CultivationProgress;
-            float rate = settings.CultivateProgressPerGameHour;
+            if (_cultivationSystem == null)
+            {
+                _cultivationSystem = FindObjectOfType<CultivationSystem>();
+            }
+
+            float rate = _cultivationSystem != null && _cultivationSystem.Config != null
+                ? _cultivationSystem.Config.ProgressPerGameHour
+                : settings.CultivateProgressPerGameHour;
             cultivation.AddProgress(rate * gameHours);
+            if (!cultivation.IsCultivating)
+            {
+                cultivation.SetCultivating(true);
+            }
+
             float gained = cultivation.CultivationProgress - before;
             _cultivateFeedbackBucket += gained;
-            _action.Progress = Mathf.Clamp01((cultivation.CultivationProgress % 100f) / 100f);
+            _action.Progress = Mathf.Clamp01(cultivation.CultivationProgress / UnitCultivation.MaxProgress);
 
             if (_cultivateFeedbackBucket >= 10f)
             {

@@ -75,7 +75,8 @@ namespace XianXia.Unity.World
             float guiX = screen.x - 70f;
             float guiY = Screen.height - screen.y - 36f;
             GUI.Label(new Rect(guiX, guiY, 140f, 22f), mapLabel, _labelStyle);
-            GUI.Label(new Rect(guiX - 10f, guiY + 20f, 160f, 18f), mapHint, _hintStyle);
+            string hint = site.HasPartyInside ? site.InteractiveStatus : mapHint;
+            GUI.Label(new Rect(guiX - 20f, guiY + 20f, 180f, 18f), hint, _hintStyle);
         }
 
         private static void EnsureGuiStyles()

@@ -9,9 +9,9 @@
 
 项目已从纯策划进入 **Demo v0.1 原型开发**。当前可玩灰盒验证：
 
-**统一行动框架（M3.5）**：右键下令 → 走近 → 工作／修炼 → 进度与产出；三人可并行分工。
+**统一行动（M3.5）+ 秘密修炼（M4）+ NPC 日程（M5）**：角色行动／修炼可用；守卫与主管按日程巡逻／休息；村民以群体状态展示。
 
-白天劳动与偷修循环仍在；**尚未做**：真战斗伤害、突破、夺府、守卫 AI／潜行细化、正式 UGUI。
+**尚未做**：真战斗伤害、发现／追捕、潜行判定、突破、夺府、正式 UGUI。
 
 最新明细见下方「本轮改动汇总」与 `42-devlog.md` 顶部。
 
@@ -35,9 +35,11 @@
 - 离开工位／新命令会中断；暂停与倍速影响行动进度
 - 农田 5／森林 4／草药 3 个工位；数值在 WorkZone／ActionSettings
 
-### 修炼
-- 右键灵地或 C：前往灵地后入定涨修为（本步不做暴露／守卫检测）
-- X／移动／新工作命令：中断修炼
+### 修炼（M4）
+- 右键灵地或 C：前往灵地后入定涨修为（0～1000）
+- 暴露：夜晚低、白天高、靠近主管额外增加；**只显示不惩罚**
+- G：消耗敛息草降低暴露；初始库存 3；灵地内未修炼可缓慢采草
+- X／移动／新工作命令：中断修炼；一人修炼不影响其他人工作
 
 ### 劳役表（重要语义）
 - **全村一张表**，不是 RimWorld 式三人分别排班
@@ -45,10 +47,10 @@
 - UI：右侧竖栏 00～23（类似修仙模拟器）
 - 愤怒：工时内未工作 **且被主管／守卫发现** 才涨
 
-### 世界氛围
-- 主管／守卫／商人巡逻
-- 4 名氛围村民按劳役表去工作区／吃饭／睡觉
-- 工作区名称边框；东南隐藏灵地菱形标记
+### 世界氛围（M5）
+- 主管／守卫按 `NpcScheduleConfig`：白天巡视、晚上休息（无发现／追捕）
+- 村民群体状态标签（不逐人全模拟）；少量氛围劳工仅作点缀
+- NPC 头顶状态：巡视中／工作中／休息中
 
 ### 明确未做
 突破、战斗、夺府、暴露／愤怒真实惩罚演出、正式 UGUI、正式美术。
@@ -69,6 +71,7 @@
 | 灰盒 + 时钟 | 80×50 图、镜头、GameClock、只读时间表雏形 | `3e224f9` |
 | M3 生活循环 | 每日任务、资源、工作区、主管愤怒（只显示） | `dda70b8` 内 |
 | M4 秘密修炼 | 灵地、Cultivating、修为、暴露、敛息草 | `dda70b8` 内 |
+| M5 NPC 日程 | 可配置日程、守卫 Patrol/Rest、主管昼夜、村民群体状态 | 本轮 |
 | 时间表网格 | 24h 网格雏形 | `dda70b8` |
 | M3.5 工作交互 | Working 才产资源 | `f3c56cc` |
 | RTS 可读性包 | 框选／状态栏／工位／劳役表／威胁标／氛围 NPC | 本提交 |
@@ -96,6 +99,10 @@
 | 单位／工位 | `Presentation/DemoUnitController.cs`、`World/WorkSpot.cs` |
 | 劳役表／遵守／愤怒 | `Time/ScheduleService.cs`、`ScheduleComplianceTracker.cs`、`Obligation/` |
 | 氛围 NPC | `Presentation/AmbientNpcActor.cs`、`AmbientWorldBootstrap.cs` |
+| NPC 日程 | `Npc/NpcScheduleConfig.cs`、`Configs/Npc/*.asset` |
+| 村民群体 | `Presentation/VillageCrowdPresenter.cs` |
+| 统一行动 | `Actions/CharacterActionController.cs` |
+| 修炼 | `Cultivation/CultivationSystem.cs` |
 | HUD | `UI/DemoPrototypeHud.cs` |
 | 威胁标／区域标 | `World/ThreatOverheadMarker.cs`、`ZoneMapLabelOverlay.cs`、`SpiritSiteMapMarker.cs` |
 
@@ -117,10 +124,10 @@
 ## AI／人开工必读顺序
 
 1. **本文件**
-2. `AGENTS.md`
-3. `docs/40-process/42-devlog.md` 顶部若干条
-4. `docs/40-process/45-demo-v0.1.md`
-5. 需要设计细节时再进 `docs/20-systems/` 与 `00-overview.md`
+2. **`49-demo-v0.1-prototype-status.md`**（当前版本快照）
+3. `AGENTS.md`
+4. `docs/40-process/42-devlog.md` 顶部若干条
+5. `docs/40-process/45-demo-v0.1.md`
 
 ## 旧交接
 

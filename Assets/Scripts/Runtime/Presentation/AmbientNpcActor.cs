@@ -1,17 +1,20 @@
 using UnityEngine;
+using XianXia.Unity.Npc;
 using XianXia.Unity.Time;
 
 namespace XianXia.Unity.Presentation
 {
     /// <summary>
-    /// 不可控氛围 NPC：巡逻，或按全村劳役表在住宅／工作区之间走动。
+    /// 不可控氛围 NPC：按可配置日程在巡逻／休息（或劳工点）之间切换。
+    /// 不做发现、追捕、潜行判定。
     /// </summary>
     public sealed class AmbientNpcActor : MonoBehaviour
     {
         public enum BehaviorKind
         {
             Patrol = 0,
-            ScheduleLabor = 1
+            ScheduleLabor = 1,
+            ScheduledRoute = 2
         }
 
         [SerializeField] private BehaviorKind behavior = BehaviorKind.Patrol;
@@ -22,6 +25,8 @@ namespace XianXia.Unity.Presentation
         [SerializeField] private Vector2 mealPoint;
         [SerializeField] private float arriveDistance = 0.25f;
         [SerializeField] private float waitSecondsAtWaypoint = 1.2f;
+        [SerializeField] private NpcScheduleConfig scheduleConfig;
+        [SerializeField] private bool showOverheadStatus = true;
 
         private GameClock _clock;
         private ScheduleService _scheduleService;
@@ -32,6 +37,41 @@ namespace XianXia.Unity.Presentation
         private float _waitRemaining;
         private SpriteRenderer _visual;
         private ScheduleActivity _lastActivity = (ScheduleActivity)(-1);
+        private NpcDutyPhase _lastDuty = (NpcDutyPhase)(-1);
+        private NpcRuntimeState _runtimeState = NpcRuntimeState.Rest;
+        private static GUIStyle _overheadStyle;
+
+        public NpcRuntimeState RuntimeState => _runtimeState;
+        public NpcScheduleConfig Schedule => scheduleConfig;
+        public float MoveSpeed => moveSpeed;
+        public Vector2[] PatrolWaypoints => waypoints;
+        public Vector2 HomePoint => homePoint;
+
+        public string CurrentActivityLabel
+        {
+            get
+            {
+                if (behavior == BehaviorKind.ScheduledRoute)
+                {
+                    return _runtimeState == NpcRuntimeState.Patrol ? "巡视中" : "休息中";
+                }
+
+                if (behavior == BehaviorKind.Patrol)
+                {
+                    return _hasDestination ? "巡视中" : "休息中";
+                }
+
+                ScheduleActivity activity = ResolveVillageActivity();
+                return activity switch
+                {
+                    ScheduleActivity.Work => "工作中",
+                    ScheduleActivity.Meal => "休息中",
+                    ScheduleActivity.Sleep => "休息中",
+                    ScheduleActivity.WakePrepare => "休息中",
+                    _ => "休息中"
+                };
+            }
+        }
 
         public void ConfigurePatrol(GameClock clock, float speed, params Vector2[] points)
         {
@@ -39,12 +79,34 @@ namespace XianXia.Unity.Presentation
             _clock = clock;
             moveSpeed = speed;
             waypoints = points ?? System.Array.Empty<Vector2>();
+            scheduleConfig = null;
+            _runtimeState = NpcRuntimeState.Patrol;
             _waypointIndex = 0;
             _waypointDirection = 1;
             if (waypoints.Length > 0)
             {
                 SetDestination(waypoints[0]);
             }
+        }
+
+        /// <summary>守卫／主管：日程驱动的巡逻点路线 + 休息点。</summary>
+        public void ConfigureScheduledRoute(
+            GameClock clock,
+            NpcScheduleConfig schedule,
+            float speed,
+            Vector2 home,
+            params Vector2[] patrolPoints)
+        {
+            behavior = BehaviorKind.ScheduledRoute;
+            _clock = clock;
+            scheduleConfig = schedule;
+            moveSpeed = Mathf.Max(0.1f, speed);
+            homePoint = home;
+            waypoints = patrolPoints ?? System.Array.Empty<Vector2>();
+            _waypointIndex = 0;
+            _waypointDirection = 1;
+            _lastDuty = (NpcDutyPhase)(-1);
+            ApplyDuty(ResolveDuty());
         }
 
         public void ConfigureScheduleLabor(
@@ -63,28 +125,8 @@ namespace XianXia.Unity.Presentation
             workPoint = work;
             mealPoint = meal;
             _lastActivity = (ScheduleActivity)(-1);
+            _runtimeState = NpcRuntimeState.Rest;
             SetDestination(home);
-        }
-
-        public string CurrentActivityLabel
-        {
-            get
-            {
-                if (behavior == BehaviorKind.Patrol)
-                {
-                    return _hasDestination ? "巡逻中" : "待命";
-                }
-
-                ScheduleActivity activity = ResolveVillageActivity();
-                return activity switch
-                {
-                    ScheduleActivity.Work => "工作中",
-                    ScheduleActivity.Meal => "吃饭",
-                    ScheduleActivity.Sleep => "睡觉",
-                    ScheduleActivity.WakePrepare => "起床",
-                    _ => "空闲"
-                };
-            }
         }
 
         private void Awake()
@@ -123,10 +165,21 @@ namespace XianXia.Unity.Presentation
             {
                 RefreshScheduleDestination();
             }
+            else if (behavior == BehaviorKind.ScheduledRoute)
+            {
+                RefreshScheduledRoute();
+            }
 
             if (_waitRemaining > 0f)
             {
                 _waitRemaining -= delta;
+                if (_waitRemaining <= 0f && behavior == BehaviorKind.ScheduledRoute
+                    && _runtimeState == NpcRuntimeState.Patrol
+                    && !_hasDestination)
+                {
+                    AdvancePatrolWaypoint();
+                }
+
                 return;
             }
 
@@ -141,7 +194,8 @@ namespace XianXia.Unity.Presentation
                 transform.position = _destination;
                 _hasDestination = false;
                 _waitRemaining = waitSecondsAtWaypoint;
-                if (behavior == BehaviorKind.Patrol)
+                if (behavior == BehaviorKind.Patrol
+                    || (behavior == BehaviorKind.ScheduledRoute && _runtimeState == NpcRuntimeState.Patrol))
                 {
                     AdvancePatrolWaypoint();
                 }
@@ -151,6 +205,80 @@ namespace XianXia.Unity.Presentation
             {
                 _visual.sortingOrder = Mathf.RoundToInt(-transform.position.y * 100f);
             }
+        }
+
+        private void OnGUI()
+        {
+            if (!showOverheadStatus)
+            {
+                return;
+            }
+
+            Camera cam = Camera.main;
+            if (cam == null)
+            {
+                return;
+            }
+
+            Vector3 screen = cam.WorldToScreenPoint(transform.position + Vector3.up * 1.05f);
+            if (screen.z < 0f)
+            {
+                return;
+            }
+
+            EnsureOverheadStyle();
+            float guiX = screen.x - 36f;
+            float guiY = Screen.height - screen.y - 18f;
+            GUI.Label(new Rect(guiX, guiY, 72f, 18f), CurrentActivityLabel, _overheadStyle);
+        }
+
+        private void RefreshScheduledRoute()
+        {
+            NpcDutyPhase duty = ResolveDuty();
+            if (duty == _lastDuty)
+            {
+                return;
+            }
+
+            ApplyDuty(duty);
+        }
+
+        private void ApplyDuty(NpcDutyPhase duty)
+        {
+            _lastDuty = duty;
+            if (duty == NpcDutyPhase.Patrol)
+            {
+                _runtimeState = NpcRuntimeState.Patrol;
+                if (waypoints != null && waypoints.Length > 0)
+                {
+                    _waypointIndex = Mathf.Clamp(_waypointIndex, 0, waypoints.Length - 1);
+                    SetDestination(waypoints[_waypointIndex]);
+                }
+                else
+                {
+                    SetDestination(homePoint);
+                }
+
+                _waitRemaining = 0f;
+            }
+            else
+            {
+                _runtimeState = NpcRuntimeState.Rest;
+                SetDestination(homePoint);
+                _waitRemaining = 0f;
+            }
+        }
+
+        private NpcDutyPhase ResolveDuty()
+        {
+            int hour = _clock != null ? _clock.Hour : 12;
+            if (scheduleConfig != null)
+            {
+                return scheduleConfig.GetDuty(hour);
+            }
+
+            // 无配置时：白天巡逻，夜晚休息
+            return hour >= 7 && hour <= 18 ? NpcDutyPhase.Patrol : NpcDutyPhase.Rest;
         }
 
         private ScheduleActivity ResolveVillageActivity()
@@ -193,6 +321,9 @@ namespace XianXia.Unity.Presentation
             }
 
             _lastActivity = activity;
+            _runtimeState = activity == ScheduleActivity.Work
+                ? NpcRuntimeState.Patrol
+                : NpcRuntimeState.Rest;
             Vector2 target = activity switch
             {
                 ScheduleActivity.Work => workPoint,
@@ -234,6 +365,22 @@ namespace XianXia.Unity.Presentation
         {
             _destination = new Vector3(world.x, world.y, transform.position.z);
             _hasDestination = true;
+        }
+
+        private static void EnsureOverheadStyle()
+        {
+            if (_overheadStyle != null)
+            {
+                return;
+            }
+
+            _overheadStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = new Color(0.92f, 0.9f, 0.78f) }
+            };
         }
     }
 }

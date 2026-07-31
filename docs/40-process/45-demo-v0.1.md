@@ -1,11 +1,12 @@
 # Demo v0.1 设计文档
 
-> 状态：范围草案 | 优先级：P0 | 最后更新：2026-07-31
+> 状态：**原型开发中（M3～M5 已可玩验证）** | 优先级：P0 | 最后更新：2026-07-31
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`20-opening-experience.md`、`2G-first-chapter-flow.md`、`2F-obligation-and-concealment.md`、`21-core-loop-and-time.md`、`25-cultivation-and-breakthrough.md`、`23-combat.md`、`26-territory-management.md`、`27-characters-and-population.md`
 > 美术资源规划：`46-demo-v0.1-art-assets.md`
 > AI 生成批次计划：`47-demo-v0.1-ai-art-batches.md`
 > 最小素材接入：`48-demo-v0.1-minimum-art-integration.md`
+> **原型现状快照：`49-demo-v0.1-prototype-status.md`**
 > **已进入原型开发阶段。** 只实现本文冻结的垂直切片，不等待最终美术，不扩展完整游戏。
 
 ## 1. Demo 目标
@@ -221,3 +222,20 @@ Demo 验证通过后，再向外扩展：使者审查、第二据点、灵气汇
 4. 美术范围与 AI 生成规格见 `46-demo-v0.1-art-assets.md`。
 5. AI 分批执行计划见 `47-demo-v0.1-ai-art-batches.md`（第一批 ≤10，先验风格再扩量）。
 6. 当前已进入实现阶段：严格按本清单做垂直切片，不要先搭完整游戏骨架。
+
+## 10. 原型实现进度（2026-07-31）
+
+对照本文第 5 节「Demo 最小系统清单」，当前代码状态：
+
+| 模块 | 设计目标 | 原型现状 |
+|---|---|---|
+| 三人控制 + 独立指令 | 5.1 | ✅ 已实现 |
+| 暂停 / 2x / 5x | 5.2 | ✅ GameClock |
+| 时间表 | 5.2 | ✅ 全村劳役表（测试可改）；夺权后修改未做 |
+| 主管 / 守卫 / 商人 NPC | 5.3 | ✅ 日程驱动 + 头顶状态；发现/追捕未做 |
+| 感应境 + 灵地修炼 | 5.4 | ✅ 修为/暴露/敛息草；突破/功法未做 |
+| RTS 移动 + 攻击占位 | 5.5 | ✅ 无伤害；技能/妖兽/主管战未做 |
+| 管理（改表/夺府） | 5.6 | ❌ 未做 |
+
+**可玩闭环当前止于**：劳动 → 偷修 → 多角色分工 → 荒村 NPC 自主运转。  
+完整六阶段（突破 → 隐藏 → 反抗 → 占领 → 管理）见 `49-demo-v0.1-prototype-status.md`。

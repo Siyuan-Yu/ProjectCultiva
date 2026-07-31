@@ -9,6 +9,7 @@ using XianXia.Unity.Actions;
 using XianXia.Unity.CameraControl;
 using XianXia.Unity.Cultivation;
 using XianXia.Unity.Input;
+using XianXia.Unity.Npc;
 using XianXia.Unity.Obligation;
 using XianXia.Unity.Presentation;
 using XianXia.Unity.Resources;
@@ -27,6 +28,9 @@ namespace XianXia.Unity.Editor
         private const string DailyTaskConfigPath = "Assets/Configs/Tasks/DailyTasks_Supervisor.asset";
         private const string AngerConfigPath = "Assets/Configs/Obligation/SupervisorAnger_Default.asset";
         private const string CultivationConfigPath = "Assets/Configs/Cultivation/Cultivation_Default.asset";
+        private const string GuardSchedulePath = "Assets/Configs/Npc/NpcSchedule_Guard.asset";
+        private const string SupervisorSchedulePath = "Assets/Configs/Npc/NpcSchedule_Supervisor.asset";
+        private const string VillagerGroupSchedulePath = "Assets/Configs/Npc/NpcSchedule_VillagerGroup.asset";
         private const int MapWidth = 80;
         private const int MapHeight = 50;
         private const int MapMinX = -40;
@@ -101,6 +105,7 @@ namespace XianXia.Unity.Editor
                 "Assets/Configs/Tasks",
                 "Assets/Configs/Obligation",
                 "Assets/Configs/Cultivation",
+                "Assets/Configs/Npc",
                 "Assets/Prefabs/Characters/Players",
                 "Assets/Prefabs/Characters/NPCs",
                 "Assets/Prefabs/Environment/Tiles",
@@ -165,12 +170,49 @@ namespace XianXia.Unity.Editor
                 AssetDatabase.CreateAsset(angerConfig, AngerConfigPath);
             }
 
+            EnsureDirectory("Assets/Configs/Npc");
+
             CultivationConfig cultivationConfig =
                 AssetDatabase.LoadAssetAtPath<CultivationConfig>(CultivationConfigPath);
             if (cultivationConfig == null)
             {
                 cultivationConfig = CultivationConfig.CreateDefault();
                 AssetDatabase.CreateAsset(cultivationConfig, CultivationConfigPath);
+            }
+
+            if (AssetDatabase.LoadAssetAtPath<NpcScheduleConfig>(GuardSchedulePath) == null)
+            {
+                AssetDatabase.CreateAsset(NpcScheduleConfig.CreateDefaultGuard(), GuardSchedulePath);
+            }
+
+            if (AssetDatabase.LoadAssetAtPath<NpcScheduleConfig>(SupervisorSchedulePath) == null)
+            {
+                AssetDatabase.CreateAsset(NpcScheduleConfig.CreateDefaultSupervisor(), SupervisorSchedulePath);
+            }
+
+            if (AssetDatabase.LoadAssetAtPath<NpcScheduleConfig>(VillagerGroupSchedulePath) == null)
+            {
+                AssetDatabase.CreateAsset(
+                    NpcScheduleConfig.CreateDefaultVillagerGroup(),
+                    VillagerGroupSchedulePath);
+            }
+        }
+
+        private static void EnsureDirectory(string path)
+        {
+            if (!AssetDatabase.IsValidFolder(path))
+            {
+                string parent = Path.GetDirectoryName(path)?.Replace('\\', '/');
+                string name = Path.GetFileName(path);
+                if (!string.IsNullOrEmpty(parent) && !string.IsNullOrEmpty(name))
+                {
+                    if (!AssetDatabase.IsValidFolder(parent))
+                    {
+                        EnsureDirectory(parent);
+                    }
+
+                    AssetDatabase.CreateFolder(parent, name);
+                }
             }
         }
 
@@ -608,7 +650,18 @@ namespace XianXia.Unity.Editor
             zoneLabels.Configure(camera);
 
             AmbientWorldBootstrap ambient = systems.AddComponent<AmbientWorldBootstrap>();
-            ambient.Configure(clock, scheduleService);
+            NpcScheduleConfig guardSchedule =
+                AssetDatabase.LoadAssetAtPath<NpcScheduleConfig>(GuardSchedulePath);
+            NpcScheduleConfig supervisorSchedule =
+                AssetDatabase.LoadAssetAtPath<NpcScheduleConfig>(SupervisorSchedulePath);
+            NpcScheduleConfig villagerGroupSchedule =
+                AssetDatabase.LoadAssetAtPath<NpcScheduleConfig>(VillagerGroupSchedulePath);
+            ambient.Configure(
+                clock,
+                scheduleService,
+                guardSchedule,
+                supervisorSchedule,
+                villagerGroupSchedule);
 
             DemoPrototypeHud hud = systems.AddComponent<DemoPrototypeHud>();
             hud.Configure(
