@@ -7,6 +7,17 @@
 
 ---
 
+## 2026-08-01 — Core M1 阶段 7 AttributeModifier 完成
+
+**判断：** Final 只能经管道计算；黄金例锁定 (100+10)×(1+0.5)=165。
+
+**做了什么**
+- `AttributeId` 小枚举；`AttributeModifier`／`ModifierOperation`／`AttributePipe`／`ModifierIdFactory`
+- `AttributesComponent` 正式挂载 Add／RemoveBySource／GetFinal／Explain；无公开 SetFinal
+
+**下一步**
+- 阶段 8 DomainEvent
+
 ## 2026-08-01 — Core M1 阶段 6 Entity 基础完成
 
 **判断：** 组合组件 + 白名单，避免配置反射创建任意组件；Dead／Removed／Incapacitated 语义先锁死。
