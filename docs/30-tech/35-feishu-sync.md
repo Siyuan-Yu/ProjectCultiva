@@ -36,26 +36,30 @@
 
 ### 3.1 开通应用权限
 
-访问：<https://open.feishu.cn/app/cli_aae0ade8d5389bdf/auth?q=docx:document,docx:document.block:convert&op_from=openapi&token_type=tenant>
+访问：<https://open.feishu.cn/app/cli_aae0ade8d5389bdf/auth?q=docx:document,docx:document.block:convert,docs:permission.member:create,drive:drive&op_from=openapi&token_type=tenant>
 
-开通这两项：
+开通这些权限：
 
 | 权限 | 用途 |
 |---|---|
 | `docx:document` | 读写文档、删除与创建块 |
 | `docx:document.block:convert` | Markdown 转文档块 |
+| `docs:permission.member:create` | 把应用新建的文档自动分享给你 |
+| `drive:drive`（可选，更宽） | 云空间元数据、文件夹与分享相关能力 |
 
-若后续想让脚本**自动新建**文档（而不是手动建好再填 ID），再加 `drive:drive`。
+若只想让脚本**自动新建**文档，`docx:document` 已足够；但要把新建文档分享到你的飞书账号，还需要 `docs:permission.member:create`。
 
 ### 3.2 发布应用版本
 
 自建应用的权限变更需要在开放平台「版本管理与发布」创建并发布新版本后才生效。
 
-### 3.3 把文档分享给应用
+### 3.3 把已有文档分享给应用
 
-飞书云文档权限是**按文档授予**的，开通了 API 权限还不够。对每篇要同步的文档：
+飞书云文档权限是**按文档授予**的。对**你本人创建**、需要让脚本写入的文档（例如总览）：
 
 打开文档 → 右上角「分享」→ 添加协作者 → 搜索该应用（即给你发消息的那个机器人）→ 权限设为**可编辑**。
+
+脚本用 `--provision` 新建的文档默认归属应用，之后由 `--share --openid ...` 分享给你；这两类文档的授权方向相反。
 
 ## 4. 日常使用
 
@@ -63,14 +67,27 @@
 # 检查凭据与文档权限（不写入任何内容，安全）
 node tools/feishu-sync.mjs --check
 
-# 同步全部已配置文档
+# 为映射里缺少 docId 的条目自动新建飞书文档，并回写 feishu-map.json
+node tools/feishu-sync.mjs --provision
+
+# 把已映射文档分享给指定用户（需要 docs:permission.member:create）
+node tools/feishu-sync.mjs --share --openid ou_xxxxxxxx
+
+# 同步全部已配置文档（会把本地相对链接改写成飞书链接，并在文末加导航）
 node tools/feishu-sync.mjs
 
 # 只同步一篇
 node tools/feishu-sync.mjs --only vision
 ```
 
-文档映射配置在 `tools/feishu-map.json`。新增一篇的做法：在飞书里建好空文档 → 从链接 `/docx/` 后面复制 ID → 填进映射 → 把文档分享给应用 → 跑同步。
+文档映射配置在 `tools/feishu-map.json`。新增一篇的推荐做法：
+
+1. 在 `feishu-map.json` 加条目（`docId` 可先留占位）
+2. 跑 `--provision` 自动建文档
+3. 跑 `--share --openid ...` 分享给你
+4. 跑同步写入正文
+
+也可以继续手建：在飞书里建好空文档 → 从链接 `/docx/` 后面复制 ID → 填进映射 → 把文档分享给应用 → 跑同步。
 
 ## 5. 常见错误码
 
@@ -85,3 +102,12 @@ node tools/feishu-sync.mjs --only vision
 - 飞书 Markdown 转换不支持 Mermaid 图，流程图会退化成代码块
 - 飞书没有对应「折叠块」的标准 Markdown 语法，复杂排版会被简化
 - 文档标题由飞书侧维护，脚本不修改标题（避免覆盖你在飞书里的命名）
+
+## 7. 链接改写的两个飞书侧约束
+
+这两点决定了脚本必须先改写链接，不能原样上传：
+
+1. **相对路径链接会被丢弃。** 形如 `[开局体验](../20-systems/20-opening-experience.md)` 的链接，转换后只剩纯文本，链接本身消失。因此所有指向已映射文档的引用都要先换成飞书绝对链接。
+2. **行内代码不能作为链接文字。** `[`22-realms.md`](url)` 转换后会丢字符。脚本改为用映射里的文档标题作为链接文字。
+
+另外，`--only` 只限制「写哪几篇」，链接改写与文末导航始终基于完整映射表；否则单篇同步会把该页指向其他文档的链接全部写丢。

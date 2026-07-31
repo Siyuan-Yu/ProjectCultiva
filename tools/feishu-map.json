@@ -9,102 +9,162 @@
     "vision": {
       "file": "docs/00-project/01-vision.md",
       "title": "项目愿景",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "docId": "RtQddMmbJoUZcVxnBiOcIphSnJd"
     },
     "sys-opening": {
       "file": "docs/20-systems/20-opening-experience.md",
       "title": "系统 20 开局体验",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "docId": "IdTpdWEdko8LnkxsoGMcDfSGnge"
     },
     "sys-core-loop": {
       "file": "docs/20-systems/21-core-loop-and-time.md",
       "title": "系统 21 核心循环与统一时间",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "docId": "Npz1de8nFo78DsxrOLbcx3qAnFg"
     },
     "sys-realms": {
       "file": "docs/20-systems/22-realms-and-abilities.md",
       "title": "系统 22 境界与机制能力",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "docId": "EWwSdzEaNoAxsix1qhFcHChfn7f"
     },
     "sys-combat": {
       "file": "docs/20-systems/23-combat.md",
       "title": "系统 23 战斗",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "docId": "PufBdosTAoCZT5xuyjnciJATnqf"
     },
     "sys-world": {
       "file": "docs/20-systems/24-world-and-settlements.md",
       "title": "系统 24 世界与据点",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "docId": "N2r4dynmgoguBGxp5yycKcF0nuc"
     },
     "sys-cultivation": {
       "file": "docs/20-systems/25-cultivation-and-breakthrough.md",
       "title": "系统 25 修炼与突破",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "docId": "WYQKdrmHVoCW5ExOiLdcjQt6nwh"
     },
     "sys-territory": {
       "file": "docs/20-systems/26-territory-management.md",
       "title": "系统 26 领地经营",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "docId": "XTVydXFnAo0DvnxEixscZxFynAh"
     },
     "sys-characters": {
       "file": "docs/20-systems/27-characters-and-population.md",
       "title": "系统 27 角色与凡人人口",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "docId": "WSQZdzSL9o708dxTeAVcUx7dnoh"
     },
     "sys-relations": {
       "file": "docs/20-systems/28-jianghu-relations.md",
       "title": "系统 28 江湖关系",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "docId": "XxFPddt1IorfRsxpVTjcIJwmnKb"
     },
     "sys-karma": {
       "file": "docs/20-systems/29-karma-and-consequence.md",
-      "title": "系统 29 因果与力量约束",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "title": "世界观哲学：天道、因果与修仙社会结构",
+      "docId": "CHEqdSlQhoHHCQxrbPucYraYnDh"
+    },
+    "sys-attributes": {
+      "file": "docs/20-systems/2B-attributes-and-affinity.md",
+      "title": "系统 2B 角色属性与修仙成长体系",
+      "docId": "TJi3ddfPvotbq9xka9EcMlM3ntd"
+    },
+    "sys-manuals": {
+      "file": "docs/20-systems/2D-manuals-arts-and-equipment.md",
+      "title": "系统 2D 功法、斗技与装备",
+      "docId": "MkbGdH2ECoGAaxxg40ecutchnQz"
+    },
+    "sys-obligation": {
+      "file": "docs/20-systems/2F-obligation-and-concealment.md",
+      "title": "系统 2F 义务、配额与隐匿",
+      "docId": "Orw3dkhT1ol8skx9Bv8cR9qMnJb"
+    },
+    "sys-chapter1": {
+      "file": "docs/20-systems/2G-first-chapter-flow.md",
+      "title": "系统 2G 第一章流程：从凡人到炼气",
+      "docId": "K1TbdF8eooVNU3x3smvcgvwanMh"
+    },
+    "sys-manual-rules": {
+      "file": "docs/20-systems/2H-manual-system-rules.md",
+      "title": "系统 2H 功法系统设计（规则层）",
+      "docId": "XJ7od0oNjowWXCxdFVfccS1xn2b"
+    },
+    "systems-index": {
+      "file": "docs/20-systems/README.md",
+      "title": "系统设计索引",
+      "docId": "SzfCdx29Po5KXVxlknTcSaiFnKc"
     },
     "scope": {
       "file": "docs/00-project/02-scope-and-constraints.md",
       "title": "范围与约束",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "docId": "DXCVdKWWjoMOzfxO54WcXn2wn6g"
     },
     "glossary": {
       "file": "docs/00-project/03-glossary.md",
       "title": "术语表",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "docId": "RXSUdOnXyoPXRExAJ3bcbvHdnAe"
     },
     "benchmark-toi": {
       "file": "docs/10-benchmark/11-tale-of-immortal.md",
       "title": "竞品拆解：鬼谷八荒",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "docId": "XBwTdBVpPoxk7vx1Ff0cWyuGn6e"
     },
     "benchmark-acs": {
       "file": "docs/10-benchmark/12-cultivation-simulator.md",
       "title": "竞品拆解：了不起的修仙模拟器",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "docId": "SfkvdbN2Loov3MxHPrzcJ1C8nhd"
     },
     "benchmark-compare": {
       "file": "docs/10-benchmark/13-comparison.md",
       "title": "竞品横向对照",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "docId": "TqdBdVMh3ohrz8xzxmQcxuqYn6g"
     },
     "differentiate": {
       "file": "docs/10-benchmark/14-borrow-and-differentiate.md",
       "title": "借鉴与差异化决策",
-      "docId": "<在飞书新建文档后填入 ID>"
-    },
-    "architecture": {
-      "file": "docs/30-tech/31-architecture.md",
-      "title": "技术架构",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "docId": "B9wzdZfmwonrvCxrNLJchJA4nNg"
     },
     "roadmap": {
       "file": "docs/40-process/41-roadmap.md",
       "title": "路线图",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "docId": "Kj1odxkhBoa4YmxBCrYcYgn3n4e"
     },
     "devlog": {
       "file": "docs/40-process/42-devlog.md",
       "title": "开发日志",
-      "docId": "<在飞书新建文档后填入 ID>"
+      "docId": "RJbtdVlYwotiifxezbdcOarxnm1"
+    },
+    "handoff": {
+      "file": "docs/40-process/44-session-handoff-2026-07-30.md",
+      "title": "会话交接：2026-07-30",
+      "docId": "XRVgdTujHoVtBUxNo45ce3NRnnd"
+    },
+    "demo-v01": {
+      "file": "docs/40-process/45-demo-v0.1.md",
+      "title": "Demo v0.1 设计文档",
+      "docId": "J2h8dCdXFouBc5xNjW9czgTtnfh"
+    },
+    "demo-v01-art": {
+      "file": "docs/40-process/46-demo-v0.1-art-assets.md",
+      "title": "Demo v0.1 美术资源需求表",
+      "docId": "LWVgduyDyoiNSZx1CdYcNhbWnge"
+    },
+    "demo-v01-ai-batches": {
+      "file": "docs/40-process/47-demo-v0.1-ai-art-batches.md",
+      "title": "Demo v0.1 AI美术生成批次计划",
+      "docId": "BrModGjpgou2y4x6Z3GcfMBwnNc"
+    },
+    "demo-v01-minimum-art": {
+      "file": "docs/40-process/48-demo-v0.1-minimum-art-integration.md",
+      "title": "第一批最小可用素材接入清单",
+      "docId": "JNhpd7vx8oSTBQxvlO3cHkQYnDc"
+    },
+    "feishu-sync-doc": {
+      "file": "docs/30-tech/35-feishu-sync.md",
+      "title": "飞书文档同步说明",
+      "docId": "NGo9ddHOZo2gH6xmJ7icJSzinfe"
+    },
+    "architecture": {
+      "file": "docs/30-tech/31-architecture.md",
+      "title": "技术架构",
+      "docId": "LNJIdFiVJo3mNIxTPE5cVNDbnOc"
     }
   }
 }

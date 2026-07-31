@@ -6,16 +6,20 @@
  * 因此不要在飞书里直接改内容（会被下次同步冲掉），飞书只当阅读与分享层。
  *
  * 用法：
- *   node tools/feishu-sync.mjs --check          仅检查凭据与文档权限
- *   node tools/feishu-sync.mjs                  同步 feishu-map.json 中全部条目
- *   node tools/feishu-sync.mjs --only vision    只同步指定 key
+ *   node tools/feishu-sync.mjs --check              仅检查凭据与文档权限
+ *   node tools/feishu-sync.mjs --provision          为缺少 docId 的条目自动新建飞书文档，并回写映射
+ *   node tools/feishu-sync.mjs --share --openid ou_xxx
+ *                                                   把已映射文档分享给指定用户（需要 docs:permission.member:create）
+ *   node tools/feishu-sync.mjs                      同步全部已配置文档（会把本地相对链接改写成飞书链接）
+ *   node tools/feishu-sync.mjs --only vision        只同步指定 key
  */
 
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
 const BASE = 'https://open.feishu.cn/open-apis';
+const DOC_BASE = 'https://my.feishu.cn/docx';
 const ROOT = path.resolve(import.meta.dirname, '..');
 const MAP_FILE = path.join(ROOT, 'tools', 'feishu-map.json');
 const MAX_BLOCKS_PER_CALL = 900; // 官方上限 1000，留余量
@@ -88,6 +92,14 @@ async function api(token, method, endpoint, body) {
   throw lastErr;
 }
 
+function isConfiguredDocId(docId) {
+  return Boolean(docId && !String(docId).startsWith('<'));
+}
+
+function feishuUrl(docId) {
+  return `${DOC_BASE}/${docId}`;
+}
+
 /** 转换结果里有些字段是只读的，原样回写会报 schema mismatch / invalid param */
 function sanitizeBlocks(blocks) {
   for (const b of blocks) {
@@ -150,12 +162,88 @@ async function clearDocument(token, docId) {
   return childCount;
 }
 
-async function syncFile(token, { key, file, docId, title }) {
+/**
+ * 把本地相对路径 / 反引号文件名，改写成飞书文档链接，方便在飞书里点来点去。
+ * 只改写已映射且已有 docId 的文档。
+ *
+ * 注意两个飞书侧的坑：
+ * 1. 相对路径（非 http）在 Markdown 转换时会被直接丢弃，只剩纯文本，所以必须先改成绝对链接。
+ * 2. 链接文字若是行内代码（[`x.md`](url)）会被转换器吃掉字符，因此统一改用文档标题作为链接文字。
+ */
+function rewriteLinksForFeishu(markdown, currentFile, entries) {
+  const byNorm = new Map();
+  for (const e of entries) {
+    if (!isConfiguredDocId(e.docId)) continue;
+    const abs = path.resolve(ROOT, e.file).replace(/\\/g, '/').toLowerCase();
+    byNorm.set(abs, e);
+    byNorm.set(path.basename(e.file).toLowerCase(), e);
+  }
+
+  const resolveTarget = (rawTarget) => {
+    const cleaned = rawTarget.trim().replace(/\\/g, '/').split('#')[0].split('?')[0];
+    if (!cleaned || cleaned.startsWith('http://') || cleaned.startsWith('https://')) return null;
+    if (!cleaned.endsWith('.md')) return null;
+    const fromDir = path.dirname(path.resolve(ROOT, currentFile));
+    const abs = path.resolve(fromDir, cleaned).replace(/\\/g, '/').toLowerCase();
+    return byNorm.get(abs) || byNorm.get(path.basename(cleaned).toLowerCase()) || null;
+  };
+
+  // [text](relative.md) → [text](https://my.feishu.cn/docx/...)
+  let out = markdown.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (full, text, target) => {
+    const hit = resolveTarget(target);
+    if (!hit) return full;
+    return `[${text}](${feishuUrl(hit.docId)})`;
+  });
+
+  // `22-realms-and-abilities.md` → [系统 22 境界与机制能力](url)
+  // 不保留反引号：飞书对「行内代码作为链接文字」会丢字符
+  out = out.replace(/`([^`]+?\.md)`/g, (full, name) => {
+    const hit = resolveTarget(name) || byNorm.get(path.basename(name).toLowerCase());
+    if (!hit) return full;
+    return `[${hit.title}](${feishuUrl(hit.docId)})`;
+  });
+
+  return out;
+}
+
+/** 文档分组，让每页底部的导航能反映「总纲 → 各系统」的结构 */
+const NAV_GROUPS = [
+  { label: '项目总纲', prefix: 'docs/00-project/' },
+  { label: '系统设计', prefix: 'docs/20-systems/' },
+  { label: '竞品与差异化', prefix: 'docs/10-benchmark/' },
+  { label: '过程与记录', prefix: 'docs/40-process/' },
+  { label: '工具', prefix: 'docs/30-tech/' },
+];
+
+function buildNavFooter(entries, currentKey, hubEntry) {
+  const configured = entries.filter((e) => isConfiguredDocId(e.docId));
+  const lines = ['', '---', '', '## 文档导航', ''];
+
+  if (hubEntry && hubEntry.key !== currentKey) {
+    lines.push(`回到总纲：[${hubEntry.title}](${feishuUrl(hubEntry.docId)})`, '');
+  }
+
+  for (const group of NAV_GROUPS) {
+    const items = configured.filter((e) => e.file.replace(/\\/g, '/').startsWith(group.prefix));
+    if (items.length === 0) continue;
+    lines.push(`**${group.label}**`, '');
+    for (const e of items) {
+      const mark = e.key === currentKey ? '（当前页）' : '';
+      lines.push(`- [${e.title}](${feishuUrl(e.docId)})${mark}`);
+    }
+    lines.push('');
+  }
+  return lines.join('\n');
+}
+
+async function syncFile(token, entry, allEntries, hubEntry) {
+  const { key, file, docId, title } = entry;
   const abs = path.join(ROOT, file);
   let markdown = await readFile(abs, 'utf8');
 
-  // 文档标题由飞书侧维护，正文里的一级标题会重复，故在同步时可选地补一行来源提示
-  markdown = `${markdown}\n\n---\n\n> 本页由本地文档自动同步，请勿直接在飞书编辑。源文件：\`${file}\`\n`;
+  markdown = rewriteLinksForFeishu(markdown, file, allEntries);
+  markdown += buildNavFooter(allEntries, key, hubEntry);
+  markdown += `\n\n---\n\n> 本页由本地文档自动同步，请勿直接在飞书编辑。源文件：\`${file}\`\n`;
 
   const converted = await api(token, 'POST', '/docx/v1/documents/blocks/convert', {
     content_type: 'markdown',
@@ -180,8 +268,76 @@ async function syncFile(token, { key, file, docId, title }) {
   }
 
   console.log(
-    `  OK  ${key.padEnd(16)} ${title ?? file}  (清除 ${removed} 块 → 写入 ${blocks.length} 块 / ${batches.length} 批)`,
+    `  OK  ${key.padEnd(18)} ${title ?? file}  (清除 ${removed} 块 → 写入 ${blocks.length} 块 / ${batches.length} 批)`,
   );
+  console.log(`       ${feishuUrl(docId)}`);
+}
+
+async function createDocument(token, title) {
+  const data = await api(token, 'POST', '/docx/v1/documents', { title });
+  return data?.document?.document_id;
+}
+
+async function provisionMissing(token, mapping) {
+  let created = 0;
+  for (const [key, v] of Object.entries(mapping.documents ?? {})) {
+    if (isConfiguredDocId(v.docId)) continue;
+    const title = v.title || key;
+    process.stdout.write(`  新建 ${key.padEnd(18)} 《${title}》 ... `);
+    try {
+      const docId = await createDocument(token, title);
+      if (!docId) throw new Error('未返回 document_id');
+      mapping.documents[key].docId = docId;
+      created++;
+      console.log(`OK  ${feishuUrl(docId)}`);
+      // 飞书限制同一文件夹并发创建，串行并稍作间隔
+      await new Promise((r) => setTimeout(r, 400));
+    } catch (err) {
+      console.log(`FAIL ${err.message}`);
+      if (err.code === 99991672) {
+        console.log('       → 需要开通 docx:document / docx:document:create 并发布应用版本');
+      }
+    }
+  }
+  await writeFile(MAP_FILE, `${JSON.stringify(mapping, null, 2)}\n`, 'utf8');
+  console.log(`\n新建 ${created} 篇，映射已写回 tools/feishu-map.json`);
+  return created;
+}
+
+async function shareDocument(token, docId, openId) {
+  await api(token, 'POST', `/drive/v1/permissions/${docId}/members?type=docx`, {
+    member_type: 'openid',
+    member_id: openId,
+    perm: 'full_access',
+  });
+}
+
+async function shareAll(token, entries, openId) {
+  let ok = 0;
+  let failed = 0;
+  for (const e of entries) {
+    if (!isConfiguredDocId(e.docId)) continue;
+    try {
+      await shareDocument(token, e.docId, openId);
+      console.log(`  OK  ${e.key.padEnd(18)} 已分享给 ${openId}`);
+      ok++;
+      await new Promise((r) => setTimeout(r, 200));
+    } catch (err) {
+      failed++;
+      console.log(`  FAIL ${e.key.padEnd(18)} ${err.message}`);
+      if (err.code === 99991672) {
+        console.log(
+          '       → 应用缺少分享权限。请开通并发布：docs:permission.member:create 或 drive:drive',
+        );
+        console.log(
+          '       → https://open.feishu.cn/app/cli_aae0ade8d5389bdf/auth?q=docs:permission.member:create,drive:drive&op_from=openapi&token_type=tenant',
+        );
+        break;
+      }
+    }
+  }
+  console.log(`\n分享成功 ${ok} 篇${failed ? `，失败/中断 ${failed}` : ''}。`);
+  return failed === 0;
 }
 
 async function checkAccess(token, entries) {
@@ -189,10 +345,11 @@ async function checkAccess(token, entries) {
   for (const e of entries) {
     try {
       const d = await api(token, 'GET', `/docx/v1/documents/${e.docId}`);
-      console.log(`  OK  ${e.key.padEnd(16)} 《${d?.document?.title || '(无标题)'}》`);
+      console.log(`  OK  ${e.key.padEnd(18)} 《${d?.document?.title || '(无标题)'}》`);
+      console.log(`       ${feishuUrl(e.docId)}`);
       ok++;
     } catch (err) {
-      console.log(`  FAIL ${e.key.padEnd(16)} ${err.message}`);
+      console.log(`  FAIL ${e.key.padEnd(18)} ${err.message}`);
       if (err.code === 99991672) {
         console.log('       → 应用缺少权限，需在开放平台开通 docx:document 与 docx:document.block:convert 并发布版本');
       } else if (err.code === 1770001 || err.code === 131005) {
@@ -204,38 +361,74 @@ async function checkAccess(token, entries) {
   return ok === entries.length;
 }
 
+function parseArgs(argv) {
+  const args = {
+    checkOnly: argv.includes('--check'),
+    provision: argv.includes('--provision'),
+    share: argv.includes('--share'),
+    onlyKey: null,
+    openId: process.env.FEISHU_SHARE_OPENID || null,
+  };
+  const onlyIdx = argv.indexOf('--only');
+  if (onlyIdx >= 0) args.onlyKey = argv[onlyIdx + 1];
+  const openIdx = argv.indexOf('--openid');
+  if (openIdx >= 0) args.openId = argv[openIdx + 1];
+  return args;
+}
+
 async function main() {
-  const args = process.argv.slice(2);
-  const checkOnly = args.includes('--check');
-  const onlyIdx = args.indexOf('--only');
-  const onlyKey = onlyIdx >= 0 ? args[onlyIdx + 1] : null;
-
+  const args = parseArgs(process.argv.slice(2));
   const mapping = await readJson(MAP_FILE);
-  let entries = Object.entries(mapping.documents ?? {}).map(([key, v]) => ({ key, ...v }));
-  if (onlyKey) {
-    entries = entries.filter((e) => e.key === onlyKey);
-    if (entries.length === 0) throw new Error(`feishu-map.json 中没有 key: ${onlyKey}`);
-  }
-  entries = entries.filter((e) => e.docId && !e.docId.startsWith('<'));
-  if (entries.length === 0) throw new Error('feishu-map.json 中没有已填写 docId 的条目');
-
   const creds = await loadCredentials();
   const token = await getToken(creds);
   console.log(`应用 ${creds.appId} 认证成功\n`);
 
-  if (checkOnly) {
-    const allOk = await checkAccess(token, entries);
+  if (args.provision) {
+    console.log('开始为缺少 docId 的条目新建飞书文档：');
+    await provisionMissing(token, mapping);
+    // 重新读取，后续步骤使用最新映射
+  }
+
+  const latest = await readJson(MAP_FILE);
+  // 全量清单：链接改写与底部导航必须基于它，否则 --only 会把其他文档的链接写丢
+  const allEntries = Object.entries(latest.documents ?? {}).map(([key, v]) => ({ key, ...v }));
+  const allConfigured = allEntries.filter((e) => isConfiguredDocId(e.docId));
+  const hubEntry = allConfigured.find((e) => e.key === 'overview') ?? null;
+
+  let entries = allEntries;
+  if (args.onlyKey) {
+    entries = entries.filter((e) => e.key === args.onlyKey);
+    if (entries.length === 0) throw new Error(`feishu-map.json 中没有 key: ${args.onlyKey}`);
+  }
+  const configured = entries.filter((e) => isConfiguredDocId(e.docId));
+
+  if (args.share) {
+    if (!args.openId) {
+      throw new Error('分享需要 --openid ou_xxx 或环境变量 FEISHU_SHARE_OPENID');
+    }
+    if (configured.length === 0) throw new Error('没有已配置 docId 的文档可分享');
+    console.log(`开始分享 ${configured.length} 篇给 ${args.openId}：`);
+    const ok = await shareAll(token, configured, args.openId);
+    process.exit(ok ? 0 : 1);
+  }
+
+  if (configured.length === 0) {
+    throw new Error('feishu-map.json 中没有已填写 docId 的条目。可先运行 --provision');
+  }
+
+  if (args.checkOnly) {
+    const allOk = await checkAccess(token, configured);
     process.exit(allOk ? 0 : 1);
   }
 
-  console.log(`开始同步 ${entries.length} 篇：`);
+  console.log(`开始同步 ${configured.length} 篇：`);
   let failed = 0;
-  for (const e of entries) {
+  for (const e of configured) {
     try {
-      await syncFile(token, e);
+      await syncFile(token, e, allConfigured, hubEntry);
     } catch (err) {
       failed++;
-      console.error(`  FAIL ${e.key.padEnd(16)} ${err.message}`);
+      console.error(`  FAIL ${e.key.padEnd(18)} ${err.message}`);
     }
   }
   console.log(failed === 0 ? '\n全部完成。' : `\n完成，${failed} 篇失败。`);
