@@ -71,8 +71,9 @@
 
 | 阶段 | 状态 |
 |---|---|
-| 1 工程结构 | **完成，待确认**；四 asmdef + 目录就绪；batchmode 编译成功；EditMode `AssemblyBoundaryTests` 5/5 通过 |
-| 2～10 | 未开始（待阶段 1 确认） |
+| 1 工程结构 | **已确认完成** |
+| 2 基础类型 | **完成，待确认**；Id／WorldTick／ActionClock／SourceRef；batchmode 编译通过；EditMode **24/24** |
+| 3～10 | 未开始（待阶段 2 确认） |
 
 ---
 

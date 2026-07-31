@@ -7,6 +7,20 @@
 
 ---
 
+## 2026-08-01 — Core M1 阶段 2 基础类型完成（待确认）
+
+**判断：** 跨系统共享原语必须先于 Result／Entity／Modifier 落地；DefinitionId 与 EntityId 在类型层隔离，避免后期存档污染。
+
+**做了什么**
+- 清理检查：删除探测残留 `Logs/phase1-offline-boundary-check.txt`；无探测脚本／临时工程改动进正式程序集
+- 实现 `EntityId`／`DefinitionId`／`SourceRef`＋`SourceKind`／`ModifierId`（最小句柄）／`ActionId`／`EventId`／`SnapshotId`／`RegionId` 占位
+- 实现 `WorldTick`（1 tick=15 分，96／日；加减 checked 溢出抛 `OverflowException`）与 `ActionClock`（Duration 剩余，钳制≥0，不改 WorldTick）
+- DefinitionId 非法解析过渡：`TryParse` 返回 bool（不做 Phase 3 Result）
+- EditMode 全量 **24/24** 通过（含原 5 个边界测试）
+
+**下一步**
+- 人工确认后进入阶段 3 Result／Validation
+
 ## 2026-08-01 — Core M1 阶段 1 工程结构完成（待确认）
 
 **判断：** 正式分层必须在编译期不可破坏；Demo Runtime 保持不动。
