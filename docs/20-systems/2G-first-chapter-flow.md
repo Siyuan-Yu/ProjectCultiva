@@ -1,9 +1,7 @@
 # 第一章流程设计（草案）：从凡人到炼气
 
-> 状态：体验流程草案，不代表最终剧情 | 优先级：P0 | 最后更新：2026-07-31
-> 上级：`20-opening-experience.md`
-> 关联：`2F-obligation-and-concealment.md`、`22-realms-and-abilities.md`、`25-cultivation-and-breakthrough.md`、`29-karma-and-consequence.md`
-> 人物、地点、名称与具体事件均可调整。本章重点记录玩家前期体验节奏和核心玩法循环，不进入代码或具体数值设计。
+> 状态：体验流程草案；开局 Membership 已冻结于 v0.2 | 优先级：P0 | 最后更新：2026-07-31
+> 关联：`2F`、`22`、`25`、`29`、`../30-tech/33-architecture-core-rules-freeze-v0.2.md`、`34`
 
 ## 1. 第一章核心目标
 
@@ -29,6 +27,17 @@
 ## 2. 开局背景
 
 玩家控制 3 名初始角色。
+
+### 2.1 势力与控制（Freeze v0.2 已冻结）
+
+| 对象 | FactionMembership | FactionRole | ControlAuthority |
+|---|---|---|---|
+| 三名初始角色 | **当前压迫他们的宗门** | 杂役弟子／劳役弟子 | 玩家**直接控制** |
+| 主管 | **同一宗门** | 管理者 | 监督与处罚（非玩家 DirectControl） |
+
+目的：支撑荒村生活 → 秘密修炼 → 隐藏 → 击败主管 → 夺取据点。详见 `33` v0.2 §15、`34`。
+
+### 2.2 人物设定
 
 三人：
 

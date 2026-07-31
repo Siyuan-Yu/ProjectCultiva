@@ -1,10 +1,8 @@
 # 属性与 AttributeModifier 管道（2C）
 
-> 状态：**已冻结（v0.1）** | 优先级：P0 | 最后更新：2026-07-31  
-> 上级：`docs/00-project/00-overview.md`  
-> 依赖：`33-architecture-core-rules-freeze-v0.1.md`、`2B-attributes-and-affinity.md`、`34-entity-and-component-model.md`  
-> 被引用：功法／装备／环境／状态／事件系统、UI 溯源面板、Core 属性模块  
-> **本阶段不写实现代码。**
+> 状态：**已冻结（对齐 Freeze v0.2）** | 优先级：P0 | 最后更新：2026-07-31  
+> 依赖：`33` v0.2、`2B`、`34`  
+> **正式隐匿状态值名：`PersonalConcealmentRisk`。**
 
 ## 1. 这个系统解决什么问题
 
@@ -119,9 +117,9 @@ Final =
 - `CurrentHealth`
 - `CurrentQi`
 - `CultivationProgress`
-- `ExposureAccumulation`／个人隐匿风险累计
+- `PersonalConcealmentRisk`（个人隐匿风险累计；**禁止**正式名 ExposureAccumulation／ExposureRisk）
 - `InventoryAmount`
-- `RelationshipValue`
+- `RelationshipValue`（**只读聚合**；写入必须经 RelationshipLedger 事件）
 - `TaskProgress`
 
 状态值通过资源交易、行动结果、事件结算改变；可以**间接**创建 AttributeModifier（例如受伤状态加防御 Fixed），但状态值本身不是 Modifier 目标。

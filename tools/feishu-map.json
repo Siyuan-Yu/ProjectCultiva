@@ -129,12 +129,12 @@
     "devlog": {
       "file": "docs/40-process/42-devlog.md",
       "title": "开发日志",
-      "docId": "ClG0d4Yelosg1Hx0d3pcRFepnsc"
+      "docId": "JOrrdevURodYaoxhTZGcamFAnQd"
     },
     "handoff": {
       "file": "docs/40-process/44-session-handoff-2026-07-31.md",
       "title": "会话交接：2026-07-31",
-      "docId": "DzwoducS3ohi2AxduVQc4xyun4g"
+      "docId": "GlZkdMhZ4oslaCxSyU0cwV3Hnqe"
     },
     "demo-v01": {
       "file": "docs/40-process/45-demo-v0.1.md",
@@ -159,7 +159,7 @@
     "prototype-status": {
       "file": "docs/40-process/49-demo-v0.1-prototype-status.md",
       "title": "Demo v0.1 原型现状",
-      "docId": "AfG6djzJ2ojI9JxSzDtceVffnQd"
+      "docId": "DfBDd6YGRohmrBxNKzScayO1nI9"
     },
     "feishu-sync-doc": {
       "file": "docs/30-tech/37-feishu-sync.md",
@@ -169,7 +169,7 @@
     "content-package": {
       "file": "docs/30-tech/36-content-package-and-mod-architecture.md",
       "title": "ContentPackage 与 Mod Ready 架构",
-      "docId": ""
+      "docId": "QNuXdV9yzowRxWxCh9Qc2YUXnSI"
     },
     "architecture": {
       "file": "docs/30-tech/31-architecture.md",
@@ -179,32 +179,157 @@
     "prototype-bridge": {
       "file": "docs/30-tech/32-prototype-to-product-bridge.md",
       "title": "Demo到正式开发桥接",
-      "docId": "MM7edtl0UoiPCwxt2TrcNcGOnwc"
+      "docId": "CgM1d6ZmPobcrNxtiGWccP61nEi"
     },
     "arch-freeze": {
+      "file": "docs/30-tech/33-architecture-core-rules-freeze-v0.2.md",
+      "title": "架构核心规则冻结 v0.2",
+      "docId": "JWgxdSLR8otBXgxmqUVcAZaonqf"
+    },
+    "arch-freeze-v01-stub": {
       "file": "docs/30-tech/33-architecture-core-rules-freeze-v0.1.md",
-      "title": "架构核心规则冻结 v0.1",
-      "docId": "YcU8d3OCBoDoPRxWhPucAKkQnTh"
+      "title": "架构核心规则冻结 v0.1（已取代）",
+      "docId": "F8fqdp9zfo4sKIxfQxzcjurNnYc"
+    },
+    "freeze-review": {
+      "file": "docs/40-process/50-architecture-freeze-review-report-v0.1.md",
+      "title": "架构冻结审计报告 v0.1",
+      "docId": "IWt7diGpxoWzI9xSMomcWeQBnBf"
     },
     "sys-modifier": {
       "file": "docs/20-systems/2C-attributes-and-modifier-pipeline.md",
       "title": "系统 2C 属性与 Modifier 管道",
-      "docId": "JtIgdCdmFonaDsxQQ83cwMrInwd"
+      "docId": "VHdcdgVxaor2g5xUiqJc3J9UnRd"
     },
     "entity-model": {
       "file": "docs/30-tech/34-entity-and-component-model.md",
       "title": "实体与能力模块模型",
-      "docId": ""
+      "docId": "IM2PdgPk7ooAiNxh65scYAEVn3c"
     },
     "order-action": {
       "file": "docs/30-tech/35-order-and-action-system.md",
       "title": "Order 与 Action 系统",
-      "docId": ""
+      "docId": "F9KRdWm3koDjM6x4dpic6MXsnQL"
     },
     "sys-events": {
       "file": "docs/20-systems/2E-events-and-world-state.md",
       "title": "系统 2E 事件与世界状态记账",
-      "docId": ""
+      "docId": "Toa0dTZyloCleBx8hgIcll79nfh"
+    },
+    "reading-guide": {
+      "file": "docs/00-project/04-reading-guide.md",
+      "title": "文档通读指南",
+      "docId": "X5GvdT2mGoSyoDxIcUZc0zPnngd"
+    },
+    "adr-index": {
+      "file": "docs/40-process/43-decisions/README.md",
+      "title": "ADR 决策索引",
+      "docId": "HasedlIbPozp7jxpQjBcl5byncf"
+    },
+    "adr-0001": {
+      "file": "docs/40-process/43-decisions/ADR-0001-unity-version.md",
+      "title": "ADR-0001 Unity版本与渲染管线",
+      "docId": "QPzLdQPayomfDsxP5yccMTSDnme"
+    },
+    "adr-0002": {
+      "file": "docs/40-process/43-decisions/ADR-0002-no-unity-ecs.md",
+      "title": "ADR-0002 不采用Unity ECS",
+      "docId": "BP5KdyxhaoldMBxg4uocINNcnUh"
+    },
+    "adr-0003": {
+      "file": "docs/40-process/43-decisions/ADR-0003-dual-time-model.md",
+      "title": "ADR-0003 双层时间模型",
+      "docId": "UsPedjKh2oULbMxnH99c7bS9nwg"
+    },
+    "adr-0004": {
+      "file": "docs/40-process/43-decisions/ADR-0004-csv-json-data-source.md",
+      "title": "ADR-0004 CSV／JSON配置真源",
+      "docId": "ORGKdd912ojbVWx34GncQvzTnzh"
+    },
+    "adr-0005": {
+      "file": "docs/40-process/43-decisions/ADR-0005-snapshot-save.md",
+      "title": "ADR-0005 快照存档",
+      "docId": "IGrRdiMsKoWlSMxF8GHcOzdcnZo"
+    },
+    "adr-0006": {
+      "file": "docs/40-process/43-decisions/ADR-0006-layered-maps-and-routes.md",
+      "title": "ADR-0006 分层地图与Route",
+      "docId": "YGkLdBt7go8SFvxkhiKcrEiinOb"
+    },
+    "adr-0007": {
+      "file": "docs/40-process/43-decisions/ADR-0007-multi-party-lod-simulation.md",
+      "title": "ADR-0007 多队伍分级模拟",
+      "docId": "Ceezd0z7coHkKQxOrLUcJ0Honhb"
+    },
+    "adr-0008": {
+      "file": "docs/40-process/43-decisions/ADR-0008-army-group-aggregate.md",
+      "title": "ADR-0008 ArmyGroup聚合",
+      "docId": "O1xndcQWGoh39ExHTAVc2rz6nl9"
+    },
+    "adr-0010": {
+      "file": "docs/40-process/43-decisions/ADR-0010-permanent-death-default.md",
+      "title": "ADR-0010 默认永久死亡",
+      "docId": "GfeMdAVs1oVG4LxD3gMc1rNXnac"
+    },
+    "adr-0011": {
+      "file": "docs/40-process/43-decisions/ADR-0011-player-agency.md",
+      "title": "ADR-0011 PlayerAgency",
+      "docId": "QTbDdKyLGoQytUxSpypcgUKznfc"
+    },
+    "adr-0012": {
+      "file": "docs/40-process/43-decisions/ADR-0012-faction-control-separation.md",
+      "title": "ADR-0012 势力控制权分离",
+      "docId": "W3l1dZF9MoQU5ZxqrlkcASVxn1d"
+    },
+    "adr-0013": {
+      "file": "docs/40-process/43-decisions/ADR-0013-mod-ready-phased.md",
+      "title": "ADR-0013 Mod Ready分阶段",
+      "docId": "FdojdljU3oqSbkxP6RucfPxlnKc"
+    },
+    "adr-0014": {
+      "file": "docs/40-process/43-decisions/ADR-0014-unified-content-package.md",
+      "title": "ADR-0014 统一ContentPackage",
+      "docId": "NratdeNuhow1mXxkQ1PcGR6RnPg"
+    },
+    "adr-0015": {
+      "file": "docs/40-process/43-decisions/ADR-0015-namespaced-definition-id.md",
+      "title": "ADR-0015 DefinitionId命名空间",
+      "docId": "Z86QdxBe1oO2r8x60NOcCLuZnpb"
+    },
+    "adr-0016": {
+      "file": "docs/40-process/43-decisions/ADR-0016-no-arbitrary-script-mods.md",
+      "title": "ADR-0016 禁止任意脚本Mod",
+      "docId": "P6qgdURWkoF7RjxD3vecwUlknKe"
+    },
+    "adr-0017": {
+      "file": "docs/40-process/43-decisions/ADR-0017-relationship-ledger-source-of-truth.md",
+      "title": "ADR-0017 RelationshipLedger唯一真源",
+      "docId": "Qs1QdOLknolF2zxXVORcaNy9nHc"
+    },
+    "adr-0018": {
+      "file": "docs/40-process/43-decisions/ADR-0018-worldtick-actionclock-duties.md",
+      "title": "ADR-0018 WorldTick与ActionClock职责",
+      "docId": "RKDmdRfcoo1jvsxgEtIcXZXNnWc"
+    },
+    "adr-0019": {
+      "file": "docs/40-process/43-decisions/ADR-0019-dead-vs-removed.md",
+      "title": "ADR-0019 Dead与Removed分离",
+      "docId": "V5ysdKklBonsjIx7LTvcIXJEnzc"
+    },
+    "adr-0020": {
+      "file": "docs/40-process/43-decisions/ADR-0020-focus-vs-control-authority.md",
+      "title": "ADR-0020 Focus与ControlAuthority分离",
+      "docId": "GB29dCdh7o5lWAxGpdUcLcOLnbh"
+    },
+    "adr-0021": {
+      "file": "docs/40-process/43-decisions/ADR-0021-world-region-localmap.md",
+      "title": "ADR-0021 World／Region／LocalMap",
+      "docId": "VLsIdcEbcoRosmx6W05cvZF5n2f"
+    },
+    "adr-0022": {
+      "file": "docs/40-process/43-decisions/ADR-0022-core-milestone-1-scope.md",
+      "title": "ADR-0022 Core Milestone 1范围",
+      "docId": "AzKWdDP15oMGSqxndarcW7YJnAc"
     }
   }
 }

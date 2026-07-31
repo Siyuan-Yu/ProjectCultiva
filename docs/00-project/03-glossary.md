@@ -4,7 +4,7 @@
 >
 > 规则：**代码标识符、配置表字段、文档用词必须与本表一致。**
 > 新增概念时先来这里登记，再去写代码。这一条是长期可维护性的关键，也是交接时对方最需要的文件。
-> 架构冻结相关术语以 `33`／`34`／`35`／`36`／`2C`／`2E` 为准。
+> 架构冻结相关术语以 **`33` v0.2**／`34`／`35`／`36`／`2C`／`2E` 为准。
 
 ## 使用约定
 
@@ -35,13 +35,16 @@
 | 技能栏 | SkillBar | 战斗中可即时释放的装备技能位 | 固定 6 格，对应快捷键 1–6 |
 | 自动释放 | AutoCast | 技能的手动／半自动／自动释放模式 | AI 细则待设计 |
 | 重伤 | Incapacitated | 生命归零后的非死亡状态；亦为 LifecycleState 之一 | 默认不继续攻击；可求饶／威胁／交易；**不是** Dead |
-| 生命周期状态 | LifecycleState | Alive／Incapacitated／Missing／Captured／Dead／Removed | 见 `34` |
-| 失踪 | Missing | 下落不明的生命周期状态 | |
-| 被俘 | Captured | 被俘生命周期状态 | 可与 FactionRole=俘虏并存 |
+| 生命周期状态 | LifecycleState | Alive／Incapacitated／Missing／Captured／Dead／Removed | Dead≠Removed；ADR-0019 |
+| 恢复 | Recovered | 从 Incapacitated 回到 Alive 的结果 | 非长期并行枚举 |
+| 失踪 | Missing | 下落不明 | |
+| 被俘 | Captured | 被俘 | 可与 FactionRole=俘虏并存 |
 | 永久死亡 | Dead | 永久世界状态 | 禁止普通复活撤销 |
+| 移出模拟 | Removed | 不再参与当前模拟 | **不等于**死亡 |
 | 死亡保护模式 | DeathProtectionMode | None／TemporaryProtection | 默认 None |
-| 临时剧情保护 | TemporaryProtection | 显式配置的阶段性免死 | 须含原因／阶段／解除／替代后果；≠永久无敌 |
-| 剧情重要 | IsStoryImportant | 内容标记：剧情相关 | **不等于** CannotDie |
+| 临时剧情保护 | TemporaryProtection | 显式阶段性免死 | ≠永久无敌 |
+| 剧情重要 | IsStoryImportant | 内容标记 | **≠** CannotDie |
+| 焦点不可用 | FocusCharacterUnavailable | Focus 失能时的 Agency 标记 | 不立即改玩家身份 |
 | 灵力护盾 | QiShield | 额外生命层，非装备盾 | 承伤顺序：灵力护盾 → 肉身生命 |
 | 踏空 | SkyWalking | 改变移动规则的高阶空中机动 | 区别于普通飞行；可空中停留、自由转向；归属境界**待确定** |
 | 灵气汇聚 | QiConvergence | 将多据点灵气导向主洞府等修炼点 | 占领地盘的核心修炼动机；损耗与上限待确定 |
@@ -55,7 +58,9 @@
 | 宗门 | Sect | 玩家经营的组织 | 仅宗门玩法适用 |
 | 事件 | Event | 配置化的叙事/抉择单元 | |
 | 抉择 | Choice | 事件中的玩家选项 | |
-| 世界账本 | WorldLedger | 分册记录关系／势力／领地／义务／知识／历史等长期世界记忆 | **不是**万能字典；见 `2E` |
+| 世界账本 | WorldLedger | 分册长期世界记忆 | 非万能字典 |
+| 关系账本 | RelationshipLedger | **关系唯一真源**；事件历史累积算最终值 | Component 仅缓存；ADR-0017 |
+| 关系事件 | RelationshipEvent | Ledger 中一条关系变化记录 | 含 Tick／来源／对象／数值／原因 |
 | 领域事件 | DomainEvent | 刚刚发生的事实 | 见 `2E` |
 | 计划事件 | ScheduledEvent | 未来某 Tick 要执行的事 | 禁止系统私有逻辑倒计时 |
 | 知识账本 | KnowledgeLedger | 区分世界事实与各主体知道程度 | Known／Suspected／Unknown |
@@ -87,14 +92,17 @@
 | 家乡 | Hometown | 角色出身地，地图上真实存在 | 可回访，牵出旧识与家族 |
 | 隐藏经历 | HiddenBackground | NPC 身上未主动展示的过去、秘密或机缘 | 需玩家通过聊天、观察或感应挖掘 |
 | 据点 | Settlement | 城市区域内可探索、占领、建设和管理的区块 | 荒村、矿山、灵地等；落在格子地图上 |
-| 世界地图 | WorldMap | 州域／城市／宗门／危险区与跨区域关系层 | 战略观察与远程下令 |
-| 区域地图 | RegionMap | 一座城市及周边大型连续区域 | 尺寸可变；可 Chunk；体验连续 |
-| 实例地图 | InstanceMap | 洞内／秘境／建筑内部等 | 由 Region 入口加载；状态永久保存 |
-| 路线 | Route | 跨 Region 旅行路径 | 含进度、危险、遭遇池；非瞬移 |
-| 遭遇地图 | EncounterMap | 途中临时或节点战斗／事件地图 | 细节可裁；后果必须保留 |
-| 城市区域 | CityRegion | RegionMap 的玩法称呼（旧文档兼容） | 对齐 `RegionMap` |
-| 格子 | Tile | 地图最小逻辑空间单位 | 角色约 1 格；建筑占多格 |
-| 区域出口 | RegionExit | 区域边缘连接点／Route 端点 | 由地图数据决定 |
+| 世界地图 | World | 修仙世界顶层 | Freeze v0.2 三层之一 |
+| 区域 | Region | 较大连续区域（城市区域） | 可行走／战斗／飞行 |
+| 局部地图 | LocalMap | 独立加载地图 | 洞／秘境／洞府等 |
+| 世界地图（旧称） | WorldMap | 同 World | 兼容旧文档 |
+| 区域地图（旧称） | RegionMap | 同 Region | 兼容旧文档 |
+| 实例地图（旧称） | InstanceMap | 同 LocalMap | 兼容旧文档 |
+| 路线 | Route | 跨 Region 旅行路径 | 非瞬移 |
+| 遭遇地图 | EncounterMap | 途中临时地图 | 可视为临时 LocalMap |
+| 城市区域 | CityRegion | Region 的玩法称呼 | 对齐 Region |
+| 格子 | Tile | 最小逻辑空间单位 | |
+| 区域出口 | RegionExit | Region 边缘／Route 端点 | |
 | 领地 | Territory | 玩家势力控制的一组据点及其人口、资源 | |
 | 群体模拟 | PopulationSim | 普通凡人以人口统计／岗位组模拟，不逐人存档 | 地图用代表性群体单位表现 |
 | 关键 NPC | KeyNpc | 实体化的重要凡人／功能角色 | 商人、村长、剧情人物等 |
@@ -112,9 +120,10 @@
 
 | 中文 | Code | 含义 | 备注 |
 |---|---|---|---|
-| 时间刻 | Tick／WorldTick | 世界逻辑最小时间单位 | 1 Tick = 15 游戏分钟，一日 96 Tick |
-| 行动钟 | ActionClock | 场景内移动／战斗／施法等过程推进 | 无独立日期；不能独自推进世界日 |
-| 世界钟 | WorldClock | 负责推进 WorldTick 的逻辑时钟 | 表现层倍速／暂停映射到此 |
+| 时间刻 | Tick／WorldTick | **世界唯一时间轴** | 1 Tick=15 分；96 Tick／日；ADR-0018 |
+| 行动钟 | ActionClock | 单个 Action 的 Duration 消耗 | **不得**改变世界时间 |
+| 世界钟 | WorldClock | 推进 WorldTick 的逻辑时钟 | |
+| 行动持续时间 | ActionDuration | ActionClock 计量的剩余／已耗时间 | 例：采集 8 游戏小时 |
 | 时段 | TimeOfDay | 清晨、上午、黄昏、深夜等表现层分段 | 仅用于 UI，逻辑层只认 Tick |
 | 时间表 | Schedule | 按身份规定的一日义务与自由时段安排 | 社会规则，非死脚本；具体时段走配置表 |
 | 时间表权限 | ScheduleAuthority | 能否查看／修改时间表 | 前期只可查看；夺取第一据点后可制定居民时间表；Demo 可临时开放修改 |
@@ -138,9 +147,11 @@
 | 势力归属 | FactionMembership | 角色当前正式所属势力 | 可变更；离开保留历史 |
 | 势力职位 | FactionRole | 宗主／长老／执事／成员／客卿／俘虏／临时盟友等 | 预定义；≠控制权 |
 | 控制权 | ControlAuthority | 玩家可否直接控制／高层命令／纯 AI 等 | 动态权限 |
-| 玩家代理 | PlayerAgency | 玩家焦点人物与控制模式容器 | 始终有 FocusCharacter |
-| 焦点人物 | FocusCharacter | 玩家当前依附的核心人物 | FocusCharacterId |
+| 玩家代理 | PlayerAgency | 焦点人物与控制模式容器 | 含 FocusCharacterUnavailable |
+| 焦点人物 | FocusCharacter | 玩家当前依附的核心人物 | ≠ DirectControl 目标必然同一 |
+| 直接控制 | DirectControl | 可直接下令的控制权 | ≠ FocusCharacter；≠ FactionLeader |
 | 控制模式 | ActiveControlMode | Character／FactionLeadership | |
+| 杂役弟子／劳役弟子 | LaborDisciple | 开局三人在压迫宗门中的职位 | Freeze v0.2 开局 Role |
 | 内容包 | ContentPackage | 官方与 Mod 统一内容单元 | 见 `36` |
 | 模组 ID | ModId | ContentPackage 唯一 ID | |
 | 命名空间 | Namespace | DefinitionId 前缀 | 官方为 base |

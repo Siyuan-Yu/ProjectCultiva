@@ -1,12 +1,27 @@
 # 路线图
 
-> 状态：**架构冻结增量收口，待人工审核** | 最后更新：2026-07-31
-> 原则：每个里程碑必须有**可验证的完成标准**，不能是"做完某个系统"这种模糊描述。
+> 状态：**Architecture Freeze v0.2 待人工审核** | 最后更新：2026-07-31
 
 ## 当前阶段说明
 
-Demo 已停扩。当前已写入架构冻结文档包及增量（死亡／PlayerAgency／Mod Ready）。**审核通过前不编码。**  
-正式 UI 方案仍预留 **ADR-0009**。
+Demo 已停扩。主契约为 **`33` v0.2**。审核通过前**不编码**。正式 UI=ADR-0009 预留。
+
+## M2.5 — 架构冻结
+
+### 文档包
+
+- [x] Freeze v0.1 文档包 + 审计报告 `50`
+- [x] **Freeze v0.2 修补**（关系权威／双时间／生命周期／Focus 失能／开局 Membership／地图三层／Core M1）
+- [x] ADR-0017～0022
+- [x] 通读指南＋ADR 索引；飞书映射 66 篇一一对应同步（2026-08-01）
+- [ ] 人工审核通过 v0.2
+
+### Core Milestone 1（ADR-0022，审核后另开）
+
+- [ ] Id／WorldTick／IRandomSource／ContentPackage 基础／Entity／Modifier／DomainEvent／Order-Action／Snapshot／单 Region
+- [ ] **明确不做：** 跨 Region 离屏、完整势力领导、真战斗、完整 NPC AI、Mods/ 加载、大地图战争
+
+完成标准：审核者认可 v0.2 契约后再进入 M1 编码。
 
 
 ## M0 — 定方向
@@ -65,37 +80,24 @@ Demo 已停扩。当前已写入架构冻结文档包及增量（死亡／Player
 
 ## M2.5 — 架构冻结（当前）
 
-目标：把底层形状写成不可轻易改动的契约，避免正式开发反复返工。
+- [x] Freeze v0.1 文档包 + 审计 `50`
+- [x] **Freeze v0.2 修补** + ADR-0017～0022
+- [x] `24` 对齐 World／Region／LocalMap
+- [ ] 人工审核通过 v0.2
+- [ ] 第一次突破事件规格；炼气术法清单
 
-### 架构冻结文档包（本轮收口）
+### Core Milestone 1（ADR-0022，审核后另开实现任务）
 
-- [x] `33-architecture-core-rules-freeze-v0.1.md` 主契约扩写（总边界／时间／地图／多队／战斗／AI／军队／存档）
-- [x] `34-entity-and-component-model.md`
-- [x] `35-order-and-action-system.md`（原 `35-feishu-sync` 改号为 `36`）
-- [x] `2C-attributes-and-modifier-pipeline.md` 公式与字段冻结
-- [x] `2E-events-and-world-state.md` 新建并冻结三层+分册
-- [x] `32-prototype-to-product-bridge.md` 映射表更新（无公开 Intent）
-- [x] ADR-0002～0008（ECS／双时间／CSV-JSON／快照存档／地图／多队／ArmyGroup）
-- [x] 总览／术语表／系统索引／AGENTS 入口更新
-- [x] **增量：** 永久死亡＋TemporaryProtection（`33` §19、ADR-0010）
-- [x] **增量：** FactionMembership／Role／Relationship／ControlAuthority 分离与核心离开（`33` §20、ADR-0011／0012）
-- [x] **增量：** PlayerAgency（FocusCharacter + FactionLeadership）
-- [x] **增量：** `36-content-package-and-mod-architecture.md`（Mod Ready；ADR-0013～0016）
-- [x] 飞书同步文档改号为 `37`（`36` 留给 ContentPackage）
-- [ ] 人工审核通过本包（含增量）
-- [ ] 第一次突破事件规格（挂 `25`／`2G`）
-- [ ] 炼气基础术法最小清单（挂 `22`）
-- [ ] `24` 正文同步到地图四类
+**做：** Id、WorldTick、IRandomSource、ContentPackage 基础、Entity 基础、AttributeModifier、DomainEvent、Order／Action、Snapshot、单 Region 验证。  
 
-### Mod Ready 路线（见 `36`）
+**不做：** 跨 Region 离屏、完整势力领导、真战斗、完整 NPC AI、Mods/ 加载、大地图战争。
 
-- [x] **阶段 A**：ContentPackage／命名空间／Manifest／白名单／存档记录契约（不写加载器）
-- [ ] **阶段 B**：Core 早期 — 官方也走 ContentPackage；测试包验证
-- [ ] **阶段 C**：垂直切片后 — 本地 Mods/ 加载与示例
-- [ ] **阶段 D**：编辑器／Patch／创作者文档
-- [ ] **阶段 E**：Workshop／管理器／脚本 API 评估
+### Mod Ready（见 `36`）
 
-完成标准：实现期只按冻结文档搭 Core，不必再问「剧情角色会不会死」「玩家是不是上帝」「Mod 现在做不做完整平台」。
+- [x] 阶段 A 契约
+- [ ] 阶段 B～E（M1 后）
+
+完成标准：按 v0.2 契约即可搭 Core M1，无需再问关系写哪、时间几套、Focus 失能怎么办、开局隶属谁、地图几层。
 
 ## M3 — 垂直切片
 

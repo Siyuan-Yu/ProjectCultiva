@@ -1,22 +1,17 @@
 # 技术架构
 
-> 状态：**架构冻结阶段** | 最后更新：2026-07-31  
-> 主契约：[`33-architecture-core-rules-freeze-v0.1.md`](33-architecture-core-rules-freeze-v0.1.md)  
+> 主契约：[`33-architecture-core-rules-freeze-v0.2.md`](33-architecture-core-rules-freeze-v0.2.md)  
 > 桥接：[`32-prototype-to-product-bridge.md`](32-prototype-to-product-bridge.md)  
-> **本阶段不写实现代码。** Demo 原型仅作语义参考。
+> **Architecture Freeze v0.2。本阶段不写实现代码。**
 
 ## 0. 文档分工
 
 | 文档 | 内容 |
 |---|---|
-| **`33` 架构核心规则冻结** | 总边界、时间、实体、命令、事件、地图、多队、战斗、AI、军队 — **主契约** |
-| **`34` 实体与能力模块** | IEntity、Character 组件、四层升降级 |
-| **`35` Order／Action** | 指令与行动生命周期（无公开 Intent） |
-| **`2C`／`2E`** | Modifier 公式；DomainEvent／ScheduledEvent／WorldLedger |
-| **`32` Demo→正式桥接** | Demo 类 → 正式概念映射 |
-| **`36` ContentPackage／Mod Ready** | 官方与 Mod 统一管线；阶段 A 不写加载器 |
-| **本文 `31`** | 程序集边界、数据驱动、工程与待定工程选项 |
-| **`37` 飞书同步** | 本地→飞书工具说明 |
+| **`33` v0.2** | 主契约 |
+| **`34`～`36`／`2C`／`2E`** | 展开 |
+| **本文 `31`** | 程序集与工程约定 |
+| **`37` 飞书** | 同步工具 |
 
 ## 1. 已定原则
 

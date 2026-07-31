@@ -1,6 +1,7 @@
 # Architecture Freeze Review Report v0.1
 
 > 状态：审计报告（只读结论） | 日期：2026-07-31  
+> **后续：** 人工确认项已写入 **Architecture Freeze v0.2**（`33-architecture-core-rules-freeze-v0.2.md`）。本报告保留为审计底稿。  
 > 范围：架构冻结文档包及其增量（Entity／Modifier／Event／Order／时间／地图／PlayerAgency／死亡／ContentPackage／存档随机）  
 > 方法：交叉阅读 `33`／`34`／`35`／`36`／`2C`／`2E`／`32`／`31`／`27`／`28`／`24`／术语表／ADR-0001～0016，对照 12 项必查项  
 > **本报告不修改冻结形状；不编写正式代码。**

@@ -206,13 +206,14 @@ function rewriteLinksForFeishu(markdown, currentFile, entries) {
   return out;
 }
 
-/** 文档分组，让每页底部的导航能反映「总纲 → 各系统」的结构 */
+/** 文档分组：更具体的路径写在前面，避免 ADR 被并入「过程与记录」大杂烩 */
 const NAV_GROUPS = [
-  { label: '项目总纲', prefix: 'docs/00-project/' },
-  { label: '系统设计', prefix: 'docs/20-systems/' },
-  { label: '竞品与差异化', prefix: 'docs/10-benchmark/' },
-  { label: '过程与记录', prefix: 'docs/40-process/' },
-  { label: '工具', prefix: 'docs/30-tech/' },
+  { label: '00 项目总纲', prefix: 'docs/00-project/' },
+  { label: '10 竞品与差异化', prefix: 'docs/10-benchmark/' },
+  { label: '20 系统设计', prefix: 'docs/20-systems/' },
+  { label: '30 技术架构', prefix: 'docs/30-tech/' },
+  { label: '43 架构决策 ADR', prefix: 'docs/40-process/43-decisions/' },
+  { label: '40 过程与记录', prefix: 'docs/40-process/' },
 ];
 
 function buildNavFooter(entries, currentKey, hubEntry) {
@@ -223,9 +224,15 @@ function buildNavFooter(entries, currentKey, hubEntry) {
     lines.push(`回到总纲：[${hubEntry.title}](${feishuUrl(hubEntry.docId)})`, '');
   }
 
+  const assigned = new Set();
   for (const group of NAV_GROUPS) {
-    const items = configured.filter((e) => e.file.replace(/\\/g, '/').startsWith(group.prefix));
+    const items = configured.filter((e) => {
+      if (assigned.has(e.key)) return false;
+      const f = e.file.replace(/\\/g, '/');
+      return f.startsWith(group.prefix);
+    });
     if (items.length === 0) continue;
+    for (const e of items) assigned.add(e.key);
     lines.push(`**${group.label}**`, '');
     for (const e of items) {
       const mark = e.key === currentKey ? '（当前页）' : '';

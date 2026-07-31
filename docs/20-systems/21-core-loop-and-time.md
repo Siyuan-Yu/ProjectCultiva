@@ -1,10 +1,8 @@
 # 核心循环与统一时间
 
-> 状态：Tick 模型已冻结于 `33`；时间表与流速待正式验证 | 优先级：P0 | 最后更新：2026-07-31
-> 上级：`docs/00-project/00-overview.md`
-> 关联：`../30-tech/33-architecture-core-rules-freeze-v0.1.md`、`../30-tech/32-prototype-to-product-bridge.md`
-> **所有其他系统都挂在这份文档定义的时间轴、时间表与指令模型上。**
-> **本阶段不写实现代码。** Tick 基础换算以 `33` §2 为准（1 Tick = 15 游戏分钟；1 日 = 96 Tick）。
+> 状态：Tick／ActionClock 已冻结于 `33` v0.2；时间表权限待正式验证 | 优先级：P0 | 最后更新：2026-07-31
+> 关联：`../30-tech/33-architecture-core-rules-freeze-v0.2.md`、ADR-0018、`35`
+> **WorldTick = 世界唯一时间轴；ActionClock = 行动 Duration。** 禁止两套世界时间。
 
 ## 1. 这个系统解决什么问题
 

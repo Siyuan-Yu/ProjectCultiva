@@ -9,7 +9,7 @@
 
 项目已从 Demo 灰盒进入 **架构冻结阶段**。Demo 验证了劳动／偷修／分工／NPC 日程；**不再扩展 Demo 功能**。
 
-主契约：`33-architecture-core-rules-freeze-v0.1.md`  
+主契约：`33-architecture-core-rules-freeze-v0.2.md`  
 桥接：`32-prototype-to-product-bridge.md`  
 
 **本阶段不写代码。** 下一步是展开 `2C`／`2E`／第一次突破细则。
@@ -123,7 +123,7 @@
 ## AI／人开工必读顺序
 
 1. **本文件**
-2. **`../30-tech/33-architecture-core-rules-freeze-v0.1.md`**（架构主契约）
+2. **`../30-tech/33-architecture-core-rules-freeze-v0.2.md`**（架构主契约）
 3. **`../30-tech/32-prototype-to-product-bridge.md`**
 4. **`49-demo-v0.1-prototype-status.md`**（Demo 快照）
 5. `AGENTS.md`

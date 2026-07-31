@@ -1,9 +1,8 @@
 # 实体与能力模块模型
 
-> 状态：**已冻结（v0.1）** | 优先级：P0 | 最后更新：2026-07-31  
-> 上级：`docs/00-project/00-overview.md`  
-> 依赖：`33`、`03-glossary.md`、`27`、`28`、`36-content-package-and-mod-architecture.md`  
-> 被引用：`35`、`2C`、`2E`、`32`、PlayerAgency、Core 实现期  
+> 状态：**已冻结（对齐 Architecture Freeze v0.2）** | 优先级：P0 | 最后更新：2026-07-31  
+> 依赖：`33-architecture-core-rules-freeze-v0.2.md`、`03-glossary.md`、`27`、`28`、`36`  
+> 被引用：`35`、`2C`、`2E`、`32`、PlayerAgency、Core M1  
 > **本阶段不写实现代码。**
 
 ## 1. 目标
@@ -43,7 +42,7 @@
 |---|---|
 | `EntityId` | 程序生成、全局唯一的实例 ID |
 | `DefinitionId` | 人工维护、可读、稳定的定义 ID |
-| `DisplayName` | 显示名称；**绝不能**充当 ID |
+| `DisplayName` | 运行时显示缓存；**配置真源为 LocalizationKey**；绝不能充当 ID |
 | `EntityTags` | 标签集合（身份、阵营、可交互类型等） |
 | `LifecycleState` | 见 §5.4；Character 使用完整生命周期枚举 |
 
@@ -84,35 +83,47 @@
 | `SocialComponent` | 对话、隐藏经历挖掘入口 |
 | `TradeComponent` | 交易库存／价目引用 |
 | `AuthorityComponent` | 配额、惩罚、管事权限（世界内职权，≠ PlayerAgency） |
-| `RelationshipComponent` | 个体关系边（与 RelationshipLedger 分工） |
+| `RelationshipComponent` | **只读缓存／索引／UI**；关系真源为 RelationshipLedger（ADR-0017） |
 | `FactionRoleBinding` | 当前职位（FactionRole） |
 
 新增可选模块必须：登记术语表 → 写入本文白名单 → 可序列化 → 可测试。**禁止**配置表写“任意组件类名”由反射创建。
 
-### 5.4 Character LifecycleState（已冻结）
+### 5.4 Character LifecycleState（v0.2）
+
+```text
+Alive → Incapacitated → Alive（Recovered）
+                      → Captured | Missing | Dead
+Removed  // 独立，≠ Dead
+```
 
 | 状态 | 含义 |
 |---|---|
-| `Alive` | 存活可行动（受重伤规则约束前） |
-| `Incapacitated` | 重伤濒死／失去行动能力；**不是** Dead |
-| `Missing` | 失踪；世界不知精确下落 |
+| `Alive` | 正常可行动 |
+| `Incapacitated` | **不是死亡**；重伤、无法战斗／正常工作、等待处理（含战斗倒下） |
 | `Captured` | 被俘 |
-| `Dead` | **永久死亡**；普通流程不可撤销 |
-| `Removed` | 从可交互世界移除（归档／彻底离开模拟），语义上区别于 Dead 需在事件中标明 |
+| `Missing` | 失踪 |
+| `Dead` | **永久死亡** |
+| `Removed` | 不再参与当前模拟（清理／离场）；**禁止**等同 Dead |
 
-`Dead` 写入存档与 HistoryLedger；禁止“读档外普通复活”默默清掉。
+`Recovered` 表示从 Incapacitated 恢复为 Alive 的**结果**，不单独占长期枚举抢戏。
 
 ### 5.5 死亡与 TemporaryProtection
 
-- 默认 `DeathProtectionMode = None`（含核心队友与剧情人物）。  
+- 默认 `DeathProtectionMode = None`。  
 - `IsStoryImportant` **不**推导 `CannotDie`。  
-- `TemporaryProtection` 必须配置：原因、剧情阶段、解除条件、致命替代后果。  
-- 致命命中保护时：不立即 `Dead`，按事件转为 Incapacitated／Captured／Missing／撤离／修为或伤势／物品身份损失等。  
-- 详见 `33` §19、ADR-0010。
+- `TemporaryProtection` 须含：原因、剧情阶段、解除条件、致命替代后果。  
+- 详见 `33` v0.2 §13、ADR-0010／0019。
+
+### 5.6 开局 Membership（v0.2）
+
+| 对象 | Membership | Role | Control |
+|---|---|---|---|
+| 三名初始角色 | 压迫他们的宗门 | 杂役／劳役弟子 | 玩家 DirectControl |
+| 主管 | 同一宗门 | 管理者 | 监督处罚（非玩家 DirectControl） |
 
 ---
 
-## 5A. 势力归属、关系、职位与控制权（必须分离）
+## 5A. 势力归属、关系、职位与控制权
 
 禁止：
 
@@ -125,24 +136,30 @@
 |---|---|
 | `FactionMembership` | 当前正式势力；可变更；离开保留历史 |
 | `FactionRole` | 宗主／长老／执事／普通成员／客卿／俘虏／临时盟友／其他预定义 |
-| `Relationship` | 多边关系；离开势力**不清零** |
-| `ControlAuthority` | 动态：直接控制／高层命令／纯 AI／暂时失控／可夺回 |
+| `Relationship` | **真源在 RelationshipLedger**；Component 只缓存 |
+| `ControlAuthority` | 动态权限查询结果；**不是**玩家身份类型 |
 
 ### 5A.1 核心成员离开
 
-开局三人与后续核心均可离开。须有可解释驱动与前兆；AI 调试可列出评分与可挽回条件。离开后保留关系／贡献／历史／敌友；可再入／结盟／敌对／争权。见 `33` §20。
+（同前：可解释前兆；离开保留关系历史于 Ledger。）
 
-### 5A.2 PlayerAgency
+### 5A.2 PlayerAgency（v0.2）
 
 ```text
 PlayerAgency
 - FocusCharacterId
+- FocusCharacterUnavailable
 - ActiveControlMode   // Character | FactionLeadership
 - ControlledEntityIds
-- ManagedFactionId    // nullable
+- ManagedFactionId
 ```
 
-失去势力领导权时：去掉 FactionControl，保留 CharacterControl；原势力转 AI 继续运转。FactionLeadership 不是上帝视角。
+**分离：** DirectControl ≠ FocusCharacter ≠ FactionLeader ≠ PlayerIdentity。
+
+Focus 不可用（重伤／被俘／失踪／暂不可行动）→ 置 `FocusCharacterUnavailable`，**不立即改变玩家身份**。  
+有同行／代理／合法继承 → 继续；否则早期 GameOver，后期继承流程（ADR-0020）。
+
+失去势力领导权：去掉势力管理，保留人物控制；旧势力 AI 继续。
 
 ---
 
@@ -216,7 +233,8 @@ Unity 层可维护 `EntityId → GameObject` 的表现映射表，**单向**，�
 - [ ] 实体化时从群体抽样属性的算法
 - [ ] ArmyGroup 与视觉代理数量上限的具体数
 - [ ] TemporaryProtection 替代后果的第一批事件模板
-- [ ] FocusCharacter 死亡或 Captured 时的玩家接管规则细则
+- [ ] 后期继承流程的具体 UI／候选人规则（形状已冻：有继承则继续）
+- [ ] Party 与 ControlledEntityIds 字段表
 
 ## 10. 验证方式（实现期）
 

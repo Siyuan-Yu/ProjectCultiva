@@ -1,11 +1,8 @@
 # Order 与 Action 系统
 
-> 状态：**已冻结（v0.1）** | 优先级：P0 | 最后更新：2026-07-31  
-> 上级：`docs/00-project/00-overview.md`  
-> 依赖：`33`、`34-entity-and-component-model.md`、`21-core-loop-and-time.md`  
-> 被引用：`32`、战斗／工作／修炼系统、Unity 输入层  
-> **本阶段不写实现代码。**  
-> 公开概念只保留 **Order** 与 **Action**；**不再**额外增加公开 Intent 层。
+> 状态：**已冻结（对齐 Freeze v0.2）** | 优先级：P0 | 最后更新：2026-07-31  
+> 依赖：`33` v0.2、`34`、`21`、ADR-0018  
+> **本阶段不写实现代码。** 公开概念只保留 Order／Action。
 
 ## 1. 目标
 
@@ -133,12 +130,16 @@ Action **必须可序列化**。存档后必须能继续：
 - 普通修炼：中断损失当前周天进度
 - 突破：检查点中断或不可中断（按阶段配置）
 
-## 9. 与时间模型的关系
+## 9. 与时间模型的关系（v0.2）
 
-- **WorldTick**：日程、世界事件、离屏计划、长期成长。  
-- **ActionClock**：当前场景中移动、战斗、施法、采集过程、修炼动作过程。  
-- 暂停／倍速统一影响全世界；玩家暂停则 Action 也暂停。  
-细则见 `33` 时间章节。
+- **WorldTick**：世界唯一时间轴（日期／昼夜／世界事件／ScheduledEvent）。  
+- **ActionClock**：当前 ActiveAction 的 **Duration**（剩余／已耗执行时间）。  
+- WorldTick 推进 → 扣减 ActionClock → Duration 归零则 Action 完成。  
+- **禁止** ActionClock 改变世界时间；**禁止**两套独立世界时间。  
+- 暂停／倍速只作用于 WorldTick（从而影响 Duration 消耗）。  
+- **Core M1**：单 Region；不做跨 Region 离屏 Action（ADR-0022）。  
+
+细则见 `33` v0.2 §3、ADR-0018。
 
 ## 10. NPC AI 如何使用本系统
 
@@ -183,8 +184,8 @@ Unity **不得**直接改 Core 的 ActiveAction／队列／属性。
 
 - [ ] Order 配置表字段与脚本事件生成 API
 - [ ] 突破各阶段的 Interrupt 配置表
-- [ ] 多队伍切换时离屏 Action 的 Advance 频率
-- [ ] 战斗技能 Action 与移动 Action 的互斥细则（第一版仍单槽）
+- [ ] 多队伍切换时离屏 Action 的 Advance 频率（**M1 不做跨区离屏**）
+- [ ] 战斗技能 Action 与移动 Action 的互斥细则（M1 不做真战斗）
 
 ## 13. 验证方式（实现期）
 

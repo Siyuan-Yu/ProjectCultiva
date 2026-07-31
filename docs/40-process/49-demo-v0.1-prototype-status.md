@@ -2,7 +2,7 @@
 
 > **用途**：Demo 可玩版本的冻结快照。换设备、交接、对照语义时查阅。  
 > **阶段：Demo 功能开发已结束；项目进入架构冻结阶段。**  
-> 主契约：`../30-tech/33-architecture-core-rules-freeze-v0.1.md`  
+> 主契约：`../30-tech/33-architecture-core-rules-freeze-v0.2.md`  
 > 桥接：`../30-tech/32-prototype-to-product-bridge.md`  
 > 仓库：https://github.com/Siyuan-Yu/ProjectCultiva  
 > Unity：**2022.3.6f1 Built-in** | 场景：`Assets/Scenes/Demo_v0_1.unity`

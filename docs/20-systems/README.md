@@ -1,9 +1,10 @@
 # 系统设计索引
 
-> 最后更新：2026-07-31
+> 最后更新：2026-08-01
 > 上级：`docs/00-project/00-overview.md`（最高层大纲）
+> 通读顺序见 [`../00-project/04-reading-guide.md`](../00-project/04-reading-guide.md)。
 > 新增系统请复制 `docs/90-templates/system-design-template.md`。
-> **当前阶段：架构冻结文档包收口。** 主契约见 `../30-tech/33-architecture-core-rules-freeze-v0.1.md`。
+> **当前阶段：Architecture Freeze v0.2。** 主契约见 `../30-tech/33-architecture-core-rules-freeze-v0.2.md`。
 
 ## 规则
 
@@ -23,19 +24,19 @@
 | 21 | [核心循环与统一时间](21-core-loop-and-time.md) | P0 | 双层时间已冻结于 `33` | |
 | 22 | [境界与机制能力](22-realms-and-abilities.md) | P0 | 炼气四能力方向已冻结 | |
 | 23 | [战斗](23-combat.md) | P0 | RTS+暂停；正文待对齐 `33` §9 | |
-| 24 | [世界与据点](24-world-and-settlements.md) | P0 | 地图四类已冻结于 `33`；正文待同步 | |
+| 24 | [世界与据点](24-world-and-settlements.md) | P0 | **World／Region／LocalMap（v0.2）** | |
 | 25 | [修炼与突破](25-cultivation-and-breakthrough.md) | P0 | 突破=事件已冻结方向 | |
 | 26 | [领地经营](26-territory-management.md) | P0 | 夺取控制权 + 时间表 | |
 | 27 | [角色、修士与凡人人口](27-characters-and-population.md) | P0 | 四层+组合见 `34` | |
-| 28 | [江湖关系](28-jianghu-relations.md) | P0 | 草稿 | |
+| 28 | [江湖关系](28-jianghu-relations.md) | P0 | Ledger 唯一真源 | |
 | 29 | [世界观哲学](29-karma-and-consequence.md) | P1 | 设计方向已定 | |
 | 2A | 势力与战争 | P1 | 未开始 | ArmyGroup 边界见 `33` |
 | 2B | [角色属性与修仙成长](2B-attributes-and-affinity.md) | P0 | 底层规则已定方向 | |
 | 2C | [属性与 Modifier 管道](2C-attributes-and-modifier-pipeline.md) | P0 | **公式与字段已冻结** | |
 | 2D | [功法、斗技与装备](2D-manuals-arts-and-equipment.md) | P0 | 设计方向已定 | |
-| 2E | [事件与世界状态记账](2E-events-and-world-state.md) | P0 | **三层+分册已冻结** | |
+| 2E | [事件与世界状态记账](2E-events-and-world-state.md) | P0 | **三层+分册；关系 Ledger 真源** | |
 | 2F | [义务、配额与隐匿](2F-obligation-and-concealment.md) | P0 | 隐匿三层已冻结 | |
-| 2G | [第一章流程](2G-first-chapter-flow.md) | P0 | 体验草案 | |
+| 2G | [第一章流程](2G-first-chapter-flow.md) | P0 | 开局 Membership 已冻 | |
 | 2H | [功法系统规则](2H-manual-system-rules.md) | P0 | 核心规则已定方向 | |
 
 ## 架构文档（`30-tech`）
@@ -44,7 +45,7 @@
 |---|---|
 | [31 技术架构](../30-tech/31-architecture.md) | 程序集、数据驱动、工程约定 |
 | [32 Demo→正式桥接](../30-tech/32-prototype-to-product-bridge.md) | Demo 映射表 |
-| [33 架构核心规则冻结 v0.1](../30-tech/33-architecture-core-rules-freeze-v0.1.md) | **主契约** |
+| [33 架构核心规则冻结 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) | **主契约** |
 | [34 实体与能力模块](../30-tech/34-entity-and-component-model.md) | IEntity／组件／四层 |
 | [35 Order 与 Action](../30-tech/35-order-and-action-system.md) | 指令与行动 |
 | [36 ContentPackage／Mod Ready](../30-tech/36-content-package-and-mod-architecture.md) | 统一内容包；阶段 A |

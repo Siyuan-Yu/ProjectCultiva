@@ -7,10 +7,10 @@
 
 ## 0. 与架构冻结的对齐
 
-- `Relationship` 与 `FactionMembership`／`FactionRole`／`ControlAuthority` **分离**。  
-- 离开势力后关系**不清零**；可保留仇恨／友好／师徒等。  
-- 角色死亡可使强绑定关系与剧情永久结束（允许错过内容）。  
-- 延迟报复等用 `ScheduledEvent` + Ledger，禁止系统私有倒计时。  
+- `RelationshipLedger` 为关系**唯一真源**（ADR-0017）；Component 仅缓存。  
+- 离开势力后关系不清零（Ledger 保留历史事件）。  
+- 角色死亡可使强绑定内容永久结束。  
+- 延迟报复用 ScheduledEvent。  
 
 ## 1. 这个系统解决什么问题
 

@@ -1,21 +1,23 @@
 ﻿# 修仙游戏策划案总览
 
-> 状态：概念框架 v0.7｜架构冻结增量（死亡／控制权／Mod Ready） | 最后更新：2026-07-31
-> **本页只放最高层大纲。** 任何细节都拆到独立文档，见第六节索引。
+> 状态：概念框架 v0.8｜**Architecture Freeze v0.2** | 最后更新：2026-08-01  
+> **本页只放最高层大纲。** 细节进专题页；**怎么读整套文档**见 [通读指南](04-reading-guide.md)。  
+> 本地 Markdown 与飞书文档一一对应（真源在本地，飞书为阅读层）。
 
 ## 〇、当前项目阶段
 
-**架构冻结阶段 — 文档包增量收口（待审核）。** Demo 已停扩；**不写正式代码**。
+**架构冻结 v0.2（待人工审核）。** Demo 已停扩；**不写正式代码／不实现 Core**（直至审核通过并另开实现任务）。
 
-- 主契约：[`33`](../30-tech/33-architecture-core-rules-freeze-v0.1.md)（含 §19 死亡、§20 PlayerAgency、§21 Mod Ready）
-- 实体：[`34`](../30-tech/34-entity-and-component-model.md)
-- Order／Action：[`35`](../30-tech/35-order-and-action-system.md)
-- ContentPackage／Mod Ready：[`36`](../30-tech/36-content-package-and-mod-architecture.md)
-- Modifier／事件：[`2C`](../20-systems/2C-attributes-and-modifier-pipeline.md)、[`2E`](../20-systems/2E-events-and-world-state.md)
-- 桥接：[`32`](../30-tech/32-prototype-to-product-bridge.md)
-- Demo 快照：[`49`](../40-process/49-demo-v0.1-prototype-status.md)
-- ADR-0002～0008、0010～0016；正式 UI 仍预留 ADR-0009
-- 未写入冻结文档的内容仍标「待确定」。
+**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [术语表](03-glossary.md) → [33 冻结 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) → [ADR 索引](../40-process/43-decisions/README.md)。
+
+- 主契约：[33 架构冻结 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md)
+- 实体／Order／Mod：[34](../30-tech/34-entity-and-component-model.md)、[35](../30-tech/35-order-and-action-system.md)、[36](../30-tech/36-content-package-and-mod-architecture.md)
+- Modifier／事件：[2C](../20-systems/2C-attributes-and-modifier-pipeline.md)、[2E](../20-systems/2E-events-and-world-state.md)
+- 桥接／审计：[32](../30-tech/32-prototype-to-product-bridge.md)、[50 审计报告](../40-process/50-architecture-freeze-review-report-v0.1.md)
+- Core M1 范围：`33` §17／[ADR-0022](../40-process/43-decisions/ADR-0022-core-milestone-1-scope.md)
+- 全部决策：[ADR 索引](../40-process/43-decisions/README.md)（UI＝0009 预留）
+
+v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead≠Removed；FocusCharacterUnavailable；开局宗门劳役 Membership；地图 World／Region／LocalMap。
 
 ## 一、一句话定位
 
@@ -25,142 +27,110 @@
 
 ## 二、玩家身份的五个阶段
 
-游戏不是"个人 RPG"与"宗门模拟"二选一，而是让玩家亲手经历从个人到组织的尺度跃迁。
-
 | 阶段 | 身份 | 玩家在做什么 |
 |---|---|---|
-| 1 | 感应境劳役 | 直接控制 3 名感应境角色完成每日配额换取口粮；他们有修仙潜质且神识胜于常人，但尚非真正修士，无居所、无自由 |
-| 2 | 初入仙途 | 靠偷来的时间探索隐藏修仙世界，通过 NPC、探索或机缘获得功法，首次正式运转灵气后进入炼气；仍以角色 RPG 为主 |
-| 3 | 一地之主 | 取得第一个村落或洞府，解锁领地管理 |
-| 4 | 修仙势力 | 控制多个据点，招募修士、经营人口、处理外交与战争 |
-| 5 | 一方道统 | 争夺城镇、资源地与高阶洞天，参与世界格局 |
+| 1 | 感应境劳役 | 直接控制 3 名感应境角色完成每日配额；开局隶属压迫宗门（杂役／劳役） |
+| 2 | 初入仙途 | 偷时间探索，获功法入炼气 |
+| 3 | 一地之主 | 取得第一个村落或洞府 |
+| 4 | 修仙势力 | 多据点、招募、外交与战争 |
+| 5 | 一方道统 | 争夺城镇与高阶洞天 |
 
 ## 三、设计支柱
 
 | 支柱 | 一句话 | 详细文档 |
 |---|---|---|
-| 1. 境界带来玩法质变 | 大境界解锁实际操作能力（飞行、外放、护体、化形、神识），不只是数值 | `20-systems/22-realms-and-abilities.md` |
-| 2. 角色与领地互相供养 | 领地供养修炼，修炼能力推动扩张 | `20-systems/26-territory-management.md` |
-| 3. 江湖关系产生真实后果 | 杀一个人会招来他师父的报复；关系可被利用也会反噬 | `20-systems/28-jianghu-relations.md` |
-| 4. 修炼需要环境与准备 | 突破要挑时辰、地点、灵气、丹药、护法 | `20-systems/25-cultivation-and-breakthrough.md` |
-| 5. 规模扩大不增加微操 | 四层模拟：可控修士／关键 NPC／修士群体／凡人统计 | `20-systems/27-characters-and-population.md`；边界冻结见 `33` §3 |
-| 6. 力量越大因果越重 | 世界不是正善魔恶二分；高境界滥用力量伤道心与气运，玩家会从被压迫者变成体系一环 | `20-systems/29-karma-and-consequence.md` |
+| 1. 境界玩法质变 | 大境界解锁操作能力 | `22` |
+| 2. 角色与领地供养 | 领地供养修炼，修炼推动扩张 | `26` |
+| 3. 江湖关系真后果 | 关系由 Ledger 事件累积 | `28`／`2E` |
+| 4. 修炼要准备 | 突破挑时辰地点资源 | `25` |
+| 5. 规模不增微操 | 四层模拟 | `27`／`34` |
+| 6. 力量越大因果越重 | 非简单正邪二分 | `29` |
 
 ## 四、三层玩法结构
 
-| 层 | 内容 | 详细文档 |
+| 层 | 内容 | 文档 |
 |---|---|---|
-| 角色层 | 个人修仙 RPG：移动、对话、采集、装备、修炼计划 | `20-systems/27-characters-and-population.md` |
-| 战术层 | 战斗直接在世界地图中进行，RTS 实时行动 + 随时暂停下令 | `20-systems/23-combat.md` |
-| 战略层 | 领地经营、宗门经营、人口、外交与战争 | `20-systems/26-territory-management.md` |
+| 角色层 | 个人 RPG | `27` |
+| 战术层 | 世界地图 RTS+暂停 | `23` |
+| 战略层 | 领地／宗门／外交 | `26` |
 
 ## 五、世界结构
 
-四类地图（已冻结于 `33` §7）：**WorldMap → RegionMap → InstanceMap／Route（EncounterMap）**。
+**World → Region → LocalMap**（Freeze v0.2／ADR-0021）。
 
-- 暂定约 **3** 块大陆战略关系；约 **30** 个城市级 Region。
-- **RegionMap** 为大型连续区域（尺寸可变；荒村周边可约 3～4 视野；完整城市更大）；技术上可 Chunk，体验上连续。
-- 跨 Region **不**做整片大陆无缝地图；用 **Route** 行军／飞行与途中遭遇。
-- Instance（洞府／秘境／室内等）状态永久保存。
-- 小格子逻辑空间；近／中／远景缩放分层。
+- Region：连续城市区域体验（荒村／矿／林／田／城心等）；尺寸可变。  
+- LocalMap：洞／秘境／洞府等独立加载。  
+- 跨 Region：Route，非整大陆无缝。  
 
-不做 3D 开放世界。详见 `33`、`24`、ADR-0006。
+详见 `33` §8、`24`。
 
 ## 六、文档索引
 
 | 编号 | 系统 | 优先级 | 状态 |
 |---|---|---|---|
-| 20 | [开局体验](../20-systems/20-opening-experience.md) | P0 | 40分～1小时入炼气；隐藏修士 |
-| 21 | [核心循环与统一时间](../20-systems/21-core-loop-and-time.md) | P0 | WorldTick+ActionClock 已冻结 |
-| 22 | [境界与机制能力](../20-systems/22-realms-and-abilities.md) | P0 | 炼气四能力方向已冻结于 `33` |
-| 23 | [战斗](../20-systems/23-combat.md) | P0 | RTS 即时+暂停；多队后台姿态预留 |
-| 24 | [世界与据点](../20-systems/24-world-and-settlements.md) | P0 | 对齐地图四类（`33` §7）；正文待同步 |
-| 25 | [修炼与突破](../20-systems/25-cultivation-and-breakthrough.md) | P0 | 大境界突破=事件；细则待展开 |
-| 26 | [领地经营](../20-systems/26-territory-management.md) | P0 | 夺取控制权 + 时间表 + 成长循环 |
-| 27 | [角色、修士与凡人人口](../20-systems/27-characters-and-population.md) | P0 | 四层+组合模块见 `33`／`34` |
-| 28 | [江湖关系](../20-systems/28-jianghu-relations.md) | P0 | 草稿 |
-| 29 | [世界观哲学：天道、因果与修仙社会结构](../20-systems/29-karma-and-consequence.md) | P1 | 设计方向已定 |
-| — | 势力与战争 | P1 | 未开始；ArmyGroup 边界见 `33` |
-| 2B | [角色属性与修仙成长体系](../20-systems/2B-attributes-and-affinity.md) | P0 | 底层规则已定方向 |
-| 2C | [属性与 Modifier 管道](../20-systems/2C-attributes-and-modifier-pipeline.md) | P0 | **公式与字段已冻结** |
-| 2D | [功法、斗技与装备](../20-systems/2D-manuals-arts-and-equipment.md) | P0 | 设计方向已定 |
-| 2E | [事件与世界状态记账](../20-systems/2E-events-and-world-state.md) | P0 | **三层+分册账本已冻结** |
-| 2F | [义务、配额与隐匿](../20-systems/2F-obligation-and-concealment.md) | P0 | 隐匿三层已冻结于 `33` |
-| 2G | [第一章流程：从凡人到炼气](../20-systems/2G-first-chapter-flow.md) | P0 | 节奏压缩至约1小时入炼气 |
-| 2H | [功法系统设计（规则层）](../20-systems/2H-manual-system-rules.md) | P0 | 核心规则已定方向 |
+| 20 | [开局体验](../20-systems/20-opening-experience.md) | P0 | |
+| 21 | [核心循环与时间](../20-systems/21-core-loop-and-time.md) | P0 | WorldTick+ActionClock |
+| 22 | [境界与机制能力](../20-systems/22-realms-and-abilities.md) | P0 | |
+| 23 | [战斗](../20-systems/23-combat.md) | P0 | M1 不做真战斗 |
+| 24 | [世界与据点](../20-systems/24-world-and-settlements.md) | P0 | **三层地图已对齐 v0.2** |
+| 25 | [修炼与突破](../20-systems/25-cultivation-and-breakthrough.md) | P0 | |
+| 26 | [领地经营](../20-systems/26-territory-management.md) | P0 | |
+| 27 | [角色与人口](../20-systems/27-characters-and-population.md) | P0 | |
+| 28 | [江湖关系](../20-systems/28-jianghu-relations.md) | P0 | Ledger 真源 |
+| 29 | [天道因果](../20-systems/29-karma-and-consequence.md) | P1 | |
+| 2B | [属性与成长](../20-systems/2B-attributes-and-affinity.md) | P0 | |
+| 2C | [Modifier 管道](../20-systems/2C-attributes-and-modifier-pipeline.md) | P0 | |
+| 2D | [功法斗技装备](../20-systems/2D-manuals-arts-and-equipment.md) | P0 | |
+| 2E | [事件与世界账本](../20-systems/2E-events-and-world-state.md) | P0 | |
+| 2F | [义务与隐匿](../20-systems/2F-obligation-and-concealment.md) | P0 | |
+| 2G | [第一章流程](../20-systems/2G-first-chapter-flow.md) | P0 | 开局 Membership 已冻 |
+| 2H | [功法规则](../20-systems/2H-manual-system-rules.md) | P0 | |
 
-**架构与阶段文档（`30-tech`／`40-process`）：**
+**项目与过程：**
 
 | 文档 | 说明 |
 |---|---|
-| [技术架构](../30-tech/31-architecture.md) | 程序集边界、数据驱动、工程约定 |
-| [Demo→正式桥接](../30-tech/32-prototype-to-product-bridge.md) | Demo 语义 → 正式映射 |
-| [架构核心规则冻结 v0.1](../30-tech/33-architecture-core-rules-freeze-v0.1.md) | **当前主契约** |
-| [实体与能力模块](../30-tech/34-entity-and-component-model.md) | IEntity／Character 组件／四层 |
-| [Order 与 Action](../30-tech/35-order-and-action-system.md) | 指令与行动生命周期 |
-| [ContentPackage／Mod Ready](../30-tech/36-content-package-and-mod-architecture.md) | 统一内容包；阶段 A 不写加载器 |
-| [飞书同步说明](../30-tech/37-feishu-sync.md) | 本地→飞书单向同步 |
-| [Demo v0.1 原型现状](../40-process/49-demo-v0.1-prototype-status.md) | Demo 快照（不再扩展） |
-| [架构冻结审计报告 v0.1](../40-process/50-architecture-freeze-review-report-v0.1.md) | 一致性审计（只读） |
-| ADR-0002～0008、0010～0016 | 架构贵重决策（UI=ADR-0009 预留） |
+| [通读指南](04-reading-guide.md) | 阅读顺序与角色最短路径 |
+| [愿景](01-vision.md)／[范围](02-scope-and-constraints.md)／[术语表](03-glossary.md) | 总纲三件套 |
+| [系统设计索引](../20-systems/README.md) | 系统清单与依赖 |
+| [路线图](../40-process/41-roadmap.md)／[开发日志](../40-process/42-devlog.md) | 阶段与记录 |
+| [ADR 决策索引](../40-process/43-decisions/README.md) | 全部已采纳决策 |
 
-其他：项目愿景 `01-vision.md`、术语表 `03-glossary.md`、借鉴与差异化 `../10-benchmark/14-borrow-and-differentiate.md`、路线图 `../40-process/41-roadmap.md`、[Demo v0.1 设计](../40-process/45-demo-v0.1.md)、美术相关 `46`～`48`。
+**架构文档：**
+
+| 文档 | 说明 |
+|---|---|
+| [33 冻结 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) | **当前主契约** |
+| [34 实体](../30-tech/34-entity-and-component-model.md) | |
+| [35 Order/Action](../30-tech/35-order-and-action-system.md) | |
+| [36 ContentPackage](../30-tech/36-content-package-and-mod-architecture.md) | |
+| [31 技术架构](../30-tech/31-architecture.md) | 程序集与工程约定 |
+| [32 桥接](../30-tech/32-prototype-to-product-bridge.md) | Demo→正式 |
+| [50 审计报告](../40-process/50-architecture-freeze-review-report-v0.1.md) | Freeze 一致性审计 |
+| [37 飞书同步](../30-tech/37-feishu-sync.md) | 本地↔飞书规则 |
 
 ## 七、系统依赖顺序
 
-先定下层，再动上层。**下层没定稿，上层不要展开。**
-
 ```
-33 架构冻结主契约
- ├── 34 实体与组件 · 35 Order/Action · 2C Modifier · 2E 事件账本
- └── 21 核心循环与时间
-      ├── 2F 义务与隐匿 ──→ 20 开局体验 ──→ 2G 第一章流程草案
-      ├── 22 境界与机制能力 ──→ 23 战斗
-      │                     └─→ 24 世界与据点（地图四类）
-      ├── 2B 角色属性与灵根 · 2H 功法规则 · 2D 斗技装备边界 ──→ 25 修炼与突破 ──→ 26 领地经营
-      └── 27 角色与人口 ──→ 28 江湖关系 ──→ 29 天道因果与社会结构
+33 v0.2 主契约
+ ├── 34 · 35 · 2C · 2E · 36
+ └── 21 时间
+      ├── 2F → 20 → 2G
+      ├── 22 → 23；24
+      ├── 2B · 2H · 2D → 25 → 26
+      └── 27 → 28 → 29
 ```
 
 ## 八、范围控制
 
-完整概念的体量接近中型策略游戏，第一版不可能同时铺开。
+第一阶段玩法仍只验证：感应→炼气质变、角色↔领地闭环、暂停战斗构筑（**实现上 Core M1 先只做骨架，不含真战斗**）。
 
-**第一阶段只验证三件事：**
+## 九、跨系统未决（摘录）
 
-1. 感应境 → 炼气是否让玩家明确感到“从看见修仙世界到正式进入修仙体系”：获得灵气池、功法运行与基础灵力能力。
-2. 角色与领地是否形成闭环——三名角色取得一个村庄，村庄产出帮助修炼，修炼帮助夺取第二个据点。
-3. 暂停即时战斗是否承载得住角色构筑——三人小队打两场有明显策略差异的战斗。
-
-**第一阶段暂不展开：** 数十个城市区域的完整世界、30–50 名修士的后期管理、完整外交与大规模战争、全部境界与生产链、完整地图编辑器与复杂建造链（第一阶段用简化建设验证闭环）。
-
-## 九、跨系统的未决问题
-
-只列会同时影响多个系统的，各系统自己的问题写在各自文档里。
-
-1. ~~战斗采用连续即时暂停，还是短回合／行动冷却？~~ 已定：RTS 实时行动 + 随时暂停下令。
-2. ~~境界体系用传统命名，还是自定义层级？~~ 已定：沿用炼气、筑基、结晶、金丹、具灵、元婴、化神、悟道、羽化、登仙。
-3. **待确定｜真正飞行是否最终锁定于金丹？**（影响 22、23、24）本次补充方向倾向金丹；筑基驭器短飞仍是过渡。另有**踏空**与普通飞行分层，归属境界待定。
-4. **待确定｜战略空间网络归悟道还是羽化，或两者分层？**（影响 22、24）早前空间虫洞在悟道；本次羽化也出现空间通道方向。
-5. **待确定｜炼气基础灵力技能的具体清单与强度？** 方向已定：炼气不是巨大跃迁，而是正式进入修仙体系（灵力资源、基础法术、灵力护体）。三名核心角色开局默认感应境。
-6. **待确定｜灵根与功法品阶的数值表达？** 方向已定：所有角色共用一套属性结构；灵根只影响功法效率、不构成禁学；黄玄地天功法影响修为／灵力双轴；大部分功法不可升阶；不做传统五行相克；装备降权。
-7. ~~凡人的模拟深度分几层？~~ **已冻结于 `33` §3：** 可控修士全模拟／关键 NPC 全模拟／普通修士群体抽象／凡人群体统计（影响 27、26、24）。涌现与军队表现细则仍待定。
-8. **待确定｜凡人军队如何参战？** 小队战场不做数千人实时微操；凡人军可作为战略战报／算法结算的一部分。
-9. 领地是否自由建造？ **方向已定：** 据点可发展，建筑落在格子地图上；第一阶段建设交互如何简化仍待定（影响 26、24）。
-10. **待确定｜灵气汇聚的损耗、容量与可争夺性？** 方向已定：占领多据点是为了把灵气汇到主洞府；灵气还可来自地形、建筑与灵物。
-11. 主线最终目标：统一世界、最强道统、个人飞升，还是允许多种胜利方式？
-12. 每周可投入时间、是否商业化、美术来源。（影响整体范围）
-13. **待确定｜「水」属性是否保留，还是并入冰？**（影响 2B、22、24、25、2G）
-14. **待确定｜修炼时间尺度的数值校准？** 方向已定：开局→元婴约 60～100 小时；正常资质黄阶高级下炼气→筑基约 100 游戏天；低境界差距小、高境界差距扩大。
-15. **待确定｜突破事件细则？** 方向已冻结于 `33` §5：大境界突破必须是事件；地点／护法／风险／失败后果待展开。
-16. **待确定｜敛息资源数值？** 方向已定：炼气后需敛息隐藏修为；非永久，需持续采集。
-17. ~~怀疑度与愤怒是否合并为单一数值？~~ **已定（`33` §6）：不合并。** 个人隐匿风险／NPC 怀疑值／势力敌意三层。
-18. **待确定｜控制核心耐久、夺回窗口与三种占领方式的平衡？** 方向已定：占领是夺控制权，不是杀光。
+飞行境界、炼气术法清单、突破事件细则、Focus 失能后继承 UI、TemporaryProtection 事件模板库等——见各系统文档；**不在未冻时自行拍板。**
 
 ## 十、下一步
 
-**当前：架构冻结增量等待人工审核 — 只写设计，不写代码。**
-
-1. 审核死亡／PlayerAgency／ContentPackage（`33` §19～21、`34`、`36`、ADR-0010～0016）。  
-2. 通过后细化第一次突破（`25`／`2G`）与炼气术法清单（`22`），并同步 `24`。  
-3. 再进入正式实现：asmdef → ContentPackage 加载骨架（官方也走包）→ Tick → Modifier → Order/Action。  
-4. **不要继续扩展 Demo。**
+1. 人工审核 Freeze v0.2。  
+2. 通过后另开 **Core Milestone 1**（ADR-0022）。  
+3. 不扩展 Demo。

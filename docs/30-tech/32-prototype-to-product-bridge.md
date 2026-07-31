@@ -1,11 +1,8 @@
 # Prototype → Product Bridge（Demo 到正式开发桥接）
 
-> 状态：**已冻结（v0.1）** | 优先级：P0 | 最后更新：2026-07-31  
-> 上级：`docs/00-project/00-overview.md`  
-> 依赖：`33`、`34`、`35-order-and-action-system.md`、`2C`、`2E`、`49-demo-v0.1-prototype-status.md`、`31`  
-> 被引用：实现期重构清单、回归验收  
-> **目的：** 把 Demo 已验证玩法语义冻结为正式接口需求；后续只换实现，不改语义。  
-> **本阶段不写实现代码。不继续扩展 Prototype MonoBehaviour。**
+> 状态：**已冻结（对齐 Freeze v0.2）** | 优先级：P0 | 最后更新：2026-07-31  
+> 依赖：`33` **v0.2**、`34`、`35`、`49`  
+> **本阶段不写实现代码。不继续扩展 Prototype。**
 
 ## 1. 桥接原则
 

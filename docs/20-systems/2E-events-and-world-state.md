@@ -1,11 +1,8 @@
 # 事件、未来事件与世界账本（2E）
 
-> 状态：**已冻结（v0.1）** | 优先级：P0 | 最后更新：2026-07-31  
-> 上级：`docs/00-project/00-overview.md`  
-> 依赖：`33`、`34`、`2C`、`2F`、`28`、`29`  
-> 被引用：存档系统、隐匿、关系、领地、突破、AI、调试日志  
-> **本阶段不写实现代码。**  
-> 正式版本采用**快照存档**，**不**使用完整 Event Sourcing，**不**做完整游戏回放（ADR-0005）。
+> 状态：**已冻结（对齐 Freeze v0.2）** | 优先级：P0 | 最后更新：2026-07-31  
+> 依赖：`33` v0.2、`34`、`2C`、`2F`、`28`、ADR-0017  
+> **本阶段不写实现代码。**
 
 ## 1. 这个系统解决什么问题
 
@@ -95,14 +92,35 @@ Action / System 结算
 
 | 分册 | 内容 |
 |---|---|
-| `RelationshipLedger` | 人物／势力关系边与强度 |
+| `RelationshipLedger` | **关系唯一真源**（事件历史累积；最终值由本册计算） |
 | `FactionLedger` | 势力态度、外交、宣战等 |
 | `TerritoryLedger` | 所有权、控制核心、关键设施状态 |
 | `QuestAndObligationLedger` | 任务、配额、义务 |
 | `KnowledgeLedger` | 谁知道什么（见 §6） |
 | `HistoryLedger` | 长期历史摘要（见 §7） |
 
-## 6. KnowledgeLedger：事实 vs 认知
+## 5A. RelationshipLedger 唯一真源（v0.2）
+
+见 ADR-0017。
+
+本项目强调恩怨、历史、因果与长期关系变化；关系**不是**简单可直接赋值的最终数值。
+
+Ledger 至少保存每条 `RelationshipEvent`：
+
+| 字段 | 说明 |
+|---|---|
+| 时间 Tick | 何时发生 |
+| 来源／原因标签 | 为何变化 |
+| 影响对象 | 谁对谁 |
+| 影响数值 | 如 +30／-50 |
+| 关联 DomainEvent | 可追溯 |
+
+示例：A 救 B → +30；B 叛 A → -50；**最终关系值 = Ledger 聚合计算**。
+
+`RelationshipComponent` 仅：运行时缓存、查询优化、UI 展示。  
+**禁止**直接修改最终关系值；**禁止**绕过 Ledger 写关系。
+
+---
 
 必须区分：
 
@@ -140,7 +158,8 @@ Action / System 结算
 - 未执行 `ScheduledEvent`  
 - 随机流状态（`IRandomSource`／分系统流）  
 - 必须长期保留的重要历史（History／各 Ledger）  
-- `PlayerAgency`（FocusCharacter、控制模式、ManagedFactionId）  
+- `PlayerAgency`（含 FocusCharacterUnavailable）  
+- LifecycleState（Dead ≠ Removed）  
 - 启用的 ContentPackage／ModId、版本、加载顺序、DataVersion、命名空间来源（见 `36`）  
 - 最近一段调试事件日志（环形缓冲，可裁剪）  
 

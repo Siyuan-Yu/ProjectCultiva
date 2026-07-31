@@ -7,6 +7,28 @@
 
 ---
 
+## 2026-08-01 — 文档可读性整理与飞书一一对应
+
+1. 新增 [通读指南](../00-project/04-reading-guide.md)、[ADR 决策索引](43-decisions/README.md)  
+2. 总览入口改为可点链接；飞书 map 补齐 `34`／`35`／`36`／`2E`／审计／全部 ADR  
+3. 同步脚本导航分组改为 00／10／20／30／43／40  
+4. 原则：**本地 MD 真源 ↔ 飞书阅读层结构与链接一致**；不重写已冻结规则正文  
+
+## 2026-07-31 — Architecture Freeze v0.2 修补
+
+根据审计报告与人工确认，写入 v0.2（仍不编码）：
+
+1. **RelationshipLedger** 唯一真源；Component 只缓存（ADR-0017）  
+2. **WorldTick** 唯一世界时间轴；**ActionClock** = Action Duration（ADR-0018）  
+3. **Dead ≠ Removed**；Incapacitated 非死；Recovered→Alive（ADR-0019）  
+4. **FocusCharacterUnavailable**；DirectControl≠Focus≠Leader≠Identity（ADR-0020）  
+5. 开局三人隶属压迫宗门劳役；主管同宗管理者（`2G`／`34`）  
+6. 地图 **World／Region／LocalMap**；修订 `24`（ADR-0021）  
+7. **Core M1** 范围冻结（ADR-0022）  
+主契约文件：`33-architecture-core-rules-freeze-v0.2.md`；v0.1 改为指向 stub。
+
+---
+
 ## 2026-07-31 — 架构契约一致性审计报告 v0.1
 
 完成只读审计，产出 `50-architecture-freeze-review-report-v0.1.md`。主轴数据流一致；主要冲突：`24` 地图正文过时、隐匿字段异名、Relationship 双写未定权威、FocusCharacter 失能规则缺失。建议小修补后再开 Core 第一阶段。不编码。
