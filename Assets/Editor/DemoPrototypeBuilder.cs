@@ -569,9 +569,7 @@ namespace XianXia.Unity.Editor
             hoverProbe.Configure(camera, ambientGrid);
 
             PartyCommandController input = systems.AddComponent<PartyCommandController>();
-            SerializedObject inputObject = new(input);
-            inputObject.FindProperty("worldCamera").objectReferenceValue = camera;
-            inputObject.ApplyModifiedPropertiesWithoutUndo();
+            input.Configure(camera, workSystem);
 
             DemoPrototypeHud hud = systems.AddComponent<DemoPrototypeHud>();
             hud.Configure(

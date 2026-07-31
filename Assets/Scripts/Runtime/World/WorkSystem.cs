@@ -7,6 +7,9 @@ using XianXia.Unity.Time;
 
 namespace XianXia.Unity.World
 {
+    /// <summary>
+    /// 仅对处于 Working 状态（已指派工作且位于工作区）的角色产出资源。
+    /// </summary>
     public sealed class WorkSystem : MonoBehaviour
     {
         private sealed class UnitProgress
@@ -52,7 +55,7 @@ namespace XianXia.Unity.World
 
             foreach (DemoUnitController unit in units)
             {
-                if (unit == null)
+                if (unit == null || !unit.IsActivelyWorking)
                 {
                     continue;
                 }
@@ -63,7 +66,8 @@ namespace XianXia.Unity.World
                     continue;
                 }
 
-                if (!TryGetZone(unit.transform.position, out WorkZone zone))
+                WorkZone zone = unit.AssignedWorkZone;
+                if (zone == null && !TryGetZone(unit.transform.position, out zone))
                 {
                     continue;
                 }
@@ -94,18 +98,7 @@ namespace XianXia.Unity.World
 
         public bool IsUnitWorking(DemoUnitController unit)
         {
-            if (unit == null)
-            {
-                return false;
-            }
-
-            UnitCultivation cultivation = unit.GetComponent<UnitCultivation>();
-            if (cultivation != null && cultivation.IsCultivating)
-            {
-                return false;
-            }
-
-            return TryGetZone(unit.transform.position, out _);
+            return unit != null && unit.IsActivelyWorking;
         }
 
         public bool TryGetZone(Vector2 worldPosition, out WorkZone zone)
@@ -124,6 +117,31 @@ namespace XianXia.Unity.World
 
             zone = null;
             return false;
+        }
+
+        public Vector2 GetGatherPoint(WorkZone zone, int index, int total)
+        {
+            if (zone == null)
+            {
+                return Vector2.zero;
+            }
+
+            Bounds bounds = zone.Bounds;
+            if (total <= 1)
+            {
+                return bounds.center;
+            }
+
+            int columns = Mathf.CeilToInt(Mathf.Sqrt(total));
+            int row = index / columns;
+            int column = index % columns;
+            float spacingX = Mathf.Min(1.2f, bounds.size.x / (columns + 1));
+            float spacingY = Mathf.Min(1.2f, bounds.size.y / (columns + 1));
+            float x = bounds.center.x + (column - (columns - 1) * 0.5f) * spacingX;
+            float y = bounds.center.y + (row - (columns - 1) * 0.5f) * spacingY;
+            x = Mathf.Clamp(x, bounds.min.x + 0.25f, bounds.max.x - 0.25f);
+            y = Mathf.Clamp(y, bounds.min.y + 0.25f, bounds.max.y - 0.25f);
+            return new Vector2(x, y);
         }
     }
 }

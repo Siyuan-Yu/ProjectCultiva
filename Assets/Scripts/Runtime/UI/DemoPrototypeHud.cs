@@ -265,7 +265,7 @@ namespace XianXia.Unity.UI
             _showHelp = SideToggle(x, ref y, "帮助", _showHelp);
             _showClock = SideToggle(x, ref y, "时间", _showClock);
             _showSchedule = SideToggle(x, ref y, "课表", _showSchedule);
-            _showCompliance = SideToggle(x, ref y, "遵守", _showCompliance);
+            _showCompliance = SideToggle(x, ref y, "状态", _showCompliance);
         }
 
         private void DrawRightRail()
@@ -299,7 +299,7 @@ namespace XianXia.Unity.UI
                     132f,
                     maxBottom,
                     "操作",
-                    "左键选 / Shift多选 / 右键移\n滚轮缩放  空格暂停  1/2/5倍速\nC修炼 X停 G敛息草\n悬停地块看灵气/能量\n课表：点格子循环活动(测试可改)",
+                    "左键选 / Shift多选\n右键工作区=下达工作\n右键空地=自由移动\n滚轮缩放  空格暂停  1/2/5倍速\nC修炼 X停 G敛息草\n悬停地块看灵气",
                     ref _showHelp);
             }
 
@@ -318,7 +318,7 @@ namespace XianXia.Unity.UI
 
             if (_showCompliance)
             {
-                DrawPanel(x, y, EstimateComplianceHeight(), maxBottom, "遵守", BuildComplianceText(), ref _showCompliance);
+                DrawPanel(x, y, EstimateComplianceHeight(), maxBottom, "角色状态", BuildComplianceText(), ref _showCompliance);
             }
         }
 
@@ -551,33 +551,44 @@ namespace XianXia.Unity.UI
                     continue;
                 }
 
-                string order = unit.HasActiveOrder ? "命令" : "待机";
-                string activity = scheduleService == null
-                    ? "-"
-                    : ActivityShort(scheduleService.GetActivity(unit));
-                string status;
-                UnitCultivation cultivation = unit.GetComponent<UnitCultivation>();
-                if (cultivation != null && cultivation.IsCultivating)
+                string activity = ActivityStateLabel(unit.ActivityState);
+                string workDetail = unit.ActivityState == UnitActivityState.Working
+                    && unit.AssignedWorkZone != null
+                    ? unit.AssignedWorkZone.DisplayName
+                    : "-";
+                string scheduleBit;
+                if (unit.ActivityState == UnitActivityState.Working)
                 {
-                    status = "修炼";
+                    scheduleBit = "工作中";
                 }
                 else if (!unit.RequireWorkPeriod)
                 {
-                    status = "非工时";
+                    scheduleBit = "非工时";
                 }
                 else if (unit.IsScheduleCompliant)
                 {
-                    status = "工作中";
+                    scheduleBit = "遵守";
                 }
                 else
                 {
-                    status = "未工作";
+                    scheduleBit = "未工作";
                 }
 
-                lines.Add($"{ShortName(unit.name)}[{activity}]:{status}/{order}");
+                lines.Add($"{ShortName(unit.name)}: {activity} ({workDetail}) | {scheduleBit}");
             }
 
             return string.Join("\n", lines);
+        }
+
+        private static string ActivityStateLabel(UnitActivityState state)
+        {
+            return state switch
+            {
+                UnitActivityState.Idle => "空闲",
+                UnitActivityState.Moving => "移动中",
+                UnitActivityState.Working => "正在工作",
+                _ => state.ToString()
+            };
         }
 
         private string BuildTaskText()

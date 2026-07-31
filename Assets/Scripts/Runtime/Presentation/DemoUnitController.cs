@@ -1,5 +1,6 @@
 using UnityEngine;
 using XianXia.Unity.Time;
+using XianXia.Unity.World;
 
 namespace XianXia.Unity.Presentation
 {
@@ -18,13 +19,40 @@ namespace XianXia.Unity.Presentation
         private bool _scheduleCompliant = true;
         private bool _requireWork;
         private bool _inWorkZone;
+        private bool _hasWorkOrder;
+        private WorkZone _assignedWorkZone;
 
         public bool IsSelected { get; private set; }
-        public bool HasActiveOrder => _hasDestination;
+        public bool HasActiveOrder => _hasDestination || _hasWorkOrder;
         public bool IsScheduleCompliant => _scheduleCompliant;
         public bool RequireWorkPeriod => _requireWork;
         public bool IsInWorkZone => _inWorkZone;
         public float VisualScale => visualScale;
+        public WorkZone AssignedWorkZone => _assignedWorkZone;
+        public bool HasWorkOrder => _hasWorkOrder;
+
+        public UnitActivityState ActivityState
+        {
+            get
+            {
+                if (_hasWorkOrder
+                    && !_hasDestination
+                    && _assignedWorkZone != null
+                    && _assignedWorkZone.Contains(transform.position))
+                {
+                    return UnitActivityState.Working;
+                }
+
+                if (_hasDestination)
+                {
+                    return UnitActivityState.Moving;
+                }
+
+                return UnitActivityState.Idle;
+            }
+        }
+
+        public bool IsActivelyWorking => ActivityState == UnitActivityState.Working;
 
         private void Awake()
         {
@@ -50,6 +78,14 @@ namespace XianXia.Unity.Presentation
                 {
                     transform.position = _destination;
                     _hasDestination = false;
+                }
+            }
+
+            if (_hasWorkOrder && !_hasDestination && _assignedWorkZone != null)
+            {
+                if (!_assignedWorkZone.Contains(transform.position))
+                {
+                    SetDestination(_assignedWorkZone.transform.position);
                 }
             }
 
@@ -94,15 +130,29 @@ namespace XianXia.Unity.Presentation
             }
         }
 
+        /// <summary>自由移动：取消工作指令。</summary>
         public void MoveTo(Vector2 worldPosition)
         {
-            // 玩家命令优先于时间表：只记录与执行命令，时间表不打断。
-            _destination = new Vector3(worldPosition.x, worldPosition.y, transform.position.z);
-            _hasDestination = true;
+            ClearWorkOrder();
+            SetDestination(worldPosition);
+        }
+
+        /// <summary>指派到工作区持续工作。</summary>
+        public void AssignWork(WorkZone zone, Vector2 gatherPoint)
+        {
+            if (zone == null)
+            {
+                return;
+            }
+
+            _hasWorkOrder = true;
+            _assignedWorkZone = zone;
+            SetDestination(gatherPoint);
         }
 
         public void CancelOrder()
         {
+            ClearWorkOrder();
             _hasDestination = false;
             _destination = transform.position;
         }
@@ -112,6 +162,18 @@ namespace XianXia.Unity.Presentation
             _scheduleCompliant = compliant;
             _requireWork = requireWork;
             _inWorkZone = inWorkZone;
+        }
+
+        private void ClearWorkOrder()
+        {
+            _hasWorkOrder = false;
+            _assignedWorkZone = null;
+        }
+
+        private void SetDestination(Vector2 worldPosition)
+        {
+            _destination = new Vector3(worldPosition.x, worldPosition.y, transform.position.z);
+            _hasDestination = true;
         }
     }
 }
