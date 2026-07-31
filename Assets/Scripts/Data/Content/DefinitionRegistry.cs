@@ -8,21 +8,58 @@ namespace XianXia.Data.Content
     {
         readonly Dictionary<DefinitionId, CharacterDefinition> _characters =
             new Dictionary<DefinitionId, CharacterDefinition>();
+        readonly Dictionary<DefinitionId, CultivationDefinition> _cultivations =
+            new Dictionary<DefinitionId, CultivationDefinition>();
+        readonly Dictionary<DefinitionId, ItemDefinition> _items =
+            new Dictionary<DefinitionId, ItemDefinition>();
 
         public IReadOnlyDictionary<DefinitionId, CharacterDefinition> Characters => _characters;
+        public IReadOnlyDictionary<DefinitionId, CultivationDefinition> Cultivations => _cultivations;
+        public IReadOnlyDictionary<DefinitionId, ItemDefinition> Items => _items;
+
+        public bool ContainsId(DefinitionId id) =>
+            _characters.ContainsKey(id) || _cultivations.ContainsKey(id) || _items.ContainsKey(id);
 
         public Result RegisterCharacter(CharacterDefinition definition)
         {
             if (definition == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "CharacterDefinition is null.");
-            if (_characters.ContainsKey(definition.Id))
+            if (ContainsId(definition.Id))
                 return Result.Failure(ErrorCode.DuplicateDefinitionId, "Duplicate DefinitionId.", definition.Id.ToString());
 
             _characters.Add(definition.Id, definition);
             return Result.Success();
         }
 
+        public Result RegisterCultivation(CultivationDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "CultivationDefinition is null.");
+            if (ContainsId(definition.Id))
+                return Result.Failure(ErrorCode.DuplicateDefinitionId, "Duplicate DefinitionId.", definition.Id.ToString());
+
+            _cultivations.Add(definition.Id, definition);
+            return Result.Success();
+        }
+
+        public Result RegisterItem(ItemDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "ItemDefinition is null.");
+            if (ContainsId(definition.Id))
+                return Result.Failure(ErrorCode.DuplicateDefinitionId, "Duplicate DefinitionId.", definition.Id.ToString());
+
+            _items.Add(definition.Id, definition);
+            return Result.Success();
+        }
+
         public bool TryGetCharacter(DefinitionId id, out CharacterDefinition definition) =>
             _characters.TryGetValue(id, out definition);
+
+        public bool TryGetCultivation(DefinitionId id, out CultivationDefinition definition) =>
+            _cultivations.TryGetValue(id, out definition);
+
+        public bool TryGetItem(DefinitionId id, out ItemDefinition definition) =>
+            _items.TryGetValue(id, out definition);
     }
 }

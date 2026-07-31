@@ -1,15 +1,19 @@
 {
+  "schemaVersion": 1,
   "definitions": [
     {
       "id": "base:character_labor_disciple",
       "type": "character",
+      "name": "劳役弟子",
       "displayNameKey": "character.labor_disciple",
+      "nameKey": "character.labor_disciple",
       "baseAttributes": {
         "MaxHp": 100,
         "Attack": 10,
         "Defense": 5,
         "Speed": 8
-      }
+      },
+      "tags": ["labor", "disciple"]
     }
   ]
 }

@@ -4,16 +4,16 @@ using XianXia.Core.Domain.Ids;
 namespace XianXia.Data.Content
 {
     /// <summary>
-    /// Content-only character template. No gameplay calculation.
+    /// Content-only item template. No inventory gameplay logic.
     /// </summary>
-    public sealed class CharacterDefinition
+    public sealed class ItemDefinition
     {
         public DefinitionId Id { get; set; }
         /// <summary>Author-facing display name (not full localization).</summary>
         public string Name { get; set; }
         public string DisplayNameKey { get; set; }
         public string NameKey { get; set; }
-        public Dictionary<string, int> BaseAttributes { get; set; } = new Dictionary<string, int>();
+        public int MaxStack { get; set; } = 1;
         public List<string> Tags { get; set; } = new List<string>();
     }
 }

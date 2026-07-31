@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:cultivation_basic_breath",
+      "type": "cultivation",
+      "name": "基础吐纳",
+      "displayNameKey": "cultivation.basic_breath",
+      "nameKey": "cultivation.basic_breath",
+      "requiredRealm": "凡人",
+      "grantedModifiers": [
+        {
+          "targetAttribute": "MaxHp",
+          "operation": "Fixed",
+          "value": 20,
+          "stackingKey": "basic_breath_hp"
+        }
+      ],
+      "tags": ["manual", "basic"]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:item_rough_wood",
+      "type": "item",
+      "name": "粗木",
+      "displayNameKey": "item.rough_wood",
+      "nameKey": "item.rough_wood",
+      "maxStack": 99,
+      "tags": ["resource", "wood"]
+    }
+  ]
+}

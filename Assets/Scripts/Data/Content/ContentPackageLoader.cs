@@ -10,6 +10,7 @@ namespace XianXia.Data.Content
 {
     /// <summary>
     /// Loads explicitly listed ContentPackage directories. Never scans Mods/.
+    /// Data Pipeline M1-A: character / cultivation / item definitions with strict field checks.
     /// </summary>
     public sealed class ContentPackageLoader
     {
@@ -61,7 +62,7 @@ namespace XianXia.Data.Content
                 {
                     try
                     {
-                        LoadDefinitionsFile(File.ReadAllText(file), registry, report);
+                        LoadDefinitionsFile(File.ReadAllText(file), file, manifest, registry, report);
                     }
                     catch (Exception ex)
                     {
@@ -115,22 +116,52 @@ namespace XianXia.Data.Content
             return manifest;
         }
 
-        static void LoadDefinitionsFile(string json, DefinitionRegistry registry, ValidationReport report)
+        static void LoadDefinitionsFile(
+            string json,
+            string filePath,
+            ContentManifest manifest,
+            DefinitionRegistry registry,
+            ValidationReport report)
         {
             var root = SimpleJson.Parse(json);
             if (!root.TryGetProperty("definitions", out var defs) || defs.Kind != JsonValueKind.Array)
             {
-                report.Add(ErrorCode.MissingRequiredField, "definitions array required.");
+                report.Add(ErrorCode.MissingRequiredField, "definitions array required.", filePath);
                 return;
+            }
+
+            // File root may only contain "definitions" in M1-A strict samples.
+            if (root.Kind == JsonValueKind.Object && root.Object != null)
+            {
+                foreach (var key in root.Object.Keys)
+                {
+                    if (!string.Equals(key, "definitions", StringComparison.Ordinal) &&
+                        !string.Equals(key, "schemaVersion", StringComparison.Ordinal))
+                    {
+                        report.Add(ErrorCode.InvalidArgument, "Unknown field in definitions file.", filePath + "." + key);
+                    }
+                }
             }
 
             foreach (var item in defs.Array)
             {
+                if (item.Kind != JsonValueKind.Object)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "Definition entry must be object.", filePath);
+                    continue;
+                }
+
                 var idText = item.GetString("id");
                 var type = item.GetString("type");
                 if (string.IsNullOrEmpty(idText))
                 {
-                    report.Add(ErrorCode.MissingRequiredField, "definition.id required.");
+                    report.Add(ErrorCode.MissingRequiredField, "definition.id required.", filePath);
+                    continue;
+                }
+
+                if (string.IsNullOrEmpty(type))
+                {
+                    report.Add(ErrorCode.MissingRequiredField, "definition.type required.", idText);
                     continue;
                 }
 
@@ -141,24 +172,244 @@ namespace XianXia.Data.Content
                     continue;
                 }
 
-                if (!string.Equals(type, "character", StringComparison.Ordinal))
+                if (!string.Equals(parsed.Value.Namespace, manifest.Namespace, StringComparison.Ordinal))
+                {
+                    report.Add(
+                        ErrorCode.InvalidDefinitionId,
+                        "DefinitionId namespace must match package namespace.",
+                        idText + " vs " + manifest.Namespace);
                     continue;
-
-                var character = new CharacterDefinition
-                {
-                    Id = parsed.Value,
-                    DisplayNameKey = item.GetString("displayNameKey", string.Empty)
-                };
-
-                if (item.TryGetProperty("baseAttributes", out var attrs) && attrs.Kind == JsonValueKind.Object)
-                {
-                    foreach (var kv in attrs.Object)
-                        character.BaseAttributes[kv.Key] = (int)kv.Value.Number;
                 }
 
-                var reg = registry.RegisterCharacter(character);
-                if (reg.IsFailure)
-                    report.Add(reg.Error);
+                switch (type)
+                {
+                    case "character":
+                        LoadCharacter(item, parsed.Value, registry, report);
+                        break;
+                    case "cultivation":
+                        LoadCultivation(item, parsed.Value, registry, report);
+                        break;
+                    case "item":
+                        LoadItem(item, parsed.Value, registry, report);
+                        break;
+                    default:
+                        report.Add(ErrorCode.InvalidArgument, "Unknown definition type.", type);
+                        break;
+                }
+            }
+        }
+
+        static void LoadCharacter(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.CharacterFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var character = new CharacterDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                DisplayNameKey = item.GetString("displayNameKey", string.Empty),
+                NameKey = item.GetString("nameKey", string.Empty)
+            };
+
+            if (item.TryGetProperty("baseAttributes", out var attrs))
+            {
+                if (attrs.Kind != JsonValueKind.Object)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "baseAttributes must be object.", id.ToString());
+                    return;
+                }
+
+                foreach (var kv in attrs.Object)
+                {
+                    if (!DefinitionSchema.TryParseAttributeId(kv.Key, out _))
+                    {
+                        report.Add(ErrorCode.InvalidArgument, "Unknown AttributeId in baseAttributes.", id + "." + kv.Key);
+                        continue;
+                    }
+
+                    if (kv.Value.Kind != JsonValueKind.Number)
+                    {
+                        report.Add(ErrorCode.ContentLoadFailed, "Attribute value must be number.", id + "." + kv.Key);
+                        continue;
+                    }
+
+                    character.BaseAttributes[kv.Key] = (int)kv.Value.Number;
+                }
+
+                if (report.Errors.Count > errorsBefore)
+                    return;
+            }
+
+            ReadTags(item, character.Tags, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var reg = registry.RegisterCharacter(character);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void LoadCultivation(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.CultivationFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var cultivation = new CultivationDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                DisplayNameKey = item.GetString("displayNameKey", string.Empty),
+                NameKey = item.GetString("nameKey", string.Empty),
+                RequiredRealm = item.GetString("requiredRealm", string.Empty)
+            };
+
+            if (item.TryGetProperty("grantedModifiers", out var grants))
+            {
+                if (grants.Kind != JsonValueKind.Array)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "grantedModifiers must be array.", id.ToString());
+                    return;
+                }
+
+                foreach (var grant in grants.Array)
+                {
+                    if (grant.Kind != JsonValueKind.Object)
+                    {
+                        report.Add(ErrorCode.ContentLoadFailed, "grantedModifiers entry must be object.", id.ToString());
+                        continue;
+                    }
+
+                    var grantErrorsBefore = report.Errors.Count;
+                    DefinitionSchema.RejectUnknownFields(
+                        grant,
+                        DefinitionSchema.ModifierGrantFields,
+                        report,
+                        id + ".grantedModifiers");
+                    if (report.Errors.Count > grantErrorsBefore)
+                        continue;
+
+                    var target = grant.GetString("targetAttribute");
+                    var operation = grant.GetString("operation");
+                    if (string.IsNullOrEmpty(target) ||
+                        !DefinitionSchema.TryParseAttributeId(target, out _))
+                    {
+                        report.Add(ErrorCode.InvalidArgument, "Illegal targetAttribute.", id + "." + target);
+                        continue;
+                    }
+
+                    if (string.IsNullOrEmpty(operation) ||
+                        !DefinitionSchema.AllowedOperations.Contains(operation))
+                    {
+                        report.Add(ErrorCode.InvalidArgument, "Illegal modifier operation.", id + "." + operation);
+                        continue;
+                    }
+
+                    if (!grant.TryGetProperty("value", out var valueNode) || valueNode.Kind != JsonValueKind.Number)
+                    {
+                        report.Add(ErrorCode.MissingRequiredField, "grantedModifiers.value required.", id.ToString());
+                        continue;
+                    }
+
+                    cultivation.GrantedModifiers.Add(new ModifierGrantDefinition
+                    {
+                        TargetAttribute = target,
+                        Operation = operation,
+                        Value = (int)valueNode.Number,
+                        StackingKey = grant.GetString("stackingKey", string.Empty)
+                    });
+                }
+
+                if (report.Errors.Count > errorsBefore)
+                    return;
+            }
+
+            ReadTags(item, cultivation.Tags, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var reg = registry.RegisterCultivation(cultivation);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void LoadItem(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.ItemFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var maxStack = 1;
+            if (item.TryGetProperty("maxStack", out var stackNode))
+            {
+                if (stackNode.Kind != JsonValueKind.Number)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "maxStack must be number.", id.ToString());
+                    return;
+                }
+
+                maxStack = (int)stackNode.Number;
+                if (maxStack < 1)
+                {
+                    report.Add(ErrorCode.InvalidArgument, "maxStack must be >= 1.", id.ToString());
+                    return;
+                }
+            }
+
+            var itemDef = new ItemDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                DisplayNameKey = item.GetString("displayNameKey", string.Empty),
+                NameKey = item.GetString("nameKey", string.Empty),
+                MaxStack = maxStack
+            };
+
+            ReadTags(item, itemDef.Tags, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var reg = registry.RegisterItem(itemDef);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void ReadTags(JsonValue item, List<string> tags, ValidationReport report, string context)
+        {
+            if (!item.TryGetProperty("tags", out var tagsNode))
+                return;
+            if (tagsNode.Kind != JsonValueKind.Array)
+            {
+                report.Add(ErrorCode.ContentLoadFailed, "tags must be array.", context);
+                return;
+            }
+
+            foreach (var t in tagsNode.Array)
+            {
+                if (t.Kind != JsonValueKind.String)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "tags entries must be strings.", context);
+                    continue;
+                }
+
+                tags.Add(t.String);
             }
         }
     }

@@ -1,7 +1,7 @@
 {
   "modId": "base",
   "namespace": "base",
-  "version": "0.0.1-m1",
+  "version": "0.0.2-dp-m1a",
   "compatibleGameVersion": "0.1.0",
   "dependencies": [],
   "optionalDependencies": [],
