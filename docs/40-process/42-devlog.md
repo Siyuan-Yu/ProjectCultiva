@@ -7,6 +7,18 @@
 
 ---
 
+## 2026-08-01 — Core M1 阶段 3 Result／Validation 完成
+
+**判断：** 业务失败必须与异常路径分离，否则 Tick 模拟会被异常控制流污染。
+
+**做了什么**
+- `ErrorCode`／`GameError`／`Result`／`Result<T>`／`ValidationReport`／`IValidator`
+- `DefinitionId.Parse` → `Result<DefinitionId>`；保留 `TryParse` 兼容
+- EditMode 增补 Result 测试
+
+**下一步**
+- 阶段 4 随机系统
+
 ## 2026-08-01 — Core M1 阶段 2 基础类型完成（待确认）
 
 **判断：** 跨系统共享原语必须先于 Result／Entity／Modifier 落地；DefinitionId 与 EntityId 在类型层隔离，避免后期存档污染。

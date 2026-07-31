@@ -1,4 +1,5 @@
 using System;
+using XianXia.Core.Results;
 
 namespace XianXia.Core.Domain.Ids
 {
@@ -23,25 +24,39 @@ namespace XianXia.Core.Domain.Ids
         public string LocalId { get; }
 
         /// <summary>
-        /// Parse without throwing for ordinary failures. Full Result/ErrorCode arrives in Phase 3.
+        /// Parse without throwing for ordinary failures. Prefer <see cref="Parse"/> when Result is needed.
         /// </summary>
         public static bool TryParse(string text, out DefinitionId id)
         {
+            var parsed = Parse(text);
+            if (parsed.IsSuccess)
+            {
+                id = parsed.Value;
+                return true;
+            }
+
             id = default;
+            return false;
+        }
+
+        /// <summary>
+        /// Result-based parse for business paths. Does not throw on ordinary invalid input.
+        /// </summary>
+        public static Result<DefinitionId> Parse(string text)
+        {
             if (string.IsNullOrEmpty(text))
-                return false;
+                return Result.Fail<DefinitionId>(ErrorCode.InvalidDefinitionId, "DefinitionId text is empty.");
 
             var separator = text.IndexOf(':');
             if (separator <= 0 || separator >= text.Length - 1)
-                return false;
+                return Result.Fail<DefinitionId>(ErrorCode.InvalidDefinitionId, "DefinitionId must be namespace:local_id.", text);
 
             var ns = text.Substring(0, separator);
             var local = text.Substring(separator + 1);
             if (string.IsNullOrEmpty(ns) || string.IsNullOrEmpty(local))
-                return false;
+                return Result.Fail<DefinitionId>(ErrorCode.InvalidDefinitionId, "DefinitionId namespace and local_id must be non-empty.", text);
 
-            id = new DefinitionId(ns, local);
-            return true;
+            return Result.Ok(new DefinitionId(ns, local));
         }
 
         public override string ToString() => Namespace + ":" + LocalId;
