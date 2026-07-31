@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-**M1 — Demo v0.1 原型开发。** 当前以可替换 Sprite 和占位素材实现荒村垂直切片，不等待最终美术。
+**M1 — Demo v0.1 原型开发。** 灰盒已支持框选、底部状态栏、显式工位开工、全村劳役表、威胁标记与氛围 NPC。仍为占位美术／IMGUI。
 
 Unity 版本锁定为 **2022.3.6f1 Built-in**。`Assets/Scenes/Demo_v0_1.unity`、占位 PNG 与 Prefab 已生成；需要时可从 `XianXia` 编辑器菜单重建。
 

@@ -2,18 +2,52 @@
 
 > 用途：换设备、换 Cursor 会话时**先读这篇**即可恢复上下文。  
 > 仓库：https://github.com/Siyuan-Yu/ProjectCultiva  
-> 本地路径（本机）：`D:\UnityProjects\XianXia`  
+> 本地路径（本机）：`F:\ProjectCultiva\ProjectCultiva`（亦可能是 `D:\UnityProjects\XianXia`）  
 > Unity：**2022.3.6f1 Built-in**（ADR-0001）
 
 ## 30 秒摘要
 
 项目已从纯策划进入 **Demo v0.1 原型开发**。当前可玩灰盒验证：
 
-**白天劳动 → 指派工作产资源 → 完成主管任务 → 夜晚偷修长修为 → 管理暴露风险**
+**白天劳动 → 显式工位开工产资源 → 完成主管任务 → 夜晚偷修长修为 → 管理暴露／愤怒风险**
 
-尚未做：战斗、突破、正式功法／灵根玩法、占领据点、正式 UGUI、正式美术。
+本轮重点补齐 **RTS／经营交互可读性**（框选、状态栏、课表语义、显式工作、威胁标记、氛围 NPC），尚未做突破／战斗／夺府。
 
-最新提交：`f3c56cc`（Milestone 3.5 RTS 工作指派）已推 `origin/main`。
+最新明细见下方「本轮改动汇总」与 `42-devlog.md` 顶部。
+
+## 本轮改动汇总（2026-07-31 交互验收迭代）
+
+### 操控与镜头
+- 框选／点选／Shift 多选
+- 中键拖地图；滚轮缩放
+- 选中后底部状态栏常驻；点 UI 按钮不取消选中
+- `S` 停止指令；`W` 工作；`C／X／G` 修炼相关
+
+### 角色／NPC 查看
+- 可控三人底部栏：修为／暴露／灵气／指令／操作按钮
+- NPC（主管／守卫／村民／商人）可点：底部**只读**身份栏
+- 主管头顶**红三角**、守卫**黄三角**
+- 移除左侧「状态」汇总面板（与底部栏重复）；「详情」留给建筑／区域
+
+### 工作（重要语义）
+- **不再**右键到区就自动开工
+- 流程：选人 → **工作(W)** → 点黄色**工位**才开工；已在工位旁可直接开工
+- 右键工位／空地 = **只移动**
+- 农田 5／森林 4／草药 3 个工位
+
+### 劳役表（重要语义）
+- **全村一张表**，不是 RimWorld 式三人分别排班
+- 含义：主管规定的劳役时段 + 村民按表活动 + 对玩家的「该不该在干活」判定
+- UI：右侧竖栏 00～23（类似修仙模拟器）
+- 愤怒：工时内未工作 **且被主管／守卫发现** 才涨
+
+### 世界氛围
+- 主管／守卫／商人巡逻
+- 4 名氛围村民按劳役表去工作区／吃饭／睡觉
+- 工作区名称边框；东南隐藏灵地菱形标记
+
+### 明确未做
+突破、战斗、夺府、暴露／愤怒真实惩罚演出、正式 UGUI、正式美术。
 
 ## 新设备开工 5 步
 
@@ -21,7 +55,7 @@
 2. 用 **Unity 2022.3.6f1** 打开工程根目录
 3. 打开 `Assets/Scenes/Demo_v0_1.unity` → Play
 4. 若场景缺组件／过旧：菜单 **XianXia → Build Demo v0.1 Prototype** 重建
-5. 再读本文件下方「操作」与 `docs/40-process/42-devlog.md` 顶部 3～5 条
+5. 再读本文件「操作」与 `docs/40-process/42-devlog.md` 顶部 5～8 条
 
 ## 已落地里程碑（代码）
 
@@ -31,53 +65,49 @@
 | 灰盒 + 时钟 | 80×50 图、镜头、GameClock、只读时间表雏形 | `3e224f9` |
 | M3 生活循环 | 每日任务、资源、工作区、主管愤怒（只显示） | `dda70b8` 内 |
 | M4 秘密修炼 | 灵地、Cultivating、修为、暴露、敛息草 | `dda70b8` 内 |
-| 时间表网格 | 24h×三角色可点改（**测试可改**，正式应锁）+ 地块悬停灵气 | `dda70b8` |
-| M3.5 工作交互 | 右键工作区下达 Working；空地移动；仅 Working 产资源 | `f3c56cc` |
+| 时间表网格 | 24h 网格雏形 | `dda70b8` |
+| M3.5 工作交互 | Working 才产资源 | `f3c56cc` |
+| RTS 可读性包 | 框选／状态栏／工位／劳役表／威胁标／氛围 NPC | 本提交 |
 
 ## 当前怎么玩（验收操作）
 
-- **选择**：左键；Shift 多选
-- **工作**：选中后**右键森林／草药区／农田** → 前往并持续工作产木／药／粮
-- **移动**：右键空地 → 只移动并取消工作
+- **选择**：左键点选；拖拽框选；Shift 追加／取消
+- **可控角色**：底部状态栏；**工作(W)** → 点黄圈工位开工；`S` 停止
+- **NPC**：左键点主管／守卫／村民 → 底部只读栏（不可操作）
+- **镜头**：中键拖地图；滚轮缩放
+- **移动**：右键空地／工位 = 只移动（不自动开工）
+- **劳役表**：右侧「课表」竖栏 = 全村村规；测试可改
+- **愤怒**：工时偷懒且靠近主管／守卫才涨
+- **修炼**：东南隐藏灵地；`C／X／G`
 - **时间**：空格暂停；1／2／5 倍速
-- **修炼**：角色到东南**隐藏灵地**，`C` 开始／`X` 停止／`G` 用敛息草
-- **课表**：侧栏「课表」→ 点格子循环 睡→起→工→饭→闲（测试用）
-- **地块**：鼠标悬停看属性能量／灵气／浓郁
-- **HUD**：顶栏 + 左右侧窄条开关面板；`Tab` 全关；默认面板收起，中间可点选
+- **标记**：主管红三角／守卫黄三角；灵地青色菱形
 
 ## 关键代码入口
 
 | 系统 | 路径 |
 |---|---|
 | 场景生成 | `Assets/Editor/DemoPrototypeBuilder.cs` |
-| 时间 | `Assets/Scripts/Runtime/Time/` |
-| 工作／区域 | `Assets/Scripts/Runtime/World/` |
-| 任务／资源 | `Assets/Scripts/Runtime/Tasks/`、`Resources/` |
-| 修炼／暴露 | `Assets/Scripts/Runtime/Cultivation/` |
-| 愤怒 | `Assets/Scripts/Runtime/Obligation/` |
-| 输入／单位 | `Assets/Scripts/Runtime/Input/`、`Presentation/` |
-| HUD（IMGUI） | `Assets/Scripts/Runtime/UI/DemoPrototypeHud.cs` |
-| 配置资产 | `Assets/Configs/` |
+| 输入／选中／工作指令 | `Assets/Scripts/Runtime/Input/PartyCommandController.cs` |
+| 单位／工位 | `Presentation/DemoUnitController.cs`、`World/WorkSpot.cs` |
+| 劳役表／遵守／愤怒 | `Time/ScheduleService.cs`、`ScheduleComplianceTracker.cs`、`Obligation/` |
+| 氛围 NPC | `Presentation/AmbientNpcActor.cs`、`AmbientWorldBootstrap.cs` |
+| HUD | `UI/DemoPrototypeHud.cs` |
+| 威胁标／区域标 | `World/ThreatOverheadMarker.cs`、`ZoneMapLabelOverlay.cs`、`SpiritSiteMapMarker.cs` |
 
 ## 重要设计约束（别走偏）
 
-- 原型 **IMGUI** 调试 HUD，不是正式 UGUI（已知需后期替换）
-- 时间表正式版应锁定；现 `ScheduleService.allowEditForTesting = true`
-- M3 旧逻辑「站在区内自动打工」已废止；必须 **Working** 才产资源
-- 暴露／愤怒本阶段**只显示数值，不惩罚**
-- 角色 Visual 缩放与碰撞分离；PNG 可原位替换（见 `48-demo-v0.1-minimum-art-integration.md`）
+- 原型 **IMGUI** 调试 HUD，不是正式 UGUI
+- 劳役表正式版前期应锁定；现 `allowEditForTesting = true`
+- **工作必须显式开工**；到区不等于 Working
+- 暴露／愤怒本阶段**只显示数值**（愤怒有检测距离，但仍无惩罚事件）
+- 点建筑／NPC **只查看，不下指令**（夺府／攻击留给后续）
+- 不要擅自开战斗／占领，除非用户明确进入下一 Milestone
 
-## 建议下一步（未开工）
+## 建议下一步
 
-按 Demo 闭环优先级，尚未实现：
-
-1. 正式 UGUI（替换 IMGUI）
-2. 突破事件最小脚本／第一次突破
-3. 战斗（世界地图内 RTS 暂停战斗）
-4. 敛息／隐藏修士玩法加深
-5. 夺府／占领控制核心
-
-不要擅自开战斗／占领，除非用户明确进入下一 Milestone。
+1. 用户验收本轮交互后，进入 **第一次突破**
+2. 可选：愤怒／暴露的轻量反馈演出
+3. 正式 UGUI 仍后置
 
 ## AI／人开工必读顺序
 

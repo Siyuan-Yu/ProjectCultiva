@@ -19,26 +19,26 @@ namespace XianXia.Unity.Presentation
         private bool _scheduleCompliant = true;
         private bool _requireWork;
         private bool _inWorkZone;
-        private bool _hasWorkOrder;
+        private bool _isWorking;
         private WorkZone _assignedWorkZone;
+        private WorkSpot _assignedWorkSpot;
 
         public bool IsSelected { get; private set; }
-        public bool HasActiveOrder => _hasDestination || _hasWorkOrder;
+        public bool HasActiveOrder => _hasDestination || _isWorking;
         public bool IsScheduleCompliant => _scheduleCompliant;
         public bool RequireWorkPeriod => _requireWork;
         public bool IsInWorkZone => _inWorkZone;
         public float VisualScale => visualScale;
         public WorkZone AssignedWorkZone => _assignedWorkZone;
-        public bool HasWorkOrder => _hasWorkOrder;
+        public WorkSpot AssignedWorkSpot => _assignedWorkSpot;
+        public bool HasWorkOrder => _isWorking;
+        public bool IsWorking => _isWorking;
 
         public UnitActivityState ActivityState
         {
             get
             {
-                if (_hasWorkOrder
-                    && !_hasDestination
-                    && _assignedWorkZone != null
-                    && _assignedWorkZone.Contains(transform.position))
+                if (_isWorking && IsAtAssignedWorkPosition())
                 {
                     return UnitActivityState.Working;
                 }
@@ -81,12 +81,10 @@ namespace XianXia.Unity.Presentation
                 }
             }
 
-            if (_hasWorkOrder && !_hasDestination && _assignedWorkZone != null)
+            // 已开工但离开工位：取消工作，不自动跑回去。
+            if (_isWorking && !_hasDestination && !IsAtAssignedWorkPosition())
             {
-                if (!_assignedWorkZone.Contains(transform.position))
-                {
-                    SetDestination(_assignedWorkZone.transform.position);
-                }
+                _isWorking = false;
             }
 
             if (visual != null)
@@ -130,24 +128,61 @@ namespace XianXia.Unity.Presentation
             }
         }
 
-        /// <summary>自由移动：取消工作指令。</summary>
+        /// <summary>自由移动：取消工作。</summary>
         public void MoveTo(Vector2 worldPosition)
         {
             ClearWorkOrder();
             SetDestination(worldPosition);
         }
 
-        /// <summary>指派到工作区持续工作。</summary>
-        public void AssignWork(WorkZone zone, Vector2 gatherPoint)
+        /// <summary>前往工位，但不自动开始工作。</summary>
+        public void MoveToWorkSpot(WorkSpot spot)
         {
-            if (zone == null)
+            if (spot == null)
             {
                 return;
             }
 
-            _hasWorkOrder = true;
-            _assignedWorkZone = zone;
-            SetDestination(gatherPoint);
+            ClearWorkOrder();
+            _assignedWorkSpot = spot;
+            _assignedWorkZone = spot.OwnerZone;
+            SetDestination(spot.Position);
+        }
+
+        /// <summary>显式开始在指定工位工作（可先走过去，到达后进入 Working）。</summary>
+        public void StartWorkAt(WorkSpot spot)
+        {
+            if (spot == null)
+            {
+                return;
+            }
+
+            _assignedWorkSpot = spot;
+            _assignedWorkZone = spot.OwnerZone;
+            _isWorking = true;
+            if (!spot.IsInRange(transform.position))
+            {
+                SetDestination(spot.Position);
+            }
+            else
+            {
+                _hasDestination = false;
+                _destination = transform.position;
+            }
+        }
+
+        /// <summary>若已在工位旁，直接开工；否则返回 false。</summary>
+        public bool TryStartWorkHere()
+        {
+            if (_assignedWorkSpot != null && _assignedWorkSpot.IsInRange(transform.position))
+            {
+                _isWorking = true;
+                _hasDestination = false;
+                _assignedWorkZone = _assignedWorkSpot.OwnerZone;
+                return true;
+            }
+
+            return false;
         }
 
         public void CancelOrder()
@@ -164,10 +199,21 @@ namespace XianXia.Unity.Presentation
             _inWorkZone = inWorkZone;
         }
 
+        private bool IsAtAssignedWorkPosition()
+        {
+            if (_assignedWorkSpot != null)
+            {
+                return _assignedWorkSpot.IsInRange(transform.position);
+            }
+
+            return _assignedWorkZone != null && _assignedWorkZone.Contains(transform.position);
+        }
+
         private void ClearWorkOrder()
         {
-            _hasWorkOrder = false;
+            _isWorking = false;
             _assignedWorkZone = null;
+            _assignedWorkSpot = null;
         }
 
         private void SetDestination(Vector2 worldPosition)

@@ -4,7 +4,7 @@ using XianXia.Unity.World;
 namespace XianXia.Unity.CameraControl
 {
     /// <summary>
-    /// 鼠标滚轮缩放，并限制镜头不超出地图边界。
+    /// 中键拖拽平移、滚轮缩放，并限制镜头不超出地图边界。
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public sealed class CameraController : MonoBehaviour
@@ -14,6 +14,9 @@ namespace XianXia.Unity.CameraControl
         [SerializeField] private float minOrthographicSize = 6f;
         [SerializeField] private float maxOrthographicSize = 22f;
         [SerializeField] private float zoomSpeed = 3f;
+
+        private bool _panning;
+        private Vector3 _lastPanScreenPosition;
 
         private void Awake()
         {
@@ -42,16 +45,49 @@ namespace XianXia.Unity.CameraControl
                 return;
             }
 
+            HandleZoom();
+            HandlePan();
+            ClampToBounds();
+        }
+
+        private void HandleZoom()
+        {
             float scroll = UnityEngine.Input.mouseScrollDelta.y;
-            if (!Mathf.Approximately(scroll, 0f))
+            if (Mathf.Approximately(scroll, 0f))
             {
-                targetCamera.orthographicSize = Mathf.Clamp(
-                    targetCamera.orthographicSize - scroll * zoomSpeed,
-                    minOrthographicSize,
-                    maxOrthographicSize);
+                return;
             }
 
-            ClampToBounds();
+            targetCamera.orthographicSize = Mathf.Clamp(
+                targetCamera.orthographicSize - scroll * zoomSpeed,
+                minOrthographicSize,
+                maxOrthographicSize);
+        }
+
+        private void HandlePan()
+        {
+            if (UnityEngine.Input.GetMouseButtonDown(2))
+            {
+                _panning = true;
+                _lastPanScreenPosition = UnityEngine.Input.mousePosition;
+            }
+
+            if (UnityEngine.Input.GetMouseButtonUp(2))
+            {
+                _panning = false;
+            }
+
+            if (!_panning || !UnityEngine.Input.GetMouseButton(2))
+            {
+                return;
+            }
+
+            Vector3 currentScreen = UnityEngine.Input.mousePosition;
+            Vector3 lastWorld = targetCamera.ScreenToWorldPoint(_lastPanScreenPosition);
+            Vector3 currentWorld = targetCamera.ScreenToWorldPoint(currentScreen);
+            // 抓取地图：鼠标往哪拖，地图跟着往哪走。
+            transform.position += lastWorld - currentWorld;
+            _lastPanScreenPosition = currentScreen;
         }
 
         private void ClampToBounds()

@@ -446,12 +446,36 @@ namespace XianXia.Unity.Editor
 
             GameObject buildings = new("Buildings");
             buildings.transform.SetParent(environment.transform);
-            PlacePrefab("Assets/Prefabs/Environment/Buildings/CommonHouse.prefab", new Vector3(-18f, 10f), buildings.transform, "House_01");
-            PlacePrefab("Assets/Prefabs/Environment/Buildings/CommonHouse.prefab", new Vector3(-12f, 12f), buildings.transform, "House_02");
-            PlacePrefab("Assets/Prefabs/Environment/Buildings/CommonHouse.prefab", new Vector3(-8f, 8f), buildings.transform, "House_03");
-            PlacePrefab("Assets/Prefabs/Environment/Buildings/CommonHouse.prefab", new Vector3(-16f, 6f), buildings.transform, "House_04");
-            PlacePrefab("Assets/Prefabs/Environment/Buildings/SupervisorHouse.prefab", new Vector3(18f, 10f), buildings.transform, "SupervisorHouse");
-            PlacePrefab("Assets/Prefabs/Environment/Buildings/Warehouse.prefab", new Vector3(12f, 5f), buildings.transform, "Warehouse");
+            AttachStructure(
+                PlacePrefab("Assets/Prefabs/Environment/Buildings/CommonHouse.prefab", new Vector3(-18f, 10f), buildings.transform, "House_01"),
+                "民宅",
+                "凡人住宅：人口容量与群体表现占位",
+                "可居住占位（未接人口系统）");
+            AttachStructure(
+                PlacePrefab("Assets/Prefabs/Environment/Buildings/CommonHouse.prefab", new Vector3(-12f, 12f), buildings.transform, "House_02"),
+                "民宅",
+                "凡人住宅：人口容量与群体表现占位",
+                "可居住占位（未接人口系统）");
+            AttachStructure(
+                PlacePrefab("Assets/Prefabs/Environment/Buildings/CommonHouse.prefab", new Vector3(-8f, 8f), buildings.transform, "House_03"),
+                "民宅",
+                "凡人住宅：人口容量与群体表现占位",
+                "可居住占位（未接人口系统）");
+            AttachStructure(
+                PlacePrefab("Assets/Prefabs/Environment/Buildings/CommonHouse.prefab", new Vector3(-16f, 6f), buildings.transform, "House_04"),
+                "民宅",
+                "凡人住宅：人口容量与群体表现占位",
+                "可居住占位（未接人口系统）");
+            AttachStructure(
+                PlacePrefab("Assets/Prefabs/Environment/Buildings/SupervisorHouse.prefab", new Vector3(18f, 10f), buildings.transform, "SupervisorHouse"),
+                "主管府",
+                "控制核心；最终夺取目标",
+                "控制核心（未实装）");
+            AttachStructure(
+                PlacePrefab("Assets/Prefabs/Environment/Buildings/Warehouse.prefab", new Vector3(12f, 5f), buildings.transform, "Warehouse"),
+                "仓库",
+                "资源存放占位",
+                "库存由 HUD 资源面板显示");
 
             GameObject zones = new("Zones");
             zones.transform.SetParent(environment.transform);
@@ -491,6 +515,7 @@ namespace XianXia.Unity.Editor
                 1.5f,
                 new Vector2(32f, -17.5f),
                 new Vector2(16f, 15f));
+            spiritSite.gameObject.AddComponent<SpiritSiteMapMarker>();
 
             GameObject characters = new("Characters");
             GameObject party = new("PlayerParty");
@@ -506,9 +531,13 @@ namespace XianXia.Unity.Editor
                 new Vector3(18f, 7f),
                 npcs.transform,
                 "Supervisor");
-            PlacePrefab("Assets/Prefabs/Characters/NPCs/Merchant.prefab", new Vector3(0f, 4f), npcs.transform, "Merchant");
-            PlacePrefab("Assets/Prefabs/Characters/NPCs/Guard.prefab", new Vector3(14f, 8f), npcs.transform, "Guard_01");
-            PlacePrefab("Assets/Prefabs/Characters/NPCs/Guard.prefab", new Vector3(22f, 8f), npcs.transform, "Guard_02");
+            GameObject merchant = PlacePrefab("Assets/Prefabs/Characters/NPCs/Merchant.prefab", new Vector3(0f, 4f), npcs.transform, "Merchant");
+            GameObject guard01 = PlacePrefab("Assets/Prefabs/Characters/NPCs/Guard.prefab", new Vector3(14f, 8f), npcs.transform, "Guard_01");
+            GameObject guard02 = PlacePrefab("Assets/Prefabs/Characters/NPCs/Guard.prefab", new Vector3(22f, 8f), npcs.transform, "Guard_02");
+            AttachCharacterInspectable(supervisor, "主管", "村主管", "筑基", "管辖配额、愤怒与最终夺权目标", 0.95f);
+            AttachCharacterInspectable(guard01, "守卫甲", "守卫", "炼气", "巡视工作区与主管府周边", 0.55f);
+            AttachCharacterInspectable(guard02, "守卫乙", "守卫", "炼气", "巡视工作区与主管府周边", 0.55f);
+            AttachCharacterInspectable(merchant, "行商", "商人", "凡人", "在村中走动交易（占位）", 0f);
 
             GameObject systems = new("Systems");
             WorldBounds worldBounds = systems.AddComponent<WorldBounds>();
@@ -538,10 +567,10 @@ namespace XianXia.Unity.Editor
             workSystem.Configure(clock, inventory, partyUnits, workZones);
 
             ScheduleComplianceTracker tracker = systems.AddComponent<ScheduleComplianceTracker>();
-            tracker.Configure(scheduleService, workSystem, partyUnits);
-
             SupervisorAngerConfig angerConfig =
                 AssetDatabase.LoadAssetAtPath<SupervisorAngerConfig>(AngerConfigPath);
+            tracker.Configure(scheduleService, workSystem, partyUnits, angerConfig);
+
             SupervisorAngerSystem angerSystem = systems.AddComponent<SupervisorAngerSystem>();
             angerSystem.Configure(clock, scheduleService, tracker, angerConfig);
 
@@ -569,7 +598,13 @@ namespace XianXia.Unity.Editor
             hoverProbe.Configure(camera, ambientGrid);
 
             PartyCommandController input = systems.AddComponent<PartyCommandController>();
-            input.Configure(camera, workSystem);
+            input.Configure(camera, workSystem, partyUnits);
+
+            ZoneMapLabelOverlay zoneLabels = systems.AddComponent<ZoneMapLabelOverlay>();
+            zoneLabels.Configure(camera);
+
+            AmbientWorldBootstrap ambient = systems.AddComponent<AmbientWorldBootstrap>();
+            ambient.Configure(clock, scheduleService);
 
             DemoPrototypeHud hud = systems.AddComponent<DemoPrototypeHud>();
             hud.Configure(
@@ -610,6 +645,14 @@ namespace XianXia.Unity.Editor
                 unitsPerGameHour,
                 center,
                 size);
+            int spotCount = resourceType switch
+            {
+                ResourceType.Food => 5,
+                ResourceType.Wood => 4,
+                ResourceType.Herb => 3,
+                _ => 3
+            };
+            zone.EnsureDefaultSpots(spotCount);
             return zone;
         }
 
@@ -681,6 +724,63 @@ namespace XianXia.Unity.Editor
             }
 
             return "Assets/Prefabs/Environment/Tiles/GrassTile.prefab";
+        }
+
+        private static void AttachCharacterInspectable(
+            GameObject character,
+            string displayName,
+            string role,
+            string realm,
+            string note,
+            float threat)
+        {
+            if (character == null)
+            {
+                return;
+            }
+
+            WorldCharacterInspectable inspectable = character.GetComponent<WorldCharacterInspectable>();
+            if (inspectable == null)
+            {
+                inspectable = character.AddComponent<WorldCharacterInspectable>();
+            }
+
+            inspectable.Configure(displayName, role, realm, note, threat);
+
+            if (threat >= 0.2f)
+            {
+                ThreatOverheadMarker marker = character.GetComponent<ThreatOverheadMarker>();
+                if (marker == null)
+                {
+                    marker = character.AddComponent<ThreatOverheadMarker>();
+                }
+
+                marker.RefreshColor();
+            }
+        }
+
+        private static void AttachStructure(GameObject building, string displayName, string purpose, string statusNote)
+        {
+            if (building == null)
+            {
+                return;
+            }
+
+            StructureInspectable inspectable = building.GetComponent<StructureInspectable>();
+            if (inspectable == null)
+            {
+                inspectable = building.AddComponent<StructureInspectable>();
+            }
+
+            inspectable.Configure(displayName, purpose, statusNote);
+
+            // 确保可被 OverlapPoint 点到（旧 Prefab 可能缺碰撞）。
+            if (building.GetComponent<Collider2D>() == null)
+            {
+                BoxCollider2D box = building.AddComponent<BoxCollider2D>();
+                box.size = new Vector2(1.6f, 1.2f);
+                box.offset = new Vector2(0f, 0.6f);
+            }
         }
 
         private static GameObject PlacePrefab(string prefabPath, Vector3 position, Transform parent, string objectName)

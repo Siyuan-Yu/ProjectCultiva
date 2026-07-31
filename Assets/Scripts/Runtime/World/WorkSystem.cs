@@ -126,22 +126,83 @@ namespace XianXia.Unity.World
                 return Vector2.zero;
             }
 
-            Bounds bounds = zone.Bounds;
-            if (total <= 1)
+            zone.EnsureDefaultSpots(Mathf.Max(3, total));
+            IReadOnlyList<WorkSpot> spots = zone.Spots;
+            if (spots != null && spots.Count > 0)
             {
-                return bounds.center;
+                WorkSpot spot = spots[index % spots.Count];
+                return spot != null ? spot.Position : (Vector2)zone.Bounds.center;
             }
 
-            int columns = Mathf.CeilToInt(Mathf.Sqrt(total));
-            int row = index / columns;
-            int column = index % columns;
-            float spacingX = Mathf.Min(1.2f, bounds.size.x / (columns + 1));
-            float spacingY = Mathf.Min(1.2f, bounds.size.y / (columns + 1));
-            float x = bounds.center.x + (column - (columns - 1) * 0.5f) * spacingX;
-            float y = bounds.center.y + (row - (columns - 1) * 0.5f) * spacingY;
-            x = Mathf.Clamp(x, bounds.min.x + 0.25f, bounds.max.x - 0.25f);
-            y = Mathf.Clamp(y, bounds.min.y + 0.25f, bounds.max.y - 0.25f);
-            return new Vector2(x, y);
+            return zone.Bounds.center;
+        }
+
+        public WorkSpot GetSpot(WorkZone zone, int index)
+        {
+            if (zone == null)
+            {
+                return null;
+            }
+
+            zone.EnsureDefaultSpots(4);
+            IReadOnlyList<WorkSpot> spots = zone.Spots;
+            if (spots == null || spots.Count == 0)
+            {
+                return null;
+            }
+
+            return spots[index % spots.Count];
+        }
+
+        public bool TryGetSpot(Vector2 worldPosition, out WorkSpot spot)
+        {
+            if (workZones != null)
+            {
+                for (int i = 0; i < workZones.Length; i++)
+                {
+                    WorkZone zone = workZones[i];
+                    if (zone == null)
+                    {
+                        continue;
+                    }
+
+                    zone.EnsureDefaultSpots(3);
+                    spot = zone.FindSpotContaining(worldPosition);
+                    if (spot != null)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            spot = null;
+            return false;
+        }
+
+        public void EnsureAllZoneSpots()
+        {
+            if (workZones == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < workZones.Length; i++)
+            {
+                WorkZone zone = workZones[i];
+                if (zone == null)
+                {
+                    continue;
+                }
+
+                int count = zone.ResourceType switch
+                {
+                    ResourceType.Food => 5,
+                    ResourceType.Wood => 4,
+                    ResourceType.Herb => 3,
+                    _ => 3
+                };
+                zone.EnsureDefaultSpots(count);
+            }
         }
     }
 }

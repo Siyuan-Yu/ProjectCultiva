@@ -54,12 +54,12 @@ namespace XianXia.Unity.Obligation
 
             int completedHour = _lastCheckedAbsoluteHour % 24;
             _lastCheckedAbsoluteHour = absoluteHour;
-            int violationCount = complianceTracker.CountWorkViolationsAtHour(completedHour);
+            int violationCount = complianceTracker.CountDetectedWorkViolationsAtHour(completedHour);
             if (violationCount > 0)
             {
                 AdjustAnger(
                     config.IdleWorkHourIncreasePerUnit * violationCount,
-                    $"work_time_idle:{violationCount}");
+                    $"work_time_idle_detected:{violationCount}");
             }
 
             complianceTracker.RefreshCompliance();
