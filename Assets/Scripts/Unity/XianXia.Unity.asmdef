@@ -1,0 +1,17 @@
+{
+  "name": "XianXia.Unity",
+  "rootNamespace": "XianXia.Unity",
+  "references": [
+    "XianXia.Core",
+    "XianXia.Data"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

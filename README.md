@@ -4,27 +4,33 @@
 
 ## 当前阶段
 
-**M1 — Demo v0.1 原型开发。** 灰盒已支持框选、底部状态栏、显式工位开工、全村劳役表、威胁标记与氛围 NPC。仍为占位美术／IMGUI。
+**Architecture Freeze v0.2（待人工审核）。** Demo 已停扩；正式 Core 编码前须确认 Freeze 与 [Core M1 实施计划](docs/40-process/51-core-milestone-1-implementation-plan-v0.1.md)。  
+Unity 版本锁定 **2022.3.6f1 Built-in**（ADR-0001）。
 
-Unity 版本锁定为 **2022.3.6f1 Built-in**。`Assets/Scenes/Demo_v0_1.unity`、占位 PNG 与 Prefab 已生成；需要时可从 `XianXia` 编辑器菜单重建。
+远端：https://github.com/Siyuan-Yu/ProjectCultiva
 
-远端：https://github.com/Siyuan-Yu/ProjectCultiva  
-最新跨设备交接：`docs/40-process/44-session-handoff-2026-07-31.md`
+## AI 多会话协作
+
+三类长期工作流（架构／Unity 开发／剧情文案）的职责、同步与变更流程见：
+
+**[`docs/40-process/52-ai-collaboration-protocol.md`](docs/40-process/52-ai-collaboration-protocol.md)**
+
+（编号说明：`46` 已用于 Demo 美术资源表，本规范为 **52**。）
 
 ## 从哪开始读
 
 新接手这个项目（包括几个月后的自己、别人、或新的 AI 会话），按这个顺序读：
 
-1. 最新的 `docs/40-process/44-session-handoff-*.md` — 跨设备快速恢复上下文
-2. `docs/00-project/00-overview.md` — 最高层大纲与系统索引（**入口**）
-3. `docs/40-process/45-demo-v0.1.md` — 第一个可验证 Demo 的范围（只做闭环，不做完整游戏）
-4. `docs/40-process/46-demo-v0.1-art-assets.md` — Demo Prototype 美术资源、AI Prompt 与导入规格
-5. `docs/40-process/47-demo-v0.1-ai-art-batches.md` — AI 素材分批执行计划（先 ≤10 验风格）
-6. `docs/40-process/48-demo-v0.1-minimum-art-integration.md` — 当前占位素材、目录与替换方式
-7. `docs/10-benchmark/14-borrow-and-differentiate.md` — 借鉴什么、做什么不一样、明确不做
-8. `docs/40-process/42-devlog.md` — 一路上发生了什么、为什么这么选
-9. `docs/00-project/01-vision.md` — 愿景与成功标准
-10. `docs/00-project/03-glossary.md` — 命名规范（写代码前必读）
+1. `AGENTS.md` — AI 硬约束与当前阶段  
+2. `docs/40-process/52-ai-collaboration-protocol.md` — 多会话职责与真源规则  
+3. `docs/00-project/00-overview.md` — 最高层大纲与系统索引（**入口**）  
+4. `docs/00-project/03-glossary.md` — 术语表  
+5. `docs/30-tech/33-architecture-core-rules-freeze-v0.2.md` — 架构主契约  
+6. `docs/00-project/04-reading-guide.md` — 通读顺序  
+7. `docs/40-process/42-devlog.md` — 最近决策与理由  
+8. 最新的 `docs/40-process/44-session-handoff-*.md` — 跨设备快速恢复（若有）  
+9. （Demo 参考）`45`～`49` — 原型范围与美术；正式语义以 Freeze／`32` 为准  
+10. `docs/10-benchmark/14-borrow-and-differentiate.md` — 借鉴与不做
 
 ## 文档结构
 
@@ -44,7 +50,9 @@ docs/
 ├── 40-process/          研发管理
 │   ├── 41-roadmap.md            里程碑与完成标准
 │   ├── 42-devlog.md             开发日志（倒序）
-│   └── 43-decisions/            ADR 架构决策记录
+│   ├── 43-decisions/            ADR 架构决策记录
+│   ├── 51-…-implementation-plan  Core M1 实施计划
+│   └── 52-ai-collaboration-protocol.md  多 AI 会话协作规范
 └── 90-templates/        模板
 ```
 
@@ -58,6 +66,7 @@ docs/
 4. **命名走术语表**：新概念先登记 `03-glossary.md`，再写代码。
 5. **文档头部三件套**：状态、优先级、最后更新日期，改内容就改日期。
 6. **提交信息带前缀**：`feat/fix/docs/refactor/data/chore`。
+7. **多 AI 会话**：遵守 `52-ai-collaboration-protocol.md`；重要结论必须落文档，禁止只在聊天里定案。
 
 ## 跨设备开发
 

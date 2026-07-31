@@ -7,6 +7,43 @@
 
 ---
 
+## 2026-08-01 — Core M1 阶段 1 工程结构完成（待确认）
+
+**判断：** 正式分层必须在编译期不可破坏；Demo Runtime 保持不动。
+
+**做了什么**
+- 确认／补齐 `XianXia.Core`／`Data`／`Unity`／`Tests` 四 asmdef（Core／Data `noEngineReferences`）
+- 补 `Unity/Presentation/`；Tests 按计划落在 `Assets/Tests/EditMode/`
+- `DataAssemblyMarker` 用 `typeof(CoreAssemblyMarker)` 保留真实程序集引用
+- 修正 Tests asmdef 重复 TestRunner 引用
+- batchmode 编译成功；EditMode 边界测试 5/5 通过
+
+**下一步**
+- 人工确认阶段 1 后进入阶段 2 基础类型
+
+## 2026-08-01 — Core M1 补充执行规则
+
+写入 Plan v0.2 §0.2／AGENTS／ADR-0022：Demo 冻结；阶段门禁与独立提交；禁擅自改 ProjectSettings／Packages／冻结 ADR／Demo；设计冲突停码。
+
+## 2026-08-01 — Core M1 计划批准并进入编码（阶段 1）
+
+**判断：** Implementation Plan 人工确认 5 项（Domain 不拆 asmdef、Snapshot＝JSON、Random＝完整状态、AttributeId＝小枚举、EditMode 为完成标准）。
+
+**做了什么**
+- 发布 Plan **v0.2**；修订 ADR-0022 实施确认节  
+- 开始阶段 1：正式 asmdef 工程结构（不扩 Demo）
+
+**下一步**
+- 阶段 1 完成并确认后进入阶段 2 基础类型
+
+## 2026-08-01 — AI 多会话协作规范
+
+新增 [`52-ai-collaboration-protocol.md`](52-ai-collaboration-protocol.md)（`46` 号已被 Demo 美术占用）。同步更新 `README.md`、`AGENTS.md` 入口。不改架构／不写代码。
+
+## 2026-08-01 — Core M1 实施计划草案（不编码）
+
+新增 [`51-core-milestone-1-implementation-plan-v0.1.md`](51-core-milestone-1-implementation-plan-v0.1.md)：十阶段工程／类型／Result／Random／ContentPackage／Entity／Modifier／Event／Order-Action／Snapshot；附风险与人工确认项。**确认前不写 Core 代码。**
+
 ## 2026-08-01 — 文档可读性整理与飞书一一对应
 
 1. 新增 [通读指南](../00-project/04-reading-guide.md)、[ADR 决策索引](43-decisions/README.md)  

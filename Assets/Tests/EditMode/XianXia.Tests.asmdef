@@ -1,0 +1,24 @@
+{
+  "name": "XianXia.Tests",
+  "rootNamespace": "XianXia.Tests",
+  "references": [
+    "XianXia.Core",
+    "XianXia.Data"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "nunit.framework.dll"
+  ],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

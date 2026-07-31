@@ -1,6 +1,6 @@
 # 路线图
 
-> 状态：**Architecture Freeze v0.2 待人工审核** | 最后更新：2026-07-31
+> 状态：**Architecture Freeze v0.2 待人工审核** | 最后更新：2026-08-01
 
 ## 当前阶段说明
 
@@ -16,12 +16,14 @@ Demo 已停扩。主契约为 **`33` v0.2**。审核通过前**不编码**。正
 - [x] 通读指南＋ADR 索引；飞书映射 66 篇一一对应同步（2026-08-01）
 - [ ] 人工审核通过 v0.2
 
-### Core Milestone 1（ADR-0022，审核后另开）
+### Core Milestone 1（ADR-0022）
 
-- [ ] Id／WorldTick／IRandomSource／ContentPackage 基础／Entity／Modifier／DomainEvent／Order-Action／Snapshot／单 Region
-- [ ] **明确不做：** 跨 Region 离屏、完整势力领导、真战斗、完整 NPC AI、Mods/ 加载、大地图战争
+- [x] 实施计划 v0.1 → **v0.2 已批准**（[51…v0.2](51-core-milestone-1-implementation-plan-v0.2.md)）
+- [ ] 阶段 1 工程结构
+- [ ] 阶段 2～10（每阶段确认后推进）
+- [ ] **明确不做：** 跨 Region 离屏、完整势力领导、真战斗、完整 NPC AI、Mods/ 加载、大地图战争、扩 Demo
 
-完成标准：审核者认可 v0.2 契约后再进入 M1 编码。
+完成标准：EditMode 测试覆盖骨架闭环（Host 可选）。
 
 
 ## M0 — 定方向

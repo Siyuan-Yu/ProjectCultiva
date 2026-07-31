@@ -330,6 +330,21 @@
       "file": "docs/40-process/43-decisions/ADR-0022-core-milestone-1-scope.md",
       "title": "ADR-0022 Core Milestone 1范围",
       "docId": "AzKWdDP15oMGSqxndarcW7YJnAc"
+    },
+    "core-m1-plan": {
+      "file": "docs/40-process/51-core-milestone-1-implementation-plan-v0.2.md",
+      "title": "Core Milestone 1 实施计划 v0.2",
+      "docId": "MFqXdSqvroS2h8x4ApxcwGyjnJf"
+    },
+    "ai-collab": {
+      "file": "docs/40-process/52-ai-collaboration-protocol.md",
+      "title": "AI 多会话协作规范",
+      "docId": "QLT8ddnbUo90qfxkRoocyoBjnYg"
+    },
+    "core-m1-plan-v01-stub": {
+      "file": "docs/40-process/51-core-milestone-1-implementation-plan-v0.1.md",
+      "title": "Core Milestone 1 实施计划 v0.1（已取代）",
+      "docId": "Qmb7d9M7toaDELx0UItcjq4Xnmg"
     }
   }
 }

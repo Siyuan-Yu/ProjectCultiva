@@ -94,6 +94,7 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 | [愿景](01-vision.md)／[范围](02-scope-and-constraints.md)／[术语表](03-glossary.md) | 总纲三件套 |
 | [系统设计索引](../20-systems/README.md) | 系统清单与依赖 |
 | [路线图](../40-process/41-roadmap.md)／[开发日志](../40-process/42-devlog.md) | 阶段与记录 |
+| [Core M1 实施计划 v0.2](../40-process/51-core-milestone-1-implementation-plan-v0.2.md) | **已批准；按阶段编码** |
 | [ADR 决策索引](../40-process/43-decisions/README.md) | 全部已采纳决策 |
 
 **架构文档：**
