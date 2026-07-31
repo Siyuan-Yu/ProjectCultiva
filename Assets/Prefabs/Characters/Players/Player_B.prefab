@@ -195,6 +195,7 @@ GameObject:
   - component: {fileID: 5133496909519522475}
   - component: {fileID: 740125159214054103}
   - component: {fileID: 2098026875950587401}
+  - component: {fileID: 3502573748760548752}
   m_Layer: 0
   m_Name: Player_B
   m_TagString: Untagged
@@ -282,3 +283,18 @@ MonoBehaviour:
   visual: {fileID: 3952309705205250553}
   selectionRing: {fileID: 3245615677216320472}
   bodyCollider: {fileID: 740125159214054103}
+--- !u!114 &3502573748760548752
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5714165601022067677}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77d2b64e05758ed4b9d1027266d23393, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cultivationProgress: 0
+  exposureRisk: 0
+  isCultivating: 0

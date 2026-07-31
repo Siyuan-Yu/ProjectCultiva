@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 988991d6767ad9d459569e7ebe4939ce, type: 3}
+  m_Name: Cultivation_Default
+  m_EditorClassIdentifier: 
+  progressPerGameHour: 80
+  nightExposurePerGameHour: 0.5
+  dayExposurePerGameHour: 3
+  nearSupervisorExtraExposurePerGameHour: 2
+  supervisorProximityRadius: 8
+  concealGrassExposureReduction: 15
+  nightStartHour: 19
+  nightEndHour: 6

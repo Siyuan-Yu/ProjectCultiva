@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Unity.Cultivation;
 using XianXia.Unity.Presentation;
 
 namespace XianXia.Unity.Input
@@ -10,6 +11,8 @@ namespace XianXia.Unity.Input
         [SerializeField] private float formationSpacing = 1.25f;
 
         private readonly List<DemoUnitController> _selectedUnits = new();
+
+        public IReadOnlyList<DemoUnitController> SelectedUnits => _selectedUnits;
 
         private void Awake()
         {
@@ -81,11 +84,20 @@ namespace XianXia.Unity.Input
 
             for (int i = 0; i < _selectedUnits.Count; i++)
             {
+                DemoUnitController unit = _selectedUnits[i];
+                if (unit == null)
+                {
+                    continue;
+                }
+
+                UnitCultivation cultivation = unit.GetComponent<UnitCultivation>();
+                cultivation?.SetCultivating(false);
+
                 int row = i / columns;
                 int column = i % columns;
                 float x = (column - (columns - 1) * 0.5f) * formationSpacing;
                 float y = -row * formationSpacing;
-                _selectedUnits[i].MoveTo(center + new Vector2(x, y));
+                unit.MoveTo(center + new Vector2(x, y));
             }
         }
 

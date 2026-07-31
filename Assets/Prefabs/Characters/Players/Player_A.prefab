@@ -111,6 +111,7 @@ GameObject:
   - component: {fileID: 6676704428739559217}
   - component: {fileID: 9031822163717695019}
   - component: {fileID: 2380505043024352862}
+  - component: {fileID: 565354929651978948}
   m_Layer: 0
   m_Name: Player_A
   m_TagString: Untagged
@@ -198,6 +199,21 @@ MonoBehaviour:
   visual: {fileID: 384486171018084925}
   selectionRing: {fileID: 3662617232668309768}
   bodyCollider: {fileID: 9031822163717695019}
+--- !u!114 &565354929651978948
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5202394970789153605}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77d2b64e05758ed4b9d1027266d23393, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cultivationProgress: 0
+  exposureRisk: 0
+  isCultivating: 0
 --- !u!1 &7790829900866041232
 GameObject:
   m_ObjectHideFlags: 0

@@ -5,7 +5,7 @@ namespace XianXia.Unity.Obligation
     /// </summary>
     public interface ISupervisorAngerSink
     {
-        void ReportScheduleViolation(string unitId, string reason);
         float CurrentAnger { get; }
+        void AdjustAnger(float delta, string reason);
     }
 }

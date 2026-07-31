@@ -1,54 +1,44 @@
 using UnityEngine;
-using XianXia.Unity.Obligation;
 using XianXia.Unity.Presentation;
-using XianXia.Unity.Time;
 using XianXia.Unity.World;
 
 namespace XianXia.Unity.Time
 {
     /// <summary>
-    /// 记录角色是否遵守时间表。不自动控制角色，不执行处罚。
-    /// 工作时间内位于工作区 = 遵守；否则调试状态显示违反。
+    /// 按每角色当前小时时间表记录遵守情况。不自动控制角色，不执行处罚。
     /// </summary>
     public sealed class ScheduleComplianceTracker : MonoBehaviour
     {
         [SerializeField] private ScheduleService scheduleService;
-        [SerializeField] private WorkZone workZone;
+        [SerializeField] private WorkSystem workSystem;
         [SerializeField] private DemoUnitController[] trackedUnits;
-        [SerializeField] private MonoBehaviour angerSinkBehaviour;
 
-        private ISupervisorAngerSink _angerSink;
-        private readonly bool[] _wasViolating = new bool[8];
+        public int ViolationCount { get; private set; }
 
         public void Configure(
             ScheduleService service,
-            WorkZone zone,
-            DemoUnitController[] units,
-            ISupervisorAngerSink angerSink)
+            WorkSystem work,
+            DemoUnitController[] units)
         {
             scheduleService = service;
-            workZone = zone;
+            workSystem = work;
             trackedUnits = units;
-            _angerSink = angerSink;
-            angerSinkBehaviour = angerSink as MonoBehaviour;
-        }
-
-        private void Awake()
-        {
-            if (_angerSink == null && angerSinkBehaviour is ISupervisorAngerSink sink)
-            {
-                _angerSink = sink;
-            }
         }
 
         private void Update()
         {
+            RefreshCompliance();
+        }
+
+        public void RefreshCompliance()
+        {
             if (scheduleService == null || trackedUnits == null)
             {
+                ViolationCount = 0;
                 return;
             }
 
-            bool requireWork = scheduleService.IsWorkPeriod;
+            int violationCount = 0;
             for (int i = 0; i < trackedUnits.Length; i++)
             {
                 DemoUnitController unit = trackedUnits[i];
@@ -57,21 +47,29 @@ namespace XianXia.Unity.Time
                     continue;
                 }
 
-                bool inWorkZone = workZone != null && workZone.Contains(unit.transform.position);
-                bool compliant = !requireWork || inWorkZone;
-                unit.SetScheduleCompliance(compliant, requireWork, inWorkZone);
-
-                bool violating = requireWork && !inWorkZone;
-                if (violating && (i >= _wasViolating.Length || !_wasViolating[i]))
+                bool requireWork = scheduleService.IsWorkPeriodFor(unit);
+                bool isWorking = workSystem != null && workSystem.IsUnitWorking(unit);
+                bool compliant = !requireWork || isWorking;
+                unit.SetScheduleCompliance(compliant, requireWork, isWorking);
+                if (requireWork && !isWorking)
                 {
-                    _angerSink?.ReportScheduleViolation(unit.name, "work_period_outside_work_zone");
-                }
-
-                if (i < _wasViolating.Length)
-                {
-                    _wasViolating[i] = violating;
+                    violationCount++;
                 }
             }
+
+            ViolationCount = violationCount;
+        }
+
+        public int CountWorkViolationsAtHour(int hour)
+        {
+            if (scheduleService == null)
+            {
+                return 0;
+            }
+
+            return scheduleService.CountWorkViolationsAtHour(
+                hour,
+                unit => workSystem != null && workSystem.IsUnitWorking(unit));
         }
     }
 }

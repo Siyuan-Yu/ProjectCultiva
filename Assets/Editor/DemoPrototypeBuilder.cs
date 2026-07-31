@@ -6,9 +6,12 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using XianXia.Unity.CameraControl;
+using XianXia.Unity.Cultivation;
 using XianXia.Unity.Input;
 using XianXia.Unity.Obligation;
 using XianXia.Unity.Presentation;
+using XianXia.Unity.Resources;
+using XianXia.Unity.Tasks;
 using XianXia.Unity.Time;
 using XianXia.Unity.UI;
 using XianXia.Unity.World;
@@ -20,6 +23,9 @@ namespace XianXia.Unity.Editor
     {
         private const string ScenePath = "Assets/Scenes/Demo_v0_1.unity";
         private const string ScheduleConfigPath = "Assets/Configs/Schedules/DaySchedule_Laborer.asset";
+        private const string DailyTaskConfigPath = "Assets/Configs/Tasks/DailyTasks_Supervisor.asset";
+        private const string AngerConfigPath = "Assets/Configs/Obligation/SupervisorAnger_Default.asset";
+        private const string CultivationConfigPath = "Assets/Configs/Cultivation/Cultivation_Default.asset";
         private const int MapWidth = 80;
         private const int MapHeight = 50;
         private const int MapMinX = -40;
@@ -77,6 +83,7 @@ namespace XianXia.Unity.Editor
             EnsureFolders();
             CreatePlaceholderSprites();
             CreateScheduleConfig();
+            CreateDailyLifeConfigs();
             CreatePrefabs();
             CreateDemoScene();
             AssetDatabase.SaveAssets();
@@ -90,6 +97,9 @@ namespace XianXia.Unity.Editor
             {
                 "Assets/Scenes",
                 "Assets/Configs/Schedules",
+                "Assets/Configs/Tasks",
+                "Assets/Configs/Obligation",
+                "Assets/Configs/Cultivation",
                 "Assets/Prefabs/Characters/Players",
                 "Assets/Prefabs/Characters/NPCs",
                 "Assets/Prefabs/Environment/Tiles",
@@ -109,6 +119,7 @@ namespace XianXia.Unity.Editor
             new PlaceholderSpec { Path = "Assets/Art/Environment/Tiles/Ground/TILE_Ground_DirtRoad_01.png", Width = 32, Height = 32, Color = new Color32(137, 105, 70, 255), Kind = PlaceholderKind.Tile },
             new PlaceholderSpec { Path = "Assets/Art/Environment/Tiles/Farmland/TILE_Ground_Farmland_01.png", Width = 32, Height = 32, Color = new Color32(111, 78, 55, 255), Kind = PlaceholderKind.Tile },
             new PlaceholderSpec { Path = "Assets/Art/Environment/Tiles/Forest/TILE_Ground_ForestFloor_01.png", Width = 32, Height = 32, Color = new Color32(51, 78, 55, 255), Kind = PlaceholderKind.Tile },
+            new PlaceholderSpec { Path = "Assets/Art/Environment/Tiles/Plants/TILE_Ground_HerbPatch_01.png", Width = 32, Height = 32, Color = new Color32(65, 112, 82, 255), Kind = PlaceholderKind.Tile },
             new PlaceholderSpec { Path = "Assets/Art/Environment/Tiles/SpiritSite/TILE_Ground_SpiritSite_01.png", Width = 32, Height = 32, Color = new Color32(54, 130, 128, 255), Kind = PlaceholderKind.Tile },
 
             new PlaceholderSpec { Path = "Assets/Art/Characters/Players/Player_A/CHR_PlayerA_Idle_Down.png", Width = 64, Height = 64, Color = new Color32(113, 78, 53, 255), Kind = PlaceholderKind.Character, BottomPivot = true },
@@ -135,6 +146,31 @@ namespace XianXia.Unity.Editor
 
             DayScheduleConfig config = DayScheduleConfig.CreateDefaultLaborer();
             AssetDatabase.CreateAsset(config, ScheduleConfigPath);
+        }
+
+        private static void CreateDailyLifeConfigs()
+        {
+            DailyTaskConfig taskConfig = AssetDatabase.LoadAssetAtPath<DailyTaskConfig>(DailyTaskConfigPath);
+            if (taskConfig == null)
+            {
+                taskConfig = DailyTaskConfig.CreateDefaultSupervisorTasks();
+                AssetDatabase.CreateAsset(taskConfig, DailyTaskConfigPath);
+            }
+
+            SupervisorAngerConfig angerConfig = AssetDatabase.LoadAssetAtPath<SupervisorAngerConfig>(AngerConfigPath);
+            if (angerConfig == null)
+            {
+                angerConfig = SupervisorAngerConfig.CreateDefault();
+                AssetDatabase.CreateAsset(angerConfig, AngerConfigPath);
+            }
+
+            CultivationConfig cultivationConfig =
+                AssetDatabase.LoadAssetAtPath<CultivationConfig>(CultivationConfigPath);
+            if (cultivationConfig == null)
+            {
+                cultivationConfig = CultivationConfig.CreateDefault();
+                AssetDatabase.CreateAsset(cultivationConfig, CultivationConfigPath);
+            }
         }
 
         private static void CreatePlaceholderSprites()
@@ -309,6 +345,7 @@ namespace XianXia.Unity.Editor
             CreateStaticPrefab("DirtRoadTile", "Assets/Art/Environment/Tiles/Ground/TILE_Ground_DirtRoad_01.png", "Assets/Prefabs/Environment/Tiles/DirtRoadTile.prefab", false, -1000);
             CreateStaticPrefab("FarmlandTile", "Assets/Art/Environment/Tiles/Farmland/TILE_Ground_Farmland_01.png", "Assets/Prefabs/Environment/Tiles/FarmlandTile.prefab", false, -1000);
             CreateStaticPrefab("ForestFloorTile", "Assets/Art/Environment/Tiles/Forest/TILE_Ground_ForestFloor_01.png", "Assets/Prefabs/Environment/Tiles/ForestFloorTile.prefab", false, -1000);
+            CreateStaticPrefab("HerbPatchTile", "Assets/Art/Environment/Tiles/Plants/TILE_Ground_HerbPatch_01.png", "Assets/Prefabs/Environment/Tiles/HerbPatchTile.prefab", false, -1000);
             CreateStaticPrefab("SpiritSiteTile", "Assets/Art/Environment/Tiles/SpiritSite/TILE_Ground_SpiritSite_01.png", "Assets/Prefabs/Environment/Tiles/SpiritSiteTile.prefab", false, -1000);
 
             CreateStaticPrefab("CommonHouse", "Assets/Art/Environment/Buildings/Houses/BLD_House_Common_01.png", "Assets/Prefabs/Environment/Buildings/CommonHouse.prefab", true, 0);
@@ -341,6 +378,7 @@ namespace XianXia.Unity.Editor
 
             DemoUnitController unit = root.AddComponent<DemoUnitController>();
             unit.Configure(visualObject.transform, visual, ring, collider, CharacterVisualScale, CharacterMoveSpeed);
+            root.AddComponent<UnitCultivation>().Configure(0f, 0f);
 
             PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
             UnityEngine.Object.DestroyImmediate(root);
@@ -417,11 +455,42 @@ namespace XianXia.Unity.Editor
 
             GameObject zones = new("Zones");
             zones.transform.SetParent(environment.transform);
-            GameObject workZoneObject = new("WorkZone_Farm");
-            workZoneObject.transform.SetParent(zones.transform);
-            workZoneObject.AddComponent<BoxCollider2D>();
-            WorkZone workZone = workZoneObject.AddComponent<WorkZone>();
-            workZone.Configure("farm_work", new Vector2(18f, -12f), new Vector2(22f, 14f));
+            WorkZone forestZone = CreateWorkZone(
+                zones.transform,
+                "WorkZone_Forest",
+                "森林采集区",
+                "forest_wood",
+                ResourceType.Wood,
+                6f,
+                new Vector2(-34f, 0f),
+                new Vector2(12f, 40f));
+            WorkZone herbZone = CreateWorkZone(
+                zones.transform,
+                "WorkZone_Herb",
+                "草药区",
+                "herb_patch",
+                ResourceType.Herb,
+                2f,
+                new Vector2(-3f, -15f),
+                new Vector2(14f, 10f));
+            WorkZone farmZone = CreateWorkZone(
+                zones.transform,
+                "WorkZone_Farm",
+                "农田",
+                "farmland_food",
+                ResourceType.Food,
+                4f,
+                new Vector2(20f, -12f),
+                new Vector2(24f, 16f));
+            WorkZone[] workZones = { forestZone, herbZone, farmZone };
+            SpiritSiteZone spiritSite = CreateSpiritSiteZone(
+                zones.transform,
+                "SpiritSite_Hidden",
+                "隐藏灵地",
+                "hidden_spirit_site",
+                1.5f,
+                new Vector2(32f, -17.5f),
+                new Vector2(16f, 15f));
 
             GameObject characters = new("Characters");
             GameObject party = new("PlayerParty");
@@ -432,7 +501,11 @@ namespace XianXia.Unity.Editor
 
             GameObject npcs = new("NPCs");
             npcs.transform.SetParent(characters.transform);
-            PlacePrefab("Assets/Prefabs/Characters/NPCs/Supervisor.prefab", new Vector3(18f, 7f), npcs.transform, "Supervisor");
+            GameObject supervisor = PlacePrefab(
+                "Assets/Prefabs/Characters/NPCs/Supervisor.prefab",
+                new Vector3(18f, 7f),
+                npcs.transform,
+                "Supervisor");
             PlacePrefab("Assets/Prefabs/Characters/NPCs/Merchant.prefab", new Vector3(0f, 4f), npcs.transform, "Merchant");
             PlacePrefab("Assets/Prefabs/Characters/NPCs/Guard.prefab", new Vector3(14f, 8f), npcs.transform, "Guard_01");
             PlacePrefab("Assets/Prefabs/Characters/NPCs/Guard.prefab", new Vector3(22f, 8f), npcs.transform, "Guard_02");
@@ -445,11 +518,6 @@ namespace XianXia.Unity.Editor
             clock.Configure(8f, 1f, 1, 6, 0);
 
             DayScheduleConfig scheduleConfig = AssetDatabase.LoadAssetAtPath<DayScheduleConfig>(ScheduleConfigPath);
-            ScheduleService scheduleService = systems.AddComponent<ScheduleService>();
-            scheduleService.Configure(clock, scheduleConfig);
-
-            SupervisorAngerStub angerStub = systems.AddComponent<SupervisorAngerStub>();
-            angerStub.Configure(false);
 
             DemoUnitController[] partyUnits =
             {
@@ -458,12 +526,47 @@ namespace XianXia.Unity.Editor
                 playerC.GetComponent<DemoUnitController>()
             };
 
+            ScheduleService scheduleService = systems.AddComponent<ScheduleService>();
+            scheduleService.Configure(clock, scheduleConfig, partyUnits, enableTestingEdit: true);
+
+            WorldTileAmbientGrid ambientGrid = systems.AddComponent<WorldTileAmbientGrid>();
+            ambientGrid.Configure(MapMinX, MapMinY, MapWidth, MapHeight, 20260731);
+
+            ResourceInventory inventory = systems.AddComponent<ResourceInventory>();
+            inventory.ConfigureStartingAmounts(0, 0, 0, 3);
+            WorkSystem workSystem = systems.AddComponent<WorkSystem>();
+            workSystem.Configure(clock, inventory, partyUnits, workZones);
+
             ScheduleComplianceTracker tracker = systems.AddComponent<ScheduleComplianceTracker>();
-            tracker.Configure(scheduleService, workZone, partyUnits, angerStub);
+            tracker.Configure(scheduleService, workSystem, partyUnits);
+
+            SupervisorAngerConfig angerConfig =
+                AssetDatabase.LoadAssetAtPath<SupervisorAngerConfig>(AngerConfigPath);
+            SupervisorAngerSystem angerSystem = systems.AddComponent<SupervisorAngerSystem>();
+            angerSystem.Configure(clock, scheduleService, tracker, angerConfig);
+
+            DailyTaskConfig dailyTaskConfig =
+                AssetDatabase.LoadAssetAtPath<DailyTaskConfig>(DailyTaskConfigPath);
+            DailyTaskSystem dailyTaskSystem = systems.AddComponent<DailyTaskSystem>();
+            dailyTaskSystem.Configure(clock, inventory, angerSystem, dailyTaskConfig, angerConfig);
+
+            CultivationConfig cultivationConfig =
+                AssetDatabase.LoadAssetAtPath<CultivationConfig>(CultivationConfigPath);
+            CultivationSystem cultivationSystem = systems.AddComponent<CultivationSystem>();
+            cultivationSystem.Configure(
+                clock,
+                inventory,
+                spiritSite,
+                cultivationConfig,
+                supervisor.transform,
+                partyUnits);
 
             Camera camera = CreateCamera(new Vector3(-4f, 2f, -10f));
             CameraController cameraController = camera.gameObject.AddComponent<CameraController>();
             cameraController.Configure(camera, worldBounds, 12f);
+
+            TileHoverProbe hoverProbe = systems.AddComponent<TileHoverProbe>();
+            hoverProbe.Configure(camera, ambientGrid);
 
             PartyCommandController input = systems.AddComponent<PartyCommandController>();
             SerializedObject inputObject = new(input);
@@ -471,11 +574,62 @@ namespace XianXia.Unity.Editor
             inputObject.ApplyModifiedPropertiesWithoutUndo();
 
             DemoPrototypeHud hud = systems.AddComponent<DemoPrototypeHud>();
-            hud.Configure(clock, scheduleService, tracker, partyUnits);
+            hud.Configure(
+                clock,
+                scheduleService,
+                tracker,
+                partyUnits,
+                inventory,
+                dailyTaskSystem,
+                angerSystem,
+                cultivationSystem,
+                input,
+                hoverProbe);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
+        }
+
+        private static WorkZone CreateWorkZone(
+            Transform parent,
+            string objectName,
+            string displayName,
+            string zoneId,
+            ResourceType resourceType,
+            float unitsPerGameHour,
+            Vector2 center,
+            Vector2 size)
+        {
+            GameObject zoneObject = new(objectName);
+            zoneObject.transform.SetParent(parent);
+            zoneObject.AddComponent<BoxCollider2D>();
+            WorkZone zone = zoneObject.AddComponent<WorkZone>();
+            zone.Configure(
+                zoneId,
+                displayName,
+                resourceType,
+                unitsPerGameHour,
+                center,
+                size);
+            return zone;
+        }
+
+        private static SpiritSiteZone CreateSpiritSiteZone(
+            Transform parent,
+            string objectName,
+            string displayName,
+            string zoneId,
+            float concealGrassPerGameHour,
+            Vector2 center,
+            Vector2 size)
+        {
+            GameObject zoneObject = new(objectName);
+            zoneObject.transform.SetParent(parent);
+            zoneObject.AddComponent<BoxCollider2D>();
+            SpiritSiteZone zone = zoneObject.AddComponent<SpiritSiteZone>();
+            zone.Configure(zoneId, displayName, concealGrassPerGameHour, center, size);
+            return zone;
         }
 
         private static void PlaceGround(Transform parent)
@@ -504,6 +658,12 @@ namespace XianXia.Unity.Editor
             if (x <= -28)
             {
                 return "Assets/Prefabs/Environment/Tiles/ForestFloorTile.prefab";
+            }
+
+            // 草药采集区：西南小块
+            if (x >= -10 && x <= 3 && y >= -20 && y <= -11)
+            {
+                return "Assets/Prefabs/Environment/Tiles/HerbPatchTile.prefab";
             }
 
             // 工作区／农田：东南偏南
