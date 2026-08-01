@@ -7,6 +7,14 @@
 
 ---
 
+## 2026-08-01 — VS0.9 World Interaction Layer 验收
+
+**做了什么**
+- WorldRegion／Travel／Explore；四地点内容；Host 俯视布局＋T／Y
+- EditMode **168/168**；地点不入 Snapshot；验收 [72](72-vertical-slice-0.9-acceptance-report.md)
+
+**下一步：** VS1.0 Demo Vertical Slice。
+
 ## 2026-08-01 — VS0.8 Cultivation & Settlement Simulation 验收
 
 **做了什么**
