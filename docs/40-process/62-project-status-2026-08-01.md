@@ -8,8 +8,8 @@
 
 ## 1. 一句话现状
 
-**Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**；Content Ready／Chapter Framework／**Chapter Production Toolkit**（[85](85-chapter-production-toolkit-acceptance-report.md)）已验收。  
-制作人可按 [80 流程](80-chapter-content-production-guide.md)＋[84 命名规范](84-chapter-content-naming-standards.md)＋Templates／Harness **正式生产第一章 Data**。  
+**Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**；Content Ready／Chapter Framework／Toolkit 已验收；**Chapter 01 Reference Level**（[89](89-chapter-01-reference-level-acceptance-report.md)）已验收为章节制作标准模板。  
+制作人对照 [88 参考关流程](88-chapter-01-reference-level-production-guide.md)＋[84 命名](84-chapter-content-naming-standards.md)＋Templates **复制参考关生产新章节**。  
 Demo Runtime **继续冻结**。关系／据点／地点／Quest／Chapter／Flags 入 Snapshot 前须硬停确认 schema。
 
 ---
@@ -33,6 +33,7 @@ Demo Runtime **继续冻结**。关系／据点／地点／Quest／Chapter／Fla
 | Content Ready | **已验收** | [76](76-content-ready-milestone-plan-v0.1.md)／[77](77-content-ready-milestone-acceptance-report.md) | Quest／ContentEvent／地点进入／天赋成长 |
 | Chapter Production | **已验收** | [79](79-chapter-production-framework-plan-v0.1.md)／[81](81-chapter-production-framework-acceptance-report.md)／[80 流程](80-chapter-content-production-guide.md) | 章节／日 beat／Story Flag／Content Debug |
 | Chapter Toolkit | **已验收** | [83](83-chapter-production-toolkit-plan-v0.1.md)／[85](85-chapter-production-toolkit-acceptance-report.md)／[84 规范](84-chapter-content-naming-standards.md) | 模板／引用校验／Ch1 Harness；可正式生产第一章 |
+| Ch01 Reference Level | **已验收** | [87](87-chapter-01-reference-level-plan-v0.1.md)／[89](89-chapter-01-reference-level-acceptance-report.md)／[88 流程](88-chapter-01-reference-level-production-guide.md) | 模板关：地图／RTS／UI／三类 AI／Data 样板 |
 
 ---
 
@@ -103,7 +104,7 @@ Demo Runtime **继续冻结**。关系／据点／地点／Quest／Chapter／Fla
 
 ## 6. 测试门禁（截至本页）
 
-- EditMode：**169/169 全绿**（含 VS1.0 Demo 闭环；`tools/run-editmode-tests.ps1`）。  
+- EditMode：**175/175 全绿**（含 Ch01 Reference Level；`tools/run-editmode-tests.ps1`）。  
 - PlayMode：Host 选择／命令烟测保持绿。  
 - Snapshot：`WorldSnapshot.CurrentSchemaVersion = 1` **未升版**（关系／据点／地点尚未入档）。
 
@@ -111,16 +112,17 @@ Demo Runtime **继续冻结**。关系／据点／地点／Quest／Chapter／Fla
 
 ## 7. 下一步
 
-1. 制作人按 [74](74-vertical-slice-1.0-acceptance-report.md) §4 手操 Demo 路径签收。  
-2. 若要关系／据点／地点进 Snapshot：**先停**，确认 schema 后再做。  
-3. 正式 UI／内容扩量／战斗等另开切片。
+1. 制作人对照参考关手操签收（PlayableHost 默认 `scenario_ch01_reference`；`F6`／右键／`V`）。  
+2. 按 [88](88-chapter-01-reference-level-production-guide.md) 生产真实章节 Data（非模板关剧情）。  
+3. 若要关系／据点／地点进 Snapshot：**先停**，确认 schema 后再做。  
+4. 产品级 UGUI／战斗／美术等另开切片。
 
 ---
 
 ## 8. 明确不做（当前）
 
 - 扩 Demo Runtime 玩法  
-- 真战斗／网格寻路／正式 UI 框架（抽象地点图已有，非大地图 RTS）  
+- 真战斗／网格寻路／产品级 UGUI 皮肤（Host FormalHud 仅为模板面板）  
 - 修改 Freeze 正文  
 - 未确认前升 Snapshot schema（关系／据点／地点入档）  
 

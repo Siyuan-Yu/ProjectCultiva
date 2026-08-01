@@ -89,8 +89,8 @@ namespace XianXia.Tests
             {
                 var id = bootstrap.Session.CharacterIds[0];
                 Assert.IsTrue(bootstrap.Session.World.Entities.TryGet(id, out var entity));
-                // Advance into a Labor schedule block (default starts Rest 0-8).
-                for (var i = 0; i < 9; i++)
+                // Ch01 reference mortal day: Rest 0-24, Labor 24+.
+                for (var i = 0; i < 25; i++)
                     Assert.IsTrue(bootstrap.Session.TickOnce().IsSuccess);
 
                 Assert.IsInstanceOf<LaborAction>(ActiveOf(bootstrap, id));

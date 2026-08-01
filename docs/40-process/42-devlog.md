@@ -7,6 +7,14 @@
 
 ---
 
+## 2026-08-02 — Chapter 01 Reference Level 验收
+
+**做了什么**
+- 模板关：8 区灰盒地图／RTS 移动＋行动菜单／FormalHud／三类 AI／参考 Scenario＋Data
+- 制作流程 [88](88-chapter-01-reference-level-production-guide.md)；验收 [89](89-chapter-01-reference-level-acceptance-report.md)；EditMode **175/175**
+
+**下一步：** 制作人手操参考关；按 88 生产真实章节内容。
+
 ## 2026-08-01 — 文档收束＋飞书同步（VS0.7～1.0）
 
 **做了什么**
