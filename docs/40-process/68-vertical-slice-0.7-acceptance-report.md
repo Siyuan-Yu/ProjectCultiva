@@ -21,7 +21,7 @@
 | V7-A／B | `21578f3` | 人物标签＋Scenario 加载 |
 | V7-C／D | `8c013cc` | Scenario 驱动 Bootstrap／关系 |
 | V7-E | `53dbc50` | 数据-only 样例＋回归测 |
-| V7-F | （本提交） | 验收报告 |
+| V7-F | `f3b1a5d` | 验收报告 |
 
 ## 3. 测试结果
 
