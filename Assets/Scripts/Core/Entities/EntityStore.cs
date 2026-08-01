@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using XianXia.Core.Concealment;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Labor;
+using XianXia.Core.Opportunity;
 using XianXia.Core.Results;
 
 namespace XianXia.Core.Entities
@@ -29,6 +31,8 @@ namespace XianXia.Core.Entities
             entity.AddComponent(new ActionStateComponent());
             entity.AddComponent(new CultivationComponent());
             entity.AddComponent(new DailyTaskComponent());
+            entity.AddComponent(new KnownSitesComponent());
+            entity.AddComponent(new PersonalConcealmentRiskComponent());
             _entities.Add(entity.Id, entity);
             return Result.Ok(entity);
         }

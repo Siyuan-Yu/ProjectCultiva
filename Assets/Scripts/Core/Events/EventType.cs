@@ -19,6 +19,12 @@ namespace XianXia.Core.Events
         /// <summary>VS0.3: WorldTick crossed a day boundary; previous day ended.</summary>
         DayEnded = 11,
         /// <summary>VS0.3: New day began immediately after DayEnded.</summary>
-        DayStarted = 12
+        DayStarted = 12,
+        /// <summary>VS0.3: ObserveAction finished (hit／miss／none).</summary>
+        ObservationResolved = 13,
+        /// <summary>VS0.3: Entity discovered an OpportunitySite.</summary>
+        OpportunitySiteDiscovered = 14,
+        /// <summary>VS0.3: DayEnded consumed quota shortfall／Deviation into thin consequence.</summary>
+        QuotaConsequenceApplied = 15
     }
 }

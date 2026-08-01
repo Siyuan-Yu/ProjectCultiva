@@ -192,6 +192,9 @@ namespace XianXia.Data.Content
                     case "item":
                         LoadItem(item, parsed.Value, registry, report);
                         break;
+                    case "opportunitySite":
+                        LoadOpportunitySite(item, parsed.Value, registry, report);
+                        break;
                     default:
                         report.Add(ErrorCode.InvalidArgument, "Unknown definition type.", type);
                         break;
@@ -421,6 +424,49 @@ namespace XianXia.Data.Content
                 return;
 
             var reg = registry.RegisterItem(itemDef);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void LoadOpportunitySite(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.OpportunitySiteFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var allows = false;
+            if (item.TryGetProperty("allowsCultivation", out var allowsNode))
+            {
+                if (allowsNode.Kind != JsonValueKind.Boolean)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "allowsCultivation must be boolean.", id.ToString());
+                    return;
+                }
+
+                allows = allowsNode.Bool;
+            }
+
+            var site = new OpportunitySiteDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                NameKey = item.GetString("nameKey", string.Empty),
+                Description = item.GetString("description", string.Empty),
+                AllowsCultivation = allows,
+                OfferedManualId = item.GetString("offeredManualId", string.Empty)
+            };
+
+            var tags = new List<string>();
+            ReadTags(item, tags, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var reg = registry.RegisterOpportunitySite(site);
             if (reg.IsFailure)
                 report.Add(reg.Error);
         }

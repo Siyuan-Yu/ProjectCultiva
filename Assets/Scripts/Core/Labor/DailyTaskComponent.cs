@@ -16,6 +16,12 @@ namespace XianXia.Core.Labor
         /// <summary>Accumulated unfinished Schedule Labor from player overrides.</summary>
         public int Deviation { get; set; }
 
+        /// <summary>VS0.3 Phase D thin mark after DayEnded settlement (no supervisor AI).</summary>
+        public bool PendingReprimand { get; set; }
+
+        /// <summary>Deviation value consumed at last DayEnded settlement.</summary>
+        public int LastSettledDeviation { get; set; }
+
         /// <summary>Compatibility alias for CompletedAmount.</summary>
         public int LaborProgress
         {

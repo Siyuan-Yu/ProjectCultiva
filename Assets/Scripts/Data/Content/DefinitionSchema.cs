@@ -28,6 +28,11 @@ namespace XianXia.Data.Content
             "id", "type", "name", "displayNameKey", "nameKey", "maxStack", "tags"
         };
 
+        public static readonly HashSet<string> OpportunitySiteFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "nameKey", "description", "allowsCultivation", "offeredManualId", "tags"
+        };
+
         public static readonly HashSet<string> ModifierGrantFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "targetAttribute", "operation", "value", "stackingKey"

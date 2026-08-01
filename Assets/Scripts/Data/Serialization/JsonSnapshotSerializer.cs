@@ -33,7 +33,10 @@ namespace XianXia.Data.Serialization
                 ["entities"] = JsonValue.FromArray(SerializeEntities(snapshot.Entities)),
                 ["activeActions"] = JsonValue.FromArray(SerializeActions(snapshot.ActiveActions)),
                 ["orders"] = JsonValue.FromArray(SerializeOrders(snapshot.Orders)),
-                ["schedules"] = JsonValue.FromArray(SerializeSchedules(snapshot.Schedules))
+                ["schedules"] = JsonValue.FromArray(SerializeSchedules(snapshot.Schedules)),
+                ["opportunitySites"] = JsonValue.FromArray(SerializeOpportunitySites(snapshot.OpportunitySites)),
+                ["manuals"] = JsonValue.FromArray(SerializeManuals(snapshot.Manuals)),
+                ["observationDiscoverChancePercent"] = JsonValue.FromNumber(snapshot.ObservationDiscoverChancePercent)
             };
 
             return Result.Ok(SimpleJson.Stringify(JsonValue.FromObject(root)));
@@ -88,6 +91,24 @@ namespace XianXia.Data.Serialization
                 {
                     foreach (var s in schedules.Array)
                         snapshot.Schedules.Add(ReadSchedule(s));
+                }
+
+                if (root.TryGetProperty("opportunitySites", out var sites) && sites.Kind == JsonValueKind.Array)
+                {
+                    foreach (var s in sites.Array)
+                        snapshot.OpportunitySites.Add(ReadOpportunitySite(s));
+                }
+
+                if (root.TryGetProperty("manuals", out var manuals) && manuals.Kind == JsonValueKind.Array)
+                {
+                    foreach (var m in manuals.Array)
+                        snapshot.Manuals.Add(ReadManual(m));
+                }
+
+                if (root.TryGetProperty("observationDiscoverChancePercent", out var chance) &&
+                    chance.Kind == JsonValueKind.Number)
+                {
+                    snapshot.ObservationDiscoverChancePercent = (int)chance.Number;
                 }
 
                 return Result.Ok(snapshot);
@@ -157,11 +178,64 @@ namespace XianXia.Data.Serialization
                     ["requiredAmount"] = JsonValue.FromNumber(e.RequiredAmount),
                     ["completedAmount"] = JsonValue.FromNumber(e.CompletedAmount),
                     ["deviation"] = JsonValue.FromNumber(e.Deviation),
+                    ["pendingReprimand"] = JsonValue.FromBool(e.PendingReprimand),
+                    ["lastSettledDeviation"] = JsonValue.FromNumber(e.LastSettledDeviation),
                     ["hasSchedule"] = JsonValue.FromBool(e.HasSchedule),
                     ["scheduleDefinitionId"] = JsonValue.FromString(e.ScheduleDefinitionId ?? string.Empty),
-                    ["activeOrderSource"] = JsonValue.FromNumber(e.ActiveOrderSource)
+                    ["activeOrderSource"] = JsonValue.FromNumber(e.ActiveOrderSource),
+                    ["knownSiteIds"] = JsonValue.FromArray(SerializeStringList(e.KnownSiteIds)),
+                    ["personalConcealmentRisk"] = JsonValue.FromNumber(e.PersonalConcealmentRisk)
                 }));
             }
+            return list;
+        }
+
+        static List<JsonValue> SerializeStringList(List<string> values)
+        {
+            var list = new List<JsonValue>();
+            if (values == null)
+                return list;
+            foreach (var v in values)
+                list.Add(JsonValue.FromString(v ?? string.Empty));
+            return list;
+        }
+
+        static List<JsonValue> SerializeOpportunitySites(List<OpportunitySiteSnapshotDto> sites)
+        {
+            var list = new List<JsonValue>();
+            if (sites == null)
+                return list;
+            foreach (var s in sites)
+            {
+                list.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["id"] = JsonValue.FromString(s.Id ?? string.Empty),
+                    ["allowsCultivation"] = JsonValue.FromBool(s.AllowsCultivation),
+                    ["offeredManualId"] = JsonValue.FromString(s.OfferedManualId ?? string.Empty),
+                    ["nameKey"] = JsonValue.FromString(s.NameKey ?? string.Empty),
+                    ["description"] = JsonValue.FromString(s.Description ?? string.Empty)
+                }));
+            }
+
+            return list;
+        }
+
+        static List<JsonValue> SerializeManuals(List<ManualSnapshotDto> manuals)
+        {
+            var list = new List<JsonValue>();
+            if (manuals == null)
+                return list;
+            foreach (var m in manuals)
+            {
+                list.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["id"] = JsonValue.FromString(m.Id ?? string.Empty),
+                    ["requiredRealm"] = JsonValue.FromString(m.RequiredRealm ?? string.Empty),
+                    ["cultivationSpeed"] = JsonValue.FromNumber(m.CultivationSpeed),
+                    ["breakthroughProgress"] = JsonValue.FromNumber(m.BreakthroughProgress)
+                }));
+            }
+
             return list;
         }
 
@@ -259,10 +333,23 @@ namespace XianXia.Data.Serialization
                 RequiredAmount = (int)e.GetNumber("requiredAmount"),
                 CompletedAmount = (int)e.GetNumber("completedAmount"),
                 Deviation = (int)e.GetNumber("deviation"),
+                PendingReprimand = e.TryGetProperty("pendingReprimand", out var pr) &&
+                                  pr.Kind == JsonValueKind.Boolean && pr.Bool,
+                LastSettledDeviation = (int)e.GetNumber("lastSettledDeviation"),
                 HasSchedule = e.TryGetProperty("hasSchedule", out var hs) && hs.Kind == JsonValueKind.Boolean && hs.Bool,
                 ScheduleDefinitionId = e.GetString("scheduleDefinitionId", string.Empty),
-                ActiveOrderSource = (int)e.GetNumber("activeOrderSource")
+                ActiveOrderSource = (int)e.GetNumber("activeOrderSource"),
+                PersonalConcealmentRisk = (int)e.GetNumber("personalConcealmentRisk")
             };
+
+            if (e.TryGetProperty("knownSiteIds", out var known) && known.Kind == JsonValueKind.Array)
+            {
+                foreach (var k in known.Array)
+                {
+                    if (k.Kind == JsonValueKind.String)
+                        dto.KnownSiteIds.Add(k.String);
+                }
+            }
 
             if (e.TryGetProperty("bases", out var bases) && bases.Kind == JsonValueKind.Array)
             {
@@ -353,6 +440,24 @@ namespace XianXia.Data.Serialization
 
             return dto;
         }
+
+        static OpportunitySiteSnapshotDto ReadOpportunitySite(JsonValue s) => new OpportunitySiteSnapshotDto
+        {
+            Id = s.GetString("id", string.Empty),
+            AllowsCultivation = s.TryGetProperty("allowsCultivation", out var ac) &&
+                                ac.Kind == JsonValueKind.Boolean && ac.Bool,
+            OfferedManualId = s.GetString("offeredManualId", string.Empty),
+            NameKey = s.GetString("nameKey", string.Empty),
+            Description = s.GetString("description", string.Empty)
+        };
+
+        static ManualSnapshotDto ReadManual(JsonValue m) => new ManualSnapshotDto
+        {
+            Id = m.GetString("id", string.Empty),
+            RequiredRealm = m.GetString("requiredRealm", string.Empty),
+            CultivationSpeed = (int)m.GetNumber("cultivationSpeed"),
+            BreakthroughProgress = (int)m.GetNumber("breakthroughProgress")
+        };
     }
 }
 

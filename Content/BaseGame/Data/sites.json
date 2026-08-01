@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:site_abandoned_cave",
+      "type": "opportunitySite",
+      "name": "废弃洞口",
+      "nameKey": "site.abandoned_cave",
+      "description": "村外荒坡一处废弃洞口，似可偷得片刻清净。",
+      "allowsCultivation": true,
+      "offeredManualId": "base:cultivation_qingyun_manual",
+      "tags": ["opportunity", "cultivation"]
+    }
+  ]
+}

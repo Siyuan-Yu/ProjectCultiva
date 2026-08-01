@@ -4,11 +4,13 @@ using System.Globalization;
 using System.Linq;
 using XianXia.Core.Actions;
 using XianXia.Core.Attributes;
+using XianXia.Core.Concealment;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
 using XianXia.Core.Labor;
+using XianXia.Core.Opportunity;
 using XianXia.Core.Orders;
 using XianXia.Core.Random;
 using XianXia.Core.Results;
@@ -52,7 +54,8 @@ namespace XianXia.Core.Persistence
                 NextEntityId = world.Entities.Ids.PeekNext,
                 NextOrderId = loop.PeekNextOrderId,
                 NextActionId = world.Translator.PeekNextActionId,
-                NextModifierId = 1
+                NextModifierId = 1,
+                ObservationDiscoverChancePercent = world.ObservationDiscoverChancePercent
             };
 
             foreach (var entity in world.Entities.All)
@@ -115,6 +118,8 @@ namespace XianXia.Core.Persistence
                     dto.RequiredAmount = daily.RequiredAmount;
                     dto.CompletedAmount = daily.CompletedAmount;
                     dto.Deviation = daily.Deviation;
+                    dto.PendingReprimand = daily.PendingReprimand;
+                    dto.LastSettledDeviation = daily.LastSettledDeviation;
                     dto.LaborProgress = daily.CompletedAmount;
                     dto.LaborQuota = daily.RequiredAmount;
                 }
@@ -124,6 +129,15 @@ namespace XianXia.Core.Persistence
                     dto.HasSchedule = true;
                     dto.ScheduleDefinitionId = schedule.DefinitionId ?? string.Empty;
                 }
+
+                if (entity.TryGet<KnownSitesComponent>(out var known))
+                {
+                    foreach (var siteId in known.KnownIds)
+                        dto.KnownSiteIds.Add(siteId);
+                }
+
+                if (entity.TryGet<PersonalConcealmentRiskComponent>(out var risk))
+                    dto.PersonalConcealmentRisk = risk.Value;
 
                 snap.Entities.Add(dto);
             }
@@ -145,6 +159,31 @@ namespace XianXia.Core.Persistence
                 snap.Schedules.Add(defDto);
             }
 
+            foreach (var kv in world.OpportunitySites)
+            {
+                var site = kv.Value;
+                snap.OpportunitySites.Add(new OpportunitySiteSnapshotDto
+                {
+                    Id = site.Id.ToString(),
+                    AllowsCultivation = site.AllowsCultivation,
+                    OfferedManualId = site.OfferedManualId.HasValue ? site.OfferedManualId.Value.ToString() : string.Empty,
+                    NameKey = site.NameKey ?? string.Empty,
+                    Description = site.Description ?? string.Empty
+                });
+            }
+
+            foreach (var kv in world.Manuals)
+            {
+                var manual = kv.Value;
+                snap.Manuals.Add(new ManualSnapshotDto
+                {
+                    Id = manual.Id.ToString(),
+                    RequiredRealm = manual.RequiredRealm ?? string.Empty,
+                    CultivationSpeed = manual.CultivationSpeed,
+                    BreakthroughProgress = manual.BreakthroughProgress
+                });
+            }
+
             foreach (var kv in world.ActiveActions)
             {
                 var action = kv.Value;
@@ -153,6 +192,7 @@ namespace XianXia.Core.Persistence
                 else if (action is CultivateAction) kind = "Cultivate";
                 else if (action is LaborAction) kind = "Labor";
                 else if (action is RestAction) kind = "Rest";
+                else if (action is ObserveAction) kind = "Observe";
                 else kind = "ApplyModifier";
 
                 snap.ActiveActions.Add(new ActiveActionSnapshotDto
@@ -216,6 +256,7 @@ namespace XianXia.Core.Persistence
             world.Tick = new WorldTick(snap.WorldTick);
             world.EnabledPackageId = snap.EnabledPackageId;
             world.EnabledPackageVersion = snap.EnabledPackageVersion;
+            world.ObservationDiscoverChancePercent = snap.ObservationDiscoverChancePercent;
             world.Events.RestoreCursor(snap.EventCursor, snap.NextEventId);
             world.Translator.RestoreNextActionId(snap.NextActionId);
 
@@ -231,6 +272,41 @@ namespace XianXia.Core.Persistence
                     }
 
                     world.RegisterSchedule(def);
+                }
+            }
+
+            if (snap.OpportunitySites != null)
+            {
+                foreach (var s in snap.OpportunitySites)
+                {
+                    if (!DefinitionId.TryParse(s.Id, out var siteId))
+                        continue;
+                    DefinitionId? manualId = null;
+                    if (!string.IsNullOrEmpty(s.OfferedManualId) &&
+                        DefinitionId.TryParse(s.OfferedManualId, out var mid))
+                        manualId = mid;
+                    world.RegisterOpportunitySite(new OpportunitySite(
+                        siteId,
+                        s.AllowsCultivation,
+                        manualId,
+                        s.NameKey,
+                        s.Description));
+                }
+            }
+
+            if (snap.Manuals != null)
+            {
+                foreach (var m in snap.Manuals)
+                {
+                    if (!DefinitionId.TryParse(m.Id, out var manualId))
+                        continue;
+                    world.RegisterManual(new CultivationManualSpec
+                    {
+                        Id = manualId,
+                        RequiredRealm = m.RequiredRealm ?? string.Empty,
+                        CultivationSpeed = m.CultivationSpeed,
+                        BreakthroughProgress = m.BreakthroughProgress
+                    });
                 }
             }
 
@@ -296,7 +372,9 @@ namespace XianXia.Core.Persistence
                     {
                         RequiredAmount = required,
                         CompletedAmount = completed,
-                        Deviation = e.Deviation
+                        Deviation = e.Deviation,
+                        PendingReprimand = e.PendingReprimand,
+                        LastSettledDeviation = e.LastSettledDeviation
                     });
                 }
                 else
@@ -306,6 +384,11 @@ namespace XianXia.Core.Persistence
 
                 if (e.HasSchedule && !string.IsNullOrEmpty(e.ScheduleDefinitionId))
                     entity.AddComponent(new ScheduleComponent(e.ScheduleDefinitionId));
+
+                var known = new KnownSitesComponent();
+                known.Restore(e.KnownSiteIds);
+                entity.AddComponent(known);
+                entity.AddComponent(new PersonalConcealmentRiskComponent { Value = e.PersonalConcealmentRisk });
 
                 // Inject into store via reflection-free path: recreate through internal add
                 InjectEntity(world.Entities, entity);
@@ -352,6 +435,16 @@ namespace XianXia.Core.Persistence
                         a.TotalTicks);
                     rest.Restore((ActionStatus)a.Status, new ActionClock(a.TotalTicks, a.RemainingTicks));
                     world.ActiveActions[rest.Id] = rest;
+                }
+                else if (a.Kind == "Observe")
+                {
+                    var observe = new ObserveAction(
+                        new ActionId(a.Id),
+                        new EntityId(a.SubjectId),
+                        new OrderId(a.SourceOrderId),
+                        a.TotalTicks);
+                    observe.Restore((ActionStatus)a.Status, new ActionClock(a.TotalTicks, a.RemainingTicks));
+                    world.ActiveActions[observe.Id] = observe;
                 }
             }
 

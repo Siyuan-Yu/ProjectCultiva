@@ -62,14 +62,15 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void PlayerInput_Observe_RejectedInPhaseA()
+        public void PlayerInput_Observe_CreatesObserveOrder()
         {
             var world = new SimulationWorld();
             var loop = new SimulationLoop(world);
             var port = new PlayerInputPort(loop);
-            var entity = world.Entities.CreateCharacter(new DefinitionId("base", "a")).Value;
+            var entity = world.Entities.CreateCharacter(new DefinitionId("base", "a"), "甲").Value;
             var result = port.Submit(new PlayerCommandRequest(entity.Id, PlayerCommandKind.Observe, 2));
-            Assert.IsTrue(result.IsFailure);
+            Assert.IsTrue(result.IsSuccess, result.IsFailure ? result.Error.ToString() : "");
+            Assert.IsInstanceOf<ObserveAction>(FirstActive(world));
         }
 
         [Test]
@@ -78,12 +79,19 @@ namespace XianXia.Tests
             var world = new SimulationWorld();
             var loop = new SimulationLoop(world);
             var port = new PlayerInputPort(loop);
-            var entity = world.Entities.CreateCharacter(new DefinitionId("base", "a")).Value;
+            var entity = world.Entities.CreateCharacter(new DefinitionId("base", "a"), "甲").Value;
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(entity.Id, PlayerCommandKind.Rest, 2)).IsSuccess);
             loop.TickOnce();
             loop.TickOnce();
             Assert.AreEqual(2UL, world.Tick.Value);
             Assert.IsFalse(entity.Get<ActionStateComponent>().HasActiveAction);
+        }
+
+        static IAction FirstActive(SimulationWorld world)
+        {
+            foreach (var a in world.ActiveActions.Values)
+                return a;
+            return null;
         }
     }
 }

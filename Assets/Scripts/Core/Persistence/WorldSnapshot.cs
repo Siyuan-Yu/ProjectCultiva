@@ -26,6 +26,26 @@ namespace XianXia.Core.Persistence
         public List<ActiveActionSnapshotDto> ActiveActions { get; set; } = new List<ActiveActionSnapshotDto>();
         public List<OrderSnapshotDto> Orders { get; set; } = new List<OrderSnapshotDto>();
         public List<ScheduleDefinitionSnapshotDto> Schedules { get; set; } = new List<ScheduleDefinitionSnapshotDto>();
+        public List<OpportunitySiteSnapshotDto> OpportunitySites { get; set; } = new List<OpportunitySiteSnapshotDto>();
+        public List<ManualSnapshotDto> Manuals { get; set; } = new List<ManualSnapshotDto>();
+        public int ObservationDiscoverChancePercent { get; set; } = 100;
+    }
+
+    public sealed class OpportunitySiteSnapshotDto
+    {
+        public string Id { get; set; }
+        public bool AllowsCultivation { get; set; }
+        public string OfferedManualId { get; set; }
+        public string NameKey { get; set; }
+        public string Description { get; set; }
+    }
+
+    public sealed class ManualSnapshotDto
+    {
+        public string Id { get; set; }
+        public string RequiredRealm { get; set; }
+        public int CultivationSpeed { get; set; }
+        public int BreakthroughProgress { get; set; }
     }
 
     public sealed class ScheduleDefinitionSnapshotDto
@@ -68,9 +88,13 @@ namespace XianXia.Core.Persistence
         public int RequiredAmount { get; set; }
         public int CompletedAmount { get; set; }
         public int Deviation { get; set; }
+        public bool PendingReprimand { get; set; }
+        public int LastSettledDeviation { get; set; }
         public bool HasSchedule { get; set; }
         public string ScheduleDefinitionId { get; set; }
         public int ActiveOrderSource { get; set; }
+        public List<string> KnownSiteIds { get; set; } = new List<string>();
+        public int PersonalConcealmentRisk { get; set; }
     }
 
     public sealed class AttrBaseDto

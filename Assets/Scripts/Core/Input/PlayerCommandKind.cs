@@ -7,6 +7,7 @@ namespace XianXia.Core.Input
     {
         Labor = 1,
         Rest = 2,
-        Observe = 3
+        Observe = 3,
+        Cultivate = 4
     }
 }

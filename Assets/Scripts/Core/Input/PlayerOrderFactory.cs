@@ -35,11 +35,20 @@ namespace XianXia.Core.Input
                         waitTicks: request.DurationTicks));
 
                 case PlayerCommandKind.Observe:
-                    // Phase A bridge validates Labor; Observe Action arrives in later phase.
-                    return Result.Fail<Order>(
-                        ErrorCode.InvalidOperation,
-                        "Observe is not enabled in VS0.2 Phase A.",
-                        request.Kind.ToString());
+                    return Result.Ok(new Order(
+                        id,
+                        request.Subject,
+                        OrderType.Observe,
+                        OrderSource.Player,
+                        waitTicks: request.DurationTicks));
+
+                case PlayerCommandKind.Cultivate:
+                    return Result.Ok(new Order(
+                        id,
+                        request.Subject,
+                        OrderType.Cultivate,
+                        OrderSource.Player,
+                        waitTicks: request.DurationTicks));
 
                 default:
                     return Result.Fail<Order>(ErrorCode.InvalidArgument, "Unknown PlayerCommandKind.", request.Kind.ToString());

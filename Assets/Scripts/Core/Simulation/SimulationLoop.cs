@@ -27,12 +27,22 @@ namespace XianXia.Core.Simulation
         {
             _world = world;
             _scheduleDriver = scheduleDriver ?? new ScheduleDriver();
-            _dayBoundaryHandlers = dayBoundaryHandlers != null
-                ? new List<IDayBoundaryHandler>(dayBoundaryHandlers)
-                : new List<IDayBoundaryHandler>();
+            if (dayBoundaryHandlers != null)
+            {
+                _dayBoundaryHandlers = new List<IDayBoundaryHandler>(dayBoundaryHandlers);
+            }
+            else
+            {
+                _dayBoundaryHandlers = new List<IDayBoundaryHandler>
+                {
+                    new QuotaConsequenceHandler()
+                };
+            }
         }
 
-        /// <summary>Register a Phase D (or later) day-boundary consumer. Phase A ships with none.</summary>
+        public SimulationWorld World => _world;
+
+        /// <summary>Register an additional day-boundary consumer (QuotaConsequence is default).</summary>
         public void AddDayBoundaryHandler(IDayBoundaryHandler handler)
         {
             if (handler != null)

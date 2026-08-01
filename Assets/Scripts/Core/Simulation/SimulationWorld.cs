@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using XianXia.Core.Actions;
+using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
 using XianXia.Core.Events;
+using XianXia.Core.Opportunity;
 using XianXia.Core.Orders;
 using XianXia.Core.Random;
 using XianXia.Core.Schedule;
@@ -16,6 +18,10 @@ namespace XianXia.Core.Simulation
     {
         readonly Dictionary<string, ScheduleDefinition> _schedules =
             new Dictionary<string, ScheduleDefinition>(System.StringComparer.Ordinal);
+        readonly Dictionary<string, OpportunitySite> _opportunitySites =
+            new Dictionary<string, OpportunitySite>(System.StringComparer.Ordinal);
+        readonly Dictionary<string, CultivationManualSpec> _manuals =
+            new Dictionary<string, CultivationManualSpec>(System.StringComparer.Ordinal);
 
         public SimulationWorld(
             EntityStore entities = null,
@@ -34,9 +40,13 @@ namespace XianXia.Core.Simulation
             Tick = WorldTick.Zero;
             EnabledPackageId = "base";
             EnabledPackageVersion = "0.0.1-m1";
+            ObservationDiscoverChancePercent = 100;
         }
 
         public WorldTick Tick { get; set; }
+
+        /// <summary>0–100 chance Observe discovers an unknown site (tests may force 100).</summary>
+        public int ObservationDiscoverChancePercent { get; set; }
 
         public EntityStore Entities { get; }
 
@@ -57,6 +67,10 @@ namespace XianXia.Core.Simulation
 
         public IReadOnlyDictionary<string, ScheduleDefinition> Schedules => _schedules;
 
+        public IReadOnlyDictionary<string, OpportunitySite> OpportunitySites => _opportunitySites;
+
+        public IReadOnlyDictionary<string, CultivationManualSpec> Manuals => _manuals;
+
         public string EnabledPackageId { get; set; }
 
         public string EnabledPackageVersion { get; set; }
@@ -74,6 +88,36 @@ namespace XianXia.Core.Simulation
             if (string.IsNullOrEmpty(definitionId))
                 return false;
             return _schedules.TryGetValue(definitionId, out definition);
+        }
+
+        public void RegisterOpportunitySite(OpportunitySite site)
+        {
+            if (site == null)
+                throw new System.ArgumentNullException(nameof(site));
+            _opportunitySites[site.Id.ToString()] = site;
+        }
+
+        public bool TryGetOpportunitySite(DefinitionId id, out OpportunitySite site)
+        {
+            site = null;
+            if (string.IsNullOrEmpty(id.Namespace))
+                return false;
+            return _opportunitySites.TryGetValue(id.ToString(), out site);
+        }
+
+        public void RegisterManual(CultivationManualSpec manual)
+        {
+            if (manual == null)
+                throw new System.ArgumentNullException(nameof(manual));
+            _manuals[manual.Id.ToString()] = manual;
+        }
+
+        public bool TryGetManual(DefinitionId id, out CultivationManualSpec manual)
+        {
+            manual = null;
+            if (string.IsNullOrEmpty(id.Namespace))
+                return false;
+            return _manuals.TryGetValue(id.ToString(), out manual);
         }
 
         public OrderQueue GetOrCreateOrderQueue(EntityId id)

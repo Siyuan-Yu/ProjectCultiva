@@ -1,3 +1,4 @@
+using XianXia.Core.Concealment;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
@@ -69,6 +70,9 @@ namespace XianXia.Core.Actions
 
             Clock = Clock.Consume(1);
             cultivation.Progress += cultivation.CultivationSpeed;
+
+            if (entity.TryGet<PersonalConcealmentRiskComponent>(out var risk))
+                risk.Add(1);
 
             if (Clock.IsComplete)
             {

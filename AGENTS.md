@@ -11,13 +11,12 @@
 
 要点：聊天不是真源；重要决定必须进入 Architecture／System Design／ADR／Devlog／Glossary；跨角色冲突时已冻结架构优先。
 
-## 当前阶段：Vertical Slice 0.3 编码（Phase A 完成，等确认进 B）
+## 当前阶段：Vertical Slice 0.3 编码（A–D 完成，等验收）
 
 - 主契约：`docs/30-tech/33-architecture-core-rules-freeze-v0.2.md`（**禁止改 Freeze 正文**）
 - VS 0.1／VS 0.2：**已验收**
 - 计划：`docs/40-process/57-vertical-slice-0.3-plan-v0.1.md`（A–D；已批准）
 - 冻结：RTS；Schedule＝默认行为；非固定剧情；禁战斗／地图／寻路／NPC AI／主管 Boss／完整关系
-- 纪律：每 Phase 测试 + commit + **等确认** 再进下一 Phase
 - Demo／ProjectSettings／Packages 禁擅改
 
 ## 开工前必读

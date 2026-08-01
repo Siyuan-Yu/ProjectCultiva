@@ -7,6 +7,17 @@
 
 ---
 
+## 2026-08-01 — VS0.3 Phase B–D：Observe／偷修／日终 Quota
+
+**做了什么**
+- B：`ObserveAction`、`OpportunitySite`／`KnownSites`、`sites.json`（NameKey＋短描述）
+- C：`CultivationAttemptGate`（发现 Site 后学青云诀再 Cultivate）；`PersonalConcealmentRisk` 0–100
+- D：`QuotaConsequenceHandler` 挂 `DayEnded`；`PendingReprimand`＋日切重置
+- 整合测：`Vs03PhaseBcdIntegrationTests`（命令序列，非章节脚本）
+- **未做：** 主管视线／潜行／目击者、地图、战斗、产品 UI、第一章导演
+
+**下一步：** 等 VS0.3 验收。
+
 ## 2026-08-01 — VS0.3 Phase A：DayClock／日循环
 
 **做了什么**

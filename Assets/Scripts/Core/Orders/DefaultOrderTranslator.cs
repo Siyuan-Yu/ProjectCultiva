@@ -53,6 +53,11 @@ namespace XianXia.Core.Orders
                         return Result.Fail<IAction>(ErrorCode.InvalidArgument, "Rest duration must be > 0.");
                     return Result.Ok<IAction>(new RestAction(actionId, order.Subject, order.Id, order.WaitTicks));
 
+                case OrderType.Observe:
+                    if (order.WaitTicks == 0)
+                        return Result.Fail<IAction>(ErrorCode.InvalidArgument, "Observe duration must be > 0.");
+                    return Result.Ok<IAction>(new ObserveAction(actionId, order.Subject, order.Id, order.WaitTicks));
+
                 default:
                     return Result.Fail<IAction>(ErrorCode.InvalidOperation, "Unsupported order type.");
             }
