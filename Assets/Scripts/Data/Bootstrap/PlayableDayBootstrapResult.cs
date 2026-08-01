@@ -16,7 +16,8 @@ namespace XianXia.Data.Bootstrap
             DefinitionRegistry registry,
             LoadedContent loadedContent,
             IReadOnlyList<EntityId> characterIds,
-            string scheduleDefinitionId)
+            string scheduleDefinitionId,
+            EntityId recruitableNpcId = default)
         {
             World = world ?? throw new ArgumentNullException(nameof(world));
             Loop = loop ?? throw new ArgumentNullException(nameof(loop));
@@ -25,6 +26,7 @@ namespace XianXia.Data.Bootstrap
             LoadedContent = loadedContent ?? throw new ArgumentNullException(nameof(loadedContent));
             CharacterIds = characterIds ?? Array.Empty<EntityId>();
             ScheduleDefinitionId = scheduleDefinitionId ?? string.Empty;
+            RecruitableNpcId = recruitableNpcId;
         }
 
         public SimulationWorld World { get; }
@@ -40,5 +42,8 @@ namespace XianXia.Data.Bootstrap
         public IReadOnlyList<EntityId> CharacterIds { get; }
 
         public string ScheduleDefinitionId { get; }
+
+        /// <summary>VS0.5-D: single unaffiliated recruit candidate (not DirectControl).</summary>
+        public EntityId RecruitableNpcId { get; }
     }
 }

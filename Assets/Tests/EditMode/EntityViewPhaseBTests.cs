@@ -90,8 +90,8 @@ namespace XianXia.Tests
                 Assert.IsFalse(view.Bind(session.World, new EntityId(99999)));
                 Assert.IsFalse(view.IsBound);
 
-                // Core entity count unchanged.
-                Assert.AreEqual(3, session.World.Entities.Count);
+                // Core entity count unchanged (3 DirectControl + 1 recruitable Npc).
+                Assert.AreEqual(4, session.World.Entities.Count);
             }
             finally
             {

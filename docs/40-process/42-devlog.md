@@ -7,15 +7,17 @@
 
 ---
 
-## 2026-08-01 — VS0.5 Phase B：RelationshipLedger
+## 2026-08-01 — VS0.5 Phase D：薄招募
 
 **做了什么**
-- `RelationshipEvent`／`RelationshipLedger`／`RelationshipComponent`／`RelationshipService`
-- `SimulationWorld.Relationships`；`EventType.RelationshipChanged`
-- 唯一写路径：Service → Ledger Append → 缓存刷新 → DomainEvent；**未**改 Snapshot schema
-- `SocialAlphaConstants` 预置试玩常量（供 C～D）
+- `FactionMembershipComponent`／`RecruitService`（门槛＝target→recruiter Score ≥ RecruitMinScore）；离开清隶属、保留 Ledger
+- `EntityTag.Npc` + `CreateNpc`：可招者为 Npc，不进 DirectControl／CharacterIds
+- PlayableDay：三人劳役隶属 `base:sect_huangcun_labor`；额外 1 名无势力「村内可招者」
+- `EventType.FactionMembershipChanged`；**未**改 Snapshot schema
+- **Content Authoring Tool 需求（记录）：** 可招 NPC／势力角色若继续手写 spawn，应改为 Content 表＋编辑器；当前 Alpha 仅 1 个软编码实例
+- EditMode 143 全绿
 
-**下一步：** V5-C 开局关系种子 + Help／Slight。
+**下一步：** V5-E 人格日程偏置。
 
 ## 2026-08-01 — VS0.5 Phase C：开局关系
 
@@ -25,6 +27,16 @@
 - `PlayableDayBootstrap` 启动时播种；EditMode 覆盖种子／互动／可玩日
 
 **下一步：** V5-D 薄招募／FactionMembership。
+
+## 2026-08-01 — VS0.5 Phase B：RelationshipLedger
+
+**做了什么**
+- `RelationshipEvent`／`RelationshipLedger`／`RelationshipComponent`／`RelationshipService`
+- `SimulationWorld.Relationships`；`EventType.RelationshipChanged`
+- 唯一写路径：Service → Ledger Append → 缓存刷新 → DomainEvent；**未**改 Snapshot schema
+- `SocialAlphaConstants` 预置试玩常量（供 C～D）
+
+**下一步：** V5-C 开局关系种子 + Help／Slight。
 
 ## 2026-08-01 — 文档现状总表＋飞书同步
 

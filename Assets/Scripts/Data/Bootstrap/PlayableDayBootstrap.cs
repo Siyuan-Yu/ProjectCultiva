@@ -91,6 +91,28 @@ namespace XianXia.Data.Bootstrap
             if (seeded.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(seeded.Error);
 
+            foreach (var entityId in started.Value.CharacterIds)
+            {
+                if (world.Entities.TryGet(entityId, out var member))
+                {
+                    if (!member.TryGet<FactionMembershipComponent>(out var mem))
+                        member.AddComponent(new FactionMembershipComponent());
+                    member.Get<FactionMembershipComponent>().Assign(
+                        SocialAlphaConstants.OpeningFactionId,
+                        FactionRoleKind.LaborDisciple);
+                }
+            }
+
+            // Alpha: one soft-coded recruitable NPC. More NPCs → Content Authoring Tool (see Devlog).
+            var recruitableResult = world.Entities.CreateNpc(
+                new DefinitionId("base", "character_labor_disciple"),
+                "村内可招者");
+            if (recruitableResult.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(recruitableResult.Error);
+            var recruitable = recruitableResult.Value;
+            if (recruitable.TryGet<PersonalityProfileComponent>(out var recruitProfile))
+                recruitProfile.SetTags(new[] { "personality_steady" });
+
             if (options.ObservationDiscoverChancePercent.HasValue)
             {
                 var chance = options.ObservationDiscoverChancePercent.Value;
@@ -116,7 +138,8 @@ namespace XianXia.Data.Bootstrap
                 registry,
                 loaded,
                 started.Value.CharacterIds,
-                schedule.Id));
+                schedule.Id,
+                recruitable.Id));
         }
 
         static Result RegisterManuals(SimulationWorld world, DefinitionRegistry registry)

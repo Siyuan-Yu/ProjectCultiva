@@ -70,7 +70,7 @@
 | `Location` | 逻辑位置（地图／格子／Instance 引用） |
 | `Inventory` | 物品与数量 |
 | `Lifecycle` | 生死与 LifecycleState；死亡保护配置引用 |
-| `FactionMembership` | 当前势力归属与历史记录入口 |
+| `FactionMembership`／`FactionMembershipComponent` | **已实现（VS0.5-D 薄）：** 当前 FactionId＋Role（LaborDisciple／Member）；离开不清 Ledger；**尚未**进 Snapshot；非完整势力领导 |
 
 ### 5.3 预定义可选能力模块
 

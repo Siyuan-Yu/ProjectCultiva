@@ -19,7 +19,8 @@ namespace XianXia.Core.Entities
             typeof(XianXia.Core.Opportunity.KnownSitesComponent),
             typeof(XianXia.Core.Concealment.PersonalConcealmentRiskComponent),
             typeof(XianXia.Core.Social.PersonalityProfileComponent),
-            typeof(XianXia.Core.Social.RelationshipComponent)
+            typeof(XianXia.Core.Social.RelationshipComponent),
+            typeof(XianXia.Core.Social.FactionMembershipComponent)
         };
 
         readonly Dictionary<Type, IComponent> _components = new Dictionary<Type, IComponent>();

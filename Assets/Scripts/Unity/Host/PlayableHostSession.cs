@@ -32,6 +32,8 @@ namespace XianXia.Unity.Host
 
         public IReadOnlyList<EntityId> CharacterIds { get; private set; } = Array.Empty<EntityId>();
 
+        public EntityId RecruitableNpcId { get; private set; }
+
         public bool IsInitialized => World != null && Loop != null;
 
         public bool IsPaused { get; set; } = true;
@@ -62,6 +64,7 @@ namespace XianXia.Unity.Host
             LoadedContent = started.Value.LoadedContent;
             ScheduleDefinitionId = started.Value.ScheduleDefinitionId;
             CharacterIds = started.Value.CharacterIds;
+            RecruitableNpcId = started.Value.RecruitableNpcId;
             LastError = string.Empty;
             return Result.Success();
         }
@@ -78,6 +81,7 @@ namespace XianXia.Unity.Host
             LoadedContent = null;
             ScheduleDefinitionId = string.Empty;
             CharacterIds = Array.Empty<EntityId>();
+            RecruitableNpcId = EntityId.None;
             IsPaused = true;
         }
 

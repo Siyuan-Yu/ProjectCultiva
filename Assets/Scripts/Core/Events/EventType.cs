@@ -27,6 +27,9 @@ namespace XianXia.Core.Events
         /// <summary>VS0.3: DayEnded consumed quota shortfall／Deviation into thin consequence.</summary>
         QuotaConsequenceApplied = 15,
         /// <summary>VS0.5: RelationshipLedger recorded a directed score change.</summary>
-        RelationshipChanged = 16
+        RelationshipChanged = 16,
+        /// <summary>VS0.5: Faction membership joined／left (thin Alpha mark).</summary>
+        FactionMembershipChanged = 17
     }
 }
+

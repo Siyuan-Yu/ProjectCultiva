@@ -23,9 +23,16 @@ namespace XianXia.Core.Entities
 
         public int Count => _entities.Count;
 
-        public Result<Entity> CreateCharacter(DefinitionId definitionId, string displayName = null)
+        public Result<Entity> CreateCharacter(DefinitionId definitionId, string displayName = null) =>
+            CreateWithTag(definitionId, displayName, EntityTag.Character);
+
+        /// <summary>VS0.5: NPC entity (not counted as DirectControl CharacterIds).</summary>
+        public Result<Entity> CreateNpc(DefinitionId definitionId, string displayName = null) =>
+            CreateWithTag(definitionId, displayName, EntityTag.Npc);
+
+        Result<Entity> CreateWithTag(DefinitionId definitionId, string displayName, EntityTag tag)
         {
-            var entity = new Entity(_ids.Next(), definitionId, EntityTag.Character, displayName ?? definitionId.ToString());
+            var entity = new Entity(_ids.Next(), definitionId, tag, displayName ?? definitionId.ToString());
             entity.AddComponent(new IdentityComponent(definitionId, entity.DisplayName));
             entity.AddComponent(new AttributesComponent());
             entity.AddComponent(new LifecycleComponent(LifecycleState.Alive));
@@ -36,6 +43,7 @@ namespace XianXia.Core.Entities
             entity.AddComponent(new PersonalConcealmentRiskComponent());
             entity.AddComponent(new PersonalityProfileComponent());
             entity.AddComponent(new RelationshipComponent());
+            entity.AddComponent(new FactionMembershipComponent());
             _entities.Add(entity.Id, entity);
             return Result.Ok(entity);
         }

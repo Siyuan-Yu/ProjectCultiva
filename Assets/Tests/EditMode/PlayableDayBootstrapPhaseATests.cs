@@ -26,7 +26,8 @@ namespace XianXia.Tests
             Assert.IsTrue(result.IsSuccess, result.IsFailure ? result.Error.ToString() : "");
 
             Assert.AreEqual(3, result.Value.CharacterIds.Count);
-            Assert.AreEqual(3, result.Value.World.Entities.Count);
+            Assert.AreEqual(4, result.Value.World.Entities.Count); // +1 recruitable Npc (VS0.5-D)
+            Assert.IsFalse(result.Value.RecruitableNpcId.IsNone);
             Assert.IsNotNull(result.Value.Loop);
             Assert.IsNotNull(result.Value.Port);
             Assert.IsNotNull(result.Value.Registry);
