@@ -5,6 +5,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Labor;
 using XianXia.Core.Opportunity;
 using XianXia.Core.Results;
+using XianXia.Core.Social;
 
 namespace XianXia.Core.Entities
 {
@@ -33,6 +34,7 @@ namespace XianXia.Core.Entities
             entity.AddComponent(new DailyTaskComponent());
             entity.AddComponent(new KnownSitesComponent());
             entity.AddComponent(new PersonalConcealmentRiskComponent());
+            entity.AddComponent(new PersonalityProfileComponent());
             _entities.Add(entity.Id, entity);
             return Result.Ok(entity);
         }

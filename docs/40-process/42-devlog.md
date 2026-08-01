@@ -7,6 +7,14 @@
 
 ---
 
+## 2026-08-01 — VS0.5 Phase A：人格档案
+
+**做了什么**
+- `PersonalityProfileComponent`；`CreateCharacter` 默认挂载；`GameStartBootstrap` 写入 Spawn tags
+- Content 三人差异标签可查询；34／术语表登记；**未**改 Snapshot
+
+**下一步：** V5-B RelationshipLedger。
+
 ## 2026-08-01 — VS0.4 自主推进：先完成 D～H，再进 VS0.5
 
 **决定**

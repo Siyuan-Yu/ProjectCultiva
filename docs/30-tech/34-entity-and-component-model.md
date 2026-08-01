@@ -81,6 +81,7 @@
 | `WorkComponent` | 工作熟练、当前工位预约 |
 | `ScheduleComponent` | 身份时间表绑定与遵守状态 |
 | `SocialComponent` | 对话、隐藏经历挖掘入口 |
+| `PersonalityProfileComponent` | **已实现（VS0.5-A）：** 性格／特质标签集合；由 Content tags／Spawn 写入；**尚未**进 Snapshot |
 | `TradeComponent` | 交易库存／价目引用 |
 | `AuthorityComponent` | 配额、惩罚、管事权限（世界内职权，≠ PlayerAgency） |
 | `RelationshipComponent` | **只读缓存／索引／UI**；关系真源为 RelationshipLedger（ADR-0017） |

@@ -6,6 +6,7 @@ using XianXia.Core.Events;
 using XianXia.Core.Random;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.Social;
 using XianXia.Core.World;
 
 namespace XianXia.Core.Bootstrap
@@ -58,6 +59,9 @@ namespace XianXia.Core.Bootstrap
                     foreach (var kv in spawn.BaseAttributes)
                         attrs.SetBase(kv.Key, kv.Value);
                 }
+
+                if (entity.TryGet<PersonalityProfileComponent>(out var profile))
+                    profile.SetTags(spawn.PersonalityTags);
 
                 world.Events.Publish(EventType.EntityCreated, world.Tick, target: entity.Id, payload: spawn.DefinitionId.ToString());
                 created.Add(entity.Id);

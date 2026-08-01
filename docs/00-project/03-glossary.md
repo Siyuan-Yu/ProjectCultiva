@@ -61,6 +61,7 @@
 | 世界账本 | WorldLedger | 分册长期世界记忆 | 非万能字典 |
 | 关系账本 | RelationshipLedger | **关系唯一真源**；事件历史累积算最终值 | Component 仅缓存；ADR-0017 |
 | 关系事件 | RelationshipEvent | Ledger 中一条关系变化记录 | 含 Tick／来源／对象／数值／原因 |
+| 人格档案 | PersonalityProfile | 角色性格／特质标签集合（Component） | VS0.5-A；Content tags 写入；尚未进 Snapshot |
 | 领域事件 | DomainEvent | 刚刚发生的事实 | 见 `2E` |
 | 计划事件 | ScheduledEvent | 未来某 Tick 要执行的事 | 禁止系统私有逻辑倒计时 |
 | 知识账本 | KnowledgeLedger | 区分世界事实与各主体知道程度 | Known／Suspected／Unknown |
