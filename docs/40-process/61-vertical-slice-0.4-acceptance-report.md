@@ -20,7 +20,7 @@
 | V4-E | `9fb2b63` | HUD + pause／speed／step |
 | V4-F | `2595859` | DomainEvent feed |
 | V4-G | `d15d351` | Snapshot UI |
-| V4-H | （本提交） | 一日可玩自动化验收 |
+| V4-H | `8b0b118` | 一日可玩自动化验收 |
 
 ## 3. 验收清单（对照 §13）
 
