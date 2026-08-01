@@ -138,7 +138,7 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 ## 八、范围控制
 
 第一阶段玩法仍只验证：感应→炼气质变、角色↔领地闭环、暂停战斗构筑（**实现上 Core M1 先只做骨架，不含真战斗**）。  
-当前工程焦点是 **社会／关系 Alpha（VS0.5）**，不是扩 Demo、不是战斗／地图。
+**VS0.5 社会 Alpha 已验收**；当前不扩 Demo、不扩战斗／地图。关系／人格／隶属入 Snapshot 前须硬停。
 
 ## 九、跨系统未决（摘录）
 
@@ -146,6 +146,6 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 
 ## 十、下一步
 
-1. 继续 VS0.5：**V5-B RelationshipLedger** → 开局关系 → 招募 → NPC 自主 → 社会 Tick。  
-2. 关系入 Snapshot 前须确认 schema（硬停）。  
+1. 下一切片方向待定；若要关系入档 → **先确认 Snapshot schema**。  
+2. Content Authoring Tool：可招 NPC／关系种子不宜继续软编码膨胀。  
 3. 不扩展 Demo Runtime；不改 Freeze 正文。

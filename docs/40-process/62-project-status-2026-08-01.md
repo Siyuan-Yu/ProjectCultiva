@@ -9,8 +9,8 @@
 ## 1. 一句话现状
 
 **Architecture Freeze v0.2 有效。** Core／Data 垂直切片 **VS0.1～0.4 已验收**；Unity Playable Host（选中／下令／HUD／事件／存档）可用。  
-**VS0.5 社会 Alpha 已开工**：V5-A 人格档案已落地；下一步 RelationshipLedger。  
-Demo Runtime **继续冻结**（只读参考，不迁玩法）。
+**VS0.5 社会 Alpha 已验收**（见 [63](63-vertical-slice-0.5-alpha-acceptance.md)）：人格／Ledger／开局关系／招募／日程偏置／社会 Tick。  
+Demo Runtime **继续冻结**（只读参考，不迁玩法）。关系入 Snapshot 前须硬停确认 schema。
 
 ---
 
@@ -24,7 +24,7 @@ Demo Runtime **继续冻结**（只读参考，不迁玩法）。
 | VS0.2 | 完成 | [55](55-vertical-slice-0.2-plan-v0.1.md)／[56 验收](56-vertical-slice-0.2-acceptance-report.md) | PlayerOrder／Schedule／Override／Quota |
 | VS0.3 | 完成 | [57](57-vertical-slice-0.3-plan-v0.1.md)／[58](58-vertical-slice-0.3-acceptance-report.md) | DayClock／Observe／Site／Gate／日终后果 |
 | VS0.4 | **完成** | [59](59-vertical-slice-0.4-unity-playable-host-plan-v0.1.md)／[61](61-vertical-slice-0.4-acceptance-report.md) | Unity Host 可玩日 |
-| VS0.5 | **进行中** | [60](60-vertical-slice-0.5-social-alpha-plan-v0.1.md) | 人格／关系／招募／NPC 自主／社会 Tick |
+| VS0.5 | **已验收** | [60](60-vertical-slice-0.5-social-alpha-plan-v0.1.md)／[63](63-vertical-slice-0.5-alpha-acceptance.md) | 人格／关系／招募／日程偏置／社会 Tick |
 
 ---
 
@@ -66,13 +66,13 @@ Demo Runtime **继续冻结**（只读参考，不迁玩法）。
 | Phase | 状态 | Commit／说明 |
 |---|---|---|
 | V5-0 计划 | 完成 | `5207037` |
-| V5-A 人格 | **完成** | `e443eee`：`PersonalityProfileComponent`；Spawn／Content tags 写入；Entity 白名单；**未进 Snapshot** |
-| V5-B RelationshipLedger | 待做 | 事件累积真源＋缓存 Component |
-| V5-C 开局关系 | 待做 | 三人种子＋Help／Slight |
-| V5-D 招募 | 待做 | 薄 FactionMembership |
-| V5-E NPC 日程偏置 | 待做 | 人格影响 Schedule 参数 |
-| V5-F 社会 Tick | 待做 | 低频自动互动 |
-| V5-G Alpha 验收 | 待做 | 整合测＋报告 |
+| V5-A 人格 | 完成 | `e443eee` |
+| V5-B RelationshipLedger | 完成 | `4205430` |
+| V5-C 开局关系 | 完成 | `34f6e4c` |
+| V5-D 招募 | 完成 | `2663ffd`（含 `EntityTag.Npc`） |
+| V5-E NPC 日程偏置 | 完成 | `4e24d39` |
+| V5-F 社会 Tick | 完成 | `c4799d9` |
+| V5-G Alpha 验收 | **完成** | 见 [63](63-vertical-slice-0.5-alpha-acceptance.md)；关系／人格／隶属仍未进 Snapshot |
 
 **硬停：** 改 Freeze／改 Snapshot 契约（含关系入档前须确认）／破 Core·Data 边界／无计划战斗·地图·正式 UI。
 

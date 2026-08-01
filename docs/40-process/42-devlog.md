@@ -7,6 +7,14 @@
 
 ---
 
+## 2026-08-01 — VS0.5 Phase G：Alpha 整合验收
+
+**做了什么**
+- `SocialAlphaAcceptancePhaseGTests`：人格→开局关系→Help→招募→日程偏置→社会漂移→Player Override；断言 Snapshot schema=v1
+- 验收报告 [63](63-vertical-slice-0.5-alpha-acceptance.md)；更新计划／现状／路线图
+
+**下一步：** 关系入档前硬停确认 schema；否则另开切片。
+
 ## 2026-08-01 — VS0.5 Phase F：社会 Tick
 
 **做了什么**

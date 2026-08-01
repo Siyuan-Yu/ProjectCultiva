@@ -1,13 +1,13 @@
 # 路线图
 
-> 状态：**VS 0.4 已验收**｜下一目标：VS0.5 社会／人格 Alpha｜最后更新：2026-08-01
+> 状态：**VS 0.5 已验收**｜下一目标：待定（关系入档须硬停）｜最后更新：2026-08-01
 
 ## 当前阶段说明
 
 - Architecture Freeze **v0.2** 仍有效；**不改 Freeze 正文**。  
-- Core／Data／Cultivation／**VS 0.1～0.4 已验收**。  
+- Core／Data／Cultivation／**VS 0.1～0.5 已验收**。  
 - Demo Runtime 继续冻结。  
-- VS0.4 验收：[61-vertical-slice-0.4-acceptance-report.md](61-vertical-slice-0.4-acceptance-report.md)。
+- VS0.4 验收：[61](61-vertical-slice-0.4-acceptance-report.md)；VS0.5 验收：[63](63-vertical-slice-0.5-alpha-acceptance.md)。
 
 ## M2.5 — 架构冻结
 
