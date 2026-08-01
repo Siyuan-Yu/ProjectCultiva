@@ -34,6 +34,7 @@ Demo Runtime **继续冻结**。关系／据点／地点／Quest／Chapter／Fla
 | Chapter Production | **已验收** | [79](79-chapter-production-framework-plan-v0.1.md)／[81](81-chapter-production-framework-acceptance-report.md)／[80 流程](80-chapter-content-production-guide.md) | 章节／日 beat／Story Flag／Content Debug |
 | Chapter Toolkit | **已验收** | [83](83-chapter-production-toolkit-plan-v0.1.md)／[85](85-chapter-production-toolkit-acceptance-report.md)／[84 规范](84-chapter-content-naming-standards.md) | 模板／引用校验／Ch1 Harness；可正式生产第一章 |
 | Ch01 Reference Level | **已验收** | [87](87-chapter-01-reference-level-plan-v0.1.md)／[89](89-chapter-01-reference-level-acceptance-report.md)／[88 流程](88-chapter-01-reference-level-production-guide.md) | 模板关：地图／RTS／UI／三类 AI／Data 样板 |
+| Demo 手感对齐 | **已验收** | [91](91-demo-v0.1-to-formal-gap-audit.md)／[93](93-demo-parity-level-acceptance-report.md)／[92](92-demo-parity-progress-2026-08-02.md) | PlayableHost＝2D Sprite＋Demo 操作语义（不复活 Runtime） |
 
 ---
 
@@ -104,7 +105,7 @@ Demo Runtime **继续冻结**。关系／据点／地点／Quest／Chapter／Fla
 
 ## 6. 测试门禁（截至本页）
 
-- EditMode：**175/175 全绿**（含 Ch01 Reference Level；`tools/run-editmode-tests.ps1`）。  
+- EditMode：**182/182 全绿**（含 Demo 手感对齐；`tools/run-editmode-tests.ps1`）。  
 - PlayMode：Host 选择／命令烟测保持绿。  
 - Snapshot：`WorldSnapshot.CurrentSchemaVersion = 1` **未升版**（关系／据点／地点尚未入档）。
 

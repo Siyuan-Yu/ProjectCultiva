@@ -20,7 +20,7 @@ namespace XianXia.Tests
             try
             {
                 Assert.AreEqual(3, bootstrap.Session.CharacterIds.Count);
-                Assert.AreEqual(4, bootstrap.ViewSpawner.SpawnedCount); // + recruitable Npc (VS0.6)
+                Assert.GreaterOrEqual(bootstrap.ViewSpawner.SpawnedCount, 4); // party＋NPCs (Ch01 ref cast)
 
                 var id = bootstrap.Session.CharacterIds[0];
                 bootstrap.SelectionController.SelectEntity(id, false);

@@ -138,9 +138,9 @@ namespace XianXia.Tests
                 host.AddComponent<EntityViewSpawner>();
                 Assert.IsTrue(bootstrap.TryInitialize());
                 Assert.IsNotNull(bootstrap.ViewSpawner);
-                Assert.AreEqual(4, bootstrap.ViewSpawner.SpawnedCount);
+                Assert.GreaterOrEqual(bootstrap.ViewSpawner.SpawnedCount, 4);
                 Assert.AreEqual(3, bootstrap.Session.CharacterIds.Count);
-                Assert.AreEqual(4, bootstrap.Session.ViewableEntityIds.Count);
+                Assert.GreaterOrEqual(bootstrap.Session.ViewableEntityIds.Count, 4);
             }
             finally
             {

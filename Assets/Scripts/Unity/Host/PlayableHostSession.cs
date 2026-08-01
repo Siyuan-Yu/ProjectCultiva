@@ -68,7 +68,7 @@ namespace XianXia.Unity.Host
             ScheduleDefinitionId = started.Value.ScheduleDefinitionId;
             CharacterIds = started.Value.CharacterIds;
             RecruitableNpcId = started.Value.RecruitableNpcId;
-            ViewableEntityIds = BuildViewableEntityIds(CharacterIds, RecruitableNpcId);
+            ViewableEntityIds = BuildViewableEntityIds(World, CharacterIds, RecruitableNpcId);
             LastError = string.Empty;
             return Result.Success();
         }
@@ -144,7 +144,7 @@ namespace XianXia.Unity.Host
             Port = new PlayerInputPort(Loop);
             CharacterIds = CollectTaggedIds(World, EntityTag.Character);
             RecruitableNpcId = FindFirstTagged(World, EntityTag.Npc);
-            ViewableEntityIds = BuildViewableEntityIds(CharacterIds, RecruitableNpcId);
+            ViewableEntityIds = BuildViewableEntityIds(World, CharacterIds, RecruitableNpcId);
             ScheduleDefinitionId = CharacterIds.Count > 0 &&
                                    World.Entities.TryGet(CharacterIds[0], out var first) &&
                                    first.TryGet<XianXia.Core.Schedule.ScheduleComponent>(out var schedule)
@@ -156,21 +156,39 @@ namespace XianXia.Unity.Host
         }
 
         static IReadOnlyList<EntityId> BuildViewableEntityIds(
+            SimulationWorld world,
             IReadOnlyList<EntityId> characters,
             EntityId recruitableNpc)
         {
             var list = new List<EntityId>();
+            var seen = new HashSet<ulong>();
+
+            void Add(EntityId id)
+            {
+                if (id.IsNone || seen.Contains(id.Value))
+                    return;
+                seen.Add(id.Value);
+                list.Add(id);
+            }
+
             if (characters != null)
             {
                 for (var i = 0; i < characters.Count; i++)
+                    Add(characters[i]);
+            }
+
+            Add(recruitableNpc);
+
+            // Demo parity: show all NPC actors in Host (guards／merchant／supervisor…).
+            if (world != null)
+            {
+                foreach (var entity in world.Entities.All)
                 {
-                    if (!characters[i].IsNone)
-                        list.Add(characters[i]);
+                    if ((entity.Tags & EntityTag.Npc) != 0)
+                        Add(entity.Id);
                 }
             }
 
-            if (!recruitableNpc.IsNone && !list.Exists(id => id == recruitableNpc))
-                list.Add(recruitableNpc);
             return list;
         }
 

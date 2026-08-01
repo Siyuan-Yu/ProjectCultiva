@@ -20,7 +20,7 @@ namespace XianXia.Tests
             try
             {
                 Assert.AreEqual(3, bootstrap.Session.CharacterIds.Count);
-                Assert.AreEqual(4, bootstrap.ViewSpawner.SpawnedCount);
+                Assert.GreaterOrEqual(bootstrap.ViewSpawner.SpawnedCount, 4);
                 Assert.IsFalse(bootstrap.Session.RecruitableNpcId.IsNone);
 
                 var actor = bootstrap.Session.CharacterIds[0];

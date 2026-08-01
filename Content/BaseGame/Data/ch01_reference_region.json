@@ -4,18 +4,18 @@
     {
       "id": "base:region_ch01_reference",
       "type": "worldRegion",
-      "name": "第一章参考关·荒村灰盒",
+      "name": "第一章参考关·Demo布局",
       "startLocationId": "base:loc_ref_labor_yard",
       "locations": [
         {
           "id": "base:loc_ref_labor_yard",
-          "name": "杂役区",
+          "name": "农田杂役区",
           "kind": "Settlement",
-          "adjacentIds": ["base:loc_ref_houses", "base:loc_ref_road_hub", "base:loc_ref_herb_field"],
+          "adjacentIds": ["base:loc_ref_houses", "base:loc_ref_road_hub", "base:loc_ref_herb_field", "base:loc_ref_spring"],
           "resourceOnExploreId": "base:resource_grain",
           "resourceOnExploreAmount": 1,
-          "presentationX": -6,
-          "presentationZ": 0,
+          "presentationX": 20,
+          "presentationZ": -12,
           "questOfferIds": ["base:quest_ch01_ref_inspect_yard"]
         },
         {
@@ -24,8 +24,8 @@
           "kind": "Village",
           "adjacentIds": ["base:loc_ref_labor_yard", "base:loc_ref_road_hub"],
           "residentNpcDefinitionId": "base:character_ch01_ref_mortal_a",
-          "presentationX": -3,
-          "presentationZ": 4
+          "presentationX": -8,
+          "presentationZ": 10
         },
         {
           "id": "base:loc_ref_forest",
@@ -34,8 +34,8 @@
           "adjacentIds": ["base:loc_ref_road_hub", "base:loc_ref_mine"],
           "resourceOnExploreId": "base:resource_rough_wood",
           "resourceOnExploreAmount": 2,
-          "presentationX": 3,
-          "presentationZ": 5
+          "presentationX": -34,
+          "presentationZ": 0
         },
         {
           "id": "base:loc_ref_mine",
@@ -44,8 +44,8 @@
           "adjacentIds": ["base:loc_ref_forest", "base:loc_ref_road_hub"],
           "resourceOnExploreId": "base:resource_rough_wood",
           "resourceOnExploreAmount": 1,
-          "presentationX": 7,
-          "presentationZ": 3
+          "presentationX": -30,
+          "presentationZ": 8
         },
         {
           "id": "base:loc_ref_herb_field",
@@ -54,17 +54,17 @@
           "adjacentIds": ["base:loc_ref_labor_yard", "base:loc_ref_spring", "base:loc_ref_road_hub"],
           "resourceOnExploreId": "base:resource_spirit_herb",
           "resourceOnExploreAmount": 2,
-          "presentationX": -6,
-          "presentationZ": -4,
+          "presentationX": -3,
+          "presentationZ": -15,
           "residentNpcDefinitionId": "base:character_ch01_ref_mortal_b"
         },
         {
           "id": "base:loc_ref_spring",
           "name": "灵泉",
           "kind": "Opportunity",
-          "adjacentIds": ["base:loc_ref_herb_field", "base:loc_ref_cave", "base:loc_ref_road_hub"],
-          "presentationX": -2,
-          "presentationZ": -6
+          "adjacentIds": ["base:loc_ref_herb_field", "base:loc_ref_cave", "base:loc_ref_labor_yard", "base:loc_ref_road_hub"],
+          "presentationX": 28,
+          "presentationZ": -12
         },
         {
           "id": "base:loc_ref_cave",
@@ -72,8 +72,8 @@
           "kind": "Opportunity",
           "adjacentIds": ["base:loc_ref_spring", "base:loc_ref_road_hub"],
           "opportunitySiteId": "base:site_abandoned_cave",
-          "presentationX": 2,
-          "presentationZ": -6
+          "presentationX": 24,
+          "presentationZ": -14
         },
         {
           "id": "base:loc_ref_road_hub",
