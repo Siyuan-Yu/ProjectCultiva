@@ -1,27 +1,32 @@
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Entities;
 
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// Instantiates／rebuilds EntityViews for playable-host characters. Presentation slots only.
+    /// Instantiates／rebuilds EntityViews for playable-host characters and NPCs.
+    /// Presentation slots only.
     /// </summary>
     public sealed class EntityViewSpawner : MonoBehaviour
     {
-        static readonly Color[] DefaultSlotColors =
+        static readonly Color[] CharacterSlotColors =
         {
             new Color(0.25f, 0.55f, 0.95f),
             new Color(0.30f, 0.75f, 0.40f),
             new Color(0.95f, 0.55f, 0.20f)
         };
 
+        static readonly Color NpcSlotColor = new Color(0.75f, 0.70f, 0.35f);
+
         [SerializeField] Transform viewsRoot;
         [SerializeField] Vector3[] slotPositions =
         {
             new Vector3(-2.5f, 1f, 0f),
             new Vector3(0f, 1f, 0f),
-            new Vector3(2.5f, 1f, 0f)
+            new Vector3(2.5f, 1f, 0f),
+            new Vector3(5f, 1f, 0f)
         };
 
         readonly EntityViewRegistry _registry = new EntityViewRegistry();
@@ -45,14 +50,19 @@ namespace XianXia.Unity.Host
 
             EnsureRoot();
 
-            var ids = session.CharacterIds;
+            var ids = session.ViewableEntityIds;
             for (var i = 0; i < ids.Count; i++)
             {
                 var id = ids[i];
                 var position = i < slotPositions.Length
                     ? slotPositions[i]
                     : new Vector3(i * 2.5f, 1f, 0f);
-                var color = DefaultSlotColors[i % DefaultSlotColors.Length];
+
+                var isNpc = session.World.Entities.TryGet(id, out var entity) &&
+                             (entity.Tags & EntityTag.Npc) != 0;
+                var color = isNpc
+                    ? NpcSlotColor
+                    : CharacterSlotColors[i % CharacterSlotColors.Length];
 
                 var view = CreateCapsuleView(id, position);
                 if (!view.Bind(session.World, id))
@@ -91,7 +101,6 @@ namespace XianXia.Unity.Host
             go.transform.rotation = Quaternion.identity;
             go.transform.localScale = Vector3.one;
 
-            // CapsuleCollider already present for V4-C picking.
             var view = go.AddComponent<EntityView>();
 
             var labelGo = new GameObject("Label");

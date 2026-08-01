@@ -26,11 +26,12 @@ namespace XianXia.Tests
                 var spawner = host.AddComponent<EntityViewSpawner>();
                 spawner.Rebuild(session);
 
-                Assert.AreEqual(3, spawner.SpawnedCount);
-                Assert.AreEqual(3, spawner.Registry.Count);
+                // VS0.6: 3 characters + 1 recruitable Npc.
+                Assert.AreEqual(4, spawner.SpawnedCount);
+                Assert.AreEqual(4, spawner.Registry.Count);
 
                 var seen = new HashSet<ulong>();
-                foreach (var id in session.CharacterIds)
+                foreach (var id in session.ViewableEntityIds)
                 {
                     Assert.IsTrue(spawner.Registry.TryGet(id, out var view));
                     Assert.IsTrue(view.IsBound);
@@ -59,15 +60,15 @@ namespace XianXia.Tests
                 var spawner = host.AddComponent<EntityViewSpawner>();
                 spawner.Rebuild(session);
                 spawner.Rebuild(session);
-                Assert.AreEqual(3, spawner.SpawnedCount);
-                Assert.AreEqual(3, spawner.Registry.Count);
+                Assert.AreEqual(4, spawner.SpawnedCount);
+                Assert.AreEqual(4, spawner.Registry.Count);
 
                 session.Rebuild(BaseGamePath);
                 spawner.Clear();
                 spawner.Rebuild(session);
-                Assert.AreEqual(3, spawner.SpawnedCount);
+                Assert.AreEqual(4, spawner.SpawnedCount);
 
-                foreach (var id in session.CharacterIds)
+                foreach (var id in session.ViewableEntityIds)
                     Assert.IsTrue(spawner.Registry.TryGet(id, out _));
             }
             finally
@@ -136,8 +137,9 @@ namespace XianXia.Tests
                 host.AddComponent<EntityViewSpawner>();
                 Assert.IsTrue(bootstrap.TryInitialize());
                 Assert.IsNotNull(bootstrap.ViewSpawner);
-                Assert.AreEqual(3, bootstrap.ViewSpawner.SpawnedCount);
+                Assert.AreEqual(4, bootstrap.ViewSpawner.SpawnedCount);
                 Assert.AreEqual(3, bootstrap.Session.CharacterIds.Count);
+                Assert.AreEqual(4, bootstrap.Session.ViewableEntityIds.Count);
             }
             finally
             {

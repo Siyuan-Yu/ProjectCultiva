@@ -7,6 +7,15 @@
 
 ---
 
+## 2026-08-01 — VS0.6 Phase A：Recruitable NPC 表现
+
+**做了什么**
+- ViewableEntityIds：三角色 + 可招 Npc
+- EntityViewSpawner 生成／绑定 Npc 槽位（可点选）
+- 计划 [64](64-vertical-slice-0.6-playable-social-host-plan-v0.1.md)
+
+**下一步：** V6-B 社会 HUD 薄信息。
+
 ## 2026-08-01 — 文档收束＋飞书同步（VS0.5 完成后）
 
 **做了什么**

@@ -32,6 +32,9 @@ namespace XianXia.Unity.Host
 
         public IReadOnlyList<EntityId> CharacterIds { get; private set; } = Array.Empty<EntityId>();
 
+        /// <summary>VS0.6: CharacterIds + visible Npcs (presentation／selection).</summary>
+        public IReadOnlyList<EntityId> ViewableEntityIds { get; private set; } = Array.Empty<EntityId>();
+
         public EntityId RecruitableNpcId { get; private set; }
 
         public bool IsInitialized => World != null && Loop != null;
@@ -65,6 +68,7 @@ namespace XianXia.Unity.Host
             ScheduleDefinitionId = started.Value.ScheduleDefinitionId;
             CharacterIds = started.Value.CharacterIds;
             RecruitableNpcId = started.Value.RecruitableNpcId;
+            ViewableEntityIds = BuildViewableEntityIds(CharacterIds, RecruitableNpcId);
             LastError = string.Empty;
             return Result.Success();
         }
@@ -81,6 +85,7 @@ namespace XianXia.Unity.Host
             LoadedContent = null;
             ScheduleDefinitionId = string.Empty;
             CharacterIds = Array.Empty<EntityId>();
+            ViewableEntityIds = Array.Empty<EntityId>();
             RecruitableNpcId = EntityId.None;
             IsPaused = true;
         }
@@ -137,7 +142,9 @@ namespace XianXia.Unity.Host
             World = restored.Value.world;
             Loop = restored.Value.loop;
             Port = new PlayerInputPort(Loop);
-            CharacterIds = CollectCharacterIds(World);
+            CharacterIds = CollectTaggedIds(World, EntityTag.Character);
+            RecruitableNpcId = FindFirstTagged(World, EntityTag.Npc);
+            ViewableEntityIds = BuildViewableEntityIds(CharacterIds, RecruitableNpcId);
             ScheduleDefinitionId = CharacterIds.Count > 0 &&
                                    World.Entities.TryGet(CharacterIds[0], out var first) &&
                                    first.TryGet<XianXia.Core.Schedule.ScheduleComponent>(out var schedule)
@@ -148,19 +155,44 @@ namespace XianXia.Unity.Host
             return Result.Success();
         }
 
-        static IReadOnlyList<EntityId> CollectCharacterIds(SimulationWorld world)
+        static IReadOnlyList<EntityId> BuildViewableEntityIds(
+            IReadOnlyList<EntityId> characters,
+            EntityId recruitableNpc)
+        {
+            var list = new List<EntityId>();
+            if (characters != null)
+            {
+                for (var i = 0; i < characters.Count; i++)
+                {
+                    if (!characters[i].IsNone)
+                        list.Add(characters[i]);
+                }
+            }
+
+            if (!recruitableNpc.IsNone && !list.Exists(id => id == recruitableNpc))
+                list.Add(recruitableNpc);
+            return list;
+        }
+
+        static IReadOnlyList<EntityId> CollectTaggedIds(SimulationWorld world, EntityTag tag)
         {
             var list = new List<EntityId>();
             if (world == null)
                 return list;
             foreach (var entity in world.Entities.All)
             {
-                if ((entity.Tags & EntityTag.Character) != 0)
+                if ((entity.Tags & tag) != 0)
                     list.Add(entity.Id);
             }
 
             list.Sort((a, b) => a.Value.CompareTo(b.Value));
             return list;
+        }
+
+        static EntityId FindFirstTagged(SimulationWorld world, EntityTag tag)
+        {
+            var ids = CollectTaggedIds(world, tag);
+            return ids.Count > 0 ? ids[0] : EntityId.None;
         }
     }
 }

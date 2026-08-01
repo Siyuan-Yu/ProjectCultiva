@@ -39,7 +39,7 @@ namespace XianXia.Tests
 
                 Assert.IsTrue(bootstrap.SnapshotPanel.TryLoad(), bootstrap.SnapshotPanel.Status);
                 Assert.AreEqual(tickBefore, bootstrap.Session.World.Tick.Value);
-                Assert.AreEqual(bootstrap.Session.CharacterIds.Count, bootstrap.ViewSpawner.SpawnedCount);
+                Assert.AreEqual(bootstrap.Session.ViewableEntityIds.Count, bootstrap.ViewSpawner.SpawnedCount);
 
                 Assert.IsTrue(bootstrap.Session.World.Entities.TryGet(id, out var after));
                 Assert.AreEqual(completedBefore, after.Get<DailyTaskComponent>().CompletedAmount);
