@@ -16,11 +16,15 @@ namespace XianXia.Unity.Host
 
         readonly HostSelectionState _state = new HostSelectionState();
         readonly List<EntityId> _boxBuffer = new List<EntityId>();
+        readonly HashSet<ulong> _partyFilter = new HashSet<ulong>();
 
         bool _pointerDown;
         bool _dragging;
         Vector2 _pressScreen;
         Vector2 _currentScreen;
+        float _lastClickTime = -1f;
+        EntityId _lastClickId = EntityId.None;
+        const float DoubleClickSeconds = 0.35f;
 
         public HostSelectionState State => _state;
 
@@ -35,6 +39,19 @@ namespace XianXia.Unity.Host
             spawner = viewSpawner;
             selectionCamera = camera != null ? camera : Camera.main;
             ClearSelection();
+        }
+
+        /// <summary>Demo double-click selects this party set only.</summary>
+        public void SetPartyFilter(IReadOnlyList<EntityId> partyIds)
+        {
+            _partyFilter.Clear();
+            if (partyIds == null)
+                return;
+            for (var i = 0; i < partyIds.Count; i++)
+            {
+                if (!partyIds[i].IsNone)
+                    _partyFilter.Add(partyIds[i].Value);
+            }
         }
 
         public void ClearSelection()
@@ -78,11 +95,66 @@ namespace XianXia.Unity.Host
                 else
                 {
                     var shift = Input.GetKey(additiveKey) || Input.GetKey(KeyCode.RightShift);
-                    TrySelectAtScreenPoint(_pressScreen, shift);
+                    HandlePointSelect(_pressScreen, shift);
                 }
 
                 CancelGesture();
             }
+        }
+
+        void HandlePointSelect(Vector2 screenPoint, bool shiftToggle)
+        {
+            if (!TryPickEntityAtScreenPoint(screenPoint, out var best))
+            {
+                if (!shiftToggle)
+                {
+                    _state.Clear();
+                    ApplyHighlights();
+                }
+
+                _lastClickId = EntityId.None;
+                return;
+            }
+
+            // Demo [49]: double-click own unit → select all party characters.
+            var now = Time.unscaledTime;
+            if (!shiftToggle &&
+                best.EntityId == _lastClickId &&
+                now - _lastClickTime <= DoubleClickSeconds &&
+                spawner != null)
+            {
+                SelectAllBoundCharacters();
+                _lastClickTime = -1f;
+                _lastClickId = EntityId.None;
+                return;
+            }
+
+            _lastClickTime = now;
+            _lastClickId = best.EntityId;
+
+            if (shiftToggle)
+                _state.Toggle(best.EntityId);
+            else
+                _state.ReplaceOne(best.EntityId);
+            ApplyHighlights();
+        }
+
+        void SelectAllBoundCharacters()
+        {
+            _boxBuffer.Clear();
+            foreach (var view in spawner.Registry.All)
+            {
+                if (view == null || !view.IsBound)
+                    continue;
+                if (_partyFilter.Count > 0 && !_partyFilter.Contains(view.EntityId.Value))
+                    continue;
+                _boxBuffer.Add(view.EntityId);
+            }
+
+            if (_boxBuffer.Count == 0)
+                return;
+            _state.Replace(_boxBuffer);
+            ApplyHighlights();
         }
 
         void OnGUI()

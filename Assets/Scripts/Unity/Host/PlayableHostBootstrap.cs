@@ -213,10 +213,11 @@ namespace XianXia.Unity.Host
             mapGraybox.Rebuild(_session);
             var cam = Camera.main;
             selectionController.Bind(entityViewSpawner, cam);
+            selectionController.SetPartyFilter(_session.CharacterIds);
             commandBridge.Bind(_session, selectionController);
             debugHud.Bind(this, selectionController);
             contentDebugPanel.Bind(this, selectionController);
-            moveController.Bind(this, selectionController, entityViewSpawner);
+            moveController.Bind(this, selectionController, entityViewSpawner, commandBridge);
             actionMenu.Bind(this, selectionController, commandBridge);
             formalHud.Bind(this, selectionController, eventFeed);
             snapshotPanel.Bind(this);
@@ -262,6 +263,7 @@ namespace XianXia.Unity.Host
             entityViewSpawner.Rebuild(_session);
             var cam = Camera.main != null ? Camera.main : Object.FindObjectOfType<Camera>();
             selectionController.Bind(entityViewSpawner, cam);
+            selectionController.SetPartyFilter(_session.CharacterIds);
             commandBridge.Bind(_session, selectionController);
             debugHud.Bind(this, selectionController);
             contentDebugPanel.Bind(this, selectionController);

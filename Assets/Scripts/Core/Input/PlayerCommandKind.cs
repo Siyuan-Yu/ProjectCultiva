@@ -24,6 +24,10 @@ namespace XianXia.Core.Input
         /// <summary>Content Ready: resolve active content event choice (ChoiceId).</summary>
         ResolveContentChoice = 11,
         /// <summary>Content Ready: start quest by QuestId if offer conditions pass.</summary>
-        StartQuest = 12
+        StartQuest = 12,
+        /// <summary>Demo parity [49]/[32]: cancel active action and clear pending player orders.</summary>
+        Stop = 13,
+        /// <summary>Demo parity [49]: consume conceal grass to lower PersonalConcealmentRisk.</summary>
+        UseConcealGrass = 14
     }
 }

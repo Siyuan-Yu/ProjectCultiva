@@ -7,7 +7,9 @@
       "name": "青石洞府",
       "initialStock": [
         { "resourceId": "base:resource_rough_wood", "amount": 10 },
-        { "resourceId": "base:resource_spirit_herb", "amount": 2 }
+        { "resourceId": "base:resource_spirit_herb", "amount": 2 },
+        { "resourceId": "base:resource_grain", "amount": 0 },
+        { "resourceId": "base:resource_conceal_grass", "amount": 3 }
       ],
       "facilities": [
         "base:facility_meditation_mat"

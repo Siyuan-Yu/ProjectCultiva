@@ -79,6 +79,33 @@ namespace XianXia.Core.Simulation
             return Result.Success();
         }
 
+        /// <summary>
+        /// Demo Stop semantics [49]/[32]: cancel active action and clear pending orders.
+        /// </summary>
+        public Result StopSubject(EntityId subject)
+        {
+            if (!_world.Entities.TryGet(subject, out var entity))
+                return Result.Failure(ErrorCode.EntityNotFound, "Stop subject missing.");
+
+            _world.GetOrCreateOrderQueue(subject).Clear();
+
+            if (entity.TryGet<ActionStateComponent>(out var actionState) &&
+                actionState.HasActiveAction &&
+                _world.ActiveActions.TryGetValue(actionState.ActiveActionId, out var action))
+            {
+                action.Cancel();
+                ClearActive(action);
+                _world.Events.Publish(
+                    EventType.ScheduleInterrupted,
+                    _world.Tick,
+                    actor: subject,
+                    target: subject,
+                    payload: "Stop");
+            }
+
+            return Result.Success();
+        }
+
         public Order CreateWaitOrder(EntityId subject, ulong ticks, OrderSource source = OrderSource.Player)
         {
             return new Order(new OrderId(_nextOrderId++), subject, OrderType.Wait, source, waitTicks: ticks);

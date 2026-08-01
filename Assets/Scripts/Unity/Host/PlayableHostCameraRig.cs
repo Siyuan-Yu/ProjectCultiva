@@ -3,24 +3,24 @@ using UnityEngine;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// Chapter 01 Reference：2D 俯视正交相机（WASD 平移＋滚轮缩放）。
+    /// Demo-aligned 2D ortho camera on XY: middle-mouse pan, scroll zoom, WASD optional.
     /// </summary>
     public sealed class PlayableHostCameraRig : MonoBehaviour
     {
         [SerializeField] Camera targetCamera;
-        [SerializeField] Vector3 focus = Vector3.zero;
+        [SerializeField] Vector3 focus = new Vector3(-4f, 2f, 0f);
         [SerializeField] float orthographicSize = 12f;
-        [SerializeField] float height = 20f;
+        [SerializeField] float cameraZ = -10f;
         [SerializeField] float panSpeed = 12f;
         [SerializeField] float zoomSpeed = 2f;
         [SerializeField] float minSize = 6f;
-        [SerializeField] float maxSize = 24f;
-        [SerializeField] bool useOrthographicTopDown = true;
-
-        // Legacy perspective fields retained for older scenes.
-        [SerializeField] float distance = 6f;
+        [SerializeField] float maxSize = 22f;
+        [SerializeField] bool enableKeyboardPan = true;
+        [SerializeField] bool enableMiddleMousePan = true;
 
         Vector3 _focus;
+        bool _panning;
+        Vector3 _lastPanScreen;
 
         void Awake()
         {
@@ -35,13 +35,28 @@ namespace XianXia.Unity.Host
             if (targetCamera == null)
                 return;
 
-            var pan = Vector3.zero;
-            if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow)) pan.x -= 1f;
-            if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow)) pan.x += 1f;
-            if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow)) pan.z -= 1f;
-            if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) pan.z += 1f;
-            if (pan.sqrMagnitude > 0f)
-                _focus += pan.normalized * (panSpeed * Time.unscaledDeltaTime);
+            if (enableKeyboardPan)
+            {
+                var pan = Vector3.zero;
+                // Avoid stealing Demo W/A/S command keys: arrows + optional hold Alt+WASD.
+                if (Input.GetKey(KeyCode.LeftArrow)) pan.x -= 1f;
+                if (Input.GetKey(KeyCode.RightArrow)) pan.x += 1f;
+                if (Input.GetKey(KeyCode.DownArrow)) pan.y -= 1f;
+                if (Input.GetKey(KeyCode.UpArrow)) pan.y += 1f;
+                if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
+                {
+                    if (Input.GetKey(KeyCode.A)) pan.x -= 1f;
+                    if (Input.GetKey(KeyCode.D)) pan.x += 1f;
+                    if (Input.GetKey(KeyCode.S)) pan.y -= 1f;
+                    if (Input.GetKey(KeyCode.W)) pan.y += 1f;
+                }
+
+                if (pan.sqrMagnitude > 0f)
+                    _focus += pan.normalized * (panSpeed * Time.unscaledDeltaTime);
+            }
+
+            if (enableMiddleMousePan)
+                HandleMiddlePan();
 
             var scroll = Input.mouseScrollDelta.y;
             if (Mathf.Abs(scroll) > 0.01f)
@@ -50,9 +65,32 @@ namespace XianXia.Unity.Host
             ApplyTransform();
         }
 
+        void HandleMiddlePan()
+        {
+            if (Input.GetMouseButtonDown(2))
+            {
+                _panning = true;
+                _lastPanScreen = Input.mousePosition;
+            }
+
+            if (Input.GetMouseButtonUp(2))
+                _panning = false;
+
+            if (!_panning || !Input.GetMouseButton(2) || targetCamera == null)
+                return;
+
+            var current = Input.mousePosition;
+            var prev = targetCamera.ScreenToWorldPoint(new Vector3(_lastPanScreen.x, _lastPanScreen.y, -cameraZ));
+            var now = targetCamera.ScreenToWorldPoint(new Vector3(current.x, current.y, -cameraZ));
+            var delta = prev - now;
+            _focus.x += delta.x;
+            _focus.y += delta.y;
+            _lastPanScreen = current;
+        }
+
         public void FrameSlots(Vector3 center)
         {
-            _focus = center;
+            _focus = new Vector3(center.x, center.y, 0f);
             ApplyTransform();
         }
 
@@ -61,19 +99,10 @@ namespace XianXia.Unity.Host
             if (targetCamera == null)
                 return;
 
-            if (useOrthographicTopDown)
-            {
-                targetCamera.orthographic = true;
-                targetCamera.orthographicSize = orthographicSize;
-                targetCamera.transform.position = new Vector3(_focus.x, height, _focus.z);
-                targetCamera.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
-                return;
-            }
-
-            targetCamera.orthographic = false;
-            var pos = _focus + new Vector3(0f, height, -distance);
-            targetCamera.transform.position = pos;
-            targetCamera.transform.rotation = Quaternion.LookRotation((_focus - pos).normalized, Vector3.up);
+            targetCamera.orthographic = true;
+            targetCamera.orthographicSize = orthographicSize;
+            targetCamera.transform.position = new Vector3(_focus.x, _focus.y, cameraZ);
+            targetCamera.transform.rotation = Quaternion.identity;
         }
     }
 }

@@ -30,7 +30,8 @@ namespace XianXia.Tests
 
                 Assert.IsTrue(spawner.Registry.TryGet(session.RecruitableNpcId, out var npcView));
                 Assert.IsTrue(npcView.IsBound);
-                Assert.IsNotNull(npcView.GetComponent<CapsuleCollider>());
+                Assert.IsNotNull(npcView.GetComponent<SpriteRenderer>());
+                Assert.IsNotNull(npcView.GetComponent<BoxCollider2D>());
 
                 Assert.IsTrue(session.World.Entities.TryGet(session.RecruitableNpcId, out var npc));
                 Assert.AreEqual(EntityTag.Npc, npc.Tags);

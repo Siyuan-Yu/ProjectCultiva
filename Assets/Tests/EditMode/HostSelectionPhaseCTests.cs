@@ -158,8 +158,10 @@ namespace XianXia.Tests
         {
             var camGo = new GameObject("SelCam");
             cam = camGo.AddComponent<Camera>();
-            cam.transform.position = new Vector3(0f, 8f, -12f);
-            cam.transform.LookAt(Vector3.zero);
+            cam.orthographic = true;
+            cam.orthographicSize = 12f;
+            cam.transform.position = new Vector3(0f, 0f, -10f);
+            cam.transform.rotation = Quaternion.identity;
             // EditMode cameras often have a zero pixelRect; force a usable viewport for picking.
             cam.pixelRect = new Rect(0f, 0f, 800f, 600f);
 

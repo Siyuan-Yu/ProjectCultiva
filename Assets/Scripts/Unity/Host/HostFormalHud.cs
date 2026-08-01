@@ -69,17 +69,21 @@ namespace XianXia.Unity.Host
         {
             var wood = 0;
             var herb = 0;
+            var grain = 0;
+            var grass = 0;
             var name = "-";
             if (session.World.Settlements.TryGetPrimary(out var s))
             {
                 name = s.Name;
                 wood = s.GetStock("base:resource_rough_wood");
                 herb = s.GetStock("base:resource_spirit_herb");
+                grain = s.GetStock("base:resource_grain");
+                grass = s.GetStock("base:resource_conceal_grass");
             }
 
             GUI.Box(
-                new Rect(8f, 40f, 420f, 28f),
-                "资源 | " + name + "  木材=" + wood + "  灵草=" + herb);
+                new Rect(8f, 40f, 560f, 28f),
+                "资源 | " + name + "  木=" + wood + "  粮=" + grain + "  药=" + herb + "  敛息草=" + grass);
         }
 
         void DrawCharacterPanel(PlayableHostSession session)

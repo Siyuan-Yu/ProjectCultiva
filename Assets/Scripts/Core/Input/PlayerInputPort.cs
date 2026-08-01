@@ -1,3 +1,4 @@
+using XianXia.Core.Concealment;
 using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Exploration;
@@ -51,6 +52,9 @@ namespace XianXia.Core.Input
             if (request.IsSocialIntent)
                 return SubmitSocial(request);
 
+            if (request.IsInstantUtilityIntent)
+                return SubmitUtility(request);
+
             if (request.IsSettlementIntent)
                 return _settlement.AssignWork(_loop.World, request.Subject, request.WorkRole);
 
@@ -73,6 +77,37 @@ namespace XianXia.Core.Input
                 return Result.Failure(created.Error);
 
             return _loop.EnqueueOrder(created.Value);
+        }
+
+        Result SubmitUtility(PlayerCommandRequest request)
+        {
+            if (request.Kind == PlayerCommandKind.Stop)
+                return _loop.StopSubject(request.Subject);
+
+            if (request.Kind == PlayerCommandKind.UseConcealGrass)
+                return UseConcealGrass(request.Subject);
+
+            return Result.Failure(ErrorCode.InvalidArgument, "Unsupported utility kind.");
+        }
+
+        Result UseConcealGrass(XianXia.Core.Domain.Ids.EntityId subject)
+        {
+            const string grassId = "base:resource_conceal_grass";
+            const int riskDrop = 15;
+            var world = _loop.World;
+            if (!world.Settlements.TryGetPrimary(out var settlement))
+                return Result.Failure(ErrorCode.NotFound, "No settlement for conceal grass.");
+            if (settlement.GetStock(grassId) < 1)
+                return Result.Failure(ErrorCode.InvalidOperation, "No conceal grass stock.");
+            if (!world.Entities.TryGet(subject, out var entity) ||
+                !entity.TryGet<PersonalConcealmentRiskComponent>(out var risk))
+                return Result.Failure(ErrorCode.ComponentMissing, "Concealment risk missing.");
+
+            var spent = _settlement.AddStock(world, settlement.Id, grassId, -1);
+            if (spent.IsFailure)
+                return spent;
+            risk.Add(-riskDrop);
+            return Result.Success();
         }
 
         Result SubmitExploration(PlayerCommandRequest request)

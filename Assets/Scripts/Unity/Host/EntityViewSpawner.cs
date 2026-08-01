@@ -7,27 +7,27 @@ using XianXia.Core.Exploration;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// Instantiates／rebuilds EntityViews for playable-host characters and NPCs.
-    /// Presentation slots only.
+    /// Spawns 2D Sprite EntityViews (Demo-aligned XY plane). No Capsule／3D mesh.
     /// </summary>
     public sealed class EntityViewSpawner : MonoBehaviour
     {
         static readonly Color[] CharacterSlotColors =
         {
-            new Color(0.25f, 0.55f, 0.95f),
-            new Color(0.30f, 0.75f, 0.40f),
-            new Color(0.95f, 0.55f, 0.20f)
+            new Color(0.35f, 0.65f, 1f),
+            new Color(0.35f, 0.85f, 0.45f),
+            new Color(1f, 0.65f, 0.30f)
         };
 
-        static readonly Color NpcSlotColor = new Color(0.75f, 0.70f, 0.35f);
+        static readonly Color NpcSlotColor = new Color(0.85f, 0.78f, 0.40f);
+        static readonly Color SupervisorColor = new Color(0.95f, 0.35f, 0.35f);
 
         [SerializeField] Transform viewsRoot;
         [SerializeField] Vector3[] slotPositions =
         {
-            new Vector3(-2.5f, 1f, 0f),
-            new Vector3(0f, 1f, 0f),
-            new Vector3(2.5f, 1f, 0f),
-            new Vector3(5f, 1f, 0f)
+            new Vector3(-2.5f, 0f, 0f),
+            new Vector3(0f, 0f, 0f),
+            new Vector3(2.5f, 0f, 0f),
+            new Vector3(5f, 0f, 0f)
         };
 
         readonly EntityViewRegistry _registry = new EntityViewRegistry();
@@ -56,15 +56,20 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < ids.Count; i++)
             {
                 var id = ids[i];
-                var position = ResolvePresentationPosition(session, id, i, stackAtLocation);
+                var position = ResolvePresentationPosition(session, id, i, stackAtLocation, slotPositions);
 
                 var isNpc = session.World.Entities.TryGet(id, out var entity) &&
                              (entity.Tags & EntityTag.Npc) != 0;
-                var color = isNpc
-                    ? NpcSlotColor
-                    : CharacterSlotColors[i % CharacterSlotColors.Length];
+                var color = CharacterSlotColors[i % CharacterSlotColors.Length];
+                if (isNpc)
+                {
+                    color = NpcSlotColor;
+                    if (entity.TryGet<XianXia.Core.Social.NpcAiRoleComponent>(out var ai) &&
+                        ai.Role == XianXia.Core.Social.NpcAiRoleKind.Supervisor)
+                        color = SupervisorColor;
+                }
 
-                var view = CreateCapsuleView(id, position);
+                var view = CreateSpriteView(id, position);
                 if (!view.Bind(session.World, id))
                 {
                     DestroyView(view);
@@ -96,7 +101,8 @@ namespace XianXia.Unity.Host
             PlayableHostSession session,
             EntityId id,
             int fallbackIndex,
-            Dictionary<string, int> stackAtLocation)
+            Dictionary<string, int> stackAtLocation,
+            Vector3[] slots)
         {
             if (session.World.Entities.TryGet(id, out var entity) &&
                 entity.TryGet<EntityLocationComponent>(out var loc) &&
@@ -106,16 +112,17 @@ namespace XianXia.Unity.Host
                 stackAtLocation.TryGetValue(loc.LocationId, out var stack);
                 stackAtLocation[loc.LocationId] = stack + 1;
                 var ox = (stack % 3) * 0.85f - 0.85f;
-                var oz = (stack / 3) * 0.85f;
-                return new Vector3(location.PresentationX + ox, 0.5f, location.PresentationZ + oz);
+                var oy = (stack / 3) * 0.85f;
+                return HostPresentationSpace.FromPresentation(
+                    location.PresentationX + ox,
+                    location.PresentationZ + oy);
             }
 
-            return fallbackIndex < 4
-                ? new Vector3(fallbackIndex * 2.5f - 2.5f, 0.5f, 0f)
-                : new Vector3(fallbackIndex * 2.5f, 0.5f, 0f);
+            if (slots != null && fallbackIndex < slots.Length)
+                return slots[fallbackIndex];
+            return new Vector3(fallbackIndex * 2.5f, 0f, HostPresentationSpace.EntityZ);
         }
 
-        /// <summary>VS0.9: move views after travel without full rebuild.</summary>
         public void SyncLocations(PlayableHostSession session)
         {
             if (session == null || !session.IsInitialized)
@@ -127,34 +134,47 @@ namespace XianXia.Unity.Host
                 var id = ids[i];
                 if (!_registry.TryGet(id, out var view) || view == null)
                     continue;
-                view.transform.position = ResolvePresentationPosition(session, id, i, stackAtLocation);
+                view.transform.position = ResolvePresentationPosition(
+                    session, id, i, stackAtLocation, slotPositions);
             }
         }
 
-        EntityView CreateCapsuleView(EntityId id, Vector3 position)
+        EntityView CreateSpriteView(EntityId id, Vector3 position)
         {
-            // Reference Level：矮胶囊作 2D 俯视棋子（非 Demo Sprite 管线）。
-            var go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            go.name = "EntityView_" + id.Value;
+            var go = new GameObject("EntityView_" + id.Value);
             go.transform.SetParent(viewsRoot, worldPositionStays: true);
             go.transform.position = position;
             go.transform.rotation = Quaternion.identity;
-            go.transform.localScale = new Vector3(0.7f, 0.35f, 0.7f);
+            go.transform.localScale = Vector3.one * 0.9f;
 
-            var view = go.AddComponent<EntityView>();
+            var body = go.AddComponent<SpriteRenderer>();
+            body.sprite = HostSpriteFactory.UnitSprite();
+            body.sortingOrder = 10;
+
+            var col = go.AddComponent<BoxCollider2D>();
+            col.size = new Vector2(0.9f, 1.1f);
+
+            var ringGo = new GameObject("SelectionRing");
+            ringGo.transform.SetParent(go.transform, false);
+            ringGo.transform.localPosition = new Vector3(0f, -0.15f, 0.1f);
+            ringGo.transform.localScale = Vector3.one * 1.35f;
+            var ring = ringGo.AddComponent<SpriteRenderer>();
+            ring.sprite = HostSpriteFactory.SelectionRingSprite();
+            ring.sortingOrder = 9;
+            ring.enabled = false;
 
             var labelGo = new GameObject("Label");
             labelGo.transform.SetParent(go.transform, false);
-            labelGo.transform.localPosition = new Vector3(0f, 2.2f, 0f);
-            labelGo.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            labelGo.transform.localPosition = new Vector3(0f, 0.85f, -0.1f);
             var text = labelGo.AddComponent<TextMesh>();
-            text.characterSize = 0.14f;
-            text.anchor = TextAnchor.MiddleCenter;
+            text.characterSize = 0.12f;
+            text.anchor = TextAnchor.LowerCenter;
             text.alignment = TextAlignment.Center;
             text.fontSize = 28;
             text.color = Color.white;
             text.text = id.ToString();
 
+            var view = go.AddComponent<EntityView>();
             return view;
         }
 
@@ -166,22 +186,6 @@ namespace XianXia.Unity.Host
             var rootGo = new GameObject("EntityViews");
             rootGo.transform.SetParent(transform, false);
             viewsRoot = rootGo.transform;
-
-            EnsureGroundPlane();
-        }
-
-        void EnsureGroundPlane()
-        {
-            if (transform.Find("GroundPlane") != null)
-                return;
-            var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            ground.name = "GroundPlane";
-            ground.transform.SetParent(transform, false);
-            ground.transform.position = Vector3.zero;
-            ground.transform.localScale = new Vector3(4f, 1f, 4f);
-            var rend = ground.GetComponent<Renderer>();
-            if (rend != null)
-                rend.sharedMaterial.color = new Color(0.22f, 0.28f, 0.20f);
         }
 
         static void DestroyView(EntityView view)

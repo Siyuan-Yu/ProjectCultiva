@@ -58,7 +58,16 @@ namespace XianXia.Unity.Host
             if (!enableDebugKeys || _session == null || !_session.IsInitialized)
                 return;
 
-            if (Input.GetKeyDown(laborKey))
+            // Demo letter keys [49] (camera pan uses arrows / Alt+WASD).
+            if (Input.GetKeyDown(KeyCode.S))
+                IssueSelected(PlayerCommandKind.Stop, 0);
+            else if (Input.GetKeyDown(KeyCode.C))
+                IssueSelected(PlayerCommandKind.Cultivate);
+            else if (Input.GetKeyDown(KeyCode.X))
+                IssueSelected(PlayerCommandKind.Stop, 0);
+            else if (Input.GetKeyDown(KeyCode.G))
+                IssueSelected(PlayerCommandKind.UseConcealGrass, 0);
+            else if (Input.GetKeyDown(laborKey))
                 IssueSelected(PlayerCommandKind.Labor);
             else if (Input.GetKeyDown(restKey))
                 IssueSelected(PlayerCommandKind.Rest);
@@ -349,7 +358,8 @@ namespace XianXia.Unity.Host
                 return 0;
             }
 
-            if (durationTicks == 0)
+            var utility = kind == PlayerCommandKind.Stop || kind == PlayerCommandKind.UseConcealGrass;
+            if (!utility && durationTicks == 0)
             {
                 _lastStatus = "DurationTicks must be > 0";
                 return 0;

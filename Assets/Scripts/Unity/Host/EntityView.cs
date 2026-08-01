@@ -6,20 +6,21 @@ using XianXia.Core.Simulation;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// Minimal presentation binding for a Core Entity. Read-only sync only.
-    /// Does not modify components, tick, or create Orders.
+    /// 2D Sprite presentation binding for a Core Entity. Read-only sync.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class EntityView : MonoBehaviour
     {
-        [SerializeField] Renderer bodyRenderer;
+        [SerializeField] SpriteRenderer bodyRenderer;
+        [SerializeField] SpriteRenderer selectionRing;
         [SerializeField] TextMesh label;
+        [SerializeField] string activityText = string.Empty;
 
         SimulationWorld _world;
         EntityId _entityId;
         bool _bound;
         bool _failed;
-        Color _baseColor = Color.gray;
+        Color _baseColor = Color.white;
         bool _highlight;
 
         public EntityId EntityId => _entityId;
@@ -28,11 +29,18 @@ namespace XianXia.Unity.Host
 
         public bool IsHighlightRequested => _highlight;
 
-        /// <summary>V4-C will drive selection; Phase B only exposes the hook.</summary>
+        public string ActivityText => activityText;
+
         public void SetHighlight(bool highlighted)
         {
             _highlight = highlighted;
             ApplyVisualState();
+        }
+
+        public void SetActivityText(string text)
+        {
+            activityText = text ?? string.Empty;
+            RefreshLabel();
         }
 
         public bool Bind(SimulationWorld world, EntityId entityId)
@@ -50,7 +58,6 @@ namespace XianXia.Unity.Host
 
             _bound = true;
             EnsureVisualParts();
-            ApplyBaseColorFromSlot();
             SyncFromCore(entity);
             ApplyVisualState();
             return true;
@@ -63,6 +70,7 @@ namespace XianXia.Unity.Host
             _world = null;
             _entityId = EntityId.None;
             _highlight = false;
+            activityText = string.Empty;
         }
 
         void LateUpdate()
@@ -77,6 +85,9 @@ namespace XianXia.Unity.Host
             }
 
             SyncFromCore(entity);
+            // Y-sort like Demo: lower Y draws in front.
+            if (bodyRenderer != null)
+                bodyRenderer.sortingOrder = Mathf.RoundToInt(-transform.position.y * 100f);
         }
 
         void SyncFromCore(Entity entity)
@@ -87,11 +98,35 @@ namespace XianXia.Unity.Host
 
             gameObject.name = "EntityView_" + entity.Id.Value + "_" + display;
 
-            if (label != null)
+            if (string.IsNullOrEmpty(activityText) &&
+                entity.TryGet<ActionStateComponent>(out var action) &&
+                action.HasActiveAction)
             {
-                var busy = entity.TryGet<ActionStateComponent>(out var action) && action.HasActiveAction;
-                label.text = display + (busy ? " *" : string.Empty);
+                activityText = "行动中";
             }
+            else if (!entity.TryGet<ActionStateComponent>(out action) || !action.HasActiveAction)
+            {
+                if (activityText == "行动中")
+                    activityText = string.Empty;
+            }
+
+            RefreshLabel(display);
+        }
+
+        void RefreshLabel(string display = null)
+        {
+            if (label == null)
+                return;
+            if (display == null)
+            {
+                display = _bound && _world != null && _world.Entities.TryGet(_entityId, out var e)
+                    ? (string.IsNullOrEmpty(e.DisplayName) ? e.Id.ToString() : e.DisplayName)
+                    : string.Empty;
+            }
+
+            label.text = string.IsNullOrEmpty(activityText)
+                ? display
+                : display + "\n" + activityText;
         }
 
         public void SetBaseColor(Color color)
@@ -103,34 +138,27 @@ namespace XianXia.Unity.Host
         void EnsureVisualParts()
         {
             if (bodyRenderer == null)
-                bodyRenderer = GetComponentInChildren<Renderer>();
+                bodyRenderer = GetComponent<SpriteRenderer>();
+            if (selectionRing == null)
+            {
+                var ring = transform.Find("SelectionRing");
+                if (ring != null)
+                    selectionRing = ring.GetComponent<SpriteRenderer>();
+            }
 
             if (label == null)
                 label = GetComponentInChildren<TextMesh>();
         }
 
-        void ApplyBaseColorFromSlot()
-        {
-            // no-op placeholder; spawner sets color via SetBaseColor
-        }
-
         void ApplyVisualState()
         {
-            if (bodyRenderer == null)
-                return;
+            if (bodyRenderer != null)
+                bodyRenderer.color = _highlight
+                    ? Color.Lerp(_baseColor, Color.yellow, 0.45f)
+                    : _baseColor;
 
-            var color = _highlight ? Color.yellow : _baseColor;
-            var block = new MaterialPropertyBlock();
-            bodyRenderer.GetPropertyBlock(block);
-            block.SetColor("_Color", color);
-            bodyRenderer.SetPropertyBlock(block);
-
-            if (bodyRenderer.sharedMaterial != null && bodyRenderer.sharedMaterial.HasProperty("_BaseColor"))
-            {
-                bodyRenderer.GetPropertyBlock(block);
-                block.SetColor("_BaseColor", color);
-                bodyRenderer.SetPropertyBlock(block);
-            }
+            if (selectionRing != null)
+                selectionRing.enabled = _highlight;
         }
 
         bool FailSafe(string reason)

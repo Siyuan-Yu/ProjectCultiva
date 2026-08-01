@@ -96,5 +96,9 @@ namespace XianXia.Core.Input
         public bool IsContentIntent =>
             Kind == PlayerCommandKind.ResolveContentChoice ||
             Kind == PlayerCommandKind.StartQuest;
+
+        public bool IsInstantUtilityIntent =>
+            Kind == PlayerCommandKind.Stop ||
+            Kind == PlayerCommandKind.UseConcealGrass;
     }
 }

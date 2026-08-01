@@ -38,7 +38,8 @@ namespace XianXia.Tests
                     Assert.AreEqual(id, view.EntityId);
                     Assert.IsFalse(seen.Contains(id.Value));
                     seen.Add(id.Value);
-                    Assert.IsNotNull(view.GetComponent<CapsuleCollider>());
+                    Assert.IsNotNull(view.GetComponent<SpriteRenderer>());
+                    Assert.IsNotNull(view.GetComponent<BoxCollider2D>());
                 }
             }
             finally

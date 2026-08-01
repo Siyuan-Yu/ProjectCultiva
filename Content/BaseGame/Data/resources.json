@@ -12,6 +12,18 @@
       "type": "resource",
       "name": "灵草",
       "nameKey": "resource.spirit_herb"
+    },
+    {
+      "id": "base:resource_grain",
+      "type": "resource",
+      "name": "粮食",
+      "nameKey": "resource.grain"
+    },
+    {
+      "id": "base:resource_conceal_grass",
+      "type": "resource",
+      "name": "敛息草",
+      "nameKey": "resource.conceal_grass"
     }
   ]
 }

@@ -1,19 +1,22 @@
 using UnityEngine;
 using XianXia.Core.Exploration;
+using XianXia.Core.Input;
 
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// Reference RTS：右键地面移动选中单位；靠近地点圆心时同步 EntityLocation。
+    /// Demo-aligned：右键地面移动（XY）；下令前 Stop 当前 Core Action。
     /// </summary>
     public sealed class HostMoveController : MonoBehaviour
     {
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] EntityViewSpawner viewSpawner;
+        [SerializeField] HostCommandBridge commandBridge;
         [SerializeField] Camera worldCamera;
         [SerializeField] float moveSpeed = 6f;
         [SerializeField] float arriveLocationRadius = 1.6f;
+        [SerializeField] float formationSpacing = 1.25f;
 
         readonly System.Collections.Generic.Dictionary<EntityView, Vector3> _targets =
             new System.Collections.Generic.Dictionary<EntityView, Vector3>();
@@ -21,11 +24,13 @@ namespace XianXia.Unity.Host
         public void Bind(
             PlayableHostBootstrap host,
             HostSelectionController selection,
-            EntityViewSpawner spawner)
+            EntityViewSpawner spawner,
+            HostCommandBridge bridge = null)
         {
             bootstrap = host;
             selectionController = selection;
             viewSpawner = spawner;
+            commandBridge = bridge;
             if (worldCamera == null)
                 worldCamera = Camera.main;
         }
@@ -47,19 +52,46 @@ namespace XianXia.Unity.Host
 
         void IssueMoveToMouse()
         {
-            var ray = worldCamera.ScreenPointToRay(Input.mousePosition);
-            var plane = new Plane(Vector3.up, Vector3.zero);
-            if (!plane.Raycast(ray, out var enter))
+            if (!HostPresentationSpace.TryRaycastPlane(worldCamera, Input.mousePosition, out var point))
                 return;
-            var hitPoint = ray.GetPoint(enter);
-            var point = new Vector3(hitPoint.x, 0.5f, hitPoint.z);
-            for (var i = 0; i < selectionController.State.Count; i++)
+
+            // Cancel active Core actions before presentation move ([49] interrupt).
+            if (commandBridge != null)
+                commandBridge.IssueSelected(PlayerCommandKind.Stop);
+            else
+                StopSelectedViaPort();
+
+            var count = selectionController.State.Count;
+            for (var i = 0; i < count; i++)
             {
                 var id = selectionController.State.SelectedIds[i];
                 if (!viewSpawner.Registry.TryGet(id, out var view) || view == null)
                     continue;
-                _targets[view] = point;
+                var offset = FormationOffset(i, count);
+                _targets[view] = point + offset;
+                view.SetActivityText("移动中");
             }
+        }
+
+        void StopSelectedViaPort()
+        {
+            var session = bootstrap.Session;
+            if (session?.Port == null)
+                return;
+            for (var i = 0; i < selectionController.State.Count; i++)
+            {
+                var id = selectionController.State.SelectedIds[i];
+                session.Port.Submit(new PlayerCommandRequest(id, PlayerCommandKind.Stop, 0));
+            }
+        }
+
+        static Vector3 FormationOffset(int index, int count)
+        {
+            if (count <= 1)
+                return Vector3.zero;
+            var col = index % 3;
+            var row = index / 3;
+            return new Vector3((col - 1) * 1.25f, -row * 1.25f, 0f);
         }
 
         void TickMoves()
@@ -80,11 +112,12 @@ namespace XianXia.Unity.Host
                 var target = kv.Value;
                 var pos = view.transform.position;
                 var next = Vector3.MoveTowards(pos, target, moveSpeed * Time.unscaledDeltaTime);
-                next.y = 0.5f;
+                next.z = HostPresentationSpace.EntityZ;
                 view.transform.position = next;
                 if ((next - target).sqrMagnitude < 0.04f)
                 {
                     done.Add(view);
+                    view.SetActivityText(string.Empty);
                     SyncLocation(view);
                 }
             }
@@ -101,14 +134,14 @@ namespace XianXia.Unity.Host
             if (!entity.TryGet<EntityLocationComponent>(out var loc))
                 return;
 
-            var p = view.transform.position;
+            var p = HostPresentationSpace.ToPresentation(view.transform.position);
             string best = null;
             var bestDist = arriveLocationRadius;
             foreach (var kv in session.World.WorldRegion.Locations)
             {
                 var dx = kv.Value.PresentationX - p.x;
-                var dz = kv.Value.PresentationZ - p.z;
-                var d = Mathf.Sqrt(dx * dx + dz * dz);
+                var dy = kv.Value.PresentationZ - p.y;
+                var d = Mathf.Sqrt(dx * dx + dy * dy);
                 if (d < bestDist)
                 {
                     bestDist = d;

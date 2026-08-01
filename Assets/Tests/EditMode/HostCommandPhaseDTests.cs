@@ -164,8 +164,11 @@ namespace XianXia.Tests
         {
             var camGo = new GameObject("CmdCam");
             cam = camGo.AddComponent<Camera>();
-            cam.transform.position = new Vector3(0f, 8f, -12f);
-            cam.transform.LookAt(Vector3.zero);
+            cam.orthographic = true;
+            cam.orthographicSize = 12f;
+            cam.transform.position = new Vector3(0f, 0f, -10f);
+            cam.transform.rotation = Quaternion.identity;
+            cam.pixelRect = new Rect(0f, 0f, 800f, 600f);
 
             var host = new GameObject("CmdHost");
             bootstrap = host.AddComponent<PlayableHostBootstrap>();
