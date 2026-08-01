@@ -21,6 +21,15 @@
 
 **下一步：** V4-E 时间控制＋最小 HUD。
 
+## 2026-08-01 — VS0.4 Phase E：HUD 与时钟
+
+**做了什么**
+- `HostHudSnapshot`／`HostDebugHud`：Day／Hour／Action／Schedule／Quota／Risk／Realm 只读
+- 键位：Space 暂停、`.`／N 单步、`[`／`]` 倍速 1→2→5；自动 Tick 按倍速推进
+- EditMode：HUD 与 DayClock／组件一致
+
+**下一步：** V4-F DomainEvent 调试反馈。
+
 ## 2026-08-01 — VS0.4 Phase C：RTS Selection
 
 **做了什么**

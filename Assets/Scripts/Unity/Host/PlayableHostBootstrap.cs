@@ -5,8 +5,7 @@ using XianXia.Data.Bootstrap;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// VS0.4 Playable Host entry. Loads BaseGame, builds session, EntityViews, minimal Tick control.
-    /// No commands／HUD／Demo migration in Phase B.
+    /// VS0.4 Playable Host entry. Loads BaseGame, builds session, EntityViews, tick／HUD wiring.
     /// </summary>
     public sealed class PlayableHostBootstrap : MonoBehaviour
     {
@@ -25,13 +24,17 @@ namespace XianXia.Unity.Host
         [SerializeField] PlayableHostCameraRig cameraRig;
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] HostCommandBridge commandBridge;
+        [SerializeField] HostDebugHud debugHud;
 
         [Header("Tick debug")]
         [SerializeField] bool initializeOnPlay = true;
-        [SerializeField] bool autoTickWhenUnpaused;
-        [SerializeField] float secondsPerAutoTick = 0.25f;
-        [SerializeField] KeyCode stepTickKey = KeyCode.Space;
-        [SerializeField] KeyCode togglePauseKey = KeyCode.P;
+        [SerializeField] bool autoTickWhenUnpaused = true;
+        [SerializeField] float secondsPerAutoTickAt1x = 0.25f;
+        [SerializeField] KeyCode togglePauseKey = KeyCode.Space;
+        [SerializeField] KeyCode stepTickKey = KeyCode.Period;
+        [SerializeField] KeyCode stepTickAltKey = KeyCode.N;
+        [SerializeField] KeyCode cycleSpeedKey = KeyCode.RightBracket;
+        [SerializeField] KeyCode cycleSpeedAltKey = KeyCode.LeftBracket;
         [SerializeField] KeyCode rebuildKey = KeyCode.R;
 
         PlayableHostSession _session = new PlayableHostSession();
@@ -46,6 +49,8 @@ namespace XianXia.Unity.Host
         public HostSelectionController SelectionController => selectionController;
 
         public HostCommandBridge CommandBridge => commandBridge;
+
+        public HostDebugHud DebugHud => debugHud;
 
         public string StatusLine => _status;
 
@@ -63,6 +68,8 @@ namespace XianXia.Unity.Host
             if (commandBridge == null)
                 commandBridge = GetComponent<HostCommandBridge>() ??
                                GetComponentInChildren<HostCommandBridge>();
+            if (debugHud == null)
+                debugHud = GetComponent<HostDebugHud>() ?? GetComponentInChildren<HostDebugHud>();
         }
 
         void Start()
@@ -82,16 +89,26 @@ namespace XianXia.Unity.Host
                 RefreshStatus();
             }
 
-            if (Input.GetKeyDown(stepTickKey))
+            if (Input.GetKeyDown(stepTickKey) || Input.GetKeyDown(stepTickAltKey))
                 StepTick();
+
+            if (Input.GetKeyDown(cycleSpeedKey) || Input.GetKeyDown(cycleSpeedAltKey))
+            {
+                if (debugHud != null)
+                    debugHud.CycleSpeed();
+                RefreshStatus();
+            }
 
             if (Input.GetKeyDown(rebuildKey))
                 TryInitialize();
 
             if (!_session.IsPaused && autoTickWhenUnpaused)
             {
-                _autoTickAccumulator += Time.unscaledDeltaTime;
-                var interval = Mathf.Max(0.01f, secondsPerAutoTick);
+                var speed = debugHud != null ? debugHud.SpeedMultiplier : 1;
+                if (speed < 1)
+                    speed = 1;
+                _autoTickAccumulator += Time.unscaledDeltaTime * speed;
+                var interval = Mathf.Max(0.01f, secondsPerAutoTickAt1x);
                 while (_autoTickAccumulator >= interval)
                 {
                     _autoTickAccumulator -= interval;
@@ -110,6 +127,8 @@ namespace XianXia.Unity.Host
             if (commandBridge == null)
                 commandBridge = GetComponent<HostCommandBridge>() ??
                                gameObject.AddComponent<HostCommandBridge>();
+            if (debugHud == null)
+                debugHud = GetComponent<HostDebugHud>() ?? gameObject.AddComponent<HostDebugHud>();
 
             selectionController.ClearSelection();
             entityViewSpawner.Clear();
@@ -144,6 +163,7 @@ namespace XianXia.Unity.Host
             var cam = Camera.main;
             selectionController.Bind(entityViewSpawner, cam);
             commandBridge.Bind(_session, selectionController);
+            debugHud.Bind(this, selectionController);
             FrameCameraOnSlots();
 
             _session.IsPaused = true;
@@ -218,11 +238,13 @@ namespace XianXia.Unity.Host
             var day = _session.CurrentDayClock;
             var selected = selectionController != null ? selectionController.State.Count : 0;
             var cmd = commandBridge != null ? commandBridge.LastStatus : "-";
+            var speed = debugHud != null ? debugHud.SpeedMultiplier : 1;
             _status = "tick=" + _session.World.Tick.Value +
                       " day=" + day.DayIndex +
                       " tickInDay=" + day.TickInDay +
                       " hour=" + day.HourOfDay +
                       " paused=" + _session.IsPaused +
+                      " speed=" + speed + "x" +
                       " chars=" + _session.CharacterIds.Count +
                       " selected=" + selected +
                       " cmd=" + cmd;
