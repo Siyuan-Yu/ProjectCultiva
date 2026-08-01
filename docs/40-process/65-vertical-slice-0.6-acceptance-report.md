@@ -21,7 +21,7 @@
 | V6-B | 2190381 | Social HUD |
 | V6-C | 05019e | Social commands |
 | V6-D | 213c395 | Social event feed |
-| V6-E | （本提交） | 整合验收 |
+| V6-E | `2ad1d18` | 整合验收 |
 
 ## 3. 测试结果
 
