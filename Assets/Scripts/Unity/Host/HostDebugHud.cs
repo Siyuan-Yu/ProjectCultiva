@@ -72,6 +72,13 @@ namespace XianXia.Unity.Host
             var rect = new Rect(pad, Screen.height - height - pad, width, height);
             GUI.Box(rect, "PlayableHost HUD (F1)");
             GUI.Label(new Rect(rect.x + 8f, rect.y + 22f, rect.width - 16f, rect.height - 28f), text);
+
+            const float tipH = 72f;
+            var tip = new Rect(pad, rect.y - tipH - 6f, width, tipH);
+            GUI.Box(tip, "Demo 0.1 路径");
+            GUI.Label(
+                new Rect(tip.x + 8f, tip.y + 20f, tip.width - 16f, tip.height - 24f),
+                "Y旅行→洞口  T探索学机缘  4修炼突破  8/9/0分工  过日产资源  5帮助/7招募");
         }
     }
 }
