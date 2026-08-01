@@ -198,6 +198,15 @@ namespace XianXia.Data.Content
                     case "openingScenario":
                         LoadOpeningScenario(item, parsed.Value, registry, report);
                         break;
+                    case "resource":
+                        LoadResource(item, parsed.Value, registry, report);
+                        break;
+                    case "facility":
+                        LoadFacility(item, parsed.Value, registry, report);
+                        break;
+                    case "settlement":
+                        LoadSettlement(item, parsed.Value, registry, report);
+                        break;
                     default:
                         report.Add(ErrorCode.InvalidArgument, "Unknown definition type.", type);
                         break;
@@ -493,7 +502,8 @@ namespace XianXia.Data.Content
                 Id = id,
                 Name = item.GetString("name", string.Empty),
                 ScheduleId = item.GetString("scheduleId", string.Empty),
-                OpeningFactionId = item.GetString("openingFactionId", string.Empty)
+                OpeningFactionId = item.GetString("openingFactionId", string.Empty),
+                OpeningSettlementId = item.GetString("openingSettlementId", string.Empty)
             };
 
             if (item.TryGetProperty("spawns", out var spawnsNode))
@@ -529,7 +539,8 @@ namespace XianXia.Data.Content
                         FactionRole = spawnNode.GetString("factionRole", string.Empty),
                         BindSchedule = spawnNode.GetBool("bindSchedule", true),
                         BindDailyTask = spawnNode.GetBool("bindDailyTask", true),
-                        Recruitable = spawnNode.GetBool("recruitable", false)
+                        Recruitable = spawnNode.GetBool("recruitable", false),
+                        WorkRole = spawnNode.GetString("workRole", string.Empty)
                     };
                     if (string.IsNullOrWhiteSpace(entry.DefinitionId))
                     {
@@ -588,6 +599,132 @@ namespace XianXia.Data.Content
             var reg = registry.RegisterOpeningScenario(scenario);
             if (reg.IsFailure)
                 report.Add(reg.Error);
+        }
+
+        static void LoadResource(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.ResourceFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var resource = new ResourceDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                NameKey = item.GetString("nameKey", string.Empty)
+            };
+            var reg = registry.RegisterResource(resource);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void LoadFacility(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.FacilityFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var facility = new FacilityDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                LaborResourceId = item.GetString("laborResourceId", string.Empty),
+                LaborAmountPerWorker = ReadInt(item, "laborAmountPerWorker", 0),
+                GatherResourceId = item.GetString("gatherResourceId", string.Empty),
+                GatherAmountPerWorker = ReadInt(item, "gatherAmountPerWorker", 0),
+                CultivateProgressBonusPerWorker = ReadInt(item, "cultivateProgressBonusPerWorker", 0)
+            };
+            var reg = registry.RegisterFacility(facility);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void LoadSettlement(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.SettlementFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var settlement = new SettlementDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty)
+            };
+
+            if (item.TryGetProperty("initialStock", out var stockNode))
+            {
+                if (stockNode.Kind != JsonValueKind.Array)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "initialStock must be array.", id.ToString());
+                    return;
+                }
+
+                foreach (var entry in stockNode.Array)
+                {
+                    if (entry.Kind != JsonValueKind.Object)
+                    {
+                        report.Add(ErrorCode.ContentLoadFailed, "initialStock entries must be objects.", id.ToString());
+                        continue;
+                    }
+
+                    DefinitionSchema.RejectUnknownFields(
+                        entry, DefinitionSchema.SettlementStockFields, report, id + ".stock");
+                    if (report.Errors.Count > errorsBefore)
+                        return;
+
+                    settlement.InitialStock.Add(new SettlementStockEntry
+                    {
+                        ResourceId = entry.GetString("resourceId", string.Empty),
+                        Amount = ReadInt(entry, "amount", 0)
+                    });
+                }
+            }
+
+            if (item.TryGetProperty("facilities", out var facNode))
+            {
+                if (facNode.Kind != JsonValueKind.Array)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "facilities must be array.", id.ToString());
+                    return;
+                }
+
+                foreach (var f in facNode.Array)
+                {
+                    if (f.Kind != JsonValueKind.String || string.IsNullOrWhiteSpace(f.String))
+                    {
+                        report.Add(ErrorCode.ContentLoadFailed, "facilities entries must be strings.", id.ToString());
+                        continue;
+                    }
+
+                    settlement.FacilityIds.Add(f.String);
+                }
+            }
+
+            var reg = registry.RegisterSettlement(settlement);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static int ReadInt(JsonValue obj, string name, int fallback)
+        {
+            if (!obj.TryGetProperty(name, out var n) || n.Kind != JsonValueKind.Number)
+                return fallback;
+            return (int)n.Number;
         }
 
         static void ReadTags(JsonValue item, List<string> tags, ValidationReport report, string context) =>

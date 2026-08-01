@@ -10,6 +10,8 @@ namespace XianXia.Data.Content
         public string Name { get; set; }
         public string ScheduleId { get; set; }
         public string OpeningFactionId { get; set; }
+        /// <summary>VS0.8: optional opening settlement definition id.</summary>
+        public string OpeningSettlementId { get; set; }
         public List<OpeningSpawnEntry> Spawns { get; set; } = new List<OpeningSpawnEntry>();
         public List<OpeningRelationEntry> OpeningRelations { get; set; } = new List<OpeningRelationEntry>();
     }
@@ -25,6 +27,8 @@ namespace XianXia.Data.Content
         public bool BindSchedule { get; set; } = true;
         public bool BindDailyTask { get; set; } = true;
         public bool Recruitable { get; set; }
+        /// <summary>VS0.8: Labor | Gather | Cultivate (optional).</summary>
+        public string WorkRole { get; set; }
     }
 
     public sealed class OpeningRelationEntry

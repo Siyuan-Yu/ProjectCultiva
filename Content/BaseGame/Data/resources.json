@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:resource_rough_wood",
+      "type": "resource",
+      "name": "粗木",
+      "nameKey": "resource.rough_wood"
+    },
+    {
+      "id": "base:resource_spirit_herb",
+      "type": "resource",
+      "name": "灵草",
+      "nameKey": "resource.spirit_herb"
+    }
+  ]
+}

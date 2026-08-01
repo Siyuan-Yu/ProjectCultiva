@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:facility_meditation_mat",
+      "type": "facility",
+      "name": "蒲团静室",
+      "laborResourceId": "base:resource_rough_wood",
+      "laborAmountPerWorker": 2,
+      "gatherResourceId": "base:resource_spirit_herb",
+      "gatherAmountPerWorker": 1,
+      "cultivateProgressBonusPerWorker": 8
+    }
+  ]
+}

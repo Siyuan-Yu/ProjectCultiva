@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:settlement_qingshi_cave",
+      "type": "settlement",
+      "name": "青石洞府",
+      "initialStock": [
+        { "resourceId": "base:resource_rough_wood", "amount": 10 },
+        { "resourceId": "base:resource_spirit_herb", "amount": 2 }
+      ],
+      "facilities": [
+        "base:facility_meditation_mat"
+      ]
+    }
+  ]
+}

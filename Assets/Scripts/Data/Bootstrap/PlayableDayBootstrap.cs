@@ -100,6 +100,10 @@ namespace XianXia.Data.Bootstrap
             if (applied.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(applied.Error);
 
+            var settlement = SettlementBootstrap.ApplyOpening(world, registry, scenario, lookup);
+            if (settlement.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(settlement.Error);
+
             var recruitableId = OpeningScenarioApplier.FindFirstRecruitable(scenario, lookup);
             if (recruitableId.IsNone)
             {

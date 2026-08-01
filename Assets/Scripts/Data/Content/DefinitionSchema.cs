@@ -20,13 +20,35 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> OpeningScenarioFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "scheduleId", "openingFactionId", "spawns", "openingRelations"
+            "id", "type", "name", "scheduleId", "openingFactionId", "openingSettlementId",
+            "spawns", "openingRelations"
         };
 
         public static readonly HashSet<string> OpeningSpawnFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "definitionId", "entityKind", "displayName", "assignOpeningFaction", "factionRole",
-            "bindSchedule", "bindDailyTask", "recruitable"
+            "bindSchedule", "bindDailyTask", "recruitable", "workRole"
+        };
+
+        public static readonly HashSet<string> ResourceFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "nameKey", "tags"
+        };
+
+        public static readonly HashSet<string> FacilityFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "laborResourceId", "laborAmountPerWorker",
+            "gatherResourceId", "gatherAmountPerWorker", "cultivateProgressBonusPerWorker", "tags"
+        };
+
+        public static readonly HashSet<string> SettlementFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "initialStock", "facilities"
+        };
+
+        public static readonly HashSet<string> SettlementStockFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "resourceId", "amount"
         };
 
         public static readonly HashSet<string> OpeningRelationFields = new HashSet<string>(StringComparer.Ordinal)
