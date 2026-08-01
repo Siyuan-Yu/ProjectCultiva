@@ -24,6 +24,25 @@ namespace XianXia.Unity.Host
 
         public IReadOnlyList<string> Lines => _lines;
 
+        public string LastStatusLine
+        {
+            get
+            {
+                if (_lines.Count == 0)
+                    return "(no events)";
+                var start = _lines.Count > 6 ? _lines.Count - 6 : 0;
+                var sb = new StringBuilder();
+                for (var i = start; i < _lines.Count; i++)
+                {
+                    if (i > start)
+                        sb.Append('\n');
+                    sb.Append(_lines[i]);
+                }
+
+                return sb.ToString();
+            }
+        }
+
         public void Clear()
         {
             _lines.Clear();

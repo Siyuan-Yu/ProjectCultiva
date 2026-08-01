@@ -3,18 +3,22 @@ using UnityEngine;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// Minimal observer camera for Playable Host. Not a Demo CameraController port.
+    /// Chapter 01 Reference：2D 俯视正交相机（WASD 平移＋滚轮缩放）。
     /// </summary>
     public sealed class PlayableHostCameraRig : MonoBehaviour
     {
         [SerializeField] Camera targetCamera;
         [SerializeField] Vector3 focus = Vector3.zero;
+        [SerializeField] float orthographicSize = 12f;
+        [SerializeField] float height = 20f;
+        [SerializeField] float panSpeed = 12f;
+        [SerializeField] float zoomSpeed = 2f;
+        [SerializeField] float minSize = 6f;
+        [SerializeField] float maxSize = 24f;
+        [SerializeField] bool useOrthographicTopDown = true;
+
+        // Legacy perspective fields retained for older scenes.
         [SerializeField] float distance = 6f;
-        [SerializeField] float height = 14f;
-        [SerializeField] float panSpeed = 10f;
-        [SerializeField] float zoomSpeed = 4f;
-        [SerializeField] float minDistance = 5f;
-        [SerializeField] float maxDistance = 28f;
 
         Vector3 _focus;
 
@@ -41,7 +45,7 @@ namespace XianXia.Unity.Host
 
             var scroll = Input.mouseScrollDelta.y;
             if (Mathf.Abs(scroll) > 0.01f)
-                distance = Mathf.Clamp(distance - scroll * zoomSpeed, minDistance, maxDistance);
+                orthographicSize = Mathf.Clamp(orthographicSize - scroll * zoomSpeed, minSize, maxSize);
 
             ApplyTransform();
         }
@@ -57,6 +61,16 @@ namespace XianXia.Unity.Host
             if (targetCamera == null)
                 return;
 
+            if (useOrthographicTopDown)
+            {
+                targetCamera.orthographic = true;
+                targetCamera.orthographicSize = orthographicSize;
+                targetCamera.transform.position = new Vector3(_focus.x, height, _focus.z);
+                targetCamera.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+                return;
+            }
+
+            targetCamera.orthographic = false;
             var pos = _focus + new Vector3(0f, height, -distance);
             targetCamera.transform.position = pos;
             targetCamera.transform.rotation = Quaternion.LookRotation((_focus - pos).normalized, Vector3.up);

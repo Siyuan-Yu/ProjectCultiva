@@ -18,6 +18,8 @@ namespace XianXia.Unity.Host
         [Range(0, 100)]
         [SerializeField] int observationDiscoverChancePercent = 100;
         [SerializeField] int dailyRequiredAmount = 10;
+        [Tooltip("Chapter 01 Reference default. Empty = scenario_playable_day.")]
+        [SerializeField] string openingScenarioId = "base:scenario_ch01_reference";
 
         [Header("Presentation")]
         [SerializeField] EntityViewSpawner entityViewSpawner;
@@ -28,6 +30,10 @@ namespace XianXia.Unity.Host
         [SerializeField] HostContentDebugPanel contentDebugPanel;
         [SerializeField] HostEventFeed eventFeed;
         [SerializeField] HostSnapshotPanel snapshotPanel;
+        [SerializeField] HostMapGraybox mapGraybox;
+        [SerializeField] HostMoveController moveController;
+        [SerializeField] HostActionMenu actionMenu;
+        [SerializeField] HostFormalHud formalHud;
 
         [Header("Tick debug")]
         [SerializeField] bool initializeOnPlay = true;
@@ -86,6 +92,14 @@ namespace XianXia.Unity.Host
                 eventFeed = GetComponent<HostEventFeed>() ?? GetComponentInChildren<HostEventFeed>();
             if (snapshotPanel == null)
                 snapshotPanel = GetComponent<HostSnapshotPanel>() ?? GetComponentInChildren<HostSnapshotPanel>();
+            if (mapGraybox == null)
+                mapGraybox = GetComponent<HostMapGraybox>() ?? GetComponentInChildren<HostMapGraybox>();
+            if (moveController == null)
+                moveController = GetComponent<HostMoveController>() ?? GetComponentInChildren<HostMoveController>();
+            if (actionMenu == null)
+                actionMenu = GetComponent<HostActionMenu>() ?? GetComponentInChildren<HostActionMenu>();
+            if (formalHud == null)
+                formalHud = GetComponent<HostFormalHud>() ?? GetComponentInChildren<HostFormalHud>();
         }
 
         void Start()
@@ -152,10 +166,19 @@ namespace XianXia.Unity.Host
                 eventFeed = GetComponent<HostEventFeed>() ?? gameObject.AddComponent<HostEventFeed>();
             if (snapshotPanel == null)
                 snapshotPanel = GetComponent<HostSnapshotPanel>() ?? gameObject.AddComponent<HostSnapshotPanel>();
+            if (mapGraybox == null)
+                mapGraybox = GetComponent<HostMapGraybox>() ?? gameObject.AddComponent<HostMapGraybox>();
+            if (moveController == null)
+                moveController = GetComponent<HostMoveController>() ?? gameObject.AddComponent<HostMoveController>();
+            if (actionMenu == null)
+                actionMenu = GetComponent<HostActionMenu>() ?? gameObject.AddComponent<HostActionMenu>();
+            if (formalHud == null)
+                formalHud = GetComponent<HostFormalHud>() ?? gameObject.AddComponent<HostFormalHud>();
 
             selectionController.ClearSelection();
             entityViewSpawner.Clear();
             eventFeed.Clear();
+            mapGraybox.Clear();
 
             if (!TryResolveContentPackageDirectory(out _resolvedContentPath, out var pathError))
             {
@@ -168,7 +191,10 @@ namespace XianXia.Unity.Host
 
             var options = new PlayableDayOptions
             {
-                DailyRequiredAmount = Mathf.Max(1, dailyRequiredAmount)
+                DailyRequiredAmount = Mathf.Max(1, dailyRequiredAmount),
+                OpeningScenarioId = string.IsNullOrWhiteSpace(openingScenarioId)
+                    ? null
+                    : openingScenarioId.Trim()
             };
             if (overrideObservationDiscoverChance)
                 options.ObservationDiscoverChancePercent = observationDiscoverChancePercent;
@@ -184,11 +210,15 @@ namespace XianXia.Unity.Host
             }
 
             entityViewSpawner.Rebuild(_session);
+            mapGraybox.Rebuild(_session);
             var cam = Camera.main;
             selectionController.Bind(entityViewSpawner, cam);
             commandBridge.Bind(_session, selectionController);
             debugHud.Bind(this, selectionController);
             contentDebugPanel.Bind(this, selectionController);
+            moveController.Bind(this, selectionController, entityViewSpawner);
+            actionMenu.Bind(this, selectionController, commandBridge);
+            formalHud.Bind(this, selectionController, eventFeed);
             snapshotPanel.Bind(this);
             // Bootstrap already published WorldInitialized／EntityCreated — capture once.
             eventFeed.PullFrom(_session.World.Events);

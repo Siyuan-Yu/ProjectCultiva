@@ -107,12 +107,12 @@ namespace XianXia.Unity.Host
                 stackAtLocation[loc.LocationId] = stack + 1;
                 var ox = (stack % 3) * 0.85f - 0.85f;
                 var oz = (stack / 3) * 0.85f;
-                return new Vector3(location.PresentationX + ox, 1f, location.PresentationZ + oz);
+                return new Vector3(location.PresentationX + ox, 0.5f, location.PresentationZ + oz);
             }
 
             return fallbackIndex < 4
-                ? new Vector3(fallbackIndex * 2.5f - 2.5f, 1f, 0f)
-                : new Vector3(fallbackIndex * 2.5f, 1f, 0f);
+                ? new Vector3(fallbackIndex * 2.5f - 2.5f, 0.5f, 0f)
+                : new Vector3(fallbackIndex * 2.5f, 0.5f, 0f);
         }
 
         /// <summary>VS0.9: move views after travel without full rebuild.</summary>
@@ -133,23 +133,25 @@ namespace XianXia.Unity.Host
 
         EntityView CreateCapsuleView(EntityId id, Vector3 position)
         {
+            // Reference Level：矮胶囊作 2D 俯视棋子（非 Demo Sprite 管线）。
             var go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             go.name = "EntityView_" + id.Value;
             go.transform.SetParent(viewsRoot, worldPositionStays: true);
             go.transform.position = position;
             go.transform.rotation = Quaternion.identity;
-            go.transform.localScale = Vector3.one;
+            go.transform.localScale = new Vector3(0.7f, 0.35f, 0.7f);
 
             var view = go.AddComponent<EntityView>();
 
             var labelGo = new GameObject("Label");
             labelGo.transform.SetParent(go.transform, false);
-            labelGo.transform.localPosition = new Vector3(0f, 1.4f, 0f);
+            labelGo.transform.localPosition = new Vector3(0f, 2.2f, 0f);
+            labelGo.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             var text = labelGo.AddComponent<TextMesh>();
-            text.characterSize = 0.12f;
+            text.characterSize = 0.14f;
             text.anchor = TextAnchor.MiddleCenter;
             text.alignment = TextAlignment.Center;
-            text.fontSize = 32;
+            text.fontSize = 28;
             text.color = Color.white;
             text.text = id.ToString();
 
@@ -164,6 +166,22 @@ namespace XianXia.Unity.Host
             var rootGo = new GameObject("EntityViews");
             rootGo.transform.SetParent(transform, false);
             viewsRoot = rootGo.transform;
+
+            EnsureGroundPlane();
+        }
+
+        void EnsureGroundPlane()
+        {
+            if (transform.Find("GroundPlane") != null)
+                return;
+            var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            ground.name = "GroundPlane";
+            ground.transform.SetParent(transform, false);
+            ground.transform.position = Vector3.zero;
+            ground.transform.localScale = new Vector3(4f, 1f, 4f);
+            var rend = ground.GetComponent<Renderer>();
+            if (rend != null)
+                rend.sharedMaterial.color = new Color(0.22f, 0.28f, 0.20f);
         }
 
         static void DestroyView(EntityView view)
