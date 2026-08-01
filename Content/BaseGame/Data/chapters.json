@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:chapter_scaffold_01",
+      "type": "chapter",
+      "name": "生产框架骨架章",
+      "description": "非第一章剧情：验证章节／天数／任务链／事件链／Story Flag。",
+      "openingScenarioId": "base:scenario_playable_day",
+      "plannedDays": 3,
+      "questChainIds": [
+        "base:quest_scout_herb_slope",
+        "base:quest_listen_herb_whisper"
+      ],
+      "eventChainIds": [
+        "base:event_herb_whisper"
+      ],
+      "dayBeats": [
+        {
+          "dayIndex": 0,
+          "setFlags": ["story:chapter_scaffold_started"],
+          "questOfferIds": ["base:quest_scout_herb_slope"]
+        },
+        {
+          "dayIndex": 1,
+          "setFlags": ["story:chapter_scaffold_day1"]
+        },
+        {
+          "dayIndex": 2,
+          "conditions": [
+            { "kind": "storyFlag", "id": "quest:scout_herb_done" }
+          ],
+          "setFlags": ["story:chapter_scaffold_ready_for_authoring"]
+        }
+      ]
+    }
+  ]
+}

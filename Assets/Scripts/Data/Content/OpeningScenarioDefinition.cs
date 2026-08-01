@@ -14,6 +14,8 @@ namespace XianXia.Data.Content
         public string OpeningSettlementId { get; set; }
         /// <summary>VS0.9: optional opening world region definition id.</summary>
         public string OpeningWorldRegionId { get; set; }
+        /// <summary>Chapter Production: optional opening chapter definition id.</summary>
+        public string OpeningChapterId { get; set; }
         public List<OpeningSpawnEntry> Spawns { get; set; } = new List<OpeningSpawnEntry>();
         public List<OpeningRelationEntry> OpeningRelations { get; set; } = new List<OpeningRelationEntry>();
     }

@@ -1,4 +1,4 @@
-# BaseGame Data Schema (Data Pipeline M1-A / VS0.7–1.0 / Content Ready)
+# BaseGame Data Schema (Data Pipeline M1-A / VS0.7–1.0 / Content Ready / Chapter Production)
 
 Runtime format: **JSON only** (CSV is authoring input via M1-B importer; not runtime).
 
@@ -19,6 +19,7 @@ Content/BaseGame/
     world_regions.json         # VS0.9 / Content Ready enterConditions
     quests.json                # Content Ready
     content_events.json        # Content Ready
+    chapters.json              # Chapter Production Framework
   Authoring/Csv/
     characters.csv
     cultivation.csv
@@ -50,7 +51,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 ### type 一览
 
-`character`｜`cultivation`｜`item`｜`opportunitySite`｜`openingScenario`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`quest`｜`contentEvent`
+`character`｜`cultivation`｜`item`｜`opportunitySite`｜`openingScenario`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`quest`｜`contentEvent`｜`chapter`
 
 ## type = character
 
@@ -89,6 +90,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | `scheduleId`／`openingFactionId` | 开局日程／势力 |
 | `openingSettlementId` | VS0.8 据点定义 |
 | `openingWorldRegionId` | VS0.9 区域定义 |
+| `openingChapterId` | Chapter Production：开局激活章节 |
 | `spawns[]` | 见下 |
 | `openingRelations[]` | from／to／delta／reasonTag／mutual |
 
@@ -152,3 +154,16 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 - `base:site_abandoned_cave`／`resource_rough_wood`／`resource_spirit_herb`
 - `base:quest_scout_herb_slope`／`quest_listen_herb_whisper`
 - `base:event_herb_whisper`
+- `base:chapter_scaffold_01`
+
+## type = chapter（Chapter Production）
+
+| Field | Notes |
+|---|---|
+| `openingScenarioId` | 文档关联（运行时由 scenario.`openingChapterId` 反向绑定） |
+| `plannedDays` | 计划天数（制作参考＋Dump） |
+| `questChainIds[]` | 有序任务链：前序 Completed 后自动接下一环 |
+| `eventChainIds[]` | 事件链清单（制作／计划；触发仍靠 explore／beat／条件） |
+| `dayBeats[]` | `dayIndex`／`conditions`／`questOfferIds`／`contentEventIds`／`setFlags` |
+
+会话态：Chapter／Quest／ContentEvent／Flags **不进 Snapshot v1**。

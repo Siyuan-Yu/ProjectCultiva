@@ -217,6 +217,9 @@ namespace XianXia.Data.Content
                     case "contentEvent":
                         LoadContentEvent(item, parsed.Value, registry, report);
                         break;
+                    case "chapter":
+                        LoadChapter(item, parsed.Value, registry, report);
+                        break;
                     default:
                         report.Add(ErrorCode.InvalidArgument, "Unknown definition type.", type);
                         break;
@@ -514,7 +517,8 @@ namespace XianXia.Data.Content
                 ScheduleId = item.GetString("scheduleId", string.Empty),
                 OpeningFactionId = item.GetString("openingFactionId", string.Empty),
                 OpeningSettlementId = item.GetString("openingSettlementId", string.Empty),
-                OpeningWorldRegionId = item.GetString("openingWorldRegionId", string.Empty)
+                OpeningWorldRegionId = item.GetString("openingWorldRegionId", string.Empty),
+                OpeningChapterId = item.GetString("openingChapterId", string.Empty)
             };
 
             if (item.TryGetProperty("spawns", out var spawnsNode))
@@ -824,6 +828,60 @@ namespace XianXia.Data.Content
             }
 
             var reg = registry.RegisterWorldRegion(region);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void LoadChapter(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.ChapterFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var chapter = new ChapterDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                Description = item.GetString("description", string.Empty),
+                OpeningScenarioId = item.GetString("openingScenarioId", string.Empty),
+                PlannedDays = ReadInt(item, "plannedDays", 0)
+            };
+            ReadStringList(item, "questChainIds", chapter.QuestChainIds, report, id.ToString());
+            ReadStringList(item, "eventChainIds", chapter.EventChainIds, report, id.ToString());
+
+            if (item.TryGetProperty("dayBeats", out var beats) && beats.Kind == JsonValueKind.Array)
+            {
+                foreach (var beatNode in beats.Array)
+                {
+                    if (beatNode.Kind != JsonValueKind.Object)
+                    {
+                        report.Add(ErrorCode.ContentLoadFailed, "dayBeats entries must be objects.", id.ToString());
+                        continue;
+                    }
+
+                    DefinitionSchema.RejectUnknownFields(
+                        beatNode, DefinitionSchema.ChapterDayBeatFields, report, id + ".dayBeat");
+                    var beat = new ChapterDayBeatDefinition
+                    {
+                        DayIndex = ReadInt(beatNode, "dayIndex", 0)
+                    };
+                    ReadConditions(beatNode, "conditions", beat.Conditions, report, id + ".dayBeat");
+                    ReadStringList(beatNode, "questOfferIds", beat.QuestOfferIds, report, id + ".dayBeat");
+                    ReadStringList(beatNode, "contentEventIds", beat.ContentEventIds, report, id + ".dayBeat");
+                    ReadStringList(beatNode, "setFlags", beat.SetFlags, report, id + ".dayBeat");
+                    chapter.DayBeats.Add(beat);
+                }
+            }
+
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var reg = registry.RegisterChapter(chapter);
             if (reg.IsFailure)
                 report.Add(reg.Error);
         }

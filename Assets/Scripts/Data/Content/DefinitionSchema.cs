@@ -21,7 +21,18 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> OpeningScenarioFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "scheduleId", "openingFactionId", "openingSettlementId",
-            "openingWorldRegionId", "spawns", "openingRelations"
+            "openingWorldRegionId", "openingChapterId", "spawns", "openingRelations"
+        };
+
+        public static readonly HashSet<string> ChapterFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "description", "openingScenarioId", "plannedDays",
+            "questChainIds", "eventChainIds", "dayBeats"
+        };
+
+        public static readonly HashSet<string> ChapterDayBeatFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "dayIndex", "conditions", "questOfferIds", "contentEventIds", "setFlags"
         };
 
         public static readonly HashSet<string> WorldRegionFields = new HashSet<string>(StringComparer.Ordinal)

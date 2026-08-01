@@ -1,4 +1,5 @@
 using XianXia.Core.Bootstrap;
+using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Input;
 using XianXia.Core.Random;
@@ -112,6 +113,10 @@ namespace XianXia.Data.Bootstrap
             if (content.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(content.Error);
 
+            var chapter = ChapterRuntimeBootstrap.ApplyOpening(world, registry, scenario, lookup);
+            if (chapter.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(chapter.Error);
+
             var recruitableId = OpeningScenarioApplier.FindFirstRecruitable(scenario, lookup);
             if (recruitableId.IsNone)
             {
@@ -136,6 +141,7 @@ namespace XianXia.Data.Bootstrap
             }
 
             var loop = new SimulationLoop(world, enableSocialTick: true);
+            loop.AddDayBoundaryHandler(new ChapterDayHandler());
             IPlayerInputPort port = new PlayerInputPort(loop);
 
             return Result.Ok(new PlayableDayBootstrapResult(

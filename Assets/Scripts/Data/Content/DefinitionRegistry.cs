@@ -28,6 +28,8 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, QuestDefinition>();
         readonly Dictionary<DefinitionId, ContentEventDefinition> _contentEvents =
             new Dictionary<DefinitionId, ContentEventDefinition>();
+        readonly Dictionary<DefinitionId, ChapterDefinition> _chapters =
+            new Dictionary<DefinitionId, ChapterDefinition>();
 
         public IReadOnlyDictionary<DefinitionId, CharacterDefinition> Characters => _characters;
         public IReadOnlyDictionary<DefinitionId, CultivationDefinition> Cultivations => _cultivations;
@@ -40,6 +42,7 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, WorldRegionDefinition> WorldRegions => _worldRegions;
         public IReadOnlyDictionary<DefinitionId, QuestDefinition> Quests => _quests;
         public IReadOnlyDictionary<DefinitionId, ContentEventDefinition> ContentEvents => _contentEvents;
+        public IReadOnlyDictionary<DefinitionId, ChapterDefinition> Chapters => _chapters;
 
         public bool ContainsId(DefinitionId id) =>
             _characters.ContainsKey(id) ||
@@ -52,7 +55,8 @@ namespace XianXia.Data.Content
             _settlements.ContainsKey(id) ||
             _worldRegions.ContainsKey(id) ||
             _quests.ContainsKey(id) ||
-            _contentEvents.ContainsKey(id);
+            _contentEvents.ContainsKey(id) ||
+            _chapters.ContainsKey(id);
 
         public Result RegisterCharacter(CharacterDefinition definition)
         {
@@ -131,6 +135,13 @@ namespace XianXia.Data.Content
             return Register(_contentEvents, definition, definition.Id);
         }
 
+        public Result RegisterChapter(ChapterDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "ChapterDefinition is null.");
+            return Register(_chapters, definition, definition.Id);
+        }
+
         public bool TryGetCharacter(DefinitionId id, out CharacterDefinition definition) =>
             _characters.TryGetValue(id, out definition);
 
@@ -163,6 +174,9 @@ namespace XianXia.Data.Content
 
         public bool TryGetContentEvent(DefinitionId id, out ContentEventDefinition definition) =>
             _contentEvents.TryGetValue(id, out definition);
+
+        public bool TryGetChapter(DefinitionId id, out ChapterDefinition definition) =>
+            _chapters.TryGetValue(id, out definition);
 
         Result Register<T>(Dictionary<DefinitionId, T> map, T definition, DefinitionId id)
         {
