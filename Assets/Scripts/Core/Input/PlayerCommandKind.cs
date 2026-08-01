@@ -16,6 +16,10 @@ namespace XianXia.Core.Input
         /// <summary>VS0.6: actor Recruit target → RecruitService.</summary>
         Recruit = 7,
         /// <summary>VS0.8: assign Subject work role on primary settlement.</summary>
-        AssignWork = 8
+        AssignWork = 8,
+        /// <summary>VS0.9: explore current abstract location.</summary>
+        Explore = 9,
+        /// <summary>VS0.9: travel to TargetLocationId (must be adjacent).</summary>
+        Travel = 10
     }
 }

@@ -1,4 +1,5 @@
 using XianXia.Core.Cultivation;
+using XianXia.Core.Exploration;
 using XianXia.Core.Results;
 using XianXia.Core.Settlement;
 using XianXia.Core.Simulation;
@@ -17,6 +18,7 @@ namespace XianXia.Core.Input
         readonly SocialInteractionService _social;
         readonly RecruitService _recruit;
         readonly SettlementService _settlement;
+        readonly ExplorationService _exploration;
 
         public PlayerInputPort(
             SimulationLoop loop,
@@ -24,7 +26,8 @@ namespace XianXia.Core.Input
             CultivationAttemptGate cultivationGate = null,
             SocialInteractionService social = null,
             RecruitService recruit = null,
-            SettlementService settlement = null)
+            SettlementService settlement = null,
+            ExplorationService exploration = null)
         {
             _loop = loop ?? throw new System.ArgumentNullException(nameof(loop));
             _factory = factory ?? new PlayerOrderFactory();
@@ -32,6 +35,7 @@ namespace XianXia.Core.Input
             _social = social ?? new SocialInteractionService();
             _recruit = recruit ?? new RecruitService();
             _settlement = settlement ?? new SettlementService();
+            _exploration = exploration ?? new ExplorationService();
         }
 
         public Result Submit(PlayerCommandRequest request)
@@ -44,6 +48,9 @@ namespace XianXia.Core.Input
 
             if (request.IsSettlementIntent)
                 return _settlement.AssignWork(_loop.World, request.Subject, request.WorkRole);
+
+            if (request.IsExplorationIntent)
+                return SubmitExploration(request);
 
             if (request.Kind == PlayerCommandKind.Cultivate)
             {
@@ -58,6 +65,15 @@ namespace XianXia.Core.Input
                 return Result.Failure(created.Error);
 
             return _loop.EnqueueOrder(created.Value);
+        }
+
+        Result SubmitExploration(PlayerCommandRequest request)
+        {
+            if (request.Kind == PlayerCommandKind.Explore)
+                return _exploration.ExploreHere(_loop.World, request.Subject);
+            if (request.Kind == PlayerCommandKind.Travel)
+                return _exploration.Travel(_loop.World, request.Subject, request.TargetLocationId);
+            return Result.Failure(ErrorCode.InvalidArgument, "Unsupported exploration kind.");
         }
 
         Result SubmitSocial(PlayerCommandRequest request)

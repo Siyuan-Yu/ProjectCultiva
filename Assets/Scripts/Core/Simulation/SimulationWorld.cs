@@ -9,6 +9,7 @@ using XianXia.Core.Opportunity;
 using XianXia.Core.Orders;
 using XianXia.Core.Random;
 using XianXia.Core.Schedule;
+using XianXia.Core.Exploration;
 using XianXia.Core.Settlement;
 using XianXia.Core.Social;
 using XianXia.Core.World;
@@ -41,6 +42,7 @@ namespace XianXia.Core.Simulation
             ActiveActions = new Dictionary<ActionId, IAction>();
             Relationships = new RelationshipLedger();
             Settlements = new SettlementBoard();
+            WorldRegion = new WorldRegionBoard();
             Tick = WorldTick.Zero;
             EnabledPackageId = "base";
             EnabledPackageVersion = "0.0.1-m1";
@@ -74,6 +76,9 @@ namespace XianXia.Core.Simulation
 
         /// <summary>VS0.8 settlement board (session-only; not in Snapshot v1).</summary>
         public SettlementBoard Settlements { get; }
+
+        /// <summary>VS0.9 abstract world region (session-only; not in Snapshot v1).</summary>
+        public WorldRegionBoard WorldRegion { get; }
 
         public IReadOnlyDictionary<string, ScheduleDefinition> Schedules => _schedules;
 

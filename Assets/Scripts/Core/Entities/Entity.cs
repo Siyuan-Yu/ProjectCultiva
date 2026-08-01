@@ -21,7 +21,8 @@ namespace XianXia.Core.Entities
             typeof(XianXia.Core.Social.PersonalityProfileComponent),
             typeof(XianXia.Core.Social.RelationshipComponent),
             typeof(XianXia.Core.Social.FactionMembershipComponent),
-            typeof(XianXia.Core.Settlement.WorkAssignmentComponent)
+            typeof(XianXia.Core.Settlement.WorkAssignmentComponent),
+            typeof(XianXia.Core.Exploration.EntityLocationComponent)
         };
 
         readonly Dictionary<Type, IComponent> _components = new Dictionary<Type, IComponent>();

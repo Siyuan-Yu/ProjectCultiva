@@ -35,7 +35,11 @@ namespace XianXia.Core.Events
         /// <summary>VS0.8: Work role assignment changed.</summary>
         WorkAssignmentChanged = 19,
         /// <summary>VS0.8: Day-end settlement production resolved.</summary>
-        SettlementProductionResolved = 20
+        SettlementProductionResolved = 20,
+        /// <summary>VS0.9: Entity moved to another abstract location.</summary>
+        LocationChanged = 21,
+        /// <summary>VS0.9: Explore resolved at current location.</summary>
+        LocationExplored = 22
     }
 }
 
