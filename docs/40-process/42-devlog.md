@@ -7,6 +7,16 @@
 
 ---
 
+## 2026-08-01 — VS0.7 Character & Content Foundation 验收
+
+**做了什么**
+- Character：`personalityTags`／`backgroundTags`／`talentTags`；Scenario 驱动开局 spawn／NPC／势力／关系
+- 移除 PlayableDay 软编码 CreateNpc「村内可招者」
+- 数据样例：`character_village_recruit`／`character_herb_gatherer`／`cultivation_wood_whisper`／`scenarios.json`
+- EditMode **161/161**；验收 [68](68-vertical-slice-0.7-acceptance-report.md)；**未**改 Freeze／Snapshot schema
+
+**下一步：** VS0.8 据点／资源／经营循环（另开计划）。
+
 ## 2026-08-01 — 文档收束＋飞书同步（VS0.6）
 
 **做了什么**
