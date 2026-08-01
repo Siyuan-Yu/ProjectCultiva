@@ -1,4 +1,4 @@
-# BaseGame Data Schema (Data Pipeline M1-A / VS0.7)
+# BaseGame Data Schema (Data Pipeline M1-A / VS0.7–1.0)
 
 Runtime format: **JSON only** (CSV is authoring input via M1-B importer; not runtime).
 
@@ -11,8 +11,12 @@ Content/BaseGame/
     characters.json
     cultivation.json
     items.json
-    opportunity_sites.json   # if present
-    scenarios.json           # VS0.7 openingScenario
+    sites.json                 # opportunitySite
+    scenarios.json             # openingScenario
+    resources.json             # VS0.8
+    facilities.json            # VS0.8
+    settlements.json           # VS0.8
+    world_regions.json         # VS0.9
   Authoring/Csv/
     characters.csv
     cultivation.csv
@@ -35,86 +39,85 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | Field | Required | Notes |
 |---|---|---|
 | `id` | yes | `namespace:local_id`；须匹配 manifest.namespace |
-| `type` | yes | `character` \| `cultivation` \| `item` \| `opportunitySite` \| `openingScenario` |
-| `name` | no | 可读显示名（非完整 Loc） |
-| `displayNameKey` | no | Loc key 预留 |
-| `nameKey` | no | Loc key 预留 |
-| `tags` | no | string array（杂项／兼容） |
+| `type` | yes | 见下表 |
+| `name` | no | 可读显示名 |
+| `displayNameKey` / `nameKey` | no | Loc 预留 |
+| `tags` | no | string array |
 
-**Strict mode:** any other field → load fail. Duplicate `id` (any type) → fail. Invalid `id` → fail.
+**Strict mode:** 未知字段 → fail；重复 `id` → fail。
+
+### type 一览
+
+`character`｜`cultivation`｜`item`｜`opportunitySite`｜`openingScenario`｜`resource`｜`facility`｜`settlement`｜`worldRegion`
 
 ## type = character
 
-| Field | Required | Notes |
-|---|---|---|
-| `baseAttributes` | no | object: AttributeId name → number (`MaxHp`/`Attack`/`Defense`/`Speed`) |
-| `personalityTags` | no | string array → PersonalityProfile |
-| `backgroundTags` | no | string array → PersonalityProfile |
-| `talentTags` | no | string array → PersonalityProfile |
-| `spiritRootPlaceholder` | no | 灵根占位；无玩法公式 |
-| `initialRealmPlaceholder` | no | 初始境界占位 |
-
-Spawn 时合并顺序：personality → background → talent → tags。
+| Field | Notes |
+|---|---|
+| `baseAttributes` | MaxHp／Attack／Defense／Speed |
+| `personalityTags`／`backgroundTags`／`talentTags` | 合并进 PersonalityProfile（顺序：personality→background→talent→tags） |
+| `spiritRootPlaceholder`／`initialRealmPlaceholder` | 占位 |
 
 ## type = cultivation
 
-| Field | Required | Notes |
-|---|---|---|
-| `requiredRealm` | no | 境界占位；支持 `Mortal`／`凡人` |
-| `cultivationSpeed` | no | 每修炼 tick 增加的 Progress（Core 解释） |
-| `breakthroughProgress` | no | 凡人→炼气所需 Progress（Core 解释） |
-| `grantedModifiers` | no | array of grant objects (config only; Core applies later) |
-
-Grant object fields: `targetAttribute`, `operation` (`Fixed`\|`Percentage`), `value` (number), optional `stackingKey`.
+| Field | Notes |
+|---|---|
+| `requiredRealm` | `Mortal`／`凡人` 等 |
+| `cultivationSpeed`／`breakthroughProgress` | Core 解释 |
+| `grantedModifiers` | Fixed／Percentage grants |
 
 ## type = item
 
-| Field | Required | Notes |
-|---|---|---|
-| `maxStack` | no | number ≥ 1；default 1 |
+| Field | Notes |
+|---|---|
+| `maxStack` | ≥1，默认 1 |
 
-## type = openingScenario（VS0.7）
+## type = opportunitySite
 
-| Field | Required | Notes |
-|---|---|---|
-| `scheduleId` | no | 绑定日程定义 id |
-| `openingFactionId` | no | 开局势力 id |
-| `spawns` | yes | 开局生成列表 |
-| `openingRelations` | no | 开局关系边 |
+| Field | Notes |
+|---|---|
+| `allowsCultivation` | bool |
+| `offeredManualId` | 可选功法 id |
+| `description` | 文本 |
+
+## type = openingScenario（VS0.7+）
+
+| Field | Notes |
+|---|---|
+| `scheduleId`／`openingFactionId` | 开局日程／势力 |
+| `openingSettlementId` | VS0.8 据点定义 |
+| `openingWorldRegionId` | VS0.9 区域定义 |
+| `spawns[]` | 见下 |
+| `openingRelations[]` | from／to／delta／reasonTag／mutual |
 
 ### spawn entry
 
-| Field | Required | Notes |
-|---|---|---|
-| `definitionId` | yes | character 定义 id |
-| `entityKind` | no | `character`（默认）\|`npc` |
-| `displayName` | no | 覆盖定义名 |
-| `assignOpeningFaction` | no | bool |
-| `factionRole` | no | `LaborDisciple` \| `Member` |
-| `bindSchedule` | no | bool，默认 true |
-| `bindDailyTask` | no | bool，默认 true |
-| `recruitable` | no | bool；PlayableDay 取首个 true |
+`definitionId`、`entityKind`（character｜npc）、`displayName`、`assignOpeningFaction`、`factionRole`、`bindSchedule`、`bindDailyTask`、`recruitable`、`workRole`（Labor｜Gather｜Cultivate）
 
-### openingRelations entry
+## type = resource（VS0.8）
 
-| Field | Required | Notes |
-|---|---|---|
-| `fromDefinitionId` | yes | |
-| `toDefinitionId` | yes | |
-| `delta` | no | 默认 0 |
-| `reasonTag` | no | 默认 `opening_companion` |
-| `mutual` | no | bool，默认 true |
+`name`／`nameKey`
+
+## type = facility（VS0.8）
+
+`laborResourceId`／`laborAmountPerWorker`、`gatherResourceId`／`gatherAmountPerWorker`、`cultivateProgressBonusPerWorker`
+
+## type = settlement（VS0.8）
+
+`initialStock[]`（resourceId／amount）、`facilities[]`（facility id 字符串）
+
+## type = worldRegion（VS0.9）
+
+| Field | Notes |
+|---|---|
+| `startLocationId` | 开局地点 |
+| `locations[]` | id／name／kind／adjacentIds／resourceOnExplore*／opportunitySiteId／residentNpcDefinitionId／presentationX／presentationZ |
 
 ## Sample IDs
 
-- `base:character_labor_disciple`
-- `base:character_protagonist`
-- `base:character_companion_a`
-- `base:character_companion_b`
-- `base:character_village_recruit`
-- `base:character_herb_gatherer`
-- `base:cultivation_basic_breath`
-- `base:cultivation_qingyun_manual`
-- `base:cultivation_wood_whisper`
+- `base:character_protagonist`／`companion_a`／`companion_b`／`village_recruit`／`herb_gatherer`
+- `base:cultivation_qingyun_manual`／`wood_whisper`
 - `base:scenario_playable_day`
-- `base:item_rough_wood`
+- `base:settlement_qingshi_cave`／`facility_meditation_mat`
+- `base:region_qingshi`／`loc_labor_camp`／`loc_cave_mouth`／…
+- `base:site_abandoned_cave`／`resource_rough_wood`／`resource_spirit_herb`

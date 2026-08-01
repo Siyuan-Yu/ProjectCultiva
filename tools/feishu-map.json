@@ -430,6 +430,56 @@
       "file": "docs/40-process/66-vs0.6-producer-playtest-checklist.md",
       "title": "VS0.6 制作人试玩验收流程",
       "docId": "DRHBdkcx4o3O88xjX6gcDUNinrh"
+    },
+    "vs07-plan": {
+      "file": "docs/40-process/67-vertical-slice-0.7-character-content-foundation-plan-v0.1.md",
+      "title": "Vertical Slice 0.7 Character & Content Foundation 计划",
+      "docId": "Rnggd9MEEopQ1fx2a3Dc6ZZTnud"
+    },
+    "vs07-acceptance": {
+      "file": "docs/40-process/68-vertical-slice-0.7-acceptance-report.md",
+      "title": "Vertical Slice 0.7 Character & Content Foundation 验收报告",
+      "docId": "W2GpdEq4boeQPHx1uwJcDNlsnZg"
+    },
+    "vs08-plan": {
+      "file": "docs/40-process/69-vertical-slice-0.8-cultivation-settlement-plan-v0.1.md",
+      "title": "Vertical Slice 0.8 Cultivation & Settlement 计划",
+      "docId": "VrgpdyOZhoTaXAxMa1bctK4bnoe"
+    },
+    "vs08-acceptance": {
+      "file": "docs/40-process/70-vertical-slice-0.8-acceptance-report.md",
+      "title": "Vertical Slice 0.8 Cultivation & Settlement 验收报告",
+      "docId": "RWNFdJKsQoRzMxx6M4IcMtyAnjc"
+    },
+    "vs09-plan": {
+      "file": "docs/40-process/71-vertical-slice-0.9-world-interaction-plan-v0.1.md",
+      "title": "Vertical Slice 0.9 World Interaction 计划",
+      "docId": "EzTDddmHKonu81x34hucUKx7nrg"
+    },
+    "vs09-acceptance": {
+      "file": "docs/40-process/72-vertical-slice-0.9-acceptance-report.md",
+      "title": "Vertical Slice 0.9 World Interaction 验收报告",
+      "docId": "UjPIdfz59orUwTxHZfmcMV6Nnyf"
+    },
+    "vs10-plan": {
+      "file": "docs/40-process/73-vertical-slice-1.0-demo-plan-v0.1.md",
+      "title": "Vertical Slice 1.0 Demo 0.1 计划",
+      "docId": "Txr0dU8lWokJHMxMOsUcu4XNnCg"
+    },
+    "vs10-acceptance": {
+      "file": "docs/40-process/74-vertical-slice-1.0-acceptance-report.md",
+      "title": "Vertical Slice 1.0 Demo 0.1 验收报告",
+      "docId": "IjshdGym4oFdufxuiqfcOdM6nZd"
+    },
+    "vs07-to-10-delivery": {
+      "file": "docs/40-process/75-vs0.7-to-1.0-delivery-summary-2026-08-01.md",
+      "title": "VS0.7→VS1.0 交付总结 2026-08-01",
+      "docId": "DkNld4wZAowzGHx5yebcRb5onCd"
+    },
+    "basegame-schema": {
+      "file": "Content/BaseGame/Data/SCHEMA.md",
+      "title": "BaseGame Data SCHEMA（VS0.7–1.0）",
+      "docId": "ItIMdNCxkoMbVXxZMNmcIObjnTc"
     }
   }
 }

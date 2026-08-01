@@ -7,6 +7,14 @@
 
 ---
 
+## 2026-08-01 — 文档收束＋飞书同步（VS0.7～1.0）
+
+**做了什么**
+- 新增交付总结 [75](75-vs0.7-to-1.0-delivery-summary-2026-08-01.md)；更新总览／现状／SCHEMA
+- feishu-map 增补 VS0.7～1.0 计划／验收／SCHEMA；`--provision`＋全量同步
+
+**下一步：** 制作人手操 Demo；Snapshot 入档前硬停。
+
 ## 2026-08-01 — VS1.0 Demo 0.1 Vertical Slice 验收
 
 **做了什么**

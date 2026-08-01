@@ -117,9 +117,11 @@ Demo Runtime **继续冻结**。关系／据点／地点入 Snapshot 前须硬�
 ## 8. 明确不做（当前）
 
 - 扩 Demo Runtime 玩法  
-- 无计划战斗／地图／寻路／正式 UI 框架  
+- 真战斗／网格寻路／正式 UI 框架（抽象地点图已有，非大地图 RTS）  
 - 修改 Freeze 正文  
-- 把 Host 做成「第二个 Demo」
+- 未确认前升 Snapshot schema（关系／据点／地点入档）  
+
+交付总览另见 [75](75-vs0.7-to-1.0-delivery-summary-2026-08-01.md)。
 
 ---
 
@@ -129,13 +131,14 @@ Demo Runtime **继续冻结**。关系／据点／地点入 Snapshot 前须硬�
 |---|---|
 | 项目现状（本页） | https://my.feishu.cn/docx/F1FJdQ1usoWzsIxfiTFcKbOQnM8 |
 | 策划总览 | https://my.feishu.cn/docx/Oowtd4tyRoQBuxxMiBIcEkSbnBc |
-| VS0.4 验收 | https://my.feishu.cn/docx/MK2gdVR5korKBrx8cLBctqmQnfc |
-| VS0.5 计划 | https://my.feishu.cn/docx/BzFidWf30oHWmXxphZzcJxk0nmf |
-| VS0.5 验收 | https://my.feishu.cn/docx/KK54d38O9oI81LxdpRqcmUWJnFc |
-| VS0.6 计划 | https://my.feishu.cn/docx/BN4Zdflc5oNJdcx6xgTcYa3knNg |
-| VS0.6 验收 | https://my.feishu.cn/docx/HTOndyRhWonYbWx2sz8cFlbjndc |
-| VS0.6 制作人试玩 | https://my.feishu.cn/docx/DRHBdkcx4o3O88xjX6gcDUNinrh |
+| **VS0.7→1.0 交付总结** | https://my.feishu.cn/docx/DkNld4wZAowzGHx5yebcRb5onCd |
+| VS1.0 计划／验收 | https://my.feishu.cn/docx/Txr0dU8lWokJHMxMOsUcu4XNnCg ／ https://my.feishu.cn/docx/IjshdGym4oFdufxuiqfcOdM6nZd |
+| VS0.9 计划／验收 | https://my.feishu.cn/docx/EzTDddmHKonu81x34hucUKx7nrg ／ https://my.feishu.cn/docx/UjPIdfz59orUwTxHZfmcMV6Nnyf |
+| VS0.8 计划／验收 | https://my.feishu.cn/docx/VrgpdyOZhoTaXAxMa1bctK4bnoe ／ https://my.feishu.cn/docx/RWNFdJKsQoRzMxx6M4IcMtyAnjc |
+| VS0.7 计划／验收 | https://my.feishu.cn/docx/Rnggd9MEEopQ1fx2a3Dc6ZZTnud ／ https://my.feishu.cn/docx/W2GpdEq4boeQPHx1uwJcDNlsnZg |
+| BaseGame SCHEMA | https://my.feishu.cn/docx/ItIMdNCxkoMbVXxZMNmcIObjnTc |
+| VS0.6 验收／试玩 | https://my.feishu.cn/docx/HTOndyRhWonYbWx2sz8cFlbjndc ／ https://my.feishu.cn/docx/DRHBdkcx4o3O88xjX6gcDUNinrh |
 | 路线图 | https://my.feishu.cn/docx/Kj1odxkhBoa4YmxBCrYcYgn3n4e |
 | 开发日志 | https://my.feishu.cn/docx/JOrrdevURodYaoxhTZGcamFAnQd |
 
-完整映射见 `tools/feishu-map.json`。新建文档若不可见，需在飞书把应用文档分享到个人账号（或提供 open_id 后跑 `--share`）。
+完整映射见 `tools/feishu-map.json`。应用新建文档若个人账号不可见，需在飞书把文档分享给你，或提供 `open_id` 后跑 `node tools/feishu-sync.mjs --share --openid ou_xxx`。

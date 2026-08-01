@@ -1,25 +1,24 @@
 ﻿# 修仙游戏策划案总览
 
-> 状态：概念框架 v0.8｜**Architecture Freeze v0.2** | 最后更新：2026-08-01  
+> 状态：概念框架 v0.9｜**Architecture Freeze v0.2**｜**VS1.0 Demo 已验收** | 最后更新：2026-08-01  
 > **本页只放最高层大纲。** 细节进专题页；**怎么读整套文档**见 [通读指南](04-reading-guide.md)。  
 > 本地 Markdown 与飞书文档一一对应（真源在本地，飞书为阅读层）。
 
 ## 〇、当前项目阶段
 
-**架构冻结 v0.2。** Core／Data／**VS 0.1～0.4 已验收**。  
-**进行中：VS 0.5 社会／人格 Alpha**（V5-A 人格档案已完成；下一步 RelationshipLedger）。  
-Demo Runtime 停扩。完整进度见 [62 项目现状](../40-process/62-project-status-2026-08-01.md)。
+**架构冻结 v0.2。** Core／Data／Host／**VS 0.1～1.0 Demo 自动化已验收**。  
+长期路线 **VS0.7→0.8→0.9→1.0** 已收束（角色内容化、据点经营、地点探索、Demo 成长闭环）。  
+Demo Runtime 停扩。完整进度见 [62 项目现状](../40-process/62-project-status-2026-08-01.md)；本轮交付总览见 [75](../40-process/75-vs0.7-to-1.0-delivery-summary-2026-08-01.md)。
 
-**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [62 现状](../40-process/62-project-status-2026-08-01.md) → [术语表](03-glossary.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md) → [VS0.5 计划](../40-process/60-vertical-slice-0.5-social-alpha-plan-v0.1.md)。
+**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [62 现状](../40-process/62-project-status-2026-08-01.md) → [75 交付总结](../40-process/75-vs0.7-to-1.0-delivery-summary-2026-08-01.md) → [74 VS1.0 验收](../40-process/74-vertical-slice-1.0-acceptance-report.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md)。
 
 - 主契约：[33 架构冻结 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md)
 - 实体／Order／Mod：[34](../30-tech/34-entity-and-component-model.md)、[35](../30-tech/35-order-and-action-system.md)、[36](../30-tech/36-content-package-and-mod-architecture.md)
 - Modifier／事件：[2C](../20-systems/2C-attributes-and-modifier-pipeline.md)、[2E](../20-systems/2E-events-and-world-state.md)
 - 桥接／审计：[32](../30-tech/32-prototype-to-product-bridge.md)、[50 审计报告](../40-process/50-architecture-freeze-review-report-v0.1.md)
 - Core M1：[实施计划 v0.2（已完成）](../40-process/51-core-milestone-1-implementation-plan-v0.2.md)／[ADR-0022](../40-process/43-decisions/ADR-0022-core-milestone-1-scope.md)
-- VS 0.4 Host 验收：[61](../40-process/61-vertical-slice-0.4-acceptance-report.md)（计划 [59](../40-process/59-vertical-slice-0.4-unity-playable-host-plan-v0.1.md)）
-- VS 0.5 社会 Alpha：[60](../40-process/60-vertical-slice-0.5-social-alpha-plan-v0.1.md)（**当前开发焦点**）
-- VS 0.3 验收：[58](../40-process/58-vertical-slice-0.3-acceptance-report.md)
+- VS1.0 Demo 验收：[74](../40-process/74-vertical-slice-1.0-acceptance-report.md)（计划 [73](../40-process/73-vertical-slice-1.0-demo-plan-v0.1.md)）
+- VS0.7～0.9 验收：[68](../40-process/68-vertical-slice-0.7-acceptance-report.md)／[70](../40-process/70-vertical-slice-0.8-acceptance-report.md)／[72](../40-process/72-vertical-slice-0.9-acceptance-report.md)
 - 全部决策：[ADR 索引](../40-process/43-decisions/README.md)（UI＝0009 预留）
 
 v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead≠Removed；FocusCharacterUnavailable；开局宗门劳役 Membership；地图 World／Region／LocalMap。
@@ -101,12 +100,12 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 | [系统设计索引](../20-systems/README.md) | 系统清单与依赖 |
 | [路线图](../40-process/41-roadmap.md)／[开发日志](../40-process/42-devlog.md) | 阶段与记录 |
 | [62 项目现状 2026-08-01](../40-process/62-project-status-2026-08-01.md) | **现行进度总表** |
+| [75 VS0.7→1.0 交付总结](../40-process/75-vs0.7-to-1.0-delivery-summary-2026-08-01.md) | **本轮交付总览** |
+| [74 VS1.0 Demo 验收](../40-process/74-vertical-slice-1.0-acceptance-report.md) | **已通过** |
 | [Core M1 实施计划 v0.2](../40-process/51-core-milestone-1-implementation-plan-v0.2.md) | **已完成验收** |
-| [VS 0.1 验收](../40-process/54-vertical-slice-0.1-acceptance-report.md) | 已通过 |
-| [VS 0.2 验收](../40-process/56-vertical-slice-0.2-acceptance-report.md) | 已通过 |
-| [VS 0.3 验收](../40-process/58-vertical-slice-0.3-acceptance-report.md) | 已通过 |
-| [VS 0.4 Host 验收](../40-process/61-vertical-slice-0.4-acceptance-report.md) | **已通过**（计划 [59](../40-process/59-vertical-slice-0.4-unity-playable-host-plan-v0.1.md)） |
-| [VS 0.5 社会 Alpha 计划](../40-process/60-vertical-slice-0.5-social-alpha-plan-v0.1.md) | **当前开发焦点** |
+| [VS 0.4～0.6](../40-process/61-vertical-slice-0.4-acceptance-report.md)／[63](../40-process/63-vertical-slice-0.5-alpha-acceptance.md)／[65](../40-process/65-vertical-slice-0.6-acceptance-report.md) | Host／社会／Social Host |
+| [VS 0.7～0.9 验收](../40-process/68-vertical-slice-0.7-acceptance-report.md)／[70](../40-process/70-vertical-slice-0.8-acceptance-report.md)／[72](../40-process/72-vertical-slice-0.9-acceptance-report.md) | 内容／据点／世界 |
+| [Data SCHEMA](../../Content/BaseGame/Data/SCHEMA.md) | 运行时 JSON 字段 |
 | [Data Pipeline M1 计划 v0.2](../40-process/53-data-pipeline-milestone-1-plan-v0.2.md) | **已实现**（M1-A／M1-B） |
 | [ADR 决策索引](../40-process/43-decisions/README.md) | 全部已采纳决策 |
 
@@ -137,8 +136,8 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 
 ## 八、范围控制
 
-第一阶段玩法仍只验证：感应→炼气质变、角色↔领地闭环、暂停战斗构筑（**实现上 Core M1 先只做骨架，不含真战斗**）。  
-**VS0.5／0.6 已完成**（社会 Alpha + Playable Social Host）；当前为制作人人工试玩验收。不扩 Demo／战斗／地图。关系入 Snapshot 前须硬停。
+第一阶段玩法仍只验证：感应→炼气质变、角色↔领地闭环、暂停战斗构筑（**实现上仍不含真战斗**）。  
+**VS0.7～1.0 已完成**：内容化开局、据点日循环、抽象地点探索、Demo 成长闭环可手操。不扩 Demo Runtime；不改 Freeze。关系／据点／地点入 Snapshot 前须硬停。
 
 ## 九、跨系统未决（摘录）
 
@@ -146,7 +145,7 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 
 ## 十、下一步
 
-1. 制作人按 [66 试玩清单](../40-process/66-vs0.6-producer-playtest-checklist.md) 签收 VS0.6。  
-2. 若要关系入档 → **先确认 Snapshot schema**。  
-3. Content Authoring Tool：可招 NPC／关系种子不宜继续软编码膨胀。  
+1. 制作人按 [74 §4](../40-process/74-vertical-slice-1.0-acceptance-report.md) 手操 Demo 路径签收。  
+2. 若要关系／据点／地点入档 → **先确认 Snapshot schema**。  
+3. 正式 UI／内容扩量／战斗等另开切片。  
 4. 不扩展 Demo Runtime；不改 Freeze 正文。

@@ -214,6 +214,7 @@ const NAV_GROUPS = [
   { label: '30 技术架构', prefix: 'docs/30-tech/' },
   { label: '43 架构决策 ADR', prefix: 'docs/40-process/43-decisions/' },
   { label: '40 过程与记录', prefix: 'docs/40-process/' },
+  { label: 'Content 数据契约', prefix: 'Content/BaseGame/' },
 ];
 
 function buildNavFooter(entries, currentKey, hubEntry) {
