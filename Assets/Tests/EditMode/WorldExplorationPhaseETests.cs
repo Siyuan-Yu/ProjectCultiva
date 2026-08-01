@@ -75,12 +75,22 @@ namespace XianXia.Tests
             Assert.IsTrue(e2.Get<KnownSitesComponent>().Knows(
                 new DefinitionId("base", "site_abandoned_cave")));
 
+            // Content Ready: herb_slope enterConditions require explored village_edge
+            Assert.IsTrue(port.Submit(new PlayerCommandRequest(
+                actor, PlayerCommandKind.Travel, 1, EntityId.None, WorkRoleKind.None,
+                "base:loc_labor_camp")).IsSuccess);
+            Assert.IsTrue(port.Submit(new PlayerCommandRequest(
+                actor, PlayerCommandKind.Travel, 1, EntityId.None, WorkRoleKind.None,
+                "base:loc_village_edge")).IsSuccess);
+            Assert.IsTrue(port.Submit(new PlayerCommandRequest(
+                actor, PlayerCommandKind.Explore, 1)).IsSuccess);
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(
                 actor, PlayerCommandKind.Travel, 1, EntityId.None, WorkRoleKind.None,
                 "base:loc_herb_slope")).IsSuccess);
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(
                 actor, PlayerCommandKind.Explore, 1)).IsSuccess);
-            Assert.AreEqual(herbBefore + 2, settlement.GetStock("base:resource_spirit_herb"));
+            // explore +2；scout quest reward +1（Content Ready 骨架）
+            Assert.AreEqual(herbBefore + 3, settlement.GetStock("base:resource_spirit_herb"));
 
             var events = world.Events.Drain();
             Assert.IsTrue(events.Exists(ev => ev.Type == CoreEventType.LocationChanged));

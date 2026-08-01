@@ -1,10 +1,12 @@
 using System.IO;
 using NUnit.Framework;
+using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Input;
 using XianXia.Core.Settlement;
+using XianXia.Core.Social;
 using XianXia.Data.Bootstrap;
 using XianXia.Data.Content;
 using CoreEventType = XianXia.Core.Events.EventType;
@@ -81,6 +83,9 @@ namespace XianXia.Tests
             Assert.IsFalse(cultivateId.IsNone);
             Assert.IsTrue(world.Entities.TryGet(cultivateId, out var cultivator));
             var progressBefore = cultivator.Get<CultivationComponent>().Progress;
+            var talentBonus = cultivator.TryGet<PersonalityProfileComponent>(out var profile)
+                ? TalentGrowthRules.ExtraCultivateProgress(profile)
+                : 0;
 
             world.Tick = new WorldTick(95);
             world.Events.Drain();
@@ -88,7 +93,7 @@ namespace XianXia.Tests
 
             Assert.AreEqual(woodBefore + 2, settlement.GetStock("base:resource_rough_wood"));
             Assert.AreEqual(herbBefore + 1, settlement.GetStock("base:resource_spirit_herb"));
-            Assert.AreEqual(progressBefore + 8, cultivator.Get<CultivationComponent>().Progress);
+            Assert.AreEqual(progressBefore + 8 + talentBonus, cultivator.Get<CultivationComponent>().Progress);
             Assert.IsTrue(world.Events.Drain().Exists(e => e.Type == CoreEventType.SettlementProductionResolved));
         }
 
