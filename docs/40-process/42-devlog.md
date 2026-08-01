@@ -7,6 +7,15 @@
 
 ---
 
+## 2026-08-01 — VS1.0 Demo 0.1 Vertical Slice 验收
+
+**做了什么**
+- Demo 闭环验收测：探索→学法→突破→据点日产→关系
+- Host Demo 路径提示；EditMode **169/169**；验收 [74](74-vertical-slice-1.0-acceptance-report.md)
+- **VS0.7～1.0 长期路线自动化收束**
+
+**下一步：** 产品定 Snapshot 入档／正式 UI／内容扩量；开发可停。
+
 ## 2026-08-01 — VS0.9 World Interaction Layer 验收
 
 **做了什么**

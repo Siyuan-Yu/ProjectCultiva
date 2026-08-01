@@ -1,17 +1,16 @@
 # 项目现状总览 — 2026-08-01
 
 > 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-01  
-> 用途：一次看清 VS0.1～0.7 做到哪、本轮改了什么、下一步是什么。  
+> 用途：一次看清 VS0.1～1.0 做到哪、本轮改了什么、下一步是什么。  
 > 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准；本页不改 Freeze。
 
 ---
 
 ## 1. 一句话现状
 
-**Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～0.7 自动化已验收**。  
-**VS0.7** Character & Content Foundation 已完成（开局 Scenario／人物标签内容化）。  
-下一站：**VS0.8** 修仙据点与经营循环（须先写 Implementation Plan）。  
-Demo Runtime **继续冻结**。关系入 Snapshot 前须硬停确认 schema。
+**Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**。  
+长期路线 **VS0.7→0.8→0.9→1.0** 已收束：内容化角色、据点经营、地点探索、Demo 成长闭环。  
+Demo Runtime **继续冻结**。关系／据点／地点入 Snapshot 前须硬停确认 schema。
 
 ---
 
@@ -28,6 +27,9 @@ Demo Runtime **继续冻结**。关系入 Snapshot 前须硬停确认 schema。
 | VS0.5 | **已验收** | [60](60-vertical-slice-0.5-social-alpha-plan-v0.1.md)／[63](63-vertical-slice-0.5-alpha-acceptance.md) | 人格／关系／招募／日程偏置／社会 Tick |
 | VS0.6 | **自动化已验收** | [64](64-vertical-slice-0.6-playable-social-host-plan-v0.1.md)／[65](65-vertical-slice-0.6-acceptance-report.md)／[66 试玩](66-vs0.6-producer-playtest-checklist.md) | Social 接入 Unity Host |
 | VS0.7 | **已验收** | [67](67-vertical-slice-0.7-character-content-foundation-plan-v0.1.md)／[68](68-vertical-slice-0.7-acceptance-report.md) | Scenario／人物标签／数据-only 增内容 |
+| VS0.8 | **已验收** | [69](69-vertical-slice-0.8-cultivation-settlement-plan-v0.1.md)／[70](70-vertical-slice-0.8-acceptance-report.md) | 据点／资源／设施／分工／日产 |
+| VS0.9 | **已验收** | [71](71-vertical-slice-0.9-world-interaction-plan-v0.1.md)／[72](72-vertical-slice-0.9-acceptance-report.md) | 地点图／Travel／Explore／俯视布局 |
+| VS1.0 | **已验收** | [73](73-vertical-slice-1.0-demo-plan-v0.1.md)／[74](74-vertical-slice-1.0-acceptance-report.md) | Demo 0.1 成长闭环 |
 
 ---
 
@@ -98,17 +100,17 @@ Demo Runtime **继续冻结**。关系入 Snapshot 前须硬停确认 schema。
 
 ## 6. 测试门禁（截至本页）
 
-- EditMode：**161/161 全绿**（含 VS0.7 Content Foundation；`tools/run-editmode-tests.ps1`）。  
+- EditMode：**169/169 全绿**（含 VS1.0 Demo 闭环；`tools/run-editmode-tests.ps1`）。  
 - PlayMode：Host 选择／命令烟测保持绿。  
-- Snapshot：`WorldSnapshot.CurrentSchemaVersion = 1` **未升版**（关系／人格／隶属尚未入档）。
+- Snapshot：`WorldSnapshot.CurrentSchemaVersion = 1` **未升版**（关系／据点／地点尚未入档）。
 
 ---
 
 ## 7. 下一步
 
-1. 启动 **VS0.8 Cultivation & Settlement Simulation** Implementation Plan。  
-2. 若要关系／人格／隶属进 Snapshot：**先停**，确认 schema 后再做。  
-3. VS0.6 制作人试玩清单 [66](66-vs0.6-producer-playtest-checklist.md) 仍可并行签收。
+1. 制作人按 [74](74-vertical-slice-1.0-acceptance-report.md) §4 手操 Demo 路径签收。  
+2. 若要关系／据点／地点进 Snapshot：**先停**，确认 schema 后再做。  
+3. 正式 UI／内容扩量／战斗等另开切片。
 
 ---
 

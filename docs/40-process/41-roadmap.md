@@ -1,13 +1,13 @@
 # 路线图
 
-> 状态：**VS 0.7 已验收**｜下一目标：VS0.8 Settlement Simulation｜最后更新：2026-08-01
+> 状态：**VS1.0 Demo 0.1 已验收**｜下一目标：产品定后续｜最后更新：2026-08-01
 
 ## 当前阶段说明
 
 - Architecture Freeze **v0.2** 仍有效；**不改 Freeze 正文**。  
-- Core／Data／Cultivation／Host／**VS 0.1～0.7 自动化已验收**。  
+- Core／Data／Host／**VS 0.1～1.0 自动化已验收**。  
 - Demo Runtime 继续冻结。  
-- VS0.6：[65](65-vertical-slice-0.6-acceptance-report.md)／[66 试玩](66-vs0.6-producer-playtest-checklist.md)；VS0.7：[67](67-vertical-slice-0.7-character-content-foundation-plan-v0.1.md)／[68](68-vertical-slice-0.7-acceptance-report.md)。
+- VS0.7：[68](68-vertical-slice-0.7-acceptance-report.md)；VS0.8：[70](70-vertical-slice-0.8-acceptance-report.md)；VS0.9：[72](72-vertical-slice-0.9-acceptance-report.md)；VS1.0：[74](74-vertical-slice-1.0-acceptance-report.md)。
 
 ## M2.5 — 架构冻结
 
