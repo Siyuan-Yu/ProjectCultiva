@@ -4,7 +4,7 @@
 > 上级：`docs/00-project/00-overview.md`（最高层大纲）
 > 通读顺序见 [`../00-project/04-reading-guide.md`](../00-project/04-reading-guide.md)。
 > 新增系统请复制 `docs/90-templates/system-design-template.md`。
-> **当前阶段：Architecture Freeze v0.2；开发焦点 VS0.5 社会 Alpha。** 主契约见 `../30-tech/33-architecture-core-rules-freeze-v0.2.md`。
+> **当前阶段：Architecture Freeze v0.2；开发焦点：VS0.6 人工试玩验收（Social Host 已接入）。** 主契约见 `../30-tech/33-architecture-core-rules-freeze-v0.2.md`。
 
 ## 规则
 

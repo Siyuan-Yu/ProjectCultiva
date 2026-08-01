@@ -1,16 +1,16 @@
 # 项目现状总览 — 2026-08-01
 
 > 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-01  
-> 用途：一次看清 VS0.1～0.5 做到哪、本轮改了什么、下一步是什么。  
+> 用途：一次看清 VS0.1～0.6 做到哪、本轮改了什么、下一步是什么。  
 > 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准；本页不改 Freeze。
 
 ---
 
 ## 1. 一句话现状
 
-**Architecture Freeze v0.2 有效。** Core／Data 垂直切片 **VS0.1～0.4 已验收**；Unity Playable Host（选中／下令／HUD／事件／存档）可用。  
-**VS0.5 社会 Alpha 已验收**（见 [63](63-vertical-slice-0.5-alpha-acceptance.md)）：人格／Ledger／开局关系／招募／日程偏置／社会 Tick。  
-Demo Runtime **继续冻结**（只读参考，不迁玩法）。关系入 Snapshot 前须硬停确认 schema。
+**Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～0.6 自动化已验收**。  
+**VS0.5** 社会 Alpha（Core）＋**VS0.6** Playable Social Host（Unity 接线）已完成；**当前进入制作人人工试玩验收**（见 [66](66-vs0.6-producer-playtest-checklist.md)）。  
+Demo Runtime **继续冻结**。关系入 Snapshot 前须硬停确认 schema。
 
 ---
 
@@ -25,7 +25,7 @@ Demo Runtime **继续冻结**（只读参考，不迁玩法）。关系入 Snaps
 | VS0.3 | 完成 | [57](57-vertical-slice-0.3-plan-v0.1.md)／[58](58-vertical-slice-0.3-acceptance-report.md) | DayClock／Observe／Site／Gate／日终后果 |
 | VS0.4 | **完成** | [59](59-vertical-slice-0.4-unity-playable-host-plan-v0.1.md)／[61](61-vertical-slice-0.4-acceptance-report.md) | Unity Host 可玩日 |
 | VS0.5 | **已验收** | [60](60-vertical-slice-0.5-social-alpha-plan-v0.1.md)／[63](63-vertical-slice-0.5-alpha-acceptance.md) | 人格／关系／招募／日程偏置／社会 Tick |
-| VS0.6 | **已验收** | [64](64-vertical-slice-0.6-playable-social-host-plan-v0.1.md)／[65](65-vertical-slice-0.6-acceptance-report.md) | Social 接入 Unity Host |
+| VS0.6 | **自动化已验收／人工试玩中** | [64](64-vertical-slice-0.6-playable-social-host-plan-v0.1.md)／[65](65-vertical-slice-0.6-acceptance-report.md)／[66 试玩](66-vs0.6-producer-playtest-checklist.md) | Social 接入 Unity Host |
 
 ---
 
@@ -96,17 +96,18 @@ Demo Runtime **继续冻结**（只读参考，不迁玩法）。关系入 Snaps
 
 ## 6. 测试门禁（截至本页）
 
-- EditMode：**151/151 全绿**（含 VS0.4 Host + VS0.5 Social Alpha；`tools/run-editmode-tests.ps1`）。  
+- EditMode：**157/157 全绿**（含 VS0.4～0.6 Host／Social；`tools/run-editmode-tests.ps1`）。  
 - PlayMode：Host 选择／命令烟测保持绿。  
 - Snapshot：`WorldSnapshot.CurrentSchemaVersion = 1` **未升版**（关系／人格／隶属尚未入档）。
 
 ---
 
-## 7. 下一步（开发）
+## 7. 下一步
 
-1. **VS0.5 已验收**；下一切片方向待定。  
-2. 若要关系／人格／隶属进 Snapshot：**先停**，确认 schema 升级方案后再做（V5-H 可选）。  
-3. Content Authoring Tool：可招 NPC／关系种子不宜继续软编码膨胀。
+1. **制作人按 [66](66-vs0.6-producer-playtest-checklist.md) 人工试玩签收 VS0.6**（开发已停）。  
+2. 若要关系／人格／隶属进 Snapshot：**先停**，确认 schema 后再做。  
+3. Content Authoring Tool：可招 NPC／关系种子不宜继续软编码膨胀。  
+4. 下一切片方向待人工验收结论后定。
 
 ---
 
@@ -128,6 +129,9 @@ Demo Runtime **继续冻结**（只读参考，不迁玩法）。关系入 Snaps
 | VS0.4 验收 | https://my.feishu.cn/docx/MK2gdVR5korKBrx8cLBctqmQnfc |
 | VS0.5 计划 | https://my.feishu.cn/docx/BzFidWf30oHWmXxphZzcJxk0nmf |
 | VS0.5 验收 | https://my.feishu.cn/docx/KK54d38O9oI81LxdpRqcmUWJnFc |
+| VS0.6 计划 | https://my.feishu.cn/docx/BN4Zdflc5oNJdcx6xgTcYa3knNg |
+| VS0.6 验收 | https://my.feishu.cn/docx/HTOndyRhWonYbWx2sz8cFlbjndc |
+| VS0.6 制作人试玩 | https://my.feishu.cn/docx/DRHBdkcx4o3O88xjX6gcDUNinrh |
 | 路线图 | https://my.feishu.cn/docx/Kj1odxkhBoa4YmxBCrYcYgn3n4e |
 | 开发日志 | https://my.feishu.cn/docx/JOrrdevURodYaoxhTZGcamFAnQd |
 

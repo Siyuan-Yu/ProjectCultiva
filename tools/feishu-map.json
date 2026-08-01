@@ -415,6 +415,21 @@
       "file": "docs/40-process/63-vertical-slice-0.5-alpha-acceptance.md",
       "title": "Vertical Slice 0.5 社会 Alpha 验收报告",
       "docId": "KK54d38O9oI81LxdpRqcmUWJnFc"
+    },
+    "vs06-plan": {
+      "file": "docs/40-process/64-vertical-slice-0.6-playable-social-host-plan-v0.1.md",
+      "title": "Vertical Slice 0.6 Playable Social Host 计划 v0.1",
+      "docId": "BN4Zdflc5oNJdcx6xgTcYa3knNg"
+    },
+    "vs06-acceptance": {
+      "file": "docs/40-process/65-vertical-slice-0.6-acceptance-report.md",
+      "title": "Vertical Slice 0.6 Playable Social Host 验收报告",
+      "docId": "HTOndyRhWonYbWx2sz8cFlbjndc"
+    },
+    "vs06-playtest": {
+      "file": "docs/40-process/66-vs0.6-producer-playtest-checklist.md",
+      "title": "VS0.6 制作人试玩验收流程",
+      "docId": "DRHBdkcx4o3O88xjX6gcDUNinrh"
     }
   }
 }

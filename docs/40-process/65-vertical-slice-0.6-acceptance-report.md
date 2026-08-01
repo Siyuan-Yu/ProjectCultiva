@@ -17,15 +17,15 @@
 
 | Phase | Commit | 说明 |
 |---|---|---|
-| V6-A | 3086064 | Npc views + 计划 64 |
-| V6-B | 2190381 | Social HUD |
-| V6-C | 05019e | Social commands |
-| V6-D | 213c395 | Social event feed |
+| V6-A | `3086064` | Npc views + 计划 64 |
+| V6-B | `2190381` | Social HUD |
+| V6-C | `a05019e` | Social commands |
+| V6-D | `213c395` | Social event feed |
 | V6-E | `2ad1d18` | 整合验收 |
 
 ## 3. 测试结果
 
-- EditMode：**157/157 Passed**（	ools/run-editmode-tests.ps1）  
+- EditMode：**157/157 Passed**（`tools/run-editmode-tests.ps1`）  
 - Snapshot schema 仍为 **v1**（社会状态不入档）  
 
 ## 4. 玩家体验流程（PlayableHost）
