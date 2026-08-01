@@ -7,6 +7,54 @@
 
 ---
 
+## 2026-08-01 — Vertical Slice 0.2 规划草案（不编码）
+
+新增 [`55-vertical-slice-0.2-plan-v0.1.md`](55-vertical-slice-0.2-plan-v0.1.md)：杂役第一天闭环——输入→Order、最小 Schedule、Player Override、三角色、日流程、偷修接入、暴露是否进切片、不做清单、V2-A～G 与 Cursor 任务模板。
+
+## 2026-08-01 — Data Pipeline M1-A：三类 Definition 加载
+
+**目标：** BaseGame JSON → ContentPackageLoader → Registry 可查询（无玩法结算）。
+
+**做了什么**
+- `CharacterDefinition`／`CultivationDefinition`／`ItemDefinition` + Registry 扩展  
+- 严格未知字段／重复 ID／非法 DefinitionId  
+- `characters.json`／`cultivation.json`／`items.json` + SCHEMA.md  
+- EditMode：`ContentPackageTests` 覆盖加载与阻断路径  
+
+**测试：** 需在编辑器 Test Runner 跑 EditMode（本机 Unity 占用工程时无法 batchmode）。
+
+**下一步：** 等确认后再进 M1-B（不自动开始）。
+
+## 2026-08-01 — Data Pipeline M1 计划批准（v0.2）
+
+**确认：** JSON 运行时为主、CSV 辅助、Excel 仅编辑源；严格未知字段／重复 ID／非法引用；不实现完整 Localization（预留 NameKey）；Modifier 规则与计算在 Core，Data 只提供配置。
+
+**下一步：** 另开编码任务后再 D1～D5；当前不编码。
+
+## 2026-08-01 — Core Milestone 1 验收完成（收尾）
+
+**判断：** 统一 Core 骨架已证明可承载后续系统；下一优先是真实数据接入，而非继续扩模拟功能。
+
+**做了什么（Phase 1～10）**
+- 程序集：`XianXia.Core`／`Data`／`Unity`／`Tests`（Core／Data 无 UnityEngine）
+- Id／WorldTick／ActionClock／Result／IRandomSource（完整 PRNG 状态）
+- ContentPackage 基础（显式 BaseGame）／Entity／AttributeModifier（`2C` 公式）
+- DomainEvent／Order→Action／SimulationLoop／Snapshot JSON
+- EditMode **54/54**；`CoreM1IntegrationTests` **PASS**（单 Region：加载定义→实体→Wait→存档续跑）
+
+**Git 范围**
+- `1688187` `feat: scaffold Core M1 phase 1…`
+- … 阶段 2～10 与整合测 …
+- `e8340da` `chore: add JsonSnapshotSerializer meta`
+- 共 12 个提交（`1688187`‥`e8340da`）
+
+**关键架构成果**
+- 双时间职责可测；Modifier 可溯源；业务失败走 Result；存档可恢复 Tick／Action／PRNG／Final
+- Demo Runtime 未迁入、未扩展
+
+**下一步**
+- Data Pipeline M1 规划：`53-data-pipeline-milestone-1-plan-v0.1.md`（确认前不编码）
+
 ## 2026-08-01 — Core M1 阶段 10 Snapshot＋整合烟测完成
 
 **判断：** JSON 往返必须恢复 WorldTick／ActionClock／PRNG／Modifier Final；内容版本不匹配走 Result。

@@ -39,7 +39,7 @@
 | 6 | [Modifier](../20-systems/2C-attributes-and-modifier-pipeline.md) → [事件与账本](../20-systems/2E-events-and-world-state.md) | 数值与因果记账 |
 | 7 | [时间](../20-systems/21-core-loop-and-time.md) → [地图](../20-systems/24-world-and-settlements.md) → [关系](../20-systems/28-jianghu-relations.md) | 双时间、三层地图、关系真源 |
 | 8 | [第一章](../20-systems/2G-first-chapter-flow.md) → [开局](../20-systems/20-opening-experience.md) → [义务隐匿](../20-systems/2F-obligation-and-concealment.md) | 开局 Membership 与体验弧 |
-| 9 | [路线图](../40-process/41-roadmap.md) → [Core M1 实施计划](../40-process/51-core-milestone-1-implementation-plan-v0.1.md) → [ADR-0022](../40-process/43-decisions/ADR-0022-core-milestone-1-scope.md) | 下一步边界 |
+| 9 | [路线图](../40-process/41-roadmap.md) → [Core M1（已完成）](../40-process/51-core-milestone-1-implementation-plan-v0.2.md) → [Data Pipeline v0.2](../40-process/53-data-pipeline-milestone-1-plan-v0.2.md) | 下一步边界 |
 | 10 | 其余系统按总览索引按需深读 | 战斗／功法／领地等 |
 
 ## 3. 按角色的最短路径

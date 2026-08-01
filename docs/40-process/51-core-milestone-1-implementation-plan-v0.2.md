@@ -1,10 +1,11 @@
 # Core Milestone 1 Implementation Plan v0.2
 
-> 状态：**已批准，编码进行中** | 最后更新：2026-08-01  
+> 状态：**已完成并通过验收** | 最后更新：2026-08-01  
 > 类型：实施计划  
 > 依据：`33` v0.2 §17、`34`、`35`、`36`、`2C`、`2E`、ADR-0022、`31`  
 > 上级：[路线图](41-roadmap.md)｜[通读指南](../00-project/04-reading-guide.md)  
-> 旧版：[v0.1](51-core-milestone-1-implementation-plan-v0.1.md)（已被本文件取代）
+> 旧版：[v0.1](51-core-milestone-1-implementation-plan-v0.1.md)（已被本文件取代）  
+> 后续：[Data Pipeline M1 计划 v0.1](53-data-pipeline-milestone-1-plan-v0.1.md)
 
 ## 0. 文档目的
 
@@ -80,7 +81,7 @@
 | 7 AttributeModifier | **完成** |
 | 8 DomainEvent | **完成** |
 | 9 Order／Action | **完成** |
-| 10 Snapshot | **完成，待总验收**；含整合烟测 |
+| 10 Snapshot | **已完成并通过验收**；整合烟测 PASS |
 
 ---
 

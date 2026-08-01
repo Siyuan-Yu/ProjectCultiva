@@ -1,29 +1,46 @@
 # 路线图
 
-> 状态：**Architecture Freeze v0.2 待人工审核** | 最后更新：2026-08-01
+> 状态：**VS 0.1 已验收**｜下一规划：Vertical Slice 0.2（杂役第一天）| 最后更新：2026-08-01
 
 ## 当前阶段说明
 
-Demo 已停扩。主契约为 **`33` v0.2**。审核通过前**不编码**。正式 UI=ADR-0009 预留。
+- Architecture Freeze **v0.2** 仍有效；**不改 Freeze 正文**。  
+- Core M1／Data Pipeline／Cultivation Slice／**VS 0.1 已验收**。  
+- Demo 继续冻结。  
+- 下一文档：[55-vertical-slice-0.2-plan-v0.1.md](55-vertical-slice-0.2-plan-v0.1.md)（**只规划，确认前不编码**）。
 
 ## M2.5 — 架构冻结
 
 ### 文档包
 
 - [x] Freeze v0.1 文档包 + 审计报告 `50`
-- [x] **Freeze v0.2 修补**（关系权威／双时间／生命周期／Focus 失能／开局 Membership／地图三层／Core M1）
+- [x] **Freeze v0.2 修补**
 - [x] ADR-0017～0022
-- [x] 通读指南＋ADR 索引；飞书映射 66 篇一一对应同步（2026-08-01）
-- [ ] 人工审核通过 v0.2
+- [x] 通读指南＋ADR 索引；飞书映射
+- [x] Freeze v0.2 已作为 Core M1 依据落地（验收完成）
 
-### Core Milestone 1（ADR-0022）
+### Core Milestone 1（ADR-0022）— **Completed**
 
-- [x] 实施计划 v0.1 → **v0.2 已批准**（[51…v0.2](51-core-milestone-1-implementation-plan-v0.2.md)）
-- [ ] 阶段 1 工程结构
-- [ ] 阶段 2～10（每阶段确认后推进）
-- [ ] **明确不做：** 跨 Region 离屏、完整势力领导、真战斗、完整 NPC AI、Mods/ 加载、大地图战争、扩 Demo
+- [x] 实施计划 v0.2 批准并执行（[51…v0.2](51-core-milestone-1-implementation-plan-v0.2.md)）
+- [x] 阶段 1～10 全部完成
+- [x] EditMode **54/54**；Integration Test **PASS**
+- [x] Git：`1688187` … `e8340da`（含整合测与 meta）
+- [x] **未做（按范围）：** 跨 Region 离屏、完整势力领导、真战斗、完整 NPC AI、Mods/ 加载、大地图战争、扩 Demo
 
-完成标准：EditMode 测试覆盖骨架闭环（Host 可选）。
+### Data Pipeline Milestone 1
+
+- [x] 规划 v0.2 已批准并编码推进（见验收链）
+- [x] M1-A／M1-B（随 VS0.1 前置完成）
+
+### Vertical Slice 0.1 — **Completed**
+
+- [x] Bootstrap + Cultivation Slice；验收报告 [54](54-vertical-slice-0.1-acceptance-report.md)
+
+### Vertical Slice 0.2（杂役第一天）
+
+- [x] 规划草案：[55-vertical-slice-0.2-plan-v0.1.md](55-vertical-slice-0.2-plan-v0.1.md)
+- [ ] 确认暴露薄层／学法默认／Labor 点数／日程数据落点
+- [ ] （确认后）按 V2-A～V2-G 编码——**当前不开始**
 
 
 ## M0 — 定方向

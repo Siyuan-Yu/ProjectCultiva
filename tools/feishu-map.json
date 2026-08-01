@@ -345,6 +345,21 @@
       "file": "docs/40-process/51-core-milestone-1-implementation-plan-v0.1.md",
       "title": "Core Milestone 1 实施计划 v0.1（已取代）",
       "docId": "Qmb7d9M7toaDELx0UItcjq4Xnmg"
+    },
+    "data-pipeline-plan": {
+      "file": "docs/40-process/53-data-pipeline-milestone-1-plan-v0.2.md",
+      "title": "Data Pipeline Milestone 1 计划 v0.2",
+      "docId": "CGNVd2Hg0oQxEvxM7lDctjsVnjE"
+    },
+    "data-pipeline-plan-v01-stub": {
+      "file": "docs/40-process/53-data-pipeline-milestone-1-plan-v0.1.md",
+      "title": "Data Pipeline Milestone 1 计划 v0.1（已取代）",
+      "docId": "Ww6XdKqwnoB2WNxbxIkc7yhwnGg"
+    },
+    "vs02-plan": {
+      "file": "docs/40-process/55-vertical-slice-0.2-plan-v0.1.md",
+      "title": "Vertical Slice 0.2 计划 v0.1",
+      "docId": "DutBdLcK5oB9rSxt3Ptc8ebHnwb"
     }
   }
 }

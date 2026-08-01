@@ -6,15 +6,17 @@
 
 ## 〇、当前项目阶段
 
-**架构冻结 v0.2（待人工审核）。** Demo 已停扩；**不写正式代码／不实现 Core**（直至审核通过并另开实现任务）。
+**架构冻结 v0.2。** Core／Data／Cultivation／**VS 0.1 已验收**。下一焦点为 [VS 0.2 杂役第一天规划](../40-process/55-vertical-slice-0.2-plan-v0.1.md)（确认前不编码）。Demo 停扩。
 
-**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [术语表](03-glossary.md) → [33 冻结 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) → [ADR 索引](../40-process/43-decisions/README.md)。
+**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [术语表](03-glossary.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md) → [VS 0.2 计划](../40-process/55-vertical-slice-0.2-plan-v0.1.md)。
 
 - 主契约：[33 架构冻结 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md)
 - 实体／Order／Mod：[34](../30-tech/34-entity-and-component-model.md)、[35](../30-tech/35-order-and-action-system.md)、[36](../30-tech/36-content-package-and-mod-architecture.md)
 - Modifier／事件：[2C](../20-systems/2C-attributes-and-modifier-pipeline.md)、[2E](../20-systems/2E-events-and-world-state.md)
 - 桥接／审计：[32](../30-tech/32-prototype-to-product-bridge.md)、[50 审计报告](../40-process/50-architecture-freeze-review-report-v0.1.md)
-- Core M1 范围：`33` §17／[ADR-0022](../40-process/43-decisions/ADR-0022-core-milestone-1-scope.md)
+- Core M1：[实施计划 v0.2（已完成）](../40-process/51-core-milestone-1-implementation-plan-v0.2.md)／[ADR-0022](../40-process/43-decisions/ADR-0022-core-milestone-1-scope.md)
+- 下一阶段：[VS 0.2 计划](../40-process/55-vertical-slice-0.2-plan-v0.1.md)（杂役第一天；**待确认，不编码**）
+- VS 0.1 验收：[54](../40-process/54-vertical-slice-0.1-acceptance-report.md)
 - 全部决策：[ADR 索引](../40-process/43-decisions/README.md)（UI＝0009 预留）
 
 v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead≠Removed；FocusCharacterUnavailable；开局宗门劳役 Membership；地图 World／Region／LocalMap。
@@ -94,7 +96,10 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 | [愿景](01-vision.md)／[范围](02-scope-and-constraints.md)／[术语表](03-glossary.md) | 总纲三件套 |
 | [系统设计索引](../20-systems/README.md) | 系统清单与依赖 |
 | [路线图](../40-process/41-roadmap.md)／[开发日志](../40-process/42-devlog.md) | 阶段与记录 |
-| [Core M1 实施计划 v0.2](../40-process/51-core-milestone-1-implementation-plan-v0.2.md) | **已批准；按阶段编码** |
+| [Core M1 实施计划 v0.2](../40-process/51-core-milestone-1-implementation-plan-v0.2.md) | **已完成验收** |
+| [VS 0.1 验收](../40-process/54-vertical-slice-0.1-acceptance-report.md) | 已通过 |
+| [VS 0.2 计划 v0.1](../40-process/55-vertical-slice-0.2-plan-v0.1.md) | **杂役第一天（待确认）** |
+| [Data Pipeline M1 计划 v0.2](../40-process/53-data-pipeline-milestone-1-plan-v0.2.md) | 已批准并落地前置 |
 | [ADR 决策索引](../40-process/43-decisions/README.md) | 全部已采纳决策 |
 
 **架构文档：**
