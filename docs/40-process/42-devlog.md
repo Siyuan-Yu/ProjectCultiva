@@ -30,6 +30,15 @@
 
 **下一步：** V4-F DomainEvent 调试反馈。
 
+## 2026-08-01 — VS0.4 Phase F：事件反馈
+
+**做了什么**
+- `HostEventFeed`：Tick／Init 后 Drain DomainEvent 到环形缓冲；IMGUI 调试列表
+- 优先标记 Day／Override／Observe／Reject／Quota／Action 等事件
+- EditMode：发现／ScheduleInterrupted 可见
+
+**下一步：** V4-G Snapshot 存读 UI。
+
 ## 2026-08-01 — VS0.4 Phase C：RTS Selection
 
 **做了什么**

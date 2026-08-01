@@ -1,0 +1,133 @@
+using System.Collections.Generic;
+using System.Text;
+using UnityEngine;
+using XianXia.Core.Events;
+
+namespace XianXia.Unity.Host
+{
+    /// <summary>
+    /// VS0.4 Phase F: drain DomainEvents into a Host-side ring buffer for debug display.
+    /// Does not invent gameplay rules.
+    /// </summary>
+    public sealed class HostEventFeed : MonoBehaviour
+    {
+        [SerializeField] int capacity = 40;
+        [SerializeField] bool visible = true;
+        [SerializeField] KeyCode toggleKey = KeyCode.F2;
+
+        readonly List<string> _lines = new List<string>();
+        int _totalPulled;
+
+        public int Count => _lines.Count;
+
+        public int TotalPulled => _totalPulled;
+
+        public IReadOnlyList<string> Lines => _lines;
+
+        public void Clear()
+        {
+            _lines.Clear();
+            _totalPulled = 0;
+        }
+
+        /// <summary>Drain world event queue into the feed (Host ownership after pull).</summary>
+        public int PullFrom(DomainEventQueue events)
+        {
+            if (events == null || events.Count == 0)
+                return 0;
+
+            var drained = events.Drain();
+            for (var i = 0; i < drained.Count; i++)
+            {
+                var line = Format(drained[i]);
+                _lines.Add(line);
+                _totalPulled++;
+            }
+
+            Trim();
+            return drained.Count;
+        }
+
+        public bool ContainsTypeName(string typeName)
+        {
+            if (string.IsNullOrEmpty(typeName))
+                return false;
+            for (var i = 0; i < _lines.Count; i++)
+            {
+                if (_lines[i].IndexOf(typeName, System.StringComparison.Ordinal) >= 0)
+                    return true;
+            }
+
+            return false;
+        }
+
+        public string ToDebugText()
+        {
+            if (_lines.Count == 0)
+                return "(no events)";
+            var sb = new StringBuilder(256);
+            var start = _lines.Count > 12 ? _lines.Count - 12 : 0;
+            for (var i = start; i < _lines.Count; i++)
+                sb.AppendLine(_lines[i]);
+            return sb.ToString();
+        }
+
+        void Update()
+        {
+            if (Input.GetKeyDown(toggleKey))
+                visible = !visible;
+        }
+
+        void OnGUI()
+        {
+            if (!visible)
+                return;
+
+            const float pad = 8f;
+            var width = 460f;
+            var height = 180f;
+            var rect = new Rect(Screen.width - width - pad, pad, width, height);
+            GUI.Box(rect, "Events (F2) pulled=" + _totalPulled);
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 22f, rect.width - 16f, rect.height - 28f), ToDebugText());
+        }
+
+        void Trim()
+        {
+            var max = capacity < 8 ? 8 : capacity;
+            while (_lines.Count > max)
+                _lines.RemoveAt(0);
+        }
+
+        static string Format(DomainEvent evt)
+        {
+            if (evt == null)
+                return "?";
+
+            var priority = IsPriority(evt.Type) ? "*" : " ";
+            return priority + "t" + evt.Tick.Value + " " + evt.Type +
+                   " a=" + (evt.Actor.HasValue ? evt.Actor.Value.ToString() : "-") +
+                   " " + evt.Payload;
+        }
+
+        static bool IsPriority(XianXia.Core.Events.EventType type)
+        {
+            switch (type)
+            {
+                case XianXia.Core.Events.EventType.DayStarted:
+                case XianXia.Core.Events.EventType.DayEnded:
+                case XianXia.Core.Events.EventType.ScheduleInterrupted:
+                case XianXia.Core.Events.EventType.QuotaDeviationCreated:
+                case XianXia.Core.Events.EventType.ObservationResolved:
+                case XianXia.Core.Events.EventType.OpportunitySiteDiscovered:
+                case XianXia.Core.Events.EventType.OrderRejected:
+                case XianXia.Core.Events.EventType.ActionFailed:
+                case XianXia.Core.Events.EventType.QuotaConsequenceApplied:
+                case XianXia.Core.Events.EventType.ActionCompleted:
+                case XianXia.Core.Events.EventType.Breakthrough:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+    }
+}

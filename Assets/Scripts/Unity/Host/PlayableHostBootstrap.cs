@@ -25,6 +25,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] HostCommandBridge commandBridge;
         [SerializeField] HostDebugHud debugHud;
+        [SerializeField] HostEventFeed eventFeed;
 
         [Header("Tick debug")]
         [SerializeField] bool initializeOnPlay = true;
@@ -52,6 +53,8 @@ namespace XianXia.Unity.Host
 
         public HostDebugHud DebugHud => debugHud;
 
+        public HostEventFeed EventFeed => eventFeed;
+
         public string StatusLine => _status;
 
         public string ResolvedContentPath => _resolvedContentPath;
@@ -70,6 +73,8 @@ namespace XianXia.Unity.Host
                                GetComponentInChildren<HostCommandBridge>();
             if (debugHud == null)
                 debugHud = GetComponent<HostDebugHud>() ?? GetComponentInChildren<HostDebugHud>();
+            if (eventFeed == null)
+                eventFeed = GetComponent<HostEventFeed>() ?? GetComponentInChildren<HostEventFeed>();
         }
 
         void Start()
@@ -129,9 +134,12 @@ namespace XianXia.Unity.Host
                                gameObject.AddComponent<HostCommandBridge>();
             if (debugHud == null)
                 debugHud = GetComponent<HostDebugHud>() ?? gameObject.AddComponent<HostDebugHud>();
+            if (eventFeed == null)
+                eventFeed = GetComponent<HostEventFeed>() ?? gameObject.AddComponent<HostEventFeed>();
 
             selectionController.ClearSelection();
             entityViewSpawner.Clear();
+            eventFeed.Clear();
 
             if (!TryResolveContentPackageDirectory(out _resolvedContentPath, out var pathError))
             {
@@ -164,6 +172,8 @@ namespace XianXia.Unity.Host
             selectionController.Bind(entityViewSpawner, cam);
             commandBridge.Bind(_session, selectionController);
             debugHud.Bind(this, selectionController);
+            // Bootstrap already published WorldInitialized／EntityCreated — capture once.
+            eventFeed.PullFrom(_session.World.Events);
             FrameCameraOnSlots();
 
             _session.IsPaused = true;
@@ -207,6 +217,9 @@ namespace XianXia.Unity.Host
                 Debug.LogError("[PlayableHost] " + tick.Error, this);
                 return;
             }
+
+            if (eventFeed != null)
+                eventFeed.PullFrom(_session.World.Events);
 
             RefreshStatus();
         }
