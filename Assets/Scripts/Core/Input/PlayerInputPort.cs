@@ -1,5 +1,6 @@
 using XianXia.Core.Cultivation;
 using XianXia.Core.Results;
+using XianXia.Core.Settlement;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 
@@ -15,19 +16,22 @@ namespace XianXia.Core.Input
         readonly CultivationAttemptGate _cultivationGate;
         readonly SocialInteractionService _social;
         readonly RecruitService _recruit;
+        readonly SettlementService _settlement;
 
         public PlayerInputPort(
             SimulationLoop loop,
             PlayerOrderFactory factory = null,
             CultivationAttemptGate cultivationGate = null,
             SocialInteractionService social = null,
-            RecruitService recruit = null)
+            RecruitService recruit = null,
+            SettlementService settlement = null)
         {
             _loop = loop ?? throw new System.ArgumentNullException(nameof(loop));
             _factory = factory ?? new PlayerOrderFactory();
             _cultivationGate = cultivationGate ?? new CultivationAttemptGate();
             _social = social ?? new SocialInteractionService();
             _recruit = recruit ?? new RecruitService();
+            _settlement = settlement ?? new SettlementService();
         }
 
         public Result Submit(PlayerCommandRequest request)
@@ -37,6 +41,9 @@ namespace XianXia.Core.Input
 
             if (request.IsSocialIntent)
                 return SubmitSocial(request);
+
+            if (request.IsSettlementIntent)
+                return _settlement.AssignWork(_loop.World, request.Subject, request.WorkRole);
 
             if (request.Kind == PlayerCommandKind.Cultivate)
             {

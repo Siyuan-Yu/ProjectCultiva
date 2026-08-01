@@ -29,7 +29,13 @@ namespace XianXia.Core.Events
         /// <summary>VS0.5: RelationshipLedger recorded a directed score change.</summary>
         RelationshipChanged = 16,
         /// <summary>VS0.5: Faction membership joined／left (thin Alpha mark).</summary>
-        FactionMembershipChanged = 17
+        FactionMembershipChanged = 17,
+        /// <summary>VS0.8: Settlement stock changed (session; not Snapshot).</summary>
+        SettlementStockChanged = 18,
+        /// <summary>VS0.8: Work role assignment changed.</summary>
+        WorkAssignmentChanged = 19,
+        /// <summary>VS0.8: Day-end settlement production resolved.</summary>
+        SettlementProductionResolved = 20
     }
 }
 

@@ -8,6 +8,7 @@ using XianXia.Core.Labor;
 using XianXia.Core.Orders;
 using XianXia.Core.Results;
 using XianXia.Core.Schedule;
+using XianXia.Core.Settlement;
 using XianXia.Core.Social;
 
 namespace XianXia.Core.Simulation
@@ -42,7 +43,8 @@ namespace XianXia.Core.Simulation
             {
                 _dayBoundaryHandlers = new List<IDayBoundaryHandler>
                 {
-                    new QuotaConsequenceHandler()
+                    new QuotaConsequenceHandler(),
+                    new SettlementProductionHandler()
                 };
             }
         }
