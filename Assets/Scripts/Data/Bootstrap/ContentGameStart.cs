@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using XianXia.Core.Bootstrap;
 using XianXia.Core.Domain.Ids;
@@ -9,13 +10,12 @@ using XianXia.Data.Content;
 namespace XianXia.Data.Bootstrap
 {
     /// <summary>
-    /// Content → Core GameStart wiring for Vertical Slice 0.1 technical prep.
+    /// Content → Core GameStart wiring. VS0.7+: opening spawns driven by openingScenario.
     /// </summary>
     public sealed class ContentGameStart
     {
-        static readonly DefinitionId ProtagonistId = new DefinitionId("base", "character_protagonist");
-        static readonly DefinitionId CompanionAId = new DefinitionId("base", "character_companion_a");
-        static readonly DefinitionId CompanionBId = new DefinitionId("base", "character_companion_b");
+        public static readonly DefinitionId DefaultPlayableScenarioId =
+            new DefinitionId("base", "scenario_playable_day");
 
         readonly ContentPackageLoader _loader;
         readonly GameStartBootstrap _bootstrap;
@@ -40,19 +40,35 @@ namespace XianXia.Data.Bootstrap
         /// </summary>
         public Result<GameStartResult> StartVerticalSlice01(LoadedContent loaded, IRandomSource random = null)
         {
+            return StartFromScenario(loaded, DefaultPlayableScenarioId, random);
+        }
+
+        public Result<GameStartResult> StartFromScenario(
+            LoadedContent loaded,
+            DefinitionId scenarioId,
+            IRandomSource random = null)
+        {
             if (loaded == null || loaded.Registry == null)
                 return Result.Fail<GameStartResult>(ErrorCode.InvalidArgument, "LoadedContent is null.");
             if (loaded.Manifests == null || loaded.Manifests.Count == 0)
                 return Result.Fail<GameStartResult>(ErrorCode.ContentLoadFailed, "LoadedContent has no manifests.");
 
             var registry = loaded.Registry;
-            var spawns = new List<CharacterSpawnRequest>();
-            foreach (var id in new[] { ProtagonistId, CompanionAId, CompanionBId })
+            if (!registry.TryGetOpeningScenario(scenarioId, out var scenario))
             {
-                if (!registry.TryGetCharacter(id, out var def))
-                    return Result.Fail<GameStartResult>(ErrorCode.NotFound, "Required character definition missing.", id.ToString());
+                return Result.Fail<GameStartResult>(
+                    ErrorCode.NotFound,
+                    "Opening scenario definition missing.",
+                    scenarioId.ToString());
+            }
 
-                spawns.Add(ToSpawn(def));
+            var spawns = new List<CharacterSpawnRequest>();
+            foreach (var entry in scenario.Spawns)
+            {
+                var built = BuildSpawn(registry, entry);
+                if (built.IsFailure)
+                    return Result.Fail<GameStartResult>(built.Error);
+                spawns.Add(built.Value);
             }
 
             var manifest = loaded.Manifests[0];
@@ -84,14 +100,35 @@ namespace XianXia.Data.Bootstrap
             };
         }
 
-        static CharacterSpawnRequest ToSpawn(CharacterDefinition def)
+        static Result<CharacterSpawnRequest> BuildSpawn(DefinitionRegistry registry, OpeningSpawnEntry entry)
         {
+            if (entry == null || string.IsNullOrWhiteSpace(entry.DefinitionId))
+                return Result.Fail<CharacterSpawnRequest>(ErrorCode.MissingRequiredField, "spawn.definitionId required.");
+
+            var parsed = DefinitionId.Parse(entry.DefinitionId);
+            if (parsed.IsFailure)
+                return Result.Fail<CharacterSpawnRequest>(parsed.Error);
+
+            if (!registry.TryGetCharacter(parsed.Value, out var def))
+            {
+                return Result.Fail<CharacterSpawnRequest>(
+                    ErrorCode.NotFound,
+                    "Character definition missing for scenario spawn.",
+                    parsed.Value.ToString());
+            }
+
+            var kind = ParseEntityKind(entry.EntityKind);
+            var name = !string.IsNullOrWhiteSpace(entry.DisplayName)
+                ? entry.DisplayName
+                : (string.IsNullOrEmpty(def.Name) ? def.Id.ToString() : def.Name);
+
             var spawn = new CharacterSpawnRequest
             {
                 DefinitionId = def.Id,
-                Name = string.IsNullOrEmpty(def.Name) ? def.Id.ToString() : def.Name,
+                Name = name,
                 SpiritRootPlaceholder = def.SpiritRootPlaceholder ?? string.Empty,
-                InitialRealmPlaceholder = def.InitialRealmPlaceholder ?? string.Empty
+                InitialRealmPlaceholder = def.InitialRealmPlaceholder ?? string.Empty,
+                EntityKind = kind
             };
 
             if (def.BaseAttributes != null)
@@ -100,10 +137,21 @@ namespace XianXia.Data.Bootstrap
                     spawn.BaseAttributes[kv.Key] = kv.Value;
             }
 
-            if (def.Tags != null)
-                spawn.PersonalityTags.AddRange(def.Tags);
+            foreach (var tag in def.EnumerateProfileTags())
+            {
+                if (!string.IsNullOrWhiteSpace(tag))
+                    spawn.PersonalityTags.Add(tag);
+            }
 
-            return spawn;
+            return Result.Ok(spawn);
+        }
+
+        static SpawnEntityKind ParseEntityKind(string text)
+        {
+            if (!string.IsNullOrEmpty(text) &&
+                string.Equals(text.Trim(), "npc", StringComparison.OrdinalIgnoreCase))
+                return SpawnEntityKind.Npc;
+            return SpawnEntityKind.Character;
         }
     }
 }

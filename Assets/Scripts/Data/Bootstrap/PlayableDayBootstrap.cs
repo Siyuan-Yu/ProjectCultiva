@@ -1,16 +1,10 @@
 using XianXia.Core.Bootstrap;
-using XianXia.Core.Concealment;
-using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
-using XianXia.Core.Entities;
 using XianXia.Core.Input;
-using XianXia.Core.Labor;
-using XianXia.Core.Opportunity;
 using XianXia.Core.Random;
 using XianXia.Core.Results;
 using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
-using XianXia.Core.Social;
 using XianXia.Data.Content;
 using XianXia.Data.Cultivation;
 using XianXia.Data.Opportunity;
@@ -18,12 +12,14 @@ using XianXia.Data.Opportunity;
 namespace XianXia.Data.Bootstrap
 {
     /// <summary>
-    /// VS0.4 playable-day assembly shared by Unity Host and EditMode tests.
-    /// No UnityEngine. No gameplay rules beyond wiring existing Core systems.
+    /// Playable-day assembly shared by Unity Host and EditMode tests.
+    /// VS0.7+: spawn／NPC／faction／relations driven by openingScenario content.
     /// </summary>
     public sealed class PlayableDayBootstrap
     {
         public const string DefaultScheduleId = "base:playable_labor_day";
+
+        public static readonly DefinitionId DefaultScenarioId = ContentGameStart.DefaultPlayableScenarioId;
 
         readonly ContentPackageLoader _loader;
         readonly ContentGameStart _contentGameStart;
@@ -40,9 +36,11 @@ namespace XianXia.Data.Bootstrap
             IRandomSource random = null)
         {
             if (string.IsNullOrWhiteSpace(packageDirectory))
+            {
                 return Result.Fail<PlayableDayBootstrapResult>(
                     ErrorCode.ContentLoadFailed,
                     "Content package directory is empty.");
+            }
 
             var loaded = _loader.Load(new[] { packageDirectory });
             if (loaded.IsFailure)
@@ -58,7 +56,22 @@ namespace XianXia.Data.Bootstrap
         {
             options = options ?? new PlayableDayOptions();
 
-            var started = _contentGameStart.StartVerticalSlice01(loaded, random);
+            if (loaded == null || loaded.Registry == null)
+            {
+                return Result.Fail<PlayableDayBootstrapResult>(
+                    ErrorCode.InvalidArgument,
+                    "LoadedContent is null.");
+            }
+
+            if (!loaded.Registry.TryGetOpeningScenario(DefaultScenarioId, out var scenario))
+            {
+                return Result.Fail<PlayableDayBootstrapResult>(
+                    ErrorCode.NotFound,
+                    "Opening scenario definition missing.",
+                    DefaultScenarioId.ToString());
+            }
+
+            var started = _contentGameStart.StartFromScenario(loaded, DefaultScenarioId, random);
             if (started.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(started.Error);
 
@@ -73,48 +86,28 @@ namespace XianXia.Data.Bootstrap
             if (sites.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(sites.Error);
 
-            var schedule = CreateDefaultLaborDaySchedule();
-            world.RegisterSchedule(schedule);
+            var scheduleId = string.IsNullOrWhiteSpace(scenario.ScheduleId)
+                ? DefaultScheduleId
+                : scenario.ScheduleId;
+            world.RegisterSchedule(CreateLaborDaySchedule(scheduleId));
 
-            foreach (var entityId in started.Value.CharacterIds)
+            var lookup = new GameStartLookup(started.Value.SpawnedByDefinitionId);
+            var applied = OpeningScenarioApplier.Apply(
+                world,
+                scenario,
+                lookup,
+                options.DailyRequiredAmount);
+            if (applied.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(applied.Error);
+
+            var recruitableId = OpeningScenarioApplier.FindFirstRecruitable(scenario, lookup);
+            if (recruitableId.IsNone)
             {
-                if (!world.Entities.TryGet(entityId, out var entity))
-                    return Result.Fail<PlayableDayBootstrapResult>(
-                        ErrorCode.EntityNotFound,
-                        "Spawned character missing after bootstrap.",
-                        entityId.ToString());
-
-                EnsurePlayableComponents(entity, schedule.Id, options.DailyRequiredAmount);
+                return Result.Fail<PlayableDayBootstrapResult>(
+                    ErrorCode.NotFound,
+                    "Opening scenario has no recruitable spawn.",
+                    DefaultScenarioId.ToString());
             }
-
-            var seeded = OpeningRelationsSeeder.SeedCompanions(world, started.Value.CharacterIds);
-            if (seeded.IsFailure)
-                return Result.Fail<PlayableDayBootstrapResult>(seeded.Error);
-
-            foreach (var entityId in started.Value.CharacterIds)
-            {
-                if (world.Entities.TryGet(entityId, out var member))
-                {
-                    if (!member.TryGet<FactionMembershipComponent>(out var mem))
-                        member.AddComponent(new FactionMembershipComponent());
-                    member.Get<FactionMembershipComponent>().Assign(
-                        SocialAlphaConstants.OpeningFactionId,
-                        FactionRoleKind.LaborDisciple);
-                }
-            }
-
-            // Alpha: one soft-coded recruitable NPC. More NPCs → Content Authoring Tool (see Devlog).
-            var recruitableResult = world.Entities.CreateNpc(
-                new DefinitionId("base", "character_labor_disciple"),
-                "村内可招者");
-            if (recruitableResult.IsFailure)
-                return Result.Fail<PlayableDayBootstrapResult>(recruitableResult.Error);
-            var recruitable = recruitableResult.Value;
-            if (recruitable.TryGet<PersonalityProfileComponent>(out var recruitProfile))
-                recruitProfile.SetTags(new[] { "personality_steady" });
-            // Schedule only (no DailyTask quota) — personality bias still applies.
-            if (!recruitable.TryGet<ScheduleComponent>(out _))
-                recruitable.AddComponent(new ScheduleComponent(schedule.Id));
 
             if (options.ObservationDiscoverChancePercent.HasValue)
             {
@@ -130,8 +123,6 @@ namespace XianXia.Data.Bootstrap
                 world.ObservationDiscoverChancePercent = chance;
             }
 
-            // SimulationLoop defaults include QuotaConsequenceHandler on DayEnded.
-            // VS0.5-F: enable abstract social drift for the playable-day Alpha loop.
             var loop = new SimulationLoop(world, enableSocialTick: true);
             IPlayerInputPort port = new PlayerInputPort(loop);
 
@@ -142,8 +133,8 @@ namespace XianXia.Data.Bootstrap
                 registry,
                 loaded,
                 started.Value.CharacterIds,
-                schedule.Id,
-                recruitable.Id));
+                scheduleId,
+                recruitableId));
         }
 
         static Result RegisterManuals(SimulationWorld world, DefinitionRegistry registry)
@@ -179,36 +170,14 @@ namespace XianXia.Data.Bootstrap
             return Result.Success();
         }
 
-        static ScheduleDefinition CreateDefaultLaborDaySchedule()
+        static ScheduleDefinition CreateLaborDaySchedule(string scheduleId)
         {
-            // Aligns with VS0.3 plan skeleton (default behavior, not a chapter script).
-            return new ScheduleDefinition(DefaultScheduleId)
+            return new ScheduleDefinition(scheduleId)
                 .AddBlock(0, 8, ScheduleActivity.Rest, 2)
                 .AddBlock(8, 48, ScheduleActivity.Labor, 4)
                 .AddBlock(48, 56, ScheduleActivity.Rest, 2)
                 .AddBlock(56, 80, ScheduleActivity.Labor, 4)
                 .AddBlock(80, 96, ScheduleActivity.Rest, 2);
-        }
-
-        static void EnsurePlayableComponents(Entity entity, string scheduleId, int dailyRequired)
-        {
-            if (!entity.TryGet<ScheduleComponent>(out _))
-                entity.AddComponent(new ScheduleComponent(scheduleId));
-
-            if (!entity.TryGet<DailyTaskComponent>(out var daily))
-            {
-                entity.AddComponent(new DailyTaskComponent { RequiredAmount = dailyRequired });
-            }
-            else
-            {
-                daily.RequiredAmount = dailyRequired;
-            }
-
-            if (!entity.TryGet<KnownSitesComponent>(out _))
-                entity.AddComponent(new KnownSitesComponent());
-
-            if (!entity.TryGet<PersonalConcealmentRiskComponent>(out _))
-                entity.AddComponent(new PersonalConcealmentRiskComponent());
         }
     }
 }

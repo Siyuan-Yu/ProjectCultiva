@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:scenario_playable_day",
+      "type": "openingScenario",
+      "name": "可玩日开局",
+      "scheduleId": "base:playable_labor_day",
+      "openingFactionId": "base:sect_huangcun_labor",
+      "spawns": [
+        {
+          "definitionId": "base:character_protagonist",
+          "entityKind": "character",
+          "assignOpeningFaction": true,
+          "factionRole": "LaborDisciple",
+          "bindSchedule": true,
+          "bindDailyTask": true
+        },
+        {
+          "definitionId": "base:character_companion_a",
+          "entityKind": "character",
+          "assignOpeningFaction": true,
+          "factionRole": "LaborDisciple",
+          "bindSchedule": true,
+          "bindDailyTask": true
+        },
+        {
+          "definitionId": "base:character_companion_b",
+          "entityKind": "character",
+          "assignOpeningFaction": true,
+          "factionRole": "LaborDisciple",
+          "bindSchedule": true,
+          "bindDailyTask": true
+        },
+        {
+          "definitionId": "base:character_village_recruit",
+          "entityKind": "npc",
+          "displayName": "村内可招者",
+          "assignOpeningFaction": false,
+          "bindSchedule": true,
+          "bindDailyTask": false,
+          "recruitable": true
+        }
+      ],
+      "openingRelations": [
+        {
+          "fromDefinitionId": "base:character_protagonist",
+          "toDefinitionId": "base:character_companion_a",
+          "delta": 20,
+          "reasonTag": "opening_companion",
+          "mutual": true
+        },
+        {
+          "fromDefinitionId": "base:character_protagonist",
+          "toDefinitionId": "base:character_companion_b",
+          "delta": 20,
+          "reasonTag": "opening_companion",
+          "mutual": true
+        },
+        {
+          "fromDefinitionId": "base:character_companion_a",
+          "toDefinitionId": "base:character_companion_b",
+          "delta": 20,
+          "reasonTag": "opening_companion",
+          "mutual": true
+        }
+      ]
+    }
+  ]
+}

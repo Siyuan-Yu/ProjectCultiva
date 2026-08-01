@@ -44,6 +44,31 @@
         }
       ],
       "tags": ["manual", "qingyun"]
+    },
+    {
+      "id": "base:cultivation_wood_whisper",
+      "type": "cultivation",
+      "name": "木语心法",
+      "displayNameKey": "cultivation.wood_whisper",
+      "nameKey": "cultivation.wood_whisper",
+      "requiredRealm": "凡人",
+      "cultivationSpeed": 15,
+      "breakthroughProgress": 100,
+      "grantedModifiers": [
+        {
+          "targetAttribute": "MaxHp",
+          "operation": "Fixed",
+          "value": 15,
+          "stackingKey": "wood_whisper_hp"
+        },
+        {
+          "targetAttribute": "Speed",
+          "operation": "Fixed",
+          "value": 2,
+          "stackingKey": "wood_whisper_spd"
+        }
+      ],
+      "tags": ["manual", "wood"]
     }
   ]
 }

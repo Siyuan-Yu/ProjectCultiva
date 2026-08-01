@@ -13,7 +13,10 @@
         "Defense": 5,
         "Speed": 8
       },
-      "tags": ["labor", "disciple"]
+      "tags": ["labor", "disciple"],
+      "personalityTags": ["personality_steady"],
+      "backgroundTags": ["background_labor_camp"],
+      "talentTags": []
     },
     {
       "id": "base:character_protagonist",
@@ -27,7 +30,9 @@
         "Defense": 6,
         "Speed": 10
       },
-      "tags": ["personality_persistent", "personality_cautious"],
+      "personalityTags": ["personality_persistent", "personality_cautious"],
+      "backgroundTags": ["background_orphan"],
+      "talentTags": ["talent_mixed_root"],
       "spiritRootPlaceholder": "杂灵根",
       "initialRealmPlaceholder": "凡人"
     },
@@ -43,7 +48,9 @@
         "Defense": 7,
         "Speed": 9
       },
-      "tags": ["personality_loyal", "personality_steady"],
+      "personalityTags": ["personality_loyal", "personality_steady"],
+      "backgroundTags": ["background_sect_outer"],
+      "talentTags": ["talent_metal_root"],
       "spiritRootPlaceholder": "金灵根",
       "initialRealmPlaceholder": "凡人"
     },
@@ -59,8 +66,46 @@
         "Defense": 5,
         "Speed": 11
       },
-      "tags": ["personality_bold", "personality_curious"],
+      "personalityTags": ["personality_bold", "personality_curious"],
+      "backgroundTags": ["background_wanderer"],
+      "talentTags": ["talent_fire_root"],
       "spiritRootPlaceholder": "火灵根",
+      "initialRealmPlaceholder": "凡人"
+    },
+    {
+      "id": "base:character_village_recruit",
+      "type": "character",
+      "name": "村内可招者",
+      "displayNameKey": "character.village_recruit",
+      "nameKey": "character.village_recruit",
+      "baseAttributes": {
+        "MaxHp": 100,
+        "Attack": 9,
+        "Defense": 6,
+        "Speed": 8
+      },
+      "personalityTags": ["personality_steady"],
+      "backgroundTags": ["background_villager"],
+      "talentTags": ["talent_enduring"],
+      "spiritRootPlaceholder": "杂灵根",
+      "initialRealmPlaceholder": "凡人"
+    },
+    {
+      "id": "base:character_herb_gatherer",
+      "type": "character",
+      "name": "采药童",
+      "displayNameKey": "character.herb_gatherer",
+      "nameKey": "character.herb_gatherer",
+      "baseAttributes": {
+        "MaxHp": 95,
+        "Attack": 8,
+        "Defense": 5,
+        "Speed": 12
+      },
+      "personalityTags": ["personality_curious"],
+      "backgroundTags": ["background_mountain"],
+      "talentTags": ["talent_herb_sense"],
+      "spiritRootPlaceholder": "木灵根",
       "initialRealmPlaceholder": "凡人"
     }
   ]
