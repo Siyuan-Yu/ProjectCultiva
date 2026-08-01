@@ -14,5 +14,6 @@ namespace XianXia.Core.Bootstrap
         public List<string> PersonalityTags { get; set; } = new List<string>();
         public string SpiritRootPlaceholder { get; set; }
         public string InitialRealmPlaceholder { get; set; }
+        public SpawnEntityKind EntityKind { get; set; } = SpawnEntityKind.Character;
     }
 }

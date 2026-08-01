@@ -195,6 +195,9 @@ namespace XianXia.Data.Content
                     case "opportunitySite":
                         LoadOpportunitySite(item, parsed.Value, registry, report);
                         break;
+                    case "openingScenario":
+                        LoadOpeningScenario(item, parsed.Value, registry, report);
+                        break;
                     default:
                         report.Add(ErrorCode.InvalidArgument, "Unknown definition type.", type);
                         break;
@@ -253,6 +256,9 @@ namespace XianXia.Data.Content
             }
 
             ReadTags(item, character.Tags, report, id.ToString());
+            ReadNamedTagArray(item, "personalityTags", character.PersonalityTags, report, id.ToString());
+            ReadNamedTagArray(item, "backgroundTags", character.BackgroundTags, report, id.ToString());
+            ReadNamedTagArray(item, "talentTags", character.TalentTags, report, id.ToString());
             if (report.Errors.Count > errorsBefore)
                 return;
 
@@ -471,13 +477,134 @@ namespace XianXia.Data.Content
                 report.Add(reg.Error);
         }
 
-        static void ReadTags(JsonValue item, List<string> tags, ValidationReport report, string context)
+        static void LoadOpeningScenario(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
         {
-            if (!item.TryGetProperty("tags", out var tagsNode))
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.OpeningScenarioFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var scenario = new OpeningScenarioDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                ScheduleId = item.GetString("scheduleId", string.Empty),
+                OpeningFactionId = item.GetString("openingFactionId", string.Empty)
+            };
+
+            if (item.TryGetProperty("spawns", out var spawnsNode))
+            {
+                if (spawnsNode.Kind != JsonValueKind.Array)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "spawns must be array.", id.ToString());
+                    return;
+                }
+
+                foreach (var spawnNode in spawnsNode.Array)
+                {
+                    if (spawnNode.Kind != JsonValueKind.Object)
+                    {
+                        report.Add(ErrorCode.ContentLoadFailed, "spawn entries must be objects.", id.ToString());
+                        continue;
+                    }
+
+                    DefinitionSchema.RejectUnknownFields(
+                        spawnNode,
+                        DefinitionSchema.OpeningSpawnFields,
+                        report,
+                        id + ".spawn");
+                    if (report.Errors.Count > errorsBefore)
+                        return;
+
+                    var entry = new OpeningSpawnEntry
+                    {
+                        DefinitionId = spawnNode.GetString("definitionId", string.Empty),
+                        EntityKind = spawnNode.GetString("entityKind", "character"),
+                        DisplayName = spawnNode.GetString("displayName", string.Empty),
+                        AssignOpeningFaction = spawnNode.GetBool("assignOpeningFaction", false),
+                        FactionRole = spawnNode.GetString("factionRole", string.Empty),
+                        BindSchedule = spawnNode.GetBool("bindSchedule", true),
+                        BindDailyTask = spawnNode.GetBool("bindDailyTask", true),
+                        Recruitable = spawnNode.GetBool("recruitable", false)
+                    };
+                    if (string.IsNullOrWhiteSpace(entry.DefinitionId))
+                    {
+                        report.Add(ErrorCode.MissingRequiredField, "spawn.definitionId required.", id.ToString());
+                        return;
+                    }
+
+                    scenario.Spawns.Add(entry);
+                }
+            }
+
+            if (item.TryGetProperty("openingRelations", out var relNode))
+            {
+                if (relNode.Kind != JsonValueKind.Array)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "openingRelations must be array.", id.ToString());
+                    return;
+                }
+
+                foreach (var edge in relNode.Array)
+                {
+                    if (edge.Kind != JsonValueKind.Object)
+                    {
+                        report.Add(ErrorCode.ContentLoadFailed, "openingRelations entries must be objects.", id.ToString());
+                        continue;
+                    }
+
+                    DefinitionSchema.RejectUnknownFields(
+                        edge,
+                        DefinitionSchema.OpeningRelationFields,
+                        report,
+                        id + ".relation");
+                    if (report.Errors.Count > errorsBefore)
+                        return;
+
+                    var rel = new OpeningRelationEntry
+                    {
+                        FromDefinitionId = edge.GetString("fromDefinitionId", string.Empty),
+                        ToDefinitionId = edge.GetString("toDefinitionId", string.Empty),
+                        Delta = edge.TryGetProperty("delta", out var d) && d.Kind == JsonValueKind.Number
+                            ? (int)d.Number
+                            : 0,
+                        ReasonTag = edge.GetString("reasonTag", "opening_companion"),
+                        Mutual = edge.GetBool("mutual", true)
+                    };
+                    scenario.OpeningRelations.Add(rel);
+                }
+            }
+
+            if (scenario.Spawns.Count == 0)
+            {
+                report.Add(ErrorCode.MissingRequiredField, "openingScenario.spawns required.", id.ToString());
+                return;
+            }
+
+            var reg = registry.RegisterOpeningScenario(scenario);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void ReadTags(JsonValue item, List<string> tags, ValidationReport report, string context) =>
+            ReadNamedTagArray(item, "tags", tags, report, context);
+
+        static void ReadNamedTagArray(
+            JsonValue item,
+            string field,
+            List<string> tags,
+            ValidationReport report,
+            string context)
+        {
+            if (!item.TryGetProperty(field, out var tagsNode))
                 return;
             if (tagsNode.Kind != JsonValueKind.Array)
             {
-                report.Add(ErrorCode.ContentLoadFailed, "tags must be array.", context);
+                report.Add(ErrorCode.ContentLoadFailed, field + " must be array.", context);
                 return;
             }
 
@@ -485,7 +612,7 @@ namespace XianXia.Data.Content
             {
                 if (t.Kind != JsonValueKind.String)
                 {
-                    report.Add(ErrorCode.ContentLoadFailed, "tags entries must be strings.", context);
+                    report.Add(ErrorCode.ContentLoadFailed, field + " entries must be strings.", context);
                     continue;
                 }
 

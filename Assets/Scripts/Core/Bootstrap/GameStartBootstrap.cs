@@ -12,8 +12,7 @@ using XianXia.Core.World;
 namespace XianXia.Core.Bootstrap
 {
     /// <summary>
-    /// Vertical Slice 0.1 bootstrap: create world layout + starting characters + init events.
-    /// No movement, work, combat, cultivation, or schedule systems.
+    /// Bootstrap: world layout + Content-driven starting characters／NPCs + init events.
     /// </summary>
     public sealed class GameStartBootstrap
     {
@@ -43,13 +42,21 @@ namespace XianXia.Core.Bootstrap
                 EnabledPackageVersion = packageVersion ?? "0.0.1"
             };
 
-            var created = new List<EntityId>(spawns.Count);
+            var characters = new List<EntityId>();
+            var npcs = new List<EntityId>();
+            var byDefinition = new Dictionary<string, EntityId>(StringComparer.Ordinal);
+
             foreach (var spawn in spawns)
             {
                 if (spawn == null)
                     return Result.Fail<GameStartResult>(ErrorCode.InvalidArgument, "Spawn request is null.");
 
-                var entityResult = world.Entities.CreateCharacter(spawn.DefinitionId, spawn.Name);
+                Result<Entity> entityResult;
+                if (spawn.EntityKind == SpawnEntityKind.Npc)
+                    entityResult = world.Entities.CreateNpc(spawn.DefinitionId, spawn.Name);
+                else
+                    entityResult = world.Entities.CreateCharacter(spawn.DefinitionId, spawn.Name);
+
                 if (entityResult.IsFailure)
                     return Result.Fail<GameStartResult>(entityResult.Error);
 
@@ -63,29 +70,61 @@ namespace XianXia.Core.Bootstrap
                 if (entity.TryGet<PersonalityProfileComponent>(out var profile))
                     profile.SetTags(spawn.PersonalityTags);
 
-                world.Events.Publish(EventType.EntityCreated, world.Tick, target: entity.Id, payload: spawn.DefinitionId.ToString());
-                created.Add(entity.Id);
+                world.Events.Publish(
+                    EventType.EntityCreated,
+                    world.Tick,
+                    target: entity.Id,
+                    payload: spawn.DefinitionId.ToString());
+
+                if (spawn.EntityKind == SpawnEntityKind.Npc)
+                    npcs.Add(entity.Id);
+                else
+                    characters.Add(entity.Id);
+
+                var defKey = spawn.DefinitionId.ToString();
+                if (!string.IsNullOrEmpty(defKey))
+                    byDefinition[defKey] = entity.Id;
+            }
+
+            if (characters.Count == 0)
+            {
+                return Result.Fail<GameStartResult>(
+                    ErrorCode.InvalidArgument,
+                    "Opening spawn list must include at least one Character.");
             }
 
             world.Events.Publish(
                 EventType.WorldInitialized,
                 world.Tick,
-                payload: "region=" + primaryRegion.Value + ";characters=" + created.Count);
+                payload: "region=" + primaryRegion.Value +
+                         ";characters=" + characters.Count +
+                         ";npcs=" + npcs.Count);
 
-            return Result.Ok(new GameStartResult(world, created));
+            return Result.Ok(new GameStartResult(world, characters, npcs, byDefinition));
         }
     }
 
     public sealed class GameStartResult
     {
-        public GameStartResult(SimulationWorld world, IReadOnlyList<EntityId> characterIds)
+        public GameStartResult(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> characterIds,
+            IReadOnlyList<EntityId> npcIds = null,
+            IReadOnlyDictionary<string, EntityId> spawnedByDefinitionId = null)
         {
             World = world ?? throw new ArgumentNullException(nameof(world));
             CharacterIds = characterIds ?? Array.Empty<EntityId>();
+            NpcIds = npcIds ?? Array.Empty<EntityId>();
+            SpawnedByDefinitionId = spawnedByDefinitionId ?? new Dictionary<string, EntityId>(StringComparer.Ordinal);
         }
 
         public SimulationWorld World { get; }
 
         public IReadOnlyList<EntityId> CharacterIds { get; }
+
+        public IReadOnlyList<EntityId> NpcIds { get; }
+
+        /// <summary>DefinitionId.ToString() → EntityId (last spawn wins if duplicates).</summary>
+        public IReadOnlyDictionary<string, EntityId> SpawnedByDefinitionId { get; }
     }
 }

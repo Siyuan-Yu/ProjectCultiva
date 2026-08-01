@@ -14,7 +14,24 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> CharacterFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "displayNameKey", "nameKey", "baseAttributes", "tags",
+            "personalityTags", "backgroundTags", "talentTags",
             "spiritRootPlaceholder", "initialRealmPlaceholder"
+        };
+
+        public static readonly HashSet<string> OpeningScenarioFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "scheduleId", "openingFactionId", "spawns", "openingRelations"
+        };
+
+        public static readonly HashSet<string> OpeningSpawnFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "definitionId", "entityKind", "displayName", "assignOpeningFaction", "factionRole",
+            "bindSchedule", "bindDailyTask", "recruitable"
+        };
+
+        public static readonly HashSet<string> OpeningRelationFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "fromDefinitionId", "toDefinitionId", "delta", "reasonTag", "mutual"
         };
 
         public static readonly HashSet<string> CultivationFields = new HashSet<string>(StringComparer.Ordinal)

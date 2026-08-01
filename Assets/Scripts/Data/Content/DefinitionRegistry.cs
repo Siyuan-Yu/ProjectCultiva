@@ -14,17 +14,21 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, ItemDefinition>();
         readonly Dictionary<DefinitionId, OpportunitySiteDefinition> _opportunitySites =
             new Dictionary<DefinitionId, OpportunitySiteDefinition>();
+        readonly Dictionary<DefinitionId, OpeningScenarioDefinition> _openingScenarios =
+            new Dictionary<DefinitionId, OpeningScenarioDefinition>();
 
         public IReadOnlyDictionary<DefinitionId, CharacterDefinition> Characters => _characters;
         public IReadOnlyDictionary<DefinitionId, CultivationDefinition> Cultivations => _cultivations;
         public IReadOnlyDictionary<DefinitionId, ItemDefinition> Items => _items;
         public IReadOnlyDictionary<DefinitionId, OpportunitySiteDefinition> OpportunitySites => _opportunitySites;
+        public IReadOnlyDictionary<DefinitionId, OpeningScenarioDefinition> OpeningScenarios => _openingScenarios;
 
         public bool ContainsId(DefinitionId id) =>
             _characters.ContainsKey(id) ||
             _cultivations.ContainsKey(id) ||
             _items.ContainsKey(id) ||
-            _opportunitySites.ContainsKey(id);
+            _opportunitySites.ContainsKey(id) ||
+            _openingScenarios.ContainsKey(id);
 
         public Result RegisterCharacter(CharacterDefinition definition)
         {
@@ -70,6 +74,17 @@ namespace XianXia.Data.Content
             return Result.Success();
         }
 
+        public Result RegisterOpeningScenario(OpeningScenarioDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "OpeningScenarioDefinition is null.");
+            if (ContainsId(definition.Id))
+                return Result.Failure(ErrorCode.DuplicateDefinitionId, "Duplicate DefinitionId.", definition.Id.ToString());
+
+            _openingScenarios.Add(definition.Id, definition);
+            return Result.Success();
+        }
+
         public bool TryGetCharacter(DefinitionId id, out CharacterDefinition definition) =>
             _characters.TryGetValue(id, out definition);
 
@@ -81,5 +96,8 @@ namespace XianXia.Data.Content
 
         public bool TryGetOpportunitySite(DefinitionId id, out OpportunitySiteDefinition definition) =>
             _opportunitySites.TryGetValue(id, out definition);
+
+        public bool TryGetOpeningScenario(DefinitionId id, out OpeningScenarioDefinition definition) =>
+            _openingScenarios.TryGetValue(id, out definition);
     }
 }

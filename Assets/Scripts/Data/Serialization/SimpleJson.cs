@@ -280,5 +280,12 @@ namespace XianXia.Data.Serialization
             if (!TryGetProperty(name, out var v) || v.Kind != JsonValueKind.Number) return fallback;
             return v.Number;
         }
+
+        public bool GetBool(string name, bool fallback = false)
+        {
+            if (!TryGetProperty(name, out var v) || v.Kind != JsonValueKind.Boolean)
+                return fallback;
+            return v.Bool;
+        }
     }
 }

@@ -9,15 +9,29 @@ namespace XianXia.Data.Content
     public sealed class CharacterDefinition
     {
         public DefinitionId Id { get; set; }
-        /// <summary>Author-facing display name (not full localization).</summary>
         public string Name { get; set; }
         public string DisplayNameKey { get; set; }
         public string NameKey { get; set; }
         public Dictionary<string, int> BaseAttributes { get; set; } = new Dictionary<string, int>();
+        /// <summary>Legacy／misc tags (still loaded).</summary>
         public List<string> Tags { get; set; } = new List<string>();
-        /// <summary>VS0.1 placeholder; no spirit-root formula in Data.</summary>
+        public List<string> PersonalityTags { get; set; } = new List<string>();
+        public List<string> BackgroundTags { get; set; } = new List<string>();
+        public List<string> TalentTags { get; set; } = new List<string>();
         public string SpiritRootPlaceholder { get; set; }
-        /// <summary>VS0.1 placeholder; no breakthrough / realm gameplay in Data.</summary>
         public string InitialRealmPlaceholder { get; set; }
+
+        /// <summary>Merged content tags applied to PersonalityProfile on spawn.</summary>
+        public IEnumerable<string> EnumerateProfileTags()
+        {
+            foreach (var t in PersonalityTags)
+                yield return t;
+            foreach (var t in BackgroundTags)
+                yield return t;
+            foreach (var t in TalentTags)
+                yield return t;
+            foreach (var t in Tags)
+                yield return t;
+        }
     }
 }
