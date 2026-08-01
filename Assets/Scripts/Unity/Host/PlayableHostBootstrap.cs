@@ -34,6 +34,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostMoveController moveController;
         [SerializeField] HostActionMenu actionMenu;
         [SerializeField] HostFormalHud formalHud;
+        [SerializeField] HostActivityPresenter activityPresenter;
 
         [Header("Tick debug")]
         [SerializeField] bool initializeOnPlay = true;
@@ -174,6 +175,9 @@ namespace XianXia.Unity.Host
                 actionMenu = GetComponent<HostActionMenu>() ?? gameObject.AddComponent<HostActionMenu>();
             if (formalHud == null)
                 formalHud = GetComponent<HostFormalHud>() ?? gameObject.AddComponent<HostFormalHud>();
+            if (activityPresenter == null)
+                activityPresenter = GetComponent<HostActivityPresenter>() ??
+                                   gameObject.AddComponent<HostActivityPresenter>();
 
             selectionController.ClearSelection();
             entityViewSpawner.Clear();
@@ -220,6 +224,7 @@ namespace XianXia.Unity.Host
             moveController.Bind(this, selectionController, entityViewSpawner, commandBridge);
             actionMenu.Bind(this, selectionController, commandBridge);
             formalHud.Bind(this, selectionController, eventFeed);
+            activityPresenter.Bind(this, entityViewSpawner);
             snapshotPanel.Bind(this);
             // Bootstrap already published WorldInitialized／EntityCreated — capture once.
             eventFeed.PullFrom(_session.World.Events);

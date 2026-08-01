@@ -50,6 +50,29 @@ namespace XianXia.Tests
         }
 
         [Test]
+        public void Labor_AtResourceLocation_AddsStock()
+        {
+            var host = CreateHost(out var bootstrap, out _);
+            try
+            {
+                var id = bootstrap.Session.CharacterIds[0];
+                Assert.IsTrue(bootstrap.Session.World.Entities.TryGet(id, out var entity));
+                Assert.IsTrue(entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc));
+                loc.LocationId = "base:loc_ref_forest";
+                Assert.IsTrue(bootstrap.Session.World.Settlements.TryGetPrimary(out var s));
+                var before = s.GetStock("base:resource_rough_wood");
+                Assert.AreEqual(1, bootstrap.CommandBridge.IssueTo(new[] { id }, PlayerCommandKind.Labor));
+                for (var i = 0; i < (int)HostCommandBridge.DefaultDurationTicks; i++)
+                    Assert.IsTrue(bootstrap.Session.TickOnce().IsSuccess);
+                Assert.Greater(s.GetStock("base:resource_rough_wood"), before);
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
         public void ConcealGrass_LowersRisk()
         {
             var host = CreateHost(out var bootstrap, out _);

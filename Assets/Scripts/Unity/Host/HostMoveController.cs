@@ -57,9 +57,12 @@ namespace XianXia.Unity.Host
 
             // Cancel active Core actions before presentation move ([49] interrupt).
             if (commandBridge != null)
-                commandBridge.IssueSelected(PlayerCommandKind.Stop);
+                commandBridge.IssueSelected(PlayerCommandKind.Stop, 0);
             else
                 StopSelectedViaPort();
+
+            var workHere = FindWorkLocationNear(point);
+            var cultivateHere = FindCultivateLocationNear(point);
 
             var count = selectionController.State.Count;
             for (var i = 0; i < count; i++)
@@ -71,6 +74,67 @@ namespace XianXia.Unity.Host
                 _targets[view] = point + offset;
                 view.SetActivityText("移动中");
             }
+
+            // Demo: right-click work／spirit zone → sync location then order (approach continues in view).
+            if (!string.IsNullOrEmpty(workHere))
+            {
+                SnapSelectionLocation(workHere);
+                if (commandBridge != null)
+                    commandBridge.IssueSelected(PlayerCommandKind.Labor);
+            }
+            else if (!string.IsNullOrEmpty(cultivateHere))
+            {
+                SnapSelectionLocation(cultivateHere);
+                if (commandBridge != null)
+                    commandBridge.IssueSelected(PlayerCommandKind.Cultivate);
+            }
+        }
+
+        void SnapSelectionLocation(string locationId)
+        {
+            for (var i = 0; i < selectionController.State.Count; i++)
+            {
+                var id = selectionController.State.SelectedIds[i];
+                if (!bootstrap.Session.World.Entities.TryGet(id, out var entity))
+                    continue;
+                if (!entity.TryGet<EntityLocationComponent>(out var loc))
+                    continue;
+                loc.LocationId = locationId;
+            }
+        }
+
+        string FindWorkLocationNear(Vector3 worldPoint)
+        {
+            var p = HostPresentationSpace.ToPresentation(worldPoint);
+            foreach (var kv in bootstrap.Session.World.WorldRegion.Locations)
+            {
+                var loc = kv.Value;
+                if (string.IsNullOrEmpty(loc.ResourceOnExploreId) || loc.ResourceOnExploreAmount <= 0)
+                    continue;
+                var dx = loc.PresentationX - p.x;
+                var dy = loc.PresentationZ - p.y;
+                if (dx * dx + dy * dy <= arriveLocationRadius * arriveLocationRadius)
+                    return loc.Id;
+            }
+
+            return null;
+        }
+
+        string FindCultivateLocationNear(Vector3 worldPoint)
+        {
+            var p = HostPresentationSpace.ToPresentation(worldPoint);
+            foreach (var kv in bootstrap.Session.World.WorldRegion.Locations)
+            {
+                var loc = kv.Value;
+                if (loc.Kind != LocationKind.Opportunity)
+                    continue;
+                var dx = loc.PresentationX - p.x;
+                var dy = loc.PresentationZ - p.y;
+                if (dx * dx + dy * dy <= arriveLocationRadius * arriveLocationRadius)
+                    return loc.Id;
+            }
+
+            return null;
         }
 
         void StopSelectedViaPort()

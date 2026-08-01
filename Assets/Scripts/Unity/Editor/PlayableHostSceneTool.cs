@@ -31,23 +31,20 @@ namespace XianXia.Unity.EditorTools
             hostGo.AddComponent<HostMoveController>();
             hostGo.AddComponent<HostActionMenu>();
             hostGo.AddComponent<HostFormalHud>();
+            hostGo.AddComponent<HostActivityPresenter>();
 
             var cam = Object.FindObjectOfType<Camera>();
             if (cam != null)
             {
-                cam.transform.position = new Vector3(0f, 8f, -12f);
-                cam.transform.rotation = Quaternion.Euler(30f, 0f, 0f);
+                cam.orthographic = true;
+                cam.orthographicSize = 12f;
+                cam.transform.position = new Vector3(-4f, 2f, -10f);
+                cam.transform.rotation = Quaternion.identity;
                 var rig = hostGo.GetComponent<PlayableHostCameraRig>();
                 var so = new SerializedObject(rig);
                 so.FindProperty("targetCamera").objectReferenceValue = cam;
                 so.ApplyModifiedPropertiesWithoutUndo();
             }
-
-            // Simple ground plane (presentation only).
-            var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            ground.name = "Ground";
-            ground.transform.position = Vector3.zero;
-            ground.transform.localScale = new Vector3(2f, 1f, 2f);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             AssetDatabase.Refresh();

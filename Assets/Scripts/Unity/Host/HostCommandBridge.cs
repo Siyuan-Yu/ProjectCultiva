@@ -59,7 +59,9 @@ namespace XianXia.Unity.Host
                 return;
 
             // Demo letter keys [49] (camera pan uses arrows / Alt+WASD).
-            if (Input.GetKeyDown(KeyCode.S))
+            if (Input.GetKeyDown(KeyCode.W))
+                IssueSelected(PlayerCommandKind.Labor);
+            else if (Input.GetKeyDown(KeyCode.S))
                 IssueSelected(PlayerCommandKind.Stop, 0);
             else if (Input.GetKeyDown(KeyCode.C))
                 IssueSelected(PlayerCommandKind.Cultivate);

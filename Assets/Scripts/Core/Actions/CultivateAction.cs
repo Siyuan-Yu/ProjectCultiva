@@ -77,7 +77,7 @@ namespace XianXia.Core.Actions
             cultivation.Progress += cultivation.CultivationSpeed + talentBonus;
 
             if (entity.TryGet<PersonalConcealmentRiskComponent>(out var risk))
-                risk.Add(1);
+                risk.Add(XianXia.Core.Concealment.ConcealmentExposureRules.CultivateRiskDelta(world, Subject));
 
             if (Clock.IsComplete)
             {

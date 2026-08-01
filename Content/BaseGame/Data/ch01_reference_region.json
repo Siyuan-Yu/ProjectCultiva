@@ -12,7 +12,7 @@
           "name": "杂役区",
           "kind": "Settlement",
           "adjacentIds": ["base:loc_ref_houses", "base:loc_ref_road_hub", "base:loc_ref_herb_field"],
-          "resourceOnExploreId": "base:resource_rough_wood",
+          "resourceOnExploreId": "base:resource_grain",
           "resourceOnExploreAmount": 1,
           "presentationX": -6,
           "presentationZ": 0,

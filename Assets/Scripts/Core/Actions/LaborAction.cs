@@ -1,9 +1,12 @@
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
+using XianXia.Core.Events;
+using XianXia.Core.Exploration;
 using XianXia.Core.Labor;
 using XianXia.Core.Orders;
 using XianXia.Core.Results;
+using XianXia.Core.Settlement;
 using XianXia.Core.Simulation;
 
 namespace XianXia.Core.Actions
@@ -63,11 +66,36 @@ namespace XianXia.Core.Actions
 
             Clock = Clock.Consume(1);
             daily.CompletedAmount += 1;
+            // Demo work-zone gather is player-driven; schedule labor stays on settlement day-end production.
+            if (entity.TryGet<ActionStateComponent>(out var actionState) &&
+                actionState.ActiveOrderSource == OrderSource.Player)
+                ProduceFromCurrentLocation(world, entity);
 
             if (Clock.IsComplete)
                 Status = ActionStatus.Completed;
 
             return Result.Success();
+        }
+
+        static void ProduceFromCurrentLocation(SimulationWorld world, Entity entity)
+        {
+            if (!entity.TryGet<EntityLocationComponent>(out var loc) || !loc.HasLocation)
+                return;
+            if (!world.WorldRegion.TryGet(loc.LocationId, out var location))
+                return;
+            if (string.IsNullOrEmpty(location.ResourceOnExploreId) || location.ResourceOnExploreAmount <= 0)
+                return;
+            if (!world.Settlements.TryGetPrimary(out var settlement))
+                return;
+
+            var amount = location.ResourceOnExploreAmount;
+            settlement.AddStock(location.ResourceOnExploreId, amount);
+            world.Events.Publish(
+                EventType.SettlementStockChanged,
+                world.Tick,
+                actor: entity.Id,
+                payload: settlement.Id + ":" + location.ResourceOnExploreId + ":" +
+                         settlement.GetStock(location.ResourceOnExploreId));
         }
 
         public void Cancel()

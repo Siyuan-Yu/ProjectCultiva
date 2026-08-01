@@ -1,10 +1,13 @@
 using System.Text;
 using UnityEngine;
+using XianXia.Core.Concealment;
 using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Exploration;
+using XianXia.Core.Labor;
+using XianXia.Core.Schedule;
 using XianXia.Core.Settlement;
 using XianXia.Core.Social;
 
@@ -48,6 +51,7 @@ namespace XianXia.Unity.Host
             DrawTimeBar(session);
             DrawResourceBar(session);
             DrawCharacterPanel(session);
+            DrawSchedulePanel(session);
             DrawQuestPanel(session);
             DrawEventPanel();
         }
@@ -103,6 +107,12 @@ namespace XianXia.Unity.Host
                 sb.AppendLine(e.DisplayName + "  " + focus);
                 if (e.TryGet<CultivationComponent>(out var c))
                     sb.AppendLine("境界=" + c.Realm + " Progress=" + c.Progress + " Manual=" + c.HasLearnedManual);
+                if (e.TryGet<PersonalConcealmentRiskComponent>(out var risk))
+                    sb.AppendLine(
+                        "暴露=" + risk.Value +
+                        (ConcealmentExposureRules.IsNight(session.World.Tick) ? " 夜" : " 昼"));
+                if (e.TryGet<DailyTaskComponent>(out var daily))
+                    sb.AppendLine("日课=" + daily.CompletedAmount + "/" + daily.RequiredAmount);
                 if (e.TryGet<NpcAiRoleComponent>(out var ai))
                     sb.AppendLine("AI=" + ai.Role);
                 if (e.TryGet<EntityLocationComponent>(out var loc))
@@ -111,7 +121,42 @@ namespace XianXia.Unity.Host
                     sb.AppendLine("分工=" + work.Role);
             }
 
-            GUI.Box(new Rect(8f, 76f, 280f, 140f), sb.ToString());
+            GUI.Box(new Rect(8f, 76f, 280f, 160f), sb.ToString());
+        }
+
+        void DrawSchedulePanel(PlayableHostSession session)
+        {
+            var sb = new StringBuilder(320);
+            sb.AppendLine("课表(只读)");
+            var tickInDay = (int)(session.World.Tick.Value % (ulong)WorldTick.TicksPerDay);
+            var hour = DayClock.FromWorldTick(session.World.Tick).HourOfDay;
+            sb.AppendLine("时=" + hour + " tickInDay=" + tickInDay);
+
+            var focus = EntityId.None;
+            if (selectionController != null && selectionController.State.Count > 0)
+                focus = selectionController.State.SelectedIds[0];
+            if (focus.IsNone && session.CharacterIds.Count > 0)
+                focus = session.CharacterIds[0];
+
+            if (!focus.IsNone &&
+                session.World.Entities.TryGet(focus, out var e) &&
+                e.TryGet<ScheduleComponent>(out var sched) &&
+                session.World.TryGetSchedule(sched.DefinitionId, out var def))
+            {
+                sb.AppendLine(def.Id);
+                for (var i = 0; i < def.Blocks.Count && i < 6; i++)
+                {
+                    var b = def.Blocks[i];
+                    var mark = tickInDay >= b.StartTickInDay && tickInDay < b.EndTickInDay ? ">" : " ";
+                    sb.AppendLine(mark + b.StartTickInDay + "-" + b.EndTickInDay + " " + b.Activity);
+                }
+            }
+            else
+            {
+                sb.Append("(无日程)");
+            }
+
+            GUI.Box(new Rect(Screen.width - 300f, 76f, 290f, 160f), sb.ToString());
         }
 
         void DrawQuestPanel(PlayableHostSession session)
@@ -130,7 +175,7 @@ namespace XianXia.Unity.Host
 
             if (n == 0)
                 sb.Append("(无进行中)");
-            GUI.Box(new Rect(8f, 224f, 280f, 150f), sb.ToString());
+            GUI.Box(new Rect(8f, 244f, 280f, 150f), sb.ToString());
         }
 
         void DrawEventPanel()

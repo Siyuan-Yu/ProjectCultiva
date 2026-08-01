@@ -1,6 +1,6 @@
 # Demo v0.1 → 正式框架缺口审计
 
-> 状态：**执行真源**｜日期：2026-08-02  
+> 状态：**执行中（PKG-A 已提交；PKG-B/C 进行中）**｜日期：2026-08-02  
 > 对照：[49 Demo 冻结快照](49-demo-v0.1-prototype-status.md)＋[32 桥接](../30-tech/32-prototype-to-product-bridge.md)  
 > 正式侧：PlayableHost＋Core＋Content／BaseGame  
 > **纪律：**只补文档已承诺语义；不复活 Demo Runtime 为玩法真源；不新增文档外功能。
