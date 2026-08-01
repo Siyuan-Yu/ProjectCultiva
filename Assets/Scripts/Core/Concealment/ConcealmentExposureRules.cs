@@ -48,6 +48,14 @@ namespace XianXia.Core.Concealment
                     other.TryGet<FactionMembershipComponent>(out var mem) &&
                     mem.Role == FactionRoleKind.Supervisor)
                     isSupervisor = true;
+                // Demo [49]: discovery／anger also cares about guards near the laborer.
+                if (!isSupervisor)
+                {
+                    var def = other.DefinitionId.ToString();
+                    if (def.IndexOf("guard", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                        isSupervisor = true;
+                }
+
                 if (!isSupervisor)
                     continue;
                 if (!other.TryGet<EntityLocationComponent>(out var otherLoc) || !otherLoc.HasLocation)

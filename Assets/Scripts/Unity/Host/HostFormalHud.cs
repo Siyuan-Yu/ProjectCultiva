@@ -85,9 +85,11 @@ namespace XianXia.Unity.Host
                 grass = s.GetStock("base:resource_conceal_grass");
             }
 
+            var anger = session.World.SupervisorAnger != null ? session.World.SupervisorAnger.Value : 0;
             GUI.Box(
-                new Rect(8f, 40f, 560f, 28f),
-                "资源 | " + name + "  木=" + wood + "  粮=" + grain + "  药=" + herb + "  敛息草=" + grass);
+                new Rect(8f, 40f, 640f, 28f),
+                "资源 | " + name + "  木=" + wood + "  粮=" + grain + "  药=" + herb +
+                "  敛息草=" + grass + "  愤怒=" + anger);
         }
 
         void DrawCharacterPanel(PlayableHostSession session)

@@ -1,6 +1,6 @@
 # Demo v0.1 → 正式框架缺口审计
 
-> 状态：**执行中（PKG-A 已提交；PKG-B/C 进行中）**｜日期：2026-08-02  
+> 状态：**执行中（PKG-A～D 大部完成；PKG-E 一比一关收尾）**｜日期：2026-08-02  
 > 对照：[49 Demo 冻结快照](49-demo-v0.1-prototype-status.md)＋[32 桥接](../30-tech/32-prototype-to-product-bridge.md)  
 > 正式侧：PlayableHost＋Core＋Content／BaseGame  
 > **纪律：**只补文档已承诺语义；不复活 Demo Runtime 为玩法真源；不新增文档外功能。
@@ -23,27 +23,27 @@
 | # | Demo 能力（[49]） | 正式现状 | 判定 | 依据 |
 |---|---|---|---|---|
 | 1 | 三人点选／框选／Shift | HostSelectionController | Done | [61] |
-| 2 | 双击全选三人 | 无 | **Gap** | [49]§4.1 |
-| 3 | 右键地面移动且中断工作／修炼 | HostMove 仅表现插值，不取消 Action | **Gap** | [32]§2 移动；[49]§4.2 |
-| 4 | 右键工位→走近→持续产木／粮／药 | 无工位；Labor／日产／Explore 抽象 | **Gap** | [32]§2 工作；[49]§5.1 |
-| 5 | `W` 工位指针模式 | 无 | **Gap** | [49]§4.2；[32] 工作 |
-| 6 | `S` 停止当前指令 | 无 Stop 命令 | **Gap** | [49]§4.2 |
-| 7 | 右键灵地／`C` 入定修炼 | Cultivate 有；无灵地右键走近 | **Gap** | [32]§2；[49]§4.3 |
-| 8 | `X` 出定 | 无专用出定 | **Gap** | [49]§4.3 |
-| 9 | `G` 敛息草降暴露（开局 3） | 无敛息草资源／消耗 | **Gap** | [49]§4.3；[32] 映射 |
-| 10 | 暴露：昼高／夜低／近主管加成（只显示） | Risk 仅 Cultivate 每 Tick+1 | **Gap** | [49]§4.3；[32]§6 |
+| 2 | 双击全选三人 | SetPartyFilter＋双击 | Done | [49]§4.1 |
+| 3 | 右键地面移动且中断工作／修炼 | Move→Stop＋XY 移动 | Done | [32]§2；[49]§4.2 |
+| 4 | 右键工区→产木／粮／药 | 右键区＋Player Labor 产库存 | Done（无独立 WorkSpot 实体） | [32]§2；[49]§5.1 |
+| 5 | `W` 工位指针模式 | HostWorkTargetMode 黄提示＋左键确认 | Done | [49]§4.2 |
+| 6 | `S` 停止当前指令 | `PlayerCommandKind.Stop` | Done | [49]§4.2 |
+| 7 | 右键灵地／`C` 入定修炼 | 右键 Opportunity＋`C` | Done | [32]§2；[49]§4.3 |
+| 8 | `X` 出定 | `X`→Stop | Done | [49]§4.3 |
+| 9 | `G` 敛息草降暴露（开局 3） | 资源＋UseConcealGrass | Done | [49]§4.3 |
+| 10 | 暴露：昼高／夜低／近主管加成 | ConcealmentExposureRules | Done | [49]§4.3 |
 | 11 | 暂停／1x／2x／5x | Host 已有 | Done | [61] |
-| 12 | 全村劳役表 UI（**前期只读**） | Core Schedule 有；Host 无课表面板 | **Gap** | [32]§2「前期只读」 |
-| 13 | 课表测试可改格 | — | **Out** | [32] 夺权后可改；现阶段只读 |
-| 14 | 每日任务木／粮／药配额 | DailyTask＋木／灵草；缺粮；非工位产出 | **Gap** | [32]§2；[49] M3 |
-| 15 | 主管愤怒（工时偷懒且靠近才涨，只显示） | 日终 SupervisorPressure 事件（语义已换） | **Gap** | [49]§4.5；[32] 映射 Obligation |
-| 16 | NPC 日程（主管巡视／守卫 Patrol／Rest） | 三类 Schedule AI Partial | **Gap** | [32]§2；[49]§4.6 |
-| 17 | 村民群体状态标签 | 无 VillageCrowdPresenter | **Gap** | [32] 层4；[49]§5.8 |
-| 18 | 商人游荡占位 | 无 | **Gap** | [49]§4.6（占位氛围） |
-| 19 | NPC／单位头顶活动字 | 无 | **Gap** | [49]§4.6；[32] 纯表现 |
-| 20 | 80×50 Sprite 瓦片荒村＋工区／灵地 | 3D Quad 灰盒＋8 抽象点 | **Gap** | [46]–[48] Sprite；[49]；产品 2D |
-| 21 | 正交 XY 相机＋中键拖＋滚轮 | 正交 XZ＋WASD | **Gap** | [49]；2D 约定 |
-| 22 | 选中环／框选绿框／落点／飘字 | 高亮有；落点飘字弱 | **Gap** | [32] 纯 Unity 表现 |
+| 12 | 全村劳役表 UI（**前期只读**） | FormalHud 课表只读 | Done | [32]§2 |
+| 13 | 课表测试可改格 | — | **Out** | [32] 夺权后可改 |
+| 14 | 每日任务木／粮／药配额 | 粮资源已加；配额仍 DailyTask | Partial | [32]§2；[49] M3 |
+| 15 | 主管愤怒（靠近涨，只显示） | SupervisorAngerBoard＋Driver；日终压力仍保留 | Done | [49]§4.5 |
+| 16 | NPC 日程（主管／守卫） | 主管＋守卫甲乙＋巡查日程 | Done | [32]§2；[49]§4.6 |
+| 17 | 村民群体状态标签 | HostCrowdPresenter | Done | [32] 层4 |
+| 18 | 商人游荡占位 | scenario 行商＋mortal 日程 | Done | [49]§4.6 |
+| 19 | NPC／单位头顶活动字 | HostActivityPresenter | Done | [49]§4.6 |
+| 20 | 80×50 Sprite 瓦片荒村 | Sprite 区片铺砖（未接满幅 Demo Prefab 80×50） | Partial | [46]–[48]；[49] |
+| 21 | 正交 XY 相机＋中键拖＋滚轮 | PlayableHostCameraRig | Done | [49] |
+| 22 | 选中环／框选绿框／落点／飘字 | 选中环＋框选＋HostFeedbackOverlay | Done | [32] |
 | 23 | `A` 攻击占位（无伤害） | 无 | **Out** | [49]§3／[62] 不做战斗；[32]§2 必保表未列攻击 |
 | 24 | 真战斗／夺府／发现追捕／突破（Demo 未做） | 突破 Formal 已有；其余不做 | **Out**／Extra | [49]§3；[74] |
 | 25 | 正式 UGUI／精美美术 | IMGUI／占位 Sprite | **Out** | [49]§3；ADR-0009 |

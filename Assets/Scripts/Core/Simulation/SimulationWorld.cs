@@ -48,6 +48,7 @@ namespace XianXia.Core.Simulation
             Quests = new QuestBoard();
             ContentEvents = new ContentEventBoard();
             Chapters = new ChapterBoard();
+            SupervisorAnger = new XianXia.Core.Social.SupervisorAngerBoard();
             Tick = WorldTick.Zero;
             EnabledPackageId = "base";
             EnabledPackageVersion = "0.0.1-m1";
@@ -96,6 +97,9 @@ namespace XianXia.Core.Simulation
 
         /// <summary>Chapter Production: active chapter＋beats (session-only; not in Snapshot v1).</summary>
         public ChapterBoard Chapters { get; }
+
+        /// <summary>Demo [49] supervisor anger (display-only; not in Snapshot v1).</summary>
+        public XianXia.Core.Social.SupervisorAngerBoard SupervisorAnger { get; }
 
         /// <summary>Alias for story／content flags (same board as <see cref="Flags"/>).</summary>
         public WorldFlagBoard StoryFlags => Flags;

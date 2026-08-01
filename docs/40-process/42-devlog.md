@@ -7,6 +7,14 @@
 
 ---
 
+## 2026-08-02 — Demo 手感对齐（正式 Host）进行中
+
+**做了什么**
+- 缺口审计 [91]；PlayableHost 改 Sprite＋XY；Stop／W／C／X／G；工区产资源；暴露／愤怒；课表／头顶字／村民标签／守卫商人
+- EditMode **179/179**；进度 [92](92-demo-parity-progress-2026-08-02.md)
+
+**下一步：** 满幅 Demo Prefab 铺砖＋[49]§5 一比一验收。
+
 ## 2026-08-02 — Chapter 01 Reference Level 验收
 
 **做了什么**

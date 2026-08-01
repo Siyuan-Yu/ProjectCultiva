@@ -52,6 +52,36 @@
       "backgroundTags": ["background_orphan"],
       "talentTags": ["talent_fire_root"],
       "tags": ["cultivator", "npc"]
+    },
+    {
+      "id": "base:character_ch01_ref_guard_a",
+      "type": "character",
+      "name": "守卫甲",
+      "baseAttributes": { "MaxHp": 120, "Attack": 13, "Defense": 9, "Speed": 9 },
+      "personalityTags": ["personality_steady"],
+      "backgroundTags": ["background_labor_camp"],
+      "talentTags": ["talent_enduring"],
+      "tags": ["guard", "npc"]
+    },
+    {
+      "id": "base:character_ch01_ref_guard_b",
+      "type": "character",
+      "name": "守卫乙",
+      "baseAttributes": { "MaxHp": 118, "Attack": 12, "Defense": 9, "Speed": 9 },
+      "personalityTags": ["personality_cautious"],
+      "backgroundTags": ["background_labor_camp"],
+      "talentTags": [],
+      "tags": ["guard", "npc"]
+    },
+    {
+      "id": "base:character_ch01_ref_merchant",
+      "type": "character",
+      "name": "行商",
+      "baseAttributes": { "MaxHp": 85, "Attack": 6, "Defense": 4, "Speed": 8 },
+      "personalityTags": ["personality_curious"],
+      "backgroundTags": ["background_orphan"],
+      "talentTags": [],
+      "tags": ["merchant", "npc"]
     }
   ]
 }

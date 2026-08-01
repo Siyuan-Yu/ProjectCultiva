@@ -32,6 +32,8 @@ namespace XianXia.Unity.EditorTools
             hostGo.AddComponent<HostActionMenu>();
             hostGo.AddComponent<HostFormalHud>();
             hostGo.AddComponent<HostActivityPresenter>();
+            hostGo.AddComponent<HostCrowdPresenter>();
+            hostGo.AddComponent<HostFeedbackOverlay>();
 
             var cam = Object.FindObjectOfType<Camera>();
             if (cam != null)

@@ -32,6 +32,7 @@ namespace XianXia.Unity.Host
         [SerializeField] KeyCode exploreKey = KeyCode.T;
         [SerializeField] KeyCode travelKey = KeyCode.Y;
         [SerializeField] EntityViewSpawner viewSpawner;
+        [SerializeField] HostFeedbackOverlay feedbackOverlay;
 
         PlayableHostSession _session;
         string _lastStatus = "No command yet";
@@ -44,10 +45,15 @@ namespace XianXia.Unity.Host
 
         public int LastFailureCount => _lastFailureCount;
 
-        public void Bind(PlayableHostSession session, HostSelectionController selection)
+        public void Bind(
+            PlayableHostSession session,
+            HostSelectionController selection,
+            HostFeedbackOverlay feedback = null)
         {
             _session = session;
             selectionController = selection;
+            if (feedback != null)
+                feedbackOverlay = feedback;
             _lastStatus = "Bound";
             _lastSuccessCount = 0;
             _lastFailureCount = 0;
@@ -58,10 +64,8 @@ namespace XianXia.Unity.Host
             if (!enableDebugKeys || _session == null || !_session.IsInitialized)
                 return;
 
-            // Demo letter keys [49] (camera pan uses arrows / Alt+WASD).
-            if (Input.GetKeyDown(KeyCode.W))
-                IssueSelected(PlayerCommandKind.Labor);
-            else if (Input.GetKeyDown(KeyCode.S))
+            // Demo letter keys [49] (W work-target mode is HostWorkTargetMode; camera: arrows / Alt+WASD).
+            if (Input.GetKeyDown(KeyCode.S))
                 IssueSelected(PlayerCommandKind.Stop, 0);
             else if (Input.GetKeyDown(KeyCode.C))
                 IssueSelected(PlayerCommandKind.Cultivate);
@@ -380,7 +384,10 @@ namespace XianXia.Unity.Host
 
                 var result = _session.Port.Submit(new PlayerCommandRequest(id, kind, durationTicks));
                 if (result.IsSuccess)
+                {
                     _lastSuccessCount++;
+                    NotifyFeedback(id, kind);
+                }
                 else
                 {
                     _lastFailureCount++;
@@ -454,6 +461,36 @@ namespace XianXia.Unity.Host
             }
 
             return true;
+        }
+
+        void NotifyFeedback(EntityId id, PlayerCommandKind kind)
+        {
+            if (feedbackOverlay == null)
+                return;
+            string text = null;
+            var color = Color.white;
+            switch (kind)
+            {
+                case PlayerCommandKind.Stop:
+                    text = "已停下";
+                    color = new Color(1f, 0.85f, 0.4f);
+                    break;
+                case PlayerCommandKind.Labor:
+                    text = "开工";
+                    color = new Color(0.7f, 1f, 0.5f);
+                    break;
+                case PlayerCommandKind.Cultivate:
+                    text = "入定";
+                    color = new Color(0.5f, 0.9f, 1f);
+                    break;
+                case PlayerCommandKind.UseConcealGrass:
+                    text = "敛息";
+                    color = new Color(0.6f, 1f, 0.8f);
+                    break;
+            }
+
+            if (text != null)
+                feedbackOverlay.SpawnAtEntity(viewSpawner, id, text, color);
         }
 
         static HashSet<ulong> BuildAllowedSet(IReadOnlyList<EntityId> characterIds)

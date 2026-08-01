@@ -20,6 +20,7 @@ namespace XianXia.Core.Simulation
         readonly SimulationWorld _world;
         readonly ScheduleDriver _scheduleDriver;
         readonly SocialTickDriver _socialTickDriver;
+        readonly XianXia.Core.Social.SupervisorAngerDriver _supervisorAngerDriver;
         readonly bool _socialTickEnabled;
         readonly List<IDayBoundaryHandler> _dayBoundaryHandlers;
         ulong _nextOrderId = 1;
@@ -34,6 +35,7 @@ namespace XianXia.Core.Simulation
             _world = world;
             _scheduleDriver = scheduleDriver ?? new ScheduleDriver();
             _socialTickDriver = socialTickDriver ?? new SocialTickDriver();
+            _supervisorAngerDriver = new XianXia.Core.Social.SupervisorAngerDriver();
             _socialTickEnabled = enableSocialTick;
             if (dayBoundaryHandlers != null)
             {
@@ -153,6 +155,7 @@ namespace XianXia.Core.Simulation
             }
 
             _scheduleDriver.Drive(_world, this);
+            _supervisorAngerDriver.Tick(_world);
             if (_socialTickEnabled)
                 _socialTickDriver.Tick(_world);
             return Result.Success();

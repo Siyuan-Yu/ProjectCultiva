@@ -251,6 +251,38 @@
           "recruitable": true,
           "scheduleId": "base:schedule_mortal_day",
           "aiRole": "Mortal"
+        },
+        {
+          "definitionId": "base:character_ch01_ref_guard_a",
+          "entityKind": "npc",
+          "displayName": "守卫甲",
+          "assignOpeningFaction": true,
+          "factionRole": "Member",
+          "bindSchedule": true,
+          "bindDailyTask": false,
+          "scheduleId": "base:schedule_supervisor_day",
+          "aiRole": "Cultivator"
+        },
+        {
+          "definitionId": "base:character_ch01_ref_guard_b",
+          "entityKind": "npc",
+          "displayName": "守卫乙",
+          "assignOpeningFaction": true,
+          "factionRole": "Member",
+          "bindSchedule": true,
+          "bindDailyTask": false,
+          "scheduleId": "base:schedule_supervisor_day",
+          "aiRole": "Cultivator"
+        },
+        {
+          "definitionId": "base:character_ch01_ref_merchant",
+          "entityKind": "npc",
+          "displayName": "行商",
+          "assignOpeningFaction": false,
+          "bindSchedule": true,
+          "bindDailyTask": false,
+          "scheduleId": "base:schedule_mortal_day",
+          "aiRole": "Mortal"
         }
       ],
       "openingRelations": [

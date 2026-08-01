@@ -35,6 +35,9 @@ namespace XianXia.Unity.Host
         [SerializeField] HostActionMenu actionMenu;
         [SerializeField] HostFormalHud formalHud;
         [SerializeField] HostActivityPresenter activityPresenter;
+        [SerializeField] HostCrowdPresenter crowdPresenter;
+        [SerializeField] HostFeedbackOverlay feedbackOverlay;
+        [SerializeField] HostWorkTargetMode workTargetMode;
 
         [Header("Tick debug")]
         [SerializeField] bool initializeOnPlay = true;
@@ -178,6 +181,15 @@ namespace XianXia.Unity.Host
             if (activityPresenter == null)
                 activityPresenter = GetComponent<HostActivityPresenter>() ??
                                    gameObject.AddComponent<HostActivityPresenter>();
+            if (crowdPresenter == null)
+                crowdPresenter = GetComponent<HostCrowdPresenter>() ??
+                                gameObject.AddComponent<HostCrowdPresenter>();
+            if (feedbackOverlay == null)
+                feedbackOverlay = GetComponent<HostFeedbackOverlay>() ??
+                                  gameObject.AddComponent<HostFeedbackOverlay>();
+            if (workTargetMode == null)
+                workTargetMode = GetComponent<HostWorkTargetMode>() ??
+                                 gameObject.AddComponent<HostWorkTargetMode>();
 
             selectionController.ClearSelection();
             entityViewSpawner.Clear();
@@ -218,13 +230,16 @@ namespace XianXia.Unity.Host
             var cam = Camera.main;
             selectionController.Bind(entityViewSpawner, cam);
             selectionController.SetPartyFilter(_session.CharacterIds);
-            commandBridge.Bind(_session, selectionController);
+            feedbackOverlay.Bind(cam);
+            commandBridge.Bind(_session, selectionController, feedbackOverlay);
             debugHud.Bind(this, selectionController);
             contentDebugPanel.Bind(this, selectionController);
             moveController.Bind(this, selectionController, entityViewSpawner, commandBridge);
             actionMenu.Bind(this, selectionController, commandBridge);
             formalHud.Bind(this, selectionController, eventFeed);
             activityPresenter.Bind(this, entityViewSpawner);
+            crowdPresenter.Bind(this);
+            workTargetMode.Bind(this, selectionController, commandBridge);
             snapshotPanel.Bind(this);
             // Bootstrap already published WorldInitialized／EntityCreated — capture once.
             eventFeed.PullFrom(_session.World.Events);
