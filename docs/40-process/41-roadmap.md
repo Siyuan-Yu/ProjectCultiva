@@ -1,13 +1,13 @@
 # 路线图
 
-> 状态：**VS 0.1 已验收**｜下一规划：Vertical Slice 0.2（杂役第一天）| 最后更新：2026-08-01
+> 状态：**VS 0.4 已验收**｜下一目标：VS0.5 社会／人格 Alpha｜最后更新：2026-08-01
 
 ## 当前阶段说明
 
 - Architecture Freeze **v0.2** 仍有效；**不改 Freeze 正文**。  
-- Core M1／Data Pipeline／Cultivation Slice／**VS 0.1 已验收**。  
-- Demo 继续冻结。  
-- 下一文档：[55-vertical-slice-0.2-plan-v0.1.md](55-vertical-slice-0.2-plan-v0.1.md)（**只规划，确认前不编码**）。
+- Core／Data／Cultivation／**VS 0.1～0.4 已验收**。  
+- Demo Runtime 继续冻结。  
+- VS0.4 验收：[61-vertical-slice-0.4-acceptance-report.md](61-vertical-slice-0.4-acceptance-report.md)。
 
 ## M2.5 — 架构冻结
 
@@ -40,11 +40,24 @@
 - [x] Cultivation Slice：`64cb3ab`
 - [x] 验收报告 [54](54-vertical-slice-0.1-acceptance-report.md)；EditMode **73/73**（Cultivation 完成后）
 
-### Vertical Slice 0.2（杂役第一天）
+### Vertical Slice 0.2 — **Completed**
 
-- [x] 规划草案：[55-vertical-slice-0.2-plan-v0.1.md](55-vertical-slice-0.2-plan-v0.1.md)
-- [ ] 确认暴露薄层／学法默认／Labor 点数／日程数据落点
-- [ ] （确认后）按 V2-A～V2-G 编码——**当前不开始**
+- [x] 计划／确认／Phase A–C；验收 [56-acceptance](56-vertical-slice-0.2-acceptance-report.md)；EditMode **89/89**
+
+### Vertical Slice 0.3 — **Completed**
+
+- [x] 计划 `57`；验收 [58](58-vertical-slice-0.3-acceptance-report.md)；EditMode **100/100**
+
+### Vertical Slice 0.4（Unity Playable Host）— **Completed**
+
+- [x] 规划：[59](59-vertical-slice-0.4-unity-playable-host-plan-v0.1.md)
+- [x] V4-A～H 独立 commit；验收 [61](61-vertical-slice-0.4-acceptance-report.md)
+- [x] EditMode 全绿（含一日可玩整合测）
+
+### Vertical Slice 0.5（社会／人格 Alpha）— **Next**
+
+- [ ] 计划落盘后按内部 Phase：人格 → RelationshipLedger → 开局关系 → 招募 → NPC 自主 → 社会 Tick
+- [ ] 禁止无计划扩战斗／地图／正式 UI；Snapshot 含关系前先确认 schema
 
 
 ## M0 — 定方向

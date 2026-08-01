@@ -48,6 +48,15 @@
 
 **下一步：** V4-H 一日可玩验收。
 
+## 2026-08-01 — VS0.4 Phase H：一日可玩验收
+
+**做了什么**
+- `HostPlayableDayPhaseHTests`：选中→Schedule→Observe→Cultivate→日界→Snapshot
+- 验收报告 `61-vertical-slice-0.4-acceptance-report.md`
+- VS0.4 Host 切片闭环完成
+
+**下一步：** 开 VS0.5 社会／人格／关系 Alpha（Core）。
+
 ## 2026-08-01 — VS0.4 Phase C：RTS Selection
 
 **做了什么**

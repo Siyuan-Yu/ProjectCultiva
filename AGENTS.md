@@ -11,14 +11,14 @@
 
 要点：聊天不是真源；重要决定必须进入 Architecture／System Design／ADR／Devlog／Glossary；跨角色冲突时已冻结架构优先。
 
-## 当前阶段：VS0.4 Unity Playable Host（自主推进：E 完成 → F～H → VS0.5）
+## 当前阶段：VS0.4 已验收 → 下一步 VS0.5 社会 Alpha
 
 - 主契约：`docs/30-tech/33-architecture-core-rules-freeze-v0.2.md`（**禁止改 Freeze 正文**）
-- 计划：`docs/40-process/59-vertical-slice-0.4-unity-playable-host-plan-v0.1.md`（V4-A～H）
-- 已提交：V4-A～E；进行中：V4-F～H，完成后进 VS0.5
-- **纪律（强制）：** 每 Phase 单独实现 → EditMode／PlayMode 门禁 → **单独 commit** → 继续下一 Phase（不搁置）
-- Host：只适配输入／表现；Demo Runtime **只读参考**；禁迁玩法；禁改 ProjectSettings／Packages／Freeze
+- VS0.4 Host：验收见 `docs/40-process/61-vertical-slice-0.4-acceptance-report.md`（V4-A～H 已提交）
+- **下一目标：** VS0.5 角色差异／人格／关系／招募／NPC 自主／小规模社会（正式 Core，非 Demo）
+- **纪律：** 每内部 Phase：实现 → 测试 → **单独 commit** → Devlog；不搁置已批准切片
 - 硬停：改 Freeze／Snapshot 契约／Core·Data 边界／大型未设计系统／需人工定规则
+- Host：只适配输入／表现；Demo Runtime **只读参考**；禁迁玩法；禁改 ProjectSettings／Packages／Freeze
 
 ## 开工前必读
 
@@ -28,7 +28,7 @@
 4. `docs/00-project/00-overview.md`
 5. `docs/00-project/03-glossary.md`
 6. `33` **v0.2**
-7. [VS 0.2 验收](docs/40-process/56-vertical-slice-0.2-acceptance-report.md) → [VS 0.3 计划](docs/40-process/57-vertical-slice-0.3-plan-v0.1.md)
+7. [VS 0.4 验收](docs/40-process/61-vertical-slice-0.4-acceptance-report.md)
 8. `42-devlog.md` 最新 2～3 条
 
 ## 硬性规则（摘要）
