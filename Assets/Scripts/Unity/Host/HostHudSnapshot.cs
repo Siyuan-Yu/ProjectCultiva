@@ -7,6 +7,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Labor;
 using XianXia.Core.Opportunity;
 using XianXia.Core.Schedule;
+using XianXia.Core.Exploration;
 using XianXia.Core.Settlement;
 using XianXia.Core.Social;
 
@@ -38,6 +39,7 @@ namespace XianXia.Unity.Host
         public string RelationLine { get; private set; } = "-";
         public string SettlementLine { get; private set; } = "-";
         public string WorkRoleLine { get; private set; } = "-";
+        public string LocationLine { get; private set; } = "-";
 
         public static HostHudSnapshot Capture(
             PlayableHostSession session,
@@ -80,6 +82,7 @@ namespace XianXia.Unity.Host
             snap.RelationLine = FormatRelation(session, focusId, relationPeerId);
             snap.SettlementLine = FormatSettlement(session);
             snap.WorkRoleLine = FormatWorkRole(entity);
+            snap.LocationLine = FormatLocation(session, entity);
             return snap;
         }
 
@@ -102,6 +105,7 @@ namespace XianXia.Unity.Host
             sb.Append("Faction: ").Append(FactionLine).Append('\n');
             sb.Append("Settlement: ").Append(SettlementLine).Append('\n');
             sb.Append("Work: ").Append(WorkRoleLine).Append('\n');
+            sb.Append("Location: ").Append(LocationLine).Append('\n');
             sb.Append("Action: ").Append(ActionLine).Append('\n');
             sb.Append("Schedule: ").Append(ScheduleLine).Append('\n');
             sb.Append("Quota: ").Append(QuotaLine).Append('\n');
@@ -149,6 +153,16 @@ namespace XianXia.Unity.Host
             if (!entity.TryGet<WorkAssignmentComponent>(out var work) || !work.IsAssigned)
                 return "(none)";
             return work.Role + "@" + work.SettlementId;
+        }
+
+        static string FormatLocation(PlayableHostSession session, Entity entity)
+        {
+            if (!entity.TryGet<EntityLocationComponent>(out var loc) || !loc.HasLocation)
+                return "(none)";
+            if (session?.World != null &&
+                session.World.WorldRegion.TryGet(loc.LocationId, out var location))
+                return location.Name + " [" + location.Kind + "]";
+            return loc.LocationId;
         }
 
         static string FormatRelation(PlayableHostSession session, EntityId focusId, EntityId peerId)

@@ -3,6 +3,7 @@ using UnityEngine;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Input;
 using XianXia.Core.Results;
+using XianXia.Core.Exploration;
 using XianXia.Core.Settlement;
 
 namespace XianXia.Unity.Host
@@ -28,6 +29,9 @@ namespace XianXia.Unity.Host
         [SerializeField] KeyCode assignLaborKey = KeyCode.Alpha8;
         [SerializeField] KeyCode assignGatherKey = KeyCode.Alpha9;
         [SerializeField] KeyCode assignCultivateKey = KeyCode.Alpha0;
+        [SerializeField] KeyCode exploreKey = KeyCode.T;
+        [SerializeField] KeyCode travelKey = KeyCode.Y;
+        [SerializeField] EntityViewSpawner viewSpawner;
 
         PlayableHostSession _session;
         string _lastStatus = "No command yet";
@@ -74,6 +78,10 @@ namespace XianXia.Unity.Host
                 IssueAssignWork(WorkRoleKind.Gather);
             else if (Input.GetKeyDown(assignCultivateKey))
                 IssueAssignWork(WorkRoleKind.Cultivate);
+            else if (Input.GetKeyDown(exploreKey))
+                IssueExplore();
+            else if (Input.GetKeyDown(travelKey))
+                IssueTravelNextAdjacent();
         }
 
         void OnGUI()
@@ -108,6 +116,89 @@ namespace XianXia.Unity.Host
                 IssueAssignWork(WorkRoleKind.Gather);
             if (GUI.Button(new Rect(8f + 2f * (w + 6f), y, w, h), "分工修(0)"))
                 IssueAssignWork(WorkRoleKind.Cultivate);
+
+            y += h + 6f;
+            if (GUI.Button(new Rect(8f, y, w, h), "探索(T)"))
+                IssueExplore();
+            if (GUI.Button(new Rect(8f + (w + 6f), y, w, h), "旅行(Y)"))
+                IssueTravelNextAdjacent();
+        }
+
+        public int IssueExplore()
+        {
+            if (selectionController == null || selectionController.State.Count == 0)
+            {
+                _lastStatus = "Empty selection";
+                return 0;
+            }
+
+            _lastSuccessCount = 0;
+            _lastFailureCount = 0;
+            if (_session?.Port == null)
+                return 0;
+
+            var id = selectionController.State.SelectedIds[0];
+            var result = _session.Port.Submit(
+                new PlayerCommandRequest(id, PlayerCommandKind.Explore, 1));
+            if (result.IsSuccess)
+            {
+                _lastSuccessCount = 1;
+                _lastStatus = "Explore ok entity=" + id.Value;
+            }
+            else
+            {
+                _lastFailureCount = 1;
+                _lastStatus = "Explore FAIL " + FormatError(result);
+            }
+
+            return _lastSuccessCount;
+        }
+
+        public int IssueTravelNextAdjacent()
+        {
+            if (selectionController == null || selectionController.State.Count == 0 || _session?.Port == null)
+            {
+                _lastStatus = "Cannot travel";
+                return 0;
+            }
+
+            var id = selectionController.State.SelectedIds[0];
+            if (!_session.World.Entities.TryGet(id, out var entity) ||
+                !entity.TryGet<EntityLocationComponent>(out var loc) ||
+                !loc.HasLocation ||
+                !_session.World.WorldRegion.TryGet(loc.LocationId, out var location) ||
+                location.AdjacentIds.Count == 0)
+            {
+                _lastStatus = "No adjacent location";
+                _lastFailureCount = 1;
+                return 0;
+            }
+
+            var target = location.AdjacentIds[0];
+            var result = _session.Port.Submit(
+                new PlayerCommandRequest(
+                    id,
+                    PlayerCommandKind.Travel,
+                    1,
+                    EntityId.None,
+                    WorkRoleKind.None,
+                    target));
+            if (result.IsSuccess)
+            {
+                _lastSuccessCount = 1;
+                _lastFailureCount = 0;
+                _lastStatus = "Travel → " + target;
+                if (viewSpawner != null)
+                    viewSpawner.SyncLocations(_session);
+            }
+            else
+            {
+                _lastSuccessCount = 0;
+                _lastFailureCount = 1;
+                _lastStatus = "Travel FAIL " + FormatError(result);
+            }
+
+            return _lastSuccessCount;
         }
 
         public int IssueAssignWork(WorkRoleKind role)

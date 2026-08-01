@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
+using XianXia.Core.Exploration;
 
 namespace XianXia.Unity.Host
 {
@@ -51,12 +52,11 @@ namespace XianXia.Unity.Host
             EnsureRoot();
 
             var ids = session.ViewableEntityIds;
+            var stackAtLocation = new Dictionary<string, int>(System.StringComparer.Ordinal);
             for (var i = 0; i < ids.Count; i++)
             {
                 var id = ids[i];
-                var position = i < slotPositions.Length
-                    ? slotPositions[i]
-                    : new Vector3(i * 2.5f, 1f, 0f);
+                var position = ResolvePresentationPosition(session, id, i, stackAtLocation);
 
                 var isNpc = session.World.Entities.TryGet(id, out var entity) &&
                              (entity.Tags & EntityTag.Npc) != 0;
@@ -89,6 +89,45 @@ namespace XianXia.Unity.Host
             {
                 for (var i = viewsRoot.childCount - 1; i >= 0; i--)
                     DestroyViewObject(viewsRoot.GetChild(i).gameObject);
+            }
+        }
+
+        static Vector3 ResolvePresentationPosition(
+            PlayableHostSession session,
+            EntityId id,
+            int fallbackIndex,
+            Dictionary<string, int> stackAtLocation)
+        {
+            if (session.World.Entities.TryGet(id, out var entity) &&
+                entity.TryGet<EntityLocationComponent>(out var loc) &&
+                loc.HasLocation &&
+                session.World.WorldRegion.TryGet(loc.LocationId, out var location))
+            {
+                stackAtLocation.TryGetValue(loc.LocationId, out var stack);
+                stackAtLocation[loc.LocationId] = stack + 1;
+                var ox = (stack % 3) * 0.85f - 0.85f;
+                var oz = (stack / 3) * 0.85f;
+                return new Vector3(location.PresentationX + ox, 1f, location.PresentationZ + oz);
+            }
+
+            return fallbackIndex < 4
+                ? new Vector3(fallbackIndex * 2.5f - 2.5f, 1f, 0f)
+                : new Vector3(fallbackIndex * 2.5f, 1f, 0f);
+        }
+
+        /// <summary>VS0.9: move views after travel without full rebuild.</summary>
+        public void SyncLocations(PlayableHostSession session)
+        {
+            if (session == null || !session.IsInitialized)
+                return;
+            var stackAtLocation = new Dictionary<string, int>(System.StringComparer.Ordinal);
+            var ids = session.ViewableEntityIds;
+            for (var i = 0; i < ids.Count; i++)
+            {
+                var id = ids[i];
+                if (!_registry.TryGet(id, out var view) || view == null)
+                    continue;
+                view.transform.position = ResolvePresentationPosition(session, id, i, stackAtLocation);
             }
         }
 

@@ -9,8 +9,8 @@ namespace XianXia.Unity.Host
     {
         [SerializeField] Camera targetCamera;
         [SerializeField] Vector3 focus = Vector3.zero;
-        [SerializeField] float distance = 12f;
-        [SerializeField] float height = 8f;
+        [SerializeField] float distance = 6f;
+        [SerializeField] float height = 14f;
         [SerializeField] float panSpeed = 10f;
         [SerializeField] float zoomSpeed = 4f;
         [SerializeField] float minDistance = 5f;
