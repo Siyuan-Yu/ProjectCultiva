@@ -5,8 +5,8 @@ using XianXia.Data.Bootstrap;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// VS0.4 Phase A: Editor PlayMode host entry. Loads BaseGame, builds session, minimal Tick control.
-    /// No EntityView／commands／HUD／Demo migration.
+    /// VS0.4 Playable Host entry. Loads BaseGame, builds session, EntityViews, minimal Tick control.
+    /// No commands／HUD／Demo migration in Phase B.
     /// </summary>
     public sealed class PlayableHostBootstrap : MonoBehaviour
     {
@@ -19,6 +19,10 @@ namespace XianXia.Unity.Host
         [Range(0, 100)]
         [SerializeField] int observationDiscoverChancePercent = 100;
         [SerializeField] int dailyRequiredAmount = 10;
+
+        [Header("Presentation")]
+        [SerializeField] EntityViewSpawner entityViewSpawner;
+        [SerializeField] PlayableHostCameraRig cameraRig;
 
         [Header("Tick debug")]
         [SerializeField] bool initializeOnPlay = true;
@@ -35,9 +39,19 @@ namespace XianXia.Unity.Host
 
         public PlayableHostSession Session => _session;
 
+        public EntityViewSpawner ViewSpawner => entityViewSpawner;
+
         public string StatusLine => _status;
 
         public string ResolvedContentPath => _resolvedContentPath;
+
+        void Awake()
+        {
+            if (entityViewSpawner == null)
+                entityViewSpawner = GetComponent<EntityViewSpawner>() ?? GetComponentInChildren<EntityViewSpawner>();
+            if (cameraRig == null)
+                cameraRig = GetComponent<PlayableHostCameraRig>() ?? GetComponentInChildren<PlayableHostCameraRig>();
+        }
 
         void Start()
         {
@@ -76,6 +90,11 @@ namespace XianXia.Unity.Host
 
         public bool TryInitialize()
         {
+            if (entityViewSpawner == null)
+                entityViewSpawner = GetComponent<EntityViewSpawner>() ?? gameObject.AddComponent<EntityViewSpawner>();
+
+            entityViewSpawner.Clear();
+
             if (!TryResolveContentPackageDirectory(out _resolvedContentPath, out var pathError))
             {
                 _status = "INIT FAILED: " + pathError;
@@ -96,17 +115,40 @@ namespace XianXia.Unity.Host
             {
                 _status = "INIT FAILED: " + init.Error;
                 Debug.LogError("[PlayableHost] " + init.Error, this);
+                entityViewSpawner.Clear();
                 return false;
             }
+
+            entityViewSpawner.Rebuild(_session);
+            FrameCameraOnSlots();
 
             _session.IsPaused = true;
             _autoTickAccumulator = 0f;
             RefreshStatus();
             Debug.Log(
                 "[PlayableHost] Initialized. Characters=" + _session.CharacterIds.Count +
+                " Views=" + entityViewSpawner.SpawnedCount +
                 " Content=" + _resolvedContentPath,
                 this);
             return true;
+        }
+
+        void FrameCameraOnSlots()
+        {
+            if (cameraRig == null || entityViewSpawner == null)
+                return;
+
+            var slots = entityViewSpawner.SlotPositions;
+            if (slots == null || slots.Count == 0)
+            {
+                cameraRig.FrameSlots(Vector3.zero);
+                return;
+            }
+
+            var sum = Vector3.zero;
+            for (var i = 0; i < slots.Count; i++)
+                sum += slots[i];
+            cameraRig.FrameSlots(sum / slots.Count);
         }
 
         public void StepTick()

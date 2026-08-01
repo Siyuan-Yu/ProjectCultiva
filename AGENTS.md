@@ -11,7 +11,7 @@
 
 要点：聊天不是真源；重要决定必须进入 Architecture／System Design／ADR／Devlog／Glossary；跨角色冲突时已冻结架构优先。
 
-## 当前阶段：VS0.4 Unity Playable Host（V4-A 完成，等确认进 B）
+## 当前阶段：VS0.4 Unity Playable Host（V4-B 完成，等确认进 C）
 
 - 主契约：`docs/30-tech/33-architecture-core-rules-freeze-v0.2.md`（**禁止改 Freeze 正文**）
 - 计划：`docs/40-process/59-vertical-slice-0.4-unity-playable-host-plan-v0.1.md`（V4-A～H 已批准）

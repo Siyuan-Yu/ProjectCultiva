@@ -7,6 +7,16 @@
 
 ---
 
+## 2026-08-01 — VS0.4 Phase B：EntityView 表现绑定
+
+**做了什么**
+- `EntityView`／`EntityViewRegistry`／`EntityViewSpawner`：三人胶囊槽位＋Collider＋只读同步
+- `PlayableHostCameraRig`：固定观察＋WASD／滚轮极简
+- Host 初始化／Rebuild 时生成与清理 View；EditMode＋PlayMode 烟测
+- **未做：** 点选／框选／命令／HUD／事件日志／存档／地图／Demo 迁移
+
+**下一步：** 等 V4-B 验收后再进 V4-C。
+
 ## 2026-08-01 — VS0.4 Phase A：Playable Host Bootstrap
 
 **做了什么**
