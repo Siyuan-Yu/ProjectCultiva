@@ -7,6 +7,15 @@
 
 ---
 
+## 2026-08-01 — VS0.8 Cultivation & Settlement Simulation 验收
+
+**做了什么**
+- Resource／Facility／Settlement 内容化；SettlementBoard＋日终生产；WorkRole／AssignWork
+- 开局青石洞府＋三人分工；Host HUD／键 8–0
+- EditMode **165/165**；据点不入 Snapshot；验收 [70](70-vertical-slice-0.8-acceptance-report.md)
+
+**下一步：** VS0.9 世界互动层。
+
 ## 2026-08-01 — VS0.7 Character & Content Foundation 验收
 
 **做了什么**
