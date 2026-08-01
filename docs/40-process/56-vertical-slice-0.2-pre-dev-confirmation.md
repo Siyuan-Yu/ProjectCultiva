@@ -186,6 +186,6 @@ Freeze／`2F` 正式名为 PersonalConcealmentRisk；计划用 ExposureRisk 0–
 | Phase | 内容 | 状态 |
 |---|---|---|
 | A | PlayerInput Port／Factory／Player Order／Labor（+Rest）链路 | **完成** `548a095` |
-| B | ScheduleDefinition／Driver | **完成**（本 Phase B commit）；等确认进 C |
-| C | Override + Quota 偏差／Event | 未开始 |
+| B | ScheduleDefinition／Driver | **完成** `807196c` |
+| C | Override + Quota 偏差／Event | **完成**（本 Phase C commit）；等验收 |
 | — | ExposureRisk／OpportunitySite／地图／UI… | 不做 |

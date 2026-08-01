@@ -65,8 +65,12 @@ namespace XianXia.Core.Persistence
         public bool HasDailyTask { get; set; }
         public int LaborProgress { get; set; }
         public int LaborQuota { get; set; }
+        public int RequiredAmount { get; set; }
+        public int CompletedAmount { get; set; }
+        public int Deviation { get; set; }
         public bool HasSchedule { get; set; }
         public string ScheduleDefinitionId { get; set; }
+        public int ActiveOrderSource { get; set; }
     }
 
     public sealed class AttrBaseDto

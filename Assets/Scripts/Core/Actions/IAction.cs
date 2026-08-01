@@ -24,5 +24,8 @@ namespace XianXia.Core.Actions
 
         /// <summary>Consume one world tick of duration.</summary>
         Result Advance(SimulationWorld world);
+
+        /// <summary>Cancel a pending/running action (VS0.2 player override).</summary>
+        void Cancel();
     }
 }

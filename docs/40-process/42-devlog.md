@@ -7,6 +7,16 @@
 
 ---
 
+## 2026-08-01 — VS0.2 Phase C：Player Override + Quota 偏差
+
+**做了什么**
+- PlayerOrder 打断进行中的 Schedule Action，原因 `OverrideByPlayer`；事件 `ScheduleInterrupted`
+- `DailyTask`：RequiredAmount／CompletedAmount／Deviation；未完成 Schedule Labor → `QuotaDeviationCreated`
+- Snapshot 恢复 Deviation／ActiveOrderSource；EditMode `PlayerOverridePhaseCTests`
+- **未做：** 主管／惩罚／关系／Exposure／UI／地图／移动／战斗
+
+**下一步：** 等 Phase C 验收。
+
 ## 2026-08-01 — VS0.2 Phase B：ScheduleDefinition + ScheduleDriver
 
 **做了什么**

@@ -62,12 +62,18 @@ namespace XianXia.Core.Actions
             }
 
             Clock = Clock.Consume(1);
-            daily.LaborProgress += 1;
+            daily.CompletedAmount += 1;
 
             if (Clock.IsComplete)
                 Status = ActionStatus.Completed;
 
             return Result.Success();
+        }
+
+        public void Cancel()
+        {
+            if (Status == ActionStatus.Pending || Status == ActionStatus.Running)
+                Status = ActionStatus.Cancelled;
         }
 
         public void Restore(ActionStatus status, ActionClock clock)

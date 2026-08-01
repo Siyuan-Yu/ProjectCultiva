@@ -54,6 +54,12 @@ namespace XianXia.Core.Actions
             return Result.Success();
         }
 
+        public void Cancel()
+        {
+            if (Status == ActionStatus.Pending || Status == ActionStatus.Running)
+                Status = ActionStatus.Cancelled;
+        }
+
         public void Restore(ActionStatus status, ActionClock clock)
         {
             Status = status;

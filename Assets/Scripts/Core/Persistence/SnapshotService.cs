@@ -87,6 +87,7 @@ namespace XianXia.Core.Persistence
                 if (entity.TryGet<ActionStateComponent>(out var actionState))
                 {
                     dto.ActiveActionId = actionState.ActiveActionId.Value;
+                    dto.ActiveOrderSource = (int)actionState.ActiveOrderSource;
                     if (actionState.ActiveClock.HasValue)
                     {
                         dto.HasActiveClock = true;
@@ -111,8 +112,11 @@ namespace XianXia.Core.Persistence
                 if (entity.TryGet<DailyTaskComponent>(out var daily))
                 {
                     dto.HasDailyTask = true;
-                    dto.LaborProgress = daily.LaborProgress;
-                    dto.LaborQuota = daily.LaborQuota;
+                    dto.RequiredAmount = daily.RequiredAmount;
+                    dto.CompletedAmount = daily.CompletedAmount;
+                    dto.Deviation = daily.Deviation;
+                    dto.LaborProgress = daily.CompletedAmount;
+                    dto.LaborQuota = daily.RequiredAmount;
                 }
 
                 if (entity.TryGet<ScheduleComponent>(out var schedule))
@@ -254,7 +258,8 @@ namespace XianXia.Core.Persistence
                 entity.AddComponent(new LifecycleComponent((LifecycleState)e.Lifecycle));
                 var actionState = new ActionStateComponent
                 {
-                    ActiveActionId = new ActionId(e.ActiveActionId)
+                    ActiveActionId = new ActionId(e.ActiveActionId),
+                    ActiveOrderSource = (OrderSource)e.ActiveOrderSource
                 };
                 if (e.HasActiveClock)
                     actionState.ActiveClock = new ActionClock(e.ActiveTotalTicks, e.ActiveRemainingTicks);
@@ -285,10 +290,13 @@ namespace XianXia.Core.Persistence
 
                 if (e.HasDailyTask)
                 {
+                    var required = e.RequiredAmount > 0 ? e.RequiredAmount : (e.LaborQuota > 0 ? e.LaborQuota : 10);
+                    var completed = e.CompletedAmount > 0 ? e.CompletedAmount : e.LaborProgress;
                     entity.AddComponent(new DailyTaskComponent
                     {
-                        LaborProgress = e.LaborProgress,
-                        LaborQuota = e.LaborQuota > 0 ? e.LaborQuota : 10
+                        RequiredAmount = required,
+                        CompletedAmount = completed,
+                        Deviation = e.Deviation
                     });
                 }
                 else

@@ -154,8 +154,12 @@ namespace XianXia.Data.Serialization
                     ["hasDailyTask"] = JsonValue.FromBool(e.HasDailyTask),
                     ["laborProgress"] = JsonValue.FromNumber(e.LaborProgress),
                     ["laborQuota"] = JsonValue.FromNumber(e.LaborQuota),
+                    ["requiredAmount"] = JsonValue.FromNumber(e.RequiredAmount),
+                    ["completedAmount"] = JsonValue.FromNumber(e.CompletedAmount),
+                    ["deviation"] = JsonValue.FromNumber(e.Deviation),
                     ["hasSchedule"] = JsonValue.FromBool(e.HasSchedule),
-                    ["scheduleDefinitionId"] = JsonValue.FromString(e.ScheduleDefinitionId ?? string.Empty)
+                    ["scheduleDefinitionId"] = JsonValue.FromString(e.ScheduleDefinitionId ?? string.Empty),
+                    ["activeOrderSource"] = JsonValue.FromNumber(e.ActiveOrderSource)
                 }));
             }
             return list;
@@ -252,8 +256,12 @@ namespace XianXia.Data.Serialization
                 HasDailyTask = e.TryGetProperty("hasDailyTask", out var hdt) && hdt.Kind == JsonValueKind.Boolean && hdt.Bool,
                 LaborProgress = (int)e.GetNumber("laborProgress"),
                 LaborQuota = (int)e.GetNumber("laborQuota"),
+                RequiredAmount = (int)e.GetNumber("requiredAmount"),
+                CompletedAmount = (int)e.GetNumber("completedAmount"),
+                Deviation = (int)e.GetNumber("deviation"),
                 HasSchedule = e.TryGetProperty("hasSchedule", out var hs) && hs.Kind == JsonValueKind.Boolean && hs.Bool,
-                ScheduleDefinitionId = e.GetString("scheduleDefinitionId", string.Empty)
+                ScheduleDefinitionId = e.GetString("scheduleDefinitionId", string.Empty),
+                ActiveOrderSource = (int)e.GetNumber("activeOrderSource")
             };
 
             if (e.TryGetProperty("bases", out var bases) && bases.Kind == JsonValueKind.Array)
