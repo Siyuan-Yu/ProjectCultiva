@@ -84,7 +84,7 @@
 | `PersonalityProfileComponent` | **已实现（VS0.5-A）：** 性格／特质标签集合；由 Content tags／Spawn 写入；**尚未**进 Snapshot |
 | `TradeComponent` | 交易库存／价目引用 |
 | `AuthorityComponent` | 配额、惩罚、管事权限（世界内职权，≠ PlayerAgency） |
-| `RelationshipComponent` | **只读缓存／索引／UI**；关系真源为 RelationshipLedger（ADR-0017） |
+| `RelationshipComponent` | **已实现（VS0.5-B 缓存）：** 只读缓存／索引／UI；真源 `RelationshipLedger`；仅 `RelationshipService` 可刷新缓存；**尚未**进 Snapshot |
 | `FactionRoleBinding` | 当前职位（FactionRole） |
 
 新增可选模块必须：登记术语表 → 写入本文白名单 → 可序列化 → 可测试。**禁止**配置表写“任意组件类名”由反射创建。

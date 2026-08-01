@@ -7,6 +7,16 @@
 
 ---
 
+## 2026-08-01 — VS0.5 Phase B：RelationshipLedger
+
+**做了什么**
+- `RelationshipEvent`／`RelationshipLedger`／`RelationshipComponent`／`RelationshipService`
+- `SimulationWorld.Relationships`；`EventType.RelationshipChanged`
+- 唯一写路径：Service → Ledger Append → 缓存刷新 → DomainEvent；**未**改 Snapshot schema
+- `SocialAlphaConstants` 预置试玩常量（供 C～D）
+
+**下一步：** V5-C 开局关系种子 + Help／Slight。
+
 ## 2026-08-01 — 文档现状总表＋飞书同步
 
 **做了什么**

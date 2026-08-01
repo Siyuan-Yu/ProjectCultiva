@@ -18,7 +18,8 @@ namespace XianXia.Core.Entities
             typeof(XianXia.Core.Schedule.ScheduleComponent),
             typeof(XianXia.Core.Opportunity.KnownSitesComponent),
             typeof(XianXia.Core.Concealment.PersonalConcealmentRiskComponent),
-            typeof(XianXia.Core.Social.PersonalityProfileComponent)
+            typeof(XianXia.Core.Social.PersonalityProfileComponent),
+            typeof(XianXia.Core.Social.RelationshipComponent)
         };
 
         readonly Dictionary<Type, IComponent> _components = new Dictionary<Type, IComponent>();

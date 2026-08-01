@@ -18,7 +18,7 @@
 |---|---|---|
 | V5-0 | 本计划落盘 | `5207037` ✅ |
 | V5-A | PersonalityProfileComponent + Bootstrap | `e443eee` ✅ |
-| V5-B | RelationshipLedger／Service／缓存 | `feat(core): vs0.5 phase b relationship ledger` |
+| V5-B | RelationshipLedger／Service／缓存 | （本 Phase 提交） |
 | V5-C | 开局关系种子 + Help／Slight | `feat(core): vs0.5 phase c opening relations` |
 | V5-D | FactionMembership + RecruitService | `feat(core): vs0.5 phase d recruitment` |
 | V5-E | 人格日程偏置 | `feat(core): vs0.5 phase e npc personality schedule` |

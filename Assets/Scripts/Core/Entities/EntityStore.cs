@@ -35,6 +35,7 @@ namespace XianXia.Core.Entities
             entity.AddComponent(new KnownSitesComponent());
             entity.AddComponent(new PersonalConcealmentRiskComponent());
             entity.AddComponent(new PersonalityProfileComponent());
+            entity.AddComponent(new RelationshipComponent());
             _entities.Add(entity.Id, entity);
             return Result.Ok(entity);
         }

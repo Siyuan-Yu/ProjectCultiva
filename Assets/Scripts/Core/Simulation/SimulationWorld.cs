@@ -9,6 +9,7 @@ using XianXia.Core.Opportunity;
 using XianXia.Core.Orders;
 using XianXia.Core.Random;
 using XianXia.Core.Schedule;
+using XianXia.Core.Social;
 using XianXia.Core.World;
 
 namespace XianXia.Core.Simulation
@@ -37,6 +38,7 @@ namespace XianXia.Core.Simulation
             Translator = translator ?? new DefaultOrderTranslator();
             OrderQueues = new Dictionary<EntityId, OrderQueue>();
             ActiveActions = new Dictionary<ActionId, IAction>();
+            Relationships = new RelationshipLedger();
             Tick = WorldTick.Zero;
             EnabledPackageId = "base";
             EnabledPackageVersion = "0.0.1-m1";
@@ -64,6 +66,9 @@ namespace XianXia.Core.Simulation
         public Dictionary<EntityId, OrderQueue> OrderQueues { get; }
 
         public Dictionary<ActionId, IAction> ActiveActions { get; }
+
+        /// <summary>VS0.5 RelationshipLedger unique source of truth (not in Snapshot yet).</summary>
+        public RelationshipLedger Relationships { get; }
 
         public IReadOnlyDictionary<string, ScheduleDefinition> Schedules => _schedules;
 
