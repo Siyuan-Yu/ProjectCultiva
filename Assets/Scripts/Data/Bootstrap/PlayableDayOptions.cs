@@ -13,5 +13,11 @@ namespace XianXia.Data.Bootstrap
 
         /// <summary>DailyTask.RequiredAmount applied to each character after spawn.</summary>
         public int DailyRequiredAmount { get; set; } = 10;
+
+        /// <summary>
+        /// Optional openingScenario id (e.g. base:scenario_chapter1_harness).
+        /// Null／empty = <see cref="PlayableDayBootstrap.DefaultScenarioId"/>.
+        /// </summary>
+        public string OpeningScenarioId { get; set; }
     }
 }

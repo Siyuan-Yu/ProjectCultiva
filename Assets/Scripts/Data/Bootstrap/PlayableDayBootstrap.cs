@@ -64,15 +64,19 @@ namespace XianXia.Data.Bootstrap
                     "LoadedContent is null.");
             }
 
-            if (!loaded.Registry.TryGetOpeningScenario(DefaultScenarioId, out var scenario))
+            var scenarioResolved = ResolveScenarioId(options.OpeningScenarioId);
+            if (scenarioResolved.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(scenarioResolved.Error);
+            var scenarioId = scenarioResolved.Value;
+            if (!loaded.Registry.TryGetOpeningScenario(scenarioId, out var scenario))
             {
                 return Result.Fail<PlayableDayBootstrapResult>(
                     ErrorCode.NotFound,
                     "Opening scenario definition missing.",
-                    DefaultScenarioId.ToString());
+                    scenarioId.ToString());
             }
 
-            var started = _contentGameStart.StartFromScenario(loaded, DefaultScenarioId, random);
+            var started = _contentGameStart.StartFromScenario(loaded, scenarioId, random);
             if (started.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(started.Error);
 
@@ -196,6 +200,16 @@ namespace XianXia.Data.Bootstrap
                 .AddBlock(48, 56, ScheduleActivity.Rest, 2)
                 .AddBlock(56, 80, ScheduleActivity.Labor, 4)
                 .AddBlock(80, 96, ScheduleActivity.Rest, 2);
+        }
+
+        static Result<DefinitionId> ResolveScenarioId(string openingScenarioId)
+        {
+            if (string.IsNullOrWhiteSpace(openingScenarioId))
+                return Result.Ok(DefaultScenarioId);
+            var parsed = DefinitionId.Parse(openingScenarioId);
+            if (parsed.IsFailure)
+                return Result.Fail<DefinitionId>(parsed.Error);
+            return Result.Ok(parsed.Value);
         }
     }
 }

@@ -75,6 +75,13 @@ namespace XianXia.Data.Content
             if (!report.IsValid)
                 return report.ToResult<LoadedContent>(null);
 
+            var refs = new ContentReferenceValidator().Validate(registry);
+            if (!refs.IsValid)
+                report.AddRange(refs.Errors);
+
+            if (!report.IsValid)
+                return report.ToResult<LoadedContent>(null);
+
             return Result.Ok(new LoadedContent(manifests, registry));
         }
 
