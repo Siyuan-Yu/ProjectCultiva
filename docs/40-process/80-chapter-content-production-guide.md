@@ -12,7 +12,11 @@
 4. **用 Content Debug 验收。** PlayableHost：`F3` 面板／`F4` +1 日；或跑 EditMode 验收测。  
 5. **不做：** 地图美术、正式 UI、战斗、大量无关 NPC（第一章范围外）。
 
-字段权威：`Content/BaseGame/Data/SCHEMA.md`。
+字段权威：`Content/BaseGame/Data/SCHEMA.md`。  
+命名规范：[84](84-chapter-content-naming-standards.md)。  
+模板：`Content/BaseGame/Authoring/Templates/`。  
+校验：菜单 `XianXia/Content/Validate BaseGame Package`。  
+第一章 Harness：`OpeningScenarioId = base:scenario_chapter1_harness`。
 
 ---
 

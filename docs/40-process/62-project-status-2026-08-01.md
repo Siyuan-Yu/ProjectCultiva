@@ -8,8 +8,8 @@
 
 ## 1. 一句话现状
 
-**Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**；**Content Ready**（[77](77-content-ready-milestone-acceptance-report.md)）与 **Chapter Production Framework**（[81](81-chapter-production-framework-acceptance-report.md)）已验收。  
-制作人可按 [80 制作流程](80-chapter-content-production-guide.md) **正式开始制作第一章 Data**。  
+**Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**；Content Ready／Chapter Framework／**Chapter Production Toolkit**（[85](85-chapter-production-toolkit-acceptance-report.md)）已验收。  
+制作人可按 [80 流程](80-chapter-content-production-guide.md)＋[84 命名规范](84-chapter-content-naming-standards.md)＋Templates／Harness **正式生产第一章 Data**。  
 Demo Runtime **继续冻结**。关系／据点／地点／Quest／Chapter／Flags 入 Snapshot 前须硬停确认 schema。
 
 ---
@@ -31,7 +31,8 @@ Demo Runtime **继续冻结**。关系／据点／地点／Quest／Chapter／Fla
 | VS0.9 | **已验收** | [71](71-vertical-slice-0.9-world-interaction-plan-v0.1.md)／[72](72-vertical-slice-0.9-acceptance-report.md) | 地点图／Travel／Explore／俯视布局 |
 | VS1.0 | **已验收** | [73](73-vertical-slice-1.0-demo-plan-v0.1.md)／[74](74-vertical-slice-1.0-acceptance-report.md) | Demo 0.1 成长闭环 |
 | Content Ready | **已验收** | [76](76-content-ready-milestone-plan-v0.1.md)／[77](77-content-ready-milestone-acceptance-report.md) | Quest／ContentEvent／地点进入／天赋成长 |
-| Chapter Production | **已验收** | [79](79-chapter-production-framework-plan-v0.1.md)／[81](81-chapter-production-framework-acceptance-report.md)／[80 流程](80-chapter-content-production-guide.md) | 章节／日 beat／Story Flag／Content Debug；可正式写第一章 |
+| Chapter Production | **已验收** | [79](79-chapter-production-framework-plan-v0.1.md)／[81](81-chapter-production-framework-acceptance-report.md)／[80 流程](80-chapter-content-production-guide.md) | 章节／日 beat／Story Flag／Content Debug |
+| Chapter Toolkit | **已验收** | [83](83-chapter-production-toolkit-plan-v0.1.md)／[85](85-chapter-production-toolkit-acceptance-report.md)／[84 规范](84-chapter-content-naming-standards.md) | 模板／引用校验／Ch1 Harness；可正式生产第一章 |
 
 ---
 
