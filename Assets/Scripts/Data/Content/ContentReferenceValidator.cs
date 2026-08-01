@@ -325,6 +325,9 @@ namespace XianXia.Data.Content
             // Core exploration writes explored:<locationId>
             if (flag.StartsWith("explored:", StringComparison.Ordinal))
                 return true;
+            // SupervisorPressureHandler writes this at day end.
+            if (string.Equals(flag, "story:supervisor_pressure", StringComparison.Ordinal))
+                return true;
             return false;
         }
 

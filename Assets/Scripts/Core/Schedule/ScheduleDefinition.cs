@@ -59,5 +59,38 @@ namespace XianXia.Core.Schedule
                 .AddBlock(56, 80, ScheduleActivity.Labor, 4)
                 .AddBlock(80, 96, ScheduleActivity.Rest, 2);
         }
+
+        /// <summary>Reference：凡人 — 睡觉／工作／吃饭／工作／睡觉。</summary>
+        public static ScheduleDefinition CreateMortalDay(string id = "base:schedule_mortal_day")
+        {
+            return new ScheduleDefinition(id)
+                .AddBlock(0, 24, ScheduleActivity.Rest, 2)
+                .AddBlock(24, 48, ScheduleActivity.Labor, 4)
+                .AddBlock(48, 56, ScheduleActivity.Eat, 2)
+                .AddBlock(56, 80, ScheduleActivity.Labor, 4)
+                .AddBlock(80, 96, ScheduleActivity.Rest, 2);
+        }
+
+        /// <summary>Reference：普通修士 — 休息／探索／修炼／探索。</summary>
+        public static ScheduleDefinition CreateCultivatorDay(string id = "base:schedule_cultivator_day")
+        {
+            return new ScheduleDefinition(id)
+                .AddBlock(0, 16, ScheduleActivity.Rest, 2)
+                .AddBlock(16, 40, ScheduleActivity.Explore, 4)
+                .AddBlock(40, 64, ScheduleActivity.Cultivate, 4)
+                .AddBlock(64, 88, ScheduleActivity.Explore, 4)
+                .AddBlock(88, 96, ScheduleActivity.Rest, 2);
+        }
+
+        /// <summary>Reference：主管 — 休息／巡查／检查／巡查。</summary>
+        public static ScheduleDefinition CreateSupervisorDay(string id = "base:schedule_supervisor_day")
+        {
+            return new ScheduleDefinition(id)
+                .AddBlock(0, 16, ScheduleActivity.Rest, 2)
+                .AddBlock(16, 40, ScheduleActivity.Patrol, 4)
+                .AddBlock(40, 64, ScheduleActivity.Inspect, 4)
+                .AddBlock(64, 88, ScheduleActivity.Patrol, 4)
+                .AddBlock(88, 96, ScheduleActivity.Rest, 2);
+        }
     }
 }

@@ -6,6 +6,7 @@ using XianXia.Core.Random;
 using XianXia.Core.Results;
 using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
+using XianXia.Core.Social;
 using XianXia.Data.Content;
 using XianXia.Data.Cultivation;
 using XianXia.Data.Opportunity;
@@ -95,6 +96,9 @@ namespace XianXia.Data.Bootstrap
                 ? DefaultScheduleId
                 : scenario.ScheduleId;
             world.RegisterSchedule(CreateLaborDaySchedule(scheduleId));
+            world.RegisterSchedule(ScheduleDefinition.CreateMortalDay());
+            world.RegisterSchedule(ScheduleDefinition.CreateCultivatorDay());
+            world.RegisterSchedule(ScheduleDefinition.CreateSupervisorDay());
 
             var lookup = new GameStartLookup(started.Value.SpawnedByDefinitionId);
             var applied = OpeningScenarioApplier.Apply(
@@ -146,6 +150,7 @@ namespace XianXia.Data.Bootstrap
 
             var loop = new SimulationLoop(world, enableSocialTick: true);
             loop.AddDayBoundaryHandler(new ChapterDayHandler());
+            loop.AddDayBoundaryHandler(new SupervisorPressureHandler());
             IPlayerInputPort port = new PlayerInputPort(loop);
 
             return Result.Ok(new PlayableDayBootstrapResult(

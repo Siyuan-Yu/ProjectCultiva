@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Orders;
 using XianXia.Core.Results;
@@ -26,22 +25,7 @@ namespace XianXia.Core.Schedule
             if (durationTicks == 0)
                 return Result.Fail<Order>(ErrorCode.InvalidArgument, "DurationTicks must be > 0.");
 
-            OrderType type;
-            switch (activity)
-            {
-                case ScheduleActivity.Labor:
-                    type = OrderType.Labor;
-                    break;
-                case ScheduleActivity.Rest:
-                    type = OrderType.Rest;
-                    break;
-                default:
-                    return Result.Fail<Order>(
-                        ErrorCode.InvalidArgument,
-                        "Unsupported schedule activity.",
-                        activity.ToString());
-            }
-
+            var type = ScheduleActivityMapping.ToOrderType(activity);
             return Result.Ok(new Order(id, subject, type, OrderSource.Schedule, waitTicks: durationTicks));
         }
     }

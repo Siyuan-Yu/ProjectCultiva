@@ -5,6 +5,8 @@ namespace XianXia.Core.Social
     {
         None = 0,
         LaborDisciple = 1,
-        Member = 2
+        Member = 2,
+        /// <summary>Chapter 01 Reference：主管。</summary>
+        Supervisor = 3
     }
 }

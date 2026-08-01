@@ -1,5 +1,6 @@
 using System;
 using XianXia.Core.Concealment;
+using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Labor;
@@ -56,8 +57,11 @@ namespace XianXia.Data.Bootstrap
                         entityId.ToString());
                 }
 
+                var boundSchedule = !string.IsNullOrWhiteSpace(entry.ScheduleId)
+                    ? entry.ScheduleId
+                    : scheduleId;
                 if (entry.BindSchedule && !entity.TryGet<ScheduleComponent>(out _))
-                    entity.AddComponent(new ScheduleComponent(scheduleId));
+                    entity.AddComponent(new ScheduleComponent(boundSchedule));
 
                 if (entry.BindDailyTask)
                     EnsurePlayableExtras(entity, dailyRequiredAmount);
@@ -76,6 +80,8 @@ namespace XianXia.Data.Bootstrap
                         entity.AddComponent(mem = new FactionMembershipComponent());
                     mem.Assign(factionId, role);
                 }
+
+                ApplyAiRole(world, entity, entry.AiRole);
             }
 
             var relations = SeedOpeningRelations(world, scenario, lookup);
@@ -167,6 +173,49 @@ namespace XianXia.Data.Bootstrap
             }
 
             return Enum.TryParse(text.Trim(), ignoreCase: true, out role) && role != FactionRoleKind.None;
+        }
+
+        static void ApplyAiRole(SimulationWorld world, Entity entity, string aiRoleText)
+        {
+            if (string.IsNullOrWhiteSpace(aiRoleText))
+                return;
+            if (!Enum.TryParse(aiRoleText.Trim(), true, out NpcAiRoleKind role) || role == NpcAiRoleKind.None)
+                return;
+
+            if (!entity.TryGet<NpcAiRoleComponent>(out var ai))
+            {
+                ai = new NpcAiRoleComponent();
+                var added = entity.AddComponent(ai);
+                if (added.IsFailure)
+                    return;
+            }
+
+            ai.Set(role);
+
+            if (role != NpcAiRoleKind.Cultivator || world == null)
+                return;
+
+            if (!entity.TryGet<KnownSitesComponent>(out var known))
+            {
+                known = new KnownSitesComponent();
+                entity.AddComponent(known);
+            }
+
+            foreach (var siteKv in world.OpportunitySites)
+            {
+                var site = siteKv.Value;
+                if (site == null || !site.AllowsCultivation)
+                    continue;
+                known.Discover(site.Id);
+                if (site.OfferedManualId.HasValue &&
+                    world.TryGetManual(site.OfferedManualId.Value, out var manual) &&
+                    entity.TryGet<CultivationComponent>(out _))
+                {
+                    new CultivationService().LearnManual(world, entity.Id, manual);
+                }
+
+                break;
+            }
         }
     }
 

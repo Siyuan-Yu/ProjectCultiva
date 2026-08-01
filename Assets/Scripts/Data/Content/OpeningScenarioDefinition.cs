@@ -33,6 +33,10 @@ namespace XianXia.Data.Content
         public bool Recruitable { get; set; }
         /// <summary>VS0.8: Labor | Gather | Cultivate (optional).</summary>
         public string WorkRole { get; set; }
+        /// <summary>Optional per-spawn schedule override (Reference Level AI).</summary>
+        public string ScheduleId { get; set; }
+        /// <summary>Mortal | Cultivator | Supervisor (Reference Level AI archetype).</summary>
+        public string AiRole { get; set; }
     }
 
     public sealed class OpeningRelationEntry

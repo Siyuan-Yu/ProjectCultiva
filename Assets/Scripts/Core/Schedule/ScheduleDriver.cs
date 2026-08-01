@@ -62,7 +62,7 @@ namespace XianXia.Core.Schedule
             entity.TryGet<PersonalityProfileComponent>(out var profile);
             var choice = PersonalityScheduleBias.Apply(block, profile);
 
-            var expectedType = choice.Activity == ScheduleActivity.Labor ? OrderType.Labor : OrderType.Rest;
+            var expectedType = ScheduleActivityMapping.ToOrderType(choice.Activity);
             if (queue.HasMatching(OrderSource.Schedule, expectedType))
                 return;
 

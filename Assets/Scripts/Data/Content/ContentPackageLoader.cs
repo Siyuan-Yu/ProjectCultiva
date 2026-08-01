@@ -562,7 +562,9 @@ namespace XianXia.Data.Content
                         BindSchedule = spawnNode.GetBool("bindSchedule", true),
                         BindDailyTask = spawnNode.GetBool("bindDailyTask", true),
                         Recruitable = spawnNode.GetBool("recruitable", false),
-                        WorkRole = spawnNode.GetString("workRole", string.Empty)
+                        WorkRole = spawnNode.GetString("workRole", string.Empty),
+                        ScheduleId = spawnNode.GetString("scheduleId", string.Empty),
+                        AiRole = spawnNode.GetString("aiRole", string.Empty)
                     };
                     if (string.IsNullOrWhiteSpace(entry.DefinitionId))
                     {

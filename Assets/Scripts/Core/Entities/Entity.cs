@@ -21,6 +21,7 @@ namespace XianXia.Core.Entities
             typeof(XianXia.Core.Social.PersonalityProfileComponent),
             typeof(XianXia.Core.Social.RelationshipComponent),
             typeof(XianXia.Core.Social.FactionMembershipComponent),
+            typeof(XianXia.Core.Social.NpcAiRoleComponent),
             typeof(XianXia.Core.Settlement.WorkAssignmentComponent),
             typeof(XianXia.Core.Exploration.EntityLocationComponent)
         };

@@ -77,7 +77,7 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> OpeningSpawnFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "definitionId", "entityKind", "displayName", "assignOpeningFaction", "factionRole",
-            "bindSchedule", "bindDailyTask", "recruitable", "workRole"
+            "bindSchedule", "bindDailyTask", "recruitable", "workRole", "scheduleId", "aiRole"
         };
 
         public static readonly HashSet<string> ResourceFields = new HashSet<string>(StringComparer.Ordinal)
