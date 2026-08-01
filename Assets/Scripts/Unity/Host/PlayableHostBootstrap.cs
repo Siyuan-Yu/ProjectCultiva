@@ -25,6 +25,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] HostCommandBridge commandBridge;
         [SerializeField] HostDebugHud debugHud;
+        [SerializeField] HostContentDebugPanel contentDebugPanel;
         [SerializeField] HostEventFeed eventFeed;
         [SerializeField] HostSnapshotPanel snapshotPanel;
 
@@ -54,6 +55,8 @@ namespace XianXia.Unity.Host
 
         public HostDebugHud DebugHud => debugHud;
 
+        public HostContentDebugPanel ContentDebugPanel => contentDebugPanel;
+
         public HostEventFeed EventFeed => eventFeed;
 
         public HostSnapshotPanel SnapshotPanel => snapshotPanel;
@@ -76,6 +79,9 @@ namespace XianXia.Unity.Host
                                GetComponentInChildren<HostCommandBridge>();
             if (debugHud == null)
                 debugHud = GetComponent<HostDebugHud>() ?? GetComponentInChildren<HostDebugHud>();
+            if (contentDebugPanel == null)
+                contentDebugPanel = GetComponent<HostContentDebugPanel>() ??
+                                   GetComponentInChildren<HostContentDebugPanel>();
             if (eventFeed == null)
                 eventFeed = GetComponent<HostEventFeed>() ?? GetComponentInChildren<HostEventFeed>();
             if (snapshotPanel == null)
@@ -139,6 +145,9 @@ namespace XianXia.Unity.Host
                                gameObject.AddComponent<HostCommandBridge>();
             if (debugHud == null)
                 debugHud = GetComponent<HostDebugHud>() ?? gameObject.AddComponent<HostDebugHud>();
+            if (contentDebugPanel == null)
+                contentDebugPanel = GetComponent<HostContentDebugPanel>() ??
+                                   gameObject.AddComponent<HostContentDebugPanel>();
             if (eventFeed == null)
                 eventFeed = GetComponent<HostEventFeed>() ?? gameObject.AddComponent<HostEventFeed>();
             if (snapshotPanel == null)
@@ -179,6 +188,7 @@ namespace XianXia.Unity.Host
             selectionController.Bind(entityViewSpawner, cam);
             commandBridge.Bind(_session, selectionController);
             debugHud.Bind(this, selectionController);
+            contentDebugPanel.Bind(this, selectionController);
             snapshotPanel.Bind(this);
             // Bootstrap already published WorldInitialized／EntityCreated — capture once.
             eventFeed.PullFrom(_session.World.Events);
@@ -211,6 +221,9 @@ namespace XianXia.Unity.Host
                                gameObject.AddComponent<HostCommandBridge>();
             if (debugHud == null)
                 debugHud = GetComponent<HostDebugHud>() ?? gameObject.AddComponent<HostDebugHud>();
+            if (contentDebugPanel == null)
+                contentDebugPanel = GetComponent<HostContentDebugPanel>() ??
+                                   gameObject.AddComponent<HostContentDebugPanel>();
             if (eventFeed == null)
                 eventFeed = GetComponent<HostEventFeed>() ?? gameObject.AddComponent<HostEventFeed>();
 
@@ -221,6 +234,7 @@ namespace XianXia.Unity.Host
             selectionController.Bind(entityViewSpawner, cam);
             commandBridge.Bind(_session, selectionController);
             debugHud.Bind(this, selectionController);
+            contentDebugPanel.Bind(this, selectionController);
             eventFeed.Clear();
             eventFeed.PullFrom(_session.World.Events);
             FrameCameraOnSlots();

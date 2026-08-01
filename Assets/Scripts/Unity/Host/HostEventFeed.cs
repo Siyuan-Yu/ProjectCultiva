@@ -126,6 +126,11 @@ namespace XianXia.Unity.Host
                 case XianXia.Core.Events.EventType.Breakthrough:
                 case XianXia.Core.Events.EventType.RelationshipChanged:
                 case XianXia.Core.Events.EventType.FactionMembershipChanged:
+                case XianXia.Core.Events.EventType.StoryFlagChanged:
+                case XianXia.Core.Events.EventType.ChapterActivated:
+                case XianXia.Core.Events.EventType.ChapterDayBeatApplied:
+                case XianXia.Core.Events.EventType.ContentEventPresented:
+                case XianXia.Core.Events.EventType.QuestCompleted:
                     return true;
                 default:
                     return false;

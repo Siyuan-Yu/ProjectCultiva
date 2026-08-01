@@ -78,7 +78,8 @@ namespace XianXia.Unity.Host
             GUI.Box(tip, "Demo 0.1 路径");
             GUI.Label(
                 new Rect(tip.x + 8f, tip.y + 20f, tip.width - 16f, tip.height - 24f),
-                "Y旅行→洞口  T探索学机缘  4修炼突破  8/9/0分工  过日产资源  5帮助/7招募");
+                "Y旅行→洞口  T探索学机缘  4修炼突破  8/9/0分工  过日产资源  5帮助/7招募\n" +
+                "F3内容调试  F4跳+1日  设Flag／强制事件");
         }
     }
 }
