@@ -11,13 +11,14 @@
 
 要点：聊天不是真源；重要决定必须进入 Architecture／System Design／ADR／Devlog／Glossary；跨角色冲突时已冻结架构优先。
 
-## 当前阶段：VS0.4 Unity Playable Host（V4-C 完成，等确认进 D）
+## 当前阶段：VS0.4 Unity Playable Host（自主推进 V4-D～H，再进 VS0.5）
 
 - 主契约：`docs/30-tech/33-architecture-core-rules-freeze-v0.2.md`（**禁止改 Freeze 正文**）
-- 计划：`docs/40-process/59-vertical-slice-0.4-unity-playable-host-plan-v0.1.md`（V4-A～H 已批准）
-- VS 0.1～0.3：**已验收**（`58`）
-- **纪律（强制）：** 每 Phase 单独实现 → EditMode 全绿 → 单独 commit → 停等 → 下一 Phase
+- 计划：`docs/40-process/59-vertical-slice-0.4-unity-playable-host-plan-v0.1.md`（V4-A～H）
+- VS 0.1～0.3：**已验收**（`58`）；V4-A～C 已提交
+- **纪律（强制）：** 每 Phase 单独实现 → EditMode／PlayMode 门禁 → **单独 commit** → 继续下一 Phase（D～H 不搁置）
 - Host：只适配输入／表现；Demo Runtime **只读参考**；禁迁玩法；禁改 ProjectSettings／Packages／Freeze
+- 硬停：改 Freeze／Snapshot 契约／Core·Data 边界／大型未设计系统／需人工定规则
 
 ## 开工前必读
 

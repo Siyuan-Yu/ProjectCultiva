@@ -24,6 +24,7 @@ namespace XianXia.Unity.Host
         [SerializeField] EntityViewSpawner entityViewSpawner;
         [SerializeField] PlayableHostCameraRig cameraRig;
         [SerializeField] HostSelectionController selectionController;
+        [SerializeField] HostCommandBridge commandBridge;
 
         [Header("Tick debug")]
         [SerializeField] bool initializeOnPlay = true;
@@ -44,6 +45,8 @@ namespace XianXia.Unity.Host
 
         public HostSelectionController SelectionController => selectionController;
 
+        public HostCommandBridge CommandBridge => commandBridge;
+
         public string StatusLine => _status;
 
         public string ResolvedContentPath => _resolvedContentPath;
@@ -57,6 +60,9 @@ namespace XianXia.Unity.Host
             if (selectionController == null)
                 selectionController = GetComponent<HostSelectionController>() ??
                                      GetComponentInChildren<HostSelectionController>();
+            if (commandBridge == null)
+                commandBridge = GetComponent<HostCommandBridge>() ??
+                               GetComponentInChildren<HostCommandBridge>();
         }
 
         void Start()
@@ -101,6 +107,9 @@ namespace XianXia.Unity.Host
             if (selectionController == null)
                 selectionController = GetComponent<HostSelectionController>() ??
                                      gameObject.AddComponent<HostSelectionController>();
+            if (commandBridge == null)
+                commandBridge = GetComponent<HostCommandBridge>() ??
+                               gameObject.AddComponent<HostCommandBridge>();
 
             selectionController.ClearSelection();
             entityViewSpawner.Clear();
@@ -134,6 +143,7 @@ namespace XianXia.Unity.Host
             entityViewSpawner.Rebuild(_session);
             var cam = Camera.main;
             selectionController.Bind(entityViewSpawner, cam);
+            commandBridge.Bind(_session, selectionController);
             FrameCameraOnSlots();
 
             _session.IsPaused = true;
@@ -207,13 +217,15 @@ namespace XianXia.Unity.Host
 
             var day = _session.CurrentDayClock;
             var selected = selectionController != null ? selectionController.State.Count : 0;
+            var cmd = commandBridge != null ? commandBridge.LastStatus : "-";
             _status = "tick=" + _session.World.Tick.Value +
                       " day=" + day.DayIndex +
                       " tickInDay=" + day.TickInDay +
                       " hour=" + day.HourOfDay +
                       " paused=" + _session.IsPaused +
                       " chars=" + _session.CharacterIds.Count +
-                      " selected=" + selected;
+                      " selected=" + selected +
+                      " cmd=" + cmd;
         }
 
         public bool TryResolveContentPackageDirectory(out string path, out string error)

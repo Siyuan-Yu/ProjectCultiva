@@ -7,6 +7,20 @@
 
 ---
 
+## 2026-08-01 — VS0.4 自主推进：先完成 D～H，再进 VS0.5
+
+**决定**
+- 不搁置 V4-D～H；按 Phase 独立实现／测试／commit 做完 Host 可玩切片后，再开 VS0.5 社会 Alpha。
+
+## 2026-08-01 — VS0.4 Phase D：命令桥
+
+**做了什么**
+- `HostCommandBridge`：选中集合 → `PlayerCommandRequest` → `IPlayerInputPort.Submit`
+- 键位 1–4／调试按钮：Labor／Rest／Observe／Cultivate；多选逐个下令、失败不中断
+- EditMode／PlayMode：ActiveAction、Schedule Override、Observe→Cultivate
+
+**下一步：** V4-E 时间控制＋最小 HUD。
+
 ## 2026-08-01 — VS0.4 Phase C：RTS Selection
 
 **做了什么**
