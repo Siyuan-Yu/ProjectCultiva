@@ -108,6 +108,10 @@ namespace XianXia.Data.Bootstrap
             if (region.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(region.Error);
 
+            var content = ContentRuntimeBootstrap.Apply(world, registry);
+            if (content.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(content.Error);
+
             var recruitableId = OpeningScenarioApplier.FindFirstRecruitable(scenario, lookup);
             if (recruitableId.IsNone)
             {

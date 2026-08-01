@@ -24,6 +24,10 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, SettlementDefinition>();
         readonly Dictionary<DefinitionId, WorldRegionDefinition> _worldRegions =
             new Dictionary<DefinitionId, WorldRegionDefinition>();
+        readonly Dictionary<DefinitionId, QuestDefinition> _quests =
+            new Dictionary<DefinitionId, QuestDefinition>();
+        readonly Dictionary<DefinitionId, ContentEventDefinition> _contentEvents =
+            new Dictionary<DefinitionId, ContentEventDefinition>();
 
         public IReadOnlyDictionary<DefinitionId, CharacterDefinition> Characters => _characters;
         public IReadOnlyDictionary<DefinitionId, CultivationDefinition> Cultivations => _cultivations;
@@ -34,6 +38,8 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, FacilityDefinition> Facilities => _facilities;
         public IReadOnlyDictionary<DefinitionId, SettlementDefinition> Settlements => _settlements;
         public IReadOnlyDictionary<DefinitionId, WorldRegionDefinition> WorldRegions => _worldRegions;
+        public IReadOnlyDictionary<DefinitionId, QuestDefinition> Quests => _quests;
+        public IReadOnlyDictionary<DefinitionId, ContentEventDefinition> ContentEvents => _contentEvents;
 
         public bool ContainsId(DefinitionId id) =>
             _characters.ContainsKey(id) ||
@@ -44,7 +50,9 @@ namespace XianXia.Data.Content
             _resources.ContainsKey(id) ||
             _facilities.ContainsKey(id) ||
             _settlements.ContainsKey(id) ||
-            _worldRegions.ContainsKey(id);
+            _worldRegions.ContainsKey(id) ||
+            _quests.ContainsKey(id) ||
+            _contentEvents.ContainsKey(id);
 
         public Result RegisterCharacter(CharacterDefinition definition)
         {
@@ -109,6 +117,20 @@ namespace XianXia.Data.Content
             return Register(_worldRegions, definition, definition.Id);
         }
 
+        public Result RegisterQuest(QuestDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "QuestDefinition is null.");
+            return Register(_quests, definition, definition.Id);
+        }
+
+        public Result RegisterContentEvent(ContentEventDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "ContentEventDefinition is null.");
+            return Register(_contentEvents, definition, definition.Id);
+        }
+
         public bool TryGetCharacter(DefinitionId id, out CharacterDefinition definition) =>
             _characters.TryGetValue(id, out definition);
 
@@ -135,6 +157,12 @@ namespace XianXia.Data.Content
 
         public bool TryGetWorldRegion(DefinitionId id, out WorldRegionDefinition definition) =>
             _worldRegions.TryGetValue(id, out definition);
+
+        public bool TryGetQuest(DefinitionId id, out QuestDefinition definition) =>
+            _quests.TryGetValue(id, out definition);
+
+        public bool TryGetContentEvent(DefinitionId id, out ContentEventDefinition definition) =>
+            _contentEvents.TryGetValue(id, out definition);
 
         Result Register<T>(Dictionary<DefinitionId, T> map, T definition, DefinitionId id)
         {

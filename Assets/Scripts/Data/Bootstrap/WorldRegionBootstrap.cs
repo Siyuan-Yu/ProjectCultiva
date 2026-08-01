@@ -55,6 +55,10 @@ namespace XianXia.Data.Bootstrap
                 };
                 if (entry.AdjacentIds != null)
                     loc.AdjacentIds.AddRange(entry.AdjacentIds);
+                if (entry.EnterConditions != null)
+                    loc.EnterConditions.AddRange(entry.EnterConditions);
+                if (entry.QuestOfferIds != null)
+                    loc.QuestOfferIds.AddRange(entry.QuestOfferIds);
                 world.WorldRegion.Register(loc);
             }
 

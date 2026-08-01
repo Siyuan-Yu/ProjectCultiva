@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 
 namespace XianXia.Data.Content
@@ -23,5 +24,7 @@ namespace XianXia.Data.Content
         public string ResidentNpcDefinitionId { get; set; }
         public float PresentationX { get; set; }
         public float PresentationZ { get; set; }
+        public List<ContentCondition> EnterConditions { get; set; } = new List<ContentCondition>();
+        public List<string> QuestOfferIds { get; set; } = new List<string>();
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using XianXia.Core.Content;
 using XianXia.Core.Domain;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
@@ -209,6 +210,12 @@ namespace XianXia.Data.Content
                         break;
                     case "worldRegion":
                         LoadWorldRegion(item, parsed.Value, registry, report);
+                        break;
+                    case "quest":
+                        LoadQuest(item, parsed.Value, registry, report);
+                        break;
+                    case "contentEvent":
+                        LoadContentEvent(item, parsed.Value, registry, report);
                         break;
                     default:
                         report.Add(ErrorCode.InvalidArgument, "Unknown definition type.", type);
@@ -803,6 +810,10 @@ namespace XianXia.Data.Content
                     }
                 }
 
+                ReadConditions(
+                    locNode, "enterConditions", entry.EnterConditions, report, id + "." + entry.Id);
+                ReadStringList(locNode, "questOfferIds", entry.QuestOfferIds, report, id + "." + entry.Id);
+
                 region.Locations.Add(entry);
             }
 
@@ -815,6 +826,191 @@ namespace XianXia.Data.Content
             var reg = registry.RegisterWorldRegion(region);
             if (reg.IsFailure)
                 report.Add(reg.Error);
+        }
+
+        static void LoadQuest(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.QuestFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var quest = new QuestDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                Description = item.GetString("description", string.Empty),
+                AutoOffer = item.GetBool("autoOffer", false)
+            };
+            ReadConditions(item, "offerConditions", quest.OfferConditions, report, id.ToString());
+            ReadConditions(item, "completeConditions", quest.CompleteConditions, report, id.ToString());
+            ReadConditions(item, "failConditions", quest.FailConditions, report, id.ToString());
+            ReadOutcomes(item, "rewards", quest.Rewards, report, id.ToString());
+            ReadOutcomes(item, "failResults", quest.FailResults, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var reg = registry.RegisterQuest(quest);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void LoadContentEvent(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.ContentEventFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var evt = new ContentEventDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                Body = item.GetString("body", string.Empty),
+                Trigger = item.GetString("trigger", string.Empty),
+                LocationId = item.GetString("locationId", string.Empty),
+                QuestId = item.GetString("questId", string.Empty),
+                Once = item.GetBool("once", true)
+            };
+            ReadConditions(item, "conditions", evt.Conditions, report, id.ToString());
+
+            if (item.TryGetProperty("choices", out var choices) && choices.Kind == JsonValueKind.Array)
+            {
+                foreach (var choiceNode in choices.Array)
+                {
+                    if (choiceNode.Kind != JsonValueKind.Object)
+                    {
+                        report.Add(ErrorCode.ContentLoadFailed, "choice entries must be objects.", id.ToString());
+                        continue;
+                    }
+
+                    DefinitionSchema.RejectUnknownFields(
+                        choiceNode, DefinitionSchema.ContentEventChoiceFields, report, id + ".choice");
+                    var choice = new ContentEventChoiceDefinition
+                    {
+                        Id = choiceNode.GetString("id", string.Empty),
+                        Text = choiceNode.GetString("text", string.Empty)
+                    };
+                    if (string.IsNullOrWhiteSpace(choice.Id))
+                    {
+                        report.Add(ErrorCode.MissingRequiredField, "choice.id required.", id.ToString());
+                        return;
+                    }
+
+                    ReadConditions(choiceNode, "conditions", choice.Conditions, report, id + "." + choice.Id);
+                    ReadOutcomes(choiceNode, "outcomes", choice.Outcomes, report, id + "." + choice.Id);
+                    evt.Choices.Add(choice);
+                }
+            }
+
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var reg = registry.RegisterContentEvent(evt);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void ReadConditions(
+            JsonValue item,
+            string field,
+            List<ContentCondition> list,
+            ValidationReport report,
+            string context)
+        {
+            if (!item.TryGetProperty(field, out var arr) || arr.Kind != JsonValueKind.Array)
+                return;
+            foreach (var node in arr.Array)
+            {
+                if (node.Kind != JsonValueKind.Object)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, field + " entries must be objects.", context);
+                    continue;
+                }
+
+                DefinitionSchema.RejectUnknownFields(
+                    node, DefinitionSchema.ContentConditionFields, report, context + "." + field);
+                var c = new ContentCondition
+                {
+                    Kind = node.GetString("kind", string.Empty),
+                    Id = node.GetString("id", string.Empty),
+                    Amount = ReadInt(node, "amount", 0),
+                    Realm = node.GetString("realm", string.Empty)
+                };
+                if (string.IsNullOrWhiteSpace(c.Kind))
+                {
+                    report.Add(ErrorCode.MissingRequiredField, "condition.kind required.", context);
+                    continue;
+                }
+
+                list.Add(c);
+            }
+        }
+
+        static void ReadOutcomes(
+            JsonValue item,
+            string field,
+            List<ContentOutcome> list,
+            ValidationReport report,
+            string context)
+        {
+            if (!item.TryGetProperty(field, out var arr) || arr.Kind != JsonValueKind.Array)
+                return;
+            foreach (var node in arr.Array)
+            {
+                if (node.Kind != JsonValueKind.Object)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, field + " entries must be objects.", context);
+                    continue;
+                }
+
+                DefinitionSchema.RejectUnknownFields(
+                    node, DefinitionSchema.ContentOutcomeFields, report, context + "." + field);
+                var o = new ContentOutcome
+                {
+                    Kind = node.GetString("kind", string.Empty),
+                    Id = node.GetString("id", string.Empty),
+                    Amount = ReadInt(node, "amount", 0),
+                    FromDefinitionId = node.GetString("fromDefinitionId", string.Empty),
+                    ToDefinitionId = node.GetString("toDefinitionId", string.Empty)
+                };
+                if (string.IsNullOrWhiteSpace(o.Kind))
+                {
+                    report.Add(ErrorCode.MissingRequiredField, "outcome.kind required.", context);
+                    continue;
+                }
+
+                list.Add(o);
+            }
+        }
+
+        static void ReadStringList(
+            JsonValue item,
+            string field,
+            List<string> list,
+            ValidationReport report,
+            string context)
+        {
+            if (!item.TryGetProperty(field, out var arr) || arr.Kind != JsonValueKind.Array)
+                return;
+            foreach (var node in arr.Array)
+            {
+                if (node.Kind != JsonValueKind.String || string.IsNullOrWhiteSpace(node.String))
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, field + " entries must be strings.", context);
+                    continue;
+                }
+
+                list.Add(node.String);
+            }
         }
 
         static void ReadTags(JsonValue item, List<string> tags, ValidationReport report, string context) =>

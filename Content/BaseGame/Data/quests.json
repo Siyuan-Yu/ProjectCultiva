@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:quest_scout_herb_slope",
+      "type": "quest",
+      "name": "探查采药坡",
+      "description": "骨架任务：探索采药坡一次。",
+      "autoOffer": true,
+      "offerConditions": [],
+      "completeConditions": [
+        { "kind": "exploredLocation", "id": "base:loc_herb_slope" }
+      ],
+      "rewards": [
+        { "kind": "setFlag", "id": "quest:scout_herb_done" },
+        { "kind": "addStock", "id": "base:resource_spirit_herb", "amount": 1 }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_listen_herb_whisper",
+      "type": "quest",
+      "name": "聆听药坡异响",
+      "description": "骨架任务：由内容事件接取。",
+      "autoOffer": false,
+      "offerConditions": [
+        { "kind": "hasFlag", "id": "quest:scout_herb_done" }
+      ],
+      "completeConditions": [
+        { "kind": "hasFlag", "id": "event:herb_whisper_resolved" }
+      ],
+      "rewards": [
+        { "kind": "grantProgress", "amount": 5 }
+      ],
+      "failConditions": [],
+      "failResults": []
+    }
+  ]
+}

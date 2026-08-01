@@ -32,7 +32,35 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> WorldLocationFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "name", "kind", "adjacentIds", "resourceOnExploreId", "resourceOnExploreAmount",
-            "opportunitySiteId", "residentNpcDefinitionId", "presentationX", "presentationZ"
+            "opportunitySiteId", "residentNpcDefinitionId", "presentationX", "presentationZ",
+            "enterConditions", "questOfferIds"
+        };
+
+        public static readonly HashSet<string> QuestFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "description", "autoOffer",
+            "offerConditions", "completeConditions", "failConditions", "rewards", "failResults"
+        };
+
+        public static readonly HashSet<string> ContentEventFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "body", "trigger", "locationId", "questId", "once",
+            "conditions", "choices"
+        };
+
+        public static readonly HashSet<string> ContentEventChoiceFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "text", "conditions", "outcomes"
+        };
+
+        public static readonly HashSet<string> ContentConditionFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "kind", "id", "amount", "realm"
+        };
+
+        public static readonly HashSet<string> ContentOutcomeFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "kind", "id", "amount", "fromDefinitionId", "toDefinitionId"
         };
 
         public static readonly HashSet<string> OpeningSpawnFields = new HashSet<string>(StringComparer.Ordinal)

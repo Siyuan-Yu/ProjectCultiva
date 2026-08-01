@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:event_herb_whisper",
+      "type": "contentEvent",
+      "name": "药坡异响",
+      "body": "骨架事件：采药坡传来细微异响。",
+      "trigger": "onExplore",
+      "locationId": "base:loc_herb_slope",
+      "once": true,
+      "conditions": [
+        { "kind": "questCompleted", "id": "base:quest_scout_herb_slope" }
+      ],
+      "choices": [
+        {
+          "id": "gather",
+          "text": "采一株灵草",
+          "outcomes": [
+            { "kind": "startQuest", "id": "base:quest_listen_herb_whisper" },
+            { "kind": "addStock", "id": "base:resource_spirit_herb", "amount": 2 },
+            { "kind": "setFlag", "id": "event:herb_whisper_resolved" }
+          ]
+        },
+        {
+          "id": "meditate",
+          "text": "静坐感悟",
+          "outcomes": [
+            { "kind": "startQuest", "id": "base:quest_listen_herb_whisper" },
+            { "kind": "grantProgress", "amount": 8 },
+            { "kind": "setFlag", "id": "event:herb_whisper_resolved" }
+          ]
+        }
+      ]
+    }
+  ]
+}

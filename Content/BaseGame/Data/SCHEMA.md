@@ -1,4 +1,4 @@
-# BaseGame Data Schema (Data Pipeline M1-A / VS0.7–1.0)
+# BaseGame Data Schema (Data Pipeline M1-A / VS0.7–1.0 / Content Ready)
 
 Runtime format: **JSON only** (CSV is authoring input via M1-B importer; not runtime).
 
@@ -16,7 +16,9 @@ Content/BaseGame/
     resources.json             # VS0.8
     facilities.json            # VS0.8
     settlements.json           # VS0.8
-    world_regions.json         # VS0.9
+    world_regions.json         # VS0.9 / Content Ready enterConditions
+    quests.json                # Content Ready
+    content_events.json        # Content Ready
   Authoring/Csv/
     characters.csv
     cultivation.csv
@@ -48,7 +50,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 ### type 一览
 
-`character`｜`cultivation`｜`item`｜`opportunitySite`｜`openingScenario`｜`resource`｜`facility`｜`settlement`｜`worldRegion`
+`character`｜`cultivation`｜`item`｜`opportunitySite`｜`openingScenario`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`quest`｜`contentEvent`
 
 ## type = character
 
@@ -111,7 +113,34 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | Field | Notes |
 |---|---|
 | `startLocationId` | 开局地点 |
-| `locations[]` | id／name／kind／adjacentIds／resourceOnExplore*／opportunitySiteId／residentNpcDefinitionId／presentationX／presentationZ |
+| `locations[]` | id／name／kind／adjacentIds／resourceOnExplore*／opportunitySiteId／residentNpcDefinitionId／presentationX／presentationZ／`enterConditions[]`／`questOfferIds[]` |
+
+## type = quest（Content Ready）
+
+| Field | Notes |
+|---|---|
+| `autoOffer` | 条件满足时自动接取 |
+| `offerConditions`／`completeConditions`／`failConditions` | condition 对象数组 |
+| `rewards`／`failResults` | outcome 对象数组 |
+
+### condition.kind
+
+`atLocation`｜`hasFlag`｜`missingFlag`｜`realmAtLeast`｜`knowsSite`｜`stockAtLeast`｜`questActive`｜`questCompleted`｜`exploredLocation`｜`hasManual`
+
+### outcome.kind
+
+`setFlag`｜`clearFlag`｜`addStock`｜`startQuest`｜`relationDelta`｜`grantProgress`｜`discoverSite`
+
+## type = contentEvent（Content Ready）
+
+| Field | Notes |
+|---|---|
+| `trigger` | `onExplore`｜`onArrive`｜`onQuestCompleted`｜`manual` |
+| `locationId`／`questId` | 触发上下文过滤 |
+| `once` | 默认 true |
+| `conditions`／`choices[]` | choice：id／text／conditions／outcomes |
+
+会话态：Quest／ContentEvent／Flags **不进 Snapshot v1**。
 
 ## Sample IDs
 
@@ -121,3 +150,5 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 - `base:settlement_qingshi_cave`／`facility_meditation_mat`
 - `base:region_qingshi`／`loc_labor_camp`／`loc_cave_mouth`／…
 - `base:site_abandoned_cave`／`resource_rough_wood`／`resource_spirit_herb`
+- `base:quest_scout_herb_slope`／`quest_listen_herb_whisper`
+- `base:event_herb_whisper`

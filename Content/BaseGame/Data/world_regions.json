@@ -26,7 +26,8 @@
           "resourceOnExploreId": "base:resource_rough_wood",
           "resourceOnExploreAmount": 1,
           "presentationX": 0,
-          "presentationZ": 3
+          "presentationZ": 3,
+          "questOfferIds": ["base:quest_scout_herb_slope"]
         },
         {
           "id": "base:loc_cave_mouth",
@@ -45,7 +46,10 @@
           "resourceOnExploreId": "base:resource_spirit_herb",
           "resourceOnExploreAmount": 2,
           "presentationX": 3,
-          "presentationZ": 0
+          "presentationZ": 0,
+          "enterConditions": [
+            { "kind": "exploredLocation", "id": "base:loc_village_edge" }
+          ]
         }
       ]
     }
