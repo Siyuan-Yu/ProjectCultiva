@@ -7,6 +7,15 @@
 
 ---
 
+## 2026-08-01 — VS0.4 Phase C：RTS Selection
+
+**做了什么**
+- `HostSelectionState`／`HostSelectionController`：点选替换、Shift 点选 Toggle、框选覆盖
+- `EntityView.SetHighlight` 驱动；Rebuild 清空选择
+- EditMode／PlayMode 选择烟测；**未做** PlayerCommand／Port 命令／HUD／事件日志
+
+**下一步：** 等确认后 V4-D 命令桥。
+
 ## 2026-08-01 — VS0.4 Phase B：EntityView 表现绑定
 
 **做了什么**

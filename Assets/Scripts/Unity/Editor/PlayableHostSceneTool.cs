@@ -21,6 +21,7 @@ namespace XianXia.Unity.EditorTools
             hostGo.AddComponent<PlayableHostBootstrap>();
             hostGo.AddComponent<EntityViewSpawner>();
             hostGo.AddComponent<PlayableHostCameraRig>();
+            hostGo.AddComponent<HostSelectionController>();
 
             var cam = Object.FindObjectOfType<Camera>();
             if (cam != null)

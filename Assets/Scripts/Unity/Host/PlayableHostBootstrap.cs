@@ -23,6 +23,7 @@ namespace XianXia.Unity.Host
         [Header("Presentation")]
         [SerializeField] EntityViewSpawner entityViewSpawner;
         [SerializeField] PlayableHostCameraRig cameraRig;
+        [SerializeField] HostSelectionController selectionController;
 
         [Header("Tick debug")]
         [SerializeField] bool initializeOnPlay = true;
@@ -41,6 +42,8 @@ namespace XianXia.Unity.Host
 
         public EntityViewSpawner ViewSpawner => entityViewSpawner;
 
+        public HostSelectionController SelectionController => selectionController;
+
         public string StatusLine => _status;
 
         public string ResolvedContentPath => _resolvedContentPath;
@@ -51,6 +54,9 @@ namespace XianXia.Unity.Host
                 entityViewSpawner = GetComponent<EntityViewSpawner>() ?? GetComponentInChildren<EntityViewSpawner>();
             if (cameraRig == null)
                 cameraRig = GetComponent<PlayableHostCameraRig>() ?? GetComponentInChildren<PlayableHostCameraRig>();
+            if (selectionController == null)
+                selectionController = GetComponent<HostSelectionController>() ??
+                                     GetComponentInChildren<HostSelectionController>();
         }
 
         void Start()
@@ -92,7 +98,11 @@ namespace XianXia.Unity.Host
         {
             if (entityViewSpawner == null)
                 entityViewSpawner = GetComponent<EntityViewSpawner>() ?? gameObject.AddComponent<EntityViewSpawner>();
+            if (selectionController == null)
+                selectionController = GetComponent<HostSelectionController>() ??
+                                     gameObject.AddComponent<HostSelectionController>();
 
+            selectionController.ClearSelection();
             entityViewSpawner.Clear();
 
             if (!TryResolveContentPackageDirectory(out _resolvedContentPath, out var pathError))
@@ -100,6 +110,7 @@ namespace XianXia.Unity.Host
                 _status = "INIT FAILED: " + pathError;
                 Debug.LogError("[PlayableHost] " + pathError, this);
                 _session.Clear();
+                selectionController.ClearSelection();
                 return false;
             }
 
@@ -116,10 +127,13 @@ namespace XianXia.Unity.Host
                 _status = "INIT FAILED: " + init.Error;
                 Debug.LogError("[PlayableHost] " + init.Error, this);
                 entityViewSpawner.Clear();
+                selectionController.ClearSelection();
                 return false;
             }
 
             entityViewSpawner.Rebuild(_session);
+            var cam = Camera.main;
+            selectionController.Bind(entityViewSpawner, cam);
             FrameCameraOnSlots();
 
             _session.IsPaused = true;
@@ -192,12 +206,14 @@ namespace XianXia.Unity.Host
             }
 
             var day = _session.CurrentDayClock;
+            var selected = selectionController != null ? selectionController.State.Count : 0;
             _status = "tick=" + _session.World.Tick.Value +
                       " day=" + day.DayIndex +
                       " tickInDay=" + day.TickInDay +
                       " hour=" + day.HourOfDay +
                       " paused=" + _session.IsPaused +
-                      " chars=" + _session.CharacterIds.Count;
+                      " chars=" + _session.CharacterIds.Count +
+                      " selected=" + selected;
         }
 
         public bool TryResolveContentPackageDirectory(out string path, out string error)
