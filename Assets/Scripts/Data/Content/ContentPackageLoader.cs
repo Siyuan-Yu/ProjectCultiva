@@ -207,6 +207,9 @@ namespace XianXia.Data.Content
                     case "settlement":
                         LoadSettlement(item, parsed.Value, registry, report);
                         break;
+                    case "worldRegion":
+                        LoadWorldRegion(item, parsed.Value, registry, report);
+                        break;
                     default:
                         report.Add(ErrorCode.InvalidArgument, "Unknown definition type.", type);
                         break;
@@ -503,7 +506,8 @@ namespace XianXia.Data.Content
                 Name = item.GetString("name", string.Empty),
                 ScheduleId = item.GetString("scheduleId", string.Empty),
                 OpeningFactionId = item.GetString("openingFactionId", string.Empty),
-                OpeningSettlementId = item.GetString("openingSettlementId", string.Empty)
+                OpeningSettlementId = item.GetString("openingSettlementId", string.Empty),
+                OpeningWorldRegionId = item.GetString("openingWorldRegionId", string.Empty)
             };
 
             if (item.TryGetProperty("spawns", out var spawnsNode))
@@ -725,6 +729,92 @@ namespace XianXia.Data.Content
             if (!obj.TryGetProperty(name, out var n) || n.Kind != JsonValueKind.Number)
                 return fallback;
             return (int)n.Number;
+        }
+
+        static float ReadFloat(JsonValue obj, string name, float fallback)
+        {
+            if (!obj.TryGetProperty(name, out var n) || n.Kind != JsonValueKind.Number)
+                return fallback;
+            return (float)n.Number;
+        }
+
+        static void LoadWorldRegion(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.WorldRegionFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var region = new WorldRegionDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                StartLocationId = item.GetString("startLocationId", string.Empty)
+            };
+
+            if (!item.TryGetProperty("locations", out var locs) || locs.Kind != JsonValueKind.Array)
+            {
+                report.Add(ErrorCode.MissingRequiredField, "worldRegion.locations required.", id.ToString());
+                return;
+            }
+
+            foreach (var locNode in locs.Array)
+            {
+                if (locNode.Kind != JsonValueKind.Object)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "location entries must be objects.", id.ToString());
+                    continue;
+                }
+
+                DefinitionSchema.RejectUnknownFields(
+                    locNode, DefinitionSchema.WorldLocationFields, report, id + ".location");
+                if (report.Errors.Count > errorsBefore)
+                    return;
+
+                var entry = new WorldLocationEntry
+                {
+                    Id = locNode.GetString("id", string.Empty),
+                    Name = locNode.GetString("name", string.Empty),
+                    Kind = locNode.GetString("kind", "Wild"),
+                    ResourceOnExploreId = locNode.GetString("resourceOnExploreId", string.Empty),
+                    ResourceOnExploreAmount = ReadInt(locNode, "resourceOnExploreAmount", 0),
+                    OpportunitySiteId = locNode.GetString("opportunitySiteId", string.Empty),
+                    ResidentNpcDefinitionId = locNode.GetString("residentNpcDefinitionId", string.Empty),
+                    PresentationX = ReadFloat(locNode, "presentationX", 0f),
+                    PresentationZ = ReadFloat(locNode, "presentationZ", 0f)
+                };
+
+                if (string.IsNullOrWhiteSpace(entry.Id))
+                {
+                    report.Add(ErrorCode.MissingRequiredField, "location.id required.", id.ToString());
+                    return;
+                }
+
+                if (locNode.TryGetProperty("adjacentIds", out var adj) && adj.Kind == JsonValueKind.Array)
+                {
+                    foreach (var a in adj.Array)
+                    {
+                        if (a.Kind == JsonValueKind.String && !string.IsNullOrWhiteSpace(a.String))
+                            entry.AdjacentIds.Add(a.String);
+                    }
+                }
+
+                region.Locations.Add(entry);
+            }
+
+            if (region.Locations.Count == 0)
+            {
+                report.Add(ErrorCode.MissingRequiredField, "worldRegion.locations empty.", id.ToString());
+                return;
+            }
+
+            var reg = registry.RegisterWorldRegion(region);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
         }
 
         static void ReadTags(JsonValue item, List<string> tags, ValidationReport report, string context) =>

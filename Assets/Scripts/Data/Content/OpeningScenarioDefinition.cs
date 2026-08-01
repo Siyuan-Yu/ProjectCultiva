@@ -12,6 +12,8 @@ namespace XianXia.Data.Content
         public string OpeningFactionId { get; set; }
         /// <summary>VS0.8: optional opening settlement definition id.</summary>
         public string OpeningSettlementId { get; set; }
+        /// <summary>VS0.9: optional opening world region definition id.</summary>
+        public string OpeningWorldRegionId { get; set; }
         public List<OpeningSpawnEntry> Spawns { get; set; } = new List<OpeningSpawnEntry>();
         public List<OpeningRelationEntry> OpeningRelations { get; set; } = new List<OpeningRelationEntry>();
     }

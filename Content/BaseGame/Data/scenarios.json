@@ -8,6 +8,7 @@
       "scheduleId": "base:playable_labor_day",
       "openingFactionId": "base:sect_huangcun_labor",
       "openingSettlementId": "base:settlement_qingshi_cave",
+      "openingWorldRegionId": "base:region_qingshi",
       "spawns": [
         {
           "definitionId": "base:character_protagonist",

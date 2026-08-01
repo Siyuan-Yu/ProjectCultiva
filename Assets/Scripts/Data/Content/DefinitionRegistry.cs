@@ -22,6 +22,8 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, FacilityDefinition>();
         readonly Dictionary<DefinitionId, SettlementDefinition> _settlements =
             new Dictionary<DefinitionId, SettlementDefinition>();
+        readonly Dictionary<DefinitionId, WorldRegionDefinition> _worldRegions =
+            new Dictionary<DefinitionId, WorldRegionDefinition>();
 
         public IReadOnlyDictionary<DefinitionId, CharacterDefinition> Characters => _characters;
         public IReadOnlyDictionary<DefinitionId, CultivationDefinition> Cultivations => _cultivations;
@@ -31,6 +33,7 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, ResourceDefinition> Resources => _resources;
         public IReadOnlyDictionary<DefinitionId, FacilityDefinition> Facilities => _facilities;
         public IReadOnlyDictionary<DefinitionId, SettlementDefinition> Settlements => _settlements;
+        public IReadOnlyDictionary<DefinitionId, WorldRegionDefinition> WorldRegions => _worldRegions;
 
         public bool ContainsId(DefinitionId id) =>
             _characters.ContainsKey(id) ||
@@ -40,7 +43,8 @@ namespace XianXia.Data.Content
             _openingScenarios.ContainsKey(id) ||
             _resources.ContainsKey(id) ||
             _facilities.ContainsKey(id) ||
-            _settlements.ContainsKey(id);
+            _settlements.ContainsKey(id) ||
+            _worldRegions.ContainsKey(id);
 
         public Result RegisterCharacter(CharacterDefinition definition)
         {
@@ -98,6 +102,13 @@ namespace XianXia.Data.Content
             return Register(_settlements, definition, definition.Id);
         }
 
+        public Result RegisterWorldRegion(WorldRegionDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "WorldRegionDefinition is null.");
+            return Register(_worldRegions, definition, definition.Id);
+        }
+
         public bool TryGetCharacter(DefinitionId id, out CharacterDefinition definition) =>
             _characters.TryGetValue(id, out definition);
 
@@ -121,6 +132,9 @@ namespace XianXia.Data.Content
 
         public bool TryGetSettlement(DefinitionId id, out SettlementDefinition definition) =>
             _settlements.TryGetValue(id, out definition);
+
+        public bool TryGetWorldRegion(DefinitionId id, out WorldRegionDefinition definition) =>
+            _worldRegions.TryGetValue(id, out definition);
 
         Result Register<T>(Dictionary<DefinitionId, T> map, T definition, DefinitionId id)
         {

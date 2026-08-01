@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:region_qingshi",
+      "type": "worldRegion",
+      "name": "青石荒村区域",
+      "startLocationId": "base:loc_labor_camp",
+      "locations": [
+        {
+          "id": "base:loc_labor_camp",
+          "name": "劳役营地",
+          "kind": "Settlement",
+          "adjacentIds": ["base:loc_village_edge", "base:loc_cave_mouth"],
+          "resourceOnExploreId": "base:resource_rough_wood",
+          "resourceOnExploreAmount": 1,
+          "presentationX": -3,
+          "presentationZ": 0
+        },
+        {
+          "id": "base:loc_village_edge",
+          "name": "村口",
+          "kind": "Village",
+          "adjacentIds": ["base:loc_labor_camp", "base:loc_herb_slope"],
+          "residentNpcDefinitionId": "base:character_village_recruit",
+          "resourceOnExploreId": "base:resource_rough_wood",
+          "resourceOnExploreAmount": 1,
+          "presentationX": 0,
+          "presentationZ": 3
+        },
+        {
+          "id": "base:loc_cave_mouth",
+          "name": "洞口",
+          "kind": "Opportunity",
+          "adjacentIds": ["base:loc_labor_camp", "base:loc_herb_slope"],
+          "opportunitySiteId": "base:site_abandoned_cave",
+          "presentationX": 0,
+          "presentationZ": -3
+        },
+        {
+          "id": "base:loc_herb_slope",
+          "name": "采药坡",
+          "kind": "Wild",
+          "adjacentIds": ["base:loc_village_edge", "base:loc_cave_mouth"],
+          "resourceOnExploreId": "base:resource_spirit_herb",
+          "resourceOnExploreAmount": 2,
+          "presentationX": 3,
+          "presentationZ": 0
+        }
+      ]
+    }
+  ]
+}
