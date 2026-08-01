@@ -1,16 +1,15 @@
-using System.Collections.Generic;
-using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
 using XianXia.Core.Orders;
-using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.Social;
 
 namespace XianXia.Core.Schedule
 {
     /// <summary>
     /// Injects Schedule Orders when entity is idle and has no pending Player Orders.
     /// Does not implement NPC AI. Player Orders always outrank Schedule.
+    /// VS0.5-E: applies PersonalityScheduleBias to activity／duration only.
     /// </summary>
     public sealed class ScheduleDriver
     {
@@ -60,7 +59,10 @@ namespace XianXia.Core.Schedule
                 return;
             }
 
-            var expectedType = block.Activity == ScheduleActivity.Labor ? OrderType.Labor : OrderType.Rest;
+            entity.TryGet<PersonalityProfileComponent>(out var profile);
+            var choice = PersonalityScheduleBias.Apply(block, profile);
+
+            var expectedType = choice.Activity == ScheduleActivity.Labor ? OrderType.Labor : OrderType.Rest;
             if (queue.HasMatching(OrderSource.Schedule, expectedType))
                 return;
 
@@ -68,13 +70,17 @@ namespace XianXia.Core.Schedule
 
             var tickInDay = (int)(world.Tick.Value % (ulong)WorldTick.TicksPerDay);
             var remainingInBlock = (ulong)(block.EndTickInDay - tickInDay);
-            var duration = block.OrderDurationTicks;
+            var duration = choice.DurationTicks;
             if (remainingInBlock < duration)
                 duration = remainingInBlock;
             if (duration == 0)
                 return;
 
-            var created = _factory.Create(loop.AllocateOrderId(), entity.Id, block, duration);
+            var created = _factory.Create(
+                loop.AllocateOrderId(),
+                entity.Id,
+                choice.Activity,
+                duration);
             if (created.IsFailure)
                 return;
 

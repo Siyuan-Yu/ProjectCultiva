@@ -14,11 +14,20 @@ namespace XianXia.Core.Schedule
         {
             if (block == null)
                 return Result.Fail<Order>(ErrorCode.InvalidArgument, "ScheduleBlock is null.");
+            return Create(id, subject, block.Activity, durationTicks);
+        }
+
+        public Result<Order> Create(
+            OrderId id,
+            EntityId subject,
+            ScheduleActivity activity,
+            ulong durationTicks)
+        {
             if (durationTicks == 0)
                 return Result.Fail<Order>(ErrorCode.InvalidArgument, "DurationTicks must be > 0.");
 
             OrderType type;
-            switch (block.Activity)
+            switch (activity)
             {
                 case ScheduleActivity.Labor:
                     type = OrderType.Labor;
@@ -27,7 +36,10 @@ namespace XianXia.Core.Schedule
                     type = OrderType.Rest;
                     break;
                 default:
-                    return Result.Fail<Order>(ErrorCode.InvalidArgument, "Unsupported schedule activity.", block.Activity.ToString());
+                    return Result.Fail<Order>(
+                        ErrorCode.InvalidArgument,
+                        "Unsupported schedule activity.",
+                        activity.ToString());
             }
 
             return Result.Ok(new Order(id, subject, type, OrderSource.Schedule, waitTicks: durationTicks));

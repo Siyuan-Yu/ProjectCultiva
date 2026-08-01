@@ -112,6 +112,9 @@ namespace XianXia.Data.Bootstrap
             var recruitable = recruitableResult.Value;
             if (recruitable.TryGet<PersonalityProfileComponent>(out var recruitProfile))
                 recruitProfile.SetTags(new[] { "personality_steady" });
+            // Schedule only (no DailyTask quota) — personality bias still applies.
+            if (!recruitable.TryGet<ScheduleComponent>(out _))
+                recruitable.AddComponent(new ScheduleComponent(schedule.Id));
 
             if (options.ObservationDiscoverChancePercent.HasValue)
             {

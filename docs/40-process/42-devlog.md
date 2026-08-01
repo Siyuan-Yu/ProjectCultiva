@@ -7,6 +7,15 @@
 
 ---
 
+## 2026-08-01 — VS0.5 Phase E：人格日程偏置
+
+**做了什么**
+- `PersonalityScheduleBias`：bold／cautious／curious 微调 Schedule 活动与时长；bold 可将 Rest 块转为 Labor；bold+cautious 互相抵消
+- `ScheduleDriver` 注入偏置；Player Override 仍优先；可招 Npc 挂 Schedule（无 quota）
+- EditMode 147 全绿；**未**改 Snapshot／Freeze
+
+**下一步：** V5-F 社会 Tick 漂移。
+
 ## 2026-08-01 — VS0.5 Phase D：薄招募
 
 **做了什么**
