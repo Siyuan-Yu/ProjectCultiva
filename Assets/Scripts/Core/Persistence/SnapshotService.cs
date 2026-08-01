@@ -12,6 +12,7 @@ using XianXia.Core.Labor;
 using XianXia.Core.Orders;
 using XianXia.Core.Random;
 using XianXia.Core.Results;
+using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
 
 namespace XianXia.Core.Persistence
@@ -114,7 +115,30 @@ namespace XianXia.Core.Persistence
                     dto.LaborQuota = daily.LaborQuota;
                 }
 
+                if (entity.TryGet<ScheduleComponent>(out var schedule))
+                {
+                    dto.HasSchedule = true;
+                    dto.ScheduleDefinitionId = schedule.DefinitionId ?? string.Empty;
+                }
+
                 snap.Entities.Add(dto);
+            }
+
+            foreach (var kv in world.Schedules)
+            {
+                var defDto = new ScheduleDefinitionSnapshotDto { Id = kv.Key };
+                foreach (var block in kv.Value.Blocks)
+                {
+                    defDto.Blocks.Add(new ScheduleBlockSnapshotDto
+                    {
+                        StartTickInDay = block.StartTickInDay,
+                        EndTickInDay = block.EndTickInDay,
+                        Activity = (int)block.Activity,
+                        OrderDurationTicks = block.OrderDurationTicks
+                    });
+                }
+
+                snap.Schedules.Add(defDto);
             }
 
             foreach (var kv in world.ActiveActions)
@@ -191,6 +215,21 @@ namespace XianXia.Core.Persistence
             world.Events.RestoreCursor(snap.EventCursor, snap.NextEventId);
             world.Translator.RestoreNextActionId(snap.NextActionId);
 
+            if (snap.Schedules != null)
+            {
+                foreach (var s in snap.Schedules)
+                {
+                    var def = new ScheduleDefinition(s.Id ?? string.Empty);
+                    if (s.Blocks != null)
+                    {
+                        foreach (var b in s.Blocks)
+                            def.AddBlock(b.StartTickInDay, b.EndTickInDay, (ScheduleActivity)b.Activity, b.OrderDurationTicks);
+                    }
+
+                    world.RegisterSchedule(def);
+                }
+            }
+
             var random = new DeterministicRandom(1, new RandomStreamId(snap.RandomStreamId));
             random.RestoreState(new RandomState(snap.RandomS0, snap.RandomS1, new RandomStreamId(snap.RandomStreamId)));
             world.Random = random;
@@ -256,6 +295,9 @@ namespace XianXia.Core.Persistence
                 {
                     entity.AddComponent(new DailyTaskComponent());
                 }
+
+                if (e.HasSchedule && !string.IsNullOrEmpty(e.ScheduleDefinitionId))
+                    entity.AddComponent(new ScheduleComponent(e.ScheduleDefinitionId));
 
                 // Inject into store via reflection-free path: recreate through internal add
                 InjectEntity(world.Entities, entity);

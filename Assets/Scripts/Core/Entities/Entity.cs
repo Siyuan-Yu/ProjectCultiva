@@ -14,7 +14,8 @@ namespace XianXia.Core.Entities
             typeof(LifecycleComponent),
             typeof(ActionStateComponent),
             typeof(XianXia.Core.Cultivation.CultivationComponent),
-            typeof(XianXia.Core.Labor.DailyTaskComponent)
+            typeof(XianXia.Core.Labor.DailyTaskComponent),
+            typeof(XianXia.Core.Schedule.ScheduleComponent)
         };
 
         readonly Dictionary<Type, IComponent> _components = new Dictionary<Type, IComponent>();

@@ -25,6 +25,21 @@ namespace XianXia.Core.Persistence
         public List<EntitySnapshotDto> Entities { get; set; } = new List<EntitySnapshotDto>();
         public List<ActiveActionSnapshotDto> ActiveActions { get; set; } = new List<ActiveActionSnapshotDto>();
         public List<OrderSnapshotDto> Orders { get; set; } = new List<OrderSnapshotDto>();
+        public List<ScheduleDefinitionSnapshotDto> Schedules { get; set; } = new List<ScheduleDefinitionSnapshotDto>();
+    }
+
+    public sealed class ScheduleDefinitionSnapshotDto
+    {
+        public string Id { get; set; }
+        public List<ScheduleBlockSnapshotDto> Blocks { get; set; } = new List<ScheduleBlockSnapshotDto>();
+    }
+
+    public sealed class ScheduleBlockSnapshotDto
+    {
+        public int StartTickInDay { get; set; }
+        public int EndTickInDay { get; set; }
+        public int Activity { get; set; }
+        public ulong OrderDurationTicks { get; set; }
     }
 
     public sealed class EntitySnapshotDto
@@ -50,6 +65,8 @@ namespace XianXia.Core.Persistence
         public bool HasDailyTask { get; set; }
         public int LaborProgress { get; set; }
         public int LaborQuota { get; set; }
+        public bool HasSchedule { get; set; }
+        public string ScheduleDefinitionId { get; set; }
     }
 
     public sealed class AttrBaseDto

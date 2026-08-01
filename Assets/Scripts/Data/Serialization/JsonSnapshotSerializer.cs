@@ -32,7 +32,8 @@ namespace XianXia.Data.Serialization
                 ["nextModifierId"] = U(snapshot.NextModifierId),
                 ["entities"] = JsonValue.FromArray(SerializeEntities(snapshot.Entities)),
                 ["activeActions"] = JsonValue.FromArray(SerializeActions(snapshot.ActiveActions)),
-                ["orders"] = JsonValue.FromArray(SerializeOrders(snapshot.Orders))
+                ["orders"] = JsonValue.FromArray(SerializeOrders(snapshot.Orders)),
+                ["schedules"] = JsonValue.FromArray(SerializeSchedules(snapshot.Schedules))
             };
 
             return Result.Ok(SimpleJson.Stringify(JsonValue.FromObject(root)));
@@ -81,6 +82,12 @@ namespace XianXia.Data.Serialization
                 {
                     foreach (var o in orders.Array)
                         snapshot.Orders.Add(ReadOrder(o));
+                }
+
+                if (root.TryGetProperty("schedules", out var schedules) && schedules.Kind == JsonValueKind.Array)
+                {
+                    foreach (var s in schedules.Array)
+                        snapshot.Schedules.Add(ReadSchedule(s));
                 }
 
                 return Result.Ok(snapshot);
@@ -146,9 +153,43 @@ namespace XianXia.Data.Serialization
                     ["requiredRealmName"] = JsonValue.FromString(e.RequiredRealmName ?? string.Empty),
                     ["hasDailyTask"] = JsonValue.FromBool(e.HasDailyTask),
                     ["laborProgress"] = JsonValue.FromNumber(e.LaborProgress),
-                    ["laborQuota"] = JsonValue.FromNumber(e.LaborQuota)
+                    ["laborQuota"] = JsonValue.FromNumber(e.LaborQuota),
+                    ["hasSchedule"] = JsonValue.FromBool(e.HasSchedule),
+                    ["scheduleDefinitionId"] = JsonValue.FromString(e.ScheduleDefinitionId ?? string.Empty)
                 }));
             }
+            return list;
+        }
+
+        static List<JsonValue> SerializeSchedules(List<ScheduleDefinitionSnapshotDto> schedules)
+        {
+            var list = new List<JsonValue>();
+            if (schedules == null)
+                return list;
+            foreach (var s in schedules)
+            {
+                var blocks = new List<JsonValue>();
+                if (s.Blocks != null)
+                {
+                    foreach (var b in s.Blocks)
+                    {
+                        blocks.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                        {
+                            ["startTickInDay"] = JsonValue.FromNumber(b.StartTickInDay),
+                            ["endTickInDay"] = JsonValue.FromNumber(b.EndTickInDay),
+                            ["activity"] = JsonValue.FromNumber(b.Activity),
+                            ["orderDurationTicks"] = JsonValue.FromNumber(b.OrderDurationTicks)
+                        }));
+                    }
+                }
+
+                list.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["id"] = JsonValue.FromString(s.Id ?? string.Empty),
+                    ["blocks"] = JsonValue.FromArray(blocks)
+                }));
+            }
+
             return list;
         }
 
@@ -210,7 +251,9 @@ namespace XianXia.Data.Serialization
                 RequiredRealmName = e.GetString("requiredRealmName", string.Empty),
                 HasDailyTask = e.TryGetProperty("hasDailyTask", out var hdt) && hdt.Kind == JsonValueKind.Boolean && hdt.Bool,
                 LaborProgress = (int)e.GetNumber("laborProgress"),
-                LaborQuota = (int)e.GetNumber("laborQuota")
+                LaborQuota = (int)e.GetNumber("laborQuota"),
+                HasSchedule = e.TryGetProperty("hasSchedule", out var hs) && hs.Kind == JsonValueKind.Boolean && hs.Bool,
+                ScheduleDefinitionId = e.GetString("scheduleDefinitionId", string.Empty)
             };
 
             if (e.TryGetProperty("bases", out var bases) && bases.Kind == JsonValueKind.Array)
@@ -279,6 +322,29 @@ namespace XianXia.Data.Serialization
             Source = (int)o.GetNumber("source"),
             WaitTicks = (ulong)o.GetNumber("waitTicks")
         };
+
+        static ScheduleDefinitionSnapshotDto ReadSchedule(JsonValue s)
+        {
+            var dto = new ScheduleDefinitionSnapshotDto
+            {
+                Id = s.GetString("id", string.Empty)
+            };
+            if (s.TryGetProperty("blocks", out var blocks) && blocks.Kind == JsonValueKind.Array)
+            {
+                foreach (var b in blocks.Array)
+                {
+                    dto.Blocks.Add(new ScheduleBlockSnapshotDto
+                    {
+                        StartTickInDay = (int)b.GetNumber("startTickInDay"),
+                        EndTickInDay = (int)b.GetNumber("endTickInDay"),
+                        Activity = (int)b.GetNumber("activity"),
+                        OrderDurationTicks = (ulong)b.GetNumber("orderDurationTicks")
+                    });
+                }
+            }
+
+            return dto;
+        }
     }
 }
 

@@ -7,6 +7,17 @@
 
 ---
 
+## 2026-08-01 — VS0.2 Phase B：ScheduleDefinition + ScheduleDriver
+
+**做了什么**
+- `ScheduleDefinition`／`ScheduleBlock`／`ScheduleActivity`（Labor／Rest）
+- `ScheduleComponent` 绑定；`ScheduleDriver` 空闲且无 Player Order 时注入 `OrderSource.Schedule`
+- `OrderQueue`：Player 入队优先于 Schedule
+- Snapshot 含 schedules + 实体绑定；EditMode **84/84**
+- **未做：** Override 中断、Quota 惩罚、Observe、Exposure、AI／UI／地图
+
+**下一步：** 等确认后 Phase C。
+
 ## 2026-08-01 — VS0.2 Phase A：PlayerInput → Order → Labor
 
 **批准：** `56` 已审；RTS／Schedule 语义／报告 B 范围冻结。

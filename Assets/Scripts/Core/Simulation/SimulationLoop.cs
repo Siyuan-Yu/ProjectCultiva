@@ -4,17 +4,20 @@ using XianXia.Core.Entities;
 using XianXia.Core.Events;
 using XianXia.Core.Orders;
 using XianXia.Core.Results;
+using XianXia.Core.Schedule;
 
 namespace XianXia.Core.Simulation
 {
     public sealed class SimulationLoop
     {
         readonly SimulationWorld _world;
+        readonly ScheduleDriver _scheduleDriver;
         ulong _nextOrderId = 1;
 
-        public SimulationLoop(SimulationWorld world)
+        public SimulationLoop(SimulationWorld world, ScheduleDriver scheduleDriver = null)
         {
             _world = world;
+            _scheduleDriver = scheduleDriver ?? new ScheduleDriver();
         }
 
         public ulong PeekNextOrderId => _nextOrderId;
@@ -48,6 +51,7 @@ namespace XianXia.Core.Simulation
         public Result TickOnce()
         {
             _world.Tick = _world.Tick.Add(1);
+            _scheduleDriver.Drive(_world, this);
 
             // Copy keys to avoid mutation during iteration.
             var actionIds = new System.Collections.Generic.List<ActionId>(_world.ActiveActions.Keys);
@@ -73,6 +77,9 @@ namespace XianXia.Core.Simulation
                     TryStartNext(action.Subject);
                 }
             }
+
+            // After completions, idle entities may need a fresh Schedule Order for this tick.
+            _scheduleDriver.Drive(_world, this);
 
             return Result.Success();
         }

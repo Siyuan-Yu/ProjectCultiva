@@ -1,6 +1,6 @@
 # Vertical Slice 0.2 开工前确认报告
 
-> 状态：**已批准编码**｜Phase A **已完成**（等确认进 B）｜日期：2026-08-01  
+> 状态：**已批准编码**｜Phase B **已完成**（等确认进 C）｜日期：2026-08-01  
 > 类型：开发前确认  
 > 已读：`54`、`55`、`20`、`21`、`2F`、`2G`  
 > 控制方式：**已冻结为 RTS**（见下文）；不以菜单式行动选择替代。
@@ -185,7 +185,7 @@ Freeze／`2F` 正式名为 PersonalConcealmentRisk；计划用 ExposureRisk 0–
 
 | Phase | 内容 | 状态 |
 |---|---|---|
-| A | PlayerInput Port／Factory／Player Order／Labor（+Rest）链路 | **完成** `548a095`；等确认进 B |
-| B | ScheduleDefinition／Driver | 未开始 |
+| A | PlayerInput Port／Factory／Player Order／Labor（+Rest）链路 | **完成** `548a095` |
+| B | ScheduleDefinition／Driver | **完成**（本 Phase B commit）；等确认进 C |
 | C | Override + Quota 偏差／Event | 未开始 |
 | — | ExposureRisk／OpportunitySite／地图／UI… | 不做 |

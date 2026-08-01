@@ -6,6 +6,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Events;
 using XianXia.Core.Orders;
 using XianXia.Core.Random;
+using XianXia.Core.Schedule;
 using XianXia.Core.World;
 
 namespace XianXia.Core.Simulation
@@ -13,6 +14,9 @@ namespace XianXia.Core.Simulation
     /// <summary>Single-region M1 simulation state container.</summary>
     public sealed class SimulationWorld
     {
+        readonly Dictionary<string, ScheduleDefinition> _schedules =
+            new Dictionary<string, ScheduleDefinition>(System.StringComparer.Ordinal);
+
         public SimulationWorld(
             EntityStore entities = null,
             DomainEventQueue events = null,
@@ -51,9 +55,26 @@ namespace XianXia.Core.Simulation
 
         public Dictionary<ActionId, IAction> ActiveActions { get; }
 
+        public IReadOnlyDictionary<string, ScheduleDefinition> Schedules => _schedules;
+
         public string EnabledPackageId { get; set; }
 
         public string EnabledPackageVersion { get; set; }
+
+        public void RegisterSchedule(ScheduleDefinition definition)
+        {
+            if (definition == null)
+                throw new System.ArgumentNullException(nameof(definition));
+            _schedules[definition.Id] = definition;
+        }
+
+        public bool TryGetSchedule(string definitionId, out ScheduleDefinition definition)
+        {
+            definition = null;
+            if (string.IsNullOrEmpty(definitionId))
+                return false;
+            return _schedules.TryGetValue(definitionId, out definition);
+        }
 
         public OrderQueue GetOrCreateOrderQueue(EntityId id)
         {

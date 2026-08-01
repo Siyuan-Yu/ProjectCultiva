@@ -11,7 +11,7 @@
 
 要点：聊天不是真源；重要决定必须进入 Architecture／System Design／ADR／Devlog／Glossary；跨角色冲突时已冻结架构优先。
 
-## 当前阶段：Vertical Slice 0.2 编码（Phase A 完成，等确认进 B）
+## 当前阶段：Vertical Slice 0.2 编码（Phase B 完成，等确认进 C）
 
 - 主契约：`docs/30-tech/33-architecture-core-rules-freeze-v0.2.md`（**禁止改 Freeze 正文**）
 - 确认真源：`docs/40-process/56-vertical-slice-0.2-pre-dev-confirmation.md`（**已批准**）
