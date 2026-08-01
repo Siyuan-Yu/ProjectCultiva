@@ -3,7 +3,8 @@
   "rootNamespace": "XianXia.Tests",
   "references": [
     "XianXia.Core",
-    "XianXia.Data"
+    "XianXia.Data",
+    "XianXia.Unity"
   ],
   "includePlatforms": [
     "Editor"

@@ -7,6 +7,25 @@
 
 ---
 
+## 2026-08-01 — VS0.4 Phase A：Playable Host Bootstrap
+
+**做了什么**
+- Data：`PlayableDayBootstrap`（Load BaseGame → 三人 → Schedule／Site／Manual／DailyTask／Risk；Loop＋Port；默认 QuotaConsequence）
+- Unity：`PlayableHostSession`／`PlayableHostBootstrap`；场景 `Assets/Scenes/PlayableHost.unity`
+- Editor：Space 单步 Tick、P 暂停／继续；Content 路径失败清晰报错
+- EditMode：`PlayableDayBootstrapPhaseATests`；全量 **107/107**
+- **未做：** EntityView／点选／命令／HUD／事件日志／存档 UI／Demo 迁移／V4-B+
+
+**下一步：** 等 V4-A 验收后再进 V4-B。
+
+## 2026-08-01 — Vertical Slice 0.4 Unity Host 规划（不编码）
+
+新增 [`59-vertical-slice-0.4-unity-playable-host-plan-v0.1.md`](59-vertical-slice-0.4-unity-playable-host-plan-v0.1.md)：VS0.3 规则闭环 → 最小 Unity 可玩场景；Content／World、EntityView、RTS 选择、PlayerCommandRequest、HUD、事件、Snapshot；Demo 只读禁迁；V4-A～H 独立 commit。确认前不编码。
+
+## 2026-08-01 — VS0.3 最终验收报告（不编码）
+
+新增 [`58-vertical-slice-0.3-acceptance-report.md`](58-vertical-slice-0.3-acceptance-report.md)：汇总 A–D、完整玩家循环、可玩边界、架构观察／ADR 挂账、下一阶段仅规划；**特别记录**后续每 Phase 必须单独测／单独 commit。不自动开工下一阶段。
+
 ## 2026-08-01 — VS0.3 Phase B–D：Observe／偷修／日终 Quota
 
 **做了什么**

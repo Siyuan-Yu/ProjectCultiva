@@ -32,7 +32,20 @@ namespace XianXia.Data.Bootstrap
             if (loaded.IsFailure)
                 return Result.Fail<GameStartResult>(loaded.Error);
 
-            var registry = loaded.Value.Registry;
+            return StartVerticalSlice01(loaded.Value, random);
+        }
+
+        /// <summary>
+        /// Start from an already-loaded package (shared by Host／tests without double-load).
+        /// </summary>
+        public Result<GameStartResult> StartVerticalSlice01(LoadedContent loaded, IRandomSource random = null)
+        {
+            if (loaded == null || loaded.Registry == null)
+                return Result.Fail<GameStartResult>(ErrorCode.InvalidArgument, "LoadedContent is null.");
+            if (loaded.Manifests == null || loaded.Manifests.Count == 0)
+                return Result.Fail<GameStartResult>(ErrorCode.ContentLoadFailed, "LoadedContent has no manifests.");
+
+            var registry = loaded.Registry;
             var spawns = new List<CharacterSpawnRequest>();
             foreach (var id in new[] { ProtagonistId, CompanionAId, CompanionBId })
             {
@@ -42,7 +55,7 @@ namespace XianXia.Data.Bootstrap
                 spawns.Add(ToSpawn(def));
             }
 
-            var manifest = loaded.Value.Manifests[0];
+            var manifest = loaded.Manifests[0];
             return _bootstrap.Start(
                 CreateDefaultWorldLayout(),
                 spawns,
