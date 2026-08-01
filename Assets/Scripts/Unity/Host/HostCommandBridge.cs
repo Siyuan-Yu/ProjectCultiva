@@ -7,8 +7,8 @@ using XianXia.Core.Results;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// VS0.4 Phase D: selection → PlayerCommandRequest → IPlayerInputPort.
-    /// No direct component mutation. No Move／combat／HUD.
+    /// Selection → PlayerCommandRequest → IPlayerInputPort.
+    /// VS0.6: Help／Slight／Recruit resolve Actor＋Target from selection.
     /// </summary>
     public sealed class HostCommandBridge : MonoBehaviour
     {
@@ -21,6 +21,9 @@ namespace XianXia.Unity.Host
         [SerializeField] KeyCode restKey = KeyCode.Alpha2;
         [SerializeField] KeyCode observeKey = KeyCode.Alpha3;
         [SerializeField] KeyCode cultivateKey = KeyCode.Alpha4;
+        [SerializeField] KeyCode helpKey = KeyCode.Alpha5;
+        [SerializeField] KeyCode slightKey = KeyCode.Alpha6;
+        [SerializeField] KeyCode recruitKey = KeyCode.Alpha7;
 
         PlayableHostSession _session;
         string _lastStatus = "No command yet";
@@ -55,6 +58,12 @@ namespace XianXia.Unity.Host
                 IssueSelected(PlayerCommandKind.Observe);
             else if (Input.GetKeyDown(cultivateKey))
                 IssueSelected(PlayerCommandKind.Cultivate);
+            else if (Input.GetKeyDown(helpKey))
+                IssueSocial(PlayerCommandKind.Help);
+            else if (Input.GetKeyDown(slightKey))
+                IssueSocial(PlayerCommandKind.Slight);
+            else if (Input.GetKeyDown(recruitKey))
+                IssueSocial(PlayerCommandKind.Recruit);
         }
 
         void OnGUI()
@@ -73,11 +82,24 @@ namespace XianXia.Unity.Host
                 IssueSelected(PlayerCommandKind.Observe);
             if (GUI.Button(new Rect(8f + 3f * (w + 6f), y, w, h), "修炼(4)"))
                 IssueSelected(PlayerCommandKind.Cultivate);
+
+            y += h + 6f;
+            if (GUI.Button(new Rect(8f, y, w, h), "帮助(5)"))
+                IssueSocial(PlayerCommandKind.Help);
+            if (GUI.Button(new Rect(8f + (w + 6f), y, w, h), "轻慢(6)"))
+                IssueSocial(PlayerCommandKind.Slight);
+            if (GUI.Button(new Rect(8f + 2f * (w + 6f), y, w, h), "招募(7)"))
+                IssueSocial(PlayerCommandKind.Recruit);
         }
 
-        /// <summary>Issue to current selection. Empty selection = no-op.</summary>
+        /// <summary>Issue labor-style command to selected Characters only.</summary>
         public int IssueSelected(PlayerCommandKind kind, ulong durationTicks = DefaultDurationTicks)
         {
+            if (kind == PlayerCommandKind.Help ||
+                kind == PlayerCommandKind.Slight ||
+                kind == PlayerCommandKind.Recruit)
+                return IssueSocial(kind) ? 1 : 0;
+
             if (selectionController == null)
             {
                 _lastStatus = "No selection controller";
@@ -90,9 +112,60 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// Batch submit: one request per target. Failures do not abort the batch.
-        /// Only CharacterIds from the session are accepted.
+        /// Social: Actor = first Character in selection; Target = first non-Actor.
         /// </summary>
+        public bool IssueSocial(PlayerCommandKind kind)
+        {
+            _lastSuccessCount = 0;
+            _lastFailureCount = 0;
+
+            if (_session == null || !_session.IsInitialized || _session.Port == null)
+            {
+                _lastStatus = "Session／Port not ready";
+                return false;
+            }
+
+            if (kind != PlayerCommandKind.Help &&
+                kind != PlayerCommandKind.Slight &&
+                kind != PlayerCommandKind.Recruit)
+            {
+                _lastStatus = "Not a social kind: " + kind;
+                return false;
+            }
+
+            if (selectionController == null)
+            {
+                _lastStatus = "No selection controller";
+                return false;
+            }
+
+            if (!TryResolveSocialPair(
+                    _session,
+                    selectionController.State.SelectedIds,
+                    out var actor,
+                    out var target,
+                    out var resolveError))
+            {
+                _lastFailureCount = 1;
+                _lastStatus = resolveError;
+                return false;
+            }
+
+            var result = _session.Port.Submit(new PlayerCommandRequest(actor, kind, 1, target));
+            if (result.IsSuccess)
+            {
+                _lastSuccessCount = 1;
+                _lastStatus = "kind=" + kind + " actor=" + actor.Value + " target=" + target.Value + " ok";
+                return true;
+            }
+
+            _lastFailureCount = 1;
+            _lastStatus = "kind=" + kind + " actor=" + actor.Value + " target=" + target.Value +
+                          " FAIL " + FormatError(result);
+            Debug.LogWarning("[HostCommand] Social failed: " + _lastStatus, this);
+            return false;
+        }
+
         public int IssueTo(
             IReadOnlyList<EntityId> targets,
             PlayerCommandKind kind,
@@ -132,9 +205,7 @@ namespace XianXia.Unity.Host
 
                 var result = _session.Port.Submit(new PlayerCommandRequest(id, kind, durationTicks));
                 if (result.IsSuccess)
-                {
                     _lastSuccessCount++;
-                }
                 else
                 {
                     _lastFailureCount++;
@@ -148,6 +219,66 @@ namespace XianXia.Unity.Host
                           " ok=" + _lastSuccessCount +
                           " fail=" + _lastFailureCount;
             return _lastSuccessCount;
+        }
+
+        public static bool TryResolveSocialPair(
+            PlayableHostSession session,
+            IReadOnlyList<EntityId> selection,
+            out EntityId actor,
+            out EntityId target,
+            out string error)
+        {
+            actor = EntityId.None;
+            target = EntityId.None;
+            error = null;
+
+            if (session == null || !session.IsInitialized || session.World == null)
+            {
+                error = "Session not ready";
+                return false;
+            }
+
+            if (selection == null || selection.Count == 0)
+            {
+                error = "Select Character (actor) + target";
+                return false;
+            }
+
+            var controllable = BuildAllowedSet(session.CharacterIds);
+            for (var i = 0; i < selection.Count; i++)
+            {
+                var id = selection[i];
+                if (!id.IsNone && controllable.Contains(id.Value))
+                {
+                    actor = id;
+                    break;
+                }
+            }
+
+            if (actor.IsNone)
+            {
+                error = "Need a Character actor in selection";
+                return false;
+            }
+
+            for (var i = 0; i < selection.Count; i++)
+            {
+                var id = selection[i];
+                if (id.IsNone || id == actor)
+                    continue;
+                if (!session.World.Entities.TryGet(id, out _))
+                    continue;
+                target = id;
+                break;
+            }
+
+            if (target.IsNone)
+            {
+                error = "Need a distinct target (Npc or other) in selection";
+                return false;
+            }
+
+            return true;
         }
 
         static HashSet<ulong> BuildAllowedSet(IReadOnlyList<EntityId> characterIds)
@@ -165,6 +296,6 @@ namespace XianXia.Unity.Host
         }
 
         static string FormatError(Result result) =>
-            result.IsFailure ? result.Error.ToString() : string.Empty;
+            result.IsFailure ? result.Error.ToString() : "ok";
     }
 }
