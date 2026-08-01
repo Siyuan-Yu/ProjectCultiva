@@ -124,6 +124,8 @@ namespace XianXia.Unity.Host
                 case XianXia.Core.Events.EventType.QuotaConsequenceApplied:
                 case XianXia.Core.Events.EventType.ActionCompleted:
                 case XianXia.Core.Events.EventType.Breakthrough:
+                case XianXia.Core.Events.EventType.RelationshipChanged:
+                case XianXia.Core.Events.EventType.FactionMembershipChanged:
                     return true;
                 default:
                     return false;
