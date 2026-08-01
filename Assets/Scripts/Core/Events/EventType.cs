@@ -39,7 +39,17 @@ namespace XianXia.Core.Events
         /// <summary>VS0.9: Entity moved to another abstract location.</summary>
         LocationChanged = 21,
         /// <summary>VS0.9: Explore resolved at current location.</summary>
-        LocationExplored = 22
+        LocationExplored = 22,
+        /// <summary>Content Ready: quest offered／started (session).</summary>
+        QuestStarted = 23,
+        /// <summary>Content Ready: quest completed (session).</summary>
+        QuestCompleted = 24,
+        /// <summary>Content Ready: quest failed (session).</summary>
+        QuestFailed = 25,
+        /// <summary>Content Ready: content event presented to player (session).</summary>
+        ContentEventPresented = 26,
+        /// <summary>Content Ready: content event choice resolved (session).</summary>
+        ContentEventResolved = 27
     }
 }
 

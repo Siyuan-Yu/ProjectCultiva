@@ -1,7 +1,9 @@
+using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Entities;
 using XianXia.Core.Events;
 using XianXia.Core.Simulation;
+using XianXia.Core.Social;
 
 namespace XianXia.Core.Settlement
 {
@@ -115,6 +117,9 @@ namespace XianXia.Core.Settlement
                 if (facility.CultivateProgressBonusPerWorker > bonus)
                     bonus = facility.CultivateProgressBonusPerWorker;
             }
+
+            if (entity.TryGet<PersonalityProfileComponent>(out var profile))
+                bonus += TalentGrowthRules.ExtraCultivateProgress(profile);
 
             cultivation.Progress += bonus;
         }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using XianXia.Core.Actions;
+using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
@@ -43,6 +44,9 @@ namespace XianXia.Core.Simulation
             Relationships = new RelationshipLedger();
             Settlements = new SettlementBoard();
             WorldRegion = new WorldRegionBoard();
+            Flags = new WorldFlagBoard();
+            Quests = new QuestBoard();
+            ContentEvents = new ContentEventBoard();
             Tick = WorldTick.Zero;
             EnabledPackageId = "base";
             EnabledPackageVersion = "0.0.1-m1";
@@ -79,6 +83,15 @@ namespace XianXia.Core.Simulation
 
         /// <summary>VS0.9 abstract world region (session-only; not in Snapshot v1).</summary>
         public WorldRegionBoard WorldRegion { get; }
+
+        /// <summary>Content Ready: session flags for quests／events (not in Snapshot v1).</summary>
+        public WorldFlagBoard Flags { get; }
+
+        /// <summary>Content Ready: quest specs＋runtime (session-only; not in Snapshot v1).</summary>
+        public QuestBoard Quests { get; }
+
+        /// <summary>Content Ready: content events (session-only; not in Snapshot v1).</summary>
+        public ContentEventBoard ContentEvents { get; }
 
         public IReadOnlyDictionary<string, ScheduleDefinition> Schedules => _schedules;
 

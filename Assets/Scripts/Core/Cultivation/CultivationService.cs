@@ -1,10 +1,12 @@
 using System;
 using XianXia.Core.Attributes;
+using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Events;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.Social;
 
 namespace XianXia.Core.Cultivation
 {
@@ -86,6 +88,12 @@ namespace XianXia.Core.Cultivation
                 return Result.Success();
 
             cultivation.Realm = RealmStage.QiRefining;
+            if (entity.TryGet<PersonalityProfileComponent>(out var profile) &&
+                entity.TryGet<AttributesComponent>(out var attributes))
+            {
+                TalentGrowthRules.ApplyBreakthroughBonuses(profile, attributes);
+            }
+
             world.Events.Publish(
                 EventType.Breakthrough,
                 world.Tick,

@@ -1,3 +1,4 @@
+using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Exploration;
 using XianXia.Core.Results;
@@ -19,6 +20,8 @@ namespace XianXia.Core.Input
         readonly RecruitService _recruit;
         readonly SettlementService _settlement;
         readonly ExplorationService _exploration;
+        readonly ContentEventService _contentEvents;
+        readonly QuestService _quests;
 
         public PlayerInputPort(
             SimulationLoop loop,
@@ -36,6 +39,8 @@ namespace XianXia.Core.Input
             _recruit = recruit ?? new RecruitService();
             _settlement = settlement ?? new SettlementService();
             _exploration = exploration ?? new ExplorationService();
+            _contentEvents = new ContentEventService();
+            _quests = new QuestService();
         }
 
         public Result Submit(PlayerCommandRequest request)
@@ -51,6 +56,9 @@ namespace XianXia.Core.Input
 
             if (request.IsExplorationIntent)
                 return SubmitExploration(request);
+
+            if (request.IsContentIntent)
+                return SubmitContent(request);
 
             if (request.Kind == PlayerCommandKind.Cultivate)
             {
@@ -74,6 +82,15 @@ namespace XianXia.Core.Input
             if (request.Kind == PlayerCommandKind.Travel)
                 return _exploration.Travel(_loop.World, request.Subject, request.TargetLocationId);
             return Result.Failure(ErrorCode.InvalidArgument, "Unsupported exploration kind.");
+        }
+
+        Result SubmitContent(PlayerCommandRequest request)
+        {
+            if (request.Kind == PlayerCommandKind.ResolveContentChoice)
+                return _contentEvents.ResolveChoice(_loop.World, request.Subject, request.ChoiceId);
+            if (request.Kind == PlayerCommandKind.StartQuest)
+                return _quests.TryStart(_loop.World, request.QuestId, request.Subject);
+            return Result.Failure(ErrorCode.InvalidArgument, "Unsupported content kind.");
         }
 
         Result SubmitSocial(PlayerCommandRequest request)

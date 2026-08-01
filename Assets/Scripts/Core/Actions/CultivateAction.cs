@@ -1,4 +1,5 @@
 using XianXia.Core.Concealment;
+using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
@@ -6,6 +7,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Orders;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.Social;
 
 namespace XianXia.Core.Actions
 {
@@ -69,7 +71,10 @@ namespace XianXia.Core.Actions
             }
 
             Clock = Clock.Consume(1);
-            cultivation.Progress += cultivation.CultivationSpeed;
+            var talentBonus = 0;
+            if (entity.TryGet<PersonalityProfileComponent>(out var profile))
+                talentBonus = TalentGrowthRules.ExtraCultivateProgress(profile);
+            cultivation.Progress += cultivation.CultivationSpeed + talentBonus;
 
             if (entity.TryGet<PersonalConcealmentRiskComponent>(out var risk))
                 risk.Add(1);

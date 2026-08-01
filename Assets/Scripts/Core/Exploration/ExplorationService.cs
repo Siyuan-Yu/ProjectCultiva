@@ -1,3 +1,4 @@
+using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Events;
 using XianXia.Core.Opportunity;
@@ -7,9 +8,12 @@ using XianXia.Core.Simulation;
 
 namespace XianXia.Core.Exploration
 {
-    /// <summary>Travel between abstract locations and explore for resources／sites.</summary>
+    /// <summary>Travel between abstract locations and explore for resources／sites／content.</summary>
     public sealed class ExplorationService
     {
+        readonly QuestService _quests = new QuestService();
+        readonly ContentEventService _contentEvents = new ContentEventService();
+
         public Result Travel(SimulationWorld world, EntityId subject, string targetLocationId)
         {
             if (world == null)
@@ -20,10 +24,18 @@ namespace XianXia.Core.Exploration
                 return Result.Failure(ErrorCode.EntityNotFound, "Subject missing.", subject.ToString());
             if (!entity.TryGet<EntityLocationComponent>(out var loc) || !loc.HasLocation)
                 return Result.Failure(ErrorCode.InvalidOperation, "Subject has no current location.");
-            if (!world.WorldRegion.TryGet(targetLocationId, out _))
+            if (!world.WorldRegion.TryGet(targetLocationId, out var target))
                 return Result.Failure(ErrorCode.NotFound, "Target location missing.", targetLocationId);
             if (!world.WorldRegion.AreAdjacent(loc.LocationId, targetLocationId))
                 return Result.Failure(ErrorCode.InvalidOperation, "Target location not adjacent.", targetLocationId);
+
+            if (!ContentConditionEvaluator.AllPass(world, subject, target.EnterConditions))
+            {
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "Location enter conditions not met.",
+                    targetLocationId);
+            }
 
             loc.LocationId = targetLocationId;
             world.Events.Publish(
@@ -31,7 +43,13 @@ namespace XianXia.Core.Exploration
                 world.Tick,
                 target: subject,
                 payload: targetLocationId);
-            return Result.Success();
+
+            OfferLocationQuests(world, subject, target);
+            var evaluated = _quests.Evaluate(world, subject);
+            if (evaluated.IsFailure)
+                return evaluated;
+            _contentEvents.TryTrigger(world, subject, "onArrive", targetLocationId);
+            return _quests.Evaluate(world, subject);
         }
 
         public Result ExploreHere(SimulationWorld world, EntityId subject)
@@ -79,13 +97,32 @@ namespace XianXia.Core.Exploration
                 }
             }
 
+            world.Flags.Set(ContentConditionEvaluator.ExploredFlag(location.Id));
+
             world.Events.Publish(
                 EventType.LocationExplored,
                 world.Tick,
                 target: subject,
                 payload: location.Id + ";found=" + (foundAnything ? "1" : "0"));
 
-            return Result.Success();
+            OfferLocationQuests(world, subject, location);
+            var evaluated = _quests.Evaluate(world, subject);
+            if (evaluated.IsFailure)
+                return evaluated;
+            _contentEvents.TryTrigger(world, subject, "onExplore", location.Id);
+            return _quests.Evaluate(world, subject);
+        }
+
+        static void OfferLocationQuests(
+            SimulationWorld world,
+            EntityId subject,
+            WorldLocationState location)
+        {
+            if (location.QuestOfferIds == null || location.QuestOfferIds.Count == 0)
+                return;
+            var quests = new QuestService();
+            for (var i = 0; i < location.QuestOfferIds.Count; i++)
+                quests.TryStart(world, location.QuestOfferIds[i], subject);
         }
     }
 }

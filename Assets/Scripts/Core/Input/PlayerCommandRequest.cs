@@ -39,6 +39,19 @@ namespace XianXia.Core.Input
             EntityId target,
             WorkRoleKind workRole,
             string targetLocationId)
+            : this(subject, kind, durationTicks, target, workRole, targetLocationId, null, null)
+        {
+        }
+
+        public PlayerCommandRequest(
+            EntityId subject,
+            PlayerCommandKind kind,
+            ulong durationTicks,
+            EntityId target,
+            WorkRoleKind workRole,
+            string targetLocationId,
+            string choiceId,
+            string questId)
         {
             Subject = subject;
             Kind = kind;
@@ -46,6 +59,8 @@ namespace XianXia.Core.Input
             Target = target;
             WorkRole = workRole;
             TargetLocationId = targetLocationId ?? string.Empty;
+            ChoiceId = choiceId ?? string.Empty;
+            QuestId = questId ?? string.Empty;
         }
 
         public EntityId Subject { get; }
@@ -61,6 +76,12 @@ namespace XianXia.Core.Input
         /// <summary>VS0.9: used when Kind == Travel.</summary>
         public string TargetLocationId { get; }
 
+        /// <summary>Content Ready: used when Kind == ResolveContentChoice.</summary>
+        public string ChoiceId { get; }
+
+        /// <summary>Content Ready: used when Kind == StartQuest.</summary>
+        public string QuestId { get; }
+
         public bool IsSocialIntent =>
             Kind == PlayerCommandKind.Help ||
             Kind == PlayerCommandKind.Slight ||
@@ -71,5 +92,9 @@ namespace XianXia.Core.Input
         public bool IsExplorationIntent =>
             Kind == PlayerCommandKind.Explore ||
             Kind == PlayerCommandKind.Travel;
+
+        public bool IsContentIntent =>
+            Kind == PlayerCommandKind.ResolveContentChoice ||
+            Kind == PlayerCommandKind.StartQuest;
     }
 }

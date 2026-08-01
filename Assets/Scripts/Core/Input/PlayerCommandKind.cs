@@ -20,6 +20,10 @@ namespace XianXia.Core.Input
         /// <summary>VS0.9: explore current abstract location.</summary>
         Explore = 9,
         /// <summary>VS0.9: travel to TargetLocationId (must be adjacent).</summary>
-        Travel = 10
+        Travel = 10,
+        /// <summary>Content Ready: resolve active content event choice (ChoiceId).</summary>
+        ResolveContentChoice = 11,
+        /// <summary>Content Ready: start quest by QuestId if offer conditions pass.</summary>
+        StartQuest = 12
     }
 }

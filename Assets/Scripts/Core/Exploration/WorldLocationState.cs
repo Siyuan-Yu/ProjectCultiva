@@ -1,5 +1,5 @@
-using System;
 using System.Collections.Generic;
+using XianXia.Core.Content;
 
 namespace XianXia.Core.Exploration
 {
@@ -16,5 +16,9 @@ namespace XianXia.Core.Exploration
         /// <summary>Presentation hint for Host top-down layout (not a gameplay rule).</summary>
         public float PresentationX { get; set; }
         public float PresentationZ { get; set; }
+        /// <summary>Must all pass before Travel into this location.</summary>
+        public List<ContentCondition> EnterConditions { get; } = new List<ContentCondition>();
+        /// <summary>Quest ids to TryStart on arrive (offer conditions still apply).</summary>
+        public List<string> QuestOfferIds { get; } = new List<string>();
     }
 }
