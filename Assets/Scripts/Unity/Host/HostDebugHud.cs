@@ -68,7 +68,7 @@ namespace XianXia.Unity.Host
             var text = _last.ToDebugText();
             const float pad = 8f;
             var width = 460f;
-            var height = 210f;
+            var height = 250f;
             var rect = new Rect(pad, Screen.height - height - pad, width, height);
             GUI.Box(rect, "PlayableHost HUD (F1)");
             GUI.Label(new Rect(rect.x + 8f, rect.y + 22f, rect.width - 16f, rect.height - 28f), text);

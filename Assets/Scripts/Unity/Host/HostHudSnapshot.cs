@@ -7,6 +7,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Labor;
 using XianXia.Core.Opportunity;
 using XianXia.Core.Schedule;
+using XianXia.Core.Settlement;
 using XianXia.Core.Social;
 
 namespace XianXia.Unity.Host
@@ -35,6 +36,8 @@ namespace XianXia.Unity.Host
         public string PersonalityLine { get; private set; } = "-";
         public string FactionLine { get; private set; } = "-";
         public string RelationLine { get; private set; } = "-";
+        public string SettlementLine { get; private set; } = "-";
+        public string WorkRoleLine { get; private set; } = "-";
 
         public static HostHudSnapshot Capture(
             PlayableHostSession session,
@@ -75,6 +78,8 @@ namespace XianXia.Unity.Host
             snap.PersonalityLine = FormatPersonality(entity);
             snap.FactionLine = FormatFaction(entity);
             snap.RelationLine = FormatRelation(session, focusId, relationPeerId);
+            snap.SettlementLine = FormatSettlement(session);
+            snap.WorkRoleLine = FormatWorkRole(entity);
             return snap;
         }
 
@@ -95,6 +100,8 @@ namespace XianXia.Unity.Host
             sb.Append("Personality: ").Append(PersonalityLine).Append('\n');
             sb.Append("Relation: ").Append(RelationLine).Append('\n');
             sb.Append("Faction: ").Append(FactionLine).Append('\n');
+            sb.Append("Settlement: ").Append(SettlementLine).Append('\n');
+            sb.Append("Work: ").Append(WorkRoleLine).Append('\n');
             sb.Append("Action: ").Append(ActionLine).Append('\n');
             sb.Append("Schedule: ").Append(ScheduleLine).Append('\n');
             sb.Append("Quota: ").Append(QuotaLine).Append('\n');
@@ -126,6 +133,22 @@ namespace XianXia.Unity.Host
             if (!entity.TryGet<FactionMembershipComponent>(out var mem) || !mem.IsAffiliated)
                 return "(none)";
             return mem.FactionId + " / " + mem.Role;
+        }
+
+        static string FormatSettlement(PlayableHostSession session)
+        {
+            if (session?.World == null || !session.World.Settlements.TryGetPrimary(out var s))
+                return "(none)";
+            var wood = s.GetStock("base:resource_rough_wood");
+            var herb = s.GetStock("base:resource_spirit_herb");
+            return s.Name + " wood=" + wood + " herb=" + herb + " fac=" + s.Facilities.Count;
+        }
+
+        static string FormatWorkRole(Entity entity)
+        {
+            if (!entity.TryGet<WorkAssignmentComponent>(out var work) || !work.IsAssigned)
+                return "(none)";
+            return work.Role + "@" + work.SettlementId;
         }
 
         static string FormatRelation(PlayableHostSession session, EntityId focusId, EntityId peerId)

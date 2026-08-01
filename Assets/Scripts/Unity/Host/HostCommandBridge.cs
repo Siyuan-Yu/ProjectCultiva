@@ -3,6 +3,7 @@ using UnityEngine;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Input;
 using XianXia.Core.Results;
+using XianXia.Core.Settlement;
 
 namespace XianXia.Unity.Host
 {
@@ -24,6 +25,9 @@ namespace XianXia.Unity.Host
         [SerializeField] KeyCode helpKey = KeyCode.Alpha5;
         [SerializeField] KeyCode slightKey = KeyCode.Alpha6;
         [SerializeField] KeyCode recruitKey = KeyCode.Alpha7;
+        [SerializeField] KeyCode assignLaborKey = KeyCode.Alpha8;
+        [SerializeField] KeyCode assignGatherKey = KeyCode.Alpha9;
+        [SerializeField] KeyCode assignCultivateKey = KeyCode.Alpha0;
 
         PlayableHostSession _session;
         string _lastStatus = "No command yet";
@@ -64,6 +68,12 @@ namespace XianXia.Unity.Host
                 IssueSocial(PlayerCommandKind.Slight);
             else if (Input.GetKeyDown(recruitKey))
                 IssueSocial(PlayerCommandKind.Recruit);
+            else if (Input.GetKeyDown(assignLaborKey))
+                IssueAssignWork(WorkRoleKind.Labor);
+            else if (Input.GetKeyDown(assignGatherKey))
+                IssueAssignWork(WorkRoleKind.Gather);
+            else if (Input.GetKeyDown(assignCultivateKey))
+                IssueAssignWork(WorkRoleKind.Cultivate);
         }
 
         void OnGUI()
@@ -90,6 +100,68 @@ namespace XianXia.Unity.Host
                 IssueSocial(PlayerCommandKind.Slight);
             if (GUI.Button(new Rect(8f + 2f * (w + 6f), y, w, h), "招募(7)"))
                 IssueSocial(PlayerCommandKind.Recruit);
+
+            y += h + 6f;
+            if (GUI.Button(new Rect(8f, y, w, h), "分工劳(8)"))
+                IssueAssignWork(WorkRoleKind.Labor);
+            if (GUI.Button(new Rect(8f + (w + 6f), y, w, h), "分工采(9)"))
+                IssueAssignWork(WorkRoleKind.Gather);
+            if (GUI.Button(new Rect(8f + 2f * (w + 6f), y, w, h), "分工修(0)"))
+                IssueAssignWork(WorkRoleKind.Cultivate);
+        }
+
+        public int IssueAssignWork(WorkRoleKind role)
+        {
+            if (selectionController == null)
+            {
+                _lastStatus = "No selection controller";
+                _lastSuccessCount = 0;
+                _lastFailureCount = 0;
+                return 0;
+            }
+
+            return IssueAssignWorkTo(selectionController.State.SelectedIds, role);
+        }
+
+        public int IssueAssignWorkTo(IReadOnlyList<EntityId> targets, WorkRoleKind role)
+        {
+            _lastSuccessCount = 0;
+            _lastFailureCount = 0;
+
+            if (_session == null || !_session.IsInitialized || _session.Port == null)
+            {
+                _lastStatus = "Session／Port not ready";
+                return 0;
+            }
+
+            if (targets == null || targets.Count == 0)
+            {
+                _lastStatus = "Empty selection";
+                return 0;
+            }
+
+            var allowed = BuildAllowedSet(_session.CharacterIds);
+            for (var i = 0; i < targets.Count; i++)
+            {
+                var id = targets[i];
+                if (id.IsNone || !allowed.Contains(id.Value))
+                {
+                    _lastFailureCount++;
+                    continue;
+                }
+
+                var result = _session.Port.Submit(
+                    new PlayerCommandRequest(id, PlayerCommandKind.AssignWork, 1, EntityId.None, role));
+                if (result.IsSuccess)
+                    _lastSuccessCount++;
+                else
+                    _lastFailureCount++;
+            }
+
+            _lastStatus = "AssignWork=" + role +
+                          " ok=" + _lastSuccessCount +
+                          " fail=" + _lastFailureCount;
+            return _lastSuccessCount;
         }
 
         /// <summary>Issue labor-style command to selected Characters only.</summary>
