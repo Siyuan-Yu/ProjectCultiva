@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:event_ch01_REPLACE_e1",
+      "type": "contentEvent",
+      "name": "Ch1·REPLACE_E1_NAME",
+      "body": "REPLACE_BODY",
+      "trigger": "onExplore",
+      "locationId": "base:loc_REPLACE_LOCATION",
+      "once": true,
+      "conditions": [
+        { "kind": "questCompleted", "id": "base:quest_ch01_REPLACE_q1" }
+      ],
+      "choices": [
+        {
+          "id": "choice_a",
+          "text": "REPLACE_CHOICE_A",
+          "outcomes": [
+            { "kind": "startQuest", "id": "base:quest_ch01_REPLACE_q2" },
+            { "kind": "setFlag", "id": "event:ch01_REPLACE_e1_resolved" },
+            { "kind": "setFlag", "id": "story:ch01_branch_a" }
+          ]
+        },
+        {
+          "id": "choice_b",
+          "text": "REPLACE_CHOICE_B",
+          "outcomes": [
+            { "kind": "startQuest", "id": "base:quest_ch01_REPLACE_q2" },
+            { "kind": "setFlag", "id": "event:ch01_REPLACE_e1_resolved" },
+            { "kind": "setFlag", "id": "story:ch01_branch_b" }
+          ]
+        }
+      ]
+    }
+  ]
+}

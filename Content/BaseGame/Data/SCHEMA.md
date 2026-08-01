@@ -20,7 +20,9 @@ Content/BaseGame/
     quests.json                # Content Ready
     content_events.json        # Content Ready
     chapters.json              # Chapter Production Framework
+    chapter1_harness_*.json    # Chapter Production Toolkit（测试壳，非剧情）
   Authoring/Csv/
+  Authoring/Templates/         # 第一章 JSON 模板（不被 Loader 扫描）
     characters.csv
     cultivation.csv
     items.csv

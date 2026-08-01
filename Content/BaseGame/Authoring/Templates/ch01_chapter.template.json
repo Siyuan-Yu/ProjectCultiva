@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:chapter_ch01_REPLACE_slug",
+      "type": "chapter",
+      "name": "第一章·REPLACE_TITLE",
+      "description": "REPLACE_SUMMARY",
+      "openingScenarioId": "base:scenario_chapter1_harness",
+      "plannedDays": 7,
+      "questChainIds": [
+        "base:quest_ch01_REPLACE_q1",
+        "base:quest_ch01_REPLACE_q2"
+      ],
+      "eventChainIds": [
+        "base:event_ch01_REPLACE_e1"
+      ],
+      "dayBeats": [
+        {
+          "dayIndex": 0,
+          "setFlags": ["story:ch01_day0_started"],
+          "questOfferIds": ["base:quest_ch01_REPLACE_q1"]
+        },
+        {
+          "dayIndex": 1,
+          "setFlags": ["story:ch01_day1"]
+        },
+        {
+          "dayIndex": 3,
+          "conditions": [
+            { "kind": "storyFlag", "id": "quest:ch01_REPLACE_q1_done" }
+          ],
+          "contentEventIds": [],
+          "setFlags": ["story:ch01_mid_unlocked"]
+        }
+      ]
+    }
+  ]
+}

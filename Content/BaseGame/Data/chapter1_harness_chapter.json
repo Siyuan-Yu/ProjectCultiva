@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:chapter_ch01_shell",
+      "type": "chapter",
+      "name": "第一章生产壳（Harness）",
+      "description": "第一章内容生产测试壳：任务链／事件链／日 beat／Story Flag。不含剧情正文。",
+      "openingScenarioId": "base:scenario_chapter1_harness",
+      "plannedDays": 3,
+      "questChainIds": [
+        "base:quest_ch01_harness_arrive",
+        "base:quest_ch01_harness_follow"
+      ],
+      "eventChainIds": [
+        "base:event_ch01_harness_ping"
+      ],
+      "dayBeats": [
+        {
+          "dayIndex": 0,
+          "setFlags": ["story:ch01_harness_started"],
+          "questOfferIds": ["base:quest_ch01_harness_arrive"]
+        },
+        {
+          "dayIndex": 1,
+          "setFlags": ["story:ch01_harness_day1"]
+        },
+        {
+          "dayIndex": 2,
+          "conditions": [
+            { "kind": "storyFlag", "id": "story:ch01_harness_chain_ok" }
+          ],
+          "setFlags": ["story:ch01_harness_ready"]
+        }
+      ]
+    }
+  ]
+}

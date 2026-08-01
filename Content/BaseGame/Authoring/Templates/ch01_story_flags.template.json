@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "note": "文档清单，非 Content 定义类型。列出本章计划写入／读取的 Story Flag。",
+  "chapterId": "base:chapter_ch01_REPLACE_slug",
+  "flags": [
+    {
+      "id": "story:ch01_day0_started",
+      "producedBy": "dayBeat[0].setFlags",
+      "consumedBy": []
+    },
+    {
+      "id": "quest:ch01_REPLACE_q1_done",
+      "producedBy": "quest_ch01_REPLACE_q1.rewards",
+      "consumedBy": ["quest_ch01_REPLACE_q2.offer", "dayBeat conditions"]
+    },
+    {
+      "id": "event:ch01_REPLACE_e1_resolved",
+      "producedBy": "event_ch01_REPLACE_e1.choices",
+      "consumedBy": ["quest_ch01_REPLACE_q2.complete"]
+    },
+    {
+      "id": "story:ch01_branch_a",
+      "producedBy": "event choice_a",
+      "consumedBy": ["后续地点／任务条件"]
+    },
+    {
+      "id": "story:ch01_branch_b",
+      "producedBy": "event choice_b",
+      "consumedBy": ["后续地点／任务条件"]
+    }
+  ]
+}

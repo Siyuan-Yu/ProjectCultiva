@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:quest_ch01_harness_arrive",
+      "type": "quest",
+      "name": "Ch1 Harness·抵达村口",
+      "description": "测试用：探索村口一次（非第一章剧情）。",
+      "autoOffer": false,
+      "offerConditions": [],
+      "completeConditions": [
+        { "kind": "exploredLocation", "id": "base:loc_village_edge" }
+      ],
+      "rewards": [
+        { "kind": "setFlag", "id": "quest:ch01_harness_arrive_done" }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_ch01_harness_follow",
+      "type": "quest",
+      "name": "Ch1 Harness·跟进异响",
+      "description": "测试用：由 harness 事件接取并完成。",
+      "autoOffer": false,
+      "offerConditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_harness_arrive_done" }
+      ],
+      "completeConditions": [
+        { "kind": "storyFlag", "id": "event:ch01_harness_resolved" }
+      ],
+      "rewards": [
+        { "kind": "setFlag", "id": "story:ch01_harness_chain_ok" }
+      ],
+      "failConditions": [],
+      "failResults": []
+    }
+  ]
+}

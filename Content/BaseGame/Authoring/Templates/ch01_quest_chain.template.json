@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:quest_ch01_REPLACE_q1",
+      "type": "quest",
+      "name": "Ch1·REPLACE_Q1_NAME",
+      "description": "REPLACE_Q1_DESC",
+      "autoOffer": false,
+      "offerConditions": [],
+      "completeConditions": [
+        { "kind": "exploredLocation", "id": "base:loc_REPLACE_LOCATION" }
+      ],
+      "rewards": [
+        { "kind": "setFlag", "id": "quest:ch01_REPLACE_q1_done" }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_ch01_REPLACE_q2",
+      "type": "quest",
+      "name": "Ch1·REPLACE_Q2_NAME",
+      "description": "REPLACE_Q2_DESC",
+      "autoOffer": false,
+      "offerConditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_REPLACE_q1_done" }
+      ],
+      "completeConditions": [
+        { "kind": "storyFlag", "id": "event:ch01_REPLACE_e1_resolved" }
+      ],
+      "rewards": [
+        { "kind": "setFlag", "id": "quest:ch01_REPLACE_q2_done" }
+      ],
+      "failConditions": [],
+      "failResults": []
+    }
+  ]
+}
