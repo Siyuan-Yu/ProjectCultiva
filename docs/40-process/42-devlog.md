@@ -7,6 +7,19 @@
 
 ---
 
+## 2026-08-01 — VS0.2 Phase A：PlayerInput → Order → Labor
+
+**批准：** `56` 已审；RTS／Schedule 语义／报告 B 范围冻结。
+
+**做了什么**
+- `IPlayerInputPort`／`PlayerInputPort`／`PlayerOrderFactory`／`PlayerCommandRequest`
+- `LaborAction`／`RestAction`／`DailyTaskComponent`；`OrderType.Labor|Rest`
+- EditMode：`PlayerInputPhaseATests`；全量 **78/78**
+- Commit：`548a095` `feat(core): vs0.2 phase a player input bridge`
+- **未做：** Schedule、Override、Observe Action、Exposure、UI
+
+**下一步：** 等确认后 Phase B（ScheduleDefinition／Driver）。
+
 ## 2026-08-01 — VS0.2 开工前确认报告（不编码）
 
 新增 [`56`](56-vertical-slice-0.2-pre-dev-confirmation.md)：RTS 控制冻结；目标改为 PlayerOrder+Schedule+Override+规则惩罚；第一阶段仅 Port／Factory／Schedule／Labor·Rest·Observe／最小 Override；Exposure／OpportunitySite 后置；列出 ADR D1–D6。等确认。
