@@ -7,6 +7,26 @@
 
 ---
 
+## 2026-08-01 — VS0.6 Phase E：Playable Social Host 验收
+
+**做了什么**
+- SocialHostAcceptancePhaseETests 闭环
+- 验收报告 [65](65-vertical-slice-0.6-acceptance-report.md)
+- EditMode 157 全绿；Snapshot 未升版
+
+**下一步：** 停止编码；待产品定 Snapshot 入档或下一切片。
+
+## 2026-08-01 — VS0.6 Phase B～D：社会 HUD／命令／事件
+
+**做了什么**
+- HUD：Personality／Relation／Faction／FocusKind
+- Port：Help／Slight／Recruit → 既有 Social／RecruitService（非 Order）
+- Bridge：键 5／6／7；Actor＝首个 Character，Target＝首个非 Actor
+- EventFeed 优先 RelationshipChanged／FactionMembershipChanged
+- **未**升 Snapshot schema
+
+**下一步：** V6-E 整合验收报告。
+
 ## 2026-08-01 — VS0.6 Phase A：Recruitable NPC 表现
 
 **做了什么**

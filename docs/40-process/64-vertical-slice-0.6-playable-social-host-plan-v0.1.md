@@ -1,6 +1,6 @@
 # Vertical Slice 0.6 Plan v0.1 — Playable Social Host
 
-> 状态：**执行中**｜最后更新：2026-08-01  
+> 状态：**已验收（见 [65](65-vertical-slice-0.6-acceptance-report.md)）**｜最后更新：2026-08-01  
 > 前置：VS0.5 已验收（[63](63-vertical-slice-0.5-alpha-acceptance.md)）；Alpha Readiness Audit  
 > **不改 Freeze；不升 Snapshot schema；不新增 Core 社会规则。**
 
