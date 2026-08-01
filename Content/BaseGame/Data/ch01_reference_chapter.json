@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:chapter_ch01_reference",
+      "type": "chapter",
+      "name": "第一章参考关",
+      "description": "未来章节制作标准模板关卡（非最终剧情）。",
+      "openingScenarioId": "base:scenario_ch01_reference",
+      "plannedDays": 5,
+      "questChainIds": [
+        "base:quest_ch01_ref_inspect_yard",
+        "base:quest_ch01_ref_visit_cave"
+      ],
+      "eventChainIds": [
+        "base:event_ch01_ref_spring_whisper",
+        "base:event_ch01_ref_supervisor_pressure"
+      ],
+      "dayBeats": [
+        {
+          "dayIndex": 0,
+          "setFlags": ["story:ch01_ref_started"],
+          "questOfferIds": ["base:quest_ch01_ref_inspect_yard"]
+        },
+        {
+          "dayIndex": 1,
+          "setFlags": ["story:ch01_ref_day1"]
+        },
+        {
+          "dayIndex": 2,
+          "conditions": [
+            { "kind": "storyFlag", "id": "quest:ch01_ref_cave_done" }
+          ],
+          "setFlags": ["story:ch01_ref_mid_cleared"]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:quest_ch01_ref_inspect_yard",
+      "type": "quest",
+      "name": "参考·巡视杂役区",
+      "description": "参考关任务：探索杂役区一次。",
+      "autoOffer": false,
+      "offerConditions": [],
+      "completeConditions": [
+        { "kind": "exploredLocation", "id": "base:loc_ref_labor_yard" }
+      ],
+      "rewards": [
+        { "kind": "setFlag", "id": "quest:ch01_ref_yard_done" }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_ch01_ref_visit_cave",
+      "type": "quest",
+      "name": "参考·探访废弃洞府",
+      "description": "参考关任务链第二环：探索废弃洞府。",
+      "autoOffer": false,
+      "offerConditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_ref_yard_done" }
+      ],
+      "completeConditions": [
+        { "kind": "exploredLocation", "id": "base:loc_ref_cave" }
+      ],
+      "rewards": [
+        { "kind": "setFlag", "id": "quest:ch01_ref_cave_done" },
+        { "kind": "grantProgress", "amount": 10 }
+      ],
+      "failConditions": [],
+      "failResults": []
+    }
+  ]
+}

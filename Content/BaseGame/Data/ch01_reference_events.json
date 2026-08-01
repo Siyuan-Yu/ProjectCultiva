@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:event_ch01_ref_spring_whisper",
+      "type": "contentEvent",
+      "name": "参考·灵泉异响",
+      "body": "参考事件：灵泉边传来细响（非最终第一章文案）。",
+      "trigger": "onExplore",
+      "locationId": "base:loc_ref_spring",
+      "once": true,
+      "conditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_ref_yard_done" }
+      ],
+      "choices": [
+        {
+          "id": "listen",
+          "text": "静听片刻",
+          "outcomes": [
+            { "kind": "setFlag", "id": "event:ch01_ref_spring_resolved" },
+            { "kind": "startQuest", "id": "base:quest_ch01_ref_visit_cave" }
+          ]
+        },
+        {
+          "id": "leave",
+          "text": "先行离开",
+          "outcomes": [
+            { "kind": "setFlag", "id": "event:ch01_ref_spring_resolved" },
+            { "kind": "setFlag", "id": "story:ch01_ref_branch_leave" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_ch01_ref_supervisor_pressure",
+      "type": "contentEvent",
+      "name": "参考·主管施压",
+      "body": "参考：主管巡查后对未完配额者施压。",
+      "trigger": "manual",
+      "once": false,
+      "conditions": [
+        { "kind": "storyFlag", "id": "story:supervisor_pressure" }
+      ],
+      "choices": [
+        {
+          "id": "endure",
+          "text": "低头应承",
+          "outcomes": [
+            { "kind": "setFlag", "id": "event:ch01_ref_pressure_endured" }
+          ]
+        }
+      ]
+    }
+  ]
+}

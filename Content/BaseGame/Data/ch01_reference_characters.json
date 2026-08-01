@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:character_ch01_ref_supervisor",
+      "type": "character",
+      "name": "杂役主管",
+      "baseAttributes": { "MaxHp": 140, "Attack": 14, "Defense": 10, "Speed": 9 },
+      "personalityTags": ["personality_bold"],
+      "backgroundTags": ["background_labor_camp"],
+      "talentTags": ["talent_enduring"],
+      "tags": ["supervisor", "npc"]
+    },
+    {
+      "id": "base:character_ch01_ref_mortal_a",
+      "type": "character",
+      "name": "杂役甲",
+      "baseAttributes": { "MaxHp": 90, "Attack": 8, "Defense": 4, "Speed": 7 },
+      "personalityTags": ["personality_steady"],
+      "backgroundTags": ["background_labor_camp"],
+      "talentTags": [],
+      "tags": ["mortal", "npc"]
+    },
+    {
+      "id": "base:character_ch01_ref_mortal_b",
+      "type": "character",
+      "name": "药田杂役",
+      "baseAttributes": { "MaxHp": 95, "Attack": 8, "Defense": 5, "Speed": 8 },
+      "personalityTags": ["personality_cautious"],
+      "backgroundTags": ["background_labor_camp"],
+      "talentTags": ["talent_herb_sense"],
+      "tags": ["mortal", "npc"]
+    },
+    {
+      "id": "base:character_ch01_ref_cultivator_a",
+      "type": "character",
+      "name": "外门修士",
+      "baseAttributes": { "MaxHp": 115, "Attack": 12, "Defense": 7, "Speed": 10 },
+      "personalityTags": ["personality_curious"],
+      "backgroundTags": ["background_orphan"],
+      "talentTags": ["talent_metal_root"],
+      "tags": ["cultivator", "npc"],
+      "spiritRootPlaceholder": "金灵根",
+      "initialRealmPlaceholder": "凡人"
+    },
+    {
+      "id": "base:character_ch01_ref_cultivator_b",
+      "type": "character",
+      "name": "巡山修士",
+      "baseAttributes": { "MaxHp": 110, "Attack": 11, "Defense": 6, "Speed": 11 },
+      "personalityTags": ["personality_bold"],
+      "backgroundTags": ["background_orphan"],
+      "talentTags": ["talent_fire_root"],
+      "tags": ["cultivator", "npc"]
+    }
+  ]
+}
