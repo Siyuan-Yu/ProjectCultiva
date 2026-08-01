@@ -11,14 +11,13 @@
 
 要点：聊天不是真源；重要决定必须进入 Architecture／System Design／ADR／Devlog／Glossary；跨角色冲突时已冻结架构优先。
 
-## 当前阶段：Vertical Slice 0.2 规划中（不编码）
+## 当前阶段：Vertical Slice 0.2 编码（Phase A 完成，等确认进 B）
 
 - 主契约：`docs/30-tech/33-architecture-core-rules-freeze-v0.2.md`（**禁止改 Freeze 正文**）
-- VS 0.1：**已验收**（`docs/40-process/54-vertical-slice-0.1-acceptance-report.md`）
-- Data Pipeline M1：**已完成**（`53` v0.2；M1-A／M1-B）
-- Cultivation Slice 0.1：**已完成**（凡人→炼气）
-- 当前计划：`docs/40-process/55-vertical-slice-0.2-plan-v0.1.md` — **确认前不编码**
-- Demo／ProjectSettings／Packages 禁擅改；无战斗／完整 NPC AI／地图
+- 确认真源：`docs/40-process/56-vertical-slice-0.2-pre-dev-confirmation.md`（**已批准**）
+- 冻结：RTS PlayerOrder；Schedule=NPC 默认行为可 Override；无 Exposure／地图／战斗／UI
+- 纪律：每 Phase 测试 + commit + **等确认** 再进下一 Phase
+- Demo／ProjectSettings／Packages 禁擅改
 
 ## 开工前必读
 

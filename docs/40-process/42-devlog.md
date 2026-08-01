@@ -7,6 +7,14 @@
 
 ---
 
+## 2026-08-01 — VS0.2 开工前确认报告（不编码）
+
+新增 [`56`](56-vertical-slice-0.2-pre-dev-confirmation.md)：RTS 控制冻结；目标改为 PlayerOrder+Schedule+Override+规则惩罚；第一阶段仅 Port／Factory／Schedule／Labor·Rest·Observe／最小 Override；Exposure／OpportunitySite 后置；列出 ADR D1–D6。等确认。
+
+## 2026-08-01 — VS0.2 计划范围收紧修订（不编码）
+
+按补充要求重写 [`55`](55-vertical-slice-0.2-plan-v0.1.md)：明确≠第一章；六条核心体验；PlayerInput→Order→Action；Schedule=计划非 AI；Override 三维代价；偷修仅 CultivationAttempt 接口；ExposureRisk 0–100 进入；延期表与风险点；阶段 V2-A～H。
+
 ## 2026-08-01 — 文档同步（VS 0.1 完成链）
 
 将已完成的 Data Pipeline M1／Bootstrap／Cultivation／验收状态写回过程文档：`53` 完成标准勾选与命名落地说明、`AGENTS`／通读指南／`34` 组件实现注记；入库未跟踪的 `55` VS0.2 计划草案；补本条之前缺失的专条（见下）。**不编码。**

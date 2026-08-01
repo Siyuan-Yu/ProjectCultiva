@@ -21,6 +21,8 @@ namespace XianXia.Core.Simulation
 
         public void RestoreNextOrderId(ulong next) => _nextOrderId = next == 0 ? 1UL : next;
 
+        public OrderId AllocateOrderId() => new OrderId(_nextOrderId++);
+
         public Result EnqueueOrder(Order order)
         {
             if (order == null)

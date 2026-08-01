@@ -143,7 +143,10 @@ namespace XianXia.Data.Serialization
                     ["breakthroughProgressRequired"] = JsonValue.FromNumber(e.BreakthroughProgressRequired),
                     ["cultivationSpeed"] = JsonValue.FromNumber(e.CultivationSpeed),
                     ["learnedManualId"] = JsonValue.FromString(e.LearnedManualId ?? string.Empty),
-                    ["requiredRealmName"] = JsonValue.FromString(e.RequiredRealmName ?? string.Empty)
+                    ["requiredRealmName"] = JsonValue.FromString(e.RequiredRealmName ?? string.Empty),
+                    ["hasDailyTask"] = JsonValue.FromBool(e.HasDailyTask),
+                    ["laborProgress"] = JsonValue.FromNumber(e.LaborProgress),
+                    ["laborQuota"] = JsonValue.FromNumber(e.LaborQuota)
                 }));
             }
             return list;
@@ -204,7 +207,10 @@ namespace XianXia.Data.Serialization
                 BreakthroughProgressRequired = (int)e.GetNumber("breakthroughProgressRequired"),
                 CultivationSpeed = (int)e.GetNumber("cultivationSpeed"),
                 LearnedManualId = e.GetString("learnedManualId", string.Empty),
-                RequiredRealmName = e.GetString("requiredRealmName", string.Empty)
+                RequiredRealmName = e.GetString("requiredRealmName", string.Empty),
+                HasDailyTask = e.TryGetProperty("hasDailyTask", out var hdt) && hdt.Kind == JsonValueKind.Boolean && hdt.Bool,
+                LaborProgress = (int)e.GetNumber("laborProgress"),
+                LaborQuota = (int)e.GetNumber("laborQuota")
             };
 
             if (e.TryGetProperty("bases", out var bases) && bases.Kind == JsonValueKind.Array)

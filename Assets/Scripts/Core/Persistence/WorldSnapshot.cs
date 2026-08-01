@@ -47,6 +47,9 @@ namespace XianXia.Core.Persistence
         public int CultivationSpeed { get; set; }
         public string LearnedManualId { get; set; }
         public string RequiredRealmName { get; set; }
+        public bool HasDailyTask { get; set; }
+        public int LaborProgress { get; set; }
+        public int LaborQuota { get; set; }
     }
 
     public sealed class AttrBaseDto

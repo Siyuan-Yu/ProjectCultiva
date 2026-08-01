@@ -8,6 +8,7 @@ using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
+using XianXia.Core.Labor;
 using XianXia.Core.Orders;
 using XianXia.Core.Random;
 using XianXia.Core.Results;
@@ -106,6 +107,13 @@ namespace XianXia.Core.Persistence
                     dto.RequiredRealmName = cultivation.RequiredRealmName ?? string.Empty;
                 }
 
+                if (entity.TryGet<DailyTaskComponent>(out var daily))
+                {
+                    dto.HasDailyTask = true;
+                    dto.LaborProgress = daily.LaborProgress;
+                    dto.LaborQuota = daily.LaborQuota;
+                }
+
                 snap.Entities.Add(dto);
             }
 
@@ -115,6 +123,8 @@ namespace XianXia.Core.Persistence
                 string kind;
                 if (action is WaitAction) kind = "Wait";
                 else if (action is CultivateAction) kind = "Cultivate";
+                else if (action is LaborAction) kind = "Labor";
+                else if (action is RestAction) kind = "Rest";
                 else kind = "ApplyModifier";
 
                 snap.ActiveActions.Add(new ActiveActionSnapshotDto
@@ -234,6 +244,19 @@ namespace XianXia.Core.Persistence
                     entity.AddComponent(new CultivationComponent());
                 }
 
+                if (e.HasDailyTask)
+                {
+                    entity.AddComponent(new DailyTaskComponent
+                    {
+                        LaborProgress = e.LaborProgress,
+                        LaborQuota = e.LaborQuota > 0 ? e.LaborQuota : 10
+                    });
+                }
+                else
+                {
+                    entity.AddComponent(new DailyTaskComponent());
+                }
+
                 // Inject into store via reflection-free path: recreate through internal add
                 InjectEntity(world.Entities, entity);
             }
@@ -259,6 +282,26 @@ namespace XianXia.Core.Persistence
                         a.TotalTicks);
                     cultivate.Restore((ActionStatus)a.Status, new ActionClock(a.TotalTicks, a.RemainingTicks));
                     world.ActiveActions[cultivate.Id] = cultivate;
+                }
+                else if (a.Kind == "Labor")
+                {
+                    var labor = new LaborAction(
+                        new ActionId(a.Id),
+                        new EntityId(a.SubjectId),
+                        new OrderId(a.SourceOrderId),
+                        a.TotalTicks);
+                    labor.Restore((ActionStatus)a.Status, new ActionClock(a.TotalTicks, a.RemainingTicks));
+                    world.ActiveActions[labor.Id] = labor;
+                }
+                else if (a.Kind == "Rest")
+                {
+                    var rest = new RestAction(
+                        new ActionId(a.Id),
+                        new EntityId(a.SubjectId),
+                        new OrderId(a.SourceOrderId),
+                        a.TotalTicks);
+                    rest.Restore((ActionStatus)a.Status, new ActionClock(a.TotalTicks, a.RemainingTicks));
+                    world.ActiveActions[rest.Id] = rest;
                 }
             }
 

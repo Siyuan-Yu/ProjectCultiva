@@ -1,7 +1,7 @@
-using System;
 using System.Collections.Generic;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Labor;
 using XianXia.Core.Results;
 
 namespace XianXia.Core.Entities
@@ -28,6 +28,7 @@ namespace XianXia.Core.Entities
             entity.AddComponent(new LifecycleComponent(LifecycleState.Alive));
             entity.AddComponent(new ActionStateComponent());
             entity.AddComponent(new CultivationComponent());
+            entity.AddComponent(new DailyTaskComponent());
             _entities.Add(entity.Id, entity);
             return Result.Ok(entity);
         }
