@@ -17,6 +17,12 @@ namespace XianXia.Core.Social
         public const int CautiousRestDurationBonus = 1;
         public const int CuriousLaborDurationBonus = 1;
 
+        // V5-F: abstract social drift. Not Freeze.
+        public const int SocialTickIntervalTicks = 16;
+        public const int SocialTickInteractChancePercent = 50;
+        public const int SocialTickBoldHelpChancePercent = 30;
+        public const int SocialTickCautiousHelpChancePercent = 70;
+
         public const string OpeningFactionId = "base:sect_huangcun_labor";
         public const string ReasonOpeningCompanion = "opening_companion";
         public const string ReasonHelp = "help";

@@ -8,6 +8,7 @@ using XianXia.Core.Labor;
 using XianXia.Core.Orders;
 using XianXia.Core.Results;
 using XianXia.Core.Schedule;
+using XianXia.Core.Social;
 
 namespace XianXia.Core.Simulation
 {
@@ -17,16 +18,22 @@ namespace XianXia.Core.Simulation
 
         readonly SimulationWorld _world;
         readonly ScheduleDriver _scheduleDriver;
+        readonly SocialTickDriver _socialTickDriver;
+        readonly bool _socialTickEnabled;
         readonly List<IDayBoundaryHandler> _dayBoundaryHandlers;
         ulong _nextOrderId = 1;
 
         public SimulationLoop(
             SimulationWorld world,
             ScheduleDriver scheduleDriver = null,
-            IEnumerable<IDayBoundaryHandler> dayBoundaryHandlers = null)
+            IEnumerable<IDayBoundaryHandler> dayBoundaryHandlers = null,
+            SocialTickDriver socialTickDriver = null,
+            bool enableSocialTick = false)
         {
             _world = world;
             _scheduleDriver = scheduleDriver ?? new ScheduleDriver();
+            _socialTickDriver = socialTickDriver ?? new SocialTickDriver();
+            _socialTickEnabled = enableSocialTick;
             if (dayBoundaryHandlers != null)
             {
                 _dayBoundaryHandlers = new List<IDayBoundaryHandler>(dayBoundaryHandlers);
@@ -117,6 +124,8 @@ namespace XianXia.Core.Simulation
             }
 
             _scheduleDriver.Drive(_world, this);
+            if (_socialTickEnabled)
+                _socialTickDriver.Tick(_world);
             return Result.Success();
         }
 

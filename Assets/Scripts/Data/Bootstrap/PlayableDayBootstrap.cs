@@ -131,7 +131,8 @@ namespace XianXia.Data.Bootstrap
             }
 
             // SimulationLoop defaults include QuotaConsequenceHandler on DayEnded.
-            var loop = new SimulationLoop(world);
+            // VS0.5-F: enable abstract social drift for the playable-day Alpha loop.
+            var loop = new SimulationLoop(world, enableSocialTick: true);
             IPlayerInputPort port = new PlayerInputPort(loop);
 
             return Result.Ok(new PlayableDayBootstrapResult(

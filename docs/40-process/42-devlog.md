@@ -7,6 +7,16 @@
 
 ---
 
+## 2026-08-01 — VS0.5 Phase F：社会 Tick
+
+**做了什么**
+- `SocialTickDriver`：每 N tick 对 Character／Npc 抽一对，低频 Help／Slight → Ledger（人格加权）
+- `SimulationLoop` 可选启用（默认关）；`PlayableDayBootstrap` 开启漂移
+- 固定 seed 可复现；**未**改 Snapshot／无地图邻近
+- EditMode 150 全绿
+
+**下一步：** V5-G Alpha 整合验收。
+
 ## 2026-08-01 — VS0.5 Phase E：人格日程偏置
 
 **做了什么**
