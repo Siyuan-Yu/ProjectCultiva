@@ -10,6 +10,7 @@ using XianXia.Core.Random;
 using XianXia.Core.Results;
 using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
+using XianXia.Core.Social;
 using XianXia.Data.Content;
 using XianXia.Data.Cultivation;
 using XianXia.Data.Opportunity;
@@ -85,6 +86,10 @@ namespace XianXia.Data.Bootstrap
 
                 EnsurePlayableComponents(entity, schedule.Id, options.DailyRequiredAmount);
             }
+
+            var seeded = OpeningRelationsSeeder.SeedCompanions(world, started.Value.CharacterIds);
+            if (seeded.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(seeded.Error);
 
             if (options.ObservationDiscoverChancePercent.HasValue)
             {

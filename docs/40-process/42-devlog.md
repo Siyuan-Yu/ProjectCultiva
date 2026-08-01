@@ -17,6 +17,15 @@
 
 **下一步：** V5-C 开局关系种子 + Help／Slight。
 
+## 2026-08-01 — VS0.5 Phase C：开局关系
+
+**做了什么**
+- `OpeningRelationsSeeder`：三人互惠 `opening_companion` 分
+- `SocialInteractionService`：Help／Slight → RelationshipService
+- `PlayableDayBootstrap` 启动时播种；EditMode 覆盖种子／互动／可玩日
+
+**下一步：** V5-D 薄招募／FactionMembership。
+
 ## 2026-08-01 — 文档现状总表＋飞书同步
 
 **做了什么**
