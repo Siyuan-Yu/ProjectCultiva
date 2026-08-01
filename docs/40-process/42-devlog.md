@@ -39,6 +39,15 @@
 
 **下一步：** V4-G Snapshot 存读 UI。
 
+## 2026-08-01 — VS0.4 Phase G：Snapshot UI
+
+**做了什么**
+- `PlayableHostSession.CaptureSnapshotJson`／`RestoreSnapshotJson`（既有 SnapshotService，不改 schema）
+- `HostSnapshotPanel`：F5／F9＋按钮；Load 后 `RebuildPresentationAfterLoad`
+- EditMode：存读后 Tick／Quota／KnownSites／Views 一致
+
+**下一步：** V4-H 一日可玩验收。
+
 ## 2026-08-01 — VS0.4 Phase C：RTS Selection
 
 **做了什么**

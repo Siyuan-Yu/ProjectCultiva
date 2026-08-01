@@ -25,6 +25,7 @@ namespace XianXia.Unity.EditorTools
             hostGo.AddComponent<HostCommandBridge>();
             hostGo.AddComponent<HostDebugHud>();
             hostGo.AddComponent<HostEventFeed>();
+            hostGo.AddComponent<HostSnapshotPanel>();
 
             var cam = Object.FindObjectOfType<Camera>();
             if (cam != null)

@@ -26,6 +26,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostCommandBridge commandBridge;
         [SerializeField] HostDebugHud debugHud;
         [SerializeField] HostEventFeed eventFeed;
+        [SerializeField] HostSnapshotPanel snapshotPanel;
 
         [Header("Tick debug")]
         [SerializeField] bool initializeOnPlay = true;
@@ -55,6 +56,8 @@ namespace XianXia.Unity.Host
 
         public HostEventFeed EventFeed => eventFeed;
 
+        public HostSnapshotPanel SnapshotPanel => snapshotPanel;
+
         public string StatusLine => _status;
 
         public string ResolvedContentPath => _resolvedContentPath;
@@ -75,6 +78,8 @@ namespace XianXia.Unity.Host
                 debugHud = GetComponent<HostDebugHud>() ?? GetComponentInChildren<HostDebugHud>();
             if (eventFeed == null)
                 eventFeed = GetComponent<HostEventFeed>() ?? GetComponentInChildren<HostEventFeed>();
+            if (snapshotPanel == null)
+                snapshotPanel = GetComponent<HostSnapshotPanel>() ?? GetComponentInChildren<HostSnapshotPanel>();
         }
 
         void Start()
@@ -136,6 +141,8 @@ namespace XianXia.Unity.Host
                 debugHud = GetComponent<HostDebugHud>() ?? gameObject.AddComponent<HostDebugHud>();
             if (eventFeed == null)
                 eventFeed = GetComponent<HostEventFeed>() ?? gameObject.AddComponent<HostEventFeed>();
+            if (snapshotPanel == null)
+                snapshotPanel = GetComponent<HostSnapshotPanel>() ?? gameObject.AddComponent<HostSnapshotPanel>();
 
             selectionController.ClearSelection();
             entityViewSpawner.Clear();
@@ -172,6 +179,7 @@ namespace XianXia.Unity.Host
             selectionController.Bind(entityViewSpawner, cam);
             commandBridge.Bind(_session, selectionController);
             debugHud.Bind(this, selectionController);
+            snapshotPanel.Bind(this);
             // Bootstrap already published WorldInitialized／EntityCreated — capture once.
             eventFeed.PullFrom(_session.World.Events);
             FrameCameraOnSlots();
@@ -185,6 +193,39 @@ namespace XianXia.Unity.Host
                 " Content=" + _resolvedContentPath,
                 this);
             return true;
+        }
+
+        /// <summary>After Snapshot restore: rebuild views and rebind Host adapters.</summary>
+        public void RebuildPresentationAfterLoad()
+        {
+            if (!_session.IsInitialized)
+                return;
+
+            if (entityViewSpawner == null)
+                entityViewSpawner = GetComponent<EntityViewSpawner>() ?? gameObject.AddComponent<EntityViewSpawner>();
+            if (selectionController == null)
+                selectionController = GetComponent<HostSelectionController>() ??
+                                     gameObject.AddComponent<HostSelectionController>();
+            if (commandBridge == null)
+                commandBridge = GetComponent<HostCommandBridge>() ??
+                               gameObject.AddComponent<HostCommandBridge>();
+            if (debugHud == null)
+                debugHud = GetComponent<HostDebugHud>() ?? gameObject.AddComponent<HostDebugHud>();
+            if (eventFeed == null)
+                eventFeed = GetComponent<HostEventFeed>() ?? gameObject.AddComponent<HostEventFeed>();
+
+            selectionController.ClearSelection();
+            entityViewSpawner.Clear();
+            entityViewSpawner.Rebuild(_session);
+            var cam = Camera.main != null ? Camera.main : Object.FindObjectOfType<Camera>();
+            selectionController.Bind(entityViewSpawner, cam);
+            commandBridge.Bind(_session, selectionController);
+            debugHud.Bind(this, selectionController);
+            eventFeed.Clear();
+            eventFeed.PullFrom(_session.World.Events);
+            FrameCameraOnSlots();
+            _autoTickAccumulator = 0f;
+            RefreshStatus();
         }
 
         void FrameCameraOnSlots()
