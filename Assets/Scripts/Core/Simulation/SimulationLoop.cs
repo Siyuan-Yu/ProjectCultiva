@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using XianXia.Core.Actions;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
 using XianXia.Core.Events;
 using XianXia.Core.Labor;
@@ -15,12 +17,26 @@ namespace XianXia.Core.Simulation
 
         readonly SimulationWorld _world;
         readonly ScheduleDriver _scheduleDriver;
+        readonly List<IDayBoundaryHandler> _dayBoundaryHandlers;
         ulong _nextOrderId = 1;
 
-        public SimulationLoop(SimulationWorld world, ScheduleDriver scheduleDriver = null)
+        public SimulationLoop(
+            SimulationWorld world,
+            ScheduleDriver scheduleDriver = null,
+            IEnumerable<IDayBoundaryHandler> dayBoundaryHandlers = null)
         {
             _world = world;
             _scheduleDriver = scheduleDriver ?? new ScheduleDriver();
+            _dayBoundaryHandlers = dayBoundaryHandlers != null
+                ? new List<IDayBoundaryHandler>(dayBoundaryHandlers)
+                : new List<IDayBoundaryHandler>();
+        }
+
+        /// <summary>Register a Phase D (or later) day-boundary consumer. Phase A ships with none.</summary>
+        public void AddDayBoundaryHandler(IDayBoundaryHandler handler)
+        {
+            if (handler != null)
+                _dayBoundaryHandlers.Add(handler);
         }
 
         public ulong PeekNextOrderId => _nextOrderId;
@@ -56,7 +72,9 @@ namespace XianXia.Core.Simulation
 
         public Result TickOnce()
         {
+            var previous = _world.Tick;
             _world.Tick = _world.Tick.Add(1);
+            ProcessDayBoundary(previous, _world.Tick);
             _scheduleDriver.Drive(_world, this);
 
             var actionIds = new System.Collections.Generic.List<ActionId>(_world.ActiveActions.Keys);
@@ -90,6 +108,34 @@ namespace XianXia.Core.Simulation
 
             _scheduleDriver.Drive(_world, this);
             return Result.Success();
+        }
+
+        void ProcessDayBoundary(WorldTick previous, WorldTick current)
+        {
+            var before = DayClock.FromWorldTick(previous);
+            var after = DayClock.FromWorldTick(current);
+            if (after.DayIndex <= before.DayIndex)
+                return;
+
+            for (var ended = before.DayIndex; ended < after.DayIndex; ended++)
+            {
+                var started = ended + 1UL;
+                _world.Events.Publish(
+                    EventType.DayEnded,
+                    current,
+                    payload: "dayIndex=" + ended);
+
+                for (var i = 0; i < _dayBoundaryHandlers.Count; i++)
+                    _dayBoundaryHandlers[i].OnDayEnded(_world, ended);
+
+                _world.Events.Publish(
+                    EventType.DayStarted,
+                    current,
+                    payload: "dayIndex=" + started);
+
+                for (var i = 0; i < _dayBoundaryHandlers.Count; i++)
+                    _dayBoundaryHandlers[i].OnDayStarted(_world, started);
+            }
         }
 
         void InterruptScheduleForPlayer(EntityId subject)

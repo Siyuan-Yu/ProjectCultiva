@@ -11,11 +11,12 @@
 
 要点：聊天不是真源；重要决定必须进入 Architecture／System Design／ADR／Devlog／Glossary；跨角色冲突时已冻结架构优先。
 
-## 当前阶段：Vertical Slice 0.2 编码（Phase C 完成，等验收）
+## 当前阶段：Vertical Slice 0.3 编码（Phase A 完成，等确认进 B）
 
 - 主契约：`docs/30-tech/33-architecture-core-rules-freeze-v0.2.md`（**禁止改 Freeze 正文**）
-- 确认真源：`docs/40-process/56-vertical-slice-0.2-pre-dev-confirmation.md`（**已批准**）
-- 冻结：RTS PlayerOrder；Schedule=NPC 默认行为可 Override；无 Exposure／地图／战斗／UI
+- VS 0.1／VS 0.2：**已验收**
+- 计划：`docs/40-process/57-vertical-slice-0.3-plan-v0.1.md`（A–D；已批准）
+- 冻结：RTS；Schedule＝默认行为；非固定剧情；禁战斗／地图／寻路／NPC AI／主管 Boss／完整关系
 - 纪律：每 Phase 测试 + commit + **等确认** 再进下一 Phase
 - Demo／ProjectSettings／Packages 禁擅改
 
@@ -27,10 +28,8 @@
 4. `docs/00-project/00-overview.md`
 5. `docs/00-project/03-glossary.md`
 6. `33` **v0.2**
-7. [VS 0.1 验收](docs/40-process/54-vertical-slice-0.1-acceptance-report.md) → [VS 0.2 计划](docs/40-process/55-vertical-slice-0.2-plan-v0.1.md)（待确认）
-8. Core M1 Plan v0.2（已完成）／Data Pipeline Plan v0.2（**已实现**）
-9. `36` ContentPackage、`2C`／相关系统
-10. `42-devlog.md` 最新 2～3 条
+7. [VS 0.2 验收](docs/40-process/56-vertical-slice-0.2-acceptance-report.md) → [VS 0.3 计划](docs/40-process/57-vertical-slice-0.3-plan-v0.1.md)
+8. `42-devlog.md` 最新 2～3 条
 
 ## 硬性规则（摘要）
 

@@ -7,6 +7,43 @@
 
 ---
 
+## 2026-08-01 — VS0.3 Phase A：DayClock／日循环
+
+**做了什么**
+- `DayClock`：由 `WorldTick` 派生 dayIndex／tickInDay／hourOfDay（不另存）
+- 跨日：`DayEnded` 先于 `DayStarted`；`IDayBoundaryHandler` 空钩子供 D 接入
+- EditMode：`DayClockPhaseATests`（派生、95→96 顺序、同日不重复、Snapshot）
+- **未做：** Quota 结算／Reset／Risk／Observe／Site／Narrative／Schedule 改动
+
+**下一步：** 等确认后 Phase B。
+
+## 2026-08-01 — VS0.3 计划设计确认修订（不编码）
+
+完善 [`57`](57-vertical-slice-0.3-plan-v0.1.md)：非剧情／非章节脚本／RTS／Schedule 默认／Override 优先；范围 A–D；Core／Data／Narrative 分层；禁止战斗地图寻路／NPC AI／主管 Boss／完整关系；阶段 V3-A～E。与 `2I` 阶段叙事口径对齐。确认前不编码。
+
+## 2026-08-01 — 叙事：荒村杂役阶段框架重定位（不编码）
+
+**做了什么**
+- 删除线性稿 `2I-chapter-1-huangcun-labor-v0.1.md`
+- 新建 [`2I-huangcun-labor-phase-narrative-v0.1.md`](../20-systems/2I-huangcun-labor-phase-narrative-v0.1.md)：定位为**阶段叙事**（状态／触发／反馈／可重复事件），非固定章节脚本
+- 废除：固定第几天偷修、固定结束点、写死现实／理想伙伴、姓名性别锁定
+- 主管改为长期压迫源；倒台声明为玩家筑基后（与 `20` 冲突已记入 2I §11）
+- 更新 `20-systems/README`、`00-overview`、`2G` 链与语感说明
+
+**为什么**
+- 游戏非章节制／非线性剧情 RPG；原 v0.1 易被读成强制主线日程
+
+**仍待确认**
+- 主管倒台门槛（筑基 vs 炼气掀桌／外交分流）；告密是否允许；开局关系权重；`2G` 是否改名；默认灵地包装
+
+## 2026-08-01 — 叙事：第一章《荒村杂役篇》v0.1（不编码）
+
+> 已被上条重定位取代；原文件已删除。保留本条仅作历史痕迹。
+
+## 2026-08-01 — Vertical Slice 0.3 规划草案（不编码）
+
+新增 [`57-vertical-slice-0.3-plan-v0.1.md`](57-vertical-slice-0.3-plan-v0.1.md)：第一天完整体验闭环——Day/Hr/Tick、Observe、OpportunitySite、偷修接 Cultivate、QuotaDeviation 日终薄后果、Exposure 建议一并、V3-A～H 与 Cursor 任务。VS0.2 已验收；确认前不编码。
+
 ## 2026-08-01 — VS0.2 Phase C：Player Override + Quota 偏差
 
 **做了什么**
