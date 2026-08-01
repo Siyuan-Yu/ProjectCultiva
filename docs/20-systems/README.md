@@ -1,10 +1,10 @@
 # 系统设计索引
 
-> 最后更新：2026-08-01
+> 最后更新：2026-08-01（工程进度见 `../40-process/62-project-status-2026-08-01.md`）
 > 上级：`docs/00-project/00-overview.md`（最高层大纲）
 > 通读顺序见 [`../00-project/04-reading-guide.md`](../00-project/04-reading-guide.md)。
 > 新增系统请复制 `docs/90-templates/system-design-template.md`。
-> **当前阶段：Architecture Freeze v0.2。** 主契约见 `../30-tech/33-architecture-core-rules-freeze-v0.2.md`。
+> **当前阶段：Architecture Freeze v0.2；开发焦点 VS0.5 社会 Alpha。** 主契约见 `../30-tech/33-architecture-core-rules-freeze-v0.2.md`。
 
 ## 规则
 
@@ -38,6 +38,7 @@
 | 2F | [义务、配额与隐匿](2F-obligation-and-concealment.md) | P0 | 隐匿三层已冻结 | |
 | 2G | [第一章流程](2G-first-chapter-flow.md) | P0 | 开局 Membership 已冻 | |
 | 2H | [功法系统规则](2H-manual-system-rules.md) | P0 | 核心规则已定方向 | |
+| 2I | [荒村杂役阶段叙事](2I-huangcun-labor-phase-narrative-v0.1.md) | P0 | **Draft v0.1／待审核**；非线性阶段框架 | |
 
 ## 架构文档（`30-tech`）
 

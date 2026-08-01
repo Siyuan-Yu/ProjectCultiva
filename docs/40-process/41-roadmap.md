@@ -54,9 +54,11 @@
 - [x] V4-A～H 独立 commit；验收 [61](61-vertical-slice-0.4-acceptance-report.md)
 - [x] EditMode 全绿（含一日可玩整合测）
 
-### Vertical Slice 0.5（社会／人格 Alpha）— **Next**
+### Vertical Slice 0.5（社会／人格 Alpha）— **In Progress**
 
-- [ ] 计划落盘后按内部 Phase：人格 → RelationshipLedger → 开局关系 → 招募 → NPC 自主 → 社会 Tick
+- [x] 计划：[60](60-vertical-slice-0.5-social-alpha-plan-v0.1.md)；现状总表：[62](62-project-status-2026-08-01.md)
+- [x] V5-A 人格档案：`e443eee`（`PersonalityProfileComponent`）
+- [ ] V5-B～G：Ledger → 开局关系 → 招募 → NPC 自主 → 社会 Tick → Alpha 验收
 - [ ] 禁止无计划扩战斗／地图／正式 UI；Snapshot 含关系前先确认 schema
 
 

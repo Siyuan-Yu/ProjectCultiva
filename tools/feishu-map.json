@@ -359,12 +359,57 @@
     "vs01-acceptance": {
       "file": "docs/40-process/54-vertical-slice-0.1-acceptance-report.md",
       "title": "Vertical Slice 0.1 验收报告",
-      "docId": ""
+      "docId": "Bc6Ed80JRoYxy4xILz4cntZ7nPe"
     },
     "vs02-plan": {
       "file": "docs/40-process/55-vertical-slice-0.2-plan-v0.1.md",
       "title": "Vertical Slice 0.2 计划 v0.1",
       "docId": "DutBdLcK5oB9rSxt3Ptc8ebHnwb"
+    },
+    "vs02-confirm": {
+      "file": "docs/40-process/56-vertical-slice-0.2-pre-dev-confirmation.md",
+      "title": "VS0.2 开工前确认报告",
+      "docId": "RxBMdla1yol3HFxg6ibc9mw3nme"
+    },
+    "vs03-plan": {
+      "file": "docs/40-process/57-vertical-slice-0.3-plan-v0.1.md",
+      "title": "Vertical Slice 0.3 计划 v0.1",
+      "docId": "WNyQd9YfvoYYvaxcwzpcMQeVnTd"
+    },
+    "vs04-plan": {
+      "file": "docs/40-process/59-vertical-slice-0.4-unity-playable-host-plan-v0.1.md",
+      "title": "Vertical Slice 0.4 Unity Host 计划 v0.1",
+      "docId": "T37ndKfDoopIAlxzMALcUHx7nlc"
+    },
+    "vs02-acceptance": {
+      "file": "docs/40-process/56-vertical-slice-0.2-acceptance-report.md",
+      "title": "Vertical Slice 0.2 验收报告",
+      "docId": "TNrzdZUTGo3Lf5xe1ikcNchVnHd"
+    },
+    "vs03-acceptance": {
+      "file": "docs/40-process/58-vertical-slice-0.3-acceptance-report.md",
+      "title": "Vertical Slice 0.3 验收报告",
+      "docId": "OuiEdQgBXoMAERxFWZlcm1xEnFf"
+    },
+    "vs04-acceptance": {
+      "file": "docs/40-process/61-vertical-slice-0.4-acceptance-report.md",
+      "title": "Vertical Slice 0.4 Unity Host 验收报告",
+      "docId": "MK2gdVR5korKBrx8cLBctqmQnfc"
+    },
+    "vs05-plan": {
+      "file": "docs/40-process/60-vertical-slice-0.5-social-alpha-plan-v0.1.md",
+      "title": "Vertical Slice 0.5 社会 Alpha 计划 v0.1",
+      "docId": "BzFidWf30oHWmXxphZzcJxk0nmf"
+    },
+    "project-status": {
+      "file": "docs/40-process/62-project-status-2026-08-01.md",
+      "title": "项目现状总览 2026-08-01",
+      "docId": "F1FJdQ1usoWzsIxfiTFcKbOQnM8"
+    },
+    "sys-huangcun-narrative": {
+      "file": "docs/20-systems/2I-huangcun-labor-phase-narrative-v0.1.md",
+      "title": "系统 2I 荒村杂役阶段叙事 v0.1",
+      "docId": "O3BedlSzloaJeLxGBF5can9znAf"
     }
   }
 }

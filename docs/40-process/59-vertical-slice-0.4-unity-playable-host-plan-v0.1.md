@@ -1,10 +1,11 @@
 # Vertical Slice 0.4 Plan v0.1 — Unity Playable Host
 
-> 状态：**规划草案（待人工确认）**｜最后更新：2026-08-01  
-> 类型：垂直切片实施计划｜**只规划，不编码**  
-> 前置：[VS0.3 验收](58-vertical-slice-0.3-acceptance-report.md) **已通过**（规则层一日闭环；EditMode 100/100）  
+> 状态：**已验收完成**｜最后更新：2026-08-01  
+> 类型：垂直切片实施计划｜验收见 [61](61-vertical-slice-0.4-acceptance-report.md)  
+> 前置：[VS0.3 验收](58-vertical-slice-0.3-acceptance-report.md) **已通过**  
 > 依据：`32` Demo→正式桥接、`33` v0.2、`35`、ADR-0009（正式 UI 另案）、ADR-0022（Demo 冻结）  
-> **不修改 Core Freeze 正文**。Demo Runtime **继续冻结：不扩玩法、不迁逻辑当真源**。
+> **不修改 Core Freeze 正文**。Demo Runtime **继续冻结：不扩玩法、不迁逻辑当真源**。  
+> 实现：V4-A～H 均已独立 commit（见 [61](61-vertical-slice-0.4-acceptance-report.md)／[62](62-project-status-2026-08-01.md)）。
 
 ---
 

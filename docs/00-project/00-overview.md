@@ -6,17 +6,20 @@
 
 ## 〇、当前项目阶段
 
-**架构冻结 v0.2。** Core／Data／Cultivation／**VS 0.1 已验收**。下一焦点为 [VS 0.2 杂役第一天规划](../40-process/55-vertical-slice-0.2-plan-v0.1.md)（确认前不编码）。Demo 停扩。
+**架构冻结 v0.2。** Core／Data／**VS 0.1～0.4 已验收**。  
+**进行中：VS 0.5 社会／人格 Alpha**（V5-A 人格档案已完成；下一步 RelationshipLedger）。  
+Demo Runtime 停扩。完整进度见 [62 项目现状](../40-process/62-project-status-2026-08-01.md)。
 
-**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [术语表](03-glossary.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md) → [VS 0.2 计划](../40-process/55-vertical-slice-0.2-plan-v0.1.md)。
+**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [62 现状](../40-process/62-project-status-2026-08-01.md) → [术语表](03-glossary.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md) → [VS0.5 计划](../40-process/60-vertical-slice-0.5-social-alpha-plan-v0.1.md)。
 
 - 主契约：[33 架构冻结 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md)
 - 实体／Order／Mod：[34](../30-tech/34-entity-and-component-model.md)、[35](../30-tech/35-order-and-action-system.md)、[36](../30-tech/36-content-package-and-mod-architecture.md)
 - Modifier／事件：[2C](../20-systems/2C-attributes-and-modifier-pipeline.md)、[2E](../20-systems/2E-events-and-world-state.md)
 - 桥接／审计：[32](../30-tech/32-prototype-to-product-bridge.md)、[50 审计报告](../40-process/50-architecture-freeze-review-report-v0.1.md)
 - Core M1：[实施计划 v0.2（已完成）](../40-process/51-core-milestone-1-implementation-plan-v0.2.md)／[ADR-0022](../40-process/43-decisions/ADR-0022-core-milestone-1-scope.md)
-- 下一阶段：[VS 0.2 计划](../40-process/55-vertical-slice-0.2-plan-v0.1.md)（杂役第一天；**待确认，不编码**）
-- VS 0.1 验收：[54](../40-process/54-vertical-slice-0.1-acceptance-report.md)
+- VS 0.4 Host 验收：[61](../40-process/61-vertical-slice-0.4-acceptance-report.md)（计划 [59](../40-process/59-vertical-slice-0.4-unity-playable-host-plan-v0.1.md)）
+- VS 0.5 社会 Alpha：[60](../40-process/60-vertical-slice-0.5-social-alpha-plan-v0.1.md)（**当前开发焦点**）
+- VS 0.3 验收：[58](../40-process/58-vertical-slice-0.3-acceptance-report.md)
 - 全部决策：[ADR 索引](../40-process/43-decisions/README.md)（UI＝0009 预留）
 
 v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead≠Removed；FocusCharacterUnavailable；开局宗门劳役 Membership；地图 World／Region／LocalMap。
@@ -78,7 +81,7 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 | 25 | [修炼与突破](../20-systems/25-cultivation-and-breakthrough.md) | P0 | |
 | 26 | [领地经营](../20-systems/26-territory-management.md) | P0 | |
 | 27 | [角色与人口](../20-systems/27-characters-and-population.md) | P0 | |
-| 28 | [江湖关系](../20-systems/28-jianghu-relations.md) | P0 | Ledger 真源 |
+| 28 | [江湖关系](../20-systems/28-jianghu-relations.md) | P0 | Ledger 真源；VS0.5 落地中 |
 | 29 | [天道因果](../20-systems/29-karma-and-consequence.md) | P1 | |
 | 2B | [属性与成长](../20-systems/2B-attributes-and-affinity.md) | P0 | |
 | 2C | [Modifier 管道](../20-systems/2C-attributes-and-modifier-pipeline.md) | P0 | |
@@ -87,6 +90,7 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 | 2F | [义务与隐匿](../20-systems/2F-obligation-and-concealment.md) | P0 | |
 | 2G | [第一章流程](../20-systems/2G-first-chapter-flow.md) | P0 | 开局 Membership 已冻 |
 | 2H | [功法规则](../20-systems/2H-manual-system-rules.md) | P0 | |
+| 2I | [荒村杂役阶段叙事（v0.1）](../20-systems/2I-huangcun-labor-phase-narrative-v0.1.md) | P0 | Draft；状态／触发／反馈 |
 
 **项目与过程：**
 
@@ -96,9 +100,13 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 | [愿景](01-vision.md)／[范围](02-scope-and-constraints.md)／[术语表](03-glossary.md) | 总纲三件套 |
 | [系统设计索引](../20-systems/README.md) | 系统清单与依赖 |
 | [路线图](../40-process/41-roadmap.md)／[开发日志](../40-process/42-devlog.md) | 阶段与记录 |
+| [62 项目现状 2026-08-01](../40-process/62-project-status-2026-08-01.md) | **现行进度总表** |
 | [Core M1 实施计划 v0.2](../40-process/51-core-milestone-1-implementation-plan-v0.2.md) | **已完成验收** |
 | [VS 0.1 验收](../40-process/54-vertical-slice-0.1-acceptance-report.md) | 已通过 |
-| [VS 0.2 计划 v0.1](../40-process/55-vertical-slice-0.2-plan-v0.1.md) | **杂役第一天（待确认）** |
+| [VS 0.2 验收](../40-process/56-vertical-slice-0.2-acceptance-report.md) | 已通过 |
+| [VS 0.3 验收](../40-process/58-vertical-slice-0.3-acceptance-report.md) | 已通过 |
+| [VS 0.4 Host 验收](../40-process/61-vertical-slice-0.4-acceptance-report.md) | **已通过**（计划 [59](../40-process/59-vertical-slice-0.4-unity-playable-host-plan-v0.1.md)） |
+| [VS 0.5 社会 Alpha 计划](../40-process/60-vertical-slice-0.5-social-alpha-plan-v0.1.md) | **当前开发焦点** |
 | [Data Pipeline M1 计划 v0.2](../40-process/53-data-pipeline-milestone-1-plan-v0.2.md) | **已实现**（M1-A／M1-B） |
 | [ADR 决策索引](../40-process/43-decisions/README.md) | 全部已采纳决策 |
 
@@ -107,7 +115,7 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 | 文档 | 说明 |
 |---|---|
 | [33 冻结 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) | **当前主契约** |
-| [34 实体](../30-tech/34-entity-and-component-model.md) | |
+| [34 实体](../30-tech/34-entity-and-component-model.md) | 含 PersonalityProfile（VS0.5-A） |
 | [35 Order/Action](../30-tech/35-order-and-action-system.md) | |
 | [36 ContentPackage](../30-tech/36-content-package-and-mod-architecture.md) | |
 | [31 技术架构](../30-tech/31-architecture.md) | 程序集与工程约定 |
@@ -129,7 +137,8 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 
 ## 八、范围控制
 
-第一阶段玩法仍只验证：感应→炼气质变、角色↔领地闭环、暂停战斗构筑（**实现上 Core M1 先只做骨架，不含真战斗**）。
+第一阶段玩法仍只验证：感应→炼气质变、角色↔领地闭环、暂停战斗构筑（**实现上 Core M1 先只做骨架，不含真战斗**）。  
+当前工程焦点是 **社会／关系 Alpha（VS0.5）**，不是扩 Demo、不是战斗／地图。
 
 ## 九、跨系统未决（摘录）
 
@@ -137,6 +146,6 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 
 ## 十、下一步
 
-1. 人工审核 Freeze v0.2。  
-2. 通过后另开 **Core Milestone 1**（ADR-0022）。  
-3. 不扩展 Demo。
+1. 继续 VS0.5：**V5-B RelationshipLedger** → 开局关系 → 招募 → NPC 自主 → 社会 Tick。  
+2. 关系入 Snapshot 前须确认 schema（硬停）。  
+3. 不扩展 Demo Runtime；不改 Freeze 正文。

@@ -1,7 +1,8 @@
 # 第一章流程设计（草案）：从凡人到炼气
 
-> 状态：体验流程草案；开局 Membership 已冻结于 v0.2 | 优先级：P0 | 最后更新：2026-07-31
+> 状态：体验流程草案；开局 Membership 已冻结于 v0.2 | 优先级：P0 | 最后更新：2026-08-01
 > 关联：`2F`、`22`、`25`、`29`、`../30-tech/33-architecture-core-rules-freeze-v0.2.md`、`34`
+> **荒村杂役阶段叙事框架（非线性）：** 见 [`2I-huangcun-labor-phase-narrative-v0.1.md`](2I-huangcun-labor-phase-narrative-v0.1.md)（Draft）。本页若用语含「第一章」，仅作内部体验弧参考；**游戏内无章节 UI**。
 
 ## 1. 第一章核心目标
 

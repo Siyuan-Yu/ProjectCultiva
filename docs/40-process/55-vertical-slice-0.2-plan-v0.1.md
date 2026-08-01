@@ -1,327 +1,408 @@
-# Vertical Slice 0.2 Plan v0.1
+# Vertical Slice 0.2 Plan v0.1（范围收紧修订）
 
 > 状态：**规划草案（待人工确认）** | 最后更新：2026-08-01  
 > 类型：垂直切片实施计划｜**只规划，不编码**  
-> 前置：[VS 0.1 验收报告](54-vertical-slice-0.1-acceptance-report.md) **已通过**；Core M1／Data Pipeline／Cultivation Slice 0.1 可用  
+> 前置：[VS 0.1 验收报告](54-vertical-slice-0.1-acceptance-report.md) **已通过**  
 > 依据：`2G`、`2F`、`21`、`35`、`33` v0.2、ADR-0018／0011／0012  
-> **不修改 Core Freeze 正文**；不设计完整战斗／NPC AI／地图系统。
-
-## 0. 切片目标
-
-做出**第一个玩家可感的「杂役弟子第一天」闭环**（EditMode + 可选薄 Unity Host）：
-
-```text
-开局三杂役
-  → 日程驱动白天劳役 Order
-  → 玩家可 Override 下令（工作／停手／偷修）
-  → 夜间或空档接入既有 Cultivate／学法闭环
-  → 日终结算（配额完成度 + 可选暴露读数）
-  → Snapshot 可续同一天或进入次日 Tick
-```
-
-**成功判据（产品感，非完整第一章）：**  
-玩家能理解「白天不自由、晚上才有缝隙偷修」，并在同一套 Order／Action 上完成至少一次劳役与一次修炼切换。
-
-**非目标：** 完整第一章 40～60 分钟叙事、夺府、战斗、地图探索、主管追捕 AI。
+> **不修改 Core Freeze 正文**。  
+> **本切片 ≠ 第一章完整实现**；只验证「杂役弟子第一天」**核心循环**。
 
 ---
 
-## 1. 玩家输入如何进入 Order／Action
+## 1. Vertical Slice 目标
 
-### 1.1 原则（对齐 `35`）
+### 1.1 一句话
 
-- 玩家与日程／脚本的区别**只在 Order 来源与优先级**，执行仍走同一 `IOrderTranslator` → `IAction` → `SimulationLoop`。  
-- Unity／调试壳**不得**直接改 Entity 组件绕过 Order。
+在**严格范围**内，用 EditMode（+ 可选薄调试 Host）验证：低境界杂役弟子在宗门日程下，可观察、可干预、干预有代价、能发现隐藏机会入口，并为后续秘密修炼循环留下 Action 接口。
 
-### 1.2 建议适配层（薄）
+### 1.2 核心体验目标（仅此六条）
 
-| 层 | 职责 |
-|---|---|
-| `PlayerCommandPort`（Core 侧接口或纯 DTO 入站） | 接收「对 EntityId 下某类命令」 |
-| `PlayerOrderFactory` | 把命令变成 `Order`（`OrderSource.Player`，高优先级） |
-| `XianXia.Unity` 或 EditMode 驱动器 | 按钮／快捷键／测试 API → Port；读 Snapshot／Event 做只读 HUD |
+玩家作为一个低境界杂役弟子，本阶段只验证：
 
-### 1.3 VS0.2 允许的玩家命令（最小集）
-
-| 命令 | 生成 Order／效果 |
-|---|---|
-| 指定劳役工作 | `LaborOrder` → `LaborAction`（见 §2／§5） |
-| 停止／待机 | `WaitOrder` 或 Cancel ActiveAction（规则见 §3） |
-| 学习功法 | 调用既有 `CultivationService.LearnManual`（可包成 Order 或同步服务调用；**建议**学法保持服务调用、修炼用 Order） |
-| 开始偷修 | 既有 `CultivateOrder` → `CultivateAction` |
-| （可选）使用敛息草 | 仅当暴露进本切片时；减 `PersonalConcealmentRisk` 的配置消耗 |
-
-### 1.4 明确不做
-
-- 正式 UGUI 产品壳、镜头 RTS 框选（可借用调试按钮）  
-- 改 Demo Runtime 玩法代码当正式输入层（Demo 继续冻结）  
-- 移动／寻路类 Order（无地图）
-
----
-
-## 2. Schedule（日程）最小模型
-
-### 2.1 形状
-
-不实现「玩家改时间表权限」（`21`：前期只能查看）。VS0.2 只要：
-
-```text
-ScheduleDefinition（Content JSON，可选硬编码测试表）
-  → 按 WorldTick 映射到 DayPhase
-  → ScheduleDriver 在相位切换或每 Tick 评估
-  → 若实体无更高优先级意图 → 入队 Schedule 源 Order
-```
-
-| 概念 | VS0.2 最小字段 |
-|---|---|
-| `DayPhase` | `Sleep`／`Work`／`Meal`／`Free`／`Curfew`（可再砍到 Work／Free／Sleep 三态） |
-| `ScheduleBlock` | `startTickInDay`、`endTickInDay`、`phase`、`defaultOrderType`（Labor／Wait） |
-| `ScheduleBinding` | `EntityId` 或角色 Tag（`labor`）→ `ScheduleDefinitionId` |
-| `ScheduleDriver` | 读 `WorldTick`（1 日＝96 Tick，见 `31`／`21`）取当日相位 |
-
-### 2.2 与 Action 的关系
-
-- 日程**不**直接改属性；只产生／替换 **低优先级** Order。  
-- `LaborAction`：消耗 ActionClock；累加「今日劳役进度」计数（配额用，见 §5）；完成发 `DomainEvent`（如 `LaborProgressed`／`DailyQuotaUpdated`）。  
-- Work 相位默认：`LaborOrder`；Free／Sleep：默认 `Wait` 或空闲（不强制修炼）。
-
-### 2.3 配置位置
-
-- 建议：`Content/BaseGame/Data/schedules.json`（严格字段，走 Loader）  
-- 或 VS0.2 第一刀用 Core 测试夹具表，第二刀再进 Content（实施阶段拆分见 §9）。
-
----
-
-## 3. Player Override 机制
-
-### 3.1 优先级（对齐 `35` §5，VS0.2 落地子集）
-
-| 优先级（高→低） | 来源 |
-|---|---|
-| 1 | 玩家紧急／普通玩家 Order |
-| 2 | （本切片不做）生存／战斗反应 |
-| 3 | 强制社会义务（日终未交配额的惩罚脚本——本切片可砍） |
-| 4 | Schedule 默认 Order |
-| 5 | 待机 |
-
-### 3.2 Override 规则（建议冻结进实现）
-
-1. 玩家下单时：插入／替换该实体 `OrderQueue` 前端；`OrderSource.Player`。  
-2. 若当前 `ActiveAction` 来自 Schedule（Labor／Wait）且新玩家 Order 的 `CanStart` 成功 → **中断**当前 Action（`Interrupted`），再启动玩家 Action。  
-3. 若当前 Action 为玩家发起的 `Cultivate`，日程相位切换**默认不打断**（避免偷修刚开始就被日程踢掉）；改为：相位切换仅在「无 ActiveAction 或 Active 为 Schedule 源」时灌入新 Schedule Order。  
-4. Override **不**修改 ScheduleDefinition 本身（玩家仍无改表权）。  
-5. 失败必须 `Result`／`OrderRejected` 事件，UI／测试可断言原因。
-
-### 3.3 明确不做
-
-- 多并行动作槽  
-- 完整中断损失矩阵（资源浪费百分比等）  
-- AI 与玩家抢优先级的复杂仲裁
-
----
-
-## 4. 三个杂役角色初始化
-
-复用 VS0.1 Bootstrap，不新开「角色系统」：
-
-| 角色 | DefinitionId（已有样本方向） | 控制 |
+| # | 体验 | VS0.2 对应验证 |
 |---|---|---|
-| 劳役甲（主角位） | `base:character_protagonist`（或现用 id） | DirectControl + Focus 候选 |
-| 劳役乙 | `base:character_companion_a` | DirectControl |
-| 劳役丙 | `base:character_companion_b` | DirectControl |
+| 1 | 受到宗门日程限制 | Schedule 给出计划行为；无 Override 时角色按计划消耗时间 |
+| 2 | 可以观察世界和角色状态 | 只读 Snapshot／Event／调试查询；`Observe` 走 Order→Action→Result |
+| 3 | 可以主动干预角色行为 | `PlayerInput` → Player Order 覆盖 Schedule |
+| 4 | 主动行为会产生代价 | Override 必有：时间消耗、任务影响、风险变化 |
+| 5 | 可以发现隐藏机会 | 抽象「特殊地点／机会」标记（**无地图**）；发现后可提交修炼尝试 Order |
+| 6 | 为后续秘密修炼循环建立接口 | `CultivationAttempt` 进入现有 Action 体系；**不**扩完整修炼／突破／功法 |
 
-开局步骤（逻辑）：
+### 1.3 成功判据（窄）
 
-1. 加载 BaseGame ContentPackage。  
-2. `ContentGameStart`／`GameStartBootstrap` 生成三实体；FactionMembership／Role **数据字段**按 Freeze：压迫宗门＋杂役／劳役（若尚未写入组件，VS0.2 用 Tag／InitData 占位，**不**做完整势力领导）。  
-3. 绑定同一 `ScheduleDefinition`（劳役表）。  
-4. 预学或可学「青云诀／基础吐纳」之一（沿用 Cultivation Slice 数据）。  
-5. 当日配额计数器归零（见 §5）。
-
-**不做：** 半固定背景创建 UI、灵根抽卡、改名流程产品化。
-
----
-
-## 5. 第一天事件流程
-
-以「一个游戏日＝96 Tick」为骨架（可配置缩短测试日）。叙事用 **DomainEvent＋只读日志**，不做过场动画系统。
-
-| 阶段 | Tick 带（示意） | 系统行为 | 玩家可感目标 |
-|---|---|---|---|
-| 日始 | 0 | `DayStarted`；发布今日配额（如木材折算为 Labor 点数 20） | 知道今天要交差 |
-| 上午工 | Work | Schedule → Labor；进度计数 | 三人可分工或单控 |
-| 午／工 | Work | 同上 | — |
-| 薄暮／自由 | Free | Schedule 停止灌 Labor；允许玩家 Cultivate／Wait | 第一次明确「缝隙」 |
-| 宵禁／夜 | Curfew／Sleep 或 Free-Night | 默认可偷修窗口（配置） | 偷修主窗口 |
-| 日终 | 日界 | `DayEnded`：配额完成？；暴露快照；清空或滚动日计数 | 闭环反馈 |
-
-**最小配额：** 不接真实物资库存亦可——`LaborAction` 只加 `DailyLaborPoints`；日终 `points >= quota` 则 `DailyQuotaMet`，否则 `DailyQuotaFailed`（**惩罚可空实现**，只发事件）。
-
-**脚本事件（可选 1～2 条）：** 「主管巡视提醒」纯文本／事件，无 AI 寻路。
+- 同一套 `PlayerInput → Order → Action → Result/Event` 跑通：工作／休息／观察／修炼尝试（及无地图的抽象移动）。  
+- 无玩家输入时，三人按日程消耗时间并推进任务计数。  
+- 玩家 Override 后：**时间被扣、任务进度受影响、ExposureRisk 变化**（非「点一下直接成功」）。  
+- 日终可产出：资源／任务／风险读数 + **关系变化接口事件**（可空实现）。  
+- **不追求**剧情完整、第一章时长、叙事演出。
 
 ---
 
-## 6. 偷修如何接入现有 Cultivation Slice
-
-### 6.1 已有资产（VS0.1）
-
-- `LearnManual`／`CultivateAction`／Progress／凡人→炼气 Breakthrough／Snapshot  
-- Content：`CultivationDefinition`＋Mapper → `CultivationManualSpec`
-
-### 6.2 VS0.2 接入点
+## 2. 系统依赖关系
 
 ```text
-玩家在 Free／夜窗 Override
-  → CultivateOrder（既有）
-  → CultivateAction 推进（既有）
-  → （新）若启用暴露：按相位累加 PersonalConcealmentRisk
-  → 突破仍走既有 CultivationService（第一天不强制突破，允许只涨 Progress）
+[已有 · 只读复用]
+  Core M1：World／Entity／SimulationLoop／OrderQueue／ActionClock／WorldTick／Snapshot／DomainEvent／PRNG
+  Data Pipeline：Character／Item／Cultivation Definition 加载（本切片不扩功法系统设计）
+  VS0.1 Bootstrap：三杂役 Entity 生成入口
+  VS0.1 CultivateAction／CultivationService：仅作「修炼尝试」的可选下游适配点
+                     （本切片验收不要求突破／学法产品闭环）
+
+[本切片新增 · 薄]
+  PlayerInput Port          → 唯一玩家入站
+  PlayerOrderFactory        → Order（Source=Player，高优先）
+  ScheduleDefinition/Driver → 计划行为（低优先 Order），非强制 AI
+  Labor / Rest / Observe / Move(抽象) / CultivationAttempt Actions
+  DailyTaskQuota / 虚拟资源计数
+  ExposureRisk (0–100)      → Override／异常时间来源
+  OpportunitySite（抽象）   → 发现机会 → 允许提交 CultivationAttempt
+  DayStarted / DayEnded 编排
+  RelationshipDelta 接口事件（ledger 调用可 stub）
+
+[明确不依赖／不建设]
+  地图／寻路／LocalMap · 战斗 · 完整 NPC AI · 守卫巡逻 · 完整修炼／突破产品层
 ```
 
-| 规则 | 建议 |
+**依赖原则：** UI／调试壳只调 `PlayerInput` 与只读查询；**禁止** UI 直接改 Entity 组件或属性。
+
+---
+
+## 3. Order／Action 接入
+
+### 3.1 强制管道
+
+```text
+PlayerInput
+  → Order（OrderSource.Player）
+  → IOrderTranslator → IAction
+  → ActionClock 消耗 / CanStart·Tick·Complete
+  → Result + DomainEvent
+```
+
+日程路径相同，仅 `OrderSource.Schedule` 且优先级更低。
+
+### 3.2 VS0.2 玩家输入语义（最小集）
+
+| 输入意图 | Order／Action | 说明 |
+|---|---|---|
+| 移动 | `MoveOrder` → `MoveAction` | **无格子地图**：只改抽象 `SiteTag`（如 LaborYard／RestArea／HiddenCorner）并耗时 |
+| 工作 | `LaborOrder` → `LaborAction` | 推进日任务虚拟点数 |
+| 休息 | `RestOrder` → `RestAction` | 耗时；可轻微影响风险或疲劳占位 |
+| 修炼尝试 | `CultivationAttemptOrder` → `CultivationAttemptAction` | 见 §6；**不是**直接突破成功 |
+| 观察 | `ObserveOrder` → `ObserveAction` | 耗少量时间；产出只读情报 Event（含是否揭示机会位点） |
+
+### 3.3 禁止
+
+- UI／MonoBehaviour 直接改 HP、属性、库存、风险数值  
+- 绕过 Order 的「调试作弊写组件」作为正式路径（测试可造夹具，产品路径仍走管道）  
+- 改 Demo Runtime 当正式输入层  
+
+---
+
+## 4. Schedule 最小模型
+
+### 4.1 定位（冻结语义）
+
+**Schedule 只提供计划行为，不是强制 AI。**
+
+- 无更高优先级 Order／Active 玩家 Action 时：Driver 灌入对应计划 Order。  
+- 有 Player Override：计划被压制，**不**改写 ScheduleDefinition。  
+- 不做效用决策、不做主管 AI、不做玩家改表权限。
+
+### 4.2 第一阶段示例日（映射到 Tick）
+
+以 1 日＝96 Tick、每时辰≈4 Tick 对齐既有时间约定（测试日可缩短，语义表不变）：
+
+| 钟点 | 计划相位 | 默认计划 Order |
+|---|---|---|
+| 06:00 | Wake | Rest／Wait（起床过渡） |
+| 08:00 | Work | Labor |
+| 12:00 | Rest | Rest |
+| 13:00 | Work | Labor |
+| 18:00 | Return | Move→RestArea 或 Wait（返回） |
+| 22:00 | Sleep | Rest／Sleep Wait |
+
+### 4.3 最小数据形
+
+| 概念 | 字段（最小） |
 |---|---|
-| 学法时机 | 日始自动学「青云诀」或 Free 时段玩家点一次 Learn（测两路径择一作默认） |
-| 与 Labor 互斥 | 单 `ActiveAction` 已保证；Override 规则见 §3 |
-| 工时偷修 | **允许**但若启用暴露则高风险（见 §7）；体现压迫感 |
-| 第一天必破境界？ | **不要求**；验收以「完成 Labor 进度 + 至少 N Tick 修炼」即可 |
+| `ScheduleBlock` | `startTickInDay`、`endTickInDay`、`phase`、`plannedOrderType` |
+| `ScheduleDefinition` | `id` + blocks[] |
+| `ScheduleBinding` | EntityId → ScheduleDefinitionId |
+| `ScheduleDriver` | 读 WorldTick → 当前 block → 条件满足则入队 Schedule Order |
 
-### 6.3 明确不做
-
-- 多境界、天劫、洞府、丹药  
-- 改 Cultivation 公式／把 Progress 重定义为另一套资源（若要改，先 ADR，见 VS0.1 报告观察项）
+数据落点：先测试夹具，整合前可迁 `schedules.json`（严格 Loader）。
 
 ---
 
-## 7. 暴露风险是否进入本阶段
+## 5. Player Override
 
-### 7.1 判断
+### 5.1 优先级（冻结）
 
-第一天闭环的**情绪核心**含「怕被发现」，但完整三层隐匿（`2F`／`33`：PersonalConcealmentRisk／Suspicion／FactionHostility）+ 主管 AI 过重。
+**玩家命令优先于 Schedule。**  
+日程相位切换**不得**在无规则地撕毁正在执行的玩家 Action；仲裁以 `35` 优先级表的 VS0.2 子集为准。
 
-### 7.2 建议（推荐选项）
+### 5.2 Override 必须产生代价（冻结）
 
-**建议：进入，但只做「个人暴露条」薄实现（V2 暴露薄层）。**
+Override **不是**免费成功开关。任何玩家覆盖日程的路径须同时满足：
 
-| 做 | 不做 |
+| 代价维 | VS0.2 最小实现 |
 |---|---|
-| `PersonalConcealmentRisk` 数值（组件或 World 侧账户） | Suspicion／FactionHostility 完整规则 |
-| Cultivate 时按相位加风险（Work 高／Free 夜低） | 主管巡逻发现、追捕、没收演出 |
-| 可选：消耗「敛息草」ItemDefinition 减风险（只改数值） | 搜身、藏匿容量、举报链 |
-| DomainEvent：`ConcealmentChanged` | 暴露导致 GameOver |
+| 时间消耗 | 经 ActionClock／WorldTick 推进；无「零时长瞬成」 |
+| 任务影响 | 打断／缺席 Labor → 日任务点数低于计划预期（可测） |
+| 风险变化 | `ExposureRisk` 增减（非日程行动、时间异常等来源，见 §7） |
 
-**备选：** 本阶段完全不做暴露，只做日程＋劳役＋偷修互斥——切片更短，但「第一天」张力偏弱。
+示意（偷跑修炼尝试）：
 
-**请人工二选一；默认按「薄暴露」写入实施任务。**
+```text
+PlayerInput(CultivationAttempt)
+  → Override 入队（压制 Schedule Labor）
+  → CultivationAttemptAction
+  → 消耗时间
+  → 检查／累加 ExposureRisk
+  → Result（可能：机会不足／风险过高拒绝／仅部分推进接口状态）
+```
+
+**禁止：** Override 直接改境界、直接学满功法、直接 `DailyQuotaMet=true`。
+
+### 5.3 明确不做
+
+- 完整中断损失经济矩阵  
+- 多并行动作槽  
+- AI 与玩家抢权的复杂仲裁  
 
 ---
 
-## 8. 本阶段明确不做
+## 6. 三个杂役角色
 
-- 修改 `33` Freeze／已采纳 ADR 正文（增量观察另开 ADR）  
-- 完整战斗、伤害、站位、技能栏  
-- 完整 NPC AI／效用决策／主管追捕  
-- 地图：格子、寻路、LocalMap 加载、Region 旅行  
-- 聚落经营、资源物流真库存（可用虚拟 Labor 点）  
-- Mods/、Excel 运行时、产品级 UI、Demo 扩玩法  
-- 玩家修改日程表权限  
-- 完整第一章叙事与炼气后隐藏线  
+### 6.1 范围
+
+只做**三个初始 Entity**。不写复杂背景、半固定创建 UI、灵根抽卡。
+
+| 需要 | 说明 |
+|---|---|
+| ID | DefinitionId + EntityId |
+| 基础属性 | 复用既有 Attribute 最小集 |
+| 性格标签接口 | `PersonalityTags`（string／enum 列表占位）；**无**性格驱动 AI |
+| Schedule | 三人绑定同一劳役 `ScheduleDefinition` |
+
+### 6.2 控制
+
+| 角色 | 控制 |
+|---|---|
+| 杂役 A | **FocusCharacter** + DirectControl |
+| 杂役 B | DirectControl（可切换下令） |
+| 杂役 C | DirectControl（可切换下令） |
+
+复用 VS0.1 Bootstrap 入口；补 ScheduleBinding／ExposureRisk 初值／PersonalityTags 空或 1～2 个标签即可。
 
 ---
 
-## 9. 实施阶段拆分
+## 7. 第一天最小流程
+
+```text
+开始：三人进入杂役生活（Bootstrap + 绑定日程 + DayStarted）
+  → 上午：第一次任务（Schedule → Labor）
+  → 中途：玩家可遵守安排，或 Override（工作／休息／观察／抽象移动／修炼尝试）
+  → 晚上：DayEnded 结算
+```
+
+### 7.1 日终结果（最小）
+
+| 结果 | VS0.2 |
+|---|---|
+| 资源变化 | 虚拟劳役点／占位资源计数（不接真物流） |
+| 任务完成情况 | `DailyQuotaMet`／`Failed` 事件 |
+| 风险变化 | `ExposureRisk` 日终快照 Event |
+| 关系变化接口 | 发 `RelationshipDeltaRequested`（或等价）事件；**可 stub**，不实现完整关系网演算 |
+
+**不要**完整剧情、过场、主管对话树、夺府线。
+
+---
+
+## 8. 偷修接入（仅接口）
+
+### 8.1 本阶段要验证的
+
+```text
+（可选）Observe / 脚本夹具 → 发现特殊地点（OpportunitySite 标记）
+  → PlayerInput 提交 CultivationAttemptOrder
+  → CultivationAttemptAction 进入 Action 体系
+  → Result/Event（含耗时、风险、接口状态）
+```
+
+### 8.2 本阶段明确不实现
+
+- 完整突破流程（验收不要求凡人→炼气）  
+- 境界系统设计／扩展  
+- 功法系统设计／扩展（不新增功法产品层；不把 LearnManual 当本日必经）  
+- 「偷修直接成功」的捷径  
+
+### 8.3 与 VS0.1 Cultivation Slice 的关系
+
+- VS0.1 的 `CultivateAction`／`CultivationService` **可**作为 `CultivationAttemptAction` 的下游适配（例如内部转发一次既有 Cultivate Tick），以便将来秘密修炼循环复用。  
+- **VS0.2 验收不绑定**学法、Progress 阈值、Breakthrough。  
+- 「特殊地点」= 抽象 Site／Flag，**不是**地图系统。
+
+---
+
+## 9. 暴露风险：是否进入 VS0.2
+
+### 9.1 判断
+
+核心体验第 4 条（主动行为有代价）与 Override「风险变化」、日终「风险变化」均要求有可读数值。完整三层隐匿 + 被发现演出过重。
+
+**结论：进入 VS0.2，但只做最小 `ExposureRisk`。**
+
+### 9.2 最小模型
+
+| 项 | 规定 |
+|---|---|
+| 名称 | `ExposureRisk`（数值 **0–100**；与 Freeze 中 PersonalConcealmentRisk 语义对齐时可做别名／同一字段，**不改 Freeze 正文**） |
+| 来源（本切片） | 非日程行动（Override 偏离计划）；时间异常（工时段去做非计划事）；「被发现」用**规则／夹具触发**一次加分，**无**巡逻 AI |
+| 不做 | 复杂怀疑 AI、Suspicion／FactionHostility 完整链、守卫追捕、暴露 GameOver |
+
+可选：观察或休息对风险的微弱下降（非必须）。
+
+---
+
+## 10. 明确延期／不做（本阶段禁止加入）
+
+| 延期／禁止 | 说明 |
+|---|---|
+| 战斗系统 | 含伤害、站位、技能栏 |
+| 完整 NPC AI | 效用决策、主管行为树 |
+| 守卫巡逻 | 寻路巡逻、发现演出 |
+| 宗门外交 | — |
+| 占领据点 | — |
+| 城市系统 | — |
+| 地图系统 | 格子、LocalMap、Region 旅行；移动仅为抽象 Site |
+| 完整修炼／完整突破 | 功法／境界产品层；本日不验收突破 |
+| 第一章完整叙事 | 40～60 分钟剧本、半固定创建、夺府线 |
+| 改 Freeze／Demo／ProjectSettings／Packages | 禁擅改 |
+| 玩家修改日程表 | 仅可查看计划 |
+
+---
+
+## 11. 实施阶段拆分
 
 | 阶段 | 目标 | 主要交付 | 门禁 |
 |---|---|---|---|
-| **V2-A** | 日程数据＋相位 | `DayPhase`／`ScheduleDefinition`（Content 或测试表）；Tick→Phase | 单测相位边界 |
-| **V2-B** | Labor 最小 Action | `LaborOrder`／`LaborAction`；日配额计数；事件 | EditMode：Labor 满配额 |
-| **V2-C** | ScheduleDriver | 按相位灌 Schedule Order；不覆盖玩家 Active Cultivate | 无玩家时自动 Labor；有 Cultivate 不打断 |
-| **V2-D** | Player Override 端口 | `PlayerCommandPort`＋优先级／中断规则；调试下达 | 玩家可打断 Labor 改 Cultivate |
-| **V2-E** | 第一天编排 | DayStarted／DayEnded；三杂役绑定；默认学法；整合测「一天」 | 整合测 PASS |
-| **V2-F** | 暴露薄层（若批准 §7） | Risk 累加＋可选敛息草；只读断言 | 工时修炼风险＞夜修 |
-| **V2-G** | （可选）薄 Host | 调试按钮：选角色／Labor／Cultivate／Tick／日终 | 非阻塞；EditMode 仍为完成标准 |
+| **V2-A** | 日程相位 | `ScheduleBlock`／Tick→相位；示例日表 | 单测：06/08/12/13/18/22 边界 |
+| **V2-B** | 计划 Action | Labor／Rest／抽象 Move；日任务虚拟点 | EditMode：纯 Schedule 可推进任务点 |
+| **V2-C** | ScheduleDriver | 计划 Order 入队；非强制 AI | 无玩家时按表走；有玩家 Active 不无代价撕毁规则见 V2-D |
+| **V2-D** | PlayerInput＋Override 代价 | Port；优先级；耗时＋任务影响＋风险 | Override 偷修尝试必改三点代价 |
+| **V2-E** | Observe＋机会位点 | ObserveAction；OpportunitySite 标记 | 可发现 → 允许 CultivationAttempt |
+| **V2-F** | CultivationAttempt 接口 | Order→Action→Result；可选适配 VS0.1 Cultivate | **不**要求突破／学法；管道断言 PASS |
+| **V2-G** | 三角色＋第一天编排 | Focus+两可控；DayStarted/Ended；关系接口事件 | 一天整合测 PASS |
+| **V2-H** | （可选）薄 Host | 调试按钮＋只读状态 | 不阻塞 EditMode 验收 |
 
-每阶段：编译 + EditMode + 文件列表 + **等确认**；Demo／ProjectSettings／Packages／Freeze 禁擅改。
+每阶段：编译 + EditMode + 文件列表 + **停等确认**。禁止顺手做延期表内系统。
 
 ---
 
-## 10. Cursor 开发任务清单（复制即用）
+## 12. 每阶段 Cursor 开发任务（复制即用）
 
-### Task V2-A — Schedule 相位模型
+### Task V2-A — Schedule 相位
 ```text
-角色：Development AI。遵守 AGENTS.md 与 52 协作规范。
-只做 Vertical Slice 0.2 阶段 V2-A（见 docs/40-process/55-vertical-slice-0.2-plan-v0.1.md）。
-实现 DayPhase + 按 WorldTick 映射；单测相位边界。
+角色：Development AI。遵守 AGENTS.md 与 52。
+只做 VS0.2 V2-A（docs/40-process/55-vertical-slice-0.2-plan-v0.1.md）。
+实现示例日相位映射（06起床/08工/12休/13工/18返/22睡）与单测。
 禁止：地图、战斗、NPC AI、改 Freeze、扩 Demo、进 V2-B。
-完成后：测试 + 文件列表 + 停止等待确认。
+完成后停止等待确认。
 ```
 
-### Task V2-B — Labor Action
+### Task V2-B — Labor／Rest／抽象 Move
 ```text
-只做 V2-B：LaborOrder/LaborAction + DailyLaborPoints/Quota + DomainEvent。
-不接真实库存与地图工位。禁止进 V2-C。
+只做 V2-B：Labor/Rest/抽象 MoveAction + 日任务虚拟点 + DomainEvent。
+无真实库存、无寻路。禁止进 V2-C。
 ```
 
 ### Task V2-C — ScheduleDriver
 ```text
-只做 V2-C：相位驱动入队 Schedule 源 Order；遵守「不打断玩家 Cultivate」规则。
-禁止 PlayerPort 产品化以外的输入层。
+只做 V2-C：Schedule 只灌计划 Order，不是 AI。
+禁止产品 UI、进 V2-D 以外的输入层。
 ```
 
-### Task V2-D — Player Override
+### Task V2-D — PlayerInput 与 Override 代价
 ```text
-只做 V2-D：PlayerCommandPort + 优先级/中断 Labor。
-可对 EditMode 测试直接调 Port。禁止正式 UI 工程。
+只做 V2-D：PlayerInput→Order；玩家优先于 Schedule；
+Override 必须产生时间消耗、任务影响、ExposureRisk 变化。
+禁止直接改状态、禁止进完整修炼。
 ```
 
-### Task V2-E — Day-1 编排整合
+### Task V2-E — Observe 与机会
 ```text
-只做 V2-E：三杂役绑定日程、日始/日终、默认学法、一天整合测。
-偷修走既有 Cultivate。禁止完整暴露三层（除非已批准 V2-F）。
+只做 V2-E：ObserveAction + 抽象 OpportunitySite 发现。
+禁止地图系统、守卫巡逻。
 ```
 
-### Task V2-F — 暴露薄层（仅当批准 §7 推荐项）
+### Task V2-F — CultivationAttempt 接口
 ```text
-只做 PersonalConcealmentRisk 累加与可选敛息草数值。
-禁止 Suspicion/FactionHostility/主管 AI/GameOver。
+只做 V2-F：CultivationAttempt 进入 Action 体系；可适配既有 Cultivate Tick。
+禁止完整突破/境界/功法产品实现；验收不要求突破。
 ```
 
-### Task V2-G — 可选 Host 烟测
+### Task V2-G — 第一天整合
 ```text
-可选：XianXia.Unity 调试按钮驱动 Port + 只读状态。
-不阻塞 VS0.2 逻辑验收；禁止改 Demo Runtime。
+只做 V2-G：三杂役（1 Focus + 2 DirectControl）、性格标签接口、
+DayStarted/Ended、资源/任务/风险/关系接口事件。禁止完整剧情。
+```
+
+### Task V2-H — 可选调试 Host
+```text
+可选：只读观察 + 按钮走 PlayerInput。不阻塞验收。禁止改 Demo Runtime。
 ```
 
 ---
 
-## 11. 待人工确认（编码前）
+## 13. 验收标准
 
-1. **暴露风险：** 采用 §7.2「薄暴露（推荐）」还是本阶段完全不做？  
-2. **学法默认：** 日始自动学会青云诀，还是玩家第一次 Free 时段手动 Learn？  
-   - 建议：日始自动学，减少第一天操作步骤。  
-3. **Labor 验收：** 虚拟点数即可，还是必须挂钩 `item_rough_wood` 库存？  
-   - 建议：虚拟点数；物品库存留到资源切片。  
-4. **日程数据：** 第一刀 Content JSON，还是先测试夹具再迁 Content？  
-   - 建议：先夹具（V2-A）→ V2-E 前迁入 JSON。
-
----
-
-## 12. 与 VS0.1 的关系
-
-| VS0.1 已有 | VS0.2 使用方式 |
-|---|---|
-| Bootstrap 三角色 | 开局直接复用 |
-| Cultivate／Breakthrough | 偷修窗口调用 |
-| Content 功法／角色 | 不改 Freeze；可补 schedule／quota 字段 |
-| 无输入／无日程 | 本切片补齐最小可玩缺口 |
+- [ ] 所有玩家意图均经 `PlayerInput → Order → Action → Result/Event`；无 UI 直改状态  
+- [ ] Schedule 仅提供计划行为；示例日相位可测  
+- [ ] 无 Override 时三人按计划推进上午任务  
+- [ ] Override 相对遵守安排：可测的时间差、任务点差、ExposureRisk 差  
+- [ ] Observe 可揭示（或夹具设定）抽象特殊地点，并允许提交 CultivationAttempt  
+- [ ] CultivationAttempt 走 Action 管道；**不**验收完整突破／功法／境界扩展  
+- [ ] ExposureRisk 0–100；来源含非日程行动／时间异常／（夹具）被发现  
+- [ ] 日终：资源变化、任务完成、风险、关系**接口**事件可断言  
+- [ ] 一 Focus + 两可控制；PersonalityTags 接口存在  
+- [ ] 无战斗／完整 NPC AI／守卫巡逻／外交／占点／城市／地图／Freeze／Demo 污染  
+- [ ] EditMode 整合测 PASS  
 
 ---
 
-## 13. 完成标准（实现并验收后）
+## 14. 明确延期内容（汇总）
 
-- [ ] 三杂役开局并绑定劳役日程  
-- [ ] 无玩家输入时白天自动 Labor，配额可完成  
-- [ ] 玩家可 Override：打断劳役并 Cultivate  
-- [ ] 第一天日始／日终事件可测  
-- [ ] （若批准）暴露薄层在工时／夜修有差异  
-- [ ] 无战斗／地图／NPC AI／Freeze 改动／Demo 污染  
-- [ ] EditMode 整合测 PASS
+见 §10。另延期至后续切片／第一章：
+
+- 秘密修炼完整循环（多日、藏匿点经营、真正突破节奏）  
+- Suspicion／FactionHostility 与主管发现演出  
+- 真资源物流与聚落库存  
+- 关系网真实演算（本切片只留接口事件）  
+- 产品级 UI／镜头／RTS 操作  
+
+---
+
+## 15. 风险点
+
+| 风险 | 影响 | 缓解 |
+|---|---|---|
+| 与 VS0.1「偷修＝完整 Cultivate／突破」预期混淆 | 范围膨胀 | 本文 §8 冻结：本日只做 Attempt 接口 |
+| 「移动／特殊地点」滑向地图系统 | 工期炸 | SiteTag／OpportunitySite 抽象；禁 LocalMap |
+| Override 做成免费成功 | 核心体验第 4 条失败 | V2-D 门禁强制三维代价断言 |
+| ExposureRisk 与 Freeze `PersonalConcealmentRisk` 命名分叉 | 术语债 | 实现时同一数值字段或文档别名表；不改 Freeze 正文 |
+| Schedule「计划」被做成强制 AI | 违背 §4 | Driver 只入队 Order；无效用函数 |
+| 关系／性格接口被做成完整系统 | 超范围 | 只留 Tags + Delta 事件 stub |
+| 复用 CultivateAction 时顺手验收突破 | 违反「不完整修炼」 | 整合测断言不含 Breakthrough |
+
+---
+
+## 16. 编码前确认
+
+范围已按本修订收紧。编码启动前只需：
+
+1. **批准本计划**作为 VS0.2 实施真源（或列出要改的条目）。  
+2. 确认 ExposureRisk **进入**（本文 §9 已采纳）与 CultivationAttempt **仅接口**（§8）无异议。
+
+确认前：**禁止编码。**

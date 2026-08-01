@@ -1,7 +1,8 @@
 # Vertical Slice 0.5 Plan v0.1 — Social／Personality Alpha
 
-> 状态：**执行中**｜最后更新：2026-08-01  
+> 状态：**执行中（V5-A 已完成）**｜最后更新：2026-08-01  
 > 前置：VS0.4 已验收（[61](61-vertical-slice-0.4-acceptance-report.md)）  
+> 进度总表：[62](62-project-status-2026-08-01.md)  
 > 依据：`33` §7、ADR-0017、`2E` §5A、`34`、`27`、`28`  
 > **不改 Freeze 正文；Snapshot 含关系前须停等确认 schema。**
 
@@ -15,8 +16,8 @@
 
 | Phase | 交付 | Commit |
 |---|---|---|
-| V5-0 | 本计划落盘 | `docs: vs0.5 social alpha plan` |
-| V5-A | PersonalityProfileComponent + Bootstrap | `feat(core): vs0.5 phase a personality profile` |
+| V5-0 | 本计划落盘 | `5207037` ✅ |
+| V5-A | PersonalityProfileComponent + Bootstrap | `e443eee` ✅ |
 | V5-B | RelationshipLedger／Service／缓存 | `feat(core): vs0.5 phase b relationship ledger` |
 | V5-C | 开局关系种子 + Help／Slight | `feat(core): vs0.5 phase c opening relations` |
 | V5-D | FactionMembership + RecruitService | `feat(core): vs0.5 phase d recruitment` |

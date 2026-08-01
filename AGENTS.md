@@ -11,12 +11,13 @@
 
 要点：聊天不是真源；重要决定必须进入 Architecture／System Design／ADR／Devlog／Glossary；跨角色冲突时已冻结架构优先。
 
-## 当前阶段：VS0.4 已验收 → 下一步 VS0.5 社会 Alpha
+## 当前阶段：VS0.5 社会 Alpha（V5-A 完成 → V5-B Ledger）
 
 - 主契约：`docs/30-tech/33-architecture-core-rules-freeze-v0.2.md`（**禁止改 Freeze 正文**）
-- VS0.4 Host：验收见 `docs/40-process/61-vertical-slice-0.4-acceptance-report.md`（V4-A～H 已提交）
-- **下一目标：** VS0.5 角色差异／人格／关系／招募／NPC 自主／小规模社会（正式 Core，非 Demo）
-- **纪律：** 每内部 Phase：实现 → 测试 → **单独 commit** → Devlog；不搁置已批准切片
+- 进度总表：`docs/40-process/62-project-status-2026-08-01.md`
+- VS0.4 Host：**已验收** → `61-vertical-slice-0.4-acceptance-report.md`
+- VS0.5 计划：`60-vertical-slice-0.5-social-alpha-plan-v0.1.md`；**V5-A 人格已提交**；下一步 V5-B RelationshipLedger
+- **纪律：** 每内部 Phase：实现 → 测试 → **单独 commit** → Devlog
 - 硬停：改 Freeze／Snapshot 契约／Core·Data 边界／大型未设计系统／需人工定规则
 - Host：只适配输入／表现；Demo Runtime **只读参考**；禁迁玩法；禁改 ProjectSettings／Packages／Freeze
 
