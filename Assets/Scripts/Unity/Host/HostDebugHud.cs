@@ -40,11 +40,16 @@ namespace XianXia.Unity.Host
         public HostHudSnapshot Refresh()
         {
             var focus = EntityId.None;
+            var peer = EntityId.None;
             if (selectionController != null && selectionController.State.Count > 0)
+            {
                 focus = selectionController.State.SelectedIds[0];
+                if (selectionController.State.Count > 1)
+                    peer = selectionController.State.SelectedIds[1];
+            }
 
             var session = bootstrap != null ? bootstrap.Session : null;
-            _last = HostHudSnapshot.Capture(session, focus, _speedMultiplier);
+            _last = HostHudSnapshot.Capture(session, focus, _speedMultiplier, peer);
             return _last;
         }
 
@@ -62,8 +67,8 @@ namespace XianXia.Unity.Host
             Refresh();
             var text = _last.ToDebugText();
             const float pad = 8f;
-            var width = 420f;
-            var height = 140f;
+            var width = 460f;
+            var height = 210f;
             var rect = new Rect(pad, Screen.height - height - pad, width, height);
             GUI.Box(rect, "PlayableHost HUD (F1)");
             GUI.Label(new Rect(rect.x + 8f, rect.y + 22f, rect.width - 16f, rect.height - 28f), text);

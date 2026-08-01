@@ -7,11 +7,12 @@ using XianXia.Core.Entities;
 using XianXia.Core.Labor;
 using XianXia.Core.Opportunity;
 using XianXia.Core.Schedule;
+using XianXia.Core.Social;
 
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// VS0.4 Phase E: read-only HUD snapshot from Core. No mutations.
+    /// Read-only HUD snapshot from Core. VS0.6 adds thin social readout.
     /// </summary>
     public sealed class HostHudSnapshot
     {
@@ -23,6 +24,7 @@ namespace XianXia.Unity.Host
         public int SpeedMultiplier { get; private set; }
         public string FocusName { get; private set; } = "-";
         public string FocusId { get; private set; } = "-";
+        public string FocusKind { get; private set; } = "-";
         public string ActionLine { get; private set; } = "none";
         public string ScheduleLine { get; private set; } = "none";
         public string QuotaLine { get; private set; } = "-";
@@ -30,11 +32,15 @@ namespace XianXia.Unity.Host
         public string RealmLine { get; private set; } = "-";
         public bool PendingReprimand { get; private set; }
         public int KnownSites { get; private set; }
+        public string PersonalityLine { get; private set; } = "-";
+        public string FactionLine { get; private set; } = "-";
+        public string RelationLine { get; private set; } = "-";
 
         public static HostHudSnapshot Capture(
             PlayableHostSession session,
             EntityId focusId,
-            int speedMultiplier)
+            int speedMultiplier,
+            EntityId relationPeerId = default)
         {
             var snap = new HostHudSnapshot
             {
@@ -59,12 +65,16 @@ namespace XianXia.Unity.Host
 
             snap.FocusId = focusId.ToString();
             snap.FocusName = string.IsNullOrEmpty(entity.DisplayName) ? snap.FocusId : entity.DisplayName;
+            snap.FocusKind = (entity.Tags & EntityTag.Npc) != 0 ? "Npc" : "Character";
             snap.ActionLine = FormatAction(session, entity);
             snap.ScheduleLine = FormatSchedule(session, entity, session.World.Tick);
             FormatQuota(entity, snap);
             snap.Risk = entity.TryGet<PersonalConcealmentRiskComponent>(out var risk) ? risk.Value : 0;
             snap.RealmLine = FormatRealm(entity);
             snap.KnownSites = entity.TryGet<KnownSitesComponent>(out var sites) ? sites.KnownIds.Count : 0;
+            snap.PersonalityLine = FormatPersonality(entity);
+            snap.FactionLine = FormatFaction(entity);
+            snap.RelationLine = FormatRelation(session, focusId, relationPeerId);
             return snap;
         }
 
@@ -73,13 +83,18 @@ namespace XianXia.Unity.Host
             if (!Ready)
                 return "HUD: session not ready";
 
-            var sb = new StringBuilder(256);
+            var sb = new StringBuilder(384);
             sb.Append("Day ").Append(DayIndex)
                 .Append(" Hour ").Append(HourOfDay)
                 .Append(" (tickInDay=").Append(TickInDay).Append(')')
                 .Append(Paused ? " PAUSED" : " RUN")
                 .Append(' ').Append(SpeedMultiplier).Append('x').Append('\n');
-            sb.Append("Focus: ").Append(FocusName).Append(" [").Append(FocusId).Append("]\n");
+            sb.Append("Focus: ").Append(FocusName)
+                .Append(" [").Append(FocusId).Append("] ")
+                .Append(FocusKind).Append('\n');
+            sb.Append("Personality: ").Append(PersonalityLine).Append('\n');
+            sb.Append("Relation: ").Append(RelationLine).Append('\n');
+            sb.Append("Faction: ").Append(FactionLine).Append('\n');
             sb.Append("Action: ").Append(ActionLine).Append('\n');
             sb.Append("Schedule: ").Append(ScheduleLine).Append('\n');
             sb.Append("Quota: ").Append(QuotaLine).Append('\n');
@@ -89,6 +104,38 @@ namespace XianXia.Unity.Host
             if (PendingReprimand)
                 sb.Append("  REPRIMAND");
             return sb.ToString();
+        }
+
+        static string FormatPersonality(Entity entity)
+        {
+            if (!entity.TryGet<PersonalityProfileComponent>(out var profile) || profile.Count == 0)
+                return "(none)";
+            var sb = new StringBuilder();
+            foreach (var tag in profile.Tags)
+            {
+                if (sb.Length > 0)
+                    sb.Append(", ");
+                sb.Append(tag);
+            }
+
+            return sb.ToString();
+        }
+
+        static string FormatFaction(Entity entity)
+        {
+            if (!entity.TryGet<FactionMembershipComponent>(out var mem) || !mem.IsAffiliated)
+                return "(none)";
+            return mem.FactionId + " / " + mem.Role;
+        }
+
+        static string FormatRelation(PlayableHostSession session, EntityId focusId, EntityId peerId)
+        {
+            if (peerId.IsNone || peerId == focusId)
+                return "(select peer to compare)";
+
+            var towardPeer = session.World.Relationships.Score(focusId, peerId);
+            var towardFocus = session.World.Relationships.Score(peerId, focusId);
+            return "me→peer=" + towardPeer + " peer→me=" + towardFocus + " peer=" + peerId.Value;
         }
 
         static string FormatAction(PlayableHostSession session, Entity entity)
