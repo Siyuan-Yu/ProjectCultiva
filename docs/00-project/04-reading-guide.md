@@ -39,8 +39,9 @@
 | 6 | [Modifier](../20-systems/2C-attributes-and-modifier-pipeline.md) → [事件与账本](../20-systems/2E-events-and-world-state.md) | 数值与因果记账 |
 | 7 | [时间](../20-systems/21-core-loop-and-time.md) → [地图](../20-systems/24-world-and-settlements.md) → [关系](../20-systems/28-jianghu-relations.md) | 双时间、三层地图、关系真源 |
 | 8 | [第一章](../20-systems/2G-first-chapter-flow.md) → [开局](../20-systems/20-opening-experience.md) → [义务隐匿](../20-systems/2F-obligation-and-concealment.md) | 开局 Membership 与体验弧 |
-| 9 | [路线图](../40-process/41-roadmap.md) → [Core M1（已完成）](../40-process/51-core-milestone-1-implementation-plan-v0.2.md) → [Data Pipeline v0.2](../40-process/53-data-pipeline-milestone-1-plan-v0.2.md) | 下一步边界 |
-| 10 | 其余系统按总览索引按需深读 | 战斗／功法／领地等 |
+| 9 | [路线图](../40-process/41-roadmap.md) → [VS 0.1 验收](../40-process/54-vertical-slice-0.1-acceptance-report.md) → [VS 0.2 计划](../40-process/55-vertical-slice-0.2-plan-v0.1.md) | 已完成边界与下一步（确认前不编码） |
+| 10 | [Core M1（已完成）](../40-process/51-core-milestone-1-implementation-plan-v0.2.md)／[Data Pipeline（已实现）](../40-process/53-data-pipeline-milestone-1-plan-v0.2.md) | 骨架与数据管线 |
+| 11 | 其余系统按总览索引按需深读 | 战斗／功法／领地等 |
 
 ## 3. 按角色的最短路径
 
@@ -48,7 +49,7 @@
 |---|---|
 | 负责人通读方案 | 总览 → 术语 → `33` → ADR 索引 → 第一章 → 路线图 |
 | 玩法策划 | 总览 → `2G`／`20`／`21`／`22`／`24`／`28`／`2F` |
-| 程序准备开 Core | `33` → `34`／`35`／`2C`／`2E`／`36` → ADR-0022 |
+| 程序准备开 Core／切片 | `33` → `54` 验收 → `55`（若做 VS0.2）→ `34`／`35`／`2C`／`36` |
 | 只看 Demo | `45`～`49`；正式语义以 `32`＋`33` 为准 |
 
 ## 4. 状态怎么读

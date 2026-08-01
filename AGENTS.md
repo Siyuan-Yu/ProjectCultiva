@@ -14,7 +14,9 @@
 ## 当前阶段：Vertical Slice 0.2 规划中（不编码）
 
 - 主契约：`docs/30-tech/33-architecture-core-rules-freeze-v0.2.md`（**禁止改 Freeze 正文**）
-- VS 0.1：**已验收**（见 `54-vertical-slice-0.1-acceptance-report.md`）
+- VS 0.1：**已验收**（`docs/40-process/54-vertical-slice-0.1-acceptance-report.md`）
+- Data Pipeline M1：**已完成**（`53` v0.2；M1-A／M1-B）
+- Cultivation Slice 0.1：**已完成**（凡人→炼气）
 - 当前计划：`docs/40-process/55-vertical-slice-0.2-plan-v0.1.md` — **确认前不编码**
 - Demo／ProjectSettings／Packages 禁擅改；无战斗／完整 NPC AI／地图
 
@@ -26,9 +28,10 @@
 4. `docs/00-project/00-overview.md`
 5. `docs/00-project/03-glossary.md`
 6. `33` **v0.2**
-7. Core M1 Plan v0.2（已完成）／**Data Pipeline Plan v0.2**（已批准，等编码任务）
-8. `36` ContentPackage、`2C`／相关系统（数据阶段）
-9. `42-devlog.md` 最新 2～3 条
+7. [VS 0.1 验收](docs/40-process/54-vertical-slice-0.1-acceptance-report.md) → [VS 0.2 计划](docs/40-process/55-vertical-slice-0.2-plan-v0.1.md)（待确认）
+8. Core M1 Plan v0.2（已完成）／Data Pipeline Plan v0.2（**已实现**）
+9. `36` ContentPackage、`2C`／相关系统
+10. `42-devlog.md` 最新 2～3 条
 
 ## 硬性规则（摘要）
 

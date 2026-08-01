@@ -356,6 +356,11 @@
       "title": "Data Pipeline Milestone 1 计划 v0.1（已取代）",
       "docId": "Ww6XdKqwnoB2WNxbxIkc7yhwnGg"
     },
+    "vs01-acceptance": {
+      "file": "docs/40-process/54-vertical-slice-0.1-acceptance-report.md",
+      "title": "Vertical Slice 0.1 验收报告",
+      "docId": ""
+    },
     "vs02-plan": {
       "file": "docs/40-process/55-vertical-slice-0.2-plan-v0.1.md",
       "title": "Vertical Slice 0.2 计划 v0.1",

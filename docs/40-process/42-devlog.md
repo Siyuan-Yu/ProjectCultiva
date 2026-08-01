@@ -7,9 +7,57 @@
 
 ---
 
+## 2026-08-01 — 文档同步（VS 0.1 完成链）
+
+将已完成的 Data Pipeline M1／Bootstrap／Cultivation／验收状态写回过程文档：`53` 完成标准勾选与命名落地说明、`AGENTS`／通读指南／`34` 组件实现注记；入库未跟踪的 `55` VS0.2 计划草案；补本条之前缺失的专条（见下）。**不编码。**
+
 ## 2026-08-01 — Vertical Slice 0.2 规划草案（不编码）
 
 新增 [`55-vertical-slice-0.2-plan-v0.1.md`](55-vertical-slice-0.2-plan-v0.1.md)：杂役第一天闭环——输入→Order、最小 Schedule、Player Override、三角色、日流程、偷修接入、暴露是否进切片、不做清单、V2-A～G 与 Cursor 任务模板。
+
+## 2026-08-01 — Vertical Slice 0.1 验收
+
+**判断：** Core／Data／Bootstrap／Cultivation 闭环已足以作为下一「可感杂役日」切片的底座；产品可玩性仍缺输入／工作／日程／地图。
+
+**做了什么**
+- 验收报告 [`54-vertical-slice-0.1-acceptance-report.md`](54-vertical-slice-0.1-acceptance-report.md)
+- 架构观察：Cultivation vs Manual 命名、WorldLayout 存档、境界／Progress 语义待 ADR
+- EditMode 门禁（Cultivation 完成后）：**73/73**
+
+**下一步：** VS 0.2 规划确认前不编码。
+
+## 2026-08-01 — Cultivation Slice 0.1：凡人→炼气闭环
+
+**判断：** 修炼必须走 Order→Action→ActionClock；突破事件可观测；Snapshot 须恢复 Progress／Realm。
+
+**做了什么**
+- `CultivationComponent`／`CultivationService`／`CultivateAction`／`EventType.Breakthrough`
+- `RealmStage`：仅 Mortal／QiRefining
+- 青云诀 `base:cultivation_qingyun_manual`（Speed／BreakthroughProgress／Modifiers）
+- 学法 → 修炼 → 突破 → Snapshot 中途／完成后一致
+- Commit：`64cb3ab` `feat(core): cultivation vertical slice`
+
+**不做：** 多境界、天劫、丹药、洞府、战斗。
+
+## 2026-08-01 — Vertical Slice 0.1 Bootstrap
+
+**判断：** 开局只需数据结构 + 三角色 Entity + 初始化事件；不是地图／工作玩法。
+
+**做了什么**
+- `WorldInitData`（Region／LocalMap／Settlement 占位）
+- `GameStartBootstrap`／`ContentGameStart`
+- 角色 Definition：protagonist／companion_a／companion_b（性格 Tag、灵根／境界占位）
+- Commit：`6897807` `feat(core): prepare vertical slice 0.1 bootstrap`
+
+## 2026-08-01 — Data Pipeline M1-B：CSV→JSON 校验导入
+
+**判断：** CSV 只作 Authoring；失败必须阻断写盘并给出 ValidationReport。
+
+**做了什么**
+- `CsvDefinitionImporter`／`SimpleCsv`（无 Excel 库）
+- 校验：重复 ID、非法 ID、缺必填、`requiredRealm` 形如 DefinitionId 时引用必须存在
+- Authoring：`Content/BaseGame/Authoring/Csv/*.csv`
+- Commit：`90f89ea` `feat(data): complete data pipeline m1-b import validation`
 
 ## 2026-08-01 — Data Pipeline M1-A：三类 Definition 加载
 
@@ -20,16 +68,15 @@
 - 严格未知字段／重复 ID／非法 DefinitionId  
 - `characters.json`／`cultivation.json`／`items.json` + SCHEMA.md  
 - EditMode：`ContentPackageTests` 覆盖加载与阻断路径  
+- Commit：`3ee16e1` `feat(data): complete data pipeline m1-a definitions`
 
-**测试：** 需在编辑器 Test Runner 跑 EditMode（本机 Unity 占用工程时无法 batchmode）。
-
-**下一步：** 等确认后再进 M1-B（不自动开始）。
+**说明：** 实现文件名为 `cultivation.json`／`CultivationDefinition`（与计划草案中的 Manual／manuals 用词并存；以代码与 SCHEMA 为准，待 ADR 统一术语）。
 
 ## 2026-08-01 — Data Pipeline M1 计划批准（v0.2）
 
 **确认：** JSON 运行时为主、CSV 辅助、Excel 仅编辑源；严格未知字段／重复 ID／非法引用；不实现完整 Localization（预留 NameKey）；Modifier 规则与计算在 Core，Data 只提供配置。
 
-**下一步：** 另开编码任务后再 D1～D5；当前不编码。
+**后续：** 编码已完成（见上 M1-A／M1-B 专条）；计划正文完成标准已勾选。
 
 ## 2026-08-01 — Core Milestone 1 验收完成（收尾）
 
@@ -52,8 +99,8 @@
 - 双时间职责可测；Modifier 可溯源；业务失败走 Result；存档可恢复 Tick／Action／PRNG／Final
 - Demo Runtime 未迁入、未扩展
 
-**下一步**
-- Data Pipeline M1 规划：`53-data-pipeline-milestone-1-plan-v0.1.md`（确认前不编码）
+**下一步（当时）**
+- Data Pipeline M1 → 其后 VS Bootstrap／Cultivation（均已完成，见上方专条）
 
 ## 2026-08-01 — Core M1 阶段 10 Snapshot＋整合烟测完成
 

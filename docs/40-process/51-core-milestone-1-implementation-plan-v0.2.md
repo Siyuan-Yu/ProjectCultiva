@@ -5,7 +5,7 @@
 > 依据：`33` v0.2 §17、`34`、`35`、`36`、`2C`、`2E`、ADR-0022、`31`  
 > 上级：[路线图](41-roadmap.md)｜[通读指南](../00-project/04-reading-guide.md)  
 > 旧版：[v0.1](51-core-milestone-1-implementation-plan-v0.1.md)（已被本文件取代）  
-> 后续：[Data Pipeline M1 计划 v0.1](53-data-pipeline-milestone-1-plan-v0.1.md)
+> 后续：[Data Pipeline M1 计划 v0.2](53-data-pipeline-milestone-1-plan-v0.2.md)（**已实现**）｜[VS 0.1 验收](54-vertical-slice-0.1-acceptance-report.md)
 
 ## 0. 文档目的
 

@@ -99,7 +99,7 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 | [Core M1 实施计划 v0.2](../40-process/51-core-milestone-1-implementation-plan-v0.2.md) | **已完成验收** |
 | [VS 0.1 验收](../40-process/54-vertical-slice-0.1-acceptance-report.md) | 已通过 |
 | [VS 0.2 计划 v0.1](../40-process/55-vertical-slice-0.2-plan-v0.1.md) | **杂役第一天（待确认）** |
-| [Data Pipeline M1 计划 v0.2](../40-process/53-data-pipeline-milestone-1-plan-v0.2.md) | 已批准并落地前置 |
+| [Data Pipeline M1 计划 v0.2](../40-process/53-data-pipeline-milestone-1-plan-v0.2.md) | **已实现**（M1-A／M1-B） |
 | [ADR 决策索引](../40-process/43-decisions/README.md) | 全部已采纳决策 |
 
 **架构文档：**

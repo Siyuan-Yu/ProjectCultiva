@@ -27,14 +27,18 @@
 - [x] Git：`1688187` … `e8340da`（含整合测与 meta）
 - [x] **未做（按范围）：** 跨 Region 离屏、完整势力领导、真战斗、完整 NPC AI、Mods/ 加载、大地图战争、扩 Demo
 
-### Data Pipeline Milestone 1
+### Data Pipeline Milestone 1 — **Completed**
 
-- [x] 规划 v0.2 已批准并编码推进（见验收链）
-- [x] M1-A／M1-B（随 VS0.1 前置完成）
+- [x] 规划 v0.2 已批准并编码（[53…v0.2](53-data-pipeline-milestone-1-plan-v0.2.md)）
+- [x] M1-A Definitions：`3ee16e1`
+- [x] M1-B CSV 导入校验：`90f89ea`
+- [x] 完成标准已在 `53` §9 勾选
 
 ### Vertical Slice 0.1 — **Completed**
 
-- [x] Bootstrap + Cultivation Slice；验收报告 [54](54-vertical-slice-0.1-acceptance-report.md)
+- [x] Bootstrap：`6897807`
+- [x] Cultivation Slice：`64cb3ab`
+- [x] 验收报告 [54](54-vertical-slice-0.1-acceptance-report.md)；EditMode **73/73**（Cultivation 完成后）
 
 ### Vertical Slice 0.2（杂役第一天）
 

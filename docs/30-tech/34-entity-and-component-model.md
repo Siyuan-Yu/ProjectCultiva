@@ -76,7 +76,7 @@
 
 | 模块 | 典型用途 |
 |---|---|
-| `CultivationComponent` | 修为、功法槽、灵力池、突破状态 |
+| `CultivationComponent` | **已实现（Slice 0.1 子集）：** Realm（Mortal／QiRefining）、Progress、LearnedManual、Speed／突破阈值；**不是**完整功法槽／灵力池／多境界系统 |
 | `CombatComponent` | 战斗属性派生入口、技能栏、交战状态 |
 | `WorkComponent` | 工作熟练、当前工位预约 |
 | `ScheduleComponent` | 身份时间表绑定与遵守状态 |
@@ -227,6 +227,8 @@ Unity 层可维护 `EntityId → GameObject` 的表现映射表，**单向**，�
 | 禁止依赖 UnityEngine | 画面、动画、音效、镜头、导航表现、UI |
 
 ## 9. 仍待确定（不阻断形状冻结）
+
+**待 ADR（不在本文展开）：** 见 [VS 0.1 验收 §3.3](../40-process/54-vertical-slice-0.1-acceptance-report.md)——Cultivation／Manual 命名、WorldLayout 存档、境界扩展纪律、Progress 语义。
 
 - [ ] Building／Settlement／Faction 的最小组件清单细则
 - [ ] Party 与多队伍存档结构字段表
