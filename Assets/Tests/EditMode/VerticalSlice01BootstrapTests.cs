@@ -34,7 +34,9 @@ namespace XianXia.Tests
             var result = new ContentGameStart().StartVerticalSlice01(BaseGamePath);
             Assert.IsTrue(result.IsSuccess, result.IsFailure ? result.Error.ToString() : "");
             Assert.AreEqual(3, result.Value.CharacterIds.Count);
-            Assert.AreEqual(3, result.Value.World.Entities.Count);
+            // VS0.7: scenario also spawns recruitable Npc.
+            Assert.AreEqual(4, result.Value.World.Entities.Count);
+            Assert.AreEqual(1, result.Value.NpcIds.Count);
 
             Assert.IsTrue(result.Value.World.Entities.All.Any(e =>
                 e.DefinitionId.Equals(new DefinitionId("base", "character_protagonist"))));
@@ -42,6 +44,8 @@ namespace XianXia.Tests
                 e.DefinitionId.Equals(new DefinitionId("base", "character_companion_a"))));
             Assert.IsTrue(result.Value.World.Entities.All.Any(e =>
                 e.DefinitionId.Equals(new DefinitionId("base", "character_companion_b"))));
+            Assert.IsTrue(result.Value.World.Entities.All.Any(e =>
+                e.DefinitionId.Equals(new DefinitionId("base", "character_village_recruit"))));
         }
 
         [Test]
@@ -50,7 +54,7 @@ namespace XianXia.Tests
             var result = new ContentGameStart().StartVerticalSlice01(BaseGamePath);
             Assert.IsTrue(result.IsSuccess, result.IsFailure ? result.Error.ToString() : "");
             var events = result.Value.World.Events.Drain();
-            Assert.AreEqual(3, events.Count(e => e.Type == EventType.EntityCreated));
+            Assert.AreEqual(4, events.Count(e => e.Type == EventType.EntityCreated));
             Assert.AreEqual(1, events.Count(e => e.Type == EventType.WorldInitialized));
         }
 
@@ -68,7 +72,7 @@ namespace XianXia.Tests
 
             var restored = service.RestoreJson(json.Value, expectedPackageVersion: world.EnabledPackageVersion);
             Assert.IsTrue(restored.IsSuccess, restored.IsFailure ? restored.Error.ToString() : "");
-            Assert.AreEqual(3, restored.Value.Item1.Entities.Count);
+            Assert.AreEqual(4, restored.Value.Item1.Entities.Count);
             Assert.IsTrue(restored.Value.Item1.Entities.All.Any(e =>
                 e.DefinitionId.Equals(new DefinitionId("base", "character_protagonist"))));
         }
