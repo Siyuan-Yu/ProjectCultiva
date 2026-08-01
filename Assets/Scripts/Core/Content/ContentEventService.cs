@@ -55,6 +55,39 @@ namespace XianXia.Core.Content
             return Result.Success();
         }
 
+        /// <summary>
+        /// Present a specific content event by id. When <paramref name="force"/>,
+        /// skip once／condition gates (debug／day-beat authoring aids).
+        /// </summary>
+        public Result TryPresentById(
+            SimulationWorld world,
+            EntityId subject,
+            string eventId,
+            bool force = false)
+        {
+            if (world == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "World null.");
+            if (world.ContentEvents.HasActive)
+                return Result.Success();
+            if (!world.ContentEvents.TryGet(eventId, out var spec))
+                return Result.Failure(ErrorCode.NotFound, "Content event missing.", eventId);
+            if (!force)
+            {
+                if (spec.Once && world.ContentEvents.HasFired(spec.Id))
+                    return Result.Success();
+                if (!ContentConditionEvaluator.AllPass(world, subject, spec.Conditions))
+                    return Result.Success();
+            }
+
+            world.ContentEvents.SetActive(spec.Id);
+            world.Events.Publish(
+                EventType.ContentEventPresented,
+                world.Tick,
+                target: subject,
+                payload: spec.Id + (force ? ";force=1" : ""));
+            return Result.Success();
+        }
+
         public Result ResolveChoice(SimulationWorld world, EntityId subject, string choiceId)
         {
             if (world == null)

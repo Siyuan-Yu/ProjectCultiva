@@ -49,7 +49,13 @@ namespace XianXia.Core.Events
         /// <summary>Content Ready: content event presented to player (session).</summary>
         ContentEventPresented = 26,
         /// <summary>Content Ready: content event choice resolved (session).</summary>
-        ContentEventResolved = 27
+        ContentEventResolved = 27,
+        /// <summary>Chapter Production: story／content flag changed (session).</summary>
+        StoryFlagChanged = 28,
+        /// <summary>Chapter Production: chapter activated (session).</summary>
+        ChapterActivated = 29,
+        /// <summary>Chapter Production: chapter day beat applied (session).</summary>
+        ChapterDayBeatApplied = 30
     }
 }
 

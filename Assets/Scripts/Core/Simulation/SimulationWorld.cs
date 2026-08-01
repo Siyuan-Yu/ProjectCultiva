@@ -47,6 +47,7 @@ namespace XianXia.Core.Simulation
             Flags = new WorldFlagBoard();
             Quests = new QuestBoard();
             ContentEvents = new ContentEventBoard();
+            Chapters = new ChapterBoard();
             Tick = WorldTick.Zero;
             EnabledPackageId = "base";
             EnabledPackageVersion = "0.0.1-m1";
@@ -92,6 +93,12 @@ namespace XianXia.Core.Simulation
 
         /// <summary>Content Ready: content events (session-only; not in Snapshot v1).</summary>
         public ContentEventBoard ContentEvents { get; }
+
+        /// <summary>Chapter Production: active chapter＋beats (session-only; not in Snapshot v1).</summary>
+        public ChapterBoard Chapters { get; }
+
+        /// <summary>Alias for story／content flags (same board as <see cref="Flags"/>).</summary>
+        public WorldFlagBoard StoryFlags => Flags;
 
         public IReadOnlyDictionary<string, ScheduleDefinition> Schedules => _schedules;
 

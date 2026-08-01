@@ -38,8 +38,10 @@ namespace XianXia.Core.Content
                            eLoc.TryGet<EntityLocationComponent>(out var loc) &&
                            string.Equals(loc.LocationId, c.Id, StringComparison.Ordinal);
                 case "hasflag":
+                case "storyflag":
                     return world.Flags.Has(c.Id);
                 case "missingflag":
+                case "missingstoryflag":
                     return !world.Flags.Has(c.Id);
                 case "realmatleast":
                     return world.Entities.TryGet(subject, out var eRealm) &&

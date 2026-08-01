@@ -37,10 +37,12 @@ namespace XianXia.Core.Content
             switch (o.Kind.Trim().ToLowerInvariant())
             {
                 case "setflag":
-                    world.Flags.Set(o.Id);
+                case "setstoryflag":
+                    StoryFlagService.Set(world, o.Id, subject);
                     return Result.Success();
                 case "clearflag":
-                    world.Flags.Clear(o.Id);
+                case "clearstoryflag":
+                    StoryFlagService.Clear(world, o.Id, subject);
                     return Result.Success();
                 case "addstock":
                     if (!world.Settlements.TryGetPrimary(out var settlement))

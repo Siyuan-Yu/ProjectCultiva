@@ -97,7 +97,7 @@ namespace XianXia.Core.Exploration
                 }
             }
 
-            world.Flags.Set(ContentConditionEvaluator.ExploredFlag(location.Id));
+            StoryFlagService.Set(world, ContentConditionEvaluator.ExploredFlag(location.Id), subject);
 
             world.Events.Publish(
                 EventType.LocationExplored,
