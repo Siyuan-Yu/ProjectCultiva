@@ -95,17 +95,17 @@ Demo Runtime **继续冻结**（只读参考，不迁玩法）。关系入 Snaps
 
 ## 6. 测试门禁（截至本页）
 
-- EditMode：含 Host／Personality 在内 **全绿**（近期跑通约 132 cases；以本地 `tools/run-editmode-tests.ps1` 为准）。  
+- EditMode：**151/151 全绿**（含 VS0.4 Host + VS0.5 Social Alpha；`tools/run-editmode-tests.ps1`）。  
 - PlayMode：Host 选择／命令烟测保持绿。  
-- Snapshot：`WorldSnapshot.CurrentSchemaVersion = 1` **未升版**。
+- Snapshot：`WorldSnapshot.CurrentSchemaVersion = 1` **未升版**（关系／人格／隶属尚未入档）。
 
 ---
 
 ## 7. 下一步（开发）
 
-1. **V5-B** RelationshipLedger／RelationshipService／RelationshipComponent（缓存只读）。  
-2. 串行 V5-C～G；每 Phase 独立 commit＋Devlog。  
-3. 关系需要进存档时：**先停**，确认 Snapshot schema 升级方案后再做。
+1. **VS0.5 已验收**；下一切片方向待定。  
+2. 若要关系／人格／隶属进 Snapshot：**先停**，确认 schema 升级方案后再做（V5-H 可选）。  
+3. Content Authoring Tool：可招 NPC／关系种子不宜继续软编码膨胀。
 
 ---
 
@@ -126,6 +126,7 @@ Demo Runtime **继续冻结**（只读参考，不迁玩法）。关系入 Snaps
 | 策划总览 | https://my.feishu.cn/docx/Oowtd4tyRoQBuxxMiBIcEkSbnBc |
 | VS0.4 验收 | https://my.feishu.cn/docx/MK2gdVR5korKBrx8cLBctqmQnfc |
 | VS0.5 计划 | https://my.feishu.cn/docx/BzFidWf30oHWmXxphZzcJxk0nmf |
+| VS0.5 验收 | https://my.feishu.cn/docx/KK54d38O9oI81LxdpRqcmUWJnFc |
 | 路线图 | https://my.feishu.cn/docx/Kj1odxkhBoa4YmxBCrYcYgn3n4e |
 | 开发日志 | https://my.feishu.cn/docx/JOrrdevURodYaoxhTZGcamFAnQd |
 

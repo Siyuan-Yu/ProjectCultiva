@@ -410,6 +410,11 @@
       "file": "docs/20-systems/2I-huangcun-labor-phase-narrative-v0.1.md",
       "title": "系统 2I 荒村杂役阶段叙事 v0.1",
       "docId": "O3BedlSzloaJeLxGBF5can9znAf"
+    },
+    "vs05-acceptance": {
+      "file": "docs/40-process/63-vertical-slice-0.5-alpha-acceptance.md",
+      "title": "Vertical Slice 0.5 社会 Alpha 验收报告",
+      "docId": "KK54d38O9oI81LxdpRqcmUWJnFc"
     }
   }
 }
