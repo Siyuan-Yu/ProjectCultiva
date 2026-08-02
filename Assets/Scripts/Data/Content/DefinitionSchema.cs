@@ -44,7 +44,22 @@ namespace XianXia.Data.Content
         {
             "id", "name", "kind", "adjacentIds", "resourceOnExploreId", "resourceOnExploreAmount",
             "opportunitySiteId", "residentNpcDefinitionId", "presentationX", "presentationZ",
-            "enterConditions", "questOfferIds"
+            "enterConditions", "questOfferIds", "tags", "allowedActivities"
+        };
+
+        public static readonly HashSet<string> WorkAreaFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "locationId", "tags", "allowedActivities", "offsetX", "offsetZ"
+        };
+
+        public static readonly HashSet<string> JobFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "primaryWorkAreaId", "activityBindings"
+        };
+
+        public static readonly HashSet<string> JobActivityBindingFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "activity", "workAreaIds", "mode"
         };
 
         public static readonly HashSet<string> QuestFields = new HashSet<string>(StringComparer.Ordinal)
@@ -77,7 +92,7 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> OpeningSpawnFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "definitionId", "entityKind", "displayName", "assignOpeningFaction", "factionRole",
-            "bindSchedule", "bindDailyTask", "recruitable", "workRole", "scheduleId", "aiRole"
+            "bindSchedule", "bindDailyTask", "recruitable", "workRole", "scheduleId", "aiRole", "jobId"
         };
 
         public static readonly HashSet<string> ResourceFields = new HashSet<string>(StringComparer.Ordinal)

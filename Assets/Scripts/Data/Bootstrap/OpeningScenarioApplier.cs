@@ -6,6 +6,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Labor;
 using XianXia.Core.Opportunity;
 using XianXia.Core.Results;
+using XianXia.Core.Npc;
 using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
@@ -82,6 +83,7 @@ namespace XianXia.Data.Bootstrap
                 }
 
                 ApplyAiRole(world, entity, entry.AiRole);
+                ApplyJob(world, entity, entry.JobId);
             }
 
             var relations = SeedOpeningRelations(world, scenario, lookup);
@@ -173,6 +175,24 @@ namespace XianXia.Data.Bootstrap
             }
 
             return Enum.TryParse(text.Trim(), ignoreCase: true, out role) && role != FactionRoleKind.None;
+        }
+
+        static void ApplyJob(SimulationWorld world, Entity entity, string jobIdText)
+        {
+            if (string.IsNullOrWhiteSpace(jobIdText) || entity == null)
+                return;
+            if (world != null && !world.TryGetJob(jobIdText.Trim(), out _))
+                return;
+
+            if (!entity.TryGet<JobComponent>(out var job))
+            {
+                job = new JobComponent();
+                var added = entity.AddComponent(job);
+                if (added.IsFailure)
+                    return;
+            }
+
+            job.Assign(jobIdText.Trim());
         }
 
         static void ApplyAiRole(SimulationWorld world, Entity entity, string aiRoleText)

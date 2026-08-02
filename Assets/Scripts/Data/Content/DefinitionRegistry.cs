@@ -30,6 +30,10 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, ContentEventDefinition>();
         readonly Dictionary<DefinitionId, ChapterDefinition> _chapters =
             new Dictionary<DefinitionId, ChapterDefinition>();
+        readonly Dictionary<DefinitionId, WorkAreaContentDefinition> _workAreas =
+            new Dictionary<DefinitionId, WorkAreaContentDefinition>();
+        readonly Dictionary<DefinitionId, JobContentDefinition> _jobs =
+            new Dictionary<DefinitionId, JobContentDefinition>();
 
         public IReadOnlyDictionary<DefinitionId, CharacterDefinition> Characters => _characters;
         public IReadOnlyDictionary<DefinitionId, CultivationDefinition> Cultivations => _cultivations;
@@ -43,6 +47,8 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, QuestDefinition> Quests => _quests;
         public IReadOnlyDictionary<DefinitionId, ContentEventDefinition> ContentEvents => _contentEvents;
         public IReadOnlyDictionary<DefinitionId, ChapterDefinition> Chapters => _chapters;
+        public IReadOnlyDictionary<DefinitionId, WorkAreaContentDefinition> WorkAreas => _workAreas;
+        public IReadOnlyDictionary<DefinitionId, JobContentDefinition> Jobs => _jobs;
 
         public bool ContainsId(DefinitionId id) =>
             _characters.ContainsKey(id) ||
@@ -56,7 +62,9 @@ namespace XianXia.Data.Content
             _worldRegions.ContainsKey(id) ||
             _quests.ContainsKey(id) ||
             _contentEvents.ContainsKey(id) ||
-            _chapters.ContainsKey(id);
+            _chapters.ContainsKey(id) ||
+            _workAreas.ContainsKey(id) ||
+            _jobs.ContainsKey(id);
 
         public Result RegisterCharacter(CharacterDefinition definition)
         {
@@ -142,6 +150,20 @@ namespace XianXia.Data.Content
             return Register(_chapters, definition, definition.Id);
         }
 
+        public Result RegisterWorkArea(WorkAreaContentDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "WorkAreaContentDefinition is null.");
+            return Register(_workAreas, definition, definition.Id);
+        }
+
+        public Result RegisterJob(JobContentDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "JobContentDefinition is null.");
+            return Register(_jobs, definition, definition.Id);
+        }
+
         public bool TryGetCharacter(DefinitionId id, out CharacterDefinition definition) =>
             _characters.TryGetValue(id, out definition);
 
@@ -177,6 +199,12 @@ namespace XianXia.Data.Content
 
         public bool TryGetChapter(DefinitionId id, out ChapterDefinition definition) =>
             _chapters.TryGetValue(id, out definition);
+
+        public bool TryGetWorkArea(DefinitionId id, out WorkAreaContentDefinition definition) =>
+            _workAreas.TryGetValue(id, out definition);
+
+        public bool TryGetJob(DefinitionId id, out JobContentDefinition definition) =>
+            _jobs.TryGetValue(id, out definition);
 
         Result Register<T>(Dictionary<DefinitionId, T> map, T definition, DefinitionId id)
         {

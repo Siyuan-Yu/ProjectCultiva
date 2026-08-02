@@ -68,6 +68,8 @@ namespace XianXia.Data.Content
                 {
                     var spawn = s.Spawns[i];
                     RequireDef(registry, spawn.DefinitionId, "character", ctx + ".spawn[" + i + "]", report);
+                    if (!string.IsNullOrWhiteSpace(spawn.JobId))
+                        RequireDef(registry, spawn.JobId, "job", ctx + ".spawn[" + i + "].jobId", report);
                 }
 
                 if (s.OpeningRelations == null)
@@ -369,6 +371,12 @@ namespace XianXia.Data.Content
                     break;
                 case "settlement":
                     ok = registry.Settlements.ContainsKey(id);
+                    break;
+                case "job":
+                    ok = registry.Jobs.ContainsKey(id);
+                    break;
+                case "workArea":
+                    ok = registry.WorkAreas.ContainsKey(id);
                     break;
                 case "resource":
                     ok = registry.Resources.ContainsKey(id);

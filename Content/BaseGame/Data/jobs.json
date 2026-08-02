@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:job_grain_farmer",
+      "type": "job",
+      "name": "农夫",
+      "primaryWorkAreaId": "base:workarea_labor_yard",
+      "activityBindings": [
+        { "activity": "Labor", "workAreaIds": ["base:workarea_labor_yard"], "mode": "single" },
+        { "activity": "Rest", "workAreaIds": ["base:workarea_houses"], "mode": "single" },
+        { "activity": "Eat", "workAreaIds": ["base:workarea_houses"], "mode": "single" },
+        { "activity": "Explore", "workAreaIds": ["base:workarea_road_hub"], "mode": "single" }
+      ]
+    },
+    {
+      "id": "base:job_herb_farmer",
+      "type": "job",
+      "name": "药农",
+      "primaryWorkAreaId": "base:workarea_herb_field",
+      "activityBindings": [
+        { "activity": "Labor", "workAreaIds": ["base:workarea_herb_field"], "mode": "single" },
+        { "activity": "Rest", "workAreaIds": ["base:workarea_houses"], "mode": "single" },
+        { "activity": "Eat", "workAreaIds": ["base:workarea_houses"], "mode": "single" },
+        { "activity": "Explore", "workAreaIds": ["base:workarea_road_hub"], "mode": "single" }
+      ]
+    },
+    {
+      "id": "base:job_miner",
+      "type": "job",
+      "name": "矿工",
+      "primaryWorkAreaId": "base:workarea_mine",
+      "activityBindings": [
+        { "activity": "Labor", "workAreaIds": ["base:workarea_mine"], "mode": "single" },
+        { "activity": "Rest", "workAreaIds": ["base:workarea_houses"], "mode": "single" },
+        { "activity": "Eat", "workAreaIds": ["base:workarea_houses"], "mode": "single" },
+        { "activity": "Explore", "workAreaIds": ["base:workarea_forest_edge"], "mode": "single" }
+      ]
+    },
+    {
+      "id": "base:job_patrol_guard",
+      "type": "job",
+      "name": "巡卫",
+      "primaryWorkAreaId": "base:workarea_road_hub",
+      "activityBindings": [
+        {
+          "activity": "Patrol",
+          "workAreaIds": [
+            "base:workarea_road_hub",
+            "base:workarea_forest_edge",
+            "base:workarea_houses",
+            "base:workarea_labor_yard"
+          ],
+          "mode": "route"
+        },
+        {
+          "activity": "Inspect",
+          "workAreaIds": [
+            "base:workarea_labor_yard",
+            "base:workarea_herb_field",
+            "base:workarea_mine"
+          ],
+          "mode": "route"
+        },
+        { "activity": "Rest", "workAreaIds": ["base:workarea_houses"], "mode": "single" }
+      ]
+    },
+    {
+      "id": "base:job_supervisor",
+      "type": "job",
+      "name": "管事",
+      "primaryWorkAreaId": "base:workarea_road_hub",
+      "activityBindings": [
+        {
+          "activity": "Inspect",
+          "workAreaIds": [
+            "base:workarea_labor_yard",
+            "base:workarea_herb_field",
+            "base:workarea_mine",
+            "base:workarea_spring_check"
+          ],
+          "mode": "route"
+        },
+        {
+          "activity": "Patrol",
+          "workAreaIds": [
+            "base:workarea_road_hub",
+            "base:workarea_labor_yard",
+            "base:workarea_herb_field"
+          ],
+          "mode": "route"
+        },
+        { "activity": "Rest", "workAreaIds": ["base:workarea_houses"], "mode": "single" }
+      ]
+    }
+  ]
+}

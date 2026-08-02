@@ -100,6 +100,10 @@ namespace XianXia.Data.Bootstrap
             world.RegisterSchedule(ScheduleDefinition.CreateCultivatorDay());
             world.RegisterSchedule(ScheduleDefinition.CreateSupervisorDay());
 
+            var jobs = JobRuntimeBootstrap.Register(world, registry);
+            if (jobs.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(jobs.Error);
+
             var lookup = new GameStartLookup(started.Value.SpawnedByDefinitionId);
             var applied = OpeningScenarioApplier.Apply(
                 world,

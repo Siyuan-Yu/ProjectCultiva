@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:workarea_labor_yard",
+      "type": "workArea",
+      "name": "农田工区",
+      "locationId": "base:loc_ref_labor_yard",
+      "tags": ["farm", "grain"],
+      "allowedActivities": ["Labor"],
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_herb_field",
+      "type": "workArea",
+      "name": "药田工区",
+      "locationId": "base:loc_ref_herb_field",
+      "tags": ["herb", "farm"],
+      "allowedActivities": ["Labor"],
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_mine",
+      "type": "workArea",
+      "name": "矿洞工区",
+      "locationId": "base:loc_ref_mine",
+      "tags": ["mine"],
+      "allowedActivities": ["Labor"],
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_houses",
+      "type": "workArea",
+      "name": "房屋休息区",
+      "locationId": "base:loc_ref_houses",
+      "tags": ["home", "rest"],
+      "allowedActivities": ["Rest", "Eat"],
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_road_hub",
+      "type": "workArea",
+      "name": "道路枢纽岗",
+      "locationId": "base:loc_ref_road_hub",
+      "tags": ["patrol", "hub"],
+      "allowedActivities": ["Patrol", "Inspect", "Explore"],
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_forest_edge",
+      "type": "workArea",
+      "name": "林缘巡点",
+      "locationId": "base:loc_ref_forest",
+      "tags": ["patrol", "wild"],
+      "allowedActivities": ["Patrol", "Explore"],
+      "offsetX": 0,
+      "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_spring_check",
+      "type": "workArea",
+      "name": "灵泉检查点",
+      "locationId": "base:loc_ref_spring",
+      "tags": ["inspect"],
+      "allowedActivities": ["Inspect", "Patrol"],
+      "offsetX": 0,
+      "offsetZ": 0
+    }
+  ]
+}

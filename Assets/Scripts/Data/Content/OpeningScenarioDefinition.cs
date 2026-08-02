@@ -37,6 +37,8 @@ namespace XianXia.Data.Content
         public string ScheduleId { get; set; }
         /// <summary>Mortal | Cultivator | Supervisor (Reference Level AI archetype).</summary>
         public string AiRole { get; set; }
+        /// <summary>NPC Simulation: JobDefinition id (e.g. base:job_herb_farmer).</summary>
+        public string JobId { get; set; }
     }
 
     public sealed class OpeningRelationEntry

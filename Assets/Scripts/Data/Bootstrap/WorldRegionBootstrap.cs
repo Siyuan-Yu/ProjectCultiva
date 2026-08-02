@@ -59,6 +59,10 @@ namespace XianXia.Data.Bootstrap
                     loc.EnterConditions.AddRange(entry.EnterConditions);
                 if (entry.QuestOfferIds != null)
                     loc.QuestOfferIds.AddRange(entry.QuestOfferIds);
+                if (entry.Tags != null)
+                    loc.Tags.AddRange(entry.Tags);
+                if (entry.AllowedActivities != null)
+                    loc.AllowedActivities.AddRange(entry.AllowedActivities);
                 world.WorldRegion.Register(loc);
             }
 

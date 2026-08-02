@@ -227,6 +227,12 @@ namespace XianXia.Data.Content
                     case "chapter":
                         LoadChapter(item, parsed.Value, registry, report);
                         break;
+                    case "workArea":
+                        LoadWorkArea(item, parsed.Value, registry, report);
+                        break;
+                    case "job":
+                        LoadJob(item, parsed.Value, registry, report);
+                        break;
                     default:
                         report.Add(ErrorCode.InvalidArgument, "Unknown definition type.", type);
                         break;
@@ -564,7 +570,8 @@ namespace XianXia.Data.Content
                         Recruitable = spawnNode.GetBool("recruitable", false),
                         WorkRole = spawnNode.GetString("workRole", string.Empty),
                         ScheduleId = spawnNode.GetString("scheduleId", string.Empty),
-                        AiRole = spawnNode.GetString("aiRole", string.Empty)
+                        AiRole = spawnNode.GetString("aiRole", string.Empty),
+                        JobId = spawnNode.GetString("jobId", string.Empty)
                     };
                     if (string.IsNullOrWhiteSpace(entry.DefinitionId))
                     {
@@ -826,6 +833,9 @@ namespace XianXia.Data.Content
                 ReadConditions(
                     locNode, "enterConditions", entry.EnterConditions, report, id + "." + entry.Id);
                 ReadStringList(locNode, "questOfferIds", entry.QuestOfferIds, report, id + "." + entry.Id);
+                ReadTags(locNode, entry.Tags, report, id + "." + entry.Id);
+                ReadStringList(
+                    locNode, "allowedActivities", entry.AllowedActivities, report, id + "." + entry.Id);
 
                 region.Locations.Add(entry);
             }
@@ -837,6 +847,108 @@ namespace XianXia.Data.Content
             }
 
             var reg = registry.RegisterWorldRegion(region);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void LoadWorkArea(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.WorkAreaFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var area = new WorkAreaContentDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                LocationId = item.GetString("locationId", string.Empty),
+                OffsetX = ReadFloat(item, "offsetX", 0f),
+                OffsetZ = ReadFloat(item, "offsetZ", 0f)
+            };
+            if (string.IsNullOrWhiteSpace(area.LocationId))
+            {
+                report.Add(ErrorCode.MissingRequiredField, "workArea.locationId required.", id.ToString());
+                return;
+            }
+
+            ReadTags(item, area.Tags, report, id.ToString());
+            ReadStringList(item, "allowedActivities", area.AllowedActivities, report, id.ToString());
+
+            var reg = registry.RegisterWorkArea(area);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void LoadJob(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.JobFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var job = new JobContentDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                PrimaryWorkAreaId = item.GetString("primaryWorkAreaId", string.Empty)
+            };
+
+            if (item.TryGetProperty("activityBindings", out var bindingsNode))
+            {
+                if (bindingsNode.Kind != JsonValueKind.Array)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "job.activityBindings must be array.", id.ToString());
+                    return;
+                }
+
+                foreach (var bindNode in bindingsNode.Array)
+                {
+                    if (bindNode.Kind != JsonValueKind.Object)
+                    {
+                        report.Add(ErrorCode.ContentLoadFailed, "activityBindings entries must be objects.", id.ToString());
+                        continue;
+                    }
+
+                    DefinitionSchema.RejectUnknownFields(
+                        bindNode, DefinitionSchema.JobActivityBindingFields, report, id + ".binding");
+                    if (report.Errors.Count > errorsBefore)
+                        return;
+
+                    var binding = new JobActivityBindingEntry
+                    {
+                        Activity = bindNode.GetString("activity", string.Empty),
+                        Mode = bindNode.GetString("mode", "single")
+                    };
+                    ReadStringList(bindNode, "workAreaIds", binding.WorkAreaIds, report, id + ".binding");
+                    if (string.IsNullOrWhiteSpace(binding.Activity) || binding.WorkAreaIds.Count == 0)
+                    {
+                        report.Add(
+                            ErrorCode.MissingRequiredField,
+                            "activityBinding.activity and workAreaIds required.",
+                            id.ToString());
+                        return;
+                    }
+
+                    job.ActivityBindings.Add(binding);
+                }
+            }
+
+            if (job.ActivityBindings.Count == 0)
+            {
+                report.Add(ErrorCode.MissingRequiredField, "job.activityBindings required.", id.ToString());
+                return;
+            }
+
+            var reg = registry.RegisterJob(job);
             if (reg.IsFailure)
                 report.Add(reg.Error);
         }

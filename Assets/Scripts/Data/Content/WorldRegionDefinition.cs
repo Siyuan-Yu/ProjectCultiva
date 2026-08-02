@@ -26,5 +26,7 @@ namespace XianXia.Data.Content
         public float PresentationZ { get; set; }
         public List<ContentCondition> EnterConditions { get; set; } = new List<ContentCondition>();
         public List<string> QuestOfferIds { get; set; } = new List<string>();
+        public List<string> Tags { get; set; } = new List<string>();
+        public List<string> AllowedActivities { get; set; } = new List<string>();
     }
 }

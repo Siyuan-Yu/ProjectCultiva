@@ -17,6 +17,8 @@ Content/BaseGame/
     facilities.json            # VS0.8
     settlements.json           # VS0.8
     world_regions.json         # VS0.9 / Content Ready enterConditions
+    work_areas.json            # NPC Simulation WorkArea
+    jobs.json                  # NPC Simulation JobDefinition
     quests.json                # Content Ready
     content_events.json        # Content Ready
     chapters.json              # Chapter Production Framework
@@ -53,7 +55,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 ### type 一览
 
-`character`｜`cultivation`｜`item`｜`opportunitySite`｜`openingScenario`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`quest`｜`contentEvent`｜`chapter`
+`character`｜`cultivation`｜`item`｜`opportunitySite`｜`openingScenario`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`
 
 ## type = character
 
@@ -98,7 +100,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 ### spawn entry
 
-`definitionId`、`entityKind`（character｜npc）、`displayName`、`assignOpeningFaction`、`factionRole`、`bindSchedule`、`bindDailyTask`、`recruitable`、`workRole`（Labor｜Gather｜Cultivate）
+`definitionId`、`entityKind`（character｜npc）、`displayName`、`assignOpeningFaction`、`factionRole`、`bindSchedule`、`bindDailyTask`、`recruitable`、`workRole`（Labor｜Gather｜Cultivate）、`scheduleId`、`aiRole`、`jobId`（NPC Simulation Job）
 
 ## type = resource（VS0.8）
 
@@ -117,7 +119,24 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | Field | Notes |
 |---|---|
 | `startLocationId` | 开局地点 |
-| `locations[]` | id／name／kind／adjacentIds／resourceOnExplore*／opportunitySiteId／residentNpcDefinitionId／presentationX／presentationZ／`enterConditions[]`／`questOfferIds[]` |
+| `locations[]` | id／name／kind／`tags[]`／`allowedActivities[]`／adjacentIds／resourceOnExplore*／opportunitySiteId／residentNpcDefinitionId／presentationX／presentationZ／`enterConditions[]`／`questOfferIds[]` |
+
+## type = workArea（NPC Simulation）
+
+| Field | Notes |
+|---|---|
+| `locationId` | 必填，绑定已有 Location |
+| `tags[]`／`allowedActivities[]` | 活动范围标签／允许的 ScheduleActivity 名 |
+| `offsetX`／`offsetZ` | 相对 Location presentation 中心的偏移（内容数据，非代码硬编码） |
+
+## type = job（NPC Simulation）
+
+| Field | Notes |
+|---|---|
+| `primaryWorkAreaId` | 主工区 |
+| `activityBindings[]` | `activity`／`workAreaIds[]`／`mode`（`single`｜`route`） |
+
+管线：Schedule Block → ActivityResolver → MoveAction → WorkAction。样例见 `jobs.json`／`work_areas.json`。
 
 ## type = quest（Content Ready）
 
