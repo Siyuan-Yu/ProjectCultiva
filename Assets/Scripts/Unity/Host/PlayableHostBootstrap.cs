@@ -39,6 +39,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostFeedbackOverlay feedbackOverlay;
         [SerializeField] HostWorkTargetMode workTargetMode;
         [SerializeField] HostContentInterruptPresenter contentInterrupt;
+        [SerializeField] HostInteractSpotPresenter interactSpotPresenter;
 
         [Header("Tick debug")]
         [SerializeField] bool initializeOnPlay = true;
@@ -50,7 +51,7 @@ namespace XianXia.Unity.Host
         [SerializeField] KeyCode stepTickAltKey = KeyCode.N;
         [SerializeField] KeyCode cycleSpeedKey = KeyCode.RightBracket;
         [SerializeField] KeyCode cycleSpeedAltKey = KeyCode.LeftBracket;
-        [SerializeField] KeyCode rebuildKey = KeyCode.R;
+        [SerializeField] KeyCode rebuildKey = KeyCode.F12;
 
         PlayableHostSession _session = new PlayableHostSession();
         float _autoTickAccumulator;
@@ -211,12 +212,16 @@ namespace XianXia.Unity.Host
             if (contentInterrupt == null)
                 contentInterrupt = GetComponent<HostContentInterruptPresenter>() ??
                                   gameObject.AddComponent<HostContentInterruptPresenter>();
+            if (interactSpotPresenter == null)
+                interactSpotPresenter = GetComponent<HostInteractSpotPresenter>() ??
+                                       gameObject.AddComponent<HostInteractSpotPresenter>();
 
             selectionController.ClearSelection();
             entityViewSpawner.Clear();
             eventFeed.Clear();
             contentInterrupt.ClearSessionState();
             mapGraybox.Clear();
+            interactSpotPresenter.Clear();
 
             if (!TryResolveContentPackageDirectory(out _resolvedContentPath, out var pathError))
             {
@@ -249,6 +254,8 @@ namespace XianXia.Unity.Host
 
             entityViewSpawner.Rebuild(_session);
             mapGraybox.Rebuild(_session);
+            if (interactSpotPresenter != null)
+                interactSpotPresenter.Rebuild();
             var cam = Camera.main;
             selectionController.Bind(entityViewSpawner, cam);
             selectionController.SetPartyFilter(_session.CharacterIds);

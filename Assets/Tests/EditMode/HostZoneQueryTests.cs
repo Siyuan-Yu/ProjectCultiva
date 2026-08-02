@@ -47,6 +47,23 @@ namespace XianXia.Tests
         }
 
         [Test]
+        public void InteractSpots_MultiplePerYard_ResolveWork()
+        {
+            Assert.IsTrue(HostInteractSpots.TryFindNearest(
+                HostPresentationSpace.FromPresentation(18f, -12f),
+                HostInteractSpotKind.Work,
+                out var a));
+            Assert.AreEqual("base:loc_ref_labor_yard", a.LocationId);
+
+            Assert.IsTrue(HostInteractSpots.TryFindNearest(
+                HostPresentationSpace.FromPresentation(25f, -10f),
+                HostInteractSpotKind.Work,
+                out var b));
+            Assert.AreEqual("base:loc_ref_labor_yard", b.LocationId);
+            Assert.AreNotEqual(a.Label, b.Label);
+        }
+
+        [Test]
         public void WorkHotspot_IgnoresFarBandClick_UnlikeWorkLocation()
         {
             var started = new PlayableDayBootstrap().Start(

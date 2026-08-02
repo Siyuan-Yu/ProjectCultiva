@@ -16,6 +16,9 @@ namespace XianXia.Unity.Host
             if (world?.WorldRegion == null)
                 return null;
 
+            if (HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Work, out var spot))
+                return spot.LocationId;
+
             var p = HostPresentationSpace.ToPresentation(worldPoint);
             var band = ResolveWorkBand(p.x, p.y);
             if (!string.IsNullOrEmpty(band) &&
@@ -29,6 +32,13 @@ namespace XianXia.Unity.Host
                 centerRadius,
                 loc => HasWorkResource(loc));
         }
+
+        /// <summary>优先命中表现层交互点；用于走到具体点再劳动。</summary>
+        public static bool TryFindWorkSpot(Vector3 worldPoint, out HostInteractSpot spot) =>
+            HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Work, out spot);
+
+        public static bool TryFindCultivateSpot(Vector3 worldPoint, out HostInteractSpot spot) =>
+            HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Cultivate, out spot);
 
         /// <summary>
         /// 右键用：只认工区圆心附近，不用大色带（否则整片农田右键都会被吸去劳动中心，像粘住）。
@@ -51,6 +61,9 @@ namespace XianXia.Unity.Host
         {
             if (world?.WorldRegion == null)
                 return null;
+
+            if (HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Cultivate, out var spot))
+                return spot.LocationId;
 
             var p = HostPresentationSpace.ToPresentation(worldPoint);
             var band = ResolveSpiritBand(p.x, p.y);

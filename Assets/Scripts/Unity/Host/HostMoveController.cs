@@ -8,8 +8,7 @@ using XianXia.Core.Input;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// RTS：右键地面／区域＝只移动（打断当前活）；不会因走到工区／灵地就自动劳动或入定。
-    /// 显式点选劳动／入定（W 或底栏）时，才在抵达后开工。
+    /// RTS：右键或「移动」点选＝只移动；交互／修炼点选才在抵达后开工。己方不跟课表自动行动。
     /// </summary>
     public sealed class HostMoveController : MonoBehaviour
     {
@@ -109,6 +108,13 @@ namespace XianXia.Unity.Host
                 _pendingOnArrive[focus.Value] = arriveCommand.Value;
             return true;
         }
+
+        /// <summary>点选「移动」或表现层需要：只走到点，抵达待命。</summary>
+        public bool OrderPartyToPointPublic(Vector3 point) => OrderPartyToPoint(point, null);
+
+        /// <summary>走到具体交互点，抵达后下达命令（劳动／修炼）。</summary>
+        public bool OrderPartyToPointThen(Vector3 point, PlayerCommandKind arriveCommand) =>
+            OrderPartyToPoint(point, arriveCommand);
 
         bool OrderPartyToPoint(Vector3 point, PlayerCommandKind? arriveCommand)
         {

@@ -56,11 +56,15 @@ namespace XianXia.Unity.Host
                 if (action is RestAction)
                     return "休息中";
                 if (action is ObserveAction)
-                    return "巡查中";
+                    return "观察中";
                 if (action is WaitAction)
                     return "待命";
                 return "行动中";
             }
+
+            // 己方不跟课表自动走：空闲时不要用课表块冒充「巡视中／工作中」。
+            if ((entity.Tags & EntityTag.Character) != 0)
+                return string.Empty;
 
             if (entity.TryGet<ScheduleComponent>(out var sched) &&
                 !string.IsNullOrEmpty(sched.DefinitionId) &&

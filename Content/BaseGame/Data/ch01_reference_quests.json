@@ -5,7 +5,7 @@
       "id": "base:quest_ch01_ref_inspect_yard",
       "type": "quest",
       "name": "日课·巡视杂役区",
-      "description": "【劳役入场】你已在农田杂役区。点底栏「探索」或按 F3 勘察此地；或先右键去别处，再走回农田（首次进入会自动勘察）。",
+      "description": "【劳役入场】你已在农田杂役区。先走开再走回农田（首次进入会自动勘察），即可完成巡视。",
       "autoOffer": true,
       "offerConditions": [],
       "completeConditions": [
@@ -22,7 +22,7 @@
       "id": "base:quest_ch01_ref_gather_wood",
       "type": "quest",
       "name": "日课·伐木交差",
-      "description": "【生存压力】主管要木料。走到「树林」后点底栏「劳动」／F4（或按 W 再左键点树林）；粗木库存≥2 即交差。",
+      "description": "【生存压力】主管要木料。点「交互」再左键「树林」（或走到后在树林上交互）；粗木库存≥2 即交差。",
       "autoOffer": true,
       "offerConditions": [
         { "kind": "storyFlag", "id": "quest:ch01_ref_yard_done" }
@@ -41,7 +41,7 @@
       "id": "base:quest_ch01_ref_gather_herb",
       "type": "quest",
       "name": "日课·药田采摘",
-      "description": "【生存压力】顺带采药。走到药田后点「劳动」／探索，使灵药库存≥2。白天多出力，夜里才挤得出缝隙。",
+      "description": "【生存压力】顺带采药。点「交互」再左键药田，使灵药库存≥2。白天多出力，夜里才挤得出缝隙。",
       "autoOffer": true,
       "offerConditions": [
         { "kind": "storyFlag", "id": "quest:ch01_ref_wood_done" }

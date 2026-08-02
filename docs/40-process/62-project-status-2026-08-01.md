@@ -1,6 +1,6 @@
 # 项目现状总览 — 2026-08-01
 
-> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-02（可玩弧＋打断＋UX）  
+> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-03（RTS 手动控制＋HUD）  
 > 用途：一次看清 VS0.1～1.0／Content Ready 做到哪、本轮改了什么、下一步是什么。  
 > 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准；本页不改 Freeze。
 
@@ -9,8 +9,8 @@
 ## 1. 一句话现状
 
 **Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**；Content Ready／Chapter Framework／Toolkit／Ch01 模板关已验收。  
-**本轮增量：** 样例关 `DemoParityHost` 已具备 **内容打断**＋**2G 觉醒弧可玩 Data**＋**RTS 首次入区勘察／操作引导**（交付 [97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)；指南 [94](94-chapter-full-production-and-sample-guide.md)）。  
-制作人按 [94]／[97] 手操签收后，可换正式第一章文案。Demo Runtime **继续冻结**。关系／据点／地点／Quest／Chapter／Flags 入 Snapshot 前须硬停确认 schema。
+**本轮增量：** 己方 **RTS 手动控制**（不跟课表自动走）＋指令点选（移动／交互／战斗占位／修炼）＋顶栏分钟／全局暴露主管压＋各地多交互点（[98](98-rts-manual-control-and-hud-pass-2026-08-03.md)；指南 [94](94-chapter-full-production-and-sample-guide.md)）。  
+制作人按 [94]／[98] 手操签收。Demo Runtime **继续冻结**。NPC 巡逻表现／守卫数据另开。
 
 ---
 
@@ -37,6 +37,7 @@
 | Demo 手感对齐 | **已验收** | [91](91-demo-v0.1-to-formal-gap-audit.md)／[93](93-demo-parity-level-acceptance-report.md)／[92](92-demo-parity-progress-2026-08-02.md) | `DemoParityHost`＝2D Sprite＋Demo 操作语义（不复活 Runtime） |
 | 内容打断 CIF | **自动化已验收** | [95](95-content-interrupt-system-plan-v0.1.md)／[96](96-content-interrupt-system-acceptance-report.md) | 事件／任务弹层强制暂停 |
 | Ch01 可玩弧＋UX | **自动化已验收；手操签收中** | [97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)／[94](94-chapter-full-production-and-sample-guide.md) | 2G 至炼气→隐藏→伏笔；首次入区勘察 |
+| RTS 手动控制＋HUD | **进行中／已记录** | [98](98-rts-manual-control-and-hud-pass-2026-08-03.md) | 己方不自动；点选指令；多交互点；时钟分钟 |
 
 ---
 

@@ -7,9 +7,9 @@ using XianXia.Core.Social;
 namespace XianXia.Core.Schedule
 {
     /// <summary>
-    /// Injects Schedule Orders when entity is idle and has no pending Player Orders.
-    /// Does not implement NPC AI. Player Orders always outrank Schedule.
-    /// VS0.5-E: applies PersonalityScheduleBias to activity／duration only.
+    /// Injects Schedule Orders for NPCs when idle and no pending Player Orders.
+    /// DirectControl Characters are never auto-driven (RTS：默认只听玩家；日后「自动行动」再开)。
+    /// Player Orders always outrank Schedule. VS0.5-E: PersonalityScheduleBias on activity／duration.
     /// </summary>
     public sealed class ScheduleDriver
     {
@@ -27,6 +27,10 @@ namespace XianXia.Core.Schedule
 
             foreach (var entity in world.Entities.All)
             {
+                // Character = 玩家可直接控制单位：不跟课表自动走。
+                if ((entity.Tags & EntityTag.Character) != 0)
+                    continue;
+
                 if (!entity.TryGet<ScheduleComponent>(out var binding) ||
                     string.IsNullOrEmpty(binding.DefinitionId))
                     continue;

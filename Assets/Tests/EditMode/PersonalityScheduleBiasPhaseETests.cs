@@ -69,12 +69,13 @@ namespace XianXia.Tests
                 .AddBlock(0, 96, ScheduleActivity.Labor, 4);
             world.RegisterSchedule(schedule);
 
-            var bold = world.Entities.CreateCharacter(new DefinitionId("base", "bold"), "勇").Value;
+            // Npc：日程才会自动注入。Character（己方）默认不跟课表。
+            var bold = world.Entities.CreateNpc(new DefinitionId("base", "bold"), "勇").Value;
             bold.Get<PersonalityProfileComponent>().SetTags(new[] { PersonalityScheduleBias.TagBold });
             Assert.IsTrue(bold.AddComponent(new ScheduleComponent(schedule.Id)).IsSuccess);
             bold.Get<DailyTaskComponent>().RequiredAmount = 20;
 
-            var cautious = world.Entities.CreateCharacter(new DefinitionId("base", "caut"), "慎").Value;
+            var cautious = world.Entities.CreateNpc(new DefinitionId("base", "caut"), "慎").Value;
             cautious.Get<PersonalityProfileComponent>().SetTags(new[] { PersonalityScheduleBias.TagCautious });
             Assert.IsTrue(cautious.AddComponent(new ScheduleComponent(schedule.Id)).IsSuccess);
             cautious.Get<DailyTaskComponent>().RequiredAmount = 20;

@@ -58,7 +58,6 @@ namespace XianXia.Unity.Host
         static readonly Color Ink = new Color(0.18f, 0.14f, 0.10f, 1f);
         static readonly Color BarOrange = new Color(0.92f, 0.62f, 0.22f, 1f);
         static readonly Color BarBlue = new Color(0.30f, 0.55f, 0.85f, 1f);
-        static readonly Color BarTeal = new Color(0.25f, 0.70f, 0.68f, 1f);
         static readonly Color AccentGold = new Color(0.95f, 0.78f, 0.28f, 1f);
 
         public void Bind(
@@ -136,7 +135,7 @@ namespace XianXia.Unity.Host
         string BuildContextTip(PlayableHostSession session)
         {
             var baseOps =
-                "操作：左键选人 · 右键只移动（不自动干活）· 劳动／入定用 F4／F6 或 W 点选工区 · Space暂停 · F10显隐HUD";
+                "操作：左键查看 · 己方：移动/停止/交互/战斗/修炼 · 右键也可移动 · 交互点工区干活 · Space暂停 · F10显隐HUD";
             var focus = ResolveFocus(session);
             if (!focus.IsNone &&
                 session.World.Entities.TryGet(focus, out var e) &&
@@ -150,11 +149,11 @@ namespace XianXia.Unity.Host
                     if (!session.World.Quests.TryGetSpec(kv.Key, out var spec))
                         continue;
                     if (QuestLooksLikeExploreHere(spec, loc.LocationId))
-                        return "下一步：点底栏「探索」或 F3（当前任务需要勘察此地）｜" + baseOps;
+                        return "下一步：走进／再走进目标区域（首次入区自动勘察）｜" + baseOps;
                     if (QuestLooksLikeLabor(spec))
-                        return "下一步：走到工区后点「劳动」／F4，或按 W 再左键点工区｜" + baseOps;
+                        return "下一步：点「交互」再左键工区（麦田／树林／药田）｜" + baseOps;
                     if (QuestLooksLikeCultivate(spec))
-                        return "下一步：走到灵泉／洞府后点「入定」／F6，或点选入定模式｜" + baseOps;
+                        return "下一步：点「修炼」再左键灵泉／洞府｜" + baseOps;
                     if (!string.IsNullOrEmpty(spec.Name))
                         return "当前任务：" + spec.Name + "｜" + baseOps;
                 }
@@ -267,7 +266,8 @@ namespace XianXia.Unity.Host
             HostUiHitTest.Block(new Rect(0f, 0f, Screen.width, TopH));
 
             var clock = "第" + day.DayIndex + "天  " +
-                        day.HourOfDay.ToString("00") + ":00  " +
+                        day.HourOfDay.ToString("00") + ":" +
+                        day.MinuteOfHour.ToString("00") + "  " +
                         (night ? "夜" : "昼") + "  " +
                         (paused ? "暂停" : speed + "x");
             GUI.Label(new Rect(Pad, 12f, 280f, 24f), clock, _title);
@@ -305,9 +305,46 @@ namespace XianXia.Unity.Host
             }
 
             var anger = session.World.SupervisorAnger != null ? session.World.SupervisorAnger.Value : 0;
-            var res = "木 " + wood + "   粮 " + grain + "   药 " + herb + "   敛息草 " + grass +
-                      "   愤怒 " + anger;
-            GUI.Label(new Rect(Screen.width - 520f, 14f, 508f, 24f), res, _body);
+            var exposure = ResolvePartyExposure(session);
+            var res = "木 " + wood + "   粮 " + grain + "   药 " + herb + "   敛息草 " + grass;
+            GUI.Label(new Rect(Screen.width - RailW - 380f, 4f, 360f, 18f), res, _body);
+
+            // 暴露／主管压：全局条（非每人一条）
+            DrawInlineMeter(
+                Screen.width - RailW - 380f, 24f, 170f,
+                "暴露", exposure, 100, new Color(0.85f, 0.35f, 0.25f));
+            DrawInlineMeter(
+                Screen.width - RailW - 200f, 24f, 170f,
+                "主管压", anger, 100, new Color(0.75f, 0.28f, 0.22f));
+        }
+
+        static int ResolvePartyExposure(PlayableHostSession session)
+        {
+            var max = 0;
+            for (var i = 0; i < session.CharacterIds.Count; i++)
+            {
+                if (!session.World.Entities.TryGet(session.CharacterIds[i], out var e))
+                    continue;
+                if (!e.TryGet<PersonalConcealmentRiskComponent>(out var risk))
+                    continue;
+                if (risk.Value > max)
+                    max = risk.Value;
+            }
+
+            return max;
+        }
+
+        void DrawInlineMeter(float x, float y, float w, string label, int cur, int max, Color fill)
+        {
+            var labelStyle = new GUIStyle(_body) { fontSize = 11, alignment = TextAnchor.MiddleLeft };
+            GUI.Label(new Rect(x, y - 2f, 48f, 18f), label, labelStyle);
+            var bar = new Rect(x + 44f, y + 2f, w - 48f, 12f);
+            Fill(bar, new Color(0.25f, 0.25f, 0.28f, 0.9f));
+            var pct = max > 0 ? Mathf.Clamp01(cur / (float)max) : 0f;
+            Fill(new Rect(bar.x + 1f, bar.y + 1f, (bar.width - 2f) * pct, bar.height - 2f), fill);
+            DrawFrame(bar, new Color(0.7f, 0.7f, 0.75f, 0.8f));
+            var valueStyle = new GUIStyle(_small) { alignment = TextAnchor.MiddleCenter, normal = { textColor = Color.white } };
+            GUI.Label(bar, cur + "/" + max, valueStyle);
         }
 
         void DrawRightRail(PlayableHostSession session)
@@ -318,7 +355,7 @@ namespace XianXia.Unity.Host
             if (h < 80f)
                 h = 80f;
 
-            DrawPanel(new Rect(x, y, RailW, h), "课表（只读）", BuildScheduleText(session));
+            DrawPanel(new Rect(x, y, RailW, h), "课表（只读·己方不自动）", BuildScheduleText(session));
             HostUiHitTest.Block(new Rect(x, y, RailW, h));
             y += h + Pad;
             DrawPanel(new Rect(x, y, RailW, h), "任务", BuildQuestText(session));
@@ -331,43 +368,41 @@ namespace XianXia.Unity.Host
         void DrawAcsUnitPanel(PlayableHostSession session)
         {
             var focus = ResolveFocus(session);
-            // 精髓：点开角色才出现角色操作 UI；任务／事件／时间在顶栏与右栏。
+            // 点选任意单位打开信息面板；指令钮只对己方出现在面板上方。
             if (focus.IsNone ||
                 selectionController == null ||
-                !selectionController.IsPartyUnit(focus) ||
                 !session.World.Entities.TryGet(focus, out var entity))
             {
                 DrawClosedUnitHint();
                 return;
             }
 
+            var isParty = selectionController.IsPartyUnit(focus);
             var panelH = BottomH - 18f;
             var panelX = (Screen.width - PanelW) * 0.5f;
             var panelY = Screen.height - panelH - 10f;
             var actionY = panelY - ActionOrb - 10f;
 
-            DrawActionOrbRow(panelX, actionY, PanelW, focus);
-
-            var leftGrid = new Rect(panelX - 78f, panelY + 28f, 70f, 120f);
-            Fill(leftGrid, ParchmentDark);
-            DrawFrame(leftGrid, Ink);
-            HostUiHitTest.Block(leftGrid);
-            DrawSideQuick(leftGrid, focus);
+            if (isParty)
+            {
+                DrawActionOrbRow(panelX, actionY, PanelW, focus);
+                HostUiHitTest.Block(new Rect(panelX, actionY, PanelW, ActionOrb + 8f));
+            }
 
             var main = new Rect(panelX, panelY, PanelW, panelH);
             Fill(main, Parchment);
             DrawFrame(main, ParchmentDark);
             HostUiHitTest.Block(main);
-            HostUiHitTest.Block(new Rect(panelX, actionY, PanelW, ActionOrb + 8f));
             DrawUnitTabs(new Rect(main.xMax - 2f, main.y + 18f, 36f, main.height - 28f));
             HostUiHitTest.Block(new Rect(main.xMax - 2f, main.y + 18f, 36f, main.height - 28f));
 
             var name = string.IsNullOrEmpty(entity.DisplayName) ? focus.ToString() : entity.DisplayName;
             var activity = DescribeAction(session, entity);
             var realm = entity.TryGet<CultivationComponent>(out var cult) ? RealmName(cult.Realm) : "—";
+            var subtitle = isParty ? "己方 · 上方可下令" : "查看 · 非己方不可下令";
             GUI.Label(
-                new Rect(main.x + 14f, main.y + 8f, 360f, 24f),
-                name + "（" + activity + "）· 仅此人",
+                new Rect(main.x + 14f, main.y + 8f, 400f, 24f),
+                name + "（" + activity + "）· " + subtitle,
                 _parchmentTitle);
             GUI.Label(new Rect(main.xMax - 150f, main.y + 8f, 120f, 24f), realm, _parchmentTitle);
 
@@ -377,11 +412,11 @@ namespace XianXia.Unity.Host
             else
                 DrawOverviewBars(session, entity, cult, content);
 
-            if (selectionController.State.Count > 1)
+            if (isParty && selectionController.State.Count > 1)
             {
                 GUI.Label(
                     new Rect(main.x + 14f, main.y + 30f, main.width - 60f, 18f),
-                    "框选 " + selectionController.State.Count + " 人时：底栏只令「" + name + "」；群体移动请右键",
+                    "框选 " + selectionController.State.Count + " 人时：指令只令「" + name + "」；群体移动请右键",
                     _small);
             }
         }
@@ -390,35 +425,15 @@ namespace XianXia.Unity.Host
         {
             var r = new Rect((Screen.width - 520f) * 0.5f, Screen.height - 36f, 520f, 28f);
             Fill(r, new Color(0.12f, 0.12f, 0.14f, 0.75f));
-            GUI.Label(r, "点选己方角色打开指令 · 已预选第一人时可直接右键移动", _body);
+            GUI.Label(r, "点选角色查看 · 己方上方下令（默认不自动行动）· 右键也可移动", _body);
         }
 
         void DrawActionOrbRow(float x, float y, float width, EntityId focus)
         {
             var labels = new[]
             {
-                "F1\n休息", "F2\n观察", "F3\n探索", "F4\n劳动",
-                "G\n敛息", "F6\n入定", "F7\n停止", "F8\n帮助"
+                "Q\n移动", "F1\n停止", "E\n交互", "F8\n战斗", "F6\n修炼"
             };
-            var needExplore = false;
-            var session = bootstrap != null ? bootstrap.Session : null;
-            if (session != null &&
-                session.World.Entities.TryGet(focus, out var fe) &&
-                fe.TryGet<EntityLocationComponent>(out var floc) &&
-                floc.HasLocation)
-            {
-                foreach (var kv in session.World.Quests.Runtime)
-                {
-                    if (kv.Value.Status != QuestStatus.Active)
-                        continue;
-                    if (session.World.Quests.TryGetSpec(kv.Key, out var q) &&
-                        QuestLooksLikeExploreHere(q, floc.LocationId))
-                    {
-                        needExplore = true;
-                        break;
-                    }
-                }
-            }
 
             var btnStyle = new GUIStyle(GUI.skin.button)
             {
@@ -431,16 +446,21 @@ namespace XianXia.Unity.Host
             btnStyle.hover.textColor = Ink;
             btnStyle.active.textColor = Ink;
 
-            var gap = 8f;
-            var total = ActionOrb * 8f + gap * 7f;
+            var mode = bootstrap != null ? bootstrap.WorkTargetMode : null;
+            var gap = 10f;
+            var total = ActionOrb * labels.Length + gap * (labels.Length - 1);
             var startX = x + (width - total) * 0.5f;
-            for (var i = 0; i < 8; i++)
+            for (var i = 0; i < labels.Length; i++)
             {
                 var r = new Rect(startX + i * (ActionOrb + gap), y, ActionOrb, ActionOrb);
-                var highlight = i == 5 || (needExplore && i == 2);
+                var armedMatch = mode != null && (
+                    (i == 0 && mode.Armed == HostWorkTargetMode.ArmKind.Move) ||
+                    (i == 2 && mode.Armed == HostWorkTargetMode.ArmKind.Interact) ||
+                    (i == 3 && mode.Armed == HostWorkTargetMode.ArmKind.Combat) ||
+                    (i == 4 && mode.Armed == HostWorkTargetMode.ArmKind.Cultivate));
                 var prev = GUI.backgroundColor;
-                GUI.backgroundColor = highlight ? AccentGold : new Color(0.95f, 0.93f, 0.88f, 1f);
-                GUI.enabled = commandBridge != null;
+                GUI.backgroundColor = armedMatch ? AccentGold : new Color(0.95f, 0.93f, 0.88f, 1f);
+                GUI.enabled = commandBridge != null || mode != null;
                 if (GUI.Button(r, labels[i], btnStyle))
                 {
                     Event.current.Use();
@@ -450,30 +470,6 @@ namespace XianXia.Unity.Host
                 GUI.enabled = true;
                 GUI.backgroundColor = prev;
             }
-        }
-
-        void DrawSideQuick(Rect grid, EntityId focus)
-        {
-            GUI.enabled = commandBridge != null;
-            if (GUI.Button(new Rect(grid.x + 6f, grid.y + 8f, 58f, 28f), "停止"))
-            {
-                Event.current.Use();
-                IssueFocus(focus, PlayerCommandKind.Stop);
-            }
-
-            if (GUI.Button(new Rect(grid.x + 6f, grid.y + 42f, 58f, 28f), "敛息"))
-            {
-                Event.current.Use();
-                IssueFocus(focus, PlayerCommandKind.UseConcealGrass);
-            }
-
-            if (GUI.Button(new Rect(grid.x + 6f, grid.y + 76f, 58f, 28f), "劳动"))
-            {
-                Event.current.Use();
-                IssueLaborOrArm(focus);
-            }
-
-            GUI.enabled = true;
         }
 
         void DrawUnitTabs(Rect strip)
@@ -492,62 +488,74 @@ namespace XianXia.Unity.Host
 
         void DrawOverviewBars(PlayableHostSession session, Entity entity, CultivationComponent cult, Rect area)
         {
-            var dailyPct = 0f;
-            if (entity.TryGet<DailyTaskComponent>(out var daily) && daily.RequiredAmount > 0)
-                dailyPct = Mathf.Clamp01(daily.CompletedAmount / (float)daily.RequiredAmount);
-
-            var riskPct = 0f;
-            if (entity.TryGet<PersonalConcealmentRiskComponent>(out var risk))
-                riskPct = Mathf.Clamp01(risk.Value / 100f);
-
-            var progressPct = 0f;
-            if (cult != null)
-                progressPct = Mathf.Clamp01(cult.Progress / 100f);
-
-            var hpPct = 0.7f;
-            if (entity.TryGet<AttributesComponent>(out var attrs))
+            var dailyCur = 0;
+            var dailyMax = 0;
+            if (entity.TryGet<DailyTaskComponent>(out var daily))
             {
-                var maxHp = attrs.GetBase(AttributeId.MaxHp);
-                if (maxHp > 0)
-                    hpPct = Mathf.Clamp01(maxHp / 150f);
+                dailyCur = daily.CompletedAmount;
+                dailyMax = daily.RequiredAmount;
             }
 
-            var angerPct = 0f;
-            if (session.World.SupervisorAnger != null)
-                angerPct = Mathf.Clamp01(session.World.SupervisorAnger.Value / 100f);
+            var progress = cult != null ? cult.Progress : 0;
+            const int progressMax = 100;
+
+            var hpCur = 0;
+            var hpMax = 100;
+            if (entity.TryGet<AttributesComponent>(out var attrs))
+            {
+                hpMax = Mathf.Max(1, attrs.GetBase(AttributeId.MaxHp));
+                // 暂无独立当前生命时用满值展示上限；条满表示体魄上限。
+                hpCur = hpMax;
+            }
 
             var left = new Rect(area.x, area.y, area.width * 0.48f, area.height);
             var right = new Rect(area.x + area.width * 0.52f, area.y, area.width * 0.48f, area.height);
 
-            DrawStatBar(left.x, left.y + 4f, left.width, "日课", dailyPct, BarOrange);
-            DrawStatBar(left.x, left.y + 30f, left.width, "体魄", hpPct, BarOrange);
-            DrawStatBar(left.x, left.y + 56f, left.width, "暴露", riskPct, new Color(0.85f, 0.35f, 0.25f));
-            DrawStatBar(left.x, left.y + 82f, left.width, "主管压", angerPct, new Color(0.75f, 0.28f, 0.22f));
+            DrawStatBar(left.x, left.y + 4f, left.width, "交差", dailyCur, Mathf.Max(1, dailyMax), BarOrange);
+            DrawStatBar(left.x, left.y + 30f, left.width, "体魄", hpCur, hpMax, BarOrange);
 
-            var rate = cult != null && cult.HasLearnedManual ? "有功法" : "未得功法";
-            DrawStatBar(right.x, right.y + 4f, right.width, "修为 " + (cult != null ? cult.Progress.ToString() : "0"), progressPct, BarBlue);
-            DrawStatBar(right.x, right.y + 30f, right.width, "灵机 " + rate, cult != null && cult.HasLearnedManual ? 0.85f : 0.2f, BarBlue);
-            DrawStatBar(right.x, right.y + 56f, right.width, "心境(安)", 1f - riskPct * 0.7f, BarTeal);
+            DrawStatBar(right.x, right.y + 4f, right.width, "修为", progress, progressMax, BarBlue);
+
+            var manualName = "未得功法";
+            if (cult != null && cult.HasLearnedManual && cult.LearnedManualId.HasValue)
+            {
+                var mid = cult.LearnedManualId.Value.ToString();
+                var slash = mid.LastIndexOf(':');
+                manualName = slash >= 0 && slash < mid.Length - 1 ? mid.Substring(slash + 1) : mid;
+            }
+
+            GUI.Label(
+                new Rect(right.x, right.y + 30f, right.width, 22f),
+                "功法 " + manualName,
+                _parchmentBody);
 
             if (entity.TryGet<EntityLocationComponent>(out var loc) && loc.HasLocation &&
                 session.World.WorldRegion.TryGet(loc.LocationId, out var place))
             {
                 var placeName = string.IsNullOrEmpty(place.Name) ? place.Id : place.Name;
                 GUI.Label(
-                    new Rect(right.x, right.y + 88f, right.width, 22f),
+                    new Rect(left.x, left.y + 60f, area.width, 22f),
                     "地点 " + placeName,
                     _parchmentBody);
             }
         }
 
-        void DrawStatBar(float x, float y, float w, string label, float fill01, Color fill)
+        void DrawStatBar(float x, float y, float w, string label, int cur, int max, Color fill)
         {
-            GUI.Label(new Rect(x, y, 64f, 20f), label, _parchmentBody);
-            var bar = new Rect(x + 68f, y + 4f, w - 72f, 14f);
+            GUI.Label(new Rect(x, y, 48f, 20f), label, _parchmentBody);
+            var bar = new Rect(x + 50f, y + 4f, w - 54f, 14f);
             Fill(bar, new Color(0.55f, 0.48f, 0.38f, 0.55f));
-            var inner = new Rect(bar.x + 1f, bar.y + 1f, (bar.width - 2f) * Mathf.Clamp01(fill01), bar.height - 2f);
+            var pct = max > 0 ? Mathf.Clamp01(cur / (float)max) : 0f;
+            var inner = new Rect(bar.x + 1f, bar.y + 1f, (bar.width - 2f) * pct, bar.height - 2f);
             Fill(inner, fill);
             DrawFrame(bar, Ink);
+            var valueStyle = new GUIStyle(_parchmentBody)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 11,
+                normal = { textColor = Ink }
+            };
+            GUI.Label(bar, cur + "/" + max, valueStyle);
         }
 
         void DrawPanel(Rect rect, string title, string body)
@@ -563,59 +571,52 @@ namespace XianXia.Unity.Host
             if (focus.IsNone || selectionController == null || !selectionController.IsPartyUnit(focus))
                 return;
 
-            // F5／F9 留给存读档；敛息用 G。
-            if (Input.GetKeyDown(KeyCode.F1)) InvokeActionIndex(focus, 0);
-            else if (Input.GetKeyDown(KeyCode.F2)) InvokeActionIndex(focus, 1);
-            else if (Input.GetKeyDown(KeyCode.F3)) InvokeActionIndex(focus, 2);
-            else if (Input.GetKeyDown(KeyCode.F4)) InvokeActionIndex(focus, 3);
-            else if (Input.GetKeyDown(KeyCode.G)) InvokeActionIndex(focus, 4);
-            else if (Input.GetKeyDown(KeyCode.F6)) InvokeActionIndex(focus, 5);
-            else if (Input.GetKeyDown(KeyCode.F7)) InvokeActionIndex(focus, 6);
-            else if (Input.GetKeyDown(KeyCode.F8)) InvokeActionIndex(focus, 7);
+            // F5／F9 留给存读档。Q/E/R＝移动/交互/战斗点选；F1＝停止；F6＝修炼；G＝敛息（道具）。
+            if (Input.GetKeyDown(KeyCode.Q) && !Input.GetKey(KeyCode.LeftAlt) && !Input.GetKey(KeyCode.RightAlt))
+                InvokeActionIndex(focus, 0);
+            else if (Input.GetKeyDown(KeyCode.F1))
+                InvokeActionIndex(focus, 1);
+            else if (Input.GetKeyDown(KeyCode.E) && !Input.GetKey(KeyCode.LeftAlt) && !Input.GetKey(KeyCode.RightAlt))
+                InvokeActionIndex(focus, 2);
+            else if (Input.GetKeyDown(KeyCode.F8))
+                InvokeActionIndex(focus, 3);
+            else if (Input.GetKeyDown(KeyCode.F6))
+                InvokeActionIndex(focus, 4);
+            else if (Input.GetKeyDown(KeyCode.G))
+                IssueFocus(focus, PlayerCommandKind.UseConcealGrass);
         }
 
         void InvokeActionIndex(EntityId focus, int index)
         {
-            if (commandBridge == null || focus.IsNone)
+            if (focus.IsNone)
                 return;
+            if (selectionController != null && !selectionController.IsPartyUnit(focus))
+                return;
+            EnsureFocusSelected(focus);
+            var mode = bootstrap != null ? bootstrap.WorkTargetMode : null;
             switch (index)
             {
-                case 0: IssueFocus(focus, PlayerCommandKind.Rest); break;
-                case 1: IssueFocus(focus, PlayerCommandKind.Observe); break;
-                case 2: commandBridge.IssueExploreOne(focus); break;
-                case 3: IssueLaborOrArm(focus); break;
-                case 4: IssueFocus(focus, PlayerCommandKind.UseConcealGrass); break;
-                case 5: IssueCultivateOrArm(focus); break;
-                case 6: IssueFocus(focus, PlayerCommandKind.Stop); break;
-                case 7: commandBridge.IssueOne(focus, PlayerCommandKind.Help); break;
+                case 0:
+                    if (mode != null) mode.ArmMove();
+                    break;
+                case 1:
+                    IssueFocus(focus, PlayerCommandKind.Stop);
+                    if (mode != null) mode.Cancel();
+                    break;
+                case 2:
+                    if (mode != null) mode.ArmInteract();
+                    break;
+                case 3:
+                    if (mode != null) mode.ArmCombat();
+                    break;
+                case 4:
+                    ArmCultivateSmart(focus, mode);
+                    break;
             }
         }
 
-        void IssueLaborOrArm(EntityId focus)
+        void ArmCultivateSmart(EntityId focus, HostWorkTargetMode mode)
         {
-            EnsureFocusSelected(focus);
-            var session = bootstrap != null ? bootstrap.Session : null;
-            if (session != null &&
-                session.World.Entities.TryGet(focus, out var e) &&
-                e.TryGet<EntityLocationComponent>(out var loc) &&
-                HostZoneQuery.LocationHasWork(session.World, loc.LocationId))
-            {
-                if (session.World.ContentEvents.HasActive == false)
-                    session.IsPaused = false;
-                IssueFocus(focus, PlayerCommandKind.Labor);
-                return;
-            }
-
-            var mode = bootstrap != null ? bootstrap.WorkTargetMode : null;
-            if (mode != null)
-                mode.ArmLabor();
-            else
-                IssueFocus(focus, PlayerCommandKind.Labor);
-        }
-
-        void IssueCultivateOrArm(EntityId focus)
-        {
-            EnsureFocusSelected(focus);
             var session = bootstrap != null ? bootstrap.Session : null;
             if (session != null &&
                 session.World.Entities.TryGet(focus, out var e) &&
@@ -628,7 +629,6 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            var mode = bootstrap != null ? bootstrap.WorkTargetMode : null;
             if (mode != null)
                 mode.ArmCultivate();
             else
@@ -840,7 +840,8 @@ namespace XianXia.Unity.Host
             if (action is LaborAction) return "工作中";
             if (action is CultivateAction) return "修炼中";
             if (action is RestAction) return "休息中";
-            if (action is ObserveAction) return "巡查中";
+            if (action is ObserveAction) return "观察中";
+            if (action is WaitAction) return "待命";
             return "行动中";
         }
 

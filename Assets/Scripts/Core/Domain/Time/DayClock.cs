@@ -21,6 +21,9 @@ namespace XianXia.Core.Domain.Time
 
         public int HourOfDay { get; }
 
+        /// <summary>当前小时内的游戏分钟：0／15／30／45（每 Tick＝15 分钟）。</summary>
+        public int MinuteOfHour => (TickInDay % TicksPerHour) * WorldTick.GameMinutesPerTick;
+
         public static DayClock FromWorldTick(WorldTick tick)
         {
             var value = tick.Value;
@@ -31,6 +34,7 @@ namespace XianXia.Core.Domain.Time
         }
 
         public override string ToString() =>
-            "day=" + DayIndex + ";tickInDay=" + TickInDay + ";hour=" + HourOfDay;
+            "day=" + DayIndex + ";tickInDay=" + TickInDay +
+            ";hour=" + HourOfDay + ";minute=" + MinuteOfHour;
     }
 }

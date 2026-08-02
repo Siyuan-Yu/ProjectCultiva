@@ -516,6 +516,11 @@
       "title": "第一章可玩弧＋打断＋RTS引导交付总结 2026-08-02",
       "docId": "R3nHdBINFomeL7xsMrLcjMWmnub"
     },
+    "rts-manual-hud-pass": {
+      "file": "docs/40-process/98-rts-manual-control-and-hud-pass-2026-08-03.md",
+      "title": "RTS手动控制＋HUD／交互点 2026-08-03",
+      "docId": "QPOtdzqJKo9lBhxAngccXC3bnud"
+    },
     "ch01-ref-plan": {
       "file": "docs/40-process/87-chapter-01-reference-level-plan-v0.1.md",
       "title": "第一章参考关计划 v0.1",
