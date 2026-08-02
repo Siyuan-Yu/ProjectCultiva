@@ -49,6 +49,24 @@ namespace XianXia.Unity.Host
                 actionState.HasActiveAction &&
                 session.World.ActiveActions.TryGetValue(actionState.ActiveActionId, out var action))
             {
+                if (action is MoveAction)
+                    return "移动中";
+                if (action is WorkAction work)
+                {
+                    switch (work.Activity)
+                    {
+                        case ScheduleActivity.Rest:
+                        case ScheduleActivity.Eat:
+                            return "休息中";
+                        case ScheduleActivity.Patrol:
+                        case ScheduleActivity.Inspect:
+                            return "巡查中";
+                        case ScheduleActivity.Cultivate:
+                            return "修炼中";
+                        default:
+                            return "工作中";
+                    }
+                }
                 if (action is LaborAction)
                     return "工作中";
                 if (action is CultivateAction)
