@@ -129,6 +129,24 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            // Demo: only party is commandable. Plain-click NPC = inspect select only;
+            // Shift+click NPC allowed as social target. Box／double-click stay party-only.
+            if (!IsPartyUnit(best.EntityId) && !shiftToggle)
+            {
+                _state.ReplaceOne(best.EntityId);
+                ApplyHighlights();
+                _lastClickTime = now;
+                _lastClickId = best.EntityId;
+                return;
+            }
+
+            if (!IsPartyUnit(best.EntityId) && shiftToggle)
+            {
+                _state.Toggle(best.EntityId);
+                ApplyHighlights();
+                return;
+            }
+
             _lastClickTime = now;
             _lastClickId = best.EntityId;
 
@@ -137,6 +155,16 @@ namespace XianXia.Unity.Host
             else
                 _state.ReplaceOne(best.EntityId);
             ApplyHighlights();
+        }
+
+        public bool IsPartyUnit(EntityId id)
+        {
+            if (id.IsNone)
+                return false;
+            // No filter configured (unit tests) → all bound views treated as selectable.
+            if (_partyFilter.Count == 0)
+                return true;
+            return _partyFilter.Contains(id.Value);
         }
 
         void SelectAllBoundCharacters()
@@ -282,6 +310,8 @@ namespace XianXia.Unity.Host
             foreach (var view in spawner.Registry.All)
             {
                 if (view == null || !view.IsBound)
+                    continue;
+                if (!IsPartyUnit(view.EntityId))
                     continue;
 
                 var screen = selectionCamera.WorldToScreenPoint(view.transform.position);

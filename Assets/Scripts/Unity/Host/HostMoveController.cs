@@ -65,12 +65,23 @@ namespace XianXia.Unity.Host
             var cultivateHere = FindCultivateLocationNear(point);
 
             var count = selectionController.State.Count;
+            var moveIndex = 0;
+            var moveCount = 0;
+            for (var i = 0; i < count; i++)
+            {
+                if (selectionController.IsPartyUnit(selectionController.State.SelectedIds[i]))
+                    moveCount++;
+            }
+
             for (var i = 0; i < count; i++)
             {
                 var id = selectionController.State.SelectedIds[i];
+                // Demo: only the three controllable party units accept move orders.
+                if (!selectionController.IsPartyUnit(id))
+                    continue;
                 if (!viewSpawner.Registry.TryGet(id, out var view) || view == null)
                     continue;
-                var offset = FormationOffset(i, count);
+                var offset = FormationOffset(moveIndex++, moveCount);
                 _targets[view] = point + offset;
                 view.SetActivityText("移动中");
             }
@@ -95,6 +106,8 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < selectionController.State.Count; i++)
             {
                 var id = selectionController.State.SelectedIds[i];
+                if (!selectionController.IsPartyUnit(id))
+                    continue;
                 if (!bootstrap.Session.World.Entities.TryGet(id, out var entity))
                     continue;
                 if (!entity.TryGet<EntityLocationComponent>(out var loc))
