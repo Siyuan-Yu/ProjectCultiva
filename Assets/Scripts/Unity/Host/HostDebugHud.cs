@@ -10,7 +10,7 @@ namespace XianXia.Unity.Host
     {
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostSelectionController selectionController;
-        [SerializeField] bool visible = true;
+        [SerializeField] bool visible = false;
         [SerializeField] KeyCode toggleVisibleKey = KeyCode.F1;
 
         int _speedMultiplier = 1;

@@ -18,7 +18,7 @@ namespace XianXia.Unity.Host
 
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] bool enableDebugKeys = true;
-        [SerializeField] bool showDebugButtons = true;
+        [SerializeField] bool showDebugButtons = false;
         [SerializeField] KeyCode laborKey = KeyCode.Alpha1;
         [SerializeField] KeyCode restKey = KeyCode.Alpha2;
         [SerializeField] KeyCode observeKey = KeyCode.Alpha3;

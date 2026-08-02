@@ -12,7 +12,7 @@ namespace XianXia.Unity.Host
     public sealed class HostEventFeed : MonoBehaviour
     {
         [SerializeField] int capacity = 40;
-        [SerializeField] bool visible = true;
+        [SerializeField] bool visible = false;
         [SerializeField] KeyCode toggleKey = KeyCode.F2;
 
         readonly List<string> _lines = new List<string>();
