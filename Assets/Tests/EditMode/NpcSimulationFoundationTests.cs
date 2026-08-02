@@ -246,7 +246,7 @@ namespace XianXia.Tests
                     jobbed++;
             }
 
-            Assert.GreaterOrEqual(jobbed, 6);
+            Assert.GreaterOrEqual(jobbed, 7);
         }
 
         static IAction FirstActive(SimulationWorld world)

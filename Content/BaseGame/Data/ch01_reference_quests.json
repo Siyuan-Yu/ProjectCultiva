@@ -5,7 +5,7 @@
       "id": "base:quest_ch01_ref_inspect_yard",
       "type": "quest",
       "name": "日课·巡视杂役区",
-      "description": "【劳役入场】你已在农田杂役区。先走开再走回农田（首次进入会自动勘察），即可完成巡视。",
+      "description": "【Day0】你已在农田杂役区。走开再走回农田（首次入区会自动勘察），完成巡视。左键可选中甲乙丙三人；指令默认完全由你安排。",
       "autoOffer": true,
       "offerConditions": [],
       "completeConditions": [
@@ -19,13 +19,34 @@
       "failResults": []
     },
     {
-      "id": "base:quest_ch01_ref_gather_wood",
+      "id": "base:quest_ch01_ref_dispatch_party",
       "type": "quest",
-      "name": "日课·伐木交差",
-      "description": "【生存压力】主管要木料。点「交互」再左键「树林」（或走到后在树林上交互）；粗木库存≥2 即交差。",
+      "name": "调度·三人分派",
+      "description": "【自由安排】框选或分头点选三人。可一人去麦田交互收粮、一人去树林伐木、一人去药田采药——也可同一人连跑三处。凑齐：粗粮≥1、粗木≥1、灵药≥1。",
       "autoOffer": true,
       "offerConditions": [
         { "kind": "storyFlag", "id": "quest:ch01_ref_yard_done" }
+      ],
+      "completeConditions": [
+        { "kind": "stockAtLeast", "id": "base:resource_grain", "amount": 1 },
+        { "kind": "stockAtLeast", "id": "base:resource_rough_wood", "amount": 1 },
+        { "kind": "stockAtLeast", "id": "base:resource_spirit_herb", "amount": 1 }
+      ],
+      "rewards": [
+        { "kind": "setFlag", "id": "quest:ch01_ref_dispatch_done" },
+        { "kind": "setFlag", "id": "story:ch01_phase_party_free" }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_ch01_ref_gather_wood",
+      "type": "quest",
+      "name": "日课·伐木交差",
+      "description": "【杂役任务】主管点名要木料。点「交互」再左键树林（或走到后交互），使粗木库存≥2。",
+      "autoOffer": true,
+      "offerConditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_ref_dispatch_done" }
       ],
       "completeConditions": [
         { "kind": "stockAtLeast", "id": "base:resource_rough_wood", "amount": 2 }
@@ -41,7 +62,7 @@
       "id": "base:quest_ch01_ref_gather_herb",
       "type": "quest",
       "name": "日课·药田采摘",
-      "description": "【生存压力】顺带采药。点「交互」再左键药田，使灵药库存≥2。白天多出力，夜里才挤得出缝隙。",
+      "description": "【杂役任务】再补灵药。点「交互」再左键药田，使灵药库存≥2。白天交差，夜里才挤得出缝隙。",
       "autoOffer": true,
       "offerConditions": [
         { "kind": "storyFlag", "id": "quest:ch01_ref_wood_done" }
@@ -60,7 +81,7 @@
       "id": "base:quest_ch01_ref_spirit_sense",
       "type": "quest",
       "name": "神识·察觉异样",
-      "description": "【感应探索】走到「灵泉」（首次进入会勘察并触发异响事件）。听完选项后任务完成。",
+      "description": "【探索发现】走到「灵泉」（首次入区会勘察并触发异响）。听完选项即完成。矿洞可顺路听听怨气，非必做。",
       "autoOffer": true,
       "offerConditions": [
         { "kind": "storyFlag", "id": "quest:ch01_ref_herb_done" }
@@ -78,7 +99,7 @@
       "id": "base:quest_ch01_ref_meet_elder",
       "type": "quest",
       "name": "机缘·砍柴老人",
-      "description": "【NPC机缘】再入树林探索／抵达，会遇砍柴老人。愿闻其详可获洞府指引；也可向道路枢纽的行商打听（替代路线）。",
+      "description": "【探索发现】再入树林抵达，会遇砍柴老人。愿闻其详可获洞府方位；也可去道路枢纽再点探索，向行商打听（替代线）。",
       "autoOffer": true,
       "offerConditions": [
         { "kind": "storyFlag", "id": "quest:ch01_ref_sense_done" }
@@ -97,7 +118,7 @@
       "id": "base:quest_ch01_ref_visit_cave",
       "type": "quest",
       "name": "机缘·废弃洞府",
-      "description": "【秘密准备】按指引前往废弃洞府并探索。那里灵气异于田垄，是暗修的好地方——也是暴露的风险地。",
+      "description": "【秘密修炼准备】前往废弃洞府并探索。灵气异于田垄，是暗修好地方——也是暴露的风险地。",
       "autoOffer": true,
       "offerConditions": [
         { "kind": "storyFlag", "id": "quest:ch01_ref_elder_done" }
@@ -117,7 +138,7 @@
       "id": "base:quest_ch01_ref_first_manual",
       "type": "quest",
       "name": "机缘·第一份功法",
-      "description": "【功法路线】在洞府对机缘「入定／修炼」。尚未得诀时，入定会尝试领悟青云诀（主路径）。",
+      "description": "【秘密修炼】在洞府点「修炼」入定。尚未得诀时，入定会领悟青云诀。",
       "autoOffer": true,
       "offerConditions": [
         { "kind": "storyFlag", "id": "quest:ch01_ref_cave_done" }
@@ -137,7 +158,7 @@
       "id": "base:quest_ch01_ref_night_cultivate",
       "type": "quest",
       "name": "暗修·夜缝入定",
-      "description": "【秘密准备】持诀后回到洞府。宜入夜再入定；白天修炼更易被察觉。先在洞府站稳脚跟。",
+      "description": "【秘密修炼】持诀后回到洞府站稳。宜入夜再入定；白天更易被察觉。",
       "autoOffer": true,
       "offerConditions": [
         { "kind": "storyFlag", "id": "quest:ch01_ref_manual_done" }
@@ -158,7 +179,7 @@
       "id": "base:quest_ch01_ref_breakthrough",
       "type": "quest",
       "name": "突破·第一次炼气",
-      "description": "【首次突破】在洞府探索触发「引气入体」，再多次入定积累修为，直至境界变为炼气。同伴可在外活动作掩护。",
+      "description": "【第一次突破】再入洞府触发「引气入体」，再点修炼入定冲击炼气。同伴可在外活动作掩护。",
       "autoOffer": true,
       "offerConditions": [
         { "kind": "storyFlag", "id": "quest:ch01_ref_dark_ready" }

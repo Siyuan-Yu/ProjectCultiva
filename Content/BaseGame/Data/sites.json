@@ -4,12 +4,12 @@
     {
       "id": "base:site_abandoned_cave",
       "type": "opportunitySite",
-      "name": "废弃洞口",
+      "name": "废弃洞府",
       "nameKey": "site.abandoned_cave",
-      "description": "村外荒坡一处废弃洞口，似可偷得片刻清净。",
+      "description": "灵泉侧的废弃洞府。灵气凝滞，适合暗修与引气；也是暴露风险地。得青云诀残篇于此。",
       "allowsCultivation": true,
       "offeredManualId": "base:cultivation_qingyun_manual",
-      "tags": ["opportunity", "cultivation"]
+      "tags": ["opportunity", "cultivation", "ch01"]
     }
   ]
 }

@@ -201,7 +201,7 @@
         {
           "definitionId": "base:character_ch01_ref_mortal_a",
           "entityKind": "npc",
-          "displayName": "农夫",
+          "displayName": "农夫阿石",
           "assignOpeningFaction": true,
           "factionRole": "LaborDisciple",
           "bindSchedule": true,
@@ -213,7 +213,7 @@
         {
           "definitionId": "base:character_ch01_ref_mortal_b",
           "entityKind": "npc",
-          "displayName": "药农",
+          "displayName": "药农阿青",
           "assignOpeningFaction": true,
           "factionRole": "LaborDisciple",
           "bindSchedule": true,
@@ -292,8 +292,19 @@
         {
           "definitionId": "base:character_ch01_ref_woodcutter",
           "entityKind": "npc",
-          "displayName": "矿工",
+          "displayName": "砍柴老人",
           "assignOpeningFaction": false,
+          "bindSchedule": true,
+          "bindDailyTask": false,
+          "scheduleId": "base:schedule_mortal_day",
+          "aiRole": "Mortal"
+        },
+        {
+          "definitionId": "base:character_ch01_ref_miner",
+          "entityKind": "npc",
+          "displayName": "矿工老倔",
+          "assignOpeningFaction": true,
+          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "scheduleId": "base:schedule_mortal_day",

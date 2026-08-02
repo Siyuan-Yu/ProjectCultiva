@@ -40,6 +40,7 @@
           "adjacentIds": ["base:loc_ref_road_hub", "base:loc_ref_mine"],
           "resourceOnExploreId": "base:resource_rough_wood",
           "resourceOnExploreAmount": 2,
+          "residentNpcDefinitionId": "base:character_ch01_ref_woodcutter",
           "presentationX": -34,
           "presentationZ": 0,
           "questOfferIds": ["base:quest_ch01_ref_gather_wood"]
@@ -49,11 +50,11 @@
           "name": "矿洞",
           "kind": "Wild",
           "tags": ["mine", "work"],
-          "allowedActivities": ["Labor", "Inspect"],
+          "allowedActivities": ["Labor", "Inspect", "Explore"],
           "adjacentIds": ["base:loc_ref_forest", "base:loc_ref_road_hub"],
           "resourceOnExploreId": "base:resource_rough_wood",
           "resourceOnExploreAmount": 1,
-          "residentNpcDefinitionId": "base:character_ch01_ref_woodcutter",
+          "residentNpcDefinitionId": "base:character_ch01_ref_miner",
           "presentationX": -30,
           "presentationZ": 8
         },

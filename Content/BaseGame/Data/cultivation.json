@@ -23,7 +23,7 @@
     {
       "id": "base:cultivation_qingyun_manual",
       "type": "cultivation",
-      "name": "青云诀",
+      "name": "青云诀（残篇）",
       "displayNameKey": "cultivation.qingyun_manual",
       "nameKey": "cultivation.qingyun_manual",
       "requiredRealm": "Mortal",

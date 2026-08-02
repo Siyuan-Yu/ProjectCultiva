@@ -151,7 +151,7 @@ namespace XianXia.Unity.Host
                     if (QuestLooksLikeExploreHere(spec, loc.LocationId))
                         return "下一步：走进／再走进目标区域（首次入区自动勘察）｜" + baseOps;
                     if (QuestLooksLikeLabor(spec))
-                        return "下一步：点「交互」再左键工区（麦田／树林／药田）｜" + baseOps;
+                        return "下一步：点「交互」再左键工区（麦田／树林／药田／矿洞）；可分派三人｜" + baseOps;
                     if (QuestLooksLikeCultivate(spec))
                         return "下一步：点「修炼」再左键灵泉／洞府｜" + baseOps;
                     if (!string.IsNullOrEmpty(spec.Name))

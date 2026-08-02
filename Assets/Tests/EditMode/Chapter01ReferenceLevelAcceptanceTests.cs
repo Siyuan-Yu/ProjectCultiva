@@ -72,12 +72,16 @@ namespace XianXia.Tests
             Assert.IsFalse(started.Value.RecruitableNpcId.IsNone);
 
             Assert.IsTrue(world.Quests.TryGetSpec("base:quest_ch01_ref_inspect_yard", out _));
+            Assert.IsTrue(world.Quests.TryGetSpec("base:quest_ch01_ref_dispatch_party", out _));
             Assert.IsTrue(world.Quests.TryGetSpec("base:quest_ch01_ref_gather_wood", out _));
             Assert.IsTrue(world.Quests.TryGetSpec("base:quest_ch01_ref_gather_herb", out _));
             Assert.IsTrue(world.Quests.TryGetSpec("base:quest_ch01_ref_spirit_sense", out _));
             Assert.IsTrue(world.Quests.TryGetSpec("base:quest_ch01_ref_breakthrough", out _));
             Assert.IsTrue(world.Quests.TryGetSpec("base:quest_ch01_ref_hide", out _));
             Assert.IsTrue(world.Quests.TryGetSpec("base:quest_ch01_ref_epilogue", out _));
+            Assert.IsTrue(world.ContentEvents.TryGet("base:event_ch01_ref_miner_grumble", out _));
+            Assert.IsTrue(loaded.Value.Registry.TryGetCharacter(
+                new DefinitionId("base", "character_ch01_ref_miner"), out _));
             Assert.IsTrue(world.Quests.TryGetSpec("base:quest_ch01_ref_night_cultivate", out _));
             Assert.IsTrue(world.ContentEvents.TryGet("base:event_ch01_ref_opening", out _));
             Assert.IsTrue(world.ContentEvents.TryGet("base:event_ch01_ref_spring_whisper", out _));
@@ -106,18 +110,20 @@ namespace XianXia.Tests
 
             ResolveIfActive(port, subject, world, "accept_yoke");
 
+            // 开局在农田：勘察同时收粮，完成巡视
             Assert.IsTrue(Explore(port, subject));
             AssertQuest(world, "base:quest_ch01_ref_inspect_yard", QuestStatus.Completed);
 
+            // 三人分派：粮（已有）＋树林木＋药田药
             Assert.IsTrue(Travel(port, subject, "base:loc_ref_road_hub"));
             ResolveIfActive(port, subject, world, null);
             Assert.IsTrue(Travel(port, subject, "base:loc_ref_forest"));
             Assert.IsTrue(Explore(port, subject));
-            AssertQuest(world, "base:quest_ch01_ref_gather_wood", QuestStatus.Completed);
-
             Assert.IsTrue(Travel(port, subject, "base:loc_ref_road_hub"));
             Assert.IsTrue(Travel(port, subject, "base:loc_ref_herb_field"));
             Assert.IsTrue(Explore(port, subject));
+            AssertQuest(world, "base:quest_ch01_ref_dispatch_party", QuestStatus.Completed);
+            AssertQuest(world, "base:quest_ch01_ref_gather_wood", QuestStatus.Completed);
             AssertQuest(world, "base:quest_ch01_ref_gather_herb", QuestStatus.Completed);
 
             Assert.IsTrue(Travel(port, subject, "base:loc_ref_spring"));

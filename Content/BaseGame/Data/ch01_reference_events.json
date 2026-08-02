@@ -5,7 +5,7 @@
       "id": "base:event_ch01_ref_opening",
       "type": "contentEvent",
       "name": "开局·杂役晨点",
-      "body": "青云宗外围资源点。锣声未绝，主管已在路上。你们三人仍是杂役弟子：白天交差，夜里才有一点属于自己的缝隙。你不是没有力量，是没有自由。\n\n【怎么玩】左键点角色看信息。己方指令：移动／停止／交互／战斗／修炼——默认完全由你点选安排，不会按课表自己干活。交互后左键工区（麦田／树林／药田）去干活；修炼后左键灵泉／洞府。右键也可移动。第一次走进新区会自动勘察。",
+      "body": "青云宗外围资源点。锣声未绝，主管已在路上。你们三人仍是杂役弟子：白天交差，夜里才有一点属于自己的缝隙。你不是没有力量，是没有自由。\n\n【怎么玩·约30分钟】\n1）左键选人／框选三人；底栏：移动·停止·交互·战斗(占位)·修炼——己方不会按课表自动干活。\n2）交互后左键工区（麦田／树林／药田／矿洞）；修炼后左键灵泉／洞府。右键空地移动。\n3）首次走进新区会自动勘察。先巡视农田，再自由分派三人交差，然后去灵泉听异响。",
       "trigger": "manual",
       "once": true,
       "conditions": [],
@@ -120,6 +120,40 @@
           "text": "装作没听见",
           "outcomes": [
             { "kind": "setFlag", "id": "event:ch01_ref_merchant_ignored" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_ch01_ref_miner_grumble",
+      "type": "contentEvent",
+      "name": "氛围·矿洞怨气",
+      "body": "矿洞深处锤声断续。老倔蹲着磨镐，骂主管把人当石头使。他不懂修仙，却懂一件事：这里的日子，把人往地底里压。",
+      "trigger": "onArrive",
+      "locationId": "base:loc_ref_mine",
+      "once": true,
+      "conditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_ref_dispatch_done" }
+      ],
+      "choices": [
+        {
+          "id": "nod",
+          "text": "递一袋水，听他骂完",
+          "outcomes": [
+            { "kind": "setFlag", "id": "event:ch01_ref_miner_met" },
+            {
+              "kind": "relationDelta",
+              "fromDefinitionId": "base:character_protagonist",
+              "toDefinitionId": "base:character_ch01_ref_miner",
+              "amount": 10
+            }
+          ]
+        },
+        {
+          "id": "pass",
+          "text": "点头路过，不敢久留",
+          "outcomes": [
+            { "kind": "setFlag", "id": "event:ch01_ref_miner_passed" }
           ]
         }
       ]
