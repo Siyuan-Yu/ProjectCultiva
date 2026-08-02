@@ -38,6 +38,7 @@
 | 内容打断 CIF | **自动化已验收** | [95](95-content-interrupt-system-plan-v0.1.md)／[96](96-content-interrupt-system-acceptance-report.md) | 事件／任务弹层强制暂停 |
 | Ch01 可玩弧＋UX | **自动化已验收；手操签收中** | [97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)／[94](94-chapter-full-production-and-sample-guide.md) | 2G 至炼气→隐藏→伏笔；首次入区勘察 |
 | RTS 手动控制＋HUD | **进行中／已记录** | [98](98-rts-manual-control-and-hud-pass-2026-08-03.md) | 己方不自动；点选指令；多交互点；时钟分钟 |
+| Navigation Foundation | **自动化已验收；手操待签** | [99](99-navigation-foundation-milestone-plan-v0.1.md)／[100](100-navigation-foundation-acceptance-report.md) | 网格 A*；玩家／NPC 沿路径；基础避让 |
 
 ---
 

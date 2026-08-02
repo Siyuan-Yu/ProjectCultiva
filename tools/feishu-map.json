@@ -521,6 +521,16 @@
       "title": "RTS手动控制＋HUD／交互点 2026-08-03",
       "docId": "QPOtdzqJKo9lBhxAngccXC3bnud"
     },
+    "nav-foundation-plan": {
+      "file": "docs/40-process/99-navigation-foundation-milestone-plan-v0.1.md",
+      "title": "Navigation Foundation 计划 v0.1",
+      "docId": "W5H2dCTVzoQKDQxQrHEcfUjDnEe"
+    },
+    "nav-foundation-accept": {
+      "file": "docs/40-process/100-navigation-foundation-acceptance-report.md",
+      "title": "Navigation Foundation 验收报告",
+      "docId": "CKwBd6xmRoP5Hyx8OJMcsYF6nob"
+    },
     "ch01-ref-plan": {
       "file": "docs/40-process/87-chapter-01-reference-level-plan-v0.1.md",
       "title": "第一章参考关计划 v0.1",

@@ -7,6 +7,15 @@
 
 ---
 
+## 2026-08-03 — Navigation Foundation Milestone
+
+**做了什么**
+- Core：`WalkGrid`／A*／`Ch01ReferenceWalkGrid`（可行走＋障碍）
+- Host：移动沿航点；`HostNpcScheduleMover` 按课表走地点；多单位软分离
+- 计划 [99](99-navigation-foundation-milestone-plan-v0.1.md)；验收 [100](100-navigation-foundation-acceptance-report.md)
+
+**下一步：** 手操签收绕障／NPC 走动；障碍烘焙可后补。
+
 ## 2026-08-03 — RTS 手动控制＋HUD／多交互点
 
 **做了什么**

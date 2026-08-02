@@ -1,6 +1,6 @@
 # 99 · Navigation Foundation Milestone 计划 v0.1
 
-> 状态：**进行中**｜验收：[100](100-navigation-foundation-acceptance-report.md)｜日期：2026-08-03  
+> 状态：**已完成（自动化）**｜验收：[100](100-navigation-foundation-acceptance-report.md)｜日期：2026-08-03  
 > 前置：Ch01 Reference／DemoParityHost；移动仍为直线插值  
 > **目标：补齐 Demo 0.1 基础导航——可行走网格、A*、玩家／NPC 沿路径到达。**
 
