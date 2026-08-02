@@ -7,6 +7,20 @@
 
 ---
 
+## 2026-08-03 — NPC Simulation Foundation Milestone
+
+**做了什么**
+- Location：`tags`／`allowedActivities`；WorkArea／Job 内容包；样例药农／矿工／巡卫／管事
+- Core：`ActivityResolver`＋`NpcActivityDriver`；`MoveAction`／`WorkAction`（Schedule 不直接产 Labor）
+- Host：`MovementIntent` 寻路，去掉硬编码地点启发式
+- 计划 [101](101-npc-simulation-foundation-milestone-plan-v0.1.md)；验收 [102](102-npc-simulation-foundation-acceptance-report.md)
+
+**判断与理由**
+- 用配置 Job×WorkArea 而不是行为树：满足「策划定义谁／做什么／在哪／每天怎么动」，避免假 AI
+- Move／Work 拆段才能接统一导航，且不把坐标写进 C#
+
+**下一步：** 手操签收四类样例走动；无 Job NPC 可逐步迁到 Job。
+
 ## 2026-08-03 — Navigation Foundation Milestone
 
 **做了什么**

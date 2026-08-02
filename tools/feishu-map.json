@@ -531,6 +531,16 @@
       "title": "Navigation Foundation 验收报告",
       "docId": "CKwBd6xmRoP5Hyx8OJMcsYF6nob"
     },
+    "npc-sim-foundation-plan": {
+      "file": "docs/40-process/101-npc-simulation-foundation-milestone-plan-v0.1.md",
+      "title": "NPC Simulation Foundation 计划 v0.1",
+      "docId": ""
+    },
+    "npc-sim-foundation-accept": {
+      "file": "docs/40-process/102-npc-simulation-foundation-acceptance-report.md",
+      "title": "NPC Simulation Foundation 验收报告",
+      "docId": ""
+    },
     "ch01-ref-plan": {
       "file": "docs/40-process/87-chapter-01-reference-level-plan-v0.1.md",
       "title": "第一章参考关计划 v0.1",
