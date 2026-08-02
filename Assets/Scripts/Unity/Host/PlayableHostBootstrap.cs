@@ -40,6 +40,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostWorkTargetMode workTargetMode;
         [SerializeField] HostContentInterruptPresenter contentInterrupt;
         [SerializeField] HostInteractSpotPresenter interactSpotPresenter;
+        [SerializeField] HostNpcScheduleMover npcScheduleMover;
 
         [Header("Tick debug")]
         [SerializeField] bool initializeOnPlay = true;
@@ -215,6 +216,9 @@ namespace XianXia.Unity.Host
             if (interactSpotPresenter == null)
                 interactSpotPresenter = GetComponent<HostInteractSpotPresenter>() ??
                                        gameObject.AddComponent<HostInteractSpotPresenter>();
+            if (npcScheduleMover == null)
+                npcScheduleMover = GetComponent<HostNpcScheduleMover>() ??
+                                  gameObject.AddComponent<HostNpcScheduleMover>();
 
             selectionController.ClearSelection();
             entityViewSpawner.Clear();
@@ -266,12 +270,14 @@ namespace XianXia.Unity.Host
             debugHud.Bind(this, selectionController);
             contentDebugPanel.Bind(this, selectionController);
             moveController.Bind(this, selectionController, entityViewSpawner, commandBridge);
+            moveController.SetWalkGrid(XianXia.Core.Navigation.Ch01ReferenceWalkGrid.Create());
             actionMenu.Bind(this, selectionController, commandBridge);
             formalHud.Bind(this, selectionController, eventFeed);
             activityPresenter.Bind(this, entityViewSpawner);
             crowdPresenter.Bind(this);
             workTargetMode.Bind(this, selectionController, commandBridge);
             contentInterrupt.Bind(this, commandBridge, selectionController);
+            npcScheduleMover.Bind(this, moveController, entityViewSpawner);
             snapshotPanel.Bind(this);
             // Bootstrap already published WorldInitialized／EntityCreated — capture once.
             DispatchDrainedEvents();

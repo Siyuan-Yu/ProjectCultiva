@@ -4,11 +4,12 @@ using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Exploration;
 using XianXia.Core.Input;
+using XianXia.Core.Navigation;
 
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// RTS：右键或「移动」点选＝只移动；交互／修炼点选才在抵达后开工。己方不跟课表自动行动。
+    /// RTS 移动：沿 WalkGrid A* 航点行进；交互／修炼抵达后下令。支持 NPC 无 Stop 订单的走位。
     /// </summary>
     public sealed class HostMoveController : MonoBehaviour
     {
@@ -20,12 +21,22 @@ namespace XianXia.Unity.Host
         [SerializeField] float moveSpeed = 6f;
         [SerializeField] float arriveEpsilon = 0.2f;
         [SerializeField] float formationSpacing = 1.25f;
+        [SerializeField] float separationRadius = 0.95f;
+        [SerializeField] float separationStrength = 2.2f;
 
         readonly Dictionary<EntityView, Vector3> _targets = new Dictionary<EntityView, Vector3>();
+        readonly Dictionary<ulong, List<Vector3>> _paths = new Dictionary<ulong, List<Vector3>>();
+        readonly Dictionary<ulong, int> _pathIndex = new Dictionary<ulong, int>();
         readonly Dictionary<ulong, PlayerCommandKind> _pendingOnArrive = new Dictionary<ulong, PlayerCommandKind>();
         readonly HashSet<ulong> _movingIds = new HashSet<ulong>();
+        readonly List<float> _pathScratch = new List<float>(64);
+        readonly List<Vector3> _wpScratch = new List<Vector3>(32);
+
+        WalkGrid _walkGrid;
 
         public bool IsMoving(EntityId id) => !id.IsNone && _movingIds.Contains(id.Value);
+
+        public WalkGrid WalkGrid => _walkGrid;
 
         public void Bind(
             PlayableHostBootstrap host,
@@ -40,6 +51,8 @@ namespace XianXia.Unity.Host
             if (worldCamera == null)
                 worldCamera = Camera.main;
         }
+
+        public void SetWalkGrid(WalkGrid grid) => _walkGrid = grid;
 
         void Update()
         {
@@ -56,13 +69,15 @@ namespace XianXia.Unity.Host
 
             var workMode = bootstrap.WorkTargetMode;
             if (workMode != null && workMode.IsActive)
+            {
+                TickMoves();
                 return;
+            }
 
             if (Input.GetMouseButtonDown(1) && !Input.GetKey(KeyCode.LeftAlt))
             {
                 if (HostUiHitTest.ContainsScreenPoint(Input.mousePosition))
                     return;
-                // 悬停工区／灵地热点：右键＝前往并交互／修炼（情境指令）。
                 if (workMode != null && workMode.TryHandleContextRightClick())
                 {
                     // handled
@@ -78,12 +93,9 @@ namespace XianXia.Unity.Host
         {
             if (!HostPresentationSpace.TryRaycastPlane(worldCamera, Input.mousePosition, out var point))
                 return;
-
-            // 空地右键：只移动。
             OrderPartyToPoint(point, null);
         }
 
-        /// <summary>选中己方走到地点中心，抵达后下达 arriveCommand（可空＝只移动）。</summary>
         public bool OrderPartyToLocation(string locationId, PlayerCommandKind? arriveCommand)
         {
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
@@ -95,32 +107,51 @@ namespace XianXia.Unity.Host
 
         public bool OrderFocusToLocation(EntityId focus, string locationId, PlayerCommandKind? arriveCommand)
         {
-            if (focus.IsNone || bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
-                return false;
             if (!HostZoneQuery.TryGetLocationCenter(bootstrap.Session.World, locationId, out var center))
                 return false;
-            if (viewSpawner == null || !viewSpawner.Registry.TryGet(focus, out var view) || view == null)
+            return OrderEntityToWorldPoint(focus, center, arriveCommand, issueStop: true);
+        }
+
+        public bool OrderPartyToPointPublic(Vector3 point) => OrderPartyToPoint(point, null);
+
+        public bool OrderPartyToPointThen(Vector3 point, PlayerCommandKind arriveCommand) =>
+            OrderPartyToPoint(point, arriveCommand);
+
+        /// <summary>任意单位寻路移动（NPC 日程用 issueStop=false，避免冲掉其 Schedule 订单）。</summary>
+        public bool OrderEntityToWorldPoint(
+            EntityId id,
+            Vector3 point,
+            PlayerCommandKind? arriveCommand,
+            bool issueStop)
+        {
+            if (id.IsNone || viewSpawner == null ||
+                !viewSpawner.Registry.TryGet(id, out var view) || view == null)
+                return false;
+
+            if (!TryBuildWorldPath(view.transform.position, point, _wpScratch))
                 return false;
 
             ResumeTime();
-            StopOne(focus);
-            ClearPending(focus);
-            HoldPlayerWait(focus, Vector3.Distance(
-                view.transform.position, center));
-            _targets[view] = center;
-            _movingIds.Add(focus.Value);
+            if (issueStop)
+                StopOne(id);
+
+            ClearPath(id);
+            ClearPending(id);
+            var path = new List<Vector3>(_wpScratch.Count);
+            path.AddRange(_wpScratch);
+            _paths[id.Value] = path;
+            _pathIndex[id.Value] = 0;
+            _targets[view] = path[0];
+            _movingIds.Add(id.Value);
             view.SetActivityText("移动中");
             if (arriveCommand.HasValue)
-                _pendingOnArrive[focus.Value] = arriveCommand.Value;
+                _pendingOnArrive[id.Value] = arriveCommand.Value;
+
+            var pathLen = EstimatePathLength(path);
+            if (issueStop)
+                HoldPlayerWait(id, pathLen);
             return true;
         }
-
-        /// <summary>点选「移动」或表现层需要：只走到点，抵达待命。</summary>
-        public bool OrderPartyToPointPublic(Vector3 point) => OrderPartyToPoint(point, null);
-
-        /// <summary>走到具体交互点，抵达后下达命令（劳动／修炼）。</summary>
-        public bool OrderPartyToPointThen(Vector3 point, PlayerCommandKind arriveCommand) =>
-            OrderPartyToPoint(point, arriveCommand);
 
         bool OrderPartyToPoint(Vector3 point, PlayerCommandKind? arriveCommand)
         {
@@ -145,40 +176,63 @@ namespace XianXia.Unity.Host
             if (moveCount == 0)
                 return false;
 
+            var any = false;
             for (var i = 0; i < count; i++)
             {
                 var id = selectionController.State.SelectedIds[i];
                 if (!selectionController.IsPartyUnit(id))
                     continue;
-                if (!viewSpawner.Registry.TryGet(id, out var view) || view == null)
-                    continue;
-
-                ClearPending(id);
                 var offset = FormationOffset(moveIndex++, moveCount);
-                var target = point + offset;
-                HoldPlayerWait(id, Vector3.Distance(view.transform.position, target));
-                _targets[view] = target;
-                _movingIds.Add(id.Value);
-                view.SetActivityText("移动中");
-                if (arriveCommand.HasValue)
-                    _pendingOnArrive[id.Value] = arriveCommand.Value;
+                if (OrderEntityToWorldPoint(id, point + offset, arriveCommand, issueStop: false))
+                    any = true;
             }
 
-            return true;
+            return any;
         }
 
-        /// <summary>
-        /// 表现移动期间塞 Player Wait，挡住 Schedule 立刻把角色拉回休息／劳动（否则像粘住）。
-        /// </summary>
+        bool TryBuildWorldPath(Vector3 from, Vector3 to, List<Vector3> waypoints)
+        {
+            waypoints.Clear();
+            if (_walkGrid == null)
+            {
+                waypoints.Add(new Vector3(to.x, to.y, HostPresentationSpace.EntityZ));
+                return true;
+            }
+
+            _pathScratch.Clear();
+            if (!GridPathfinder.TryFindWorldPath(
+                    _walkGrid, from.x, from.y, to.x, to.y, _pathScratch))
+                return false;
+
+            for (var i = 0; i + 1 < _pathScratch.Count; i += 2)
+            {
+                waypoints.Add(new Vector3(
+                    _pathScratch[i],
+                    _pathScratch[i + 1],
+                    HostPresentationSpace.EntityZ));
+            }
+
+            return waypoints.Count > 0;
+        }
+
+        static float EstimatePathLength(List<Vector3> path)
+        {
+            if (path == null || path.Count == 0)
+                return 1f;
+            var len = 0f;
+            for (var i = 1; i < path.Count; i++)
+                len += Vector3.Distance(path[i - 1], path[i]);
+            return Mathf.Max(1f, len);
+        }
+
         void HoldPlayerWait(EntityId id, float worldDistance)
         {
             var session = bootstrap?.Session;
             if (session?.Loop == null || id.IsNone)
                 return;
             var seconds = worldDistance / Mathf.Max(0.5f, moveSpeed);
-            var tickSeconds = bootstrap != null ? 3f : 3f;
-            // Bootstrap 默认约 3s/tick；移动按现实秒估算，再加缓冲。
-            var ticks = (ulong)Mathf.Clamp(Mathf.CeilToInt(seconds / tickSeconds) + 4, 6, 48);
+            var tickSeconds = 3f;
+            var ticks = (ulong)Mathf.Clamp(Mathf.CeilToInt(seconds / tickSeconds) + 4, 6, 96);
             var wait = session.Loop.CreateWaitOrder(id, ticks, XianXia.Core.Orders.OrderSource.Player);
             session.Loop.EnqueueOrder(wait);
         }
@@ -200,11 +254,26 @@ namespace XianXia.Unity.Host
 
                 var target = kv.Value;
                 var pos = view.transform.position;
-                var next = Vector3.MoveTowards(pos, target, moveSpeed * Time.unscaledDeltaTime);
+                var sep = ComputeSeparation(view, pos);
+                var desired = Vector3.MoveTowards(pos, target, moveSpeed * Time.unscaledDeltaTime);
+                var next = desired + sep * (separationStrength * Time.unscaledDeltaTime);
                 next.z = HostPresentationSpace.EntityZ;
                 view.transform.position = next;
-                if ((next - target).sqrMagnitude <= arriveEpsilon * arriveEpsilon)
-                    done.Add(view);
+
+                if ((next - target).sqrMagnitude > arriveEpsilon * arriveEpsilon)
+                    continue;
+
+                var idv = view.EntityId.Value;
+                if (_paths.TryGetValue(idv, out var path) &&
+                    _pathIndex.TryGetValue(idv, out var idx) &&
+                    idx + 1 < path.Count)
+                {
+                    _pathIndex[idv] = idx + 1;
+                    _targets[view] = path[idx + 1];
+                    continue;
+                }
+
+                done.Add(view);
             }
 
             for (var i = 0; i < done.Count; i++)
@@ -214,13 +283,37 @@ namespace XianXia.Unity.Host
                 if (view == null)
                     continue;
                 view.SetActivityText(string.Empty);
-                _movingIds.Remove(view.EntityId.Value);
+                var id = view.EntityId;
+                _movingIds.Remove(id.Value);
+                ClearPath(id);
                 SyncLocation(view);
-                if (_pendingOnArrive.ContainsKey(view.EntityId.Value))
-                    ApplyPendingArrive(view.EntityId);
-                else
-                    HoldStandby(view.EntityId);
+                if (_pendingOnArrive.ContainsKey(id.Value))
+                    ApplyPendingArrive(id);
+                else if (selectionController != null && selectionController.IsPartyUnit(id))
+                    HoldStandby(id);
             }
+        }
+
+        Vector3 ComputeSeparation(EntityView self, Vector3 pos)
+        {
+            if (viewSpawner == null)
+                return Vector3.zero;
+            var push = Vector3.zero;
+            var r2 = separationRadius * separationRadius;
+            foreach (var other in viewSpawner.Registry.All)
+            {
+                if (other == null || other == self || !other.IsBound)
+                    continue;
+                var d = pos - other.transform.position;
+                d.z = 0f;
+                var sq = d.sqrMagnitude;
+                if (sq < 1e-6f || sq > r2)
+                    continue;
+                var dist = Mathf.Sqrt(sq);
+                push += d / dist * (1f - dist / separationRadius);
+            }
+
+            return push;
         }
 
         void ApplyPendingArrive(EntityId id)
@@ -228,8 +321,6 @@ namespace XianXia.Unity.Host
             if (!_pendingOnArrive.TryGetValue(id.Value, out var kind))
                 return;
             _pendingOnArrive.Remove(id.Value);
-
-            // 先停掉移动用的 Wait，再下劳动／入定（仅显式点选工区时才会走到这里）
             StopOne(id);
 
             if (commandBridge != null)
@@ -246,7 +337,6 @@ namespace XianXia.Unity.Host
             }
         }
 
-        /// <summary>抵达后待命：挡住日程立刻塞劳动／休息，直到玩家再下令。</summary>
         void HoldStandby(EntityId id)
         {
             var session = bootstrap?.Session;
@@ -287,18 +377,11 @@ namespace XianXia.Unity.Host
                 return;
 
             if (!string.Equals(previous, best, System.StringComparison.Ordinal))
-            {
                 ApplyPresentationArrival(session, view.EntityId, best, bootstrap);
-            }
             else
-            {
                 loc.LocationId = best;
-            }
         }
 
-        /// <summary>
-        /// 表现层换区：NotifyArrived + 首次入区自动勘察（RTS 右键进区即可推进探索类任务／事件）。
-        /// </summary>
         public static void ApplyPresentationArrival(
             PlayableHostSession session,
             EntityId subject,
@@ -344,6 +427,14 @@ namespace XianXia.Unity.Host
         {
             if (!id.IsNone)
                 _pendingOnArrive.Remove(id.Value);
+        }
+
+        void ClearPath(EntityId id)
+        {
+            if (id.IsNone)
+                return;
+            _paths.Remove(id.Value);
+            _pathIndex.Remove(id.Value);
         }
 
         void StopSelectedViaPort()
