@@ -103,6 +103,9 @@ namespace XianXia.Unity.Host
             targetCamera.orthographicSize = orthographicSize;
             targetCamera.transform.position = new Vector3(_focus.x, _focus.y, cameraZ);
             targetCamera.transform.rotation = Quaternion.identity;
+            // Avoid default skybox flashing at map edges.
+            targetCamera.clearFlags = CameraClearFlags.SolidColor;
+            targetCamera.backgroundColor = new Color(0.18f, 0.22f, 0.16f, 1f);
         }
     }
 }

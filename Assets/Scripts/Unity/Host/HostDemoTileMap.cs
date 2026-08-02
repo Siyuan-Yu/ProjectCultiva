@@ -8,7 +8,7 @@ namespace XianXia.Unity.Host
 {
     /// <summary>
     /// Stamps Demo_v0_1 ground layout with Sprite tile prefabs (Editor AssetDatabase).
-    /// Stride＞1 thins the grid for Host performance while keeping Demo proportions.
+    /// Default stride=1 so tiles are edge-to-edge (no skybox gaps).
     /// </summary>
     public sealed class HostDemoTileMap : MonoBehaviour
     {
@@ -18,7 +18,7 @@ namespace XianXia.Unity.Host
         const int MapHeight = 50;
 
         [SerializeField] Transform mapRoot;
-        [SerializeField] int stride = 2;
+        [SerializeField] int stride = 1;
         [SerializeField] bool buildOnRebuild = true;
 
         readonly List<GameObject> _built = new List<GameObject>();
