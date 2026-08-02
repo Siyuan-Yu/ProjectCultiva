@@ -11,6 +11,7 @@ using XianXia.Core.Orders;
 using XianXia.Core.Random;
 using XianXia.Core.Schedule;
 using XianXia.Core.Exploration;
+using XianXia.Core.Npc;
 using XianXia.Core.Settlement;
 using XianXia.Core.Social;
 using XianXia.Core.World;
@@ -26,6 +27,10 @@ namespace XianXia.Core.Simulation
             new Dictionary<string, OpportunitySite>(System.StringComparer.Ordinal);
         readonly Dictionary<string, CultivationManualSpec> _manuals =
             new Dictionary<string, CultivationManualSpec>(System.StringComparer.Ordinal);
+        readonly Dictionary<string, WorkAreaDefinition> _workAreas =
+            new Dictionary<string, WorkAreaDefinition>(System.StringComparer.Ordinal);
+        readonly Dictionary<string, JobDefinition> _jobs =
+            new Dictionary<string, JobDefinition>(System.StringComparer.Ordinal);
 
         public SimulationWorld(
             EntityStore entities = null,
@@ -110,6 +115,10 @@ namespace XianXia.Core.Simulation
 
         public IReadOnlyDictionary<string, CultivationManualSpec> Manuals => _manuals;
 
+        public IReadOnlyDictionary<string, WorkAreaDefinition> WorkAreas => _workAreas;
+
+        public IReadOnlyDictionary<string, JobDefinition> Jobs => _jobs;
+
         public string EnabledPackageId { get; set; }
 
         public string EnabledPackageVersion { get; set; }
@@ -157,6 +166,40 @@ namespace XianXia.Core.Simulation
             if (string.IsNullOrEmpty(id.Namespace))
                 return false;
             return _manuals.TryGetValue(id.ToString(), out manual);
+        }
+
+        public void RegisterWorkArea(WorkAreaDefinition definition)
+        {
+            if (definition == null)
+                throw new System.ArgumentNullException(nameof(definition));
+            if (string.IsNullOrEmpty(definition.Id))
+                throw new System.ArgumentException("WorkAreaDefinition.Id required.");
+            _workAreas[definition.Id] = definition;
+        }
+
+        public bool TryGetWorkArea(string id, out WorkAreaDefinition definition)
+        {
+            definition = null;
+            if (string.IsNullOrEmpty(id))
+                return false;
+            return _workAreas.TryGetValue(id, out definition);
+        }
+
+        public void RegisterJob(JobDefinition definition)
+        {
+            if (definition == null)
+                throw new System.ArgumentNullException(nameof(definition));
+            if (string.IsNullOrEmpty(definition.Id))
+                throw new System.ArgumentException("JobDefinition.Id required.");
+            _jobs[definition.Id] = definition;
+        }
+
+        public bool TryGetJob(string id, out JobDefinition definition)
+        {
+            definition = null;
+            if (string.IsNullOrEmpty(id))
+                return false;
+            return _jobs.TryGetValue(id, out definition);
         }
 
         public OrderQueue GetOrCreateOrderQueue(EntityId id)

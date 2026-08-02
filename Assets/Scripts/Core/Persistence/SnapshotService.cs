@@ -188,11 +188,24 @@ namespace XianXia.Core.Persistence
             {
                 var action = kv.Value;
                 string kind;
+                string targetRef = null;
+                var activity = 0;
                 if (action is WaitAction) kind = "Wait";
                 else if (action is CultivateAction) kind = "Cultivate";
                 else if (action is LaborAction) kind = "Labor";
                 else if (action is RestAction) kind = "Rest";
                 else if (action is ObserveAction) kind = "Observe";
+                else if (action is MoveAction move)
+                {
+                    kind = "Move";
+                    targetRef = move.TargetWorkAreaId;
+                }
+                else if (action is WorkAction work)
+                {
+                    kind = "Work";
+                    targetRef = work.TargetWorkAreaId;
+                    activity = (int)work.Activity;
+                }
                 else kind = "ApplyModifier";
 
                 snap.ActiveActions.Add(new ActiveActionSnapshotDto
@@ -203,7 +216,9 @@ namespace XianXia.Core.Persistence
                     Kind = kind,
                     Status = (int)action.Status,
                     TotalTicks = action.Clock.TotalDurationTicks,
-                    RemainingTicks = action.Clock.RemainingTicks
+                    RemainingTicks = action.Clock.RemainingTicks,
+                    TargetRef = targetRef ?? string.Empty,
+                    Activity = activity
                 });
             }
 
@@ -217,7 +232,9 @@ namespace XianXia.Core.Persistence
                         SubjectId = order.Subject.Value,
                         Type = (int)order.Type,
                         Source = (int)order.Source,
-                        WaitTicks = order.WaitTicks
+                        WaitTicks = order.WaitTicks,
+                        TargetRef = order.TargetRef ?? string.Empty,
+                        Activity = order.Activity.HasValue ? (int)order.Activity.Value : 0
                     });
                 }
             }
@@ -446,6 +463,32 @@ namespace XianXia.Core.Persistence
                     observe.Restore((ActionStatus)a.Status, new ActionClock(a.TotalTicks, a.RemainingTicks));
                     world.ActiveActions[observe.Id] = observe;
                 }
+                else if (a.Kind == "Move")
+                {
+                    var move = new MoveAction(
+                        new ActionId(a.Id),
+                        new EntityId(a.SubjectId),
+                        new OrderId(a.SourceOrderId),
+                        a.TotalTicks,
+                        a.TargetRef ?? string.Empty);
+                    move.Restore((ActionStatus)a.Status, new ActionClock(a.TotalTicks, a.RemainingTicks));
+                    world.ActiveActions[move.Id] = move;
+                }
+                else if (a.Kind == "Work")
+                {
+                    var activity = a.Activity > 0
+                        ? (XianXia.Core.Schedule.ScheduleActivity)a.Activity
+                        : XianXia.Core.Schedule.ScheduleActivity.Labor;
+                    var work = new WorkAction(
+                        new ActionId(a.Id),
+                        new EntityId(a.SubjectId),
+                        new OrderId(a.SourceOrderId),
+                        a.TotalTicks,
+                        activity,
+                        a.TargetRef ?? string.Empty);
+                    work.Restore((ActionStatus)a.Status, new ActionClock(a.TotalTicks, a.RemainingTicks));
+                    world.ActiveActions[work.Id] = work;
+                }
             }
 
             foreach (var group in snap.Orders.GroupBy(o => o.SubjectId))
@@ -453,12 +496,17 @@ namespace XianXia.Core.Persistence
                 var queue = world.GetOrCreateOrderQueue(new EntityId(group.Key));
                 foreach (var o in group)
                 {
+                    XianXia.Core.Schedule.ScheduleActivity? activity = null;
+                    if (o.Activity > 0)
+                        activity = (XianXia.Core.Schedule.ScheduleActivity)o.Activity;
                     queue.Enqueue(new Order(
                         new OrderId(o.Id),
                         new EntityId(o.SubjectId),
                         (OrderType)o.Type,
                         (OrderSource)o.Source,
-                        waitTicks: o.WaitTicks));
+                        waitTicks: o.WaitTicks,
+                        targetRef: o.TargetRef,
+                        activity: activity));
                 }
             }
 

@@ -77,6 +77,21 @@ namespace XianXia.Core.Orders
             return false;
         }
 
+        public bool HasMatching(OrderSource source, OrderType type, string targetRef)
+        {
+            for (var i = 0; i < _orders.Count; i++)
+            {
+                var o = _orders[i];
+                if (o.Source != source || o.Type != type)
+                    continue;
+                if (string.IsNullOrEmpty(targetRef) ||
+                    string.Equals(o.TargetRef, targetRef, StringComparison.Ordinal))
+                    return true;
+            }
+
+            return false;
+        }
+
         public void RemoveWhere(Func<Order, bool> predicate)
         {
             if (predicate == null)

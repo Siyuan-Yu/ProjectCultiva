@@ -15,6 +15,10 @@ namespace XianXia.Core.Orders
         Cultivate = 2,
         Labor = 3,
         Rest = 4,
-        Observe = 5
+        Observe = 5,
+        /// <summary>NPC Simulation: travel to WorkArea／Location.</summary>
+        Move = 6,
+        /// <summary>NPC Simulation: on-site schedule work after Move.</summary>
+        Work = 7
     }
 }

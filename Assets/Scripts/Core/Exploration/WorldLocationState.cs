@@ -20,5 +20,9 @@ namespace XianXia.Core.Exploration
         public List<ContentCondition> EnterConditions { get; } = new List<ContentCondition>();
         /// <summary>Quest ids to TryStart on arrive (offer conditions still apply).</summary>
         public List<string> QuestOfferIds { get; } = new List<string>();
+        /// <summary>Content tags for WorkArea／Job matching (e.g. herb, mine).</summary>
+        public List<string> Tags { get; } = new List<string>();
+        /// <summary>ScheduleActivity names allowed here (Labor, Patrol, …). Empty = unrestricted.</summary>
+        public List<string> AllowedActivities { get; } = new List<string>();
     }
 }

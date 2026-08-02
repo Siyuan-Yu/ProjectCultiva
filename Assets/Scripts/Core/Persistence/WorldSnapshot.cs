@@ -126,6 +126,10 @@ namespace XianXia.Core.Persistence
         public int Status { get; set; }
         public ulong TotalTicks { get; set; }
         public ulong RemainingTicks { get; set; }
+        /// <summary>Soft additive: WorkArea id for Move／Work.</summary>
+        public string TargetRef { get; set; }
+        /// <summary>Soft additive: ScheduleActivity int; 0 = unset.</summary>
+        public int Activity { get; set; }
     }
 
     public sealed class OrderSnapshotDto
@@ -135,5 +139,9 @@ namespace XianXia.Core.Persistence
         public int Type { get; set; }
         public int Source { get; set; }
         public ulong WaitTicks { get; set; }
+        /// <summary>Soft additive: WorkArea id for Move／Work.</summary>
+        public string TargetRef { get; set; }
+        /// <summary>Soft additive: ScheduleActivity int; 0 = unset.</summary>
+        public int Activity { get; set; }
     }
 }

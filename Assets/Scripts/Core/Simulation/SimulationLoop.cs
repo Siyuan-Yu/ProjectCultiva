@@ -5,6 +5,7 @@ using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
 using XianXia.Core.Events;
 using XianXia.Core.Labor;
+using XianXia.Core.Npc;
 using XianXia.Core.Orders;
 using XianXia.Core.Results;
 using XianXia.Core.Schedule;
@@ -19,6 +20,7 @@ namespace XianXia.Core.Simulation
 
         readonly SimulationWorld _world;
         readonly ScheduleDriver _scheduleDriver;
+        readonly NpcActivityDriver _npcActivityDriver;
         readonly SocialTickDriver _socialTickDriver;
         readonly XianXia.Core.Social.SupervisorAngerDriver _supervisorAngerDriver;
         readonly bool _socialTickEnabled;
@@ -30,10 +32,12 @@ namespace XianXia.Core.Simulation
             ScheduleDriver scheduleDriver = null,
             IEnumerable<IDayBoundaryHandler> dayBoundaryHandlers = null,
             SocialTickDriver socialTickDriver = null,
-            bool enableSocialTick = false)
+            bool enableSocialTick = false,
+            NpcActivityDriver npcActivityDriver = null)
         {
             _world = world;
             _scheduleDriver = scheduleDriver ?? new ScheduleDriver();
+            _npcActivityDriver = npcActivityDriver ?? new NpcActivityDriver();
             _socialTickDriver = socialTickDriver ?? new SocialTickDriver();
             _supervisorAngerDriver = new XianXia.Core.Social.SupervisorAngerDriver();
             _socialTickEnabled = enableSocialTick;
@@ -123,6 +127,7 @@ namespace XianXia.Core.Simulation
             var previous = _world.Tick;
             _world.Tick = _world.Tick.Add(1);
             ProcessDayBoundary(previous, _world.Tick);
+            _npcActivityDriver.Drive(_world, this);
             _scheduleDriver.Drive(_world, this);
 
             var actionIds = new System.Collections.Generic.List<ActionId>(_world.ActiveActions.Keys);
@@ -154,6 +159,7 @@ namespace XianXia.Core.Simulation
                 }
             }
 
+            _npcActivityDriver.Drive(_world, this);
             _scheduleDriver.Drive(_world, this);
             _supervisorAngerDriver.Tick(_world);
             if (_socialTickEnabled)
@@ -293,6 +299,9 @@ namespace XianXia.Core.Simulation
             _world.ActiveActions.Remove(action.Id);
             if (!_world.Entities.TryGet(action.Subject, out var entity))
                 return;
+            if (action is MoveAction &&
+                entity.TryGet<MovementIntentComponent>(out var intent))
+                intent.Clear();
             if (!entity.TryGet<ActionStateComponent>(out var state))
                 return;
             state.ActiveActionId = ActionId.None;

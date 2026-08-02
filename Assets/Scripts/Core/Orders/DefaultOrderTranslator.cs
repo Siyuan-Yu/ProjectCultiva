@@ -2,6 +2,7 @@ using XianXia.Core.Actions;
 using XianXia.Core.Attributes;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
+using XianXia.Core.Schedule;
 
 namespace XianXia.Core.Orders
 {
@@ -57,6 +58,21 @@ namespace XianXia.Core.Orders
                     if (order.WaitTicks == 0)
                         return Result.Fail<IAction>(ErrorCode.InvalidArgument, "Observe duration must be > 0.");
                     return Result.Ok<IAction>(new ObserveAction(actionId, order.Subject, order.Id, order.WaitTicks));
+
+                case OrderType.Move:
+                    if (order.WaitTicks == 0)
+                        return Result.Fail<IAction>(ErrorCode.InvalidArgument, "Move duration must be > 0.");
+                    if (string.IsNullOrEmpty(order.TargetRef))
+                        return Result.Fail<IAction>(ErrorCode.InvalidArgument, "Move TargetRef (WorkArea) required.");
+                    return Result.Ok<IAction>(new MoveAction(
+                        actionId, order.Subject, order.Id, order.WaitTicks, order.TargetRef));
+
+                case OrderType.Work:
+                    if (order.WaitTicks == 0)
+                        return Result.Fail<IAction>(ErrorCode.InvalidArgument, "Work duration must be > 0.");
+                    var activity = order.Activity ?? ScheduleActivity.Labor;
+                    return Result.Ok<IAction>(new WorkAction(
+                        actionId, order.Subject, order.Id, order.WaitTicks, activity, order.TargetRef));
 
                 default:
                     return Result.Fail<IAction>(ErrorCode.InvalidOperation, "Unsupported order type.");

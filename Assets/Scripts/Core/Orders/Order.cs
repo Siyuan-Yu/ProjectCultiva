@@ -1,5 +1,6 @@
 using XianXia.Core.Attributes;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Schedule;
 
 namespace XianXia.Core.Orders
 {
@@ -14,7 +15,9 @@ namespace XianXia.Core.Orders
             AttributeId? modifierAttribute = null,
             ModifierOperation? modifierOperation = null,
             double modifierValue = 0,
-            SourceRef? modifierSource = null)
+            SourceRef? modifierSource = null,
+            string targetRef = null,
+            ScheduleActivity? activity = null)
         {
             Id = id;
             Subject = subject;
@@ -25,6 +28,8 @@ namespace XianXia.Core.Orders
             ModifierOperation = modifierOperation;
             ModifierValue = modifierValue;
             ModifierSource = modifierSource;
+            TargetRef = targetRef ?? string.Empty;
+            Activity = activity;
         }
 
         public OrderId Id { get; }
@@ -36,5 +41,9 @@ namespace XianXia.Core.Orders
         public ModifierOperation? ModifierOperation { get; }
         public double ModifierValue { get; }
         public SourceRef? ModifierSource { get; }
+        /// <summary>WorkArea id (or Location id) for Move／Work orders.</summary>
+        public string TargetRef { get; }
+        /// <summary>Schedule activity for Work／Move context.</summary>
+        public ScheduleActivity? Activity { get; }
     }
 }

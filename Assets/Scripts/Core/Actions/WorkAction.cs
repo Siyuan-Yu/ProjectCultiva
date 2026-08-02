@@ -1,0 +1,129 @@
+using XianXia.Core.Domain.Ids;
+using XianXia.Core.Domain.Time;
+using XianXia.Core.Entities;
+using XianXia.Core.Exploration;
+using XianXia.Core.Labor;
+using XianXia.Core.Npc;
+using XianXia.Core.Results;
+using XianXia.Core.Schedule;
+using XianXia.Core.Simulation;
+
+namespace XianXia.Core.Actions
+{
+    /// <summary>
+    /// On-site schedule work after MoveAction. Labor increments DailyTask when present;
+    /// other activities are timed presence (patrol／inspect／rest).
+    /// </summary>
+    public sealed class WorkAction : IAction
+    {
+        public WorkAction(
+            ActionId id,
+            EntityId subject,
+            OrderId sourceOrderId,
+            ulong durationTicks,
+            ScheduleActivity activity,
+            string targetWorkAreaId)
+        {
+            Id = id;
+            Subject = subject;
+            SourceOrderId = sourceOrderId;
+            Activity = activity;
+            TargetWorkAreaId = targetWorkAreaId ?? string.Empty;
+            Clock = ActionClock.Start(durationTicks == 0 ? 1UL : durationTicks);
+            Status = ActionStatus.Pending;
+        }
+
+        public ActionId Id { get; }
+        public EntityId Subject { get; }
+        public OrderId SourceOrderId { get; }
+        public ScheduleActivity Activity { get; }
+        public string TargetWorkAreaId { get; }
+        public ActionStatus Status { get; private set; }
+        public ActionClock Clock { get; private set; }
+
+        public Result CanStart(SimulationWorld world)
+        {
+            if (!world.Entities.TryGet(Subject, out var entity))
+                return Result.Failure(ErrorCode.EntityNotFound, "Subject missing.");
+            if (!entity.TryGet<LifecycleComponent>(out var life))
+                return Result.Failure(ErrorCode.ComponentMissing, "Lifecycle missing.");
+            if (life.IsDead || life.IsRemoved || life.IsIncapacitated)
+                return Result.Failure(ErrorCode.ActionCannotStart, "Subject cannot work.", life.State.ToString());
+            return Result.Success();
+        }
+
+        public Result Start(SimulationWorld world)
+        {
+            var can = CanStart(world);
+            if (can.IsFailure) return can;
+
+            if (!string.IsNullOrEmpty(TargetWorkAreaId) &&
+                world.TryGetWorkArea(TargetWorkAreaId, out var area) &&
+                !string.IsNullOrEmpty(area.LocationId) &&
+                world.Entities.TryGet(Subject, out var entity))
+            {
+                if (!entity.TryGet<EntityLocationComponent>(out var loc))
+                {
+                    loc = new EntityLocationComponent();
+                    entity.AddComponent(loc);
+                }
+
+                if (!loc.HasLocation ||
+                    !string.Equals(loc.LocationId, area.LocationId, System.StringComparison.Ordinal))
+                    loc.LocationId = area.LocationId;
+            }
+
+            Status = ActionStatus.Running;
+            return Result.Success();
+        }
+
+        public Result Advance(SimulationWorld world)
+        {
+            if (Status != ActionStatus.Running)
+                return Result.Failure(ErrorCode.InvalidOperation, "Action not running.");
+
+            if (world.Entities.TryGet(Subject, out var entity) &&
+                Activity == ScheduleActivity.Labor &&
+                entity.TryGet<DailyTaskComponent>(out var daily))
+            {
+                daily.CompletedAmount += 1;
+            }
+
+            Clock = Clock.Consume(1);
+            if (Clock.IsComplete)
+            {
+                AdvanceRoute(world);
+                Status = ActionStatus.Completed;
+            }
+
+            return Result.Success();
+        }
+
+        void AdvanceRoute(SimulationWorld world)
+        {
+            if (!world.Entities.TryGet(Subject, out var entity))
+                return;
+            if (!entity.TryGet<JobComponent>(out var job) || !job.HasJob)
+                return;
+            if (!world.TryGetJob(job.JobId, out var jobDef))
+                return;
+            if (!jobDef.TryGetBinding(Activity, out var binding) || !binding.Route)
+                return;
+            if (binding.WorkAreaIds == null || binding.WorkAreaIds.Count == 0)
+                return;
+            job.RouteIndex = (job.RouteIndex + 1) % binding.WorkAreaIds.Count;
+        }
+
+        public void Cancel()
+        {
+            if (Status == ActionStatus.Pending || Status == ActionStatus.Running)
+                Status = ActionStatus.Cancelled;
+        }
+
+        public void Restore(ActionStatus status, ActionClock clock)
+        {
+            Status = status;
+            Clock = clock;
+        }
+    }
+}

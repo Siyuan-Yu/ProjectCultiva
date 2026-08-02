@@ -1,26 +1,18 @@
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
-using XianXia.Core.Npc;
 using XianXia.Core.Orders;
+using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 
-namespace XianXia.Core.Schedule
+namespace XianXia.Core.Npc
 {
     /// <summary>
-    /// Injects Schedule Orders for NPCs when idle and no pending Player Orders.
-    /// DirectControl Characters are never auto-driven (RTS：默认只听玩家；日后「自动行动」再开)。
-    /// Player Orders always outrank Schedule. VS0.5-E: PersonalityScheduleBias on activity／duration.
+    /// Job-bound NPCs: Schedule Block → ActivityResolver → Move／Work orders.
+    /// Characters under direct control are skipped.
     /// </summary>
-    public sealed class ScheduleDriver
+    public sealed class NpcActivityDriver
     {
-        readonly ScheduleOrderFactory _factory;
-
-        public ScheduleDriver(ScheduleOrderFactory factory = null)
-        {
-            _factory = factory ?? new ScheduleOrderFactory();
-        }
-
         public void Drive(SimulationWorld world, SimulationLoop loop)
         {
             if (world == null || loop == null)
@@ -28,18 +20,13 @@ namespace XianXia.Core.Schedule
 
             foreach (var entity in world.Entities.All)
             {
-                // Character = 玩家可直接控制单位：不跟课表自动走。
                 if ((entity.Tags & EntityTag.Character) != 0)
                     continue;
-
-                // Job NPCs use NpcActivityDriver (Move → Work), not direct Labor／Observe.
-                if (entity.TryGet<JobComponent>(out var job) && job.HasJob)
+                if (!entity.TryGet<JobComponent>(out var job) || !job.HasJob)
                     continue;
-
                 if (!entity.TryGet<ScheduleComponent>(out var binding) ||
                     string.IsNullOrEmpty(binding.DefinitionId))
                     continue;
-
                 if (!world.TryGetSchedule(binding.DefinitionId, out var definition))
                     continue;
 
@@ -71,12 +58,6 @@ namespace XianXia.Core.Schedule
             entity.TryGet<PersonalityProfileComponent>(out var profile);
             var choice = PersonalityScheduleBias.Apply(block, profile);
 
-            var expectedType = ScheduleActivityMapping.ToOrderType(choice.Activity);
-            if (queue.HasMatching(OrderSource.Schedule, expectedType))
-                return;
-
-            queue.RemoveWhere(o => o.Source == OrderSource.Schedule);
-
             var tickInDay = (int)(world.Tick.Value % (ulong)WorldTick.TicksPerDay);
             var remainingInBlock = (ulong)(block.EndTickInDay - tickInDay);
             var duration = choice.DurationTicks;
@@ -85,15 +66,29 @@ namespace XianXia.Core.Schedule
             if (duration == 0)
                 return;
 
-            var created = _factory.Create(
-                loop.AllocateOrderId(),
-                entity.Id,
-                choice.Activity,
-                duration);
-            if (created.IsFailure)
+            if (!ActivityResolver.TryResolve(world, entity, choice.Activity, duration, out var resolved))
                 return;
 
-            loop.EnqueueOrder(created.Value);
+            var orderType = resolved.NeedsMove ? OrderType.Move : OrderType.Work;
+            if (queue.HasMatching(OrderSource.Schedule, orderType, resolved.WorkAreaId))
+                return;
+
+            queue.RemoveWhere(o => o.Source == OrderSource.Schedule);
+
+            var moveDuration = resolved.NeedsMove
+                ? (duration < 24UL ? duration : 24UL)
+                : duration;
+            var wait = resolved.NeedsMove ? moveDuration : duration;
+
+            var order = new Order(
+                loop.AllocateOrderId(),
+                entity.Id,
+                orderType,
+                OrderSource.Schedule,
+                waitTicks: wait,
+                targetRef: resolved.WorkAreaId,
+                activity: choice.Activity);
+            loop.EnqueueOrder(order);
         }
     }
 }
