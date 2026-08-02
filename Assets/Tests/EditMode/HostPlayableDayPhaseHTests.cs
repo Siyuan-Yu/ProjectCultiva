@@ -52,7 +52,8 @@ namespace XianXia.Tests
                 Assert.IsTrue(hud.RealmLine.Length > 0);
 
                 // Jump near day end and cross boundary for quota consequence.
-                bootstrap.Session.World.Tick = new XianXia.Core.Domain.Time.WorldTick(95);
+                bootstrap.Session.World.Tick = new XianXia.Core.Domain.Time.WorldTick(
+                    (ulong)(XianXia.Core.Domain.Time.WorldTick.TicksPerDay - 1));
                 bootstrap.Session.World.Events.Drain();
                 bootstrap.EventFeed.Clear();
                 bootstrap.StepTick();

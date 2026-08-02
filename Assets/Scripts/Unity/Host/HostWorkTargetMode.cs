@@ -7,7 +7,7 @@ using XianXia.Core.Input;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// RTS 点选模式：移动／交互／战斗(占位)／修炼。绿可点、红不可点；右键或 Esc 取消。
+    /// RTS 点选＋情境光标：武装时绿/红；未武装但选中己方时，悬停热点显示可交互光标，右键＝前往并交互。
     /// </summary>
     public sealed class HostWorkTargetMode : MonoBehaviour
     {
@@ -30,7 +30,9 @@ namespace XianXia.Unity.Host
         Texture2D _cursorGreen;
         Texture2D _cursorRed;
         bool _canTargetUnderMouse;
+        bool _idleHoverInteractable;
         string _hoverHint = string.Empty;
+        bool _cursorOverridden;
 
         public bool IsActive => armed != ArmKind.None;
 
@@ -57,33 +59,78 @@ namespace XianXia.Unity.Host
 
         public void ArmCultivate() => SetArmed(ArmKind.Cultivate);
 
-        /// <summary>兼容旧调用：劳动＝交互工区。</summary>
         public void ArmLabor() => ArmInteract();
 
         public void Cancel() => SetArmed(ArmKind.None);
+
+        /// <summary>
+        /// 未武装时：右键热点＝前往并交互／修炼；返回 true 表示已消费（MoveController 勿再纯移动）。
+        /// </summary>
+        public bool TryHandleContextRightClick()
+        {
+            if (armed != ArmKind.None)
+                return false;
+            if (!HasCommandableParty())
+                return false;
+            if (HostUiHitTest.ContainsScreenPoint(Input.mousePosition))
+                return false;
+            if (worldCamera == null)
+                worldCamera = Camera.main;
+            if (worldCamera == null ||
+                !HostPresentationSpace.TryRaycastPlane(worldCamera, Input.mousePosition, out var point))
+                return false;
+
+            if (HostZoneQuery.TryFindWorkSpot(point, out var work))
+            {
+                IssueWorkAtSpot(work);
+                return true;
+            }
+
+            if (HostZoneQuery.TryFindCultivateSpot(point, out var cult))
+            {
+                IssueCultivateAtSpot(cult);
+                return true;
+            }
+
+            if (TryPickNpcAtMouse(out var npc) &&
+                selectionController != null &&
+                !selectionController.IsPartyUnit(npc) &&
+                TryViewCenter(npc, out var center))
+            {
+                Resume();
+                if (moveController != null)
+                    moveController.OrderPartyToPointPublic(center);
+                return true;
+            }
+
+            return false;
+        }
 
         void SetArmed(ArmKind kind)
         {
             armed = kind;
             if (kind == ArmKind.None)
-            {
-                Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
-                _hoverHint = string.Empty;
-            }
+                ClearCursorOverride();
+            _hoverHint = string.Empty;
+            _canTargetUnderMouse = false;
+            _idleHoverInteractable = false;
         }
 
-        void OnDisable()
-        {
-            Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
-        }
+        void OnDisable() => ClearCursorOverride();
 
         void Update()
         {
             if (bootstrap == null || bootstrap.Session == null || !bootstrap.Session.IsInitialized)
+            {
+                ClearCursorOverride();
                 return;
-            if (bootstrap.Session.World.ContentEvents.HasActive)
+            }
+
+            if (bootstrap.Session.World.ContentEvents.HasActive ||
+                (bootstrap.ContentInterrupt != null && bootstrap.ContentInterrupt.HasBlockingInterrupt))
             {
                 SetArmed(ArmKind.None);
+                ClearCursorOverride();
                 return;
             }
 
@@ -93,7 +140,10 @@ namespace XianXia.Unity.Host
                 moveController = bootstrap.GetComponent<HostMoveController>();
 
             if (armed == ArmKind.None)
+            {
+                UpdateIdleHover();
                 return;
+            }
 
             if (Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(1))
             {
@@ -101,7 +151,7 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            UpdateHover();
+            UpdateArmedHover();
 
             if (!Input.GetMouseButtonDown(0))
                 return;
@@ -119,7 +169,7 @@ namespace XianXia.Unity.Host
                     ConfirmInteract(point);
                     break;
                 case ArmKind.Combat:
-                    ConfirmCombat(point);
+                    ConfirmCombat();
                     break;
                 case ArmKind.Cultivate:
                     ConfirmCultivate(point);
@@ -127,18 +177,61 @@ namespace XianXia.Unity.Host
             }
         }
 
-        void UpdateHover()
+        void UpdateIdleHover()
+        {
+            _idleHoverInteractable = false;
+            _hoverHint = string.Empty;
+
+            if (!HasCommandableParty() ||
+                HostUiHitTest.ContainsScreenPoint(Input.mousePosition) ||
+                worldCamera == null ||
+                !HostPresentationSpace.TryRaycastPlane(worldCamera, Input.mousePosition, out var point))
+            {
+                ClearCursorOverride();
+                return;
+            }
+
+            if (HostZoneQuery.TryFindWorkSpot(point, out var work))
+            {
+                _idleHoverInteractable = true;
+                _hoverHint = "右键交互·" + work.Label;
+                ApplyCursor(true);
+                return;
+            }
+
+            if (HostZoneQuery.TryFindCultivateSpot(point, out var cult))
+            {
+                _idleHoverInteractable = true;
+                _hoverHint = "右键修炼·" + cult.Label;
+                ApplyCursor(true);
+                return;
+            }
+
+            if (TryPickNpcAtMouse(out var npc) &&
+                selectionController != null &&
+                !selectionController.IsPartyUnit(npc))
+            {
+                _idleHoverInteractable = true;
+                _hoverHint = "右键交互·人物";
+                ApplyCursor(true);
+                return;
+            }
+
+            ClearCursorOverride();
+        }
+
+        void UpdateArmedHover()
         {
             _canTargetUnderMouse = false;
             _hoverHint = string.Empty;
             if (worldCamera == null ||
+                HostUiHitTest.ContainsScreenPoint(Input.mousePosition) ||
                 !HostPresentationSpace.TryRaycastPlane(worldCamera, Input.mousePosition, out var point))
             {
                 ApplyCursor(false);
                 return;
             }
 
-            var world = bootstrap.Session.World;
             switch (armed)
             {
                 case ArmKind.Move:
@@ -146,63 +239,42 @@ namespace XianXia.Unity.Host
                     _hoverHint = "移动到此处";
                     break;
                 case ArmKind.Interact:
-                {
+                    // 仅热点／人物为绿；麦田其它位置也是红（不用大色带）。
                     if (HostZoneQuery.TryFindWorkSpot(point, out var workSpot))
                     {
                         _canTargetUnderMouse = true;
                         _hoverHint = "交互·" + workSpot.Label;
-                        break;
                     }
-
-                    var work = HostZoneQuery.FindWorkLocation(world, point);
-                    if (!string.IsNullOrEmpty(work))
-                    {
-                        _canTargetUnderMouse = true;
-                        _hoverHint = "交互·工区";
-                        break;
-                    }
-
-                    if (TryPickNpcAtMouse(out var npc) && !selectionController.IsPartyUnit(npc))
+                    else if (TryPickNpcAtMouse(out var npc) &&
+                             selectionController != null &&
+                             !selectionController.IsPartyUnit(npc))
                     {
                         _canTargetUnderMouse = true;
                         _hoverHint = "交互·人物";
-                        break;
                     }
-
-                    _hoverHint = "不可交互";
+                    else
+                        _hoverHint = "不可交互";
                     break;
-                }
                 case ArmKind.Combat:
-                {
-                    if (TryPickNpcAtMouse(out var foe) && !selectionController.IsPartyUnit(foe))
+                    if (TryPickNpcAtMouse(out var foe) &&
+                        selectionController != null &&
+                        !selectionController.IsPartyUnit(foe))
                     {
                         _canTargetUnderMouse = true;
                         _hoverHint = "战斗（未实装）";
-                        break;
                     }
-
-                    _hoverHint = "无可战斗目标";
+                    else
+                        _hoverHint = "无可战斗目标";
                     break;
-                }
                 case ArmKind.Cultivate:
-                {
                     if (HostZoneQuery.TryFindCultivateSpot(point, out var cultSpot))
                     {
                         _canTargetUnderMouse = true;
                         _hoverHint = "修炼·" + cultSpot.Label;
-                        break;
-                    }
-
-                    var spirit = HostZoneQuery.FindCultivateLocation(world, point);
-                    if (!string.IsNullOrEmpty(spirit))
-                    {
-                        _canTargetUnderMouse = true;
-                        _hoverHint = "修炼点";
                     }
                     else
-                        _hoverHint = "非灵地";
+                        _hoverHint = "非修炼点";
                     break;
-                }
             }
 
             ApplyCursor(_canTargetUnderMouse);
@@ -212,53 +284,34 @@ namespace XianXia.Unity.Host
         {
             if (moveController != null)
                 moveController.OrderPartyToPointPublic(point);
-            else
-                return;
             SetArmed(ArmKind.None);
         }
 
         void ConfirmInteract(Vector3 point)
         {
-            var world = bootstrap.Session.World;
+            if (!_canTargetUnderMouse)
+                return;
+
             if (HostZoneQuery.TryFindWorkSpot(point, out var spot))
             {
-                bootstrap.Session.IsPaused = false;
-                if (moveController != null)
-                    moveController.OrderPartyToPointThen(spot.WorldPosition, PlayerCommandKind.Labor);
-                else
-                    FallbackSnapAndIssue(spot.LocationId, PlayerCommandKind.Labor);
-                SetArmed(ArmKind.None);
-                return;
-            }
-
-            var work = HostZoneQuery.FindWorkLocation(world, point);
-            if (!string.IsNullOrEmpty(work))
-            {
-                bootstrap.Session.IsPaused = false;
-                if (moveController != null)
-                    moveController.OrderPartyToLocation(work, PlayerCommandKind.Labor);
-                else
-                    FallbackSnapAndIssue(work, PlayerCommandKind.Labor);
+                IssueWorkAtSpot(spot);
                 SetArmed(ArmKind.None);
                 return;
             }
 
             if (TryPickNpcAtMouse(out var npc) &&
                 selectionController != null &&
-                !selectionController.IsPartyUnit(npc))
+                !selectionController.IsPartyUnit(npc) &&
+                TryViewCenter(npc, out var center))
             {
-                // 对话／社交玩法未单独做：先走到对方身边待命。
-                bootstrap.Session.IsPaused = false;
-                if (moveController != null && TryViewCenter(npc, out var center))
+                Resume();
+                if (moveController != null)
                     moveController.OrderPartyToPointPublic(center);
                 SetArmed(ArmKind.None);
-                return;
             }
-
-            // 红区点击：不消耗模式，等玩家另选或 Esc。
         }
 
-        void ConfirmCombat(Vector3 _)
+        void ConfirmCombat()
         {
             if (!_canTargetUnderMouse)
                 return;
@@ -268,26 +321,49 @@ namespace XianXia.Unity.Host
 
         void ConfirmCultivate(Vector3 point)
         {
-            if (HostZoneQuery.TryFindCultivateSpot(point, out var spot))
-            {
-                bootstrap.Session.IsPaused = false;
-                if (moveController != null)
-                    moveController.OrderPartyToPointThen(spot.WorldPosition, PlayerCommandKind.Cultivate);
-                else
-                    FallbackSnapAndIssue(spot.LocationId, PlayerCommandKind.Cultivate);
-                SetArmed(ArmKind.None);
+            if (!_canTargetUnderMouse)
                 return;
+            if (!HostZoneQuery.TryFindCultivateSpot(point, out var spot))
+                return;
+            IssueCultivateAtSpot(spot);
+            SetArmed(ArmKind.None);
+        }
+
+        void IssueWorkAtSpot(HostInteractSpot spot)
+        {
+            Resume();
+            if (moveController != null)
+                moveController.OrderPartyToPointThen(spot.WorldPosition, PlayerCommandKind.Labor);
+            else
+                FallbackSnapAndIssue(spot.LocationId, PlayerCommandKind.Labor);
+        }
+
+        void IssueCultivateAtSpot(HostInteractSpot spot)
+        {
+            Resume();
+            if (moveController != null)
+                moveController.OrderPartyToPointThen(spot.WorldPosition, PlayerCommandKind.Cultivate);
+            else
+                FallbackSnapAndIssue(spot.LocationId, PlayerCommandKind.Cultivate);
+        }
+
+        void Resume()
+        {
+            if (bootstrap?.Session != null && !bootstrap.Session.World.ContentEvents.HasActive)
+                bootstrap.Session.IsPaused = false;
+        }
+
+        bool HasCommandableParty()
+        {
+            if (selectionController == null || selectionController.State.Count == 0)
+                return false;
+            for (var i = 0; i < selectionController.State.Count; i++)
+            {
+                if (selectionController.IsPartyUnit(selectionController.State.SelectedIds[i]))
+                    return true;
             }
 
-            var locId = HostZoneQuery.FindCultivateLocation(bootstrap.Session.World, point);
-            if (string.IsNullOrEmpty(locId))
-                return;
-            bootstrap.Session.IsPaused = false;
-            if (moveController != null)
-                moveController.OrderPartyToLocation(locId, PlayerCommandKind.Cultivate);
-            else
-                FallbackSnapAndIssue(locId, PlayerCommandKind.Cultivate);
-            SetArmed(ArmKind.None);
+            return false;
         }
 
         bool TryViewCenter(EntityId id, out Vector3 center)
@@ -340,7 +416,7 @@ namespace XianXia.Unity.Host
                     loc.LocationId = locId;
             }
 
-            bootstrap.Session.IsPaused = false;
+            Resume();
             if (commandBridge != null)
                 commandBridge.IssueSelected(kind);
         }
@@ -348,8 +424,16 @@ namespace XianXia.Unity.Host
         void ApplyCursor(bool ok)
         {
             EnsureCursors();
-            var tex = ok ? _cursorGreen : _cursorRed;
-            Cursor.SetCursor(tex, new Vector2(8f, 8f), CursorMode.Auto);
+            _cursorOverridden = true;
+            Cursor.SetCursor(ok ? _cursorGreen : _cursorRed, new Vector2(8f, 8f), CursorMode.Auto);
+        }
+
+        void ClearCursorOverride()
+        {
+            if (!_cursorOverridden)
+                return;
+            _cursorOverridden = false;
+            Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
         }
 
         void EnsureCursors()
@@ -386,7 +470,12 @@ namespace XianXia.Unity.Host
         void OnGUI()
         {
             if (armed == ArmKind.None)
+            {
+                if (_idleHoverInteractable && _hoverHint.Length > 0)
+                    GUI.Box(new Rect(12f, Screen.height - 48f, 420f, 32f), _hoverHint);
                 return;
+            }
+
             var mode = armed == ArmKind.Move ? "移动"
                 : armed == ArmKind.Interact ? "交互"
                 : armed == ArmKind.Combat ? "战斗"

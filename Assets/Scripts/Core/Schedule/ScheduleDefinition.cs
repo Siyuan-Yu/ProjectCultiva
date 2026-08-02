@@ -6,6 +6,7 @@ namespace XianXia.Core.Schedule
 {
     /// <summary>
     /// Configurable default behavior for mortals/NPCs. Not a player restriction.
+    /// Tick ranges assume <see cref="WorldTick.TicksPerDay"/>＝288（每 Tick＝5 游戏分钟）。
     /// </summary>
     public sealed class ScheduleDefinition
     {
@@ -53,50 +54,50 @@ namespace XianXia.Core.Schedule
         public static ScheduleDefinition CreateDefaultLaborerDay(string id = "base:schedule_laborer_day")
         {
             return new ScheduleDefinition(id)
-                .AddBlock(0, 8, ScheduleActivity.Rest, 2)
-                .AddBlock(8, 48, ScheduleActivity.Labor, 4)
-                .AddBlock(48, 56, ScheduleActivity.Rest, 2)
-                .AddBlock(56, 80, ScheduleActivity.Labor, 4)
-                .AddBlock(80, 96, ScheduleActivity.Rest, 2);
+                .AddBlock(0, 24, ScheduleActivity.Rest, 6)
+                .AddBlock(24, 144, ScheduleActivity.Labor, 12)
+                .AddBlock(144, 168, ScheduleActivity.Rest, 6)
+                .AddBlock(168, 240, ScheduleActivity.Labor, 12)
+                .AddBlock(240, 288, ScheduleActivity.Rest, 6);
         }
 
         /// <summary>
-        /// 凡人劳役日（对齐 21 时段骨架）：深夜休息 → 白天劳役 → 正午吃饭 → 下午劳役 → 入夜自由缝（Explore）→ 再休息。
-        /// Tick：0–20 休｜20–44 劳｜44–52 饭｜52–76 劳｜76–88 夜探｜88–96 休。
+        /// 凡人劳役日：深夜休息 → 白天劳役 → 正午吃饭 → 下午劳役 → 入夜 Explore → 再休息。
+        /// Tick（288/日）：0–60 休｜60–132 劳｜132–156 饭｜156–228 劳｜228–264 夜探｜264–288 休。
         /// </summary>
         public static ScheduleDefinition CreateMortalDay(string id = "base:schedule_mortal_day")
         {
             return new ScheduleDefinition(id)
-                .AddBlock(0, 20, ScheduleActivity.Rest, 2)
-                .AddBlock(20, 44, ScheduleActivity.Labor, 4)
-                .AddBlock(44, 52, ScheduleActivity.Eat, 2)
-                .AddBlock(52, 76, ScheduleActivity.Labor, 4)
-                .AddBlock(76, 88, ScheduleActivity.Explore, 4)
-                .AddBlock(88, 96, ScheduleActivity.Rest, 2);
+                .AddBlock(0, 60, ScheduleActivity.Rest, 6)
+                .AddBlock(60, 132, ScheduleActivity.Labor, 12)
+                .AddBlock(132, 156, ScheduleActivity.Eat, 6)
+                .AddBlock(156, 228, ScheduleActivity.Labor, 12)
+                .AddBlock(228, 264, ScheduleActivity.Explore, 12)
+                .AddBlock(264, 288, ScheduleActivity.Rest, 6);
         }
 
         /// <summary>普通修士：休息／探索／修炼；入夜保留修炼窗。</summary>
         public static ScheduleDefinition CreateCultivatorDay(string id = "base:schedule_cultivator_day")
         {
             return new ScheduleDefinition(id)
-                .AddBlock(0, 16, ScheduleActivity.Rest, 2)
-                .AddBlock(16, 40, ScheduleActivity.Explore, 4)
-                .AddBlock(40, 64, ScheduleActivity.Cultivate, 4)
-                .AddBlock(64, 76, ScheduleActivity.Explore, 4)
-                .AddBlock(76, 88, ScheduleActivity.Cultivate, 4)
-                .AddBlock(88, 96, ScheduleActivity.Rest, 2);
+                .AddBlock(0, 48, ScheduleActivity.Rest, 6)
+                .AddBlock(48, 120, ScheduleActivity.Explore, 12)
+                .AddBlock(120, 192, ScheduleActivity.Cultivate, 12)
+                .AddBlock(192, 228, ScheduleActivity.Explore, 12)
+                .AddBlock(228, 264, ScheduleActivity.Cultivate, 12)
+                .AddBlock(264, 288, ScheduleActivity.Rest, 6);
         }
 
         /// <summary>主管：日间巡查／检查；入夜稀疏巡逻。</summary>
         public static ScheduleDefinition CreateSupervisorDay(string id = "base:schedule_supervisor_day")
         {
             return new ScheduleDefinition(id)
-                .AddBlock(0, 16, ScheduleActivity.Rest, 2)
-                .AddBlock(16, 40, ScheduleActivity.Patrol, 4)
-                .AddBlock(40, 64, ScheduleActivity.Inspect, 4)
-                .AddBlock(64, 76, ScheduleActivity.Patrol, 4)
-                .AddBlock(76, 88, ScheduleActivity.Patrol, 4)
-                .AddBlock(88, 96, ScheduleActivity.Rest, 2);
+                .AddBlock(0, 48, ScheduleActivity.Rest, 6)
+                .AddBlock(48, 120, ScheduleActivity.Patrol, 12)
+                .AddBlock(120, 192, ScheduleActivity.Inspect, 12)
+                .AddBlock(192, 228, ScheduleActivity.Patrol, 12)
+                .AddBlock(228, 264, ScheduleActivity.Patrol, 12)
+                .AddBlock(264, 288, ScheduleActivity.Rest, 6);
         }
     }
 }

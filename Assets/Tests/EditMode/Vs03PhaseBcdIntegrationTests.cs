@@ -76,7 +76,7 @@ namespace XianXia.Tests
         [Test]
         public void DayEnded_AppliesQuotaConsequence_AndResetsCounters()
         {
-            var world = new SimulationWorld { Tick = new WorldTick(95) };
+            var world = new SimulationWorld { Tick = new WorldTick((ulong)(WorldTick.TicksPerDay - 1)) };
             var loop = new SimulationLoop(world);
             var entity = world.Entities.CreateCharacter(new DefinitionId("base", "p"), "甲").Value;
             var daily = entity.Get<DailyTaskComponent>();
@@ -86,7 +86,7 @@ namespace XianXia.Tests
             world.Events.Drain();
 
             Assert.IsTrue(loop.TickOnce().IsSuccess);
-            Assert.AreEqual(96UL, world.Tick.Value);
+            Assert.AreEqual((ulong)WorldTick.TicksPerDay, world.Tick.Value);
 
             Assert.IsTrue(daily.PendingReprimand);
             Assert.AreEqual(5, daily.LastSettledDeviation);
@@ -106,7 +106,7 @@ namespace XianXia.Tests
             entity.Get<DailyTaskComponent>().RequiredAmount = 8;
 
             // Schedule labor so Override can create Deviation when observing.
-            var schedule = new ScheduleDefinition("test:labor_day").AddBlock(0, 96, ScheduleActivity.Labor, 8);
+            var schedule = new ScheduleDefinition("test:labor_day").AddBlock(0, WorldTick.TicksPerDay, ScheduleActivity.Labor, 8);
             world.RegisterSchedule(schedule);
             Assert.IsTrue(entity.AddComponent(new ScheduleComponent(schedule.Id)).IsSuccess);
 
@@ -123,7 +123,7 @@ namespace XianXia.Tests
             Assert.Greater(entity.Get<PersonalConcealmentRiskComponent>().Value, 0);
 
             // Jump to day boundary
-            world.Tick = new WorldTick(95);
+            world.Tick = new WorldTick((ulong)(WorldTick.TicksPerDay - 1));
             world.Events.Drain();
             var deviationBefore = entity.Get<DailyTaskComponent>().Deviation;
             Assert.Greater(deviationBefore, 0);

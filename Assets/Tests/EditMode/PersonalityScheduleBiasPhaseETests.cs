@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using XianXia.Core.Actions;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
 using XianXia.Core.Events;
 using XianXia.Core.Input;
@@ -66,7 +67,7 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             var schedule = new ScheduleDefinition("test:bias_day")
-                .AddBlock(0, 96, ScheduleActivity.Labor, 4);
+                .AddBlock(0, WorldTick.TicksPerDay, ScheduleActivity.Labor, 4);
             world.RegisterSchedule(schedule);
 
             // Npc：日程才会自动注入。Character（己方）默认不跟课表。

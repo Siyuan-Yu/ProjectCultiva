@@ -12,13 +12,12 @@ namespace XianXia.Tests
         {
             var t0 = WorldTick.Zero;
             var t1 = t0.Add(1);
-            var t2 = t1.Add(95);
+            var t2 = t1.Add((ulong)(WorldTick.TicksPerDay - 1));
 
             Assert.AreEqual(0UL, t0.Value);
             Assert.AreEqual(1UL, t1.Value);
-            Assert.AreEqual(96UL, t2.Value);
-            Assert.AreEqual(WorldTick.TicksPerDay, (int)t2.Value);
-            Assert.AreEqual(15, WorldTick.GameMinutesPerTick);
+            Assert.AreEqual((ulong)WorldTick.TicksPerDay, t2.Value);
+            Assert.AreEqual(5, WorldTick.GameMinutesPerTick);
         }
 
         [Test]

@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using XianXia.Core.Actions;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
 using XianXia.Core.Labor;
 using XianXia.Core.Schedule;
@@ -16,7 +17,7 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             var schedule = new ScheduleDefinition("test:manual_day")
-                .AddBlock(0, 96, ScheduleActivity.Labor, 4);
+                .AddBlock(0, WorldTick.TicksPerDay, ScheduleActivity.Labor, 4);
             world.RegisterSchedule(schedule);
 
             var hero = world.Entities.CreateCharacter(new DefinitionId("base", "hero"), "主角").Value;
@@ -35,7 +36,7 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             var schedule = new ScheduleDefinition("test:npc_day")
-                .AddBlock(0, 96, ScheduleActivity.Labor, 4);
+                .AddBlock(0, WorldTick.TicksPerDay, ScheduleActivity.Labor, 4);
             world.RegisterSchedule(schedule);
 
             var npc = world.Entities.CreateNpc(new DefinitionId("base", "guard"), "守卫").Value;

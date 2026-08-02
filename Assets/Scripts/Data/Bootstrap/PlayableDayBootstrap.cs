@@ -200,11 +200,11 @@ namespace XianXia.Data.Bootstrap
         static ScheduleDefinition CreateLaborDaySchedule(string scheduleId)
         {
             return new ScheduleDefinition(scheduleId)
-                .AddBlock(0, 8, ScheduleActivity.Rest, 2)
-                .AddBlock(8, 48, ScheduleActivity.Labor, 4)
-                .AddBlock(48, 56, ScheduleActivity.Rest, 2)
-                .AddBlock(56, 80, ScheduleActivity.Labor, 4)
-                .AddBlock(80, 96, ScheduleActivity.Rest, 2);
+                .AddBlock(0, 24, ScheduleActivity.Rest, 6)
+                .AddBlock(24, 144, ScheduleActivity.Labor, 12)
+                .AddBlock(144, 168, ScheduleActivity.Rest, 6)
+                .AddBlock(168, 240, ScheduleActivity.Labor, 12)
+                .AddBlock(240, 288, ScheduleActivity.Rest, 6);
         }
 
         static Result<DefinitionId> ResolveScenarioId(string openingScenarioId)

@@ -3,13 +3,13 @@ using System;
 namespace XianXia.Core.Domain.Time
 {
     /// <summary>
-    /// Unique world timeline (ADR-0018). 1 tick = 15 game minutes; 1 day = 96 ticks.
+    /// Unique world timeline (ADR-0018). 1 tick = 5 game minutes; 1 day = 288 ticks (24h).
     /// Overflow uses checked arithmetic and throws <see cref="OverflowException"/> (invariant violation).
     /// </summary>
     public readonly struct WorldTick : IEquatable<WorldTick>, IComparable<WorldTick>
     {
-        public const int GameMinutesPerTick = 15;
-        public const int TicksPerDay = 96;
+        public const int GameMinutesPerTick = 5;
+        public const int TicksPerDay = 288;
 
         public static WorldTick Zero => new WorldTick(0);
 

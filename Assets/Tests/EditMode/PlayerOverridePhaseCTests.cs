@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using XianXia.Core.Actions;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
 using XianXia.Core.Events;
 using XianXia.Core.Input;
@@ -19,7 +20,7 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             var schedule = new ScheduleDefinition("test:labor_day")
-                .AddBlock(0, 96, ScheduleActivity.Labor, 8);
+                .AddBlock(0, WorldTick.TicksPerDay, ScheduleActivity.Labor, 8);
             world.RegisterSchedule(schedule);
             var loop = new SimulationLoop(world);
             var entity = world.Entities.CreateCharacter(new DefinitionId("base", "character_protagonist"), "甲").Value;

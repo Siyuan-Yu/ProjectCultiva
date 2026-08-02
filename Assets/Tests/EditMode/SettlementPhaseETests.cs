@@ -87,7 +87,7 @@ namespace XianXia.Tests
                 ? TalentGrowthRules.ExtraCultivateProgress(profile)
                 : 0;
 
-            world.Tick = new WorldTick(95);
+            world.Tick = new WorldTick((ulong)(WorldTick.TicksPerDay - 1));
             world.Events.Drain();
             Assert.IsTrue(started.Value.Loop.TickOnce().IsSuccess);
 

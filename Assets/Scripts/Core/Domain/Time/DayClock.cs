@@ -2,11 +2,11 @@ namespace XianXia.Core.Domain.Time
 {
     /// <summary>
     /// Derived day／hour view of <see cref="WorldTick"/>. Not a second timeline; never stored separately.
-    /// 1 hour = 4 ticks; 1 day = 96 ticks (see <see cref="WorldTick.TicksPerDay"/>).
+    /// 1 hour = 12 ticks；1 day = 288 ticks（每 Tick＝5 游戏分钟）。
     /// </summary>
     public readonly struct DayClock
     {
-        public const int TicksPerHour = 4;
+        public const int TicksPerHour = 12;
 
         public DayClock(ulong dayIndex, int tickInDay, int hourOfDay)
         {

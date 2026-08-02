@@ -15,25 +15,26 @@ namespace XianXia.Tests
         {
             AssertClock(0, day: 0, tickInDay: 0, hour: 0);
             AssertClock(1, day: 0, tickInDay: 1, hour: 0);
-            AssertClock(3, day: 0, tickInDay: 3, hour: 0);
-            AssertClock(4, day: 0, tickInDay: 4, hour: 1);
-            AssertClock(95, day: 0, tickInDay: 95, hour: 23);
-            AssertClock(96, day: 1, tickInDay: 0, hour: 0);
-            AssertClock(97, day: 1, tickInDay: 1, hour: 0);
-            AssertClock(100, day: 1, tickInDay: 4, hour: 1);
-            AssertClock(192, day: 2, tickInDay: 0, hour: 0);
-            AssertClock(191, day: 1, tickInDay: 95, hour: 23);
+            AssertClock(11, day: 0, tickInDay: 11, hour: 0);
+            AssertClock(12, day: 0, tickInDay: 12, hour: 1);
+            AssertClock(287, day: 0, tickInDay: 287, hour: 23);
+            AssertClock(288, day: 1, tickInDay: 0, hour: 0);
+            AssertClock(289, day: 1, tickInDay: 1, hour: 0);
+            AssertClock(300, day: 1, tickInDay: 12, hour: 1);
+            AssertClock(576, day: 2, tickInDay: 0, hour: 0);
+            AssertClock(575, day: 1, tickInDay: 287, hour: 23);
         }
 
         [Test]
-        public void Tick95_To_96_EmitsDayEndedThenDayStarted()
+        public void LastTickOfDay_To_Next_EmitsDayEndedThenDayStarted()
         {
-            var world = new SimulationWorld { Tick = new WorldTick(95) };
+            var endOfDay = (ulong)(WorldTick.TicksPerDay - 1);
+            var world = new SimulationWorld { Tick = new WorldTick(endOfDay) };
             var loop = new SimulationLoop(world);
             world.Events.Drain();
 
             Assert.IsTrue(loop.TickOnce().IsSuccess);
-            Assert.AreEqual(96UL, world.Tick.Value);
+            Assert.AreEqual((ulong)WorldTick.TicksPerDay, world.Tick.Value);
 
             var events = world.Events.Drain();
             var dayEvents = events.FindAll(e =>
@@ -68,9 +69,10 @@ namespace XianXia.Tests
         [Test]
         public void Snapshot_RestoresDayClock_AndDoesNotRefireBoundary()
         {
-            var world = new SimulationWorld { Tick = new WorldTick(95) };
+            var endOfDay = (ulong)(WorldTick.TicksPerDay - 1);
+            var world = new SimulationWorld { Tick = new WorldTick(endOfDay) };
             var loop = new SimulationLoop(world);
-            Assert.IsTrue(loop.TickOnce().IsSuccess); // → 96, day boundary fired
+            Assert.IsTrue(loop.TickOnce().IsSuccess);
             world.Events.Drain();
 
             var before = DayClock.FromWorldTick(world.Tick);
@@ -86,18 +88,18 @@ namespace XianXia.Tests
             Assert.AreEqual(before.DayIndex, afterRestore.DayIndex);
             Assert.AreEqual(before.TickInDay, afterRestore.TickInDay);
             Assert.AreEqual(before.HourOfDay, afterRestore.HourOfDay);
-            Assert.AreEqual(96UL, world2.Tick.Value);
+            Assert.AreEqual((ulong)WorldTick.TicksPerDay, world2.Tick.Value);
 
             world2.Events.Drain();
-            Assert.IsTrue(loop2.TickOnce().IsSuccess); // → 97, same day
+            Assert.IsTrue(loop2.TickOnce().IsSuccess);
             var events = world2.Events.Drain();
             Assert.IsFalse(events.Exists(e =>
                 e.Type == EventType.DayEnded || e.Type == EventType.DayStarted));
 
-            // Advance to next boundary still works once
-            world2.Tick = new WorldTick(191);
+            var nextBoundary = (ulong)(WorldTick.TicksPerDay * 2 - 1);
+            world2.Tick = new WorldTick(nextBoundary);
             world2.Events.Drain();
-            Assert.IsTrue(loop2.TickOnce().IsSuccess); // → 192
+            Assert.IsTrue(loop2.TickOnce().IsSuccess);
             var boundary = world2.Events.Drain().FindAll(e =>
                 e.Type == EventType.DayEnded || e.Type == EventType.DayStarted);
             Assert.AreEqual(2, boundary.Count);
@@ -112,13 +114,23 @@ namespace XianXia.Tests
         {
             var calls = new List<string>();
             var handler = new RecordingHandler(calls);
-            var world = new SimulationWorld { Tick = new WorldTick(95) };
+            var world = new SimulationWorld { Tick = new WorldTick((ulong)(WorldTick.TicksPerDay - 1)) };
             var loop = new SimulationLoop(world, dayBoundaryHandlers: new[] { handler });
 
             Assert.IsTrue(loop.TickOnce().IsSuccess);
             Assert.AreEqual(2, calls.Count);
             Assert.AreEqual("ended:0", calls[0]);
             Assert.AreEqual("started:1", calls[1]);
+        }
+
+        [Test]
+        public void MinuteOfHour_StepsByFiveAtOneXTick()
+        {
+            Assert.AreEqual(0, DayClock.FromWorldTick(new WorldTick(0)).MinuteOfHour);
+            Assert.AreEqual(5, DayClock.FromWorldTick(new WorldTick(1)).MinuteOfHour);
+            Assert.AreEqual(10, DayClock.FromWorldTick(new WorldTick(2)).MinuteOfHour);
+            Assert.AreEqual(55, DayClock.FromWorldTick(new WorldTick(11)).MinuteOfHour);
+            Assert.AreEqual(0, DayClock.FromWorldTick(new WorldTick(12)).MinuteOfHour);
         }
 
         static void AssertClock(ulong tick, ulong day, int tickInDay, int hour)

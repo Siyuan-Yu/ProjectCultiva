@@ -44,7 +44,7 @@ namespace XianXia.Unity.Host
         [Header("Tick debug")]
         [SerializeField] bool initializeOnPlay = true;
         [SerializeField] bool autoTickWhenUnpaused = true;
-        [Tooltip("1x 下每 Tick 现实秒数。96 Tick/日；3s → 约 4.8 分钟现实 = 1 游戏日（对齐 21 的 5～10 分钟量级下限）。")]
+        [Tooltip("1x 下每 Tick 现实秒数。288 Tick/日×5 游戏分；默认 3s → 约 14 分钟现实 = 1 游戏日。")]
         [SerializeField] float secondsPerAutoTickAt1x = 3f;
         [SerializeField] KeyCode togglePauseKey = KeyCode.Space;
         [SerializeField] KeyCode stepTickKey = KeyCode.Period;

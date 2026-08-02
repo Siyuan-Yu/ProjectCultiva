@@ -60,7 +60,7 @@ namespace XianXia.Tests
             Assert.IsTrue(first);
             e0.Get<DailyTaskComponent>().Deviation = 3;
             e0.Get<DailyTaskComponent>().CompletedAmount = 0;
-            world.Tick = new WorldTick(95);
+            world.Tick = new WorldTick((ulong)(WorldTick.TicksPerDay - 1));
             world.Events.Drain();
             Assert.IsTrue(loop.TickOnce().IsSuccess);
             Assert.IsTrue(world.Events.Drain().Exists(ev => ev.Type == EventType.QuotaConsequenceApplied));

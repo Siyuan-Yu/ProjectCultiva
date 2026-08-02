@@ -135,7 +135,7 @@ namespace XianXia.Unity.Host
         string BuildContextTip(PlayableHostSession session)
         {
             var baseOps =
-                "操作：左键查看 · 己方：移动/停止/交互/战斗/修炼 · 右键也可移动 · 交互点工区干活 · Space暂停 · F10显隐HUD";
+                "操作：左键选人 · 悬停黄/青点可交互光标 · 右键空地移动／热点则前往交互 · E交互模式仅热点为绿 · Space暂停 · F10显隐HUD";
             var focus = ResolveFocus(session);
             if (!focus.IsNone &&
                 session.World.Entities.TryGet(focus, out var e) &&

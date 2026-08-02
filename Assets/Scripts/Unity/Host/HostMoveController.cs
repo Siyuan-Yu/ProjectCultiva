@@ -62,7 +62,13 @@ namespace XianXia.Unity.Host
             {
                 if (HostUiHitTest.ContainsScreenPoint(Input.mousePosition))
                     return;
-                IssueMoveToMouse();
+                // 悬停工区／灵地热点：右键＝前往并交互／修炼（情境指令）。
+                if (workMode != null && workMode.TryHandleContextRightClick())
+                {
+                    // handled
+                }
+                else
+                    IssueMoveToMouse();
             }
 
             TickMoves();
@@ -73,7 +79,7 @@ namespace XianXia.Unity.Host
             if (!HostPresentationSpace.TryRaycastPlane(worldCamera, Input.mousePosition, out var point))
                 return;
 
-            // 右键只移动到鼠标点，绝不因「到了农田／树林／灵泉」自动开工。
+            // 空地右键：只移动。
             OrderPartyToPoint(point, null);
         }
 
