@@ -5,14 +5,13 @@ using XianXia.Core.Exploration;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// Demo-style 2D Sprite zone map: tiled patches + roads on XY (no 3D mesh).
+    /// Host map labels／markers on top of <see cref="HostDemoTileMap"/> (Demo tile roads only).
     /// </summary>
     public sealed class HostMapGraybox : MonoBehaviour
     {
         [SerializeField] Transform mapRoot;
         [SerializeField] float tileWorldSize = 1f;
         [SerializeField] int patchRadius = 3;
-        [SerializeField] float roadWidth = 0.35f;
 
         readonly List<GameObject> _built = new List<GameObject>();
 
@@ -33,10 +32,6 @@ namespace XianXia.Unity.Host
             foreach (var kv in locations)
                 BuildZoneLabel(kv.Value);
 
-            foreach (var kv in locations)
-                BuildRoads(kv.Value, locations);
-
-            // Zone markers for tests／selection helpers (labels already added).
             foreach (var kv in locations)
             {
                 var marker = new GameObject("ZoneMarker_" + kv.Key);
@@ -89,39 +84,6 @@ namespace XianXia.Unity.Host
             text.fontSize = 40;
             text.color = Color.white;
             _built.Add(go);
-        }
-
-        void BuildRoads(WorldLocationState loc, IReadOnlyDictionary<string, WorldLocationState> all)
-        {
-            if (loc.AdjacentIds == null)
-                return;
-            foreach (var adjId in loc.AdjacentIds)
-            {
-                if (string.CompareOrdinal(loc.Id, adjId) >= 0)
-                    continue;
-                if (!all.TryGetValue(adjId, out var other))
-                    continue;
-
-                var a = HostPresentationSpace.FromPresentation(loc.PresentationX, loc.PresentationZ);
-                var b = HostPresentationSpace.FromPresentation(other.PresentationX, other.PresentationZ);
-                var mid = (a + b) * 0.5f;
-                mid.z = HostPresentationSpace.GroundZ - 0.05f;
-                var dir = b - a;
-                var len = dir.magnitude;
-                if (len < 0.01f)
-                    continue;
-
-                var go = new GameObject("Road_" + loc.Id + "_" + adjId);
-                go.transform.SetParent(mapRoot, false);
-                go.transform.position = mid;
-                go.transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg);
-                go.transform.localScale = new Vector3(len / 0.32f, roadWidth / 0.32f, 1f);
-                var sr = go.AddComponent<SpriteRenderer>();
-                sr.sprite = HostSpriteFactory.TileSprite();
-                sr.color = new Color(0.55f, 0.45f, 0.32f, 1f);
-                sr.sortingOrder = -15;
-                _built.Add(go);
-            }
         }
     }
 }
