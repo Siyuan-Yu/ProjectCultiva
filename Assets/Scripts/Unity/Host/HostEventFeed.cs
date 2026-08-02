@@ -54,8 +54,14 @@ namespace XianXia.Unity.Host
         {
             if (events == null || events.Count == 0)
                 return 0;
+            return Ingest(events.Drain());
+        }
 
-            var drained = events.Drain();
+        /// <summary>Append already-drained events（与 InterruptPresenter 共享同一批）。</summary>
+        public int Ingest(IReadOnlyList<DomainEvent> drained)
+        {
+            if (drained == null || drained.Count == 0)
+                return 0;
             for (var i = 0; i < drained.Count; i++)
             {
                 var line = Format(drained[i]);

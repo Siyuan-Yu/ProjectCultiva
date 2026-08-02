@@ -125,7 +125,7 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void Bootstrap_Rebuild_ClearsSelectionAndHighlights()
+        public void Bootstrap_Rebuild_ReselectsFirstPartyMember()
         {
             var host = CreateHostWithViews(out var bootstrap, out var cam);
             try
@@ -137,9 +137,8 @@ namespace XianXia.Tests
                 Assert.AreEqual(1, selection.State.Count);
 
                 Assert.IsTrue(bootstrap.TryInitialize());
-                Assert.AreEqual(0, selection.State.Count);
-                foreach (var view in bootstrap.ViewSpawner.Registry.All)
-                    Assert.IsFalse(view.IsHighlightRequested);
+                Assert.AreEqual(1, selection.State.Count);
+                Assert.AreEqual(bootstrap.Session.CharacterIds[0], selection.State.SelectedIds[0]);
             }
             finally
             {

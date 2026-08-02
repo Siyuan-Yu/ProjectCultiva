@@ -64,7 +64,11 @@ namespace XianXia.Tests
                 var c = bootstrap.Session.CharacterIds[2];
                 Snap(bootstrap, a, "base:loc_ref_forest");
                 Snap(bootstrap, b, "base:loc_ref_labor_yard");
-                Snap(bootstrap, c, "base:loc_ref_spring");
+                Snap(bootstrap, c, "base:loc_ref_cave");
+                Assert.IsTrue(bootstrap.Session.World.Entities.TryGet(c, out var cultivator));
+                Assert.IsTrue(cultivator.TryGet<XianXia.Core.Opportunity.KnownSitesComponent>(out var known));
+                Assert.IsTrue(XianXia.Core.Domain.Ids.DefinitionId.TryParse("base:site_abandoned_cave", out var siteId));
+                known.Discover(siteId);
 
                 Assert.AreEqual(1, bootstrap.CommandBridge.IssueTo(new[] { a }, PlayerCommandKind.Labor));
                 Assert.AreEqual(1, bootstrap.CommandBridge.IssueTo(new[] { b }, PlayerCommandKind.Labor));
@@ -100,6 +104,7 @@ namespace XianXia.Tests
 
             var host = new GameObject("ParityAcceptHost");
             bootstrap = host.AddComponent<PlayableHostBootstrap>();
+            bootstrap.ConfigureOpeningScenario("base:scenario_ch01_reference");
             host.AddComponent<EntityViewSpawner>();
             host.AddComponent<HostSelectionController>();
             host.AddComponent<HostCommandBridge>();

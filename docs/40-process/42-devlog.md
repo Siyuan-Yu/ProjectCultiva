@@ -7,13 +7,33 @@
 
 ---
 
+## 2026-08-02 — 第一章可玩弧＋打断＋RTS 引导（交付总结）
+
+**做了什么**
+- 内容打断 CIF：`HostContentInterruptPresenter`（事件选项＋任务提醒、强制暂停）；计划／验收 [95]／[96]
+- 样例关 Data 拉齐 2G 觉醒弧至炼气→隐藏→权力伏笔（无战斗）；制作对照 [94]
+- RTS：首次入区自动勘察；开局／操作条引导；F11 调试／G 敛息；焦点一人下令
+- 场景：`DemoParityHost`＝样例关；`PlayableHost`＝框架调试
+- 交付总结 [97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)；EditMode **194/194**
+- 文档收束＋飞书 map 增补并同步
+
+**下一步：** 制作人手操签收 DemoParityHost；正式第一章文案；战斗／夺权另开。
+
+## 2026-08-02 — Demo 手感对齐关验收
+
+**做了什么**
+- [91] 缺口审计→按文档补齐；HostDemoTileMap（Demo 布局 Prefab 铺砖）；全 NPC 可见；验收 [93]
+- EditMode **182/182**
+
+**下一步：** 制作人手操签收；stride=1 可选加密；日课三资源任务数值再对齐。
+
 ## 2026-08-02 — Demo 手感对齐（正式 Host）进行中
 
 **做了什么**
 - 缺口审计 [91]；PlayableHost 改 Sprite＋XY；Stop／W／C／X／G；工区产资源；暴露／愤怒；课表／头顶字／村民标签／守卫商人
-- EditMode **179/179**；进度 [92](92-demo-parity-progress-2026-08-02.md)
+- 进度 [92](92-demo-parity-progress-2026-08-02.md)
 
-**下一步：** 满幅 Demo Prefab 铺砖＋[49]§5 一比一验收。
+**下一步：** 见上条验收。
 
 ## 2026-08-02 — Chapter 01 Reference Level 验收
 

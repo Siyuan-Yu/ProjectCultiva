@@ -480,6 +480,56 @@
       "file": "Content/BaseGame/Data/SCHEMA.md",
       "title": "BaseGame Data SCHEMA（VS0.7–1.0）",
       "docId": "ItIMdNCxkoMbVXxZMNmcIObjnTc"
+    },
+    "demo-parity-gap": {
+      "file": "docs/40-process/91-demo-v0.1-to-formal-gap-audit.md",
+      "title": "Demo v0.1 → 正式 Host 缺口审计",
+      "docId": "YtOsdxza5oDF79xAdNLcqOXinAc"
+    },
+    "demo-parity-progress": {
+      "file": "docs/40-process/92-demo-parity-progress-2026-08-02.md",
+      "title": "Demo 手感对齐进度 2026-08-02",
+      "docId": "Rkg6dS6tuoJYP0xdb8XcW3tKnub"
+    },
+    "demo-parity-acceptance": {
+      "file": "docs/40-process/93-demo-parity-level-acceptance-report.md",
+      "title": "Demo 手感对齐关验收报告",
+      "docId": "W9ZgdAoY0odhINxIiGLcnwYonCg"
+    },
+    "chapter-full-guide": {
+      "file": "docs/40-process/94-chapter-full-production-and-sample-guide.md",
+      "title": "章节关卡完整制作指南＋样例关对照",
+      "docId": "RupXd581doYa2LxvCP4c8vHcnGe"
+    },
+    "cif-plan": {
+      "file": "docs/40-process/95-content-interrupt-system-plan-v0.1.md",
+      "title": "内容打断系统计划 v0.1",
+      "docId": "TXAud6e1coTmifxWPklcRUngn5e"
+    },
+    "cif-acceptance": {
+      "file": "docs/40-process/96-content-interrupt-system-acceptance-report.md",
+      "title": "内容打断系统验收报告",
+      "docId": "DOeidICK3oLP67xEbsUcKxk1n4e"
+    },
+    "ch01-playable-delivery": {
+      "file": "docs/40-process/97-ch01-playable-arc-and-ux-delivery-2026-08-02.md",
+      "title": "第一章可玩弧＋打断＋RTS引导交付总结 2026-08-02",
+      "docId": "R3nHdBINFomeL7xsMrLcjMWmnub"
+    },
+    "ch01-ref-plan": {
+      "file": "docs/40-process/87-chapter-01-reference-level-plan-v0.1.md",
+      "title": "第一章参考关计划 v0.1",
+      "docId": "IlPjdircforYPtxPCSvc7o6an0f"
+    },
+    "ch01-ref-guide": {
+      "file": "docs/40-process/88-chapter-01-reference-level-production-guide.md",
+      "title": "第一章参考关制作流程（旧）",
+      "docId": "EhTudSWiiofEqexFs1LcQA9dn4g"
+    },
+    "ch01-ref-acceptance": {
+      "file": "docs/40-process/89-chapter-01-reference-level-acceptance-report.md",
+      "title": "第一章参考关验收报告",
+      "docId": "XPYMdP2B9oM2aVx0CF5cUFUzns3"
     }
   }
 }

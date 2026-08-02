@@ -144,6 +144,9 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | `once` | 默认 true |
 | `conditions`／`choices[]` | choice：id／text／conditions／outcomes |
 
+**Host 打断呈现（CIF）：** 激活的 contentEvent → 强制暂停＋选项弹层（`ResolveContentChoice`）。  
+QuestStarted／Completed → 任务提醒弹层（读 `name`／`description`）。详见 `docs/40-process/95-content-interrupt-system-plan-v0.1.md`。
+
 会话态：Quest／ContentEvent／Flags **不进 Snapshot v1**。
 
 ## Sample IDs

@@ -16,10 +16,9 @@
 
 | 项 | 下一步 |
 |---|---|
-| 满幅 80×50 Demo Prefab 铺砖 | 复用 `Assets/Prefabs/Environment/Tiles` 铺满 Demo 布局 |
-| 每日配额三资源任务线 | Content 日任务对齐木／粮／药 |
-| PKG-E 一比一关验收报告 | [49]§5 清单自动化＋正式验收文档 |
+| 满密铺砖 | `HostDemoTileMap.stride=1`（可选） |
+| 日课三资源数值再对齐 | 可按 Demo DailyTasks 微调 |
 
-## 手操（当前 PlayableHost）
+## 同日后续（已并入 [97]）
 
-默认 `base:scenario_ch01_reference`；`F6` 五面板＋课表；中键拖图；`W/S/C/X/G`；右键地面／工区／灵地。
+打断／第一章全弧／RTS 引导已交付；手操入口改为 **`DemoParityHost`**（非默认 `PlayableHost`）。见 [97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)。

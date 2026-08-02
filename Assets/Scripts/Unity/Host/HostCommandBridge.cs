@@ -289,6 +289,179 @@ namespace XianXia.Unity.Host
             return IssueTo(selectionController.State.SelectedIds, kind, durationTicks);
         }
 
+        /// <summary>ACS 角色面板：只对单个焦点角色下令（不是全选）。</summary>
+        public int IssueOne(EntityId subject, PlayerCommandKind kind, ulong durationTicks = DefaultDurationTicks)
+        {
+            if (subject.IsNone)
+            {
+                _lastStatus = "IssueOne: empty subject";
+                _lastSuccessCount = 0;
+                _lastFailureCount = 1;
+                return 0;
+            }
+
+            if (kind == PlayerCommandKind.Help ||
+                kind == PlayerCommandKind.Slight ||
+                kind == PlayerCommandKind.Recruit)
+            {
+                // 社交仍需二人：subject 为行动者，目标优先选中里的另一个。
+                return IssueSocialAs(subject, kind) ? 1 : 0;
+            }
+
+            return IssueTo(new[] { subject }, kind, durationTicks);
+        }
+
+        bool IssueSocialAs(EntityId actor, PlayerCommandKind kind)
+        {
+            _lastSuccessCount = 0;
+            _lastFailureCount = 0;
+            if (_session == null || !_session.IsInitialized || _session.Port == null || actor.IsNone)
+            {
+                _lastStatus = "Session／Port not ready";
+                return false;
+            }
+
+            EntityId target = EntityId.None;
+            if (selectionController != null)
+            {
+                var selected = selectionController.State.SelectedIds;
+                for (var i = 0; i < selected.Count; i++)
+                {
+                    if (!selected[i].IsNone && selected[i] != actor)
+                    {
+                        target = selected[i];
+                        break;
+                    }
+                }
+            }
+
+            if (target.IsNone)
+            {
+                _lastFailureCount = 1;
+                _lastStatus = "帮助需要再点选一个目标（当前面板角色为行动者）";
+                return false;
+            }
+
+            var result = _session.Port.Submit(new PlayerCommandRequest(actor, kind, 1, target));
+            if (result.IsSuccess)
+            {
+                _lastSuccessCount = 1;
+                _lastStatus = "kind=" + kind + " actor=" + actor.Value + " target=" + target.Value + " ok";
+                return true;
+            }
+
+            _lastFailureCount = 1;
+            _lastStatus = "kind=" + kind + " FAIL " + FormatError(result);
+            return false;
+        }
+
+        public int IssueExploreOne(EntityId subject)
+        {
+            _lastSuccessCount = 0;
+            _lastFailureCount = 0;
+            if (_session?.Port == null || subject.IsNone)
+            {
+                _lastStatus = "IssueExploreOne: not ready";
+                return 0;
+            }
+
+            _session.Loop.StopSubject(subject);
+            var result = _session.Port.Submit(
+                new PlayerCommandRequest(subject, PlayerCommandKind.Explore, 1));
+            if (result.IsSuccess)
+            {
+                _lastSuccessCount = 1;
+                _lastStatus = "Explore ok entity=" + subject.Value;
+            }
+            else
+            {
+                _lastFailureCount = 1;
+                _lastStatus = "Explore FAIL " + FormatError(result);
+            }
+
+            return _lastSuccessCount;
+        }
+
+        /// <summary>
+        /// Resolve active ContentEvent choice for the focus party member (or first character).
+        /// </summary>
+        public bool ResolveContentChoice(string choiceId)
+        {
+            _lastSuccessCount = 0;
+            _lastFailureCount = 0;
+
+            if (_session == null || !_session.IsInitialized || _session.Port == null)
+            {
+                _lastStatus = "Session／Port not ready";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(choiceId))
+            {
+                _lastStatus = "ChoiceId empty";
+                _lastFailureCount = 1;
+                return false;
+            }
+
+            if (!_session.World.ContentEvents.HasActive)
+            {
+                _lastStatus = "No active content event";
+                _lastFailureCount = 1;
+                return false;
+            }
+
+            var subject = ResolveContentSubject();
+            if (subject.IsNone)
+            {
+                _lastStatus = "No subject for content choice";
+                _lastFailureCount = 1;
+                return false;
+            }
+
+            var result = _session.Port.Submit(
+                new PlayerCommandRequest(
+                    subject,
+                    PlayerCommandKind.ResolveContentChoice,
+                    1,
+                    EntityId.None,
+                    WorkRoleKind.None,
+                    null,
+                    choiceId.Trim(),
+                    null));
+            if (result.IsSuccess)
+            {
+                _lastSuccessCount = 1;
+                _lastStatus = "ResolveContentChoice ok choice=" + choiceId + " subject=" + subject.Value;
+                return true;
+            }
+
+            _lastFailureCount = 1;
+            _lastStatus = "ResolveContentChoice FAIL " + FormatError(result);
+            Debug.LogWarning("[HostCommand] " + _lastStatus, this);
+            return false;
+        }
+
+        EntityId ResolveContentSubject()
+        {
+            if (selectionController != null)
+            {
+                var selected = selectionController.State.SelectedIds;
+                for (var i = 0; i < selected.Count; i++)
+                {
+                    var id = selected[i];
+                    if (id.IsNone)
+                        continue;
+                    for (var c = 0; c < _session.CharacterIds.Count; c++)
+                    {
+                        if (_session.CharacterIds[c] == id)
+                            return id;
+                    }
+                }
+            }
+
+            return _session.CharacterIds.Count > 0 ? _session.CharacterIds[0] : EntityId.None;
+        }
+
         /// <summary>
         /// Social: Actor = first Character in selection; Target = first non-Actor.
         /// </summary>
@@ -381,6 +554,10 @@ namespace XianXia.Unity.Host
                     Debug.LogWarning("[HostCommand] Skip non-controllable entity: " + id, this);
                     continue;
                 }
+
+                // 新指令打断待命 Wait／旧行动，避免「点了劳动却排在 Wait 后面」
+                if (!utility)
+                    _session.Loop.StopSubject(id);
 
                 var result = _session.Port.Submit(new PlayerCommandRequest(id, kind, durationTicks));
                 if (result.IsSuccess)

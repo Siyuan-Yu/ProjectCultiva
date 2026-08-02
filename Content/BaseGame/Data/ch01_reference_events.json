@@ -2,31 +2,222 @@
   "schemaVersion": 1,
   "definitions": [
     {
+      "id": "base:event_ch01_ref_opening",
+      "type": "contentEvent",
+      "name": "开局·杂役晨点",
+      "body": "青云宗外围资源点。锣声未绝，主管已在路上。你们三人仍是杂役弟子：白天交差，夜里才有一点属于自己的缝隙。你不是没有力量，是没有自由。\n\n【怎么玩】左键点选己方 → 右键只负责走到鼠标处（不会因为到了农田就自动干活）。要劳动／入定：到地方后点底栏「劳动」「入定」，或按 W 再左键点工区。第一次走进新区会自动勘察。当前在农田：可点「探索」完成巡视。",
+      "trigger": "manual",
+      "once": true,
+      "conditions": [],
+      "choices": [
+        {
+          "id": "accept_yoke",
+          "text": "知道了，开始巡视",
+          "outcomes": [
+            { "kind": "setFlag", "id": "event:ch01_ref_opening_seen" },
+            { "kind": "setFlag", "id": "story:ch01_phase_awaken" }
+          ]
+        }
+      ]
+    },
+    {
       "id": "base:event_ch01_ref_spring_whisper",
       "type": "contentEvent",
-      "name": "参考·灵泉异响",
-      "body": "参考事件：灵泉边传来细响（非最终第一章文案）。",
+      "name": "神识·灵泉异响",
+      "body": "常人只见泉水清冽。你却觉灵气微澜，像有人在水底轻轻呼吸。这不是幻觉——是神识高于旁人的代价与礼物。",
       "trigger": "onExplore",
       "locationId": "base:loc_ref_spring",
       "once": true,
       "conditions": [
-        { "kind": "storyFlag", "id": "quest:ch01_ref_yard_done" }
+        { "kind": "storyFlag", "id": "quest:ch01_ref_herb_done" }
       ],
       "choices": [
         {
           "id": "listen",
-          "text": "静听片刻",
+          "text": "静听片刻，把异常记在心里",
           "outcomes": [
             { "kind": "setFlag", "id": "event:ch01_ref_spring_resolved" },
-            { "kind": "startQuest", "id": "base:quest_ch01_ref_visit_cave" }
+            { "kind": "setFlag", "id": "story:ch01_phase_spirit_sense" }
           ]
         },
         {
           "id": "leave",
-          "text": "先行离开",
+          "text": "怕惹事，先行离开（仍隐约记下）",
           "outcomes": [
             { "kind": "setFlag", "id": "event:ch01_ref_spring_resolved" },
-            { "kind": "setFlag", "id": "story:ch01_ref_branch_leave" }
+            { "kind": "setFlag", "id": "story:ch01_phase_spirit_sense" },
+            { "kind": "setFlag", "id": "story:ch01_ref_branch_cautious" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_ch01_ref_woodcutter",
+      "type": "contentEvent",
+      "name": "机缘·砍柴老人",
+      "body": "林中老人刀法沉稳，眼神却不像凡人。他年轻时也曾修仙，资质平平，炼气低阶后归隐。他看穿你的异样，低声问：可愿听一段旧事，换一处洞府的方位？",
+      "trigger": "onArrive",
+      "locationId": "base:loc_ref_forest",
+      "once": true,
+      "conditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_ref_sense_done" }
+      ],
+      "choices": [
+        {
+          "id": "help_listen",
+          "text": "愿闻其详，助他了却心愿",
+          "outcomes": [
+            { "kind": "setFlag", "id": "event:ch01_ref_elder_helped" },
+            { "kind": "setFlag", "id": "story:ch01_phase_npc_chance" },
+            { "kind": "discoverSite", "id": "base:site_abandoned_cave" },
+            {
+              "kind": "relationDelta",
+              "fromDefinitionId": "base:character_protagonist",
+              "toDefinitionId": "base:character_ch01_ref_woodcutter",
+              "amount": 25
+            }
+          ]
+        },
+        {
+          "id": "polite_leave",
+          "text": "称谢告退（稍后再来，或去问行商）",
+          "outcomes": [
+            { "kind": "setFlag", "id": "event:ch01_ref_elder_deferred" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_ch01_ref_merchant_tip",
+      "type": "contentEvent",
+      "name": "机缘·行商密语",
+      "body": "道路枢纽的行商压低嗓子：东边废弃洞府有人卖过残页口诀，不便细说——你们若真有感应，自己去撞。此为老人路线外的替代打听（需在枢纽探索触发）。",
+      "trigger": "onExplore",
+      "locationId": "base:loc_ref_road_hub",
+      "once": true,
+      "conditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_ref_sense_done" },
+        { "kind": "missingFlag", "id": "story:ch01_phase_npc_chance" }
+      ],
+      "choices": [
+        {
+          "id": "buy_tip",
+          "text": "记下方位，改日探洞府",
+          "outcomes": [
+            { "kind": "setFlag", "id": "story:ch01_phase_npc_chance" },
+            { "kind": "setFlag", "id": "story:ch01_ref_branch_merchant" },
+            { "kind": "discoverSite", "id": "base:site_abandoned_cave" },
+            {
+              "kind": "relationDelta",
+              "fromDefinitionId": "base:character_protagonist",
+              "toDefinitionId": "base:character_ch01_ref_merchant",
+              "amount": 15
+            }
+          ]
+        },
+        {
+          "id": "ignore",
+          "text": "装作没听见",
+          "outcomes": [
+            { "kind": "setFlag", "id": "event:ch01_ref_merchant_ignored" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_ch01_ref_cave_cultivate_hint",
+      "type": "contentEvent",
+      "name": "暗修·洞府提醒",
+      "body": "洞府灵气凝滞，适合入定。白天易被巡查察觉；入夜缝隙才是你们的时间。记得：明面仍要交差，暗修不可露相。",
+      "trigger": "onArrive",
+      "locationId": "base:loc_ref_cave",
+      "once": true,
+      "conditions": [
+        { "kind": "hasManual", "id": "base:cultivation_qingyun_manual" },
+        { "kind": "missingFlag", "id": "quest:ch01_ref_dark_ready" }
+      ],
+      "choices": [
+        {
+          "id": "begin_dark",
+          "text": "记下：夜缝入定，昼间装普通人",
+          "outcomes": [
+            { "kind": "setFlag", "id": "story:ch01_phase_conceal_hint" },
+            { "kind": "grantProgress", "amount": 15 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_ch01_ref_breakthrough_rite",
+      "type": "contentEvent",
+      "name": "突破·引气入体",
+      "body": "修为将满。你可以在此尝试按青云诀引气入体——不是点一下升级，而是选时机、地点与心境。同伴宜在外活动，冲淡主管的注意。",
+      "trigger": "onArrive",
+      "locationId": "base:loc_ref_cave",
+      "once": true,
+      "conditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_ref_dark_ready" },
+        { "kind": "hasManual", "id": "base:cultivation_qingyun_manual" }
+      ],
+      "choices": [
+        {
+          "id": "attempt",
+          "text": "定心引气（大增修为，再入定冲击炼气）",
+          "outcomes": [
+            { "kind": "setFlag", "id": "event:ch01_ref_breakthrough_attempted" },
+            { "kind": "grantProgress", "amount": 70 }
+          ]
+        },
+        {
+          "id": "wait",
+          "text": "再积一夜，另择时机",
+          "outcomes": [
+            { "kind": "setFlag", "id": "event:ch01_ref_breakthrough_deferred" },
+            { "kind": "grantProgress", "amount": 25 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_ch01_ref_hide_choice",
+      "type": "contentEvent",
+      "name": "隐藏·敛息约定",
+      "body": "炼气之后，气息已与凡人不同。房屋区里三人约定：白日仍装杂役；必要时用敛息草压一息；绝不可在主管眼前露相。",
+      "trigger": "onArrive",
+      "locationId": "base:loc_ref_houses",
+      "once": true,
+      "conditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_ref_breakthrough_done" }
+      ],
+      "choices": [
+        {
+          "id": "swear_hide",
+          "text": "三人立约：藏修、交差、互相掩护",
+          "outcomes": [
+            { "kind": "setFlag", "id": "story:ch01_phase_hidden_cultivator" },
+            { "kind": "addStock", "id": "base:resource_conceal_grass", "amount": 1 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_ch01_ref_epilogue_hub",
+      "type": "contentEvent",
+      "name": "伏笔·制度与主管",
+      "body": "枢纽上闲话流入耳中：配额、功绩、主管自己也受宗门指标驱赶。他不是单纯恶人，却是压在你们头顶的那只手。此刻你们尚无与之对抗的力量——觉醒弧到此为止；战斗与夺权，是后话。",
+      "trigger": "onArrive",
+      "locationId": "base:loc_ref_road_hub",
+      "once": true,
+      "conditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_ref_hide_done" }
+      ],
+      "choices": [
+        {
+          "id": "remember",
+          "text": "把这话记下，先活下去",
+          "outcomes": [
+            { "kind": "setFlag", "id": "story:ch01_ref_arc_complete" },
+            { "kind": "setFlag", "id": "story:ch01_phase_power_foreshadow" }
           ]
         }
       ]
@@ -34,13 +225,11 @@
     {
       "id": "base:event_ch01_ref_supervisor_pressure",
       "type": "contentEvent",
-      "name": "参考·主管施压",
-      "body": "参考：主管巡查后对未完配额者施压。",
+      "name": "压迫·主管施压",
+      "body": "主管巡查未完配额者。他嗓门不大，话却沉：交差是本分，偷懒有规矩。低头能暂渡，也更明白——时间并不属于你。",
       "trigger": "manual",
       "once": false,
-      "conditions": [
-        { "kind": "storyFlag", "id": "story:supervisor_pressure" }
-      ],
+      "conditions": [],
       "choices": [
         {
           "id": "endure",

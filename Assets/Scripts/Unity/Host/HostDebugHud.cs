@@ -11,7 +11,8 @@ namespace XianXia.Unity.Host
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] bool visible = false;
-        [SerializeField] KeyCode toggleVisibleKey = KeyCode.F1;
+        // F1 留给 FormalHud「休息」；调试面板改 F11，避免和正式操作抢键。
+        [SerializeField] KeyCode toggleVisibleKey = KeyCode.F11;
 
         int _speedMultiplier = 1;
         HostHudSnapshot _last = new HostHudSnapshot();
@@ -70,7 +71,7 @@ namespace XianXia.Unity.Host
             var width = 460f;
             var height = 250f;
             var rect = new Rect(pad, Screen.height - height - pad, width, height);
-            GUI.Box(rect, "PlayableHost HUD (F1)");
+            GUI.Box(rect, "PlayableHost HUD (F11)");
             GUI.Label(new Rect(rect.x + 8f, rect.y + 22f, rect.width - 16f, rect.height - 28f), text);
 
             const float tipH = 72f;

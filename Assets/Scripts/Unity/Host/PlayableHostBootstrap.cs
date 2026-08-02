@@ -18,8 +18,8 @@ namespace XianXia.Unity.Host
         [Range(0, 100)]
         [SerializeField] int observationDiscoverChancePercent = 100;
         [SerializeField] int dailyRequiredAmount = 10;
-        [Tooltip("Chapter 01 Reference default. Empty = scenario_playable_day.")]
-        [SerializeField] string openingScenarioId = "base:scenario_ch01_reference";
+        [Tooltip("Empty = scenario_playable_day. Sample level scene sets ch01_reference explicitly.")]
+        [SerializeField] string openingScenarioId = "";
 
         [Header("Presentation")]
         [SerializeField] EntityViewSpawner entityViewSpawner;
@@ -38,11 +38,13 @@ namespace XianXia.Unity.Host
         [SerializeField] HostCrowdPresenter crowdPresenter;
         [SerializeField] HostFeedbackOverlay feedbackOverlay;
         [SerializeField] HostWorkTargetMode workTargetMode;
+        [SerializeField] HostContentInterruptPresenter contentInterrupt;
 
         [Header("Tick debug")]
         [SerializeField] bool initializeOnPlay = true;
         [SerializeField] bool autoTickWhenUnpaused = true;
-        [SerializeField] float secondsPerAutoTickAt1x = 0.25f;
+        [Tooltip("1x 下每 Tick 现实秒数。96 Tick/日；3s → 约 4.8 分钟现实 = 1 游戏日（对齐 21 的 5～10 分钟量级下限）。")]
+        [SerializeField] float secondsPerAutoTickAt1x = 3f;
         [SerializeField] KeyCode togglePauseKey = KeyCode.Space;
         [SerializeField] KeyCode stepTickKey = KeyCode.Period;
         [SerializeField] KeyCode stepTickAltKey = KeyCode.N;
@@ -70,6 +72,12 @@ namespace XianXia.Unity.Host
         public HostEventFeed EventFeed => eventFeed;
 
         public HostSnapshotPanel SnapshotPanel => snapshotPanel;
+
+        public HostMoveController MoveController => moveController;
+
+        public HostWorkTargetMode WorkTargetMode => workTargetMode;
+
+        public HostContentInterruptPresenter ContentInterrupt => contentInterrupt;
 
         public string StatusLine => _status;
 
@@ -104,6 +112,9 @@ namespace XianXia.Unity.Host
                 actionMenu = GetComponent<HostActionMenu>() ?? GetComponentInChildren<HostActionMenu>();
             if (formalHud == null)
                 formalHud = GetComponent<HostFormalHud>() ?? GetComponentInChildren<HostFormalHud>();
+            if (contentInterrupt == null)
+                contentInterrupt = GetComponent<HostContentInterruptPresenter>() ??
+                                  GetComponentInChildren<HostContentInterruptPresenter>();
         }
 
         void Start()
@@ -119,7 +130,8 @@ namespace XianXia.Unity.Host
 
             if (Input.GetKeyDown(togglePauseKey))
             {
-                _session.IsPaused = !_session.IsPaused;
+                if (contentInterrupt == null || !contentInterrupt.HasBlockingInterrupt)
+                    _session.IsPaused = !_session.IsPaused;
                 RefreshStatus();
             }
 
@@ -149,6 +161,12 @@ namespace XianXia.Unity.Host
                     StepTick();
                 }
             }
+        }
+
+        /// <summary>Set before <see cref="TryInitialize"/> (sample scene / EditMode).</summary>
+        public void ConfigureOpeningScenario(string scenarioId)
+        {
+            openingScenarioId = scenarioId ?? "";
         }
 
         public bool TryInitialize()
@@ -190,10 +208,14 @@ namespace XianXia.Unity.Host
             if (workTargetMode == null)
                 workTargetMode = GetComponent<HostWorkTargetMode>() ??
                                  gameObject.AddComponent<HostWorkTargetMode>();
+            if (contentInterrupt == null)
+                contentInterrupt = GetComponent<HostContentInterruptPresenter>() ??
+                                  gameObject.AddComponent<HostContentInterruptPresenter>();
 
             selectionController.ClearSelection();
             entityViewSpawner.Clear();
             eventFeed.Clear();
+            contentInterrupt.ClearSessionState();
             mapGraybox.Clear();
 
             if (!TryResolveContentPackageDirectory(out _resolvedContentPath, out var pathError))
@@ -230,6 +252,8 @@ namespace XianXia.Unity.Host
             var cam = Camera.main;
             selectionController.Bind(entityViewSpawner, cam);
             selectionController.SetPartyFilter(_session.CharacterIds);
+            if (_session.CharacterIds.Count > 0)
+                selectionController.SelectEntity(_session.CharacterIds[0], false);
             feedbackOverlay.Bind(cam);
             commandBridge.Bind(_session, selectionController, feedbackOverlay);
             debugHud.Bind(this, selectionController);
@@ -240,9 +264,10 @@ namespace XianXia.Unity.Host
             activityPresenter.Bind(this, entityViewSpawner);
             crowdPresenter.Bind(this);
             workTargetMode.Bind(this, selectionController, commandBridge);
+            contentInterrupt.Bind(this, commandBridge, selectionController);
             snapshotPanel.Bind(this);
             // Bootstrap already published WorldInitialized／EntityCreated — capture once.
-            eventFeed.PullFrom(_session.World.Events);
+            DispatchDrainedEvents();
             FrameCameraOnSlots();
 
             _session.IsPaused = true;
@@ -288,7 +313,7 @@ namespace XianXia.Unity.Host
             debugHud.Bind(this, selectionController);
             contentDebugPanel.Bind(this, selectionController);
             eventFeed.Clear();
-            eventFeed.PullFrom(_session.World.Events);
+            DispatchDrainedEvents();
             FrameCameraOnSlots();
             _autoTickAccumulator = 0f;
             RefreshStatus();
@@ -325,15 +350,27 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            if (eventFeed != null)
-                eventFeed.PullFrom(_session.World.Events);
-
+            DispatchDrainedEvents();
             RefreshStatus();
+        }
+
+        /// <summary>Host 表现层触发的 Content／Quest 事件立即送给打断呈现。</summary>
+        public void DispatchDrainedEvents()
+        {
+            if (_session?.World?.Events == null)
+                return;
+            var drained = _session.World.Events.Drain();
+            if (contentInterrupt != null)
+                contentInterrupt.Ingest(drained);
+            if (eventFeed != null)
+                eventFeed.Ingest(drained);
         }
 
         public void Resume()
         {
             if (!_session.IsInitialized)
+                return;
+            if (contentInterrupt != null && contentInterrupt.HasBlockingInterrupt)
                 return;
             _session.IsPaused = false;
             RefreshStatus();

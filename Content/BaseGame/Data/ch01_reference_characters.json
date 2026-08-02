@@ -82,6 +82,18 @@
       "backgroundTags": ["background_orphan"],
       "talentTags": [],
       "tags": ["merchant", "npc"]
+    },
+    {
+      "id": "base:character_ch01_ref_woodcutter",
+      "type": "character",
+      "name": "砍柴老人",
+      "baseAttributes": { "MaxHp": 100, "Attack": 7, "Defense": 5, "Speed": 6 },
+      "personalityTags": ["personality_steady"],
+      "backgroundTags": ["background_labor_camp"],
+      "talentTags": ["talent_enduring"],
+      "tags": ["mortal", "npc", "hidden_cultivator"],
+      "spiritRootPlaceholder": "木灵根",
+      "initialRealmPlaceholder": "凡人"
     }
   ]
 }

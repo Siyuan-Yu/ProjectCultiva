@@ -1,13 +1,23 @@
 # 路线图
 
-> 状态：**VS1.0 Demo 0.1 已验收**｜下一目标：产品定后续｜最后更新：2026-08-01
+> 状态：**VS1.0＋样例关可玩弧自动化已验收**｜下一目标：手操签收／正式第一章文案｜最后更新：2026-08-02
 
 ## 当前阶段说明
 
 - Architecture Freeze **v0.2** 仍有效；**不改 Freeze 正文**。  
 - Core／Data／Host／**VS 0.1～1.0 自动化已验收**。  
+- **2026-08-02 增量：** 内容打断 CIF、Ch01 2G 可玩弧、RTS 引导 — 见 [97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)；EditMode **194/194**。  
 - Demo Runtime 继续冻结。  
 - VS0.7：[68](68-vertical-slice-0.7-acceptance-report.md)；VS0.8：[70](70-vertical-slice-0.8-acceptance-report.md)；VS0.9：[72](72-vertical-slice-0.9-acceptance-report.md)；VS1.0：[74](74-vertical-slice-1.0-acceptance-report.md)。
+
+### 样例关可玩弧（2026-08-02）— **自动化 Completed／手操签收中**
+
+- [x] Demo 手感对齐关 [93](93-demo-parity-level-acceptance-report.md)
+- [x] 内容打断系统 [95](95-content-interrupt-system-plan-v0.1.md)／[96](96-content-interrupt-system-acceptance-report.md)
+- [x] 章节制作指南合并 [94](94-chapter-full-production-and-sample-guide.md)
+- [x] 2G 觉醒弧 Data＋UX 引导交付 [97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)
+- [ ] 制作人手操签收 `DemoParityHost`
+- [ ] 正式第一章文案／战斗夺权切片（另开）
 
 ## M2.5 — 架构冻结
 

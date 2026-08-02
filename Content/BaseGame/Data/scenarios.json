@@ -172,8 +172,8 @@
           "bindSchedule": true,
           "bindDailyTask": true,
           "workRole": "Gather",
-          "scheduleId": "base:schedule_cultivator_day",
-          "aiRole": "Cultivator"
+          "scheduleId": "base:schedule_mortal_day",
+          "aiRole": "Mortal"
         },
         {
           "definitionId": "base:character_companion_b",
@@ -182,9 +182,9 @@
           "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
-          "workRole": "Cultivate",
-          "scheduleId": "base:schedule_cultivator_day",
-          "aiRole": "Cultivator"
+          "workRole": "Labor",
+          "scheduleId": "base:schedule_mortal_day",
+          "aiRole": "Mortal"
         },
         {
           "definitionId": "base:character_ch01_ref_supervisor",
@@ -283,6 +283,16 @@
           "bindDailyTask": false,
           "scheduleId": "base:schedule_mortal_day",
           "aiRole": "Mortal"
+        },
+        {
+          "definitionId": "base:character_ch01_ref_woodcutter",
+          "entityKind": "npc",
+          "displayName": "砍柴老人",
+          "assignOpeningFaction": false,
+          "bindSchedule": true,
+          "bindDailyTask": false,
+          "scheduleId": "base:schedule_mortal_day",
+          "aiRole": "Mortal"
         }
       ],
       "openingRelations": [
@@ -305,6 +315,13 @@
           "toDefinitionId": "base:character_companion_b",
           "delta": 20,
           "reasonTag": "opening_companion",
+          "mutual": true
+        },
+        {
+          "fromDefinitionId": "base:character_protagonist",
+          "toDefinitionId": "base:character_ch01_ref_woodcutter",
+          "delta": 5,
+          "reasonTag": "opening_acquaintance",
           "mutual": true
         },
         {

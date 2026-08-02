@@ -13,7 +13,7 @@ namespace XianXia.Unity.Host
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] KeyCode saveKey = KeyCode.F5;
         [SerializeField] KeyCode loadKey = KeyCode.F9;
-        [SerializeField] bool showButtons = true;
+        [SerializeField] bool showButtons = false;
 
         string _status = "No snapshot op";
 

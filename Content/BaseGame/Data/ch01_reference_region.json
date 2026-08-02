@@ -34,8 +34,10 @@
           "adjacentIds": ["base:loc_ref_road_hub", "base:loc_ref_mine"],
           "resourceOnExploreId": "base:resource_rough_wood",
           "resourceOnExploreAmount": 2,
+          "residentNpcDefinitionId": "base:character_ch01_ref_woodcutter",
           "presentationX": -34,
-          "presentationZ": 0
+          "presentationZ": 0,
+          "questOfferIds": ["base:quest_ch01_ref_gather_wood"]
         },
         {
           "id": "base:loc_ref_mine",

@@ -117,6 +117,7 @@ namespace XianXia.Tests
 
             var host = new GameObject("ParityHost");
             bootstrap = host.AddComponent<PlayableHostBootstrap>();
+            bootstrap.ConfigureOpeningScenario("base:scenario_ch01_reference");
             host.AddComponent<EntityViewSpawner>();
             host.AddComponent<HostSelectionController>();
             host.AddComponent<HostCommandBridge>();

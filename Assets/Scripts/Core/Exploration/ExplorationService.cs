@@ -44,11 +44,47 @@ namespace XianXia.Core.Exploration
                 target: subject,
                 payload: targetLocationId);
 
-            OfferLocationQuests(world, subject, target);
+            return NotifyArrived(world, subject, targetLocationId, setLocation: false);
+        }
+
+        /// <summary>
+        /// Host 表现抵达或 Travel 共用：挂地点任务＋onArrive 内容事件。
+        /// </summary>
+        public Result NotifyArrived(
+            SimulationWorld world,
+            EntityId subject,
+            string locationId,
+            bool setLocation = true)
+        {
+            if (world == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
+            if (string.IsNullOrWhiteSpace(locationId))
+                return Result.Failure(ErrorCode.InvalidArgument, "Location required.");
+            if (!world.Entities.TryGet(subject, out var entity))
+                return Result.Failure(ErrorCode.EntityNotFound, "Subject missing.", subject.ToString());
+            if (!world.WorldRegion.TryGet(locationId, out var location))
+                return Result.Failure(ErrorCode.NotFound, "Location missing.", locationId);
+
+            if (setLocation)
+            {
+                if (!entity.TryGet<EntityLocationComponent>(out var loc))
+                    return Result.Failure(ErrorCode.ComponentMissing, "EntityLocationComponent missing.");
+                if (!string.Equals(loc.LocationId, locationId, System.StringComparison.Ordinal))
+                {
+                    loc.LocationId = locationId;
+                    world.Events.Publish(
+                        EventType.LocationChanged,
+                        world.Tick,
+                        target: subject,
+                        payload: locationId);
+                }
+            }
+
+            OfferLocationQuests(world, subject, location);
             var evaluated = _quests.Evaluate(world, subject);
             if (evaluated.IsFailure)
                 return evaluated;
-            _contentEvents.TryTrigger(world, subject, "onArrive", targetLocationId);
+            _contentEvents.TryTrigger(world, subject, "onArrive", locationId);
             return _quests.Evaluate(world, subject);
         }
 

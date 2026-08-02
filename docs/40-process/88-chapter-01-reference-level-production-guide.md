@@ -1,6 +1,7 @@
 # 第一章参考关 · 新章节制作流程
 
-> 对照关卡：`base:scenario_ch01_reference`（PlayableHost 默认开局）  
+> **已由 [94-chapter-full-production-and-sample-guide.md](94-chapter-full-production-and-sample-guide.md) 取代为现行真源。** 本页保留作历史摘要。  
+> 对照关卡：`base:scenario_ch01_reference`（手操场景：`DemoParityHost`）  
 > 目标：复制本关流程制作任意新章节模板，而非抄最终剧情。
 
 ## 1. 如何建地图

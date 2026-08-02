@@ -33,6 +33,12 @@ namespace XianXia.Unity.Host
                     continue;
                 if (!session.World.Entities.TryGet(view.EntityId, out var entity))
                     continue;
+                if (bootstrap.MoveController != null && bootstrap.MoveController.IsMoving(view.EntityId))
+                {
+                    view.SetActivityText("移动中");
+                    continue;
+                }
+
                 view.SetActivityText(ResolveLabel(session, entity));
             }
         }
@@ -51,6 +57,8 @@ namespace XianXia.Unity.Host
                     return "休息中";
                 if (action is ObserveAction)
                     return "巡查中";
+                if (action is WaitAction)
+                    return "待命";
                 return "行动中";
             }
 

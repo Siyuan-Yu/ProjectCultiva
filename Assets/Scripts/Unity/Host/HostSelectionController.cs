@@ -68,6 +68,12 @@ namespace XianXia.Unity.Host
 
             if (Input.GetMouseButtonDown(0))
             {
+                if (HostUiHitTest.ContainsScreenPoint(Input.mousePosition))
+                {
+                    CancelGesture();
+                    return;
+                }
+
                 _pointerDown = true;
                 _dragging = false;
                 _pressScreen = Input.mousePosition;
@@ -87,6 +93,13 @@ namespace XianXia.Unity.Host
             if (_pointerDown && Input.GetMouseButtonUp(0))
             {
                 _currentScreen = Input.mousePosition;
+                // 松手仍在 HUD 上：不点选／不清空（避免点指令钮把角色面板关掉）
+                if (!_dragging && HostUiHitTest.ContainsScreenPoint(_currentScreen))
+                {
+                    CancelGesture();
+                    return;
+                }
+
                 if (_dragging)
                 {
                     // Box select always replaces the set (no Shift+box append).

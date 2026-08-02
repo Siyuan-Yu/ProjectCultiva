@@ -1,6 +1,6 @@
 # 项目现状总览 — 2026-08-01
 
-> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-02  
+> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-02（可玩弧＋打断＋UX）  
 > 用途：一次看清 VS0.1～1.0／Content Ready 做到哪、本轮改了什么、下一步是什么。  
 > 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准；本页不改 Freeze。
 
@@ -8,9 +8,9 @@
 
 ## 1. 一句话现状
 
-**Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**；Content Ready／Chapter Framework／Toolkit 已验收；**Chapter 01 Reference Level**（[89](89-chapter-01-reference-level-acceptance-report.md)）已验收为章节制作标准模板。  
-制作人对照 [88 参考关流程](88-chapter-01-reference-level-production-guide.md)＋[84 命名](84-chapter-content-naming-standards.md)＋Templates **复制参考关生产新章节**。  
-Demo Runtime **继续冻结**。关系／据点／地点／Quest／Chapter／Flags 入 Snapshot 前须硬停确认 schema。
+**Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**；Content Ready／Chapter Framework／Toolkit／Ch01 模板关已验收。  
+**本轮增量：** 样例关 `DemoParityHost` 已具备 **内容打断**＋**2G 觉醒弧可玩 Data**＋**RTS 首次入区勘察／操作引导**（交付 [97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)；指南 [94](94-chapter-full-production-and-sample-guide.md)）。  
+制作人按 [94]／[97] 手操签收后，可换正式第一章文案。Demo Runtime **继续冻结**。关系／据点／地点／Quest／Chapter／Flags 入 Snapshot 前须硬停确认 schema。
 
 ---
 
@@ -34,7 +34,9 @@ Demo Runtime **继续冻结**。关系／据点／地点／Quest／Chapter／Fla
 | Chapter Production | **已验收** | [79](79-chapter-production-framework-plan-v0.1.md)／[81](81-chapter-production-framework-acceptance-report.md)／[80 流程](80-chapter-content-production-guide.md) | 章节／日 beat／Story Flag／Content Debug |
 | Chapter Toolkit | **已验收** | [83](83-chapter-production-toolkit-plan-v0.1.md)／[85](85-chapter-production-toolkit-acceptance-report.md)／[84 规范](84-chapter-content-naming-standards.md) | 模板／引用校验／Ch1 Harness；可正式生产第一章 |
 | Ch01 Reference Level | **已验收** | [87](87-chapter-01-reference-level-plan-v0.1.md)／[89](89-chapter-01-reference-level-acceptance-report.md)／[88 流程](88-chapter-01-reference-level-production-guide.md) | 模板关：地图／RTS／UI／三类 AI／Data 样板 |
-| Demo 手感对齐 | **已验收** | [91](91-demo-v0.1-to-formal-gap-audit.md)／[93](93-demo-parity-level-acceptance-report.md)／[92](92-demo-parity-progress-2026-08-02.md) | PlayableHost＝2D Sprite＋Demo 操作语义（不复活 Runtime） |
+| Demo 手感对齐 | **已验收** | [91](91-demo-v0.1-to-formal-gap-audit.md)／[93](93-demo-parity-level-acceptance-report.md)／[92](92-demo-parity-progress-2026-08-02.md) | `DemoParityHost`＝2D Sprite＋Demo 操作语义（不复活 Runtime） |
+| 内容打断 CIF | **自动化已验收** | [95](95-content-interrupt-system-plan-v0.1.md)／[96](96-content-interrupt-system-acceptance-report.md) | 事件／任务弹层强制暂停 |
+| Ch01 可玩弧＋UX | **自动化已验收；手操签收中** | [97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)／[94](94-chapter-full-production-and-sample-guide.md) | 2G 至炼气→隐藏→伏笔；首次入区勘察 |
 
 ---
 
@@ -105,7 +107,7 @@ Demo Runtime **继续冻结**。关系／据点／地点／Quest／Chapter／Fla
 
 ## 6. 测试门禁（截至本页）
 
-- EditMode：**182/182 全绿**（含 Demo 手感对齐；`tools/run-editmode-tests.ps1`）。  
+- EditMode：**194/194 全绿**（含打断、全弧、RTS 首次勘察；`tools/run-editmode-tests.ps1`）。  
 - PlayMode：Host 选择／命令烟测保持绿。  
 - Snapshot：`WorldSnapshot.CurrentSchemaVersion = 1` **未升版**（关系／据点／地点尚未入档）。
 
@@ -113,10 +115,10 @@ Demo Runtime **继续冻结**。关系／据点／地点／Quest／Chapter／Fla
 
 ## 7. 下一步
 
-1. 制作人对照参考关手操签收（PlayableHost 默认 `scenario_ch01_reference`；`F6`／右键／`V`）。  
-2. 按 [88](88-chapter-01-reference-level-production-guide.md) 生产真实章节 Data（非模板关剧情）。  
+1. 制作人手操签收：`DemoParityHost`（路径见 [97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md) §3；必要时菜单重建场景）。  
+2. 按 [94]／[2G](../20-systems/2G-first-chapter-flow.md) 换真实第一章文案／ID。  
 3. 若要关系／据点／地点进 Snapshot：**先停**，确认 schema 后再做。  
-4. 产品级 UGUI／战斗／美术等另开切片。
+4. 战斗／夺据点／多段对话树／产品 UGUI 另开切片。
 
 ---
 
@@ -146,5 +148,11 @@ Demo Runtime **继续冻结**。关系／据点／地点／Quest／Chapter／Fla
 | VS0.6 验收／试玩 | https://my.feishu.cn/docx/HTOndyRhWonYbWx2sz8cFlbjndc ／ https://my.feishu.cn/docx/DRHBdkcx4o3O88xjX6gcDUNinrh |
 | 路线图 | https://my.feishu.cn/docx/Kj1odxkhBoa4YmxBCrYcYgn3n4e |
 | 开发日志 | https://my.feishu.cn/docx/JOrrdevURodYaoxhTZGcamFAnQd |
+| **Ch01 可玩弧交付 [97]** | https://my.feishu.cn/docx/R3nHdBINFomeL7xsMrLcjMWmnub |
+| 章节制作指南 [94] | https://my.feishu.cn/docx/RupXd581doYa2LxvCP4c8vHcnGe |
+| 内容打断计划 [95] | https://my.feishu.cn/docx/TXAud6e1coTmifxWPklcRUngn5e |
+| 内容打断验收 [96] | https://my.feishu.cn/docx/DOeidICK3oLP67xEbsUcKxk1n4e |
+| Demo 手感对齐验收 [93] | https://my.feishu.cn/docx/W9ZgdAoY0odhINxIiGLcnwYonCg |
+| Demo 缺口审计 [91] | https://my.feishu.cn/docx/YtOsdxza5oDF79xAdNLcqOXinAc |
 
 完整映射见 `tools/feishu-map.json`。应用新建文档若个人账号不可见，需在飞书把文档分享给你，或提供 `open_id` 后跑 `node tools/feishu-sync.mjs --share --openid ou_xxx`。

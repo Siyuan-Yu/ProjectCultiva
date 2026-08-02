@@ -4,15 +4,91 @@
     {
       "id": "base:quest_ch01_ref_inspect_yard",
       "type": "quest",
-      "name": "参考·巡视杂役区",
-      "description": "参考关任务：探索杂役区一次。",
-      "autoOffer": false,
+      "name": "日课·巡视杂役区",
+      "description": "【劳役入场】你已在农田杂役区。点底栏「探索」或按 F3 勘察此地；或先右键去别处，再走回农田（首次进入会自动勘察）。",
+      "autoOffer": true,
       "offerConditions": [],
       "completeConditions": [
         { "kind": "exploredLocation", "id": "base:loc_ref_labor_yard" }
       ],
       "rewards": [
-        { "kind": "setFlag", "id": "quest:ch01_ref_yard_done" }
+        { "kind": "setFlag", "id": "quest:ch01_ref_yard_done" },
+        { "kind": "setFlag", "id": "story:ch01_phase_labor_seen" }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_ch01_ref_gather_wood",
+      "type": "quest",
+      "name": "日课·伐木交差",
+      "description": "【生存压力】主管要木料。走到「树林」后点底栏「劳动」／F4（或按 W 再左键点树林）；粗木库存≥2 即交差。",
+      "autoOffer": true,
+      "offerConditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_ref_yard_done" }
+      ],
+      "completeConditions": [
+        { "kind": "stockAtLeast", "id": "base:resource_rough_wood", "amount": 2 }
+      ],
+      "rewards": [
+        { "kind": "setFlag", "id": "quest:ch01_ref_wood_done" },
+        { "kind": "setFlag", "id": "story:ch01_phase_quota_felt" }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_ch01_ref_gather_herb",
+      "type": "quest",
+      "name": "日课·药田采摘",
+      "description": "【生存压力】顺带采药。走到药田后点「劳动」／探索，使灵药库存≥2。白天多出力，夜里才挤得出缝隙。",
+      "autoOffer": true,
+      "offerConditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_ref_wood_done" }
+      ],
+      "completeConditions": [
+        { "kind": "stockAtLeast", "id": "base:resource_spirit_herb", "amount": 2 }
+      ],
+      "rewards": [
+        { "kind": "setFlag", "id": "quest:ch01_ref_herb_done" },
+        { "kind": "setFlag", "id": "story:ch01_phase_herb_done" }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_ch01_ref_spirit_sense",
+      "type": "quest",
+      "name": "神识·察觉异样",
+      "description": "【感应探索】走到「灵泉」（首次进入会勘察并触发异响事件）。听完选项后任务完成。",
+      "autoOffer": true,
+      "offerConditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_ref_herb_done" }
+      ],
+      "completeConditions": [
+        { "kind": "storyFlag", "id": "story:ch01_phase_spirit_sense" }
+      ],
+      "rewards": [
+        { "kind": "setFlag", "id": "quest:ch01_ref_sense_done" }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_ch01_ref_meet_elder",
+      "type": "quest",
+      "name": "机缘·砍柴老人",
+      "description": "【NPC机缘】再入树林探索／抵达，会遇砍柴老人。愿闻其详可获洞府指引；也可向道路枢纽的行商打听（替代路线）。",
+      "autoOffer": true,
+      "offerConditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_ref_sense_done" }
+      ],
+      "completeConditions": [
+        { "kind": "storyFlag", "id": "story:ch01_phase_npc_chance" }
+      ],
+      "rewards": [
+        { "kind": "setFlag", "id": "quest:ch01_ref_elder_done" },
+        { "kind": "discoverSite", "id": "base:site_abandoned_cave" }
       ],
       "failConditions": [],
       "failResults": []
@@ -20,18 +96,117 @@
     {
       "id": "base:quest_ch01_ref_visit_cave",
       "type": "quest",
-      "name": "参考·探访废弃洞府",
-      "description": "参考关任务链第二环：探索废弃洞府。",
-      "autoOffer": false,
+      "name": "机缘·废弃洞府",
+      "description": "【秘密准备】按指引前往废弃洞府并探索。那里灵气异于田垄，是暗修的好地方——也是暴露的风险地。",
+      "autoOffer": true,
       "offerConditions": [
-        { "kind": "storyFlag", "id": "quest:ch01_ref_yard_done" }
+        { "kind": "storyFlag", "id": "quest:ch01_ref_elder_done" }
       ],
       "completeConditions": [
         { "kind": "exploredLocation", "id": "base:loc_ref_cave" }
       ],
       "rewards": [
         { "kind": "setFlag", "id": "quest:ch01_ref_cave_done" },
+        { "kind": "setFlag", "id": "story:ch01_phase_site_found" },
         { "kind": "grantProgress", "amount": 10 }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_ch01_ref_first_manual",
+      "type": "quest",
+      "name": "机缘·第一份功法",
+      "description": "【功法路线】在洞府对机缘「入定／修炼」。尚未得诀时，入定会尝试领悟青云诀（主路径）。",
+      "autoOffer": true,
+      "offerConditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_ref_cave_done" }
+      ],
+      "completeConditions": [
+        { "kind": "hasManual", "id": "base:cultivation_qingyun_manual" }
+      ],
+      "rewards": [
+        { "kind": "setFlag", "id": "quest:ch01_ref_manual_done" },
+        { "kind": "setFlag", "id": "story:ch01_phase_manual" },
+        { "kind": "grantProgress", "amount": 20 }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_ch01_ref_night_cultivate",
+      "type": "quest",
+      "name": "暗修·夜缝入定",
+      "description": "【秘密准备】持诀后回到洞府。宜入夜再入定；白天修炼更易被察觉。先在洞府站稳脚跟。",
+      "autoOffer": true,
+      "offerConditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_ref_manual_done" }
+      ],
+      "completeConditions": [
+        { "kind": "hasManual", "id": "base:cultivation_qingyun_manual" },
+        { "kind": "atLocation", "id": "base:loc_ref_cave" }
+      ],
+      "rewards": [
+        { "kind": "setFlag", "id": "quest:ch01_ref_dark_ready" },
+        { "kind": "setFlag", "id": "story:ch01_phase_near_qi" },
+        { "kind": "grantProgress", "amount": 30 }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_ch01_ref_breakthrough",
+      "type": "quest",
+      "name": "突破·第一次炼气",
+      "description": "【首次突破】在洞府探索触发「引气入体」，再多次入定积累修为，直至境界变为炼气。同伴可在外活动作掩护。",
+      "autoOffer": true,
+      "offerConditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_ref_dark_ready" }
+      ],
+      "completeConditions": [
+        { "kind": "realmAtLeast", "realm": "QiRefining" }
+      ],
+      "rewards": [
+        { "kind": "setFlag", "id": "quest:ch01_ref_breakthrough_done" },
+        { "kind": "setFlag", "id": "story:ch01_phase_qi_refining" }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_ch01_ref_hide",
+      "type": "quest",
+      "name": "隐藏·敛息藏修",
+      "description": "【隐藏修士】炼气后不可张扬。回房屋区探索，确认敛息与明面劳役如何并行；备好敛息草。",
+      "autoOffer": true,
+      "offerConditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_ref_breakthrough_done" }
+      ],
+      "completeConditions": [
+        { "kind": "storyFlag", "id": "story:ch01_phase_hidden_cultivator" }
+      ],
+      "rewards": [
+        { "kind": "setFlag", "id": "quest:ch01_ref_hide_done" },
+        { "kind": "addStock", "id": "base:resource_conceal_grass", "amount": 2 }
+      ],
+      "failConditions": [],
+      "failResults": []
+    },
+    {
+      "id": "base:quest_ch01_ref_epilogue",
+      "type": "quest",
+      "name": "伏笔·看清辖区",
+      "description": "【权力伏笔】你已踏入修仙门槛，却仍戴着杂役身份。回道路枢纽探索，听听行商与守卫背后的制度气味——第一章觉醒弧于此收束。战斗与夺权不在本关。",
+      "autoOffer": true,
+      "offerConditions": [
+        { "kind": "storyFlag", "id": "quest:ch01_ref_hide_done" }
+      ],
+      "completeConditions": [
+        { "kind": "storyFlag", "id": "story:ch01_ref_arc_complete" }
+      ],
+      "rewards": [
+        { "kind": "setFlag", "id": "quest:ch01_ref_epilogue_done" },
+        { "kind": "grantProgress", "amount": 5 }
       ],
       "failConditions": [],
       "failResults": []
