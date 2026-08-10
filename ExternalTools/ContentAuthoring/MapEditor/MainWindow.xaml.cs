@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -44,7 +45,6 @@ public partial class MainWindow : Window
     PlacementVm? _selected;
     PlacementVm? _drag;
     bool _resizing;
-    bool _dragPushedUndo;
     Point _dragStart;
     int _origX, _origY, _origW, _origH;
     PaletteItem? _tool;
@@ -657,13 +657,11 @@ public partial class MainWindow : Window
         MapCanvas.Focus();
         var pos = e.GetPosition(MapCanvas);
         var source = e.OriginalSource;
-        _dragPushedUndo = false;
 
         if (source is Rectangle { Tag: "resize" })
         {
             if (_selected == null) return;
             PushUndo();
-            _dragPushedUndo = true;
             _drag = _selected;
             _resizing = true;
             _dragStart = pos;
@@ -678,7 +676,6 @@ public partial class MainWindow : Window
         {
             SelectPlacement(vm);
             PushUndo();
-            _dragPushedUndo = true;
             _drag = vm;
             _resizing = false;
             _dragStart = pos;
@@ -778,7 +775,6 @@ public partial class MainWindow : Window
         {
             _drag = null;
             _resizing = false;
-            _dragPushedUndo = false;
             MapCanvas.ReleaseMouseCapture();
         }
     }
