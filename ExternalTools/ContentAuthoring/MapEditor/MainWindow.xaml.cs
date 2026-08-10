@@ -17,6 +17,7 @@ public partial class MainWindow : Window
     const double CellPx = 10;
     const double ZoomMin = 0.25;
     const double ZoomMax = 4.0;
+    const int UndoLimit = 80;
 
     static readonly PaletteItem[] Palette =
     {
@@ -35,16 +36,23 @@ public partial class MainWindow : Window
 
     readonly Dictionary<string, Color> _kindColors = new(StringComparer.Ordinal);
     readonly ObservableCollection<PlacementVm> _placements = new();
+    readonly List<string> _undo = new();
+    readonly List<string> _redo = new();
 
     ContentPackage? _package;
     DefRef? _layout;
     PlacementVm? _selected;
     PlacementVm? _drag;
     bool _resizing;
+    bool _dragPushedUndo;
     Point _dragStart;
     int _origX, _origY, _origW, _origH;
     PaletteItem? _tool;
     double _zoom = 1.0;
+
+    bool _panning;
+    Point _panStart;
+    double _panOffsetX, _panOffsetY;
 
     public MainWindow()
     {
@@ -58,42 +66,244 @@ public partial class MainWindow : Window
         PlacementList.ItemsSource = _placements;
         ApplyZoomTransform();
         TryLoadDefault();
+        Loaded += (_, _) => Focus();
     }
 
-    void ApplyZoomTransform()
+    static bool IsTyping() => Keyboard.FocusedElement is TextBoxBase;
+
+    void ApplyZoomTransform() => MapCanvas.LayoutTransform = new ScaleTransform(_zoom, _zoom);
+
+    void PushUndo()
     {
-        MapCanvas.LayoutTransform = new ScaleTransform(_zoom, _zoom);
+        var arr = new JsonArray();
+        foreach (var p in _placements) arr.Add(p.ToJson());
+        _undo.Add(arr.ToJsonString());
+        if (_undo.Count > UndoLimit) _undo.RemoveAt(0);
+        _redo.Clear();
     }
 
-    void MapScroll_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    void RestoreSnapshot(string json)
     {
-        if ((Keyboard.Modifiers & ModifierKeys.Alt) == 0)
-            return;
-
-        var oldZoom = _zoom;
-        var factor = e.Delta > 0 ? 1.1 : 1.0 / 1.1;
-        _zoom = Math.Clamp(oldZoom * factor, ZoomMin, ZoomMax);
-        if (Math.Abs(_zoom - oldZoom) < 0.0001)
+        _placements.Clear();
+        if (JsonNode.Parse(json) is JsonArray arr)
         {
+            foreach (var n in arr.OfType<JsonObject>())
+                _placements.Add(PlacementVm.FromJson(n));
+        }
+        SelectPlacement(_placements.FirstOrDefault(p => p.Id == _selected?.Id));
+        RebuildCanvas();
+    }
+
+    void Undo_Click(object sender, RoutedEventArgs e) => Undo();
+    void Redo_Click(object sender, RoutedEventArgs e) => Redo();
+
+    void Undo()
+    {
+        if (_undo.Count == 0) return;
+        var cur = SnapshotNow();
+        var prev = _undo[^1];
+        _undo.RemoveAt(_undo.Count - 1);
+        _redo.Add(cur);
+        RestoreSnapshot(prev);
+        StatusText.Text = "已撤销";
+    }
+
+    void Redo()
+    {
+        if (_redo.Count == 0) return;
+        var cur = SnapshotNow();
+        var next = _redo[^1];
+        _redo.RemoveAt(_redo.Count - 1);
+        _undo.Add(cur);
+        RestoreSnapshot(next);
+        StatusText.Text = "已重做";
+    }
+
+    string SnapshotNow()
+    {
+        var arr = new JsonArray();
+        foreach (var p in _placements) arr.Add(p.ToJson());
+        return arr.ToJsonString();
+    }
+
+    void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        var ctrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+        var shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
+
+        if (ctrl && e.Key == Key.S)
+        {
+            Save_Click(sender, e);
             e.Handled = true;
             return;
         }
 
-        // 以鼠标下内容点为锚：缩放前后保持该点仍在视口同一位置
-        var mouseInScroll = e.GetPosition(MapScroll);
-        var offsetX = MapScroll.HorizontalOffset;
-        var offsetY = MapScroll.VerticalOffset;
-        var contentX = (offsetX + mouseInScroll.X) / oldZoom;
-        var contentY = (offsetY + mouseInScroll.Y) / oldZoom;
+        if (ctrl && e.Key == Key.Z && !shift)
+        {
+            if (!IsTyping()) { Undo(); e.Handled = true; }
+            return;
+        }
 
+        if (ctrl && (e.Key == Key.Y || (e.Key == Key.Z && shift)))
+        {
+            if (!IsTyping()) { Redo(); e.Handled = true; }
+            return;
+        }
+
+        if (ctrl && e.Key == Key.D)
+        {
+            if (!IsTyping()) { DuplicateSelected(); e.Handled = true; }
+            return;
+        }
+
+        if (ctrl && e.Key == Key.D0)
+        {
+            ZoomReset_Click(sender, e);
+            e.Handled = true;
+            return;
+        }
+
+        if (ctrl && e.Key == Key.D1)
+        {
+            ZoomFit_Click(sender, e);
+            e.Handled = true;
+            return;
+        }
+
+        if (IsTyping()) return;
+
+        if (e.Key is Key.Delete or Key.Back)
+        {
+            DeleteSelected();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Escape)
+        {
+            SwitchToSelectTool();
+            SelectPlacement(null);
+            StatusText.Text = "已取消选中，回到选择工具";
+            e.Handled = true;
+            return;
+        }
+
+        if (_selected != null && e.Key is Key.Left or Key.Right or Key.Up or Key.Down)
+        {
+            var step = shift ? 5 : 1;
+            PushUndo();
+            switch (e.Key)
+            {
+                case Key.Left: _selected.X -= step; break;
+                case Key.Right: _selected.X += step; break;
+                case Key.Up: _selected.Y += step; break;
+                case Key.Down: _selected.Y -= step; break;
+            }
+            ClampPlacement(_selected);
+            SelectPlacement(_selected);
+            e.Handled = true;
+        }
+    }
+
+    void SwitchToSelectTool()
+    {
+        PaletteList.SelectedIndex = 0;
+        _tool = Palette[0];
+        MapCanvas.Cursor = Cursors.Arrow;
+    }
+
+    void MapScroll_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        var alt = (Keyboard.Modifiers & ModifierKeys.Alt) != 0;
+        var ctrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+        if (!alt && !ctrl) return;
+
+        ZoomAt(e.GetPosition(MapScroll), e.Delta > 0 ? 1.1 : 1.0 / 1.1);
+        e.Handled = true;
+    }
+
+    void ZoomAt(Point mouseInScroll, double factor)
+    {
+        var oldZoom = _zoom;
+        _zoom = Math.Clamp(oldZoom * factor, ZoomMin, ZoomMax);
+        if (Math.Abs(_zoom - oldZoom) < 0.0001) return;
+
+        var contentX = (MapScroll.HorizontalOffset + mouseInScroll.X) / oldZoom;
+        var contentY = (MapScroll.VerticalOffset + mouseInScroll.Y) / oldZoom;
         ApplyZoomTransform();
         MapScroll.UpdateLayout();
-
         MapScroll.ScrollToHorizontalOffset(contentX * _zoom - mouseInScroll.X);
         MapScroll.ScrollToVerticalOffset(contentY * _zoom - mouseInScroll.Y);
+        UpdateSizeHint();
+        StatusText.Text = $"画布缩放 {_zoom * 100:0}%（Alt/Ctrl+滚轮）";
+    }
 
-        StatusText.Text = $"画布缩放 {(_zoom * 100):0}%（Alt+滚轮；无 Alt 时滚轮照常滚动）";
+    void ZoomReset_Click(object sender, RoutedEventArgs e)
+    {
+        _zoom = 1.0;
+        ApplyZoomTransform();
+        UpdateSizeHint();
+        StatusText.Text = "缩放已重置 100%";
+    }
+
+    void ZoomFit_Click(object sender, RoutedEventArgs e)
+    {
+        if (MapScroll.ActualWidth <= 1 || MapScroll.ActualHeight <= 1) return;
+        if (MapCanvas.Width <= 1 || MapCanvas.Height <= 1) return;
+        var zx = (MapScroll.ActualWidth - 24) / MapCanvas.Width;
+        var zy = (MapScroll.ActualHeight - 24) / MapCanvas.Height;
+        _zoom = Math.Clamp(Math.Min(zx, zy), ZoomMin, ZoomMax);
+        ApplyZoomTransform();
+        MapScroll.UpdateLayout();
+        MapScroll.ScrollToHome();
+        UpdateSizeHint();
+        StatusText.Text = $"已适应窗口（缩放 {_zoom * 100:0}%）";
+    }
+
+    void MapScroll_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        var space = Keyboard.IsKeyDown(Key.Space);
+        if (e.ChangedButton == MouseButton.Middle || (e.ChangedButton == MouseButton.Left && space))
+        {
+            _panning = true;
+            _panStart = e.GetPosition(MapScroll);
+            _panOffsetX = MapScroll.HorizontalOffset;
+            _panOffsetY = MapScroll.VerticalOffset;
+            MapScroll.CaptureMouse();
+            MapScroll.Cursor = Cursors.Hand;
+            e.Handled = true;
+        }
+    }
+
+    void MapScroll_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_panning) return;
+        var pos = e.GetPosition(MapScroll);
+        MapScroll.ScrollToHorizontalOffset(_panOffsetX - (pos.X - _panStart.X));
+        MapScroll.ScrollToVerticalOffset(_panOffsetY - (pos.Y - _panStart.Y));
         e.Handled = true;
+    }
+
+    void MapScroll_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_panning) return;
+        _panning = false;
+        MapScroll.ReleaseMouseCapture();
+        MapScroll.Cursor = Cursors.Arrow;
+        e.Handled = true;
+    }
+
+    void MapScroll_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (!TryReadMapSize(out var gw, out var gh, out _, out _, out _, out _)) return;
+        var pos = e.GetPosition(MapCanvas);
+        var cx = (int)Math.Floor(pos.X / CellPx);
+        var cyTop = (int)Math.Floor(pos.Y / CellPx);
+        var cy = gh - 1 - cyTop;
+        if (cx < 0 || cy < 0 || cx >= gw || cy >= gh)
+            CursorText.Text = "格：—";
+        else
+            CursorText.Text = $"格：({cx}, {cy})  缩放 {_zoom * 100:0}%";
     }
 
     void TryLoadDefault()
@@ -109,8 +319,10 @@ public partial class MainWindow : Window
         RootText.Text = root;
         MapCombo.ItemsSource = _package.OfType("mapLayout").Select(d => d.Id).ToList();
         if (MapCombo.Items.Count > 0) MapCombo.SelectedIndex = 0;
+        _undo.Clear();
+        _redo.Clear();
         StatusText.Text = MapCombo.Items.Count == 0
-            ? "包中尚无 mapLayout，可点「从空模板新建」"
+            ? "包中尚无 mapLayout，可点「新建空图」"
             : $"mapLayout {_package.OfType("mapLayout").Count()} · 包已加载";
     }
 
@@ -138,6 +350,8 @@ public partial class MainWindow : Window
             foreach (var n in arr.OfType<JsonObject>())
                 _placements.Add(PlacementVm.FromJson(n));
         }
+        _undo.Clear();
+        _redo.Clear();
         RebuildCanvas();
         UpdateSizeHint();
     }
@@ -175,8 +389,8 @@ public partial class MainWindow : Window
         _tool = PaletteList.SelectedItem as PaletteItem ?? Palette[0];
         MapCanvas.Cursor = _tool.Kind == null ? Cursors.Arrow : Cursors.Cross;
         StatusText.Text = _tool.Kind == null
-            ? "选择模式：单击设施选中，拖移／右下角缩放"
-            : $"放置模式「{_tool.Label}」：在画布空白处单击放置（超出边界会自动夹入）";
+            ? "选择模式：单击选中，拖移／缩放；中键或空格+拖平移"
+            : $"放置「{_tool.Label}」：空白处单击放置";
     }
 
     void PlacementList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -206,6 +420,7 @@ public partial class MainWindow : Window
     void ApplyProps_Click(object sender, RoutedEventArgs e)
     {
         if (_selected == null) return;
+        PushUndo();
         _selected.Id = PropId.Text?.Trim() ?? _selected.Id;
         _selected.Label = PropLabel.Text ?? "";
         _selected.BoundLocationId = PropBound.Text ?? "";
@@ -218,12 +433,40 @@ public partial class MainWindow : Window
         RebuildCanvas();
     }
 
-    void DeleteSelected_Click(object sender, RoutedEventArgs e)
+    void DeleteSelected_Click(object sender, RoutedEventArgs e) => DeleteSelected();
+    void Duplicate_Click(object sender, RoutedEventArgs e) => DuplicateSelected();
+
+    void DeleteSelected()
     {
         if (_selected == null) return;
+        PushUndo();
         _placements.Remove(_selected);
         SelectPlacement(null);
-        RebuildCanvas();
+        StatusText.Text = "已删除选中设施";
+    }
+
+    void DuplicateSelected()
+    {
+        if (_selected == null) return;
+        if (!TryReadMapSize(out var gw, out var gh, out _, out _, out _, out _)) return;
+        PushUndo();
+        var src = _selected;
+        var copy = new PlacementVm
+        {
+            Id = $"place_{src.Kind}_{DateTime.Now:HHmmssfff}",
+            Kind = src.Kind,
+            Label = src.Label,
+            BoundLocationId = src.BoundLocationId,
+            X = src.X + 1,
+            Y = src.Y + 1,
+            W = src.W,
+            H = src.H,
+            BlocksMovement = src.BlocksMovement
+        };
+        ClampPlacement(copy, gw, gh);
+        _placements.Add(copy);
+        SelectPlacement(copy);
+        StatusText.Text = "已复制选中设施";
     }
 
     void MapSize_KeyDown(object sender, KeyEventArgs e)
@@ -255,6 +498,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        PushUndo();
         if (_layout != null)
         {
             _layout.Raw["width"] = gw;
@@ -269,7 +513,7 @@ public partial class MainWindow : Window
 
         RebuildCanvas();
         UpdateSizeHint();
-        StatusText.Text = $"地图尺寸已应用：{gw}×{gh} 格（画布 {gw * CellPx:0}×{gh * CellPx:0} px）。记得保存到磁盘。";
+        StatusText.Text = $"地图尺寸已应用：{gw}×{gh} 格。记得 Ctrl+S 保存。";
         MapScroll.ScrollToHome();
     }
 
@@ -303,7 +547,7 @@ public partial class MainWindow : Window
 
         if (gw > 2000 || gh > 2000)
         {
-            err = "宽／高过大（上限 2000），请改小";
+            err = "宽／高过大（上限 2000）";
             return false;
         }
 
@@ -311,7 +555,7 @@ public partial class MainWindow : Window
             !double.TryParse(OriginYBox.Text?.Trim(), out oy) ||
             !double.TryParse(CellSizeBox.Text?.Trim(), out cs) || cs <= 0)
         {
-            err = "originX／originY／cellSize 无效（cellSize 须 > 0）";
+            err = "originX／originY／cellSize 无效";
             return false;
         }
 
@@ -330,32 +574,24 @@ public partial class MainWindow : Window
 
         for (var x = 0; x <= gw; x++)
         {
-            var line = new Line
+            MapCanvas.Children.Add(new Line
             {
-                X1 = x * CellPx,
-                Y1 = 0,
-                X2 = x * CellPx,
-                Y2 = gh * CellPx,
+                X1 = x * CellPx, Y1 = 0, X2 = x * CellPx, Y2 = gh * CellPx,
                 Stroke = new SolidColorBrush(x % 10 == 0 ? Color.FromRgb(180, 170, 150) : Color.FromRgb(210, 200, 185)),
                 StrokeThickness = x % 10 == 0 ? 1.2 : 0.5,
                 IsHitTestVisible = false
-            };
-            MapCanvas.Children.Add(line);
+            });
         }
 
         for (var y = 0; y <= gh; y++)
         {
-            var line = new Line
+            MapCanvas.Children.Add(new Line
             {
-                X1 = 0,
-                Y1 = y * CellPx,
-                X2 = gw * CellPx,
-                Y2 = y * CellPx,
+                X1 = 0, Y1 = y * CellPx, X2 = gw * CellPx, Y2 = y * CellPx,
                 Stroke = new SolidColorBrush(y % 10 == 0 ? Color.FromRgb(180, 170, 150) : Color.FromRgb(210, 200, 185)),
                 StrokeThickness = y % 10 == 0 ? 1.2 : 0.5,
                 IsHitTestVisible = false
-            };
-            MapCanvas.Children.Add(line);
+            });
         }
 
         foreach (var p in _placements)
@@ -363,13 +599,12 @@ public partial class MainWindow : Window
             if (!_kindColors.TryGetValue(p.Kind, out var c))
                 c = Colors.SteelBlue;
             var fill = new SolidColorBrush(Color.FromArgb(p.BlocksMovement ? (byte)220 : (byte)140, c.R, c.G, c.B));
-            var border = p == _selected ? Brushes.OrangeRed : Brushes.Black;
             var rect = new Rectangle
             {
                 Width = Math.Max(1, p.W) * CellPx,
                 Height = Math.Max(1, p.H) * CellPx,
                 Fill = fill,
-                Stroke = border,
+                Stroke = p == _selected ? Brushes.OrangeRed : Brushes.Black,
                 StrokeThickness = p == _selected ? 2.5 : 1,
                 Tag = p,
                 Cursor = Cursors.SizeAll
@@ -393,11 +628,8 @@ public partial class MainWindow : Window
             {
                 var handle = new Rectangle
                 {
-                    Width = 10,
-                    Height = 10,
-                    Fill = Brushes.OrangeRed,
-                    Tag = "resize",
-                    Cursor = Cursors.SizeNWSE
+                    Width = 10, Height = 10, Fill = Brushes.OrangeRed,
+                    Tag = "resize", Cursor = Cursors.SizeNWSE
                 };
                 Canvas.SetLeft(handle, (p.X + Math.Max(1, p.W)) * CellPx - 5);
                 Canvas.SetTop(handle, (gh - p.Y) * CellPx - 5);
@@ -408,25 +640,35 @@ public partial class MainWindow : Window
         UpdateSizeHint();
     }
 
+    void MapCanvas_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        SwitchToSelectTool();
+        StatusText.Text = "右键：已切回选择工具";
+        e.Handled = true;
+    }
+
     void MapCanvas_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        if (_panning || Keyboard.IsKeyDown(Key.Space)) return;
         if (_package == null) return;
-        if (!TryReadMapSize(out var gw, out var gh, out _, out _, out _, out _))
-            return;
+        if (!TryReadMapSize(out var gw, out var gh, out _, out _, out _, out _)) return;
 
+        Focus();
+        MapCanvas.Focus();
         var pos = e.GetPosition(MapCanvas);
         var source = e.OriginalSource;
+        _dragPushedUndo = false;
 
         if (source is Rectangle { Tag: "resize" })
         {
             if (_selected == null) return;
+            PushUndo();
+            _dragPushedUndo = true;
             _drag = _selected;
             _resizing = true;
             _dragStart = pos;
-            _origX = _selected.X;
-            _origY = _selected.Y;
-            _origW = _selected.W;
-            _origH = _selected.H;
+            _origX = _selected.X; _origY = _selected.Y;
+            _origW = _selected.W; _origH = _selected.H;
             MapCanvas.CaptureMouse();
             e.Handled = true;
             return;
@@ -434,29 +676,27 @@ public partial class MainWindow : Window
 
         if (source is Rectangle { Tag: PlacementVm vm })
         {
-            // 放置模式下点在已有设施上：改为选中／拖移，不叠放
             SelectPlacement(vm);
+            PushUndo();
+            _dragPushedUndo = true;
             _drag = vm;
             _resizing = false;
             _dragStart = pos;
-            _origX = vm.X;
-            _origY = vm.Y;
-            _origW = vm.W;
-            _origH = vm.H;
+            _origX = vm.X; _origY = vm.Y;
+            _origW = vm.W; _origH = vm.H;
             MapCanvas.CaptureMouse();
             e.Handled = true;
             return;
         }
 
-        // 空白处：有设施工具则放置
         if (_tool?.Kind != null)
         {
+            PushUndo();
             TryPlaceAt(pos, gw, gh);
             e.Handled = true;
             return;
         }
 
-        // 选择模式点空白：取消选中
         SelectPlacement(null);
         e.Handled = true;
     }
@@ -481,15 +721,12 @@ public partial class MainWindow : Window
             Id = $"place_{kind}_{DateTime.Now:HHmmssfff}",
             Kind = kind,
             Label = _tool.Label,
-            X = cx,
-            Y = cy,
-            W = w,
-            H = h,
+            X = cx, Y = cy, W = w, H = h,
             BlocksMovement = _tool.Block
         };
         _placements.Add(vm);
         SelectPlacement(vm);
-        StatusText.Text = $"已放置 {_tool.Label} @({cx},{cy}) 大小 {w}×{h}";
+        StatusText.Text = $"已放置 {_tool.Label} @({cx},{cy}) {w}×{h}";
     }
 
     void ClampPlacement(PlacementVm p) =>
@@ -514,8 +751,7 @@ public partial class MainWindow : Window
         if (!int.TryParse(WidthBox.Text, out var gw) || gw < 1) gw = 80;
         var pos = e.GetPosition(MapCanvas);
         var dx = (int)Math.Round((pos.X - _dragStart.X) / CellPx);
-        var dyCanvas = (int)Math.Round((pos.Y - _dragStart.Y) / CellPx);
-        var dy = -dyCanvas;
+        var dy = -(int)Math.Round((pos.Y - _dragStart.Y) / CellPx);
 
         if (_resizing)
         {
@@ -542,6 +778,7 @@ public partial class MainWindow : Window
         {
             _drag = null;
             _resizing = false;
+            _dragPushedUndo = false;
             MapCanvas.ReleaseMouseCapture();
         }
     }
@@ -573,7 +810,6 @@ public partial class MainWindow : Window
             ClampPlacement(p, w, h);
             arr.Add(p.ToJson());
         }
-
         _layout.Raw["placements"] = arr;
 
         try
@@ -582,7 +818,7 @@ public partial class MainWindow : Window
             var keep = _layout.Id;
             LoadRoot(_package.Root);
             MapCombo.SelectedItem = keep;
-            StatusText.Text = "已保存 mapLayout → Unity Play 将用此网格寻路";
+            StatusText.Text = "已保存 mapLayout";
         }
         catch (Exception ex)
         {
