@@ -4,6 +4,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Labor;
 using XianXia.Core.Npc;
+using XianXia.Core.Orders;
 using XianXia.Core.Results;
 using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
