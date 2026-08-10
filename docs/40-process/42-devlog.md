@@ -7,6 +7,27 @@
 
 ---
 
+## 2026-08-10 — 文档补录＋编辑器工具计划确认
+
+**做了什么**
+- 新建 [106 编辑器工具](106-content-authoring-editors-plan-v0.1.md)：ExternalTools、A～D 模块、读写 Data JSON、加载路径说明
+- 新建 [107 近期里程碑收束](107-recent-milestones-rollup-2026-08-10.md)：导航／NPC／Demo0.1／WorkAction 热修
+- 更新总览／[62 现状](62-project-status-2026-08-01.md)／通读指南；飞书映射与同步
+
+**判断与理由**
+- 制作人明确要用编辑器做关卡；计划先落盘再开工，避免范围漂移
+- 总览／现状仍停在 RTS 页时，后续三块底座对制作人不可见，故补收束页
+
+**下一步：** 确认后开工 ExternalTools 第一期（校验台＋地点＋任务＋事件）。
+
+## 2026-08-10 — 热修 WorkAction OrderId 编译
+
+**做了什么**
+- `WorkAction.cs` 补回 `using XianXia.Core.Orders`（commit `65f39a5`）
+
+**判断与理由**
+- 清理 unused using 时误删，导致 Unity CS0246／CS0738
+
 ## 2026-08-03 — Demo 0.1 Production · Chapter 01 Playable Arc
 
 **做了什么**

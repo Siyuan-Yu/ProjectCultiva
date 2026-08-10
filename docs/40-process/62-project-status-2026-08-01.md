@@ -1,16 +1,17 @@
 # 项目现状总览 — 2026-08-01
 
-> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-03（RTS 手动控制＋HUD）  
+> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-10（收束导航／NPC／Demo0.1；编辑器计划确认）  
 > 用途：一次看清 VS0.1～1.0／Content Ready 做到哪、本轮改了什么、下一步是什么。  
-> 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准；本页不改 Freeze。
+> 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准；本页不改 Freeze。  
+> 近期增量一次看清：[107](107-recent-milestones-rollup-2026-08-10.md)
 
 ---
 
 ## 1. 一句话现状
 
-**Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**；Content Ready／Chapter Framework／Toolkit／Ch01 模板关已验收。  
-**本轮增量：** 己方 **RTS 手动控制**（不跟课表自动走）＋指令点选（移动／交互／战斗占位／修炼）＋顶栏分钟／全局暴露主管压＋各地多交互点（[98](98-rts-manual-control-and-hud-pass-2026-08-03.md)；指南 [94](94-chapter-full-production-and-sample-guide.md)）。  
-制作人按 [94]／[98] 手操签收。Demo Runtime **继续冻结**。NPC 巡逻表现／守卫数据另开。
+**Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**；样例关可玩弧／导航／NPC 活动底座／Demo 0.1 Production **自动化已验收（手操待签）**。  
+**下一步：** [106 编辑器工具](106-content-authoring-editors-plan-v0.1.md)（`ExternalTools/content-authoring`，第一期 A～D）。  
+制作人手操：[105](105-demo-0.1-producer-playbook-30min.md)。Demo Runtime **继续冻结**。
 
 ---
 
@@ -37,8 +38,11 @@
 | Demo 手感对齐 | **已验收** | [91](91-demo-v0.1-to-formal-gap-audit.md)／[93](93-demo-parity-level-acceptance-report.md)／[92](92-demo-parity-progress-2026-08-02.md) | `DemoParityHost`＝2D Sprite＋Demo 操作语义（不复活 Runtime） |
 | 内容打断 CIF | **自动化已验收** | [95](95-content-interrupt-system-plan-v0.1.md)／[96](96-content-interrupt-system-acceptance-report.md) | 事件／任务弹层强制暂停 |
 | Ch01 可玩弧＋UX | **自动化已验收；手操签收中** | [97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)／[94](94-chapter-full-production-and-sample-guide.md) | 2G 至炼气→隐藏→伏笔；首次入区勘察 |
-| RTS 手动控制＋HUD | **进行中／已记录** | [98](98-rts-manual-control-and-hud-pass-2026-08-03.md) | 己方不自动；点选指令；多交互点；时钟分钟 |
+| RTS 手动控制＋HUD | **已记录** | [98](98-rts-manual-control-and-hud-pass-2026-08-03.md) | 己方不自动；点选指令；多交互点；时钟分钟 |
 | Navigation Foundation | **自动化已验收；手操待签** | [99](99-navigation-foundation-milestone-plan-v0.1.md)／[100](100-navigation-foundation-acceptance-report.md) | 网格 A*；玩家／NPC 沿路径；基础避让 |
+| NPC Simulation Foundation | **自动化已验收；手操待签** | [101](101-npc-simulation-foundation-milestone-plan-v0.1.md)／[102](102-npc-simulation-foundation-acceptance-report.md) | Job／WorkArea；Move→Work；样例四职 |
+| Demo 0.1 Production | **自动化已验收；手操待签** | [103](103-demo-0.1-production-milestone-plan-v0.1.md)／[104](104-demo-0.1-production-acceptance-report.md)／[105](105-demo-0.1-producer-playbook-30min.md) | 三人分派＋矿工／老人拆角＋30 分钟手操 |
+| 内容编辑器工具 | **计划已确认；待开工** | [106](106-content-authoring-editors-plan-v0.1.md) | ExternalTools；第一期校验台＋地点＋任务＋事件 |
 
 ---
 

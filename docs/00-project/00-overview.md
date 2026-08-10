@@ -1,16 +1,19 @@
 ﻿# 修仙游戏策划案总览
 
-> 状态：概念框架 v0.9｜**Architecture Freeze v0.2**｜**VS1.0＋样例关可玩弧已自动化验收** | 最后更新：2026-08-02  
+> 状态：概念框架 v0.9｜**Architecture Freeze v0.2**｜**Demo 0.1 可玩弧自动化已验收；内容编辑器待开工** | 最后更新：2026-08-10  
 > **本页只放最高层大纲。** 细节进专题页；**怎么读整套文档**见 [通读指南](04-reading-guide.md)。  
 > 本地 Markdown 与飞书文档一一对应（真源在本地，飞书为阅读层）。
 
 ## 〇、当前项目阶段
 
 **架构冻结 v0.2。** Core／Data／Host／**VS 0.1～1.0 Demo 自动化已验收**。  
-长期路线 **VS0.7→0.8→0.9→1.0** 已收束；其上已叠加 **DemoParityHost 样例关**（内容打断＋2G 觉醒弧 Data＋RTS 引导），见 [97](../40-process/97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)／[94](../40-process/94-chapter-full-production-and-sample-guide.md)。  
-Demo Runtime 停扩。完整进度见 [62 项目现状](../40-process/62-project-status-2026-08-01.md)；VS0.7～1.0 交付见 [75](../40-process/75-vs0.7-to-1.0-delivery-summary-2026-08-01.md)。
+其上已叠加：**DemoParityHost 样例关**、内容打断、2G 觉醒弧、RTS 手动控制、**Navigation／NPC Simulation 底座**、**Demo 0.1 Production 可玩弧补强**。  
+收束见 [107](../40-process/107-recent-milestones-rollup-2026-08-10.md)；制作人手操见 [105](../40-process/105-demo-0.1-producer-playbook-30min.md)。  
 
-**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [62 现状](../40-process/62-project-status-2026-08-01.md) → [97 可玩弧交付](../40-process/97-ch01-playable-arc-and-ux-delivery-2026-08-02.md) → [94 制作指南](../40-process/94-chapter-full-production-and-sample-guide.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md)。
+**下一步：** [106 编辑器工具](../40-process/106-content-authoring-editors-plan-v0.1.md)（`ExternalTools/`，第一期校验台＋地点＋任务＋事件）。  
+Demo Runtime 停扩。完整进度见 [62 项目现状](../40-process/62-project-status-2026-08-01.md)。
+
+**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [62 现状](../40-process/62-project-status-2026-08-01.md) → [107 近期收束](../40-process/107-recent-milestones-rollup-2026-08-10.md) → [105 手操](../40-process/105-demo-0.1-producer-playbook-30min.md) → [106 编辑器](../40-process/106-content-authoring-editors-plan-v0.1.md) → [94 制作指南](../40-process/94-chapter-full-production-and-sample-guide.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md)。
 
 - 主契约：[33 架构冻结 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md)
 - 实体／Order／Mod：[34](../30-tech/34-entity-and-component-model.md)、[35](../30-tech/35-order-and-action-system.md)、[36](../30-tech/36-content-package-and-mod-architecture.md)
@@ -22,6 +25,7 @@ Demo Runtime 停扩。完整进度见 [62 项目现状](../40-process/62-project
 - 全部决策：[ADR 索引](../40-process/43-decisions/README.md)（UI＝0009 预留）
 
 v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead≠Removed；FocusCharacterUnavailable；开局宗门劳役 Membership；地图 World／Region／LocalMap。
+
 
 ## 一、一句话定位
 

@@ -1,9 +1,10 @@
 # 章节关卡完整制作指南 + 样例关／第一章对照
 
-> 状态：**现行制作真源**｜日期：2026-08-02  
+> 状态：**现行制作真源**｜日期：2026-08-10  
 > 场景入口：`Assets/Scenes/DemoParityHost.unity`（Scenario：`base:scenario_ch01_reference`）  
 > 字段权威：`Content/BaseGame/Data/SCHEMA.md`｜命名：[84](84-chapter-content-naming-standards.md)  
 > 流程草案：[2G](../20-systems/2G-first-chapter-flow.md)｜时间：[21](../20-systems/21-core-loop-and-time.md)  
+> **可视化编辑器（计划）：** [106 编辑器工具](106-content-authoring-editors-plan-v0.1.md)（`ExternalTools/`，不进 Assets）  
 > 旧文合并：本页覆盖 [80](80-chapter-content-production-guide.md)／[88](88-chapter-01-reference-level-production-guide.md) 的实操部分
 
 ---
