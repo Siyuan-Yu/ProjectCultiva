@@ -1,0 +1,42 @@
+{
+  "name": "xianxia-content-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "XianXia Content Studio — author BaseGame Data JSON outside Unity Assets",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron .\"",
+    "dev:web": "vite",
+    "build": "vite build",
+    "pack:win": "npm run build && electron-builder --win portable",
+    "pack:mac": "npm run build && electron-builder --mac dir",
+    "pack": "npm run pack:win"
+  },
+  "build": {
+    "appId": "com.xianxia.contentstudio",
+    "productName": "XianXia Content Studio",
+    "directories": { "output": "dist-pack" },
+    "files": ["dist/**/*", "electron/**/*", "package.json"],
+    "win": {
+      "target": ["portable", "dir"],
+      "signAndEditExecutable": false
+    },
+    "mac": { "target": ["dir"], "category": "public.app-category.developer-tools" }
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.0",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "wait-on": "^8.0.1"
+  }
+}

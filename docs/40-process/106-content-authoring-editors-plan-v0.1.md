@@ -1,7 +1,8 @@
 # 106 · 编辑器工具
 
-> 状态：**计划确认稿（待开工）**｜日期：2026-08-10  
+> 状态：**第一期已交付（Studio v0.1）**｜日期：2026-08-10  
 > 一句话：**在 `ExternalTools/` 做一套「内容制作桌面应用」，可视化编辑关卡 Data JSON；游戏仍用现有 Loader 读这些文件。**  
+> 工程：`ExternalTools/content-authoring`（Electron + React）｜用法：[108 总览](108-content-studio-browser-usage.md)｜[109 地图](109-content-studio-region-editor-usage.md)｜[110 任务](110-content-studio-quest-editor-usage.md)｜[111 事件](111-content-studio-event-editor-usage.md)  
 > 相关：[94 制作指南](94-chapter-full-production-and-sample-guide.md)｜[107 收束](107-recent-milestones-rollup-2026-08-10.md)｜`Content/BaseGame/Data/SCHEMA.md`
 
 ---
@@ -277,15 +278,15 @@ ContentPackageLoader 扫 Data/**/*.json
 
 ## 5. 实施 Phase（开工顺序）
 
-| Phase | 做什么 | 完成标准 |
-|-------|--------|----------|
-| **TOOL-0** | 本文档写清＋飞书同步 | 制作人能按本文说出「四个编辑器各自干什么」 |
-| **TOOL-1** | 脚手架：Tauri/Electron + React；打开包；读全 definitions | 能列出 BaseGame 全部 id |
-| **TOOL-2** | 编辑器1：总览＋校验 | 对现有 BaseGame 跑校验有结果 |
-| **TOOL-3** | 编辑器2：地点画布＋保存 | 改坐标／邻接后 Unity Play 可见 |
-| **TOOL-4** | 编辑器3＋4：任务／事件表单＋保存 | 新建一条任务／事件能被 Loader 加载 |
-| **TOOL-5** | README＋与 [94] 互链；可选 Unity 菜单「打开 Content Studio」 | 制作人可独立打开使用 |
-| **TOOL-6+** | 编辑器5～7 | 另开小里程碑 |
+| Phase | 做什么 | 状态 |
+|-------|--------|------|
+| **TOOL-0** | 本文档写清＋飞书同步 | 完成 |
+| **TOOL-1** | Electron + React 脚手架；打开包；读全 definitions | 完成（`ExternalTools/content-authoring`） |
+| **TOOL-2** | 编辑器1：总览＋校验 | 完成 |
+| **TOOL-3** | 编辑器2：地点表＋邻接＋坐标＋保存 | 完成（表格优先；拖拽画布延后） |
+| **TOOL-4** | 编辑器3＋4：任务／事件表单＋保存 | 完成 |
+| **TOOL-5** | README＋用法文档 108～111；`pack:win`／`pack:mac` | 完成 |
+| **TOOL-6+** | 编辑器5～7 | 未开工 |
 
 硬停：改 Snapshot／Freeze／新增 condition kind → 先人工确认。
 
@@ -307,4 +308,5 @@ ContentPackageLoader 扫 Data/**/*.json
 | 日期 | 说明 |
 |------|------|
 | 2026-08-10 | 初版确认稿 |
+| 2026-08-10 | 第一期交付：四编辑器 + 108～111 用法 + Electron 打包脚本 |
 | 2026-08-10 | **重写**：补「要做哪些编辑器」点名表＋每个编辑器的界面／操作／实现／Phase |
