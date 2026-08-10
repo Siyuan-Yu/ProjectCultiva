@@ -119,3 +119,8 @@ Desktop.ini
 /local/
 *.tmp
 *.bak
+
+# Content authoring tools (WPF) ¡ª track project files
+!/ExternalTools/**/*.csproj
+!/ExternalTools/**/*.sln
+

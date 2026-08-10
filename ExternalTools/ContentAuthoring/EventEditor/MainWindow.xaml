@@ -1,0 +1,55 @@
+﻿<Window x:Class="EventEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="XianXia · 事件编辑器" Height="820" Width="1100"
+        WindowStartupLocation="CenterScreen">
+  <DockPanel Margin="10">
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+      <Button Content="打开包…" Width="90" Margin="0,0,8,0" Click="OpenPackage_Click"/>
+      <Button Content="+ 新事件" Width="90" Margin="0,0,8,0" Click="NewEvent_Click"/>
+      <Button Content="保存到磁盘" Width="100" Margin="0,0,8,0" Click="Save_Click"/>
+      <TextBlock x:Name="RootText" VerticalAlignment="Center"/>
+    </StackPanel>
+    <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0"/>
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="280"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <GroupBox Header="事件列表" Margin="0,0,8,0">
+        <ListBox x:Name="EventList" SelectionChanged="EventList_SelectionChanged"/>
+      </GroupBox>
+      <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+          <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="id" Width="90" VerticalAlignment="Center"/>
+            <TextBox x:Name="IdBox"/>
+          </DockPanel>
+          <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="name" Width="90" VerticalAlignment="Center"/>
+            <TextBox x:Name="NameBox"/>
+          </DockPanel>
+          <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="trigger" Width="90" VerticalAlignment="Center"/>
+            <ComboBox x:Name="TriggerBox"/>
+          </DockPanel>
+          <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="locationId" Width="90" VerticalAlignment="Center"/>
+            <ComboBox x:Name="LocationBox" IsEditable="True"/>
+          </DockPanel>
+          <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="questId" Width="90" VerticalAlignment="Center"/>
+            <TextBox x:Name="QuestIdBox"/>
+          </DockPanel>
+          <CheckBox x:Name="OnceBox" Content="once（只触发一次）" Margin="0,0,0,8"/>
+          <TextBlock Text="body"/>
+          <TextBox x:Name="BodyBox" AcceptsReturn="True" Height="110" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0,0,0,8"/>
+          <TextBlock Text="conditions（JSON 数组）"/>
+          <TextBox x:Name="CondBox" AcceptsReturn="True" Height="90" FontFamily="Consolas" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0,0,0,8"/>
+          <TextBlock Text="choices（JSON 数组：id / text / conditions / outcomes）"/>
+          <TextBox x:Name="ChoicesBox" AcceptsReturn="True" Height="220" FontFamily="Consolas" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </DockPanel>
+</Window>

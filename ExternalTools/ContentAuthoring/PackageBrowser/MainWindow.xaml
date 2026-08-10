@@ -1,0 +1,32 @@
+﻿<Window x:Class="PackageBrowser.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="XianXia · 包总览与校验台" Height="720" Width="1100"
+        WindowStartupLocation="CenterScreen">
+  <DockPanel Margin="10">
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+      <Button Content="打开包…" Width="90" Margin="0,0,8,0" Click="OpenPackage_Click"/>
+      <Button Content="重新加载" Width="90" Margin="0,0,8,0" Click="Reload_Click"/>
+      <Button Content="运行校验" Width="90" Margin="0,0,8,0" Click="Validate_Click"/>
+      <TextBlock x:Name="RootText" VerticalAlignment="Center" TextWrapping="NoWrap"/>
+    </StackPanel>
+    <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0"/>
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="220"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="1.1*"/>
+      </Grid.ColumnDefinitions>
+      <GroupBox Header="类型" Margin="0,0,8,0">
+        <ListBox x:Name="TypeList" SelectionChanged="TypeList_SelectionChanged"/>
+      </GroupBox>
+      <GroupBox Header="定义列表" Grid.Column="1" Margin="0,0,8,0">
+        <DataGrid x:Name="DefGrid" AutoGenerateColumns="True" IsReadOnly="True"
+                  CanUserAddRows="False" HeadersVisibility="Column"/>
+      </GroupBox>
+      <GroupBox Header="校验结果" Grid.Column="2">
+        <ListBox x:Name="IssueList"/>
+      </GroupBox>
+    </Grid>
+  </DockPanel>
+</Window>

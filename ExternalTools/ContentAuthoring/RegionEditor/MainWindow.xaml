@@ -1,0 +1,44 @@
+﻿<Window x:Class="RegionEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="XianXia · 区域／地点编辑器" Height="780" Width="1280"
+        WindowStartupLocation="CenterScreen">
+  <DockPanel Margin="10">
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+      <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+        <Button Content="打开包…" Width="90" Margin="0,0,8,0" Click="OpenPackage_Click"/>
+        <TextBlock Text="区域" VerticalAlignment="Center" Margin="0,0,6,0"/>
+        <ComboBox x:Name="RegionCombo" Width="360" SelectionChanged="RegionCombo_SelectionChanged"/>
+        <Button Content="保存到磁盘" Width="100" Margin="12,0,0,0" Click="Save_Click"/>
+        <TextBlock x:Name="RootText" VerticalAlignment="Center" Margin="12,0,0,0"/>
+      </StackPanel>
+      <StackPanel Orientation="Horizontal">
+        <TextBlock Text="name" VerticalAlignment="Center" Margin="0,0,6,0"/>
+        <TextBox x:Name="NameBox" Width="220" Margin="0,0,12,0"/>
+        <TextBlock Text="startLocationId" VerticalAlignment="Center" Margin="0,0,6,0"/>
+        <TextBox x:Name="StartBox" Width="280" Margin="0,0,12,0"/>
+        <Button Content="+ 地点" Width="80" Margin="0,0,8,0" Click="AddLoc_Click"/>
+        <Button Content="删除选中地点" Width="110" Click="DeleteLoc_Click"/>
+      </StackPanel>
+    </StackPanel>
+    <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0"/>
+    <DataGrid x:Name="LocGrid" AutoGenerateColumns="False" CanUserAddRows="False"
+              HeadersVisibility="Column" SelectionMode="Single">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="id" Binding="{Binding Id}" Width="180"/>
+        <DataGridTextColumn Header="name" Binding="{Binding Name}" Width="100"/>
+        <DataGridTextColumn Header="kind" Binding="{Binding Kind}" Width="90"/>
+        <DataGridTextColumn Header="tags" Binding="{Binding Tags}" Width="120"/>
+        <DataGridTextColumn Header="allowedActivities" Binding="{Binding AllowedActivities}" Width="140"/>
+        <DataGridTextColumn Header="adjacentIds" Binding="{Binding AdjacentIds}" Width="220"/>
+        <DataGridTextColumn Header="X" Binding="{Binding PresentationX}" Width="50"/>
+        <DataGridTextColumn Header="Z" Binding="{Binding PresentationZ}" Width="50"/>
+        <DataGridTextColumn Header="explore资源" Binding="{Binding ResourceOnExploreId}" Width="140"/>
+        <DataGridTextColumn Header="amount" Binding="{Binding ResourceOnExploreAmount}" Width="60"/>
+        <DataGridTextColumn Header="NPC" Binding="{Binding ResidentNpcDefinitionId}" Width="160"/>
+        <DataGridTextColumn Header="机缘" Binding="{Binding OpportunitySiteId}" Width="140"/>
+        <DataGridTextColumn Header="questOfferIds" Binding="{Binding QuestOfferIds}" Width="180"/>
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</Window>
