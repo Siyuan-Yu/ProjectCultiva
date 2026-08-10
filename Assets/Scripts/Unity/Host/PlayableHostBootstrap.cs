@@ -1,6 +1,8 @@
 using System.IO;
 using UnityEngine;
+using XianXia.Core.Navigation;
 using XianXia.Data.Bootstrap;
+using XianXia.Data.Content;
 
 namespace XianXia.Unity.Host
 {
@@ -270,7 +272,7 @@ namespace XianXia.Unity.Host
             debugHud.Bind(this, selectionController);
             contentDebugPanel.Bind(this, selectionController);
             moveController.Bind(this, selectionController, entityViewSpawner, commandBridge);
-            moveController.SetWalkGrid(XianXia.Core.Navigation.Ch01ReferenceWalkGrid.Create());
+            moveController.SetWalkGrid(ResolveWalkGrid());
             actionMenu.Bind(this, selectionController, commandBridge);
             formalHud.Bind(this, selectionController, eventFeed);
             activityPresenter.Bind(this, entityViewSpawner);
@@ -418,6 +420,30 @@ namespace XianXia.Unity.Host
                       " chars=" + _session.CharacterIds.Count +
                       " selected=" + selected +
                       " cmd=" + cmd;
+        }
+
+        WalkGrid ResolveWalkGrid()
+        {
+            if (_session?.Registry?.MapLayouts != null && _session.Registry.MapLayouts.Count > 0)
+            {
+                MapLayoutDefinition preferred = null;
+                foreach (var kv in _session.Registry.MapLayouts)
+                {
+                    preferred = kv.Value;
+                    if (!string.IsNullOrEmpty(kv.Value.WorldRegionId) &&
+                        kv.Value.WorldRegionId.IndexOf("ch01", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                        break;
+                }
+
+                if (preferred != null)
+                {
+                    Debug.Log("[PlayableHost] WalkGrid from mapLayout " + preferred.Id, this);
+                    return MapLayoutWalkGridBuilder.Create(preferred);
+                }
+            }
+
+            Debug.Log("[PlayableHost] WalkGrid fallback Ch01ReferenceWalkGrid", this);
+            return Ch01ReferenceWalkGrid.Create();
         }
 
         public bool TryResolveContentPackageDirectory(out string path, out string error)

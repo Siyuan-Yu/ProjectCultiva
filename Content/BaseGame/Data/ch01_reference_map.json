@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_ch01_reference",
+      "type": "mapLayout",
+      "name": "第一章参考关·格点地图",
+      "worldRegionId": "base:region_ch01_reference",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 80,
+      "height": 50,
+      "placements": [
+        {
+          "id": "block_houses",
+          "kind": "house",
+          "label": "杂役屋主体",
+          "x": 28,
+          "y": 32,
+          "w": 9,
+          "h": 8,
+          "blocksMovement": true,
+          "boundLocationId": "base:loc_ref_houses"
+        },
+        {
+          "id": "block_hub_shed",
+          "kind": "rock",
+          "label": "枢纽旁棚／岩",
+          "x": 38,
+          "y": 23,
+          "w": 5,
+          "h": 5,
+          "blocksMovement": true
+        },
+        {
+          "id": "block_mine_wall",
+          "kind": "wall",
+          "label": "矿洞岩壁",
+          "x": 4,
+          "y": 31,
+          "w": 6,
+          "h": 7,
+          "blocksMovement": true,
+          "boundLocationId": "base:loc_ref_mine"
+        },
+        {
+          "id": "block_cave_wall",
+          "kind": "wall",
+          "label": "洞府岩壁",
+          "x": 62,
+          "y": 7,
+          "w": 9,
+          "h": 3,
+          "blocksMovement": true,
+          "boundLocationId": "base:loc_ref_cave"
+        },
+        {
+          "id": "zone_labor",
+          "kind": "grainField",
+          "label": "农田杂役区",
+          "x": 55,
+          "y": 8,
+          "w": 12,
+          "h": 10,
+          "blocksMovement": false,
+          "boundLocationId": "base:loc_ref_labor_yard"
+        },
+        {
+          "id": "zone_herb",
+          "kind": "herbField",
+          "label": "药田",
+          "x": 31,
+          "y": 5,
+          "w": 12,
+          "h": 12,
+          "blocksMovement": false,
+          "boundLocationId": "base:loc_ref_herb_field"
+        },
+        {
+          "id": "zone_forest",
+          "kind": "forest",
+          "label": "树林",
+          "x": 1,
+          "y": 20,
+          "w": 14,
+          "h": 12,
+          "blocksMovement": false,
+          "boundLocationId": "base:loc_ref_forest"
+        },
+        {
+          "id": "zone_spring",
+          "kind": "spring",
+          "label": "灵泉",
+          "x": 64,
+          "y": 10,
+          "w": 8,
+          "h": 8,
+          "blocksMovement": false,
+          "boundLocationId": "base:loc_ref_spring"
+        },
+        {
+          "id": "zone_hub",
+          "kind": "roadHub",
+          "label": "道路枢纽",
+          "x": 36,
+          "y": 21,
+          "w": 8,
+          "h": 8,
+          "blocksMovement": false,
+          "boundLocationId": "base:loc_ref_road_hub"
+        }
+      ]
+    }
+  ]
+}

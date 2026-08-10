@@ -233,6 +233,9 @@ namespace XianXia.Data.Content
                     case "job":
                         LoadJob(item, parsed.Value, registry, report);
                         break;
+                    case "mapLayout":
+                        LoadMapLayout(item, parsed.Value, registry, report);
+                        break;
                     default:
                         report.Add(ErrorCode.InvalidArgument, "Unknown definition type.", type);
                         break;
@@ -765,6 +768,15 @@ namespace XianXia.Data.Content
             return (float)n.Number;
         }
 
+        static bool ReadBool(JsonValue obj, string name, bool fallback)
+        {
+            if (!obj.TryGetProperty(name, out var n))
+                return fallback;
+            if (n.Kind == JsonValueKind.True) return true;
+            if (n.Kind == JsonValueKind.False) return false;
+            return fallback;
+        }
+
         static void LoadWorldRegion(
             JsonValue item,
             DefinitionId id,
@@ -949,6 +961,87 @@ namespace XianXia.Data.Content
             }
 
             var reg = registry.RegisterJob(job);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void LoadMapLayout(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.MapLayoutFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var layout = new MapLayoutDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                WorldRegionId = item.GetString("worldRegionId", string.Empty),
+                OriginX = ReadFloat(item, "originX", 0f),
+                OriginY = ReadFloat(item, "originY", 0f),
+                CellSize = ReadFloat(item, "cellSize", 1f),
+                Width = ReadInt(item, "width", 0),
+                Height = ReadInt(item, "height", 0)
+            };
+
+            if (layout.Width <= 0 || layout.Height <= 0 || layout.CellSize <= 0f)
+            {
+                report.Add(
+                    ErrorCode.MissingRequiredField,
+                    "mapLayout.width/height/cellSize must be positive.",
+                    id.ToString());
+                return;
+            }
+
+            if (item.TryGetProperty("placements", out var placementsNode))
+            {
+                if (placementsNode.Kind != JsonValueKind.Array)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "mapLayout.placements must be array.", id.ToString());
+                    return;
+                }
+
+                foreach (var pNode in placementsNode.Array)
+                {
+                    if (pNode.Kind != JsonValueKind.Object)
+                    {
+                        report.Add(ErrorCode.ContentLoadFailed, "placement entries must be objects.", id.ToString());
+                        continue;
+                    }
+
+                    DefinitionSchema.RejectUnknownFields(
+                        pNode, DefinitionSchema.MapPlacementFields, report, id + ".placement");
+                    if (report.Errors.Count > errorsBefore)
+                        return;
+
+                    var placement = new MapPlacement
+                    {
+                        Id = pNode.GetString("id", string.Empty),
+                        Kind = pNode.GetString("kind", "wall"),
+                        X = ReadInt(pNode, "x", 0),
+                        Y = ReadInt(pNode, "y", 0),
+                        W = ReadInt(pNode, "w", 1),
+                        H = ReadInt(pNode, "h", 1),
+                        BlocksMovement = ReadBool(pNode, "blocksMovement", false),
+                        BoundLocationId = pNode.GetString("boundLocationId", string.Empty),
+                        Label = pNode.GetString("label", string.Empty)
+                    };
+
+                    if (string.IsNullOrWhiteSpace(placement.Id))
+                    {
+                        report.Add(ErrorCode.MissingRequiredField, "placement.id required.", id.ToString());
+                        return;
+                    }
+
+                    layout.Placements.Add(placement);
+                }
+            }
+
+            var reg = registry.RegisterMapLayout(layout);
             if (reg.IsFailure)
                 report.Add(reg.Error);
         }

@@ -3,7 +3,7 @@
 > 状态：**第一期已交付（WPF 四独立 exe，Windows）**｜日期：2026-08-10  
 > 一句话：**四个独立 Visual Studio／WPF 程序，分别编辑关卡 Data JSON；游戏仍用现有 Loader 读这些文件。**  
 > 工程：`ExternalTools/ContentAuthoring/`（`ContentAuthoring.sln`）  
-> 用法：[108 总览](108-content-studio-browser-usage.md)｜[109 地图](109-content-studio-region-editor-usage.md)｜[110 任务](110-content-studio-quest-editor-usage.md)｜[111 事件](111-content-studio-event-editor-usage.md)  
+> 用法：[108 总览](108-content-studio-browser-usage.md)｜[109 逻辑地点](109-content-studio-region-editor-usage.md)｜[112 格点地图](112-map-editor-usage.md)｜[110 任务](110-content-studio-quest-editor-usage.md)｜[111 事件](111-content-studio-event-editor-usage.md)  
 > 相关：[94 制作指南](94-chapter-full-production-and-sample-guide.md)｜[107 收束](107-recent-milestones-rollup-2026-08-10.md)｜`Content/BaseGame/Data/SCHEMA.md`
 
 ---
@@ -18,7 +18,8 @@
 | # | 工程文件夹 | exe | 你用它做什么 | type | 用法文档 |
 |---|------------|-----|--------------|------|----------|
 | **1** | `PackageBrowser/` | `PackageBrowser.exe` | 看全包条目；一键校验 | 全部（只读＋校验） | [108](108-content-studio-browser-usage.md) |
-| **2** | `RegionEditor/` | `RegionEditor.exe` | 逻辑地图：地点、邻接、产出、NPC／机缘／任务挂接 | `worldRegion` | [109](109-content-studio-region-editor-usage.md) |
+| **2** | `RegionEditor/` | `RegionEditor.exe` | 逻辑地点／邻接／产出／NPC／任务挂接 | `worldRegion` | [109](109-content-studio-region-editor-usage.md) |
+| **2b** | `MapEditor/` | `MapEditor.exe` | **格点地图**：设施板＋画布拖拽缩放；挡路写入寻路 | `mapLayout` | [112](112-map-editor-usage.md) |
 | **3** | `QuestEditor/` | `QuestEditor.exe` | 新建／改任务 | `quest` | [110](110-content-studio-quest-editor-usage.md) |
 | **4** | `EventEditor/` | `EventEditor.exe` | 新建／改事件 | `contentEvent` | [111](111-content-studio-event-editor-usage.md) |
 
@@ -143,3 +144,4 @@ cd D:\UnityProjects\XianXia\ExternalTools\ContentAuthoring
 | 2026-08-10 | 初版：Electron 单应用计划 |
 | 2026-08-10 | Electron 第一期交付后又废弃 |
 | 2026-08-10 | 改为 WPF 四独立工程 + VS／publish.ps1；只要 Windows |
+| 2026-08-10 | 新增 MapEditor（mapLayout 格点设施地图）；Host 优先读内容网格 |

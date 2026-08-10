@@ -67,7 +67,17 @@ public static class SchemaFields
         ["job"] = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "primaryWorkAreaId", "activityBindings"
+        },
+        ["mapLayout"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "worldRegionId",
+            "originX", "originY", "cellSize", "width", "height", "placements"
         }
+    };
+
+    public static readonly HashSet<string> MapPlacementFields = new(StringComparer.Ordinal)
+    {
+        "id", "kind", "x", "y", "w", "h", "blocksMovement", "boundLocationId", "label"
     };
 
     public static readonly HashSet<string> LocationFields = new(StringComparer.Ordinal)

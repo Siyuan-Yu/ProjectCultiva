@@ -2,7 +2,8 @@
 
 > 状态：**可用（WPF／Windows）**｜日期：2026-08-10  
 > 工程：`ExternalTools/ContentAuthoring/RegionEditor/`  
-> 编辑：`worldRegion` + `locations[]`  
+> 编辑：`worldRegion` + `locations[]`（**逻辑地点表**，不是格点画布）  
+> 格点设施地图请用：[112 MapEditor](112-map-editor-usage.md)  
 > 计划：[106](106-content-authoring-editors-plan-v0.1.md)
 
 ---

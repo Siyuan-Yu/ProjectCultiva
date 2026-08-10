@@ -5,7 +5,8 @@
 | 工程文件夹 | 产物 | 干什么 |
 |------------|------|--------|
 | `PackageBrowser/` | `PackageBrowser.exe` | 包总览与校验 |
-| `RegionEditor/` | `RegionEditor.exe` | 区域／地点 |
+| `RegionEditor/` | `RegionEditor.exe` | 逻辑地点 |
+| `MapEditor/` | `MapEditor.exe` | 格点地图（设施／墙） |
 | `QuestEditor/` | `QuestEditor.exe` | 任务 |
 | `EventEditor/` | `EventEditor.exe` | 事件 |
 

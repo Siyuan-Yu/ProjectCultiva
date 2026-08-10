@@ -34,6 +34,8 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, WorkAreaContentDefinition>();
         readonly Dictionary<DefinitionId, JobContentDefinition> _jobs =
             new Dictionary<DefinitionId, JobContentDefinition>();
+        readonly Dictionary<DefinitionId, MapLayoutDefinition> _mapLayouts =
+            new Dictionary<DefinitionId, MapLayoutDefinition>();
 
         public IReadOnlyDictionary<DefinitionId, CharacterDefinition> Characters => _characters;
         public IReadOnlyDictionary<DefinitionId, CultivationDefinition> Cultivations => _cultivations;
@@ -49,6 +51,7 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, ChapterDefinition> Chapters => _chapters;
         public IReadOnlyDictionary<DefinitionId, WorkAreaContentDefinition> WorkAreas => _workAreas;
         public IReadOnlyDictionary<DefinitionId, JobContentDefinition> Jobs => _jobs;
+        public IReadOnlyDictionary<DefinitionId, MapLayoutDefinition> MapLayouts => _mapLayouts;
 
         public bool ContainsId(DefinitionId id) =>
             _characters.ContainsKey(id) ||
@@ -64,7 +67,8 @@ namespace XianXia.Data.Content
             _contentEvents.ContainsKey(id) ||
             _chapters.ContainsKey(id) ||
             _workAreas.ContainsKey(id) ||
-            _jobs.ContainsKey(id);
+            _jobs.ContainsKey(id) ||
+            _mapLayouts.ContainsKey(id);
 
         public Result RegisterCharacter(CharacterDefinition definition)
         {
@@ -164,6 +168,13 @@ namespace XianXia.Data.Content
             return Register(_jobs, definition, definition.Id);
         }
 
+        public Result RegisterMapLayout(MapLayoutDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "MapLayoutDefinition is null.");
+            return Register(_mapLayouts, definition, definition.Id);
+        }
+
         public bool TryGetCharacter(DefinitionId id, out CharacterDefinition definition) =>
             _characters.TryGetValue(id, out definition);
 
@@ -205,6 +216,9 @@ namespace XianXia.Data.Content
 
         public bool TryGetJob(DefinitionId id, out JobContentDefinition definition) =>
             _jobs.TryGetValue(id, out definition);
+
+        public bool TryGetMapLayout(DefinitionId id, out MapLayoutDefinition definition) =>
+            _mapLayouts.TryGetValue(id, out definition);
 
         Result Register<T>(Dictionary<DefinitionId, T> map, T definition, DefinitionId id)
         {

@@ -55,7 +55,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 ### type 一览
 
-`character`｜`cultivation`｜`item`｜`opportunitySite`｜`openingScenario`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`
+`character`｜`cultivation`｜`item`｜`opportunitySite`｜`openingScenario`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`mapLayout`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`
 
 ## type = character
 
@@ -120,6 +120,26 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 |---|---|
 | `startLocationId` | 开局地点 |
 | `locations[]` | id／name／kind／`tags[]`／`allowedActivities[]`／adjacentIds／resourceOnExplore*／opportunitySiteId／residentNpcDefinitionId／presentationX／presentationZ／`enterConditions[]`／`questOfferIds[]` |
+
+## type = mapLayout（格点地图 · MapEditor）
+
+| Field | Notes |
+|---|---|
+| `worldRegionId` | 关联的逻辑区域 |
+| `originX`／`originY`／`cellSize` | 与 WalkGrid 一致；默认 cellSize=1（约一人一格） |
+| `width`／`height` | 格子数（可改大，如整屏约 400×200） |
+| `placements[]` | 设施／障碍矩形 |
+
+### placement
+
+| Field | Notes |
+|---|---|
+| `id`／`kind`／`label` | kind 如 wall／house／herbField／grainField／forest… |
+| `x`／`y`／`w`／`h` | 格点坐标与大小（可拖拽缩放） |
+| `blocksMovement` | true 则写入寻路障碍 |
+| `boundLocationId` | 可选，绑到逻辑地点（任务／勘察仍用 location） |
+
+样例：`ch01_reference_map.json`。Host 优先用 mapLayout 建 WalkGrid，否则回退硬编码网格。
 
 ## type = workArea（NPC Simulation）
 

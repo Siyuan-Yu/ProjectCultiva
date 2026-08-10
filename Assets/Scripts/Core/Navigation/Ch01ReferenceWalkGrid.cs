@@ -1,7 +1,8 @@
 namespace XianXia.Core.Navigation
 {
     /// <summary>
-    /// Demo／Ch01 参考关可行走网格：对齐 HostDemoTileMap 范围，并标记房屋／岩块等障碍。
+    /// Demo／Ch01 参考关可行走网格（硬编码兜底）。
+    /// Prefer content <c>mapLayout</c> via MapLayoutWalkGridBuilder when available.
     /// </summary>
     public static class Ch01ReferenceWalkGrid
     {

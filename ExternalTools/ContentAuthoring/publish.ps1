@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 Set-Location $root
 
-$apps = @("PackageBrowser", "RegionEditor", "QuestEditor", "EventEditor")
+$apps = @("PackageBrowser", "RegionEditor", "QuestEditor", "EventEditor", "MapEditor")
 foreach ($app in $apps) {
   $out = Join-Path $root "publish\$app"
   Write-Host "Publishing $app -> $out"

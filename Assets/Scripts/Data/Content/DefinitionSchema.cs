@@ -62,6 +62,17 @@ namespace XianXia.Data.Content
             "activity", "workAreaIds", "mode"
         };
 
+        public static readonly HashSet<string> MapLayoutFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "worldRegionId",
+            "originX", "originY", "cellSize", "width", "height", "placements"
+        };
+
+        public static readonly HashSet<string> MapPlacementFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "kind", "x", "y", "w", "h", "blocksMovement", "boundLocationId", "label"
+        };
+
         public static readonly HashSet<string> QuestFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "description", "autoOffer",

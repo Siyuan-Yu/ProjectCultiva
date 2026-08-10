@@ -586,6 +586,11 @@
       "title": "Content Studio · 事件编辑器用法",
       "docId": "LDAOdn5VeoO0tBxIJnJcEcf3nph"
     },
+    "map-editor-usage": {
+      "file": "docs/40-process/112-map-editor-usage.md",
+      "title": "MapEditor · 格点地图编辑器用法",
+      "docId": "NOUXdYgrcoyCjcx4h6scqagMncm"
+    },
     "ch01-ref-plan": {
       "file": "docs/40-process/87-chapter-01-reference-level-plan-v0.1.md",
       "title": "第一章参考关计划 v0.1",

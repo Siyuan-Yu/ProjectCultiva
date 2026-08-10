@@ -1,0 +1,82 @@
+﻿<Window x:Class="MapEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="XianXia · MapEditor" Height="900" Width="1400"
+        WindowStartupLocation="CenterScreen">
+  <DockPanel Margin="8">
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+      <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+        <Button Content="打开包…" Width="90" Margin="0,0,8,0" Click="OpenPackage_Click"/>
+        <TextBlock Text="地图" VerticalAlignment="Center" Margin="0,0,6,0"/>
+        <ComboBox x:Name="MapCombo" Width="320" SelectionChanged="MapCombo_SelectionChanged"/>
+        <Button Content="从空模板新建" Width="110" Margin="8,0,0,0" Click="NewFromTemplate_Click"/>
+        <Button Content="保存到磁盘" Width="100" Margin="8,0,0,0" Click="Save_Click"/>
+        <TextBlock x:Name="RootText" VerticalAlignment="Center" Margin="12,0,0,0"/>
+      </StackPanel>
+      <StackPanel Orientation="Horizontal">
+        <TextBlock Text="name" VerticalAlignment="Center" Margin="0,0,4,0"/>
+        <TextBox x:Name="NameBox" Width="160" Margin="0,0,10,0"/>
+        <TextBlock Text="worldRegionId" VerticalAlignment="Center" Margin="0,0,4,0"/>
+        <TextBox x:Name="RegionIdBox" Width="220" Margin="0,0,10,0"/>
+        <TextBlock Text="宽" VerticalAlignment="Center" Margin="0,0,4,0"/>
+        <TextBox x:Name="WidthBox" Width="50" Margin="0,0,8,0"/>
+        <TextBlock Text="高" VerticalAlignment="Center" Margin="0,0,4,0"/>
+        <TextBox x:Name="HeightBox" Width="50" Margin="0,0,8,0"/>
+        <TextBlock Text="originX" VerticalAlignment="Center" Margin="0,0,4,0"/>
+        <TextBox x:Name="OriginXBox" Width="60" Margin="0,0,8,0"/>
+        <TextBlock Text="originY" VerticalAlignment="Center" Margin="0,0,4,0"/>
+        <TextBox x:Name="OriginYBox" Width="60" Margin="0,0,8,0"/>
+        <TextBlock Text="cellSize" VerticalAlignment="Center" Margin="0,0,4,0"/>
+        <TextBox x:Name="CellSizeBox" Width="50" Margin="0,0,8,0"/>
+        <Button Content="应用尺寸重绘" Width="110" Click="ResizeMap_Click"/>
+      </StackPanel>
+    </StackPanel>
+    <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0"/>
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="220"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="240"/>
+      </Grid.ColumnDefinitions>
+      <DockPanel Grid.Column="0" Margin="0,0,8,0">
+        <TextBlock DockPanel.Dock="Top" Text="设施板（选中后在画布单击放置）" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <ListBox x:Name="PaletteList" SelectionChanged="PaletteList_SelectionChanged"/>
+      </DockPanel>
+      <Border Grid.Column="1" BorderBrush="#C0B8A8" BorderThickness="1" Background="#F3EFE6">
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+          <Canvas x:Name="MapCanvas" Background="Transparent"
+                  MouseMove="MapCanvas_MouseMove"
+                  MouseLeftButtonUp="MapCanvas_MouseLeftButtonUp"
+                  MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown"/>
+        </ScrollViewer>
+      </Border>
+      <DockPanel Grid.Column="2" Margin="8,0,0,0">
+        <TextBlock DockPanel.Dock="Top" Text="已放置" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+          <TextBlock Text="选中属性" FontWeight="SemiBold" Margin="0,0,0,4"/>
+          <TextBlock Text="id"/>
+          <TextBox x:Name="PropId" Margin="0,0,0,4"/>
+          <TextBlock Text="label"/>
+          <TextBox x:Name="PropLabel" Margin="0,0,0,4"/>
+          <TextBlock Text="boundLocationId"/>
+          <TextBox x:Name="PropBound" Margin="0,0,0,4"/>
+          <CheckBox x:Name="PropBlock" Content="blocksMovement（挡路）" Margin="0,0,0,4"/>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+            <TextBlock Text="X" Width="20" VerticalAlignment="Center"/>
+            <TextBox x:Name="PropX" Width="40" Margin="0,0,6,0"/>
+            <TextBlock Text="Y" Width="20" VerticalAlignment="Center"/>
+            <TextBox x:Name="PropY" Width="40" Margin="0,0,6,0"/>
+            <TextBlock Text="W" Width="20" VerticalAlignment="Center"/>
+            <TextBox x:Name="PropW" Width="40" Margin="0,0,6,0"/>
+            <TextBlock Text="H" Width="20" VerticalAlignment="Center"/>
+            <TextBox x:Name="PropH" Width="40"/>
+          </StackPanel>
+          <Button Content="应用属性" Margin="0,0,0,4" Click="ApplyProps_Click"/>
+          <Button Content="删除选中" Click="DeleteSelected_Click"/>
+        </StackPanel>
+        <ListBox x:Name="PlacementList" DisplayMemberPath="ListText"
+                 SelectionChanged="PlacementList_SelectionChanged"/>
+      </DockPanel>
+    </Grid>
+  </DockPanel>
+</Window>
