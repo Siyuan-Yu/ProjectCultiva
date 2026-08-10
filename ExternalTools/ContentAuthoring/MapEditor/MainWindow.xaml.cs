@@ -16,18 +16,19 @@ public partial class MainWindow : Window
 {
     const double CellPx = 10;
 
-    static readonly (string Kind, string Label, int W, int H, bool Block, Color Color)[] Palette =
+    static readonly PaletteItem[] Palette =
     {
-        ("wall", "墙／岩壁", 6, 4, true, Color.FromRgb(90, 90, 100)),
-        ("house", "房子", 8, 8, true, Color.FromRgb(140, 100, 70)),
-        ("rock", "岩石／棚", 4, 4, true, Color.FromRgb(110, 110, 110)),
-        ("herbField", "药田", 50, 50, false, Color.FromRgb(70, 150, 90)),
-        ("grainField", "麦田／农田", 20, 16, false, Color.FromRgb(180, 170, 70)),
-        ("forest", "树林", 14, 12, false, Color.FromRgb(40, 110, 60)),
-        ("mine", "矿洞区", 10, 8, false, Color.FromRgb(100, 90, 70)),
-        ("spring", "灵泉", 8, 8, false, Color.FromRgb(80, 160, 200)),
-        ("cave", "洞府区", 10, 8, false, Color.FromRgb(120, 90, 140)),
-        ("roadHub", "道路枢纽", 8, 8, false, Color.FromRgb(160, 140, 120))
+        new(null, "选择（点选／拖移，不放置）", 0, 0, false, Colors.Transparent),
+        new("wall", "墙／岩壁", 6, 4, true, Color.FromRgb(90, 90, 100)),
+        new("house", "房子", 8, 8, true, Color.FromRgb(140, 100, 70)),
+        new("rock", "岩石／棚", 4, 4, true, Color.FromRgb(110, 110, 110)),
+        new("herbField", "药田", 50, 50, false, Color.FromRgb(70, 150, 90)),
+        new("grainField", "麦田／农田", 20, 16, false, Color.FromRgb(180, 170, 70)),
+        new("forest", "树林", 14, 12, false, Color.FromRgb(40, 110, 60)),
+        new("mine", "矿洞区", 10, 8, false, Color.FromRgb(100, 90, 70)),
+        new("spring", "灵泉", 8, 8, false, Color.FromRgb(80, 160, 200)),
+        new("cave", "洞府区", 10, 8, false, Color.FromRgb(120, 90, 140)),
+        new("roadHub", "道路枢纽", 8, 8, false, Color.FromRgb(160, 140, 120))
     };
 
     readonly Dictionary<string, Color> _kindColors = new(StringComparer.Ordinal);
@@ -40,15 +41,17 @@ public partial class MainWindow : Window
     bool _resizing;
     Point _dragStart;
     int _origX, _origY, _origW, _origH;
-    string? _paletteKind;
+    PaletteItem? _tool;
 
     public MainWindow()
     {
         InitializeComponent();
         Title = "XianXia · MapEditor（格点地图）";
-        foreach (var p in Palette)
-            _kindColors[p.Kind] = p.Color;
-        PaletteList.ItemsSource = Palette.Select(p => $"{p.Kind} — {p.Label} ({p.W}×{p.H})").ToList();
+        foreach (var p in Palette.Where(p => p.Kind != null))
+            _kindColors[p.Kind!] = p.Color;
+        PaletteList.ItemsSource = Palette;
+        PaletteList.SelectedIndex = 0;
+        _tool = Palette[0];
         PlacementList.ItemsSource = _placements;
         TryLoadDefault();
     }
@@ -66,8 +69,9 @@ public partial class MainWindow : Window
         RootText.Text = root;
         MapCombo.ItemsSource = _package.OfType("mapLayout").Select(d => d.Id).ToList();
         if (MapCombo.Items.Count > 0) MapCombo.SelectedIndex = 0;
-        else StatusText.Text = "包中尚无 mapLayout，可点「从 Ch01 模板新建」";
-        StatusText.Text = $"mapLayout {_package.OfType("mapLayout").Count()} · 包已加载";
+        StatusText.Text = MapCombo.Items.Count == 0
+            ? "包中尚无 mapLayout，可点「从空模板新建」"
+            : $"mapLayout {_package.OfType("mapLayout").Count()} · 包已加载";
     }
 
     void OpenPackage_Click(object sender, RoutedEventArgs e)
@@ -95,6 +99,7 @@ public partial class MainWindow : Window
                 _placements.Add(PlacementVm.FromJson(n));
         }
         RebuildCanvas();
+        UpdateSizeHint();
     }
 
     void NewFromTemplate_Click(object sender, RoutedEventArgs e)
@@ -107,7 +112,6 @@ public partial class MainWindow : Window
             return;
         }
 
-        // Minimal empty map matching demo extents
         var raw = new JsonObject
         {
             ["id"] = "base:map_ch01_reference",
@@ -128,9 +132,11 @@ public partial class MainWindow : Window
 
     void PaletteList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (PaletteList.SelectedItem is not string label) return;
-        _paletteKind = label.Split(' ')[0];
-        StatusText.Text = $"已选设施 {_paletteKind}：在画布空白处单击放置";
+        _tool = PaletteList.SelectedItem as PaletteItem ?? Palette[0];
+        MapCanvas.Cursor = _tool.Kind == null ? Cursors.Arrow : Cursors.Cross;
+        StatusText.Text = _tool.Kind == null
+            ? "选择模式：单击设施选中，拖移／右下角缩放"
+            : $"放置模式「{_tool.Label}」：在画布空白处单击放置（超出边界会自动夹入）";
     }
 
     void PlacementList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -168,6 +174,7 @@ public partial class MainWindow : Window
         if (int.TryParse(PropY.Text, out var y)) _selected.Y = y;
         if (int.TryParse(PropW.Text, out var w) && w >= 1) _selected.W = w;
         if (int.TryParse(PropH.Text, out var h) && h >= 1) _selected.H = h;
+        ClampPlacement(_selected);
         RebuildCanvas();
     }
 
@@ -179,7 +186,97 @@ public partial class MainWindow : Window
         RebuildCanvas();
     }
 
-    void ResizeMap_Click(object sender, RoutedEventArgs e) => RebuildCanvas();
+    void MapSize_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            ApplyMapSize();
+            e.Handled = true;
+        }
+    }
+
+    void PresetSize_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string tag }) return;
+        var parts = tag.Split(',');
+        if (parts.Length != 2) return;
+        WidthBox.Text = parts[0];
+        HeightBox.Text = parts[1];
+        ApplyMapSize();
+    }
+
+    void ResizeMap_Click(object sender, RoutedEventArgs e) => ApplyMapSize();
+
+    void ApplyMapSize()
+    {
+        if (!TryReadMapSize(out var gw, out var gh, out var ox, out var oy, out var cs, out var err))
+        {
+            MessageBox.Show(err, "地图尺寸无效", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (_layout != null)
+        {
+            _layout.Raw["width"] = gw;
+            _layout.Raw["height"] = gh;
+            _layout.Raw["originX"] = ox;
+            _layout.Raw["originY"] = oy;
+            _layout.Raw["cellSize"] = cs;
+        }
+
+        foreach (var p in _placements)
+            ClampPlacement(p, gw, gh);
+
+        RebuildCanvas();
+        UpdateSizeHint();
+        StatusText.Text = $"地图尺寸已应用：{gw}×{gh} 格（画布 {gw * CellPx:0}×{gh * CellPx:0} px）。记得保存到磁盘。";
+        MapScroll.ScrollToHome();
+    }
+
+    void UpdateSizeHint()
+    {
+        if (!TryReadMapSize(out var gw, out var gh, out _, out _, out var cs, out _))
+        {
+            SizeHintText.Text = "";
+            return;
+        }
+
+        SizeHintText.Text = $"当前 {gw}×{gh} 格 · cellSize={cs} · 世界约 {gw * cs:0.#}×{gh * cs:0.#}";
+    }
+
+    bool TryReadMapSize(out int gw, out int gh, out double ox, out double oy, out double cs, out string err)
+    {
+        gw = gh = 0;
+        ox = oy = cs = 0;
+        err = "";
+        if (!int.TryParse(WidthBox.Text?.Trim(), out gw) || gw < 1)
+        {
+            err = "宽必须是 ≥1 的整数格数";
+            return false;
+        }
+
+        if (!int.TryParse(HeightBox.Text?.Trim(), out gh) || gh < 1)
+        {
+            err = "高必须是 ≥1 的整数格数";
+            return false;
+        }
+
+        if (gw > 2000 || gh > 2000)
+        {
+            err = "宽／高过大（上限 2000），请改小";
+            return false;
+        }
+
+        if (!double.TryParse(OriginXBox.Text?.Trim(), out ox) ||
+            !double.TryParse(OriginYBox.Text?.Trim(), out oy) ||
+            !double.TryParse(CellSizeBox.Text?.Trim(), out cs) || cs <= 0)
+        {
+            err = "originX／originY／cellSize 无效（cellSize 须 > 0）";
+            return false;
+        }
+
+        return true;
+    }
 
     void RebuildCanvas()
     {
@@ -189,16 +286,8 @@ public partial class MainWindow : Window
         MapCanvas.Children.Clear();
         MapCanvas.Width = gw * CellPx;
         MapCanvas.Height = gh * CellPx;
+        MapCanvas.Background = new SolidColorBrush(Color.FromRgb(232, 226, 214));
 
-        // background
-        MapCanvas.Children.Add(new Rectangle
-        {
-            Width = MapCanvas.Width,
-            Height = MapCanvas.Height,
-            Fill = new SolidColorBrush(Color.FromRgb(232, 226, 214))
-        });
-
-        // grid lines (every cell lightly, every 10 stronger)
         for (var x = 0; x <= gw; x++)
         {
             var line = new Line
@@ -208,10 +297,12 @@ public partial class MainWindow : Window
                 X2 = x * CellPx,
                 Y2 = gh * CellPx,
                 Stroke = new SolidColorBrush(x % 10 == 0 ? Color.FromRgb(180, 170, 150) : Color.FromRgb(210, 200, 185)),
-                StrokeThickness = x % 10 == 0 ? 1.2 : 0.5
+                StrokeThickness = x % 10 == 0 ? 1.2 : 0.5,
+                IsHitTestVisible = false
             };
             MapCanvas.Children.Add(line);
         }
+
         for (var y = 0; y <= gh; y++)
         {
             var line = new Line
@@ -221,12 +312,12 @@ public partial class MainWindow : Window
                 X2 = gw * CellPx,
                 Y2 = y * CellPx,
                 Stroke = new SolidColorBrush(y % 10 == 0 ? Color.FromRgb(180, 170, 150) : Color.FromRgb(210, 200, 185)),
-                StrokeThickness = y % 10 == 0 ? 1.2 : 0.5
+                StrokeThickness = y % 10 == 0 ? 1.2 : 0.5,
+                IsHitTestVisible = false
             };
             MapCanvas.Children.Add(line);
         }
 
-        // note: canvas Y grows down; cell Y matches data (origin bottom-left in world, but we draw Y up from top as row index)
         foreach (var p in _placements)
         {
             if (!_kindColors.TryGetValue(p.Kind, out var c))
@@ -243,11 +334,8 @@ public partial class MainWindow : Window
                 Tag = p,
                 Cursor = Cursors.SizeAll
             };
-            // Flip Y for display: row 0 at bottom of world-feeling — use top-left data as-is (cell y from bottom of origin in game is different)
-            // Editor uses same cell indices as JSON (x right, y up in world). Canvas: y increases down → invert.
             Canvas.SetLeft(rect, p.X * CellPx);
             Canvas.SetTop(rect, (gh - p.Y - Math.Max(1, p.H)) * CellPx);
-            rect.MouseLeftButtonDown += Placement_MouseDown;
             MapCanvas.Children.Add(rect);
 
             var label = new TextBlock
@@ -265,57 +353,128 @@ public partial class MainWindow : Window
             {
                 var handle = new Rectangle
                 {
-                    Width = 8,
-                    Height = 8,
+                    Width = 10,
+                    Height = 10,
                     Fill = Brushes.OrangeRed,
                     Tag = "resize",
                     Cursor = Cursors.SizeNWSE
                 };
-                Canvas.SetLeft(handle, (p.X + Math.Max(1, p.W)) * CellPx - 4);
-                Canvas.SetTop(handle, (gh - p.Y) * CellPx - 4);
-                handle.MouseLeftButtonDown += ResizeHandle_MouseDown;
+                Canvas.SetLeft(handle, (p.X + Math.Max(1, p.W)) * CellPx - 5);
+                Canvas.SetTop(handle, (gh - p.Y) * CellPx - 5);
                 MapCanvas.Children.Add(handle);
             }
         }
+
+        UpdateSizeHint();
     }
 
-    void Placement_MouseDown(object sender, MouseButtonEventArgs e)
+    void MapCanvas_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (sender is not FrameworkElement fe || fe.Tag is not PlacementVm vm) return;
+        if (_package == null) return;
+        if (!TryReadMapSize(out var gw, out var gh, out _, out _, out _, out _))
+            return;
+
+        var pos = e.GetPosition(MapCanvas);
+        var source = e.OriginalSource;
+
+        if (source is Rectangle { Tag: "resize" })
+        {
+            if (_selected == null) return;
+            _drag = _selected;
+            _resizing = true;
+            _dragStart = pos;
+            _origX = _selected.X;
+            _origY = _selected.Y;
+            _origW = _selected.W;
+            _origH = _selected.H;
+            MapCanvas.CaptureMouse();
+            e.Handled = true;
+            return;
+        }
+
+        if (source is Rectangle { Tag: PlacementVm vm })
+        {
+            // 放置模式下点在已有设施上：改为选中／拖移，不叠放
+            SelectPlacement(vm);
+            _drag = vm;
+            _resizing = false;
+            _dragStart = pos;
+            _origX = vm.X;
+            _origY = vm.Y;
+            _origW = vm.W;
+            _origH = vm.H;
+            MapCanvas.CaptureMouse();
+            e.Handled = true;
+            return;
+        }
+
+        // 空白处：有设施工具则放置
+        if (_tool?.Kind != null)
+        {
+            TryPlaceAt(pos, gw, gh);
+            e.Handled = true;
+            return;
+        }
+
+        // 选择模式点空白：取消选中
+        SelectPlacement(null);
+        e.Handled = true;
+    }
+
+    void TryPlaceAt(Point pos, int gw, int gh)
+    {
+        if (_tool?.Kind == null) return;
+        var kind = _tool.Kind;
+        var w = Math.Max(1, _tool.W);
+        var h = Math.Max(1, _tool.H);
+        if (w > gw) w = gw;
+        if (h > gh) h = gh;
+
+        var cx = (int)Math.Floor(pos.X / CellPx);
+        var cyTop = (int)Math.Floor(pos.Y / CellPx);
+        var cy = gh - cyTop - h;
+        cx = Math.Clamp(cx, 0, Math.Max(0, gw - w));
+        cy = Math.Clamp(cy, 0, Math.Max(0, gh - h));
+
+        var vm = new PlacementVm
+        {
+            Id = $"place_{kind}_{DateTime.Now:HHmmssfff}",
+            Kind = kind,
+            Label = _tool.Label,
+            X = cx,
+            Y = cy,
+            W = w,
+            H = h,
+            BlocksMovement = _tool.Block
+        };
+        _placements.Add(vm);
         SelectPlacement(vm);
-        _drag = vm;
-        _resizing = false;
-        _dragStart = e.GetPosition(MapCanvas);
-        _origX = vm.X;
-        _origY = vm.Y;
-        _origW = vm.W;
-        _origH = vm.H;
-        fe.CaptureMouse();
-        e.Handled = true;
+        StatusText.Text = $"已放置 {_tool.Label} @({cx},{cy}) 大小 {w}×{h}";
     }
 
-    void ResizeHandle_MouseDown(object sender, MouseButtonEventArgs e)
+    void ClampPlacement(PlacementVm p) =>
+        ClampPlacement(p,
+            int.TryParse(WidthBox.Text, out var gw) ? gw : 80,
+            int.TryParse(HeightBox.Text, out var gh) ? gh : 50);
+
+    static void ClampPlacement(PlacementVm p, int gw, int gh)
     {
-        if (_selected == null) return;
-        _drag = _selected;
-        _resizing = true;
-        _dragStart = e.GetPosition(MapCanvas);
-        _origX = _selected.X;
-        _origY = _selected.Y;
-        _origW = _selected.W;
-        _origH = _selected.H;
-        ((UIElement)sender).CaptureMouse();
-        e.Handled = true;
+        if (p.W > gw) p.W = gw;
+        if (p.H > gh) p.H = gh;
+        if (p.W < 1) p.W = 1;
+        if (p.H < 1) p.H = 1;
+        p.X = Math.Clamp(p.X, 0, Math.Max(0, gw - p.W));
+        p.Y = Math.Clamp(p.Y, 0, Math.Max(0, gh - p.H));
     }
 
     void MapCanvas_MouseMove(object sender, MouseEventArgs e)
     {
         if (_drag == null || e.LeftButton != MouseButtonState.Pressed) return;
         if (!int.TryParse(HeightBox.Text, out var gh) || gh < 1) gh = 50;
+        if (!int.TryParse(WidthBox.Text, out var gw) || gw < 1) gw = 80;
         var pos = e.GetPosition(MapCanvas);
         var dx = (int)Math.Round((pos.X - _dragStart.X) / CellPx);
         var dyCanvas = (int)Math.Round((pos.Y - _dragStart.Y) / CellPx);
-        // canvas Y down → data Y up
         var dy = -dyCanvas;
 
         if (_resizing)
@@ -325,10 +484,11 @@ public partial class MainWindow : Window
         }
         else
         {
-            _drag.X = Math.Max(0, _origX + dx);
-            _drag.Y = Math.Max(0, _origY + dy);
+            _drag.X = _origX + dx;
+            _drag.Y = _origY + dy;
         }
 
+        ClampPlacement(_drag, gw, gh);
         PropX.Text = _drag.X.ToString();
         PropY.Text = _drag.Y.ToString();
         PropW.Text = _drag.W.ToString();
@@ -342,41 +502,8 @@ public partial class MainWindow : Window
         {
             _drag = null;
             _resizing = false;
-            Mouse.Capture(null);
+            MapCanvas.ReleaseMouseCapture();
         }
-    }
-
-    void MapCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-    {
-        if (_paletteKind == null || _package == null) return;
-        if (e.OriginalSource is Rectangle { Tag: PlacementVm }) return;
-        if (!int.TryParse(HeightBox.Text, out var gh) || gh < 1) gh = 50;
-        if (!int.TryParse(WidthBox.Text, out var gw) || gw < 1) gw = 80;
-
-        var pos = e.GetPosition(MapCanvas);
-        var cx = (int)Math.Floor(pos.X / CellPx);
-        var cyTop = (int)Math.Floor(pos.Y / CellPx);
-        var spec = Palette.First(p => p.Kind == _paletteKind);
-        var w = spec.W > 0 ? spec.W : 4;
-        var h = spec.H > 0 ? spec.H : 4;
-        var cy = gh - cyTop - h;
-        if (cx < 0 || cy < 0 || cx >= gw || cy >= gh) return;
-
-        var vm = new PlacementVm
-        {
-            Id = $"place_{_paletteKind}_{DateTime.Now:HHmmss}",
-            Kind = _paletteKind,
-            Label = spec.Label ?? _paletteKind,
-            X = cx,
-            Y = Math.Max(0, cy),
-            W = w,
-            H = h,
-            BlocksMovement = spec.Block
-        };
-        _placements.Add(vm);
-        SelectPlacement(vm);
-        RebuildCanvas();
-        e.Handled = true;
     }
 
     void Save_Click(object sender, RoutedEventArgs e)
@@ -387,11 +514,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (!int.TryParse(WidthBox.Text, out var w) || !int.TryParse(HeightBox.Text, out var h) ||
-            !double.TryParse(OriginXBox.Text, out var ox) || !double.TryParse(OriginYBox.Text, out var oy) ||
-            !double.TryParse(CellSizeBox.Text, out var cs) || w < 1 || h < 1 || cs <= 0)
+        if (!TryReadMapSize(out var w, out var h, out var ox, out var oy, out var cs, out var err))
         {
-            MessageBox.Show("地图尺寸／原点／cellSize 无效");
+            MessageBox.Show(err, "保存失败", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -403,7 +528,12 @@ public partial class MainWindow : Window
         _layout.Raw["width"] = w;
         _layout.Raw["height"] = h;
         var arr = new JsonArray();
-        foreach (var p in _placements) arr.Add(p.ToJson());
+        foreach (var p in _placements)
+        {
+            ClampPlacement(p, w, h);
+            arr.Add(p.ToJson());
+        }
+
         _layout.Raw["placements"] = arr;
 
         try
@@ -419,6 +549,13 @@ public partial class MainWindow : Window
             MessageBox.Show(ex.Message, "保存失败", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
+}
+
+public sealed record PaletteItem(string? Kind, string Label, int W, int H, bool Block, Color Color)
+{
+    public string Display => Kind == null
+        ? $"• {Label}"
+        : $"{Kind} — {Label} ({W}×{H})";
 }
 
 public sealed class PlacementVm : INotifyPropertyChanged

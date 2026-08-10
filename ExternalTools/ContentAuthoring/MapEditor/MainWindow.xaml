@@ -13,41 +13,55 @@
         <Button Content="保存到磁盘" Width="100" Margin="8,0,0,0" Click="Save_Click"/>
         <TextBlock x:Name="RootText" VerticalAlignment="Center" Margin="12,0,0,0"/>
       </StackPanel>
-      <StackPanel Orientation="Horizontal">
-        <TextBlock Text="name" VerticalAlignment="Center" Margin="0,0,4,0"/>
-        <TextBox x:Name="NameBox" Width="160" Margin="0,0,10,0"/>
-        <TextBlock Text="worldRegionId" VerticalAlignment="Center" Margin="0,0,4,0"/>
-        <TextBox x:Name="RegionIdBox" Width="220" Margin="0,0,10,0"/>
-        <TextBlock Text="宽" VerticalAlignment="Center" Margin="0,0,4,0"/>
-        <TextBox x:Name="WidthBox" Width="50" Margin="0,0,8,0"/>
-        <TextBlock Text="高" VerticalAlignment="Center" Margin="0,0,4,0"/>
-        <TextBox x:Name="HeightBox" Width="50" Margin="0,0,8,0"/>
-        <TextBlock Text="originX" VerticalAlignment="Center" Margin="0,0,4,0"/>
-        <TextBox x:Name="OriginXBox" Width="60" Margin="0,0,8,0"/>
-        <TextBlock Text="originY" VerticalAlignment="Center" Margin="0,0,4,0"/>
-        <TextBox x:Name="OriginYBox" Width="60" Margin="0,0,8,0"/>
-        <TextBlock Text="cellSize" VerticalAlignment="Center" Margin="0,0,4,0"/>
-        <TextBox x:Name="CellSizeBox" Width="50" Margin="0,0,8,0"/>
-        <Button Content="应用尺寸重绘" Width="110" Click="ResizeMap_Click"/>
-      </StackPanel>
+      <Border BorderBrush="#C0B8A8" BorderThickness="1" Padding="8" Background="#FFFDF8" Margin="0,0,0,6">
+        <StackPanel>
+          <TextBlock Text="整图尺寸（格数）— 改完点「应用地图尺寸」或回车" FontWeight="SemiBold" Margin="0,0,0,6"/>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="宽" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <TextBox x:Name="WidthBox" Width="70" Margin="0,0,10,0" KeyDown="MapSize_KeyDown"/>
+            <TextBlock Text="高" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <TextBox x:Name="HeightBox" Width="70" Margin="0,0,10,0" KeyDown="MapSize_KeyDown"/>
+            <TextBlock Text="originX" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <TextBox x:Name="OriginXBox" Width="70" Margin="0,0,8,0"/>
+            <TextBlock Text="originY" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <TextBox x:Name="OriginYBox" Width="70" Margin="0,0,8,0"/>
+            <TextBlock Text="cellSize" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <TextBox x:Name="CellSizeBox" Width="50" Margin="0,0,10,0"/>
+            <Button Content="应用地图尺寸" Width="110" Margin="0,0,8,0" Click="ResizeMap_Click"/>
+            <Button Content="80×50" Width="60" Margin="0,0,4,0" Click="PresetSize_Click" Tag="80,50"/>
+            <Button Content="200×100" Width="70" Margin="0,0,4,0" Click="PresetSize_Click" Tag="200,100"/>
+            <Button Content="400×200" Width="70" Click="PresetSize_Click" Tag="400,200"/>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+            <TextBlock Text="name" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <TextBox x:Name="NameBox" Width="200" Margin="0,0,10,0"/>
+            <TextBlock Text="worldRegionId" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <TextBox x:Name="RegionIdBox" Width="260"/>
+            <TextBlock x:Name="SizeHintText" VerticalAlignment="Center" Margin="16,0,0,0" Foreground="#6B6358"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
     </StackPanel>
     <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0"/>
     <Grid>
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="220"/>
+        <ColumnDefinition Width="240"/>
         <ColumnDefinition Width="*"/>
         <ColumnDefinition Width="240"/>
       </Grid.ColumnDefinitions>
       <DockPanel Grid.Column="0" Margin="0,0,8,0">
-        <TextBlock DockPanel.Dock="Top" Text="设施板（选中后在画布单击放置）" FontWeight="SemiBold" Margin="0,0,0,4"/>
-        <ListBox x:Name="PaletteList" SelectionChanged="PaletteList_SelectionChanged"/>
+        <TextBlock DockPanel.Dock="Top" Text="工具／设施板" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Foreground="#6B6358" Margin="0,0,0,6"
+                   Text="选「选择」可点选／拖移；选设施后在空白处单击放置（自动夹进地图内）。"/>
+        <ListBox x:Name="PaletteList" DisplayMemberPath="Display"
+                 SelectionChanged="PaletteList_SelectionChanged"/>
       </DockPanel>
       <Border Grid.Column="1" BorderBrush="#C0B8A8" BorderThickness="1" Background="#F3EFE6">
-        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-          <Canvas x:Name="MapCanvas" Background="Transparent"
+        <ScrollViewer x:Name="MapScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+          <Canvas x:Name="MapCanvas"
+                  PreviewMouseLeftButtonDown="MapCanvas_PreviewMouseLeftButtonDown"
                   MouseMove="MapCanvas_MouseMove"
-                  MouseLeftButtonUp="MapCanvas_MouseLeftButtonUp"
-                  MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown"/>
+                  MouseLeftButtonUp="MapCanvas_MouseLeftButtonUp"/>
         </ScrollViewer>
       </Border>
       <DockPanel Grid.Column="2" Margin="8,0,0,0">
