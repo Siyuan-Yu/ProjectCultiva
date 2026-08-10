@@ -15,6 +15,8 @@ namespace MapEditor;
 public partial class MainWindow : Window
 {
     const double CellPx = 10;
+    const double ZoomMin = 0.25;
+    const double ZoomMax = 4.0;
 
     static readonly PaletteItem[] Palette =
     {
@@ -42,6 +44,7 @@ public partial class MainWindow : Window
     Point _dragStart;
     int _origX, _origY, _origW, _origH;
     PaletteItem? _tool;
+    double _zoom = 1.0;
 
     public MainWindow()
     {
@@ -53,7 +56,44 @@ public partial class MainWindow : Window
         PaletteList.SelectedIndex = 0;
         _tool = Palette[0];
         PlacementList.ItemsSource = _placements;
+        ApplyZoomTransform();
         TryLoadDefault();
+    }
+
+    void ApplyZoomTransform()
+    {
+        MapCanvas.LayoutTransform = new ScaleTransform(_zoom, _zoom);
+    }
+
+    void MapScroll_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if ((Keyboard.Modifiers & ModifierKeys.Alt) == 0)
+            return;
+
+        var oldZoom = _zoom;
+        var factor = e.Delta > 0 ? 1.1 : 1.0 / 1.1;
+        _zoom = Math.Clamp(oldZoom * factor, ZoomMin, ZoomMax);
+        if (Math.Abs(_zoom - oldZoom) < 0.0001)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        // 以鼠标下内容点为锚：缩放前后保持该点仍在视口同一位置
+        var mouseInScroll = e.GetPosition(MapScroll);
+        var offsetX = MapScroll.HorizontalOffset;
+        var offsetY = MapScroll.VerticalOffset;
+        var contentX = (offsetX + mouseInScroll.X) / oldZoom;
+        var contentY = (offsetY + mouseInScroll.Y) / oldZoom;
+
+        ApplyZoomTransform();
+        MapScroll.UpdateLayout();
+
+        MapScroll.ScrollToHorizontalOffset(contentX * _zoom - mouseInScroll.X);
+        MapScroll.ScrollToVerticalOffset(contentY * _zoom - mouseInScroll.Y);
+
+        StatusText.Text = $"画布缩放 {(_zoom * 100):0}%（Alt+滚轮；无 Alt 时滚轮照常滚动）";
+        e.Handled = true;
     }
 
     void TryLoadDefault()
@@ -241,7 +281,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        SizeHintText.Text = $"当前 {gw}×{gh} 格 · cellSize={cs} · 世界约 {gw * cs:0.#}×{gh * cs:0.#}";
+        SizeHintText.Text = $"当前 {gw}×{gh} 格 · cellSize={cs} · 世界约 {gw * cs:0.#}×{gh * cs:0.#} · 缩放 {_zoom * 100:0}%";
     }
 
     bool TryReadMapSize(out int gw, out int gh, out double ox, out double oy, out double cs, out string err)

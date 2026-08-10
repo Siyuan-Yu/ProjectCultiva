@@ -52,12 +52,13 @@
       <DockPanel Grid.Column="0" Margin="0,0,8,0">
         <TextBlock DockPanel.Dock="Top" Text="工具／设施板" FontWeight="SemiBold" Margin="0,0,0,4"/>
         <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Foreground="#6B6358" Margin="0,0,0,6"
-                   Text="选「选择」可点选／拖移；选设施后在空白处单击放置（自动夹进地图内）。"/>
+                   Text="选「选择」可点选／拖移；选设施后在空白处单击放置（自动夹进地图内）。Alt+滚轮缩放画布。"/>
         <ListBox x:Name="PaletteList" DisplayMemberPath="Display"
                  SelectionChanged="PaletteList_SelectionChanged"/>
       </DockPanel>
       <Border Grid.Column="1" BorderBrush="#C0B8A8" BorderThickness="1" Background="#F3EFE6">
-        <ScrollViewer x:Name="MapScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer x:Name="MapScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                      PreviewMouseWheel="MapScroll_PreviewMouseWheel">
           <Canvas x:Name="MapCanvas"
                   PreviewMouseLeftButtonDown="MapCanvas_PreviewMouseLeftButtonDown"
                   MouseMove="MapCanvas_MouseMove"
