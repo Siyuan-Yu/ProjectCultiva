@@ -15,13 +15,17 @@ namespace XianXia.Unity.Host
             _root = new GameObject("InteractSpots").transform;
             _root.SetParent(transform, false);
             var spots = HostInteractSpots.Spots;
+            // 地块很多时不逐格贴字，只留色点
+            var labels = showLabels && !HostInteractSpots.HasDynamicPlots;
             for (var i = 0; i < spots.Count; i++)
             {
                 var s = spots[i];
                 var go = new GameObject("Spot_" + s.Label);
                 go.transform.SetParent(_root, false);
                 go.transform.position = s.WorldPosition + new Vector3(0f, 0f, -0.05f);
-                go.transform.localScale = new Vector3(0.7f, 0.7f, 1f);
+                go.transform.localScale = HostInteractSpots.HasDynamicPlots
+                    ? new Vector3(0.45f, 0.45f, 1f)
+                    : new Vector3(0.7f, 0.7f, 1f);
 
                 var mf = go.AddComponent<MeshFilter>();
                 mf.sharedMesh = DiscMesh();
@@ -31,7 +35,7 @@ namespace XianXia.Unity.Host
                     ? new Color(0.95f, 0.82f, 0.28f, 0.85f)
                     : new Color(0.35f, 0.75f, 0.95f, 0.85f);
 
-                if (showLabels)
+                if (labels)
                 {
                     var label = new GameObject("Label");
                     label.transform.SetParent(go.transform, false);

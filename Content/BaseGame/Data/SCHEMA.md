@@ -134,12 +134,12 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 | Field | Notes |
 |---|---|
-| `id`／`kind`／`label` | kind 如 wall／house／herbField／grainField／forest… |
+| `id`／`kind`／`label` | kind：wall／house／herbField／grainField／forest／road／roadHub／mine／spring／cave… |
 | `x`／`y`／`w`／`h` | 格点坐标与大小（可拖拽缩放） |
 | `blocksMovement` | true 则写入寻路障碍 |
 | `boundLocationId` | 可选，绑到逻辑地点（任务／勘察仍用 location） |
 
-样例：`ch01_reference_map.json`。Host 优先用 mapLayout 建 WalkGrid，否则回退硬编码网格。
+样例：`ch01_reference_map.json`。Host 优先用 mapLayout 建 WalkGrid，并按 `kind` 刷 Environment prefab（药田／农田一格一块可交互；房子约 20×20；道路 1×1）。有 `boundLocationId` 时启动会把地点 `presentationX/Z` 对齐到设施中心。无 mapLayout 则回退硬编码网格。用法见 `docs/40-process/112-map-editor-usage.md`。
 
 ## type = workArea（NPC Simulation）
 

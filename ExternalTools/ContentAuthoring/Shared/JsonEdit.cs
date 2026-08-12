@@ -58,7 +58,11 @@ public static class JsonEdit
     }
 
     public static string ConditionsToEditable(JsonNode? node) =>
-        node?.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }) ?? "[]";
+        node?.ToJsonString(new System.Text.Json.JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        }) ?? "[]";
 
     public static bool TryParseJsonArray(string text, out JsonArray? array, out string? error)
     {

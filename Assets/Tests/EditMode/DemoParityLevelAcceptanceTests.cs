@@ -41,7 +41,7 @@ namespace XianXia.Tests
             {
                 var tiles = bootstrap.GetComponent<HostDemoTileMap>();
                 Assert.IsNotNull(tiles);
-                Assert.Greater(tiles.TileCount, 100);
+                Assert.Greater(tiles.TileCount, 0, "mapLayout ground／placements should build");
                 Assert.AreEqual(3, bootstrap.Session.CharacterIds.Count);
                 Assert.GreaterOrEqual(bootstrap.ViewSpawner.SpawnedCount, 8);
                 foreach (var view in bootstrap.ViewSpawner.Registry.All)

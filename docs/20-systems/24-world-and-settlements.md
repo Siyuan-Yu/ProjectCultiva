@@ -1,9 +1,10 @@
 # 世界与据点
 
-> 状态：**地图三层已冻结于 Architecture Freeze v0.2** | 优先级：P0 | 最后更新：2026-07-31  
+> 状态：**结构已修订（2026-08-11）** | 优先级：P0 | 最后更新：2026-08-11  
 > 上级：`docs/00-project/00-overview.md`  
 > 关联：`33` v0.2 §8、ADR-0021、`26`、`27`、`25`、`22`  
-> **本阶段不写实现代码。** 旧「三级结构／统一 10 屏」冲突描述已废弃。
+> **世界结构新真源：[113 World Graph + Local Map](../40-process/113-world-graph-local-map-architecture-revision-v0.1.md)**  
+> 下文 §2「Region = 较大连续区域」已被 113 取代：宏观为 WorldNode＋WorldRoute，实体玩法只在按需 LocalMap。历史 Freeze 段落保留备查，**不要按连续大区实现新内容**。
 
 ## 1. 这个系统解决什么问题
 

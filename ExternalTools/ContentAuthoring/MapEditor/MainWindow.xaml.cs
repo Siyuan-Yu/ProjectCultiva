@@ -15,23 +15,26 @@ namespace MapEditor;
 
 public partial class MainWindow : Window
 {
-    const double CellPx = 10;
+    const double BaseCellPx = 10;
     const double ZoomMin = 0.25;
     const double ZoomMax = 4.0;
     const int UndoLimit = 80;
 
+    double CellPx => BaseCellPx * _zoom;
+
     static readonly PaletteItem[] Palette =
     {
         new(null, "选择（点选／拖移，不放置）", 0, 0, false, Colors.Transparent),
-        new("wall", "墙／岩壁", 6, 4, true, Color.FromRgb(90, 90, 100)),
-        new("house", "房子", 8, 8, true, Color.FromRgb(140, 100, 70)),
+        new("wall", "墙／岩壁", 6, 1, true, Color.FromRgb(90, 90, 100)),
+        new("house", "小房子", 20, 20, true, Color.FromRgb(140, 100, 70)),
         new("rock", "岩石／棚", 4, 4, true, Color.FromRgb(110, 110, 110)),
-        new("herbField", "药田", 50, 50, false, Color.FromRgb(70, 150, 90)),
-        new("grainField", "麦田／农田", 20, 16, false, Color.FromRgb(180, 170, 70)),
+        new("herbField", "药田", 12, 12, false, Color.FromRgb(70, 150, 90)),
+        new("grainField", "麦田／农田", 16, 12, false, Color.FromRgb(180, 170, 70)),
         new("forest", "树林", 14, 12, false, Color.FromRgb(40, 110, 60)),
         new("mine", "矿洞区", 10, 8, false, Color.FromRgb(100, 90, 70)),
         new("spring", "灵泉", 8, 8, false, Color.FromRgb(80, 160, 200)),
         new("cave", "洞府区", 10, 8, false, Color.FromRgb(120, 90, 140)),
+        new("road", "道路", 1, 1, false, Color.FromRgb(150, 130, 100)),
         new("roadHub", "道路枢纽", 8, 8, false, Color.FromRgb(160, 140, 120))
     };
 
@@ -49,14 +52,19 @@ public partial class MainWindow : Window
     int _origX, _origY, _origW, _origH;
     PaletteItem? _tool;
     double _zoom = 1.0;
+    bool _zoomUiSync;
 
     bool _panning;
     Point _panStart;
-    double _panOffsetX, _panOffsetY;
+    double _panOriginX, _panOriginY;
+    readonly TranslateTransform _viewPan = new();
 
     public MainWindow()
     {
+        _zoomUiSync = true;
         InitializeComponent();
+        _zoomUiSync = false;
+        MapCanvas.RenderTransform = _viewPan;
         Title = "XianXia · MapEditor（格点地图）";
         foreach (var p in Palette.Where(p => p.Kind != null))
             _kindColors[p.Kind!] = p.Color;
@@ -64,14 +72,93 @@ public partial class MainWindow : Window
         PaletteList.SelectedIndex = 0;
         _tool = Palette[0];
         PlacementList.ItemsSource = _placements;
-        ApplyZoomTransform();
+        SyncZoomUi();
         TryLoadDefault();
         Loaded += (_, _) => Focus();
     }
 
     static bool IsTyping() => Keyboard.FocusedElement is TextBoxBase;
 
-    void ApplyZoomTransform() => MapCanvas.LayoutTransform = new ScaleTransform(_zoom, _zoom);
+    void SyncZoomUi()
+    {
+        _zoomUiSync = true;
+        try
+        {
+            if (ZoomSlider != null) ZoomSlider.Value = _zoom * 100;
+            if (ZoomLabel != null) ZoomLabel.Text = $"{_zoom * 100:0}%";
+        }
+        finally
+        {
+            _zoomUiSync = false;
+        }
+    }
+
+    void SetZoom(double zoom, Point? anchorInScroll = null)
+    {
+        var oldZoom = _zoom;
+        _zoom = Math.Clamp(zoom, ZoomMin, ZoomMax);
+        if (Math.Abs(_zoom - oldZoom) < 0.0001)
+        {
+            SyncZoomUi();
+            return;
+        }
+
+        // XAML 加载期 Slider 会触发 ValueChanged，此时 MapScroll 尚未就绪
+        if (MapScroll == null)
+        {
+            SyncZoomUi();
+            return;
+        }
+
+        Point mouseInScroll;
+        if (anchorInScroll.HasValue)
+            mouseInScroll = anchorInScroll.Value;
+        else if (MapScroll.IsMouseOver)
+            mouseInScroll = Mouse.GetPosition(MapScroll);
+        else
+            mouseInScroll = new Point(MapScroll.ActualWidth / 2, MapScroll.ActualHeight / 2);
+
+        // 自由相机：视口坐标 − 平移 = 内容像素
+        var contentX = mouseInScroll.X - _viewPan.X;
+        var contentY = mouseInScroll.Y - _viewPan.Y;
+        var cellX = contentX / (BaseCellPx * oldZoom);
+        var cellY = contentY / (BaseCellPx * oldZoom);
+
+        SyncZoomUi();
+        RebuildCanvas();
+
+        _viewPan.X = mouseInScroll.X - cellX * CellPx;
+        _viewPan.Y = mouseInScroll.Y - cellY * CellPx;
+        UpdateSizeHint();
+        StatusText.Text = $"画布缩放 {_zoom * 100:0}%（滑条／＋－／Ctrl+滚轮）";
+    }
+
+    void ZoomIn_Click(object sender, RoutedEventArgs e) => SetZoom(_zoom * 1.25);
+    void ZoomOut_Click(object sender, RoutedEventArgs e) => SetZoom(_zoom / 1.25);
+
+    void ZoomSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_zoomUiSync || !IsLoaded) return;
+        SetZoom(e.NewValue / 100.0);
+    }
+
+    void Window_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        // Alt 在 WPF/Windows 上常进菜单模式，不可靠；主推 Ctrl+滚轮，Shift+滚轮也行
+        var ctrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+        var shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
+        var alt = (Keyboard.Modifiers & ModifierKeys.Alt) != 0;
+        if (!ctrl && !shift && !alt) return;
+
+        var overMap = MapScroll.IsMouseOver;
+        if (!overMap && !ctrl) return;
+
+        var anchor = overMap
+            ? Mouse.GetPosition(MapScroll)
+            : new Point(MapScroll.ActualWidth / 2, MapScroll.ActualHeight / 2);
+        SetZoom(_zoom * (e.Delta > 0 ? 1.1 : 1.0 / 1.1), anchor);
+        e.Handled = true;
+    }
 
     void PushUndo()
     {
@@ -212,50 +299,26 @@ public partial class MainWindow : Window
         MapCanvas.Cursor = Cursors.Arrow;
     }
 
-    void MapScroll_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
-    {
-        var alt = (Keyboard.Modifiers & ModifierKeys.Alt) != 0;
-        var ctrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
-        if (!alt && !ctrl) return;
-
-        ZoomAt(e.GetPosition(MapScroll), e.Delta > 0 ? 1.1 : 1.0 / 1.1);
-        e.Handled = true;
-    }
-
-    void ZoomAt(Point mouseInScroll, double factor)
-    {
-        var oldZoom = _zoom;
-        _zoom = Math.Clamp(oldZoom * factor, ZoomMin, ZoomMax);
-        if (Math.Abs(_zoom - oldZoom) < 0.0001) return;
-
-        var contentX = (MapScroll.HorizontalOffset + mouseInScroll.X) / oldZoom;
-        var contentY = (MapScroll.VerticalOffset + mouseInScroll.Y) / oldZoom;
-        ApplyZoomTransform();
-        MapScroll.UpdateLayout();
-        MapScroll.ScrollToHorizontalOffset(contentX * _zoom - mouseInScroll.X);
-        MapScroll.ScrollToVerticalOffset(contentY * _zoom - mouseInScroll.Y);
-        UpdateSizeHint();
-        StatusText.Text = $"画布缩放 {_zoom * 100:0}%（Alt/Ctrl+滚轮）";
-    }
-
     void ZoomReset_Click(object sender, RoutedEventArgs e)
     {
-        _zoom = 1.0;
-        ApplyZoomTransform();
-        UpdateSizeHint();
+        SetZoom(1.0, new Point(MapScroll.ActualWidth / 2, MapScroll.ActualHeight / 2));
         StatusText.Text = "缩放已重置 100%";
     }
 
     void ZoomFit_Click(object sender, RoutedEventArgs e)
     {
         if (MapScroll.ActualWidth <= 1 || MapScroll.ActualHeight <= 1) return;
-        if (MapCanvas.Width <= 1 || MapCanvas.Height <= 1) return;
-        var zx = (MapScroll.ActualWidth - 24) / MapCanvas.Width;
-        var zy = (MapScroll.ActualHeight - 24) / MapCanvas.Height;
+        if (!TryReadMapSize(out var gw, out var gh, out _, out _, out _, out _)) return;
+        if (gw < 1 || gh < 1) return;
+        var needW = gw * BaseCellPx;
+        var needH = gh * BaseCellPx;
+        var zx = (MapScroll.ActualWidth - 24) / needW;
+        var zy = (MapScroll.ActualHeight - 24) / needH;
         _zoom = Math.Clamp(Math.Min(zx, zy), ZoomMin, ZoomMax);
-        ApplyZoomTransform();
-        MapScroll.UpdateLayout();
-        MapScroll.ScrollToHome();
+        SyncZoomUi();
+        RebuildCanvas();
+        _viewPan.X = (MapScroll.ActualWidth - gw * CellPx) / 2;
+        _viewPan.Y = (MapScroll.ActualHeight - gh * CellPx) / 2;
         UpdateSizeHint();
         StatusText.Text = $"已适应窗口（缩放 {_zoom * 100:0}%）";
     }
@@ -265,36 +328,55 @@ public partial class MainWindow : Window
         var space = Keyboard.IsKeyDown(Key.Space);
         if (e.ChangedButton == MouseButton.Middle || (e.ChangedButton == MouseButton.Left && space))
         {
-            _panning = true;
-            _panStart = e.GetPosition(MapScroll);
-            _panOffsetX = MapScroll.HorizontalOffset;
-            _panOffsetY = MapScroll.VerticalOffset;
+            BeginPan(e.GetPosition(this));
             MapScroll.CaptureMouse();
-            MapScroll.Cursor = Cursors.Hand;
             e.Handled = true;
         }
+    }
+
+    void BeginPan(Point startInWindow)
+    {
+        _panning = true;
+        _panStart = startInWindow;
+        _panOriginX = _viewPan.X;
+        _panOriginY = _viewPan.Y;
+        MapScroll.Cursor = Cursors.ScrollAll;
     }
 
     void MapScroll_PreviewMouseMove(object sender, MouseEventArgs e)
     {
         if (!_panning) return;
-        var pos = e.GetPosition(MapScroll);
-        MapScroll.ScrollToHorizontalOffset(_panOffsetX - (pos.X - _panStart.X));
-        MapScroll.ScrollToVerticalOffset(_panOffsetY - (pos.Y - _panStart.Y));
+        var pos = e.GetPosition(this);
+        // 自由平移：不夹紧到地图范围，可拖到地图完全离开视口
+        _viewPan.X = _panOriginX + (pos.X - _panStart.X);
+        _viewPan.Y = _panOriginY + (pos.Y - _panStart.Y);
         e.Handled = true;
     }
 
     void MapScroll_PreviewMouseUp(object sender, MouseButtonEventArgs e)
     {
         if (!_panning) return;
-        _panning = false;
-        MapScroll.ReleaseMouseCapture();
-        MapScroll.Cursor = Cursors.Arrow;
+        if (e.ChangedButton is not (MouseButton.Middle or MouseButton.Left)) return;
+        EndPan();
+        if (MapScroll.IsMouseCaptured)
+            MapScroll.ReleaseMouseCapture();
         e.Handled = true;
+    }
+
+    void MapScroll_LostMouseCapture(object sender, MouseEventArgs e)
+    {
+        if (_panning) EndPan();
+    }
+
+    void EndPan()
+    {
+        _panning = false;
+        MapScroll.Cursor = Cursors.Arrow;
     }
 
     void MapScroll_MouseMove(object sender, MouseEventArgs e)
     {
+        if (_panning) return;
         if (!TryReadMapSize(out var gw, out var gh, out _, out _, out _, out _)) return;
         var pos = e.GetPosition(MapCanvas);
         var cx = (int)Math.Floor(pos.X / CellPx);
@@ -514,7 +596,8 @@ public partial class MainWindow : Window
         RebuildCanvas();
         UpdateSizeHint();
         StatusText.Text = $"地图尺寸已应用：{gw}×{gh} 格。记得 Ctrl+S 保存。";
-        MapScroll.ScrollToHome();
+        _viewPan.X = (MapScroll.ActualWidth - gw * CellPx) / 2;
+        _viewPan.Y = (MapScroll.ActualHeight - gh * CellPx) / 2;
     }
 
     void UpdateSizeHint()

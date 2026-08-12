@@ -5,7 +5,8 @@ using XianXia.Core.Exploration;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// Host map labels／markers on top of <see cref="HostDemoTileMap"/> (Demo tile roads only).
+    /// Host map labels／markers on top of <see cref="HostDemoTileMap"/>.
+    /// Location labels use presentation coords (synced from mapLayout when bound).
     /// </summary>
     public sealed class HostMapGraybox : MonoBehaviour
     {
@@ -26,7 +27,7 @@ namespace XianXia.Unity.Host
             EnsureRoot();
 
             var demoMap = GetComponent<HostDemoTileMap>() ?? gameObject.AddComponent<HostDemoTileMap>();
-            demoMap.Rebuild();
+            demoMap.Rebuild(session);
 
             var locations = session.World.WorldRegion.Locations;
             foreach (var kv in locations)

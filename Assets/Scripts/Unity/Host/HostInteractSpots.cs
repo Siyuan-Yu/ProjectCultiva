@@ -31,52 +31,63 @@ namespace XianXia.Unity.Host
             HostPresentationSpace.FromPresentation(PresentationX, PresentationZ);
     }
 
-    /// <summary>第一章样例关：各地多个交互点（农田／树林／药田／矿／灵泉／洞府）。</summary>
+    /// <summary>
+    /// 交互点：优先用 mapLayout 刷出来的地块；否则回退第一章硬编码样例点。
+    /// </summary>
     public static class HostInteractSpots
     {
         public const float DefaultHitRadius = 2.1f;
+        public const float PlotHitRadius = 0.85f;
 
-        static readonly HostInteractSpot[] All =
+        static readonly List<HostInteractSpot> Dynamic = new List<HostInteractSpot>(256);
+
+        static readonly HostInteractSpot[] LegacyFallback =
         {
-            // 农田杂役区
             new HostInteractSpot("base:loc_ref_labor_yard", HostInteractSpotKind.Work, 18f, -12f, "麦垄甲"),
             new HostInteractSpot("base:loc_ref_labor_yard", HostInteractSpotKind.Work, 22f, -11f, "麦垄乙"),
             new HostInteractSpot("base:loc_ref_labor_yard", HostInteractSpotKind.Work, 20f, -15f, "田埂"),
             new HostInteractSpot("base:loc_ref_labor_yard", HostInteractSpotKind.Work, 25f, -10f, "场边堆"),
-            // 树林
             new HostInteractSpot("base:loc_ref_forest", HostInteractSpotKind.Work, -34f, 0f, "古树"),
             new HostInteractSpot("base:loc_ref_forest", HostInteractSpotKind.Work, -32f, -3f, "柴堆"),
             new HostInteractSpot("base:loc_ref_forest", HostInteractSpotKind.Work, -36f, 2f, "林缘"),
-            // 药田
             new HostInteractSpot("base:loc_ref_herb_field", HostInteractSpotKind.Work, -3f, -15f, "药畦甲"),
             new HostInteractSpot("base:loc_ref_herb_field", HostInteractSpotKind.Work, -5f, -13f, "药畦乙"),
             new HostInteractSpot("base:loc_ref_herb_field", HostInteractSpotKind.Work, -1f, -17f, "药畦丙"),
-            // 矿洞口
             new HostInteractSpot("base:loc_ref_mine", HostInteractSpotKind.Work, -30f, 8f, "洞口"),
             new HostInteractSpot("base:loc_ref_mine", HostInteractSpotKind.Work, -28f, 6f, "矿堆"),
-            // 灵泉／洞府
             new HostInteractSpot("base:loc_ref_spring", HostInteractSpotKind.Cultivate, 27f, -11f, "泉眼"),
             new HostInteractSpot("base:loc_ref_spring", HostInteractSpotKind.Cultivate, 29f, -13f, "泉畔石"),
             new HostInteractSpot("base:loc_ref_cave", HostInteractSpotKind.Cultivate, 24f, -14f, "洞口"),
             new HostInteractSpot("base:loc_ref_cave", HostInteractSpotKind.Cultivate, 26f, -15f, "洞中蒲团"),
         };
 
-        public static IReadOnlyList<HostInteractSpot> Spots => All;
+        public static bool HasDynamicPlots => Dynamic.Count > 0;
+
+        public static IReadOnlyList<HostInteractSpot> Spots =>
+            Dynamic.Count > 0 ? Dynamic : LegacyFallback;
+
+        public static void BeginLayoutRebuild() => Dynamic.Clear();
+
+        public static void RegisterPlot(HostInteractSpot spot) => Dynamic.Add(spot);
 
         public static bool TryFindNearest(
             Vector3 worldPoint,
             HostInteractSpotKind kind,
             out HostInteractSpot spot,
-            float hitRadius = DefaultHitRadius)
+            float hitRadius = -1f)
         {
+            if (hitRadius < 0f)
+                hitRadius = HasDynamicPlots ? PlotHitRadius : DefaultHitRadius;
+
             spot = default;
             var p = HostPresentationSpace.ToPresentation(worldPoint);
             var best = hitRadius;
             var found = false;
             HostInteractSpot bestSpot = default;
-            for (var i = 0; i < All.Length; i++)
+            var list = Spots;
+            for (var i = 0; i < list.Count; i++)
             {
-                var s = All[i];
+                var s = list[i];
                 if (s.Kind != kind)
                     continue;
                 var dx = s.PresentationX - p.x;

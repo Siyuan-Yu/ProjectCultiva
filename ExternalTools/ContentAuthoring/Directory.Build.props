@@ -1,0 +1,7 @@
+<Project>
+  <!-- 编译中间产物藏到 .build，避免在工程文件夹里看到易误开的 bin\Release\*.exe -->
+  <PropertyGroup>
+    <BaseOutputPath>$(MSBuildThisFileDirectory).build\$(MSBuildProjectName)\bin\</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory).build\$(MSBuildProjectName)\obj\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>

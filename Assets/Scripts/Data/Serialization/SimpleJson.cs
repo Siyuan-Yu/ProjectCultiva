@@ -174,6 +174,15 @@ namespace XianXia.Data.Serialization
                             case 'n': sb.Append('\n'); break;
                             case 'r': sb.Append('\r'); break;
                             case 't': sb.Append('\t'); break;
+                            case 'u':
+                                if (_i + 4 > _text.Length)
+                                    throw new FormatException("Unterminated \\u escape.");
+                                var hex = _text.Substring(_i, 4);
+                                _i += 4;
+                                if (!ushort.TryParse(hex, System.Globalization.NumberStyles.HexNumber, null, out var code))
+                                    throw new FormatException("Invalid \\u escape.");
+                                sb.Append((char)code);
+                                break;
                             default: throw new FormatException("Unsupported escape \\" + e);
                         }
                     }

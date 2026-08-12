@@ -19,7 +19,7 @@
 | Navigation Foundation | [99](99-navigation-foundation-milestone-plan-v0.1.md) | [100](100-navigation-foundation-acceptance-report.md) | 自动化已验收；手操待签 |
 | NPC Simulation Foundation | [101](101-npc-simulation-foundation-milestone-plan-v0.1.md) | [102](102-npc-simulation-foundation-acceptance-report.md) | 自动化已验收；手操待签 |
 | Demo 0.1 Production（Ch01 可玩弧） | [103](103-demo-0.1-production-milestone-plan-v0.1.md) | [104](104-demo-0.1-production-acceptance-report.md)／手操 [105](105-demo-0.1-producer-playbook-30min.md) | 自动化已验收；手操待签 |
-| 内容编辑器工具 | [106](106-content-authoring-editors-plan-v0.1.md) | （待开工） | **计划已确认** |
+| 内容编辑器工具 | [106](106-content-authoring-editors-plan-v0.1.md) | [108](108-content-studio-browser-usage.md)～[112](112-map-editor-usage.md) | **第一期可用**；2026-08-11 已接 Host prefab 生成 |
 
 另有过程交付：[98 RTS 手动控制＋HUD](98-rts-manual-control-and-hud-pass-2026-08-03.md)、[97 可玩弧＋打断＋UX](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)。
 

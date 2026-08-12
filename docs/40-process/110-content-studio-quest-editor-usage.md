@@ -13,8 +13,8 @@
 
 ## 怎么打开
 
-- VS：启动项目 `QuestEditor` → F5  
-- 或：`publish\QuestEditor\QuestEditor.exe`
+- 推荐：`启动-QuestEditor.cmd` 或 `Apps\QuestEditor\QuestEditor.exe`（先跑 `publish.ps1`）  
+- 调试：VS 启动项目 `QuestEditor` → F5
 
 ## 字段
 

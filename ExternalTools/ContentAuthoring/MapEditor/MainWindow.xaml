@@ -4,7 +4,8 @@
         Title="XianXia · MapEditor" Height="900" Width="1400"
         WindowStartupLocation="CenterScreen"
         Focusable="True"
-        PreviewKeyDown="Window_PreviewKeyDown">
+        PreviewKeyDown="Window_PreviewKeyDown"
+        PreviewMouseWheel="Window_PreviewMouseWheel">
   <DockPanel Margin="8">
     <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
       <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
@@ -18,6 +19,13 @@
         <Button Content="重做" Width="50" Margin="0,0,4,0" Click="Redo_Click" ToolTip="Ctrl+Y"/>
         <Button Content="复制" Width="50" Margin="0,0,4,0" Click="Duplicate_Click" ToolTip="Ctrl+D"/>
         <Button Content="删除" Width="50" Margin="0,0,8,0" Click="DeleteSelected_Click" ToolTip="Delete"/>
+        <TextBlock Text="缩放" VerticalAlignment="Center" Margin="0,0,4,0"/>
+        <Button Content="－" Width="32" Margin="0,0,2,0" Click="ZoomOut_Click" ToolTip="缩小"/>
+        <Slider x:Name="ZoomSlider" Width="120" Minimum="25" Maximum="400" Value="100"
+                VerticalAlignment="Center" TickFrequency="25" IsSnapToTickEnabled="False"
+                ValueChanged="ZoomSlider_ValueChanged" ToolTip="拖动缩放"/>
+        <Button Content="＋" Width="32" Margin="2,0,4,0" Click="ZoomIn_Click" ToolTip="放大"/>
+        <TextBlock x:Name="ZoomLabel" Text="100%" Width="44" VerticalAlignment="Center"/>
         <Button Content="100%" Width="50" Margin="0,0,4,0" Click="ZoomReset_Click" ToolTip="Ctrl+0"/>
         <Button Content="适应" Width="50" Click="ZoomFit_Click" ToolTip="Ctrl+1 适应窗口"/>
         <TextBlock x:Name="RootText" VerticalAlignment="Center" Margin="12,0,0,0"/>
@@ -54,7 +62,7 @@
     <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
       <TextBlock x:Name="CursorText" DockPanel.Dock="Right" MinWidth="220" TextAlignment="Right" Foreground="#6B6358"/>
       <TextBlock x:Name="StatusText" TextWrapping="Wrap"
-                 Text="提示：中键／空格+拖 平移 · Alt或Ctrl+滚轮缩放 · Delete删除 · Ctrl+Z/Y 撤销重做 · Ctrl+D复制 · 方向键微调"/>
+                 Text="提示：缩放用顶部滑条／＋－，或 Ctrl+滚轮。中键／空格+拖 自由平移（可拖出地图范围）。"/>
     </DockPanel>
     <Grid>
       <Grid.ColumnDefinitions>
@@ -69,12 +77,14 @@
         <ListBox x:Name="PaletteList" DisplayMemberPath="Display"
                  SelectionChanged="PaletteList_SelectionChanged"/>
       </DockPanel>
-      <Border Grid.Column="1" BorderBrush="#C0B8A8" BorderThickness="1" Background="#F3EFE6">
-        <ScrollViewer x:Name="MapScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
-                      PreviewMouseWheel="MapScroll_PreviewMouseWheel"
+      <Border Grid.Column="1" BorderBrush="#C0B8A8" BorderThickness="1" Background="#F3EFE6" ClipToBounds="True">
+        <ScrollViewer x:Name="MapScroll" Background="#F3EFE6"
+                      HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled"
+                      Focusable="False"
                       PreviewMouseDown="MapScroll_PreviewMouseDown"
                       PreviewMouseMove="MapScroll_PreviewMouseMove"
                       PreviewMouseUp="MapScroll_PreviewMouseUp"
+                      LostMouseCapture="MapScroll_LostMouseCapture"
                       MouseMove="MapScroll_MouseMove">
           <Canvas x:Name="MapCanvas" Focusable="True"
                   PreviewMouseLeftButtonDown="MapCanvas_PreviewMouseLeftButtonDown"

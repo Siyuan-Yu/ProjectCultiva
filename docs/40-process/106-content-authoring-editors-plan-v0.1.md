@@ -1,7 +1,7 @@
 # 106 · 编辑器工具
 
-> 状态：**第一期已交付（WPF 四独立 exe，Windows）**｜日期：2026-08-10  
-> 一句话：**四个独立 Visual Studio／WPF 程序，分别编辑关卡 Data JSON；游戏仍用现有 Loader 读这些文件。**  
+> 状态：**第一期已交付（WPF 五独立 exe，Windows）**｜日期：2026-08-11  
+> 一句话：**五个独立 Visual Studio／WPF 程序，分别编辑关卡 Data JSON；游戏仍用现有 Loader 读这些文件。**  
 > 工程：`ExternalTools/ContentAuthoring/`（`ContentAuthoring.sln`）  
 > 用法：[108 总览](108-content-studio-browser-usage.md)｜[109 逻辑地点](109-content-studio-region-editor-usage.md)｜[112 格点地图](112-map-editor-usage.md)｜[110 任务](110-content-studio-quest-editor-usage.md)｜[111 事件](111-content-studio-event-editor-usage.md)  
 > 相关：[94 制作指南](94-chapter-full-production-and-sample-guide.md)｜[107 收束](107-recent-milestones-rollup-2026-08-10.md)｜`Content/BaseGame/Data/SCHEMA.md`
@@ -10,7 +10,7 @@
 
 ## 1. 要做哪些编辑器（清单）
 
-**四个独立程序、四个文件夹、四个 exe**（不是一个应用里四个分支）。  
+**五个独立程序、五个文件夹、五个 exe**（不是一个应用里多个分支）。  
 **不放** `Assets/`。当前只做 **Windows**。
 
 ### 第一期（已交付）
@@ -32,6 +32,7 @@
 | **5** | 章节编排器 | `chapter` |
 | **6** | 开局 Scenario 编辑器 | `openingScenario` |
 | **7** | 工区／职业编辑器 | `workArea`／`job` |
+| **8** | WorldGraph 编辑器（点＋路） | `worldGraph`／`worldNode`／`worldRoute` — 见 [113](113-world-graph-local-map-architecture-revision-v0.1.md) |
 
 ### 明确不做
 
@@ -45,13 +46,17 @@
 ```text
 ExternalTools/ContentAuthoring/
   ContentAuthoring.sln
+  Directory.Build.props  ← bin/obj 改到 .build/
   Shared/                 ← 类库
-  PackageBrowser/         ← WPF
+  PackageBrowser/         ← WPF 源码
   RegionEditor/
+  MapEditor/
   QuestEditor/
   EventEditor/
-  publish.ps1             ← Release 自包含单文件
-  publish/<App>/*.exe     ← 发布产物（gitignore）
+  publish.ps1             ← 发布到 Apps/
+  启动-*.cmd              ← 日常双击入口
+  Apps/<App>/*.exe        ← 发布产物（gitignore）
+  .build/                 ← 编译中间产物（gitignore，勿当启动入口）
   README.md
 ```
 
@@ -66,9 +71,12 @@ ExternalTools/ContentAuthoring/
 ### 和游戏怎么接
 
 ```text
-编辑器保存 JSON → Unity Play DemoParityHost
-→ ContentPackageLoader 扫 Data/**/*.json → 进游戏
+编辑器保存 JSON → Unity 停掉再 Play DemoParityHost
+→ ContentPackageLoader 扫 Data/**/*.json
+→ mapLayout 建 WalkGrid + 按 kind 刷 Environment prefab
 ```
+
+制作人**不要**在 Inspector 里换地图 JSON。`Playable Host Bootstrap` 默认读 `Content/BaseGame`。详见 [112](112-map-editor-usage.md)。
 
 ---
 
@@ -79,21 +87,22 @@ ExternalTools/ContentAuthoring/
 1. 安装 VS 2022（.NET 桌面开发）或单独装 .NET 8 SDK  
 2. 打开 `ExternalTools/ContentAuthoring/ContentAuthoring.sln`  
 3. 右键某个编辑器工程 → 设为启动项目 → F5  
-4. 或选 **Release** → 生成；输出在 `bin/Release/net8.0-windows/`
+4. 或选 **Release** → 生成；输出在 `.build/<工程>/bin/...`（调试用，日常请用 `Apps\`）
 
-### 一键出四个 exe
+### 一键出五个 exe
 
 ```powershell
 cd D:\UnityProjects\XianXia\ExternalTools\ContentAuthoring
 .\publish.ps1
 ```
 
-得到：
+得到（也可双击同目录 `启动-*.cmd`）：
 
-- `publish\PackageBrowser\PackageBrowser.exe`
-- `publish\RegionEditor\RegionEditor.exe`
-- `publish\QuestEditor\QuestEditor.exe`
-- `publish\EventEditor\EventEditor.exe`
+- `Apps\PackageBrowser\PackageBrowser.exe`
+- `Apps\RegionEditor\RegionEditor.exe`
+- `Apps\MapEditor\MapEditor.exe`
+- `Apps\QuestEditor\QuestEditor.exe`
+- `Apps\EventEditor\EventEditor.exe`
 
 ---
 
@@ -128,11 +137,12 @@ cd D:\UnityProjects\XianXia\ExternalTools\ContentAuthoring
 ## 5. 制作人流程
 
 ```text
-1. 发布或 VS 打开对应 exe
-2. RegionEditor 摆逻辑地图并保存
-3. QuestEditor / EventEditor 填剧情并保存
-4. PackageBrowser 跑校验
-5. Unity DemoParityHost → Play
+1. 发布或 VS 打开对应 exe（日常用 启动-*.cmd／Apps\）
+2. RegionEditor 摆逻辑地点并保存
+3. MapEditor 摆格点设施；boundLocationId 绑到地点；Ctrl+S
+4. QuestEditor / EventEditor 填剧情并保存
+5. PackageBrowser 跑校验
+6. Unity DemoParityHost → 停掉再 Play（看 Console WalkGrid from mapLayout）
 ```
 
 ---
@@ -145,3 +155,5 @@ cd D:\UnityProjects\XianXia\ExternalTools\ContentAuthoring
 | 2026-08-10 | Electron 第一期交付后又废弃 |
 | 2026-08-10 | 改为 WPF 四独立工程 + VS／publish.ps1；只要 Windows |
 | 2026-08-10 | 新增 MapEditor（mapLayout 格点设施地图）；Host 优先读内容网格 |
+| 2026-08-10 | 发布目录改为 `Apps/`；编译产物改到 `.build/`；增加 `启动-*.cmd` |
+| 2026-08-11 | MapEditor 缩放／自由平移／UTF-8 保存；Host 按 mapLayout 刷 prefab＋地点对齐；完整清单见 [112](112-map-editor-usage.md) |

@@ -13,8 +13,8 @@
 
 ## 怎么打开
 
-- VS：启动项目 `EventEditor` → F5  
-- 或：`publish\EventEditor\EventEditor.exe`
+- 推荐：`启动-EventEditor.cmd` 或 `Apps\EventEditor\EventEditor.exe`（先跑 `publish.ps1`）  
+- 调试：VS 启动项目 `EventEditor` → F5
 
 ## 字段
 

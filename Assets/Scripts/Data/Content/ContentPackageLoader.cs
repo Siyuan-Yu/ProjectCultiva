@@ -770,11 +770,9 @@ namespace XianXia.Data.Content
 
         static bool ReadBool(JsonValue obj, string name, bool fallback)
         {
-            if (!obj.TryGetProperty(name, out var n))
+            if (!obj.TryGetProperty(name, out var n) || n.Kind != JsonValueKind.Boolean)
                 return fallback;
-            if (n.Kind == JsonValueKind.True) return true;
-            if (n.Kind == JsonValueKind.False) return false;
-            return fallback;
+            return n.Bool;
         }
 
         static void LoadWorldRegion(

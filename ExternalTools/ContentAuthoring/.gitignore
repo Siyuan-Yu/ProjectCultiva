@@ -1,6 +1,8 @@
+.build/
+Apps/
+publish/
 bin/
 obj/
-publish/
 *.user
 *.suo
 .vs/

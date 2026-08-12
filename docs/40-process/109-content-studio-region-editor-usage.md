@@ -14,8 +14,8 @@
 
 ## 怎么打开
 
-- VS：启动项目 `RegionEditor` → F5  
-- 或：`publish\RegionEditor\RegionEditor.exe`（先跑 `publish.ps1`）
+- 推荐：`启动-RegionEditor.cmd` 或 `Apps\RegionEditor\RegionEditor.exe`（先跑 `publish.ps1`）  
+- 调试：VS 启动项目 `RegionEditor` → F5
 
 ## 日常操作
 

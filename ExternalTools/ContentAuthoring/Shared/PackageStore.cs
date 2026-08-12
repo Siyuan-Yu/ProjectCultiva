@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -45,7 +46,7 @@ public static class PackagePaths
 {
     public static string? FindDefaultBaseGame()
     {
-        // ExternalTools/ContentAuthoring/<App>/bin/... → repo/Content/BaseGame
+        // ExternalTools/ContentAuthoring/Apps/<App>/ 或 .build/... → 向上找 repo/Content/BaseGame
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         for (var i = 0; i < 10 && dir != null; i++, dir = dir.Parent)
         {
@@ -53,7 +54,7 @@ public static class PackagePaths
             if (File.Exists(Path.Combine(candidate, "manifest.json")))
                 return candidate;
 
-            // when running from ExternalTools/ContentAuthoring/publish/...
+            // 兼容从 ContentAuthoring 旁路探测
             var sibling = Path.Combine(dir.FullName, "..", "Content", "BaseGame");
             var full = Path.GetFullPath(sibling);
             if (File.Exists(Path.Combine(full, "manifest.json")))
@@ -77,7 +78,9 @@ public static class PackageStore
 {
     private static readonly JsonSerializerOptions WriteOptions = new()
     {
-        WriteIndented = true
+        WriteIndented = true,
+        // Unity SimpleJson 可读 UTF-8 中文；默认 Encoder 会写成 \uXXXX 导致旧解析器失败
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
     public static ContentPackage Load(string packageRoot)
@@ -149,8 +152,14 @@ public static class PackageStore
             ["definitions"] = new JsonArray(file.Definitions.Select(d => JsonNode.Parse(d.ToJsonString())!).ToArray())
         };
         var text = root.ToJsonString(WriteOptions) + Environment.NewLine;
+        if (string.IsNullOrWhiteSpace(text) || text.Length < 16)
+            throw new InvalidOperationException("拒绝写入空内容: " + file.Path);
+
         Directory.CreateDirectory(Path.GetDirectoryName(file.Path)!);
-        File.WriteAllText(file.Path, text);
+        var tmp = file.Path + ".tmp";
+        File.WriteAllText(tmp, text, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        File.Copy(tmp, file.Path, overwrite: true);
+        File.Delete(tmp);
     }
 
     public static void SaveDefinition(ContentPackage package, DefRef def)

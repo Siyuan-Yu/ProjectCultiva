@@ -242,17 +242,19 @@ namespace XianXia.Unity.Host
             if (_targets.Count == 0)
                 return;
 
+            // 不能在 foreach Dictionary 时改 _targets（切下一航点会写入）
+            var views = new List<EntityView>(_targets.Keys);
             var done = new List<EntityView>();
-            foreach (var kv in _targets)
+            for (var vi = 0; vi < views.Count; vi++)
             {
-                var view = kv.Key;
-                if (view == null)
+                var view = views[vi];
+                if (view == null || !_targets.TryGetValue(view, out var target))
                 {
-                    done.Add(view);
+                    if (view != null)
+                        done.Add(view);
                     continue;
                 }
 
-                var target = kv.Value;
                 var pos = view.transform.position;
                 var sep = ComputeSeparation(view, pos);
                 var desired = Vector3.MoveTowards(pos, target, moveSpeed * Time.unscaledDeltaTime);

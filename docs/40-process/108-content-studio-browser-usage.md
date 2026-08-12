@@ -22,9 +22,11 @@
 ```powershell
 cd ExternalTools\ContentAuthoring
 .\publish.ps1
-# 然后双击
-publish\PackageBrowser\PackageBrowser.exe
+# 或双击 启动-PackageBrowser.cmd
+Apps\PackageBrowser\PackageBrowser.exe
 ```
+
+**不要**打开各工程 `bin\Release\...`（已迁到 `.build\`，且易过期）。
 
 ## 日常操作
 

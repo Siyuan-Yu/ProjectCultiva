@@ -258,6 +258,9 @@ namespace XianXia.Unity.Host
                 return false;
             }
 
+            var synced = MapLayoutPresentationSync.Apply(_session);
+            if (synced > 0)
+                Debug.Log("[PlayableHost] Synced " + synced + " location presentation(s) from mapLayout", this);
             entityViewSpawner.Rebuild(_session);
             mapGraybox.Rebuild(_session);
             if (interactSpotPresenter != null)
@@ -320,6 +323,7 @@ namespace XianXia.Unity.Host
 
             selectionController.ClearSelection();
             entityViewSpawner.Clear();
+            MapLayoutPresentationSync.Apply(_session);
             entityViewSpawner.Rebuild(_session);
             var cam = Camera.main != null ? Camera.main : Object.FindObjectOfType<Camera>();
             selectionController.Bind(entityViewSpawner, cam);
@@ -336,7 +340,20 @@ namespace XianXia.Unity.Host
 
         void FrameCameraOnSlots()
         {
-            if (cameraRig == null || entityViewSpawner == null)
+            if (cameraRig == null)
+                return;
+
+            if (MapLayoutPresentationSync.TryGetLayout(_session, out var layout) &&
+                layout.Width > 0 && layout.Height > 0)
+            {
+                var cs = layout.CellSize > 0f ? layout.CellSize : 1f;
+                var cx = layout.OriginX + layout.Width * cs * 0.5f;
+                var cy = layout.OriginY + layout.Height * cs * 0.5f;
+                cameraRig.FrameSlots(HostPresentationSpace.FromPresentation(cx, cy));
+                return;
+            }
+
+            if (entityViewSpawner == null)
                 return;
 
             var slots = entityViewSpawner.SlotPositions;
@@ -437,7 +454,11 @@ namespace XianXia.Unity.Host
 
                 if (preferred != null)
                 {
-                    Debug.Log("[PlayableHost] WalkGrid from mapLayout " + preferred.Id, this);
+                    Debug.Log(
+                        "[PlayableHost] WalkGrid from mapLayout " + preferred.Id +
+                        " " + preferred.Width + "x" + preferred.Height +
+                        " origin=(" + preferred.OriginX + "," + preferred.OriginY + ")",
+                        this);
                     return MapLayoutWalkGridBuilder.Create(preferred);
                 }
             }
