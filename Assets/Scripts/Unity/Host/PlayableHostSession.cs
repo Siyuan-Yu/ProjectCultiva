@@ -43,6 +43,9 @@ namespace XianXia.Unity.Host
 
         public string LastError { get; private set; } = string.Empty;
 
+        /// <summary>Level Tester／Host：优先使用的 mapLayout id（空则回退启发式）。</summary>
+        public string PreferredMapLayoutId { get; set; } = string.Empty;
+
         public Result Initialize(string packageDirectory, PlayableDayOptions options = null)
         {
             Clear();
@@ -87,6 +90,7 @@ namespace XianXia.Unity.Host
             CharacterIds = Array.Empty<EntityId>();
             ViewableEntityIds = Array.Empty<EntityId>();
             RecruitableNpcId = EntityId.None;
+            PreferredMapLayoutId = string.Empty;
             IsPaused = true;
         }
 

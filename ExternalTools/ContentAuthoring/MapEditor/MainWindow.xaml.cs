@@ -22,21 +22,50 @@ public partial class MainWindow : Window
 
     double CellPx => BaseCellPx * _zoom;
 
-    static readonly PaletteItem[] Palette =
+    static readonly PaletteItem SelectTool =
+        new(null, "选择（点选／拖移，不放置）", 0, 0, false, Colors.Transparent);
+
+    /// <summary>第 1 页：地表／物件／建筑（会进游戏表现或交互）。</summary>
+    static readonly PaletteItem[] PaletteObjects =
     {
-        new(null, "选择（点选／拖移，不放置）", 0, 0, false, Colors.Transparent),
-        new("wall", "墙／岩壁", 6, 1, true, Color.FromRgb(90, 90, 100)),
+        SelectTool,
+        new("herbField", "药田（可耕作）", 12, 12, false, Color.FromRgb(70, 150, 90)),
+        new("grainField", "农田（可耕作）", 16, 12, false, Color.FromRgb(180, 170, 70)),
+        new("road", "道路（纯贴图）", 1, 1, false, Color.FromRgb(150, 130, 100)),
+        new("wall", "墙 1×n（挡路）", 6, 1, true, Color.FromRgb(90, 90, 100)),
+        new("treeS", "小树 1×1", 1, 1, true, Color.FromRgb(35, 120, 55)),
+        new("treeM", "中树 2×2", 2, 2, true, Color.FromRgb(30, 100, 45)),
+        new("treeL", "大树 3×3", 3, 3, true, Color.FromRgb(25, 85, 40)),
+        new("ore", "矿石 2×2（可采）", 2, 2, false, Color.FromRgb(140, 120, 80)),
+        new("cushion", "蒲团 1×1（可修炼）", 1, 1, false, Color.FromRgb(120, 100, 170)),
         new("house", "小房子", 20, 20, true, Color.FromRgb(140, 100, 70)),
         new("rock", "岩石／棚", 4, 4, true, Color.FromRgb(110, 110, 110)),
-        new("herbField", "药田", 12, 12, false, Color.FromRgb(70, 150, 90)),
-        new("grainField", "麦田／农田", 16, 12, false, Color.FromRgb(180, 170, 70)),
-        new("forest", "树林", 14, 12, false, Color.FromRgb(40, 110, 60)),
-        new("mine", "矿洞区", 10, 8, false, Color.FromRgb(100, 90, 70)),
-        new("spring", "灵泉", 8, 8, false, Color.FromRgb(80, 160, 200)),
         new("cave", "洞府区", 10, 8, false, Color.FromRgb(120, 90, 140)),
-        new("road", "道路", 1, 1, false, Color.FromRgb(150, 130, 100)),
         new("roadHub", "道路枢纽", 8, 8, false, Color.FromRgb(160, 140, 120))
     };
+
+    /// <summary>第 2 页：分区标记（仅编辑／以后进区触发，无劳动无挡路）。</summary>
+    static readonly PaletteItem[] PaletteZones =
+    {
+        SelectTool,
+        new("zoneHerb", "药田区", 12, 12, false, Color.FromArgb(90, 70, 180, 100)),
+        new("zoneGrain", "农田区", 16, 12, false, Color.FromArgb(90, 200, 180, 60)),
+        new("zoneHousing", "住房区", 20, 20, false, Color.FromArgb(80, 180, 140, 100)),
+        new("zoneForest", "林地区", 14, 12, false, Color.FromArgb(90, 40, 130, 70)),
+        new("zoneMine", "矿区", 10, 8, false, Color.FromArgb(90, 130, 110, 80)),
+        new("zoneSpring", "灵泉区", 8, 8, false, Color.FromArgb(90, 80, 170, 210))
+    };
+
+    static IEnumerable<PaletteItem> AllPaletteItems()
+    {
+        foreach (var p in PaletteObjects)
+            yield return p;
+        foreach (var p in PaletteZones)
+        {
+            if (p.Kind != null)
+                yield return p;
+        }
+    }
 
     readonly Dictionary<string, Color> _kindColors = new(StringComparer.Ordinal);
     readonly ObservableCollection<PlacementVm> _placements = new();
@@ -48,11 +77,13 @@ public partial class MainWindow : Window
     PlacementVm? _selected;
     PlacementVm? _drag;
     bool _resizing;
+    string? _resizeEdge; // N/S/E/W/NE/NW/SE/SW
     Point _dragStart;
     int _origX, _origY, _origW, _origH;
     PaletteItem? _tool;
     double _zoom = 1.0;
     bool _zoomUiSync;
+    bool _paletteSync;
 
     bool _panning;
     Point _panStart;
@@ -66,11 +97,15 @@ public partial class MainWindow : Window
         _zoomUiSync = false;
         MapCanvas.RenderTransform = _viewPan;
         Title = "XianXia · MapEditor（格点地图）";
-        foreach (var p in Palette.Where(p => p.Kind != null))
+        foreach (var p in AllPaletteItems().Where(p => p.Kind != null))
             _kindColors[p.Kind!] = p.Color;
-        PaletteList.ItemsSource = Palette;
-        PaletteList.SelectedIndex = 0;
-        _tool = Palette[0];
+        PaletteObjectsList.ItemsSource = PaletteObjects;
+        PaletteZonesList.ItemsSource = PaletteZones;
+        _paletteSync = true;
+        PaletteObjectsList.SelectedIndex = 0;
+        PaletteZonesList.SelectedIndex = 0;
+        _paletteSync = false;
+        _tool = SelectTool;
         PlacementList.ItemsSource = _placements;
         SyncZoomUi();
         TryLoadDefault();
@@ -220,7 +255,8 @@ public partial class MainWindow : Window
 
         if (ctrl && e.Key == Key.S)
         {
-            Save_Click(sender, e);
+            if (shift) SaveAs_Click(sender, e);
+            else Save_Click(sender, e);
             e.Handled = true;
             return;
         }
@@ -294,8 +330,11 @@ public partial class MainWindow : Window
 
     void SwitchToSelectTool()
     {
-        PaletteList.SelectedIndex = 0;
-        _tool = Palette[0];
+        _paletteSync = true;
+        PaletteObjectsList.SelectedIndex = 0;
+        PaletteZonesList.SelectedIndex = 0;
+        _paletteSync = false;
+        _tool = SelectTool;
         MapCanvas.Cursor = Cursors.Arrow;
     }
 
@@ -398,20 +437,61 @@ public partial class MainWindow : Window
     void LoadRoot(string root)
     {
         _package = PackageStore.Load(root);
+        PackageStore.MergeLevelsDirectory(_package, PackagePaths.FindDefaultLevelsDir());
         RootText.Text = root;
-        MapCombo.ItemsSource = _package.OfType("mapLayout").Select(d => d.Id).ToList();
-        if (MapCombo.Items.Count > 0) MapCombo.SelectedIndex = 0;
+        RefreshMapCombo(selectId: null);
         _undo.Clear();
         _redo.Clear();
         StatusText.Text = MapCombo.Items.Count == 0
-            ? "包中尚无 mapLayout，可点「新建空图」"
-            : $"mapLayout {_package.OfType("mapLayout").Count()} · 包已加载";
+            ? "尚无 mapLayout，可点「新建空图」或「打开地图…」"
+            : $"mapLayout {_package.OfType("mapLayout").Count()} · 包已加载（含 Levels）";
+    }
+
+    void RefreshMapCombo(string? selectId)
+    {
+        if (_package == null) return;
+        var ids = _package.OfType("mapLayout").Select(d => d.Id).Distinct(StringComparer.Ordinal).ToList();
+        MapCombo.ItemsSource = ids;
+        if (!string.IsNullOrEmpty(selectId) && ids.Contains(selectId))
+            MapCombo.SelectedItem = selectId;
+        else if (MapCombo.Items.Count > 0 && MapCombo.SelectedItem == null)
+            MapCombo.SelectedIndex = 0;
     }
 
     void OpenPackage_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new OpenFolderDialog { Title = "选择 Content/BaseGame" };
         if (dlg.ShowDialog() == true) LoadRoot(dlg.FolderName);
+    }
+
+    void OpenMapFile_Click(object sender, RoutedEventArgs e)
+    {
+        if (_package == null)
+        {
+            MessageBox.Show("请先打开 Content 包（打开包…）");
+            return;
+        }
+
+        var levels = PackagePaths.FindDefaultLevelsDir();
+        var dlg = new OpenFileDialog
+        {
+            Title = "打开地图 JSON",
+            Filter = "mapLayout JSON|*.json|所有文件|*.*",
+            InitialDirectory = levels ?? ""
+        };
+        if (dlg.ShowDialog() != true) return;
+
+        try
+        {
+            var def = PackageStore.RegisterStandaloneMap(_package, dlg.FileName);
+            RefreshMapCombo(def.Id);
+            MapCombo.SelectedItem = def.Id;
+            StatusText.Text = "已打开 " + dlg.FileName;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "打开失败", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     void MapCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -440,35 +520,153 @@ public partial class MainWindow : Window
 
     void NewFromTemplate_Click(object sender, RoutedEventArgs e)
     {
-        if (_package == null) return;
-        if (_package.Find("base:map_ch01_reference") != null)
+        if (_package == null)
         {
-            MessageBox.Show("已存在 base:map_ch01_reference，请直接选中编辑。");
-            MapCombo.SelectedItem = "base:map_ch01_reference";
+            MessageBox.Show("请先打开 Content 包（打开包…）");
             return;
         }
 
-        var raw = new JsonObject
+        var levels = PackagePaths.FindDefaultLevelsDir();
+        if (string.IsNullOrEmpty(levels))
         {
-            ["id"] = "base:map_ch01_reference",
-            ["type"] = "mapLayout",
-            ["name"] = "第一章参考关·格点地图",
-            ["worldRegionId"] = "base:region_ch01_reference",
-            ["originX"] = -40,
-            ["originY"] = -25,
-            ["cellSize"] = 1,
-            ["width"] = 80,
-            ["height"] = 50,
-            ["placements"] = new JsonArray()
+            MessageBox.Show("找不到 Assets/DynamicData/GameData/Levels，请确认工程路径。");
+            return;
+        }
+
+        System.IO.Directory.CreateDirectory(levels);
+        if (!TryPromptText("新建空图", "地图 Id（例如 base:map_huangcun）",
+                "base:map_" + DateTime.Now.ToString("MMddHHmm"), out var mapId))
+            return;
+        mapId = mapId.Trim();
+        if (string.IsNullOrWhiteSpace(mapId))
+        {
+            MessageBox.Show("Id 不能为空");
+            return;
+        }
+
+        if (_package.Find(mapId) != null)
+        {
+            var overwrite = MessageBox.Show(
+                "已存在 " + mapId + "，是否打开现有地图？\n（选「否」则取消新建）",
+                "新建空图",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+            if (overwrite == MessageBoxResult.Yes)
+            {
+                MapCombo.SelectedItem = mapId;
+                return;
+            }
+
+            return;
+        }
+
+        var safeFile = SanitizeFileName(mapId.Replace(':', '_')) + ".json";
+        var dlg = new SaveFileDialog
+        {
+            Title = "新建地图保存到…",
+            Filter = "mapLayout JSON|*.json",
+            InitialDirectory = levels,
+            FileName = safeFile
         };
-        PackageStore.AppendDefinition(_package, "map.json", raw);
-        LoadRoot(_package.Root);
-        MapCombo.SelectedItem = "base:map_ch01_reference";
+        if (dlg.ShowDialog() != true) return;
+
+        var displayName = string.IsNullOrWhiteSpace(NameBox.Text) ? mapId : NameBox.Text.Trim();
+        if (!TryPromptText("新建空图", "显示名称", displayName, out var name) || string.IsNullOrWhiteSpace(name))
+            name = mapId;
+
+        var raw = CreateEmptyMapRaw(mapId, name.Trim());
+        try
+        {
+            PackageStore.SaveStandaloneMapLayout(dlg.FileName, raw);
+            var def = PackageStore.RegisterStandaloneMap(_package, dlg.FileName);
+            RefreshMapCombo(def.Id);
+            MapCombo.SelectedItem = def.Id;
+            StatusText.Text = "已新建空图 → " + dlg.FileName;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "新建失败", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    static JsonObject CreateEmptyMapRaw(string id, string name) => new()
+    {
+        ["id"] = id,
+        ["type"] = "mapLayout",
+        ["name"] = name,
+        ["worldRegionId"] = "",
+        ["originX"] = -40,
+        ["originY"] = -25,
+        ["cellSize"] = 1,
+        ["width"] = 80,
+        ["height"] = 50,
+        ["placements"] = new JsonArray()
+    };
+
+    static string SanitizeFileName(string name)
+    {
+        foreach (var c in System.IO.Path.GetInvalidFileNameChars())
+            name = name.Replace(c, '_');
+        return string.IsNullOrWhiteSpace(name) ? "map" : name;
+    }
+
+    static bool TryPromptText(string title, string label, string initial, out string value)
+    {
+        value = initial;
+        var win = new Window
+        {
+            Title = title,
+            Width = 420,
+            Height = 150,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            ResizeMode = ResizeMode.NoResize,
+            ShowInTaskbar = false
+        };
+        try
+        {
+            if (Application.Current?.MainWindow is { IsLoaded: true } owner)
+                win.Owner = owner;
+        }
+        catch { /* ignore */ }
+
+        var box = new TextBox { Text = initial, Margin = new Thickness(0, 8, 0, 8) };
+        var ok = false;
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+        var okBtn = new Button { Content = "确定", Width = 72, Margin = new Thickness(0, 0, 8, 0), IsDefault = true };
+        var cancelBtn = new Button { Content = "取消", Width = 72, IsCancel = true };
+        okBtn.Click += (_, _) => { ok = true; win.DialogResult = true; };
+        cancelBtn.Click += (_, _) => { win.DialogResult = false; };
+        buttons.Children.Add(okBtn);
+        buttons.Children.Add(cancelBtn);
+        var stack = new StackPanel { Margin = new Thickness(12) };
+        stack.Children.Add(new TextBlock { Text = label });
+        stack.Children.Add(box);
+        stack.Children.Add(buttons);
+        win.Content = stack;
+        win.Loaded += (_, _) => { box.Focus(); box.SelectAll(); };
+        var result = win.ShowDialog() == true && ok;
+        value = box.Text ?? "";
+        return result;
     }
 
     void PaletteList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        _tool = PaletteList.SelectedItem as PaletteItem ?? Palette[0];
+        if (_paletteSync) return;
+        if (sender is not ListBox list) return;
+        if (list.SelectedItem is not PaletteItem item) return;
+
+        _tool = item;
+        _paletteSync = true;
+        if (ReferenceEquals(list, PaletteObjectsList))
+            PaletteZonesList.SelectedIndex = item.Kind == null ? 0 : -1;
+        else
+            PaletteObjectsList.SelectedIndex = item.Kind == null ? 0 : -1;
+        _paletteSync = false;
+
         MapCanvas.Cursor = _tool.Kind == null ? Cursors.Arrow : Cursors.Cross;
         StatusText.Text = _tool.Kind == null
             ? "选择模式：单击选中，拖移／缩放；中键或空格+拖平移"
@@ -679,16 +877,25 @@ public partial class MainWindow : Window
 
         foreach (var p in _placements)
         {
-            if (!_kindColors.TryGetValue(p.Kind, out var c))
+            if (!_kindColors.TryGetValue(p.Kind ?? string.Empty, out var c))
                 c = Colors.SteelBlue;
-            var fill = new SolidColorBrush(Color.FromArgb(p.BlocksMovement ? (byte)220 : (byte)140, c.R, c.G, c.B));
+            var isZone = !string.IsNullOrEmpty(p.Kind) &&
+                         (p.Kind.StartsWith("zone", StringComparison.OrdinalIgnoreCase) ||
+                          p.Kind.Equals("spring", StringComparison.OrdinalIgnoreCase) ||
+                          p.Kind.Equals("forest", StringComparison.OrdinalIgnoreCase));
+            byte a = isZone ? (byte)70 : (p.BlocksMovement ? (byte)220 : (byte)140);
+            var fill = new SolidColorBrush(Color.FromArgb(a, c.R, c.G, c.B));
+            var dash = isZone
+                ? new DoubleCollection { 4, 2 }
+                : null;
             var rect = new Rectangle
             {
                 Width = Math.Max(1, p.W) * CellPx,
                 Height = Math.Max(1, p.H) * CellPx,
                 Fill = fill,
-                Stroke = p == _selected ? Brushes.OrangeRed : Brushes.Black,
+                Stroke = p == _selected ? Brushes.OrangeRed : (isZone ? Brushes.DimGray : Brushes.Black),
                 StrokeThickness = p == _selected ? 2.5 : 1,
+                StrokeDashArray = dash,
                 Tag = p,
                 Cursor = Cursors.SizeAll
             };
@@ -708,19 +915,77 @@ public partial class MainWindow : Window
             MapCanvas.Children.Add(label);
 
             if (p == _selected)
-            {
-                var handle = new Rectangle
-                {
-                    Width = 10, Height = 10, Fill = Brushes.OrangeRed,
-                    Tag = "resize", Cursor = Cursors.SizeNWSE
-                };
-                Canvas.SetLeft(handle, (p.X + Math.Max(1, p.W)) * CellPx - 5);
-                Canvas.SetTop(handle, (gh - p.Y) * CellPx - 5);
-                MapCanvas.Children.Add(handle);
-            }
+                AddResizeHandles(p, gh);
         }
 
         UpdateSizeHint();
+    }
+
+    void AddResizeHandles(PlacementVm p, int gh)
+    {
+        var w = Math.Max(1, p.W);
+        var h = Math.Max(1, p.H);
+        var left = p.X * CellPx;
+        var right = (p.X + w) * CellPx;
+        var top = (gh - p.Y - h) * CellPx;
+        var bottom = (gh - p.Y) * CellPx;
+        var cx = (left + right) / 2;
+        var cy = (top + bottom) / 2;
+        var showMidX = right - left >= 18;
+        var showMidY = bottom - top >= 18;
+
+        AddResizeHandle("NW", left, top, Cursors.SizeNWSE);
+        if (showMidX) AddResizeHandle("N", cx, top, Cursors.SizeNS);
+        AddResizeHandle("NE", right, top, Cursors.SizeNESW);
+        if (showMidY) AddResizeHandle("E", right, cy, Cursors.SizeWE);
+        AddResizeHandle("SE", right, bottom, Cursors.SizeNWSE);
+        if (showMidX) AddResizeHandle("S", cx, bottom, Cursors.SizeNS);
+        AddResizeHandle("SW", left, bottom, Cursors.SizeNESW);
+        if (showMidY) AddResizeHandle("W", left, cy, Cursors.SizeWE);
+    }
+
+    void AddResizeHandle(string edge, double x, double y, Cursor cursor)
+    {
+        const double size = 10;
+        var handle = new Rectangle
+        {
+            Width = size,
+            Height = size,
+            Fill = Brushes.OrangeRed,
+            Stroke = Brushes.White,
+            StrokeThickness = 1,
+            Tag = "resize:" + edge,
+            Cursor = cursor
+        };
+        Canvas.SetLeft(handle, x - size / 2);
+        Canvas.SetTop(handle, y - size / 2);
+        MapCanvas.Children.Add(handle);
+    }
+
+    void ApplyResize(int dx, int dCanvasY)
+    {
+        if (_drag == null || string.IsNullOrEmpty(_resizeEdge)) return;
+        var edge = _resizeEdge;
+        var x1 = _origX;
+        var x2 = _origX + Math.Max(1, _origW);
+        var y1 = _origY;
+        var y2 = _origY + Math.Max(1, _origH);
+
+        if (edge is "E" or "NE" or "SE") x2 = _origX + Math.Max(1, _origW) + dx;
+        if (edge is "W" or "NW" or "SW") x1 = _origX + dx;
+        // 屏幕向上 = canvas Y 减小 = 地图北侧（Y 增大）
+        if (edge is "N" or "NE" or "NW") y2 = _origY + Math.Max(1, _origH) - dCanvasY;
+        // 屏幕向下拖南侧：地图原点 Y 减小，高度增大
+        if (edge is "S" or "SE" or "SW") y1 = _origY - dCanvasY;
+
+        var left = Math.Min(x1, x2);
+        var right = Math.Max(x1, x2);
+        var bottom = Math.Min(y1, y2);
+        var top = Math.Max(y1, y2);
+        _drag.X = left;
+        _drag.Y = bottom;
+        _drag.W = Math.Max(1, right - left);
+        _drag.H = Math.Max(1, top - bottom);
     }
 
     void MapCanvas_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
@@ -741,12 +1006,14 @@ public partial class MainWindow : Window
         var pos = e.GetPosition(MapCanvas);
         var source = e.OriginalSource;
 
-        if (source is Rectangle { Tag: "resize" })
+        if (source is Rectangle rect && rect.Tag is string tag &&
+            tag.StartsWith("resize:", StringComparison.Ordinal))
         {
             if (_selected == null) return;
             PushUndo();
             _drag = _selected;
             _resizing = true;
+            _resizeEdge = tag["resize:".Length..];
             _dragStart = pos;
             _origX = _selected.X; _origY = _selected.Y;
             _origW = _selected.W; _origH = _selected.H;
@@ -761,6 +1028,7 @@ public partial class MainWindow : Window
             PushUndo();
             _drag = vm;
             _resizing = false;
+            _resizeEdge = null;
             _dragStart = pos;
             _origX = vm.X; _origY = vm.Y;
             _origW = vm.W; _origH = vm.H;
@@ -831,17 +1099,14 @@ public partial class MainWindow : Window
         if (!int.TryParse(WidthBox.Text, out var gw) || gw < 1) gw = 80;
         var pos = e.GetPosition(MapCanvas);
         var dx = (int)Math.Round((pos.X - _dragStart.X) / CellPx);
-        var dy = -(int)Math.Round((pos.Y - _dragStart.Y) / CellPx);
+        var dCanvasY = (int)Math.Round((pos.Y - _dragStart.Y) / CellPx);
 
         if (_resizing)
-        {
-            _drag.W = Math.Max(1, _origW + dx);
-            _drag.H = Math.Max(1, _origH + dy);
-        }
+            ApplyResize(dx, dCanvasY);
         else
         {
             _drag.X = _origX + dx;
-            _drag.Y = _origY + dy;
+            _drag.Y = _origY - dCanvasY;
         }
 
         ClampPlacement(_drag, gw, gh);
@@ -858,6 +1123,7 @@ public partial class MainWindow : Window
         {
             _drag = null;
             _resizing = false;
+            _resizeEdge = null;
             MapCanvas.ReleaseMouseCapture();
         }
     }
@@ -870,11 +1136,86 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (!TryReadMapSize(out var w, out var h, out var ox, out var oy, out var cs, out var err))
+        if (!TryApplyEditorStateToLayout(out var err))
         {
             MessageBox.Show(err, "保存失败", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
+
+        try
+        {
+            PackageStore.SaveDefinition(_package, _layout);
+            var keep = _layout.Id;
+            LoadRoot(_package.Root);
+            MapCombo.SelectedItem = keep;
+            StatusText.Text = "已保存 → " + _layout.FilePath;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "保存失败", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    void SaveAs_Click(object sender, RoutedEventArgs e)
+    {
+        if (_package == null || _layout == null)
+        {
+            MessageBox.Show("没有选中 mapLayout");
+            return;
+        }
+
+        if (!TryApplyEditorStateToLayout(out var err))
+        {
+            MessageBox.Show(err, "另存失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var levels = PackagePaths.FindDefaultLevelsDir();
+        if (!string.IsNullOrEmpty(levels))
+            System.IO.Directory.CreateDirectory(levels);
+
+        var defaultName = SanitizeFileName(_layout.Id.Replace(':', '_')) + ".json";
+        var dlg = new SaveFileDialog
+        {
+            Title = "另存为地图 JSON",
+            Filter = "mapLayout JSON|*.json",
+            InitialDirectory = levels ?? System.IO.Path.GetDirectoryName(_layout.FilePath) ?? "",
+            FileName = defaultName
+        };
+        if (dlg.ShowDialog() != true) return;
+
+        if (!TryPromptText("另存为", "地图 Id（可改成新关卡 id）", _layout.Id, out var newId) ||
+            string.IsNullOrWhiteSpace(newId))
+            return;
+        newId = newId.Trim();
+        _layout.Raw["id"] = newId;
+        _layout.Id = newId;
+
+        try
+        {
+            PackageStore.SaveStandaloneMapLayout(dlg.FileName, _layout.Raw);
+            var def = PackageStore.RegisterStandaloneMap(_package, dlg.FileName);
+            RefreshMapCombo(def.Id);
+            MapCombo.SelectedItem = def.Id;
+            StatusText.Text = "已另存为 → " + dlg.FileName;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "另存失败", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    bool TryApplyEditorStateToLayout(out string err)
+    {
+        err = "";
+        if (_layout == null)
+        {
+            err = "没有选中 mapLayout";
+            return false;
+        }
+
+        if (!TryReadMapSize(out var w, out var h, out var ox, out var oy, out var cs, out err))
+            return false;
 
         _layout.Raw["name"] = NameBox.Text ?? "";
         JsonEdit.SetString(_layout.Raw, "worldRegionId", RegionIdBox.Text);
@@ -889,20 +1230,10 @@ public partial class MainWindow : Window
             ClampPlacement(p, w, h);
             arr.Add(p.ToJson());
         }
-        _layout.Raw["placements"] = arr;
 
-        try
-        {
-            PackageStore.SaveDefinition(_package, _layout);
-            var keep = _layout.Id;
-            LoadRoot(_package.Root);
-            MapCombo.SelectedItem = keep;
-            StatusText.Text = "已保存 mapLayout";
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(ex.Message, "保存失败", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+        _layout.Raw["placements"] = arr;
+        _layout.Name = NameBox.Text ?? "";
+        return true;
     }
 }
 

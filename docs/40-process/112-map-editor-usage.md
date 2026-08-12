@@ -38,14 +38,16 @@
 |------|------|
 | 缩放 | 顶部 **滑条／＋－**；或 **Ctrl+滚轮**（Shift/Alt+滚轮亦可）；`100%`／`Ctrl+0`；`适应`／`Ctrl+1`。不要依赖单独 Alt（Windows 常抢走） |
 | 平移 | **中键拖**，或 **空格 + 左键拖**。自由相机，**可以把整张地图拖出视口** |
-| 放置 | 左侧选设施 → 空白单击 |
-| 选择／拖移／缩放物件 | 选择工具；拖移；右下角红点调大小 |
+| 放置 | 左侧选设施 → 空白单击。**1 · 物件**＝地表／树／矿等；**2 · 分区**＝仅标记 |
+| 选择／拖移／缩放物件 | 选择工具；拖移；**四角＋四边**红点调大小（往外拖放大，往里拖缩小） |
 | 取消／回选择 | **Esc**；画布 **右键** |
 | 删除 | **Delete**／Backspace；或工具栏删除 |
 | 复制 | **Ctrl+D** |
 | 微调 | **方向键** 1 格；**Shift+方向键** 5 格 |
 | 撤销／重做 | **Ctrl+Z**／**Ctrl+Y** |
-| 保存 | **Ctrl+S**（UTF-8 中文直写，原子写入，避免写空文件） |
+| 保存 | **Ctrl+S**（写回当前文件）；**另存为…**／**Ctrl+Shift+S** → 默认 `Assets/DynamicData/GameData/Levels/` |
+| 新建空图 | 输入新 Id → 存到 Levels；不再卡死在「只能建 ch01」 |
+| 打开地图 | **打开地图…** 从 Levels 选一张 JSON |
 | 光标格坐标 | 右下角实时显示 |
 
 ---
@@ -54,19 +56,26 @@
 
 | kind | 含义 | 默认格 | 游戏里怎么生成 |
 |------|------|--------|----------------|
-| `wall` | 墙／岩壁 | 6×1 | 每格 1×1 `WallTile` |
-| `rock` | 岩石／棚 | 4×4 | 每格 1×1 `RockTile` |
-| `house` | 小房子 | **20×20** | 中心一个 `SmallHouse`（视觉拟合约 20 格） |
-| `herbField` | 药田 | 12×12 | **每格** `HerbPatchTile`，可交互（可种） |
-| `grainField` | 麦田／农田 | 16×12 | **每格** `FarmlandTile`，可交互 |
-| `forest` | 树林 | 14×12 | 每格 `ForestFloorTile`，可交互 |
-| `mine` | 矿洞区 | 10×8 | 中心 `Warehouse` |
-| `spring` | 灵泉 | 8×8 | 每格 `SpiritSiteTile`，修炼交互 |
-| `cave` | 洞府区 | 10×8 | 中心 `Warehouse` |
-| `road` | 道路 | **1×1** | 每格 `DirtRoadTile` |
-| `roadHub` | 道路枢纽 | 8×8 | 中心 `SupervisorHouse` |
+| `zoneHerb` 等 | **分区标记**（药田／农田／住房／林地／矿区／**灵泉**） | 一片 | 半透明色块，**无交互、不挡路**；灵力加成以后再做 |
+| `herbField` | 药田地表 | 12×12（可拉片） | **每格** `HerbPatchTile`，可右键劳动（生长暂未做） |
+| `grainField` | 农田地表 | 16×12 | **每格** `FarmlandTile`，可右键劳动 |
+| `road` | 道路 | **1×1** | 每格 `DirtRoadTile`，**纯贴图** |
+| `wall` | 墙 | **6×1**（拉成 1×n） | 每格 `WallTile`，`blocksMovement` 挡寻路 |
+| `treeS` / `treeM` / `treeL` | 小／中／大树 | 1×1／2×2／3×3 | 中心一棵树 prefab，可右键砍伐（Work） |
+| `ore` | 矿石 | **2×2** | 中心 `OrePile`，可右键采矿 |
+| `cushion` | 蒲团 | **1×1** | `Cushion`，可右键修炼（Cultivate） |
+| `house` | 小房子 | **20×20** | 中心一个 `SmallHouse` |
+| `rock` | 岩石／棚 | 4×4 | 每格 `RockTile` |
+| `cave` / `roadHub` | 洞府／枢纽 | 见默认 | 修炼点或建筑 |
 
-映射表：`Assets/Scripts/Unity/Host/MapKindCatalog.cs`。缺美术时会从现有地砖／房子复制出 `WallTile`／`RockTile`／`SmallHouse`（菜单 `XianXia/Content/Ensure MapLayout Prefabs`）。
+旧数据里的 `forest`／`spring` 现按**分区**处理；`mine` 按 **2×2 可采矿石** 兼容。树用 `treeS/M/L`，修炼点用 `cushion` 放在灵泉区内。
+
+Prefab 目录：
+- 地表：`Assets/Prefabs/Environment/Tiles/`
+- 建筑：`Assets/Prefabs/Environment/Buildings/`
+- 树／矿：`Assets/Prefabs/Environment/Props/`（缺则菜单 `XianXia/Content/Ensure MapLayout Prefabs`）
+
+映射表：`Assets/Scripts/Unity/Host/MapKindCatalog.cs`。
 
 ---
 
@@ -82,16 +91,16 @@
 
 ## 游戏里怎么跑（不用在 Inspector 换 JSON）
 
-**没有「地图 JSON」字段可换。** `Playable Host Bootstrap` 默认读仓库 `Content/BaseGame`。
+**日常逻辑试玩请用 [Level Tester](114-level-tester.md)**（`Assets/Scenes/LevelTester`）：可在 Inspector 指定 mapLayout 文件／id 与 openingScenario。
+
+旧说明：`DemoParityHost`／`PlayableHost` 默认读仓库 `Content/BaseGame`，也可填 Level Tester 同款字段。
 
 1. MapEditor **Ctrl+S**
-2. Unity 打开 `DemoParityHost` 或 `PlayableHost`
-3. **停掉再 Play**（正在 Play 不会热更）
+2. Unity 打开 **LevelTester**（或 DemoParityHost）
+3. Inspector 确认地图路径／id → **停掉再 Play**（正在 Play 不会热更文件，除非 F12 重载）
 4. Console 应出现：  
-   `[PlayableHost] WalkGrid from mapLayout base:map_ch01_reference 200x100 ...`  
+   `[PlayableHost] WalkGrid from mapLayout …`  
    `[PlayableHost] Synced N location presentation(s) from mapLayout`
-
-`Host Map Graybox`／`Host Demo Tile Map` 不要拿来挂 JSON；它们只是表现。`Opening Scenario Id` 是开局剧本，不是地图路径。
 
 有 `boundLocationId` 的设施会在启动时把对应 `worldRegion` 地点的 `presentationX/Z` 拉到设施中心（角色／标签跟布局对齐）。
 
@@ -99,9 +108,11 @@
 
 ## Host 表现规则
 
-- 药田／农田等 **一格一个 prefab**，挂 `HostMapPlotCell`，并注册为交互点（点格子去干活；种植字段已留）
-- 房子／矿洞／枢纽是中心一个建筑 prefab，按精灵真实尺寸拟合到占地（避免再出现整块色板）
-- 寻路：`blocksMovement: true` 的矩形写入 WalkGrid
+- **分区**（`zone*`）：半透明色块，不注册交互、不挡路
+- 药田／农田等 **一格一个 prefab**，挂 `HostMapPlotCell`，并注册为交互点（右键劳动；生长以后再做）
+- 树／矿石是中心一个物件 prefab，按占地拟合；默认树挡路、矿石可采
+- 房子／枢纽是中心一个建筑 prefab，按精灵真实尺寸拟合到占地
+- 寻路：仅看 placement 的 `blocksMovement`（墙／树默认勾上）
 - 相机启动时框住整张 `mapLayout`
 
 ---
@@ -142,6 +153,7 @@
 - 启动崩溃：XAML 加载时 Slider 触发 `ValueChanged`，`MapScroll` 未就绪 → 已挡
 - 平移：中键／空格拖改为 `RenderTransform` 跟手；**自由相机**，可把地图完全拖出视口
 - 保存：UTF-8 中文直写（不再 `\uXXXX`）；原子写入，拒绝空文件
+- 设施缩放：选中后四角＋四边手柄；按**屏幕方向**缩放（往下拖南侧是变高，不再反着缩）
 
 ### 游戏加载／Host
 
@@ -150,8 +162,9 @@
 - `boundLocationId` → 启动时把地点 `presentationX/Z` 拉到设施中心（`MapLayoutPresentationSync`）
 - `HostDemoTileMap` 按 `MapKindCatalog` 刷 prefab：药田／农田／路 **一格一块**；房子约 **20×20** 居中
 - 每格可交互：`HostMapPlotCell` + 动态 `HostInteractSpots`（旧硬编码点仅作无布局时回退）
-- 精灵按真实 bounds **拟合**到占地，避免房子／树林被放大成整块色板
-- 补 prefab：`WallTile`／`RockTile`／`SmallHouse`（`MapLayoutPrefabEnsure`）
+- 精灵按真实 bounds **拟合**到占地，并**对齐包围盒中心**（修分区相对田格上下偏移）
+- 房子按编辑器实际 w×h 缩放（不再强行 20×20）；墙提高排序并加深颜色便于看见
+- 补 prefab：`WallTile`／`RockTile`／`SmallHouse`／树／矿／蒲团（`MapLayoutPrefabEnsure`）
 - 相机框住整张 mapLayout
 
 ### 热修
@@ -176,3 +189,7 @@
 | 2026-08-10 | 缩放改为滑条／格子像素／Ctrl+滚轮；修启动崩溃；自由平移 |
 | 2026-08-11 | Host 按 kind 刷 prefab；药田一格一交互；房子约 20、路 1；地点坐标与布局同步 |
 | 2026-08-11 | 补录本轮完整改动清单（入口／缩放平移／prefab／热修） |
+| 2026-08-12 | 设施缩放改为四角＋四边手柄，修正「往下拖反而缩小」 |
+| 2026-08-12 | 分区 zone*；树 treeS/M/L；矿石 ore 2×2；路纯贴图；生长暂缓 |
+| 2026-08-13 | 逻辑试玩改走 [Level Tester](114-level-tester.md)；Host 支持换 mapLayout |
+| 2026-08-13 | 新建／另存为／打开地图；Levels 目录；汇总见 [115](115-recent-updates-rollup-2026-08-13.md) |

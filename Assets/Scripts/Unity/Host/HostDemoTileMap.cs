@@ -45,22 +45,8 @@ namespace XianXia.Unity.Host
             BuildLegacyDemoTiles();
         }
 
-        static bool TryPickLayout(PlayableHostSession session, out MapLayoutDefinition layout)
-        {
-            layout = null;
-            if (session?.Registry?.MapLayouts == null || session.Registry.MapLayouts.Count == 0)
-                return false;
-
-            foreach (var kv in session.Registry.MapLayouts)
-            {
-                layout = kv.Value;
-                if (!string.IsNullOrEmpty(kv.Value.WorldRegionId) &&
-                    kv.Value.WorldRegionId.IndexOf("ch01", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                    return true;
-            }
-
-            return layout != null;
-        }
+        static bool TryPickLayout(PlayableHostSession session, out MapLayoutDefinition layout) =>
+            MapLayoutPick.TryGet(session, out layout);
 
         void BuildFromLayout(MapLayoutDefinition layout)
         {
@@ -120,6 +106,14 @@ namespace XianXia.Unity.Host
                     new Color(0.5f, 0.5f, 0.5f));
             }
 
+            if (info.Mode == MapKindCatalog.StampMode.ZoneOverlay)
+            {
+                var cx = ox + (p.X + pw * 0.5f) * cs;
+                var cy = oy + (p.Y + ph * 0.5f) * cs;
+                PlaceZoneOverlay(cx, cy, id + "_zone", pw * cs, ph * cs, info.FallbackColor);
+                return;
+            }
+
             if (info.Mode == MapKindCatalog.StampMode.SingleCentered)
             {
                 var cx = ox + (p.X + pw * 0.5f) * cs;
@@ -127,21 +121,16 @@ namespace XianXia.Unity.Host
                 var path = info.PrefabPath;
                 if (kind == "house")
                     path = ResolveHousePath();
-                var sizeW = pw * cs;
-                var sizeH = ph * cs;
-                if (kind == "house")
-                {
-                    sizeW = MapKindCatalog.HouseFootprint * cs;
-                    sizeH = MapKindCatalog.HouseFootprint * cs;
-                }
-
-                var go = PlacePrefab(path, cx, cy, id, sizeW, sizeH, info.FallbackColor);
+                // 按编辑器里实际占地拟合（不再强行 20×20）
+                var go = PlacePrefab(path, cx, cy, id, pw * cs, ph * cs, info.FallbackColor,
+                    sortingOrder: kind == "house" ? -8 : -12);
                 if (info.InteractKind.HasValue)
                     AttachPlot(go, p, info, p.X, p.Y, cx, cy);
                 return;
             }
 
             // PerCell：一格一个 prefab
+            var cellOrder = kind == "wall" ? -5 : -25;
             for (var gy = 0; gy < ph; gy++)
             for (var gx = 0; gx < pw; gx++)
             {
@@ -150,10 +139,30 @@ namespace XianXia.Unity.Host
                 var wx = ox + (cellX + 0.5f) * cs;
                 var wy = oy + (cellY + 0.5f) * cs;
                 var cellName = id + "_" + gx + "_" + gy;
-                var go = PlacePrefab(info.PrefabPath, wx, wy, cellName, cs, cs, info.FallbackColor);
+                var go = PlacePrefab(info.PrefabPath, wx, wy, cellName, cs, cs, info.FallbackColor,
+                    sortingOrder: cellOrder);
                 if (info.InteractKind.HasValue || info.Plantable)
                     AttachPlot(go, p, info, cellX, cellY, wx, wy);
             }
+        }
+
+        GameObject PlaceZoneOverlay(float x, float y, string name, float worldW, float worldH, Color color)
+        {
+            var go = new GameObject(name);
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = HostSpriteFactory.TileSprite();
+            var c = color;
+            if (c.a >= 0.99f)
+                c.a = 0.32f;
+            sr.color = c;
+            sr.sortingOrder = -20;
+            go.transform.SetParent(mapRoot, false);
+            var intended = HostPresentationSpace.FromPresentation(x, y, HostPresentationSpace.GroundZ);
+            go.transform.position = intended;
+            FitToWorldSize(go, Mathf.Max(0.01f, worldW), Mathf.Max(0.01f, worldH));
+            AlignBoundsCenter(go, intended);
+            _built.Add(go);
+            return go;
         }
 
         static string ResolveHousePath()
@@ -271,7 +280,8 @@ namespace XianXia.Unity.Host
             string name,
             float worldW,
             float worldH,
-            Color fallbackColor)
+            Color fallbackColor,
+            int sortingOrder = -30)
         {
             GameObject go = null;
 #if UNITY_EDITOR
@@ -280,6 +290,14 @@ namespace XianXia.Unity.Host
                 prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MapKindCatalog.HouseFallback);
             if (prefab == null && (prefabPath == MapKindCatalog.Wall || prefabPath == MapKindCatalog.Rock))
                 prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MapKindCatalog.Road);
+            if (prefab == null && (prefabPath == MapKindCatalog.TreeS || prefabPath == MapKindCatalog.TreeM ||
+                                   prefabPath == MapKindCatalog.TreeL))
+                prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MapKindCatalog.Forest);
+            if (prefab == null && prefabPath == MapKindCatalog.Ore)
+                prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MapKindCatalog.Rock)
+                         ?? AssetDatabase.LoadAssetAtPath<GameObject>(MapKindCatalog.Road);
+            if (prefab == null && prefabPath == MapKindCatalog.Cushion)
+                prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MapKindCatalog.Spirit);
             if (prefab != null)
                 go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
 #endif
@@ -289,14 +307,19 @@ namespace XianXia.Unity.Host
                 var sr = go.AddComponent<SpriteRenderer>();
                 sr.sprite = HostSpriteFactory.TileSprite();
                 sr.color = fallbackColor;
-                sr.sortingOrder = -30;
+                sr.sortingOrder = sortingOrder;
             }
 
             go.name = name;
             go.transform.SetParent(mapRoot, false);
             go.transform.localScale = Vector3.one;
-            go.transform.position = HostPresentationSpace.FromPresentation(x, y, HostPresentationSpace.GroundZ);
+            var intended = HostPresentationSpace.FromPresentation(x, y, HostPresentationSpace.GroundZ);
+            go.transform.position = intended;
             FitToWorldSize(go, Mathf.Max(0.01f, worldW), Mathf.Max(0.01f, worldH));
+            AlignBoundsCenter(go, intended);
+            ApplySortingOrder(go, sortingOrder);
+            if (prefabPath == MapKindCatalog.Wall)
+                TintRenderers(go, new Color(0.32f, 0.32f, 0.36f, 1f));
             StripNonHostBehaviours(go);
             _built.Add(go);
             return go;
@@ -305,23 +328,70 @@ namespace XianXia.Unity.Host
         static void FitToWorldSize(GameObject go, float worldW, float worldH)
         {
             go.transform.localScale = Vector3.one;
-            var renderers = go.GetComponentsInChildren<SpriteRenderer>(true);
-            if (renderers == null || renderers.Length == 0)
+            if (!TryGetRendererBounds(go, out var bounds))
                 return;
-
-            var bounds = renderers[0].bounds;
-            for (var i = 1; i < renderers.Length; i++)
-            {
-                if (renderers[i] != null && renderers[i].enabled)
-                    bounds.Encapsulate(renderers[i].bounds);
-            }
-
             if (bounds.size.x < 0.0001f || bounds.size.y < 0.0001f)
                 return;
 
             var sx = worldW / bounds.size.x;
             var sy = worldH / bounds.size.y;
             go.transform.localScale = new Vector3(sx, sy, 1f);
+        }
+
+        /// <summary>
+        /// 缩放绕 transform 原点，精灵 pivot 若不在中心会导致色块／地砖相对逻辑格偏移。
+        /// 缩放后再把渲染包围盒中心对齐到目标点。
+        /// </summary>
+        static void AlignBoundsCenter(GameObject go, Vector3 intendedCenter)
+        {
+            if (!TryGetRendererBounds(go, out var bounds))
+                return;
+            var delta = intendedCenter - bounds.center;
+            go.transform.position += delta;
+        }
+
+        static bool TryGetRendererBounds(GameObject go, out Bounds bounds)
+        {
+            bounds = default;
+            var renderers = go.GetComponentsInChildren<SpriteRenderer>(true);
+            if (renderers == null || renderers.Length == 0)
+                return false;
+            var any = false;
+            for (var i = 0; i < renderers.Length; i++)
+            {
+                var sr = renderers[i];
+                if (sr == null || !sr.enabled || sr.sprite == null)
+                    continue;
+                if (!any)
+                {
+                    bounds = sr.bounds;
+                    any = true;
+                }
+                else
+                    bounds.Encapsulate(sr.bounds);
+            }
+
+            return any;
+        }
+
+        static void ApplySortingOrder(GameObject go, int order)
+        {
+            var renderers = go.GetComponentsInChildren<SpriteRenderer>(true);
+            for (var i = 0; i < renderers.Length; i++)
+            {
+                if (renderers[i] != null)
+                    renderers[i].sortingOrder = order;
+            }
+        }
+
+        static void TintRenderers(GameObject go, Color color)
+        {
+            var renderers = go.GetComponentsInChildren<SpriteRenderer>(true);
+            for (var i = 0; i < renderers.Length; i++)
+            {
+                if (renderers[i] != null)
+                    renderers[i].color = color;
+            }
         }
 
         static void StripNonHostBehaviours(GameObject go)

@@ -29,7 +29,7 @@ namespace XianXia.Unity.Host
             var fromRes = Resources.Load<Sprite>("HostSprites/Tile");
             if (fromRes != null)
                 return _tile = fromRes;
-            return _tile = MakeSolidSprite(32, 32, Color.white, "HostTile");
+            return _tile = MakeSolidSprite(32, 32, Color.white, "HostTile", new Vector2(0.5f, 0.5f));
         }
 
         public static Sprite SelectionRingSprite()
@@ -42,7 +42,10 @@ namespace XianXia.Unity.Host
             return _ring = MakeRingSprite(48, new Color(0.3f, 0.95f, 0.35f, 0.9f), "HostRing");
         }
 
-        static Sprite MakeSolidSprite(int w, int h, Color color, string name)
+        static Sprite MakeSolidSprite(int w, int h, Color color, string name) =>
+            MakeSolidSprite(w, h, color, name, new Vector2(0.5f, 0.15f));
+
+        static Sprite MakeSolidSprite(int w, int h, Color color, string name, Vector2 pivot)
         {
             var tex = new Texture2D(w, h, TextureFormat.RGBA32, false)
             {
@@ -55,7 +58,7 @@ namespace XianXia.Unity.Host
                 pixels[i] = color;
             tex.SetPixels(pixels);
             tex.Apply(false, true);
-            return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.15f), 32f);
+            return Sprite.Create(tex, new Rect(0, 0, w, h), pivot, 32f);
         }
 
         static Sprite MakeRingSprite(int size, Color color, string name)

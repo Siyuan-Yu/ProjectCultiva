@@ -175,6 +175,15 @@ namespace XianXia.Data.Content
             return Register(_mapLayouts, definition, definition.Id);
         }
 
+        /// <summary>覆盖已有 mapLayout（Level Tester 热换地图文件）。</summary>
+        public Result UpsertMapLayout(MapLayoutDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "MapLayoutDefinition is null.");
+            _mapLayouts[definition.Id] = definition;
+            return Result.Success();
+        }
+
         public bool TryGetCharacter(DefinitionId id, out CharacterDefinition definition) =>
             _characters.TryGetValue(id, out definition);
 

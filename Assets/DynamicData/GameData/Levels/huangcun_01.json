@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "huangcun_01",
+      "type": "mapLayout",
+      "name": "第一章参考关·格点地图",
+      "worldRegionId": "",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 80,
+      "height": 50,
+      "placements": []
+    }
+  ]
+}

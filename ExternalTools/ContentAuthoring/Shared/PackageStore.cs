@@ -72,6 +72,27 @@ public static class PackagePaths
 
         return null;
     }
+
+    /// <summary>Level Tester 关卡目录：Assets/DynamicData/GameData/Levels</summary>
+    public static string? FindDefaultLevelsDir()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        for (var i = 0; i < 12 && dir != null; i++, dir = dir.Parent)
+        {
+            var candidate = Path.Combine(dir.FullName, "Assets", "DynamicData", "GameData", "Levels");
+            if (Directory.Exists(candidate))
+                return candidate;
+            // 允许尚不存在：若已找到 repo（含 Content/BaseGame）则返回拟建路径
+            var baseGame = Path.Combine(dir.FullName, "Content", "BaseGame");
+            if (File.Exists(Path.Combine(baseGame, "manifest.json")))
+            {
+                Directory.CreateDirectory(candidate);
+                return candidate;
+            }
+        }
+
+        return null;
+    }
 }
 
 public static class PackageStore
@@ -235,4 +256,128 @@ public static class PackageStore
 
     public static bool LocationExists(ContentPackage package, string locationId) =>
         AllLocationIds(package).Contains(locationId, StringComparer.Ordinal);
+
+    /// <summary>写入独立 mapLayout 文件（definitions 仅含一张图）。</summary>
+    public static void SaveStandaloneMapLayout(string filePath, JsonObject raw)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+            throw new ArgumentException("filePath empty");
+        var clone = JsonNode.Parse(raw.ToJsonString()) as JsonObject
+                    ?? throw new InvalidOperationException("无法克隆 mapLayout");
+        var file = new ContentFile
+        {
+            Path = filePath,
+            SchemaVersion = 1,
+            Definitions = new List<JsonObject> { clone }
+        };
+        SaveFile(file);
+    }
+
+    /// <summary>把 Levels 目录下的 mapLayout 合并进包（同 id 时 Levels 覆盖包内项）。</summary>
+    public static void MergeLevelsDirectory(ContentPackage package, string? levelsDir)
+    {
+        if (package == null || string.IsNullOrWhiteSpace(levelsDir) || !Directory.Exists(levelsDir))
+            return;
+
+        foreach (var path in Directory.EnumerateFiles(levelsDir, "*.json", SearchOption.TopDirectoryOnly)
+                     .OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
+        {
+            try
+            {
+                RegisterStandaloneMap(package, path, preferOverrideSameId: true);
+            }
+            catch
+            {
+                // 跳过非 map 文件
+            }
+        }
+    }
+
+    /// <summary>登记／刷新一份独立地图文件；preferOverrideSameId 时去掉包内同 id 的旧项。</summary>
+    public static DefRef RegisterStandaloneMap(
+        ContentPackage package,
+        string filePath,
+        bool preferOverrideSameId = true)
+    {
+        var loaded = LoadMapLayoutFile(filePath);
+        var raw = loaded.Raw;
+
+        package.Definitions.RemoveAll(d =>
+            string.Equals(d.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
+        package.Files.RemoveAll(f =>
+            string.Equals(f.Path, filePath, StringComparison.OrdinalIgnoreCase));
+
+        if (preferOverrideSameId && !string.IsNullOrEmpty(loaded.Id))
+        {
+            // 仅从内存列表移除同 id，不改 Content 包磁盘上的其它文件
+            package.Definitions.RemoveAll(d =>
+                string.Equals(d.Id, loaded.Id, StringComparison.Ordinal));
+        }
+
+        var file = new ContentFile
+        {
+            Path = filePath,
+            SchemaVersion = 1,
+            Definitions = new List<JsonObject> { raw }
+        };
+        package.Files.Add(file);
+        var def = new DefRef
+        {
+            Id = loaded.Id,
+            Type = "mapLayout",
+            Name = loaded.Name,
+            FilePath = filePath,
+            Index = 0,
+            Raw = raw
+        };
+        package.Definitions.Add(def);
+        return def;
+    }
+
+    public static DefRef LoadMapLayoutFile(string filePath, string? preferId = null)
+    {
+        if (!File.Exists(filePath))
+            throw new FileNotFoundException("地图文件不存在", filePath);
+
+        var root = JsonNode.Parse(File.ReadAllText(filePath)) as JsonObject
+                   ?? throw new InvalidOperationException("根节点不是对象: " + filePath);
+        if (root["definitions"] is not JsonArray arr || arr.Count == 0)
+            throw new InvalidOperationException("缺少 definitions: " + filePath);
+
+        JsonObject? chosen = null;
+        var index = -1;
+        for (var i = 0; i < arr.Count; i++)
+        {
+            if (arr[i] is not JsonObject def) continue;
+            var type = def["type"]?.GetValue<string>() ?? "";
+            if (!string.Equals(type, "mapLayout", StringComparison.Ordinal)) continue;
+            var id = def["id"]?.GetValue<string>() ?? "";
+            if (!string.IsNullOrWhiteSpace(preferId) &&
+                string.Equals(id, preferId, StringComparison.Ordinal))
+            {
+                chosen = def;
+                index = i;
+                break;
+            }
+
+            if (chosen == null)
+            {
+                chosen = def;
+                index = i;
+            }
+        }
+
+        if (chosen == null)
+            throw new InvalidOperationException("文件中没有 mapLayout: " + filePath);
+
+        return new DefRef
+        {
+            Id = chosen["id"]?.GetValue<string>() ?? "",
+            Type = "mapLayout",
+            Name = chosen["name"]?.GetValue<string>() ?? "",
+            FilePath = filePath,
+            Index = index,
+            Raw = chosen
+        };
+    }
 }

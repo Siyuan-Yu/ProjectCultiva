@@ -1,6 +1,7 @@
 using System.IO;
 using UnityEngine;
 using XianXia.Core.Navigation;
+using XianXia.Core.Results;
 using XianXia.Data.Bootstrap;
 using XianXia.Data.Content;
 
@@ -15,13 +16,21 @@ namespace XianXia.Unity.Host
         [Tooltip("Optional override. Empty = Editor repo Content/BaseGame.")]
         [SerializeField] string contentPackageDirectoryOverride = "";
 
+        [Header("Level Tester · 关卡地图")]
+        [Tooltip("选中的 mapLayout JSON（相对工程根或绝对路径）。点 Inspector 里「选择关卡地图 JSON」浏览。")]
+        [SerializeField] string mapLayoutFilePath = "";
+        [Tooltip("空则用默认 openingScenario。")]
+        [SerializeField] string openingScenarioId = "";
+        [HideInInspector]
+        [SerializeField] string preferredMapLayoutId = "";
+        [HideInInspector]
+        [SerializeField] TextAsset mapLayoutJsonOverride;
+
         [Header("Session options (Host config only; does not change Core defaults when unused)")]
         [SerializeField] bool overrideObservationDiscoverChance;
         [Range(0, 100)]
         [SerializeField] int observationDiscoverChancePercent = 100;
         [SerializeField] int dailyRequiredAmount = 10;
-        [Tooltip("Empty = scenario_playable_day. Sample level scene sets ch01_reference explicitly.")]
-        [SerializeField] string openingScenarioId = "";
 
         [Header("Presentation")]
         [SerializeField] EntityViewSpawner entityViewSpawner;
@@ -123,6 +132,12 @@ namespace XianXia.Unity.Host
 
         void Start()
         {
+            if (GetComponent<LevelTesterHud>() == null &&
+                (!string.IsNullOrWhiteSpace(preferredMapLayoutId) ||
+                 !string.IsNullOrWhiteSpace(mapLayoutFilePath) ||
+                 mapLayoutJsonOverride != null))
+                gameObject.AddComponent<LevelTesterHud>();
+
             if (initializeOnPlay)
                 TryInitialize();
         }
@@ -172,6 +187,19 @@ namespace XianXia.Unity.Host
         {
             openingScenarioId = scenarioId ?? "";
         }
+
+        public void ConfigurePreferredMapLayout(string mapLayoutId)
+        {
+            preferredMapLayoutId = mapLayoutId ?? "";
+        }
+
+        public string PreferredMapLayoutId => preferredMapLayoutId ?? "";
+
+        public string OpeningScenarioId => openingScenarioId ?? "";
+
+        public string MapLayoutFilePath => mapLayoutFilePath ?? "";
+
+        public TextAsset MapLayoutJsonOverride => mapLayoutJsonOverride;
 
         public bool TryInitialize()
         {
@@ -257,6 +285,17 @@ namespace XianXia.Unity.Host
                 selectionController.ClearSelection();
                 return false;
             }
+
+            if (!ApplyMapLayoutOverrides(out var mapError))
+            {
+                _status = "MAP OVERRIDE FAILED: " + mapError;
+                Debug.LogError("[PlayableHost] " + mapError, this);
+                return false;
+            }
+
+            _session.PreferredMapLayoutId = string.IsNullOrWhiteSpace(preferredMapLayoutId)
+                ? _session.PreferredMapLayoutId
+                : preferredMapLayoutId.Trim();
 
             var synced = MapLayoutPresentationSync.Apply(_session);
             if (synced > 0)
@@ -441,30 +480,85 @@ namespace XianXia.Unity.Host
 
         WalkGrid ResolveWalkGrid()
         {
-            if (_session?.Registry?.MapLayouts != null && _session.Registry.MapLayouts.Count > 0)
+            if (MapLayoutPick.TryGet(_session, out var preferred) && preferred != null)
             {
-                MapLayoutDefinition preferred = null;
-                foreach (var kv in _session.Registry.MapLayouts)
-                {
-                    preferred = kv.Value;
-                    if (!string.IsNullOrEmpty(kv.Value.WorldRegionId) &&
-                        kv.Value.WorldRegionId.IndexOf("ch01", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                        break;
-                }
-
-                if (preferred != null)
-                {
-                    Debug.Log(
-                        "[PlayableHost] WalkGrid from mapLayout " + preferred.Id +
-                        " " + preferred.Width + "x" + preferred.Height +
-                        " origin=(" + preferred.OriginX + "," + preferred.OriginY + ")",
-                        this);
-                    return MapLayoutWalkGridBuilder.Create(preferred);
-                }
+                Debug.Log(
+                    "[PlayableHost] WalkGrid from mapLayout " + preferred.Id +
+                    " " + preferred.Width + "x" + preferred.Height +
+                    " origin=(" + preferred.OriginX + "," + preferred.OriginY + ")",
+                    this);
+                return MapLayoutWalkGridBuilder.Create(preferred);
             }
 
             Debug.Log("[PlayableHost] WalkGrid fallback Ch01ReferenceWalkGrid", this);
             return Ch01ReferenceWalkGrid.Create();
+        }
+
+        bool ApplyMapLayoutOverrides(out string error)
+        {
+            error = string.Empty;
+            if (_session?.Registry == null)
+            {
+                error = "Session registry missing.";
+                return false;
+            }
+
+            Result<MapLayoutDefinition> loaded = default;
+            var hasOverride = false;
+
+            if (!string.IsNullOrWhiteSpace(mapLayoutFilePath))
+            {
+                var path = ResolveMapLayoutPath(mapLayoutFilePath.Trim());
+                loaded = MapLayoutJsonLoader.LoadFromFile(path, preferredMapLayoutId);
+                hasOverride = true;
+            }
+            else if (mapLayoutJsonOverride != null && !string.IsNullOrWhiteSpace(mapLayoutJsonOverride.text))
+            {
+                loaded = MapLayoutJsonLoader.LoadFromText(
+                    mapLayoutJsonOverride.text,
+                    preferredMapLayoutId,
+                    mapLayoutJsonOverride.name);
+                hasOverride = true;
+            }
+
+            if (!hasOverride)
+                return true;
+
+            if (loaded.IsFailure)
+            {
+                error = loaded.Error.ToString();
+                return false;
+            }
+
+            var upsert = _session.Registry.UpsertMapLayout(loaded.Value);
+            if (upsert.IsFailure)
+            {
+                error = upsert.Error.ToString();
+                return false;
+            }
+
+            _session.PreferredMapLayoutId = loaded.Value.Id.ToString();
+            if (string.IsNullOrWhiteSpace(preferredMapLayoutId))
+                preferredMapLayoutId = _session.PreferredMapLayoutId;
+
+            Debug.Log(
+                "[PlayableHost] mapLayout override → " + loaded.Value.Id +
+                " " + loaded.Value.Width + "x" + loaded.Value.Height +
+                " placements=" + (loaded.Value.Placements?.Count ?? 0),
+                this);
+            return true;
+        }
+
+        static string ResolveMapLayoutPath(string raw)
+        {
+            if (Path.IsPathRooted(raw))
+                return Path.GetFullPath(raw);
+#if UNITY_EDITOR
+            var projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            return Path.GetFullPath(Path.Combine(projectRoot, raw.Replace('/', Path.DirectorySeparatorChar)));
+#else
+            return Path.GetFullPath(Path.Combine(Application.dataPath, raw));
+#endif
         }
 
         public bool TryResolveContentPackageDirectory(out string path, out string error)

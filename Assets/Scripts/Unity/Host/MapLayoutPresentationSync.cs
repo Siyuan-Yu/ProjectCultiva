@@ -1,4 +1,3 @@
-using XianXia.Core.Exploration;
 using XianXia.Data.Content;
 
 namespace XianXia.Unity.Host
@@ -11,20 +10,9 @@ namespace XianXia.Unity.Host
     {
         public static int Apply(PlayableHostSession session)
         {
-            if (session?.Registry?.MapLayouts == null ||
-                session.World?.WorldRegion?.Locations == null)
+            if (session?.World?.WorldRegion?.Locations == null)
                 return 0;
-
-            MapLayoutDefinition layout = null;
-            foreach (var kv in session.Registry.MapLayouts)
-            {
-                layout = kv.Value;
-                if (!string.IsNullOrEmpty(kv.Value.WorldRegionId) &&
-                    kv.Value.WorldRegionId.IndexOf("ch01", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                    break;
-            }
-
-            if (layout?.Placements == null)
+            if (!MapLayoutPick.TryGet(session, out var layout) || layout?.Placements == null)
                 return 0;
 
             var cs = layout.CellSize > 0f ? layout.CellSize : 1f;
@@ -47,20 +35,7 @@ namespace XianXia.Unity.Host
             return applied;
         }
 
-        public static bool TryGetLayout(PlayableHostSession session, out MapLayoutDefinition layout)
-        {
-            layout = null;
-            if (session?.Registry?.MapLayouts == null || session.Registry.MapLayouts.Count == 0)
-                return false;
-            foreach (var kv in session.Registry.MapLayouts)
-            {
-                layout = kv.Value;
-                if (!string.IsNullOrEmpty(kv.Value.WorldRegionId) &&
-                    kv.Value.WorldRegionId.IndexOf("ch01", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                    return true;
-            }
-
-            return layout != null;
-        }
+        public static bool TryGetLayout(PlayableHostSession session, out MapLayoutDefinition layout) =>
+            MapLayoutPick.TryGet(session, out layout);
     }
 }

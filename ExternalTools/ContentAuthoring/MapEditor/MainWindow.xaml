@@ -12,8 +12,10 @@
         <Button Content="打开包…" Width="90" Margin="0,0,8,0" Click="OpenPackage_Click"/>
         <TextBlock Text="地图" VerticalAlignment="Center" Margin="0,0,6,0"/>
         <ComboBox x:Name="MapCombo" Width="280" SelectionChanged="MapCombo_SelectionChanged"/>
-        <Button Content="新建空图" Width="80" Margin="8,0,0,0" Click="NewFromTemplate_Click"/>
+        <Button Content="打开地图…" Width="80" Margin="8,0,0,0" Click="OpenMapFile_Click" ToolTip="从 Levels 打开一张 mapLayout JSON"/>
+        <Button Content="新建空图" Width="80" Margin="8,0,0,0" Click="NewFromTemplate_Click" ToolTip="在 Levels 新建一张空地图"/>
         <Button Content="保存 Ctrl+S" Width="100" Margin="8,0,0,0" Click="Save_Click"/>
+        <Button Content="另存为…" Width="70" Margin="8,0,0,0" Click="SaveAs_Click" ToolTip="另存到 Levels／自选路径"/>
         <Separator Margin="10,0" Width="1" Background="#C0B8A8"/>
         <Button Content="撤销" Width="50" Margin="0,0,4,0" Click="Undo_Click" ToolTip="Ctrl+Z"/>
         <Button Content="重做" Width="50" Margin="0,0,4,0" Click="Redo_Click" ToolTip="Ctrl+Y"/>
@@ -71,11 +73,19 @@
         <ColumnDefinition Width="240"/>
       </Grid.ColumnDefinitions>
       <DockPanel Grid.Column="0" Margin="0,0,8,0">
-        <TextBlock DockPanel.Dock="Top" Text="工具／设施板" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock DockPanel.Dock="Top" Text="工具板" FontWeight="SemiBold" Margin="0,0,0,4"/>
         <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Foreground="#6B6358" Margin="0,0,0,6"
-                   Text="右键画布＝回到选择工具。Esc＝取消选中并切选择。"/>
-        <ListBox x:Name="PaletteList" DisplayMemberPath="Display"
-                 SelectionChanged="PaletteList_SelectionChanged"/>
+                   Text="第 1 页：地表／物件／建筑。第 2 页：分区标记（无玩法）。右键画布＝选择工具。"/>
+        <TabControl x:Name="PaletteTabs">
+          <TabItem Header="1 · 物件">
+            <ListBox x:Name="PaletteObjectsList" DisplayMemberPath="Display"
+                     SelectionChanged="PaletteList_SelectionChanged"/>
+          </TabItem>
+          <TabItem Header="2 · 分区">
+            <ListBox x:Name="PaletteZonesList" DisplayMemberPath="Display"
+                     SelectionChanged="PaletteList_SelectionChanged"/>
+          </TabItem>
+        </TabControl>
       </DockPanel>
       <Border Grid.Column="1" BorderBrush="#C0B8A8" BorderThickness="1" Background="#F3EFE6" ClipToBounds="True">
         <ScrollViewer x:Name="MapScroll" Background="#F3EFE6"

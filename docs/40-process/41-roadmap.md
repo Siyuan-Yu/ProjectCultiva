@@ -17,6 +17,7 @@
 - [x] 章节制作指南合并 [94](94-chapter-full-production-and-sample-guide.md)
 - [x] 2G 觉醒弧 Data＋UX 引导交付 [97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)
 - [ ] 制作人手操签收 `DemoParityHost`
+- [ ] 用 `LevelTester` 换 mapLayout／scenario 做节点逻辑试玩（见 [114](114-level-tester.md)）
 - [ ] 正式第一章文案／战斗夺权切片（另开）
 
 ## M2.5 — 架构冻结
