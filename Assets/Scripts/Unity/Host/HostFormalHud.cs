@@ -13,6 +13,7 @@ using XianXia.Core.Input;
 using XianXia.Core.Labor;
 using XianXia.Core.Schedule;
 using XianXia.Core.Settlement;
+using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 
 namespace XianXia.Unity.Host
@@ -84,6 +85,8 @@ namespace XianXia.Unity.Host
             if (!visible || session == null || !session.IsInitialized)
                 return;
             if (bootstrap.ContentInterrupt != null && bootstrap.ContentInterrupt.HasBlockingInterrupt)
+                return;
+            if (bootstrap.QuestJournal != null && bootstrap.QuestJournal.IsOpen)
                 return;
             if (session.World.ContentEvents.HasActive)
                 return;
@@ -186,8 +189,15 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < spec.CompleteConditions.Count; i++)
             {
                 var c = spec.CompleteConditions[i];
-                if (c != null &&
-                    string.Equals(c.Kind, "stockAtLeast", System.StringComparison.OrdinalIgnoreCase))
+                if (c == null)
+                    continue;
+                if (string.Equals(c.Kind, "stockAtLeast", System.StringComparison.OrdinalIgnoreCase))
+                    return true;
+                if (string.Equals(c.Kind, "laborAtLocation", System.StringComparison.OrdinalIgnoreCase))
+                    return true;
+                if (string.Equals(c.Kind, "uniqueLaborAtLocation", System.StringComparison.OrdinalIgnoreCase))
+                    return true;
+                if (string.Equals(c.Kind, "uniqueHarvestAtLocation", System.StringComparison.OrdinalIgnoreCase))
                     return true;
             }
 
@@ -292,22 +302,23 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(x, 8f, 40f, 32f), "5x") && debugHud != null)
                 debugHud.SetSpeedMultiplier(5);
 
-            var wood = 0;
-            var herb = 0;
-            var grain = 0;
-            var grass = 0;
-            if (session.World.Settlements.TryGetPrimary(out var s))
-            {
-                wood = s.GetStock("base:resource_rough_wood");
-                herb = s.GetStock("base:resource_spirit_herb");
-                grain = s.GetStock("base:resource_grain");
-                grass = s.GetStock("base:resource_conceal_grass");
-            }
+            var bag = session.World.Inventory;
+            var wood = bag.GetCount("base:resource_rough_wood");
+            var herb = bag.GetCount("base:resource_spirit_herb");
+            var grain = bag.GetCount("base:resource_grain");
+            var grass = bag.GetCount("base:resource_conceal_grass");
 
             var anger = session.World.SupervisorAnger != null ? session.World.SupervisorAnger.Value : 0;
             var exposure = ResolvePartyExposure(session);
-            var res = "木 " + wood + "   粮 " + grain + "   药 " + herb + "   敛息草 " + grass;
-            GUI.Label(new Rect(Screen.width - RailW - 380f, 4f, 360f, 18f), res, _body);
+            var used = bag.UsedSlotCount;
+            var cap = bag.SlotCapacity;
+            var res = "背包 " + used + "/" + cap + "   木 " + wood + "   粮 " + grain + "   药 " + herb + "   敛息草 " + grass;
+            GUI.Label(new Rect(Screen.width - RailW - 480f, 4f, 390f, 18f), res, _body);
+            if (GUI.Button(new Rect(Screen.width - RailW - 82f, 6f, 70f, 28f), "背包"))
+            {
+                var panel = bootstrap != null ? bootstrap.InventoryPanel : null;
+                panel?.Toggle();
+            }
 
             // 暴露／主管压：全局条（非每人一条）
             DrawInlineMeter(
@@ -681,63 +692,113 @@ namespace XianXia.Unity.Host
         string BuildQuestText(PlayableHostSession session)
         {
             var sb = new StringBuilder(320);
-            var n = 0;
-            QuestSpec activeSpec = null;
-            foreach (var kv in session.World.Quests.Runtime)
-            {
-                if (kv.Value.Status != QuestStatus.Active)
-                    continue;
-                if (session.World.Quests.TryGetSpec(kv.Key, out var spec))
-                {
-                    activeSpec = spec;
-                    break;
-                }
-            }
+            var journal = bootstrap != null ? bootstrap.QuestJournal : null;
+            var trackedId = journal != null ? journal.TrackedQuestId : string.Empty;
 
-            if (activeSpec != null)
+            if (!string.IsNullOrEmpty(trackedId) &&
+                session.World.Quests.TryGet(trackedId, out var rt) &&
+                session.World.Quests.TryGetSpec(trackedId, out var spec))
             {
-                sb.AppendLine("进行中：" + (string.IsNullOrEmpty(activeSpec.Name) ? activeSpec.Id : activeSpec.Name));
-                if (!string.IsNullOrEmpty(activeSpec.Description))
+                var title = string.IsNullOrEmpty(spec.Name) ? trackedId : spec.Name;
+                sb.AppendLine("追踪：" + title);
+                sb.AppendLine("状态：" + QuestStatusName(rt.Status));
+                if (!string.IsNullOrEmpty(spec.Description))
                 {
-                    var desc = activeSpec.Description;
-                    if (desc.Length > 96)
-                        desc = desc.Substring(0, 96) + "…";
+                    var desc = spec.Description;
+                    if (desc.Length > 140)
+                        desc = desc.Substring(0, 140) + "…";
                     sb.AppendLine(desc);
                 }
 
                 sb.AppendLine("---");
+                if (rt.ProgressMax > 0)
+                    sb.AppendLine("进度：" + rt.ProgressCount + "/" + rt.ProgressMax);
+                sb.AppendLine("目标：" + SummarizeTrackedObjectives(session.World, spec, rt));
+                if (rt.Status == QuestStatus.ReadyToClaim)
+                    sb.AppendLine("● 可领奖 — 按 J 打开任务日志领取");
             }
-
-            foreach (var kv in session.World.Quests.Runtime)
+            else
             {
-                if (kv.Value.Status == QuestStatus.Inactive)
-                    continue;
-                var name = kv.Key;
-                if (session.World.Quests.TryGetSpec(kv.Key, out var spec) && !string.IsNullOrEmpty(spec.Name))
-                    name = spec.Name;
-                sb.Append("· ")
-                    .Append(QuestStatusName(kv.Value.Status))
-                    .Append(' ')
-                    .Append(name)
-                    .Append('\n');
-                if (++n >= 6)
-                    break;
+                sb.AppendLine("未追踪任务");
+                sb.Append("按 J 打开日志，在进行中任务点「追踪」");
             }
 
-            if (session.CharacterIds.Count > 0 &&
-                session.World.Entities.TryGet(session.CharacterIds[0], out var e) &&
-                e.TryGet<DailyTaskComponent>(out var daily))
-            {
-                sb.Append('\n')
-                    .Append("日课进度 ")
-                    .Append(daily.CompletedAmount)
-                    .Append('/')
-                    .Append(daily.RequiredAmount);
-            }
-
-            if (n == 0 && activeSpec == null)
-                sb.Append("暂无进行中任务");
             return sb.ToString();
+        }
+
+        static string SummarizeTrackedObjectives(
+            SimulationWorld world,
+            QuestSpec spec,
+            QuestRuntime rt)
+        {
+            if (spec?.CompleteConditions == null || spec.CompleteConditions.Count == 0)
+                return "（无）";
+            for (var i = 0; i < spec.CompleteConditions.Count; i++)
+            {
+                var c = spec.CompleteConditions[i];
+                if (c == null)
+                    continue;
+                if (!string.Equals(c.Kind, "uniqueLaborAtLocation", System.StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(c.Kind, "uniqueHarvestAtLocation", System.StringComparison.OrdinalIgnoreCase))
+                    continue;
+                var max = c.Amount > 0 ? c.Amount : 1;
+                var cur = rt != null ? rt.ProgressCount : 0;
+                return string.Equals(c.Kind, "uniqueHarvestAtLocation", System.StringComparison.OrdinalIgnoreCase)
+                    ? "农田采集 " + cur + "/" + max + "（每人×1）"
+                    : "农田劳作 " + cur + "/" + max + "（每人约3秒）";
+            }
+
+            return SummarizeTrackedObjectivesLegacy(spec);
+        }
+
+        static string SummarizeTrackedObjectivesLegacy(QuestSpec spec)
+        {
+            if (spec?.CompleteConditions == null || spec.CompleteConditions.Count == 0)
+                return "（无）";
+            // 复用查询层摘要逻辑的轻量版
+            var parts = new System.Collections.Generic.List<string>(spec.CompleteConditions.Count);
+            for (var i = 0; i < spec.CompleteConditions.Count; i++)
+            {
+                var c = spec.CompleteConditions[i];
+                if (c == null || string.IsNullOrEmpty(c.Kind))
+                    continue;
+                switch (c.Kind.Trim().ToLowerInvariant())
+                {
+                    case "exploredlocation":
+                        parts.Add("探索 " + ShortId(c.Id));
+                        break;
+                    case "atlocation":
+                        parts.Add("抵达 " + ShortId(c.Id));
+                        break;
+                    case "questcompleted":
+                        parts.Add("完成 " + ShortId(c.Id));
+                        break;
+                    case "hasflag":
+                    case "storyflag":
+                        parts.Add("标记 " + ShortId(c.Id));
+                        break;
+                    case "laboratlocation":
+                        parts.Add(ShortId(c.CharacterId) + "农田≥" + c.Amount + "秒");
+                        break;
+                    case "uniquelaboratlocation":
+                        parts.Add("劳作人数≥" + c.Amount);
+                        break;
+                    case "uniqueharvestatlocation":
+                        parts.Add("采集人数≥" + c.Amount);
+                        break;
+                    case "characteratlocation":
+                        parts.Add(ShortId(c.CharacterId) + "→集合");
+                        break;
+                    case "stockatleast":
+                        parts.Add(ShortId(c.Id) + "≥" + c.Amount);
+                        break;
+                    default:
+                        parts.Add(c.Kind + (string.IsNullOrEmpty(c.Id) ? "" : " " + ShortId(c.Id)));
+                        break;
+                }
+            }
+
+            return parts.Count == 0 ? "（无）" : string.Join("；", parts);
         }
 
         string BuildRelationText(PlayableHostSession session, EntityId focus)
@@ -774,7 +835,7 @@ namespace XianXia.Unity.Host
             if (session.World.ContentEvents.HasActive)
             {
                 sb.AppendLine("进行中：" + ShortId(session.World.ContentEvents.ActiveEventId));
-                sb.AppendLine("（中央弹层选选项；时间已暂停）");
+                sb.AppendLine("（弹窗已关，将自动选第一条可用选项）");
             }
 
             if (eventFeed != null && eventFeed.Count > 0)
@@ -892,6 +953,7 @@ namespace XianXia.Unity.Host
             switch (s)
             {
                 case QuestStatus.Active: return "进行";
+                case QuestStatus.ReadyToClaim: return "待领奖";
                 case QuestStatus.Completed: return "完成";
                 case QuestStatus.Failed: return "失败";
                 default: return s.ToString();

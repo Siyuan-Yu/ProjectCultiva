@@ -1,14 +1,46 @@
-{
+﻿{
   "schemaVersion": 1,
   "definitions": [
     {
       "id": "base:item_rough_wood",
       "type": "item",
-      "name": "粗木",
+      "name": "粗木（样例）",
       "displayNameKey": "item.rough_wood",
       "nameKey": "item.rough_wood",
       "maxStack": 99,
       "tags": ["resource", "wood"]
+    },
+    {
+      "id": "base:resource_rough_wood",
+      "type": "item",
+      "name": "粗木",
+      "nameKey": "resource.rough_wood",
+      "maxStack": 99,
+      "tags": ["resource", "wood"]
+    },
+    {
+      "id": "base:resource_spirit_herb",
+      "type": "item",
+      "name": "灵药",
+      "nameKey": "resource.spirit_herb",
+      "maxStack": 99,
+      "tags": ["resource", "herb", "consumable"]
+    },
+    {
+      "id": "base:resource_grain",
+      "type": "item",
+      "name": "粗粮",
+      "nameKey": "resource.grain",
+      "maxStack": 99,
+      "tags": ["resource", "grain"]
+    },
+    {
+      "id": "base:resource_conceal_grass",
+      "type": "item",
+      "name": "敛息草",
+      "nameKey": "resource.conceal_grass",
+      "maxStack": 99,
+      "tags": ["resource", "consumable"]
     }
   ]
 }

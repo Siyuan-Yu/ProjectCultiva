@@ -40,7 +40,11 @@ public static class ContentFieldCatalog
         ("questCompleted", "任务已完成"),
         ("questActive", "任务进行中"),
         ("knowsSite", "已知机缘点"),
-        ("hasManual", "已学功法")
+        ("hasManual", "已学功法"),
+        ("laborAtLocation", "角色在地点劳动秒数 ≥"),
+        ("characterAtLocation", "指定角色在地点"),
+        ("uniqueLaborAtLocation", "不同角色劳动人数 ≥"),
+        ("uniqueHarvestAtLocation", "不同角色采集人数 ≥")
     ];
 
     public static readonly (string Kind, string Label)[] OutcomeKinds =
@@ -61,6 +65,27 @@ public static class ContentFieldCatalog
         "atLocation" or "exploredLocation" =>
         [
             new FieldSpec { Key = "id", Label = "地点", Editor = FieldEditorKind.Location }
+        ],
+        "laborAtLocation" =>
+        [
+            new FieldSpec { Key = "id", Label = "地点", Editor = FieldEditorKind.Location },
+            new FieldSpec { Key = "characterId", Label = "角色", Editor = FieldEditorKind.Character },
+            new FieldSpec { Key = "amount", Label = "秒数", Editor = FieldEditorKind.Number }
+        ],
+        "characterAtLocation" =>
+        [
+            new FieldSpec { Key = "id", Label = "地点", Editor = FieldEditorKind.Location },
+            new FieldSpec { Key = "characterId", Label = "角色", Editor = FieldEditorKind.Character }
+        ],
+        "uniqueLaborAtLocation" =>
+        [
+            new FieldSpec { Key = "id", Label = "地点", Editor = FieldEditorKind.Location },
+            new FieldSpec { Key = "amount", Label = "人数", Editor = FieldEditorKind.Number }
+        ],
+        "uniqueHarvestAtLocation" =>
+        [
+            new FieldSpec { Key = "id", Label = "地点", Editor = FieldEditorKind.Location },
+            new FieldSpec { Key = "amount", Label = "人数", Editor = FieldEditorKind.Number }
         ],
         "stockAtLeast" =>
         [

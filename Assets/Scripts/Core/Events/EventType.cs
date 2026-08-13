@@ -46,6 +46,10 @@ namespace XianXia.Core.Events
         QuestCompleted = 24,
         /// <summary>Content Ready: quest failed (session).</summary>
         QuestFailed = 25,
+        /// <summary>Quest journal: rewards claimed after ReadyToClaim.</summary>
+        QuestRewardsClaimed = 31,
+        /// <summary>Quest journal: player abandoned an abandonable quest.</summary>
+        QuestAbandoned = 32,
         /// <summary>Content Ready: content event presented to player (session).</summary>
         ContentEventPresented = 26,
         /// <summary>Content Ready: content event choice resolved (session).</summary>

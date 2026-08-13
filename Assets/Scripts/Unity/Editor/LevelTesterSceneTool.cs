@@ -48,6 +48,7 @@ namespace XianXia.Unity.EditorTools
             hostGo.AddComponent<HostFeedbackOverlay>();
             hostGo.AddComponent<HostWorkTargetMode>();
             hostGo.AddComponent<HostContentInterruptPresenter>();
+            hostGo.AddComponent<HostQuestJournal>();
             hostGo.AddComponent<HostInteractSpotPresenter>();
             hostGo.AddComponent<HostNpcScheduleMover>();
             hostGo.AddComponent<LevelTesterHud>();

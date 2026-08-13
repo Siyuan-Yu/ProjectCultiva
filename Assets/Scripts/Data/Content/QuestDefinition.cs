@@ -10,6 +10,7 @@ namespace XianXia.Data.Content
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public bool AutoOffer { get; set; }
+        public bool Abandonable { get; set; }
         public List<ContentCondition> OfferConditions { get; } = new List<ContentCondition>();
         public List<ContentCondition> CompleteConditions { get; } = new List<ContentCondition>();
         public List<ContentCondition> FailConditions { get; } = new List<ContentCondition>();

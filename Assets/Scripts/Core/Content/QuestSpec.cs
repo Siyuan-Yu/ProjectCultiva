@@ -9,6 +9,8 @@ namespace XianXia.Core.Content
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public bool AutoOffer { get; set; }
+        /// <summary>为 true 时玩家可从任务 UI 放弃（回到 Inactive）。</summary>
+        public bool Abandonable { get; set; }
         public List<ContentCondition> OfferConditions { get; } = new List<ContentCondition>();
         public List<ContentCondition> CompleteConditions { get; } = new List<ContentCondition>();
         public List<ContentCondition> FailConditions { get; } = new List<ContentCondition>();

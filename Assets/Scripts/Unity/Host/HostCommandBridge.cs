@@ -14,9 +14,14 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostCommandBridge : MonoBehaviour
     {
-        public const ulong DefaultDurationTicks = 4;
+        public const ulong DefaultDurationTicks = 1;
+
+        /// <summary>1x 下采集／劳动一轮的目标现实秒数（倍速会按同一 tick 节奏加快）。</summary>
+        public const float GatherWallSecondsAt1x = 10f;
 
         [SerializeField] HostSelectionController selectionController;
+        [SerializeField] PlayableHostBootstrap hostBootstrap;
+        [SerializeField] HostWorkLoop workLoop;
         [SerializeField] bool enableDebugKeys = true;
         [SerializeField] bool showDebugButtons = false;
         [SerializeField] KeyCode laborKey = KeyCode.Alpha1;
@@ -54,9 +59,28 @@ namespace XianXia.Unity.Host
             selectionController = selection;
             if (feedback != null)
                 feedbackOverlay = feedback;
+            if (hostBootstrap == null)
+                hostBootstrap = GetComponent<PlayableHostBootstrap>();
+            if (workLoop == null)
+                workLoop = GetComponent<HostWorkLoop>();
             _lastStatus = "Bound";
             _lastSuccessCount = 0;
             _lastFailureCount = 0;
+        }
+
+        public ulong GatherDurationTicks()
+        {
+            var secPer = hostBootstrap != null ? hostBootstrap.SecondsPerAutoTickAt1x : 3f;
+            if (secPer < 0.01f)
+                secPer = 3f;
+            return (ulong)Mathf.Max(1, Mathf.CeilToInt(GatherWallSecondsAt1x / secPer));
+        }
+
+        ulong ResolveDuration(PlayerCommandKind kind, ulong durationTicks)
+        {
+            if (kind == PlayerCommandKind.Labor && durationTicks == DefaultDurationTicks)
+                return GatherDurationTicks();
+            return durationTicks;
         }
 
         void Update()
@@ -286,7 +310,7 @@ namespace XianXia.Unity.Host
                 return 0;
             }
 
-            return IssueTo(selectionController.State.SelectedIds, kind, durationTicks);
+            return IssueTo(selectionController.State.SelectedIds, kind, ResolveDuration(kind, durationTicks));
         }
 
         /// <summary>ACS 角色面板：只对单个焦点角色下令（不是全选）。</summary>
@@ -308,7 +332,7 @@ namespace XianXia.Unity.Host
                 return IssueSocialAs(subject, kind) ? 1 : 0;
             }
 
-            return IssueTo(new[] { subject }, kind, durationTicks);
+            return IssueTo(new[] { subject }, kind, ResolveDuration(kind, durationTicks));
         }
 
         bool IssueSocialAs(EntityId actor, PlayerCommandKind kind)
@@ -441,6 +465,66 @@ namespace XianXia.Unity.Host
             return false;
         }
 
+        /// <summary>任务日志：接取／领奖／放弃。</summary>
+        public bool SubmitQuestCommand(PlayerCommandKind kind, string questId)
+        {
+            _lastSuccessCount = 0;
+            _lastFailureCount = 0;
+
+            if (kind != PlayerCommandKind.StartQuest &&
+                kind != PlayerCommandKind.ClaimQuestRewards &&
+                kind != PlayerCommandKind.AbandonQuest)
+            {
+                _lastStatus = "Not a quest command: " + kind;
+                _lastFailureCount = 1;
+                return false;
+            }
+
+            if (_session == null || !_session.IsInitialized || _session.Port == null)
+            {
+                _lastStatus = "Session／Port not ready";
+                _lastFailureCount = 1;
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(questId))
+            {
+                _lastStatus = "QuestId empty";
+                _lastFailureCount = 1;
+                return false;
+            }
+
+            var subject = ResolveContentSubject();
+            if (subject.IsNone)
+            {
+                _lastStatus = "No subject for quest command";
+                _lastFailureCount = 1;
+                return false;
+            }
+
+            var result = _session.Port.Submit(
+                new PlayerCommandRequest(
+                    subject,
+                    kind,
+                    1,
+                    EntityId.None,
+                    WorkRoleKind.None,
+                    null,
+                    null,
+                    questId.Trim()));
+            if (result.IsSuccess)
+            {
+                _lastSuccessCount = 1;
+                _lastStatus = kind + " ok quest=" + questId + " subject=" + subject.Value;
+                return true;
+            }
+
+            _lastFailureCount = 1;
+            _lastStatus = kind + " FAIL " + FormatError(result);
+            Debug.LogWarning("[HostCommand] " + _lastStatus, this);
+            return false;
+        }
+
         EntityId ResolveContentSubject()
         {
             if (selectionController != null)
@@ -559,11 +643,18 @@ namespace XianXia.Unity.Host
                 if (!utility)
                     _session.Loop.StopSubject(id);
 
+                if (kind == PlayerCommandKind.Stop)
+                    workLoop?.StopLoop(id);
+                else if (kind != PlayerCommandKind.Labor && kind != PlayerCommandKind.Cultivate)
+                    workLoop?.StopLoop(id);
+
                 var result = _session.Port.Submit(new PlayerCommandRequest(id, kind, durationTicks));
                 if (result.IsSuccess)
                 {
                     _lastSuccessCount++;
                     NotifyFeedback(id, kind);
+                    if (kind == PlayerCommandKind.Labor)
+                        workLoop?.StartLoop(id);
                 }
                 else
                 {

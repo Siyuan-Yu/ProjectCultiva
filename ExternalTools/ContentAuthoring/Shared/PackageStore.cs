@@ -182,6 +182,96 @@ public static class PackageStore
         SaveFile(file);
     }
 
+    /// <summary>
+    /// 从包内删除一条 definition：写回 JSON；若文件空则删文件。
+    /// 若是 quest，会顺带清掉各地点 questOfferIds 中的引用（不删关联 contentEvent）。
+    /// </summary>
+    public static void DeleteDefinition(ContentPackage package, DefRef def)
+    {
+        if (package == null || def == null)
+            throw new ArgumentNullException(nameof(def));
+
+        var file = package.Files.FirstOrDefault(f =>
+                       string.Equals(f.Path, def.FilePath, StringComparison.OrdinalIgnoreCase))
+                   ?? throw new InvalidOperationException("找不到文件: " + def.FilePath);
+
+        var removed = file.Definitions.RemoveAll(d =>
+            string.Equals(d["id"]?.GetValue<string>(), def.Id, StringComparison.Ordinal));
+        if (removed == 0 && def.Index >= 0 && def.Index < file.Definitions.Count)
+            file.Definitions.RemoveAt(def.Index);
+
+        package.Definitions.RemoveAll(d =>
+            string.Equals(d.Id, def.Id, StringComparison.Ordinal) ||
+            (string.Equals(d.FilePath, def.FilePath, StringComparison.OrdinalIgnoreCase) &&
+             d.Index == def.Index));
+
+        if (string.Equals(def.Type, "quest", StringComparison.Ordinal))
+            ClearQuestOfferReferences(package, def.Id);
+
+        if (file.Definitions.Count == 0)
+        {
+            package.Files.RemoveAll(f =>
+                string.Equals(f.Path, file.Path, StringComparison.OrdinalIgnoreCase));
+            if (File.Exists(file.Path))
+                File.Delete(file.Path);
+            return;
+        }
+
+        // 重排同文件内 Index
+        for (var i = 0; i < package.Definitions.Count; i++)
+        {
+            var d = package.Definitions[i];
+            if (!string.Equals(d.FilePath, file.Path, StringComparison.OrdinalIgnoreCase))
+                continue;
+            var idx = file.Definitions.FindIndex(x =>
+                string.Equals(x["id"]?.GetValue<string>(), d.Id, StringComparison.Ordinal));
+            if (idx >= 0)
+                d.Index = idx;
+        }
+
+        SaveFile(file);
+    }
+
+    static void ClearQuestOfferReferences(ContentPackage package, string questId)
+    {
+        if (string.IsNullOrWhiteSpace(questId))
+            return;
+        var touched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var region in package.OfType("worldRegion").ToList())
+        {
+            if (region.Raw["locations"] is not JsonArray locs)
+                continue;
+            var changed = false;
+            foreach (var node in locs)
+            {
+                if (node is not JsonObject loc)
+                    continue;
+                if (loc["questOfferIds"] is not JsonArray offers)
+                    continue;
+                var list = offers.Select(x => x?.GetValue<string>() ?? "")
+                    .Where(s => s.Length > 0 && !string.Equals(s, questId, StringComparison.Ordinal))
+                    .ToList();
+                if (list.Count == offers.Count)
+                    continue;
+                changed = true;
+                if (list.Count == 0)
+                    loc.Remove("questOfferIds");
+                else
+                    loc["questOfferIds"] = new JsonArray(list.Select(x => (JsonNode?)JsonValue.Create(x)).ToArray());
+            }
+
+            if (changed)
+                touched.Add(region.Id);
+        }
+
+        foreach (var id in touched)
+        {
+            var region = package.Find(id);
+            if (region != null)
+                SaveDefinition(package, region);
+        }
+    }
+
     public static DefRef AppendDefinition(ContentPackage package, string fileNameHint, JsonObject raw)
     {
         var dataDir = Path.Combine(package.Root, "Data");

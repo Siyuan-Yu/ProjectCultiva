@@ -102,17 +102,20 @@ namespace XianXia.Core.Exploration
             var foundAnything = false;
 
             if (!string.IsNullOrEmpty(location.ResourceOnExploreId) &&
-                location.ResourceOnExploreAmount > 0 &&
-                world.Settlements.TryGetPrimary(out var settlement))
+                location.ResourceOnExploreAmount > 0)
             {
-                settlement.AddStock(location.ResourceOnExploreId, location.ResourceOnExploreAmount);
-                world.Events.Publish(
-                    EventType.SettlementStockChanged,
-                    world.Tick,
-                    target: subject,
-                    payload: settlement.Id + ":" + location.ResourceOnExploreId +
-                             ":+" + location.ResourceOnExploreAmount);
-                foundAnything = true;
+                var added = world.Inventory.TryAdd(
+                    location.ResourceOnExploreId,
+                    location.ResourceOnExploreAmount);
+                if (added > 0)
+                {
+                    world.Events.Publish(
+                        EventType.SettlementStockChanged,
+                        world.Tick,
+                        target: subject,
+                        payload: "bag:" + location.ResourceOnExploreId + ":+" + added);
+                    foundAnything = true;
+                }
             }
 
             if (!string.IsNullOrEmpty(location.OpportunitySiteId) &&

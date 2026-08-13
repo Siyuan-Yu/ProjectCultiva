@@ -126,7 +126,8 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            if (bootstrap.Session.World.ContentEvents.HasActive ||
+            if (HostInputGate.BlockWorldInteraction ||
+                bootstrap.Session.World.ContentEvents.HasActive ||
                 (bootstrap.ContentInterrupt != null && bootstrap.ContentInterrupt.HasBlockingInterrupt))
             {
                 SetArmed(ArmKind.None);
@@ -332,10 +333,25 @@ namespace XianXia.Unity.Host
         void IssueWorkAtSpot(HostInteractSpot spot)
         {
             Resume();
+            var locId = spot.LocationId;
+            if (string.IsNullOrEmpty(locId) && bootstrap?.Session != null)
+                locId = HostZoneQuery.FindWorkLocation(bootstrap.Session.World, spot.WorldPosition);
+
             if (moveController != null)
-                moveController.OrderPartyToPointThen(spot.WorldPosition, PlayerCommandKind.Labor);
+                moveController.OrderPartyToPointThen(spot.WorldPosition, PlayerCommandKind.Labor, locId);
             else
-                FallbackSnapAndIssue(spot.LocationId, PlayerCommandKind.Labor);
+                FallbackSnapAndIssue(locId, PlayerCommandKind.Labor);
+
+            var loop = bootstrap != null ? bootstrap.GetComponent<HostWorkLoop>() : null;
+            if (loop != null && selectionController != null)
+            {
+                for (var i = 0; i < selectionController.State.Count; i++)
+                {
+                    var id = selectionController.State.SelectedIds[i];
+                    if (selectionController.IsPartyUnit(id))
+                        loop.StartLoop(id);
+                }
+            }
         }
 
         void IssueCultivateAtSpot(HostInteractSpot spot)

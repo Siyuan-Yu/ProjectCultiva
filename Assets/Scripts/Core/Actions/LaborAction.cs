@@ -6,7 +6,6 @@ using XianXia.Core.Exploration;
 using XianXia.Core.Labor;
 using XianXia.Core.Orders;
 using XianXia.Core.Results;
-using XianXia.Core.Settlement;
 using XianXia.Core.Simulation;
 
 namespace XianXia.Core.Actions
@@ -69,7 +68,12 @@ namespace XianXia.Core.Actions
             // Demo work-zone gather is player-driven; schedule labor stays on settlement day-end production.
             if (entity.TryGet<ActionStateComponent>(out var actionState) &&
                 actionState.ActiveOrderSource == OrderSource.Player)
-                ProduceFromCurrentLocation(world, entity);
+            {
+                TrackLocationLabor(world, entity);
+                // ~3s（默认 1 拍）完工发 1 份地点资源，不再每拍掉落。
+                if (Clock.IsComplete)
+                    ProduceOnceFromCurrentLocation(world, entity);
+            }
 
             if (Clock.IsComplete)
                 Status = ActionStatus.Completed;
@@ -77,25 +81,33 @@ namespace XianXia.Core.Actions
             return Result.Success();
         }
 
-        static void ProduceFromCurrentLocation(SimulationWorld world, Entity entity)
+        static void ProduceOnceFromCurrentLocation(SimulationWorld world, Entity entity)
         {
             if (!entity.TryGet<EntityLocationComponent>(out var loc) || !loc.HasLocation)
                 return;
             if (!world.WorldRegion.TryGet(loc.LocationId, out var location))
                 return;
-            if (string.IsNullOrEmpty(location.ResourceOnExploreId) || location.ResourceOnExploreAmount <= 0)
-                return;
-            if (!world.Settlements.TryGetPrimary(out var settlement))
+            if (string.IsNullOrEmpty(location.ResourceOnExploreId))
                 return;
 
-            var amount = location.ResourceOnExploreAmount;
-            settlement.AddStock(location.ResourceOnExploreId, amount);
+            const int grant = 1;
+            var added = world.Inventory.TryAdd(location.ResourceOnExploreId, grant);
+            if (added <= 0)
+                return;
+            world.LocationLabor.AddHarvest(entity.DefinitionId.ToString(), loc.LocationId, added);
             world.Events.Publish(
                 EventType.SettlementStockChanged,
                 world.Tick,
                 actor: entity.Id,
-                payload: settlement.Id + ":" + location.ResourceOnExploreId + ":" +
-                         settlement.GetStock(location.ResourceOnExploreId));
+                payload: "bag:" + location.ResourceOnExploreId + ":" +
+                         world.Inventory.GetCount(location.ResourceOnExploreId));
+        }
+
+        static void TrackLocationLabor(SimulationWorld world, Entity entity)
+        {
+            if (!entity.TryGet<EntityLocationComponent>(out var loc) || !loc.HasLocation)
+                return;
+            world.LocationLabor.Add(entity.DefinitionId.ToString(), loc.LocationId, 1);
         }
 
         public void Cancel()

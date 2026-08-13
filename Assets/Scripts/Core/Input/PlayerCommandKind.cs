@@ -28,6 +28,10 @@ namespace XianXia.Core.Input
         /// <summary>Demo parity [49]/[32]: cancel active action and clear pending player orders.</summary>
         Stop = 13,
         /// <summary>Demo parity [49]: consume conceal grass to lower PersonalConcealmentRisk.</summary>
-        UseConcealGrass = 14
+        UseConcealGrass = 14,
+        /// <summary>Quest journal: claim rewards for ReadyToClaim quest.</summary>
+        ClaimQuestRewards = 15,
+        /// <summary>Quest journal: abandon an abandonable quest.</summary>
+        AbandonQuest = 16
     }
 }

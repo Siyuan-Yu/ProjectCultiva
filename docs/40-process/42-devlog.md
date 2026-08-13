@@ -7,6 +7,18 @@
 
 ---
 
+## 2026-08-14 — Ch01 三环手操＋小队背包＋文档收束
+
+**做了什么**
+- Ch01 裁成三任务（手动接取）：uniqueHarvest／背包 stockAtLeast／三人集合
+- 劳动约 10s/份＠1x、自动续采；`LocationLaborProgressBoard` 计 harvest
+- 小队共用 50 槽背包（B／顶栏）；任务库存读背包
+- 任务日志 J、ReadyToClaim 领奖；QuestEditor 补劳动类条件
+- 新建 [116 收束](116-recent-updates-rollup-2026-08-14.md)；更新 SCHEMA／110／总览／通读指南；飞书同步；推 GitHub
+
+**判断与理由**
+- 制作人要可手操的劳役→凑物资→集合闭环，且物资必须进可见背包而非隐性聚落库存
+
 ## 2026-08-10 — 重写「编辑器工具」文档（106）
 
 **做了什么**

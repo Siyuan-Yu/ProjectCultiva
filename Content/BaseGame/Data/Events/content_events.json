@@ -9,15 +9,12 @@
       "trigger": "onExplore",
       "locationId": "base:loc_herb_slope",
       "once": true,
-      "conditions": [
-        { "kind": "questCompleted", "id": "base:quest_scout_herb_slope" }
-      ],
+      "conditions": [],
       "choices": [
         {
           "id": "gather",
           "text": "采一株灵草",
           "outcomes": [
-            { "kind": "startQuest", "id": "base:quest_listen_herb_whisper" },
             { "kind": "addStock", "id": "base:resource_spirit_herb", "amount": 2 },
             { "kind": "setFlag", "id": "event:herb_whisper_resolved" }
           ]
@@ -26,7 +23,6 @@
           "id": "meditate",
           "text": "静坐感悟",
           "outcomes": [
-            { "kind": "startQuest", "id": "base:quest_listen_herb_whisper" },
             { "kind": "grantProgress", "amount": 8 },
             { "kind": "setFlag", "id": "event:herb_whisper_resolved" }
           ]

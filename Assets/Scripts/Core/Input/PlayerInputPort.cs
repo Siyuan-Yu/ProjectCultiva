@@ -95,17 +95,14 @@ namespace XianXia.Core.Input
             const string grassId = "base:resource_conceal_grass";
             const int riskDrop = 15;
             var world = _loop.World;
-            if (!world.Settlements.TryGetPrimary(out var settlement))
-                return Result.Failure(ErrorCode.NotFound, "No settlement for conceal grass.");
-            if (settlement.GetStock(grassId) < 1)
-                return Result.Failure(ErrorCode.InvalidOperation, "No conceal grass stock.");
+            if (world.Inventory.GetCount(grassId) < 1)
+                return Result.Failure(ErrorCode.InvalidOperation, "No conceal grass in bag.");
             if (!world.Entities.TryGet(subject, out var entity) ||
                 !entity.TryGet<PersonalConcealmentRiskComponent>(out var risk))
                 return Result.Failure(ErrorCode.ComponentMissing, "Concealment risk missing.");
 
-            var spent = _settlement.AddStock(world, settlement.Id, grassId, -1);
-            if (spent.IsFailure)
-                return spent;
+            if (!world.Inventory.TryRemoveAll(grassId, 1))
+                return Result.Failure(ErrorCode.InvalidOperation, "Failed to spend conceal grass.");
             risk.Add(-riskDrop);
             return Result.Success();
         }
@@ -125,6 +122,10 @@ namespace XianXia.Core.Input
                 return _contentEvents.ResolveChoice(_loop.World, request.Subject, request.ChoiceId);
             if (request.Kind == PlayerCommandKind.StartQuest)
                 return _quests.TryStart(_loop.World, request.QuestId, request.Subject);
+            if (request.Kind == PlayerCommandKind.ClaimQuestRewards)
+                return _quests.TryClaimRewards(_loop.World, request.QuestId, request.Subject);
+            if (request.Kind == PlayerCommandKind.AbandonQuest)
+                return _quests.TryAbandon(_loop.World, request.QuestId, request.Subject);
             return Result.Failure(ErrorCode.InvalidArgument, "Unsupported content kind.");
         }
 

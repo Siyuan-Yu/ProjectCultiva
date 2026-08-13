@@ -3,7 +3,7 @@
 > 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-10（收束导航／NPC／Demo0.1；编辑器计划确认）  
 > 用途：一次看清 VS0.1～1.0／Content Ready 做到哪、本轮改了什么、下一步是什么。  
 > 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准；本页不改 Freeze。  
-> 近期增量一次看清：[107](107-recent-milestones-rollup-2026-08-10.md)
+> 近期增量一次看清：[116](116-recent-updates-rollup-2026-08-14.md)（Ch01／背包）／[115](115-recent-updates-rollup-2026-08-13.md)（编辑器）／[107](107-recent-milestones-rollup-2026-08-10.md)
 
 ---
 

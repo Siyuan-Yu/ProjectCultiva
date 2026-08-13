@@ -89,6 +89,7 @@ public partial class MainWindow : Window
             NameBox.Text = JsonEdit.GetString(_quest.Raw, "name");
             DescBox.Text = JsonEdit.GetString(_quest.Raw, "description");
             AutoOfferBox.IsChecked = JsonEdit.GetBool(_quest.Raw, "autoOffer", true);
+            AbandonableBox.IsChecked = JsonEdit.GetBool(_quest.Raw, "abandonable", false);
 
             OfferEditor.LoadFrom(_quest.Raw["offerConditions"]);
             CompleteEditor.LoadFrom(_quest.Raw["completeConditions"]);
@@ -360,6 +361,49 @@ public partial class MainWindow : Window
         }
     }
 
+    private void DeleteQuest_Click(object sender, RoutedEventArgs e)
+    {
+        if (_package == null || _quest == null)
+        {
+            MessageBox.Show("没有选中任务");
+            return;
+        }
+
+        var id = _quest.Id;
+        var name = string.IsNullOrWhiteSpace(_quest.Name) ? id : _quest.Name;
+        var locs = PackageStore.LocationsOfferingQuest(_package, id);
+        var events = PackageStore.EventsStartingQuest(_package, id);
+        var extra = "";
+        if (locs.Count > 0)
+            extra += "\n· 将从地点 questOfferIds 移除引用：" + string.Join(", ", locs);
+        if (events.Count > 0)
+            extra += "\n· 仍有关联事件（不会自动删除，请到 EventEditor 自行处理）：" + string.Join(", ", events);
+
+        var confirm = MessageBox.Show(
+            "确定删除任务？\n\n" + name + "\n" + id +
+            "\n文件：" + _quest.FilePath +
+            extra +
+            "\n\n此操作不可撤销。",
+            "删除任务",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+        if (confirm != MessageBoxResult.Yes)
+            return;
+
+        try
+        {
+            PackageStore.DeleteDefinition(_package, _quest);
+            _quest = null;
+            LoadRoot(_package.Root);
+            StatusText.Text = "已删除任务 " + id;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "删除失败", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     bool TryApplyEditorToQuest(out string err)
     {
         err = "";
@@ -372,6 +416,7 @@ public partial class MainWindow : Window
         _quest.Raw["id"] = IdBox.Text?.Trim() ?? _quest.Id;
         _quest.Raw["name"] = NameBox.Text ?? "";
         _quest.Raw["description"] = DescBox.Text ?? "";
+        _quest.Raw["abandonable"] = AbandonableBox.IsChecked == true;
 
         var mode = CurrentOfferMode();
         try

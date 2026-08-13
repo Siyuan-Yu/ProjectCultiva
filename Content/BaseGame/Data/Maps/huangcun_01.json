@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "definitions": [
     {
-      "id": "huangcun_01",
+      "id": "base:map_huangcun_01",
       "type": "mapLayout",
       "name": "第一章参考关·格点地图",
       "originX": -40,

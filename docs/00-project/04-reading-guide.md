@@ -1,6 +1,6 @@
 # 文档通读指南
 
-> 状态：现行 | 最后更新：2026-08-10  
+> 状态：现行 | 最后更新：2026-08-14  
 > 上级：[`00-overview.md`](00-overview.md)  
 > **本页说明怎么读整套策划／架构文档。** 正文仍以各专题页为准；本地 Markdown 与飞书同步页一一对应。
 
@@ -25,14 +25,17 @@
 
 当前结构已经适合「仔细通读 + 交叉跳转」。本轮整理重点是：补齐飞书映射、加强入口导航，**不重写已冻结规则正文**。
 
-## 1.1 当前制作人入口（2026-08-10）
+## 1.1 当前制作人入口（2026-08-14）
 
 | 目的 | 读什么 |
 |------|--------|
+| **本轮增量（Ch01／背包／劳动）** | [116](../40-process/116-recent-updates-rollup-2026-08-14.md) |
+| 工具链上一轮 | [115](../40-process/115-recent-updates-rollup-2026-08-13.md) |
 | 现在做到哪 | [62 现状](../40-process/62-project-status-2026-08-01.md)／[107 收束](../40-process/107-recent-milestones-rollup-2026-08-10.md) |
+| 任务编辑器 | [110](../40-process/110-content-studio-quest-editor-usage.md) |
 | 手操 Demo 0.1 | [105](../40-process/105-demo-0.1-producer-playbook-30min.md) |
 | 手写／结构指南 | [94](../40-process/94-chapter-full-production-and-sample-guide.md) |
-| **即将做的编辑器** | [106 编辑器工具](../40-process/106-content-authoring-editors-plan-v0.1.md) |
+| 编辑器总计划 | [106](../40-process/106-content-authoring-editors-plan-v0.1.md) |
 
 ## 2. 建议通读顺序（审核 Freeze v0.2）
 

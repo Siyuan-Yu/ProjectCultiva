@@ -68,15 +68,23 @@ namespace XianXia.Tests
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(
                 subject, PlayerCommandKind.Explore, 1)).IsSuccess);
 
-            Assert.AreEqual(QuestStatus.Completed, arrive.Status);
+            Assert.AreEqual(QuestStatus.ReadyToClaim, arrive.Status);
             Assert.IsTrue(world.ContentEvents.HasActive);
             Assert.AreEqual("base:event_ch01_harness_ping", world.ContentEvents.ActiveEventId);
+            Assert.IsTrue(port.Submit(new PlayerCommandRequest(
+                subject, PlayerCommandKind.ClaimQuestRewards, 1, EntityId.None, WorkRoleKind.None,
+                null, null, "base:quest_ch01_harness_arrive")).IsSuccess);
+            Assert.AreEqual(QuestStatus.Completed, arrive.Status);
 
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(
                 subject, PlayerCommandKind.ResolveContentChoice, 1, EntityId.None, WorkRoleKind.None,
                 null, "ack", null)).IsSuccess);
             Assert.IsTrue(world.Flags.Has("event:ch01_harness_resolved"));
             Assert.IsTrue(world.Quests.TryGet("base:quest_ch01_harness_follow", out var follow));
+            Assert.AreEqual(QuestStatus.ReadyToClaim, follow.Status);
+            Assert.IsTrue(port.Submit(new PlayerCommandRequest(
+                subject, PlayerCommandKind.ClaimQuestRewards, 1, EntityId.None, WorkRoleKind.None,
+                null, null, "base:quest_ch01_harness_follow")).IsSuccess);
             Assert.AreEqual(QuestStatus.Completed, follow.Status);
             Assert.IsTrue(world.Flags.Has("story:ch01_harness_chain_ok"));
 

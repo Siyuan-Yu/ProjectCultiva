@@ -8,8 +8,8 @@ using XianXia.Core.Input;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// Formal content interrupt：ContentEvent 选项弹层＋Quest 接取／完成提醒。
-    /// 规则真源仍在 Core ContentEvent／Quest；本组件只做 Host 呈现与暂停策略。
+    /// ContentEvent 对话弹层 +（可选）任务提醒弹窗。
+    /// NPC 对话接任务走事件弹层；任务接取／完成提醒默认关闭（改由任务日志 UI）。
     /// </summary>
     public sealed class HostContentInterruptPresenter : MonoBehaviour
     {
@@ -30,6 +30,10 @@ namespace XianXia.Unity.Host
         [SerializeField] HostCommandBridge commandBridge;
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] bool holdPause = true;
+        [Tooltip("NPC／内容事件选项弹层。默认关：自动选第一条可用选项。")]
+        [SerializeField] bool enableContentEventPopups;
+        [Tooltip("任务接取／完成／失败的「知道了」弹窗；默认关。")]
+        [SerializeField] bool enableQuestNotifyPopups;
 
         readonly Queue<QuestNotify> _questQueue = new Queue<QuestNotify>();
         readonly HashSet<string> _seenQuestStarted = new HashSet<string>();
@@ -47,7 +51,6 @@ namespace XianXia.Unity.Host
         static readonly Color ParchmentDark = new Color(0.72f, 0.62f, 0.48f, 1f);
         static readonly Color Ink = new Color(0.18f, 0.14f, 0.10f, 1f);
 
-        /// <summary>事件选项或任务提醒占用中（应暂停并阻断 RTS）。</summary>
         public bool HasBlockingInterrupt
         {
             get
@@ -55,7 +58,11 @@ namespace XianXia.Unity.Host
                 var session = bootstrap != null ? bootstrap.Session : null;
                 if (session == null || !session.IsInitialized)
                     return false;
-                return session.World.ContentEvents.HasActive || _activeQuestNotify.HasValue;
+                if (enableContentEventPopups && session.World.ContentEvents.HasActive)
+                    return true;
+                if (enableQuestNotifyPopups && _activeQuestNotify.HasValue)
+                    return true;
+                return false;
             }
         }
 
@@ -79,10 +86,9 @@ namespace XianXia.Unity.Host
             _holdingPause = false;
         }
 
-        /// <summary>在 DomainEvent Drain 之后调用，吞掉任务类事件做提醒队列。</summary>
         public void Ingest(IReadOnlyList<DomainEvent> drained)
         {
-            if (drained == null || drained.Count == 0)
+            if (!enableQuestNotifyPopups || drained == null || drained.Count == 0)
                 return;
             for (var i = 0; i < drained.Count; i++)
             {
@@ -114,7 +120,6 @@ namespace XianXia.Unity.Host
 
         void Update() => TickInterruptState();
 
-        /// <summary>EditMode／测试可直接推进暂停与任务提醒队列。</summary>
         public void TickInterruptState()
         {
             var session = bootstrap != null ? bootstrap.Session : null;
@@ -124,7 +129,17 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            if (!session.World.ContentEvents.HasActive &&
+            if (!enableQuestNotifyPopups)
+            {
+                _questQueue.Clear();
+                _activeQuestNotify = null;
+            }
+
+            if (!enableContentEventPopups && session.World.ContentEvents.HasActive)
+                TryAutoResolveActiveEvent(session);
+
+            if (enableQuestNotifyPopups &&
+                !session.World.ContentEvents.HasActive &&
                 !_activeQuestNotify.HasValue &&
                 _questQueue.Count > 0)
             {
@@ -132,6 +147,28 @@ namespace XianXia.Unity.Host
             }
 
             SyncPause(session);
+        }
+
+        void TryAutoResolveActiveEvent(PlayableHostSession session)
+        {
+            if (commandBridge == null || !session.World.ContentEvents.HasActive)
+                return;
+            if (!session.World.ContentEvents.TryGet(session.World.ContentEvents.ActiveEventId, out var spec) ||
+                spec?.Choices == null ||
+                spec.Choices.Count == 0)
+                return;
+
+            var subject = ResolveSubject(session);
+            for (var i = 0; i < spec.Choices.Count; i++)
+            {
+                var choice = spec.Choices[i];
+                if (choice == null || string.IsNullOrEmpty(choice.Id))
+                    continue;
+                if (!ContentConditionEvaluator.AllPass(session.World, subject, choice.Conditions))
+                    continue;
+                commandBridge.ResolveContentChoice(choice.Id);
+                return;
+            }
         }
 
         void SyncPause(PlayableHostSession session)
@@ -158,13 +195,13 @@ namespace XianXia.Unity.Host
                 return;
 
             EnsureStyles();
-            if (session.World.ContentEvents.HasActive)
+            if (enableContentEventPopups && session.World.ContentEvents.HasActive)
             {
                 DrawEventModal(session);
                 return;
             }
 
-            if (_activeQuestNotify.HasValue)
+            if (enableQuestNotifyPopups && _activeQuestNotify.HasValue)
                 DrawQuestModal(session, _activeQuestNotify.Value);
         }
 
@@ -217,7 +254,7 @@ namespace XianXia.Unity.Host
             var kindLabel = notify.Kind == QuestNotifyKind.Started
                 ? "任务接取"
                 : notify.Kind == QuestNotifyKind.Completed
-                    ? "任务完成"
+                    ? "任务可领奖"
                     : "任务失败";
             var name = notify.QuestId;
             var desc = "";

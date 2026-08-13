@@ -21,7 +21,7 @@ Level Tester 用来试玩 **某一个大地图节点的 LocalMap**（例如荒�
 | 6 | 寻路 WalkGrid 来自当前 mapLayout | ✅ |
 | 7 | RTS：选中、移动、右键劳动／修炼 | ✅ Host 全套 |
 | 8 | 时间：暂停／步进／变速、日程 | ✅ |
-| 9 | HUD：任务／事件／角色状态 | ✅ Formal + EventFeed + Debug |
+| 9 | HUD：任务／事件／角色状态 | ✅ Formal + **任务日志 J** + EventFeed |
 | 10 | 热重载：改 JSON 后 F12 重进 | ✅ |
 | 11 | 顶栏显示当前包／地图／剧本 | ✅ `LevelTesterHud` |
 | 12 | Inspector 浏览磁盘 map JSON（Content 在 Assets 外） | ✅ CustomInspector 按钮 |
@@ -69,6 +69,7 @@ NPC／任务仍来自 Content 包；这里只换「这一张本地图」。
 | [ ] | 变速 |
 | F12 | 重载当前配置 |
 | F1 | 显隐 Level Tester 顶栏 |
+| J | 任务日志（打开时暂停世界；可接／进行中／已完成；追踪显示在右侧任务栏） |
 | 中键／键盘 | 相机平移缩放（Host 相机） |
 
 ---

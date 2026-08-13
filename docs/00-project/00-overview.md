@@ -1,19 +1,19 @@
 ﻿# 修仙游戏策划案总览
 
-> 状态：概念框架 v0.9｜**Architecture Freeze v0.2**｜**Demo 0.1 可玩弧自动化已验收；内容编辑器待开工** | 最后更新：2026-08-10  
+> 状态：概念框架 v0.9｜**Architecture Freeze v0.2**｜**Content Studio＋Ch01 手操弧进行中** | 最后更新：2026-08-14  
 > **本页只放最高层大纲。** 细节进专题页；**怎么读整套文档**见 [通读指南](04-reading-guide.md)。  
 > 本地 Markdown 与飞书文档一一对应（真源在本地，飞书为阅读层）。
 
 ## 〇、当前项目阶段
 
 **架构冻结 v0.2。** Core／Data／Host／**VS 0.1～1.0 Demo 自动化已验收**。  
-其上已叠加：**DemoParityHost 样例关**、内容打断、2G 觉醒弧、RTS 手动控制、**Navigation／NPC Simulation 底座**、**Demo 0.1 Production 可玩弧补强**。  
-收束见 [107](../40-process/107-recent-milestones-rollup-2026-08-10.md)；制作人手操见 [105](../40-process/105-demo-0.1-producer-playbook-30min.md)。  
+其上已叠加：样例关、内容打断、RTS 手操、Navigation／NPC 底座、**Content Studio（Quest／Event／Region／Map／校验台）**、**Level Tester**、**Ch01 三环手操（劳动／背包／集合）**。  
+最新增量见 [116](../40-process/116-recent-updates-rollup-2026-08-14.md)（上一轮工具链 [115](../40-process/115-recent-updates-rollup-2026-08-13.md)）；里程碑底座 [107](../40-process/107-recent-milestones-rollup-2026-08-10.md)。  
 
-**下一步：** [106 编辑器工具](../40-process/106-content-authoring-editors-plan-v0.1.md)（`ExternalTools/`，第一期校验台＋地点＋任务＋事件）。  
+**下一步：** 制作人手操签收 Ch01 三环；补齐背包相关 EditMode；Event choices 可视化／ChapterEditor 等仍按 [106](../40-process/106-content-authoring-editors-plan-v0.1.md)。  
 Demo Runtime 停扩。完整进度见 [62 项目现状](../40-process/62-project-status-2026-08-01.md)。
 
-**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [62 现状](../40-process/62-project-status-2026-08-01.md) → [107 近期收束](../40-process/107-recent-milestones-rollup-2026-08-10.md) → [105 手操](../40-process/105-demo-0.1-producer-playbook-30min.md) → [106 编辑器](../40-process/106-content-authoring-editors-plan-v0.1.md) → [94 制作指南](../40-process/94-chapter-full-production-and-sample-guide.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md)。
+**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [116 本轮收束](../40-process/116-recent-updates-rollup-2026-08-14.md) → [115](../40-process/115-recent-updates-rollup-2026-08-13.md) → [62 现状](../40-process/62-project-status-2026-08-01.md) → [110 任务编辑器](../40-process/110-content-studio-quest-editor-usage.md) → [105 手操](../40-process/105-demo-0.1-producer-playbook-30min.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md)。
 
 - 主契约：[33 架构冻结 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md)
 - 实体／Order／Mod：[34](../30-tech/34-entity-and-component-model.md)、[35](../30-tech/35-order-and-action-system.md)、[36](../30-tech/36-content-package-and-mod-architecture.md)

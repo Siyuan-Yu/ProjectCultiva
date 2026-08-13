@@ -1114,7 +1114,8 @@ namespace XianXia.Data.Content
                 Id = id,
                 Name = item.GetString("name", string.Empty),
                 Description = item.GetString("description", string.Empty),
-                AutoOffer = item.GetBool("autoOffer", false)
+                AutoOffer = item.GetBool("autoOffer", false),
+                Abandonable = item.GetBool("abandonable", false)
             };
             ReadConditions(item, "offerConditions", quest.OfferConditions, report, id.ToString());
             ReadConditions(item, "completeConditions", quest.CompleteConditions, report, id.ToString());
@@ -1213,7 +1214,8 @@ namespace XianXia.Data.Content
                     Kind = node.GetString("kind", string.Empty),
                     Id = node.GetString("id", string.Empty),
                     Amount = ReadInt(node, "amount", 0),
-                    Realm = node.GetString("realm", string.Empty)
+                    Realm = node.GetString("realm", string.Empty),
+                    CharacterId = node.GetString("characterId", string.Empty)
                 };
                 if (string.IsNullOrWhiteSpace(c.Kind))
                 {

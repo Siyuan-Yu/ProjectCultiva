@@ -50,6 +50,8 @@ namespace XianXia.Unity.Host
         [SerializeField] HostFeedbackOverlay feedbackOverlay;
         [SerializeField] HostWorkTargetMode workTargetMode;
         [SerializeField] HostContentInterruptPresenter contentInterrupt;
+        [SerializeField] HostQuestJournal questJournal;
+        [SerializeField] HostInventoryPanel inventoryPanel;
         [SerializeField] HostInteractSpotPresenter interactSpotPresenter;
         [SerializeField] HostNpcScheduleMover npcScheduleMover;
 
@@ -92,6 +94,10 @@ namespace XianXia.Unity.Host
 
         public HostContentInterruptPresenter ContentInterrupt => contentInterrupt;
 
+        public HostQuestJournal QuestJournal => questJournal;
+
+        public HostInventoryPanel InventoryPanel => inventoryPanel;
+
         public string StatusLine => _status;
 
         public string ResolvedContentPath => _resolvedContentPath;
@@ -128,6 +134,12 @@ namespace XianXia.Unity.Host
             if (contentInterrupt == null)
                 contentInterrupt = GetComponent<HostContentInterruptPresenter>() ??
                                   GetComponentInChildren<HostContentInterruptPresenter>();
+            if (questJournal == null)
+                questJournal = GetComponent<HostQuestJournal>() ??
+                              GetComponentInChildren<HostQuestJournal>();
+            if (inventoryPanel == null)
+                inventoryPanel = GetComponent<HostInventoryPanel>() ??
+                                GetComponentInChildren<HostInventoryPanel>();
         }
 
         void Start()
@@ -149,13 +161,19 @@ namespace XianXia.Unity.Host
 
             if (Input.GetKeyDown(togglePauseKey))
             {
-                if (contentInterrupt == null || !contentInterrupt.HasBlockingInterrupt)
+                if ((questJournal == null || !questJournal.IsOpen) &&
+                    (inventoryPanel == null || !inventoryPanel.IsOpen) &&
+                    (contentInterrupt == null || !contentInterrupt.HasBlockingInterrupt))
                     _session.IsPaused = !_session.IsPaused;
                 RefreshStatus();
             }
 
             if (Input.GetKeyDown(stepTickKey) || Input.GetKeyDown(stepTickAltKey))
-                StepTick();
+            {
+                if ((questJournal == null || !questJournal.IsOpen) &&
+                    (inventoryPanel == null || !inventoryPanel.IsOpen))
+                    StepTick();
+            }
 
             if (Input.GetKeyDown(cycleSpeedKey) || Input.GetKeyDown(cycleSpeedAltKey))
             {
@@ -192,6 +210,8 @@ namespace XianXia.Unity.Host
         {
             preferredMapLayoutId = mapLayoutId ?? "";
         }
+
+        public float SecondsPerAutoTickAt1x => Mathf.Max(0.01f, secondsPerAutoTickAt1x);
 
         public string PreferredMapLayoutId => preferredMapLayoutId ?? "";
 
@@ -243,6 +263,14 @@ namespace XianXia.Unity.Host
             if (contentInterrupt == null)
                 contentInterrupt = GetComponent<HostContentInterruptPresenter>() ??
                                   gameObject.AddComponent<HostContentInterruptPresenter>();
+            if (questJournal == null)
+                questJournal = GetComponent<HostQuestJournal>() ??
+                              gameObject.AddComponent<HostQuestJournal>();
+            if (inventoryPanel == null)
+                inventoryPanel = GetComponent<HostInventoryPanel>() ??
+                                gameObject.AddComponent<HostInventoryPanel>();
+            if (GetComponent<HostWorkLoop>() == null)
+                gameObject.AddComponent<HostWorkLoop>();
             if (interactSpotPresenter == null)
                 interactSpotPresenter = GetComponent<HostInteractSpotPresenter>() ??
                                        gameObject.AddComponent<HostInteractSpotPresenter>();
@@ -254,6 +282,10 @@ namespace XianXia.Unity.Host
             entityViewSpawner.Clear();
             eventFeed.Clear();
             contentInterrupt.ClearSessionState();
+            if (questJournal != null)
+                questJournal.ClearSessionState();
+            if (inventoryPanel != null)
+                inventoryPanel.ClearSessionState();
             mapGraybox.Clear();
             interactSpotPresenter.Clear();
 
@@ -311,6 +343,9 @@ namespace XianXia.Unity.Host
                 selectionController.SelectEntity(_session.CharacterIds[0], false);
             feedbackOverlay.Bind(cam);
             commandBridge.Bind(_session, selectionController, feedbackOverlay);
+            var workLoop = GetComponent<HostWorkLoop>();
+            if (workLoop != null)
+                workLoop.Bind(this, commandBridge, moveController);
             debugHud.Bind(this, selectionController);
             contentDebugPanel.Bind(this, selectionController);
             moveController.Bind(this, selectionController, entityViewSpawner, commandBridge);
@@ -321,6 +356,8 @@ namespace XianXia.Unity.Host
             crowdPresenter.Bind(this);
             workTargetMode.Bind(this, selectionController, commandBridge);
             contentInterrupt.Bind(this, commandBridge, selectionController);
+            questJournal.Bind(this, commandBridge, selectionController);
+            inventoryPanel.Bind(this);
             npcScheduleMover.Bind(this, moveController, entityViewSpawner);
             snapshotPanel.Bind(this);
             // Bootstrap already published WorldInitialized／EntityCreated — capture once.

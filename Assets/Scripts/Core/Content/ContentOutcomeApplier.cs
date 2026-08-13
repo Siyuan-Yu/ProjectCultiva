@@ -45,15 +45,18 @@ namespace XianXia.Core.Content
                     StoryFlagService.Clear(world, o.Id, subject);
                     return Result.Success();
                 case "addstock":
-                    if (!world.Settlements.TryGetPrimary(out var settlement))
-                        return Result.Failure(ErrorCode.NotFound, "No primary settlement for addStock.");
-                    settlement.AddStock(o.Id, o.Amount <= 0 ? 1 : o.Amount);
+                {
+                    var amt = o.Amount <= 0 ? 1 : o.Amount;
+                    var added = world.Inventory.TryAdd(o.Id, amt);
+                    if (added <= 0)
+                        return Result.Failure(ErrorCode.InvalidOperation, "Party bag full.", o.Id);
                     world.Events.Publish(
                         EventType.SettlementStockChanged,
                         world.Tick,
                         target: subject,
-                        payload: settlement.Id + ":" + o.Id + ":+" + o.Amount);
+                        payload: "bag:" + o.Id + ":+" + added);
                     return Result.Success();
+                }
                 case "startquest":
                     return new QuestService().TryStart(world, o.Id, subject);
                 case "relationdelta":

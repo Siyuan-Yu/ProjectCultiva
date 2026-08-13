@@ -231,6 +231,20 @@ namespace XianXia.Data.Content
                         if (!string.IsNullOrEmpty(c.Id) && !locations.Contains(c.Id))
                             report.Add(ErrorCode.NotFound, "condition location missing.", ctx + ":" + c.Id);
                         break;
+                    case "laboratlocation":
+                    case "uniquelaboratlocation":
+                    case "uniqueharvestatlocation":
+                        if (!string.IsNullOrEmpty(c.Id) && !locations.Contains(c.Id))
+                            report.Add(ErrorCode.NotFound, "condition location missing.", ctx + ":" + c.Id);
+                        if (kind == "laboratlocation" && !string.IsNullOrEmpty(c.CharacterId))
+                            RequireDef(registry, c.CharacterId, "character", ctx + "." + c.Kind, report);
+                        break;
+                    case "characteratlocation":
+                        if (!string.IsNullOrEmpty(c.Id) && !locations.Contains(c.Id))
+                            report.Add(ErrorCode.NotFound, "condition location missing.", ctx + ":" + c.Id);
+                        if (!string.IsNullOrEmpty(c.CharacterId))
+                            RequireDef(registry, c.CharacterId, "character", ctx + "." + c.Kind, report);
+                        break;
                     case "knowssite":
                         RequireDef(registry, c.Id, "opportunitySite", ctx + ".knowsSite", report);
                         break;

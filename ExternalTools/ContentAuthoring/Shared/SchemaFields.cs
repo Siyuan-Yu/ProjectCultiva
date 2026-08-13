@@ -47,7 +47,7 @@ public static class SchemaFields
         },
         ["quest"] = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "description", "autoOffer",
+            "id", "type", "name", "description", "autoOffer", "abandonable",
             "offerConditions", "completeConditions", "failConditions", "rewards", "failResults"
         },
         ["contentEvent"] = new HashSet<string>(StringComparer.Ordinal)
@@ -90,7 +90,8 @@ public static class SchemaFields
     public static readonly string[] ConditionKinds =
     [
         "storyFlag", "hasFlag", "missingFlag", "exploredLocation", "atLocation",
-        "stockAtLeast", "realmAtLeast", "hasManual", "knowsSite", "questActive", "questCompleted"
+        "stockAtLeast", "realmAtLeast", "hasManual", "knowsSite", "questActive", "questCompleted",
+        "laborAtLocation", "characterAtLocation", "uniqueLaborAtLocation", "uniqueHarvestAtLocation"
     ];
 
     public static readonly string[] OutcomeKinds =

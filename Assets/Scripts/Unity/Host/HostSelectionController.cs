@@ -65,6 +65,11 @@ namespace XianXia.Unity.Host
         {
             if (spawner == null || selectionCamera == null)
                 return;
+            if (HostInputGate.BlockWorldInteraction)
+            {
+                CancelGesture();
+                return;
+            }
 
             if (Input.GetMouseButtonDown(0))
             {

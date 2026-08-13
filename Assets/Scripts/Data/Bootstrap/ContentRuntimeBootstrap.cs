@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using XianXia.Core.Content;
+using XianXia.Core.Inventory;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Data.Content;
@@ -13,6 +15,8 @@ namespace XianXia.Data.Bootstrap
             if (world == null || registry == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "ContentRuntime bootstrap args null.");
 
+            ApplyInventoryCatalog(world, registry);
+
             foreach (var kv in registry.Quests)
             {
                 var def = kv.Value;
@@ -21,7 +25,8 @@ namespace XianXia.Data.Bootstrap
                     Id = def.Id.ToString(),
                     Name = def.Name ?? string.Empty,
                     Description = def.Description ?? string.Empty,
-                    AutoOffer = def.AutoOffer
+                    AutoOffer = def.AutoOffer,
+                    Abandonable = def.Abandonable
                 };
                 spec.OfferConditions.AddRange(def.OfferConditions);
                 spec.CompleteConditions.AddRange(def.CompleteConditions);
@@ -62,6 +67,42 @@ namespace XianXia.Data.Bootstrap
             }
 
             return Result.Success();
+        }
+
+        static void ApplyInventoryCatalog(SimulationWorld world, DefinitionRegistry registry)
+        {
+            var catalog = world.InventoryCatalog;
+            foreach (var kv in registry.Resources)
+            {
+                var r = kv.Value;
+                var id = r.Id.ToString();
+                var tags = new List<string> { "resource" };
+                AppendHeuristicTags(id, tags);
+                catalog.Register(id, r.Name ?? id, 99, tags);
+            }
+
+            foreach (var kv in registry.Items)
+            {
+                var item = kv.Value;
+                var id = item.Id.ToString();
+                catalog.Register(id, item.Name ?? id, item.MaxStack, item.Tags);
+            }
+
+            world.Inventory.SetSlotCapacity(PartyInventory.DefaultSlotCapacity);
+        }
+
+        static void AppendHeuristicTags(string id, List<string> tags)
+        {
+            if (string.IsNullOrEmpty(id))
+                return;
+            if (id.IndexOf("wood", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                tags.Add("wood");
+            if (id.IndexOf("herb", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                tags.Add("herb");
+            if (id.IndexOf("grain", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                tags.Add("grain");
+            if (id.IndexOf("conceal", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                tags.Add("consumable");
         }
     }
 }

@@ -86,6 +86,12 @@ namespace XianXia.Core.Content
         public Result StartQuest(SimulationWorld world, EntityId subject, string questId) =>
             _quests.TryStart(world, questId, subject);
 
+        public Result ClaimQuestRewards(SimulationWorld world, EntityId subject, string questId) =>
+            _quests.TryClaimRewards(world, questId, subject);
+
+        public Result AbandonQuest(SimulationWorld world, EntityId subject, string questId) =>
+            _quests.TryAbandon(world, questId, subject);
+
         public Result ActivateChapter(SimulationWorld world, EntityId subject, string chapterId) =>
             _chapters.Activate(world, chapterId, subject);
 

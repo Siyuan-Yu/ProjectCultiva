@@ -129,6 +129,9 @@ namespace XianXia.Unity.Host
                 new UnityEngine.Color(0.42f, 0.36f, 0.40f)),
             new("roadHub", Hub, StampMode.SingleCentered, 8, 8, false, null,
                 new UnityEngine.Color(0.58f, 0.50f, 0.40f)),
+            // 集合点：可多实例，靠 boundLocationId 区分；暂用蒲团外观，可换成专用 prefab。
+            new("rallyPoint", Cushion, StampMode.SingleCentered, 2, 2, false, null,
+                new UnityEngine.Color(0.85f, 0.55f, 0.20f)),
         };
 
         public static bool TryGet(string kind, out KindInfo info)

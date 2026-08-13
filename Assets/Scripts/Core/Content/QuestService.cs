@@ -14,15 +14,62 @@ namespace XianXia.Core.Content
             if (!world.Quests.TryGetSpec(questId, out var spec) || !world.Quests.TryGet(questId, out var runtime))
                 return Result.Failure(ErrorCode.NotFound, "Quest missing.", questId);
 
-            if (runtime.Status == QuestStatus.Active || runtime.Status == QuestStatus.Completed)
+            if (runtime.Status == QuestStatus.Active ||
+                runtime.Status == QuestStatus.ReadyToClaim ||
+                runtime.Status == QuestStatus.Completed)
                 return Result.Success();
+
+            if (runtime.Status == QuestStatus.Failed)
+                return Result.Failure(ErrorCode.InvalidOperation, "Quest already failed.", questId);
 
             if (!ContentConditionEvaluator.AllPass(world, subject, spec.OfferConditions))
                 return Result.Failure(ErrorCode.InvalidOperation, "Quest offer conditions not met.", questId);
 
             runtime.Status = QuestStatus.Active;
             runtime.ProgressCount = 0;
+            runtime.ProgressMax = ResolveProgressMax(spec);
             world.Events.Publish(EventType.QuestStarted, world.Tick, target: subject, payload: questId);
+            return Result.Success();
+        }
+
+        /// <summary>目标达成后领取奖励 → Completed。</summary>
+        public Result TryClaimRewards(SimulationWorld world, string questId, EntityId subject)
+        {
+            if (world == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "World null.");
+            if (!world.Quests.TryGetSpec(questId, out var spec) || !world.Quests.TryGet(questId, out var runtime))
+                return Result.Failure(ErrorCode.NotFound, "Quest missing.", questId);
+
+            if (runtime.Status != QuestStatus.ReadyToClaim)
+                return Result.Failure(ErrorCode.InvalidOperation, "Quest not ready to claim.", questId);
+
+            var rewarded = ContentOutcomeApplier.ApplyAll(world, subject, spec.Rewards);
+            if (rewarded.IsFailure)
+                return rewarded;
+
+            runtime.Status = QuestStatus.Completed;
+            world.Events.Publish(EventType.QuestRewardsClaimed, world.Tick, target: subject, payload: questId);
+            return Result.Success();
+        }
+
+        /// <summary>放弃进行中的任务（需 Spec.Abandonable）。</summary>
+        public Result TryAbandon(SimulationWorld world, string questId, EntityId subject)
+        {
+            if (world == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "World null.");
+            if (!world.Quests.TryGetSpec(questId, out var spec) || !world.Quests.TryGet(questId, out var runtime))
+                return Result.Failure(ErrorCode.NotFound, "Quest missing.", questId);
+
+            if (!spec.Abandonable)
+                return Result.Failure(ErrorCode.InvalidOperation, "Quest cannot be abandoned.", questId);
+
+            if (runtime.Status != QuestStatus.Active && runtime.Status != QuestStatus.ReadyToClaim)
+                return Result.Failure(ErrorCode.InvalidOperation, "Quest not abandonable in current status.", questId);
+
+            runtime.Status = QuestStatus.Inactive;
+            runtime.ProgressCount = 0;
+            runtime.ProgressMax = 0;
+            world.Events.Publish(EventType.QuestAbandoned, world.Tick, target: subject, payload: questId);
             return Result.Success();
         }
 
@@ -46,6 +93,8 @@ namespace XianXia.Core.Content
                 if (runtime.Status != QuestStatus.Active)
                     continue;
 
+                RefreshProgress(world, spec, runtime);
+
                 if (spec.FailConditions.Count > 0 &&
                     ContentConditionEvaluator.AllPass(world, subject, spec.FailConditions))
                 {
@@ -57,17 +106,76 @@ namespace XianXia.Core.Content
 
                 if (ContentConditionEvaluator.AllPass(world, subject, spec.CompleteConditions))
                 {
-                    runtime.Status = QuestStatus.Completed;
-                    runtime.ProgressCount++;
-                    var rewarded = ContentOutcomeApplier.ApplyAll(world, subject, spec.Rewards);
-                    if (rewarded.IsFailure)
-                        return rewarded;
+                    // 目标达成 → 待领奖；奖励在 TryClaimRewards 发放。
+                    runtime.Status = QuestStatus.ReadyToClaim;
+                    if (runtime.ProgressMax > 0)
+                        runtime.ProgressCount = runtime.ProgressMax;
                     world.Events.Publish(EventType.QuestCompleted, world.Tick, target: subject, payload: spec.Id);
                     new ContentEventService().TryTrigger(world, subject, "onQuestCompleted", spec.Id);
                 }
             }
 
             return Result.Success();
+        }
+
+        static int ResolveProgressMax(QuestSpec spec)
+        {
+            if (spec?.CompleteConditions == null)
+                return 0;
+            for (var i = 0; i < spec.CompleteConditions.Count; i++)
+            {
+                var c = spec.CompleteConditions[i];
+                if (c == null || string.IsNullOrEmpty(c.Kind))
+                    continue;
+                if (string.Equals(c.Kind, "uniqueLaborAtLocation", System.StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(c.Kind, "uniqueHarvestAtLocation", System.StringComparison.OrdinalIgnoreCase))
+                    return c.Amount > 0 ? c.Amount : 1;
+            }
+
+            return spec.CompleteConditions.Count;
+        }
+
+        static void RefreshProgress(SimulationWorld world, QuestSpec spec, QuestRuntime runtime)
+        {
+            if (spec?.CompleteConditions == null)
+                return;
+            for (var i = 0; i < spec.CompleteConditions.Count; i++)
+            {
+                var c = spec.CompleteConditions[i];
+                if (c == null || string.IsNullOrEmpty(c.Kind))
+                    continue;
+                if (string.Equals(c.Kind, "uniqueHarvestAtLocation", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    runtime.ProgressMax = c.Amount > 0 ? c.Amount : 1;
+                    runtime.ProgressCount = ContentConditionEvaluator.CountUniqueHarvestersAtLocation(world, c.Id);
+                    if (runtime.ProgressCount > runtime.ProgressMax)
+                        runtime.ProgressCount = runtime.ProgressMax;
+                    return;
+                }
+
+                if (string.Equals(c.Kind, "uniqueLaborAtLocation", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    runtime.ProgressMax = c.Amount > 0 ? c.Amount : 1;
+                    runtime.ProgressCount = ContentConditionEvaluator.CountUniqueLaborersAtLocation(
+                        world,
+                        c.Id,
+                        ContentConditionEvaluator.UniqueLaborSeconds(c));
+                    if (runtime.ProgressCount > runtime.ProgressMax)
+                        runtime.ProgressCount = runtime.ProgressMax;
+                    return;
+                }
+            }
+
+            // Fallback: how many completeConditions already pass.
+            runtime.ProgressMax = spec.CompleteConditions.Count;
+            var done = 0;
+            for (var i = 0; i < spec.CompleteConditions.Count; i++)
+            {
+                if (ContentConditionEvaluator.Pass(world, default, spec.CompleteConditions[i]))
+                    done++;
+            }
+
+            runtime.ProgressCount = done;
         }
     }
 }

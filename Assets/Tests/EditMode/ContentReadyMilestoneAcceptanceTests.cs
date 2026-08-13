@@ -66,9 +66,13 @@ namespace XianXia.Tests
                 subject, PlayerCommandKind.Explore, 1)).IsSuccess);
 
             Assert.IsTrue(world.Quests.TryGet("base:quest_scout_herb_slope", out var scout));
-            Assert.AreEqual(QuestStatus.Completed, scout.Status);
+            Assert.AreEqual(QuestStatus.ReadyToClaim, scout.Status);
             Assert.IsTrue(world.ContentEvents.HasActive);
             Assert.AreEqual("base:event_herb_whisper", world.ContentEvents.ActiveEventId);
+            Assert.IsTrue(port.Submit(new PlayerCommandRequest(
+                subject, PlayerCommandKind.ClaimQuestRewards, 1, EntityId.None, WorkRoleKind.None,
+                null, null, "base:quest_scout_herb_slope")).IsSuccess);
+            Assert.AreEqual(QuestStatus.Completed, scout.Status);
 
             // 选项结算 → 接取并完成后续任务
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(
@@ -77,6 +81,10 @@ namespace XianXia.Tests
             Assert.IsFalse(world.ContentEvents.HasActive);
             Assert.IsTrue(world.Flags.Has("event:herb_whisper_resolved"));
             Assert.IsTrue(world.Quests.TryGet("base:quest_listen_herb_whisper", out var listen));
+            Assert.AreEqual(QuestStatus.ReadyToClaim, listen.Status);
+            Assert.IsTrue(port.Submit(new PlayerCommandRequest(
+                subject, PlayerCommandKind.ClaimQuestRewards, 1, EntityId.None, WorkRoleKind.None,
+                null, null, "base:quest_listen_herb_whisper")).IsSuccess);
             Assert.AreEqual(QuestStatus.Completed, listen.Status);
 
             // 发现修炼地点后进入成长（天赋杂灵根：突破 MaxHp＋修炼 Progress）

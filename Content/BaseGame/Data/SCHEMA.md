@@ -185,12 +185,24 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | Field | Notes |
 |---|---|
 | `autoOffer` | 条件满足时自动接取 |
+| `abandonable` | 玩家是否可在任务日志中放弃（默认 false） |
+| 状态机 | Inactive → Active → **ReadyToClaim（待领奖）** → Completed；奖励仅在领取时发放 |
 | `offerConditions`／`completeConditions`／`failConditions` | condition 对象数组 |
 | `rewards`／`failResults` | outcome 对象数组 |
 
 ### condition.kind
 
-`atLocation`｜`hasFlag`｜`missingFlag`｜`realmAtLeast`｜`knowsSite`｜`stockAtLeast`｜`questActive`｜`questCompleted`｜`exploredLocation`｜`hasManual`
+`atLocation`｜`hasFlag`｜`missingFlag`｜`realmAtLeast`｜`knowsSite`｜`stockAtLeast`｜`questActive`｜`questCompleted`｜`exploredLocation`｜`hasManual`｜`laborAtLocation`｜`uniqueLaborAtLocation`｜`uniqueHarvestAtLocation`｜`characterAtLocation`
+
+| kind | 含义 | 主要字段 |
+|---|---|---|
+| `stockAtLeast` | **小队背包**中该 Id 数量 ≥ amount（非聚落仓库） | `id`／`amount` |
+| `laborAtLocation` | 指定角色（或任意）在地点累计劳动 ticks ≥ | `id`（地点）／`characterId?`／`amount` |
+| `uniqueLaborAtLocation` | 在地点完成过劳动的**不同角色数** ≥ | `id`／`amount` |
+| `uniqueHarvestAtLocation` | 在地点**采到过产出**的不同角色数 ≥ | `id`／`amount` |
+| `characterAtLocation` | 指定角色当前在某地点 | `id`（地点）／`characterId` |
+
+劳动／采集进度由 `LocationLaborProgressBoard` 维护；采集节奏由 Host（约 10s/份＠1x、可自动续采）决定。
 
 ### outcome.kind
 
@@ -228,7 +240,7 @@ QuestStarted／Completed → 任务提醒弹层（读 `name`／`description`）�
 |---|---|
 | `openingScenarioId` | 文档关联（运行时由 scenario.`openingChapterId` 反向绑定） |
 | `plannedDays` | 计划天数（制作参考＋Dump） |
-| `questChainIds[]` | 有序任务链：前序 Completed 后自动接下一环 |
+| `questChainIds[]` | 有序任务链：前序目标达成（ReadyToClaim／Completed）后自动接下一环 |
 | `eventChainIds[]` | 事件链清单（制作／计划；触发仍靠 explore／beat／条件） |
 | `dayBeats[]` | `dayIndex`／`conditions`／`questOfferIds`／`contentEventIds`／`setFlags` |
 

@@ -35,6 +35,12 @@ namespace XianXia.Unity.Host
             if (targetCamera == null)
                 return;
 
+            if (HostInputGate.BlockWorldCamera)
+            {
+                ApplyTransform();
+                return;
+            }
+
             if (enableKeyboardPan)
             {
                 var pan = Vector3.zero;

@@ -42,7 +42,8 @@
           "w": 10,
           "h": 10,
           "blocksMovement": false,
-          "label": "矿区"
+          "label": "矿区",
+          "boundLocationId": "base:loc_ref_mine"
         },
         {
           "id": "place_ore_233945981",
@@ -52,7 +53,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": false,
-          "label": "矿石 2×2（可采）"
+          "label": "矿石 2×2（可采）",
+          "boundLocationId": "base:loc_ref_mine"
         },
         {
           "id": "place_ore_233947755",
@@ -62,7 +64,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": false,
-          "label": "矿石 2×2（可采）"
+          "label": "矿石 2×2（可采）",
+          "boundLocationId": "base:loc_ref_mine"
         },
         {
           "id": "place_ore_233947996",
@@ -72,7 +75,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": false,
-          "label": "矿石 2×2（可采）"
+          "label": "矿石 2×2（可采）",
+          "boundLocationId": "base:loc_ref_mine"
         },
         {
           "id": "place_ore_233948259",
@@ -82,7 +86,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": false,
-          "label": "矿石 2×2（可采）"
+          "label": "矿石 2×2（可采）",
+          "boundLocationId": "base:loc_ref_mine"
         },
         {
           "id": "place_ore_233954089",
@@ -92,7 +97,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": false,
-          "label": "矿石 2×2（可采）"
+          "label": "矿石 2×2（可采）",
+          "boundLocationId": "base:loc_ref_mine"
         },
         {
           "id": "place_ore_233955496",
@@ -102,7 +108,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": false,
-          "label": "矿石 2×2（可采）"
+          "label": "矿石 2×2（可采）",
+          "boundLocationId": "base:loc_ref_mine"
         },
         {
           "id": "place_ore_234005826",
@@ -112,7 +119,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": false,
-          "label": "矿石 2×2（可采）"
+          "label": "矿石 2×2（可采）",
+          "boundLocationId": "base:loc_ref_mine"
         },
         {
           "id": "place_ore_234007406",
@@ -122,7 +130,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": false,
-          "label": "矿石 2×2（可采）"
+          "label": "矿石 2×2（可采）",
+          "boundLocationId": "base:loc_ref_mine"
         },
         {
           "id": "place_ore_234009233",
@@ -132,7 +141,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": false,
-          "label": "矿石 2×2（可采）"
+          "label": "矿石 2×2（可采）",
+          "boundLocationId": "base:loc_ref_mine"
         },
         {
           "id": "place_cushion_234726740",
@@ -182,7 +192,8 @@
           "w": 14,
           "h": 28,
           "blocksMovement": false,
-          "label": "林地区"
+          "label": "林地区",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_zoneGrain_234845627",
@@ -192,7 +203,8 @@
           "w": 19,
           "h": 17,
           "blocksMovement": false,
-          "label": "农田区"
+          "label": "农田区",
+          "boundLocationId": "base:loc_ref_labor_yard"
         },
         {
           "id": "place_zoneHerb_234852390",
@@ -202,7 +214,8 @@
           "w": 17,
           "h": 17,
           "blocksMovement": false,
-          "label": "药田区"
+          "label": "药田区",
+          "boundLocationId": "base:loc_ref_herb_field"
         },
         {
           "id": "place_herbField_234905155",
@@ -212,7 +225,8 @@
           "w": 15,
           "h": 15,
           "blocksMovement": false,
-          "label": "药田（可耕作）"
+          "label": "药田（可耕作）",
+          "boundLocationId": "base:loc_ref_herb_field"
         },
         {
           "id": "place_grainField_234917059",
@@ -222,7 +236,8 @@
           "w": 17,
           "h": 15,
           "blocksMovement": false,
-          "label": "农田（可耕作）"
+          "label": "农田（可耕作）",
+          "boundLocationId": "base:loc_ref_labor_yard"
         },
         {
           "id": "place_treeM_234926838",
@@ -232,7 +247,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": true,
-          "label": "中树 2×2"
+          "label": "中树 2×2",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeM_234930188",
@@ -242,7 +258,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": true,
-          "label": "中树 2×2"
+          "label": "中树 2×2",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeM_234932210",
@@ -252,7 +269,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": true,
-          "label": "中树 2×2"
+          "label": "中树 2×2",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeM_234934628",
@@ -262,7 +280,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": true,
-          "label": "中树 2×2"
+          "label": "中树 2×2",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeM_234936440",
@@ -272,7 +291,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": true,
-          "label": "中树 2×2"
+          "label": "中树 2×2",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeM_234942819",
@@ -282,7 +302,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": true,
-          "label": "中树 2×2"
+          "label": "中树 2×2",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeM_234944567",
@@ -292,7 +313,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": true,
-          "label": "中树 2×2"
+          "label": "中树 2×2",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeM_234945951",
@@ -302,7 +324,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": true,
-          "label": "中树 2×2"
+          "label": "中树 2×2",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeM_234947144",
@@ -312,7 +335,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": true,
-          "label": "中树 2×2"
+          "label": "中树 2×2",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeL_234950832",
@@ -322,7 +346,8 @@
           "w": 3,
           "h": 3,
           "blocksMovement": true,
-          "label": "大树 3×3"
+          "label": "大树 3×3",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeL_234953475",
@@ -332,7 +357,8 @@
           "w": 3,
           "h": 3,
           "blocksMovement": true,
-          "label": "大树 3×3"
+          "label": "大树 3×3",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeL_234956228",
@@ -342,7 +368,8 @@
           "w": 3,
           "h": 3,
           "blocksMovement": true,
-          "label": "大树 3×3"
+          "label": "大树 3×3",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeL_234957915",
@@ -352,7 +379,8 @@
           "w": 3,
           "h": 3,
           "blocksMovement": true,
-          "label": "大树 3×3"
+          "label": "大树 3×3",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeL_235000804",
@@ -362,7 +390,8 @@
           "w": 3,
           "h": 3,
           "blocksMovement": true,
-          "label": "大树 3×3"
+          "label": "大树 3×3",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeM_235004947",
@@ -372,7 +401,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": true,
-          "label": "中树 2×2"
+          "label": "中树 2×2",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeM_235007367",
@@ -382,7 +412,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": true,
-          "label": "中树 2×2"
+          "label": "中树 2×2",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeM_235009181",
@@ -392,7 +423,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": true,
-          "label": "中树 2×2"
+          "label": "中树 2×2",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeM_235011240",
@@ -402,7 +434,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": true,
-          "label": "中树 2×2"
+          "label": "中树 2×2",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeM_235013384",
@@ -412,7 +445,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": true,
-          "label": "中树 2×2"
+          "label": "中树 2×2",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeM_235018907",
@@ -422,7 +456,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": true,
-          "label": "中树 2×2"
+          "label": "中树 2×2",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_treeM_235020365",
@@ -432,7 +467,8 @@
           "w": 2,
           "h": 2,
           "blocksMovement": true,
-          "label": "中树 2×2"
+          "label": "中树 2×2",
+          "boundLocationId": "base:loc_ref_forest"
         },
         {
           "id": "place_wall_235031705",
@@ -483,6 +519,17 @@
           "h": 1,
           "blocksMovement": true,
           "label": "墙 1×n（挡路）"
+        },
+        {
+          "id": "place_rally_party",
+          "kind": "rallyPoint",
+          "x": 42,
+          "y": 34,
+          "w": 2,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "集合点·测试",
+          "boundLocationId": "base:loc_ref_party_rally"
         }
       ]
     }

@@ -43,7 +43,8 @@ public partial class MainWindow : Window
         new("house", "小房子", 20, 20, true, Color.FromRgb(140, 100, 70)),
         new("rock", "岩石／棚", 4, 4, true, Color.FromRgb(110, 110, 110)),
         new("cave", "洞府区", 10, 8, false, Color.FromRgb(120, 90, 140)),
-        new("roadHub", "道路枢纽", 8, 8, false, Color.FromRgb(160, 140, 120))
+        new("roadHub", "道路枢纽", 8, 8, false, Color.FromRgb(160, 140, 120)),
+        new("rallyPoint", "集合点 2×2", 2, 2, false, Color.FromRgb(220, 140, 50))
     };
 
     /// <summary>第 2 页：分区标记（仅编辑／以后进区触发，无劳动无挡路）。</summary>
@@ -550,6 +551,12 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (!LooksLikeDefinitionId(mapId))
+        {
+            MessageBox.Show("地图 Id 必须是 namespace:local_id 格式，例如 base:map_huangcun_01");
+            return;
+        }
+
         if (_package.Find(mapId) != null)
         {
             var overwrite = MessageBox.Show(
@@ -614,6 +621,14 @@ public partial class MainWindow : Window
         foreach (var c in System.IO.Path.GetInvalidFileNameChars())
             name = name.Replace(c, '_');
         return string.IsNullOrWhiteSpace(name) ? "map" : name;
+    }
+
+    /// <summary>与 Core DefinitionId 一致：必须含且仅含一个冒号分隔的 namespace:local。</summary>
+    static bool LooksLikeDefinitionId(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return false;
+        var i = id.IndexOf(':');
+        return i > 0 && i < id.Length - 1 && id.IndexOf(':', i + 1) < 0;
     }
 
     static bool TryPromptText(string title, string label, string initial, out string value)
@@ -1197,6 +1212,12 @@ public partial class MainWindow : Window
             string.IsNullOrWhiteSpace(newId))
             return;
         newId = newId.Trim();
+        if (!LooksLikeDefinitionId(newId))
+        {
+            MessageBox.Show("地图 Id 必须是 namespace:local_id 格式，例如 base:map_huangcun_01");
+            return;
+        }
+
         _layout.Raw["id"] = newId;
         _layout.Id = newId;
 

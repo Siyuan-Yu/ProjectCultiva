@@ -28,6 +28,7 @@ namespace XianXia.Unity.Host
         readonly Dictionary<ulong, List<Vector3>> _paths = new Dictionary<ulong, List<Vector3>>();
         readonly Dictionary<ulong, int> _pathIndex = new Dictionary<ulong, int>();
         readonly Dictionary<ulong, PlayerCommandKind> _pendingOnArrive = new Dictionary<ulong, PlayerCommandKind>();
+        readonly Dictionary<ulong, string> _pendingArriveLocation = new Dictionary<ulong, string>();
         readonly HashSet<ulong> _movingIds = new HashSet<ulong>();
         readonly List<float> _pathScratch = new List<float>(64);
         readonly List<Vector3> _wpScratch = new List<Vector3>(32);
@@ -57,6 +58,8 @@ namespace XianXia.Unity.Host
         void Update()
         {
             if (bootstrap == null || bootstrap.Session == null || !bootstrap.Session.IsInitialized)
+                return;
+            if (HostInputGate.BlockWorldInteraction)
                 return;
             if (bootstrap.Session.World.ContentEvents.HasActive)
                 return;
@@ -115,14 +118,18 @@ namespace XianXia.Unity.Host
         public bool OrderPartyToPointPublic(Vector3 point) => OrderPartyToPoint(point, null);
 
         public bool OrderPartyToPointThen(Vector3 point, PlayerCommandKind arriveCommand) =>
-            OrderPartyToPoint(point, arriveCommand);
+            OrderPartyToPoint(point, arriveCommand, null);
+
+        public bool OrderPartyToPointThen(Vector3 point, PlayerCommandKind arriveCommand, string arriveLocationId) =>
+            OrderPartyToPoint(point, arriveCommand, arriveLocationId);
 
         /// <summary>任意单位寻路移动（NPC 日程用 issueStop=false，避免冲掉其 Schedule 订单）。</summary>
         public bool OrderEntityToWorldPoint(
             EntityId id,
             Vector3 point,
             PlayerCommandKind? arriveCommand,
-            bool issueStop)
+            bool issueStop,
+            string arriveLocationId = null)
         {
             if (id.IsNone || viewSpawner == null ||
                 !viewSpawner.Registry.TryGet(id, out var view) || view == null)
@@ -146,6 +153,8 @@ namespace XianXia.Unity.Host
             view.SetActivityText("移动中");
             if (arriveCommand.HasValue)
                 _pendingOnArrive[id.Value] = arriveCommand.Value;
+            if (!string.IsNullOrEmpty(arriveLocationId))
+                _pendingArriveLocation[id.Value] = arriveLocationId;
 
             var pathLen = EstimatePathLength(path);
             if (issueStop)
@@ -153,7 +162,7 @@ namespace XianXia.Unity.Host
             return true;
         }
 
-        bool OrderPartyToPoint(Vector3 point, PlayerCommandKind? arriveCommand)
+        bool OrderPartyToPoint(Vector3 point, PlayerCommandKind? arriveCommand, string arriveLocationId = null)
         {
             if (selectionController == null || selectionController.State.Count == 0)
                 return false;
@@ -183,7 +192,7 @@ namespace XianXia.Unity.Host
                 if (!selectionController.IsPartyUnit(id))
                     continue;
                 var offset = FormationOffset(moveIndex++, moveCount);
-                if (OrderEntityToWorldPoint(id, point + offset, arriveCommand, issueStop: false))
+                if (OrderEntityToWorldPoint(id, point + offset, arriveCommand, issueStop: false, arriveLocationId))
                     any = true;
             }
 
@@ -323,13 +332,28 @@ namespace XianXia.Unity.Host
             if (!_pendingOnArrive.TryGetValue(id.Value, out var kind))
                 return;
             _pendingOnArrive.Remove(id.Value);
+            if (_pendingArriveLocation.TryGetValue(id.Value, out var forcedLoc))
+            {
+                _pendingArriveLocation.Remove(id.Value);
+                if (!string.IsNullOrEmpty(forcedLoc))
+                    ApplyPresentationArrival(bootstrap.Session, id, forcedLoc, bootstrap);
+            }
+
             StopOne(id);
+
+            if (kind == PlayerCommandKind.Labor)
+            {
+                var loop = bootstrap != null ? bootstrap.GetComponent<HostWorkLoop>() : null;
+                loop?.StartLoop(id);
+            }
 
             if (commandBridge != null)
             {
                 var dur = kind == PlayerCommandKind.Stop || kind == PlayerCommandKind.UseConcealGrass
                     ? 0UL
-                    : HostCommandBridge.DefaultDurationTicks;
+                    : kind == PlayerCommandKind.Labor
+                        ? commandBridge.GatherDurationTicks()
+                        : HostCommandBridge.DefaultDurationTicks;
                 commandBridge.IssueOne(id, kind, dur);
             }
             else if (bootstrap.Session?.Port != null)
@@ -427,8 +451,10 @@ namespace XianXia.Unity.Host
 
         void ClearPending(EntityId id)
         {
-            if (!id.IsNone)
-                _pendingOnArrive.Remove(id.Value);
+            if (id.IsNone)
+                return;
+            _pendingOnArrive.Remove(id.Value);
+            _pendingArriveLocation.Remove(id.Value);
         }
 
         void ClearPath(EntityId id)

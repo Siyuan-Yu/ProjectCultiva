@@ -62,7 +62,7 @@ namespace XianXia.Core.Content
                 {
                     var prev = chapter.QuestChainIds[i - 1];
                     if (!world.Quests.TryGet(prev, out var prevRt) ||
-                        prevRt.Status != QuestStatus.Completed)
+                        !QuestStatusUtil.IsObjectivesDone(prevRt.Status))
                         break;
                 }
 

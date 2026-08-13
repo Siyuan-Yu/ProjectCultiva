@@ -75,7 +75,7 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> QuestFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "description", "autoOffer",
+            "id", "type", "name", "description", "autoOffer", "abandonable",
             "offerConditions", "completeConditions", "failConditions", "rewards", "failResults"
         };
 
@@ -92,7 +92,7 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> ContentConditionFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "kind", "id", "amount", "realm"
+            "kind", "id", "amount", "realm", "characterId"
         };
 
         public static readonly HashSet<string> ContentOutcomeFields = new HashSet<string>(StringComparer.Ordinal)

@@ -10,6 +10,7 @@
       <Button Content="新建…" Width="72" Margin="0,0,8,0" Click="NewQuest_Click" ToolTip="在 Content/Data 新建任务 JSON"/>
       <Button Content="保存" Width="72" Margin="0,0,8,0" Click="Save_Click"/>
       <Button Content="另存为…" Width="80" Margin="0,0,8,0" Click="SaveAs_Click" ToolTip="另存到 Content/BaseGame/Data"/>
+      <Button Content="删除…" Width="72" Margin="0,0,8,0" Click="DeleteQuest_Click" ToolTip="从包中删除当前任务（不可恢复）"/>
       <TextBlock x:Name="RootText" VerticalAlignment="Center"/>
     </StackPanel>
     <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0"/>
@@ -36,6 +37,7 @@
               <TextBlock Text="description"/>
               <TextBox x:Name="DescBox" AcceptsReturn="True" Height="70" TextWrapping="Wrap"
                        VerticalScrollBarVisibility="Auto" Margin="0,4,0,0"/>
+              <CheckBox x:Name="AbandonableBox" Content="允许玩家放弃 (abandonable)" Margin="0,8,0,0"/>
             </StackPanel>
           </GroupBox>
 

@@ -10,13 +10,13 @@
     {
       "id": "base:resource_spirit_herb",
       "type": "resource",
-      "name": "灵草",
+      "name": "灵药",
       "nameKey": "resource.spirit_herb"
     },
     {
       "id": "base:resource_grain",
       "type": "resource",
-      "name": "粮食",
+      "name": "粗粮",
       "nameKey": "resource.grain"
     },
     {

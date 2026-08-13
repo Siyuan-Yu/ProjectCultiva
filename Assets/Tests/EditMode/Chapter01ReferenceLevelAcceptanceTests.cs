@@ -14,7 +14,7 @@ using XianXia.Data.Content;
 namespace XianXia.Tests
 {
     /// <summary>
-    /// Chapter 01 Reference Level：模板关卡内容／AI／区域门禁／觉醒弧闭环。
+    /// Chapter 01 Reference Level：模板关卡内容／AI／区域门禁／觉醒弧闭环�?
     /// </summary>
     public sealed class Chapter01ReferenceLevelAcceptanceTests
     {
@@ -110,9 +110,9 @@ namespace XianXia.Tests
 
             ResolveIfActive(port, subject, world, "accept_yoke");
 
-            // 开局在农田：勘察同时收粮，完成巡视
+            // 开局在农田：勘察同时收粮，完成巡�?
             Assert.IsTrue(Explore(port, subject));
-            AssertQuest(world, "base:quest_ch01_ref_inspect_yard", QuestStatus.Completed);
+            AssertQuest(port, subject, world, "base:quest_ch01_ref_inspect_yard", QuestStatus.Completed);
 
             // 三人分派：粮（已有）＋树林木＋药田药
             Assert.IsTrue(Travel(port, subject, "base:loc_ref_road_hub"));
@@ -122,38 +122,38 @@ namespace XianXia.Tests
             Assert.IsTrue(Travel(port, subject, "base:loc_ref_road_hub"));
             Assert.IsTrue(Travel(port, subject, "base:loc_ref_herb_field"));
             Assert.IsTrue(Explore(port, subject));
-            AssertQuest(world, "base:quest_ch01_ref_dispatch_party", QuestStatus.Completed);
-            AssertQuest(world, "base:quest_ch01_ref_gather_wood", QuestStatus.Completed);
-            AssertQuest(world, "base:quest_ch01_ref_gather_herb", QuestStatus.Completed);
+            AssertQuest(port, subject, world, "base:quest_ch01_ref_dispatch_party", QuestStatus.Completed);
+            AssertQuest(port, subject, world, "base:quest_ch01_ref_gather_wood", QuestStatus.Completed);
+            AssertQuest(port, subject, world, "base:quest_ch01_ref_gather_herb", QuestStatus.Completed);
 
             Assert.IsTrue(Travel(port, subject, "base:loc_ref_spring"));
             Assert.IsTrue(Explore(port, subject));
             Assert.IsTrue(world.ContentEvents.HasActive);
             Assert.AreEqual("base:event_ch01_ref_spring_whisper", world.ContentEvents.ActiveEventId);
             Assert.IsTrue(Resolve(port, subject, "listen"));
-            AssertQuest(world, "base:quest_ch01_ref_spirit_sense", QuestStatus.Completed);
+            AssertQuest(port, subject, world, "base:quest_ch01_ref_spirit_sense", QuestStatus.Completed);
 
             Assert.IsTrue(Travel(port, subject, "base:loc_ref_road_hub"));
             Assert.IsTrue(Travel(port, subject, "base:loc_ref_forest"));
             Assert.IsTrue(world.ContentEvents.HasActive);
             Assert.AreEqual("base:event_ch01_ref_woodcutter", world.ContentEvents.ActiveEventId);
             Assert.IsTrue(Resolve(port, subject, "help_listen"));
-            AssertQuest(world, "base:quest_ch01_ref_meet_elder", QuestStatus.Completed);
+            AssertQuest(port, subject, world, "base:quest_ch01_ref_meet_elder", QuestStatus.Completed);
 
             Assert.IsTrue(Travel(port, subject, "base:loc_ref_road_hub"));
             Assert.IsTrue(Travel(port, subject, "base:loc_ref_cave"));
             Assert.IsTrue(Explore(port, subject));
-            AssertQuest(world, "base:quest_ch01_ref_visit_cave", QuestStatus.Completed);
+            AssertQuest(port, subject, world, "base:quest_ch01_ref_visit_cave", QuestStatus.Completed);
 
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(
                 subject, PlayerCommandKind.Cultivate, 4)).IsSuccess);
             Assert.IsTrue(protagonist.Get<CultivationComponent>().HasLearnedManual);
 
-            // Cultivate 学诀后需再 Explore／Travel 才会 Evaluate 任务链
+            // Cultivate 学诀后需�?Explore／Travel 才会 Evaluate 任务�?
             Assert.IsTrue(Explore(port, subject));
             ResolveIfActive(port, subject, world, "begin_dark");
-            AssertQuest(world, "base:quest_ch01_ref_first_manual", QuestStatus.Completed);
-            AssertQuest(world, "base:quest_ch01_ref_night_cultivate", QuestStatus.Completed);
+            AssertQuest(port, subject, world, "base:quest_ch01_ref_first_manual", QuestStatus.Completed);
+            AssertQuest(port, subject, world, "base:quest_ch01_ref_night_cultivate", QuestStatus.Completed);
 
             Assert.IsTrue(Travel(port, subject, "base:loc_ref_spring"));
             ResolveIfActive(port, subject, world, null);
@@ -176,20 +176,20 @@ namespace XianXia.Tests
             Assert.AreEqual(RealmStage.QiRefining, protagonist.Get<CultivationComponent>().Realm);
             Assert.IsTrue(Explore(port, subject));
             ResolveIfActive(port, subject, world, null);
-            AssertQuest(world, "base:quest_ch01_ref_breakthrough", QuestStatus.Completed);
+            AssertQuest(port, subject, world, "base:quest_ch01_ref_breakthrough", QuestStatus.Completed);
 
             Assert.IsTrue(Travel(port, subject, "base:loc_ref_road_hub"));
             Assert.IsTrue(Travel(port, subject, "base:loc_ref_houses"));
             Assert.IsTrue(world.ContentEvents.HasActive);
             Assert.AreEqual("base:event_ch01_ref_hide_choice", world.ContentEvents.ActiveEventId);
             Assert.IsTrue(Resolve(port, subject, "swear_hide"));
-            AssertQuest(world, "base:quest_ch01_ref_hide", QuestStatus.Completed);
+            AssertQuest(port, subject, world, "base:quest_ch01_ref_hide", QuestStatus.Completed);
 
             Assert.IsTrue(Travel(port, subject, "base:loc_ref_road_hub"));
             Assert.IsTrue(world.ContentEvents.HasActive);
             Assert.AreEqual("base:event_ch01_ref_epilogue_hub", world.ContentEvents.ActiveEventId);
             Assert.IsTrue(Resolve(port, subject, "remember"));
-            AssertQuest(world, "base:quest_ch01_ref_epilogue", QuestStatus.Completed);
+            AssertQuest(port, subject, world, "base:quest_ch01_ref_epilogue", QuestStatus.Completed);
             Assert.IsTrue(world.Flags.Has("story:ch01_ref_arc_complete"));
         }
 
@@ -207,9 +207,30 @@ namespace XianXia.Tests
                 ScheduleActivityMapping.ToOrderType(ScheduleActivity.Patrol));
         }
 
-        static void AssertQuest(SimulationWorld world, string questId, QuestStatus status)
+        static void AssertQuest(
+            IPlayerInputPort port,
+            EntityId subject,
+            SimulationWorld world,
+            string questId,
+            QuestStatus status)
         {
             Assert.IsTrue(world.Quests.TryGet(questId, out var rt), questId);
+            if (status == QuestStatus.Completed && rt.Status == QuestStatus.ReadyToClaim)
+            {
+                Assert.IsTrue(
+                    port.Submit(new PlayerCommandRequest(
+                        subject,
+                        PlayerCommandKind.ClaimQuestRewards,
+                        1,
+                        EntityId.None,
+                        WorkRoleKind.None,
+                        null,
+                        null,
+                        questId)).IsSuccess,
+                    "claim " + questId);
+                Assert.IsTrue(world.Quests.TryGet(questId, out rt), questId);
+            }
+
             Assert.AreEqual(status, rt.Status, questId);
         }
 

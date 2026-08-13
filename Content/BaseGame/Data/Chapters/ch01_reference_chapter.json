@@ -5,67 +5,19 @@
       "id": "base:chapter_ch01_reference",
       "type": "chapter",
       "name": "第一章·凡人觉醒（可玩弧）",
-      "description": "Demo 0.1 可玩弧：Day0→杂役→三人分派→探索机缘→秘密修炼→第一次突破→隐藏／权力伏笔。不含战斗／夺据点。",
+      "description": "测试裁剪：三任务。不自动发／不自动接下环，任务栏手动接取。",
       "openingScenarioId": "base:scenario_ch01_reference",
       "plannedDays": 6,
-      "questChainIds": [
-        "base:quest_ch01_ref_inspect_yard",
-        "base:quest_ch01_ref_dispatch_party",
-        "base:quest_ch01_ref_gather_wood",
-        "base:quest_ch01_ref_gather_herb",
-        "base:quest_ch01_ref_spirit_sense",
-        "base:quest_ch01_ref_meet_elder",
-        "base:quest_ch01_ref_visit_cave",
-        "base:quest_ch01_ref_first_manual",
-        "base:quest_ch01_ref_night_cultivate",
-        "base:quest_ch01_ref_breakthrough",
-        "base:quest_ch01_ref_hide",
-        "base:quest_ch01_ref_epilogue"
-      ],
+      "questChainIds": [],
       "eventChainIds": [
-        "base:event_ch01_ref_opening",
-        "base:event_ch01_ref_spring_whisper",
-        "base:event_ch01_ref_woodcutter",
-        "base:event_ch01_ref_merchant_tip",
-        "base:event_ch01_ref_miner_grumble",
-        "base:event_ch01_ref_cave_cultivate_hint",
-        "base:event_ch01_ref_breakthrough_rite",
-        "base:event_ch01_ref_hide_choice",
-        "base:event_ch01_ref_epilogue_hub",
-        "base:event_ch01_ref_supervisor_pressure"
+        "base:event_ch01_ref_opening"
       ],
       "dayBeats": [
         {
           "dayIndex": 0,
           "setFlags": ["story:ch01_ref_started"],
-          "questOfferIds": ["base:quest_ch01_ref_inspect_yard"],
+          "questOfferIds": [],
           "contentEventIds": ["base:event_ch01_ref_opening"]
-        },
-        {
-          "dayIndex": 1,
-          "setFlags": ["story:ch01_ref_day1"],
-          "contentEventIds": ["base:event_ch01_ref_supervisor_pressure"]
-        },
-        {
-          "dayIndex": 2,
-          "conditions": [
-            { "kind": "storyFlag", "id": "quest:ch01_ref_cave_done" }
-          ],
-          "setFlags": ["story:ch01_ref_mid_cleared"]
-        },
-        {
-          "dayIndex": 3,
-          "conditions": [
-            { "kind": "storyFlag", "id": "story:ch01_phase_qi_refining" }
-          ],
-          "setFlags": ["story:ch01_ref_post_breakthrough"]
-        },
-        {
-          "dayIndex": 4,
-          "conditions": [
-            { "kind": "storyFlag", "id": "story:ch01_ref_arc_complete" }
-          ],
-          "setFlags": ["story:ch01_ref_chapter_closed"]
         }
       ]
     }

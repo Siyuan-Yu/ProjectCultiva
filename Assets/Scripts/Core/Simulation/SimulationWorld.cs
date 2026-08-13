@@ -11,6 +11,8 @@ using XianXia.Core.Orders;
 using XianXia.Core.Random;
 using XianXia.Core.Schedule;
 using XianXia.Core.Exploration;
+using XianXia.Core.Inventory;
+using XianXia.Core.Labor;
 using XianXia.Core.Npc;
 using XianXia.Core.Settlement;
 using XianXia.Core.Social;
@@ -54,6 +56,9 @@ namespace XianXia.Core.Simulation
             ContentEvents = new ContentEventBoard();
             Chapters = new ChapterBoard();
             SupervisorAnger = new XianXia.Core.Social.SupervisorAngerBoard();
+            LocationLabor = new LocationLaborProgressBoard();
+            InventoryCatalog = new InventoryCatalog();
+            Inventory = new PartyInventory(InventoryCatalog, PartyInventory.DefaultSlotCapacity);
             Tick = WorldTick.Zero;
             EnabledPackageId = "base";
             EnabledPackageVersion = "0.0.1-m1";
@@ -105,6 +110,15 @@ namespace XianXia.Core.Simulation
 
         /// <summary>Demo [49] supervisor anger (display-only; not in Snapshot v1).</summary>
         public XianXia.Core.Social.SupervisorAngerBoard SupervisorAnger { get; }
+
+        /// <summary>Player labor ticks at locations (session-only; not in Snapshot v1).</summary>
+        public LocationLaborProgressBoard LocationLabor { get; }
+
+        /// <summary>Item display／stack rules for the shared party bag.</summary>
+        public InventoryCatalog InventoryCatalog { get; }
+
+        /// <summary>Shared party backpack (session-only; not in Snapshot v1).</summary>
+        public PartyInventory Inventory { get; }
 
         /// <summary>Alias for story／content flags (same board as <see cref="Flags"/>).</summary>
         public WorldFlagBoard StoryFlags => Flags;
