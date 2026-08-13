@@ -73,26 +73,12 @@ public static class PackagePaths
         return null;
     }
 
-    /// <summary>Level Tester 关卡目录：Assets/DynamicData/GameData/Levels</summary>
-    public static string? FindDefaultLevelsDir()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        for (var i = 0; i < 12 && dir != null; i++, dir = dir.Parent)
-        {
-            var candidate = Path.Combine(dir.FullName, "Assets", "DynamicData", "GameData", "Levels");
-            if (Directory.Exists(candidate))
-                return candidate;
-            // 允许尚不存在：若已找到 repo（含 Content/BaseGame）则返回拟建路径
-            var baseGame = Path.Combine(dir.FullName, "Content", "BaseGame");
-            if (File.Exists(Path.Combine(baseGame, "manifest.json")))
-            {
-                Directory.CreateDirectory(candidate);
-                return candidate;
-            }
-        }
+    /// <summary>Content/BaseGame/Data — 任务／事件／mapLayout 等内容 JSON 真源。</summary>
+    public static string? FindContentDataDir(string? packageRoot = null) =>
+        ContentPathRules.FindDataDir(packageRoot);
 
-        return null;
-    }
+    [Obsolete("Use FindContentDataDir")]
+    public static string? FindDefaultLevelsDir() => FindContentDataDir();
 }
 
 public static class PackageStore
@@ -199,6 +185,13 @@ public static class PackageStore
     public static DefRef AppendDefinition(ContentPackage package, string fileNameHint, JsonObject raw)
     {
         var dataDir = Path.Combine(package.Root, "Data");
+        var type = raw["type"]?.GetValue<string>() ?? "";
+        var id = raw["id"]?.GetValue<string>() ?? "";
+        if (string.Equals(type, "quest", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(id))
+            fileNameHint = ContentPathRules.ResolveQuestFile(id);
+        else if (string.Equals(type, "contentEvent", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(id))
+            fileNameHint = ContentPathRules.ResolveEventFile(id);
+
         var hint = Path.GetFileNameWithoutExtension(fileNameHint);
         var file = package.Files.FirstOrDefault(f =>
             Path.GetFileName(f.Path).Contains(hint, StringComparison.OrdinalIgnoreCase));
@@ -215,9 +208,13 @@ public static class PackageStore
 
         if (file == null)
         {
-            var path = Path.Combine(dataDir, fileNameHint.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
+            var relative = fileNameHint.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
                 ? fileNameHint
-                : fileNameHint + ".json");
+                : fileNameHint + ".json";
+            if (!relative.Contains('/') && !relative.Contains('\\') && !string.IsNullOrEmpty(type))
+                relative = ContentPathRules.RelativeTypePath(type, relative);
+            var path = ContentPathRules.CombineDataPath(dataDir, relative);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             file = new ContentFile { Path = path, SchemaVersion = 1, Definitions = new List<JsonObject>() };
             package.Files.Add(file);
         }
@@ -257,13 +254,147 @@ public static class PackageStore
     public static bool LocationExists(ContentPackage package, string locationId) =>
         AllLocationIds(package).Contains(locationId, StringComparer.Ordinal);
 
+    public static IReadOnlyList<string> AllQuestIds(ContentPackage package) =>
+        package.OfType("quest").Select(q => q.Id).OrderBy(x => x, StringComparer.Ordinal).ToList();
+
+    public static IReadOnlyList<string> AllCharacterIds(ContentPackage package) =>
+        package.OfType("character").Select(c => c.Id).OrderBy(x => x, StringComparer.Ordinal).ToList();
+
+    public static IReadOnlyList<string> AllResourceIds(ContentPackage package) =>
+        package.OfType("resource").Select(r => r.Id).OrderBy(x => x, StringComparer.Ordinal).ToList();
+
+    public static IReadOnlyList<string> AllSiteIds(ContentPackage package) =>
+        package.OfType("opportunitySite").Select(s => s.Id).OrderBy(x => x, StringComparer.Ordinal).ToList();
+
+    public static IReadOnlyList<string> AllManualIds(ContentPackage package) =>
+        package.OfType("cultivation").Select(c => c.Id).OrderBy(x => x, StringComparer.Ordinal).ToList();
+
+    public static IReadOnlyList<string> AllEventIds(ContentPackage package) =>
+        package.OfType("contentEvent").Select(e => e.Id).OrderBy(x => x, StringComparer.Ordinal).ToList();
+
+    public static JsonObject? FindLocationObject(ContentPackage package, string locationId)
+    {
+        foreach (var region in package.OfType("worldRegion"))
+        {
+            if (region.Raw["locations"] is not JsonArray locs) continue;
+            foreach (var node in locs)
+            {
+                if (node is JsonObject loc &&
+                    string.Equals(loc["id"]?.GetValue<string>(), locationId, StringComparison.Ordinal))
+                    return loc;
+            }
+        }
+
+        return null;
+    }
+
+    public static DefRef? FindRegionContainingLocation(ContentPackage package, string locationId)
+    {
+        foreach (var region in package.OfType("worldRegion"))
+        {
+            if (region.Raw["locations"] is not JsonArray locs) continue;
+            foreach (var node in locs)
+            {
+                if (node is JsonObject loc &&
+                    string.Equals(loc["id"]?.GetValue<string>(), locationId, StringComparison.Ordinal))
+                    return region;
+            }
+        }
+
+        return null;
+    }
+
+    public static IReadOnlyList<string> LocationsOfferingQuest(ContentPackage package, string questId)
+    {
+        var hits = new List<string>();
+        foreach (var region in package.OfType("worldRegion"))
+        {
+            if (region.Raw["locations"] is not JsonArray locs) continue;
+            foreach (var node in locs)
+            {
+                if (node is not JsonObject loc) continue;
+                var locId = loc["id"]?.GetValue<string>() ?? "";
+                if (loc["questOfferIds"] is not JsonArray offers) continue;
+                foreach (var o in offers)
+                {
+                    if (string.Equals(o?.GetValue<string>(), questId, StringComparison.Ordinal))
+                    {
+                        hits.Add(locId);
+                        break;
+                    }
+                }
+            }
+        }
+
+        hits.Sort(StringComparer.Ordinal);
+        return hits;
+    }
+
+    public static void SetLocationQuestOffer(ContentPackage package, string locationId, string questId, bool enabled)
+    {
+        var region = FindRegionContainingLocation(package, locationId)
+                     ?? throw new InvalidOperationException("找不到地点: " + locationId);
+        var loc = FindLocationObject(package, locationId)
+                  ?? throw new InvalidOperationException("找不到地点: " + locationId);
+        var arr = loc["questOfferIds"] as JsonArray ?? new JsonArray();
+        var list = arr.Select(x => x?.GetValue<string>() ?? "")
+            .Where(s => s.Length > 0)
+            .ToList();
+        list.RemoveAll(s => string.Equals(s, questId, StringComparison.Ordinal));
+        if (enabled)
+            list.Add(questId);
+        if (list.Count == 0)
+            loc.Remove("questOfferIds");
+        else
+            loc["questOfferIds"] = new JsonArray(list.Select(x => (JsonNode?)JsonValue.Create(x)).ToArray());
+        SaveDefinition(package, region);
+    }
+
+    public static IReadOnlyList<string> EventsStartingQuest(ContentPackage package, string questId)
+    {
+        var hits = new List<string>();
+        foreach (var ev in package.OfType("contentEvent"))
+        {
+            if (EventStartsQuest(ev.Raw, questId))
+                hits.Add(ev.Id);
+        }
+
+        hits.Sort(StringComparer.Ordinal);
+        return hits;
+    }
+
+    public static bool EventStartsQuest(JsonObject ev, string questId)
+    {
+        if (ev["choices"] is not JsonArray choices) return false;
+        foreach (var choiceNode in choices)
+        {
+            if (choiceNode is not JsonObject choice) continue;
+            if (choice["outcomes"] is not JsonArray outcomes) continue;
+            foreach (var outcomeNode in outcomes)
+            {
+                if (outcomeNode is not JsonObject outcome) continue;
+                var kind = outcome["kind"]?.GetValue<string>() ?? "";
+                var id = outcome["id"]?.GetValue<string>() ?? "";
+                if (string.Equals(kind, "startQuest", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(id, questId, StringComparison.Ordinal))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>写入独立 mapLayout 文件（definitions 仅含一张图）。</summary>
-    public static void SaveStandaloneMapLayout(string filePath, JsonObject raw)
+    public static void SaveStandaloneMapLayout(string filePath, JsonObject raw) =>
+        SaveStandaloneDefinition(filePath, raw);
+
+    /// <summary>写入独立 definition 文件（definitions 仅含一条）。</summary>
+    public static void SaveStandaloneDefinition(string filePath, JsonObject raw)
     {
         if (string.IsNullOrWhiteSpace(filePath))
             throw new ArgumentException("filePath empty");
         var clone = JsonNode.Parse(raw.ToJsonString()) as JsonObject
-                    ?? throw new InvalidOperationException("无法克隆 mapLayout");
+                    ?? throw new InvalidOperationException("无法克隆 definition");
         var file = new ContentFile
         {
             Path = filePath,
@@ -271,6 +402,45 @@ public static class PackageStore
             Definitions = new List<JsonObject> { clone }
         };
         SaveFile(file);
+    }
+
+    /// <summary>登记／刷新一份独立 definition 文件；preferOverrideSameId 时去掉包内同 id 的旧项。</summary>
+    public static DefRef RegisterStandaloneDefinition(
+        ContentPackage package,
+        string filePath,
+        JsonObject raw,
+        bool preferOverrideSameId = true)
+    {
+        var clone = JsonNode.Parse(raw.ToJsonString()) as JsonObject
+                    ?? throw new InvalidOperationException("无法克隆 definition");
+
+        package.Definitions.RemoveAll(d =>
+            string.Equals(d.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
+        package.Files.RemoveAll(f =>
+            string.Equals(f.Path, filePath, StringComparison.OrdinalIgnoreCase));
+
+        var id = clone["id"]?.GetValue<string>() ?? "";
+        if (preferOverrideSameId && !string.IsNullOrEmpty(id))
+            package.Definitions.RemoveAll(d => string.Equals(d.Id, id, StringComparison.Ordinal));
+
+        var file = new ContentFile
+        {
+            Path = filePath,
+            SchemaVersion = 1,
+            Definitions = new List<JsonObject> { clone }
+        };
+        package.Files.Add(file);
+        var def = new DefRef
+        {
+            Id = id,
+            Type = clone["type"]?.GetValue<string>() ?? "",
+            Name = clone["name"]?.GetValue<string>() ?? "",
+            FilePath = filePath,
+            Index = 0,
+            Raw = clone
+        };
+        package.Definitions.Add(def);
+        return def;
     }
 
     /// <summary>把 Levels 目录下的 mapLayout 合并进包（同 id 时 Levels 覆盖包内项）。</summary>

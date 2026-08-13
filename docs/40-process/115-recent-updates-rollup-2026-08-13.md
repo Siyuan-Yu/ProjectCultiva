@@ -1,88 +1,122 @@
-# 115 · 近期更新收束（MapEditor／Level Tester／物件规则）— 2026-08-13
+# 115 · 近期更新收束（Content Studio／Level Tester／Data 目录）— 2026-08-13
 
-> 状态：**文档补录**｜日期：2026-08-13  
-> 相对提交：`e387f05`（MapEditor Host prefab 管线）之后 → 本轮推送前  
-> 相关：[112 MapEditor](112-map-editor-usage.md)｜[114 Level Tester](114-level-tester.md)｜[113 World Graph](113-world-graph-local-map-architecture-revision-v0.1.md)
+> 状态：**已推送**｜日期：2026-08-13（末轮补录）  
+> 相对提交：`104af44` 之后 → 本轮 `main` 推送  
+> 相关：[110 QuestEditor](110-content-studio-quest-editor-usage.md)｜[112 MapEditor](112-map-editor-usage.md)｜[114 Level Tester](114-level-tester.md)｜[113 World Graph](113-world-graph-local-map-architecture-revision-v0.1.md)
 
 ---
 
 ## 1. 一句话
 
-MapEditor 能正经新建／另存关卡到 Levels；物件与分区拆开；Host 对齐错位修好；并新增 **Level Tester** 场景用一份地图 JSON 测逻辑。
+**内容真源统一到 `Content/BaseGame/Data/` 并按 type 分子目录**；QuestEditor v2 可视化编辑任务；Level Tester 支持编辑模式 prefab 预览；ContentAuthoring 启动脚本可自动打包；Host 缺 prefab 用洋红占位而不再偷换 kind。
 
 ---
 
-## 2. 本轮交付对照
+## 2. 交付对照（104af44 之后）
 
-| 主题 | 做什么 | 文档／入口 |
-|------|--------|------------|
-| 设施缩放手柄 | 四角＋四边；往外放大、往里缩小（修「往下拖反而缩小」） | [112](112-map-editor-usage.md) |
-| 分区 vs 物件 | 工具板两页：物件／分区；分区仅标记 | MapEditor + `MapKindCatalog` |
-| 树／矿／蒲团／墙／路 | 树 1／2／3、矿石 2×2、蒲团 1×1、墙 1×n 挡路、路纯贴图 | [112](112-map-editor-usage.md) |
-| 灵泉 | 改为分区 `zoneSpring`；修炼点用蒲团 | 同上 |
-| Host 对齐 | 缩放后包围盒中心对齐；房子按实际占地；墙加深可见 | `HostDemoTileMap` |
-| Level Tester | 新场景；选一份 map JSON 测 LocalMap 逻辑 | [114](114-level-tester.md)、`Assets/Scenes/LevelTester.unity` |
-| 关卡目录 | `Assets/DynamicData/GameData/Levels/` | Level Tester／MapEditor 另存默认 |
-| MapEditor 文件 | 新建空图、另存为、打开地图；启动合并 Levels | MapEditor 工具栏 |
-
----
-
-## 3. 详细说明
-
-### 3.1 MapEditor
-
-- **缩放物件**：选中后四角＋四边红点；按屏幕方向缩放。  
-- **工具板**：`1 · 物件`（田／路／墙／树／矿／蒲团／建筑）与 `2 · 分区`（药田区／农田区／住房／林地／矿区／灵泉区）。  
-- **新建空图**：输入新 Id → 存到 Levels（不再卡死「只能建 ch01」）。  
-- **另存为**／**打开地图**：默认 Levels；Ctrl+S 写当前文件；Ctrl+Shift+S 另存。  
-- 启动时合并 `Assets/DynamicData/GameData/Levels/*.json` 进地图下拉。
-
-### 3.2 物件与分区语义
-
-| 类型 | 编辑 | Host |
-|------|------|------|
-| 分区 `zone*` | 半透明虚线框 | 半透明色块，无交互、不挡路 |
-| 药田／农田 | 可拉片 | 每格交互（生长暂缓） |
-| 树 treeS/M/L | 一棵棵 | 1×1／2×2／3×3，可砍（Work） |
-| 矿石 ore | 2×2 | 可采 |
-| 蒲团 cushion | 1×1 | 可修炼（Cultivate） |
-| 墙 | 1×n | 挡路 |
-| 路 | 1×1 | 纯贴图 |
-| 灵泉 | 用分区 | 旧 `spring` 兼容为分区 |
-
-Prefab：`Assets/Prefabs/Environment/Tiles|Buildings|Props/`；缺则菜单 `XianXia/Content/Ensure MapLayout Prefabs`。
-
-### 3.3 Host 表现修复
-
-- 分区色块曾因精灵锚点在脚底，放大后整体上移 → **缩放后对齐包围盒中心**。  
-- 房子曾强制 20×20，和编辑器墙框对不齐 → **按 placement 实际 w×h**。  
-- 墙提高排序并加深颜色，更易看见。
-
-### 3.4 Level Tester
-
-- 场景：`Assets/Scenes/LevelTester.unity`（菜单可重建：`XianXia/Level Tester/Create Or Update…`）。  
-- Inspector：**选择文件…** 选 Levels 下地图 JSON；开局剧本 Id 另填。  
-- 复用完整 Host：寻路、RTS、交互点、时间轴、HUD。  
-- F12 重载；顶栏显示当前包／地图／剧本。
-
-**流程：** MapEditor 编图 → 存／另存到 Levels → Level Tester 选该 JSON Play → 逻辑过关后再接美术场景。
+| 主题 | 做什么 | 入口 |
+|------|--------|------|
+| **Data 分子目录** | `Quests/` `Maps/` `Events/` `Characters/` … 共 15 类 | `Content/BaseGame/Data/README.md`、`SCHEMA.md` |
+| **内容真源迁移** | 地图／任务不再以 `Assets/DynamicData/GameData/Levels/` 为真源 | `ContentPathRules`、Level Tester 默认 `Data/Maps/ch01_reference_map.json` |
+| **QuestEditor v2** | 发放方式向导、接取/完成/奖励可视化、`JsonArrayEditor` | [110](110-content-studio-quest-editor-usage.md)、`启动-QuestEditor.cmd` |
+| **QuestEditor 新建/另存** | 选 Id + 目标 JSON；另存为复制到新文件 | QuestEditor 工具栏 |
+| **EventEditor 条件** | `conditions` 改用 `JsonArrayEditor` | EventEditor |
+| **JsonArrayEditor 修复** | 修复 ComboBox 递归导致 Stack overflow 闪退 | `Shared/JsonArrayEditor.xaml.cs` |
+| **编辑器启动** | `Apps/` 缺 exe 时自动 `publish.ps1`；新增 `发布-所有编辑器.cmd` | `ExternalTools/ContentAuthoring/` |
+| **Level Tester 预览** | Inspector **Import / Clear Preview**：编辑模式用游戏 prefab 预览 mapLayout | `LevelTesterMapPreview.cs` |
+| **Prefab 严格对应** | 去掉 Wall→Road 等偷换；缺 prefab → 洋红棋盘格占位 | `MapLayoutPrefabResolver`、`MissingPrefabPlaceholder` |
+| **LevelTester 编译** | `DefaultMapLayoutPath` 跨类引用加类名前缀 | `LevelTesterSceneTool.cs` |
+| **文档** | 110 用法 v3（含发放方式/条件表）；112/114 路径更新 | 飞书已同步 |
 
 ---
 
-## 4. 已知未做（本轮边界）
+## 3. Data 目录结构（新）
 
-- 作物真实生长／成熟计时  
-- World Graph 宏观旅行 UI  
-- 墙／树正式美术（现为占位 prefab）  
-- 整关 manifest（任务包随地图一键换）— 任务仍读 Content 包  
+```text
+Content/BaseGame/Data/
+  Characters/  Quests/  Events/  Maps/  Regions/  Chapters/
+  Scenarios/  Cultivation/  Items/  Sites/  Resources/
+  Facilities/  Settlements/  WorkAreas/  Jobs/
+  SCHEMA.md  README.md
+```
+
+- Unity `ContentPackageLoader` 与 `PackageStore.Load` 均 **递归扫描** `Data/**/*.json`，子目录不影响加载。  
+- 各编辑器 **新建/另存** 默认进对应子目录（任务→`Quests/`，地图→`Maps/`）。  
+- `Assets/DynamicData/GameData/Levels/` 下旧 JSON 已删，留废弃 README。
 
 ---
 
-## 5. 建议手操检查
+## 4. QuestEditor v2 要点
 
-1. MapEditor：新建空图 → 画一片农田区＋农田 → 另存到 Levels  
-2. Level Tester：选择该 JSON → Play → 田应在区内、墙贴房子  
-3. Console：`WalkGrid from mapLayout`／`mapLayout override`  
+### 4.1 发放方式（②）
+
+| 方式 | 含义 |
+|------|------|
+| 自动接取 | `autoOffer` + 接取条件列表 |
+| 前置任务完成后 | 固定 `questCompleted` 上一环 |
+| 到指定地点可领 | Region 地点 `questOfferIds` |
+| NPC 对话发放 | 自动创建/更新 `contentEvent`（`startQuest`） |
+| 自定义 | 保留手写 JSON 逻辑 |
+
+NPC 台词仍在 **EventEditor** 改。
+
+### 4.2 可视化条件/奖励（③～⑥）
+
+接取/完成/失败条件与奖励用 **+ 添加** 列表编辑，类型见 [110](110-content-studio-quest-editor-usage.md) 全文。
+
+### 4.3 共享组件
+
+- `ContentFieldCatalog` — 条件/奖励 kind 与字段  
+- `QuestOfferService` — 发放方式检测与写入  
+- `EditorPrompts` — 新建/另存对话框  
+
+---
+
+## 5. Level Tester 增量
+
+| 项 | 说明 |
+|----|------|
+| 默认地图 | `Content/BaseGame/Data/Maps/ch01_reference_map.json` |
+| Import | 编辑模式把 mapLayout 刷成 Host prefab 预览（无需 Play） |
+| Clear Preview | 清预览实例 |
+| 缺 prefab | 洋红棋盘格 `MissingPrefabPlaceholder`，Console 警告 |
+
+---
+
+## 6. MapEditor／Host（延续 104af44 前批次）
+
+- 物件四角/四边缩放；分区 vs 物件两页工具板  
+- 新建空图／另存为／打开地图（现默认 `Data/Maps/`）  
+- Host 缩放后包围盒中心对齐；墙加深可见  
+
+详见 [112](112-map-editor-usage.md)。
+
+---
+
+## 7. ContentAuthoring 使用提醒
+
+1. 日常只双击 `启动-*.cmd` 或 `Apps/<Editor>/<Editor>.exe`  
+2. 首次缺 exe 会自动打包（约 1 分钟），或先跑 `发布-所有编辑器.cmd`  
+3. `Apps/` 不在 Git 里；改 Shared 后需重新 publish  
+
+---
+
+## 8. 已知未做
+
+- EventEditor **choices** 可视化  
+- 好感 `relationAtLeast` 引擎 + 编辑器  
+- **ChapterEditor**（dayBeats 发任务）  
+- World Graph 阶段 A→C  
+- Ch01 手操签收（105）  
+
+---
+
+## 9. 建议手操检查
+
+1. `启动-QuestEditor.cmd` → 打开 ch01 任务 → 改完成条件 → 保存  
+2. Level Tester → 选 `Maps/ch01_reference_map.json` → **Import** → Scene 里见 prefab  
+3. 故意删一个 prefab 引用 → 见洋红占位、无 kind 偷换  
+4. PackageBrowser 校验 → Unity Play  
 
 ---
 
@@ -90,4 +124,5 @@ Prefab：`Assets/Prefabs/Environment/Tiles|Buildings|Props/`；缺则菜单 `Xia
 
 | 日期 | 说明 |
 |------|------|
-| 2026-08-13 | 初版：汇总 MapEditor／分区物件／Host 对齐／Level Tester |
+| 2026-08-13 | 末轮：Data 分子目录、QuestEditor v2、Level Tester 预览、启动脚本、真源迁移 |
+| 2026-08-13 | 初版：MapEditor／分区物件／Host 对齐／Level Tester 场景 |

@@ -25,9 +25,10 @@ Level Tester 用来试玩 **某一个大地图节点的 LocalMap**（例如荒�
 | 10 | 热重载：改 JSON 后 F12 重进 | ✅ |
 | 11 | 顶栏显示当前包／地图／剧本 | ✅ `LevelTesterHud` |
 | 12 | Inspector 浏览磁盘 map JSON（Content 在 Assets 外） | ✅ CustomInspector 按钮 |
-| 13 | 可选：把 map JSON 同步进 Assets 以便拖拽 TextAsset | ✅ Sync Maps 菜单 |
-| 14 | World Graph 宏观旅行 UI | ❌ 以后 Phase C |
-| 15 | 最终美术场景导入 | ❌ 另场景；本台只测逻辑 |
+| 13 | 编辑模式 Import 预览（prefab 刷图，无需 Play） | ✅ Inspector「Import」 |
+| 14 | 地图 JSON 真源 Content/BaseGame/Data | ✅ 与 MapEditor 一致 |
+| 15 | World Graph 宏观旅行 UI | ❌ 以后 Phase C |
+| 16 | 最终美术场景导入 | ❌ 另场景；本台只测逻辑 |
 
 **流程：** MapEditor 编图 → Level Tester 换地图／剧本 Play → 逻辑过关 → 以后再进美术场景。
 
@@ -39,22 +40,21 @@ Level Tester 用来试玩 **某一个大地图节点的 LocalMap**（例如荒�
 2. 打开 `Assets/Scenes/LevelTester`  
 3. 选中 **LevelTester** 物体，看 `Playable Host Bootstrap`：
    - **Preferred Map Layout Id**：`base:map_ch01_reference`
-   - **Map Layout File Path**：`Content/BaseGame/Data/ch01_reference_map.json`
+   - **Map Layout File Path**：`Content/BaseGame/Data/Maps/ch01_reference_map.json`
    - **Opening Scenario Id**：`base:scenario_ch01_reference`
-4. Play。Console 应有 `WalkGrid from mapLayout …` 与 `mapLayout override → …`
+4. 点 **Import** 可在 Scene 里预览 prefab 布局；或 Play 测逻辑
 
 ---
 
 ## 怎么换关
 
-关卡地图 JSON 统一放在：
+关卡地图 JSON 真源：
 
-`Assets/DynamicData/GameData/Levels/`
+`Content/BaseGame/Data/`（各 type 在子目录，见 `Data/README.md`）
 
-1. MapEditor 编好后，把该 mapLayout JSON **拷到上述目录**（或另存到这里）  
-2. 选中 **LevelTester** → Inspector 点 **「选择文件…」** → 选这份 JSON  
-3. 地图 Id 自动填；需要换任务线再改 **开局剧本 Id**  
-4. Play 或 F12 重载  
+1. MapEditor 编好后 **Ctrl+S** 写回 Content，或另存到同目录  
+2. 选中 **LevelTester** → Inspector 点 **「选择文件…」** → 选 `Content/BaseGame/Data/*.json`  
+3. 点 **Import** 在 Scene 里看 prefab 预览；Play 或 F12 测逻辑  
 
 NPC／任务仍来自 Content 包；这里只换「这一张本地图」。
 
@@ -87,4 +87,5 @@ NPC／任务仍来自 Content 包；这里只换「这一张本地图」。
 
 | 日期 | 说明 |
 |------|------|
+| 2026-08-13 | 地图真源改 Content/BaseGame/Data |
 | 2026-08-13 | 初版：选图／覆盖 JSON／场景菜单／顶栏 |

@@ -29,6 +29,7 @@ namespace XianXia.Unity.Host
         public const string TreeL = "Assets/Prefabs/Environment/Props/TreeLarge.prefab";
         public const string Ore = "Assets/Prefabs/Environment/Props/OrePile.prefab";
         public const string Cushion = "Assets/Prefabs/Environment/Props/Cushion.prefab";
+        public const string MissingPrefab = "Assets/Prefabs/Environment/Tiles/MissingPrefabPlaceholder.prefab";
 
         public enum StampMode
         {

@@ -11,6 +11,7 @@ namespace XianXia.Unity.Host
         static Sprite _unit;
         static Sprite _tile;
         static Sprite _ring;
+        static Sprite _missingPrefab;
 
         public static Sprite UnitSprite()
         {
@@ -42,6 +43,17 @@ namespace XianXia.Unity.Host
             return _ring = MakeRingSprite(48, new Color(0.3f, 0.95f, 0.35f, 0.9f), "HostRing");
         }
 
+        /// <summary>MapLayout prefab 缺失时的占位图（洋红／黑棋盘格）。</summary>
+        public static Sprite MissingPrefabSprite()
+        {
+            if (_missingPrefab != null)
+                return _missingPrefab;
+            var fromRes = Resources.Load<Sprite>("HostSprites/MissingPrefab");
+            if (fromRes != null)
+                return _missingPrefab = fromRes;
+            return _missingPrefab = MakeCheckerboardSprite(32, 32, "HostMissingPrefab");
+        }
+
         static Sprite MakeSolidSprite(int w, int h, Color color, string name) =>
             MakeSolidSprite(w, h, color, name, new Vector2(0.5f, 0.15f));
 
@@ -59,6 +71,28 @@ namespace XianXia.Unity.Host
             tex.SetPixels(pixels);
             tex.Apply(false, true);
             return Sprite.Create(tex, new Rect(0, 0, w, h), pivot, 32f);
+        }
+
+        static Sprite MakeCheckerboardSprite(int w, int h, string name)
+        {
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false)
+            {
+                name = name,
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp
+            };
+            var a = new Color(0.92f, 0.08f, 0.72f, 1f);
+            var b = new Color(0.08f, 0.08f, 0.08f, 1f);
+            var cell = Mathf.Max(4, w / 4);
+            for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+            {
+                var checker = ((x / cell) + (y / cell)) % 2 == 0;
+                tex.SetPixel(x, y, checker ? a : b);
+            }
+
+            tex.Apply(false, true);
+            return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 32f);
         }
 
         static Sprite MakeRingSprite(int size, Color color, string name)

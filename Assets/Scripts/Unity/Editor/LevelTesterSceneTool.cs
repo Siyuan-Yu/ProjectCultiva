@@ -14,6 +14,7 @@ namespace XianXia.Unity.EditorTools
     public static class LevelTesterSceneTool
     {
         public const string ScenePath = "Assets/Scenes/LevelTester.unity";
+        public const string DefaultMapLayoutPath = "Content/BaseGame/Data/Maps/ch01_reference_map.json";
 
         [MenuItem("XianXia/Level Tester/Create Or Update Level Tester Scene")]
         public static void CreateOrUpdateScene()
@@ -54,8 +55,7 @@ namespace XianXia.Unity.EditorTools
             var bootstrapSo = new SerializedObject(bootstrap);
             bootstrapSo.FindProperty("openingScenarioId").stringValue = "base:scenario_ch01_reference";
             bootstrapSo.FindProperty("preferredMapLayoutId").stringValue = "base:map_ch01_reference";
-            bootstrapSo.FindProperty("mapLayoutFilePath").stringValue =
-                "Assets/DynamicData/GameData/Levels/ch01_reference_map.json";
+            bootstrapSo.FindProperty("mapLayoutFilePath").stringValue = DefaultMapLayoutPath;
             bootstrapSo.FindProperty("secondsPerAutoTickAt1x").floatValue = 3f;
             bootstrapSo.FindProperty("rebuildKey").intValue = (int)KeyCode.F12;
             bootstrapSo.ApplyModifiedPropertiesWithoutUndo();
@@ -133,8 +133,7 @@ namespace XianXia.Unity.EditorTools
             var path = Path.Combine(Application.dataPath, "LevelTester", "Maps", "README.txt");
             var text =
                 "Level Tester 日常用法：\n" +
-                "1. 把 MapEditor 导出的 mapLayout JSON 拷到：\n" +
-                "   Assets/DynamicData/GameData/Levels/\n" +
+                "1. 地图 JSON 真源：Content/BaseGame/Data/Maps/\n" +
                 "2. 选中 LevelTester → Inspector 点「选择文件…」选该 JSON\n" +
                 "详见 docs/40-process/114-level-tester.md\n";
             File.WriteAllText(path, text);
@@ -151,8 +150,8 @@ namespace XianXia.Unity.EditorTools
 
             EditorGUILayout.LabelField("Level Tester · 关卡（只选一个地图 JSON）", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
-                "关卡 JSON 请放在 Assets/DynamicData/GameData/Levels/\n" +
-                "点「选择文件…」选其中一份地图 JSON。地图 Id 自动读取。\n" +
+                "关卡 JSON 真源：Content/BaseGame/Data/Maps/\n" +
+                "点「选择文件…」选其中一份 mapLayout JSON。地图 Id 自动读取。\n" +
                 "「开局剧本 Id」是任务／出生配置，不是地图。",
                 MessageType.Info);
 
@@ -180,10 +179,41 @@ namespace XianXia.Unity.EditorTools
                 scenarioProp,
                 new GUIContent("开局剧本 Id", "例如 base:scenario_ch01_reference"));
 
+            EditorGUILayout.Space(6);
+            EditorGUILayout.LabelField("Map Preview", EditorStyles.boldLabel);
+            using (new EditorGUI.DisabledScope(Application.isPlaying))
+            {
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("Import", GUILayout.Height(24)))
+                {
+                    serializedObject.ApplyModifiedProperties();
+                    if (LevelTesterMapPreview.TryImport(bootstrap, out var okMsg))
+                        EditorUtility.DisplayDialog("Import 完成", okMsg, "确定");
+                    else
+                        EditorUtility.DisplayDialog("Import 失败", okMsg, "确定");
+                }
+
+                if (GUILayout.Button("Clear Preview", GUILayout.Height(24), GUILayout.Width(110)))
+                {
+                    LevelTesterMapPreview.ClearPreview(bootstrap);
+                }
+
+                EditorGUILayout.EndHorizontal();
+                EditorGUILayout.HelpBox(
+                    "选完关卡 JSON 后点 Import，在 Scene 里用游戏 prefab 预览大致布局（无需 Play）。",
+                    MessageType.None);
+            }
+
+            if (Application.isPlaying)
+            {
+                EditorGUILayout.HelpBox("Play 模式下请用 F12 重载；Import 仅用于编辑模式预览。", MessageType.Info);
+            }
+
+            EditorGUILayout.Space(6);
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("用默认第一章地图"))
             {
-                pathProp.stringValue = "Assets/DynamicData/GameData/Levels/ch01_reference_map.json";
+                pathProp.stringValue = LevelTesterSceneTool.DefaultMapLayoutPath;
                 idProp.stringValue = "base:map_ch01_reference";
                 if (string.IsNullOrWhiteSpace(scenarioProp.stringValue))
                     scenarioProp.stringValue = "base:scenario_ch01_reference";
@@ -213,7 +243,7 @@ namespace XianXia.Unity.EditorTools
         static void BrowseMapJson(SerializedProperty pathProp, SerializedProperty idProp)
         {
             var projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
-            var start = Path.Combine(projectRoot, "Assets", "DynamicData", "GameData", "Levels");
+            var start = Path.Combine(projectRoot, "Content", "BaseGame", "Data", "Maps");
             if (!Directory.Exists(start))
                 Directory.CreateDirectory(start);
             if (!string.IsNullOrEmpty(pathProp.stringValue))

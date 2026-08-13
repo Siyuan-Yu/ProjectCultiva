@@ -1,6 +1,8 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Runtime.CompilerServices;
+using IOPath = System.IO.Path;
 using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
@@ -437,14 +439,13 @@ public partial class MainWindow : Window
     void LoadRoot(string root)
     {
         _package = PackageStore.Load(root);
-        PackageStore.MergeLevelsDirectory(_package, PackagePaths.FindDefaultLevelsDir());
         RootText.Text = root;
         RefreshMapCombo(selectId: null);
         _undo.Clear();
         _redo.Clear();
         StatusText.Text = MapCombo.Items.Count == 0
             ? "尚无 mapLayout，可点「新建空图」或「打开地图…」"
-            : $"mapLayout {_package.OfType("mapLayout").Count()} · 包已加载（含 Levels）";
+            : $"mapLayout {_package.OfType("mapLayout").Count()} · Content/BaseGame/Data/Maps";
     }
 
     void RefreshMapCombo(string? selectId)
@@ -472,12 +473,14 @@ public partial class MainWindow : Window
             return;
         }
 
-        var levels = PackagePaths.FindDefaultLevelsDir();
+        var mapsDir = ContentPathRules.TypeDataDir(_package?.Root, "mapLayout");
+        if (string.IsNullOrEmpty(mapsDir))
+            mapsDir = IOPath.Combine(PackagePaths.FindContentDataDir() ?? "", "Maps");
         var dlg = new OpenFileDialog
         {
             Title = "打开地图 JSON",
             Filter = "mapLayout JSON|*.json|所有文件|*.*",
-            InitialDirectory = levels ?? ""
+            InitialDirectory = mapsDir
         };
         if (dlg.ShowDialog() != true) return;
 
@@ -526,14 +529,17 @@ public partial class MainWindow : Window
             return;
         }
 
-        var levels = PackagePaths.FindDefaultLevelsDir();
-        if (string.IsNullOrEmpty(levels))
+        var dataDir = PackagePaths.FindContentDataDir();
+        var mapsDir = ContentPathRules.TypeDataDir(_package?.Root, "mapLayout");
+        if (string.IsNullOrEmpty(mapsDir) && !string.IsNullOrEmpty(dataDir))
+            mapsDir = IOPath.Combine(dataDir, "Maps");
+        if (string.IsNullOrEmpty(mapsDir))
         {
-            MessageBox.Show("找不到 Assets/DynamicData/GameData/Levels，请确认工程路径。");
+            MessageBox.Show("找不到 Content/BaseGame/Data/Maps，请确认工程路径。");
             return;
         }
 
-        System.IO.Directory.CreateDirectory(levels);
+        Directory.CreateDirectory(mapsDir);
         if (!TryPromptText("新建空图", "地图 Id（例如 base:map_huangcun）",
                 "base:map_" + DateTime.Now.ToString("MMddHHmm"), out var mapId))
             return;
@@ -565,7 +571,7 @@ public partial class MainWindow : Window
         {
             Title = "新建地图保存到…",
             Filter = "mapLayout JSON|*.json",
-            InitialDirectory = levels,
+            InitialDirectory = mapsDir,
             FileName = safeFile
         };
         if (dlg.ShowDialog() != true) return;
@@ -1170,16 +1176,19 @@ public partial class MainWindow : Window
             return;
         }
 
-        var levels = PackagePaths.FindDefaultLevelsDir();
-        if (!string.IsNullOrEmpty(levels))
-            System.IO.Directory.CreateDirectory(levels);
+        var dataDir = PackagePaths.FindContentDataDir();
+        var mapsDir = ContentPathRules.TypeDataDir(_package?.Root, "mapLayout");
+        if (string.IsNullOrEmpty(mapsDir) && !string.IsNullOrEmpty(dataDir))
+            mapsDir = IOPath.Combine(dataDir, "Maps");
+        if (!string.IsNullOrEmpty(mapsDir))
+            Directory.CreateDirectory(mapsDir);
 
-        var defaultName = SanitizeFileName(_layout.Id.Replace(':', '_')) + ".json";
+        var defaultName = ContentPathRules.SuggestMapFileName(_layout.Id);
         var dlg = new SaveFileDialog
         {
             Title = "另存为地图 JSON",
             Filter = "mapLayout JSON|*.json",
-            InitialDirectory = levels ?? System.IO.Path.GetDirectoryName(_layout.FilePath) ?? "",
+            InitialDirectory = mapsDir ?? IOPath.GetDirectoryName(_layout.FilePath) ?? dataDir ?? "",
             FileName = defaultName
         };
         if (dlg.ShowDialog() != true) return;

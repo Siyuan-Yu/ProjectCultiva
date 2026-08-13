@@ -5,13 +5,23 @@
       "id": "huangcun_01",
       "type": "mapLayout",
       "name": "第一章参考关·格点地图",
-      "worldRegionId": "",
       "originX": -40,
       "originY": -25,
       "cellSize": 1,
       "width": 80,
       "height": 50,
-      "placements": []
+      "placements": [
+        {
+          "id": "place_house_143311062",
+          "kind": "house",
+          "x": 13,
+          "y": 24,
+          "w": 20,
+          "h": 20,
+          "blocksMovement": true,
+          "label": "小房子"
+        }
+      ]
     }
   ]
 }

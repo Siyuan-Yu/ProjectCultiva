@@ -45,7 +45,7 @@
 | 复制 | **Ctrl+D** |
 | 微调 | **方向键** 1 格；**Shift+方向键** 5 格 |
 | 撤销／重做 | **Ctrl+Z**／**Ctrl+Y** |
-| 保存 | **Ctrl+S**（写回当前文件）；**另存为…**／**Ctrl+Shift+S** → 默认 `Assets/DynamicData/GameData/Levels/` |
+| 保存 | **Ctrl+S**（写回当前文件）；**另存为…**／**Ctrl+Shift+S** → 默认 `Content/BaseGame/Data/Maps/` |
 | 新建空图 | 输入新 Id → 存到 Levels；不再卡死在「只能建 ch01」 |
 | 打开地图 | **打开地图…** 从 Levels 选一张 JSON |
 | 光标格坐标 | 右下角实时显示 |
@@ -85,13 +85,13 @@ Prefab 目录：
 2. **整图尺寸**：改宽／高后点 **应用地图尺寸**（或回车）；预设 `80×50`／`200×100`／`400×200`
 3. 缩放用滑条／＋－／Ctrl+滚轮；平移用中键（可拖出地图）
 4. 左侧选工具放置；右侧填 `boundLocationId`（如 `base:loc_ref_herb_field`）和是否挡路
-5. **Ctrl+S** 写回 `Content/BaseGame/Data/ch01_reference_map.json`
+5. **Ctrl+S** 写回 `Content/BaseGame/Data/Maps/ch01_reference_map.json`
 
 ---
 
 ## 游戏里怎么跑（不用在 Inspector 换 JSON）
 
-**日常逻辑试玩请用 [Level Tester](114-level-tester.md)**（`Assets/Scenes/LevelTester`）：可在 Inspector 指定 mapLayout 文件／id 与 openingScenario。
+**日常逻辑试玩请用 [Level Tester](114-level-tester.md)**：默认读 `Content/BaseGame/Data/Maps/ch01_reference_map.json`。
 
 旧说明：`DemoParityHost`／`PlayableHost` 默认读仓库 `Content/BaseGame`，也可填 Level Tester 同款字段。
 
@@ -192,4 +192,4 @@ Prefab 目录：
 | 2026-08-12 | 设施缩放改为四角＋四边手柄，修正「往下拖反而缩小」 |
 | 2026-08-12 | 分区 zone*；树 treeS/M/L；矿石 ore 2×2；路纯贴图；生长暂缓 |
 | 2026-08-13 | 逻辑试玩改走 [Level Tester](114-level-tester.md)；Host 支持换 mapLayout |
-| 2026-08-13 | 新建／另存为／打开地图；Levels 目录；汇总见 [115](115-recent-updates-rollup-2026-08-13.md) |
+| 2026-08-13 | 地图／任务真源统一到 Content/BaseGame/Data（不再用 Assets/Levels） |

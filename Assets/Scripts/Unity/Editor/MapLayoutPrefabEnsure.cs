@@ -2,6 +2,7 @@
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using XianXia.Unity.Host;
 
 namespace XianXia.Unity.Editor
 {
@@ -61,10 +62,85 @@ namespace XianXia.Unity.Editor
                 Props + "/Cushion.prefab",
                 "Cushion",
                 new Color(0.55f, 0.42f, 0.72f, 1f));
+            EnsureMissingPlaceholder();
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[MapLayoutPrefabEnsure] Wall/Rock/House/TreeS-M-L/OrePile/Cushion ready.");
+            Debug.Log("[MapLayoutPrefabEnsure] Wall/Rock/House/TreeS-M-L/OrePile/Cushion/MissingPrefab ready.");
+        }
+
+        [MenuItem("XianXia/Content/Validate MapLayout Prefabs")]
+        public static void ValidateAll()
+        {
+            var missing = MapLayoutPrefabResolver.ValidateCatalogPrefabs();
+            if (missing.Count == 0)
+            {
+                Debug.Log("[MapLayoutPrefabEnsure] All MapEditor kinds have prefabs.");
+                return;
+            }
+
+            for (var i = 0; i < missing.Count; i++)
+                Debug.LogWarning("[MapLayoutPrefabEnsure] Missing: " + missing[i]);
+            Debug.LogWarning(
+                "[MapLayoutPrefabEnsure] " + missing.Count +
+                " prefab(s) missing. Run XianXia/Content/Ensure MapLayout Prefabs.");
+        }
+
+        static void EnsureMissingPlaceholder()
+        {
+            var prefabPath = Tiles + "/MissingPrefabPlaceholder.prefab";
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath) != null)
+                return;
+
+            EnsureDir(Tiles);
+            var texPath = Tiles + "/MissingPrefabPlaceholder.png";
+            if (AssetDatabase.LoadAssetAtPath<Texture2D>(texPath) == null)
+            {
+                var projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+                var fullTexPath = Path.Combine(projectRoot, texPath.Replace('/', Path.DirectorySeparatorChar));
+                Directory.CreateDirectory(Path.GetDirectoryName(fullTexPath) ?? projectRoot);
+                var tex = BuildMissingTexture(32, 32);
+                File.WriteAllBytes(fullTexPath, tex.EncodeToPNG());
+                Object.DestroyImmediate(tex);
+                AssetDatabase.ImportAsset(texPath);
+                var ti = AssetImporter.GetAtPath(texPath) as TextureImporter;
+                if (ti != null)
+                {
+                    ti.textureType = TextureImporterType.Sprite;
+                    ti.spriteImportMode = SpriteImportMode.Single;
+                    ti.filterMode = FilterMode.Point;
+                    ti.SaveAndReimport();
+                }
+            }
+
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(texPath);
+            var root = new GameObject("MissingPrefabPlaceholder");
+            var sr = root.AddComponent<SpriteRenderer>();
+            sr.sprite = sprite ?? HostSpriteFactory.MissingPrefabSprite();
+            sr.sortingOrder = 100;
+            PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+            Object.DestroyImmediate(root);
+        }
+
+        static Texture2D BuildMissingTexture(int w, int h)
+        {
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp
+            };
+            var a = new Color(0.92f, 0.08f, 0.72f, 1f);
+            var b = new Color(0.08f, 0.08f, 0.08f, 1f);
+            var cell = Mathf.Max(4, w / 4);
+            for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+            {
+                var checker = ((x / cell) + (y / cell)) % 2 == 0;
+                tex.SetPixel(x, y, checker ? a : b);
+            }
+
+            tex.Apply(false, false);
+            return tex;
         }
 
         [InitializeOnLoadMethod]
@@ -78,7 +154,8 @@ namespace XianXia.Unity.Editor
                     AssetDatabase.LoadAssetAtPath<GameObject>(Buildings + "/SmallHouse.prefab") != null &&
                     AssetDatabase.LoadAssetAtPath<GameObject>(Props + "/TreeSmall.prefab") != null &&
                     AssetDatabase.LoadAssetAtPath<GameObject>(Props + "/OrePile.prefab") != null &&
-                    AssetDatabase.LoadAssetAtPath<GameObject>(Props + "/Cushion.prefab") != null)
+                    AssetDatabase.LoadAssetAtPath<GameObject>(Props + "/Cushion.prefab") != null &&
+                    AssetDatabase.LoadAssetAtPath<GameObject>(Tiles + "/MissingPrefabPlaceholder.prefab") != null)
                     return;
                 EnsureAll();
             };

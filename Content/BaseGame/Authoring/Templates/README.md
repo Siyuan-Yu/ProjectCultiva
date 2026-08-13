@@ -1,6 +1,6 @@
 # 第一章内容模板（Authoring Templates）
 
-复制本目录 JSON 到 `Content/BaseGame/Data/`，替换 `REPLACE_*` 占位符后再纳入加载。  
+复制本目录 JSON 到 `Content/BaseGame/Data/<类型子目录>/`（见 `Data/README.md`），替换 `REPLACE_*` 占位符后再纳入加载。  
 **本目录不会被 ContentPackageLoader 扫描**（仅 `Data/**/*.json`）。
 
 | 模板 | 用途 |

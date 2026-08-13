@@ -26,11 +26,14 @@ namespace XianXia.Unity.Host
 
         public int TileCount => _built.Count;
 
+        public int MissingPrefabCount => MapLayoutPrefabResolver.MissingCount;
+
         public void Rebuild() => Rebuild(null);
 
         public void Rebuild(PlayableHostSession session)
         {
             Clear();
+            MapLayoutPrefabResolver.BeginBatch();
             HostInteractSpots.BeginLayoutRebuild();
             if (!buildOnRebuild)
                 return;
@@ -43,6 +46,20 @@ namespace XianXia.Unity.Host
             }
 
             BuildLegacyDemoTiles();
+        }
+
+        /// <summary>
+        /// Level Tester：编辑模式下 Import 预览，不依赖 PlayableHostSession。
+        /// </summary>
+        public void RebuildFromLayout(MapLayoutDefinition layout)
+        {
+            Clear();
+            MapLayoutPrefabResolver.BeginBatch();
+            HostInteractSpots.BeginLayoutRebuild();
+            if (!buildOnRebuild || layout == null)
+                return;
+            EnsureRoot();
+            BuildFromLayout(layout);
         }
 
         static bool TryPickLayout(PlayableHostSession session, out MapLayoutDefinition layout) =>
@@ -66,7 +83,7 @@ namespace XianXia.Unity.Host
                 {
                     var wx = ox + (gx + 0.5f) * cs;
                     var wy = oy + (gy + 0.5f) * cs;
-                    PlacePrefab(MapKindCatalog.Grass, wx, wy, "Grass_" + gx + "_" + gy, cs * step, cs * step,
+                    PlacePrefab("grass", MapKindCatalog.Grass, wx, wy, "Grass_" + gx + "_" + gy, cs * step, cs * step,
                         new Color(0.30f, 0.42f, 0.26f));
                 }
             }
@@ -95,15 +112,8 @@ namespace XianXia.Unity.Host
 
             if (!MapKindCatalog.TryGet(kind, out var info))
             {
-                info = new MapKindCatalog.KindInfo(
-                    kind,
-                    MapKindCatalog.Road,
-                    MapKindCatalog.StampMode.PerCell,
-                    pw,
-                    ph,
-                    false,
-                    null,
-                    new Color(0.5f, 0.5f, 0.5f));
+                StampMissingPlacement(layout, p, index, kind);
+                return;
             }
 
             if (info.Mode == MapKindCatalog.StampMode.ZoneOverlay)
@@ -122,7 +132,7 @@ namespace XianXia.Unity.Host
                 if (kind == "house")
                     path = ResolveHousePath();
                 // 按编辑器里实际占地拟合（不再强行 20×20）
-                var go = PlacePrefab(path, cx, cy, id, pw * cs, ph * cs, info.FallbackColor,
+                var go = PlacePrefab(kind, path, cx, cy, id, pw * cs, ph * cs, info.FallbackColor,
                     sortingOrder: kind == "house" ? -8 : -12);
                 if (info.InteractKind.HasValue)
                     AttachPlot(go, p, info, p.X, p.Y, cx, cy);
@@ -139,7 +149,7 @@ namespace XianXia.Unity.Host
                 var wx = ox + (cellX + 0.5f) * cs;
                 var wy = oy + (cellY + 0.5f) * cs;
                 var cellName = id + "_" + gx + "_" + gy;
-                var go = PlacePrefab(info.PrefabPath, wx, wy, cellName, cs, cs, info.FallbackColor,
+                var go = PlacePrefab(kind, info.PrefabPath, wx, wy, cellName, cs, cs, info.FallbackColor,
                     sortingOrder: cellOrder);
                 if (info.InteractKind.HasValue || info.Plantable)
                     AttachPlot(go, p, info, cellX, cellY, wx, wy);
@@ -206,6 +216,23 @@ namespace XianXia.Unity.Host
                 label));
         }
 
+        void StampMissingPlacement(MapLayoutDefinition layout, MapPlacement p, int index, string kind)
+        {
+            Debug.LogWarning(
+                "[MapLayout] Unknown map kind '" + (kind ?? string.Empty) +
+                "' in placement '" + (p?.Id ?? index.ToString()) + "'. Using MissingPrefab placeholder.");
+            var cs = layout.CellSize > 0f ? layout.CellSize : 1f;
+            var ox = layout.OriginX;
+            var oy = layout.OriginY;
+            var pw = p.W < 1 ? 1 : p.W;
+            var ph = p.H < 1 ? 1 : p.H;
+            var id = string.IsNullOrEmpty(p.Id) ? "missing_" + index : p.Id;
+            var cx = ox + (p.X + pw * 0.5f) * cs;
+            var cy = oy + (p.Y + ph * 0.5f) * cs;
+            PlacePrefab(kind, MapKindCatalog.MissingPrefab, cx, cy, id + "_missing", pw * cs, ph * cs,
+                Color.white, sortingOrder: 100);
+        }
+
         void BuildLegacyDemoTiles()
         {
             for (var y = LegacyMinY; y < LegacyMinY + LegacyHeight; y++)
@@ -245,8 +272,18 @@ namespace XianXia.Unity.Host
                     fallback = new Color(0.30f, 0.42f, 0.26f);
                 }
 
-                PlacePrefab(path, x + 0.5f, y + 0.5f, "Tile_" + x + "_" + y, 1f, 1f, fallback);
+                PlacePrefab(KindForLegacyPath(path), path, x + 0.5f, y + 0.5f, "Tile_" + x + "_" + y, 1f, 1f, fallback);
             }
+        }
+
+        static string KindForLegacyPath(string path)
+        {
+            if (path == MapKindCatalog.Spirit) return "spring";
+            if (path == MapKindCatalog.Forest) return "forest";
+            if (path == MapKindCatalog.Herb) return "herbField";
+            if (path == MapKindCatalog.Farm) return "grainField";
+            if (path == MapKindCatalog.Road) return "road";
+            return "grass";
         }
 
         public void Clear()
@@ -274,6 +311,7 @@ namespace XianXia.Unity.Host
         }
 
         GameObject PlacePrefab(
+            string kind,
             string prefabPath,
             float x,
             float y,
@@ -284,41 +322,34 @@ namespace XianXia.Unity.Host
             int sortingOrder = -30)
         {
             GameObject go = null;
-#if UNITY_EDITOR
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-            if (prefab == null && prefabPath == MapKindCatalog.House)
-                prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MapKindCatalog.HouseFallback);
-            if (prefab == null && (prefabPath == MapKindCatalog.Wall || prefabPath == MapKindCatalog.Rock))
-                prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MapKindCatalog.Road);
-            if (prefab == null && (prefabPath == MapKindCatalog.TreeS || prefabPath == MapKindCatalog.TreeM ||
-                                   prefabPath == MapKindCatalog.TreeL))
-                prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MapKindCatalog.Forest);
-            if (prefab == null && prefabPath == MapKindCatalog.Ore)
-                prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MapKindCatalog.Rock)
-                         ?? AssetDatabase.LoadAssetAtPath<GameObject>(MapKindCatalog.Road);
-            if (prefab == null && prefabPath == MapKindCatalog.Cushion)
-                prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MapKindCatalog.Spirit);
-            if (prefab != null)
-                go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-#endif
-            if (go == null)
+            var usedMissingPlaceholder = false;
+            if (MapLayoutPrefabResolver.TryInstantiate(kind, prefabPath, out go))
+            {
+                // resolved prefab
+            }
+            else if (MapLayoutPrefabResolver.TryInstantiate(kind, MapKindCatalog.MissingPrefab, out go, warnOnMissing: false))
+            {
+                usedMissingPlaceholder = true;
+            }
+            else
             {
                 go = new GameObject(name);
                 var sr = go.AddComponent<SpriteRenderer>();
-                sr.sprite = HostSpriteFactory.TileSprite();
-                sr.color = fallbackColor;
-                sr.sortingOrder = sortingOrder;
+                sr.sprite = HostSpriteFactory.MissingPrefabSprite();
+                sr.color = Color.white;
+                sr.sortingOrder = sortingOrder + 50;
+                usedMissingPlaceholder = true;
             }
 
-            go.name = name;
+            go.name = usedMissingPlaceholder ? name + "_MissingPrefab" : name;
             go.transform.SetParent(mapRoot, false);
             go.transform.localScale = Vector3.one;
             var intended = HostPresentationSpace.FromPresentation(x, y, HostPresentationSpace.GroundZ);
             go.transform.position = intended;
             FitToWorldSize(go, Mathf.Max(0.01f, worldW), Mathf.Max(0.01f, worldH));
             AlignBoundsCenter(go, intended);
-            ApplySortingOrder(go, sortingOrder);
-            if (prefabPath == MapKindCatalog.Wall)
+            ApplySortingOrder(go, usedMissingPlaceholder ? sortingOrder + 50 : sortingOrder);
+            if (!usedMissingPlaceholder && prefabPath == MapKindCatalog.Wall)
                 TintRenderers(go, new Color(0.32f, 0.32f, 0.36f, 1f));
             StripNonHostBehaviours(go);
             _built.Add(go);

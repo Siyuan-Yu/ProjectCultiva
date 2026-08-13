@@ -32,6 +32,7 @@ public partial class MainWindow : Window
         RootText.Text = root;
         EventList.ItemsSource = _package.OfType("contentEvent").Select(d => d.Id).ToList();
         LocationBox.ItemsSource = new[] { "" }.Concat(PackageStore.AllLocationIds(_package)).ToList();
+        CondEditor.Configure(_package, JsonArrayEditorMode.Condition, "触发条件");
         if (EventList.Items.Count > 0) EventList.SelectedIndex = 0;
         StatusText.Text = $"事件 {_package.OfType("contentEvent").Count()} 条";
     }
@@ -54,7 +55,7 @@ public partial class MainWindow : Window
         LocationBox.SelectedItem = JsonEdit.GetString(_event.Raw, "locationId");
         QuestIdBox.Text = JsonEdit.GetString(_event.Raw, "questId");
         OnceBox.IsChecked = _event.Raw["once"] is null || JsonEdit.GetBool(_event.Raw, "once", true);
-        CondBox.Text = JsonEdit.ConditionsToEditable(_event.Raw["conditions"]);
+        CondEditor.LoadFrom(_event.Raw["conditions"]);
         ChoicesBox.Text = JsonEdit.ConditionsToEditable(_event.Raw["choices"]);
     }
 
@@ -83,7 +84,6 @@ public partial class MainWindow : Window
             }
         };
         _event = PackageStore.AppendDefinition(_package, "events.json", raw);
-        // Prefer chapter event files if present
         LoadRoot(_package.Root);
         EventList.SelectedItem = id;
         StatusText.Text = "已新建并写入: " + System.IO.Path.GetFileName(_event.FilePath);
@@ -97,10 +97,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (!JsonEdit.TryParseJsonArray(CondBox.Text, out var cond, out var err) ||
-            !JsonEdit.TryParseJsonArray(ChoicesBox.Text, out var choices, out err))
+        if (!JsonEdit.TryParseJsonArray(ChoicesBox.Text, out var choices, out var err))
         {
-            MessageBox.Show("JSON 数组无效: " + err, "保存失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("choices JSON 数组无效: " + err, "保存失败", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -108,10 +107,10 @@ public partial class MainWindow : Window
         _event.Raw["name"] = NameBox.Text ?? "";
         _event.Raw["body"] = BodyBox.Text ?? "";
         _event.Raw["trigger"] = TriggerBox.SelectedItem as string ?? "manual";
-        JsonEdit.SetString(_event.Raw, "locationId", LocationBox.SelectedItem as string);
+        JsonEdit.SetString(_event.Raw, "locationId", LocationBox.SelectedItem as string ?? LocationBox.Text);
         JsonEdit.SetString(_event.Raw, "questId", QuestIdBox.Text);
         _event.Raw["once"] = OnceBox.IsChecked == true;
-        _event.Raw["conditions"] = cond;
+        _event.Raw["conditions"] = CondEditor.ToJsonArray();
         _event.Raw["choices"] = choices;
 
         try

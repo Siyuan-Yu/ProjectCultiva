@@ -8,26 +8,48 @@ Runtime format: **JSON only** (CSV is authoring input via M1-B importer; not run
 Content/BaseGame/
   manifest.json
   Data/
-    characters.json
-    cultivation.json
-    items.json
-    sites.json                 # opportunitySite
-    scenarios.json             # openingScenario
-    resources.json             # VS0.8
-    facilities.json            # VS0.8
-    settlements.json           # VS0.8
-    world_regions.json         # VS0.9 / Content Ready enterConditions
-    work_areas.json            # NPC Simulation WorkArea
-    jobs.json                  # NPC Simulation JobDefinition
-    quests.json                # Content Ready
-    content_events.json        # Content Ready
-    chapters.json              # Chapter Production Framework
-    chapter1_harness_*.json    # Chapter Production Toolkit（测试壳，非剧情）
+    SCHEMA.md                  # 本文件（Loader 不扫描 .md）
+    README.md                  # 子目录说明
+    Characters/                # type = character
+      characters.json
+      ch01_reference_characters.json
+    Cultivation/               # type = cultivation
+      cultivation.json
+    Items/                     # type = item
+      items.json
+    Sites/                     # type = opportunitySite
+      sites.json
+    Scenarios/                 # type = openingScenario
+      scenarios.json
+    Resources/                 # type = resource
+      resources.json
+    Facilities/                # type = facility
+      facilities.json
+    Settlements/               # type = settlement
+      settlements.json
+    Regions/                   # type = worldRegion
+      world_regions.json
+      ch01_reference_region.json
+    Maps/                      # type = mapLayout（关卡格点）
+      ch01_reference_map.json
+    Quests/                    # type = quest
+      quests.json
+      ch01_reference_quests.json
+      chapter1_harness_quests.json
+    Events/                    # type = contentEvent
+      content_events.json
+      ch01_reference_events.json
+      chapter1_harness_events.json
+    Chapters/                  # type = chapter
+      chapters.json
+      ch01_reference_chapter.json
+      chapter1_harness_chapter.json
+    WorkAreas/                 # type = workArea
+      work_areas.json
+    Jobs/                      # type = job
+      jobs.json
   Authoring/Csv/
   Authoring/Templates/         # 第一章 JSON 模板（不被 Loader 扫描）
-    characters.csv
-    cultivation.csv
-    items.csv
 ```
 
 Each data file:

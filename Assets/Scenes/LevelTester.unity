@@ -542,7 +542,7 @@ MonoBehaviour:
   contentPackageDirectoryOverride: 
   preferredMapLayoutId: base:map_ch01_reference
   mapLayoutJsonOverride: {fileID: 0}
-  mapLayoutFilePath: Assets/DynamicData/GameData/Levels/ch01_reference_map.json
+  mapLayoutFilePath: Content/BaseGame/Data/ch01_reference_map.json
   overrideObservationDiscoverChance: 0
   observationDiscoverChancePercent: 100
   dailyRequiredAmount: 10

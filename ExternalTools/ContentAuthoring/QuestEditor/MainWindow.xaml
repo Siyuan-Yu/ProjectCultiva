@@ -1,13 +1,15 @@
 ﻿<Window x:Class="QuestEditor.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="XianXia · 任务编辑器" Height="800" Width="1100"
+        xmlns:shared="clr-namespace:ContentAuthoring.Shared;assembly=Shared"
+        Title="XianXia · 任务编辑器" Height="860" Width="1180"
         WindowStartupLocation="CenterScreen">
   <DockPanel Margin="10">
     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
       <Button Content="打开包…" Width="90" Margin="0,0,8,0" Click="OpenPackage_Click"/>
-      <Button Content="+ 新任务" Width="90" Margin="0,0,8,0" Click="NewQuest_Click"/>
-      <Button Content="保存到磁盘" Width="100" Margin="0,0,8,0" Click="Save_Click"/>
+      <Button Content="新建…" Width="72" Margin="0,0,8,0" Click="NewQuest_Click" ToolTip="在 Content/Data 新建任务 JSON"/>
+      <Button Content="保存" Width="72" Margin="0,0,8,0" Click="Save_Click"/>
+      <Button Content="另存为…" Width="80" Margin="0,0,8,0" Click="SaveAs_Click" ToolTip="另存到 Content/BaseGame/Data"/>
       <TextBlock x:Name="RootText" VerticalAlignment="Center"/>
     </StackPanel>
     <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0"/>
@@ -21,27 +23,77 @@
       </GroupBox>
       <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
         <StackPanel>
-          <DockPanel Margin="0,0,0,6">
-            <TextBlock Text="id" Width="90" VerticalAlignment="Center"/>
-            <TextBox x:Name="IdBox"/>
-          </DockPanel>
-          <DockPanel Margin="0,0,0,6">
-            <TextBlock Text="name" Width="90" VerticalAlignment="Center"/>
-            <TextBox x:Name="NameBox"/>
-          </DockPanel>
-          <CheckBox x:Name="AutoOfferBox" Content="autoOffer（条件满足自动接取）" Margin="0,0,0,8"/>
-          <TextBlock Text="description"/>
-          <TextBox x:Name="DescBox" AcceptsReturn="True" Height="70" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0,0,0,8"/>
-          <TextBlock Text="offerConditions（JSON 数组）"/>
-          <TextBox x:Name="OfferBox" AcceptsReturn="True" Height="90" FontFamily="Consolas" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0,0,0,8"/>
-          <TextBlock Text="completeConditions（JSON 数组）"/>
-          <TextBox x:Name="CompleteBox" AcceptsReturn="True" Height="90" FontFamily="Consolas" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0,0,0,8"/>
-          <TextBlock Text="rewards（JSON 数组）"/>
-          <TextBox x:Name="RewardsBox" AcceptsReturn="True" Height="90" FontFamily="Consolas" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0,0,0,8"/>
-          <TextBlock Text="failConditions（JSON 数组）"/>
-          <TextBox x:Name="FailCondBox" AcceptsReturn="True" Height="70" FontFamily="Consolas" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0,0,0,8"/>
-          <TextBlock Text="failResults（JSON 数组）"/>
-          <TextBox x:Name="FailResBox" AcceptsReturn="True" Height="70" FontFamily="Consolas" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+          <GroupBox Header="① 基本信息" Margin="0,0,0,8">
+            <StackPanel Margin="6">
+              <DockPanel Margin="0,0,0,6">
+                <TextBlock Text="id" Width="90" VerticalAlignment="Center"/>
+                <TextBox x:Name="IdBox"/>
+              </DockPanel>
+              <DockPanel Margin="0,0,0,6">
+                <TextBlock Text="name" Width="90" VerticalAlignment="Center"/>
+                <TextBox x:Name="NameBox"/>
+              </DockPanel>
+              <TextBlock Text="description"/>
+              <TextBox x:Name="DescBox" AcceptsReturn="True" Height="70" TextWrapping="Wrap"
+                       VerticalScrollBarVisibility="Auto" Margin="0,4,0,0"/>
+            </StackPanel>
+          </GroupBox>
+
+          <GroupBox Header="② 发放方式" Margin="0,0,0,8">
+            <StackPanel Margin="6">
+              <DockPanel Margin="0,0,0,6">
+                <TextBlock Text="方式" Width="90" VerticalAlignment="Center"/>
+                <ComboBox x:Name="OfferModeBox" SelectionChanged="OfferModeBox_SelectionChanged"/>
+              </DockPanel>
+              <StackPanel x:Name="OfferAfterQuestPanel" Visibility="Collapsed" Margin="0,0,0,6">
+                <DockPanel>
+                  <TextBlock Text="前置任务" Width="90" VerticalAlignment="Center"/>
+                  <ComboBox x:Name="PreviousQuestBox" IsEditable="True"/>
+                </DockPanel>
+              </StackPanel>
+              <StackPanel x:Name="OfferAtLocationPanel" Visibility="Collapsed" Margin="0,0,0,6">
+                <DockPanel>
+                  <TextBlock Text="发放地点" Width="90" VerticalAlignment="Center"/>
+                  <ComboBox x:Name="OfferLocationBox" IsEditable="True"/>
+                </DockPanel>
+              </StackPanel>
+              <StackPanel x:Name="OfferNpcPanel" Visibility="Collapsed" Margin="0,0,0,6">
+                <DockPanel Margin="0,0,0,6">
+                  <TextBlock Text="对话地点" Width="90" VerticalAlignment="Center"/>
+                  <ComboBox x:Name="NpcLocationBox" IsEditable="True"/>
+                </DockPanel>
+                <StackPanel Orientation="Horizontal">
+                  <Button Content="创建/更新关联事件" Click="EnsureNpcEvent_Click"/>
+                  <TextBlock x:Name="LinkedEventText" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+              </StackPanel>
+              <TextBlock x:Name="LinksText" TextWrapping="Wrap" Foreground="Gray" Margin="0,4,0,0"/>
+            </StackPanel>
+          </GroupBox>
+
+          <GroupBox Header="③ 接取条件（autoOffer 时生效）" Margin="0,0,0,8">
+            <StackPanel Margin="6">
+              <CheckBox x:Name="AutoOfferBox" Content="条件满足时自动接取 (autoOffer)" Margin="0,0,0,6"/>
+              <shared:JsonArrayEditor x:Name="OfferEditor"/>
+            </StackPanel>
+          </GroupBox>
+
+          <GroupBox Header="④ 完成条件" Margin="0,0,0,8">
+            <shared:JsonArrayEditor x:Name="CompleteEditor" Margin="6"/>
+          </GroupBox>
+
+          <GroupBox Header="⑤ 奖励" Margin="0,0,0,8">
+            <shared:JsonArrayEditor x:Name="RewardsEditor" Margin="6"/>
+          </GroupBox>
+
+          <GroupBox Header="⑥ 失败（可选）" Margin="0,0,0,8">
+            <StackPanel Margin="6">
+              <TextBlock Text="失败条件" Margin="0,0,0,4"/>
+              <shared:JsonArrayEditor x:Name="FailCondEditor" Margin="0,0,0,8"/>
+              <TextBlock Text="失败结果" Margin="0,0,0,4"/>
+              <shared:JsonArrayEditor x:Name="FailResEditor"/>
+            </StackPanel>
+          </GroupBox>
         </StackPanel>
       </ScrollViewer>
     </Grid>

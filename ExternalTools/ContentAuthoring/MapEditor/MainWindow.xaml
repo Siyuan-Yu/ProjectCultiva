@@ -12,10 +12,10 @@
         <Button Content="打开包…" Width="90" Margin="0,0,8,0" Click="OpenPackage_Click"/>
         <TextBlock Text="地图" VerticalAlignment="Center" Margin="0,0,6,0"/>
         <ComboBox x:Name="MapCombo" Width="280" SelectionChanged="MapCombo_SelectionChanged"/>
-        <Button Content="打开地图…" Width="80" Margin="8,0,0,0" Click="OpenMapFile_Click" ToolTip="从 Levels 打开一张 mapLayout JSON"/>
-        <Button Content="新建空图" Width="80" Margin="8,0,0,0" Click="NewFromTemplate_Click" ToolTip="在 Levels 新建一张空地图"/>
+        <Button Content="打开地图…" Width="80" Margin="8,0,0,0" Click="OpenMapFile_Click" ToolTip="从 Content/BaseGame/Data 打开 mapLayout JSON"/>
+        <Button Content="新建空图" Width="80" Margin="8,0,0,0" Click="NewFromTemplate_Click" ToolTip="在 Content/Data 新建空地图"/>
         <Button Content="保存 Ctrl+S" Width="100" Margin="8,0,0,0" Click="Save_Click"/>
-        <Button Content="另存为…" Width="70" Margin="8,0,0,0" Click="SaveAs_Click" ToolTip="另存到 Levels／自选路径"/>
+        <Button Content="另存为…" Width="70" Margin="8,0,0,0" Click="SaveAs_Click" ToolTip="另存到 Content/BaseGame/Data"/>
         <Separator Margin="10,0" Width="1" Background="#C0B8A8"/>
         <Button Content="撤销" Width="50" Margin="0,0,4,0" Click="Undo_Click" ToolTip="Ctrl+Z"/>
         <Button Content="重做" Width="50" Margin="0,0,4,0" Click="Redo_Click" ToolTip="Ctrl+Y"/>
