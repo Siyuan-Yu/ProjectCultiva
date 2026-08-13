@@ -1,6 +1,6 @@
 ﻿# 116 · 近期更新收束（Ch01 手操弧／劳动／小队背包）— 2026-08-14
 
-> 状态：**已同步飞书｜待 push**｜日期：2026-08-14  
+> 状态：**已推送**｜日期：2026-08-14  
 > 相对提交：`ce6a371`（115 文档收束之后）→ 本轮 `main`  
 > 相关：[115 上一轮](115-recent-updates-rollup-2026-08-13.md)｜[110 QuestEditor](110-content-studio-quest-editor-usage.md)｜[SCHEMA](../../Content/BaseGame/Data/SCHEMA.md)
 
