@@ -50,7 +50,9 @@
       "preferredWorkAreaIds": [
         "base:workarea_spring_cultivate",
         "base:workarea_spring_check",
-        "base:workarea_road_hub"
+        "base:workarea_road_hub",
+        "base:workarea_supervisor_mansion",
+        "base:workarea_supervisor_quarters"
       ],
       "spiritRoots": {
         "Fire": 6,
@@ -66,7 +68,8 @@
       "reputation": 0,
       "goals": [],
       "desires": [],
-      "playerControllable": false
+      "playerControllable": false,
+      "homeWorkAreaId": "base:workarea_supervisor_quarters"
     },
     {
       "id": "base:character_ch01_ref_guard_a",
@@ -117,8 +120,8 @@
       "preferredWorkAreaIds": [
         "base:workarea_road_hub",
         "base:workarea_forest_edge",
-        "base:workarea_houses",
-        "base:workarea_labor_yard"
+        "base:workarea_labor_yard",
+        "base:workarea_guard_quarters"
       ],
       "spiritRoots": {
         "Fire": 0,
@@ -134,7 +137,8 @@
       "reputation": 0,
       "goals": [],
       "desires": [],
-      "playerControllable": false
+      "playerControllable": false,
+      "homeWorkAreaId": "base:workarea_guard_quarters"
     },
     {
       "id": "base:character_ch01_ref_guard_b",
@@ -185,8 +189,8 @@
       "preferredWorkAreaIds": [
         "base:workarea_road_hub",
         "base:workarea_forest_edge",
-        "base:workarea_houses",
-        "base:workarea_labor_yard"
+        "base:workarea_labor_yard",
+        "base:workarea_guard_quarters"
       ],
       "spiritRoots": {
         "Fire": 0,
@@ -202,7 +206,8 @@
       "reputation": 0,
       "goals": [],
       "desires": [],
-      "playerControllable": false
+      "playerControllable": false,
+      "homeWorkAreaId": "base:workarea_guard_quarters"
     },
     {
       "id": "base:character_ch01_ref_guard_c",
@@ -253,8 +258,8 @@
       "preferredWorkAreaIds": [
         "base:workarea_road_hub",
         "base:workarea_forest_edge",
-        "base:workarea_houses",
-        "base:workarea_labor_yard"
+        "base:workarea_labor_yard",
+        "base:workarea_guard_quarters"
       ],
       "spiritRoots": {
         "Fire": 0,
@@ -270,7 +275,8 @@
       "reputation": 0,
       "goals": [],
       "desires": [],
-      "playerControllable": false
+      "playerControllable": false,
+      "homeWorkAreaId": "base:workarea_guard_quarters"
     },
     {
       "id": "base:character_ch01_ref_mortal_a",
@@ -322,7 +328,8 @@
         "base:workarea_labor_yard",
         "base:workarea_herb_field",
         "base:workarea_forest_woodcut",
-        "base:workarea_mine"
+        "base:workarea_mine",
+        "base:workarea_houses"
       ],
       "spiritRoots": {
         "Fire": 0,
@@ -338,7 +345,8 @@
       "reputation": 0,
       "goals": [],
       "desires": [],
-      "playerControllable": false
+      "playerControllable": false,
+      "homeWorkAreaId": "base:workarea_houses"
     },
     {
       "id": "base:character_ch01_ref_farmer_b",
@@ -390,7 +398,8 @@
         "base:workarea_labor_yard",
         "base:workarea_herb_field",
         "base:workarea_forest_woodcut",
-        "base:workarea_mine"
+        "base:workarea_mine",
+        "base:workarea_houses"
       ],
       "spiritRoots": {
         "Fire": 0,
@@ -406,7 +415,8 @@
       "reputation": 0,
       "goals": [],
       "desires": [],
-      "playerControllable": false
+      "playerControllable": false,
+      "homeWorkAreaId": "base:workarea_houses"
     },
     {
       "id": "base:character_ch01_ref_farmer_c",
@@ -458,7 +468,8 @@
         "base:workarea_labor_yard",
         "base:workarea_herb_field",
         "base:workarea_forest_woodcut",
-        "base:workarea_mine"
+        "base:workarea_mine",
+        "base:workarea_houses"
       ],
       "spiritRoots": {
         "Fire": 0,
@@ -474,7 +485,8 @@
       "reputation": 0,
       "goals": [],
       "desires": [],
-      "playerControllable": false
+      "playerControllable": false,
+      "homeWorkAreaId": "base:workarea_houses"
     },
     {
       "id": "base:character_ch01_ref_mortal_b",
@@ -526,7 +538,8 @@
         "base:workarea_herb_field",
         "base:workarea_labor_yard",
         "base:workarea_forest_woodcut",
-        "base:workarea_mine"
+        "base:workarea_mine",
+        "base:workarea_houses"
       ],
       "spiritRoots": {
         "Fire": 0,
@@ -542,7 +555,8 @@
       "reputation": 0,
       "goals": [],
       "desires": [],
-      "playerControllable": false
+      "playerControllable": false,
+      "homeWorkAreaId": "base:workarea_houses"
     },
     {
       "id": "base:character_ch01_ref_herb_b",
@@ -594,7 +608,8 @@
         "base:workarea_herb_field",
         "base:workarea_labor_yard",
         "base:workarea_forest_woodcut",
-        "base:workarea_mine"
+        "base:workarea_mine",
+        "base:workarea_houses"
       ],
       "spiritRoots": {
         "Fire": 0,
@@ -610,7 +625,8 @@
       "reputation": 0,
       "goals": [],
       "desires": [],
-      "playerControllable": false
+      "playerControllable": false,
+      "homeWorkAreaId": "base:workarea_houses"
     },
     {
       "id": "base:character_ch01_ref_herb_c",
@@ -662,7 +678,8 @@
         "base:workarea_herb_field",
         "base:workarea_labor_yard",
         "base:workarea_forest_woodcut",
-        "base:workarea_mine"
+        "base:workarea_mine",
+        "base:workarea_houses"
       ],
       "spiritRoots": {
         "Fire": 0,
@@ -678,7 +695,8 @@
       "reputation": 0,
       "goals": [],
       "desires": [],
-      "playerControllable": false
+      "playerControllable": false,
+      "homeWorkAreaId": "base:workarea_houses"
     },
     {
       "id": "base:character_ch01_ref_woodcutter",
@@ -730,7 +748,8 @@
         "base:workarea_forest_woodcut",
         "base:workarea_labor_yard",
         "base:workarea_herb_field",
-        "base:workarea_mine"
+        "base:workarea_mine",
+        "base:workarea_houses"
       ],
       "spiritRoots": {
         "Fire": 0,
@@ -746,7 +765,8 @@
       "reputation": 0,
       "goals": [],
       "desires": [],
-      "playerControllable": false
+      "playerControllable": false,
+      "homeWorkAreaId": "base:workarea_houses"
     },
     {
       "id": "base:character_ch01_ref_wood_b",
@@ -798,7 +818,8 @@
         "base:workarea_forest_woodcut",
         "base:workarea_labor_yard",
         "base:workarea_herb_field",
-        "base:workarea_mine"
+        "base:workarea_mine",
+        "base:workarea_houses"
       ],
       "spiritRoots": {
         "Fire": 0,
@@ -814,7 +835,8 @@
       "reputation": 0,
       "goals": [],
       "desires": [],
-      "playerControllable": false
+      "playerControllable": false,
+      "homeWorkAreaId": "base:workarea_houses"
     },
     {
       "id": "base:character_ch01_ref_wood_c",
@@ -866,7 +888,8 @@
         "base:workarea_forest_woodcut",
         "base:workarea_labor_yard",
         "base:workarea_herb_field",
-        "base:workarea_mine"
+        "base:workarea_mine",
+        "base:workarea_houses"
       ],
       "spiritRoots": {
         "Fire": 0,
@@ -882,7 +905,8 @@
       "reputation": 0,
       "goals": [],
       "desires": [],
-      "playerControllable": false
+      "playerControllable": false,
+      "homeWorkAreaId": "base:workarea_houses"
     }
   ]
 }

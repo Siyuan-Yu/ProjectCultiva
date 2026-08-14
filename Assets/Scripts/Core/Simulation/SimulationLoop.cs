@@ -302,6 +302,8 @@ namespace XianXia.Core.Simulation
             if (action is MoveAction &&
                 entity.TryGet<MovementIntentComponent>(out var intent))
                 intent.Clear();
+            // Soft slot: release when leaving the action. Move→Work same tick re-reserves in Work.Start.
+            _world.WorkAreaOccupancy.Release(action.Subject);
             if (!entity.TryGet<ActionStateComponent>(out var state))
                 return;
             state.ActiveActionId = ActionId.None;

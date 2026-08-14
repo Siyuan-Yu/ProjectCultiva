@@ -13,15 +13,15 @@
       "height": 100,
       "placements": [
         {
-          "id": "block_houses",
-          "kind": "house",
-          "x": 25,
-          "y": 40,
-          "w": 9,
+          "id": "block_supervisor_mansion",
+          "kind": "controlCore",
+          "x": 78,
+          "y": 45,
+          "w": 8,
           "h": 8,
           "blocksMovement": true,
-          "label": "杂役屋主体",
-          "boundLocationId": "base:loc_ref_houses"
+          "label": "主管府（城镇控制核心）",
+          "boundLocationId": "base:loc_ref_road_hub"
         },
         {
           "id": "zone_spring",
@@ -530,6 +530,139 @@
           "blocksMovement": false,
           "label": "集合点·测试",
           "boundLocationId": "base:loc_ref_party_rally"
+        },
+        {
+          "id": "place_wall_040107346",
+          "kind": "wall",
+          "x": 49,
+          "y": 43,
+          "w": 1,
+          "h": 10,
+          "blocksMovement": true,
+          "label": "墙 1×n（挡路）"
+        },
+        {
+          "id": "place_wall_040115676",
+          "kind": "wall",
+          "x": 50,
+          "y": 52,
+          "w": 9,
+          "h": 1,
+          "blocksMovement": true,
+          "label": "墙 1×n（挡路）"
+        },
+        {
+          "id": "place_wall_040120440",
+          "kind": "wall",
+          "x": 59,
+          "y": 43,
+          "w": 1,
+          "h": 10,
+          "blocksMovement": true,
+          "label": "墙 1×n（挡路）"
+        },
+        {
+          "id": "place_wall_040130496",
+          "kind": "wall",
+          "x": 50,
+          "y": 43,
+          "w": 4,
+          "h": 1,
+          "blocksMovement": true,
+          "label": "墙 1×n（挡路）"
+        },
+        {
+          "id": "place_wall_040134006",
+          "kind": "wall",
+          "x": 55,
+          "y": 43,
+          "w": 4,
+          "h": 1,
+          "blocksMovement": true,
+          "label": "墙 1×n（挡路）"
+        },
+        {
+          "id": "place_zoneHousing_043644596",
+          "kind": "zoneHousing",
+          "x": 25,
+          "y": 40,
+          "w": 9,
+          "h": 8,
+          "blocksMovement": false,
+          "label": "凡人住房区",
+          "boundLocationId": "base:loc_ref_houses"
+        },
+        {
+          "id": "place_zoneHousing_043650779",
+          "kind": "zoneHousing",
+          "x": 50,
+          "y": 44,
+          "w": 9,
+          "h": 8,
+          "blocksMovement": false,
+          "label": "巡卫住房区",
+          "boundLocationId": "base:loc_ref_guard_housing"
+        },
+        {
+          "id": "place_zoneHousing_043659238",
+          "kind": "zoneHousing",
+          "x": 71,
+          "y": 46,
+          "w": 4,
+          "h": 5,
+          "blocksMovement": false,
+          "label": "主管住房区",
+          "boundLocationId": "base:loc_ref_supervisor_housing"
+        },
+        {
+          "id": "place_wall_043709244",
+          "kind": "wall",
+          "x": 71,
+          "y": 51,
+          "w": 4,
+          "h": 1,
+          "blocksMovement": true,
+          "label": "墙 1×n（默认挡路）"
+        },
+        {
+          "id": "place_wall_043713463",
+          "kind": "wall",
+          "x": 70,
+          "y": 45,
+          "w": 1,
+          "h": 7,
+          "blocksMovement": true,
+          "label": "墙 1×n（默认挡路）"
+        },
+        {
+          "id": "place_wall_043726359",
+          "kind": "wall",
+          "x": 71,
+          "y": 45,
+          "w": 1,
+          "h": 1,
+          "blocksMovement": true,
+          "label": "墙 1×n（默认挡路）"
+        },
+        {
+          "id": "place_wall_043732861",
+          "kind": "wall",
+          "x": 75,
+          "y": 45,
+          "w": 1,
+          "h": 7,
+          "blocksMovement": true,
+          "label": "墙 1×n（默认挡路）"
+        },
+        {
+          "id": "place_wall_043742321",
+          "kind": "wall",
+          "x": 73,
+          "y": 45,
+          "w": 2,
+          "h": 1,
+          "blocksMovement": true,
+          "label": "墙 1×n（默认挡路）"
         }
       ]
     }

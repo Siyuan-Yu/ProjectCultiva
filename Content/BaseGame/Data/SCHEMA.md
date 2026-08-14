@@ -173,7 +173,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 | Field | Notes |
 |---|---|
-| `id`／`kind`／`label` | kind：wall／house／herbField／grainField／forest／road／roadHub／mine／spring／cave… |
+| `id`／`kind`／`label` | kind：wall／herbField／grainField／controlCore（主管府）／zoneHousing／cave…；旧 `house`／`roadHub` Host 仍兼容 |
 | `x`／`y`／`w`／`h` | 格点坐标与大小（可拖拽缩放） |
 | `blocksMovement` | true 则写入寻路障碍 |
 | `boundLocationId` | 可选，绑到逻辑地点（任务／勘察仍用 location） |
@@ -188,6 +188,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | `spiritRoots` | 火金土木雷风冰毒 → 0–30 亲和数值（**不是**「金灵根」字符串） |
 | `playerControllable` | 人物侧默认；与 spawn.`entityKind` 同步 |
 | `preferredWorkAreaIds` | 有序地点偏好 |
+| `homeWorkAreaId` | 分配住房工区；Rest／Eat／Idle 优先 |
 | `hometown`／`reputation`／`goals[]`／`desires[]` | 社会侧 |
 | `initialRealmPlaceholder` | 境界展示占位 |
 | `activityCapabilities`／`activityPriorities` | 闲时能否做／权重 |
@@ -200,7 +201,14 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | Field | Notes |
 |---|---|
 | `locationId` | 必填，绑定已有 Location |
-| `tags[]`／`allowedActivities[]` | 活动范围标签／允许的 ScheduleActivity 名 |
+| `allowedActivities[]` | 允许的 ScheduleActivity 名（含 `Idle` 发呆） |
+| `capacity` | 同时可站软点位数（默认 4）；满则换工区／降优先级／发呆 |
+| `residentTags[]` | 住房准入（mortal／guard／supervisor）；空＝不限；**仅**约束 Rest／Eat／Idle。主管住房与凡人／巡卫房同属此类 |
+| `isControlCore` | **主管府／控制核心**（不是住房）；可攻击、耐久归零后需站立占领 |
+| `maxDurability` | 控制核心耐久（样例主管府 100） |
+| `defense` | 控制核心防御（每次受击减免，至少仍扣 1） |
+| `occupyHoldSeconds` | 破门后我方站立累计秒数才占领（默认 10，可调） |
+| `grantsPrivileges[]` | 占领后授予的权限 id（如 `manageHousing`／`manageSchedules`） |
 | `offsetX`／`offsetZ` | 相对 Location presentation 中心的偏移（内容数据，非代码硬编码） |
 
 ## type = job（已废弃）
@@ -214,7 +222,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | Field | Notes |
 |---|---|
 | `blocks[]` | `startTick`／`endTick`（半开区间，日长 288）／`activity`／`orderDurationTicks` |
-| `activity` | Labor｜Rest｜Eat｜Cultivate｜Explore｜Patrol｜Inspect |
+| `activity` | Labor｜Rest｜Eat｜Cultivate｜Explore｜Patrol｜Inspect｜Idle |
 
 真源：`Schedules/schedules.json`。运行时由 `ScheduleRuntimeBootstrap` 注册；C# `ScheduleDefinition.Create*` 仅作缺省兜底。
 

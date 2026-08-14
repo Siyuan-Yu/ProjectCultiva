@@ -147,6 +147,9 @@ namespace XianXia.Core.Bootstrap
                         tendency.PreferredWorkAreaIds.Add(id.Trim());
                 }
             }
+
+            if (!string.IsNullOrWhiteSpace(spawn.HomeWorkAreaId))
+                tendency.HomeWorkAreaId = spawn.HomeWorkAreaId.Trim();
         }
 
         static bool TryParseActivity(string text, out ScheduleActivity activity)

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using XianXia.Core.Actions;
@@ -11,6 +12,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Input;
 using XianXia.Core.Labor;
+using XianXia.Core.Npc;
 using XianXia.Core.Schedule;
 using XianXia.Core.Settlement;
 using XianXia.Core.Simulation;
@@ -39,6 +41,8 @@ namespace XianXia.Unity.Host
 
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostSelectionController selectionController;
+        [SerializeField] HostHousingAreaSelection housingAreaSelection;
+        [SerializeField] HostControlCoreAssault controlCoreAssault;
         [SerializeField] HostEventFeed eventFeed;
         [SerializeField] HostCommandBridge commandBridge;
         [SerializeField] HostDebugHud debugHud;
@@ -61,6 +65,11 @@ namespace XianXia.Unity.Host
         static readonly Color BarBlue = new Color(0.30f, 0.55f, 0.85f, 1f);
         static readonly Color AccentGold = new Color(0.95f, 0.78f, 0.28f, 1f);
 
+        readonly List<EntityId> _housingResidentsScratch = new List<EntityId>(16);
+        readonly List<EntityId> _housingCandidatesScratch = new List<EntityId>(32);
+        Vector2 _housingAssignScroll;
+        Vector2 _scheduleEditScroll;
+
         public void Bind(
             PlayableHostBootstrap host,
             HostSelectionController selection,
@@ -73,6 +82,10 @@ namespace XianXia.Unity.Host
             {
                 commandBridge = host.CommandBridge;
                 debugHud = host.DebugHud;
+                housingAreaSelection = host.GetComponent<HostHousingAreaSelection>() ??
+                                       host.gameObject.GetComponent<HostHousingAreaSelection>();
+                controlCoreAssault = host.GetComponent<HostControlCoreAssault>() ??
+                                     host.gameObject.GetComponent<HostControlCoreAssault>();
             }
         }
 
@@ -113,6 +126,8 @@ namespace XianXia.Unity.Host
 
             DrawTopBar(session);
             DrawOpsLegend(session);
+            DrawHousingPanel(session);
+            DrawControlCorePanel(session);
             DrawRightRail(session);
             if (!ShouldHideUnitPanelForDialogue())
                 DrawAcsUnitPanel(session);
@@ -144,7 +159,7 @@ namespace XianXia.Unity.Host
         string BuildContextTip(PlayableHostSession session)
         {
             var baseOps =
-                "操作：左键选人 · 悬停黄/青点可交互 · 右键空地移动／热点交互 · 右键 NPC 对话/攻击 · Space暂停 · F10显隐HUD";
+                "操作：左键选人／住房区／主管府 · 选中己方后右键主管府→攻击 · 靠近建筑近战／破门后站满占领 · Space暂停 · F10显隐HUD";
             var focus = ResolveFocus(session);
             if (!focus.IsNone &&
                 session.World.Entities.TryGet(focus, out var e) &&
@@ -342,6 +357,180 @@ namespace XianXia.Unity.Host
             DrawInlineMeter(
                 Screen.width - RailW - 200f, 24f, 170f,
                 "主管压", anger, 100, new Color(0.75f, 0.28f, 0.22f));
+
+        }
+
+        void DrawHousingPanel(PlayableHostSession session)
+        {
+            if (housingAreaSelection == null && bootstrap != null)
+                housingAreaSelection = bootstrap.GetComponent<HostHousingAreaSelection>();
+            if (housingAreaSelection == null)
+                return;
+            var areaId = housingAreaSelection.SelectedWorkAreaId;
+            if (string.IsNullOrEmpty(areaId) ||
+                !session.World.TryGetWorkArea(areaId, out var area))
+                return;
+
+            var canManage = HousingAssignmentService.CanManageHousing(session.World);
+            var panelH = canManage ? 220f : 118f;
+            var r = new Rect(Pad, TopH + 42f, 320f, panelH);
+            Fill(r, new Color(0.11f, 0.13f, 0.16f, 0.94f));
+            HostUiHitTest.Block(r);
+
+            var title = string.IsNullOrEmpty(area.Name) ? areaId : area.Name;
+            GUI.Label(new Rect(r.x + 10f, r.y + 8f, r.width - 50f, 22f), "住房区 · " + title, _title);
+            if (GUI.Button(new Rect(r.xMax - 36f, r.y + 6f, 28f, 24f), "×"))
+            {
+                housingAreaSelection.ClearHousing();
+                return;
+            }
+
+            var ownerName = "（未指定）";
+            if (session.World.HousingAssignments.TryGetOwner(areaId, out var ownerId) &&
+                session.World.Entities.TryGet(ownerId, out var ownerEnt))
+                ownerName = HousingAssignmentService.EntityDisplayName(ownerEnt);
+
+            GUI.Label(new Rect(r.x + 10f, r.y + 34f, r.width - 20f, 20f), "归属：" + ownerName, _body);
+
+            HousingAssignmentService.CollectResidents(session.World, areaId, _housingResidentsScratch);
+            var residents = _housingResidentsScratch.Count == 0
+                ? "入住：—"
+                : "入住：" + FormatEntityNames(session, _housingResidentsScratch);
+            GUI.Label(new Rect(r.x + 10f, r.y + 56f, r.width - 20f, 36f), residents, _body);
+
+            if (!canManage)
+            {
+                GUI.Label(
+                    new Rect(r.x + 10f, r.y + 94f, r.width - 20f, 18f),
+                    "占领主管府后可改归属（限玩家阵营）",
+                    _body);
+                return;
+            }
+
+            GUI.Label(new Rect(r.x + 10f, r.y + 94f, r.width - 20f, 18f), "指定归属（玩家阵营）：", _body);
+            HousingAssignmentService.CollectPlayerCampCandidates(
+                session.World, session.CharacterIds, _housingCandidatesScratch);
+            var listRect = new Rect(r.x + 10f, r.y + 116f, r.width - 20f, panelH - 126f);
+            var contentH = Mathf.Max(listRect.height, _housingCandidatesScratch.Count * 26f + 4f);
+            _housingAssignScroll = GUI.BeginScrollView(
+                listRect,
+                _housingAssignScroll,
+                new Rect(0f, 0f, listRect.width - 18f, contentH));
+            var y = 2f;
+            for (var i = 0; i < _housingCandidatesScratch.Count; i++)
+            {
+                var id = _housingCandidatesScratch[i];
+                var label = session.World.Entities.TryGet(id, out var e)
+                    ? HousingAssignmentService.EntityDisplayName(e)
+                    : id.ToString();
+                if (GUI.Button(new Rect(0f, y, listRect.width - 22f, 22f), label))
+                {
+                    var result = HousingAssignmentService.TryAssignOwner(
+                        session.World, areaId, id, session.CharacterIds);
+                    if (result.IsFailure)
+                        Debug.Log("[Host] 住房归属失败: " + result.Error);
+                }
+
+                y += 26f;
+            }
+
+            if (_housingCandidatesScratch.Count == 0)
+                GUI.Label(new Rect(0f, 2f, listRect.width - 22f, 40f), "暂无玩家阵营成员可指定", _body);
+
+            GUI.EndScrollView();
+        }
+
+        void DrawControlCorePanel(PlayableHostSession session)
+        {
+            if (housingAreaSelection == null && bootstrap != null)
+                housingAreaSelection = bootstrap.GetComponent<HostHousingAreaSelection>();
+            if (housingAreaSelection == null)
+                return;
+            var coreId = housingAreaSelection.SelectedControlCoreWorkAreaId;
+            if (string.IsNullOrEmpty(coreId) ||
+                !session.World.ControlCores.TryGet(coreId, out var core))
+                return;
+
+            var r = new Rect(Pad, TopH + 42f, 320f, 168f);
+            Fill(r, new Color(0.14f, 0.11f, 0.12f, 0.94f));
+            HostUiHitTest.Block(r);
+
+            GUI.Label(new Rect(r.x + 10f, r.y + 8f, r.width - 50f, 22f), "主管府 · " + core.Name, _title);
+            if (GUI.Button(new Rect(r.xMax - 36f, r.y + 6f, 28f, 24f), "×"))
+            {
+                housingAreaSelection.ClearControlCore();
+                return;
+            }
+
+            DrawInlineMeter(
+                r.x + 10f, r.y + 40f, r.width - 20f,
+                "耐久", core.CurrentDurability, core.MaxDurability,
+                new Color(0.85f, 0.32f, 0.28f));
+
+            string status;
+            if (core.PlayerControlled)
+                status = "状态：已占领（住房／课表可管）";
+            else if (core.CaptureAvailable)
+                status = "状态：已破门 · 站立占领 " +
+                         core.OccupyProgressSeconds.ToString("0.0") + "/" +
+                         core.OccupyHoldSeconds.ToString("0") + " 秒";
+            else
+                status = "状态：防守中（选中己方后右键→攻击；靠近每秒 -" +
+                         ControlCoreService.TestMeleeDamagePerHit + "）";
+
+            GUI.Label(new Rect(r.x + 10f, r.y + 64f, r.width - 20f, 40f), status, _body);
+
+            if (core.PlayerControlled)
+            {
+                GUI.Label(
+                    new Rect(r.x + 10f, r.y + 108f, r.width - 20f, 40f),
+                    "权限：" + string.Join("、", core.GrantsPrivileges),
+                    _body);
+                return;
+            }
+
+            if (controlCoreAssault == null && bootstrap != null)
+                controlCoreAssault = bootstrap.GetComponent<HostControlCoreAssault>();
+            var assaulting = controlCoreAssault != null &&
+                             controlCoreAssault.IsAssaulting &&
+                             controlCoreAssault.TargetWorkAreaId == core.WorkAreaId;
+            if (assaulting)
+            {
+                GUI.Label(new Rect(r.x + 10f, r.y + 118f, r.width - 20f, 28f), "突击中…靠近建筑即可输出", _body);
+                if (GUI.Button(new Rect(r.x + 200f, r.y + 118f, 90f, 28f), "取消"))
+                    controlCoreAssault.Clear();
+            }
+            else
+            {
+                GUI.Label(
+                    new Rect(r.x + 10f, r.y + 118f, r.width - 20f, 36f),
+                    "选中己方 → 右键建筑任意处 → 攻击",
+                    _body);
+            }
+        }
+
+        static void ResumeSession(PlayableHostSession session)
+        {
+            if (session == null)
+                return;
+            if (!session.World.ContentEvents.HasActive)
+                session.IsPaused = false;
+        }
+
+        static string FormatEntityNames(PlayableHostSession session, List<EntityId> ids)
+        {
+            var sb = new StringBuilder();
+            for (var i = 0; i < ids.Count; i++)
+            {
+                if (i > 0)
+                    sb.Append("、");
+                if (session.World.Entities.TryGet(ids[i], out var e))
+                    sb.Append(HousingAssignmentService.EntityDisplayName(e));
+                else
+                    sb.Append("?");
+            }
+
+            return sb.ToString();
         }
 
         static int ResolvePartyExposure(PlayableHostSession session)
@@ -381,7 +570,14 @@ namespace XianXia.Unity.Host
             if (h < 80f)
                 h = 80f;
 
-            DrawPanel(new Rect(x, y, RailW, h), "课表（只读·己方不自动）", BuildScheduleText(session));
+            var canManageSchedules = HousingAssignmentService.CanManageSchedules(session.World);
+            var scheduleTitle = canManageSchedules
+                ? "课表（可改·点活动切换）"
+                : "课表（只读·占领后可改）";
+            if (canManageSchedules)
+                DrawEditableSchedulePanel(new Rect(x, y, RailW, h), scheduleTitle, session);
+            else
+                DrawPanel(new Rect(x, y, RailW, h), scheduleTitle, BuildScheduleText(session));
             HostUiHitTest.Block(new Rect(x, y, RailW, h));
             y += h + Pad;
             DrawPanel(new Rect(x, y, RailW, h), "任务", BuildQuestText(session));
@@ -389,6 +585,70 @@ namespace XianXia.Unity.Host
             y += h + Pad;
             DrawPanel(new Rect(x, y, RailW, h), "事件", BuildEventText(session));
             HostUiHitTest.Block(new Rect(x, y, RailW, h));
+        }
+
+        void DrawEditableSchedulePanel(Rect rect, string title, PlayableHostSession session)
+        {
+            Fill(rect, new Color(0.11f, 0.13f, 0.16f, 0.92f));
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 6f, rect.width - 16f, 20f), title, _title);
+
+            var focus = ResolveFocus(session);
+            if (focus.IsNone && session.CharacterIds.Count > 0)
+                focus = session.CharacterIds[0];
+            if (focus.IsNone ||
+                !session.World.Entities.TryGet(focus, out var e) ||
+                !e.TryGet<ScheduleComponent>(out var sched) ||
+                !session.World.TryGetSchedule(sched.DefinitionId, out var def))
+            {
+                GUI.Label(new Rect(rect.x + 8f, rect.y + 30f, rect.width - 16f, 40f), "无日程", _body);
+                return;
+            }
+
+            var tickInDay = (int)(session.World.Tick.Value % (ulong)WorldTick.TicksPerDay);
+            GUI.Label(
+                new Rect(rect.x + 8f, rect.y + 28f, rect.width - 16f, 18f),
+                ShortId(def.Id),
+                _body);
+
+            var listRect = new Rect(rect.x + 6f, rect.y + 48f, rect.width - 12f, rect.height - 56f);
+            var contentH = Mathf.Max(listRect.height, def.Blocks.Count * 28f + 4f);
+            _scheduleEditScroll = GUI.BeginScrollView(
+                listRect,
+                _scheduleEditScroll,
+                new Rect(0f, 0f, listRect.width - 16f, contentH));
+            var y = 2f;
+            for (var i = 0; i < def.Blocks.Count; i++)
+            {
+                var b = def.Blocks[i];
+                var mark = tickInDay >= b.StartTickInDay && tickInDay < b.EndTickInDay ? "►" : " ";
+                var label = mark + " " + TickToClock(b.StartTickInDay) + "-" + TickToClock(b.EndTickInDay) +
+                            "  " + ActivityName(b.Activity);
+                if (GUI.Button(new Rect(0f, y, listRect.width - 18f, 24f), label))
+                {
+                    var next = NextEditableActivity(b.Activity);
+                    if (def.TryReplaceBlockActivity(i, next))
+                        Debug.Log("[Host] 课表已改: " + ActivityName(next));
+                }
+
+                y += 28f;
+            }
+
+            GUI.EndScrollView();
+        }
+
+        static ScheduleActivity NextEditableActivity(ScheduleActivity current)
+        {
+            switch (current)
+            {
+                case ScheduleActivity.Labor: return ScheduleActivity.Rest;
+                case ScheduleActivity.Rest: return ScheduleActivity.Eat;
+                case ScheduleActivity.Eat: return ScheduleActivity.Cultivate;
+                case ScheduleActivity.Cultivate: return ScheduleActivity.Explore;
+                case ScheduleActivity.Explore: return ScheduleActivity.Patrol;
+                case ScheduleActivity.Patrol: return ScheduleActivity.Inspect;
+                case ScheduleActivity.Inspect: return ScheduleActivity.Idle;
+                default: return ScheduleActivity.Labor;
+            }
         }
 
         void DrawAcsUnitPanel(PlayableHostSession session)
@@ -997,6 +1257,7 @@ namespace XianXia.Unity.Host
                 case ScheduleActivity.Explore: return "探索";
                 case ScheduleActivity.Patrol: return "巡视";
                 case ScheduleActivity.Inspect: return "检查";
+                case ScheduleActivity.Idle: return "发呆";
                 default: return a.ToString();
             }
         }

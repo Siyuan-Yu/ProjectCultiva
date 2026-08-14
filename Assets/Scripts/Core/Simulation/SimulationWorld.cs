@@ -57,6 +57,10 @@ namespace XianXia.Core.Simulation
             Chapters = new ChapterBoard();
             SupervisorAnger = new XianXia.Core.Social.SupervisorAngerBoard();
             LocationLabor = new LocationLaborProgressBoard();
+            WorkAreaOccupancy = new WorkAreaOccupancyBoard();
+            ControlCores = new ControlCoreBoard();
+            HousingAssignments = new HousingAssignmentBoard();
+            SettlementAuthority = new SettlementAuthorityBoard();
             InventoryCatalog = new InventoryCatalog();
             Inventory = new PartyInventory(InventoryCatalog, PartyInventory.DefaultSlotCapacity);
             Tick = WorldTick.Zero;
@@ -113,6 +117,18 @@ namespace XianXia.Core.Simulation
 
         /// <summary>Player labor ticks at locations (session-only; not in Snapshot v1).</summary>
         public LocationLaborProgressBoard LocationLabor { get; }
+
+        /// <summary>Soft work-area slot occupancy (session-only; not in Snapshot v1).</summary>
+        public WorkAreaOccupancyBoard WorkAreaOccupancy { get; }
+
+        /// <summary>Control cores (主管府等); session-only; not in Snapshot v1.</summary>
+        public ControlCoreBoard ControlCores { get; }
+
+        /// <summary>Housing area ownership; session-only; not in Snapshot v1.</summary>
+        public HousingAssignmentBoard HousingAssignments { get; }
+
+        /// <summary>Privileges from captured control cores; session-only.</summary>
+        public SettlementAuthorityBoard SettlementAuthority { get; }
 
         /// <summary>Item display／stack rules for the shared party bag.</summary>
         public InventoryCatalog InventoryCatalog { get; }
@@ -189,6 +205,7 @@ namespace XianXia.Core.Simulation
             if (string.IsNullOrEmpty(definition.Id))
                 throw new System.ArgumentException("WorkAreaDefinition.Id required.");
             _workAreas[definition.Id] = definition;
+            ControlCores.RegisterOrRefresh(definition);
         }
 
         public bool TryGetWorkArea(string id, out WorkAreaDefinition definition)

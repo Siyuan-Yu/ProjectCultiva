@@ -11,14 +11,24 @@
           "id": "base:loc_ref_labor_yard",
           "name": "农田杂役区",
           "kind": "Settlement",
-          "tags": ["farm", "grain", "work"],
-          "allowedActivities": ["Labor", "Inspect", "Patrol"],
+          "tags": [
+            "farm",
+            "grain",
+            "work"
+          ],
+          "allowedActivities": [
+            "Labor",
+            "Inspect",
+            "Patrol"
+          ],
           "adjacentIds": [
-            "base:loc_ref_houses",
-            "base:loc_ref_road_hub",
+            "base:loc_ref_guard_housing",
             "base:loc_ref_herb_field",
+            "base:loc_ref_houses",
+            "base:loc_ref_party_rally",
+            "base:loc_ref_road_hub",
             "base:loc_ref_spring",
-            "base:loc_ref_party_rally"
+            "base:loc_ref_supervisor_housing"
           ],
           "resourceOnExploreId": "base:resource_grain",
           "resourceOnExploreAmount": 1,
@@ -27,14 +37,24 @@
         },
         {
           "id": "base:loc_ref_houses",
-          "name": "房屋区",
+          "name": "凡人住房区",
           "kind": "Village",
-          "tags": ["home", "rest"],
-          "allowedActivities": ["Rest", "Eat", "Patrol"],
+          "tags": [
+            "home",
+            "rest",
+            "mortal"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Eat",
+            "Patrol"
+          ],
           "adjacentIds": [
+            "base:loc_ref_guard_housing",
             "base:loc_ref_labor_yard",
+            "base:loc_ref_party_rally",
             "base:loc_ref_road_hub",
-            "base:loc_ref_party_rally"
+            "base:loc_ref_supervisor_housing"
           ],
           "residentNpcDefinitionId": "base:character_ch01_ref_mortal_a",
           "presentationX": -10.5,
@@ -44,8 +64,16 @@
           "id": "base:loc_ref_forest",
           "name": "树林",
           "kind": "Wild",
-          "tags": ["wild", "patrol", "work"],
-          "allowedActivities": ["Patrol", "Explore", "Labor"],
+          "tags": [
+            "wild",
+            "patrol",
+            "work"
+          ],
+          "allowedActivities": [
+            "Patrol",
+            "Explore",
+            "Labor"
+          ],
           "adjacentIds": [
             "base:loc_ref_road_hub",
             "base:loc_ref_mine",
@@ -61,8 +89,15 @@
           "id": "base:loc_ref_mine",
           "name": "矿洞",
           "kind": "Wild",
-          "tags": ["mine", "work"],
-          "allowedActivities": ["Labor", "Inspect", "Explore"],
+          "tags": [
+            "mine",
+            "work"
+          ],
+          "allowedActivities": [
+            "Labor",
+            "Inspect",
+            "Explore"
+          ],
           "adjacentIds": [
             "base:loc_ref_forest",
             "base:loc_ref_road_hub"
@@ -77,8 +112,15 @@
           "id": "base:loc_ref_herb_field",
           "name": "药田",
           "kind": "Wild",
-          "tags": ["herb", "farm", "work"],
-          "allowedActivities": ["Labor", "Inspect"],
+          "tags": [
+            "herb",
+            "farm",
+            "work"
+          ],
+          "allowedActivities": [
+            "Labor",
+            "Inspect"
+          ],
           "adjacentIds": [
             "base:loc_ref_labor_yard",
             "base:loc_ref_spring",
@@ -95,8 +137,15 @@
           "id": "base:loc_ref_spring",
           "name": "灵泉",
           "kind": "Opportunity",
-          "tags": ["spirit", "inspect"],
-          "allowedActivities": ["Cultivate", "Inspect", "Patrol"],
+          "tags": [
+            "spirit",
+            "inspect"
+          ],
+          "allowedActivities": [
+            "Cultivate",
+            "Inspect",
+            "Patrol"
+          ],
           "adjacentIds": [
             "base:loc_ref_herb_field",
             "base:loc_ref_cave",
@@ -110,8 +159,14 @@
           "id": "base:loc_ref_cave",
           "name": "废弃洞府",
           "kind": "Opportunity",
-          "tags": ["cave", "opportunity"],
-          "allowedActivities": ["Explore", "Cultivate"],
+          "tags": [
+            "cave",
+            "opportunity"
+          ],
+          "allowedActivities": [
+            "Explore",
+            "Cultivate"
+          ],
           "adjacentIds": [
             "base:loc_ref_spring",
             "base:loc_ref_road_hub"
@@ -122,19 +177,30 @@
         },
         {
           "id": "base:loc_ref_road_hub",
-          "name": "道路枢纽",
+          "name": "主管府",
           "kind": "Village",
-          "tags": ["hub", "patrol"],
-          "allowedActivities": ["Patrol", "Inspect", "Explore"],
+          "tags": [
+            "hub",
+            "patrol",
+            "controlCore",
+            "defense"
+          ],
+          "allowedActivities": [
+            "Patrol",
+            "Inspect",
+            "Explore"
+          ],
           "adjacentIds": [
-            "base:loc_ref_labor_yard",
-            "base:loc_ref_houses",
-            "base:loc_ref_forest",
-            "base:loc_ref_mine",
-            "base:loc_ref_herb_field",
-            "base:loc_ref_spring",
             "base:loc_ref_cave",
-            "base:loc_ref_party_rally"
+            "base:loc_ref_forest",
+            "base:loc_ref_guard_housing",
+            "base:loc_ref_herb_field",
+            "base:loc_ref_houses",
+            "base:loc_ref_labor_yard",
+            "base:loc_ref_mine",
+            "base:loc_ref_party_rally",
+            "base:loc_ref_spring",
+            "base:loc_ref_supervisor_housing"
           ],
           "residentNpcDefinitionId": "base:character_ch01_ref_supervisor",
           "presentationX": 13.0,
@@ -144,17 +210,75 @@
           "id": "base:loc_ref_party_rally",
           "name": "集合点",
           "kind": "Village",
-          "tags": ["rally", "hub"],
-          "allowedActivities": ["Patrol", "Inspect"],
+          "tags": [
+            "rally",
+            "hub"
+          ],
+          "allowedActivities": [
+            "Patrol",
+            "Inspect"
+          ],
           "adjacentIds": [
-            "base:loc_ref_road_hub",
-            "base:loc_ref_labor_yard",
-            "base:loc_ref_houses",
+            "base:loc_ref_forest",
+            "base:loc_ref_guard_housing",
             "base:loc_ref_herb_field",
-            "base:loc_ref_forest"
+            "base:loc_ref_houses",
+            "base:loc_ref_labor_yard",
+            "base:loc_ref_road_hub",
+            "base:loc_ref_supervisor_housing"
           ],
           "presentationX": 3.0,
           "presentationZ": 10.0
+        },
+        {
+          "id": "base:loc_ref_guard_housing",
+          "name": "巡卫住房区",
+          "kind": "Village",
+          "tags": [
+            "home",
+            "rest",
+            "guard"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Eat",
+            "Patrol"
+          ],
+          "adjacentIds": [
+            "base:loc_ref_houses",
+            "base:loc_ref_supervisor_housing",
+            "base:loc_ref_road_hub",
+            "base:loc_ref_labor_yard",
+            "base:loc_ref_party_rally"
+          ],
+          "residentNpcDefinitionId": "base:character_ch01_ref_guard_a",
+          "presentationX": 14.5,
+          "presentationZ": 23.0
+        },
+        {
+          "id": "base:loc_ref_supervisor_housing",
+          "name": "主管住房区",
+          "kind": "Village",
+          "tags": [
+            "home",
+            "rest",
+            "supervisor"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Eat",
+            "Patrol"
+          ],
+          "adjacentIds": [
+            "base:loc_ref_houses",
+            "base:loc_ref_guard_housing",
+            "base:loc_ref_road_hub",
+            "base:loc_ref_labor_yard",
+            "base:loc_ref_party_rally"
+          ],
+          "residentNpcDefinitionId": "base:character_ch01_ref_supervisor",
+          "presentationX": 33.0,
+          "presentationZ": 23.5
         }
       ]
     }

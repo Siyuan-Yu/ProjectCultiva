@@ -34,6 +34,19 @@ namespace XianXia.Core.Schedule
             return this;
         }
 
+        public bool TryReplaceBlockActivity(int index, ScheduleActivity activity)
+        {
+            if (index < 0 || index >= _blocks.Count)
+                return false;
+            var old = _blocks[index];
+            _blocks[index] = new ScheduleBlock(
+                old.StartTickInDay,
+                old.EndTickInDay,
+                activity,
+                old.OrderDurationTicks);
+            return true;
+        }
+
         public bool TryResolve(WorldTick tick, out ScheduleBlock block)
         {
             var tickInDay = (int)(tick.Value % (ulong)WorldTick.TicksPerDay);

@@ -28,6 +28,9 @@ namespace XianXia.Unity.Host
 
         public HostSelectionState State => _state;
 
+        /// <summary>Fired when a plain left-click hits no entity (housing／ground picks).</summary>
+        public System.Action<Vector2> OnPointSelectMiss;
+
         public EntityViewSpawner Spawner => spawner;
 
         public bool IsBoxSelecting => _dragging;
@@ -128,6 +131,7 @@ namespace XianXia.Unity.Host
                 {
                     _state.Clear();
                     ApplyHighlights();
+                    OnPointSelectMiss?.Invoke(screenPoint);
                 }
 
                 _lastClickId = EntityId.None;

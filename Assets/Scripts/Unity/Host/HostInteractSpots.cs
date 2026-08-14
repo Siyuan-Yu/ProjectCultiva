@@ -105,5 +105,45 @@ namespace XianXia.Unity.Host
             spot = bestSpot;
             return true;
         }
+
+        /// <summary>
+        /// Soft work slot → concrete interact spot at a location (wraps if more workers than spots).
+        /// </summary>
+        public static bool TryGetSlotSpot(
+            string locationId,
+            HostInteractSpotKind kind,
+            int slotIndex,
+            out HostInteractSpot spot)
+        {
+            spot = default;
+            if (string.IsNullOrEmpty(locationId) || slotIndex < 0)
+                return false;
+
+            var matches = new List<HostInteractSpot>(8);
+            var list = Spots;
+            for (var i = 0; i < list.Count; i++)
+            {
+                var s = list[i];
+                if (s.Kind != kind)
+                    continue;
+                if (!string.Equals(s.LocationId, locationId, System.StringComparison.Ordinal))
+                    continue;
+                matches.Add(s);
+            }
+
+            if (matches.Count == 0)
+                return false;
+            spot = matches[slotIndex % matches.Count];
+            return true;
+        }
+
+        /// <summary>Ring offset when no interact spots exist for the location.</summary>
+        public static Vector3 RingOffset(int slotIndex, float radius = 1.35f)
+        {
+            if (slotIndex < 0)
+                return Vector3.zero;
+            var ang = slotIndex * 2.399963f; // golden angle-ish
+            return new Vector3(Mathf.Cos(ang) * radius, Mathf.Sin(ang) * radius, 0f);
+        }
     }
 }

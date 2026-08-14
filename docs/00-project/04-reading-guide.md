@@ -29,9 +29,10 @@
 
 | 目的 | 读什么 |
 |------|--------|
-| **本轮增量（人物／工区／名册／倍速／对话发任务）** | [120](../40-process/120-character-roster-editors-and-timescale-rollup-2026-08-15.md) |
+| **本轮增量（住房／主管府占领／Import）** | [121](../40-process/121-housing-assignment-and-control-core-2026-08-15.md) |
+| 上一轮（人物／工区／名册／倍速） | [120](../40-process/120-character-roster-editors-and-timescale-rollup-2026-08-15.md) |
 | 工区／人物编辑器 | [118](../40-process/118-npc-behavior-editor.md)／[119](../40-process/119-npc-character-vs-role-template-editors.md) |
-| 上一轮（对话／失败／流速） | [117](../40-process/117-npc-dialogue-host-ux-rollup-2026-08-14.md) |
+| 对话／失败／流速 | [117](../40-process/117-npc-dialogue-host-ux-rollup-2026-08-14.md) |
 | Ch01／背包／劳动 | [116](../40-process/116-recent-updates-rollup-2026-08-14.md) |
 | 现在做到哪 | [62 现状](../40-process/62-project-status-2026-08-01.md) |
 | 事件编辑器（含 onTalk） | [111](../40-process/111-content-studio-event-editor-usage.md) |

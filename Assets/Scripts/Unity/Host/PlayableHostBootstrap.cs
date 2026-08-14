@@ -309,6 +309,10 @@ namespace XianXia.Unity.Host
                 actionMenu = GetComponent<HostActionMenu>() ?? gameObject.AddComponent<HostActionMenu>();
             if (formalHud == null)
                 formalHud = GetComponent<HostFormalHud>() ?? gameObject.AddComponent<HostFormalHud>();
+            if (GetComponent<HostHousingAreaSelection>() == null)
+                gameObject.AddComponent<HostHousingAreaSelection>();
+            if (GetComponent<HostControlCoreAssault>() == null)
+                gameObject.AddComponent<HostControlCoreAssault>();
             if (activityPresenter == null)
                 activityPresenter = GetComponent<HostActivityPresenter>() ??
                                    gameObject.AddComponent<HostActivityPresenter>();
@@ -417,6 +421,12 @@ namespace XianXia.Unity.Host
             var cam = Camera.main;
             selectionController.Bind(entityViewSpawner, cam);
             selectionController.SetPartyFilter(_session.CharacterIds);
+            var housingSel = GetComponent<HostHousingAreaSelection>();
+            if (housingSel != null)
+                housingSel.Bind(this, selectionController, cam);
+            var assault = GetComponent<HostControlCoreAssault>();
+            if (assault != null)
+                assault.Bind(this);
             if (_session.CharacterIds.Count > 0)
                 selectionController.SelectEntity(_session.CharacterIds[0], false);
             feedbackOverlay.Bind(cam);

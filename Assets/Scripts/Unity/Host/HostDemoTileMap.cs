@@ -129,11 +129,8 @@ namespace XianXia.Unity.Host
                 var cx = ox + (p.X + pw * 0.5f) * cs;
                 var cy = oy + (p.Y + ph * 0.5f) * cs;
                 var path = info.PrefabPath;
-                if (kind == "house")
-                    path = ResolveHousePath();
-                // 按编辑器里实际占地拟合（不再强行 20×20）
                 var go = PlacePrefab(kind, path, cx, cy, id, pw * cs, ph * cs, info.FallbackColor,
-                    sortingOrder: kind == "house" ? -8 : -12);
+                    sortingOrder: kind == "controlCore" || kind == "roadHub" ? -8 : -12);
                 if (info.InteractKind.HasValue)
                     AttachPlot(go, p, info, p.X, p.Y, cx, cy);
                 return;
@@ -177,10 +174,6 @@ namespace XianXia.Unity.Host
 
         static string ResolveHousePath()
         {
-#if UNITY_EDITOR
-            if (AssetDatabase.LoadAssetAtPath<GameObject>(MapKindCatalog.House) != null)
-                return MapKindCatalog.House;
-#endif
             return MapKindCatalog.HouseFallback;
         }
 
@@ -289,16 +282,36 @@ namespace XianXia.Unity.Host
         public void Clear()
         {
             for (var i = 0; i < _built.Count; i++)
+                DestroyBuilt(_built[i]);
+            _built.Clear();
+
+            // _built is not serialized: after domain reload／场景重载，子物体仍在但列表为空。
+            // Always wipe mapRoot children so Import 不会叠出旧位置＋新位置。
+            if (mapRoot != null)
             {
-                if (_built[i] == null)
-                    continue;
-                if (Application.isPlaying)
-                    Destroy(_built[i]);
-                else
-                    DestroyImmediate(_built[i]);
+                for (var i = mapRoot.childCount - 1; i >= 0; i--)
+                    DestroyBuilt(mapRoot.GetChild(i).gameObject);
             }
 
-            _built.Clear();
+            // Lost mapRoot ref could leave orphan DemoTileMap roots from earlier Imports.
+            for (var i = transform.childCount - 1; i >= 0; i--)
+            {
+                var child = transform.GetChild(i);
+                if (child == null || child == mapRoot)
+                    continue;
+                if (child.name == "DemoTileMap")
+                    DestroyBuilt(child.gameObject);
+            }
+        }
+
+        static void DestroyBuilt(GameObject go)
+        {
+            if (go == null)
+                return;
+            if (Application.isPlaying)
+                Destroy(go);
+            else
+                DestroyImmediate(go);
         }
 
         void EnsureRoot()

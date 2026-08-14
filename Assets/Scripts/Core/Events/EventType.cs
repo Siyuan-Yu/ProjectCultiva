@@ -59,7 +59,11 @@ namespace XianXia.Core.Events
         /// <summary>Chapter Production: chapter activated (session).</summary>
         ChapterActivated = 29,
         /// <summary>Chapter Production: chapter day beat applied (session).</summary>
-        ChapterDayBeatApplied = 30
+        ChapterDayBeatApplied = 30,
+        /// <summary>Territory: control core (主管府) took damage.</summary>
+        ControlCoreDamaged = 33,
+        /// <summary>Territory: player captured a control core.</summary>
+        ControlCoreCaptured = 34
     }
 }
 

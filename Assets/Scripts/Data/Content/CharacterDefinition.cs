@@ -24,6 +24,8 @@ namespace XianXia.Data.Content
         public Dictionary<string, bool> ActivityCapabilities { get; set; } = new Dictionary<string, bool>();
         public Dictionary<string, int> ActivityPriorities { get; set; } = new Dictionary<string, int>();
         public List<string> PreferredWorkAreaIds { get; set; } = new List<string>();
+        /// <summary>Assigned housing work area for Rest／Eat.</summary>
+        public string HomeWorkAreaId { get; set; } = string.Empty;
         /// <summary>Spirit-root affinities Fire/Metal/… → 0–30 (2B).</summary>
         public Dictionary<string, int> SpiritRoots { get; set; } = new Dictionary<string, int>();
         public string Hometown { get; set; } = string.Empty;

@@ -41,20 +41,19 @@ public partial class MainWindow : Window
             new("treeL", "大树 3×3（装饰·手勾挡路）", 3, 3, false, Color.FromRgb(25, 85, 40)),
             new("ore", "矿石 2×2（可采·手勾挡路）", 2, 2, false, Color.FromRgb(140, 120, 80)),
             new("cushion", "蒲团 1×1（可修炼）", 1, 1, false, Color.FromRgb(120, 100, 170)),
-            new("house", "小房子（默认挡路）", 20, 20, true, Color.FromRgb(140, 100, 70)),
             new("rock", "岩石／棚（默认挡路）", 4, 4, true, Color.FromRgb(110, 110, 110)),
             new("cave", "洞府区（默认挡路）", 10, 8, true, Color.FromRgb(120, 90, 140)),
-            new("roadHub", "道路枢纽／主管府（默认挡路）", 8, 8, true, Color.FromRgb(160, 140, 120)),
+            new("controlCore", "主管府（城镇控制核心·默认挡路）", 8, 8, true, Color.FromRgb(160, 140, 120)),
             new("rallyPoint", "集合点 2×2", 2, 2, false, Color.FromRgb(220, 140, 50))
         };
 
-    /// <summary>第 2 页：分区标记（仅编辑／以后进区触发，无劳动无挡路）。</summary>
+    /// <summary>第 2 页：分区标记。住房区须填 boundLocationId，并在 WorkArea／人物里配休息归属。</summary>
     static readonly PaletteItem[] PaletteZones =
     {
         SelectTool,
         new("zoneHerb", "药田区", 12, 12, false, Color.FromArgb(90, 70, 180, 100)),
         new("zoneGrain", "农田区", 16, 12, false, Color.FromArgb(90, 200, 180, 60)),
-        new("zoneHousing", "住房区", 20, 20, false, Color.FromArgb(80, 180, 140, 100)),
+        new("zoneHousing", "住房区（须绑地点＝休息落点）", 20, 20, false, Color.FromArgb(80, 180, 140, 100)),
         new("zoneForest", "林地区", 14, 12, false, Color.FromArgb(90, 40, 130, 70)),
         new("zoneMine", "矿区", 10, 8, false, Color.FromArgb(90, 130, 110, 80)),
         new("zoneSpring", "灵泉区", 8, 8, false, Color.FromArgb(90, 80, 170, 210))

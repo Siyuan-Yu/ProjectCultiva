@@ -17,7 +17,8 @@ namespace XianXia.Data.Content
             "personalityTags", "backgroundTags", "talentTags",
             "spiritRootPlaceholder", "spiritRoots", "initialRealmPlaceholder",
             "hometown", "reputation", "goals", "desires",
-            "playerControllable", "activityCapabilities", "activityPriorities", "preferredWorkAreaIds"
+            "playerControllable", "activityCapabilities", "activityPriorities", "preferredWorkAreaIds",
+            "homeWorkAreaId"
         };
 
         public static readonly HashSet<string> OpeningScenarioFields = new HashSet<string>(StringComparer.Ordinal)
@@ -56,7 +57,8 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> WorkAreaFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "locationId", "tags", "allowedActivities", "offsetX", "offsetZ"
+            "id", "type", "name", "locationId", "tags", "allowedActivities", "offsetX", "offsetZ", "capacity",
+            "residentTags", "isControlCore", "maxDurability", "defense", "occupyHoldSeconds", "grantsPrivileges"
         };
 
         public static readonly HashSet<string> JobFields = new HashSet<string>(StringComparer.Ordinal)

@@ -23,13 +23,15 @@ namespace XianXia.Core.Actions
             OrderId sourceOrderId,
             ulong durationTicks,
             ScheduleActivity activity,
-            string targetWorkAreaId)
+            string targetWorkAreaId,
+            int slotIndex = -1)
         {
             Id = id;
             Subject = subject;
             SourceOrderId = sourceOrderId;
             Activity = activity;
             TargetWorkAreaId = targetWorkAreaId ?? string.Empty;
+            SlotIndex = slotIndex;
             Clock = ActionClock.Start(durationTicks == 0 ? 1UL : durationTicks);
             Status = ActionStatus.Pending;
         }
@@ -39,6 +41,7 @@ namespace XianXia.Core.Actions
         public OrderId SourceOrderId { get; }
         public ScheduleActivity Activity { get; }
         public string TargetWorkAreaId { get; }
+        public int SlotIndex { get; private set; }
         public ActionStatus Status { get; private set; }
         public ActionClock Clock { get; private set; }
 
@@ -72,6 +75,10 @@ namespace XianXia.Core.Actions
                 if (!loc.HasLocation ||
                     !string.Equals(loc.LocationId, area.LocationId, System.StringComparison.Ordinal))
                     loc.LocationId = area.LocationId;
+
+                var cap = area.Capacity > 0 ? area.Capacity : 4;
+                if (world.WorkAreaOccupancy.TryReserve(TargetWorkAreaId, Subject, cap, out var slot))
+                    SlotIndex = slot;
             }
 
             Status = ActionStatus.Running;

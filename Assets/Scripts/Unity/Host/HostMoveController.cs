@@ -23,8 +23,12 @@ namespace XianXia.Unity.Host
         [SerializeField] float moveSpeed = 6f;
         [SerializeField] float arriveEpsilon = 0.2f;
         [SerializeField] float formationSpacing = 1.25f;
-        [SerializeField] float separationRadius = 0.95f;
-        [SerializeField] float separationStrength = 2.2f;
+        [SerializeField] float separationRadius = 1.2f;
+        [SerializeField] float separationStrength = 3.2f;
+        [Tooltip("站定／工作中也轻轻推开，避免多人叠在同一点；仍可穿过彼此。")]
+        [SerializeField] float idleSeparationStrength = 4.5f;
+        [SerializeField] float hardOverlapRadius = 0.4f;
+        [SerializeField] float maxSeparationSpeed = 5.5f;
 
         readonly Dictionary<EntityView, Vector3> _targets = new Dictionary<EntityView, Vector3>();
         readonly Dictionary<ulong, List<Vector3>> _paths = new Dictionary<ulong, List<Vector3>>();
@@ -36,6 +40,7 @@ namespace XianXia.Unity.Host
         readonly HashSet<ulong> _movingIds = new HashSet<ulong>();
         readonly List<float> _pathScratch = new List<float>(64);
         readonly List<Vector3> _wpScratch = new List<Vector3>(32);
+        readonly List<EntityView> _crowdScratch = new List<EntityView>(64);
 
         WalkGrid _walkGrid;
 
@@ -120,6 +125,7 @@ namespace XianXia.Unity.Host
             if (workMode != null && workMode.IsActive)
             {
                 TickMoves();
+                TickIdleCrowdSpacing();
                 return;
             }
 
@@ -140,6 +146,7 @@ namespace XianXia.Unity.Host
             }
 
             TickMoves();
+            TickIdleCrowdSpacing();
         }
 
         void IssueMoveToMouse()
@@ -460,7 +467,7 @@ namespace XianXia.Unity.Host
                 var pos = view.transform.position;
                 var sep = ComputeSeparation(view, pos);
                 var desired = Vector3.MoveTowards(pos, target, moveSpeed * dt);
-                var next = desired + sep * (separationStrength * dt);
+                var next = desired + ClampSeparationDelta(sep * (separationStrength * dt), dt);
                 next.z = HostPresentationSpace.EntityZ;
                 next = ClampToWalkable(pos, next);
                 view.transform.position = next;
@@ -553,12 +560,62 @@ namespace XianXia.Unity.Host
             return from;
         }
 
+        /// <summary>
+        /// 站定单位软斥力：不挡路、可穿过，只避免完全叠在同一坐标。
+        /// 正在寻路移动的单位已在 <see cref="TickMoves"/> 里推过，这里跳过以免加倍。
+        /// </summary>
+        void TickIdleCrowdSpacing()
+        {
+            if (viewSpawner == null)
+                return;
+            var dt = bootstrap != null ? bootstrap.PresentationDeltaTime : Time.unscaledDeltaTime;
+            if (dt <= 0f)
+                return;
+
+            _crowdScratch.Clear();
+            foreach (var view in viewSpawner.Registry.All)
+            {
+                if (view == null || !view.IsBound)
+                    continue;
+                if (_movingIds.Contains(view.EntityId.Value))
+                    continue;
+                _crowdScratch.Add(view);
+            }
+
+            for (var i = 0; i < _crowdScratch.Count; i++)
+            {
+                var view = _crowdScratch[i];
+                if (view == null)
+                    continue;
+                var pos = view.transform.position;
+                var sep = ComputeSeparation(view, pos);
+                if (sep.sqrMagnitude < 1e-8f)
+                    continue;
+
+                var next = pos + ClampSeparationDelta(sep * (idleSeparationStrength * dt), dt);
+                next.z = HostPresentationSpace.EntityZ;
+                next = ClampToWalkable(pos, next);
+                view.transform.position = next;
+            }
+        }
+
+        Vector3 ClampSeparationDelta(Vector3 delta, float dt)
+        {
+            var max = Mathf.Max(0.1f, maxSeparationSpeed) * Mathf.Max(dt, 1e-4f);
+            if (delta.sqrMagnitude <= max * max)
+                return delta;
+            return delta.normalized * max;
+        }
+
         Vector3 ComputeSeparation(EntityView self, Vector3 pos)
         {
             if (viewSpawner == null)
                 return Vector3.zero;
             var push = Vector3.zero;
-            var r2 = separationRadius * separationRadius;
+            var r = Mathf.Max(0.2f, separationRadius);
+            var r2 = r * r;
+            var hard = Mathf.Clamp(hardOverlapRadius, 0.05f, r);
+            var selfId = self != null ? self.EntityId.Value : 0UL;
             foreach (var other in viewSpawner.Registry.All)
             {
                 if (other == null || other == self || !other.IsBound)
@@ -566,10 +623,25 @@ namespace XianXia.Unity.Host
                 var d = pos - other.transform.position;
                 d.z = 0f;
                 var sq = d.sqrMagnitude;
-                if (sq < 1e-6f || sq > r2)
+                if (sq > r2)
                     continue;
+
+                // 完全重合时旧逻辑会跳过 → 永远叠在一起；用双方 id 生成稳定侧向推力。
+                if (sq < 1e-6f)
+                {
+                    var otherId = other.EntityId.Value;
+                    var h = unchecked((int)(selfId * 73856093UL ^ otherId * 19349663UL));
+                    var ang = (h & 1023) * (Mathf.PI * 2f / 1024f);
+                    d = new Vector3(Mathf.Cos(ang), Mathf.Sin(ang), 0f);
+                    push += d * 1.35f;
+                    continue;
+                }
+
                 var dist = Mathf.Sqrt(sq);
-                push += d / dist * (1f - dist / separationRadius);
+                var w = 1f - dist / r;
+                if (dist < hard)
+                    w *= 1f + (hard - dist) / hard * 2.2f;
+                push += d / dist * w;
             }
 
             return push;

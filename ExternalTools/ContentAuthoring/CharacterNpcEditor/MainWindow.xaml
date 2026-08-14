@@ -68,6 +68,8 @@
                 <TextBlock Text="tags（逗号）" Width="120" VerticalAlignment="Center"/>
                 <TextBox x:Name="TagsBox"/>
               </DockPanel>
+              <TextBlock Margin="0,8,0,4" Text="分配住房 homeWorkAreaId（休息／吃饭优先）"/>
+              <TextBox x:Name="HomeWaBox" Margin="0,0,0,6"/>
               <TextBlock Margin="0,8,0,4" Text="偏好工区（有序；满／耗尽再试后面的）"/>
               <TextBox x:Name="PreferredWaBox" AcceptsReturn="True" Height="64" TextWrapping="Wrap"
                        VerticalScrollBarVisibility="Auto"/>

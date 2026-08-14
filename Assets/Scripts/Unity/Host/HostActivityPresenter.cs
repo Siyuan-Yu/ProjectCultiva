@@ -63,6 +63,8 @@ namespace XianXia.Unity.Host
                             return "巡查中";
                         case ScheduleActivity.Cultivate:
                             return "修炼中";
+                        case ScheduleActivity.Idle:
+                            return "发呆中";
                         default:
                             return "工作中";
                     }
@@ -76,7 +78,7 @@ namespace XianXia.Unity.Host
                 if (action is ObserveAction)
                     return "观察中";
                 if (action is WaitAction)
-                    return "待命";
+                    return "发呆中";
                 return "行动中";
             }
 
@@ -98,6 +100,7 @@ namespace XianXia.Unity.Host
                     case ScheduleActivity.Explore: return "探索中";
                     case ScheduleActivity.Patrol: return "巡视中";
                     case ScheduleActivity.Inspect: return "检查中";
+                    case ScheduleActivity.Idle: return "发呆中";
                 }
             }
 

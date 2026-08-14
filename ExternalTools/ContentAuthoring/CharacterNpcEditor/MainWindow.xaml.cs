@@ -185,6 +185,7 @@ public partial class MainWindow : Window
         GoalsBox.Text = LinesFromArray(_character.Raw["goals"]);
         DesiresBox.Text = LinesFromArray(_character.Raw["desires"]);
         PreferredWaBox.Text = LinesFromArray(_character.Raw["preferredWorkAreaIds"]);
+        HomeWaBox.Text = JsonEdit.GetString(_character.Raw, "homeWorkAreaId");
 
         ReadAttr("MaxHp", AttrHpBox);
         ReadAttr("Stamina", AttrStaminaBox);
@@ -323,6 +324,7 @@ public partial class MainWindow : Window
             ["spiritRoots"] = roots,
             ["tags"] = new JsonArray { "npc", "mortal" },
             ["preferredWorkAreaIds"] = new JsonArray(),
+            ["homeWorkAreaId"] = "base:workarea_houses",
             ["personalityTags"] = new JsonArray(),
             ["backgroundTags"] = new JsonArray(),
             ["talentTags"] = new JsonArray(),
@@ -348,7 +350,8 @@ public partial class MainWindow : Window
         ["Cultivate"] = false,
         ["Explore"] = true,
         ["Patrol"] = false,
-        ["Inspect"] = false
+        ["Inspect"] = false,
+        ["Idle"] = true
     };
 
     static JsonObject DefaultMortalPriorities() => new()
@@ -359,7 +362,8 @@ public partial class MainWindow : Window
         ["Explore"] = 2,
         ["Cultivate"] = 0,
         ["Patrol"] = 0,
-        ["Inspect"] = 0
+        ["Inspect"] = 0,
+        ["Idle"] = 1
     };
 
     void SaveCharacter_Click(object sender, RoutedEventArgs e)
@@ -385,6 +389,7 @@ public partial class MainWindow : Window
         _character.Raw["goals"] = LinesToArray(GoalsBox.Text);
         _character.Raw["desires"] = LinesToArray(DesiresBox.Text);
         _character.Raw["preferredWorkAreaIds"] = LinesToArray(PreferredWaBox.Text);
+        _character.Raw["homeWorkAreaId"] = HomeWaBox.Text?.Trim() ?? "";
         _character.Raw["baseAttributes"] = new JsonObject
         {
             ["MaxHp"] = ParseInt(AttrHpBox.Text, 100),

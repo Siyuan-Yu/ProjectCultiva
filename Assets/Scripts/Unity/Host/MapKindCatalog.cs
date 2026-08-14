@@ -2,7 +2,7 @@ namespace XianXia.Unity.Host
 {
     /// <summary>
     /// MapEditor kind → Host prefab／默认占地。
-    /// 分区（zone*）仅标记，无寻路／交互；物件与地表才参与玩法。
+    /// 分区（zone*）仅标记；住房休息玩法靠 boundLocationId → Location → WorkArea。
     /// </summary>
     public static class MapKindCatalog
     {
@@ -19,7 +19,8 @@ namespace XianXia.Unity.Host
         public const string Road = "Assets/Prefabs/Environment/Tiles/DirtRoadTile.prefab";
         public const string Wall = "Assets/Prefabs/Environment/Tiles/WallTile.prefab";
         public const string Rock = "Assets/Prefabs/Environment/Tiles/RockTile.prefab";
-        public const string House = "Assets/Prefabs/Environment/Buildings/SmallHouse.prefab";
+        /// <summary>Housing zone overlay tint source (not a placeable「小房子」).</summary>
+        public const string House = "Assets/Prefabs/Environment/Buildings/CommonHouse.prefab";
         public const string HouseFallback = "Assets/Prefabs/Environment/Buildings/CommonHouse.prefab";
         public const string Hub = "Assets/Prefabs/Environment/Buildings/SupervisorHouse.prefab";
         public const string Mine = "Assets/Prefabs/Environment/Buildings/Warehouse.prefab";
@@ -33,32 +34,35 @@ namespace XianXia.Unity.Host
 
         public enum StampMode
         {
-            /// <summary>矩形内每一格一个 1×1 prefab（药田／农田／路／墙等）。</summary>
             PerCell = 0,
-            /// <summary>矩形中心一个大体量 prefab（房子／树／矿石等）。</summary>
             SingleCentered = 1,
-            /// <summary>半透明分区色块，无交互、不挡路（除非数据里手动勾 blocksMovement）。</summary>
             ZoneOverlay = 2
         }
 
-        /// <summary>
-        /// 制作约定：house/wall/rock/cave/roadHub 默认挡路；树／矿／蒲团等装饰默认不挡，MapEditor 手勾。
-        /// </summary>
         public static bool DefaultBlocksMovement(string kind)
         {
             if (string.IsNullOrEmpty(kind))
                 return false;
-            switch (kind)
+            switch (NormalizeKind(kind))
             {
-                case "house":
                 case "wall":
                 case "rock":
                 case "cave":
-                case "roadHub":
+                case "controlCore":
                     return true;
                 default:
                     return false;
             }
+        }
+
+        /// <summary>Legacy aliases: house→ignored at palette; roadHub→controlCore.</summary>
+        public static string NormalizeKind(string kind)
+        {
+            if (string.Equals(kind, "roadHub", System.StringComparison.OrdinalIgnoreCase))
+                return "controlCore";
+            if (string.Equals(kind, "house", System.StringComparison.OrdinalIgnoreCase))
+                return "zoneHousing";
+            return kind ?? string.Empty;
         }
 
         public readonly struct KindInfo
@@ -96,7 +100,6 @@ namespace XianXia.Unity.Host
 
         public static readonly KindInfo[] All =
         {
-            // —— 分区（仅标记）——
             new("zoneHerb", Herb, StampMode.ZoneOverlay, 12, 12, false, null,
                 new UnityEngine.Color(0.30f, 0.70f, 0.40f, 0.35f)),
             new("zoneGrain", Farm, StampMode.ZoneOverlay, 16, 12, false, null,
@@ -110,7 +113,6 @@ namespace XianXia.Unity.Host
             new("zoneSpring", Spirit, StampMode.ZoneOverlay, 8, 8, false, null,
                 new UnityEngine.Color(0.35f, 0.70f, 0.85f, 0.35f)),
 
-            // 旧 forest／mine／spring：兼容已有 JSON
             new("forest", Forest, StampMode.ZoneOverlay, 14, 12, false, null,
                 new UnityEngine.Color(0.20f, 0.50f, 0.28f, 0.35f)),
             new("mine", Ore, StampMode.SingleCentered, 2, 2, false, HostInteractSpotKind.Work,
@@ -118,7 +120,6 @@ namespace XianXia.Unity.Host
             new("spring", Spirit, StampMode.ZoneOverlay, 8, 8, false, null,
                 new UnityEngine.Color(0.35f, 0.70f, 0.85f, 0.35f)),
 
-            // —— 地表 ——
             new("herbField", Herb, StampMode.PerCell, 12, 12, true, HostInteractSpotKind.Work,
                 new UnityEngine.Color(0.30f, 0.62f, 0.38f)),
             new("grainField", Farm, StampMode.PerCell, 16, 12, true, HostInteractSpotKind.Work,
@@ -128,7 +129,6 @@ namespace XianXia.Unity.Host
             new("wall", Wall, StampMode.PerCell, DefaultWallLen, DefaultWallThickness, false, null,
                 new UnityEngine.Color(0.35f, 0.35f, 0.38f)),
 
-            // —— 物件 ——
             new("treeS", TreeS, StampMode.SingleCentered, 1, 1, false, HostInteractSpotKind.Work,
                 new UnityEngine.Color(0.18f, 0.48f, 0.22f)),
             new("treeM", TreeM, StampMode.SingleCentered, 2, 2, false, HostInteractSpotKind.Work,
@@ -142,14 +142,10 @@ namespace XianXia.Unity.Host
             new("rock", Rock, StampMode.PerCell, 4, 4, false, null,
                 new UnityEngine.Color(0.45f, 0.45f, 0.48f)),
 
-            // —— 其它建筑（保留）——
-            new("house", House, StampMode.SingleCentered, HouseFootprint, HouseFootprint, false, null,
-                new UnityEngine.Color(0.55f, 0.40f, 0.28f)),
             new("cave", Cave, StampMode.SingleCentered, 10, 8, true, HostInteractSpotKind.Cultivate,
                 new UnityEngine.Color(0.42f, 0.36f, 0.40f)),
-            new("roadHub", Hub, StampMode.SingleCentered, 8, 8, false, null,
+            new("controlCore", Hub, StampMode.SingleCentered, 8, 8, false, null,
                 new UnityEngine.Color(0.58f, 0.50f, 0.40f)),
-            // 集合点：可多实例，靠 boundLocationId 区分；暂用蒲团外观，可换成专用 prefab。
             new("rallyPoint", Cushion, StampMode.SingleCentered, 2, 2, false, null,
                 new UnityEngine.Color(0.85f, 0.55f, 0.20f)),
         };
@@ -159,9 +155,10 @@ namespace XianXia.Unity.Host
             info = default;
             if (string.IsNullOrEmpty(kind))
                 return false;
+            var key = NormalizeKind(kind);
             for (var i = 0; i < All.Length; i++)
             {
-                if (All[i].Kind != kind)
+                if (!string.Equals(All[i].Kind, key, System.StringComparison.Ordinal))
                     continue;
                 info = All[i];
                 return true;

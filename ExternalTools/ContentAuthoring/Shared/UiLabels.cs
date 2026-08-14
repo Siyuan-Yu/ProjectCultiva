@@ -40,7 +40,8 @@ public static class UiLabels
         new("Cultivate", "修炼"),
         new("Explore", "探索"),
         new("Patrol", "巡逻"),
-        new("Inspect", "巡查")
+        new("Inspect", "巡查"),
+        new("Idle", "发呆")
     ];
 
     /// <summary>2B spirit-root axes; values 0–30 on character.spiritRoots.</summary>

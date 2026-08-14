@@ -1,12 +1,12 @@
 using UnityEngine;
 using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Npc;
 
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// 右键 NPC 情境菜单：对话 / 攻击（非敌对二次确认）。
-    /// 对话抵达后触发 contentEvent（onTalk）；攻击暂为占位。
+    /// 右键情境菜单：NPC＝对话／攻击；主管府＝仅攻击（靠近近战／占领）。
     /// </summary>
     public sealed class HostNpcContextMenu : MonoBehaviour
     {
@@ -28,6 +28,7 @@ namespace XianXia.Unity.Host
         EntityId _targetNpc = EntityId.None;
         EntityId _actor = EntityId.None;
         EntityId _interactionNpc = EntityId.None;
+        string _targetControlCoreWorkAreaId = string.Empty;
         string _targetLabel = string.Empty;
         Vector2 _menuScreen;
         Rect _menuGuiRect;
@@ -42,6 +43,8 @@ namespace XianXia.Unity.Host
         static readonly Color Ink = new Color(0.95f, 0.90f, 0.82f, 1f);
 
         public bool IsOpen => _phase != Phase.Closed;
+
+        bool IsControlCoreTarget => !string.IsNullOrEmpty(_targetControlCoreWorkAreaId);
 
         public void Bind(
             PlayableHostBootstrap host,
@@ -79,17 +82,39 @@ namespace XianXia.Unity.Host
             if (worldCamera == null)
                 worldCamera = Camera.main;
             var spawner = bootstrap.ViewSpawner;
-            if (!HostNpcPicker.TryPickAtMouse(worldCamera, spawner, out var npc, out _) ||
-                selectionController.IsPartyUnit(npc))
-                return false;
 
-            _actor = actor;
-            _targetNpc = npc;
-            _targetLabel = ResolveDisplayName(npc);
-            _menuScreen = Input.mousePosition;
-            _phase = Phase.Menu;
-            HostInputGate.BlockWorldInteraction = true;
-            return true;
+            // NPC first (dialogue／attack).
+            if (HostNpcPicker.TryPickAtMouse(worldCamera, spawner, out var npc, out _) &&
+                !selectionController.IsPartyUnit(npc))
+            {
+                _actor = actor;
+                _targetNpc = npc;
+                _targetControlCoreWorkAreaId = string.Empty;
+                _targetLabel = ResolveDisplayName(npc);
+                _menuScreen = Input.mousePosition;
+                _phase = Phase.Menu;
+                HostInputGate.BlockWorldInteraction = true;
+                return true;
+            }
+
+            // Control core: click anywhere on the building footprint.
+            MapLayoutPick.TryGet(bootstrap.Session, out var layout);
+            if (HostControlCoreQuery.TryPickAtMouse(
+                    worldCamera, bootstrap.Session.World, layout, out var coreId) &&
+                bootstrap.Session.World.ControlCores.TryGet(coreId, out var core) &&
+                !core.PlayerControlled)
+            {
+                _actor = actor;
+                _targetNpc = EntityId.None;
+                _targetControlCoreWorkAreaId = coreId;
+                _targetLabel = string.IsNullOrEmpty(core.Name) ? "主管府" : core.Name;
+                _menuScreen = Input.mousePosition;
+                _phase = Phase.Menu;
+                HostInputGate.BlockWorldInteraction = true;
+                return true;
+            }
+
+            return false;
         }
 
         void Update()
@@ -114,7 +139,10 @@ namespace XianXia.Unity.Host
             switch (_phase)
             {
                 case Phase.Menu:
-                    DrawContextMenu();
+                    if (IsControlCoreTarget)
+                        DrawControlCoreMenu();
+                    else
+                        DrawContextMenu();
                     break;
                 case Phase.AttackConfirm1:
                     DrawAttackConfirm(
@@ -133,6 +161,26 @@ namespace XianXia.Unity.Host
                         () => _phase = Phase.AttackConfirm1);
                     break;
             }
+        }
+
+        void DrawControlCoreMenu()
+        {
+            const float w = 168f;
+            const float itemH = 30f;
+            var h = itemH + 34f;
+            var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
+            var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
+            _menuGuiRect = new Rect(guiX, guiY, w, h);
+            HostUiHitTest.Block(_menuGuiRect);
+
+            Fill(_menuGuiRect, Panel);
+            DrawFrame(_menuGuiRect, Border);
+
+            GUI.Label(new Rect(guiX + 10f, guiY + 6f, w - 20f, 22f), _targetLabel, _label);
+            var y = guiY + 30f;
+            if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "攻击", _button))
+                BeginControlCoreAttack();
+            TryDismissOnOutsideClick(_menuGuiRect);
         }
 
         void DrawContextMenu()
@@ -174,6 +222,51 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(box.x + 22f + btnW, btnY, btnW, 32f), "取消", _button))
                 onCancel?.Invoke();
             TryDismissOnOutsideClick(box);
+        }
+
+        void BeginControlCoreAttack()
+        {
+            var session = bootstrap?.Session;
+            var world = session?.World;
+            var coreId = _targetControlCoreWorkAreaId;
+            if (world == null || string.IsNullOrEmpty(coreId) ||
+                !world.ControlCores.TryGet(coreId, out var core))
+            {
+                CloseAll();
+                return;
+            }
+
+            MapLayoutPick.TryGet(session, out var layout);
+            if (HostControlCoreQuery.TryGetApproachPoint(world, layout, core, out var approach) &&
+                moveController != null)
+                moveController.OrderPartyToPointPublic(approach);
+
+            var housing = bootstrap.GetComponent<HostHousingAreaSelection>();
+            housing?.SelectControlCore(coreId);
+
+            var assault = bootstrap.GetComponent<HostControlCoreAssault>();
+            if (assault != null)
+                assault.Begin(coreId);
+            else
+                Debug.LogWarning("[Host] HostControlCoreAssault 未挂载。");
+
+            var overlay = bootstrap.GetComponent<HostFeedbackOverlay>();
+            if (overlay != null && !_actor.IsNone)
+            {
+                overlay.SpawnAtEntity(
+                    bootstrap.ViewSpawner,
+                    _actor,
+                    "突击 " + _targetLabel,
+                    new Color(1f, 0.45f, 0.35f, 1f));
+            }
+
+            Debug.Log(
+                "[Host] 开始突击主管府：靠近建筑每秒 -" +
+                ControlCoreService.TestMeleeDamagePerHit +
+                "；破门后站满 " + core.OccupyHoldSeconds + " 秒占领。");
+
+            ResumeTime();
+            CloseAll();
         }
 
         void BeginTalk()
@@ -282,6 +375,7 @@ namespace XianXia.Unity.Host
             _phase = Phase.Closed;
             _targetNpc = EntityId.None;
             _actor = EntityId.None;
+            _targetControlCoreWorkAreaId = string.Empty;
             _targetLabel = string.Empty;
             HostInputGate.BlockWorldInteraction = false;
             if (bootstrap?.Session != null &&

@@ -65,14 +65,14 @@ namespace XianXia.Core.Orders
                     if (string.IsNullOrEmpty(order.TargetRef))
                         return Result.Fail<IAction>(ErrorCode.InvalidArgument, "Move TargetRef (WorkArea) required.");
                     return Result.Ok<IAction>(new MoveAction(
-                        actionId, order.Subject, order.Id, order.WaitTicks, order.TargetRef));
+                        actionId, order.Subject, order.Id, order.WaitTicks, order.TargetRef, order.SlotIndex));
 
                 case OrderType.Work:
                     if (order.WaitTicks == 0)
                         return Result.Fail<IAction>(ErrorCode.InvalidArgument, "Work duration must be > 0.");
                     var activity = order.Activity ?? ScheduleActivity.Labor;
                     return Result.Ok<IAction>(new WorkAction(
-                        actionId, order.Subject, order.Id, order.WaitTicks, activity, order.TargetRef));
+                        actionId, order.Subject, order.Id, order.WaitTicks, activity, order.TargetRef, order.SlotIndex));
 
                 default:
                     return Result.Fail<IAction>(ErrorCode.InvalidOperation, "Unsupported order type.");

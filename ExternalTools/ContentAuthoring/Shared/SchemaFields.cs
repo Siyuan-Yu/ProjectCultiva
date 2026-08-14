@@ -9,7 +9,8 @@ public static class SchemaFields
             "id", "type", "name", "displayNameKey", "nameKey", "baseAttributes", "tags",
             "personalityTags", "backgroundTags", "talentTags",
             "spiritRootPlaceholder", "initialRealmPlaceholder",
-            "activityCapabilities", "activityPriorities"
+            "activityCapabilities", "activityPriorities", "preferredWorkAreaIds", "homeWorkAreaId",
+            "spiritRoots", "hometown", "reputation", "goals", "desires", "playerControllable"
         },
         ["cultivation"] = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -67,7 +68,8 @@ public static class SchemaFields
         },
         ["workArea"] = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "locationId", "tags", "allowedActivities", "offsetX", "offsetZ"
+            "id", "type", "name", "locationId", "tags", "allowedActivities", "offsetX", "offsetZ", "capacity",
+            "residentTags", "isControlCore", "maxDurability", "defense", "occupyHoldSeconds", "grantsPrivileges"
         },
         ["job"] = new HashSet<string>(StringComparer.Ordinal)
         {

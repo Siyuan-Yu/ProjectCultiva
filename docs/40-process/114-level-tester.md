@@ -56,6 +56,8 @@ Level Tester 用来试玩 **某一个大地图节点的 LocalMap**（例如荒�
 2. 选中 **LevelTester** → Inspector 点 **「选择文件…」** → 选 `Content/BaseGame/Data/*.json`  
 3. 点 **Import** 在 Scene 里看 prefab 预览；Play 或 F12 测逻辑  
 
+改 JSON 后再点 **Import** 会先清掉预览根下全部旧物件再刷（不必先切走再重进场景）。若仍叠图，先点 **Clear Preview** 再 Import。
+
 NPC／任务仍来自 Content 包；这里只换「这一张本地图」。
 
 ---

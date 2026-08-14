@@ -19,6 +19,8 @@ namespace XianXia.Core.Schedule
                 case ScheduleActivity.Patrol:
                 case ScheduleActivity.Inspect:
                     return OrderType.Observe;
+                case ScheduleActivity.Idle:
+                    return OrderType.Wait;
                 default:
                     return OrderType.Rest;
             }

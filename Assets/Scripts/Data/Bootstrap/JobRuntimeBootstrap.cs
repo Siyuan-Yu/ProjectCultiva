@@ -24,12 +24,21 @@ namespace XianXia.Data.Bootstrap
                     Name = src.Name ?? string.Empty,
                     LocationId = src.LocationId ?? string.Empty,
                     OffsetX = src.OffsetX,
-                    OffsetZ = src.OffsetZ
+                    OffsetZ = src.OffsetZ,
+                    Capacity = src.Capacity > 0 ? src.Capacity : 4,
+                    IsControlCore = src.IsControlCore,
+                    MaxDurability = src.MaxDurability,
+                    Defense = src.Defense,
+                    OccupyHoldSeconds = src.OccupyHoldSeconds > 0.01f ? src.OccupyHoldSeconds : 10f
                 };
                 if (src.Tags != null)
                     area.Tags.AddRange(src.Tags);
                 if (src.AllowedActivities != null)
                     area.AllowedActivities.AddRange(src.AllowedActivities);
+                if (src.ResidentTags != null)
+                    area.ResidentTags.AddRange(src.ResidentTags);
+                if (src.GrantsPrivileges != null)
+                    area.GrantsPrivileges.AddRange(src.GrantsPrivileges);
                 world.RegisterWorkArea(area);
             }
 

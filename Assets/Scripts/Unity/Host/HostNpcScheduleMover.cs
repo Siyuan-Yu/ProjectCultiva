@@ -170,6 +170,36 @@ namespace XianXia.Unity.Host
             if (!HostZoneQuery.TryGetLocationCenter(world, locationId, out var center))
                 return false;
 
+            // Soft slot → interact spot (农田多点) or ring around area offset.
+            if (intent.SlotIndex >= 0)
+            {
+                var kind = HostInteractSpotKind.Work;
+                if (!string.IsNullOrEmpty(intent.TargetWorkAreaId) &&
+                    world.TryGetWorkArea(intent.TargetWorkAreaId, out var slotArea) &&
+                    slotArea.AllowedActivities != null)
+                {
+                    for (var i = 0; i < slotArea.AllowedActivities.Count; i++)
+                    {
+                        if (string.Equals(slotArea.AllowedActivities[i], "Cultivate", System.StringComparison.OrdinalIgnoreCase))
+                        {
+                            kind = HostInteractSpotKind.Cultivate;
+                            break;
+                        }
+                    }
+                }
+
+                if (HostInteractSpots.TryGetSlotSpot(locationId, kind, intent.SlotIndex, out var spot))
+                {
+                    worldCenter = spot.WorldPosition;
+                    worldCenter.z = HostPresentationSpace.EntityZ;
+                    return true;
+                }
+
+                worldCenter = center + new Vector3(ox, oz, 0f) + HostInteractSpots.RingOffset(intent.SlotIndex);
+                worldCenter.z = HostPresentationSpace.EntityZ;
+                return true;
+            }
+
             // Presentation offset from content → world (XY = presentation X/Z).
             worldCenter = center + new Vector3(ox, oz, 0f);
             worldCenter.z = HostPresentationSpace.EntityZ;

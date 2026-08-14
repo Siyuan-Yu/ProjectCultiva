@@ -17,6 +17,9 @@ namespace XianXia.Core.Npc
 
         public List<string> PreferredWorkAreaIds { get; } = new List<string>();
 
+        /// <summary>Assigned housing work area; Rest／Eat prefer this when allowed.</summary>
+        public string HomeWorkAreaId { get; set; } = string.Empty;
+
         public void SetCapability(ScheduleActivity activity, bool enabled) =>
             _capabilities[activity] = enabled;
 
@@ -27,7 +30,10 @@ namespace XianXia.Core.Npc
         {
             if (_capabilities.Count == 0)
                 return true;
-            return _capabilities.TryGetValue(activity, out var on) && on;
+            if (_capabilities.TryGetValue(activity, out var on))
+                return on;
+            // 新活动（如发呆）未写进旧人物 JSON 时默认允许，避免全员无法回退发呆。
+            return activity == ScheduleActivity.Idle;
         }
 
         public int PriorityOf(ScheduleActivity activity) =>

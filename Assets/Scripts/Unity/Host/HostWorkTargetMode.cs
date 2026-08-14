@@ -3,6 +3,8 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Input;
+using XianXia.Core.Npc;
+using XianXia.Data.Content;
 
 namespace XianXia.Unity.Host
 {
@@ -305,7 +307,68 @@ namespace XianXia.Unity.Host
         {
             if (!_canTargetUnderMouse)
                 return;
-            Debug.Log("[Host] Combat target mode: not implemented yet.");
+
+            var cam = Camera.main;
+            if (cam == null)
+            {
+                SetArmed(ArmKind.None);
+                return;
+            }
+
+            var ray = cam.ScreenPointToRay(Input.mousePosition);
+            var plane = new Plane(Vector3.forward, Vector3.zero);
+            if (!plane.Raycast(ray, out var enter))
+            {
+                SetArmed(ArmKind.None);
+                return;
+            }
+
+            var point = ray.GetPoint(enter);
+            var session = bootstrap != null ? bootstrap.Session : null;
+            var world = session?.World;
+            MapLayoutDefinition layout = null;
+            if (session != null)
+                MapLayoutPick.TryGet(session, out layout);
+
+            string coreId = null;
+            if (world != null &&
+                HostControlCoreQuery.TryPickAtWorld(world, layout, point, out coreId) &&
+                world.ControlCores.TryGet(coreId, out var core))
+            {
+                Resume();
+                if (HostControlCoreQuery.TryGetApproachPoint(world, layout, core, out var target) &&
+                    moveController != null)
+                    moveController.OrderPartyToPointPublic(target);
+
+                var housingSel = bootstrap != null
+                    ? bootstrap.GetComponent<HostHousingAreaSelection>()
+                    : null;
+                housingSel?.SelectControlCore(core.WorkAreaId);
+
+                var assault = bootstrap != null
+                    ? bootstrap.GetComponent<HostControlCoreAssault>()
+                    : null;
+                if (core.PlayerControlled)
+                {
+                    Debug.Log("[Host] 主管府已占领。");
+                }
+                else if (assault != null)
+                {
+                    assault.Begin(core.WorkAreaId);
+                    Debug.Log("[Host] 开始突击主管府：靠近建筑每秒 -" +
+                              ControlCoreService.TestMeleeDamagePerHit +
+                              "；破门后站满 " + core.OccupyHoldSeconds + " 秒占领。");
+                }
+                else
+                {
+                    Debug.LogWarning("[Host] HostControlCoreAssault 未挂载。");
+                }
+
+                SetArmed(ArmKind.None);
+                return;
+            }
+
+            Debug.Log("[Host] Combat: 请点主管府建筑（尚无 NPC 战斗）。");
             SetArmed(ArmKind.None);
         }
 

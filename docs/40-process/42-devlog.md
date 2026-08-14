@@ -7,6 +7,18 @@
 
 ---
 
+## 2026-08-15 — 住房分配／主管府占领／Import 清旧
+
+**做了什么**
+- 住房区 vs 主管府拆分；`zoneHousing`／`controlCore`；三住房样例＋`homeWorkAreaId`
+- 左键住房／府面板；右键府攻击；靠近近战 20／秒；破门站满 occupyHoldSeconds 占领
+- `SettlementAuthority`（manageHousing／manageSchedules）；课表可改
+- Level Tester Import 清空 mapRoot 子物体（修叠旧建筑）
+- 新建 [121](121-housing-assignment-and-control-core-2026-08-15.md)；更新总览／通读／62／SCHEMA／114；飞书同步；推 GitHub
+
+**判断与理由**
+- 府不是住房；权限走内容 `grantsPrivileges` 而非硬编码建筑类型；攻击入口对齐 NPC 右键菜单
+
 ## 2026-08-15 — 人物／工区编辑器、名册刷人、倍速、对话发任务可见性
 
 **做了什么**

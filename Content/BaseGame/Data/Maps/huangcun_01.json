@@ -13,7 +13,7 @@
       "placements": [
         {
           "id": "place_house_143311062",
-          "kind": "house",
+          "kind": "zoneHousing",
           "x": 13,
           "y": 24,
           "w": 20,

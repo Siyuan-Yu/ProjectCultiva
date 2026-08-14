@@ -7,7 +7,7 @@ using XianXia.Unity.Host;
 namespace XianXia.Unity.Editor
 {
     /// <summary>
-    /// 确保 MapLayout 用到的 Wall／Rock／SmallHouse／树／矿石 prefab 存在（没有就从现有资源复制）。
+    /// 确保 MapLayout 用到的 Wall／Rock／CommonHouse／树／矿石 prefab 存在（没有就从现有资源复制）。
     /// </summary>
     public static class MapLayoutPrefabEnsure
     {
@@ -30,12 +30,6 @@ namespace XianXia.Unity.Editor
                 Tiles + "/RockTile.prefab",
                 "RockTile",
                 new Color(0.50f, 0.48f, 0.45f, 1f));
-            EnsureClone(
-                Buildings + "/CommonHouse.prefab",
-                Buildings + "/SmallHouse.prefab",
-                "SmallHouse",
-                default,
-                rootScale: 1f);
 
             EnsureClone(
                 Tiles + "/ForestFloorTile.prefab",
@@ -151,7 +145,7 @@ namespace XianXia.Unity.Editor
                 if (EditorApplication.isPlayingOrWillChangePlaymode)
                     return;
                 if (AssetDatabase.LoadAssetAtPath<GameObject>(Tiles + "/WallTile.prefab") != null &&
-                    AssetDatabase.LoadAssetAtPath<GameObject>(Buildings + "/SmallHouse.prefab") != null &&
+                    AssetDatabase.LoadAssetAtPath<GameObject>(Buildings + "/CommonHouse.prefab") != null &&
                     AssetDatabase.LoadAssetAtPath<GameObject>(Props + "/TreeSmall.prefab") != null &&
                     AssetDatabase.LoadAssetAtPath<GameObject>(Props + "/OrePile.prefab") != null &&
                     AssetDatabase.LoadAssetAtPath<GameObject>(Props + "/Cushion.prefab") != null &&

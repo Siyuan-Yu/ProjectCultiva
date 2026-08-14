@@ -14,6 +14,8 @@ namespace XianXia.Core.Schedule
         /// <summary>Supervisor patrol → Observe order.</summary>
         Patrol = 6,
         /// <summary>Supervisor task inspection → Observe order.</summary>
-        Inspect = 7
+        Inspect = 7,
+        /// <summary>No available work／rest slot: loiter／daydream in place or idle area.</summary>
+        Idle = 8
     }
 }

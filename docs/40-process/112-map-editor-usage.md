@@ -119,7 +119,7 @@ Prefab 目录：
 
 | 类型 | 默认 | 说明 |
 |------|------|------|
-| `house`／`wall`／`rock`／`cave`／`roadHub` | **开** | 大建筑／结构 |
+| `wall`／`rock`／`cave`／`controlCore` | **开** | 结构／主管府 |
 | `tree*`／`ore`／`cushion`／田／路／集合点／分区 | **关** | 装饰与地表；需要挡再勾「挡路」 |
 
 ---
@@ -171,7 +171,7 @@ Prefab 目录：
 - 每格可交互：`HostMapPlotCell` + 动态 `HostInteractSpots`（旧硬编码点仅作无布局时回退）
 - 精灵按真实 bounds **拟合**到占地，并**对齐包围盒中心**（修分区相对田格上下偏移）
 - 房子按编辑器实际 w×h 缩放（不再强行 20×20）；墙提高排序并加深颜色便于看见
-- 补 prefab：`WallTile`／`RockTile`／`SmallHouse`／树／矿／蒲团（`MapLayoutPrefabEnsure`）
+- 补 prefab：`WallTile`／`RockTile`／`CommonHouse`／`SupervisorHouse`／树／矿／蒲团（`MapLayoutPrefabEnsure`）
 - 相机框住整张 mapLayout
 
 ### 热修

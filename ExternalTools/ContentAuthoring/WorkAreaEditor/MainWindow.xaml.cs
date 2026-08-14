@@ -78,6 +78,36 @@ public partial class MainWindow : Window
         WaLocationBox.Text = JsonEdit.GetString(_workArea.Raw, "locationId");
         WaOffsetXBox.Text = JsonEdit.GetDouble(_workArea.Raw, "offsetX", 0).ToString(CultureInfo.InvariantCulture);
         WaOffsetZBox.Text = JsonEdit.GetDouble(_workArea.Raw, "offsetZ", 0).ToString(CultureInfo.InvariantCulture);
+        WaCapacityBox.Text = (_workArea.Raw["capacity"] is JsonValue cv && cv.TryGetValue<int>(out var cap) ? cap : 4)
+            .ToString(CultureInfo.InvariantCulture);
+        if (_workArea.Raw["residentTags"] is JsonArray resTags)
+            WaResidentTagsBox.Text = string.Join(", ", resTags.OfType<JsonValue>().Select(v => v.GetValue<string>()));
+        else
+            WaResidentTagsBox.Text = "";
+        WaControlCoreBox.IsChecked = _workArea.Raw["isControlCore"] is JsonValue cc &&
+                                     cc.TryGetValue<bool>(out var isCore) && isCore;
+        WaMaxDurabilityBox.Text = (_workArea.Raw["maxDurability"] is JsonValue md && md.TryGetValue<int>(out var maxD)
+                ? maxD
+                : 200)
+            .ToString(CultureInfo.InvariantCulture);
+        WaDefenseBox.Text = (_workArea.Raw["defense"] is JsonValue df && df.TryGetValue<int>(out var def)
+                ? def
+                : 0)
+            .ToString(CultureInfo.InvariantCulture);
+        var occupyHold = 10.0;
+        if (_workArea.Raw["occupyHoldSeconds"] is JsonValue oh)
+        {
+            if (oh.TryGetValue<double>(out var holdD))
+                occupyHold = holdD;
+            else if (oh.TryGetValue<int>(out var holdI))
+                occupyHold = holdI;
+        }
+
+        WaOccupyHoldBox.Text = occupyHold.ToString(CultureInfo.InvariantCulture);
+        if (_workArea.Raw["grantsPrivileges"] is JsonArray grants)
+            WaGrantsPrivilegesBox.Text = string.Join(", ", grants.OfType<JsonValue>().Select(v => v.GetValue<string>()));
+        else
+            WaGrantsPrivilegesBox.Text = "";
         if (_workArea.Raw["tags"] is JsonArray tags)
             WaTagsBox.Text = string.Join(", ", tags.OfType<JsonValue>().Select(v => v.GetValue<string>()));
         else
@@ -108,7 +138,8 @@ public partial class MainWindow : Window
             ["tags"] = new JsonArray(),
             ["allowedActivities"] = new JsonArray { "Labor" },
             ["offsetX"] = 0,
-            ["offsetZ"] = 0
+            ["offsetZ"] = 0,
+            ["capacity"] = 4
         };
         _workArea = PackageStore.AppendDefinition(_package, "WorkAreas/work_areas.json", raw);
         LoadRoot(_package.Root);
@@ -128,10 +159,28 @@ public partial class MainWindow : Window
             ox = 0;
         if (!double.TryParse(WaOffsetZBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var oz))
             oz = 0;
+        if (!int.TryParse(WaCapacityBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var capacity) ||
+            capacity < 1)
+            capacity = 4;
+        if (!int.TryParse(WaMaxDurabilityBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var maxDur) ||
+            maxDur < 1)
+            maxDur = 200;
+        if (!int.TryParse(WaDefenseBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var defense) ||
+            defense < 0)
+            defense = 0;
+        if (!double.TryParse(WaOccupyHoldBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var occupyHold) ||
+            occupyHold < 0.1)
+            occupyHold = 10;
 
         var tags = new JsonArray();
         foreach (var t in (WaTagsBox.Text ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             tags.Add(t);
+        var residentTags = new JsonArray();
+        foreach (var t in (WaResidentTagsBox.Text ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            residentTags.Add(t);
+        var grantsPrivileges = new JsonArray();
+        foreach (var t in (WaGrantsPrivilegesBox.Text ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            grantsPrivileges.Add(t);
         var acts = new JsonArray();
         foreach (var cb in _waActivityChecks)
             if (cb.IsChecked == true && cb.Tag is string key)
@@ -150,7 +199,14 @@ public partial class MainWindow : Window
         _workArea.Raw["locationId"] = loc;
         _workArea.Raw["offsetX"] = ox;
         _workArea.Raw["offsetZ"] = oz;
+        _workArea.Raw["capacity"] = capacity;
         _workArea.Raw["tags"] = tags;
+        _workArea.Raw["residentTags"] = residentTags;
+        _workArea.Raw["isControlCore"] = WaControlCoreBox.IsChecked == true;
+        _workArea.Raw["maxDurability"] = maxDur;
+        _workArea.Raw["defense"] = defense;
+        _workArea.Raw["occupyHoldSeconds"] = occupyHold;
+        _workArea.Raw["grantsPrivileges"] = grantsPrivileges;
         _workArea.Raw["allowedActivities"] = acts;
         PackageStore.SaveDefinition(_package, _workArea);
         var keep = JsonEdit.GetString(_workArea.Raw, "id");

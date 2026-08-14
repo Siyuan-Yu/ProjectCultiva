@@ -44,6 +44,34 @@
             <TextBox x:Name="WaOffsetZBox"/>
           </DockPanel>
           <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="capacity（同时人数）" Width="120" VerticalAlignment="Center"/>
+            <TextBox x:Name="WaCapacityBox" Text="4"/>
+          </DockPanel>
+          <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="residentTags（可住）" Width="120" VerticalAlignment="Center"/>
+            <TextBox x:Name="WaResidentTagsBox" ToolTip="逗号分隔：mortal／guard／supervisor；空＝不限"/>
+          </DockPanel>
+          <DockPanel Margin="0,0,0,6">
+            <CheckBox x:Name="WaControlCoreBox" Content="isControlCore（主管府＝区域核心，不是住房）" VerticalAlignment="Center"/>
+          </DockPanel>
+          <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="maxDurability" Width="120" VerticalAlignment="Center"/>
+            <TextBox x:Name="WaMaxDurabilityBox" Text="200"/>
+          </DockPanel>
+          <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="defense（减伤）" Width="120" VerticalAlignment="Center"/>
+            <TextBox x:Name="WaDefenseBox" Text="0"/>
+          </DockPanel>
+          <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="occupyHoldSeconds" Width="120" VerticalAlignment="Center"/>
+            <TextBox x:Name="WaOccupyHoldBox" Text="10"/>
+          </DockPanel>
+          <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="grantsPrivileges" Width="120" VerticalAlignment="Center"/>
+            <TextBox x:Name="WaGrantsPrivilegesBox"
+                     ToolTip="逗号分隔：manageHousing／manageSchedules；空＝默认两项"/>
+          </DockPanel>
+          <DockPanel Margin="0,0,0,6">
             <TextBlock Text="tags（逗号分隔）" Width="120" VerticalAlignment="Center"/>
             <TextBox x:Name="WaTagsBox"/>
           </DockPanel>
@@ -56,7 +84,7 @@
             </ItemsControl.ItemsPanel>
           </ItemsControl>
           <TextBlock Margin="0,12,0,0" TextWrapping="Wrap" Foreground="#555"
-                     Text="运行时按人物偏好工区＋工区是否可用选地点；某工区满／耗尽时会换其他可做工区，再按人物优先级改做别的事。作息规则另做。"/>
+                     Text="住房：同一类工区＋residentTags／homeWorkAreaId。主管府：单独勾控制核心（勿与住房混为一个 id）。满员换活／发呆。"/>
         </StackPanel>
       </ScrollViewer>
     </Grid>

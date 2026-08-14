@@ -17,13 +17,16 @@
 
 | 主题 | 做什么 | 入口 |
 |------|--------|------|
-| **无职业 Job** | 清空 `job_woodcutter` 等；活动＝能力＋优先级＋偏好工区 | `ActivityResolver`、`WorkAreaAvailability`（暂恒可用） |
+| **无职业 Job** | 清空 `job_woodcutter` 等；活动＝能力＋优先级＋偏好工区 | `ActivityResolver`、`WorkAreaAvailability`（软容量） |
 | **WorkAreaEditor** | 只编工区 `allowedActivities`／地点 | `启动-WorkAreaEditor.cmd` |
 | **CharacterNpcEditor** | 人物属性／灵根 0–30／闲时倾向／可控制／场景出场／导出名册 | `启动-CharacterNpcEditor.cmd` |
 | **characterRoster** | `Data/Rosters/level_tester_roster.json`；Host `characterRosterId` | SCHEMA／`PlayableHostBootstrap` |
 | **保存修复** | 「保存场景出场」「导出名册」深拷贝 JSON，另存为默认当前路径，不退出 | CharacterNpcEditor |
 | **倍速** | Tick 自动步进 × 倍率；移动用 `PresentationDeltaTime`；顶栏走 `SetSpeedMultiplier` | `PlayableHostBootstrap`／`HostMoveController`／`HostFormalHud` |
 | **对话发任务可见** | 事件编辑器补 `npcDefinitionId`；人物页只读显示关联 onTalk 事件 | EventEditor／CharacterNpcEditor |
+| **软斥力** | 移动／站定互推，可穿过 | `HostMoveController` |
+| **工区软点位** | `capacity`＋占用板；同活分 Slot；满则按优先级换活，最后发呆 | `WorkAreaOccupancyBoard`／`NpcActivityDriver` |
+| **发呆 Idle** | 新活动；无 Idle 工区则原地 Wait；旧人物 JSON 默认允许发呆 | `ScheduleActivity.Idle`／`work_areas.json` |
 
 ---
 
@@ -35,7 +38,7 @@
   └─ 不声明「会发哪些任务」
 
 工区 WorkAreas/*.json
-  └─ allowedActivities → locationId
+  └─ allowedActivities／capacity → locationId
 
 出场 Scenarios/*.json spawns[]
   └─ definitionId／entityKind／scheduleId／…

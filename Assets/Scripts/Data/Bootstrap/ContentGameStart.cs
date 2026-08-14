@@ -185,6 +185,8 @@ namespace XianXia.Data.Bootstrap
                 }
             }
 
+            spawn.HomeWorkAreaId = def.HomeWorkAreaId ?? string.Empty;
+
             if (def.SpiritRoots != null)
             {
                 foreach (var kv in def.SpiritRoots)

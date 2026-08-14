@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
+using XianXia.Core.Exploration;
 using XianXia.Core.Orders;
 using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
@@ -10,7 +11,7 @@ namespace XianXia.Core.Npc
 {
     /// <summary>
     /// Scheduled NPCs: activity → WorkArea (Move／Work). Not profession-bound.
-    /// If current activity has no available place, falls back by activityPriorities.
+    /// Full areas fall back by activityPriorities; last resort Idle (发呆).
     /// </summary>
     public sealed class NpcActivityDriver
     {
@@ -74,8 +75,32 @@ namespace XianXia.Core.Npc
             if (!TryResolveWithFallback(world, entity, choice.Activity, duration, out var resolved))
                 return;
 
-            var orderType = resolved.NeedsMove ? OrderType.Move : OrderType.Work;
-            if (queue.HasMatching(OrderSource.Schedule, orderType, resolved.WorkAreaId))
+            // Soft slot claim before enqueue so peers see occupied capacity this tick.
+            if (!TryClaimResolvedSlot(world, entity, ref resolved))
+            {
+                if (resolved.Activity != ScheduleActivity.Idle &&
+                    ActivityResolver.TryResolve(world, entity, ScheduleActivity.Idle, duration, out resolved) &&
+                    TryClaimResolvedSlot(world, entity, ref resolved))
+                {
+                    // claimed idle yard
+                }
+                else
+                {
+                    ForceInPlaceIdle(entity, duration, out resolved);
+                }
+            }
+
+            OrderType orderType;
+            if (resolved.Activity == ScheduleActivity.Idle && string.IsNullOrEmpty(resolved.WorkAreaId))
+                orderType = OrderType.Wait;
+            else if (resolved.NeedsMove && !string.IsNullOrEmpty(resolved.WorkAreaId))
+                orderType = OrderType.Move;
+            else if (!string.IsNullOrEmpty(resolved.WorkAreaId))
+                orderType = OrderType.Work;
+            else
+                orderType = OrderType.Wait;
+
+            if (queue.HasMatching(OrderSource.Schedule, orderType, resolved.WorkAreaId ?? string.Empty))
                 return;
 
             queue.RemoveWhere(o => o.Source == OrderSource.Schedule);
@@ -83,7 +108,9 @@ namespace XianXia.Core.Npc
             var moveDuration = resolved.NeedsMove
                 ? (duration < 24UL ? duration : 24UL)
                 : duration;
-            var wait = resolved.NeedsMove ? moveDuration : duration;
+            var wait = (orderType == OrderType.Move) ? moveDuration : duration;
+            if (wait == 0)
+                wait = 1;
 
             var order = new Order(
                 loop.AllocateOrderId(),
@@ -92,7 +119,8 @@ namespace XianXia.Core.Npc
                 OrderSource.Schedule,
                 waitTicks: wait,
                 targetRef: resolved.WorkAreaId,
-                activity: resolved.Activity);
+                activity: resolved.Activity,
+                slotIndex: resolved.SlotIndex);
             loop.EnqueueOrder(order);
         }
 
@@ -106,21 +134,54 @@ namespace XianXia.Core.Npc
             if (ActivityResolver.TryResolve(world, entity, primary, duration, out resolved))
                 return true;
 
-            if (!entity.TryGet<ActivityTendencyComponent>(out var tendency))
-                return false;
-
-            tendency.CopyPrioritiesTo(_priorityScratch);
-            for (var i = 0; i < _priorityScratch.Count; i++)
+            if (entity.TryGet<ActivityTendencyComponent>(out var tendency))
             {
-                var next = _priorityScratch[i].Activity;
-                if (next == primary)
-                    continue;
-                if (ActivityResolver.TryResolve(world, entity, next, duration, out resolved))
-                    return true;
+                tendency.CopyPrioritiesTo(_priorityScratch);
+                for (var i = 0; i < _priorityScratch.Count; i++)
+                {
+                    var next = _priorityScratch[i].Activity;
+                    if (next == primary)
+                        continue;
+                    if (next == ScheduleActivity.Idle)
+                        continue; // idle last
+                    if (ActivityResolver.TryResolve(world, entity, next, duration, out resolved))
+                        return true;
+                }
             }
 
-            resolved = null;
-            return false;
+            // Last resort: 发呆
+            return ActivityResolver.TryResolve(world, entity, ScheduleActivity.Idle, duration, out resolved);
+        }
+
+        static bool TryClaimResolvedSlot(SimulationWorld world, Entity entity, ref ResolvedActivity resolved)
+        {
+            if (resolved == null)
+                return false;
+            if (string.IsNullOrEmpty(resolved.WorkAreaId))
+                return true;
+            if (!world.TryGetWorkArea(resolved.WorkAreaId, out var area))
+                return false;
+            var cap = area.Capacity > 0 ? area.Capacity : 4;
+            if (!world.WorkAreaOccupancy.TryReserve(resolved.WorkAreaId, entity.Id, cap, out var slot))
+                return false;
+            resolved.SlotIndex = slot;
+            return true;
+        }
+
+        static void ForceInPlaceIdle(Entity entity, ulong duration, out ResolvedActivity resolved)
+        {
+            var locationId = string.Empty;
+            if (entity.TryGet<EntityLocationComponent>(out var cur) && cur.HasLocation)
+                locationId = cur.LocationId;
+            resolved = new ResolvedActivity
+            {
+                Activity = ScheduleActivity.Idle,
+                WorkAreaId = string.Empty,
+                LocationId = locationId,
+                NeedsMove = false,
+                DurationTicks = duration,
+                SlotIndex = -1
+            };
         }
     }
 }

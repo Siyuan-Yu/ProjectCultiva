@@ -9,6 +9,7 @@ using XianXia.Core.Npc;
 using XianXia.Core.Orders;
 using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
+using XianXia.Core.Social;
 using XianXia.Data.Bootstrap;
 using XianXia.Data.Content;
 using System.IO;
@@ -174,6 +175,224 @@ namespace XianXia.Tests
                 loop.TickOnce();
 
             Assert.AreEqual(1, npc.Get<JobComponent>().RouteIndex);
+        }
+
+        [Test]
+        public void ActivityResolver_SkipsFullWorkArea_FallsBackToIdle()
+        {
+            var world = new SimulationWorld();
+            RegisterSampleWorkAreas(world);
+            world.TryGetWorkArea("wa_mine", out var mine);
+            mine.Capacity = 1;
+            world.TryGetWorkArea("wa_field", out var field);
+            field.Capacity = 1;
+
+            var miner = CreateScheduledNpc(world, "loc_mine", "sched");
+            Assert.IsTrue(world.WorkAreaOccupancy.TryReserve("wa_mine", miner.Id, 1, out _));
+            var farmer = CreateScheduledNpc(world, "loc_field", "sched");
+            Assert.IsTrue(world.WorkAreaOccupancy.TryReserve("wa_field", farmer.Id, 1, out _));
+
+            var third = CreateScheduledNpc(world, "loc_mine", "sched");
+            Assert.IsFalse(ActivityResolver.TryResolve(
+                world, third, ScheduleActivity.Labor, 4, out _));
+            Assert.IsTrue(ActivityResolver.TryResolve(
+                world, third, ScheduleActivity.Idle, 4, out var idle));
+            Assert.AreEqual(ScheduleActivity.Idle, idle.Activity);
+            Assert.IsTrue(string.IsNullOrEmpty(idle.WorkAreaId));
+        }
+
+        [Test]
+        public void ActivityResolver_AssignsDistinctSlots_SameWorkArea()
+        {
+            var world = new SimulationWorld();
+            RegisterSampleWorkAreas(world);
+            world.TryGetWorkArea("wa_field", out var field);
+            field.Capacity = 3;
+
+            var a = CreateScheduledNpc(world, "loc_field", "sched");
+            a.Get<ActivityTendencyComponent>().PreferredWorkAreaIds.Add("wa_field");
+            var b = CreateScheduledNpc(world, "loc_field", "sched");
+            b.Get<ActivityTendencyComponent>().PreferredWorkAreaIds.Add("wa_field");
+
+            Assert.IsTrue(ActivityResolver.TryResolve(world, a, ScheduleActivity.Labor, 4, out var ra));
+            Assert.IsTrue(world.WorkAreaOccupancy.TryReserve("wa_field", a.Id, 3, out var sa));
+            Assert.IsTrue(ActivityResolver.TryResolve(world, b, ScheduleActivity.Labor, 4, out var rb));
+            Assert.IsTrue(world.WorkAreaOccupancy.TryReserve("wa_field", b.Id, 3, out var sb));
+            Assert.AreEqual("wa_field", ra.WorkAreaId);
+            Assert.AreEqual("wa_field", rb.WorkAreaId);
+            Assert.AreNotEqual(sa, sb);
+        }
+
+        [Test]
+        public void HousingAssignment_AssignRequiresManageAndPlayerCamp()
+        {
+            var world = new SimulationWorld();
+            world.RegisterWorkArea(new WorkAreaDefinition
+            {
+                Id = "wa_home",
+                LocationId = "loc_home",
+                AllowedActivities = { "Rest", "Eat" },
+                ResidentTags = { "mortal" },
+                Tags = { "home" }
+            });
+            world.WorldRegion.Register(new WorldLocationState
+            {
+                Id = "loc_home",
+                Name = "房屋",
+                Kind = LocationKind.Village
+            });
+
+            var party = world.Entities.CreateCharacter(new DefinitionId("base", "pc"), "玩家").Value;
+            party.Get<FactionMembershipComponent>().Assign("base:sect_player", FactionRoleKind.Member);
+            party.AddComponent(new ActivityTendencyComponent());
+
+            var outsider = world.Entities.CreateNpc(new DefinitionId("base", "npc_x"), "外人").Value;
+            outsider.Get<FactionMembershipComponent>().Assign("base:sect_other", FactionRoleKind.Member);
+            outsider.AddComponent(new ActivityTendencyComponent());
+
+            var partyIds = new List<EntityId> { party.Id };
+            Assert.IsFalse(HousingAssignmentService.CanManageHousing(world));
+            Assert.IsTrue(HousingAssignmentService.TryAssignOwner(
+                world, "wa_home", party.Id, partyIds).IsFailure);
+
+            world.Flags.Set("settlement_player_controlled");
+            Assert.IsTrue(HousingAssignmentService.CanManageHousing(world));
+            Assert.IsTrue(HousingAssignmentService.TryAssignOwner(
+                world, "wa_home", outsider.Id, partyIds).IsFailure);
+            Assert.IsTrue(HousingAssignmentService.TryAssignOwner(
+                world, "wa_home", party.Id, partyIds).IsSuccess);
+            Assert.AreEqual("wa_home", party.Get<ActivityTendencyComponent>().HomeWorkAreaId);
+            Assert.IsTrue(world.HousingAssignments.TryGetOwner("wa_home", out var owner));
+            Assert.AreEqual(party.Id, owner);
+        }
+
+        [Test]
+        public void ActivityResolver_HomeWorkArea_PreferredForRest()
+        {
+            var world = new SimulationWorld();
+            RegisterSampleWorkAreas(world);
+            world.RegisterWorkArea(new WorkAreaDefinition
+            {
+                Id = "wa_guard_home",
+                LocationId = "loc_home",
+                Capacity = 2,
+                AllowedActivities = { "Rest", "Eat" },
+                ResidentTags = { "guard" }
+            });
+            world.TryGetWorkArea("wa_home", out var mortalHome);
+            mortalHome.ResidentTags.Add("mortal");
+
+            var guard = CreateScheduledNpc(world, "loc_field", "sched");
+            guard.Get<PersonalityProfileComponent>().SetTags(new[] { "guard", "npc" });
+            guard.Get<ActivityTendencyComponent>().HomeWorkAreaId = "wa_guard_home";
+            guard.Get<ActivityTendencyComponent>().SetCapability(ScheduleActivity.Rest, true);
+
+            Assert.IsTrue(ActivityResolver.TryResolve(
+                world, guard, ScheduleActivity.Rest, 8, out var resolved));
+            Assert.AreEqual("wa_guard_home", resolved.WorkAreaId);
+        }
+
+        [Test]
+        public void ActivityResolver_SupervisorRestsAtQuarters_NotMansion()
+        {
+            var world = new SimulationWorld();
+            RegisterSampleWorkAreas(world);
+            world.RegisterWorkArea(new WorkAreaDefinition
+            {
+                Id = "wa_sup_home",
+                LocationId = "loc_home",
+                Capacity = 2,
+                AllowedActivities = { "Rest", "Eat" },
+                ResidentTags = { "supervisor" }
+            });
+            world.RegisterWorkArea(new WorkAreaDefinition
+            {
+                Id = "wa_mansion",
+                LocationId = "loc_hub",
+                IsControlCore = true,
+                MaxDurability = 100,
+                AllowedActivities = { "Inspect", "Patrol" }
+            });
+            world.TryGetWorkArea("wa_home", out var mortalHome);
+            mortalHome.ResidentTags.Add("mortal");
+
+            var boss = CreateScheduledNpc(world, "loc_field", "sched");
+            boss.Get<PersonalityProfileComponent>().SetTags(new[] { "supervisor", "npc" });
+            boss.Get<ActivityTendencyComponent>().HomeWorkAreaId = "wa_sup_home";
+            boss.Get<ActivityTendencyComponent>().SetCapability(ScheduleActivity.Rest, true);
+
+            Assert.IsTrue(ActivityResolver.TryResolve(
+                world, boss, ScheduleActivity.Rest, 8, out var resolved));
+            Assert.AreEqual("wa_sup_home", resolved.WorkAreaId);
+            Assert.AreNotEqual("wa_mansion", resolved.WorkAreaId);
+        }
+
+        [Test]
+        public void ControlCore_DamageThenCapture()
+        {
+            var world = new SimulationWorld();
+            world.RegisterWorkArea(new WorkAreaDefinition
+            {
+                Id = "wa_mansion",
+                Name = "主管府",
+                LocationId = "loc_hub",
+                IsControlCore = true,
+                MaxDurability = 50,
+                Defense = 5,
+                AllowedActivities = { "Inspect", "Patrol" }
+            });
+            Assert.IsTrue(world.ControlCores.TryGet("wa_mansion", out var core));
+            Assert.AreEqual(50, core.CurrentDurability);
+            Assert.AreEqual(5, core.Defense);
+
+            // 25 raw → after defense 20
+            Assert.IsTrue(ControlCoreService.ApplyStrike(world, "wa_mansion", 25).IsSuccess);
+            Assert.AreEqual(30, core.CurrentDurability);
+            Assert.IsFalse(core.CaptureAvailable);
+
+            Assert.IsTrue(ControlCoreService.ApplyStrike(world, "wa_mansion", 40).IsSuccess);
+            Assert.AreEqual(0, core.CurrentDurability);
+            Assert.IsTrue(core.CaptureAvailable);
+
+            Assert.IsFalse(ControlCoreService.TryCapture(world, "wa_mansion").IsSuccess);
+
+            world.ControlCores.AddOccupyProgress("wa_mansion", core.OccupyHoldSeconds, out _);
+            Assert.IsTrue(ControlCoreService.TryCapture(world, "wa_mansion").IsSuccess);
+            Assert.IsTrue(core.PlayerControlled);
+            Assert.IsTrue(world.Flags.Has("settlement_player_controlled"));
+            Assert.IsTrue(world.SettlementAuthority.CanManageHousing);
+            Assert.IsTrue(world.SettlementAuthority.CanManageSchedules);
+        }
+
+        [Test]
+        public void ControlCore_TickOccupy_AutoCapturesAndGrantsPrivileges()
+        {
+            var world = new SimulationWorld();
+            world.RegisterWorkArea(new WorkAreaDefinition
+            {
+                Id = "wa_mansion",
+                Name = "主管府",
+                LocationId = "loc_hub",
+                IsControlCore = true,
+                MaxDurability = 100,
+                OccupyHoldSeconds = 10f,
+                AllowedActivities = { "Inspect" }
+            });
+            world.TryGetWorkArea("wa_mansion", out var area);
+            area.GrantsPrivileges.Add("manageHousing");
+            area.GrantsPrivileges.Add("manageSchedules");
+            world.ControlCores.RegisterOrRefresh(area);
+
+            Assert.IsTrue(ControlCoreService.ApplyStrike(world, "wa_mansion", 100).IsSuccess);
+            Assert.IsTrue(world.ControlCores.TryGet("wa_mansion", out var core));
+            Assert.IsTrue(core.CaptureAvailable);
+
+            ControlCoreService.TickOccupy(world, "wa_mansion", 9.5f, true);
+            Assert.IsFalse(core.PlayerControlled);
+            ControlCoreService.TickOccupy(world, "wa_mansion", 0.6f, true);
+            Assert.IsTrue(core.PlayerControlled);
+            Assert.IsTrue(HousingAssignmentService.CanManageHousing(world));
+            Assert.IsTrue(HousingAssignmentService.CanManageSchedules(world));
         }
 
         [Test]

@@ -305,6 +305,7 @@ namespace XianXia.Data.Content
             ReadNamedTagArray(item, "backgroundTags", character.BackgroundTags, report, id.ToString());
             ReadNamedTagArray(item, "talentTags", character.TalentTags, report, id.ToString());
             ReadNamedTagArray(item, "preferredWorkAreaIds", character.PreferredWorkAreaIds, report, id.ToString());
+            character.HomeWorkAreaId = item.GetString("homeWorkAreaId", string.Empty) ?? string.Empty;
             ReadNamedTagArray(item, "goals", character.Goals, report, id.ToString());
             ReadNamedTagArray(item, "desires", character.Desires, report, id.ToString());
             ReadBoolMap(item, "activityCapabilities", character.ActivityCapabilities, report, id.ToString());
@@ -968,7 +969,12 @@ namespace XianXia.Data.Content
                 Name = item.GetString("name", string.Empty),
                 LocationId = item.GetString("locationId", string.Empty),
                 OffsetX = ReadFloat(item, "offsetX", 0f),
-                OffsetZ = ReadFloat(item, "offsetZ", 0f)
+                OffsetZ = ReadFloat(item, "offsetZ", 0f),
+                Capacity = Math.Max(1, ReadInt(item, "capacity", 4)),
+                IsControlCore = item.GetBool("isControlCore", false),
+                MaxDurability = Math.Max(0, ReadInt(item, "maxDurability", 0)),
+                Defense = Math.Max(0, ReadInt(item, "defense", 0)),
+                OccupyHoldSeconds = Math.Max(0.1f, ReadFloat(item, "occupyHoldSeconds", 10f))
             };
             if (string.IsNullOrWhiteSpace(area.LocationId))
             {
@@ -978,6 +984,8 @@ namespace XianXia.Data.Content
 
             ReadTags(item, area.Tags, report, id.ToString());
             ReadStringList(item, "allowedActivities", area.AllowedActivities, report, id.ToString());
+            ReadNamedTagArray(item, "residentTags", area.ResidentTags, report, id.ToString());
+            ReadNamedTagArray(item, "grantsPrivileges", area.GrantsPrivileges, report, id.ToString());
 
             var reg = registry.RegisterWorkArea(area);
             if (reg.IsFailure)

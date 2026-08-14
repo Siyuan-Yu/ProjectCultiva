@@ -2,6 +2,7 @@ using XianXia.Core.Bootstrap;
 using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Input;
+using XianXia.Core.Npc;
 using XianXia.Core.Random;
 using XianXia.Core.Results;
 using XianXia.Core.Schedule;
@@ -152,6 +153,8 @@ namespace XianXia.Data.Bootstrap
             var chapter = ChapterRuntimeBootstrap.ApplyOpening(world, registry, scenario, lookup);
             if (chapter.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(chapter.Error);
+
+            HousingAssignmentService.SeedFromHomeBindings(world);
 
             var recruitableId = OpeningScenarioApplier.FindFirstRecruitable(scenario, lookup, spawnEntries);
             if (recruitableId.IsNone)

@@ -20,12 +20,14 @@ namespace XianXia.Core.Actions
             EntityId subject,
             OrderId sourceOrderId,
             ulong durationTicks,
-            string targetWorkAreaId)
+            string targetWorkAreaId,
+            int slotIndex = -1)
         {
             Id = id;
             Subject = subject;
             SourceOrderId = sourceOrderId;
             TargetWorkAreaId = targetWorkAreaId ?? string.Empty;
+            SlotIndex = slotIndex;
             Clock = ActionClock.Start(durationTicks == 0 ? 1UL : durationTicks);
             Status = ActionStatus.Pending;
         }
@@ -34,6 +36,7 @@ namespace XianXia.Core.Actions
         public EntityId Subject { get; }
         public OrderId SourceOrderId { get; }
         public string TargetWorkAreaId { get; }
+        public int SlotIndex { get; private set; }
         public string TargetLocationId { get; private set; } = string.Empty;
         public ActionStatus Status { get; private set; }
         public ActionClock Clock { get; private set; }
@@ -74,7 +77,18 @@ namespace XianXia.Core.Actions
                     return added;
             }
 
-            intent.Begin(TargetLocationId, TargetWorkAreaId);
+            intent.Begin(TargetLocationId, TargetWorkAreaId, SlotIndex);
+            if (!string.IsNullOrEmpty(TargetWorkAreaId) &&
+                world.TryGetWorkArea(TargetWorkAreaId, out var claimArea))
+            {
+                var cap = claimArea.Capacity > 0 ? claimArea.Capacity : 4;
+                if (world.WorkAreaOccupancy.TryReserve(TargetWorkAreaId, Subject, cap, out var slot))
+                {
+                    SlotIndex = slot;
+                    intent.SlotIndex = slot;
+                }
+            }
+
             Status = ActionStatus.Running;
             return Result.Success();
         }

@@ -17,7 +17,8 @@ namespace XianXia.Core.Orders
             double modifierValue = 0,
             SourceRef? modifierSource = null,
             string targetRef = null,
-            ScheduleActivity? activity = null)
+            ScheduleActivity? activity = null,
+            int slotIndex = -1)
         {
             Id = id;
             Subject = subject;
@@ -30,6 +31,7 @@ namespace XianXia.Core.Orders
             ModifierSource = modifierSource;
             TargetRef = targetRef ?? string.Empty;
             Activity = activity;
+            SlotIndex = slotIndex;
         }
 
         public OrderId Id { get; }
@@ -45,5 +47,7 @@ namespace XianXia.Core.Orders
         public string TargetRef { get; }
         /// <summary>Schedule activity for Work／Move context.</summary>
         public ScheduleActivity? Activity { get; }
+        /// <summary>Soft work-area slot for Host spot targeting.</summary>
+        public int SlotIndex { get; }
     }
 }
