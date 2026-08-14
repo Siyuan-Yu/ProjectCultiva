@@ -8,5 +8,9 @@ namespace XianXia.Core.Content
         public int ProgressCount { get; set; }
         /// <summary>Progress denominator for UI (0 = unknown / not a counter objective).</summary>
         public int ProgressMax { get; set; }
+        /// <summary>World day index when the quest became Active (0 = n/a).</summary>
+        public ulong AcceptedAtDayIndex { get; set; }
+        /// <summary>First world day index when the quest is expired (exclusive).</summary>
+        public ulong DeadlineDayIndexExclusive { get; set; }
     }
 }

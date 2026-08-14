@@ -8,6 +8,7 @@
       "description": "【手动接取】派不同角色到农田各采到粗粮×1（同一人重复不计）。约10秒采1个（可倍速）；采完会自动续采，点停止结束。进度 3/3 完成。",
       "autoOffer": false,
       "abandonable": false,
+      "deadlineDays": 1,
       "offerConditions": [],
       "completeConditions": [
         {
@@ -27,7 +28,14 @@
         }
       ],
       "failConditions": [],
-      "failResults": []
+      "failResults": [
+        {
+          "kind": "relationDelta",
+          "fromDefinitionId": "base:character_ch01_ref_supervisor",
+          "toDefinitionIds": ["@party"],
+          "amount": -5
+        }
+      ]
     },
     {
       "id": "base:quest_ch01_ref_dispatch_party",
@@ -36,6 +44,7 @@
       "description": "【手动接取】完成上一环后可接。农田／药田／树木各采约10秒得粗粮／灵药／粗木×1（可倍速、自动续采）；凑齐粗粮≥3、灵药≥3、粗木≥3。",
       "autoOffer": false,
       "abandonable": false,
+      "deadlineDays": 1,
       "offerConditions": [
         {
           "kind": "questCompleted",
@@ -79,6 +88,7 @@
       "description": "【手动接取】完成上一环后可接。把主角／同伴甲／乙都派到集合点（地图 rallyPoint，地点 base:loc_ref_party_rally）。",
       "autoOffer": false,
       "abandonable": false,
+      "deadlineDays": 1,
       "offerConditions": [
         {
           "kind": "questCompleted",

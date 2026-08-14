@@ -114,9 +114,15 @@ namespace XianXia.Unity.Host
             DrawTopBar(session);
             DrawOpsLegend(session);
             DrawRightRail(session);
-            DrawAcsUnitPanel(session);
+            if (!ShouldHideUnitPanelForDialogue())
+                DrawAcsUnitPanel(session);
             HostUiHitTest.EndFrame();
         }
+
+        bool ShouldHideUnitPanelForDialogue() =>
+            bootstrap != null &&
+            bootstrap.DialoguePresenter != null &&
+            bootstrap.DialoguePresenter.IsActive;
 
         void DrawOpsLegend(PlayableHostSession session)
         {
@@ -138,7 +144,7 @@ namespace XianXia.Unity.Host
         string BuildContextTip(PlayableHostSession session)
         {
             var baseOps =
-                "操作：左键选人 · 悬停黄/青点可交互光标 · 右键空地移动／热点则前往交互 · E交互模式仅热点为绿 · Space暂停 · F10显隐HUD";
+                "操作：左键选人 · 悬停黄/青点可交互 · 右键空地移动／热点交互 · 右键 NPC 对话/攻击 · Space暂停 · F10显隐HUD";
             var focus = ResolveFocus(session);
             if (!focus.IsNone &&
                 session.World.Entities.TryGet(focus, out var e) &&
@@ -269,8 +275,9 @@ namespace XianXia.Unity.Host
         {
             var day = session.CurrentDayClock;
             var night = ConcealmentExposureRules.IsNight(session.World.Tick);
-            var speed = debugHud != null ? debugHud.SpeedMultiplier : 1;
+            var speed = bootstrap != null ? bootstrap.EffectiveSpeedMultiplier() : (debugHud != null ? debugHud.SpeedMultiplier : 1);
             var paused = session.IsPaused;
+            var pace = bootstrap != null ? bootstrap.EffectiveGameMinutesPerRealSecond() : speed * SimulationTickPacing.GameMinutesPerRealSecondAt1x;
 
             Fill(new Rect(0f, 0f, Screen.width, TopH), new Color(0.12f, 0.12f, 0.14f, 0.92f));
             HostUiHitTest.Block(new Rect(0f, 0f, Screen.width, TopH));
@@ -279,7 +286,7 @@ namespace XianXia.Unity.Host
                         day.HourOfDay.ToString("00") + ":" +
                         day.MinuteOfHour.ToString("00") + "  " +
                         (night ? "夜" : "昼") + "  " +
-                        (paused ? "暂停" : speed + "x");
+                        (paused ? "暂停" : speed + "x·" + pace + "分/秒");
             GUI.Label(new Rect(Pad, 12f, 280f, 24f), clock, _title);
 
             var x = 300f;
@@ -378,6 +385,9 @@ namespace XianXia.Unity.Host
 
         void DrawAcsUnitPanel(PlayableHostSession session)
         {
+            if (ShouldHideUnitPanelForDialogue())
+                return;
+
             var focus = ResolveFocus(session);
             // 点选任意单位打开信息面板；指令钮只对己方出现在面板上方。
             if (focus.IsNone ||
@@ -499,14 +509,6 @@ namespace XianXia.Unity.Host
 
         void DrawOverviewBars(PlayableHostSession session, Entity entity, CultivationComponent cult, Rect area)
         {
-            var dailyCur = 0;
-            var dailyMax = 0;
-            if (entity.TryGet<DailyTaskComponent>(out var daily))
-            {
-                dailyCur = daily.CompletedAmount;
-                dailyMax = daily.RequiredAmount;
-            }
-
             var progress = cult != null ? cult.Progress : 0;
             const int progressMax = 100;
 
@@ -522,8 +524,7 @@ namespace XianXia.Unity.Host
             var left = new Rect(area.x, area.y, area.width * 0.48f, area.height);
             var right = new Rect(area.x + area.width * 0.52f, area.y, area.width * 0.48f, area.height);
 
-            DrawStatBar(left.x, left.y + 4f, left.width, "交差", dailyCur, Mathf.Max(1, dailyMax), BarOrange);
-            DrawStatBar(left.x, left.y + 30f, left.width, "体魄", hpCur, hpMax, BarOrange);
+            DrawStatBar(left.x, left.y + 4f, left.width, "体魄", hpCur, hpMax, BarOrange);
 
             DrawStatBar(right.x, right.y + 4f, right.width, "修为", progress, progressMax, BarBlue);
 
@@ -545,7 +546,7 @@ namespace XianXia.Unity.Host
             {
                 var placeName = string.IsNullOrEmpty(place.Name) ? place.Id : place.Name;
                 GUI.Label(
-                    new Rect(left.x, left.y + 60f, area.width, 22f),
+                    new Rect(left.x, left.y + 30f, area.width, 22f),
                     "地点 " + placeName,
                     _parchmentBody);
             }
@@ -697,6 +698,8 @@ namespace XianXia.Unity.Host
 
             if (!string.IsNullOrEmpty(trackedId) &&
                 session.World.Quests.TryGet(trackedId, out var rt) &&
+                rt.Status != QuestStatus.Failed &&
+                rt.Status != QuestStatus.Completed &&
                 session.World.Quests.TryGetSpec(trackedId, out var spec))
             {
                 var title = string.IsNullOrEmpty(spec.Name) ? trackedId : spec.Name;
@@ -713,6 +716,13 @@ namespace XianXia.Unity.Host
                 sb.AppendLine("---");
                 if (rt.ProgressMax > 0)
                     sb.AppendLine("进度：" + rt.ProgressCount + "/" + rt.ProgressMax);
+                var deadline = QuestDeadline.FormatRemaining(session.World, rt);
+                if (!string.IsNullOrEmpty(deadline))
+                    sb.AppendLine("时限：" + deadline);
+                var failHint = QuestJournalQuery.SummarizeOutcomes(spec.FailResults, "（无失败后果）");
+                if (!string.IsNullOrEmpty(failHint) &&
+                    !string.Equals(failHint, "（无失败后果）", System.StringComparison.Ordinal))
+                    sb.AppendLine("失败后果：" + failHint);
                 sb.AppendLine("目标：" + SummarizeTrackedObjectives(session.World, spec, rt));
                 if (rt.Status == QuestStatus.ReadyToClaim)
                     sb.AppendLine("● 可领奖 — 按 J 打开任务日志领取");
@@ -720,7 +730,7 @@ namespace XianXia.Unity.Host
             else
             {
                 sb.AppendLine("未追踪任务");
-                sb.Append("按 J 打开日志，在进行中任务点「追踪」");
+                sb.Append("按 J 打开日志（进行中／已失败）");
             }
 
             return sb.ToString();

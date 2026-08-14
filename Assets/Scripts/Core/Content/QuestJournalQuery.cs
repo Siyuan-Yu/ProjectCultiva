@@ -8,7 +8,8 @@ namespace XianXia.Core.Content
     {
         Available = 0,
         Active = 1,
-        Finished = 2
+        Finished = 2,
+        Failed = 3
     }
 
     public enum QuestListKind
@@ -36,7 +37,9 @@ namespace XianXia.Core.Content
         public bool CanAbandon { get; set; }
         public string LockReason { get; set; } = string.Empty;
         public string RewardsSummary { get; set; } = string.Empty;
+        public string FailResultsSummary { get; set; } = string.Empty;
         public string ObjectivesSummary { get; set; } = string.Empty;
+        public string DeadlineSummary { get; set; } = string.Empty;
     }
 
     /// <summary>任务日志列表投影（UI 只读查询）。</summary>
@@ -95,11 +98,15 @@ namespace XianXia.Core.Content
                 ProgressCount = runtime.ProgressCount,
                 ProgressMax = runtime.ProgressMax,
                 RewardsSummary = SummarizeOutcomes(spec.Rewards),
+                FailResultsSummary = SummarizeOutcomes(spec.FailResults, "（无失败后果）"),
                 ObjectivesSummary = SummarizeObjectivesLive(world, spec.CompleteConditions, runtime)
             };
 
             if (entry.ProgressMax > 0)
                 entry.ProgressLabel = entry.ProgressCount + "/" + entry.ProgressMax;
+
+            if (runtime.Status == QuestStatus.Active && spec.DeadlineDays > 0)
+                entry.DeadlineSummary = QuestDeadline.FormatRemaining(world, runtime);
 
             switch (runtime.Status)
             {
@@ -156,8 +163,9 @@ namespace XianXia.Core.Content
                 case QuestListKind.Available: return 1;
                 case QuestListKind.Active: return 2;
                 case QuestListKind.Locked: return 3;
-                case QuestListKind.Completed: return 4;
-                default: return 5;
+                case QuestListKind.Failed: return 4;
+                case QuestListKind.Completed: return 5;
+                default: return 6;
             }
         }
 
@@ -306,23 +314,74 @@ namespace XianXia.Core.Content
             return string.Join("；", parts);
         }
 
-        static string SummarizeOutcomes(IReadOnlyList<ContentOutcome> list)
+        public static string SummarizeOutcomes(IReadOnlyList<ContentOutcome> list, string emptyLabel = "（无奖励）")
         {
             if (list == null || list.Count == 0)
-                return "（无奖励）";
+                return emptyLabel;
             var parts = new List<string>(list.Count);
             for (var i = 0; i < list.Count; i++)
             {
-                var o = list[i];
-                if (o == null) continue;
-                var kind = string.IsNullOrEmpty(o.Kind) ? "?" : o.Kind;
-                if (!string.IsNullOrEmpty(o.Id))
-                    parts.Add(kind + " " + ShortId(o.Id) + (o.Amount != 0 ? " ×" + o.Amount : ""));
-                else
-                    parts.Add(kind + (o.Amount != 0 ? " ×" + o.Amount : ""));
+                var formatted = FormatOutcome(list[i]);
+                if (!string.IsNullOrEmpty(formatted))
+                    parts.Add(formatted);
             }
 
-            return parts.Count == 0 ? "（无奖励）" : string.Join("；", parts);
+            return parts.Count == 0 ? emptyLabel : string.Join("；", parts);
+        }
+
+        static string FormatOutcome(ContentOutcome o)
+        {
+            if (o == null)
+                return string.Empty;
+            var kind = string.IsNullOrEmpty(o.Kind) ? "?" : o.Kind.Trim().ToLowerInvariant();
+            switch (kind)
+            {
+                case "setflag":
+                case "setstoryflag":
+                    return "设置 " + ShortId(o.Id);
+                case "clearflag":
+                case "clearstoryflag":
+                    return "清除 " + ShortId(o.Id);
+                case "addstock":
+                    return "获得 " + ShortId(o.Id) + " ×" + (o.Amount <= 0 ? 1 : o.Amount);
+                case "startquest":
+                    return "开启任务 " + ShortId(o.Id);
+                case "grantprogress":
+                    return "修为 +" + (o.Amount <= 0 ? 1 : o.Amount);
+                case "discoversite":
+                    return "发现机缘 " + ShortId(o.Id);
+                case "relationdelta":
+                {
+                    var targets = FormatRelationTargets(o);
+                    return ShortId(o.FromDefinitionId) + "→" + targets +
+                           " 关系 " + (o.Amount >= 0 ? "+" : "") + o.Amount;
+                }
+                default:
+                    if (!string.IsNullOrEmpty(o.Id))
+                        return kind + " " + ShortId(o.Id) + (o.Amount != 0 ? " ×" + o.Amount : "");
+                    return kind + (o.Amount != 0 ? " ×" + o.Amount : "");
+            }
+        }
+
+        static string FormatRelationTargets(ContentOutcome o)
+        {
+            if (o.ToDefinitionIds != null && o.ToDefinitionIds.Count > 0)
+            {
+                var parts = new System.Collections.Generic.List<string>(o.ToDefinitionIds.Count);
+                for (var i = 0; i < o.ToDefinitionIds.Count; i++)
+                {
+                    var raw = o.ToDefinitionIds[i];
+                    parts.Add(string.Equals(raw, "@party", System.StringComparison.OrdinalIgnoreCase)
+                        ? "全队"
+                        : ShortId(raw));
+                }
+
+                return string.Join("、", parts);
+            }
+
+            return string.Equals(o.ToDefinitionId, "@party", System.StringComparison.OrdinalIgnoreCase)
+                ? "全队"
+                : ShortId(o.ToDefinitionId);
         }
 
         static string ShortId(string id)

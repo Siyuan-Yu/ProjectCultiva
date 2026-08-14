@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Entities;
 using XianXia.Core.Events;
 using XianXia.Core.Opportunity;
 using XianXia.Core.Results;
@@ -90,25 +92,90 @@ namespace XianXia.Core.Content
 
         static Result ApplyRelation(SimulationWorld world, ContentOutcome o)
         {
-            if (!DefinitionId.TryParse(o.FromDefinitionId, out var fromDef) ||
-                !DefinitionId.TryParse(o.ToDefinitionId, out var toDef))
+            if (!DefinitionId.TryParse(o.FromDefinitionId, out var fromDef))
                 return Result.Failure(ErrorCode.InvalidDefinitionId, "relationDelta definition ids invalid.");
 
             EntityId from = EntityId.None;
-            EntityId to = EntityId.None;
             foreach (var e in world.Entities.All)
             {
                 if (e.DefinitionId.Equals(fromDef))
+                {
                     from = e.Id;
-                if (e.DefinitionId.Equals(toDef))
-                    to = e.Id;
+                    break;
+                }
             }
 
-            if (from.IsNone || to.IsNone)
+            if (from.IsNone)
                 return Result.Failure(ErrorCode.EntityNotFound, "relationDelta endpoints missing.");
 
-            return new RelationshipService().Record(
-                world, from, to, o.Amount, "content_event");
+            var targetDefs = ResolveRelationTargetDefinitions(world, o);
+            if (targetDefs.Count == 0)
+                return Result.Failure(ErrorCode.InvalidDefinitionId, "relationDelta targets missing.");
+
+            var svc = new RelationshipService();
+            foreach (var toDef in targetDefs)
+            {
+                EntityId to = EntityId.None;
+                foreach (var e in world.Entities.All)
+                {
+                    if (e.DefinitionId.Equals(toDef))
+                    {
+                        to = e.Id;
+                        break;
+                    }
+                }
+
+                if (to.IsNone)
+                    return Result.Failure(ErrorCode.EntityNotFound, "relationDelta target missing.", toDef.ToString());
+
+                var r = svc.Record(world, from, to, o.Amount, "content_event");
+                if (r.IsFailure)
+                    return r;
+            }
+
+            return Result.Success();
+        }
+
+        static List<DefinitionId> ResolveRelationTargetDefinitions(SimulationWorld world, ContentOutcome o)
+        {
+            var resolved = new List<DefinitionId>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+
+            void AddRaw(string raw)
+            {
+                if (string.IsNullOrWhiteSpace(raw))
+                    return;
+                var token = raw.Trim();
+                if (!seen.Add(token))
+                    return;
+
+                if (string.Equals(token, "@party", StringComparison.OrdinalIgnoreCase))
+                {
+                    foreach (var e in world.Entities.All)
+                    {
+                        if ((e.Tags & EntityTag.Character) == 0)
+                            continue;
+                        if (seen.Add(e.DefinitionId.ToString()))
+                            resolved.Add(e.DefinitionId);
+                    }
+
+                    return;
+                }
+
+                if (DefinitionId.TryParse(token, out var id))
+                    resolved.Add(id);
+            }
+
+            if (o.ToDefinitionIds != null)
+            {
+                for (var i = 0; i < o.ToDefinitionIds.Count; i++)
+                    AddRaw(o.ToDefinitionIds[i]);
+            }
+
+            if (resolved.Count == 0)
+                AddRaw(o.ToDefinitionId);
+
+            return resolved;
         }
     }
 }

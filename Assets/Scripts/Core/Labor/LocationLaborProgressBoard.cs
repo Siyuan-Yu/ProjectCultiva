@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using XianXia.Core.Domain.Time;
 
 namespace XianXia.Core.Labor
 {
@@ -8,8 +9,13 @@ namespace XianXia.Core.Labor
     /// </summary>
     public sealed class LocationLaborProgressBoard
     {
-        /// <summary>Matches Host default <c>secondsPerAutoTickAt1x</c> for content amount→ticks.</summary>
-        public const int DefaultSecondsPerTick = 3;
+        /// <summary>Matches <see cref="SimulationTickPacing.SecondsPerTickAt1x"/> for content amount→ticks.</summary>
+        public static int SecondsToRequiredTicks(int seconds)
+        {
+            if (seconds <= 0)
+                return 1;
+            return (int)Math.Ceiling(seconds / SimulationTickPacing.SecondsPerTickAt1x);
+        }
 
         readonly Dictionary<string, int> _ticks =
             new Dictionary<string, int>(StringComparer.Ordinal);
@@ -50,14 +56,6 @@ namespace XianXia.Core.Labor
             if (string.IsNullOrEmpty(characterDefinitionId) || string.IsNullOrEmpty(locationId))
                 return 0;
             return _harvests.TryGetValue(Key(characterDefinitionId, locationId), out var v) ? v : 0;
-        }
-
-        /// <summary>Content <c>amount</c> is wall seconds at default tick pace.</summary>
-        public static int SecondsToRequiredTicks(int seconds)
-        {
-            if (seconds <= 0)
-                return 1;
-            return (seconds + DefaultSecondsPerTick - 1) / DefaultSecondsPerTick;
         }
 
         public bool MeetsSeconds(string characterDefinitionId, string locationId, int seconds) =>

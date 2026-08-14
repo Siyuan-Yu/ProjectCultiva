@@ -11,6 +11,8 @@ namespace XianXia.Data.Content
         public string Description { get; set; } = string.Empty;
         public bool AutoOffer { get; set; }
         public bool Abandonable { get; set; }
+        /// <summary>接取后有效游戏天数；0 = 无时限。</summary>
+        public int DeadlineDays { get; set; }
         public List<ContentCondition> OfferConditions { get; } = new List<ContentCondition>();
         public List<ContentCondition> CompleteConditions { get; } = new List<ContentCondition>();
         public List<ContentCondition> FailConditions { get; } = new List<ContentCondition>();

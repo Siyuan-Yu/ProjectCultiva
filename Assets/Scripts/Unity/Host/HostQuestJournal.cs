@@ -7,7 +7,7 @@ using XianXia.Core.Input;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// 任务日志：可接／锁定｜进行中｜已完成；接取／领奖／放弃／追踪。
+    /// 任务日志：可接／锁定｜进行中｜已完成｜已失败；接取／领奖／放弃／追踪。
     /// 打开时暂停世界并阻断相机缩放；右侧 FormalHud「任务」只显示追踪中的任务。
     /// </summary>
     public sealed class HostQuestJournal : MonoBehaviour
@@ -16,7 +16,8 @@ namespace XianXia.Unity.Host
         {
             Offer = 0,
             Active = 1,
-            Done = 2
+            Done = 2,
+            Failed = 3
         }
 
         [SerializeField] PlayableHostBootstrap bootstrap;
@@ -123,11 +124,25 @@ namespace XianXia.Unity.Host
 
             if (!string.IsNullOrEmpty(_trackedQuestId))
             {
-                if (!session.World.Quests.TryGet(_trackedQuestId, out var rt) ||
-                    rt.Status == QuestStatus.Inactive ||
-                    rt.Status == QuestStatus.Failed ||
-                    rt.Status == QuestStatus.Completed)
+                var prevTracked = _trackedQuestId;
+                QuestStatus? endingStatus = null;
+                if (session.World.Quests.TryGet(prevTracked, out var rt))
+                    endingStatus = rt.Status;
+
+                if (!endingStatus.HasValue ||
+                    endingStatus == QuestStatus.Inactive ||
+                    endingStatus == QuestStatus.Failed ||
+                    endingStatus == QuestStatus.Completed)
+                {
+                    if (endingStatus == QuestStatus.Failed && open)
+                    {
+                        _tab = Tab.Failed;
+                        _selectedId = prevTracked;
+                        _status = "任务已失败，已移至「已失败」列表";
+                    }
+
                     _trackedQuestId = string.Empty;
+                }
             }
 
             if (!string.IsNullOrEmpty(_trackedQuestId))
@@ -210,8 +225,10 @@ namespace XianXia.Unity.Host
                     return e.Kind == QuestListKind.Available || e.Kind == QuestListKind.Locked;
                 case Tab.Active:
                     return e.Kind == QuestListKind.Active || e.Kind == QuestListKind.ReadyToClaim;
+                case Tab.Failed:
+                    return e.Kind == QuestListKind.Failed;
                 default:
-                    return e.Kind == QuestListKind.Completed || e.Kind == QuestListKind.Failed;
+                    return e.Kind == QuestListKind.Completed;
             }
         }
 
@@ -230,12 +247,13 @@ namespace XianXia.Unity.Host
                 open = false;
 
             var tabY = box.y + 44f;
-            DrawTab(new Rect(box.x + 16f, tabY, 140f, 28f), Tab.Offer, "可接／未来");
-            DrawTab(new Rect(box.x + 164f, tabY, 140f, 28f), Tab.Active, "进行中");
-            DrawTab(new Rect(box.x + 312f, tabY, 140f, 28f), Tab.Done, "已完成");
+            DrawTab(new Rect(box.x + 16f, tabY, 118f, 28f), Tab.Offer, "可接／未来");
+            DrawTab(new Rect(box.x + 140f, tabY, 96f, 28f), Tab.Active, "进行中");
+            DrawTab(new Rect(box.x + 242f, tabY, 96f, 28f), Tab.Done, "已完成");
+            DrawTab(new Rect(box.x + 344f, tabY, 96f, 28f), Tab.Failed, "已失败");
 
             if (QuestJournalQuery.HasUnclaimedRewards(session.World))
-                GUI.Label(new Rect(box.x + 460f, tabY + 4f, 200f, 22f), "● 有奖励待领取", _small);
+                GUI.Label(new Rect(box.x + 452f, tabY + 4f, 200f, 22f), "● 有奖励待领取", _small);
 
             var listRect = new Rect(box.x + 16f, box.y + 84f, 260f, box.height - 120f);
             var detailRect = new Rect(listRect.xMax + 12f, listRect.y, box.xMax - listRect.xMax - 28f, listRect.height);
@@ -370,8 +388,23 @@ namespace XianXia.Unity.Host
                 y += 20f;
             }
 
+            if (!string.IsNullOrEmpty(selected.DeadlineSummary))
+            {
+                GUI.Label(new Rect(x, y, tw, 18f), "时限 " + selected.DeadlineSummary, _body);
+                y += 20f;
+            }
+
             GUI.Label(new Rect(x, y, tw, 48f), selected.ObjectivesSummary, _body);
             y += 54f;
+            if (!string.IsNullOrEmpty(selected.FailResultsSummary) &&
+                !string.Equals(selected.FailResultsSummary, "（无失败后果）", System.StringComparison.Ordinal))
+            {
+                GUI.Label(new Rect(x, y, tw, 18f), "失败后果", _title);
+                y += 22f;
+                GUI.Label(new Rect(x, y, tw, 48f), selected.FailResultsSummary, _body);
+                y += 54f;
+            }
+
             GUI.Label(new Rect(x, y, tw, 18f), "奖励", _title);
             y += 22f;
             GUI.Label(new Rect(x, y, tw, 48f), selected.RewardsSummary, _body);

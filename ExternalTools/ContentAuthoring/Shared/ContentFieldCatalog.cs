@@ -133,7 +133,12 @@ public static class ContentFieldCatalog
         "relationDelta" =>
         [
             new FieldSpec { Key = "fromDefinitionId", Label = "来自角色", Editor = FieldEditorKind.Character },
-            new FieldSpec { Key = "toDefinitionId", Label = "目标角色", Editor = FieldEditorKind.Character },
+            new FieldSpec
+            {
+                Key = "toDefinitionIds",
+                Label = "目标角色（逗号分隔；@party=全队）",
+                Editor = FieldEditorKind.Text
+            },
             new FieldSpec { Key = "amount", Label = "变化值", Editor = FieldEditorKind.Number }
         ],
         _ => [new FieldSpec { Key = "id", Label = "Flag / Id", Editor = FieldEditorKind.Text }]

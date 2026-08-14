@@ -38,6 +38,11 @@
               <TextBox x:Name="DescBox" AcceptsReturn="True" Height="70" TextWrapping="Wrap"
                        VerticalScrollBarVisibility="Auto" Margin="0,4,0,0"/>
               <CheckBox x:Name="AbandonableBox" Content="允许玩家放弃 (abandonable)" Margin="0,8,0,0"/>
+              <DockPanel Margin="0,8,0,0">
+                <TextBlock Text="deadlineDays" Width="90" VerticalAlignment="Center"
+                           ToolTip="接取后有效游戏天数；0 = 无时限。超时自动失败并应用失败结果。"/>
+                <TextBox x:Name="DeadlineDaysBox" Width="80" HorizontalAlignment="Left"/>
+              </DockPanel>
             </StackPanel>
           </GroupBox>
 
@@ -88,11 +93,11 @@
             <shared:JsonArrayEditor x:Name="RewardsEditor" Margin="6"/>
           </GroupBox>
 
-          <GroupBox Header="⑥ 失败（可选）" Margin="0,0,0,8">
+          <GroupBox Header="⑥ 失败后果（可选：超时或失败条件触发）" Margin="0,0,0,8">
             <StackPanel Margin="6">
-              <TextBlock Text="失败条件" Margin="0,0,0,4"/>
+              <TextBlock Text="失败条件（除 deadlineDays 超时外，可选额外条件）" Margin="0,0,0,4"/>
               <shared:JsonArrayEditor x:Name="FailCondEditor" Margin="0,0,0,8"/>
-              <TextBlock Text="失败结果" Margin="0,0,0,4"/>
+              <TextBlock Text="失败结果（relationDelta 可填多个目标角色，逗号分隔；@party=全队降好感）" Margin="0,0,0,4"/>
               <shared:JsonArrayEditor x:Name="FailResEditor"/>
             </StackPanel>
           </GroupBox>

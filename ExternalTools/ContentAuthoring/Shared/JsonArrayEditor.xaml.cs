@@ -224,6 +224,28 @@ public partial class JsonArrayEditor : UserControl
                 !row._values.ContainsKey("realm"))
                 row._values["realm"] = obj["realm"]?.GetValue<string>() ?? "炼气";
 
+            if (string.Equals(kind, "relationDelta", StringComparison.OrdinalIgnoreCase))
+            {
+                if (obj["toDefinitionIds"] is JsonArray ids && ids.Count > 0)
+                {
+                    var parts = new List<string>(ids.Count);
+                    foreach (var node in ids)
+                    {
+                        if (node is JsonValue v && v.TryGetValue<string>(out var s) && !string.IsNullOrWhiteSpace(s))
+                            parts.Add(s.Trim());
+                    }
+
+                    if (parts.Count > 0)
+                        row._values["toDefinitionIds"] = string.Join(", ", parts);
+                }
+                else if (!row._values.ContainsKey("toDefinitionIds"))
+                {
+                    var single = obj["toDefinitionId"]?.GetValue<string>();
+                    if (!string.IsNullOrWhiteSpace(single))
+                        row._values["toDefinitionIds"] = single.Trim();
+                }
+            }
+
             return row;
         }
 
@@ -242,6 +264,19 @@ public partial class JsonArrayEditor : UserControl
             var obj = new JsonObject { ["kind"] = Kind };
             foreach (var kv in _values)
             {
+                if (string.Equals(Kind, "relationDelta", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(kv.Key, "toDefinitionIds", StringComparison.Ordinal))
+                {
+                    if (string.IsNullOrWhiteSpace(kv.Value))
+                        continue;
+                    var arr = new JsonArray();
+                    foreach (var part in kv.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                        arr.Add(part);
+                    if (arr.Count > 0)
+                        obj["toDefinitionIds"] = arr;
+                    continue;
+                }
+
                 if (kv.Key == "amount" && int.TryParse(kv.Value, out var n))
                     obj[kv.Key] = n;
                 else if (kv.Key == "realm")

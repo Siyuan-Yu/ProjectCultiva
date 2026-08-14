@@ -75,13 +75,13 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> QuestFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "description", "autoOffer", "abandonable",
+            "id", "type", "name", "description", "autoOffer", "abandonable", "deadlineDays",
             "offerConditions", "completeConditions", "failConditions", "rewards", "failResults"
         };
 
         public static readonly HashSet<string> ContentEventFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "body", "trigger", "locationId", "questId", "once",
+            "id", "type", "name", "body", "trigger", "locationId", "questId", "npcDefinitionId", "once",
             "conditions", "choices"
         };
 
@@ -97,7 +97,7 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> ContentOutcomeFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "kind", "id", "amount", "fromDefinitionId", "toDefinitionId"
+            "kind", "id", "amount", "fromDefinitionId", "toDefinitionId", "toDefinitionIds"
         };
 
         public static readonly HashSet<string> OpeningSpawnFields = new HashSet<string>(StringComparer.Ordinal)

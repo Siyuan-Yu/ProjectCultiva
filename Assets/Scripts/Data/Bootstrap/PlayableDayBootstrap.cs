@@ -154,6 +154,7 @@ namespace XianXia.Data.Bootstrap
 
             var loop = new SimulationLoop(world, enableSocialTick: true);
             loop.AddDayBoundaryHandler(new ChapterDayHandler());
+            loop.AddDayBoundaryHandler(new QuestDeadlineDayHandler());
             loop.AddDayBoundaryHandler(new SupervisorPressureHandler());
             IPlayerInputPort port = new PlayerInputPort(loop);
 

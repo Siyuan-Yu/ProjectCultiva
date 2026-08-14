@@ -11,6 +11,12 @@ namespace XianXia.Core.Content
         public string Id { get; set; } = string.Empty;
         public int Amount { get; set; }
         public string FromDefinitionId { get; set; } = string.Empty;
+        /// <summary>Legacy single target; use <see cref="ToDefinitionIds"/> for multiple.</summary>
         public string ToDefinitionId { get; set; } = string.Empty;
+        /// <summary>
+        /// relationDelta targets. Supports character definition ids or <c>@party</c> (all controllable characters).
+        /// </summary>
+        public System.Collections.Generic.List<string> ToDefinitionIds { get; } =
+            new System.Collections.Generic.List<string>();
     }
 }

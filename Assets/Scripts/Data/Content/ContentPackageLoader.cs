@@ -1115,7 +1115,8 @@ namespace XianXia.Data.Content
                 Name = item.GetString("name", string.Empty),
                 Description = item.GetString("description", string.Empty),
                 AutoOffer = item.GetBool("autoOffer", false),
-                Abandonable = item.GetBool("abandonable", false)
+                Abandonable = item.GetBool("abandonable", false),
+                DeadlineDays = (int)item.GetNumber("deadlineDays", 0)
             };
             ReadConditions(item, "offerConditions", quest.OfferConditions, report, id.ToString());
             ReadConditions(item, "completeConditions", quest.CompleteConditions, report, id.ToString());
@@ -1149,6 +1150,7 @@ namespace XianXia.Data.Content
                 Trigger = item.GetString("trigger", string.Empty),
                 LocationId = item.GetString("locationId", string.Empty),
                 QuestId = item.GetString("questId", string.Empty),
+                NpcDefinitionId = item.GetString("npcDefinitionId", string.Empty),
                 Once = item.GetBool("once", true)
             };
             ReadConditions(item, "conditions", evt.Conditions, report, id.ToString());
@@ -1246,6 +1248,8 @@ namespace XianXia.Data.Content
 
                 DefinitionSchema.RejectUnknownFields(
                     node, DefinitionSchema.ContentOutcomeFields, report, context + "." + field);
+                var toDefinitionIds = new List<string>();
+                ReadStringList(node, "toDefinitionIds", toDefinitionIds, report, context + "." + field);
                 var o = new ContentOutcome
                 {
                     Kind = node.GetString("kind", string.Empty),
@@ -1254,6 +1258,7 @@ namespace XianXia.Data.Content
                     FromDefinitionId = node.GetString("fromDefinitionId", string.Empty),
                     ToDefinitionId = node.GetString("toDefinitionId", string.Empty)
                 };
+                o.ToDefinitionIds.AddRange(toDefinitionIds);
                 if (string.IsNullOrWhiteSpace(o.Kind))
                 {
                     report.Add(ErrorCode.MissingRequiredField, "outcome.kind required.", context);

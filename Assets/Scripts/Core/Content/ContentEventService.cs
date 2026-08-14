@@ -40,6 +40,11 @@ namespace XianXia.Core.Content
                     !string.Equals(spec.QuestId, contextId, StringComparison.Ordinal))
                     continue;
 
+                if (!string.IsNullOrEmpty(spec.NpcDefinitionId) &&
+                    string.Equals(trigger, "onTalk", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(spec.NpcDefinitionId, contextId, StringComparison.Ordinal))
+                    continue;
+
                 if (!ContentConditionEvaluator.AllPass(world, subject, spec.Conditions))
                     continue;
 
@@ -53,6 +58,13 @@ namespace XianXia.Core.Content
             }
 
             return Result.Success();
+        }
+
+        public Result TryTalkToNpc(SimulationWorld world, EntityId subject, string npcDefinitionId)
+        {
+            if (string.IsNullOrEmpty(npcDefinitionId))
+                return Result.Failure(ErrorCode.InvalidArgument, "npcDefinitionId required.");
+            return TryTrigger(world, subject, "onTalk", npcDefinitionId);
         }
 
         /// <summary>

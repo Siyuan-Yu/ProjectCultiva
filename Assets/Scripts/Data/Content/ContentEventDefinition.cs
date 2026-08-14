@@ -12,6 +12,7 @@ namespace XianXia.Data.Content
         public string Trigger { get; set; } = string.Empty;
         public string LocationId { get; set; } = string.Empty;
         public string QuestId { get; set; } = string.Empty;
+        public string NpcDefinitionId { get; set; } = string.Empty;
         public bool Once { get; set; } = true;
         public List<ContentCondition> Conditions { get; } = new List<ContentCondition>();
         public List<ContentEventChoiceDefinition> Choices { get; } = new List<ContentEventChoiceDefinition>();

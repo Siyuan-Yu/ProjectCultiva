@@ -1,5 +1,6 @@
 using System.IO;
 using UnityEngine;
+using XianXia.Core.Domain.Time;
 using XianXia.Core.Navigation;
 using XianXia.Core.Results;
 using XianXia.Data.Bootstrap;
@@ -50,16 +51,18 @@ namespace XianXia.Unity.Host
         [SerializeField] HostFeedbackOverlay feedbackOverlay;
         [SerializeField] HostWorkTargetMode workTargetMode;
         [SerializeField] HostContentInterruptPresenter contentInterrupt;
+        [SerializeField] HostDialoguePresenter dialoguePresenter;
         [SerializeField] HostQuestJournal questJournal;
         [SerializeField] HostInventoryPanel inventoryPanel;
         [SerializeField] HostInteractSpotPresenter interactSpotPresenter;
         [SerializeField] HostNpcScheduleMover npcScheduleMover;
+        [SerializeField] HostNpcContextMenu npcContextMenu;
 
         [Header("Tick debug")]
         [SerializeField] bool initializeOnPlay = true;
         [SerializeField] bool autoTickWhenUnpaused = true;
-        [Tooltip("1x 下每 Tick 现实秒数。288 Tick/日×5 游戏分；默认 3s → 约 14 分钟现实 = 1 游戏日。")]
-        [SerializeField] float secondsPerAutoTickAt1x = 3f;
+        [Tooltip("1x 下每 Tick 现实秒数。1 tick=5 游戏分；默认 1s → 1 现实秒=5 游戏分，5x=25 游戏分/秒。")]
+        [SerializeField] float secondsPerAutoTickAt1x = SimulationTickPacing.SecondsPerTickAt1x;
         [SerializeField] KeyCode togglePauseKey = KeyCode.Space;
         [SerializeField] KeyCode stepTickKey = KeyCode.Period;
         [SerializeField] KeyCode stepTickAltKey = KeyCode.N;
@@ -94,9 +97,13 @@ namespace XianXia.Unity.Host
 
         public HostContentInterruptPresenter ContentInterrupt => contentInterrupt;
 
+        public HostDialoguePresenter DialoguePresenter => dialoguePresenter;
+
         public HostQuestJournal QuestJournal => questJournal;
 
         public HostInventoryPanel InventoryPanel => inventoryPanel;
+
+        public HostNpcContextMenu NpcContextMenu => npcContextMenu;
 
         public string StatusLine => _status;
 
@@ -134,12 +141,17 @@ namespace XianXia.Unity.Host
             if (contentInterrupt == null)
                 contentInterrupt = GetComponent<HostContentInterruptPresenter>() ??
                                   GetComponentInChildren<HostContentInterruptPresenter>();
+            if (dialoguePresenter == null)
+                dialoguePresenter = GetComponent<HostDialoguePresenter>() ??
+                                   GetComponentInChildren<HostDialoguePresenter>();
             if (questJournal == null)
                 questJournal = GetComponent<HostQuestJournal>() ??
                               GetComponentInChildren<HostQuestJournal>();
             if (inventoryPanel == null)
                 inventoryPanel = GetComponent<HostInventoryPanel>() ??
                                 GetComponentInChildren<HostInventoryPanel>();
+
+            secondsPerAutoTickAt1x = SimulationTickPacing.SecondsPerTickAt1x;
         }
 
         void Start()
@@ -187,11 +199,9 @@ namespace XianXia.Unity.Host
 
             if (!_session.IsPaused && autoTickWhenUnpaused)
             {
-                var speed = debugHud != null ? debugHud.SpeedMultiplier : 1;
-                if (speed < 1)
-                    speed = 1;
+                var speed = EffectiveSpeedMultiplier();
                 _autoTickAccumulator += Time.unscaledDeltaTime * speed;
-                var interval = Mathf.Max(0.01f, secondsPerAutoTickAt1x);
+                var interval = SecondsPerAutoTickAt1x;
                 while (_autoTickAccumulator >= interval)
                 {
                     _autoTickAccumulator -= interval;
@@ -212,6 +222,17 @@ namespace XianXia.Unity.Host
         }
 
         public float SecondsPerAutoTickAt1x => Mathf.Max(0.01f, secondsPerAutoTickAt1x);
+
+        public void ResetAutoTickAccumulator() => _autoTickAccumulator = 0f;
+
+        public int EffectiveSpeedMultiplier()
+        {
+            var speed = debugHud != null ? debugHud.SpeedMultiplier : 1;
+            return speed < 1 ? 1 : speed;
+        }
+
+        public int EffectiveGameMinutesPerRealSecond() =>
+            SimulationTickPacing.GameMinutesPerRealSecondAtSpeed(EffectiveSpeedMultiplier());
 
         public string PreferredMapLayoutId => preferredMapLayoutId ?? "";
 
@@ -263,6 +284,11 @@ namespace XianXia.Unity.Host
             if (contentInterrupt == null)
                 contentInterrupt = GetComponent<HostContentInterruptPresenter>() ??
                                   gameObject.AddComponent<HostContentInterruptPresenter>();
+            if (dialoguePresenter == null)
+                dialoguePresenter = GetComponent<HostDialoguePresenter>() ??
+                                   gameObject.AddComponent<HostDialoguePresenter>();
+            if (dialoguePresenter != null && dialoguePresenter.GetComponent<HostDialogueUguiView>() == null)
+                dialoguePresenter.gameObject.AddComponent<HostDialogueUguiView>();
             if (questJournal == null)
                 questJournal = GetComponent<HostQuestJournal>() ??
                               gameObject.AddComponent<HostQuestJournal>();
@@ -277,11 +303,18 @@ namespace XianXia.Unity.Host
             if (npcScheduleMover == null)
                 npcScheduleMover = GetComponent<HostNpcScheduleMover>() ??
                                   gameObject.AddComponent<HostNpcScheduleMover>();
+            if (npcContextMenu == null)
+                npcContextMenu = GetComponent<HostNpcContextMenu>() ??
+                                gameObject.AddComponent<HostNpcContextMenu>();
 
             selectionController.ClearSelection();
             entityViewSpawner.Clear();
             eventFeed.Clear();
             contentInterrupt.ClearSessionState();
+            if (dialoguePresenter != null)
+                dialoguePresenter.ClearSessionState();
+            if (npcContextMenu != null)
+                npcContextMenu.ClearSessionState();
             if (questJournal != null)
                 questJournal.ClearSessionState();
             if (inventoryPanel != null)
@@ -348,14 +381,18 @@ namespace XianXia.Unity.Host
                 workLoop.Bind(this, commandBridge, moveController);
             debugHud.Bind(this, selectionController);
             contentDebugPanel.Bind(this, selectionController);
-            moveController.Bind(this, selectionController, entityViewSpawner, commandBridge);
+            moveController.Bind(this, selectionController, entityViewSpawner, commandBridge, npcContextMenu);
             moveController.SetWalkGrid(ResolveWalkGrid());
+            if (npcContextMenu != null)
+                npcContextMenu.Bind(this, selectionController, moveController, dialoguePresenter);
             actionMenu.Bind(this, selectionController, commandBridge);
             formalHud.Bind(this, selectionController, eventFeed);
             activityPresenter.Bind(this, entityViewSpawner);
             crowdPresenter.Bind(this);
             workTargetMode.Bind(this, selectionController, commandBridge);
-            contentInterrupt.Bind(this, commandBridge, selectionController);
+            if (dialoguePresenter != null)
+                dialoguePresenter.Bind(this, commandBridge, selectionController);
+            contentInterrupt.Bind(this, commandBridge, selectionController, dialoguePresenter);
             questJournal.Bind(this, commandBridge, selectionController);
             inventoryPanel.Bind(this);
             npcScheduleMover.Bind(this, moveController, entityViewSpawner);

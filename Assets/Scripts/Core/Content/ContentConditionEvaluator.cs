@@ -73,7 +73,7 @@ namespace XianXia.Core.Content
                     return world.LocationLabor.MeetsSeconds(
                         string.IsNullOrEmpty(c.CharacterId) ? ResolveSubjectDefId(world, subject) : c.CharacterId,
                         c.Id,
-                        c.Amount > 0 ? c.Amount : LocationLaborProgressBoard.DefaultSecondsPerTick);
+                        c.Amount > 0 ? c.Amount : 3);
                 case "uniquelaboratlocation":
                     // amount = required unique Character entities; each must labor ~3s at location.
                     return CountUniqueLaborersAtLocation(world, c.Id, UniqueLaborSeconds(c)) >=

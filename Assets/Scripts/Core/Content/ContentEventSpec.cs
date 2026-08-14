@@ -7,10 +7,12 @@ namespace XianXia.Core.Content
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Body { get; set; } = string.Empty;
-        /// <summary>onExplore | onArrive | onQuestCompleted | manual</summary>
+        /// <summary>onExplore | onArrive | onQuestCompleted | onTalk | manual</summary>
         public string Trigger { get; set; } = string.Empty;
         public string LocationId { get; set; } = string.Empty;
         public string QuestId { get; set; } = string.Empty;
+        /// <summary>onTalk: character definition id to match.</summary>
+        public string NpcDefinitionId { get; set; } = string.Empty;
         public bool Once { get; set; } = true;
         public List<ContentCondition> Conditions { get; } = new List<ContentCondition>();
         public List<ContentEventChoiceSpec> Choices { get; } = new List<ContentEventChoiceSpec>();

@@ -61,6 +61,9 @@ namespace XianXia.Unity.Host
                     continue;
                 }
 
+                if (moveController.IsNpcHeldForInteraction(entity.Id))
+                    continue;
+
                 if (moveController.IsMoving(entity.Id))
                     continue;
 

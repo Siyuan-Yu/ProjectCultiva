@@ -17,6 +17,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] EntityViewSpawner viewSpawner;
         [SerializeField] HostCommandBridge commandBridge;
+        [SerializeField] HostNpcContextMenu npcContextMenu;
         [SerializeField] Camera worldCamera;
         [SerializeField] float moveSpeed = 6f;
         [SerializeField] float arriveEpsilon = 0.2f;
@@ -29,6 +30,8 @@ namespace XianXia.Unity.Host
         readonly Dictionary<ulong, int> _pathIndex = new Dictionary<ulong, int>();
         readonly Dictionary<ulong, PlayerCommandKind> _pendingOnArrive = new Dictionary<ulong, PlayerCommandKind>();
         readonly Dictionary<ulong, string> _pendingArriveLocation = new Dictionary<ulong, string>();
+        readonly Dictionary<ulong, HostNpcArriveIntent> _pendingNpcIntent = new Dictionary<ulong, HostNpcArriveIntent>();
+        readonly HashSet<ulong> _interactionHeldNpcs = new HashSet<ulong>();
         readonly HashSet<ulong> _movingIds = new HashSet<ulong>();
         readonly List<float> _pathScratch = new List<float>(64);
         readonly List<Vector3> _wpScratch = new List<Vector3>(32);
@@ -43,12 +46,14 @@ namespace XianXia.Unity.Host
             PlayableHostBootstrap host,
             HostSelectionController selection,
             EntityViewSpawner spawner,
-            HostCommandBridge bridge = null)
+            HostCommandBridge bridge = null,
+            HostNpcContextMenu npcMenu = null)
         {
             bootstrap = host;
             selectionController = selection;
             viewSpawner = spawner;
             commandBridge = bridge;
+            npcContextMenu = npcMenu;
             if (worldCamera == null)
                 worldCamera = Camera.main;
         }
@@ -64,6 +69,8 @@ namespace XianXia.Unity.Host
             if (bootstrap.Session.World.ContentEvents.HasActive)
                 return;
             if (bootstrap.ContentInterrupt != null && bootstrap.ContentInterrupt.HasBlockingInterrupt)
+                return;
+            if (npcContextMenu != null && npcContextMenu.IsOpen)
                 return;
             if (worldCamera == null)
                 worldCamera = Camera.main;
@@ -81,7 +88,11 @@ namespace XianXia.Unity.Host
             {
                 if (HostUiHitTest.ContainsScreenPoint(Input.mousePosition))
                     return;
-                if (workMode != null && workMode.TryHandleContextRightClick())
+                if (npcContextMenu != null && npcContextMenu.TryOpenAtMouse())
+                {
+                    // handled
+                }
+                else if (workMode != null && workMode.TryHandleContextRightClick())
                 {
                     // handled
                 }
@@ -116,6 +127,91 @@ namespace XianXia.Unity.Host
         }
 
         public bool OrderPartyToPointPublic(Vector3 point) => OrderPartyToPoint(point, null);
+
+        public bool OrderActorToNpc(EntityId actor, EntityId npc, HostNpcArriveAction action)
+        {
+            if (actor.IsNone || npc.IsNone || viewSpawner == null ||
+                !viewSpawner.Registry.TryGet(npc, out var npcView) || npcView == null)
+                return false;
+
+            var target = npcView.transform.position;
+            if (viewSpawner.Registry.TryGet(actor, out var actorView) && actorView != null)
+            {
+                var delta = actorView.transform.position - target;
+                delta.z = 0f;
+                if (delta.sqrMagnitude > 0.01f)
+                    target += delta.normalized * 1.1f;
+            }
+
+            target.z = HostPresentationSpace.EntityZ;
+            HoldNpcForInteraction(npc);
+            if (!OrderEntityToWorldPoint(actor, target, null, issueStop: true))
+            {
+                ReleaseNpcForInteraction(npc);
+                return false;
+            }
+
+            return RegisterPendingNpcIntent(actor, npc, action);
+        }
+
+        public bool IsNpcHeldForInteraction(EntityId npc) =>
+            !npc.IsNone && _interactionHeldNpcs.Contains(npc.Value);
+
+        public bool IsApproachingNpc(EntityId npc)
+        {
+            if (npc.IsNone)
+                return false;
+            foreach (var kv in _pendingNpcIntent)
+            {
+                if (kv.Value.NpcId == npc)
+                    return true;
+            }
+
+            return false;
+        }
+
+        public void HoldNpcForInteraction(EntityId npc)
+        {
+            if (npc.IsNone)
+                return;
+            CancelPresentationMovement(npc);
+            _interactionHeldNpcs.Add(npc.Value);
+            if (viewSpawner != null &&
+                viewSpawner.Registry.TryGet(npc, out var view) &&
+                view != null)
+                view.SetActivityText("稍候");
+        }
+
+        public void ReleaseNpcForInteraction(EntityId npc)
+        {
+            if (npc.IsNone || !_interactionHeldNpcs.Remove(npc.Value))
+                return;
+            if (viewSpawner != null &&
+                viewSpawner.Registry.TryGet(npc, out var view) &&
+                view != null)
+                view.SetActivityText(string.Empty);
+        }
+
+        void CancelPresentationMovement(EntityId id)
+        {
+            if (id.IsNone)
+                return;
+            ClearPath(id);
+            _movingIds.Remove(id.Value);
+            if (viewSpawner == null)
+                return;
+            if (!viewSpawner.Registry.TryGet(id, out var view) || view == null)
+                return;
+            _targets.Remove(view);
+        }
+
+        bool RegisterPendingNpcIntent(EntityId actor, EntityId npc, HostNpcArriveAction action)
+        {
+            if (actor.IsNone)
+                return false;
+            _pendingNpcIntent[actor.Value] = new HostNpcArriveIntent(npc, action);
+            return true;
+        }
 
         public bool OrderPartyToPointThen(Vector3 point, PlayerCommandKind arriveCommand) =>
             OrderPartyToPoint(point, arriveCommand, null);
@@ -298,11 +394,27 @@ namespace XianXia.Unity.Host
                 _movingIds.Remove(id.Value);
                 ClearPath(id);
                 SyncLocation(view);
-                if (_pendingOnArrive.ContainsKey(id.Value))
+                if (_pendingNpcIntent.ContainsKey(id.Value))
+                    ApplyPendingNpcIntent(id);
+                else if (_pendingOnArrive.ContainsKey(id.Value))
                     ApplyPendingArrive(id);
                 else if (selectionController != null && selectionController.IsPartyUnit(id))
                     HoldStandby(id);
             }
+        }
+
+        void ApplyPendingNpcIntent(EntityId id)
+        {
+            if (!_pendingNpcIntent.TryGetValue(id.Value, out var intent))
+                return;
+            _pendingNpcIntent.Remove(id.Value);
+            StopOne(id);
+            if (npcContextMenu == null)
+                return;
+            if (intent.Action == HostNpcArriveAction.Talk)
+                npcContextMenu.OnNpcArriveTalk(id, intent.NpcId);
+            else
+                npcContextMenu.OnNpcArriveAttack(id, intent.NpcId);
         }
 
         Vector3 ComputeSeparation(EntityView self, Vector3 pos)
@@ -453,6 +565,12 @@ namespace XianXia.Unity.Host
         {
             if (id.IsNone)
                 return;
+            if (_pendingNpcIntent.TryGetValue(id.Value, out var intent))
+            {
+                ReleaseNpcForInteraction(intent.NpcId);
+                _pendingNpcIntent.Remove(id.Value);
+            }
+
             _pendingOnArrive.Remove(id.Value);
             _pendingArriveLocation.Remove(id.Value);
         }

@@ -26,7 +26,8 @@ namespace XianXia.Data.Bootstrap
                     Name = def.Name ?? string.Empty,
                     Description = def.Description ?? string.Empty,
                     AutoOffer = def.AutoOffer,
-                    Abandonable = def.Abandonable
+                    Abandonable = def.Abandonable,
+                    DeadlineDays = def.DeadlineDays
                 };
                 spec.OfferConditions.AddRange(def.OfferConditions);
                 spec.CompleteConditions.AddRange(def.CompleteConditions);
@@ -47,6 +48,7 @@ namespace XianXia.Data.Bootstrap
                     Trigger = def.Trigger ?? string.Empty,
                     LocationId = def.LocationId ?? string.Empty,
                     QuestId = def.QuestId ?? string.Empty,
+                    NpcDefinitionId = def.NpcDefinitionId ?? string.Empty,
                     Once = def.Once
                 };
                 spec.Conditions.AddRange(def.Conditions);

@@ -309,7 +309,29 @@ namespace XianXia.Data.Content
                         break;
                     case "relationdelta":
                         RequireDef(registry, o.FromDefinitionId, "character", ctx + ".relation.from", report);
-                        RequireDef(registry, o.ToDefinitionId, "character", ctx + ".relation.to", report);
+                        if (o.ToDefinitionIds.Count > 0)
+                        {
+                            for (var ti = 0; ti < o.ToDefinitionIds.Count; ti++)
+                            {
+                                var targetId = o.ToDefinitionIds[ti];
+                                if (string.Equals(targetId, "@party", StringComparison.OrdinalIgnoreCase))
+                                    continue;
+                                RequireDef(registry, targetId, "character", ctx + ".relation.to", report);
+                            }
+                        }
+                        else if (!string.IsNullOrEmpty(o.ToDefinitionId))
+                        {
+                            if (!string.Equals(o.ToDefinitionId, "@party", StringComparison.OrdinalIgnoreCase))
+                                RequireDef(registry, o.ToDefinitionId, "character", ctx + ".relation.to", report);
+                        }
+                        else
+                        {
+                            report.Add(
+                                ErrorCode.MissingRequiredField,
+                                "relationDelta requires toDefinitionId or toDefinitionIds.",
+                                ctx);
+                        }
+
                         break;
                 }
             }

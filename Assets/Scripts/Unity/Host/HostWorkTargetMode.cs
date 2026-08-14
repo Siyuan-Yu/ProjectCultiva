@@ -92,17 +92,6 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
-            if (TryPickNpcAtMouse(out var npc) &&
-                selectionController != null &&
-                !selectionController.IsPartyUnit(npc) &&
-                TryViewCenter(npc, out var center))
-            {
-                Resume();
-                if (moveController != null)
-                    moveController.OrderPartyToPointPublic(center);
-                return true;
-            }
-
             return false;
         }
 
@@ -213,7 +202,7 @@ namespace XianXia.Unity.Host
                 !selectionController.IsPartyUnit(npc))
             {
                 _idleHoverInteractable = true;
-                _hoverHint = "右键交互·人物";
+                _hoverHint = "右键·对话/攻击";
                 ApplyCursor(true);
                 return;
             }

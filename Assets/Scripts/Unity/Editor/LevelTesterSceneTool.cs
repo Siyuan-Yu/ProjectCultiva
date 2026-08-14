@@ -48,18 +48,28 @@ namespace XianXia.Unity.EditorTools
             hostGo.AddComponent<HostFeedbackOverlay>();
             hostGo.AddComponent<HostWorkTargetMode>();
             hostGo.AddComponent<HostContentInterruptPresenter>();
+            hostGo.AddComponent<HostDialoguePresenter>();
+            hostGo.AddComponent<HostDialogueUguiView>();
             hostGo.AddComponent<HostQuestJournal>();
             hostGo.AddComponent<HostInteractSpotPresenter>();
             hostGo.AddComponent<HostNpcScheduleMover>();
+            hostGo.AddComponent<HostNpcContextMenu>();
             hostGo.AddComponent<LevelTesterHud>();
 
             var bootstrapSo = new SerializedObject(bootstrap);
             bootstrapSo.FindProperty("openingScenarioId").stringValue = "base:scenario_ch01_reference";
             bootstrapSo.FindProperty("preferredMapLayoutId").stringValue = "base:map_ch01_reference";
             bootstrapSo.FindProperty("mapLayoutFilePath").stringValue = DefaultMapLayoutPath;
-            bootstrapSo.FindProperty("secondsPerAutoTickAt1x").floatValue = 3f;
+            bootstrapSo.FindProperty("secondsPerAutoTickAt1x").floatValue = 1f;
             bootstrapSo.FindProperty("rebuildKey").intValue = (int)KeyCode.F12;
             bootstrapSo.ApplyModifiedPropertiesWithoutUndo();
+
+            var interruptSo = new SerializedObject(hostGo.GetComponent<HostContentInterruptPresenter>());
+            if (interruptSo.FindProperty("enableContentEventPopups") != null)
+            {
+                interruptSo.FindProperty("enableContentEventPopups").boolValue = true;
+                interruptSo.ApplyModifiedPropertiesWithoutUndo();
+            }
 
             var bridgeSo = new SerializedObject(hostGo.GetComponent<HostCommandBridge>());
             if (bridgeSo.FindProperty("showDebugButtons") != null)

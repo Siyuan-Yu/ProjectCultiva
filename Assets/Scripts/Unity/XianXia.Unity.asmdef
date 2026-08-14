@@ -3,7 +3,8 @@
   "rootNamespace": "XianXia.Unity",
   "references": [
     "XianXia.Core",
-    "XianXia.Data"
+    "XianXia.Data",
+    "Unity.ugui"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

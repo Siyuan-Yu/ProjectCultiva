@@ -186,9 +186,12 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 |---|---|
 | `autoOffer` | 条件满足时自动接取 |
 | `abandonable` | 玩家是否可在任务日志中放弃（默认 false） |
+| `deadlineDays` | 接取后有效游戏天数；`0` = 无时限。超时自动 `Failed` 并应用 `failResults` |
 | 状态机 | Inactive → Active → **ReadyToClaim（待领奖）** → Completed；奖励仅在领取时发放 |
 | `offerConditions`／`completeConditions`／`failConditions` | condition 对象数组 |
 | `rewards`／`failResults` | outcome 对象数组 |
+
+`failResults`：任务 **超时**（`deadlineDays`）或 **失败条件** 满足时执行；留空 `[]` 表示无额外后果。常用 `relationDelta`（NPC 发布任务超时降好感）。
 
 ### condition.kind
 
@@ -208,12 +211,16 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 `setFlag`｜`clearFlag`｜`addStock`｜`startQuest`｜`relationDelta`｜`grantProgress`｜`discoverSite`
 
+| kind | 主要字段 |
+|---|---|
+| `relationDelta` | `fromDefinitionId`（单个）／`toDefinitionId`（单个，兼容旧数据）／`toDefinitionIds`（字符串数组，可多目标；`@party` = 当前全体可控角色）／`amount` |
+
 ## type = contentEvent（Content Ready）
 
 | Field | Notes |
 |---|---|
-| `trigger` | `onExplore`｜`onArrive`｜`onQuestCompleted`｜`manual` |
-| `locationId`／`questId` | 触发上下文过滤 |
+| `trigger` | `onExplore`｜`onArrive`｜`onQuestCompleted`｜`onTalk`｜`manual` |
+| `locationId`／`questId`／`npcDefinitionId` | 触发上下文过滤（`onTalk` 配 NPC 的 character definition id） |
 | `once` | 默认 true |
 | `conditions`／`choices[]` | choice：id／text／conditions／outcomes |
 

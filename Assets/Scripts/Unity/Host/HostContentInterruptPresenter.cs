@@ -8,8 +8,8 @@ using XianXia.Core.Input;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// ContentEvent 对话弹层 +（可选）任务提醒弹窗。
-    /// NPC 对话接任务走事件弹层；任务接取／完成提醒默认关闭（改由任务日志 UI）。
+    /// ContentEvent 非 onTalk 弹层 +（可选）任务提醒弹窗。
+    /// onTalk 由 <see cref="HostDialoguePresenter"/> 底栏呈现。
     /// </summary>
     public sealed class HostContentInterruptPresenter : MonoBehaviour
     {
@@ -29,9 +29,10 @@ namespace XianXia.Unity.Host
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostCommandBridge commandBridge;
         [SerializeField] HostSelectionController selectionController;
+        [SerializeField] HostDialoguePresenter dialoguePresenter;
         [SerializeField] bool holdPause = true;
         [Tooltip("NPC／内容事件选项弹层。默认关：自动选第一条可用选项。")]
-        [SerializeField] bool enableContentEventPopups;
+        [SerializeField] bool enableContentEventPopups = true;
         [Tooltip("任务接取／完成／失败的「知道了」弹窗；默认关。")]
         [SerializeField] bool enableQuestNotifyPopups;
 
@@ -58,7 +59,14 @@ namespace XianXia.Unity.Host
                 var session = bootstrap != null ? bootstrap.Session : null;
                 if (session == null || !session.IsInitialized)
                     return false;
-                if (enableContentEventPopups && session.World.ContentEvents.HasActive)
+                if (dialoguePresenter != null && dialoguePresenter.IsActive)
+                    return true;
+                if (session.World.ContentEvents.HasActive &&
+                    ShouldDelegateOnTalkToDialogue(session) &&
+                    dialoguePresenter != null)
+                    return true;
+                if (enableContentEventPopups && session.World.ContentEvents.HasActive &&
+                    !ShouldDelegateOnTalkToDialogue(session))
                     return true;
                 if (enableQuestNotifyPopups && _activeQuestNotify.HasValue)
                     return true;
@@ -69,11 +77,13 @@ namespace XianXia.Unity.Host
         public void Bind(
             PlayableHostBootstrap host,
             HostCommandBridge bridge,
-            HostSelectionController selection)
+            HostSelectionController selection,
+            HostDialoguePresenter dialogue = null)
         {
             bootstrap = host;
             commandBridge = bridge;
             selectionController = selection;
+            dialoguePresenter = dialogue;
         }
 
         public void ClearSessionState()
@@ -137,9 +147,18 @@ namespace XianXia.Unity.Host
 
             if (!enableContentEventPopups && session.World.ContentEvents.HasActive)
                 TryAutoResolveActiveEvent(session);
+            else if (enableContentEventPopups &&
+                     session.World.ContentEvents.HasActive &&
+                     ShouldDelegateOnTalkToDialogue(session) &&
+                     dialoguePresenter != null &&
+                     !dialoguePresenter.IsActive)
+            {
+                // onTalk is shown by HostDialoguePresenter after NPC arrive; keep pause via SyncPause.
+            }
 
             if (enableQuestNotifyPopups &&
                 !session.World.ContentEvents.HasActive &&
+                !(dialoguePresenter != null && dialoguePresenter.IsActive) &&
                 !_activeQuestNotify.HasValue &&
                 _questQueue.Count > 0)
             {
@@ -156,6 +175,9 @@ namespace XianXia.Unity.Host
             if (!session.World.ContentEvents.TryGet(session.World.ContentEvents.ActiveEventId, out var spec) ||
                 spec?.Choices == null ||
                 spec.Choices.Count == 0)
+                return;
+            if (string.Equals(spec.Trigger, "onTalk", System.StringComparison.OrdinalIgnoreCase) &&
+                dialoguePresenter != null)
                 return;
 
             var subject = ResolveSubject(session);
@@ -188,6 +210,9 @@ namespace XianXia.Unity.Host
             }
         }
 
+        static bool ShouldDelegateOnTalkToDialogue(PlayableHostSession session) =>
+            HostDialogueController.IsActiveOnTalk(session.World);
+
         void OnGUI()
         {
             var session = bootstrap != null ? bootstrap.Session : null;
@@ -195,7 +220,12 @@ namespace XianXia.Unity.Host
                 return;
 
             EnsureStyles();
-            if (enableContentEventPopups && session.World.ContentEvents.HasActive)
+            if (dialoguePresenter != null && dialoguePresenter.IsActive)
+                return;
+
+            if (enableContentEventPopups &&
+                session.World.ContentEvents.HasActive &&
+                !ShouldDelegateOnTalkToDialogue(session))
             {
                 DrawEventModal(session);
                 return;
@@ -216,7 +246,10 @@ namespace XianXia.Unity.Host
             DrawFrame(box, ParchmentDark);
 
             var title = string.IsNullOrEmpty(spec.Name) ? ShortId(spec.Id) : spec.Name;
-            GUI.Label(new Rect(box.x + 16f, box.y + 12f, box.width - 32f, 26f), "事件 · " + title, _title);
+            var kind = string.Equals(spec.Trigger, "onTalk", System.StringComparison.OrdinalIgnoreCase)
+                ? "对话"
+                : "事件";
+            GUI.Label(new Rect(box.x + 16f, box.y + 12f, box.width - 32f, 26f), kind + " · " + title, _title);
             GUI.Label(
                 new Rect(box.x + 16f, box.y + 42f, box.width - 32f, 24f),
                 "已暂停 — 请选择后继续",

@@ -29,13 +29,16 @@ namespace XianXia.Unity.Host
 
         public void SetSpeedMultiplier(int multiplier)
         {
-            if (multiplier == 1 || multiplier == 2 || multiplier == 5)
-                _speedMultiplier = multiplier;
+            if (multiplier != 1 && multiplier != 2 && multiplier != 5)
+                return;
+            _speedMultiplier = multiplier;
+            bootstrap?.ResetAutoTickAccumulator();
         }
 
         public void CycleSpeed()
         {
             _speedMultiplier = _speedMultiplier == 1 ? 2 : _speedMultiplier == 2 ? 5 : 1;
+            bootstrap?.ResetAutoTickAccumulator();
         }
 
         public HostHudSnapshot Refresh()

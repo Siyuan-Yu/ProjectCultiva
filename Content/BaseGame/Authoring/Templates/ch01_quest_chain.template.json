@@ -7,6 +7,7 @@
       "name": "Ch1·REPLACE_Q1_NAME",
       "description": "REPLACE_Q1_DESC",
       "autoOffer": false,
+      "deadlineDays": 1,
       "offerConditions": [],
       "completeConditions": [
         { "kind": "exploredLocation", "id": "base:loc_REPLACE_LOCATION" }
@@ -23,6 +24,7 @@
       "name": "Ch1·REPLACE_Q2_NAME",
       "description": "REPLACE_Q2_DESC",
       "autoOffer": false,
+      "deadlineDays": 1,
       "offerConditions": [
         { "kind": "storyFlag", "id": "quest:ch01_REPLACE_q1_done" }
       ],

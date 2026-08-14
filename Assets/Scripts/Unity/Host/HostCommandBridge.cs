@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Domain.Time;
 using XianXia.Core.Input;
 using XianXia.Core.Results;
 using XianXia.Core.Exploration;
@@ -70,9 +71,11 @@ namespace XianXia.Unity.Host
 
         public ulong GatherDurationTicks()
         {
-            var secPer = hostBootstrap != null ? hostBootstrap.SecondsPerAutoTickAt1x : 3f;
+            var secPer = hostBootstrap != null
+                ? hostBootstrap.SecondsPerAutoTickAt1x
+                : SimulationTickPacing.SecondsPerTickAt1x;
             if (secPer < 0.01f)
-                secPer = 3f;
+                secPer = SimulationTickPacing.SecondsPerTickAt1x;
             return (ulong)Mathf.Max(1, Mathf.CeilToInt(GatherWallSecondsAt1x / secPer));
         }
 

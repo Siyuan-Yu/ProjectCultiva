@@ -90,6 +90,7 @@ public partial class MainWindow : Window
             DescBox.Text = JsonEdit.GetString(_quest.Raw, "description");
             AutoOfferBox.IsChecked = JsonEdit.GetBool(_quest.Raw, "autoOffer", true);
             AbandonableBox.IsChecked = JsonEdit.GetBool(_quest.Raw, "abandonable", false);
+            DeadlineDaysBox.Text = JsonEdit.GetInt(_quest.Raw, "deadlineDays", 0).ToString();
 
             OfferEditor.LoadFrom(_quest.Raw["offerConditions"]);
             CompleteEditor.LoadFrom(_quest.Raw["completeConditions"]);
@@ -267,6 +268,7 @@ public partial class MainWindow : Window
         ["type"] = "quest",
         ["name"] = name,
         ["description"] = "",
+        ["deadlineDays"] = 1,
         ["autoOffer"] = true,
         ["offerConditions"] = new JsonArray(),
         ["completeConditions"] = new JsonArray(),
@@ -417,6 +419,16 @@ public partial class MainWindow : Window
         _quest.Raw["name"] = NameBox.Text ?? "";
         _quest.Raw["description"] = DescBox.Text ?? "";
         _quest.Raw["abandonable"] = AbandonableBox.IsChecked == true;
+        if (!int.TryParse(DeadlineDaysBox.Text?.Trim(), out var deadlineDays) || deadlineDays < 0)
+        {
+            err = "deadlineDays 需为非负整数";
+            return false;
+        }
+
+        if (deadlineDays > 0)
+            _quest.Raw["deadlineDays"] = deadlineDays;
+        else
+            _quest.Raw.Remove("deadlineDays");
 
         var mode = CurrentOfferMode();
         try

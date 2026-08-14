@@ -47,6 +47,32 @@
           ]
         }
       ]
+    },
+    {
+      "id": "base:event_ch01_ref_supervisor_talk",
+      "type": "contentEvent",
+      "name": "杂役主管·训话",
+      "body": "「今日的配额，酉时前交齐。偷懒的，别怪我不讲情面。」\n\n你可以记下任务，或先不应答。",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_supervisor",
+      "once": false,
+      "conditions": [],
+      "choices": [
+        {
+          "id": "ack",
+          "text": "遵命。",
+          "outcomes": [
+            { "kind": "setFlag", "id": "event:ch01_ref_supervisor_ack" }
+          ]
+        },
+        {
+          "id": "silent",
+          "text": "……（不语）",
+          "outcomes": [
+            { "kind": "setFlag", "id": "event:ch01_ref_supervisor_silent" }
+          ]
+        }
+      ]
     }
   ]
 }

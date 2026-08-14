@@ -28,6 +28,7 @@ namespace XianXia.Core.Content
             runtime.Status = QuestStatus.Active;
             runtime.ProgressCount = 0;
             runtime.ProgressMax = ResolveProgressMax(spec);
+            QuestDeadline.BindOnStart(spec, runtime, world);
             world.Events.Publish(EventType.QuestStarted, world.Tick, target: subject, payload: questId);
             return Result.Success();
         }
@@ -69,6 +70,8 @@ namespace XianXia.Core.Content
             runtime.Status = QuestStatus.Inactive;
             runtime.ProgressCount = 0;
             runtime.ProgressMax = 0;
+            runtime.AcceptedAtDayIndex = 0;
+            runtime.DeadlineDayIndexExclusive = 0;
             world.Events.Publish(EventType.QuestAbandoned, world.Tick, target: subject, payload: questId);
             return Result.Success();
         }
@@ -95,12 +98,16 @@ namespace XianXia.Core.Content
 
                 RefreshProgress(world, spec, runtime);
 
+                if (QuestDeadline.IsExpired(world, runtime))
+                {
+                    FailQuest(world, spec, runtime, subject, "expired");
+                    continue;
+                }
+
                 if (spec.FailConditions.Count > 0 &&
                     ContentConditionEvaluator.AllPass(world, subject, spec.FailConditions))
                 {
-                    runtime.Status = QuestStatus.Failed;
-                    ContentOutcomeApplier.ApplyAll(world, subject, spec.FailResults);
-                    world.Events.Publish(EventType.QuestFailed, world.Tick, target: subject, payload: spec.Id);
+                    FailQuest(world, spec, runtime, subject, spec.Id);
                     continue;
                 }
 
@@ -176,6 +183,18 @@ namespace XianXia.Core.Content
             }
 
             runtime.ProgressCount = done;
+        }
+
+        static void FailQuest(
+            SimulationWorld world,
+            QuestSpec spec,
+            QuestRuntime runtime,
+            EntityId subject,
+            string payload)
+        {
+            runtime.Status = QuestStatus.Failed;
+            ContentOutcomeApplier.ApplyAll(world, subject, spec.FailResults);
+            world.Events.Publish(EventType.QuestFailed, world.Tick, target: subject, payload: payload);
         }
     }
 }

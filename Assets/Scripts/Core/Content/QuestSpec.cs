@@ -11,6 +11,8 @@ namespace XianXia.Core.Content
         public bool AutoOffer { get; set; }
         /// <summary>为 true 时玩家可从任务 UI 放弃（回到 Inactive）。</summary>
         public bool Abandonable { get; set; }
+        /// <summary>接取后有效游戏天数；0 = 无时限。超时自动 Failed 并应用 failResults。</summary>
+        public int DeadlineDays { get; set; }
         public List<ContentCondition> OfferConditions { get; } = new List<ContentCondition>();
         public List<ContentCondition> CompleteConditions { get; } = new List<ContentCondition>();
         public List<ContentCondition> FailConditions { get; } = new List<ContentCondition>();
