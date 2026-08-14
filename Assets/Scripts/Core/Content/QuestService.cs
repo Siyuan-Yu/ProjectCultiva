@@ -29,6 +29,7 @@ namespace XianXia.Core.Content
             runtime.ProgressCount = 0;
             runtime.ProgressMax = ResolveProgressMax(spec);
             QuestDeadline.BindOnStart(spec, runtime, world);
+            RefreshProgress(world, spec, runtime);
             world.Events.Publish(EventType.QuestStarted, world.Tick, target: subject, payload: questId);
             return Result.Success();
         }

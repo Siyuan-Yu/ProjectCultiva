@@ -3,6 +3,7 @@ using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
 using XianXia.Core.Events;
 using XianXia.Core.Exploration;
+using XianXia.Core.Content;
 using XianXia.Core.Labor;
 using XianXia.Core.Orders;
 using XianXia.Core.Results;
@@ -73,6 +74,7 @@ namespace XianXia.Core.Actions
                 // ~3s（默认 1 拍）完工发 1 份地点资源，不再每拍掉落。
                 if (Clock.IsComplete)
                     ProduceOnceFromCurrentLocation(world, entity);
+                QuestProgressRefresh.AfterWorldChange(world, entity.Id);
             }
 
             if (Clock.IsComplete)

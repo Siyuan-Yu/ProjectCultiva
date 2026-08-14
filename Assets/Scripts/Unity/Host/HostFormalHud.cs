@@ -714,8 +714,7 @@ namespace XianXia.Unity.Host
                 }
 
                 sb.AppendLine("---");
-                if (rt.ProgressMax > 0)
-                    sb.AppendLine("进度：" + rt.ProgressCount + "/" + rt.ProgressMax);
+                AppendTrackedProgressLine(sb, session.World, spec, rt);
                 var deadline = QuestDeadline.FormatRemaining(session.World, rt);
                 if (!string.IsNullOrEmpty(deadline))
                     sb.AppendLine("时限：" + deadline);
@@ -734,6 +733,25 @@ namespace XianXia.Unity.Host
             }
 
             return sb.ToString();
+        }
+
+        static void AppendTrackedProgressLine(
+            StringBuilder sb,
+            SimulationWorld world,
+            QuestSpec spec,
+            QuestRuntime rt)
+        {
+            var count = rt.ProgressCount;
+            var max = rt.ProgressMax;
+            if (rt.Status == QuestStatus.Active &&
+                QuestJournalQuery.TryGetStockProgress(world, spec, out var liveCount, out var liveMax))
+            {
+                count = liveCount;
+                max = liveMax;
+            }
+
+            if (max > 0)
+                sb.AppendLine("进度：" + count + "/" + max);
         }
 
         static string SummarizeTrackedObjectives(

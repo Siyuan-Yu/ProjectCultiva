@@ -57,6 +57,7 @@ namespace XianXia.Core.Content
                         world.Tick,
                         target: subject,
                         payload: "bag:" + o.Id + ":+" + added);
+                    QuestProgressRefresh.AfterWorldChange(world, subject);
                     return Result.Success();
                 }
                 case "startquest":

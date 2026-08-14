@@ -102,8 +102,22 @@ namespace XianXia.Core.Content
                 ObjectivesSummary = SummarizeObjectivesLive(world, spec.CompleteConditions, runtime)
             };
 
-            if (entry.ProgressMax > 0)
-                entry.ProgressLabel = entry.ProgressCount + "/" + entry.ProgressMax;
+            if (entry.ProgressMax > 0 || TryGetStockProgress(world, spec, out _, out _))
+            {
+                var count = entry.ProgressCount;
+                var max = entry.ProgressMax;
+                if (runtime.Status == QuestStatus.Active &&
+                    TryGetStockProgress(world, spec, out var liveCount, out var liveMax))
+                {
+                    count = liveCount;
+                    max = liveMax;
+                    entry.ProgressCount = count;
+                    entry.ProgressMax = max;
+                }
+
+                if (max > 0)
+                    entry.ProgressLabel = count + "/" + max;
+            }
 
             if (runtime.Status == QuestStatus.Active && spec.DeadlineDays > 0)
                 entry.DeadlineSummary = QuestDeadline.FormatRemaining(world, runtime);
@@ -260,6 +274,33 @@ namespace XianXia.Core.Content
                 return stockLive;
 
             return SummarizeObjectives(list);
+        }
+
+        public static bool TryGetStockProgress(
+            SimulationWorld world,
+            QuestSpec spec,
+            out int count,
+            out int max)
+        {
+            count = 0;
+            max = 0;
+            if (spec?.CompleteConditions == null)
+                return false;
+            for (var i = 0; i < spec.CompleteConditions.Count; i++)
+            {
+                var c = spec.CompleteConditions[i];
+                if (c == null ||
+                    !string.Equals(c.Kind, "stockAtLeast", System.StringComparison.OrdinalIgnoreCase))
+                    continue;
+                var need = c.Amount > 0 ? c.Amount : 1;
+                max += need;
+                var have = world != null ? world.Inventory.GetCount(c.Id) : 0;
+                if (have > need)
+                    have = need;
+                count += have;
+            }
+
+            return max > 0;
         }
 
         static string SummarizeStockObjectivesLive(
