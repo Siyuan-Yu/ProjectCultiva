@@ -77,7 +77,30 @@ namespace XianXia.Data.Bootstrap
                     scenarioId.ToString());
             }
 
-            var started = _contentGameStart.StartFromScenario(loaded, scenarioId, random);
+            System.Collections.Generic.IList<OpeningSpawnEntry> spawnEntries = scenario.Spawns;
+            if (!string.IsNullOrWhiteSpace(options.CharacterRosterId))
+            {
+                var rosterParsed = DefinitionId.Parse(options.CharacterRosterId.Trim());
+                if (rosterParsed.IsFailure)
+                    return Result.Fail<PlayableDayBootstrapResult>(rosterParsed.Error);
+                if (!loaded.Registry.TryGetCharacterRoster(rosterParsed.Value, out var roster) ||
+                    roster.Entries == null ||
+                    roster.Entries.Count == 0)
+                {
+                    return Result.Fail<PlayableDayBootstrapResult>(
+                        ErrorCode.NotFound,
+                        "Character roster missing or empty (export from CharacterNpcEditor).",
+                        options.CharacterRosterId.Trim());
+                }
+
+                spawnEntries = roster.Entries;
+            }
+
+            var started = _contentGameStart.StartFromScenario(
+                loaded,
+                scenarioId,
+                random,
+                options.CharacterRosterId);
             if (started.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(started.Error);
 
@@ -95,10 +118,10 @@ namespace XianXia.Data.Bootstrap
             var scheduleId = string.IsNullOrWhiteSpace(scenario.ScheduleId)
                 ? DefaultScheduleId
                 : scenario.ScheduleId;
-            world.RegisterSchedule(CreateLaborDaySchedule(scheduleId));
-            world.RegisterSchedule(ScheduleDefinition.CreateMortalDay());
-            world.RegisterSchedule(ScheduleDefinition.CreateCultivatorDay());
-            world.RegisterSchedule(ScheduleDefinition.CreateSupervisorDay());
+            var schedules = ScheduleRuntimeBootstrap.Register(world, registry);
+            if (schedules.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(schedules.Error);
+            EnsureBuiltinSchedules(world, scheduleId);
 
             var jobs = JobRuntimeBootstrap.Register(world, registry);
             if (jobs.IsFailure)
@@ -109,7 +132,8 @@ namespace XianXia.Data.Bootstrap
                 world,
                 scenario,
                 lookup,
-                options.DailyRequiredAmount);
+                options.DailyRequiredAmount,
+                spawnEntries);
             if (applied.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(applied.Error);
 
@@ -129,7 +153,7 @@ namespace XianXia.Data.Bootstrap
             if (chapter.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(chapter.Error);
 
-            var recruitableId = OpeningScenarioApplier.FindFirstRecruitable(scenario, lookup);
+            var recruitableId = OpeningScenarioApplier.FindFirstRecruitable(scenario, lookup, spawnEntries);
             if (recruitableId.IsNone)
             {
                 return Result.Fail<PlayableDayBootstrapResult>(
@@ -200,6 +224,23 @@ namespace XianXia.Data.Bootstrap
             }
 
             return Result.Success();
+        }
+
+        /// <summary>
+        /// Content schedules are preferred. Factories remain as safety net if JSON missing an id.
+        /// </summary>
+        static void EnsureBuiltinSchedules(SimulationWorld world, string primaryScheduleId)
+        {
+            if (!world.TryGetSchedule(primaryScheduleId, out _))
+                world.RegisterSchedule(CreateLaborDaySchedule(primaryScheduleId));
+            if (!world.TryGetSchedule("base:schedule_mortal_day", out _))
+                world.RegisterSchedule(ScheduleDefinition.CreateMortalDay());
+            if (!world.TryGetSchedule("base:schedule_cultivator_day", out _))
+                world.RegisterSchedule(ScheduleDefinition.CreateCultivatorDay());
+            if (!world.TryGetSchedule("base:schedule_supervisor_day", out _))
+                world.RegisterSchedule(ScheduleDefinition.CreateSupervisorDay());
+            if (!world.TryGetSchedule("base:schedule_laborer_day", out _))
+                world.RegisterSchedule(ScheduleDefinition.CreateDefaultLaborerDay());
         }
 
         static ScheduleDefinition CreateLaborDaySchedule(string scheduleId)

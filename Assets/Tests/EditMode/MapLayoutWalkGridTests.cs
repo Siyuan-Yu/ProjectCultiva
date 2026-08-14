@@ -26,13 +26,23 @@ namespace XianXia.Tests
 
             var xy = new List<float>();
             // Left of house → right of house (same row in world).
+            Assert.IsFalse(
+                GridPathfinder.IsWorldSegmentWalkable(grid, -20f, 18f, -2f, 18f),
+                "straight line must cut the house");
             Assert.IsTrue(GridPathfinder.TryFindWorldPath(grid, -20f, 18f, -2f, 18f, xy));
-            Assert.Greater(xy.Count / 2, 8, "should detour, not near-straight");
+            Assert.GreaterOrEqual(xy.Count / 2, 2);
 
             for (var i = 0; i + 1 < xy.Count; i += 2)
             {
                 Assert.IsTrue(grid.TryWorldToCell(xy[i], xy[i + 1], out var cx, out var cy));
                 Assert.IsTrue(grid.IsWalkable(cx, cy), "waypoint in blocked cell " + cx + "," + cy);
+            }
+
+            for (var i = 0; i + 3 < xy.Count; i += 2)
+            {
+                Assert.IsTrue(
+                    GridPathfinder.IsWorldSegmentWalkable(grid, xy[i], xy[i + 1], xy[i + 2], xy[i + 3]),
+                    "pulled segment must stay walkable");
             }
         }
 

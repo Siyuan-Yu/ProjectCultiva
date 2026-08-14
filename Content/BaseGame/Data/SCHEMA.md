@@ -21,6 +21,8 @@ Content/BaseGame/
       sites.json
     Scenarios/                 # type = openingScenario
       scenarios.json
+    Rosters/                   # type = characterRoster（Level Tester 名册）
+      level_tester_roster.json
     Resources/                 # type = resource
       resources.json
     Facilities/                # type = facility
@@ -32,6 +34,12 @@ Content/BaseGame/
       ch01_reference_region.json
     Maps/                      # type = mapLayout（关卡格点）
       ch01_reference_map.json
+    Jobs/                      # type = job
+      jobs.json
+    WorkAreas/                 # type = workArea
+      work_areas.json
+    Schedules/                 # type = schedule（NPC 日计划）
+      schedules.json
     Quests/                    # type = quest
       quests.json
       ch01_reference_quests.json
@@ -77,13 +85,14 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 ### type 一览
 
-`character`｜`cultivation`｜`item`｜`opportunitySite`｜`openingScenario`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`mapLayout`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`
+`character`｜`cultivation`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`mapLayout`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`
 
 ## type = character
 
 | Field | Notes |
 |---|---|
 | `baseAttributes` | MaxHp／Attack／Defense／Speed |
+| `playerControllable` | 编辑器默认「可控制」；出场 `entityKind` 为准（character＝进 CharacterIds） |
 | `personalityTags`／`backgroundTags`／`talentTags` | 合并进 PersonalityProfile（顺序：personality→background→talent→tags） |
 | `spiritRootPlaceholder`／`initialRealmPlaceholder` | 占位 |
 
@@ -109,6 +118,14 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | `offeredManualId` | 可选功法 id |
 | `description` | 文本 |
 
+## type = characterRoster（Level Tester 名册）
+
+| Field | Notes |
+|---|---|
+| `entries[]` | 与 openingScenario.spawns 同形：definitionId／entityKind／aiRole／factionRole／scheduleId… |
+
+人物本体在 `Characters/`；本表只回答「试玩时刷谁」。Level Tester 默认读 `base:roster_level_tester`（人物编辑器「导出 Level Tester 名册」）。**不是** Unity 场景里摆好的 GameObject。
+
 ## type = openingScenario（VS0.7+）
 
 | Field | Notes |
@@ -122,7 +139,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 ### spawn entry
 
-`definitionId`、`entityKind`（character｜npc）、`displayName`、`assignOpeningFaction`、`factionRole`、`bindSchedule`、`bindDailyTask`、`recruitable`、`workRole`（Labor｜Gather｜Cultivate）、`scheduleId`、`aiRole`、`jobId`（NPC Simulation Job）
+`definitionId`、`entityKind`（character＝可控制／进 CharacterIds｜npc）、`displayName`、`assignOpeningFaction`、`factionRole`、`bindSchedule`、`bindDailyTask`、`recruitable`、`workRole`（Labor｜Gather｜Cultivate）、`scheduleId`、`aiRole`。人物「可控制」与 `entityKind` 对齐。不再使用职业式 `jobId`。
 
 ## type = resource（VS0.8）
 
@@ -163,6 +180,21 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 样例：`ch01_reference_map.json`。Host 优先用 mapLayout 建 WalkGrid，并按 `kind` 刷 Environment prefab（药田／农田一格一块可交互；房子约 20×20；道路 1×1）。有 `boundLocationId` 时启动会把地点 `presentationX/Z` 对齐到设施中心。无 mapLayout 则回退硬编码网格。用法见 `docs/40-process/112-map-editor-usage.md`。
 
+## type = character
+
+| Field | Notes |
+|---|---|
+| `baseAttributes` | MaxHp／Stamina／Attack／Defense／Speed；SpiritSense／Comprehension；SpiritPower／Cultivation／MindState（2B） |
+| `spiritRoots` | 火金土木雷风冰毒 → 0–30 亲和数值（**不是**「金灵根」字符串） |
+| `playerControllable` | 人物侧默认；与 spawn.`entityKind` 同步 |
+| `preferredWorkAreaIds` | 有序地点偏好 |
+| `hometown`／`reputation`／`goals[]`／`desires[]` | 社会侧 |
+| `initialRealmPlaceholder` | 境界展示占位 |
+| `activityCapabilities`／`activityPriorities` | 闲时能否做／权重 |
+| `personalityTags`／`backgroundTags`／`talentTags` | 人格档案标签 |
+
+人物表现：**不**为每人生成 Unity Prefab；Host 共用 EntityView，数据驱动差异。见 `docs/40-process/119-npc-character-vs-role-template-editors.md`。
+
 ## type = workArea（NPC Simulation）
 
 | Field | Notes |
@@ -171,14 +203,20 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | `tags[]`／`allowedActivities[]` | 活动范围标签／允许的 ScheduleActivity 名 |
 | `offsetX`／`offsetZ` | 相对 Location presentation 中心的偏移（内容数据，非代码硬编码） |
 
-## type = job（NPC Simulation）
+## type = job（已废弃）
+
+职业式 Job 定义已清空；加载器仍兼容。运行时不靠 Job。
+
+管线：人物倾向选活动 → 工区（偏好／可用）→ Move／Work。样例见 `work_areas.json`。编辑器用 **WorkAreaEditor**＋**CharacterNpcEditor**。
+
+## type = schedule（NPC 日计划）
 
 | Field | Notes |
 |---|---|
-| `primaryWorkAreaId` | 主工区 |
-| `activityBindings[]` | `activity`／`workAreaIds[]`／`mode`（`single`｜`route`） |
+| `blocks[]` | `startTick`／`endTick`（半开区间，日长 288）／`activity`／`orderDurationTicks` |
+| `activity` | Labor｜Rest｜Eat｜Cultivate｜Explore｜Patrol｜Inspect |
 
-管线：Schedule Block → ActivityResolver → MoveAction → WorkAction。样例见 `jobs.json`／`work_areas.json`。
+真源：`Schedules/schedules.json`。运行时由 `ScheduleRuntimeBootstrap` 注册；C# `ScheduleDefinition.Create*` 仅作缺省兜底。
 
 ## type = quest（Content Ready）
 
@@ -220,7 +258,10 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | Field | Notes |
 |---|---|
 | `trigger` | `onExplore`｜`onArrive`｜`onQuestCompleted`｜`onTalk`｜`manual` |
-| `locationId`／`questId`／`npcDefinitionId` | 触发上下文过滤（`onTalk` 配 NPC 的 character definition id） |
+| `locationId`／`questId`／`npcDefinitionId` | 触发上下文过滤（`onTalk` 配 NPC 的 character definition id；事件编辑器可填） |
+
+**对话发任务：** 不在人物 JSON 上写任务列表。用 `trigger=onTalk`＋`npcDefinitionId`＋选项 `outcomes` 的 `startQuest`。运行时动态靠 conditions／flag／章节 beat／`TryPresentById`。
+
 | `once` | 默认 true |
 | `conditions`／`choices[]` | choice：id／text／conditions／outcomes |
 

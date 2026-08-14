@@ -3,11 +3,14 @@ using System.Collections.Generic;
 
 namespace XianXia.Core.Navigation
 {
-    /// <summary>4-neighbour A* on <see cref="WalkGrid"/>. Pure Core; no Unity.</summary>
+    /// <summary>8-neighbour A* on <see cref="WalkGrid"/> with corner-cut guards and LOS string-pull. Pure Core.</summary>
     public static class GridPathfinder
     {
-        static readonly int[] Dx = { 1, -1, 0, 0 };
-        static readonly int[] Dy = { 0, 0, 1, -1 };
+        // N, S, E, W, NE, NW, SE, SW
+        static readonly int[] Dx = { 0, 0, 1, -1, 1, -1, 1, -1 };
+        static readonly int[] Dy = { 1, -1, 0, 0, 1, 1, -1, -1 };
+        const int CardinalCost = 10;
+        const int DiagonalCost = 14;
 
         public static bool TryFindPath(
             WalkGrid grid,
@@ -50,7 +53,6 @@ namespace XianXia.Core.Navigation
             gScore[start] = 0;
             fScore[start] = Heuristic(startX, startY, goalX, goalY);
 
-            // Binary-heap-ish via sorted list of open indices (small grids OK).
             var open = new List<int>(64) { start };
 
             while (open.Count > 0)
@@ -80,17 +82,23 @@ namespace XianXia.Core.Navigation
 
                 var cx = current % w;
                 var cy = current / w;
-                for (var n = 0; n < 4; n++)
+                for (var n = 0; n < 8; n++)
                 {
                     var nx = cx + Dx[n];
                     var ny = cy + Dy[n];
                     if (!grid.IsWalkable(nx, ny))
                         continue;
+
+                    var diagonal = n >= 4;
+                    if (diagonal && !CanStepDiagonal(grid, cx, cy, nx, ny))
+                        continue;
+
                     var ni = Index(nx, ny, w);
                     if (closed[ni])
                         continue;
 
-                    var tentative = gScore[current] + 1;
+                    var step = diagonal ? DiagonalCost : CardinalCost;
+                    var tentative = gScore[current] + step;
                     if (tentative >= gScore[ni])
                         continue;
 
@@ -105,7 +113,7 @@ namespace XianXia.Core.Navigation
             return false;
         }
 
-        /// <summary>World-space path (cell centres). Snaps start within 8, goal within 4.</summary>
+        /// <summary>World-space path (cell centres, string-pulled). Snaps start within 8, goal within 4.</summary>
         public static bool TryFindWorldPath(
             WalkGrid grid,
             float startX,
@@ -145,6 +153,8 @@ namespace XianXia.Core.Navigation
             if (!TryFindPath(grid, sx, sy, gx, gy, cells))
                 return false;
 
+            SimplifyCells(grid, cells);
+
             for (var i = 0; i < cells.Count; i++)
             {
                 grid.CellToWorldCenter(cells[i].X, cells[i].Y, out var wx, out var wy);
@@ -163,7 +173,38 @@ namespace XianXia.Core.Navigation
                 pathXyOut[pathXyOut.Count - 1] = useExactGoal ? goalY : cy;
             }
 
-            return pathXyOut.Count >= 2;
+            // Also allow string-pull from first cell center toward exact start if useful —
+            // movement already starts from unit pos; keep first waypoint as first simplified cell.
+
+            return pathXyOut.Count >= 2 || (pathXyOut.Count == 0 && sx == gx && sy == gy);
+        }
+
+        /// <summary>
+        /// Drop intermediate cells when a straight segment between kept points stays on walkable cells.
+        /// Produces true diagonal legs instead of axis-aligned staircases.
+        /// </summary>
+        public static void SimplifyCells(WalkGrid grid, List<GridCoord> cells)
+        {
+            if (grid == null || cells == null || cells.Count <= 2)
+                return;
+
+            var write = 1;
+            var anchor = 0;
+            for (var i = 1; i < cells.Count; i++)
+            {
+                var canSkipToHere = i + 1 < cells.Count &&
+                                    IsCellSegmentWalkable(grid, cells[anchor], cells[i + 1]);
+                if (canSkipToHere)
+                    continue;
+
+                if (write != i)
+                    cells[write] = cells[i];
+                write++;
+                anchor = i;
+            }
+
+            if (write < cells.Count)
+                cells.RemoveRange(write, cells.Count - write);
         }
 
         /// <summary>Sample the segment; false if any sample lands on a blocked／OOB cell.</summary>
@@ -196,6 +237,17 @@ namespace XianXia.Core.Navigation
             return true;
         }
 
+        static bool IsCellSegmentWalkable(WalkGrid grid, GridCoord a, GridCoord b)
+        {
+            grid.CellToWorldCenter(a.X, a.Y, out var ax, out var ay);
+            grid.CellToWorldCenter(b.X, b.Y, out var bx, out var by);
+            return IsWorldSegmentWalkable(grid, ax, ay, bx, by);
+        }
+
+        /// <summary>Diagonal step allowed only if both adjacent cardinals are walkable (no corner cut).</summary>
+        static bool CanStepDiagonal(WalkGrid grid, int cx, int cy, int nx, int ny) =>
+            grid.IsWalkable(nx, cy) && grid.IsWalkable(cx, ny);
+
         static void Reconstruct(int[] cameFrom, int goal, int w, List<GridCoord> pathOut)
         {
             var stack = new List<int>(32);
@@ -213,8 +265,13 @@ namespace XianXia.Core.Navigation
             }
         }
 
-        static int Heuristic(int ax, int ay, int bx, int by) =>
-            Math.Abs(ax - bx) + Math.Abs(ay - by);
+        /// <summary>Octile distance scaled to cardinal=10 / diagonal=14.</summary>
+        static int Heuristic(int ax, int ay, int bx, int by)
+        {
+            var dx = Math.Abs(ax - bx);
+            var dy = Math.Abs(ay - by);
+            return CardinalCost * (dx + dy) + (DiagonalCost - 2 * CardinalCost) * Math.Min(dx, dy);
+        }
 
         static int Index(int x, int y, int w) => y * w + x;
     }

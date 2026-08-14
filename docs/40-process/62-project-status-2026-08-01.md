@@ -1,17 +1,17 @@
 # 项目现状总览 — 2026-08-01
 
-> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-14（NPC 对话框／任务失败／时间流速）  
+> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-15（人物／工区编辑器、名册、倍速、对话发任务可见性）  
 > 用途：一次看清 VS0.1～1.0／Content Ready 做到哪、本轮改了什么、下一步是什么。  
 > 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准；本页不改 Freeze。  
-> 近期增量一次看清：[117](117-npc-dialogue-host-ux-rollup-2026-08-14.md)（对话）／[116](116-recent-updates-rollup-2026-08-14.md)（Ch01／背包）／[115](115-recent-updates-rollup-2026-08-13.md)／[107](107-recent-milestones-rollup-2026-08-10.md)
+> 近期增量一次看清：[120](120-character-roster-editors-and-timescale-rollup-2026-08-15.md)／[118](118-npc-behavior-editor.md)／[119](119-npc-character-vs-role-template-editors.md)／[117](117-npc-dialogue-host-ux-rollup-2026-08-14.md)／[116](116-recent-updates-rollup-2026-08-14.md)
 
 ---
 
 ## 1. 一句话现状
 
 **Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**；样例关可玩弧／导航／NPC 活动底座／Demo 0.1 Production **自动化已验收（手操待签）**。  
-**本轮：** NPC `onTalk` UGUI 对话框＋任务失败／多人好感＋时间流速＋**对话→任务 UX polish** 见 [117](117-npc-dialogue-host-ux-rollup-2026-08-14.md)。  
-**下一步：** 手操签收对话框；美术换皮／定期发任务／战斗另开；编辑器剩余项按 [106](106-content-authoring-editors-plan-v0.1.md)。  
+**本轮：** 无职业 Job；**WorkArea／CharacterNpc 编辑器**；**characterRoster** 刷人；Host **倍速驱动 Tick＋移动**；事件编辑器露出 `npcDefinitionId`（对话发任务）见 [120](120-character-roster-editors-and-timescale-rollup-2026-08-15.md)。  
+**下一步：** 手操签收编辑器＋倍速；工区占用／战斗另开。  
 制作人手操：[105](105-demo-0.1-producer-playbook-30min.md)。Demo Runtime **继续冻结**。
 
 ---
@@ -161,7 +161,10 @@
 | 内容打断验收 [96] | https://my.feishu.cn/docx/DOeidICK3oLP67xEbsUcKxk1n4e |
 | Demo 手感对齐验收 [93] | https://my.feishu.cn/docx/W9ZgdAoY0odhINxIiGLcnwYonCg |
 | Demo 缺口审计 [91] | https://my.feishu.cn/docx/YtOsdxza5oDF79xAdNLcqOXinAc |
-| **本轮收束 [117] 对话／失败／流速** | https://my.feishu.cn/docx/AQEEdwxmHoPvO6xFAUBcMdqSnkd |
-| 上一轮收束 [116] Ch01／背包 | https://my.feishu.cn/docx/HqczdHh2Zo5A7UxZdvVc4Ggunse |
+| **本轮收束 [120] 人物／名册／倍速** | https://my.feishu.cn/docx/CP2OddgK4ofYFzxPfr5cSYC0nG3 |
+| 工区编辑器 [118] | https://my.feishu.cn/docx/LFhvdfj46oraKCxcTtNcLJ0pnE6 |
+| 工区 vs 人物 [119] | https://my.feishu.cn/docx/DlppdN0BloHiwdxmLI2ccxthnw1 |
+| 收束 [117] 对话／失败／流速 | https://my.feishu.cn/docx/AQEEdwxmHoPvO6xFAUBcMdqSnkd |
+| 收束 [116] Ch01／背包 | https://my.feishu.cn/docx/HqczdHh2Zo5A7UxZdvVc4Ggunse |
 
 完整映射见 `tools/feishu-map.json`。应用新建文档若个人账号不可见，需在飞书把文档分享给你，或提供 `open_id` 后跑 `node tools/feishu-sync.mjs --share --openid ou_xxx`。

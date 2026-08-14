@@ -7,6 +7,18 @@
 
 ---
 
+## 2026-08-15 — 人物／工区编辑器、名册刷人、倍速、对话发任务可见性
+
+**做了什么**
+- 废弃职业式 Job；WorkAreaEditor／CharacterNpcEditor；characterRoster 试玩刷人
+- 人物编辑器保存出场／导出名册：深拷贝修复崩溃＋另存为默认当前路径
+- Host 倍速：`PresentationDeltaTime` 驱动移动；顶栏统一 `SetSpeedMultiplier`（工作／休息／吃饭靠 Tick 已随倍率）
+- 事件编辑器补 `npcDefinitionId`；人物页只读关联 onTalk；说明对话发任务非硬编码
+- 新建 [120](120-character-roster-editors-and-timescale-rollup-2026-08-15.md)；更新 111／118／119／总览／通读／62；飞书同步；推 GitHub
+
+**判断与理由**
+- 制作人必须能在编辑器里看见「谁能对话发任务」；倍速必须覆盖表现层移动，否则时钟与行为脱节
+
 ## 2026-08-14 — 对话／任务 UX polish＋主管 startQuest 样例
 
 **做了什么**

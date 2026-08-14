@@ -44,10 +44,12 @@ namespace XianXia.Unity.Host
             y += 18f;
             GUI.Label(new Rect(pad + 8f, y, w - 16f, 20f),
                 "地图: " + _mapLine + " ｜ 剧本: " +
-                (string.IsNullOrEmpty(bootstrap.OpeningScenarioId) ? "(default)" : bootstrap.OpeningScenarioId));
+                (string.IsNullOrEmpty(bootstrap.OpeningScenarioId) ? "(default)" : bootstrap.OpeningScenarioId) +
+                " ｜ 名册: " +
+                (string.IsNullOrEmpty(bootstrap.CharacterRosterId) ? "(用剧本spawns)" : bootstrap.CharacterRosterId));
             y += 18f;
             GUI.Label(new Rect(pad + 8f, y, w - 16f, 20f),
-                "Space 暂停 · .／N 步进 · [ ] 变速 · F12／R 重载 · F1 隐藏本栏 · Inspector 换地图／剧本");
+                "Space 暂停 · .／N 步进 · [ ] 变速 · F12／R 重载 · F1 隐藏本栏 · Inspector 换地图／剧本／名册");
         }
 
         void RefreshMapLine()

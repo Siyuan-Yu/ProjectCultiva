@@ -206,6 +206,9 @@ namespace XianXia.Data.Content
                     case "openingScenario":
                         LoadOpeningScenario(item, parsed.Value, registry, report);
                         break;
+                    case "characterRoster":
+                        LoadCharacterRoster(item, parsed.Value, registry, report);
+                        break;
                     case "resource":
                         LoadResource(item, parsed.Value, registry, report);
                         break;
@@ -232,6 +235,9 @@ namespace XianXia.Data.Content
                         break;
                     case "job":
                         LoadJob(item, parsed.Value, registry, report);
+                        break;
+                    case "schedule":
+                        LoadSchedule(item, parsed.Value, registry, report);
                         break;
                     case "mapLayout":
                         LoadMapLayout(item, parsed.Value, registry, report);
@@ -261,7 +267,8 @@ namespace XianXia.Data.Content
                 DisplayNameKey = item.GetString("displayNameKey", string.Empty),
                 NameKey = item.GetString("nameKey", string.Empty),
                 SpiritRootPlaceholder = item.GetString("spiritRootPlaceholder", string.Empty),
-                InitialRealmPlaceholder = item.GetString("initialRealmPlaceholder", string.Empty)
+                InitialRealmPlaceholder = item.GetString("initialRealmPlaceholder", string.Empty),
+                PlayerControllable = item.GetBool("playerControllable", false)
             };
 
             if (item.TryGetProperty("baseAttributes", out var attrs))
@@ -297,6 +304,15 @@ namespace XianXia.Data.Content
             ReadNamedTagArray(item, "personalityTags", character.PersonalityTags, report, id.ToString());
             ReadNamedTagArray(item, "backgroundTags", character.BackgroundTags, report, id.ToString());
             ReadNamedTagArray(item, "talentTags", character.TalentTags, report, id.ToString());
+            ReadNamedTagArray(item, "preferredWorkAreaIds", character.PreferredWorkAreaIds, report, id.ToString());
+            ReadNamedTagArray(item, "goals", character.Goals, report, id.ToString());
+            ReadNamedTagArray(item, "desires", character.Desires, report, id.ToString());
+            ReadBoolMap(item, "activityCapabilities", character.ActivityCapabilities, report, id.ToString());
+            ReadIntMap(item, "activityPriorities", character.ActivityPriorities, report, id.ToString());
+            ReadIntMap(item, "spiritRoots", character.SpiritRoots, report, id.ToString());
+            character.Hometown = item.GetString("hometown", string.Empty);
+            if (item.TryGetProperty("reputation", out var repNode) && repNode.Kind == JsonValueKind.Number)
+                character.Reputation = (int)repNode.Number;
             if (report.Errors.Count > errorsBefore)
                 return;
 
@@ -635,6 +651,80 @@ namespace XianXia.Data.Content
                 report.Add(reg.Error);
         }
 
+        static void LoadCharacterRoster(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.CharacterRosterFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var roster = new CharacterRosterDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty)
+            };
+
+            if (!item.TryGetProperty("entries", out var entriesNode) || entriesNode.Kind != JsonValueKind.Array)
+            {
+                report.Add(ErrorCode.MissingRequiredField, "characterRoster.entries required array.", id.ToString());
+                return;
+            }
+
+            foreach (var spawnNode in entriesNode.Array)
+            {
+                if (spawnNode.Kind != JsonValueKind.Object)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "roster entries must be objects.", id.ToString());
+                    continue;
+                }
+
+                DefinitionSchema.RejectUnknownFields(
+                    spawnNode,
+                    DefinitionSchema.OpeningSpawnFields,
+                    report,
+                    id + ".entry");
+                if (report.Errors.Count > errorsBefore)
+                    return;
+
+                var entry = new OpeningSpawnEntry
+                {
+                    DefinitionId = spawnNode.GetString("definitionId", string.Empty),
+                    EntityKind = spawnNode.GetString("entityKind", "character"),
+                    DisplayName = spawnNode.GetString("displayName", string.Empty),
+                    AssignOpeningFaction = spawnNode.GetBool("assignOpeningFaction", false),
+                    FactionRole = spawnNode.GetString("factionRole", string.Empty),
+                    BindSchedule = spawnNode.GetBool("bindSchedule", true),
+                    BindDailyTask = spawnNode.GetBool("bindDailyTask", true),
+                    Recruitable = spawnNode.GetBool("recruitable", false),
+                    WorkRole = spawnNode.GetString("workRole", string.Empty),
+                    ScheduleId = spawnNode.GetString("scheduleId", string.Empty),
+                    AiRole = spawnNode.GetString("aiRole", string.Empty),
+                    JobId = spawnNode.GetString("jobId", string.Empty)
+                };
+                if (string.IsNullOrWhiteSpace(entry.DefinitionId))
+                {
+                    report.Add(ErrorCode.MissingRequiredField, "roster.entry.definitionId required.", id.ToString());
+                    return;
+                }
+
+                roster.Entries.Add(entry);
+            }
+
+            if (roster.Entries.Count == 0)
+            {
+                report.Add(ErrorCode.MissingRequiredField, "characterRoster.entries must be non-empty.", id.ToString());
+                return;
+            }
+
+            var reg = registry.RegisterCharacterRoster(roster);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
         static void LoadResource(
             JsonValue item,
             DefinitionId id,
@@ -959,6 +1049,69 @@ namespace XianXia.Data.Content
             }
 
             var reg = registry.RegisterJob(job);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void LoadSchedule(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.ScheduleFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var schedule = new ScheduleContentDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty)
+            };
+
+            if (!item.TryGetProperty("blocks", out var blocksNode) || blocksNode.Kind != JsonValueKind.Array)
+            {
+                report.Add(ErrorCode.MissingRequiredField, "schedule.blocks required.", id.ToString());
+                return;
+            }
+
+            foreach (var blockNode in blocksNode.Array)
+            {
+                if (blockNode.Kind != JsonValueKind.Object)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "schedule.blocks entries must be objects.", id.ToString());
+                    continue;
+                }
+
+                DefinitionSchema.RejectUnknownFields(
+                    blockNode, DefinitionSchema.ScheduleBlockFields, report, id + ".block");
+                if (report.Errors.Count > errorsBefore)
+                    return;
+
+                var entry = new ScheduleBlockEntry
+                {
+                    StartTick = ReadInt(blockNode, "startTick", 0),
+                    EndTick = ReadInt(blockNode, "endTick", 0),
+                    Activity = blockNode.GetString("activity", string.Empty),
+                    OrderDurationTicks = (ulong)System.Math.Max(0, ReadInt(blockNode, "orderDurationTicks", 6))
+                };
+                if (string.IsNullOrWhiteSpace(entry.Activity))
+                {
+                    report.Add(ErrorCode.MissingRequiredField, "schedule.block.activity required.", id.ToString());
+                    return;
+                }
+
+                schedule.Blocks.Add(entry);
+            }
+
+            if (schedule.Blocks.Count == 0)
+            {
+                report.Add(ErrorCode.MissingRequiredField, "schedule.blocks empty.", id.ToString());
+                return;
+            }
+
+            var reg = registry.RegisterSchedule(schedule);
             if (reg.IsFailure)
                 report.Add(reg.Error);
         }
@@ -1317,6 +1470,60 @@ namespace XianXia.Data.Content
                 }
 
                 tags.Add(t.String);
+            }
+        }
+
+        static void ReadBoolMap(
+            JsonValue item,
+            string field,
+            Dictionary<string, bool> map,
+            ValidationReport report,
+            string context)
+        {
+            if (!item.TryGetProperty(field, out var node))
+                return;
+            if (node.Kind != JsonValueKind.Object)
+            {
+                report.Add(ErrorCode.ContentLoadFailed, field + " must be object.", context);
+                return;
+            }
+
+            foreach (var kv in node.Object)
+            {
+                if (kv.Value.Kind != JsonValueKind.Boolean)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, field + " values must be bool.", context + "." + kv.Key);
+                    continue;
+                }
+
+                map[kv.Key] = kv.Value.Bool;
+            }
+        }
+
+        static void ReadIntMap(
+            JsonValue item,
+            string field,
+            Dictionary<string, int> map,
+            ValidationReport report,
+            string context)
+        {
+            if (!item.TryGetProperty(field, out var node))
+                return;
+            if (node.Kind != JsonValueKind.Object)
+            {
+                report.Add(ErrorCode.ContentLoadFailed, field + " must be object.", context);
+                return;
+            }
+
+            foreach (var kv in node.Object)
+            {
+                if (kv.Value.Kind != JsonValueKind.Number)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, field + " values must be number.", context + "." + kv.Key);
+                    continue;
+                }
+
+                map[kv.Key] = (int)kv.Value.Number;
             }
         }
     }

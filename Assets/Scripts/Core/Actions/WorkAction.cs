@@ -104,15 +104,21 @@ namespace XianXia.Core.Actions
         {
             if (!world.Entities.TryGet(Subject, out var entity))
                 return;
-            if (!entity.TryGet<JobComponent>(out var job) || !job.HasJob)
+            if (Activity != ScheduleActivity.Patrol &&
+                Activity != ScheduleActivity.Inspect &&
+                Activity != ScheduleActivity.Explore)
                 return;
-            if (!world.TryGetJob(job.JobId, out var jobDef))
+
+            var candidates = ActivityResolver.RouteCandidates(world, entity, Activity);
+            if (candidates == null || candidates.Count <= 1)
                 return;
-            if (!jobDef.TryGetBinding(Activity, out var binding) || !binding.Route)
-                return;
-            if (binding.WorkAreaIds == null || binding.WorkAreaIds.Count == 0)
-                return;
-            job.RouteIndex = (job.RouteIndex + 1) % binding.WorkAreaIds.Count;
+            if (!entity.TryGet<JobComponent>(out var job))
+            {
+                job = new JobComponent();
+                entity.AddComponent(job);
+            }
+
+            job.RouteIndex = (job.RouteIndex + 1) % candidates.Count;
         }
 
         public void Cancel()

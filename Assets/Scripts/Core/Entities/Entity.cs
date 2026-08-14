@@ -14,6 +14,7 @@ namespace XianXia.Core.Entities
             typeof(LifecycleComponent),
             typeof(ActionStateComponent),
             typeof(XianXia.Core.Cultivation.CultivationComponent),
+            typeof(XianXia.Core.Cultivation.SpiritRootComponent),
             typeof(XianXia.Core.Labor.DailyTaskComponent),
             typeof(XianXia.Core.Schedule.ScheduleComponent),
             typeof(XianXia.Core.Opportunity.KnownSitesComponent),
@@ -25,6 +26,7 @@ namespace XianXia.Core.Entities
             typeof(XianXia.Core.Settlement.WorkAssignmentComponent),
             typeof(XianXia.Core.Exploration.EntityLocationComponent),
             typeof(XianXia.Core.Npc.JobComponent),
+            typeof(XianXia.Core.Npc.ActivityTendencyComponent),
             typeof(XianXia.Core.Npc.MovementIntentComponent)
         };
 

@@ -271,6 +271,14 @@ namespace XianXia.Unity.Host
             _stylesReady = true;
         }
 
+        void SetHostSpeed(int multiplier)
+        {
+            if (bootstrap != null)
+                bootstrap.SetSpeedMultiplier(multiplier);
+            else
+                debugHud?.SetSpeedMultiplier(multiplier);
+        }
+
         void DrawTopBar(PlayableHostSession session)
         {
             var day = session.CurrentDayClock;
@@ -300,14 +308,14 @@ namespace XianXia.Unity.Host
             }
 
             x += 60f;
-            if (GUI.Button(new Rect(x, 8f, 40f, 32f), "1x") && debugHud != null)
-                debugHud.SetSpeedMultiplier(1);
+            if (GUI.Button(new Rect(x, 8f, 40f, 32f), "1x"))
+                SetHostSpeed(1);
             x += 44f;
-            if (GUI.Button(new Rect(x, 8f, 40f, 32f), "2x") && debugHud != null)
-                debugHud.SetSpeedMultiplier(2);
+            if (GUI.Button(new Rect(x, 8f, 40f, 32f), "2x"))
+                SetHostSpeed(2);
             x += 44f;
-            if (GUI.Button(new Rect(x, 8f, 40f, 32f), "5x") && debugHud != null)
-                debugHud.SetSpeedMultiplier(5);
+            if (GUI.Button(new Rect(x, 8f, 40f, 32f), "5x"))
+                SetHostSpeed(5);
 
             var bag = session.World.Inventory;
             var wood = bag.GetCount("base:resource_rough_wood");

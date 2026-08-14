@@ -195,54 +195,139 @@
           "bindSchedule": true,
           "bindDailyTask": false,
           "scheduleId": "base:schedule_supervisor_day",
-          "aiRole": "Supervisor",
-          "jobId": "base:job_supervisor"
+          "aiRole": "Supervisor"
+        },
+        {
+          "definitionId": "base:character_ch01_ref_guard_a",
+          "entityKind": "npc",
+          "displayName": "巡卫甲",
+          "assignOpeningFaction": true,
+          "factionRole": "Member",
+          "bindSchedule": true,
+          "bindDailyTask": false,
+          "scheduleId": "base:schedule_supervisor_day",
+          "aiRole": "Mortal"
+        },
+        {
+          "definitionId": "base:character_ch01_ref_guard_b",
+          "entityKind": "npc",
+          "displayName": "巡卫乙",
+          "assignOpeningFaction": true,
+          "factionRole": "Member",
+          "bindSchedule": true,
+          "bindDailyTask": false,
+          "scheduleId": "base:schedule_supervisor_day",
+          "aiRole": "Mortal"
+        },
+        {
+          "definitionId": "base:character_ch01_ref_guard_c",
+          "entityKind": "npc",
+          "displayName": "巡卫丙",
+          "assignOpeningFaction": true,
+          "factionRole": "Member",
+          "bindSchedule": true,
+          "bindDailyTask": false,
+          "scheduleId": "base:schedule_supervisor_day",
+          "aiRole": "Mortal"
         },
         {
           "definitionId": "base:character_ch01_ref_mortal_a",
           "entityKind": "npc",
-          "displayName": "农夫阿石",
+          "displayName": "阿石",
           "assignOpeningFaction": true,
           "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "scheduleId": "base:schedule_mortal_day",
-          "aiRole": "Mortal",
-          "jobId": "base:job_grain_farmer"
+          "aiRole": "Mortal"
+        },
+        {
+          "definitionId": "base:character_ch01_ref_farmer_b",
+          "entityKind": "npc",
+          "displayName": "阿土",
+          "assignOpeningFaction": true,
+          "factionRole": "LaborDisciple",
+          "bindSchedule": true,
+          "bindDailyTask": true,
+          "scheduleId": "base:schedule_mortal_day",
+          "aiRole": "Mortal"
+        },
+        {
+          "definitionId": "base:character_ch01_ref_farmer_c",
+          "entityKind": "npc",
+          "displayName": "阿禾",
+          "assignOpeningFaction": true,
+          "factionRole": "LaborDisciple",
+          "bindSchedule": true,
+          "bindDailyTask": true,
+          "scheduleId": "base:schedule_mortal_day",
+          "aiRole": "Mortal"
         },
         {
           "definitionId": "base:character_ch01_ref_mortal_b",
           "entityKind": "npc",
-          "displayName": "药农阿青",
+          "displayName": "阿青",
           "assignOpeningFaction": true,
           "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "scheduleId": "base:schedule_mortal_day",
-          "aiRole": "Mortal",
-          "jobId": "base:job_herb_farmer"
+          "aiRole": "Mortal"
         },
         {
-          "definitionId": "base:character_ch01_ref_cultivator_a",
+          "definitionId": "base:character_ch01_ref_herb_b",
           "entityKind": "npc",
-          "displayName": "外门修士",
+          "displayName": "阿兰",
           "assignOpeningFaction": true,
-          "factionRole": "Member",
+          "factionRole": "LaborDisciple",
           "bindSchedule": true,
-          "bindDailyTask": false,
-          "scheduleId": "base:schedule_cultivator_day",
-          "aiRole": "Cultivator"
+          "bindDailyTask": true,
+          "scheduleId": "base:schedule_mortal_day",
+          "aiRole": "Mortal"
         },
         {
-          "definitionId": "base:character_ch01_ref_cultivator_b",
+          "definitionId": "base:character_ch01_ref_herb_c",
           "entityKind": "npc",
-          "displayName": "巡山修士",
+          "displayName": "阿杏",
           "assignOpeningFaction": true,
-          "factionRole": "Member",
+          "factionRole": "LaborDisciple",
           "bindSchedule": true,
-          "bindDailyTask": false,
-          "scheduleId": "base:schedule_cultivator_day",
-          "aiRole": "Cultivator"
+          "bindDailyTask": true,
+          "scheduleId": "base:schedule_mortal_day",
+          "aiRole": "Mortal"
+        },
+        {
+          "definitionId": "base:character_ch01_ref_woodcutter",
+          "entityKind": "npc",
+          "displayName": "阿木",
+          "assignOpeningFaction": true,
+          "factionRole": "LaborDisciple",
+          "bindSchedule": true,
+          "bindDailyTask": true,
+          "scheduleId": "base:schedule_mortal_day",
+          "aiRole": "Mortal"
+        },
+        {
+          "definitionId": "base:character_ch01_ref_wood_b",
+          "entityKind": "npc",
+          "displayName": "阿柴",
+          "assignOpeningFaction": true,
+          "factionRole": "LaborDisciple",
+          "bindSchedule": true,
+          "bindDailyTask": true,
+          "scheduleId": "base:schedule_mortal_day",
+          "aiRole": "Mortal"
+        },
+        {
+          "definitionId": "base:character_ch01_ref_wood_c",
+          "entityKind": "npc",
+          "displayName": "阿枝",
+          "assignOpeningFaction": true,
+          "factionRole": "LaborDisciple",
+          "bindSchedule": true,
+          "bindDailyTask": true,
+          "scheduleId": "base:schedule_mortal_day",
+          "aiRole": "Mortal"
         },
         {
           "definitionId": "base:character_village_recruit",
@@ -254,62 +339,6 @@
           "recruitable": true,
           "scheduleId": "base:schedule_mortal_day",
           "aiRole": "Mortal"
-        },
-        {
-          "definitionId": "base:character_ch01_ref_guard_a",
-          "entityKind": "npc",
-          "displayName": "巡卫甲",
-          "assignOpeningFaction": true,
-          "factionRole": "Member",
-          "bindSchedule": true,
-          "bindDailyTask": false,
-          "scheduleId": "base:schedule_supervisor_day",
-          "aiRole": "Mortal",
-          "jobId": "base:job_patrol_guard"
-        },
-        {
-          "definitionId": "base:character_ch01_ref_guard_b",
-          "entityKind": "npc",
-          "displayName": "巡卫乙",
-          "assignOpeningFaction": true,
-          "factionRole": "Member",
-          "bindSchedule": true,
-          "bindDailyTask": false,
-          "scheduleId": "base:schedule_supervisor_day",
-          "aiRole": "Mortal",
-          "jobId": "base:job_patrol_guard"
-        },
-        {
-          "definitionId": "base:character_ch01_ref_merchant",
-          "entityKind": "npc",
-          "displayName": "行商",
-          "assignOpeningFaction": false,
-          "bindSchedule": true,
-          "bindDailyTask": false,
-          "scheduleId": "base:schedule_mortal_day",
-          "aiRole": "Mortal"
-        },
-        {
-          "definitionId": "base:character_ch01_ref_woodcutter",
-          "entityKind": "npc",
-          "displayName": "砍柴老人",
-          "assignOpeningFaction": false,
-          "bindSchedule": true,
-          "bindDailyTask": false,
-          "scheduleId": "base:schedule_mortal_day",
-          "aiRole": "Mortal"
-        },
-        {
-          "definitionId": "base:character_ch01_ref_miner",
-          "entityKind": "npc",
-          "displayName": "矿工老倔",
-          "assignOpeningFaction": true,
-          "factionRole": "LaborDisciple",
-          "bindSchedule": true,
-          "bindDailyTask": true,
-          "scheduleId": "base:schedule_mortal_day",
-          "aiRole": "Mortal",
-          "jobId": "base:job_miner"
         }
       ],
       "openingRelations": [

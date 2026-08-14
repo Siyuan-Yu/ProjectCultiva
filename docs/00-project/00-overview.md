@@ -1,19 +1,19 @@
 ﻿# 修仙游戏策划案总览
 
-> 状态：概念框架 v0.9｜**Architecture Freeze v0.2**｜**Content Studio＋Ch01 手操弧进行中** | 最后更新：2026-08-14  
+> 状态：概念框架 v0.9｜**Architecture Freeze v0.2**｜**Content Studio＋Ch01 手操弧进行中** | 最后更新：2026-08-15  
 > **本页只放最高层大纲。** 细节进专题页；**怎么读整套文档**见 [通读指南](04-reading-guide.md)。  
 > 本地 Markdown 与飞书文档一一对应（真源在本地，飞书为阅读层）。
 
 ## 〇、当前项目阶段
 
 **架构冻结 v0.2。** Core／Data／Host／**VS 0.1～1.0 Demo 自动化已验收**。  
-其上已叠加：样例关、内容打断、RTS 手操、Navigation／NPC 底座、**Content Studio**、**Level Tester**、**Ch01 三环手操**、**NPC onTalk 对话框（UGUI）**、任务失败／时间流速约定。  
-最新增量见 [117](../40-process/117-npc-dialogue-host-ux-rollup-2026-08-14.md)（对话／失败／流速／**对话→任务 UX**）；上一轮 [116](../40-process/116-recent-updates-rollup-2026-08-14.md)（背包／劳动）；工具链 [115](../40-process/115-recent-updates-rollup-2026-08-13.md)。  
+其上已叠加：样例关、内容打断、RTS 手操、Navigation／NPC 底座、**Content Studio**、**Level Tester**、**Ch01 三环手操**、**NPC onTalk 对话框（UGUI）**、任务失败／时间流速约定、**人物／工区编辑器＋名册刷人**。  
+最新增量见 [120](../40-process/120-character-roster-editors-and-timescale-rollup-2026-08-15.md)（人物／工区／名册／倍速／对话发任务可见性）；上一轮 [117](../40-process/117-npc-dialogue-host-ux-rollup-2026-08-14.md)；再前 [116](../40-process/116-recent-updates-rollup-2026-08-14.md)。  
 
-**下一步：** 制作人手操签收对话框＋Ch01；美术换皮／定期发任务／战斗占位另开。  
+**下一步：** 制作人手操签收编辑器＋倍速；美术换皮／工区占用／战斗占位另开。  
 Demo Runtime 停扩。完整进度见 [62 项目现状](../40-process/62-project-status-2026-08-01.md)。
 
-**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [117 本轮收束](../40-process/117-npc-dialogue-host-ux-rollup-2026-08-14.md) → [116](../40-process/116-recent-updates-rollup-2026-08-14.md) → [62 现状](../40-process/62-project-status-2026-08-01.md) → [110 任务编辑器](../40-process/110-content-studio-quest-editor-usage.md) → [105 手操](../40-process/105-demo-0.1-producer-playbook-30min.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md)。
+**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [120 本轮收束](../40-process/120-character-roster-editors-and-timescale-rollup-2026-08-15.md) → [117](../40-process/117-npc-dialogue-host-ux-rollup-2026-08-14.md) → [62 现状](../40-process/62-project-status-2026-08-01.md) → [110 任务编辑器](../40-process/110-content-studio-quest-editor-usage.md) → [105 手操](../40-process/105-demo-0.1-producer-playbook-30min.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md)。
 
 - 主契约：[33 架构冻结 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md)
 - 实体／Order／Mod：[34](../30-tech/34-entity-and-component-model.md)、[35](../30-tech/35-order-and-action-system.md)、[36](../30-tech/36-content-package-and-mod-architecture.md)

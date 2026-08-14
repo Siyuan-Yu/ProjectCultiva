@@ -414,6 +414,9 @@ namespace XianXia.Data.Content
                 case "workArea":
                     ok = registry.WorkAreas.ContainsKey(id);
                     break;
+                case "schedule":
+                    ok = registry.Schedules.ContainsKey(id);
+                    break;
                 case "resource":
                     ok = registry.Resources.ContainsKey(id);
                     break;

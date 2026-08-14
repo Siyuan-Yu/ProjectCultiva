@@ -25,6 +25,7 @@ public static class ContentPathRules
             ["worldRegion"] = "Regions",
             ["chapter"] = "Chapters",
             ["openingScenario"] = "Scenarios",
+            ["characterRoster"] = "Rosters",
             ["cultivation"] = "Cultivation",
             ["item"] = "Items",
             ["opportunitySite"] = "Sites",
@@ -33,6 +34,7 @@ public static class ContentPathRules
             ["settlement"] = "Settlements",
             ["job"] = "Jobs",
             ["workArea"] = "WorkAreas",
+            ["schedule"] = "Schedules",
         };
 
     public static string SubdirForType(string type) =>

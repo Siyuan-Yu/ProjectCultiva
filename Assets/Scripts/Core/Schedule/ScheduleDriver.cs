@@ -32,8 +32,8 @@ namespace XianXia.Core.Schedule
                 if ((entity.Tags & EntityTag.Character) != 0)
                     continue;
 
-                // Job NPCs use NpcActivityDriver (Move → Work), not direct Labor／Observe.
-                if (entity.TryGet<JobComponent>(out var job) && job.HasJob)
+                // NPCs with schedules use NpcActivityDriver (WorkArea resolve + Move／Work).
+                if ((entity.Tags & EntityTag.Npc) != 0)
                     continue;
 
                 if (!entity.TryGet<ScheduleComponent>(out var binding) ||

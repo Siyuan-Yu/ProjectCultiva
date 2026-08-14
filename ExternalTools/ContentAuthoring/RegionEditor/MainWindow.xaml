@@ -26,15 +26,15 @@
               HeadersVisibility="Column" SelectionMode="Single">
       <DataGrid.Columns>
         <DataGridTextColumn Header="id" Binding="{Binding Id}" Width="180"/>
-        <DataGridTextColumn Header="name" Binding="{Binding Name}" Width="100"/>
-        <DataGridTextColumn Header="kind" Binding="{Binding Kind}" Width="90"/>
+        <DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="100"/>
+        <DataGridComboBoxColumn x:Name="KindColumn" Header="类型" SelectedItemBinding="{Binding Kind}" Width="90"/>
         <DataGridTextColumn Header="tags" Binding="{Binding Tags}" Width="120"/>
-        <DataGridTextColumn Header="allowedActivities" Binding="{Binding AllowedActivities}" Width="140"/>
-        <DataGridTextColumn Header="adjacentIds" Binding="{Binding AdjacentIds}" Width="220"/>
+        <DataGridTextColumn Header="允许活动（中文，逗号分隔）" Binding="{Binding AllowedActivities}" Width="160"/>
+        <DataGridTextColumn Header="相邻地点" Binding="{Binding AdjacentIds}" Width="220"/>
         <DataGridTextColumn Header="X" Binding="{Binding PresentationX}" Width="50"/>
         <DataGridTextColumn Header="Z" Binding="{Binding PresentationZ}" Width="50"/>
         <DataGridTextColumn Header="explore资源" Binding="{Binding ResourceOnExploreId}" Width="140"/>
-        <DataGridTextColumn Header="amount" Binding="{Binding ResourceOnExploreAmount}" Width="60"/>
+        <DataGridTextColumn Header="数量" Binding="{Binding ResourceOnExploreAmount}" Width="60"/>
         <DataGridTextColumn Header="NPC" Binding="{Binding ResidentNpcDefinitionId}" Width="160"/>
         <DataGridTextColumn Header="机缘" Binding="{Binding OpportunitySiteId}" Width="140"/>
         <DataGridTextColumn Header="questOfferIds" Binding="{Binding QuestOfferIds}" Width="180"/>

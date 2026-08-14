@@ -30,8 +30,8 @@
             <TextBlock Text="name" Width="90" VerticalAlignment="Center"/>
             <TextBox x:Name="NameBox"/>
           </DockPanel>
-          <DockPanel Margin="0,0,0,6">
-            <TextBlock Text="trigger" Width="90" VerticalAlignment="Center"/>
+            <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="trigger（触发时机）" Width="90" VerticalAlignment="Center"/>
             <ComboBox x:Name="TriggerBox"/>
           </DockPanel>
           <DockPanel Margin="0,0,0,6">
@@ -42,6 +42,13 @@
             <TextBlock Text="questId" Width="90" VerticalAlignment="Center"/>
             <TextBox x:Name="QuestIdBox"/>
           </DockPanel>
+          <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="npcDefinitionId" Width="90" VerticalAlignment="Center"
+                       ToolTip="onTalk：匹配被对话人物的 character id"/>
+            <ComboBox x:Name="NpcDefBox" IsEditable="True"/>
+          </DockPanel>
+          <TextBlock Margin="0,0,0,8" TextWrapping="Wrap" Foreground="#555"
+                     Text="对话发任务：trigger=onTalk + npcDefinitionId=人物id；选项 outcomes 里加 startQuest。人物／任务编辑器不写这条关联。"/>
           <CheckBox x:Name="OnceBox" Content="once（只触发一次）" Margin="0,0,0,8"/>
           <TextBlock Text="body"/>
           <TextBox x:Name="BodyBox" AcceptsReturn="True" Height="110" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0,0,0,8"/>

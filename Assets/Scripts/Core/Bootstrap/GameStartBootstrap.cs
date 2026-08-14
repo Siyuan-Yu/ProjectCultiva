@@ -1,10 +1,14 @@
 using System;
 using System.Collections.Generic;
+using XianXia.Core.Attributes;
+using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Events;
+using XianXia.Core.Npc;
 using XianXia.Core.Random;
 using XianXia.Core.Results;
+using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 using XianXia.Core.World;
@@ -70,6 +74,9 @@ namespace XianXia.Core.Bootstrap
                 if (entity.TryGet<PersonalityProfileComponent>(out var profile))
                     profile.SetTags(spawn.PersonalityTags);
 
+                ApplyActivityTendency(entity, spawn);
+                ApplySpiritRoots(entity, spawn);
+
                 world.Events.Publish(
                     EventType.EntityCreated,
                     world.Tick,
@@ -101,6 +108,69 @@ namespace XianXia.Core.Bootstrap
                          ";npcs=" + npcs.Count);
 
             return Result.Ok(new GameStartResult(world, characters, npcs, byDefinition));
+        }
+
+        static void ApplyActivityTendency(Entity entity, CharacterSpawnRequest spawn)
+        {
+            if (entity == null || spawn == null)
+                return;
+            if (!entity.TryGet<ActivityTendencyComponent>(out var tendency))
+            {
+                tendency = new ActivityTendencyComponent();
+                entity.AddComponent(tendency);
+            }
+
+            if (spawn.ActivityCapabilities != null)
+            {
+                foreach (var kv in spawn.ActivityCapabilities)
+                {
+                    if (TryParseActivity(kv.Key, out var activity))
+                        tendency.SetCapability(activity, kv.Value);
+                }
+            }
+
+            if (spawn.ActivityPriorities != null)
+            {
+                foreach (var kv in spawn.ActivityPriorities)
+                {
+                    if (TryParseActivity(kv.Key, out var activity))
+                        tendency.SetPriority(activity, kv.Value);
+                }
+            }
+
+            if (spawn.PreferredWorkAreaIds != null)
+            {
+                for (var i = 0; i < spawn.PreferredWorkAreaIds.Count; i++)
+                {
+                    var id = spawn.PreferredWorkAreaIds[i];
+                    if (!string.IsNullOrWhiteSpace(id))
+                        tendency.PreferredWorkAreaIds.Add(id.Trim());
+                }
+            }
+        }
+
+        static bool TryParseActivity(string text, out ScheduleActivity activity)
+        {
+            activity = default;
+            return !string.IsNullOrWhiteSpace(text) &&
+                   Enum.TryParse(text.Trim(), true, out activity);
+        }
+
+        static void ApplySpiritRoots(Entity entity, CharacterSpawnRequest spawn)
+        {
+            if (entity == null || spawn?.SpiritRoots == null || spawn.SpiritRoots.Count == 0)
+                return;
+            if (!entity.TryGet<SpiritRootComponent>(out var roots))
+            {
+                roots = new SpiritRootComponent();
+                entity.AddComponent(roots);
+            }
+
+            foreach (var kv in spawn.SpiritRoots)
+            {
+                if (Enum.TryParse(kv.Key, true, out SpiritRootKind kind))
+                    roots.Set(kind, kv.Value);
+            }
         }
     }
 

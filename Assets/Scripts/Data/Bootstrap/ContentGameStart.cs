@@ -46,7 +46,8 @@ namespace XianXia.Data.Bootstrap
         public Result<GameStartResult> StartFromScenario(
             LoadedContent loaded,
             DefinitionId scenarioId,
-            IRandomSource random = null)
+            IRandomSource random = null,
+            string characterRosterId = null)
         {
             if (loaded == null || loaded.Registry == null)
                 return Result.Fail<GameStartResult>(ErrorCode.InvalidArgument, "LoadedContent is null.");
@@ -62,8 +63,27 @@ namespace XianXia.Data.Bootstrap
                     scenarioId.ToString());
             }
 
+            IList<OpeningSpawnEntry> spawnEntries = scenario.Spawns;
+            if (!string.IsNullOrWhiteSpace(characterRosterId))
+            {
+                var rosterParsed = DefinitionId.Parse(characterRosterId.Trim());
+                if (rosterParsed.IsFailure)
+                    return Result.Fail<GameStartResult>(rosterParsed.Error);
+                if (!registry.TryGetCharacterRoster(rosterParsed.Value, out var roster) ||
+                    roster.Entries == null ||
+                    roster.Entries.Count == 0)
+                {
+                    return Result.Fail<GameStartResult>(
+                        ErrorCode.NotFound,
+                        "Character roster missing or empty (export from CharacterNpcEditor).",
+                        characterRosterId.Trim());
+                }
+
+                spawnEntries = roster.Entries;
+            }
+
             var spawns = new List<CharacterSpawnRequest>();
-            foreach (var entry in scenario.Spawns)
+            foreach (var entry in spawnEntries)
             {
                 var built = BuildSpawn(registry, entry);
                 if (built.IsFailure)
@@ -141,6 +161,50 @@ namespace XianXia.Data.Bootstrap
             {
                 if (!string.IsNullOrWhiteSpace(tag))
                     spawn.PersonalityTags.Add(tag);
+            }
+
+            if (def.ActivityCapabilities != null)
+            {
+                foreach (var kv in def.ActivityCapabilities)
+                    spawn.ActivityCapabilities[kv.Key] = kv.Value;
+            }
+
+            if (def.ActivityPriorities != null)
+            {
+                foreach (var kv in def.ActivityPriorities)
+                    spawn.ActivityPriorities[kv.Key] = kv.Value;
+            }
+
+            if (def.PreferredWorkAreaIds != null)
+            {
+                for (var i = 0; i < def.PreferredWorkAreaIds.Count; i++)
+                {
+                    var id = def.PreferredWorkAreaIds[i];
+                    if (!string.IsNullOrWhiteSpace(id))
+                        spawn.PreferredWorkAreaIds.Add(id);
+                }
+            }
+
+            if (def.SpiritRoots != null)
+            {
+                foreach (var kv in def.SpiritRoots)
+                    spawn.SpiritRoots[kv.Key] = kv.Value;
+            }
+
+            spawn.Hometown = def.Hometown ?? string.Empty;
+            spawn.Reputation = def.Reputation;
+            if (def.Goals != null)
+            {
+                for (var i = 0; i < def.Goals.Count; i++)
+                    if (!string.IsNullOrWhiteSpace(def.Goals[i]))
+                        spawn.Goals.Add(def.Goals[i]);
+            }
+
+            if (def.Desires != null)
+            {
+                for (var i = 0; i < def.Desires.Count; i++)
+                    if (!string.IsNullOrWhiteSpace(def.Desires[i]))
+                        spawn.Desires.Add(def.Desires[i]);
             }
 
             return Result.Ok(spawn);

@@ -11,66 +11,174 @@
         "MaxHp": 100,
         "Attack": 10,
         "Defense": 5,
-        "Speed": 8
+        "Speed": 8,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
       },
-      "tags": ["labor", "disciple"],
-      "personalityTags": ["personality_steady"],
-      "backgroundTags": ["background_labor_camp"],
-      "talentTags": []
+      "tags": [
+        "labor",
+        "disciple"
+      ],
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": []
     },
     {
       "id": "base:character_protagonist",
       "type": "character",
       "name": "主角",
+      "playerControllable": true,
       "displayNameKey": "character.protagonist",
       "nameKey": "character.protagonist",
       "baseAttributes": {
         "MaxHp": 120,
         "Attack": 12,
         "Defense": 6,
-        "Speed": 10
+        "Speed": 10,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
       },
-      "personalityTags": ["personality_persistent", "personality_cautious"],
-      "backgroundTags": ["background_orphan"],
-      "talentTags": ["talent_mixed_root"],
-      "spiritRootPlaceholder": "杂灵根",
-      "initialRealmPlaceholder": "凡人"
+      "personalityTags": [
+        "personality_persistent",
+        "personality_cautious"
+      ],
+      "backgroundTags": [
+        "background_orphan"
+      ],
+      "talentTags": [
+        "talent_mixed_root"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "spiritRoots": {
+        "Fire": 6,
+        "Metal": 6,
+        "Earth": 6,
+        "Wood": 6,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": []
     },
     {
       "id": "base:character_companion_a",
       "type": "character",
       "name": "同伴甲",
+      "playerControllable": true,
       "displayNameKey": "character.companion_a",
       "nameKey": "character.companion_a",
       "baseAttributes": {
         "MaxHp": 110,
         "Attack": 11,
         "Defense": 7,
-        "Speed": 9
+        "Speed": 9,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
       },
-      "personalityTags": ["personality_loyal", "personality_steady"],
-      "backgroundTags": ["background_sect_outer"],
-      "talentTags": ["talent_metal_root"],
-      "spiritRootPlaceholder": "金灵根",
-      "initialRealmPlaceholder": "凡人"
+      "personalityTags": [
+        "personality_loyal",
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_sect_outer"
+      ],
+      "talentTags": [
+        "talent_metal_root"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 15,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": []
     },
     {
       "id": "base:character_companion_b",
       "type": "character",
       "name": "同伴乙",
+      "playerControllable": true,
       "displayNameKey": "character.companion_b",
       "nameKey": "character.companion_b",
       "baseAttributes": {
         "MaxHp": 105,
         "Attack": 13,
         "Defense": 5,
-        "Speed": 11
+        "Speed": 11,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
       },
-      "personalityTags": ["personality_bold", "personality_curious"],
-      "backgroundTags": ["background_wanderer"],
-      "talentTags": ["talent_fire_root"],
-      "spiritRootPlaceholder": "火灵根",
-      "initialRealmPlaceholder": "凡人"
+      "personalityTags": [
+        "personality_bold",
+        "personality_curious"
+      ],
+      "backgroundTags": [
+        "background_wanderer"
+      ],
+      "talentTags": [
+        "talent_fire_root"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "spiritRoots": {
+        "Fire": 15,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": []
     },
     {
       "id": "base:character_village_recruit",
@@ -82,13 +190,62 @@
         "MaxHp": 100,
         "Attack": 9,
         "Defense": 6,
-        "Speed": 8
+        "Speed": 8,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
       },
-      "personalityTags": ["personality_steady"],
-      "backgroundTags": ["background_villager"],
-      "talentTags": ["talent_enduring"],
-      "spiritRootPlaceholder": "杂灵根",
-      "initialRealmPlaceholder": "凡人"
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_villager"
+      ],
+      "talentTags": [
+        "talent_enduring"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": true,
+        "Rest": true,
+        "Eat": true,
+        "Cultivate": false,
+        "Explore": true,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 8,
+        "Eat": 6,
+        "Rest": 5,
+        "Explore": 2,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [
+        "base:workarea_labor_yard",
+        "base:workarea_herb_field",
+        "base:workarea_forest_woodcut"
+      ],
+      "spiritRoots": {
+        "Fire": 6,
+        "Metal": 6,
+        "Earth": 6,
+        "Wood": 6,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false
     },
     {
       "id": "base:character_herb_gatherer",
@@ -100,13 +257,38 @@
         "MaxHp": 95,
         "Attack": 8,
         "Defense": 5,
-        "Speed": 12
+        "Speed": 12,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
       },
-      "personalityTags": ["personality_curious"],
-      "backgroundTags": ["background_mountain"],
-      "talentTags": ["talent_herb_sense"],
-      "spiritRootPlaceholder": "木灵根",
-      "initialRealmPlaceholder": "凡人"
+      "personalityTags": [
+        "personality_curious"
+      ],
+      "backgroundTags": [
+        "background_mountain"
+      ],
+      "talentTags": [
+        "talent_herb_sense"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 15,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": []
     }
   ]
 }

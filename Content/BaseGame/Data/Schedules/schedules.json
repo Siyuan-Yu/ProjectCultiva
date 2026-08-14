@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:playable_labor_day",
+      "type": "schedule",
+      "name": "开局劳役日",
+      "blocks": [
+        { "startTick": 0, "endTick": 24, "activity": "Rest", "orderDurationTicks": 6 },
+        { "startTick": 24, "endTick": 144, "activity": "Labor", "orderDurationTicks": 12 },
+        { "startTick": 144, "endTick": 168, "activity": "Rest", "orderDurationTicks": 6 },
+        { "startTick": 168, "endTick": 240, "activity": "Labor", "orderDurationTicks": 12 },
+        { "startTick": 240, "endTick": 288, "activity": "Rest", "orderDurationTicks": 6 }
+      ]
+    },
+    {
+      "id": "base:schedule_mortal_day",
+      "type": "schedule",
+      "name": "凡人劳役日",
+      "blocks": [
+        { "startTick": 0, "endTick": 60, "activity": "Rest", "orderDurationTicks": 6 },
+        { "startTick": 60, "endTick": 132, "activity": "Labor", "orderDurationTicks": 12 },
+        { "startTick": 132, "endTick": 156, "activity": "Eat", "orderDurationTicks": 6 },
+        { "startTick": 156, "endTick": 228, "activity": "Labor", "orderDurationTicks": 12 },
+        { "startTick": 228, "endTick": 264, "activity": "Explore", "orderDurationTicks": 12 },
+        { "startTick": 264, "endTick": 288, "activity": "Rest", "orderDurationTicks": 6 }
+      ]
+    },
+    {
+      "id": "base:schedule_cultivator_day",
+      "type": "schedule",
+      "name": "修士日",
+      "blocks": [
+        { "startTick": 0, "endTick": 48, "activity": "Rest", "orderDurationTicks": 6 },
+        { "startTick": 48, "endTick": 120, "activity": "Explore", "orderDurationTicks": 12 },
+        { "startTick": 120, "endTick": 192, "activity": "Cultivate", "orderDurationTicks": 12 },
+        { "startTick": 192, "endTick": 228, "activity": "Explore", "orderDurationTicks": 12 },
+        { "startTick": 228, "endTick": 264, "activity": "Cultivate", "orderDurationTicks": 12 },
+        { "startTick": 264, "endTick": 288, "activity": "Rest", "orderDurationTicks": 6 }
+      ]
+    },
+    {
+      "id": "base:schedule_supervisor_day",
+      "type": "schedule",
+      "name": "主管日",
+      "blocks": [
+        { "startTick": 0, "endTick": 48, "activity": "Rest", "orderDurationTicks": 6 },
+        { "startTick": 48, "endTick": 120, "activity": "Patrol", "orderDurationTicks": 12 },
+        { "startTick": 120, "endTick": 168, "activity": "Inspect", "orderDurationTicks": 12 },
+        { "startTick": 168, "endTick": 216, "activity": "Cultivate", "orderDurationTicks": 12 },
+        { "startTick": 216, "endTick": 264, "activity": "Patrol", "orderDurationTicks": 12 },
+        { "startTick": 264, "endTick": 288, "activity": "Rest", "orderDurationTicks": 6 }
+      ]
+    },
+    {
+      "id": "base:schedule_laborer_day",
+      "type": "schedule",
+      "name": "默认劳工日",
+      "blocks": [
+        { "startTick": 0, "endTick": 24, "activity": "Rest", "orderDurationTicks": 6 },
+        { "startTick": 24, "endTick": 144, "activity": "Labor", "orderDurationTicks": 12 },
+        { "startTick": 144, "endTick": 168, "activity": "Rest", "orderDurationTicks": 6 },
+        { "startTick": 168, "endTick": 240, "activity": "Labor", "orderDurationTicks": 12 },
+        { "startTick": 240, "endTick": 288, "activity": "Rest", "orderDurationTicks": 6 }
+      ]
+    }
+  ]
+}

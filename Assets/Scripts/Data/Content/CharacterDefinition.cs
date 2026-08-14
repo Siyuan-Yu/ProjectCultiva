@@ -20,6 +20,16 @@ namespace XianXia.Data.Content
         public List<string> TalentTags { get; set; } = new List<string>();
         public string SpiritRootPlaceholder { get; set; }
         public string InitialRealmPlaceholder { get; set; }
+        public bool PlayerControllable { get; set; }
+        public Dictionary<string, bool> ActivityCapabilities { get; set; } = new Dictionary<string, bool>();
+        public Dictionary<string, int> ActivityPriorities { get; set; } = new Dictionary<string, int>();
+        public List<string> PreferredWorkAreaIds { get; set; } = new List<string>();
+        /// <summary>Spirit-root affinities Fire/Metal/… → 0–30 (2B).</summary>
+        public Dictionary<string, int> SpiritRoots { get; set; } = new Dictionary<string, int>();
+        public string Hometown { get; set; } = string.Empty;
+        public int Reputation { get; set; }
+        public List<string> Goals { get; set; } = new List<string>();
+        public List<string> Desires { get; set; } = new List<string>();
 
         /// <summary>Merged content tags applied to PersonalityProfile on spawn.</summary>
         public IEnumerable<string> EnumerateProfileTags()

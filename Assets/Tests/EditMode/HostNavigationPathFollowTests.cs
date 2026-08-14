@@ -13,12 +13,18 @@ namespace XianXia.Tests
             // 枢纽 → 房屋前（已清障的可行走点），应绕开房屋主体
             var xy = new List<float>();
             Assert.IsTrue(GridPathfinder.TryFindWorldPath(grid, 0f, 0f, -8f, 10f, xy));
-            Assert.Greater(xy.Count / 2, 3);
+            Assert.GreaterOrEqual(xy.Count / 2, 2);
 
             for (var i = 0; i + 1 < xy.Count; i += 2)
             {
                 Assert.IsTrue(grid.TryWorldToCell(xy[i], xy[i + 1], out var cx, out var cy));
                 Assert.IsTrue(grid.IsWalkable(cx, cy), "waypoint in blocked cell");
+            }
+
+            for (var i = 0; i + 3 < xy.Count; i += 2)
+            {
+                Assert.IsTrue(
+                    GridPathfinder.IsWorldSegmentWalkable(grid, xy[i], xy[i + 1], xy[i + 2], xy[i + 3]));
             }
         }
 

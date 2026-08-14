@@ -1,6 +1,6 @@
 # ContentAuthoring (Windows / WPF)
 
-五个**独立** Visual Studio / `dotnet` 工程，各自发布一个 exe。共享库 `Shared` 只负责读写 `Content/BaseGame/Data`。
+六个**独立** Visual Studio / `dotnet` 工程，各自发布一个 exe。共享库 `Shared` 只负责读写 `Content/BaseGame/Data`。
 
 ## 日常怎么打开（重要）
 
@@ -20,7 +20,11 @@
 | `MapEditor/` | `MapEditor.exe` | 格点地图（设施／墙） |
 | `QuestEditor/` | `QuestEditor.exe` | 任务 |
 | `EventEditor/` | `EventEditor.exe` | 事件 |
+| `WorkAreaEditor/` | `WorkAreaEditor.exe` | **工区**（活动可发生的地点；不是职业） |
+| `CharacterNpcEditor/` | `CharacterNpcEditor.exe` | **人物**（能否做／优先级／偏好工区／可控制／场景挂载） |
 
+> 旧 `NpcEditor`／`RoleTemplateEditor`／`JobWorkAreaEditor`（职位式 Job）已删；请用 `启动-WorkAreaEditor.cmd`。  
+> 人与人的差异在人物编辑器，不在「职业 Job」。  
 > 旧的 Electron 单应用已废弃，见 `ExternalTools/_archived-content-authoring-electron/`。
 
 ## 用 Visual Studio（调试）

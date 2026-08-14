@@ -5,105 +5,884 @@
       "id": "base:character_ch01_ref_supervisor",
       "type": "character",
       "name": "杂役主管",
-      "baseAttributes": { "MaxHp": 140, "Attack": 14, "Defense": 10, "Speed": 9 },
-      "personalityTags": ["personality_bold"],
-      "backgroundTags": ["background_labor_camp"],
-      "talentTags": ["talent_enduring"],
-      "tags": ["supervisor", "npc"]
-    },
-    {
-      "id": "base:character_ch01_ref_mortal_a",
-      "type": "character",
-      "name": "农夫阿石",
-      "baseAttributes": { "MaxHp": 90, "Attack": 8, "Defense": 4, "Speed": 7 },
-      "personalityTags": ["personality_steady"],
-      "backgroundTags": ["background_labor_camp"],
+      "baseAttributes": {
+        "MaxHp": 140,
+        "Attack": 14,
+        "Defense": 10,
+        "Speed": 9,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
       "talentTags": [],
-      "tags": ["mortal", "npc", "farmer"]
-    },
-    {
-      "id": "base:character_ch01_ref_mortal_b",
-      "type": "character",
-      "name": "药农阿青",
-      "baseAttributes": { "MaxHp": 95, "Attack": 8, "Defense": 5, "Speed": 8 },
-      "personalityTags": ["personality_cautious"],
-      "backgroundTags": ["background_labor_camp"],
-      "talentTags": ["talent_herb_sense"],
-      "tags": ["mortal", "npc", "herb_farmer"]
-    },
-    {
-      "id": "base:character_ch01_ref_cultivator_a",
-      "type": "character",
-      "name": "外门修士",
-      "baseAttributes": { "MaxHp": 115, "Attack": 12, "Defense": 7, "Speed": 10 },
-      "personalityTags": ["personality_curious"],
-      "backgroundTags": ["background_orphan"],
-      "talentTags": ["talent_metal_root"],
-      "tags": ["cultivator", "npc"],
-      "spiritRootPlaceholder": "金灵根",
-      "initialRealmPlaceholder": "凡人"
-    },
-    {
-      "id": "base:character_ch01_ref_cultivator_b",
-      "type": "character",
-      "name": "巡山修士",
-      "baseAttributes": { "MaxHp": 110, "Attack": 11, "Defense": 6, "Speed": 11 },
-      "personalityTags": ["personality_bold"],
-      "backgroundTags": ["background_orphan"],
-      "talentTags": ["talent_fire_root"],
-      "tags": ["cultivator", "npc"]
+      "tags": [
+        "supervisor",
+        "npc"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": true,
+        "Rest": true,
+        "Eat": true,
+        "Cultivate": true,
+        "Explore": true,
+        "Patrol": true,
+        "Inspect": true
+      },
+      "activityPriorities": {
+        "Cultivate": 9,
+        "Inspect": 8,
+        "Patrol": 7,
+        "Eat": 6,
+        "Rest": 5,
+        "Explore": 3,
+        "Labor": 1
+      },
+      "preferredWorkAreaIds": [
+        "base:workarea_spring_cultivate",
+        "base:workarea_spring_check",
+        "base:workarea_road_hub"
+      ],
+      "spiritRoots": {
+        "Fire": 6,
+        "Metal": 6,
+        "Earth": 6,
+        "Wood": 6,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false
     },
     {
       "id": "base:character_ch01_ref_guard_a",
       "type": "character",
       "name": "巡卫甲",
-      "baseAttributes": { "MaxHp": 120, "Attack": 13, "Defense": 9, "Speed": 9 },
-      "personalityTags": ["personality_steady"],
-      "backgroundTags": ["background_labor_camp"],
-      "talentTags": ["talent_enduring"],
-      "tags": ["guard", "npc"]
+      "baseAttributes": {
+        "MaxHp": 120,
+        "Attack": 13,
+        "Defense": 9,
+        "Speed": 9,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "guard",
+        "npc"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": true,
+        "Rest": true,
+        "Eat": true,
+        "Cultivate": false,
+        "Explore": true,
+        "Patrol": true,
+        "Inspect": true
+      },
+      "activityPriorities": {
+        "Patrol": 9,
+        "Inspect": 7,
+        "Eat": 6,
+        "Rest": 5,
+        "Explore": 3,
+        "Labor": 1,
+        "Cultivate": 0
+      },
+      "preferredWorkAreaIds": [
+        "base:workarea_road_hub",
+        "base:workarea_forest_edge",
+        "base:workarea_houses",
+        "base:workarea_labor_yard"
+      ],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false
     },
     {
       "id": "base:character_ch01_ref_guard_b",
       "type": "character",
       "name": "巡卫乙",
-      "baseAttributes": { "MaxHp": 118, "Attack": 12, "Defense": 9, "Speed": 9 },
-      "personalityTags": ["personality_cautious"],
-      "backgroundTags": ["background_labor_camp"],
+      "baseAttributes": {
+        "MaxHp": 118,
+        "Attack": 12,
+        "Defense": 9,
+        "Speed": 9,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
       "talentTags": [],
-      "tags": ["guard", "npc"]
+      "tags": [
+        "guard",
+        "npc"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": true,
+        "Rest": true,
+        "Eat": true,
+        "Cultivate": false,
+        "Explore": true,
+        "Patrol": true,
+        "Inspect": true
+      },
+      "activityPriorities": {
+        "Patrol": 9,
+        "Inspect": 7,
+        "Eat": 6,
+        "Rest": 5,
+        "Explore": 3,
+        "Labor": 1,
+        "Cultivate": 0
+      },
+      "preferredWorkAreaIds": [
+        "base:workarea_road_hub",
+        "base:workarea_forest_edge",
+        "base:workarea_houses",
+        "base:workarea_labor_yard"
+      ],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false
     },
     {
-      "id": "base:character_ch01_ref_miner",
+      "id": "base:character_ch01_ref_guard_c",
       "type": "character",
-      "name": "矿工老倔",
-      "baseAttributes": { "MaxHp": 105, "Attack": 9, "Defense": 7, "Speed": 6 },
-      "personalityTags": ["personality_steady"],
-      "backgroundTags": ["background_labor_camp"],
-      "talentTags": ["talent_enduring"],
-      "tags": ["mortal", "npc", "miner"]
+      "name": "巡卫丙",
+      "baseAttributes": {
+        "MaxHp": 116,
+        "Attack": 12,
+        "Defense": 8,
+        "Speed": 10,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "guard",
+        "npc"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": true,
+        "Rest": true,
+        "Eat": true,
+        "Cultivate": false,
+        "Explore": true,
+        "Patrol": true,
+        "Inspect": true
+      },
+      "activityPriorities": {
+        "Patrol": 9,
+        "Inspect": 7,
+        "Eat": 6,
+        "Rest": 5,
+        "Explore": 3,
+        "Labor": 1,
+        "Cultivate": 0
+      },
+      "preferredWorkAreaIds": [
+        "base:workarea_road_hub",
+        "base:workarea_forest_edge",
+        "base:workarea_houses",
+        "base:workarea_labor_yard"
+      ],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false
     },
     {
-      "id": "base:character_ch01_ref_merchant",
+      "id": "base:character_ch01_ref_mortal_a",
       "type": "character",
-      "name": "行商",
-      "baseAttributes": { "MaxHp": 85, "Attack": 6, "Defense": 4, "Speed": 8 },
-      "personalityTags": ["personality_curious"],
-      "backgroundTags": ["background_orphan"],
+      "name": "阿石",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
       "talentTags": [],
-      "tags": ["merchant", "npc"]
+      "tags": [
+        "mortal",
+        "npc"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": true,
+        "Rest": true,
+        "Eat": true,
+        "Cultivate": false,
+        "Explore": true,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 9,
+        "Eat": 6,
+        "Rest": 5,
+        "Explore": 2,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [
+        "base:workarea_labor_yard",
+        "base:workarea_herb_field",
+        "base:workarea_forest_woodcut",
+        "base:workarea_mine"
+      ],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false
+    },
+    {
+      "id": "base:character_ch01_ref_farmer_b",
+      "type": "character",
+      "name": "阿土",
+      "baseAttributes": {
+        "MaxHp": 92,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": true,
+        "Rest": true,
+        "Eat": true,
+        "Cultivate": false,
+        "Explore": true,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 9,
+        "Eat": 6,
+        "Rest": 5,
+        "Explore": 2,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [
+        "base:workarea_labor_yard",
+        "base:workarea_herb_field",
+        "base:workarea_forest_woodcut",
+        "base:workarea_mine"
+      ],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false
+    },
+    {
+      "id": "base:character_ch01_ref_farmer_c",
+      "type": "character",
+      "name": "阿禾",
+      "baseAttributes": {
+        "MaxHp": 88,
+        "Attack": 7,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": true,
+        "Rest": true,
+        "Eat": true,
+        "Cultivate": false,
+        "Explore": true,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 9,
+        "Eat": 6,
+        "Rest": 5,
+        "Explore": 2,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [
+        "base:workarea_labor_yard",
+        "base:workarea_herb_field",
+        "base:workarea_forest_woodcut",
+        "base:workarea_mine"
+      ],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false
+    },
+    {
+      "id": "base:character_ch01_ref_mortal_b",
+      "type": "character",
+      "name": "阿青",
+      "baseAttributes": {
+        "MaxHp": 95,
+        "Attack": 8,
+        "Defense": 5,
+        "Speed": 8,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": true,
+        "Rest": true,
+        "Eat": true,
+        "Cultivate": false,
+        "Explore": true,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 9,
+        "Eat": 6,
+        "Rest": 5,
+        "Explore": 2,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [
+        "base:workarea_herb_field",
+        "base:workarea_labor_yard",
+        "base:workarea_forest_woodcut",
+        "base:workarea_mine"
+      ],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false
+    },
+    {
+      "id": "base:character_ch01_ref_herb_b",
+      "type": "character",
+      "name": "阿兰",
+      "baseAttributes": {
+        "MaxHp": 93,
+        "Attack": 8,
+        "Defense": 5,
+        "Speed": 8,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": true,
+        "Rest": true,
+        "Eat": true,
+        "Cultivate": false,
+        "Explore": true,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 9,
+        "Eat": 6,
+        "Rest": 5,
+        "Explore": 2,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [
+        "base:workarea_herb_field",
+        "base:workarea_labor_yard",
+        "base:workarea_forest_woodcut",
+        "base:workarea_mine"
+      ],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false
+    },
+    {
+      "id": "base:character_ch01_ref_herb_c",
+      "type": "character",
+      "name": "阿杏",
+      "baseAttributes": {
+        "MaxHp": 91,
+        "Attack": 7,
+        "Defense": 5,
+        "Speed": 8,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": true,
+        "Rest": true,
+        "Eat": true,
+        "Cultivate": false,
+        "Explore": true,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 9,
+        "Eat": 6,
+        "Rest": 5,
+        "Explore": 2,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [
+        "base:workarea_herb_field",
+        "base:workarea_labor_yard",
+        "base:workarea_forest_woodcut",
+        "base:workarea_mine"
+      ],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false
     },
     {
       "id": "base:character_ch01_ref_woodcutter",
       "type": "character",
-      "name": "砍柴老人",
-      "baseAttributes": { "MaxHp": 100, "Attack": 7, "Defense": 5, "Speed": 6 },
-      "personalityTags": ["personality_steady"],
-      "backgroundTags": ["background_labor_camp"],
-      "talentTags": ["talent_enduring"],
-      "tags": ["mortal", "npc", "hidden_cultivator"],
-      "spiritRootPlaceholder": "木灵根",
-      "initialRealmPlaceholder": "凡人"
+      "name": "阿木",
+      "baseAttributes": {
+        "MaxHp": 100,
+        "Attack": 7,
+        "Defense": 5,
+        "Speed": 6,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": true,
+        "Rest": true,
+        "Eat": true,
+        "Cultivate": false,
+        "Explore": true,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 9,
+        "Eat": 6,
+        "Rest": 5,
+        "Explore": 2,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [
+        "base:workarea_forest_woodcut",
+        "base:workarea_labor_yard",
+        "base:workarea_herb_field",
+        "base:workarea_mine"
+      ],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 15,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false
+    },
+    {
+      "id": "base:character_ch01_ref_wood_b",
+      "type": "character",
+      "name": "阿柴",
+      "baseAttributes": {
+        "MaxHp": 98,
+        "Attack": 7,
+        "Defense": 5,
+        "Speed": 6,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": true,
+        "Rest": true,
+        "Eat": true,
+        "Cultivate": false,
+        "Explore": true,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 9,
+        "Eat": 6,
+        "Rest": 5,
+        "Explore": 2,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [
+        "base:workarea_forest_woodcut",
+        "base:workarea_labor_yard",
+        "base:workarea_herb_field",
+        "base:workarea_mine"
+      ],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false
+    },
+    {
+      "id": "base:character_ch01_ref_wood_c",
+      "type": "character",
+      "name": "阿枝",
+      "baseAttributes": {
+        "MaxHp": 96,
+        "Attack": 7,
+        "Defense": 4,
+        "Speed": 7,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": true,
+        "Rest": true,
+        "Eat": true,
+        "Cultivate": false,
+        "Explore": true,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Labor": 9,
+        "Eat": 6,
+        "Rest": 5,
+        "Explore": 2,
+        "Cultivate": 0,
+        "Patrol": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [
+        "base:workarea_forest_woodcut",
+        "base:workarea_labor_yard",
+        "base:workarea_herb_field",
+        "base:workarea_mine"
+      ],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false
     }
   ]
 }

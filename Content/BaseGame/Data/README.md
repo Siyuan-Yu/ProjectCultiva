@@ -21,5 +21,6 @@
 | `Settlements/` | settlement | `settlements.json` |
 | `WorkAreas/` | workArea | `work_areas.json` |
 | `Jobs/` | job | `jobs.json` |
+| `Schedules/` | schedule | `schedules.json` |
 
 新建内容时，各编辑器默认保存到对应子目录。字段权威见同级的 `SCHEMA.md`。

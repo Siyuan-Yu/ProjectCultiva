@@ -24,7 +24,8 @@ namespace XianXia.Data.Bootstrap
             SimulationWorld world,
             OpeningScenarioDefinition scenario,
             GameStartLookup lookup,
-            int dailyRequiredAmount)
+            int dailyRequiredAmount,
+            System.Collections.Generic.IList<OpeningSpawnEntry> spawnEntries = null)
         {
             if (world == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
@@ -40,7 +41,8 @@ namespace XianXia.Data.Bootstrap
                 ? SocialAlphaConstants.OpeningFactionId
                 : scenario.OpeningFactionId;
 
-            foreach (var entry in scenario.Spawns)
+            var entries = spawnEntries ?? scenario.Spawns;
+            foreach (var entry in entries)
             {
                 if (!lookup.TryGetEntity(entry.DefinitionId, out var entityId))
                 {
@@ -83,7 +85,11 @@ namespace XianXia.Data.Bootstrap
                 }
 
                 ApplyAiRole(world, entity, entry.AiRole);
-                ApplyJob(world, entity, entry.JobId);
+                // Profession jobs removed: WorkArea resolve is global. Keep optional legacy jobId.
+                if (!string.IsNullOrWhiteSpace(entry.JobId))
+                    ApplyJob(world, entity, entry.JobId);
+                else if (!entity.TryGet<JobComponent>(out _))
+                    entity.AddComponent(new JobComponent());
             }
 
             var relations = SeedOpeningRelations(world, scenario, lookup);
@@ -95,12 +101,17 @@ namespace XianXia.Data.Bootstrap
 
         public static EntityId FindFirstRecruitable(
             OpeningScenarioDefinition scenario,
-            GameStartLookup lookup)
+            GameStartLookup lookup,
+            System.Collections.Generic.IList<OpeningSpawnEntry> spawnEntries = null)
         {
-            if (scenario == null || lookup == null)
+            if (lookup == null)
                 return EntityId.None;
 
-            foreach (var entry in scenario.Spawns)
+            var entries = spawnEntries ?? scenario?.Spawns;
+            if (entries == null)
+                return EntityId.None;
+
+            foreach (var entry in entries)
             {
                 if (!entry.Recruitable)
                     continue;

@@ -21,11 +21,20 @@
 | 字段 | 含义 |
 |------|------|
 | body | 正文（不是 description） |
-| trigger | manual／onArrive／onExplore／onQuestCompleted… |
-| locationId／questId | 可选过滤 |
+| trigger | manual／onArrive／onExplore／onQuestCompleted／**onTalk**／… |
+| locationId／questId | 地点／任务完成类触发的过滤 |
+| **npcDefinitionId** | **onTalk：匹配被对话人物的 character id** |
 | once | 默认 true |
 | conditions | 触发条件 JSON 数组 |
 | choices | 选项 JSON 数组（id／text／conditions／outcomes） |
+
+## 对话发任务（不是人物表硬绑）
+
+1. `trigger = onTalk`，`npcDefinitionId = base:character_…`  
+2. 某选项 `outcomes` 含 `{ "kind": "startQuest", "id": "base:quest_…" }`  
+3. 人物编辑器只读显示「关联 onTalk 事件」；任务本身不写 NPC 字段  
+
+样例：`Events/ch01_reference_events.json` → 主管训话／催促。
 
 ## 日常操作
 

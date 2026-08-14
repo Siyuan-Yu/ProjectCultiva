@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         Title = "XianXia · 区域／地点编辑器";
+        KindColumn.ItemsSource = UiLabels.Labels(UiLabels.LocationKinds);
         LocGrid.ItemsSource = _rows;
         TryLoadDefault();
     }
@@ -62,7 +63,7 @@ public partial class MainWindow : Window
         {
             Id = "base:loc_new",
             Name = "新地点",
-            Kind = "Wild",
+            Kind = "野外",
             AdjacentIds = "",
             Tags = "",
             AllowedActivities = "",
@@ -107,7 +108,7 @@ public sealed class LocationRow : INotifyPropertyChanged
 {
     private string _id = "";
     private string _name = "";
-    private string _kind = "Wild";
+    private string _kind = "野外";
     private string _tags = "";
     private string _allowed = "";
     private string _adjacent = "";
@@ -141,9 +142,9 @@ public sealed class LocationRow : INotifyPropertyChanged
     {
         Id = JsonEdit.GetString(loc, "id"),
         Name = JsonEdit.GetString(loc, "name"),
-        Kind = JsonEdit.GetString(loc, "kind", "Wild"),
+        Kind = UiLabels.ToLabel(UiLabels.LocationKinds, JsonEdit.GetString(loc, "kind", "Wild"), "野外"),
         Tags = JsonEdit.JoinStringArray(loc["tags"]),
-        AllowedActivities = JsonEdit.JoinStringArray(loc["allowedActivities"]),
+        AllowedActivities = UiLabels.ActivitiesCsvToDisplay(JsonEdit.JoinStringArray(loc["allowedActivities"])),
         AdjacentIds = JsonEdit.JoinStringArray(loc["adjacentIds"]),
         PresentationX = JsonEdit.GetDouble(loc, "presentationX"),
         PresentationZ = JsonEdit.GetDouble(loc, "presentationZ"),
@@ -160,9 +161,9 @@ public sealed class LocationRow : INotifyPropertyChanged
         {
             ["id"] = Id,
             ["name"] = Name,
-            ["kind"] = Kind,
+            ["kind"] = UiLabels.ToKey(UiLabels.LocationKinds, Kind, "Wild"),
             ["tags"] = JsonEdit.ParseStringList(Tags),
-            ["allowedActivities"] = JsonEdit.ParseStringList(AllowedActivities),
+            ["allowedActivities"] = JsonEdit.ParseStringList(UiLabels.ActivitiesCsvToKeys(AllowedActivities)),
             ["adjacentIds"] = JsonEdit.ParseStringList(AdjacentIds),
             ["presentationX"] = PresentationX,
             ["presentationZ"] = PresentationZ

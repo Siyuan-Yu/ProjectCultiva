@@ -8,7 +8,8 @@ public static class SchemaFields
         {
             "id", "type", "name", "displayNameKey", "nameKey", "baseAttributes", "tags",
             "personalityTags", "backgroundTags", "talentTags",
-            "spiritRootPlaceholder", "initialRealmPlaceholder"
+            "spiritRootPlaceholder", "initialRealmPlaceholder",
+            "activityCapabilities", "activityPriorities"
         },
         ["cultivation"] = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -27,6 +28,10 @@ public static class SchemaFields
         {
             "id", "type", "name", "scheduleId", "openingFactionId", "openingSettlementId",
             "openingWorldRegionId", "openingChapterId", "spawns", "openingRelations"
+        },
+        ["characterRoster"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "entries"
         },
         ["resource"] = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -67,6 +72,10 @@ public static class SchemaFields
         ["job"] = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "primaryWorkAreaId", "activityBindings"
+        },
+        ["schedule"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "blocks"
         },
         ["mapLayout"] = new HashSet<string>(StringComparer.Ordinal)
         {

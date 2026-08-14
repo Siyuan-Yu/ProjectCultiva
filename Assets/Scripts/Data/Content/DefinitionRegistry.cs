@@ -16,6 +16,8 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, OpportunitySiteDefinition>();
         readonly Dictionary<DefinitionId, OpeningScenarioDefinition> _openingScenarios =
             new Dictionary<DefinitionId, OpeningScenarioDefinition>();
+        readonly Dictionary<DefinitionId, CharacterRosterDefinition> _characterRosters =
+            new Dictionary<DefinitionId, CharacterRosterDefinition>();
         readonly Dictionary<DefinitionId, ResourceDefinition> _resources =
             new Dictionary<DefinitionId, ResourceDefinition>();
         readonly Dictionary<DefinitionId, FacilityDefinition> _facilities =
@@ -34,6 +36,8 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, WorkAreaContentDefinition>();
         readonly Dictionary<DefinitionId, JobContentDefinition> _jobs =
             new Dictionary<DefinitionId, JobContentDefinition>();
+        readonly Dictionary<DefinitionId, ScheduleContentDefinition> _schedules =
+            new Dictionary<DefinitionId, ScheduleContentDefinition>();
         readonly Dictionary<DefinitionId, MapLayoutDefinition> _mapLayouts =
             new Dictionary<DefinitionId, MapLayoutDefinition>();
 
@@ -42,6 +46,7 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, ItemDefinition> Items => _items;
         public IReadOnlyDictionary<DefinitionId, OpportunitySiteDefinition> OpportunitySites => _opportunitySites;
         public IReadOnlyDictionary<DefinitionId, OpeningScenarioDefinition> OpeningScenarios => _openingScenarios;
+        public IReadOnlyDictionary<DefinitionId, CharacterRosterDefinition> CharacterRosters => _characterRosters;
         public IReadOnlyDictionary<DefinitionId, ResourceDefinition> Resources => _resources;
         public IReadOnlyDictionary<DefinitionId, FacilityDefinition> Facilities => _facilities;
         public IReadOnlyDictionary<DefinitionId, SettlementDefinition> Settlements => _settlements;
@@ -51,6 +56,7 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, ChapterDefinition> Chapters => _chapters;
         public IReadOnlyDictionary<DefinitionId, WorkAreaContentDefinition> WorkAreas => _workAreas;
         public IReadOnlyDictionary<DefinitionId, JobContentDefinition> Jobs => _jobs;
+        public IReadOnlyDictionary<DefinitionId, ScheduleContentDefinition> Schedules => _schedules;
         public IReadOnlyDictionary<DefinitionId, MapLayoutDefinition> MapLayouts => _mapLayouts;
 
         public bool ContainsId(DefinitionId id) =>
@@ -59,6 +65,7 @@ namespace XianXia.Data.Content
             _items.ContainsKey(id) ||
             _opportunitySites.ContainsKey(id) ||
             _openingScenarios.ContainsKey(id) ||
+            _characterRosters.ContainsKey(id) ||
             _resources.ContainsKey(id) ||
             _facilities.ContainsKey(id) ||
             _settlements.ContainsKey(id) ||
@@ -68,6 +75,7 @@ namespace XianXia.Data.Content
             _chapters.ContainsKey(id) ||
             _workAreas.ContainsKey(id) ||
             _jobs.ContainsKey(id) ||
+            _schedules.ContainsKey(id) ||
             _mapLayouts.ContainsKey(id);
 
         public Result RegisterCharacter(CharacterDefinition definition)
@@ -103,6 +111,13 @@ namespace XianXia.Data.Content
             if (definition == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "OpeningScenarioDefinition is null.");
             return Register(_openingScenarios, definition, definition.Id);
+        }
+
+        public Result RegisterCharacterRoster(CharacterRosterDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "CharacterRosterDefinition is null.");
+            return Register(_characterRosters, definition, definition.Id);
         }
 
         public Result RegisterResource(ResourceDefinition definition)
@@ -168,6 +183,13 @@ namespace XianXia.Data.Content
             return Register(_jobs, definition, definition.Id);
         }
 
+        public Result RegisterSchedule(ScheduleContentDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "ScheduleContentDefinition is null.");
+            return Register(_schedules, definition, definition.Id);
+        }
+
         public Result RegisterMapLayout(MapLayoutDefinition definition)
         {
             if (definition == null)
@@ -199,6 +221,9 @@ namespace XianXia.Data.Content
         public bool TryGetOpeningScenario(DefinitionId id, out OpeningScenarioDefinition definition) =>
             _openingScenarios.TryGetValue(id, out definition);
 
+        public bool TryGetCharacterRoster(DefinitionId id, out CharacterRosterDefinition definition) =>
+            _characterRosters.TryGetValue(id, out definition);
+
         public bool TryGetResource(DefinitionId id, out ResourceDefinition definition) =>
             _resources.TryGetValue(id, out definition);
 
@@ -225,6 +250,9 @@ namespace XianXia.Data.Content
 
         public bool TryGetJob(DefinitionId id, out JobContentDefinition definition) =>
             _jobs.TryGetValue(id, out definition);
+
+        public bool TryGetSchedule(DefinitionId id, out ScheduleContentDefinition definition) =>
+            _schedules.TryGetValue(id, out definition);
 
         public bool TryGetMapLayout(DefinitionId id, out MapLayoutDefinition definition) =>
             _mapLayouts.TryGetValue(id, out definition);

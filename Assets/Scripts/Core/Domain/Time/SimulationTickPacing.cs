@@ -4,6 +4,8 @@ namespace XianXia.Core.Domain.Time
     /// Host 自动步进与 Core 劳动换算共用的 1x 节奏。
     /// 1 tick = <see cref="WorldTick.GameMinutesPerTick"/> 游戏分钟；
     /// 1x 下每 1 现实秒 +1 tick → 1 现实秒 = 5 游戏分钟；5x → 25 游戏分钟。
+    /// 角色相关行为（移动表现／工作／休息／吃饭／修炼／作息）均受 Host 倍速统一影响：
+    /// Tick 类行动靠自动步进倍率；连续移动靠 PresentationDeltaTime。
     /// </summary>
     public static class SimulationTickPacing
     {

@@ -1,0 +1,64 @@
+<Window x:Class="WorkAreaEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="XianXia · 工区编辑器" Height="860" Width="1100"
+        WindowStartupLocation="CenterScreen">
+  <DockPanel Margin="10">
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+      <Button Content="打开包…" Width="90" Margin="0,0,8,0" Click="OpenPackage_Click"/>
+      <Button Content="保存工区" Width="100" Margin="0,0,8,0" Click="Save_Click"/>
+      <TextBlock VerticalAlignment="Center" Margin="0,0,8,0"
+                 Text="工区＝活动可发生的地点；不是职业。人选事靠人物「能否做／优先级／偏好工区」"/>
+      <TextBlock x:Name="RootText" VerticalAlignment="Center"/>
+    </StackPanel>
+    <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0"/>
+    <Grid Margin="6">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="280"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <DockPanel Margin="0,0,8,0">
+        <Button DockPanel.Dock="Top" Content="+ 新工区" Margin="0,0,0,6" Click="NewWorkArea_Click"/>
+        <ListBox x:Name="WorkAreaList" SelectionChanged="WorkAreaList_SelectionChanged"/>
+      </DockPanel>
+      <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+          <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="id" Width="120" VerticalAlignment="Center"/>
+            <TextBox x:Name="WaIdBox"/>
+          </DockPanel>
+          <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="name" Width="120" VerticalAlignment="Center"/>
+            <TextBox x:Name="WaNameBox"/>
+          </DockPanel>
+          <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="locationId" Width="120" VerticalAlignment="Center"/>
+            <ComboBox x:Name="WaLocationBox" IsEditable="True"/>
+          </DockPanel>
+          <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="offsetX" Width="120" VerticalAlignment="Center"/>
+            <TextBox x:Name="WaOffsetXBox"/>
+          </DockPanel>
+          <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="offsetZ" Width="120" VerticalAlignment="Center"/>
+            <TextBox x:Name="WaOffsetZBox"/>
+          </DockPanel>
+          <DockPanel Margin="0,0,0,6">
+            <TextBlock Text="tags（逗号分隔）" Width="120" VerticalAlignment="Center"/>
+            <TextBox x:Name="WaTagsBox"/>
+          </DockPanel>
+          <TextBlock Text="allowedActivities（勾选＝这里能做这些事）" Margin="0,0,0,4"/>
+          <ItemsControl x:Name="WaActivitiesPanel">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel/>
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+          </ItemsControl>
+          <TextBlock Margin="0,12,0,0" TextWrapping="Wrap" Foreground="#555"
+                     Text="运行时按人物偏好工区＋工区是否可用选地点；某工区满／耗尽时会换其他可做工区，再按人物优先级改做别的事。作息规则另做。"/>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </DockPanel>
+</Window>

@@ -453,6 +453,27 @@ public static class PackageStore
         return hits;
     }
 
+    /// <summary>onTalk 且 npcDefinitionId 指向该人物的 contentEvent id 列表。</summary>
+    public static IReadOnlyList<string> EventsTalkingToNpc(ContentPackage package, string characterId)
+    {
+        var hits = new List<string>();
+        if (string.IsNullOrWhiteSpace(characterId))
+            return hits;
+
+        foreach (var ev in package.OfType("contentEvent"))
+        {
+            var trigger = ev.Raw["trigger"]?.GetValue<string>() ?? "";
+            if (!string.Equals(trigger, "onTalk", StringComparison.OrdinalIgnoreCase))
+                continue;
+            var npc = ev.Raw["npcDefinitionId"]?.GetValue<string>() ?? "";
+            if (string.Equals(npc, characterId, StringComparison.Ordinal))
+                hits.Add(ev.Id);
+        }
+
+        hits.Sort(StringComparer.Ordinal);
+        return hits;
+    }
+
     public static bool EventStartsQuest(JsonObject ev, string questId)
     {
         if (ev["choices"] is not JsonArray choices) return false;

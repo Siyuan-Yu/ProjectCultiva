@@ -1,4 +1,4 @@
-using System.IO;
+using System.Collections.Generic;
 using NUnit.Framework;
 using XianXia.Core.Actions;
 using XianXia.Core.Domain.Ids;
@@ -11,6 +11,7 @@ using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
 using XianXia.Data.Bootstrap;
 using XianXia.Data.Content;
+using System.IO;
 
 namespace XianXia.Tests
 {
@@ -19,7 +20,7 @@ namespace XianXia.Tests
         static string BaseGamePath =>
             Path.GetFullPath(Path.Combine(UnityEngine.Application.dataPath, "..", "Content", "BaseGame"));
 
-        static void RegisterSampleJobWorld(SimulationWorld world)
+        static void RegisterSampleWorkAreas(SimulationWorld world)
         {
             world.WorldRegion.Register(new WorldLocationState
             {
@@ -51,60 +52,42 @@ namespace XianXia.Tests
                 Id = "wa_field",
                 LocationId = "loc_field",
                 OffsetX = 1f,
-                OffsetZ = -2f
+                OffsetZ = -2f,
+                AllowedActivities = { "Labor", "Patrol" }
             });
             world.RegisterWorkArea(new WorkAreaDefinition
             {
                 Id = "wa_home",
-                LocationId = "loc_home"
+                LocationId = "loc_home",
+                AllowedActivities = { "Rest", "Eat" }
             });
             world.RegisterWorkArea(new WorkAreaDefinition
             {
                 Id = "wa_hub",
-                LocationId = "loc_hub"
+                LocationId = "loc_hub",
+                AllowedActivities = { "Patrol", "Inspect", "Explore" }
             });
             world.RegisterWorkArea(new WorkAreaDefinition
             {
                 Id = "wa_mine",
-                LocationId = "loc_mine"
+                LocationId = "loc_mine",
+                AllowedActivities = { "Labor" }
             });
-
-            var herb = new JobDefinition { Id = "job_herb", Name = "药农", PrimaryWorkAreaId = "wa_field" };
-            herb.ActivityBindings.Add(new JobActivityBinding
-            {
-                Activity = ScheduleActivity.Labor,
-                WorkAreaIds = { "wa_field" }
-            });
-            herb.ActivityBindings.Add(new JobActivityBinding
-            {
-                Activity = ScheduleActivity.Rest,
-                WorkAreaIds = { "wa_home" }
-            });
-            world.RegisterJob(herb);
-
-            var guard = new JobDefinition { Id = "job_guard", Name = "巡卫", PrimaryWorkAreaId = "wa_hub" };
-            var patrol = new JobActivityBinding { Activity = ScheduleActivity.Patrol, Route = true };
-            patrol.WorkAreaIds.Add("wa_hub");
-            patrol.WorkAreaIds.Add("wa_field");
-            guard.ActivityBindings.Add(patrol);
-            world.RegisterJob(guard);
-
-            var miner = new JobDefinition { Id = "job_miner", Name = "矿工", PrimaryWorkAreaId = "wa_mine" };
-            miner.ActivityBindings.Add(new JobActivityBinding
-            {
-                Activity = ScheduleActivity.Labor,
-                WorkAreaIds = { "wa_mine" }
-            });
-            world.RegisterJob(miner);
         }
 
-        static Entity CreateJobNpc(SimulationWorld world, string jobId, string atLocation, string scheduleId)
+        static Entity CreateScheduledNpc(SimulationWorld world, string atLocation, string scheduleId)
         {
             var entity = world.Entities.CreateNpc(new DefinitionId("base", "npc_test"), "测试").Value;
             Assert.IsTrue(entity.AddComponent(new JobComponent()).IsSuccess);
-            entity.Get<JobComponent>().Assign(jobId);
             Assert.IsTrue(entity.AddComponent(new ScheduleComponent(scheduleId)).IsSuccess);
             Assert.IsTrue(entity.AddComponent(new EntityLocationComponent { LocationId = atLocation }).IsSuccess);
+            Assert.IsTrue(entity.AddComponent(new ActivityTendencyComponent()).IsSuccess);
+            var tendency = entity.Get<ActivityTendencyComponent>();
+            tendency.SetCapability(ScheduleActivity.Labor, true);
+            tendency.SetCapability(ScheduleActivity.Patrol, true);
+            tendency.SetCapability(ScheduleActivity.Rest, true);
+            tendency.SetPriority(ScheduleActivity.Labor, 8);
+            tendency.SetPriority(ScheduleActivity.Patrol, 9);
             if (entity.TryGet<DailyTaskComponent>(out var daily))
                 daily.RequiredAmount = 10;
             return entity;
@@ -114,8 +97,9 @@ namespace XianXia.Tests
         public void ActivityResolver_NeedsMove_WhenAwayFromWorkArea()
         {
             var world = new SimulationWorld();
-            RegisterSampleJobWorld(world);
-            var npc = CreateJobNpc(world, "job_herb", "loc_home", "sched");
+            RegisterSampleWorkAreas(world);
+            var npc = CreateScheduledNpc(world, "loc_home", "sched");
+            npc.Get<ActivityTendencyComponent>().PreferredWorkAreaIds.Add("wa_field");
 
             Assert.IsTrue(ActivityResolver.TryResolve(
                 world, npc, ScheduleActivity.Labor, 6, out var resolved));
@@ -125,28 +109,41 @@ namespace XianXia.Tests
         }
 
         [Test]
+        public void ActivityResolver_PrefersPreferredWorkArea_ThenFallsBack()
+        {
+            var world = new SimulationWorld();
+            RegisterSampleWorkAreas(world);
+            var npc = CreateScheduledNpc(world, "loc_mine", "sched");
+            npc.Get<ActivityTendencyComponent>().PreferredWorkAreaIds.Add("wa_mine");
+
+            Assert.IsTrue(ActivityResolver.TryResolve(
+                world, npc, ScheduleActivity.Labor, 4, out var resolved));
+            Assert.IsFalse(resolved.NeedsMove);
+            Assert.AreEqual("wa_mine", resolved.WorkAreaId);
+        }
+
+        [Test]
         public void NpcActivityDriver_EmitsMoveThenWork()
         {
             var world = new SimulationWorld();
-            RegisterSampleJobWorld(world);
+            RegisterSampleWorkAreas(world);
             world.RegisterSchedule(new ScheduleDefinition("sched")
                 .AddBlock(0, 100, ScheduleActivity.Labor, 8));
             var loop = new SimulationLoop(world);
-            var npc = CreateJobNpc(world, "job_herb", "loc_home", "sched");
+            var npc = CreateScheduledNpc(world, "loc_home", "sched");
+            npc.Get<ActivityTendencyComponent>().PreferredWorkAreaIds.Add("wa_field");
 
             loop.TickOnce();
             Assert.IsInstanceOf<MoveAction>(FirstActive(world));
             var move = (MoveAction)FirstActive(world);
             Assert.AreEqual("wa_field", move.TargetWorkAreaId);
 
-            // Host arrival ack
             Assert.IsTrue(npc.TryGet<MovementIntentComponent>(out var intent));
             intent.HostArrived = true;
             loop.TickOnce();
 
             Assert.AreEqual("loc_field", npc.Get<EntityLocationComponent>().LocationId);
 
-            // After move completes, driver injects Work
             for (var i = 0; i < 3 && !(FirstActive(world) is WorkAction); i++)
                 loop.TickOnce();
 
@@ -160,11 +157,14 @@ namespace XianXia.Tests
         public void PatrolRoute_AdvancesWorkAreaIndex()
         {
             var world = new SimulationWorld();
-            RegisterSampleJobWorld(world);
+            RegisterSampleWorkAreas(world);
             world.RegisterSchedule(new ScheduleDefinition("sched")
                 .AddBlock(0, 200, ScheduleActivity.Patrol, 2));
             var loop = new SimulationLoop(world);
-            var npc = CreateJobNpc(world, "job_guard", "loc_hub", "sched");
+            var npc = CreateScheduledNpc(world, "loc_hub", "sched");
+            var tendency = npc.Get<ActivityTendencyComponent>();
+            tendency.PreferredWorkAreaIds.Add("wa_hub");
+            tendency.PreferredWorkAreaIds.Add("wa_field");
 
             loop.TickOnce();
             Assert.IsInstanceOf<WorkAction>(FirstActive(world));
@@ -174,59 +174,30 @@ namespace XianXia.Tests
                 loop.TickOnce();
 
             Assert.AreEqual(1, npc.Get<JobComponent>().RouteIndex);
-
-            for (var i = 0; i < 4 && FirstActive(world) == null; i++)
-                loop.TickOnce();
-
-            // Next target is wa_field → may Move first
-            var active = FirstActive(world);
-            Assert.IsNotNull(active);
-            if (active is MoveAction move)
-                Assert.AreEqual("wa_field", move.TargetWorkAreaId);
-            else if (active is WorkAction work)
-                Assert.AreEqual("wa_field", work.TargetWorkAreaId);
-            else
-                Assert.Fail("Expected Move or Work after route advance.");
-        }
-
-        [Test]
-        public void MinerJob_ResolvesMineWorkArea()
-        {
-            var world = new SimulationWorld();
-            RegisterSampleJobWorld(world);
-            var npc = CreateJobNpc(world, "job_miner", "loc_mine", "sched");
-            Assert.IsTrue(ActivityResolver.TryResolve(
-                world, npc, ScheduleActivity.Labor, 4, out var resolved));
-            Assert.IsFalse(resolved.NeedsMove);
-            Assert.AreEqual("wa_mine", resolved.WorkAreaId);
         }
 
         [Test]
         public void WorkAreaOffset_IsDataNotCodeConstant()
         {
             var world = new SimulationWorld();
-            RegisterSampleJobWorld(world);
+            RegisterSampleWorkAreas(world);
             Assert.IsTrue(world.TryGetWorkArea("wa_field", out var area));
             Assert.AreEqual(1f, area.OffsetX);
             Assert.AreEqual(-2f, area.OffsetZ);
         }
 
         [Test]
-        public void BaseGame_LoadsJobsWorkAreasAndBindsSampleNpcs()
+        public void BaseGame_LoadsWorkAreasAndPreferredPlacesWithoutProfessionJobs()
         {
             var loaded = new ContentPackageLoader().Load(new[] { BaseGamePath });
             Assert.IsTrue(loaded.IsSuccess, loaded.IsFailure ? loaded.Error.ToString() : "");
-            Assert.IsTrue(loaded.Value.Registry.TryGetJob(
-                new DefinitionId("base", "job_herb_farmer"), out _));
-            Assert.IsTrue(loaded.Value.Registry.TryGetJob(
-                new DefinitionId("base", "job_miner"), out _));
-            Assert.IsTrue(loaded.Value.Registry.TryGetJob(
-                new DefinitionId("base", "job_patrol_guard"), out _));
-            Assert.IsTrue(loaded.Value.Registry.TryGetJob(
-                new DefinitionId("base", "job_supervisor"), out _));
             Assert.IsTrue(loaded.Value.Registry.TryGetWorkArea(
                 new DefinitionId("base", "workarea_herb_field"), out var herbWa));
             Assert.AreEqual("base:loc_ref_herb_field", herbWa.LocationId);
+            Assert.IsTrue(loaded.Value.Registry.TryGetCharacter(
+                new DefinitionId("base", "character_ch01_ref_woodcutter"), out var wood));
+            Assert.Contains("base:workarea_forest_woodcut", wood.PreferredWorkAreaIds);
+            Assert.AreEqual(0, loaded.Value.Registry.Jobs.Count);
 
             var started = new PlayableDayBootstrap().Start(
                 BaseGamePath,
@@ -234,24 +205,19 @@ namespace XianXia.Tests
             Assert.IsTrue(started.IsSuccess, started.IsFailure ? started.Error.ToString() : "");
 
             var world = started.Value.World;
-            Assert.IsTrue(world.TryGetJob("base:job_herb_farmer", out _));
             Assert.IsTrue(world.TryGetWorkArea("base:workarea_mine", out _));
             Assert.IsTrue(world.WorldRegion.TryGet("base:loc_ref_herb_field", out var herbLoc));
             Assert.Contains("herb", herbLoc.Tags);
 
-            var jobbed = 0;
+            var withTendency = 0;
             foreach (var e in world.Entities.All)
             {
-                if (e.TryGet<JobComponent>(out var job) && job.HasJob)
-                    jobbed++;
+                if (e.TryGet<ActivityTendencyComponent>(out _))
+                    withTendency++;
             }
 
-            // ch01_reference: supervisor + grain + herb + 2 guards + miner
-            Assert.GreaterOrEqual(jobbed, 6);
+            Assert.GreaterOrEqual(withTendency, 13);
             Assert.IsTrue(world.TryGetWorkArea("base:workarea_spring_cultivate", out _));
-            Assert.IsTrue(world.TryGetJob("base:job_supervisor", out var supervisorJob));
-            Assert.IsTrue(supervisorJob.TryGetBinding(ScheduleActivity.Cultivate, out var cultivateBind));
-            Assert.Contains("base:workarea_spring_cultivate", cultivateBind.WorkAreaIds);
         }
 
         static IAction FirstActive(SimulationWorld world)

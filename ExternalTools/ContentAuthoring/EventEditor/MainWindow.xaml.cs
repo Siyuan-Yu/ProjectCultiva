@@ -15,7 +15,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         Title = "XianXia · 事件编辑器";
-        TriggerBox.ItemsSource = SchemaFields.EventTriggers;
+        TriggerBox.ItemsSource = UiLabels.Labels(UiLabels.EventTriggers);
         TryLoadDefault();
     }
 
@@ -32,6 +32,7 @@ public partial class MainWindow : Window
         RootText.Text = root;
         EventList.ItemsSource = _package.OfType("contentEvent").Select(d => d.Id).ToList();
         LocationBox.ItemsSource = new[] { "" }.Concat(PackageStore.AllLocationIds(_package)).ToList();
+        NpcDefBox.ItemsSource = new[] { "" }.Concat(PackageStore.AllCharacterIds(_package)).ToList();
         CondEditor.Configure(_package, JsonArrayEditorMode.Condition, "触发条件");
         if (EventList.Items.Count > 0) EventList.SelectedIndex = 0;
         StatusText.Text = $"事件 {_package.OfType("contentEvent").Count()} 条";
@@ -51,9 +52,13 @@ public partial class MainWindow : Window
         IdBox.Text = JsonEdit.GetString(_event.Raw, "id");
         NameBox.Text = JsonEdit.GetString(_event.Raw, "name");
         BodyBox.Text = JsonEdit.GetString(_event.Raw, "body");
-        TriggerBox.SelectedItem = JsonEdit.GetString(_event.Raw, "trigger", "manual");
+        TriggerBox.SelectedItem = UiLabels.ToLabel(
+            UiLabels.EventTriggers,
+            JsonEdit.GetString(_event.Raw, "trigger", "manual"),
+            "手动");
         LocationBox.SelectedItem = JsonEdit.GetString(_event.Raw, "locationId");
         QuestIdBox.Text = JsonEdit.GetString(_event.Raw, "questId");
+        NpcDefBox.SelectedItem = JsonEdit.GetString(_event.Raw, "npcDefinitionId");
         OnceBox.IsChecked = _event.Raw["once"] is null || JsonEdit.GetBool(_event.Raw, "once", true);
         CondEditor.LoadFrom(_event.Raw["conditions"]);
         ChoicesBox.Text = JsonEdit.ConditionsToEditable(_event.Raw["choices"]);
@@ -106,9 +111,13 @@ public partial class MainWindow : Window
         _event.Raw["id"] = IdBox.Text?.Trim() ?? _event.Id;
         _event.Raw["name"] = NameBox.Text ?? "";
         _event.Raw["body"] = BodyBox.Text ?? "";
-        _event.Raw["trigger"] = TriggerBox.SelectedItem as string ?? "manual";
+        _event.Raw["trigger"] = UiLabels.ToKey(
+            UiLabels.EventTriggers,
+            TriggerBox.SelectedItem as string ?? TriggerBox.Text,
+            "manual");
         JsonEdit.SetString(_event.Raw, "locationId", LocationBox.SelectedItem as string ?? LocationBox.Text);
         JsonEdit.SetString(_event.Raw, "questId", QuestIdBox.Text);
+        JsonEdit.SetString(_event.Raw, "npcDefinitionId", NpcDefBox.SelectedItem as string ?? NpcDefBox.Text);
         _event.Raw["once"] = OnceBox.IsChecked == true;
         _event.Raw["conditions"] = CondEditor.ToJsonArray();
         _event.Raw["choices"] = choices;

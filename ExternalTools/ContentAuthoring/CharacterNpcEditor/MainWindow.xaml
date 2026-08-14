@@ -1,0 +1,177 @@
+<Window x:Class="CharacterNpcEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="XianXia · 人物编辑器" Height="920" Width="1320"
+        WindowStartupLocation="CenterScreen">
+  <DockPanel Margin="10">
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+      <Button Content="打开包…" Width="90" Margin="0,0,8,0" Click="OpenPackage_Click"/>
+      <Button Content="保存人物" Width="90" Margin="0,0,8,0" Click="SaveCharacter_Click"/>
+      <Button Content="保存场景出场" Width="110" Margin="0,0,8,0" Click="SaveSpawn_Click"/>
+      <Button Content="导出 Level Tester 名册" Width="150" Margin="0,0,8,0" Click="ExportRoster_Click"/>
+      <TextBlock VerticalAlignment="Center" Margin="0,0,8,0" TextWrapping="Wrap"
+                 Text="人物→Characters/；出场→Scenarios/；名册→Rosters/（试玩刷人用）。后两项会弹出另存为，默认当前文件，保存后不退出。"/>
+      <TextBlock x:Name="RootText" VerticalAlignment="Center"/>
+    </StackPanel>
+    <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0"/>
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="320"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <DockPanel Margin="0,0,8,0">
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+          <Button Content="+ 新人物" Margin="0,0,0,4" Click="NewCharacter_Click"/>
+          <Button Content="加入当前场景出场" Margin="0,0,0,6" Click="AddToScenario_Click"/>
+          <DockPanel>
+            <TextBlock Text="筛选" Width="36" VerticalAlignment="Center"/>
+            <ComboBox x:Name="FilterBox" SelectedIndex="0" SelectionChanged="FilterBox_SelectionChanged">
+              <ComboBoxItem Content="全部"/>
+              <ComboBoxItem Content="仅可控制"/>
+              <ComboBoxItem Content="仅 NPC"/>
+            </ComboBox>
+          </DockPanel>
+        </StackPanel>
+        <ListBox x:Name="CharList" DisplayMemberPath="Label" SelectionChanged="CharList_SelectionChanged"/>
+      </DockPanel>
+      <TabControl Grid.Column="1">
+        <TabItem Header="基本">
+          <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8">
+            <StackPanel>
+              <DockPanel Margin="0,0,0,6">
+                <TextBlock Text="id" Width="120" VerticalAlignment="Center"/>
+                <TextBox x:Name="IdBox"/>
+              </DockPanel>
+              <DockPanel Margin="0,0,0,6">
+                <TextBlock Text="显示名" Width="120" VerticalAlignment="Center"/>
+                <TextBox x:Name="NameBox"/>
+              </DockPanel>
+              <DockPanel Margin="0,0,0,8">
+                <CheckBox x:Name="ControllableBox" Content="玩家可控制（进队伍／可选中下令）"
+                          VerticalAlignment="Center" Checked="ControllableBox_Changed" Unchecked="ControllableBox_Changed"/>
+              </DockPanel>
+              <TextBlock x:Name="TalkEventsHint" TextWrapping="Wrap" Margin="0,0,0,8" Foreground="#555"
+                         Text="关联 onTalk 事件：选中人物后显示（对话发任务在事件编辑器配置）"/>
+              <DockPanel Margin="0,0,0,6">
+                <TextBlock Text="境界（展示）" Width="120" VerticalAlignment="Center"/>
+                <TextBox x:Name="RealmBox"/>
+              </DockPanel>
+              <DockPanel Margin="0,0,0,6">
+                <TextBlock Text="家乡" Width="120" VerticalAlignment="Center"/>
+                <TextBox x:Name="HometownBox"/>
+              </DockPanel>
+              <DockPanel Margin="0,0,0,6">
+                <TextBlock Text="声望" Width="120" VerticalAlignment="Center"/>
+                <TextBox x:Name="ReputationBox"/>
+              </DockPanel>
+              <DockPanel Margin="0,0,0,6">
+                <TextBlock Text="tags（逗号）" Width="120" VerticalAlignment="Center"/>
+                <TextBox x:Name="TagsBox"/>
+              </DockPanel>
+              <TextBlock Margin="0,8,0,4" Text="偏好工区（有序；满／耗尽再试后面的）"/>
+              <TextBox x:Name="PreferredWaBox" AcceptsReturn="True" Height="64" TextWrapping="Wrap"
+                       VerticalScrollBarVisibility="Auto"/>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="属性（2B）">
+          <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8">
+            <StackPanel>
+              <TextBlock TextWrapping="Wrap" Margin="0,0,0,8" Foreground="#555"
+                         Text="凡人与修士同一套属性；区别是开发程度。肉身／灵魂／修仙资源写在 baseAttributes；灵根亲和见下一页。"/>
+              <TextBlock FontWeight="SemiBold" Margin="0,0,0,4" Text="肉身"/>
+              <UniformGrid Columns="2">
+                <DockPanel Margin="0,0,8,6"><TextBlock Text="生命 MaxHp" Width="120" VerticalAlignment="Center"/><TextBox x:Name="AttrHpBox"/></DockPanel>
+                <DockPanel Margin="0,0,0,6"><TextBlock Text="体力 Stamina" Width="120" VerticalAlignment="Center"/><TextBox x:Name="AttrStaminaBox"/></DockPanel>
+                <DockPanel Margin="0,0,8,6"><TextBlock Text="攻击 Attack" Width="120" VerticalAlignment="Center"/><TextBox x:Name="AttrAtkBox"/></DockPanel>
+                <DockPanel Margin="0,0,0,6"><TextBlock Text="防御 Defense" Width="120" VerticalAlignment="Center"/><TextBox x:Name="AttrDefBox"/></DockPanel>
+                <DockPanel Margin="0,0,8,6"><TextBlock Text="速度 Speed" Width="120" VerticalAlignment="Center"/><TextBox x:Name="AttrSpdBox"/></DockPanel>
+              </UniformGrid>
+              <TextBlock FontWeight="SemiBold" Margin="0,12,0,4" Text="灵魂"/>
+              <UniformGrid Columns="2">
+                <DockPanel Margin="0,0,8,6"><TextBlock Text="神识 SpiritSense" Width="120" VerticalAlignment="Center"/><TextBox x:Name="AttrSenseBox"/></DockPanel>
+                <DockPanel Margin="0,0,0,6"><TextBlock Text="悟性 Comprehension" Width="120" VerticalAlignment="Center"/><TextBox x:Name="AttrCompBox"/></DockPanel>
+              </UniformGrid>
+              <TextBlock FontWeight="SemiBold" Margin="0,12,0,4" Text="修仙资源／心境"/>
+              <UniformGrid Columns="2">
+                <DockPanel Margin="0,0,8,6"><TextBlock Text="灵力 SpiritPower" Width="120" VerticalAlignment="Center"/><TextBox x:Name="AttrSpiritPowerBox"/></DockPanel>
+                <DockPanel Margin="0,0,0,6"><TextBlock Text="修为 Cultivation" Width="120" VerticalAlignment="Center"/><TextBox x:Name="AttrCultBox"/></DockPanel>
+                <DockPanel Margin="0,0,8,6"><TextBlock Text="心境 MindState" Width="120" VerticalAlignment="Center"/><TextBox x:Name="AttrMindBox"/></DockPanel>
+              </UniformGrid>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="灵根（数值）">
+          <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8">
+            <StackPanel>
+              <TextBlock TextWrapping="Wrap" Margin="0,0,0,8" Foreground="#555"
+                         Text="按 2B：灵根＝各属性亲和数值（示例满分 30），不是「金灵根」这种单一标签。不做五行相克；可跨属性学，只影响效率。"/>
+              <ItemsControl x:Name="SpiritRootPanel"/>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="社会标签">
+          <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8">
+            <StackPanel>
+              <TextBlock Margin="0,0,0,4" Text="性格 personalityTags（逗号）"/>
+              <TextBox x:Name="PersonalityBox" Margin="0,0,0,8"/>
+              <TextBlock Margin="0,0,0,4" Text="背景 backgroundTags（逗号）"/>
+              <TextBox x:Name="BackgroundBox" Margin="0,0,0,8"/>
+              <TextBlock Margin="0,0,0,4" Text="天赋 talentTags（逗号）"/>
+              <TextBox x:Name="TalentBox" Margin="0,0,0,8"/>
+              <TextBlock Margin="0,0,0,4" Text="目标 goals（每行一条）"/>
+              <TextBox x:Name="GoalsBox" AcceptsReturn="True" Height="72" TextWrapping="Wrap" Margin="0,0,0,8"/>
+              <TextBlock Margin="0,0,0,4" Text="欲望 desires（每行一条）"/>
+              <TextBox x:Name="DesiresBox" AcceptsReturn="True" Height="72" TextWrapping="Wrap"/>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="闲时事务倾向">
+          <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8">
+            <StackPanel>
+              <TextBlock TextWrapping="Wrap" Margin="0,0,0,8" Foreground="#555"
+                         Text="能否做＋权重。不是职业。地点不可用时按权重改做别的事。"/>
+              <ItemsControl x:Name="CapabilityPanel"/>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="场景出场（挂载）">
+          <DockPanel Margin="8">
+            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+              <DockPanel Margin="0,0,0,6">
+                <TextBlock Text="开局场景" Width="80" VerticalAlignment="Center"/>
+                <ComboBox x:Name="ScenarioBox" SelectionChanged="ScenarioBox_SelectionChanged"/>
+              </DockPanel>
+              <TextBlock TextWrapping="Wrap" Foreground="#555"
+                         Text="「出场」＝把人物写进 scenarios.json 的 spawns：这一局开场谁在场上。不是改人物本体。&#x0a;可控制＝玩家能选中下令；势力职务＝开局势力里的身份；AI 倾向＝日程／意图粗分类（凡人／修士／主管），不是职业。"/>
+            </StackPanel>
+            <Grid>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+              </Grid.RowDefinitions>
+              <DataGrid x:Name="SpawnGrid" AutoGenerateColumns="False" CanUserAddRows="False"
+                        SelectionChanged="SpawnGrid_SelectionChanged">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="definitionId" Binding="{Binding DefinitionId}" Width="200" IsReadOnly="True"/>
+                  <DataGridTextColumn Header="显示名" Binding="{Binding DisplayName}" Width="90"/>
+                  <DataGridCheckBoxColumn Header="可控制" Binding="{Binding Controllable, UpdateSourceTrigger=PropertyChanged}" Width="60"/>
+                  <DataGridComboBoxColumn x:Name="SpawnSchedCol" Header="日程（过渡）" SelectedItemBinding="{Binding ScheduleId}" Width="170"/>
+                  <DataGridComboBoxColumn x:Name="SpawnAiCol" Header="AI倾向" SelectedItemBinding="{Binding AiRoleLabel}" Width="100"/>
+                  <DataGridComboBoxColumn x:Name="SpawnFactionCol" Header="势力职务" SelectedItemBinding="{Binding FactionRoleLabel}" Width="100"/>
+                  <DataGridCheckBoxColumn Header="绑日程" Binding="{Binding BindSchedule}" Width="55"/>
+                </DataGrid.Columns>
+              </DataGrid>
+              <TextBlock Grid.Row="1" x:Name="SpawnHint" Margin="0,8,0,0" TextWrapping="Wrap"/>
+            </Grid>
+          </DockPanel>
+        </TabItem>
+      </TabControl>
+    </Grid>
+  </DockPanel>
+</Window>

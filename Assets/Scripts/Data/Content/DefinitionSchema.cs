@@ -15,13 +15,20 @@ namespace XianXia.Data.Content
         {
             "id", "type", "name", "displayNameKey", "nameKey", "baseAttributes", "tags",
             "personalityTags", "backgroundTags", "talentTags",
-            "spiritRootPlaceholder", "initialRealmPlaceholder"
+            "spiritRootPlaceholder", "spiritRoots", "initialRealmPlaceholder",
+            "hometown", "reputation", "goals", "desires",
+            "playerControllable", "activityCapabilities", "activityPriorities", "preferredWorkAreaIds"
         };
 
         public static readonly HashSet<string> OpeningScenarioFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "scheduleId", "openingFactionId", "openingSettlementId",
             "openingWorldRegionId", "openingChapterId", "spawns", "openingRelations"
+        };
+
+        public static readonly HashSet<string> CharacterRosterFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "entries"
         };
 
         public static readonly HashSet<string> ChapterFields = new HashSet<string>(StringComparer.Ordinal)
@@ -60,6 +67,16 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> JobActivityBindingFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "activity", "workAreaIds", "mode"
+        };
+
+        public static readonly HashSet<string> ScheduleFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "blocks"
+        };
+
+        public static readonly HashSet<string> ScheduleBlockFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "startTick", "endTick", "activity", "orderDurationTicks"
         };
 
         public static readonly HashSet<string> MapLayoutFields = new HashSet<string>(StringComparer.Ordinal)

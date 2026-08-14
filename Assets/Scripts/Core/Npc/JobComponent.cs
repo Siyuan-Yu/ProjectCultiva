@@ -2,11 +2,13 @@ using XianXia.Core.Entities;
 
 namespace XianXia.Core.Npc
 {
-    /// <summary>Session binding of an entity to a JobDefinition (not in Snapshot v1).</summary>
+    /// <summary>
+    /// Runtime place-routing state (RouteIndex). JobId is legacy／optional and not required for WorkArea resolve.
+    /// </summary>
     public sealed class JobComponent : IComponent
     {
         public string JobId { get; set; } = string.Empty;
-        /// <summary>Index into route WorkAreaIds for patrol／inspect.</summary>
+        /// <summary>Index into candidate WorkAreas for patrol／inspect／explore.</summary>
         public int RouteIndex { get; set; }
 
         public bool HasJob => !string.IsNullOrEmpty(JobId);

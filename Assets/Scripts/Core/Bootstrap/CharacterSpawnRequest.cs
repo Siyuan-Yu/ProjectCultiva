@@ -15,5 +15,13 @@ namespace XianXia.Core.Bootstrap
         public string SpiritRootPlaceholder { get; set; }
         public string InitialRealmPlaceholder { get; set; }
         public SpawnEntityKind EntityKind { get; set; } = SpawnEntityKind.Character;
+        public Dictionary<string, bool> ActivityCapabilities { get; set; } = new Dictionary<string, bool>();
+        public Dictionary<string, int> ActivityPriorities { get; set; } = new Dictionary<string, int>();
+        public List<string> PreferredWorkAreaIds { get; set; } = new List<string>();
+        public Dictionary<string, int> SpiritRoots { get; set; } = new Dictionary<string, int>();
+        public string Hometown { get; set; } = string.Empty;
+        public int Reputation { get; set; }
+        public List<string> Goals { get; set; } = new List<string>();
+        public List<string> Desires { get; set; } = new List<string>();
     }
 }

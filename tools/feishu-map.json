@@ -611,6 +611,21 @@
       "title": "近期更新收束 · NPC 对话／任务失败／时间流速（2026-08-14）",
       "docId": "AQEEdwxmHoPvO6xFAUBcMdqSnkd"
     },
+    "npc-workarea-editor": {
+      "file": "docs/40-process/118-npc-behavior-editor.md",
+      "title": "工区编辑器（WorkArea）",
+      "docId": "LFhvdfj46oraKCxcTtNcLJ0pnE6"
+    },
+    "npc-character-vs-workarea-editors": {
+      "file": "docs/40-process/119-npc-character-vs-role-template-editors.md",
+      "title": "工区 vs 人物编辑器（无职业身份）",
+      "docId": "DlppdN0BloHiwdxmLI2ccxthnw1"
+    },
+    "character-roster-editors-timescale-2026-08-15": {
+      "file": "docs/40-process/120-character-roster-editors-and-timescale-rollup-2026-08-15.md",
+      "title": "近期更新收束 · 人物／名册／倍速／对话发任务（2026-08-15）",
+      "docId": "CP2OddgK4ofYFzxPfr5cSYC0nG3"
+    },
     "world-graph-local-map": {
       "file": "docs/40-process/113-world-graph-local-map-architecture-revision-v0.1.md",
       "title": "World Graph + Local Map 架构修订 v0.1",

@@ -33,6 +33,17 @@ namespace XianXia.Tests
         }
 
         [Test]
+        public void WorldPath_OpenField_UsesDiagonalNotStaircase()
+        {
+            var grid = new WalkGrid(0f, 0f, 1f, 12, 12);
+            var xy = new List<float>();
+            Assert.IsTrue(GridPathfinder.TryFindWorldPath(grid, 0.5f, 0.5f, 10.5f, 10.5f, xy));
+            // String-pull should collapse open diagonal to few legs, not 10+ axis steps.
+            Assert.LessOrEqual(xy.Count / 2, 4);
+            Assert.GreaterOrEqual(xy.Count / 2, 2);
+        }
+
+        [Test]
         public void AStar_FailsWhenGoalBlockedAndNoSnap()
         {
             var grid = new WalkGrid(0f, 0f, 1f, 5, 5);

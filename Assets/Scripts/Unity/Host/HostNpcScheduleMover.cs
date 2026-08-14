@@ -56,7 +56,10 @@ namespace XianXia.Unity.Host
 
             var session = bootstrap.Session;
             var grid = moveController.WalkGrid;
+            var speed = Mathf.Max(1, bootstrap.EffectiveSpeedMultiplier());
             var now = Time.unscaledTime;
+            var repathInterval = repathIntervalSeconds / speed;
+            var stuckLimit = stuckSeconds / speed;
             foreach (var entity in session.World.Entities.All)
             {
                 if ((entity.Tags & EntityTag.Character) != 0)
@@ -87,7 +90,7 @@ namespace XianXia.Unity.Host
                 var targetKey = intent.TargetWorkAreaId + "|" + intent.TargetLocationId;
                 var targetChanged = !_lastTargetKey.TryGetValue(entity.Id.Value, out var prev) ||
                                     !string.Equals(prev, targetKey, System.StringComparison.Ordinal);
-                var stuck = IsStuck(entity.Id.Value, now);
+                var stuck = IsStuck(entity.Id.Value, now, stuckLimit);
                 var due = !_nextRepathAt.TryGetValue(entity.Id.Value, out var t) || now >= t;
 
                 if (!targetChanged && !stuck && moveController.IsMoving(entity.Id) && !due)
@@ -96,7 +99,7 @@ namespace XianXia.Unity.Host
                 if (!due && !targetChanged && !stuck)
                     continue;
 
-                _nextRepathAt[entity.Id.Value] = now + repathIntervalSeconds;
+                _nextRepathAt[entity.Id.Value] = now + repathInterval;
                 _lastTargetKey[entity.Id.Value] = targetKey;
                 if (!moveController.OrderEntityToWorldPoint(entity.Id, center, null, issueStop: false))
                 {
@@ -121,11 +124,11 @@ namespace XianXia.Unity.Host
             }
         }
 
-        bool IsStuck(ulong id, float now)
+        bool IsStuck(ulong id, float now, float stuckLimit)
         {
             if (!_lastProgressAt.TryGetValue(id, out var t))
                 return false;
-            return now - t >= stuckSeconds;
+            return now - t >= stuckLimit;
         }
 
         static Vector3 SnapGoalToWalkable(WalkGrid grid, Vector3 world, int snapRadius)

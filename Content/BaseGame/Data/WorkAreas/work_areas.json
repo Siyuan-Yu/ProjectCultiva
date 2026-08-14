@@ -80,6 +80,16 @@
       "allowedActivities": ["Cultivate"],
       "offsetX": 1,
       "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_forest_woodcut",
+      "type": "workArea",
+      "name": "林缘砍柴点",
+      "locationId": "base:loc_ref_forest",
+      "tags": ["wood", "labor"],
+      "allowedActivities": ["Labor"],
+      "offsetX": 2,
+      "offsetZ": 1
     }
   ]
 }

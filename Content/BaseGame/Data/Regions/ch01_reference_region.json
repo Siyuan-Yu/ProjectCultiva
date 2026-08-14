@@ -69,7 +69,7 @@
           ],
           "resourceOnExploreId": "base:resource_rough_wood",
           "resourceOnExploreAmount": 1,
-          "residentNpcDefinitionId": "base:character_ch01_ref_miner",
+          "residentNpcDefinitionId": "base:character_ch01_ref_wood_b",
           "presentationX": -31.0,
           "presentationZ": 14.5
         },

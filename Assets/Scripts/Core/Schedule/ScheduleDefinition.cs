@@ -50,7 +50,10 @@ namespace XianXia.Core.Schedule
             return false;
         }
 
-        /// <summary>Sample laborer day: Rest → Labor → Rest → Labor → Rest.</summary>
+        /// <summary>
+        /// Built-in factories kept as mirrors／fallback when Content schedule JSON is missing.
+        /// Prefer editing <c>Content/BaseGame/Data/Schedules/schedules.json</c> via NpcEditor.
+        /// </summary>
         public static ScheduleDefinition CreateDefaultLaborerDay(string id = "base:schedule_laborer_day")
         {
             return new ScheduleDefinition(id)

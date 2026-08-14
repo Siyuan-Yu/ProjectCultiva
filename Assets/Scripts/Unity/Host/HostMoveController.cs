@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Domain.Time;
 using XianXia.Core.Exploration;
 using XianXia.Core.Input;
 using XianXia.Core.Navigation;
@@ -41,6 +42,44 @@ namespace XianXia.Unity.Host
         public bool IsMoving(EntityId id) => !id.IsNone && _movingIds.Contains(id.Value);
 
         public WalkGrid WalkGrid => _walkGrid;
+
+        /// <summary>Active A* polyline for a moving unit: current pos + remaining waypoints.</summary>
+        public bool TryGetRemainingPath(EntityId id, List<Vector3> into)
+        {
+            if (into == null)
+                return false;
+            into.Clear();
+            if (id.IsNone || viewSpawner == null ||
+                !viewSpawner.Registry.TryGet(id, out var view) || view == null)
+                return false;
+            if (!_paths.TryGetValue(id.Value, out var path) || path == null || path.Count == 0)
+                return false;
+
+            _pathIndex.TryGetValue(id.Value, out var idx);
+            if (idx < 0)
+                idx = 0;
+            if (idx >= path.Count)
+                return false;
+
+            var start = view.transform.position;
+            start.z = HostPresentationSpace.EntityZ;
+            into.Add(start);
+            for (var i = idx; i < path.Count; i++)
+            {
+                var p = path[i];
+                p.z = HostPresentationSpace.EntityZ;
+                into.Add(p);
+            }
+
+            return into.Count >= 2;
+        }
+
+        /// <summary>Build an A* world polyline without issuing a move order.</summary>
+        public bool TryBuildPathPreview(Vector3 from, Vector3 to, List<Vector3> into) =>
+            TryBuildWorldPath(from, to, into);
+
+        public Vector3 PreviewFormationGoal(Vector3 click, int moveIndex, int moveCount) =>
+            ResolveFormationGoal(click, FormationOffset(moveIndex, moveCount));
 
         public void Bind(
             PlayableHostBootstrap host,
@@ -388,7 +427,9 @@ namespace XianXia.Unity.Host
             if (session?.Loop == null || id.IsNone)
                 return;
             var seconds = worldDistance / Mathf.Max(0.5f, moveSpeed);
-            var tickSeconds = 3f;
+            var tickSeconds = bootstrap != null
+                ? Mathf.Max(0.01f, bootstrap.SecondsPerAutoTickAt1x)
+                : SimulationTickPacing.SecondsPerTickAt1x;
             var ticks = (ulong)Mathf.Clamp(Mathf.CeilToInt(seconds / tickSeconds) + 4, 6, 96);
             var wait = session.Loop.CreateWaitOrder(id, ticks, XianXia.Core.Orders.OrderSource.Player);
             session.Loop.EnqueueOrder(wait);
@@ -397,6 +438,10 @@ namespace XianXia.Unity.Host
         void TickMoves()
         {
             if (_targets.Count == 0)
+                return;
+
+            var dt = bootstrap != null ? bootstrap.PresentationDeltaTime : Time.unscaledDeltaTime;
+            if (dt <= 0f)
                 return;
 
             // 不能在 foreach Dictionary 时改 _targets（切下一航点会写入）
@@ -414,8 +459,8 @@ namespace XianXia.Unity.Host
 
                 var pos = view.transform.position;
                 var sep = ComputeSeparation(view, pos);
-                var desired = Vector3.MoveTowards(pos, target, moveSpeed * Time.unscaledDeltaTime);
-                var next = desired + sep * (separationStrength * Time.unscaledDeltaTime);
+                var desired = Vector3.MoveTowards(pos, target, moveSpeed * dt);
+                var next = desired + sep * (separationStrength * dt);
                 next.z = HostPresentationSpace.EntityZ;
                 next = ClampToWalkable(pos, next);
                 view.transform.position = next;

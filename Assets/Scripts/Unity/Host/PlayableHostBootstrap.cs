@@ -22,6 +22,9 @@ namespace XianXia.Unity.Host
         [SerializeField] string mapLayoutFilePath = "";
         [Tooltip("空则用默认 openingScenario。")]
         [SerializeField] string openingScenarioId = "";
+        [Header("Level Tester · 人物名册")]
+        [Tooltip("人物编辑器导出的 characterRoster id。有则按名册刷人（非 Unity 场景摆放）。空＝用剧本 spawns。")]
+        [SerializeField] string characterRosterId = "base:roster_level_tester";
         [HideInInspector]
         [SerializeField] string preferredMapLayoutId = "";
         [HideInInspector]
@@ -227,8 +230,43 @@ namespace XianXia.Unity.Host
 
         public int EffectiveSpeedMultiplier()
         {
+            EnsureDebugHud();
             var speed = debugHud != null ? debugHud.SpeedMultiplier : 1;
             return speed < 1 ? 1 : speed;
+        }
+
+        /// <summary>
+        /// 顶栏 1x／2x／5x：统一改 Host 倍速。
+        /// Tick 驱动的工作／休息／吃饭／修炼／作息与表现层移动共用此倍率。
+        /// </summary>
+        public void SetSpeedMultiplier(int multiplier)
+        {
+            EnsureDebugHud();
+            debugHud?.SetSpeedMultiplier(multiplier);
+            ResetAutoTickAccumulator();
+            RefreshStatus();
+        }
+
+        void EnsureDebugHud()
+        {
+            if (debugHud != null)
+                return;
+            debugHud = GetComponent<HostDebugHud>() ?? gameObject.AddComponent<HostDebugHud>();
+            debugHud.Bind(this, selectionController);
+        }
+
+        /// <summary>
+        /// 表现层帧间隔：受暂停与 Host 倍速影响（移动／分离等）。
+        /// Core 行动进度靠 Tick（已按倍速推进）；连续位移必须用同一倍率。
+        /// </summary>
+        public float PresentationDeltaTime
+        {
+            get
+            {
+                if (_session == null || !_session.IsInitialized || _session.IsPaused)
+                    return 0f;
+                return Time.unscaledDeltaTime * EffectiveSpeedMultiplier();
+            }
         }
 
         public int EffectiveGameMinutesPerRealSecond() =>
@@ -237,6 +275,8 @@ namespace XianXia.Unity.Host
         public string PreferredMapLayoutId => preferredMapLayoutId ?? "";
 
         public string OpeningScenarioId => openingScenarioId ?? "";
+
+        public string CharacterRosterId => characterRosterId ?? "";
 
         public string MapLayoutFilePath => mapLayoutFilePath ?? "";
 
@@ -306,6 +346,8 @@ namespace XianXia.Unity.Host
             if (npcContextMenu == null)
                 npcContextMenu = GetComponent<HostNpcContextMenu>() ??
                                 gameObject.AddComponent<HostNpcContextMenu>();
+            if (GetComponent<HostPartyPathPreview>() == null)
+                gameObject.AddComponent<HostPartyPathPreview>();
 
             selectionController.ClearSelection();
             entityViewSpawner.Clear();
@@ -336,7 +378,10 @@ namespace XianXia.Unity.Host
                 DailyRequiredAmount = Mathf.Max(1, dailyRequiredAmount),
                 OpeningScenarioId = string.IsNullOrWhiteSpace(openingScenarioId)
                     ? null
-                    : openingScenarioId.Trim()
+                    : openingScenarioId.Trim(),
+                CharacterRosterId = string.IsNullOrWhiteSpace(characterRosterId)
+                    ? null
+                    : characterRosterId.Trim()
             };
             if (overrideObservationDiscoverChance)
                 options.ObservationDiscoverChancePercent = observationDiscoverChancePercent;
@@ -382,6 +427,9 @@ namespace XianXia.Unity.Host
             debugHud.Bind(this, selectionController);
             contentDebugPanel.Bind(this, selectionController);
             moveController.Bind(this, selectionController, entityViewSpawner, commandBridge, npcContextMenu);
+            var pathPreview = GetComponent<HostPartyPathPreview>();
+            if (pathPreview != null)
+                pathPreview.Bind(this, moveController, selectionController, cam);
             moveController.SetWalkGrid(ResolveWalkGrid());
             if (npcContextMenu != null)
                 npcContextMenu.Bind(this, selectionController, moveController, dialoguePresenter);
@@ -587,6 +635,17 @@ namespace XianXia.Unity.Host
             if (!string.IsNullOrWhiteSpace(mapLayoutFilePath))
             {
                 var path = ResolveMapLayoutPath(mapLayoutFilePath.Trim());
+                if (!File.Exists(path))
+                {
+                    // Pre-subdir scenes pointed at Data/ch01_*.json; true source is Data/Maps/.
+                    var mapsSibling = Path.Combine(
+                        Path.GetDirectoryName(path) ?? string.Empty,
+                        "Maps",
+                        Path.GetFileName(path));
+                    if (File.Exists(mapsSibling))
+                        path = mapsSibling;
+                }
+
                 loaded = MapLayoutJsonLoader.LoadFromFile(path, preferredMapLayoutId);
                 hasOverride = true;
             }
