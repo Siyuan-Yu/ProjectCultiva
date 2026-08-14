@@ -29,7 +29,7 @@
 
 | 目的 | 读什么 |
 |------|--------|
-| **本轮增量（对话／失败／流速）** | [117](../40-process/117-npc-dialogue-host-ux-rollup-2026-08-14.md) |
+| **本轮增量（对话／失败／流速／任务 UX）** | [117](../40-process/117-npc-dialogue-host-ux-rollup-2026-08-14.md) |
 | 上一轮（Ch01／背包／劳动） | [116](../40-process/116-recent-updates-rollup-2026-08-14.md) |
 | 工具链 | [115](../40-process/115-recent-updates-rollup-2026-08-13.md) |
 | 现在做到哪 | [62 现状](../40-process/62-project-status-2026-08-01.md)／[107 收束](../40-process/107-recent-milestones-rollup-2026-08-10.md) |

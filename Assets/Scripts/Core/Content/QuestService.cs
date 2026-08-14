@@ -139,6 +139,10 @@ namespace XianXia.Core.Content
                     return c.Amount > 0 ? c.Amount : 1;
             }
 
+            var stockMax = SumStockAtLeastAmounts(spec);
+            if (stockMax > 0)
+                return stockMax;
+
             return spec.CompleteConditions.Count;
         }
 
@@ -173,6 +177,16 @@ namespace XianXia.Core.Content
                 }
             }
 
+            var stockMax = SumStockAtLeastAmounts(spec);
+            if (stockMax > 0)
+            {
+                runtime.ProgressMax = stockMax;
+                runtime.ProgressCount = SumStockAtLeastProgress(world, spec);
+                if (runtime.ProgressCount > runtime.ProgressMax)
+                    runtime.ProgressCount = runtime.ProgressMax;
+                return;
+            }
+
             // Fallback: how many completeConditions already pass.
             runtime.ProgressMax = spec.CompleteConditions.Count;
             var done = 0;
@@ -183,6 +197,44 @@ namespace XianXia.Core.Content
             }
 
             runtime.ProgressCount = done;
+        }
+
+        static int SumStockAtLeastAmounts(QuestSpec spec)
+        {
+            if (spec?.CompleteConditions == null)
+                return 0;
+            var sum = 0;
+            for (var i = 0; i < spec.CompleteConditions.Count; i++)
+            {
+                var c = spec.CompleteConditions[i];
+                if (c == null ||
+                    !string.Equals(c.Kind, "stockAtLeast", System.StringComparison.OrdinalIgnoreCase))
+                    continue;
+                sum += c.Amount > 0 ? c.Amount : 1;
+            }
+
+            return sum;
+        }
+
+        static int SumStockAtLeastProgress(SimulationWorld world, QuestSpec spec)
+        {
+            if (world == null || spec?.CompleteConditions == null)
+                return 0;
+            var sum = 0;
+            for (var i = 0; i < spec.CompleteConditions.Count; i++)
+            {
+                var c = spec.CompleteConditions[i];
+                if (c == null ||
+                    !string.Equals(c.Kind, "stockAtLeast", System.StringComparison.OrdinalIgnoreCase))
+                    continue;
+                var need = c.Amount > 0 ? c.Amount : 1;
+                var have = world.Inventory.GetCount(c.Id);
+                if (have > need)
+                    have = need;
+                sum += have;
+            }
+
+            return sum;
         }
 
         static void FailQuest(

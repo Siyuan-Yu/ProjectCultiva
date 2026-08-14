@@ -52,11 +52,13 @@
       "id": "base:event_ch01_ref_supervisor_talk",
       "type": "contentEvent",
       "name": "杂役主管·训话",
-      "body": "「今日的配额，酉时前交齐。偷懒的，别怪我不讲情面。」\n\n你可以记下任务，或先不应答。",
+      "body": "「今日的配额，酉时前交齐。偷懒的，别怪我不讲情面。」\n\n你可以应声领命；若对训话不语，主管可能当场加罚。",
       "trigger": "onTalk",
       "npcDefinitionId": "base:character_ch01_ref_supervisor",
       "once": false,
-      "conditions": [],
+      "conditions": [
+        { "kind": "missingFlag", "id": "quest:ch01_ref_supervisor_penalty_assigned" }
+      ],
       "choices": [
         {
           "id": "ack",
@@ -69,8 +71,43 @@
           "id": "silent",
           "text": "……（不语）",
           "outcomes": [
-            { "kind": "setFlag", "id": "event:ch01_ref_supervisor_silent" }
+            { "kind": "setFlag", "id": "event:ch01_ref_supervisor_silent" },
+            { "kind": "setFlag", "id": "quest:ch01_ref_supervisor_penalty_assigned" },
+            {
+              "kind": "relationDelta",
+              "fromDefinitionId": "base:character_ch01_ref_supervisor",
+              "toDefinitionIds": ["@party"],
+              "amount": -12
+            },
+            { "kind": "startQuest", "id": "base:quest_ch01_ref_supervisor_herb_penalty" }
           ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_ch01_ref_supervisor_talk_hurry",
+      "type": "contentEvent",
+      "name": "杂役主管·催促",
+      "body": "「还不快去采灵药？罚单已经开了——两日内交齐，别指望我再提醒第二遍。」",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_ch01_ref_supervisor",
+      "once": false,
+      "conditions": [
+        { "kind": "hasFlag", "id": "quest:ch01_ref_supervisor_penalty_assigned" },
+        { "kind": "missingFlag", "id": "quest:ch01_ref_supervisor_penalty_done" }
+      ],
+      "choices": [
+        {
+          "id": "go",
+          "text": "……这就去。",
+          "outcomes": [
+            { "kind": "setFlag", "id": "event:ch01_ref_supervisor_hurry_ack" }
+          ]
+        },
+        {
+          "id": "bow",
+          "text": "是……",
+          "outcomes": []
         }
       ]
     }

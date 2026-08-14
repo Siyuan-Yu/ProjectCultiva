@@ -255,7 +255,49 @@ namespace XianXia.Core.Content
                     : "农田劳作 " + cur + "/" + max + "（每人约3秒，同一人不重复计）";
             }
 
+            var stockLive = SummarizeStockObjectivesLive(world, list);
+            if (!string.IsNullOrEmpty(stockLive))
+                return stockLive;
+
             return SummarizeObjectives(list);
+        }
+
+        static string SummarizeStockObjectivesLive(
+            SimulationWorld world,
+            IReadOnlyList<ContentCondition> list)
+        {
+            if (list == null || list.Count == 0)
+                return string.Empty;
+            var parts = new List<string>(list.Count);
+            for (var i = 0; i < list.Count; i++)
+            {
+                var c = list[i];
+                if (c == null ||
+                    !string.Equals(c.Kind, "stockAtLeast", System.StringComparison.OrdinalIgnoreCase))
+                    continue;
+                var need = c.Amount > 0 ? c.Amount : 1;
+                var have = world != null ? world.Inventory.GetCount(c.Id) : 0;
+                if (have > need)
+                    have = need;
+                parts.Add(ResourceLabel(c.Id) + " " + have + "/" + need);
+            }
+
+            return parts.Count == 0 ? string.Empty : string.Join("；", parts);
+        }
+
+        public static string ResourceLabel(string resourceId)
+        {
+            if (string.IsNullOrEmpty(resourceId))
+                return "?";
+            if (resourceId.IndexOf("spirit_herb", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                return "灵药";
+            if (resourceId.IndexOf("grain", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                return "粗粮";
+            if (resourceId.IndexOf("rough_wood", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                return "粗木";
+            if (resourceId.IndexOf("conceal_grass", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                return "敛息草";
+            return ShortId(resourceId);
         }
 
         static string SummarizeObjectives(IReadOnlyList<ContentCondition> list)
@@ -288,7 +330,7 @@ namespace XianXia.Core.Content
                         parts.Add("标记 " + ShortId(c.Id));
                         break;
                     case "stockatleast":
-                        parts.Add(ShortId(c.Id) + "≥" + c.Amount);
+                        parts.Add(ResourceLabel(c.Id) + "≥" + c.Amount);
                         break;
                     case "realmatleast":
                         parts.Add("境界 " + (c.Realm ?? "?"));

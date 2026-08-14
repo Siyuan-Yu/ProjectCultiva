@@ -8,7 +8,7 @@
 
 **架构冻结 v0.2。** Core／Data／Host／**VS 0.1～1.0 Demo 自动化已验收**。  
 其上已叠加：样例关、内容打断、RTS 手操、Navigation／NPC 底座、**Content Studio**、**Level Tester**、**Ch01 三环手操**、**NPC onTalk 对话框（UGUI）**、任务失败／时间流速约定。  
-最新增量见 [117](../40-process/117-npc-dialogue-host-ux-rollup-2026-08-14.md)（对话／失败／流速）；上一轮 [116](../40-process/116-recent-updates-rollup-2026-08-14.md)（背包／劳动）；工具链 [115](../40-process/115-recent-updates-rollup-2026-08-13.md)。  
+最新增量见 [117](../40-process/117-npc-dialogue-host-ux-rollup-2026-08-14.md)（对话／失败／流速／**对话→任务 UX**）；上一轮 [116](../40-process/116-recent-updates-rollup-2026-08-14.md)（背包／劳动）；工具链 [115](../40-process/115-recent-updates-rollup-2026-08-13.md)。  
 
 **下一步：** 制作人手操签收对话框＋Ch01；美术换皮／定期发任务／战斗占位另开。  
 Demo Runtime 停扩。完整进度见 [62 项目现状](../40-process/62-project-status-2026-08-01.md)。

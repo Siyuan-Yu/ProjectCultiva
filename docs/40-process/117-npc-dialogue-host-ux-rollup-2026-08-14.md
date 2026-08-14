@@ -1,7 +1,7 @@
 # 117 · 近期更新收束（NPC 对话／任务失败／时间流速）— 2026-08-14
 
-> 状态：**已推送**｜日期：2026-08-14  
-> 相对提交：`e85121f`／[116](116-recent-updates-rollup-2026-08-14.md) 之后 → 本轮 `main`  
+> 状态：**已推送**｜日期：2026-08-14（含 UX polish 增补）  
+> 相对提交：`99e93fb` 之后 → 本轮 `main`  
 > 飞书：https://my.feishu.cn/docx/AQEEdwxmHoPvO6xFAUBcMdqSnkd  
 > 相关：[116 上一轮](116-recent-updates-rollup-2026-08-14.md)｜[SCHEMA](../../Content/BaseGame/Data/SCHEMA.md)｜[95 内容打断](95-content-interrupt-system-plan-v0.1.md)
 
@@ -93,10 +93,33 @@ QuestEditor：`failResults`／目标 Id 支持逗号分隔多目标（见 Shared
 4. 对无 onTalk 的 NPC → fallback「暂无对话」+「结束」  
 5. 探索触发的非 onTalk 事件 → 仍为 **中央** 打断弹窗  
 6. （可选）接有 `deadlineDays` 的日课 → 跨日失败 → **J → 已失败**；好感按 `failResults` 下降  
+7. 主管选「不语」→ 顶部 toast「新任务 · …（已追踪）」→ **J**／右栏显示 **灵药 x/100** 进度  
+8. 惩罚后再对话主管 → 催促台词（`base:event_ch01_ref_supervisor_talk_hurry`），不再重复训话  
 
 ---
 
-## 7. 已知未做／注意
+## 7. 对话／任务 UX polish（`99e93fb` 之后）
+
+| 主题 | 做什么 | 入口 |
+|------|--------|------|
+| **`stockAtLeast` 进度** | 任务进度与右栏目标显示 **当前数量/目标**（如灵药 37/100），不再只是 0/1 | `QuestService.RefreshProgress`、`QuestJournalQuery`、`HostFormalHud` |
+| **对话 `startQuest` 反馈** | 选项 outcome 触发 `QuestStarted` 后：**自动追踪** + 顶部 toast（约 4.5s） | `HostQuestJournal.Ingest`、`PlayableHostBootstrap.DispatchDrainedEvents` |
+| **惩罚后对话分支** | 已触发惩罚 Flag 时，主管 onTalk 切到 **催促** 事件 | `base:event_ch01_ref_supervisor_talk_hurry` |
+
+### 样例：对话选项 → 任务（验证用）
+
+| 步骤 | 数据 |
+|------|------|
+| 事件 | `base:event_ch01_ref_supervisor_talk` → 选「……（不语）」 |
+| outcomes | `setFlag` + `relationDelta`（`@party` -12）+ **`startQuest`** |
+| 任务 | `base:quest_ch01_ref_supervisor_herb_penalty`：`stockAtLeast` 灵药×100，`deadlineDays: 2` |
+| 再对话 | `base:event_ch01_ref_supervisor_talk_hurry`（条件：`penalty_assigned` 且未完成） |
+
+EditMode：`ContentEventSupervisorTalkTests`。
+
+---
+
+## 8. 已知未做／注意
 
 - 正式美术换皮（底图／立绘／字体）未做；`PortraitResourceId` 已预留  
 - 主管 **定期发任务** 暂缓  
@@ -106,7 +129,7 @@ QuestEditor：`failResults`／目标 Id 支持逗号分隔多目标（见 Shared
 
 ---
 
-## 8. 主要新增文件
+## 9. 主要新增／改动文件
 
 | 文件 | 作用 |
 |------|------|
@@ -121,6 +144,7 @@ QuestEditor：`failResults`／目标 Id 支持逗号分隔多目标（见 Shared
 | `HostNpcInteraction.cs` | NPC 交互辅助 |
 | `QuestDeadline.cs`／`QuestDeadlineDayHandler.cs` | 任务时限失败 |
 | `SimulationTickPacing.cs` | 时间流速常量 |
+| `ContentEventSupervisorTalkTests.cs` | 主管不语→`startQuest`／催促事件 EditMode |
 
 ---
 
@@ -128,4 +152,5 @@ QuestEditor：`failResults`／目标 Id 支持逗号分隔多目标（见 Shared
 
 | 日期 | 说明 |
 |------|------|
+| 2026-08-14 | 增补：对话→任务 UX polish、`stockAtLeast` 进度、主管惩罚样例链 |
 | 2026-08-14 | 初版：对话框／NPC UX／失败与多人好感／时间流速／文档同步 |

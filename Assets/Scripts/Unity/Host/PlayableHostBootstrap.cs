@@ -507,6 +507,8 @@ namespace XianXia.Unity.Host
             var drained = _session.World.Events.Drain();
             if (contentInterrupt != null)
                 contentInterrupt.Ingest(drained);
+            if (questJournal != null)
+                questJournal.Ingest(drained);
             if (eventFeed != null)
                 eventFeed.Ingest(drained);
         }

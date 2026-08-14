@@ -124,6 +124,38 @@
       ],
       "failConditions": [],
       "failResults": []
+    },
+    {
+      "id": "base:quest_ch01_ref_supervisor_herb_penalty",
+      "type": "quest",
+      "name": "惩戒·百份灵药",
+      "description": "【对话惩罚】对主管训话不语后触发：两日内小队背包凑齐灵药×100。药田可采（约10秒/个，可倍速）。超时再降全队好感。",
+      "autoOffer": false,
+      "abandonable": false,
+      "deadlineDays": 2,
+      "offerConditions": [],
+      "completeConditions": [
+        {
+          "kind": "stockAtLeast",
+          "id": "base:resource_spirit_herb",
+          "amount": 100
+        }
+      ],
+      "rewards": [
+        {
+          "kind": "setFlag",
+          "id": "quest:ch01_ref_supervisor_penalty_done"
+        }
+      ],
+      "failConditions": [],
+      "failResults": [
+        {
+          "kind": "relationDelta",
+          "fromDefinitionId": "base:character_ch01_ref_supervisor",
+          "toDefinitionIds": ["@party"],
+          "amount": -15
+        }
+      ]
     }
   ]
 }

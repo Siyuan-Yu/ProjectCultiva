@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Events;
 using XianXia.Core.Input;
 
 namespace XianXia.Unity.Host
@@ -35,6 +36,8 @@ namespace XianXia.Unity.Host
         Vector2 _detailScroll;
         string _status = string.Empty;
         bool _holdingPause;
+        string _toastText = string.Empty;
+        float _toastUntil;
 
         Texture2D _px;
         GUIStyle _title;
@@ -67,12 +70,48 @@ namespace XianXia.Unity.Host
             _selectedId = string.Empty;
             _status = string.Empty;
             _holdingPause = false;
+            _toastText = string.Empty;
+            _toastUntil = 0f;
             HostInputGate.Clear();
         }
 
         public void SetTrackedQuest(string questId)
         {
             _trackedQuestId = questId ?? string.Empty;
+        }
+
+        /// <summary>对话／脚本 startQuest 后自动追踪，并短暂提示。</summary>
+        public void Ingest(IReadOnlyList<DomainEvent> drained)
+        {
+            if (drained == null || drained.Count == 0)
+                return;
+            for (var i = 0; i < drained.Count; i++)
+            {
+                var evt = drained[i];
+                if (evt == null || evt.Type != EventType.QuestStarted)
+                    continue;
+                if (string.IsNullOrEmpty(evt.Payload))
+                    continue;
+                if (_suppressAutoTrack)
+                    continue;
+                _trackedQuestId = evt.Payload;
+                _selectedId = evt.Payload;
+                _tab = Tab.Active;
+                var name = evt.Payload;
+                var session = bootstrap != null ? bootstrap.Session : null;
+                if (session != null &&
+                    session.IsInitialized &&
+                    session.World.Quests.TryGetSpec(evt.Payload, out var spec) &&
+                    !string.IsNullOrEmpty(spec.Name))
+                    name = spec.Name;
+                ShowToast("新任务 · " + name + "（已追踪 · 按 J 查看）");
+            }
+        }
+
+        void ShowToast(string text)
+        {
+            _toastText = text ?? string.Empty;
+            _toastUntil = Time.unscaledTime + 4.5f;
         }
 
         public void OpenToClaim()
@@ -167,10 +206,13 @@ namespace XianXia.Unity.Host
             var session = bootstrap != null ? bootstrap.Session : null;
             if (session == null || !session.IsInitialized)
                 return;
+
+            EnsureStyles();
+            DrawToast();
+
             if (bootstrap.ContentInterrupt != null && bootstrap.ContentInterrupt.HasBlockingInterrupt)
                 return;
 
-            EnsureStyles();
             DrawLauncherButton(session);
 
             if (!open)
@@ -179,6 +221,23 @@ namespace XianXia.Unity.Host
             HostUiHitTest.Block(new Rect(0f, 0f, Screen.width, Screen.height));
             RefreshEntries(session);
             DrawJournal(session);
+        }
+
+        void DrawToast()
+        {
+            if (string.IsNullOrEmpty(_toastText) || Time.unscaledTime > _toastUntil)
+            {
+                if (Time.unscaledTime > _toastUntil)
+                    _toastText = string.Empty;
+                return;
+            }
+
+            var w = Mathf.Min(520f, Screen.width - 40f);
+            var r = new Rect((Screen.width - w) * 0.5f, 58f, w, 36f);
+            HostUiHitTest.Block(r);
+            Fill(r, new Color(0.18f, 0.14f, 0.10f, 0.88f));
+            DrawFrame(r, Accent);
+            GUI.Label(new Rect(r.x + 12f, r.y + 8f, r.width - 24f, 22f), _toastText, _title);
         }
 
         void DrawLauncherButton(PlayableHostSession session)

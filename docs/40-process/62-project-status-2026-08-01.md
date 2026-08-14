@@ -10,7 +10,7 @@
 ## 1. 一句话现状
 
 **Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**；样例关可玩弧／导航／NPC 活动底座／Demo 0.1 Production **自动化已验收（手操待签）**。  
-**本轮：** NPC `onTalk` UGUI 对话框＋任务失败／多人好感＋时间流速约定见 [117](117-npc-dialogue-host-ux-rollup-2026-08-14.md)。  
+**本轮：** NPC `onTalk` UGUI 对话框＋任务失败／多人好感＋时间流速＋**对话→任务 UX polish** 见 [117](117-npc-dialogue-host-ux-rollup-2026-08-14.md)。  
 **下一步：** 手操签收对话框；美术换皮／定期发任务／战斗另开；编辑器剩余项按 [106](106-content-authoring-editors-plan-v0.1.md)。  
 制作人手操：[105](105-demo-0.1-producer-playbook-30min.md)。Demo Runtime **继续冻结**。
 

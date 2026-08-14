@@ -758,6 +758,23 @@ namespace XianXia.Unity.Host
                     : "农田劳作 " + cur + "/" + max + "（每人约3秒）";
             }
 
+            var stockParts = new System.Collections.Generic.List<string>();
+            for (var i = 0; i < spec.CompleteConditions.Count; i++)
+            {
+                var c = spec.CompleteConditions[i];
+                if (c == null ||
+                    !string.Equals(c.Kind, "stockAtLeast", System.StringComparison.OrdinalIgnoreCase))
+                    continue;
+                var need = c.Amount > 0 ? c.Amount : 1;
+                var have = world != null ? world.Inventory.GetCount(c.Id) : 0;
+                if (have > need)
+                    have = need;
+                stockParts.Add(QuestJournalQuery.ResourceLabel(c.Id) + " " + have + "/" + need);
+            }
+
+            if (stockParts.Count > 0)
+                return string.Join("；", stockParts);
+
             return SummarizeTrackedObjectivesLegacy(spec);
         }
 
