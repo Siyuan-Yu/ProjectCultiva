@@ -88,7 +88,7 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < drained.Count; i++)
             {
                 var evt = drained[i];
-                if (evt == null || evt.Type != EventType.QuestStarted)
+                if (evt == null || evt.Type != XianXia.Core.Events.EventType.QuestStarted)
                     continue;
                 if (string.IsNullOrEmpty(evt.Payload))
                     continue;
