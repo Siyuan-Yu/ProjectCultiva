@@ -3,28 +3,44 @@ using UnityEngine;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Npc;
+using XianXia.Core.Navigation;
 
 namespace XianXia.Unity.Host
 {
     /// <summary>
     /// Drives Host pathfinding from Core <see cref="MovementIntentComponent"/> (MoveAction).
-    /// No hardcoded location ids — destinations come from WorkArea／Location data.
+    /// Shared WalkGrid with player RTS — no wall clipping. No hardcoded location ids.
     /// </summary>
     public sealed class HostNpcScheduleMover : MonoBehaviour
     {
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostMoveController moveController;
         [SerializeField] EntityViewSpawner viewSpawner;
-        [SerializeField] float repathIntervalSeconds = 8f;
+        [SerializeField] float repathIntervalSeconds = 3f;
         [SerializeField] float arriveRadius = 2.5f;
+        [SerializeField] float stuckSeconds = 4f;
+        [SerializeField] float stuckMoveEpsilon = 0.15f;
+        [SerializeField] int goalSnapCells = 6;
 
         readonly Dictionary<ulong, float> _nextRepathAt = new Dictionary<ulong, float>();
+        readonly Dictionary<ulong, Vector3> _lastPos = new Dictionary<ulong, Vector3>();
+        readonly Dictionary<ulong, float> _lastProgressAt = new Dictionary<ulong, float>();
+        readonly Dictionary<ulong, string> _lastTargetKey = new Dictionary<ulong, string>();
 
         public void Bind(PlayableHostBootstrap host, HostMoveController move, EntityViewSpawner spawner)
         {
             bootstrap = host;
             moveController = move;
             viewSpawner = spawner;
+        }
+
+        /// <summary>Call when dialogue／menu releases an NPC so they repath immediately.</summary>
+        public void NotifyNpcReleased(EntityId npc)
+        {
+            if (npc.IsNone)
+                return;
+            _nextRepathAt[npc.Value] = 0f;
+            _lastProgressAt[npc.Value] = Time.unscaledTime;
         }
 
         void Update()
@@ -39,6 +55,7 @@ namespace XianXia.Unity.Host
                 return;
 
             var session = bootstrap.Session;
+            var grid = moveController.WalkGrid;
             var now = Time.unscaledTime;
             foreach (var entity in session.World.Entities.All)
             {
@@ -51,27 +68,78 @@ namespace XianXia.Unity.Host
                 if (!viewSpawner.Registry.TryGet(entity.Id, out var view) || view == null)
                     continue;
 
-                if (!TryResolveWorldTarget(session.World, intent, out var center))
+                if (!TryResolveWorldTarget(session.World, intent, out var rawCenter))
                     continue;
 
+                var center = SnapGoalToWalkable(grid, rawCenter, goalSnapCells);
                 var pos = view.transform.position;
                 if ((pos - center).sqrMagnitude <= arriveRadius * arriveRadius)
                 {
                     intent.HostArrived = true;
+                    _lastTargetKey.Remove(entity.Id.Value);
                     continue;
                 }
 
                 if (moveController.IsNpcHeldForInteraction(entity.Id))
                     continue;
 
-                if (moveController.IsMoving(entity.Id))
+                TrackProgress(entity.Id.Value, pos, now);
+                var targetKey = intent.TargetWorkAreaId + "|" + intent.TargetLocationId;
+                var targetChanged = !_lastTargetKey.TryGetValue(entity.Id.Value, out var prev) ||
+                                    !string.Equals(prev, targetKey, System.StringComparison.Ordinal);
+                var stuck = IsStuck(entity.Id.Value, now);
+                var due = !_nextRepathAt.TryGetValue(entity.Id.Value, out var t) || now >= t;
+
+                if (!targetChanged && !stuck && moveController.IsMoving(entity.Id) && !due)
                     continue;
 
-                if (_nextRepathAt.TryGetValue(entity.Id.Value, out var t) && now < t)
+                if (!due && !targetChanged && !stuck)
                     continue;
+
                 _nextRepathAt[entity.Id.Value] = now + repathIntervalSeconds;
-                moveController.OrderEntityToWorldPoint(entity.Id, center, null, issueStop: false);
+                _lastTargetKey[entity.Id.Value] = targetKey;
+                if (!moveController.OrderEntityToWorldPoint(entity.Id, center, null, issueStop: false))
+                {
+                    // Unreachable: accept arrival so Core can advance schedule instead of freezing.
+                    intent.HostArrived = true;
+                }
+                else
+                {
+                    _lastProgressAt[entity.Id.Value] = now;
+                    _lastPos[entity.Id.Value] = pos;
+                }
             }
+        }
+
+        void TrackProgress(ulong id, Vector3 pos, float now)
+        {
+            if (!_lastPos.TryGetValue(id, out var prev) ||
+                (pos - prev).sqrMagnitude >= stuckMoveEpsilon * stuckMoveEpsilon)
+            {
+                _lastPos[id] = pos;
+                _lastProgressAt[id] = now;
+            }
+        }
+
+        bool IsStuck(ulong id, float now)
+        {
+            if (!_lastProgressAt.TryGetValue(id, out var t))
+                return false;
+            return now - t >= stuckSeconds;
+        }
+
+        static Vector3 SnapGoalToWalkable(WalkGrid grid, Vector3 world, int snapRadius)
+        {
+            if (grid == null)
+                return world;
+            if (!grid.TryWorldToCell(world.x, world.y, out var cx, out var cy))
+                return world;
+            if (grid.IsWalkable(cx, cy))
+                return world;
+            if (!grid.TryFindNearestWalkable(cx, cy, snapRadius > 0 ? snapRadius : 8, out var nx, out var ny))
+                return world;
+            grid.CellToWorldCenter(nx, ny, out var wx, out var wy);
+            return new Vector3(wx, wy, HostPresentationSpace.EntityZ);
         }
 
         static bool TryResolveWorldTarget(
@@ -100,7 +168,8 @@ namespace XianXia.Unity.Host
                 return false;
 
             // Presentation offset from content → world (XY = presentation X/Z).
-            worldCenter = center + new Vector3(ox, 0f, oz);
+            worldCenter = center + new Vector3(ox, oz, 0f);
+            worldCenter.z = HostPresentationSpace.EntityZ;
             return true;
         }
     }

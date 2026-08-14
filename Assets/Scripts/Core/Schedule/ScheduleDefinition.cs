@@ -88,15 +88,15 @@ namespace XianXia.Core.Schedule
                 .AddBlock(264, 288, ScheduleActivity.Rest, 6);
         }
 
-        /// <summary>主管：日间巡查／检查；入夜稀疏巡逻。</summary>
+        /// <summary>主管：休息 → 巡查 → 检查 → 修炼 → 稀疏巡逻 → 休息。</summary>
         public static ScheduleDefinition CreateSupervisorDay(string id = "base:schedule_supervisor_day")
         {
             return new ScheduleDefinition(id)
                 .AddBlock(0, 48, ScheduleActivity.Rest, 6)
                 .AddBlock(48, 120, ScheduleActivity.Patrol, 12)
-                .AddBlock(120, 192, ScheduleActivity.Inspect, 12)
-                .AddBlock(192, 228, ScheduleActivity.Patrol, 12)
-                .AddBlock(228, 264, ScheduleActivity.Patrol, 12)
+                .AddBlock(120, 168, ScheduleActivity.Inspect, 12)
+                .AddBlock(168, 216, ScheduleActivity.Cultivate, 12)
+                .AddBlock(216, 264, ScheduleActivity.Patrol, 12)
                 .AddBlock(264, 288, ScheduleActivity.Rest, 6);
         }
     }

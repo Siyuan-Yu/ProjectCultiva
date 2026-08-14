@@ -70,6 +70,16 @@
       "allowedActivities": ["Inspect", "Patrol"],
       "offsetX": 0,
       "offsetZ": 0
+    },
+    {
+      "id": "base:workarea_spring_cultivate",
+      "type": "workArea",
+      "name": "灵泉修炼点",
+      "locationId": "base:loc_ref_spring",
+      "tags": ["cultivate", "spirit"],
+      "allowedActivities": ["Cultivate"],
+      "offsetX": 1,
+      "offsetZ": 0
     }
   ]
 }

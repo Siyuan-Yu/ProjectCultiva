@@ -90,6 +90,11 @@
           ],
           "mode": "route"
         },
+        {
+          "activity": "Cultivate",
+          "workAreaIds": ["base:workarea_spring_cultivate"],
+          "mode": "single"
+        },
         { "activity": "Rest", "workAreaIds": ["base:workarea_houses"], "mode": "single" }
       ]
     }

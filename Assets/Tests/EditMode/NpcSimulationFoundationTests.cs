@@ -246,7 +246,12 @@ namespace XianXia.Tests
                     jobbed++;
             }
 
-            Assert.GreaterOrEqual(jobbed, 7);
+            // ch01_reference: supervisor + grain + herb + 2 guards + miner
+            Assert.GreaterOrEqual(jobbed, 6);
+            Assert.IsTrue(world.TryGetWorkArea("base:workarea_spring_cultivate", out _));
+            Assert.IsTrue(world.TryGetJob("base:job_supervisor", out var supervisorJob));
+            Assert.IsTrue(supervisorJob.TryGetBinding(ScheduleActivity.Cultivate, out var cultivateBind));
+            Assert.Contains("base:workarea_spring_cultivate", cultivateBind.WorkAreaIds);
         }
 
         static IAction FirstActive(SimulationWorld world)

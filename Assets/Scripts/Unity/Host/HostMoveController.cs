@@ -190,6 +190,11 @@ namespace XianXia.Unity.Host
                 viewSpawner.Registry.TryGet(npc, out var view) &&
                 view != null)
                 view.SetActivityText(string.Empty);
+
+            var mover = bootstrap != null
+                ? bootstrap.GetComponent<HostNpcScheduleMover>()
+                : GetComponent<HostNpcScheduleMover>();
+            mover?.NotifyNpcReleased(npc);
         }
 
         void CancelPresentationMovement(EntityId id)
