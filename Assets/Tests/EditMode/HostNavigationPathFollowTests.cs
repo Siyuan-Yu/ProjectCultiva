@@ -10,21 +10,16 @@ namespace XianXia.Tests
         public void PathAroundHouseBlock_DoesNotStayColinearThroughObstacle()
         {
             var grid = Ch01ReferenceWalkGrid.Create();
-            // 从枢纽左侧绕开房屋障碍区到房屋北侧
+            // 枢纽 → 房屋前（已清障的可行走点），应绕开房屋主体
             var xy = new List<float>();
-            Assert.IsTrue(GridPathfinder.TryFindWorldPath(grid, 0f, 0f, -8f, 12f, xy));
+            Assert.IsTrue(GridPathfinder.TryFindWorldPath(grid, 0f, 0f, -8f, 10f, xy));
             Assert.Greater(xy.Count / 2, 3);
 
-            var crossedBlocked = false;
             for (var i = 0; i + 1 < xy.Count; i += 2)
             {
                 Assert.IsTrue(grid.TryWorldToCell(xy[i], xy[i + 1], out var cx, out var cy));
-                // 路径点应落在可行走格（终点可能被 snap）
-                if (!grid.IsWalkable(cx, cy))
-                    crossedBlocked = true;
+                Assert.IsTrue(grid.IsWalkable(cx, cy), "waypoint in blocked cell");
             }
-
-            Assert.IsFalse(crossedBlocked);
         }
 
         [Test]
@@ -32,11 +27,21 @@ namespace XianXia.Tests
         {
             var grid = Ch01ReferenceWalkGrid.Create();
             var xy = new List<float>();
-            // 房屋障碍深处：应 snap 到附近可行走或失败，不能抛异常
+            // 房屋障碍深处：默认 goalSnap=4 可能失败；加大 snap 应落到附近可行走，且不抛异常
             Assert.DoesNotThrow(() =>
             {
-                GridPathfinder.TryFindWorldPath(grid, 0f, 0f, -8f, 10.5f, xy);
+                GridPathfinder.TryFindWorldPath(grid, 0f, 0f, -8f, 10.5f, xy, 8, 8);
             });
+        }
+
+        [Test]
+        public void GoalInsideBlock_WithTightSnap_FailsInsteadOfFarTeleport()
+        {
+            var grid = new WalkGrid(0f, 0f, 1f, 20, 20);
+            grid.SetBlockedRect(5, 5, 15, 15, true);
+            var xy = new List<float>();
+            // 点在障碍深处且 goalSnap=4：不应跳到很远，直接失败更可控
+            Assert.IsFalse(GridPathfinder.TryFindWorldPath(grid, 1f, 1f, 10f, 10f, xy, 8, 4));
         }
     }
 }

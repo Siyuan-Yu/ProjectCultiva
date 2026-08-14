@@ -110,10 +110,17 @@ Prefab 目录：
 
 - **分区**（`zone*`）：半透明色块，不注册交互、不挡路
 - 药田／农田等 **一格一个 prefab**，挂 `HostMapPlotCell`，并注册为交互点（右键劳动；生长以后再做）
-- 树／矿石是中心一个物件 prefab，按占地拟合；默认树挡路、矿石可采
-- 房子／枢纽是中心一个建筑 prefab，按精灵真实尺寸拟合到占地
-- 寻路：仅看 placement 的 `blocksMovement`（墙／树默认勾上）
+- 树／矿石是中心一个物件 prefab，按占地拟合；**装饰默认不挡路，属性里手勾**；矿石可采
+- 房子／墙／岩／洞府／枢纽：**默认挡路**
+- 寻路：仅看 placement 的 `blocksMovement`（**不是** Unity Collider）。Console 应有 `WalkGrid from mapLayout`
 - 相机启动时框住整张 `mapLayout`
+
+### 挡路约定（制作）
+
+| 类型 | 默认 | 说明 |
+|------|------|------|
+| `house`／`wall`／`rock`／`cave`／`roadHub` | **开** | 大建筑／结构 |
+| `tree*`／`ore`／`cushion`／田／路／集合点／分区 | **关** | 装饰与地表；需要挡再勾「挡路」 |
 
 ---
 

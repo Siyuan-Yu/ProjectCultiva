@@ -4,6 +4,8 @@ namespace XianXia.Data.Content
 {
     /// <summary>
     /// Build a WalkGrid from authored mapLayout placements (blocksMovement rectangles).
+    /// Policy: only placements with blocksMovement=true block; MapEditor defaults buildings on,
+    /// decorations off (manual checkbox).
     /// </summary>
     public static class MapLayoutWalkGridBuilder
     {
@@ -24,14 +26,20 @@ namespace XianXia.Data.Content
             {
                 if (p == null || !p.BlocksMovement)
                     continue;
+                // Zones should not block even if mis-authored.
+                if (IsZoneKind(p.Kind))
+                    continue;
                 var w = p.W < 1 ? 1 : p.W;
                 var h = p.H < 1 ? 1 : p.H;
                 grid.SetBlockedRect(p.X, p.Y, p.X + w - 1, p.Y + h - 1, true);
             }
 
+            // Keep a walkable cross at non-blocking bound locations (interaction approach).
             foreach (var p in layout.Placements)
             {
                 if (p == null || string.IsNullOrEmpty(p.BoundLocationId) || p.BlocksMovement)
+                    continue;
+                if (IsZoneKind(p.Kind))
                     continue;
                 var cx = p.X + (p.W < 1 ? 0 : p.W / 2);
                 var cy = p.Y + (p.H < 1 ? 0 : p.H / 2);
@@ -39,6 +47,15 @@ namespace XianXia.Data.Content
             }
 
             return grid;
+        }
+
+        static bool IsZoneKind(string kind)
+        {
+            if (string.IsNullOrEmpty(kind))
+                return false;
+            return kind.StartsWith("zone", System.StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(kind, "forest", System.StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(kind, "spring", System.StringComparison.OrdinalIgnoreCase);
         }
 
         static void ClearCross(WalkGrid grid, int cx, int cy)

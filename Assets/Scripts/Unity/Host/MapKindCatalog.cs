@@ -41,6 +41,26 @@ namespace XianXia.Unity.Host
             ZoneOverlay = 2
         }
 
+        /// <summary>
+        /// 制作约定：house/wall/rock/cave/roadHub 默认挡路；树／矿／蒲团等装饰默认不挡，MapEditor 手勾。
+        /// </summary>
+        public static bool DefaultBlocksMovement(string kind)
+        {
+            if (string.IsNullOrEmpty(kind))
+                return false;
+            switch (kind)
+            {
+                case "house":
+                case "wall":
+                case "rock":
+                case "cave":
+                case "roadHub":
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         public readonly struct KindInfo
         {
             public KindInfo(

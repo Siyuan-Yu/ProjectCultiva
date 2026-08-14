@@ -558,12 +558,14 @@ namespace XianXia.Unity.Host
         {
             if (MapLayoutPick.TryGet(_session, out var preferred) && preferred != null)
             {
+                var grid = MapLayoutWalkGridBuilder.Create(preferred);
                 Debug.Log(
                     "[PlayableHost] WalkGrid from mapLayout " + preferred.Id +
                     " " + preferred.Width + "x" + preferred.Height +
-                    " origin=(" + preferred.OriginX + "," + preferred.OriginY + ")",
+                    " origin=(" + preferred.OriginX + "," + preferred.OriginY + ")" +
+                    " blockedCells=" + grid.BlockedCount,
                     this);
-                return MapLayoutWalkGridBuilder.Create(preferred);
+                return grid;
             }
 
             Debug.Log("[PlayableHost] WalkGrid fallback Ch01ReferenceWalkGrid", this);

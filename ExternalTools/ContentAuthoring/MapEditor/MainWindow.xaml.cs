@@ -27,25 +27,26 @@ public partial class MainWindow : Window
     static readonly PaletteItem SelectTool =
         new(null, "选择（点选／拖移，不放置）", 0, 0, false, Colors.Transparent);
 
-    /// <summary>第 1 页：地表／物件／建筑（会进游戏表现或交互）。</summary>
-    static readonly PaletteItem[] PaletteObjects =
-    {
-        SelectTool,
-        new("herbField", "药田（可耕作）", 12, 12, false, Color.FromRgb(70, 150, 90)),
-        new("grainField", "农田（可耕作）", 16, 12, false, Color.FromRgb(180, 170, 70)),
-        new("road", "道路（纯贴图）", 1, 1, false, Color.FromRgb(150, 130, 100)),
-        new("wall", "墙 1×n（挡路）", 6, 1, true, Color.FromRgb(90, 90, 100)),
-        new("treeS", "小树 1×1", 1, 1, true, Color.FromRgb(35, 120, 55)),
-        new("treeM", "中树 2×2", 2, 2, true, Color.FromRgb(30, 100, 45)),
-        new("treeL", "大树 3×3", 3, 3, true, Color.FromRgb(25, 85, 40)),
-        new("ore", "矿石 2×2（可采）", 2, 2, false, Color.FromRgb(140, 120, 80)),
-        new("cushion", "蒲团 1×1（可修炼）", 1, 1, false, Color.FromRgb(120, 100, 170)),
-        new("house", "小房子", 20, 20, true, Color.FromRgb(140, 100, 70)),
-        new("rock", "岩石／棚", 4, 4, true, Color.FromRgb(110, 110, 110)),
-        new("cave", "洞府区", 10, 8, false, Color.FromRgb(120, 90, 140)),
-        new("roadHub", "道路枢纽", 8, 8, false, Color.FromRgb(160, 140, 120)),
-        new("rallyPoint", "集合点 2×2", 2, 2, false, Color.FromRgb(220, 140, 50))
-    };
+        /// <summary>第 1 页：地表／物件／建筑（会进游戏表现或交互）。
+        /// 挡路约定：大建筑／墙／岩默认 Block=true；树／矿／蒲团等装饰默认 false，需在属性里手勾。</summary>
+        static readonly PaletteItem[] PaletteObjects =
+        {
+            SelectTool,
+            new("herbField", "药田（可耕作）", 12, 12, false, Color.FromRgb(70, 150, 90)),
+            new("grainField", "农田（可耕作）", 16, 12, false, Color.FromRgb(180, 170, 70)),
+            new("road", "道路（纯贴图）", 1, 1, false, Color.FromRgb(150, 130, 100)),
+            new("wall", "墙 1×n（默认挡路）", 6, 1, true, Color.FromRgb(90, 90, 100)),
+            new("treeS", "小树 1×1（装饰·手勾挡路）", 1, 1, false, Color.FromRgb(35, 120, 55)),
+            new("treeM", "中树 2×2（装饰·手勾挡路）", 2, 2, false, Color.FromRgb(30, 100, 45)),
+            new("treeL", "大树 3×3（装饰·手勾挡路）", 3, 3, false, Color.FromRgb(25, 85, 40)),
+            new("ore", "矿石 2×2（可采·手勾挡路）", 2, 2, false, Color.FromRgb(140, 120, 80)),
+            new("cushion", "蒲团 1×1（可修炼）", 1, 1, false, Color.FromRgb(120, 100, 170)),
+            new("house", "小房子（默认挡路）", 20, 20, true, Color.FromRgb(140, 100, 70)),
+            new("rock", "岩石／棚（默认挡路）", 4, 4, true, Color.FromRgb(110, 110, 110)),
+            new("cave", "洞府区（默认挡路）", 10, 8, true, Color.FromRgb(120, 90, 140)),
+            new("roadHub", "道路枢纽／主管府（默认挡路）", 8, 8, true, Color.FromRgb(160, 140, 120)),
+            new("rallyPoint", "集合点 2×2", 2, 2, false, Color.FromRgb(220, 140, 50))
+        };
 
     /// <summary>第 2 页：分区标记（仅编辑／以后进区触发，无劳动无挡路）。</summary>
     static readonly PaletteItem[] PaletteZones =

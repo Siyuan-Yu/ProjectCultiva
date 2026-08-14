@@ -244,6 +244,7 @@ namespace XianXia.Unity.Host
             path.AddRange(_wpScratch);
             _paths[id.Value] = path;
             _pathIndex[id.Value] = 0;
+            SnapOntoWalkableIfNeeded(view);
             _targets[view] = path[0];
             _movingIds.Add(id.Value);
             view.SetActivityText("移动中");
@@ -274,8 +275,12 @@ namespace XianXia.Unity.Host
             var moveCount = 0;
             for (var i = 0; i < count; i++)
             {
-                if (selectionController.IsPartyUnit(selectionController.State.SelectedIds[i]))
-                    moveCount++;
+                var sid = selectionController.State.SelectedIds[i];
+                if (!selectionController.IsPartyUnit(sid))
+                    continue;
+                moveCount++;
+                // Drop any in-flight Host path so an old waypoint cannot fight the new order.
+                ClearHostMove(sid);
             }
 
             if (moveCount == 0)
@@ -288,11 +293,49 @@ namespace XianXia.Unity.Host
                 if (!selectionController.IsPartyUnit(id))
                     continue;
                 var offset = FormationOffset(moveIndex++, moveCount);
-                if (OrderEntityToWorldPoint(id, point + offset, arriveCommand, issueStop: false, arriveLocationId))
+                var goal = ResolveFormationGoal(point, offset);
+                if (OrderEntityToWorldPoint(id, goal, arriveCommand, issueStop: false, arriveLocationId))
+                    any = true;
+                else if (OrderEntityToWorldPoint(id, point, arriveCommand, issueStop: false, arriveLocationId))
                     any = true;
             }
 
             return any;
+        }
+
+        /// <summary>
+        /// Formation slots that land in blocked cells used to snap up to 8 cells away
+        /// (looks like random detours / ignoring the click). Keep goals near the click.
+        /// </summary>
+        Vector3 ResolveFormationGoal(Vector3 click, Vector3 offset)
+        {
+            var goal = click + offset;
+            if (_walkGrid == null)
+                return goal;
+
+            if (_walkGrid.TryWorldToCell(goal.x, goal.y, out var gx, out var gy) &&
+                _walkGrid.IsWalkable(gx, gy))
+                return goal;
+
+            if (_walkGrid.TryWorldToCell(goal.x, goal.y, out gx, out gy) &&
+                _walkGrid.TryFindNearestWalkable(gx, gy, 3, out var nx, out var ny))
+            {
+                _walkGrid.CellToWorldCenter(nx, ny, out var wx, out var wy);
+                return new Vector3(wx, wy, goal.z);
+            }
+
+            if (_walkGrid.TryWorldToCell(click.x, click.y, out var cx, out var cy) &&
+                _walkGrid.IsWalkable(cx, cy))
+                return click;
+
+            if (_walkGrid.TryWorldToCell(click.x, click.y, out cx, out cy) &&
+                _walkGrid.TryFindNearestWalkable(cx, cy, 4, out nx, out ny))
+            {
+                _walkGrid.CellToWorldCenter(nx, ny, out var wx, out var wy);
+                return new Vector3(wx, wy, click.z);
+            }
+
+            return click;
         }
 
         bool TryBuildWorldPath(Vector3 from, Vector3 to, List<Vector3> waypoints)
@@ -300,6 +343,10 @@ namespace XianXia.Unity.Host
             waypoints.Clear();
             if (_walkGrid == null)
             {
+                Debug.LogWarning(
+                    "[HostMove] WalkGrid missing — straight-line move (will ignore blocksMovement). " +
+                    "Ensure PlayableHostBootstrap finished Initialize.",
+                    this);
                 waypoints.Add(new Vector3(to.x, to.y, HostPresentationSpace.EntityZ));
                 return true;
             }
@@ -365,6 +412,7 @@ namespace XianXia.Unity.Host
                 var desired = Vector3.MoveTowards(pos, target, moveSpeed * Time.unscaledDeltaTime);
                 var next = desired + sep * (separationStrength * Time.unscaledDeltaTime);
                 next.z = HostPresentationSpace.EntityZ;
+                next = ClampToWalkable(pos, next);
                 view.transform.position = next;
 
                 if ((next - target).sqrMagnitude > arriveEpsilon * arriveEpsilon)
@@ -415,6 +463,44 @@ namespace XianXia.Unity.Host
                 npcContextMenu.OnNpcArriveTalk(id, intent.NpcId);
             else
                 npcContextMenu.OnNpcArriveAttack(id, intent.NpcId);
+        }
+
+        void SnapOntoWalkableIfNeeded(EntityView view)
+        {
+            if (_walkGrid == null || view == null)
+                return;
+            var pos = view.transform.position;
+            if (!_walkGrid.TryWorldToCell(pos.x, pos.y, out var cx, out var cy))
+                return;
+            if (_walkGrid.IsWalkable(cx, cy))
+                return;
+            if (!_walkGrid.TryFindNearestWalkable(cx, cy, 12, out var nx, out var ny))
+                return;
+            _walkGrid.CellToWorldCenter(nx, ny, out var wx, out var wy);
+            view.transform.position = new Vector3(wx, wy, HostPresentationSpace.EntityZ);
+        }
+
+        Vector3 ClampToWalkable(Vector3 from, Vector3 proposed)
+        {
+            if (_walkGrid == null)
+                return proposed;
+
+            if (_walkGrid.TryWorldToCell(proposed.x, proposed.y, out var nx, out var ny) &&
+                _walkGrid.IsWalkable(nx, ny))
+                return proposed;
+
+            // Prefer axis slides so soft-separation cannot shove units into buildings.
+            var slideX = new Vector3(proposed.x, from.y, proposed.z);
+            if (_walkGrid.TryWorldToCell(slideX.x, slideX.y, out nx, out ny) &&
+                _walkGrid.IsWalkable(nx, ny))
+                return slideX;
+
+            var slideY = new Vector3(from.x, proposed.y, proposed.z);
+            if (_walkGrid.TryWorldToCell(slideY.x, slideY.y, out nx, out ny) &&
+                _walkGrid.IsWalkable(nx, ny))
+                return slideY;
+
+            return from;
         }
 
         Vector3 ComputeSeparation(EntityView self, Vector3 pos)
@@ -555,10 +641,28 @@ namespace XianXia.Unity.Host
 
         void StopOne(EntityId id)
         {
+            ClearHostMove(id);
             if (commandBridge != null)
                 commandBridge.IssueOne(id, PlayerCommandKind.Stop, 0);
             else if (bootstrap.Session?.Port != null)
                 bootstrap.Session.Port.Submit(new PlayerCommandRequest(id, PlayerCommandKind.Stop, 0));
+        }
+
+        void ClearHostMove(EntityId id)
+        {
+            if (id.IsNone)
+                return;
+            ClearPending(id);
+            ClearPath(id);
+            _movingIds.Remove(id.Value);
+            if (viewSpawner != null &&
+                viewSpawner.Registry.TryGet(id, out var view) &&
+                view != null)
+            {
+                _targets.Remove(view);
+                if (view.ActivityText == "移动中")
+                    view.SetActivityText(string.Empty);
+            }
         }
 
         void ClearPending(EntityId id)
