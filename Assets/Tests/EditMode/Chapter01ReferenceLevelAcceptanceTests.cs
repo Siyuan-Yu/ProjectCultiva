@@ -146,6 +146,9 @@ namespace XianXia.Tests
             Assert.IsTrue(Explore(port, subject));
             AssertQuest(port, subject, world, "base:quest_ch01_ref_visit_cave", QuestStatus.Completed);
 
+            Assert.IsTrue(world.TryGetManual(
+                new DefinitionId("base", "cultivation_qingyun_manual"), out var manual));
+            Assert.IsTrue(new CultivationService().LearnManual(world, subject, manual).IsSuccess);
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(
                 subject, PlayerCommandKind.Cultivate, 4)).IsSuccess);
             Assert.IsTrue(protagonist.Get<CultivationComponent>().HasLearnedManual);

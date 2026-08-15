@@ -61,6 +61,19 @@ namespace XianXia.Core.Cultivation
                 return Result.Success();
             }
 
+            // 一人一本：换功法时先卸掉旧本修饰。
+            if (cultivation.HasLearnedManual && cultivation.LearnedManualId.HasValue)
+            {
+                var oldSource = new SourceRef(SourceKind.Manual, cultivation.LearnedManualId.Value, subject);
+                attrs.RemoveBySource(oldSource);
+                world.Events.Publish(
+                    EventType.ModifierRemoved,
+                    world.Tick,
+                    actor: subject,
+                    target: subject,
+                    payload: "manual:" + cultivation.LearnedManualId.Value);
+            }
+
             var source = new SourceRef(SourceKind.Manual, manual.Id, subject);
             if (manual.GrantedModifiers != null)
             {
@@ -313,7 +326,7 @@ namespace XianXia.Core.Cultivation
 
         static readonly AttributeId[] SnapshotOrder =
         {
-            AttributeId.MaxHp, AttributeId.Attack, AttributeId.Defense, AttributeId.Speed,
+            AttributeId.Physique, AttributeId.MaxHp, AttributeId.Attack, AttributeId.Defense, AttributeId.Speed,
             AttributeId.Stamina, AttributeId.SpiritSense, AttributeId.Comprehension,
             AttributeId.SpiritPower, AttributeId.Cultivation, AttributeId.MindState
         };

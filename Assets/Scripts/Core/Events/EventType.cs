@@ -65,7 +65,9 @@ namespace XianXia.Core.Events
         /// <summary>Territory: player captured a control core.</summary>
         ControlCoreCaptured = 34,
         /// <summary>LocalMap 进出：ActiveMapLayoutId 已切换（session）。</summary>
-        LocalMapChanged = 35
+        LocalMapChanged = 35,
+        /// <summary>战斗 Alpha：单位被击倒（NPC Dead／己方重伤）。</summary>
+        CombatantDefeated = 36
     }
 }
 

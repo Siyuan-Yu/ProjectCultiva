@@ -32,6 +32,8 @@ namespace XianXia.Data.Content
         public int Reputation { get; set; }
         public List<string> Goals { get; set; } = new List<string>();
         public List<string> Desires { get; set; } = new List<string>();
+        /// <summary>击倒该角色时 setEncounterCleared 的遭遇 id。</summary>
+        public string DefeatEncounterId { get; set; } = string.Empty;
 
         /// <summary>Merged content tags applied to PersonalityProfile on spawn.</summary>
         public IEnumerable<string> EnumerateProfileTags()

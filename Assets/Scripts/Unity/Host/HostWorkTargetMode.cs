@@ -408,7 +408,7 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            Debug.Log("[Host] Combat: 请点主管府建筑（尚无 NPC 战斗）。");
+            Debug.Log("[Host] Combat: 点主管府近战占领；NPC 请右键→攻击（地图互砍）。");
             SetArmed(ArmKind.None);
         }
 

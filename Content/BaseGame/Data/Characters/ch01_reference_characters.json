@@ -7,6 +7,7 @@
       "name": "杂役主管",
       "baseAttributes": {
         "MaxHp": 140,
+        "Physique": 14,
         "Attack": 14,
         "Defense": 10,
         "Speed": 9,
@@ -77,6 +78,7 @@
       "name": "巡卫甲",
       "baseAttributes": {
         "MaxHp": 120,
+        "Physique": 13,
         "Attack": 13,
         "Defense": 9,
         "Speed": 9,
@@ -146,6 +148,7 @@
       "name": "巡卫乙",
       "baseAttributes": {
         "MaxHp": 118,
+        "Physique": 12,
         "Attack": 12,
         "Defense": 9,
         "Speed": 9,
@@ -215,6 +218,7 @@
       "name": "巡卫丙",
       "baseAttributes": {
         "MaxHp": 116,
+        "Physique": 12,
         "Attack": 12,
         "Defense": 8,
         "Speed": 10,
@@ -284,6 +288,7 @@
       "name": "阿石",
       "baseAttributes": {
         "MaxHp": 90,
+        "Physique": 9,
         "Attack": 8,
         "Defense": 4,
         "Speed": 7,
@@ -354,6 +359,7 @@
       "name": "阿土",
       "baseAttributes": {
         "MaxHp": 92,
+        "Physique": 9,
         "Attack": 8,
         "Defense": 4,
         "Speed": 7,
@@ -424,6 +430,7 @@
       "name": "阿禾",
       "baseAttributes": {
         "MaxHp": 88,
+        "Physique": 8,
         "Attack": 7,
         "Defense": 4,
         "Speed": 7,
@@ -494,6 +501,7 @@
       "name": "阿青",
       "baseAttributes": {
         "MaxHp": 95,
+        "Physique": 9,
         "Attack": 8,
         "Defense": 5,
         "Speed": 8,
@@ -564,6 +572,7 @@
       "name": "阿兰",
       "baseAttributes": {
         "MaxHp": 93,
+        "Physique": 9,
         "Attack": 8,
         "Defense": 5,
         "Speed": 8,
@@ -634,6 +643,7 @@
       "name": "阿杏",
       "baseAttributes": {
         "MaxHp": 91,
+        "Physique": 9,
         "Attack": 7,
         "Defense": 5,
         "Speed": 8,
@@ -704,6 +714,7 @@
       "name": "阿木",
       "baseAttributes": {
         "MaxHp": 100,
+        "Physique": 10,
         "Attack": 7,
         "Defense": 5,
         "Speed": 6,
@@ -774,6 +785,7 @@
       "name": "阿柴",
       "baseAttributes": {
         "MaxHp": 98,
+        "Physique": 9,
         "Attack": 7,
         "Defense": 5,
         "Speed": 6,
@@ -844,6 +856,7 @@
       "name": "阿枝",
       "baseAttributes": {
         "MaxHp": 96,
+        "Physique": 9,
         "Attack": 7,
         "Defense": 4,
         "Speed": 7,
@@ -914,6 +927,7 @@
       "name": "将老",
       "baseAttributes": {
         "MaxHp": 90,
+        "Physique": 9,
         "Attack": 6,
         "Defense": 8,
         "Speed": 6,
@@ -976,6 +990,62 @@
       "desires": [],
       "playerControllable": false,
       "homeWorkAreaId": "base:workarea_spring_check"
+    },
+    {
+      "id": "base:character_cave_shade",
+      "type": "character",
+      "name": "洞府残影",
+      "baseAttributes": {
+        "MaxHp": 80,
+        "Physique": 14,
+        "Attack": 14,
+        "Defense": 6,
+        "Speed": 8,
+        "Stamina": 40,
+        "SpiritSense": 5,
+        "Comprehension": 4,
+        "SpiritPower": 20,
+        "Cultivation": 0,
+        "MindState": 40
+      },
+      "personalityTags": [],
+      "backgroundTags": [],
+      "talentTags": [],
+      "tags": [
+        "npc",
+        "hostile",
+        "cave",
+        "encounter"
+      ],
+      "initialRealmPlaceholder": "炼气",
+      "defeatEncounterId": "cave_ch01_shade",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": false,
+        "Eat": false,
+        "Cultivate": false,
+        "Explore": false,
+        "Patrol": false,
+        "Inspect": false
+      },
+      "activityPriorities": {},
+      "preferredWorkAreaIds": [],
+      "spiritRoots": {
+        "Fire": 2,
+        "Metal": 0,
+        "Earth": 2,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": ""
     }
   ]
 }

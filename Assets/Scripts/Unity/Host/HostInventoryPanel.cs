@@ -167,6 +167,7 @@ namespace XianXia.Unity.Host
             var detailY = rect.yMax - 88f;
             var detail = "选中格子查看详情";
             var canUseManual = false;
+            var canUseArt = false;
             string selectedItemId = null;
             if (_selectedSlot >= 0 && _selectedSlot < inv.Slots.Count)
             {
@@ -184,6 +185,11 @@ namespace XianXia.Unity.Host
                     {
                         canUseManual = true;
                         detail += "\n" + FormatManualDetail(bootstrap.Session.World, catalog.GetTeachesManualId(s.ItemId));
+                    }
+                    else if (catalog.IsCombatArtTome(s.ItemId))
+                    {
+                        canUseArt = true;
+                        detail += "\n斗技：" + catalog.GetTeachesArtId(s.ItemId);
                     }
                     else
                         detail += "\n" + s.ItemId;
@@ -206,6 +212,20 @@ namespace XianXia.Unity.Host
                     }
                     else
                         _status = "学功法面板未就绪";
+                }
+            }
+            else if (canUseArt && selectedItemId != null)
+            {
+                if (GUI.Button(new Rect(rect.xMax - 120f, detailY + 8f, 100f, 32f), "使用"))
+                {
+                    var prompt = bootstrap.CombatArtLearnPrompt;
+                    if (prompt != null)
+                    {
+                        open = false;
+                        prompt.Open(selectedItemId);
+                    }
+                    else
+                        _status = "学斗技面板未就绪";
                 }
             }
         }
@@ -258,11 +278,13 @@ namespace XianXia.Unity.Host
                            !catalog.HasTag(slot.ItemId, "consumable");
                 case Filter.Consumable:
                     return catalog.HasTag(slot.ItemId, "consumable") ||
-                           catalog.IsManualTome(slot.ItemId);
+                           catalog.IsManualTome(slot.ItemId) ||
+                           catalog.IsCombatArtTome(slot.ItemId);
                 case Filter.Other:
                     return !catalog.HasTag(slot.ItemId, "resource") &&
                            !catalog.HasTag(slot.ItemId, "consumable") &&
-                           !catalog.IsManualTome(slot.ItemId);
+                           !catalog.IsManualTome(slot.ItemId) &&
+                           !catalog.IsCombatArtTome(slot.ItemId);
                 default:
                     return true;
             }

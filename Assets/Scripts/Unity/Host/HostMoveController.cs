@@ -196,8 +196,10 @@ namespace XianXia.Unity.Host
             {
                 var delta = actorView.transform.position - target;
                 delta.z = 0f;
+                // 停在交战距离内侧，避免「到点了仍略远于 meleeRange」
+                var stopShort = HostNpcInteraction.DefaultMeleeEngageRange * 0.55f;
                 if (delta.sqrMagnitude > 0.01f)
-                    target += delta.normalized * 1.1f;
+                    target += delta.normalized * stopShort;
             }
 
             target.z = HostPresentationSpace.EntityZ;
@@ -266,6 +268,9 @@ namespace XianXia.Unity.Host
                 return;
             _targets.Remove(view);
         }
+
+        /// <summary>进出洞府等瞬切前：清掉表现层走位，避免 Location 被错误吸附。</summary>
+        public void CancelPresentationMovementPublic(EntityId id) => CancelPresentationMovement(id);
 
         bool RegisterPendingNpcIntent(EntityId actor, EntityId npc, HostNpcArriveAction action)
         {
@@ -364,7 +369,25 @@ namespace XianXia.Unity.Host
                     any = true;
             }
 
+            if (any && arriveCommand == null)
+                NotifyMeleeDisengageForPartyMove();
+
             return any;
+        }
+
+        void NotifyMeleeDisengageForPartyMove()
+        {
+            var melee = bootstrap != null
+                ? bootstrap.GetComponent<HostNpcMeleeAssault>()
+                : GetComponent<HostNpcMeleeAssault>();
+            if (melee == null || selectionController == null)
+                return;
+            for (var i = 0; i < selectionController.State.Count; i++)
+            {
+                var id = selectionController.State.SelectedIds[i];
+                if (selectionController.IsPartyUnit(id))
+                    melee.DisengageIfAttacker(id);
+            }
         }
 
         /// <summary>
@@ -733,6 +756,9 @@ namespace XianXia.Unity.Host
             var bestDist = HostZoneQuery.DefaultCenterRadius;
             foreach (var kv in session.World.WorldRegion.Locations)
             {
+                // 洞内／地表切换后禁止吸附到另一张图的地点，否则离开时带不走人。
+                if (!LocalMapVisibility.IsLocationOnActiveMap(session.World, kv.Value))
+                    continue;
                 var dx = kv.Value.PresentationX - p.x;
                 var dy = kv.Value.PresentationZ - p.y;
                 var d = Mathf.Sqrt(dx * dx + dy * dy);

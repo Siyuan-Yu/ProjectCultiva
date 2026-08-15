@@ -1,5 +1,6 @@
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Social;
 
 namespace XianXia.Unity.Host
 {
@@ -93,12 +94,33 @@ namespace XianXia.Unity.Host
 
     public static class HostNpcInteraction
     {
-        /// <summary>Non-party NPCs are non-hostile until combat slice marks them otherwise.</summary>
-        public static bool IsNonHostileNpc(EntityViewSpawner spawner, EntityId npcId)
+        /// <summary>内容敌对姿态：洞府威胁等。有此标＝开打免确认；无此标＝中立／未宣战，攻击需确认。</summary>
+        public const string HostileTag = "hostile";
+        public const float DefaultMeleeEngageRange = 1.85f;
+
+        public static bool IsHostileNpc(PlayableHostSession session, EntityId npcId)
         {
-            if (npcId.IsNone || spawner == null)
+            if (session?.World == null || npcId.IsNone)
                 return false;
-            return true;
+            if (!session.World.Entities.TryGet(npcId, out var entity))
+                return false;
+            return IsHostileEntity(entity);
+        }
+
+        public static bool IsHostileEntity(XianXia.Core.Entities.Entity entity)
+        {
+            if (entity == null)
+                return false;
+            return entity.TryGet<PersonalityProfileComponent>(out var profile) &&
+                   profile.HasTag(HostileTag);
+        }
+
+        /// <summary>中立／未宣战单位（主管、凡人等）攻击前需二次确认。</summary>
+        public static bool IsNonHostileNpc(PlayableHostSession session, EntityId npcId)
+        {
+            if (npcId.IsNone || session == null)
+                return false;
+            return !IsHostileNpc(session, npcId);
         }
 
         public static bool TryResolveDefinitionId(

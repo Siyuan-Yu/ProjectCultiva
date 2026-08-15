@@ -72,6 +72,74 @@ namespace XianXia.Tests
                 world, world.WorldRegion.Locations["base:loc_ref_cave"]));
         }
 
+        [Test]
+        public void Leave_Evacuates_All_Interior_Party_Even_If_Location_Corrupted()
+        {
+            var world = BuildCaveWorld(out var leader);
+            var mate = world.Entities.CreateCharacter(
+                new DefinitionId("base", "character_mate"), "随行").Value;
+            if (!mate.TryGet<EntityLocationComponent>(out var mateLoc))
+            {
+                mateLoc = new EntityLocationComponent();
+                mate.AddComponent(mateLoc);
+            }
+
+            mateLoc.LocationId = "base:loc_ref_cave";
+            leader.Get<KnownSitesComponent>().Discover(new DefinitionId("base", "site_abandoned_cave"));
+
+            // 两人站洞口进洞
+            leader.Get<EntityLocationComponent>().LocationId = "base:loc_ref_cave";
+            Assert.IsTrue(new ExplorationService().EnterLocalMap(world, leader.Id).IsSuccess);
+            Assert.AreEqual(2, world.LocalMap.OccupantIds.Count);
+            Assert.AreEqual("base:loc_cave_chamber", mate.Get<EntityLocationComponent>().LocationId);
+
+            // 模拟洞内走动把 Location 吸到地表地点（旧 bug）
+            mate.Get<EntityLocationComponent>().LocationId = "base:loc_ref_cave";
+            Assert.IsTrue(world.LocalMap.ContainsOccupant(mate.Id));
+
+            Assert.IsTrue(new ExplorationService().LeaveLocalMap(world, leader.Id).IsSuccess);
+            Assert.IsFalse(world.LocalMap.IsInInterior);
+            Assert.AreEqual(0, world.LocalMap.OccupantIds.Count);
+            Assert.AreEqual("base:loc_ref_cave", leader.Get<EntityLocationComponent>().LocationId);
+            Assert.AreEqual("base:loc_ref_cave", mate.Get<EntityLocationComponent>().LocationId);
+        }
+
+        [Test]
+        public void Reenter_Keeps_Stranded_Interior_Occupant_Visible_Path()
+        {
+            var world = BuildCaveWorld(out var leader);
+            var mate = world.Entities.CreateCharacter(
+                new DefinitionId("base", "character_mate"), "留守").Value;
+            if (!mate.TryGet<EntityLocationComponent>(out var mateLoc))
+            {
+                mateLoc = new EntityLocationComponent();
+                mate.AddComponent(mateLoc);
+            }
+
+            leader.Get<KnownSitesComponent>().Discover(new DefinitionId("base", "site_abandoned_cave"));
+            leader.Get<EntityLocationComponent>().LocationId = "base:loc_ref_cave";
+            mateLoc.LocationId = "base:loc_ref_cave";
+            var exploration = new ExplorationService();
+            Assert.IsTrue(exploration.EnterLocalMap(world, leader.Id).IsSuccess);
+
+            // 只把队长登记清掉模拟「半拉离开」；mate 仍在洞内
+            mateLoc.LocationId = "base:loc_cave_chamber";
+            world.LocalMap.ActiveMapLayoutId = world.LocalMap.OverworldMapLayoutId;
+            world.LocalMap.ClearOccupants();
+            world.LocalMap.AddOccupant(mate.Id);
+            leader.Get<EntityLocationComponent>().LocationId = "base:loc_ref_cave";
+
+            Assert.IsTrue(exploration.EnterLocalMap(world, leader.Id).IsSuccess);
+            Assert.IsTrue(world.LocalMap.IsInInterior);
+            Assert.IsTrue(world.LocalMap.ContainsOccupant(mate.Id));
+            Assert.IsTrue(world.LocalMap.ContainsOccupant(leader.Id));
+            Assert.AreEqual("base:loc_cave_chamber", mateLoc.LocationId);
+
+            Assert.IsTrue(exploration.LeaveLocalMap(world, leader.Id).IsSuccess);
+            Assert.AreEqual("base:loc_ref_cave", mateLoc.LocationId);
+            Assert.AreEqual("base:loc_ref_cave", leader.Get<EntityLocationComponent>().LocationId);
+        }
+
         static SimulationWorld BuildCaveWorld(out Entity subject)
         {
             var world = new SimulationWorld();

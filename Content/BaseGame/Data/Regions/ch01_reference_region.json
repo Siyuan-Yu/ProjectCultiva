@@ -194,6 +194,7 @@
           ],
           "adjacentIds": [],
           "localMapId": "base:map_ch01_cave",
+          "residentNpcDefinitionId": "base:character_cave_shade",
           "presentationX": 0.0,
           "presentationZ": 0.0
         },

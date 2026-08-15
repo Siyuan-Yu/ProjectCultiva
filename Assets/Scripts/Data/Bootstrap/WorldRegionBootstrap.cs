@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Exploration;
 using XianXia.Core.Results;
@@ -13,7 +14,8 @@ namespace XianXia.Data.Bootstrap
             SimulationWorld world,
             DefinitionRegistry registry,
             OpeningScenarioDefinition scenario,
-            GameStartLookup lookup)
+            GameStartLookup lookup,
+            IList<OpeningSpawnEntry> spawnEntries = null)
         {
             if (world == null || registry == null || scenario == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "WorldRegion bootstrap args null.");
@@ -79,31 +81,81 @@ namespace XianXia.Data.Bootstrap
                     world.WorldRegion.StartLocationId);
             }
 
-            foreach (var spawn in scenario.Spawns)
+            // 名册开局时必须用 roster entries，不能只扫 scenario.Spawns（否则洞府残影等挂不上驻点）。
+            var entries = spawnEntries ?? scenario.Spawns;
+            if (entries != null)
             {
-                if (!lookup.TryGetEntity(spawn.DefinitionId, out var entityId))
-                    continue;
-                if (!world.Entities.TryGet(entityId, out var entity))
-                    continue;
-
-                var placeId = world.WorldRegion.StartLocationId;
-                if (!string.IsNullOrEmpty(spawn.EntityKind) &&
-                    string.Equals(spawn.EntityKind, "npc", StringComparison.OrdinalIgnoreCase))
+                foreach (var spawn in entries)
                 {
-                    placeId = FindResidentLocation(world, spawn.DefinitionId) ?? placeId;
-                }
+                    if (spawn == null || string.IsNullOrWhiteSpace(spawn.DefinitionId))
+                        continue;
+                    if (!lookup.TryGetEntity(spawn.DefinitionId, out var entityId))
+                        continue;
+                    if (!world.Entities.TryGet(entityId, out var entity))
+                        continue;
 
-                if (!entity.TryGet<EntityLocationComponent>(out var locComp))
-                {
-                    locComp = new EntityLocationComponent();
-                    var added = entity.AddComponent(locComp);
-                    if (added.IsFailure)
-                        return added;
-                }
+                    var placeId = world.WorldRegion.StartLocationId;
+                    if (!string.IsNullOrEmpty(spawn.EntityKind) &&
+                        string.Equals(spawn.EntityKind, "npc", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var resident = FindResidentLocation(world, spawn.DefinitionId);
+                        if (!string.IsNullOrEmpty(resident))
+                            placeId = resident;
+                        else if (IsCaveBoundNpc(entity))
+                        {
+                            // 洞府内容威胁：区域未挂驻点时不要丢到地表开局点。
+                            // 一般敌对仍可落在地表；洞府怪靠 residentNpc→内室地点配置。
+                            continue;
+                        }
+                    }
 
-                locComp.LocationId = placeId;
+                    var placed = EnsureLocation(entity, placeId);
+                    if (placed.IsFailure)
+                        return placed;
+                }
             }
 
+            // 兜底：凡地点声明了 residentNpc，按 definitionId 再钉一次（防漏扫）。
+            foreach (var kv in world.WorldRegion.Locations)
+            {
+                var residentDef = kv.Value.ResidentNpcDefinitionId;
+                if (string.IsNullOrWhiteSpace(residentDef))
+                    continue;
+                if (!lookup.TryGetEntity(residentDef, out var residentId))
+                    continue;
+                if (!world.Entities.TryGet(residentId, out var resident))
+                    continue;
+                var pinned = EnsureLocation(resident, kv.Key);
+                if (pinned.IsFailure)
+                    return pinned;
+            }
+
+            return Result.Success();
+        }
+
+        /// <summary>内容 tag=cave：洞府／秘境内威胁，不是「所有敌人」。 </summary>
+        static bool IsCaveBoundNpc(XianXia.Core.Entities.Entity entity)
+        {
+            if (entity == null)
+                return false;
+            if (!entity.TryGet<XianXia.Core.Social.PersonalityProfileComponent>(out var profile))
+                return false;
+            return profile.HasTag("cave");
+        }
+
+        static Result EnsureLocation(XianXia.Core.Entities.Entity entity, string placeId)
+        {
+            if (entity == null || string.IsNullOrWhiteSpace(placeId))
+                return Result.Success();
+            if (!entity.TryGet<EntityLocationComponent>(out var locComp))
+            {
+                locComp = new EntityLocationComponent();
+                var added = entity.AddComponent(locComp);
+                if (added.IsFailure)
+                    return added;
+            }
+
+            locComp.LocationId = placeId;
             return Result.Success();
         }
 

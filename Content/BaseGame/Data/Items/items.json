@@ -18,7 +18,7 @@
       "nameKey": "item.manual_jiang_lao_legacy",
       "maxStack": 1,
       "teachesManualId": "base:cultivation_jiang_lao_legacy",
-      "tags": ["consumable", "manual_tome"]
+      "tags": ["manual_tome"]
     },
     {
       "id": "base:item_manual_dongfu_secret",
@@ -28,7 +28,27 @@
       "nameKey": "item.manual_dongfu_secret",
       "maxStack": 1,
       "teachesManualId": "base:cultivation_dongfu_secret",
-      "tags": ["consumable", "manual_tome", "cave"]
+      "tags": ["manual_tome", "cave"]
+    },
+    {
+      "id": "base:item_art_liezhao_claw",
+      "type": "item",
+      "name": "裂爪击（斗技秘本）",
+      "displayNameKey": "item.art_liezhao_claw",
+      "nameKey": "item.art_liezhao_claw",
+      "maxStack": 1,
+      "teachesArtId": "base:art_liezhao_claw",
+      "tags": ["art_tome", "cave"]
+    },
+    {
+      "id": "base:item_art_kaishan_fist",
+      "type": "item",
+      "name": "开山拳（斗技秘本）",
+      "displayNameKey": "item.art_kaishan_fist",
+      "nameKey": "item.art_kaishan_fist",
+      "maxStack": 1,
+      "teachesArtId": "base:art_kaishan_fist",
+      "tags": ["art_tome", "jiang_lao"]
     }
   ]
 }

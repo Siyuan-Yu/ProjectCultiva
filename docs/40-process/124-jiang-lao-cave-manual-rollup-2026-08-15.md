@@ -25,7 +25,7 @@
 | **洞府勘查** | F7／指令条；圆心＝选中己方（多人多圈）；半径＝神识×2；近距 toast | `HostCaveSurveyPresenter`／`OpportunityEntranceRules`／`SurveyEntrance` |
 | **显形入口** | 未发现不刷 `cave` 戳；勘查成功只刷地表不挪镜头 | `HostDemoTileMap`／`RefreshMapStampsOnly` |
 | **进洞** | 右键洞府 →「进入」→ 弹窗勾选随行 → 进 `map_ch01_cave` | `HostNpcContextMenu`／`HostLocalMapEnterPrompt`／`EnterLocalMap` |
-| **出洞** | 洞内右键出口戳 →「离开」 | `HostCaveEntranceQuery.TryPickInteriorExit`／`LeaveLocalMap` |
+| **出洞** | 洞内右键出口戳 →「离开」→ **洞内己方全员撤离**；已发现洞口可再进（含救人） | `HostCaveEntranceQuery.TryPickInteriorExit`／`LeaveLocalMap`／`LocalMapSession.OccupantIds` |
 | **洞府秘诀** | 洞内地上物拾取进背包；黄阶中级；学后攻击 +6% | `loot`／`WorldLootPickupService`／`cultivation_dongfu_secret` |
 | **倍速** | 顶栏含 20x | `HostFormalHud` |
 | **MapEditor** | `cave`／`loot`＋`lootItemId`；洞府编辑说明 | [112](112-map-editor-usage.md) |
@@ -56,34 +56,36 @@ F7 勘查（框选多人则每人一圈；半径＝神识×2）→ 洞口显形
 | 勘查半径 | 神识 × 2；足迹 padding ≈ 2.5 |
 | 提示 toast | 半径 ≥ 勘查圈，避免「有提示却扫不到」 |
 | 多选勘查 | 每个选中己方一圈 |
-| 进洞随行 | 弹窗勾选；主导必进；未勾选留地表 |
+| 进洞随行 | 弹窗勾选；主导必进；未勾选留地表；仍在洞内者再进时默认勾选 |
+| 出洞 | **全员撤离**（登记名单 ∪ 内室 Location）；洞内走动不再吸附地表地点 |
 | 离开 | 仅移动洞内 `localMapId` 匹配的己方回落点 |
-| 秘籍学习 | 需炼气；一人当前 `LearnedManualId` 仍为单本（并存未做） |
+| 秘籍学习 | 需炼气；**秘籍不消耗**；一人一本，换功法覆盖（需确认） |
+| 斗技 v0 | 可学多门、**装备最多 6 格**；**1–6 释放主动技**；秘本不消耗 |
+| 裂爪击 | 洞府宝物；黄阶中级；三连击每段攻击力 200% |
+| 开山拳 | 将老三胜奖励；黄阶中级；一击攻击力 500% |
+| 战斗 Alpha | 地图内走近后自动互砍（属性＋斗技）；NPC 击倒可写 encounter 旗 |
 | 洞府秘诀 | Percentage Attack 0.06；`ModifierGrant.Value` 现为 double |
 | Snapshot | 未为本轮升 Freeze／Snapshot schema（日旗／计数／loot flag 走既有 Flags） |
 
-**明确未做（本轮）：** 洞内遭遇战斗／抉择清剿；多本功法收藏切换；完整 WorldGraph（[113]）；真战斗。
+**明确未做（本轮）：** 完整 WorldGraph（[113]）；1–6 技能栏／半自动释放；废功仪式。
 
 ---
 
-## 5. 代码／内容索引
+## 5. 代码／内容索引（含战斗 Alpha）
 
-| 层 | 新增／主要改动 |
-|----|----------------|
-| Core | `LocalMapSession`／`OpportunityEntranceRules`／`SurveyEntrance`／进离洞；`WorldLootPickupService`／`ManualItemLearnService`；计数／日旗板；`PlayerCommandKind.SurveyEntrance` |
-| Data／Content | Region 进出字段；`ch01_cave_map.json`；将老／洞府秘籍与功法；任务／事件／名册 |
-| Host | 勘查 toast／指令条；进洞弹窗；出口菜单；拾取；井字棋；秘籍学习窗 |
-| Editor | MapEditor `loot`／`lootItemId`；SchemaFields |
-| Tests | `LocalMapEnterLeaveTests`／`DongfuManualLootTests`／`ContentQuestApiSliceTests` |
-| Docs | 本页；[123](123-quest-manual-api-interfaces-2026-08-15.md)；[112](112-map-editor-usage.md)；SCHEMA |
+| 层 | 要点 |
+|----|------|
+| Core | `MeleeCombatService`／`CombatArtsComponent`／`EncounterLinkComponent`；秘籍不消耗；换功法卸旧修饰 |
+| Host | `HostNpcMeleeAssault`；功法覆盖确认；斗技研习窗 |
+| Content | `character_cave_shade`＋`defeatEncounterId`；洞内斗技掉落 |
 
 ---
 
 ## 6. 下一步建议
 
-1. 洞内遭遇／探索事件 + `encounterCleared` 任务挂钩  
-2. 多本功法并存／切换  
-3. 手操全链路签收后可开 WorldGraph 下一刀  
+1. 手操：洞内打残影 → 清 encounter → 捡秘籍／斗技  
+2. 遭遇任务内容装配 `encounterCleared`  
+3. 斗技装备 UI（现学即默认装备）  
 
 ---
 

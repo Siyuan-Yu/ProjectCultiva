@@ -72,6 +72,19 @@ namespace XianXia.Unity.Host
                 _status = commandBridge != null ? commandBridge.LastStatus : "无桥";
             }
 
+            if (Button(x, ref y, w, "脱离战斗"))
+            {
+                var melee = bootstrap != null ? bootstrap.GetComponent<HostNpcMeleeAssault>() : null;
+                if (melee != null && melee.IsFighting)
+                {
+                    melee.DisengageSelected(selectionController);
+                    commandBridge?.IssueSelected(PlayerCommandKind.Stop, 0);
+                    _status = "已脱离战斗";
+                }
+                else
+                    _status = "当前无交战";
+            }
+
             if (Button(x, ref y, w, "分工·劳动"))
                 IssueAssign(WorkRoleKind.Labor);
             if (Button(x, ref y, w, "分工·采集"))

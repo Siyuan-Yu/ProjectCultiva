@@ -63,7 +63,10 @@ namespace XianXia.Tests
             Assert.IsTrue(protagonist.Get<KnownSitesComponent>().Knows(
                 new DefinitionId("base", "site_abandoned_cave")));
 
-            // 秘密修炼：Cultivate 经 Gate 学得青云诀
+            // 学功法须显式 Learn（不再随 Cultivate 从机缘点保底）
+            Assert.IsTrue(world.TryGetManual(
+                new DefinitionId("base", "cultivation_qingyun_manual"), out var manual));
+            Assert.IsTrue(new CultivationService().LearnManual(world, ids[0], manual).IsSuccess);
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(
                 ids[0], PlayerCommandKind.Cultivate, 4)).IsSuccess);
             Assert.IsTrue(protagonist.Get<CultivationComponent>().HasLearnedManual);

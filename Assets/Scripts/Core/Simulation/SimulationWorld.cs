@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using XianXia.Core.Actions;
+using XianXia.Core.Combat;
 using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
@@ -29,6 +30,8 @@ namespace XianXia.Core.Simulation
             new Dictionary<string, OpportunitySite>(System.StringComparer.Ordinal);
         readonly Dictionary<string, CultivationManualSpec> _manuals =
             new Dictionary<string, CultivationManualSpec>(System.StringComparer.Ordinal);
+        readonly Dictionary<string, CombatArtSpec> _combatArts =
+            new Dictionary<string, CombatArtSpec>(System.StringComparer.Ordinal);
         readonly Dictionary<string, WorkAreaDefinition> _workAreas =
             new Dictionary<string, WorkAreaDefinition>(System.StringComparer.Ordinal);
         readonly Dictionary<string, JobDefinition> _jobs =
@@ -160,6 +163,8 @@ namespace XianXia.Core.Simulation
 
         public IReadOnlyDictionary<string, CultivationManualSpec> Manuals => _manuals;
 
+        public IReadOnlyDictionary<string, CombatArtSpec> CombatArts => _combatArts;
+
         public IReadOnlyDictionary<string, WorkAreaDefinition> WorkAreas => _workAreas;
 
         public IReadOnlyDictionary<string, JobDefinition> Jobs => _jobs;
@@ -211,6 +216,21 @@ namespace XianXia.Core.Simulation
             if (string.IsNullOrEmpty(id.Namespace))
                 return false;
             return _manuals.TryGetValue(id.ToString(), out manual);
+        }
+
+        public void RegisterCombatArt(CombatArtSpec art)
+        {
+            if (art == null)
+                throw new System.ArgumentNullException(nameof(art));
+            _combatArts[art.Id.ToString()] = art;
+        }
+
+        public bool TryGetCombatArt(DefinitionId id, out CombatArtSpec art)
+        {
+            art = null;
+            if (string.IsNullOrEmpty(id.Namespace))
+                return false;
+            return _combatArts.TryGetValue(id.ToString(), out art);
         }
 
         public void RegisterWorkArea(WorkAreaDefinition definition)

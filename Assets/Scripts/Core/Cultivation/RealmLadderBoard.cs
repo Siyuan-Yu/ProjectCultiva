@@ -53,12 +53,12 @@ namespace XianXia.Core.Cultivation
             var list = new List<RealmLadderStep>(16);
 
             list.Add(MinorStep(RealmStage.Mortal, 0, RealmStage.Mortal, 1, 100, 95, false, 0,
-                Bonus(AttributeId.MaxHp, 5), Bonus(AttributeId.Stamina, 2)));
+                Bonus(AttributeId.MaxHp, 5), Bonus(AttributeId.Physique, 1), Bonus(AttributeId.Stamina, 2)));
             list.Add(MinorStep(RealmStage.Mortal, 1, RealmStage.Mortal, 2, 200, 95, false, 0,
-                Bonus(AttributeId.MaxHp, 8), Bonus(AttributeId.SpiritSense, 2)));
+                Bonus(AttributeId.MaxHp, 8), Bonus(AttributeId.Physique, 1), Bonus(AttributeId.SpiritSense, 2)));
             list.Add(MinorStep(RealmStage.Mortal, 2, RealmStage.QiRefining, 1, 300, 90, true, 50,
-                Bonus(AttributeId.MaxHp, 25), Bonus(AttributeId.Attack, 5), Bonus(AttributeId.Defense, 4),
-                Bonus(AttributeId.Comprehension, 2)));
+                Bonus(AttributeId.MaxHp, 25), Bonus(AttributeId.Physique, 3), Bonus(AttributeId.Attack, 5),
+                Bonus(AttributeId.Defense, 4), Bonus(AttributeId.Comprehension, 2)));
 
             var qiNeeds = new[] { 400, 500, 650, 850, 1100, 1400, 1800, 2300, 3000 };
             for (var layer = 1; layer <= 9; layer++)
@@ -68,6 +68,7 @@ namespace XianXia.Core.Cultivation
                     RealmStage.QiRefining, layer + 1,
                     qiNeeds[layer - 1], 92, false, 0,
                     Bonus(AttributeId.MaxHp, 6 + layer),
+                    Bonus(AttributeId.Physique, 1),
                     Bonus(AttributeId.Attack, 1 + layer / 3),
                     Bonus(AttributeId.SpiritPower, 5 + layer)));
             }
@@ -76,7 +77,8 @@ namespace XianXia.Core.Cultivation
                 RealmStage.QiRefining, 10,
                 RealmStage.Foundation, 0,
                 8000, 35, true, 0,
-                Bonus(AttributeId.MaxHp, 80), Bonus(AttributeId.Attack, 20), Bonus(AttributeId.Defense, 15),
+                Bonus(AttributeId.MaxHp, 80), Bonus(AttributeId.Physique, 8), Bonus(AttributeId.Attack, 20),
+                Bonus(AttributeId.Defense, 15),
                 Bonus(AttributeId.SpiritPower, 40), Bonus(AttributeId.SpiritSense, 10)));
 
             return list;

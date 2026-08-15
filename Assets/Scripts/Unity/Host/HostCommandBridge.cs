@@ -25,16 +25,17 @@ namespace XianXia.Unity.Host
         [SerializeField] HostWorkLoop workLoop;
         [SerializeField] bool enableDebugKeys = true;
         [SerializeField] bool showDebugButtons = false;
-        [SerializeField] KeyCode laborKey = KeyCode.Alpha1;
-        [SerializeField] KeyCode restKey = KeyCode.Alpha2;
-        [SerializeField] KeyCode observeKey = KeyCode.Alpha3;
-        [SerializeField] KeyCode cultivateKey = KeyCode.Alpha4;
-        [SerializeField] KeyCode helpKey = KeyCode.Alpha5;
-        [SerializeField] KeyCode slightKey = KeyCode.Alpha6;
-        [SerializeField] KeyCode recruitKey = KeyCode.Alpha7;
-        [SerializeField] KeyCode assignLaborKey = KeyCode.Alpha8;
-        [SerializeField] KeyCode assignGatherKey = KeyCode.Alpha9;
-        [SerializeField] KeyCode assignCultivateKey = KeyCode.Alpha0;
+        // 数字键 1–6 专供斗技栏（HostCombatSkillBar）；以下行动改走 V／菜单／底部按钮，不再绑数字。
+        [SerializeField] KeyCode laborKey = KeyCode.None;
+        [SerializeField] KeyCode restKey = KeyCode.None;
+        [SerializeField] KeyCode observeKey = KeyCode.None;
+        [SerializeField] KeyCode cultivateKey = KeyCode.None;
+        [SerializeField] KeyCode helpKey = KeyCode.None;
+        [SerializeField] KeyCode slightKey = KeyCode.None;
+        [SerializeField] KeyCode recruitKey = KeyCode.None;
+        [SerializeField] KeyCode assignLaborKey = KeyCode.None;
+        [SerializeField] KeyCode assignGatherKey = KeyCode.None;
+        [SerializeField] KeyCode assignCultivateKey = KeyCode.None;
         [SerializeField] KeyCode exploreKey = KeyCode.T;
         [SerializeField] KeyCode travelKey = KeyCode.Y;
         [SerializeField] EntityViewSpawner viewSpawner;
@@ -108,13 +109,13 @@ namespace XianXia.Unity.Host
                 IssueSelected(PlayerCommandKind.Stop, 0);
             else if (Input.GetKeyDown(KeyCode.G))
                 IssueSelected(PlayerCommandKind.UseConcealGrass, 0);
-            else if (Input.GetKeyDown(laborKey))
+            else if (IsBoundKeyDown(laborKey))
                 IssueSelected(PlayerCommandKind.Labor);
-            else if (Input.GetKeyDown(restKey))
+            else if (IsBoundKeyDown(restKey))
                 IssueSelected(PlayerCommandKind.Rest);
-            else if (Input.GetKeyDown(observeKey))
+            else if (IsBoundKeyDown(observeKey))
                 IssueSelected(PlayerCommandKind.Observe);
-            else if (Input.GetKeyDown(cultivateKey))
+            else if (IsBoundKeyDown(cultivateKey))
             {
                 if (hostBootstrap != null &&
                     hostBootstrap.CultivateConfirm != null &&
@@ -124,23 +125,26 @@ namespace XianXia.Unity.Host
                 else
                     IssueSelected(PlayerCommandKind.Cultivate);
             }
-            else if (Input.GetKeyDown(helpKey))
+            else if (IsBoundKeyDown(helpKey))
                 IssueSocial(PlayerCommandKind.Help);
-            else if (Input.GetKeyDown(slightKey))
+            else if (IsBoundKeyDown(slightKey))
                 IssueSocial(PlayerCommandKind.Slight);
-            else if (Input.GetKeyDown(recruitKey))
+            else if (IsBoundKeyDown(recruitKey))
                 IssueSocial(PlayerCommandKind.Recruit);
-            else if (Input.GetKeyDown(assignLaborKey))
+            else if (IsBoundKeyDown(assignLaborKey))
                 IssueAssignWork(WorkRoleKind.Labor);
-            else if (Input.GetKeyDown(assignGatherKey))
+            else if (IsBoundKeyDown(assignGatherKey))
                 IssueAssignWork(WorkRoleKind.Gather);
-            else if (Input.GetKeyDown(assignCultivateKey))
+            else if (IsBoundKeyDown(assignCultivateKey))
                 IssueAssignWork(WorkRoleKind.Cultivate);
-            else if (Input.GetKeyDown(exploreKey))
+            else if (IsBoundKeyDown(exploreKey))
                 IssueExplore();
-            else if (Input.GetKeyDown(travelKey))
+            else if (IsBoundKeyDown(travelKey))
                 IssueTravelNextAdjacent();
         }
+
+        static bool IsBoundKeyDown(KeyCode key) =>
+            key != KeyCode.None && Input.GetKeyDown(key);
 
         void OnGUI()
         {
@@ -150,29 +154,29 @@ namespace XianXia.Unity.Host
             const float w = 88f;
             const float h = 28f;
             var y = 8f;
-            if (GUI.Button(new Rect(8f, y, w, h), "劳动(1)"))
+            if (GUI.Button(new Rect(8f, y, w, h), "劳动"))
                 IssueSelected(PlayerCommandKind.Labor);
-            if (GUI.Button(new Rect(8f + (w + 6f), y, w, h), "休息(2)"))
+            if (GUI.Button(new Rect(8f + (w + 6f), y, w, h), "休息"))
                 IssueSelected(PlayerCommandKind.Rest);
-            if (GUI.Button(new Rect(8f + 2f * (w + 6f), y, w, h), "观察(3)"))
+            if (GUI.Button(new Rect(8f + 2f * (w + 6f), y, w, h), "观察"))
                 IssueSelected(PlayerCommandKind.Observe);
-            if (GUI.Button(new Rect(8f + 3f * (w + 6f), y, w, h), "修炼(4)"))
+            if (GUI.Button(new Rect(8f + 3f * (w + 6f), y, w, h), "修炼"))
                 IssueSelected(PlayerCommandKind.Cultivate);
 
             y += h + 6f;
-            if (GUI.Button(new Rect(8f, y, w, h), "帮助(5)"))
+            if (GUI.Button(new Rect(8f, y, w, h), "帮助"))
                 IssueSocial(PlayerCommandKind.Help);
-            if (GUI.Button(new Rect(8f + (w + 6f), y, w, h), "轻慢(6)"))
+            if (GUI.Button(new Rect(8f + (w + 6f), y, w, h), "轻慢"))
                 IssueSocial(PlayerCommandKind.Slight);
-            if (GUI.Button(new Rect(8f + 2f * (w + 6f), y, w, h), "招募(7)"))
+            if (GUI.Button(new Rect(8f + 2f * (w + 6f), y, w, h), "招募"))
                 IssueSocial(PlayerCommandKind.Recruit);
 
             y += h + 6f;
-            if (GUI.Button(new Rect(8f, y, w, h), "分工劳(8)"))
+            if (GUI.Button(new Rect(8f, y, w, h), "分工劳"))
                 IssueAssignWork(WorkRoleKind.Labor);
-            if (GUI.Button(new Rect(8f + (w + 6f), y, w, h), "分工采(9)"))
+            if (GUI.Button(new Rect(8f + (w + 6f), y, w, h), "分工采"))
                 IssueAssignWork(WorkRoleKind.Gather);
-            if (GUI.Button(new Rect(8f + 2f * (w + 6f), y, w, h), "分工修(0)"))
+            if (GUI.Button(new Rect(8f + 2f * (w + 6f), y, w, h), "分工修"))
                 IssueAssignWork(WorkRoleKind.Cultivate);
 
             y += h + 6f;
@@ -316,8 +320,17 @@ namespace XianXia.Unity.Host
                     pe.AddComponent(plc);
                 }
 
+                // 已在目标洞府内室的人不必先拽到洞口（再进救人时保留洞内站位）。
+                if (_session.World.WorldRegion.TryGet(plc.LocationId, out var cur) &&
+                    !string.IsNullOrEmpty(cur.LocalMapId) &&
+                    _session.World.WorldRegion.TryGet(entranceLocationId, out var entLoc) &&
+                    string.Equals(cur.LocalMapId, entLoc.EnterLocalMapId, System.StringComparison.Ordinal))
+                    continue;
+
                 plc.LocationId = entranceLocationId;
             }
+
+            CancelPartyPresentationMovement();
 
             var result = _session.Port.Submit(
                 new PlayerCommandRequest(
@@ -329,6 +342,10 @@ namespace XianXia.Unity.Host
                     entranceLocationId));
             if (result.IsSuccess)
             {
+                // 双保险：把勾选随行登记进 session（Core 也会按 Location 刷新）。
+                for (var i = 0; i < party.Length; i++)
+                    _session.World.LocalMap.AddOccupant(party[i]);
+
                 _lastSuccessCount = 1;
                 _lastFailureCount = 0;
                 _lastStatus = "EnterLocalMap ok → " + entranceLocationId;
@@ -346,13 +363,31 @@ namespace XianXia.Unity.Host
 
         public int IssueLeaveLocalMap()
         {
-            if (selectionController == null || selectionController.State.Count == 0 || _session?.Port == null)
+            if (selectionController == null || _session?.Port == null)
             {
                 _lastStatus = "Cannot leave LocalMap";
                 return 0;
             }
 
-            var id = selectionController.State.SelectedIds[0];
+            EntityId id = EntityId.None;
+            if (selectionController.State.Count > 0)
+                id = selectionController.State.SelectedIds[0];
+            if (id.IsNone)
+            {
+                var occupants = _session.World.LocalMap.OccupantIds;
+                if (occupants.Count > 0)
+                    id = occupants[0];
+            }
+
+            if (id.IsNone)
+            {
+                _lastStatus = "Cannot leave LocalMap";
+                return 0;
+            }
+
+            // 离开前停掉洞内走位，避免 Location 再被表现层吸附错乱。
+            CancelPartyPresentationMovement();
+
             var result = _session.Port.Submit(
                 new PlayerCommandRequest(id, PlayerCommandKind.LeaveLocalMap, 1));
             if (result.IsSuccess)
@@ -370,6 +405,20 @@ namespace XianXia.Unity.Host
             }
 
             return _lastSuccessCount;
+        }
+
+        void CancelPartyPresentationMovement()
+        {
+            var move = hostBootstrap != null ? hostBootstrap.MoveController : null;
+            if (move == null || _session?.World == null)
+                return;
+            var occupants = _session.World.LocalMap.OccupantIds;
+            for (var i = 0; i < occupants.Count; i++)
+                move.CancelPresentationMovementPublic(occupants[i]);
+            if (selectionController == null)
+                return;
+            for (var i = 0; i < selectionController.State.Count; i++)
+                move.CancelPresentationMovementPublic(selectionController.State.SelectedIds[i]);
         }
 
         /// <summary>以角色表现为圆心勘查。<paramref name="presentationHint"/> 形如 "x,z,r;x2,z2,r2"。</summary>
@@ -850,6 +899,9 @@ namespace XianXia.Unity.Host
                 else if (kind != PlayerCommandKind.Labor && kind != PlayerCommandKind.Cultivate)
                     workLoop?.StopLoop(id);
 
+                if (kind == PlayerCommandKind.Stop)
+                    NotifyMeleeDisengage(id);
+
                 var result = _session.Port.Submit(new PlayerCommandRequest(id, kind, durationTicks));
                 if (result.IsSuccess)
                 {
@@ -871,6 +923,14 @@ namespace XianXia.Unity.Host
                           " ok=" + _lastSuccessCount +
                           " fail=" + _lastFailureCount;
             return _lastSuccessCount;
+        }
+
+        void NotifyMeleeDisengage(EntityId id)
+        {
+            var melee = hostBootstrap != null
+                ? hostBootstrap.GetComponent<HostNpcMeleeAssault>()
+                : GetComponent<HostNpcMeleeAssault>();
+            melee?.DisengageIfInvolved(id);
         }
 
         public static bool TryResolveSocialPair(

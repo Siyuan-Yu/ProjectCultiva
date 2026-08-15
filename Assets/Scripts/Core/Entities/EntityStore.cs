@@ -40,6 +40,7 @@ namespace XianXia.Core.Entities
             entity.AddComponent(new ActionStateComponent());
             entity.AddComponent(new CultivationComponent());
             entity.AddComponent(new CombatVitalsComponent());
+            entity.AddComponent(new CombatArtsComponent());
             entity.AddComponent(new DailyTaskComponent());
             entity.AddComponent(new KnownSitesComponent());
             entity.AddComponent(new PersonalConcealmentRiskComponent());

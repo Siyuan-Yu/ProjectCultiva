@@ -56,6 +56,18 @@
           "label": "洞府秘诀",
           "boundLocationId": "base:loc_cave_chamber",
           "lootItemId": "base:item_manual_dongfu_secret"
+        },
+        {
+          "id": "loot_cave_liezhao_art",
+          "kind": "loot",
+          "x": 17,
+          "y": 14,
+          "w": 1,
+          "h": 1,
+          "blocksMovement": false,
+          "label": "裂爪击秘本",
+          "boundLocationId": "base:loc_cave_chamber",
+          "lootItemId": "base:item_art_liezhao_claw"
         }
       ]
     }

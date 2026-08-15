@@ -18,7 +18,7 @@ namespace XianXia.Data.Content
             "spiritRootPlaceholder", "spiritRoots", "initialRealmPlaceholder",
             "hometown", "reputation", "goals", "desires",
             "playerControllable", "activityCapabilities", "activityPriorities", "preferredWorkAreaIds",
-            "homeWorkAreaId"
+            "homeWorkAreaId", "defeatEncounterId"
         };
 
         public static readonly HashSet<string> OpeningScenarioFields = new HashSet<string>(StringComparer.Ordinal)
@@ -161,7 +161,7 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> ItemFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "displayNameKey", "nameKey", "maxStack", "teachesManualId", "tags"
+            "id", "type", "name", "displayNameKey", "nameKey", "maxStack", "teachesManualId", "teachesArtId", "tags"
         };
 
         public static readonly HashSet<string> OpportunitySiteFields = new HashSet<string>(StringComparer.Ordinal)

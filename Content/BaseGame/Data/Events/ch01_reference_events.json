@@ -194,7 +194,7 @@
       "id": "base:event_jiang_lao_ready_claim",
       "type": "contentEvent",
       "name": "将老·传承在即",
-      "body": "将老抚须大笑：「三次了！老朽认了。去任务日志把秘籍领走——入了炼气再翻开研读，莫要浪费。」",
+      "body": "将老抚须大笑：「三次了！老朽认了。去任务日志把秘籍与开山拳秘本领走——入了炼气再研读，莫要浪费。」",
       "trigger": "onTalk",
       "npcDefinitionId": "base:character_jiang_lao",
       "once": false,

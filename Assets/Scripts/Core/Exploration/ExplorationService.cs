@@ -201,7 +201,9 @@ namespace XianXia.Core.Exploration
             session.ActiveMapLayoutId = entrance.EnterLocalMapId;
 
             // 仅移动已站在洞口的己方（Host 先把选中随行者 Location 设到洞口）。
+            // 已在洞内的己方（救人／再进）保留其内室 Location，一并登记为洞内成员。
             MovePartyAtLocationTo(world, entranceId, entrance.EnterSpawnLocationId);
+            RefreshInteriorOccupants(world, session, entrance.EnterLocalMapId);
 
             world.Events.Publish(
                 EventType.LocalMapChanged,
@@ -230,8 +232,10 @@ namespace XianXia.Core.Exploration
 
             var returnId = session.ReturnLocationId;
             var interiorMap = session.ActiveMapLayoutId;
+            // 默认全员撤离：登记名单 ∪ 仍挂在内室地点的己方。
+            EvacuateInteriorParty(world, session, interiorMap, returnId);
             session.ActiveMapLayoutId = session.OverworldMapLayoutId;
-            MoveInteriorPartyTo(world, interiorMap, returnId);
+            session.ClearOccupants();
 
             world.Events.Publish(
                 EventType.LocalMapChanged,
@@ -402,47 +406,108 @@ namespace XianXia.Core.Exploration
                 return;
             foreach (var e in world.Entities.All)
             {
-                if (e == null)
-                    continue;
-                if ((e.Tags & EntityTag.Character) == 0 || (e.Tags & EntityTag.Npc) != 0)
+                if (!IsPlayerPartyCharacter(e))
                     continue;
                 if (!e.TryGet<EntityLocationComponent>(out var lc) || !lc.HasLocation)
                     continue;
                 if (!string.Equals(lc.LocationId, fromLocationId, System.StringComparison.Ordinal))
                     continue;
-                lc.LocationId = toLocationId;
-                world.Events.Publish(
-                    EventType.LocationChanged,
-                    world.Tick,
-                    target: e.Id,
-                    payload: toLocationId);
+                SetEntityLocation(world, e, toLocationId);
             }
         }
 
-        /// <summary>把位于某 LocalMap 内室地点的己方移到地表落点。</summary>
-        static void MoveInteriorPartyTo(SimulationWorld world, string interiorMapLayoutId, string returnLocationId)
+        /// <summary>离开＝洞内己方全员撤离（登记名单 ∪ 内室 Location）。</summary>
+        static void EvacuateInteriorParty(
+            SimulationWorld world,
+            LocalMapSession session,
+            string interiorMapLayoutId,
+            string returnLocationId)
         {
-            if (world == null || string.IsNullOrEmpty(interiorMapLayoutId) || string.IsNullOrEmpty(returnLocationId))
+            if (world == null || string.IsNullOrEmpty(returnLocationId))
+                return;
+
+            if (session != null)
+            {
+                for (var i = 0; i < session.OccupantIds.Count; i++)
+                {
+                    var id = session.OccupantIds[i];
+                    if (id.IsNone || !world.Entities.TryGet(id, out var occupant) ||
+                        !IsPlayerPartyCharacter(occupant))
+                        continue;
+                    if (!occupant.TryGet<EntityLocationComponent>(out _))
+                        continue;
+                    SetEntityLocation(world, occupant, returnLocationId);
+                }
+            }
+
+            if (string.IsNullOrEmpty(interiorMapLayoutId))
                 return;
             foreach (var e in world.Entities.All)
             {
-                if (e == null)
-                    continue;
-                if ((e.Tags & EntityTag.Character) == 0 || (e.Tags & EntityTag.Npc) != 0)
+                if (!IsPlayerPartyCharacter(e))
                     continue;
                 if (!e.TryGet<EntityLocationComponent>(out var lc) || !lc.HasLocation)
                     continue;
-                if (!world.WorldRegion.TryGet(lc.LocationId, out var place))
+                if (!IsInteriorLocation(world, lc.LocationId, interiorMapLayoutId))
                     continue;
-                if (!string.Equals(place.LocalMapId, interiorMapLayoutId, System.StringComparison.Ordinal))
-                    continue;
-                lc.LocationId = returnLocationId;
-                world.Events.Publish(
-                    EventType.LocationChanged,
-                    world.Tick,
-                    target: e.Id,
-                    payload: returnLocationId);
+                SetEntityLocation(world, e, returnLocationId);
             }
+        }
+
+        static void RefreshInteriorOccupants(
+            SimulationWorld world,
+            LocalMapSession session,
+            string interiorMapLayoutId)
+        {
+            if (session == null)
+                return;
+            session.ClearOccupants();
+            if (world == null || string.IsNullOrEmpty(interiorMapLayoutId))
+                return;
+            foreach (var e in world.Entities.All)
+            {
+                if (!IsPlayerPartyCharacter(e))
+                    continue;
+                if (!e.TryGet<EntityLocationComponent>(out var lc) || !lc.HasLocation)
+                    continue;
+                if (!IsInteriorLocation(world, lc.LocationId, interiorMapLayoutId))
+                    continue;
+                session.AddOccupant(e.Id);
+            }
+        }
+
+        static bool IsInteriorLocation(SimulationWorld world, string locationId, string interiorMapLayoutId)
+        {
+            if (world == null || string.IsNullOrEmpty(locationId) || string.IsNullOrEmpty(interiorMapLayoutId))
+                return false;
+            return world.WorldRegion.TryGet(locationId, out var place) &&
+                   !string.IsNullOrEmpty(place.LocalMapId) &&
+                   string.Equals(place.LocalMapId, interiorMapLayoutId, System.StringComparison.Ordinal);
+        }
+
+        static bool IsPlayerPartyCharacter(Entity e) =>
+            e != null &&
+            (e.Tags & EntityTag.Character) != 0 &&
+            (e.Tags & EntityTag.Npc) == 0;
+
+        static void SetEntityLocation(SimulationWorld world, Entity e, string locationId)
+        {
+            if (world == null || e == null || string.IsNullOrEmpty(locationId))
+                return;
+            if (!e.TryGet<EntityLocationComponent>(out var lc))
+            {
+                lc = new EntityLocationComponent();
+                e.AddComponent(lc);
+            }
+
+            if (string.Equals(lc.LocationId, locationId, System.StringComparison.Ordinal))
+                return;
+            lc.LocationId = locationId;
+            world.Events.Publish(
+                EventType.LocationChanged,
+                world.Tick,
+                target: e.Id,
+                payload: locationId);
         }
 
         static void OfferLocationQuests(

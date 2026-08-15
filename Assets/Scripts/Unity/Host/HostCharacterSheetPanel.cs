@@ -34,7 +34,7 @@ namespace XianXia.Unity.Host
 
         static readonly AttributeId[] AttrOrder =
         {
-            AttributeId.MaxHp, AttributeId.Attack, AttributeId.Defense, AttributeId.Speed,
+            AttributeId.Physique, AttributeId.MaxHp, AttributeId.Attack, AttributeId.Defense, AttributeId.Speed,
             AttributeId.Stamina, AttributeId.SpiritSense, AttributeId.Comprehension,
             AttributeId.SpiritPower, AttributeId.Cultivation, AttributeId.MindState
         };
@@ -226,23 +226,7 @@ namespace XianXia.Unity.Host
             Fill(new Rect(r.xMax - 1f, r.y, 1f, r.height), c);
         }
 
-        static string AttrName(AttributeId id)
-        {
-            switch (id)
-            {
-                case AttributeId.MaxHp: return "体魄";
-                case AttributeId.Attack: return "攻击";
-                case AttributeId.Defense: return "防御";
-                case AttributeId.Speed: return "身法";
-                case AttributeId.Stamina: return "耐力";
-                case AttributeId.SpiritSense: return "神识";
-                case AttributeId.Comprehension: return "悟性";
-                case AttributeId.SpiritPower: return "灵力";
-                case AttributeId.Cultivation: return "修为";
-                case AttributeId.MindState: return "心境";
-                default: return id.ToString();
-            }
-        }
+        static string AttrName(AttributeId id) => HostAttributeLabels.Name(id);
 
         static string RootName(SpiritRootKind k)
         {

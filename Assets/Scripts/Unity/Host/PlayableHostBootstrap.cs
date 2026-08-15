@@ -20,8 +20,8 @@ namespace XianXia.Unity.Host
         [Header("Level Tester · 关卡地图")]
         [Tooltip("选中的 mapLayout JSON（相对工程根或绝对路径）。点 Inspector 里「选择关卡地图 JSON」浏览。")]
         [SerializeField] string mapLayoutFilePath = "";
-        [Tooltip("空则用默认 openingScenario。")]
-        [SerializeField] string openingScenarioId = "";
+        [Tooltip("空则用 base:scenario_ch01_reference（Level Tester 默认第一章，洞府残影在洞内）。")]
+        [SerializeField] string openingScenarioId = "base:scenario_ch01_reference";
         [Header("Level Tester · 人物名册")]
         [Tooltip("人物编辑器导出的 characterRoster id。有则按名册刷人（非 Unity 场景摆放）。空＝用剧本 spawns。")]
         [SerializeField] string characterRosterId = "base:roster_level_tester";
@@ -58,6 +58,8 @@ namespace XianXia.Unity.Host
         [SerializeField] HostQuestJournal questJournal;
         [SerializeField] HostInventoryPanel inventoryPanel;
         [SerializeField] HostManualLearnPrompt manualLearnPrompt;
+        [SerializeField] HostCombatArtLearnPrompt combatArtLearnPrompt;
+        [SerializeField] HostCombatArtsPanel combatArtsPanel;
         [SerializeField] HostCultivationPanel cultivationPanel;
         [SerializeField] HostCharacterSheetPanel characterSheetPanel;
         [SerializeField] HostRelationPanel relationPanel;
@@ -117,6 +119,9 @@ namespace XianXia.Unity.Host
         public HostInventoryPanel InventoryPanel => inventoryPanel;
 
         public HostManualLearnPrompt ManualLearnPrompt => manualLearnPrompt;
+        public HostCombatArtLearnPrompt CombatArtLearnPrompt => combatArtLearnPrompt;
+
+        public HostCombatArtsPanel CombatArtsPanel => combatArtsPanel;
 
         public HostCultivationPanel CultivationPanel => cultivationPanel;
 
@@ -184,6 +189,9 @@ namespace XianXia.Unity.Host
             if (manualLearnPrompt == null)
                 manualLearnPrompt = GetComponent<HostManualLearnPrompt>() ??
                                    GetComponentInChildren<HostManualLearnPrompt>();
+            if (combatArtLearnPrompt == null)
+                combatArtLearnPrompt = GetComponent<HostCombatArtLearnPrompt>() ??
+                                      GetComponentInChildren<HostCombatArtLearnPrompt>();
 
             secondsPerAutoTickAt1x = SimulationTickPacing.SecondsPerTickAt1x;
         }
@@ -210,6 +218,8 @@ namespace XianXia.Unity.Host
                 if ((questJournal == null || !questJournal.IsOpen) &&
                     (inventoryPanel == null || !inventoryPanel.IsOpen) &&
                     (manualLearnPrompt == null || !manualLearnPrompt.IsOpen) &&
+                    (combatArtLearnPrompt == null || !combatArtLearnPrompt.IsOpen) &&
+                    (combatArtsPanel == null || !combatArtsPanel.IsOpen) &&
                     (cultivationPanel == null || !cultivationPanel.IsOpen) &&
                     (characterSheetPanel == null || !characterSheetPanel.IsOpen) &&
                     (relationPanel == null || !relationPanel.IsOpen) &&
@@ -226,6 +236,8 @@ namespace XianXia.Unity.Host
                 if ((questJournal == null || !questJournal.IsOpen) &&
                     (inventoryPanel == null || !inventoryPanel.IsOpen) &&
                     (manualLearnPrompt == null || !manualLearnPrompt.IsOpen) &&
+                    (combatArtLearnPrompt == null || !combatArtLearnPrompt.IsOpen) &&
+                    (combatArtsPanel == null || !combatArtsPanel.IsOpen) &&
                     (cultivationPanel == null || !cultivationPanel.IsOpen) &&
                     (characterSheetPanel == null || !characterSheetPanel.IsOpen) &&
                     (relationPanel == null || !relationPanel.IsOpen) &&
@@ -358,6 +370,14 @@ namespace XianXia.Unity.Host
                 gameObject.AddComponent<HostHousingAreaSelection>();
             if (GetComponent<HostControlCoreAssault>() == null)
                 gameObject.AddComponent<HostControlCoreAssault>();
+            if (GetComponent<HostNpcMeleeAssault>() == null)
+                gameObject.AddComponent<HostNpcMeleeAssault>();
+            if (GetComponent<HostMeleeStrikeVfx>() == null)
+                gameObject.AddComponent<HostMeleeStrikeVfx>();
+            if (GetComponent<HostCombatVitalsBars>() == null)
+                gameObject.AddComponent<HostCombatVitalsBars>();
+            if (GetComponent<HostCombatSkillBar>() == null)
+                gameObject.AddComponent<HostCombatSkillBar>();
             if (activityPresenter == null)
                 activityPresenter = GetComponent<HostActivityPresenter>() ??
                                    gameObject.AddComponent<HostActivityPresenter>();
@@ -387,6 +407,12 @@ namespace XianXia.Unity.Host
             if (manualLearnPrompt == null)
                 manualLearnPrompt = GetComponent<HostManualLearnPrompt>() ??
                                    gameObject.AddComponent<HostManualLearnPrompt>();
+            if (combatArtLearnPrompt == null)
+                combatArtLearnPrompt = GetComponent<HostCombatArtLearnPrompt>() ??
+                                      gameObject.AddComponent<HostCombatArtLearnPrompt>();
+            if (combatArtsPanel == null)
+                combatArtsPanel = GetComponent<HostCombatArtsPanel>() ??
+                                 gameObject.AddComponent<HostCombatArtsPanel>();
             if (cultivationPanel == null)
                 cultivationPanel = GetComponent<HostCultivationPanel>() ??
                                   gameObject.AddComponent<HostCultivationPanel>();
@@ -442,6 +468,12 @@ namespace XianXia.Unity.Host
                 inventoryPanel.ClearSessionState();
             if (manualLearnPrompt != null)
                 manualLearnPrompt.ClearSessionState();
+            if (combatArtLearnPrompt != null)
+                combatArtLearnPrompt.ClearSessionState();
+            if (combatArtsPanel != null)
+                combatArtsPanel.ClearSessionState();
+            var skillBarClear = GetComponent<HostCombatSkillBar>();
+            skillBarClear?.ClearSessionState();
             if (cultivationPanel != null)
                 cultivationPanel.ClearSessionState();
             if (characterSheetPanel != null)
@@ -474,7 +506,7 @@ namespace XianXia.Unity.Host
             {
                 DailyRequiredAmount = Mathf.Max(1, dailyRequiredAmount),
                 OpeningScenarioId = string.IsNullOrWhiteSpace(openingScenarioId)
-                    ? null
+                    ? "base:scenario_ch01_reference"
                     : openingScenarioId.Trim(),
                 CharacterRosterId = string.IsNullOrWhiteSpace(characterRosterId)
                     ? null
@@ -527,6 +559,15 @@ namespace XianXia.Unity.Host
             var assault = GetComponent<HostControlCoreAssault>();
             if (assault != null)
                 assault.Bind(this);
+            var npcMelee = GetComponent<HostNpcMeleeAssault>();
+            if (npcMelee != null)
+                npcMelee.Bind(this);
+            var skillBar = GetComponent<HostCombatSkillBar>();
+            if (skillBar != null)
+                skillBar.Bind(this);
+            var vitalsBars = GetComponent<HostCombatVitalsBars>();
+            if (vitalsBars != null)
+                vitalsBars.Bind(this);
             if (_session.CharacterIds.Count > 0)
                 selectionController.SelectEntity(_session.CharacterIds[0], false);
             feedbackOverlay.Bind(cam);
@@ -557,6 +598,10 @@ namespace XianXia.Unity.Host
             inventoryPanel.Bind(this);
             if (manualLearnPrompt != null)
                 manualLearnPrompt.Bind(this);
+            if (combatArtLearnPrompt != null)
+                combatArtLearnPrompt.Bind(this);
+            if (combatArtsPanel != null)
+                combatArtsPanel.Bind(this, selectionController);
             cultivationPanel.Bind(this, selectionController);
             characterSheetPanel.Bind(this, selectionController);
             relationPanel.Bind(this);

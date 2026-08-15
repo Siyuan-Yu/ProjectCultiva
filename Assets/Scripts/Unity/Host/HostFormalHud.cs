@@ -3,6 +3,7 @@ using System.Text;
 using UnityEngine;
 using XianXia.Core.Actions;
 using XianXia.Core.Attributes;
+using XianXia.Core.Combat;
 using XianXia.Core.Concealment;
 using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
@@ -33,6 +34,8 @@ namespace XianXia.Unity.Host
         const float PanelW = 560f;
         const float ActionOrb = 44f;
         const float UnitTabStripW = 36f;
+        const float CombatArtRailW = 58f;
+        const float CombatArtRailGap = 4f;
 
         enum UnitTab
         {
@@ -76,6 +79,7 @@ namespace XianXia.Unity.Host
 
         static readonly AttributeId[] AttributeDisplayOrder =
         {
+            AttributeId.Physique,
             AttributeId.MaxHp,
             AttributeId.Attack,
             AttributeId.Defense,
@@ -211,7 +215,7 @@ namespace XianXia.Unity.Host
         string BuildContextTip(PlayableHostSession session)
         {
             var baseOps =
-                "操作：左键选人／住房区／主管府 · 选中己方后右键主管府→攻击 · 靠近建筑近战／破门后站满占领 · Space暂停 · F10显隐HUD";
+                "操作：左键选人 · 右键 NPC→攻击／对话 · 交战中 S 停战／右键地面脱离 · 1–6 斗技 · Space暂停 · F10显隐HUD";
             var focus = ResolveFocus(session);
             if (!focus.IsNone &&
                 session.World.Entities.TryGet(focus, out var e) &&
@@ -720,8 +724,20 @@ namespace XianXia.Unity.Host
             DrawFrame(main, ParchmentDark);
             HostUiHitTest.Block(main);
 
-            // 修仙模拟器式：贴在状态板右侧外沿
-            var tabStrip = new Rect(main.xMax + 2f, main.y + 12f, UnitTabStripW, main.height - 20f);
+            // 修仙模拟器式：主面板右侧＝斗技 1–6（化伤术位），再右＝详情入口
+            var artRail = new Rect(
+                main.xMax + CombatArtRailGap,
+                main.y + 8f,
+                CombatArtRailW,
+                main.height - 16f);
+            DrawCombatArtSideRail(artRail, focus, entity, isParty);
+            HostUiHitTest.Block(artRail);
+
+            var tabStrip = new Rect(
+                artRail.xMax + CombatArtRailGap,
+                main.y + 12f,
+                UnitTabStripW,
+                main.height - 20f);
             DrawDetailSideTabs(tabStrip, focus);
             HostUiHitTest.Block(tabStrip);
 
@@ -761,17 +777,108 @@ namespace XianXia.Unity.Host
             DrawOverviewBars(session, entity, cult, content);
             GUI.Label(
                 new Rect(main.x + 14f, main.yMax - 22f, main.width - 28f, 18f),
-                "右侧打开详情 · 打坐：F6",
+                "右侧 1–6 斗技可点放 · 详情（人物／境界／斗技／关系）· 打坐：F6",
                 _small);
+        }
+
+        void DrawCombatArtSideRail(Rect strip, EntityId focus, Entity entity, bool isParty)
+        {
+            Fill(strip, Parchment);
+            DrawFrame(strip, ParchmentDark);
+
+            if (!entity.TryGet<CombatArtsComponent>(out var arts))
+            {
+                arts = new CombatArtsComponent();
+                entity.AddComponent(arts);
+            }
+
+            var world = bootstrap?.Session?.World;
+            var skillBar = bootstrap != null ? bootstrap.GetComponent<HostCombatSkillBar>() : null;
+            var slots = CombatArtsComponent.MaxEquippedSlots;
+            var pad = 4f;
+            var gap = 3f;
+            var innerH = strip.height - pad * 2f - 16f;
+            var slotH = (innerH - gap * (slots - 1)) / slots;
+            if (slotH < 22f)
+                slotH = 22f;
+
+            GUI.Label(
+                new Rect(strip.x + 2f, strip.y + 2f, strip.width - 4f, 14f),
+                "斗技·" + arts.Learned.Count,
+                _small);
+
+            for (var i = 0; i < slots; i++)
+            {
+                var r = new Rect(
+                    strip.x + pad,
+                    strip.y + 16f + pad + i * (slotH + gap),
+                    strip.width - pad * 2f,
+                    slotH);
+                var artId = arts.GetEquipped(i);
+                string name;
+                var active = false;
+                if (!artId.HasValue)
+                {
+                    name = "—";
+                }
+                else if (world != null &&
+                         world.TryGetCombatArt(artId.Value, out var art) &&
+                         art != null)
+                {
+                    name = string.IsNullOrEmpty(art.Name) ? art.Id.ToString() : art.Name;
+                    if (name.Length > 4)
+                        name = name.Substring(0, 4);
+                    active = art.IsActiveSkill;
+                }
+                else
+                    name = "?";
+
+                var cd = skillBar != null ? skillBar.GetSlotCooldown(focus, i) : 0f;
+                string label;
+                if (cd > 0.05f)
+                    label = cd.ToString("0.0") + "s";
+                else
+                    label = name;
+
+                var prev = GUI.color;
+                if (!artId.HasValue)
+                    GUI.color = new Color(0.85f, 0.8f, 0.72f, 1f);
+                else if (cd > 0.05f)
+                    GUI.color = new Color(0.75f, 0.72f, 0.65f, 1f);
+                else if (active)
+                    GUI.color = new Color(0.98f, 0.92f, 0.78f, 1f);
+                else
+                    GUI.color = new Color(0.88f, 0.84f, 0.76f, 1f);
+
+                var canClick = isParty && artId.HasValue && active && cd <= 0.05f && skillBar != null;
+                GUI.enabled = canClick || (!isParty && artId.HasValue);
+                if (HostImguiStyles.ParchmentBtn(r, label))
+                {
+                    Event.current.Use();
+                    if (isParty && skillBar != null)
+                    {
+                        EnsureFocusSelected(focus);
+                        skillBar.TryCastEquippedSlot(i);
+                    }
+                }
+
+                GUI.enabled = true;
+                GUI.color = prev;
+
+                // 键位角标 1–6
+                Fill(new Rect(r.x + 1f, r.y + 1f, 13f, 13f), AccentGold);
+                var keyStyle = _small ?? GUI.skin.label;
+                GUI.Label(new Rect(r.x + 1f, r.y, 13f, 13f), (i + 1).ToString(), keyStyle);
+            }
         }
 
         void DrawDetailSideTabs(Rect strip, EntityId focus)
         {
-            var names = new[] { "人物", "境界", "关系" };
-            var h = Mathf.Min(40f, (strip.height - 8f * (names.Length - 1)) / names.Length);
+            var names = new[] { "人物", "境界", "斗技", "关系" };
+            var h = Mathf.Min(36f, (strip.height - 6f * (names.Length - 1)) / names.Length);
             for (var i = 0; i < names.Length; i++)
             {
-                var r = new Rect(strip.x, strip.y + i * (h + 8f), strip.width, h);
+                var r = new Rect(strip.x, strip.y + i * (h + 6f), strip.width, h);
                 if (!HostImguiStyles.SideTabBtn(r, names[i]))
                     continue;
                 Event.current.Use();
@@ -784,6 +891,9 @@ namespace XianXia.Unity.Host
                         bootstrap?.CultivationPanel?.OpenFor(focus);
                         break;
                     case 2:
+                        bootstrap?.CombatArtsPanel?.OpenFor(focus);
+                        break;
+                    case 3:
                         bootstrap?.RelationPanel?.OpenFor(focus);
                         break;
                 }
@@ -881,8 +991,15 @@ namespace XianXia.Unity.Host
 
             if (entity.TryGet<AttributesComponent>(out var attrs))
             {
-                var hp = Mathf.Max(0, attrs.GetFinal(AttributeId.MaxHp));
-                DrawStatBar(area.x, y, leftW, "体魄", hp, Mathf.Max(1, hp), BarOrange);
+                CombatDamageRules.EnsureVitals(entity);
+                var maxHp = Mathf.Max(1, attrs.GetFinal(AttributeId.MaxHp));
+                var curHp = maxHp;
+                if (entity.TryGet<CombatVitalsComponent>(out var vitals))
+                    curHp = Mathf.Clamp(vitals.CurrentHp, 0, maxHp);
+                DrawStatBar(area.x, y, leftW, "生命", curHp, maxHp, BarOrange);
+                y += 22f;
+                var phy = attrs.GetFinal(AttributeId.Physique);
+                DrawStatBar(area.x, y, leftW, "体魄", phy, Mathf.Max(50, phy), BarOrange);
                 y += 22f;
                 var sta = attrs.GetFinal(AttributeId.Stamina);
                 DrawStatBar(area.x, y, leftW, "耐力", sta, Mathf.Max(100, sta), BarOrange);
@@ -909,15 +1026,27 @@ namespace XianXia.Unity.Host
                 ry += 22f;
                 if (entity.TryGet<AttributesComponent>(out var attrs2))
                 {
-                    var sp = attrs2.GetFinal(AttributeId.SpiritPower);
-                    DrawStatBar(rightX, ry, rightW, "灵力", sp, Mathf.Max(100, sp), BarTeal);
-                    ry += 22f;
+                    CombatDamageRules.EnsureVitals(entity);
+                    var maxSp = Mathf.Max(0, attrs2.GetFinal(AttributeId.SpiritPower));
+                    var curSp = maxSp;
+                    if (entity.TryGet<CombatVitalsComponent>(out var vitals2))
+                        curSp = Mathf.Clamp(vitals2.CurrentSpiritPower, 0, Mathf.Max(1, maxSp));
+                    if (cult.Realm >= RealmStage.QiRefining && maxSp > 0)
+                    {
+                        DrawStatBar(rightX, ry, rightW, "灵力护盾", curSp, Mathf.Max(1, maxSp), BarTeal);
+                        ry += 22f;
+                    }
+                    else
+                    {
+                        DrawStatBar(rightX, ry, rightW, "灵力", maxSp, Mathf.Max(100, maxSp), BarTeal);
+                        ry += 22f;
+                    }
                 }
 
                 GUI.Label(
                     new Rect(rightX, ry, rightW, 20f),
                     "修炼速 每5游戏分+" + CultivationProgressRules.BaseProgressPerTick +
-                    " · 功法 " + ManualShortName(cult),
+                    " · 功法 " + ManualShortName(cult, session.World),
                     _parchmentBody);
                 ry += 22f;
             }
@@ -1043,7 +1172,7 @@ namespace XianXia.Unity.Host
             y += 24f;
             GUI.Label(
                 new Rect(area.x, y, area.width, 22f),
-                "功法 " + ManualShortName(cult),
+                "功法 " + ManualShortName(cult, bootstrap?.Session?.World),
                 _parchmentBody);
             y += 24f;
             if (!string.IsNullOrEmpty(cult.RequiredRealmName))
@@ -1175,37 +1304,26 @@ namespace XianXia.Unity.Host
             GUI.Label(bar, cur + "/" + max, valueStyle);
         }
 
-        static string ManualShortName(CultivationComponent cult)
+        static string ManualShortName(CultivationComponent cult, SimulationWorld world)
         {
             if (cult != null && cult.HasLearnedManual && cult.LearnedManualId.HasValue)
             {
-                var mid = cult.LearnedManualId.Value.ToString();
-                var slash = mid.LastIndexOf(':');
-                return slash >= 0 && slash < mid.Length - 1 ? mid.Substring(slash + 1) : mid;
+                var mid = cult.LearnedManualId.Value;
+                if (world != null &&
+                    world.TryGetManual(mid, out var manual) &&
+                    manual != null &&
+                    !string.IsNullOrEmpty(manual.Name))
+                    return manual.Name;
+
+                var text = mid.ToString();
+                var slash = text.LastIndexOf(':');
+                return slash >= 0 && slash < text.Length - 1 ? text.Substring(slash + 1) : text;
             }
 
-            if (cult != null && cult.Realm < RealmStage.QiRefining)
-                return "感应境无需";
-            return "未得功法";
+            return "还没有学功法";
         }
 
-        static string AttributeName(AttributeId id)
-        {
-            switch (id)
-            {
-                case AttributeId.MaxHp: return "体魄";
-                case AttributeId.Attack: return "攻击";
-                case AttributeId.Defense: return "防御";
-                case AttributeId.Speed: return "身法";
-                case AttributeId.Stamina: return "耐力";
-                case AttributeId.SpiritSense: return "神识";
-                case AttributeId.Comprehension: return "悟性";
-                case AttributeId.SpiritPower: return "灵力";
-                case AttributeId.Cultivation: return "修为";
-                case AttributeId.MindState: return "心境";
-                default: return id.ToString();
-            }
-        }
+        static string AttributeName(AttributeId id) => HostAttributeLabels.Name(id);
 
         static int AttributeBarMax(AttributeId id, int value)
         {
@@ -1218,6 +1336,7 @@ namespace XianXia.Unity.Host
                 case AttributeId.SpiritPower:
                 case AttributeId.Cultivation:
                     return Mathf.Max(100, value);
+                case AttributeId.Physique:
                 default:
                     return Mathf.Max(50, value);
             }
@@ -1228,6 +1347,7 @@ namespace XianXia.Unity.Host
             switch (id)
             {
                 case AttributeId.MaxHp:
+                case AttributeId.Physique:
                 case AttributeId.Attack:
                 case AttributeId.Defense:
                 case AttributeId.Speed:

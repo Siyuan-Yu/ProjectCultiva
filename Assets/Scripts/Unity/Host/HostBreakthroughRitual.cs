@@ -518,23 +518,7 @@ namespace XianXia.Unity.Host
             return sb.ToString();
         }
 
-        static string AttrName(AttributeId id)
-        {
-            switch (id)
-            {
-                case AttributeId.MaxHp: return "体魄";
-                case AttributeId.Attack: return "攻击";
-                case AttributeId.Defense: return "防御";
-                case AttributeId.Speed: return "身法";
-                case AttributeId.Stamina: return "耐力";
-                case AttributeId.SpiritSense: return "神识";
-                case AttributeId.Comprehension: return "悟性";
-                case AttributeId.SpiritPower: return "灵力";
-                case AttributeId.Cultivation: return "修为";
-                case AttributeId.MindState: return "心境";
-                default: return id.ToString();
-            }
-        }
+        static string AttrName(AttributeId id) => HostAttributeLabels.Name(id);
 
         void EnsureStyles()
         {

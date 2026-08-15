@@ -92,7 +92,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 | Field | Notes |
 |---|---|
-| `baseAttributes` | MaxHp／Attack／Defense／Speed |
+| `baseAttributes` | **MaxHp＝生命上限（血条）**；**Physique＝体魄（肉身属性）**；Attack／Defense／Speed／Stamina；SpiritSense／Comprehension；SpiritPower／Cultivation／MindState |
 | `playerControllable` | 编辑器默认「可控制」；出场 `entityKind` 为准（character＝进 CharacterIds） |
 | `personalityTags`／`backgroundTags`／`talentTags` | 合并进 PersonalityProfile（顺序：personality→background→talent→tags） |
 | `spiritRootPlaceholder`／`initialRealmPlaceholder` | 占位 |
@@ -121,9 +121,10 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | Field | Notes |
 |---|---|
 | `maxStack` | ≥1，默认 1 |
-| `teachesManualId` | 可选；指向 `cultivation` 功法。背包「使用」→ 选炼气队员学习并消耗 1 本 |
+| `teachesManualId` | 可选；指向 `cultivation`。背包「使用」→ 选人学习；**秘籍不消耗**，可多次传授；一人一本，换功法覆盖 |
+| `teachesArtId` | 可选；斗技秘本。样例：`item_art_liezhao_claw`（洞府裂爪击）、`item_art_kaishan_fist`（将老开山拳） |
 
-样例：`base:item_manual_jiang_lao_legacy`、`base:item_manual_dongfu_secret`（洞府秘诀）
+主动斗技字段（内置注册，非 JSON 暂）：`DamageAttackMult`（攻击力倍率）／`HitCount`（连击）／装备栏 6 格快捷键 1–6。
 
 ## type = opportunitySite
 
@@ -210,11 +211,12 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 | Field | Notes |
 |---|---|
-| `baseAttributes` | MaxHp／Stamina／Attack／Defense／Speed；SpiritSense／Comprehension；SpiritPower／Cultivation／MindState（2B） |
+| `baseAttributes` | **MaxHp＝生命上限（血条）**；**Physique＝体魄**；Stamina／Attack／Defense／Speed；SpiritSense／Comprehension；SpiritPower／Cultivation／MindState（2B） |
 | `spiritRoots` | 火金土木雷风冰毒 → 0–30 亲和数值（**不是**「金灵根」字符串） |
 | `playerControllable` | 人物侧默认；与 spawn.`entityKind` 同步 |
 | `preferredWorkAreaIds` | 有序地点偏好 |
 | `homeWorkAreaId` | 分配住房工区；Rest／Eat／Idle 优先 |
+| `defeatEncounterId` | 可选；被击倒时写入 flag `encounter:{id}`（洞府残影等） |
 | `hometown`／`reputation`／`goals[]`／`desires[]` | 社会侧 |
 | `initialRealmPlaceholder` | 境界展示占位 |
 | `activityCapabilities`／`activityPriorities` | 闲时能否做／权重 |

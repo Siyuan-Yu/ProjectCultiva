@@ -140,8 +140,11 @@ namespace XianXia.Unity.Host
 
             entity.TryGet<CultivationComponent>(out var cult);
             var body = new Rect(rect.x + 16f, rect.y + 48f, rect.width - 32f, rect.height - 100f);
-            _scroll = GUI.BeginScrollView(body, _scroll, new Rect(0f, 0f, body.width - 18f, 420f));
-            GUI.Label(new Rect(0f, 0f, body.width - 18f, 400f), BuildBody(entity, cult), _body);
+            var contentH = 560f;
+            _scroll = GUI.BeginScrollView(body, _scroll, new Rect(0f, 0f, body.width - 18f, contentH));
+            var y = 0f;
+            y = DrawManualSection(cult, body.width - 18f, y);
+            GUI.Label(new Rect(0f, y, body.width - 18f, contentH - y), BuildProgressBody(entity, cult), _body);
             GUI.EndScrollView();
 
             var can = _cultivation.CanAttemptBreakthrough(bootstrap.Session.World, _subject, out var reason);
@@ -174,7 +177,83 @@ namespace XianXia.Unity.Host
                 GUI.Label(new Rect(btn.xMax + 12f, btn.y + 6f, rect.width - 180f, 24f), _status, _small);
         }
 
-        string BuildBody(Entity entity, CultivationComponent cult)
+        /// <summary>当前所修功法：名称／品阶／效果（境界按钮打开时首屏展示）。</summary>
+        float DrawManualSection(CultivationComponent cult, float width, float y0)
+        {
+            var world = bootstrap.Session.World;
+            var boxH = 118f;
+            var box = new Rect(0f, y0, width, boxH);
+            Fill(box, new Color(0.86f, 0.78f, 0.62f, 0.55f));
+            DrawFrame(box, ParchmentDark);
+
+            var x = 10f;
+            var y = y0 + 8f;
+            GUI.Label(new Rect(x, y, width - 20f, 22f), "当前功法", _title);
+            y += 26f;
+
+            if (cult == null)
+            {
+                GUI.Label(new Rect(x, y, width - 20f, 40f), "无修炼组件", _body);
+                return y0 + boxH + 10f;
+            }
+
+            if (cult.HasLearnedManual && cult.LearnedManualId.HasValue)
+            {
+                var mid = cult.LearnedManualId.Value;
+                if (world.TryGetManual(mid, out var manual) && manual != null)
+                {
+                    var mName = string.IsNullOrEmpty(manual.Name) ? ShortId(mid.ToString()) : manual.Name;
+                    var grade = string.IsNullOrEmpty(manual.Grade) ? "品阶未标" : manual.Grade;
+                    GUI.Label(new Rect(x, y, width - 20f, 22f), mName, _body);
+                    y += 22f;
+                    GUI.Label(new Rect(x, y, width - 20f, 20f), "品阶　" + grade, _small);
+                    y += 20f;
+                    var effect = string.IsNullOrEmpty(manual.EffectSummary)
+                        ? BuildFallbackEffect(manual)
+                        : manual.EffectSummary;
+                    GUI.Label(new Rect(x, y, width - 20f, 36f), "效果　" + effect, _small);
+                }
+                else
+                {
+                    GUI.Label(
+                        new Rect(x, y, width - 20f, 40f),
+                        "已学功法（定义缺失）　" + ShortId(mid.ToString()),
+                        _body);
+                }
+            }
+            else
+            {
+                GUI.Label(new Rect(x, y, width - 20f, 22f), "还没有学功法", _body);
+                y += 22f;
+                GUI.Label(
+                    new Rect(x, y, width - 20f, 40f),
+                    cult.Realm >= RealmStage.QiRefining
+                        ? "炼气后突破需要功法。可从将老／洞府等获得秘籍，背包使用后学会。"
+                        : "感应境可先打坐积累修为；功法需秘籍／机缘显式学习，不会保底自动获得。",
+                    _small);
+            }
+
+            return y0 + boxH + 10f;
+        }
+
+        static string BuildFallbackEffect(CultivationManualSpec manual)
+        {
+            if (manual == null)
+                return "—";
+            var parts = new StringBuilder(64);
+            if (manual.CultivationSpeed > 0)
+                parts.Append("打坐每 5 游戏分 +").Append(manual.CultivationSpeed).Append(" 修为");
+            if (manual.GrantedModifiers != null && manual.GrantedModifiers.Count > 0)
+            {
+                if (parts.Length > 0)
+                    parts.Append("；");
+                parts.Append("属性修饰 ×").Append(manual.GrantedModifiers.Count);
+            }
+
+            return parts.Length > 0 ? parts.ToString() : "（无摘要）";
+        }
+
+        string BuildProgressBody(Entity entity, CultivationComponent cult)
         {
             var sb = new StringBuilder(512);
             if (cult == null)
@@ -191,25 +270,13 @@ namespace XianXia.Unity.Host
                 : CultivationProgressRules.BaseProgressPerTick;
             sb.AppendLine("修炼速　每 5 游戏分 +" + speed +
                           "（打坐中；倍速加快游戏时间）");
+
             var world = bootstrap.Session.World;
-            if (cult.HasLearnedManual && cult.LearnedManualId.HasValue)
-            {
-                var mid = cult.LearnedManualId.Value;
-                if (world.TryGetManual(mid, out var manual) && manual != null)
-                {
-                    var mName = string.IsNullOrEmpty(manual.Name) ? ShortId(mid.ToString()) : manual.Name;
-                    var grade = string.IsNullOrEmpty(manual.Grade) ? "" : "（" + manual.Grade + "）";
-                    sb.AppendLine("功法　" + mName + grade);
-                    if (!string.IsNullOrEmpty(manual.EffectSummary))
-                        sb.AppendLine("效果　" + manual.EffectSummary);
-                }
-                else
-                    sb.AppendLine("功法　" + ShortId(mid.ToString()));
-            }
-            else if (cult.Realm >= RealmStage.QiRefining)
-                sb.AppendLine("功法　未得（炼气后突破需要）");
-            else
-                sb.AppendLine("功法　感应境无需（入炼气后才要）");
+            if (cult.HasLearnedManual && cult.LearnedManualId.HasValue &&
+                world.TryGetManual(cult.LearnedManualId.Value, out var manual) &&
+                manual != null &&
+                !string.IsNullOrEmpty(manual.RequiredRealm))
+                sb.AppendLine("功法所需境界　" + manual.RequiredRealm);
 
             if (world.RealmLadder != null &&
                 world.RealmLadder.TryGetStep(cult.Realm, cult.MinorStage, out var step))
@@ -247,7 +314,8 @@ namespace XianXia.Unity.Host
                 entity.TryGet<AttributesComponent>(out var attrs))
             {
                 sb.AppendLine();
-                sb.AppendLine("体魄　" + vitals.CurrentHp + " / " + attrs.GetFinal(AttributeId.MaxHp));
+                sb.AppendLine("生命　" + vitals.CurrentHp + " / " + attrs.GetFinal(AttributeId.MaxHp));
+                sb.AppendLine("体魄　" + attrs.GetFinal(AttributeId.Physique));
                 if (cult.Realm >= RealmStage.QiRefining)
                     sb.AppendLine("灵力护盾　" + vitals.CurrentSpiritPower + " / " +
                                   attrs.GetFinal(AttributeId.SpiritPower) +
@@ -276,7 +344,7 @@ namespace XianXia.Unity.Host
             _px = Texture2D.whiteTexture;
             _title = HostImguiStyles.InkLabel(18, bold: true);
             _body = HostImguiStyles.InkLabel(13, wordWrap: true);
-            _small = HostImguiStyles.InkLabel(12);
+            _small = HostImguiStyles.InkLabel(12, wordWrap: true);
         }
 
         void Fill(Rect r, Color c)
@@ -303,22 +371,6 @@ namespace XianXia.Unity.Host
             return i >= 0 && i + 1 < id.Length ? id.Substring(i + 1) : id;
         }
 
-        static string AttrName(AttributeId id)
-        {
-            switch (id)
-            {
-                case AttributeId.MaxHp: return "体魄";
-                case AttributeId.Attack: return "攻击";
-                case AttributeId.Defense: return "防御";
-                case AttributeId.Speed: return "身法";
-                case AttributeId.Stamina: return "耐力";
-                case AttributeId.SpiritSense: return "神识";
-                case AttributeId.Comprehension: return "悟性";
-                case AttributeId.SpiritPower: return "灵力";
-                case AttributeId.Cultivation: return "修为";
-                case AttributeId.MindState: return "心境";
-                default: return id.ToString();
-            }
-        }
+        static string AttrName(AttributeId id) => HostAttributeLabels.Name(id);
     }
 }

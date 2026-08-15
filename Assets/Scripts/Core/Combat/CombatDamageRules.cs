@@ -48,14 +48,18 @@ namespace XianXia.Core.Combat
             if (!entity.TryGet<CombatVitalsComponent>(out var vitals))
             {
                 vitals = new CombatVitalsComponent();
-                entity.AddComponent(vitals);
+                var added = entity.AddComponent(vitals);
+                if (added.IsFailure)
+                    return;
             }
 
             if (entity.TryGet<AttributesComponent>(out var attrs))
             {
-                var fillSpirit = entity.TryGet<CultivationComponent>(out var cult) &&
+                // 仅首次灌满灵力护盾；勿在 EnsureVitals 里把空盾回满（否则互砍打不死炼气单位）。
+                var fillSpirit = !vitals.PoolsInitialized &&
+                                 entity.TryGet<CultivationComponent>(out var cult) &&
                                  cult.Realm >= RealmStage.QiRefining;
-                vitals.SyncMaxFromAttributes(attrs, fillSpirit && vitals.CurrentSpiritPower <= 0);
+                vitals.SyncMaxFromAttributes(attrs, fillSpirit);
             }
         }
     }

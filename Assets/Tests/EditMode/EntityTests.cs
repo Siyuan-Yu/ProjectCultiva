@@ -22,6 +22,8 @@ namespace XianXia.Tests
             Assert.AreEqual(XianXia.Core.Cultivation.RealmStage.Mortal, cultivation.Realm);
             Assert.IsTrue(e.TryGet<XianXia.Core.Labor.DailyTaskComponent>(out _));
             Assert.AreEqual(LifecycleState.Alive, life.State);
+            Assert.IsTrue(e.TryGet<XianXia.Core.Combat.CombatVitalsComponent>(out _));
+            Assert.IsTrue(e.TryGet<XianXia.Core.Combat.CombatArtsComponent>(out _));
             Assert.AreEqual(EntityTag.Character, e.Tags);
         }
 

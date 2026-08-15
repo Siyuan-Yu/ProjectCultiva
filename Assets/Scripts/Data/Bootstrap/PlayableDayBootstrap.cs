@@ -112,6 +112,7 @@ namespace XianXia.Data.Bootstrap
             var manuals = RegisterManuals(world, registry);
             if (manuals.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(manuals.Error);
+            RegisterBuiltinCombatArts(world);
 
             var ladder = RegisterRealmLadder(world, registry);
             if (ladder.IsFailure)
@@ -147,7 +148,8 @@ namespace XianXia.Data.Bootstrap
             if (settlement.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(settlement.Error);
 
-            var region = WorldRegionBootstrap.ApplyOpening(world, registry, scenario, lookup);
+            var region = WorldRegionBootstrap.ApplyOpening(
+                world, registry, scenario, lookup, spawnEntries);
             if (region.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(region.Error);
 
@@ -212,6 +214,41 @@ namespace XianXia.Data.Bootstrap
             }
 
             return Result.Success();
+        }
+
+        static void RegisterBuiltinCombatArts(SimulationWorld world)
+        {
+            if (world == null)
+                return;
+            world.RegisterCombatArt(new XianXia.Core.Combat.CombatArtSpec
+            {
+                Id = new DefinitionId("base", "art_spirit_strike"),
+                Name = "灵力灌注",
+                Grade = "黄阶下级",
+                EffectSummary = "装备后普攻伤害 +12%（被动）",
+                AttackBonusPercent = 0.12,
+                DamageFlat = 0
+            });
+            world.RegisterCombatArt(new XianXia.Core.Combat.CombatArtSpec
+            {
+                Id = new DefinitionId("base", "art_liezhao_claw"),
+                Name = "裂爪击",
+                Grade = "黄阶中级",
+                EffectSummary = "三连击；每段造成攻击力 200% 伤害",
+                DamageAttackMult = 2.0,
+                HitCount = 3,
+                CooldownSeconds = 4f
+            });
+            world.RegisterCombatArt(new XianXia.Core.Combat.CombatArtSpec
+            {
+                Id = new DefinitionId("base", "art_kaishan_fist"),
+                Name = "开山拳",
+                Grade = "黄阶中级",
+                EffectSummary = "一击造成攻击力 500% 伤害",
+                DamageAttackMult = 5.0,
+                HitCount = 1,
+                CooldownSeconds = 5f
+            });
         }
 
         static Result RegisterRealmLadder(SimulationWorld world, DefinitionRegistry registry)

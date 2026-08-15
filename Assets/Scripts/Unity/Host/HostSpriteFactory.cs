@@ -12,6 +12,7 @@ namespace XianXia.Unity.Host
         static Sprite _tile;
         static Sprite _ring;
         static Sprite _missingPrefab;
+        static Sprite _meleeSlash;
 
         public static Sprite UnitSprite()
         {
@@ -21,6 +22,17 @@ namespace XianXia.Unity.Host
             if (fromRes != null)
                 return _unit = fromRes;
             return _unit = MakeOutlinedUnitSprite(24, 32, "HostUnit");
+        }
+
+        /// <summary>通用近战挥砍弧（程序化；暂作全员共用）。</summary>
+        public static Sprite MeleeSlashSprite()
+        {
+            if (_meleeSlash != null)
+                return _meleeSlash;
+            var fromRes = Resources.Load<Sprite>("HostSprites/MeleeSlash");
+            if (fromRes != null)
+                return _meleeSlash = fromRes;
+            return _meleeSlash = MakeSlashArcSprite(48, 24, "HostMeleeSlash");
         }
 
         public static Sprite TileSprite()
@@ -138,6 +150,41 @@ namespace XianXia.Unity.Host
 
             tex.Apply(false, true);
             return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 32f);
+        }
+
+        /// <summary>横向新月形挥砍（pivot 在弧心，运行时按攻击方向旋转拉伸）。</summary>
+        static Sprite MakeSlashArcSprite(int w, int h, string name)
+        {
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false)
+            {
+                name = name,
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+            var cx = (w - 1) * 0.5f;
+            var cy = (h - 1) * 0.5f;
+            for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+            {
+                var nx = (x - cx) / cx;
+                var ny = (y - cy) / cy;
+                // 椭圆环带 + 右半更亮，像一记横斩
+                var ell = nx * nx * 0.55f + ny * ny;
+                var band = ell > 0.22f && ell < 0.95f && nx > -0.85f;
+                if (!band)
+                {
+                    tex.SetPixel(x, y, Color.clear);
+                    continue;
+                }
+
+                var edge = 1f - Mathf.Abs(ell - 0.55f) / 0.45f;
+                var tip = Mathf.Clamp01(0.35f + nx * 0.65f);
+                var a = Mathf.Clamp01(edge * tip);
+                tex.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+            }
+
+            tex.Apply(false, true);
+            return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 32f);
         }
     }
 }

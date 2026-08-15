@@ -195,6 +195,7 @@ namespace XianXia.Data.Bootstrap
 
             spawn.Hometown = def.Hometown ?? string.Empty;
             spawn.Reputation = def.Reputation;
+            spawn.DefeatEncounterId = def.DefeatEncounterId ?? string.Empty;
             if (def.Goals != null)
             {
                 for (var i = 0; i < def.Goals.Count; i++)

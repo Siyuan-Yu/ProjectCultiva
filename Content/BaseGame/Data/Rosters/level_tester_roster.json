@@ -202,6 +202,15 @@
           "bindDailyTask": false,
           "scheduleId": "base:schedule_jiang_lao_pace",
           "aiRole": "Mortal"
+        },
+        {
+          "definitionId": "base:character_cave_shade",
+          "entityKind": "npc",
+          "displayName": "洞府残影",
+          "assignOpeningFaction": false,
+          "bindSchedule": false,
+          "bindDailyTask": false,
+          "aiRole": "Mortal"
         }
       ]
     }

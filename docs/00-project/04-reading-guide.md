@@ -29,7 +29,8 @@
 
 | 目的 | 读什么 |
 |------|--------|
-| **本轮增量（将老／洞府／秘籍）** | [124](../40-process/124-jiang-lao-cave-manual-rollup-2026-08-15.md) |
+| **本轮增量（战斗／斗技／体魄）** | [125](../40-process/125-combat-arts-physique-acceptance-rollup-2026-08-16.md) |
+| **上一轮（将老／洞府／秘籍）** | [124](../40-process/124-jiang-lao-cave-manual-rollup-2026-08-15.md) |
 | **功法任务接口契约** | [123](../40-process/123-quest-manual-api-interfaces-2026-08-15.md) |
 | **上一轮（境界／打坐／突破仪式）** | [122](../40-process/122-cultivation-breakthrough-host-ritual-2026-08-15.md) |
 | 上一轮（住房／主管府占领／Import） | [121](../40-process/121-housing-assignment-and-control-core-2026-08-15.md) |

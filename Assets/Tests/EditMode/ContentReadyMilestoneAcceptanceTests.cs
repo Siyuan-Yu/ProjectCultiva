@@ -96,6 +96,9 @@ namespace XianXia.Tests
 
             var cult = protagonist.Get<CultivationComponent>();
             var hpBefore = protagonist.Get<AttributesComponent>().GetBase(XianXia.Core.Attributes.AttributeId.MaxHp);
+            Assert.IsTrue(world.TryGetManual(
+                new DefinitionId("base", "cultivation_qingyun_manual"), out var manual));
+            Assert.IsTrue(new CultivationService().LearnManual(world, subject, manual).IsSuccess);
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(
                 subject, PlayerCommandKind.Cultivate, 4)).IsSuccess);
             Assert.IsTrue(cult.HasLearnedManual);

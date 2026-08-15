@@ -131,21 +131,7 @@ namespace XianXia.Unity.UI
                 clock.TogglePause();
             }
 
-            if (UnityEngine.Input.GetKeyDown(KeyCode.Alpha1) || UnityEngine.Input.GetKeyDown(KeyCode.Keypad1))
-            {
-                clock.SetTimeScale(1f);
-            }
-
-            if (UnityEngine.Input.GetKeyDown(KeyCode.Alpha2) || UnityEngine.Input.GetKeyDown(KeyCode.Keypad2))
-            {
-                clock.SetTimeScale(2f);
-            }
-
-            if (UnityEngine.Input.GetKeyDown(KeyCode.Alpha5) || UnityEngine.Input.GetKeyDown(KeyCode.Keypad5))
-            {
-                clock.SetTimeScale(5f);
-            }
-
+            // 数字键 1–6 留给斗技栏；倍速改顶栏按钮。
             if (UnityEngine.Input.GetKeyDown(KeyCode.P))
             {
                 clock.SetPaused(true);

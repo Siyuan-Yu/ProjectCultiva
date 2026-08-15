@@ -317,6 +317,7 @@ namespace XianXia.Data.Content
             character.Hometown = item.GetString("hometown", string.Empty);
             if (item.TryGetProperty("reputation", out var repNode) && repNode.Kind == JsonValueKind.Number)
                 character.Reputation = (int)repNode.Number;
+            character.DefeatEncounterId = item.GetString("defeatEncounterId", string.Empty) ?? string.Empty;
             if (report.Errors.Count > errorsBefore)
                 return;
 
@@ -534,7 +535,8 @@ namespace XianXia.Data.Content
                 DisplayNameKey = item.GetString("displayNameKey", string.Empty),
                 NameKey = item.GetString("nameKey", string.Empty),
                 MaxStack = maxStack,
-                TeachesManualId = item.GetString("teachesManualId", string.Empty)
+                TeachesManualId = item.GetString("teachesManualId", string.Empty),
+                TeachesArtId = item.GetString("teachesArtId", string.Empty)
             };
 
             ReadTags(item, itemDef.Tags, report, id.ToString());

@@ -46,22 +46,26 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void Cultivate_WithoutKnownSite_IsRejected()
+        public void Cultivate_WithoutKnownSite_StillAllowed_NoAutoManual()
         {
             var (world, loop, entity, port) = CreateWorldWithSite();
             var result = port.Submit(new PlayerCommandRequest(entity.Id, PlayerCommandKind.Cultivate, 2));
-            Assert.IsTrue(result.IsFailure);
+            Assert.IsTrue(result.IsSuccess, result.IsFailure ? result.Error.ToString() : "");
             Assert.IsFalse(entity.Get<CultivationComponent>().HasLearnedManual);
         }
 
         [Test]
-        public void Discover_ThenCultivate_LearnsQingyun_AndRaisesRisk()
+        public void Discover_ThenCultivate_DoesNotAutoLearn_ManualMustBeExplicit()
         {
             var (world, loop, entity, port) = CreateWorldWithSite();
             DiscoverSite(port, loop, entity);
 
             Assert.IsFalse(entity.Get<CultivationComponent>().HasLearnedManual);
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(entity.Id, PlayerCommandKind.Cultivate, 3)).IsSuccess);
+            Assert.IsFalse(entity.Get<CultivationComponent>().HasLearnedManual);
+
+            Assert.IsTrue(world.TryGetManual(QingyunId, out var manual));
+            Assert.IsTrue(new CultivationService().LearnManual(world, entity.Id, manual).IsSuccess);
             Assert.IsTrue(entity.Get<CultivationComponent>().HasLearnedManual);
             Assert.AreEqual(QingyunId, entity.Get<CultivationComponent>().LearnedManualId.Value);
 
@@ -115,6 +119,9 @@ namespace XianXia.Tests
 
             DiscoverSite(port, loop, entity);
             Assert.Greater(entity.Get<DailyTaskComponent>().Deviation, 0);
+
+            Assert.IsTrue(world.TryGetManual(QingyunId, out var manual));
+            Assert.IsTrue(new CultivationService().LearnManual(world, entity.Id, manual).IsSuccess);
 
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(entity.Id, PlayerCommandKind.Cultivate, 2)).IsSuccess);
             loop.TickOnce();

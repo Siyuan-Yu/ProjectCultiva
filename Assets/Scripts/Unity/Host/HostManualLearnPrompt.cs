@@ -6,7 +6,7 @@ using XianXia.Core.Entities;
 
 namespace XianXia.Unity.Host
 {
-    /// <summary>背包秘籍：选择炼气期队员学习功法。</summary>
+    /// <summary>背包秘籍：选择炼气期队员学习功法（秘籍不消耗；换功法需确认覆盖）。</summary>
     public sealed class HostManualLearnPrompt : MonoBehaviour
     {
         [SerializeField] PlayableHostBootstrap bootstrap;
@@ -15,6 +15,8 @@ namespace XianXia.Unity.Host
         bool _holdingPause;
         string _itemId = string.Empty;
         string _status = string.Empty;
+        EntityId _pendingLearner = EntityId.None;
+        string _pendingOldManualName = string.Empty;
         Texture2D _px;
         GUIStyle _title;
         GUIStyle _body;
@@ -32,6 +34,8 @@ namespace XianXia.Unity.Host
             _open = false;
             _itemId = string.Empty;
             _status = string.Empty;
+            _pendingLearner = EntityId.None;
+            _pendingOldManualName = string.Empty;
             ReleasePause();
         }
 
@@ -41,6 +45,8 @@ namespace XianXia.Unity.Host
                 return;
             _itemId = itemId;
             _status = string.Empty;
+            _pendingLearner = EntityId.None;
+            _pendingOldManualName = string.Empty;
             _open = true;
         }
 
@@ -48,6 +54,8 @@ namespace XianXia.Unity.Host
         {
             _open = false;
             _itemId = string.Empty;
+            _pendingLearner = EntityId.None;
+            _pendingOldManualName = string.Empty;
             ReleasePause();
         }
 
@@ -68,7 +76,15 @@ namespace XianXia.Unity.Host
             }
 
             if (Input.GetKeyDown(KeyCode.Escape))
-                Close();
+            {
+                if (!_pendingLearner.IsNone)
+                {
+                    _pendingLearner = EntityId.None;
+                    _pendingOldManualName = string.Empty;
+                }
+                else
+                    Close();
+            }
         }
 
         void OnGUI()
@@ -88,8 +104,8 @@ namespace XianXia.Unity.Host
             Fill(dim, new Color(0f, 0f, 0f, 0.45f));
             HostUiHitTest.Block(dim);
 
-            var w = 420f;
-            var h = 360f;
+            var w = 440f;
+            var h = 380f;
             var rect = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
             HostUiHitTest.Block(rect);
             Fill(rect, Parchment);
@@ -97,12 +113,20 @@ namespace XianXia.Unity.Host
 
             var x = rect.x + 16f;
             var y = rect.y + 12f;
+
+            if (!_pendingLearner.IsNone)
+            {
+                DrawOverwriteConfirm(rect, x, y, w, manual);
+                return;
+            }
+
             GUI.Label(new Rect(x, y, w - 32f, 26f), "研读功法", _title);
             y += 30f;
 
             var tomeName = world.InventoryCatalog.GetName(_itemId);
             var summary = BuildManualSummary(manual);
-            GUI.Label(new Rect(x, y, w - 32f, 72f), tomeName + "\n" + summary, _body);
+            GUI.Label(new Rect(x, y, w - 32f, 72f),
+                tomeName + "（秘籍保留，可多次传授）\n" + summary, _body);
             y += 78f;
             GUI.Label(new Rect(x, y, w - 32f, 22f), "选择学习者（需已入炼气）：", _body);
             y += 26f;
@@ -116,20 +140,14 @@ namespace XianXia.Unity.Host
                 var name = string.IsNullOrEmpty(entity.DisplayName) ? id.Value.ToString() : entity.DisplayName;
                 var realmOk = CanLearn(entity, manual, out var reason);
                 var label = realmOk ? name : name + "（" + reason + "）";
+                if (realmOk && entity.TryGet<CultivationComponent>(out var cult) &&
+                    cult.HasLearnedManual && cult.LearnedManualId.HasValue &&
+                    manual != null && !cult.LearnedManualId.Value.Equals(manual.Id))
+                    label += " · 将覆盖现有功法";
+
                 GUI.enabled = realmOk;
                 if (HostImguiStyles.ParchmentBtn(new Rect(x, y, w - 32f, 32f), label))
-                {
-                    var result = new ManualItemLearnService().TryLearnFromItem(world, id, _itemId);
-                    if (result.IsSuccess)
-                    {
-                        bootstrap.DispatchDrainedEvents();
-                        Close();
-                        return;
-                    }
-
-                    _status = result.Error.ToString();
-                }
-
+                    TryPickLearner(id, entity, manual);
                 GUI.enabled = true;
                 y += 36f;
             }
@@ -139,6 +157,67 @@ namespace XianXia.Unity.Host
 
             if (HostImguiStyles.ParchmentBtn(new Rect(x, rect.yMax - 40f, 100f, 28f), "取消"))
                 Close();
+        }
+
+        void DrawOverwriteConfirm(Rect rect, float x, float y, float w, CultivationManualSpec manual)
+        {
+            GUI.Label(new Rect(x, y, w - 32f, 26f), "覆盖功法？", _title);
+            y += 34f;
+            var newName = manual == null
+                ? "新功法"
+                : (string.IsNullOrEmpty(manual.Name) ? manual.Id.ToString() : manual.Name);
+            GUI.Label(
+                new Rect(x, y, w - 32f, 80f),
+                "将遗忘「" + _pendingOldManualName + "」，改学「" + newName + "」。\n一人同时只能运转一本功法。",
+                _body);
+            y += 96f;
+            if (HostImguiStyles.ParchmentBtn(new Rect(x, y, 140f, 34f), "确认覆盖"))
+            {
+                var learner = _pendingLearner;
+                _pendingLearner = EntityId.None;
+                CommitLearn(learner);
+            }
+
+            if (HostImguiStyles.ParchmentBtn(new Rect(x + 156f, y, 100f, 34f), "取消"))
+            {
+                _pendingLearner = EntityId.None;
+                _pendingOldManualName = string.Empty;
+            }
+        }
+
+        void TryPickLearner(EntityId id, Entity entity, CultivationManualSpec manual)
+        {
+            if (manual != null &&
+                entity.TryGet<CultivationComponent>(out var cult) &&
+                cult.HasLearnedManual &&
+                cult.LearnedManualId.HasValue &&
+                !cult.LearnedManualId.Value.Equals(manual.Id))
+            {
+                _pendingLearner = id;
+                var oldId = cult.LearnedManualId.Value;
+                if (bootstrap.Session.World.TryGetManual(oldId, out var oldManual) && oldManual != null &&
+                    !string.IsNullOrEmpty(oldManual.Name))
+                    _pendingOldManualName = oldManual.Name;
+                else
+                    _pendingOldManualName = oldId.ToString();
+                return;
+            }
+
+            CommitLearn(id);
+        }
+
+        void CommitLearn(EntityId learner)
+        {
+            var world = bootstrap.Session.World;
+            var result = new ManualItemLearnService().TryLearnFromItem(world, learner, _itemId);
+            if (result.IsSuccess)
+            {
+                bootstrap.DispatchDrainedEvents();
+                Close();
+                return;
+            }
+
+            _status = result.Error.ToString();
         }
 
         static string BuildManualSummary(CultivationManualSpec manual)
@@ -168,7 +247,6 @@ namespace XianXia.Unity.Host
                 return false;
             }
 
-            // 秘籍默认要求炼气；与功法 requiredRealm 一致。
             if (cult.Realm < RealmStage.QiRefining)
             {
                 reason = "未入炼气";

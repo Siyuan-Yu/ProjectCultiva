@@ -24,5 +24,7 @@ namespace XianXia.Core.Bootstrap
         public int Reputation { get; set; }
         public List<string> Goals { get; set; } = new List<string>();
         public List<string> Desires { get; set; } = new List<string>();
+        /// <summary>击倒时写入 encounter:{id}；空则无。</summary>
+        public string DefeatEncounterId { get; set; } = string.Empty;
     }
 }

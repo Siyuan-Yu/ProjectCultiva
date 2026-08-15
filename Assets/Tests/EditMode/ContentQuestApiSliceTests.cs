@@ -98,7 +98,7 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void ManualTome_Item_Consumed_When_QiRefining_Learner()
+        public void ManualTome_Not_Consumed_When_Learned()
         {
             var world = new SimulationWorld();
             var manualId = new DefinitionId("base", "cultivation_jiang_lao_legacy");
@@ -115,7 +115,7 @@ namespace XianXia.Tests
             const string itemId = "base:item_manual_jiang_lao_legacy";
             world.InventoryCatalog.Register(
                 itemId, "将老残谱（秘籍）", 1,
-                new[] { "consumable", "manual_tome" },
+                new[] { "manual_tome" },
                 manualId.ToString());
 
             var subject = world.Entities.CreateCharacter(
@@ -127,9 +127,17 @@ namespace XianXia.Tests
 
             Assert.AreEqual(1, world.Inventory.TryAdd(itemId, 1));
             Assert.IsTrue(new ManualItemLearnService().TryLearnFromItem(world, subject.Id, itemId).IsSuccess);
-            Assert.AreEqual(0, world.Inventory.GetCount(itemId));
+            Assert.AreEqual(1, world.Inventory.GetCount(itemId));
             Assert.IsTrue(cult.HasLearnedManual);
             Assert.AreEqual(8, cult.CultivationSpeed);
+
+            var mate = world.Entities.CreateCharacter(
+                new DefinitionId("base", "character_mate"), "同伴").Value;
+            mate.Get<AttributesComponent>().SetBase(AttributeId.MaxHp, 100);
+            mate.Get<CultivationComponent>().Realm = RealmStage.QiRefining;
+            Assert.IsTrue(new ManualItemLearnService().TryLearnFromItem(world, mate.Id, itemId).IsSuccess);
+            Assert.AreEqual(1, world.Inventory.GetCount(itemId));
+            Assert.IsTrue(mate.Get<CultivationComponent>().HasLearnedManual);
         }
 
         [Test]

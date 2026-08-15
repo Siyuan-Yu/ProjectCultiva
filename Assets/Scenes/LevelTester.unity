@@ -215439,16 +215439,16 @@ MonoBehaviour:
   workLoop: {fileID: 0}
   enableDebugKeys: 1
   showDebugButtons: 0
-  laborKey: 49
-  restKey: 50
-  observeKey: 51
-  cultivateKey: 52
-  helpKey: 53
-  slightKey: 54
-  recruitKey: 55
-  assignLaborKey: 56
-  assignGatherKey: 57
-  assignCultivateKey: 48
+  laborKey: 0
+  restKey: 0
+  observeKey: 0
+  cultivateKey: 0
+  helpKey: 0
+  slightKey: 0
+  recruitKey: 0
+  assignLaborKey: 0
+  assignGatherKey: 0
+  assignCultivateKey: 0
   exploreKey: 116
   travelKey: 121
   viewSpawner: {fileID: 0}

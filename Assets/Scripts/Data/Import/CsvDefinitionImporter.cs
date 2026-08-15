@@ -134,6 +134,7 @@ namespace XianXia.Data.Import
 
                 var attrs = new Dictionary<string, JsonValue>(StringComparer.Ordinal);
                 TryAddAttr(row, "MaxHp", attrs, report, id);
+                TryAddAttr(row, "Physique", attrs, report, id);
                 TryAddAttr(row, "Attack", attrs, report, id);
                 TryAddAttr(row, "Defense", attrs, report, id);
                 TryAddAttr(row, "Speed", attrs, report, id);

@@ -20,6 +20,7 @@ namespace XianXia.Unity.Host
 
         static readonly Color NpcSlotColor = new Color(1f, 0.92f, 0.25f);
         static readonly Color SupervisorColor = new Color(1f, 0.22f, 0.28f);
+        static readonly Color HostileNpcColor = new Color(0.95f, 0.35f, 0.28f);
 
         [SerializeField] Transform viewsRoot;
         [SerializeField] Vector3[] slotPositions =
@@ -58,6 +59,10 @@ namespace XianXia.Unity.Host
                 var id = ids[i];
                 if (!LocalMapVisibility.IsEntityVisible(session.World, id))
                     continue;
+                if (session.World.Entities.TryGet(id, out var lifeEnt) &&
+                    lifeEnt.TryGet<LifecycleComponent>(out var life) &&
+                    (life.IsDead || life.IsRemoved))
+                    continue;
                 var position = ResolvePresentationPosition(session, id, i, stackAtLocation, slotPositions);
 
                 var isNpc = session.World.Entities.TryGet(id, out var entity) &&
@@ -66,8 +71,10 @@ namespace XianXia.Unity.Host
                 if (isNpc)
                 {
                     color = NpcSlotColor;
-                    if (entity.TryGet<XianXia.Core.Social.NpcAiRoleComponent>(out var ai) &&
-                        ai.Role == XianXia.Core.Social.NpcAiRoleKind.Supervisor)
+                    if (HostNpcInteraction.IsHostileEntity(entity))
+                        color = HostileNpcColor;
+                    else if (entity.TryGet<XianXia.Core.Social.NpcAiRoleComponent>(out var ai) &&
+                             ai.Role == XianXia.Core.Social.NpcAiRoleKind.Supervisor)
                         color = SupervisorColor;
                 }
 

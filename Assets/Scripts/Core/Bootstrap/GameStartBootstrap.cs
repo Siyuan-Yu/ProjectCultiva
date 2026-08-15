@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using XianXia.Core.Attributes;
+using XianXia.Core.Combat;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
@@ -69,6 +70,7 @@ namespace XianXia.Core.Bootstrap
                 {
                     foreach (var kv in spawn.BaseAttributes)
                         attrs.SetBase(kv.Key, kv.Value);
+                    EnsurePhysiqueSeed(attrs);
                 }
 
                 if (entity.TryGet<PersonalityProfileComponent>(out var profile))
@@ -77,6 +79,8 @@ namespace XianXia.Core.Bootstrap
                 ApplyActivityTendency(entity, spawn);
                 ApplySpiritRoots(entity, spawn);
                 ApplyBio(entity, spawn);
+                ApplyEncounterLink(entity, spawn);
+                ApplyInitialRealm(entity, spawn);
 
                 world.Events.Publish(
                     EventType.EntityCreated,
@@ -199,6 +203,42 @@ namespace XianXia.Core.Bootstrap
             bio.Reputation = spawn.Reputation;
             bio.SetGoals(spawn.Goals);
             bio.SetDesires(spawn.Desires);
+        }
+
+        static void ApplyEncounterLink(Entity entity, CharacterSpawnRequest spawn)
+        {
+            if (entity == null || spawn == null || string.IsNullOrWhiteSpace(spawn.DefeatEncounterId))
+                return;
+            if (!entity.TryGet<EncounterLinkComponent>(out var link))
+            {
+                link = new EncounterLinkComponent();
+                entity.AddComponent(link);
+            }
+
+            link.EncounterId = spawn.DefeatEncounterId.Trim();
+        }
+
+        static void ApplyInitialRealm(Entity entity, CharacterSpawnRequest spawn)
+        {
+            if (entity == null || spawn == null ||
+                string.IsNullOrWhiteSpace(spawn.InitialRealmPlaceholder))
+                return;
+            if (!entity.TryGet<CultivationComponent>(out var cult))
+                return;
+            if (!CultivationService.TryParseRealm(spawn.InitialRealmPlaceholder, out var realm))
+                return;
+            cult.Realm = realm;
+        }
+
+        /// <summary>旧数据缺 Physique 时按攻击／生命推一个体魄种子，避免显示为 0。</summary>
+        static void EnsurePhysiqueSeed(AttributesComponent attrs)
+        {
+            if (attrs == null || attrs.GetBase(AttributeId.Physique) > 0)
+                return;
+            var attack = attrs.GetBase(AttributeId.Attack);
+            var maxHp = attrs.GetBase(AttributeId.MaxHp);
+            var seed = Math.Max(5, Math.Max(attack, maxHp / 10));
+            attrs.SetBase(AttributeId.Physique, seed);
         }
     }
 

@@ -194,8 +194,8 @@ namespace XianXia.Unity.Host
                     break;
                 case Phase.AttackConfirm1:
                     DrawAttackConfirm(
-                        "当前为非敌对状态",
-                        "确定要攻击「" + _targetLabel + "」吗？",
+                        "当前为非敌对",
+                        "「" + _targetLabel + "」尚未与我方敌对。确定要攻击吗？",
                         "确定",
                         () => _phase = Phase.AttackConfirm2,
                         CloseAll);
@@ -203,7 +203,7 @@ namespace XianXia.Unity.Host
                 case Phase.AttackConfirm2:
                     DrawAttackConfirm(
                         "再次确认",
-                        "攻击后将无法撤销，且可能引发严重后果。",
+                        "对非敌对单位开战可能引发严重后果，且无法撤销。",
                         "确认攻击",
                         BeginAttack,
                         () => _phase = Phase.AttackConfirm1);
@@ -312,7 +312,9 @@ namespace XianXia.Unity.Host
         {
             const float w = 168f;
             const float itemH = 30f;
-            var h = itemH * 2f + 34f;
+            var hostile = HostNpcInteraction.IsHostileNpc(bootstrap?.Session, _targetNpc);
+            var rows = hostile ? 1 : 2;
+            var h = itemH * rows + 34f;
             var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
             _menuGuiRect = new Rect(guiX, guiY, w, h);
@@ -321,13 +323,29 @@ namespace XianXia.Unity.Host
             Fill(_menuGuiRect, Panel);
             DrawFrame(_menuGuiRect, Border);
 
-            GUI.Label(new Rect(guiX + 10f, guiY + 6f, w - 20f, 22f), _targetLabel, _label);
+            GUI.Label(
+                new Rect(guiX + 10f, guiY + 6f, w - 20f, 22f),
+                hostile ? _targetLabel + "（敌对）" : _targetLabel,
+                _label);
             var y = guiY + 30f;
-            if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "对话", _button))
-                BeginTalk();
-            y += itemH;
-            if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "攻击", _button))
-                _phase = Phase.AttackConfirm1;
+            if (!hostile)
+            {
+                if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "对话", _button))
+                    BeginTalk();
+                y += itemH;
+            }
+
+            if (GUI.Button(
+                    new Rect(guiX + 8f, y, w - 16f, itemH - 4f),
+                    hostile ? "攻击" : "攻击…",
+                    _button))
+            {
+                if (hostile)
+                    BeginAttack();
+                else
+                    _phase = Phase.AttackConfirm1;
+            }
+
             TryDismissOnOutsideClick(_menuGuiRect);
         }
 
@@ -415,19 +433,35 @@ namespace XianXia.Unity.Host
 
         void BeginAttack()
         {
-            if (moveController == null || _actor.IsNone || _targetNpc.IsNone)
+            if (_actor.IsNone || _targetNpc.IsNone)
             {
                 CloseAll();
                 return;
             }
 
-            if (!moveController.OrderActorToNpc(_actor, _targetNpc, HostNpcArriveAction.Attack))
+            var actor = _actor;
+            var npc = _targetNpc;
+            var melee = bootstrap != null ? bootstrap.GetComponent<HostNpcMeleeAssault>() : null;
+            if (melee != null && melee.IsWithinMeleeRange(actor, npc))
+            {
+                CloseAll();
+                OnNpcArriveAttack(actor, npc);
+                return;
+            }
+
+            if (moveController == null)
             {
                 CloseAll();
                 return;
             }
 
-            _interactionNpc = _targetNpc;
+            if (!moveController.OrderActorToNpc(actor, npc, HostNpcArriveAction.Attack))
+            {
+                CloseAll();
+                return;
+            }
+
+            _interactionNpc = npc;
             ResumeTime();
             CloseAll();
         }
@@ -467,14 +501,21 @@ namespace XianXia.Unity.Host
         public void OnNpcArriveAttack(EntityId actor, EntityId npc)
         {
             var name = ResolveDisplayName(npc);
-            Debug.Log("[Host] Attack intent vs " + name + " (combat not implemented).");
+            var melee = bootstrap != null ? bootstrap.GetComponent<HostNpcMeleeAssault>() : null;
+            if (melee == null)
+            {
+                Debug.LogWarning("[Host] HostNpcMeleeAssault missing.");
+                return;
+            }
+
+            melee.Begin(actor, npc);
             var overlay = bootstrap.GetComponent<HostFeedbackOverlay>();
             if (overlay != null && bootstrap.ViewSpawner != null)
             {
                 overlay.SpawnAtEntity(
                     bootstrap.ViewSpawner,
                     actor,
-                    "攻击 " + name + "（战斗未实装）",
+                    "交战 " + name,
                     new Color(1f, 0.45f, 0.35f, 1f));
             }
 

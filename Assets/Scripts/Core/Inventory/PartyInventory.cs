@@ -24,6 +24,8 @@ namespace XianXia.Core.Inventory
         public int MaxStack { get; set; } = 99;
         /// <summary>非空则可用为功法秘籍。</summary>
         public string TeachesManualId { get; set; } = string.Empty;
+        /// <summary>非空则可用为斗技秘本。</summary>
+        public string TeachesArtId { get; set; } = string.Empty;
         public List<string> Tags { get; } = new List<string>();
     }
 
@@ -38,7 +40,8 @@ namespace XianXia.Core.Inventory
             string name,
             int maxStack,
             IEnumerable<string> tags,
-            string teachesManualId = null)
+            string teachesManualId = null,
+            string teachesArtId = null)
         {
             if (string.IsNullOrEmpty(id))
                 return;
@@ -47,7 +50,8 @@ namespace XianXia.Core.Inventory
                 Id = id,
                 Name = string.IsNullOrEmpty(name) ? id : name,
                 MaxStack = maxStack < 1 ? 1 : maxStack,
-                TeachesManualId = teachesManualId ?? string.Empty
+                TeachesManualId = teachesManualId ?? string.Empty,
+                TeachesArtId = teachesArtId ?? string.Empty
             };
             if (tags != null)
             {
@@ -90,8 +94,18 @@ namespace XianXia.Core.Inventory
             return string.Empty;
         }
 
+        public string GetTeachesArtId(string id)
+        {
+            if (TryGet(id, out var info))
+                return info.TeachesArtId ?? string.Empty;
+            return string.Empty;
+        }
+
         public bool IsManualTome(string id) =>
             !string.IsNullOrEmpty(GetTeachesManualId(id));
+
+        public bool IsCombatArtTome(string id) =>
+            !string.IsNullOrEmpty(GetTeachesArtId(id));
 
         public bool HasTag(string id, string tag)
         {

@@ -9,6 +9,7 @@
       "nameKey": "character.labor_disciple",
       "baseAttributes": {
         "MaxHp": 100,
+        "Physique": 10,
         "Attack": 10,
         "Defense": 5,
         "Speed": 8,
@@ -54,6 +55,7 @@
       "nameKey": "character.protagonist",
       "baseAttributes": {
         "MaxHp": 120,
+        "Physique": 12,
         "Attack": 12,
         "Defense": 6,
         "Speed": 10,
@@ -99,6 +101,7 @@
       "nameKey": "character.companion_a",
       "baseAttributes": {
         "MaxHp": 110,
+        "Physique": 11,
         "Attack": 11,
         "Defense": 7,
         "Speed": 9,
@@ -144,6 +147,7 @@
       "nameKey": "character.companion_b",
       "baseAttributes": {
         "MaxHp": 105,
+        "Physique": 13,
         "Attack": 13,
         "Defense": 5,
         "Speed": 11,
@@ -188,6 +192,7 @@
       "nameKey": "character.village_recruit",
       "baseAttributes": {
         "MaxHp": 100,
+        "Physique": 10,
         "Attack": 9,
         "Defense": 6,
         "Speed": 8,
@@ -255,6 +260,7 @@
       "nameKey": "character.herb_gatherer",
       "baseAttributes": {
         "MaxHp": 95,
+        "Physique": 9,
         "Attack": 8,
         "Defense": 5,
         "Speed": 12,

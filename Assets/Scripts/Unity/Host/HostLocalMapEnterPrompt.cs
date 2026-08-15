@@ -145,6 +145,65 @@ namespace XianXia.Unity.Host
                     continue;
                 AddCandidate(id, selected: true);
             }
+
+            // 仍卡在该洞府内室的己方（地表看不见；再进时可勾选带出）
+            var interiorMapId = entrance.EnterLocalMapId;
+            if (!string.IsNullOrEmpty(interiorMapId))
+            {
+                for (var i = 0; i < session.CharacterIds.Count; i++)
+                {
+                    var id = session.CharacterIds[i];
+                    if (id.IsNone || ContainsCandidate(id))
+                        continue;
+                    if (!IsStrandedInInterior(session, id, interiorMapId))
+                        continue;
+                    AddCandidate(id, selected: true);
+                }
+
+                var occupants = session.World.LocalMap.OccupantIds;
+                for (var i = 0; i < occupants.Count; i++)
+                {
+                    var id = occupants[i];
+                    if (id.IsNone || ContainsCandidate(id))
+                        continue;
+                    if (selectionController != null && !selectionController.IsPartyUnit(id) &&
+                        !ContainsCharacter(session, id))
+                        continue;
+                    if (selectionController == null && !ContainsCharacter(session, id))
+                        continue;
+                    AddCandidate(id, selected: true);
+                }
+            }
+        }
+
+        static bool ContainsCharacter(PlayableHostSession session, EntityId id)
+        {
+            if (session?.CharacterIds == null)
+                return false;
+            for (var i = 0; i < session.CharacterIds.Count; i++)
+            {
+                if (session.CharacterIds[i] == id)
+                    return true;
+            }
+
+            return false;
+        }
+
+        static bool IsStrandedInInterior(
+            PlayableHostSession session,
+            EntityId id,
+            string interiorMapLayoutId)
+        {
+            if (session == null || id.IsNone || string.IsNullOrEmpty(interiorMapLayoutId))
+                return false;
+            if (!session.World.Entities.TryGet(id, out var entity) ||
+                !entity.TryGet<EntityLocationComponent>(out var loc) ||
+                !loc.HasLocation)
+                return false;
+            if (!session.World.WorldRegion.TryGet(loc.LocationId, out var place))
+                return false;
+            return !string.IsNullOrEmpty(place.LocalMapId) &&
+                   string.Equals(place.LocalMapId, interiorMapLayoutId, System.StringComparison.Ordinal);
         }
 
         void AddCandidate(EntityId id, bool selected)

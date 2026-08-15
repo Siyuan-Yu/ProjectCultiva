@@ -22,6 +22,7 @@ namespace XianXia.Unity.Host
         bool _failed;
         Color _baseColor = Color.white;
         bool _highlight;
+        float _hitFlashUntil;
 
         public EntityId EntityId => _entityId;
 
@@ -71,6 +72,7 @@ namespace XianXia.Unity.Host
             _world = null;
             _entityId = EntityId.None;
             _highlight = false;
+            _hitFlashUntil = 0f;
             activityText = string.Empty;
         }
 
@@ -87,6 +89,21 @@ namespace XianXia.Unity.Host
 
             SyncFromCore(entity);
             ApplyDepthSort();
+            ApplyHitFlash();
+        }
+
+        void ApplyHitFlash()
+        {
+            if (bodyRenderer == null)
+                return;
+            if (Time.unscaledTime >= _hitFlashUntil)
+            {
+                bodyRenderer.color = _baseColor;
+                return;
+            }
+
+            // 叠一层偏白，压过阵营底色
+            bodyRenderer.color = Color.Lerp(_baseColor, Color.white, 0.78f);
         }
 
         /// <summary>
@@ -125,6 +142,10 @@ namespace XianXia.Unity.Host
             var display = string.IsNullOrEmpty(entity.DisplayName)
                 ? entity.Id.ToString()
                 : entity.DisplayName;
+            if ((entity.Tags & EntityTag.Npc) != 0 &&
+                HostNpcInteraction.IsHostileEntity(entity) &&
+                !display.Contains("敌对"))
+                display = display + "·敌对";
 
             gameObject.name = "EntityView_" + entity.Id.Value + "_" + display;
 
@@ -163,6 +184,12 @@ namespace XianXia.Unity.Host
         {
             _baseColor = color;
             ApplyVisualState();
+        }
+
+        /// <summary>近战受击闪白（表现层，不改 Core）。</summary>
+        public void PlayHitFlash(float seconds = 0.12f)
+        {
+            _hitFlashUntil = Time.unscaledTime + Mathf.Max(0.04f, seconds);
         }
 
         void EnsureVisualParts()

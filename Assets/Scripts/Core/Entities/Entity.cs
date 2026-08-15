@@ -23,11 +23,16 @@ namespace XianXia.Core.Entities
             typeof(XianXia.Core.Social.RelationshipComponent),
             typeof(XianXia.Core.Social.FactionMembershipComponent),
             typeof(XianXia.Core.Social.NpcAiRoleComponent),
+            typeof(XianXia.Core.Social.CharacterBioComponent),
             typeof(XianXia.Core.Settlement.WorkAssignmentComponent),
             typeof(XianXia.Core.Exploration.EntityLocationComponent),
             typeof(XianXia.Core.Npc.JobComponent),
             typeof(XianXia.Core.Npc.ActivityTendencyComponent),
-            typeof(XianXia.Core.Npc.MovementIntentComponent)
+            typeof(XianXia.Core.Npc.MovementIntentComponent),
+            // 战斗：未进白名单时 AddComponent 静默失败 → 互砍无伤害／无特效／斗技装不上
+            typeof(XianXia.Core.Combat.CombatVitalsComponent),
+            typeof(XianXia.Core.Combat.CombatArtsComponent),
+            typeof(XianXia.Core.Combat.EncounterLinkComponent)
         };
 
         readonly Dictionary<Type, IComponent> _components = new Dictionary<Type, IComponent>();
