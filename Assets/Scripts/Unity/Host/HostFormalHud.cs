@@ -509,8 +509,7 @@ namespace XianXia.Unity.Host
                          core.OccupyProgressSeconds.ToString("0.0") + "/" +
                          core.OccupyHoldSeconds.ToString("0") + " 秒";
             else
-                status = "状态：防守中（选中己方后右键→攻击；靠近每秒 -" +
-                         ControlCoreService.TestMeleeDamagePerHit + "）";
+                status = "状态：防守中（选中己方→右键攻击；靠近后按近战属性拆耐久）";
 
             GUI.Label(new Rect(r.x + 10f, r.y + 64f, r.width - 20f, 40f), status, _body);
 

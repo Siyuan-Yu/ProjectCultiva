@@ -404,9 +404,8 @@ namespace XianXia.Unity.Host
             }
 
             Debug.Log(
-                "[Host] 开始突击主管府：靠近建筑每秒 -" +
-                ControlCoreService.TestMeleeDamagePerHit +
-                "；破门后站满 " + core.OccupyHoldSeconds + " 秒占领。");
+                "[Host] 开始突击主管府：靠近后按近战节奏／攻击力拆耐久；破门后站满 " +
+                core.OccupyHoldSeconds + " 秒占领。");
 
             ResumeTime();
             CloseAll();

@@ -242,6 +242,9 @@ namespace XianXia.Data.Content
                     case "mapLayout":
                         LoadMapLayout(item, parsed.Value, registry, report);
                         break;
+                    case "spawnTable":
+                        LoadSpawnTable(item, parsed.Value, registry, report);
+                        break;
                     case "realmLadder":
                         LoadRealmLadder(item, parsed.Value, registry, report);
                         break;
@@ -1251,7 +1254,9 @@ namespace XianXia.Data.Content
                         BlocksMovement = ReadBool(pNode, "blocksMovement", false),
                         BoundLocationId = pNode.GetString("boundLocationId", string.Empty),
                         Label = pNode.GetString("label", string.Empty),
-                        LootItemId = pNode.GetString("lootItemId", string.Empty)
+                        LootItemId = pNode.GetString("lootItemId", string.Empty),
+                        SpawnTableId = pNode.GetString("spawnTableId", string.Empty),
+                        SpawnCount = ReadInt(pNode, "spawnCount", 0)
                     };
 
                     if (string.IsNullOrWhiteSpace(placement.Id))
@@ -1265,6 +1270,74 @@ namespace XianXia.Data.Content
             }
 
             var reg = registry.RegisterMapLayout(layout);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void LoadSpawnTable(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.SpawnTableFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var table = new SpawnTableDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty)
+            };
+
+            if (item.TryGetProperty("entries", out var entriesNode))
+            {
+                if (entriesNode.Kind != JsonValueKind.Array)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "spawnTable.entries must be array.", id.ToString());
+                    return;
+                }
+
+                foreach (var eNode in entriesNode.Array)
+                {
+                    if (eNode.Kind != JsonValueKind.Object)
+                        continue;
+                    DefinitionSchema.RejectUnknownFields(
+                        eNode, DefinitionSchema.SpawnTableEntryFields, report, id + ".entry");
+                    if (report.Errors.Count > errorsBefore)
+                        return;
+
+                    var entry = new SpawnTableEntry
+                    {
+                        DefinitionId = eNode.GetString("definitionId", string.Empty),
+                        Weight = ReadInt(eNode, "weight", 1),
+                        CountMin = ReadInt(eNode, "countMin", 1),
+                        CountMax = ReadInt(eNode, "countMax", 1)
+                    };
+                    if (string.IsNullOrWhiteSpace(entry.DefinitionId))
+                    {
+                        report.Add(ErrorCode.MissingRequiredField, "spawnTable.entry.definitionId required.", id.ToString());
+                        return;
+                    }
+
+                    if (entry.Weight < 1)
+                        entry.Weight = 1;
+                    if (entry.CountMin < 0)
+                        entry.CountMin = 0;
+                    if (entry.CountMax < entry.CountMin)
+                        entry.CountMax = entry.CountMin;
+                    table.Entries.Add(entry);
+                }
+            }
+
+            if (table.Entries.Count == 0)
+            {
+                report.Add(ErrorCode.MissingRequiredField, "spawnTable.entries required.", id.ToString());
+                return;
+            }
+
+            var reg = registry.RegisterSpawnTable(table);
             if (reg.IsFailure)
                 report.Add(reg.Error);
         }

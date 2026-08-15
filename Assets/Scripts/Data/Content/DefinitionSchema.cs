@@ -90,7 +90,18 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> MapPlacementFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "kind", "x", "y", "w", "h", "blocksMovement", "boundLocationId", "label", "lootItemId"
+            "id", "kind", "x", "y", "w", "h", "blocksMovement", "boundLocationId", "label", "lootItemId",
+            "spawnTableId", "spawnCount"
+        };
+
+        public static readonly HashSet<string> SpawnTableFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "entries"
+        };
+
+        public static readonly HashSet<string> SpawnTableEntryFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "definitionId", "weight", "countMin", "countMax"
         };
 
         public static readonly HashSet<string> QuestFields = new HashSet<string>(StringComparer.Ordinal)

@@ -118,6 +118,13 @@ namespace XianXia.Unity.Host
                 loc.HasLocation &&
                 session.World.WorldRegion.TryGet(loc.LocationId, out var location))
             {
+                if (loc.HasPresentationOverride)
+                {
+                    return HostPresentationSpace.FromPresentation(
+                        loc.PresentationOverrideX,
+                        loc.PresentationOverrideZ);
+                }
+
                 stackAtLocation.TryGetValue(loc.LocationId, out var stack);
                 stackAtLocation[loc.LocationId] = stack + 1;
                 var ox = (stack % 3) * 0.85f - 0.85f;

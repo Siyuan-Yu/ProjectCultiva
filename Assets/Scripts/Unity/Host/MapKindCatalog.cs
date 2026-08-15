@@ -112,6 +112,8 @@ namespace XianXia.Unity.Host
                 new UnityEngine.Color(0.50f, 0.45f, 0.38f, 0.35f)),
             new("zoneSpring", Spirit, StampMode.ZoneOverlay, 8, 8, false, null,
                 new UnityEngine.Color(0.35f, 0.70f, 0.85f, 0.35f)),
+            new("spawnZone", Spirit, StampMode.ZoneOverlay, 8, 8, false, null,
+                new UnityEngine.Color(0.85f, 0.25f, 0.22f, 0.40f)),
 
             new("forest", Forest, StampMode.ZoneOverlay, 14, 12, false, null,
                 new UnityEngine.Color(0.20f, 0.50f, 0.28f, 0.35f)),

@@ -57,7 +57,8 @@ public partial class MainWindow : Window
         new("zoneHousing", "住房区（须绑地点＝休息落点）", 20, 20, false, Color.FromArgb(80, 180, 140, 100)),
         new("zoneForest", "林地区", 14, 12, false, Color.FromArgb(90, 40, 130, 70)),
         new("zoneMine", "矿区", 10, 8, false, Color.FromArgb(90, 130, 110, 80)),
-        new("zoneSpring", "灵泉区", 8, 8, false, Color.FromArgb(90, 80, 170, 210))
+        new("zoneSpring", "灵泉区", 8, 8, false, Color.FromArgb(90, 80, 170, 210)),
+        new("spawnZone", "刷怪区（绑 spawnTableId）", 8, 8, false, Color.FromArgb(110, 200, 60, 50))
     };
 
     static IEnumerable<PaletteItem> AllPaletteItems()
@@ -712,6 +713,8 @@ public partial class MainWindow : Window
             PropLabel.Text = vm.Label;
             PropBound.Text = vm.BoundLocationId;
             PropLootItem.Text = vm.LootItemId;
+            PropSpawnTable.Text = vm.SpawnTableId;
+            PropSpawnCount.Text = vm.SpawnCount.ToString();
             PropBlock.IsChecked = vm.BlocksMovement;
             PropX.Text = vm.X.ToString();
             PropY.Text = vm.Y.ToString();
@@ -728,6 +731,9 @@ public partial class MainWindow : Window
         _selected.Label = PropLabel.Text ?? "";
         _selected.BoundLocationId = PropBound.Text ?? "";
         _selected.LootItemId = PropLootItem.Text ?? "";
+        _selected.SpawnTableId = PropSpawnTable.Text ?? "";
+        if (int.TryParse(PropSpawnCount.Text, out var sc) && sc >= 0)
+            _selected.SpawnCount = sc;
         _selected.BlocksMovement = PropBlock.IsChecked == true;
         if (int.TryParse(PropX.Text, out var x)) _selected.X = x;
         if (int.TryParse(PropY.Text, out var y)) _selected.Y = y;
@@ -761,6 +767,9 @@ public partial class MainWindow : Window
             Kind = src.Kind,
             Label = src.Label,
             BoundLocationId = src.BoundLocationId,
+            LootItemId = src.LootItemId,
+            SpawnTableId = src.SpawnTableId,
+            SpawnCount = src.SpawnCount,
             X = src.X + 1,
             Y = src.Y + 1,
             W = src.W,
@@ -1279,8 +1288,8 @@ public sealed record PaletteItem(string? Kind, string Label, int W, int H, bool 
 
 public sealed class PlacementVm : INotifyPropertyChanged
 {
-    string _id = "", _kind = "wall", _label = "", _bound = "", _lootItemId = "";
-    int _x, _y, _w = 1, _h = 1;
+    string _id = "", _kind = "wall", _label = "", _bound = "", _lootItemId = "", _spawnTableId = "";
+    int _x, _y, _w = 1, _h = 1, _spawnCount;
     bool _block;
 
     public string Id { get => _id; set { _id = value; OnPropertyChanged(); } }
@@ -1288,7 +1297,8 @@ public sealed class PlacementVm : INotifyPropertyChanged
     public string Label { get => _label; set { _label = value; OnPropertyChanged(); } }
     public string BoundLocationId { get => _bound; set { _bound = value; OnPropertyChanged(); } }
     public string LootItemId { get => _lootItemId; set { _lootItemId = value; OnPropertyChanged(); } }
-    public string LootItemId { get => _lootItemId; set { _lootItemId = value; OnPropertyChanged(); } }
+    public string SpawnTableId { get => _spawnTableId; set { _spawnTableId = value; OnPropertyChanged(); } }
+    public int SpawnCount { get => _spawnCount; set { _spawnCount = value; OnPropertyChanged(); } }
     public int X { get => _x; set { _x = value; OnPropertyChanged(); } }
     public int Y { get => _y; set { _y = value; OnPropertyChanged(); } }
     public int W { get => _w; set { _w = value; OnPropertyChanged(); } }
@@ -1311,6 +1321,8 @@ public sealed class PlacementVm : INotifyPropertyChanged
         Label = JsonEdit.GetString(o, "label"),
         BoundLocationId = JsonEdit.GetString(o, "boundLocationId"),
         LootItemId = JsonEdit.GetString(o, "lootItemId"),
+        SpawnTableId = JsonEdit.GetString(o, "spawnTableId"),
+        SpawnCount = JsonEdit.GetInt(o, "spawnCount"),
         X = JsonEdit.GetInt(o, "x"),
         Y = JsonEdit.GetInt(o, "y"),
         W = Math.Max(1, JsonEdit.GetInt(o, "w", 1)),
@@ -1333,6 +1345,8 @@ public sealed class PlacementVm : INotifyPropertyChanged
         if (!string.IsNullOrWhiteSpace(Label)) o["label"] = Label;
         if (!string.IsNullOrWhiteSpace(BoundLocationId)) o["boundLocationId"] = BoundLocationId;
         if (!string.IsNullOrWhiteSpace(LootItemId)) o["lootItemId"] = LootItemId;
+        if (!string.IsNullOrWhiteSpace(SpawnTableId)) o["spawnTableId"] = SpawnTableId;
+        if (SpawnCount > 0) o["spawnCount"] = SpawnCount;
         return o;
     }
 }

@@ -42,6 +42,8 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, MapLayoutDefinition>();
         readonly Dictionary<DefinitionId, RealmLadderDefinition> _realmLadders =
             new Dictionary<DefinitionId, RealmLadderDefinition>();
+        readonly Dictionary<DefinitionId, SpawnTableDefinition> _spawnTables =
+            new Dictionary<DefinitionId, SpawnTableDefinition>();
 
         public IReadOnlyDictionary<DefinitionId, CharacterDefinition> Characters => _characters;
         public IReadOnlyDictionary<DefinitionId, CultivationDefinition> Cultivations => _cultivations;
@@ -61,6 +63,7 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, ScheduleContentDefinition> Schedules => _schedules;
         public IReadOnlyDictionary<DefinitionId, MapLayoutDefinition> MapLayouts => _mapLayouts;
         public IReadOnlyDictionary<DefinitionId, RealmLadderDefinition> RealmLadders => _realmLadders;
+        public IReadOnlyDictionary<DefinitionId, SpawnTableDefinition> SpawnTables => _spawnTables;
 
         public bool ContainsId(DefinitionId id) =>
             _characters.ContainsKey(id) ||
@@ -80,7 +83,8 @@ namespace XianXia.Data.Content
             _jobs.ContainsKey(id) ||
             _schedules.ContainsKey(id) ||
             _mapLayouts.ContainsKey(id) ||
-            _realmLadders.ContainsKey(id);
+            _realmLadders.ContainsKey(id) ||
+            _spawnTables.ContainsKey(id);
 
         public Result RegisterCharacter(CharacterDefinition definition)
         {
@@ -208,6 +212,13 @@ namespace XianXia.Data.Content
             return Register(_realmLadders, definition, definition.Id);
         }
 
+        public Result RegisterSpawnTable(SpawnTableDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "SpawnTableDefinition is null.");
+            return Register(_spawnTables, definition, definition.Id);
+        }
+
         /// <summary>覆盖已有 mapLayout（Level Tester 热换地图文件）。</summary>
         public Result UpsertMapLayout(MapLayoutDefinition definition)
         {
@@ -270,6 +281,9 @@ namespace XianXia.Data.Content
 
         public bool TryGetRealmLadder(DefinitionId id, out RealmLadderDefinition definition) =>
             _realmLadders.TryGetValue(id, out definition);
+
+        public bool TryGetSpawnTable(DefinitionId id, out SpawnTableDefinition definition) =>
+            _spawnTables.TryGetValue(id, out definition);
 
         /// <summary>Prefer content ladder; otherwise null.</summary>
         public bool TryGetPrimaryRealmLadder(out RealmLadderDefinition definition)

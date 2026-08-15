@@ -115,6 +115,10 @@
           <TextBox x:Name="PropBound" Margin="0,0,0,4"/>
           <TextBlock Text="lootItemId（地上物）"/>
           <TextBox x:Name="PropLootItem" Margin="0,0,0,4"/>
+          <TextBlock Text="spawnTableId（刷怪区）"/>
+          <TextBox x:Name="PropSpawnTable" Margin="0,0,0,4"/>
+          <TextBlock Text="spawnCount（0＝按表 countMin～Max）"/>
+          <TextBox x:Name="PropSpawnCount" Margin="0,0,0,4"/>
           <CheckBox x:Name="PropBlock" Content="挡路（blocksMovement）— 建筑默认开；树／矿等装饰需手勾" Margin="0,0,0,4"/>
           <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
             <TextBlock Text="X" Width="20" VerticalAlignment="Center"/>

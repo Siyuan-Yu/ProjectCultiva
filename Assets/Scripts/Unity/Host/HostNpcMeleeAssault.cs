@@ -6,8 +6,7 @@ using XianXia.Core.Entities;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// 战斗 Alpha：走近目标后双方自动互砍（属性＋装备斗技）。
-    /// 支持换目标、右键地面／S 停脱离。
+    /// 战斗 Alpha：下令攻击后持续追击互砍，直到目标／己方倒下，或玩家下令移动／Stop 打断。
     /// </summary>
     public sealed class HostNpcMeleeAssault : MonoBehaviour
     {
@@ -16,7 +15,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostMoveController moveController;
         [SerializeField] HostMeleeStrikeVfx strikeVfx;
         [SerializeField] float meleeRange = HostNpcInteraction.DefaultMeleeEngageRange;
-        [SerializeField] float repathInterval = 0.4f;
+        [SerializeField] float repathInterval = 0.2f;
 
         readonly MeleeCombatService _melee = new MeleeCombatService();
 
@@ -212,7 +211,7 @@ namespace XianXia.Unity.Host
 
             var atkName = ResolveName(_attacker);
             var defName = ResolveName(_defender);
-            var line = "交战中　" + atkName + " ↔ " + defName + "　·　S 停战　·　右键地面脱离";
+            var line = "交战中　" + atkName + " ↔ " + defName + "　·　追击至死　·　右键地面／S 打断";
             const float w = 520f;
             const float h = 28f;
             var r = new Rect((Screen.width - w) * 0.5f, 56f, w, h);
@@ -255,24 +254,28 @@ namespace XianXia.Unity.Host
         {
             if (moveController == null || viewSpawner == null)
                 return;
+            // 交战中防守方应定住；若被日程／其它逻辑拉开则继续追
+            moveController.HoldNpcForInteraction(_defender);
             if (Time.unscaledTime < _nextRepathTime)
                 return;
             if (!viewSpawner.Registry.TryGet(_defender, out var defView) || defView == null)
                 return;
 
-            _nextRepathTime = Time.unscaledTime + Mathf.Max(0.15f, repathInterval);
+            _nextRepathTime = Time.unscaledTime + Mathf.Max(0.1f, repathInterval);
             var dest = defView.transform.position;
             if (viewSpawner.Registry.TryGet(_attacker, out var atkView) && atkView != null)
             {
                 var delta = atkView.transform.position - dest;
                 delta.z = 0f;
                 if (delta.sqrMagnitude > 0.01f)
-                    dest += delta.normalized * (meleeRange * 0.55f);
+                    dest += delta.normalized * (meleeRange * 0.35f);
             }
 
             dest.z = HostPresentationSpace.EntityZ;
+            // issueStop:false — 避免 Stop→脱离战斗；到位后由 MoveController 识别交战攻方跳过待命
             moveController.OrderEntityToWorldPoint(
                 _attacker, dest, arriveCommand: null, issueStop: false);
+            SetFightActivity(_attacker, true);
         }
 
         void FinishIfNeeded()

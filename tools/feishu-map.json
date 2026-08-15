@@ -651,6 +651,11 @@
       "title": "125 战斗／斗技／体魄验收收束（2026-08-16）",
       "docId": "W7iAdwYigo0PxlxJbaPcOKnjnXb"
     },
+    "control-core-chase-spawn-zone-2026-08-16": {
+      "file": "docs/40-process/126-control-core-chase-spawn-zone-rollup-2026-08-16.md",
+      "title": "126 主管府近战／追击／刷怪区收束（2026-08-16）",
+      "docId": "UWOvdUOlao8e3ExK2ywc84fUnnh"
+    },
     "world-graph-local-map": {
       "file": "docs/40-process/113-world-graph-local-map-architecture-revision-v0.1.md",
       "title": "World Graph + Local Map 架构修订 v0.1",

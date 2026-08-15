@@ -68,6 +68,19 @@
           "label": "裂爪击秘本",
           "boundLocationId": "base:loc_cave_chamber",
           "lootItemId": "base:item_art_liezhao_claw"
+        },
+        {
+          "id": "cave_spawn_chamber",
+          "kind": "spawnZone",
+          "x": 12,
+          "y": 9,
+          "w": 14,
+          "h": 10,
+          "blocksMovement": false,
+          "label": "内室刷怪区",
+          "boundLocationId": "base:loc_cave_chamber",
+          "spawnTableId": "base:spawn_table_cave_shade",
+          "spawnCount": 1
         }
       ]
     }

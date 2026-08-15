@@ -27,6 +27,8 @@ namespace XianXia.Data.Content
             ValidateScenarios(registry, report);
             ValidateWorldRegions(registry, locations, report);
             ValidateItems(registry, report);
+            ValidateSpawnTables(registry, report);
+            ValidateMapSpawnZones(registry, locations, report);
             ValidateQuests(registry, locations, producedFlags, consumedFlags, report);
             ValidateContentEvents(registry, locations, producedFlags, consumedFlags, report);
             ValidateChapters(registry, locations, producedFlags, consumedFlags, report);
@@ -66,6 +68,72 @@ namespace XianXia.Data.Content
                     "cultivation",
                     item.Id + ".teachesManualId",
                     report);
+            }
+        }
+
+        static void ValidateSpawnTables(DefinitionRegistry registry, ValidationReport report)
+        {
+            foreach (var kv in registry.SpawnTables)
+            {
+                var table = kv.Value;
+                if (table?.Entries == null)
+                    continue;
+                for (var i = 0; i < table.Entries.Count; i++)
+                {
+                    var e = table.Entries[i];
+                    if (e == null)
+                        continue;
+                    RequireDef(
+                        registry,
+                        e.DefinitionId,
+                        "character",
+                        table.Id + ".entries[" + i + "].definitionId",
+                        report);
+                }
+            }
+        }
+
+        static void ValidateMapSpawnZones(
+            DefinitionRegistry registry,
+            HashSet<string> locations,
+            ValidationReport report)
+        {
+            foreach (var kv in registry.MapLayouts)
+            {
+                var layout = kv.Value;
+                if (layout?.Placements == null)
+                    continue;
+                for (var i = 0; i < layout.Placements.Count; i++)
+                {
+                    var p = layout.Placements[i];
+                    if (p == null ||
+                        !string.Equals(p.Kind, "spawnZone", StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    var ctx = layout.Id + ".placements[" + p.Id + "]";
+                    if (string.IsNullOrWhiteSpace(p.SpawnTableId))
+                    {
+                        report.Add(
+                            ErrorCode.MissingRequiredField,
+                            "spawnZone.spawnTableId required.",
+                            ctx);
+                    }
+                    else
+                        RequireDef(registry, p.SpawnTableId, "spawnTable", ctx + ".spawnTableId", report);
+                    if (string.IsNullOrWhiteSpace(p.BoundLocationId))
+                    {
+                        report.Add(
+                            ErrorCode.MissingRequiredField,
+                            "spawnZone.boundLocationId required.",
+                            ctx);
+                    }
+                    else if (!locations.Contains(p.BoundLocationId))
+                    {
+                        report.Add(
+                            ErrorCode.NotFound,
+                            "spawnZone.boundLocationId missing in worldRegion.",
+                            ctx + ":" + p.BoundLocationId);
+                    }
+                }
             }
         }
 
@@ -520,6 +588,9 @@ namespace XianXia.Data.Content
                     break;
                 case "item":
                     ok = registry.Items.ContainsKey(id);
+                    break;
+                case "spawnTable":
+                    ok = registry.SpawnTables.ContainsKey(id);
                     break;
             }
 

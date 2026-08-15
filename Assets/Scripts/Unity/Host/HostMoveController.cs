@@ -541,9 +541,24 @@ namespace XianXia.Unity.Host
                     ApplyPendingArrive(id);
                 else if (_pendingArriveActions.ContainsKey(id.Value))
                     ApplyPendingArriveAction(id);
+                else if (IsActiveMeleeAttacker(id))
+                {
+                    // 追击到位后不要 HoldStandby→Stop，否则会 Disengage 整场交战
+                    view.SetActivityText("交战中");
+                }
                 else if (selectionController != null && selectionController.IsPartyUnit(id))
                     HoldStandby(id);
             }
+        }
+
+        bool IsActiveMeleeAttacker(EntityId id)
+        {
+            if (id.IsNone)
+                return false;
+            var melee = bootstrap != null
+                ? bootstrap.GetComponent<HostNpcMeleeAssault>()
+                : GetComponent<HostNpcMeleeAssault>();
+            return melee != null && melee.IsFighting && melee.AttackerId == id;
         }
 
         void ApplyPendingNpcIntent(EntityId id)
@@ -732,6 +747,8 @@ namespace XianXia.Unity.Host
 
         void HoldStandby(EntityId id)
         {
+            if (IsActiveMeleeAttacker(id))
+                return;
             var session = bootstrap?.Session;
             if (session?.Loop == null || id.IsNone)
                 return;

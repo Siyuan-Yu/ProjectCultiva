@@ -15,7 +15,7 @@ namespace XianXia.Tests
             Path.GetFullPath(Path.Combine(UnityEngine.Application.dataPath, "..", "Content", "BaseGame"));
 
         [Test]
-        public void LevelTester_Roster_Places_Cave_Shade_In_Chamber()
+        public void LevelTester_SpawnZone_Places_Cave_Shade_In_Chamber()
         {
             var started = new PlayableDayBootstrap().Start(
                 BaseGamePath,
@@ -38,9 +38,10 @@ namespace XianXia.Tests
                 }
             }
 
-            Assert.IsNotNull(shade, "洞府残影应在 Level Tester 名册中生成");
+            Assert.IsNotNull(shade, "洞府残影应由 spawnZone＋spawnTable 生成");
             Assert.IsTrue(shade.TryGet<EntityLocationComponent>(out var loc));
             Assert.AreEqual("base:loc_cave_chamber", loc.LocationId);
+            Assert.IsTrue(loc.HasPresentationOverride, "刷怪区应写入表现落点");
             Assert.IsTrue(shade.TryGet<EncounterLinkComponent>(out var link));
             Assert.AreEqual("cave_ch01_shade", link.EncounterId);
             Assert.IsTrue(shade.TryGet<PersonalityProfileComponent>(out var profile));
@@ -56,6 +57,8 @@ namespace XianXia.Tests
             Assert.IsTrue(world.WorldRegion.TryGet("base:loc_cave_chamber", out var chamber));
             Assert.IsTrue(
                 XianXia.Unity.Host.LocalMapVisibility.IsInteriorOnlyLocation(chamber));
+            Assert.IsTrue(world.Flags.Has(
+                SpawnZoneApplier.FlagPrefix + "base:map_ch01_cave:cave_spawn_chamber"));
         }
     }
 }

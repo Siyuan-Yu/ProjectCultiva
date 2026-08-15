@@ -19,6 +19,7 @@
 |------|--------|------------|
 | **敌对姿态** | `hostile`＝免确认／偏红／头顶「·敌对」；无标仍双确认 | `HostNpcInteraction`／`HostNpcContextMenu` |
 | **近战互砍** | 走近自动互砍；挥砍弧＋闪白；交战 Hold；S／右键地面脱离 | `HostNpcMeleeAssault`／`HostMeleeStrikeVfx`／`MeleeCombatService` |
+| **主管府突击** | 去掉每秒固定伤；靠近后按近战间隔／攻−防/2 拆耐久；破门站占不变 | `HostControlCoreAssault`／`ControlCoreService.ApplyStrikeFromAttacker` |
 | **生命／护盾条** | 头顶＋概况「生命」；炼气先扣灵力护盾 | `HostCombatVitalsBars`／`CombatDamageRules` |
 | **白名单修复** | `CombatVitals`／`CombatArts`／`EncounterLink` 进 Entity 白名单（否则互砍哑火） | `Entity.cs` |
 | **体魄≠血条** | 新 `AttributeId.Physique`；`MaxHp` 显示「生命」 | `HostAttributeLabels`／角色 JSON |
@@ -51,14 +52,15 @@
 | 斗技装备 | 最多 6；主动技可释放；被动只加成 |
 | 学功法 | 秘籍／任务／outcome；**不**经 Cultivate Gate 保底 |
 | 残影 | `hostile`＋`cave`／内室；击败可写 encounter 旗 |
+| 主管府 | 近战间隔＋攻−防/2 拆耐久（非固定每秒伤）；破门站占 |
 
-**明确未做（本轮后）：** 敌人主动寻仇；半自动斗技；WorldGraph；体魄进伤害／门槛公式细化。
+**明确未做（本轮后）：** 敌人主动寻仇；半自动斗技；WorldGraph；体魄进伤害／门槛公式细化；主管 NPC 被击败后的剧情／权限联动（仍靠打府占领）。
 
 ---
 
 ## 5. 下一步建议
 
-1. 手操再验：全新开局确认功法为「还没有学功法」；互砍掉血＋侧栏点放斗技  
+1. 手操再验：突击主管府见属性伤／挥砍特效；破门站满占领；右键主管走正式互砍  
 2. 遭遇／任务内容装配（洞府清残影等）  
 3. 敌人进敌对范围主动开打（若要）  
 4. WorldGraph／内室编辑器 backlog（[113](113-world-graph-local-map-architecture-revision-v0.1.md)）

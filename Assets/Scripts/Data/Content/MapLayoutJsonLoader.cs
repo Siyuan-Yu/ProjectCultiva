@@ -136,7 +136,9 @@ namespace XianXia.Data.Content
                         BlocksMovement = pNode.GetBool("blocksMovement", false),
                         BoundLocationId = pNode.GetString("boundLocationId", string.Empty),
                         Label = pNode.GetString("label", string.Empty),
-                        LootItemId = pNode.GetString("lootItemId", string.Empty)
+                        LootItemId = pNode.GetString("lootItemId", string.Empty),
+                        SpawnTableId = pNode.GetString("spawnTableId", string.Empty),
+                        SpawnCount = (int)pNode.GetNumber("spawnCount", 0)
                     };
                     if (string.IsNullOrWhiteSpace(placement.Id))
                         placement.Id = "p_" + layout.Placements.Count;

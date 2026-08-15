@@ -107,16 +107,24 @@ namespace XianXia.Core.Npc
             return true;
         }
 
-        public bool ApplyDamage(string workAreaId, int amount, out ControlCoreState state)
+        public bool ApplyDamage(
+            string workAreaId,
+            int amount,
+            out ControlCoreState state,
+            bool defenseAlreadyApplied = false)
         {
             state = null;
             if (!TryGet(workAreaId, out state) || state.PlayerControlled)
                 return false;
             if (amount < 1)
                 amount = 1;
-            amount -= state.Defense;
-            if (amount < 1)
-                amount = 1;
+            if (!defenseAlreadyApplied)
+            {
+                amount -= state.Defense;
+                if (amount < 1)
+                    amount = 1;
+            }
+
             state.CurrentDurability -= amount;
             if (state.CurrentDurability > 0)
                 return false;

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using XianXia.Core.Actions;
+using XianXia.Core.Attributes;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
@@ -362,6 +363,32 @@ namespace XianXia.Tests
             Assert.IsTrue(world.Flags.Has("settlement_player_controlled"));
             Assert.IsTrue(world.SettlementAuthority.CanManageHousing);
             Assert.IsTrue(world.SettlementAuthority.CanManageSchedules);
+        }
+
+        [Test]
+        public void ControlCore_StrikeFromAttacker_UsesMeleeFormula()
+        {
+            var world = new SimulationWorld();
+            world.RegisterWorkArea(new WorkAreaDefinition
+            {
+                Id = "wa_mansion",
+                Name = "主管府",
+                LocationId = "loc_hub",
+                IsControlCore = true,
+                MaxDurability = 100,
+                Defense = 10,
+                AllowedActivities = { "Inspect" }
+            });
+
+            var atk = world.Entities.CreateCharacter(
+                new DefinitionId("base", "character_atk"), "攻").Value;
+            atk.Get<AttributesComponent>().SetBase(AttributeId.Attack, 20);
+            // max(1, 20 - 10/2) = 15；defenseAlreadyApplied，不再二次扣建筑 Defense
+            Assert.IsTrue(ControlCoreService.ApplyStrikeFromAttacker(
+                world, "wa_mansion", atk.Id, out var dmg).IsSuccess);
+            Assert.AreEqual(15, dmg);
+            Assert.IsTrue(world.ControlCores.TryGet("wa_mansion", out var core));
+            Assert.AreEqual(85, core.CurrentDurability);
         }
 
         [Test]

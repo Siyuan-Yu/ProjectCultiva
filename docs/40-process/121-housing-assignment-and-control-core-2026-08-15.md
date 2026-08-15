@@ -21,7 +21,7 @@
 | **住房／府拆分** | 地图 `zoneHousing` 只划范围；休息＝Location←WorkArea←`homeWorkAreaId`；府＝`controlCore` 不是住房 | MapEditor／Region／WorkArea／CharacterNpc |
 | **住房点选** | 左键空地住房区 → 看归属／入住；占领后可改（限玩家阵营） | `HostHousingAreaSelection`／`HousingAssignmentService` |
 | **主管府状态** | 左键点建筑任意处 → 耐久／占领进度面板 | `HostControlCoreQuery` footprint |
-| **攻击／占领** | 选中己方 → 右键建筑 →「攻击」→ 靠近每秒 -20；破门后站满 `occupyHoldSeconds`（默认 10）自动占 | `HostNpcContextMenu`／`HostControlCoreAssault`／`ControlCoreService` |
+| **攻击／占领** | 选中己方 → 右键建筑 →「攻击」→ 靠近后按正式近战节奏拆耐久（攻−防/2，间隔同互砍）；破门后站满 `occupyHoldSeconds`（默认 10）自动占 | `HostNpcContextMenu`／`HostControlCoreAssault`／`ControlCoreService.ApplyStrikeFromAttacker` |
 | **权限** | 内容 `grantsPrivileges` → `SettlementAuthority`（`manageHousing`／`manageSchedules`） | `SettlementAuthorityBoard`；课表可点切换活动 |
 | **无交互点** | `controlCore` 不再挂 Work 交互点（避免误劳动） | `MapKindCatalog` |
 | **Import 清旧** | Clear 清空 `mapRoot` 全部子物体（修 `_built` 未序列化叠图） | `HostDemoTileMap.Clear` |
@@ -51,7 +51,7 @@
 ```text
 左键建筑任意处 → 看血量
 选中己方 → 右键建筑 →「攻击」→ 走到府外缘
-靠近 footprint＋边距 → 每秒 -20（测试近战常量）
+靠近 footprint＋边距 → 按近战间隔挥砍；伤害＝max(1, 攻击−建筑防御/2)（与地图互砍同式）
 耐久 0 → CaptureAvailable
 继续站满 occupyHoldSeconds → 自动占领
 SettlementAuthority.GrantAll(grantsPrivileges)

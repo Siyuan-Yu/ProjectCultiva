@@ -1,5 +1,9 @@
+using System;
 using System.Collections.Generic;
+using XianXia.Core.Attributes;
+using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Entities;
 using XianXia.Core.Events;
 using XianXia.Core.Exploration;
 using XianXia.Core.Results;
@@ -8,14 +12,50 @@ using XianXia.Core.Simulation;
 
 namespace XianXia.Core.Npc
 {
-    /// <summary>Damage／occupy／capture for settlement control cores.</summary>
+    /// <summary>Damage／occupy／capture for settlement control cores（伤害对齐近战属性公式）。</summary>
     public static class ControlCoreService
     {
-        public const int TestMeleeDamagePerHit = 20;
-        public const float TestMeleeIntervalSeconds = 1f;
         public const float DefaultStandRadius = 8f;
 
-        public static Result ApplyStrike(SimulationWorld world, string workAreaId, int damage = TestMeleeDamagePerHit)
+        /// <summary>与近战普攻同式：max(1, 攻击 − 建筑防御/2)。</summary>
+        public static int ComputeAssaultDamage(Entity attacker, ControlCoreState core)
+        {
+            var attack = 1;
+            if (attacker != null && attacker.TryGet<AttributesComponent>(out var attrs))
+                attack = Math.Max(1, attrs.GetFinal(AttributeId.Attack));
+            var defense = core != null ? Math.Max(0, core.Defense) : 0;
+            return Math.Max(1, attack - defense / 2);
+        }
+
+        /// <summary>
+        /// 攻方实体对主管府一击（正式近战伤害）；无攻方时失败。
+        /// </summary>
+        public static Result ApplyStrikeFromAttacker(
+            SimulationWorld world,
+            string workAreaId,
+            EntityId attackerId,
+            out int damageApplied)
+        {
+            damageApplied = 0;
+            if (world == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "world null");
+            if (string.IsNullOrEmpty(workAreaId))
+                return Result.Failure(ErrorCode.InvalidArgument, "workAreaId empty");
+            if (attackerId.IsNone || !world.Entities.TryGet(attackerId, out var attacker))
+                return Result.Failure(ErrorCode.EntityNotFound, "Attacker missing.");
+            if (!world.ControlCores.TryGet(workAreaId, out var core))
+                return Result.Failure(ErrorCode.NotFound, "No control core for work area.");
+            if (core.PlayerControlled)
+                return Result.Failure(ErrorCode.InvalidOperation, "Already player-controlled.");
+            if (core.CurrentDurability <= 0)
+                return Result.Failure(ErrorCode.InvalidOperation, "Already breached; stand to occupy.");
+
+            damageApplied = ComputeAssaultDamage(attacker, core);
+            return ApplyDamageInternal(world, workAreaId, damageApplied, attackerId, defenseAlreadyApplied: true);
+        }
+
+        /// <summary>显式伤害（测试／脚本）；建筑 Defense 仍会在 ApplyDamage 中扣除。</summary>
+        public static Result ApplyStrike(SimulationWorld world, string workAreaId, int damage)
         {
             if (world == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "world null");
@@ -28,11 +68,25 @@ namespace XianXia.Core.Npc
             if (core.CurrentDurability <= 0)
                 return Result.Failure(ErrorCode.InvalidOperation, "Already breached; stand to occupy.");
 
-            var breached = world.ControlCores.ApplyDamage(workAreaId, damage, out core);
+            return ApplyDamageInternal(
+                world, workAreaId, Math.Max(1, damage), EntityId.None, defenseAlreadyApplied: false);
+        }
+
+        static Result ApplyDamageInternal(
+            SimulationWorld world,
+            string workAreaId,
+            int damage,
+            EntityId attackerId,
+            bool defenseAlreadyApplied)
+        {
+            var breached = world.ControlCores.ApplyDamage(
+                workAreaId, damage, out var core, defenseAlreadyApplied);
             world.Events.Publish(
                 EventType.ControlCoreDamaged,
                 world.Tick,
-                payload: workAreaId + ":" + core.CurrentDurability + "/" + core.MaxDurability);
+                actor: attackerId,
+                payload: workAreaId + ":" + core.CurrentDurability + "/" + core.MaxDurability +
+                         ";dmg=" + damage);
             if (breached)
             {
                 world.Flags.Set("control_core_breach:" + workAreaId);
@@ -47,7 +101,7 @@ namespace XianXia.Core.Npc
         {
             if (world == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "world null");
-            if (!world.ControlCores.TryGet(workAreaId, out var before))
+            if (!world.ControlCores.TryGet(workAreaId, out _))
                 return Result.Failure(ErrorCode.NotFound, "No control core.");
             if (!world.ControlCores.TryCapture(workAreaId, out var core))
                 return Result.Failure(ErrorCode.InvalidOperation, "Occupy hold not finished.");
@@ -103,21 +157,18 @@ namespace XianXia.Core.Npc
         {
             if (world == null || core == null || partyIds == null || partyIds.Count == 0)
                 return false;
-            if (!world.WorldRegion.TryGet(core.LocationId, out var loc))
+            if (!world.WorldRegion.TryGet(core.LocationId, out _))
                 return false;
-            var r2 = radius * radius;
             for (var i = 0; i < partyIds.Count; i++)
             {
                 if (!world.Entities.TryGet(partyIds[i], out var e))
                     continue;
-                // Prefer presentation from location if entity has no fine position: use EntityLocation match.
                 if (e.TryGet<EntityLocationComponent>(out var el) &&
                     el.HasLocation &&
-                    string.Equals(el.LocationId, core.LocationId, System.StringComparison.Ordinal))
+                    string.Equals(el.LocationId, core.LocationId, StringComparison.Ordinal))
                     return true;
             }
 
-            // Fallback: any party member whose assigned location equals core location.
             return false;
         }
 

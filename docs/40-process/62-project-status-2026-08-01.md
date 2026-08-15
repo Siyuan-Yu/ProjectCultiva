@@ -1,18 +1,18 @@
 # 项目现状总览 — 2026-08-01
 
-> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-16（战斗／斗技／体魄验收）  
+> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-16（主管府近战／追击／刷怪区）  
 > 用途：一次看清 VS0.1～1.0／Content Ready 做到哪、本轮改了什么、下一步是什么。  
 > 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准；本页不改 Freeze。  
-> 近期增量一次看清：[125](125-combat-arts-physique-acceptance-rollup-2026-08-16.md)／[124](124-jiang-lao-cave-manual-rollup-2026-08-15.md)／[123](123-quest-manual-api-interfaces-2026-08-15.md)／[122](122-cultivation-breakthrough-host-ritual-2026-08-15.md)
+> 近期增量一次看清：[126](126-control-core-chase-spawn-zone-rollup-2026-08-16.md)／[125](125-combat-arts-physique-acceptance-rollup-2026-08-16.md)／[124](124-jiang-lao-cave-manual-rollup-2026-08-15.md)／[123](123-quest-manual-api-interfaces-2026-08-15.md)
 
 ---
 
 ## 1. 一句话现状
 
 **Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**；样例关可玩弧／导航／NPC 活动底座／Demo 0.1 Production **自动化已验收（手操待签）**。  
-**本轮：** **战斗 Alpha＋斗技 1–6＋体魄／生命拆分**；入定不再静默学青云诀。见 [125](125-combat-arts-physique-acceptance-rollup-2026-08-16.md)。  
-**下一步：** 遭遇任务内容装配；敌人主动寻仇（可选）；WorldGraph 另开。  
-制作人手操：[105](105-demo-0.1-producer-playbook-30min.md)＋[125 §3](125-combat-arts-physique-acceptance-rollup-2026-08-16.md)＋[124 §3](124-jiang-lao-cave-manual-rollup-2026-08-15.md)。Demo Runtime **继续冻结**。
+**本轮：** **主管府正式近战＋追击固着＋Map 刷怪区／表**（洞府残影改走刷怪）。见 [126](126-control-core-chase-spawn-zone-rollup-2026-08-16.md)。  
+**下一步：** 刷怪表 GUI；遭遇任务内容装配；WorldGraph 另开。  
+制作人手操：[105](105-demo-0.1-producer-playbook-30min.md)＋[126 §3](126-control-core-chase-spawn-zone-rollup-2026-08-16.md)＋[125 §3](125-combat-arts-physique-acceptance-rollup-2026-08-16.md)。Demo Runtime **继续冻结**。
 
 ---
 
@@ -161,6 +161,7 @@
 | 内容打断验收 [96] | https://my.feishu.cn/docx/DOeidICK3oLP67xEbsUcKxk1n4e |
 | Demo 手感对齐验收 [93] | https://my.feishu.cn/docx/W9ZgdAoY0odhINxIiGLcnwYonCg |
 | Demo 缺口审计 [91] | https://my.feishu.cn/docx/YtOsdxza5oDF79xAdNLcqOXinAc |
+| **本轮收束 [126] 府近战／追击／刷怪区** | https://my.feishu.cn/docx/UWOvdUOlao8e3ExK2ywc84fUnnh |
 | **本轮收束 [125] 战斗／斗技／体魄** | https://my.feishu.cn/docx/W7iAdwYigo0PxlxJbaPcOKnjnXb |
 | **上一轮 [124] 将老／洞府／秘籍** | https://my.feishu.cn/docx/M4hBdXHm0oDcuoxRm3ccJ45HnXd |
 | **契约 [123] 功法任务条件／奖励** | https://my.feishu.cn/docx/XPE5dGfcYoI5iSxuL8zco64QnBc |

@@ -33,5 +33,11 @@ namespace XianXia.Data.Content
         public string Label { get; set; }
         /// <summary>kind=loot 时：拾取进背包的 item id。</summary>
         public string LootItemId { get; set; }
+
+        /// <summary>kind=spawnZone：刷怪表 id（type=spawnTable）。</summary>
+        public string SpawnTableId { get; set; }
+
+        /// <summary>kind=spawnZone：本次刷出总数；0＝按表 entries 的 countMin～Max 合计。</summary>
+        public int SpawnCount { get; set; }
     }
 }

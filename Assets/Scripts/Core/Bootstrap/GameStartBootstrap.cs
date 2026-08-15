@@ -56,38 +56,11 @@ namespace XianXia.Core.Bootstrap
                 if (spawn == null)
                     return Result.Fail<GameStartResult>(ErrorCode.InvalidArgument, "Spawn request is null.");
 
-                Result<Entity> entityResult;
-                if (spawn.EntityKind == SpawnEntityKind.Npc)
-                    entityResult = world.Entities.CreateNpc(spawn.DefinitionId, spawn.Name);
-                else
-                    entityResult = world.Entities.CreateCharacter(spawn.DefinitionId, spawn.Name);
+                var spawned = SpawnIntoWorld(world, spawn);
+                if (spawned.IsFailure)
+                    return Result.Fail<GameStartResult>(spawned.Error);
 
-                if (entityResult.IsFailure)
-                    return Result.Fail<GameStartResult>(entityResult.Error);
-
-                var entity = entityResult.Value;
-                if (entity.TryGet<AttributesComponent>(out var attrs) && spawn.BaseAttributes != null)
-                {
-                    foreach (var kv in spawn.BaseAttributes)
-                        attrs.SetBase(kv.Key, kv.Value);
-                    EnsurePhysiqueSeed(attrs);
-                }
-
-                if (entity.TryGet<PersonalityProfileComponent>(out var profile))
-                    profile.SetTags(spawn.PersonalityTags);
-
-                ApplyActivityTendency(entity, spawn);
-                ApplySpiritRoots(entity, spawn);
-                ApplyBio(entity, spawn);
-                ApplyEncounterLink(entity, spawn);
-                ApplyInitialRealm(entity, spawn);
-
-                world.Events.Publish(
-                    EventType.EntityCreated,
-                    world.Tick,
-                    target: entity.Id,
-                    payload: spawn.DefinitionId.ToString());
-
+                var entity = spawned.Value;
                 if (spawn.EntityKind == SpawnEntityKind.Npc)
                     npcs.Add(entity.Id);
                 else
@@ -113,6 +86,49 @@ namespace XianXia.Core.Bootstrap
                          ";npcs=" + npcs.Count);
 
             return Result.Ok(new GameStartResult(world, characters, npcs, byDefinition));
+        }
+
+        /// <summary>向已有世界追加一名角色／NPC（开局与刷怪区共用）。</summary>
+        public static Result<Entity> SpawnIntoWorld(SimulationWorld world, CharacterSpawnRequest spawn)
+        {
+            if (world == null)
+                return Result.Fail<Entity>(ErrorCode.InvalidArgument, "World null.");
+            if (spawn == null)
+                return Result.Fail<Entity>(ErrorCode.InvalidArgument, "Spawn request is null.");
+
+            Result<Entity> entityResult;
+            if (spawn.EntityKind == SpawnEntityKind.Npc)
+                entityResult = world.Entities.CreateNpc(spawn.DefinitionId, spawn.Name);
+            else
+                entityResult = world.Entities.CreateCharacter(spawn.DefinitionId, spawn.Name);
+
+            if (entityResult.IsFailure)
+                return entityResult;
+
+            var entity = entityResult.Value;
+            if (entity.TryGet<AttributesComponent>(out var attrs) && spawn.BaseAttributes != null)
+            {
+                foreach (var kv in spawn.BaseAttributes)
+                    attrs.SetBase(kv.Key, kv.Value);
+                EnsurePhysiqueSeed(attrs);
+            }
+
+            if (entity.TryGet<PersonalityProfileComponent>(out var profile))
+                profile.SetTags(spawn.PersonalityTags);
+
+            ApplyActivityTendency(entity, spawn);
+            ApplySpiritRoots(entity, spawn);
+            ApplyBio(entity, spawn);
+            ApplyEncounterLink(entity, spawn);
+            ApplyInitialRealm(entity, spawn);
+
+            world.Events.Publish(
+                EventType.EntityCreated,
+                world.Tick,
+                target: entity.Id,
+                payload: spawn.DefinitionId.ToString());
+
+            return Result.Ok(entity);
         }
 
         static void ApplyActivityTendency(Entity entity, CharacterSpawnRequest spawn)

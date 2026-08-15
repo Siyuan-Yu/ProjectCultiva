@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:spawn_table_cave_shade",
+      "type": "spawnTable",
+      "name": "洞府残影池",
+      "entries": [
+        {
+          "definitionId": "base:character_cave_shade",
+          "weight": 1,
+          "countMin": 1,
+          "countMax": 1
+        }
+      ]
+    }
+  ]
+}

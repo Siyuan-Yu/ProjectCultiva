@@ -395,9 +395,9 @@ namespace XianXia.Unity.Host
                 else if (assault != null)
                 {
                     assault.Begin(core.WorkAreaId);
-                    Debug.Log("[Host] 开始突击主管府：靠近建筑每秒 -" +
-                              ControlCoreService.TestMeleeDamagePerHit +
-                              "；破门后站满 " + core.OccupyHoldSeconds + " 秒占领。");
+                    Debug.Log(
+                        "[Host] 开始突击主管府：靠近后按近战节奏／攻击力拆耐久；破门后站满 " +
+                        core.OccupyHoldSeconds + " 秒占领。");
                 }
                 else
                 {
@@ -408,7 +408,7 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            Debug.Log("[Host] Combat: 点主管府近战占领；NPC 请右键→攻击（地图互砍）。");
+            Debug.Log("[Host] Combat: 点主管府近战占领；NPC（含主管）请右键→攻击（正式互砍）。");
             SetArmed(ArmKind.None);
         }
 

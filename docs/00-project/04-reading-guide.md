@@ -1,6 +1,6 @@
 # 文档通读指南
 
-> 状态：现行 | 最后更新：2026-08-15  
+> 状态：现行 | 最后更新：2026-08-16  
 > 上级：[`00-overview.md`](00-overview.md)  
 > **本页说明怎么读整套策划／架构文档。** 正文仍以各专题页为准；本地 Markdown 与飞书同步页一一对应。
 
@@ -25,16 +25,18 @@
 
 当前结构已经适合「仔细通读 + 交叉跳转」。本轮整理重点是：补齐飞书映射、加强入口导航，**不重写已冻结规则正文**。
 
-## 1.1 当前制作人入口（2026-08-15）
+## 1.1 当前制作人入口（2026-08-16）
 
 | 目的 | 读什么 |
 |------|--------|
-| **本轮增量（战斗／斗技／体魄）** | [125](../40-process/125-combat-arts-physique-acceptance-rollup-2026-08-16.md) |
+| **本轮增量（府近战／追击／刷怪区）** | [126](../40-process/126-control-core-chase-spawn-zone-rollup-2026-08-16.md) |
+| **上一轮（战斗／斗技／体魄）** | [125](../40-process/125-combat-arts-physique-acceptance-rollup-2026-08-16.md) |
 | **上一轮（将老／洞府／秘籍）** | [124](../40-process/124-jiang-lao-cave-manual-rollup-2026-08-15.md) |
 | **功法任务接口契约** | [123](../40-process/123-quest-manual-api-interfaces-2026-08-15.md) |
 | **上一轮（境界／打坐／突破仪式）** | [122](../40-process/122-cultivation-breakthrough-host-ritual-2026-08-15.md) |
 | 上一轮（住房／主管府占领／Import） | [121](../40-process/121-housing-assignment-and-control-core-2026-08-15.md) |
 | 再前（人物／工区／名册／倍速） | [120](../40-process/120-character-roster-editors-and-timescale-rollup-2026-08-15.md) |
+| MapEditor（含刷怪区） | [112](../40-process/112-map-editor-usage.md) |
 | 工区／人物编辑器 | [118](../40-process/118-npc-behavior-editor.md)／[119](../40-process/119-npc-character-vs-role-template-editors.md) |
 | 对话／失败／流速 | [117](../40-process/117-npc-dialogue-host-ux-rollup-2026-08-14.md) |
 | Ch01／背包／劳动 | [116](../40-process/116-recent-updates-rollup-2026-08-14.md) |

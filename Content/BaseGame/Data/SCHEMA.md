@@ -86,7 +86,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 ### type 一览
 
-`character`｜`cultivation`｜`realmLadder`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`mapLayout`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`
+`character`｜`cultivation`｜`realmLadder`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`mapLayout`｜`spawnTable`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`
 
 ## type = character
 
@@ -194,16 +194,27 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | `worldRegionId` | 关联的逻辑区域 |
 | `originX`／`originY`／`cellSize` | 与 WalkGrid 一致；默认 cellSize=1（约一人一格） |
 | `width`／`height` | 格子数（可改大，如整屏约 400×200） |
-| `placements[]` | 设施／障碍矩形 |
+| `placements[]` | 设施／障碍矩形／刷怪区 |
 
 ### placement
 
 | Field | Notes |
 |---|---|
-| `id`／`kind`／`label` | kind：wall／herbField／grainField／controlCore（主管府）／zoneHousing／cave…；旧 `house`／`roadHub` Host 仍兼容 |
-| `x`／`y`／`w`／`h` | 格点坐标与大小（可拖拽缩放） |
+| `id`／`kind`／`label` | kind：wall／herbField／…／`spawnZone`（刷怪区）／controlCore… |
+| `x`／`y`／`w`／`h` | 格点坐标与大小 |
 | `blocksMovement` | true 则写入寻路障碍 |
-| `boundLocationId` | 可选，绑到逻辑地点（任务／勘察仍用 location） |
+| `boundLocationId` | 可选；**spawnZone 必填**（NPC 逻辑地点） |
+| `lootItemId` | kind=loot |
+| `spawnTableId`／`spawnCount` | kind=spawnZone：刷怪表；spawnCount=0 则按表 entries 的 countMin～Max |
+
+## type = spawnTable（刷怪表）
+
+| Field | Notes |
+|---|---|
+| `name` | 显示名 |
+| `entries[]` | `definitionId`（角色）／`weight`／`countMin`／`countMax` |
+
+样例：`SpawnTables/cave_shade_spawn_table.json`；洞府 map 上 `spawnZone` 引用。角色仍用 CharacterNpcEditor 编；**不做独立敌人编辑器**。开局 `SpawnZoneApplier` 按各 map 的刷怪区生成。
 
 样例：`ch01_reference_map.json`。Host 优先用 mapLayout 建 WalkGrid，并按 `kind` 刷 Environment prefab（药田／农田一格一块可交互；房子约 20×20；道路 1×1）。有 `boundLocationId` 时启动会把地点 `presentationX/Z` 对齐到设施中心。无 mapLayout 则回退硬编码网格。用法见 `docs/40-process/112-map-editor-usage.md`。
 

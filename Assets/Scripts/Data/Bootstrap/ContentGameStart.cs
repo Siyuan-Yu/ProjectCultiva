@@ -125,7 +125,25 @@ namespace XianXia.Data.Bootstrap
             if (entry == null || string.IsNullOrWhiteSpace(entry.DefinitionId))
                 return Result.Fail<CharacterSpawnRequest>(ErrorCode.MissingRequiredField, "spawn.definitionId required.");
 
-            var parsed = DefinitionId.Parse(entry.DefinitionId);
+            var kindNpc = !string.IsNullOrEmpty(entry.EntityKind) &&
+                            string.Equals(entry.EntityKind.Trim(), "npc", StringComparison.OrdinalIgnoreCase);
+            var built = BuildSpawnFromDefinition(registry, entry.DefinitionId, kindNpc, entry.DisplayName);
+            return built;
+        }
+
+        /// <summary>从角色定义组装生成请求（场景／名册／刷怪区共用）。</summary>
+        public static Result<CharacterSpawnRequest> BuildSpawnFromDefinition(
+            DefinitionRegistry registry,
+            string definitionId,
+            bool entityKindNpc,
+            string displayName = null)
+        {
+            if (registry == null)
+                return Result.Fail<CharacterSpawnRequest>(ErrorCode.InvalidArgument, "Registry null.");
+            if (string.IsNullOrWhiteSpace(definitionId))
+                return Result.Fail<CharacterSpawnRequest>(ErrorCode.MissingRequiredField, "definitionId required.");
+
+            var parsed = DefinitionId.Parse(definitionId.Trim());
             if (parsed.IsFailure)
                 return Result.Fail<CharacterSpawnRequest>(parsed.Error);
 
@@ -133,13 +151,12 @@ namespace XianXia.Data.Bootstrap
             {
                 return Result.Fail<CharacterSpawnRequest>(
                     ErrorCode.NotFound,
-                    "Character definition missing for scenario spawn.",
+                    "Character definition missing for spawn.",
                     parsed.Value.ToString());
             }
 
-            var kind = ParseEntityKind(entry.EntityKind);
-            var name = !string.IsNullOrWhiteSpace(entry.DisplayName)
-                ? entry.DisplayName
+            var name = !string.IsNullOrWhiteSpace(displayName)
+                ? displayName
                 : (string.IsNullOrEmpty(def.Name) ? def.Id.ToString() : def.Name);
 
             var spawn = new CharacterSpawnRequest
@@ -148,7 +165,7 @@ namespace XianXia.Data.Bootstrap
                 Name = name,
                 SpiritRootPlaceholder = def.SpiritRootPlaceholder ?? string.Empty,
                 InitialRealmPlaceholder = def.InitialRealmPlaceholder ?? string.Empty,
-                EntityKind = kind
+                EntityKind = entityKindNpc ? SpawnEntityKind.Npc : SpawnEntityKind.Character
             };
 
             if (def.BaseAttributes != null)

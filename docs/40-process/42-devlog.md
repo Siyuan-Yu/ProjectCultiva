@@ -7,6 +7,49 @@
 
 ---
 
+## 2026-08-16 — 收束文档 126＋飞书／GitHub
+
+**做了什么**
+- 新建 [126](126-control-core-chase-spawn-zone-rollup-2026-08-16.md)：府近战／追击／刷怪区表
+- 更新总览／通读／62／feishu-map；飞书 provision＋同步；推 GitHub
+
+---
+
+## 2026-08-16 — MapEditor 刷怪区＋刷怪表（无敌人编辑器／无钉点）
+
+**做了什么**
+- `type=spawnTable`＋`placement.kind=spawnZone`；开局 `SpawnZoneApplier` 引用角色定义刷人
+- 洞府残影改走刷怪区；名册／residentNpc 拿掉；MapEditor 分区页可画刷怪区
+- 近战追击：到位待命不再误脱战（并行）
+
+**判断与理由**
+- 敌人＝角色数据；工具只编「哪里出／出哪张表」，避免双 schema
+
+---
+
+## 2026-08-16 — 近战追击不再因到位待命而脱战
+
+**做了什么**
+- 根因：出距追击到位后 `HoldStandby`→`Stop`→`Disengage`，追一下就停战
+- 交战攻方到位跳过待命；追击重寻路更快并保持定住目标
+
+**判断与理由**
+- 近战应对移动目标持续贴身；玩家显式 Stop／右键地面仍脱离
+
+---
+
+## 2026-08-16 — 主管府突击对齐正式近战
+
+**做了什么**
+- 删除 `TestMeleeDamagePerHit`／固定每秒伤；`ControlCoreService.ApplyStrikeFromAttacker`＝攻−防/2
+- `HostControlCoreAssault`：近战间隔＋挥砍特效；破门站占不变
+- 主管 NPC 仍走 `HostNpcMeleeAssault`（右键攻击）；文案／[121]／[125] 同步
+
+**判断与理由**
+- 地图互砍已正式化后，府建筑不应再留临时常量伤
+
+---
+
 ## 2026-08-16 — 彻底去掉机缘点静默学功法
 
 **做了什么**
