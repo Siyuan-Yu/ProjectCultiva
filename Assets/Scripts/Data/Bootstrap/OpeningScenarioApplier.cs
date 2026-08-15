@@ -1,6 +1,5 @@
 using System;
 using XianXia.Core.Concealment;
-using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Labor;
@@ -223,6 +222,7 @@ namespace XianXia.Data.Bootstrap
 
             ai.Set(role);
 
+            // 修士 NPC 可预知可修炼机缘点，但不得开局静默学会 offeredManual（青云诀等）。
             if (role != NpcAiRoleKind.Cultivator || world == null)
                 return;
 
@@ -238,13 +238,6 @@ namespace XianXia.Data.Bootstrap
                 if (site == null || !site.AllowsCultivation)
                     continue;
                 known.Discover(site.Id);
-                if (site.OfferedManualId.HasValue &&
-                    world.TryGetManual(site.OfferedManualId.Value, out var manual) &&
-                    entity.TryGet<CultivationComponent>(out _))
-                {
-                    new CultivationService().LearnManual(world, entity.Id, manual);
-                }
-
                 break;
             }
         }
