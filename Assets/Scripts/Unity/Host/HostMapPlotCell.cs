@@ -3,7 +3,7 @@ using UnityEngine;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// 一格可交互地块（药田／农田等）。后续可挂作物状态。
+    /// 一格可交互地块（药田／农田／拾取物等）。
     /// </summary>
     public sealed class HostMapPlotCell : MonoBehaviour
     {
@@ -14,6 +14,8 @@ namespace XianXia.Unity.Host
         [SerializeField] int gridY;
         [SerializeField] string kind;
         [SerializeField] string plantedCropId;
+        [SerializeField] string lootSpotId;
+        [SerializeField] string lootItemId;
 
         public string LocationId => locationId;
         public HostInteractSpotKind InteractKind => interactKind;
@@ -22,6 +24,8 @@ namespace XianXia.Unity.Host
         public int GridY => gridY;
         public string Kind => kind;
         public string PlantedCropId => plantedCropId;
+        public string LootSpotId => lootSpotId;
+        public string LootItemId => lootItemId;
         public bool IsPlanted => !string.IsNullOrEmpty(plantedCropId);
 
         public void Configure(
@@ -30,7 +34,9 @@ namespace XianXia.Unity.Host
             string labelValue,
             int x,
             int y,
-            string kindValue)
+            string kindValue,
+            string lootSpotIdValue = null,
+            string lootItemIdValue = null)
         {
             locationId = locationIdValue ?? string.Empty;
             interactKind = interact;
@@ -38,6 +44,8 @@ namespace XianXia.Unity.Host
             gridX = x;
             gridY = y;
             kind = kindValue ?? string.Empty;
+            lootSpotId = lootSpotIdValue ?? string.Empty;
+            lootItemId = lootItemIdValue ?? string.Empty;
         }
 
         public void SetPlanted(string cropId)
@@ -51,6 +59,8 @@ namespace XianXia.Unity.Host
                 interactKind,
                 transform.position.x,
                 transform.position.y,
-                string.IsNullOrEmpty(label) ? kind : label);
+                string.IsNullOrEmpty(label) ? kind : label,
+                lootSpotId,
+                lootItemId);
     }
 }

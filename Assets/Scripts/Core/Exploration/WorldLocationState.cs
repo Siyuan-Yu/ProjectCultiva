@@ -24,5 +24,13 @@ namespace XianXia.Core.Exploration
         public List<string> Tags { get; } = new List<string>();
         /// <summary>ScheduleActivity names allowed here (Labor, Patrol, …). Empty = unrestricted.</summary>
         public List<string> AllowedActivities { get; } = new List<string>();
+        /// <summary>该地点所属 LocalMap；空＝地表／默认图。</summary>
+        public string LocalMapId { get; set; } = string.Empty;
+        /// <summary>从此处可进入的 LocalMap（洞口等）。</summary>
+        public string EnterLocalMapId { get; set; } = string.Empty;
+        /// <summary>进入后队伍落点地点 id。</summary>
+        public string EnterSpawnLocationId { get; set; } = string.Empty;
+        /// <summary>已废弃：勘查半径＝角色神识，不再用门槛。</summary>
+        public int SurveySenseRequired { get; set; }
     }
 }

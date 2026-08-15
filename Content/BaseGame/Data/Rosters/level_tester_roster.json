@@ -192,6 +192,16 @@
           "recruitable": true,
           "scheduleId": "base:schedule_mortal_day",
           "aiRole": "Mortal"
+        },
+        {
+          "definitionId": "base:character_jiang_lao",
+          "entityKind": "npc",
+          "displayName": "将老",
+          "assignOpeningFaction": false,
+          "bindSchedule": true,
+          "bindDailyTask": false,
+          "scheduleId": "base:schedule_jiang_lao_pace",
+          "aiRole": "Mortal"
         }
       ]
     }

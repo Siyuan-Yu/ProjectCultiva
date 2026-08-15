@@ -156,6 +156,7 @@ namespace XianXia.Unity.Host
                 case XianXia.Core.Events.EventType.ChapterDayBeatApplied:
                 case XianXia.Core.Events.EventType.ContentEventPresented:
                 case XianXia.Core.Events.EventType.QuestCompleted:
+                case XianXia.Core.Events.EventType.LocalMapChanged:
                     return true;
                 default:
                     return false;

@@ -33,7 +33,11 @@ namespace XianXia.Unity.Host
                 mr.sharedMaterial = new Material(Shader.Find("Sprites/Default") ?? Shader.Find("Unlit/Color"));
                 mr.sharedMaterial.color = s.Kind == HostInteractSpotKind.Work
                     ? new Color(0.95f, 0.82f, 0.28f, 0.85f)
-                    : new Color(0.35f, 0.75f, 0.95f, 0.85f);
+                    : (s.Kind == HostInteractSpotKind.Explore
+                        ? new Color(0.72f, 0.55f, 0.90f, 0.85f)
+                        : (s.Kind == HostInteractSpotKind.Loot
+                            ? new Color(0.95f, 0.78f, 0.25f, 0.9f)
+                            : new Color(0.35f, 0.75f, 0.95f, 0.85f)));
 
                 if (labels)
                 {

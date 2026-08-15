@@ -26,6 +26,7 @@ namespace XianXia.Data.Content
 
             ValidateScenarios(registry, report);
             ValidateWorldRegions(registry, locations, report);
+            ValidateItems(registry, report);
             ValidateQuests(registry, locations, producedFlags, consumedFlags, report);
             ValidateContentEvents(registry, locations, producedFlags, consumedFlags, report);
             ValidateChapters(registry, locations, producedFlags, consumedFlags, report);
@@ -50,6 +51,22 @@ namespace XianXia.Data.Content
             }
 
             return set;
+        }
+
+        static void ValidateItems(DefinitionRegistry registry, ValidationReport report)
+        {
+            foreach (var kv in registry.Items)
+            {
+                var item = kv.Value;
+                if (item == null || string.IsNullOrWhiteSpace(item.TeachesManualId))
+                    continue;
+                RequireDef(
+                    registry,
+                    item.TeachesManualId,
+                    "cultivation",
+                    item.Id + ".teachesManualId",
+                    report);
+            }
         }
 
         void ValidateScenarios(DefinitionRegistry registry, ValidationReport report)
@@ -258,6 +275,32 @@ namespace XianXia.Data.Content
                     case "hasmanual":
                         RequireDef(registry, c.Id, "cultivation", ctx + ".manual", report);
                         break;
+                    case "counteratleast":
+                    case "missingdailyflag":
+                    case "hasdailyflag":
+                        if (string.IsNullOrEmpty(c.Id))
+                        {
+                            report.Add(
+                                ErrorCode.MissingRequiredField,
+                                c.Kind + " requires id.",
+                                ctx);
+                        }
+
+                        break;
+                    case "encountercleared":
+                        if (string.IsNullOrEmpty(c.Id))
+                        {
+                            report.Add(
+                                ErrorCode.MissingRequiredField,
+                                "encounterCleared requires id.",
+                                ctx);
+                        }
+                        else if (consumedFlags != null)
+                        {
+                            consumedFlags.Add(ContentConditionEvaluator.EncounterFlag(c.Id));
+                        }
+
+                        break;
                     case "hasflag":
                     case "storyflag":
                     case "missingflag":
@@ -299,13 +342,56 @@ namespace XianXia.Data.Content
                             consumedFlags.Add(o.Id);
                         break;
                     case "addstock":
-                        RequireDef(registry, o.Id, "resource", ctx + ".addStock", report);
+                    {
+                        if (string.IsNullOrEmpty(o.Id) || !DefinitionId.TryParse(o.Id, out var stockId))
+                        {
+                            RequireDef(registry, o.Id, "resource", ctx + ".addStock", report);
+                            break;
+                        }
+
+                        if (registry.Resources.ContainsKey(stockId) || registry.Items.ContainsKey(stockId))
+                            break;
+                        report.Add(
+                            ErrorCode.NotFound,
+                            "resource/item reference missing.",
+                            ctx + ".addStock:" + o.Id);
                         break;
+                    }
                     case "startquest":
                         RequireDef(registry, o.Id, "quest", ctx + ".startQuest", report);
                         break;
                     case "discoversite":
                         RequireDef(registry, o.Id, "opportunitySite", ctx + ".discoverSite", report);
+                        break;
+                    case "learnmanual":
+                        RequireDef(registry, o.Id, "cultivation", ctx + ".learnManual", report);
+                        break;
+                    case "addcounter":
+                    case "setcounter":
+                    case "setdailyflag":
+                    case "cleardailyflag":
+                        if (string.IsNullOrEmpty(o.Id))
+                        {
+                            report.Add(
+                                ErrorCode.MissingRequiredField,
+                                o.Kind + " requires id.",
+                                ctx);
+                        }
+
+                        break;
+                    case "setencountercleared":
+                        if (string.IsNullOrEmpty(o.Id))
+                        {
+                            report.Add(
+                                ErrorCode.MissingRequiredField,
+                                o.Kind + " requires id.",
+                                ctx);
+                        }
+                        else if (producedFlags != null)
+                        {
+                            producedFlags.Add(ContentConditionEvaluator.EncounterFlag(o.Id));
+                        }
+
                         break;
                     case "relationdelta":
                         RequireDef(registry, o.FromDefinitionId, "character", ctx + ".relation.from", report);
@@ -362,6 +448,9 @@ namespace XianXia.Data.Content
                 return true;
             // Core exploration writes explored:<locationId>
             if (flag.StartsWith("explored:", StringComparison.Ordinal))
+                return true;
+            // setEncounterCleared writes encounter:<id>
+            if (flag.StartsWith("encounter:", StringComparison.Ordinal))
                 return true;
             // SupervisorPressureHandler writes this at day end.
             if (string.Equals(flag, "story:supervisor_pressure", StringComparison.Ordinal))

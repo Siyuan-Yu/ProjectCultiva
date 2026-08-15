@@ -188,6 +188,16 @@ namespace XianXia.Core.Content
                 return;
             }
 
+            var counterMax = SumCounterAtLeastAmounts(spec);
+            if (counterMax > 0)
+            {
+                runtime.ProgressMax = counterMax;
+                runtime.ProgressCount = SumCounterAtLeastProgress(world, spec);
+                if (runtime.ProgressCount > runtime.ProgressMax)
+                    runtime.ProgressCount = runtime.ProgressMax;
+                return;
+            }
+
             // Fallback: how many completeConditions already pass.
             runtime.ProgressMax = spec.CompleteConditions.Count;
             var done = 0;
@@ -230,6 +240,44 @@ namespace XianXia.Core.Content
                     continue;
                 var need = c.Amount > 0 ? c.Amount : 1;
                 var have = world.Inventory.GetCount(c.Id);
+                if (have > need)
+                    have = need;
+                sum += have;
+            }
+
+            return sum;
+        }
+
+        static int SumCounterAtLeastAmounts(QuestSpec spec)
+        {
+            if (spec?.CompleteConditions == null)
+                return 0;
+            var sum = 0;
+            for (var i = 0; i < spec.CompleteConditions.Count; i++)
+            {
+                var c = spec.CompleteConditions[i];
+                if (c == null ||
+                    !string.Equals(c.Kind, "counterAtLeast", System.StringComparison.OrdinalIgnoreCase))
+                    continue;
+                sum += c.Amount > 0 ? c.Amount : 1;
+            }
+
+            return sum;
+        }
+
+        static int SumCounterAtLeastProgress(SimulationWorld world, QuestSpec spec)
+        {
+            if (world == null || spec?.CompleteConditions == null)
+                return 0;
+            var sum = 0;
+            for (var i = 0; i < spec.CompleteConditions.Count; i++)
+            {
+                var c = spec.CompleteConditions[i];
+                if (c == null ||
+                    !string.Equals(c.Kind, "counterAtLeast", System.StringComparison.OrdinalIgnoreCase))
+                    continue;
+                var need = c.Amount > 0 ? c.Amount : 1;
+                var have = world.ContentCounters.Get(c.Id);
                 if (have > need)
                     have = need;
                 sum += have;

@@ -41,7 +41,7 @@ namespace XianXia.Unity.Host
             if (bootstrap == null || bootstrap.Session == null || !bootstrap.Session.IsInitialized)
                 return;
 
-            var rect = new Rect(Screen.width - 210f, 120f, 200f, 320f);
+            var rect = new Rect(Screen.width - 210f, 120f, 200f, 400f);
             GUI.Box(rect, "角色指令 (V)");
             var y = rect.y + 28f;
             var x = rect.x + 10f;
@@ -57,6 +57,21 @@ namespace XianXia.Unity.Host
                 Issue(PlayerCommandKind.Cultivate);
             if (Button(x, ref y, w, "探索(T)"))
                 Issue(PlayerCommandKind.Explore);
+            if (Button(x, ref y, w, "勘查(F7)"))
+            {
+                var survey = bootstrap != null ? bootstrap.CaveSurveyPresenter : null;
+                if (survey != null)
+                    survey.TrySurvey();
+                else
+                    _status = "无勘查组件";
+            }
+
+            if (Button(x, ref y, w, "离开洞窟"))
+            {
+                commandBridge?.IssueLeaveLocalMap();
+                _status = commandBridge != null ? commandBridge.LastStatus : "无桥";
+            }
+
             if (Button(x, ref y, w, "分工·劳动"))
                 IssueAssign(WorkRoleKind.Labor);
             if (Button(x, ref y, w, "分工·采集"))

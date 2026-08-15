@@ -69,6 +69,60 @@
         }
       ],
       "tags": ["manual", "wood"]
+    },
+    {
+      "id": "base:cultivation_jiang_lao_legacy",
+      "type": "cultivation",
+      "name": "将老残谱",
+      "displayNameKey": "cultivation.jiang_lao_legacy",
+      "nameKey": "cultivation.jiang_lao_legacy",
+      "requiredRealm": "炼气",
+      "grade": "黄阶中级",
+      "effectSummary": "打坐时每 5 游戏分钟 +8 修为；略增体魄与神识。",
+      "cultivationSpeed": 8,
+      "breakthroughProgress": 100,
+      "grantedModifiers": [
+        {
+          "targetAttribute": "MaxHp",
+          "operation": "Fixed",
+          "value": 25,
+          "stackingKey": "jiang_lao_hp"
+        },
+        {
+          "targetAttribute": "SpiritSense",
+          "operation": "Fixed",
+          "value": 3,
+          "stackingKey": "jiang_lao_sense"
+        },
+        {
+          "targetAttribute": "Comprehension",
+          "operation": "Fixed",
+          "value": 2,
+          "stackingKey": "jiang_lao_comp"
+        }
+      ],
+      "tags": ["manual", "legacy", "jiang_lao"]
+    },
+    {
+      "id": "base:cultivation_dongfu_secret",
+      "type": "cultivation",
+      "name": "洞府秘诀",
+      "displayNameKey": "cultivation.dongfu_secret",
+      "nameKey": "cultivation.dongfu_secret",
+      "requiredRealm": "炼气",
+      "grade": "黄阶中级",
+      "effectSummary": "修炼后被动：攻击力 +6%。",
+      "cultivationSpeed": 7,
+      "breakthroughProgress": 100,
+      "grantedModifiers": [
+        {
+          "targetAttribute": "Attack",
+          "operation": "Percentage",
+          "value": 0.06,
+          "stackingKey": "dongfu_secret_atk_pct"
+        }
+      ],
+      "tags": ["manual", "cave", "dongfu"]
     }
   ]
 }

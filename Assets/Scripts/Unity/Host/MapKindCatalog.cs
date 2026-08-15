@@ -142,8 +142,10 @@ namespace XianXia.Unity.Host
             new("rock", Rock, StampMode.PerCell, 4, 4, false, null,
                 new UnityEngine.Color(0.45f, 0.45f, 0.48f)),
 
-            new("cave", Cave, StampMode.SingleCentered, 10, 8, true, HostInteractSpotKind.Cultivate,
+            new("cave", Cave, StampMode.SingleCentered, 4, 4, false, HostInteractSpotKind.Explore,
                 new UnityEngine.Color(0.42f, 0.36f, 0.40f)),
+            new("loot", Cushion, StampMode.SingleCentered, 1, 1, false, HostInteractSpotKind.Loot,
+                new UnityEngine.Color(0.85f, 0.72f, 0.28f)),
             new("controlCore", Hub, StampMode.SingleCentered, 8, 8, false, null,
                 new UnityEngine.Color(0.58f, 0.50f, 0.40f)),
             new("rallyPoint", Cushion, StampMode.SingleCentered, 2, 2, false, null,

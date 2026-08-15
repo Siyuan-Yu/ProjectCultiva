@@ -44,7 +44,11 @@ public static class ContentFieldCatalog
         ("laborAtLocation", "角色在地点劳动秒数 ≥"),
         ("characterAtLocation", "指定角色在地点"),
         ("uniqueLaborAtLocation", "不同角色劳动人数 ≥"),
-        ("uniqueHarvestAtLocation", "不同角色采集人数 ≥")
+        ("uniqueHarvestAtLocation", "不同角色采集人数 ≥"),
+        ("counterAtLeast", "计数 ≥"),
+        ("missingDailyFlag", "今日尚未标记"),
+        ("hasDailyFlag", "今日已标记"),
+        ("encounterCleared", "遭遇已清除")
     ];
 
     public static readonly (string Kind, string Label)[] OutcomeKinds =
@@ -55,7 +59,14 @@ public static class ContentFieldCatalog
         ("startQuest", "开始任务"),
         ("discoverSite", "发现机缘点"),
         ("grantProgress", "修炼进度"),
-        ("relationDelta", "关系变化")
+        ("relationDelta", "关系变化"),
+        ("addCounter", "计数 +"),
+        ("setCounter", "计数设为"),
+        ("setDailyFlag", "标记今日"),
+        ("clearDailyFlag", "清除今日标记"),
+        ("learnManual", "习得功法"),
+        ("setEncounterCleared", "标记遭遇清除"),
+        ("startMinigame", "开始小游戏")
     ];
 
     public static readonly string[] RealmOptions = ["凡人", "炼气"];
@@ -108,6 +119,19 @@ public static class ContentFieldCatalog
         [
             new FieldSpec { Key = "id", Label = "功法", Editor = FieldEditorKind.Manual }
         ],
+        "counterAtLeast" =>
+        [
+            new FieldSpec { Key = "id", Label = "计数键", Editor = FieldEditorKind.Text },
+            new FieldSpec { Key = "amount", Label = "数量", Editor = FieldEditorKind.Number }
+        ],
+        "missingDailyFlag" or "hasDailyFlag" =>
+        [
+            new FieldSpec { Key = "id", Label = "日访键", Editor = FieldEditorKind.Text }
+        ],
+        "encounterCleared" =>
+        [
+            new FieldSpec { Key = "id", Label = "遭遇键", Editor = FieldEditorKind.Text }
+        ],
         _ => [new FieldSpec { Key = "id", Label = "Flag / Id", Editor = FieldEditorKind.Text }]
     };
 
@@ -140,6 +164,27 @@ public static class ContentFieldCatalog
                 Editor = FieldEditorKind.Text
             },
             new FieldSpec { Key = "amount", Label = "变化值", Editor = FieldEditorKind.Number }
+        ],
+        "addCounter" or "setCounter" =>
+        [
+            new FieldSpec { Key = "id", Label = "计数键", Editor = FieldEditorKind.Text },
+            new FieldSpec { Key = "amount", Label = "数量", Editor = FieldEditorKind.Number }
+        ],
+        "setDailyFlag" or "clearDailyFlag" =>
+        [
+            new FieldSpec { Key = "id", Label = "日访键", Editor = FieldEditorKind.Text }
+        ],
+        "learnManual" =>
+        [
+            new FieldSpec { Key = "id", Label = "功法", Editor = FieldEditorKind.Manual }
+        ],
+        "setEncounterCleared" =>
+        [
+            new FieldSpec { Key = "id", Label = "遭遇键", Editor = FieldEditorKind.Text }
+        ],
+        "startMinigame" =>
+        [
+            new FieldSpec { Key = "id", Label = "小游戏 id（如 ticTacToe）", Editor = FieldEditorKind.Text }
         ],
         _ => [new FieldSpec { Key = "id", Label = "Flag / Id", Editor = FieldEditorKind.Text }]
     };

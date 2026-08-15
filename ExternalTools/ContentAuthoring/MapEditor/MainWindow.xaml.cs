@@ -41,8 +41,9 @@ public partial class MainWindow : Window
             new("treeL", "大树 3×3（装饰·手勾挡路）", 3, 3, false, Color.FromRgb(25, 85, 40)),
             new("ore", "矿石 2×2（可采·手勾挡路）", 2, 2, false, Color.FromRgb(140, 120, 80)),
             new("cushion", "蒲团 1×1（可修炼）", 1, 1, false, Color.FromRgb(120, 100, 170)),
+            new("loot", "地上物／秘籍 1×1（可拾取）", 1, 1, false, Color.FromRgb(210, 180, 60)),
             new("rock", "岩石／棚（默认挡路）", 4, 4, true, Color.FromRgb(110, 110, 110)),
-            new("cave", "洞府区（默认挡路）", 10, 8, true, Color.FromRgb(120, 90, 140)),
+            new("cave", "洞府入口（外观戳·建议关挡路）", 4, 4, false, Color.FromRgb(120, 90, 140)),
             new("controlCore", "主管府（城镇控制核心·默认挡路）", 8, 8, true, Color.FromRgb(160, 140, 120)),
             new("rallyPoint", "集合点 2×2", 2, 2, false, Color.FromRgb(220, 140, 50))
         };
@@ -710,6 +711,7 @@ public partial class MainWindow : Window
             PropId.Text = vm.Id;
             PropLabel.Text = vm.Label;
             PropBound.Text = vm.BoundLocationId;
+            PropLootItem.Text = vm.LootItemId;
             PropBlock.IsChecked = vm.BlocksMovement;
             PropX.Text = vm.X.ToString();
             PropY.Text = vm.Y.ToString();
@@ -725,6 +727,7 @@ public partial class MainWindow : Window
         _selected.Id = PropId.Text?.Trim() ?? _selected.Id;
         _selected.Label = PropLabel.Text ?? "";
         _selected.BoundLocationId = PropBound.Text ?? "";
+        _selected.LootItemId = PropLootItem.Text ?? "";
         _selected.BlocksMovement = PropBlock.IsChecked == true;
         if (int.TryParse(PropX.Text, out var x)) _selected.X = x;
         if (int.TryParse(PropY.Text, out var y)) _selected.Y = y;
@@ -1276,7 +1279,7 @@ public sealed record PaletteItem(string? Kind, string Label, int W, int H, bool 
 
 public sealed class PlacementVm : INotifyPropertyChanged
 {
-    string _id = "", _kind = "wall", _label = "", _bound = "";
+    string _id = "", _kind = "wall", _label = "", _bound = "", _lootItemId = "";
     int _x, _y, _w = 1, _h = 1;
     bool _block;
 
@@ -1284,6 +1287,8 @@ public sealed class PlacementVm : INotifyPropertyChanged
     public string Kind { get => _kind; set { _kind = value; OnPropertyChanged(); } }
     public string Label { get => _label; set { _label = value; OnPropertyChanged(); } }
     public string BoundLocationId { get => _bound; set { _bound = value; OnPropertyChanged(); } }
+    public string LootItemId { get => _lootItemId; set { _lootItemId = value; OnPropertyChanged(); } }
+    public string LootItemId { get => _lootItemId; set { _lootItemId = value; OnPropertyChanged(); } }
     public int X { get => _x; set { _x = value; OnPropertyChanged(); } }
     public int Y { get => _y; set { _y = value; OnPropertyChanged(); } }
     public int W { get => _w; set { _w = value; OnPropertyChanged(); } }
@@ -1305,6 +1310,7 @@ public sealed class PlacementVm : INotifyPropertyChanged
         Kind = JsonEdit.GetString(o, "kind", "wall"),
         Label = JsonEdit.GetString(o, "label"),
         BoundLocationId = JsonEdit.GetString(o, "boundLocationId"),
+        LootItemId = JsonEdit.GetString(o, "lootItemId"),
         X = JsonEdit.GetInt(o, "x"),
         Y = JsonEdit.GetInt(o, "y"),
         W = Math.Max(1, JsonEdit.GetInt(o, "w", 1)),
@@ -1326,6 +1332,7 @@ public sealed class PlacementVm : INotifyPropertyChanged
         };
         if (!string.IsNullOrWhiteSpace(Label)) o["label"] = Label;
         if (!string.IsNullOrWhiteSpace(BoundLocationId)) o["boundLocationId"] = BoundLocationId;
+        if (!string.IsNullOrWhiteSpace(LootItemId)) o["lootItemId"] = LootItemId;
         return o;
     }
 }

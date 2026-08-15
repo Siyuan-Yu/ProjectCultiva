@@ -1,10 +1,12 @@
 using UnityEngine;
+using XianXia.Core.Cultivation;
+using XianXia.Core.Domain.Ids;
 using XianXia.Core.Inventory;
 
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// Shared party bag UI (IMGUI): slots, category filter, one-click organize.
+    /// Shared party bag UI (IMGUI): slots, category filter, one-click organize, 功法秘籍使用.
     /// </summary>
     public sealed class HostInventoryPanel : MonoBehaviour
     {
@@ -57,7 +59,8 @@ namespace XianXia.Unity.Host
                 return;
 
             var journal = bootstrap.QuestJournal;
-            if (journal != null && journal.IsOpen)
+            var learn = bootstrap.ManualLearnPrompt;
+            if ((journal != null && journal.IsOpen) || (learn != null && learn.IsOpen))
             {
                 if (open)
                     open = false;
@@ -124,13 +127,12 @@ namespace XianXia.Unity.Host
             y += 36f;
 
             var gridTop = y;
-            var gridH = rect.yMax - gridTop - 56f;
+            var gridH = rect.yMax - gridTop - 100f;
             var view = new Rect(rect.x + 12f, gridTop, w - 24f, gridH);
             const int cols = 5;
             const float cell = 88f;
             const float gap = 8f;
 
-            // Count visible for scroll height.
             var visible = 0;
             for (var i = 0; i < inv.SlotCapacity; i++)
             {
@@ -162,21 +164,66 @@ namespace XianXia.Unity.Host
 
             GUI.EndScrollView();
 
-            var detailY = rect.yMax - 44f;
+            var detailY = rect.yMax - 88f;
             var detail = "选中格子查看详情";
+            var canUseManual = false;
+            string selectedItemId = null;
             if (_selectedSlot >= 0 && _selectedSlot < inv.Slots.Count)
             {
                 var s = inv.Slots[_selectedSlot];
-                detail = s.IsEmpty
-                    ? "空槽位"
-                    : catalog.GetName(s.ItemId) + " ×" + s.Count +
-                      "  堆叠上限 " + catalog.GetMaxStack(s.ItemId) +
-                      "\n" + s.ItemId;
+                if (s.IsEmpty)
+                {
+                    detail = "空槽位";
+                }
+                else
+                {
+                    selectedItemId = s.ItemId;
+                    detail = catalog.GetName(s.ItemId) + " ×" + s.Count +
+                             "  堆叠上限 " + catalog.GetMaxStack(s.ItemId);
+                    if (catalog.IsManualTome(s.ItemId))
+                    {
+                        canUseManual = true;
+                        detail += "\n" + FormatManualDetail(bootstrap.Session.World, catalog.GetTeachesManualId(s.ItemId));
+                    }
+                    else
+                        detail += "\n" + s.ItemId;
+                }
             }
 
             if (!string.IsNullOrEmpty(_status))
                 detail = _status + " ｜ " + detail;
-            GUI.Label(new Rect(rect.x + 16f, detailY, w - 32f, 40f), detail, _small);
+            GUI.Label(new Rect(rect.x + 16f, detailY, w - 140f, 72f), detail, _small);
+
+            if (canUseManual && selectedItemId != null)
+            {
+                if (GUI.Button(new Rect(rect.xMax - 120f, detailY + 8f, 100f, 32f), "使用"))
+                {
+                    var prompt = bootstrap.ManualLearnPrompt;
+                    if (prompt != null)
+                    {
+                        open = false;
+                        prompt.Open(selectedItemId);
+                    }
+                    else
+                        _status = "学功法面板未就绪";
+                }
+            }
+        }
+
+        static string FormatManualDetail(XianXia.Core.Simulation.SimulationWorld world, string manualId)
+        {
+            if (string.IsNullOrEmpty(manualId) ||
+                !DefinitionId.TryParse(manualId, out var mid) ||
+                !world.TryGetManual(mid, out var manual) ||
+                manual == null)
+                return "功法秘籍（数据缺失）";
+
+            var name = string.IsNullOrEmpty(manual.Name) ? manualId : manual.Name;
+            var grade = string.IsNullOrEmpty(manual.Grade) ? "品阶未标" : manual.Grade;
+            var effect = string.IsNullOrEmpty(manual.EffectSummary)
+                ? "打坐每 5 游戏分 +" + manual.CultivationSpeed + " 修为"
+                : manual.EffectSummary;
+            return "秘籍 → " + name + "（" + grade + "）\n" + effect;
         }
 
         void DrawFilters(float x, float y)
@@ -210,10 +257,12 @@ namespace XianXia.Unity.Host
                     return catalog.HasTag(slot.ItemId, "resource") &&
                            !catalog.HasTag(slot.ItemId, "consumable");
                 case Filter.Consumable:
-                    return catalog.HasTag(slot.ItemId, "consumable");
+                    return catalog.HasTag(slot.ItemId, "consumable") ||
+                           catalog.IsManualTome(slot.ItemId);
                 case Filter.Other:
                     return !catalog.HasTag(slot.ItemId, "resource") &&
-                           !catalog.HasTag(slot.ItemId, "consumable");
+                           !catalog.HasTag(slot.ItemId, "consumable") &&
+                           !catalog.IsManualTome(slot.ItemId);
                 default:
                     return true;
             }

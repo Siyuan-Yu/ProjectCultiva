@@ -9,6 +9,26 @@
       "nameKey": "item.rough_wood",
       "maxStack": 99,
       "tags": ["resource", "wood"]
+    },
+    {
+      "id": "base:item_manual_jiang_lao_legacy",
+      "type": "item",
+      "name": "将老残谱（秘籍）",
+      "displayNameKey": "item.manual_jiang_lao_legacy",
+      "nameKey": "item.manual_jiang_lao_legacy",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_jiang_lao_legacy",
+      "tags": ["consumable", "manual_tome"]
+    },
+    {
+      "id": "base:item_manual_dongfu_secret",
+      "type": "item",
+      "name": "洞府秘诀（秘籍）",
+      "displayNameKey": "item.manual_dongfu_secret",
+      "nameKey": "item.manual_dongfu_secret",
+      "maxStack": 1,
+      "teachesManualId": "base:cultivation_dongfu_secret",
+      "tags": ["consumable", "manual_tome", "cave"]
     }
   ]
 }

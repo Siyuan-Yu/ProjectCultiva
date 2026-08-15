@@ -7,13 +7,13 @@
 ## 〇、当前项目阶段
 
 **架构冻结 v0.2。** Core／Data／Host／**VS 0.1～1.0 Demo 自动化已验收**。  
-其上已叠加：样例关、内容打断、RTS 手操、Navigation／NPC 底座、**Content Studio**、**Level Tester**、**Ch01 三环手操**、**NPC onTalk 对话框（UGUI）**、任务失败／时间流速约定、**人物／工区编辑器＋名册刷人**、**住房分配／主管府占领**、**境界阶梯／打坐／突破仪式 Host 闭环**。  
-最新增量见 [122](../40-process/122-cultivation-breakthrough-host-ritual-2026-08-15.md)（境界／打坐／突破蓄势）；上一轮 [121](../40-process/121-housing-assignment-and-control-core-2026-08-15.md)；再前 [120](../40-process/120-character-roster-editors-and-timescale-rollup-2026-08-15.md)。  
+其上已叠加：样例关、内容打断、RTS 手操、Navigation／NPC 底座、**Content Studio**、**Level Tester**、**Ch01 三环手操**、**NPC onTalk 对话框（UGUI）**、任务失败／时间流速约定、**人物／工区编辑器＋名册刷人**、**住房分配／主管府占领**、**境界阶梯／打坐／突破仪式**、**将老对弈／洞府勘查进出／秘籍拾取**。  
+最新增量见 [124](../40-process/124-jiang-lao-cave-manual-rollup-2026-08-15.md)（将老／洞府／秘籍）；契约 [123](../40-process/123-quest-manual-api-interfaces-2026-08-15.md)；上一轮 [122](../40-process/122-cultivation-breakthrough-host-ritual-2026-08-15.md)。  
 
-**下一步：** 炼气后功法获取闭环，或美术换皮／真战斗另开。  
+**下一步：** 洞内遭遇／探索；或多本功法并存；WorldGraph 另开。  
 Demo Runtime 停扩。完整进度见 [62 项目现状](../40-process/62-project-status-2026-08-01.md)。
 
-**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [122 本轮收束](../40-process/122-cultivation-breakthrough-host-ritual-2026-08-15.md) → [121](../40-process/121-housing-assignment-and-control-core-2026-08-15.md) → [62 现状](../40-process/62-project-status-2026-08-01.md) → [110 任务编辑器](../40-process/110-content-studio-quest-editor-usage.md) → [105 手操](../40-process/105-demo-0.1-producer-playbook-30min.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md)。
+**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [124 本轮收束](../40-process/124-jiang-lao-cave-manual-rollup-2026-08-15.md) → [122](../40-process/122-cultivation-breakthrough-host-ritual-2026-08-15.md) → [62 现状](../40-process/62-project-status-2026-08-01.md) → [110 任务编辑器](../40-process/110-content-studio-quest-editor-usage.md) → [105 手操](../40-process/105-demo-0.1-producer-playbook-30min.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md)。
 
 - 主契约：[33 架构冻结 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md)
 - 实体／Order／Mod：[34](../30-tech/34-entity-and-component-model.md)、[35](../30-tech/35-order-and-action-system.md)、[36](../30-tech/36-content-package-and-mod-architecture.md)

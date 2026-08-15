@@ -57,11 +57,15 @@ namespace XianXia.Unity.Host
         [SerializeField] HostDialoguePresenter dialoguePresenter;
         [SerializeField] HostQuestJournal questJournal;
         [SerializeField] HostInventoryPanel inventoryPanel;
+        [SerializeField] HostManualLearnPrompt manualLearnPrompt;
         [SerializeField] HostCultivationPanel cultivationPanel;
         [SerializeField] HostCharacterSheetPanel characterSheetPanel;
         [SerializeField] HostRelationPanel relationPanel;
         [SerializeField] HostCultivateConfirmPrompt cultivateConfirm;
         [SerializeField] HostBreakthroughRitual breakthroughRitual;
+        [SerializeField] HostTicTacToePanel ticTacToePanel;
+        [SerializeField] HostCaveSurveyPresenter caveSurveyPresenter;
+        [SerializeField] HostLocalMapEnterPrompt localMapEnterPrompt;
         [SerializeField] HostSelectedUnitChrome selectedUnitChrome;
         [SerializeField] HostInteractSpotPresenter interactSpotPresenter;
         [SerializeField] HostNpcScheduleMover npcScheduleMover;
@@ -112,6 +116,8 @@ namespace XianXia.Unity.Host
 
         public HostInventoryPanel InventoryPanel => inventoryPanel;
 
+        public HostManualLearnPrompt ManualLearnPrompt => manualLearnPrompt;
+
         public HostCultivationPanel CultivationPanel => cultivationPanel;
 
         public HostCharacterSheetPanel CharacterSheetPanel => characterSheetPanel;
@@ -121,6 +127,12 @@ namespace XianXia.Unity.Host
         public HostCultivateConfirmPrompt CultivateConfirm => cultivateConfirm;
 
         public HostBreakthroughRitual BreakthroughRitual => breakthroughRitual;
+
+        public HostTicTacToePanel TicTacToePanel => ticTacToePanel;
+
+        public HostCaveSurveyPresenter CaveSurveyPresenter => caveSurveyPresenter;
+
+        public HostLocalMapEnterPrompt LocalMapEnterPrompt => localMapEnterPrompt;
 
         public HostNpcContextMenu NpcContextMenu => npcContextMenu;
 
@@ -169,6 +181,9 @@ namespace XianXia.Unity.Host
             if (inventoryPanel == null)
                 inventoryPanel = GetComponent<HostInventoryPanel>() ??
                                 GetComponentInChildren<HostInventoryPanel>();
+            if (manualLearnPrompt == null)
+                manualLearnPrompt = GetComponent<HostManualLearnPrompt>() ??
+                                   GetComponentInChildren<HostManualLearnPrompt>();
 
             secondsPerAutoTickAt1x = SimulationTickPacing.SecondsPerTickAt1x;
         }
@@ -194,11 +209,13 @@ namespace XianXia.Unity.Host
             {
                 if ((questJournal == null || !questJournal.IsOpen) &&
                     (inventoryPanel == null || !inventoryPanel.IsOpen) &&
+                    (manualLearnPrompt == null || !manualLearnPrompt.IsOpen) &&
                     (cultivationPanel == null || !cultivationPanel.IsOpen) &&
                     (characterSheetPanel == null || !characterSheetPanel.IsOpen) &&
                     (relationPanel == null || !relationPanel.IsOpen) &&
                     (cultivateConfirm == null || !cultivateConfirm.IsOpen) &&
                     (breakthroughRitual == null || !breakthroughRitual.IsResultOpen) &&
+                    (ticTacToePanel == null || !ticTacToePanel.IsOpen) &&
                     (contentInterrupt == null || !contentInterrupt.HasBlockingInterrupt))
                     _session.IsPaused = !_session.IsPaused;
                 RefreshStatus();
@@ -208,11 +225,13 @@ namespace XianXia.Unity.Host
             {
                 if ((questJournal == null || !questJournal.IsOpen) &&
                     (inventoryPanel == null || !inventoryPanel.IsOpen) &&
+                    (manualLearnPrompt == null || !manualLearnPrompt.IsOpen) &&
                     (cultivationPanel == null || !cultivationPanel.IsOpen) &&
                     (characterSheetPanel == null || !characterSheetPanel.IsOpen) &&
                     (relationPanel == null || !relationPanel.IsOpen) &&
                     (cultivateConfirm == null || !cultivateConfirm.IsOpen) &&
-                    (breakthroughRitual == null || !breakthroughRitual.IsResultOpen))
+                    (breakthroughRitual == null || !breakthroughRitual.IsResultOpen) &&
+                    (ticTacToePanel == null || !ticTacToePanel.IsOpen))
                     StepTick();
             }
 
@@ -262,7 +281,7 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// 顶栏 1x／2x／5x：统一改 Host 倍速。
+        /// 顶栏 1x／2x／5x／20x：统一改 Host 倍速。
         /// Tick 驱动的工作／休息／吃饭／修炼／作息与表现层移动共用此倍率。
         /// </summary>
         public void SetSpeedMultiplier(int multiplier)
@@ -365,6 +384,9 @@ namespace XianXia.Unity.Host
             if (inventoryPanel == null)
                 inventoryPanel = GetComponent<HostInventoryPanel>() ??
                                 gameObject.AddComponent<HostInventoryPanel>();
+            if (manualLearnPrompt == null)
+                manualLearnPrompt = GetComponent<HostManualLearnPrompt>() ??
+                                   gameObject.AddComponent<HostManualLearnPrompt>();
             if (cultivationPanel == null)
                 cultivationPanel = GetComponent<HostCultivationPanel>() ??
                                   gameObject.AddComponent<HostCultivationPanel>();
@@ -380,6 +402,15 @@ namespace XianXia.Unity.Host
             if (breakthroughRitual == null)
                 breakthroughRitual = GetComponent<HostBreakthroughRitual>() ??
                                     gameObject.AddComponent<HostBreakthroughRitual>();
+            if (ticTacToePanel == null)
+                ticTacToePanel = GetComponent<HostTicTacToePanel>() ??
+                                gameObject.AddComponent<HostTicTacToePanel>();
+            if (caveSurveyPresenter == null)
+                caveSurveyPresenter = GetComponent<HostCaveSurveyPresenter>() ??
+                                     gameObject.AddComponent<HostCaveSurveyPresenter>();
+            if (localMapEnterPrompt == null)
+                localMapEnterPrompt = GetComponent<HostLocalMapEnterPrompt>() ??
+                                     gameObject.AddComponent<HostLocalMapEnterPrompt>();
             if (selectedUnitChrome == null)
                 selectedUnitChrome = GetComponent<HostSelectedUnitChrome>() ??
                                     gameObject.AddComponent<HostSelectedUnitChrome>();
@@ -409,6 +440,8 @@ namespace XianXia.Unity.Host
                 questJournal.ClearSessionState();
             if (inventoryPanel != null)
                 inventoryPanel.ClearSessionState();
+            if (manualLearnPrompt != null)
+                manualLearnPrompt.ClearSessionState();
             if (cultivationPanel != null)
                 cultivationPanel.ClearSessionState();
             if (characterSheetPanel != null)
@@ -419,6 +452,12 @@ namespace XianXia.Unity.Host
                 cultivateConfirm.ClearSessionState();
             if (breakthroughRitual != null)
                 breakthroughRitual.ClearSessionState();
+            if (ticTacToePanel != null)
+                ticTacToePanel.ClearSessionState();
+            if (caveSurveyPresenter != null)
+                caveSurveyPresenter.ClearSessionState();
+            if (localMapEnterPrompt != null)
+                localMapEnterPrompt.ClearSessionState();
             mapGraybox.Clear();
             interactSpotPresenter.Clear();
 
@@ -464,6 +503,13 @@ namespace XianXia.Unity.Host
             _session.PreferredMapLayoutId = string.IsNullOrWhiteSpace(preferredMapLayoutId)
                 ? _session.PreferredMapLayoutId
                 : preferredMapLayoutId.Trim();
+            if (!string.IsNullOrWhiteSpace(_session.PreferredMapLayoutId))
+                _session.World.LocalMap.EnsureOverworld(_session.PreferredMapLayoutId);
+            else if (MapLayoutPick.TryGet(_session, out var picked) && picked != null)
+            {
+                _session.PreferredMapLayoutId = picked.Id.ToString();
+                _session.World.LocalMap.EnsureOverworld(_session.PreferredMapLayoutId);
+            }
 
             var synced = MapLayoutPresentationSync.Apply(_session);
             if (synced > 0)
@@ -496,7 +542,9 @@ namespace XianXia.Unity.Host
                 pathPreview.Bind(this, moveController, selectionController, cam);
             moveController.SetWalkGrid(ResolveWalkGrid());
             if (npcContextMenu != null)
-                npcContextMenu.Bind(this, selectionController, moveController, dialoguePresenter);
+                npcContextMenu.Bind(this, selectionController, moveController, dialoguePresenter, localMapEnterPrompt);
+            if (localMapEnterPrompt != null)
+                localMapEnterPrompt.Bind(this, selectionController, commandBridge, moveController);
             actionMenu.Bind(this, selectionController, commandBridge);
             formalHud.Bind(this, selectionController, eventFeed);
             activityPresenter.Bind(this, entityViewSpawner);
@@ -507,12 +555,18 @@ namespace XianXia.Unity.Host
             contentInterrupt.Bind(this, commandBridge, selectionController, dialoguePresenter);
             questJournal.Bind(this, commandBridge, selectionController);
             inventoryPanel.Bind(this);
+            if (manualLearnPrompt != null)
+                manualLearnPrompt.Bind(this);
             cultivationPanel.Bind(this, selectionController);
             characterSheetPanel.Bind(this, selectionController);
             relationPanel.Bind(this);
             cultivateConfirm.Bind(this, selectionController, commandBridge);
             if (breakthroughRitual != null)
                 breakthroughRitual.Bind(this);
+            if (ticTacToePanel != null)
+                ticTacToePanel.Bind(this);
+            if (caveSurveyPresenter != null)
+                caveSurveyPresenter.Bind(this, selectionController, commandBridge);
             selectedUnitChrome.Bind(
                 this,
                 selectionController,
@@ -605,6 +659,43 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < slots.Count; i++)
                 sum += slots[i];
             cameraRig.FrameSlots(sum / slots.Count);
+        }
+
+        /// <summary>LocalMap 进出后：切 PreferredMapLayout、重建灰盒／实体／寻路。</summary>
+        /// <param name="frameCamera">勘查显形等轻量刷新应传 false，避免镜头乱跳。</param>
+        public void ReloadLocalMapPresentation(bool frameCamera = true)
+        {
+            if (!_session.IsInitialized)
+                return;
+
+            var active = _session.World.LocalMap.ActiveMapLayoutId;
+            if (!string.IsNullOrWhiteSpace(active))
+                _session.PreferredMapLayoutId = active.Trim();
+
+            MapLayoutPresentationSync.Apply(_session);
+            if (entityViewSpawner != null)
+                entityViewSpawner.Rebuild(_session);
+            if (mapGraybox != null)
+                mapGraybox.Rebuild(_session);
+            if (interactSpotPresenter != null)
+                interactSpotPresenter.Rebuild();
+            if (moveController != null)
+                moveController.SetWalkGrid(ResolveWalkGrid());
+            if (frameCamera)
+                FrameCameraOnSlots();
+            RefreshStatus();
+        }
+
+        /// <summary>仅重刷地表戳（如勘查显形），不重建实体、不挪镜头。</summary>
+        public void RefreshMapStampsOnly()
+        {
+            if (!_session.IsInitialized)
+                return;
+            MapLayoutPresentationSync.Apply(_session);
+            if (mapGraybox != null)
+                mapGraybox.Rebuild(_session);
+            if (interactSpotPresenter != null)
+                interactSpotPresenter.Rebuild();
         }
 
         public void StepTick()

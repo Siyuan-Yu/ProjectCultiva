@@ -10,6 +10,11 @@ namespace XianXia.Core.Cultivation
     public sealed class CultivationManualSpec
     {
         public DefinitionId Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        /// <summary>品阶展示，如「黄阶中级」。</summary>
+        public string Grade { get; set; } = string.Empty;
+        /// <summary>效果摘要，供背包／面板展示。</summary>
+        public string EffectSummary { get; set; } = string.Empty;
         public string RequiredRealm { get; set; }
         public int CultivationSpeed { get; set; }
         public int BreakthroughProgress { get; set; }

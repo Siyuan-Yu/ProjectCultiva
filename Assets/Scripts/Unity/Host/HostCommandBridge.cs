@@ -259,6 +259,178 @@ namespace XianXia.Unity.Host
             return _lastSuccessCount;
         }
 
+        public int IssueEnterLocalMap()
+        {
+            if (selectionController == null || selectionController.State.Count == 0)
+            {
+                _lastStatus = "Cannot enter LocalMap";
+                return 0;
+            }
+
+            var id = selectionController.State.SelectedIds[0];
+            return IssueEnterLocalMapWithParty(id, null, new[] { id });
+        }
+
+        /// <summary>
+        /// 入洞：先把随行者 Location 写到洞口，再 Enter（Core 只带走站在洞口的己方）。
+        /// </summary>
+        public int IssueEnterLocalMapWithParty(
+            EntityId leader,
+            string entranceLocationId,
+            EntityId[] party)
+        {
+            if (_session?.Port == null || leader.IsNone || party == null || party.Length == 0)
+            {
+                _lastStatus = "Cannot enter LocalMap";
+                return 0;
+            }
+
+            if (string.IsNullOrWhiteSpace(entranceLocationId))
+            {
+                if (!_session.World.Entities.TryGet(leader, out var ent) ||
+                    !ent.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc) ||
+                    !loc.HasLocation)
+                {
+                    _lastStatus = "No entrance location";
+                    return 0;
+                }
+
+                entranceLocationId = loc.LocationId;
+            }
+
+            entranceLocationId = entranceLocationId.Trim();
+            if (!_session.World.WorldRegion.TryGet(entranceLocationId, out _))
+            {
+                _lastStatus = "Entrance missing";
+                return 0;
+            }
+
+            for (var i = 0; i < party.Length; i++)
+            {
+                var pid = party[i];
+                if (pid.IsNone || !_session.World.Entities.TryGet(pid, out var pe))
+                    continue;
+                if (!pe.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var plc))
+                {
+                    plc = new XianXia.Core.Exploration.EntityLocationComponent();
+                    pe.AddComponent(plc);
+                }
+
+                plc.LocationId = entranceLocationId;
+            }
+
+            var result = _session.Port.Submit(
+                new PlayerCommandRequest(
+                    leader,
+                    PlayerCommandKind.EnterLocalMap,
+                    1,
+                    EntityId.None,
+                    WorkRoleKind.None,
+                    entranceLocationId));
+            if (result.IsSuccess)
+            {
+                _lastSuccessCount = 1;
+                _lastFailureCount = 0;
+                _lastStatus = "EnterLocalMap ok → " + entranceLocationId;
+                hostBootstrap?.ReloadLocalMapPresentation(frameCamera: true);
+            }
+            else
+            {
+                _lastSuccessCount = 0;
+                _lastFailureCount = 1;
+                _lastStatus = "EnterLocalMap FAIL " + FormatError(result);
+            }
+
+            return _lastSuccessCount;
+        }
+
+        public int IssueLeaveLocalMap()
+        {
+            if (selectionController == null || selectionController.State.Count == 0 || _session?.Port == null)
+            {
+                _lastStatus = "Cannot leave LocalMap";
+                return 0;
+            }
+
+            var id = selectionController.State.SelectedIds[0];
+            var result = _session.Port.Submit(
+                new PlayerCommandRequest(id, PlayerCommandKind.LeaveLocalMap, 1));
+            if (result.IsSuccess)
+            {
+                _lastSuccessCount = 1;
+                _lastFailureCount = 0;
+                _lastStatus = "LeaveLocalMap ok";
+                hostBootstrap?.ReloadLocalMapPresentation();
+            }
+            else
+            {
+                _lastSuccessCount = 0;
+                _lastFailureCount = 1;
+                _lastStatus = "LeaveLocalMap FAIL " + FormatError(result);
+            }
+
+            return _lastSuccessCount;
+        }
+
+        /// <summary>以角色表现为圆心勘查。<paramref name="presentationHint"/> 形如 "x,z,r;x2,z2,r2"。</summary>
+        public int IssueSurveyAround(string presentationHint = null)
+        {
+            if (selectionController == null || selectionController.State.Count == 0 || _session?.Port == null)
+            {
+                _lastStatus = "Cannot survey";
+                return 0;
+            }
+
+            var id = selectionController.State.SelectedIds[0];
+            var result = _session.Port.Submit(
+                new PlayerCommandRequest(
+                    id,
+                    PlayerCommandKind.SurveyEntrance,
+                    1,
+                    EntityId.None,
+                    WorkRoleKind.None,
+                    presentationHint ?? string.Empty));
+            if (result.IsSuccess)
+            {
+                _lastSuccessCount = 1;
+                _lastFailureCount = 0;
+                _lastStatus = "SurveyAround ok";
+            }
+            else
+            {
+                _lastSuccessCount = 0;
+                _lastFailureCount = 1;
+                _lastStatus = "SurveyAround FAIL " + FormatError(result);
+            }
+
+            return _lastSuccessCount;
+        }
+
+        /// <summary>拾取地上物进背包（一次）。</summary>
+        public int IssuePickupLoot(EntityId subject, string lootSpotId, string itemId)
+        {
+            if (_session?.World == null || subject.IsNone)
+            {
+                _lastStatus = "Cannot pickup";
+                return 0;
+            }
+
+            var result = new XianXia.Core.Content.WorldLootPickupService().TryPickup(
+                _session.World, subject, lootSpotId, itemId);
+            if (result.IsSuccess)
+            {
+                _lastSuccessCount = 1;
+                _lastFailureCount = 0;
+                _lastStatus = "Pickup ok → " + itemId;
+                return 1;
+            }
+
+            _lastSuccessCount = 0;
+            _lastFailureCount = 1;
+            _lastStatus = "Pickup FAIL " + FormatError(result);
+            return 0;
+        }
+
         public int IssueAssignWork(WorkRoleKind role)
         {
             if (selectionController == null)

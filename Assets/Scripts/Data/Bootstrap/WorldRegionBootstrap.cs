@@ -51,7 +51,11 @@ namespace XianXia.Data.Bootstrap
                     OpportunitySiteId = entry.OpportunitySiteId ?? string.Empty,
                     ResidentNpcDefinitionId = entry.ResidentNpcDefinitionId ?? string.Empty,
                     PresentationX = entry.PresentationX,
-                    PresentationZ = entry.PresentationZ
+                    PresentationZ = entry.PresentationZ,
+                    LocalMapId = entry.LocalMapId ?? string.Empty,
+                    EnterLocalMapId = entry.EnterLocalMapId ?? string.Empty,
+                    EnterSpawnLocationId = entry.EnterSpawnLocationId ?? string.Empty,
+                    SurveySenseRequired = entry.SurveySenseRequired
                 };
                 if (entry.AdjacentIds != null)
                     loc.AdjacentIds.AddRange(entry.AdjacentIds);

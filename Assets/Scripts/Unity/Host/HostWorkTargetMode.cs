@@ -88,6 +88,18 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
+            if (HostZoneQuery.TryFindLootSpot(point, out var loot))
+            {
+                IssueLootAtSpot(loot);
+                return true;
+            }
+
+            if (HostZoneQuery.TryFindExploreSpot(point, out var explore))
+            {
+                IssueExploreAtSpot(explore);
+                return true;
+            }
+
             if (HostZoneQuery.TryFindCultivateSpot(point, out var cult))
             {
                 IssueCultivateAtSpot(cult);
@@ -191,6 +203,22 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            if (HostZoneQuery.TryFindLootSpot(point, out var loot))
+            {
+                _idleHoverInteractable = true;
+                _hoverHint = "右键拾取·" + loot.Label;
+                ApplyCursor(true);
+                return;
+            }
+
+            if (HostZoneQuery.TryFindExploreSpot(point, out var explore))
+            {
+                _idleHoverInteractable = true;
+                _hoverHint = "右键探索·" + explore.Label;
+                ApplyCursor(true);
+                return;
+            }
+
             if (HostZoneQuery.TryFindCultivateSpot(point, out var cult))
             {
                 _idleHoverInteractable = true;
@@ -236,6 +264,11 @@ namespace XianXia.Unity.Host
                     {
                         _canTargetUnderMouse = true;
                         _hoverHint = "交互·" + workSpot.Label;
+                    }
+                    else if (HostZoneQuery.TryFindLootSpot(point, out var lootSpot))
+                    {
+                        _canTargetUnderMouse = true;
+                        _hoverHint = "拾取·" + lootSpot.Label;
                     }
                     else if (TryPickNpcAtMouse(out var npc) &&
                              selectionController != null &&
@@ -287,6 +320,13 @@ namespace XianXia.Unity.Host
             if (HostZoneQuery.TryFindWorkSpot(point, out var spot))
             {
                 IssueWorkAtSpot(spot);
+                SetArmed(ArmKind.None);
+                return;
+            }
+
+            if (HostZoneQuery.TryFindLootSpot(point, out var loot))
+            {
+                IssueLootAtSpot(loot);
                 SetArmed(ArmKind.None);
                 return;
             }
@@ -413,6 +453,51 @@ namespace XianXia.Unity.Host
                 moveController.OrderPartyToPointThen(spot.WorldPosition, PlayerCommandKind.Cultivate);
             else
                 FallbackSnapAndIssue(spot.LocationId, PlayerCommandKind.Cultivate);
+        }
+
+        void IssueExploreAtSpot(HostInteractSpot spot)
+        {
+            Resume();
+            var locId = spot.LocationId;
+            if (moveController != null)
+                moveController.OrderPartyToPointThen(spot.WorldPosition, PlayerCommandKind.Explore, locId);
+            else
+                FallbackSnapAndIssue(locId, PlayerCommandKind.Explore);
+        }
+
+        void IssueLootAtSpot(HostInteractSpot spot)
+        {
+            Resume();
+            if (string.IsNullOrEmpty(spot.LootItemId) || string.IsNullOrEmpty(spot.LootSpotId))
+                return;
+
+            var actor = HostNpcInteraction.ResolvePartyActor(selectionController);
+            if (actor.IsNone)
+                return;
+
+            System.Action doPickup = () =>
+            {
+                if (commandBridge == null)
+                    return;
+                var ok = commandBridge.IssuePickupLoot(actor, spot.LootSpotId, spot.LootItemId) > 0;
+                var overlay = bootstrap != null ? bootstrap.GetComponent<HostFeedbackOverlay>() : null;
+                if (overlay != null)
+                {
+                    overlay.SpawnAtEntity(
+                        bootstrap.ViewSpawner,
+                        actor,
+                        ok ? "拾取·" + spot.Label : "拾取失败",
+                        ok ? new Color(0.95f, 0.85f, 0.35f, 1f) : new Color(1f, 0.4f, 0.35f, 1f));
+                }
+
+                if (ok)
+                    bootstrap?.RefreshMapStampsOnly();
+            };
+
+            if (moveController != null)
+                moveController.OrderEntityToWorldPointPublic(actor, spot.WorldPosition, doPickup);
+            else
+                doPickup();
         }
 
         void Resume()

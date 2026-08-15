@@ -19,6 +19,9 @@ namespace XianXia.Data.Cultivation
             var spec = new CultivationManualSpec
             {
                 Id = definition.Id,
+                Name = definition.Name ?? string.Empty,
+                Grade = definition.Grade ?? string.Empty,
+                EffectSummary = definition.EffectSummary ?? string.Empty,
                 RequiredRealm = definition.RequiredRealm ?? string.Empty,
                 CultivationSpeed = definition.CultivationSpeed,
                 BreakthroughProgress = definition.BreakthroughProgress

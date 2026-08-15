@@ -110,6 +110,124 @@
           "outcomes": []
         }
       ]
+    },
+    {
+      "id": "base:event_jiang_lao_intro",
+      "type": "contentEvent",
+      "name": "将老·闲谈",
+      "body": "泉边坐着一位须发花白的老人，膝上摆着一块磨得发亮的石板棋盘。\n\n「年轻人，别光顾着交差。老朽这辈子没别的癖好，就爱摆弄这几子。」他抬眼看你，「若你也有兴致，改日过来与我下一盘。赢我三次——嘿嘿，老朽便把压箱底的东西传给你。」",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_jiang_lao",
+      "once": false,
+      "conditions": [
+        { "kind": "missingFlag", "id": "story:jiang_lao_met" }
+      ],
+      "choices": [
+        {
+          "id": "accept",
+          "text": "好，日后陪您下几盘。",
+          "outcomes": [
+            { "kind": "setFlag", "id": "story:jiang_lao_met" },
+            { "kind": "startQuest", "id": "base:quest_jiang_lao_chess" }
+          ]
+        },
+        {
+          "id": "later",
+          "text": "改日再来。",
+          "outcomes": [
+            { "kind": "setFlag", "id": "story:jiang_lao_met" },
+            { "kind": "startQuest", "id": "base:quest_jiang_lao_chess" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "base:event_jiang_lao_play",
+      "type": "contentEvent",
+      "name": "将老·邀弈",
+      "body": "将老拍拍石板：「来一盘？今日一局，明日再来。老朽不催你天天到场——只是赢满三次，东西才给你。」",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_jiang_lao",
+      "once": false,
+      "conditions": [
+        { "kind": "hasFlag", "id": "story:jiang_lao_met" },
+        { "kind": "questActive", "id": "base:quest_jiang_lao_chess" },
+        { "kind": "missingDailyFlag", "id": "daily:jiang_lao_chess" }
+      ],
+      "choices": [
+        {
+          "id": "play",
+          "text": "对弈。",
+          "outcomes": [
+            { "kind": "startMinigame", "id": "ticTacToe" }
+          ]
+        },
+        {
+          "id": "pass",
+          "text": "今日先不下。",
+          "outcomes": []
+        }
+      ]
+    },
+    {
+      "id": "base:event_jiang_lao_played_today",
+      "type": "contentEvent",
+      "name": "将老·今日已弈",
+      "body": "「今日已过招了。」将老收起棋子，「明日再来。老朽不缺闲工夫。」",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_jiang_lao",
+      "once": false,
+      "conditions": [
+        { "kind": "hasFlag", "id": "story:jiang_lao_met" },
+        { "kind": "questActive", "id": "base:quest_jiang_lao_chess" },
+        { "kind": "hasDailyFlag", "id": "daily:jiang_lao_chess" }
+      ],
+      "choices": [
+        {
+          "id": "ack",
+          "text": "改日再来。",
+          "outcomes": []
+        }
+      ]
+    },
+    {
+      "id": "base:event_jiang_lao_ready_claim",
+      "type": "contentEvent",
+      "name": "将老·传承在即",
+      "body": "将老抚须大笑：「三次了！老朽认了。去任务日志把秘籍领走——入了炼气再翻开研读，莫要浪费。」",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_jiang_lao",
+      "once": false,
+      "conditions": [
+        { "kind": "questCompleted", "id": "base:quest_jiang_lao_chess" },
+        { "kind": "missingFlag", "id": "quest:jiang_lao_chess_done" }
+      ],
+      "choices": [
+        {
+          "id": "ack",
+          "text": "多谢将老。",
+          "outcomes": []
+        }
+      ]
+    },
+    {
+      "id": "base:event_jiang_lao_after",
+      "type": "contentEvent",
+      "name": "将老·闲话",
+      "body": "「东西给你了，棋还是可以下的。」将老笑眯眯，「不过老规矩：一日一局。」",
+      "trigger": "onTalk",
+      "npcDefinitionId": "base:character_jiang_lao",
+      "once": false,
+      "conditions": [
+        { "kind": "hasFlag", "id": "quest:jiang_lao_chess_done" }
+      ],
+      "choices": [
+        {
+          "id": "chat",
+          "text": "再陪您坐坐。",
+          "outcomes": []
+        }
+      ]
     }
   ]
 }

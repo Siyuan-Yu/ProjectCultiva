@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_ch01_cave",
+      "type": "mapLayout",
+      "name": "废弃洞府·内室",
+      "worldRegionId": "base:region_ch01_reference",
+      "originX": -20,
+      "originY": -15,
+      "cellSize": 1,
+      "width": 40,
+      "height": 30,
+      "placements": [
+        {
+          "id": "cave_chamber_floor",
+          "kind": "rock",
+          "x": 8,
+          "y": 6,
+          "w": 24,
+          "h": 16,
+          "blocksMovement": false,
+          "label": "洞府内室",
+          "boundLocationId": "base:loc_cave_chamber"
+        },
+        {
+          "id": "cave_cushion",
+          "kind": "cushion",
+          "x": 19,
+          "y": 13,
+          "w": 1,
+          "h": 1,
+          "blocksMovement": false,
+          "label": "石台蒲团",
+          "boundLocationId": "base:loc_cave_chamber"
+        },
+        {
+          "id": "cave_exit_mouth",
+          "kind": "cave",
+          "x": 18,
+          "y": 22,
+          "w": 4,
+          "h": 3,
+          "blocksMovement": false,
+          "label": "出口（离开洞府）",
+          "boundLocationId": "base:loc_cave_chamber"
+        },
+        {
+          "id": "loot_cave_dongfu_manual",
+          "kind": "loot",
+          "x": 21,
+          "y": 14,
+          "w": 1,
+          "h": 1,
+          "blocksMovement": false,
+          "label": "洞府秘诀",
+          "boundLocationId": "base:loc_cave_chamber",
+          "lootItemId": "base:item_manual_dongfu_secret"
+        }
+      ]
+    }
+  ]
+}

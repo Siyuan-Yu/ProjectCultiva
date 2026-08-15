@@ -76,8 +76,11 @@ namespace XianXia.Core.Actions
             if (entity.TryGet<PersonalityProfileComponent>(out var profile))
                 talentBonus = TalentGrowthRules.ExtraCultivateProgress(profile);
 
-            // 当前统一：每 5 游戏分钟（1 tick）+5；功法速度暂不覆盖此基数。
-            var gain = CultivationProgressRules.BaseProgressPerTick + talentBonus;
+            // 有功法：用功法 cultivationSpeed；无功法则用感应境基础节奏。
+            var gain = cultivation.HasLearnedManual && cultivation.CultivationSpeed > 0
+                ? cultivation.CultivationSpeed
+                : CultivationProgressRules.BaseProgressPerTick;
+            gain += talentBonus;
             var cap = cultivation.BreakthroughProgressRequired;
             if (cap > 0 && cultivation.Progress + gain > cap)
                 cultivation.Progress = cap;

@@ -63,7 +63,9 @@ namespace XianXia.Core.Events
         /// <summary>Territory: control core (主管府) took damage.</summary>
         ControlCoreDamaged = 33,
         /// <summary>Territory: player captured a control core.</summary>
-        ControlCoreCaptured = 34
+        ControlCoreCaptured = 34,
+        /// <summary>LocalMap 进出：ActiveMapLayoutId 已切换（session）。</summary>
+        LocalMapChanged = 35
     }
 }
 

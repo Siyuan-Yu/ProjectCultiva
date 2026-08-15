@@ -156,6 +156,36 @@
           "amount": -15
         }
       ]
+    },
+    {
+      "id": "base:quest_jiang_lao_chess",
+      "type": "quest",
+      "name": "将老·对弈三胜",
+      "description": "【对话接取】泉边将老爱下棋。与他下井字棋（每日一局，非每日必来）；累计胜三局后，到任务日志领取「将老残谱」秘籍。入炼气后可在背包使用，指定主角／同伴学习。",
+      "autoOffer": false,
+      "abandonable": false,
+      "deadlineDays": 0,
+      "offerConditions": [],
+      "completeConditions": [
+        {
+          "kind": "counterAtLeast",
+          "id": "chess_wins_jiang_lao",
+          "amount": 3
+        }
+      ],
+      "rewards": [
+        {
+          "kind": "addStock",
+          "id": "base:item_manual_jiang_lao_legacy",
+          "amount": 1
+        },
+        {
+          "kind": "setFlag",
+          "id": "quest:jiang_lao_chess_done"
+        }
+      ],
+      "failConditions": [],
+      "failResults": []
     }
   ]
 }

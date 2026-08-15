@@ -31,7 +31,12 @@ namespace XianXia.Unity.Host
 
             var locations = session.World.WorldRegion.Locations;
             foreach (var kv in locations)
+            {
+                if (OpportunityEntranceRules.IsHiddenEntrance(kv.Value) &&
+                    !OpportunityEntranceRules.IsRevealed(session.World, kv.Value))
+                    continue;
                 BuildZoneLabel(kv.Value);
+            }
 
             foreach (var kv in locations)
             {

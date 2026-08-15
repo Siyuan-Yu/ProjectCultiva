@@ -90,12 +90,24 @@ namespace XianXia.Core.Content
                                out var eChar) &&
                            eChar.TryGet<EntityLocationComponent>(out var charLoc) &&
                            string.Equals(charLoc.LocationId, c.Id, StringComparison.Ordinal);
+                case "counteratleast":
+                    return world.ContentCounters.Get(c.Id) >= (c.Amount > 0 ? c.Amount : 1);
+                case "missingdailyflag":
+                    return !world.ContentDaily.IsMarkedToday(c.Id, world.Tick);
+                case "hasdailyflag":
+                    return world.ContentDaily.IsMarkedToday(c.Id, world.Tick);
+                case "encountercleared":
+                    return world.Flags.Has(EncounterFlag(c.Id));
                 default:
                     return false;
             }
         }
 
         public static string ExploredFlag(string locationId) => "explored:" + (locationId ?? string.Empty);
+
+        /// <summary>Convention flag for cave／遭遇 cleared（content uses setEncounterCleared）.</summary>
+        public static string EncounterFlag(string encounterId) =>
+            "encounter:" + (encounterId ?? string.Empty);
 
         /// <summary>Seconds each unique laborer must work for <c>uniqueLaborAtLocation</c>（约 1 拍）。</summary>
         public const int DefaultUniqueLaborSeconds = 3;

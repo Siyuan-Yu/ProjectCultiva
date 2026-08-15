@@ -52,7 +52,8 @@ namespace XianXia.Data.Content
         {
             "id", "name", "kind", "adjacentIds", "resourceOnExploreId", "resourceOnExploreAmount",
             "opportunitySiteId", "residentNpcDefinitionId", "presentationX", "presentationZ",
-            "enterConditions", "questOfferIds", "tags", "allowedActivities"
+            "enterConditions", "questOfferIds", "tags", "allowedActivities",
+            "localMapId", "enterLocalMapId", "enterSpawnLocationId", "surveySenseRequired"
         };
 
         public static readonly HashSet<string> WorkAreaFields = new HashSet<string>(StringComparer.Ordinal)
@@ -89,7 +90,7 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> MapPlacementFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "kind", "x", "y", "w", "h", "blocksMovement", "boundLocationId", "label"
+            "id", "kind", "x", "y", "w", "h", "blocksMovement", "boundLocationId", "label", "lootItemId"
         };
 
         public static readonly HashSet<string> QuestFields = new HashSet<string>(StringComparer.Ordinal)
@@ -154,12 +155,13 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> CultivationFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "displayNameKey", "nameKey", "requiredRealm",
+            "grade", "effectSummary",
             "cultivationSpeed", "breakthroughProgress", "grantedModifiers", "tags"
         };
 
         public static readonly HashSet<string> ItemFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "displayNameKey", "nameKey", "maxStack", "tags"
+            "id", "type", "name", "displayNameKey", "nameKey", "maxStack", "teachesManualId", "tags"
         };
 
         public static readonly HashSet<string> OpportunitySiteFields = new HashSet<string>(StringComparer.Ordinal)

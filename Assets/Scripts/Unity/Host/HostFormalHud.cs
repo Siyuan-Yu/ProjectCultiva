@@ -359,7 +359,9 @@ namespace XianXia.Unity.Host
             x += 44f;
             if (GUI.Button(new Rect(x, 8f, 40f, 32f), "5x"))
                 SetHostSpeed(5);
-
+            x += 44f;
+            if (GUI.Button(new Rect(x, 8f, 44f, 32f), "20x"))
+                SetHostSpeed(20);
             var bag = session.World.Inventory;
             var wood = bag.GetCount("base:resource_rough_wood");
             var herb = bag.GetCount("base:resource_spirit_herb");
@@ -799,7 +801,7 @@ namespace XianXia.Unity.Host
         {
             var labels = new[]
             {
-                "Q\n移动", "F1\n停止", "E\n交互", "F8\n战斗", "F6\n修炼"
+                "Q\n移动", "F1\n停止", "E\n交互", "F8\n战斗", "F7\n勘查", "F6\n修炼"
             };
 
             var mode = bootstrap != null ? bootstrap.WorkTargetMode : null;
@@ -1280,7 +1282,7 @@ namespace XianXia.Unity.Host
             if (focus.IsNone || selectionController == null || !selectionController.IsPartyUnit(focus))
                 return;
 
-            // F5／F9 留给存读档。Q/E/R＝移动/交互/战斗点选；F1＝停止；F6＝修炼；G＝敛息（道具）。
+            // F5／F9 存读档；Q/E/F8＝移动/交互/战斗；F7＝勘查；F1＝停止；F6＝修炼；G＝敛息。
             if (Input.GetKeyDown(KeyCode.Q) && !Input.GetKey(KeyCode.LeftAlt) && !Input.GetKey(KeyCode.RightAlt))
                 InvokeActionIndex(focus, 0);
             else if (Input.GetKeyDown(KeyCode.F1))
@@ -1289,8 +1291,10 @@ namespace XianXia.Unity.Host
                 InvokeActionIndex(focus, 2);
             else if (Input.GetKeyDown(KeyCode.F8))
                 InvokeActionIndex(focus, 3);
-            else if (Input.GetKeyDown(KeyCode.F6))
+            else if (Input.GetKeyDown(KeyCode.F7))
                 InvokeActionIndex(focus, 4);
+            else if (Input.GetKeyDown(KeyCode.F6))
+                InvokeActionIndex(focus, 5);
             else if (Input.GetKeyDown(KeyCode.G))
                 IssueFocus(focus, PlayerCommandKind.UseConcealGrass);
         }
@@ -1319,6 +1323,10 @@ namespace XianXia.Unity.Host
                     if (mode != null) mode.ArmCombat();
                     break;
                 case 4:
+                    if (mode != null) mode.Cancel();
+                    bootstrap?.CaveSurveyPresenter?.TrySurvey();
+                    break;
+                case 5:
                     PromptCultivateHere(focus);
                     break;
             }

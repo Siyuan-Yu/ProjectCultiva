@@ -201,7 +201,8 @@
       ],
       "allowedActivities": [
         "Inspect",
-        "Patrol"
+        "Patrol",
+        "Explore"
       ],
       "capacity": 2,
       "offsetX": 0,

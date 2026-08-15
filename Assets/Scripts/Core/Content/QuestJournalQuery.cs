@@ -232,6 +232,14 @@ namespace XianXia.Core.Content
                     return ShortId(c.Id) + " 不同角色劳动各约3秒 ×" + (c.Amount > 0 ? c.Amount : 1);
                 case "characteratlocation":
                     return ShortId(c.CharacterId) + " 到达 " + ShortId(c.Id);
+                case "counteratleast":
+                    return "计数 " + ShortId(c.Id) + " ≥ " + (c.Amount > 0 ? c.Amount : 1);
+                case "missingdailyflag":
+                    return "今日尚未：" + ShortId(c.Id);
+                case "hasdailyflag":
+                    return "今日已做：" + ShortId(c.Id);
+                case "encountercleared":
+                    return "已清除遭遇：" + ShortId(c.Id);
                 default:
                     return c.Kind + (string.IsNullOrEmpty(c.Id) ? "" : " " + ShortId(c.Id));
             }
@@ -272,6 +280,10 @@ namespace XianXia.Core.Content
             var stockLive = SummarizeStockObjectivesLive(world, list);
             if (!string.IsNullOrEmpty(stockLive))
                 return stockLive;
+
+            var counterLive = SummarizeCounterObjectivesLive(world, list, runtime);
+            if (!string.IsNullOrEmpty(counterLive))
+                return counterLive;
 
             return SummarizeObjectives(list);
         }
@@ -321,6 +333,35 @@ namespace XianXia.Core.Content
                 if (have > need)
                     have = need;
                 parts.Add(ResourceLabel(c.Id) + " " + have + "/" + need);
+            }
+
+            return parts.Count == 0 ? string.Empty : string.Join("；", parts);
+        }
+
+        static string SummarizeCounterObjectivesLive(
+            SimulationWorld world,
+            IReadOnlyList<ContentCondition> list,
+            QuestRuntime runtime)
+        {
+            if (list == null || list.Count == 0)
+                return string.Empty;
+            var parts = new List<string>(list.Count);
+            for (var i = 0; i < list.Count; i++)
+            {
+                var c = list[i];
+                if (c == null ||
+                    !string.Equals(c.Kind, "counterAtLeast", System.StringComparison.OrdinalIgnoreCase))
+                    continue;
+                var need = c.Amount > 0 ? c.Amount : 1;
+                var have = world != null ? world.ContentCounters.Get(c.Id) : 0;
+                if (runtime != null && runtime.Status != QuestStatus.Active && runtime.ProgressMax > 0)
+                {
+                    // Keep claimed／completed display stable when possible.
+                }
+
+                if (have > need)
+                    have = need;
+                parts.Add(ShortId(c.Id) + " " + have + "/" + need);
             }
 
             return parts.Count == 0 ? string.Empty : string.Join("；", parts);
@@ -433,6 +474,18 @@ namespace XianXia.Core.Content
                     return "修为 +" + (o.Amount <= 0 ? 1 : o.Amount);
                 case "discoversite":
                     return "发现机缘 " + ShortId(o.Id);
+                case "addcounter":
+                    return "计数 " + ShortId(o.Id) + " +" + (o.Amount == 0 ? 1 : o.Amount);
+                case "setcounter":
+                    return "计数 " + ShortId(o.Id) + " =" + o.Amount;
+                case "setdailyflag":
+                    return "标记今日 " + ShortId(o.Id);
+                case "cleardailyflag":
+                    return "清除今日 " + ShortId(o.Id);
+                case "setencountercleared":
+                    return "清除遭遇 " + ShortId(o.Id);
+                case "learnmanual":
+                    return "习得功法 " + ShortId(o.Id);
                 case "relationdelta":
                 {
                     var targets = FormatRelationTargets(o);

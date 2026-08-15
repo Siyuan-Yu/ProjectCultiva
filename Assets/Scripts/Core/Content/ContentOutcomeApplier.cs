@@ -86,6 +86,42 @@ namespace XianXia.Core.Content
                     }
 
                     return Result.Success();
+                case "addcounter":
+                {
+                    var delta = o.Amount == 0 ? 1 : o.Amount;
+                    world.ContentCounters.Add(o.Id, delta);
+                    QuestProgressRefresh.AfterWorldChange(world, subject);
+                    return Result.Success();
+                }
+                case "setcounter":
+                    world.ContentCounters.Set(o.Id, o.Amount < 0 ? 0 : o.Amount);
+                    QuestProgressRefresh.AfterWorldChange(world, subject);
+                    return Result.Success();
+                case "setdailyflag":
+                    world.ContentDaily.MarkToday(o.Id, world.Tick);
+                    return Result.Success();
+                case "cleardailyflag":
+                    world.ContentDaily.Clear(o.Id);
+                    return Result.Success();
+                case "setencountercleared":
+                    StoryFlagService.Set(world, ContentConditionEvaluator.EncounterFlag(o.Id), subject);
+                    QuestProgressRefresh.AfterWorldChange(world, subject);
+                    return Result.Success();
+                case "startminigame":
+                    // Host 拦截并打开小游戏；Core 侧视为已接受该 outcome。
+                    return Result.Success();
+                case "learnmanual":
+                {
+                    if (!DefinitionId.TryParse(o.Id, out var manualId))
+                        return Result.Failure(ErrorCode.InvalidDefinitionId, "learnManual id invalid.", o.Id);
+                    if (!world.TryGetManual(manualId, out var manual))
+                        return Result.Failure(ErrorCode.InvalidDefinitionId, "Manual missing.", o.Id);
+                    var learned = new CultivationService().LearnManual(world, subject, manual);
+                    if (learned.IsFailure)
+                        return learned;
+                    QuestProgressRefresh.AfterWorldChange(world, subject);
+                    return Result.Success();
+                }
                 default:
                     return Result.Failure(ErrorCode.InvalidArgument, "Unknown outcome kind.", o.Kind);
             }

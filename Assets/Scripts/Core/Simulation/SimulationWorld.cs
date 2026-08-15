@@ -63,6 +63,9 @@ namespace XianXia.Core.Simulation
             SettlementAuthority = new SettlementAuthorityBoard();
             InventoryCatalog = new InventoryCatalog();
             Inventory = new PartyInventory(InventoryCatalog, PartyInventory.DefaultSlotCapacity);
+            ContentCounters = new ContentCounterBoard();
+            ContentDaily = new ContentDailyBoard();
+            LocalMap = new LocalMapSession();
             Tick = WorldTick.Zero;
             EnabledPackageId = "base";
             EnabledPackageVersion = "0.0.1-m1";
@@ -129,6 +132,15 @@ namespace XianXia.Core.Simulation
 
         /// <summary>Privileges from captured control cores; session-only.</summary>
         public SettlementAuthorityBoard SettlementAuthority { get; }
+
+        /// <summary>Quest／event counters（对弈胜场等）; session-only; not in Snapshot v1.</summary>
+        public ContentCounterBoard ContentCounters { get; }
+
+        /// <summary>Per-game-day marks（今日已对弈）; session-only; not in Snapshot v1.</summary>
+        public ContentDailyBoard ContentDaily { get; }
+
+        /// <summary>当前 LocalMap 进出状态；session-only; not in Snapshot v1.</summary>
+        public LocalMapSession LocalMap { get; }
 
         /// <summary>Item display／stack rules for the shared party bag.</summary>
         public InventoryCatalog InventoryCatalog { get; }

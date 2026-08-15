@@ -28,5 +28,13 @@ namespace XianXia.Data.Content
         public List<string> QuestOfferIds { get; set; } = new List<string>();
         public List<string> Tags { get; set; } = new List<string>();
         public List<string> AllowedActivities { get; set; } = new List<string>();
+        /// <summary>所属 LocalMap；空＝地表。</summary>
+        public string LocalMapId { get; set; }
+        /// <summary>洞口：进入的 mapLayout id。</summary>
+        public string EnterLocalMapId { get; set; }
+        /// <summary>进入后落点地点。</summary>
+        public string EnterSpawnLocationId { get; set; }
+        /// <summary>勘查所需神识；0＝默认 3。</summary>
+        public int SurveySenseRequired { get; set; }
     }
 }

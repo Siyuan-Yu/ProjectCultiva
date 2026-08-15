@@ -76,7 +76,13 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
-            if (bridge == null || session == null || !session.IsInitialized)
+            if (session == null || !session.IsInitialized)
+                return false;
+
+            if (TryBeginMinigame(session, line.ChoiceId, bootstrap))
+                return true;
+
+            if (bridge == null)
                 return false;
 
             if (!bridge.ResolveContentChoice(line.ChoiceId))
@@ -110,6 +116,76 @@ namespace XianXia.Unity.Host
             if (!world.ContentEvents.TryGet(world.ContentEvents.ActiveEventId, out spec) || spec == null)
                 return false;
             return string.Equals(spec.Trigger, "onTalk", System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        bool TryBeginMinigame(
+            PlayableHostSession session,
+            string choiceId,
+            PlayableHostBootstrap bootstrap)
+        {
+            if (!TryGetActiveOnTalkSpec(session.World, out var spec))
+                return false;
+            if (!TryFindChoice(spec, choiceId, out var choice))
+                return false;
+            if (!TryGetStartMinigameId(choice, out var gameId))
+                return false;
+
+            var subject = ResolveSubject(session);
+            session.World.ContentEvents.ClearActive();
+            Clear();
+
+            if (!string.Equals(gameId, HostJiangLaoChess.MinigameId, System.StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            var panel = bootstrap?.TicTacToePanel;
+            if (panel == null)
+                return false;
+
+            panel.Open(subject, result =>
+            {
+                if (session == null || !session.IsInitialized)
+                    return;
+                HostJiangLaoChess.ApplyResult(session.World, subject, result);
+                bootstrap.DispatchDrainedEvents();
+            });
+            return true;
+        }
+
+        static bool TryFindChoice(ContentEventSpec spec, string choiceId, out ContentEventChoiceSpec choice)
+        {
+            choice = null;
+            if (spec?.Choices == null)
+                return false;
+            for (var i = 0; i < spec.Choices.Count; i++)
+            {
+                var c = spec.Choices[i];
+                if (c != null && string.Equals(c.Id, choiceId, System.StringComparison.Ordinal))
+                {
+                    choice = c;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        static bool TryGetStartMinigameId(ContentEventChoiceSpec choice, out string gameId)
+        {
+            gameId = null;
+            if (choice?.Outcomes == null)
+                return false;
+            for (var i = 0; i < choice.Outcomes.Count; i++)
+            {
+                var o = choice.Outcomes[i];
+                if (o == null || string.IsNullOrEmpty(o.Kind))
+                    continue;
+                if (!string.Equals(o.Kind, "startMinigame", System.StringComparison.OrdinalIgnoreCase))
+                    continue;
+                gameId = string.IsNullOrEmpty(o.Id) ? HostJiangLaoChess.MinigameId : o.Id;
+                return true;
+            }
+
+            return false;
         }
 
         void BuildChoices(PlayableHostSession session, EntityId subject, ContentEventSpec spec)

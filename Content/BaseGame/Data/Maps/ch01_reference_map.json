@@ -663,6 +663,17 @@
           "h": 1,
           "blocksMovement": true,
           "label": "墙 1×n（默认挡路）"
+        },
+        {
+          "id": "place_cave_170829991",
+          "kind": "cave",
+          "x": 98,
+          "y": 12,
+          "w": 4,
+          "h": 4,
+          "blocksMovement": false,
+          "label": "废弃洞府入口（灵泉东·勘查显形）",
+          "boundLocationId": "base:loc_ref_cave"
         }
       ]
     }

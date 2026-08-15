@@ -6,19 +6,32 @@ namespace XianXia.Unity.Host
     public enum HostInteractSpotKind
     {
         Work = 0,
-        Cultivate = 1
+        Cultivate = 1,
+        /// <summary>洞口等：走到后探索／发现，不自动打坐。</summary>
+        Explore = 2,
+        /// <summary>地表／洞内可拾取物。</summary>
+        Loot = 3
     }
 
     /// <summary>表现层可交互点（多点／同地点）；不进 Core Freeze。</summary>
     public readonly struct HostInteractSpot
     {
-        public HostInteractSpot(string locationId, HostInteractSpotKind kind, float presentationX, float presentationZ, string label)
+        public HostInteractSpot(
+            string locationId,
+            HostInteractSpotKind kind,
+            float presentationX,
+            float presentationZ,
+            string label,
+            string lootSpotId = null,
+            string lootItemId = null)
         {
             LocationId = locationId;
             Kind = kind;
             PresentationX = presentationX;
             PresentationZ = presentationZ;
             Label = label ?? string.Empty;
+            LootSpotId = lootSpotId ?? string.Empty;
+            LootItemId = lootItemId ?? string.Empty;
         }
 
         public string LocationId { get; }
@@ -26,19 +39,15 @@ namespace XianXia.Unity.Host
         public float PresentationX { get; }
         public float PresentationZ { get; }
         public string Label { get; }
+        public string LootSpotId { get; }
+        public string LootItemId { get; }
 
         public Vector3 WorldPosition =>
             HostPresentationSpace.FromPresentation(PresentationX, PresentationZ);
     }
 
-    /// <summary>
-    /// 交互点：优先用 mapLayout 刷出来的地块；否则回退第一章硬编码样例点。
-    /// </summary>
     public static class HostInteractSpots
     {
-        public const float DefaultHitRadius = 2.1f;
-        public const float PlotHitRadius = 0.85f;
-
         static readonly List<HostInteractSpot> Dynamic = new List<HostInteractSpot>(256);
 
         static readonly HostInteractSpot[] LegacyFallback =
@@ -57,8 +66,8 @@ namespace XianXia.Unity.Host
             new HostInteractSpot("base:loc_ref_mine", HostInteractSpotKind.Work, -28f, 6f, "矿堆"),
             new HostInteractSpot("base:loc_ref_spring", HostInteractSpotKind.Cultivate, 27f, -11f, "泉眼"),
             new HostInteractSpot("base:loc_ref_spring", HostInteractSpotKind.Cultivate, 29f, -13f, "泉畔石"),
-            new HostInteractSpot("base:loc_ref_cave", HostInteractSpotKind.Cultivate, 24f, -14f, "洞口"),
-            new HostInteractSpot("base:loc_ref_cave", HostInteractSpotKind.Cultivate, 26f, -15f, "洞中蒲团"),
+            new HostInteractSpot("base:loc_ref_cave", HostInteractSpotKind.Explore, 24f, -14f, "洞口"),
+            new HostInteractSpot("base:loc_ref_cave", HostInteractSpotKind.Explore, 26f, -15f, "洞口石径"),
         };
 
         public static bool HasDynamicPlots => Dynamic.Count > 0;
@@ -74,14 +83,11 @@ namespace XianXia.Unity.Host
             Vector3 worldPoint,
             HostInteractSpotKind kind,
             out HostInteractSpot spot,
-            float hitRadius = -1f)
+            float maxDist = 3.5f)
         {
-            if (hitRadius < 0f)
-                hitRadius = HasDynamicPlots ? PlotHitRadius : DefaultHitRadius;
-
             spot = default;
             var p = HostPresentationSpace.ToPresentation(worldPoint);
-            var best = hitRadius;
+            var best = maxDist * maxDist;
             var found = false;
             HostInteractSpot bestSpot = default;
             var list = Spots;
@@ -92,10 +98,10 @@ namespace XianXia.Unity.Host
                     continue;
                 var dx = s.PresentationX - p.x;
                 var dy = s.PresentationZ - p.y;
-                var d = Mathf.Sqrt(dx * dx + dy * dy);
-                if (d > best)
+                var d2 = dx * dx + dy * dy;
+                if (d2 > best)
                     continue;
-                best = d;
+                best = d2;
                 bestSpot = s;
                 found = true;
             }
@@ -106,9 +112,6 @@ namespace XianXia.Unity.Host
             return true;
         }
 
-        /// <summary>
-        /// Soft work slot → concrete interact spot at a location (wraps if more workers than spots).
-        /// </summary>
         public static bool TryGetSlotSpot(
             string locationId,
             HostInteractSpotKind kind,
@@ -116,9 +119,8 @@ namespace XianXia.Unity.Host
             out HostInteractSpot spot)
         {
             spot = default;
-            if (string.IsNullOrEmpty(locationId) || slotIndex < 0)
+            if (string.IsNullOrEmpty(locationId))
                 return false;
-
             var matches = new List<HostInteractSpot>(8);
             var list = Spots;
             for (var i = 0; i < list.Count; i++)
@@ -133,17 +135,18 @@ namespace XianXia.Unity.Host
 
             if (matches.Count == 0)
                 return false;
-            spot = matches[slotIndex % matches.Count];
+            var idx = slotIndex % matches.Count;
+            if (idx < 0)
+                idx += matches.Count;
+            spot = matches[idx];
             return true;
         }
 
-        /// <summary>Ring offset when no interact spots exist for the location.</summary>
-        public static Vector3 RingOffset(int slotIndex, float radius = 1.35f)
+        public static Vector3 RingOffset(int slotIndex)
         {
-            if (slotIndex < 0)
-                return Vector3.zero;
-            var ang = slotIndex * 2.399963f; // golden angle-ish
-            return new Vector3(Mathf.Cos(ang) * radius, Mathf.Sin(ang) * radius, 0f);
+            var a = slotIndex * 2.399963f;
+            var r = 0.55f + (slotIndex % 3) * 0.35f;
+            return new Vector3(Mathf.Cos(a) * r, Mathf.Sin(a) * r, 0f);
         }
     }
 }

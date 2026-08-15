@@ -393,7 +393,9 @@ namespace XianXia.Data.Content
                 Name = item.GetString("name", string.Empty),
                 DisplayNameKey = item.GetString("displayNameKey", string.Empty),
                 NameKey = item.GetString("nameKey", string.Empty),
-                RequiredRealm = item.GetString("requiredRealm", string.Empty)
+                RequiredRealm = item.GetString("requiredRealm", string.Empty),
+                Grade = item.GetString("grade", string.Empty),
+                EffectSummary = item.GetString("effectSummary", string.Empty)
             };
 
             if (item.TryGetProperty("cultivationSpeed", out var speedNode))
@@ -479,7 +481,7 @@ namespace XianXia.Data.Content
                     {
                         TargetAttribute = target,
                         Operation = operation,
-                        Value = (int)valueNode.Number,
+                        Value = valueNode.Number,
                         StackingKey = grant.GetString("stackingKey", string.Empty)
                     });
                 }
@@ -531,7 +533,8 @@ namespace XianXia.Data.Content
                 Name = item.GetString("name", string.Empty),
                 DisplayNameKey = item.GetString("displayNameKey", string.Empty),
                 NameKey = item.GetString("nameKey", string.Empty),
-                MaxStack = maxStack
+                MaxStack = maxStack,
+                TeachesManualId = item.GetString("teachesManualId", string.Empty)
             };
 
             ReadTags(item, itemDef.Tags, report, id.ToString());
@@ -967,7 +970,11 @@ namespace XianXia.Data.Content
                     OpportunitySiteId = locNode.GetString("opportunitySiteId", string.Empty),
                     ResidentNpcDefinitionId = locNode.GetString("residentNpcDefinitionId", string.Empty),
                     PresentationX = ReadFloat(locNode, "presentationX", 0f),
-                    PresentationZ = ReadFloat(locNode, "presentationZ", 0f)
+                    PresentationZ = ReadFloat(locNode, "presentationZ", 0f),
+                    LocalMapId = locNode.GetString("localMapId", string.Empty),
+                    EnterLocalMapId = locNode.GetString("enterLocalMapId", string.Empty),
+                    EnterSpawnLocationId = locNode.GetString("enterSpawnLocationId", string.Empty),
+                    SurveySenseRequired = ReadInt(locNode, "surveySenseRequired", 0)
                 };
 
                 if (string.IsNullOrWhiteSpace(entry.Id))
@@ -1241,7 +1248,8 @@ namespace XianXia.Data.Content
                         H = ReadInt(pNode, "h", 1),
                         BlocksMovement = ReadBool(pNode, "blocksMovement", false),
                         BoundLocationId = pNode.GetString("boundLocationId", string.Empty),
-                        Label = pNode.GetString("label", string.Empty)
+                        Label = pNode.GetString("label", string.Empty),
+                        LootItemId = pNode.GetString("lootItemId", string.Empty)
                     };
 
                     if (string.IsNullOrWhiteSpace(placement.Id))

@@ -56,6 +56,8 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < ids.Count; i++)
             {
                 var id = ids[i];
+                if (!LocalMapVisibility.IsEntityVisible(session.World, id))
+                    continue;
                 var position = ResolvePresentationPosition(session, id, i, stackAtLocation, slotPositions);
 
                 var isNpc = session.World.Entities.TryGet(id, out var entity) &&

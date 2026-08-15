@@ -907,6 +907,75 @@
       "desires": [],
       "playerControllable": false,
       "homeWorkAreaId": "base:workarea_houses"
+    },
+    {
+      "id": "base:character_jiang_lao",
+      "type": "character",
+      "name": "将老",
+      "baseAttributes": {
+        "MaxHp": 90,
+        "Attack": 6,
+        "Defense": 8,
+        "Speed": 6,
+        "Stamina": 40,
+        "SpiritSense": 8,
+        "Comprehension": 10,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 60
+      },
+      "personalityTags": [
+        "personality_steady"
+      ],
+      "backgroundTags": [
+        "background_labor_camp"
+      ],
+      "talentTags": [],
+      "tags": [
+        "mortal",
+        "npc",
+        "jiang_lao"
+      ],
+      "initialRealmPlaceholder": "凡人",
+      "activityCapabilities": {
+        "Labor": false,
+        "Rest": true,
+        "Eat": true,
+        "Cultivate": false,
+        "Explore": true,
+        "Patrol": true,
+        "Inspect": false
+      },
+      "activityPriorities": {
+        "Patrol": 9,
+        "Explore": 7,
+        "Rest": 6,
+        "Eat": 5,
+        "Labor": 0,
+        "Cultivate": 0,
+        "Inspect": 0
+      },
+      "preferredWorkAreaIds": [
+        "base:workarea_spring_check",
+        "base:workarea_road_hub",
+        "base:workarea_spring_cultivate"
+      ],
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 4,
+        "Wood": 4,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": [],
+      "playerControllable": false,
+      "homeWorkAreaId": "base:workarea_spring_check"
     }
   ]
 }

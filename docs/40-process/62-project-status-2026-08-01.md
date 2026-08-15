@@ -1,18 +1,18 @@
 # 项目现状总览 — 2026-08-01
 
-> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-15（境界阶梯／打坐／突破仪式 Host）  
+> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-15（将老／洞府／秘籍竖切）  
 > 用途：一次看清 VS0.1～1.0／Content Ready 做到哪、本轮改了什么、下一步是什么。  
 > 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准；本页不改 Freeze。  
-> 近期增量一次看清：[122](122-cultivation-breakthrough-host-ritual-2026-08-15.md)／[121](121-housing-assignment-and-control-core-2026-08-15.md)／[120](120-character-roster-editors-and-timescale-rollup-2026-08-15.md)／[118](118-npc-behavior-editor.md)／[119](119-npc-character-vs-role-template-editors.md)／[117](117-npc-dialogue-host-ux-rollup-2026-08-14.md)
+> 近期增量一次看清：[124](124-jiang-lao-cave-manual-rollup-2026-08-15.md)／[123](123-quest-manual-api-interfaces-2026-08-15.md)／[122](122-cultivation-breakthrough-host-ritual-2026-08-15.md)／[121](121-housing-assignment-and-control-core-2026-08-15.md)／[120](120-character-roster-editors-and-timescale-rollup-2026-08-15.md)
 
 ---
 
 ## 1. 一句话现状
 
 **Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**；样例关可玩弧／导航／NPC 活动底座／Demo 0.1 Production **自动化已验收（手操待签）**。  
-**本轮：** **境界阶梯＋打坐＋突破蓄势／结果弹窗**；感应境无需功法；炼气起灵力护盾；人物／境界／关系暂停窗。见 [122](122-cultivation-breakthrough-host-ritual-2026-08-15.md)。  
-**下一步：** 炼气后功法获取闭环；或美术换皮／真战斗另开。住房／占领链已手操签收见 [121](121-housing-assignment-and-control-core-2026-08-15.md)。  
-制作人手操：[105](105-demo-0.1-producer-playbook-30min.md)。Demo Runtime **继续冻结**。
+**本轮：** **将老井字棋三胜残谱**＋**洞府勘查／选人进出**＋**洞府秘诀拾取学成（攻+6%）**；秘籍道具选人研读。见 [124](124-jiang-lao-cave-manual-rollup-2026-08-15.md)。  
+**下一步：** 洞内遭遇／探索事件；或多本功法并存；完整 WorldGraph 另开。  
+制作人手操：[105](105-demo-0.1-producer-playbook-30min.md)＋[124 §3](124-jiang-lao-cave-manual-rollup-2026-08-15.md)。Demo Runtime **继续冻结**。
 
 ---
 
@@ -161,7 +161,9 @@
 | 内容打断验收 [96] | https://my.feishu.cn/docx/DOeidICK3oLP67xEbsUcKxk1n4e |
 | Demo 手感对齐验收 [93] | https://my.feishu.cn/docx/W9ZgdAoY0odhINxIiGLcnwYonCg |
 | Demo 缺口审计 [91] | https://my.feishu.cn/docx/YtOsdxza5oDF79xAdNLcqOXinAc |
-| **本轮收束 [122] 境界／突破仪式** | https://my.feishu.cn/docx/ZNYIdDIFDoEmSgxhOwFcLm04nQb |
+| **本轮收束 [124] 将老／洞府／秘籍** | https://my.feishu.cn/docx/M4hBdXHm0oDcuoxRm3ccJ45HnXd |
+| **契约 [123] 功法任务条件／奖励** | https://my.feishu.cn/docx/XPE5dGfcYoI5iSxuL8zco64QnBc |
+| **收束 [122] 境界／突破仪式** | https://my.feishu.cn/docx/ZNYIdDIFDoEmSgxhOwFcLm04nQb |
 | **收束 [121] 住房／主管府** | https://my.feishu.cn/docx/NjepdWBA2o8O6kxzLxycQjgTnUf |
 | **收束 [120] 人物／名册／倍速** | https://my.feishu.cn/docx/CP2OddgK4ofYFzxPfr5cSYC0nG3 |
 | 工区编辑器 [118] | https://my.feishu.cn/docx/LFhvdfj46oraKCxcTtNcLJ0pnE6 |

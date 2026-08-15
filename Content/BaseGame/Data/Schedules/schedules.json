@@ -63,6 +63,19 @@
         { "startTick": 168, "endTick": 240, "activity": "Labor", "orderDurationTicks": 12 },
         { "startTick": 240, "endTick": 288, "activity": "Rest", "orderDurationTicks": 6 }
       ]
+    },
+    {
+      "id": "base:schedule_jiang_lao_pace",
+      "type": "schedule",
+      "name": "将老踱步日",
+      "blocks": [
+        { "startTick": 0, "endTick": 48, "activity": "Rest", "orderDurationTicks": 6 },
+        { "startTick": 48, "endTick": 120, "activity": "Patrol", "orderDurationTicks": 12 },
+        { "startTick": 120, "endTick": 156, "activity": "Explore", "orderDurationTicks": 12 },
+        { "startTick": 156, "endTick": 216, "activity": "Patrol", "orderDurationTicks": 12 },
+        { "startTick": 216, "endTick": 252, "activity": "Explore", "orderDurationTicks": 12 },
+        { "startTick": 252, "endTick": 288, "activity": "Rest", "orderDurationTicks": 6 }
+      ]
     }
   ]
 }

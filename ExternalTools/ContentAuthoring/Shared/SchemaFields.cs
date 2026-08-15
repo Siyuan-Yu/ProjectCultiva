@@ -88,27 +88,30 @@ public static class SchemaFields
 
     public static readonly HashSet<string> MapPlacementFields = new(StringComparer.Ordinal)
     {
-        "id", "kind", "x", "y", "w", "h", "blocksMovement", "boundLocationId", "label"
+        "id", "kind", "x", "y", "w", "h", "blocksMovement", "boundLocationId", "label", "lootItemId"
     };
 
     public static readonly HashSet<string> LocationFields = new(StringComparer.Ordinal)
     {
         "id", "name", "kind", "adjacentIds", "resourceOnExploreId", "resourceOnExploreAmount",
         "opportunitySiteId", "residentNpcDefinitionId", "presentationX", "presentationZ",
-        "enterConditions", "questOfferIds", "tags", "allowedActivities"
+        "enterConditions", "questOfferIds", "tags", "allowedActivities",
+        "localMapId", "enterLocalMapId", "enterSpawnLocationId", "surveySenseRequired"
     };
 
     public static readonly string[] ConditionKinds =
     [
         "storyFlag", "hasFlag", "missingFlag", "exploredLocation", "atLocation",
         "stockAtLeast", "realmAtLeast", "hasManual", "knowsSite", "questActive", "questCompleted",
-        "laborAtLocation", "characterAtLocation", "uniqueLaborAtLocation", "uniqueHarvestAtLocation"
+        "laborAtLocation", "characterAtLocation", "uniqueLaborAtLocation", "uniqueHarvestAtLocation",
+        "counterAtLeast", "missingDailyFlag", "hasDailyFlag", "encounterCleared"
     ];
 
     public static readonly string[] OutcomeKinds =
     [
         "setFlag", "clearFlag", "addStock", "grantProgress", "discoverSite",
-        "relationDelta", "startQuest"
+        "relationDelta", "startQuest",
+        "addCounter", "setCounter", "setDailyFlag", "clearDailyFlag", "learnManual", "setEncounterCleared", "startMinigame"
     ];
 
     public static readonly string[] EventTriggers =

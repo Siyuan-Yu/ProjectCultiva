@@ -117,7 +117,11 @@ namespace XianXia.Unity.Host
             var wasActive = IsActive;
             _controller.TrySelectChoice(index, session, commandBridge, bootstrap);
             if (wasActive && !IsActive)
-                HostInputGate.BlockWorldInteraction = false;
+            {
+                var ttt = bootstrap != null ? bootstrap.TicTacToePanel : null;
+                if (ttt == null || !ttt.IsOpen)
+                    HostInputGate.BlockWorldInteraction = false;
+            }
         }
 
         void DismissFallback()
@@ -152,8 +156,16 @@ namespace XianXia.Unity.Host
             else if (_holdingPause &&
                      !session.World.ContentEvents.HasActive)
             {
-                session.IsPaused = false;
-                _holdingPause = false;
+                var ttt = bootstrap != null ? bootstrap.TicTacToePanel : null;
+                if (ttt != null && ttt.IsOpen)
+                {
+                    _holdingPause = false;
+                }
+                else
+                {
+                    session.IsPaused = false;
+                    _holdingPause = false;
+                }
             }
         }
 

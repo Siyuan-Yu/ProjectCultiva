@@ -636,6 +636,16 @@
       "title": "近期更新收束 · 境界／打坐／突破仪式（2026-08-15）",
       "docId": "ZNYIdDIFDoEmSgxhOwFcLm04nQb"
     },
+    "quest-manual-api-2026-08-15": {
+      "file": "docs/40-process/123-quest-manual-api-interfaces-2026-08-15.md",
+      "title": "功法任务条件／奖励接口（2026-08-15）",
+      "docId": "XPE5dGfcYoI5iSxuL8zco64QnBc"
+    },
+    "jiang-lao-cave-manual-2026-08-15": {
+      "file": "docs/40-process/124-jiang-lao-cave-manual-rollup-2026-08-15.md",
+      "title": "近期更新收束 · 将老／洞府／秘籍（2026-08-15）",
+      "docId": "M4hBdXHm0oDcuoxRm3ccJ45HnXd"
+    },
     "world-graph-local-map": {
       "file": "docs/40-process/113-world-graph-local-map-architecture-revision-v0.1.md",
       "title": "World Graph + Local Map 架构修订 v0.1",

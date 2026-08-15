@@ -6,7 +6,7 @@
       "type": "opportunitySite",
       "name": "废弃洞府",
       "nameKey": "site.abandoned_cave",
-      "description": "灵泉侧的废弃洞府。灵气凝滞，适合暗修与引气；也是暴露风险地。得青云诀残篇于此。",
+      "description": "灵泉东侧隐蔽洞府。走近有气息提示；F7勘查以神识为半径扫描，命中后显入口，再进入内室。",
       "allowsCultivation": true,
       "offeredManualId": "base:cultivation_qingyun_manual",
       "tags": ["opportunity", "cultivation", "ch01"]

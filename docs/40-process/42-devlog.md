@@ -7,6 +7,52 @@
 
 ---
 
+## 2026-08-15 — 将老／秘籍／洞府进出收束（文档＋推送）
+
+**做了什么**
+- 收束文档 [124](124-jiang-lao-cave-manual-rollup-2026-08-15.md)；更新总览／通读／62／devlog；飞书 map＋同步；推 GitHub
+- 功能已含：将老井字棋、秘籍道具、勘查（神识×2／多圈）、进洞选人、出口离开、洞府秘诀拾取（攻+6%）
+
+**判断与理由**
+- 炼气后功法来源先竖切可玩，再开洞内遭遇／多功法并存
+
+## 2026-08-15 — 洞窟 LocalMap 进出竖切
+
+**做了什么**
+- 地点字段 `localMapId`／`enterLocalMapId`／`enterSpawnLocationId`；Core `EnterLocalMap`／`LeaveLocalMap`
+- 后续迭代：勘查显形、右键进／出、选人弹窗、洞内秘籍拾取（详见 [124](124-jiang-lao-cave-manual-rollup-2026-08-15.md)）
+
+**判断与理由**
+- 对齐 [113] 最小「发现→进另一张图」，不做完整 WorldGraph
+
+## 2026-08-15 — 学功法：秘籍道具＋选人研读
+
+**做了什么**
+- 功法字段 `grade`／`effectSummary`；打坐修为改跟 `cultivationSpeed`
+- 道具 `teachesManualId`；背包使用 → 选炼气队员学习并消耗；将老任务奖励改发秘籍
+
+**判断与理由**
+- 传承≠立刻学会；功法按角色学、需炼气；品阶／效果先做展示闭环
+
+## 2026-08-15 — 将老对弈竖切（井字棋＋三胜传承）
+
+**做了什么**
+- NPC `character_jiang_lao`（泉边踱步）、任务 `quest_jiang_lao_chess`、功法 `cultivation_jiang_lao_legacy`、对话链＋`startMinigame`
+- Host `HostTicTacToePanel`：真井字棋；每日一局（`daily:jiang_lao_chess`）；累计胜 3 次领残谱
+
+**判断与理由**
+- 对弈先于洞窟；日限＝可来才下，非每日必到；传承走既有 `learnManual` 领奖
+
+## 2026-08-15 — 功法任务条件／奖励接口（内容另填）
+
+**做了什么**
+- 条件：`counterAtLeast`／`missingDailyFlag`／`hasDailyFlag`／`encounterCleared`
+- 奖励：`addCounter`／`setCounter`／`setDailyFlag`／`clearDailyFlag`／`learnManual`／`setEncounterCleared`
+- SCHEMA＋QuestEditor 字段；测 `ContentQuestApiSliceTests`；说明 [123](123-quest-manual-api-interfaces-2026-08-15.md)
+
+**判断与理由**
+- 将老对弈／洞窟探索先定契约，避免内容 JSON 绑死假库存代币；日访与计数进会话板、不升 Snapshot
+
 ## 2026-08-15 — 境界阶梯／打坐／突破仪式 Host 闭环
 
 **做了什么**

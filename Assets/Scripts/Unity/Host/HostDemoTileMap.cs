@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Exploration;
 using XianXia.Data.Content;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -23,6 +24,7 @@ namespace XianXia.Unity.Host
         [SerializeField] int grassStride = 2;
 
         readonly List<GameObject> _built = new List<GameObject>();
+        PlayableHostSession _session;
 
         public int TileCount => _built.Count;
 
@@ -33,6 +35,7 @@ namespace XianXia.Unity.Host
         public void Rebuild(PlayableHostSession session)
         {
             Clear();
+            _session = session;
             MapLayoutPrefabResolver.BeginBatch();
             HostInteractSpots.BeginLayoutRebuild();
             if (!buildOnRebuild)
@@ -54,6 +57,7 @@ namespace XianXia.Unity.Host
         public void RebuildFromLayout(MapLayoutDefinition layout)
         {
             Clear();
+            _session = null;
             MapLayoutPrefabResolver.BeginBatch();
             HostInteractSpots.BeginLayoutRebuild();
             if (!buildOnRebuild || layout == null)
@@ -116,6 +120,13 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            // 未勘查显形的洞口：不刷外观／交互（坐标仍由 MapLayoutPresentationSync 对齐）。
+            if (ShouldHideHiddenEntrance(p))
+                return;
+            // 已拾取的地上物：不刷。
+            if (ShouldHideTakenLoot(p))
+                return;
+
             if (info.Mode == MapKindCatalog.StampMode.ZoneOverlay)
             {
                 var cx = ox + (p.X + pw * 0.5f) * cs;
@@ -151,6 +162,29 @@ namespace XianXia.Unity.Host
                 if (info.InteractKind.HasValue || info.Plantable)
                     AttachPlot(go, p, info, cellX, cellY, wx, wy);
             }
+        }
+
+        bool ShouldHideTakenLoot(MapPlacement p)
+        {
+            if (p == null || string.IsNullOrWhiteSpace(p.LootItemId))
+                return false;
+            if (_session?.World == null)
+                return false;
+            var spotId = string.IsNullOrWhiteSpace(p.Id) ? p.LootItemId : p.Id;
+            return XianXia.Core.Content.WorldLootPickupService.IsTaken(_session.World, spotId);
+        }
+
+        bool ShouldHideHiddenEntrance(MapPlacement p)
+        {
+            if (p == null || string.IsNullOrWhiteSpace(p.BoundLocationId))
+                return false;
+            if (_session?.World?.WorldRegion == null)
+                return false;
+            if (!_session.World.WorldRegion.TryGet(p.BoundLocationId, out var loc))
+                return false;
+            if (!OpportunityEntranceRules.IsHiddenEntrance(loc))
+                return false;
+            return !OpportunityEntranceRules.IsRevealed(_session.World, loc);
         }
 
         GameObject PlaceZoneOverlay(float x, float y, string name, float worldW, float worldH, Color color)
@@ -192,21 +226,27 @@ namespace XianXia.Unity.Host
             var plot = go.GetComponent<HostMapPlotCell>() ?? go.AddComponent<HostMapPlotCell>();
             var label = string.IsNullOrWhiteSpace(p.Label)
                 ? info.Kind + "(" + cellX + "," + cellY + ")"
-                : p.Label + "(" + cellX + "," + cellY + ")";
+                : p.Label;
+            var lootSpotId = string.IsNullOrWhiteSpace(p.Id) ? string.Empty : p.Id;
+            var lootItemId = p.LootItemId ?? string.Empty;
             plot.Configure(
                 p.BoundLocationId ?? string.Empty,
                 info.InteractKind.Value,
                 label,
                 cellX,
                 cellY,
-                info.Kind);
+                info.Kind,
+                lootSpotId,
+                lootItemId);
 
             HostInteractSpots.RegisterPlot(new HostInteractSpot(
                 p.BoundLocationId ?? string.Empty,
                 info.InteractKind.Value,
                 wx,
                 wy,
-                label));
+                label,
+                lootSpotId,
+                lootItemId));
         }
 
         void StampMissingPlacement(MapLayoutDefinition layout, MapPlacement p, int index, string kind)

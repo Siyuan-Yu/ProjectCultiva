@@ -186,16 +186,31 @@ namespace XianXia.Unity.Host
             sb.AppendLine("境界　" + RealmDisplay.Format(cult.Realm, cult.MinorStage));
             sb.AppendLine("修为　" + cult.Progress + " / " + cult.BreakthroughProgressRequired +
                           (cult.IsAtBottleneck ? "　【瓶颈】" : ""));
-            sb.AppendLine("修炼速　每 5 游戏分 +" + CultivationProgressRules.BaseProgressPerTick +
+            var speed = cult.HasLearnedManual && cult.CultivationSpeed > 0
+                ? cult.CultivationSpeed
+                : CultivationProgressRules.BaseProgressPerTick;
+            sb.AppendLine("修炼速　每 5 游戏分 +" + speed +
                           "（打坐中；倍速加快游戏时间）");
+            var world = bootstrap.Session.World;
             if (cult.HasLearnedManual && cult.LearnedManualId.HasValue)
-                sb.AppendLine("功法　" + ShortId(cult.LearnedManualId.Value.ToString()));
+            {
+                var mid = cult.LearnedManualId.Value;
+                if (world.TryGetManual(mid, out var manual) && manual != null)
+                {
+                    var mName = string.IsNullOrEmpty(manual.Name) ? ShortId(mid.ToString()) : manual.Name;
+                    var grade = string.IsNullOrEmpty(manual.Grade) ? "" : "（" + manual.Grade + "）";
+                    sb.AppendLine("功法　" + mName + grade);
+                    if (!string.IsNullOrEmpty(manual.EffectSummary))
+                        sb.AppendLine("效果　" + manual.EffectSummary);
+                }
+                else
+                    sb.AppendLine("功法　" + ShortId(mid.ToString()));
+            }
             else if (cult.Realm >= RealmStage.QiRefining)
                 sb.AppendLine("功法　未得（炼气后突破需要）");
             else
                 sb.AppendLine("功法　感应境无需（入炼气后才要）");
 
-            var world = bootstrap.Session.World;
             if (world.RealmLadder != null &&
                 world.RealmLadder.TryGetStep(cult.Realm, cult.MinorStage, out var step))
             {

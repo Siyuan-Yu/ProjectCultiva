@@ -87,7 +87,7 @@ namespace XianXia.Data.Bootstrap
             {
                 var item = kv.Value;
                 var id = item.Id.ToString();
-                catalog.Register(id, item.Name ?? id, item.MaxStack, item.Tags);
+                catalog.Register(id, item.Name ?? id, item.MaxStack, item.Tags, item.TeachesManualId);
             }
 
             world.Inventory.SetSlotCapacity(PartyInventory.DefaultSlotCapacity);

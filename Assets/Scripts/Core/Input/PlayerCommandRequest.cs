@@ -91,7 +91,10 @@ namespace XianXia.Core.Input
 
         public bool IsExplorationIntent =>
             Kind == PlayerCommandKind.Explore ||
-            Kind == PlayerCommandKind.Travel;
+            Kind == PlayerCommandKind.Travel ||
+            Kind == PlayerCommandKind.EnterLocalMap ||
+            Kind == PlayerCommandKind.LeaveLocalMap ||
+            Kind == PlayerCommandKind.SurveyEntrance;
 
         public bool IsContentIntent =>
             Kind == PlayerCommandKind.ResolveContentChoice ||

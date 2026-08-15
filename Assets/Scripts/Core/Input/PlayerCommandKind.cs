@@ -32,6 +32,12 @@ namespace XianXia.Core.Input
         /// <summary>Quest journal: claim rewards for ReadyToClaim quest.</summary>
         ClaimQuestRewards = 15,
         /// <summary>Quest journal: abandon an abandonable quest.</summary>
-        AbandonQuest = 16
+        AbandonQuest = 16,
+        /// <summary>Enter LocalMap via entrance location (TargetLocationId=洞口地点，可空＝当前位置).</summary>
+        EnterLocalMap = 17,
+        /// <summary>Leave current LocalMap interior back to overworld.</summary>
+        LeaveLocalMap = 18,
+        /// <summary>勘查洞口（TargetLocationId＝入口地点）。</summary>
+        SurveyEntrance = 19
     }
 }

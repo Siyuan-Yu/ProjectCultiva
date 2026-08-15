@@ -113,6 +113,12 @@ namespace XianXia.Core.Input
                 return _exploration.ExploreHere(_loop.World, request.Subject);
             if (request.Kind == PlayerCommandKind.Travel)
                 return _exploration.Travel(_loop.World, request.Subject, request.TargetLocationId);
+            if (request.Kind == PlayerCommandKind.EnterLocalMap)
+                return _exploration.EnterLocalMap(_loop.World, request.Subject, request.TargetLocationId);
+            if (request.Kind == PlayerCommandKind.LeaveLocalMap)
+                return _exploration.LeaveLocalMap(_loop.World, request.Subject);
+            if (request.Kind == PlayerCommandKind.SurveyEntrance)
+                return _exploration.SurveyEntrance(_loop.World, request.Subject, request.TargetLocationId);
             return Result.Failure(ErrorCode.InvalidArgument, "Unsupported exploration kind.");
         }
 

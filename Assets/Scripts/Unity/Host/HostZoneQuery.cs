@@ -40,6 +40,12 @@ namespace XianXia.Unity.Host
         public static bool TryFindCultivateSpot(Vector3 worldPoint, out HostInteractSpot spot) =>
             HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Cultivate, out spot);
 
+        public static bool TryFindExploreSpot(Vector3 worldPoint, out HostInteractSpot spot) =>
+            HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Explore, out spot);
+
+        public static bool TryFindLootSpot(Vector3 worldPoint, out HostInteractSpot spot) =>
+            HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Loot, out spot);
+
         /// <summary>
         /// 右键用：只认工区圆心附近，不用大色带（否则整片农田右键都会被吸去劳动中心，像粘住）。
         /// </summary>

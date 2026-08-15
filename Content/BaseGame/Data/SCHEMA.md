@@ -101,8 +101,10 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 | Field | Notes |
 |---|---|
-| `requiredRealm` | `Mortal`／`凡人` 等 |
-| `cultivationSpeed`／`breakthroughProgress` | Core 解释；瓶颈修为优先取 `realmLadder` 当前阶 |
+| `requiredRealm` | `Mortal`／`凡人`／`炼气` 等 |
+| `grade` | 品阶展示，如 `黄阶中级` |
+| `effectSummary` | 效果摘要文案 |
+| `cultivationSpeed`／`breakthroughProgress` | Core：打坐每 tick（5 游戏分）修为增益；瓶颈修为优先取 `realmLadder` |
 | `grantedModifiers` | Fixed／Percentage grants |
 
 ## type = realmLadder
@@ -119,6 +121,9 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | Field | Notes |
 |---|---|
 | `maxStack` | ≥1，默认 1 |
+| `teachesManualId` | 可选；指向 `cultivation` 功法。背包「使用」→ 选炼气队员学习并消耗 1 本 |
+
+样例：`base:item_manual_jiang_lao_legacy`、`base:item_manual_dongfu_secret`（洞府秘诀）
 
 ## type = opportunitySite
 
@@ -168,7 +173,18 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | Field | Notes |
 |---|---|
 | `startLocationId` | 开局地点 |
-| `locations[]` | id／name／kind／`tags[]`／`allowedActivities[]`／adjacentIds／resourceOnExplore*／opportunitySiteId／residentNpcDefinitionId／presentationX／presentationZ／`enterConditions[]`／`questOfferIds[]` |
+| `locations[]` | 见下 |
+
+### location
+
+| Field | Notes |
+|---|---|
+| id／name／kind／`tags[]`／`allowedActivities[]` | 基础 |
+| adjacentIds／resourceOnExplore*／opportunitySiteId／residentNpcDefinitionId | 邻接／探索／机缘／驻地 |
+| presentationX／presentationZ／`enterConditions[]`／`questOfferIds[]` | 表现／进入／挂任务 |
+| `localMapId` | 该地点所属 LocalMap；空＝地表 |
+| `enterLocalMapId`／`enterSpawnLocationId` | 洞口：进入的 mapLayout＋内部落点 |
+| `surveySenseRequired` | 已废弃（勘查半径＝角色神识） |
 
 ## type = mapLayout（格点地图 · MapEditor）
 
@@ -251,7 +267,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 ### condition.kind
 
-`atLocation`｜`hasFlag`｜`missingFlag`｜`realmAtLeast`｜`knowsSite`｜`stockAtLeast`｜`questActive`｜`questCompleted`｜`exploredLocation`｜`hasManual`｜`laborAtLocation`｜`uniqueLaborAtLocation`｜`uniqueHarvestAtLocation`｜`characterAtLocation`
+`atLocation`｜`hasFlag`｜`missingFlag`｜`realmAtLeast`｜`knowsSite`｜`stockAtLeast`｜`questActive`｜`questCompleted`｜`exploredLocation`｜`hasManual`｜`laborAtLocation`｜`uniqueLaborAtLocation`｜`uniqueHarvestAtLocation`｜`characterAtLocation`｜`counterAtLeast`｜`missingDailyFlag`｜`hasDailyFlag`｜`encounterCleared`
 
 | kind | 含义 | 主要字段 |
 |---|---|---|
@@ -260,17 +276,40 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | `uniqueLaborAtLocation` | 在地点完成过劳动的**不同角色数** ≥ | `id`／`amount` |
 | `uniqueHarvestAtLocation` | 在地点**采到过产出**的不同角色数 ≥ | `id`／`amount` |
 | `characterAtLocation` | 指定角色当前在某地点 | `id`（地点）／`characterId` |
+| `counterAtLeast` | 会话计数器 ≥ amount（对弈胜场等） | `id`（计数键）／`amount` |
+| `missingDailyFlag` | **今日尚未**标记该键（可再对弈／拜访） | `id` |
+| `hasDailyFlag` | **今日已**标记该键 | `id` |
+| `encounterCleared` | 遭遇已清除（flag `encounter:{id}`） | `id`（遭遇／洞窟键） |
 
-劳动／采集进度由 `LocationLaborProgressBoard` 维护；采集节奏由 Host（约 10s/份＠1x、可自动续采）决定。
+劳动／采集进度由 `LocationLaborProgressBoard` 维护；采集节奏由 Host（约 10s/份＠1x、可自动续采）决定。  
+计数／日访由 `ContentCounterBoard`／`ContentDailyBoard` 维护（**不进 Snapshot v1**）。
 
 ### outcome.kind
 
-`setFlag`｜`clearFlag`｜`addStock`｜`startQuest`｜`relationDelta`｜`grantProgress`｜`discoverSite`
+`setFlag`｜`clearFlag`｜`addStock`｜`startQuest`｜`relationDelta`｜`grantProgress`｜`discoverSite`｜`addCounter`｜`setCounter`｜`setDailyFlag`｜`clearDailyFlag`｜`learnManual`｜`setEncounterCleared`｜`startMinigame`
 
 | kind | 主要字段 |
 |---|---|
 | `relationDelta` | `fromDefinitionId`（单个）／`toDefinitionId`（单个，兼容旧数据）／`toDefinitionIds`（字符串数组，可多目标；`@party` = 当前全体可控角色）／`amount` |
+| `addCounter` | `id`／`amount`（默认 +1） |
+| `setCounter` | `id`／`amount` |
+| `setDailyFlag`／`clearDailyFlag` | `id`（与 missingDailyFlag 同键） |
+| `learnManual` | `id`＝`cultivation` 功法定义；**立刻**让领奖角色学（机缘点等）；任务更推荐 `addStock` 秘籍 |
+| `addStock` | `id`＝resource **或** item（含功法秘籍） |
+| `setEncounterCleared` | `id`→写 flag `encounter:{id}` |
+| `startMinigame` | `id`＝小游戏键（如 `ticTacToe`）；Host 拦截打开棋盘，胜负由 Host 写计数／日访 |
 
+**功法任务示例（接口就绪，内容另填）：**
+
+```json
+// 对弈选项 outcomes（Host 拦截 startMinigame；胜负另写）
+{ "kind": "startMinigame", "id": "ticTacToe" }
+// 胜局后 Host：addCounter chess_wins_jiang_lao + setDailyFlag daily:jiang_lao_chess
+// 选项／事件 conditions：missingDailyFlag id=daily:jiang_lao_chess
+// 任务 completeConditions：counterAtLeast id=chess_wins_jiang_lao amount=3
+// 任务 rewards：addStock 秘籍（背包使用后选炼气队员学）
+{ "kind": "addStock", "id": "base:item_manual_jiang_lao_legacy", "amount": 1 }
+```
 ## type = contentEvent（Content Ready）
 
 | Field | Notes |

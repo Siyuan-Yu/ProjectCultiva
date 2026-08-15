@@ -35,6 +35,7 @@ namespace XianXia.Unity.Host
         readonly Dictionary<ulong, int> _pathIndex = new Dictionary<ulong, int>();
         readonly Dictionary<ulong, PlayerCommandKind> _pendingOnArrive = new Dictionary<ulong, PlayerCommandKind>();
         readonly Dictionary<ulong, string> _pendingArriveLocation = new Dictionary<ulong, string>();
+        readonly Dictionary<ulong, System.Action> _pendingArriveActions = new Dictionary<ulong, System.Action>();
         readonly Dictionary<ulong, HostNpcArriveIntent> _pendingNpcIntent = new Dictionary<ulong, HostNpcArriveIntent>();
         readonly HashSet<ulong> _interactionHeldNpcs = new HashSet<ulong>();
         readonly HashSet<ulong> _movingIds = new HashSet<ulong>();
@@ -173,6 +174,16 @@ namespace XianXia.Unity.Host
         }
 
         public bool OrderPartyToPointPublic(Vector3 point) => OrderPartyToPoint(point, null);
+
+        /// <summary>单人寻路；抵达后调用 onArrive（用于入洞等）。</summary>
+        public bool OrderEntityToWorldPointPublic(EntityId id, Vector3 point, System.Action onArrive)
+        {
+            if (!OrderEntityToWorldPoint(id, point, null, issueStop: true))
+                return false;
+            if (onArrive != null)
+                _pendingArriveActions[id.Value] = onArrive;
+            return true;
+        }
 
         public bool OrderActorToNpc(EntityId actor, EntityId npc, HostNpcArriveAction action)
         {
@@ -505,6 +516,8 @@ namespace XianXia.Unity.Host
                     ApplyPendingNpcIntent(id);
                 else if (_pendingOnArrive.ContainsKey(id.Value))
                     ApplyPendingArrive(id);
+                else if (_pendingArriveActions.ContainsKey(id.Value))
+                    ApplyPendingArriveAction(id);
                 else if (selectionController != null && selectionController.IsPartyUnit(id))
                     HoldStandby(id);
             }
@@ -649,6 +662,15 @@ namespace XianXia.Unity.Host
             return push;
         }
 
+        void ApplyPendingArriveAction(EntityId id)
+        {
+            if (!_pendingArriveActions.TryGetValue(id.Value, out var action))
+                return;
+            _pendingArriveActions.Remove(id.Value);
+            StopOne(id);
+            action?.Invoke();
+        }
+
         void ApplyPendingArrive(EntityId id)
         {
             if (!_pendingOnArrive.TryGetValue(id.Value, out var kind))
@@ -749,7 +771,9 @@ namespace XianXia.Unity.Host
                 loc.LocationId = locationId;
 
             var exploredFlag = ContentConditionEvaluator.ExploredFlag(locationId);
-            if (!session.World.Flags.Has(exploredFlag))
+            if (!session.World.Flags.Has(exploredFlag) &&
+                session.World.WorldRegion.TryGet(locationId, out var place) &&
+                !OpportunityEntranceRules.IsHiddenEntrance(place))
                 exploration.ExploreHere(session.World, subject);
 
             if (host != null)
@@ -801,6 +825,7 @@ namespace XianXia.Unity.Host
 
             _pendingOnArrive.Remove(id.Value);
             _pendingArriveLocation.Remove(id.Value);
+            _pendingArriveActions.Remove(id.Value);
         }
 
         void ClearPath(EntityId id)

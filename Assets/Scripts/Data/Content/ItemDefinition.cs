@@ -14,6 +14,8 @@ namespace XianXia.Data.Content
         public string DisplayNameKey { get; set; }
         public string NameKey { get; set; }
         public int MaxStack { get; set; } = 1;
+        /// <summary>若有值：使用后可教指定功法（consumable 秘籍）。</summary>
+        public string TeachesManualId { get; set; }
         public List<string> Tags { get; set; } = new List<string>();
     }
 }

@@ -29,7 +29,7 @@ namespace XianXia.Unity.Host
 
         public void SetSpeedMultiplier(int multiplier)
         {
-            if (multiplier != 1 && multiplier != 2 && multiplier != 5)
+            if (multiplier != 1 && multiplier != 2 && multiplier != 5 && multiplier != 20)
                 return;
             _speedMultiplier = multiplier;
             bootstrap?.ResetAutoTickAccumulator();
@@ -37,7 +37,10 @@ namespace XianXia.Unity.Host
 
         public void CycleSpeed()
         {
-            _speedMultiplier = _speedMultiplier == 1 ? 2 : _speedMultiplier == 2 ? 5 : 1;
+            _speedMultiplier = _speedMultiplier == 1 ? 2
+                : _speedMultiplier == 2 ? 5
+                : _speedMultiplier == 5 ? 20
+                : 1;
             bootstrap?.ResetAutoTickAccumulator();
         }
 

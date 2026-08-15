@@ -63,12 +63,48 @@
 | `wall` | 墙 | **6×1**（拉成 1×n） | 每格 `WallTile`，`blocksMovement` 挡寻路 |
 | `treeS` / `treeM` / `treeL` | 小／中／大树 | 1×1／2×2／3×3 | 中心一棵树 prefab，可右键砍伐（Work） |
 | `ore` | 矿石 | **2×2** | 中心 `OrePile`，可右键采矿 |
-| `cushion` | 蒲团 | **1×1** | `Cushion`，可右键修炼（Cultivate） |
-| `house` | 小房子 | **20×20** | 中心一个 `SmallHouse` |
-| `rock` | 岩石／棚 | 4×4 | 每格 `RockTile` |
-| `cave` / `roadHub` | 洞府／枢纽 | 见默认 | 修炼点或建筑 |
+| `cushion` | 蒲团 | **1×1** | `Cushion`，可右键**修炼** |
+| `cave` | 洞府入口外观 | 4×4 | **勘查显形后**才刷出；建议关挡路。传送／勘查半径不在 MapEditor |
+| `roadHub` / `controlCore` | 枢纽／主管府 | 见默认 | 建筑／控制核心 |
 
-旧数据里的 `forest`／`spring` 现按**分区**处理；`mine` 按 **2×2 可采矿石** 兼容。树用 `treeS/M/L`，修炼点用 `cushion` 放在灵泉区内。
+旧数据里的 `forest`／`spring` 现按**分区**处理；`mine` 按 **2×2 可采矿石** 兼容。树用 `treeS/M/L`，修炼点用 `cushion` 放在灵泉区内。**洞口不要用蒲团代替洞府区。**
+
+---
+
+## 洞府入口（进另一张 LocalMap）怎么编
+
+MapEditor **只负责洞口外观位置**；勘查是角色指令（与战斗同排），以**神识值为半径**瞬时扫描。
+
+### MapEditor（荒村图）
+
+1. 选 **`cave`（洞府入口）** 放在入口（建议 4×4，靠近可走区域）  
+2. `boundLocationId` = `base:loc_ref_cave`  
+3. **关闭挡路**  
+4. Ctrl+S  
+
+未勘查前游戏里**不显示**洞府戳；坐标仍对齐 `boundLocationId`。走近约 14 格会 toast「附近似有洞府」。
+
+### 洞内图（另一张 mapLayout）
+
+1. 打开 `base:map_ch01_cave`  
+2. 内室绑 `base:loc_cave_chamber`  
+3. 与荒村是两份 JSON  
+
+### Region／地点 JSON（传送）
+
+| 字段 | 作用 |
+|------|------|
+| `opportunitySiteId` | 勘查命中后写入 KnownSites |
+| `enterLocalMapId` | 进入的 mapLayout |
+| `enterSpawnLocationId` | 洞内落点 |
+
+`surveySenseRequired` 已废弃（半径＝角色神识）。
+
+### 游戏内流程
+
+走近 → toast → **F7 勘查** → 洞口显形 → 选中己方 → **右键洞府** →「进入」→ **弹窗打勾**选随行 → 确认进入。
+
+洞内：**右键出口戳** →「离开」→ 回到地表。MapEditor 洞内图放 `cave` 戳并在 label/id 写「离开／出口／exit」。
 
 Prefab 目录：
 - 地表：`Assets/Prefabs/Environment/Tiles/`

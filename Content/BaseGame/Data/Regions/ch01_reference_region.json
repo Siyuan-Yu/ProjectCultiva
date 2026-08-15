@@ -161,7 +161,8 @@
           "kind": "Opportunity",
           "tags": [
             "cave",
-            "opportunity"
+            "opportunity",
+            "entrance"
           ],
           "allowedActivities": [
             "Explore",
@@ -172,8 +173,29 @@
             "base:loc_ref_road_hub"
           ],
           "opportunitySiteId": "base:site_abandoned_cave",
-          "presentationX": 30.5,
-          "presentationZ": -19.5
+          "enterLocalMapId": "base:map_ch01_cave",
+          "enterSpawnLocationId": "base:loc_cave_chamber",
+          "presentationX": 60.0,
+          "presentationZ": -11.0
+        },
+        {
+          "id": "base:loc_cave_chamber",
+          "name": "洞府内室",
+          "kind": "Opportunity",
+          "tags": [
+            "cave",
+            "interior",
+            "spirit"
+          ],
+          "allowedActivities": [
+            "Cultivate",
+            "Explore",
+            "Rest"
+          ],
+          "adjacentIds": [],
+          "localMapId": "base:map_ch01_cave",
+          "presentationX": 0.0,
+          "presentationZ": 0.0
         },
         {
           "id": "base:loc_ref_road_hub",

@@ -6,7 +6,7 @@ using XianXia.Core.Npc;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// 右键情境菜单：NPC＝对话／攻击；主管府＝仅攻击（靠近近战／占领）。
+    /// 右键情境菜单：NPC＝对话／攻击；洞府＝进入；主管府＝攻击。
     /// </summary>
     public sealed class HostNpcContextMenu : MonoBehaviour
     {
@@ -22,6 +22,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] HostMoveController moveController;
         [SerializeField] HostDialoguePresenter dialoguePresenter;
+        [SerializeField] HostLocalMapEnterPrompt localMapEnterPrompt;
         [SerializeField] Camera worldCamera;
 
         Phase _phase = Phase.Closed;
@@ -29,6 +30,8 @@ namespace XianXia.Unity.Host
         EntityId _actor = EntityId.None;
         EntityId _interactionNpc = EntityId.None;
         string _targetControlCoreWorkAreaId = string.Empty;
+        string _targetEntranceLocationId = string.Empty;
+        bool _leaveInteriorTarget;
         string _targetLabel = string.Empty;
         Vector2 _menuScreen;
         Rect _menuGuiRect;
@@ -45,17 +48,21 @@ namespace XianXia.Unity.Host
         public bool IsOpen => _phase != Phase.Closed;
 
         bool IsControlCoreTarget => !string.IsNullOrEmpty(_targetControlCoreWorkAreaId);
+        bool IsCaveEntranceTarget => !string.IsNullOrEmpty(_targetEntranceLocationId);
+        bool IsLeaveInteriorTarget => _leaveInteriorTarget;
 
         public void Bind(
             PlayableHostBootstrap host,
             HostSelectionController selection,
             HostMoveController move,
-            HostDialoguePresenter dialogue = null)
+            HostDialoguePresenter dialogue = null,
+            HostLocalMapEnterPrompt enterPrompt = null)
         {
             bootstrap = host;
             selectionController = selection;
             moveController = move;
             dialoguePresenter = dialogue;
+            localMapEnterPrompt = enterPrompt;
             if (worldCamera == null)
                 worldCamera = Camera.main;
         }
@@ -83,13 +90,14 @@ namespace XianXia.Unity.Host
                 worldCamera = Camera.main;
             var spawner = bootstrap.ViewSpawner;
 
-            // NPC first (dialogue／attack).
             if (HostNpcPicker.TryPickAtMouse(worldCamera, spawner, out var npc, out _) &&
                 !selectionController.IsPartyUnit(npc))
             {
                 _actor = actor;
                 _targetNpc = npc;
                 _targetControlCoreWorkAreaId = string.Empty;
+                _targetEntranceLocationId = string.Empty;
+                _leaveInteriorTarget = false;
                 _targetLabel = ResolveDisplayName(npc);
                 _menuScreen = Input.mousePosition;
                 _phase = Phase.Menu;
@@ -97,8 +105,42 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
-            // Control core: click anywhere on the building footprint.
             MapLayoutPick.TryGet(bootstrap.Session, out var layout);
+
+            // 洞内出口 → 离开
+            if (bootstrap.Session.World.LocalMap.IsInInterior &&
+                HostCaveEntranceQuery.TryPickInteriorExitAtMouse(worldCamera, layout, out var exitLabel))
+            {
+                _actor = actor;
+                _targetNpc = EntityId.None;
+                _targetControlCoreWorkAreaId = string.Empty;
+                _targetEntranceLocationId = string.Empty;
+                _leaveInteriorTarget = true;
+                _targetLabel = string.IsNullOrEmpty(exitLabel) ? "洞口" : exitLabel;
+                _menuScreen = Input.mousePosition;
+                _phase = Phase.Menu;
+                HostInputGate.BlockWorldInteraction = true;
+                return true;
+            }
+
+            // 地表已显形洞府 → 进入
+            if (!bootstrap.Session.World.LocalMap.IsInInterior &&
+                HostCaveEntranceQuery.TryPickAtMouse(
+                    worldCamera, bootstrap.Session.World, layout, out var entranceId) &&
+                bootstrap.Session.World.WorldRegion.TryGet(entranceId, out var entrance))
+            {
+                _actor = actor;
+                _targetNpc = EntityId.None;
+                _targetControlCoreWorkAreaId = string.Empty;
+                _targetEntranceLocationId = entranceId;
+                _leaveInteriorTarget = false;
+                _targetLabel = string.IsNullOrEmpty(entrance.Name) ? "洞府入口" : entrance.Name;
+                _menuScreen = Input.mousePosition;
+                _phase = Phase.Menu;
+                HostInputGate.BlockWorldInteraction = true;
+                return true;
+            }
+
             if (HostControlCoreQuery.TryPickAtMouse(
                     worldCamera, bootstrap.Session.World, layout, out var coreId) &&
                 bootstrap.Session.World.ControlCores.TryGet(coreId, out var core) &&
@@ -106,6 +148,8 @@ namespace XianXia.Unity.Host
             {
                 _actor = actor;
                 _targetNpc = EntityId.None;
+                _targetEntranceLocationId = string.Empty;
+                _leaveInteriorTarget = false;
                 _targetControlCoreWorkAreaId = coreId;
                 _targetLabel = string.IsNullOrEmpty(core.Name) ? "主管府" : core.Name;
                 _menuScreen = Input.mousePosition;
@@ -139,7 +183,11 @@ namespace XianXia.Unity.Host
             switch (_phase)
             {
                 case Phase.Menu:
-                    if (IsControlCoreTarget)
+                    if (IsLeaveInteriorTarget)
+                        DrawLeaveMenu();
+                    else if (IsCaveEntranceTarget)
+                        DrawCaveMenu();
+                    else if (IsControlCoreTarget)
                         DrawControlCoreMenu();
                     else
                         DrawContextMenu();
@@ -160,6 +208,83 @@ namespace XianXia.Unity.Host
                         BeginAttack,
                         () => _phase = Phase.AttackConfirm1);
                     break;
+            }
+        }
+
+        void DrawLeaveMenu()
+        {
+            const float w = 168f;
+            const float itemH = 30f;
+            var h = itemH + 34f;
+            var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
+            var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
+            _menuGuiRect = new Rect(guiX, guiY, w, h);
+            HostUiHitTest.Block(_menuGuiRect);
+
+            Fill(_menuGuiRect, Panel);
+            DrawFrame(_menuGuiRect, Border);
+
+            GUI.Label(new Rect(guiX + 10f, guiY + 6f, w - 20f, 22f), _targetLabel, _label);
+            var y = guiY + 30f;
+            if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "离开", _button))
+                BeginLeaveInterior();
+            TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        void BeginLeaveInterior()
+        {
+            var actor = _actor;
+            CloseAll();
+            var bridge = bootstrap != null ? bootstrap.CommandBridge : null;
+            if (bridge == null)
+                return;
+            if (!actor.IsNone && selectionController != null &&
+                !selectionController.State.Contains(actor))
+                selectionController.SelectEntity(actor, false);
+            if (bridge.IssueLeaveLocalMap() <= 0)
+                Debug.LogWarning("[Host] LeaveLocalMap failed: " + bridge.LastStatus);
+        }
+
+        void DrawCaveMenu()
+        {
+            const float w = 168f;
+            const float itemH = 30f;
+            var h = itemH + 34f;
+            var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
+            var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
+            _menuGuiRect = new Rect(guiX, guiY, w, h);
+            HostUiHitTest.Block(_menuGuiRect);
+
+            Fill(_menuGuiRect, Panel);
+            DrawFrame(_menuGuiRect, Border);
+
+            GUI.Label(new Rect(guiX + 10f, guiY + 6f, w - 20f, 22f), _targetLabel, _label);
+            var y = guiY + 30f;
+            if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "进入", _button))
+                BeginCaveEnter();
+            TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        void BeginCaveEnter()
+        {
+            var actor = _actor;
+            var entranceId = _targetEntranceLocationId;
+            CloseAll();
+            if (actor.IsNone || string.IsNullOrEmpty(entranceId))
+                return;
+
+            if (localMapEnterPrompt == null && bootstrap != null)
+                localMapEnterPrompt = bootstrap.GetComponent<HostLocalMapEnterPrompt>() ??
+                                     bootstrap.gameObject.AddComponent<HostLocalMapEnterPrompt>();
+            // 确保弹窗已 Bind（运行时 AddComponent 时）
+            if (localMapEnterPrompt != null && bootstrap != null)
+            {
+                localMapEnterPrompt.Bind(
+                    bootstrap,
+                    selectionController,
+                    bootstrap.CommandBridge,
+                    moveController);
+                localMapEnterPrompt.Open(actor, entranceId);
             }
         }
 
@@ -376,11 +501,14 @@ namespace XianXia.Unity.Host
             _targetNpc = EntityId.None;
             _actor = EntityId.None;
             _targetControlCoreWorkAreaId = string.Empty;
+            _targetEntranceLocationId = string.Empty;
+            _leaveInteriorTarget = false;
             _targetLabel = string.Empty;
             HostInputGate.BlockWorldInteraction = false;
             if (bootstrap?.Session != null &&
                 !bootstrap.Session.World.ContentEvents.HasActive &&
-                (dialoguePresenter == null || !dialoguePresenter.IsActive))
+                (dialoguePresenter == null || !dialoguePresenter.IsActive) &&
+                (localMapEnterPrompt == null || !localMapEnterPrompt.IsOpen))
                 bootstrap.Session.IsPaused = false;
         }
 
@@ -424,7 +552,8 @@ namespace XianXia.Unity.Host
         {
             if (bootstrap?.Session != null &&
                 !bootstrap.Session.World.ContentEvents.HasActive &&
-                (dialoguePresenter == null || !dialoguePresenter.IsActive))
+                (dialoguePresenter == null || !dialoguePresenter.IsActive) &&
+                (localMapEnterPrompt == null || !localMapEnterPrompt.IsOpen))
                 bootstrap.Session.IsPaused = false;
         }
 
