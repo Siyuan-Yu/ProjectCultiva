@@ -32,11 +32,17 @@ namespace XianXia.Unity.Host
         const float Pad = 8f;
         const float PanelW = 560f;
         const float ActionOrb = 44f;
+        const float UnitTabStripW = 36f;
 
         enum UnitTab
         {
             Overview = 0,
-            Relation = 1
+            Attributes = 1,
+            SpiritRoots = 2,
+            Cultivation = 3,
+            Personality = 4,
+            Tendency = 5,
+            Relation = 6
         }
 
         [SerializeField] PlayableHostBootstrap bootstrap;
@@ -57,18 +63,50 @@ namespace XianXia.Unity.Host
         bool _stylesReady;
         UnitTab _unitTab = UnitTab.Overview;
         Texture2D _px;
+        EntityId _unitPanelFocus = EntityId.None;
 
         static readonly Color Parchment = new Color(0.90f, 0.84f, 0.72f, 0.96f);
         static readonly Color ParchmentDark = new Color(0.72f, 0.62f, 0.48f, 1f);
         static readonly Color Ink = new Color(0.18f, 0.14f, 0.10f, 1f);
         static readonly Color BarOrange = new Color(0.92f, 0.62f, 0.22f, 1f);
         static readonly Color BarBlue = new Color(0.30f, 0.55f, 0.85f, 1f);
+        static readonly Color BarTeal = new Color(0.28f, 0.68f, 0.58f, 1f);
+        static readonly Color BarViolet = new Color(0.62f, 0.42f, 0.72f, 1f);
         static readonly Color AccentGold = new Color(0.95f, 0.78f, 0.28f, 1f);
+
+        static readonly AttributeId[] AttributeDisplayOrder =
+        {
+            AttributeId.MaxHp,
+            AttributeId.Attack,
+            AttributeId.Defense,
+            AttributeId.Speed,
+            AttributeId.Stamina,
+            AttributeId.SpiritSense,
+            AttributeId.Comprehension,
+            AttributeId.SpiritPower,
+            AttributeId.Cultivation,
+            AttributeId.MindState
+        };
+
+        static readonly SpiritRootKind[] SpiritRootDisplayOrder =
+        {
+            SpiritRootKind.Fire,
+            SpiritRootKind.Metal,
+            SpiritRootKind.Earth,
+            SpiritRootKind.Wood,
+            SpiritRootKind.Thunder,
+            SpiritRootKind.Wind,
+            SpiritRootKind.Ice,
+            SpiritRootKind.Poison
+        };
 
         readonly List<EntityId> _housingResidentsScratch = new List<EntityId>(16);
         readonly List<EntityId> _housingCandidatesScratch = new List<EntityId>(32);
+        readonly List<(ScheduleActivity Activity, int Priority)> _tendencyScratch =
+            new List<(ScheduleActivity Activity, int Priority)>(16);
         Vector2 _housingAssignScroll;
         Vector2 _scheduleEditScroll;
+        Vector2 _unitPanelScroll;
 
         public void Bind(
             PlayableHostBootstrap host,
@@ -101,6 +139,14 @@ namespace XianXia.Unity.Host
                 return;
             if (bootstrap.QuestJournal != null && bootstrap.QuestJournal.IsOpen)
                 return;
+            if (bootstrap.CultivationPanel != null && bootstrap.CultivationPanel.IsOpen)
+                return;
+            if (bootstrap.CharacterSheetPanel != null && bootstrap.CharacterSheetPanel.IsOpen)
+                return;
+            if (bootstrap.RelationPanel != null && bootstrap.RelationPanel.IsOpen)
+                return;
+            if (bootstrap.CultivateConfirm != null && bootstrap.CultivateConfirm.IsOpen)
+                return;
             if (session.World.ContentEvents.HasActive)
                 return;
 
@@ -113,6 +159,12 @@ namespace XianXia.Unity.Host
                 return;
             var session = bootstrap != null ? bootstrap.Session : null;
             if (session == null || !session.IsInitialized)
+                return;
+            if (bootstrap != null &&
+                ((bootstrap.CultivationPanel != null && bootstrap.CultivationPanel.IsOpen) ||
+                 (bootstrap.CharacterSheetPanel != null && bootstrap.CharacterSheetPanel.IsOpen) ||
+                 (bootstrap.RelationPanel != null && bootstrap.RelationPanel.IsOpen) ||
+                 (bootstrap.CultivateConfirm != null && bootstrap.CultivateConfirm.IsOpen)))
                 return;
 
             EnsureStyles();
@@ -253,36 +305,12 @@ namespace XianXia.Unity.Host
                 _px.Apply();
             }
 
-            _title = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 14,
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = Color.white }
-            };
-            _body = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 12,
-                wordWrap = true,
-                normal = { textColor = new Color(0.92f, 0.92f, 0.92f) }
-            };
-            _parchmentTitle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 15,
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = Ink }
-            };
-            _parchmentBody = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 12,
-                wordWrap = true,
-                normal = { textColor = Ink }
-            };
-            _small = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 11,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = Ink }
-            };
+            _title = HostImguiStyles.InkLabel(14, bold: true, ink: Color.white);
+            _body = HostImguiStyles.InkLabel(12, wordWrap: true, ink: new Color(0.92f, 0.92f, 0.92f));
+            _parchmentTitle = HostImguiStyles.InkLabel(15, bold: true, ink: Ink);
+            _parchmentBody = HostImguiStyles.InkLabel(12, wordWrap: true, ink: Ink);
+            _small = HostImguiStyles.InkLabel(11, ink: Ink);
+            _small.alignment = TextAnchor.MiddleCenter;
             _stylesReady = true;
         }
 
@@ -558,7 +586,8 @@ namespace XianXia.Unity.Host
             var pct = max > 0 ? Mathf.Clamp01(cur / (float)max) : 0f;
             Fill(new Rect(bar.x + 1f, bar.y + 1f, (bar.width - 2f) * pct, bar.height - 2f), fill);
             DrawFrame(bar, new Color(0.7f, 0.7f, 0.75f, 0.8f));
-            var valueStyle = new GUIStyle(_small) { alignment = TextAnchor.MiddleCenter, normal = { textColor = Color.white } };
+            var valueStyle = new GUIStyle(_small) { alignment = TextAnchor.MiddleCenter };
+            HostImguiStyles.LockTextColor(valueStyle, Color.white);
             GUI.Label(bar, cur + "/" + max, valueStyle);
         }
 
@@ -666,6 +695,12 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            if (_unitPanelFocus != focus)
+            {
+                _unitPanelFocus = focus;
+                _unitPanelScroll = Vector2.zero;
+            }
+
             var isParty = selectionController.IsPartyUnit(focus);
             var panelH = BottomH - 18f;
             var panelX = (Screen.width - PanelW) * 0.5f;
@@ -682,31 +717,74 @@ namespace XianXia.Unity.Host
             Fill(main, Parchment);
             DrawFrame(main, ParchmentDark);
             HostUiHitTest.Block(main);
-            DrawUnitTabs(new Rect(main.xMax - 2f, main.y + 18f, 36f, main.height - 28f));
-            HostUiHitTest.Block(new Rect(main.xMax - 2f, main.y + 18f, 36f, main.height - 28f));
+
+            // 修仙模拟器式：贴在状态板右侧外沿
+            var tabStrip = new Rect(main.xMax + 2f, main.y + 12f, UnitTabStripW, main.height - 20f);
+            DrawDetailSideTabs(tabStrip, focus);
+            HostUiHitTest.Block(tabStrip);
 
             var name = string.IsNullOrEmpty(entity.DisplayName) ? focus.ToString() : entity.DisplayName;
             var activity = DescribeAction(session, entity);
-            var realm = entity.TryGet<CultivationComponent>(out var cult) ? RealmName(cult.Realm) : "—";
+            if (bootstrap != null &&
+                bootstrap.BreakthroughRitual != null &&
+                bootstrap.BreakthroughRitual.IsChannelingSubject(focus))
+                activity = "冲击瓶颈";
+            entity.TryGet<CultivationComponent>(out var cult);
+            var realm = cult != null ? RealmName(cult.Realm, cult.MinorStage) : "—";
             var subtitle = isParty ? "己方 · 上方可下令" : "查看 · 非己方不可下令";
             GUI.Label(
-                new Rect(main.x + 14f, main.y + 8f, 400f, 24f),
+                new Rect(main.x + 14f, main.y + 8f, main.width - 140f, 24f),
                 name + "（" + activity + "）· " + subtitle,
                 _parchmentTitle);
-            GUI.Label(new Rect(main.xMax - 150f, main.y + 8f, 120f, 24f), realm, _parchmentTitle);
+            GUI.Label(
+                new Rect(main.xMax - 128f, main.y + 8f, 120f, 24f),
+                realm,
+                _parchmentTitle);
 
-            var content = new Rect(main.x + 12f, main.y + 36f, main.width - 52f, main.height - 88f);
-            if (_unitTab == UnitTab.Relation)
-                GUI.Label(content, BuildRelationText(session, focus), _parchmentBody);
-            else
-                DrawOverviewBars(session, entity, cult, content);
-
+            var headerExtra = 0f;
             if (isParty && selectionController.State.Count > 1)
             {
                 GUI.Label(
-                    new Rect(main.x + 14f, main.y + 30f, main.width - 60f, 18f),
+                    new Rect(main.x + 14f, main.y + 30f, main.width - 24f, 18f),
                     "框选 " + selectionController.State.Count + " 人时：指令只令「" + name + "」；群体移动请右键",
                     _small);
+                headerExtra = 16f;
+            }
+
+            var content = new Rect(
+                main.x + 12f,
+                main.y + 36f + headerExtra,
+                main.width - 24f,
+                main.height - 48f - headerExtra);
+            DrawOverviewBars(session, entity, cult, content);
+            GUI.Label(
+                new Rect(main.x + 14f, main.yMax - 22f, main.width - 28f, 18f),
+                "右侧打开详情 · 打坐：F6",
+                _small);
+        }
+
+        void DrawDetailSideTabs(Rect strip, EntityId focus)
+        {
+            var names = new[] { "人物", "境界", "关系" };
+            var h = Mathf.Min(40f, (strip.height - 8f * (names.Length - 1)) / names.Length);
+            for (var i = 0; i < names.Length; i++)
+            {
+                var r = new Rect(strip.x, strip.y + i * (h + 8f), strip.width, h);
+                if (!HostImguiStyles.SideTabBtn(r, names[i]))
+                    continue;
+                Event.current.Use();
+                switch (i)
+                {
+                    case 0:
+                        bootstrap?.CharacterSheetPanel?.OpenFor(focus);
+                        break;
+                    case 1:
+                        bootstrap?.CultivationPanel?.OpenFor(focus);
+                        break;
+                    case 2:
+                        bootstrap?.RelationPanel?.OpenFor(focus);
+                        break;
+                }
             }
         }
 
@@ -724,17 +802,6 @@ namespace XianXia.Unity.Host
                 "Q\n移动", "F1\n停止", "E\n交互", "F8\n战斗", "F6\n修炼"
             };
 
-            var btnStyle = new GUIStyle(GUI.skin.button)
-            {
-                fontSize = 11,
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                wordWrap = true
-            };
-            btnStyle.normal.textColor = Ink;
-            btnStyle.hover.textColor = Ink;
-            btnStyle.active.textColor = Ink;
-
             var mode = bootstrap != null ? bootstrap.WorkTargetMode : null;
             var gap = 10f;
             var total = ActionOrb * labels.Length + gap * (labels.Length - 1);
@@ -742,88 +809,356 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < labels.Length; i++)
             {
                 var r = new Rect(startX + i * (ActionOrb + gap), y, ActionOrb, ActionOrb);
-                var armedMatch = mode != null && (
-                    (i == 0 && mode.Armed == HostWorkTargetMode.ArmKind.Move) ||
-                    (i == 2 && mode.Armed == HostWorkTargetMode.ArmKind.Interact) ||
-                    (i == 3 && mode.Armed == HostWorkTargetMode.ArmKind.Combat) ||
-                    (i == 4 && mode.Armed == HostWorkTargetMode.ArmKind.Cultivate));
-                var prev = GUI.backgroundColor;
-                GUI.backgroundColor = armedMatch ? AccentGold : new Color(0.95f, 0.93f, 0.88f, 1f);
                 GUI.enabled = commandBridge != null || mode != null;
-                if (GUI.Button(r, labels[i], btnStyle))
+                if (HostImguiStyles.ParchmentBtn(r, labels[i]))
                 {
                     Event.current.Use();
                     InvokeActionIndex(focus, i);
                 }
 
                 GUI.enabled = true;
-                GUI.backgroundColor = prev;
             }
         }
 
         void DrawUnitTabs(Rect strip)
         {
-            var names = new[] { "况", "系" };
-            var h = 34f;
+            var names = new[] { "况", "属", "灵", "修", "性", "事", "系" };
+            var h = Mathf.Min(32f, (strip.height - 6f * (names.Length - 1)) / names.Length);
             for (var i = 0; i < names.Length; i++)
             {
                 var r = new Rect(strip.x, strip.y + i * (h + 6f), strip.width, h);
                 var on = (int)_unitTab == i;
                 Fill(r, on ? AccentGold : ParchmentDark);
                 if (GUI.Button(r, names[i], _small))
+                {
                     _unitTab = (UnitTab)i;
+                    _unitPanelScroll = Vector2.zero;
+                }
+            }
+        }
+
+        void DrawUnitTabContent(
+            PlayableHostSession session,
+            EntityId focus,
+            Entity entity,
+            CultivationComponent cult,
+            Rect area)
+        {
+            switch (_unitTab)
+            {
+                case UnitTab.Overview:
+                    DrawOverviewBars(session, entity, cult, area);
+                    break;
+                case UnitTab.Attributes:
+                    DrawAttributesTab(entity, area);
+                    break;
+                case UnitTab.SpiritRoots:
+                    DrawSpiritRootsTab(entity, area);
+                    break;
+                case UnitTab.Cultivation:
+                    DrawCultivationTab(entity, cult, area);
+                    break;
+                case UnitTab.Personality:
+                    DrawPersonalityTab(entity, area);
+                    break;
+                case UnitTab.Tendency:
+                    DrawTendencyTab(entity, area);
+                    break;
+                case UnitTab.Relation:
+                    DrawScrollText(area, BuildRelationText(session, focus));
+                    break;
             }
         }
 
         void DrawOverviewBars(PlayableHostSession session, Entity entity, CultivationComponent cult, Rect area)
         {
-            var progress = cult != null ? cult.Progress : 0;
-            const int progressMax = 100;
+            var leftW = area.width * 0.48f;
+            var rightX = area.x + area.width * 0.52f;
+            var rightW = area.width * 0.48f;
+            var y = area.y;
 
-            var hpCur = 0;
-            var hpMax = 100;
             if (entity.TryGet<AttributesComponent>(out var attrs))
             {
-                hpMax = Mathf.Max(1, attrs.GetBase(AttributeId.MaxHp));
-                // 暂无独立当前生命时用满值展示上限；条满表示体魄上限。
-                hpCur = hpMax;
+                var hp = Mathf.Max(0, attrs.GetFinal(AttributeId.MaxHp));
+                DrawStatBar(area.x, y, leftW, "体魄", hp, Mathf.Max(1, hp), BarOrange);
+                y += 22f;
+                var sta = attrs.GetFinal(AttributeId.Stamina);
+                DrawStatBar(area.x, y, leftW, "耐力", sta, Mathf.Max(100, sta), BarOrange);
+                y += 22f;
+                var sense = attrs.GetFinal(AttributeId.SpiritSense);
+                DrawStatBar(area.x, y, leftW, "神识", sense, Mathf.Max(100, sense), BarViolet);
+                y += 22f;
+                var mind = attrs.GetFinal(AttributeId.MindState);
+                DrawStatBar(area.x, y, leftW, "心境", mind, Mathf.Max(100, mind), BarBlue);
             }
-
-            var left = new Rect(area.x, area.y, area.width * 0.48f, area.height);
-            var right = new Rect(area.x + area.width * 0.52f, area.y, area.width * 0.48f, area.height);
-
-            DrawStatBar(left.x, left.y + 4f, left.width, "体魄", hpCur, hpMax, BarOrange);
-
-            DrawStatBar(right.x, right.y + 4f, right.width, "修为", progress, progressMax, BarBlue);
-
-            var manualName = "未得功法";
-            if (cult != null && cult.HasLearnedManual && cult.LearnedManualId.HasValue)
+            else
             {
-                var mid = cult.LearnedManualId.Value.ToString();
-                var slash = mid.LastIndexOf(':');
-                manualName = slash >= 0 && slash < mid.Length - 1 ? mid.Substring(slash + 1) : mid;
+                GUI.Label(new Rect(area.x, y, leftW, 22f), "无属性数据", _parchmentBody);
+                y += 22f;
             }
 
-            GUI.Label(
-                new Rect(right.x, right.y + 30f, right.width, 22f),
-                "功法 " + manualName,
-                _parchmentBody);
+            var ry = area.y;
+            if (cult != null)
+            {
+                var req = Mathf.Max(1, cult.BreakthroughProgressRequired > 0
+                    ? cult.BreakthroughProgressRequired
+                    : 100);
+                DrawStatBar(rightX, ry, rightW, "修为", cult.Progress, req, BarBlue);
+                ry += 22f;
+                if (entity.TryGet<AttributesComponent>(out var attrs2))
+                {
+                    var sp = attrs2.GetFinal(AttributeId.SpiritPower);
+                    DrawStatBar(rightX, ry, rightW, "灵力", sp, Mathf.Max(100, sp), BarTeal);
+                    ry += 22f;
+                }
 
+                GUI.Label(
+                    new Rect(rightX, ry, rightW, 20f),
+                    "修炼速 每5游戏分+" + CultivationProgressRules.BaseProgressPerTick +
+                    " · 功法 " + ManualShortName(cult),
+                    _parchmentBody);
+                ry += 22f;
+            }
+
+            var infoY = Mathf.Max(y, ry) + 6f;
+            GUI.Label(
+                new Rect(area.x, infoY, area.width, area.yMax - infoY),
+                BuildOverviewFacts(session, entity),
+                _parchmentBody);
+        }
+
+        string BuildOverviewFacts(PlayableHostSession session, Entity entity)
+        {
+            var sb = new StringBuilder(256);
             if (entity.TryGet<EntityLocationComponent>(out var loc) && loc.HasLocation &&
                 session.World.WorldRegion.TryGet(loc.LocationId, out var place))
             {
                 var placeName = string.IsNullOrEmpty(place.Name) ? place.Id : place.Name;
+                sb.Append("地点 ").Append(placeName).Append('\n');
+            }
+
+            if (entity.TryGet<FactionMembershipComponent>(out var faction) && faction.IsAffiliated)
+                sb.Append("阵营 ").Append(ShortId(faction.FactionId))
+                    .Append(" · ").Append(FactionRoleName(faction.Role)).Append('\n');
+
+            if (entity.TryGet<PersonalConcealmentRiskComponent>(out var risk))
+                sb.Append("暴露 ").Append(risk.Value).Append("/100\n");
+
+            if (entity.TryGet<ScheduleComponent>(out var sched) &&
+                !string.IsNullOrEmpty(sched.DefinitionId))
+                sb.Append("课表 ").Append(ShortId(sched.DefinitionId)).Append('\n');
+
+            if (entity.TryGet<ActivityTendencyComponent>(out var tendency) &&
+                !string.IsNullOrEmpty(tendency.HomeWorkAreaId))
+                sb.Append("住房 ").Append(ShortId(tendency.HomeWorkAreaId)).Append('\n');
+
+            if (entity.TryGet<IdentityComponent>(out var id))
+                sb.Append("定义 ").Append(ShortId(id.DefinitionId.ToString()));
+
+            return sb.Length == 0 ? "—" : sb.ToString();
+        }
+
+        void DrawAttributesTab(Entity entity, Rect area)
+        {
+            if (!entity.TryGet<AttributesComponent>(out var attrs))
+            {
+                GUI.Label(area, "无属性数据", _parchmentBody);
+                return;
+            }
+
+            var viewH = AttributeDisplayOrder.Length * 24f + 8f;
+            _unitPanelScroll = GUI.BeginScrollView(
+                area,
+                _unitPanelScroll,
+                new Rect(0f, 0f, area.width - 18f, viewH));
+            var colW = (area.width - 28f) * 0.5f;
+            for (var i = 0; i < AttributeDisplayOrder.Length; i++)
+            {
+                var id = AttributeDisplayOrder[i];
+                var col = i % 2;
+                var row = i / 2;
+                var x = col * (colW + 10f);
+                var y = row * 24f;
+                var v = attrs.GetFinal(id);
+                DrawStatBar(x, y, colW, AttributeName(id), v, AttributeBarMax(id, v), AttributeBarColor(id));
+            }
+
+            GUI.EndScrollView();
+        }
+
+        void DrawSpiritRootsTab(Entity entity, Rect area)
+        {
+            if (!entity.TryGet<SpiritRootComponent>(out var roots))
+            {
+                GUI.Label(area, "无灵根数据", _parchmentBody);
+                return;
+            }
+
+            var viewH = SpiritRootDisplayOrder.Length * 24f + 8f;
+            _unitPanelScroll = GUI.BeginScrollView(
+                area,
+                _unitPanelScroll,
+                new Rect(0f, 0f, area.width - 18f, viewH));
+            var colW = (area.width - 28f) * 0.5f;
+            for (var i = 0; i < SpiritRootDisplayOrder.Length; i++)
+            {
+                var kind = SpiritRootDisplayOrder[i];
+                var col = i % 2;
+                var row = i / 2;
+                var x = col * (colW + 10f);
+                var y = row * 24f;
+                var v = roots.Get(kind);
+                DrawStatBar(x, y, colW, SpiritRootName(kind), v, SpiritRootComponent.DefaultMax, BarTeal);
+            }
+
+            GUI.EndScrollView();
+        }
+
+        void DrawCultivationTab(Entity entity, CultivationComponent cult, Rect area)
+        {
+            if (cult == null)
+            {
+                GUI.Label(area, "无修炼数据", _parchmentBody);
+                return;
+            }
+
+            var req = Mathf.Max(1, cult.BreakthroughProgressRequired > 0
+                ? cult.BreakthroughProgressRequired
+                : 100);
+            var y = area.y;
+            GUI.Label(
+                new Rect(area.x, y, area.width, 22f),
+                "境界 " + RealmName(cult.Realm, cult.MinorStage),
+                _parchmentBody);
+            y += 24f;
+            DrawStatBar(area.x, y, area.width, "修为进度", cult.Progress, req, BarBlue);
+            y += 26f;
+            GUI.Label(
+                new Rect(area.x, y, area.width, 22f),
+                "突破所需 " + cult.BreakthroughProgressRequired +
+                " · 修炼速度 " + cult.CultivationSpeed,
+                _parchmentBody);
+            y += 24f;
+            GUI.Label(
+                new Rect(area.x, y, area.width, 22f),
+                "功法 " + ManualShortName(cult),
+                _parchmentBody);
+            y += 24f;
+            if (!string.IsNullOrEmpty(cult.RequiredRealmName))
+            {
                 GUI.Label(
-                    new Rect(left.x, left.y + 30f, area.width, 22f),
-                    "地点 " + placeName,
+                    new Rect(area.x, y, area.width, 22f),
+                    "所需境界名 " + cult.RequiredRealmName,
                     _parchmentBody);
             }
+
+            if (entity.TryGet<AttributesComponent>(out var attrs))
+            {
+                y += 28f;
+                var cultAttr = attrs.GetFinal(AttributeId.Cultivation);
+                DrawStatBar(
+                    area.x,
+                    y,
+                    area.width,
+                    "修为属性",
+                    cultAttr,
+                    Mathf.Max(100, cultAttr),
+                    BarViolet);
+            }
+        }
+
+        void DrawPersonalityTab(Entity entity, Rect area)
+        {
+            var sb = new StringBuilder(512);
+            if (entity.TryGet<CharacterBioComponent>(out var bio))
+            {
+                if (!string.IsNullOrEmpty(bio.Hometown))
+                    sb.Append("籍贯 ").Append(bio.Hometown).Append('\n');
+                sb.Append("声望 ").Append(bio.Reputation).Append('\n');
+                if (bio.Goals.Count > 0)
+                {
+                    sb.Append("目标\n");
+                    for (var i = 0; i < bio.Goals.Count; i++)
+                        sb.Append("· ").Append(bio.Goals[i]).Append('\n');
+                }
+
+                if (bio.Desires.Count > 0)
+                {
+                    sb.Append("欲求\n");
+                    for (var i = 0; i < bio.Desires.Count; i++)
+                        sb.Append("· ").Append(bio.Desires[i]).Append('\n');
+                }
+            }
+
+            if (entity.TryGet<PersonalityProfileComponent>(out var profile) && profile.Count > 0)
+            {
+                sb.Append("标签\n");
+                foreach (var tag in profile.Tags)
+                    sb.Append("· ").Append(tag).Append('\n');
+            }
+
+            if (sb.Length == 0)
+                sb.Append("无性格／履历数据");
+            DrawScrollText(area, sb.ToString());
+        }
+
+        void DrawTendencyTab(Entity entity, Rect area)
+        {
+            if (!entity.TryGet<ActivityTendencyComponent>(out var tendency))
+            {
+                GUI.Label(area, "无活动倾向数据", _parchmentBody);
+                return;
+            }
+
+            var sb = new StringBuilder(512);
+            if (!string.IsNullOrEmpty(tendency.HomeWorkAreaId))
+                sb.Append("住房工区 ").Append(ShortId(tendency.HomeWorkAreaId)).Append('\n');
+            if (tendency.PreferredWorkAreaIds.Count > 0)
+            {
+                sb.Append("偏好工区 ");
+                for (var i = 0; i < tendency.PreferredWorkAreaIds.Count; i++)
+                {
+                    if (i > 0) sb.Append('、');
+                    sb.Append(ShortId(tendency.PreferredWorkAreaIds[i]));
+                }
+
+                sb.Append('\n');
+            }
+
+            sb.Append("可做活动（按优先级）\n");
+            tendency.CopyPrioritiesTo(_tendencyScratch);
+            if (_tendencyScratch.Count == 0)
+            {
+                sb.Append("· （未配置，默认均可）\n");
+            }
+            else
+            {
+                for (var i = 0; i < _tendencyScratch.Count; i++)
+                {
+                    var item = _tendencyScratch[i];
+                    sb.Append("· ").Append(ActivityName(item.Activity))
+                        .Append("  优先 ").Append(item.Priority).Append('\n');
+                }
+            }
+
+            DrawScrollText(area, sb.ToString());
+        }
+
+        void DrawScrollText(Rect area, string text)
+        {
+            var viewH = Mathf.Max(area.height, _parchmentBody.CalcHeight(new GUIContent(text), area.width - 18f) + 8f);
+            _unitPanelScroll = GUI.BeginScrollView(
+                area,
+                _unitPanelScroll,
+                new Rect(0f, 0f, area.width - 18f, viewH));
+            GUI.Label(new Rect(0f, 0f, area.width - 18f, viewH), text, _parchmentBody);
+            GUI.EndScrollView();
         }
 
         void DrawStatBar(float x, float y, float w, string label, int cur, int max, Color fill)
         {
-            GUI.Label(new Rect(x, y, 48f, 20f), label, _parchmentBody);
-            var bar = new Rect(x + 50f, y + 4f, w - 54f, 14f);
+            GUI.Label(new Rect(x, y, 56f, 20f), label, _parchmentBody);
+            var bar = new Rect(x + 58f, y + 4f, Mathf.Max(40f, w - 62f), 14f);
             Fill(bar, new Color(0.55f, 0.48f, 0.38f, 0.55f));
             var pct = max > 0 ? Mathf.Clamp01(cur / (float)max) : 0f;
             var inner = new Rect(bar.x + 1f, bar.y + 1f, (bar.width - 2f) * pct, bar.height - 2f);
@@ -832,10 +1167,104 @@ namespace XianXia.Unity.Host
             var valueStyle = new GUIStyle(_parchmentBody)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = 11,
-                normal = { textColor = Ink }
+                fontSize = 11
             };
+            HostImguiStyles.LockTextColor(valueStyle, Ink);
             GUI.Label(bar, cur + "/" + max, valueStyle);
+        }
+
+        static string ManualShortName(CultivationComponent cult)
+        {
+            if (cult != null && cult.HasLearnedManual && cult.LearnedManualId.HasValue)
+            {
+                var mid = cult.LearnedManualId.Value.ToString();
+                var slash = mid.LastIndexOf(':');
+                return slash >= 0 && slash < mid.Length - 1 ? mid.Substring(slash + 1) : mid;
+            }
+
+            if (cult != null && cult.Realm < RealmStage.QiRefining)
+                return "感应境无需";
+            return "未得功法";
+        }
+
+        static string AttributeName(AttributeId id)
+        {
+            switch (id)
+            {
+                case AttributeId.MaxHp: return "体魄";
+                case AttributeId.Attack: return "攻击";
+                case AttributeId.Defense: return "防御";
+                case AttributeId.Speed: return "身法";
+                case AttributeId.Stamina: return "耐力";
+                case AttributeId.SpiritSense: return "神识";
+                case AttributeId.Comprehension: return "悟性";
+                case AttributeId.SpiritPower: return "灵力";
+                case AttributeId.Cultivation: return "修为";
+                case AttributeId.MindState: return "心境";
+                default: return id.ToString();
+            }
+        }
+
+        static int AttributeBarMax(AttributeId id, int value)
+        {
+            switch (id)
+            {
+                case AttributeId.MaxHp:
+                    return Mathf.Max(1, value);
+                case AttributeId.MindState:
+                case AttributeId.Stamina:
+                case AttributeId.SpiritPower:
+                case AttributeId.Cultivation:
+                    return Mathf.Max(100, value);
+                default:
+                    return Mathf.Max(50, value);
+            }
+        }
+
+        static Color AttributeBarColor(AttributeId id)
+        {
+            switch (id)
+            {
+                case AttributeId.MaxHp:
+                case AttributeId.Attack:
+                case AttributeId.Defense:
+                case AttributeId.Speed:
+                case AttributeId.Stamina:
+                    return BarOrange;
+                case AttributeId.SpiritSense:
+                case AttributeId.Comprehension:
+                case AttributeId.MindState:
+                    return BarViolet;
+                default:
+                    return BarBlue;
+            }
+        }
+
+        static string SpiritRootName(SpiritRootKind kind)
+        {
+            switch (kind)
+            {
+                case SpiritRootKind.Fire: return "火";
+                case SpiritRootKind.Metal: return "金";
+                case SpiritRootKind.Earth: return "土";
+                case SpiritRootKind.Wood: return "木";
+                case SpiritRootKind.Thunder: return "雷";
+                case SpiritRootKind.Wind: return "风";
+                case SpiritRootKind.Ice: return "冰";
+                case SpiritRootKind.Poison: return "毒";
+                default: return kind.ToString();
+            }
+        }
+
+        static string FactionRoleName(FactionRoleKind role)
+        {
+            switch (role)
+            {
+                case FactionRoleKind.LaborDisciple: return "杂役";
+                case FactionRoleKind.Member: return "门人";
+                case FactionRoleKind.Supervisor: return "主管";
+                default: return role.ToString();
+            }
         }
 
         void DrawPanel(Rect rect, string title, string body)
@@ -890,27 +1319,21 @@ namespace XianXia.Unity.Host
                     if (mode != null) mode.ArmCombat();
                     break;
                 case 4:
-                    ArmCultivateSmart(focus, mode);
+                    PromptCultivateHere(focus);
                     break;
             }
         }
 
-        void ArmCultivateSmart(EntityId focus, HostWorkTargetMode mode)
+        void PromptCultivateHere(EntityId focus)
         {
-            var session = bootstrap != null ? bootstrap.Session : null;
-            if (session != null &&
-                session.World.Entities.TryGet(focus, out var e) &&
-                e.TryGet<EntityLocationComponent>(out var loc) &&
-                HostZoneQuery.LocationIsCultivate(session.World, loc.LocationId))
-            {
-                if (!session.World.ContentEvents.HasActive)
-                    session.IsPaused = false;
-                IssueFocus(focus, PlayerCommandKind.Cultivate);
+            if (bootstrap == null || focus.IsNone)
                 return;
-            }
-
+            EnsureFocusSelected(focus);
+            var mode = bootstrap.WorkTargetMode;
             if (mode != null)
-                mode.ArmCultivate();
+                mode.Cancel();
+            if (bootstrap.CultivateConfirm != null)
+                bootstrap.CultivateConfirm.OpenFor(focus);
             else
                 IssueFocus(focus, PlayerCommandKind.Cultivate);
         }
@@ -1236,15 +1659,8 @@ namespace XianXia.Unity.Host
             return "行动中";
         }
 
-        static string RealmName(RealmStage realm)
-        {
-            switch (realm)
-            {
-                case RealmStage.Mortal: return "感应境";
-                case RealmStage.QiRefining: return "炼气期";
-                default: return realm.ToString();
-            }
-        }
+        static string RealmName(RealmStage realm, int minor = 0) =>
+            RealmDisplay.Format(realm, minor);
 
         static string ActivityName(ScheduleActivity a)
         {

@@ -74,7 +74,9 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            var dt = Time.deltaTime;
+            var dt = bootstrap != null
+                ? bootstrap.PresentationDeltaTime
+                : Time.unscaledDeltaTime;
             if (core.CurrentDurability > 0)
             {
                 _meleeCooldown -= dt;

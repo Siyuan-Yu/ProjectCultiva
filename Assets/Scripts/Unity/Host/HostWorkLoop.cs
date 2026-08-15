@@ -8,7 +8,7 @@ using XianXia.Core.Input;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// Keeps player-ordered gather／labor looping until Stop or a non-work order.
+    /// Keeps player-ordered gather／labor／cultivate looping until Stop or a conflicting order.
     /// </summary>
     public sealed class HostWorkLoop : MonoBehaviour
     {
@@ -16,7 +16,8 @@ namespace XianXia.Unity.Host
         [SerializeField] HostCommandBridge commandBridge;
         [SerializeField] HostMoveController moveController;
 
-        readonly HashSet<ulong> _looping = new HashSet<ulong>();
+        readonly Dictionary<ulong, PlayerCommandKind> _looping =
+            new Dictionary<ulong, PlayerCommandKind>();
 
         public void Bind(PlayableHostBootstrap host, HostCommandBridge bridge, HostMoveController move)
         {
@@ -25,18 +26,21 @@ namespace XianXia.Unity.Host
             moveController = move;
         }
 
-        public void StartLoop(EntityId id)
+        public void StartLoop(EntityId id, PlayerCommandKind kind = PlayerCommandKind.Labor)
         {
-            if (!id.IsNone)
-                _looping.Add(id.Value);
+            if (id.IsNone)
+                return;
+            if (kind != PlayerCommandKind.Labor && kind != PlayerCommandKind.Cultivate)
+                kind = PlayerCommandKind.Labor;
+            _looping[id.Value] = kind;
         }
 
-        public void StartLoopMany(IReadOnlyList<EntityId> ids)
+        public void StartLoopMany(IReadOnlyList<EntityId> ids, PlayerCommandKind kind = PlayerCommandKind.Labor)
         {
             if (ids == null)
                 return;
             for (var i = 0; i < ids.Count; i++)
-                StartLoop(ids[i]);
+                StartLoop(ids[i], kind);
         }
 
         public void StopLoop(EntityId id)
@@ -47,7 +51,7 @@ namespace XianXia.Unity.Host
 
         public void StopAll() => _looping.Clear();
 
-        public bool IsLooping(EntityId id) => !id.IsNone && _looping.Contains(id.Value);
+        public bool IsLooping(EntityId id) => !id.IsNone && _looping.ContainsKey(id.Value);
 
         void LateUpdate()
         {
@@ -59,19 +63,19 @@ namespace XianXia.Unity.Host
                 return;
 
             var world = bootstrap.Session.World;
-            // Copy keys — may mutate during Issue.
             var scratch = ListPool.Rent();
-            foreach (var v in _looping)
-                scratch.Add(v);
+            foreach (var kv in _looping)
+                scratch.Add(kv);
 
             for (var i = 0; i < scratch.Count; i++)
             {
-                var id = new EntityId(scratch[i]);
+                var id = new EntityId(scratch[i].Key);
+                var kind = scratch[i].Value;
                 if (moveController != null && moveController.IsMoving(id))
                     continue;
                 if (!world.Entities.TryGet(id, out var entity))
                 {
-                    _looping.Remove(scratch[i]);
+                    _looping.Remove(scratch[i].Key);
                     continue;
                 }
 
@@ -81,14 +85,16 @@ namespace XianXia.Unity.Host
                 {
                     if (action is LaborAction || action is CultivateAction)
                         continue;
-                    // Wait／其它：打断后重开劳动
                     if (action is WaitAction)
                         bootstrap.Session.Loop.StopSubject(id);
                     else
                         continue;
                 }
 
-                commandBridge.IssueOne(id, PlayerCommandKind.Labor, commandBridge.GatherDurationTicks());
+                var dur = kind == PlayerCommandKind.Labor
+                    ? commandBridge.GatherDurationTicks()
+                    : HostCommandBridge.DefaultDurationTicks;
+                commandBridge.IssueOne(id, kind, dur);
             }
 
             ListPool.Return(scratch);
@@ -96,9 +102,10 @@ namespace XianXia.Unity.Host
 
         static class ListPool
         {
-            static readonly Stack<List<ulong>> Pool = new Stack<List<ulong>>();
+            static readonly Stack<List<KeyValuePair<ulong, PlayerCommandKind>>> Pool =
+                new Stack<List<KeyValuePair<ulong, PlayerCommandKind>>>();
 
-            public static List<ulong> Rent()
+            public static List<KeyValuePair<ulong, PlayerCommandKind>> Rent()
             {
                 if (Pool.Count > 0)
                 {
@@ -107,10 +114,10 @@ namespace XianXia.Unity.Host
                     return list;
                 }
 
-                return new List<ulong>(8);
+                return new List<KeyValuePair<ulong, PlayerCommandKind>>(8);
             }
 
-            public static void Return(List<ulong> list)
+            public static void Return(List<KeyValuePair<ulong, PlayerCommandKind>> list)
             {
                 if (list == null)
                     return;

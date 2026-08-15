@@ -13,13 +13,13 @@ namespace XianXia.Unity.Host
     {
         static readonly Color[] CharacterSlotColors =
         {
-            new Color(0.35f, 0.65f, 1f),
-            new Color(0.35f, 0.85f, 0.45f),
-            new Color(1f, 0.65f, 0.30f)
+            new Color(0.25f, 0.75f, 1f),
+            new Color(0.35f, 0.95f, 0.40f),
+            new Color(1f, 0.55f, 0.15f)
         };
 
-        static readonly Color NpcSlotColor = new Color(0.85f, 0.78f, 0.40f);
-        static readonly Color SupervisorColor = new Color(0.95f, 0.35f, 0.35f);
+        static readonly Color NpcSlotColor = new Color(1f, 0.92f, 0.25f);
+        static readonly Color SupervisorColor = new Color(1f, 0.22f, 0.28f);
 
         [SerializeField] Transform viewsRoot;
         [SerializeField] Vector3[] slotPositions =
@@ -145,11 +145,11 @@ namespace XianXia.Unity.Host
             go.transform.SetParent(viewsRoot, worldPositionStays: true);
             go.transform.position = position;
             go.transform.rotation = Quaternion.identity;
-            go.transform.localScale = Vector3.one * 0.9f;
+            go.transform.localScale = Vector3.one * 1.15f;
 
             var body = go.AddComponent<SpriteRenderer>();
             body.sprite = HostSpriteFactory.UnitSprite();
-            body.sortingOrder = 10;
+            body.sortingOrder = 800;
 
             var col = go.AddComponent<BoxCollider2D>();
             col.size = new Vector2(0.9f, 1.1f);
@@ -160,19 +160,23 @@ namespace XianXia.Unity.Host
             ringGo.transform.localScale = Vector3.one * 1.35f;
             var ring = ringGo.AddComponent<SpriteRenderer>();
             ring.sprite = HostSpriteFactory.SelectionRingSprite();
-            ring.sortingOrder = 9;
+            ring.color = new Color(0.15f, 1f, 0.35f, 1f);
+            ring.sortingOrder = 799;
             ring.enabled = false;
 
             var labelGo = new GameObject("Label");
             labelGo.transform.SetParent(go.transform, false);
-            labelGo.transform.localPosition = new Vector3(0f, 0.85f, -0.1f);
+            labelGo.transform.localPosition = new Vector3(0f, 0.95f, -0.1f);
             var text = labelGo.AddComponent<TextMesh>();
-            text.characterSize = 0.12f;
+            text.characterSize = 0.11f;
             text.anchor = TextAnchor.LowerCenter;
             text.alignment = TextAlignment.Center;
-            text.fontSize = 28;
+            text.fontSize = 32;
             text.color = Color.white;
             text.text = id.ToString();
+            var labelMr = labelGo.GetComponent<MeshRenderer>();
+            if (labelMr != null)
+                labelMr.sortingOrder = 801;
 
             var view = go.AddComponent<EntityView>();
             return view;

@@ -111,12 +111,32 @@ namespace XianXia.Tests
                     Assert.IsTrue(loop.TickOnce().IsSuccess);
             }
 
+            Assert.IsTrue(cult.IsAtBottleneck || cult.Progress > 0);
+            PushBreakthroughsToQiRefining(world, protagonist);
+
             Assert.AreEqual(RealmStage.QiRefining, cult.Realm);
             Assert.Greater(
                 protagonist.Get<AttributesComponent>().GetBase(XianXia.Core.Attributes.AttributeId.MaxHp),
                 hpBefore);
 
             Assert.AreEqual(1, WorldSnapshot.CurrentSchemaVersion);
+        }
+
+        static void PushBreakthroughsToQiRefining(
+            XianXia.Core.Simulation.SimulationWorld world,
+            XianXia.Core.Entities.Entity entity)
+        {
+            var svc = new CultivationService();
+            var cult = entity.Get<CultivationComponent>();
+            for (var i = 0; i < 8 && cult.Realm == RealmStage.Mortal; i++)
+            {
+                svc.SyncProgressRequired(world, cult);
+                if (cult.BreakthroughProgressRequired <= 0)
+                    cult.BreakthroughProgressRequired = 100;
+                cult.Progress = cult.BreakthroughProgressRequired;
+                var r = svc.TryBreakthrough(world, entity.Id);
+                Assert.IsTrue(r.IsSuccess, r.IsFailure ? r.Error.ToString() : "");
+            }
         }
     }
 }

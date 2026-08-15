@@ -103,6 +103,7 @@ namespace XianXia.Core.Persistence
                 {
                     dto.HasCultivation = true;
                     dto.Realm = (int)cultivation.Realm;
+                    dto.CultivationMinorStage = cultivation.MinorStage;
                     dto.CultivationProgress = cultivation.Progress;
                     dto.BreakthroughProgressRequired = cultivation.BreakthroughProgressRequired;
                     dto.CultivationSpeed = cultivation.CultivationSpeed;
@@ -363,6 +364,7 @@ namespace XianXia.Core.Persistence
                     var cultivation = new CultivationComponent
                     {
                         Realm = (RealmStage)e.Realm,
+                        MinorStage = e.CultivationMinorStage,
                         Progress = e.CultivationProgress,
                         BreakthroughProgressRequired = e.BreakthroughProgressRequired,
                         CultivationSpeed = e.CultivationSpeed,

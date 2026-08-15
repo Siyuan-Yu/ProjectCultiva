@@ -76,6 +76,7 @@ namespace XianXia.Core.Bootstrap
 
                 ApplyActivityTendency(entity, spawn);
                 ApplySpiritRoots(entity, spawn);
+                ApplyBio(entity, spawn);
 
                 world.Events.Publish(
                     EventType.EntityCreated,
@@ -174,6 +175,30 @@ namespace XianXia.Core.Bootstrap
                 if (Enum.TryParse(kv.Key, true, out SpiritRootKind kind))
                     roots.Set(kind, kv.Value);
             }
+        }
+
+        static void ApplyBio(Entity entity, CharacterSpawnRequest spawn)
+        {
+            if (entity == null || spawn == null)
+                return;
+            var hasAny =
+                !string.IsNullOrWhiteSpace(spawn.Hometown) ||
+                spawn.Reputation != 0 ||
+                (spawn.Goals != null && spawn.Goals.Count > 0) ||
+                (spawn.Desires != null && spawn.Desires.Count > 0);
+            if (!hasAny)
+                return;
+
+            if (!entity.TryGet<CharacterBioComponent>(out var bio))
+            {
+                bio = new CharacterBioComponent();
+                entity.AddComponent(bio);
+            }
+
+            bio.Hometown = spawn.Hometown ?? string.Empty;
+            bio.Reputation = spawn.Reputation;
+            bio.SetGoals(spawn.Goals);
+            bio.SetDesires(spawn.Desires);
         }
     }
 

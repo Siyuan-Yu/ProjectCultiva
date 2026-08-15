@@ -13,8 +13,9 @@ Content/BaseGame/
     Characters/                # type = character
       characters.json
       ch01_reference_characters.json
-    Cultivation/               # type = cultivation
+    Cultivation/               # type = cultivation｜realmLadder
       cultivation.json
+      realm_ladder.json
     Items/                     # type = item
       items.json
     Sites/                     # type = opportunitySite
@@ -85,7 +86,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 ### type 一览
 
-`character`｜`cultivation`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`mapLayout`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`
+`character`｜`cultivation`｜`realmLadder`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`mapLayout`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`
 
 ## type = character
 
@@ -101,8 +102,17 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | Field | Notes |
 |---|---|
 | `requiredRealm` | `Mortal`／`凡人` 等 |
-| `cultivationSpeed`／`breakthroughProgress` | Core 解释 |
+| `cultivationSpeed`／`breakthroughProgress` | Core 解释；瓶颈修为优先取 `realmLadder` 当前阶 |
 | `grantedModifiers` | Fixed／Percentage grants |
+
+## type = realmLadder
+
+| Field | Notes |
+|---|---|
+| `steps[]` | `fromRealm`／`fromMinor`／`toRealm`／`toMinor`／`progressRequired`／`successPercent`／`majorRealmJump`／`grantSpiritPower`／`bonuses` |
+| 感应境 | `Mortal` + minor 0/1/2 = 前/中/后期 |
+| 炼气 | `QiRefining` + minor 1–10 |
+| 筑基 | `Foundation`；十层→筑基默认低成功率卡点 |
 
 ## type = item
 

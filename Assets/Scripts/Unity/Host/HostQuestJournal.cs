@@ -612,26 +612,11 @@ namespace XianXia.Unity.Host
             if (_stylesReady)
                 return;
             EnsurePx();
-            _title = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 15,
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = Ink }
-            };
-            _body = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 12,
-                wordWrap = true,
-                alignment = TextAnchor.MiddleLeft,
-                normal = { textColor = Ink }
-            };
-            _small = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 11,
-                wordWrap = true,
-                normal = { textColor = Ink }
-            };
+            _title = HostImguiStyles.InkLabel(15, bold: true, ink: Ink);
+            _title.alignment = TextAnchor.MiddleCenter;
+            _body = HostImguiStyles.InkLabel(12, wordWrap: true, ink: Ink);
+            _body.alignment = TextAnchor.MiddleLeft;
+            _small = HostImguiStyles.InkLabel(11, wordWrap: true, ink: Ink);
             _stylesReady = true;
         }
 

@@ -12,12 +12,10 @@ using XianXia.Core.Social;
 namespace XianXia.Core.Actions
 {
     /// <summary>
-    /// Cultivate session: Start → consume ActionClock → add CultivationProgress → Complete → maybe breakthrough.
+    /// 打坐修炼：每 Tick +<see cref="CultivationProgressRules.BaseProgressPerTick"/>（可加天赋），到瓶颈封顶。
     /// </summary>
     public sealed class CultivateAction : IAction
     {
-        readonly CultivationService _cultivation = new CultivationService();
-
         public CultivateAction(ActionId id, EntityId subject, OrderId sourceOrderId, ulong durationTicks)
         {
             Id = id;
@@ -41,12 +39,8 @@ namespace XianXia.Core.Actions
                 return Result.Failure(ErrorCode.ComponentMissing, "Lifecycle missing.");
             if (life.IsDead || life.IsRemoved || life.IsIncapacitated)
                 return Result.Failure(ErrorCode.ActionCannotStart, "Subject cannot cultivate.", life.State.ToString());
-            if (!entity.TryGet<CultivationComponent>(out var cultivation))
+            if (!entity.TryGet<CultivationComponent>(out _))
                 return Result.Failure(ErrorCode.ComponentMissing, "CultivationComponent missing.");
-            if (!cultivation.HasLearnedManual)
-                return Result.Failure(ErrorCode.ActionCannotStart, "No learned manual.");
-            if (cultivation.CultivationSpeed <= 0)
-                return Result.Failure(ErrorCode.ActionCannotStart, "CultivationSpeed invalid.");
             return Result.Success();
         }
 
@@ -54,6 +48,13 @@ namespace XianXia.Core.Actions
         {
             var can = CanStart(world);
             if (can.IsFailure) return can;
+            if (world.Entities.TryGet(Subject, out var entity) &&
+                entity.TryGet<CultivationComponent>(out var cultivation) &&
+                cultivation.CultivationSpeed <= 0)
+            {
+                cultivation.CultivationSpeed = CultivationProgressRules.BaseProgressPerTick;
+            }
+
             Status = ActionStatus.Running;
             return Result.Success();
         }
@@ -74,21 +75,20 @@ namespace XianXia.Core.Actions
             var talentBonus = 0;
             if (entity.TryGet<PersonalityProfileComponent>(out var profile))
                 talentBonus = TalentGrowthRules.ExtraCultivateProgress(profile);
-            cultivation.Progress += cultivation.CultivationSpeed + talentBonus;
+
+            // 当前统一：每 5 游戏分钟（1 tick）+5；功法速度暂不覆盖此基数。
+            var gain = CultivationProgressRules.BaseProgressPerTick + talentBonus;
+            var cap = cultivation.BreakthroughProgressRequired;
+            if (cap > 0 && cultivation.Progress + gain > cap)
+                cultivation.Progress = cap;
+            else
+                cultivation.Progress += gain;
 
             if (entity.TryGet<PersonalConcealmentRiskComponent>(out var risk))
-                risk.Add(XianXia.Core.Concealment.ConcealmentExposureRules.CultivateRiskDelta(world, Subject));
+                risk.Add(ConcealmentExposureRules.CultivateRiskDelta(world, Subject));
 
             if (Clock.IsComplete)
-            {
                 Status = ActionStatus.Completed;
-                var broke = _cultivation.TryBreakthrough(world, Subject);
-                if (broke.IsFailure)
-                {
-                    Status = ActionStatus.Failed;
-                    return broke;
-                }
-            }
 
             return Result.Success();
         }

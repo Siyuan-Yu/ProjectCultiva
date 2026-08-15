@@ -285,6 +285,8 @@ namespace XianXia.Unity.Host
             if (!TryBuildWorldPath(view.transform.position, point, _wpScratch))
                 return false;
 
+            bootstrap?.BreakthroughRitual?.NotifyMoveOrdered(id);
+
             ResumeTime();
             if (issueStop)
                 StopOne(id);

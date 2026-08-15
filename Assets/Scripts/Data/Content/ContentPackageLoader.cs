@@ -242,6 +242,9 @@ namespace XianXia.Data.Content
                     case "mapLayout":
                         LoadMapLayout(item, parsed.Value, registry, report);
                         break;
+                    case "realmLadder":
+                        LoadRealmLadder(item, parsed.Value, registry, report);
+                        break;
                     default:
                         report.Add(ErrorCode.InvalidArgument, "Unknown definition type.", type);
                         break;
@@ -318,6 +321,57 @@ namespace XianXia.Data.Content
                 return;
 
             var reg = registry.RegisterCharacter(character);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void LoadRealmLadder(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var def = new RealmLadderDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty)
+            };
+
+            if (!item.TryGetProperty("steps", out var stepsNode) || stepsNode.Kind != JsonValueKind.Array)
+            {
+                report.Add(ErrorCode.MissingRequiredField, "realmLadder.steps required.", id.ToString());
+                return;
+            }
+
+            for (var i = 0; i < stepsNode.Array.Count; i++)
+            {
+                var row = stepsNode.Array[i];
+                if (row.Kind != JsonValueKind.Object)
+                    continue;
+                var step = new RealmLadderStepDefinition
+                {
+                    FromRealm = row.GetString("fromRealm", string.Empty),
+                    FromMinor = (int)row.GetNumber("fromMinor", 0),
+                    ToRealm = row.GetString("toRealm", string.Empty),
+                    ToMinor = (int)row.GetNumber("toMinor", 0),
+                    ProgressRequired = (int)row.GetNumber("progressRequired", 0),
+                    SuccessPercent = (int)row.GetNumber("successPercent", 95),
+                    MajorRealmJump = row.GetBool("majorRealmJump", false),
+                    GrantSpiritPower = (int)row.GetNumber("grantSpiritPower", 0)
+                };
+                if (row.TryGetProperty("bonuses", out var bonuses) && bonuses.Kind == JsonValueKind.Object)
+                {
+                    foreach (var kv in bonuses.Object)
+                    {
+                        if (kv.Value.Kind == JsonValueKind.Number)
+                            step.Bonuses[kv.Key] = (int)kv.Value.Number;
+                    }
+                }
+
+                def.Steps.Add(step);
+            }
+
+            var reg = registry.RegisterRealmLadder(def);
             if (reg.IsFailure)
                 report.Add(reg.Error);
         }

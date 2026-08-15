@@ -20,7 +20,7 @@ namespace XianXia.Unity.Host
             var fromRes = Resources.Load<Sprite>("HostSprites/Unit");
             if (fromRes != null)
                 return _unit = fromRes;
-            return _unit = MakeSolidSprite(24, 32, new Color(0.85f, 0.85f, 0.9f, 1f), "HostUnit");
+            return _unit = MakeOutlinedUnitSprite(24, 32, "HostUnit");
         }
 
         public static Sprite TileSprite()
@@ -40,7 +40,7 @@ namespace XianXia.Unity.Host
             var fromRes = Resources.Load<Sprite>("HostSprites/SelectRing");
             if (fromRes != null)
                 return _ring = fromRes;
-            return _ring = MakeRingSprite(48, new Color(0.3f, 0.95f, 0.35f, 0.9f), "HostRing");
+            return _ring = MakeRingSprite(48, new Color(0.15f, 1f, 0.35f, 1f), "HostRing");
         }
 
         /// <summary>MapLayout prefab 缺失时的占位图（洋红／黑棋盘格）。</summary>
@@ -52,6 +52,28 @@ namespace XianXia.Unity.Host
             if (fromRes != null)
                 return _missingPrefab = fromRes;
             return _missingPrefab = MakeCheckerboardSprite(32, 32, "HostMissingPrefab");
+        }
+
+        /// <summary>White fill + dark outline so tinted units stay readable on grass／dirt.</summary>
+        static Sprite MakeOutlinedUnitSprite(int w, int h, string name)
+        {
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false)
+            {
+                name = name,
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp
+            };
+            var fill = Color.white;
+            var edge = new Color(0.08f, 0.08f, 0.1f, 1f);
+            for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+            {
+                var border = x == 0 || y == 0 || x == w - 1 || y == h - 1;
+                tex.SetPixel(x, y, border ? edge : fill);
+            }
+
+            tex.Apply(false, true);
+            return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.15f), 32f);
         }
 
         static Sprite MakeSolidSprite(int w, int h, Color color, string name) =>

@@ -1,5 +1,6 @@
 using XianXia.Core.Bootstrap;
 using XianXia.Core.Content;
+using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Input;
 using XianXia.Core.Npc;
@@ -112,6 +113,10 @@ namespace XianXia.Data.Bootstrap
             if (manuals.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(manuals.Error);
 
+            var ladder = RegisterRealmLadder(world, registry);
+            if (ladder.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(ladder.Error);
+
             var sites = RegisterSites(world, registry);
             if (sites.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(sites.Error);
@@ -206,6 +211,24 @@ namespace XianXia.Data.Bootstrap
                 world.RegisterManual(mapped.Value);
             }
 
+            return Result.Success();
+        }
+
+        static Result RegisterRealmLadder(SimulationWorld world, DefinitionRegistry registry)
+        {
+            if (registry.TryGetPrimaryRealmLadder(out var def))
+            {
+                var mapped = RealmLadderMapper.ToBoard(def);
+                if (mapped.IsFailure)
+                    return Result.Failure(mapped.Error);
+                world.RealmLadder = mapped.Value;
+            }
+            else
+            {
+                world.RealmLadder = RealmLadderBoard.CreateDefault();
+            }
+
+            new CultivationService().SyncAllEntities(world);
             return Result.Success();
         }
 

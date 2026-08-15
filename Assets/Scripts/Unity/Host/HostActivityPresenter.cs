@@ -33,6 +33,13 @@ namespace XianXia.Unity.Host
                     continue;
                 if (!session.World.Entities.TryGet(view.EntityId, out var entity))
                     continue;
+                if (bootstrap.BreakthroughRitual != null &&
+                    bootstrap.BreakthroughRitual.IsChannelingSubject(view.EntityId))
+                {
+                    view.SetActivityText("冲击瓶颈");
+                    continue;
+                }
+
                 if (bootstrap.MoveController != null && bootstrap.MoveController.IsMoving(view.EntityId))
                 {
                     view.SetActivityText("移动中");

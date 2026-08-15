@@ -183,6 +183,7 @@ namespace XianXia.Core.Content
         static bool TryParseRealm(string text, out RealmStage realm)
         {
             if (string.Equals(text, "凡人", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(text, "感应境", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(text, "Mortal", StringComparison.OrdinalIgnoreCase))
             {
                 realm = RealmStage.Mortal;
@@ -193,6 +194,13 @@ namespace XianXia.Core.Content
                 string.Equals(text, "QiRefining", StringComparison.OrdinalIgnoreCase))
             {
                 realm = RealmStage.QiRefining;
+                return true;
+            }
+
+            if (string.Equals(text, "筑基", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(text, "Foundation", StringComparison.OrdinalIgnoreCase))
+            {
+                realm = RealmStage.Foundation;
                 return true;
             }
 

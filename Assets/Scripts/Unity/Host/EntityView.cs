@@ -60,6 +60,7 @@ namespace XianXia.Unity.Host
             EnsureVisualParts();
             SyncFromCore(entity);
             ApplyVisualState();
+            ApplyDepthSort();
             return true;
         }
 
@@ -85,9 +86,38 @@ namespace XianXia.Unity.Host
             }
 
             SyncFromCore(entity);
-            // Y-sort like Demo: lower Y draws in front.
+            ApplyDepthSort();
+        }
+
+        /// <summary>
+        /// Y-sort among units only; always keep units above map tiles／buildings
+        /// (tiles use roughly -30…100; northern Y used to push order to -thousands).
+        /// </summary>
+        void ApplyDepthSort()
+        {
+            const int entitySortBase = 800;
+            var yBand = Mathf.Clamp(Mathf.RoundToInt(-transform.position.y * 2f), -200, 200);
+            var order = entitySortBase + yBand;
             if (bodyRenderer != null)
-                bodyRenderer.sortingOrder = Mathf.RoundToInt(-transform.position.y * 100f);
+                bodyRenderer.sortingOrder = order;
+            if (selectionRing != null)
+                selectionRing.sortingOrder = order - 1;
+            if (label != null)
+            {
+                var mr = label.GetComponent<MeshRenderer>();
+                if (mr != null)
+                    mr.sortingOrder = order + 1;
+            }
+        }
+
+        void ApplyVisualState()
+        {
+            // Selection = ring only; do not tint the body (colors already encode faction／slot).
+            if (bodyRenderer != null)
+                bodyRenderer.color = _baseColor;
+
+            if (selectionRing != null)
+                selectionRing.enabled = _highlight;
         }
 
         void SyncFromCore(Entity entity)
@@ -148,17 +178,6 @@ namespace XianXia.Unity.Host
 
             if (label == null)
                 label = GetComponentInChildren<TextMesh>();
-        }
-
-        void ApplyVisualState()
-        {
-            if (bodyRenderer != null)
-                bodyRenderer.color = _highlight
-                    ? Color.Lerp(_baseColor, Color.yellow, 0.45f)
-                    : _baseColor;
-
-            if (selectionRing != null)
-                selectionRing.enabled = _highlight;
         }
 
         bool FailSafe(string reason)

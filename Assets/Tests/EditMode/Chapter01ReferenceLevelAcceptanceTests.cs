@@ -3,6 +3,7 @@ using NUnit.Framework;
 using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Entities;
 using XianXia.Core.Input;
 using XianXia.Core.Schedule;
 using XianXia.Core.Settlement;
@@ -173,6 +174,7 @@ namespace XianXia.Tests
                     Assert.IsTrue(loop.TickOnce().IsSuccess);
             }
 
+            PushBreakthroughsToQiRefining(world, protagonist);
             Assert.AreEqual(RealmStage.QiRefining, protagonist.Get<CultivationComponent>().Realm);
             Assert.IsTrue(Explore(port, subject));
             ResolveIfActive(port, subject, world, null);
@@ -261,6 +263,21 @@ namespace XianXia.Tests
             if (string.IsNullOrEmpty(choice))
                 choice = spec.Choices[0].Id;
             Assert.IsTrue(Resolve(port, subject, choice), world.ContentEvents.ActiveEventId);
+        }
+
+        static void PushBreakthroughsToQiRefining(SimulationWorld world, Entity entity)
+        {
+            var svc = new CultivationService();
+            var cult = entity.Get<CultivationComponent>();
+            for (var i = 0; i < 8 && cult.Realm == RealmStage.Mortal; i++)
+            {
+                svc.SyncProgressRequired(world, cult);
+                if (cult.BreakthroughProgressRequired <= 0)
+                    cult.BreakthroughProgressRequired = 100;
+                cult.Progress = cult.BreakthroughProgressRequired;
+                var r = svc.TryBreakthrough(world, entity.Id);
+                Assert.IsTrue(r.IsSuccess, r.IsFailure ? r.Error.ToString() : "");
+            }
         }
     }
 }

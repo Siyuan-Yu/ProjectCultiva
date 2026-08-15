@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using XianXia.Core.Combat;
 using XianXia.Core.Concealment;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
@@ -38,6 +39,7 @@ namespace XianXia.Core.Entities
             entity.AddComponent(new LifecycleComponent(LifecycleState.Alive));
             entity.AddComponent(new ActionStateComponent());
             entity.AddComponent(new CultivationComponent());
+            entity.AddComponent(new CombatVitalsComponent());
             entity.AddComponent(new DailyTaskComponent());
             entity.AddComponent(new KnownSitesComponent());
             entity.AddComponent(new PersonalConcealmentRiskComponent());

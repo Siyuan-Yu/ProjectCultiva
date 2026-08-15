@@ -136,6 +136,9 @@ namespace XianXia.Core.Simulation
         /// <summary>Shared party backpack (session-only; not in Snapshot v1).</summary>
         public PartyInventory Inventory { get; }
 
+        /// <summary>Realm breakthrough ladder (content/default; session-only).</summary>
+        public RealmLadderBoard RealmLadder { get; set; } = RealmLadderBoard.CreateDefault();
+
         /// <summary>Alias for story／content flags (same board as <see cref="Flags"/>).</summary>
         public WorldFlagBoard StoryFlags => Flags;
 

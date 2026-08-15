@@ -95,7 +95,15 @@ namespace XianXia.Unity.Host
             if (Input.GetKeyDown(KeyCode.S))
                 IssueSelected(PlayerCommandKind.Stop, 0);
             else if (Input.GetKeyDown(KeyCode.C))
-                IssueSelected(PlayerCommandKind.Cultivate);
+            {
+                if (hostBootstrap != null &&
+                    hostBootstrap.CultivateConfirm != null &&
+                    selectionController != null &&
+                    selectionController.State.Count > 0)
+                    hostBootstrap.CultivateConfirm.OpenFor(selectionController.State.SelectedIds[0]);
+                else
+                    IssueSelected(PlayerCommandKind.Cultivate);
+            }
             else if (Input.GetKeyDown(KeyCode.X))
                 IssueSelected(PlayerCommandKind.Stop, 0);
             else if (Input.GetKeyDown(KeyCode.G))
@@ -107,7 +115,15 @@ namespace XianXia.Unity.Host
             else if (Input.GetKeyDown(observeKey))
                 IssueSelected(PlayerCommandKind.Observe);
             else if (Input.GetKeyDown(cultivateKey))
-                IssueSelected(PlayerCommandKind.Cultivate);
+            {
+                if (hostBootstrap != null &&
+                    hostBootstrap.CultivateConfirm != null &&
+                    selectionController != null &&
+                    selectionController.State.Count > 0)
+                    hostBootstrap.CultivateConfirm.OpenFor(selectionController.State.SelectedIds[0]);
+                else
+                    IssueSelected(PlayerCommandKind.Cultivate);
+            }
             else if (Input.GetKeyDown(helpKey))
                 IssueSocial(PlayerCommandKind.Help);
             else if (Input.GetKeyDown(slightKey))
@@ -646,6 +662,17 @@ namespace XianXia.Unity.Host
                 if (!utility)
                     _session.Loop.StopSubject(id);
 
+                var ritual = hostBootstrap != null ? hostBootstrap.BreakthroughRitual : null;
+                if (ritual != null && ritual.TryHandleCommandDuringChannel(id, kind))
+                {
+                    // Stop＝取消蓄势；其他指令＝打断失败。Stop 仍继续清行动；非 Stop 则不再下发新指令。
+                    if (kind != PlayerCommandKind.Stop)
+                    {
+                        _lastFailureCount++;
+                        continue;
+                    }
+                }
+
                 if (kind == PlayerCommandKind.Stop)
                     workLoop?.StopLoop(id);
                 else if (kind != PlayerCommandKind.Labor && kind != PlayerCommandKind.Cultivate)
@@ -656,8 +683,8 @@ namespace XianXia.Unity.Host
                 {
                     _lastSuccessCount++;
                     NotifyFeedback(id, kind);
-                    if (kind == PlayerCommandKind.Labor)
-                        workLoop?.StartLoop(id);
+                    if (kind == PlayerCommandKind.Labor || kind == PlayerCommandKind.Cultivate)
+                        workLoop?.StartLoop(id, kind);
                 }
                 else
                 {

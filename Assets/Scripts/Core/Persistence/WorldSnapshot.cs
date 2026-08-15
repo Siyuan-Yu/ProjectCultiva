@@ -77,6 +77,7 @@ namespace XianXia.Core.Persistence
         public bool HasActiveClock { get; set; }
         public bool HasCultivation { get; set; }
         public int Realm { get; set; }
+        public int CultivationMinorStage { get; set; }
         public int CultivationProgress { get; set; }
         public int BreakthroughProgressRequired { get; set; }
         public int CultivationSpeed { get; set; }

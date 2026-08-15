@@ -57,6 +57,12 @@ namespace XianXia.Unity.Host
         [SerializeField] HostDialoguePresenter dialoguePresenter;
         [SerializeField] HostQuestJournal questJournal;
         [SerializeField] HostInventoryPanel inventoryPanel;
+        [SerializeField] HostCultivationPanel cultivationPanel;
+        [SerializeField] HostCharacterSheetPanel characterSheetPanel;
+        [SerializeField] HostRelationPanel relationPanel;
+        [SerializeField] HostCultivateConfirmPrompt cultivateConfirm;
+        [SerializeField] HostBreakthroughRitual breakthroughRitual;
+        [SerializeField] HostSelectedUnitChrome selectedUnitChrome;
         [SerializeField] HostInteractSpotPresenter interactSpotPresenter;
         [SerializeField] HostNpcScheduleMover npcScheduleMover;
         [SerializeField] HostNpcContextMenu npcContextMenu;
@@ -105,6 +111,16 @@ namespace XianXia.Unity.Host
         public HostQuestJournal QuestJournal => questJournal;
 
         public HostInventoryPanel InventoryPanel => inventoryPanel;
+
+        public HostCultivationPanel CultivationPanel => cultivationPanel;
+
+        public HostCharacterSheetPanel CharacterSheetPanel => characterSheetPanel;
+
+        public HostRelationPanel RelationPanel => relationPanel;
+
+        public HostCultivateConfirmPrompt CultivateConfirm => cultivateConfirm;
+
+        public HostBreakthroughRitual BreakthroughRitual => breakthroughRitual;
 
         public HostNpcContextMenu NpcContextMenu => npcContextMenu;
 
@@ -178,6 +194,11 @@ namespace XianXia.Unity.Host
             {
                 if ((questJournal == null || !questJournal.IsOpen) &&
                     (inventoryPanel == null || !inventoryPanel.IsOpen) &&
+                    (cultivationPanel == null || !cultivationPanel.IsOpen) &&
+                    (characterSheetPanel == null || !characterSheetPanel.IsOpen) &&
+                    (relationPanel == null || !relationPanel.IsOpen) &&
+                    (cultivateConfirm == null || !cultivateConfirm.IsOpen) &&
+                    (breakthroughRitual == null || !breakthroughRitual.IsResultOpen) &&
                     (contentInterrupt == null || !contentInterrupt.HasBlockingInterrupt))
                     _session.IsPaused = !_session.IsPaused;
                 RefreshStatus();
@@ -186,7 +207,12 @@ namespace XianXia.Unity.Host
             if (Input.GetKeyDown(stepTickKey) || Input.GetKeyDown(stepTickAltKey))
             {
                 if ((questJournal == null || !questJournal.IsOpen) &&
-                    (inventoryPanel == null || !inventoryPanel.IsOpen))
+                    (inventoryPanel == null || !inventoryPanel.IsOpen) &&
+                    (cultivationPanel == null || !cultivationPanel.IsOpen) &&
+                    (characterSheetPanel == null || !characterSheetPanel.IsOpen) &&
+                    (relationPanel == null || !relationPanel.IsOpen) &&
+                    (cultivateConfirm == null || !cultivateConfirm.IsOpen) &&
+                    (breakthroughRitual == null || !breakthroughRitual.IsResultOpen))
                     StepTick();
             }
 
@@ -339,6 +365,24 @@ namespace XianXia.Unity.Host
             if (inventoryPanel == null)
                 inventoryPanel = GetComponent<HostInventoryPanel>() ??
                                 gameObject.AddComponent<HostInventoryPanel>();
+            if (cultivationPanel == null)
+                cultivationPanel = GetComponent<HostCultivationPanel>() ??
+                                  gameObject.AddComponent<HostCultivationPanel>();
+            if (characterSheetPanel == null)
+                characterSheetPanel = GetComponent<HostCharacterSheetPanel>() ??
+                                     gameObject.AddComponent<HostCharacterSheetPanel>();
+            if (relationPanel == null)
+                relationPanel = GetComponent<HostRelationPanel>() ??
+                               gameObject.AddComponent<HostRelationPanel>();
+            if (cultivateConfirm == null)
+                cultivateConfirm = GetComponent<HostCultivateConfirmPrompt>() ??
+                                  gameObject.AddComponent<HostCultivateConfirmPrompt>();
+            if (breakthroughRitual == null)
+                breakthroughRitual = GetComponent<HostBreakthroughRitual>() ??
+                                    gameObject.AddComponent<HostBreakthroughRitual>();
+            if (selectedUnitChrome == null)
+                selectedUnitChrome = GetComponent<HostSelectedUnitChrome>() ??
+                                    gameObject.AddComponent<HostSelectedUnitChrome>();
             if (GetComponent<HostWorkLoop>() == null)
                 gameObject.AddComponent<HostWorkLoop>();
             if (interactSpotPresenter == null)
@@ -365,6 +409,16 @@ namespace XianXia.Unity.Host
                 questJournal.ClearSessionState();
             if (inventoryPanel != null)
                 inventoryPanel.ClearSessionState();
+            if (cultivationPanel != null)
+                cultivationPanel.ClearSessionState();
+            if (characterSheetPanel != null)
+                characterSheetPanel.ClearSessionState();
+            if (relationPanel != null)
+                relationPanel.ClearSessionState();
+            if (cultivateConfirm != null)
+                cultivateConfirm.ClearSessionState();
+            if (breakthroughRitual != null)
+                breakthroughRitual.ClearSessionState();
             mapGraybox.Clear();
             interactSpotPresenter.Clear();
 
@@ -453,6 +507,19 @@ namespace XianXia.Unity.Host
             contentInterrupt.Bind(this, commandBridge, selectionController, dialoguePresenter);
             questJournal.Bind(this, commandBridge, selectionController);
             inventoryPanel.Bind(this);
+            cultivationPanel.Bind(this, selectionController);
+            characterSheetPanel.Bind(this, selectionController);
+            relationPanel.Bind(this);
+            cultivateConfirm.Bind(this, selectionController, commandBridge);
+            if (breakthroughRitual != null)
+                breakthroughRitual.Bind(this);
+            selectedUnitChrome.Bind(
+                this,
+                selectionController,
+                cultivationPanel,
+                characterSheetPanel,
+                relationPanel,
+                cam);
             npcScheduleMover.Bind(this, moveController, entityViewSpawner);
             snapshotPanel.Bind(this);
             // Bootstrap already published WorldInitialized／EntityCreated — capture once.

@@ -3,6 +3,7 @@ using NUnit.Framework;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
+using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Input;
 using XianXia.Core.Opportunity;
@@ -67,7 +68,7 @@ namespace XianXia.Tests
                 ids[0], PlayerCommandKind.Cultivate, 4)).IsSuccess);
             Assert.IsTrue(protagonist.Get<CultivationComponent>().HasLearnedManual);
 
-            // 推进至突破（青云诀 speed=25，需要 100 Progress → 4 tick）
+            // 推进至瓶颈后手动突破感应前→中→后→炼气
             for (var i = 0; i < 8 && protagonist.Get<CultivationComponent>().Realm == RealmStage.Mortal; i++)
                 Assert.IsTrue(loop.TickOnce().IsSuccess);
 
@@ -79,6 +80,7 @@ namespace XianXia.Tests
                     Assert.IsTrue(loop.TickOnce().IsSuccess);
             }
 
+            PushBreakthroughsToQiRefining(world, protagonist);
             Assert.AreEqual(RealmStage.QiRefining, protagonist.Get<CultivationComponent>().Realm);
 
             // 日终生产循环（据点成长）
@@ -96,6 +98,23 @@ namespace XianXia.Tests
             Assert.AreEqual(1, WorldSnapshot.CurrentSchemaVersion);
             var snap = new SnapshotService(new JsonSnapshotSerializer()).CaptureJson(world, loop);
             Assert.IsTrue(snap.IsSuccess, snap.IsFailure ? snap.Error.ToString() : "");
+        }
+
+        static void PushBreakthroughsToQiRefining(
+            XianXia.Core.Simulation.SimulationWorld world,
+            XianXia.Core.Entities.Entity entity)
+        {
+            var svc = new CultivationService();
+            var cult = entity.Get<CultivationComponent>();
+            for (var i = 0; i < 8 && cult.Realm == RealmStage.Mortal; i++)
+            {
+                svc.SyncProgressRequired(world, cult);
+                if (cult.BreakthroughProgressRequired <= 0)
+                    cult.BreakthroughProgressRequired = 100;
+                cult.Progress = cult.BreakthroughProgressRequired;
+                var r = svc.TryBreakthrough(world, entity.Id);
+                Assert.IsTrue(r.IsSuccess, r.IsFailure ? r.Error.ToString() : "");
+            }
         }
     }
 }

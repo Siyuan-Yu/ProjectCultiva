@@ -1,12 +1,13 @@
 # 路线图
 
-> 状态：**VS1.0＋样例关可玩弧自动化已验收**｜下一目标：手操签收／世界图修订｜最后更新：2026-08-11
+> 状态：**VS1.0＋样例关可玩弧自动化已验收**｜下一目标：炼气功法闭环／手操签收／世界图｜最后更新：2026-08-15
 
 ## 当前阶段说明
 
 - Architecture Freeze **v0.2** 仍为历史基线；**世界结构以 [113](113-world-graph-local-map-architecture-revision-v0.1.md) 为准**（Node＋Route，不再做连续大 Region）。  
 - Core／Data／Host／**VS 0.1～1.0 自动化已验收**。  
-- **2026-08-02 增量：** 内容打断 CIF、Ch01 2G 可玩弧、RTS 引导 — 见 [97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)；EditMode **194/194**。  
+- **2026-08-15 增量：** 住房／主管府 [121](121-housing-assignment-and-control-core-2026-08-15.md)；**境界／打坐／突破仪式** [122](122-cultivation-breakthrough-host-ritual-2026-08-15.md)。  
+- **2026-08-02 增量：** 内容打断 CIF、Ch01 2G 可玩弧、RTS 引导 — 见 [97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)。  
 - Demo Runtime 继续冻结。  
 - VS0.7：[68](68-vertical-slice-0.7-acceptance-report.md)；VS0.8：[70](70-vertical-slice-0.8-acceptance-report.md)；VS0.9：[72](72-vertical-slice-0.9-acceptance-report.md)；VS1.0：[74](74-vertical-slice-1.0-acceptance-report.md)。
 
