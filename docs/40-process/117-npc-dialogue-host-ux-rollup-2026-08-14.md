@@ -2,7 +2,7 @@
 
 > 状态：**已推送**｜日期：2026-08-14（含 UX polish 增补）  
 > 相对提交：`99e93fb` 之后 → 本轮 `main`  
-> 飞书：https://my.feishu.cn/docx/AQEEdwxmHoPvO6xFAUBcMdqSnkd  
+> 飞书：https://my.feishu.cn/docx/M0q4dQsBdojfxixN0DTcXwlTnCh  
 > 相关：[116 上一轮](116-recent-updates-rollup-2026-08-14.md)｜[SCHEMA](../../Content/BaseGame/Data/SCHEMA.md)｜[95 内容打断](95-content-interrupt-system-plan-v0.1.md)
 
 ---

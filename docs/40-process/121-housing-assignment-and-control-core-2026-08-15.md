@@ -1,6 +1,6 @@
 # 121 · 住房分配与主管府控制核心（2026-08-15）
 
-> 状态：**已落地**｜日期：2026-08-15  
+> 状态：**已落地；制作人手操签收通过（2026-08-15）**｜日期：2026-08-15  
 > 相对提交：`267d5c7` 之后 → 本轮 `main`  
 > 飞书：https://my.feishu.cn/docx/NjepdWBA2o8O6kxzLxycQjgTnUf  
 > 上级设计：[26 领地经营](../20-systems/26-territory-management.md)  
@@ -87,3 +87,5 @@ SettlementAuthority.GrantAll(grantsPrivileges)
 2. 选中己方 → 右键主管府 → 攻击 → 靠近见耐久下降。  
 3. 打穿后站满约 10 秒 → 占领；再改住房归属；右栏课表可点切换活动。  
 4. MapEditor 改府位置 → 存 JSON → Import → 场景只有新位置（无叠旧）。
+
+**签收：2026-08-15 制作人确认通过。**

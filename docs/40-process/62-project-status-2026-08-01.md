@@ -11,7 +11,7 @@
 
 **Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**；样例关可玩弧／导航／NPC 活动底座／Demo 0.1 Production **自动化已验收（手操待签）**。  
 **本轮：** **住房区 vs 主管府**；右键攻击府／站立占领；占领后住房＋课表权限；Level Tester Import 清旧见 [121](121-housing-assignment-and-control-core-2026-08-15.md)。  
-**下一步：** 手操签收占领链；真战斗／美术换皮另开。  
+**下一步：** 住房／占领链 **已手操签收**；下一主题另开（真战斗／美术换皮等）。  
 制作人手操：[105](105-demo-0.1-producer-playbook-30min.md)。Demo Runtime **继续冻结**。
 
 ---
@@ -165,7 +165,7 @@
 | **收束 [120] 人物／名册／倍速** | https://my.feishu.cn/docx/CP2OddgK4ofYFzxPfr5cSYC0nG3 |
 | 工区编辑器 [118] | https://my.feishu.cn/docx/LFhvdfj46oraKCxcTtNcLJ0pnE6 |
 | 工区 vs 人物 [119] | https://my.feishu.cn/docx/DlppdN0BloHiwdxmLI2ccxthnw1 |
-| 收束 [117] 对话／失败／流速 | https://my.feishu.cn/docx/AQEEdwxmHoPvO6xFAUBcMdqSnkd |
+| 收束 [117] 对话／失败／流速 | https://my.feishu.cn/docx/M0q4dQsBdojfxixN0DTcXwlTnCh |
 | 收束 [116] Ch01／背包 | https://my.feishu.cn/docx/HqczdHh2Zo5A7UxZdvVc4Ggunse |
 
 完整映射见 `tools/feishu-map.json`。应用新建文档若个人账号不可见，需在飞书把文档分享给你，或提供 `open_id` 后跑 `node tools/feishu-sync.mjs --share --openid ou_xxx`。
