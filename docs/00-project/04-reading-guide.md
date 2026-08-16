@@ -29,7 +29,8 @@
 
 | 目的 | 读什么 |
 |------|--------|
-| **本轮增量（府近战／追击／刷怪区）** | [126](../40-process/126-control-core-chase-spawn-zone-rollup-2026-08-16.md) |
+| **本轮增量（击败瞬移／洞相机／刷怪表 GUI）** | [127](../40-process/127-defeat-teleport-cave-camera-spawn-table-gui-2026-08-16.md) |
+| **上一轮（府近战／追击／刷怪区）** | [126](../40-process/126-control-core-chase-spawn-zone-rollup-2026-08-16.md) |
 | **上一轮（战斗／斗技／体魄）** | [125](../40-process/125-combat-arts-physique-acceptance-rollup-2026-08-16.md) |
 | **上一轮（将老／洞府／秘籍）** | [124](../40-process/124-jiang-lao-cave-manual-rollup-2026-08-15.md) |
 | **功法任务接口契约** | [123](../40-process/123-quest-manual-api-interfaces-2026-08-15.md) |

@@ -503,6 +503,10 @@ namespace XianXia.Core.Exploration
             if (string.Equals(lc.LocationId, locationId, System.StringComparison.Ordinal))
                 return;
             lc.LocationId = locationId;
+            // 进出洞府换地点：清掉旧图表现坐标，否则 Rebuild 会用地表／洞内错位瞬移
+            lc.HasPresentationOverride = false;
+            lc.PresentationOverrideX = 0f;
+            lc.PresentationOverrideZ = 0f;
             world.Events.Publish(
                 EventType.LocationChanged,
                 world.Tick,

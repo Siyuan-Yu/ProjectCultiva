@@ -37,7 +37,7 @@
 【敌对】残影 tags 有 hostile → 免确认攻击；主管等无标 → 攻击需确认
 ```
 
-刷怪表暂无 JSON／样例文件；**正式制作应后续做表编辑器**，勿依赖手改。
+刷怪表可用 MapEditor「编辑／新建刷怪表…」GUI；JSON 仍为真源。
 
 ---
 
@@ -51,13 +51,13 @@
 | 刷怪 | 区＋表；引用 Characters；不做敌人分叉 schema |
 | 钉点 | **本轮不做**；命名 NPC 仍 Scenario／名册 |
 
-**明确未做：** 刷怪表 GUI；MapEditor 命名钉点；敌人主动寻仇；势力驱动敌对；进洞才刷（现开局即 ApplyAll）。
+**明确未做（至 126）：** MapEditor 命名钉点；敌人主动寻仇；势力驱动敌对；进洞才刷（现开局即 ApplyAll）。  
+**127 已补：** 刷怪表 GUI；击败不瞬移；进出洞相机／表现坐标。
 
 ---
 
 ## 5. 下一步建议
 
-1. 手操：追击、打府、进洞见残影；MapEditor 分区页确认刷怪区工具  
-2. 刷怪表编辑器（或 MapEditor 内选人／数量）  
-3. 遭遇任务内容装配；可选：进 LocalMap 时再刷  
-4. WorldGraph backlog（[113](113-world-graph-local-map-architecture-revision-v0.1.md)）
+1. 见 [127](127-defeat-teleport-cave-camera-spawn-table-gui-2026-08-16.md)  
+2. 洞府清残影任务／遭遇装配  
+3. WorldGraph backlog（[113](113-world-graph-local-map-architecture-revision-v0.1.md)）

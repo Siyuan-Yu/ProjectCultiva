@@ -35,6 +35,7 @@ public static class ContentPathRules
             ["job"] = "Jobs",
             ["workArea"] = "WorkAreas",
             ["schedule"] = "Schedules",
+            ["spawnTable"] = "SpawnTables",
         };
 
     public static string SubdirForType(string type) =>

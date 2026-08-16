@@ -106,6 +106,16 @@ namespace XianXia.Unity.Host
             }
         }
 
+        /// <summary>只卸掉单个实体表现（击败后用），避免 Rebuild 导致全队瞬移。</summary>
+        public void Despawn(EntityId id)
+        {
+            if (id.IsNone || !_registry.TryGet(id, out var view) || view == null)
+                return;
+            _registry.Unregister(id);
+            _spawned.Remove(view);
+            DestroyView(view);
+        }
+
         static Vector3 ResolvePresentationPosition(
             PlayableHostSession session,
             EntityId id,

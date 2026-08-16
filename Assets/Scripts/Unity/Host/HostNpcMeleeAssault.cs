@@ -171,7 +171,9 @@ namespace XianXia.Unity.Host
                         : defEnt.DisplayName;
                     Toast(_attacker, "击败 " + name, new Color(0.45f, 1f, 0.55f));
                     bootstrap.DispatchDrainedEvents();
-                    bootstrap.ReloadLocalMapPresentation(frameCamera: false);
+                    // 勿 Rebuild 整图：会把交战中的表现坐标重置成地点中心 → 瞬移
+                    if (viewSpawner != null)
+                        viewSpawner.Despawn(_defender);
                     ClearInternal(null);
                     return;
                 }
@@ -287,7 +289,8 @@ namespace XianXia.Unity.Host
                 life.IsDead)
             {
                 bootstrap.DispatchDrainedEvents();
-                bootstrap.ReloadLocalMapPresentation(frameCamera: false);
+                if (viewSpawner != null)
+                    viewSpawner.Despawn(_defender);
             }
 
             ClearInternal(null);

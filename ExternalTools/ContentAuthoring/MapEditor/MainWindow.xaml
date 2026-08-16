@@ -117,6 +117,7 @@
           <TextBox x:Name="PropLootItem" Margin="0,0,0,4"/>
           <TextBlock Text="spawnTableId（刷怪区）"/>
           <TextBox x:Name="PropSpawnTable" Margin="0,0,0,4"/>
+          <Button Content="编辑／新建刷怪表…" Margin="0,0,0,4" Click="EditSpawnTable_Click"/>
           <TextBlock Text="spawnCount（0＝按表 countMin～Max）"/>
           <TextBox x:Name="PropSpawnCount" Margin="0,0,0,4"/>
           <CheckBox x:Name="PropBlock" Content="挡路（blocksMovement）— 建筑默认开；树／矿等装饰需手勾" Margin="0,0,0,4"/>

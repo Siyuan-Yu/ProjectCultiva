@@ -57,7 +57,7 @@
 | kind | 含义 | 默认格 | 游戏里怎么生成 |
 |------|------|--------|----------------|
 | `zoneHerb` 等 | **分区标记**（药田／农田／住房／林地／矿区／**灵泉**） | 一片 | 半透明色块，**无交互、不挡路**；灵力加成以后再做 |
-| `spawnZone` | **刷怪区**（绑 `spawnTableId`＋`boundLocationId`） | 一片 | 半透明红区；开局按表刷角色定义 NPC；不做钉点 |
+| `spawnZone` | **刷怪区**（绑 `spawnTableId`＋`boundLocationId`） | 一片 | 半透明红区；右侧「编辑／新建刷怪表…」可 GUI 改表 |
 | `herbField` | 药田地表 | 12×12（可拉片） | **每格** `HerbPatchTile`，可右键劳动（生长暂未做） |
 | `grainField` | 农田地表 | 16×12 | **每格** `FarmlandTile`，可右键劳动 |
 | `road` | 道路 | **1×1** | 每格 `DirtRoadTile`，**纯贴图** |

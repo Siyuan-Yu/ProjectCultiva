@@ -7,6 +7,25 @@
 
 ---
 
+## 2026-08-16 — 收束文档 127＋飞书／GitHub
+
+**做了什么**
+- 新建 [127](127-defeat-teleport-cave-camera-spawn-table-gui-2026-08-16.md)；更新总览／通读／62／126；飞书 provision＋同步；推 GitHub
+
+---
+
+## 2026-08-16 — 击败瞬移／进出洞相机＋刷怪表 GUI
+
+**做了什么**
+- 击败后只 Despawn 尸体，不再 Rebuild 整图（根因：Rebuild 把交战坐标重置成地点中心）
+- 走动写 PresentationOverride；进出洞换地点清 override；镜头优先对准己方
+- MapEditor「编辑／新建刷怪表…」GUI；重发 MapEditor
+
+**判断与理由**
+- 生命／背包等 Core 状态进出洞本就同一世界，不靠存档；缺的是表现坐标继承
+
+---
+
 ## 2026-08-16 — 收束文档 126＋飞书／GitHub
 
 **做了什么**

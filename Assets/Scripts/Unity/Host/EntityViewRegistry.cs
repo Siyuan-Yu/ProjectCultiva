@@ -28,6 +28,13 @@ namespace XianXia.Unity.Host
 
         public bool Contains(EntityId id) => !id.IsNone && _views.ContainsKey(id.Value);
 
+        public bool Unregister(EntityId id)
+        {
+            if (id.IsNone)
+                return false;
+            return _views.Remove(id.Value);
+        }
+
         public IEnumerable<EntityView> All
         {
             get

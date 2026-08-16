@@ -786,13 +786,15 @@ namespace XianXia.Unity.Host
                 }
             }
 
-            if (string.IsNullOrEmpty(best))
-                return;
-
-            if (!string.Equals(previous, best, System.StringComparison.Ordinal))
-                ApplyPresentationArrival(session, view.EntityId, best, bootstrap);
-            else
-                loc.LocationId = best;
+            if (!string.IsNullOrEmpty(best))
+            {
+                if (!string.Equals(previous, best, System.StringComparison.Ordinal))
+                    ApplyPresentationArrival(session, view.EntityId, best, bootstrap);
+                else
+                    loc.LocationId = best;
+                // 记下当前表现坐标，进出图 Rebuild 时不再弹回地点中心
+                loc.SetPresentationOverride(p.x, p.y);
+            }
         }
 
         public static void ApplyPresentationArrival(

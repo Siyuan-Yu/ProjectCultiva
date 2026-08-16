@@ -124,7 +124,7 @@ namespace XianXia.Unity.Host
             {
                 Toast(caster, "击败", new Color(0.45f, 1f, 0.55f));
                 bootstrap.DispatchDrainedEvents();
-                bootstrap.ReloadLocalMapPresentation(frameCamera: false);
+                viewSpawner?.Despawn(target);
                 meleeAssault?.Clear();
             }
             else

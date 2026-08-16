@@ -743,6 +743,31 @@ public partial class MainWindow : Window
         RebuildCanvas();
     }
 
+    void EditSpawnTable_Click(object sender, RoutedEventArgs e)
+    {
+        if (_package == null)
+        {
+            MessageBox.Show("请先打开含 Content/BaseGame 的包／地图。", "刷怪表");
+            return;
+        }
+
+        var dlg = new SpawnTableEditWindow(_package, PropSpawnTable.Text?.Trim())
+        {
+            Owner = this
+        };
+        if (dlg.ShowDialog() == true && !string.IsNullOrWhiteSpace(dlg.SavedTableId))
+        {
+            PropSpawnTable.Text = dlg.SavedTableId;
+            if (_selected != null)
+            {
+                PushUndo();
+                _selected.SpawnTableId = dlg.SavedTableId;
+            }
+
+            StatusText.Text = "已保存刷怪表 " + dlg.SavedTableId;
+        }
+    }
+
     void DeleteSelected_Click(object sender, RoutedEventArgs e) => DeleteSelected();
     void Duplicate_Click(object sender, RoutedEventArgs e) => DuplicateSelected();
 

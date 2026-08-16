@@ -362,6 +362,22 @@ public static class PackageStore
     public static IReadOnlyList<string> AllEventIds(ContentPackage package) =>
         package.OfType("contentEvent").Select(e => e.Id).OrderBy(x => x, StringComparer.Ordinal).ToList();
 
+    public static IReadOnlyList<string> AllSpawnTableIds(ContentPackage package) =>
+        package.OfType("spawnTable").Select(t => t.Id).OrderBy(x => x, StringComparer.Ordinal).ToList();
+
+    public static DefRef? FindSpawnTable(ContentPackage package, string spawnTableId)
+    {
+        if (package == null || string.IsNullOrWhiteSpace(spawnTableId))
+            return null;
+        foreach (var def in package.OfType("spawnTable"))
+        {
+            if (string.Equals(def.Id, spawnTableId, StringComparison.Ordinal))
+                return def;
+        }
+
+        return null;
+    }
+
     public static JsonObject? FindLocationObject(ContentPackage package, string locationId)
     {
         foreach (var region in package.OfType("worldRegion"))

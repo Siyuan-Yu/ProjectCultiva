@@ -1,0 +1,40 @@
+<Window x:Class="MapEditor.SpawnTableEditWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="编辑刷怪表" Height="480" Width="560"
+        WindowStartupLocation="CenterOwner">
+  <DockPanel Margin="10">
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+      <Button Content="保存" Width="80" Margin="0,0,8,0" Click="Save_Click"/>
+      <Button Content="取消" Width="80" Click="Cancel_Click"/>
+    </StackPanel>
+    <StackPanel>
+      <TextBlock Text="已有表" FontWeight="SemiBold"/>
+      <ComboBox x:Name="TablePick" Margin="0,4,0,8" SelectionChanged="TablePick_SelectionChanged"/>
+      <Button Content="新建空表" HorizontalAlignment="Left" Margin="0,0,0,8" Click="New_Click"/>
+      <TextBlock Text="id（base:spawn_table_…）"/>
+      <TextBox x:Name="IdBox" Margin="0,4,0,8"/>
+      <TextBlock Text="名称"/>
+      <TextBox x:Name="NameBox" Margin="0,4,0,8"/>
+      <TextBlock Text="条目（角色／权重／数量）" FontWeight="SemiBold"/>
+      <ListBox x:Name="EntryList" Height="160" Margin="0,4,0,8"
+               DisplayMemberPath="DefinitionId"/>
+      <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+        <ComboBox x:Name="CharacterBox" Width="280" Margin="0,0,8,0"/>
+        <Button Content="添加" Width="60" Margin="0,0,8,0" Click="AddEntry_Click"/>
+        <Button Content="删除选中" Width="80" Click="RemoveEntry_Click"/>
+      </StackPanel>
+      <TextBlock Text="选中条目可在下方改数字；改 definitionId 请删了重加。"
+                 Foreground="#666" TextWrapping="Wrap"/>
+      <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+        <TextBlock Text="权重" VerticalAlignment="Center" Margin="0,0,4,0"/>
+        <TextBox x:Name="WeightBox" Width="40" Margin="0,0,12,0" Text="1"/>
+        <TextBlock Text="最少" VerticalAlignment="Center" Margin="0,0,4,0"/>
+        <TextBox x:Name="MinBox" Width="40" Margin="0,0,12,0" Text="1"/>
+        <TextBlock Text="最多" VerticalAlignment="Center" Margin="0,0,4,0"/>
+        <TextBox x:Name="MaxBox" Width="40" Margin="0,0,12,0" Text="1"/>
+        <Button Content="应用到选中" Click="ApplyRow_Click"/>
+      </StackPanel>
+    </StackPanel>
+  </DockPanel>
+</Window>

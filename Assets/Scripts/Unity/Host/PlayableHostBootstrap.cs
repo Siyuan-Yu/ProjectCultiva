@@ -680,6 +680,10 @@ namespace XianXia.Unity.Host
             if (cameraRig == null)
                 return;
 
+            // 进出洞府：优先对准可见己方，避免整图中心与落点错位
+            if (TryFrameCameraOnParty())
+                return;
+
             if (MapLayoutPresentationSync.TryGetLayout(_session, out var layout) &&
                 layout.Width > 0 && layout.Height > 0)
             {
@@ -704,6 +708,31 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < slots.Count; i++)
                 sum += slots[i];
             cameraRig.FrameSlots(sum / slots.Count);
+        }
+
+        bool TryFrameCameraOnParty()
+        {
+            if (cameraRig == null || entityViewSpawner == null || !_session.IsInitialized)
+                return false;
+
+            var sum = Vector3.zero;
+            var n = 0;
+            var ids = _session.CharacterIds;
+            for (var i = 0; i < ids.Count; i++)
+            {
+                var id = ids[i];
+                if (!LocalMapVisibility.IsEntityVisible(_session.World, id))
+                    continue;
+                if (!entityViewSpawner.Registry.TryGet(id, out var view) || view == null)
+                    continue;
+                sum += view.transform.position;
+                n++;
+            }
+
+            if (n == 0)
+                return false;
+            cameraRig.FrameSlots(sum / n);
+            return true;
         }
 
         /// <summary>LocalMap 进出后：切 PreferredMapLayout、重建灰盒／实体／寻路。</summary>
