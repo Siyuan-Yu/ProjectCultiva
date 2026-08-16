@@ -21,6 +21,7 @@ namespace XianXia.Unity.Host
             public float BornAt;
             public Vector3 From;
             public Vector3 To;
+            public bool Ranged;
         }
 
         readonly List<Slash> _live = new List<Slash>(16);
@@ -33,23 +34,43 @@ namespace XianXia.Unity.Host
             EntityId attacker,
             EntityId defender)
         {
+            PlayBetween(spawner, attacker, defender, ranged: false);
+        }
+
+        public void PlayRangedBetween(
+            EntityViewSpawner spawner,
+            EntityId attacker,
+            EntityId defender)
+        {
+            PlayBetween(spawner, attacker, defender, ranged: true);
+        }
+
+        void PlayBetween(
+            EntityViewSpawner spawner,
+            EntityId attacker,
+            EntityId defender,
+            bool ranged)
+        {
             if (spawner == null ||
                 !spawner.Registry.TryGet(attacker, out var aView) || aView == null ||
                 !spawner.Registry.TryGet(defender, out var dView) || dView == null)
                 return;
 
-            Play(aView.transform.position, dView.transform.position);
+            Play(aView.transform.position, dView.transform.position, ranged);
             dView.PlayHitFlash(hitFlashSeconds);
         }
 
-        public void Play(Vector3 from, Vector3 to)
+        public void Play(Vector3 from, Vector3 to) => Play(from, to, ranged: false);
+
+        public void Play(Vector3 from, Vector3 to, bool ranged)
         {
             EnsureRoot();
             var slash = Rent();
             slash.BornAt = Time.unscaledTime;
-            slash.DieAt = slash.BornAt + lifetime;
+            slash.DieAt = slash.BornAt + (ranged ? lifetime * 1.15f : lifetime);
             slash.From = from;
             slash.To = to;
+            slash.Ranged = ranged;
             Place(slash);
             _live.Add(slash);
         }
@@ -84,29 +105,30 @@ namespace XianXia.Unity.Host
             // 前 35%：弧迅速张开；后段淡出并略回缩
             var expand = t < 0.35f ? t / 0.35f : 1f;
             var fade = t < 0.45f ? 1f : 1f - (t - 0.45f) / 0.55f;
-            var mid = Vector3.Lerp(s.From, s.To, 0.55f);
+            var mid = Vector3.Lerp(s.From, s.To, s.Ranged ? 0.5f : 0.55f);
             mid.z = HostPresentationSpace.EntityZ - 0.02f;
             var dir = s.To - s.From;
             dir.z = 0f;
-            var len = Mathf.Max(0.55f, dir.magnitude * 0.85f);
+            var len = Mathf.Max(s.Ranged ? 0.9f : 0.55f, dir.magnitude * (s.Ranged ? 0.98f : 0.85f));
             if (dir.sqrMagnitude < 0.0001f)
                 dir = Vector3.right;
             else
                 dir.Normalize();
 
             var angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
-            // 斜向挥砍：相对连线再偏一点
-            angle += Mathf.Lerp(-38f, 28f, expand);
+            // 近战斜向挥砍；远程沿连线外放
+            if (!s.Ranged)
+                angle += Mathf.Lerp(-38f, 28f, expand);
             s.Root.position = mid;
             s.Root.rotation = Quaternion.Euler(0f, 0f, angle);
             var scaleX = len * Mathf.Lerp(0.35f, 1.05f, expand);
-            var scaleY = Mathf.Lerp(0.45f, 1.15f, expand) * 0.9f;
+            var scaleY = Mathf.Lerp(0.45f, 1.15f, expand) * (s.Ranged ? 0.55f : 0.9f);
             s.Root.localScale = new Vector3(scaleX, scaleY, 1f);
 
             if (s.Renderer != null)
             {
                 var c = s.Renderer.color;
-                c.a = Mathf.Clamp01(fade) * 0.92f;
+                c.a = Mathf.Clamp01(fade) * (s.Ranged ? 0.85f : 0.92f);
                 s.Renderer.color = c;
             }
         }
@@ -119,7 +141,9 @@ namespace XianXia.Unity.Host
             if (s.Renderer != null)
             {
                 s.Renderer.sprite = SlashSprite();
-                s.Renderer.color = new Color(1f, 0.92f, 0.72f, 0.9f);
+                s.Renderer.color = s.Ranged
+                    ? new Color(0.45f, 0.85f, 1f, 0.88f)
+                    : new Color(1f, 0.92f, 0.72f, 0.9f);
                 s.Renderer.sortingOrder = 1200;
             }
 

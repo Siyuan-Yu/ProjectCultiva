@@ -140,15 +140,14 @@ namespace XianXia.Unity.Host
                    world.WorldRegion.TryGet("base:loc_ref_labor_yard", out _);
         }
 
-        /// <summary>对齐 HostDemoTileMap.ChooseGroundPrefab 色带（仅荒村参考关）。</summary>
+        /// <summary>
+        /// 旧大片农田／药田色带已删：田区只认 map 上的 grainField／herbField，
+        /// 勿再把绿草矩形当成工区。仅保留林／矿色带（无格点物件时的回落）。
+        /// </summary>
         static string ResolveWorkBand(float x, float y)
         {
             if (x <= -28f)
                 return y >= 5f ? "base:loc_ref_mine" : "base:loc_ref_forest";
-            if (x >= -10f && x <= 3f && y >= -20f && y <= -11f)
-                return "base:loc_ref_herb_field";
-            if (x >= 8f && x <= 32f && y >= -20f && y <= -4f)
-                return "base:loc_ref_labor_yard";
             return null;
         }
 

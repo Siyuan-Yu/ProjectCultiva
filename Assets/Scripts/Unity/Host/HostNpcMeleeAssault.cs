@@ -7,6 +7,7 @@ namespace XianXia.Unity.Host
 {
     /// <summary>
     /// 战斗 Alpha：下令攻击后持续追击互砍，直到目标／己方倒下，或玩家下令移动／Stop 打断。
+    /// 开斗气纱衣时交战距离用远程半径；伤害／攻速与近战相同。
     /// </summary>
     public sealed class HostNpcMeleeAssault : MonoBehaviour
     {
@@ -18,6 +19,7 @@ namespace XianXia.Unity.Host
         [SerializeField] float repathInterval = 0.2f;
 
         readonly MeleeCombatService _melee = new MeleeCombatService();
+        readonly SpiritVeilService _veil = new SpiritVeilService();
 
         EntityId _attacker = EntityId.None;
         EntityId _defender = EntityId.None;
@@ -60,6 +62,29 @@ namespace XianXia.Unity.Host
             moveController?.HoldNpcForInteraction(defender);
             SetFightActivity(attacker, true);
             SetFightActivity(defender, true);
+            TryAutoVeilNonPlayers();
+        }
+
+        void TryAutoVeilNonPlayers()
+        {
+            var world = bootstrap?.Session?.World;
+            if (world == null)
+                return;
+
+            TryAutoVeilOne(world, _attacker);
+            TryAutoVeilOne(world, _defender);
+        }
+
+        void TryAutoVeilOne(XianXia.Core.Simulation.SimulationWorld world, EntityId id)
+        {
+            if (id.IsNone)
+                return;
+            var result = _veil.TryAutoActivateForNonPlayer(world, id);
+            if (!result.IsSuccess)
+                return;
+            if (!world.Entities.TryGet(id, out var e) || !SpiritVeilService.IsActive(e))
+                return;
+            Toast(id, "展开斗气纱衣", new Color(0.55f, 0.9f, 1f));
         }
 
         public void Clear()
@@ -105,7 +130,11 @@ namespace XianXia.Unity.Host
             if (!TryGetPresentation(a, out var ax, out var ay) ||
                 !TryGetPresentation(b, out var bx, out var by))
                 return false;
-            return Vector2.Distance(new Vector2(ax, ay), new Vector2(bx, by)) <= meleeRange;
+            var range = meleeRange;
+            if (bootstrap?.Session?.World != null &&
+                bootstrap.Session.World.Entities.TryGet(a, out var ent))
+                range = _veil.ResolveEngageRange(ent);
+            return Vector2.Distance(new Vector2(ax, ay), new Vector2(bx, by)) <= range;
         }
 
         void Update()
@@ -139,6 +168,9 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            NotifyVeilSpiritEmpty(atkEnt);
+            NotifyVeilSpiritEmpty(defEnt);
+
             if (!TryGetPresentation(_attacker, out var ax, out var ay) ||
                 !TryGetPresentation(_defender, out var dx, out var dy))
             {
@@ -146,10 +178,12 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            var atkRange = _veil.ResolveEngageRange(atkEnt);
+            var defRange = _veil.ResolveEngageRange(defEnt);
             var dist = Vector2.Distance(new Vector2(ax, ay), new Vector2(dx, dy));
-            if (dist > meleeRange)
+            if (dist > atkRange)
             {
-                ChaseDefender();
+                ChaseDefender(atkRange);
                 return;
             }
 
@@ -159,11 +193,13 @@ namespace XianXia.Unity.Host
                 return;
             _cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
 
+            var atkRanged = SpiritVeilService.IsActive(atkEnt);
             var hit = _melee.ApplyStrike(world, _attacker, _defender, out var dmg, out var defeated);
             if (hit.IsSuccess)
             {
-                PlayStrikeVfx(_attacker, _defender);
+                PlayStrikeVfx(_attacker, _defender, atkRanged);
                 Toast(_defender, "-" + dmg, new Color(1f, 0.55f, 0.35f));
+                NotifyVeilSpiritEmpty(defEnt);
                 if (defeated)
                 {
                     var name = string.IsNullOrEmpty(defEnt.DisplayName)
@@ -192,11 +228,17 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            // 守方按自身交战距离反击：无纱衣则贴身才能打回（远程为纯优）。
+            if (dist > defRange)
+                return;
+
+            var defRanged = SpiritVeilService.IsActive(defEnt);
             var back = _melee.ApplyStrike(world, _defender, _attacker, out var backDmg, out var atkDown);
             if (back.IsSuccess)
             {
-                PlayStrikeVfx(_defender, _attacker);
+                PlayStrikeVfx(_defender, _attacker, defRanged);
                 Toast(_attacker, "-" + backDmg, new Color(1f, 0.35f, 0.4f));
+                NotifyVeilSpiritEmpty(atkEnt);
                 if (atkDown)
                 {
                     Toast(_attacker, "重伤，战斗中止", new Color(1f, 0.4f, 0.35f));
@@ -213,7 +255,11 @@ namespace XianXia.Unity.Host
 
             var atkName = ResolveName(_attacker);
             var defName = ResolveName(_defender);
-            var line = "交战中　" + atkName + " ↔ " + defName + "　·　追击至死　·　右键地面／S 打断";
+            var veilHint = "";
+            if (bootstrap.Session.World.Entities.TryGet(_attacker, out var atkBanner) &&
+                SpiritVeilService.IsActive(atkBanner))
+                veilHint = "　·　纱衣远程";
+            var line = "交战中　" + atkName + " ↔ " + defName + veilHint + "　·　追击至死　·　右键地面／S 打断";
             const float w = 520f;
             const float h = 28f;
             var r = new Rect((Screen.width - w) * 0.5f, 56f, w, h);
@@ -236,6 +282,22 @@ namespace XianXia.Unity.Host
         {
             if (!string.IsNullOrEmpty(toast) && !_attacker.IsNone)
                 Toast(_attacker, toast, new Color(0.85f, 0.85f, 0.75f));
+
+            // 战斗结束：双方自动卸下斗气纱衣
+            var world = bootstrap?.Session?.World;
+            if (world != null)
+            {
+                world.Entities.TryGet(_attacker, out var atk);
+                world.Entities.TryGet(_defender, out var def);
+                var atkHad = SpiritVeilService.IsActive(atk);
+                var defHad = SpiritVeilService.IsActive(def);
+                _veil.DeactivateOnCombatEnd(atk, def);
+                if (atkHad)
+                    Toast(_attacker, "战斗结束，纱衣散去", new Color(0.75f, 0.85f, 1f));
+                if (defHad)
+                    Toast(_defender, "战斗结束，纱衣散去", new Color(0.75f, 0.85f, 1f));
+            }
+
             ClearFightActivity(_attacker);
             ClearFightActivity(_defender);
             ReleaseFightHold(_defender);
@@ -245,14 +307,17 @@ namespace XianXia.Unity.Host
             _nextRepathTime = 0f;
         }
 
-        void PlayStrikeVfx(EntityId from, EntityId to)
+        void PlayStrikeVfx(EntityId from, EntityId to, bool ranged)
         {
             if (strikeVfx == null && bootstrap != null)
                 strikeVfx = bootstrap.GetComponent<HostMeleeStrikeVfx>();
-            strikeVfx?.PlayBetween(viewSpawner, from, to);
+            if (ranged)
+                strikeVfx?.PlayRangedBetween(viewSpawner, from, to);
+            else
+                strikeVfx?.PlayBetween(viewSpawner, from, to);
         }
 
-        void ChaseDefender()
+        void ChaseDefender(float engageRange)
         {
             if (moveController == null || viewSpawner == null)
                 return;
@@ -270,7 +335,7 @@ namespace XianXia.Unity.Host
                 var delta = atkView.transform.position - dest;
                 delta.z = 0f;
                 if (delta.sqrMagnitude > 0.01f)
-                    dest += delta.normalized * (meleeRange * 0.35f);
+                    dest += delta.normalized * (engageRange * 0.35f);
             }
 
             dest.z = HostPresentationSpace.EntityZ;
@@ -278,6 +343,13 @@ namespace XianXia.Unity.Host
             moveController.OrderEntityToWorldPoint(
                 _attacker, dest, arriveCommand: null, issueStop: false);
             SetFightActivity(_attacker, true);
+        }
+
+        void NotifyVeilSpiritEmpty(Entity entity)
+        {
+            if (entity == null || !_veil.DeactivateIfSpiritEmpty(entity))
+                return;
+            Toast(entity.Id, "灵力耗尽，纱衣散去", new Color(0.75f, 0.85f, 1f));
         }
 
         void FinishIfNeeded()

@@ -186,8 +186,7 @@ namespace XianXia.Unity.Host
 
             DrawTopBar(session);
             DrawOpsLegend(session);
-            DrawHousingPanel(session);
-            DrawControlCorePanel(session);
+            DrawWorldObjectInspectPanel(session);
             DrawRightRail(session);
             if (!ShouldHideUnitPanelForDialogue())
                 DrawAcsUnitPanel(session);
@@ -403,152 +402,206 @@ namespace XianXia.Unity.Host
 
         }
 
-        void DrawHousingPanel(PlayableHostSession session)
+        void DrawWorldObjectInspectPanel(PlayableHostSession session)
         {
             if (housingAreaSelection == null && bootstrap != null)
                 housingAreaSelection = bootstrap.GetComponent<HostHousingAreaSelection>();
             if (housingAreaSelection == null)
                 return;
-            var areaId = housingAreaSelection.SelectedWorkAreaId;
-            if (string.IsNullOrEmpty(areaId) ||
-                !session.World.TryGetWorkArea(areaId, out var area))
+
+            var inspect = housingAreaSelection.Inspect;
+            if (inspect == null || !inspect.HasTarget)
                 return;
 
-            var canManage = HousingAssignmentService.CanManageHousing(session.World);
-            var panelH = canManage ? 220f : 118f;
-            var r = new Rect(Pad, TopH + 42f, 320f, panelH);
-            Fill(r, new Color(0.11f, 0.13f, 0.16f, 0.94f));
-            HostUiHitTest.Block(r);
-
-            var title = string.IsNullOrEmpty(area.Name) ? areaId : area.Name;
-            GUI.Label(new Rect(r.x + 10f, r.y + 8f, r.width - 50f, 22f), "住房区 · " + title, _title);
-            if (GUI.Button(new Rect(r.xMax - 36f, r.y + 6f, 28f, 24f), "×"))
-            {
-                housingAreaSelection.ClearHousing();
+            // 己方已选中且不是主管府／可破坏物突击中：物况栏让位给人物面板
+            var partyFocus = selectionController != null &&
+                             selectionController.State.Count > 0 &&
+                             selectionController.IsPartyUnit(selectionController.State.SelectedIds[0]);
+            if (partyFocus &&
+                inspect.Kind != WorldObjectInspectKind.ControlCore &&
+                inspect.Kind != WorldObjectInspectKind.Destructible)
                 return;
-            }
 
-            var ownerName = "（未指定）";
-            if (session.World.HousingAssignments.TryGetOwner(areaId, out var ownerId) &&
-                session.World.Entities.TryGet(ownerId, out var ownerEnt))
-                ownerName = HousingAssignmentService.EntityDisplayName(ownerEnt);
-
-            GUI.Label(new Rect(r.x + 10f, r.y + 34f, r.width - 20f, 20f), "归属：" + ownerName, _body);
-
-            HousingAssignmentService.CollectResidents(session.World, areaId, _housingResidentsScratch);
-            var residents = _housingResidentsScratch.Count == 0
-                ? "入住：—"
-                : "入住：" + FormatEntityNames(session, _housingResidentsScratch);
-            GUI.Label(new Rect(r.x + 10f, r.y + 56f, r.width - 20f, 36f), residents, _body);
-
-            if (!canManage)
+            switch (inspect.Kind)
             {
-                GUI.Label(
-                    new Rect(r.x + 10f, r.y + 94f, r.width - 20f, 18f),
-                    "占领主管府后可改归属（限玩家阵营）",
-                    _body);
-                return;
+                case WorldObjectInspectKind.ControlCore:
+                    DrawInspectControlCore(session, inspect.WorkAreaId);
+                    break;
+                case WorldObjectInspectKind.Housing:
+                    DrawInspectHousing(session, inspect.WorkAreaId);
+                    break;
+                case WorldObjectInspectKind.WorkArea:
+                    DrawInspectWorkArea(session, inspect.WorkAreaId);
+                    break;
+                case WorldObjectInspectKind.Plot:
+                    DrawInspectPlot(inspect.Plot);
+                    break;
+                case WorldObjectInspectKind.Destructible:
+                    DrawInspectDestructible(inspect.Destructible);
+                    break;
             }
-
-            GUI.Label(new Rect(r.x + 10f, r.y + 94f, r.width - 20f, 18f), "指定归属（玩家阵营）：", _body);
-            HousingAssignmentService.CollectPlayerCampCandidates(
-                session.World, session.CharacterIds, _housingCandidatesScratch);
-            var listRect = new Rect(r.x + 10f, r.y + 116f, r.width - 20f, panelH - 126f);
-            var contentH = Mathf.Max(listRect.height, _housingCandidatesScratch.Count * 26f + 4f);
-            _housingAssignScroll = GUI.BeginScrollView(
-                listRect,
-                _housingAssignScroll,
-                new Rect(0f, 0f, listRect.width - 18f, contentH));
-            var y = 2f;
-            for (var i = 0; i < _housingCandidatesScratch.Count; i++)
-            {
-                var id = _housingCandidatesScratch[i];
-                var label = session.World.Entities.TryGet(id, out var e)
-                    ? HousingAssignmentService.EntityDisplayName(e)
-                    : id.ToString();
-                if (GUI.Button(new Rect(0f, y, listRect.width - 22f, 22f), label))
-                {
-                    var result = HousingAssignmentService.TryAssignOwner(
-                        session.World, areaId, id, session.CharacterIds);
-                    if (result.IsFailure)
-                        Debug.Log("[Host] 住房归属失败: " + result.Error);
-                }
-
-                y += 26f;
-            }
-
-            if (_housingCandidatesScratch.Count == 0)
-                GUI.Label(new Rect(0f, 2f, listRect.width - 22f, 40f), "暂无玩家阵营成员可指定", _body);
-
-            GUI.EndScrollView();
         }
 
-        void DrawControlCorePanel(PlayableHostSession session)
+        void DrawInspectShell(float height, string title, System.Action drawBody)
         {
-            if (housingAreaSelection == null && bootstrap != null)
-                housingAreaSelection = bootstrap.GetComponent<HostHousingAreaSelection>();
-            if (housingAreaSelection == null)
+            var r = new Rect(Pad, TopH + 42f, 320f, height);
+            Fill(r, new Color(0.12f, 0.12f, 0.14f, 0.94f));
+            DrawFrame(r, ParchmentDark);
+            HostUiHitTest.Block(r);
+
+            GUI.Label(new Rect(r.x + 10f, r.y + 8f, r.width - 50f, 22f), title, _title);
+            if (GUI.Button(new Rect(r.xMax - 36f, r.y + 6f, 28f, 24f), "×"))
+            {
+                housingAreaSelection.Clear();
                 return;
-            var coreId = housingAreaSelection.SelectedControlCoreWorkAreaId;
+            }
+
+            drawBody?.Invoke();
+        }
+
+        void DrawInspectControlCore(PlayableHostSession session, string coreId)
+        {
             if (string.IsNullOrEmpty(coreId) ||
                 !session.World.ControlCores.TryGet(coreId, out var core))
                 return;
 
-            var r = new Rect(Pad, TopH + 42f, 320f, 168f);
-            Fill(r, new Color(0.14f, 0.11f, 0.12f, 0.94f));
-            HostUiHitTest.Block(r);
-
-            GUI.Label(new Rect(r.x + 10f, r.y + 8f, r.width - 50f, 22f), "主管府 · " + core.Name, _title);
-            if (GUI.Button(new Rect(r.xMax - 36f, r.y + 6f, 28f, 24f), "×"))
+            DrawInspectShell(168f, "主管府 · " + core.Name, () =>
             {
-                housingAreaSelection.ClearControlCore();
+                var r = new Rect(Pad, TopH + 42f, 320f, 168f);
+                DrawInlineMeter(
+                    r.x + 10f, r.y + 40f, r.width - 20f,
+                    "耐久", core.CurrentDurability, core.MaxDurability,
+                    new Color(0.85f, 0.32f, 0.28f));
+
+                string status;
+                if (core.PlayerControlled)
+                    status = "状态：已占领（住房／课表可管）";
+                else if (core.CaptureAvailable)
+                    status = "状态：已破门 · 站立占领 " +
+                             core.OccupyProgressSeconds.ToString("0.0") + "/" +
+                             core.OccupyHoldSeconds.ToString("0") + " 秒";
+                else
+                    status = "状态：防守中（选中己方→右键攻击拆耐久）";
+
+                GUI.Label(new Rect(r.x + 10f, r.y + 68f, r.width - 20f, 48f), status, _body);
+                if (core.PlayerControlled && core.GrantsPrivileges.Count > 0)
+                {
+                    GUI.Label(
+                        new Rect(r.x + 10f, r.y + 118f, r.width - 20f, 36f),
+                        "权限：" + string.Join("、", core.GrantsPrivileges),
+                        _body);
+                }
+            });
+        }
+
+        void DrawInspectHousing(PlayableHostSession session, string areaId)
+        {
+            if (string.IsNullOrEmpty(areaId) ||
+                !session.World.TryGetWorkArea(areaId, out var area))
                 return;
-            }
 
-            DrawInlineMeter(
-                r.x + 10f, r.y + 40f, r.width - 20f,
-                "耐久", core.CurrentDurability, core.MaxDurability,
-                new Color(0.85f, 0.32f, 0.28f));
-
-            string status;
-            if (core.PlayerControlled)
-                status = "状态：已占领（住房／课表可管）";
-            else if (core.CaptureAvailable)
-                status = "状态：已破门 · 站立占领 " +
-                         core.OccupyProgressSeconds.ToString("0.0") + "/" +
-                         core.OccupyHoldSeconds.ToString("0") + " 秒";
-            else
-                status = "状态：防守中（选中己方→右键攻击；靠近后按近战属性拆耐久）";
-
-            GUI.Label(new Rect(r.x + 10f, r.y + 64f, r.width - 20f, 40f), status, _body);
-
-            if (core.PlayerControlled)
+            var title = string.IsNullOrEmpty(area.Name) ? areaId : area.Name;
+            DrawInspectShell(130f, "住房 · " + title, () =>
             {
+                var r = new Rect(Pad, TopH + 42f, 320f, 130f);
+                var ownerName = "（未指定）";
+                if (session.World.HousingAssignments.TryGetOwner(areaId, out var ownerId) &&
+                    session.World.Entities.TryGet(ownerId, out var ownerEnt))
+                    ownerName = HousingAssignmentService.EntityDisplayName(ownerEnt);
+
+                HousingAssignmentService.CollectResidents(session.World, areaId, _housingResidentsScratch);
+                var residents = _housingResidentsScratch.Count == 0
+                    ? "—"
+                    : FormatEntityNames(session, _housingResidentsScratch);
+
+                GUI.Label(new Rect(r.x + 10f, r.y + 36f, r.width - 20f, 20f), "归属：" + ownerName, _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 58f, r.width - 20f, 36f), "入住：" + residents, _body);
                 GUI.Label(
-                    new Rect(r.x + 10f, r.y + 108f, r.width - 20f, 40f),
-                    "权限：" + string.Join("、", core.GrantsPrivileges),
+                    new Rect(r.x + 10f, r.y + 96f, r.width - 20f, 24f),
+                    "只读况栏 · 改归属另开管理入口",
                     _body);
+            });
+        }
+
+        void DrawInspectWorkArea(PlayableHostSession session, string areaId)
+        {
+            if (string.IsNullOrEmpty(areaId) ||
+                !session.World.TryGetWorkArea(areaId, out var area))
                 return;
-            }
 
-            if (controlCoreAssault == null && bootstrap != null)
-                controlCoreAssault = bootstrap.GetComponent<HostControlCoreAssault>();
-            var assaulting = controlCoreAssault != null &&
-                             controlCoreAssault.IsAssaulting &&
-                             controlCoreAssault.TargetWorkAreaId == core.WorkAreaId;
-            if (assaulting)
+            var title = string.IsNullOrEmpty(area.Name) ? areaId : area.Name;
+            DrawInspectShell(120f, "工区 · " + title, () =>
             {
-                GUI.Label(new Rect(r.x + 10f, r.y + 118f, r.width - 20f, 28f), "突击中…靠近建筑即可输出", _body);
-                if (GUI.Button(new Rect(r.x + 200f, r.y + 118f, 90f, 28f), "取消"))
-                    controlCoreAssault.Clear();
-            }
-            else
+                var r = new Rect(Pad, TopH + 42f, 320f, 120f);
+                var tags = area.Tags != null && area.Tags.Count > 0
+                    ? string.Join("、", area.Tags)
+                    : "—";
+                var acts = area.AllowedActivities != null && area.AllowedActivities.Count > 0
+                    ? string.Join("、", area.AllowedActivities)
+                    : "—";
+                GUI.Label(new Rect(r.x + 10f, r.y + 36f, r.width - 20f, 20f),
+                    "容量 " + area.Capacity + " · 地点 " + ShortId(area.LocationId), _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 58f, r.width - 20f, 20f), "标签：" + tags, _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 80f, r.width - 20f, 28f), "活动：" + acts, _body);
+            });
+        }
+
+        void DrawInspectPlot(HostMapPlotCell plot)
+        {
+            if (plot == null)
+                return;
+
+            DrawInspectShell(128f, plot.KindDisplayName(), () =>
             {
+                var r = new Rect(Pad, TopH + 42f, 320f, 128f);
                 GUI.Label(
-                    new Rect(r.x + 10f, r.y + 118f, r.width - 20f, 36f),
-                    "选中己方 → 右键建筑任意处 → 攻击",
+                    new Rect(r.x + 10f, r.y + 36f, r.width - 20f, 20f),
+                    "格 (" + plot.GridX + "," + plot.GridY + ")",
                     _body);
-            }
+                if (plot.IsPlantableField)
+                {
+                    GUI.Label(
+                        new Rect(r.x + 10f, r.y + 58f, r.width - 20f, 40f),
+                        plot.DescribeCropStatus(),
+                        _body);
+                    GUI.Label(
+                        new Rect(r.x + 10f, r.y + 100f, r.width - 20f, 20f),
+                        "交互→田区自动播种／照料／收获",
+                        _body);
+                }
+                else
+                {
+                    GUI.Label(
+                        new Rect(r.x + 10f, r.y + 58f, r.width - 20f, 40f),
+                        "交互：" + plot.InteractKind +
+                        (string.IsNullOrEmpty(plot.Label) ? "" : " · " + plot.Label),
+                        _body);
+                }
+            });
+        }
+
+        void DrawInspectDestructible(HostMapDestructible d)
+        {
+            if (d == null || d.IsDestroyed)
+                return;
+
+            var kindLabel = d.IsTree ? "树木" : d.IsWall ? "墙体" : "可破坏物";
+            DrawInspectShell(132f, kindLabel + " · " + d.DisplayName, () =>
+            {
+                var r = new Rect(Pad, TopH + 42f, 320f, 132f);
+                DrawInlineMeter(
+                    r.x + 10f, r.y + 40f, r.width - 20f,
+                    "耐久", d.CurrentHp, d.MaxHp,
+                    new Color(0.45f, 0.75f, 0.35f));
+                var yield = d.IsTree
+                    ? ("伐倒后获粗木 ×" + d.ResolveWoodYield())
+                    : "耐久归零后摧毁";
+                GUI.Label(new Rect(r.x + 10f, r.y + 68f, r.width - 20f, 28f), yield, _body);
+                GUI.Label(
+                    new Rect(r.x + 10f, r.y + 98f, r.width - 20f, 24f),
+                    "选中己方 → 右键／F8 战斗点选可砍拆",
+                    _body);
+            });
         }
 
         static void ResumeSession(PlayableHostSession session)
@@ -755,6 +808,10 @@ namespace XianXia.Unity.Host
                 bootstrap.BreakthroughRitual != null &&
                 bootstrap.BreakthroughRitual.IsChannelingSubject(focus))
                 activity = "冲击瓶颈";
+            else if (bootstrap != null &&
+                     bootstrap.SkillStudyRitual != null &&
+                     bootstrap.SkillStudyRitual.IsChannelingSubject(focus))
+                activity = "参悟中";
             entity.TryGet<CultivationComponent>(out var cult);
             var realm = cult != null ? RealmName(cult.Realm, cult.MinorStage) : "—";
             var subtitle = isParty ? "己方 · 上方可下令" : "查看 · 非己方不可下令";
@@ -917,27 +974,70 @@ namespace XianXia.Unity.Host
 
         void DrawActionOrbRow(float x, float y, float width, EntityId focus)
         {
-            var labels = new[]
-            {
-                "Q\n移动", "F1\n停止", "E\n交互", "F8\n战斗", "F7\n勘查", "F6\n修炼"
-            };
+            // 交互／战斗横排；纱衣紧挨战斗，F2（事件流水改为 Ctrl+F2）
+            var showVeil = CanShowSpiritVeilOrb(focus);
+            var labels = showVeil
+                ? new[]
+                {
+                    "Q\n移动", "F1\n停止", "E\n交互", "F8\n战斗", "F2\n纱衣", "F7\n勘查", "F6\n修炼"
+                }
+                : new[]
+                {
+                    "Q\n移动", "F1\n停止", "E\n交互", "F8\n战斗", "F7\n勘查", "F6\n修炼"
+                };
 
             var mode = bootstrap != null ? bootstrap.WorkTargetMode : null;
-            var gap = 10f;
+            var gap = showVeil ? 8f : 10f;
             var total = ActionOrb * labels.Length + gap * (labels.Length - 1);
             var startX = x + (width - total) * 0.5f;
             for (var i = 0; i < labels.Length; i++)
             {
                 var r = new Rect(startX + i * (ActionOrb + gap), y, ActionOrb, ActionOrb);
-                GUI.enabled = commandBridge != null || mode != null;
+                var isVeil = showVeil && i == 4;
+                GUI.enabled = commandBridge != null || mode != null || isVeil;
                 if (HostImguiStyles.ParchmentBtn(r, labels[i]))
                 {
                     Event.current.Use();
-                    InvokeActionIndex(focus, i);
+                    if (isVeil)
+                        ToggleSpiritVeilOrb(focus);
+                    else
+                        InvokeActionIndex(focus, MapOrbIndexToAction(i, showVeil));
                 }
 
                 GUI.enabled = true;
             }
+        }
+
+        static int MapOrbIndexToAction(int orbIndex, bool showVeil)
+        {
+            if (!showVeil)
+                return orbIndex;
+            // 0–3 同原；4＝纱衣；5→F7(4)；6→F6(5)
+            if (orbIndex < 4)
+                return orbIndex;
+            return orbIndex - 1;
+        }
+
+        bool CanShowSpiritVeilOrb(EntityId focus)
+        {
+            if (bootstrap?.Session?.World == null || focus.IsNone)
+                return false;
+            if (!bootstrap.Session.World.Entities.TryGet(focus, out var entity))
+                return false;
+            return entity.TryGet<CultivationComponent>(out var cult) &&
+                   cult.Realm >= RealmStage.Foundation;
+        }
+
+        void ToggleSpiritVeilOrb(EntityId focus)
+        {
+            if (bootstrap == null || focus.IsNone)
+                return;
+            EnsureFocusSelected(focus);
+            var veil = bootstrap.GetComponent<HostSpiritVeilController>();
+            if (veil == null)
+                return;
+            var ok = veil.TryToggle(focus, out var msg);
+            veil.ToastToggleResult(focus, ok, msg);
         }
 
         void DrawUnitTabs(Rect strip)
@@ -1048,6 +1148,21 @@ namespace XianXia.Unity.Host
                     {
                         DrawStatBar(rightX, ry, rightW, "灵力", maxSp, Mathf.Max(100, maxSp), BarTeal);
                         ry += 22f;
+                    }
+
+                    if (cult.Realm >= RealmStage.Foundation)
+                    {
+                        var veilOn = SpiritVeilService.IsActive(entity);
+                        GUI.Label(
+                            new Rect(rightX, ry, rightW, 18f),
+                            veilOn
+                                ? "斗气纱衣　已展开（普攻远程 " +
+                                  SpiritVeilRules.FoundationRangedEngageRange.ToString("0") +
+                                  "）· F2 收起"
+                                : "斗气纱衣　未展开 · F2 召唤（耗灵力 " +
+                                  SpiritVeilRules.FoundationActivateSpiritCost + "）",
+                            _parchmentBody);
+                        ry += 20f;
                     }
                 }
 
@@ -1410,7 +1525,7 @@ namespace XianXia.Unity.Host
             if (focus.IsNone || selectionController == null || !selectionController.IsPartyUnit(focus))
                 return;
 
-            // F5／F9 存读档；Q/E/F8＝移动/交互/战斗；F7＝勘查；F1＝停止；F6＝修炼；G＝敛息。
+            // F5／F9 存读档；Q/E/F8＝移动/交互/战斗；F2＝斗气纱衣；F7＝勘查；F1＝停止；F6＝修炼；G＝敛息。
             if (Input.GetKeyDown(KeyCode.Q) && !Input.GetKey(KeyCode.LeftAlt) && !Input.GetKey(KeyCode.RightAlt))
                 InvokeActionIndex(focus, 0);
             else if (Input.GetKeyDown(KeyCode.F1))
@@ -1419,6 +1534,8 @@ namespace XianXia.Unity.Host
                 InvokeActionIndex(focus, 2);
             else if (Input.GetKeyDown(KeyCode.F8))
                 InvokeActionIndex(focus, 3);
+            else if (Input.GetKeyDown(KeyCode.F2))
+                ToggleSpiritVeilOrb(focus);
             else if (Input.GetKeyDown(KeyCode.F7))
                 InvokeActionIndex(focus, 4);
             else if (Input.GetKeyDown(KeyCode.F6))

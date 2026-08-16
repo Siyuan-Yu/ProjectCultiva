@@ -1,0 +1,57 @@
+<Window x:Class="LocalPlaceEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="XianXia · 场景地点登记（LocalPlace）" Height="820" Width="1400"
+        WindowStartupLocation="CenterScreen">
+  <DockPanel Margin="10">
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+      <TextBlock TextWrapping="Wrap" Margin="0,0,0,8" Foreground="#444"
+                 Text="轻量登记：某张 LocalMap 里有哪些逻辑地点（落点／洞口进哪张内图／任务锚点）。种植／隐藏洞府等玩法跟类型走，不必每行手抄。"/>
+      <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+        <Button Content="打开包…" Width="90" Margin="0,0,8,0" Click="OpenPackage_Click"/>
+        <TextBlock Text="地点表" VerticalAlignment="Center" Margin="0,0,6,0"/>
+        <ComboBox x:Name="SetCombo" Width="340" SelectionChanged="SetCombo_SelectionChanged"/>
+        <Button Content="新建地点表" Width="100" Margin="12,0,0,0" Click="NewSet_Click"/>
+        <Button Content="保存到磁盘" Width="100" Margin="8,0,0,0" Click="Save_Click"/>
+        <TextBlock x:Name="RootText" VerticalAlignment="Center" Margin="12,0,0,0"/>
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+        <TextBlock Text="name" VerticalAlignment="Center" Margin="0,0,6,0"/>
+        <TextBox x:Name="NameBox" Width="200" Margin="0,0,12,0"/>
+        <TextBlock Text="mapLayoutId" VerticalAlignment="Center" Margin="0,0,6,0"/>
+        <ComboBox x:Name="MapCombo" Width="280" IsEditable="True" Margin="0,0,12,0"/>
+        <TextBlock Text="startLocationId" VerticalAlignment="Center" Margin="0,0,6,0"/>
+        <TextBox x:Name="StartBox" Width="240"/>
+      </StackPanel>
+      <StackPanel Orientation="Horizontal">
+        <Button Content="+ 地点" Width="80" Margin="0,0,8,0" Click="AddLoc_Click"/>
+        <Button Content="删除选中" Width="90" Margin="0,0,8,0" Click="DeleteLoc_Click"/>
+        <Button Content="+ 隐藏洞口模板" Width="120" Click="AddCave_Click"
+                ToolTip="预填 enterLocalMap／opportunity／surveySenseRequired=0"/>
+      </StackPanel>
+    </StackPanel>
+    <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0"/>
+    <DataGrid x:Name="LocGrid" AutoGenerateColumns="False" CanUserAddRows="False"
+              HeadersVisibility="Column" SelectionMode="Single">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="id" Binding="{Binding Id}" Width="170"/>
+        <DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="100"/>
+        <DataGridComboBoxColumn x:Name="KindColumn" Header="类型" SelectedItemBinding="{Binding Kind}" Width="90"/>
+        <DataGridTextColumn Header="tags" Binding="{Binding Tags}" Width="110"/>
+        <DataGridTextColumn Header="X" Binding="{Binding PresentationX}" Width="50"/>
+        <DataGridTextColumn Header="Z" Binding="{Binding PresentationZ}" Width="50"/>
+        <DataGridTextColumn Header="相邻" Binding="{Binding AdjacentIds}" Width="160"/>
+        <DataGridTextColumn Header="机缘 site" Binding="{Binding OpportunitySiteId}" Width="140"/>
+        <DataGridTextColumn Header="进洞 map" Binding="{Binding EnterLocalMapId}" Width="150"/>
+        <DataGridTextColumn Header="洞内落点" Binding="{Binding EnterSpawnLocationId}" Width="140"/>
+        <DataGridTextColumn Header="神识门槛" Binding="{Binding SurveySenseRequired}" Width="70"/>
+        <DataGridTextColumn Header="所属 localMapId" Binding="{Binding LocalMapId}" Width="140"/>
+        <DataGridTextColumn Header="explore资源" Binding="{Binding ResourceOnExploreId}" Width="120"/>
+        <DataGridTextColumn Header="数量" Binding="{Binding ResourceOnExploreAmount}" Width="50"/>
+        <DataGridTextColumn Header="驻点 NPC" Binding="{Binding ResidentNpcDefinitionId}" Width="140"/>
+        <DataGridTextColumn Header="questOfferIds" Binding="{Binding QuestOfferIds}" Width="140"/>
+        <DataGridTextColumn Header="允许活动" Binding="{Binding AllowedActivities}" Width="120"/>
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</Window>

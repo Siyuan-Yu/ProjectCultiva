@@ -188,7 +188,14 @@ namespace XianXia.Data.Content
         {
             "id", "type", "name", "displayNameKey", "nameKey", "requiredRealm",
             "grade", "effectSummary",
-            "cultivationSpeed", "breakthroughProgress", "grantedModifiers", "tags"
+            "cultivationSpeed", "breakthroughProgress", "grantedModifiers", "mastery", "tags"
+        };
+
+        public static readonly HashSet<string> CombatArtFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "grade", "effectSummary",
+            "attackBonusPercent", "damageFlat", "damageAttackMult", "hitCount", "cooldownSeconds",
+            "mastery", "tags"
         };
 
         public static readonly HashSet<string> ItemFields = new HashSet<string>(StringComparer.Ordinal)

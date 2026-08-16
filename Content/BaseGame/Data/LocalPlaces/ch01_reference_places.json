@@ -33,8 +33,8 @@
           ],
           "resourceOnExploreId": "base:resource_grain",
           "resourceOnExploreAmount": 1,
-          "presentationX": 17.0,
-          "presentationZ": -18.0
+          "presentationX": 0.5,
+          "presentationZ": -6.0
         },
         {
           "id": "base:loc_ref_houses",
@@ -130,8 +130,8 @@
           ],
           "resourceOnExploreId": "base:resource_spirit_herb",
           "resourceOnExploreAmount": 1,
-          "presentationX": -6.0,
-          "presentationZ": -15.0,
+          "presentationX": 28.0,
+          "presentationZ": -7.0,
           "residentNpcDefinitionId": "base:character_ch01_ref_mortal_b"
         },
         {

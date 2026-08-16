@@ -23,6 +23,9 @@ namespace XianXia.Core.Cultivation
 
         public string RequiredRealmName { get; set; } = nameof(RealmStage.Mortal);
 
+        /// <summary>当前所学功法的熟练度（无功法时忽略）。</summary>
+        public SkillMasteryState ManualMastery { get; set; }
+
         public bool HasLearnedManual => LearnedManualId.HasValue;
 
         public bool IsAtBottleneck =>

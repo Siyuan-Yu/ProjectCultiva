@@ -1,6 +1,7 @@
 using UnityEngine;
 using XianXia.Core.Combat;
 using XianXia.Core.Content;
+using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 
@@ -104,13 +105,15 @@ namespace XianXia.Unity.Host
                 : "\n" + art.EffectSummary;
             GUI.Label(
                 new Rect(x, y, w - 32f, 64f),
-                world.InventoryCatalog.GetName(_itemId) + "（秘本保留）\n" + name + grade + effect,
+                world.InventoryCatalog.GetName(_itemId) + "（秘本保留）\n" + name + grade + effect +
+                "\n点选后约 8 秒参悟；掷的是学习成功率（悟性／品阶），成功＝入门。战斗释放不掷此骰。",
                 _body);
             y += 70f;
             GUI.Label(new Rect(x, y, w - 32f, 22f), "选择学习者：", _body);
             y += 26f;
 
             var ids = bootstrap.Session.CharacterIds;
+            var mastery = new SkillMasteryService();
             for (var i = 0; i < ids.Count; i++)
             {
                 var id = ids[i];
@@ -120,19 +123,24 @@ namespace XianXia.Unity.Host
                 if (entity.TryGet<CombatArtsComponent>(out var arts) &&
                     art != null && arts.Knows(art.Id))
                     label += "（已学会）";
+                else if (art != null)
+                {
+                    var pct = (int)System.Math.Round(mastery.EvaluateArtLearnChance(world, id, art) * 100.0);
+                    label += " · 学习成功率约 " + pct + "%";
+                }
+
                 if (HostImguiStyles.ParchmentBtn(new Rect(x, y, w - 32f, 32f), label))
                 {
-                    var result = new CombatArtItemLearnService().TryLearnFromItem(world, id, _itemId);
-                    if (result.IsSuccess)
+                    var ritual = bootstrap.SkillStudyRitual;
+                    if (ritual == null)
+                        _status = "研读组件未就绪";
+                    else if (ritual.TryBeginLearnArt(id, _itemId, out var reason))
                     {
-                        if (entity.TryGet<CombatArtsComponent>(out var learned) && art != null)
-                            learned.TryEquip(art.Id);
-                        bootstrap.DispatchDrainedEvents();
                         Close();
                         return;
                     }
-
-                    _status = result.Error.ToString();
+                    else
+                        _status = string.IsNullOrEmpty(reason) ? "无法开始参悟" : reason;
                 }
 
                 y += 36f;

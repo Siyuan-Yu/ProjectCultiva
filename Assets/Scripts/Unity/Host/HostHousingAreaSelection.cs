@@ -5,7 +5,8 @@ using XianXia.Core.Simulation;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// Left-click empty ground near a housing work area or on a control-core building → select for HostFormalHud.
+    /// 左键点空：优先检视主管府／可破坏物／耕种格／住房／其它工区。
+    /// 框选仍只选己方（SelectionController）；本组件只响应点选落空。
     /// </summary>
     public sealed class HostHousingAreaSelection : MonoBehaviour
     {
@@ -13,10 +14,18 @@ namespace XianXia.Unity.Host
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] Camera worldCamera;
         [SerializeField] float pickRadius = 6.5f;
+        [SerializeField] float plotPickRadius = 1.35f;
+        [SerializeField] float destructiblePickRadius = 2.2f;
 
-        public string SelectedWorkAreaId { get; private set; } = string.Empty;
+        readonly WorldObjectInspectSelection _inspect = new WorldObjectInspectSelection();
 
-        public string SelectedControlCoreWorkAreaId { get; private set; } = string.Empty;
+        public WorldObjectInspectSelection Inspect => _inspect;
+
+        public string SelectedWorkAreaId =>
+            _inspect.Kind == WorldObjectInspectKind.Housing ? _inspect.WorkAreaId : string.Empty;
+
+        public string SelectedControlCoreWorkAreaId =>
+            _inspect.Kind == WorldObjectInspectKind.ControlCore ? _inspect.WorkAreaId : string.Empty;
 
         public void Bind(PlayableHostBootstrap host, HostSelectionController selection, Camera camera)
         {
@@ -42,27 +51,43 @@ namespace XianXia.Unity.Host
             selectionController.OnPointSelectMiss += OnMiss;
         }
 
-        public void Clear()
+        public void Clear() => _inspect.Clear();
+
+        public void ClearHousing()
         {
-            SelectedWorkAreaId = string.Empty;
-            SelectedControlCoreWorkAreaId = string.Empty;
+            if (_inspect.Kind == WorldObjectInspectKind.Housing)
+                _inspect.Clear();
         }
 
-        public void ClearHousing() => SelectedWorkAreaId = string.Empty;
-
-        public void ClearControlCore() => SelectedControlCoreWorkAreaId = string.Empty;
-
-        public void SelectControlCore(string workAreaId)
+        public void ClearControlCore()
         {
-            SelectedControlCoreWorkAreaId = workAreaId ?? string.Empty;
-            SelectedWorkAreaId = string.Empty;
+            if (_inspect.Kind == WorldObjectInspectKind.ControlCore)
+                _inspect.Clear();
         }
+
+        public void SelectControlCore(string workAreaId) =>
+            _inspect.SetControlCore(workAreaId);
+
+        public void SelectDestructible(HostMapDestructible d) =>
+            _inspect.SetDestructible(d);
 
         void Update()
         {
-            // Keep control-core panel open while party is selected (assault／occupy).
+            // 选中己方时收起住房检视，保留主管府（突击中要看耐久）
             if (selectionController != null && selectionController.State.Count > 0)
-                SelectedWorkAreaId = string.Empty;
+            {
+                if (_inspect.Kind == WorldObjectInspectKind.Housing ||
+                    _inspect.Kind == WorldObjectInspectKind.WorkArea ||
+                    _inspect.Kind == WorldObjectInspectKind.Plot)
+                    _inspect.Clear();
+            }
+
+            if (_inspect.Kind == WorldObjectInspectKind.Destructible &&
+                (_inspect.Destructible == null || _inspect.Destructible.IsDestroyed))
+                _inspect.Clear();
+
+            if (_inspect.Kind == WorldObjectInspectKind.Plot && _inspect.Plot == null)
+                _inspect.Clear();
         }
 
         void OnMiss(Vector2 screenPoint)
@@ -86,15 +111,34 @@ namespace XianXia.Unity.Host
             MapLayoutPick.TryGet(bootstrap.Session, out var layout);
             if (HostControlCoreQuery.TryPickAtWorld(world, layout, worldPoint, out var coreId))
             {
-                SelectedControlCoreWorkAreaId = coreId;
-                SelectedWorkAreaId = string.Empty;
+                _inspect.SetControlCore(coreId);
                 return;
             }
 
-            if (TryPickHousing(world, worldPoint, pickRadius, out var areaId))
+            if (HostMapObjectRegistry.TryPickDestructible(worldPoint, destructiblePickRadius, out var d))
             {
-                SelectedWorkAreaId = areaId;
-                SelectedControlCoreWorkAreaId = string.Empty;
+                _inspect.SetDestructible(d);
+                return;
+            }
+
+            if (HostMapObjectRegistry.TryPickPlot(worldPoint, plotPickRadius, out var plot) &&
+                (plot.IsPlantableField || plot.InteractKind == HostInteractSpotKind.Work ||
+                 plot.InteractKind == HostInteractSpotKind.Loot ||
+                 plot.InteractKind == HostInteractSpotKind.Cultivate))
+            {
+                _inspect.SetPlot(plot);
+                return;
+            }
+
+            if (TryPickHousing(world, worldPoint, pickRadius, out var houseId))
+            {
+                _inspect.SetHousing(houseId);
+                return;
+            }
+
+            if (TryPickWorkArea(world, worldPoint, pickRadius, out var areaId))
+            {
+                _inspect.SetWorkArea(areaId);
                 return;
             }
 
@@ -128,10 +172,66 @@ namespace XianXia.Unity.Host
                 var cz = loc.PresentationZ + area.OffsetZ;
                 var dx = cx - p.x;
                 var dy = cz - p.y;
-                var d = Mathf.Sqrt(dx * dx + dy * dy);
-                if (d > radius || d >= best)
+                var dist = Mathf.Sqrt(dx * dx + dy * dy);
+                if (dist > radius || dist >= best)
                     continue;
-                best = d;
+                best = dist;
+                bestId = area.Id;
+            }
+
+            if (string.IsNullOrEmpty(bestId))
+                return false;
+            workAreaId = bestId;
+            return true;
+        }
+
+        public static bool TryPickWorkArea(
+            SimulationWorld world,
+            Vector3 worldPoint,
+            float radius,
+            out string workAreaId)
+        {
+            workAreaId = string.Empty;
+            if (world == null)
+                return false;
+
+            var p = HostPresentationSpace.ToPresentation(worldPoint);
+            var best = float.MaxValue;
+            string bestId = null;
+
+            foreach (var kv in world.WorkAreas)
+            {
+                var area = kv.Value;
+                if (area == null || area.IsControlCore || HousingAssignmentService.IsHousingArea(area))
+                    continue;
+                if (string.IsNullOrEmpty(area.LocationId) ||
+                    !world.WorldRegion.TryGet(area.LocationId, out var loc))
+                    continue;
+
+                float dist;
+                if (HostFarmFieldRules.IsFarmTaggedWorkArea(area))
+                {
+                    // 农田／药田：只点在耕种格上才检视，勿用地点圆心大半径扫绿草。
+                    if (!HostFarmFieldRegistry.TryFindPlotAt(worldPoint, out var plot) ||
+                        plot == null ||
+                        !string.Equals(plot.LocationId, area.LocationId, System.StringComparison.Ordinal))
+                        continue;
+                    dist = HostFarmFieldRules.XyDistance(plot.transform.position, worldPoint);
+                }
+                else
+                {
+                    var cx = loc.PresentationX + area.OffsetX;
+                    var cz = loc.PresentationZ + area.OffsetZ;
+                    var dx = cx - p.x;
+                    var dy = cz - p.y;
+                    dist = Mathf.Sqrt(dx * dx + dy * dy);
+                    if (dist > radius)
+                        continue;
+                }
+
+                if (dist >= best)
+                    continue;
+                best = dist;
                 bestId = area.Id;
             }
 
@@ -143,11 +243,11 @@ namespace XianXia.Unity.Host
 
         void OnDrawGizmos()
         {
-            if (bootstrap?.Session?.World == null)
+            if (bootstrap?.Session?.World == null || !_inspect.HasTarget)
                 return;
 
-            if (!string.IsNullOrEmpty(SelectedControlCoreWorkAreaId) &&
-                bootstrap.Session.World.ControlCores.TryGet(SelectedControlCoreWorkAreaId, out var core))
+            if (_inspect.Kind == WorldObjectInspectKind.ControlCore &&
+                bootstrap.Session.World.ControlCores.TryGet(_inspect.WorkAreaId, out var core))
             {
                 MapLayoutPick.TryGet(bootstrap.Session, out var layout);
                 if (HostControlCoreQuery.TryGetCenter(
@@ -160,16 +260,31 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            if (string.IsNullOrEmpty(SelectedWorkAreaId))
+            if (_inspect.Kind == WorldObjectInspectKind.Destructible && _inspect.Destructible != null)
+            {
+                Gizmos.color = new Color(0.35f, 0.85f, 0.45f, 0.9f);
+                Gizmos.DrawWireSphere(_inspect.Destructible.transform.position, 1.6f);
                 return;
-            if (!bootstrap.Session.World.TryGetWorkArea(SelectedWorkAreaId, out var area) ||
-                !bootstrap.Session.World.WorldRegion.TryGet(area.LocationId, out var loc))
+            }
+
+            if (_inspect.Kind == WorldObjectInspectKind.Plot && _inspect.Plot != null)
+            {
+                Gizmos.color = new Color(0.85f, 0.75f, 0.25f, 0.9f);
+                Gizmos.DrawWireSphere(_inspect.Plot.transform.position, 0.9f);
                 return;
-            var houseCenter = HostPresentationSpace.FromPresentation(
-                loc.PresentationX + area.OffsetX,
-                loc.PresentationZ + area.OffsetZ);
-            Gizmos.color = new Color(0.35f, 0.75f, 1f, 0.85f);
-            Gizmos.DrawWireSphere(houseCenter, 2.2f);
+            }
+
+            if ((_inspect.Kind == WorldObjectInspectKind.Housing ||
+                 _inspect.Kind == WorldObjectInspectKind.WorkArea) &&
+                bootstrap.Session.World.TryGetWorkArea(_inspect.WorkAreaId, out var area) &&
+                bootstrap.Session.World.WorldRegion.TryGet(area.LocationId, out var loc))
+            {
+                var houseCenter = HostPresentationSpace.FromPresentation(
+                    loc.PresentationX + area.OffsetX,
+                    loc.PresentationZ + area.OffsetZ);
+                Gizmos.color = new Color(0.35f, 0.75f, 1f, 0.85f);
+                Gizmos.DrawWireSphere(houseCenter, 2.2f);
+            }
         }
     }
 }

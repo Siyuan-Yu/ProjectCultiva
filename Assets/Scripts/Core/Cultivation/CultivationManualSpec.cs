@@ -19,6 +19,8 @@ namespace XianXia.Core.Cultivation
         public int CultivationSpeed { get; set; }
         public int BreakthroughProgress { get; set; }
         public List<ModifierGrantSpec> GrantedModifiers { get; set; } = new List<ModifierGrantSpec>();
+        /// <summary>熟练档效果／突破表；缺省由 <see cref="SkillMasteryLookup"/> 生成。</summary>
+        public SkillMasteryProfile Mastery { get; set; }
     }
 
     public sealed class ModifierGrantSpec

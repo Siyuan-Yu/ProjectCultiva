@@ -197,6 +197,9 @@ namespace XianXia.Data.Content
                     case "cultivation":
                         LoadCultivation(item, parsed.Value, registry, report);
                         break;
+                    case "combatArt":
+                        LoadCombatArt(item, parsed.Value, registry, report);
+                        break;
                     case "item":
                         LoadItem(item, parsed.Value, registry, report);
                         break;
@@ -500,6 +503,14 @@ namespace XianXia.Data.Content
                     return;
             }
 
+            if (item.TryGetProperty("mastery", out var masteryNode))
+            {
+                if (!SkillMasteryProfileParser.TryParse(
+                        masteryNode, id.ToString(), report, out var masteryDef))
+                    return;
+                cultivation.Mastery = masteryDef;
+            }
+
             ReadTags(item, cultivation.Tags, report, id.ToString());
             if (report.Errors.Count > errorsBefore)
                 return;
@@ -507,6 +518,55 @@ namespace XianXia.Data.Content
             var reg = registry.RegisterCultivation(cultivation);
             if (reg.IsFailure)
                 report.Add(reg.Error);
+        }
+
+        static void LoadCombatArt(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.CombatArtFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var art = new CombatArtDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                Grade = item.GetString("grade", string.Empty),
+                EffectSummary = item.GetString("effectSummary", string.Empty),
+                HitCount = 1,
+                CooldownSeconds = 2f
+            };
+
+            if (item.TryGetProperty("attackBonusPercent", out var ab) && ab.Kind == JsonValueKind.Number)
+                art.AttackBonusPercent = ab.Number;
+            if (item.TryGetProperty("damageFlat", out var df) && df.Kind == JsonValueKind.Number)
+                art.DamageFlat = (int)df.Number;
+            if (item.TryGetProperty("damageAttackMult", out var dm) && dm.Kind == JsonValueKind.Number)
+                art.DamageAttackMult = dm.Number;
+            if (item.TryGetProperty("hitCount", out var hc) && hc.Kind == JsonValueKind.Number)
+                art.HitCount = (int)hc.Number < 1 ? 1 : (int)hc.Number;
+            if (item.TryGetProperty("cooldownSeconds", out var cd) && cd.Kind == JsonValueKind.Number)
+                art.CooldownSeconds = (float)cd.Number;
+
+            if (item.TryGetProperty("mastery", out var masteryNode))
+            {
+                if (!SkillMasteryProfileParser.TryParse(
+                        masteryNode, id.ToString(), report, out var masteryDef))
+                    return;
+                art.Mastery = masteryDef;
+            }
+
+            ReadTags(item, art.Tags, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var regArt = registry.RegisterCombatArt(art);
+            if (regArt.IsFailure)
+                report.Add(regArt.Error);
         }
 
         static void LoadItem(

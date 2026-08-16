@@ -38,6 +38,8 @@ namespace XianXia.Unity.Host
             _session = session;
             MapLayoutPrefabResolver.BeginBatch();
             HostInteractSpots.BeginLayoutRebuild();
+            HostMapObjectRegistry.BeginRebuild();
+            HostFarmFieldRegistry.BeginRebuild();
             if (!buildOnRebuild)
                 return;
             EnsureRoot();
@@ -70,6 +72,8 @@ namespace XianXia.Unity.Host
             _session = null;
             MapLayoutPrefabResolver.BeginBatch();
             HostInteractSpots.BeginLayoutRebuild();
+            HostMapObjectRegistry.BeginRebuild();
+            HostFarmFieldRegistry.BeginRebuild();
             if (!buildOnRebuild || layout == null)
                 return;
             EnsureRoot();
@@ -154,6 +158,7 @@ namespace XianXia.Unity.Host
                     sortingOrder: kind == "controlCore" || kind == "roadHub" ? -8 : -12);
                 if (info.InteractKind.HasValue)
                     AttachPlot(go, p, info, p.X, p.Y, cx, cy);
+                AttachDestructibleIfNeeded(go, p, info.Kind, id);
                 return;
             }
 
@@ -171,7 +176,37 @@ namespace XianXia.Unity.Host
                     sortingOrder: cellOrder);
                 if (info.InteractKind.HasValue || info.Plantable)
                     AttachPlot(go, p, info, cellX, cellY, wx, wy);
+                if (string.Equals(info.Kind, "wall", System.StringComparison.OrdinalIgnoreCase))
+                    AttachDestructibleIfNeeded(go, p, info.Kind, cellName);
             }
+        }
+
+        static void AttachDestructibleIfNeeded(
+            GameObject go,
+            MapPlacement p,
+            string kind,
+            string instanceId)
+        {
+            if (go == null || string.IsNullOrEmpty(kind))
+                return;
+            var isTree =
+                string.Equals(kind, "treeS", System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(kind, "treeM", System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(kind, "treeL", System.StringComparison.OrdinalIgnoreCase);
+            var isWall = string.Equals(kind, "wall", System.StringComparison.OrdinalIgnoreCase);
+            if (!isTree && !isWall)
+                return;
+
+            var d = go.GetComponent<HostMapDestructible>() ?? go.AddComponent<HostMapDestructible>();
+            var yield = isTree ? HostMapDestructible.DefaultWoodYield(kind) : 0;
+            d.Configure(
+                instanceId,
+                kind,
+                p?.Label,
+                HostMapDestructible.DefaultMaxHp(kind),
+                yield);
+            if (isTree && d.ResolveWoodYield() <= 0)
+                Debug.LogWarning("[MapLayout] 树产量为 0：kind=" + kind + " id=" + instanceId);
         }
 
         bool ShouldHideTakenLoot(MapPlacement p)
@@ -249,6 +284,13 @@ namespace XianXia.Unity.Host
                 lootSpotId,
                 lootItemId);
 
+            // 药田／农田：只进 HostFarmFieldRegistry，点中格才交互。
+            // 树：只走可破坏物砍伐，勿注册 Work 热点（否则右键会当成林区劳动、不掉树产木材）。
+            if (info.Plantable)
+                return;
+            if (IsTreeKind(info.Kind))
+                return;
+
             HostInteractSpots.RegisterPlot(new HostInteractSpot(
                 p.BoundLocationId ?? string.Empty,
                 info.InteractKind.Value,
@@ -258,6 +300,11 @@ namespace XianXia.Unity.Host
                 lootSpotId,
                 lootItemId));
         }
+
+        static bool IsTreeKind(string kind) =>
+            string.Equals(kind, "treeS", System.StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(kind, "treeM", System.StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(kind, "treeL", System.StringComparison.OrdinalIgnoreCase);
 
         void StampMissingPlacement(MapLayoutDefinition layout, MapPlacement p, int index, string kind)
         {
@@ -293,16 +340,6 @@ namespace XianXia.Unity.Host
                 {
                     path = MapKindCatalog.Forest;
                     fallback = new Color(0.25f, 0.48f, 0.28f);
-                }
-                else if (x >= -10 && x <= 3 && y >= -20 && y <= -11)
-                {
-                    path = MapKindCatalog.Herb;
-                    fallback = new Color(0.35f, 0.65f, 0.40f);
-                }
-                else if (x >= 8 && x <= 32 && y >= -20 && y <= -4)
-                {
-                    path = MapKindCatalog.Farm;
-                    fallback = new Color(0.70f, 0.62f, 0.30f);
                 }
                 else if (Mathf.Abs(y) <= 1 || Mathf.Abs(x) <= 1)
                 {

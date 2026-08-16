@@ -196,47 +196,25 @@
           "boundLocationId": "base:loc_ref_forest"
         },
         {
-          "id": "place_zoneGrain_234845627",
-          "kind": "zoneGrain",
-          "x": 31,
-          "y": 12,
-          "w": 19,
-          "h": 17,
-          "blocksMovement": false,
-          "label": "农田区",
-          "boundLocationId": "base:loc_ref_labor_yard"
-        },
-        {
-          "id": "place_zoneHerb_234852390",
-          "kind": "zoneHerb",
-          "x": 56,
-          "y": 12,
-          "w": 17,
-          "h": 17,
-          "blocksMovement": false,
-          "label": "药田区",
-          "boundLocationId": "base:loc_ref_herb_field"
-        },
-        {
           "id": "place_herbField_234905155",
           "kind": "herbField",
-          "x": 57,
-          "y": 13,
-          "w": 15,
-          "h": 15,
+          "x": 60,
+          "y": 19,
+          "w": 7,
+          "h": 5,
           "blocksMovement": false,
-          "label": "药田（可耕作）",
+          "label": "药田区（可耕作）",
           "boundLocationId": "base:loc_ref_herb_field"
         },
         {
           "id": "place_grainField_234917059",
           "kind": "grainField",
-          "x": 32,
-          "y": 13,
-          "w": 17,
-          "h": 15,
+          "x": 30,
+          "y": 20,
+          "w": 5,
+          "h": 4,
           "blocksMovement": false,
-          "label": "农田（可耕作）",
+          "label": "农田区（可耕作）",
           "boundLocationId": "base:loc_ref_labor_yard"
         },
         {
@@ -674,6 +652,94 @@
           "blocksMovement": false,
           "label": "废弃洞府入口（灵泉东·勘查显形）",
           "boundLocationId": "base:loc_ref_cave"
+        },
+        {
+          "id": "place_grainField_235504495",
+          "kind": "grainField",
+          "x": 30,
+          "y": 14,
+          "w": 5,
+          "h": 4,
+          "blocksMovement": false,
+          "label": "农田区（可耕作）",
+          "boundLocationId": "base:loc_ref_labor_yard"
+        },
+        {
+          "id": "place_grainField_235506687",
+          "kind": "grainField",
+          "x": 38,
+          "y": 20,
+          "w": 5,
+          "h": 4,
+          "blocksMovement": false,
+          "label": "农田区（可耕作）",
+          "boundLocationId": "base:loc_ref_labor_yard"
+        },
+        {
+          "id": "place_grainField_235509329",
+          "kind": "grainField",
+          "x": 38,
+          "y": 14,
+          "w": 5,
+          "h": 4,
+          "blocksMovement": false,
+          "label": "农田区（可耕作）",
+          "boundLocationId": "base:loc_ref_labor_yard"
+        },
+        {
+          "id": "place_grainField_235512636",
+          "kind": "grainField",
+          "x": 46,
+          "y": 14,
+          "w": 5,
+          "h": 4,
+          "blocksMovement": false,
+          "label": "农田区（可耕作）",
+          "boundLocationId": "base:loc_ref_labor_yard"
+        },
+        {
+          "id": "place_grainField_235514826",
+          "kind": "grainField",
+          "x": 46,
+          "y": 20,
+          "w": 5,
+          "h": 4,
+          "blocksMovement": false,
+          "label": "农田区（可耕作）",
+          "boundLocationId": "base:loc_ref_labor_yard"
+        },
+        {
+          "id": "place_herbField_235721557",
+          "kind": "herbField",
+          "x": 60,
+          "y": 12,
+          "w": 7,
+          "h": 5,
+          "blocksMovement": false,
+          "label": "药田区（可耕作）",
+          "boundLocationId": "base:loc_ref_herb_field"
+        },
+        {
+          "id": "place_herbField_235723679",
+          "kind": "herbField",
+          "x": 69,
+          "y": 12,
+          "w": 7,
+          "h": 5,
+          "blocksMovement": false,
+          "label": "药田区（可耕作）",
+          "boundLocationId": "base:loc_ref_herb_field"
+        },
+        {
+          "id": "place_herbField_235725691",
+          "kind": "herbField",
+          "x": 69,
+          "y": 19,
+          "w": 7,
+          "h": 5,
+          "blocksMovement": false,
+          "label": "药田区（可耕作）",
+          "boundLocationId": "base:loc_ref_herb_field"
         }
       ]
     }

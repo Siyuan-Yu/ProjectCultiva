@@ -7,6 +7,166 @@
 
 ---
 
+## 2026-08-17 — 收束文档 137＋飞书／GitHub
+
+**做了什么**
+- 新建 [137](137-skill-mastery-farm-veil-chop-rollup-2026-08-17.md)（熟练／纱衣／田区／砍树＋冲击确认验收）
+- 更新 [131](131-skill-mastery-study-ritual-2026-08-16.md)／[135](135-world-object-inspect-and-tree-chop-2026-08-16.md)／[136](136-farm-field-zone-labor-2026-08-16.md)／总览／通读／62
+- 飞书 map 增补 130～137；provision＋同步；推 GitHub
+
+---
+
+## 2026-08-17 — 熟练冲击确认窗（成功率只在询问时显示）
+
+**做了什么**
+- 斗技／功法「冲击下一档」先确认：是否突破＋成功率＋材料；结果弹窗不再写成功率
+- `EvaluateMasteryBreakthroughChance`＋`HostSkillMasteryPanelUi.DrawBreakthroughConfirm`
+
+---
+
+## 2026-08-17 — 砍树掉木修复＋中树10／大树40
+
+**做了什么**
+- 产量：中树 10、大树 40（小树 3）；伐倒先入包再销毁，避免读已毁对象
+- 树不再注册 Work 热点（右键砍伐，不再误成林区劳动）
+- 背包满时提示粗木未入包
+
+---
+
+## 2026-08-17 — 斗技／功法两级熟练度 UI（列表＋详情）
+
+**做了什么**
+- 斗技：一级竖列表（圆标＋名称摘要）；点进二级熟练度页（各档效果／冲击材料／进度）
+- 功法：境界面板点当前功法卡片，进同款二级熟练度页（无多功法列表）
+- 共用排布：`HostSkillMasteryPanelUi`
+
+---
+
+## 2026-08-17 — 斗技学习黄条对齐境界突破＋明确学习成功率
+
+**做了什么**
+- 删掉屏幕中上独立参悟框；学习／熟练冲击改用底栏状态板上方黄条（同突破）
+- 文案与预估统一写成「学习成功率」；战斗释放不掷此骰
+- 文档：[131](131-skill-mastery-study-ritual-2026-08-16.md)
+
+---
+
+## 2026-08-17 — 删掉绿草上的幽灵农田／药田工区
+
+**做了什么**
+- 去掉 `ResolveWorkBand` 旧大片农田／药田色带；Legacy 麦垄／药畦热点一并删
+- 左键检视：farm／herb／grain 工区只点在耕种格上才出「工区·农田／药田」
+- 地点圆心改为多块田的平均中心（`MapLayoutPresentationSync` + places JSON）
+- 文档：[136](136-farm-field-zone-labor-2026-08-16.md)
+
+---
+
+## 2026-08-16 — WorldGraphEditor 可视化节点拖动
+
+**做了什么**
+- 去掉纯表格编辑；画布拖节点／连线；右侧属性
+- 外形与 `HostWorldMapPanel` 对齐（128×44 标签、棕线、Y 向上）
+- 文档：[128](128-world-graph-editor-usage.md)
+
+---
+
+## 2026-08-16 — 农田只画一遍：物件页保留，分区去掉药田／农田区
+
+**做了什么**
+- MapEditor 分区板去掉 `zoneHerb`／`zoneGrain`；物件 `herbField`／`grainField` 即整片可耕作区
+- 参考图删掉重复区标；Host 目录仍兼容旧图 overlay
+- 文档：[112](112-map-editor-usage.md)
+
+---
+
+## 2026-08-16 — NPC 日程 Labor 接入田区走格农作
+
+**做了什么**
+- `HostFarmFieldLabor.SyncNpcScheduleFarmers`：`WorkAction`（Labor）＋ farm／herb／grain 工区＋有田格 → 自动走格
+- NPC 收获进据点库存；玩家仍进背包；离开 Labor 自动停
+- 文档：[136](136-farm-field-zone-labor-2026-08-16.md)
+
+---
+
+## 2026-08-16 — 田区自动农作（整片区＋格上作物）
+
+**做了什么**
+- 药田／农田按 location 成区；交互后自动选格播种／照料／收获／清理
+- 格状态着色；自然缓慢生长；停止／移动中断
+- 文档：[136](136-farm-field-zone-labor-2026-08-16.md)
+
+---
+
+## 2026-08-16 — 非玩家筑基交战自动开纱衣
+
+**做了什么**
+- `TryAutoActivateForNonPlayer`：Npc＋筑基＋灵力够 → 交战 `Begin` 自动开纱衣
+- 杂役主管改为筑基、灵力 180（内容数据）
+- 玩家仍仅 F2 手动；农田区域劳作下一刀
+
+---
+
+## 2026-08-16 — 世界物只读况栏＋砍树掉木
+
+**做了什么**
+- 左键点空统一只读物况栏（主管府／住房／工区／耕种格／树墙）；无指令球
+- 树／墙带耐久；砍完树掉粗木并销毁；右键／F8 可砍拆
+- 文档：[135](135-world-object-inspect-and-tree-chop-2026-08-16.md)
+
+---
+
+## 2026-08-16 — 斗气纱衣改 F2，并入人物面板指令横排
+
+**做了什么**
+- 去掉 R；选中筑基后底栏「战斗」旁出现 `F2 纱衣`
+- 事件流水显隐改 Ctrl+F2，避免抢键
+
+---
+
+## 2026-08-16 — 斗气纱衣：筑基远程普攻姿态
+
+**做了什么**
+- Core：`SpiritVeil*`——筑基固定灵力召唤；开则普攻射程 7，伤害／攻速不变；空灵力／交战结束卸下
+- Host：`R`／底栏纱衣；追击按姿态射程；远程青色外放特效
+- 文档：[134](134-spirit-veil-ranged-normal-attack-2026-08-16.md)；更新 `22`／`23`
+
+---
+
+## 2026-08-16 — 功法／斗技轻量编辑器＋清理非正式斗技样例
+
+**做了什么**
+- 新增 `ManualArtEditor`（`启动-ManualArtEditor.cmd`）；Shared 认 `combatArt`／`mastery`
+- 删无入口的 `art_spirit_strike`；内置斗技注册缩成 JSON 缺失时的薄保底
+- 文档：[133](133-manual-art-editor-and-cleanup-2026-08-16.md)
+
+---
+
+## 2026-08-16 — 熟练度配置化：修 bug＋校验
+
+**做了什么**
+- 修：`ProgressRequiredToNext` 误删；熟练进度按配置表同步；斗技直授写入 profile；`teachesArtId`→`combatArt` 引用校验
+- 增：`SkillMasteryAbsoluteTierTests`；JSON／引用静态检查通过
+
+---
+
+## 2026-08-16 — 熟练度配置化：每档绝对值（不连乘）
+
+**做了什么**
+- `mastery.tiers`／`breakthroughs` 进功法 JSON；新增 `combatArt`＋`combat_arts.json`
+- Core 按档读绝对值（修为速度／伤害倍率）；去掉 EffectMult 连乘
+- SCHEMA／[132](132-skill-mastery-config-absolute-tiers-2026-08-16.md)
+
+---
+
+## 2026-08-16 — 功法／斗技：蓄势研读＋熟练度（入门→小成）
+
+**做了什么**
+- Core：`SkillMastery*`；点学改蓄势掷骰入门；打坐／释放／灌注涨熟练；材料突破小成；效果倍率
+- Host：`HostSkillStudyRitual`；境界面板／斗技面板灌注与冲击；Snapshot 读写
+- 文档：[131](131-skill-mastery-study-ritual-2026-08-16.md)
+
+---
+
 ## 2026-08-16 — WorldGraph Host 出行／进场景关大地图／场景隔离
 
 **做了什么**

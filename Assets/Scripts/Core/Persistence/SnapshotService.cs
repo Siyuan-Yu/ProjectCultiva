@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using XianXia.Core.Actions;
 using XianXia.Core.Attributes;
+using XianXia.Core.Combat;
 using XianXia.Core.Concealment;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
@@ -111,6 +112,37 @@ namespace XianXia.Core.Persistence
                         ? cultivation.LearnedManualId.Value.ToString()
                         : string.Empty;
                     dto.RequiredRealmName = cultivation.RequiredRealmName ?? string.Empty;
+                    if (cultivation.ManualMastery != null)
+                    {
+                        dto.HasManualMastery = true;
+                        dto.ManualMasteryTier = (int)cultivation.ManualMastery.Tier;
+                        dto.ManualMasteryProgress = cultivation.ManualMastery.Progress;
+                        dto.ManualMasteryProgressRequired = cultivation.ManualMastery.ProgressRequired;
+                    }
+                }
+
+                if (entity.TryGet<CombatArtsComponent>(out var arts))
+                {
+                    for (var i = 0; i < arts.Learned.Count; i++)
+                        dto.CombatArtsLearned.Add(arts.Learned[i].ToString());
+                    for (var s = 0; s < CombatArtsComponent.MaxEquippedSlots; s++)
+                    {
+                        var eq = arts.GetEquipped(s);
+                        dto.CombatArtsEquipped.Add(eq.HasValue ? eq.Value.ToString() : string.Empty);
+                    }
+
+                    foreach (var kv in arts.AllMastery)
+                    {
+                        if (kv.Value == null)
+                            continue;
+                        dto.CombatArtMastery.Add(new ArtMasterySnapshotDto
+                        {
+                            ArtId = kv.Key,
+                            Tier = (int)kv.Value.Tier,
+                            Progress = kv.Value.Progress,
+                            ProgressRequired = kv.Value.ProgressRequired
+                        });
+                    }
                 }
 
                 if (entity.TryGet<DailyTaskComponent>(out var daily))
@@ -376,12 +408,71 @@ namespace XianXia.Core.Persistence
                         cultivation.LearnedManualId = manualId;
                     }
 
+                    if (e.HasManualMastery)
+                    {
+                        cultivation.ManualMastery = new SkillMasteryState
+                        {
+                            Tier = (SkillMasteryTier)e.ManualMasteryTier,
+                            Progress = e.ManualMasteryProgress,
+                            ProgressRequired = e.ManualMasteryProgressRequired > 0
+                                ? e.ManualMasteryProgressRequired
+                                : SkillMasteryRules.ProgressRequiredToNext((SkillMasteryTier)e.ManualMasteryTier)
+                        };
+                    }
+                    else if (cultivation.HasLearnedManual)
+                    {
+                        cultivation.ManualMastery = SkillMasteryState.CreateEntry();
+                    }
+
                     entity.AddComponent(cultivation);
                 }
                 else
                 {
                     entity.AddComponent(new CultivationComponent());
                 }
+
+                var artsComp = new CombatArtsComponent();
+                if (e.CombatArtsLearned != null)
+                {
+                    for (var i = 0; i < e.CombatArtsLearned.Count; i++)
+                    {
+                        if (DefinitionId.TryParse(e.CombatArtsLearned[i], out var artId))
+                            artsComp.TryLearn(artId);
+                    }
+                }
+
+                if (e.CombatArtMastery != null)
+                {
+                    for (var i = 0; i < e.CombatArtMastery.Count; i++)
+                    {
+                        var m = e.CombatArtMastery[i];
+                        if (m == null || string.IsNullOrEmpty(m.ArtId) ||
+                            !DefinitionId.TryParse(m.ArtId, out var artId))
+                            continue;
+                        artsComp.SetMastery(artId, new SkillMasteryState
+                        {
+                            Tier = (SkillMasteryTier)m.Tier,
+                            Progress = m.Progress,
+                            ProgressRequired = m.ProgressRequired
+                        });
+                    }
+                }
+
+                for (var s = 0; s < CombatArtsComponent.MaxEquippedSlots; s++)
+                    artsComp.ClearSlot(s);
+                if (e.CombatArtsEquipped != null)
+                {
+                    for (var s = 0; s < CombatArtsComponent.MaxEquippedSlots && s < e.CombatArtsEquipped.Count; s++)
+                    {
+                        var text = e.CombatArtsEquipped[s];
+                        if (string.IsNullOrEmpty(text))
+                            continue;
+                        if (DefinitionId.TryParse(text, out var eqId))
+                            artsComp.TryEquipToSlot(s, eqId);
+                    }
+                }
+
+                entity.AddComponent(artsComp);
 
                 if (e.HasDailyTask)
                 {

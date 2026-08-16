@@ -32,7 +32,8 @@ namespace XianXia.Core.Entities
             // 战斗：未进白名单时 AddComponent 静默失败 → 互砍无伤害／无特效／斗技装不上
             typeof(XianXia.Core.Combat.CombatVitalsComponent),
             typeof(XianXia.Core.Combat.CombatArtsComponent),
-            typeof(XianXia.Core.Combat.EncounterLinkComponent)
+            typeof(XianXia.Core.Combat.EncounterLinkComponent),
+            typeof(XianXia.Core.Combat.SpiritVeilComponent)
         };
 
         readonly Dictionary<Type, IComponent> _components = new Dictionary<Type, IComponent>();

@@ -1,16 +1,20 @@
 using System.Collections.Generic;
+using System;
+using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 
 namespace XianXia.Core.Combat
 {
-    /// <summary>已学斗技（可多）＋装备栏最多 6 格（快捷键 1–6）。</summary>
+    /// <summary>已学斗技（可多）＋装备栏最多 6 格（快捷键 1–6）＋每门熟练度。</summary>
     public sealed class CombatArtsComponent : IComponent
     {
         public const int MaxEquippedSlots = 6;
 
         readonly List<DefinitionId> _learned = new List<DefinitionId>(12);
         readonly DefinitionId?[] _equipped = new DefinitionId?[MaxEquippedSlots];
+        readonly Dictionary<string, SkillMasteryState> _mastery =
+            new Dictionary<string, SkillMasteryState>(StringComparer.Ordinal);
 
         public IReadOnlyList<DefinitionId> Learned => _learned;
 
@@ -66,9 +70,35 @@ namespace XianXia.Core.Combat
             if (string.IsNullOrEmpty(id.Namespace) || Knows(id))
                 return false;
             _learned.Add(id);
+            SetMastery(id, SkillMasteryState.CreateEntry());
             TryEquipFirstEmpty(id);
             return true;
         }
+
+        public SkillMasteryState GetOrCreateMastery(DefinitionId id)
+        {
+            var key = id.ToString();
+            if (_mastery.TryGetValue(key, out var m) && m != null)
+                return m;
+            m = SkillMasteryState.CreateEntry();
+            _mastery[key] = m;
+            return m;
+        }
+
+        public SkillMasteryState GetMastery(DefinitionId id)
+        {
+            _mastery.TryGetValue(id.ToString(), out var m);
+            return m;
+        }
+
+        public void SetMastery(DefinitionId id, SkillMasteryState state)
+        {
+            if (string.IsNullOrEmpty(id.Namespace) || state == null)
+                return;
+            _mastery[id.ToString()] = state;
+        }
+
+        public IEnumerable<KeyValuePair<string, SkillMasteryState>> AllMastery => _mastery;
 
         public bool TryEquip(DefinitionId id) => TryEquipFirstEmpty(id);
 
@@ -77,7 +107,6 @@ namespace XianXia.Core.Combat
             if (slotIndex < 0 || slotIndex >= MaxEquippedSlots ||
                 string.IsNullOrEmpty(id.Namespace) || !Knows(id))
                 return false;
-            // 同一技能只占一格：先从其他格卸下
             for (var i = 0; i < MaxEquippedSlots; i++)
             {
                 if (_equipped[i].HasValue && _equipped[i].Value.Equals(id))

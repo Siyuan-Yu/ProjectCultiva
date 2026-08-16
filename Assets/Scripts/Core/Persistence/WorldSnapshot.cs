@@ -82,6 +82,13 @@ namespace XianXia.Core.Persistence
         public int BreakthroughProgressRequired { get; set; }
         public int CultivationSpeed { get; set; }
         public string LearnedManualId { get; set; }
+        public int ManualMasteryTier { get; set; }
+        public int ManualMasteryProgress { get; set; }
+        public int ManualMasteryProgressRequired { get; set; }
+        public bool HasManualMastery { get; set; }
+        public List<string> CombatArtsLearned { get; set; } = new List<string>();
+        public List<string> CombatArtsEquipped { get; set; } = new List<string>();
+        public List<ArtMasterySnapshotDto> CombatArtMastery { get; set; } = new List<ArtMasterySnapshotDto>();
         public string RequiredRealmName { get; set; }
         public bool HasDailyTask { get; set; }
         public int LaborProgress { get; set; }
@@ -144,5 +151,13 @@ namespace XianXia.Core.Persistence
         public string TargetRef { get; set; }
         /// <summary>Soft additive: ScheduleActivity int; 0 = unset.</summary>
         public int Activity { get; set; }
+    }
+
+    public sealed class ArtMasterySnapshotDto
+    {
+        public string ArtId { get; set; }
+        public int Tier { get; set; }
+        public int Progress { get; set; }
+        public int ProgressRequired { get; set; }
     }
 }

@@ -154,6 +154,8 @@ namespace XianXia.Unity.EditorTools
     [CustomEditor(typeof(PlayableHostBootstrap))]
     public sealed class PlayableHostBootstrapEditor : UnityEditor.Editor
     {
+        string _importStatus;
+
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
@@ -199,17 +201,33 @@ namespace XianXia.Unity.EditorTools
                 {
                     serializedObject.ApplyModifiedProperties();
                     if (LevelTesterMapPreview.TryImport(bootstrap, out var okMsg))
-                        EditorUtility.DisplayDialog("Import 完成", okMsg, "确定");
+                    {
+                        _importStatus = okMsg;
+                        Debug.Log("[LevelTester] " + okMsg);
+                    }
                     else
-                        EditorUtility.DisplayDialog("Import 失败", okMsg, "确定");
+                    {
+                        _importStatus = "失败：" + okMsg;
+                        Debug.LogWarning("[LevelTester] Import 失败：" + okMsg);
+                    }
                 }
 
                 if (GUILayout.Button("Clear Preview", GUILayout.Height(24), GUILayout.Width(110)))
                 {
                     LevelTesterMapPreview.ClearPreview(bootstrap);
+                    _importStatus = "已 Clear Preview";
                 }
 
                 EditorGUILayout.EndHorizontal();
+                if (!string.IsNullOrEmpty(_importStatus))
+                {
+                    EditorGUILayout.HelpBox(
+                        _importStatus,
+                        _importStatus.StartsWith("失败", System.StringComparison.Ordinal)
+                            ? MessageType.Warning
+                            : MessageType.None);
+                }
+
                 EditorGUILayout.HelpBox(
                     "选完关卡 JSON 后点 Import，在 Scene 里用游戏 prefab 预览大致布局（无需 Play）。",
                     MessageType.None);

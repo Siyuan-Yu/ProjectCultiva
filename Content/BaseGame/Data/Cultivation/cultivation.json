@@ -81,6 +81,36 @@
       "effectSummary": "打坐时每 5 游戏分钟 +8 修为；略增体魄与神识。",
       "cultivationSpeed": 8,
       "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          { "tier": "novice", "cultivationSpeed": 6 },
+          { "tier": "entry", "cultivationSpeed": 8 },
+          { "tier": "minor", "cultivationSpeed": 10 },
+          { "tier": "major", "cultivationSpeed": 12 },
+          { "tier": "perfect", "cultivationSpeed": 15 },
+          { "tier": "transcendent", "cultivationSpeed": 20 }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 100,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 10 },
+              { "itemId": "base:resource_rough_wood", "count": 10 }
+            ]
+          },
+          {
+            "from": "minor",
+            "to": "major",
+            "progressRequired": 150,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 20 },
+              { "itemId": "base:resource_rough_wood", "count": 20 }
+            ]
+          }
+        ]
+      },
       "grantedModifiers": [
         {
           "targetAttribute": "MaxHp",
@@ -114,6 +144,27 @@
       "effectSummary": "修炼后被动：攻击力 +6%。",
       "cultivationSpeed": 7,
       "breakthroughProgress": 100,
+      "mastery": {
+        "tiers": [
+          { "tier": "novice", "cultivationSpeed": 5 },
+          { "tier": "entry", "cultivationSpeed": 7 },
+          { "tier": "minor", "cultivationSpeed": 9 },
+          { "tier": "major", "cultivationSpeed": 11 },
+          { "tier": "perfect", "cultivationSpeed": 14 },
+          { "tier": "transcendent", "cultivationSpeed": 18 }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 100,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 10 },
+              { "itemId": "base:resource_rough_wood", "count": 10 }
+            ]
+          }
+        ]
+      },
       "grantedModifiers": [
         {
           "targetAttribute": "Attack",

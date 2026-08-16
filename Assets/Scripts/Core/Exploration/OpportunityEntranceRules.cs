@@ -37,6 +37,19 @@ namespace XianXia.Core.Exploration
             return dist <= radius;
         }
 
+        /// <summary>
+        /// 可选神识门槛（默认 0＝不额外卡）。半径仍＝神识×倍率；门槛只拦「够得着却看不穿」的秘洞。
+        /// </summary>
+        public static bool MeetsSenseRequirement(WorldLocationState entrance, int spiritSense)
+        {
+            if (entrance == null)
+                return false;
+            var need = entrance.SurveySenseRequired;
+            if (need <= 0)
+                return true;
+            return spiritSense >= need;
+        }
+
         public static bool IsHiddenEntrance(WorldLocationState loc) =>
             loc != null &&
             !string.IsNullOrEmpty(loc.EnterLocalMapId) &&

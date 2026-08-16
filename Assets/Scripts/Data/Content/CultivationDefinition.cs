@@ -25,6 +25,7 @@ namespace XianXia.Data.Content
         /// <summary>Progress threshold for Mortal → QiRefining breakthrough. Interpreted by Core.</summary>
         public int BreakthroughProgress { get; set; }
         public List<ModifierGrantDefinition> GrantedModifiers { get; set; } = new List<ModifierGrantDefinition>();
+        public SkillMasteryProfileDefinition Mastery { get; set; }
         public List<string> Tags { get; set; } = new List<string>();
     }
 

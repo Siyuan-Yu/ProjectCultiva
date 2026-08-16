@@ -126,7 +126,8 @@ namespace XianXia.Unity.Host
             var tomeName = world.InventoryCatalog.GetName(_itemId);
             var summary = BuildManualSummary(manual);
             GUI.Label(new Rect(x, y, w - 32f, 72f),
-                tomeName + "（秘籍保留，可多次传授）\n" + summary, _body);
+                tomeName + "（秘籍保留，可多次传授）\n" + summary +
+                "\n点选后约 8 秒参悟；掷的是学习成功率（悟性／品阶），成功＝入门。", _body);
             y += 78f;
             GUI.Label(new Rect(x, y, w - 32f, 22f), "选择学习者（需已入炼气）：", _body);
             y += 26f;
@@ -209,15 +210,33 @@ namespace XianXia.Unity.Host
         void CommitLearn(EntityId learner)
         {
             var world = bootstrap.Session.World;
-            var result = new ManualItemLearnService().TryLearnFromItem(world, learner, _itemId);
-            if (result.IsSuccess)
+            var manualId = world.InventoryCatalog.GetTeachesManualId(_itemId);
+            CultivationManualSpec manual = null;
+            if (!string.IsNullOrEmpty(manualId) && DefinitionId.TryParse(manualId, out var mid))
+                world.TryGetManual(mid, out manual);
+            if (manual == null)
             {
-                bootstrap.DispatchDrainedEvents();
+                _status = "功法数据缺失";
+                return;
+            }
+
+            var ritual = bootstrap.SkillStudyRitual;
+            if (ritual == null)
+            {
+                _status = "研读组件未就绪";
+                return;
+            }
+
+            var chance = new SkillMasteryService().EvaluateManualLearnChance(world, learner, manual);
+            if (ritual.TryBeginLearnManual(learner, _itemId, manual, out var reason))
+            {
                 Close();
                 return;
             }
 
-            _status = result.Error.ToString();
+            _status = string.IsNullOrEmpty(reason)
+                ? "无法开始参悟（预估学习成功率约 " + ((int)(chance * 100)) + "%）"
+                : reason;
         }
 
         static string BuildManualSummary(CultivationManualSpec manual)

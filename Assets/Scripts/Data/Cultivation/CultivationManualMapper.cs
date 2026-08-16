@@ -53,6 +53,9 @@ namespace XianXia.Data.Cultivation
                 }
             }
 
+            if (definition.Mastery != null)
+                spec.Mastery = SkillMasteryProfileParser.ToCore(definition.Mastery);
+
             return Result.Ok(spec);
         }
     }

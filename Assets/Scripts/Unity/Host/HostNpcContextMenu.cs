@@ -6,7 +6,7 @@ using XianXia.Core.Npc;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// 右键情境菜单：NPC＝对话／攻击；洞府＝进入；主管府＝攻击。
+    /// 右键情境菜单：NPC＝对话／攻击；洞府＝进入；主管府／树／墙＝攻击。
     /// </summary>
     public sealed class HostNpcContextMenu : MonoBehaviour
     {
@@ -31,6 +31,7 @@ namespace XianXia.Unity.Host
         EntityId _interactionNpc = EntityId.None;
         string _targetControlCoreWorkAreaId = string.Empty;
         string _targetEntranceLocationId = string.Empty;
+        HostMapDestructible _targetDestructible;
         bool _leaveInteriorTarget;
         string _targetLabel = string.Empty;
         Vector2 _menuScreen;
@@ -50,6 +51,8 @@ namespace XianXia.Unity.Host
         bool IsControlCoreTarget => !string.IsNullOrEmpty(_targetControlCoreWorkAreaId);
         bool IsCaveEntranceTarget => !string.IsNullOrEmpty(_targetEntranceLocationId);
         bool IsLeaveInteriorTarget => _leaveInteriorTarget;
+        bool IsDestructibleTarget =>
+            _targetDestructible != null && !_targetDestructible.IsDestroyed;
 
         public void Bind(
             PlayableHostBootstrap host,
@@ -97,6 +100,7 @@ namespace XianXia.Unity.Host
                 _targetNpc = npc;
                 _targetControlCoreWorkAreaId = string.Empty;
                 _targetEntranceLocationId = string.Empty;
+                _targetDestructible = null;
                 _leaveInteriorTarget = false;
                 _targetLabel = ResolveDisplayName(npc);
                 _menuScreen = Input.mousePosition;
@@ -115,6 +119,7 @@ namespace XianXia.Unity.Host
                 _targetNpc = EntityId.None;
                 _targetControlCoreWorkAreaId = string.Empty;
                 _targetEntranceLocationId = string.Empty;
+                _targetDestructible = null;
                 _leaveInteriorTarget = true;
                 _targetLabel = string.IsNullOrEmpty(exitLabel) ? "洞口" : exitLabel;
                 _menuScreen = Input.mousePosition;
@@ -133,6 +138,7 @@ namespace XianXia.Unity.Host
                 _targetNpc = EntityId.None;
                 _targetControlCoreWorkAreaId = string.Empty;
                 _targetEntranceLocationId = entranceId;
+                _targetDestructible = null;
                 _leaveInteriorTarget = false;
                 _targetLabel = string.IsNullOrEmpty(entrance.Name) ? "洞府入口" : entrance.Name;
                 _menuScreen = Input.mousePosition;
@@ -150,8 +156,25 @@ namespace XianXia.Unity.Host
                 _targetNpc = EntityId.None;
                 _targetEntranceLocationId = string.Empty;
                 _leaveInteriorTarget = false;
+                _targetDestructible = null;
                 _targetControlCoreWorkAreaId = coreId;
                 _targetLabel = string.IsNullOrEmpty(core.Name) ? "主管府" : core.Name;
+                _menuScreen = Input.mousePosition;
+                _phase = Phase.Menu;
+                HostInputGate.BlockWorldInteraction = true;
+                return true;
+            }
+
+            if (HostPresentationSpace.TryRaycastPlane(worldCamera, Input.mousePosition, out var worldPoint) &&
+                HostMapObjectRegistry.TryPickDestructible(worldPoint, 2.2f, out var destructible))
+            {
+                _actor = actor;
+                _targetNpc = EntityId.None;
+                _targetControlCoreWorkAreaId = string.Empty;
+                _targetEntranceLocationId = string.Empty;
+                _leaveInteriorTarget = false;
+                _targetDestructible = destructible;
+                _targetLabel = destructible.DisplayName;
                 _menuScreen = Input.mousePosition;
                 _phase = Phase.Menu;
                 HostInputGate.BlockWorldInteraction = true;
@@ -189,6 +212,8 @@ namespace XianXia.Unity.Host
                         DrawCaveMenu();
                     else if (IsControlCoreTarget)
                         DrawControlCoreMenu();
+                    else if (IsDestructibleTarget)
+                        DrawDestructibleMenu();
                     else
                         DrawContextMenu();
                     break;
@@ -305,6 +330,27 @@ namespace XianXia.Unity.Host
             var y = guiY + 30f;
             if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "攻击", _button))
                 BeginControlCoreAttack();
+            TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        void DrawDestructibleMenu()
+        {
+            const float w = 168f;
+            const float itemH = 30f;
+            var h = itemH + 34f;
+            var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
+            var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
+            _menuGuiRect = new Rect(guiX, guiY, w, h);
+            HostUiHitTest.Block(_menuGuiRect);
+
+            Fill(_menuGuiRect, Panel);
+            DrawFrame(_menuGuiRect, Border);
+
+            GUI.Label(new Rect(guiX + 10f, guiY + 6f, w - 20f, 22f), _targetLabel, _label);
+            var y = guiY + 30f;
+            var verb = _targetDestructible != null && _targetDestructible.IsTree ? "砍伐" : "拆毁";
+            if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), verb, _button))
+                BeginDestructibleAttack();
             TryDismissOnOutsideClick(_menuGuiRect);
         }
 
@@ -430,6 +476,43 @@ namespace XianXia.Unity.Host
             CloseAll();
         }
 
+        void BeginDestructibleAttack()
+        {
+            var target = _targetDestructible;
+            if (target == null || target.IsDestroyed || _actor.IsNone)
+            {
+                CloseAll();
+                return;
+            }
+
+            if (moveController != null)
+            {
+                var dest = target.transform.position;
+                dest.z = HostPresentationSpace.EntityZ;
+                moveController.OrderPartyToPointPublic(dest);
+            }
+
+            bootstrap.GetComponent<HostHousingAreaSelection>()?.SelectDestructible(target);
+            var assault = bootstrap.GetComponent<HostDestructibleAssault>();
+            if (assault != null)
+                assault.Begin(_actor, target);
+            else
+                Debug.LogWarning("[Host] HostDestructibleAssault 未挂载。");
+
+            var overlay = bootstrap.GetComponent<HostFeedbackOverlay>();
+            if (overlay != null)
+            {
+                overlay.SpawnAtEntity(
+                    bootstrap.ViewSpawner,
+                    _actor,
+                    (_targetDestructible.IsTree ? "砍伐 " : "拆毁 ") + _targetLabel,
+                    new Color(0.65f, 0.9f, 0.45f, 1f));
+            }
+
+            ResumeTime();
+            CloseAll();
+        }
+
         void BeginAttack()
         {
             if (_actor.IsNone || _targetNpc.IsNone)
@@ -542,6 +625,7 @@ namespace XianXia.Unity.Host
             _actor = EntityId.None;
             _targetControlCoreWorkAreaId = string.Empty;
             _targetEntranceLocationId = string.Empty;
+            _targetDestructible = null;
             _leaveInteriorTarget = false;
             _targetLabel = string.Empty;
             HostInputGate.BlockWorldInteraction = false;

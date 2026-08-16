@@ -897,13 +897,26 @@ namespace XianXia.Unity.Host
                     }
                 }
 
+                var study = hostBootstrap != null ? hostBootstrap.SkillStudyRitual : null;
+                if (study != null && study.TryHandleCommandDuringChannel(id, kind))
+                {
+                    if (kind != PlayerCommandKind.Stop)
+                    {
+                        _lastFailureCount++;
+                        continue;
+                    }
+                }
+
                 if (kind == PlayerCommandKind.Stop)
                     workLoop?.StopLoop(id);
                 else if (kind != PlayerCommandKind.Labor && kind != PlayerCommandKind.Cultivate)
                     workLoop?.StopLoop(id);
 
                 if (kind == PlayerCommandKind.Stop)
+                {
                     NotifyMeleeDisengage(id);
+                    NotifyFarmLaborStop(id);
+                }
 
                 var result = _session.Port.Submit(new PlayerCommandRequest(id, kind, durationTicks));
                 if (result.IsSuccess)
@@ -934,6 +947,14 @@ namespace XianXia.Unity.Host
                 ? hostBootstrap.GetComponent<HostNpcMeleeAssault>()
                 : GetComponent<HostNpcMeleeAssault>();
             melee?.DisengageIfInvolved(id);
+        }
+
+        void NotifyFarmLaborStop(EntityId id)
+        {
+            var farm = hostBootstrap != null
+                ? hostBootstrap.GetComponent<HostFarmFieldLabor>()
+                : GetComponent<HostFarmFieldLabor>();
+            farm?.Stop(id);
         }
 
         public static bool TryResolveSocialPair(

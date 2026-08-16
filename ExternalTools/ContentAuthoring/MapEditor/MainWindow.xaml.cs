@@ -32,8 +32,8 @@ public partial class MainWindow : Window
         static readonly PaletteItem[] PaletteObjects =
         {
             SelectTool,
-            new("herbField", "药田（可耕作）", 12, 12, false, Color.FromRgb(70, 150, 90)),
-            new("grainField", "农田（可耕作）", 16, 12, false, Color.FromRgb(180, 170, 70)),
+            new("herbField", "药田区（可耕作·画一遍）", 12, 12, false, Color.FromRgb(70, 150, 90)),
+            new("grainField", "农田区（可耕作·画一遍）", 16, 12, false, Color.FromRgb(180, 170, 70)),
             new("road", "道路（纯贴图）", 1, 1, false, Color.FromRgb(150, 130, 100)),
             new("wall", "墙 1×n（默认挡路）", 6, 1, true, Color.FromRgb(90, 90, 100)),
             new("treeS", "小树 1×1（装饰·手勾挡路）", 1, 1, false, Color.FromRgb(35, 120, 55)),
@@ -48,12 +48,13 @@ public partial class MainWindow : Window
             new("rallyPoint", "集合点 2×2", 2, 2, false, Color.FromRgb(220, 140, 50))
         };
 
-    /// <summary>第 2 页：分区标记。住房区须填 boundLocationId，并在 WorkArea／人物里配休息归属。</summary>
+    /// <summary>
+    /// 第 2 页：分区标记（划界／绑地点；不生成可耕作格）。
+    /// 药田／农田只在物件页 herbField／grainField 画一遍，勿再放 zoneHerb／zoneGrain。
+    /// </summary>
     static readonly PaletteItem[] PaletteZones =
     {
         SelectTool,
-        new("zoneHerb", "药田区", 12, 12, false, Color.FromArgb(90, 70, 180, 100)),
-        new("zoneGrain", "农田区", 16, 12, false, Color.FromArgb(90, 200, 180, 60)),
         new("zoneHousing", "住房区（须绑地点＝休息落点）", 20, 20, false, Color.FromArgb(80, 180, 140, 100)),
         new("zoneForest", "林地区", 14, 12, false, Color.FromArgb(90, 40, 130, 70)),
         new("zoneMine", "矿区", 10, 8, false, Color.FromArgb(90, 130, 110, 80)),
@@ -1300,6 +1301,11 @@ public partial class MainWindow : Window
 
         _layout.Raw["placements"] = arr;
         _layout.Name = NameBox.Text ?? "";
+
+        var kindPairs = _placements.Select(p => (p.Id ?? "", p.Kind ?? ""));
+        if (!MapKindPrefabCatalog.TryValidatePlacements(kindPairs, _package?.Root, out err))
+            return false;
+
         return true;
     }
 }

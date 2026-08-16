@@ -1,4 +1,5 @@
 using XianXia.Core.Combat;
+using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Events;
@@ -42,6 +43,8 @@ namespace XianXia.Core.Content
                 return Result.Success();
 
             arts.TryLearn(artId);
+            var profile = SkillMasteryLookup.EnsureOrDefaultArt(art);
+            arts.SetMastery(artId, SkillMasteryState.CreateEntry(profile));
             world.Events.Publish(
                 EventType.SettlementStockChanged,
                 world.Tick,

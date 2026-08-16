@@ -83,9 +83,17 @@ namespace XianXia.Unity.Host
                 return false;
 
             var world = bootstrap.Session.World;
-            if (HostZoneQuery.TryFindWorkSpot(point, out var work, world))
+            // 右键直接点在田格上（不依赖热点半径）
+            if (HostFarmFieldRegistry.TryFindLocationNear(point, out var farmLoc))
             {
-                IssueWorkAtSpot(work);
+                var farm = bootstrap.GetComponent<HostFarmFieldLabor>();
+                if (farm != null && farm.BeginForSelection(farmLoc) > 0)
+                    return true;
+            }
+
+            if (TryFindWorkInteractAt(point, world, out var work))
+            {
+                IssueWorkAtSpot(work, point);
                 return true;
             }
 
@@ -197,7 +205,15 @@ namespace XianXia.Unity.Host
             }
 
             var world = bootstrap.Session.World;
-            if (HostZoneQuery.TryFindWorkSpot(point, out var work, world))
+            if (HostMapObjectRegistry.TryPickDestructible(point, 2.2f, out var treeHover))
+            {
+                _idleHoverInteractable = true;
+                _hoverHint = "右键" + (treeHover.IsTree ? "砍伐·" : "拆毁·") + treeHover.DisplayName;
+                ApplyCursor(true);
+                return;
+            }
+
+            if (TryFindWorkInteractAt(point, world, out var work))
             {
                 _idleHoverInteractable = true;
                 _hoverHint = "右键交互·" + work.Label;
@@ -263,8 +279,13 @@ namespace XianXia.Unity.Host
                 case ArmKind.Interact:
                 {
                     var world = bootstrap.Session.World;
-                    // 仅热点／人物为绿；麦田其它位置也是红（不用大色带）。
-                    if (HostZoneQuery.TryFindWorkSpot(point, out var workSpot, world))
+                    if (HostMapObjectRegistry.TryPickDestructible(point, 2.2f, out var dHover))
+                    {
+                        _canTargetUnderMouse = true;
+                        _hoverHint = (dHover.IsTree ? "砍伐·" : "拆毁·") + dHover.DisplayName;
+                    }
+                    // 田区：仅田格上绿；矿／林等其它工区仍用原热点半径
+                    else if (TryFindWorkInteractAt(point, world, out var workSpot))
                     {
                         _canTargetUnderMouse = true;
                         _hoverHint = "交互·" + workSpot.Label;
@@ -291,10 +312,15 @@ namespace XianXia.Unity.Host
                         !selectionController.IsPartyUnit(foe))
                     {
                         _canTargetUnderMouse = true;
-                        _hoverHint = "战斗（未实装）";
+                        _hoverHint = "战斗·人物";
+                    }
+                    else if (HostMapObjectRegistry.TryPickDestructible(point, 2.2f, out var tree))
+                    {
+                        _canTargetUnderMouse = true;
+                        _hoverHint = (tree.IsTree ? "砍伐·" : "拆毁·") + tree.DisplayName;
                     }
                     else
-                        _hoverHint = "无可战斗目标";
+                        _hoverHint = "点主管府／树／墙，或右键人物";
                     break;
                 case ArmKind.Cultivate:
                     if (HostZoneQuery.TryFindCultivateSpot(point, out var cultSpot, bootstrap.Session.World))
@@ -323,9 +349,36 @@ namespace XianXia.Unity.Host
                 return;
 
             var world = bootstrap.Session.World;
-            if (HostZoneQuery.TryFindWorkSpot(point, out var spot, world))
+            if (HostFarmFieldRegistry.TryFindLocationNear(point, out var farmLoc))
             {
-                IssueWorkAtSpot(spot);
+                var farm = bootstrap.GetComponent<HostFarmFieldLabor>();
+                if (farm != null && farm.BeginForSelection(farmLoc) > 0)
+                {
+                    SetArmed(ArmKind.None);
+                    return;
+                }
+            }
+
+            if (HostMapObjectRegistry.TryPickDestructible(point, 2.2f, out var chopTarget))
+            {
+                Resume();
+                var actor = HostNpcInteraction.ResolvePartyActor(selectionController);
+                if (!actor.IsNone)
+                {
+                    if (moveController != null)
+                        moveController.OrderPartyToPointPublic(chopTarget.transform.position);
+                    bootstrap.GetComponent<HostHousingAreaSelection>()?.SelectDestructible(chopTarget);
+                    var assault = bootstrap.GetComponent<HostDestructibleAssault>();
+                    assault?.Begin(actor, chopTarget);
+                }
+
+                SetArmed(ArmKind.None);
+                return;
+            }
+
+            if (TryFindWorkInteractAt(point, world, out var spot))
+            {
+                IssueWorkAtSpot(spot, point);
                 SetArmed(ArmKind.None);
                 return;
             }
@@ -414,7 +467,32 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            Debug.Log("[Host] Combat: 点主管府近战占领；NPC（含主管）请右键→攻击（正式互砍）。");
+            if (HostMapObjectRegistry.TryPickDestructible(point, 2.2f, out var destructible))
+            {
+                Resume();
+                var actor = HostNpcInteraction.ResolvePartyActor(selectionController);
+                if (actor.IsNone)
+                {
+                    Debug.LogWarning("[Host] 未选中己方，无法砍伐／拆毁。");
+                    SetArmed(ArmKind.None);
+                    return;
+                }
+
+                if (moveController != null)
+                    moveController.OrderPartyToPointPublic(destructible.transform.position);
+
+                bootstrap.GetComponent<HostHousingAreaSelection>()?.SelectDestructible(destructible);
+                var chop = bootstrap.GetComponent<HostDestructibleAssault>();
+                if (chop != null)
+                    chop.Begin(actor, destructible);
+                else
+                    Debug.LogWarning("[Host] HostDestructibleAssault 未挂载。");
+
+                SetArmed(ArmKind.None);
+                return;
+            }
+
+            Debug.Log("[Host] Combat: 点主管府／树／墙；NPC 请右键→攻击。");
             SetArmed(ArmKind.None);
         }
 
@@ -428,12 +506,58 @@ namespace XianXia.Unity.Host
             SetArmed(ArmKind.None);
         }
 
-        void IssueWorkAtSpot(HostInteractSpot spot)
+        /// <summary>
+        /// 可交互 Work 命中：田／药田必须点在格上；其它工区仍用原热点半径。
+        /// 悬停光标与右键／武装交互共用，保证「能点」与「绿光标」一致。
+        /// </summary>
+        static bool TryFindWorkInteractAt(
+            Vector3 point,
+            XianXia.Core.Simulation.SimulationWorld world,
+            out HostInteractSpot spot)
+        {
+            if (HostFarmFieldRegistry.TryFindPlotAt(point, out var plot))
+            {
+                spot = plot.ToInteractSpot();
+                return true;
+            }
+
+            if (!HostZoneQuery.TryFindWorkSpot(point, out spot, world))
+                return false;
+
+            // 吸到了田区热点但未点中田格 → 不算可交互
+            if (HostFarmFieldRegistry.HasField(spot.LocationId))
+            {
+                spot = default;
+                return false;
+            }
+
+            return true;
+        }
+
+        void IssueWorkAtSpot(HostInteractSpot spot, Vector3 clickWorld)
         {
             Resume();
+            // 必须用玩家点击点判断是否落在田格上；勿用热点中心，否则点田外绿底仍会吸到最近田格
             var locId = spot.LocationId;
             if (string.IsNullOrEmpty(locId) && bootstrap?.Session != null)
-                locId = HostZoneQuery.FindWorkLocation(bootstrap.Session.World, spot.WorldPosition);
+                locId = HostZoneQuery.FindWorkLocation(bootstrap.Session.World, clickWorld);
+
+            var farm = bootstrap != null ? bootstrap.GetComponent<HostFarmFieldLabor>() : null;
+            if (farm != null &&
+                HostFarmFieldRegistry.TryFindLocationNear(clickWorld, out var farmLoc))
+            {
+                var n = farm.BeginForSelection(farmLoc);
+                if (n > 0)
+                {
+                    Debug.Log("[Host] 田区农作开始：" + farmLoc + " ×" + n);
+                    return;
+                }
+            }
+
+            // 点在有田的 location 附近但未点中田格：不当农作；也不误触发整区劳动
+            if (HostFarmFieldRegistry.HasField(locId) ||
+                HostFarmFieldRegistry.TryFindLocationNear(spot.WorldPosition, out _, 0.55f))
+                return;
 
             if (moveController != null)
                 moveController.OrderPartyToPointThen(spot.WorldPosition, PlayerCommandKind.Labor, locId);

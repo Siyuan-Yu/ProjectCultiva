@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Combat;
 using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
@@ -197,8 +198,16 @@ namespace XianXia.Unity.Host
             {
                 var delta = actorView.transform.position - target;
                 delta.z = 0f;
-                // 停在交战距离内侧，避免「到点了仍略远于 meleeRange」
-                var stopShort = HostNpcInteraction.DefaultMeleeEngageRange * 0.55f;
+                // 停在交战距离内侧；开斗气纱衣时用远程半径，避免白走贴脸
+                var engage = HostNpcInteraction.DefaultMeleeEngageRange;
+                if (action == HostNpcArriveAction.Attack &&
+                    bootstrap?.Session?.World != null &&
+                    bootstrap.Session.World.Entities.TryGet(actor, out var actorEnt))
+                {
+                    engage = new SpiritVeilService().ResolveEngageRange(actorEnt);
+                }
+
+                var stopShort = engage * 0.55f;
                 if (delta.sqrMagnitude > 0.01f)
                     target += delta.normalized * stopShort;
             }
@@ -303,6 +312,7 @@ namespace XianXia.Unity.Host
                 return false;
 
             bootstrap?.BreakthroughRitual?.NotifyMoveOrdered(id);
+            bootstrap?.SkillStudyRitual?.NotifyMoveOrdered(id);
             if (issueStop)
                 bootstrap?.WorldTravelDeparture?.NotifyPlayerOverride(id);
 
@@ -373,7 +383,11 @@ namespace XianXia.Unity.Host
             }
 
             if (any && arriveCommand == null)
+            {
                 NotifyMeleeDisengageForPartyMove();
+                NotifyDestructibleDisengageForPartyMove();
+                NotifyFarmLaborStopForPartyMove();
+            }
 
             return any;
         }
@@ -390,6 +404,36 @@ namespace XianXia.Unity.Host
                 var id = selectionController.State.SelectedIds[i];
                 if (selectionController.IsPartyUnit(id))
                     melee.DisengageIfAttacker(id);
+            }
+        }
+
+        void NotifyDestructibleDisengageForPartyMove()
+        {
+            var chop = bootstrap != null
+                ? bootstrap.GetComponent<HostDestructibleAssault>()
+                : GetComponent<HostDestructibleAssault>();
+            if (chop == null || selectionController == null)
+                return;
+            for (var i = 0; i < selectionController.State.Count; i++)
+            {
+                var id = selectionController.State.SelectedIds[i];
+                if (selectionController.IsPartyUnit(id))
+                    chop.DisengageIfAttacker(id);
+            }
+        }
+
+        void NotifyFarmLaborStopForPartyMove()
+        {
+            var farm = bootstrap != null
+                ? bootstrap.GetComponent<HostFarmFieldLabor>()
+                : GetComponent<HostFarmFieldLabor>();
+            if (farm == null || selectionController == null)
+                return;
+            for (var i = 0; i < selectionController.State.Count; i++)
+            {
+                var id = selectionController.State.SelectedIds[i];
+                if (selectionController.IsPartyUnit(id))
+                    farm.Stop(id);
             }
         }
 
@@ -549,9 +593,23 @@ namespace XianXia.Unity.Host
                     // 追击到位后不要 HoldStandby→Stop，否则会 Disengage 整场交战
                     view.SetActivityText("交战中");
                 }
+                else if (IsFarmingUnit(id))
+                {
+                    // 田区走格：到位后不要 HoldStandby→Stop，否则会掐断农作
+                }
                 else if (selectionController != null && selectionController.IsPartyUnit(id))
                     HoldStandby(id);
             }
+        }
+
+        bool IsFarmingUnit(EntityId id)
+        {
+            if (id.IsNone)
+                return false;
+            var farm = bootstrap != null
+                ? bootstrap.GetComponent<HostFarmFieldLabor>()
+                : GetComponent<HostFarmFieldLabor>();
+            return farm != null && farm.IsFarming(id);
         }
 
         bool IsActiveMeleeAttacker(EntityId id)

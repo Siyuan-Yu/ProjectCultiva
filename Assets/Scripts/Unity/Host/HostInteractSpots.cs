@@ -51,19 +51,14 @@ namespace XianXia.Unity.Host
     {
         static readonly List<HostInteractSpot> Dynamic = new List<HostInteractSpot>(256);
         static readonly HostInteractSpot[] Empty = System.Array.Empty<HostInteractSpot>();
+        static bool _layoutRebuilt;
 
+        // 农田／药田已改成 map 上的 grainField／herbField 格，勿再放旧大片绿区上的麦垄／药畦热点。
         static readonly HostInteractSpot[] LegacyFallback =
         {
-            new HostInteractSpot("base:loc_ref_labor_yard", HostInteractSpotKind.Work, 18f, -12f, "麦垄甲"),
-            new HostInteractSpot("base:loc_ref_labor_yard", HostInteractSpotKind.Work, 22f, -11f, "麦垄乙"),
-            new HostInteractSpot("base:loc_ref_labor_yard", HostInteractSpotKind.Work, 20f, -15f, "田埂"),
-            new HostInteractSpot("base:loc_ref_labor_yard", HostInteractSpotKind.Work, 25f, -10f, "场边堆"),
             new HostInteractSpot("base:loc_ref_forest", HostInteractSpotKind.Work, -34f, 0f, "古树"),
             new HostInteractSpot("base:loc_ref_forest", HostInteractSpotKind.Work, -32f, -3f, "柴堆"),
             new HostInteractSpot("base:loc_ref_forest", HostInteractSpotKind.Work, -36f, 2f, "林缘"),
-            new HostInteractSpot("base:loc_ref_herb_field", HostInteractSpotKind.Work, -3f, -15f, "药畦甲"),
-            new HostInteractSpot("base:loc_ref_herb_field", HostInteractSpotKind.Work, -5f, -13f, "药畦乙"),
-            new HostInteractSpot("base:loc_ref_herb_field", HostInteractSpotKind.Work, -1f, -17f, "药畦丙"),
             new HostInteractSpot("base:loc_ref_mine", HostInteractSpotKind.Work, -30f, 8f, "洞口"),
             new HostInteractSpot("base:loc_ref_mine", HostInteractSpotKind.Work, -28f, 6f, "矿堆"),
             new HostInteractSpot("base:loc_ref_spring", HostInteractSpotKind.Cultivate, 27f, -11f, "泉眼"),
@@ -75,13 +70,15 @@ namespace XianXia.Unity.Host
         public static bool HasDynamicPlots => Dynamic.Count > 0;
 
         /// <summary>
-        /// 有动态地块用动态；否则仅当「当前 ActiveMap 就是荒村参考关」且地点表含农田时才用 Legacy。
-        /// 其它场景一律空，禁止药畦／麦垄串到青云路等保底图。
+        /// 有动态地块用动态；地图已 Rebuild 但无软热点则空（勿回落 Legacy 麦垄，否则田区周围又变可交互）。
+        /// 仅未 Rebuild 的旧路径才用 Legacy。
         /// </summary>
         public static IReadOnlyList<HostInteractSpot> GetSpots(SimulationWorld world)
         {
             if (Dynamic.Count > 0)
                 return Dynamic;
+            if (_layoutRebuilt)
+                return Empty;
             if (world?.LocalMap == null || world.WorldRegion == null)
                 return Empty;
             if (!world.WorldRegion.TryGet("base:loc_ref_labor_yard", out _))
@@ -89,13 +86,16 @@ namespace XianXia.Unity.Host
             var active = world.LocalMap.ActiveMapLayoutId ?? string.Empty;
             if (string.Equals(active, "base:map_ch01_reference", System.StringComparison.Ordinal))
                 return LegacyFallback;
-            // 开局尚未写 ActiveMap：地点表已是荒村时仍可用 Legacy（EditMode）
             if (string.IsNullOrEmpty(active))
                 return LegacyFallback;
             return Empty;
         }
 
-        public static void BeginLayoutRebuild() => Dynamic.Clear();
+        public static void BeginLayoutRebuild()
+        {
+            Dynamic.Clear();
+            _layoutRebuilt = true;
+        }
 
         public static void RegisterPlot(HostInteractSpot spot) => Dynamic.Add(spot);
 

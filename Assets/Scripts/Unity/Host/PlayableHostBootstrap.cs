@@ -68,6 +68,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostRelationPanel relationPanel;
         [SerializeField] HostCultivateConfirmPrompt cultivateConfirm;
         [SerializeField] HostBreakthroughRitual breakthroughRitual;
+        [SerializeField] HostSkillStudyRitual skillStudyRitual;
         [SerializeField] HostTicTacToePanel ticTacToePanel;
         [SerializeField] HostCaveSurveyPresenter caveSurveyPresenter;
         [SerializeField] HostLocalMapEnterPrompt localMapEnterPrompt;
@@ -141,6 +142,8 @@ namespace XianXia.Unity.Host
         public HostCultivateConfirmPrompt CultivateConfirm => cultivateConfirm;
 
         public HostBreakthroughRitual BreakthroughRitual => breakthroughRitual;
+
+        public HostSkillStudyRitual SkillStudyRitual => skillStudyRitual;
 
         public HostTicTacToePanel TicTacToePanel => ticTacToePanel;
 
@@ -390,10 +393,16 @@ namespace XianXia.Unity.Host
                 gameObject.AddComponent<HostHousingAreaSelection>();
             if (GetComponent<HostControlCoreAssault>() == null)
                 gameObject.AddComponent<HostControlCoreAssault>();
+            if (GetComponent<HostDestructibleAssault>() == null)
+                gameObject.AddComponent<HostDestructibleAssault>();
+            if (GetComponent<HostFarmFieldLabor>() == null)
+                gameObject.AddComponent<HostFarmFieldLabor>();
             if (GetComponent<HostNpcMeleeAssault>() == null)
                 gameObject.AddComponent<HostNpcMeleeAssault>();
             if (GetComponent<HostMeleeStrikeVfx>() == null)
                 gameObject.AddComponent<HostMeleeStrikeVfx>();
+            if (GetComponent<HostSpiritVeilController>() == null)
+                gameObject.AddComponent<HostSpiritVeilController>();
             if (GetComponent<HostCombatVitalsBars>() == null)
                 gameObject.AddComponent<HostCombatVitalsBars>();
             if (GetComponent<HostCombatSkillBar>() == null)
@@ -457,6 +466,9 @@ namespace XianXia.Unity.Host
             if (breakthroughRitual == null)
                 breakthroughRitual = GetComponent<HostBreakthroughRitual>() ??
                                     gameObject.AddComponent<HostBreakthroughRitual>();
+            if (skillStudyRitual == null)
+                skillStudyRitual = GetComponent<HostSkillStudyRitual>() ??
+                                  gameObject.AddComponent<HostSkillStudyRitual>();
             if (ticTacToePanel == null)
                 ticTacToePanel = GetComponent<HostTicTacToePanel>() ??
                                 gameObject.AddComponent<HostTicTacToePanel>();
@@ -519,6 +531,8 @@ namespace XianXia.Unity.Host
                 cultivateConfirm.ClearSessionState();
             if (breakthroughRitual != null)
                 breakthroughRitual.ClearSessionState();
+            if (skillStudyRitual != null)
+                skillStudyRitual.ClearSessionState();
             if (ticTacToePanel != null)
                 ticTacToePanel.ClearSessionState();
             if (caveSurveyPresenter != null)
@@ -594,9 +608,18 @@ namespace XianXia.Unity.Host
             var assault = GetComponent<HostControlCoreAssault>();
             if (assault != null)
                 assault.Bind(this);
+            var destructibleAssault = GetComponent<HostDestructibleAssault>();
+            if (destructibleAssault != null)
+                destructibleAssault.Bind(this);
+            var farmLabor = GetComponent<HostFarmFieldLabor>();
+            if (farmLabor != null)
+                farmLabor.Bind(this);
             var npcMelee = GetComponent<HostNpcMeleeAssault>();
             if (npcMelee != null)
                 npcMelee.Bind(this);
+            var spiritVeil = GetComponent<HostSpiritVeilController>();
+            if (spiritVeil != null)
+                spiritVeil.Bind(this);
             var skillBar = GetComponent<HostCombatSkillBar>();
             if (skillBar != null)
                 skillBar.Bind(this);
@@ -651,6 +674,8 @@ namespace XianXia.Unity.Host
             cultivateConfirm.Bind(this, selectionController, commandBridge);
             if (breakthroughRitual != null)
                 breakthroughRitual.Bind(this);
+            if (skillStudyRitual != null)
+                skillStudyRitual.Bind(this);
             if (ticTacToePanel != null)
                 ticTacToePanel.Bind(this);
             if (caveSurveyPresenter != null)

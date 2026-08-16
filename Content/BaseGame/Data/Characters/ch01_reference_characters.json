@@ -6,17 +6,17 @@
       "type": "character",
       "name": "杂役主管",
       "baseAttributes": {
-        "MaxHp": 140,
-        "Physique": 14,
-        "Attack": 14,
-        "Defense": 10,
-        "Speed": 9,
-        "Stamina": 50,
-        "SpiritSense": 5,
-        "Comprehension": 5,
-        "SpiritPower": 0,
+        "MaxHp": 220,
+        "Physique": 18,
+        "Attack": 28,
+        "Defense": 18,
+        "Speed": 10,
+        "Stamina": 60,
+        "SpiritSense": 12,
+        "Comprehension": 8,
+        "SpiritPower": 180,
         "Cultivation": 0,
-        "MindState": 50
+        "MindState": 55
       },
       "personalityTags": [
         "personality_steady"
@@ -29,7 +29,7 @@
         "supervisor",
         "npc"
       ],
-      "initialRealmPlaceholder": "凡人",
+      "initialRealmPlaceholder": "筑基",
       "activityCapabilities": {
         "Labor": true,
         "Rest": true,

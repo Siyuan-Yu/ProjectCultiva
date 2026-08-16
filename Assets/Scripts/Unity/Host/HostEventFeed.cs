@@ -97,9 +97,11 @@ namespace XianXia.Unity.Host
             return sb.ToString();
         }
 
+        // F2 留给 FormalHud「斗气纱衣」；事件流水改 Ctrl+F2。
         void Update()
         {
-            if (Input.GetKeyDown(toggleKey))
+            if (Input.GetKeyDown(toggleKey) &&
+                (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
                 visible = !visible;
         }
 
@@ -112,7 +114,7 @@ namespace XianXia.Unity.Host
             var width = 460f;
             var height = 180f;
             var rect = new Rect(Screen.width - width - pad, pad, width, height);
-            GUI.Box(rect, "Events (F2) pulled=" + _totalPulled);
+            GUI.Box(rect, "Events (Ctrl+F2) pulled=" + _totalPulled);
             GUI.Label(new Rect(rect.x + 8f, rect.y + 22f, rect.width - 16f, rect.height - 28f), ToDebugText());
         }
 

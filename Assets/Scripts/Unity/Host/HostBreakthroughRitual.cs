@@ -93,6 +93,12 @@ namespace XianXia.Unity.Host
             if (!_cultivation.CanAttemptBreakthrough(bootstrap.Session.World, subject, out reason))
                 return false;
 
+            if (bootstrap.SkillStudyRitual != null && bootstrap.SkillStudyRitual.IsBusy)
+            {
+                reason = "研读／熟练突破进行中";
+                return false;
+            }
+
             if (!bootstrap.Session.World.Entities.TryGet(subject, out var entity))
             {
                 reason = "目标不存在";

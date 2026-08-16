@@ -18,6 +18,8 @@
 | `PackageBrowser/` | `PackageBrowser.exe` | 包总览与校验 |
 | `RegionEditor/` | `RegionEditor.exe` | 逻辑地点 |
 | `MapEditor/` | `MapEditor.exe` | 格点地图（设施／墙） |
+| `LocalPlaceEditor/` | `LocalPlaceEditor.exe` | 场景地点登记（LocalPlace） |
+| `ManualArtEditor/` | `ManualArtEditor.exe` | **功法／斗技**（含熟练档绝对值＋突破材料） |
 | `QuestEditor/` | `QuestEditor.exe` | 任务 |
 | `EventEditor/` | `EventEditor.exe` | 事件 |
 | `WorkAreaEditor/` | `WorkAreaEditor.exe` | **工区**（活动可发生的地点；不是职业） |

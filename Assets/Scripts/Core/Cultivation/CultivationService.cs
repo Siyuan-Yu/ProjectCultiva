@@ -61,11 +61,12 @@ namespace XianXia.Core.Cultivation
                 return Result.Success();
             }
 
-            // 一人一本：换功法时先卸掉旧本修饰。
+            // 一人一本：换功法时先卸掉旧本修饰与熟练。
             if (cultivation.HasLearnedManual && cultivation.LearnedManualId.HasValue)
             {
                 var oldSource = new SourceRef(SourceKind.Manual, cultivation.LearnedManualId.Value, subject);
                 attrs.RemoveBySource(oldSource);
+                cultivation.ManualMastery = null;
                 world.Events.Publish(
                     EventType.ModifierRemoved,
                     world.Tick,
@@ -75,6 +76,11 @@ namespace XianXia.Core.Cultivation
             }
 
             var source = new SourceRef(SourceKind.Manual, manual.Id, subject);
+            if (cultivation.ManualMastery == null)
+                cultivation.ManualMastery = SkillMasteryState.CreateEntry(
+                    SkillMasteryLookup.EnsureOrDefaultManual(manual));
+
+            // 属性修饰用定义绝对值，不随熟练连乘；修为速度按当前档绝对值。
             if (manual.GrantedModifiers != null)
             {
                 foreach (var grant in manual.GrantedModifiers)
@@ -92,9 +98,47 @@ namespace XianXia.Core.Cultivation
             }
 
             cultivation.LearnedManualId = manual.Id;
-            cultivation.CultivationSpeed = manual.CultivationSpeed;
+            cultivation.CultivationSpeed = SkillMasteryLookup.ResolveCultivationSpeed(
+                manual, cultivation.ManualMastery.Tier);
             cultivation.RequiredRealmName = required.ToString();
             SyncProgressRequired(world, cultivation, manual.BreakthroughProgress);
+            return Result.Success();
+        }
+
+        /// <summary>熟练突破后按当前档绝对值重挂修为速度（修饰仍用定义绝对值）。</summary>
+        public Result ReapplyManualModifiers(SimulationWorld world, EntityId subject)
+        {
+            if (world == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "World null.");
+            if (!world.Entities.TryGet(subject, out var entity))
+                return Result.Failure(ErrorCode.EntityNotFound, "Subject missing.");
+            if (!entity.TryGet<CultivationComponent>(out var cultivation) ||
+                !cultivation.HasLearnedManual ||
+                !cultivation.LearnedManualId.HasValue)
+                return Result.Failure(ErrorCode.InvalidOperation, "No manual.");
+            if (!entity.TryGet<AttributesComponent>(out var attrs))
+                return Result.Failure(ErrorCode.ComponentMissing, "Attributes missing.");
+            if (!world.TryGetManual(cultivation.LearnedManualId.Value, out var manual) || manual == null)
+                return Result.Failure(ErrorCode.NotFound, "Manual missing.");
+
+            var source = new SourceRef(SourceKind.Manual, manual.Id, subject);
+            attrs.RemoveBySource(source);
+            if (cultivation.ManualMastery == null)
+                cultivation.ManualMastery = SkillMasteryState.CreateEntry(
+                    SkillMasteryLookup.EnsureOrDefaultManual(manual));
+            if (manual.GrantedModifiers != null)
+            {
+                foreach (var grant in manual.GrantedModifiers)
+                {
+                    var added = attrs.AddModifier(
+                        grant.TargetAttribute, grant.Operation, grant.Value, source);
+                    if (added.IsFailure)
+                        return Result.Failure(added.Error);
+                }
+            }
+
+            cultivation.CultivationSpeed = SkillMasteryLookup.ResolveCultivationSpeed(
+                manual, cultivation.ManualMastery.Tier);
             return Result.Success();
         }
 

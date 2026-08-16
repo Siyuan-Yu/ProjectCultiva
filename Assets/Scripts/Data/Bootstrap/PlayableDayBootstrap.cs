@@ -112,7 +112,9 @@ namespace XianXia.Data.Bootstrap
             var manuals = RegisterManuals(world, registry);
             if (manuals.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(manuals.Error);
-            RegisterBuiltinCombatArts(world);
+            var arts = RegisterCombatArts(world, registry);
+            if (arts.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(arts.Error);
 
             var ladder = RegisterRealmLadder(world, registry);
             if (ladder.IsFailure)
@@ -225,25 +227,36 @@ namespace XianXia.Data.Bootstrap
             return Result.Success();
         }
 
+        static Result RegisterCombatArts(SimulationWorld world, DefinitionRegistry registry)
+        {
+            if (registry?.CombatArts == null || registry.CombatArts.Count == 0)
+            {
+                RegisterBuiltinCombatArts(world);
+                return Result.Success();
+            }
+
+            foreach (var kv in registry.CombatArts)
+            {
+                var mapped = XianXia.Data.Combat.CombatArtMapper.ToSpec(kv.Value);
+                if (mapped.IsFailure)
+                    return Result.Failure(mapped.Error);
+                world.RegisterCombatArt(mapped.Value);
+            }
+
+            return Result.Success();
+        }
+
         static void RegisterBuiltinCombatArts(SimulationWorld world)
         {
+            // 正式内容在 CombatArts/combat_arts.json；此处仅在包内无 combatArt 时保底，避免空表。
             if (world == null)
                 return;
-            world.RegisterCombatArt(new XianXia.Core.Combat.CombatArtSpec
-            {
-                Id = new DefinitionId("base", "art_spirit_strike"),
-                Name = "灵力灌注",
-                Grade = "黄阶下级",
-                EffectSummary = "装备后普攻伤害 +12%（被动）",
-                AttackBonusPercent = 0.12,
-                DamageFlat = 0
-            });
             world.RegisterCombatArt(new XianXia.Core.Combat.CombatArtSpec
             {
                 Id = new DefinitionId("base", "art_liezhao_claw"),
                 Name = "裂爪击",
                 Grade = "黄阶中级",
-                EffectSummary = "三连击；每段造成攻击力 200% 伤害",
+                EffectSummary = "三连击（保底定义；请用 JSON／编辑器维护）",
                 DamageAttackMult = 2.0,
                 HitCount = 3,
                 CooldownSeconds = 4f
@@ -253,7 +266,7 @@ namespace XianXia.Data.Bootstrap
                 Id = new DefinitionId("base", "art_kaishan_fist"),
                 Name = "开山拳",
                 Grade = "黄阶中级",
-                EffectSummary = "一击造成攻击力 500% 伤害",
+                EffectSummary = "一击（保底定义；请用 JSON／编辑器维护）",
                 DamageAttackMult = 5.0,
                 HitCount = 1,
                 CooldownSeconds = 5f

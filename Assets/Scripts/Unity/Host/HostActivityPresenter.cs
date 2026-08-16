@@ -41,6 +41,13 @@ namespace XianXia.Unity.Host
                     continue;
                 }
 
+                if (bootstrap.SkillStudyRitual != null &&
+                    bootstrap.SkillStudyRitual.IsChannelingSubject(view.EntityId))
+                {
+                    view.SetActivityText("参悟中");
+                    continue;
+                }
+
                 // 宏观出行已确认、尚未走出场景：固定显示「未出行」（可被玩家打断）
                 if (session.World.WorldPresence.TryGet(view.EntityId, out var wp) &&
                     wp != null &&
@@ -55,6 +62,11 @@ namespace XianXia.Unity.Host
                     view.SetActivityText("移动中");
                     continue;
                 }
+
+                // 田区农作自管头顶字，勿盖成「发呆中」
+                var farm = bootstrap.GetComponent<HostFarmFieldLabor>();
+                if (farm != null && farm.IsFarming(view.EntityId))
+                    continue;
 
                 view.SetActivityText(ResolveLabel(session, entity));
             }

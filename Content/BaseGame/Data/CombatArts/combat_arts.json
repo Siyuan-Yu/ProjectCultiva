@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:art_liezhao_claw",
+      "type": "combatArt",
+      "name": "裂爪击",
+      "grade": "黄阶中级",
+      "effectSummary": "三连击；每段伤害按熟练档攻击力百分比（绝对值）",
+      "damageAttackMult": 2.0,
+      "hitCount": 3,
+      "cooldownSeconds": 4,
+      "mastery": {
+        "tiers": [
+          { "tier": "novice", "damageAttackMult": 1.8 },
+          { "tier": "entry", "damageAttackMult": 2.0 },
+          { "tier": "minor", "damageAttackMult": 2.2 },
+          { "tier": "major", "damageAttackMult": 2.5 },
+          { "tier": "perfect", "damageAttackMult": 2.8 },
+          { "tier": "transcendent", "damageAttackMult": 3.2 }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 100,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 10 },
+              { "itemId": "base:resource_rough_wood", "count": 10 }
+            ]
+          }
+        ]
+      },
+      "tags": ["art", "active"]
+    },
+    {
+      "id": "base:art_kaishan_fist",
+      "type": "combatArt",
+      "name": "开山拳",
+      "grade": "黄阶中级",
+      "effectSummary": "一击；伤害按熟练档攻击力百分比（绝对值）",
+      "damageAttackMult": 5.0,
+      "hitCount": 1,
+      "cooldownSeconds": 5,
+      "mastery": {
+        "tiers": [
+          { "tier": "novice", "damageAttackMult": 4.5 },
+          { "tier": "entry", "damageAttackMult": 5.0 },
+          { "tier": "minor", "damageAttackMult": 5.5 },
+          { "tier": "major", "damageAttackMult": 6.0 },
+          { "tier": "perfect", "damageAttackMult": 6.5 },
+          { "tier": "transcendent", "damageAttackMult": 7.5 }
+        ],
+        "breakthroughs": [
+          {
+            "from": "entry",
+            "to": "minor",
+            "progressRequired": 100,
+            "costs": [
+              { "itemId": "base:resource_spirit_herb", "count": 10 },
+              { "itemId": "base:resource_rough_wood", "count": 10 }
+            ]
+          }
+        ]
+      },
+      "tags": ["art", "active"]
+    }
+  ]
+}

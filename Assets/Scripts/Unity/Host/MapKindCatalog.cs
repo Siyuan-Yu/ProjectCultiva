@@ -3,6 +3,7 @@ namespace XianXia.Unity.Host
     /// <summary>
     /// MapEditor kind → Host prefab／默认占地。
     /// 分区（zone*）仅标记；住房休息玩法靠 boundLocationId → Location → WorkArea。
+    /// 药田／农田只放 herbField／grainField（PerCell）；zoneHerb／zoneGrain 仅兼容旧图，不再在编辑器放置。
     /// </summary>
     public static class MapKindCatalog
     {
@@ -100,6 +101,7 @@ namespace XianXia.Unity.Host
 
         public static readonly KindInfo[] All =
         {
+            // Legacy overlays（旧图可读；新图勿再放）
             new("zoneHerb", Herb, StampMode.ZoneOverlay, 12, 12, false, null,
                 new UnityEngine.Color(0.30f, 0.70f, 0.40f, 0.35f)),
             new("zoneGrain", Farm, StampMode.ZoneOverlay, 16, 12, false, null,

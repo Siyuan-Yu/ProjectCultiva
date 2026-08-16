@@ -90,7 +90,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 ### type 一览
 
-`character`｜`cultivation`｜`realmLadder`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`localPlaceSet`｜`worldGraph`｜`mapLayout`｜`spawnTable`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`
+`character`｜`cultivation`｜`combatArt`｜`realmLadder`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`localPlaceSet`｜`worldGraph`｜`mapLayout`｜`spawnTable`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`
 
 ## type = character
 
@@ -108,8 +108,40 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | `requiredRealm` | `Mortal`／`凡人`／`炼气` 等 |
 | `grade` | 品阶展示，如 `黄阶中级` |
 | `effectSummary` | 效果摘要文案 |
-| `cultivationSpeed`／`breakthroughProgress` | Core：打坐每 tick（5 游戏分）修为增益；瓶颈修为优先取 `realmLadder` |
-| `grantedModifiers` | Fixed／Percentage grants |
+| `cultivationSpeed`／`breakthroughProgress` | Core：打坐每 tick（5 游戏分）修为增益（入门档缺省）；瓶颈修为优先取 `realmLadder` |
+| `grantedModifiers` | Fixed／Percentage grants（**不**随熟练连乘） |
+| `mastery` | 可选。`tiers[]` 每档绝对值效果；`breakthroughs[]` 进度门槛＋材料。见下 |
+
+### cultivation.mastery / combatArt.mastery
+
+```json
+"mastery": {
+  "tiers": [
+    { "tier": "entry", "cultivationSpeed": 8 },
+    { "tier": "minor", "cultivationSpeed": 10 }
+  ],
+  "breakthroughs": [
+    {
+      "from": "entry", "to": "minor", "progressRequired": 100,
+      "costs": [{ "itemId": "base:resource_spirit_herb", "count": 10 }]
+    }
+  ]
+}
+```
+
+- `tier`：`novice`／`entry`／`minor`／`major`／`perfect`／`transcendent`（或中文初学／入门…）
+- 功法档字段：`cultivationSpeed`（绝对值，不连乘）
+- 斗技档字段：`damageAttackMult`（2＝200%）／`attackBonusPercent`／`damageFlat`
+- 缺 `mastery` 时 Core 用基础字段生成缺省表（入门＝基础值，并带入门→小成默认材料）
+
+## type = combatArt
+
+| Field | Notes |
+|---|---|
+| `grade`／`effectSummary` | 展示 |
+| `damageAttackMult`／`hitCount`／`cooldownSeconds` | 主动技；入门档缺省 |
+| `attackBonusPercent`／`damageFlat` | 被动技；入门档缺省 |
+| `mastery` | 同 cultivation.mastery |
 
 ## type = realmLadder
 
@@ -126,9 +158,9 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 |---|---|
 | `maxStack` | ≥1，默认 1 |
 | `teachesManualId` | 可选；指向 `cultivation`。背包「使用」→ 选人学习；**秘籍不消耗**，可多次传授；一人一本，换功法覆盖 |
-| `teachesArtId` | 可选；斗技秘本。样例：`item_art_liezhao_claw`（洞府裂爪击）、`item_art_kaishan_fist`（将老开山拳） |
+| `teachesArtId` | 可选；斗技秘本。指向 `combatArt`。样例：`item_art_liezhao_claw`／`item_art_kaishan_fist` |
 
-主动斗技字段（内置注册，非 JSON 暂）：`DamageAttackMult`（攻击力倍率）／`HitCount`（连击）／装备栏 6 格快捷键 1–6。
+主动斗技／被动斗技：`type=combatArt`（`CombatArts/combat_arts.json`）；装备栏 6 格快捷键 1–6。正式数值用 `ManualArtEditor` 维护。
 
 ## type = opportunitySite
 
@@ -201,7 +233,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | presentationX／presentationZ／`enterConditions[]`／`questOfferIds[]` | 表现／进入／挂任务 |
 | `localMapId` | 该地点所属 LocalMap；空＝地表 |
 | `enterLocalMapId`／`enterSpawnLocationId` | 洞口：进入的 mapLayout＋内部落点 |
-| `surveySenseRequired` | 已废弃（勘查半径＝角色神识） |
+| `surveySenseRequired` | 可选神识门槛；**0＝不额外卡**。勘查半径＝神识×2；门槛只拦够得着却看不穿的秘洞 |
 
 ## type = worldGraph（宏观世界图 · [113] 阶段 A）
 

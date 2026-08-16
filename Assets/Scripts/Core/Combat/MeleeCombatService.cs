@@ -1,6 +1,7 @@
 using System;
 using XianXia.Core.Attributes;
 using XianXia.Core.Content;
+using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Events;
@@ -83,7 +84,9 @@ namespace XianXia.Core.Combat
                 target.TryGet<AttributesComponent>(out var defAttrs))
                 defense = Math.Max(0, defAttrs.GetFinal(AttributeId.Defense));
 
-            var perHit = Math.Max(1, (int)Math.Round(attack * art.DamageAttackMult) - defense / 2);
+            var perHit = Math.Max(1, (int)Math.Round(
+                attack * SkillMasteryLookup.ResolveDamageAttackMult(art, MasteryTier(arts, equipped.Value))
+                ) - defense / 2);
 
             for (var i = 0; i < hits; i++)
             {
@@ -93,7 +96,12 @@ namespace XianXia.Core.Combat
                 if (hit.IsFailure)
                 {
                     if (hitsLanded > 0)
+                    {
+                        new SkillMasteryService().AddArtMasteryProgress(
+                            world, casterId, equipped.Value, SkillMasteryRules.UseArtProgressGain);
                         return Result.Success();
+                    }
+
                     return hit;
                 }
 
@@ -105,6 +113,9 @@ namespace XianXia.Core.Combat
                     break;
                 }
             }
+
+            new SkillMasteryService().AddArtMasteryProgress(
+                world, casterId, equipped.Value, SkillMasteryRules.UseArtProgressGain);
 
             world.Events.Publish(
                 EventType.ActionCompleted,
@@ -190,14 +201,21 @@ namespace XianXia.Core.Combat
                     continue;
                 if (art.IsActiveSkill)
                     continue;
-                bonusPct += art.AttackBonusPercent;
-                flat += art.DamageFlat;
+                var tier = MasteryTier(arts, id.Value);
+                bonusPct += SkillMasteryLookup.ResolveAttackBonusPercent(art, tier);
+                flat += SkillMasteryLookup.ResolveDamageFlat(art, tier);
             }
 
             if (bonusPct <= 0.0 && flat == 0)
                 return raw;
             var scaled = raw * (1.0 + bonusPct) + flat;
             return Math.Max(1, (int)Math.Round(scaled));
+        }
+
+        static SkillMasteryTier MasteryTier(CombatArtsComponent arts, DefinitionId artId)
+        {
+            var m = arts?.GetMastery(artId);
+            return m != null ? m.Tier : SkillMasteryTier.Entry;
         }
     }
 }

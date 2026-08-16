@@ -15,11 +15,19 @@ public static class SchemaFields
         ["cultivation"] = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "displayNameKey", "nameKey", "requiredRealm",
-            "cultivationSpeed", "breakthroughProgress", "grantedModifiers", "tags"
+            "grade", "effectSummary",
+            "cultivationSpeed", "breakthroughProgress", "grantedModifiers", "mastery", "tags"
+        },
+        ["combatArt"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "grade", "effectSummary",
+            "attackBonusPercent", "damageFlat", "damageAttackMult", "hitCount", "cooldownSeconds",
+            "mastery", "tags"
         },
         ["item"] = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "displayNameKey", "nameKey", "maxStack", "tags"
+            "id", "type", "name", "displayNameKey", "nameKey", "maxStack",
+            "teachesManualId", "teachesArtId", "tags"
         },
         ["opportunitySite"] = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -50,6 +58,10 @@ public static class SchemaFields
         ["worldRegion"] = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "startLocationId", "locations"
+        },
+        ["localPlaceSet"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "mapLayoutId", "startLocationId", "locations"
         },
         ["quest"] = new HashSet<string>(StringComparer.Ordinal)
         {

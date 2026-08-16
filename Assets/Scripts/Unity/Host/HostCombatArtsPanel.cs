@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Combat;
-using XianXia.Core.Content;
+using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Inventory;
@@ -9,8 +9,8 @@ using XianXia.Core.Inventory;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// 斗技学习／装配：已学列表、1–6 键位装备、从背包秘本学习。
-    /// 入口＝脚下状态板右侧「斗技」（与人物／境界／关系并列）。
+    /// 斗技：一级＝已学列表排布；二级＝点进后的熟练度／材料／效果页。
+    /// 入口＝脚下状态板右侧「斗技」。
     /// </summary>
     public sealed class HostCombatArtsPanel : MonoBehaviour
     {
@@ -20,9 +20,12 @@ namespace XianXia.Unity.Host
 
         EntityId _subject = EntityId.None;
         DefinitionId? _selectedArt;
+        bool _detailOpen;
+        bool _breakConfirmOpen;
         string _status = string.Empty;
         bool _holdingPause;
-        Vector2 _scrollLearned;
+        Vector2 _scrollList;
+        Vector2 _scrollDetail;
         Vector2 _scrollBag;
 
         GUIStyle _title;
@@ -30,13 +33,11 @@ namespace XianXia.Unity.Host
         GUIStyle _small;
         Texture2D _px;
 
-        static readonly Color Parchment = new Color(0.92f, 0.86f, 0.74f, 0.98f);
-        static readonly Color ParchmentDark = new Color(0.70f, 0.58f, 0.42f, 1f);
-        static readonly Color Ink = new Color(0.16f, 0.12f, 0.08f, 1f);
+        static readonly Color Parchment = HostSkillMasteryPanelUi.Parchment;
+        static readonly Color ParchmentDark = HostSkillMasteryPanelUi.ParchmentDark;
+        static readonly Color Ink = HostSkillMasteryPanelUi.Ink;
         static readonly Color SlotFill = new Color(0.85f, 0.78f, 0.62f, 1f);
-        static readonly Color SlotOn = new Color(0.78f, 0.62f, 0.38f, 1f);
 
-        readonly CombatArtItemLearnService _learn = new CombatArtItemLearnService();
         readonly List<(string ItemId, string ArtIdText)> _tomeScratch =
             new List<(string, string)>(8);
 
@@ -51,6 +52,8 @@ namespace XianXia.Unity.Host
         public void ClearSessionState()
         {
             open = false;
+            _detailOpen = false;
+            _breakConfirmOpen = false;
             _subject = EntityId.None;
             _selectedArt = null;
             _status = string.Empty;
@@ -64,15 +67,20 @@ namespace XianXia.Unity.Host
                 return;
             _subject = id;
             _selectedArt = null;
+            _detailOpen = false;
+            _breakConfirmOpen = false;
             _status = string.Empty;
             open = true;
-            _scrollLearned = Vector2.zero;
+            _scrollList = Vector2.zero;
+            _scrollDetail = Vector2.zero;
             _scrollBag = Vector2.zero;
         }
 
         public void Close()
         {
             open = false;
+            _detailOpen = false;
+            _breakConfirmOpen = false;
             ReleasePause();
         }
 
@@ -85,6 +93,7 @@ namespace XianXia.Unity.Host
             {
                 if (open)
                     open = false;
+                _detailOpen = false;
                 ReleasePause();
                 return;
             }
@@ -100,7 +109,17 @@ namespace XianXia.Unity.Host
                 }
 
                 if (Input.GetKeyDown(KeyCode.Escape))
-                    Close();
+                {
+                    if (_breakConfirmOpen)
+                        _breakConfirmOpen = false;
+                    else if (_detailOpen)
+                    {
+                        _detailOpen = false;
+                        _status = string.Empty;
+                    }
+                    else
+                        Close();
+                }
             }
             else
                 ReleasePause();
@@ -140,41 +159,118 @@ namespace XianXia.Unity.Host
             var name = string.IsNullOrEmpty(entity.DisplayName) ? _subject.ToString() : entity.DisplayName;
 
             var dim = new Rect(0f, 0f, Screen.width, Screen.height);
-            Fill(dim, new Color(0f, 0f, 0f, 0.45f));
+            HostSkillMasteryPanelUi.Fill(dim, new Color(0f, 0f, 0f, 0.45f));
             HostUiHitTest.Block(dim);
 
-            var w = 560f;
-            var h = 480f;
+            var w = 620f;
+            var h = 560f;
             var rect = new Rect((Screen.width - w) * 0.5f, (Screen.height - h) * 0.5f, w, h);
             HostUiHitTest.Block(rect);
-            Fill(rect, Parchment);
-            DrawFrame(rect, ParchmentDark);
+            HostSkillMasteryPanelUi.Fill(rect, Parchment);
+            HostSkillMasteryPanelUi.DrawFrame(rect, ParchmentDark);
 
+            if (_detailOpen && _selectedArt.HasValue)
+                DrawDetailPage(rect, world, arts, isParty, name);
+            else
+                DrawListPage(rect, world, arts, isParty, name);
+
+            if (_breakConfirmOpen && _selectedArt.HasValue)
+                DrawBreakthroughConfirm(world, arts);
+        }
+
+        void DrawBreakthroughConfirm(
+            XianXia.Core.Simulation.SimulationWorld world,
+            CombatArtsComponent arts)
+        {
+            var artId = _selectedArt.Value;
+            world.TryGetCombatArt(artId, out var art);
+            var artName = art == null || string.IsNullOrEmpty(art.Name) ? artId.ToString() : art.Name;
+            var profile = art != null
+                ? SkillMasteryLookup.EnsureOrDefaultArt(art)
+                : null;
+            var state = arts.GetOrCreateMastery(artId);
+            var from = SkillMasteryTierNames.Display(state.Tier);
+            var to = SkillMasteryTierNames.Display(SkillMasteryLookup.NextTier(profile, state.Tier));
+            var chance = new SkillMasteryService().EvaluateMasteryBreakthroughChance(world, _subject);
+            var pct = (int)System.Math.Round(chance * 100.0);
+            var costs = SkillMasteryLookup.BreakthroughCosts(profile, state.Tier);
+            var costLine = "材料：";
+            if (costs == null || costs.Count == 0)
+                costLine += "无";
+            else
+            {
+                for (var i = 0; i < costs.Count; i++)
+                {
+                    var c = costs[i];
+                    if (c == null || string.IsNullOrEmpty(c.ItemId))
+                        continue;
+                    if (i > 0)
+                        costLine += "、";
+                    costLine += HostSkillMasteryPanelUi.ShortItemName(world, c.ItemId) + "×" + c.Count;
+                }
+            }
+
+            var body =
+                "是否冲击斗技「" + artName + "」熟练度？\n" +
+                from + " → " + to + "\n" +
+                "突破成功率约 " + pct + "%\n" +
+                costLine + "\n（失败仍消耗材料）";
+            var choice = HostSkillMasteryPanelUi.DrawBreakthroughConfirm(
+                "确认冲击熟练", body, _title, _body);
+            if (choice == HostSkillMasteryPanelUi.ConfirmChoice.No)
+            {
+                _breakConfirmOpen = false;
+                return;
+            }
+
+            if (choice != HostSkillMasteryPanelUi.ConfirmChoice.Yes)
+                return;
+
+            _breakConfirmOpen = false;
+            var study = bootstrap.SkillStudyRitual;
+            if (study == null)
+                _status = "研读组件未就绪";
+            else if (study.TryBeginBreakthroughArt(_subject, artId, out var beginReason))
+            {
+                _status = "开始冲击熟练…";
+                open = false;
+                _detailOpen = false;
+            }
+            else
+                _status = string.IsNullOrEmpty(beginReason) ? "无法突破" : beginReason;
+        }
+
+        void DrawListPage(
+            Rect rect,
+            XianXia.Core.Simulation.SimulationWorld world,
+            CombatArtsComponent arts,
+            bool isParty,
+            string actorName)
+        {
             var x = rect.x + 16f;
             var y = rect.y + 12f;
-            GUI.Label(new Rect(x, y, w - 100f, 26f), "斗技 · " + name, _title);
-            if (GUI.Button(new Rect(rect.xMax - 72f, y, 56f, 26f), "关闭"))
+            GUI.Label(new Rect(x, y, rect.width - 160f, 26f), "斗技 · " + actorName, _title);
+            if (HostImguiStyles.ParchmentBtn(new Rect(rect.xMax - 72f, y, 56f, 26f), "关闭"))
                 Close();
-            y += 30f;
+            y += 28f;
             GUI.Label(
-                new Rect(x, y, w - 32f, 20f),
+                new Rect(x, y, rect.width - 32f, 18f),
                 isParty
-                    ? "已学列表 · 点选后装到 1–6 键 · 可从背包秘本学习（秘本不消耗）"
-                    : "仅查看（非己方不可改装配／学习）",
+                    ? "点列表进熟练度页 · 上方 1–6 装已选斗技 · 秘本在列表下方"
+                    : "仅查看",
                 _small);
-            y += 24f;
-
-            // —— 装备栏 1–6 ——
-            GUI.Label(new Rect(x, y, w - 32f, 20f), "快捷键装备栏", _body);
             y += 22f;
-            var slotW = 78f;
+
+            GUI.Label(new Rect(x, y, rect.width - 32f, 18f), "快捷键装备栏", _body);
+            y += 20f;
+            var slotW = 88f;
             var gap = 6f;
             for (var i = 0; i < CombatArtsComponent.MaxEquippedSlots; i++)
             {
                 var sx = x + i * (slotW + gap);
-                var sr = new Rect(sx, y, slotW, 48f);
-                Fill(sr, SlotFill);
-                DrawFrame(sr, ParchmentDark);
+                var sr = new Rect(sx, y, slotW, 44f);
+                HostSkillMasteryPanelUi.Fill(sr, SlotFill);
+                HostSkillMasteryPanelUi.DrawFrame(sr, ParchmentDark);
                 var eq = arts.GetEquipped(i);
                 string label;
                 if (!eq.HasValue)
@@ -206,30 +302,22 @@ namespace XianXia.Unity.Host
                 }
             }
 
-            y += 56f;
-            GUI.Label(
-                new Rect(x, y, w - 32f, 18f),
-                "先点下方已学斗技选中，再点上方键位；再点已装键位可卸下",
-                _small);
-            y += 22f;
+            y += 52f;
 
-            var midH = 200f;
-            var leftW = (w - 40f) * 0.58f;
-            var rightW = (w - 40f) * 0.42f;
-            var leftR = new Rect(x, y, leftW, midH);
-            var rightR = new Rect(x + leftW + 8f, y, rightW - 8f, midH);
-            DrawFrame(leftR, ParchmentDark);
-            DrawFrame(rightR, ParchmentDark);
+            var bagH = 110f;
+            var listH = rect.yMax - y - bagH - 36f;
+            var listR = new Rect(x, y, rect.width - 32f, listH);
+            HostSkillMasteryPanelUi.DrawFrame(listR, ParchmentDark);
+            GUI.Label(new Rect(listR.x + 8f, listR.y + 4f, 200f, 18f), "已学斗技", _body);
 
-            // —— 已学 ——
-            GUI.Label(new Rect(leftR.x + 8f, leftR.y + 4f, leftW - 16f, 20f), "已学斗技", _body);
-            var learnedView = new Rect(leftR.x + 4f, leftR.y + 26f, leftW - 8f, midH - 32f);
-            var learnedContent = new Rect(0f, 0f, learnedView.width - 18f, Mathf.Max(arts.Learned.Count * 52f, learnedView.height));
-            _scrollLearned = GUI.BeginScrollView(learnedView, _scrollLearned, learnedContent);
-            var ly = 0f;
+            var view = new Rect(listR.x + 4f, listR.y + 24f, listR.width - 8f, listH - 28f);
+            var rowH = 64f;
+            var contentH = Mathf.Max(view.height, Mathf.Max(1, arts.Learned.Count) * (rowH + 6f) + 8f);
+            _scrollList = GUI.BeginScrollView(view, _scrollList, new Rect(0f, 0f, view.width - 18f, contentH));
+            var ly = 4f;
             if (arts.Learned.Count == 0)
             {
-                GUI.Label(new Rect(4f, ly, learnedContent.width - 8f, 40f), "尚未学会任何斗技。", _small);
+                GUI.Label(new Rect(8f, ly, view.width - 30f, 40f), "尚未学会任何斗技。", _small);
             }
             else
             {
@@ -238,44 +326,46 @@ namespace XianXia.Unity.Host
                     var id = arts.Learned[i];
                     world.TryGetCombatArt(id, out var art);
                     var artName = art == null || string.IsNullOrEmpty(art.Name) ? id.ToString() : art.Name;
-                    var grade = art == null || string.IsNullOrEmpty(art.Grade) ? "" : " · " + art.Grade;
+                    var grade = art == null || string.IsNullOrEmpty(art.Grade) ? "" : art.Grade;
                     var kind = art != null && art.IsActiveSkill ? "主动" : "被动";
+                    var m = arts.GetOrCreateMastery(id);
+                    var tier = SkillMasteryTierNames.Display(m.Tier);
                     var slotHint = FindEquippedSlot(arts, id);
                     var selected = _selectedArt.HasValue && _selectedArt.Value.Equals(id);
-                    var row = new Rect(4f, ly, learnedContent.width - 8f, 48f);
-                    if (selected)
-                        Fill(row, SlotOn);
-                    var line = artName + grade + "（" + kind + "）" +
-                               (slotHint >= 0 ? "　键" + (slotHint + 1) : "");
-                    if (GUI.Button(row, line + "\n" + Summarize(art), _small))
+                    var sub = grade + " · " + kind + " · 熟练 " + tier;
+                    if (art != null)
+                        sub += " · " + HostSkillMasteryPanelUi.ArtEffectLine(art, m.Tier);
+                    var badge = slotHint >= 0 ? "键" + (slotHint + 1) : "";
+                    var row = new Rect(4f, ly, view.width - 26f, rowH);
+                    if (HostSkillMasteryPanelUi.DrawListRow(row, artName, sub, badge, selected, _body, _small))
                     {
                         _selectedArt = id;
-                        _status = "已选中「" + artName + "」→ 点上方键位装配";
+                        _detailOpen = true;
+                        _scrollDetail = Vector2.zero;
+                        _status = string.Empty;
                     }
 
-                    ly += 52f;
+                    ly += rowH + 6f;
                 }
             }
 
             GUI.EndScrollView();
+            y = listR.yMax + 8f;
 
-            // —— 从背包学 ——
-            GUI.Label(new Rect(rightR.x + 8f, rightR.y + 4f, rightW - 16f, 20f), "背包秘本", _body);
+            // 可学秘本
+            var bagR = new Rect(x, y, rect.width - 32f, bagH);
+            HostSkillMasteryPanelUi.DrawFrame(bagR, ParchmentDark);
+            GUI.Label(new Rect(bagR.x + 8f, bagR.y + 4f, 200f, 18f), "背包秘本（未学）", _body);
             CollectTomes(world, arts, _tomeScratch);
-            var bagView = new Rect(rightR.x + 4f, rightR.y + 26f, rightW - 16f, midH - 32f);
-            var bagContentH = Mathf.Max(_tomeScratch.Count * 56f + 8f, bagView.height);
-            var bagContent = new Rect(0f, 0f, bagView.width - 18f, bagContentH);
-            _scrollBag = GUI.BeginScrollView(bagView, _scrollBag, bagContent);
-            var by = 0f;
+            var bagView = new Rect(bagR.x + 4f, bagR.y + 24f, bagR.width - 8f, bagH - 28f);
+            var bagContentH = Mathf.Max(bagView.height, _tomeScratch.Count * 28f + 8f);
+            _scrollBag = GUI.BeginScrollView(bagView, _scrollBag, new Rect(0f, 0f, bagView.width - 18f, bagContentH));
+            var by = 2f;
             if (_tomeScratch.Count == 0)
-            {
-                GUI.Label(
-                    new Rect(4f, by, bagContent.width - 8f, 60f),
-                    "背包无未学斗技秘本。\n洞府／任务可获得。",
-                    _small);
-            }
+                GUI.Label(new Rect(4f, by, bagView.width - 30f, 40f), "无未学秘本。", _small);
             else
             {
+                var mastery = new SkillMasteryService();
                 for (var i = 0; i < _tomeScratch.Count; i++)
                 {
                     var itemId = _tomeScratch[i].ItemId;
@@ -284,24 +374,27 @@ namespace XianXia.Unity.Host
                     if (DefinitionId.TryParse(artText, out var aid))
                         world.TryGetCombatArt(aid, out art);
                     var artName = art == null || string.IsNullOrEmpty(art.Name) ? artText : art.Name;
-                    var tomeName = world.InventoryCatalog.GetName(itemId);
-                    GUI.Label(
-                        new Rect(4f, by, bagContent.width - 8f, 32f),
-                        tomeName + "\n→ " + artName,
-                        _small);
-                    by += 34f;
+                    var pct = art == null
+                        ? 0
+                        : (int)Mathf.Round((float)mastery.EvaluateArtLearnChance(world, _subject, art) * 100f);
+                    var line = world.InventoryCatalog.GetName(itemId) + " → " + artName +
+                               " · 学习成功率约 " + pct + "%";
+                    GUI.Label(new Rect(4f, by, bagView.width - 120f, 24f), line, _small);
                     GUI.enabled = isParty;
-                    if (GUI.Button(new Rect(4f, by, bagContent.width - 8f, 22f), "学习"))
+                    if (HostImguiStyles.ParchmentBtn(new Rect(bagView.width - 100f, by, 72f, 22f), "参悟") &&
+                        isParty)
                     {
-                        var result = _learn.TryLearnFromItem(world, _subject, itemId);
-                        if (result.IsSuccess)
+                        var study = bootstrap.SkillStudyRitual;
+                        if (study == null)
+                            _status = "研读组件未就绪";
+                        else if (study.TryBeginLearnArt(_subject, itemId, out var beginReason))
                         {
-                            _status = "已学会「" + artName + "」";
-                            _selectedArt = aid;
-                            bootstrap.DispatchDrainedEvents();
+                            _status = "开始参悟…";
+                            open = false;
+                            _detailOpen = false;
                         }
                         else
-                            _status = result.Error.Message ?? "学习失败";
+                            _status = string.IsNullOrEmpty(beginReason) ? "无法参悟" : beginReason;
                     }
 
                     GUI.enabled = true;
@@ -311,9 +404,94 @@ namespace XianXia.Unity.Host
 
             GUI.EndScrollView();
 
-            y += midH + 10f;
             if (!string.IsNullOrEmpty(_status))
-                GUI.Label(new Rect(x, y, w - 32f, 36f), _status, _body);
+                GUI.Label(new Rect(x, rect.yMax - 28f, rect.width - 32f, 22f), _status, _small);
+        }
+
+        void DrawDetailPage(
+            Rect rect,
+            XianXia.Core.Simulation.SimulationWorld world,
+            CombatArtsComponent arts,
+            bool isParty,
+            string actorName)
+        {
+            var artId = _selectedArt.Value;
+            world.TryGetCombatArt(artId, out var art);
+            var artName = art == null || string.IsNullOrEmpty(art.Name) ? artId.ToString() : art.Name;
+            var profile = art != null
+                ? SkillMasteryLookup.EnsureOrDefaultArt(art)
+                : SkillMasteryLookup.CreateDefaultArtProfile(0, 0, 0);
+            var state = arts.GetOrCreateMastery(artId);
+            SkillMasteryLookup.SyncProgressCap(state, profile);
+
+            var x = rect.x + 16f;
+            var y = rect.y + 12f;
+            GUI.Label(new Rect(x, y, rect.width - 200f, 26f), "斗技熟练 · " + artName, _title);
+            if (HostImguiStyles.ParchmentBtn(new Rect(rect.xMax - 140f, y, 56f, 26f), "返回"))
+            {
+                _detailOpen = false;
+                return;
+            }
+
+            if (HostImguiStyles.ParchmentBtn(new Rect(rect.xMax - 72f, y, 56f, 26f), "关闭"))
+            {
+                Close();
+                return;
+            }
+
+            y += 32f;
+            var grade = art == null || string.IsNullOrEmpty(art.Grade) ? "品阶未标" : art.Grade;
+            var kind = art != null && art.IsActiveSkill ? "主动" : "被动";
+            var summary = art == null || string.IsNullOrEmpty(art.EffectSummary)
+                ? kind + " · 当前 " + SkillMasteryTierNames.Display(state.Tier)
+                : art.EffectSummary + " · " + kind;
+
+            var body = new Rect(x, y, rect.width - 32f, rect.height - 100f - (y - rect.y));
+            HostSkillMasteryPanelUi.DrawMasteryDetailBody(
+                body,
+                artName,
+                grade + " · " + actorName,
+                summary,
+                state,
+                profile,
+                tier => HostSkillMasteryPanelUi.ArtEffectLine(art, tier),
+                world,
+                _title,
+                _body,
+                _small,
+                ref _scrollDetail);
+
+            var masterySvc = new SkillMasteryService();
+            var footerY = rect.yMax - 44f;
+            GUI.enabled = isParty && !state.IsAtBottleneck &&
+                          world.Entities.TryGet(_subject, out var ent) &&
+                          ent.TryGet<CultivationComponent>(out var cult) &&
+                          cult.Progress >= 10;
+            if (HostImguiStyles.ParchmentBtn(new Rect(x, footerY, 110f, 30f), "灌注×10"))
+            {
+                if (masterySvc.TryInfuseArt(world, _subject, artId, 10, out var detail).IsSuccess)
+                    _status = detail;
+                else
+                    _status = "灌注失败";
+            }
+
+            string brReason = string.Empty;
+            var canBreak = isParty &&
+                           masterySvc.CanBreakthroughArt(world, _subject, artId, out brReason) &&
+                           (bootstrap.SkillStudyRitual == null || !bootstrap.SkillStudyRitual.IsBusy);
+            if (!isParty)
+                brReason = "非己方不可冲击";
+            else if (bootstrap.SkillStudyRitual != null && bootstrap.SkillStudyRitual.IsBusy)
+                brReason = "研读进行中";
+
+            GUI.enabled = canBreak;
+            if (HostImguiStyles.ParchmentBtn(new Rect(x + 118f, footerY, 120f, 30f), "冲击下一档"))
+                _breakConfirmOpen = true;
+
+            GUI.enabled = true;
+            var hint = !canBreak && !string.IsNullOrEmpty(brReason) ? brReason : _status;
+            if (!string.IsNullOrEmpty(hint))
+                GUI.Label(new Rect(x + 250f, footerY + 6f, rect.width - 280f, 22f), hint, _small);
         }
 
         static int FindEquippedSlot(CombatArtsComponent arts, DefinitionId id)
@@ -326,21 +504,6 @@ namespace XianXia.Unity.Host
             }
 
             return -1;
-        }
-
-        static string Summarize(CombatArtSpec art)
-        {
-            if (art == null)
-                return "";
-            if (!string.IsNullOrEmpty(art.EffectSummary))
-            {
-                var s = art.EffectSummary;
-                return s.Length > 28 ? s.Substring(0, 28) + "…" : s;
-            }
-
-            if (art.IsActiveSkill)
-                return "主动 ×" + art.HitCount + " · CD " + art.CooldownSeconds.ToString("0.#") + "s";
-            return "被动普攻加成";
         }
 
         static void CollectTomes(
@@ -376,25 +539,6 @@ namespace XianXia.Unity.Host
             _title = HostImguiStyles.InkLabel(16, bold: true, ink: Ink);
             _body = HostImguiStyles.InkLabel(13, ink: Ink);
             _small = HostImguiStyles.InkLabel(11, wordWrap: true, ink: Ink);
-        }
-
-        void Fill(Rect r, Color c)
-        {
-            var prev = GUI.color;
-            GUI.color = c;
-            GUI.DrawTexture(r, _px != null ? _px : Texture2D.whiteTexture);
-            GUI.color = prev;
-        }
-
-        void DrawFrame(Rect r, Color c)
-        {
-            var prev = GUI.color;
-            GUI.color = c;
-            GUI.DrawTexture(new Rect(r.x, r.y, r.width, 2f), _px);
-            GUI.DrawTexture(new Rect(r.x, r.yMax - 2f, r.width, 2f), _px);
-            GUI.DrawTexture(new Rect(r.x, r.y, 2f, r.height), _px);
-            GUI.DrawTexture(new Rect(r.xMax - 2f, r.y, 2f, r.height), _px);
-            GUI.color = prev;
         }
     }
 }

@@ -46,6 +46,7 @@
 | 微调 | **方向键** 1 格；**Shift+方向键** 5 格 |
 | 撤销／重做 | **Ctrl+Z**／**Ctrl+Y** |
 | 保存 | **Ctrl+S**（写回当前文件）；**另存为…**／**Ctrl+Shift+S** → 默认 `Content/BaseGame/Data/Maps/` |
+| 保存校验 | kind 必须在 Host prefab 目录内；Placeable 对应 `.prefab` 文件须存在，否则弹窗报错并取消保存 |
 | 新建空图 | 输入新 Id → 存到 Levels；不再卡死在「只能建 ch01」 |
 | 打开地图 | **打开地图…** 从 Levels 选一张 JSON |
 | 光标格坐标 | 右下角实时显示 |
@@ -56,10 +57,10 @@
 
 | kind | 含义 | 默认格 | 游戏里怎么生成 |
 |------|------|--------|----------------|
-| `zoneHerb` 等 | **分区标记**（药田／农田／住房／林地／矿区／**灵泉**） | 一片 | 半透明色块，**无交互、不挡路**；灵力加成以后再做 |
+| `zoneHousing` 等 | **分区标记**（住房／林地／矿区／灵泉） | 一片 | 半透明色块，**无交互、不挡路**；住房靠 `boundLocationId` 接休息 |
 | `spawnZone` | **刷怪区**（绑 `spawnTableId`＋`boundLocationId`） | 一片 | 半透明红区；右侧「编辑／新建刷怪表…」可 GUI 改表 |
-| `herbField` | 药田地表 | 12×12（可拉片） | **每格** `HerbPatchTile`，可右键劳动（生长暂未做） |
-| `grainField` | 农田地表 | 16×12 | **每格** `FarmlandTile`，可右键劳动 |
+| `herbField` | **药田区**（可耕作；只在物件页画一遍） | 12×12（可拉片） | **每格**可农作；绑 `boundLocationId` |
+| `grainField` | **农田区**（可耕作；只在物件页画一遍） | 16×12 | **每格**可农作；绑 `boundLocationId` |
 | `road` | 道路 | **1×1** | 每格 `DirtRoadTile`，**纯贴图** |
 | `wall` | 墙 | **6×1**（拉成 1×n） | 每格 `WallTile`，`blocksMovement` 挡寻路 |
 | `treeS` / `treeM` / `treeL` | 小／中／大树 | 1×1／2×2／3×3 | 中心一棵树 prefab，可右键砍伐（Work） |
@@ -99,7 +100,7 @@ MapEditor **只负责洞口外观位置**；勘查是角色指令（与战斗同
 | `enterLocalMapId` | 进入的 mapLayout |
 | `enterSpawnLocationId` | 洞内落点 |
 
-`surveySenseRequired` 已废弃（半径＝角色神识）。
+| `surveySenseRequired` | 可选。0＝不卡（日常洞）；仅秘洞填最低神识。半径仍＝神识×2 |
 
 ### 游戏内流程
 
@@ -237,3 +238,4 @@ Prefab 目录：
 | 2026-08-12 | 分区 zone*；树 treeS/M/L；矿石 ore 2×2；路纯贴图；生长暂缓 |
 | 2026-08-13 | 逻辑试玩改走 [Level Tester](114-level-tester.md)；Host 支持换 mapLayout |
 | 2026-08-13 | 地图／任务真源统一到 Content/BaseGame/Data（不再用 Assets/Levels） |
+| 2026-08-16 | 药田／农田只留物件页 `herbField`／`grainField`；分区去掉 zoneHerb／zoneGrain（旧图仍可读） |

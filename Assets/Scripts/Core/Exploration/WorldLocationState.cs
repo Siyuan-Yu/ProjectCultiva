@@ -30,7 +30,10 @@ namespace XianXia.Core.Exploration
         public string EnterLocalMapId { get; set; } = string.Empty;
         /// <summary>进入后队伍落点地点 id。</summary>
         public string EnterSpawnLocationId { get; set; } = string.Empty;
-        /// <summary>已废弃：勘查半径＝角色神识，不再用门槛。</summary>
+        /// <summary>
+        /// 可选：显形所需最低神识。0＝不额外卡门槛（日常洞府）；仅秘洞才填。
+        /// 勘查半径仍＝神识×2。
+        /// </summary>
         public int SurveySenseRequired { get; set; }
     }
 }

@@ -671,6 +671,46 @@
       "title": "129 WorldGraph Host 出行／进场景／场景隔离（2026-08-16）",
       "docId": "KbFRdzob3o4ndMxsmlbcRV9inng"
     },
+    "local-place-editor-usage": {
+      "file": "docs/40-process/130-local-place-editor-usage.md",
+      "title": "130 LocalPlaceEditor 用法",
+      "docId": "CANPds3DJoPnsixBGDRctgkvnTh"
+    },
+    "skill-mastery-study-ritual-2026-08-16": {
+      "file": "docs/40-process/131-skill-mastery-study-ritual-2026-08-16.md",
+      "title": "131 功法／斗技蓄势研读＋熟练度（2026-08-16）",
+      "docId": "Ra6odyPuao50ZsxxoyCc8W5EnTt"
+    },
+    "skill-mastery-config-absolute-tiers-2026-08-16": {
+      "file": "docs/40-process/132-skill-mastery-config-absolute-tiers-2026-08-16.md",
+      "title": "132 熟练度配置绝对值档位（2026-08-16）",
+      "docId": "FOJ3dtLeMo7jgUxUlm2c3tz2n9b"
+    },
+    "manual-art-editor-and-cleanup-2026-08-16": {
+      "file": "docs/40-process/133-manual-art-editor-and-cleanup-2026-08-16.md",
+      "title": "133 功法／斗技编辑器＋清理（2026-08-16）",
+      "docId": "NGmwd2xJNoZOiRxfmpwcGE6Unzs"
+    },
+    "spirit-veil-ranged-normal-attack-2026-08-16": {
+      "file": "docs/40-process/134-spirit-veil-ranged-normal-attack-2026-08-16.md",
+      "title": "134 斗气纱衣远程普攻（2026-08-16）",
+      "docId": "ISh4dF7JToMZhMxQVv8c0dWZnxf"
+    },
+    "world-object-inspect-and-tree-chop-2026-08-16": {
+      "file": "docs/40-process/135-world-object-inspect-and-tree-chop-2026-08-16.md",
+      "title": "135 世界物况栏＋砍树（2026-08-16）",
+      "docId": "RGZ7dJ4egoTRGTxMcLLcMZMBnFf"
+    },
+    "farm-field-zone-labor-2026-08-16": {
+      "file": "docs/40-process/136-farm-field-zone-labor-2026-08-16.md",
+      "title": "136 田区自动农作（2026-08-16）",
+      "docId": "KLvxdPDDTodhQPxXij8c680Ynif"
+    },
+    "skill-mastery-farm-veil-chop-rollup-2026-08-17": {
+      "file": "docs/40-process/137-skill-mastery-farm-veil-chop-rollup-2026-08-17.md",
+      "title": "137 熟练度／纱衣／田区／砍树收束（2026-08-17）",
+      "docId": "WaaNdNf2poof5qx2deVcFfKrnwb"
+    },
     "world-graph-local-map": {
       "file": "docs/40-process/113-world-graph-local-map-architecture-revision-v0.1.md",
       "title": "World Graph + Local Map 架构修订 v0.1",

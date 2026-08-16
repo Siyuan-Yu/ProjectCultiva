@@ -1,69 +1,138 @@
 <Window x:Class="WorldGraphEditor.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="XianXia · 大世界图编辑器（WorldGraph）" Height="820" Width="1280"
-        WindowStartupLocation="CenterScreen">
+        Title="XianXia · 大世界图编辑器（WorldGraph）" Height="900" Width="1400"
+        WindowStartupLocation="CenterScreen"
+        Focusable="True"
+        Background="#16181C"
+        PreviewKeyDown="Window_PreviewKeyDown">
   <DockPanel Margin="10">
     <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
       <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
         <Button Content="打开包…" Width="90" Margin="0,0,8,0" Click="OpenPackage_Click"/>
-        <TextBlock Text="worldGraph" VerticalAlignment="Center" Margin="0,0,6,0"/>
-        <ComboBox x:Name="GraphCombo" Width="320" SelectionChanged="GraphCombo_SelectionChanged"/>
+        <TextBlock Text="worldGraph" Foreground="#C8C4BC" VerticalAlignment="Center" Margin="0,0,6,0"/>
+        <ComboBox x:Name="GraphCombo" Width="300" SelectionChanged="GraphCombo_SelectionChanged"/>
         <Button Content="新建图…" Width="80" Margin="8,0,0,0" Click="NewGraph_Click"/>
-        <Button Content="保存到磁盘" Width="100" Margin="12,0,0,0" Click="Save_Click"/>
-        <TextBlock x:Name="RootText" VerticalAlignment="Center" Margin="12,0,0,0"/>
+        <Button Content="保存 Ctrl+S" Width="100" Margin="12,0,0,0" Click="Save_Click"/>
+        <TextBlock x:Name="RootText" Foreground="#8A8680" VerticalAlignment="Center" Margin="12,0,0,0"/>
       </StackPanel>
       <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-        <TextBlock Text="name" VerticalAlignment="Center" Margin="0,0,6,0"/>
-        <TextBox x:Name="NameBox" Width="200" Margin="0,0,12,0"/>
-        <TextBlock Text="startNodeId" VerticalAlignment="Center" Margin="0,0,6,0"/>
-        <TextBox x:Name="StartBox" Width="260"/>
+        <TextBlock Text="name" Foreground="#C8C4BC" VerticalAlignment="Center" Margin="0,0,6,0"/>
+        <TextBox x:Name="NameBox" Width="180" Margin="0,0,12,0"/>
+        <TextBlock Text="startNodeId" Foreground="#C8C4BC" VerticalAlignment="Center" Margin="0,0,6,0"/>
+        <TextBox x:Name="StartBox" Width="240" Margin="0,0,12,0"/>
+        <Button Content="+ 节点" Width="72" Margin="0,0,6,0" Click="AddNode_Click"/>
+        <Button x:Name="LinkModeBtn" Content="连线" Width="64" Margin="0,0,6,0" Click="LinkMode_Click"
+                ToolTip="开启后依次点两个节点创建道路"/>
+        <Button Content="删选中" Width="72" Margin="0,0,12,0" Click="DeleteSelected_Click"/>
+        <TextBlock Text="缩放" Foreground="#C8C4BC" VerticalAlignment="Center" Margin="0,0,4,0"/>
+        <Button Content="－" Width="32" Margin="0,0,2,0" Click="ZoomOut_Click"/>
+        <Slider x:Name="ZoomSlider" Width="140" Minimum="0" Maximum="100" Value="100"
+                VerticalAlignment="Center" IsSnapToTickEnabled="False"
+                ValueChanged="ZoomSlider_ValueChanged"
+                ToolTip="与游戏大地图相同：100%=邻站铺满，0%=全图"/>
+        <Button Content="＋" Width="32" Margin="2,0,4,0" Click="ZoomIn_Click"/>
+        <TextBlock x:Name="ZoomLabel" Text="100%" Width="44" Foreground="#C8C4BC" VerticalAlignment="Center"/>
+        <Button Content="适应" Width="56" Margin="0,0,4,0" Click="FitView_Click" ToolTip="全图／Ctrl+1"/>
+        <Button Content="邻站" Width="56" Click="ResetZoom_Click" ToolTip="最大放大（邻站铺满）／Ctrl+0"/>
       </StackPanel>
-      <StackPanel Orientation="Horizontal">
-        <Button Content="+ 节点" Width="80" Margin="0,0,8,0" Click="AddNode_Click"/>
-        <Button Content="删除选中节点" Width="110" Margin="0,0,16,0" Click="DeleteNode_Click"/>
-        <Button Content="+ 道路" Width="80" Margin="0,0,8,0" Click="AddRoute_Click"/>
-        <Button Content="删除选中道路" Width="110" Click="DeleteRoute_Click"/>
-      </StackPanel>
+      <TextBlock Foreground="#8A8680" FontSize="12"
+                 Text="节点外形与游戏大地图一致（128×44）。拖节点；中键／空格+拖 平移；画布上滚轮缩放（同游戏）；连线模式点两点建路。"/>
     </StackPanel>
-    <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0"
-               Text="节点＝城镇／关隘等；道路可填 traversalRequirements（如 hasFlag:permit:xxx）"/>
+
+    <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0" Foreground="#A8A49C"
+               Text="与 HostWorldMapPanel 同坐标系：世界 Y 向上，屏幕 Y 向下。"/>
+
     <Grid>
-      <Grid.RowDefinitions>
-        <RowDefinition Height="1.2*"/>
-        <RowDefinition Height="8"/>
-        <RowDefinition Height="*"/>
-      </Grid.RowDefinitions>
-      <DataGrid x:Name="NodeGrid" Grid.Row="0" AutoGenerateColumns="False" CanUserAddRows="False"
-                HeadersVisibility="Column" SelectionMode="Single">
-        <DataGrid.Columns>
-          <DataGridTextColumn Header="id" Binding="{Binding Id}" Width="180"/>
-          <DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="100"/>
-          <DataGridTextColumn Header="kind" Binding="{Binding Kind}" Width="90"/>
-          <DataGridTextColumn Header="localMapId" Binding="{Binding LocalMapId}" Width="200"/>
-          <DataGridTextColumn Header="worldX" Binding="{Binding WorldX}" Width="70"/>
-          <DataGridTextColumn Header="worldY" Binding="{Binding WorldY}" Width="70"/>
-          <DataGridTextColumn Header="ownerId" Binding="{Binding OwnerId}" Width="120"/>
-          <DataGridTextColumn Header="state" Binding="{Binding State}" Width="80"/>
-          <DataGridTextColumn Header="tags" Binding="{Binding Tags}" Width="140"/>
-        </DataGrid.Columns>
-      </DataGrid>
-      <GridSplitter Grid.Row="1" Height="8" HorizontalAlignment="Stretch"/>
-      <DataGrid x:Name="RouteGrid" Grid.Row="2" AutoGenerateColumns="False" CanUserAddRows="False"
-                HeadersVisibility="Column" SelectionMode="Single">
-        <DataGrid.Columns>
-          <DataGridTextColumn Header="id" Binding="{Binding Id}" Width="200"/>
-          <DataGridTextColumn Header="from" Binding="{Binding FromNodeId}" Width="160"/>
-          <DataGridTextColumn Header="to" Binding="{Binding ToNodeId}" Width="160"/>
-          <DataGridTextColumn Header="kind" Binding="{Binding Kind}" Width="90"/>
-          <DataGridTextColumn Header="cost" Binding="{Binding TravelCost}" Width="60"/>
-          <DataGridTextColumn Header="danger" Binding="{Binding Danger}" Width="70"/>
-          <DataGridTextColumn Header="state" Binding="{Binding State}" Width="80"/>
-          <DataGridCheckBoxColumn Header="单向" Binding="{Binding Directed}" Width="50"/>
-          <DataGridTextColumn Header="通行条件（kind:id，逗号）" Binding="{Binding TraversalRequirements}" Width="220"/>
-          <DataGridTextColumn Header="encounterPoolId" Binding="{Binding EncounterPoolId}" Width="140"/>
-        </DataGrid.Columns>
-      </DataGrid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="8"/>
+        <ColumnDefinition Width="300"/>
+      </Grid.ColumnDefinitions>
+
+      <Border Grid.Column="0" Background="#1E2228" BorderBrush="#2A2E34" BorderThickness="1" ClipToBounds="True"
+              PreviewMouseWheel="MapBorder_PreviewMouseWheel">
+        <Canvas x:Name="MapCanvas"
+                Background="#1E2228"
+                Focusable="True"
+                MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown"
+                MouseLeftButtonUp="MapCanvas_MouseLeftButtonUp"
+                MouseMove="MapCanvas_MouseMove"
+                MouseRightButtonDown="MapCanvas_MouseRightButtonDown"
+                MouseDown="MapCanvas_MouseDown"
+                MouseUp="MapCanvas_MouseUp"/>
+      </Border>
+
+      <GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch" Background="#2A2E34"/>
+
+      <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="8,0,0,0">
+          <TextBlock Text="选中节点" FontWeight="SemiBold" Foreground="#E8E4DC" Margin="0,0,0,8"/>
+          <TextBlock Text="id" Foreground="#8A8680"/>
+          <TextBox x:Name="PropId" Margin="0,0,0,6" TextChanged="PropNode_Changed"/>
+          <TextBlock Text="名称" Foreground="#8A8680"/>
+          <TextBox x:Name="PropName" Margin="0,0,0,6" TextChanged="PropNode_Changed"/>
+          <TextBlock Text="kind" Foreground="#8A8680"/>
+          <ComboBox x:Name="PropKind" Margin="0,0,0,6" SelectionChanged="PropKind_Changed"
+                    IsEditable="True">
+            <ComboBoxItem>Village</ComboBoxItem>
+            <ComboBoxItem>Town</ComboBoxItem>
+            <ComboBoxItem>Pass</ComboBoxItem>
+            <ComboBoxItem>Mine</ComboBoxItem>
+            <ComboBoxItem>Forest</ComboBoxItem>
+            <ComboBoxItem>Ferry</ComboBoxItem>
+            <ComboBoxItem>Sect</ComboBoxItem>
+            <ComboBoxItem>SpiritLand</ComboBoxItem>
+            <ComboBoxItem>Ruin</ComboBoxItem>
+            <ComboBoxItem>Camp</ComboBoxItem>
+          </ComboBox>
+          <TextBlock Text="localMapId" Foreground="#8A8680"/>
+          <TextBox x:Name="PropLocalMap" Margin="0,0,0,6" TextChanged="PropNode_Changed"/>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+            <StackPanel Width="130" Margin="0,0,8,0">
+              <TextBlock Text="worldX" Foreground="#8A8680"/>
+              <TextBox x:Name="PropX" TextChanged="PropNode_Changed"/>
+            </StackPanel>
+            <StackPanel Width="130">
+              <TextBlock Text="worldY" Foreground="#8A8680"/>
+              <TextBox x:Name="PropY" TextChanged="PropNode_Changed"/>
+            </StackPanel>
+          </StackPanel>
+          <TextBlock Text="ownerId" Foreground="#8A8680"/>
+          <TextBox x:Name="PropOwner" Margin="0,0,0,6" TextChanged="PropNode_Changed"/>
+          <TextBlock Text="state" Foreground="#8A8680"/>
+          <TextBox x:Name="PropState" Margin="0,0,0,6" TextChanged="PropNode_Changed"/>
+          <TextBlock Text="tags（逗号）" Foreground="#8A8680"/>
+          <TextBox x:Name="PropTags" Margin="0,0,0,8" TextChanged="PropNode_Changed"/>
+          <Button Content="设为起点" Margin="0,0,0,16" Click="SetStart_Click"/>
+
+          <TextBlock Text="选中道路" FontWeight="SemiBold" Foreground="#E8E4DC" Margin="0,0,0,8"/>
+          <TextBlock Text="id" Foreground="#8A8680"/>
+          <TextBox x:Name="RoutePropId" Margin="0,0,0,6" TextChanged="PropRoute_Changed"/>
+          <TextBlock Text="from → to" Foreground="#8A8680"/>
+          <TextBlock x:Name="RoutePropEnds" Foreground="#C8C4BC" Margin="0,0,0,6" TextWrapping="Wrap"/>
+          <TextBlock Text="kind" Foreground="#8A8680"/>
+          <TextBox x:Name="RoutePropKind" Margin="0,0,0,6" TextChanged="PropRoute_Changed"/>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+            <StackPanel Width="130" Margin="0,0,8,0">
+              <TextBlock Text="cost" Foreground="#8A8680"/>
+              <TextBox x:Name="RoutePropCost" TextChanged="PropRoute_Changed"/>
+            </StackPanel>
+            <StackPanel Width="130">
+              <TextBlock Text="danger" Foreground="#8A8680"/>
+              <TextBox x:Name="RoutePropDanger" TextChanged="PropRoute_Changed"/>
+            </StackPanel>
+          </StackPanel>
+          <TextBlock Text="state" Foreground="#8A8680"/>
+          <TextBox x:Name="RoutePropState" Margin="0,0,0,6" TextChanged="PropRoute_Changed"/>
+          <CheckBox x:Name="RoutePropDirected" Content="单向" Foreground="#C8C4BC"
+                    Margin="0,0,0,6" Checked="PropRoute_Changed" Unchecked="PropRoute_Changed"/>
+          <TextBlock Text="通行条件（kind:id，逗号）" Foreground="#8A8680"/>
+          <TextBox x:Name="RoutePropReq" Margin="0,0,0,6" TextChanged="PropRoute_Changed"/>
+          <TextBlock Text="encounterPoolId" Foreground="#8A8680"/>
+          <TextBox x:Name="RoutePropPool" Margin="0,0,0,6" TextChanged="PropRoute_Changed"/>
+        </StackPanel>
+      </ScrollViewer>
     </Grid>
   </DockPanel>
 </Window>

@@ -65,14 +65,27 @@ namespace XianXia.Data.Content
             foreach (var kv in registry.Items)
             {
                 var item = kv.Value;
-                if (item == null || string.IsNullOrWhiteSpace(item.TeachesManualId))
+                if (item == null)
                     continue;
-                RequireDef(
-                    registry,
-                    item.TeachesManualId,
-                    "cultivation",
-                    item.Id + ".teachesManualId",
-                    report);
+                if (!string.IsNullOrWhiteSpace(item.TeachesManualId))
+                {
+                    RequireDef(
+                        registry,
+                        item.TeachesManualId,
+                        "cultivation",
+                        item.Id + ".teachesManualId",
+                        report);
+                }
+
+                if (!string.IsNullOrWhiteSpace(item.TeachesArtId))
+                {
+                    RequireDef(
+                        registry,
+                        item.TeachesArtId,
+                        "combatArt",
+                        item.Id + ".teachesArtId",
+                        report);
+                }
             }
         }
 
@@ -713,6 +726,9 @@ namespace XianXia.Data.Content
                     break;
                 case "cultivation":
                     ok = registry.Cultivations.ContainsKey(id);
+                    break;
+                case "combatArt":
+                    ok = registry.CombatArts.ContainsKey(id);
                     break;
                 case "facility":
                     ok = registry.Facilities.ContainsKey(id);

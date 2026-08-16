@@ -32,6 +32,9 @@ namespace XianXia.Unity.Host
             var locations = session.World.WorldRegion.Locations;
             foreach (var kv in locations)
             {
+                // 洞府内室等只属于洞内图：地表不画标签（MapEditor 里也不会出现）
+                if (!LocalMapVisibility.IsLocationOnActiveMap(session.World, kv.Value))
+                    continue;
                 if (OpportunityEntranceRules.IsHiddenEntrance(kv.Value) &&
                     !OpportunityEntranceRules.IsRevealed(session.World, kv.Value))
                     continue;

@@ -272,6 +272,9 @@ namespace XianXia.Core.Exploration
                 return Result.Failure(ErrorCode.InvalidOperation, "Cannot resolve survey center.");
 
             var found = 0;
+            var blockedBySense = 0;
+            var nearButOutOfRange = 0;
+            var sense = attrs.GetFinal(AttributeId.SpiritSense);
             var maxR = 0f;
             for (var i = 0; i < probes.Count; i++)
             {
@@ -287,19 +290,30 @@ namespace XianXia.Core.Exploration
                 if (OpportunityEntranceRules.IsRevealed(world, entrance))
                     continue;
 
-                var hit = false;
+                var inSurvey = false;
+                var inHint = false;
                 for (var i = 0; i < probes.Count; i++)
                 {
                     var p = probes[i];
+                    var hintR = System.Math.Max(OpportunityEntranceRules.DefaultHintRadius, p.Radius);
+                    if (OpportunityEntranceRules.IsWithinSurveyRange(p.X, p.Z, hintR, entrance))
+                        inHint = true;
                     if (OpportunityEntranceRules.IsWithinSurveyRange(p.X, p.Z, p.Radius, entrance))
-                    {
-                        hit = true;
-                        break;
-                    }
+                        inSurvey = true;
                 }
 
-                if (!hit)
+                if (!inSurvey)
+                {
+                    if (inHint)
+                        nearButOutOfRange++;
                     continue;
+                }
+
+                if (!OpportunityEntranceRules.MeetsSenseRequirement(entrance, sense))
+                {
+                    blockedBySense++;
+                    continue;
+                }
 
                 if (!DefinitionId.TryParse(entrance.OpportunitySiteId, out var siteId))
                     continue;
@@ -322,7 +336,10 @@ namespace XianXia.Core.Exploration
                 world.Tick,
                 target: subject,
                 payload: "survey;r=" + maxR.ToString("0.##") + ";probes=" + probes.Count +
-                         ";found=" + found + ";at=" + at);
+                         ";found=" + found +
+                         ";blockedSense=" + blockedBySense +
+                         ";nearOut=" + nearButOutOfRange +
+                         ";at=" + at);
             return Result.Success();
         }
 

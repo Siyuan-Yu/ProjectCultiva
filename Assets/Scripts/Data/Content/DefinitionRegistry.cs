@@ -10,6 +10,8 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, CharacterDefinition>();
         readonly Dictionary<DefinitionId, CultivationDefinition> _cultivations =
             new Dictionary<DefinitionId, CultivationDefinition>();
+        readonly Dictionary<DefinitionId, CombatArtDefinition> _combatArts =
+            new Dictionary<DefinitionId, CombatArtDefinition>();
         readonly Dictionary<DefinitionId, ItemDefinition> _items =
             new Dictionary<DefinitionId, ItemDefinition>();
         readonly Dictionary<DefinitionId, OpportunitySiteDefinition> _opportunitySites =
@@ -51,6 +53,7 @@ namespace XianXia.Data.Content
 
         public IReadOnlyDictionary<DefinitionId, CharacterDefinition> Characters => _characters;
         public IReadOnlyDictionary<DefinitionId, CultivationDefinition> Cultivations => _cultivations;
+        public IReadOnlyDictionary<DefinitionId, CombatArtDefinition> CombatArts => _combatArts;
         public IReadOnlyDictionary<DefinitionId, ItemDefinition> Items => _items;
         public IReadOnlyDictionary<DefinitionId, OpportunitySiteDefinition> OpportunitySites => _opportunitySites;
         public IReadOnlyDictionary<DefinitionId, OpeningScenarioDefinition> OpeningScenarios => _openingScenarios;
@@ -74,6 +77,7 @@ namespace XianXia.Data.Content
         public bool ContainsId(DefinitionId id) =>
             _characters.ContainsKey(id) ||
             _cultivations.ContainsKey(id) ||
+            _combatArts.ContainsKey(id) ||
             _items.ContainsKey(id) ||
             _opportunitySites.ContainsKey(id) ||
             _openingScenarios.ContainsKey(id) ||
@@ -106,6 +110,13 @@ namespace XianXia.Data.Content
             if (definition == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "CultivationDefinition is null.");
             return Register(_cultivations, definition, definition.Id);
+        }
+
+        public Result RegisterCombatArt(CombatArtDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "CombatArtDefinition is null.");
+            return Register(_combatArts, definition, definition.Id);
         }
 
         public Result RegisterItem(ItemDefinition definition)

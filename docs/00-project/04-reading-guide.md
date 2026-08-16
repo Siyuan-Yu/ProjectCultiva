@@ -1,6 +1,6 @@
 # 文档通读指南
 
-> 状态：现行 | 最后更新：2026-08-16  
+> 状态：现行 | 最后更新：2026-08-17  
 > 上级：[`00-overview.md`](00-overview.md)  
 > **本页说明怎么读整套策划／架构文档。** 正文仍以各专题页为准；本地 Markdown 与飞书同步页一一对应。
 
@@ -25,11 +25,17 @@
 
 当前结构已经适合「仔细通读 + 交叉跳转」。本轮整理重点是：补齐飞书映射、加强入口导航，**不重写已冻结规则正文**。
 
-## 1.1 当前制作人入口（2026-08-16）
+## 1.1 当前制作人入口（2026-08-17）
 
 | 目的 | 读什么 |
 |------|--------|
-| **本轮增量（WorldGraph Host 出行／隔离）** | [129](../40-process/129-world-graph-host-travel-scene-isolation-2026-08-16.md) |
+| **本轮收束（熟练／纱衣／田区／砍树）** | [137](../40-process/137-skill-mastery-farm-veil-chop-rollup-2026-08-17.md) |
+| **功法／斗技蓄势＋熟练度** | [131](../40-process/131-skill-mastery-study-ritual-2026-08-16.md)／[132](../40-process/132-skill-mastery-config-absolute-tiers-2026-08-16.md) |
+| **斗气纱衣** | [134](../40-process/134-spirit-veil-ranged-normal-attack-2026-08-16.md) |
+| **况栏／砍树／田区** | [135](../40-process/135-world-object-inspect-and-tree-chop-2026-08-16.md)／[136](../40-process/136-farm-field-zone-labor-2026-08-16.md) |
+| **功法／斗技编辑器** | [133](../40-process/133-manual-art-editor-and-cleanup-2026-08-16.md) |
+| **LocalPlaceEditor** | [130](../40-process/130-local-place-editor-usage.md) |
+| **上一轮（WorldGraph Host 出行／隔离）** | [129](../40-process/129-world-graph-host-travel-scene-isolation-2026-08-16.md) |
 | **WorldGraph 架构** | [113](../40-process/113-world-graph-local-map-architecture-revision-v0.1.md) |
 | **WorldGraph 编辑器** | [128](../40-process/128-world-graph-editor-usage.md) |
 | **上一轮（击败瞬移／洞相机／刷怪表 GUI）** | [127](../40-process/127-defeat-teleport-cave-camera-spawn-table-gui-2026-08-16.md) |

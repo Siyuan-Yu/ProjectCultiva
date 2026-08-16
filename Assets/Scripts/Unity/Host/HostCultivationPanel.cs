@@ -21,7 +21,10 @@ namespace XianXia.Unity.Host
         EntityId _subject = EntityId.None;
         string _status = string.Empty;
         bool _holdingPause;
+        bool _manualDetailOpen;
+        bool _breakConfirmOpen;
         Vector2 _scroll;
+        Vector2 _scrollManualDetail;
 
         GUIStyle _title;
         GUIStyle _body;
@@ -43,6 +46,8 @@ namespace XianXia.Unity.Host
         public void ClearSessionState()
         {
             open = false;
+            _manualDetailOpen = false;
+            _breakConfirmOpen = false;
             _subject = EntityId.None;
             _status = string.Empty;
             _holdingPause = false;
@@ -55,12 +60,17 @@ namespace XianXia.Unity.Host
                 return;
             _subject = id;
             open = true;
+            _manualDetailOpen = false;
+            _breakConfirmOpen = false;
             _status = string.Empty;
+            _scrollManualDetail = Vector2.zero;
         }
 
         public void Close()
         {
             open = false;
+            _manualDetailOpen = false;
+            _breakConfirmOpen = false;
             ReleasePause();
         }
 
@@ -82,6 +92,23 @@ namespace XianXia.Unity.Host
             {
                 // 默认关闭快捷键；打开靠脚下「境界」。保留键以便调试。
                 if (open)
+                {
+                    if (_breakConfirmOpen)
+                        _breakConfirmOpen = false;
+                    else if (_manualDetailOpen)
+                        _manualDetailOpen = false;
+                    else
+                        open = false;
+                }
+            }
+
+            if (open && Input.GetKeyDown(KeyCode.Escape))
+            {
+                if (_breakConfirmOpen)
+                    _breakConfirmOpen = false;
+                else if (_manualDetailOpen)
+                    _manualDetailOpen = false;
+                else
                     open = false;
             }
 
@@ -97,6 +124,8 @@ namespace XianXia.Unity.Host
             }
             else
             {
+                _manualDetailOpen = false;
+                _breakConfirmOpen = false;
                 ReleasePause();
             }
         }
@@ -131,6 +160,19 @@ namespace XianXia.Unity.Host
             DrawFrame(rect, ParchmentDark);
 
             var name = string.IsNullOrEmpty(entity.DisplayName) ? _subject.ToString() : entity.DisplayName;
+            entity.TryGet<CultivationComponent>(out var cult);
+
+            if (_manualDetailOpen &&
+                cult != null &&
+                cult.HasLearnedManual &&
+                cult.LearnedManualId.HasValue)
+            {
+                DrawManualMasteryPage(rect, name, cult);
+                if (_breakConfirmOpen)
+                    DrawManualBreakthroughConfirm(cult);
+                return;
+            }
+
             GUI.Label(new Rect(rect.x + 16f, rect.y + 12f, rect.width - 80f, 28f), "修炼 · " + name, _title);
             if (HostImguiStyles.ParchmentBtn(new Rect(rect.xMax - 72f, rect.y + 10f, 56f, 28f), "关闭"))
             {
@@ -138,9 +180,8 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            entity.TryGet<CultivationComponent>(out var cult);
             var body = new Rect(rect.x + 16f, rect.y + 48f, rect.width - 32f, rect.height - 100f);
-            var contentH = 560f;
+            var contentH = 720f;
             _scroll = GUI.BeginScrollView(body, _scroll, new Rect(0f, 0f, body.width - 18f, contentH));
             var y = 0f;
             y = DrawManualSection(cult, body.width - 18f, y);
@@ -153,6 +194,12 @@ namespace XianXia.Unity.Host
             {
                 can = false;
                 reason = ritual.IsChanneling ? "正在冲击瓶颈…" : "请先关闭突破结果";
+            }
+
+            if (bootstrap.SkillStudyRitual != null && bootstrap.SkillStudyRitual.IsBusy)
+            {
+                can = false;
+                reason = "研读／熟练突破进行中";
             }
 
             var btn = new Rect(rect.x + 16f, rect.yMax - 44f, 140f, 32f);
@@ -177,19 +224,157 @@ namespace XianXia.Unity.Host
                 GUI.Label(new Rect(btn.xMax + 12f, btn.y + 6f, rect.width - 180f, 24f), _status, _small);
         }
 
-        /// <summary>当前所修功法：名称／品阶／效果（境界按钮打开时首屏展示）。</summary>
+        void DrawManualMasteryPage(Rect rect, string actorName, CultivationComponent cult)
+        {
+            var world = bootstrap.Session.World;
+            var mid = cult.LearnedManualId.Value;
+            world.TryGetManual(mid, out var manual);
+            var mName = manual == null || string.IsNullOrEmpty(manual.Name)
+                ? ShortId(mid.ToString())
+                : manual.Name;
+            var profile = SkillMasteryLookup.EnsureOrDefaultManual(manual);
+            var mastery = cult.ManualMastery ?? SkillMasteryState.CreateEntry(profile);
+            SkillMasteryLookup.SyncProgressCap(mastery, profile);
+            cult.ManualMastery = mastery;
+
+            var x = rect.x + 16f;
+            var y = rect.y + 12f;
+            GUI.Label(new Rect(x, y, rect.width - 200f, 26f), "功法熟练 · " + mName, _title);
+            if (HostImguiStyles.ParchmentBtn(new Rect(rect.xMax - 140f, y, 56f, 26f), "返回"))
+            {
+                _manualDetailOpen = false;
+                return;
+            }
+
+            if (HostImguiStyles.ParchmentBtn(new Rect(rect.xMax - 72f, y, 56f, 26f), "关闭"))
+            {
+                open = false;
+                _manualDetailOpen = false;
+                return;
+            }
+
+            y += 32f;
+            var grade = manual == null || string.IsNullOrEmpty(manual.Grade) ? "品阶未标" : manual.Grade;
+            var summary = manual == null || string.IsNullOrEmpty(manual.EffectSummary)
+                ? BuildFallbackEffect(manual)
+                : manual.EffectSummary;
+            var body = new Rect(x, y, rect.width - 32f, rect.height - 100f - (y - rect.y));
+            HostSkillMasteryPanelUi.DrawMasteryDetailBody(
+                body,
+                mName,
+                grade + " · " + actorName,
+                summary,
+                mastery,
+                profile,
+                tier => HostSkillMasteryPanelUi.ManualEffectLine(manual, tier),
+                world,
+                _title,
+                _body,
+                _small,
+                ref _scrollManualDetail);
+
+            var masterySvc = new SkillMasteryService();
+            var footerY = rect.yMax - 44f;
+            GUI.enabled = !mastery.IsAtBottleneck && cult.Progress >= 10;
+            if (HostImguiStyles.ParchmentBtn(new Rect(x, footerY, 120f, 30f), "灌注修为×10"))
+            {
+                if (masterySvc.TryInfuseManual(world, _subject, 10, out var detail).IsSuccess)
+                    _status = detail;
+                else
+                    _status = "灌注失败";
+            }
+
+            var canBreak = masterySvc.CanBreakthroughManual(world, _subject, out var brReason);
+            if (bootstrap.SkillStudyRitual != null && bootstrap.SkillStudyRitual.IsBusy)
+            {
+                canBreak = false;
+                brReason = "研读进行中";
+            }
+
+            GUI.enabled = canBreak;
+            if (HostImguiStyles.ParchmentBtn(new Rect(x + 128f, footerY, 120f, 30f), "冲击下一档"))
+                _breakConfirmOpen = true;
+
+            GUI.enabled = true;
+            var hint = !canBreak && !string.IsNullOrEmpty(brReason) ? brReason : _status;
+            if (!string.IsNullOrEmpty(hint))
+                GUI.Label(new Rect(x + 260f, footerY + 6f, rect.width - 290f, 22f), hint, _small);
+        }
+
+        void DrawManualBreakthroughConfirm(CultivationComponent cult)
+        {
+            var world = bootstrap.Session.World;
+            var mid = cult.LearnedManualId.Value;
+            world.TryGetManual(mid, out var manual);
+            var mName = manual == null || string.IsNullOrEmpty(manual.Name)
+                ? ShortId(mid.ToString())
+                : manual.Name;
+            var profile = SkillMasteryLookup.EnsureOrDefaultManual(manual);
+            var mastery = cult.ManualMastery ?? SkillMasteryState.CreateEntry(profile);
+            var from = SkillMasteryTierNames.Display(mastery.Tier);
+            var to = SkillMasteryTierNames.Display(SkillMasteryLookup.NextTier(profile, mastery.Tier));
+            var chance = new SkillMasteryService().EvaluateMasteryBreakthroughChance(world, _subject);
+            var pct = (int)System.Math.Round(chance * 100.0);
+            var costs = SkillMasteryLookup.BreakthroughCosts(profile, mastery.Tier);
+            var costLine = "材料：";
+            if (costs == null || costs.Count == 0)
+                costLine += "无";
+            else
+            {
+                for (var i = 0; i < costs.Count; i++)
+                {
+                    var c = costs[i];
+                    if (c == null || string.IsNullOrEmpty(c.ItemId))
+                        continue;
+                    if (i > 0)
+                        costLine += "、";
+                    costLine += HostSkillMasteryPanelUi.ShortItemName(world, c.ItemId) + "×" + c.Count;
+                }
+            }
+
+            var body =
+                "是否冲击功法「" + mName + "」熟练度？\n" +
+                from + " → " + to + "\n" +
+                "突破成功率约 " + pct + "%\n" +
+                costLine + "\n（失败仍消耗材料）";
+            var choice = HostSkillMasteryPanelUi.DrawBreakthroughConfirm(
+                "确认冲击熟练", body, _title, _body);
+            if (choice == HostSkillMasteryPanelUi.ConfirmChoice.No)
+            {
+                _breakConfirmOpen = false;
+                return;
+            }
+
+            if (choice != HostSkillMasteryPanelUi.ConfirmChoice.Yes)
+                return;
+
+            _breakConfirmOpen = false;
+            var study = bootstrap.SkillStudyRitual;
+            if (study == null)
+                _status = "研读组件未就绪";
+            else if (study.TryBeginBreakthroughManual(_subject, out var beginReason))
+            {
+                _status = "开始冲击熟练…";
+                open = false;
+                _manualDetailOpen = false;
+            }
+            else
+                _status = string.IsNullOrEmpty(beginReason) ? "无法突破" : beginReason;
+        }
+
+        /// <summary>当前所修功法卡片：再点一次进熟练度详情页。</summary>
         float DrawManualSection(CultivationComponent cult, float width, float y0)
         {
             var world = bootstrap.Session.World;
-            var boxH = 118f;
+            var boxH = 96f;
             var box = new Rect(0f, y0, width, boxH);
             Fill(box, new Color(0.86f, 0.78f, 0.62f, 0.55f));
             DrawFrame(box, ParchmentDark);
 
             var x = 10f;
             var y = y0 + 8f;
-            GUI.Label(new Rect(x, y, width - 20f, 22f), "当前功法", _title);
-            y += 26f;
+            GUI.Label(new Rect(x, y, width - 20f, 20f), "当前功法（点开看熟练度）", _title);
+            y += 24f;
 
             if (cult == null)
             {
@@ -204,14 +389,20 @@ namespace XianXia.Unity.Host
                 {
                     var mName = string.IsNullOrEmpty(manual.Name) ? ShortId(mid.ToString()) : manual.Name;
                     var grade = string.IsNullOrEmpty(manual.Grade) ? "品阶未标" : manual.Grade;
-                    GUI.Label(new Rect(x, y, width - 20f, 22f), mName, _body);
-                    y += 22f;
-                    GUI.Label(new Rect(x, y, width - 20f, 20f), "品阶　" + grade, _small);
-                    y += 20f;
-                    var effect = string.IsNullOrEmpty(manual.EffectSummary)
-                        ? BuildFallbackEffect(manual)
-                        : manual.EffectSummary;
-                    GUI.Label(new Rect(x, y, width - 20f, 36f), "效果　" + effect, _small);
+                    var mastery = cult.ManualMastery ?? SkillMasteryState.CreateEntry(
+                        SkillMasteryLookup.EnsureOrDefaultManual(manual));
+                    var tierName = SkillMasteryTierNames.Display(mastery.Tier);
+                    var speedNow = SkillMasteryLookup.ResolveCultivationSpeed(manual, mastery.Tier);
+                    var sub = grade + " · 熟练 " + tierName + " · 打坐+" + speedNow + "/5分";
+                    if (mastery.ProgressRequired > 0)
+                        sub += " · " + mastery.Progress + "/" + mastery.ProgressRequired;
+                    var row = new Rect(8f, y0 + 32f, width - 16f, 56f);
+                    if (HostSkillMasteryPanelUi.DrawListRow(row, mName, sub, "详情", false, _body, _small))
+                    {
+                        _manualDetailOpen = true;
+                        _scrollManualDetail = Vector2.zero;
+                        _status = string.Empty;
+                    }
                 }
                 else
                 {
@@ -228,7 +419,7 @@ namespace XianXia.Unity.Host
                 GUI.Label(
                     new Rect(x, y, width - 20f, 40f),
                     cult.Realm >= RealmStage.QiRefining
-                        ? "炼气后突破需要功法。可从将老／洞府等获得秘籍，背包使用后学会。"
+                        ? "炼气后突破需要功法。背包秘籍使用后参悟（蓄势＋学习成功率），成功入门。"
                         : "感应境可先打坐积累修为；功法需秘籍／机缘显式学习，不会保底自动获得。",
                     _small);
             }
@@ -325,7 +516,7 @@ namespace XianXia.Unity.Host
             }
 
             sb.AppendLine();
-            sb.AppendLine("说明：打坐请用 F6／底栏修炼钮；「尝试突破」后约 10 秒蓄势（可取消／移动受伤会打断失败），结束弹窗结算。");
+            sb.AppendLine("说明：打坐 F6；功法熟练随打坐／灌注增长；入门满后可耗灵药×10＋粗木×10冲击小成。境界突破约 10 秒蓄势。");
             sb.AppendLine("天气／灵地细判尚未接入，成功率以配置＋悟性为主。");
             return sb.ToString();
         }

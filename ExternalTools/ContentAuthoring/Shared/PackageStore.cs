@@ -359,6 +359,9 @@ public static class PackageStore
     public static IReadOnlyList<string> AllManualIds(ContentPackage package) =>
         package.OfType("cultivation").Select(c => c.Id).OrderBy(x => x, StringComparer.Ordinal).ToList();
 
+    public static IReadOnlyList<string> AllCombatArtIds(ContentPackage package) =>
+        package.OfType("combatArt").Select(c => c.Id).OrderBy(x => x, StringComparer.Ordinal).ToList();
+
     public static IReadOnlyList<string> AllEventIds(ContentPackage package) =>
         package.OfType("contentEvent").Select(e => e.Id).OrderBy(x => x, StringComparer.Ordinal).ToList();
 

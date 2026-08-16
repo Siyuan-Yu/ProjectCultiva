@@ -87,6 +87,10 @@ namespace XianXia.Core.Actions
             else
                 cultivation.Progress += gain;
 
+            if (cultivation.HasLearnedManual)
+                new SkillMasteryService().AddManualMasteryProgress(
+                    world, Subject, SkillMasteryRules.CultivateManualProgressGain);
+
             if (entity.TryGet<PersonalConcealmentRiskComponent>(out var risk))
                 risk.Add(ConcealmentExposureRules.CultivateRiskDelta(world, Subject));
 

@@ -29,6 +29,7 @@ public static class ContentPathRules
             ["openingScenario"] = "Scenarios",
             ["characterRoster"] = "Rosters",
             ["cultivation"] = "Cultivation",
+            ["combatArt"] = "CombatArts",
             ["item"] = "Items",
             ["opportunitySite"] = "Sites",
             ["resource"] = "Resources",
