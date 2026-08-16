@@ -4,7 +4,7 @@ Set-Location $root
 
 # 日常请只打开 Apps\<编辑器>\*.exe；不要用各工程下的 bin\（已改到 .build\）
 $appsRoot = Join-Path $root "Apps"
-$apps = @("PackageBrowser", "RegionEditor", "QuestEditor", "EventEditor", "MapEditor", "WorkAreaEditor", "CharacterNpcEditor")
+$apps = @("PackageBrowser", "RegionEditor", "WorldGraphEditor", "QuestEditor", "EventEditor", "MapEditor", "WorkAreaEditor", "CharacterNpcEditor")
 foreach ($app in $apps) {
   $out = Join-Path $appsRoot $app
   Write-Host "Publishing $app -> $out"

@@ -153,6 +153,11 @@ namespace XianXia.Data.Bootstrap
             if (region.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(region.Error);
 
+            var graph = WorldGraphBootstrap.ApplyOpening(
+                world, registry, scenario, lookup, spawnEntries);
+            if (graph.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(graph.Error);
+
             var spawnZones = SpawnZoneApplier.ApplyAll(world, registry, world.Random);
             if (spawnZones.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(spawnZones.Error);

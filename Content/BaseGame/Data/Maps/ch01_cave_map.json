@@ -5,7 +5,7 @@
       "id": "base:map_ch01_cave",
       "type": "mapLayout",
       "name": "废弃洞府·内室",
-      "worldRegionId": "base:region_ch01_reference",
+      "worldRegionId": "base:places_ch01_reference",
       "originX": -20,
       "originY": -15,
       "cellSize": 1,

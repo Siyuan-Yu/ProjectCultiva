@@ -26,6 +26,8 @@ namespace XianXia.Data.Content
 
             ValidateScenarios(registry, report);
             ValidateWorldRegions(registry, locations, report);
+            ValidateLocalPlaceSets(registry, locations, report);
+            ValidateWorldGraphs(registry, report);
             ValidateItems(registry, report);
             ValidateSpawnTables(registry, report);
             ValidateMapSpawnZones(registry, locations, report);
@@ -41,18 +43,21 @@ namespace XianXia.Data.Content
         {
             var set = new HashSet<string>(StringComparer.Ordinal);
             foreach (var kv in registry.WorldRegions)
-            {
-                var locs = kv.Value.Locations;
-                if (locs == null)
-                    continue;
-                for (var i = 0; i < locs.Count; i++)
-                {
-                    if (!string.IsNullOrEmpty(locs[i].Id))
-                        set.Add(locs[i].Id);
-                }
-            }
-
+                AddLocationIds(set, kv.Value?.Locations);
+            foreach (var kv in registry.LocalPlaceSets)
+                AddLocationIds(set, kv.Value?.Locations);
             return set;
+        }
+
+        static void AddLocationIds(HashSet<string> set, System.Collections.Generic.List<WorldLocationEntry> locs)
+        {
+            if (locs == null)
+                return;
+            for (var i = 0; i < locs.Count; i++)
+            {
+                if (!string.IsNullOrEmpty(locs[i].Id))
+                    set.Add(locs[i].Id);
+            }
         }
 
         static void ValidateItems(DefinitionRegistry registry, ValidationReport report)
@@ -145,6 +150,8 @@ namespace XianXia.Data.Content
                 var ctx = s.Id.ToString();
                 RequireDef(registry, s.OpeningSettlementId, "settlement", ctx + ".openingSettlementId", report);
                 RequireDef(registry, s.OpeningWorldRegionId, "worldRegion", ctx + ".openingWorldRegionId", report);
+                RequireDef(registry, s.OpeningLocalPlaceSetId, "localPlaceSet", ctx + ".openingLocalPlaceSetId", report);
+                RequireDef(registry, s.OpeningWorldGraphId, "worldGraph", ctx + ".openingWorldGraphId", report);
                 RequireDef(registry, s.OpeningChapterId, "chapter", ctx + ".openingChapterId", report);
 
                 if (s.Spawns == null)
@@ -204,6 +211,124 @@ namespace XianXia.Data.Content
                         for (var q = 0; q < loc.QuestOfferIds.Count; q++)
                             RequireDef(registry, loc.QuestOfferIds[q], "quest", lctx + ".questOffer", report);
                     }
+                }
+            }
+        }
+
+        void ValidateLocalPlaceSets(
+            DefinitionRegistry registry,
+            HashSet<string> locations,
+            ValidationReport report)
+        {
+            foreach (var kv in registry.LocalPlaceSets)
+            {
+                var set = kv.Value;
+                var ctx = set.Id.ToString();
+                if (!string.IsNullOrEmpty(set.MapLayoutId))
+                {
+                    var mapParsed = DefinitionId.Parse(set.MapLayoutId);
+                    if (mapParsed.IsFailure || !registry.MapLayouts.ContainsKey(mapParsed.Value))
+                    {
+                        report.Add(
+                            ErrorCode.NotFound,
+                            "localPlaceSet.mapLayoutId missing.",
+                            ctx + ":" + set.MapLayoutId);
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(set.StartLocationId) && !locations.Contains(set.StartLocationId))
+                    report.Add(ErrorCode.NotFound, "startLocationId missing in locations.", ctx + ":" + set.StartLocationId);
+
+                if (set.Locations == null)
+                    continue;
+                for (var i = 0; i < set.Locations.Count; i++)
+                {
+                    var loc = set.Locations[i];
+                    var lctx = ctx + "." + loc.Id;
+                    if (loc.AdjacentIds != null)
+                    {
+                        for (var a = 0; a < loc.AdjacentIds.Count; a++)
+                        {
+                            if (!locations.Contains(loc.AdjacentIds[a]))
+                                report.Add(ErrorCode.NotFound, "adjacent location missing.", lctx + "->" + loc.AdjacentIds[a]);
+                        }
+                    }
+
+                    RequireDef(registry, loc.OpportunitySiteId, "opportunitySite", lctx + ".opportunitySiteId", report);
+                    RequireDef(registry, loc.ResidentNpcDefinitionId, "character", lctx + ".residentNpc", report);
+                    RequireDef(registry, loc.ResourceOnExploreId, "resource", lctx + ".resourceOnExploreId", report);
+                    ScanConditions(loc.EnterConditions, registry, locations, null, null, lctx + ".enter", report);
+                    if (loc.QuestOfferIds != null)
+                    {
+                        for (var q = 0; q < loc.QuestOfferIds.Count; q++)
+                            RequireDef(registry, loc.QuestOfferIds[q], "quest", lctx + ".questOffer", report);
+                    }
+                }
+            }
+        }
+
+        void ValidateWorldGraphs(DefinitionRegistry registry, ValidationReport report)
+        {
+            foreach (var kv in registry.WorldGraphs)
+            {
+                var graph = kv.Value;
+                var ctx = graph.Id.ToString();
+                var nodeIds = new HashSet<string>(StringComparer.Ordinal);
+                if (graph.Nodes != null)
+                {
+                    for (var i = 0; i < graph.Nodes.Count; i++)
+                    {
+                        var node = graph.Nodes[i];
+                        if (string.IsNullOrWhiteSpace(node.Id))
+                        {
+                            report.Add(ErrorCode.MissingRequiredField, "worldGraph.node.id required.", ctx);
+                            continue;
+                        }
+
+                        if (!nodeIds.Add(node.Id))
+                            report.Add(ErrorCode.DuplicateDefinitionId, "duplicate worldGraph node id.", ctx + ":" + node.Id);
+
+                        if (!string.IsNullOrWhiteSpace(node.LocalMapId))
+                        {
+                            var mapParsed = DefinitionId.Parse(node.LocalMapId);
+                            if (mapParsed.IsFailure || !registry.MapLayouts.ContainsKey(mapParsed.Value))
+                            {
+                                report.Add(
+                                    ErrorCode.NotFound,
+                                    "worldGraph.node.localMapId missing mapLayout.",
+                                    ctx + "." + node.Id + ":" + node.LocalMapId);
+                            }
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(graph.StartNodeId) && !nodeIds.Contains(graph.StartNodeId))
+                {
+                    report.Add(
+                        ErrorCode.NotFound,
+                        "worldGraph.startNodeId missing in nodes.",
+                        ctx + ":" + graph.StartNodeId);
+                }
+
+                if (graph.Routes == null)
+                    continue;
+
+                for (var r = 0; r < graph.Routes.Count; r++)
+                {
+                    var route = graph.Routes[r];
+                    var rctx = ctx + "." + route.Id;
+                    if (!nodeIds.Contains(route.FromNodeId))
+                        report.Add(ErrorCode.NotFound, "route.fromNodeId missing.", rctx + ":" + route.FromNodeId);
+                    if (!nodeIds.Contains(route.ToNodeId))
+                        report.Add(ErrorCode.NotFound, "route.toNodeId missing.", rctx + ":" + route.ToNodeId);
+                    ScanConditions(
+                        route.TraversalRequirements,
+                        registry,
+                        new HashSet<string>(StringComparer.Ordinal),
+                        null,
+                        null,
+                        rctx + ".traversal",
+                        report);
                 }
             }
         }
@@ -561,6 +686,12 @@ namespace XianXia.Data.Content
                     break;
                 case "worldRegion":
                     ok = registry.WorldRegions.ContainsKey(id);
+                    break;
+                case "worldGraph":
+                    ok = registry.WorldGraphs.ContainsKey(id);
+                    break;
+                case "localPlaceSet":
+                    ok = registry.LocalPlaceSets.ContainsKey(id);
                     break;
                 case "settlement":
                     ok = registry.Settlements.ContainsKey(id);

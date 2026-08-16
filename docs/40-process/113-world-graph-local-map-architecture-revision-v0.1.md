@@ -1,6 +1,6 @@
 # 113 · World Graph + Local Map 架构修订 v0.1
 
-> 状态：**方向已确认／结构修订中**｜日期：2026-08-11  
+> 状态：**阶段 A～D／F 已落地／Host 出行与隔离见 [129](129-world-graph-host-travel-scene-isolation-2026-08-16.md)／E 待做**｜日期：2026-08-16  
 > 一句话：**宏观世界是 Civilization／RimWorld 式节点图；实体玩法只发生在按需加载的 LocalMap 上。**  
 > 取代：`24` 中「Region = 较大连续区域、路途也在同一张连续地图上走」的体验模型。  
 > 保留：`mapLayout`／MapEditor、WalkGrid、RTS、Job／Schedule、内容包 Loader。  
@@ -66,7 +66,7 @@ WorldGraph
 | `danger` | 遭遇权重／检定 |
 | `ownerId` | 路权 |
 | `state` | 畅通／损毁／封锁／施工 |
-| `traversalRequirements[]` | 过路条件（与现有 `ContentCondition` 同构） |
+| `traversalRequirements[]` | 数据保留；**运行时旅行暂不检查**（无令牌门槛） |
 | `encounterPoolId` | 可选。触发临时 Encounter LocalMap |
 
 未来允许对 Route：**建造、升级、摧毁、封锁、修复**。第一期只读内容数据，不做建造 UI。
@@ -169,14 +169,14 @@ Snapshot：第一期可只存 `nodeId` + 任务／仓库；Route 进度与 Encou
 
 | 阶段 | 交付 | 验收 |
 |------|------|------|
-| **A 数据** | `worldGraph`／`worldNode`／`worldRoute` SCHEMA + Loader；Ch01 小图 JSON | 包能加载；旧 `worldRegion` 仍可跑 Demo |
-| **B 旅行** | Core：`StartTravel`／时间推进／到站 `EnterNode`；条件走 Route | EditMode：邻接、耗时、封锁不可过 |
-| **C Host 宏观** | 极简 World Map UI（点＋线＋当前位置）；进 Node 再进现有 Local Host | 手操：点邻村 → 时间走 → 进现有荒村图 |
-| **D 卸载／持久** | 离开 Node 卸实体；作物／库存／任务保留 | 出村再进，田还在 |
+| **A 数据** | `worldGraph`／`worldNode`／`worldRoute` SCHEMA + Loader；Ch01 小图 JSON | **已落地** |
+| **B 旅行** | Core：组队 `StartTravel`／到站；无通行令 | **已落地** |
+| **C Host 宏观** | 顶栏「地图」／M；节点上显示角色；勾选组队移动 | **已落地** |
+| **D 卸载／持久** | 离开 Node 卸实体表现；按 localMapId 换图；库存／任务保留 | **已落地**（作物持久未单测；占位 Node 清空表现） |
 | **E Encounter** | 一条 Trail 触发临时 LocalMap，结束回 Route | 手操山谷遭遇一次 |
-| **F 工具** | WorldGraph 编辑器或 RegionEditor 升级 | 制作人能改点边而不手写 JSON |
+| **F 工具** | WorldGraph 编辑器 | **已落地**（`启动-WorldGraphEditor.cmd`） |
 
-当前代码冻结线：A 未完成前，DemoParityHost 继续只加载一张 mapLayout。
+当前代码冻结线：**A～D／F 已落地**；E 路上遭遇未做。村内地点正式类型＝`localPlaceSet`；`worldRegion` 仅旧 VS（青石）。
 
 ---
 
@@ -196,4 +196,7 @@ Snapshot：第一期可只存 `nodeId` + 任务／仓库；Route 进度与 Encou
 
 | 日期 | 说明 |
 |------|------|
+| 2026-08-16 | D／F：换 Node 卸装 LocalMap；localPlaceSet；WorldGraphEditor |
+| 2026-08-16 | 阶段 B／C：PartyWorldPresence＋Travel／关隘；Host 地图按钮／M；废 Y 宏观 Travel |
+| 2026-08-16 | 阶段 A：SCHEMA／Loader／`ch01_world_graph.json`／EditMode；Demo 仍走 worldRegion |
 | 2026-08-11 | 初版：确认 WorldNode＋WorldRoute＋按需 LocalMap＋路上 Encounter |

@@ -60,7 +60,10 @@ namespace XianXia.Unity.Host
 
             var journal = bootstrap.QuestJournal;
             var learn = bootstrap.ManualLearnPrompt;
-            if ((journal != null && journal.IsOpen) || (learn != null && learn.IsOpen))
+            var map = bootstrap.WorldMapPanel;
+            if ((journal != null && journal.IsOpen) ||
+                (learn != null && learn.IsOpen) ||
+                (map != null && map.IsOpen))
             {
                 if (open)
                     open = false;

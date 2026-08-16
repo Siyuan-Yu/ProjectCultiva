@@ -24,7 +24,7 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> OpeningScenarioFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "scheduleId", "openingFactionId", "openingSettlementId",
-            "openingWorldRegionId", "openingChapterId", "spawns", "openingRelations"
+            "openingWorldRegionId", "openingLocalPlaceSetId", "openingWorldGraphId", "openingChapterId", "spawns", "openingRelations"
         };
 
         public static readonly HashSet<string> CharacterRosterFields = new HashSet<string>(StringComparer.Ordinal)
@@ -46,6 +46,11 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> WorldRegionFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "startLocationId", "locations"
+        };
+
+        public static readonly HashSet<string> LocalPlaceSetFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "mapLayoutId", "startLocationId", "locations"
         };
 
         public static readonly HashSet<string> WorldLocationFields = new HashSet<string>(StringComparer.Ordinal)
@@ -102,6 +107,22 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> SpawnTableEntryFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "definitionId", "weight", "countMin", "countMax"
+        };
+
+        public static readonly HashSet<string> WorldGraphFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "startNodeId", "nodes", "routes"
+        };
+
+        public static readonly HashSet<string> WorldNodeFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "name", "kind", "localMapId", "worldX", "worldY", "ownerId", "state", "tags"
+        };
+
+        public static readonly HashSet<string> WorldRouteFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "fromNodeId", "toNodeId", "kind", "travelCost", "danger", "ownerId", "state",
+            "directed", "traversalRequirements", "encounterPoolId"
         };
 
         public static readonly HashSet<string> QuestFields = new HashSet<string>(StringComparer.Ordinal)

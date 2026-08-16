@@ -5,25 +5,31 @@ namespace XianXia.Unity.Host
     /// <summary>各地可交互点小标记（表现层）。不依赖 Physics 模块。</summary>
     public sealed class HostInteractSpotPresenter : MonoBehaviour
     {
+        [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] bool showLabels = true;
         Transform _root;
         static Mesh _discMesh;
+
+        public void Bind(PlayableHostBootstrap host) => bootstrap = host;
 
         public void Rebuild()
         {
             Clear();
             _root = new GameObject("InteractSpots").transform;
             _root.SetParent(transform, false);
-            var spots = HostInteractSpots.Spots;
-            // 地块很多时不逐格贴字，只留色点
-            var labels = showLabels && !HostInteractSpots.HasDynamicPlots;
+            var world = bootstrap != null && bootstrap.Session != null && bootstrap.Session.IsInitialized
+                ? bootstrap.Session.World
+                : null;
+            var spots = HostInteractSpots.GetSpots(world);
+            var dynamic = HostInteractSpots.HasDynamicPlots;
+            var labels = showLabels && !dynamic;
             for (var i = 0; i < spots.Count; i++)
             {
                 var s = spots[i];
                 var go = new GameObject("Spot_" + s.Label);
                 go.transform.SetParent(_root, false);
                 go.transform.position = s.WorldPosition + new Vector3(0f, 0f, -0.05f);
-                go.transform.localScale = HostInteractSpots.HasDynamicPlots
+                go.transform.localScale = dynamic
                     ? new Vector3(0.45f, 0.45f, 1f)
                     : new Vector3(0.7f, 0.7f, 1f);
 

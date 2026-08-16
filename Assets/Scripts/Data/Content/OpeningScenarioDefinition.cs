@@ -12,8 +12,12 @@ namespace XianXia.Data.Content
         public string OpeningFactionId { get; set; }
         /// <summary>VS0.8: optional opening settlement definition id.</summary>
         public string OpeningSettlementId { get; set; }
-        /// <summary>VS0.9: optional opening world region definition id.</summary>
+        /// <summary>VS0.9: optional opening world region（旧 VS；正式 Ch01 用 localPlaceSet）。</summary>
         public string OpeningWorldRegionId { get; set; }
+        /// <summary>村内地点表（绑 mapLayout）。</summary>
+        public string OpeningLocalPlaceSetId { get; set; }
+        /// <summary>宏观 WorldGraph id（[113]）。</summary>
+        public string OpeningWorldGraphId { get; set; }
         /// <summary>Chapter Production: optional opening chapter definition id.</summary>
         public string OpeningChapterId { get; set; }
         public List<OpeningSpawnEntry> Spawns { get; set; } = new List<OpeningSpawnEntry>();

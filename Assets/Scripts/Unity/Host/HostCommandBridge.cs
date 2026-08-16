@@ -37,7 +37,7 @@ namespace XianXia.Unity.Host
         [SerializeField] KeyCode assignGatherKey = KeyCode.None;
         [SerializeField] KeyCode assignCultivateKey = KeyCode.None;
         [SerializeField] KeyCode exploreKey = KeyCode.T;
-        [SerializeField] KeyCode travelKey = KeyCode.Y;
+        [SerializeField] KeyCode travelKey = KeyCode.None;
         [SerializeField] EntityViewSpawner viewSpawner;
         [SerializeField] HostFeedbackOverlay feedbackOverlay;
 
@@ -182,7 +182,7 @@ namespace XianXia.Unity.Host
             y += h + 6f;
             if (GUI.Button(new Rect(8f, y, w, h), "探索(T)"))
                 IssueExplore();
-            if (GUI.Button(new Rect(8f + (w + 6f), y, w, h), "旅行(Y)"))
+            if (GUI.Button(new Rect(8f + (w + 6f), y, w, h), "本地邻接"))
                 IssueTravelNextAdjacent();
         }
 
@@ -882,6 +882,9 @@ namespace XianXia.Unity.Host
                 // 新指令打断待命 Wait／旧行动，避免「点了劳动却排在 Wait 后面」
                 if (!utility)
                     _session.Loop.StopSubject(id);
+
+                // 玩家改令：取消尚未走出场景的宏观「未出行」
+                hostBootstrap?.WorldTravelDeparture?.NotifyPlayerOverride(id);
 
                 var ritual = hostBootstrap != null ? hostBootstrap.BreakthroughRitual : null;
                 if (ritual != null && ritual.TryHandleCommandDuringChannel(id, kind))

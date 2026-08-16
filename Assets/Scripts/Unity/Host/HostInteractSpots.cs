@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Simulation;
 
 namespace XianXia.Unity.Host
 {
@@ -49,6 +50,7 @@ namespace XianXia.Unity.Host
     public static class HostInteractSpots
     {
         static readonly List<HostInteractSpot> Dynamic = new List<HostInteractSpot>(256);
+        static readonly HostInteractSpot[] Empty = System.Array.Empty<HostInteractSpot>();
 
         static readonly HostInteractSpot[] LegacyFallback =
         {
@@ -72,8 +74,26 @@ namespace XianXia.Unity.Host
 
         public static bool HasDynamicPlots => Dynamic.Count > 0;
 
-        public static IReadOnlyList<HostInteractSpot> Spots =>
-            Dynamic.Count > 0 ? Dynamic : LegacyFallback;
+        /// <summary>
+        /// 有动态地块用动态；否则仅当「当前 ActiveMap 就是荒村参考关」且地点表含农田时才用 Legacy。
+        /// 其它场景一律空，禁止药畦／麦垄串到青云路等保底图。
+        /// </summary>
+        public static IReadOnlyList<HostInteractSpot> GetSpots(SimulationWorld world)
+        {
+            if (Dynamic.Count > 0)
+                return Dynamic;
+            if (world?.LocalMap == null || world.WorldRegion == null)
+                return Empty;
+            if (!world.WorldRegion.TryGet("base:loc_ref_labor_yard", out _))
+                return Empty;
+            var active = world.LocalMap.ActiveMapLayoutId ?? string.Empty;
+            if (string.Equals(active, "base:map_ch01_reference", System.StringComparison.Ordinal))
+                return LegacyFallback;
+            // 开局尚未写 ActiveMap：地点表已是荒村时仍可用 Legacy（EditMode）
+            if (string.IsNullOrEmpty(active))
+                return LegacyFallback;
+            return Empty;
+        }
 
         public static void BeginLayoutRebuild() => Dynamic.Clear();
 
@@ -83,14 +103,15 @@ namespace XianXia.Unity.Host
             Vector3 worldPoint,
             HostInteractSpotKind kind,
             out HostInteractSpot spot,
-            float maxDist = 3.5f)
+            float maxDist = 3.5f,
+            SimulationWorld world = null)
         {
             spot = default;
             var p = HostPresentationSpace.ToPresentation(worldPoint);
             var best = maxDist * maxDist;
             var found = false;
             HostInteractSpot bestSpot = default;
-            var list = Spots;
+            var list = GetSpots(world);
             for (var i = 0; i < list.Count; i++)
             {
                 var s = list[i];
@@ -116,13 +137,14 @@ namespace XianXia.Unity.Host
             string locationId,
             HostInteractSpotKind kind,
             int slotIndex,
-            out HostInteractSpot spot)
+            out HostInteractSpot spot,
+            SimulationWorld world = null)
         {
             spot = default;
             if (string.IsNullOrEmpty(locationId))
                 return false;
             var matches = new List<HostInteractSpot>(8);
-            var list = Spots;
+            var list = GetSpots(world);
             for (var i = 0; i < list.Count; i++)
             {
                 var s = list[i];

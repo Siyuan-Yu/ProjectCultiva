@@ -6,6 +6,7 @@ using XianXia.Core.Domain.Time;
 using XianXia.Core.Exploration;
 using XianXia.Core.Input;
 using XianXia.Core.Navigation;
+using XianXia.Core.World;
 
 namespace XianXia.Unity.Host
 {
@@ -302,6 +303,8 @@ namespace XianXia.Unity.Host
                 return false;
 
             bootstrap?.BreakthroughRitual?.NotifyMoveOrdered(id);
+            if (issueStop)
+                bootstrap?.WorldTravelDeparture?.NotifyPlayerOverride(id);
 
             ResumeTime();
             if (issueStop)
@@ -705,8 +708,15 @@ namespace XianXia.Unity.Host
             if (!_pendingArriveActions.TryGetValue(id.Value, out var action))
                 return;
             _pendingArriveActions.Remove(id.Value);
-            StopOne(id);
+            // 必须先回调（如宏观离场上路），再 Stop。
+            // 若先 Stop→IssueOne，会误触发「打断未出行」把 Departing 取消掉。
             action?.Invoke();
+            if (bootstrap?.Session != null &&
+                bootstrap.Session.World.WorldPresence.TryGet(id, out var p) &&
+                p != null &&
+                p.Mode == PartyWorldPresenceMode.Traveling)
+                return;
+            StopOne(id);
         }
 
         void ApplyPendingArrive(EntityId id)

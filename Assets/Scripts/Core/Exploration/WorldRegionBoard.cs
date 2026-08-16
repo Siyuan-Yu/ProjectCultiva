@@ -22,6 +22,8 @@ namespace XianXia.Core.Exploration
             return _locations.TryGetValue(id, out location);
         }
 
+        public void ClearLocations() => _locations.Clear();
+
         public void Register(WorldLocationState location)
         {
             if (location == null || string.IsNullOrEmpty(location.Id))

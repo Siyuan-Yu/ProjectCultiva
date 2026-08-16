@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_world_node_stub",
+      "type": "localPlaceSet",
+      "name": "宏观节点·保底地点",
+      "mapLayoutId": "base:map_world_node_stub",
+      "startLocationId": "base:loc_stub_center",
+      "locations": [
+        {
+          "id": "base:loc_stub_center",
+          "name": "路过歇脚处",
+          "kind": "Trail",
+          "tags": [
+            "stub",
+            "placeholder"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}

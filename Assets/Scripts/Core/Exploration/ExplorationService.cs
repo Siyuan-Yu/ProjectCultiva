@@ -16,6 +16,9 @@ namespace XianXia.Core.Exploration
         readonly QuestService _quests = new QuestService();
         readonly ContentEventService _contentEvents = new ContentEventService();
 
+        /// <summary>
+        /// 村内地点瞬间换点（非正式宏观旅行）。宏观请用 WorldTravelService／地图面板。
+        /// </summary>
         public Result Travel(SimulationWorld world, EntityId subject, string targetLocationId)
         {
             if (world == null)

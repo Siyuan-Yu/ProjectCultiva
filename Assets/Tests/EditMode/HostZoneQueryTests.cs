@@ -49,16 +49,26 @@ namespace XianXia.Tests
         [Test]
         public void InteractSpots_MultiplePerYard_ResolveWork()
         {
+            var started = new PlayableDayBootstrap().Start(
+                BaseGamePath,
+                new PlayableDayOptions { OpeningScenarioId = "base:scenario_ch01_reference" });
+            Assert.IsTrue(started.IsSuccess, started.IsFailure ? started.Error.ToString() : "");
+            var world = started.Value.World;
+
             Assert.IsTrue(HostInteractSpots.TryFindNearest(
                 HostPresentationSpace.FromPresentation(18f, -12f),
                 HostInteractSpotKind.Work,
-                out var a));
+                out var a,
+                3.5f,
+                world));
             Assert.AreEqual("base:loc_ref_labor_yard", a.LocationId);
 
             Assert.IsTrue(HostInteractSpots.TryFindNearest(
                 HostPresentationSpace.FromPresentation(25f, -10f),
                 HostInteractSpotKind.Work,
-                out var b));
+                out var b,
+                3.5f,
+                world));
             Assert.AreEqual("base:loc_ref_labor_yard", b.LocationId);
             Assert.AreNotEqual(a.Label, b.Label);
         }

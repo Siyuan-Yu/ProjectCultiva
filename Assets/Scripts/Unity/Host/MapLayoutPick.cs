@@ -22,6 +22,10 @@ namespace XianXia.Unity.Host
                     session.Registry.TryGetMapLayout(parsed.Value, out layout) &&
                     layout != null)
                     return true;
+
+                // 指定了目标图却找不到：禁止静默回落到荒村等其它图
+                layout = null;
+                return false;
             }
 
             foreach (var kv in session.Registry.MapLayouts)

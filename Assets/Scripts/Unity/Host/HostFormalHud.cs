@@ -143,6 +143,8 @@ namespace XianXia.Unity.Host
                 return;
             if (bootstrap.QuestJournal != null && bootstrap.QuestJournal.IsOpen)
                 return;
+            if (bootstrap.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen)
+                return;
             if (bootstrap.CultivationPanel != null && bootstrap.CultivationPanel.IsOpen)
                 return;
             if (bootstrap.CharacterSheetPanel != null && bootstrap.CharacterSheetPanel.IsOpen)
@@ -168,7 +170,9 @@ namespace XianXia.Unity.Host
                 ((bootstrap.CultivationPanel != null && bootstrap.CultivationPanel.IsOpen) ||
                  (bootstrap.CharacterSheetPanel != null && bootstrap.CharacterSheetPanel.IsOpen) ||
                  (bootstrap.RelationPanel != null && bootstrap.RelationPanel.IsOpen) ||
-                 (bootstrap.CultivateConfirm != null && bootstrap.CultivateConfirm.IsOpen)))
+                 (bootstrap.CultivateConfirm != null && bootstrap.CultivateConfirm.IsOpen) ||
+                 (bootstrap.WorldTravelConfirm != null && bootstrap.WorldTravelConfirm.IsOpen) ||
+                 (bootstrap.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen)))
                 return;
 
             EnsureStyles();
@@ -378,6 +382,11 @@ namespace XianXia.Unity.Host
             var cap = bag.SlotCapacity;
             var res = "背包 " + used + "/" + cap + "   木 " + wood + "   粮 " + grain + "   药 " + herb + "   敛息草 " + grass;
             GUI.Label(new Rect(Screen.width - RailW - 480f, 4f, 390f, 18f), res, _body);
+            if (GUI.Button(new Rect(Screen.width - RailW - 158f, 6f, 70f, 28f), "地图"))
+            {
+                var map = bootstrap != null ? bootstrap.WorldMapPanel : null;
+                map?.Toggle();
+            }
             if (GUI.Button(new Rect(Screen.width - RailW - 82f, 6f, 70f, 28f), "背包"))
             {
                 var panel = bootstrap != null ? bootstrap.InventoryPanel : null;

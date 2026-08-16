@@ -2,9 +2,10 @@
   "schemaVersion": 1,
   "definitions": [
     {
-      "id": "base:region_ch01_reference",
-      "type": "worldRegion",
-      "name": "第一章参考关·Demo布局",
+      "id": "base:places_ch01_reference",
+      "type": "localPlaceSet",
+      "name": "第一章参考关·荒村地点表",
+      "mapLayoutId": "base:map_ch01_reference",
       "startLocationId": "base:loc_ref_labor_yard",
       "locations": [
         {

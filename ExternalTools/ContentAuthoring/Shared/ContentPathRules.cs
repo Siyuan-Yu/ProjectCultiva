@@ -23,6 +23,8 @@ public static class ContentPathRules
             ["contentEvent"] = "Events",
             ["mapLayout"] = "Maps",
             ["worldRegion"] = "Regions",
+            ["localPlaceSet"] = "LocalPlaces",
+            ["worldGraph"] = "WorldGraphs",
             ["chapter"] = "Chapters",
             ["openingScenario"] = "Scenarios",
             ["characterRoster"] = "Rosters",

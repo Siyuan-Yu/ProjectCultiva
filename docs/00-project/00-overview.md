@@ -7,13 +7,13 @@
 ## 〇、当前项目阶段
 
 **架构冻结 v0.2。** Core／Data／Host／**VS 0.1～1.0 Demo 自动化已验收**。  
-其上已叠加：样例关、内容打断、RTS 手操、Navigation／NPC 底座、**Content Studio**、**Level Tester**、**Ch01 三环手操**、**NPC onTalk 对话框（UGUI）**、任务失败／时间流速约定、**人物／工区编辑器＋名册刷人**、**住房分配／主管府占领**、**境界阶梯／打坐／突破仪式**、**将老对弈／洞府勘查进出／秘籍拾取**、**地图战斗 Alpha／斗技 1–6／体魄与生命拆分**、**主管府正式近战／追击固着／Map 刷怪区＋表**、**击败不瞬移／进出洞相机／刷怪表 GUI**。  
-最新增量见 [127](../40-process/127-defeat-teleport-cave-camera-spawn-table-gui-2026-08-16.md)；上一轮 [126](../40-process/126-control-core-chase-spawn-zone-rollup-2026-08-16.md)；[125](../40-process/125-combat-arts-physique-acceptance-rollup-2026-08-16.md)。  
+其上已叠加：样例关、内容打断、RTS 手操、Navigation／NPC 底座、**Content Studio**、**Level Tester**、**Ch01 三环手操**、**NPC onTalk 对话框（UGUI）**、任务失败／时间流速约定、**人物／工区编辑器＋名册刷人**、**住房分配／主管府占领**、**境界阶梯／打坐／突破仪式**、**将老对弈／洞府勘查进出／秘籍拾取**、**地图战斗 Alpha／斗技 1–6／体魄与生命拆分**、**主管府正式近战／追击固着／Map 刷怪区＋表**、**击败不瞬移／进出洞相机／刷怪表 GUI**、**WorldGraph 出行／进场景／场景隔离**。  
+最新增量见 [129](../40-process/129-world-graph-host-travel-scene-isolation-2026-08-16.md)；上一轮 [127](../40-process/127-defeat-teleport-cave-camera-spawn-table-gui-2026-08-16.md)；[126](../40-process/126-control-core-chase-spawn-zone-rollup-2026-08-16.md)。  
 
-**下一步：** 洞府清残影任务／遭遇装配；WorldGraph 另开。  
+**下一步：** 手操验进场景关大地图；路上遭遇（E）。内容堆量用 WorldGraphEditor／MapEditor。  
 Demo Runtime 停扩。完整进度见 [62 项目现状](../40-process/62-project-status-2026-08-01.md)。
 
-**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [127 本轮收束](../40-process/127-defeat-teleport-cave-camera-spawn-table-gui-2026-08-16.md) → [126](../40-process/126-control-core-chase-spawn-zone-rollup-2026-08-16.md) → [62 现状](../40-process/62-project-status-2026-08-01.md) → [112 MapEditor](../40-process/112-map-editor-usage.md) → [105 手操](../40-process/105-demo-0.1-producer-playbook-30min.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md)。
+**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [129 本轮收束](../40-process/129-world-graph-host-travel-scene-isolation-2026-08-16.md) → [113](../40-process/113-world-graph-local-map-architecture-revision-v0.1.md) → [62 现状](../40-process/62-project-status-2026-08-01.md) → [112 MapEditor](../40-process/112-map-editor-usage.md) → [105 手操](../40-process/105-demo-0.1-producer-playbook-30min.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md)。
 
 - 主契约：[33 架构冻结 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md)
 - 实体／Order／Mod：[34](../30-tech/34-entity-and-component-model.md)、[35](../30-tech/35-order-and-action-system.md)、[36](../30-tech/36-content-package-and-mod-architecture.md)

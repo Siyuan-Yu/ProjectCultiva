@@ -33,6 +33,10 @@ Content/BaseGame/
     Regions/                   # type = worldRegion
       world_regions.json
       ch01_reference_region.json
+    WorldGraphs/               # type = worldGraph（宏观节点图 · [113]）
+      ch01_world_graph.json
+    LocalPlaces/               # type = localPlaceSet（村内地点表，绑 mapLayout）
+      ch01_reference_places.json
     Maps/                      # type = mapLayout（关卡格点）
       ch01_reference_map.json
     Jobs/                      # type = job
@@ -86,7 +90,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 ### type 一览
 
-`character`｜`cultivation`｜`realmLadder`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`mapLayout`｜`spawnTable`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`
+`character`｜`cultivation`｜`realmLadder`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`localPlaceSet`｜`worldGraph`｜`mapLayout`｜`spawnTable`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`
 
 ## type = character
 
@@ -169,7 +173,19 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 `initialStock[]`（resourceId／amount）、`facilities[]`（facility id 字符串）
 
-## type = worldRegion（VS0.9）
+## type = localPlaceSet（村内地点表 · 正式）
+
+| Field | Notes |
+|---|---|
+| `mapLayoutId` | 绑定的格点地图 |
+| `startLocationId` | 进入该图时队伍落点 |
+| `locations[]` | 同 worldRegion.location 字段 |
+
+样例：`LocalPlaces/ch01_reference_places.json`。Ch01 Scenario 用 `openingLocalPlaceSetId`。运行时仍灌入 `SimulationWorld.WorldRegion` 板。
+
+## type = worldRegion（旧 VS 遗留 · 非正式宏观）
+
+> **不是**大世界。宏观用 `worldGraph`。Ch01 村内地点已迁 `localPlaceSet`；本类型仅旧 VS（如青石四地点）保留。
 
 | Field | Notes |
 |---|---|
@@ -186,6 +202,37 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | `localMapId` | 该地点所属 LocalMap；空＝地表 |
 | `enterLocalMapId`／`enterSpawnLocationId` | 洞口：进入的 mapLayout＋内部落点 |
 | `surveySenseRequired` | 已废弃（勘查半径＝角色神识） |
+
+## type = worldGraph（宏观世界图 · [113] 阶段 A）
+
+| Field | Notes |
+|---|---|
+| `startNodeId` | 开局所在 WorldNode |
+| `nodes[]` | 战略点 |
+| `routes[]` | 节点之间的道路边 |
+
+### node
+
+| Field | Notes |
+|---|---|
+| id／name／kind | Town／Village／Sect／Mine／Forest／Ferry… |
+| `localMapId` | 可选；有则进 Node 时加载该 `mapLayout` |
+| `worldX`／`worldY` | 宏观摆点（不是 Local 格点） |
+| `ownerId`／`state`／`tags[]` | 归属／可见态／过滤 |
+
+### route
+
+| Field | Notes |
+|---|---|
+| id／`fromNodeId`／`toNodeId`／kind | Road／Trail／… |
+| `travelCost`／`danger` | 旅行时间代价／危险度（B／E 阶段消费） |
+| `ownerId`／`state`／`directed` | 路权／畅通态／单向 |
+| `traversalRequirements[]` | 数据可填；运行时旅行暂不检查 |
+| `encounterPoolId` | 可选；路上遭遇池（E 阶段） |
+
+样例：`WorldGraphs/ch01_world_graph.json`（约 30 节点；仅荒村绑 `base:map_ch01_reference`）。Host「地图」显示角色所在节点，勾选后点相邻节点组队移动。无通行令门槛。
+
+`openingScenario.openingWorldGraphId`：开局灌入 WorldGraph；缺省仍可只开 region（旧 VS）。
 
 ## type = mapLayout（格点地图 · MapEditor）
 

@@ -16,11 +16,12 @@ namespace XianXia.Unity.Host
             if (world?.WorldRegion == null)
                 return null;
 
-            if (HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Work, out var spot))
+            if (HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Work, out var spot, 3.5f, world))
                 return spot.LocationId;
 
             var p = HostPresentationSpace.ToPresentation(worldPoint);
-            var band = ResolveWorkBand(p.x, p.y);
+            // 色带命中硬编码荒村 loc：仅当前地图确为荒村参考关时才启用
+            var band = IsCh01ReferenceMap(world) ? ResolveWorkBand(p.x, p.y) : null;
             if (!string.IsNullOrEmpty(band) &&
                 world.WorldRegion.TryGet(band, out var bandLoc) &&
                 HasWorkResource(bandLoc))
@@ -34,17 +35,17 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>优先命中表现层交互点；用于走到具体点再劳动。</summary>
-        public static bool TryFindWorkSpot(Vector3 worldPoint, out HostInteractSpot spot) =>
-            HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Work, out spot);
+        public static bool TryFindWorkSpot(Vector3 worldPoint, out HostInteractSpot spot, SimulationWorld world = null) =>
+            HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Work, out spot, 3.5f, world);
 
-        public static bool TryFindCultivateSpot(Vector3 worldPoint, out HostInteractSpot spot) =>
-            HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Cultivate, out spot);
+        public static bool TryFindCultivateSpot(Vector3 worldPoint, out HostInteractSpot spot, SimulationWorld world = null) =>
+            HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Cultivate, out spot, 3.5f, world);
 
-        public static bool TryFindExploreSpot(Vector3 worldPoint, out HostInteractSpot spot) =>
-            HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Explore, out spot);
+        public static bool TryFindExploreSpot(Vector3 worldPoint, out HostInteractSpot spot, SimulationWorld world = null) =>
+            HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Explore, out spot, 3.5f, world);
 
-        public static bool TryFindLootSpot(Vector3 worldPoint, out HostInteractSpot spot) =>
-            HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Loot, out spot);
+        public static bool TryFindLootSpot(Vector3 worldPoint, out HostInteractSpot spot, SimulationWorld world = null) =>
+            HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Loot, out spot, 3.5f, world);
 
         /// <summary>
         /// 右键用：只认工区圆心附近，不用大色带（否则整片农田右键都会被吸去劳动中心，像粘住）。
@@ -68,11 +69,11 @@ namespace XianXia.Unity.Host
             if (world?.WorldRegion == null)
                 return null;
 
-            if (HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Cultivate, out var spot))
+            if (HostInteractSpots.TryFindNearest(worldPoint, HostInteractSpotKind.Cultivate, out var spot, 3.5f, world))
                 return spot.LocationId;
 
             var p = HostPresentationSpace.ToPresentation(worldPoint);
-            var band = ResolveSpiritBand(p.x, p.y);
+            var band = IsCh01ReferenceMap(world) ? ResolveSpiritBand(p.x, p.y) : null;
             if (!string.IsNullOrEmpty(band) &&
                 world.WorldRegion.TryGet(band, out var bandLoc) &&
                 bandLoc.Kind == LocationKind.Opportunity)
@@ -127,7 +128,19 @@ namespace XianXia.Unity.Host
             !string.IsNullOrEmpty(loc.ResourceOnExploreId) &&
             loc.ResourceOnExploreAmount > 0;
 
-        /// <summary>对齐 HostDemoTileMap.ChooseGroundPrefab 色带。</summary>
+        static bool IsCh01ReferenceMap(SimulationWorld world)
+        {
+            if (world?.LocalMap == null || world.WorldRegion == null)
+                return false;
+            var active = world.LocalMap.ActiveMapLayoutId ?? string.Empty;
+            if (string.Equals(active, "base:map_ch01_reference", System.StringComparison.Ordinal))
+                return true;
+            // 开局尚未写入 ActiveMap：仅当地点表已是荒村时允许色带（EditMode／旧路径）
+            return string.IsNullOrEmpty(active) &&
+                   world.WorldRegion.TryGet("base:loc_ref_labor_yard", out _);
+        }
+
+        /// <summary>对齐 HostDemoTileMap.ChooseGroundPrefab 色带（仅荒村参考关）。</summary>
         static string ResolveWorkBand(float x, float y)
         {
             if (x <= -28f)

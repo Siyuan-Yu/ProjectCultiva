@@ -20,10 +20,89 @@ namespace XianXia.Data.Bootstrap
             if (world == null || registry == null || scenario == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "WorldRegion bootstrap args null.");
 
-            if (string.IsNullOrWhiteSpace(scenario.OpeningWorldRegionId))
+            if (!string.IsNullOrWhiteSpace(scenario.OpeningLocalPlaceSetId))
+            {
+                var place = ApplyLocalPlaceSetId(
+                    world, registry, scenario.OpeningLocalPlaceSetId.Trim());
+                if (place.IsFailure)
+                    return place;
+            }
+            else if (!string.IsNullOrWhiteSpace(scenario.OpeningWorldRegionId))
+            {
+                var region = ApplyWorldRegionId(
+                    world, registry, scenario.OpeningWorldRegionId.Trim());
+                if (region.IsFailure)
+                    return region;
+            }
+            else
+            {
                 return Result.Success();
+            }
 
-            var parsed = DefinitionId.Parse(scenario.OpeningWorldRegionId);
+            return PlaceOpeningSpawns(world, scenario, lookup, spawnEntries);
+        }
+
+        /// <summary>换 WorldNode 后按 mapLayout 切换村内地点表（库存／任务保留）。</summary>
+        public static Result ActivatePlacesForMapLayout(
+            SimulationWorld world,
+            DefinitionRegistry registry,
+            string mapLayoutId)
+        {
+            if (world == null || registry == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "ActivatePlaces args null.");
+
+            if (string.IsNullOrWhiteSpace(mapLayoutId))
+            {
+                world.WorldRegion.ClearLocations();
+                world.WorldRegion.RegionId = string.Empty;
+                world.WorldRegion.RegionName = string.Empty;
+                world.WorldRegion.StartLocationId = string.Empty;
+                return Result.Success();
+            }
+
+            foreach (var kv in registry.LocalPlaceSets)
+            {
+                var set = kv.Value;
+                if (set == null)
+                    continue;
+                if (!string.Equals(set.MapLayoutId, mapLayoutId, StringComparison.Ordinal))
+                    continue;
+                return FillBoardFromPlaceSet(world, set);
+            }
+
+            // 无对应 place set：清空旧地点表（禁止荒村地点残留），不阻断切图
+            world.WorldRegion.ClearLocations();
+            world.WorldRegion.RegionId = string.Empty;
+            world.WorldRegion.RegionName = string.Empty;
+            world.WorldRegion.StartLocationId = string.Empty;
+            return Result.Success();
+        }
+
+        static Result ApplyLocalPlaceSetId(
+            SimulationWorld world,
+            DefinitionRegistry registry,
+            string idText)
+        {
+            var parsed = DefinitionId.Parse(idText);
+            if (parsed.IsFailure)
+                return Result.Failure(parsed.Error);
+            if (!registry.TryGetLocalPlaceSet(parsed.Value, out var def))
+            {
+                return Result.Failure(
+                    ErrorCode.NotFound,
+                    "Opening localPlaceSet missing.",
+                    idText);
+            }
+
+            return FillBoardFromPlaceSet(world, def);
+        }
+
+        static Result ApplyWorldRegionId(
+            SimulationWorld world,
+            DefinitionRegistry registry,
+            string idText)
+        {
+            var parsed = DefinitionId.Parse(idText);
             if (parsed.IsFailure)
                 return Result.Failure(parsed.Error);
             if (!registry.TryGetWorldRegion(parsed.Value, out var def))
@@ -31,15 +110,55 @@ namespace XianXia.Data.Bootstrap
                 return Result.Failure(
                     ErrorCode.NotFound,
                     "Opening world region missing.",
-                    scenario.OpeningWorldRegionId);
+                    idText);
             }
 
+            world.WorldRegion.ClearLocations();
             world.WorldRegion.RegionId = def.Id.ToString();
             world.WorldRegion.RegionName = def.Name ?? string.Empty;
             world.WorldRegion.StartLocationId = def.StartLocationId ?? string.Empty;
+            RegisterEntries(world, def.Locations);
 
-            foreach (var entry in def.Locations)
+            if (string.IsNullOrEmpty(world.WorldRegion.StartLocationId) ||
+                !world.WorldRegion.TryGet(world.WorldRegion.StartLocationId, out _))
             {
+                return Result.Failure(
+                    ErrorCode.NotFound,
+                    "World region startLocationId invalid.",
+                    world.WorldRegion.StartLocationId);
+            }
+
+            return Result.Success();
+        }
+
+        static Result FillBoardFromPlaceSet(SimulationWorld world, LocalPlaceSetDefinition def)
+        {
+            world.WorldRegion.ClearLocations();
+            world.WorldRegion.RegionId = def.Id.ToString();
+            world.WorldRegion.RegionName = def.Name ?? string.Empty;
+            world.WorldRegion.StartLocationId = def.StartLocationId ?? string.Empty;
+            RegisterEntries(world, def.Locations);
+
+            if (string.IsNullOrEmpty(world.WorldRegion.StartLocationId) ||
+                !world.WorldRegion.TryGet(world.WorldRegion.StartLocationId, out _))
+            {
+                return Result.Failure(
+                    ErrorCode.NotFound,
+                    "localPlaceSet startLocationId invalid.",
+                    world.WorldRegion.StartLocationId);
+            }
+
+            return Result.Success();
+        }
+
+        static void RegisterEntries(SimulationWorld world, List<WorldLocationEntry> entries)
+        {
+            if (entries == null)
+                return;
+            foreach (var entry in entries)
+            {
+                if (entry == null || string.IsNullOrWhiteSpace(entry.Id))
+                    continue;
                 if (!Enum.TryParse(entry.Kind ?? "Wild", true, out LocationKind kind))
                     kind = LocationKind.Wild;
 
@@ -71,17 +190,14 @@ namespace XianXia.Data.Bootstrap
                     loc.AllowedActivities.AddRange(entry.AllowedActivities);
                 world.WorldRegion.Register(loc);
             }
+        }
 
-            if (string.IsNullOrEmpty(world.WorldRegion.StartLocationId) ||
-                !world.WorldRegion.TryGet(world.WorldRegion.StartLocationId, out _))
-            {
-                return Result.Failure(
-                    ErrorCode.NotFound,
-                    "World region startLocationId invalid.",
-                    world.WorldRegion.StartLocationId);
-            }
-
-            // 名册开局时必须用 roster entries，不能只扫 scenario.Spawns（否则洞府残影等挂不上驻点）。
+        static Result PlaceOpeningSpawns(
+            SimulationWorld world,
+            OpeningScenarioDefinition scenario,
+            GameStartLookup lookup,
+            IList<OpeningSpawnEntry> spawnEntries)
+        {
             var entries = spawnEntries ?? scenario.Spawns;
             if (entries != null)
             {
@@ -102,11 +218,7 @@ namespace XianXia.Data.Bootstrap
                         if (!string.IsNullOrEmpty(resident))
                             placeId = resident;
                         else if (IsCaveBoundNpc(entity))
-                        {
-                            // 洞府内容威胁：区域未挂驻点时不要丢到地表开局点。
-                            // 一般敌对仍可落在地表；洞府怪靠 residentNpc→内室地点配置。
                             continue;
-                        }
                     }
 
                     var placed = EnsureLocation(entity, placeId);
@@ -115,7 +227,6 @@ namespace XianXia.Data.Bootstrap
                 }
             }
 
-            // 兜底：凡地点声明了 residentNpc，按 definitionId 再钉一次（防漏扫）。
             foreach (var kv in world.WorldRegion.Locations)
             {
                 var residentDef = kv.Value.ResidentNpcDefinitionId;
@@ -133,7 +244,6 @@ namespace XianXia.Data.Bootstrap
             return Result.Success();
         }
 
-        /// <summary>内容 tag=cave：洞府／秘境内威胁，不是「所有敌人」。 </summary>
         static bool IsCaveBoundNpc(XianXia.Core.Entities.Entity entity)
         {
             if (entity == null)

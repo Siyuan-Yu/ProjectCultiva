@@ -82,25 +82,26 @@ namespace XianXia.Unity.Host
                 !HostPresentationSpace.TryRaycastPlane(worldCamera, Input.mousePosition, out var point))
                 return false;
 
-            if (HostZoneQuery.TryFindWorkSpot(point, out var work))
+            var world = bootstrap.Session.World;
+            if (HostZoneQuery.TryFindWorkSpot(point, out var work, world))
             {
                 IssueWorkAtSpot(work);
                 return true;
             }
 
-            if (HostZoneQuery.TryFindLootSpot(point, out var loot))
+            if (HostZoneQuery.TryFindLootSpot(point, out var loot, world))
             {
                 IssueLootAtSpot(loot);
                 return true;
             }
 
-            if (HostZoneQuery.TryFindExploreSpot(point, out var explore))
+            if (HostZoneQuery.TryFindExploreSpot(point, out var explore, world))
             {
                 IssueExploreAtSpot(explore);
                 return true;
             }
 
-            if (HostZoneQuery.TryFindCultivateSpot(point, out var cult))
+            if (HostZoneQuery.TryFindCultivateSpot(point, out var cult, world))
             {
                 IssueCultivateAtSpot(cult);
                 return true;
@@ -195,7 +196,8 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            if (HostZoneQuery.TryFindWorkSpot(point, out var work))
+            var world = bootstrap.Session.World;
+            if (HostZoneQuery.TryFindWorkSpot(point, out var work, world))
             {
                 _idleHoverInteractable = true;
                 _hoverHint = "右键交互·" + work.Label;
@@ -203,7 +205,7 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            if (HostZoneQuery.TryFindLootSpot(point, out var loot))
+            if (HostZoneQuery.TryFindLootSpot(point, out var loot, world))
             {
                 _idleHoverInteractable = true;
                 _hoverHint = "右键拾取·" + loot.Label;
@@ -211,7 +213,7 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            if (HostZoneQuery.TryFindExploreSpot(point, out var explore))
+            if (HostZoneQuery.TryFindExploreSpot(point, out var explore, world))
             {
                 _idleHoverInteractable = true;
                 _hoverHint = "右键探索·" + explore.Label;
@@ -219,7 +221,7 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            if (HostZoneQuery.TryFindCultivateSpot(point, out var cult))
+            if (HostZoneQuery.TryFindCultivateSpot(point, out var cult, world))
             {
                 _idleHoverInteractable = true;
                 _hoverHint = "右键修炼·" + cult.Label;
@@ -259,13 +261,15 @@ namespace XianXia.Unity.Host
                     _hoverHint = "移动到此处";
                     break;
                 case ArmKind.Interact:
+                {
+                    var world = bootstrap.Session.World;
                     // 仅热点／人物为绿；麦田其它位置也是红（不用大色带）。
-                    if (HostZoneQuery.TryFindWorkSpot(point, out var workSpot))
+                    if (HostZoneQuery.TryFindWorkSpot(point, out var workSpot, world))
                     {
                         _canTargetUnderMouse = true;
                         _hoverHint = "交互·" + workSpot.Label;
                     }
-                    else if (HostZoneQuery.TryFindLootSpot(point, out var lootSpot))
+                    else if (HostZoneQuery.TryFindLootSpot(point, out var lootSpot, world))
                     {
                         _canTargetUnderMouse = true;
                         _hoverHint = "拾取·" + lootSpot.Label;
@@ -280,6 +284,7 @@ namespace XianXia.Unity.Host
                     else
                         _hoverHint = "不可交互";
                     break;
+                }
                 case ArmKind.Combat:
                     if (TryPickNpcAtMouse(out var foe) &&
                         selectionController != null &&
@@ -292,7 +297,7 @@ namespace XianXia.Unity.Host
                         _hoverHint = "无可战斗目标";
                     break;
                 case ArmKind.Cultivate:
-                    if (HostZoneQuery.TryFindCultivateSpot(point, out var cultSpot))
+                    if (HostZoneQuery.TryFindCultivateSpot(point, out var cultSpot, bootstrap.Session.World))
                     {
                         _canTargetUnderMouse = true;
                         _hoverHint = "修炼·" + cultSpot.Label;
@@ -317,14 +322,15 @@ namespace XianXia.Unity.Host
             if (!_canTargetUnderMouse)
                 return;
 
-            if (HostZoneQuery.TryFindWorkSpot(point, out var spot))
+            var world = bootstrap.Session.World;
+            if (HostZoneQuery.TryFindWorkSpot(point, out var spot, world))
             {
                 IssueWorkAtSpot(spot);
                 SetArmed(ArmKind.None);
                 return;
             }
 
-            if (HostZoneQuery.TryFindLootSpot(point, out var loot))
+            if (HostZoneQuery.TryFindLootSpot(point, out var loot, world))
             {
                 IssueLootAtSpot(loot);
                 SetArmed(ArmKind.None);
@@ -416,7 +422,7 @@ namespace XianXia.Unity.Host
         {
             if (!_canTargetUnderMouse)
                 return;
-            if (!HostZoneQuery.TryFindCultivateSpot(point, out var spot))
+            if (!HostZoneQuery.TryFindCultivateSpot(point, out var spot, bootstrap.Session.World))
                 return;
             IssueCultivateAtSpot(spot);
             SetArmed(ArmKind.None);

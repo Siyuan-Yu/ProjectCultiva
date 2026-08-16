@@ -3,10 +3,11 @@ using XianXia.Core.Exploration;
 using XianXia.Core.Simulation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Social;
+using XianXia.Core.World;
 
 namespace XianXia.Unity.Host
 {
-    /// <summary>按当前 Active LocalMap 过滤实体／地点是否应显示。</summary>
+    /// <summary>按当前 Active LocalMap／宏观所在节点过滤实体／地点是否应显示。</summary>
     public static class LocalMapVisibility
     {
         public static bool IsLocationOnActiveMap(SimulationWorld world, WorldLocationState loc)
@@ -32,20 +33,38 @@ namespace XianXia.Unity.Host
             if (world == null || id.IsNone || !world.Entities.TryGet(id, out var entity))
                 return false;
 
-            // 内容标了 cave 的单位：无地点时地表不刷（防洞府威胁被误挂到村口）
+            // 有宏观在场记录的可控角色：只显示「当前焦点节点上、未上路」的人
+            if (world.WorldPresence != null &&
+                world.WorldPresence.TryGet(id, out var wp) &&
+                wp != null)
+            {
+                if (wp.Mode == PartyWorldPresenceMode.Traveling)
+                    return false;
+                if (wp.Mode == PartyWorldPresenceMode.InEncounter)
+                    return false;
+                var focus = world.PartyWorld != null ? world.PartyWorld.NodeId : null;
+                if (string.IsNullOrEmpty(focus) ||
+                    !string.Equals(wp.NodeId, focus, System.StringComparison.Ordinal))
+                    return false;
+
+                // 同节点可控者：有表现坐标即可显示（进保底图时 Location 可能刚写上）
+                if (entity.TryGet<EntityLocationComponent>(out var partyLoc) &&
+                    partyLoc.HasPresentationOverride)
+                    return true;
+            }
+
             if (!entity.TryGet<EntityLocationComponent>(out var loc) || !loc.HasLocation)
             {
                 if (IsCaveBoundNpc(entity) && !world.LocalMap.IsInInterior)
                     return false;
-                return true;
+                if (world.WorldPresence != null && world.WorldPresence.TryGet(id, out _))
+                    return true;
+                return false;
             }
 
+            // 地点不在当前地点表（例如已从荒村切到保底节点）：必须隐藏，禁止残留旧场景 NPC
             if (!world.WorldRegion.TryGet(loc.LocationId, out var place))
-            {
-                if (IsCaveBoundNpc(entity) && !world.LocalMap.IsInInterior)
-                    return false;
-                return !world.LocalMap.IsInInterior;
-            }
+                return false;
 
             return IsLocationOnActiveMap(world, place);
         }
@@ -54,16 +73,11 @@ namespace XianXia.Unity.Host
         {
             if (loc == null)
                 return false;
-            // 洞口也有 cave 标签，不能单靠 cave；认 interior 或绑了内地图 id
             if (HasLocationTag(loc, "interior"))
                 return true;
             return !string.IsNullOrEmpty(loc.LocalMapId);
         }
 
-        /// <summary>
-        /// 内容声明为洞府／秘境内威胁的角色（非「凡敌对都只能进洞」）。
-        /// 地表敌、路上遭遇应另挂地表地点，不要打 cave 标签。
-        /// </summary>
         public static bool IsCaveBoundNpc(Entity entity)
         {
             if (entity == null)

@@ -7,6 +7,72 @@
 
 ---
 
+## 2026-08-16 — WorldGraph Host 出行／进场景关大地图／场景隔离
+
+**做了什么**
+- 进场景：`Close()` 大地图 + `ApplyPartyWorldNodePresentation(closeWorldMap: true)`
+- 场景隔离：Legacy 药畦／色带／灰盒回落仅限荒村；Preferred 缺失不刷荒村砖
+- 收束文档 [129](129-world-graph-host-travel-scene-isolation-2026-08-16.md)；飞书 provision＋同步；推 GitHub
+
+---
+
+## 2026-08-16 — 宏观出行：确认／走到边缘／途中不可进场景
+
+**做了什么**
+- 右键目标节点 → 确认弹窗（打断当前行为）
+- 确认后：人在当前 LocalMap 则走到地图边缘再消失，再上大地图慢移
+- 途中 LocalMap 不现身；头像菜单可「查看信息」，到站后可「进入场景」
+
+---
+
+## 2026-08-16 — 大地图 30 节点＋组队移动（无通行令）
+
+**做了什么**
+- 去掉通行令／permit UI 与旅行门槛
+- Ch01 WorldGraph 扩至 30 节点；仅荒村有 LocalMap
+- `WorldPresenceBoard`：每人宏观位置；大地图勾选组队点相邻节点出发
+
+---
+
+## 2026-08-16 — WorldGraph D／F＋localPlaceSet
+
+**做了什么**
+- 换 Node：`ApplyPartyWorldNodePresentation` 卸／装 LocalMap；占位节点清空实体图
+- Ch01 地点表迁 `localPlaceSet`（删 `ch01_reference_region`）；Scenario 改 `openingLocalPlaceSetId`
+- WorldGraphEditor（节点／道路表）；`启动-WorldGraphEditor.cmd`
+
+**下一步**
+- 手操验：地图旅行换图；编辑器改点边保存
+
+---
+
+## 2026-08-16 — WorldGraph A～C：旅行＋地图按钮
+
+**做了什么**
+- Core：`WorldGraphBoard`／`PartyWorldPresence`／`WorldTravelService`（关隘 traversalRequirements）
+- Bootstrap 灌图；Ch01 含青石关；`permit:guanai` 才能过关去矿山
+- Host 顶栏「地图」＋M；废默认 Y 宏观 Travel；region 标明仅村内地点表
+- EditMode：`WorldTravelPhaseBTests`
+
+**下一步**
+- D：换 Node 卸／装 LocalMap；F：WorldGraph 编辑器
+
+---
+
+## 2026-08-16 — WorldGraph 阶段 A（数据＋Loader）
+
+**做了什么**
+- `type=worldGraph`：SCHEMA／Definition／Loader／引用校验；`WorldGraphs/ch01_world_graph.json`（荒村绑现有 map，矿山／林间／渡口占位）
+- EditMode `WorldGraphPhaseATests`；旧 `worldRegion` 并行不改 Demo Host
+
+**判断与理由**
+- 战略层（含未来宗门运营）需要节点图底座；A 只立数据，旅行／大地图 UI／卸图另开 B～D
+
+**下一步**
+- 阶段 B：`StartTravel`／时间推进／到站 EnterNode
+
+---
+
 ## 2026-08-16 — 收束文档 127＋飞书／GitHub
 
 **做了什么**

@@ -5,7 +5,7 @@
       "id": "base:map_ch01_reference",
       "type": "mapLayout",
       "name": "第一章参考关·格点地图",
-      "worldRegionId": "base:region_ch01_reference",
+      "worldRegionId": "base:places_ch01_reference",
       "originX": -40,
       "originY": -25,
       "cellSize": 1,

@@ -124,9 +124,7 @@ namespace XianXia.Unity.Host
             Vector3[] slots)
         {
             if (session.World.Entities.TryGet(id, out var entity) &&
-                entity.TryGet<EntityLocationComponent>(out var loc) &&
-                loc.HasLocation &&
-                session.World.WorldRegion.TryGet(loc.LocationId, out var location))
+                entity.TryGet<EntityLocationComponent>(out var loc))
             {
                 if (loc.HasPresentationOverride)
                 {
@@ -135,13 +133,17 @@ namespace XianXia.Unity.Host
                         loc.PresentationOverrideZ);
                 }
 
-                stackAtLocation.TryGetValue(loc.LocationId, out var stack);
-                stackAtLocation[loc.LocationId] = stack + 1;
-                var ox = (stack % 3) * 0.85f - 0.85f;
-                var oy = (stack / 3) * 0.85f;
-                return HostPresentationSpace.FromPresentation(
-                    location.PresentationX + ox,
-                    location.PresentationZ + oy);
+                if (loc.HasLocation &&
+                    session.World.WorldRegion.TryGet(loc.LocationId, out var location))
+                {
+                    stackAtLocation.TryGetValue(loc.LocationId, out var stack);
+                    stackAtLocation[loc.LocationId] = stack + 1;
+                    var ox = (stack % 3) * 0.85f - 0.85f;
+                    var oy = (stack / 3) * 0.85f;
+                    return HostPresentationSpace.FromPresentation(
+                        location.PresentationX + ox,
+                        location.PresentationZ + oy);
+                }
             }
 
             if (slots != null && fallbackIndex < slots.Length)

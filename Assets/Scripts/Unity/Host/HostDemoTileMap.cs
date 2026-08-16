@@ -48,6 +48,16 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            // 已指定 LocalMap 却取不到定义：禁止回落荒村色带（会串景）
+            if (session != null && !string.IsNullOrWhiteSpace(session.PreferredMapLayoutId))
+            {
+                Debug.LogError(
+                    "[HostDemoTileMap] MapLayout not found: " + session.PreferredMapLayoutId +
+                    " — left empty (no legacy village fallback).",
+                    this);
+                return;
+            }
+
             BuildLegacyDemoTiles();
         }
 

@@ -54,6 +54,9 @@ namespace XianXia.Core.Simulation
             Relationships = new RelationshipLedger();
             Settlements = new SettlementBoard();
             WorldRegion = new WorldRegionBoard();
+            WorldGraph = new WorldGraphBoard();
+            WorldPresence = new WorldPresenceBoard();
+            PartyWorld = new PartyWorldPresence();
             Flags = new WorldFlagBoard();
             Quests = new QuestBoard();
             ContentEvents = new ContentEventBoard();
@@ -103,8 +106,17 @@ namespace XianXia.Core.Simulation
         /// <summary>VS0.8 settlement board (session-only; not in Snapshot v1).</summary>
         public SettlementBoard Settlements { get; }
 
-        /// <summary>VS0.9 abstract world region (session-only; not in Snapshot v1).</summary>
+        /// <summary>村内地点表（历史名 worldRegion；非正式大世界）。</summary>
         public WorldRegionBoard WorldRegion { get; }
+
+        /// <summary>宏观 WorldGraph（[113]）；session-only。</summary>
+        public WorldGraphBoard WorldGraph { get; }
+
+        /// <summary>各角色宏观位置。</summary>
+        public WorldPresenceBoard WorldPresence { get; }
+
+        /// <summary>当前镜头／焦点 Node 摘要。</summary>
+        public PartyWorldPresence PartyWorld { get; }
 
         /// <summary>Content Ready: session flags for quests／events (not in Snapshot v1).</summary>
         public WorldFlagBoard Flags { get; }

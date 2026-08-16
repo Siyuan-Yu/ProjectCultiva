@@ -66,6 +66,8 @@ namespace XianXia.Unity.Host
                     continue;
                 if ((entity.Tags & EntityTag.Npc) == 0)
                     continue;
+                if (!LocalMapVisibility.IsEntityVisible(session.World, entity.Id))
+                    continue;
                 if (!entity.TryGet<MovementIntentComponent>(out var intent) || !intent.Active)
                     continue;
                 if (!viewSpawner.Registry.TryGet(entity.Id, out var view) || view == null)
@@ -188,7 +190,8 @@ namespace XianXia.Unity.Host
                     }
                 }
 
-                if (HostInteractSpots.TryGetSlotSpot(locationId, kind, intent.SlotIndex, out var spot))
+                if (HostInteractSpots.TryGetSlotSpot(
+                        locationId, kind, intent.SlotIndex, out var spot, world))
                 {
                     worldCenter = spot.WorldPosition;
                     worldCenter.z = HostPresentationSpace.EntityZ;

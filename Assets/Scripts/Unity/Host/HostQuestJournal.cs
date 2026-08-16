@@ -55,6 +55,8 @@ namespace XianXia.Unity.Host
 
         public string TrackedQuestId => _trackedQuestId ?? string.Empty;
 
+        public void Close() => open = false;
+
         public void Bind(PlayableHostBootstrap host, HostCommandBridge bridge, HostSelectionController selection)
         {
             bootstrap = host;

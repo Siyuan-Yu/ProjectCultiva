@@ -57,6 +57,9 @@ namespace XianXia.Unity.Host
         [SerializeField] HostDialoguePresenter dialoguePresenter;
         [SerializeField] HostQuestJournal questJournal;
         [SerializeField] HostInventoryPanel inventoryPanel;
+        [SerializeField] HostWorldMapPanel worldMapPanel;
+        [SerializeField] HostWorldTravelConfirmPrompt worldTravelConfirm;
+        [SerializeField] HostWorldTravelDeparture worldTravelDeparture;
         [SerializeField] HostManualLearnPrompt manualLearnPrompt;
         [SerializeField] HostCombatArtLearnPrompt combatArtLearnPrompt;
         [SerializeField] HostCombatArtsPanel combatArtsPanel;
@@ -117,6 +120,12 @@ namespace XianXia.Unity.Host
         public HostQuestJournal QuestJournal => questJournal;
 
         public HostInventoryPanel InventoryPanel => inventoryPanel;
+
+        public HostWorldMapPanel WorldMapPanel => worldMapPanel;
+
+        public HostWorldTravelConfirmPrompt WorldTravelConfirm => worldTravelConfirm;
+
+        public HostWorldTravelDeparture WorldTravelDeparture => worldTravelDeparture;
 
         public HostManualLearnPrompt ManualLearnPrompt => manualLearnPrompt;
         public HostCombatArtLearnPrompt CombatArtLearnPrompt => combatArtLearnPrompt;
@@ -186,6 +195,15 @@ namespace XianXia.Unity.Host
             if (inventoryPanel == null)
                 inventoryPanel = GetComponent<HostInventoryPanel>() ??
                                 GetComponentInChildren<HostInventoryPanel>();
+            if (worldMapPanel == null)
+                worldMapPanel = GetComponent<HostWorldMapPanel>() ??
+                               GetComponentInChildren<HostWorldMapPanel>();
+            if (worldTravelConfirm == null)
+                worldTravelConfirm = GetComponent<HostWorldTravelConfirmPrompt>() ??
+                                    GetComponentInChildren<HostWorldTravelConfirmPrompt>();
+            if (worldTravelDeparture == null)
+                worldTravelDeparture = GetComponent<HostWorldTravelDeparture>() ??
+                                      GetComponentInChildren<HostWorldTravelDeparture>();
             if (manualLearnPrompt == null)
                 manualLearnPrompt = GetComponent<HostManualLearnPrompt>() ??
                                    GetComponentInChildren<HostManualLearnPrompt>();
@@ -217,6 +235,7 @@ namespace XianXia.Unity.Host
             {
                 if ((questJournal == null || !questJournal.IsOpen) &&
                     (inventoryPanel == null || !inventoryPanel.IsOpen) &&
+                    (worldMapPanel == null || !worldMapPanel.IsOpen) &&
                     (manualLearnPrompt == null || !manualLearnPrompt.IsOpen) &&
                     (combatArtLearnPrompt == null || !combatArtLearnPrompt.IsOpen) &&
                     (combatArtsPanel == null || !combatArtsPanel.IsOpen) &&
@@ -235,6 +254,7 @@ namespace XianXia.Unity.Host
             {
                 if ((questJournal == null || !questJournal.IsOpen) &&
                     (inventoryPanel == null || !inventoryPanel.IsOpen) &&
+                    (worldMapPanel == null || !worldMapPanel.IsOpen) &&
                     (manualLearnPrompt == null || !manualLearnPrompt.IsOpen) &&
                     (combatArtLearnPrompt == null || !combatArtLearnPrompt.IsOpen) &&
                     (combatArtsPanel == null || !combatArtsPanel.IsOpen) &&
@@ -404,6 +424,15 @@ namespace XianXia.Unity.Host
             if (inventoryPanel == null)
                 inventoryPanel = GetComponent<HostInventoryPanel>() ??
                                 gameObject.AddComponent<HostInventoryPanel>();
+            if (worldMapPanel == null)
+                worldMapPanel = GetComponent<HostWorldMapPanel>() ??
+                               gameObject.AddComponent<HostWorldMapPanel>();
+            if (worldTravelConfirm == null)
+                worldTravelConfirm = GetComponent<HostWorldTravelConfirmPrompt>() ??
+                                    gameObject.AddComponent<HostWorldTravelConfirmPrompt>();
+            if (worldTravelDeparture == null)
+                worldTravelDeparture = GetComponent<HostWorldTravelDeparture>() ??
+                                      gameObject.AddComponent<HostWorldTravelDeparture>();
             if (manualLearnPrompt == null)
                 manualLearnPrompt = GetComponent<HostManualLearnPrompt>() ??
                                    gameObject.AddComponent<HostManualLearnPrompt>();
@@ -466,6 +495,12 @@ namespace XianXia.Unity.Host
                 questJournal.ClearSessionState();
             if (inventoryPanel != null)
                 inventoryPanel.ClearSessionState();
+            if (worldMapPanel != null)
+                worldMapPanel.ClearSessionState();
+            if (worldTravelConfirm != null)
+                worldTravelConfirm.ClearSessionState();
+            if (worldTravelDeparture != null)
+                worldTravelDeparture.ClearSessionState();
             if (manualLearnPrompt != null)
                 manualLearnPrompt.ClearSessionState();
             if (combatArtLearnPrompt != null)
@@ -596,6 +631,14 @@ namespace XianXia.Unity.Host
             contentInterrupt.Bind(this, commandBridge, selectionController, dialoguePresenter);
             questJournal.Bind(this, commandBridge, selectionController);
             inventoryPanel.Bind(this);
+            if (interactSpotPresenter != null)
+                interactSpotPresenter.Bind(this);
+            if (worldMapPanel != null)
+                worldMapPanel.Bind(this);
+            if (worldTravelConfirm != null)
+                worldTravelConfirm.Bind(this);
+            if (worldTravelDeparture != null)
+                worldTravelDeparture.Bind(this);
             if (manualLearnPrompt != null)
                 manualLearnPrompt.Bind(this);
             if (combatArtLearnPrompt != null)
@@ -758,6 +801,131 @@ namespace XianXia.Unity.Host
             if (frameCamera)
                 FrameCameraOnSlots();
             RefreshStatus();
+        }
+
+        /// <summary>
+        /// WorldGraph 到站后：按 PartyWorld.LocalMapId 卸／装实体图；切换 localPlaceSet；队伍落到 startLocation。
+        /// </summary>
+        /// <param name="closeWorldMap">从大地图「进入场景」时应为 true，关掉全屏地图页。</param>
+        public void ApplyPartyWorldNodePresentation(bool closeWorldMap = false)
+        {
+            if (closeWorldMap && worldMapPanel != null)
+                worldMapPanel.Close();
+
+            if (!_session.IsInitialized)
+                return;
+
+            var world = _session.World;
+            var targetMap = world.PartyWorld.LocalMapId ?? string.Empty;
+
+            // 目标图必须在内容包里，否则禁止带着荒村图「假装切换」
+            if (!string.IsNullOrWhiteSpace(targetMap))
+            {
+                var parsedMap = XianXia.Core.Domain.Ids.DefinitionId.Parse(targetMap.Trim());
+                if (parsedMap.IsFailure ||
+                    !_session.Registry.TryGetMapLayout(parsedMap.Value, out _))
+                {
+                    Debug.LogError(
+                        "[PlayableHost] LocalMap missing in registry: " + targetMap +
+                        " — 无法进入该节点场景（请确认 Content 已含保底图）。",
+                        this);
+                    RefreshStatus();
+                    return;
+                }
+            }
+
+            var places = WorldRegionBootstrap.ActivatePlacesForMapLayout(
+                world, _session.Registry, targetMap);
+            if (places.IsFailure)
+                Debug.LogWarning("[PlayableHost] ActivatePlaces: " + places.Error, this);
+
+            // 仅把仍在当前焦点 Node 上的己方落到该图 startLocation（已去别处的人不动）
+            var focusNode = world.PartyWorld.NodeId;
+            var startId = world.WorldRegion.StartLocationId;
+            for (var i = 0; i < _session.CharacterIds.Count; i++)
+            {
+                var id = _session.CharacterIds[i];
+                if (world.WorldPresence.TryGet(id, out var wp) &&
+                    wp != null &&
+                    !string.IsNullOrEmpty(focusNode) &&
+                    !string.Equals(wp.NodeId, focusNode, System.StringComparison.Ordinal))
+                    continue;
+                if (wp != null && wp.Mode == XianXia.Core.World.PartyWorldPresenceMode.Traveling)
+                    continue;
+
+                if (!world.Entities.TryGet(id, out var ent))
+                    continue;
+                if (!ent.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc))
+                {
+                    loc = new XianXia.Core.Exploration.EntityLocationComponent();
+                    ent.AddComponent(loc);
+                }
+
+                if (!string.IsNullOrEmpty(startId) && world.WorldRegion.TryGet(startId, out var startLoc))
+                {
+                    loc.LocationId = startId;
+                    loc.SetPresentationOverride(startLoc.PresentationX, startLoc.PresentationZ);
+                }
+                else
+                {
+                    // 无地点表时仍落在表现原点，保证能刷出实体
+                    loc.LocationId = string.Empty;
+                    loc.SetPresentationOverride(0f, 0f);
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(targetMap))
+            {
+                _session.PreferredMapLayoutId = string.Empty;
+                preferredMapLayoutId = string.Empty;
+                if (entityViewSpawner != null)
+                    entityViewSpawner.Clear();
+                if (mapGraybox != null)
+                    mapGraybox.Rebuild(_session);
+                if (interactSpotPresenter != null)
+                    interactSpotPresenter.Rebuild();
+                if (moveController != null)
+                    moveController.SetWalkGrid(null);
+                RefreshStatus();
+                return;
+            }
+
+            preferredMapLayoutId = targetMap;
+            _session.PreferredMapLayoutId = targetMap;
+            world.LocalMap.ActiveMapLayoutId = targetMap;
+            world.LocalMap.OverworldMapLayoutId = targetMap;
+            ReloadLocalMapPresentation(frameCamera: true);
+
+            // 切图后再对齐一次地点坐标（MapLayout sync 之后）并选中在场角色
+            if (!string.IsNullOrEmpty(startId) && world.WorldRegion.TryGet(startId, out var syncedStart))
+            {
+                for (var i = 0; i < _session.CharacterIds.Count; i++)
+                {
+                    var id = _session.CharacterIds[i];
+                    if (!LocalMapVisibility.IsEntityVisible(world, id))
+                        continue;
+                    if (!world.Entities.TryGet(id, out var ent) ||
+                        !ent.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc))
+                        continue;
+                    loc.LocationId = startId;
+                    loc.SetPresentationOverride(syncedStart.PresentationX, syncedStart.PresentationZ);
+                }
+
+                entityViewSpawner?.SyncLocations(_session);
+                if (selectionController != null)
+                {
+                    for (var i = 0; i < _session.CharacterIds.Count; i++)
+                    {
+                        var id = _session.CharacterIds[i];
+                        if (!LocalMapVisibility.IsEntityVisible(world, id))
+                            continue;
+                        selectionController.SelectEntity(id, false);
+                        break;
+                    }
+                }
+
+                TryFrameCameraOnParty();
+            }
         }
 
         /// <summary>仅重刷地表戳（如勘查显形），不重建实体、不挪镜头。</summary>

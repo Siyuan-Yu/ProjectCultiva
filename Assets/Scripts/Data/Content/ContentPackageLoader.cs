@@ -221,6 +221,9 @@ namespace XianXia.Data.Content
                     case "worldRegion":
                         LoadWorldRegion(item, parsed.Value, registry, report);
                         break;
+                    case "localPlaceSet":
+                        LoadLocalPlaceSet(item, parsed.Value, registry, report);
+                        break;
                     case "quest":
                         LoadQuest(item, parsed.Value, registry, report);
                         break;
@@ -244,6 +247,9 @@ namespace XianXia.Data.Content
                         break;
                     case "spawnTable":
                         LoadSpawnTable(item, parsed.Value, registry, report);
+                        break;
+                    case "worldGraph":
+                        LoadWorldGraph(item, parsed.Value, registry, report);
                         break;
                     case "realmLadder":
                         LoadRealmLadder(item, parsed.Value, registry, report);
@@ -613,6 +619,8 @@ namespace XianXia.Data.Content
                 OpeningFactionId = item.GetString("openingFactionId", string.Empty),
                 OpeningSettlementId = item.GetString("openingSettlementId", string.Empty),
                 OpeningWorldRegionId = item.GetString("openingWorldRegionId", string.Empty),
+                OpeningLocalPlaceSetId = item.GetString("openingLocalPlaceSetId", string.Empty),
+                OpeningWorldGraphId = item.GetString("openingWorldGraphId", string.Empty),
                 OpeningChapterId = item.GetString("openingChapterId", string.Empty)
             };
 
@@ -1018,6 +1026,103 @@ namespace XianXia.Data.Content
                 report.Add(reg.Error);
         }
 
+        static void LoadLocalPlaceSet(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.LocalPlaceSetFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var set = new LocalPlaceSetDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                MapLayoutId = item.GetString("mapLayoutId", string.Empty),
+                StartLocationId = item.GetString("startLocationId", string.Empty)
+            };
+
+            if (string.IsNullOrWhiteSpace(set.MapLayoutId))
+            {
+                report.Add(ErrorCode.MissingRequiredField, "localPlaceSet.mapLayoutId required.", id.ToString());
+                return;
+            }
+
+            if (!item.TryGetProperty("locations", out var locs) || locs.Kind != JsonValueKind.Array)
+            {
+                report.Add(ErrorCode.MissingRequiredField, "localPlaceSet.locations required.", id.ToString());
+                return;
+            }
+
+            foreach (var locNode in locs.Array)
+            {
+                if (locNode.Kind != JsonValueKind.Object)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "location entries must be objects.", id.ToString());
+                    continue;
+                }
+
+                DefinitionSchema.RejectUnknownFields(
+                    locNode, DefinitionSchema.WorldLocationFields, report, id + ".location");
+                if (report.Errors.Count > errorsBefore)
+                    return;
+
+                var entry = new WorldLocationEntry
+                {
+                    Id = locNode.GetString("id", string.Empty),
+                    Name = locNode.GetString("name", string.Empty),
+                    Kind = locNode.GetString("kind", "Wild"),
+                    ResourceOnExploreId = locNode.GetString("resourceOnExploreId", string.Empty),
+                    ResourceOnExploreAmount = ReadInt(locNode, "resourceOnExploreAmount", 0),
+                    OpportunitySiteId = locNode.GetString("opportunitySiteId", string.Empty),
+                    ResidentNpcDefinitionId = locNode.GetString("residentNpcDefinitionId", string.Empty),
+                    PresentationX = ReadFloat(locNode, "presentationX", 0f),
+                    PresentationZ = ReadFloat(locNode, "presentationZ", 0f),
+                    LocalMapId = locNode.GetString("localMapId", string.Empty),
+                    EnterLocalMapId = locNode.GetString("enterLocalMapId", string.Empty),
+                    EnterSpawnLocationId = locNode.GetString("enterSpawnLocationId", string.Empty),
+                    SurveySenseRequired = ReadInt(locNode, "surveySenseRequired", 0)
+                };
+
+                if (string.IsNullOrWhiteSpace(entry.Id))
+                {
+                    report.Add(ErrorCode.MissingRequiredField, "location.id required.", id.ToString());
+                    return;
+                }
+
+                if (locNode.TryGetProperty("adjacentIds", out var adj) && adj.Kind == JsonValueKind.Array)
+                {
+                    foreach (var a in adj.Array)
+                    {
+                        if (a.Kind == JsonValueKind.String && !string.IsNullOrWhiteSpace(a.String))
+                            entry.AdjacentIds.Add(a.String);
+                    }
+                }
+
+                ReadConditions(
+                    locNode, "enterConditions", entry.EnterConditions, report, id + "." + entry.Id);
+                ReadStringList(locNode, "questOfferIds", entry.QuestOfferIds, report, id + "." + entry.Id);
+                ReadTags(locNode, entry.Tags, report, id + "." + entry.Id);
+                ReadStringList(
+                    locNode, "allowedActivities", entry.AllowedActivities, report, id + "." + entry.Id);
+
+                set.Locations.Add(entry);
+            }
+
+            if (set.Locations.Count == 0)
+            {
+                report.Add(ErrorCode.MissingRequiredField, "localPlaceSet.locations empty.", id.ToString());
+                return;
+            }
+
+            var reg = registry.RegisterLocalPlaceSet(set);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
         static void LoadWorkArea(
             JsonValue item,
             DefinitionId id,
@@ -1338,6 +1443,136 @@ namespace XianXia.Data.Content
             }
 
             var reg = registry.RegisterSpawnTable(table);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void LoadWorldGraph(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.WorldGraphFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var graph = new WorldGraphDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                StartNodeId = item.GetString("startNodeId", string.Empty)
+            };
+
+            if (!item.TryGetProperty("nodes", out var nodesNode) || nodesNode.Kind != JsonValueKind.Array)
+            {
+                report.Add(ErrorCode.MissingRequiredField, "worldGraph.nodes required.", id.ToString());
+                return;
+            }
+
+            foreach (var nNode in nodesNode.Array)
+            {
+                if (nNode.Kind != JsonValueKind.Object)
+                    continue;
+                DefinitionSchema.RejectUnknownFields(
+                    nNode, DefinitionSchema.WorldNodeFields, report, id + ".node");
+                if (report.Errors.Count > errorsBefore)
+                    return;
+
+                var node = new WorldNodeEntry
+                {
+                    Id = nNode.GetString("id", string.Empty),
+                    Name = nNode.GetString("name", string.Empty),
+                    Kind = nNode.GetString("kind", string.Empty),
+                    LocalMapId = nNode.GetString("localMapId", string.Empty),
+                    WorldX = ReadFloat(nNode, "worldX", 0f),
+                    WorldY = ReadFloat(nNode, "worldY", 0f),
+                    OwnerId = nNode.GetString("ownerId", string.Empty),
+                    State = nNode.GetString("state", string.Empty)
+                };
+                if (string.IsNullOrWhiteSpace(node.Id))
+                {
+                    report.Add(ErrorCode.MissingRequiredField, "worldGraph.node.id required.", id.ToString());
+                    return;
+                }
+
+                if (nNode.TryGetProperty("tags", out var tagsNode) && tagsNode.Kind == JsonValueKind.Array)
+                {
+                    foreach (var t in tagsNode.Array)
+                    {
+                        if (t.Kind == JsonValueKind.String && !string.IsNullOrWhiteSpace(t.String))
+                            node.Tags.Add(t.String);
+                    }
+                }
+
+                graph.Nodes.Add(node);
+            }
+
+            if (graph.Nodes.Count == 0)
+            {
+                report.Add(ErrorCode.MissingRequiredField, "worldGraph.nodes empty.", id.ToString());
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(graph.StartNodeId))
+            {
+                report.Add(ErrorCode.MissingRequiredField, "worldGraph.startNodeId required.", id.ToString());
+                return;
+            }
+
+            if (item.TryGetProperty("routes", out var routesNode))
+            {
+                if (routesNode.Kind != JsonValueKind.Array)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "worldGraph.routes must be array.", id.ToString());
+                    return;
+                }
+
+                foreach (var rNode in routesNode.Array)
+                {
+                    if (rNode.Kind != JsonValueKind.Object)
+                        continue;
+                    DefinitionSchema.RejectUnknownFields(
+                        rNode, DefinitionSchema.WorldRouteFields, report, id + ".route");
+                    if (report.Errors.Count > errorsBefore)
+                        return;
+
+                    var route = new WorldRouteEntry
+                    {
+                        Id = rNode.GetString("id", string.Empty),
+                        FromNodeId = rNode.GetString("fromNodeId", string.Empty),
+                        ToNodeId = rNode.GetString("toNodeId", string.Empty),
+                        Kind = rNode.GetString("kind", string.Empty),
+                        TravelCost = ReadInt(rNode, "travelCost", 0),
+                        Danger = ReadFloat(rNode, "danger", 0f),
+                        OwnerId = rNode.GetString("ownerId", string.Empty),
+                        State = rNode.GetString("state", string.Empty),
+                        Directed = ReadBool(rNode, "directed", false),
+                        EncounterPoolId = rNode.GetString("encounterPoolId", string.Empty)
+                    };
+                    if (string.IsNullOrWhiteSpace(route.Id) ||
+                        string.IsNullOrWhiteSpace(route.FromNodeId) ||
+                        string.IsNullOrWhiteSpace(route.ToNodeId))
+                    {
+                        report.Add(
+                            ErrorCode.MissingRequiredField,
+                            "worldGraph.route id／fromNodeId／toNodeId required.",
+                            id.ToString());
+                        return;
+                    }
+
+                    ReadConditions(
+                        rNode,
+                        "traversalRequirements",
+                        route.TraversalRequirements,
+                        report,
+                        id + "." + route.Id);
+                    graph.Routes.Add(route);
+                }
+            }
+
+            var reg = registry.RegisterWorldGraph(graph);
             if (reg.IsFailure)
                 report.Add(reg.Error);
         }
