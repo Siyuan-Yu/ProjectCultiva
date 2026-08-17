@@ -54,6 +54,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostFeedbackOverlay feedbackOverlay;
         [SerializeField] HostWorkTargetMode workTargetMode;
         [SerializeField] HostContentInterruptPresenter contentInterrupt;
+        [SerializeField] HostStrategicInterruptPresenter strategicInterrupt;
         [SerializeField] HostDialoguePresenter dialoguePresenter;
         [SerializeField] HostQuestJournal questJournal;
         [SerializeField] HostInventoryPanel inventoryPanel;
@@ -115,6 +116,8 @@ namespace XianXia.Unity.Host
         public HostWorkTargetMode WorkTargetMode => workTargetMode;
 
         public HostContentInterruptPresenter ContentInterrupt => contentInterrupt;
+
+        public HostStrategicInterruptPresenter StrategicInterrupt => strategicInterrupt;
 
         public HostDialoguePresenter DialoguePresenter => dialoguePresenter;
 
@@ -189,6 +192,9 @@ namespace XianXia.Unity.Host
             if (contentInterrupt == null)
                 contentInterrupt = GetComponent<HostContentInterruptPresenter>() ??
                                   GetComponentInChildren<HostContentInterruptPresenter>();
+            if (strategicInterrupt == null)
+                strategicInterrupt = GetComponent<HostStrategicInterruptPresenter>() ??
+                                    GetComponentInChildren<HostStrategicInterruptPresenter>();
             if (dialoguePresenter == null)
                 dialoguePresenter = GetComponent<HostDialoguePresenter>() ??
                                    GetComponentInChildren<HostDialoguePresenter>();
@@ -238,7 +244,6 @@ namespace XianXia.Unity.Host
             {
                 if ((questJournal == null || !questJournal.IsOpen) &&
                     (inventoryPanel == null || !inventoryPanel.IsOpen) &&
-                    (worldMapPanel == null || !worldMapPanel.IsOpen) &&
                     (manualLearnPrompt == null || !manualLearnPrompt.IsOpen) &&
                     (combatArtLearnPrompt == null || !combatArtLearnPrompt.IsOpen) &&
                     (combatArtsPanel == null || !combatArtsPanel.IsOpen) &&
@@ -248,7 +253,8 @@ namespace XianXia.Unity.Host
                     (cultivateConfirm == null || !cultivateConfirm.IsOpen) &&
                     (breakthroughRitual == null || !breakthroughRitual.IsResultOpen) &&
                     (ticTacToePanel == null || !ticTacToePanel.IsOpen) &&
-                    (contentInterrupt == null || !contentInterrupt.HasBlockingInterrupt))
+                    (contentInterrupt == null || !contentInterrupt.HasBlockingInterrupt) &&
+                    (strategicInterrupt == null || !strategicInterrupt.HasBlockingInterrupt))
                     _session.IsPaused = !_session.IsPaused;
                 RefreshStatus();
             }
@@ -257,7 +263,6 @@ namespace XianXia.Unity.Host
             {
                 if ((questJournal == null || !questJournal.IsOpen) &&
                     (inventoryPanel == null || !inventoryPanel.IsOpen) &&
-                    (worldMapPanel == null || !worldMapPanel.IsOpen) &&
                     (manualLearnPrompt == null || !manualLearnPrompt.IsOpen) &&
                     (combatArtLearnPrompt == null || !combatArtLearnPrompt.IsOpen) &&
                     (combatArtsPanel == null || !combatArtsPanel.IsOpen) &&
@@ -266,15 +271,20 @@ namespace XianXia.Unity.Host
                     (relationPanel == null || !relationPanel.IsOpen) &&
                     (cultivateConfirm == null || !cultivateConfirm.IsOpen) &&
                     (breakthroughRitual == null || !breakthroughRitual.IsResultOpen) &&
-                    (ticTacToePanel == null || !ticTacToePanel.IsOpen))
+                    (ticTacToePanel == null || !ticTacToePanel.IsOpen) &&
+                    (contentInterrupt == null || !contentInterrupt.HasBlockingInterrupt) &&
+                    (strategicInterrupt == null || !strategicInterrupt.HasBlockingInterrupt))
                     StepTick();
             }
 
             if (Input.GetKeyDown(cycleSpeedKey) || Input.GetKeyDown(cycleSpeedAltKey))
             {
-                if (debugHud != null)
-                    debugHud.CycleSpeed();
-                RefreshStatus();
+                if (contentInterrupt == null || !contentInterrupt.HasBlockingInterrupt)
+                {
+                    if (debugHud != null)
+                        debugHud.CycleSpeed();
+                    RefreshStatus();
+                }
             }
 
             if (Input.GetKeyDown(rebuildKey))
@@ -422,6 +432,9 @@ namespace XianXia.Unity.Host
             if (contentInterrupt == null)
                 contentInterrupt = GetComponent<HostContentInterruptPresenter>() ??
                                   gameObject.AddComponent<HostContentInterruptPresenter>();
+            if (strategicInterrupt == null)
+                strategicInterrupt = GetComponent<HostStrategicInterruptPresenter>() ??
+                                    gameObject.AddComponent<HostStrategicInterruptPresenter>();
             if (dialoguePresenter == null)
                 dialoguePresenter = GetComponent<HostDialoguePresenter>() ??
                                    gameObject.AddComponent<HostDialoguePresenter>();
@@ -499,6 +512,8 @@ namespace XianXia.Unity.Host
             entityViewSpawner.Clear();
             eventFeed.Clear();
             contentInterrupt.ClearSessionState();
+            if (strategicInterrupt != null)
+                strategicInterrupt.ClearSessionState();
             if (dialoguePresenter != null)
                 dialoguePresenter.ClearSessionState();
             if (npcContextMenu != null)
@@ -652,6 +667,8 @@ namespace XianXia.Unity.Host
             if (dialoguePresenter != null)
                 dialoguePresenter.Bind(this, commandBridge, selectionController);
             contentInterrupt.Bind(this, commandBridge, selectionController, dialoguePresenter);
+            if (strategicInterrupt != null)
+                strategicInterrupt.Bind(this);
             questJournal.Bind(this, commandBridge, selectionController);
             inventoryPanel.Bind(this);
             if (interactSpotPresenter != null)
@@ -1001,6 +1018,8 @@ namespace XianXia.Unity.Host
             if (!_session.IsInitialized)
                 return;
             if (contentInterrupt != null && contentInterrupt.HasBlockingInterrupt)
+                return;
+            if (strategicInterrupt != null && strategicInterrupt.HasBlockingInterrupt)
                 return;
             _session.IsPaused = false;
             RefreshStatus();
