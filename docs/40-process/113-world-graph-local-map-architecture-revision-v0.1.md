@@ -1,6 +1,6 @@
 # 113 · World Graph + Local Map 架构修订 v0.1
 
-> 状态：**阶段 A～D／F 已落地／Host 出行与隔离见 [129](129-world-graph-host-travel-scene-isolation-2026-08-16.md)／E 待做**｜日期：2026-08-16  
+> 状态：**阶段 A～D／F 已落地／Host 出行与隔离见 [129](129-world-graph-host-travel-scene-isolation-2026-08-16.md)／E 待做／G 战略接战见 [138](138-world-strategic-battle-offer-plan-2026-08-17.md)**｜日期：2026-08-17  
 > 一句话：**宏观世界是 Civilization／RimWorld 式节点图；实体玩法只发生在按需加载的 LocalMap 上。**  
 > 取代：`24` 中「Region = 较大连续区域、路途也在同一张连续地图上走」的体验模型。  
 > 保留：`mapLayout`／MapEditor、WalkGrid、RTS、Job／Schedule、内容包 Loader。  
@@ -175,8 +175,9 @@ Snapshot：第一期可只存 `nodeId` + 任务／仓库；Route 进度与 Encou
 | **D 卸载／持久** | 离开 Node 卸实体表现；按 localMapId 换图；库存／任务保留 | **已落地**（作物持久未单测；占位 Node 清空表现） |
 | **E Encounter** | 一条 Trail 触发临时 LocalMap，结束回 Route | 手操山谷遭遇一次 |
 | **F 工具** | WorldGraph 编辑器 | **已落地**（`启动-WorldGraphEditor.cmd`） |
+| **G 战略层／接战** | 帮派占点、外交、ArmyStack、BattleOffer 弹窗（自动／手动 LocalMap） | 见 [138](138-world-strategic-battle-offer-plan-2026-08-17.md) VS-WorldStrategic-0.1 |
 
-当前代码冻结线：**A～D／F 已落地**；E 路上遭遇未做。村内地点正式类型＝`localPlaceSet`；`worldRegion` 仅旧 VS（青石）。
+当前代码冻结线：**A～D／F 已落地**；E 路上遭遇未做；**G 设计已定、待实现**。村内地点正式类型＝`localPlaceSet`；`worldRegion` 仅旧 VS（青石）。
 
 ---
 
@@ -196,6 +197,7 @@ Snapshot：第一期可只存 `nodeId` + 任务／仓库；Route 进度与 Encou
 
 | 日期 | 说明 |
 |------|------|
+| 2026-08-17 | G：战略层／接战弹窗设计见 [138](138-world-strategic-battle-offer-plan-2026-08-17.md) |
 | 2026-08-16 | D／F：换 Node 卸装 LocalMap；localPlaceSet；WorldGraphEditor |
 | 2026-08-16 | 阶段 B／C：PartyWorldPresence＋Travel／关隘；Host 地图按钮／M；废 Y 宏观 Travel |
 | 2026-08-16 | 阶段 A：SCHEMA／Loader／`ch01_world_graph.json`／EditMode；Demo 仍走 worldRegion |

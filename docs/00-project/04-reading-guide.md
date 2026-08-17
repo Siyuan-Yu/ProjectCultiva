@@ -29,7 +29,8 @@
 
 | 目的 | 读什么 |
 |------|--------|
-| **本轮收束（熟练／纱衣／田区／砍树）** | [137](../40-process/137-skill-mastery-farm-veil-chop-rollup-2026-08-17.md) |
+| **本轮（战略层／接战弹窗设计）** | [138](../40-process/138-world-strategic-battle-offer-plan-2026-08-17.md) |
+| **上一轮收束（熟练／纱衣／田区／砍树）** | [137](../40-process/137-skill-mastery-farm-veil-chop-rollup-2026-08-17.md) |
 | **功法／斗技蓄势＋熟练度** | [131](../40-process/131-skill-mastery-study-ritual-2026-08-16.md)／[132](../40-process/132-skill-mastery-config-absolute-tiers-2026-08-16.md) |
 | **斗气纱衣** | [134](../40-process/134-spirit-veil-ranged-normal-attack-2026-08-16.md) |
 | **况栏／砍树／田区** | [135](../40-process/135-world-object-inspect-and-tree-chop-2026-08-16.md)／[136](../40-process/136-farm-field-zone-labor-2026-08-16.md) |

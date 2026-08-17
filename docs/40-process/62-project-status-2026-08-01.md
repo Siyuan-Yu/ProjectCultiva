@@ -1,18 +1,17 @@
 # 项目现状总览 — 2026-08-01
 
-> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-17（熟练／纱衣／田区／砍树收束）  
+> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-17（战略层／接战弹窗设计）  
 > 用途：一次看清 VS0.1～1.0／Content Ready 做到哪、本轮改了什么、下一步是什么。  
 > 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准；本页不改 Freeze。  
-> 近期增量一次看清：[137](137-skill-mastery-farm-veil-chop-rollup-2026-08-17.md)／[131](131-skill-mastery-study-ritual-2026-08-16.md)／[129](129-world-graph-host-travel-scene-isolation-2026-08-16.md)／[135](135-world-object-inspect-and-tree-chop-2026-08-16.md)／[136](136-farm-field-zone-labor-2026-08-16.md)
+> 近期增量一次看清：[138](138-world-strategic-battle-offer-plan-2026-08-17.md)（战略接战）／[137](137-skill-mastery-farm-veil-chop-rollup-2026-08-17.md)／[129](129-world-graph-host-travel-scene-isolation-2026-08-16.md)／[113](113-world-graph-local-map-architecture-revision-v0.1.md)
 
 ---
 
 ## 1. 一句话现状
 
 **Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**；样例关可玩弧／导航／NPC 活动底座／Demo 0.1 Production **自动化已验收（手操待签）**。  
-**本轮：** **功法／斗技熟练度＋冲击确认、斗气纱衣、况栏砍树、田区农作**（见 [137](137-skill-mastery-farm-veil-chop-rollup-2026-08-17.md)）。  
-**下一步：** 路上遭遇（E）；内容堆量（WorldGraph／Map／ManualArt／LocalPlace）。  
-制作人手操：境界／斗技面板冲击确认；F2 纱衣；右键砍树；农田交互农作。Demo Runtime **继续冻结**。
+**本轮：** **大地图战略层＋全战式接战弹窗**设计定稿（见 [138](138-world-strategic-battle-offer-plan-2026-08-17.md)）。  
+**下一步：** 实现 Phase 0 路上遭遇 E → Phase 1 占点 → Phase 3 接战 MVP；内容堆量并行。
 ---
 
 ## 2. 切片进度与验收
@@ -143,6 +142,7 @@
 
 | 文档 | 飞书 |
 |---|---|
+| **本轮 [138] 战略层／接战弹窗** | https://my.feishu.cn/docx/Aodwd4XpNoPdzqxQ5wucY2LFnAg |
 | 项目现状（本页） | https://my.feishu.cn/docx/F1FJdQ1usoWzsIxfiTFcKbOQnM8 |
 | 策划总览 | https://my.feishu.cn/docx/Oowtd4tyRoQBuxxMiBIcEkSbnBc |
 | **VS0.7→1.0 交付总结** | https://my.feishu.cn/docx/DkNld4wZAowzGHx5yebcRb5onCd |

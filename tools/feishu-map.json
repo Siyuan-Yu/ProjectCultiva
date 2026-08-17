@@ -711,6 +711,11 @@
       "title": "137 熟练度／纱衣／田区／砍树收束（2026-08-17）",
       "docId": "WaaNdNf2poof5qx2deVcFfKrnwb"
     },
+    "world-strategic-battle-offer-2026-08-17": {
+      "file": "docs/40-process/138-world-strategic-battle-offer-plan-2026-08-17.md",
+      "title": "138 大地图战略层与接战弹窗计划（2026-08-17）",
+      "docId": "Aodwd4XpNoPdzqxQ5wucY2LFnAg"
+    },
     "world-graph-local-map": {
       "file": "docs/40-process/113-world-graph-local-map-architecture-revision-v0.1.md",
       "title": "World Graph + Local Map 架构修订 v0.1",
