@@ -9,7 +9,7 @@
 
 ## 1. 一句话
 
-本轮在 WorldGraph 出行之后，落地功法／斗技蓄势研读与熟练度、斗气纱衣、世界物况栏与砍树掉木、田区自动农作，并修正幽灵农田检视与砍树产量；**熟练冲击成功率只在确认窗显示，结果弹窗不再重复。**
+本轮在 WorldGraph 出行之后，落地功法／斗技蓄势研读与熟练度、斗气纱衣、世界物况栏与砍树掉木、田区自动农作，并修正幽灵农田检视与砍树产量；**熟练冲击成功率只在确认窗显示，结果弹窗不再重复**；远程普攻已接**统一弹道特效**。
 
 ---
 
@@ -21,7 +21,7 @@
 | **蓄势研读＋熟练** | 黄条参悟；学习成功率；灌注／冲击；Snapshot | [131](131-skill-mastery-study-ritual-2026-08-16.md) |
 | **熟练配置绝对值** | `mastery.tiers`／`breakthroughs`；`combatArt` JSON | [132](132-skill-mastery-config-absolute-tiers-2026-08-16.md) |
 | **功法／斗技编辑器** | ManualArtEditor；清理非正式斗技样例 | [133](133-manual-art-editor-and-cleanup-2026-08-16.md) |
-| **斗气纱衣** | 筑基远程普攻姿态；F2；NPC 交战可自动开 | [134](134-spirit-veil-ranged-normal-attack-2026-08-16.md) |
+| **斗气纱衣** | 筑基远程普攻姿态；F2；NPC 交战可自动开；**统一青色弹道** | [134](134-spirit-veil-ranged-normal-attack-2026-08-16.md) |
 | **况栏＋砍树** | 只读物况；树／墙耐久；伐倒入包粗木 | [135](135-world-object-inspect-and-tree-chop-2026-08-16.md) |
 | **田区农作** | 整片区走格；玩家／NPC Labor；去掉绿草幽灵工区 | [136](136-farm-field-zone-labor-2026-08-16.md) |
 | **两级熟练 UI** | 斗技列表→详情；功法卡片→同款详情 | `HostCombatArtsPanel`／`HostCultivationPanel`／`HostSkillMasteryPanelUi` |
@@ -58,12 +58,14 @@
 
 - [x] 斗技／功法冲击下一档：确认窗有成功率，结果窗无  
 - [x] 砍中／大树产量与入包  
-- [ ] （可选）纱衣 F2、田区农作、LocalPlace／ManualArt 编辑器全路径再扫一遍  
+- [x] 纱衣远程：青色光核弹道飞行＋命中爆闪  
+- [ ] （可选）田区农作、LocalPlace／ManualArt 编辑器全路径再扫一遍  
 
 ---
 
 ## 6. 明确未做
 
+- 按境界／斗技换弹道皮（当前全员共用）  
 - 路上遭遇 LocalMap（E）  
 - 作物格 Snapshot；区级水稻／玉米等  
 - 墙拆后 WalkGrid；房屋独立血量  

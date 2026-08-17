@@ -13,6 +13,7 @@ namespace XianXia.Unity.Host
         static Sprite _ring;
         static Sprite _missingPrefab;
         static Sprite _meleeSlash;
+        static Sprite _rangedBolt;
 
         public static Sprite UnitSprite()
         {
@@ -33,6 +34,17 @@ namespace XianXia.Unity.Host
             if (fromRes != null)
                 return _meleeSlash = fromRes;
             return _meleeSlash = MakeSlashArcSprite(48, 24, "HostMeleeSlash");
+        }
+
+        /// <summary>统一远程弹道光核（程序化软圆；纱衣／日后远程共用）。</summary>
+        public static Sprite RangedProjectileSprite()
+        {
+            if (_rangedBolt != null)
+                return _rangedBolt;
+            var fromRes = Resources.Load<Sprite>("HostSprites/RangedBolt");
+            if (fromRes != null)
+                return _rangedBolt = fromRes;
+            return _rangedBolt = MakeSoftOrbSprite(32, "HostRangedBolt");
         }
 
         public static Sprite TileSprite()
@@ -185,6 +197,40 @@ namespace XianXia.Unity.Host
 
             tex.Apply(false, true);
             return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 32f);
+        }
+
+        /// <summary>径向衰减软圆，作弹道光核／命中爆闪。</summary>
+        static Sprite MakeSoftOrbSprite(int size, string name)
+        {
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                name = name,
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+            var cx = (size - 1) * 0.5f;
+            var maxR = size * 0.48f;
+            for (var y = 0; y < size; y++)
+            for (var x = 0; x < size; x++)
+            {
+                var dx = x - cx;
+                var dy = y - cx;
+                var d = Mathf.Sqrt(dx * dx + dy * dy) / maxR;
+                if (d >= 1f)
+                {
+                    tex.SetPixel(x, y, Color.clear);
+                    continue;
+                }
+
+                // 内核亮、外缘软；略扁尖头感靠运行时 scale
+                var core = Mathf.Clamp01(1f - d * d);
+                var halo = Mathf.Clamp01(1f - d);
+                var a = Mathf.Clamp01(core * 0.85f + halo * 0.35f);
+                tex.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+            }
+
+            tex.Apply(false, true);
+            return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 32f);
         }
     }
 }

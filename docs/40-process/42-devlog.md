@@ -7,6 +7,22 @@
 
 ---
 
+## 2026-08-17 — 远程弹道文档＋飞书／GitHub
+
+**做了什么**
+- 补全 [134](134-spirit-veil-ranged-normal-attack-2026-08-16.md) 统一弹道专节；更新 [137](137-skill-mastery-farm-veil-chop-rollup-2026-08-17.md)／`23`
+- 飞书同步相关页；推 GitHub（弹道代码＋文档）
+
+---
+
+## 2026-08-17 — 统一远程攻击弹道特效
+
+**做了什么**
+- `HostMeleeStrikeVfx.PlayRangedBetween`：青色光核沿攻→守飞行，抵达后爆闪＋受击闪白（纱衣普攻及日后远程共用）
+- 程序化 `RangedProjectileSprite`；近战挥砍不变
+
+---
+
 ## 2026-08-17 — 收束文档 137＋飞书／GitHub
 
 **做了什么**
