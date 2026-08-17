@@ -238,12 +238,6 @@ namespace XianXia.Core.World.Strategic
             wp.Mode = PartyWorldPresenceMode.InEncounter;
         }
 
-        /// <summary>遗留：自动胜利结算（当前产品不启用）。</summary>
-        public static bool TryResolveEncounterVictory(SimulationWorld world)
-        {
-            return false;
-        }
-
         public static Result ApplyPending(SimulationWorld world)
         {
             if (world?.Strategic == null || !world.Strategic.Encounter.SpawnOnNextMapLoad)

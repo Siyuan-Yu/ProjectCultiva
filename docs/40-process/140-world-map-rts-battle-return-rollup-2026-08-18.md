@@ -26,7 +26,7 @@
 | **清场回程** | 路中／InEncounter：当前道路两端可直达（修「回不了荒村」） | `WorldTravelPathService.CanAgentReachTarget` |
 | **路进度保留** | 进战／删栈前快照路锚，避免进度归零像瞬移 | `SnapshotEngagedRouteFromStack`／`PreserveRouteProgressForEncounter` |
 | **进场景** | 有我方在场即可进；不做战略敌对封锁 | `StrategicNodeAccessService` |
-| **暂关势力 UX** | 清演示 Owner；节点不按帮派染色 | `StrategicBootstrap`／`HostWorldMapPanel` |
+| **暂关势力 UX** | 清演示 Owner；节点不按帮派染色；去掉大地图外交面板 | `StrategicBootstrap`／`HostWorldMapPanel` |
 
 ---
 

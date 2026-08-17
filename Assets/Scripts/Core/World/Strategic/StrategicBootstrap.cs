@@ -3,7 +3,7 @@ using XianXia.Core.Simulation;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>Ch01 战略层默认归属／外交／演示栈。</summary>
+    /// <summary>Ch01 战略层默认归属／演示栈（外交／占点玩法暂关）。</summary>
     public static class StrategicBootstrap
     {
         public static void ApplyCh01Defaults(SimulationWorld world)
@@ -12,13 +12,12 @@ namespace XianXia.Core.World.Strategic
                 return;
 
             ApplyDefaultOwners(world);
-            ApplyDefaultDiplomacy(world.Strategic.Diplomacy);
             SeedDemoArmies(world);
         }
 
         static void ApplyDefaultOwners(SimulationWorld world)
         {
-            // 暂不做战略势力归属／外交门槛；清空演示 Owner，避免节点染色误导
+            // 暂不做战略势力归属／外交门槛；清空演示 Owner
             ClearOwner(world, "base:node_huangcun");
             ClearOwner(world, "base:node_yucun");
             ClearOwner(world, "base:node_linjian");
@@ -32,23 +31,6 @@ namespace XianXia.Core.World.Strategic
             node.OwnerId = string.Empty;
         }
 
-        static void ApplyDefaultDiplomacy(FactionDiplomacyBoard diplomacy)
-        {
-            // 暂不做战略敌对封锁；默认中立，攻击菜单直接可打
-            diplomacy.SetStance(
-                StrategicFactionCatalog.PlayerFactionId,
-                StrategicFactionCatalog.HuangcunLaborId,
-                FactionStance.Neutral);
-            diplomacy.SetStance(
-                StrategicFactionCatalog.PlayerFactionId,
-                StrategicFactionCatalog.FisherVillageId,
-                FactionStance.Neutral);
-            diplomacy.SetStance(
-                StrategicFactionCatalog.PlayerFactionId,
-                StrategicFactionCatalog.BanditId,
-                FactionStance.Neutral);
-        }
-
         static void SeedDemoArmies(SimulationWorld world)
         {
             world.Strategic.Armies.Clear();
@@ -58,7 +40,7 @@ namespace XianXia.Core.World.Strategic
 
             var fromId = route.FromNodeId;
             var toId = route.ToNodeId;
-            if (string.Equals(fromId, "base:node_linjian", System.StringComparison.Ordinal))
+            if (string.Equals(fromId, "base:node_linjian", StringComparison.Ordinal))
             {
                 fromId = route.ToNodeId;
                 toId = route.FromNodeId;
@@ -76,15 +58,6 @@ namespace XianXia.Core.World.Strategic
                 MemberCount = 3,
                 CombatPower = 2
             });
-        }
-
-        public static void CaptureNodeForPlayer(SimulationWorld world, string nodeId)
-        {
-            if (world == null || string.IsNullOrEmpty(nodeId))
-                return;
-            if (!world.WorldGraph.TryGetNode(nodeId, out var node) || node == null)
-                return;
-            node.OwnerId = StrategicFactionCatalog.PlayerFactionId;
         }
     }
 }

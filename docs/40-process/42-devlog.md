@@ -7,6 +7,14 @@
 
 ---
 
+## 2026-08-18 — 清大世界旧实现＋138 飞书换链
+
+**做了什么**
+- 删大地图「外交」面板／敌军「交谈」占位；删 `CaptureNodeForPlayer`、`TryResolveEncounterVictory`、未用 `CollectAtNodeParty`、`DepartingLocalMap` 运行时分支
+- 旧 138 飞书无写权限 → 新建文档并换链：https://my.feishu.cn/docx/FSOcd9I2oosbBWx82CXcKMkZnod
+
+---
+
 ## 2026-08-18 — 收束文档 140＋飞书／GitHub
 
 **做了什么**

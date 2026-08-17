@@ -162,7 +162,6 @@ namespace XianXia.Core.World.Strategic
             switch (p.Mode)
             {
                 case PartyWorldPresenceMode.AtNode:
-                case PartyWorldPresenceMode.DepartingLocalMap:
                 case PartyWorldPresenceMode.InEncounter:
                     return string.Equals(p.NodeId, nodeId, StringComparison.Ordinal);
                 case PartyWorldPresenceMode.RouteAnchored:

@@ -200,8 +200,7 @@ namespace XianXia.Unity.Host
                     return false;
 
                 // 同焦点节点且未上路：一律视为在当前 LocalMap 上（勿因 LocationId 过期而隐身）
-                if (wp.Mode == PartyWorldPresenceMode.AtNode ||
-                    wp.Mode == PartyWorldPresenceMode.DepartingLocalMap)
+                if (wp.Mode == PartyWorldPresenceMode.AtNode)
                     return true;
             }
 

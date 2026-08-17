@@ -61,7 +61,6 @@ namespace XianXia.Unity.Host
         bool _viewReady;
         bool _panning;
         Vector2 _panLastGui;
-        bool _showDiplomacy;
         bool _holdingPauseForMap;
 
         GUIStyle _title;
@@ -333,11 +332,10 @@ namespace XianXia.Unity.Host
                 _body);
 
             var mapTop = topBar + 56f;
-            var sideW = _showDiplomacy ? 220f : 0f;
             var mapRect = new Rect(
                 pad,
                 mapTop,
-                Screen.width - pad * 2f - sideW,
+                Screen.width - pad * 2f,
                 Screen.height - mapTop - pad);
             GUI.color = new Color(0.12f, 0.14f, 0.16f, 1f);
             GUI.DrawTexture(mapRect, _px);
@@ -353,8 +351,6 @@ namespace XianXia.Unity.Host
             if (_stackMenuOpen || _nodeMenuOpen)
                 return;
             HandleMapInput(mapRect, world, graph);
-            if (_showDiplomacy)
-                DrawDiplomacyPanel(new Rect(mapRect.xMax + 8f, mapTop, sideW - 8f, mapRect.height), world);
             HostUiHitTest.EndFrame();
             // 进入场景可能在本帧 OnGUI 中途关掉；立刻停画，避免同帧再盖一层
             if (!open)
@@ -460,13 +456,9 @@ namespace XianXia.Unity.Host
             x += 80f;
             GUI.Label(new Rect(x, y + 4f, 200f, 22f), "[ / ] 调倍速", _body);
 
-            x += 200f;
-            if (GUI.Button(new Rect(x, y, 88f, 26f), _showDiplomacy ? "关外交" : "外交"))
-                _showDiplomacy = !_showDiplomacy;
-
             if (world.Strategic != null && world.Strategic.HasBlockingInterrupt)
             {
-                x += 96f;
+                x += 210f;
                 GUI.Label(new Rect(x, y + 4f, 260f, 22f), "战略打断中…", _body);
             }
         }
@@ -480,57 +472,6 @@ namespace XianXia.Unity.Host
             if (current <= 5)
                 return 20;
             return 1;
-        }
-
-        void DrawDiplomacyPanel(Rect rect, XianXia.Core.Simulation.SimulationWorld world)
-        {
-            var old = GUI.color;
-            GUI.color = new Color(0.16f, 0.18f, 0.20f, 0.95f);
-            GUI.DrawTexture(rect, _px);
-            GUI.color = old;
-            GUI.Label(new Rect(rect.x + 8f, rect.y + 8f, rect.width - 16f, 24f), "帮派外交", _title);
-
-            var player = world.Strategic.PlayerFactionId;
-            var factions = new[]
-            {
-                StrategicFactionCatalog.HuangcunLaborId,
-                StrategicFactionCatalog.FisherVillageId,
-                StrategicFactionCatalog.BanditId
-            };
-
-            var rowY = rect.y + 36f;
-            for (var i = 0; i < factions.Length; i++)
-            {
-                var fid = factions[i];
-                var stance = world.Strategic.Diplomacy.GetStance(player, fid);
-                StrategicFactionCatalog.MapTint(fid, out var r, out var g, out var b);
-                GUI.color = new Color(r, g, b, 0.95f);
-                GUI.DrawTexture(new Rect(rect.x + 8f, rowY, rect.width - 16f, 28f), _px);
-                GUI.color = Color.white;
-                GUI.Label(
-                    new Rect(rect.x + 12f, rowY + 4f, rect.width - 20f, 22f),
-                    StrategicFactionCatalog.DisplayName(fid) + " · " + FormatStance(stance),
-                    _body);
-
-                var btnY = rowY + 32f;
-                var bw = (rect.width - 20f) / 2f;
-                if (GUI.Button(new Rect(rect.x + 8f, btnY, bw, 22f), "友"))
-                    world.Strategic.Diplomacy.SetStance(player, fid, FactionStance.Friendly);
-                if (GUI.Button(new Rect(rect.x + 12f + bw, btnY, bw, 22f), "中"))
-                    world.Strategic.Diplomacy.SetStance(player, fid, FactionStance.Neutral);
-                rowY += 62f;
-            }
-        }
-
-        static string FormatStance(FactionStance stance)
-        {
-            switch (stance)
-            {
-                case FactionStance.Friendly:
-                    return "友好";
-                default:
-                    return "中立";
-            }
         }
 
         void DrawGraph(Rect mapRect, XianXia.Core.Simulation.SimulationWorld world, WorldGraphBoard graph)
@@ -785,7 +726,7 @@ namespace XianXia.Unity.Host
                         {
                             _stackMenuStackId = hitStackId;
                             _stackMenuOpen = true;
-                            _stackMenuRect = new Rect(mouse.x + 4f, mouse.y + 4f, 196f, 118f);
+                            _stackMenuRect = new Rect(mouse.x + 4f, mouse.y + 4f, 196f, 92f);
                         }
                         else
                         {
@@ -892,12 +833,12 @@ namespace XianXia.Unity.Host
                 _stackMenuOpen = true;
                 if (world.Strategic.Armies.TryGet(menuStackId, out var previewStack) && previewStack != null)
                 {
-                    _stackMenuRect = new Rect(mouse.x + 4f, mouse.y + 4f, 196f, 118f);
+                    _stackMenuRect = new Rect(mouse.x + 4f, mouse.y + 4f, 196f, 92f);
                     _status = DescribeStack(world, previewStack);
                 }
                 else
                 {
-                    _stackMenuRect = new Rect(mouse.x + 4f, mouse.y + 4f, 196f, 96f);
+                    _stackMenuRect = new Rect(mouse.x + 4f, mouse.y + 4f, 196f, 72f);
                 }
 
                 e.Use();
@@ -1136,17 +1077,6 @@ namespace XianXia.Unity.Host
             GUI.enabled = true;
             y += 26f;
 
-            GUI.enabled = hasParty;
-            if (GUI.Button(new Rect(_stackMenuRect.x + 8f, y, bw, 22f), "交谈"))
-            {
-                Event.current.Use();
-                _status = "与「" + title + "」交谈尚未接入（占位）";
-                _stackMenuOpen = false;
-            }
-
-            GUI.enabled = true;
-            y += 26f;
-
             if (GUI.Button(new Rect(_stackMenuRect.x + 8f, y, bw, 22f), "查看详情"))
             {
                 Event.current.Use();
@@ -1236,22 +1166,6 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < from.Count; i++)
             {
                 if (!WorldTravelService.CanReceiveTravelOrder(world, from[i]))
-                    continue;
-                into.Add(from[i]);
-            }
-        }
-
-        static void CollectAtNodeParty(
-            XianXia.Core.Simulation.SimulationWorld world,
-            List<EntityId> from,
-            List<EntityId> into)
-        {
-            into.Clear();
-            for (var i = 0; i < from.Count; i++)
-            {
-                if (!world.WorldPresence.TryGet(from[i], out var p) ||
-                    p == null ||
-                    p.Mode != PartyWorldPresenceMode.AtNode)
                     continue;
                 into.Add(from[i]);
             }

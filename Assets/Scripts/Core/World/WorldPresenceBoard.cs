@@ -150,9 +150,7 @@ namespace XianXia.Core.World
             foreach (var kv in _byEntity)
             {
                 var p = kv.Value;
-                if (p == null ||
-                    (p.Mode != PartyWorldPresenceMode.AtNode &&
-                     p.Mode != PartyWorldPresenceMode.DepartingLocalMap))
+                if (p == null || p.Mode != PartyWorldPresenceMode.AtNode)
                     continue;
                 if (string.Equals(p.NodeId, nodeId, StringComparison.Ordinal))
                     into.Add(p.EntityId);

@@ -761,11 +761,11 @@ namespace XianXia.Tests
             }
 
             Assert.IsTrue(StrategicEncounterSpawner.OnCombatantDefeated(world, spawnId));
-            Assert.IsFalse(StrategicEncounterSpawner.TryResolveEncounterVictory(world));
             Assert.IsTrue(world.WorldPresence.TryGet(agent, out p));
             Assert.AreEqual(PartyWorldPresenceMode.InEncounter, p.Mode);
             Assert.IsTrue(world.Strategic.Encounter.HasEngagedParty);
             Assert.IsTrue(BattleOfferService.HasActiveManualEncounter(world));
+            Assert.IsTrue(StrategicEncounterSpawner.IsFieldCleared(world));
         }
 
         [Test]

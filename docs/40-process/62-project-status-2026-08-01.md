@@ -144,7 +144,7 @@
 |---|---|
 | **本轮 [140] 纯 RTS／接战／清场回程** | https://my.feishu.cn/docx/MEzIdolEBonQCExqQGjcsmxGnsf |
 | **规则 [139] 大地图 RTS 下令** | https://my.feishu.cn/docx/RgkxdiGNSoNd11xOXoncl7QnnCg |
-| **设计 [138] 战略层／接战弹窗** | https://my.feishu.cn/docx/Aodwd4XpNoPdzqxQ5wucY2LFnAg |
+| **设计 [138] 战略层／接战弹窗** | https://my.feishu.cn/docx/FSOcd9I2oosbBWx82CXcKMkZnod |
 | 项目现状（本页） | https://my.feishu.cn/docx/F1FJdQ1usoWzsIxfiTFcKbOQnM8 |
 | 策划总览 | https://my.feishu.cn/docx/Oowtd4tyRoQBuxxMiBIcEkSbnBc |
 | **VS0.7→1.0 交付总结** | https://my.feishu.cn/docx/DkNld4wZAowzGHx5yebcRb5onCd |
