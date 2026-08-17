@@ -3,6 +3,7 @@ using UnityEngine;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.World;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
@@ -40,7 +41,6 @@ namespace XianXia.Unity.Host
         string _status = string.Empty;
         bool _wasBlockingInput;
         int _travelingCountLast;
-        float _travelAccum;
 
         // 地图镜头：世界坐标中心 + 半宽（世界单位）
         float _viewCx;
@@ -50,6 +50,7 @@ namespace XianXia.Unity.Host
         bool _viewReady;
         bool _panning;
         Vector2 _panLastGui;
+        bool _showDiplomacy;
 
         GUIStyle _title;
         GUIStyle _body;
@@ -71,6 +72,8 @@ namespace XianXia.Unity.Host
         {
             open = true;
             _requestClose = false;
+            if (bootstrap?.Session != null && bootstrap.Session.IsInitialized)
+                bootstrap.Pause();
         }
 
         public void Close()
@@ -131,39 +134,14 @@ namespace XianXia.Unity.Host
                 HostInputGate.BlockWorldCamera = true;
                 HostInputGate.BlockWorldInteraction = true;
                 _wasBlockingInput = true;
-                if (bootstrap.Session.IsPaused)
-                    DriveTravelWhilePaused();
-                else
-                    WatchArrivals();
+                WatchArrivals();
             }
             else
             {
                 if (_wasBlockingInput)
                     ForceClearInputBlock();
-                _travelAccum = 0f;
                 _panning = false;
             }
-        }
-
-        void DriveTravelWhilePaused()
-        {
-            var world = bootstrap.Session.World;
-            var speed = bootstrap.EffectiveSpeedMultiplier();
-            var interval = bootstrap.SecondsPerAutoTickAt1x;
-            _travelAccum += Time.unscaledDeltaTime * Mathf.Max(0.1f, speed);
-            while (_travelAccum >= interval)
-            {
-                _travelAccum -= interval;
-                _arrivedScratch.Clear();
-                WorldTravelService.AdvanceTravel(world, 1, _arrivedScratch);
-                if (_arrivedScratch.Count > 0)
-                {
-                    WorldTravelService.SyncPartyFocus(world);
-                    _status = "有人抵达站点";
-                }
-            }
-
-            WatchArrivals();
         }
 
         void ForceClearInputBlock()
@@ -273,6 +251,8 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(Screen.width - 100f, 10f, 84f, 32f), "关闭"))
                 Close();
 
+            DrawMapToolbar(pad, topBar, world);
+
             if (!graph.HasGraph)
             {
                 GUI.Label(new Rect(pad, topBar, Screen.width - pad * 2f, 40f), "未加载 WorldGraph。", _body);
@@ -297,8 +277,13 @@ namespace XianXia.Unity.Host
                 (string.IsNullOrEmpty(_status) ? "" : "　｜　" + _status),
                 _body);
 
-            var mapTop = topBar + 28f;
-            var mapRect = new Rect(pad, mapTop, Screen.width - pad * 2f, Screen.height - mapTop - pad);
+            var mapTop = topBar + 56f;
+            var sideW = _showDiplomacy ? 220f : 0f;
+            var mapRect = new Rect(
+                pad,
+                mapTop,
+                Screen.width - pad * 2f - sideW,
+                Screen.height - mapTop - pad);
             GUI.color = new Color(0.12f, 0.14f, 0.16f, 1f);
             GUI.DrawTexture(mapRect, _px);
             GUI.color = Color.white;
@@ -307,6 +292,8 @@ namespace XianXia.Unity.Host
             DrawGraph(mapRect, world, graph);
             HandleMapInput(mapRect, world, graph);
             DrawAvatarContextMenu(world, graph);
+            if (_showDiplomacy)
+                DrawDiplomacyPanel(new Rect(mapRect.xMax + 8f, mapTop, sideW - 8f, mapRect.height), world);
             // 进入场景可能在本帧 OnGUI 中途关掉；立刻停画，避免同帧再盖一层
             if (!open)
                 return;
@@ -390,6 +377,108 @@ namespace XianXia.Unity.Host
             wy = _viewCy - (gui.y - cy) / scale;
         }
 
+        void DrawMapToolbar(float pad, float topBar, XianXia.Core.Simulation.SimulationWorld world)
+        {
+            var y = topBar + 2f;
+            var x = pad;
+            var paused = bootstrap.Session.IsPaused;
+            var pauseLabel = paused ? "继续 (Space)" : "暂停 (Space)";
+            if (GUI.Button(new Rect(x, y, 120f, 26f), pauseLabel))
+            {
+                if (paused)
+                    bootstrap.Resume();
+                else
+                    bootstrap.Pause();
+            }
+
+            x += 128f;
+            var speed = bootstrap.EffectiveSpeedMultiplier();
+            if (GUI.Button(new Rect(x, y, 72f, 26f), speed + "x"))
+                bootstrap.SetSpeedMultiplier(CycleSpeedValue(speed));
+            x += 80f;
+            GUI.Label(new Rect(x, y + 4f, 200f, 22f), "[ / ] 调倍速", _body);
+
+            x += 200f;
+            if (GUI.Button(new Rect(x, y, 88f, 26f), _showDiplomacy ? "关外交" : "外交"))
+                _showDiplomacy = !_showDiplomacy;
+
+            if (world.Strategic != null && world.Strategic.HasBlockingInterrupt)
+            {
+                x += 96f;
+                GUI.Label(new Rect(x, y + 4f, 260f, 22f), "战略打断中…", _body);
+            }
+        }
+
+        static int CycleSpeedValue(int current)
+        {
+            if (current <= 1)
+                return 2;
+            if (current <= 2)
+                return 5;
+            if (current <= 5)
+                return 20;
+            return 1;
+        }
+
+        void DrawDiplomacyPanel(Rect rect, XianXia.Core.Simulation.SimulationWorld world)
+        {
+            var old = GUI.color;
+            GUI.color = new Color(0.16f, 0.18f, 0.20f, 0.95f);
+            GUI.DrawTexture(rect, _px);
+            GUI.color = old;
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 8f, rect.width - 16f, 24f), "帮派外交", _title);
+
+            var player = world.Strategic.PlayerFactionId;
+            var factions = new[]
+            {
+                StrategicFactionCatalog.HuangcunLaborId,
+                StrategicFactionCatalog.FisherVillageId,
+                StrategicFactionCatalog.BanditId
+            };
+
+            var rowY = rect.y + 36f;
+            for (var i = 0; i < factions.Length; i++)
+            {
+                var fid = factions[i];
+                var stance = world.Strategic.Diplomacy.GetStance(player, fid);
+                StrategicFactionCatalog.MapTint(fid, out var r, out var g, out var b);
+                GUI.color = new Color(r, g, b, 0.95f);
+                GUI.DrawTexture(new Rect(rect.x + 8f, rowY, rect.width - 16f, 28f), _px);
+                GUI.color = Color.white;
+                GUI.Label(
+                    new Rect(rect.x + 12f, rowY + 4f, rect.width - 20f, 22f),
+                    StrategicFactionCatalog.DisplayName(fid) + " · " + FormatStance(stance),
+                    _body);
+
+                var btnY = rowY + 32f;
+                var bw = (rect.width - 20f) / 4f;
+                if (GUI.Button(new Rect(rect.x + 8f, btnY, bw, 22f), "友"))
+                    world.Strategic.Diplomacy.SetStance(player, fid, FactionStance.Friendly);
+                if (GUI.Button(new Rect(rect.x + 10f + bw, btnY, bw, 22f), "中"))
+                    world.Strategic.Diplomacy.SetStance(player, fid, FactionStance.Neutral);
+                if (GUI.Button(new Rect(rect.x + 12f + bw * 2f, btnY, bw, 22f), "敌"))
+                    world.Strategic.Diplomacy.SetStance(player, fid, FactionStance.Hostile);
+                if (GUI.Button(new Rect(rect.x + 14f + bw * 3f, btnY, bw, 22f), "战"))
+                    world.Strategic.Diplomacy.SetStance(player, fid, FactionStance.War);
+                rowY += 62f;
+            }
+        }
+
+        static string FormatStance(FactionStance stance)
+        {
+            switch (stance)
+            {
+                case FactionStance.Friendly:
+                    return "友好";
+                case FactionStance.Hostile:
+                    return "敌对";
+                case FactionStance.War:
+                    return "战争";
+                default:
+                    return "中立";
+            }
+        }
+
         void DrawGraph(Rect mapRect, XianXia.Core.Simulation.SimulationWorld world, WorldGraphBoard graph)
         {
             foreach (var kv in graph.Routes)
@@ -407,6 +496,7 @@ namespace XianXia.Unity.Host
             _nodeRects.Clear();
             // 先画头像（底层半透明），再画节点，保证地名不被挡住
             DrawAvatars(mapRect, world);
+            DrawArmyStacks(mapRect, world, graph);
 
             foreach (var kv in graph.Nodes)
             {
@@ -418,15 +508,78 @@ namespace XianXia.Unity.Host
 
                 var isFocus = string.Equals(n.Id, world.PartyWorld.NodeId, System.StringComparison.Ordinal);
                 var label = (isFocus ? "● " : "") + (string.IsNullOrEmpty(n.Name) ? n.Id : n.Name);
-                var boxC = isFocus
-                    ? new Color(0.35f, 0.42f, 0.28f, 0.95f)
-                    : new Color(0.22f, 0.24f, 0.27f, 0.92f);
+                if (!string.IsNullOrEmpty(n.OwnerId))
+                    label += "\n" + StrategicFactionCatalog.DisplayName(n.OwnerId);
+
+                StrategicFactionCatalog.MapTint(n.OwnerId, out var tr, out var tg, out var tb);
+                var boxC = string.IsNullOrEmpty(n.OwnerId)
+                    ? (isFocus
+                        ? new Color(0.35f, 0.42f, 0.28f, 0.95f)
+                        : new Color(0.22f, 0.24f, 0.27f, 0.92f))
+                    : new Color(tr, tg, tb, isFocus ? 0.95f : 0.82f);
                 var old = GUI.color;
                 GUI.color = boxC;
                 GUI.DrawTexture(rect, _px);
                 GUI.color = old;
                 GUI.Label(rect, label, _nodeLabel);
                 _nodeRects.Add((n.Id, rect));
+            }
+        }
+
+        void DrawArmyStacks(
+            Rect mapRect,
+            XianXia.Core.Simulation.SimulationWorld world,
+            WorldGraphBoard graph)
+        {
+            if (world.Strategic?.Armies == null)
+                return;
+
+            foreach (var kv in world.Strategic.Armies.Stacks)
+            {
+                var stack = kv.Value;
+                if (stack == null)
+                    continue;
+
+                float wx;
+                float wy;
+                if (stack.IsTraveling &&
+                    graph.TryGetRoute(stack.RouteId, out var route) &&
+                    graph.TryGetNode(route.FromNodeId, out var from) &&
+                    graph.TryGetNode(route.ToNodeId, out var to))
+                {
+                    var destIsTo = string.Equals(stack.DestNodeId, route.ToNodeId, System.StringComparison.Ordinal);
+                    var ax = destIsTo ? from.WorldX : to.WorldX;
+                    var ay = destIsTo ? from.WorldY : to.WorldY;
+                    var bx = destIsTo ? to.WorldX : from.WorldX;
+                    var by = destIsTo ? to.WorldY : from.WorldY;
+                    var t = stack.TravelProgress;
+                    wx = ax + (bx - ax) * t;
+                    wy = ay + (by - ay) * t;
+                }
+                else if (!string.IsNullOrEmpty(stack.NodeId) &&
+                         graph.TryGetNode(stack.NodeId, out var node))
+                {
+                    wx = node.WorldX + 0.35f;
+                    wy = node.WorldY + 0.35f;
+                }
+                else
+                {
+                    continue;
+                }
+
+                var p = Project(mapRect, wx, wy);
+                if (!mapRect.Contains(p))
+                    continue;
+
+                StrategicFactionCatalog.MapTint(stack.FactionId, out var r, out var g, out var b);
+                var size = 18f;
+                var rect = new Rect(p.x - size * 0.5f, p.y - size * 0.5f, size, size);
+                var old = GUI.color;
+                GUI.color = new Color(r, g, b, 0.95f);
+                GUI.DrawTexture(rect, _px);
+                GUI.color = old;
+                var tag = stack.MemberCount + "人";
+                GUI.Label(new Rect(rect.x - 8f, rect.yMax + 2f, 48f, 16f), tag, _avatarLabel);
             }
         }
 
