@@ -15,22 +15,78 @@ namespace XianXia.Core.World
         public string DestNodeId { get; set; } = string.Empty;
         public int RemainingTravelTicks { get; set; }
         public int TravelTotalTicks { get; set; }
+        /// <summary>RouteAnchored 时 0..1；-1 表示未锚定。</summary>
+        public float RouteAnchorProgress { get; set; } = -1f;
+        /// <summary>从锚点/中途出发的区段起点进度（Traveling 时用）。</summary>
+        public float RouteSegmentOriginProgress { get; set; } = -1f;
+        /// <summary>从锚点/中途出发的区段终点进度（Traveling 时用）。</summary>
+        public float RouteSegmentEndProgress { get; set; } = -1f;
+        /// <summary>宏观 RTS：跟随的 ArmyStack id；空表示未跟随。</summary>
+        public string FollowStackId { get; set; } = string.Empty;
+
+        public bool IsFollowingStack => !string.IsNullOrEmpty(FollowStackId);
+
+        public bool IsRouteAnchored =>
+            Mode == PartyWorldPresenceMode.RouteAnchored && RouteAnchorProgress >= 0f;
 
         /// <summary>0＝刚出发，1＝即将到站。</summary>
         public float TravelProgress
         {
             get
             {
-                if (Mode != PartyWorldPresenceMode.Traveling || TravelTotalTicks <= 0)
-                    return 0f;
+                if (Mode == PartyWorldPresenceMode.RouteAnchored)
+                    return RouteAnchorProgress;
+
+                var onRoute = Mode == PartyWorldPresenceMode.Traveling ||
+                              Mode == PartyWorldPresenceMode.InEncounter;
+                if (Mode == PartyWorldPresenceMode.InEncounter &&
+                    TravelTotalTicks <= 0 &&
+                    RouteAnchorProgress >= 0f)
+                    return RouteAnchorProgress;
+                if (!onRoute || TravelTotalTicks <= 0)
+                    return RouteAnchorProgress >= 0f ? RouteAnchorProgress : 0f;
+
                 var done = TravelTotalTicks - RemainingTravelTicks;
+                var leg = TravelTotalTicks <= 0 ? 1f : (float)done / TravelTotalTicks;
+                if (RouteSegmentOriginProgress >= 0f && RouteSegmentEndProgress >= 0f)
+                {
+                    return RouteSegmentOriginProgress +
+                           (RouteSegmentEndProgress - RouteSegmentOriginProgress) * leg;
+                }
+
                 if (done <= 0)
                     return 0f;
                 if (done >= TravelTotalTicks)
                     return 1f;
-                return (float)done / TravelTotalTicks;
+                return leg;
             }
         }
+
+        public bool HasRoutePresentation =>
+            !string.IsNullOrEmpty(RouteId) &&
+            !string.IsNullOrEmpty(DestNodeId) &&
+            !string.Equals(NodeId, DestNodeId, StringComparison.Ordinal) &&
+            (Mode == PartyWorldPresenceMode.Traveling ||
+             Mode == PartyWorldPresenceMode.RouteAnchored ||
+             (Mode == PartyWorldPresenceMode.InEncounter &&
+              (TravelTotalTicks > 0 || RouteAnchorProgress >= 0f)));
+
+        public void ClearRouteSegment()
+        {
+            RouteSegmentOriginProgress = -1f;
+            RouteSegmentEndProgress = -1f;
+        }
+
+        public void AnchorOnRoute(float progress)
+        {
+            Mode = PartyWorldPresenceMode.RouteAnchored;
+            RouteAnchorProgress = Math.Max(0f, Math.Min(1f, progress));
+            RemainingTravelTicks = 0;
+            TravelTotalTicks = 0;
+            ClearRouteSegment();
+        }
+
+        public void ClearFollow() => FollowStackId = string.Empty;
 
         public void ClearTravel()
         {
@@ -39,6 +95,8 @@ namespace XianXia.Core.World
             DestNodeId = string.Empty;
             RemainingTravelTicks = 0;
             TravelTotalTicks = 0;
+            RouteAnchorProgress = -1f;
+            ClearRouteSegment();
         }
     }
 

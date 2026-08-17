@@ -21,6 +21,7 @@ namespace XianXia.Core.World.Strategic
 
             // 接战只来自同路可见敌军栈碰撞／追击抵达。
             CheckBattleCollisions(world);
+            StrategicFollowService.AfterTravelTick(world);
             StrategicPursuitService.AfterTravelTick(world);
         }
 
@@ -43,8 +44,8 @@ namespace XianXia.Core.World.Strategic
                         continue;
                     if (!world.Strategic.Diplomacy.IsHostile(world.Strategic.PlayerFactionId, stack.FactionId))
                         continue;
-                    if (stack.IsRouteAnchored &&
-                        p.TravelProgress + 0.02f < stack.RouteAnchorProgress)
+                    // 路中锚定敌军栈：过路不弹接战，只走追击抵达或大地图主动攻击。
+                    if (stack.IsRouteAnchored)
                         continue;
                     if (BattleOfferService.TryBuildOfferForArmy(world, scratch, stack, "行军遭遇"))
                         return;

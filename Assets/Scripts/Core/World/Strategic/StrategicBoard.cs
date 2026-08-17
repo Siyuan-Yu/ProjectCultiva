@@ -17,6 +17,8 @@ namespace XianXia.Core.World.Strategic
         public string EncounterLocalMapId { get; set; } = string.Empty;
         public bool Resolved { get; set; }
         public bool PlayerWonAuto { get; set; }
+        /// <summary>同栈已有手动接战进行时，仅允许新成员加入。</summary>
+        public bool IsJoinOngoingBattle { get; set; }
         readonly List<ulong> _playerPartyIds = new List<ulong>(8);
 
         public IReadOnlyList<ulong> PlayerPartyIds => _playerPartyIds;
@@ -53,6 +55,7 @@ namespace XianXia.Core.World.Strategic
         {
             BattleOffer.OfferId = string.Empty;
             BattleOffer.ArmyStackId = string.Empty;
+            BattleOffer.IsJoinOngoingBattle = false;
             BattleOffer.ClearPlayerParty();
             BattleOffer.Resolved = true;
         }

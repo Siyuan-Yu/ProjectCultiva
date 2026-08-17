@@ -5,6 +5,7 @@ using XianXia.Core.Exploration;
 using XianXia.Core.Input;
 using XianXia.Core.Navigation;
 using XianXia.Core.World;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
@@ -17,6 +18,7 @@ namespace XianXia.Unity.Host
         [SerializeField] PlayableHostBootstrap bootstrap;
 
         readonly Dictionary<ulong, string> _pendingDest = new Dictionary<ulong, string>();
+        readonly Dictionary<ulong, string> _pendingStackAnchor = new Dictionary<ulong, string>();
         bool _suppressOverride;
         string _status = string.Empty;
 
@@ -27,6 +29,7 @@ namespace XianXia.Unity.Host
         public void ClearSessionState()
         {
             _pendingDest.Clear();
+            _pendingStackAnchor.Clear();
             _status = string.Empty;
             _suppressOverride = false;
         }
@@ -72,24 +75,45 @@ namespace XianXia.Unity.Host
 
         public void BeginDeparture(IReadOnlyList<EntityId> agents, string destNodeId)
         {
+            BeginMacroOrder(agents, WorldTravelTarget.AtNode(destNodeId), closeWorldMap: true, useLocalMapExit: true);
+        }
+
+        /// <summary>大地图下令：直接在宏观层移动，可选是否先走 LocalMap 边缘。</summary>
+        public void BeginMacroOrder(
+            IReadOnlyList<EntityId> agents,
+            WorldTravelTarget target,
+            bool closeWorldMap = false,
+            bool useLocalMapExit = false)
+        {
             _status = string.Empty;
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized ||
-                agents == null || agents.Count == 0 || string.IsNullOrEmpty(destNodeId))
+                agents == null || agents.Count == 0)
                 return;
 
             var world = bootstrap.Session.World;
-            if (!world.WorldGraph.TryGetNode(destNodeId, out var destNode))
+            if (target.IsRouteProgress)
+            {
+                if (string.IsNullOrEmpty(target.RouteId))
+                {
+                    _status = "无效的道路目标";
+                    return;
+                }
+            }
+            else if (string.IsNullOrEmpty(target.NodeId) ||
+                     !world.WorldGraph.TryGetNode(target.NodeId, out _))
             {
                 _status = "目标节点不存在";
                 return;
             }
 
-            // 大地图下的宏观下令：直接上路网，不要求先走 LocalMap 边缘
-            var macroFromWorldMap = bootstrap.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen;
-            bootstrap.WorldMapPanel?.Close();
+            if (closeWorldMap)
+                bootstrap.WorldMapPanel?.Close();
+            if (useLocalMapExit)
+                EnsureDepartureLocalMapView(world, agents);
 
             var anyLocalWalk = false;
-            var anyTravelStarted = false;
+            var anyTravelStarted = 0;
+            string lastFail = null;
             for (var i = 0; i < agents.Count; i++)
             {
                 var id = agents[i];
@@ -102,20 +126,131 @@ namespace XianXia.Unity.Host
                     bootstrap.CommandBridge?.IssueOne(id, PlayerCommandKind.Stop, 0);
                     bootstrap.MoveController?.CancelPresentationMovementPublic(id);
 
-                    if (!macroFromWorldMap && NeedsLocalMapExit(world, id))
+                    if (useLocalMapExit && NeedsLocalMapExit(world, id))
                     {
-                        var mark = WorldTravelService.MarkDepartingLocalMap(world, id, destNodeId);
+                        var edgeDest = target.IsRouteProgress
+                            ? target.RouteFromNodeId
+                            : target.NodeId;
+                        var mark = WorldTravelService.MarkDepartingLocalMap(world, id, edgeDest);
+                        if (mark.IsFailure)
+                        {
+                            lastFail = mark.Error.Message;
+                            continue;
+                        }
+
+                        _pendingDest[id.Value] = edgeDest;
+                        if (!TryOrderToMapEdge(id, edgeDest, () => OnReachedMapEdgeForMacroTarget(id, target)))
+                        {
+                            CancelDeparture(id, "无法走到地图边缘，出行取消");
+                        }
+                        else
+                        {
+                            anyLocalWalk = true;
+                        }
+
+                        continue;
+                    }
+
+                    CancelDeparture(id);
+                    var started = WorldTravelPathService.StartAgentTravelToTarget(world, id, target);
+                    if (started.IsSuccess)
+                    {
+                        anyTravelStarted++;
+                        HideFromLocalMap(id);
+                    }
+                    else
+                        lastFail = started.Error.Message;
+                }
+                finally
+                {
+                    _suppressOverride = false;
+                }
+            }
+
+            WorldTravelService.SyncPartyFocus(world);
+            if (anyLocalWalk)
+                _status = "正走向地图边缘，随后沿宏观道路移动";
+            else if (anyTravelStarted > 0)
+                _status = "已下令前往 " + target.Describe(world.WorldGraph);
+            else if (!string.IsNullOrEmpty(lastFail))
+                _status = lastFail;
+
+            bootstrap.Resume();
+        }
+
+        void OnReachedMapEdgeForMacroTarget(EntityId id, WorldTravelTarget target)
+        {
+            if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
+                return;
+
+            var world = bootstrap.Session.World;
+            if (!world.WorldPresence.TryGet(id, out var p) ||
+                p == null ||
+                p.Mode != PartyWorldPresenceMode.DepartingLocalMap)
+            {
+                _pendingDest.Remove(id.Value);
+                return;
+            }
+
+            bootstrap.MoveController?.CancelPresentationMovementPublic(id);
+            HideFromLocalMap(id);
+            p.Mode = PartyWorldPresenceMode.AtNode;
+            p.DestNodeId = string.Empty;
+            p.RouteId = string.Empty;
+            p.RemainingTravelTicks = 0;
+            p.TravelTotalTicks = 0;
+            _pendingDest.Remove(id.Value);
+
+            var started = WorldTravelPathService.StartAgentTravelToTarget(world, id, target);
+            _status = started.IsSuccess
+                ? "已离开场景，前往 " + target.Describe(world.WorldGraph)
+                : started.Error.Message;
+
+            WorldTravelService.SyncPartyFocus(world);
+        }
+
+        public void BeginPursuitToStackAnchor(IReadOnlyList<EntityId> agents, ArmyStack stack)
+        {
+            _status = string.Empty;
+            if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized ||
+                agents == null || agents.Count == 0 || stack == null)
+                return;
+
+            bootstrap.WorldMapPanel?.Close();
+            var world = bootstrap.Session.World;
+            var anyLocalWalk = false;
+            var anyTravelStarted = false;
+
+            for (var i = 0; i < agents.Count; i++)
+            {
+                var id = agents[i];
+                if (id.IsNone)
+                    continue;
+
+                _suppressOverride = true;
+                try
+                {
+                    bootstrap.CommandBridge?.IssueOne(id, PlayerCommandKind.Stop, 0);
+                    bootstrap.MoveController?.CancelPresentationMovementPublic(id);
+
+                    if (NeedsLocalMapExit(world, id))
+                    {
+                        var edgeDest = stack.NodeId;
+                        if (string.IsNullOrEmpty(edgeDest))
+                            edgeDest = stack.DestNodeId;
+                        var mark = WorldTravelService.MarkDepartingLocalMap(world, id, edgeDest);
                         if (mark.IsFailure)
                         {
                             _status = mark.Error.Message;
                             continue;
                         }
 
-                        _pendingDest[id.Value] = destNodeId;
-                        if (!TryOrderToMapEdge(id, destNodeId, () => OnReachedMapEdge(id)))
+                        _pendingDest[id.Value] = edgeDest;
+                        _pendingStackAnchor[id.Value] = stack.Id;
+                        if (!TryOrderToMapEdge(id, edgeDest, () => OnReachedMapEdgeForStack(id)))
                         {
-                            // 寻路失败不直接上路：取消离场，避免“没走出场景就上大地图”
-                            CancelDeparture(id, "无法走到地图边缘，出行取消");
+                            CancelDeparture(id, "无法走到地图边缘，追击取消");
+                            _pendingStackAnchor.Remove(id.Value);
                         }
                         else
                         {
@@ -124,10 +259,9 @@ namespace XianXia.Unity.Host
                     }
                     else
                     {
-                        // 人不在当前场景（已在别处／无 LocalMap）：直接上宏观路
-                        var start = WorldTravelService.StartTravel(world, id, destNodeId);
-                        if (start.IsFailure)
-                            _status = start.Error.Message;
+                        var started = WorldTravelService.StartTravelToStackAnchor(world, id, stack);
+                        if (started.IsFailure)
+                            _status = started.Error.Message;
                         else
                         {
                             anyTravelStarted = true;
@@ -143,11 +277,85 @@ namespace XianXia.Unity.Host
 
             WorldTravelService.SyncPartyFocus(world);
             if (anyLocalWalk)
-                _status = "未出行：正走向地图边缘（再下令／走动可取消）";
+                _status = "未出行：正走向地图边缘（抵达后沿道路追击敌军）";
             else if (anyTravelStarted && string.IsNullOrEmpty(_status))
-                _status = "已出发前往 " + (string.IsNullOrEmpty(destNode.Name) ? destNodeId : destNode.Name);
+                _status = "已沿道路追击「" +
+                          (string.IsNullOrEmpty(stack.DisplayName) ? stack.Id : stack.DisplayName) + "」";
 
             bootstrap.Resume();
+        }
+
+        void OnReachedMapEdgeForStack(EntityId id)
+        {
+            if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
+                return;
+
+            var world = bootstrap.Session.World;
+            if (!world.WorldPresence.TryGet(id, out var p) ||
+                p == null ||
+                p.Mode != PartyWorldPresenceMode.DepartingLocalMap)
+            {
+                _pendingDest.Remove(id.Value);
+                _pendingStackAnchor.Remove(id.Value);
+                return;
+            }
+
+            if (!_pendingStackAnchor.TryGetValue(id.Value, out var stackId) ||
+                !world.Strategic.Armies.TryGet(stackId, out var stack) ||
+                stack == null)
+            {
+                OnReachedMapEdge(id);
+                return;
+            }
+
+            bootstrap.MoveController?.CancelPresentationMovementPublic(id);
+            HideFromLocalMap(id);
+            p.Mode = PartyWorldPresenceMode.AtNode;
+            p.DestNodeId = string.Empty;
+            p.RouteId = string.Empty;
+            p.RemainingTravelTicks = 0;
+            p.TravelTotalTicks = 0;
+            _pendingDest.Remove(id.Value);
+            _pendingStackAnchor.Remove(id.Value);
+
+            var started = WorldTravelService.StartTravelToStackAnchor(world, id, stack);
+            if (started.IsFailure)
+                _status = started.Error.Message;
+            else
+                _status = "已离开场景，沿道路追击敌军";
+
+            WorldTravelService.SyncPartyFocus(world);
+        }
+
+        void EnsureDepartureLocalMapView(
+            XianXia.Core.Simulation.SimulationWorld world,
+            IReadOnlyList<EntityId> agents)
+        {
+            if (world == null || agents == null || bootstrap == null)
+                return;
+
+            for (var i = 0; i < agents.Count; i++)
+            {
+                var id = agents[i];
+                if (id.IsNone || !world.WorldPresence.TryGet(id, out var p) || p == null)
+                    continue;
+                if (p.Mode != PartyWorldPresenceMode.AtNode &&
+                    p.Mode != PartyWorldPresenceMode.DepartingLocalMap)
+                    continue;
+                if (string.IsNullOrEmpty(p.NodeId) ||
+                    !world.WorldGraph.TryGetNode(p.NodeId, out var node))
+                    continue;
+
+                var mapId = WorldTravelService.ResolveLocalMapId(node);
+                if (string.IsNullOrEmpty(mapId))
+                    continue;
+                if (string.Equals(world.LocalMap.ActiveMapLayoutId, mapId, System.StringComparison.Ordinal))
+                    return;
+
+                WorldTravelService.FocusNode(world, p.NodeId);
+                bootstrap.ApplyPartyWorldNodePresentation(closeWorldMap: false);
+                return;
+            }
         }
 
         bool NeedsLocalMapExit(XianXia.Core.Simulation.SimulationWorld world, EntityId id)
@@ -271,6 +479,14 @@ namespace XianXia.Unity.Host
 
             // 只更新宏观摘要；不要 Rebuild／挪镜头——离场者已 Despawn 即可
             WorldTravelService.SyncPartyFocus(world);
+        }
+
+        public void HidePartyFromLocalMapPublic(IReadOnlyList<EntityId> agents)
+        {
+            if (agents == null)
+                return;
+            for (var i = 0; i < agents.Count; i++)
+                HideFromLocalMap(agents[i]);
         }
 
         void HideFromLocalMap(EntityId id)

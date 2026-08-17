@@ -1,8 +1,12 @@
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
+using XianXia.Core.Events;
 using XianXia.Core.Navigation;
 using XianXia.Core.Results;
+using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Bootstrap;
 using XianXia.Data.Content;
@@ -860,10 +864,21 @@ namespace XianXia.Unity.Host
 
             var world = _session.World;
             var targetMap = world.PartyWorld.LocalMapId ?? string.Empty;
+            if (BattleOfferService.HasActiveManualEncounter(world))
+            {
+                targetMap = BattleOfferService.ResolveActiveEncounterLocalMapId(world);
+                world.PartyWorld.LocalMapId = targetMap;
+            }
             var inStrategicEncounter = world.Strategic?.Encounter != null &&
                                          (world.Strategic.Encounter.SpawnOnNextMapLoad ||
                                           world.Strategic.Encounter.SpawnedEntityIds.Count > 0 ||
                                           !string.IsNullOrEmpty(world.PartyWorld.EncounterId));
+            var onEncounterMap = BattleOfferService.HasActiveManualEncounter(world) &&
+                                 !string.IsNullOrWhiteSpace(targetMap) &&
+                                 string.Equals(
+                                     targetMap.Trim(),
+                                     StrategicEncounterCatalog.DefaultEncounterLocalMapId,
+                                     System.StringComparison.Ordinal);
 
             // 目标图必须在内容包里，否则禁止带着荒村图「假装切换」
             if (!string.IsNullOrWhiteSpace(targetMap))
@@ -890,13 +905,18 @@ namespace XianXia.Unity.Host
             var focusNode = world.PartyWorld.NodeId;
             var startId = world.WorldRegion.StartLocationId;
             var encounter = world.Strategic?.Encounter;
-            var filterEngaged = inStrategicEncounter && encounter != null && encounter.HasEngagedParty;
+            var filterEngaged = onEncounterMap && encounter != null && encounter.HasEngagedParty;
             for (var i = 0; i < _session.CharacterIds.Count; i++)
             {
                 var id = _session.CharacterIds[i];
                 if (filterEngaged && !encounter.IsEngaged(id))
                     continue;
                 world.WorldPresence.TryGet(id, out var wp);
+                if (wp != null &&
+                    !onEncounterMap &&
+                    (wp.Mode == XianXia.Core.World.PartyWorldPresenceMode.InEncounter ||
+                     wp.Mode == XianXia.Core.World.PartyWorldPresenceMode.Traveling))
+                    continue;
                 var engagedInEncounter = filterEngaged && encounter.IsEngaged(id);
                 if (!engagedInEncounter &&
                     wp != null &&
@@ -905,8 +925,15 @@ namespace XianXia.Unity.Host
                     continue;
                 if (wp != null && wp.Mode == XianXia.Core.World.PartyWorldPresenceMode.Traveling)
                 {
-                    if (!inStrategicEncounter)
+                    if (!onEncounterMap)
                         continue;
+                    wp.Mode = XianXia.Core.World.PartyWorldPresenceMode.InEncounter;
+                }
+                else if (wp != null &&
+                         wp.Mode == XianXia.Core.World.PartyWorldPresenceMode.RouteAnchored &&
+                         onEncounterMap &&
+                         engagedInEncounter)
+                {
                     wp.Mode = XianXia.Core.World.PartyWorldPresenceMode.InEncounter;
                 }
 
@@ -956,7 +983,7 @@ namespace XianXia.Unity.Host
             var spawned = StrategicEncounterSpawner.ApplyPending(world);
             if (spawned.IsFailure)
                 Debug.LogWarning("[PlayableHost] Strategic encounter spawn: " + spawned.Error, this);
-            if (inStrategicEncounter)
+            if (onEncounterMap)
             {
                 _session.RefreshViewableEntityIds();
                 entityViewSpawner?.Rebuild(_session);
@@ -1001,6 +1028,40 @@ namespace XianXia.Unity.Host
             }
         }
 
+        /// <summary>增援加入进行中的遭遇战：保持 Encounter 图，不重刷荒村等节点图。</summary>
+        public void CompleteEncounterJoinPresentation(
+            IReadOnlyList<EntityId> newcomers,
+            string encounterMapId = null)
+        {
+            if (!_session.IsInitialized || newcomers == null || newcomers.Count == 0)
+                return;
+
+            var world = _session.World;
+            var mapId = string.IsNullOrWhiteSpace(encounterMapId)
+                ? BattleOfferService.ResolveActiveEncounterLocalMapId(world)
+                : encounterMapId.Trim();
+
+            world.PartyWorld.LocalMapId = mapId;
+            var places = WorldRegionBootstrap.ActivatePlacesForMapLayout(
+                world, _session.Registry, mapId);
+            if (places.IsFailure)
+                Debug.LogWarning("[PlayableHost] Encounter join places: " + places.Error, this);
+
+            preferredMapLayoutId = mapId;
+            _session.PreferredMapLayoutId = mapId;
+            world.LocalMap.ActiveMapLayoutId = mapId;
+            world.LocalMap.OverworldMapLayoutId = mapId;
+
+            if (worldMapPanel != null && worldMapPanel.IsOpen)
+                worldMapPanel.Close();
+
+            StrategicEncounterSpawner.RelocatePartyOnEncounterMap(world, newcomers);
+            ReloadLocalMapPresentation(frameCamera: false);
+            _session.RefreshViewableEntityIds();
+            entityViewSpawner?.Rebuild(_session);
+            RefreshStatus();
+        }
+
         /// <summary>仅重刷地表戳（如勘查显形），不重建实体、不挪镜头。</summary>
         public void RefreshMapStampsOnly()
         {
@@ -1030,12 +1091,47 @@ namespace XianXia.Unity.Host
             RefreshStatus();
         }
 
+        void ExitEncounterAfterVictory()
+        {
+            if (!_session.IsInitialized)
+                return;
+
+            var world = _session.World;
+            WorldTravelService.SyncPartyFocus(world);
+            world.PartyWorld.EncounterId = string.Empty;
+            world.LocalMap.ActiveMapLayoutId = string.Empty;
+            world.LocalMap.OverworldMapLayoutId = string.Empty;
+            preferredMapLayoutId = string.Empty;
+            _session.PreferredMapLayoutId = string.Empty;
+            if (entityViewSpawner != null)
+                entityViewSpawner.Clear();
+            _session.RefreshViewableEntityIds();
+            if (worldMapPanel != null)
+                worldMapPanel.Open();
+            RefreshStatus();
+        }
+
         /// <summary>Host 表现层触发的 Content／Quest 事件立即送给打断呈现。</summary>
         public void DispatchDrainedEvents()
         {
             if (_session?.World?.Events == null)
                 return;
             var drained = _session.World.Events.Drain();
+            for (var i = 0; i < drained.Count; i++)
+            {
+                var evt = drained[i];
+                if (evt?.Type == XianXia.Core.Events.EventType.CombatantDefeated &&
+                    evt.Target.HasValue)
+                {
+                    if (StrategicEncounterSpawner.OnCombatantDefeated(
+                            _session.World,
+                            evt.Target.Value))
+                    {
+                        ExitEncounterAfterVictory();
+                    }
+                }
+            }
+
             if (contentInterrupt != null)
                 contentInterrupt.Ingest(drained);
             if (questJournal != null)

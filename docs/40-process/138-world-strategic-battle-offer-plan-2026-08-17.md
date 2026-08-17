@@ -1,6 +1,6 @@
 # 138 · 大地图战略层与接战弹窗计划（2026-08-17）
 
-> 状态：**设计已定；待实现**｜日期：2026-08-17  
+> 状态：**Phase 1～4 已实现；接战/移动/跟随见 [139](139-world-map-rts-orders-2026-08-17.md)**｜日期：2026-08-17  
 > 相对：[113 WorldGraph 架构](113-world-graph-local-map-architecture-revision-v0.1.md)（A～D／F 已落地，E 待做）｜[129 Host 出行](129-world-graph-host-travel-scene-isolation-2026-08-16.md)｜[28 江湖关系](../20-systems/28-jianghu-relations.md)｜[26 领地经营](../20-systems/26-territory-management.md)  
 > 飞书：https://my.feishu.cn/docx/Aodwd4XpNoPdzqxQ5wucY2LFnAg
 

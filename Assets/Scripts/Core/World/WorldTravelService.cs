@@ -76,6 +76,8 @@ namespace XianXia.Core.World
                 return Result.Failure(ErrorCode.InvalidOperation, "Already departing local map.", id.Value.ToString());
             if (p.Mode == PartyWorldPresenceMode.InEncounter)
                 return Result.Failure(ErrorCode.InvalidOperation, "In encounter.", id.Value.ToString());
+            if (p.Mode == PartyWorldPresenceMode.RouteAnchored)
+                return StartTravelFromRouteAnchor(world, id, p, toNodeId);
             if (string.Equals(p.NodeId, toNodeId, StringComparison.Ordinal))
                 return Result.Failure(ErrorCode.InvalidArgument, "Already at destination node.");
             if (!world.WorldGraph.TryFindRoute(p.NodeId, toNodeId, out var route))
@@ -90,6 +92,330 @@ namespace XianXia.Core.World
             p.Mode = PartyWorldPresenceMode.Traveling;
             p.RouteId = route.Id;
             p.DestNodeId = toNodeId;
+            p.TravelTotalTicks = ticks;
+            p.RemainingTravelTicks = ticks;
+            p.RouteAnchorProgress = -1f;
+            p.ClearRouteSegment();
+            return Result.Success();
+        }
+
+        static Result StartTravelFromRouteAnchor(
+            SimulationWorld world,
+            EntityId id,
+            WorldAgentPresence p,
+            string toNodeId)
+        {
+            if (string.IsNullOrEmpty(p.RouteId) || !world.WorldGraph.TryGetRoute(p.RouteId, out var route))
+                return Result.Failure(ErrorCode.InvalidOperation, "Traveler is not on a macro route.");
+
+            var atOrigin = string.Equals(toNodeId, p.NodeId, StringComparison.Ordinal);
+            var atDest = string.Equals(toNodeId, p.DestNodeId, StringComparison.Ordinal);
+            if (!atOrigin && !atDest)
+            {
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "金丹前只能沿当前道路前往两端节点。");
+            }
+
+            if (atOrigin && p.RouteAnchorProgress <= 0.001f)
+                return Result.Failure(ErrorCode.InvalidArgument, "Already at route origin.");
+            if (atDest && p.RouteAnchorProgress >= 0.999f)
+                return Result.Failure(ErrorCode.InvalidArgument, "Already at route destination.");
+
+            var gate = CanTraverse(route);
+            if (gate.IsFailure)
+                return gate;
+
+            var cost = route.TravelCost > 0 ? route.TravelCost : 1;
+            var fullTicks = ComputeTravelTicks(world, id, cost);
+            var startProgress = p.RouteAnchorProgress;
+            float endProgress;
+            float fraction;
+            if (atDest)
+            {
+                endProgress = 1f;
+                fraction = 1f - startProgress;
+            }
+            else
+            {
+                endProgress = 0f;
+                fraction = startProgress;
+            }
+
+            if (fraction <= 0.001f)
+            {
+                ArriveAtRouteEndpoint(world, p, atDest ? p.DestNodeId : p.NodeId);
+                return Result.Success();
+            }
+
+            var ticks = Math.Max(4, (int)Math.Round(fullTicks * fraction));
+            p.Mode = PartyWorldPresenceMode.Traveling;
+            p.RouteAnchorProgress = -1f;
+            p.RouteSegmentOriginProgress = startProgress;
+            p.RouteSegmentEndProgress = endProgress;
+            p.TravelTotalTicks = ticks;
+            p.RemainingTravelTicks = ticks;
+            return Result.Success();
+        }
+
+        /// <summary>从路线锚点前往同一路线上的任意进度（金丹前宏观道路）。</summary>
+        public static Result StartTravelToRouteProgress(
+            SimulationWorld world,
+            EntityId id,
+            float targetProgress)
+        {
+            if (world == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
+            if (id.IsNone)
+                return Result.Failure(ErrorCode.InvalidArgument, "Invalid traveler.");
+            if (!world.WorldPresence.TryGet(id, out var p) || p == null)
+                return Result.Failure(ErrorCode.NotFound, "Traveler presence missing.", id.Value.ToString());
+            if (p.Mode != PartyWorldPresenceMode.RouteAnchored)
+                return Result.Failure(ErrorCode.InvalidOperation, "Traveler is not anchored on a route.");
+            if (string.IsNullOrEmpty(p.RouteId) || !world.WorldGraph.TryGetRoute(p.RouteId, out var route))
+                return Result.Failure(ErrorCode.InvalidOperation, "Traveler is not on a macro route.");
+
+            var gate = CanTraverse(route);
+            if (gate.IsFailure)
+                return gate;
+
+            targetProgress = Math.Max(0f, Math.Min(1f, targetProgress));
+            if (Math.Abs(p.RouteAnchorProgress - targetProgress) <= 0.001f)
+            {
+                p.AnchorOnRoute(targetProgress);
+                return Result.Success();
+            }
+
+            return StartTravelRouteSegment(
+                world,
+                id,
+                p,
+                p.RouteId,
+                p.NodeId,
+                p.DestNodeId,
+                p.RouteAnchorProgress,
+                targetProgress);
+        }
+
+        public static Result StartTravelPartyToRouteProgress(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> agents,
+            float targetProgress)
+        {
+            if (world == null || agents == null || agents.Count == 0)
+                return Result.Failure(ErrorCode.InvalidArgument, "Invalid route progress travel request.");
+
+            var started = 0;
+            string lastFail = null;
+            for (var i = 0; i < agents.Count; i++)
+            {
+                var result = StartTravelToRouteProgress(world, agents[i], targetProgress);
+                if (result.IsSuccess)
+                    started++;
+                else
+                    lastFail = result.Error.Message;
+            }
+
+            return started > 0
+                ? Result.Success()
+                : Result.Failure(ErrorCode.InvalidOperation, lastFail ?? "No travelers started.");
+        }
+
+        static void ArriveAtRouteEndpoint(SimulationWorld world, WorldAgentPresence p, string nodeId)
+        {
+            if (p == null)
+                return;
+            p.NodeId = nodeId ?? string.Empty;
+            p.ClearTravel();
+        }
+
+        public static Result StartTravelPartyToStackAnchor(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> agents,
+            ArmyStack stack)
+        {
+            if (world == null || agents == null || agents.Count == 0 || stack == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "Invalid pursuit travel request.");
+
+            var started = 0;
+            string lastFail = null;
+            for (var i = 0; i < agents.Count; i++)
+            {
+                var one = StartTravelToStackAnchor(world, agents[i], stack);
+                if (one.IsSuccess)
+                {
+                    started++;
+                    continue;
+                }
+
+                lastFail = one.Error.Message +
+                           (string.IsNullOrEmpty(one.Error.Detail) ? "" : " · " + one.Error.Detail);
+            }
+
+            if (started == 0)
+            {
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    string.IsNullOrEmpty(lastFail) ? "No traveler could pursue stack." : lastFail);
+            }
+
+            SyncPartyFocus(world);
+            return Result.Success();
+        }
+
+        public static Result StartTravelToStackAnchor(
+            SimulationWorld world,
+            EntityId id,
+            ArmyStack stack)
+        {
+            if (id.IsNone || stack == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "Invalid pursuit traveler.");
+            if (!stack.IsRouteAnchored)
+                return StartTravelOne(world, id, StrategicNodeAccessService.ResolveStackTravelTarget(stack));
+            if (!world.WorldPresence.TryGet(id, out var p) || p == null)
+                return Result.Failure(ErrorCode.NotFound, "Traveler presence missing.");
+
+            if (StrategicNodeAccessService.IsAgentAtStackAnchor(world, p, stack))
+                return Result.Success();
+
+            if (p.Mode == PartyWorldPresenceMode.InEncounter)
+                return Result.Failure(ErrorCode.InvalidOperation, "In encounter.");
+
+            var target = stack.RouteAnchorProgress;
+            if (p.Mode == PartyWorldPresenceMode.RouteAnchored)
+            {
+                return StartTravelRouteSegment(
+                    world,
+                    id,
+                    p,
+                    stack.RouteId,
+                    stack.NodeId,
+                    stack.DestNodeId,
+                    p.RouteAnchorProgress,
+                    target);
+            }
+
+            if (p.Mode == PartyWorldPresenceMode.Traveling &&
+                string.Equals(p.RouteId, stack.RouteId, StringComparison.Ordinal))
+            {
+                return RetargetTravelToRouteProgress(world, id, p, stack.NodeId, stack.DestNodeId, target);
+            }
+
+            if (p.Mode == PartyWorldPresenceMode.AtNode)
+            {
+                if (string.Equals(p.NodeId, stack.NodeId, StringComparison.Ordinal))
+                {
+                    return StartTravelRouteSegment(
+                        world, id, p, stack.RouteId, stack.NodeId, stack.DestNodeId, 0f, target);
+                }
+
+                if (string.Equals(p.NodeId, stack.DestNodeId, StringComparison.Ordinal))
+                {
+                    return StartTravelRouteSegment(
+                        world, id, p, stack.RouteId, stack.NodeId, stack.DestNodeId, 1f, target);
+                }
+
+                var hop = StartTravelOne(world, id, stack.NodeId);
+                if (hop.IsFailure)
+                    hop = StartTravelOne(world, id, stack.DestNodeId);
+                if (hop.IsFailure)
+                    return hop;
+                if (!world.WorldPresence.TryGet(id, out p) || p == null)
+                    return Result.Failure(ErrorCode.NotFound, "Traveler presence missing.");
+                return RetargetTravelToRouteProgress(world, id, p, stack.NodeId, stack.DestNodeId, target);
+            }
+
+            return Result.Failure(ErrorCode.InvalidOperation, "Traveler cannot pursue this stack.");
+        }
+
+        public static void ClampPursuitTravelToStackAnchor(
+            SimulationWorld world,
+            EntityId id,
+            ArmyStack stack)
+        {
+            if (world == null || stack == null || !stack.IsRouteAnchored || id.IsNone)
+                return;
+            if (!world.WorldPresence.TryGet(id, out var p) || p == null)
+                return;
+            if (p.Mode != PartyWorldPresenceMode.Traveling ||
+                !string.Equals(p.RouteId, stack.RouteId, StringComparison.Ordinal))
+                return;
+            if (StrategicNodeAccessService.IsAgentAtStackAnchor(world, p, stack))
+                return;
+
+            RetargetTravelToRouteProgress(world, id, p, stack.NodeId, stack.DestNodeId, stack.RouteAnchorProgress);
+        }
+
+        static Result RetargetTravelToRouteProgress(
+            SimulationWorld world,
+            EntityId id,
+            WorldAgentPresence p,
+            string originNodeId,
+            string destNodeId,
+            float targetProgress)
+        {
+            if (p == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "Presence missing.");
+
+            var current = p.TravelProgress;
+            if (current + 0.02f >= targetProgress)
+            {
+                p.AnchorOnRoute(targetProgress);
+                return Result.Success();
+            }
+
+            return StartTravelRouteSegment(
+                world,
+                id,
+                p,
+                p.RouteId,
+                originNodeId,
+                destNodeId,
+                current,
+                targetProgress);
+        }
+
+        static Result StartTravelRouteSegment(
+            SimulationWorld world,
+            EntityId id,
+            WorldAgentPresence p,
+            string routeId,
+            string originNodeId,
+            string destNodeId,
+            float startProgress,
+            float endProgress)
+        {
+            if (p == null || string.IsNullOrEmpty(routeId))
+                return Result.Failure(ErrorCode.InvalidArgument, "Route segment invalid.");
+            if (!world.WorldGraph.TryGetRoute(routeId, out var route))
+                return Result.Failure(ErrorCode.NotFound, "Route missing.", routeId);
+
+            var gate = CanTraverse(route);
+            if (gate.IsFailure)
+                return gate;
+
+            startProgress = Math.Max(0f, Math.Min(1f, startProgress));
+            endProgress = Math.Max(0f, Math.Min(1f, endProgress));
+            if (Math.Abs(startProgress - endProgress) <= 0.001f)
+            {
+                p.NodeId = originNodeId ?? string.Empty;
+                p.DestNodeId = destNodeId ?? string.Empty;
+                p.RouteId = routeId;
+                p.AnchorOnRoute(endProgress);
+                return Result.Success();
+            }
+
+            var cost = route.TravelCost > 0 ? route.TravelCost : 1;
+            var fullTicks = ComputeTravelTicks(world, id, cost);
+            var fraction = Math.Abs(endProgress - startProgress);
+            var ticks = Math.Max(4, (int)Math.Round(fullTicks * fraction));
+            p.Mode = PartyWorldPresenceMode.Traveling;
+            p.NodeId = originNodeId ?? string.Empty;
+            p.DestNodeId = destNodeId ?? string.Empty;
+            p.RouteId = routeId;
+            p.RouteAnchorProgress = -1f;
+            p.RouteSegmentOriginProgress = startProgress;
+            p.RouteSegmentEndProgress = endProgress;
             p.TravelTotalTicks = ticks;
             p.RemainingTravelTicks = ticks;
             return Result.Success();
@@ -210,6 +536,20 @@ namespace XianXia.Core.World
                 if (p.RemainingTravelTicks > 0)
                     continue;
 
+                if (p.RouteSegmentEndProgress >= 0f)
+                {
+                    if (p.RouteSegmentEndProgress <= 0.01f)
+                        ArriveAtRouteEndpoint(world, p, p.NodeId);
+                    else if (p.RouteSegmentEndProgress >= 0.99f)
+                        ArriveAtRouteEndpoint(world, p, p.DestNodeId);
+                    else
+                        p.AnchorOnRoute(p.RouteSegmentEndProgress);
+                    arrived = true;
+                    arrivedOut?.Add(p.EntityId);
+                    WorldTravelPathService.TryContinueQueuedTravel(world, p.EntityId);
+                    continue;
+                }
+
                 if (!world.WorldGraph.TryGetRoute(p.RouteId, out var route))
                 {
                     p.ClearTravel();
@@ -226,12 +566,40 @@ namespace XianXia.Core.World
                 p.ClearTravel();
                 arrived = true;
                 arrivedOut?.Add(p.EntityId);
+                WorldTravelPathService.TryContinueQueuedTravel(world, p.EntityId);
             }
 
             if (arrived || arrivedOut == null)
                 SyncPartyFocus(world);
 
             return Result.Success();
+        }
+
+        public static bool CanReceiveTravelOrder(SimulationWorld world, EntityId id)
+        {
+            if (world == null || id.IsNone || !world.WorldPresence.TryGet(id, out var p) || p == null)
+                return false;
+            return p.Mode == PartyWorldPresenceMode.AtNode ||
+                   p.Mode == PartyWorldPresenceMode.RouteAnchored ||
+                   p.Mode == PartyWorldPresenceMode.Traveling;
+        }
+
+        public static bool CanReachNodeFromPresence(
+            SimulationWorld world,
+            WorldAgentPresence p,
+            string toNodeId)
+        {
+            if (world == null || p == null || string.IsNullOrEmpty(toNodeId))
+                return false;
+            if (p.Mode == PartyWorldPresenceMode.RouteAnchored)
+            {
+                return string.Equals(toNodeId, p.NodeId, StringComparison.Ordinal) ||
+                       string.Equals(toNodeId, p.DestNodeId, StringComparison.Ordinal);
+            }
+
+            if (p.Mode != PartyWorldPresenceMode.AtNode || string.IsNullOrEmpty(p.NodeId))
+                return false;
+            return world.WorldGraph.TryFindRoute(p.NodeId, toNodeId, out _);
         }
 
         public static Result PlaceAgentsAtNode(
@@ -315,7 +683,9 @@ namespace XianXia.Core.World
             }
 
             world.PartyWorld.NodeId = focus;
-            world.PartyWorld.LocalMapId = ResolveLocalMapId(node);
+            world.PartyWorld.LocalMapId = BattleOfferService.HasActiveManualEncounter(world)
+                ? BattleOfferService.ResolveActiveEncounterLocalMapId(world)
+                : ResolveLocalMapId(node);
             world.PartyWorld.Mode = anyTraveling
                 ? PartyWorldPresenceMode.Traveling
                 : PartyWorldPresenceMode.AtNode;
@@ -400,8 +770,7 @@ namespace XianXia.Core.World
                 return false;
             fromX = from.WorldX;
             fromY = from.WorldY;
-            if (presence.Mode != PartyWorldPresenceMode.Traveling ||
-                string.IsNullOrEmpty(presence.DestNodeId) ||
+            if (!presence.HasRoutePresentation ||
                 !world.WorldGraph.TryGetNode(presence.DestNodeId, out var to))
             {
                 toX = fromX;

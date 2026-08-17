@@ -4,6 +4,7 @@ using UnityEngine;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.World;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
@@ -14,8 +15,9 @@ namespace XianXia.Unity.Host
 
         bool _open;
         readonly List<EntityId> _agents = new List<EntityId>(8);
-        string _destNodeId = string.Empty;
+        WorldTravelTarget _target;
         string _destName = string.Empty;
+        string _pursueStackId = string.Empty;
         string _bodyText = string.Empty;
         bool _holdingPause;
         GUIStyle _title;
@@ -33,11 +35,40 @@ namespace XianXia.Unity.Host
         {
             _open = false;
             _agents.Clear();
-            _destNodeId = string.Empty;
+            _target = default;
+            _pursueStackId = string.Empty;
             ReleasePause();
         }
 
         public void Open(IReadOnlyList<EntityId> agents, string destNodeId, string destName)
+        {
+            OpenInternal(agents, WorldTravelTarget.AtNode(destNodeId), destName, string.Empty);
+        }
+
+        public void OpenTarget(IReadOnlyList<EntityId> agents, WorldTravelTarget target, string destName = null)
+        {
+            OpenInternal(agents, target, destName, string.Empty);
+        }
+
+        public void OpenForStackPursuit(
+            IReadOnlyList<EntityId> agents,
+            ArmyStack stack,
+            string destName)
+        {
+            if (stack == null)
+                return;
+            OpenInternal(
+                agents,
+                WorldTravelTarget.AtNode(stack.NodeId ?? string.Empty),
+                destName,
+                stack.Id ?? string.Empty);
+        }
+
+        void OpenInternal(
+            IReadOnlyList<EntityId> agents,
+            WorldTravelTarget target,
+            string destName,
+            string pursueStackId)
         {
             _agents.Clear();
             if (agents != null)
@@ -49,11 +80,15 @@ namespace XianXia.Unity.Host
                 }
             }
 
-            if (_agents.Count == 0 || string.IsNullOrEmpty(destNodeId) || bootstrap?.Session == null)
+            if (_agents.Count == 0 || bootstrap?.Session == null)
+                return;
+            if (!target.IsRouteProgress && string.IsNullOrEmpty(target.NodeId))
                 return;
 
-            _destNodeId = destNodeId;
-            _destName = string.IsNullOrEmpty(destName) ? destNodeId : destName;
+            _target = target;
+            var graph = bootstrap.Session.World.WorldGraph;
+            _destName = string.IsNullOrEmpty(destName) ? target.Describe(graph) : destName;
+            _pursueStackId = pursueStackId ?? string.Empty;
             _bodyText = BuildBody(bootstrap.Session.World);
             _open = true;
         }
@@ -75,10 +110,18 @@ namespace XianXia.Unity.Host
                 sb.Append(EntityLabel(world, _agents[i]));
             }
 
-            sb.Append("」前往「").Append(_destName).Append("」？\n\n");
-            sb.Append("确认后会打断他们当前行为：\n");
-            sb.Append("· 若人在当前场景 → 先走到地图边缘再离开\n");
-            sb.Append("· 随后在大地图上慢慢移动；途中无法进入其所在场景");
+            sb.Append("」");
+            if (!string.IsNullOrEmpty(_pursueStackId))
+                sb.Append("沿道路追击「").Append(_destName).Append("」并在抵达其位置接战？\n\n");
+            else
+                sb.Append("移动到「").Append(_destName).Append("」？\n\n");
+            sb.Append("确认后会打断当前宏观行动。\n");
+            if (!string.IsNullOrEmpty(_pursueStackId))
+                sb.Append("· 沿道路抵达敌军位置；先到者可先接战，后到者可加入战斗");
+            else if (_target.IsRouteProgress)
+                sb.Append("· 沿所选道路前往指定位置");
+            else
+                sb.Append("· 沿宏观道路逐段前进，途经节点时自动续走");
             return sb.ToString();
         }
 
@@ -143,9 +186,20 @@ namespace XianXia.Unity.Host
             {
                 Event.current.Use();
                 var agents = new List<EntityId>(_agents);
-                var dest = _destNodeId;
+                var target = _target;
+                var stackId = _pursueStackId;
                 Close();
-                bootstrap.WorldTravelDeparture?.BeginDeparture(agents, dest);
+                if (!string.IsNullOrEmpty(stackId) &&
+                    bootstrap?.Session != null &&
+                    bootstrap.Session.World.Strategic.Armies.TryGet(stackId, out var stack) &&
+                    stack != null)
+                {
+                    bootstrap.WorldTravelDeparture?.BeginPursuitToStackAnchor(agents, stack);
+                }
+                else
+                {
+                    bootstrap.WorldTravelDeparture?.BeginMacroOrder(agents, target);
+                }
             }
 
             if (HostImguiStyles.ParchmentBtn(no, "取消"))

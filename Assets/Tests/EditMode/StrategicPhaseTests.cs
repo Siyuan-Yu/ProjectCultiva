@@ -192,6 +192,40 @@ namespace XianXia.Tests
         }
 
         [Test]
+        public void EncounterSpawner_CasualtySyncsArmyStackMemberCount()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var stack));
+            StrategicEncounterSpawner.PlanManualEncounter(
+                world,
+                stack.Id,
+                string.Empty,
+                null,
+                3,
+                2);
+            world.PartyWorld.LocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+            Assert.IsTrue(StrategicEncounterSpawner.ApplyPending(world).IsSuccess);
+            Assert.AreEqual(3, stack.MemberCount);
+            Assert.AreEqual(3, world.Strategic.Encounter.SpawnedEntityIds.Count);
+
+            var first = new EntityId(world.Strategic.Encounter.SpawnedEntityIds[0]);
+            if (world.Entities.TryGet(first, out var entity) &&
+                entity.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var life))
+            {
+                life.State = XianXia.Core.Entities.LifecycleState.Dead;
+            }
+
+            StrategicEncounterSpawner.OnCombatantDefeated(world, first);
+            Assert.AreEqual(2, stack.MemberCount);
+            Assert.AreEqual(2, world.Strategic.Encounter.SpawnedEntityIds.Count);
+
+            StrategicEncounterSpawner.PlanManualEncounter(world, stack.Id, string.Empty, null, 3, 2);
+            Assert.IsTrue(StrategicEncounterSpawner.ApplyPending(world).IsSuccess);
+            Assert.AreEqual(2, world.Strategic.Encounter.SpawnedEntityIds.Count);
+        }
+
+        [Test]
         public void BanditPatrol_IsAnchoredOnHuangcunLinjianRoute()
         {
             var world = StartCh01().World;
@@ -212,10 +246,13 @@ namespace XianXia.Tests
             Assert.NotNull(stack);
 
             StrategicPursuitService.BeginPursuit(world, party, stack);
-            WorldTravelService.PlaceAgentsAtNode(world, party, stack.DestNodeId);
+            var travel = WorldTravelService.StartTravelPartyToStackAnchor(world, party, stack);
+            Assert.IsTrue(travel.IsSuccess, travel.IsFailure ? travel.Error.ToString() : "");
+            WorldTravelService.AdvanceTravel(world, 500);
             StrategicPursuitService.AfterTravelTick(world);
             Assert.IsTrue(world.Strategic.HasBlockingInterrupt, "Expected battle offer after pursuit arrival.");
             Assert.AreEqual(1, world.Strategic.BattleOffer.PlayerPartyIds.Count);
+            Assert.IsFalse(world.Strategic.BattleOffer.IsJoinOngoingBattle);
         }
 
         [Test]
@@ -255,6 +292,195 @@ namespace XianXia.Tests
                 }
 
                 Assert.IsTrue(listed, "Encounter spawn " + id.Value + " should be in ViewableEntityIds.");
+            }
+        }
+
+        [Test]
+        public void NodeAccess_InEncounterAtDepartureNode_AllowsEnter()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var fighter = session.CharacterIds[0];
+            var huangcun = "base:node_huangcun";
+            WorldTravelService.PlaceAgentsAtNode(world, new[] { fighter }, huangcun);
+            Assert.IsTrue(world.WorldPresence.TryGet(fighter, out var presence));
+            presence.Mode = PartyWorldPresenceMode.InEncounter;
+
+            Assert.IsTrue(StrategicNodeAccessService.HasPartyMemberAtNode(world, huangcun));
+            var access = StrategicNodeAccessService.CanEnterNodeLocalMap(world, huangcun);
+            Assert.IsTrue(access.IsSuccess, access.IsFailure ? access.Error.ToString() : "");
+        }
+
+        [Test]
+        public void BattleOffer_JoinOngoingEncounter_WhenSameStackAlreadyFighting()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var stack));
+            var first = new System.Collections.Generic.List<EntityId> { session.CharacterIds[0] };
+            var second = new System.Collections.Generic.List<EntityId> { session.CharacterIds[1] };
+
+            StrategicEncounterSpawner.PlanManualEncounter(
+                world,
+                stack.Id,
+                string.Empty,
+                first,
+                3,
+                2);
+            world.PartyWorld.LocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+            Assert.IsTrue(StrategicEncounterSpawner.ApplyPending(world).IsSuccess);
+            Assert.IsTrue(BattleOfferService.HasActiveEncounterForStack(world, stack.Id));
+
+            Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(world, second, stack, "增援接战"));
+            Assert.IsTrue(world.Strategic.HasBlockingInterrupt);
+            Assert.IsTrue(world.Strategic.BattleOffer.IsJoinOngoingBattle);
+            Assert.AreEqual(1, world.Strategic.BattleOffer.PlayerPartyIds.Count);
+            Assert.IsTrue(world.Strategic.Encounter.IsEngaged(session.CharacterIds[0]));
+            Assert.IsFalse(world.Strategic.Encounter.IsEngaged(session.CharacterIds[1]));
+
+            var joined = StrategicEncounterSpawner.JoinEngagedMembers(world, second);
+            Assert.IsTrue(joined.IsSuccess, joined.IsFailure ? joined.Error.ToString() : "");
+            Assert.IsTrue(world.Strategic.Encounter.IsEngaged(session.CharacterIds[1]));
+            Assert.IsTrue(
+                world.Entities.TryGet(session.CharacterIds[1], out var entity) &&
+                entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc) &&
+                loc.HasPresentationOverride);
+        }
+
+        [Test]
+        public void RouteAnchor_TravelFromMidRoute_ReachesOrigin()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var agent = session.CharacterIds[0];
+            WorldTravelService.StartTravel(world, agent, "base:node_linjian");
+            WorldTravelService.AdvanceTravel(world, 12);
+            Assert.IsTrue(world.WorldPresence.TryGet(agent, out var p));
+            Assert.AreEqual(PartyWorldPresenceMode.Traveling, p.Mode);
+            p.AnchorOnRoute(0.5f);
+            Assert.AreEqual(PartyWorldPresenceMode.RouteAnchored, p.Mode);
+
+            var travel = WorldTravelService.StartTravel(world, agent, p.NodeId);
+            Assert.IsTrue(travel.IsSuccess, travel.IsFailure ? travel.Error.ToString() : "");
+            WorldTravelService.AdvanceTravel(world, 500);
+            Assert.IsTrue(world.WorldPresence.TryGet(agent, out p));
+            Assert.AreEqual(PartyWorldPresenceMode.AtNode, p.Mode);
+            Assert.AreEqual("base:node_huangcun", p.NodeId);
+        }
+
+        [Test]
+        public void RouteAnchor_TravelToMidProgress_StopsOnRoute()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var agent = session.CharacterIds[0];
+            WorldTravelService.StartTravel(world, agent, "base:node_linjian");
+            WorldTravelService.AdvanceTravel(world, 12);
+            Assert.IsTrue(world.WorldPresence.TryGet(agent, out var p));
+            p.AnchorOnRoute(0.2f);
+
+            var travel = WorldTravelService.StartTravelToRouteProgress(world, agent, 0.65f);
+            Assert.IsTrue(travel.IsSuccess, travel.IsFailure ? travel.Error.ToString() : "");
+            WorldTravelService.AdvanceTravel(world, 500);
+            Assert.IsTrue(world.WorldPresence.TryGet(agent, out p));
+            Assert.AreEqual(PartyWorldPresenceMode.RouteAnchored, p.Mode);
+            Assert.That(p.RouteAnchorProgress, Is.EqualTo(0.65f).Within(0.06f));
+        }
+
+        [Test]
+        public void Pursuit_SecondArrival_OffersJoinBattle()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var stack));
+            var first = new System.Collections.Generic.List<EntityId> { session.CharacterIds[0] };
+            var second = new System.Collections.Generic.List<EntityId> { session.CharacterIds[1] };
+            var pursue = new System.Collections.Generic.List<EntityId> { session.CharacterIds[0], session.CharacterIds[1] };
+
+            Assert.IsTrue(WorldTravelService.StartTravelPartyToStackAnchor(world, first, stack).IsSuccess);
+            WorldTravelService.AdvanceTravel(world, 500);
+            StrategicEncounterSpawner.PlanManualEncounter(
+                world,
+                stack.Id,
+                string.Empty,
+                first,
+                3,
+                2);
+            world.PartyWorld.LocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+            Assert.IsTrue(StrategicEncounterSpawner.ApplyPending(world).IsSuccess);
+
+            StrategicPursuitService.BeginPursuit(world, pursue, stack);
+            Assert.IsTrue(WorldTravelService.StartTravelPartyToStackAnchor(world, second, stack).IsSuccess);
+            WorldTravelService.AdvanceTravel(world, 500);
+            StrategicPursuitService.AfterTravelTick(world);
+
+            Assert.IsTrue(world.Strategic.HasBlockingInterrupt);
+            Assert.IsTrue(world.Strategic.BattleOffer.IsJoinOngoingBattle);
+            Assert.AreEqual(1, world.Strategic.BattleOffer.PlayerPartyIds.Count);
+            Assert.IsTrue(world.Strategic.Encounter.IsEngaged(session.CharacterIds[0]));
+            Assert.IsFalse(world.Strategic.Encounter.IsEngaged(session.CharacterIds[1]));
+        }
+
+        [Test]
+        public void EncounterVictory_AnchorsEngagedPartyOnRoute()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var agent = session.CharacterIds[0];
+            WorldTravelService.StartTravel(world, agent, "base:node_linjian");
+            WorldTravelService.AdvanceTravel(world, 20);
+            Assert.IsTrue(world.WorldPresence.TryGet(agent, out var p));
+            p.Mode = PartyWorldPresenceMode.InEncounter;
+
+            StrategicEncounterSpawner.PlanManualEncounter(
+                world,
+                "army:bandit_patrol_1",
+                string.Empty,
+                new System.Collections.Generic.List<EntityId> { agent },
+                1,
+                2);
+            world.PartyWorld.LocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+            Assert.IsTrue(StrategicEncounterSpawner.ApplyPending(world).IsSuccess);
+
+            var spawnId = new EntityId(world.Strategic.Encounter.SpawnedEntityIds[0]);
+            for (var i = 0; i < world.Strategic.Encounter.SpawnedEntityIds.Count; i++)
+            {
+                var id = new EntityId(world.Strategic.Encounter.SpawnedEntityIds[i]);
+                if (!world.Entities.TryGet(id, out var spawn) ||
+                    !spawn.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var life))
+                    continue;
+                life.State = XianXia.Core.Entities.LifecycleState.Dead;
+            }
+
+            Assert.IsTrue(StrategicEncounterSpawner.OnCombatantDefeated(world, spawnId));
+            Assert.IsTrue(world.WorldPresence.TryGet(agent, out p));
+            Assert.AreEqual(PartyWorldPresenceMode.RouteAnchored, p.Mode);
+            Assert.Greater(p.RouteAnchorProgress, 0f);
+            Assert.IsFalse(BattleOfferService.HasActiveManualEncounter(world));
+        }
+
+        [Test]
+        public void PursuitTravel_StopsAtRouteAnchoredStack_NotDestination()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var stack));
+            var party = session.CharacterIds;
+
+            StrategicPursuitService.BeginPursuit(world, party, stack);
+            var travel = WorldTravelService.StartTravelPartyToStackAnchor(world, party, stack);
+            Assert.IsTrue(travel.IsSuccess, travel.IsFailure ? travel.Error.ToString() : "");
+
+            WorldTravelService.AdvanceTravel(world, 500);
+            for (var i = 0; i < party.Count; i++)
+            {
+                Assert.IsTrue(world.WorldPresence.TryGet(party[i], out var p), "Missing presence " + i);
+                Assert.AreEqual(
+                    PartyWorldPresenceMode.RouteAnchored,
+                    p.Mode,
+                    "Traveler " + i + " should stop at stack anchor.");
+                Assert.AreEqual(stack.RouteId, p.RouteId);
+                Assert.That(p.RouteAnchorProgress, Is.EqualTo(stack.RouteAnchorProgress).Within(0.06f));
             }
         }
     }

@@ -14,11 +14,14 @@ namespace XianXia.Core.World.Strategic
         public int FallbackCombatPowerPerMember { get; set; } = StrategicEncounterCatalog.DefaultFallbackCombatPower;
         readonly List<ulong> _spawnedEntityIds = new List<ulong>(8);
         readonly List<ulong> _engagedPartyIds = new List<ulong>(8);
+        readonly List<ulong> _pursuePartyIds = new List<ulong>(8);
 
         public IReadOnlyList<ulong> SpawnedEntityIds => _spawnedEntityIds;
         public IReadOnlyList<ulong> EngagedPartyIds => _engagedPartyIds;
+        public IReadOnlyList<ulong> PursuePartyIds => _pursuePartyIds;
 
         public bool HasEngagedParty => _engagedPartyIds.Count > 0;
+        public bool HasPursueParty => _pursuePartyIds.Count > 0;
 
         public bool IsEngaged(EntityId id) =>
             !id.IsNone && _engagedPartyIds.Contains(id.Value);
@@ -29,13 +32,32 @@ namespace XianXia.Core.World.Strategic
             if (party == null)
                 return;
             for (var i = 0; i < party.Count; i++)
-            {
-                if (!party[i].IsNone && !_engagedPartyIds.Contains(party[i].Value))
-                    _engagedPartyIds.Add(party[i].Value);
-            }
+                AddEngagedPartyMember(party[i]);
+        }
+
+        public void AddEngagedPartyMember(EntityId id)
+        {
+            if (id.IsNone || _engagedPartyIds.Contains(id.Value))
+                return;
+            _engagedPartyIds.Add(id.Value);
         }
 
         public void ClearEngagedParty() => _engagedPartyIds.Clear();
+
+        public void SetPursueParty(IReadOnlyList<EntityId> party)
+        {
+            _pursuePartyIds.Clear();
+            if (party == null)
+                return;
+            for (var i = 0; i < party.Count; i++)
+            {
+                if (party[i].IsNone || _pursuePartyIds.Contains(party[i].Value))
+                    continue;
+                _pursuePartyIds.Add(party[i].Value);
+            }
+        }
+
+        public void ClearPursueParty() => _pursuePartyIds.Clear();
 
         public void TrackSpawn(ulong entityId)
         {
@@ -54,6 +76,16 @@ namespace XianXia.Core.World.Strategic
 
         public void ClearTrackedIds() => _spawnedEntityIds.Clear();
 
-        public void ClearPursuit() => PursueStackId = string.Empty;
+        public void RemoveTrackedSpawnAt(int index)
+        {
+            if (index >= 0 && index < _spawnedEntityIds.Count)
+                _spawnedEntityIds.RemoveAt(index);
+        }
+
+        public void ClearPursuit()
+        {
+            PursueStackId = string.Empty;
+            ClearPursueParty();
+        }
     }
 }

@@ -49,6 +49,8 @@ namespace XianXia.Unity.Host
             {
                 if (wp.Mode == PartyWorldPresenceMode.Traveling)
                     return false;
+                if (wp.Mode == PartyWorldPresenceMode.RouteAnchored)
+                    return false;
                 if (wp.Mode == PartyWorldPresenceMode.InEncounter)
                 {
                     if (IsActiveStrategicEncounterMap(world) &&

@@ -285,7 +285,7 @@ namespace XianXia.Unity.Host
             GUI.Label(
                 new Rect(pad, 12f, Screen.width - 220f, 28f),
                 "大地图  " + (string.IsNullOrEmpty(graph.GraphName) ? graph.GraphId : graph.GraphName) +
-                "  （左键节点：查看/进入｜左键部队｜右键下令出行｜M 关闭）",
+                "  （左键选部队｜右键节点/道路移动｜右键部队：攻击/跟随/详情｜M 关闭）",
                 _title);
 
             if (GUI.Button(new Rect(Screen.width - 100f, 10f, 84f, 32f), "关闭"))
@@ -647,7 +647,9 @@ namespace XianXia.Unity.Host
             {
                 if (!world.WorldPresence.TryGet(ids[i], out var p) || p == null)
                     continue;
-                if (p.Mode == PartyWorldPresenceMode.Traveling)
+                if (p.Mode == PartyWorldPresenceMode.Traveling ||
+                    p.Mode == PartyWorldPresenceMode.RouteAnchored ||
+                    (p.Mode == PartyWorldPresenceMode.InEncounter && p.HasRoutePresentation))
                     continue;
                 var key = p.NodeId ?? "";
                 _countAtNode.TryGetValue(key, out var c);
@@ -665,7 +667,7 @@ namespace XianXia.Unity.Host
                     continue;
 
                 float wx = fx, wy = fy;
-                if (presence.Mode == PartyWorldPresenceMode.Traveling)
+                if (presence.HasRoutePresentation)
                 {
                     var t = presence.TravelProgress;
                     wx = Mathf.Lerp(fx, tx, t);
@@ -674,7 +676,7 @@ namespace XianXia.Unity.Host
 
                 var basePos = Project(mapRect, wx, wy);
                 Vector2 center;
-                if (presence.Mode == PartyWorldPresenceMode.Traveling)
+                if (presence.HasRoutePresentation)
                 {
                     _slotAtNode.TryGetValue("t:" + id.Value, out var slot);
                     _slotAtNode["t:" + id.Value] = slot + 1;
@@ -707,15 +709,18 @@ namespace XianXia.Unity.Host
                 _avatarRects[id.Value] = rect;
 
                 var selected = _selected.Contains(id.Value);
-                var traveling = presence.Mode == PartyWorldPresenceMode.Traveling;
+                var onRoute = presence.HasRoutePresentation;
+                var inEncounter = presence.Mode == PartyWorldPresenceMode.InEncounter;
                 // 半透明，避免压住地名
                 var fill = selected
                     ? new Color(0.92f, 0.72f, 0.22f, 0.55f)
-                    : traveling
-                        ? new Color(0.35f, 0.55f, 0.85f, 0.50f)
-                        : presence.Mode == PartyWorldPresenceMode.DepartingLocalMap
-                            ? new Color(0.75f, 0.55f, 0.35f, 0.50f)
-                            : new Color(0.62f, 0.64f, 0.58f, 0.45f);
+                    : inEncounter
+                        ? new Color(0.85f, 0.45f, 0.28f, 0.58f)
+                        : onRoute
+                            ? new Color(0.35f, 0.55f, 0.85f, 0.50f)
+                            : presence.Mode == PartyWorldPresenceMode.DepartingLocalMap
+                                ? new Color(0.75f, 0.55f, 0.35f, 0.50f)
+                                : new Color(0.62f, 0.64f, 0.58f, 0.45f);
                 var old = GUI.color;
                 GUI.color = fill;
                 GUI.DrawTexture(rect, _px);
@@ -806,7 +811,7 @@ namespace XianXia.Unity.Host
                         _selected.Remove(hitAvatar);
                     else
                         _selected.Add(hitAvatar);
-                    _status = "已选 " + _selected.Count + " 人｜右键节点或部队下令";
+                    _status = "已选 " + _selected.Count + " 人｜右键节点/道路移动";
                     e.Use();
                     return;
                 }
@@ -854,19 +859,26 @@ namespace XianXia.Unity.Host
 
             if (TryHitArmyStack(mouse, out var menuStackId))
             {
-                CollectSelectedParty(_scratchParty);
-                if (_scratchParty.Count == 0)
-                {
-                    _selectedStackId = menuStackId;
-                    if (world.Strategic.Armies.TryGet(menuStackId, out var infoStack) && infoStack != null)
-                        _status = DescribeStack(world, infoStack) + "｜请先左键点选己方部队再右键";
-                    e.Use();
-                    return;
-                }
-
                 _stackMenuStackId = menuStackId;
                 _stackMenuOpen = true;
-                _stackMenuRect = new Rect(mouse.x + 4f, mouse.y + 4f, 168f, 96f);
+                var hostilePreview = false;
+                if (world.Strategic.Armies.TryGet(menuStackId, out var previewStack) && previewStack != null)
+                {
+                    hostilePreview = world.Strategic.Diplomacy.IsHostile(
+                        world.Strategic.PlayerFactionId,
+                        previewStack.FactionId);
+                    _stackMenuRect = new Rect(
+                        mouse.x + 4f,
+                        mouse.y + 4f,
+                        196f,
+                        hostilePreview ? 112f : 136f);
+                    _status = DescribeStack(world, previewStack);
+                }
+                else
+                {
+                    _stackMenuRect = new Rect(mouse.x + 4f, mouse.y + 4f, 196f, 96f);
+                }
+
                 e.Use();
                 return;
             }
@@ -882,7 +894,7 @@ namespace XianXia.Unity.Host
                     _selected.Add(kv.Key);
                 }
 
-                _status = "已选 " + EntityLabel(world, new EntityId(kv.Key)) + "｜右键节点出行";
+                _status = "已选 " + EntityLabel(world, new EntityId(kv.Key)) + "｜右键节点/道路移动";
                 e.Use();
                 return;
             }
@@ -896,61 +908,49 @@ namespace XianXia.Unity.Host
                 break;
             }
 
-            if (string.IsNullOrEmpty(destId))
+            WorldTravelTarget target;
+            if (!string.IsNullOrEmpty(destId))
             {
-                e.Use();
-                return;
+                target = WorldTravelTarget.AtNode(destId);
+            }
+            else
+            {
+                ScreenToWorld(mapRect, mouse, out var wx, out var wy);
+                var pickRadius = 14f / Mathf.Max(0.01f, MapScale(mapRect));
+                if (!WorldTravelPathService.TryPickRouteTarget(graph, wx, wy, pickRadius, out target))
+                {
+                    _status = "请点击节点或道路";
+                    e.Use();
+                    return;
+                }
             }
 
             CollectSelectedParty(_scratchParty);
+            FilterOrderableParty(world, _scratchParty);
             if (_scratchParty.Count == 0)
             {
-                _status = "请先左键点选头像，再右键目标节点";
+                _status = "请先左键点选可下令的角色，再右键目标";
                 e.Use();
                 return;
             }
 
-            // 仅 AtNode 可下令（途中／离场中不可）
             for (var i = _scratchParty.Count - 1; i >= 0; i--)
             {
-                if (!world.WorldPresence.TryGet(_scratchParty[i], out var p) ||
-                    p.Mode != PartyWorldPresenceMode.AtNode)
+                if (!world.WorldPresence.TryGet(_scratchParty[i], out var wp) ||
+                    !WorldTravelPathService.CanAgentReachTarget(world, wp, target))
                     _scratchParty.RemoveAt(i);
             }
 
             if (_scratchParty.Count == 0)
             {
-                _status = "所选角色正在途中或离场，无法再下令";
+                _status = "所选角色无法沿宏观道路到达该位置";
                 e.Use();
                 return;
             }
 
-            var destName = destId;
-            if (graph.TryGetNode(destId, out var destNode))
-                destName = string.IsNullOrEmpty(destNode.Name) ? destNode.Id : destNode.Name;
-
-            // 先校验至少一人有直达路
-            var anyRoute = false;
-            for (var i = 0; i < _scratchParty.Count; i++)
-            {
-                if (!world.WorldPresence.TryGet(_scratchParty[i], out var p))
-                    continue;
-                if (world.WorldGraph.TryFindRoute(p.NodeId, destId, out _))
-                {
-                    anyRoute = true;
-                    break;
-                }
-            }
-
-            if (!anyRoute)
-            {
-                _status = "所选角色与「" + destName + "」无相邻道路";
-                e.Use();
-                return;
-            }
-
-            bootstrap.WorldTravelConfirm?.Open(_scratchParty, destId, destName);
-            _status = "等待确认出行…";
+            var destLabel = target.Describe(graph);
+            bootstrap.WorldTravelConfirm?.OpenTarget(_scratchParty, target, destLabel);
+            _status = "等待确认移动到「" + destLabel + "」…";
             e.Use();
         }
 
@@ -1082,41 +1082,87 @@ namespace XianXia.Unity.Host
             GUI.color = prev;
 
             var title = string.IsNullOrEmpty(stack.DisplayName) ? stack.Id : stack.DisplayName;
+            var hostile = world.Strategic.Diplomacy.IsHostile(
+                world.Strategic.PlayerFactionId,
+                stack.FactionId);
             GUI.Label(new Rect(_stackMenuRect.x + 8f, _stackMenuRect.y + 4f, _stackMenuRect.width - 16f, 18f), title, _body);
             var y = _stackMenuRect.y + 26f;
             var bw = _stackMenuRect.width - 16f;
             var half = (bw - 4f) * 0.5f;
-            var moveRect = new Rect(_stackMenuRect.x + 8f, y, half, 22f);
-            var attackRect = new Rect(_stackMenuRect.x + 12f + half, y, half, 22f);
-            if (GUI.Button(moveRect, "移动"))
-            {
-                Event.current.Use();
-                CollectSelectedParty(_scratchParty);
-                TryOpenTravelToStack(world, graph, _scratchParty, stack);
-                _stackMenuOpen = false;
-            }
 
-            if (GUI.Button(attackRect, "攻击"))
+            CollectSelectedParty(_scratchParty);
+            CollectOrderableParty(world, _scratchParty, _attackPartyScratch);
+            var hasParty = _attackPartyScratch.Count > 0;
+            GUI.enabled = hasParty;
+
+            if (GUI.Button(new Rect(_stackMenuRect.x + 8f, y, half, 22f), "攻击"))
             {
                 Event.current.Use();
-                CollectSelectedParty(_scratchParty);
-                CollectAtNodeParty(world, _scratchParty, _attackPartyScratch);
-                if (_attackPartyScratch.Count == 0)
-                    _status = "所选角色正在途中或离场，无法接战";
-                else
+                if (hasParty)
                     BeginAttackStack(world, _attackPartyScratch, stack);
+                else
+                    _status = "请先左键点选可下令的角色";
                 _stackMenuOpen = false;
             }
 
-            y += 26f;
-            var cancelRect = new Rect(_stackMenuRect.x + 8f, y, bw, 20f);
-            if (GUI.Button(cancelRect, "取消"))
+            if (GUI.Button(new Rect(_stackMenuRect.x + 12f + half, y, half, 22f), "跟随"))
             {
                 Event.current.Use();
+                if (hasParty)
+                    BeginFollowStack(world, _attackPartyScratch, stack);
+                else
+                    _status = "请先左键点选可下令的角色";
+                _stackMenuOpen = false;
+            }
+
+            GUI.enabled = true;
+            y += 26f;
+
+            if (!hostile)
+            {
+                GUI.enabled = hasParty;
+                if (GUI.Button(new Rect(_stackMenuRect.x + 8f, y, half, 22f), "交谈"))
+                {
+                    Event.current.Use();
+                    _status = "与「" + title + "」交谈尚未接入（占位）";
+                    _stackMenuOpen = false;
+                }
+
+                GUI.enabled = true;
+                if (GUI.Button(new Rect(_stackMenuRect.x + 12f + half, y, half, 22f), "查看详情"))
+                {
+                    Event.current.Use();
+                    _status = DescribeStack(world, stack);
+                    _stackMenuOpen = false;
+                }
+
+                y += 26f;
+            }
+            else if (GUI.Button(new Rect(_stackMenuRect.x + 8f, y, bw, 22f), "查看详情"))
+            {
+                Event.current.Use();
+                _status = DescribeStack(world, stack);
                 _stackMenuOpen = false;
             }
 
             GUI.depth = prevDepth;
+        }
+
+        void BeginFollowStack(
+            XianXia.Core.Simulation.SimulationWorld world,
+            List<EntityId> party,
+            ArmyStack stack)
+        {
+            var travel = StrategicFollowService.BeginFollowTravel(world, party, stack);
+            if (travel.IsFailure)
+            {
+                _status = travel.Error.Message;
+                return;
+            }
+
+            bootstrap.WorldTravelDeparture?.HidePartyFromLocalMapPublic(party);
+            var name = string.IsNullOrEmpty(stack.DisplayName) ? stack.Id : stack.DisplayName;
+            _status = party.Count + " 人开始跟随「" + name + "」";
         }
 
         void TryDismissContextMenusOnOutsideClick()
@@ -1194,7 +1240,7 @@ namespace XianXia.Unity.Host
             List<EntityId> party,
             ArmyStack stack)
         {
-            CollectAtNodeParty(world, party, _scratchParty);
+            CollectOrderableParty(world, party, _scratchParty);
             if (_scratchParty.Count == 0)
             {
                 _status = "所选角色正在途中或离场，无法再下令";
@@ -1211,7 +1257,7 @@ namespace XianXia.Unity.Host
             for (var i = _scratchParty.Count - 1; i >= 0; i--)
             {
                 if (!world.WorldPresence.TryGet(_scratchParty[i], out var p) ||
-                    !world.WorldGraph.TryFindRoute(p.NodeId, destId, out _))
+                    !WorldTravelService.CanReachNodeFromPresence(world, p, destId))
                     _scratchParty.RemoveAt(i);
             }
 
@@ -1222,6 +1268,13 @@ namespace XianXia.Unity.Host
             }
 
             var destLabel = StrategicNodeAccessService.DescribeStackTravelTarget(world, stack);
+            if (stack.IsRouteAnchored)
+            {
+                bootstrap.WorldTravelConfirm?.OpenForStackPursuit(_scratchParty, stack, destLabel);
+                _status = "等待 " + _scratchParty.Count + " 人确认追击「" + destLabel + "」…";
+                return;
+            }
+
             bootstrap.WorldTravelConfirm?.Open(_scratchParty, destId, destLabel);
             _status = "等待 " + _scratchParty.Count + " 人确认「" + destLabel + "」…";
         }
@@ -1254,17 +1307,41 @@ namespace XianXia.Unity.Host
         {
             StrategicPursuitService.BeginPursuit(world, party, stack);
 
-            if (StrategicNodeAccessService.CanEngageStackNow(world, party, stack))
+            var ready = new List<EntityId>(party.Count);
+            StrategicNodeAccessService.CollectPartyReadyToEngageStack(world, party, stack, ready);
+            if (ready.Count > 0 &&
+                BattleOfferService.TryBuildOfferForArmy(world, ready, stack, "主动接战"))
             {
-                if (BattleOfferService.TryBuildOfferForArmy(world, party, stack, "主动接战"))
-                {
-                    StrategicPursuitService.ClearPursuit(world);
-                    _status = "接战弹窗已打开（" + party.Count + " 人）";
-                    return;
-                }
+                _status = "接战弹窗已打开（" + ready.Count + " 人）";
+                return;
             }
 
             TryOpenTravelToStack(world, world.WorldGraph, party, stack);
+        }
+
+        static void FilterOrderableParty(
+            XianXia.Core.Simulation.SimulationWorld world,
+            List<EntityId> party)
+        {
+            for (var i = party.Count - 1; i >= 0; i--)
+            {
+                if (!WorldTravelService.CanReceiveTravelOrder(world, party[i]))
+                    party.RemoveAt(i);
+            }
+        }
+
+        static void CollectOrderableParty(
+            XianXia.Core.Simulation.SimulationWorld world,
+            List<EntityId> from,
+            List<EntityId> into)
+        {
+            into.Clear();
+            for (var i = 0; i < from.Count; i++)
+            {
+                if (!WorldTravelService.CanReceiveTravelOrder(world, from[i]))
+                    continue;
+                into.Add(from[i]);
+            }
         }
 
         static void CollectAtNodeParty(

@@ -67,5 +67,23 @@ namespace XianXia.Tests
             Assert.IsTrue(world.WorldPresence.TryGet(party[0], out var p));
             Assert.AreEqual("base:node_kuangshan", p.NodeId);
         }
+
+        [Test]
+        public void MacroPath_MultiHop_ReachesDistantNode()
+        {
+            var started = new PlayableDayBootstrap().Start(
+                BaseGamePath,
+                new PlayableDayOptions { OpeningScenarioId = "base:scenario_ch01_reference" });
+            Assert.IsTrue(started.IsSuccess, started.IsFailure ? started.Error.ToString() : "");
+            var world = started.Value.World;
+            var agent = started.Value.CharacterIds[0];
+            var target = WorldTravelTarget.AtNode("base:node_kuangshan");
+
+            Assert.IsTrue(WorldTravelPathService.StartAgentTravelToTarget(world, agent, target).IsSuccess);
+            WorldTravelService.AdvanceTravel(world, 5000);
+            Assert.IsTrue(world.WorldPresence.TryGet(agent, out var p));
+            Assert.AreEqual("base:node_kuangshan", p.NodeId);
+            Assert.AreEqual(PartyWorldPresenceMode.AtNode, p.Mode);
+        }
     }
 }
