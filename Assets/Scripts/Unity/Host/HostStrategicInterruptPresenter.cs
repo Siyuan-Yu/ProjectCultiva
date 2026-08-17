@@ -1,16 +1,20 @@
+using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
-    /// <summary>Route 遭遇与 BattleOffer 战略打断弹窗（138 §3.1／§4）。</summary>
+    /// <summary>BattleOffer 战略接战弹窗（138 §3.1／§4）。</summary>
     public sealed class HostStrategicInterruptPresenter : MonoBehaviour
     {
         [SerializeField] PlayableHostBootstrap bootstrap;
 
         bool _holding;
         bool _pausedBefore;
+        string _toast = string.Empty;
+        double _toastUntil;
         Texture2D _px;
         GUIStyle _title;
         GUIStyle _body;
@@ -36,6 +40,8 @@ namespace XianXia.Unity.Host
         {
             _holding = false;
             _pausedBefore = false;
+            _toast = string.Empty;
+            _toastUntil = 0;
         }
 
         void Update() => SyncPause();
@@ -71,48 +77,38 @@ namespace XianXia.Unity.Host
             var session = bootstrap != null ? bootstrap.Session : null;
             if (session == null || !session.IsInitialized || session.World?.Strategic == null)
                 return;
+
+            EnsureStyles();
+            DrawToast();
+
             if (!HasBlockingInterrupt)
                 return;
 
-            EnsureStyles();
             GUI.depth = -90;
 
-            var strategic = session.World.Strategic;
-            if (!strategic.BattleOffer.Resolved && !string.IsNullOrEmpty(strategic.BattleOffer.OfferId))
-                DrawBattleOffer(session, strategic.BattleOffer);
-            else if (!strategic.RouteEncounter.Resolved &&
-                     !string.IsNullOrEmpty(strategic.RouteEncounter.EncounterId))
-                DrawRouteEncounter(session, strategic.RouteEncounter);
+            var offer = session.World.Strategic.BattleOffer;
+            if (!offer.Resolved && !string.IsNullOrEmpty(offer.OfferId))
+                DrawBattleOffer(session, offer);
         }
 
-        void DrawRouteEncounter(PlayableHostSession session, RouteEncounterPending pending)
+        void DrawToast()
         {
-            DrawDim();
-            var box = ModalBox();
-            Fill(box, Parchment);
-            DrawFrame(box, ParchmentDark);
+            if (string.IsNullOrEmpty(_toast) || Time.unscaledTime > _toastUntil)
+                return;
+            EnsureStyles();
+            var rect = new Rect(Screen.width * 0.5f - 220f, 72f, 440f, 32f);
+            var prev = GUI.color;
+            GUI.color = new Color(0.1f, 0.12f, 0.14f, 0.92f);
+            GUI.DrawTexture(rect, _px);
+            GUI.color = Color.white;
+            GUI.Label(new Rect(rect.x + 12f, rect.y + 6f, rect.width - 24f, 22f), _toast, _body);
+            GUI.color = prev;
+        }
 
-            var title = string.IsNullOrEmpty(pending.Title) ? "路遇险情" : pending.Title;
-            GUI.Label(new Rect(box.x + 16f, box.y + 12f, box.width - 32f, 26f), title, _title);
-            GUI.Label(
-                new Rect(box.x + 16f, box.y + 42f, box.width - 32f, 24f),
-                "已暂停 — 选择迎战或避开",
-                _body);
-            GUI.Label(
-                new Rect(box.x + 16f, box.y + 72f, box.width - 32f, 80f),
-                "遭遇：" + pending.EncounterId,
-                _body);
-
-            var y = box.y + box.height - 44f;
-            var half = (box.width - 40f) * 0.5f;
-            if (GUI.Button(new Rect(box.x + 16f, y, half, 32f), "迎战（进 LocalMap）"))
-            {
-                EnterEncounterLocalMap(session, pending.LocalMapId);
-                RouteEncounterService.ResolveSuccess(session.World);
-            }
-
-            if (GUI.Button(new Rect(box.x + 24f + half, y, half, 32f), "避开"))
-                RouteEncounterService.ResolveSuccess(session.World);
+        void ShowToast(string message)
+        {
+            _toast = message ?? string.Empty;
+            _toastUntil = Time.unscaledTime + 4f;
         }
 
         void DrawBattleOffer(PlayableHostSession session, BattleOfferPending offer)
@@ -150,27 +146,63 @@ namespace XianXia.Unity.Host
             var y = box.y + box.height - 44f;
             var third = (box.width - 40f) / 3f;
             if (GUI.Button(new Rect(box.x + 16f, y, third, 32f), "自动战斗"))
-                BattleOfferService.ResolveAuto(session.World);
+            {
+                var resolved = BattleOfferService.ResolveAuto(session.World, out var won);
+                if (resolved.IsSuccess)
+                    ShowToast(won ? "自动战斗胜利。" : "自动战斗失利，敌军仍在。");
+            }
 
             if (GUI.Button(new Rect(box.x + 20f + third, y, third, 32f), "手动战斗"))
             {
-                EnterEncounterLocalMap(session, offer.EncounterLocalMapId);
+                EnterManualEncounter(session, offer.EncounterLocalMapId, offer.ArmyStackId);
                 session.World.Strategic.ClearBattleOffer();
             }
 
             if (GUI.Button(new Rect(box.x + 24f + third * 2f, y, third, 32f), "撤退"))
+            {
+                StrategicPursuitService.ClearPursuit(session.World);
                 session.World.Strategic.ClearBattleOffer();
+            }
         }
 
-        void EnterEncounterLocalMap(PlayableHostSession session, string localMapId)
+        void EnterManualEncounter(
+            PlayableHostSession session,
+            string localMapId,
+            string armyStackId)
         {
             if (session?.World == null || bootstrap == null)
                 return;
             if (string.IsNullOrWhiteSpace(localMapId))
-                localMapId = RouteEncounterService.DefaultEncounterLocalMapId;
+                localMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+
+            var engaged = ResolveEngagedPartyForManualEncounter(session.World);
+            StrategicEncounterSpawner.PlanManualEncounter(
+                session.World,
+                armyStackId,
+                session.World.PartyWorld.EncounterId,
+                engaged,
+                StrategicEncounterCatalog.DefaultFallbackMemberCount,
+                StrategicEncounterCatalog.DefaultFallbackCombatPower);
             session.World.PartyWorld.LocalMapId = localMapId.Trim();
+
             var closeMap = bootstrap.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen;
             bootstrap.ApplyPartyWorldNodePresentation(closeWorldMap: closeMap);
+        }
+
+        static List<EntityId> ResolveEngagedPartyForManualEncounter(SimulationWorld world)
+        {
+            var list = new List<EntityId>(4);
+            if (world?.Strategic == null)
+                return list;
+
+            var offer = world.Strategic.BattleOffer;
+            if (offer.PlayerPartyIds.Count > 0)
+                list.AddRange(StrategicPursuitService.CollectEngagedPartyFromOffer(offer));
+
+            if (list.Count == 0 && world.Strategic.Encounter.HasEngagedParty)
+                list.AddRange(StrategicPursuitService.CollectEngagedParty(world, world.Strategic.Encounter));
+
+            return list;
         }
 
         void DrawDim()
@@ -180,9 +212,6 @@ namespace XianXia.Unity.Host
             GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), _px);
             GUI.color = prev;
         }
-
-        static Rect ModalBox() =>
-            new Rect(Screen.width * 0.5f - 220f, Screen.height * 0.5f - 130f, 440f, 260f);
 
         void Fill(Rect r, Color c)
         {

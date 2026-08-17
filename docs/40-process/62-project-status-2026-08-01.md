@@ -10,8 +10,8 @@
 ## 1. 一句话现状
 
 **Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**；样例关可玩弧／导航／NPC 活动底座／Demo 0.1 Production **自动化已验收（手操待签）**。  
-**本轮：** **大地图战略层＋全战式接战弹窗**设计定稿（见 [138](138-world-strategic-battle-offer-plan-2026-08-17.md)）。  
-**下一步：** 实现 Phase 0 路上遭遇 E → Phase 1 占点 → Phase 3 接战 MVP；内容堆量并行。
+**本轮：** **大地图战略层＋全战式接战弹窗**已落地（见 [138](138-world-strategic-battle-offer-plan-2026-08-17.md)）；**Route danger 暗雷已删除**。  
+**下一步：** 接战 UX 打磨（参战人数／追击）＋ Ch01 内容堆量并行。
 ---
 
 ## 2. 切片进度与验收

@@ -36,8 +36,9 @@ namespace XianXia.Core.World.Strategic
             foreach (var kv in _stacks)
             {
                 var s = kv.Value;
-                if (s != null && s.IsTraveling &&
-                    string.Equals(s.RouteId, routeId, StringComparison.Ordinal))
+                if (s == null || !string.Equals(s.RouteId, routeId, StringComparison.Ordinal))
+                    continue;
+                if (s.IsTraveling || s.IsRouteAnchored)
                     yield return s;
             }
         }

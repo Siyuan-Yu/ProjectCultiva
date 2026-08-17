@@ -5,6 +5,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.World
 {
@@ -356,6 +357,10 @@ namespace XianXia.Core.World
                 return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
             if (!world.WorldGraph.TryGetNode(nodeId, out var node))
                 return Result.Failure(ErrorCode.NotFound, "World node missing.", nodeId);
+
+            var access = StrategicNodeAccessService.CanEnterNodeLocalMap(world, nodeId);
+            if (access.IsFailure)
+                return access;
 
             world.PartyWorld.NodeId = nodeId;
             world.PartyWorld.LocalMapId = ResolveLocalMapId(node);

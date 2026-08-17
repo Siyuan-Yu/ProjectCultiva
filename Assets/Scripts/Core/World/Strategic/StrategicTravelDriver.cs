@@ -19,19 +19,9 @@ namespace XianXia.Core.World.Strategic
             if (world.Strategic.HasBlockingInterrupt)
                 return;
 
-            foreach (var kv in world.WorldPresence.All)
-            {
-                var p = kv.Value;
-                if (p == null)
-                    continue;
-                if (RouteEncounterService.TryRollDuringTravel(world, p))
-                    return;
-            }
-
-            if (world.Strategic.HasBlockingInterrupt)
-                return;
-
+            // 接战只来自同路可见敌军栈碰撞／追击抵达。
             CheckBattleCollisions(world);
+            StrategicPursuitService.AfterTravelTick(world);
         }
 
         static void CheckBattleCollisions(SimulationWorld world)
@@ -52,6 +42,9 @@ namespace XianXia.Core.World.Strategic
                     if (stack == null || string.IsNullOrEmpty(stack.FactionId))
                         continue;
                     if (!world.Strategic.Diplomacy.IsHostile(world.Strategic.PlayerFactionId, stack.FactionId))
+                        continue;
+                    if (stack.IsRouteAnchored &&
+                        p.TravelProgress + 0.02f < stack.RouteAnchorProgress)
                         continue;
                     if (BattleOfferService.TryBuildOfferForArmy(world, scratch, stack, "行军遭遇"))
                         return;

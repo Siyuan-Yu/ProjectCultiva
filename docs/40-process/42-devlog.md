@@ -7,15 +7,27 @@
 
 ---
 
+## 2026-08-17 — 删除 Route danger 暗雷
+
+**做了什么**
+- 删除 `RouteEncounterService`、`RouteEncounterPending`、路遇弹窗 UI 与相关 EditMode 测试
+- 接战仅保留 ArmyStack + `BattleOffer`（同路碰撞／追击抵达）
+- 更新 [113](113-world-graph-local-map-architecture-revision-v0.1.md)、[138](138-world-strategic-battle-offer-plan-2026-08-17.md)、SCHEMA；飞书同步
+
+**判断与理由**
+- 产品已定：战略遭遇必须对应大地图可见敌军，随机「路遇险情」与全战式接战语义冲突
+
 ## 2026-08-17 — 138 战略层 Phase 0～4 落地
 
 **做了什么**
-- Core：`StrategicBoard`、Route 遭遇、`BattleOffer`、外交四档、`ArmyStack`、日界 AI 派兵；`SimulationLoop` Travel 后接 `StrategicTravelDriver`
-- Host：`HostStrategicInterruptPresenter`（路遇／接战弹窗）；`HostWorldMapPanel` 开 M 暂停、删 `DriveTravelWhilePaused`、Space／倍速、归属色、外交侧栏、Army 图标
-- EditMode：`StrategicPhaseTests` 8/8 通过
+- Core：`StrategicBoard`、`BattleOffer`、外交四档、`ArmyStack`、日界 AI 派兵；`SimulationLoop` Travel 后接 `StrategicTravelDriver`
+- Host：`HostStrategicInterruptPresenter`（接战弹窗）；`HostWorldMapPanel` 开 M 暂停、删 `DriveTravelWhilePaused`、Space／倍速、归属色、外交侧栏、Army 图标
+- EditMode：`StrategicPhaseTests` 通过
 
 **判断与理由**
 - 按 138 分期验收；统一世界时间（§3.1）在 Host 层落地，避免战略层与 LocalMap 双时钟
+
+**注：** 初版 Phase 0 曾含 Route danger roll（暗雷），已于同日后续删除。
 
 ## 2026-08-17 — 138 增补：统一世界时间＋无文明式复杂度
 

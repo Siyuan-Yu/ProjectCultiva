@@ -51,15 +51,27 @@ namespace XianXia.Core.World.Strategic
         static void SeedDemoArmies(SimulationWorld world)
         {
             world.Strategic.Armies.Clear();
-            if (!world.WorldGraph.TryGetNode("base:node_linjian", out _))
+            if (!world.WorldGraph.TryFindRoute("base:node_huangcun", "base:node_linjian", out var route) &&
+                !world.WorldGraph.TryFindRoute("base:node_linjian", "base:node_huangcun", out route))
                 return;
+
+            var fromId = route.FromNodeId;
+            var toId = route.ToNodeId;
+            if (string.Equals(fromId, "base:node_linjian", System.StringComparison.Ordinal))
+            {
+                fromId = route.ToNodeId;
+                toId = route.FromNodeId;
+            }
 
             world.Strategic.Armies.Register(new ArmyStack
             {
                 Id = "army:bandit_patrol_1",
                 FactionId = StrategicFactionCatalog.BanditId,
-                DisplayName = "山匪 patrol",
-                NodeId = "base:node_linjian",
+                DisplayName = "林间山匪",
+                NodeId = fromId,
+                DestNodeId = toId,
+                RouteId = route.Id,
+                RouteAnchorProgress = 0.5f,
                 MemberCount = 3,
                 CombatPower = 2
             });

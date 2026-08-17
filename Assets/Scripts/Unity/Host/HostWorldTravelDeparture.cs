@@ -84,9 +84,12 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            // 大地图下的宏观下令：直接上路网，不要求先走 LocalMap 边缘
+            var macroFromWorldMap = bootstrap.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen;
             bootstrap.WorldMapPanel?.Close();
 
             var anyLocalWalk = false;
+            var anyTravelStarted = false;
             for (var i = 0; i < agents.Count; i++)
             {
                 var id = agents[i];
@@ -99,7 +102,7 @@ namespace XianXia.Unity.Host
                     bootstrap.CommandBridge?.IssueOne(id, PlayerCommandKind.Stop, 0);
                     bootstrap.MoveController?.CancelPresentationMovementPublic(id);
 
-                    if (NeedsLocalMapExit(world, id))
+                    if (!macroFromWorldMap && NeedsLocalMapExit(world, id))
                     {
                         var mark = WorldTravelService.MarkDepartingLocalMap(world, id, destNodeId);
                         if (mark.IsFailure)
@@ -126,7 +129,10 @@ namespace XianXia.Unity.Host
                         if (start.IsFailure)
                             _status = start.Error.Message;
                         else
+                        {
+                            anyTravelStarted = true;
                             HideFromLocalMap(id);
+                        }
                     }
                 }
                 finally
@@ -138,8 +144,10 @@ namespace XianXia.Unity.Host
             WorldTravelService.SyncPartyFocus(world);
             if (anyLocalWalk)
                 _status = "未出行：正走向地图边缘（再下令／走动可取消）";
-            else if (string.IsNullOrEmpty(_status))
+            else if (anyTravelStarted && string.IsNullOrEmpty(_status))
                 _status = "已出发前往 " + (string.IsNullOrEmpty(destNode.Name) ? destNodeId : destNode.Name);
+
+            bootstrap.Resume();
         }
 
         bool NeedsLocalMapExit(XianXia.Core.Simulation.SimulationWorld world, EntityId id)

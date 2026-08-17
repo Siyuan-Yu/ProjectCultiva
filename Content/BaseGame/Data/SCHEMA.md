@@ -257,10 +257,10 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | Field | Notes |
 |---|---|
 | id／`fromNodeId`／`toNodeId`／kind | Road／Trail／… |
-| `travelCost`／`danger` | 旅行时间代价／危险度（B／E 阶段消费） |
+| `travelCost`／`danger` | 旅行时间代价／**预留**（当前不用于随机遭遇） |
 | `ownerId`／`state`／`directed` | 路权／畅通态／单向 |
 | `traversalRequirements[]` | 数据可填；运行时旅行暂不检查 |
-| `encounterPoolId` | 可选；路上遭遇池（E 阶段） |
+| `encounterPoolId` | **预留**；当前不用于路上随机遭遇 |
 
 样例：`WorldGraphs/ch01_world_graph.json`（约 30 节点；仅荒村绑 `base:map_ch01_reference`）。Host「地图」显示角色所在节点，勾选后点相邻节点组队移动。无通行令门槛。
 

@@ -33,12 +33,15 @@ namespace XianXia.Core.World.Strategic
             offer.PlayerPower = playerPower;
             offer.EnemyPower = enemyPower;
             offer.AutoWinPercent = CombatPowerCalculator.EstimateAutoWinPercent(playerPower, enemyPower);
-            offer.EncounterLocalMapId = RouteEncounterService.DefaultEncounterLocalMapId;
+            offer.EncounterLocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+            offer.SetPlayerParty(playerParty);
+            world.Strategic.Encounter.SetEngagedParty(playerParty);
             return true;
         }
 
-        public static Result ResolveAuto(SimulationWorld world)
+        public static Result ResolveAuto(SimulationWorld world, out bool playerWon)
         {
+            playerWon = false;
             if (world?.Strategic == null)
                 return Result.Failure(ErrorCode.InvalidOperation, "No strategic board.");
             var offer = world.Strategic.BattleOffer;
@@ -47,17 +50,15 @@ namespace XianXia.Core.World.Strategic
 
             var roll = world.Random.NextDouble();
             var winChance = offer.AutoWinPercent / 100.0;
-            offer.PlayerWonAuto = roll <= winChance;
+            playerWon = roll <= winChance;
+            offer.PlayerWonAuto = playerWon;
             offer.Resolved = true;
 
-            if (offer.PlayerWonAuto)
+            if (playerWon)
                 world.Strategic.Armies.Remove(offer.ArmyStackId);
-            else
-            {
-                // 败：栈仍在；Travel 由 Host 决定撤退或结束
-            }
 
             world.Strategic.ClearBattleOffer();
+            StrategicPursuitService.ClearPursuit(world);
             return Result.Success();
         }
 

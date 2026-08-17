@@ -63,11 +63,11 @@ WorldGraph
 | `fromNodeId`／`toNodeId` | 端点（默认可双向；需要单向再加 `directed`） |
 | `kind` | `Road`／`Trail`／`Bridge`／`RiverCrossing`／`MountainPass` |
 | `travelCost` | 时间／体力代价（与统一时钟对齐） |
-| `danger` | 遭遇权重／检定 |
+| `danger` | **预留**；当前运行时**不**用于随机遭遇检定 |
 | `ownerId` | 路权 |
 | `state` | 畅通／损毁／封锁／施工 |
 | `traversalRequirements[]` | 数据保留；**运行时旅行暂不检查**（无令牌门槛） |
-| `encounterPoolId` | 可选。触发临时 Encounter LocalMap |
+| `encounterPoolId` | **预留**；当前运行时**不**用于路上随机遭遇 |
 
 未来允许对 Route：**建造、升级、摧毁、封锁、修复**。第一期只读内容数据，不做建造 UI。
 
@@ -103,9 +103,9 @@ Node 之间**没有**持续存在的大型连续荒野地图。
 队伍在 Route 上旅行：
 
 - 推进 `travelCost` 对应的世界时间  
-- 按 `danger`／事件表检定  
-- 需要真打／真捡／真对话 → 进入 **临时 Route Encounter LocalMap**（山谷伏击、断桥、野摊…）  
-- Encounter 结束：卸图，回到 Route 进度或进入目标 Node  
+- **战略接战**仅来自大地图可见 **ArmyStack**（节点驻留／同路碰撞／追击抵达），**不做 Route danger 随机暗雷**  
+- 需要真打 → 弹出 **BattleOffer**，进 **通用遭遇 LocalMap**（`base:map_world_node_stub` 等）；敌军由 ArmyStack 数据驱动  
+- 战斗结束：卸图，回到 Route 进度或进入目标 Node  
 
 ---
 
@@ -173,11 +173,11 @@ Snapshot：第一期可只存 `nodeId` + 任务／仓库；Route 进度与 Encou
 | **B 旅行** | Core：组队 `StartTravel`／到站；无通行令 | **已落地** |
 | **C Host 宏观** | 顶栏「地图」／M；节点上显示角色；勾选组队移动 | **已落地** |
 | **D 卸载／持久** | 离开 Node 卸实体表现；按 localMapId 换图；库存／任务保留 | **已落地**（作物持久未单测；占位 Node 清空表现） |
-| **E Encounter** | 一条 Trail 触发临时 LocalMap，结束回 Route | 手操山谷遭遇一次 |
+| **E Encounter** | ~~Route danger 随机路遇~~ **已废弃**；接战改走 ArmyStack + BattleOffer（见 G） | — |
 | **F 工具** | WorldGraph 编辑器 | **已落地**（`启动-WorldGraphEditor.cmd`） |
-| **G 战略层／接战** | 帮派占点、外交、ArmyStack、BattleOffer 弹窗（自动／手动 LocalMap） | 见 [138](138-world-strategic-battle-offer-plan-2026-08-17.md) VS-WorldStrategic-0.1 |
+| **G 战略层／接战** | 帮派占点、外交、ArmyStack、BattleOffer 弹窗（自动／手动 LocalMap） | **已落地**；见 [138](138-world-strategic-battle-offer-plan-2026-08-17.md) VS-WorldStrategic-0.1 |
 
-当前代码冻结线：**A～D／F 已落地**；E 路上遭遇未做；**G 设计已定、待实现**。村内地点正式类型＝`localPlaceSet`；`worldRegion` 仅旧 VS（青石）。
+当前代码冻结线：**A～D／F／G 已落地**；**不做 Route danger 暗雷**。村内地点正式类型＝`localPlaceSet`；`worldRegion` 仅旧 VS（青石）。
 
 ---
 
@@ -197,6 +197,7 @@ Snapshot：第一期可只存 `nodeId` + 任务／仓库；Route 进度与 Encou
 
 | 日期 | 说明 |
 |------|------|
+| 2026-08-17 | **废弃 Route danger 暗雷**；路上接战仅 ArmyStack + BattleOffer（见 [138](138-world-strategic-battle-offer-plan-2026-08-17.md)） |
 | 2026-08-17 | G：战略层／接战弹窗设计见 [138](138-world-strategic-battle-offer-plan-2026-08-17.md) |
 | 2026-08-16 | D／F：换 Node 卸装 LocalMap；localPlaceSet；WorldGraphEditor |
 | 2026-08-16 | 阶段 B／C：PartyWorldPresence＋Travel／关隘；Host 地图按钮／M；废 Y 宏观 Travel |

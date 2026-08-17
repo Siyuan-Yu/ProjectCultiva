@@ -3,6 +3,7 @@ using UnityEngine;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Navigation;
 using XianXia.Core.Results;
+using XianXia.Core.World.Strategic;
 using XianXia.Data.Bootstrap;
 using XianXia.Data.Content;
 
@@ -859,6 +860,10 @@ namespace XianXia.Unity.Host
 
             var world = _session.World;
             var targetMap = world.PartyWorld.LocalMapId ?? string.Empty;
+            var inStrategicEncounter = world.Strategic?.Encounter != null &&
+                                         (world.Strategic.Encounter.SpawnOnNextMapLoad ||
+                                          world.Strategic.Encounter.SpawnedEntityIds.Count > 0 ||
+                                          !string.IsNullOrEmpty(world.PartyWorld.EncounterId));
 
             // 目标图必须在内容包里，否则禁止带着荒村图「假装切换」
             if (!string.IsNullOrWhiteSpace(targetMap))
@@ -884,16 +889,26 @@ namespace XianXia.Unity.Host
             // 仅把仍在当前焦点 Node 上的己方落到该图 startLocation（已去别处的人不动）
             var focusNode = world.PartyWorld.NodeId;
             var startId = world.WorldRegion.StartLocationId;
+            var encounter = world.Strategic?.Encounter;
+            var filterEngaged = inStrategicEncounter && encounter != null && encounter.HasEngagedParty;
             for (var i = 0; i < _session.CharacterIds.Count; i++)
             {
                 var id = _session.CharacterIds[i];
-                if (world.WorldPresence.TryGet(id, out var wp) &&
+                if (filterEngaged && !encounter.IsEngaged(id))
+                    continue;
+                world.WorldPresence.TryGet(id, out var wp);
+                var engagedInEncounter = filterEngaged && encounter.IsEngaged(id);
+                if (!engagedInEncounter &&
                     wp != null &&
                     !string.IsNullOrEmpty(focusNode) &&
                     !string.Equals(wp.NodeId, focusNode, System.StringComparison.Ordinal))
                     continue;
                 if (wp != null && wp.Mode == XianXia.Core.World.PartyWorldPresenceMode.Traveling)
-                    continue;
+                {
+                    if (!inStrategicEncounter)
+                        continue;
+                    wp.Mode = XianXia.Core.World.PartyWorldPresenceMode.InEncounter;
+                }
 
                 if (!world.Entities.TryGet(id, out var ent))
                     continue;
@@ -938,12 +953,28 @@ namespace XianXia.Unity.Host
             world.LocalMap.OverworldMapLayoutId = targetMap;
             ReloadLocalMapPresentation(frameCamera: true);
 
+            var spawned = StrategicEncounterSpawner.ApplyPending(world);
+            if (spawned.IsFailure)
+                Debug.LogWarning("[PlayableHost] Strategic encounter spawn: " + spawned.Error, this);
+            if (inStrategicEncounter)
+            {
+                _session.RefreshViewableEntityIds();
+                entityViewSpawner?.Rebuild(_session);
+            }
+            else if (world.Strategic.Encounter.SpawnedEntityIds.Count > 0)
+            {
+                _session.RefreshViewableEntityIds();
+                entityViewSpawner?.Rebuild(_session);
+            }
+
             // 切图后再对齐一次地点坐标（MapLayout sync 之后）并选中在场角色
             if (!string.IsNullOrEmpty(startId) && world.WorldRegion.TryGet(startId, out var syncedStart))
             {
                 for (var i = 0; i < _session.CharacterIds.Count; i++)
                 {
                     var id = _session.CharacterIds[i];
+                    if (filterEngaged && !encounter.IsEngaged(id))
+                        continue;
                     if (!LocalMapVisibility.IsEntityVisible(world, id))
                         continue;
                     if (!world.Entities.TryGet(id, out var ent) ||

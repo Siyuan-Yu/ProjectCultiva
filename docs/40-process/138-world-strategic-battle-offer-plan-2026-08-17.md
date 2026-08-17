@@ -57,7 +57,8 @@
 
 - 选 **自动战斗** 后认结果，**不提供**「自动输了再进手动」反悔（第一刀）。
 - 第一章战略演示用 **Ch01 小子图 4～6 节点 + 2～3 帮派**，不一次填满 30 节点。
-- 重要占点／守城战优先 **手动 LocalMap**；普通劫道／路上遭遇可自动或手动。
+- 重要占点／守城战优先 **手动 LocalMap**；可见 ArmyStack 接战可自动或手动。
+- **不做 Route danger 随机暗雷**；路上不会凭空弹「路遇险情」。
 
 ### 3.1 统一世界时间纪律（已确认）
 
@@ -202,7 +203,7 @@ HostWorldMapPanel（扩）
 | `RelationshipLedger` | 个人外交事件 → 可影响 `FactionDiplomacy`（28） |
 | `ContentEvent` / Quest | 战争借口、使者、占点任务 |
 | `MeleeCombatService` 等 | 仅 **手动战** LocalMap 内 |
-| `WorldTravelService` | Travel tick 中插入遭遇检测 |
+| `WorldTravelService` | Travel tick 中插入 **ArmyStack 接战**检测（非 danger roll） |
 
 ---
 
@@ -210,14 +211,14 @@ HostWorldMapPanel（扩）
 
 | 阶段 | 交付 | 验收 | Git |
 |------|------|------|-----|
-| **0 遭遇底座 E** | Route `danger` roll → `InEncounter`／遭遇 LocalMap | EditMode + 手操走 Trail | `feat(strategic): phase0 route encounter` |
+| ~~**0 遭遇底座 E**~~ | ~~Route `danger` roll~~ | **已废弃**（暗雷） | — |
 | **0.5 统一时间** | 开 M 暂停；大地图 Space／倍速；删 `DriveTravelWhilePaused` | 开图 LocalMap 停；Space 全局走 | `feat(strategic): phase0.5 unified pause` |
 | **1 占点可视化** | Ch01 节点 `ownerId` + 大地图归属色 | 荒村／邻点有色 | `feat(strategic): phase1 node ownership colors` |
 | **2 帮派外交** | 四档 stance + 大地图外交区 | 宣战→ hostile | `feat(strategic): phase2 faction diplomacy` |
 | **3 接战 MVP** | ArmyStack + BattleOffer + Auto／Manual | 遇栈弹窗打一场 | `feat(strategic): phase3 battle offer` |
 | **4 AI 派兵** | 日界 AI 栈 + 同 Route 触发接战 | 邻帮派兵一次 | `feat(strategic): phase4 ai army stacks` |
 
-**实现状态（2026-08-17）**：Phase 0～4 已落地；EditMode `StrategicPhaseTests` 8/8 通过；Host：`HostStrategicInterruptPresenter`、大地图暂停／倍速／归属色／外交区／Army 图标。
+**实现状态（2026-08-17）**：Phase 0.5～4 已落地；**Route danger 暗雷已删除**；EditMode `StrategicPhaseTests` 通过；Host：`HostStrategicInterruptPresenter`（接战弹窗）、大地图暂停／倍速／归属色／外交区／Army 图标。
 
 **垂直切片 VS-WorldStrategic-0.1（建议验收口径）：**
 
@@ -234,7 +235,7 @@ HostWorldMapPanel（扩）
 | `faction`（或扩展现有 sect） | 帮派 id、显示名、默认色 |
 | `WorldNode.ownerId` | 占点归属 |
 | `WorldRoute.state` | 畅通／封锁 |
-| `encounterPool` + `encounterTemplate` | 路上／接战用 LocalMap 模板 |
+| `encounterPool` + `encounterTemplate` | **预留**；接战 LocalMap 模板（由 ArmyStack 驱动，非随机池） |
 | `armyStack`（运行时为主，可选 definition） | 绑 faction、成员快照、位置 |
 
 **Snapshot：** 第一期存 `ownerId`、stance、栈位置；Encounter 中盘可后补。

@@ -79,6 +79,18 @@ namespace XianXia.Unity.Host
         public Result Rebuild(string packageDirectory, PlayableDayOptions options = null) =>
             Initialize(packageDirectory, options);
 
+        /// <summary>动态刷出的 NPC（如战略接战）需刷新后再 Rebuild 表现层。</summary>
+        public void RefreshViewableEntityIds()
+        {
+            if (World == null)
+            {
+                ViewableEntityIds = Array.Empty<EntityId>();
+                return;
+            }
+
+            ViewableEntityIds = BuildViewableEntityIds(World, CharacterIds, RecruitableNpcId);
+        }
+
         public void Clear()
         {
             World = null;

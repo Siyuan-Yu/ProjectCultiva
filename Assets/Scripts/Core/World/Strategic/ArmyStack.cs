@@ -13,7 +13,12 @@ namespace XianXia.Core.World.Strategic
         public int TravelTotalTicks { get; set; }
         public int MemberCount { get; set; } = 1;
         public int CombatPower { get; set; } = 1;
+        /// <summary>驻留 Route 上的进度 0..1（-1 表示不在路径锚点）。</summary>
+        public float RouteAnchorProgress { get; set; } = -1f;
         public bool IsTraveling => !string.IsNullOrEmpty(RouteId) && RemainingTravelTicks > 0;
+        public bool IsRouteAnchored =>
+            !string.IsNullOrEmpty(RouteId) && RouteAnchorProgress >= 0f && !IsTraveling;
+        public bool IsRoutePositioned => IsTraveling || IsRouteAnchored;
 
         public float TravelProgress
         {
@@ -30,9 +35,19 @@ namespace XianXia.Core.World.Strategic
             }
         }
 
+        public float GetRouteDisplayProgress()
+        {
+            if (IsTraveling)
+                return TravelProgress;
+            if (IsRouteAnchored)
+                return RouteAnchorProgress;
+            return 0f;
+        }
+
         public void ClearTravel()
         {
-            RouteId = string.Empty;
+            if (!IsRouteAnchored)
+                RouteId = string.Empty;
             DestNodeId = string.Empty;
             RemainingTravelTicks = 0;
             TravelTotalTicks = 0;
