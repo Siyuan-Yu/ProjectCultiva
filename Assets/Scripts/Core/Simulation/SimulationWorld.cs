@@ -18,6 +18,7 @@ using XianXia.Core.Npc;
 using XianXia.Core.Settlement;
 using XianXia.Core.Social;
 using XianXia.Core.World;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Simulation
 {
@@ -117,6 +118,9 @@ namespace XianXia.Core.Simulation
 
         /// <summary>当前镜头／焦点 Node 摘要。</summary>
         public PartyWorldPresence PartyWorld { get; }
+
+        /// <summary>宏观战略层：外交／军队／遭遇／接战（[138]）。</summary>
+        public StrategicBoard Strategic { get; } = new StrategicBoard();
 
         /// <summary>Content Ready: session flags for quests／events (not in Snapshot v1).</summary>
         public WorldFlagBoard Flags { get; }

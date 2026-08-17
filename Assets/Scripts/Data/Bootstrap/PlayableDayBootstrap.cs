@@ -9,6 +9,7 @@ using XianXia.Core.Results;
 using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
+using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 using XianXia.Data.Cultivation;
 using XianXia.Data.Opportunity;
@@ -160,6 +161,8 @@ namespace XianXia.Data.Bootstrap
             if (graph.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(graph.Error);
 
+            StrategicBootstrap.ApplyCh01Defaults(world);
+
             var spawnZones = SpawnZoneApplier.ApplyAll(world, registry, world.Random);
             if (spawnZones.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(spawnZones.Error);
@@ -201,6 +204,7 @@ namespace XianXia.Data.Bootstrap
             loop.AddDayBoundaryHandler(new ChapterDayHandler());
             loop.AddDayBoundaryHandler(new QuestDeadlineDayHandler());
             loop.AddDayBoundaryHandler(new SupervisorPressureHandler());
+            loop.AddDayBoundaryHandler(new StrategicDayHandler());
             IPlayerInputPort port = new PlayerInputPort(loop);
 
             return Result.Ok(new PlayableDayBootstrapResult(

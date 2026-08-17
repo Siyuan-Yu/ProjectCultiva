@@ -12,6 +12,7 @@ using XianXia.Core.Schedule;
 using XianXia.Core.Settlement;
 using XianXia.Core.Social;
 using XianXia.Core.World;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Simulation
 {
@@ -166,6 +167,7 @@ namespace XianXia.Core.Simulation
             if (_socialTickEnabled)
                 _socialTickDriver.Tick(_world);
             WorldTravelService.AdvanceTravel(_world, 1);
+            StrategicTravelDriver.AfterTravelTick(_world, 1);
             return Result.Success();
         }
 
