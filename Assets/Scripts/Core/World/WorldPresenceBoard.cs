@@ -23,8 +23,12 @@ namespace XianXia.Core.World
         public float RouteSegmentEndProgress { get; set; } = -1f;
         /// <summary>宏观 RTS：跟随的 ArmyStack id；空表示未跟随。</summary>
         public string FollowStackId { get; set; } = string.Empty;
+        /// <summary>攻击／追击目标栈 id；有值则到站不弹「是否查看」，只走接战。</summary>
+        public string CombatPursuitStackId { get; set; } = string.Empty;
 
         public bool IsFollowingStack => !string.IsNullOrEmpty(FollowStackId);
+
+        public bool IsCombatPursuing => !string.IsNullOrEmpty(CombatPursuitStackId);
 
         public bool IsRouteAnchored =>
             Mode == PartyWorldPresenceMode.RouteAnchored && RouteAnchorProgress >= 0f;
@@ -88,6 +92,8 @@ namespace XianXia.Core.World
 
         public void ClearFollow() => FollowStackId = string.Empty;
 
+        public void ClearCombatPursuit() => CombatPursuitStackId = string.Empty;
+
         public void ClearTravel()
         {
             Mode = PartyWorldPresenceMode.AtNode;
@@ -97,6 +103,7 @@ namespace XianXia.Core.World
             TravelTotalTicks = 0;
             RouteAnchorProgress = -1f;
             ClearRouteSegment();
+            // 注意：不清 CombatPursuitStackId——追击到站后仍要弹接战而非到站查看
         }
     }
 

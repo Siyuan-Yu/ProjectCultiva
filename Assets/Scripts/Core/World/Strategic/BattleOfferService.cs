@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
-using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -17,8 +16,10 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.Strategic == null || enemy == null || playerParty == null || playerParty.Count == 0)
                 return false;
-            if (world.Strategic.HasBlockingInterrupt)
+            // 接战优先于到站提示
+            if (world.Strategic.HasBattleOffer)
                 return false;
+            world.Strategic.ClearArrivalNotice();
 
             if (HasActiveEncounterForStack(world, enemy.Id))
                 return TryBuildJoinOngoingOffer(world, playerParty, enemy, title);
@@ -128,37 +129,20 @@ namespace XianXia.Core.World.Strategic
             offer.Resolved = true;
 
             if (playerWon)
+            {
                 world.Strategic.Armies.Remove(offer.ArmyStackId);
+                StrategicPursuitService.ClearPursuit(world);
+            }
+            else
+            {
+                // 自动战失利：只清本波接战者标记，路上增援可继续追击
+                StrategicPursuitService.ClearPursuitForEngagedKeepEnRoute(
+                    world,
+                    StrategicPursuitService.CollectEngagedPartyFromOffer(offer));
+            }
 
             world.Strategic.ClearBattleOffer();
-            StrategicPursuitService.ClearPursuit(world);
             return Result.Success();
-        }
-
-        public static void CheckRouteCollisions(SimulationWorld world, IReadOnlyList<EntityId> playerParty)
-        {
-            if (world?.Strategic == null || playerParty == null || playerParty.Count == 0)
-                return;
-            if (world.Strategic.HasBlockingInterrupt)
-                return;
-
-            var playerFaction = world.Strategic.PlayerFactionId;
-            foreach (var kv in world.WorldPresence.All)
-            {
-                var p = kv.Value;
-                if (p == null || p.Mode != PartyWorldPresenceMode.Traveling || string.IsNullOrEmpty(p.RouteId))
-                    continue;
-
-                foreach (var stack in world.Strategic.Armies.AllOnRoute(p.RouteId))
-                {
-                    if (stack == null || string.IsNullOrEmpty(stack.FactionId))
-                        continue;
-                    if (!world.Strategic.Diplomacy.IsHostile(playerFaction, stack.FactionId))
-                        continue;
-                    if (TryBuildOfferForArmy(world, playerParty, stack, "行军遭遇"))
-                        return;
-                }
-            }
         }
     }
 }

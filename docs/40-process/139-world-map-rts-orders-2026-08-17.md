@@ -1,8 +1,26 @@
 # 139 · 大地图 RTS 下令与部队交互（2026-08-17）
 
-> 状态：**已实现（Host + Core 第一刀）**｜日期：2026-08-17  
-> 相对：[138 接战弹窗计划](138-world-strategic-battle-offer-plan-2026-08-17.md)｜[129 Host 出行](129-world-graph-host-travel-scene-isolation-2026-08-16.md)  
-> 飞书（138 同系列，请同步本节）：https://my.feishu.cn/docx/Aodwd4XpNoPdzqxQ5wucY2LFnAg
+> 状态：**已实现（纯 RTS；2026-08-18 手操基本验收）**｜日期：2026-08-18  
+> 相对：[138 接战弹窗计划](138-world-strategic-battle-offer-plan-2026-08-17.md)｜[140 收束](140-world-map-rts-battle-return-rollup-2026-08-18.md)｜[129 Host 出行](129-world-graph-host-travel-scene-isolation-2026-08-16.md)  
+> 飞书：https://my.feishu.cn/docx/RgkxdiGNSoNd11xOXoncl7QnnCg
+
+---
+
+## 0. 产品模型（冻结 · 2026-08-17 重切）
+
+大地图 = **纯 RTS 宏观层**：
+
+| 行为 | 规则 |
+|------|------|
+| **下令移动** | 选中人 → 确认 → **立刻**从当前 LocalMap Despawn → 大地图上路 |
+| **改目标／打断** | 路上再点别处 → 直接改宏观目标（随时可打断） |
+| **视线** | 全员离开后：**不卸图、不挪镜头**，继续看当前 LocalMap |
+| **遇敌** | 追击／主动攻击抵达 → **接战弹窗优先**（压过到站提示）；中途可开大地图查看并派人增援 |
+| **打完** | 场上无敌：**无结算、不弹大地图**；人仍留在战场 LocalMap，但已可在大地图下令移动 |
+| **进场景** | 节点上有我方即可进入（含敌占归属） |
+| **到站** | 非追击的最终目的地 → **到站弹窗**；追击／攻击目标不弹「是否查看」 |
+
+**已废弃：** LocalMap「走到边缘再上路」；全员上路时自动卸图（会把视线带走）。
 
 ---
 
@@ -11,8 +29,8 @@
 | 操作 | 行为 |
 |------|------|
 | **左键头像** | 选中/多选己方角色 |
-| **右键节点** | 确认弹窗 → 移动到该节点（多段路径自动续走，到点停下） |
-| **右键道路** | 确认弹窗 → 移动到路上指定进度（到点停下） |
+| **右键节点** | 确认弹窗 → **立刻**出发到该节点（多段路径自动续走） |
+| **右键道路** | 确认弹窗 → **立刻**出发到路上指定进度 |
 | **右键敌军/他方栈** | 上下文菜单（见下） |
 | **Space / 倍速** | 全局时间（与 LocalMap 共用同一时钟） |
 
@@ -20,20 +38,19 @@
 
 | 关系 | 菜单项 |
 |------|--------|
-| **敌对** | 攻击 · 跟随 · 查看详情 |
-| **非敌对** | 攻击 · 跟随 · 交谈 · 查看详情 |
+| **敌对** | 攻击 · 查看详情 |
+| **非敌对** | 攻击 · 交谈 · 查看详情 |
 
-- **攻击**：与 138 一致——追击到栈位置；**先到先接战**，后到的弹「加入战斗」；手动接战进保底 Encounter LocalMap（路上）或节点 LocalMap（人在节点时）。
-- **跟随**：RTS 跟随目标栈；栈移动则持续同步位置；**取消跟随**：对地图点/节点下新移动令。
-- **交谈**：占位（尚未接 ContentEvent）。
-- **查看详情**：状态栏显示栈名、帮派、人数、战力、位置、关系。
+- **攻击**：登记追击 → 已重合则 BattleOffer；否则 **立刻**离开场景并沿路追击。先到接战，后到可加入。
+- **交谈**：占位。
+- **查看详情**：状态栏摘要。
 
 ### 1.2 移动 vs 跟随
 
 | 目标类型 | 到达后 |
 |----------|--------|
-| 节点 / 道路点 | **停下**（`RouteAnchored` 或 `AtNode`） |
-| 他方栈（跟随） | **保持跟随**；目标栈动则续跟 |
+| 节点 / 道路点 | **停下** |
+| 他方栈（跟随，菜单暂无） | 保持跟随 |
 
 ---
 
@@ -41,31 +58,29 @@
 
 | 模块 | 职责 |
 |------|------|
-| `WorldTravelTarget` | 节点目标 / 道路进度目标 |
-| `WorldTravelPathService` | BFS 多段路径、道路点击、队列续走 |
-| `StrategicFollowService` | `FollowStackId`、每 tick 同步到栈锚点 |
-| `StrategicPursuitService` | 攻击追击（`PursuePartyIds`，与跟随分离） |
-| `HostWorldMapPanel` | 选队、右键菜单、移动/攻击/跟随 UI |
-| `HostWorldTravelConfirmPrompt` | 移动确认（大地图下令不强制 LocalMap 边缘） |
-| `HostWorldTravelDeparture.BeginMacroOrder` | 宏观层直接开走 |
+| `WorldTravelTarget` | 节点／道路进度目标 |
+| `WorldTravelPathService` | BFS 多段、改目标、队列续走 |
+| `StrategicEngageRules` | 接战空间重合 |
+| `StrategicPursuitService` | 攻击追击 |
+| `HostWorldMapPanel` | 选队、右键、攻击 UI |
+| `HostWorldTravelConfirmPrompt` | 确认 → `BeginMacroOrder` |
+| `HostWorldTravelDeparture` | **仅** Hide + 宏观 `StartAgentTravel`／追击；无边缘链 |
 
 ---
 
 ## 3. 接战规则（与 138 对齐）
 
-- **不要**等全员到齐再接战。
-- 追击名单 `PursuePartyIds` ≠ 已在战斗 `EngagedPartyIds`。
-- 普通赶路**经过**路中敌军栈不被动弹窗；仅主动攻击/追击抵达弹窗。
-- 战斗胜利后参战者 **RouteAnchored** 留在原地。
+**会弹 BattleOffer：** 攻击已重合，或追击抵达。  
+**不会弹：** 普通路过敌军、暗雷（已删）。  
+先到接战、后到加入。
 
 ---
 
 ## 4. 已知限制（后续）
 
-- [ ] 交谈接江湖关系 / ContentEvent
-- [ ] 跟随距离上限、脱离战斗后是否保持跟随
-- [ ] 大地图 UI 显示「跟随中」标记
-- [ ] 飞书 138 正文合并本节（需人工粘贴或导出同步）
+- [ ] 交谈 ContentEvent
+- [ ] 跟随菜单加回
+- [ ] （可选）边缘离场演出另开刀
 
 ---
 
@@ -73,5 +88,10 @@
 
 | 日期 | 说明 |
 |------|------|
-| 2026-08-17 | 宏观移动重做：右键节点/道路、BFS 续走、BeginMacroOrder |
-| 2026-08-17 | 右键栈菜单：攻击/跟随/交谈/详情；StrategicFollowService |
+| 2026-08-18 | **清场回程**：InEncounter 路中点回原端可达；暂关节点势力染色／默认 Owner |
+| 2026-08-18 | **增援到站**：手动开战只清进场者追击标记，路上保留 CombatPursuit；到后只弹「加入战斗」不弹到站查看 |
+| 2026-08-17 | **打完离场**：敌清空 FieldCleared；无结算不弹图；参战者可宏观移动；中途可看图增援不可撤 |
+| 2026-08-17 | **到站弹窗**：最终目的地 ArrivalNotice；遇敌仍走 BattleOffer；去查看→开大地图 |
+| 2026-08-17 | **视线保留**：全员上路不卸图、不挪镜头；删 MarkDeparting／TryUnload／EnsureSpawned／Departing stub 等边缘残留 |
+| 2026-08-17 | **重切纯 RTS**：删 Host 边缘离场整链；下令即 Despawn+上路；路上可随时改目标 |
+| 2026-08-17 | 攻击追击对齐派遣；重做遇敌规则 |

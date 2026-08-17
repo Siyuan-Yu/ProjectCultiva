@@ -716,6 +716,16 @@
       "title": "138 大地图战略层与接战弹窗计划（2026-08-17）",
       "docId": "Aodwd4XpNoPdzqxQ5wucY2LFnAg"
     },
+    "world-map-rts-orders-2026-08-17": {
+      "file": "docs/40-process/139-world-map-rts-orders-2026-08-17.md",
+      "title": "139 大地图 RTS 下令与部队交互（2026-08-17）",
+      "docId": "RgkxdiGNSoNd11xOXoncl7QnnCg"
+    },
+    "world-map-rts-battle-return-rollup-2026-08-18": {
+      "file": "docs/40-process/140-world-map-rts-battle-return-rollup-2026-08-18.md",
+      "title": "140 大地图纯 RTS／接战／清场回程收束（2026-08-18）",
+      "docId": "MEzIdolEBonQCExqQGjcsmxGnsf"
+    },
     "world-graph-local-map": {
       "file": "docs/40-process/113-world-graph-local-map-architecture-revision-v0.1.md",
       "title": "World Graph + Local Map 架构修订 v0.1",

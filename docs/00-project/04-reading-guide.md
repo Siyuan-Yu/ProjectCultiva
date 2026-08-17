@@ -1,6 +1,6 @@
 # 文档通读指南
 
-> 状态：现行 | 最后更新：2026-08-17  
+> 状态：现行 | 最后更新：2026-08-18  
 > 上级：[`00-overview.md`](00-overview.md)  
 > **本页说明怎么读整套策划／架构文档。** 正文仍以各专题页为准；本地 Markdown 与飞书同步页一一对应。
 
@@ -25,11 +25,13 @@
 
 当前结构已经适合「仔细通读 + 交叉跳转」。本轮整理重点是：补齐飞书映射、加强入口导航，**不重写已冻结规则正文**。
 
-## 1.1 当前制作人入口（2026-08-17）
+## 1.1 当前制作人入口（2026-08-18）
 
 | 目的 | 读什么 |
 |------|--------|
-| **本轮（战略层／接战弹窗设计）** | [138](../40-process/138-world-strategic-battle-offer-plan-2026-08-17.md) |
+| **本轮收束（纯 RTS／接战／清场回程）** | [140](../40-process/140-world-map-rts-battle-return-rollup-2026-08-18.md) |
+| **大地图 RTS 操作规则** | [139](../40-process/139-world-map-rts-orders-2026-08-17.md) |
+| **战略层／接战弹窗设计** | [138](../40-process/138-world-strategic-battle-offer-plan-2026-08-17.md) |
 | **上一轮收束（熟练／纱衣／田区／砍树）** | [137](../40-process/137-skill-mastery-farm-veil-chop-rollup-2026-08-17.md) |
 | **功法／斗技蓄势＋熟练度** | [131](../40-process/131-skill-mastery-study-ritual-2026-08-16.md)／[132](../40-process/132-skill-mastery-config-absolute-tiers-2026-08-16.md) |
 | **斗气纱衣** | [134](../40-process/134-spirit-veil-ranged-normal-attack-2026-08-16.md) |

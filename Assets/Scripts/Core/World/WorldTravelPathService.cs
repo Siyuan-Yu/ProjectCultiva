@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.World
 {
@@ -23,6 +24,9 @@ namespace XianXia.Core.World
             new Dictionary<ulong, Queue<PendingTravelLeg>>();
 
         public static void ClearAllQueues() => Queues.Clear();
+
+        public static bool HasPendingLegs(EntityId id) =>
+            !id.IsNone && Queues.TryGetValue(id.Value, out var q) && q.Count > 0;
 
         public static bool TryFindNodePath(
             SimulationWorld world,
@@ -107,6 +111,25 @@ namespace XianXia.Core.World
             pathOut.Reverse();
         }
 
+        public static bool TryGetNextHopTowardNode(
+            SimulationWorld world,
+            string fromNodeId,
+            string toNodeId,
+            out string nextHopNodeId)
+        {
+            nextHopNodeId = string.Empty;
+            if (world == null || string.IsNullOrEmpty(fromNodeId) || string.IsNullOrEmpty(toNodeId))
+                return false;
+            if (string.Equals(fromNodeId, toNodeId, StringComparison.Ordinal))
+                return false;
+
+            var path = new List<string>(16);
+            if (!TryFindNodePath(world, fromNodeId, toNodeId, path) || path.Count < 2)
+                return false;
+            nextHopNodeId = path[1];
+            return !string.IsNullOrEmpty(nextHopNodeId);
+        }
+
         public static bool CanAgentReachTarget(
             SimulationWorld world,
             WorldAgentPresence presence,
@@ -123,6 +146,18 @@ namespace XianXia.Core.World
             if (presence.Mode == PartyWorldPresenceMode.AtNode &&
                 string.Equals(presence.NodeId, target.NodeId, StringComparison.Ordinal))
                 return false;
+
+            // 路中／清场后仍 InEncounter：当前道路两端可直达（勿用「较近端」当 BFS 起点，否则回原端会判不可达）
+            if (presence.HasRoutePresentation &&
+                (presence.Mode == PartyWorldPresenceMode.RouteAnchored ||
+                 presence.Mode == PartyWorldPresenceMode.Traveling ||
+                 presence.Mode == PartyWorldPresenceMode.InEncounter))
+            {
+                if (string.Equals(target.NodeId, presence.NodeId, StringComparison.Ordinal))
+                    return presence.TravelProgress > 0.01f;
+                if (string.Equals(target.NodeId, presence.DestNodeId, StringComparison.Ordinal))
+                    return presence.TravelProgress < 0.99f;
+            }
 
             var anchor = ResolveAnchorNodeId(presence);
             if (string.IsNullOrEmpty(anchor))
@@ -169,6 +204,13 @@ namespace XianXia.Core.World
                 return Result.Failure(ErrorCode.NotFound, "Traveler presence missing.", id.Value.ToString());
             if (!WorldTravelService.CanReceiveTravelOrder(world, id))
                 return Result.Failure(ErrorCode.InvalidOperation, "Traveler cannot receive orders now.", id.Value.ToString());
+
+            if (presence.Mode == PartyWorldPresenceMode.InEncounter)
+            {
+                StrategicEncounterSpawner.ReleaseEngagedForMacroTravel(world, id);
+                if (!world.WorldPresence.TryGet(id, out presence) || presence == null)
+                    return Result.Failure(ErrorCode.NotFound, "Traveler presence missing.", id.Value.ToString());
+            }
 
             ClearQueue(id);
             NormalizePresenceForRetarget(presence);
@@ -226,23 +268,36 @@ namespace XianXia.Core.World
                 if (string.Equals(nodeId, presence.NodeId, StringComparison.Ordinal) ||
                     string.Equals(nodeId, presence.DestNodeId, StringComparison.Ordinal))
                     return WorldTravelService.StartTravel(world, id, nodeId);
+
+                // 金丹前：先沿当前道路走到较近端点，再续走后续节点（禁止路中瞬移切路）
+                var exit = ResolveAnchorNodeId(presence);
+                if (string.IsNullOrEmpty(exit))
+                    return Result.Failure(ErrorCode.InvalidOperation, "Cannot resolve travel origin.");
+
+                var path = new List<string>(16);
+                if (!TryFindNodePath(world, exit, nodeId, path) || path.Count < 1)
+                    return Result.Failure(ErrorCode.InvalidOperation, "No macro route to destination.");
+
+                var queue = GetOrCreateQueue(id);
+                for (var i = 1; i < path.Count; i++)
+                    queue.Enqueue(new PendingTravelLeg { NodeId = path[i] });
+
+                return WorldTravelService.StartTravel(world, id, exit);
             }
 
             var anchor = ResolveAnchorNodeId(presence);
             if (string.IsNullOrEmpty(anchor))
                 return Result.Failure(ErrorCode.InvalidOperation, "Cannot resolve travel origin.");
 
-            var path = new List<string>(16);
-            if (!TryFindNodePath(world, anchor, nodeId, path) || path.Count < 2)
+            var pathFromAnchor = new List<string>(16);
+            if (!TryFindNodePath(world, anchor, nodeId, pathFromAnchor) || pathFromAnchor.Count < 2)
                 return Result.Failure(ErrorCode.InvalidOperation, "No macro route to destination.");
 
-            var queue = GetOrCreateQueue(id);
-            for (var i = 2; i < path.Count; i++)
-            {
-                queue.Enqueue(new PendingTravelLeg { NodeId = path[i] });
-            }
+            var q = GetOrCreateQueue(id);
+            for (var i = 2; i < pathFromAnchor.Count; i++)
+                q.Enqueue(new PendingTravelLeg { NodeId = pathFromAnchor[i] });
 
-            return StartTravelOneIgnoringQueue(world, id, path[1]);
+            return StartTravelOneIgnoringQueue(world, id, pathFromAnchor[1]);
         }
 
         static Result BeginRouteProgressTarget(
@@ -319,8 +374,11 @@ namespace XianXia.Core.World
             if (presence == null || string.IsNullOrEmpty(presence.NodeId))
                 return string.Empty;
 
-            if (presence.Mode == PartyWorldPresenceMode.RouteAnchored ||
-                (presence.Mode == PartyWorldPresenceMode.Traveling && presence.HasRoutePresentation))
+            // 含清场后仍 InEncounter、尚未 Release 上路的人
+            if (presence.HasRoutePresentation &&
+                (presence.Mode == PartyWorldPresenceMode.RouteAnchored ||
+                 presence.Mode == PartyWorldPresenceMode.Traveling ||
+                 presence.Mode == PartyWorldPresenceMode.InEncounter))
             {
                 if (presence.TravelProgress >= 0.5f && !string.IsNullOrEmpty(presence.DestNodeId))
                     return presence.DestNodeId;

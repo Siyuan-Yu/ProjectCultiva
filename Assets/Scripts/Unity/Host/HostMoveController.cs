@@ -308,13 +308,12 @@ namespace XianXia.Unity.Host
                 !viewSpawner.Registry.TryGet(id, out var view) || view == null)
                 return false;
 
+            SnapOntoWalkableIfNeeded(view);
             if (!TryBuildWorldPath(view.transform.position, point, _wpScratch))
                 return false;
 
             bootstrap?.BreakthroughRitual?.NotifyMoveOrdered(id);
             bootstrap?.SkillStudyRitual?.NotifyMoveOrdered(id);
-            if (issueStop)
-                bootstrap?.WorldTravelDeparture?.NotifyPlayerOverride(id);
 
             ResumeTime();
             if (issueStop)
@@ -766,8 +765,7 @@ namespace XianXia.Unity.Host
             if (!_pendingArriveActions.TryGetValue(id.Value, out var action))
                 return;
             _pendingArriveActions.Remove(id.Value);
-            // 必须先回调（如宏观离场上路），再 Stop。
-            // 若先 Stop→IssueOne，会误触发「打断未出行」把 Departing 取消掉。
+            // 先到站回调，再 Stop（路上 Traveling 的人跳过 Stop，避免打断宏观移动）
             action?.Invoke();
             if (bootstrap?.Session != null &&
                 bootstrap.Session.World.WorldPresence.TryGet(id, out var p) &&

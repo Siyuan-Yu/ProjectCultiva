@@ -65,75 +65,183 @@ namespace XianXia.Core.World.Strategic
                 var id = party[i];
                 if (id.IsNone || !world.WorldPresence.TryGet(id, out var wp) || wp == null)
                     continue;
-                if (wp.HasRoutePresentation)
-                    continue;
 
-                wp.NodeId = stack.NodeId ?? string.Empty;
-                wp.DestNodeId = stack.DestNodeId ?? string.Empty;
-                wp.RouteId = stack.RouteId ?? string.Empty;
-                if (stack.IsRouteAnchored)
-                {
-                    wp.AnchorOnRoute(stack.GetRouteDisplayProgress());
-                }
-                else if (stack.IsTraveling)
-                {
-                    wp.Mode = PartyWorldPresenceMode.InEncounter;
-                    wp.TravelTotalTicks = stack.TravelTotalTicks;
-                    wp.RemainingTravelTicks = stack.RemainingTravelTicks;
-                    wp.RouteAnchorProgress = -1f;
-                    wp.ClearRouteSegment();
-                }
+                ApplyStackRouteToPresence(wp, stack);
             }
         }
 
+        static void ApplyStackRouteToPresence(WorldAgentPresence wp, ArmyStack stack)
+        {
+            if (wp == null || stack == null || !stack.IsRoutePositioned)
+                return;
+
+            wp.NodeId = stack.NodeId ?? string.Empty;
+            wp.DestNodeId = stack.DestNodeId ?? string.Empty;
+            wp.RouteId = stack.RouteId ?? string.Empty;
+            if (stack.IsRouteAnchored)
+            {
+                wp.RouteAnchorProgress = stack.GetRouteDisplayProgress();
+                wp.RemainingTravelTicks = 0;
+                wp.TravelTotalTicks = 0;
+                wp.ClearRouteSegment();
+                wp.Mode = PartyWorldPresenceMode.InEncounter;
+            }
+            else if (stack.IsTraveling)
+            {
+                wp.Mode = PartyWorldPresenceMode.InEncounter;
+                wp.TravelTotalTicks = Math.Max(1, stack.TravelTotalTicks);
+                wp.RemainingTravelTicks = Math.Max(0, stack.RemainingTravelTicks);
+                wp.RouteAnchorProgress = -1f;
+                wp.ClearRouteSegment();
+            }
+        }
+
+        /// <summary>
+        /// 遭遇战刷出的敌军倒下：同步伤亡；敌清空时标记 FieldCleared（无结算、不卸图、不弹大地图）。
+        /// </summary>
         public static bool OnCombatantDefeated(SimulationWorld world, EntityId defenderId)
         {
             if (world?.Strategic == null || defenderId.IsNone || !IsTrackedSpawn(world, defenderId))
                 return false;
             PruneDeadSpawns(world);
+            // 删栈前先把道路进度落到参战者身上，否则清场后路锚变成 0、无法回程／像瞬移
+            SnapshotEngagedRouteFromStack(world);
             SyncArmyStackMemberCount(world);
-            TryResolveEncounterVictory(world);
+            TryMarkFieldCleared(world);
             return true;
         }
 
-        public static bool TryResolveEncounterVictory(SimulationWorld world)
+        /// <summary>敌军栈尚在时，把宏观路点进度写入所有参战者。</summary>
+        public static void SnapshotEngagedRouteFromStack(SimulationWorld world)
         {
-            if (world?.Strategic?.Encounter == null)
-                return false;
-            if (CountLivingTracked(world) > 0)
-                return false;
-            if (!world.Strategic.Encounter.HasEngagedParty)
-                return false;
-
-            AnchorEngagedPartyAfterVictory(world);
+            if (world?.Strategic == null)
+                return;
             var rt = world.Strategic.Encounter;
-            rt.ClearEngagedParty();
-            rt.ResetSpawnPlan();
-            rt.ArmyStackId = string.Empty;
-            rt.ClearTrackedIds();
-            rt.ClearPursuit();
-            return true;
-        }
+            if (string.IsNullOrEmpty(rt.ArmyStackId) || !rt.HasEngagedParty)
+                return;
+            if (!world.Strategic.Armies.TryGet(rt.ArmyStackId, out var stack) || stack == null)
+                return;
+            if (!stack.IsRoutePositioned)
+                return;
 
-        static void AnchorEngagedPartyAfterVictory(SimulationWorld world)
-        {
-            var rt = world.Strategic.Encounter;
             for (var i = 0; i < rt.EngagedPartyIds.Count; i++)
             {
                 var id = new EntityId(rt.EngagedPartyIds[i]);
                 if (id.IsNone || !world.WorldPresence.TryGet(id, out var wp) || wp == null)
                     continue;
-
-                if (wp.HasRoutePresentation)
-                {
-                    var progress = wp.TravelProgress;
-                    wp.AnchorOnRoute(progress);
-                    continue;
-                }
-
-                if (wp.Mode == PartyWorldPresenceMode.InEncounter)
-                    wp.Mode = PartyWorldPresenceMode.AtNode;
+                ApplyStackRouteToPresence(wp, stack);
             }
+        }
+
+        /// <summary>场上已无存活遭遇敌军且仍有参战者 → 解锁宏观移动，不弹结算。</summary>
+        public static bool TryMarkFieldCleared(SimulationWorld world)
+        {
+            if (world?.Strategic == null)
+                return false;
+            var rt = world.Strategic.Encounter;
+            if (rt.FieldCleared || !rt.HasEngagedParty)
+                return rt.FieldCleared;
+            if (rt.SpawnOnNextMapLoad)
+                return false;
+            if (CountLivingTracked(world) > 0)
+                return false;
+
+            rt.FieldCleared = true;
+            StrategicPursuitService.ClearPursuit(world);
+            return true;
+        }
+
+        public static bool IsFieldCleared(SimulationWorld world) =>
+            world?.Strategic?.Encounter != null && world.Strategic.Encounter.FieldCleared;
+
+        /// <summary>清场后宏观上路：退出 Engaged，落回 AtNode／路锚（不卸 LocalMap）。</summary>
+        public static void ReleaseEngagedForMacroTravel(SimulationWorld world, EntityId id)
+        {
+            if (world?.Strategic == null || id.IsNone)
+                return;
+            if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
+                return;
+
+            var rt = world.Strategic.Encounter;
+            rt.RemoveEngagedPartyMember(id);
+
+            if (!string.IsNullOrEmpty(wp.RouteId) &&
+                !string.IsNullOrEmpty(wp.DestNodeId) &&
+                !string.Equals(wp.NodeId, wp.DestNodeId, StringComparison.Ordinal))
+            {
+                wp.AnchorOnRoute(ResolveMacroRouteProgress(wp));
+            }
+            else
+            {
+                wp.Mode = PartyWorldPresenceMode.AtNode;
+                wp.RemainingTravelTicks = 0;
+                wp.TravelTotalTicks = 0;
+                wp.RouteAnchorProgress = -1f;
+                wp.ClearRouteSegment();
+                if (string.IsNullOrEmpty(wp.DestNodeId) ||
+                    string.Equals(wp.NodeId, wp.DestNodeId, StringComparison.Ordinal))
+                {
+                    wp.RouteId = string.Empty;
+                    wp.DestNodeId = string.Empty;
+                }
+            }
+
+            if (!rt.HasEngagedParty)
+            {
+                rt.FieldCleared = false;
+                rt.ArmyStackId = string.Empty;
+                rt.EncounterLinkId = string.Empty;
+                ClearSpawned(world);
+            }
+        }
+
+        /// <summary>
+        /// 释放上路用的道路进度。丢失进度时用 0.5，避免钉在 0／1 导致「回不去出发端」或端点瞬移。
+        /// </summary>
+        public static float ResolveMacroRouteProgress(WorldAgentPresence wp)
+        {
+            if (wp == null)
+                return 0.5f;
+            if (wp.RouteAnchorProgress >= 0f && wp.RouteAnchorProgress <= 1f)
+                return wp.RouteAnchorProgress;
+            if (wp.TravelTotalTicks > 0)
+            {
+                var t = wp.TravelProgress;
+                if (t < 0f)
+                    return 0.5f;
+                if (t > 1f)
+                    return 1f;
+                return t;
+            }
+
+            return 0.5f;
+        }
+
+        /// <summary>进 Encounter 图前：保留宏观路进度，再清旅行 tick。</summary>
+        public static void PreserveRouteProgressForEncounter(WorldAgentPresence wp)
+        {
+            if (wp == null)
+                return;
+            if (wp.RouteAnchorProgress < 0f &&
+                !string.IsNullOrEmpty(wp.RouteId) &&
+                !string.IsNullOrEmpty(wp.DestNodeId))
+            {
+                if (wp.TravelTotalTicks > 0)
+                    wp.RouteAnchorProgress = Math.Max(0f, Math.Min(1f, wp.TravelProgress));
+                else
+                    wp.RouteAnchorProgress = 0.5f;
+            }
+
+            wp.RemainingTravelTicks = 0;
+            wp.TravelTotalTicks = 0;
+            wp.ClearRouteSegment();
+            wp.Mode = PartyWorldPresenceMode.InEncounter;
+        }
+
+        /// <summary>遗留：自动胜利结算（当前产品不启用）。</summary>
+        public static bool TryResolveEncounterVictory(SimulationWorld world)
+        {
+            return false;
         }
 
         public static Result ApplyPending(SimulationWorld world)
@@ -233,10 +341,7 @@ namespace XianXia.Core.World.Strategic
 
                 rt.AddEngagedPartyMember(id);
                 if (world.WorldPresence.TryGet(id, out var wp) && wp != null)
-                {
-                    if (wp.Mode == PartyWorldPresenceMode.Traveling)
-                        wp.Mode = PartyWorldPresenceMode.InEncounter;
-                }
+                    PreserveRouteProgressForEncounter(wp);
 
                 if (!world.Entities.TryGet(id, out var entity))
                     continue;
@@ -296,6 +401,9 @@ namespace XianXia.Core.World.Strategic
 
                 loc.LocationId = startId ?? string.Empty;
                 loc.SetPresentationOverride(baseX - 1.5f - slot * 1.1f, baseZ + 1.8f);
+
+                if (world.WorldPresence.TryGet(id, out var wp) && wp != null)
+                    PreserveRouteProgressForEncounter(wp);
             }
         }
 

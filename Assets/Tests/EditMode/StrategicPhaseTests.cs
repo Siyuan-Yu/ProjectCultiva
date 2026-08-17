@@ -24,21 +24,21 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void Phase1_Ch01_DefaultOwners_AreSeeded()
+        public void Phase1_Ch01_DefaultOwners_ClearedWhileDiplomacyOff()
         {
             var world = StartCh01().World;
             Assert.IsTrue(world.WorldGraph.TryGetNode("base:node_huangcun", out var huangcun));
-            Assert.AreEqual(StrategicFactionCatalog.HuangcunLaborId, huangcun.OwnerId);
+            Assert.IsTrue(string.IsNullOrEmpty(huangcun.OwnerId), "暂不做节点势力归属");
             Assert.IsTrue(world.WorldGraph.TryGetNode("base:node_linjian", out var linjian));
-            Assert.AreEqual(StrategicFactionCatalog.BanditId, linjian.OwnerId);
+            Assert.IsTrue(string.IsNullOrEmpty(linjian.OwnerId));
         }
 
         [Test]
-        public void Phase2_DefaultDiplomacy_BanditsAtWar()
+        public void Phase2_DefaultDiplomacy_NeutralNotHostile()
         {
             var world = StartCh01().World;
             var player = world.Strategic.PlayerFactionId;
-            Assert.IsTrue(world.Strategic.Diplomacy.IsHostile(player, StrategicFactionCatalog.BanditId));
+            Assert.IsFalse(world.Strategic.Diplomacy.IsHostile(player, StrategicFactionCatalog.BanditId));
             Assert.IsFalse(world.Strategic.Diplomacy.IsHostile(player, StrategicFactionCatalog.FisherVillageId));
         }
 
@@ -119,7 +119,7 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void NodeAccess_HostileOwner_BlockedEvenIfPartyPresent()
+        public void NodeAccess_PartyPresent_CanEnterEvenIfHostileOwner()
         {
             var session = StartCh01();
             var world = session.World;
@@ -128,7 +128,103 @@ namespace XianXia.Tests
             Assert.IsTrue(travel.IsSuccess, travel.IsFailure ? travel.Error.ToString() : "");
             WorldTravelService.AdvanceTravel(world, 500);
             var access = StrategicNodeAccessService.CanEnterNodeLocalMap(world, "base:node_linjian");
-            Assert.IsTrue(access.IsFailure, "bandit-owned node should stay blocked without battle");
+            Assert.IsTrue(access.IsSuccess, "我方在场即可进入，含敌占节点");
+        }
+
+        [Test]
+        public void NodeAccess_Huangcun_PartyPresent_CanEnterDespiteHostileLabor()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var access = StrategicNodeAccessService.CanEnterNodeLocalMap(world, "base:node_huangcun");
+            Assert.IsTrue(access.IsSuccess, "荒村有我方时应可进入场景");
+        }
+
+        [Test]
+        public void PursuitArrival_SkipsArrivalNotice_OpensBattleOffer()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var party = new System.Collections.Generic.List<EntityId> { session.CharacterIds[0] };
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var stack));
+
+            StrategicPursuitService.BeginPursuit(world, party, stack);
+            Assert.IsTrue(world.WorldPresence.TryGet(party[0], out var p));
+            Assert.IsTrue(p.IsCombatPursuing);
+
+            var travel = WorldTravelService.StartTravelPartyToStackAnchor(world, party, stack);
+            Assert.IsTrue(travel.IsSuccess, travel.IsFailure ? travel.Error.ToString() : "");
+
+            for (var i = 0; i < 5000; i++)
+            {
+                WorldTravelService.AdvanceTravel(world, 1, StrategicTravelDriver.BeginArrivalCapture());
+                StrategicTravelDriver.AfterTravelTick(world, 1);
+                if (world.Strategic.HasBattleOffer)
+                    break;
+            }
+
+            Assert.IsTrue(world.Strategic.HasBattleOffer, "追击到位应弹接战");
+            Assert.IsFalse(world.Strategic.HasArrivalNotice, "追击到位不应弹到站查看");
+        }
+
+        [Test]
+        public void ManualEnter_KeepsEnRoutePursuerMark_SecondJoinsWithoutArrivalNotice()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var stack));
+            var first = new System.Collections.Generic.List<EntityId> { session.CharacterIds[0] };
+            var second = new System.Collections.Generic.List<EntityId> { session.CharacterIds[1] };
+            var both = new System.Collections.Generic.List<EntityId>
+            {
+                session.CharacterIds[0],
+                session.CharacterIds[1]
+            };
+
+            StrategicPursuitService.BeginPursuit(world, both, stack);
+            Assert.IsTrue(WorldTravelService.StartTravelPartyToStackAnchor(world, both, stack).IsSuccess);
+
+            // 先到者赶到并手动进战
+            for (var i = 0; i < 5000; i++)
+            {
+                WorldTravelService.AdvanceTravel(world, 1, StrategicTravelDriver.BeginArrivalCapture());
+                StrategicTravelDriver.AfterTravelTick(world, 1);
+                if (world.Strategic.HasBattleOffer)
+                    break;
+            }
+
+            Assert.IsTrue(world.Strategic.HasBattleOffer);
+            world.Strategic.ClearBattleOffer();
+
+            StrategicEncounterSpawner.PlanManualEncounter(
+                world,
+                stack.Id,
+                string.Empty,
+                first,
+                3,
+                2);
+            world.PartyWorld.LocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+            Assert.IsTrue(StrategicEncounterSpawner.ApplyPending(world).IsSuccess);
+
+            // 模拟旧 bug：开战 ClearPursuit 会清掉第二人 → 现改为只清进场者
+            StrategicPursuitService.ClearPursuitForEngagedKeepEnRoute(world, first);
+
+            Assert.IsTrue(world.WorldPresence.TryGet(session.CharacterIds[1], out var secondP));
+            Assert.IsTrue(secondP.IsCombatPursuing, "路上增援应保留追击标记");
+            Assert.IsTrue(world.Strategic.Encounter.IsPursue(session.CharacterIds[1]));
+
+            world.Strategic.ClearArrivalNotice();
+            for (var i = 0; i < 5000; i++)
+            {
+                WorldTravelService.AdvanceTravel(world, 1, StrategicTravelDriver.BeginArrivalCapture());
+                StrategicTravelDriver.AfterTravelTick(world, 1);
+                if (world.Strategic.HasBattleOffer)
+                    break;
+            }
+
+            Assert.IsTrue(world.Strategic.HasBattleOffer, "后到应弹加入战斗");
+            Assert.IsTrue(world.Strategic.BattleOffer.IsJoinOngoingBattle);
+            Assert.IsFalse(world.Strategic.HasArrivalNotice, "后到追击不应弹到站查看");
         }
 
         [Test]
@@ -146,11 +242,111 @@ namespace XianXia.Tests
 
             for (var i = 0; i < 4000; i++)
             {
-                WorldTravelService.AdvanceTravel(world, 1);
+                WorldTravelService.AdvanceTravel(world, 1, StrategicTravelDriver.BeginArrivalCapture());
                 StrategicTravelDriver.AfterTravelTick(world, 1);
+                if (!world.Strategic.ArrivalNotice.Resolved &&
+                    !string.IsNullOrEmpty(world.Strategic.ArrivalNotice.NoticeId))
+                    world.Strategic.ClearArrivalNotice();
             }
 
-            Assert.IsFalse(world.Strategic.HasBlockingInterrupt);
+            Assert.IsTrue(
+                world.Strategic.BattleOffer.Resolved ||
+                string.IsNullOrEmpty(world.Strategic.BattleOffer.OfferId),
+                "Route danger must not open battle offer");
+        }
+
+        [Test]
+        public void TravelSameRouteAsAnchoredHostile_DoesNotAutoOffer()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var party = session.CharacterIds;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var stack));
+            Assert.IsTrue(stack.IsRouteAnchored);
+
+            var travel = WorldTravelService.StartTravel(world, party, "base:node_linjian");
+            Assert.IsTrue(travel.IsSuccess, travel.IsFailure ? travel.Error.ToString() : "");
+
+            for (var i = 0; i < 4000; i++)
+            {
+                WorldTravelService.AdvanceTravel(world, 1, StrategicTravelDriver.BeginArrivalCapture());
+                StrategicTravelDriver.AfterTravelTick(world, 1);
+                // 到站提示会挡后续 tick；清掉以便继续验证「不过路接战」
+                if (!world.Strategic.ArrivalNotice.Resolved &&
+                    !string.IsNullOrEmpty(world.Strategic.ArrivalNotice.NoticeId))
+                    world.Strategic.ClearArrivalNotice();
+            }
+
+            Assert.IsTrue(
+                world.Strategic.BattleOffer.Resolved ||
+                string.IsNullOrEmpty(world.Strategic.BattleOffer.OfferId),
+                "过路同路敌军栈不应自动弹接战");
+        }
+
+        [Test]
+        public void FinalArrival_OpensArrivalNotice()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var party = new System.Collections.Generic.List<EntityId> { session.CharacterIds[0] };
+            var travel = WorldTravelService.StartTravel(world, party, "base:node_kuangshan");
+            Assert.IsTrue(travel.IsSuccess, travel.IsFailure ? travel.Error.ToString() : "");
+
+            for (var i = 0; i < 5000; i++)
+            {
+                WorldTravelService.AdvanceTravel(world, 1, StrategicTravelDriver.BeginArrivalCapture());
+                StrategicTravelDriver.AfterTravelTick(world, 1);
+                if (!world.Strategic.ArrivalNotice.Resolved &&
+                    !string.IsNullOrEmpty(world.Strategic.ArrivalNotice.NoticeId))
+                    break;
+            }
+
+            Assert.IsFalse(world.Strategic.ArrivalNotice.Resolved);
+            Assert.IsFalse(string.IsNullOrEmpty(world.Strategic.ArrivalNotice.NoticeId));
+            Assert.IsTrue(world.Strategic.ArrivalNotice.Summary.Contains("抵达"));
+        }
+
+        [Test]
+        public void TravelSameRouteAsTravelingHostile_DoesNotAutoOffer()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var party = new System.Collections.Generic.List<EntityId> { session.CharacterIds[0] };
+            Assert.IsTrue(world.WorldGraph.TryFindRoute(
+                "base:node_huangcun", "base:node_linjian", out var route) ||
+                world.WorldGraph.TryFindRoute(
+                    "base:node_linjian", "base:node_huangcun", out route));
+
+            world.Strategic.Armies.Register(new ArmyStack
+            {
+                Id = "army:test_marching",
+                FactionId = StrategicFactionCatalog.BanditId,
+                DisplayName = "测试行军匪",
+                NodeId = "base:node_linjian",
+                DestNodeId = "base:node_huangcun",
+                RouteId = route.Id,
+                TravelTotalTicks = 200,
+                RemainingTravelTicks = 200,
+                MemberCount = 2,
+                CombatPower = 2
+            });
+
+            var travel = WorldTravelService.StartTravel(world, party, "base:node_linjian");
+            Assert.IsTrue(travel.IsSuccess, travel.IsFailure ? travel.Error.ToString() : "");
+
+            for (var i = 0; i < 50; i++)
+            {
+                WorldTravelService.AdvanceTravel(world, 1, StrategicTravelDriver.BeginArrivalCapture());
+                StrategicTravelDriver.AfterTravelTick(world, 1);
+                if (!world.Strategic.ArrivalNotice.Resolved &&
+                    !string.IsNullOrEmpty(world.Strategic.ArrivalNotice.NoticeId))
+                    world.Strategic.ClearArrivalNotice();
+            }
+
+            Assert.IsTrue(
+                world.Strategic.BattleOffer.Resolved ||
+                string.IsNullOrEmpty(world.Strategic.BattleOffer.OfferId),
+                "同路行军敌军也不应自动弹接战（须主动攻击／追击）");
         }
 
         [Test]
@@ -341,10 +537,122 @@ namespace XianXia.Tests
             var joined = StrategicEncounterSpawner.JoinEngagedMembers(world, second);
             Assert.IsTrue(joined.IsSuccess, joined.IsFailure ? joined.Error.ToString() : "");
             Assert.IsTrue(world.Strategic.Encounter.IsEngaged(session.CharacterIds[1]));
+            Assert.IsTrue(world.WorldPresence.TryGet(session.CharacterIds[1], out var joinedPresence));
+            Assert.AreEqual(PartyWorldPresenceMode.InEncounter, joinedPresence.Mode);
             Assert.IsTrue(
                 world.Entities.TryGet(session.CharacterIds[1], out var entity) &&
                 entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc) &&
                 loc.HasPresentationOverride);
+            world.LocalMap.ActiveMapLayoutId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+            Assert.IsTrue(
+                LocalMapVisibility.IsEntityVisible(world, session.CharacterIds[1]),
+                "Joiner must be visible on encounter LocalMap");
+        }
+
+        [Test]
+        public void FieldCleared_UnlocksMacroTravel_WithoutSettlement()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var stack));
+            var party = new System.Collections.Generic.List<EntityId> { session.CharacterIds[0] };
+
+            StrategicEncounterSpawner.PlanManualEncounter(world, stack.Id, string.Empty, party, 1, 2);
+            world.PartyWorld.LocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+            world.LocalMap.ActiveMapLayoutId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+            Assert.IsTrue(StrategicEncounterSpawner.ApplyPending(world).IsSuccess);
+            Assert.AreEqual(1, world.Strategic.Encounter.SpawnedEntityIds.Count);
+            Assert.IsTrue(world.WorldPresence.TryGet(party[0], out var before));
+            before.Mode = PartyWorldPresenceMode.InEncounter;
+
+            Assert.IsFalse(WorldTravelService.CanReceiveTravelOrder(world, party[0]));
+
+            var enemyId = new EntityId(world.Strategic.Encounter.SpawnedEntityIds[0]);
+            Assert.IsTrue(world.Entities.TryGet(enemyId, out var enemy));
+            if (!enemy.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var life))
+            {
+                life = new XianXia.Core.Entities.LifecycleComponent();
+                enemy.AddComponent(life);
+            }
+
+            life.State = XianXia.Core.Entities.LifecycleState.Dead;
+            Assert.IsTrue(StrategicEncounterSpawner.OnCombatantDefeated(world, enemyId));
+            Assert.IsTrue(StrategicEncounterSpawner.IsFieldCleared(world));
+            Assert.IsTrue(WorldTravelService.CanReceiveTravelOrder(world, party[0]));
+            Assert.AreEqual(
+                StrategicEncounterCatalog.DefaultEncounterLocalMapId,
+                world.LocalMap.ActiveMapLayoutId,
+                "Field clear must keep encounter LocalMap");
+        }
+
+        [Test]
+        public void FieldCleared_StillInEncounter_CanOrderTravelBackToHuangcun()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var stack));
+            var party = new System.Collections.Generic.List<EntityId> { session.CharacterIds[0] };
+
+            StrategicEncounterSpawner.PlanManualEncounter(world, stack.Id, string.Empty, party, 1, 2);
+            world.PartyWorld.LocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+            Assert.IsTrue(StrategicEncounterSpawner.ApplyPending(world).IsSuccess);
+            Assert.IsTrue(world.WorldPresence.TryGet(party[0], out var wp));
+            wp.Mode = PartyWorldPresenceMode.InEncounter;
+            Assert.That(wp.RouteAnchorProgress, Is.EqualTo(0.5f).Within(0.05f));
+
+            var enemyId = new EntityId(world.Strategic.Encounter.SpawnedEntityIds[0]);
+            Assert.IsTrue(world.Entities.TryGet(enemyId, out var enemy));
+            if (!enemy.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var life))
+            {
+                life = new XianXia.Core.Entities.LifecycleComponent();
+                enemy.AddComponent(life);
+            }
+
+            life.State = XianXia.Core.Entities.LifecycleState.Dead;
+            Assert.IsTrue(StrategicEncounterSpawner.OnCombatantDefeated(world, enemyId));
+            Assert.IsTrue(StrategicEncounterSpawner.IsFieldCleared(world));
+            Assert.IsTrue(world.WorldPresence.TryGet(party[0], out wp));
+            Assert.AreEqual(PartyWorldPresenceMode.InEncounter, wp.Mode);
+
+            var target = WorldTravelTarget.AtNode("base:node_huangcun");
+            Assert.IsTrue(
+                WorldTravelPathService.CanAgentReachTarget(world, wp, target),
+                "清场后未 Release 前也应能点回青石荒村");
+
+            var started = WorldTravelPathService.StartAgentTravelToTarget(world, party[0], target);
+            Assert.IsTrue(started.IsSuccess, started.IsFailure ? started.Error.ToString() : "");
+            Assert.IsTrue(world.WorldPresence.TryGet(party[0], out wp));
+            Assert.AreEqual(PartyWorldPresenceMode.Traveling, wp.Mode);
+        }
+
+        [Test]
+        public void ReleaseAfterRoadFight_KeepsProgress_CanReturnToOrigin()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var stack));
+            var party = new System.Collections.Generic.List<EntityId> { session.CharacterIds[0] };
+
+            StrategicEncounterSpawner.PlanManualEncounter(world, stack.Id, string.Empty, party, 1, 2);
+            Assert.IsTrue(world.WorldPresence.TryGet(party[0], out var wp));
+            Assert.AreEqual(0.5f, wp.RouteAnchorProgress, 0.05f);
+
+            // 模拟进图时曾清掉 TravelTicks（旧 bug 会把进度弄丢）
+            wp.TravelTotalTicks = 0;
+            wp.RemainingTravelTicks = 0;
+            wp.Mode = PartyWorldPresenceMode.InEncounter;
+
+            world.Strategic.Encounter.FieldCleared = true;
+            StrategicEncounterSpawner.ReleaseEngagedForMacroTravel(world, party[0]);
+            Assert.IsTrue(world.WorldPresence.TryGet(party[0], out wp));
+            Assert.AreEqual(PartyWorldPresenceMode.RouteAnchored, wp.Mode);
+            Assert.That(wp.RouteAnchorProgress, Is.EqualTo(0.5f).Within(0.05f));
+
+            var back = WorldTravelService.StartTravel(world, party[0], "base:node_huangcun");
+            Assert.IsTrue(back.IsSuccess, back.IsFailure ? back.Error.ToString() : "");
+            Assert.IsTrue(world.WorldPresence.TryGet(party[0], out wp));
+            Assert.AreEqual(PartyWorldPresenceMode.Traveling, wp.Mode);
+            Assert.Greater(wp.RemainingTravelTicks, 4);
         }
 
         [Test]
@@ -422,7 +730,7 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void EncounterVictory_AnchorsEngagedPartyOnRoute()
+        public void EncounterKill_DoesNotAutoResolveVictoryOrClearEngagement()
         {
             var session = StartCh01();
             var world = session.World;
@@ -453,10 +761,11 @@ namespace XianXia.Tests
             }
 
             Assert.IsTrue(StrategicEncounterSpawner.OnCombatantDefeated(world, spawnId));
+            Assert.IsFalse(StrategicEncounterSpawner.TryResolveEncounterVictory(world));
             Assert.IsTrue(world.WorldPresence.TryGet(agent, out p));
-            Assert.AreEqual(PartyWorldPresenceMode.RouteAnchored, p.Mode);
-            Assert.Greater(p.RouteAnchorProgress, 0f);
-            Assert.IsFalse(BattleOfferService.HasActiveManualEncounter(world));
+            Assert.AreEqual(PartyWorldPresenceMode.InEncounter, p.Mode);
+            Assert.IsTrue(world.Strategic.Encounter.HasEngagedParty);
+            Assert.IsTrue(BattleOfferService.HasActiveManualEncounter(world));
         }
 
         [Test]

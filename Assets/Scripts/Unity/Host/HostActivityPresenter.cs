@@ -2,7 +2,6 @@ using UnityEngine;
 using XianXia.Core.Actions;
 using XianXia.Core.Entities;
 using XianXia.Core.Schedule;
-using XianXia.Core.World;
 
 namespace XianXia.Unity.Host
 {
@@ -45,15 +44,6 @@ namespace XianXia.Unity.Host
                     bootstrap.SkillStudyRitual.IsChannelingSubject(view.EntityId))
                 {
                     view.SetActivityText("参悟中");
-                    continue;
-                }
-
-                // 宏观出行已确认、尚未走出场景：固定显示「未出行」（可被玩家打断）
-                if (session.World.WorldPresence.TryGet(view.EntityId, out var wp) &&
-                    wp != null &&
-                    wp.Mode == PartyWorldPresenceMode.DepartingLocalMap)
-                {
-                    view.SetActivityText("未出行");
                     continue;
                 }
 

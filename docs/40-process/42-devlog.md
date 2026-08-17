@@ -7,6 +7,222 @@
 
 ---
 
+## 2026-08-18 — 收束文档 140＋飞书／GitHub
+
+**做了什么**
+- 收束文档 [140](140-world-map-rts-battle-return-rollup-2026-08-18.md)；更新 139／62／总览／通读；飞书 provision＋同步；提交推送
+
+---
+
+## 2026-08-18 — 打完回不了青石荒村
+
+**原因**：清场后仍 `InEncounter`，可达性用「较近端」当 BFS 起点；半路打完较近端常是荒村，点回荒村被当成「已在」→「无法沿宏观道路到达」。与外交无关。
+
+**修复**
+- 路中／InEncounter：当前道路两端可直达
+- `ResolveAnchorNodeId` 覆盖 InEncounter
+- 暂清节点 Owner、大地图不再按势力染色
+
+---
+
+## 2026-08-18 — 后到增援只弹加入战斗
+
+**原因**：先到点「手动战斗」时 `ClearPursuit` 清掉全员（含路上第二人）标记 → 后到误弹到站查看
+
+**修复**
+- `ClearPursuitForEngagedKeepEnRoute`：只清进场者，按身上标记重建追击名单
+- `BeginPursuit` 同栈合并名单
+- 大地图点选头像时状态栏提示颜色含义（橘=接战／蓝=路上／灰绿=驻留）
+
+---
+
+## 2026-08-18 — 追击绝不弹到站 + 去掉战略敌对门槛
+
+**做了什么**
+- 角色挂 `CombatPursuitStackId`：攻击上路必标记；到站跳过「是否查看」，只弹接战
+- `BeginPursuitToStackAnchor` 强制 `BeginPursuit`，到位立即尝试 BattleOffer
+- 战略敌对不再挡进场／攻击确认；外交默认中立
+
+---
+
+**做了什么**
+- 进场景：有我方在场即可进（含敌占荒村），不再被外交敌对挡住
+- 攻击／追击：不弹到站「是否查看」；接战弹窗优先盖过到站提示
+
+---
+
+**原因**
+- 进 Encounter 时清掉 TravelTicks，路进度变成 0 → 无法回荒村（误判已在出发端）
+- 删敌军栈前未快照路点；路锚去非端点时误走瞬移逻辑
+
+**修复**
+- 删栈前 `SnapshotEngagedRouteFromStack`；`PreserveRouteProgressForEncounter`
+- 释放进度丢失时用 0.5；路锚先走到端点再续走；短途至少 8 tick
+
+---
+
+**产品（1C）**
+- 中途可开大地图查看、可派人增援；参战中不可宏观离开
+- 敌清空：无结算弹窗、不自动开大地图；画面留战场 LocalMap；`FieldCleared` 后可大地图下令移动
+
+---
+
+## 2026-08-17 — 大地图选栈吸附 + 加入战斗真进场
+
+**做了什么**
+- 敌军栈点选：扩大吸附半径；已选己方时左键点栈保留选中并弹出攻击菜单
+- `JoinEngagedMembers`／`RelocatePartyOnEncounterMap`：增援一律 `InEncounter`（修复到站后仍 AtNode／路锚导致看不见）
+
+---
+
+**做了什么**
+- 遇敌：沿用 `BattleOffer`（自动／手动／撤退）；追击抵达仍由 `StrategicPursuitService` 弹出
+- 到站：`ArrivalNotice` — 最终目的地才弹；文案「XXX 抵达「YY」」；**去查看**→开大地图并选中到站者；**暂不查看**关掉
+- 接战优先于到站，不叠弹
+
+---
+
+## 2026-08-17 — 清残留 + 全员上路视线留在 LocalMap
+
+**做了什么**
+- 再删：`MarkDepartingLocalMap`／`CommitTravelAfterLocalExit`／`EnsureSpawned`／`TryUnloadActiveLocalMapIfNoFriendlyParty`／`NotifyPlayerOverride` stub／「未出行」头顶字
+- 出行后**不再卸图、不 FrameCamera**：只 Despawn 上路者，画面留在当前 LocalMap
+- `ApplyPartyWorldNodePresentation`：目标图暂无我方、或焦点图空但 ActiveMap 仍在 → return，禁止误卸把视线带走
+
+---
+
+## 2026-08-17 — 大地图重切：纯 RTS（删边缘离场）
+
+**产品**
+- 放弃「走到地图边缘再上路」；问题过多，整段 Host 离场链删除
+- 大地图：选人下令 → **立刻** LocalMap 消失 → 宏观移动；路上再点别处 = 改目标打断
+- 遇敌进 LocalMap／后到加入：之后再加细，本刀不动接战弹窗主路径
+
+**做了什么**
+- 重写 `HostWorldTravelDeparture`（约删光边缘／Force／Prepare）
+- 删 `OrderEntityToWorldPointForDeparture`
+- 确认窗不再传 `useLocalMapExit`
+- 更新 139
+
+---
+
+## 2026-08-17 — 「有的能出行有的不能」：Departing 被滤掉 + 失败卡死
+
+**原因**
+1. `CanReceiveTravelOrder` 不含 `DepartingLocalMap` → 正在走边缘的人在大地图里**点不动／下不了新令**
+2. 边缘失败后硬禁止上路 → 部分人既不走边缘也不上路，像「不能出行」
+
+**修复**
+- 可下令模式加入 `DepartingLocalMap`；改令先 `CancelDeparture`
+- 边缘彻底失败时再宏观保底上路；状态栏区分「已出发／未能出行」人数
+
+---
+
+## 2026-08-17 — 根因：在场者离场失败会静默「直接上路」
+
+**为什么会出现「有人走边缘、有人直接出发」**
+- 旧循环：`TryStartEdgeExit` 一失败（无 View／Mark 被路权挡住／寻路失败）→ **立刻** `StartAgentTravel`+Hide
+- 主角常成功，队友常失败 → 看起来像随机分裂
+
+**这次硬规则**
+- `MustEdgeExit`（在 ActiveMap 节点或场景里已有 View）→ **禁止**回退宏观上路
+- 失败走 `TryEmergencyEdgeExit`（直线／贴边瞬移再回调）
+- `MarkDepartingLocalMap` 不再因路权失败而挡离场标记
+
+---
+
+## 2026-08-17 — 离场链收束：RTS 大地图 + 保留边缘离场
+
+**产品确认**
+- 大地图 = RTS（随时下令／打断）；遇敌才进战斗 LocalMap；后到可加入
+- 人在节点场景时：**仍要走到边缘再上路**（选项 2）
+
+**做了什么**
+- 重写 `HostWorldTravelDeparture`：删掉 Force／双路径／IssueOne Stop 旁路，只留 `TryStartEdgeExit`
+- 在场全员：补刷坐标 + EnsureSpawn → 走边缘（寻路失败则直线）→ 上路
+- 不在场：直接宏观移动；无人留下才卸图
+
+---
+
+## 2026-08-17 — 多人离场：禁止「寻路失败就直接上路」
+
+**根因**
+- 在 Active LocalMap 上的队友若无 View／坐标在墙外／寻路失败，旧逻辑会**静默回退** `StartAgentTravel`+Hide，看起来像瞬移上路；主角常有合法 View 所以仍走边缘
+
+**做了什么**
+- 在场者：`ShouldAttemptLocalMapExit` → **必须**走边缘；失败则直线离场，不再宏观跳过
+- `OrderEntityToWorldPointForDeparture`：不发 Stop 打断同批；寻路失败改直线
+- 离场前强制重刷表现坐标并贴格；整批 `_suppressOverride`
+
+---
+
+## 2026-08-17 — 多人离场：全员走边缘，不再只有主角
+
+**做了什么**
+- 焦点节点上 AtNode／Departing 的我方一律可见（不再因 LocationId 过期隐身）
+- 离场前 `PrepareAgentsForLocalMapExit`：补表现坐标 + `EnsureSpawned`
+- 多人离场边缘点加队形错开，降低寻路挤死回退成「直接上路」
+
+**判断与理由**
+- 旧逻辑 `NeedsLocalMapExit` 要求已有 EntityView；队友常无 View → 直接宏观移动
+
+---
+
+## 2026-08-17 — 卸图：仅当该 LocalMap 无我方角色
+
+**做了什么**
+- 离场只 Despawn 离开者；**当前 Active LocalMap 上仍有我方**时保持装载
+- **无人留下**才 `UnloadActiveLocalMapPresentation`（清空 ActiveMap／视图／WalkGrid；空遭遇顺带清刷怪与 Engaged）
+- `ApplyPartyWorldNodePresentation`：目标图上无我方且非即将刷遭遇 → 直接卸图，禁止空图挂载
+
+**判断与理由**
+- 击杀已不卸图；多人分遣时一人出门不应把还在村里的人连图一起卸掉
+
+---
+
+## 2026-08-17 — 遭遇战击杀不再自动胜利／弹大地图
+
+**做了什么**
+- 打死遭遇敌军只同步栈人数；不自动胜利结算、不卸图、不 `Open` 大地图
+- 离场／回大地图改由玩家自行操作
+
+---
+
+## 2026-08-17 — 修复「出不了门」：离场失败必须回退宏观移动
+
+**做了什么**
+- `MarkDepartingLocalMap` 不再要求目标与当前节点**直达相邻**（多段路径可离场）
+- 走边缘失败／标记失败时**回退** `StartAgentTravelToTarget`／追击上路，不再整单取消
+- 边缘朝向用 BFS 下一跳，避免指错方向
+
+**判断与理由**
+- 强制 `useLocalMapExit` 后，非相邻目标或边缘寻路失败会 `continue` 且无上路 → 表现为完全出不去
+
+---
+
+## 2026-08-17 — 大地图攻击对齐普通派遣离场
+
+**做了什么**
+- 右键他方栈：敌对＝攻击／详情；非敌对＝攻击／交谈／详情（去掉跟随）
+- 攻击：登记追击后直接 `BeginPursuitToStackAnchor`（场景走边缘离场→大地图追击），不再二次确认、不关大地图
+- 普通节点／道路出行确认也强制 `useLocalMapExit: true`
+- 先到 BattleOffer 手动战；后到「加入战斗」流程沿用
+
+---
+
+## 2026-08-17 — 重做路上遇敌（删同路自动接战）
+
+**做了什么**
+- 删除 `CheckBattleCollisions`／`CheckRouteCollisions`（同路即「行军遭遇」）
+- 新增 `StrategicEngageRules`：须节点／道路进度真正重合才可接战
+- 接战弹窗仅：**主动攻击**或**追击抵达**；普通赶路过敌不弹
+- 更新 [138](138-world-strategic-battle-offer-plan-2026-08-17.md)／[139](139-world-map-rts-orders-2026-08-17.md)；补 EditMode 回归
+
+**判断与理由**
+- 旧逻辑「同 Route 非锚点栈即弹」+「行军中同路即 CanEngage」导致过路遇敌；与可自由移动、无暗雷产品定冲突
+
+---
+
 ## 2026-08-17 — 删除 Route danger 暗雷
 
 **做了什么**

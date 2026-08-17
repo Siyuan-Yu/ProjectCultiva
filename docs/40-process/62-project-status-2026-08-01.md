@@ -1,17 +1,17 @@
 # 项目现状总览 — 2026-08-01
 
-> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-17（战略层／接战弹窗设计）  
+> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-18（大地图纯 RTS／接战／清场回程）  
 > 用途：一次看清 VS0.1～1.0／Content Ready 做到哪、本轮改了什么、下一步是什么。  
 > 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准；本页不改 Freeze。  
-> 近期增量一次看清：[138](138-world-strategic-battle-offer-plan-2026-08-17.md)（战略接战）／[137](137-skill-mastery-farm-veil-chop-rollup-2026-08-17.md)／[129](129-world-graph-host-travel-scene-isolation-2026-08-16.md)／[113](113-world-graph-local-map-architecture-revision-v0.1.md)
+> 近期增量一次看清：[140](140-world-map-rts-battle-return-rollup-2026-08-18.md)／[139](139-world-map-rts-orders-2026-08-17.md)／[138](138-world-strategic-battle-offer-plan-2026-08-17.md)／[137](137-skill-mastery-farm-veil-chop-rollup-2026-08-17.md)
 
 ---
 
 ## 1. 一句话现状
 
 **Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**；样例关可玩弧／导航／NPC 活动底座／Demo 0.1 Production **自动化已验收（手操待签）**。  
-**本轮：** **大地图战略层＋全战式接战弹窗**已落地（见 [138](138-world-strategic-battle-offer-plan-2026-08-17.md)）；**Route danger 暗雷已删除**。  
-**下一步：** 接战 UX 打磨（参战人数／追击）＋ Ch01 内容堆量并行。
+**本轮：** **大地图纯 RTS＋接战／到站／清场回程**已落地并手操基本验收（见 [140](140-world-map-rts-battle-return-rollup-2026-08-18.md)／[139](139-world-map-rts-orders-2026-08-17.md)）；战略外交／节点势力染色**暂关**。  
+**下一步：** 增援／回程边角再验 → 跟随菜单／交谈（可选）→ 正式启用占点／外交另开刀。
 ---
 
 ## 2. 切片进度与验收
@@ -142,7 +142,9 @@
 
 | 文档 | 飞书 |
 |---|---|
-| **本轮 [138] 战略层／接战弹窗** | https://my.feishu.cn/docx/Aodwd4XpNoPdzqxQ5wucY2LFnAg |
+| **本轮 [140] 纯 RTS／接战／清场回程** | https://my.feishu.cn/docx/MEzIdolEBonQCExqQGjcsmxGnsf |
+| **规则 [139] 大地图 RTS 下令** | https://my.feishu.cn/docx/RgkxdiGNSoNd11xOXoncl7QnnCg |
+| **设计 [138] 战略层／接战弹窗** | https://my.feishu.cn/docx/Aodwd4XpNoPdzqxQ5wucY2LFnAg |
 | 项目现状（本页） | https://my.feishu.cn/docx/F1FJdQ1usoWzsIxfiTFcKbOQnM8 |
 | 策划总览 | https://my.feishu.cn/docx/Oowtd4tyRoQBuxxMiBIcEkSbnBc |
 | **VS0.7→1.0 交付总结** | https://my.feishu.cn/docx/DkNld4wZAowzGHx5yebcRb5onCd |

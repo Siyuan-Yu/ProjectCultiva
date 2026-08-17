@@ -7,6 +7,8 @@ namespace XianXia.Core.World.Strategic
     public sealed class StrategicEncounterRuntime
     {
         public bool SpawnOnNextMapLoad { get; set; }
+        /// <summary>场上敌军已清空：无结算弹窗；参战者可宏观下令，画面仍可留在 Encounter LocalMap。</summary>
+        public bool FieldCleared { get; set; }
         public string ArmyStackId { get; set; } = string.Empty;
         public string EncounterLinkId { get; set; } = string.Empty;
         public string PursueStackId { get; set; } = string.Empty;
@@ -26,6 +28,9 @@ namespace XianXia.Core.World.Strategic
         public bool IsEngaged(EntityId id) =>
             !id.IsNone && _engagedPartyIds.Contains(id.Value);
 
+        public bool IsPursue(EntityId id) =>
+            !id.IsNone && _pursuePartyIds.Contains(id.Value);
+
         public void SetEngagedParty(IReadOnlyList<EntityId> party)
         {
             _engagedPartyIds.Clear();
@@ -43,6 +48,13 @@ namespace XianXia.Core.World.Strategic
         }
 
         public void ClearEngagedParty() => _engagedPartyIds.Clear();
+
+        public void RemoveEngagedPartyMember(EntityId id)
+        {
+            if (id.IsNone)
+                return;
+            _engagedPartyIds.Remove(id.Value);
+        }
 
         public void SetPursueParty(IReadOnlyList<EntityId> party)
         {
@@ -68,6 +80,7 @@ namespace XianXia.Core.World.Strategic
         public void ResetSpawnPlan()
         {
             SpawnOnNextMapLoad = false;
+            FieldCleared = false;
             ArmyStackId = string.Empty;
             EncounterLinkId = string.Empty;
             FallbackMemberCount = StrategicEncounterCatalog.DefaultFallbackMemberCount;

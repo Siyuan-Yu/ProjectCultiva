@@ -8,7 +8,7 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>宏观节点 LocalMap 准入（138：未抵达／敌占不可进）。</summary>
+    /// <summary>宏观节点 LocalMap 准入：有我方在场即可进（暂不做敌对封锁）。</summary>
     public static class StrategicNodeAccessService
     {
         public static bool HasPartyMemberAtNode(SimulationWorld world, string nodeId)
@@ -23,17 +23,6 @@ namespace XianXia.Core.World.Strategic
             }
 
             return false;
-        }
-
-        public static bool IsOwnerHostileToPlayer(SimulationWorld world, string ownerId)
-        {
-            if (world?.Strategic == null || string.IsNullOrEmpty(ownerId))
-                return false;
-            if (string.Equals(ownerId, world.Strategic.PlayerFactionId, StringComparison.Ordinal))
-                return false;
-            return world.Strategic.Diplomacy.IsHostile(
-                world.Strategic.PlayerFactionId,
-                ownerId);
         }
 
         public static int CountPartyMembersAtNode(SimulationWorld world, string nodeId)
@@ -78,18 +67,6 @@ namespace XianXia.Core.World.Strategic
             if (!HasPartyMemberAtNode(world, nodeId))
                 return Result.Failure(ErrorCode.InvalidOperation, "无己方角色在此节点，无法进入场景。");
 
-            if (HasPartyMemberInEncounterAtNode(world, nodeId))
-                return Result.Success();
-
-            if (!string.IsNullOrEmpty(node.OwnerId) &&
-                IsOwnerHostileToPlayer(world, node.OwnerId))
-            {
-                var ownerName = StrategicFactionCatalog.DisplayName(node.OwnerId);
-                return Result.Failure(
-                    ErrorCode.InvalidOperation,
-                    "敌占节点（" + ownerName + "），需接战后方可进入。");
-            }
-
             return Result.Success();
         }
 
@@ -97,14 +74,7 @@ namespace XianXia.Core.World.Strategic
         {
             if (node == null)
                 return string.Empty;
-            var name = string.IsNullOrEmpty(node.Name) ? node.Id : node.Name;
-            if (string.IsNullOrEmpty(node.OwnerId))
-                return name + " · 无归属";
-            var owner = StrategicFactionCatalog.DisplayName(node.OwnerId);
-            if (world?.Strategic == null)
-                return name + " · " + owner;
-            var hostile = IsOwnerHostileToPlayer(world, node.OwnerId);
-            return name + " · " + owner + (hostile ? " · 敌对" : "");
+            return string.IsNullOrEmpty(node.Name) ? node.Id : node.Name;
         }
 
         public static string ResolveStackTravelTarget(ArmyStack stack)
@@ -145,95 +115,14 @@ namespace XianXia.Core.World.Strategic
         public static bool CanEngageStackNow(
             SimulationWorld world,
             IReadOnlyList<EntityId> party,
-            ArmyStack stack)
-        {
-            if (world == null || stack == null || party == null || party.Count == 0)
-                return false;
-
-            if (!stack.IsTraveling && !stack.IsRouteAnchored && !string.IsNullOrEmpty(stack.NodeId))
-            {
-                for (var i = 0; i < party.Count; i++)
-                {
-                    if (!world.WorldPresence.TryGet(party[i], out var p) || p == null)
-                        continue;
-                    if (p.Mode == PartyWorldPresenceMode.AtNode &&
-                        string.Equals(p.NodeId, stack.NodeId, StringComparison.Ordinal))
-                        return true;
-                }
-            }
-
-            if (stack.IsRouteAnchored && !string.IsNullOrEmpty(stack.RouteId))
-            {
-                for (var i = 0; i < party.Count; i++)
-                {
-                    if (!world.WorldPresence.TryGet(party[i], out var p) || p == null)
-                        continue;
-                    if (p.Mode == PartyWorldPresenceMode.Traveling &&
-                        string.Equals(p.RouteId, stack.RouteId, StringComparison.Ordinal) &&
-                        p.TravelProgress + 0.02f >= stack.RouteAnchorProgress)
-                        return true;
-                    if (p.Mode == PartyWorldPresenceMode.RouteAnchored &&
-                        string.Equals(p.RouteId, stack.RouteId, StringComparison.Ordinal) &&
-                        Math.Abs(p.RouteAnchorProgress - stack.RouteAnchorProgress) <= 0.05f)
-                        return true;
-                    if (p.Mode == PartyWorldPresenceMode.InEncounter &&
-                        string.Equals(p.RouteId, stack.RouteId, StringComparison.Ordinal) &&
-                        p.TravelProgress + 0.02f >= stack.RouteAnchorProgress)
-                        return true;
-                    if (p.Mode == PartyWorldPresenceMode.AtNode &&
-                        !string.IsNullOrEmpty(stack.DestNodeId) &&
-                        string.Equals(p.NodeId, stack.DestNodeId, StringComparison.Ordinal))
-                        return true;
-                }
-            }
-
-            if (stack.IsTraveling && !string.IsNullOrEmpty(stack.RouteId))
-            {
-                for (var i = 0; i < party.Count; i++)
-                {
-                    if (!world.WorldPresence.TryGet(party[i], out var p) || p == null)
-                        continue;
-                    if (p.Mode == PartyWorldPresenceMode.Traveling &&
-                        string.Equals(p.RouteId, stack.RouteId, StringComparison.Ordinal))
-                        return true;
-                }
-            }
-
-            return false;
-        }
+            ArmyStack stack) =>
+            StrategicEngageRules.CanEngageStackNow(world, party, stack);
 
         public static bool IsAgentAtStackAnchor(
             SimulationWorld world,
             WorldAgentPresence p,
-            ArmyStack stack)
-        {
-            if (world == null || p == null || stack == null || !stack.IsRouteAnchored)
-                return false;
-            if (string.IsNullOrEmpty(stack.RouteId) ||
-                !string.Equals(p.RouteId, stack.RouteId, StringComparison.Ordinal))
-                return false;
-
-            if (p.Mode == PartyWorldPresenceMode.RouteAnchored ||
-                p.Mode == PartyWorldPresenceMode.InEncounter)
-            {
-                return Math.Abs(p.TravelProgress - stack.RouteAnchorProgress) <= 0.05f;
-            }
-
-            if (p.Mode == PartyWorldPresenceMode.Traveling)
-                return false;
-
-            if (p.Mode == PartyWorldPresenceMode.AtNode &&
-                string.Equals(p.NodeId, stack.NodeId, StringComparison.Ordinal) &&
-                stack.RouteAnchorProgress <= 0.05f)
-                return true;
-
-            if (p.Mode == PartyWorldPresenceMode.AtNode &&
-                string.Equals(p.NodeId, stack.DestNodeId, StringComparison.Ordinal) &&
-                stack.RouteAnchorProgress >= 0.95f)
-                return true;
-
-            return false;
-        }
+            ArmyStack stack) =>
+            StrategicEngageRules.IsAgentColocatedWithStack(world, p, stack);
 
         public static bool IsPartyAtStackAnchor(
             SimulationWorld world,
@@ -242,15 +131,13 @@ namespace XianXia.Core.World.Strategic
         {
             if (world == null || stack == null || party == null || party.Count == 0)
                 return false;
-            if (!stack.IsRouteAnchored)
-                return true;
 
             for (var i = 0; i < party.Count; i++)
             {
                 if (party[i].IsNone ||
                     !world.WorldPresence.TryGet(party[i], out var p) ||
                     p == null ||
-                    !IsAgentAtStackAnchor(world, p, stack))
+                    !StrategicEngageRules.IsAgentColocatedWithStack(world, p, stack))
                     return false;
             }
 
@@ -261,45 +148,8 @@ namespace XianXia.Core.World.Strategic
             SimulationWorld world,
             IReadOnlyList<EntityId> party,
             ArmyStack stack,
-            List<EntityId> into)
-        {
-            into.Clear();
-            if (world == null || stack == null || party == null || into == null)
-                return;
-
-            for (var i = 0; i < party.Count; i++)
-            {
-                if (party[i].IsNone)
-                    continue;
-                if (!CanEngageStackNow(world, new[] { party[i] }, stack))
-                    continue;
-                if (stack.IsRouteAnchored &&
-                    world.WorldPresence.TryGet(party[i], out var p) &&
-                    p != null &&
-                    !IsAgentAtStackAnchor(world, p, stack))
-                    continue;
-                into.Add(party[i]);
-            }
-        }
-
-        static bool HasPartyMemberInEncounterAtNode(SimulationWorld world, string nodeId)
-        {
-            if (world == null || string.IsNullOrEmpty(nodeId))
-                return false;
-
-            foreach (var kv in world.WorldPresence.All)
-            {
-                var p = kv.Value;
-                if (p == null || p.Mode != PartyWorldPresenceMode.InEncounter)
-                    continue;
-                if (!IsPlayerAgent(world, p.EntityId))
-                    continue;
-                if (string.Equals(p.NodeId, nodeId, StringComparison.Ordinal))
-                    return true;
-            }
-
-            return false;
-        }
+            List<EntityId> into) =>
+            StrategicEngageRules.CollectPartyReadyToEngageStack(world, party, stack, into);
 
         static bool IsPartyMemberAssociatedWithNode(
             SimulationWorld world,
@@ -316,8 +166,13 @@ namespace XianXia.Core.World.Strategic
                 case PartyWorldPresenceMode.InEncounter:
                     return string.Equals(p.NodeId, nodeId, StringComparison.Ordinal);
                 case PartyWorldPresenceMode.RouteAnchored:
-                    return string.Equals(p.NodeId, nodeId, StringComparison.Ordinal) &&
-                           p.RouteAnchorProgress <= 0.01f;
+                    if (p.RouteAnchorProgress <= 0.01f &&
+                        string.Equals(p.NodeId, nodeId, StringComparison.Ordinal))
+                        return true;
+                    if (p.RouteAnchorProgress >= 0.99f &&
+                        string.Equals(p.DestNodeId, nodeId, StringComparison.Ordinal))
+                        return true;
+                    return false;
                 default:
                     return false;
             }

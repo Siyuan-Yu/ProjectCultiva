@@ -18,26 +18,27 @@ namespace XianXia.Core.World.Strategic
 
         static void ApplyDefaultOwners(SimulationWorld world)
         {
-            SetOwnerIfEmpty(world, "base:node_huangcun", StrategicFactionCatalog.HuangcunLaborId);
-            SetOwnerIfEmpty(world, "base:node_yucun", StrategicFactionCatalog.FisherVillageId);
-            SetOwnerIfEmpty(world, "base:node_linjian", StrategicFactionCatalog.BanditId);
-            SetOwnerIfEmpty(world, "base:node_kuangshan", StrategicFactionCatalog.BanditId);
+            // 暂不做战略势力归属／外交门槛；清空演示 Owner，避免节点染色误导
+            ClearOwner(world, "base:node_huangcun");
+            ClearOwner(world, "base:node_yucun");
+            ClearOwner(world, "base:node_linjian");
+            ClearOwner(world, "base:node_kuangshan");
         }
 
-        static void SetOwnerIfEmpty(SimulationWorld world, string nodeId, string ownerId)
+        static void ClearOwner(SimulationWorld world, string nodeId)
         {
             if (!world.WorldGraph.TryGetNode(nodeId, out var node) || node == null)
                 return;
-            if (string.IsNullOrEmpty(node.OwnerId))
-                node.OwnerId = ownerId;
+            node.OwnerId = string.Empty;
         }
 
         static void ApplyDefaultDiplomacy(FactionDiplomacyBoard diplomacy)
         {
+            // 暂不做战略敌对封锁；默认中立，攻击菜单直接可打
             diplomacy.SetStance(
                 StrategicFactionCatalog.PlayerFactionId,
                 StrategicFactionCatalog.HuangcunLaborId,
-                FactionStance.Hostile);
+                FactionStance.Neutral);
             diplomacy.SetStance(
                 StrategicFactionCatalog.PlayerFactionId,
                 StrategicFactionCatalog.FisherVillageId,
@@ -45,7 +46,7 @@ namespace XianXia.Core.World.Strategic
             diplomacy.SetStance(
                 StrategicFactionCatalog.PlayerFactionId,
                 StrategicFactionCatalog.BanditId,
-                FactionStance.War);
+                FactionStance.Neutral);
         }
 
         static void SeedDemoArmies(SimulationWorld world)

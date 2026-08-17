@@ -166,7 +166,7 @@ namespace XianXia.Core.Simulation
             _supervisorAngerDriver.Tick(_world);
             if (_socialTickEnabled)
                 _socialTickDriver.Tick(_world);
-            WorldTravelService.AdvanceTravel(_world, 1);
+            WorldTravelService.AdvanceTravel(_world, 1, StrategicTravelDriver.BeginArrivalCapture());
             StrategicTravelDriver.AfterTravelTick(_world, 1);
             return Result.Success();
         }

@@ -72,10 +72,15 @@ namespace XianXia.Core.World
                 return Result.Failure(ErrorCode.NotFound, "Traveler has no world node.", id.Value.ToString());
             if (p.Mode == PartyWorldPresenceMode.Traveling)
                 return Result.Failure(ErrorCode.InvalidOperation, "Already traveling.", id.Value.ToString());
-            if (p.Mode == PartyWorldPresenceMode.DepartingLocalMap)
-                return Result.Failure(ErrorCode.InvalidOperation, "Already departing local map.", id.Value.ToString());
             if (p.Mode == PartyWorldPresenceMode.InEncounter)
-                return Result.Failure(ErrorCode.InvalidOperation, "In encounter.", id.Value.ToString());
+            {
+                if (!StrategicEncounterSpawner.IsFieldCleared(world))
+                    return Result.Failure(ErrorCode.InvalidOperation, "战斗未结束，无法离开战场。", id.Value.ToString());
+                StrategicEncounterSpawner.ReleaseEngagedForMacroTravel(world, id);
+                if (!world.WorldPresence.TryGet(id, out p) || p == null)
+                    return Result.Failure(ErrorCode.NotFound, "Traveler has no world node.", id.Value.ToString());
+            }
+
             if (p.Mode == PartyWorldPresenceMode.RouteAnchored)
                 return StartTravelFromRouteAnchor(world, id, p, toNodeId);
             if (string.Equals(p.NodeId, toNodeId, StringComparison.Ordinal))
@@ -148,7 +153,8 @@ namespace XianXia.Core.World
                 return Result.Success();
             }
 
-            var ticks = Math.Max(4, (int)Math.Round(fullTicks * fraction));
+            // 至少走一段可见路程，避免清场后短距离被当成瞬移
+            var ticks = Math.Max(8, (int)Math.Round(fullTicks * fraction));
             p.Mode = PartyWorldPresenceMode.Traveling;
             p.RouteAnchorProgress = -1f;
             p.RouteSegmentOriginProgress = startProgress;
@@ -279,7 +285,13 @@ namespace XianXia.Core.World
                 return Result.Success();
 
             if (p.Mode == PartyWorldPresenceMode.InEncounter)
-                return Result.Failure(ErrorCode.InvalidOperation, "In encounter.");
+            {
+                if (!StrategicEncounterSpawner.IsFieldCleared(world))
+                    return Result.Failure(ErrorCode.InvalidOperation, "战斗未结束，无法离开战场。");
+                StrategicEncounterSpawner.ReleaseEngagedForMacroTravel(world, id);
+                if (!world.WorldPresence.TryGet(id, out p) || p == null)
+                    return Result.Failure(ErrorCode.NotFound, "Traveler presence missing.");
+            }
 
             var target = stack.RouteAnchorProgress;
             if (p.Mode == PartyWorldPresenceMode.RouteAnchored)
@@ -421,63 +433,6 @@ namespace XianXia.Core.World
             return Result.Success();
         }
 
-        /// <summary>确认出行后：标记正在 LocalMap 走向边缘（尚未上宏观路）。</summary>
-        public static Result MarkDepartingLocalMap(SimulationWorld world, EntityId id, string toNodeId)
-        {
-            if (world == null)
-                return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
-            if (id.IsNone)
-                return Result.Failure(ErrorCode.InvalidArgument, "Invalid traveler.");
-            if (string.IsNullOrWhiteSpace(toNodeId))
-                return Result.Failure(ErrorCode.InvalidArgument, "toNodeId required.");
-            if (!world.WorldPresence.TryGet(id, out var p) || string.IsNullOrEmpty(p.NodeId))
-                return Result.Failure(ErrorCode.NotFound, "Traveler has no world node.", id.Value.ToString());
-            if (p.Mode == PartyWorldPresenceMode.Traveling)
-                return Result.Failure(ErrorCode.InvalidOperation, "Already traveling.");
-            if (p.Mode == PartyWorldPresenceMode.InEncounter)
-                return Result.Failure(ErrorCode.InvalidOperation, "In encounter.");
-            if (!world.WorldGraph.TryFindRoute(p.NodeId, toNodeId, out var route))
-                return Result.Failure(ErrorCode.InvalidArgument, "No direct route between nodes.");
-            var gate = CanTraverse(route);
-            if (gate.IsFailure)
-                return gate;
-
-            p.Mode = PartyWorldPresenceMode.DepartingLocalMap;
-            p.DestNodeId = toNodeId;
-            p.RouteId = string.Empty;
-            p.RemainingTravelTicks = 0;
-            p.TravelTotalTicks = 0;
-            return Result.Success();
-        }
-
-        /// <summary>走到 LocalMap 边缘后：转入宏观 Traveling。</summary>
-        public static Result CommitTravelAfterLocalExit(SimulationWorld world, EntityId id)
-        {
-            if (world == null)
-                return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
-            if (!world.WorldPresence.TryGet(id, out var p) || p == null)
-                return Result.Failure(ErrorCode.NotFound, "Traveler presence missing.");
-            if (p.Mode != PartyWorldPresenceMode.DepartingLocalMap)
-                return Result.Failure(ErrorCode.InvalidOperation, "Not departing local map.");
-            var dest = p.DestNodeId;
-            if (string.IsNullOrEmpty(dest))
-                return Result.Failure(ErrorCode.InvalidOperation, "Departure destination missing.");
-
-            // 临时回到 AtNode 以便 StartTravelOne 校验
-            p.Mode = PartyWorldPresenceMode.AtNode;
-            p.DestNodeId = string.Empty;
-            var started = StartTravelOne(world, id, dest);
-            if (started.IsFailure)
-            {
-                p.Mode = PartyWorldPresenceMode.DepartingLocalMap;
-                p.DestNodeId = dest;
-                return started;
-            }
-
-            SyncPartyFocus(world);
-            return Result.Success();
-        }
-
         public static int ComputeTravelTicks(SimulationWorld world, EntityId id, int travelCost)
         {
             var cost = travelCost > 0 ? travelCost : 1;
@@ -579,9 +534,13 @@ namespace XianXia.Core.World
         {
             if (world == null || id.IsNone || !world.WorldPresence.TryGet(id, out var p) || p == null)
                 return false;
-            return p.Mode == PartyWorldPresenceMode.AtNode ||
-                   p.Mode == PartyWorldPresenceMode.RouteAnchored ||
-                   p.Mode == PartyWorldPresenceMode.Traveling;
+            if (p.Mode == PartyWorldPresenceMode.AtNode ||
+                p.Mode == PartyWorldPresenceMode.RouteAnchored ||
+                p.Mode == PartyWorldPresenceMode.Traveling)
+                return true;
+            // 中途打架不可下令离开；敌清空后可在大地图下令（画面可仍留在战场 LocalMap）
+            return p.Mode == PartyWorldPresenceMode.InEncounter &&
+                   StrategicEncounterSpawner.IsFieldCleared(world);
         }
 
         public static bool CanReachNodeFromPresence(

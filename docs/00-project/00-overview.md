@@ -1,19 +1,19 @@
 ﻿# 修仙游戏策划案总览
 
-> 状态：概念框架 v0.9｜**Architecture Freeze v0.2**｜**WorldGraph 战略层设计进行中** | 最后更新：2026-08-17  
+> 状态：概念框架 v0.9｜**Architecture Freeze v0.2**｜**大地图纯 RTS／接战已验收** | 最后更新：2026-08-18  
 > **本页只放最高层大纲。** 细节进专题页；**怎么读整套文档**见 [通读指南](04-reading-guide.md)。  
 > 本地 Markdown 与飞书文档一一对应（真源在本地，飞书为阅读层）。
 
 ## 〇、当前项目阶段
 
 **架构冻结 v0.2。** Core／Data／Host／**VS 0.1～1.0 Demo 自动化已验收**。  
-其上已叠加：样例关、内容打断、RTS 手操、Navigation／NPC 底座、**Content Studio**、**Level Tester**、**Ch01 三环手操**、**NPC onTalk 对话框（UGUI）**、任务失败／时间流速约定、**人物／工区编辑器＋名册刷人**、**住房分配／主管府占领**、**境界阶梯／打坐／突破仪式**、**将老对弈／洞府勘查进出／秘籍拾取**、**地图战斗 Alpha／斗技 1–6／体魄与生命拆分**、**主管府正式近战／追击固着／Map 刷怪区＋表**、**击败不瞬移／进出洞相机／刷怪表 GUI**、**WorldGraph 出行／进场景／场景隔离**、**功法／斗技熟练度与冲击确认**、**斗气纱衣**、**世界物况栏／砍树**、**田区自动农作**。  
-最新增量见 [138](../40-process/138-world-strategic-battle-offer-plan-2026-08-17.md)（大地图战略／接战弹窗）；上一轮 [137](../40-process/137-skill-mastery-farm-veil-chop-rollup-2026-08-17.md)；[129](../40-process/129-world-graph-host-travel-scene-isolation-2026-08-16.md)。  
+其上已叠加：样例关、内容打断、RTS 手操、Navigation／NPC 底座、**Content Studio**、**Level Tester**、**Ch01 三环手操**、**NPC onTalk 对话框（UGUI）**、任务失败／时间流速约定、**人物／工区编辑器＋名册刷人**、**住房分配／主管府占领**、**境界阶梯／打坐／突破仪式**、**将老对弈／洞府勘查进出／秘籍拾取**、**地图战斗 Alpha／斗技 1–6／体魄与生命拆分**、**主管府正式近战／追击固着／Map 刷怪区＋表**、**击败不瞬移／进出洞相机／刷怪表 GUI**、**WorldGraph 出行／进场景／场景隔离**、**功法／斗技熟练度与冲击确认**、**斗气纱衣**、**世界物况栏／砍树**、**田区自动农作**、**大地图纯 RTS／接战弹窗／到站／清场回程**。  
+最新增量见 [140](../40-process/140-world-map-rts-battle-return-rollup-2026-08-18.md)；规则 [139](../40-process/139-world-map-rts-orders-2026-08-17.md)；设计 [138](../40-process/138-world-strategic-battle-offer-plan-2026-08-17.md)。  
 
-**下一步：** 路上遭遇 E → 占点／外交 → **BattleOffer 接战**（自动／手动 LocalMap）；见 [138](../40-process/138-world-strategic-battle-offer-plan-2026-08-17.md)。
+**下一步：** 边角手操巩固 →（可选）跟随／交谈 → **正式占点／外交另开刀**（当前刻意关掉）。  
 Demo Runtime 停扩。完整进度见 [62 项目现状](../40-process/62-project-status-2026-08-01.md)。
 
-**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [138 战略接战计划](../40-process/138-world-strategic-battle-offer-plan-2026-08-17.md) → [113 WorldGraph](../40-process/113-world-graph-local-map-architecture-revision-v0.1.md) → [62 现状](../40-process/62-project-status-2026-08-01.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md)。
+**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [140 收束](../40-process/140-world-map-rts-battle-return-rollup-2026-08-18.md) → [139 RTS 规则](../40-process/139-world-map-rts-orders-2026-08-17.md) → [62 现状](../40-process/62-project-status-2026-08-01.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md)。
 
 - 主契约：[33 架构冻结 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md)
 - 实体／Order／Mod：[34](../30-tech/34-entity-and-component-model.md)、[35](../30-tech/35-order-and-action-system.md)、[36](../30-tech/36-content-package-and-mod-architecture.md)

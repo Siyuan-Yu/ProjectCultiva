@@ -1,63 +1,45 @@
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
-using XianXia.Core.Entities;
 using XianXia.Core.Simulation;
-using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>Travel tick 后的战略层检定（遭遇／接战碰撞／AI 栈推进）。</summary>
+    /// <summary>
+    /// Travel tick 后的战略层推进。
+    /// 接战弹窗优先于到站提示；追击抵达走 BattleOffer，普通最终到站走 ArrivalNotice。
+    /// </summary>
     public static class StrategicTravelDriver
     {
+        static readonly List<EntityId> ArrivedScratch = new List<EntityId>(16);
+
         public static void AfterTravelTick(SimulationWorld world, int ticks = 1)
         {
             if (world?.Strategic == null || ticks < 1)
                 return;
 
             ArmyStackService.AdvanceAll(world, ticks);
-
-            if (world.Strategic.HasBlockingInterrupt)
-                return;
-
-            // 接战只来自同路可见敌军栈碰撞／追击抵达。
-            CheckBattleCollisions(world);
             StrategicFollowService.AfterTravelTick(world);
+
+            // 接战优先：即使已有到站弹窗也允许追击接战盖过去
             StrategicPursuitService.AfterTravelTick(world);
-        }
-
-        static void CheckBattleCollisions(SimulationWorld world)
-        {
-            var scratch = new List<EntityId>(8);
-            foreach (var kv in world.WorldPresence.All)
+            if (world.Strategic.HasBattleOffer)
             {
-                var p = kv.Value;
-                if (p == null || p.Mode != PartyWorldPresenceMode.Traveling || string.IsNullOrEmpty(p.RouteId))
-                    continue;
-                if (!IsPlayerAgent(world, p.EntityId))
-                    continue;
-
-                scratch.Clear();
-                scratch.Add(p.EntityId);
-                foreach (var stack in world.Strategic.Armies.AllOnRoute(p.RouteId))
-                {
-                    if (stack == null || string.IsNullOrEmpty(stack.FactionId))
-                        continue;
-                    if (!world.Strategic.Diplomacy.IsHostile(world.Strategic.PlayerFactionId, stack.FactionId))
-                        continue;
-                    // 路中锚定敌军栈：过路不弹接战，只走追击抵达或大地图主动攻击。
-                    if (stack.IsRouteAnchored)
-                        continue;
-                    if (BattleOfferService.TryBuildOfferForArmy(world, scratch, stack, "行军遭遇"))
-                        return;
-                }
+                world.Strategic.ClearArrivalNotice();
+                ArrivedScratch.Clear();
+                return;
             }
+
+            if (!world.Strategic.HasArrivalNotice)
+                ArrivalNoticeService.AfterTravelTick(world, ArrivedScratch);
+
+            ArrivedScratch.Clear();
         }
 
-        static bool IsPlayerAgent(SimulationWorld world, EntityId id)
+        /// <summary>由 SimulationLoop 在 AdvanceTravel 前清空、AdvanceTravel 写入到站名单。</summary>
+        public static List<EntityId> BeginArrivalCapture()
         {
-            if (id.IsNone || !world.Entities.TryGet(id, out var entity) || entity == null)
-                return false;
-            return (entity.Tags & EntityTag.Npc) == 0;
+            ArrivedScratch.Clear();
+            return ArrivedScratch;
         }
     }
 }

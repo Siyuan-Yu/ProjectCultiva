@@ -198,7 +198,8 @@ namespace XianXia.Unity.Host
                 }
                 else
                 {
-                    bootstrap.WorldTravelDeparture?.BeginMacroOrder(agents, target);
+                    bootstrap.WorldTravelDeparture?.BeginMacroOrder(
+                        agents, target, closeWorldMap: false);
                 }
             }
 

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Simulation;
@@ -11,6 +12,140 @@ namespace XianXia.Unity.Host
     /// <summary>按当前 Active LocalMap／宏观所在节点过滤实体／地点是否应显示。</summary>
     public static class LocalMapVisibility
     {
+        /// <summary>
+        /// 我方角色是否仍占用指定 LocalMap（上路／路锚不算）。
+        /// 遭遇图实例只认 InEncounter；普通节点图按 Node→LocalMapId 对齐。
+        /// </summary>
+        public static bool IsFriendlyCharacterOnMapLayout(
+            SimulationWorld world,
+            EntityId id,
+            string mapLayoutId)
+        {
+            if (world?.WorldPresence == null || id.IsNone || string.IsNullOrWhiteSpace(mapLayoutId))
+                return false;
+            if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
+                return false;
+
+            if (wp.Mode == PartyWorldPresenceMode.Traveling ||
+                wp.Mode == PartyWorldPresenceMode.RouteAnchored)
+                return false;
+
+            var mapId = mapLayoutId.Trim();
+            if (IsEncounterMapInstance(world, mapId))
+                return wp.Mode == PartyWorldPresenceMode.InEncounter;
+
+            if (wp.Mode == PartyWorldPresenceMode.InEncounter)
+                return false;
+
+            if (string.IsNullOrEmpty(wp.NodeId) ||
+                !world.WorldGraph.TryGetNode(wp.NodeId, out var node))
+                return false;
+
+            return string.Equals(
+                WorldTravelService.ResolveLocalMapId(node),
+                mapId,
+                System.StringComparison.Ordinal);
+        }
+
+        public static bool HasFriendlyCharacterOnMapLayout(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> characterIds,
+            string mapLayoutId)
+        {
+            if (world == null || characterIds == null || string.IsNullOrWhiteSpace(mapLayoutId))
+                return false;
+            for (var i = 0; i < characterIds.Count; i++)
+            {
+                if (IsFriendlyCharacterOnMapLayout(world, characterIds[i], mapLayoutId))
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 装图用：只要有人 AtNode 落在该 LocalMapId，或遭遇中人在遭遇图，就允许加载。
+        /// （不因遭遇残留把同保底图 id 的村庄节点误判成空图）
+        /// </summary>
+        public static bool CanLoadMapLayoutForParty(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> characterIds,
+            string mapLayoutId)
+        {
+            if (world == null || characterIds == null || string.IsNullOrWhiteSpace(mapLayoutId))
+                return false;
+            var mapId = mapLayoutId.Trim();
+            if (world.Strategic?.Encounter != null && world.Strategic.Encounter.SpawnOnNextMapLoad)
+                return true;
+
+            for (var i = 0; i < characterIds.Count; i++)
+            {
+                var id = characterIds[i];
+                if (id.IsNone || !world.WorldPresence.TryGet(id, out var wp) || wp == null)
+                    continue;
+                if (wp.Mode == PartyWorldPresenceMode.Traveling ||
+                    wp.Mode == PartyWorldPresenceMode.RouteAnchored)
+                    continue;
+                if (wp.Mode == PartyWorldPresenceMode.InEncounter)
+                {
+                    if (string.Equals(
+                            mapId,
+                            BattleOfferService.ResolveActiveEncounterLocalMapId(world),
+                            System.StringComparison.Ordinal))
+                        return true;
+                    continue;
+                }
+
+                if (string.IsNullOrEmpty(wp.NodeId) ||
+                    !world.WorldGraph.TryGetNode(wp.NodeId, out var node))
+                    continue;
+                if (string.Equals(
+                        WorldTravelService.ResolveLocalMapId(node),
+                        mapId,
+                        System.StringComparison.Ordinal))
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 保底图 id 与遭遇图共用时：只要遭遇运行时仍挂着参战／刷怪／待刷，就按遭遇实例计。
+        /// </summary>
+        static bool IsEncounterMapInstance(SimulationWorld world, string mapLayoutId)
+        {
+            if (world == null || string.IsNullOrEmpty(mapLayoutId))
+                return false;
+            if (!string.Equals(
+                    mapLayoutId,
+                    StrategicEncounterCatalog.DefaultEncounterLocalMapId,
+                    System.StringComparison.Ordinal))
+                return false;
+
+            var enc = world.Strategic?.Encounter;
+            if (enc != null)
+            {
+                if (enc.SpawnOnNextMapLoad || enc.HasEngagedParty || enc.SpawnedEntityIds.Count > 0)
+                    return true;
+            }
+
+            if (world.PartyWorld != null &&
+                !string.IsNullOrEmpty(world.PartyWorld.EncounterId))
+                return true;
+
+            if (world.WorldPresence != null)
+            {
+                foreach (var kv in world.WorldPresence.All)
+                {
+                    if (kv.Value != null &&
+                        kv.Value.Mode == PartyWorldPresenceMode.InEncounter)
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
         public static bool IsLocationOnActiveMap(SimulationWorld world, WorldLocationState loc)
         {
             if (world?.LocalMap == null || loc == null)
@@ -64,9 +199,9 @@ namespace XianXia.Unity.Host
                     !string.Equals(wp.NodeId, focus, System.StringComparison.Ordinal))
                     return false;
 
-                // 同节点可控者：有表现坐标即可显示（进保底图时 Location 可能刚写上）
-                if (entity.TryGet<EntityLocationComponent>(out var partyLoc) &&
-                    partyLoc.HasPresentationOverride)
+                // 同焦点节点且未上路：一律视为在当前 LocalMap 上（勿因 LocationId 过期而隐身）
+                if (wp.Mode == PartyWorldPresenceMode.AtNode ||
+                    wp.Mode == PartyWorldPresenceMode.DepartingLocalMap)
                     return true;
             }
 

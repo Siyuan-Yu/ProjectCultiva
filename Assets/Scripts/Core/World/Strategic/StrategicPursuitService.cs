@@ -5,7 +5,7 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>大地图追击敌军栈：先到先接战，后到可加入。</summary>
+    /// <summary>大地图追击敌军栈：先到先接战，后到可加入。追击到站绝不弹「是否查看」。</summary>
     public static class StrategicPursuitService
     {
         public static void BeginPursuit(
@@ -15,13 +15,49 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.Strategic == null || stack == null || party == null || party.Count == 0)
                 return;
-            world.Strategic.Encounter.SetPursueParty(party);
-            world.Strategic.Encounter.PursueStackId = stack.Id ?? string.Empty;
+
+            world.Strategic.ClearArrivalNotice();
+            var rt = world.Strategic.Encounter;
+            var stackId = stack.Id ?? string.Empty;
+
+            // 同栈增援：合并追击名单，勿覆盖先到者／仍在路上的人
+            if (string.Equals(rt.PursueStackId, stackId, System.StringComparison.Ordinal) &&
+                rt.HasPursueParty)
+            {
+                var merged = CollectPursueParty(world, rt);
+                for (var i = 0; i < party.Count; i++)
+                {
+                    if (party[i].IsNone)
+                        continue;
+                    var found = false;
+                    for (var j = 0; j < merged.Count; j++)
+                    {
+                        if (merged[j] == party[i])
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found)
+                        merged.Add(party[i]);
+                }
+
+                rt.SetPursueParty(merged);
+            }
+            else
+            {
+                rt.SetPursueParty(party);
+                rt.PursueStackId = stackId;
+            }
+
             for (var i = 0; i < party.Count; i++)
             {
-                if (world.WorldPresence.TryGet(party[i], out var p) && p != null)
-                    p.ClearFollow();
-                WorldTravelService.ClampPursuitTravelToStackAnchor(world, party[i], stack);
+                var id = party[i];
+                if (id.IsNone || !world.WorldPresence.TryGet(id, out var p) || p == null)
+                    continue;
+                p.ClearFollow();
+                p.CombatPursuitStackId = stackId;
             }
         }
 
@@ -29,13 +65,113 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.Strategic == null)
                 return;
+
+            foreach (var kv in world.WorldPresence.All)
+            {
+                if (kv.Value != null)
+                    kv.Value.ClearCombatPursuit();
+            }
+
             world.Strategic.Encounter.ClearPursuit();
+        }
+
+        /// <summary>先到者进手动战后：只清他们的追击标记，保留路上增援的 CombatPursuit。</summary>
+        public static void ClearPursuitForEngagedKeepEnRoute(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> engaged)
+        {
+            if (world?.Strategic == null)
+                return;
+
+            if (engaged != null)
+            {
+                for (var i = 0; i < engaged.Count; i++)
+                {
+                    if (engaged[i].IsNone ||
+                        !world.WorldPresence.TryGet(engaged[i], out var p) ||
+                        p == null)
+                        continue;
+                    p.ClearCombatPursuit();
+                }
+            }
+
+            RebuildPursueListFromAgentMarks(world);
+        }
+
+        public static void ClearPursuitForAgents(SimulationWorld world, IReadOnlyList<EntityId> agents)
+        {
+            if (world?.Strategic == null || agents == null)
+                return;
+            for (var i = 0; i < agents.Count; i++)
+            {
+                if (agents[i].IsNone ||
+                    !world.WorldPresence.TryGet(agents[i], out var p) ||
+                    p == null)
+                    continue;
+                p.ClearCombatPursuit();
+            }
+
+            RebuildPursueListFromAgentMarks(world);
+        }
+
+        public static void RebuildPursueListFromAgentMarks(SimulationWorld world)
+        {
+            if (world?.Strategic == null)
+                return;
+
+            var rt = world.Strategic.Encounter;
+            string stackId = rt.PursueStackId ?? string.Empty;
+            var merged = new List<EntityId>(8);
+
+            foreach (var kv in world.WorldPresence.All)
+            {
+                var p = kv.Value;
+                if (p == null || !p.IsCombatPursuing)
+                    continue;
+                // 已在遭遇里的人不再算「追击增援」
+                if (p.Mode == PartyWorldPresenceMode.InEncounter)
+                {
+                    p.ClearCombatPursuit();
+                    continue;
+                }
+
+                if (string.IsNullOrEmpty(stackId))
+                    stackId = p.CombatPursuitStackId;
+                if (!string.Equals(p.CombatPursuitStackId, stackId, System.StringComparison.Ordinal))
+                    continue;
+                merged.Add(p.EntityId);
+            }
+
+            if (merged.Count == 0)
+            {
+                rt.ClearPursuit();
+                return;
+            }
+
+            rt.PursueStackId = stackId;
+            rt.SetPursueParty(merged);
+        }
+
+        public static bool IsCombatPursuitTraveler(SimulationWorld world, EntityId id)
+        {
+            if (world?.WorldPresence == null || id.IsNone)
+                return false;
+            if (!world.WorldPresence.TryGet(id, out var p) || p == null)
+                return false;
+            if (p.IsCombatPursuing)
+                return true;
+            var rt = world.Strategic?.Encounter;
+            return rt != null && rt.IsPursue(id);
         }
 
         public static void AfterTravelTick(SimulationWorld world)
         {
-            if (world?.Strategic == null || world.Strategic.HasBlockingInterrupt)
+            if (world?.Strategic == null)
                 return;
+            if (world.Strategic.HasBattleOffer)
+                return;
+
+            EnsurePursuePartyFromAgentMarks(world);
 
             var rt = world.Strategic.Encounter;
             if (string.IsNullOrEmpty(rt.PursueStackId) || !rt.HasPursueParty)
@@ -51,13 +187,17 @@ namespace XianXia.Core.World.Strategic
                 return;
 
             var ready = new List<EntityId>(pursue.Count);
-            StrategicNodeAccessService.CollectPartyReadyToEngageStack(world, pursue, stack, ready);
+            StrategicEngageRules.CollectPartyReadyToEngageStack(world, pursue, stack, ready);
             if (ready.Count == 0)
                 return;
 
             if (BattleOfferService.TryBuildOfferForArmy(world, ready, stack, "追击接战"))
-                return;
+                world.Strategic.ClearArrivalNotice();
         }
+
+        /// <summary>用角色身上的 CombatPursuitStackId 补全追击名单（防止只上路未 BeginPursuit）。</summary>
+        static void EnsurePursuePartyFromAgentMarks(SimulationWorld world) =>
+            RebuildPursueListFromAgentMarks(world);
 
         public static List<EntityId> CollectPursueParty(
             SimulationWorld world,

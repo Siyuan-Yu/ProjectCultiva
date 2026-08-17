@@ -883,9 +883,6 @@ namespace XianXia.Unity.Host
                 if (!utility)
                     _session.Loop.StopSubject(id);
 
-                // 玩家改令：取消尚未走出场景的宏观「未出行」
-                hostBootstrap?.WorldTravelDeparture?.NotifyPlayerOverride(id);
-
                 var ritual = hostBootstrap != null ? hostBootstrap.BreakthroughRitual : null;
                 if (ritual != null && ritual.TryHandleCommandDuringChannel(id, kind))
                 {

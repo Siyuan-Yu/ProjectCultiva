@@ -6,7 +6,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
-    /// <summary>BattleOffer 战略接战弹窗（138 §3.1／§4）。</summary>
+    /// <summary>战略打断：接战 BattleOffer + 到站 ArrivalNotice。</summary>
     public sealed class HostStrategicInterruptPresenter : MonoBehaviour
     {
         [SerializeField] PlayableHostBootstrap bootstrap;
@@ -102,6 +102,53 @@ namespace XianXia.Unity.Host
                     DrawJoinOngoingBattleOffer(session, offer);
                 else
                     DrawBattleOffer(session, offer);
+                return;
+            }
+
+            var arrival = session.World.Strategic.ArrivalNotice;
+            if (!arrival.Resolved && !string.IsNullOrEmpty(arrival.NoticeId))
+                DrawArrivalNotice(session, arrival);
+        }
+
+        void DrawArrivalNotice(PlayableHostSession session, ArrivalNoticePending notice)
+        {
+            DrawDim();
+            var box = new Rect(Screen.width * 0.5f - 240f, Screen.height * 0.5f - 140f, 480f, 280f);
+            Fill(box, Parchment);
+            DrawFrame(box, ParchmentDark);
+
+            GUI.Label(new Rect(box.x + 16f, box.y + 12f, box.width - 32f, 26f), "到站提示", _title);
+            GUI.Label(
+                new Rect(box.x + 16f, box.y + 48f, box.width - 32f, 120f),
+                (string.IsNullOrEmpty(notice.Summary) ? "有人抵达目的地" : notice.Summary) +
+                "\n\n是否打开大地图查看？",
+                _body);
+
+            var y = box.y + box.height - 44f;
+            var half = (box.width - 40f) * 0.5f;
+            if (GUI.Button(new Rect(box.x + 16f, y, half, 32f), "去查看"))
+            {
+                var arrivedCopy = new List<ulong>(notice.ArrivedIds.Count);
+                for (var i = 0; i < notice.ArrivedIds.Count; i++)
+                    arrivedCopy.Add(notice.ArrivedIds[i]);
+
+                session.World.Strategic.ClearArrivalNotice();
+                if (_holding)
+                {
+                    session.IsPaused = _pausedBefore;
+                    _holding = false;
+                }
+
+                if (bootstrap.WorldMapPanel != null)
+                {
+                    bootstrap.WorldMapPanel.Open();
+                    bootstrap.WorldMapPanel.SelectArrivedParty(arrivedCopy);
+                }
+            }
+
+            if (GUI.Button(new Rect(box.x + 24f + half, y, half, 32f), "暂不查看"))
+            {
+                session.World.Strategic.ClearArrivalNotice();
             }
         }
 
@@ -240,7 +287,8 @@ namespace XianXia.Unity.Host
                 engaged,
                 StrategicEncounterCatalog.DefaultFallbackMemberCount,
                 StrategicEncounterCatalog.DefaultFallbackCombatPower);
-            StrategicPursuitService.ClearPursuit(session.World);
+            // 只清进场者的追击标记；路上增援保留，到后弹「加入战斗」而非到站查看
+            StrategicPursuitService.ClearPursuitForEngagedKeepEnRoute(session.World, engaged);
             session.World.PartyWorld.LocalMapId = localMapId.Trim();
 
             var closeMap = bootstrap.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen;

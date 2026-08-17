@@ -850,6 +850,43 @@ namespace XianXia.Unity.Host
             RefreshStatus();
         }
 
+        /// <summary>显式清空 Active LocalMap 表现（进入场景失败／无目标图时用）。全员上路时不要调用。</summary>
+        public void UnloadActiveLocalMapPresentation(bool clearEmptyEncounter = false)
+        {
+            if (!_session.IsInitialized)
+                return;
+
+            var world = _session.World;
+            var active = world.LocalMap.ActiveMapLayoutId ?? string.Empty;
+            if (clearEmptyEncounter &&
+                !string.IsNullOrWhiteSpace(active) &&
+                world.Strategic?.Encounter != null &&
+                string.Equals(
+                    active.Trim(),
+                    BattleOfferService.ResolveActiveEncounterLocalMapId(world),
+                    System.StringComparison.Ordinal) &&
+                !LocalMapVisibility.HasFriendlyCharacterOnMapLayout(
+                    world, _session.CharacterIds, active))
+            {
+                StrategicEncounterSpawner.ClearSpawned(world);
+                world.Strategic.Encounter.ClearEngagedParty();
+            }
+
+            world.LocalMap.ActiveMapLayoutId = string.Empty;
+            world.LocalMap.OverworldMapLayoutId = string.Empty;
+            preferredMapLayoutId = string.Empty;
+            _session.PreferredMapLayoutId = string.Empty;
+            if (entityViewSpawner != null)
+                entityViewSpawner.Clear();
+            if (mapGraybox != null)
+                mapGraybox.Rebuild(_session);
+            if (interactSpotPresenter != null)
+                interactSpotPresenter.Rebuild();
+            if (moveController != null)
+                moveController.SetWalkGrid(null);
+            RefreshStatus();
+        }
+
         /// <summary>
         /// WorldGraph 到站后：按 PartyWorld.LocalMapId 卸／装实体图；切换 localPlaceSet；队伍落到 startLocation。
         /// </summary>
@@ -879,6 +916,16 @@ namespace XianXia.Unity.Host
                                      targetMap.Trim(),
                                      StrategicEncounterCatalog.DefaultEncounterLocalMapId,
                                      System.StringComparison.Ordinal);
+
+            // 目标图上暂无我方（例如全员已上路）：保持当前 LocalMap 画面，禁止卸图把视线带走
+            if (!string.IsNullOrWhiteSpace(targetMap) &&
+                !(world.Strategic?.Encounter != null && world.Strategic.Encounter.SpawnOnNextMapLoad) &&
+                !LocalMapVisibility.CanLoadMapLayoutForParty(
+                    world, _session.CharacterIds, targetMap.Trim()))
+            {
+                RefreshStatus();
+                return;
+            }
 
             // 目标图必须在内容包里，否则禁止带着荒村图「假装切换」
             if (!string.IsNullOrWhiteSpace(targetMap))
@@ -960,17 +1007,14 @@ namespace XianXia.Unity.Host
 
             if (string.IsNullOrWhiteSpace(targetMap))
             {
-                _session.PreferredMapLayoutId = string.Empty;
-                preferredMapLayoutId = string.Empty;
-                if (entityViewSpawner != null)
-                    entityViewSpawner.Clear();
-                if (mapGraybox != null)
-                    mapGraybox.Rebuild(_session);
-                if (interactSpotPresenter != null)
-                    interactSpotPresenter.Rebuild();
-                if (moveController != null)
-                    moveController.SetWalkGrid(null);
-                RefreshStatus();
+                // 焦点图为空但画面仍在：保留当前 LocalMap（全员上路时视线不带走）
+                if (!string.IsNullOrWhiteSpace(world.LocalMap.ActiveMapLayoutId))
+                {
+                    RefreshStatus();
+                    return;
+                }
+
+                UnloadActiveLocalMapPresentation(clearEmptyEncounter: false);
                 return;
             }
 
@@ -1059,6 +1103,19 @@ namespace XianXia.Unity.Host
             ReloadLocalMapPresentation(frameCamera: false);
             _session.RefreshViewableEntityIds();
             entityViewSpawner?.Rebuild(_session);
+            entityViewSpawner?.SyncLocations(_session);
+
+            if (selectionController != null)
+            {
+                for (var i = 0; i < newcomers.Count; i++)
+                {
+                    var id = newcomers[i];
+                    if (id.IsNone || !LocalMapVisibility.IsEntityVisible(world, id))
+                        continue;
+                    selectionController.SelectEntity(id, i > 0);
+                }
+            }
+
             RefreshStatus();
         }
 
@@ -1091,26 +1148,6 @@ namespace XianXia.Unity.Host
             RefreshStatus();
         }
 
-        void ExitEncounterAfterVictory()
-        {
-            if (!_session.IsInitialized)
-                return;
-
-            var world = _session.World;
-            WorldTravelService.SyncPartyFocus(world);
-            world.PartyWorld.EncounterId = string.Empty;
-            world.LocalMap.ActiveMapLayoutId = string.Empty;
-            world.LocalMap.OverworldMapLayoutId = string.Empty;
-            preferredMapLayoutId = string.Empty;
-            _session.PreferredMapLayoutId = string.Empty;
-            if (entityViewSpawner != null)
-                entityViewSpawner.Clear();
-            _session.RefreshViewableEntityIds();
-            if (worldMapPanel != null)
-                worldMapPanel.Open();
-            RefreshStatus();
-        }
-
         /// <summary>Host 表现层触发的 Content／Quest 事件立即送给打断呈现。</summary>
         public void DispatchDrainedEvents()
         {
@@ -1123,12 +1160,10 @@ namespace XianXia.Unity.Host
                 if (evt?.Type == XianXia.Core.Events.EventType.CombatantDefeated &&
                     evt.Target.HasValue)
                 {
-                    if (StrategicEncounterSpawner.OnCombatantDefeated(
-                            _session.World,
-                            evt.Target.Value))
-                    {
-                        ExitEncounterAfterVictory();
-                    }
+                    // 只同步遭遇敌军伤亡；敌清空 → FieldCleared（无结算弹窗、不卸图、不弹大地图）
+                    StrategicEncounterSpawner.OnCombatantDefeated(
+                        _session.World,
+                        evt.Target.Value);
                 }
             }
 
