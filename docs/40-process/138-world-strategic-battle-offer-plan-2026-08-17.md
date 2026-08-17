@@ -208,13 +208,16 @@ HostWorldMapPanel（扩）
 
 ## 7. 落地阶段（相对 113 的 E 之后）
 
-| 阶段 | 交付 | 验收 |
-|------|------|------|
-| **0 遭遇底座 E** | Route `danger`／`encounterPoolId` → 临时 LocalMap；旅行非空跑 | 走 Trail 触发一次遭遇 |
-| **1 占点可视化** | Ch01 关键节点填 `ownerId`；大地图颜色 + tooltip | 占荒村后节点变玩家色 |
-| **2 帮派外交** | 2～3 faction；stance 表；简单外交 UI（看态度／宣战） | 邻帮变 hostile 后旅行更危险 |
-| **3 接战弹窗 MVP** | ArmyStack + BattleOffer + AutoResolve + Manual→LocalMap | 路上遇敌对栈：弹窗 → 选手动打一场 |
-| **4 AI 与扩内容** | 敌对派兵、封锁 Route、更多节点 LocalMap | 邻帮派栈拦截玩家一次 |
+| 阶段 | 交付 | 验收 | Git |
+|------|------|------|-----|
+| **0 遭遇底座 E** | Route `danger` roll → `InEncounter`／遭遇 LocalMap | EditMode + 手操走 Trail | `feat(strategic): phase0 route encounter` |
+| **0.5 统一时间** | 开 M 暂停；大地图 Space／倍速；删 `DriveTravelWhilePaused` | 开图 LocalMap 停；Space 全局走 | `feat(strategic): phase0.5 unified pause` |
+| **1 占点可视化** | Ch01 节点 `ownerId` + 大地图归属色 | 荒村／邻点有色 | `feat(strategic): phase1 node ownership colors` |
+| **2 帮派外交** | 四档 stance + 大地图外交区 | 宣战→ hostile | `feat(strategic): phase2 faction diplomacy` |
+| **3 接战 MVP** | ArmyStack + BattleOffer + Auto／Manual | 遇栈弹窗打一场 | `feat(strategic): phase3 battle offer` |
+| **4 AI 派兵** | 日界 AI 栈 + 同 Route 触发接战 | 邻帮派兵一次 | `feat(strategic): phase4 ai army stacks` |
+
+**实现状态（2026-08-17）**：Phase 0～4 已落地；EditMode `StrategicPhaseTests` 8/8 通过；Host：`HostStrategicInterruptPresenter`、大地图暂停／倍速／归属色／外交区／Army 图标。
 
 **垂直切片 VS-WorldStrategic-0.1（建议验收口径）：**
 

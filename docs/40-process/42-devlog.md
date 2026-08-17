@@ -7,6 +7,16 @@
 
 ---
 
+## 2026-08-17 — 138 战略层 Phase 0～4 落地
+
+**做了什么**
+- Core：`StrategicBoard`、Route 遭遇、`BattleOffer`、外交四档、`ArmyStack`、日界 AI 派兵；`SimulationLoop` Travel 后接 `StrategicTravelDriver`
+- Host：`HostStrategicInterruptPresenter`（路遇／接战弹窗）；`HostWorldMapPanel` 开 M 暂停、删 `DriveTravelWhilePaused`、Space／倍速、归属色、外交侧栏、Army 图标
+- EditMode：`StrategicPhaseTests` 8/8 通过
+
+**判断与理由**
+- 按 138 分期验收；统一世界时间（§3.1）在 Host 层落地，避免战略层与 LocalMap 双时钟
+
 ## 2026-08-17 — 138 增补：统一世界时间＋无文明式复杂度
 
 **做了什么**
