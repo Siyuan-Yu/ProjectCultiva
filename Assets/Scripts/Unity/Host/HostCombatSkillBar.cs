@@ -138,7 +138,7 @@ namespace XianXia.Unity.Host
         {
             target = EntityId.None;
             if (meleeAssault != null && meleeAssault.IsFighting &&
-                meleeAssault.AttackerId == caster && !meleeAssault.DefenderId.IsNone)
+                meleeAssault.IsAttacker(caster) && !meleeAssault.DefenderId.IsNone)
             {
                 target = meleeAssault.DefenderId;
                 return true;

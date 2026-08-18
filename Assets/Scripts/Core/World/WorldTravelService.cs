@@ -276,10 +276,16 @@ namespace XianXia.Core.World
         {
             if (id.IsNone || stack == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid pursuit traveler.");
-            if (!stack.IsRouteAnchored)
-                return StartTravelOne(world, id, StrategicNodeAccessService.ResolveStackTravelTarget(stack));
             if (!world.WorldPresence.TryGet(id, out var p) || p == null)
                 return Result.Failure(ErrorCode.NotFound, "Traveler presence missing.");
+
+            // 非道路驻军／行军：追到目标节点（或 Dest）
+            if (!stack.IsRoutePositioned || string.IsNullOrEmpty(stack.RouteId))
+            {
+                if (p.Mode == PartyWorldPresenceMode.Traveling && p.HasRoutePresentation)
+                    p.AnchorOnRoute(p.TravelProgress);
+                return StartTravelOne(world, id, StrategicNodeAccessService.ResolveStackTravelTarget(stack));
+            }
 
             if (StrategicNodeAccessService.IsAgentAtStackAnchor(world, p, stack))
                 return Result.Success();
@@ -293,7 +299,7 @@ namespace XianXia.Core.World
                     return Result.Failure(ErrorCode.NotFound, "Traveler presence missing.");
             }
 
-            var target = stack.RouteAnchorProgress;
+            var target = stack.GetRouteDisplayProgress();
             if (p.Mode == PartyWorldPresenceMode.RouteAnchored)
             {
                 return StartTravelRouteSegment(
@@ -311,6 +317,13 @@ namespace XianXia.Core.World
                 string.Equals(p.RouteId, stack.RouteId, StringComparison.Ordinal))
             {
                 return RetargetTravelToRouteProgress(world, id, p, stack.NodeId, stack.DestNodeId, target);
+            }
+
+            // 正在别的路上：先钉在当前进度，再改去追目标栈
+            if (p.Mode == PartyWorldPresenceMode.Traveling && p.HasRoutePresentation)
+            {
+                p.AnchorOnRoute(p.TravelProgress);
+                return StartTravelToStackAnchor(world, id, stack);
             }
 
             if (p.Mode == PartyWorldPresenceMode.AtNode)
@@ -345,7 +358,7 @@ namespace XianXia.Core.World
             EntityId id,
             ArmyStack stack)
         {
-            if (world == null || stack == null || !stack.IsRouteAnchored || id.IsNone)
+            if (world == null || stack == null || !stack.IsRoutePositioned || id.IsNone)
                 return;
             if (!world.WorldPresence.TryGet(id, out var p) || p == null)
                 return;
@@ -355,7 +368,8 @@ namespace XianXia.Core.World
             if (StrategicNodeAccessService.IsAgentAtStackAnchor(world, p, stack))
                 return;
 
-            RetargetTravelToRouteProgress(world, id, p, stack.NodeId, stack.DestNodeId, stack.RouteAnchorProgress);
+            RetargetTravelToRouteProgress(
+                world, id, p, stack.NodeId, stack.DestNodeId, stack.GetRouteDisplayProgress());
         }
 
         static Result RetargetTravelToRouteProgress(

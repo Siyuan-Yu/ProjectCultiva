@@ -618,7 +618,7 @@ namespace XianXia.Unity.Host
             var melee = bootstrap != null
                 ? bootstrap.GetComponent<HostNpcMeleeAssault>()
                 : GetComponent<HostNpcMeleeAssault>();
-            return melee != null && melee.IsFighting && melee.AttackerId == id;
+            return melee != null && melee.IsFighting && melee.IsAttacker(id);
         }
 
         void ApplyPendingNpcIntent(EntityId id)

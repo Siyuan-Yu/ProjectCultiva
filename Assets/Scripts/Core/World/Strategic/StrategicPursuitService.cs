@@ -186,6 +186,9 @@ namespace XianXia.Core.World.Strategic
             if (pursue.Count == 0)
                 return;
 
+            // 敌军挪位：持续改道贴上去，追上再弹窗
+            SyncPursuersToStack(world, pursue, stack);
+
             var ready = new List<EntityId>(pursue.Count);
             StrategicEngageRules.CollectPartyReadyToEngageStack(world, pursue, stack, ready);
             if (ready.Count == 0)
@@ -193,6 +196,32 @@ namespace XianXia.Core.World.Strategic
 
             if (BattleOfferService.TryBuildOfferForArmy(world, ready, stack, "追击接战"))
                 world.Strategic.ClearArrivalNotice();
+        }
+
+        /// <summary>追击中：每 tick 把未重合的人改道到敌军栈当前宏观位置。</summary>
+        public static void SyncPursuersToStack(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> pursue,
+            ArmyStack stack)
+        {
+            if (world == null || stack == null || pursue == null)
+                return;
+
+            for (var i = 0; i < pursue.Count; i++)
+            {
+                var id = pursue[i];
+                if (id.IsNone || !world.WorldPresence.TryGet(id, out var p) || p == null)
+                    continue;
+                if (p.Mode == PartyWorldPresenceMode.InEncounter &&
+                    !StrategicEncounterSpawner.IsFieldCleared(world))
+                    continue;
+                if (!WorldTravelService.CanReceiveTravelOrder(world, id))
+                    continue;
+                if (StrategicEngageRules.IsAgentColocatedWithStack(world, p, stack))
+                    continue;
+
+                WorldTravelService.StartTravelToStackAnchor(world, id, stack);
+            }
         }
 
         /// <summary>用角色身上的 CombatPursuitStackId 补全追击名单（防止只上路未 BeginPursuit）。</summary>

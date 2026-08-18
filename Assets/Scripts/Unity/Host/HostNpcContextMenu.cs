@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
@@ -515,37 +516,65 @@ namespace XianXia.Unity.Host
 
         void BeginAttack()
         {
-            if (_actor.IsNone || _targetNpc.IsNone)
+            if (_targetNpc.IsNone)
             {
                 CloseAll();
                 return;
             }
 
-            var actor = _actor;
             var npc = _targetNpc;
+            CollectSelectedPartyAttackers(_scratchAttackers);
+            if (_scratchAttackers.Count == 0 && !_actor.IsNone)
+                _scratchAttackers.Add(_actor);
+            if (_scratchAttackers.Count == 0)
+            {
+                CloseAll();
+                return;
+            }
+
             var melee = bootstrap != null ? bootstrap.GetComponent<HostNpcMeleeAssault>() : null;
-            if (melee != null && melee.IsWithinMeleeRange(actor, npc))
+            var any = false;
+            for (var i = 0; i < _scratchAttackers.Count; i++)
             {
-                CloseAll();
-                OnNpcArriveAttack(actor, npc);
-                return;
+                var actor = _scratchAttackers[i];
+                if (actor.IsNone)
+                    continue;
+
+                if (melee != null && melee.IsWithinMeleeRange(actor, npc))
+                {
+                    OnNpcArriveAttack(actor, npc);
+                    any = true;
+                    continue;
+                }
+
+                if (moveController == null)
+                    continue;
+                if (moveController.OrderActorToNpc(actor, npc, HostNpcArriveAction.Attack))
+                {
+                    _interactionNpc = npc;
+                    any = true;
+                }
             }
 
-            if (moveController == null)
-            {
-                CloseAll();
-                return;
-            }
-
-            if (!moveController.OrderActorToNpc(actor, npc, HostNpcArriveAction.Attack))
-            {
-                CloseAll();
-                return;
-            }
-
-            _interactionNpc = npc;
-            ResumeTime();
+            if (any)
+                ResumeTime();
             CloseAll();
+        }
+
+        readonly List<EntityId> _scratchAttackers = new List<EntityId>(4);
+
+        void CollectSelectedPartyAttackers(List<EntityId> into)
+        {
+            into.Clear();
+            if (selectionController == null)
+                return;
+            for (var i = 0; i < selectionController.State.Count; i++)
+            {
+                var id = selectionController.State.SelectedIds[i];
+                if (!selectionController.IsPartyUnit(id))
+                    continue;
+                into.Add(id);
+            }
         }
 
         public void OnNpcArriveTalk(EntityId actor, EntityId npc)

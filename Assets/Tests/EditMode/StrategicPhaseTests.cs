@@ -792,5 +792,48 @@ namespace XianXia.Tests
                 Assert.That(p.RouteAnchorProgress, Is.EqualTo(stack.RouteAnchorProgress).Within(0.06f));
             }
         }
+
+        [Test]
+        public void Pursuit_RetargetsWhenStackMovesAlongRoute_ThenOffersBattle()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var stack));
+            var party = new System.Collections.Generic.List<EntityId> { session.CharacterIds[0] };
+
+            StrategicPursuitService.BeginPursuit(world, party, stack);
+            Assert.IsTrue(WorldTravelService.StartTravelPartyToStackAnchor(world, party, stack).IsSuccess);
+
+            // 追上原 0.5 锚点
+            for (var i = 0; i < 800; i++)
+            {
+                WorldTravelService.AdvanceTravel(world, 1, StrategicTravelDriver.BeginArrivalCapture());
+                StrategicTravelDriver.AfterTravelTick(world, 1);
+                if (world.Strategic.HasBattleOffer)
+                    break;
+            }
+
+            Assert.IsTrue(world.Strategic.HasBattleOffer, "追上原锚点应弹接战");
+            world.Strategic.ClearBattleOffer();
+
+            // 敌军沿路挪到更远处；追击应改道再贴
+            stack.RouteAnchorProgress = 0.85f;
+            Assert.IsTrue(world.WorldPresence.TryGet(party[0], out var p));
+            Assert.IsFalse(
+                StrategicEngageRules.IsAgentColocatedWithStack(world, p, stack),
+                "挪位后应暂时不重合");
+
+            for (var i = 0; i < 800; i++)
+            {
+                WorldTravelService.AdvanceTravel(world, 1, StrategicTravelDriver.BeginArrivalCapture());
+                StrategicTravelDriver.AfterTravelTick(world, 1);
+                if (world.Strategic.HasBattleOffer)
+                    break;
+            }
+
+            Assert.IsTrue(world.Strategic.HasBattleOffer, "贴上挪位后的敌军应再弹接战");
+            Assert.IsTrue(world.WorldPresence.TryGet(party[0], out p));
+            Assert.That(p.TravelProgress, Is.EqualTo(0.85f).Within(0.08f));
+        }
     }
 }

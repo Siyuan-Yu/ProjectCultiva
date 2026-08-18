@@ -726,6 +726,11 @@
       "title": "140 大地图纯 RTS／接战／清场回程收束（2026-08-18）",
       "docId": "MEzIdolEBonQCExqQGjcsmxGnsf"
     },
+    "pursuit-stick-and-multi-melee-2026-08-18": {
+      "file": "docs/40-process/141-pursuit-stick-and-multi-melee-2026-08-18.md",
+      "title": "141 追击贴敌＋LocalMap 多选近战（2026-08-18）",
+      "docId": "I36jdoafvos0YCx2SFscxl0anUb"
+    },
     "world-graph-local-map": {
       "file": "docs/40-process/113-world-graph-local-map-architecture-revision-v0.1.md",
       "title": "World Graph + Local Map 架构修订 v0.1",

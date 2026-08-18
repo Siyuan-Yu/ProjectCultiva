@@ -20,13 +20,14 @@
 | **纯 RTS 出行** | 确认后立刻 Despawn＋宏观上路；删边缘离场整链 | `HostWorldTravelDeparture`／`HostWorldTravelConfirmPrompt` |
 | **视线保留** | 全员上路不卸图、不挪镜头 | `PlayableHostBootstrap`／`LocalMapVisibility` |
 | **到站弹窗** | 非追击最终目的地 →「是否打开大地图查看」 | `ArrivalNoticeService`／`HostStrategicInterruptPresenter` |
-| **追击接战** | `CombatPursuitStackId`；到位只弹 BattleOffer，不弹到站查看 | `StrategicPursuitService`／`WorldTravelDriver` |
+| **追击接战** | `CombatPursuitStackId`；到位只弹 BattleOffer，不弹到站查看；敌军挪位持续贴 | `StrategicPursuitService`／`WorldTravelService` |
 | **后到加入** | 先到手动战后保留路上增援标记；到后「是否加入战斗」 | `ClearPursuitForEngagedKeepEnRoute`／`BattleOfferService` |
 | **打完离场** | 敌清空 `FieldCleared`；无结算、不弹大地图；可宏观下令 | `StrategicEncounterSpawner`／`WorldTravelService.CanReceiveTravelOrder` |
 | **清场回程** | 路中／InEncounter：当前道路两端可直达（修「回不了荒村」） | `WorldTravelPathService.CanAgentReachTarget` |
 | **路进度保留** | 进战／删栈前快照路锚，避免进度归零像瞬移 | `SnapshotEngagedRouteFromStack`／`PreserveRouteProgressForEncounter` |
 | **进场景** | 有我方在场即可进；不做战略敌对封锁 | `StrategicNodeAccessService` |
 | **暂关势力 UX** | 清演示 Owner；节点不按帮派染色；去掉大地图外交面板 | `StrategicBootstrap`／`HostWorldMapPanel` |
+| **追击贴敌＋多选近战** | 每 tick 贴敌军栈；LocalMap 多选一起打 | 见 [141](141-pursuit-stick-and-multi-melee-2026-08-18.md) |
 
 ---
 
@@ -35,7 +36,8 @@
 ```text
 【出行】大地图选人 → 右键节点／道路 → 确认 → 人立刻从 LocalMap 消失并上路
 【视线】全员上路后画面仍停在当前 LocalMap（不强制切大地图）
-【攻击】右键敌军栈 → 攻击 → 追击；先到弹接战（自动／手动／撤退）
+【攻击】右键敌军栈 → 攻击 → 持续贴敌军当前宏观位置；追上弹接战（自动／手动／撤退）
+【群殴】LocalMap 多选己方右键敌人 → 全员一起打
 【增援】第二人攻击同栈 → 到位弹「是否加入战斗」，不弹「到了要不要查看」
 【清场】打光遭遇敌军 → 无胜利结算、不自动弹图；开 M 可下令回青石荒村
 【进村】人回到荒村节点后 → 左键节点「进入场景」
@@ -48,7 +50,7 @@
 | 规则 | 现行 |
 |------|------|
 | 宏观移动 | 纯 RTS；路上随时可改目标 |
-| 遇敌 | 仅攻击／追击到位弹 BattleOffer；过路不暗雷 |
+| 遇敌 | 仅攻击／追击贴上敌军栈才弹 BattleOffer；敌军挪位持续改道；过路不暗雷 |
 | 到站 | ArrivalNotice 仅非追击最终目的地 |
 | 清场 | FieldCleared 解锁宏观移动；LocalMap 可仍留战场 |
 | 进场景 | 有我方即可；暂不做外交／Owner 封锁 |
@@ -66,17 +68,19 @@
 | 打完回不了青石荒村 | 清场后仍 InEncounter，BFS 用较近端当起点，点回原端判「已在」 | 路中两端可直达；`ResolveAnchorNodeId` 覆盖 InEncounter |
 | 清场后像瞬移／丢路进度 | 进 Encounter 清 TravelTicks；删栈前未快照 | Preserve／Snapshot 路锚 |
 | 误以为外交挡进村 | 旧敌对门槛／节点染色误导 | 准入只看我方在场；清 Owner、停染色 |
+| 攻击后敌军跑了追不上 | 只追下令时的锚点／Dest 节点 | 每 tick `SyncPursuersToStack` |
+| LocalMap 多选只有一人打 | 近战只记一名攻方，后 `Begin` 顶掉前人 | 多名攻方同时打同一目标 |
 
 ---
 
 ## 6. 测试
 
-- `StrategicPhaseTests`：追击不弹到站、加入战斗、FieldCleared 解锁、清场后点回荒村、Owner 清空、外交默认中立等
+- `StrategicPhaseTests`：追击不弹到站、加入战斗、FieldCleared 解锁、清场后点回荒村、敌军挪位再贴上弹窗等
 
 ---
 
 ## 7. 下一步建议
 
-1. 手操再验：增援加入、清场回荒村进场景  
-2. 可选：跟随菜单加回、交谈事件  
+1. 手操再验：追击贴敌、LocalMap 多选群殴、增援加入、清场回荒村  
+2. 跟随菜单／交谈仍暂缓（攻击＝贴上再打，不是另做「只跟不打」）  
 3. 战略外交／占点正式启用前再开刀（当前刻意关掉）

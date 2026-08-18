@@ -104,7 +104,7 @@ namespace XianXia.Unity.Host
             if (selection != null && selection.State.Contains(id))
                 return true;
             if (meleeAssault != null && meleeAssault.IsFighting &&
-                (id == meleeAssault.AttackerId || id == meleeAssault.DefenderId))
+                meleeAssault.IsInFight(id))
                 return true;
             if ((entity.Tags & EntityTag.Npc) != 0 &&
                 HostNpcInteraction.IsHostileNpc(bootstrap.Session, id))
