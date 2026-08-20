@@ -60,38 +60,41 @@
 - 重要占点／守城战优先 **手动 LocalMap**；可见 ArmyStack 接战可自动或手动。
 - **不做 Route danger 随机暗雷**；路上不会凭空弹「路遇险情」。
 
-### 3.1 统一世界时间纪律（已确认）
+### 3.1 统一世界时间纪律（已确认 · **2026-08-21 ADR-0023 修订**）
 
-**原则：全世界只有一套时钟**（`SimulationWorld.Tick`／`PlayableHostSession.IsPaused`／倍速 `[` `]`），LocalMap 与 WorldGraph **不各跑各的**。
+**原则：全世界只有一套时钟**（`SimulationWorld.Tick`）；LocalMap 与 WorldGraph **不各跑各的**。  
+战略接战另加：**冻结推进**，不是第二套时钟。见 [ADR-0023](43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)／[144](144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md)。
 
 | 场景 | 时间行为 |
 |------|----------|
-| **打开大地图（M）瞬间** | **自动暂停** — 含当前所在 LocalMap 内的 Action／Schedule／Travel 推进 |
-| **大地图内取消暂停（Space）** | **全局继续** — 大地图 Travel／栈移动 **与** 后台 LocalMap 模拟 **同步 tick** |
-| **倍速 `[` `]`** | 与 LocalMap 同一套倍速；作用于 **整个世界**，不是仅战略层 |
-| **关闭大地图** | 不单独改暂停态；沿用当前全局暂停／倍速 |
-| **BattleOffer 接战弹窗** | **强制暂停**（优先级高于玩家手动继续）；选完并结算后 **恢复打开弹窗前的暂停／倍速** |
-| **ContentEvent 等既有打断** | 与接战同级或按现有 CIF 优先级；均走同一 `IsPaused` |
+| **打开大地图（M）瞬间** | **自动暂停** — 含当前 LocalMap 内 Action／Schedule／Travel |
+| **大地图内取消暂停（Space）** | **全局继续**（若未处于战略战斗冻结） |
+| **倍速 `[` `]`** | 与 LocalMap 同一套；作用于整个世界（冻结期间不推进 Tick） |
+| **关闭大地图** | 不单独改暂停态 |
+| **BattleOffer 产生** | **立即冻结 WorldTick**；强制战术／UI 暂停展示 Offer |
+| **选 AutoResolve** | 瞬时结算，**不**额外推进 Tick；Resolve 后恢复开战前 pause／倍速 |
+| **选 Manual** | 进入 Modal Encounter；**整场＋PostBattle 期间 WorldTick 保持冻结**；战术 RTS 可用表现时钟 |
+| **Encounter Resolve（结束战斗）** | 清理遭遇；**恢复**开战前 pause／time scale |
+| **ContentEvent 等 CIF** | 同级打断；均不得在战斗冻结期间偷跑战略 Tick |
 
 ```text
-按 M 打开大地图 → 全世界暂停（方便看地图、下出行令）
-  → Space 继续 → 全世界一起走：
-       · Route 上头像／Travel 进度
-       · LocalMap 里该干的活（若场景仍加载）
-       · 日后 ArmyStack 战略移动
-  → 遇接战弹窗 → 再停 → 选自动/手动 → 恢复
+遇 BattleOffer → 冻结 WorldTick
+  ├─ 自动 → 结算 → Resolve → 恢复 pause／倍速
+  └─ 手动 → Modal 遭遇图（锁图、禁战略令）
+        → 清场 → PostBattle（仍冻结）
+        → 结束战斗 → Resolve → 恢复
 ```
 
-**实现要点（Host）：**
+**已废弃（相对本文件旧稿）：** 「选完自动/手动后立刻恢复打开弹窗前的暂停，手动战期间战略世界继续走」。
 
-- `HostWorldMapPanel.Open()` → `session.IsPaused = true`（与 FormalHud Space 状态一致）  
-- 大地图顶栏复用／绑定现有 **Space／[`／`]`** 控件与文案  
-- `WorldTravelService.AdvanceTravelingParties` 仅在 `!IsPaused` 时消费 tick  
-- 禁止「战略层暂停、LocalMap 偷偷走」或反过来  
+**实现要点（Host／Core）：**
 
-**AI 动兵（减负担，与时间纪律不冲突）：**
+- Core：`StrategicClockFreeze`（Offer／Manual／PostBattle）  
+- Host auto-tick／StepTick：冻结时不推进 `WorldTick`  
+- 战术 `IsPaused` 可在 Manual 内切换，**不等于**解除战略冻结  
+- 禁止「战略层冻结、LocalMap Schedule／Travel 偷偷走」  
 
-- 敌对 **ArmyStack** 推进可用 **日界** 或粗 tick，不必与玩家拼 APM；但 **消费的是同一世界 tick**，只是 AI 逻辑触发频率更低。
+**AI 动兵：** 敌对 ArmyStack 仍消费同一世界 tick；冻结期间不推进。
 
 ---
 

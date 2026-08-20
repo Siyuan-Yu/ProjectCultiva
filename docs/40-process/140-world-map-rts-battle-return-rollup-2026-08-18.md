@@ -1,8 +1,10 @@
 # 140 · 大地图纯 RTS／接战／清场回程收束（2026-08-18）
 
-> 状态：**已落地／手操验收基本通过**｜日期：2026-08-18  
+> 状态：**已落地／手操基本通过；时间纪律 2026-08-21 起以 ADR-0023 为准**｜日期：2026-08-18  
 > 相对提交：`238c279` 之后 → 本轮 `main`  
 > 计划真源：[139](139-world-map-rts-orders-2026-08-17.md)｜[138](138-world-strategic-battle-offer-plan-2026-08-17.md)  
+> **战略战斗冻结：** [ADR-0023](43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)／[144](144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md)  
+> **143「回战场」路径已 superseded**（不再作为默认）  
 > 飞书：https://my.feishu.cn/docx/MEzIdolEBonQCExqQGjcsmxGnsf
 
 ---
@@ -22,7 +24,7 @@
 | **到站弹窗** | 非追击最终目的地 →「是否打开大地图查看」 | `ArrivalNoticeService`／`HostStrategicInterruptPresenter` |
 | **追击接战** | `CombatPursuitStackId`；到位只弹 BattleOffer，不弹到站查看；敌军挪位持续贴 | `StrategicPursuitService`／`WorldTravelService` |
 | **后到加入** | 先到手动战后保留路上增援标记；到后「是否加入战斗」 | `ClearPursuitForEngagedKeepEnRoute`／`BattleOfferService` |
-| **打完离场** | 敌清空 `FieldCleared`；无结算、不弹大地图；可宏观下令 | `StrategicEncounterSpawner`／`WorldTravelService.CanReceiveTravelOrder` |
+| **打完离场** | ~~敌清空 FieldCleared；无结算、不弹大地图；可宏观下令~~ → **改：** FieldCleared → PostBattle → Resolve；Tick 冻结至结束（ADR-0023） | 见 144 Phase D |
 | **清场回程** | 路中／InEncounter：当前道路两端可直达（修「回不了荒村」） | `WorldTravelPathService.CanAgentReachTarget` |
 | **路进度保留** | 进战／删栈前快照路锚，避免进度归零像瞬移 | `SnapshotEngagedRouteFromStack`／`PreserveRouteProgressForEncounter` |
 | **进场景** | 有我方在场即可进；不做战略敌对封锁 | `StrategicNodeAccessService` |

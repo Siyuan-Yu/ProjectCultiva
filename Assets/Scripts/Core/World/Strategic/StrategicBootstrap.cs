@@ -34,13 +34,18 @@ namespace XianXia.Core.World.Strategic
         static void SeedDemoArmies(SimulationWorld world)
         {
             world.Strategic.Armies.Clear();
-            if (!world.WorldGraph.TryFindRoute("base:node_huangcun", "base:node_linjian", out var route) &&
-                !world.WorldGraph.TryFindRoute("base:node_linjian", "base:node_huangcun", out route))
-                return;
+            // 放在荒村→青石关路上偏关隘一侧，避免叠在荒村大标签下
+            if (!world.WorldGraph.TryFindRoute("base:node_huangcun", "base:node_guanai", out var route) &&
+                !world.WorldGraph.TryFindRoute("base:node_guanai", "base:node_huangcun", out route))
+            {
+                if (!world.WorldGraph.TryFindRoute("base:node_huangcun", "base:node_linjian", out route) &&
+                    !world.WorldGraph.TryFindRoute("base:node_linjian", "base:node_huangcun", out route))
+                    return;
+            }
 
             var fromId = route.FromNodeId;
             var toId = route.ToNodeId;
-            if (string.Equals(fromId, "base:node_linjian", StringComparison.Ordinal))
+            if (!string.Equals(fromId, "base:node_huangcun", StringComparison.Ordinal))
             {
                 fromId = route.ToNodeId;
                 toId = route.FromNodeId;
@@ -50,12 +55,12 @@ namespace XianXia.Core.World.Strategic
             {
                 Id = "army:bandit_patrol_1",
                 FactionId = StrategicFactionCatalog.BanditId,
-                DisplayName = "林间山匪",
+                DisplayName = "荒村山匪",
                 NodeId = fromId,
                 DestNodeId = toId,
                 RouteId = route.Id,
-                RouteAnchorProgress = 0.5f,
-                MemberCount = 3,
+                RouteAnchorProgress = 0.42f,
+                MemberCount = 4,
                 CombatPower = 2
             });
         }

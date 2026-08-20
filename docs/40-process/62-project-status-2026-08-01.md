@@ -1,17 +1,17 @@
 # 项目现状总览 — 2026-08-01
 
-> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-20（自动战结算＋弥留／尸体，**未手操验**）  
+> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-21（[146] ADR-0023 Host 打磨）  
 > 用途：一次看清 VS0.1～1.0／Content Ready 做到哪、本轮改了什么、下一步是什么。  
-> 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准；本页不改 Freeze。  
-> 近期增量一次看清：[142](142-auto-battle-incap-corpse-2026-08-20.md)／[141](141-pursuit-stick-and-multi-melee-2026-08-18.md)／[140](140-world-map-rts-battle-return-rollup-2026-08-18.md)／[139](139-world-map-rts-orders-2026-08-17.md)／[138](138-world-strategic-battle-offer-plan-2026-08-17.md)
+> 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准（含 ADR-0023 补丁）。  
+> 近期增量：[146](146-adr0023-host-ux-polish-2026-08-21.md)／[145](145-adr0023-phases-af-acceptance-2026-08-21.md)／[ADR-0023](43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)／[144](144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md)
 
 ---
 
 ## 1. 一句话现状
 
-**Architecture Freeze v0.2 有效。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**；样例关可玩弧／导航／NPC 活动底座／Demo 0.1 Production **自动化已验收（手操待签）**。  
-**本轮：** **自动战结算＋弥留／尸体**已落地（见 [142](142-auto-battle-incap-corpse-2026-08-20.md)，**未手操验**）；其上是追击贴敌／群殴（[141](141-pursuit-stick-and-multi-melee-2026-08-18.md)）与纯 RTS／接战／清场回程（[140](140-world-map-rts-battle-return-rollup-2026-08-18.md)／[139](139-world-map-rts-orders-2026-08-17.md)）；战略外交／节点势力染色**暂关**。  
-**下一步：** 手操验 142（自动战 toast、弥留补刀、尸体 decay、处决 checkbox）→ 占点／外交另开刀 → 跟随菜单／交谈仍暂缓。
+**Architecture Freeze v0.2 有效（+ADR-0023 补丁）。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**。  
+**本轮：** [ADR-0023](43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md) Phase A～F＋[146](146-adr0023-host-ux-polish-2026-08-21.md) Host 打磨已落地；日常试玩用 **LevelTester**。  
+**下一步：** Host 手操签收 145／146 → 占点／外交或 Snapshot 纳入 Strategic。
 ---
 
 ## 2. 切片进度与验收

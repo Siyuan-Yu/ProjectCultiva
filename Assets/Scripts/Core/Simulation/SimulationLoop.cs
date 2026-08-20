@@ -127,6 +127,9 @@ namespace XianXia.Core.Simulation
 
         public Result TickOnce()
         {
+            if (StrategicClockFreezeService.IsWorldTickFrozen(_world))
+                return Result.Success();
+
             var previous = _world.Tick;
             _world.Tick = _world.Tick.Add(1);
             ProcessDayBoundary(previous, _world.Tick);

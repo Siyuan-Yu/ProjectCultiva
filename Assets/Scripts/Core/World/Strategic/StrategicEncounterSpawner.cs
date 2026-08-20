@@ -148,6 +148,7 @@ namespace XianXia.Core.World.Strategic
 
             rt.FieldCleared = true;
             StrategicPursuitService.ClearPursuit(world);
+            StrategicEncounterResolveService.EnterPostBattleIfCleared(world);
             return true;
         }
 

@@ -489,9 +489,8 @@ namespace XianXia.Unity.Host
             }
 
             _nodeRects.Clear();
-            // 先画头像（底层半透明），再画节点，保证地名不被挡住
+            // 头像底层 → 节点地名 → 敌军栈置顶（避免被荒村大标签挡住）
             DrawAvatars(mapRect, world);
-            DrawArmyStacks(mapRect, world, graph);
 
             foreach (var kv in graph.Nodes)
             {
@@ -514,6 +513,8 @@ namespace XianXia.Unity.Host
                 GUI.Label(rect, label, _nodeLabel);
                 _nodeRects.Add((n.Id, rect));
             }
+
+            DrawArmyStacks(mapRect, world, graph);
         }
 
         void DrawArmyStacks(
@@ -554,11 +555,13 @@ namespace XianXia.Unity.Host
                 }
 
                 var p = Project(mapRect, wx, wy);
+                // 贴节点时挪到标签外侧，避免「躲在荒村后面」
+                p = NudgeArmyMarkerAwayFromNodes(p);
                 if (!mapRect.Contains(p))
                     continue;
 
                 StrategicFactionCatalog.MapTint(stack.FactionId, out var r, out var g, out var b);
-                var size = string.Equals(stack.Id, _selectedStackId, StringComparison.Ordinal) ? 22f : 18f;
+                var size = string.Equals(stack.Id, _selectedStackId, StringComparison.Ordinal) ? 26f : 22f;
                 var rect = new Rect(p.x - size * 0.5f, p.y - size * 0.5f, size, size);
                 var old = GUI.color;
                 GUI.color = new Color(r, g, b, 0.95f);
@@ -570,10 +573,30 @@ namespace XianXia.Unity.Host
                 }
 
                 GUI.color = old;
-                var tag = stack.MemberCount + "人";
-                GUI.Label(new Rect(rect.x - 8f, rect.yMax + 2f, 72f, 16f), tag, _avatarLabel);
+                var tag = stack.MemberCount + "人 · " +
+                          (string.IsNullOrEmpty(stack.DisplayName) ? "敌军" : stack.DisplayName);
+                GUI.Label(new Rect(rect.x - 12f, rect.yMax + 2f, 120f, 18f), tag, _avatarLabel);
                 _armyStackRects[stack.Id] = rect;
             }
+        }
+
+        Vector2 NudgeArmyMarkerAwayFromNodes(Vector2 screenPos)
+        {
+            for (var i = 0; i < _nodeRects.Count; i++)
+            {
+                var nr = _nodeRects[i].rect;
+                var pad = new Rect(
+                    nr.x - 10f,
+                    nr.y - 10f,
+                    nr.width + 20f,
+                    nr.height + 28f);
+                if (!pad.Contains(screenPos))
+                    continue;
+                // 挪到节点标签右侧偏上，与玩家头像（多在顶侧）错开
+                return new Vector2(nr.xMax + 16f, nr.yMin - 8f);
+            }
+
+            return screenPos;
         }
 
         void DrawAvatars(Rect mapRect, XianXia.Core.Simulation.SimulationWorld world)
@@ -966,8 +989,12 @@ namespace XianXia.Unity.Host
             }
 
             var canEnter = StrategicNodeAccessService.CanEnterNodeLocalMap(world, node.Id).IsSuccess;
+            if (StrategicClockFreezeService.IsModalEncounter(world))
+                canEnter = false;
             GUI.enabled = canEnter;
-            var enterLabel = canEnter ? "进入场景" : "无法进入";
+            var enterLabel = StrategicClockFreezeService.IsModalEncounter(world)
+                ? "遭遇中锁定"
+                : (canEnter ? "进入场景" : "无法进入");
             if (GUI.Button(new Rect(_nodeMenuRect.x + 12f + half, y, half, 22f), enterLabel) && canEnter)
             {
                 var enter = WorldTravelService.EnterNodeScene(world, node.Id);

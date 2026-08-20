@@ -1,6 +1,6 @@
 # 术语表
 
-> 状态：持续维护 | 最后更新：2026-07-31
+> 状态：持续维护 | 最后更新：2026-08-21
 >
 > 规则：**代码标识符、配置表字段、文档用词必须与本表一致。**
 > 新增概念时先来这里登记，再去写代码。这一条是长期可维护性的关键，也是交接时对方最需要的文件。
@@ -109,8 +109,15 @@
 | 群体模拟 | PopulationSim | 普通凡人以人口统计／岗位组模拟，不逐人存档 | 地图用代表性群体单位表现 |
 | 关键 NPC | KeyNpc | 实体化的重要凡人／功能角色 | 商人、村长、剧情人物等 |
 | 小队 | Party | 由少量核心修士组成的行动或战斗编组 | |
-| 自动结算 | AutoResolve | 战力悬殊或玩家选择跳过时进行的战斗结果计算 | 结果必须可溯源 |
-| 暂停即时 | RealTimeWithPause | 时间持续流逝，但玩家可暂停并下达指令的玩法结构 | 简称 RTwP |
+| 自动结算 | AutoResolve | 战力悬殊或玩家选择跳过时进行的战斗结果计算 | 战略层瞬时；**不**额外推进 WorldTick；ADR-0023 |
+| 暂停即时 | RealTimeWithPause | 战术层时间可暂停下令 | 简称 RTwP；战略冻结时战术暂停仍可用 |
+| 接战弹窗 | BattleOffer | 战略相遇后的自动／手动选择 | 产生即冻结 WorldTick |
+| 模态遭遇 | ModalEncounter | 手动战略战：锁 Encounter LocalMap | 禁切图／禁战略派参战者 |
+| 战略时钟冻结 | StrategicClockFreeze | Offer／Manual／PostBattle 期间不推进 WorldTick | ADR-0023；≠ 第二套世界时间 |
+| 战后阶段 | PostBattle | 清场后至点「结束战斗」前；可继续场景操作，WorldTick 仍冻结 | ADR-0023 |
+| 参战快照 | BattleParticipantSnapshot | Offer 时强制／可选／敌军与 PreBattle 位置 | ADR-0023 |
+| 支援距离 | ReinforcementRange | 大地图世界坐标半径（默认≈2～3人头像宽） | ADR-0023；非邻村 hops |
+| 接战队列 | BattleInterruptQueue | 同 Tick 多接战确定性串行 | |
 | 业力／业障 | Karma | 不当行为积累的长期因果负担 | 按情境判定，**不是单纯杀人罪恶值**；影响道心、气运、突破与渡劫 |
 | 功德 | Merit | 护民、正当护持等行为积累的正面因果 | 与业障如何对冲**待确定**；本阶段只记方向 |
 | 道心 | DaoHeart | 角色修行信念与稳定程度 | 滥用力量、执念与心魔会损伤道心 |
@@ -122,7 +129,7 @@
 
 | 中文 | Code | 含义 | 备注 |
 |---|---|---|---|
-| 时间刻 | Tick／WorldTick | **世界唯一时间轴** | 1 Tick=15 分；96 Tick／日；ADR-0018 |
+| 时间刻 | Tick／WorldTick | **世界唯一时间轴** | 1 Tick=15 分；96 Tick／日；ADR-0018；接战冻结见 ADR-0023 |
 | 行动钟 | ActionClock | 单个 Action 的 Duration 消耗 | **不得**改变世界时间 |
 | 世界钟 | WorldClock | 推进 WorldTick 的逻辑时钟 | |
 | 行动持续时间 | ActionDuration | ActionClock 计量的剩余／已耗时间 | 例：采集 8 游戏小时 |

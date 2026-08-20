@@ -1,6 +1,6 @@
 # 架构决策记录（ADR）索引
 
-> 状态：现行 | 最后更新：2026-08-01  
+> 状态：现行 | 最后更新：2026-08-21  
 > 上级：[`00-overview.md`](../../00-project/00-overview.md)、[`33` 冻结 v0.2](../../30-tech/33-architecture-core-rules-freeze-v0.2.md)  
 > 模板：[`adr-template.md`](../../90-templates/adr-template.md)  
 > **编号 0009 预留正式 UI 方案。**
@@ -37,6 +37,7 @@
 | [0020](ADR-0020-focus-vs-control-authority.md) | Focus 与控制权分离 | 已采纳 | **Freeze v0.2** |
 | [0021](ADR-0021-world-region-localmap.md) | World／Region／LocalMap | 已采纳 | **Freeze v0.2** |
 | [0022](ADR-0022-core-milestone-1-scope.md) | Core Milestone 1 范围 | 已采纳 | **Freeze v0.2** |
+| [0023](ADR-0023-manual-encounter-freezes-worldtick.md) | Manual Encounter 冻结 WorldTick | 已采纳 | 全战式 Modal；补充 0018 |
 
 ## Freeze v0.2 相关（优先）
 
@@ -47,4 +48,6 @@
 3. [ADR-0019](ADR-0019-dead-vs-removed.md)  
 4. [ADR-0020](ADR-0020-focus-vs-control-authority.md)  
 5. [ADR-0021](ADR-0021-world-region-localmap.md)  
-6. [ADR-0022](ADR-0022-core-milestone-1-scope.md)
+6. [ADR-0022](ADR-0022-core-milestone-1-scope.md)  
+
+战略接战时间纪律另见 **[ADR-0023](ADR-0023-manual-encounter-freezes-worldtick.md)**（2026-08-21）。

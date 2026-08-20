@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
@@ -57,6 +58,9 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            var world = session.World;
+            SyncClockFreezePresentation(session);
+
             if (HasBlockingInterrupt)
             {
                 if (!_holding)
@@ -65,7 +69,14 @@ namespace XianXia.Unity.Host
                     _holding = true;
                 }
 
-                session.IsPaused = true;
+                // Offer／到站／自动战结算弹窗：强制 UI 暂停
+                // 手动 PostBattle（非 AutoSettlement）不挡场景操作
+                var autoSettle = world?.Strategic?.Participants != null &&
+                                 world.Strategic.Participants.IsAutoSettlement;
+                if (world?.Strategic == null ||
+                    !world.Strategic.IsModalEncounter ||
+                    autoSettle)
+                    session.IsPaused = true;
 
                 var offer = session.World.Strategic.BattleOffer;
                 if (offer != null &&
@@ -78,9 +89,57 @@ namespace XianXia.Unity.Host
             }
             else if (_holding)
             {
-                session.IsPaused = _pausedBefore;
+                // 进入手动战后 Offer 已清，但仍在 ClockFreeze → 不得恢复战略时间
+                if (world?.Strategic == null || !world.Strategic.IsWorldTickFrozen)
+                    session.IsPaused = _pausedBefore;
                 _holding = false;
             }
+
+            // 清场 → PostBattle（事件漏同步时每帧兜底）
+            if (world?.Strategic != null &&
+                world.Strategic.IsModalEncounter)
+            {
+                StrategicEncounterSpawner.TryMarkFieldCleared(world);
+                if (world.Strategic.ClockFreeze.Reason == StrategicClockFreezeReason.ManualEncounter &&
+                    StrategicEncounterSpawner.IsFieldCleared(world))
+                    StrategicEncounterResolveService.EnterPostBattleIfCleared(world);
+            }
+        }
+
+        void SyncClockFreezePresentation(PlayableHostSession session)
+        {
+            var world = session.World;
+            if (world?.Strategic == null)
+                return;
+
+            var freeze = world.Strategic.ClockFreeze;
+            if (!freeze.IsWorldTickFrozen)
+                return;
+
+            var speed = bootstrap != null ? bootstrap.EffectiveSpeedMultiplier() : 1;
+            StrategicClockFreezeService.CaptureHostPresentationIfNeeded(
+                world,
+                session.IsPaused,
+                speed);
+
+            if (freeze.Reason == StrategicClockFreezeReason.BattleOffer)
+                session.IsPaused = true;
+        }
+
+        /// <summary>解除战略冻结并恢复开战前 pause／倍速。</summary>
+        void RestoreHostPresentationAfterFreeze(PlayableHostSession session)
+        {
+            if (session?.World?.Strategic == null)
+                return;
+            var freeze = session.World.Strategic.ClockFreeze;
+            if (freeze.HasSavedHostPresentation)
+            {
+                session.IsPaused = freeze.SavedHostPaused;
+                if (bootstrap != null)
+                    bootstrap.ApplySavedSpeedMultiplier(freeze.SavedSpeedMultiplier);
+            }
+
+            StrategicClockFreezeService.EndFreeze(session.World);
         }
 
         void OnGUI()
@@ -92,13 +151,12 @@ namespace XianXia.Unity.Host
             EnsureStyles();
             DrawToast();
 
-            if (!HasBlockingInterrupt)
-                return;
-
-            GUI.depth = -90;
+            // Offer／到站优先；战后只画非强制「结束战斗」条（可继续在场景里玩）
+            if (HasBlockingInterrupt)
+                GUI.depth = -90;
 
             var offer = session.World.Strategic.BattleOffer;
-            if (!offer.Resolved && !string.IsNullOrEmpty(offer.OfferId))
+            if (offer != null && !offer.Resolved && !string.IsNullOrEmpty(offer.OfferId))
             {
                 if (offer.IsJoinOngoingBattle)
                     DrawJoinOngoingBattleOffer(session, offer);
@@ -108,8 +166,109 @@ namespace XianXia.Unity.Host
             }
 
             var arrival = session.World.Strategic.ArrivalNotice;
-            if (!arrival.Resolved && !string.IsNullOrEmpty(arrival.NoticeId))
+            if (arrival != null && !arrival.Resolved && !string.IsNullOrEmpty(arrival.NoticeId))
+            {
                 DrawArrivalNotice(session, arrival);
+                return;
+            }
+
+            DrawPostBattleEndIfNeeded(session);
+        }
+
+        void DrawPostBattleEndIfNeeded(PlayableHostSession session)
+        {
+            var world = session.World;
+            if (world?.Strategic == null)
+                return;
+            if (world.Strategic.ClockFreeze.Reason != StrategicClockFreezeReason.PostBattle &&
+                !(world.Strategic.ClockFreeze.Reason == StrategicClockFreezeReason.ManualEncounter &&
+                  StrategicEncounterSpawner.IsFieldCleared(world)))
+                return;
+
+            if (world.Strategic.ClockFreeze.Reason == StrategicClockFreezeReason.ManualEncounter)
+                StrategicEncounterResolveService.EnterPostBattleIfCleared(world);
+
+            EnsureStyles();
+            var auto = world.Strategic.Participants.IsAutoSettlement;
+            if (auto)
+                DrawAutoSettlementModal(session);
+            else
+                DrawManualPostBattleBar(session);
+        }
+
+        void DrawAutoSettlementModal(PlayableHostSession session)
+        {
+            var world = session.World;
+            GUI.depth = -90;
+            DrawDim();
+            var box = new Rect(Screen.width * 0.5f - 240f, Screen.height * 0.5f - 130f, 480f, 260f);
+            Fill(box, Parchment);
+            DrawFrame(box, ParchmentDark);
+            GUI.Label(
+                new Rect(box.x + 16f, box.y + 16f, box.width - 32f, 28f),
+                world.Strategic.Participants.PlayerWon ? "自动战斗 · 胜利" : "自动战斗 · 失利",
+                _title);
+            var summary = world.Strategic.Participants.LastBattleSummary;
+            if (string.IsNullOrEmpty(summary))
+                summary = world.Strategic.Participants.PlayerWon
+                    ? "自动战斗胜利。"
+                    : "自动战斗失利。";
+            GUI.Label(
+                new Rect(box.x + 16f, box.y + 52f, box.width - 32f, 120f),
+                summary + "\n\n确认后返回战略层并恢复时间。",
+                _body);
+            if (GUI.Button(new Rect(box.x + 16f, box.y + box.height - 48f, box.width - 32f, 32f), "确认结算"))
+                ConfirmEndBattle(session);
+        }
+
+        void DrawManualPostBattleBar(PlayableHostSession session)
+        {
+            var world = session.World;
+            GUI.depth = -40;
+            // 非强制：不遮罩、不挡操作；点「结束战斗」才 Resolve
+            var barW = 420f;
+            var barH = 64f;
+            var box = new Rect(Screen.width - barW - 16f, Screen.height - barH - 72f, barW, barH);
+            Fill(box, Parchment);
+            DrawFrame(box, ParchmentDark);
+            var summary = world.Strategic.Participants.LastBattleSummary;
+            if (string.IsNullOrEmpty(summary))
+                summary = "敌军已清空。可补刀／交互；点结束才结算。";
+            GUI.Label(new Rect(box.x + 10f, box.y + 6f, box.width - 140f, 52f), summary, _body);
+            if (GUI.Button(new Rect(box.xMax - 128f, box.y + 14f, 116f, 36f), "结束战斗"))
+                ConfirmEndBattle(session);
+        }
+
+        void ConfirmEndBattle(PlayableHostSession session)
+        {
+            var world = session.World;
+            if (world?.Strategic == null)
+                return;
+            var freeze = world.Strategic.ClockFreeze;
+            var savedPaused = freeze.HasSavedHostPresentation ? freeze.SavedHostPaused : session.IsPaused;
+            var savedSpeed = freeze.HasSavedHostPresentation
+                ? freeze.SavedSpeedMultiplier
+                : (bootstrap != null ? bootstrap.EffectiveSpeedMultiplier() : 1);
+            var resolved = StrategicEncounterResolveService.ResolveAndEnd(world);
+            if (resolved.IsSuccess)
+            {
+                _holding = false;
+                if (!world.Strategic.IsWorldTickFrozen)
+                {
+                    session.IsPaused = savedPaused;
+                    if (bootstrap != null)
+                        bootstrap.ApplySavedSpeedMultiplier(savedSpeed);
+                    bootstrap.WorldMapPanel?.Open();
+                    ShowToast("遭遇已结束，返回战略层。");
+                }
+                else
+                {
+                    session.IsPaused = true;
+                    ShowToast("下一场接战已就绪。");
+                }
+            }
+            else
+                ShowToast(resolved.Error.Message);
         }
 
         void DrawArrivalNotice(PlayableHostSession session, ArrivalNoticePending notice)
@@ -182,7 +341,12 @@ namespace XianXia.Unity.Host
                 if (joined.IsSuccess)
                 {
                     session.World.Strategic.ClearBattleOffer();
+                    StrategicClockFreezeService.BeginOrPromote(
+                        session.World,
+                        StrategicClockFreezeReason.ManualEncounter);
                     bootstrap.CompleteEncounterJoinPresentation(newcomers, encounterMapId);
+                    session.IsPaused = false;
+                    _holding = false;
                     ShowToast("增援已加入当前战斗。");
                 }
                 else
@@ -194,6 +358,7 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(box.x + 24f + half, y, half, 32f), "暂不加入"))
             {
                 session.World.Strategic.ClearBattleOffer();
+                // 主战场仍在：保持 Manual 冻结，不恢复战略时间
             }
         }
 
@@ -220,7 +385,20 @@ namespace XianXia.Unity.Host
         void DrawBattleOffer(PlayableHostSession session, BattleOfferPending offer)
         {
             DrawDim();
-            var box = new Rect(Screen.width * 0.5f - 240f, Screen.height * 0.5f - 170f, 480f, 370f);
+            var snap = session.World.Strategic.Participants;
+            var optionalCount = 0;
+            for (var i = 0; i < snap.Records.Count; i++)
+            {
+                if (snap.Records[i].Kind == BattleParticipantKind.OptionalFriendly)
+                    optionalCount++;
+            }
+
+            var extra = Mathf.Min(optionalCount, 6) * 22f + 72f;
+            var box = new Rect(
+                Screen.width * 0.5f - 260f,
+                Screen.height * 0.5f - (200f + extra * 0.5f),
+                520f,
+                390f + extra);
             Fill(box, Parchment);
             DrawFrame(box, ParchmentDark);
 
@@ -235,7 +413,7 @@ namespace XianXia.Unity.Host
                 offer.EnemyLabel + "  战力 " + offer.EnemyPower,
                 _body);
 
-            var barY = box.y + 92f;
+            var barY = box.y + 90f;
             var barW = box.width - 32f;
             var total = Mathf.Max(1, offer.PlayerPower + offer.EnemyPower);
             var pw = barW * (offer.PlayerPower / (float)total);
@@ -246,8 +424,52 @@ namespace XianXia.Unity.Host
             GUI.color = Color.white;
             GUI.Label(
                 new Rect(box.x + 16f, barY + 18f, box.width - 32f, 22f),
-                "自动战胜率约 " + offer.AutoWinPercent + "%（选定后不可反悔）",
+                "自动战胜率约 " + offer.AutoWinPercent + "% · WorldTick 已冻结",
                 _body);
+
+            var listY = barY + 44f;
+            GUI.Label(new Rect(box.x + 16f, listY, box.width - 32f, 20f), "强制参战／敌军", _body);
+            listY += 20f;
+            for (var i = 0; i < snap.Records.Count; i++)
+            {
+                var r = snap.Records[i];
+                if (r.Kind == BattleParticipantKind.OptionalFriendly)
+                    continue;
+                var tag = r.Kind == BattleParticipantKind.MandatoryFriendly
+                    ? "[强制] "
+                    : (r.Kind == BattleParticipantKind.EnemyReinforcement ? "[敌援] " : "[敌军] ");
+                GUI.Label(
+                    new Rect(box.x + 24f, listY, box.width - 40f, 18f),
+                    tag + r.DisplayLabel + "  战力 " + r.CombatPower,
+                    _body);
+                listY += 18f;
+            }
+
+            var anyOptional = false;
+            for (var i = 0; i < snap.Records.Count; i++)
+            {
+                if (snap.Records[i].Kind != BattleParticipantKind.OptionalFriendly)
+                    continue;
+                if (!anyOptional)
+                {
+                    listY += 6f;
+                    GUI.Label(
+                        new Rect(box.x + 16f, listY, box.width - 32f, 20f),
+                        "可选支援（勾选加入；战后回原位置）",
+                        _body);
+                    listY += 20f;
+                    anyOptional = true;
+                }
+
+                var r = snap.Records[i];
+                var next = GUI.Toggle(
+                    new Rect(box.x + 24f, listY, box.width - 40f, 20f),
+                    r.Selected,
+                    r.DisplayLabel + "  战力 " + r.CombatPower);
+                if (next != r.Selected)
+                    BattleOfferService.SetOptionalSelected(session.World, r.EntityId, next);
+                listY += 22f;
+            }
 
             var toggleY = box.y + box.height - 78f;
             _executeOnWin = GUI.Toggle(
@@ -263,29 +485,51 @@ namespace XianXia.Unity.Host
                 var resolved = BattleOfferService.ResolveAuto(
                     session.World,
                     _executeOnWin,
-                    out var won,
-                    out var report);
+                    out _,
+                    out _);
+                _executeOnWin = false;
                 if (resolved.IsSuccess)
                 {
-                    var msg = report != null && !string.IsNullOrEmpty(report.Summary)
-                        ? report.Summary
-                        : (won ? "自动战斗胜利。" : "自动战斗失利，敌军仍在。");
-                    ShowToast(msg);
+                    // 进入自动战结算弹窗（PostBattle + IsAutoSettlement）
+                    _holding = true;
+                    session.IsPaused = true;
                 }
-
-                _executeOnWin = false;
+                else
+                    ShowToast(resolved.Error.Message);
             }
 
             if (GUI.Button(new Rect(box.x + 20f + third, y, third, 32f), "手动战斗"))
             {
                 EnterManualEncounter(session, offer.EncounterLocalMapId, offer.ArmyStackId);
                 session.World.Strategic.ClearBattleOffer();
+                StrategicClockFreezeService.BeginOrPromote(
+                    session.World,
+                    StrategicClockFreezeReason.ManualEncounter);
+                session.IsPaused = false;
+                _holding = false;
             }
 
             if (GUI.Button(new Rect(box.x + 24f + third * 2f, y, third, 32f), "撤退"))
             {
                 StrategicPursuitService.ClearPursuit(session.World);
                 session.World.Strategic.ClearBattleOffer();
+                _holding = false;
+                var freeze = session.World.Strategic.ClockFreeze;
+                var savedPaused = freeze.HasSavedHostPresentation
+                    ? freeze.SavedHostPaused
+                    : session.IsPaused;
+                var savedSpeed = freeze.HasSavedHostPresentation
+                    ? freeze.SavedSpeedMultiplier
+                    : (bootstrap != null ? bootstrap.EffectiveSpeedMultiplier() : 1);
+                BattleOfferService.FinishOfferResolution(session.World);
+                if (!session.World.Strategic.IsWorldTickFrozen)
+                {
+                    session.IsPaused = savedPaused;
+                    if (bootstrap != null)
+                        bootstrap.ApplySavedSpeedMultiplier(savedSpeed);
+                }
+                else
+                    session.IsPaused = true;
             }
         }
 
@@ -299,15 +543,39 @@ namespace XianXia.Unity.Host
             if (string.IsNullOrWhiteSpace(localMapId))
                 localMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
 
-            var engaged = ResolveEngagedPartyForManualEncounter(session.World);
+            BattleOfferService.RefreshOfferPowerLabels(session.World);
+            var engaged = session.World.Strategic.Participants.CollectSelectedFriendly();
+            if (engaged.Count == 0)
+                engaged = ResolveEngagedPartyForManualEncounter(session.World);
+
+            var memberCount = StrategicEncounterCatalog.DefaultFallbackMemberCount;
+            var power = StrategicEncounterCatalog.DefaultFallbackCombatPower;
+            var enemyIds = session.World.Strategic.Participants.CollectEnemyStackIds();
+            if (enemyIds.Count > 0)
+            {
+                memberCount = 0;
+                power = 0;
+                for (var i = 0; i < enemyIds.Count; i++)
+                {
+                    if (!session.World.Strategic.Armies.TryGet(enemyIds[i], out var st) || st == null)
+                        continue;
+                    memberCount += Math.Max(1, st.MemberCount);
+                    power += Math.Max(1, st.CombatPower);
+                }
+
+                if (memberCount <= 0)
+                    memberCount = StrategicEncounterCatalog.DefaultFallbackMemberCount;
+                if (power <= 0)
+                    power = StrategicEncounterCatalog.DefaultFallbackCombatPower;
+            }
+
             StrategicEncounterSpawner.PlanManualEncounter(
                 session.World,
                 armyStackId,
                 session.World.PartyWorld.EncounterId,
                 engaged,
-                StrategicEncounterCatalog.DefaultFallbackMemberCount,
-                StrategicEncounterCatalog.DefaultFallbackCombatPower);
-            // 只清进场者的追击标记；路上增援保留，到后弹「加入战斗」而非到站查看
+                memberCount,
+                Math.Max(1, power / Math.Max(1, memberCount)));
             StrategicPursuitService.ClearPursuitForEngagedKeepEnRoute(session.World, engaged);
             session.World.PartyWorld.LocalMapId = localMapId.Trim();
 

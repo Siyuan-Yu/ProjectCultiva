@@ -548,11 +548,14 @@ namespace XianXia.Core.World
         {
             if (world == null || id.IsNone || !world.WorldPresence.TryGet(id, out var p) || p == null)
                 return false;
+            if (StrategicClockFreezeService.IsModalEncounter(world))
+                return false;
             if (p.Mode == PartyWorldPresenceMode.AtNode ||
                 p.Mode == PartyWorldPresenceMode.RouteAnchored ||
                 p.Mode == PartyWorldPresenceMode.Traveling)
                 return true;
             // 中途打架不可下令离开；敌清空后可在大地图下令（画面可仍留在战场 LocalMap）
+            // ADR-0023：Modal／PostBattle 已在上方拦截；非 Modal 的旧 FieldCleared 路径逐步淘汰
             return p.Mode == PartyWorldPresenceMode.InEncounter &&
                    StrategicEncounterSpawner.IsFieldCleared(world);
         }

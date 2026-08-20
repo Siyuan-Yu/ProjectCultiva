@@ -1,12 +1,13 @@
 # 139 · 大地图 RTS 下令与部队交互（2026-08-17）
 
-> 状态：**已实现（纯 RTS；2026-08-18 手操基本验收）**｜日期：2026-08-18  
-> 相对：[138 接战弹窗计划](138-world-strategic-battle-offer-plan-2026-08-17.md)｜[140 收束](140-world-map-rts-battle-return-rollup-2026-08-18.md)｜[129 Host 出行](129-world-graph-host-travel-scene-isolation-2026-08-16.md)  
+> 状态：**已实现（纯 RTS；时间纪律见 ADR-0023）**｜日期：2026-08-18；**2026-08-21 修订**  
+> 相对：[138 接战弹窗计划](138-world-strategic-battle-offer-plan-2026-08-17.md)｜[140 收束](140-world-map-rts-battle-return-rollup-2026-08-18.md)｜[ADR-0023](43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)｜[144](144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md)  
+> **进出／Modal 遭遇：** 以 ADR-0023／144 为准；[143](143-localmap-worldmap-interaction-behavior-spec-2026-08-20.md) 中「回战场」等已 superseded  
 > 飞书：https://my.feishu.cn/docx/RgkxdiGNSoNd11xOXoncl7QnnCg
 
 ---
 
-## 0. 产品模型（冻结 · 2026-08-17 重切）
+## 0. 产品模型（冻结 · 2026-08-17；时间纪律 2026-08-21）
 
 大地图 = **纯 RTS 宏观层**：
 
@@ -14,13 +15,14 @@
 |------|------|
 | **下令移动** | 选中人 → 确认 → **立刻**从当前 LocalMap Despawn → 大地图上路 |
 | **改目标／打断** | 路上再点别处 → 直接改宏观目标（随时可打断） |
-| **视线** | 全员离开后：**不卸图、不挪镜头**，继续看当前 LocalMap |
-| **遇敌** | 追击／主动攻击抵达 → **接战弹窗优先**（压过到站提示）；中途可开大地图查看并派人增援 |
-| **打完** | 场上无敌：**无结算、不弹大地图**；人仍留在战场 LocalMap，但已可在大地图下令移动 |
-| **进场景** | 节点上有我方即可进入（含敌占归属） |
+| **视线** | 非战斗时：全员离开后可不卸图、不挪镜头 |
+| **遇敌** | 追击／主动攻击抵达 → **BattleOffer**；立即 **冻结 WorldTick**（ADR-0023） |
+| **手动战** | Modal Encounter；锁图；禁战略令；Tick 冻结至 Resolve |
+| **打完** | FieldCleared → PostBattle → 结束战斗 Resolve；**不**默认挂起 InEncounter 回战场 |
+| **进场景** | 非 Modal 时：节点上有我方即可进入 |
 | **到站** | 非追击的最终目的地 → **到站弹窗**；追击／攻击目标不弹「是否查看」 |
 
-**已废弃：** LocalMap「走到边缘再上路」；全员上路时自动卸图（会把视线带走）。
+**已废弃：** LocalMap「走到边缘再上路」；战斗期间战略世界继续跑；清场后多人挂起回战场。
 
 ---
 

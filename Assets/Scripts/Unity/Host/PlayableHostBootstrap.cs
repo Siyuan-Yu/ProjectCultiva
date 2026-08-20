@@ -295,7 +295,9 @@ namespace XianXia.Unity.Host
             if (Input.GetKeyDown(rebuildKey))
                 TryInitialize();
 
-            if (!_session.IsPaused && autoTickWhenUnpaused)
+            if (!_session.IsPaused &&
+                autoTickWhenUnpaused &&
+                !StrategicClockFreezeService.IsWorldTickFrozen(_session.World))
             {
                 var speed = EffectiveSpeedMultiplier();
                 _autoTickAccumulator += Time.unscaledDeltaTime * speed;
@@ -328,6 +330,16 @@ namespace XianXia.Unity.Host
             EnsureDebugHud();
             var speed = debugHud != null ? debugHud.SpeedMultiplier : 1;
             return speed < 1 ? 1 : speed;
+        }
+
+        /// <summary>ADR-0023：Resolve 后恢复开战前倍速。</summary>
+        public void ApplySavedSpeedMultiplier(int multiplier)
+        {
+            EnsureDebugHud();
+            if (debugHud == null)
+                return;
+            var m = multiplier < 1 ? 1 : multiplier;
+            debugHud.SetSpeedMultiplier(m);
         }
 
         /// <summary>
@@ -1135,6 +1147,11 @@ namespace XianXia.Unity.Host
         {
             if (!_session.IsInitialized)
                 return;
+            if (StrategicClockFreezeService.IsWorldTickFrozen(_session.World))
+            {
+                RefreshStatus();
+                return;
+            }
 
             var tick = _session.TickOnce();
             if (tick.IsFailure)

@@ -1,11 +1,11 @@
 # 架构核心规则冻结 v0.2
 
-> 状态：**已冻结（v0.2）** | 优先级：P0 | 最后更新：2026-07-31  
+> 状态：**已冻结（v0.2）** + **2026-08-21 补丁：战略遭遇冻结 WorldTick（ADR-0023）** | 优先级：P0 | 最后更新：2026-08-21  
 > 上级：`docs/00-project/00-overview.md`  
 > 依赖／展开：`31`、`32`、`34`、`35`、`36`、`2B`、`2C`、`2E`、`21`～`28`、`2F`、`2G`、`24`  
 > 被引用：全体正式实现、AGENTS、路线图  
 > **本文件是架构冻结阶段的主契约（v0.2）。** 相对 v0.1 纳入审计修补：关系权威、双时间、生命周期、Focus 失能、开局 Membership、地图三层、Core M1 范围。  
-> **本阶段不写实现代码。** 变更须：升版本号、写 ADR、记入 `42-devlog.md`。  
+> 变更须：升版本号或记补丁＋写 ADR、记入 `42-devlog.md`。  
 > 旧版：[`33-architecture-core-rules-freeze-v0.1.md`](33-architecture-core-rules-freeze-v0.1.md)（已由本文件取代）。
 
 ## 0. 冻结纪律
@@ -71,9 +71,12 @@ WorldTick 推进
 - 1 Tick = 15 游戏分钟；1 日 = 96 Tick。  
 - **禁止两套独立世界时间。**  
 - 暂停／倍速统一影响 WorldTick（从而影响 ActionClock 消耗）。  
+- **战略接战补丁（ADR-0023，2026-08-21）：** `BattleOffer`→Manual／PostBattle 期间 **不推进** WorldTick；战术暂停与战略冻结分离；Resolve 后恢复开战前 pause／倍速。仍只有一条 WorldTick，不是第二时钟。  
 - **Core M1**：单 Region 全仿真；跨 Region 离屏 Action **不做**（§22）。若未来做离屏，仍只推进 WorldTick，再按同一规则扣 ActionClock，不另开时间轴。
 
 阶段顺序（职责不可缺，实现可微调）：收令 → 推进 WorldTick → ScheduledEvent → 生成 Order → 推进 Action（扣 ActionClock）→ 结算 → DomainEvent → Ledger → Snapshot。
+
+> 若 `StrategicClockFreeze` 生效：跳过「推进 WorldTick」及依赖其的战略 Travel／Schedule 消费；遭遇内战术表现可用 Host 表现时钟。
 
 ---
 
@@ -138,7 +141,9 @@ World
 
 ## 10. 战斗／AI／军队（方向／边界）
 
-同 v0.1：RTS+暂停；时间表+效用；ArmyGroup 非核心。**M1 不做真战斗与完整 NPC AI。**
+同 v0.1：战术 RTS+暂停；时间表+效用；ArmyGroup 非核心。**M1 不做真战斗与完整 NPC AI。**  
+
+**2026-08-21 补丁（ADR-0023）：** 战略 `BattleOffer`／Manual Encounter 为 Modal，冻结战略 WorldTick；废弃「战斗期间战略世界继续推进」为默认。详见 `21` §10、`23` §12、[144](../40-process/144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md)。
 
 ---
 

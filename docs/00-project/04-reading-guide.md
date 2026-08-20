@@ -1,6 +1,6 @@
 # 文档通读指南
 
-> 状态：现行 | 最后更新：2026-08-18  
+> 状态：现行 | 最后更新：2026-08-21  
 > 上级：[`00-overview.md`](00-overview.md)  
 > **本页说明怎么读整套策划／架构文档。** 正文仍以各专题页为准；本地 Markdown 与飞书同步页一一对应。
 
@@ -25,11 +25,15 @@
 
 当前结构已经适合「仔细通读 + 交叉跳转」。本轮整理重点是：补齐飞书映射、加强入口导航，**不重写已冻结规则正文**。
 
-## 1.1 当前制作人入口（2026-08-18）
+## 1.1 当前制作人入口（2026-08-21）
 
 | 目的 | 读什么 |
 |------|--------|
-| **本轮（追击贴敌＋多选近战）** | [141](../40-process/141-pursuit-stick-and-multi-melee-2026-08-18.md) |
+| **本轮（ADR-0023 打磨）** | [146](../40-process/146-adr0023-host-ux-polish-2026-08-21.md)／[145](../40-process/145-adr0023-phases-af-acceptance-2026-08-21.md) |
+| **ADR-0023／分期** | [ADR-0023](../40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)／[144](../40-process/144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md) |
+| **143（部分 superseded）** | [143](../40-process/143-localmap-worldmap-interaction-behavior-spec-2026-08-20.md) |
+| **自动战／弥留** | [142](../40-process/142-auto-battle-incap-corpse-2026-08-20.md) |
+| **追击贴敌＋多选近战** | [141](../40-process/141-pursuit-stick-and-multi-melee-2026-08-18.md) |
 | **收束（纯 RTS／接战／清场回程）** | [140](../40-process/140-world-map-rts-battle-return-rollup-2026-08-18.md) |
 | **大地图 RTS 操作规则** | [139](../40-process/139-world-map-rts-orders-2026-08-17.md) |
 | **战略层／接战弹窗设计** | [138](../40-process/138-world-strategic-battle-offer-plan-2026-08-17.md) |

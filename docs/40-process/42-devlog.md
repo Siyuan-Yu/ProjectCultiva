@@ -7,6 +7,49 @@
 
 ---
 
+## 2026-08-21 — 收束 146＋飞书／GitHub（ADR-0023 Host 打磨）
+
+**做了什么**
+- 新建 [146](146-adr0023-host-ux-polish-2026-08-21.md)：支援世界坐标半径、手动非强制结束、自动结算弹窗、山匪可见性、出队修复、CS0128
+- 修订 [145](145-adr0023-phases-af-acceptance-2026-08-21.md)；更新总览／通读／62／glossary／devlog
+- 飞书 provision＋同步；提交推送 `main`
+
+---
+
+## 2026-08-21 — ADR-0023 Phase A～F 连续落地
+
+**做了什么**
+- Phase A：ClockFreeze／Modal／禁 Tick  
+- Phase B：ParticipantSnapshot＋ReinforcementRange  
+- Phase C：Offer 可选支援勾选 UI  
+- Phase D：PostBattle＋PreBattle 还原（防瞬移）  
+- Phase E：BattleInterruptQueue 串行  
+- Phase F：`Adr0023BattlePhasesTests`＋验收文档 [145](145-adr0023-phases-af-acceptance-2026-08-21.md)  
+- 战中 JoinOngoing 改为排队（旧测已改期望）
+
+---
+
+## 2026-08-21 — ADR-0023：Manual Encounter 冻结战略 WorldTick
+
+**做了什么**
+- 新增 [ADR-0023](43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)；影响审计与分期 [144](144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md)
+- 修订 `21`／`23`／`33` 补丁／138§3.1／139／140；[143](143-localmap-worldmap-interaction-behavior-spec-2026-08-20.md) 标 superseded（废回战场／战斗中切图）
+- 更新 glossary／总览／62／通读／roadmap／ADR 索引／0018 补充
+- **Phase A：** `StrategicClockFreeze`；Offer／Manual／PostBattle；`SimulationLoop`／Host 禁 Tick；Modal 禁战略出行／进其他场景；薄「结束战斗」；EditMode 冻结断言
+
+**废弃默认：** 战斗期间战略世界继续跑；FieldCleared 后挂起 InEncounter 再「回战场」
+
+---
+
+## 2026-08-20 — 文档 143：LocalMap／大地图进出交互行为方案
+
+**做了什么**
+- 新建 [143](143-localmap-worldmap-interaction-behavior-spec-2026-08-20.md)：按 **1A＋2A** 写进出状态机、操作目录、决策表、§7.1「一人进村再回战场」泳道；**待确认后再改代码**
+- 更新总览／62／通读／139／140 交叉引用；飞书 provision＋同步
+- 说明：不做 Figma；可视化用行为树／Mermaid／ASCII
+
+---
+
 ## 2026-08-20 — 收束文档 142＋飞书／GitHub
 
 **做了什么**

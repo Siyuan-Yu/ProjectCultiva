@@ -200,6 +200,11 @@ namespace XianXia.Core.World
         {
             if (world == null || id.IsNone)
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid travel order.");
+            if (StrategicClockFreezeService.IsModalEncounter(world))
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "手动遭遇进行中：禁止战略出行（逃跑须走撤退结算）。",
+                    id.Value.ToString());
             if (!world.WorldPresence.TryGet(id, out var presence) || presence == null)
                 return Result.Failure(ErrorCode.NotFound, "Traveler presence missing.", id.Value.ToString());
             if (!WorldTravelService.CanReceiveTravelOrder(world, id))

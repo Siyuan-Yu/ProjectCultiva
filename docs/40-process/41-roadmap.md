@@ -1,15 +1,21 @@
 # 路线图
 
-> 状态：**VS1.0＋样例关可玩弧自动化已验收**｜下一目标：炼气功法闭环／手操签收／世界图｜最后更新：2026-08-15
+> 状态：**VS1.0＋样例关可玩弧自动化已验收**｜下一目标：**手操签收 ADR-0023（145／146）**｜最后更新：2026-08-21
 
 ## 当前阶段说明
 
-- Architecture Freeze **v0.2** 仍为历史基线；**世界结构以 [113](113-world-graph-local-map-architecture-revision-v0.1.md) 为准**（Node＋Route，不再做连续大 Region）。  
+- Architecture Freeze **v0.2**＋**ADR-0023 补丁**（Manual Encounter 冻结 WorldTick）。  
+- 世界结构以 [113](113-world-graph-local-map-architecture-revision-v0.1.md) 为准。  
+- **2026-08-21：** Phase A～F＋Host 打磨 [146](146-adr0023-host-ux-polish-2026-08-21.md) 已落地；验收见 [145](145-adr0023-phases-af-acceptance-2026-08-21.md)。  
 - Core／Data／Host／**VS 0.1～1.0 自动化已验收**。  
-- **2026-08-15 增量：** 住房／主管府 [121](121-housing-assignment-and-control-core-2026-08-15.md)；**境界／打坐／突破仪式** [122](122-cultivation-breakthrough-host-ritual-2026-08-15.md)。  
-- **2026-08-02 增量：** 内容打断 CIF、Ch01 2G 可玩弧、RTS 引导 — 见 [97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)。  
-- Demo Runtime 继续冻结。  
-- VS0.7：[68](68-vertical-slice-0.7-acceptance-report.md)；VS0.8：[70](70-vertical-slice-0.8-acceptance-report.md)；VS0.9：[72](72-vertical-slice-0.9-acceptance-report.md)；VS1.0：[74](74-vertical-slice-1.0-acceptance-report.md)。
+- Demo Runtime 继续冻结。
+
+### 战略战斗时间纪律（2026-08-21）
+
+- [x] ADR-0023 采纳；冲突文档修订；影响审计 [144](144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md)
+- [x] Phase A～F：[145](145-adr0023-phases-af-acceptance-2026-08-21.md)（自动化断言已补）
+- [x] Host UX 打磨：[146](146-adr0023-host-ux-polish-2026-08-21.md)（支援半径／战后条／自动结算弹窗／山匪可见）
+- [ ] Host 手操签收 145／146
 
 ### 样例关可玩弧（2026-08-02）— **自动化 Completed／手操签收中**
 
@@ -28,6 +34,7 @@
 - [x] Freeze v0.1 文档包 + 审计报告 `50`
 - [x] **Freeze v0.2 修补**
 - [x] ADR-0017～0022
+- [x] ADR-0023 Manual Encounter 冻结 WorldTick（2026-08-21）
 - [x] 通读指南＋ADR 索引；飞书映射
 - [x] Freeze v0.2 已作为 Core M1 依据落地（验收完成）
 

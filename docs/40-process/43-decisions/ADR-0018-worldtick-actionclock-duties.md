@@ -18,3 +18,7 @@
 ## 影响
 
 见 `33` v0.2 §3、`35`、`21`。Core M1 不做跨 Region 离屏。
+
+## 补充（2026-08-21）
+
+战略接战／手动遭遇期间 **不推进** WorldTick，仍只有这一条世界时间轴（不是第二套时钟）。见 [ADR-0023](ADR-0023-manual-encounter-freezes-worldtick.md)。

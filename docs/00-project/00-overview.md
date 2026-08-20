@@ -1,19 +1,19 @@
 ﻿# 修仙游戏策划案总览
 
-> 状态：概念框架 v0.9｜**Architecture Freeze v0.2**｜**大地图纯 RTS／接战已验收** | 最后更新：2026-08-18  
+> 状态：概念框架 v0.9｜**Architecture Freeze v0.2**｜**大地图纯 RTS／接战已验收** | 最后更新：2026-08-21  
 > **本页只放最高层大纲。** 细节进专题页；**怎么读整套文档**见 [通读指南](04-reading-guide.md)。  
 > 本地 Markdown 与飞书文档一一对应（真源在本地，飞书为阅读层）。
 
 ## 〇、当前项目阶段
 
 **架构冻结 v0.2。** Core／Data／Host／**VS 0.1～1.0 Demo 自动化已验收**。  
-其上已叠加：样例关、内容打断、RTS 手操、Navigation／NPC 底座、**Content Studio**、**Level Tester**、**Ch01 三环手操**、**NPC onTalk 对话框（UGUI）**、任务失败／时间流速约定、**人物／工区编辑器＋名册刷人**、**住房分配／主管府占领**、**境界阶梯／打坐／突破仪式**、**将老对弈／洞府勘查进出／秘籍拾取**、**地图战斗 Alpha／斗技 1–6／体魄与生命拆分**、**主管府正式近战／追击固着／Map 刷怪区＋表**、**击败不瞬移／进出洞相机／刷怪表 GUI**、**WorldGraph 出行／进场景／场景隔离**、**功法／斗技熟练度与冲击确认**、**斗气纱衣**、**世界物况栏／砍树**、**田区自动农作**、**大地图纯 RTS／接战弹窗／到站／清场回程**、**追击贴敌／LocalMap 多选近战**。  
-最新增量见 [142](../40-process/142-auto-battle-incap-corpse-2026-08-20.md)；[141](../40-process/141-pursuit-stick-and-multi-melee-2026-08-18.md)；收束 [140](../40-process/140-world-map-rts-battle-return-rollup-2026-08-18.md)；规则 [139](../40-process/139-world-map-rts-orders-2026-08-17.md)。  
+其上已叠加：样例关、内容打断、RTS 手操、Navigation／NPC 底座、**Content Studio**、**Level Tester**、**Ch01 三环手操**、**NPC onTalk 对话框（UGUI）**、任务失败／时间流速约定、**人物／工区编辑器＋名册刷人**、**住房分配／主管府占领**、**境界阶梯／打坐／突破仪式**、**将老对弈／洞府勘查进出／秘籍拾取**、**地图战斗 Alpha／斗技 1–6／体魄与生命拆分**、**主管府正式近战／追击固着／Map 刷怪区＋表**、**击败不瞬移／进出洞相机／刷怪表 GUI**、**WorldGraph 出行／进场景／场景隔离**、**功法／斗技熟练度与冲击确认**、**斗气纱衣**、**世界物况栏／砍树**、**田区自动农作**、**大地图纯 RTS／接战弹窗／到站／清场回程**、**追击贴敌／LocalMap 多选近战**、**自动战结算／弥留尸体**、**ADR-0023 战略战斗冻结 WorldTick（A～F＋Host 打磨）**。  
+战略战斗时间真源：[ADR-0023](../40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)；验收 [145](../40-process/145-adr0023-phases-af-acceptance-2026-08-21.md)；打磨 [146](../40-process/146-adr0023-host-ux-polish-2026-08-21.md)；分期 [144](../40-process/144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md)。[143](../40-process/143-localmap-worldmap-interaction-behavior-spec-2026-08-20.md) 部分 superseded。  
 
-**下一步：** 手操验追击贴敌与群殴 → 跟随菜单／交谈仍暂缓 → **正式占点／外交另开刀**（当前刻意关掉）。  
+**下一步：** LevelTester 手操签收 145／146 → 占点／外交或 Snapshot 纳入 Strategic。  
 Demo Runtime 停扩。完整进度见 [62 项目现状](../40-process/62-project-status-2026-08-01.md)。
 
-**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [142](../40-process/142-auto-battle-incap-corpse-2026-08-20.md) → [141](../40-process/141-pursuit-stick-and-multi-melee-2026-08-18.md) → [140 收束](../40-process/140-world-map-rts-battle-return-rollup-2026-08-18.md) → [62 现状](../40-process/62-project-status-2026-08-01.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md)。
+**建议先读：** [通读指南](04-reading-guide.md) → 本页 → [146](../40-process/146-adr0023-host-ux-polish-2026-08-21.md)／[145](../40-process/145-adr0023-phases-af-acceptance-2026-08-21.md) → [ADR-0023](../40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md) → [62 现状](../40-process/62-project-status-2026-08-01.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md)。
 
 - 主契约：[33 架构冻结 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md)
 - 实体／Order／Mod：[34](../30-tech/34-entity-and-component-model.md)、[35](../30-tech/35-order-and-action-system.md)、[36](../30-tech/36-content-package-and-mod-architecture.md)

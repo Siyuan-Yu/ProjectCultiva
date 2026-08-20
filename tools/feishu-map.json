@@ -736,6 +736,21 @@
       "title": "142 自动战结算＋弥留／尸体（2026-08-20）",
       "docId": "B56IddrTtocNZIxVgi7c4O1Knzg"
     },
+    "localmap-worldmap-interaction-behavior-2026-08-20": {
+      "file": "docs/40-process/143-localmap-worldmap-interaction-behavior-spec-2026-08-20.md",
+      "title": "143 LocalMap／大地图进出交互行为方案（2026-08-20）",
+      "docId": "RF0lduLt5oEmVUxUdqecQquhnHL"
+    },
+    "battle-worldtick-freeze-impact-2026-08-21": {
+      "file": "docs/40-process/144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md",
+      "title": "144 战略战斗冻结 WorldTick 影响审计与分期（2026-08-21）",
+      "docId": "Slj6dqeNeoacZUxiellc2gsgn4e"
+    },
+    "adr-0023-manual-encounter-freezes-worldtick": {
+      "file": "docs/40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md",
+      "title": "ADR-0023 Manual Encounter 冻结战略 WorldTick",
+      "docId": "Ykt4dH45zorlHqxY4ANc7vn9n6e"
+    },
     "world-graph-local-map": {
       "file": "docs/40-process/113-world-graph-local-map-architecture-revision-v0.1.md",
       "title": "World Graph + Local Map 架构修订 v0.1",
@@ -755,6 +770,16 @@
       "file": "docs/40-process/89-chapter-01-reference-level-acceptance-report.md",
       "title": "第一章参考关验收报告",
       "docId": "XPYMdP2B9oM2aVx0CF5cUFUzns3"
+    },
+    "adr0023-phases-af-acceptance-2026-08-21": {
+      "file": "docs/40-process/145-adr0023-phases-af-acceptance-2026-08-21.md",
+      "title": "145 ADR-0023 Phase A-F 验收（2026-08-21）",
+      "docId": "MlvqdC4SGoz0YnxJx9tc3SYNnje"
+    },
+    "adr0023-host-ux-polish-2026-08-21": {
+      "file": "docs/40-process/146-adr0023-host-ux-polish-2026-08-21.md",
+      "title": "146 ADR-0023 Host 手操打磨（2026-08-21）",
+      "docId": "Tz3fdGmwJoFUX8xfxI5cTeQYnvc"
     }
   }
 }

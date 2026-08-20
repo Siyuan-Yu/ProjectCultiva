@@ -70,6 +70,9 @@ namespace XianXia.Tests
 
             var resolved = BattleOfferService.ResolveAuto(world, false, out _, out _);
             Assert.IsTrue(resolved.IsSuccess, resolved.IsFailure ? resolved.Error.ToString() : "");
+            Assert.IsTrue(world.Strategic.Participants.IsAutoSettlement);
+            Assert.IsTrue(world.Strategic.HasBlockingInterrupt, "自动战结算弹窗仍为打断");
+            Assert.IsTrue(StrategicEncounterResolveService.ResolveAndEnd(world).IsSuccess);
             Assert.IsFalse(world.Strategic.HasBlockingInterrupt);
             Assert.LessOrEqual(world.Strategic.Armies.Stacks.Count, stacksBefore);
         }
@@ -222,8 +225,7 @@ namespace XianXia.Tests
                     break;
             }
 
-            Assert.IsTrue(world.Strategic.HasBattleOffer, "后到应弹加入战斗");
-            Assert.IsTrue(world.Strategic.BattleOffer.IsJoinOngoingBattle);
+            Assert.IsTrue(world.Strategic.InterruptQueue.Count >= 1, "后到应入接战队列（不再战中 JoinOngoing）");
             Assert.IsFalse(world.Strategic.HasArrivalNotice, "后到追击不应弹到站查看");
         }
 
@@ -528,9 +530,8 @@ namespace XianXia.Tests
             Assert.IsTrue(BattleOfferService.HasActiveEncounterForStack(world, stack.Id));
 
             Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(world, second, stack, "增援接战"));
-            Assert.IsTrue(world.Strategic.HasBlockingInterrupt);
-            Assert.IsTrue(world.Strategic.BattleOffer.IsJoinOngoingBattle);
-            Assert.AreEqual(1, world.Strategic.BattleOffer.PlayerPartyIds.Count);
+            Assert.IsTrue(world.Strategic.InterruptQueue.Count >= 1, "进行中遭遇应排队而非 JoinOngoing");
+            Assert.IsFalse(world.Strategic.BattleOffer.IsJoinOngoingBattle);
             Assert.IsTrue(world.Strategic.Encounter.IsEngaged(session.CharacterIds[0]));
             Assert.IsFalse(world.Strategic.Encounter.IsEngaged(session.CharacterIds[1]));
 
@@ -722,9 +723,8 @@ namespace XianXia.Tests
             WorldTravelService.AdvanceTravel(world, 500);
             StrategicPursuitService.AfterTravelTick(world);
 
-            Assert.IsTrue(world.Strategic.HasBlockingInterrupt);
-            Assert.IsTrue(world.Strategic.BattleOffer.IsJoinOngoingBattle);
-            Assert.AreEqual(1, world.Strategic.BattleOffer.PlayerPartyIds.Count);
+            Assert.IsTrue(world.Strategic.InterruptQueue.Count >= 1 || world.Strategic.HasBlockingInterrupt);
+            Assert.IsFalse(world.Strategic.BattleOffer.IsJoinOngoingBattle);
             Assert.IsTrue(world.Strategic.Encounter.IsEngaged(session.CharacterIds[0]));
             Assert.IsFalse(world.Strategic.Encounter.IsEngaged(session.CharacterIds[1]));
         }
@@ -898,6 +898,60 @@ namespace XianXia.Tests
             Assert.Less(after.MemberCount, beforeMembers);
             Assert.IsNotNull(report);
             Assert.Greater(report.EnemyMembersSpared, 0);
+        }
+
+        [Test]
+        public void Adr0023_BattleOffer_FreezesWorldTick()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var party = session.CharacterIds;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var enemy));
+
+            var tickBefore = world.Tick.Value;
+            Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(world, party, enemy, "冻结测试"));
+            Assert.IsTrue(world.Strategic.IsWorldTickFrozen);
+            Assert.AreEqual(StrategicClockFreezeReason.BattleOffer, world.Strategic.ClockFreeze.Reason);
+
+            var loop = new XianXia.Core.Simulation.SimulationLoop(world);
+            Assert.IsTrue(loop.TickOnce().IsSuccess);
+            Assert.AreEqual(tickBefore, world.Tick.Value, "冻结期间 Tick 不得推进");
+        }
+
+        [Test]
+        public void Adr0023_AutoResolve_EndsFreeze_WithoutAdvancingTick()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var party = session.CharacterIds;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var enemy));
+
+            var tickBefore = world.Tick.Value;
+            Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(world, party, enemy, "自动解冻"));
+            world.Strategic.BattleOffer.AutoWinPercent = 100;
+            world.Random = new DeterministicRandom(1);
+
+            var resolved = BattleOfferService.ResolveAuto(world, false, out _, out _);
+            Assert.IsTrue(resolved.IsSuccess);
+            Assert.IsTrue(world.Strategic.Participants.IsAutoSettlement);
+            Assert.IsTrue(world.Strategic.IsWorldTickFrozen, "结算确认前仍冻结");
+            Assert.IsTrue(StrategicEncounterResolveService.ResolveAndEnd(world).IsSuccess);
+            Assert.IsFalse(world.Strategic.IsWorldTickFrozen);
+            Assert.AreEqual(tickBefore, world.Tick.Value, "AutoResolve 不得额外推进 Tick");
+        }
+
+        [Test]
+        public void Adr0023_ModalEncounter_BlocksStrategicTravel()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var id = session.CharacterIds[0];
+            world.WorldPresence.SetAtNode(id, "base:node_huangcun");
+            StrategicClockFreezeService.BeginOrPromote(world, StrategicClockFreezeReason.ManualEncounter);
+
+            var started = WorldTravelPathService.StartAgentTravelToTarget(
+                world, id, WorldTravelTarget.AtNode("base:node_linjian"));
+            Assert.IsTrue(started.IsFailure, "Modal 下禁止战略出行");
         }
     }
 }

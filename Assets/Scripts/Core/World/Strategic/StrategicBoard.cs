@@ -48,6 +48,18 @@ namespace XianXia.Core.World.Strategic
         public BattleOfferPending BattleOffer { get; } = new BattleOfferPending();
         public ArrivalNoticePending ArrivalNotice { get; } = new ArrivalNoticePending();
         public StrategicEncounterRuntime Encounter { get; } = new StrategicEncounterRuntime();
+        public StrategicClockFreezeState ClockFreeze { get; } = new StrategicClockFreezeState();
+        public BattleParticipantSnapshot Participants { get; } = new BattleParticipantSnapshot();
+        public BattleInterruptQueue InterruptQueue { get; } = new BattleInterruptQueue();
+
+        /// <summary>ReinforcementRange 战略 TravelCost 阈值（遗留）。≤0 忽略。</summary>
+        public int ReinforcementTravelCostThreshold { get; set; }
+
+        /// <summary>支援最大节点跳数（遗留）。&lt;0 忽略。</summary>
+        public int ReinforcementMaxHops { get; set; } = -1;
+
+        /// <summary>支援世界坐标半径（大地图 XY）。≤0 用默认 ≈2～3 人头像宽。</summary>
+        public float ReinforcementWorldRadius { get; set; }
 
         /// <summary>玩家帮派 id（占点后更新）。</summary>
         public string PlayerFactionId { get; set; } = StrategicFactionCatalog.PlayerFactionId;
@@ -58,7 +70,13 @@ namespace XianXia.Core.World.Strategic
         public bool HasArrivalNotice =>
             ArrivalNotice != null && !ArrivalNotice.Resolved && !string.IsNullOrEmpty(ArrivalNotice.NoticeId);
 
-        public bool HasBlockingInterrupt => HasBattleOffer || HasArrivalNotice;
+        public bool HasBlockingInterrupt =>
+            HasBattleOffer || HasArrivalNotice ||
+            (Participants != null && Participants.IsAutoSettlement);
+
+        public bool IsWorldTickFrozen => ClockFreeze != null && ClockFreeze.IsWorldTickFrozen;
+
+        public bool IsModalEncounter => ClockFreeze != null && ClockFreeze.IsModalEncounter;
 
         public void ClearBattleOffer()
         {

@@ -1,9 +1,8 @@
 # 战斗
 
-> 状态：小队战斗框架已定方向；**弥留／尸体／自动战结算已落地（142，未手操验）** | 优先级：P0 | 最后更新：2026-08-20
+> 状态：小队战斗框架已定方向；**战略接战冻结 WorldTick（ADR-0023）**；弥留／尸体／自动战见 142 | 优先级：P0 | 最后更新：2026-08-21
 > 上级：`docs/00-project/00-overview.md`
-> 关联：`22-realms-and-abilities.md`、`2B-attributes-and-affinity.md`、`2D-manuals-arts-and-equipment.md`、`2H-manual-system-rules.md`、`28-jianghu-relations.md`、`29-karma-and-consequence.md`
-> 当前处于纯策划阶段，本文只描述设计方向，不涉及技术实现。
+> 关联：`21-core-loop-and-time.md`、`22-realms-and-abilities.md`、`2B-attributes-and-affinity.md`、`2D-manuals-arts-and-equipment.md`、`2H-manual-system-rules.md`、`28-jianghu-relations.md`、`29-karma-and-consequence.md`、[ADR-0023](../40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)
 
 ## 1. 这个系统解决什么问题
 
@@ -12,11 +11,12 @@
 ## 2. 当前方向
 
 - **2D 视角**，不转 3D 战场。
-- **战斗直接发生在当前世界地图中，不切换到独立副本或独立战斗场景。**
-- **RTS 式实时行动**：单位实时移动与交战。
-- **随时可暂停**：暂停状态下下达战术指令，然后继续实时战斗。
+- **战略遭遇 = Modal Encounter LocalMap**（全战式）：`BattleOffer` → 冻结战略 WorldTick → Auto 或 Manual → PostBattle → Resolve。见 ADR-0023／`21` §10。
+- 据点／节点内未走战略 Offer 的冲突，仍可在当前 Active LocalMap 上即时打。
+- **RTS 式实时行动**（战术层）：单位实时移动与交战。
+- **战术可暂停**：暂停状态下下达战术指令；**不**推进战略 WorldTick。
 - 修士可以释放技能、使用法宝、移动、攻击并互相配合。
-- 战力悬殊且结果明确时允许自动结算；关键战斗进入手动操作。
+- 战力悬殊或玩家选择时允许自动结算；关键战斗进入手动操作。
 
 重点不是操作速度，而是暂停决策、站位、目标选择、技能组合与境界能力的正确使用。
 
@@ -215,9 +215,13 @@
 
 ## 12. 战斗与世界的关系
 
-- 战斗在世界地图原地发生，玩家看到的仍是同一张地图。
-- 战斗期间世界时间继续流逝（详见 `21-core-loop-and-time.md`）。
-- 因此可能出现"一名角色在交战，另一名角色仍在别处劳作"的同时性。
+> **2026-08-21** 以 [ADR-0023](../40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md) 为准。
+
+- 战略接战进入 **Encounter LocalMap**（Modal）；不是「世界继续跑的同时性战场」。
+- `BattleOffer` 起至 Encounter Resolve：战略 **WorldTick 冻结**；AutoResolve 亦不推进 Tick。
+- 战术 RTS＋暂停只作用于遭遇表现；恢复开战前 pause／倍速仅在 Resolve 之后。
+- 参战者开战前快照宏观位置；可选增援按战略距离勾选；禁止靠「加入战斗」战略瞬移（分期见 [144](../40-process/144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md)）。
+- 普通道路／野外遭遇 Resolve 后销毁实例；不默认「回旧战场」。
 
 大型势力战争不走数千人实时微操，而走算法／战报等表现（见第 3 节）。
 
@@ -240,8 +244,8 @@
 
 ## 16. 未决问题
 
-- [x] 采用 RTS 实时行动 + 随时暂停下令。
-- [x] 战斗直接发生在世界地图中，不切换独立副本。
+- [x] 采用 RTS 实时行动 + 随时暂停下令（**战术层**）。
+- [x] 战略遭遇走 Modal Encounter LocalMap + 冻结 WorldTick（ADR-0023）；非「世界地图原地同时性交战」。
 - [x] 核心是小队级修士战斗；不做数千人实时微操战场。
 - [x] 战斗中最多装备 6 个技能；对应快捷键 1–6。
 - [x] 技能支持手动／半自动／自动三种释放模式。

@@ -16,30 +16,131 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.Strategic == null || enemy == null || playerParty == null || playerParty.Count == 0)
                 return false;
-            // 接战优先于到站提示
-            if (world.Strategic.HasBattleOffer)
-                return false;
+
+            // 已有 Offer／Modal／Queue 头正在展示 → 入队，不丢
+            if (world.Strategic.HasBattleOffer ||
+                world.Strategic.IsModalEncounter ||
+                world.Strategic.ClockFreeze.Reason == StrategicClockFreezeReason.InterruptQueue)
+            {
+                world.Strategic.InterruptQueue.Enqueue(
+                    title ?? "遭遇敌军",
+                    enemy.Id,
+                    playerParty,
+                    world.Tick.Value * 1000UL + (ulong)world.Strategic.InterruptQueue.Count + 1UL);
+                StrategicClockFreezeService.BeginOrPromote(
+                    world, StrategicClockFreezeReason.BattleOffer);
+                return true;
+            }
+
             world.Strategic.ClearArrivalNotice();
 
+            // 战中 JoinOngoing 降级：改为排队，不做战中动态加入
             if (HasActiveEncounterForStack(world, enemy.Id))
-                return TryBuildJoinOngoingOffer(world, playerParty, enemy, title);
+            {
+                world.Strategic.InterruptQueue.Enqueue(
+                    title ?? "遭遇敌军",
+                    enemy.Id,
+                    playerParty,
+                    world.Tick.Value * 1000UL + (ulong)world.Strategic.InterruptQueue.Count + 1UL);
+                return true;
+            }
 
-            var playerPower = CombatPowerCalculator.SumPartyPower(world, playerParty);
-            var enemyPower = CombatPowerCalculator.ForArmyStack(enemy);
+            return ActivateOffer(world, playerParty, enemy, title);
+        }
+
+        static bool ActivateOffer(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> playerParty,
+            ArmyStack enemy,
+            string title)
+        {
             var offer = world.Strategic.BattleOffer;
             offer.Resolved = false;
             offer.IsJoinOngoingBattle = false;
-            offer.OfferId = "offer:" + enemy.Id + ":" + world.Tick.Value;
+            offer.OfferId = "offer:" + enemy.Id + ":" + world.Tick.Value + ":" +
+                            world.Strategic.InterruptQueue.Count;
             offer.ArmyStackId = enemy.Id;
             offer.Title = string.IsNullOrEmpty(title) ? "遭遇敌军" : title;
-            offer.PlayerLabel = "我方 " + playerParty.Count + " 人";
-            offer.EnemyLabel = StrategicFactionCatalog.DisplayName(enemy.FactionId) + " · " +
-                               (string.IsNullOrEmpty(enemy.DisplayName) ? enemy.Id : enemy.DisplayName);
+            offer.EncounterLocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+            offer.SetPlayerParty(playerParty);
+            offer.ExecuteOnWin = false;
+
+            var snap = BattleParticipantSnapshotBuilder.Build(
+                world, playerParty, enemy, offer.OfferId);
+            world.Strategic.Participants.Clear();
+            CopySnapshotInto(world.Strategic.Participants, snap);
+
+            RefreshOfferPowerLabels(world);
+            StrategicClockFreezeService.BeginOrPromote(world, StrategicClockFreezeReason.BattleOffer);
+            return true;
+        }
+
+        static void CopySnapshotInto(BattleParticipantSnapshot dst, BattleParticipantSnapshot src)
+        {
+            if (dst == null || src == null)
+                return;
+            dst.Clear();
+            dst.OfferId = src.OfferId;
+            dst.BattleAnchorNodeId = src.BattleAnchorNodeId;
+            dst.BattleAnchorRouteId = src.BattleAnchorRouteId;
+            dst.BattleAnchorProgress = src.BattleAnchorProgress;
+            dst.PrimaryEnemyStackId = src.PrimaryEnemyStackId;
+            dst.EncounterLocalMapId = src.EncounterLocalMapId;
+            for (var i = 0; i < src.Records.Count; i++)
+                dst.Add(src.Records[i]);
+        }
+
+        public static void RefreshOfferPowerLabels(SimulationWorld world)
+        {
+            if (world?.Strategic == null)
+                return;
+            var offer = world.Strategic.BattleOffer;
+            var snap = world.Strategic.Participants;
+            var friendlies = snap.CollectSelectedFriendly();
+            offer.SetPlayerParty(friendlies);
+
+            var playerPower = CombatPowerCalculator.SumPartyPower(world, friendlies);
+            var enemyPower = 0;
+            var enemyStacks = snap.CollectEnemyStackIds();
+            for (var i = 0; i < enemyStacks.Count; i++)
+            {
+                if (world.Strategic.Armies.TryGet(enemyStacks[i], out var st) && st != null)
+                    enemyPower += CombatPowerCalculator.ForArmyStack(st);
+            }
+
             offer.PlayerPower = playerPower;
             offer.EnemyPower = enemyPower;
             offer.AutoWinPercent = CombatPowerCalculator.EstimateAutoWinPercent(playerPower, enemyPower);
-            offer.EncounterLocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
-            offer.SetPlayerParty(playerParty);
+            offer.PlayerLabel = "我方 " + friendlies.Count + " 人";
+            offer.EnemyLabel = enemyStacks.Count <= 1
+                ? (string.IsNullOrEmpty(offer.EnemyLabel) ? "敌军" : DescribePrimaryEnemy(world, offer.ArmyStackId))
+                : "敌军 " + enemyStacks.Count + " 栈";
+            if (enemyStacks.Count == 1)
+                offer.EnemyLabel = DescribePrimaryEnemy(world, enemyStacks[0]);
+        }
+
+        static string DescribePrimaryEnemy(SimulationWorld world, string stackId)
+        {
+            if (string.IsNullOrEmpty(stackId) ||
+                !world.Strategic.Armies.TryGet(stackId, out var enemy) ||
+                enemy == null)
+                return "敌军";
+            return StrategicFactionCatalog.DisplayName(enemy.FactionId) + " · " +
+                   (string.IsNullOrEmpty(enemy.DisplayName) ? enemy.Id : enemy.DisplayName);
+        }
+
+        public static bool SetOptionalSelected(
+            SimulationWorld world,
+            EntityId id,
+            bool selected)
+        {
+            if (world?.Strategic == null || id.IsNone)
+                return false;
+            var rec = world.Strategic.Participants.FindByEntity(id);
+            if (rec == null || rec.Kind != BattleParticipantKind.OptionalFriendly)
+                return false;
+            rec.Selected = selected;
+            RefreshOfferPowerLabels(world);
             return true;
         }
 
@@ -68,51 +169,6 @@ namespace XianXia.Core.World.Strategic
         public static string ResolveActiveEncounterLocalMapId(SimulationWorld world) =>
             StrategicEncounterCatalog.DefaultEncounterLocalMapId;
 
-        static bool TryBuildJoinOngoingOffer(
-            SimulationWorld world,
-            IReadOnlyList<EntityId> playerParty,
-            ArmyStack enemy,
-            string title)
-        {
-            var newcomers = CollectNotYetEngaged(world, playerParty);
-            if (newcomers.Count == 0)
-                return false;
-
-            var playerPower = CombatPowerCalculator.SumPartyPower(world, newcomers);
-            var enemyPower = CombatPowerCalculator.ForArmyStack(enemy);
-            var offer = world.Strategic.BattleOffer;
-            offer.Resolved = false;
-            offer.IsJoinOngoingBattle = true;
-            offer.OfferId = "join:" + enemy.Id + ":" + world.Tick.Value;
-            offer.ArmyStackId = enemy.Id;
-            offer.Title = string.IsNullOrEmpty(title) ? "加入进行中的战斗" : title;
-            offer.PlayerLabel = "增援 " + newcomers.Count + " 人";
-            offer.EnemyLabel = StrategicFactionCatalog.DisplayName(enemy.FactionId) + " · " +
-                               (string.IsNullOrEmpty(enemy.DisplayName) ? enemy.Id : enemy.DisplayName);
-            offer.PlayerPower = playerPower;
-            offer.EnemyPower = enemyPower;
-            offer.AutoWinPercent = CombatPowerCalculator.EstimateAutoWinPercent(playerPower, enemyPower);
-            offer.EncounterLocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
-            offer.SetPlayerParty(newcomers);
-            return true;
-        }
-
-        static List<EntityId> CollectNotYetEngaged(SimulationWorld world, IReadOnlyList<EntityId> party)
-        {
-            var list = new List<EntityId>(party?.Count ?? 0);
-            if (world?.Strategic?.Encounter == null || party == null)
-                return list;
-            var rt = world.Strategic.Encounter;
-            for (var i = 0; i < party.Count; i++)
-            {
-                if (party[i].IsNone || rt.IsEngaged(party[i]))
-                    continue;
-                list.Add(party[i]);
-            }
-
-            return list;
-        }
-
         public static Result ResolveAuto(
             SimulationWorld world,
             bool executeOnWin,
@@ -127,7 +183,11 @@ namespace XianXia.Core.World.Strategic
             if (offer.Resolved || string.IsNullOrEmpty(offer.OfferId))
                 return Result.Failure(ErrorCode.InvalidOperation, "No battle offer.");
 
-            var party = StrategicPursuitService.CollectEngagedPartyFromOffer(offer);
+            RefreshOfferPowerLabels(world);
+            var party = world.Strategic.Participants.CollectSelectedFriendly();
+            if (party.Count == 0)
+                party = StrategicPursuitService.CollectEngagedPartyFromOffer(offer);
+
             world.Strategic.Armies.TryGet(offer.ArmyStackId, out var enemyStack);
 
             var roll = world.Random.NextDouble();
@@ -147,6 +207,9 @@ namespace XianXia.Core.World.Strategic
                         offer.EnemyPower,
                         executeOnWin)
                     : new AutoBattleReport { Summary = "自动战斗胜利。" };
+
+                // 敌方增援栈：胜则一并削弱／移除（处决时移除）
+                ApplyEnemyReinforcementAutoOutcome(world, executeOnWin, playerWon: true);
                 StrategicPursuitService.ClearPursuit(world);
             }
             else
@@ -160,8 +223,85 @@ namespace XianXia.Core.World.Strategic
             }
 
             offer.LastAutoBattleSummary = report?.Summary ?? string.Empty;
+            world.Strategic.Participants.LastBattleSummary = string.IsNullOrEmpty(offer.LastAutoBattleSummary)
+                ? (playerWon ? "自动战斗胜利。" : "自动战斗失利。")
+                : offer.LastAutoBattleSummary;
+            world.Strategic.Participants.PlayerWon = playerWon;
+            world.Strategic.Participants.IsAutoSettlement = true;
+
+            // 先关 Offer，进入战后结算弹窗；确认后再 Finish／出队
             world.Strategic.ClearBattleOffer();
+            StrategicClockFreezeService.BeginOrPromote(
+                world, StrategicClockFreezeReason.PostBattle);
             return Result.Success();
+        }
+
+        static void ApplyEnemyReinforcementAutoOutcome(
+            SimulationWorld world,
+            bool executeOnWin,
+            bool playerWon)
+        {
+            if (!playerWon)
+                return;
+            var stacks = world.Strategic.Participants.CollectEnemyStackIds();
+            for (var i = 0; i < stacks.Count; i++)
+            {
+                if (string.Equals(
+                        stacks[i],
+                        world.Strategic.Participants.PrimaryEnemyStackId,
+                        StringComparison.Ordinal))
+                    continue;
+                if (!world.Strategic.Armies.TryGet(stacks[i], out var st) || st == null)
+                    continue;
+                if (executeOnWin)
+                    world.Strategic.Armies.Remove(st.Id);
+                else
+                {
+                    st.MemberCount = Math.Max(1, st.MemberCount / 2);
+                    st.CombatPower = Math.Max(1, st.CombatPower / 2);
+                }
+            }
+        }
+
+        /// <summary>Offer／遭遇结束后：先解冻，再出队下一场或清空快照。</summary>
+        public static Result FinishOfferResolution(SimulationWorld world)
+        {
+            if (world?.Strategic == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "null world");
+
+            // 必须先结束 Modal，否则 TryPromote 会被 IsModalEncounter 挡住
+            StrategicClockFreezeService.EndFreeze(world);
+            if (world.Strategic.Participants != null)
+                world.Strategic.Participants.IsAutoSettlement = false;
+
+            if (TryPromoteNextQueuedOffer(world))
+                return Result.Success();
+
+            world.Strategic.Participants.Clear();
+            return Result.Success();
+        }
+
+        public static bool TryPromoteNextQueuedOffer(SimulationWorld world)
+        {
+            if (world?.Strategic == null)
+                return false;
+            if (world.Strategic.IsModalEncounter)
+                return false;
+            if (!world.Strategic.InterruptQueue.TryDequeue(out var queued) || queued == null)
+                return false;
+            if (!world.Strategic.Armies.TryGet(queued.ArmyStackId, out var enemy) || enemy == null)
+            {
+                // 敌军已不在：继续下一场
+                return TryPromoteNextQueuedOffer(world);
+            }
+
+            var party = queued.ToPartyList();
+            if (party.Count == 0)
+                return TryPromoteNextQueuedOffer(world);
+
+            StrategicClockFreezeService.BeginOrPromote(
+                world, StrategicClockFreezeReason.BattleOffer);
+            return ActivateOffer(world, party, enemy, queued.Title);
         }
     }
 }

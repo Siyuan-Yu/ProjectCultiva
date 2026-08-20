@@ -169,7 +169,9 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic == null)
                 return;
             if (world.Strategic.HasBattleOffer)
-                return;
+            {
+                // 已有弹窗时仍尝试入队其他栈（同栈 TryBuild 内去重）
+            }
 
             EnsurePursuePartyFromAgentMarks(world);
 

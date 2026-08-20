@@ -42,6 +42,12 @@ namespace XianXia.Unity.Host
                 return;
 
             var world = bootstrap.Session.World;
+            if (StrategicClockFreezeService.IsModalEncounter(world))
+            {
+                _status = "手动遭遇中：禁止战略出行";
+                return;
+            }
+
             if (target.IsRouteProgress)
             {
                 if (string.IsNullOrEmpty(target.RouteId))
@@ -104,6 +110,12 @@ namespace XianXia.Unity.Host
                 return;
 
             var world = bootstrap.Session.World;
+            if (StrategicClockFreezeService.IsModalEncounter(world))
+            {
+                _status = "手动遭遇中：禁止战略追击出行";
+                return;
+            }
+
             StrategicPursuitService.BeginPursuit(world, agents, stack);
             world.Strategic.ClearArrivalNotice();
 
