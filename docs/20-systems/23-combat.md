@@ -1,6 +1,6 @@
 # 战斗
 
-> 状态：小队战斗框架已定方向，数值与 AI 细则未展开 | 优先级：P0 | 最后更新：2026-07-31
+> 状态：小队战斗框架已定方向；**弥留／尸体／自动战结算已落地（142，未手操验）** | 优先级：P0 | 最后更新：2026-08-20
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`22-realms-and-abilities.md`、`2B-attributes-and-affinity.md`、`2D-manuals-arts-and-equipment.md`、`2H-manual-system-rules.md`、`28-jianghu-relations.md`、`29-karma-and-consequence.md`
 > 当前处于纯策划阶段，本文只描述设计方向，不涉及技术实现。
@@ -87,6 +87,8 @@
 | 更高境界 | 普通攻击的范围、控制距离与影响范围继续提升 |
 
 **已落地竖切（2026-08-16／17）：** 见 [134](../40-process/134-spirit-veil-ranged-normal-attack-2026-08-16.md)。筑基 **F2**／底栏「纱衣」召唤（固定灵力开销）；空灵力／交战结束自动卸下；远程普攻用**统一青色弹道**（飞行光核→命中爆闪）。
+
+**已落地竖切（2026-08-20）：** 见 [142](../40-process/142-auto-battle-incap-corpse-2026-08-20.md)。HP 归零→**弥留**（`Incapacitated`）；再受击→死亡+**尸体**（普通人约 2 游戏日 decay）；大地图自动战有伤亡结算与「战胜时直接击杀」勾选；底栏／详情 UI 左上角显示弥留／尸体角标。
 
 普通攻击的具体动画、更高境界射程与开销随推进细化。
 

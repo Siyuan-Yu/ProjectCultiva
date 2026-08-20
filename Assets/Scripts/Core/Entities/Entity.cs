@@ -33,7 +33,8 @@ namespace XianXia.Core.Entities
             typeof(XianXia.Core.Combat.CombatVitalsComponent),
             typeof(XianXia.Core.Combat.CombatArtsComponent),
             typeof(XianXia.Core.Combat.EncounterLinkComponent),
-            typeof(XianXia.Core.Combat.SpiritVeilComponent)
+            typeof(XianXia.Core.Combat.SpiritVeilComponent),
+            typeof(XianXia.Core.Combat.CorpseComponent)
         };
 
         readonly Dictionary<Type, IComponent> _components = new Dictionary<Type, IComponent>();

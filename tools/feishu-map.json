@@ -604,12 +604,12 @@
     "recent-updates-2026-08-14": {
       "file": "docs/40-process/116-recent-updates-rollup-2026-08-14.md",
       "title": "近期更新收束 · Ch01／劳动／小队背包（2026-08-14）",
-      "docId": "HqczdHh2Zo5A7UxZdvVc4Ggunse"
+      "docId": "SR9mdOcOMopxvtxxj8sc8wvjnNb"
     },
     "npc-dialogue-host-ux-2026-08-14": {
       "file": "docs/40-process/117-npc-dialogue-host-ux-rollup-2026-08-14.md",
       "title": "近期更新收束 · NPC 对话／任务失败／时间流速（2026-08-14）",
-      "docId": "M0q4dQsBdojfxixN0DTcXwlTnCh"
+      "docId": "G1MLd6qANoVqQExytM0cN0tFnoF"
     },
     "npc-workarea-editor": {
       "file": "docs/40-process/118-npc-behavior-editor.md",
@@ -629,87 +629,87 @@
     "housing-control-core-2026-08-15": {
       "file": "docs/40-process/121-housing-assignment-and-control-core-2026-08-15.md",
       "title": "近期更新收束 · 住房分配／主管府占领（2026-08-15）",
-      "docId": "NjepdWBA2o8O6kxzLxycQjgTnUf"
+      "docId": "JOrAd7iGPoCVdNxaWiAc6IvOnud"
     },
     "cultivation-breakthrough-host-2026-08-15": {
       "file": "docs/40-process/122-cultivation-breakthrough-host-ritual-2026-08-15.md",
       "title": "近期更新收束 · 境界／打坐／突破仪式（2026-08-15）",
-      "docId": "ZNYIdDIFDoEmSgxhOwFcLm04nQb"
+      "docId": "G2GhdYCNmor29hxapjZc6H1YnMe"
     },
     "quest-manual-api-2026-08-15": {
       "file": "docs/40-process/123-quest-manual-api-interfaces-2026-08-15.md",
       "title": "功法任务条件／奖励接口（2026-08-15）",
-      "docId": "XPE5dGfcYoI5iSxuL8zco64QnBc"
+      "docId": "BNdDdYX5Aomy1axN8hWcUM5inSd"
     },
     "jiang-lao-cave-manual-2026-08-15": {
       "file": "docs/40-process/124-jiang-lao-cave-manual-rollup-2026-08-15.md",
       "title": "近期更新收束 · 将老／洞府／秘籍（2026-08-15）",
-      "docId": "M4hBdXHm0oDcuoxRm3ccJ45HnXd"
+      "docId": "KSgMdTrjqoUlBcxZKeecBQ7onCc"
     },
     "combat-arts-physique-2026-08-16": {
       "file": "docs/40-process/125-combat-arts-physique-acceptance-rollup-2026-08-16.md",
       "title": "125 战斗／斗技／体魄验收收束（2026-08-16）",
-      "docId": "W7iAdwYigo0PxlxJbaPcOKnjnXb"
+      "docId": "XoctduXstoGdtFxODrYcv74hnpg"
     },
     "control-core-chase-spawn-zone-2026-08-16": {
       "file": "docs/40-process/126-control-core-chase-spawn-zone-rollup-2026-08-16.md",
       "title": "126 主管府近战／追击／刷怪区收束（2026-08-16）",
-      "docId": "UWOvdUOlao8e3ExK2ywc84fUnnh"
+      "docId": "OabudDPqooSHG9xN1h9cUvMcnVd"
     },
     "defeat-teleport-cave-spawn-gui-2026-08-16": {
       "file": "docs/40-process/127-defeat-teleport-cave-camera-spawn-table-gui-2026-08-16.md",
       "title": "127 击败瞬移／洞相机／刷怪表 GUI（2026-08-16）",
-      "docId": "K2qod9vD2oqtCVxqCQecAvxxnzh"
+      "docId": "VPWHdzqw9oCEnbxsIsMc0dzwnhd"
     },
     "world-graph-editor-usage": {
       "file": "docs/40-process/128-world-graph-editor-usage.md",
       "title": "128 WorldGraph 编辑器用法",
-      "docId": "RpyMdwTJmo1sW6xtaMTc574mn9b"
+      "docId": "Wzimd4730o6yBVxiiwvcDUuZn1e"
     },
     "world-graph-host-travel-isolation-2026-08-16": {
       "file": "docs/40-process/129-world-graph-host-travel-scene-isolation-2026-08-16.md",
       "title": "129 WorldGraph Host 出行／进场景／场景隔离（2026-08-16）",
-      "docId": "KbFRdzob3o4ndMxsmlbcRV9inng"
+      "docId": "CnhpdtcSxol8VExugcmcO5UUnkb"
     },
     "local-place-editor-usage": {
       "file": "docs/40-process/130-local-place-editor-usage.md",
       "title": "130 LocalPlaceEditor 用法",
-      "docId": "CANPds3DJoPnsixBGDRctgkvnTh"
+      "docId": "Iv9Ld3CTioDKBwxOoZYcwUtFnVg"
     },
     "skill-mastery-study-ritual-2026-08-16": {
       "file": "docs/40-process/131-skill-mastery-study-ritual-2026-08-16.md",
       "title": "131 功法／斗技蓄势研读＋熟练度（2026-08-16）",
-      "docId": "Ra6odyPuao50ZsxxoyCc8W5EnTt"
+      "docId": "RStjdMZNRoD9hwxtvv4c8ETunef"
     },
     "skill-mastery-config-absolute-tiers-2026-08-16": {
       "file": "docs/40-process/132-skill-mastery-config-absolute-tiers-2026-08-16.md",
       "title": "132 熟练度配置绝对值档位（2026-08-16）",
-      "docId": "FOJ3dtLeMo7jgUxUlm2c3tz2n9b"
+      "docId": "TOEYdhYdTovbIyxzZUxcTJJrnig"
     },
     "manual-art-editor-and-cleanup-2026-08-16": {
       "file": "docs/40-process/133-manual-art-editor-and-cleanup-2026-08-16.md",
       "title": "133 功法／斗技编辑器＋清理（2026-08-16）",
-      "docId": "NGmwd2xJNoZOiRxfmpwcGE6Unzs"
+      "docId": "HQATdudPDoGPptx9PZYc1v7on9g"
     },
     "spirit-veil-ranged-normal-attack-2026-08-16": {
       "file": "docs/40-process/134-spirit-veil-ranged-normal-attack-2026-08-16.md",
       "title": "134 斗气纱衣远程普攻（2026-08-16）",
-      "docId": "ISh4dF7JToMZhMxQVv8c0dWZnxf"
+      "docId": "NBCVdQjOAoTIvQxpAldc34zMnkc"
     },
     "world-object-inspect-and-tree-chop-2026-08-16": {
       "file": "docs/40-process/135-world-object-inspect-and-tree-chop-2026-08-16.md",
       "title": "135 世界物况栏＋砍树（2026-08-16）",
-      "docId": "RGZ7dJ4egoTRGTxMcLLcMZMBnFf"
+      "docId": "Eml4d4BPJoR0Y0xN27bchjAxn5g"
     },
     "farm-field-zone-labor-2026-08-16": {
       "file": "docs/40-process/136-farm-field-zone-labor-2026-08-16.md",
       "title": "136 田区自动农作（2026-08-16）",
-      "docId": "KLvxdPDDTodhQPxXij8c680Ynif"
+      "docId": "Mds9dQ7ppo6oWgxu3rhcU6FWnRc"
     },
     "skill-mastery-farm-veil-chop-rollup-2026-08-17": {
       "file": "docs/40-process/137-skill-mastery-farm-veil-chop-rollup-2026-08-17.md",
       "title": "137 熟练度／纱衣／田区／砍树收束（2026-08-17）",
-      "docId": "WaaNdNf2poof5qx2deVcFfKrnwb"
+      "docId": "XVFpdEoMxo6VwRxzqhhcnBePnKx"
     },
     "world-strategic-battle-offer-2026-08-17": {
       "file": "docs/40-process/138-world-strategic-battle-offer-plan-2026-08-17.md",
@@ -719,7 +719,7 @@
     "world-map-rts-orders-2026-08-17": {
       "file": "docs/40-process/139-world-map-rts-orders-2026-08-17.md",
       "title": "139 大地图 RTS 下令与部队交互（2026-08-17）",
-      "docId": "RgkxdiGNSoNd11xOXoncl7QnnCg"
+      "docId": "HQfddzdDXopgfMxFJz5ckjdTnlb"
     },
     "world-map-rts-battle-return-rollup-2026-08-18": {
       "file": "docs/40-process/140-world-map-rts-battle-return-rollup-2026-08-18.md",
@@ -730,6 +730,11 @@
       "file": "docs/40-process/141-pursuit-stick-and-multi-melee-2026-08-18.md",
       "title": "141 追击贴敌＋LocalMap 多选近战（2026-08-18）",
       "docId": "I36jdoafvos0YCx2SFscxl0anUb"
+    },
+    "auto-battle-incap-corpse-2026-08-20": {
+      "file": "docs/40-process/142-auto-battle-incap-corpse-2026-08-20.md",
+      "title": "142 自动战结算＋弥留／尸体（2026-08-20）",
+      "docId": "B56IddrTtocNZIxVgi7c4O1Knzg"
     },
     "world-graph-local-map": {
       "file": "docs/40-process/113-world-graph-local-map-architecture-revision-v0.1.md",

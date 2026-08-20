@@ -159,9 +159,16 @@ namespace XianXia.Unity.Host
             var world = bootstrap.Session.World;
             if (!world.Entities.TryGet(_defender, out var defEnt) ||
                 !defEnt.TryGet<LifecycleComponent>(out var defLife) ||
-                defLife.IsDead || defLife.IsRemoved)
+                defLife.IsRemoved ||
+                (defLife.IsDead && !CombatLifeStateService.HasVisibleCorpse(defEnt)))
             {
                 FinishIfNeeded();
+                return;
+            }
+
+            if (defLife.IsIncapacitated || defLife.IsDead)
+            {
+                ClearInternal(null);
                 return;
             }
 
@@ -187,8 +194,16 @@ namespace XianXia.Unity.Host
                 var atkId = _scratch[i];
                 if (!world.Entities.TryGet(atkId, out var atkEnt) ||
                     !atkEnt.TryGet<LifecycleComponent>(out var atkLife) ||
-                    atkLife.IsDead || atkLife.IsRemoved)
+                    atkLife.IsRemoved ||
+                    (atkLife.IsDead && !CombatLifeStateService.HasVisibleCorpse(atkEnt)))
                 {
+                    RemoveAttacker(atkId, null);
+                    continue;
+                }
+
+                if (atkLife.IsIncapacitated)
+                {
+                    Toast(atkId, "弥留，脱离战斗", new Color(1f, 0.4f, 0.35f));
                     RemoveAttacker(atkId, null);
                     continue;
                 }
@@ -196,7 +211,9 @@ namespace XianXia.Unity.Host
                 CombatDamageRules.EnsureVitals(atkEnt);
                 if (atkEnt.TryGet<CombatVitalsComponent>(out var atkHp) && atkHp.CurrentHp <= 0)
                 {
-                    Toast(atkId, "重伤，脱离战斗", new Color(1f, 0.4f, 0.35f));
+                    CombatLifeStateService.TryEnterIncapacitated(world, atkEnt);
+                    ApplyDownPresentation(atkId, atkEnt);
+                    Toast(atkId, "弥留，脱离战斗", new Color(1f, 0.4f, 0.35f));
                     RemoveAttacker(atkId, null);
                     continue;
                 }
@@ -233,13 +250,28 @@ namespace XianXia.Unity.Host
                     NotifyVeilSpiritEmpty(defEnt);
                     if (defeated)
                     {
-                        var name = string.IsNullOrEmpty(defEnt.DisplayName)
-                            ? _defender.ToString()
-                            : defEnt.DisplayName;
-                        Toast(atkId, "击败 " + name, new Color(0.45f, 1f, 0.55f));
+                        if (world.Entities.TryGet(_defender, out defEnt) &&
+                            defEnt.TryGet<LifecycleComponent>(out var postLife))
+                        {
+                            if (postLife.IsIncapacitated)
+                            {
+                                ApplyDownPresentation(_defender, defEnt);
+                                var name = string.IsNullOrEmpty(defEnt.DisplayName)
+                                    ? _defender.ToString()
+                                    : defEnt.DisplayName;
+                                Toast(atkId, name + " 弥留", new Color(1f, 0.72f, 0.45f));
+                            }
+                            else if (postLife.IsDead)
+                            {
+                                ApplyDownPresentation(_defender, defEnt);
+                                var name = string.IsNullOrEmpty(defEnt.DisplayName)
+                                    ? _defender.ToString()
+                                    : defEnt.DisplayName;
+                                Toast(atkId, "击杀 " + name, new Color(0.45f, 1f, 0.55f));
+                            }
+                        }
+
                         bootstrap.DispatchDrainedEvents();
-                        if (viewSpawner != null)
-                            viewSpawner.Despawn(_defender);
                         ClearInternal(null);
                         return;
                     }
@@ -257,7 +289,10 @@ namespace XianXia.Unity.Host
             // 守方反击：对一名在反击距离内的攻方出手
             if (_defenderCooldown > 0f)
                 return;
-            if (!world.Entities.TryGet(_defender, out defEnt))
+            if (!world.Entities.TryGet(_defender, out defEnt) ||
+                !defEnt.TryGet<LifecycleComponent>(out defLife) ||
+                defLife.IsIncapacitated ||
+                defLife.IsDead)
                 return;
 
             for (var n = 0; n < _attackers.Count; n++)
@@ -282,7 +317,9 @@ namespace XianXia.Unity.Host
                         NotifyVeilSpiritEmpty(atkEnt);
                     if (atkDown)
                     {
-                        Toast(atkId, "重伤，脱离战斗", new Color(1f, 0.4f, 0.35f));
+                        if (world.Entities.TryGet(atkId, out var downEnt))
+                            ApplyDownPresentation(atkId, downEnt);
+                        Toast(atkId, "弥留，脱离战斗", new Color(1f, 0.4f, 0.35f));
                         bootstrap.DispatchDrainedEvents();
                         RemoveAttacker(atkId, null);
                     }
@@ -305,7 +342,7 @@ namespace XianXia.Unity.Host
             if (bootstrap.Session.World.Entities.TryGet(AttackerId, out var atkBanner) &&
                 SpiritVeilService.IsActive(atkBanner))
                 veilHint = "　·　纱衣远程";
-            var line = "交战中　" + atkLabel + " ↔ " + defName + veilHint + "　·　追击至死　·　右键地面／S 打断";
+            var line = "交战中　" + atkLabel + " ↔ " + defName + veilHint + "　·　0 血弥留，补刀致死　·　右键地面／S 打断";
             const float w = 560f;
             const float h = 28f;
             var r = new Rect((Screen.width - w) * 0.5f, 56f, w, h);
@@ -440,18 +477,26 @@ namespace XianXia.Unity.Host
 
         void FinishIfNeeded()
         {
-            var world = bootstrap?.Session?.World;
-            if (world != null &&
-                world.Entities.TryGet(_defender, out var def) &&
-                def.TryGet<LifecycleComponent>(out var life) &&
-                life.IsDead)
-            {
-                bootstrap.DispatchDrainedEvents();
-                if (viewSpawner != null)
-                    viewSpawner.Despawn(_defender);
-            }
-
+            bootstrap?.DispatchDrainedEvents();
             ClearInternal(null);
+        }
+
+        void ApplyDownPresentation(EntityId id, Entity entity)
+        {
+            if (viewSpawner == null || id.IsNone || entity == null)
+                return;
+            if (!viewSpawner.Registry.TryGet(id, out var view) || view == null)
+                return;
+            if (entity.TryGet<LifecycleComponent>(out var life) && life.IsDead)
+            {
+                view.SetActivityText("尸体");
+                view.SetBaseColor(new Color(0.35f, 0.32f, 0.30f, 0.85f));
+            }
+            else if (entity.TryGet<LifecycleComponent>(out var life2) && life2.IsIncapacitated)
+            {
+                view.SetActivityText("弥留");
+                view.SetBaseColor(new Color(0.72f, 0.45f, 0.42f, 0.92f));
+            }
         }
 
         void SetFightActivity(EntityId id, bool fighting)

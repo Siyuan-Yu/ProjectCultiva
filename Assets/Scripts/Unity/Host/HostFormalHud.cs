@@ -815,8 +815,19 @@ namespace XianXia.Unity.Host
             entity.TryGet<CultivationComponent>(out var cult);
             var realm = cult != null ? RealmName(cult.Realm, cult.MinorStage) : "—";
             var subtitle = isParty ? "己方 · 上方可下令" : "查看 · 非己方不可下令";
+            var lifeLabel = CombatLifeStateService.ResolveLifeStateLabel(entity);
+            var titleX = main.x + 14f;
+            if (!string.IsNullOrEmpty(lifeLabel))
+            {
+                titleX = DrawLifeStateBadge(main, lifeLabel) + 8f;
+                if (lifeLabel == "弥留")
+                    activity = "弥留之际";
+                else if (lifeLabel == "尸体")
+                    activity = "尸体";
+            }
+
             GUI.Label(
-                new Rect(main.x + 14f, main.y + 8f, main.width - 140f, 24f),
+                new Rect(titleX, main.y + 8f, main.xMax - titleX - 132f, 24f),
                 name + "（" + activity + "）· " + subtitle,
                 _parchmentTitle);
             GUI.Label(
@@ -1879,6 +1890,29 @@ namespace XianXia.Unity.Host
             Fill(new Rect(r.x, r.yMax - t, r.width, t), c);
             Fill(new Rect(r.x, r.y, t, r.height), c);
             Fill(new Rect(r.xMax - t, r.y, t, r.height), c);
+        }
+
+        /// <summary>面板左上角生命状态角标（弥留／尸体）。</summary>
+        float DrawLifeStateBadge(Rect panel, string label)
+        {
+            const float badgeW = 52f;
+            const float badgeH = 22f;
+            var badge = new Rect(panel.x + 8f, panel.y + 6f, badgeW, badgeH);
+            var bg = label == "尸体"
+                ? new Color(0.35f, 0.32f, 0.30f, 0.96f)
+                : new Color(0.78f, 0.38f, 0.30f, 0.96f);
+            Fill(badge, bg);
+            DrawFrame(badge, ParchmentDark);
+            var prev = GUI.color;
+            GUI.color = Color.white;
+            var style = new GUIStyle(_parchmentTitle)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 13
+            };
+            GUI.Label(badge, label, style);
+            GUI.color = prev;
+            return badge.xMax;
         }
 
         static string DescribeAction(PlayableHostSession session, Entity entity)

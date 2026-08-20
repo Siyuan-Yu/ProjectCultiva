@@ -343,7 +343,7 @@ namespace XianXia.Unity.Host
 
             HandleCameraInput(mapRect);
             DrawGraph(mapRect, world, graph);
-            DrawNodeContextMenu(world, graph);
+            DrawNodeContextMenu(mapRect, world, graph);
             DrawStackContextMenu(world, graph);
             TryDismissContextMenusOnOutsideClick();
             if (Event.current != null && Event.current.type == EventType.Used)
@@ -791,15 +791,10 @@ namespace XianXia.Unity.Host
                     var (nodeId, rect) = _nodeRects[i];
                     if (!rect.Contains(mouse))
                         continue;
-                    if (graph.TryGetNode(nodeId, out var n))
-                    {
-                        _viewCx = n.WorldX;
-                        _viewCy = n.WorldY;
-                    }
 
                     _nodeMenuNodeId = nodeId;
                     _nodeMenuOpen = true;
-                    _nodeMenuRect = new Rect(mouse.x + 4f, mouse.y + 4f, 196f, 118f);
+                    _nodeMenuRect = AnchorContextMenu(rect, 196f, 118f);
                     _stackMenuOpen = false;
                     if (!e.shift)
                     {
@@ -916,7 +911,22 @@ namespace XianXia.Unity.Host
             e.Use();
         }
 
-        void DrawNodeContextMenu(XianXia.Core.Simulation.SimulationWorld world, WorldGraphBoard graph)
+        static Rect AnchorContextMenu(Rect anchor, float width, float height)
+        {
+            var x = anchor.xMax + 4f;
+            var y = anchor.yMin;
+            if (x + width > Screen.width - 8f)
+                x = anchor.xMin - width - 4f;
+            if (x < 8f)
+                x = Mathf.Clamp(anchor.xMax + 4f, 8f, Screen.width - width - 8f);
+            if (y + height > Screen.height - 8f)
+                y = Screen.height - height - 8f;
+            if (y < 8f)
+                y = 8f;
+            return new Rect(x, y, width, height);
+        }
+
+        void DrawNodeContextMenu(Rect mapRect, XianXia.Core.Simulation.SimulationWorld world, WorldGraphBoard graph)
         {
             if (!_nodeMenuOpen || string.IsNullOrEmpty(_nodeMenuNodeId))
                 return;
@@ -925,6 +935,11 @@ namespace XianXia.Unity.Host
                 _nodeMenuOpen = false;
                 return;
             }
+
+            // 每帧按节点屏幕位置重算，避免镜头平移后菜单与节点脱节
+            var p = Project(mapRect, node.WorldX, node.WorldY);
+            var anchor = new Rect(p.x - NodeHitW * 0.5f, p.y - NodeHitH * 0.5f, NodeHitW, NodeHitH);
+            _nodeMenuRect = AnchorContextMenu(anchor, 196f, 118f);
 
             var prevDepth = GUI.depth;
             GUI.depth = -85;

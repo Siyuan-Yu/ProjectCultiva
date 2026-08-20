@@ -444,11 +444,23 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.Strategic == null)
                 return 0;
-            PruneDeadSpawns(world);
-            return world.Strategic.Encounter.SpawnedEntityIds.Count;
+            PruneRemovedSpawns(world);
+            var rt = world.Strategic.Encounter;
+            var count = 0;
+            for (var i = 0; i < rt.SpawnedEntityIds.Count; i++)
+            {
+                var id = new EntityId(rt.SpawnedEntityIds[i]);
+                if (!world.Entities.TryGet(id, out var entity) || entity == null)
+                    continue;
+                if (entity.TryGet<LifecycleComponent>(out var life) &&
+                    life.State == LifecycleState.Alive)
+                    count++;
+            }
+
+            return count;
         }
 
-        static void PruneDeadSpawns(SimulationWorld world)
+        static void PruneRemovedSpawns(SimulationWorld world)
         {
             if (world?.Strategic == null)
                 return;
@@ -462,13 +474,13 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 }
 
-                if (entity.TryGet<LifecycleComponent>(out var life) &&
-                    (life.IsDead || life.IsRemoved))
-                {
+                if (entity.TryGet<LifecycleComponent>(out var life) && life.IsRemoved)
                     rt.RemoveTrackedSpawnAt(i);
-                }
             }
         }
+
+        [System.Obsolete("Use PruneRemovedSpawns")]
+        static void PruneDeadSpawns(SimulationWorld world) => PruneRemovedSpawns(world);
 
         static void SyncArmyStackMemberCount(SimulationWorld world)
         {

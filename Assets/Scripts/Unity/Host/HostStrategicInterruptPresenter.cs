@@ -13,6 +13,7 @@ namespace XianXia.Unity.Host
 
         bool _holding;
         bool _pausedBefore;
+        bool _executeOnWin;
         string _toast = string.Empty;
         double _toastUntil;
         Texture2D _px;
@@ -40,6 +41,7 @@ namespace XianXia.Unity.Host
         {
             _holding = false;
             _pausedBefore = false;
+            _executeOnWin = false;
             _toast = string.Empty;
             _toastUntil = 0;
         }
@@ -218,7 +220,7 @@ namespace XianXia.Unity.Host
         void DrawBattleOffer(PlayableHostSession session, BattleOfferPending offer)
         {
             DrawDim();
-            var box = new Rect(Screen.width * 0.5f - 240f, Screen.height * 0.5f - 170f, 480f, 340f);
+            var box = new Rect(Screen.width * 0.5f - 240f, Screen.height * 0.5f - 170f, 480f, 370f);
             Fill(box, Parchment);
             DrawFrame(box, ParchmentDark);
 
@@ -247,13 +249,31 @@ namespace XianXia.Unity.Host
                 "自动战胜率约 " + offer.AutoWinPercent + "%（选定后不可反悔）",
                 _body);
 
+            var toggleY = box.y + box.height - 78f;
+            _executeOnWin = GUI.Toggle(
+                new Rect(box.x + 16f, toggleY, box.width - 32f, 22f),
+                _executeOnWin,
+                "战胜时直接击杀（不勾选则仅击溃敌军）");
+
             var y = box.y + box.height - 44f;
             var third = (box.width - 40f) / 3f;
             if (GUI.Button(new Rect(box.x + 16f, y, third, 32f), "自动战斗"))
             {
-                var resolved = BattleOfferService.ResolveAuto(session.World, out var won);
+                offer.ExecuteOnWin = _executeOnWin;
+                var resolved = BattleOfferService.ResolveAuto(
+                    session.World,
+                    _executeOnWin,
+                    out var won,
+                    out var report);
                 if (resolved.IsSuccess)
-                    ShowToast(won ? "自动战斗胜利。" : "自动战斗失利，敌军仍在。");
+                {
+                    var msg = report != null && !string.IsNullOrEmpty(report.Summary)
+                        ? report.Summary
+                        : (won ? "自动战斗胜利。" : "自动战斗失利，敌军仍在。");
+                    ShowToast(msg);
+                }
+
+                _executeOnWin = false;
             }
 
             if (GUI.Button(new Rect(box.x + 20f + third, y, third, 32f), "手动战斗"))

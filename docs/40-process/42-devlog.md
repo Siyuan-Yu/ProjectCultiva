@@ -7,6 +7,24 @@
 
 ---
 
+## 2026-08-20 — 收束文档 142＋飞书／GitHub
+
+**做了什么**
+- 收束 [142](142-auto-battle-incap-corpse-2026-08-20.md)（自动战结算＋弥留／尸体＋状态 UI 角标＋大地图菜单修复）；更新 23／62／总览；飞书 provision＋同步；提交推送
+- **未手操验收**，仅 EditMode 测试
+
+---
+
+## 2026-08-20 — 自动战结算＋弥留／尸体
+
+**做了什么**
+- `CombatLifeStateService`：0 血→弥留；补刀→死亡+尸体；按修为 2／3／5 游戏日 decay
+- `AutoBattleCasualtyService`：自动战胜／败伤亡；处决 vs 击溃；接战 checkbox
+- LocalMap／Host 表现：弥留停战、补刀、角标；`HostFormalHud` 底栏左上角
+- 大地图左键节点菜单锚定节点框（去掉镜头居中抽搐）
+
+---
+
 ## 2026-08-18 — 收束文档 141＋飞书／GitHub
 
 **做了什么**

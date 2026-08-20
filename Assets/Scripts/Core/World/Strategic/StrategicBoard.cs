@@ -17,6 +17,9 @@ namespace XianXia.Core.World.Strategic
         public string EncounterLocalMapId { get; set; } = string.Empty;
         public bool Resolved { get; set; }
         public bool PlayerWonAuto { get; set; }
+        public string LastAutoBattleSummary { get; set; } = string.Empty;
+        /// <summary>自动战胜后是否直接击杀敌军（否则仅击溃，敌军栈可能残存）。</summary>
+        public bool ExecuteOnWin { get; set; }
         /// <summary>同栈已有手动接战进行时，仅允许新成员加入。</summary>
         public bool IsJoinOngoingBattle { get; set; }
         readonly List<ulong> _playerPartyIds = new List<ulong>(8);

@@ -11,6 +11,7 @@ using XianXia.Core.Results;
 using XianXia.Core.Schedule;
 using XianXia.Core.Settlement;
 using XianXia.Core.Social;
+using XianXia.Core.Combat;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 
@@ -168,6 +169,7 @@ namespace XianXia.Core.Simulation
                 _socialTickDriver.Tick(_world);
             WorldTravelService.AdvanceTravel(_world, 1, StrategicTravelDriver.BeginArrivalCapture());
             StrategicTravelDriver.AfterTravelTick(_world, 1);
+            CombatLifeStateService.TickCorpseDecay(_world);
             return Result.Success();
         }
 

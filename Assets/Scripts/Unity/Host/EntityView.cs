@@ -90,6 +90,19 @@ namespace XianXia.Unity.Host
             SyncFromCore(entity);
             ApplyDepthSort();
             ApplyHitFlash();
+            ApplyRemovedHide(entity);
+        }
+
+        void ApplyRemovedHide(Entity entity)
+        {
+            if (entity == null || !entity.TryGet<LifecycleComponent>(out var life) || !life.IsRemoved)
+                return;
+            if (bodyRenderer != null)
+                bodyRenderer.enabled = false;
+            if (selectionRing != null)
+                selectionRing.enabled = false;
+            if (label != null)
+                label.gameObject.SetActive(false);
         }
 
         void ApplyHitFlash()
@@ -162,6 +175,27 @@ namespace XianXia.Unity.Host
             }
 
             RefreshLabel(display);
+            ApplyLifeStateVisual(entity);
+        }
+
+        void ApplyLifeStateVisual(Entity entity)
+        {
+            if (entity == null || !entity.TryGet<LifecycleComponent>(out var life))
+                return;
+            if (life.IsDead && entity.TryGet<XianXia.Core.Combat.CorpseComponent>(out _))
+            {
+                if (activityText != "尸体")
+                    activityText = "尸体";
+                _baseColor = new Color(0.35f, 0.32f, 0.30f, 0.85f);
+                ApplyVisualState();
+            }
+            else if (life.IsIncapacitated)
+            {
+                if (activityText != "弥留")
+                    activityText = "弥留";
+                _baseColor = new Color(0.72f, 0.45f, 0.42f, 0.92f);
+                ApplyVisualState();
+            }
         }
 
         void RefreshLabel(string display = null)

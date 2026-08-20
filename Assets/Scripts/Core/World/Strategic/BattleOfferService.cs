@@ -113,14 +113,22 @@ namespace XianXia.Core.World.Strategic
             return list;
         }
 
-        public static Result ResolveAuto(SimulationWorld world, out bool playerWon)
+        public static Result ResolveAuto(
+            SimulationWorld world,
+            bool executeOnWin,
+            out bool playerWon,
+            out AutoBattleReport report)
         {
             playerWon = false;
+            report = null;
             if (world?.Strategic == null)
                 return Result.Failure(ErrorCode.InvalidOperation, "No strategic board.");
             var offer = world.Strategic.BattleOffer;
             if (offer.Resolved || string.IsNullOrEmpty(offer.OfferId))
                 return Result.Failure(ErrorCode.InvalidOperation, "No battle offer.");
+
+            var party = StrategicPursuitService.CollectEngagedPartyFromOffer(offer);
+            world.Strategic.Armies.TryGet(offer.ArmyStackId, out var enemyStack);
 
             var roll = world.Random.NextDouble();
             var winChance = offer.AutoWinPercent / 100.0;
@@ -130,17 +138,28 @@ namespace XianXia.Core.World.Strategic
 
             if (playerWon)
             {
-                world.Strategic.Armies.Remove(offer.ArmyStackId);
+                report = enemyStack != null
+                    ? AutoBattleCasualtyService.ApplyPlayerVictory(
+                        world,
+                        party,
+                        enemyStack,
+                        offer.PlayerPower,
+                        offer.EnemyPower,
+                        executeOnWin)
+                    : new AutoBattleReport { Summary = "自动战斗胜利。" };
                 StrategicPursuitService.ClearPursuit(world);
             }
             else
             {
-                // 自动战失利：只清本波接战者标记，路上增援可继续追击
-                StrategicPursuitService.ClearPursuitForEngagedKeepEnRoute(
+                report = AutoBattleCasualtyService.ApplyPlayerDefeat(
                     world,
-                    StrategicPursuitService.CollectEngagedPartyFromOffer(offer));
+                    party,
+                    offer.PlayerPower,
+                    offer.EnemyPower);
+                StrategicPursuitService.ClearPursuitForEngagedKeepEnRoute(world, party);
             }
 
+            offer.LastAutoBattleSummary = report?.Summary ?? string.Empty;
             world.Strategic.ClearBattleOffer();
             return Result.Success();
         }

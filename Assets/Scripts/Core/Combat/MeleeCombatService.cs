@@ -142,15 +142,22 @@ namespace XianXia.Core.Combat
                 return Result.Failure(ErrorCode.EntityNotFound, "Attacker missing.");
             if (!world.Entities.TryGet(defenderId, out var defender))
                 return Result.Failure(ErrorCode.EntityNotFound, "Defender missing.");
-            if (!attacker.TryGet<LifecycleComponent>(out var atkLife) || atkLife.IsDead || atkLife.IsRemoved)
+            if (!CombatLifeStateService.CanFight(attacker))
                 return Result.Failure(ErrorCode.InvalidOperation, "Attacker cannot fight.");
-            if (!defender.TryGet<LifecycleComponent>(out var defLife) || defLife.IsDead || defLife.IsRemoved)
+            if (!CombatLifeStateService.CanBeAttacked(defender))
                 return Result.Failure(ErrorCode.InvalidOperation, "Defender already down.");
 
             CombatDamageRules.EnsureVitals(attacker);
             CombatDamageRules.EnsureVitals(defender);
-            if (!defender.TryGet<CombatVitalsComponent>(out var vitals) || vitals.CurrentHp <= 0)
+            if (!defender.TryGet<CombatVitalsComponent>(out var vitals))
                 return Result.Failure(ErrorCode.InvalidOperation, "Defender has no HP.");
+
+            if (defender.TryGet<LifecycleComponent>(out var defLife) && defLife.IsIncapacitated)
+            {
+                if (CombatLifeStateService.TryConfirmDeath(world, attackerId, defender, out defenderDefeated))
+                    damageApplied = Math.Max(1, damageOverride >= 0 ? damageOverride : 1);
+                return Result.Success();
+            }
 
             var damage = damageOverride >= 0
                 ? Math.Max(1, damageOverride)
@@ -160,18 +167,7 @@ namespace XianXia.Core.Combat
                 return Result.Success();
 
             defenderDefeated = true;
-            if ((defender.Tags & EntityTag.Npc) != 0)
-            {
-                defLife.State = LifecycleState.Dead;
-                if (defender.TryGet<EncounterLinkComponent>(out var link) &&
-                    !string.IsNullOrEmpty(link.EncounterId))
-                {
-                    StoryFlagService.Set(
-                        world,
-                        ContentConditionEvaluator.EncounterFlag(link.EncounterId),
-                        attackerId);
-                }
-            }
+            CombatLifeStateService.TryEnterIncapacitated(world, defender);
 
             world.Events.Publish(
                 EventType.CombatantDefeated,

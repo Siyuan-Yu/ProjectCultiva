@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using XianXia.Core.Attributes;
+using XianXia.Core.Combat;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
@@ -125,7 +126,32 @@ namespace XianXia.Unity.Host
             Fill(rect, Parchment);
             DrawFrame(rect, ParchmentDark);
 
-            GUI.Label(new Rect(rect.x + 16f, rect.y + 12f, rect.width - 90f, 28f), "人物 · " + name, _title);
+            var lifeLabel = CombatLifeStateService.ResolveLifeStateLabel(entity);
+            if (!string.IsNullOrEmpty(lifeLabel))
+            {
+                var badge = new Rect(rect.x + 16f, rect.y + 12f, 52f, 28f);
+                var prev = GUI.color;
+                GUI.color = lifeLabel == "尸体"
+                    ? new Color(0.35f, 0.32f, 0.30f, 0.96f)
+                    : new Color(0.78f, 0.38f, 0.30f, 0.96f);
+                GUI.DrawTexture(badge, _px);
+                GUI.color = Color.white;
+                var badgeStyle = new GUIStyle(_title)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    fontSize = 13
+                };
+                GUI.Label(badge, lifeLabel, badgeStyle);
+                GUI.color = prev;
+                GUI.Label(
+                    new Rect(rect.x + 74f, rect.y + 12f, rect.width - 148f, 28f),
+                    "人物 · " + name,
+                    _title);
+            }
+            else
+            {
+                GUI.Label(new Rect(rect.x + 16f, rect.y + 12f, rect.width - 90f, 28f), "人物 · " + name, _title);
+            }
             if (HostImguiStyles.ParchmentBtn(new Rect(rect.xMax - 72f, rect.y + 10f, 56f, 28f), "关闭"))
                 open = false;
 

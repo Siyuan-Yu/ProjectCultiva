@@ -68,7 +68,7 @@ namespace XianXia.Tests
             Assert.IsTrue(world.Strategic.HasBlockingInterrupt);
             var stacksBefore = world.Strategic.Armies.Stacks.Count;
 
-            var resolved = BattleOfferService.ResolveAuto(world, out _);
+            var resolved = BattleOfferService.ResolveAuto(world, false, out _, out _);
             Assert.IsTrue(resolved.IsSuccess, resolved.IsFailure ? resolved.Error.ToString() : "");
             Assert.IsFalse(world.Strategic.HasBlockingInterrupt);
             Assert.LessOrEqual(world.Strategic.Armies.Stacks.Count, stacksBefore);
@@ -834,6 +834,70 @@ namespace XianXia.Tests
             Assert.IsTrue(world.Strategic.HasBattleOffer, "贴上挪位后的敌军应再弹接战");
             Assert.IsTrue(world.WorldPresence.TryGet(party[0], out p));
             Assert.That(p.TravelProgress, Is.EqualTo(0.85f).Within(0.08f));
+        }
+
+        [Test]
+        public void AutoBattle_Defeat_AppliesIncapacitatedOrKillToParty()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var party = session.CharacterIds;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var enemy));
+
+            world.Random = new XianXia.Core.Random.DeterministicRandom(99);
+            Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(world, party, enemy, "测试失利"));
+
+            // 强制败北：把胜率压到 0
+            world.Strategic.BattleOffer.AutoWinPercent = 0;
+            var resolved = BattleOfferService.ResolveAuto(world, false, out var won, out var report);
+            Assert.IsTrue(resolved.IsSuccess);
+            Assert.IsFalse(won);
+            Assert.IsNotNull(report);
+            Assert.Greater(report.PlayerKilled + report.PlayerIncapacitated + report.PlayerWounded, 0);
+        }
+
+        [Test]
+        public void AutoBattle_ExecuteOnWin_RemovesEnemyStack()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var party = session.CharacterIds;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var enemy));
+            var stackId = enemy.Id;
+
+            world.Random = new XianXia.Core.Random.DeterministicRandom(1);
+            Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(world, party, enemy, "测试处决"));
+            world.Strategic.BattleOffer.AutoWinPercent = 100;
+
+            var resolved = BattleOfferService.ResolveAuto(world, true, out var won, out var report);
+            Assert.IsTrue(resolved.IsSuccess);
+            Assert.IsTrue(won);
+            Assert.IsFalse(world.Strategic.Armies.TryGet(stackId, out _));
+            Assert.IsNotNull(report);
+            Assert.Greater(report.EnemyMembersEliminated, 0);
+        }
+
+        [Test]
+        public void AutoBattle_SpareOnWin_KeepsReducedEnemyStack()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var party = session.CharacterIds;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var enemy));
+            var beforeMembers = enemy.MemberCount;
+
+            world.Random = new XianXia.Core.Random.DeterministicRandom(2);
+            Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(world, party, enemy, "测试击溃"));
+            world.Strategic.BattleOffer.AutoWinPercent = 100;
+
+            var resolved = BattleOfferService.ResolveAuto(world, false, out var won, out var report);
+            Assert.IsTrue(resolved.IsSuccess);
+            Assert.IsTrue(won);
+            Assert.IsTrue(world.Strategic.Armies.TryGet(enemy.Id, out var after));
+            Assert.IsNotNull(after);
+            Assert.Less(after.MemberCount, beforeMembers);
+            Assert.IsNotNull(report);
+            Assert.Greater(report.EnemyMembersSpared, 0);
         }
     }
 }

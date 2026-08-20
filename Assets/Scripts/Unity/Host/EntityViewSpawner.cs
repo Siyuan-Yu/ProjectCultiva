@@ -1,8 +1,11 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Combat;
+using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
+using XianXia.Core.Simulation;
 
 namespace XianXia.Unity.Host
 {
@@ -60,8 +63,7 @@ namespace XianXia.Unity.Host
                 if (!LocalMapVisibility.IsEntityVisible(session.World, id))
                     continue;
                 if (session.World.Entities.TryGet(id, out var lifeEnt) &&
-                    lifeEnt.TryGet<LifecycleComponent>(out var life) &&
-                    (life.IsDead || life.IsRemoved))
+                    CombatLifeStateService.ShouldHideFromSpawn(lifeEnt))
                     continue;
                 var position = ResolvePresentationPosition(session, id, i, stackAtLocation, slotPositions);
 
@@ -86,6 +88,7 @@ namespace XianXia.Unity.Host
                 }
 
                 view.SetBaseColor(color);
+                ApplyLifeStateVisual(session.World, entity, view);
                 _registry.Register(id, view);
                 _spawned.Add(view);
             }
@@ -218,6 +221,24 @@ namespace XianXia.Unity.Host
             var rootGo = new GameObject("EntityViews");
             rootGo.transform.SetParent(transform, false);
             viewsRoot = rootGo.transform;
+        }
+
+        static void ApplyLifeStateVisual(SimulationWorld world, Entity entity, EntityView view)
+        {
+            if (world == null || entity == null || view == null)
+                return;
+            if (!entity.TryGet<LifecycleComponent>(out var life))
+                return;
+            if (life.IsDead && CombatLifeStateService.HasVisibleCorpse(entity))
+            {
+                view.SetActivityText("尸体");
+                view.SetBaseColor(new Color(0.35f, 0.32f, 0.30f, 0.85f));
+            }
+            else if (life.IsIncapacitated)
+            {
+                view.SetActivityText("弥留");
+                view.SetBaseColor(new Color(0.72f, 0.45f, 0.42f, 0.92f));
+            }
         }
 
         static void DestroyView(EntityView view)
