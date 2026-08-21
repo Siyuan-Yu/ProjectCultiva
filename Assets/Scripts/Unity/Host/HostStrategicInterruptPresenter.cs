@@ -77,15 +77,6 @@ namespace XianXia.Unity.Host
                     !world.Strategic.IsModalEncounter ||
                     autoSettle)
                     session.IsPaused = true;
-
-                var offer = session.World.Strategic.BattleOffer;
-                if (offer != null &&
-                    offer.IsJoinOngoingBattle &&
-                    bootstrap.WorldMapPanel != null &&
-                    !bootstrap.WorldMapPanel.IsOpen)
-                {
-                    bootstrap.WorldMapPanel.Open();
-                }
             }
             else if (_holding)
             {
@@ -156,10 +147,7 @@ namespace XianXia.Unity.Host
             var offer = session.World.Strategic.BattleOffer;
             if (offer != null && !offer.Resolved && !string.IsNullOrEmpty(offer.OfferId))
             {
-                if (offer.IsJoinOngoingBattle)
-                    DrawJoinOngoingBattleOffer(session, offer);
-                else
-                    DrawBattleOffer(session, offer);
+                DrawBattleOffer(session, offer);
                 return;
             }
 
@@ -315,55 +303,6 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(box.x + 24f + half, y, half, 32f), "暂不查看"))
             {
                 session.World.Strategic.ClearArrivalNotice();
-            }
-        }
-
-        void DrawJoinOngoingBattleOffer(PlayableHostSession session, BattleOfferPending offer)
-        {
-            DrawDim();
-            var box = new Rect(Screen.width * 0.5f - 240f, Screen.height * 0.5f - 150f, 480f, 300f);
-            Fill(box, Parchment);
-            DrawFrame(box, ParchmentDark);
-
-            var title = string.IsNullOrEmpty(offer.Title) ? "加入进行中的战斗" : offer.Title;
-            GUI.Label(new Rect(box.x + 16f, box.y + 12f, box.width - 32f, 26f), title, _title);
-            GUI.Label(
-                new Rect(box.x + 16f, box.y + 44f, box.width - 32f, 48f),
-                "同一场战斗已在进行，无法自动接战。是否让 " + offer.PlayerLabel + " 加入当前 LocalMap？",
-                _body);
-            GUI.Label(
-                new Rect(box.x + 16f, box.y + 92f, box.width - 32f, 22f),
-                offer.EnemyLabel + "  战力 " + offer.EnemyPower,
-                _body);
-
-            var y = box.y + box.height - 44f;
-            var half = (box.width - 40f) * 0.5f;
-            if (GUI.Button(new Rect(box.x + 16f, y, half, 32f), "加入战斗"))
-            {
-                var newcomers = StrategicPursuitService.CollectEngagedPartyFromOffer(offer);
-                var encounterMapId = offer.EncounterLocalMapId;
-                var joined = StrategicEncounterSpawner.JoinEngagedMembers(session.World, newcomers);
-                if (joined.IsSuccess)
-                {
-                    session.World.Strategic.ClearBattleOffer();
-                    StrategicClockFreezeService.BeginOrPromote(
-                        session.World,
-                        StrategicClockFreezeReason.ManualEncounter);
-                    bootstrap.CompleteEncounterJoinPresentation(newcomers, encounterMapId);
-                    session.IsPaused = false;
-                    _holding = false;
-                    ShowToast("增援已加入当前战斗。");
-                }
-                else
-                {
-                    ShowToast(joined.Error.Message);
-                }
-            }
-
-            if (GUI.Button(new Rect(box.x + 24f + half, y, half, 32f), "暂不加入"))
-            {
-                session.World.Strategic.ClearBattleOffer();
-                // 主战场仍在：保持 Manual 冻结，不恢复战略时间
             }
         }
 

@@ -1114,53 +1114,6 @@ namespace XianXia.Unity.Host
             ApplyPartyWorldNodePresentation(closeWorldMap: true);
         }
 
-        /// <summary>增援加入进行中的遭遇战：保持 Encounter 图，不重刷荒村等节点图。</summary>
-        public void CompleteEncounterJoinPresentation(
-            IReadOnlyList<EntityId> newcomers,
-            string encounterMapId = null)
-        {
-            if (!_session.IsInitialized || newcomers == null || newcomers.Count == 0)
-                return;
-
-            var world = _session.World;
-            var mapId = string.IsNullOrWhiteSpace(encounterMapId)
-                ? BattleOfferService.ResolveActiveEncounterLocalMapId(world)
-                : encounterMapId.Trim();
-
-            world.PartyWorld.LocalMapId = mapId;
-            var places = WorldRegionBootstrap.ActivatePlacesForMapLayout(
-                world, _session.Registry, mapId);
-            if (places.IsFailure)
-                Debug.LogWarning("[PlayableHost] Encounter join places: " + places.Error, this);
-
-            preferredMapLayoutId = mapId;
-            _session.PreferredMapLayoutId = mapId;
-            world.LocalMap.ActiveMapLayoutId = mapId;
-            world.LocalMap.OverworldMapLayoutId = mapId;
-
-            if (worldMapPanel != null && worldMapPanel.IsOpen)
-                worldMapPanel.Close();
-
-            StrategicEncounterSpawner.RelocatePartyOnEncounterMap(world, newcomers);
-            ReloadLocalMapPresentation(frameCamera: false);
-            _session.RefreshViewableEntityIds();
-            entityViewSpawner?.Rebuild(_session);
-            entityViewSpawner?.SyncLocations(_session);
-
-            if (selectionController != null)
-            {
-                for (var i = 0; i < newcomers.Count; i++)
-                {
-                    var id = newcomers[i];
-                    if (id.IsNone || !LocalMapVisibility.IsEntityVisible(world, id))
-                        continue;
-                    selectionController.SelectEntity(id, i > 0);
-                }
-            }
-
-            RefreshStatus();
-        }
-
         /// <summary>仅重刷地表戳（如勘查显形），不重建实体、不挪镜头。</summary>
         public void RefreshMapStampsOnly()
         {

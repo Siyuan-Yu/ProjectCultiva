@@ -450,7 +450,6 @@ namespace XianXia.Tests
             StrategicPursuitService.AfterTravelTick(world);
             Assert.IsTrue(world.Strategic.HasBlockingInterrupt, "Expected battle offer after pursuit arrival.");
             Assert.AreEqual(1, world.Strategic.BattleOffer.PlayerPartyIds.Count);
-            Assert.IsFalse(world.Strategic.BattleOffer.IsJoinOngoingBattle);
         }
 
         [Test]
@@ -510,7 +509,7 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void BattleOffer_JoinOngoingEncounter_WhenSameStackAlreadyFighting()
+        public void BattleOffer_SecondPartyWhileManualFightActive_GoesToQueue()
         {
             var session = StartCh01();
             var world = session.World;
@@ -530,24 +529,24 @@ namespace XianXia.Tests
             Assert.IsTrue(BattleOfferService.HasActiveEncounterForStack(world, stack.Id));
 
             Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(world, second, stack, "增援接战"));
-            Assert.IsTrue(world.Strategic.InterruptQueue.Count >= 1, "进行中遭遇应排队而非 JoinOngoing");
-            Assert.IsFalse(world.Strategic.BattleOffer.IsJoinOngoingBattle);
+            Assert.IsTrue(world.Strategic.InterruptQueue.Count >= 1, "手动战进行中应排队，不做战中加入");
             Assert.IsTrue(world.Strategic.Encounter.IsEngaged(session.CharacterIds[0]));
             Assert.IsFalse(world.Strategic.Encounter.IsEngaged(session.CharacterIds[1]));
+        }
 
-            var joined = StrategicEncounterSpawner.JoinEngagedMembers(world, second);
-            Assert.IsTrue(joined.IsSuccess, joined.IsFailure ? joined.Error.ToString() : "");
-            Assert.IsTrue(world.Strategic.Encounter.IsEngaged(session.CharacterIds[1]));
-            Assert.IsTrue(world.WorldPresence.TryGet(session.CharacterIds[1], out var joinedPresence));
-            Assert.AreEqual(PartyWorldPresenceMode.InEncounter, joinedPresence.Mode);
-            Assert.IsTrue(
-                world.Entities.TryGet(session.CharacterIds[1], out var entity) &&
-                entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc) &&
-                loc.HasPresentationOverride);
-            world.LocalMap.ActiveMapLayoutId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
-            Assert.IsTrue(
-                LocalMapVisibility.IsEntityVisible(world, session.CharacterIds[1]),
-                "Joiner must be visible on encounter LocalMap");
+        [Test]
+        public void BattleOffer_QueuedPromote_WhenPartyNotColocated_StartsPursuitNotOffer()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var stack));
+            var farParty = new System.Collections.Generic.List<EntityId> { session.CharacterIds[1] };
+            WorldTravelService.PlaceAgentsAtNode(world, farParty, "base:node_huangcun");
+
+            world.Strategic.InterruptQueue.Enqueue("排队测试", stack.Id, farParty);
+            Assert.IsFalse(BattleOfferService.TryPromoteNextQueuedOffer(world));
+            Assert.IsFalse(world.Strategic.HasBattleOffer, "人未到不应弹 Offer");
+            Assert.AreEqual(stack.Id, world.Strategic.Encounter.PursueStackId);
         }
 
         [Test]
@@ -724,7 +723,6 @@ namespace XianXia.Tests
             StrategicPursuitService.AfterTravelTick(world);
 
             Assert.IsTrue(world.Strategic.InterruptQueue.Count >= 1 || world.Strategic.HasBlockingInterrupt);
-            Assert.IsFalse(world.Strategic.BattleOffer.IsJoinOngoingBattle);
             Assert.IsTrue(world.Strategic.Encounter.IsEngaged(session.CharacterIds[0]));
             Assert.IsFalse(world.Strategic.Encounter.IsEngaged(session.CharacterIds[1]));
         }

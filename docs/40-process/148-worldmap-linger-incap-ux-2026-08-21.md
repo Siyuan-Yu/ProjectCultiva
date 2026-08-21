@@ -1,8 +1,9 @@
 # 148 · 大地图弥留交互与点击修补（2026-08-21）
 
-> 状态：**已落地（代码待手操验）**｜日期：2026-08-21  
-> 相对提交：`88fb4b5` → **（本篇对应提交）**  
+> 状态：**已落地（手操跳过，待补验）**｜日期：2026-08-21  
+> 相对提交：`97e3ba7` → **本篇对应提交**  
 > 上级：[147 接战点／弥留残留](147-battlefield-linger-no-teleport-2026-08-21.md)／[139 大地图 RTS](139-world-map-rts-orders-2026-08-17.md)  
+> 下级：[149 残留战场批 2](149-lingering-battlefield-batch2-2026-08-21.md)  
 > 游玩入口：`Assets/Scenes/LevelTester.unity`  
 > 飞书：https://my.feishu.cn/docx/J8FsdDl4ooiTE0xd6sZcpCdDnef
 
@@ -10,96 +11,86 @@
 
 ## 1. 一句话
 
-在 [147](147-battlefield-linger-no-teleport-2026-08-21.md) 残留战场基础上，修补 **大地图弥留头像交互**（左键／右键分工、派人探望、查看再入）与 **接战点拥挤时的点击优先级／敌军吸附**，避免误触攻击、无法派人、无法查看。
+在 [147](147-battlefield-linger-no-teleport-2026-08-21.md) 残留战场基础上，修补 **大地图弥留头像交互**、**敌军点击／接战流程**（远处可下令、到站再弹窗），并删除已废弃的 **战中 JoinOngoing 增援**。
 
 ---
 
 ## 2. 背景
 
-147 落地后手操反馈：
-
-- 我方弥留后，**无法**在不先选中附近活人的情况下「查看再入」；
-- 接战点敌军栈 **吸附过大**，右键派人／点弥留常被误判为攻击；
-- 右键敌军不出攻击菜单（移动逻辑抢先）；
-- 弥留头像 **左键／右键表现相同**（都被当普通选中）；
-- 已选活人时，右键弥留应 **派人探望**，而非一律弹查看菜单。
-
-本轮 **仅改 Host 大地图交互**（`HostWorldMapPanel.cs`），Core 战略规则未动。
+147 落地后手操反馈：弥留再入、接战点点击优先级、右键分工等。本轮先完成 **批 1 + 战略层接战一致性**，手操清单暂跳过，由 [149](149-lingering-battlefield-batch2-2026-08-21.md) 接续探望到站与 Core 下沉。
 
 ---
 
-## 3. 产品规则（本轮实现）
+## 3. 产品规则
 
 ### 3.1 我方弥留头像
 
 | 操作 | 条件 | 行为 |
 |------|------|------|
-| **左键** | 任意 | 不加入 `_selected`；底栏提示「右键查看／先选活人再右键派人」 |
-| **右键** | 未选可下令活人 | 打开 **查看菜单**（「查看（再入战场）」） |
-| **右键** | 已选可下令活人 | **派人探望**：`WorldTravelConfirm` 移动到弥留者所在节点／路段／接战锚点 |
-| **右键** | 活人已在弥留者旁且仍有残留战场 | 无法再移动时，改开 **查看菜单** |
+| **左键** | 任意 | 不加入 `_selected`；弥留／尸体不可选 |
+| **右键** | 未选可下令活人 | 「**进入残留战场**」（支援范围内可进；无活人可 solo 弥留再入） |
+| **右键** | 已选可下令活人 | **派人探望**（移动确认） |
+| **右键** | 活人已在旁且仍有残留 | 无法再移动时改开进入菜单 |
 
-弥留我方头像：**红 tint**（与敌兵「弥」字头像区分）。
+### 3.2 敌军栈（活／弥留统一）
 
-### 3.2 敌军栈点击
+| 规则 | 说明 |
+|------|------|
+| 选人 | 左键选活人；无选人不弹攻击菜单 |
+| 远处攻击 | **可出菜单、可下令**；**不立刻弹接战** |
+| 到站 | 宏观追击／移动 → **与栈重合** 后 `AfterTravelTick` 弹接战 |
+| 弥留敌军 | 同一套 Offer（手动／自动）；处决勾选可彻底击杀弥留 |
 
-| 操作 | 优先级 | 吸附 |
-|------|--------|------|
-| **左键** | 我方头像 → 敌军 → 节点 | 圆形半径 **+16px**；与头像重叠时 **+8px** |
-| **右键** | 我方头像 → 敌军 → 节点／道路移动 | 同上（左／右统一半径，避免「左键好中右键难点」） |
+### 3.3 进入残留战场（我方专用入口）
 
-### 3.3 查看再入（`EnterLingeringBattlefield`）
+- 支援半径内活人优先组队；无活人则弥留 solo。
+- `TryResolveBattleAnchor`：Participants 缺失时 fallback 弥留 presence。
+- 仍要求 `BattlefieldLingering == true`。
+- **不经接战 Offer**（批 3 再对齐）。
 
-- `CollectLingeringViewParty`：优先 **接战锚点半径内活人**；若无活人则允许 **锚点上弥留者单独再入**（不要求另选活人）。
-- 仍要求 `BattlefieldLingering == true` 且 `Participants` 有 BattleAnchor。
+### 3.4 接战排队
 
-### 3.4 Debug（暂保留）
+- 上一场 Offer／Modal 占用时，新攻击 **入队**。
+- **出队 promote** 时：人 **未到栈旁** → 只 **追击**，不弹 Offer；到了才 `ActivateOffer`。
 
-- 支援半径 **绿圈** + 底栏滑块：Debug 用，正式版再关（见会话约定）。
+### 3.5 已删除
+
+- **JoinOngoing 战中增援**（`JoinEngagedMembers`、加入战斗 UI）：手动战时间停止，不再半路上加人。
 
 ---
 
-## 4. 实现要点
+## 4. 改动文件
+
+| 层 | 文件 |
+|----|------|
+| Host | `HostWorldMapPanel.cs`（批 1 交互、`ExecuteAttackStack` 只走 Pursuit） |
+| Core | `BattleOfferService.cs`（排队 promote 到站检查） |
+| Core | `StrategicEncounterSpawner.cs`（删 JoinEngagedMembers） |
+| Host | `HostStrategicInterruptPresenter.cs`、`PlayableHostBootstrap.cs`（删 Join UI） |
+| Test | `StrategicPhaseTests.cs` |
+
+---
+
+## 5. 手操清单（跳过待补）
+
+1. 弥留 solo / 半径内活人 → 进入残留战场  
+2. 探望移动 vs 进入菜单分工  
+3. 远处攻击 → 人动 → 到站接战  
+4. 接战排队：人未到不弹窗  
+5. 147 回归  
+
+**状态：** 制作人 **手操跳过（2026-08-21）**，待补验。
+
+---
+
+## 6. 留给 149／批 3
 
 | 项 | 说明 |
 |----|------|
-| `CollectLingeringViewParty` | 残留战场再入队伍收集（锚点 + 支援半径） |
-| `TryDispatchSelectedLivingToIncap` | 已选活人 → 探望移动确认 |
-| `TryBuildTravelTargetForIncap` | 由弥留 presence／BattleAnchor 解析 `WorldTravelTarget` |
-| `CollectSelectedLivingOrderableParty` | 选中集过滤弥留／尸体，仅活人可下令 |
-| `TryHitArmyStack` | 圆形吸附 + `ResolveArmyStackHitPad`（拥挤时缩小） |
-| `OpenIncapAvatarMenu` | 统一打开弥留查看菜单 |
-
-**改动文件：** `Assets/Scripts/Unity/Host/HostWorldMapPanel.cs`（约 +400 行净增，相对 `eece220`）。
-
-**编译修复：** 左键头像分支重复声明 `id`（CS0128）已删除。
-
----
-
-## 5. 手操清单（待验）
-
-1. 战后我方弥留 → **不选人** → 右键红头像 → 查看菜单 →「查看（再入战场）」进图  
-2. **不选人** → 单人全队弥留 → 仍可通过查看菜单再入（无活人接应）  
-3. 左键选 1～2 活人 → 右键弥留 → **移动确认**（探望），非查看菜单  
-4. 活人走到接战点旁 → 再右键弥留 → 查看菜单可再入  
-5. 接战点：左键选我方 → 右键敌军 → **攻击菜单**（非移动）  
-6. 接战点：右键节点空白 → **移动确认**（非误触敌军）  
-7. 147 原清单 1～7 回归（无瞬移、残留再攻、支援滑块等）  
-
-**状态：** 制作人 **尚未签收**。
-
----
-
-## 6. 已知缺口（未在本轮修）
-
-| 缺口 | 说明 |
-|------|------|
-| 再入 bypass Offer | `EnterLingeringBattlefield` 不经接战弹窗，与「和进战斗一样的前置交互」仍有差距 |
-| 探望到站 | 到站后无自动衔接「查看战场」；需再右键弥留或手动 |
-| `CollectLingeringViewParty` 在 UI 层 | 应下沉 Core，与 `EnterLingeringBattlefield` 共用校验 |
-| Encounter 图 | 仍多为 `base:map_world_node_stub`（138 方案 A 未做） |
-| 队伍收集 API | `CollectOrderableParty`／`FilterOrderableParty`／Living 版三处并存 |
-| `HostWorldMapPanel` 体量 | ~1800 行，宜拆 hit-test／menu／linger presenter |
+| 探望到站衔接 | 149 批 2 |
+| `CollectLingeringViewParty` 下沉 Core | 149 批 2 |
+| 再进走 Offer | 批 3 |
+| Encounter LocalMapId | 138 方案 A |
 
 ---
 
@@ -107,4 +98,5 @@
 
 | 日期 | 说明 |
 |------|------|
-| 2026-08-21 | 初版：弥留左／右键分工、探望移动、点击优先级、再入队伍收集、CS0128 |
+| 2026-08-21 | 收束：排队 promote 到站检查；删 JoinOngoing；攻击只走 Pursuit；文档／飞书／提交 |
+| 2026-08-21 | 批 1 + 敌军交互澄清 + `ExecuteAttackStack` 修正 |

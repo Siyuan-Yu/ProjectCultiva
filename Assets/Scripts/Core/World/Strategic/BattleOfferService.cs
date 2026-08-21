@@ -34,7 +34,7 @@ namespace XianXia.Core.World.Strategic
 
             world.Strategic.ClearArrivalNotice();
 
-            // 战中 JoinOngoing 降级：改为排队，不做战中动态加入
+            // 同栈 Modal 进行中：入队等待（手动战时间停止，不做战中动态加入）
             if (HasActiveEncounterForStack(world, enemy.Id))
             {
                 world.Strategic.InterruptQueue.Enqueue(
@@ -56,7 +56,6 @@ namespace XianXia.Core.World.Strategic
         {
             var offer = world.Strategic.BattleOffer;
             offer.Resolved = false;
-            offer.IsJoinOngoingBattle = false;
             offer.OfferId = "offer:" + enemy.Id + ":" + world.Tick.Value + ":" +
                             world.Strategic.InterruptQueue.Count;
             offer.ArmyStackId = enemy.Id;
@@ -306,18 +305,25 @@ namespace XianXia.Core.World.Strategic
             if (!world.Strategic.InterruptQueue.TryDequeue(out var queued) || queued == null)
                 return false;
             if (!world.Strategic.Armies.TryGet(queued.ArmyStackId, out var enemy) || enemy == null)
-            {
-                // 敌军已不在：继续下一场
                 return TryPromoteNextQueuedOffer(world);
-            }
 
             var party = queued.ToPartyList();
             if (party.Count == 0)
                 return TryPromoteNextQueuedOffer(world);
 
+            var ready = new List<EntityId>(party.Count);
+            StrategicEngageRules.CollectPartyReadyToEngageStack(world, party, enemy, ready);
+            if (ready.Count == 0)
+            {
+                // 排队轮到但人未到：上路追击，到站后由 AfterTravelTick 弹接战（禁止远程瞬开 Offer）
+                StrategicPursuitService.BeginPursuit(world, party, enemy);
+                StrategicPursuitService.SyncPursuersToStack(world, party, enemy);
+                return false;
+            }
+
             StrategicClockFreezeService.BeginOrPromote(
                 world, StrategicClockFreezeReason.BattleOffer);
-            return ActivateOffer(world, party, enemy, queued.Title);
+            return ActivateOffer(world, ready, enemy, queued.Title);
         }
     }
 }

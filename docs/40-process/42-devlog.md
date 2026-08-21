@@ -7,11 +7,22 @@
 
 ---
 
+## 2026-08-21 — 148 收束：批 1 + 接战一致性 + 删 JoinOngoing
+
+**做了什么**
+- `HostWorldMapPanel` 批 1；`ExecuteAttackStack` 仅 Pursuit 到站弹接战  
+- `BattleOfferService.TryPromoteNextQueuedOffer` 人未到只追击  
+- 删除 `JoinEngagedMembers`／JoinOngoing UI；测例更新  
+- 收束 [148](148-worldmap-linger-incap-ux-2026-08-21.md)；飞书同步；提交（手操跳过）  
+- 下一步：[149 批 2](149-lingering-battlefield-batch2-2026-08-21.md)
+
+---
+
 ## 2026-08-21 — 148 大地图弥留交互与点击修补（待手操验）
 
 **做了什么**
-- `HostWorldMapPanel`：弥留左／右键分工（查看 vs 派人探望）、`CollectLingeringViewParty`、敌军圆形吸附与命中优先级、CS0128  
-- 新建 [148](148-worldmap-linger-incap-ux-2026-08-21.md)；更新 147／62／路线图／通读；飞书 provision＋同步；推 GitHub  
+- `HostWorldMapPanel`：弥留左／右键分工、`CollectLingeringViewParty`、敌军吸附与命中优先级  
+- 新建 [148](148-worldmap-linger-incap-ux-2026-08-21.md)；飞书 provision＋同步  
 
 ---
 
