@@ -10,8 +10,8 @@
 ## 1. 一句话现状
 
 **Architecture Freeze v0.2 有效（+ADR-0023 补丁）。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**。  
-**本轮：** [ADR-0023](43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md) Phase A～F＋[146](146-adr0023-host-ux-polish-2026-08-21.md) Host 打磨已落地；日常试玩用 **LevelTester**。  
-**下一步：** Host 手操签收 145／146 → 占点／外交或 Snapshot 纳入 Strategic。
+**本轮：** [ADR-0023](43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md) Phase A～F＋[146](146-adr0023-host-ux-polish-2026-08-21.md) **Host 手操已签收（2026-08-21）**。  
+**下一步：** 占点／外交，或 Snapshot 纳入 Strategic／冻结态（二选一开刀）。
 ---
 
 ## 2. 切片进度与验收

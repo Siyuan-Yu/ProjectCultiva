@@ -919,6 +919,7 @@ namespace XianXia.Unity.Host
                 world.PartyWorld.LocalMapId = targetMap;
             }
             var inStrategicEncounter = world.Strategic?.Encounter != null &&
+                                         !world.Strategic.Encounter.BattlefieldLingering &&
                                          (world.Strategic.Encounter.SpawnOnNextMapLoad ||
                                           world.Strategic.Encounter.SpawnedEntityIds.Count > 0 ||
                                           !string.IsNullOrEmpty(world.PartyWorld.EncounterId));
@@ -1082,6 +1083,35 @@ namespace XianXia.Unity.Host
 
                 TryFrameCameraOnParty();
             }
+        }
+
+        /// <summary>残留战场：存活角色「查看」弥留同伴／再入接战 LocalMap。</summary>
+        public void EnterLingeringBattlefield(IReadOnlyList<EntityId> party)
+        {
+            if (!_session.IsInitialized || party == null || party.Count == 0)
+                return;
+            var world = _session.World;
+            if (world?.Strategic?.Encounter == null ||
+                !world.Strategic.Encounter.BattlefieldLingering)
+                return;
+
+            var rt = world.Strategic.Encounter;
+            var mapId = BattleOfferService.ResolveActiveEncounterLocalMapId(world);
+            StrategicEncounterSpawner.PlanManualEncounter(
+                world,
+                rt.ArmyStackId,
+                string.IsNullOrEmpty(rt.EncounterLinkId) ? "linger" : rt.EncounterLinkId,
+                party);
+            world.PartyWorld.LocalMapId = mapId;
+            world.PartyWorld.EncounterId = string.IsNullOrEmpty(rt.EncounterLinkId)
+                ? "linger"
+                : rt.EncounterLinkId;
+            preferredMapLayoutId = mapId;
+            _session.PreferredMapLayoutId = mapId;
+            StrategicClockFreezeService.BeginOrPromote(
+                world, StrategicClockFreezeReason.ManualEncounter);
+            _session.IsPaused = false;
+            ApplyPartyWorldNodePresentation(closeWorldMap: true);
         }
 
         /// <summary>增援加入进行中的遭遇战：保持 Encounter 图，不重刷荒村等节点图。</summary>

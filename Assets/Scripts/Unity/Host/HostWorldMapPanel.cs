@@ -23,6 +23,10 @@ namespace XianXia.Unity.Host
         /// </summary>
         const float MinViewHalfExtent = 1.5f;
         const float MapPad = 48f;
+        /// <summary>底部支援半径滑块条高度。</summary>
+        const float BottomBarH = 36f;
+        const float ReinforceRadiusMin = 0.25f;
+        const float ReinforceRadiusMax = 4f;
 
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] KeyCode toggleKey = KeyCode.M;
@@ -43,6 +47,11 @@ namespace XianXia.Unity.Host
         Rect _stackMenuRect;
         bool _stackMenuOpen;
         readonly List<EntityId> _attackPartyScratch = new List<EntityId>(8);
+
+        // 弥留头像右键：查看再入战场
+        ulong _avatarMenuEntityId;
+        bool _avatarMenuOpen;
+        Rect _avatarMenuRect;
 
         // 节点左键菜单
         string _nodeMenuNodeId = string.Empty;
@@ -336,19 +345,22 @@ namespace XianXia.Unity.Host
                 pad,
                 mapTop,
                 Screen.width - pad * 2f,
-                Screen.height - mapTop - pad);
+                Screen.height - mapTop - pad - BottomBarH);
             GUI.color = new Color(0.12f, 0.14f, 0.16f, 1f);
             GUI.DrawTexture(mapRect, _px);
             GUI.color = Color.white;
 
             HandleCameraInput(mapRect);
             DrawGraph(mapRect, world, graph);
+            DrawReinforcementRadiusOverlay(mapRect, world);
             DrawNodeContextMenu(mapRect, world, graph);
             DrawStackContextMenu(world, graph);
+            DrawAvatarContextMenu(world);
+            DrawReinforcementRadiusSlider(pad, world);
             TryDismissContextMenusOnOutsideClick();
             if (Event.current != null && Event.current.type == EventType.Used)
                 return;
-            if (_stackMenuOpen || _nodeMenuOpen)
+            if (_stackMenuOpen || _nodeMenuOpen || _avatarMenuOpen)
                 return;
             HandleMapInput(mapRect, world, graph);
             HostUiHitTest.EndFrame();
@@ -463,6 +475,185 @@ namespace XianXia.Unity.Host
             }
         }
 
+        void DrawReinforcementRadiusSlider(float pad, XianXia.Core.Simulation.SimulationWorld world)
+        {
+            if (world?.Strategic == null)
+                return;
+
+            var bar = new Rect(
+                pad,
+                Screen.height - BottomBarH - 8f,
+                Screen.width - pad * 2f,
+                BottomBarH);
+            HostUiHitTest.Block(bar);
+
+            var prev = GUI.color;
+            GUI.color = new Color(0.14f, 0.15f, 0.17f, 0.96f);
+            GUI.DrawTexture(bar, _px);
+            GUI.color = prev;
+
+            var radius = ReinforcementRangeService.GetWorldRadius(world);
+            GUI.Label(
+                new Rect(bar.x + 10f, bar.y + 8f, 118f, 22f),
+                "支援半径 " + radius.ToString("0.00"),
+                _body);
+
+            var sliderRect = new Rect(bar.x + 128f, bar.y + 10f, Mathf.Max(120f, bar.width - 220f), 18f);
+            var next = GUI.HorizontalSlider(sliderRect, radius, ReinforceRadiusMin, ReinforceRadiusMax);
+            // 步进 0.05，避免浮点抖动
+            next = Mathf.Round(next * 20f) / 20f;
+            if (!Mathf.Approximately(next, radius))
+                world.Strategic.ReinforcementWorldRadius = next;
+
+            if (GUI.Button(new Rect(bar.xMax - 72f, bar.y + 6f, 62f, 24f), "默认"))
+                world.Strategic.ReinforcementWorldRadius = ReinforcementRangeService.DefaultWorldRadius;
+        }
+
+        /// <summary>以当前选中单位／敌军栈为圆心画支援半径圈（世界坐标）。</summary>
+        void DrawReinforcementRadiusOverlay(Rect mapRect, XianXia.Core.Simulation.SimulationWorld world)
+        {
+            if (world?.Strategic == null)
+                return;
+            if (!TryGetReinforceOverlayCenter(world, out var cx, out var cy))
+                return;
+
+            var radius = ReinforcementRangeService.GetWorldRadius(world);
+            if (radius <= 0f)
+                return;
+
+            var center = Project(mapRect, cx, cy);
+            var edge = Project(mapRect, cx + radius, cy);
+            var pixelR = Mathf.Abs(edge.x - center.x);
+            if (pixelR < 4f)
+                return;
+
+            var prev = GUI.color;
+            GUI.color = new Color(0.35f, 0.72f, 0.55f, 0.22f);
+            // 半透明填充（近似：中心小方块叠圆环感弱，用环线为主）
+            DrawWireCircle(center, pixelR, mapRect, 48);
+            GUI.color = new Color(0.35f, 0.72f, 0.55f, 0.85f);
+            DrawWireCircle(center, pixelR, mapRect, 64);
+            GUI.color = prev;
+        }
+
+        bool TryGetReinforceOverlayCenter(
+            XianXia.Core.Simulation.SimulationWorld world,
+            out float cx,
+            out float cy)
+        {
+            cx = 0f;
+            cy = 0f;
+
+            // 优先：已选敌军栈（接战锚点）
+            if (!string.IsNullOrEmpty(_selectedStackId) &&
+                world.Strategic.Armies.TryGet(_selectedStackId, out var stack) &&
+                stack != null)
+            {
+                if (TryResolveStackWorldXY(world, stack, out cx, out cy))
+                    return true;
+            }
+
+            // 其次：已选己方头像
+            if (_selected.Count > 0)
+            {
+                foreach (var idVal in _selected)
+                {
+                    var id = new EntityId(idVal);
+                    if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
+                        continue;
+                    if (ReinforcementRangeService.TryGetPresenceWorldXY(world, wp, out cx, out cy))
+                        return true;
+                }
+            }
+
+            // 再次：接战 Offer 锚点
+            var snap = world.Strategic.Participants;
+            if (snap != null &&
+                (!string.IsNullOrEmpty(snap.BattleAnchorNodeId) ||
+                 !string.IsNullOrEmpty(snap.BattleAnchorRouteId)))
+            {
+                return ReinforcementRangeService.TryGetAnchorWorldXY(
+                    world,
+                    snap.BattleAnchorNodeId,
+                    snap.BattleAnchorRouteId,
+                    snap.BattleAnchorProgress,
+                    out cx,
+                    out cy);
+            }
+
+            return false;
+        }
+
+        static bool TryResolveStackWorldXY(
+            XianXia.Core.Simulation.SimulationWorld world,
+            ArmyStack stack,
+            out float cx,
+            out float cy)
+        {
+            cx = 0f;
+            cy = 0f;
+            if (stack == null || world?.WorldGraph == null)
+                return false;
+            if (stack.IsRoutePositioned)
+            {
+                return ReinforcementRangeService.TryGetAnchorWorldXY(
+                    world,
+                    stack.NodeId,
+                    stack.RouteId,
+                    stack.GetRouteDisplayProgress(),
+                    out cx,
+                    out cy);
+            }
+
+            if (string.IsNullOrEmpty(stack.NodeId) ||
+                !world.WorldGraph.TryGetNode(stack.NodeId, out var node) ||
+                node == null)
+                return false;
+            cx = node.WorldX;
+            cy = node.WorldY;
+            return true;
+        }
+
+        void DrawWireCircle(Vector2 center, float radiusPx, Rect clip, int segments)
+        {
+            if (radiusPx < 1f || segments < 8)
+                return;
+            var step = Mathf.PI * 2f / segments;
+            Vector2 prev = default;
+            for (var i = 0; i <= segments; i++)
+            {
+                var a = i * step;
+                var p = new Vector2(
+                    center.x + Mathf.Cos(a) * radiusPx,
+                    center.y + Mathf.Sin(a) * radiusPx);
+                if (i > 0)
+                    DrawClippedSegment(prev, p, clip);
+                prev = p;
+            }
+        }
+
+        void DrawClippedSegment(Vector2 a, Vector2 b, Rect clip)
+        {
+            // 粗略：两端都在外则跳过；否则画细线
+            if (!clip.Contains(a) && !clip.Contains(b))
+            {
+                var mid = (a + b) * 0.5f;
+                if (!clip.Contains(mid))
+                    return;
+            }
+
+            var dx = b.x - a.x;
+            var dy = b.y - a.y;
+            var len = Mathf.Sqrt(dx * dx + dy * dy);
+            if (len < 0.5f)
+                return;
+            var angle = Mathf.Atan2(dy, dx) * Mathf.Rad2Deg;
+            var matrix = GUI.matrix;
+            GUIUtility.RotateAroundPivot(angle, a);
+            GUI.DrawTexture(new Rect(a.x, a.y - 1f, len, 2f), _px);
+            GUI.matrix = matrix;
+        }
+
         static int CycleSpeedValue(int current)
         {
             if (current <= 1)
@@ -515,6 +706,7 @@ namespace XianXia.Unity.Host
             }
 
             DrawArmyStacks(mapRect, world, graph);
+            DrawLingeringIncapAvatars(mapRect, world);
         }
 
         void DrawArmyStacks(
@@ -863,18 +1055,31 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            // 右键头像：选中（进入场景请左键节点菜单）
+            // 右键头像：弥留 → 查看再入；否则选中
             foreach (var kv in _avatarRects)
             {
                 if (!kv.Value.Contains(mouse))
                     continue;
+                var hitId = new EntityId(kv.Key);
+                if (IsIncapacitatedEntity(world, hitId))
+                {
+                    CollectSelectedParty(_scratchParty);
+                    CollectOrderableParty(world, _scratchParty, _attackPartyScratch);
+                    _avatarMenuEntityId = kv.Key;
+                    _avatarMenuOpen = true;
+                    _avatarMenuRect = new Rect(mouse.x + 4f, mouse.y + 4f, 196f, 72f);
+                    _status = EntityLabel(world, hitId) + "（弥留）｜可「查看」再入战场";
+                    e.Use();
+                    return;
+                }
+
                 if (!_selected.Contains(kv.Key))
                 {
                     _selected.Clear();
                     _selected.Add(kv.Key);
                 }
 
-                _status = "已选 " + EntityLabel(world, new EntityId(kv.Key)) + "｜右键节点/道路移动";
+                _status = "已选 " + EntityLabel(world, hitId) + "｜右键节点/道路移动";
                 e.Use();
                 return;
             }
@@ -1106,7 +1311,8 @@ namespace XianXia.Unity.Host
             var hasParty = _attackPartyScratch.Count > 0;
             GUI.enabled = hasParty;
 
-            if (GUI.Button(new Rect(_stackMenuRect.x + 8f, y, bw, 22f), "攻击"))
+            var attackLabel = stack.IsBattlefieldRemnant ? "攻击（再入战场）" : "攻击";
+            if (GUI.Button(new Rect(_stackMenuRect.x + 8f, y, bw, 22f), attackLabel))
             {
                 Event.current.Use();
                 if (hasParty)
@@ -1141,13 +1347,109 @@ namespace XianXia.Unity.Host
                 return;
             if (_nodeMenuOpen && _nodeMenuRect.Contains(ev.mousePosition))
                 return;
+            if (_avatarMenuOpen && _avatarMenuRect.Contains(ev.mousePosition))
+                return;
 
-            if (!_stackMenuOpen && !_nodeMenuOpen)
+            if (!_stackMenuOpen && !_nodeMenuOpen && !_avatarMenuOpen)
                 return;
 
             _stackMenuOpen = false;
             _nodeMenuOpen = false;
+            _avatarMenuOpen = false;
             ev.Use();
+        }
+
+        void DrawAvatarContextMenu(XianXia.Core.Simulation.SimulationWorld world)
+        {
+            if (!_avatarMenuOpen)
+                return;
+            var target = new EntityId(_avatarMenuEntityId);
+            if (target.IsNone || !IsIncapacitatedEntity(world, target))
+            {
+                _avatarMenuOpen = false;
+                return;
+            }
+
+            var prevDepth = GUI.depth;
+            GUI.depth = -85;
+            HostUiHitTest.Block(_avatarMenuRect);
+            var prev = GUI.color;
+            GUI.color = new Color(0.16f, 0.17f, 0.19f, 0.96f);
+            GUI.DrawTexture(_avatarMenuRect, _px);
+            GUI.color = prev;
+            GUI.Label(
+                new Rect(_avatarMenuRect.x + 8f, _avatarMenuRect.y + 4f, _avatarMenuRect.width - 16f, 18f),
+                EntityLabel(world, target) + " · 弥留",
+                _body);
+            CollectSelectedParty(_scratchParty);
+            CollectOrderableParty(world, _scratchParty, _attackPartyScratch);
+            var canView = _attackPartyScratch.Count > 0 &&
+                          BattleOfferService.HasLingeringBattlefield(world);
+            GUI.enabled = canView;
+            if (GUI.Button(
+                    new Rect(_avatarMenuRect.x + 8f, _avatarMenuRect.y + 28f, _avatarMenuRect.width - 16f, 28f),
+                    "查看（再入战场）") &&
+                canView)
+            {
+                Event.current.Use();
+                bootstrap.EnterLingeringBattlefield(_attackPartyScratch);
+                _avatarMenuOpen = false;
+                Close();
+            }
+
+            GUI.enabled = true;
+            GUI.depth = prevDepth;
+        }
+
+        void DrawLingeringIncapAvatars(
+            Rect mapRect,
+            XianXia.Core.Simulation.SimulationWorld world)
+        {
+            var rt = world.Strategic?.Encounter;
+            if (rt == null || (!rt.BattlefieldLingering && rt.SpawnedEntityIds.Count == 0))
+                return;
+            for (var i = 0; i < rt.SpawnedEntityIds.Count; i++)
+            {
+                var id = new EntityId(rt.SpawnedEntityIds[i]);
+                if (!IsIncapacitatedEntity(world, id))
+                    continue;
+                if (!world.WorldPresence.TryGet(id, out var presence) || presence == null)
+                    continue;
+                if (!WorldTravelService.TryResolveTravelWorldPoints(
+                        world, presence, out var fx, out var fy, out var tx, out var ty))
+                    continue;
+                float wx = fx, wy = fy;
+                if (presence.HasRoutePresentation)
+                {
+                    var t = presence.Mode == PartyWorldPresenceMode.RouteAnchored
+                        ? Mathf.Clamp01(presence.RouteAnchorProgress)
+                        : Mathf.Clamp01(presence.TravelProgress);
+                    wx = Mathf.Lerp(fx, tx, t);
+                    wy = Mathf.Lerp(fy, ty, t);
+                }
+
+                var p = Project(mapRect, wx, wy);
+                var rect = new Rect(p.x - AvatarSize * 0.5f, p.y - AvatarSize * 0.5f, AvatarSize, AvatarSize);
+                if (!rect.Overlaps(mapRect))
+                    continue;
+                _avatarRects[id.Value] = rect;
+                var old = GUI.color;
+                GUI.color = new Color(0.75f, 0.25f, 0.2f, 0.9f);
+                GUI.DrawTexture(rect, _px);
+                GUI.color = old;
+                GUI.Label(rect, "弥", _avatarLabel);
+            }
+        }
+
+        static bool IsIncapacitatedEntity(
+            XianXia.Core.Simulation.SimulationWorld world,
+            EntityId id)
+        {
+            if (world == null || id.IsNone)
+                return false;
+            if (!world.Entities.TryGet(id, out var ent) || ent == null)
+                return false;
+            return ent.TryGet<LifecycleComponent>(out var life) && life.IsIncapacitated;
         }
 
         void BeginAttackStack(

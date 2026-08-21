@@ -84,6 +84,7 @@ namespace XianXia.Core.World.Strategic
     {
         public string OfferId { get; set; } = string.Empty;
         public string BattleAnchorNodeId { get; set; } = string.Empty;
+        public string BattleAnchorDestNodeId { get; set; } = string.Empty;
         public string BattleAnchorRouteId { get; set; } = string.Empty;
         public float BattleAnchorProgress { get; set; } = -1f;
         public string PrimaryEnemyStackId { get; set; } = string.Empty;
@@ -102,6 +103,7 @@ namespace XianXia.Core.World.Strategic
         {
             OfferId = string.Empty;
             BattleAnchorNodeId = string.Empty;
+            BattleAnchorDestNodeId = string.Empty;
             BattleAnchorRouteId = string.Empty;
             BattleAnchorProgress = -1f;
             PrimaryEnemyStackId = string.Empty;
@@ -179,9 +181,9 @@ namespace XianXia.Core.World.Strategic
         public static int DefaultMaxHops { get; set; } = 1;
 
         /// <summary>
-        /// 默认世界坐标半径。ch01 节点间距约 2～4；1.0 ≈ 贴战场一小簇，不含邻村。
+        /// 默认世界坐标半径。ch01 节点间距约 2～4；0.25 ≈ 贴战场极近，不含邻村。
         /// </summary>
-        public static float DefaultWorldRadius { get; set; } = 1.0f;
+        public static float DefaultWorldRadius { get; set; } = 0.25f;
 
         public static int GetThreshold(SimulationWorld world)
         {

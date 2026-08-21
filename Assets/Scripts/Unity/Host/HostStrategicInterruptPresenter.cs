@@ -95,14 +95,12 @@ namespace XianXia.Unity.Host
                 _holding = false;
             }
 
-            // 清场 → PostBattle（事件漏同步时每帧兜底）
+            // 清场或我方全倒 → PostBattle（事件漏同步时每帧兜底）
             if (world?.Strategic != null &&
-                world.Strategic.IsModalEncounter)
+                world.Strategic.ClockFreeze.Reason == StrategicClockFreezeReason.ManualEncounter)
             {
                 StrategicEncounterSpawner.TryMarkFieldCleared(world);
-                if (world.Strategic.ClockFreeze.Reason == StrategicClockFreezeReason.ManualEncounter &&
-                    StrategicEncounterSpawner.IsFieldCleared(world))
-                    StrategicEncounterResolveService.EnterPostBattleIfCleared(world);
+                StrategicEncounterResolveService.TryEnterPostBattleFromManual(world);
             }
         }
 
@@ -182,11 +180,12 @@ namespace XianXia.Unity.Host
                 return;
             if (world.Strategic.ClockFreeze.Reason != StrategicClockFreezeReason.PostBattle &&
                 !(world.Strategic.ClockFreeze.Reason == StrategicClockFreezeReason.ManualEncounter &&
-                  StrategicEncounterSpawner.IsFieldCleared(world)))
+                  (StrategicEncounterSpawner.IsFieldCleared(world) ||
+                   StrategicEncounterResolveService.AreAllEngagedFriendliesDown(world))))
                 return;
 
             if (world.Strategic.ClockFreeze.Reason == StrategicClockFreezeReason.ManualEncounter)
-                StrategicEncounterResolveService.EnterPostBattleIfCleared(world);
+                StrategicEncounterResolveService.TryEnterPostBattleFromManual(world);
 
             EnsureStyles();
             var auto = world.Strategic.Participants.IsAutoSettlement;
@@ -250,23 +249,29 @@ namespace XianXia.Unity.Host
                 ? freeze.SavedSpeedMultiplier
                 : (bootstrap != null ? bootstrap.EffectiveSpeedMultiplier() : 1);
             var resolved = StrategicEncounterResolveService.ResolveAndEnd(world);
-            if (resolved.IsSuccess)
-            {
-                _holding = false;
-                if (!world.Strategic.IsWorldTickFrozen)
+                if (resolved.IsSuccess)
                 {
-                    session.IsPaused = savedPaused;
-                    if (bootstrap != null)
-                        bootstrap.ApplySavedSpeedMultiplier(savedSpeed);
-                    bootstrap.WorldMapPanel?.Open();
-                    ShowToast("遭遇已结束，返回战略层。");
+                    _holding = false;
+                    if (!world.Strategic.IsWorldTickFrozen)
+                    {
+                        session.IsPaused = savedPaused;
+                        if (bootstrap != null)
+                            bootstrap.ApplySavedSpeedMultiplier(savedSpeed);
+                        bootstrap.WorldMapPanel?.Open();
+                        if (BattleOfferService.HasLingeringBattlefield(world))
+                        {
+                            bootstrap.ApplyPartyWorldNodePresentation(closeWorldMap: false);
+                            ShowToast("已退出战斗。弥留者仍在接战点，战场未消失。");
+                        }
+                        else
+                            ShowToast("遭遇已结束，返回战略层。");
+                    }
+                    else
+                    {
+                        session.IsPaused = true;
+                        ShowToast("下一场接战已就绪。");
+                    }
                 }
-                else
-                {
-                    session.IsPaused = true;
-                    ShowToast("下一场接战已就绪。");
-                }
-            }
             else
                 ShowToast(resolved.Error.Message);
         }
@@ -475,7 +480,7 @@ namespace XianXia.Unity.Host
             _executeOnWin = GUI.Toggle(
                 new Rect(box.x + 16f, toggleY, box.width - 32f, 22f),
                 _executeOnWin,
-                "战胜时直接击杀（不勾选则仅击溃敌军）");
+                "战胜时直接击杀（不勾选＝敌军全部弥留，可再进补刀）");
 
             var y = box.y + box.height - 44f;
             var third = (box.width - 40f) / 3f;
@@ -577,7 +582,12 @@ namespace XianXia.Unity.Host
                 memberCount,
                 Math.Max(1, power / Math.Max(1, memberCount)));
             StrategicPursuitService.ClearPursuitForEngagedKeepEnRoute(session.World, engaged);
-            session.World.PartyWorld.LocalMapId = localMapId.Trim();
+            var map = string.IsNullOrWhiteSpace(localMapId)
+                ? BattleOfferService.ResolveActiveEncounterLocalMapId(session.World)
+                : localMapId.Trim();
+            session.World.PartyWorld.LocalMapId = map;
+            if (session != null)
+                session.PreferredMapLayoutId = map;
 
             var closeMap = bootstrap.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen;
             bootstrap.ApplyPartyWorldNodePresentation(closeWorldMap: closeMap);

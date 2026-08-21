@@ -77,6 +77,13 @@ namespace XianXia.Unity.Host
             var mapId = mapLayoutId.Trim();
             if (world.Strategic?.Encounter != null && world.Strategic.Encounter.SpawnOnNextMapLoad)
                 return true;
+            if (world.Strategic?.Encounter != null &&
+                world.Strategic.Encounter.HasEngagedParty &&
+                string.Equals(
+                    mapId,
+                    BattleOfferService.ResolveActiveEncounterLocalMapId(world),
+                    System.StringComparison.Ordinal))
+                return true;
 
             for (var i = 0; i < characterIds.Count; i++)
             {

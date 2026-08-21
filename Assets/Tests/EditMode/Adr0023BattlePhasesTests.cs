@@ -95,14 +95,13 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void PhaseD_OptionalRestore_PreBattlePresence_NoTeleport()
+        public void PhaseD_OptionalRestore_EngagedStaysAtBattleAnchor_NoTeleportHome()
         {
             var session = StartCh01();
             var world = session.World;
             Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var enemy));
             var a = session.CharacterIds[0];
             var b = session.CharacterIds[1];
-            // 支援判定用近距：开战时两人同节点；PreBattle 事后改写以验还原
             WorldTravelService.PlaceAgentsAtNode(world, new[] { a, b }, "base:node_huangcun");
             enemy.NodeId = "base:node_huangcun";
             enemy.RouteId = string.Empty;
@@ -112,17 +111,10 @@ namespace XianXia.Tests
                 world, new List<EntityId> { a }, enemy, "还原"));
             Assert.IsTrue(BattleOfferService.SetOptionalSelected(world, b, true));
 
-            var opt = world.Strategic.Participants.FindByEntity(b);
-            Assert.IsNotNull(opt);
-            Assert.IsNotNull(opt.PreBattle);
-            opt.PreBattle.Mode = PartyWorldPresenceMode.AtNode;
-            opt.PreBattle.NodeId = "base:node_linjian";
-            opt.PreBattle.RouteId = string.Empty;
-            opt.PreBattle.DestNodeId = string.Empty;
-
             Assert.IsTrue(world.WorldPresence.TryGet(b, out var bp));
             bp.Mode = PartyWorldPresenceMode.InEncounter;
             bp.NodeId = "base:node_huangcun";
+            world.Strategic.Encounter.AddEngagedPartyMember(b);
 
             world.Strategic.Participants.PlayerWon = true;
             world.Strategic.Participants.LastBattleSummary = "测试清场";
@@ -130,8 +122,7 @@ namespace XianXia.Tests
             Assert.IsTrue(StrategicEncounterResolveService.ResolveAndEnd(world).IsSuccess);
 
             Assert.IsTrue(world.WorldPresence.TryGet(b, out var after));
-            Assert.AreEqual(PartyWorldPresenceMode.AtNode, after.Mode);
-            Assert.AreEqual("base:node_linjian", after.NodeId, "可选支援必须回 PreBattle，禁止瞬移");
+            Assert.AreEqual("base:node_huangcun", after.NodeId, "上场支援留在接战锚点，禁止瞬移回家");
         }
 
         [Test]

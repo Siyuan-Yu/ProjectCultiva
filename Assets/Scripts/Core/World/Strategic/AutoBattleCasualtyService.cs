@@ -44,19 +44,20 @@ namespace XianXia.Core.World.Strategic
             if (executeOnWin)
             {
                 report.EnemyMembersEliminated = members;
+                report.EnemyMembersSpared = 0;
+                enemyStack.IncapacitatedMemberCount = 0;
+                enemyStack.IsBattlefieldRemnant = false;
                 world.Strategic.Armies.Remove(enemyStack.Id);
             }
             else
             {
-                var spared = Math.Max(0, (int)Math.Round(members * (0.35 + (1.0 - intensity) * 0.25)));
-                spared = Math.Min(spared, members - 1);
-                report.EnemyMembersSpared = spared;
-                report.EnemyMembersEliminated = members - spared;
-                enemyStack.MemberCount = Math.Max(1, spared);
-                var powerScale = enemyStack.CombatPower > 0
-                    ? Math.Max(1, (int)Math.Round(enemyStack.CombatPower * (spared / (double)members)))
-                    : 1;
-                enemyStack.CombatPower = powerScale;
+                // 未勾选处决：不记阵亡，全员弥留残留在接战点
+                report.EnemyMembersEliminated = 0;
+                report.EnemyMembersSpared = members;
+                enemyStack.MemberCount = members;
+                enemyStack.IncapacitatedMemberCount = members;
+                enemyStack.IsBattlefieldRemnant = true;
+                enemyStack.CombatPower = Math.Max(1, enemyStack.CombatPower);
             }
 
             report.Summary = BuildSummary(report, playerWon: true, executeOnWin);
@@ -187,10 +188,9 @@ namespace XianXia.Core.World.Strategic
                 if (executeOnWin)
                     sb.Append(" 敌军全灭（" + report.EnemyMembersEliminated + " 人）。");
                 else if (report.EnemyMembersSpared > 0)
-                    sb.Append(" 敌军余 " + report.EnemyMembersSpared + " 人弥留／溃散，"
-                              + report.EnemyMembersEliminated + " 人阵亡。");
+                    sb.Append(" 敌军 " + report.EnemyMembersSpared + " 人全部弥留（未处决）。");
                 else
-                    sb.Append(" 敌军 " + report.EnemyMembersEliminated + " 人伤亡。");
+                    sb.Append(" 敌军已溃。");
             }
             else
             {

@@ -1,6 +1,6 @@
 # 145 · ADR-0023 Phase A～F 实施验收（2026-08-21）
 
-> 状态：**Phase A～F 代码落地；Host UX 打磨见 [146](146-adr0023-host-ux-polish-2026-08-21.md)；EditMode 已补；手操清单如下**｜日期：2026-08-21  
+> 状态：**Phase A～F 落地；Host UX 见 [146](146-adr0023-host-ux-polish-2026-08-21.md)；手操已签收（2026-08-21）**｜日期：2026-08-21  
 > 决策：[ADR-0023](43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)｜分期 [144](144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md)｜打磨 [146](146-adr0023-host-ux-polish-2026-08-21.md)  
 > 试玩：**LevelTester**（共用 `PlayableHostBootstrap`）
 
@@ -72,4 +72,9 @@
 
 ## 6. 建议下一阶段
 
-手操签收本清单＋[146](146-adr0023-host-ux-polish-2026-08-21.md) → 若过：可开占点／外交或 Snapshot 纳入 Strategic 冻结态。
+**145／146 手操已签收（2026-08-21）。** 可选下一刀：
+
+1. **占点／外交（玩法可见）** — 节点 Owner、进村门槛、简单敌对／中立  
+2. **Snapshot 纳入 Strategic／冻结态（工程债）** — 存读档不丢遭遇／Queue／ClockFreeze  
+
+默认建议先做 **1**，除非近期要做长局存档压力测试。

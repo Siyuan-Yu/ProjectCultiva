@@ -9,6 +9,10 @@ namespace XianXia.Core.World.Strategic
         public bool SpawnOnNextMapLoad { get; set; }
         /// <summary>场上敌军已清空：无结算弹窗；参战者可宏观下令，画面仍可留在 Encounter LocalMap。</summary>
         public bool FieldCleared { get; set; }
+        /// <summary>结束 Modal 后仍保留战场（场上有弥留）。</summary>
+        public bool BattlefieldLingering { get; set; }
+        /// <summary>残留战场对应的 Encounter LocalMap Id。</summary>
+        public string LingeringLocalMapId { get; set; } = string.Empty;
         public string ArmyStackId { get; set; } = string.Empty;
         public string EncounterLinkId { get; set; } = string.Empty;
         public string PursueStackId { get; set; } = string.Empty;
@@ -81,6 +85,8 @@ namespace XianXia.Core.World.Strategic
         {
             SpawnOnNextMapLoad = false;
             FieldCleared = false;
+            BattlefieldLingering = false;
+            LingeringLocalMapId = string.Empty;
             ArmyStackId = string.Empty;
             EncounterLinkId = string.Empty;
             FallbackMemberCount = StrategicEncounterCatalog.DefaultFallbackMemberCount;

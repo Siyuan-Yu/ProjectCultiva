@@ -82,6 +82,7 @@ namespace XianXia.Core.World.Strategic
             dst.Clear();
             dst.OfferId = src.OfferId;
             dst.BattleAnchorNodeId = src.BattleAnchorNodeId;
+            dst.BattleAnchorDestNodeId = src.BattleAnchorDestNodeId;
             dst.BattleAnchorRouteId = src.BattleAnchorRouteId;
             dst.BattleAnchorProgress = src.BattleAnchorProgress;
             dst.PrimaryEnemyStackId = src.PrimaryEnemyStackId;
@@ -159,15 +160,30 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic?.Encounter == null)
                 return false;
             var rt = world.Strategic.Encounter;
+            // 残留战场在大地图上：不算 Modal 进行中，禁止把表现层锁回 Encounter 图
+            if (rt.BattlefieldLingering)
+                return false;
             if (!rt.HasEngagedParty)
                 return false;
             if (rt.SpawnOnNextMapLoad)
                 return true;
+            // 再进战场：场上可能只剩弥留刷怪（无 Alive），仍算遭遇进行中
+            if (rt.SpawnedEntityIds.Count > 0)
+                return true;
             return StrategicEncounterSpawner.CountLivingTrackedSpawns(world) > 0;
         }
 
-        public static string ResolveActiveEncounterLocalMapId(SimulationWorld world) =>
-            StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+        public static bool HasLingeringBattlefield(SimulationWorld world) =>
+            world?.Strategic?.Encounter != null && world.Strategic.Encounter.BattlefieldLingering;
+
+        public static string ResolveActiveEncounterLocalMapId(SimulationWorld world)
+        {
+            var rt = world?.Strategic?.Encounter;
+            if (rt != null &&
+                !string.IsNullOrEmpty(rt.LingeringLocalMapId))
+                return rt.LingeringLocalMapId;
+            return StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+        }
 
         public static Result ResolveAuto(
             SimulationWorld world,

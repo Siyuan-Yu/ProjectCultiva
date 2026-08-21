@@ -182,10 +182,12 @@ namespace XianXia.Core.World.Strategic
                 snap.BattleAnchorRouteId = stack.RouteId ?? string.Empty;
                 snap.BattleAnchorProgress = stack.GetRouteDisplayProgress();
                 snap.BattleAnchorNodeId = stack.NodeId ?? string.Empty;
+                snap.BattleAnchorDestNodeId = stack.DestNodeId ?? string.Empty;
             }
             else
             {
                 snap.BattleAnchorNodeId = stack.NodeId ?? string.Empty;
+                snap.BattleAnchorDestNodeId = string.Empty;
                 snap.BattleAnchorRouteId = string.Empty;
                 snap.BattleAnchorProgress = -1f;
             }

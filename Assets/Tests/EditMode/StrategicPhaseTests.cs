@@ -878,7 +878,7 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void AutoBattle_SpareOnWin_KeepsReducedEnemyStack()
+        public void AutoBattle_SpareOnWin_AllIncapacitatedRemnant_NoKills()
         {
             var session = StartCh01();
             var world = session.World;
@@ -887,7 +887,7 @@ namespace XianXia.Tests
             var beforeMembers = enemy.MemberCount;
 
             world.Random = new XianXia.Core.Random.DeterministicRandom(2);
-            Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(world, party, enemy, "测试击溃"));
+            Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(world, party, enemy, "测试弥留"));
             world.Strategic.BattleOffer.AutoWinPercent = 100;
 
             var resolved = BattleOfferService.ResolveAuto(world, false, out var won, out var report);
@@ -895,9 +895,17 @@ namespace XianXia.Tests
             Assert.IsTrue(won);
             Assert.IsTrue(world.Strategic.Armies.TryGet(enemy.Id, out var after));
             Assert.IsNotNull(after);
-            Assert.Less(after.MemberCount, beforeMembers);
+            Assert.AreEqual(beforeMembers, after.MemberCount, "未处决应保留全员为弥留人数");
+            Assert.IsTrue(after.HasIncapacitatedRemnant);
+            Assert.AreEqual(beforeMembers, after.IncapacitatedMemberCount);
             Assert.IsNotNull(report);
-            Assert.Greater(report.EnemyMembersSpared, 0);
+            Assert.AreEqual(0, report.EnemyMembersEliminated);
+            Assert.AreEqual(beforeMembers, report.EnemyMembersSpared);
+
+            Assert.IsTrue(StrategicEncounterResolveService.ResolveAndEnd(world).IsSuccess);
+            Assert.IsTrue(BattleOfferService.HasLingeringBattlefield(world));
+            Assert.IsTrue(world.Strategic.Armies.TryGet(enemy.Id, out var parked));
+            Assert.IsTrue(parked.HasIncapacitatedRemnant);
         }
 
         [Test]

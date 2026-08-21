@@ -10,7 +10,7 @@
 其上已叠加：样例关、内容打断、RTS 手操、Navigation／NPC 底座、**Content Studio**、**Level Tester**、**Ch01 三环手操**、**NPC onTalk 对话框（UGUI）**、任务失败／时间流速约定、**人物／工区编辑器＋名册刷人**、**住房分配／主管府占领**、**境界阶梯／打坐／突破仪式**、**将老对弈／洞府勘查进出／秘籍拾取**、**地图战斗 Alpha／斗技 1–6／体魄与生命拆分**、**主管府正式近战／追击固着／Map 刷怪区＋表**、**击败不瞬移／进出洞相机／刷怪表 GUI**、**WorldGraph 出行／进场景／场景隔离**、**功法／斗技熟练度与冲击确认**、**斗气纱衣**、**世界物况栏／砍树**、**田区自动农作**、**大地图纯 RTS／接战弹窗／到站／清场回程**、**追击贴敌／LocalMap 多选近战**、**自动战结算／弥留尸体**、**ADR-0023 战略战斗冻结 WorldTick（A～F＋Host 打磨）**。  
 战略战斗时间真源：[ADR-0023](../40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)；验收 [145](../40-process/145-adr0023-phases-af-acceptance-2026-08-21.md)；打磨 [146](../40-process/146-adr0023-host-ux-polish-2026-08-21.md)；分期 [144](../40-process/144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md)。[143](../40-process/143-localmap-worldmap-interaction-behavior-spec-2026-08-20.md) 部分 superseded。  
 
-**下一步：** LevelTester 手操签收 145／146 → 占点／外交或 Snapshot 纳入 Strategic。  
+**下一步：** 占点／外交，或 Snapshot 纳入 Strategic／冻结态（手操 145／146 已签）。  
 Demo Runtime 停扩。完整进度见 [62 项目现状](../40-process/62-project-status-2026-08-01.md)。
 
 **建议先读：** [通读指南](04-reading-guide.md) → 本页 → [146](../40-process/146-adr0023-host-ux-polish-2026-08-21.md)／[145](../40-process/145-adr0023-phases-af-acceptance-2026-08-21.md) → [ADR-0023](../40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md) → [62 现状](../40-process/62-project-status-2026-08-01.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md)。
