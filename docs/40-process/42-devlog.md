@@ -7,6 +7,14 @@
 
 ---
 
+## 2026-08-21 — 148 大地图弥留交互与点击修补（待手操验）
+
+**做了什么**
+- `HostWorldMapPanel`：弥留左／右键分工（查看 vs 派人探望）、`CollectLingeringViewParty`、敌军圆形吸附与命中优先级、CS0128  
+- 新建 [148](148-worldmap-linger-incap-ux-2026-08-21.md)；更新 147／62／路线图／通读；飞书 provision＋同步；推 GitHub  
+
+---
+
 ## 2026-08-21 — 收束 147＋飞书／GitHub（接战点／弥留残留）
 
 **做了什么**

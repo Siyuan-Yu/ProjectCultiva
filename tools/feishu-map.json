@@ -785,6 +785,11 @@
       "file": "docs/40-process/147-battlefield-linger-no-teleport-2026-08-21.md",
       "title": "147 接战点无瞬移＋弥留残留战场（2026-08-21）",
       "docId": "Q1IGdRKdBoD4HaxZyPecuJ8inyb"
+    },
+    "worldmap-linger-incap-ux-2026-08-21": {
+      "file": "docs/40-process/148-worldmap-linger-incap-ux-2026-08-21.md",
+      "title": "148 大地图弥留交互与点击修补（2026-08-21）",
+      "docId": "J8FsdDl4ooiTE0xd6sZcpCdDnef"
     }
   }
 }

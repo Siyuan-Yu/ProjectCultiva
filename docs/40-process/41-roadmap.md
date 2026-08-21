@@ -7,6 +7,7 @@
 - Architecture Freeze **v0.2**＋**ADR-0023 补丁**（Manual Encounter 冻结 WorldTick）。  
 - 世界结构以 [113](113-world-graph-local-map-architecture-revision-v0.1.md) 为准。  
 - **2026-08-21：** Phase A～F＋Host 打磨 [146](146-adr0023-host-ux-polish-2026-08-21.md) 已落地；验收见 [145](145-adr0023-phases-af-acceptance-2026-08-21.md)。  
+- **2026-08-21：** 大地图弥留交互与点击修补 [148](148-worldmap-linger-incap-ux-2026-08-21.md)（待手操验）。  
 - **2026-08-21：** 接战点无瞬移＋弥留残留＋支援半径 [147](147-battlefield-linger-no-teleport-2026-08-21.md)（`eece220` 起）。  
 - Core／Data／Host／**VS 0.1～1.0 自动化已验收**。  
 - Demo Runtime 继续冻结。
@@ -18,6 +19,7 @@
 - [x] Host UX 打磨：[146](146-adr0023-host-ux-polish-2026-08-21.md)（支援半径／战后条／自动结算弹窗／山匪可见）
 - [x] Host 手操签收 145／146（2026-08-21）
 - [x] 接战点无瞬移＋弥留残留战场＋支援半径滑块：[147](147-battlefield-linger-no-teleport-2026-08-21.md)
+- [ ] 大地图弥留左／右键＋点击优先级：[148](148-worldmap-linger-incap-ux-2026-08-21.md)（代码已落地，待手操验）
 
 ### 样例关可玩弧（2026-08-02）— **自动化 Completed／手操签收中**
 
