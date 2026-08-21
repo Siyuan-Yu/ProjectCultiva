@@ -48,6 +48,67 @@ namespace XianXia.Core.World.Strategic
             return ActivateOffer(world, playerParty, enemy, title);
         }
 
+        /// <summary>残留战场再入：弹接战窗（我方弥留头像菜单／敌方残留栈再攻）。</summary>
+        public static bool TryBuildOfferForLingeringBattlefield(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> roster,
+            EntityId focusIncap,
+            string title = null)
+        {
+            if (world?.Strategic?.Encounter == null || !HasLingeringBattlefield(world))
+                return false;
+            if (roster == null)
+                return false;
+
+            var party = new List<EntityId>(roster.Count);
+            if (!LingeringBattlefieldPartyService.CanEnterLingeringBattlefield(
+                    world,
+                    roster,
+                    focusIncap,
+                    party) ||
+                party.Count == 0)
+                return false;
+
+            var rt = world.Strategic.Encounter;
+            var stackId = rt.ArmyStackId ?? string.Empty;
+            if (string.IsNullOrEmpty(stackId))
+                stackId = world.Strategic.Participants?.PrimaryEnemyStackId ?? string.Empty;
+
+            ArmyStack enemy = null;
+            if (!string.IsNullOrEmpty(stackId))
+                world.Strategic.Armies.TryGet(stackId, out enemy);
+
+            var offerTitle = string.IsNullOrEmpty(title) ? "残留战场" : title;
+
+            if (world.Strategic.HasBattleOffer ||
+                world.Strategic.IsModalEncounter ||
+                world.Strategic.ClockFreeze.Reason == StrategicClockFreezeReason.InterruptQueue)
+            {
+                world.Strategic.InterruptQueue.Enqueue(
+                    offerTitle,
+                    stackId,
+                    party,
+                    world.Tick.Value * 1000UL + (ulong)world.Strategic.InterruptQueue.Count + 1UL);
+                StrategicClockFreezeService.BeginOrPromote(
+                    world, StrategicClockFreezeReason.BattleOffer);
+                return true;
+            }
+
+            if (!string.IsNullOrEmpty(stackId) && HasActiveEncounterForStack(world, stackId))
+            {
+                world.Strategic.InterruptQueue.Enqueue(
+                    offerTitle,
+                    stackId,
+                    party,
+                    world.Tick.Value * 1000UL + (ulong)world.Strategic.InterruptQueue.Count + 1UL);
+                return true;
+            }
+
+            world.Strategic.ClearArrivalNotice();
+            world.Strategic.ClearPendingLingeringVisit();
+            return ActivateLingeringOffer(world, party, enemy, stackId, offerTitle);
+        }
+
         static bool ActivateOffer(
             SimulationWorld world,
             IReadOnlyList<EntityId> playerParty,
@@ -59,19 +120,135 @@ namespace XianXia.Core.World.Strategic
             offer.OfferId = "offer:" + enemy.Id + ":" + world.Tick.Value + ":" +
                             world.Strategic.InterruptQueue.Count;
             offer.ArmyStackId = enemy.Id;
-            offer.Title = string.IsNullOrEmpty(title) ? "遭遇敌军" : title;
-            offer.EncounterLocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+            offer.Title = ResolveOfferTitle(world, enemy, title);
+            offer.EncounterLocalMapId = ResolveOfferEncounterLocalMapId(world, enemy);
             offer.SetPlayerParty(playerParty);
             offer.ExecuteOnWin = false;
 
             var snap = BattleParticipantSnapshotBuilder.Build(
                 world, playerParty, enemy, offer.OfferId);
+            snap.EncounterLocalMapId = offer.EncounterLocalMapId;
             world.Strategic.Participants.Clear();
             CopySnapshotInto(world.Strategic.Participants, snap);
 
             RefreshOfferPowerLabels(world);
             StrategicClockFreezeService.BeginOrPromote(world, StrategicClockFreezeReason.BattleOffer);
             return true;
+        }
+
+        static bool ActivateLingeringOffer(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> playerParty,
+            ArmyStack enemy,
+            string armyStackId,
+            string title)
+        {
+            var offer = world.Strategic.BattleOffer;
+            offer.Resolved = false;
+            offer.OfferId = "linger-offer:" + (armyStackId ?? string.Empty) + ":" + world.Tick.Value;
+            offer.ArmyStackId = armyStackId ?? string.Empty;
+            offer.Title = string.IsNullOrEmpty(title) ? "残留战场" : title;
+            offer.EncounterLocalMapId = ResolveActiveEncounterLocalMapId(world);
+            offer.SetPlayerParty(playerParty);
+            offer.ExecuteOnWin = false;
+
+            var snap = world.Strategic.Participants;
+            if (enemy != null)
+            {
+                var built = BattleParticipantSnapshotBuilder.Build(
+                    world, playerParty, enemy, offer.OfferId);
+                built.EncounterLocalMapId = offer.EncounterLocalMapId;
+                CopySnapshotInto(snap, built);
+            }
+            else
+            {
+                var anchorNode = string.Empty;
+                var anchorRoute = string.Empty;
+                var anchorDest = string.Empty;
+                var anchorProgress = -1f;
+                if (snap != null &&
+                    (!string.IsNullOrEmpty(snap.BattleAnchorNodeId) ||
+                     !string.IsNullOrEmpty(snap.BattleAnchorRouteId)))
+                {
+                    anchorNode = snap.BattleAnchorNodeId ?? string.Empty;
+                    anchorRoute = snap.BattleAnchorRouteId ?? string.Empty;
+                    anchorDest = snap.BattleAnchorDestNodeId ?? string.Empty;
+                    anchorProgress = snap.BattleAnchorProgress;
+                }
+                else if (playerParty.Count > 0 &&
+                         LingeringBattlefieldPartyService.TryResolveBattleAnchor(
+                             world,
+                             playerParty[0],
+                             out var node,
+                             out var route,
+                             out var progress))
+                {
+                    anchorNode = node;
+                    anchorRoute = route;
+                    anchorProgress = progress;
+                }
+
+                snap.Clear();
+                snap.OfferId = offer.OfferId;
+                snap.PrimaryEnemyStackId = armyStackId ?? string.Empty;
+                snap.EncounterLocalMapId = offer.EncounterLocalMapId;
+                snap.BattleAnchorNodeId = anchorNode;
+                snap.BattleAnchorRouteId = anchorRoute;
+                snap.BattleAnchorDestNodeId = anchorDest;
+                snap.BattleAnchorProgress = anchorProgress;
+                AddMandatoryPartyRecords(world, snap, playerParty);
+            }
+
+            RefreshOfferPowerLabels(world);
+            StrategicClockFreezeService.BeginOrPromote(world, StrategicClockFreezeReason.BattleOffer);
+            return true;
+        }
+
+        static string ResolveOfferTitle(SimulationWorld world, ArmyStack enemy, string title)
+        {
+            if (!string.IsNullOrEmpty(title))
+                return title;
+            if (IsLingeringReentryOffer(world, enemy))
+                return "残留战场";
+            return "遭遇敌军";
+        }
+
+        static string ResolveOfferEncounterLocalMapId(SimulationWorld world, ArmyStack enemy)
+        {
+            if (IsLingeringReentryOffer(world, enemy))
+                return ResolveActiveEncounterLocalMapId(world);
+            return StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+        }
+
+        static bool IsLingeringReentryOffer(SimulationWorld world, ArmyStack enemy) =>
+            HasLingeringBattlefield(world) ||
+            (enemy != null && enemy.HasIncapacitatedRemnant);
+
+        static void AddMandatoryPartyRecords(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap,
+            IReadOnlyList<EntityId> party)
+        {
+            if (world == null || snap == null || party == null)
+                return;
+            for (var i = 0; i < party.Count; i++)
+            {
+                var id = party[i];
+                if (id.IsNone || snap.FindByEntity(id) != null)
+                    continue;
+                if (!world.Entities.TryGet(id, out var ent) || ent == null)
+                    continue;
+                world.WorldPresence.TryGet(id, out var wp);
+                snap.Add(new BattleParticipantRecord
+                {
+                    Kind = BattleParticipantKind.MandatoryFriendly,
+                    EntityId = id,
+                    DisplayLabel = string.IsNullOrEmpty(ent.DisplayName) ? id.ToString() : ent.DisplayName,
+                    CombatPower = CombatPowerCalculator.ForEntity(world, id),
+                    Selected = true,
+                    PreBattle = wp != null ? PreBattleWorldPresence.Capture(wp) : default
+                });
+            }
         }
 
         static void CopySnapshotInto(BattleParticipantSnapshot dst, BattleParticipantSnapshot src)

@@ -1509,7 +1509,7 @@ namespace XianXia.Unity.Host
 
             GUI.Label(
                 new Rect(_avatarMenuRect.x + 8f, hintY, _avatarMenuRect.width - 16f, 16f),
-                "将进入遭遇地图（非大地图查看）",
+                "将弹出接战窗，再选手动/自动进入遭遇地图",
                 _body);
 
             GUI.enabled = canEnter;
@@ -1519,9 +1519,17 @@ namespace XianXia.Unity.Host
                 canEnter)
             {
                 Event.current.Use();
-                bootstrap.EnterLingeringBattlefield(_attackPartyScratch);
-                _avatarMenuOpen = false;
-                Close();
+                if (BattleOfferService.TryBuildOfferForLingeringBattlefield(
+                        world,
+                        bootstrap.Session.CharacterIds,
+                        target,
+                        "残留战场"))
+                {
+                    _avatarMenuOpen = false;
+                    _status = "接战弹窗已打开";
+                }
+                else
+                    _status = "无法打开接战弹窗";
             }
 
             GUI.enabled = true;

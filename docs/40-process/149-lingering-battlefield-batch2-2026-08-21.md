@@ -36,10 +36,9 @@
 
 ---
 
-## 4. 留给批 3
+## 4. 批 3（已完成）
 
-- 再进走 Offer / LingeringOffer  
-- Encounter LocalMapId（138 方案 A）
+见 [150 残留再进 Offer](150-lingering-battlefield-batch3-offer-2026-08-21.md)。
 
 ---
 

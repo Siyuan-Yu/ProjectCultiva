@@ -514,10 +514,15 @@ namespace XianXia.Unity.Host
                     power = StrategicEncounterCatalog.DefaultFallbackCombatPower;
             }
 
+            var rt = session.World.Strategic.Encounter;
+            var encounterLink = session.World.PartyWorld.EncounterId;
+            if (string.IsNullOrEmpty(encounterLink) && rt != null)
+                encounterLink = string.IsNullOrEmpty(rt.EncounterLinkId) ? "linger" : rt.EncounterLinkId;
+
             StrategicEncounterSpawner.PlanManualEncounter(
                 session.World,
                 armyStackId,
-                session.World.PartyWorld.EncounterId,
+                encounterLink,
                 engaged,
                 memberCount,
                 Math.Max(1, power / Math.Max(1, memberCount)));

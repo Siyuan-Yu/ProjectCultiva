@@ -196,7 +196,10 @@ namespace XianXia.Core.World.Strategic
             if (ready.Count == 0)
                 return;
 
-            if (BattleOfferService.TryBuildOfferForArmy(world, ready, stack, "追击接战"))
+            var title = stack.HasIncapacitatedRemnant || stack.IsBattlefieldRemnant
+                ? "残留战场"
+                : "追击接战";
+            if (BattleOfferService.TryBuildOfferForArmy(world, ready, stack, title))
                 world.Strategic.ClearArrivalNotice();
         }
 

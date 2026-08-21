@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using NUnit.Framework;
 using XianXia.Core.Domain.Ids;
@@ -904,6 +905,62 @@ namespace XianXia.Tests
             Assert.IsTrue(BattleOfferService.HasLingeringBattlefield(world));
             Assert.IsTrue(world.Strategic.Armies.TryGet(enemy.Id, out var parked));
             Assert.IsTrue(parked.HasIncapacitatedRemnant);
+        }
+
+        [Test]
+        public void LingeringReentry_OpensBattleOffer_WithLingeringLocalMap()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var party = session.CharacterIds;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var enemy));
+
+            world.Random = new DeterministicRandom(2);
+            Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(world, party, enemy, "测试弥留"));
+            world.Strategic.BattleOffer.AutoWinPercent = 100;
+            Assert.IsTrue(BattleOfferService.ResolveAuto(world, false, out _, out _).IsSuccess);
+            Assert.IsTrue(StrategicEncounterResolveService.ResolveAndEnd(world).IsSuccess);
+            Assert.IsTrue(BattleOfferService.HasLingeringBattlefield(world));
+
+            const string lingerMap = "base:map_world_node_stub";
+            world.Strategic.Encounter.LingeringLocalMapId = lingerMap;
+            var anchorNode = world.Strategic.Participants.BattleAnchorNodeId;
+            if (string.IsNullOrEmpty(anchorNode))
+                anchorNode = "base:node_huangcun";
+            WorldTravelService.PlaceAgentsAtNode(world, party, anchorNode);
+
+            var focus = party[0];
+            Assert.IsTrue(
+                BattleOfferService.TryBuildOfferForLingeringBattlefield(world, party, focus, "残留战场"));
+            Assert.IsTrue(world.Strategic.HasBattleOffer);
+            Assert.AreEqual("残留战场", world.Strategic.BattleOffer.Title);
+            Assert.AreEqual(lingerMap, world.Strategic.BattleOffer.EncounterLocalMapId);
+        }
+
+        [Test]
+        public void RemnantStackAttack_OpensBattleOffer_WithLingeringLocalMap()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var party = new System.Collections.Generic.List<EntityId> { session.CharacterIds[0] };
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var enemy));
+
+            enemy.IsBattlefieldRemnant = true;
+            enemy.IncapacitatedMemberCount = Math.Max(1, enemy.MemberCount);
+            const string lingerMap = "base:map_world_node_stub";
+            world.Strategic.Encounter.LingeringLocalMapId = lingerMap;
+            world.Strategic.Encounter.BattlefieldLingering = true;
+            world.Strategic.Encounter.ArmyStackId = enemy.Id;
+
+            StrategicPursuitService.BeginPursuit(world, party, enemy);
+            var travel = WorldTravelService.StartTravelPartyToStackAnchor(world, party, enemy);
+            Assert.IsTrue(travel.IsSuccess, travel.IsFailure ? travel.Error.ToString() : "");
+            WorldTravelService.AdvanceTravel(world, 500);
+            StrategicPursuitService.AfterTravelTick(world);
+
+            Assert.IsTrue(world.Strategic.HasBattleOffer);
+            Assert.AreEqual("残留战场", world.Strategic.BattleOffer.Title);
+            Assert.AreEqual(lingerMap, world.Strategic.BattleOffer.EncounterLocalMapId);
         }
 
         [Test]
