@@ -6,7 +6,7 @@
 > 上级：[146 Host 打磨](146-adr0023-host-ux-polish-2026-08-21.md)／[145 验收](145-adr0023-phases-af-acceptance-2026-08-21.md)／[ADR-0023](43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)  
 > 关联：[142 自动战／弥留](142-auto-battle-incap-corpse-2026-08-20.md)（未处决语义已由本篇修订）  
 > 游玩入口：`Assets/Scenes/LevelTester.unity`  
-> 飞书：https://my.feishu.cn/docx/Q1IGdRKdBoD4HaxZyPecuJ8inyb
+> 飞书：https://my.feishu.cn/docx/Ik0NdqMYAovL23xewRgcr7plnfd
 
 ---
 

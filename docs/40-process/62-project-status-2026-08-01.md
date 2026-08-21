@@ -1,17 +1,17 @@
 # 项目现状总览 — 2026-08-01
 
-> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-21（[148] 大地图弥留交互修补，待手操验）  
+> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-21（[150] 残留再进 Offer，EditMode 已验）  
 > 用途：一次看清 VS0.1～1.0／Content Ready 做到哪、本轮改了什么、下一步是什么。  
 > 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准（含 ADR-0023 补丁）。  
-> 近期增量：[148](148-worldmap-linger-incap-ux-2026-08-21.md)／[147](147-battlefield-linger-no-teleport-2026-08-21.md)／[146](146-adr0023-host-ux-polish-2026-08-21.md)／[145](145-adr0023-phases-af-acceptance-2026-08-21.md)
+> 近期增量：[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)／[149](149-lingering-battlefield-batch2-2026-08-21.md)／[148](148-worldmap-linger-incap-ux-2026-08-21.md)／[147](147-battlefield-linger-no-teleport-2026-08-21.md)
 
 ---
 
 ## 1. 一句话现状
 
 **Architecture Freeze v0.2 有效（+ADR-0023 补丁）。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**。  
-**本轮：** [148](148-worldmap-linger-incap-ux-2026-08-21.md) 大地图弥留交互与点击修补（**待手操验**）；其下 [147](147-battlefield-linger-no-teleport-2026-08-21.md)（`eece220`）；[145]／[146] 已签收。  
-**下一步：** 148／147 手操签收 → 占点／外交，或 Snapshot 纳入 Strategic／冻结态（二选一开刀）。
+**本轮：** [150](150-lingering-battlefield-batch3-offer-2026-08-21.md) 残留再进走接战 Offer + `LingeringLocalMapId`（EditMode 已验；手操待补）；其下 [149](149-lingering-battlefield-batch2-2026-08-21.md)／[148](148-worldmap-linger-incap-ux-2026-08-21.md)／[147](147-battlefield-linger-no-teleport-2026-08-21.md) 已落地。  
+**下一步：** 138 占点可视化／外交，或 Ch01 接战点填真实 Encounter 图；Snapshot↔Strategic 二选一。
 ---
 
 ## 2. 切片进度与验收
@@ -142,6 +142,10 @@
 
 | 文档 | 飞书 |
 |---|---|
+| **本轮 [150] 残留再进 Offer** | https://my.feishu.cn/docx/XE8EdWZCDoSDPjxRSXTcat5bn7R |
+| **[149] 残留战场批 2** | https://my.feishu.cn/docx/G8ffdmXmUob8O2xV2aycr39pnGe |
+| **[148] 弥留交互／点击** | https://my.feishu.cn/docx/J8FsdDl4ooiTE0xd6sZcpCdDnef |
+| **[147] 接战点／弥留残留** | https://my.feishu.cn/docx/Ik0NdqMYAovL23xewRgcr7plnfd |
 | **本轮 [141] 追击贴敌＋多选近战** | https://my.feishu.cn/docx/I36jdoafvos0YCx2SFscxl0anUb |
 | **收束 [140] 纯 RTS／接战／清场回程** | https://my.feishu.cn/docx/MEzIdolEBonQCExqQGjcsmxGnsf |
 | **规则 [139] 大地图 RTS 下令** | https://my.feishu.cn/docx/RgkxdiGNSoNd11xOXoncl7QnnCg |

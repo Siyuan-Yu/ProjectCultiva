@@ -3,7 +3,7 @@
 > 状态：**已落地（手操跳过，待补验）**｜日期：2026-08-21  
 > 相对提交：`97e3ba7` → **本篇对应提交**  
 > 上级：[147 接战点／弥留残留](147-battlefield-linger-no-teleport-2026-08-21.md)／[139 大地图 RTS](139-world-map-rts-orders-2026-08-17.md)  
-> 下级：[149 残留战场批 2](149-lingering-battlefield-batch2-2026-08-21.md)  
+> 下级：[149 残留战场批 2](149-lingering-battlefield-batch2-2026-08-21.md)／[150 残留再进 Offer](150-lingering-battlefield-batch3-offer-2026-08-21.md)  
 > 游玩入口：`Assets/Scenes/LevelTester.unity`  
 > 飞书：https://my.feishu.cn/docx/J8FsdDl4ooiTE0xd6sZcpCdDnef
 

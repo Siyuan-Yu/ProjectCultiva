@@ -2,7 +2,7 @@
 
 > 状态：**已落地（EditMode 通过；手操待验）**｜日期：2026-08-21  
 > 上级：[149 批 2](149-lingering-battlefield-batch2-2026-08-21.md)／[138 战略接战](138-world-strategic-battle-offer-plan-2026-08-17.md)  
-> 飞书：（同步后填入）  
+> 飞书：https://my.feishu.cn/docx/XE8EdWZCDoSDPjxRSXTcat5bn7R  
 > 游玩入口：`Assets/Scenes/LevelTester.unity`
 
 ---

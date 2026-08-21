@@ -784,7 +784,7 @@
     "battlefield-linger-no-teleport-2026-08-21": {
       "file": "docs/40-process/147-battlefield-linger-no-teleport-2026-08-21.md",
       "title": "147 接战点无瞬移＋弥留残留战场（2026-08-21）",
-      "docId": "Q1IGdRKdBoD4HaxZyPecuJ8inyb"
+      "docId": "Ik0NdqMYAovL23xewRgcr7plnfd"
     },
     "worldmap-linger-incap-ux-2026-08-21": {
       "file": "docs/40-process/148-worldmap-linger-incap-ux-2026-08-21.md",
@@ -795,6 +795,11 @@
       "file": "docs/40-process/149-lingering-battlefield-batch2-2026-08-21.md",
       "title": "149 残留战场批 2：Core 下沉 + 探望到站（2026-08-21）",
       "docId": "G8ffdmXmUob8O2xV2aycr39pnGe"
+    },
+    "lingering-battlefield-batch3-offer-2026-08-21": {
+      "file": "docs/40-process/150-lingering-battlefield-batch3-offer-2026-08-21.md",
+      "title": "150 残留战场批 3：接战 Offer + Encounter 地图（2026-08-21）",
+      "docId": "XE8EdWZCDoSDPjxRSXTcat5bn7R"
     }
   }
 }

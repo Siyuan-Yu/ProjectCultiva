@@ -13,7 +13,8 @@
 - `TryBuildOfferForLingeringBattlefield`；弥留菜单／残留栈再攻统一弹 Offer  
 - 残留 Offer 使用 `LingeringLocalMapId`；补 `LingeringBattlefieldPartyService.cs.meta`  
 - EditMode 测例；[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)  
-- 手操验收跳过（Unity 占用／环境未就绪）
+- 手操验收跳过（Unity 占用／环境未就绪）  
+- 飞书／GitHub 同步
 
 ---
 
