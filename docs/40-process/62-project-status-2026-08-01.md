@@ -1,16 +1,16 @@
 # 项目现状总览 — 2026-08-01
 
-> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-21（[146] ADR-0023 Host 打磨）  
+> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-21（[147] 接战点／弥留残留）  
 > 用途：一次看清 VS0.1～1.0／Content Ready 做到哪、本轮改了什么、下一步是什么。  
 > 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准（含 ADR-0023 补丁）。  
-> 近期增量：[146](146-adr0023-host-ux-polish-2026-08-21.md)／[145](145-adr0023-phases-af-acceptance-2026-08-21.md)／[ADR-0023](43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)／[144](144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md)
+> 近期增量：[147](147-battlefield-linger-no-teleport-2026-08-21.md)／[146](146-adr0023-host-ux-polish-2026-08-21.md)／[145](145-adr0023-phases-af-acceptance-2026-08-21.md)／[ADR-0023](43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)
 
 ---
 
 ## 1. 一句话现状
 
 **Architecture Freeze v0.2 有效（+ADR-0023 补丁）。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**。  
-**本轮：** [ADR-0023](43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md) Phase A～F＋[146](146-adr0023-host-ux-polish-2026-08-21.md) **Host 手操已签收（2026-08-21）**。  
+**本轮：** [147](147-battlefield-linger-no-teleport-2026-08-21.md) 接战点无瞬移＋弥留残留战场＋支援半径（`eece220`）；其上 [145]／[146] 已签收。  
 **下一步：** 占点／外交，或 Snapshot 纳入 Strategic／冻结态（二选一开刀）。
 ---
 

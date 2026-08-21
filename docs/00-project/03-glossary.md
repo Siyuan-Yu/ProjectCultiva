@@ -116,7 +116,7 @@
 | 战略时钟冻结 | StrategicClockFreeze | Offer／Manual／PostBattle 期间不推进 WorldTick | ADR-0023；≠ 第二套世界时间 |
 | 战后阶段 | PostBattle | 清场后至点「结束战斗」前；可继续场景操作，WorldTick 仍冻结 | ADR-0023 |
 | 参战快照 | BattleParticipantSnapshot | Offer 时强制／可选／敌军与 PreBattle 位置 | ADR-0023 |
-| 支援距离 | ReinforcementRange | 大地图世界坐标半径（默认≈2～3人头像宽） | ADR-0023；非邻村 hops |
+| 支援距离 | ReinforcementRange | 大地图世界坐标半径（默认 **0.25**；可调滑块） | ADR-0023／[147](../40-process/147-battlefield-linger-no-teleport-2026-08-21.md) |
 | 接战队列 | BattleInterruptQueue | 同 Tick 多接战确定性串行 | |
 | 业力／业障 | Karma | 不当行为积累的长期因果负担 | 按情境判定，**不是单纯杀人罪恶值**；影响道心、气运、突破与渡劫 |
 | 功德 | Merit | 护民、正当护持等行为积累的正面因果 | 与业障如何对冲**待确定**；本阶段只记方向 |

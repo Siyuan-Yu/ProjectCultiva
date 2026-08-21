@@ -29,7 +29,8 @@
 
 | 目的 | 读什么 |
 |------|--------|
-| **本轮（ADR-0023 打磨）** | [146](../40-process/146-adr0023-host-ux-polish-2026-08-21.md)／[145](../40-process/145-adr0023-phases-af-acceptance-2026-08-21.md) |
+| **本轮（接战点／弥留残留）** | [147](../40-process/147-battlefield-linger-no-teleport-2026-08-21.md) |
+| **ADR-0023 打磨／验收** | [146](../40-process/146-adr0023-host-ux-polish-2026-08-21.md)／[145](../40-process/145-adr0023-phases-af-acceptance-2026-08-21.md) |
 | **ADR-0023／分期** | [ADR-0023](../40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)／[144](../40-process/144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md) |
 | **143（部分 superseded）** | [143](../40-process/143-localmap-worldmap-interaction-behavior-spec-2026-08-20.md) |
 | **自动战／弥留** | [142](../40-process/142-auto-battle-incap-corpse-2026-08-20.md) |

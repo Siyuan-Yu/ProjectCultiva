@@ -4,7 +4,7 @@
 > 相对提交：`07428d9` 之后 → 本轮待推送 `main`  
 > 上级：[141 追击贴敌](141-pursuit-stick-and-multi-melee-2026-08-18.md)｜[140 收束](140-world-map-rts-battle-return-rollup-2026-08-18.md)  
 > 策划对齐：`docs/20-systems/23-combat.md` §10 重伤／击杀  
-> 飞书：https://my.feishu.cn/docx/B56IddrTtocNZIxVgi7c4O1Knzg
+> 飞书：https://my.feishu.cn/docx/DsdvdJQsZoSCtvxjwY4cddzonTe
 
 ---
 
@@ -23,7 +23,7 @@
 | **LocalMap 近战** | 敌我双方均适用弥留／补刀 | `MeleeCombatService`／`HostNpcMeleeAssault` |
 | **自动战结算** | 按战力比结算双方伤亡，toast 可读摘要 | `AutoBattleCasualtyService` + `BattleOfferService.ResolveAuto` |
 | **自动战败** | 敌方有概率直接击杀我方，或只打到弥留 | `ApplyPlayerDefeat` 概率链 |
-| **自动战胜** | 勾选「战胜时直接击杀」→ 敌军栈全灭；不勾选 → 击溃（栈残存、人数／战力削减） | 接战 UI checkbox + `ApplyPlayerVictory(executeOnWin)` |
+| **自动战胜** | 勾选「战胜时直接击杀」→ 敌军栈全灭；**不勾选 → 全员弥留残留（可再进补刀）** | 见 [147](147-battlefield-linger-no-teleport-2026-08-21.md)；旧「击溃减员」已废 |
 | **状态 UI** | 左键选中弥留／尸体，底栏左上角显示「弥留」或「尸体」 | `HostFormalHud.DrawLifeStateBadge` |
 | **大地图菜单** | 左键节点不再镜头跳转导致菜单错位 | `HostWorldMapPanel` 锚定节点框 + 每帧重算 |
 
