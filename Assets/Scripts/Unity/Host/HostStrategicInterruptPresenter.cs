@@ -297,6 +297,7 @@ namespace XianXia.Unity.Host
                 {
                     bootstrap.WorldMapPanel.Open();
                     bootstrap.WorldMapPanel.SelectArrivedParty(arrivedCopy);
+                    bootstrap.WorldMapPanel.TryOpenPendingLingeringVisitAfterArrival();
                 }
             }
 

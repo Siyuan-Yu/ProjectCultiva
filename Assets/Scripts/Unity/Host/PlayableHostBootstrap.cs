@@ -1095,13 +1095,33 @@ namespace XianXia.Unity.Host
                 !world.Strategic.Encounter.BattlefieldLingering)
                 return;
 
+            var scratch = new List<EntityId>(party.Count);
+            var focus = party[0];
+            for (var i = 0; i < party.Count; i++)
+            {
+                if (LingeringBattlefieldPartyService.IsIncapacitated(world, party[i]))
+                {
+                    focus = party[i];
+                    break;
+                }
+            }
+
+            if (!LingeringBattlefieldPartyService.CanEnterLingeringBattlefield(
+                    world,
+                    _session.CharacterIds,
+                    focus,
+                    scratch))
+                return;
+
+            world.Strategic.ClearPendingLingeringVisit();
+
             var rt = world.Strategic.Encounter;
             var mapId = BattleOfferService.ResolveActiveEncounterLocalMapId(world);
             StrategicEncounterSpawner.PlanManualEncounter(
                 world,
                 rt.ArmyStackId,
                 string.IsNullOrEmpty(rt.EncounterLinkId) ? "linger" : rt.EncounterLinkId,
-                party);
+                scratch);
             world.PartyWorld.LocalMapId = mapId;
             world.PartyWorld.EncounterId = string.IsNullOrEmpty(rt.EncounterLinkId)
                 ? "linger"

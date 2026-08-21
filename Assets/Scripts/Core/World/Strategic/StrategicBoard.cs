@@ -59,6 +59,11 @@ namespace XianXia.Core.World.Strategic
         /// <summary>支援世界坐标半径（大地图 XY）。≤0 用默认 ≈2～3 人头像宽。</summary>
         public float ReinforcementWorldRadius { get; set; }
 
+        /// <summary>派人探望弥留成功后，到站打开大地图时衔接「进入残留战场」菜单。</summary>
+        public ulong PendingLingeringVisitIncapId { get; set; }
+
+        public void ClearPendingLingeringVisit() => PendingLingeringVisitIncapId = 0;
+
         /// <summary>玩家帮派 id（占点后更新）。</summary>
         public string PlayerFactionId { get; set; } = StrategicFactionCatalog.PlayerFactionId;
 

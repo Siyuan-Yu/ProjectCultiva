@@ -7,6 +7,15 @@
 
 ---
 
+## 2026-08-21 — 149 批 2：Core 下沉 + 探望到站
+
+**做了什么**
+- 新增 `LingeringBattlefieldPartyService`；`EnterLingeringBattlefield` Core 校验  
+- `PendingLingeringVisitIncapId` + 到站自动开进入菜单  
+- [149](149-lingering-battlefield-batch2-2026-08-21.md)
+
+---
+
 ## 2026-08-21 — 148 收束：批 1 + 接战一致性 + 删 JoinOngoing
 
 **做了什么**

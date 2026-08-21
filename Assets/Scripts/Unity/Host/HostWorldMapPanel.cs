@@ -133,6 +133,30 @@ namespace XianXia.Unity.Host
                 _status = "已选到站 " + _selected.Count + " 人｜右键节点/道路移动";
         }
 
+        /// <summary>探望弥留到站后：若仍有残留战场，自动打开进入菜单。</summary>
+        public void TryOpenPendingLingeringVisitAfterArrival()
+        {
+            if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
+                return;
+            var world = bootstrap.Session.World;
+            var pending = world.Strategic.PendingLingeringVisitIncapId;
+            if (pending == 0)
+                return;
+            var incap = new EntityId(pending);
+            world.Strategic.ClearPendingLingeringVisit();
+            if (!LingeringBattlefieldPartyService.CollectViewParty(
+                    world,
+                    bootstrap.Session.CharacterIds,
+                    incap,
+                    _attackPartyScratch) ||
+                _attackPartyScratch.Count == 0)
+                return;
+
+            if (!open)
+                Open();
+            OpenIncapAvatarMenu(world, incap, new Vector2(Screen.width * 0.5f, Screen.height * 0.45f));
+        }
+
         public void Close()
         {
             open = false;
@@ -881,7 +905,7 @@ namespace XianXia.Unity.Host
                 var selected = _selected.Contains(id.Value);
                 var onRoute = presence.HasRoutePresentation;
                 var inEncounter = presence.Mode == PartyWorldPresenceMode.InEncounter;
-                var incap = IsIncapacitatedEntity(world, id);
+                var incap = LingeringBattlefieldPartyService.IsIncapacitated(world, id);
                 // 半透明，避免压住地名
                 var fill = incap
                     ? new Color(0.75f, 0.28f, 0.22f, 0.72f)
@@ -947,7 +971,7 @@ namespace XianXia.Unity.Host
                 if (TryHitAvatar(mouse, out var hitAvatar))
                 {
                     var id = new EntityId(hitAvatar);
-                    if (IsIncapacitatedEntity(world, id))
+                    if (LingeringBattlefieldPartyService.IsIncapacitated(world, id))
                     {
                         _status = EntityLabel(world, id) +
                                   "（弥留）｜右键：进入残留战场；先左键选活人再右键：派人探望";
@@ -955,7 +979,7 @@ namespace XianXia.Unity.Host
                         return;
                     }
 
-                    if (!IsMacroSelectableLiving(world, id))
+                    if (!LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id))
                     {
                         _status = EntityLabel(world, id) + " 无法编入宏观指令（弥留／尸体）";
                         e.Use();
@@ -1064,7 +1088,7 @@ namespace XianXia.Unity.Host
             if (TryHitAvatar(mouse, out var menuAvatarId))
             {
                 var hitId = new EntityId(menuAvatarId);
-                if (IsIncapacitatedEntity(world, hitId))
+                if (LingeringBattlefieldPartyService.IsIncapacitated(world, hitId))
                 {
                     if (TryDispatchSelectedLivingToIncap(world, graph, hitId, mouse))
                     {
@@ -1445,7 +1469,7 @@ namespace XianXia.Unity.Host
             if (!_avatarMenuOpen)
                 return;
             var target = new EntityId(_avatarMenuEntityId);
-            if (target.IsNone || !IsIncapacitatedEntity(world, target))
+            if (target.IsNone || !LingeringBattlefieldPartyService.IsIncapacitated(world, target))
             {
                 _avatarMenuOpen = false;
                 return;
@@ -1462,7 +1486,7 @@ namespace XianXia.Unity.Host
                 new Rect(_avatarMenuRect.x + 8f, _avatarMenuRect.y + 4f, _avatarMenuRect.width - 16f, 18f),
                 EntityLabel(world, target) + " · 弥留",
                 _body);
-            CollectLingeringViewParty(world, bootstrap.Session.CharacterIds, target, _attackPartyScratch);
+            LingeringBattlefieldPartyService.CollectViewParty(world, bootstrap.Session.CharacterIds, target, _attackPartyScratch);
             var hasLinger = BattleOfferService.HasLingeringBattlefield(world);
             var canEnter = hasLinger && _attackPartyScratch.Count > 0;
             var hintY = _avatarMenuRect.y + 24f;
@@ -1514,7 +1538,7 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < rt.SpawnedEntityIds.Count; i++)
             {
                 var id = new EntityId(rt.SpawnedEntityIds[i]);
-                if (!IsIncapacitatedEntity(world, id))
+                if (!LingeringBattlefieldPartyService.IsIncapacitated(world, id))
                     continue;
                 if (!world.WorldPresence.TryGet(id, out var presence) || presence == null)
                     continue;
@@ -1542,17 +1566,6 @@ namespace XianXia.Unity.Host
                 GUI.color = old;
                 GUI.Label(rect, "弥", _avatarLabel);
             }
-        }
-
-        static bool IsIncapacitatedEntity(
-            XianXia.Core.Simulation.SimulationWorld world,
-            EntityId id)
-        {
-            if (world == null || id.IsNone)
-                return false;
-            if (!world.Entities.TryGet(id, out var ent) || ent == null)
-                return false;
-            return ent.TryGet<LifecycleComponent>(out var life) && life.IsIncapacitated;
         }
 
         void BeginAttackStack(
@@ -1600,7 +1613,7 @@ namespace XianXia.Unity.Host
             _avatarMenuEntityId = hitId.Value;
             _avatarMenuOpen = true;
             _avatarMenuRect = new Rect(mouse.x + 4f, mouse.y + 4f, 196f, 118f);
-            CollectLingeringViewParty(world, bootstrap.Session.CharacterIds, hitId, _attackPartyScratch);
+            LingeringBattlefieldPartyService.CollectViewParty(world, bootstrap.Session.CharacterIds, hitId, _attackPartyScratch);
             var hasLinger = BattleOfferService.HasLingeringBattlefield(world);
             var canEnter = hasLinger && _attackPartyScratch.Count > 0;
             _status = canEnter
@@ -1639,7 +1652,7 @@ namespace XianXia.Unity.Host
 
             if (travelers.Count == 0)
             {
-                CollectLingeringViewParty(world, bootstrap.Session.CharacterIds, hitId, _scratchParty);
+                LingeringBattlefieldPartyService.CollectViewParty(world, bootstrap.Session.CharacterIds, hitId, _scratchParty);
                 if (BattleOfferService.HasLingeringBattlefield(world) && _scratchParty.Count > 0)
                 {
                     OpenIncapAvatarMenu(world, hitId, mouse);
@@ -1651,6 +1664,7 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
+            world.Strategic.PendingLingeringVisitIncapId = hitId.Value;
             bootstrap.WorldTravelConfirm?.OpenTarget(travelers, target, destLabel);
             _status = "派人探望「" + EntityLabel(world, hitId) + "」→ " + destLabel;
             return true;
@@ -1667,7 +1681,7 @@ namespace XianXia.Unity.Host
             {
                 if (lingerFocusIncap.IsNone)
                     return;
-                CollectLingeringViewParty(
+                LingeringBattlefieldPartyService.CollectViewParty(
                     world,
                     bootstrap.Session.CharacterIds,
                     lingerFocusIncap,
@@ -1694,92 +1708,12 @@ namespace XianXia.Unity.Host
                 var id = from[i];
                 if (id.IsNone)
                     continue;
-                if (kind == MacroPartyKind.MoveOrAttack && !IsMacroSelectableLiving(world, id))
+                if (kind == MacroPartyKind.MoveOrAttack && !LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id))
                     continue;
                 if (!WorldTravelService.CanReceiveTravelOrder(world, id))
                     continue;
                 into.Add(id);
             }
-        }
-
-        static bool IsMacroSelectableLiving(
-            XianXia.Core.Simulation.SimulationWorld world,
-            EntityId id) =>
-            IsLivingForLingeringView(world, id);
-
-        static bool TryResolveBattleAnchor(
-            XianXia.Core.Simulation.SimulationWorld world,
-            EntityId focusIncap,
-            out string anchorNode,
-            out string anchorRoute,
-            out float anchorProgress)
-        {
-            anchorNode = string.Empty;
-            anchorRoute = string.Empty;
-            anchorProgress = -1f;
-
-            if (TryResolveBattleAnchorFromParticipants(world, out anchorNode, out anchorRoute, out anchorProgress))
-                return true;
-
-            if (focusIncap.IsNone ||
-                !world.WorldPresence.TryGet(focusIncap, out var wp) ||
-                wp == null)
-                return false;
-
-            return TryResolveBattleAnchorFromPresence(wp, out anchorNode, out anchorRoute, out anchorProgress);
-        }
-
-        static bool TryResolveBattleAnchorFromParticipants(
-            XianXia.Core.Simulation.SimulationWorld world,
-            out string anchorNode,
-            out string anchorRoute,
-            out float anchorProgress)
-        {
-            anchorNode = string.Empty;
-            anchorRoute = string.Empty;
-            anchorProgress = -1f;
-
-            var snap = world?.Strategic?.Participants;
-            if (snap == null ||
-                (string.IsNullOrEmpty(snap.BattleAnchorNodeId) &&
-                 string.IsNullOrEmpty(snap.BattleAnchorRouteId)))
-                return false;
-
-            anchorNode = snap.BattleAnchorNodeId ?? string.Empty;
-            anchorRoute = snap.BattleAnchorRouteId ?? string.Empty;
-            anchorProgress = snap.BattleAnchorProgress;
-            return true;
-        }
-
-        static bool TryResolveBattleAnchorFromPresence(
-            WorldAgentPresence wp,
-            out string anchorNode,
-            out string anchorRoute,
-            out float anchorProgress)
-        {
-            anchorNode = string.Empty;
-            anchorRoute = string.Empty;
-            anchorProgress = -1f;
-            if (wp == null)
-                return false;
-
-            if (wp.HasRoutePresentation && !string.IsNullOrEmpty(wp.RouteId))
-            {
-                anchorNode = wp.NodeId ?? string.Empty;
-                anchorRoute = wp.RouteId;
-                anchorProgress = wp.Mode == PartyWorldPresenceMode.RouteAnchored
-                    ? Mathf.Clamp01(wp.RouteAnchorProgress)
-                    : Mathf.Clamp01(wp.TravelProgress);
-                return true;
-            }
-
-            if (!string.IsNullOrEmpty(wp.NodeId))
-            {
-                anchorNode = wp.NodeId;
-                return true;
-            }
-
-            return false;
         }
 
         static bool TryBuildTravelTargetForIncap(
@@ -1846,89 +1780,6 @@ namespace XianXia.Unity.Host
             }
 
             return false;
-        }
-
-        /// <summary>
-        /// 残留战场再入：优先接战锚点半径内存活者；若无则允许锚点上的弥留者单独再入。
-        /// 锚点缺失时 fallback 到弥留者 presence。
-        /// </summary>
-        static bool CollectLingeringViewParty(
-            XianXia.Core.Simulation.SimulationWorld world,
-            IReadOnlyList<EntityId> roster,
-            EntityId focusIncap,
-            List<EntityId> into)
-        {
-            into.Clear();
-            if (world?.Strategic == null || roster == null || into == null)
-                return false;
-            if (!BattleOfferService.HasLingeringBattlefield(world))
-                return false;
-
-            if (!TryResolveBattleAnchor(world, focusIncap, out var anchorNode, out var anchorRoute, out var anchorProgress))
-            {
-                if (!focusIncap.IsNone && IsIncapacitatedEntity(world, focusIncap))
-                {
-                    into.Add(focusIncap);
-                    return true;
-                }
-
-                return false;
-            }
-
-            for (var i = 0; i < roster.Count; i++)
-            {
-                var id = roster[i];
-                if (id.IsNone || !IsMacroSelectableLiving(world, id))
-                    continue;
-                if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
-                    continue;
-                if (!WorldTravelService.CanReceiveTravelOrder(world, id))
-                    continue;
-                if (!ReinforcementRangeService.IsWithinReinforcementRange(
-                        world, wp, anchorNode, anchorRoute, anchorProgress))
-                    continue;
-                into.Add(id);
-            }
-
-            if (into.Count > 0)
-                return true;
-
-            for (var i = 0; i < roster.Count; i++)
-            {
-                var id = roster[i];
-                if (id.IsNone || !IsIncapacitatedEntity(world, id))
-                    continue;
-                if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
-                    continue;
-                if (!ReinforcementRangeService.IsWithinReinforcementRange(
-                        world, wp, anchorNode, anchorRoute, anchorProgress))
-                    continue;
-                into.Add(id);
-            }
-
-            if (into.Count == 0 &&
-                !focusIncap.IsNone &&
-                IsIncapacitatedEntity(world, focusIncap) &&
-                world.WorldPresence.TryGet(focusIncap, out var focusWp) &&
-                focusWp != null &&
-                ReinforcementRangeService.IsWithinReinforcementRange(
-                    world, focusWp, anchorNode, anchorRoute, anchorProgress))
-            {
-                into.Add(focusIncap);
-            }
-
-            return into.Count > 0;
-        }
-
-        static bool IsLivingForLingeringView(
-            XianXia.Core.Simulation.SimulationWorld world,
-            EntityId id)
-        {
-            if (world == null || id.IsNone || !world.Entities.TryGet(id, out var ent) || ent == null)
-                return false;
-            if (!ent.TryGet<LifecycleComponent>(out var life) || life == null)
-                return true;
-            return !life.IsIncapacitated && !life.IsDead && !life.IsRemoved;
         }
 
         static string EntityLabel(XianXia.Core.Simulation.SimulationWorld world, EntityId id)
