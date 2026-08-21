@@ -2,7 +2,7 @@
 
 > 状态：**已落地（Content）**｜日期：2026-08-21  
 > 上级：[150 残留再进 Offer](150-lingering-battlefield-batch3-offer-2026-08-21.md)／[138 战略接战](138-world-strategic-battle-offer-plan-2026-08-17.md)  
-> 飞书：（同步后填入）
+> 飞书：https://my.feishu.cn/docx/TNcNdQRHyoBFFWxdujOcxRB0nud
 
 ---
 
