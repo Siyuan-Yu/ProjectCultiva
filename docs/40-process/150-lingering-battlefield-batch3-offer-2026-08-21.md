@@ -25,6 +25,8 @@
 | `LingeringBattlefieldPartyService.cs.meta` | 补缺失 meta，Unity 才能编进 Core |
 | `StrategicPhaseTests` | `LingeringReentry_*`／`RemnantStackAttack_*` |
 
+Content 另见 [151 Encounter stub 150×80](151-encounter-stub-map-150x80-2026-08-21.md)。
+
 ---
 
 ## 3. 流程

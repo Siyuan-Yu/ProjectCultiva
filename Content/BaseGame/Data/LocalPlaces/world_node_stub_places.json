@@ -4,13 +4,13 @@
     {
       "id": "base:places_world_node_stub",
       "type": "localPlaceSet",
-      "name": "宏观节点·保底地点",
+      "name": "战略遭遇·保底地点",
       "mapLayoutId": "base:map_world_node_stub",
       "startLocationId": "base:loc_stub_center",
       "locations": [
         {
           "id": "base:loc_stub_center",
-          "name": "路过歇脚处",
+          "name": "接战空地",
           "kind": "Trail",
           "tags": [
             "stub",

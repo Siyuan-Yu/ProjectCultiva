@@ -3,7 +3,7 @@
 > 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-21（[150] 残留再进 Offer，EditMode 已验）  
 > 用途：一次看清 VS0.1～1.0／Content Ready 做到哪、本轮改了什么、下一步是什么。  
 > 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准（含 ADR-0023 补丁）。  
-> 近期增量：[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)／[149](149-lingering-battlefield-batch2-2026-08-21.md)／[148](148-worldmap-linger-incap-ux-2026-08-21.md)／[147](147-battlefield-linger-no-teleport-2026-08-21.md)
+> 近期增量：[151](151-encounter-stub-map-150x80-2026-08-21.md)／[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)／[149](149-lingering-battlefield-batch2-2026-08-21.md)／[148](148-worldmap-linger-incap-ux-2026-08-21.md)
 
 ---
 

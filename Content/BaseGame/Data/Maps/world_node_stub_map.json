@@ -4,26 +4,14 @@
     {
       "id": "base:map_world_node_stub",
       "type": "mapLayout",
-      "name": "宏观节点·保底场景",
+      "name": "战略遭遇·开阔场地",
       "worldRegionId": "base:places_world_node_stub",
-      "originX": -12,
-      "originY": -12,
+      "originX": -75,
+      "originY": -40,
       "cellSize": 1,
-      "width": 24,
-      "height": 24,
-      "placements": [
-        {
-          "id": "zone_stub_center",
-          "kind": "treeS",
-          "x": 11,
-          "y": 11,
-          "w": 2,
-          "h": 2,
-          "blocksMovement": false,
-          "label": "路过歇脚处",
-          "boundLocationId": "base:loc_stub_center"
-        }
-      ]
+      "width": 150,
+      "height": 80,
+      "placements": []
     }
   ]
 }
