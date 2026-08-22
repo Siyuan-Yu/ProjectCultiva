@@ -65,6 +65,69 @@ namespace XianXia.Tests
         }
 
         [Test]
+        public void Ch01ScenarioSetup_AssignsRegionalTerritoryOwners()
+        {
+            var world = BootstrapCh01Graph();
+            Ch01ScenarioStrategicSetup.Apply(world);
+
+            Assert.AreEqual(3, StrategicAcceptanceInspector.CountOwnedNodes(
+                world, StrategicFactionCatalog.HuangcunLaborId));
+
+            Assert.IsTrue(world.WorldGraph.TryGetNode("base:node_huangcun", out var huangcun));
+            Assert.AreEqual(StrategicFactionCatalog.HuangcunLaborId, huangcun.OwnerId);
+
+            Assert.AreEqual(2, StrategicAcceptanceInspector.CountOwnedNodes(
+                world, StrategicFactionCatalog.NanYanLeagueId));
+            Assert.AreEqual(3, StrategicAcceptanceInspector.CountOwnedNodes(
+                world, StrategicFactionCatalog.FisherVillageId));
+            Assert.AreEqual(2, StrategicAcceptanceInspector.CountOwnedNodes(
+                world, StrategicFactionCatalog.ShuoFengFortId));
+            Assert.AreEqual(3, StrategicAcceptanceInspector.CountOwnedNodes(
+                world, StrategicFactionCatalog.DongLinGuildId));
+            Assert.AreEqual(2, StrategicAcceptanceInspector.CountOwnedNodes(
+                world, StrategicFactionCatalog.XiJinGuildId));
+
+            Assert.IsTrue(world.WorldGraph.TryGetNode("base:node_cunzhuang_nan", out var nanCun));
+            Assert.AreEqual(StrategicFactionCatalog.NanYanLeagueId, nanCun.OwnerId);
+            Assert.IsTrue(world.WorldGraph.TryGetNode("base:node_haijiao", out var haijiao));
+            Assert.AreEqual(StrategicFactionCatalog.FisherVillageId, haijiao.OwnerId);
+            Assert.IsTrue(world.WorldGraph.TryGetNode("base:node_dukou_xi", out var xidu));
+            Assert.AreEqual(StrategicFactionCatalog.XiJinGuildId, xidu.OwnerId);
+        }
+
+        static SimulationWorld BootstrapCh01Graph()
+        {
+            var world = new SimulationWorld();
+            var nodeIds = new[]
+            {
+                "base:node_huangcun", "base:node_qingyun_lu", "base:node_lingdi",
+                "base:node_cunzhuang_nan", "base:node_zhuangyuan",
+                "base:node_haijiao", "base:node_shuizhai", "base:node_yucun",
+                "base:node_cunzhuang_bei", "base:node_shankou",
+                "base:node_shulin_dong", "base:node_miao", "base:node_gudao",
+                "base:node_dukou_xi", "base:node_yaotian",
+                "base:node_linjian", "base:node_guanai"
+            };
+            for (var i = 0; i < nodeIds.Length; i++)
+                world.WorldGraph.RegisterNode(new WorldNodeState { Id = nodeIds[i] });
+            world.WorldGraph.RegisterRoute(new WorldRouteState
+            {
+                Id = "base:route_huangcun_linjian",
+                FromNodeId = "base:node_huangcun",
+                ToNodeId = "base:node_linjian",
+                TravelCost = 1
+            });
+            world.WorldGraph.RegisterRoute(new WorldRouteState
+            {
+                Id = "base:route_huangcun_guanai",
+                FromNodeId = "base:node_huangcun",
+                ToNodeId = "base:node_guanai",
+                TravelCost = 1
+            });
+            return world;
+        }
+
+        [Test]
         public void PlayerUngroupedCharacter_CannotUseMacroTravelPathService()
         {
             var world = new SimulationWorld();

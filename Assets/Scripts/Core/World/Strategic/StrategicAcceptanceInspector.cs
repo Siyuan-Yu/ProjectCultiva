@@ -25,9 +25,10 @@ namespace XianXia.Core.World.Strategic
             into.Clear();
             AddFaction(into, world.Strategic?.PlayerFactionId);
             AddFaction(into, StrategicFactionCatalog.PlayerFactionId);
-            AddFaction(into, StrategicFactionCatalog.BanditId);
             AddFaction(into, StrategicFactionCatalog.HuangcunLaborId);
-            AddFaction(into, StrategicFactionCatalog.FisherVillageId);
+            AddFaction(into, StrategicFactionCatalog.BanditId);
+            for (var i = 0; i < StrategicFactionCatalog.Ch01RegionalFactionIds.Length; i++)
+                AddFaction(into, StrategicFactionCatalog.Ch01RegionalFactionIds[i]);
 
             if (world.WorldGraph?.Nodes != null)
             {

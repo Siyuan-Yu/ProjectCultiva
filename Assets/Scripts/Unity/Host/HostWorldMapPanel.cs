@@ -968,10 +968,19 @@ namespace XianXia.Unity.Host
 
                 var isFocus = string.Equals(n.Id, world.PartyWorld.NodeId, System.StringComparison.Ordinal);
                 var label = (isFocus ? "● " : "") + (string.IsNullOrEmpty(n.Name) ? n.Id : n.Name);
-                // 暂不按势力 Owner 染色／标注（外交未启用）
                 var boxC = isFocus
                     ? new Color(0.35f, 0.42f, 0.28f, 0.95f)
                     : new Color(0.22f, 0.24f, 0.27f, 0.92f);
+                if (!string.IsNullOrEmpty(n.OwnerId))
+                {
+                    StrategicFactionCatalog.MapTint(n.OwnerId, out var tr, out var tg, out var tb);
+                    var blend = isFocus ? 0.55f : 0.42f;
+                    boxC = new Color(
+                        tr * blend + 0.12f,
+                        tg * blend + 0.12f,
+                        tb * blend + 0.12f,
+                        0.92f);
+                }
                 var old = GUI.color;
                 GUI.color = boxC;
                 GUI.DrawTexture(rect, _px);

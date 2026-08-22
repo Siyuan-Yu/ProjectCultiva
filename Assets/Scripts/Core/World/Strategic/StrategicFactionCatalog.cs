@@ -7,8 +7,28 @@ namespace XianXia.Core.World.Strategic
     {
         public const string PlayerFactionId = "base:faction_player";
         public const string HuangcunLaborId = "base:sect_huangcun_labor";
+        /// <summary>海角三角：渔村／水寨／海角。</summary>
         public const string FisherVillageId = "base:faction_fisher_village";
+        /// <summary>无领土游荡敌对（Prototype 山匪）。</summary>
         public const string BanditId = "base:faction_bandits";
+        /// <summary>南村／庄院。</summary>
+        public const string NanYanLeagueId = "base:faction_nan_yan";
+        /// <summary>北村／山口。</summary>
+        public const string ShuoFengFortId = "base:faction_shuofeng";
+        /// <summary>东林／山神庙／古道驿。</summary>
+        public const string DongLinGuildId = "base:faction_donglin";
+        /// <summary>西渡／药田谷。</summary>
+        public const string XiJinGuildId = "base:faction_xijin";
+
+        /// <summary>Ch01 区域势力（不含主角团／压迫宗门／山匪）。</summary>
+        public static readonly string[] Ch01RegionalFactionIds =
+        {
+            FisherVillageId,
+            NanYanLeagueId,
+            ShuoFengFortId,
+            DongLinGuildId,
+            XiJinGuildId
+        };
 
         public static string DisplayName(string factionId)
         {
@@ -19,7 +39,15 @@ namespace XianXia.Core.World.Strategic
             if (string.Equals(factionId, HuangcunLaborId, StringComparison.Ordinal))
                 return "压迫宗门";
             if (string.Equals(factionId, FisherVillageId, StringComparison.Ordinal))
-                return "渔村";
+                return "沧澜渔盟";
+            if (string.Equals(factionId, NanYanLeagueId, StringComparison.Ordinal))
+                return "南堰庄盟";
+            if (string.Equals(factionId, ShuoFengFortId, StringComparison.Ordinal))
+                return "朔风堡";
+            if (string.Equals(factionId, DongLinGuildId, StringComparison.Ordinal))
+                return "东林海会";
+            if (string.Equals(factionId, XiJinGuildId, StringComparison.Ordinal))
+                return "西津渡帮";
             if (string.Equals(factionId, BanditId, StringComparison.Ordinal))
                 return "山匪";
             var slash = factionId.LastIndexOf(':');
@@ -56,6 +84,38 @@ namespace XianXia.Core.World.Strategic
                 r = 0.32f;
                 g = 0.52f;
                 b = 0.82f;
+                return;
+            }
+
+            if (string.Equals(factionId, NanYanLeagueId, StringComparison.Ordinal))
+            {
+                r = 0.82f;
+                g = 0.62f;
+                b = 0.28f;
+                return;
+            }
+
+            if (string.Equals(factionId, ShuoFengFortId, StringComparison.Ordinal))
+            {
+                r = 0.55f;
+                g = 0.68f;
+                b = 0.78f;
+                return;
+            }
+
+            if (string.Equals(factionId, DongLinGuildId, StringComparison.Ordinal))
+            {
+                r = 0.28f;
+                g = 0.62f;
+                b = 0.38f;
+                return;
+            }
+
+            if (string.Equals(factionId, XiJinGuildId, StringComparison.Ordinal))
+            {
+                r = 0.58f;
+                g = 0.45f;
+                b = 0.72f;
                 return;
             }
 

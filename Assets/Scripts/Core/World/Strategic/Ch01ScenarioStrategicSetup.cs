@@ -16,7 +16,7 @@ namespace XianXia.Core.World.Strategic
 
             world.Strategic.Ch01FormationScenarioCompat = true;
             ApplyPlayerFactionAndVassalage(world);
-            ApplyPrototypeNodeOwners(world);
+            ApplyCh01TerritoryOwners(world);
             SeedPrototypeBanditArmies(world);
             ApplyPrototypeRegressionDiplomacy(world);
             Ch01ScenarioProgressionHooks.Register(world);
@@ -31,22 +31,40 @@ namespace XianXia.Core.World.Strategic
                 StrategicFactionCatalog.HuangcunLaborId);
         }
 
-        /// <summary>Ch01 Prototype：演示节点保持无战略归属；已有 Owner 不覆盖。</summary>
-        static void ApplyPrototypeNodeOwners(SimulationWorld world)
+        /// <summary>
+        /// Ch01 Prototype 领土：压迫宗门 3 节点 + 五方区域势力各 2～3 节点；其余保持无归属。
+        /// 山匪无领土（Landless），仅游荡军队。
+        /// </summary>
+        static void ApplyCh01TerritoryOwners(SimulationWorld world)
         {
-            ClearOwnerIfEmpty(world, "base:node_huangcun");
-            ClearOwnerIfEmpty(world, "base:node_yucun");
-            ClearOwnerIfEmpty(world, "base:node_linjian");
-            ClearOwnerIfEmpty(world, "base:node_kuangshan");
+            var overlord = StrategicFactionCatalog.HuangcunLaborId;
+            SetNodeOwner(world, "base:node_huangcun", overlord);
+            SetNodeOwner(world, "base:node_qingyun_lu", overlord);
+            SetNodeOwner(world, "base:node_lingdi", overlord);
+
+            SetNodeOwner(world, "base:node_cunzhuang_nan", StrategicFactionCatalog.NanYanLeagueId);
+            SetNodeOwner(world, "base:node_zhuangyuan", StrategicFactionCatalog.NanYanLeagueId);
+
+            SetNodeOwner(world, "base:node_haijiao", StrategicFactionCatalog.FisherVillageId);
+            SetNodeOwner(world, "base:node_shuizhai", StrategicFactionCatalog.FisherVillageId);
+            SetNodeOwner(world, "base:node_yucun", StrategicFactionCatalog.FisherVillageId);
+
+            SetNodeOwner(world, "base:node_cunzhuang_bei", StrategicFactionCatalog.ShuoFengFortId);
+            SetNodeOwner(world, "base:node_shankou", StrategicFactionCatalog.ShuoFengFortId);
+
+            SetNodeOwner(world, "base:node_shulin_dong", StrategicFactionCatalog.DongLinGuildId);
+            SetNodeOwner(world, "base:node_miao", StrategicFactionCatalog.DongLinGuildId);
+            SetNodeOwner(world, "base:node_gudao", StrategicFactionCatalog.DongLinGuildId);
+
+            SetNodeOwner(world, "base:node_dukou_xi", StrategicFactionCatalog.XiJinGuildId);
+            SetNodeOwner(world, "base:node_yaotian", StrategicFactionCatalog.XiJinGuildId);
         }
 
-        static void ClearOwnerIfEmpty(SimulationWorld world, string nodeId)
+        static void SetNodeOwner(SimulationWorld world, string nodeId, string ownerFactionId)
         {
             if (!world.WorldGraph.TryGetNode(nodeId, out var node) || node == null)
                 return;
-            if (!string.IsNullOrEmpty(node.OwnerId))
-                return;
-            node.OwnerId = string.Empty;
+            node.OwnerId = ownerFactionId ?? string.Empty;
         }
 
         static void SeedPrototypeBanditArmies(SimulationWorld world)
