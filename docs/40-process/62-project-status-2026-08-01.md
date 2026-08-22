@@ -1,17 +1,16 @@
 # 项目现状总览 — 2026-08-01
 
-> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-22（[152] 大地图 RTS 左右键纪律）  
+> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-22（战略势力层 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)／[ADR-0024](43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md) 文档审核）  
 > 用途：一次看清 VS0.1～1.0／Content Ready 做到哪、本轮改了什么、下一步是什么。  
-> 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准（含 ADR-0023 补丁）。  
-> 近期增量：[152](152-worldmap-rts-click-discipline-2026-08-22.md)／[151](151-encounter-stub-map-150x80-2026-08-21.md)／[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)／[149](149-lingering-battlefield-batch2-2026-08-21.md)／[148](148-worldmap-linger-incap-ux-2026-08-21.md)
+> 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准（含 ADR-0023／ADR-0024 补丁引用）。  
+> 近期增量：[2A 战略势力设计](../20-systems/2A-factions-armies-diplomacy-and-capture.md)／[151](151-encounter-stub-map-150x80-2026-08-21.md)／[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)
 
 ---
 
 ## 1. 一句话现状
 
-**Architecture Freeze v0.2 有效（+ADR-0023 补丁）。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**。  
-**本轮：** [152](152-worldmap-rts-click-discipline-2026-08-22.md) 大地图左键选中／右键下令（废 148 反 RTS 点选）；其下 [151](151-encounter-stub-map-150x80-2026-08-21.md)／[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)／[149](149-lingering-battlefield-batch2-2026-08-21.md)／[148](148-worldmap-linger-incap-ux-2026-08-21.md)／[147](147-battlefield-linger-no-teleport-2026-08-21.md)。  
-**下一步：** 制作人手操签收 152；其后 138 占点／外交，或 Ch01 Encounter 图／Snapshot↔Strategic。
+**Architecture Freeze v0.2 有效（+ADR-0023／ADR-0024 补丁引用）。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**。大地图接战 Prototype（`139`～`150`）已落地。  
+**当前阶段：** 战略 Faction / Army / Diplomacy / Vassalage / Alliance / War / Capture **基础设计已拍板**（[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)／[ADR-0024](43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md)）；处于**文档审核 / 实现前设计冻结**。**尚未批准进入代码实现。**
 ---
 
 ## 2. 切片进度与验收
@@ -120,10 +119,15 @@
 
 ## 7. 下一步
 
-1. 制作人手操签收：`DemoParityHost`（路径见 [97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md) §3；必要时菜单重建场景）。  
-2. 按 [94]／[2G](../20-systems/2G-first-chapter-flow.md) 换真实第一章文案／ID。  
-3. 若要关系／据点／地点进 Snapshot：**先停**，确认 schema 后再做。  
-4. 战斗／夺据点／多段对话树／产品 UGUI 另开切片。
+**当前（2026-08-22）：** 战略势力层文档审核 / 实现前设计冻结 — 与 [00-overview](../00-project/00-overview.md)、[41-roadmap](41-roadmap.md) 一致。**尚未批准进入代码实现。**
+
+审核通过后、实现方案仍待讨论的事项（**非本轮阻塞**）包括但不限于：
+
+1. 实现分期与 Army 迁移策略  
+2. Ch01 ScenarioFactionSetup 内容生产  
+3. Snapshot schema 是否纳入战略层  
+4. 制作人手操签收：`DemoParityHost`（[97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)）  
+5. Ch01 真实 Encounter 图；Snapshot↔Strategic 等
 
 ---
 

@@ -29,11 +29,11 @@
 
 | 目的 | 读什么 |
 |------|--------|
-| **本轮（大地图 RTS 左右键）** | [152](../40-process/152-worldmap-rts-click-discipline-2026-08-22.md) |
-| **Encounter stub 150×80** | [151](../40-process/151-encounter-stub-map-150x80-2026-08-21.md) |
-| **残留再进 Offer** | [150](../40-process/150-lingering-battlefield-batch3-offer-2026-08-21.md) |
-| **残留战场批 2** | [149](../40-process/149-lingering-battlefield-batch2-2026-08-21.md) |
-| **弥留交互／点击（批 1；点选见 152）** | [148](../40-process/148-worldmap-linger-incap-ux-2026-08-21.md) |
+| **战略势力层设计真源（本轮）** | [2A 势力、军队、外交与战略占领](../20-systems/2A-factions-armies-diplomacy-and-capture.md) |
+| **修士 Army 架构决策** | [ADR-0024](../40-process/43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md) |
+| **本轮（残留再进 Offer）** | [150](../40-process/150-lingering-battlefield-batch3-offer-2026-08-21.md) |
+| **残留战场批 2（探望到站）** | [149](../40-process/149-lingering-battlefield-batch2-2026-08-21.md) |
+| **弥留交互／点击（批 1）** | [148](../40-process/148-worldmap-linger-incap-ux-2026-08-21.md) |
 | **接战点／弥留残留** | [147](../40-process/147-battlefield-linger-no-teleport-2026-08-21.md) |
 | **ADR-0023 打磨／验收** | [146](../40-process/146-adr0023-host-ux-polish-2026-08-21.md)／[145](../40-process/145-adr0023-phases-af-acceptance-2026-08-21.md) |
 | **ADR-0023／分期** | [ADR-0023](../40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)／[144](../40-process/144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md) |

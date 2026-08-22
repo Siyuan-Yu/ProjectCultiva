@@ -1,6 +1,6 @@
 ﻿# 修仙游戏策划案总览
 
-> 状态：概念框架 v0.9｜**Architecture Freeze v0.2**｜**大地图纯 RTS／接战已验收** | 最后更新：2026-08-21  
+> 状态：概念框架 v0.9｜**Architecture Freeze v0.2**｜**大地图纯 RTS／接战 Prototype 已验收** | 最后更新：2026-08-22  
 > **本页只放最高层大纲。** 细节进专题页；**怎么读整套文档**见 [通读指南](04-reading-guide.md)。  
 > 本地 Markdown 与飞书文档一一对应（真源在本地，飞书为阅读层）。
 
@@ -10,7 +10,7 @@
 其上已叠加：样例关、内容打断、RTS 手操、Navigation／NPC 底座、**Content Studio**、**Level Tester**、**Ch01 三环手操**、**NPC onTalk 对话框（UGUI）**、任务失败／时间流速约定、**人物／工区编辑器＋名册刷人**、**住房分配／主管府占领**、**境界阶梯／打坐／突破仪式**、**将老对弈／洞府勘查进出／秘籍拾取**、**地图战斗 Alpha／斗技 1–6／体魄与生命拆分**、**主管府正式近战／追击固着／Map 刷怪区＋表**、**击败不瞬移／进出洞相机／刷怪表 GUI**、**WorldGraph 出行／进场景／场景隔离**、**功法／斗技熟练度与冲击确认**、**斗气纱衣**、**世界物况栏／砍树**、**田区自动农作**、**大地图纯 RTS／接战弹窗／到站／清场回程**、**追击贴敌／LocalMap 多选近战**、**自动战结算／弥留尸体**、**ADR-0023 战略战斗冻结 WorldTick（A～F＋Host 打磨）**、**接战点无瞬移／弥留残留战场／支援半径滑块**、**弥留交互批 1～3（148～150）**、**大地图 RTS 左右键纪律（152）**。  
 战略战斗：[150](../40-process/150-lingering-battlefield-batch3-offer-2026-08-21.md)／[147](../40-process/147-battlefield-linger-no-teleport-2026-08-21.md)／[ADR-0023](../40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)；验收 [145](../40-process/145-adr0023-phases-af-acceptance-2026-08-21.md)；打磨 [146](../40-process/146-adr0023-host-ux-polish-2026-08-21.md)。  
 
-**下一步：** 手操签收 [152](../40-process/152-worldmap-rts-click-discipline-2026-08-22.md)；其后 138 占点／外交，或 Ch01 Encounter 图；Snapshot↔Strategic 二选一。  
+**下一步：** 战略势力层（Faction / Army / 外交 / 占点）**设计已拍板**（[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)／[ADR-0024](../40-process/43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md)）；当前处于**文档审核 / 实现前设计冻结阶段**，**尚未批准进入实现**。  
 Demo Runtime 停扩。完整进度见 [62 项目现状](../40-process/62-project-status-2026-08-01.md)。
 
 **建议先读：** [通读指南](04-reading-guide.md) → 本页 → [152](../40-process/152-worldmap-rts-click-discipline-2026-08-22.md)／[147](../40-process/147-battlefield-linger-no-teleport-2026-08-21.md)／[146](../40-process/146-adr0023-host-ux-polish-2026-08-21.md) → [ADR-0023](../40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md) → [62 现状](../40-process/62-project-status-2026-08-01.md) → [33](../30-tech/33-architecture-core-rules-freeze-v0.2.md)。
@@ -84,7 +84,7 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 | 25 | [修炼与突破](../20-systems/25-cultivation-and-breakthrough.md) | P0 | |
 | 26 | [领地经营](../20-systems/26-territory-management.md) | P0 | |
 | 27 | [角色与人口](../20-systems/27-characters-and-population.md) | P0 | |
-| 28 | [江湖关系](../20-systems/28-jianghu-relations.md) | P0 | Ledger 真源；VS0.5 落地中 |
+| 28 | [江湖关系](../20-systems/28-jianghu-relations.md) | P0 | Ledger 真源；VS0.5 已验收 |
 | 29 | [天道因果](../20-systems/29-karma-and-consequence.md) | P1 | |
 | 2B | [属性与成长](../20-systems/2B-attributes-and-affinity.md) | P0 | |
 | 2C | [Modifier 管道](../20-systems/2C-attributes-and-modifier-pipeline.md) | P0 | |

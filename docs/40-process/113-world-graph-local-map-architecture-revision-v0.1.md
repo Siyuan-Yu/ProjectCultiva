@@ -1,7 +1,8 @@
 # 113 · World Graph + Local Map 架构修订 v0.1
 
-> 状态：**阶段 A～D／F 已落地／Host 出行与隔离见 [129](129-world-graph-host-travel-scene-isolation-2026-08-16.md)／E 待做／G 战略接战见 [138](138-world-strategic-battle-offer-plan-2026-08-17.md)**｜日期：2026-08-17  
+> 状态：**阶段 A～D／F 已落地／Host 出行与隔离见 [129](129-world-graph-host-travel-scene-isolation-2026-08-16.md)／E 待做／G 战略接战见 [138](138-world-strategic-battle-offer-plan-2026-08-17.md)**｜日期：2026-08-17；**2026-08-22 正式 Army 目标见 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)／[ADR-0024](43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md)**  
 > 一句话：**宏观世界是 Civilization／RimWorld 式节点图；实体玩法只发生在按需加载的 LocalMap 上。**  
+> **正式战略单位目标模型（2026-08-22）：** Character 不能直接跨 Node；必须先进入 Army（[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)）。当前已实现的 `PartyWorldPresence` 为 **Prototype**；是否被 ArmyPresence 取代、复用或桥接 — **本轮不决定**。  
 > 取代：`24` 中「Region = 较大连续区域、路途也在同一张连续地图上走」的体验模型。  
 > 保留：`mapLayout`／MapEditor、WalkGrid、RTS、Job／Schedule、内容包 Loader。  
 > 相关：[24 世界与据点](../20-systems/24-world-and-settlements.md)｜[112 MapEditor](112-map-editor-usage.md)｜[109 RegionEditor](109-content-studio-region-editor-usage.md)｜VS0.9 Travel [71](71-vertical-slice-0.9-world-interaction-plan-v0.1.md)

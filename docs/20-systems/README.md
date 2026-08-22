@@ -1,6 +1,6 @@
 # 系统设计索引
 
-> 最后更新：2026-08-01（工程进度见 `../40-process/62-project-status-2026-08-01.md`）
+> 最后更新：2026-08-22（[2A](2A-factions-armies-diplomacy-and-capture.md) 设计拍板）
 > 上级：`docs/00-project/00-overview.md`（最高层大纲）
 > 通读顺序见 [`../00-project/04-reading-guide.md`](../00-project/04-reading-guide.md)。
 > 新增系统请复制 `docs/90-templates/system-design-template.md`。
@@ -30,7 +30,7 @@
 | 27 | [角色、修士与凡人人口](27-characters-and-population.md) | P0 | 四层+组合见 `34` | |
 | 28 | [江湖关系](28-jianghu-relations.md) | P0 | Ledger 唯一真源 | |
 | 29 | [世界观哲学](29-karma-and-consequence.md) | P1 | 设计方向已定 | |
-| 2A | 势力与战争 | P1 | 未开始 | ArmyGroup 边界见 `33` |
+| 2A | [势力、军队、外交与战略占领](2A-factions-armies-diplomacy-and-capture.md) | P0 | **设计已拍板／尚未实现** | ADR-0024；Army 真源 |
 | 2B | [角色属性与修仙成长](2B-attributes-and-affinity.md) | P0 | 底层规则已定方向 | |
 | 2C | [属性与 Modifier 管道](2C-attributes-and-modifier-pipeline.md) | P0 | **公式与字段已冻结** | |
 | 2D | [功法、斗技与装备](2D-manuals-arts-and-equipment.md) | P0 | 设计方向已定 | |
@@ -62,4 +62,5 @@
       ├── 22 → 23；24
       ├── 2B · 2H · 2D → 25 → 26
       └── 27 → 28 → 29
+      └── 2A（战略势力／Army／外交／占点）
 ```
