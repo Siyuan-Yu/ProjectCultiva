@@ -7,6 +7,23 @@
 
 ---
 
+## 2026-08-23 — 154 Formal Army RTS 收束文档 + 追击暂缓
+
+**做了什么**
+- 收束文档：[154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md)
+- 记录 `f6eb844` 已交付：Formal Army 移动/攻击、青色路径预览、残留战场不双倍、角色名单弥留/尸体
+- **追击（尤其追移动敌军）仍有问题** — 制作人决定暂缓，§3 记录静态分析与下轮修复方向
+- 更新 [141](141-pursuit-stick-and-multi-melee-2026-08-18.md) 已知问题、[62](62-project-status-2026-08-01.md)、[41-roadmap](41-roadmap.md)
+
+**验证**
+- 无新代码提交；文档收束 only
+
+**状态**
+- Formal Army RTS **PARTIAL ACCEPTANCE**（移动/攻击/预览/残留/名单 OK）
+- 追击追移动敌 **KNOWN ISSUES · DEFERRED**
+
+---
+
 ## 2026-08-22 — Strategic Host 双入口（角色／军队 · 移除 Node 组军）
 
 **做了什么**

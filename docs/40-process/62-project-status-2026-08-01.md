@@ -1,16 +1,16 @@
 # 项目现状总览 — 2026-08-01
 
-> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-22（[153 弥留收束](153-lingering-remnant-macro-presentation-2026-08-22.md) + [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md) 设计真源）  
+> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-23（[154 Formal Army RTS + 追击暂缓](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md)）  
 > 用途：一次看清 VS0.1～1.0／Content Ready 做到哪、本轮改了什么、下一步是什么。  
 > 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准（含 ADR-0023／ADR-0024 补丁引用）。  
-> 近期增量：[153](153-lingering-remnant-macro-presentation-2026-08-22.md)／[152](152-worldmap-rts-click-discipline-2026-08-22.md)／[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)／[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)
+> 近期增量：[154](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md)／[153](153-lingering-remnant-macro-presentation-2026-08-22.md)／[152](152-worldmap-rts-click-discipline-2026-08-22.md)／[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)／[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)
 
 ---
 
 ## 1. 一句话现状
 
-**Architecture Freeze v0.2 有效（+ADR-0023／ADR-0024 补丁引用）。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**。大地图接战 Prototype（`139`～**153**）已落地至弥留／自动战宏观表现／接战名单／追击撤退。  
-**当前阶段：** 接战 Prototype **153 手操待签**；战略 Faction / Army / Diplomacy / Vassalage / Alliance / War / Capture **基础设计已拍板**（[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)／[ADR-0024](43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md)）— **2A 全量实现尚未批准**，下一刀见 §9。
+**Architecture Freeze v0.2 有效（+ADR-0023／ADR-0024 补丁引用）。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**。大地图接战 Prototype（`139`～**154**）已落地至 Formal Army RTS；弥留／自动战宏观／接战名单／残留收束。**追击追移动敌军仍有问题 — 2026-08-23 暂缓**（见 [154](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md)）。  
+**当前阶段：** Formal Army 移动/攻击/预览 **部分手操 OK**；追击 **DEFERRED**；153 / 152 手操待签；2A 全量实现尚未批准。
 ---
 
 ## 2. 切片进度与验收
@@ -123,6 +123,7 @@
 
 1. **手操签收 [153](153-lingering-remnant-macro-presentation-2026-08-22.md)** — 宏观个体头像／强制名单／追击撤退  
 2. 手操签收 [152](152-worldmap-rts-click-discipline-2026-08-22.md) RTS 左右键纪律  
+3. **暂缓 · [154](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md) §3** — FormalArmy 追击移动敌军（下轮专项）
 
 **战略势力层（2A／ADR-0024）— 设计已拍板，实现待批准：**
 

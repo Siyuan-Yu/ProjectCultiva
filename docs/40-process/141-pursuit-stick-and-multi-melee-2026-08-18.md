@@ -1,6 +1,6 @@
 # 141 · 追击贴敌＋LocalMap 多选近战（2026-08-18）
 
-> 状态：**已落地**｜日期：2026-08-18  
+> 状态：**已落地 · 追移动敌军仍有问题（2026-08-23 暂缓）**｜日期：2026-08-18；**backlog：** [154](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md) §3  
 > 相对提交：`c3a036e` 之后 → 本轮 `main`  
 > 上级：[140 收束](140-world-map-rts-battle-return-rollup-2026-08-18.md)｜[139 RTS 规则](139-world-map-rts-orders-2026-08-17.md)  
 > 飞书：https://my.feishu.cn/docx/I36jdoafvos0YCx2SFscxl0anUb
@@ -51,8 +51,21 @@
 
 ---
 
-## 6. 下一步
+## 6. 已知问题（2026-08-23 · DEFERRED）
 
-1. 手操验：攻击林间山匪、敌军沿路移动时人应跟着贴上去再出弹窗  
+| 现象 | 说明 |
+|------|------|
+| **追移动敌军** | FormalArmy 行军中仅同路 `Clamp`；跨路/节点跳时不会跟着敌人路径改道 |
+| **队列 route leg** | 开拔时写死的 progress；敌人在途中移动时可能追到旧位置 |
+| **Stack vs FormalArmy** | 链接敌军栈与 FormalArmy 双轨 tick，锚点可能滞后 |
+
+**决策：** 暂缓修复；详细根因与建议方向见 [154 §3](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md)。
+
+---
+
+## 7. 下一步
+
+1. ~~手操验：攻击林间山匪、敌军沿路移动时人应跟着贴上去再出弹窗~~ → **DEFERRED（154）**
 2. 手操验：LocalMap 两人打同一敌人应两人都出手  
-3. 跟随菜单／交谈仍暂缓
+3. 跟随菜单／交谈仍暂缓  
+4. **恢复追击专项时：** 先补「敌 IsTraveling + 每 tick 推进」EditMode，再改 `ArmyPursuitCommandService` / `Clamp`
