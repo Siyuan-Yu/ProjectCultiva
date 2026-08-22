@@ -390,5 +390,52 @@ namespace XianXia.Core.World.Strategic
             stack.CorpseMemberCount = GetCorpseMemberCount(world, stack);
             RefreshDerivedPresentation(world, stack);
         }
+
+        /// <summary>FormalArmy 战略位置 → ArmyStack 展示/接战兼容视图（禁止双轨 Advance）。</summary>
+        public static void SyncStackTravelFromFormalArmy(SimulationWorld world, ArmyStack stack)
+        {
+            if (world == null || stack == null || !TryGetFormalArmy(world, stack, out var army) || army == null)
+                return;
+
+            stack.FactionId = army.FactionId ?? string.Empty;
+            stack.NodeId = army.NodeId ?? string.Empty;
+            stack.DestNodeId = army.DestNodeId ?? string.Empty;
+
+            if (army.IsTraveling && !string.IsNullOrEmpty(army.RouteId))
+            {
+                stack.RouteId = army.RouteId;
+                stack.RouteAnchorProgress = army.GetRouteDisplayProgress();
+                stack.RemainingTravelTicks = 0;
+                stack.TravelTotalTicks = 0;
+                return;
+            }
+
+            if (army.IsRouteAnchored)
+            {
+                stack.RouteId = army.RouteId;
+                stack.RouteAnchorProgress = army.RouteAnchorProgress;
+                stack.RemainingTravelTicks = 0;
+                stack.TravelTotalTicks = 0;
+                return;
+            }
+
+            stack.RouteId = string.Empty;
+            stack.RouteAnchorProgress = -1f;
+            stack.ClearTravel();
+        }
+
+        public static void SyncAllLinkedStacksFromFormalArmies(SimulationWorld world)
+        {
+            if (world?.Strategic?.Armies == null)
+                return;
+            foreach (var kv in world.Strategic.Armies.Stacks)
+            {
+                var stack = kv.Value;
+                if (stack == null || !HasFormalArmyLink(stack))
+                    continue;
+                SyncStackTravelFromFormalArmy(world, stack);
+                RefreshDerivedPresentation(world, stack);
+            }
+        }
     }
 }

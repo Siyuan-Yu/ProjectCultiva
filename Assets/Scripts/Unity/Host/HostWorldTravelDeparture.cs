@@ -202,7 +202,11 @@ namespace XianXia.Unity.Host
             }
 
             var target = ArmyTravelCommandService.ResolveStackWorldTravelTarget(world, stack);
-            var started = ArmyTravelCommandService.MoveArmyToStackAnchor(world, armyId, stack);
+            Result started;
+            if (ArmyStackAdapter.TryGetFormalArmy(world, stack, out var defenderArmy) && defenderArmy != null)
+                started = ArmyTravelCommandService.MoveArmyToTargetArmy(world, armyId, defenderArmy.ArmyId);
+            else
+                started = ArmyTravelCommandService.MoveArmyToStackAnchor(world, armyId, stack);
 
             WorldTravelService.SyncPartyFocus(world);
             // 仅尝试同格接战；禁止在此调用会 Clamp/改道的整段 Sync（开拔当下进度≈0，旧逻辑会拽回 FromNode）

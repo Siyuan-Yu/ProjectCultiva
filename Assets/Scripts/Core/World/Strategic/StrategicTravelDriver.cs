@@ -21,6 +21,7 @@ namespace XianXia.Core.World.Strategic
 
             ArmyStackService.AdvanceAll(world, ticks);
             ArmyTravelService.AdvanceAll(world, ticks, ArrivedScratch);
+            ArmyStackAdapter.SyncAllLinkedStacksFromFormalArmies(world);
             StrategicFollowService.AfterTravelTick(world);
 
             // 接战优先：即使已有到站弹窗也允许追击接战盖过去

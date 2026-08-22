@@ -50,6 +50,26 @@ namespace XianXia.Core.World.Strategic
             if (queue.Count == 0)
                 PendingNodeHops.Remove(armyId);
 
+            if (ArmyPursuitTargetService.TryConsumePursuitRouteLeg(nextLeg, out var pursuitRouteId) &&
+                world.WorldGraph.TryGetRoute(pursuitRouteId, out var pursuitRoute) &&
+                pursuitRoute != null)
+            {
+                ArmyPursuitTargetService.TryResolveTargetArmy(world, out var pursuitTarget);
+                var dynamicProgress = ArmyPursuitTargetService.ResolveTargetRouteProgressForLeg(
+                    world,
+                    pursuitTarget,
+                    pursuitRoute);
+                var arrivedNode = army.NodeId ?? string.Empty;
+                NormalizeFormalArmyRouteEndpoints(world, army, pursuitRoute);
+                var entryProgress = string.Equals(arrivedNode, pursuitRoute.ToNodeId, StringComparison.Ordinal)
+                    ? 1f
+                    : 0f;
+                army.State = FormalArmyState.AtNode;
+                army.RouteAnchorProgress = entryProgress;
+                army.ClearRouteSegment();
+                return StartArmyTravelToRouteProgress(world, army, pursuitRoute, dynamicProgress).IsSuccess;
+            }
+
             if (TryConsumeRouteProgressLeg(nextLeg, out var routeId, out var progress) &&
                 world.WorldGraph.TryGetRoute(routeId, out var route) &&
                 route != null)
@@ -119,7 +139,7 @@ namespace XianXia.Core.World.Strategic
             PrepareArmyMacroTravel(world, army);
 
             progress = Math.Max(0f, Math.Min(1f, progress));
-            return BeginArmyRouteProgressTarget(world, army, route, progress);
+            return BeginArmyRouteProgressTarget(world, army, route, progress, false);
         }
 
         /// <summary>追击专用：不清 Pursuit 标记，FormalArmy 为真源。移动核心与 MoveArmyToNode/RouteProgress 相同。</summary>
@@ -161,7 +181,73 @@ namespace XianXia.Core.World.Strategic
             if (!world.WorldGraph.TryGetRoute(stack.RouteId, out var stackRoute) || stackRoute == null)
                 return Result.Failure(ErrorCode.NotFound, "Stack route missing.", stack.RouteId);
 
-            return BeginArmyRouteProgressTarget(world, army, stackRoute, stack.GetRouteDisplayProgress());
+            return BeginArmyRouteProgressTarget(world, army, stackRoute, stack.GetRouteDisplayProgress(), false);
+        }
+
+        /// <summary>追击专用：以 Target FormalArmy 为真源，不清 Pursuit 标记。</summary>
+        public static Result MoveArmyToTargetArmy(
+            SimulationWorld world,
+            string armyId,
+            string targetArmyId)
+        {
+            if (world == null || string.IsNullOrWhiteSpace(armyId) || string.IsNullOrWhiteSpace(targetArmyId))
+                return Result.Failure(ErrorCode.InvalidArgument, "Invalid pursuit order.");
+            if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
+                return Result.Failure(ErrorCode.NotFound, "Army not found.", armyId);
+            if (!world.Strategic.FormalArmies.TryGet(targetArmyId, out var target) || target == null)
+                return Result.Failure(ErrorCode.NotFound, "Target army not found.", targetArmyId);
+            if (army.State == FormalArmyState.Garrisoned)
+                return Result.Failure(ErrorCode.InvalidOperation, "Garrisoned army cannot travel.", armyId);
+            if (StrategicClockFreezeService.IsModalEncounter(world))
+                return Result.Failure(ErrorCode.InvalidOperation, "Modal encounter blocks army travel.");
+            if (!ArmyPostBattleSyncService.HasMacroOrderLivingMember(world, army))
+                return Result.Failure(ErrorCode.InvalidOperation, "Army has no living members.", armyId);
+
+            ClearArmyTravelQueue(armyId);
+            ClearArmyMemberPathQueues(world, army);
+            PrepareArmyMacroTravel(world, army);
+
+            if (target.State == FormalArmyState.Garrisoned ||
+                (target.State == FormalArmyState.AtNode &&
+                 string.IsNullOrEmpty(target.RouteId) &&
+                 !string.IsNullOrEmpty(target.NodeId)))
+            {
+                if (string.IsNullOrEmpty(target.NodeId))
+                    return Result.Failure(ErrorCode.InvalidOperation, "Target has no node.");
+                return ExecuteMoveArmyToNode(world, army, target.NodeId);
+            }
+
+            if (string.IsNullOrEmpty(target.RouteId) ||
+                !world.WorldGraph.TryGetRoute(target.RouteId, out var route) ||
+                route == null)
+            {
+                if (!string.IsNullOrEmpty(target.NodeId))
+                    return ExecuteMoveArmyToNode(world, army, target.NodeId);
+                return Result.Failure(ErrorCode.InvalidOperation, "Target has no travel position.");
+            }
+
+            if (ArmyPursuitTargetService.IsStaticRouteTarget(target))
+            {
+                var staticProgress = target.GetRouteDisplayProgress();
+                if (string.Equals(army.RouteId, route.Id, StringComparison.Ordinal) &&
+                    (army.IsTraveling || army.IsRouteAnchored))
+                {
+                    NormalizeFormalArmyRouteEndpoints(world, army, route);
+                    return StartArmyTravelToRouteProgress(world, army, route, staticProgress);
+                }
+
+                return BeginArmyRouteProgressTarget(world, army, route, staticProgress, false);
+            }
+
+            var chaseEnd = ArmyPursuitTargetService.ResolveChaseEndpoint(target);
+            if (string.Equals(army.RouteId, route.Id, StringComparison.Ordinal) &&
+                (army.IsTraveling || army.IsRouteAnchored))
+            {
+                NormalizeFormalArmyRouteEndpoints(world, army, route);
+                return StartArmyTravelToRouteProgress(world, army, route, chaseEnd);
+            }
+
+            return BeginArmyRouteProgressTarget(world, army, route, chaseEnd, true);
         }
 
         public static void ClampArmyPursuitToStackAnchor(
@@ -169,39 +255,19 @@ namespace XianXia.Core.World.Strategic
             FormalArmy army,
             ArmyStack stack)
         {
-            if (world == null || army == null || stack == null || !stack.IsRoutePositioned)
+            if (world == null || army == null || stack == null)
                 return;
-            if (!army.IsTraveling || !string.Equals(army.RouteId, stack.RouteId, StringComparison.Ordinal))
+            if (!ArmyStackAdapter.TryGetFormalArmy(world, stack, out var targetArmy) || targetArmy == null)
                 return;
-
-            var leaderId = army.LeaderCharacterId;
-            if (!leaderId.IsNone &&
-                world.WorldPresence.TryGet(leaderId, out var leaderWp) &&
-                leaderWp != null &&
-                StrategicEngageRules.IsAgentColocatedWithStack(world, leaderWp, stack))
-                return;
-
-            if (!world.WorldGraph.TryGetRoute(stack.RouteId, out var route) || route == null)
-                return;
-
-            var target = stack.GetRouteDisplayProgress();
-            // 已朝该进度行军：勿每 tick 重开（否则会把起点重置到 0＝荒村端）
-            if (army.RouteSegmentEndProgress >= 0f &&
-                Math.Abs(army.RouteSegmentEndProgress - target) <= 0.02f)
-                return;
-
-            var current = army.GetRouteDisplayProgress();
-            if (Math.Abs(current - target) <= 0.02f)
-                return;
-
-            StartArmyTravelToRouteProgress(world, army, route, target);
+            ArmyPursuitTargetService.TryEnsurePursuitTravel(world, army, targetArmy);
         }
 
         static Result BeginArmyRouteProgressTarget(
             SimulationWorld world,
             FormalArmy army,
             WorldRouteState route,
-            float progress)
+            float progress,
+            bool pursuitDynamicLeg)
         {
             if (army.IsRouteAnchored &&
                 string.Equals(army.RouteId, route.Id, StringComparison.Ordinal))
@@ -229,7 +295,9 @@ namespace XianXia.Core.World.Strategic
                     world, anchor, route, progress, out var pathToEntry, out _))
                 return Result.Failure(ErrorCode.InvalidOperation, "Cannot reach target road.");
 
-            var routeLeg = FormatRouteProgressLeg(route.Id, progress);
+            var routeLeg = pursuitDynamicLeg
+                ? ArmyPursuitTargetService.FormatPursuitRouteLeg(route.Id)
+                : FormatRouteProgressLeg(route.Id, progress);
 
             if (army.IsRouteAnchored &&
                 !string.Equals(army.RouteId, route.Id, StringComparison.Ordinal) &&

@@ -14,6 +14,8 @@ namespace XianXia.Core.World.Strategic
                 var stack = kv.Value;
                 if (stack == null || !stack.IsTraveling)
                     continue;
+                if (ArmyStackAdapter.HasFormalArmyLink(stack))
+                    continue;
                 stack.RemainingTravelTicks -= ticks;
                 if (stack.RemainingTravelTicks > 0)
                     continue;

@@ -103,6 +103,10 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic == null)
                 return;
 
+            var rt = world.Strategic.Encounter;
+            if (rt != null && !string.IsNullOrEmpty(rt.PursueAttackerArmyId))
+                ArmyPursuitTargetService.ClearTracking(rt.PursueAttackerArmyId);
+
             foreach (var kv in world.WorldPresence.All)
             {
                 if (kv.Value != null)
@@ -221,43 +225,90 @@ namespace XianXia.Core.World.Strategic
                 return;
             }
 
+            if (!ArmyPursuitTargetService.TryResolveTargetArmy(world, out var targetArmy) ||
+                targetArmy == null ||
+                !ArmyPostBattleSyncService.HasMacroOrderLivingMember(world, targetArmy))
+            {
+                ClearPursuit(world);
+                return;
+            }
+
+            ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, stack);
+
             var pursue = CollectPursueParty(world, rt);
             if (pursue.Count == 0)
                 return;
 
-            // 敌军挪位：持续改道贴上去，追上再弹窗
-            SyncPursuersToStack(world, pursue, stack);
+            if (!string.IsNullOrEmpty(rt.PursueAttackerArmyId) &&
+                world.Strategic.FormalArmies.TryGet(rt.PursueAttackerArmyId, out var pursuerArmy) &&
+                pursuerArmy != null)
+            {
+                if (ArmyPursuitTargetService.TryDetectFormalArmyPursuitContact(
+                        pursuerArmy,
+                        targetArmy,
+                        rt.PursueAttackerArmyId))
+                {
+                    ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, stack);
+                    ArmyPresenceAdapter.SyncFromArmy(world, pursuerArmy);
+                    var ready = new List<EntityId>(pursue.Count);
+                    StrategicEngageRules.CollectPartyReadyToEngageStack(world, pursue, stack, ready);
+                    if (ready.Count > 0)
+                    {
+                        var title = stack.HasIncapacitatedRemnant || stack.IsBattlefieldRemnant
+                            ? "残留战场"
+                            : "追击接战";
+                        if (BattleOfferService.TryBuildOfferForArmy(world, ready, stack, title))
+                        {
+                            world.Strategic.ClearArrivalNotice();
+                            ArmyPursuitTargetService.ClearTracking(rt.PursueAttackerArmyId);
+                            return;
+                        }
+                    }
+                }
 
-            var ready = new List<EntityId>(pursue.Count);
-            StrategicEngageRules.CollectPartyReadyToEngageStack(world, pursue, stack, ready);
-            if (ready.Count == 0)
+                ArmyPursuitTargetService.CaptureTickSnapshot(pursuerArmy, targetArmy);
+            }
+
+            SyncPursuersToStack(world, pursue, stack, targetArmy);
+
+            var readyAfterSync = new List<EntityId>(pursue.Count);
+            StrategicEngageRules.CollectPartyReadyToEngageStack(world, pursue, stack, readyAfterSync);
+            if (readyAfterSync.Count == 0)
                 return;
 
-            var title = stack.HasIncapacitatedRemnant || stack.IsBattlefieldRemnant
+            var engageTitle = stack.HasIncapacitatedRemnant || stack.IsBattlefieldRemnant
                 ? "残留战场"
                 : "追击接战";
-            if (BattleOfferService.TryBuildOfferForArmy(world, ready, stack, title))
+            if (BattleOfferService.TryBuildOfferForArmy(world, readyAfterSync, stack, engageTitle))
                 world.Strategic.ClearArrivalNotice();
         }
 
-        /// <summary>追击中：每 tick 把未重合的人改道到敌军栈当前宏观位置。</summary>
+        /// <summary>追击中：每 tick 把未重合的人改道到敌军当前宏观位置（FormalArmy 真源）。</summary>
         public static void SyncPursuersToStack(
             SimulationWorld world,
             IReadOnlyList<EntityId> pursue,
-            ArmyStack stack)
+            ArmyStack stack,
+            FormalArmy targetArmy = null)
         {
             if (world == null || stack == null || pursue == null)
                 return;
+
+            if (targetArmy == null)
+                ArmyStackAdapter.TryGetFormalArmy(world, stack, out targetArmy);
+
+            ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, stack);
 
             var rt = world.Strategic?.Encounter;
             if (rt != null &&
                 !string.IsNullOrEmpty(rt.PursueAttackerArmyId) &&
                 world.Strategic.FormalArmies.TryGet(rt.PursueAttackerArmyId, out var attackerArmy) &&
-                attackerArmy != null)
+                attackerArmy != null &&
+                targetArmy != null)
             {
-                ArmyPursuitCommandService.SyncFormalArmyPursuersToStack(
+                ArmyPursuitCommandService.SyncFormalArmyPursuersToTargetArmy(
                     world,
                     attackerArmy,
+                    targetArmy,
                     stack,
                     pursue);
 

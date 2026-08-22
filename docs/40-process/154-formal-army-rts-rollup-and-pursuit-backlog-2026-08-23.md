@@ -1,8 +1,8 @@
 # 154 · Formal Army 大地图 RTS 收束 + 追击已知问题（暂缓）
 
-> **日期：** 2026-08-23  
+> **日期：** 2026-08-23（v2 实现：2026-08-23 晚）  
 > **Git：** `f6eb844` —「战略层 Formal Army 与大地图 RTS 追击/残留战场收束」  
-> **状态：** 移动/攻击/预览/残留/名单 **部分已验收**；**追击（尤其追移动敌军）仍有问题 — 暂缓修复**  
+> **状态：** 移动/攻击/预览/残留/名单 **部分已验收**；**追击 v2（移动目标）已实现 + PUR-01～11 测试已编码** — Unity EditMode / Host 手操 **待签收**  
 > **相对：** [139 RTS 下令](139-world-map-rts-orders-2026-08-17.md)｜[141 追击贴敌](141-pursuit-stick-and-multi-melee-2026-08-18.md)｜[152 左右键纪律](152-worldmap-rts-click-discipline-2026-08-22.md)｜[153 弥留收束](153-lingering-remnant-macro-presentation-2026-08-22.md)｜[152 2A 实现计划](152-strategic-faction-army-capture-implementation-plan-2026-08-22.md)｜[ADR-0024](43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md)
 
 ---
@@ -54,11 +54,51 @@
 
 ---
 
-## 3. 暂缓项：追击仍有问题（BACKLOG）
+## 3. 追击 v2：移动目标 PursuitOrder（IMPLEMENTED · 待测）
 
-> **决策（2026-08-23）：** 追击体验问题较多，**本轮不再继续改代码**；以下作为下一刀追击专项的输入。
+> **2026-08-23 晚：** 按 Formal Army Moving-Target Pursuit v2 任务书实现；**普通 Army Move 保护区未改主链**。
 
-### 3.1 现象
+### 3.1 根因（已修）
+
+| # | 原问题 | v2 修正 |
+|---|--------|---------|
+| 1 | Traveling 时只 Clamp 到 stack 瞬时 progress | `ArmyPursuitTargetService.TryEnsurePursuitTravel`：同路追 chase endpoint，拓扑变才 `MoveArmyToTargetArmy` |
+| 2 | 目标位置读 ArmyStack | **FormalArmy.StrategicPosition** 真源；`ArmyStackAdapter.SyncStackTravelFromFormalArmy` |
+| 3 | `__route_progress__` 写死下令时 progress | 追击队列 leg 改为 `__route_pursuit__:` + 消费时解析目标当前位置 |
+| 4 | ArmyStack / FormalArmy 双轨 Advance | `ArmyStackService` 跳过 FormalArmyId 链接栈；TravelDriver tick 后 Sync 全链接栈 |
+| 5 | 相向交错无接战 | `ArmyPursuitTargetService.DetectSweptRouteContact`（仅 pursuit pair） |
+
+### 3.2 新增 / 修改文件
+
+| 文件 | 变更 |
+|------|------|
+| `ArmyPursuitTargetService.cs` | **新增** — MacroSignature、同路追击、 swept contact、动态 route leg |
+| `ArmyPursuitCommandService.cs` | 改 — TargetArmy 真源同步 |
+| `ArmyTravelCommandService.cs` | `MoveArmyToTargetArmy`、pursuit route leg |
+| `StrategicPursuitService.cs` | AfterTravelTick army-to-army 接战 |
+| `ArmyStackAdapter.cs` | `SyncStackTravelFromFormalArmy` / `SyncAllLinkedStacksFromFormalArmies` |
+| `ArmyStackService.cs` | 链接栈不独立 Advance |
+| `StrategicTravelDriver.cs` | FormalArmy tick 后 sync stacks |
+| `HostWorldTravelDeparture.cs` | 攻击开拔 `MoveArmyToTargetArmy` |
+| `ArmyPursuitMovingTargetTests.cs` | **新增** PUR-01～PUR-11 |
+
+### 3.3 验收状态
+
+| 项 | 状态 |
+|----|------|
+| PUR-01～PUR-11 EditMode | **STATIC TEST WRITTEN** — 待 `run-editmode-tests.ps1` |
+| ArmyPhaseD/E、StrategicPhase 回归 | **NOT RUN**（本机无 Unity batch） |
+| Host 手操 CASE A～E | **NOT RUN** |
+| RUNTIME ACCEPTED | **禁止** — 须制作人手操通过后 |
+
+---
+
+## 3-legacy. 暂缓项：追击仍有问题（BACKLOG · 已被 v2 取代）
+
+> **决策（2026-08-23 午）：** 追击体验问题较多，**本轮不再继续改代码**；以下作为下一刀追击专项的输入。  
+> **注：** 当晚 v2 已按本节方向实施，见 §3。
+
+### 3-legacy.1 现象
 
 - 对 **会沿路移动的敌军**（如山匪斥候 `army:bandit_patrol_auto`），我方 **不会持续跟着敌人路径改道**。
 - 对 **驻路锚点** 的敌军，部分场景下曾可用（见 `Pursuit_RetargetsWhenStackMovesAlongRoute`），但与 **行军中敌军** 行为不一致。
@@ -142,23 +182,22 @@
 | ID | 项 | 状态 |
 |----|-----|------|
 | RTS-01 | 选军团右键移动 | ✅ 已编码 · 部分手操 OK |
-| RTS-02 | 选军团右键攻击 = 追击移动 | ⚠️ 基本移动 OK · **追移动敌 DEFERRED** |
+| RTS-02 | 选军团右键攻击 = 追击移动 | ✅ v2 已实现 · **EditMode/手操待签收** |
 | RTS-03 | 下令后青色路径预览（无悬停） | ✅ |
 | RTS-04 | 残留战场不双倍 generic 敌人 | ✅ |
 | RTS-05 | 名单含弥留/尸体不可勾选 | ✅ |
 | RTS-06 | 追击不弹到站、到站弹接战 | ✅（追上时） |
 | 153 | Global Strategic 双入口 | IMPLEMENTED · Unity 手操 DEFERRED |
 
-**签注（追击）：** 暂缓 — _______________　**日期：** 2026-08-23
+**签注（追击 v2）：** 代码+测试已提交 — _______________　**日期：** 2026-08-23
 
 ---
 
 ## 7. 下一步（优先级）
 
-1. **其它功能** — 按制作人当前优先级推进（本轮不动追击代码）
-2. **恢复追击时** — 以 §3.3 为实施清单；先补 EditMode「移动敌 tick 推进」测试再改 Core
-3. **Unity 手操** — 153 / 152 清单仍可并行签收
-4. **文档** — 141 已标「追击移动敌已知问题」；本页为 backlog 真源
+1. **Unity EditMode** — `ArmyPursuitMovingTargetTests` + `ArmyPhaseDTests` / `ArmyPhaseETests` / `StrategicPhaseTests`
+2. **Host 手操** — CASE A～E（154 §3.3）
+3. **通过后** — 更新 141、153 checklist、42-devlog、41-roadmap；RTS-02 标 RUNTIME ACCEPTED
 
 ---
 
@@ -169,4 +208,4 @@
 .\tools\run-editmode-tests.ps1
 ```
 
-相关类：`ArmyPhaseDTests`、`ArmyPhaseETests`、`StrategicPhaseTests`（含 `Pursuit_*`）。
+相关类：`ArmyPursuitMovingTargetTests`（PUR-01～11）、`ArmyPhaseDTests`、`ArmyPhaseETests`、`StrategicPhaseTests`（含 `Pursuit_*`）。
