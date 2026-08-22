@@ -7,6 +7,7 @@
 - Architecture Freeze **v0.2**＋**ADR-0023 补丁**（Manual Encounter 冻结 WorldTick）。  
 - **2026-08-22（第二轮）：** 制作人补充 9 条规则（编组地点／统一 FactionId／禁止混编／驻扎不自动解散／无战后保护期／一势力一 Alliance＋联盟战争绑定／Capture 手动收尾与残余守军）；文档同步中，**尚未批准实现**。  
 - 世界结构以 [113](113-world-graph-local-map-architecture-revision-v0.1.md) 为准。  
+- **2026-08-22：** 弥留收束 [153](153-lingering-remnant-macro-presentation-2026-08-22.md)（宏观个体头像／强制名单／追击撤退；EditMode 已补）。  
 - **2026-08-22：** 大地图 RTS 左右键纪律 [152](152-worldmap-rts-click-discipline-2026-08-22.md)（左选右令；废 148 反 RTS 点选）。  
 - **2026-08-21：** Phase A～F＋Host 打磨 [146](146-adr0023-host-ux-polish-2026-08-21.md) 已落地；验收见 [145](145-adr0023-phases-af-acceptance-2026-08-21.md)。  
 - **2026-08-21：** 残留再进 Offer [150](150-lingering-battlefield-batch3-offer-2026-08-21.md)（EditMode 已验）。  
@@ -25,6 +26,7 @@
 - [x] 接战点无瞬移＋弥留残留战场＋支援半径滑块：[147](147-battlefield-linger-no-teleport-2026-08-21.md)
 - [x] 大地图弥留批 1～3：[148](148-worldmap-linger-incap-ux-2026-08-21.md)／[149](149-lingering-battlefield-batch2-2026-08-21.md)／[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)
 - [x] RTS 左右键纪律：[152](152-worldmap-rts-click-discipline-2026-08-22.md)（手操待签）
+- [x] 弥留／自动战宏观 + 接战名单 + 追击撤退：[153](153-lingering-remnant-macro-presentation-2026-08-22.md)（手操待签）
 
 ### 样例关可玩弧（2026-08-02）— **自动化 Completed／手操签收中**
 

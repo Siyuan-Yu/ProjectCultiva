@@ -7,6 +7,26 @@
 
 ---
 
+## 2026-08-22 — 153 弥留残留收束 + 自动战宏观头像 + 接战／追击修复（已编码）
+
+**做了什么**
+- 自动战胜后 `EnsureMacroRemnantSpawns`：宏观立刻刷弥留／尸体个体 + `WorldPresence`；隐藏聚合 `ArmyStack` 标记  
+- 战损语义：`IncapacitatedMemberCount`／`CorpseMemberCount`；处决留尸体不 `Armies.Remove`  
+- 接战强制名单：`CollectViewParty(mandatoryLiving)` 仅行动决定人 + 半径内弥留／尸体；探望记录派出名单  
+- 接战窗撤退：`ClearPursuitForAgents`；自动战胜 `ClearPursuitForEngagedKeepEnRoute`  
+- 再进 LocalMap 倒计时 preservation；`EstimateAutoWinPercent` 调整；EditMode 回归测例  
+- 过程文档 [153](153-lingering-remnant-macro-presentation-2026-08-22.md)；GitHub／飞书同步
+
+**未做**
+- 2A 正式 Faction／Diplomacy／War／Capture 代码（仍为 Prototype `ArmyStack`）  
+- 手操签收 153 清单
+
+**下一步**
+- 手操验 153 → 制作人批准 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md) 实现分期  
+- 见 153 §6 与 devlog 外交条目
+
+---
+
 ## 2026-08-22 — 战略势力层规则第二轮补充（仅文档，未编码）
 
 **做了什么**

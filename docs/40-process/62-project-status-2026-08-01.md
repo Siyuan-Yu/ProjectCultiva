@@ -1,16 +1,16 @@
 # 项目现状总览 — 2026-08-01
 
-> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-22（战略势力层 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)／[ADR-0024](43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md) 文档审核）  
+> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-22（[153 弥留收束](153-lingering-remnant-macro-presentation-2026-08-22.md) + [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md) 设计真源）  
 > 用途：一次看清 VS0.1～1.0／Content Ready 做到哪、本轮改了什么、下一步是什么。  
 > 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准（含 ADR-0023／ADR-0024 补丁引用）。  
-> 近期增量：[2A 战略势力设计](../20-systems/2A-factions-armies-diplomacy-and-capture.md)／[151](151-encounter-stub-map-150x80-2026-08-21.md)／[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)
+> 近期增量：[153](153-lingering-remnant-macro-presentation-2026-08-22.md)／[152](152-worldmap-rts-click-discipline-2026-08-22.md)／[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)／[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)
 
 ---
 
 ## 1. 一句话现状
 
-**Architecture Freeze v0.2 有效（+ADR-0023／ADR-0024 补丁引用）。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**。大地图接战 Prototype（`139`～`150`）已落地。  
-**当前阶段：** 战略 Faction / Army / Diplomacy / Vassalage / Alliance / War / Capture **基础设计已拍板**（[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)／[ADR-0024](43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md)）；处于**文档审核 / 实现前设计冻结**。**尚未批准进入代码实现。**
+**Architecture Freeze v0.2 有效（+ADR-0023／ADR-0024 补丁引用）。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**。大地图接战 Prototype（`139`～**153**）已落地至弥留／自动战宏观表现／接战名单／追击撤退。  
+**当前阶段：** 接战 Prototype **153 手操待签**；战略 Faction / Army / Diplomacy / Vassalage / Alliance / War / Capture **基础设计已拍板**（[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)／[ADR-0024](43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md)）— **2A 全量实现尚未批准**，下一刀见 §9。
 ---
 
 ## 2. 切片进度与验收
@@ -119,15 +119,25 @@
 
 ## 7. 下一步
 
-**当前（2026-08-22）：** 战略势力层文档审核 / 实现前设计冻结 — 与 [00-overview](../00-project/00-overview.md)、[41-roadmap](41-roadmap.md) 一致。**尚未批准进入代码实现。**
+**Immediate（Prototype）：**
 
-审核通过后、实现方案仍待讨论的事项（**非本轮阻塞**）包括但不限于：
+1. **手操签收 [153](153-lingering-remnant-macro-presentation-2026-08-22.md)** — 宏观个体头像／强制名单／追击撤退  
+2. 手操签收 [152](152-worldmap-rts-click-discipline-2026-08-22.md) RTS 左右键纪律  
 
-1. 实现分期与 Army 迁移策略  
-2. Ch01 ScenarioFactionSetup 内容生产  
-3. Snapshot schema 是否纳入战略层  
-4. 制作人手操签收：`DemoParityHost`（[97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)）  
-5. Ch01 真实 Encounter 图；Snapshot↔Strategic 等
+**战略势力层（2A／ADR-0024）— 设计已拍板，实现待批准：**
+
+| 分期建议 | 内容 | 依赖 |
+|----------|------|------|
+| **P0 数据骨架** | 统一 `FactionId`；`FactionState`／`ScenarioFactionSetup`；Character `FactionMembership` | 内容 Schema |
+| **P1 Army 真源** | `MemberCharacterIDs[]` Army；编组仅己方 Node；禁止跨 Faction 混编 | P0 |
+| **P2 外交 MVP** | Opinion／Trust／Threat；Peace／War／Truce；**无** Diplomatic Reputation | P0 |
+| **P3 联盟／附庸** | Alliance 实体（一势力一盟 + 战争绑定）；Vassalage + 附庸无独立外交 | P2 |
+| **P4 占点** | `CaptureObjective` generalize；War 为军事占点前提；全目标完成后 Owner 易主 + 「结束战斗」 | P1 + LocalMap |
+| **P5 迁移** | `PartyWorldPresence`／`ArmyStack` Prototype → 正式 Army（路径 ADR-0024 未决） | P1～P4 |
+
+**其它 backlog：** Ch01 ScenarioFactionSetup；Snapshot 是否纳入 Strategic；Ch01 真实 Encounter 图；`DemoParityHost` 手操签收（[97](97-ch01-playable-arc-and-ux-delivery-2026-08-02.md)）。
+
+详细规则真源：[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md) §16～§37。
 
 ---
 
