@@ -1,11 +1,13 @@
 # 140 · 大地图纯 RTS／接战／清场回程收束（2026-08-18）
 
-> 状态：**已落地／手操基本通过；时间纪律 2026-08-21 起以 ADR-0023 为准**｜日期：2026-08-18  
+> 状态：**已落地／手操基本通过；时间纪律 2026-08-21 起以 ADR-0023 为准**｜日期：2026-08-18；**2026-08-22 正式 Army 目标见 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)／[ADR-0024](43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md)**  
 > 相对提交：`238c279` 之后 → 本轮 `main`  
 > 计划真源：[139](139-world-map-rts-orders-2026-08-17.md)｜[138](138-world-strategic-battle-offer-plan-2026-08-17.md)  
 > **战略战斗冻结：** [ADR-0023](43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)／[144](144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md)  
 > **143「回战场」路径已 superseded**（不再作为默认）  
 > 飞书：https://my.feishu.cn/docx/MEzIdolEBonQCExqQGjcsmxGnsf
+
+> **historical vs target-model（2026-08-22）：** 本文记录的纯 RTS 出行、接战、清场回程等为 **已验收 Prototype 行为**，继续有效。正式 Faction／Army（真实 Character 成员）／外交／占点模型以 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md) 为准；`ArmyStack` 整数成员为 Prototype 简化。
 
 ---
 

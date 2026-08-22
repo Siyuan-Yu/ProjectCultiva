@@ -1,6 +1,6 @@
 # 文档通读指南
 
-> 状态：现行 | 最后更新：2026-08-21  
+> 状态：现行 | 最后更新：2026-08-22  
 > 上级：[`00-overview.md`](00-overview.md)  
 > **本页说明怎么读整套策划／架构文档。** 正文仍以各专题页为准；本地 Markdown 与飞书同步页一一对应。
 
@@ -25,10 +25,12 @@
 
 当前结构已经适合「仔细通读 + 交叉跳转」。本轮整理重点是：补齐飞书映射、加强入口导航，**不重写已冻结规则正文**。
 
-## 1.1 当前制作人入口（2026-08-21）
+## 1.1 当前制作人入口（2026-08-22）
 
 | 目的 | 读什么 |
 |------|--------|
+| **战略势力层设计真源（本轮）** | [2A 势力、军队、外交与战略占领](../20-systems/2A-factions-armies-diplomacy-and-capture.md) |
+| **修士 Army 架构决策** | [ADR-0024](../40-process/43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md) |
 | **本轮（残留再进 Offer）** | [150](../40-process/150-lingering-battlefield-batch3-offer-2026-08-21.md) |
 | **残留战场批 2（探望到站）** | [149](../40-process/149-lingering-battlefield-batch2-2026-08-21.md) |
 | **弥留交互／点击（批 1）** | [148](../40-process/148-worldmap-linger-incap-ux-2026-08-21.md) |

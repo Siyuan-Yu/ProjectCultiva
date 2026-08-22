@@ -1,17 +1,23 @@
 # 139 · 大地图 RTS 下令与部队交互（2026-08-17）
 
-> 状态：**已实现（纯 RTS；时间纪律见 ADR-0023）**｜日期：2026-08-18；**2026-08-21 修订**  
-> 相对：[138 接战弹窗计划](138-world-strategic-battle-offer-plan-2026-08-17.md)｜[140 收束](140-world-map-rts-battle-return-rollup-2026-08-18.md)｜[ADR-0023](43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)｜[144](144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md)  
+> 状态：**已实现（纯 RTS Prototype；时间纪律见 ADR-0023）**｜日期：2026-08-18；**2026-08-21 修订**；**2026-08-22 target-model 注记**  
+> 相对：[138 接战弹窗计划](138-world-strategic-battle-offer-plan-2026-08-17.md)｜[140 收束](140-world-map-rts-battle-return-rollup-2026-08-18.md)｜[ADR-0023](43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)｜[ADR-0024](43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md)｜[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)｜[144](144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md)  
 > **进出／Modal 遭遇：** 以 ADR-0023／144 为准；[143](143-localmap-worldmap-interaction-behavior-spec-2026-08-20.md) 中「回战场」等已 superseded  
 > 飞书：https://my.feishu.cn/docx/RgkxdiGNSoNd11xOXoncl7QnnCg
 
 ---
 
-## 0. 产品模型（冻结 · 2026-08-17；时间纪律 2026-08-21）
+## ⚠️ Target Model 注记（2026-08-22 · ADR-0024）
 
-大地图 = **纯 RTS 宏观层**：
+**以下 §0 描述的是当前 Host 已验收的 Prototype 行为（historical），继续有效。**
 
-| 行为 | 规则 |
+**正式产品目标（superseded target）：** Character **不能**直接作为大地图战略移动单位。须先编入／创建 **Army** → Army 成为 WorldMap 战略单位 → Army 移动。见 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md) §4／§14。
+
+**本轮禁止** refactor 139 对应现有代码。
+
+## 0. Prototype 产品模型（historical · 2026-08-17；时间纪律 2026-08-21）
+
+大地图 = **纯 RTS 宏观层**（Prototype）：
 |------|------|
 | **下令移动** | 选中人 → 确认 → **立刻**从当前 LocalMap Despawn → 大地图上路 |
 | **改目标／打断** | 路上再点别处 → 直接改宏观目标（随时可打断） |

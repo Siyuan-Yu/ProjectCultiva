@@ -1,6 +1,6 @@
 # 世界与据点
 
-> 状态：**结构已修订（2026-08-11）** | 优先级：P0 | 最后更新：2026-08-11  
+> 状态：**结构已修订（2026-08-11）**；**2026-08-22 战略层见 [2A](2A-factions-armies-diplomacy-and-capture.md)** | 优先级：P0 | 最后更新：2026-08-22  
 > 上级：`docs/00-project/00-overview.md`  
 > 关联：`33` v0.2 §8、ADR-0021、`26`、`27`、`25`、`22`  
 > **世界结构新真源：[113 World Graph + Local Map](../40-process/113-world-graph-local-map-architecture-revision-v0.1.md)**  
@@ -130,10 +130,26 @@ World
 
 可拥有：姓名、性格、关系、任务、库存等。
 
-## 5. 结构：连续区域 + 可占领区块
+## 5. WorldGraph 战略层补充（2026-08-22）
+
+宏观 WorldGraph 战略规则以 [113](../40-process/113-world-graph-local-map-architecture-revision-v0.1.md) 与 [2A 势力、军队、外交与战略占领](2A-factions-armies-diplomacy-and-capture.md) 为准：
+
+| 概念 | 说明 |
+|------|------|
+| **WorldNode.ownerId** | 节点直接 Owner（语义名 **OwnerFactionId**）；**无** Controller 双层；战争占点成功后直接易主 |
+| **Resident Characters** | 驻留 Node、未编入 Army 的真实 Character；不能跨 Node 战略移动 |
+| **Garrison Armies** | 驻扎于己方 Node 的 Army；**不**自动解散；仅 Disband 解除 |
+| **Army 编组** | 增减成员／换 Leader／解散**仅**能在己方 Node；禁止跨 Faction 混编 |
+| **CaptureObjectives[]** | 可占领 Node 的占领目标；全部完成才 Capture |
+| **Formation** | 阵法；计入 Node Defense |
+| **Army 位置** | AtNode 或 OnEdge + Progress；**跨 Node 移动必须经 Army** |
+
+> **Prototype：** 当前 Host 仍允许 Character 直接 `PartyWorldPresence` 上路；正式目标见 ADR-0024。
+
+## 6. 结构：连续区域 + 可占领区块
 
 - 城市区域内部的荒村、矿山、灵地等区块可以探索、占领、建设、劫掠、保护，或交给部属管理。
-- **占领核心是夺取控制权**，不是必须杀光所有敌人；每个据点有控制核心建筑（如主管府、城主府）。详见 `26-territory-management.md`。
+- **CaptureObjective 占领**（generalize 自控制核心）：详见 `26-territory-management.md` 与 [2A](2A-factions-armies-diplomacy-and-capture.md)；须处于 War 才能军事占点。
 - 山脉、河流、危险区域与出口影响通行与行军。
 - 飞行等境界能力会改变通行规则（见 `22-realms-and-abilities.md`）。
 

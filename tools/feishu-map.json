@@ -56,6 +56,11 @@
       "title": "系统 28 江湖关系",
       "docId": "XxFPddt1IorfRsxpVTjcIJwmnKb"
     },
+    "sys-factions-2a": {
+      "file": "docs/20-systems/2A-factions-armies-diplomacy-and-capture.md",
+      "title": "系统 2A 势力、军队、外交与战略占领",
+      "docId": "JzI1dmjxeoa4nVx59TicXeMAnge"
+    },
     "sys-karma": {
       "file": "docs/20-systems/29-karma-and-consequence.md",
       "title": "世界观哲学：天道、因果与修仙社会结构",
@@ -750,6 +755,11 @@
       "file": "docs/40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md",
       "title": "ADR-0023 Manual Encounter 冻结战略 WorldTick",
       "docId": "Ykt4dH45zorlHqxY4ANc7vn9n6e"
+    },
+    "adr-0024-real-cultivators-army-strategic-model": {
+      "file": "docs/40-process/43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md",
+      "title": "ADR-0024 修士真实 Character 与 Army 战略模型",
+      "docId": "BxY0dKH4kofi2WxmlOncESD1nIf"
     },
     "world-graph-local-map": {
       "file": "docs/40-process/113-world-graph-local-map-architecture-revision-v0.1.md",

@@ -1,8 +1,9 @@
 # 开局体验
 
-> 状态：主线已确定，前期节奏已压缩 | 优先级：P0 | 最后更新：2026-07-31
-> 上级：`docs/00-project/00-overview.md`
-> 关联：`2G-first-chapter-flow.md`（第一章体验流程草案）、`2F-obligation-and-concealment.md`（前期主玩法）、`21-core-loop-and-time.md`（一天怎么过）、`22-realms-and-abilities.md`（感应境与炼气）、`28-jianghu-relations.md`（NPC 隐藏经历）、`26-territory-management.md`（夺权后管理）
+> 状态：主线已确定，前期节奏已压缩 | 优先级：P0 | 最后更新：2026-08-22  
+> 上级：`docs/00-project/00-overview.md`  
+> 关联：`2G-first-chapter-flow.md`（第一章体验流程草案）、`2F-obligation-and-concealment.md`（前期主玩法）、`21-core-loop-and-time.md`（一天怎么过）、`22-realms-and-abilities.md`（感应境与炼气）、`28-jianghu-relations.md`（NPC 隐藏经历）、`26-territory-management.md`（夺权后管理）  
+> **Historical / Superseded（战略占点）：** 下文「外交接管」等为**开局体验叙事**方向，**不是**现行战略占点或外交规则。正式 Faction / Army / 外交 / 占点以 [2A-factions-armies-diplomacy-and-capture.md](2A-factions-armies-diplomacy-and-capture.md) 为准。  
 > 当前处于纯策划阶段，不涉及技术实现。
 
 ## 1. 这个系统解决什么问题
@@ -269,7 +270,7 @@
 
 积累到一定程度后，矛盾必须爆发。触发方式有两类：
 
-- **主动**：玩家掌握把柄，凭借实力与人脉击败、取代或外交接管。
+- **主动**：玩家掌握把柄，凭借实力与人脉击败、取代或外交接管。（**Historical 叙事用语**；正式战略占点须 War + CaptureObjective，见 [2A](2A-factions-armies-diplomacy-and-capture.md)。）
 - **被动**：暗面行动暴露，被清算或驱逐，被迫提前摊牌或流亡。
 
 无论哪条路，结果都是玩家取得第一处破旧村庄或小型洞府的**控制权**。占领核心是夺取控制核心建筑／控制权，**不是必须杀光所有敌人**；详见 `26-territory-management.md`。

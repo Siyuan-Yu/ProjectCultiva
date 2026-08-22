@@ -1,8 +1,10 @@
 # 138 · 大地图战略层与接战弹窗计划（2026-08-17）
 
-> 状态：**Phase 1～4 已实现；接战/移动/跟随见 [139](139-world-map-rts-orders-2026-08-17.md)**｜日期：2026-08-17  
+> 状态：**Phase 0.5～4 Prototype 已落地；正式 Faction／Army／Diplomacy 以 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md) + [ADR-0024](43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md) 为新真源**｜日期：2026-08-17；修订 2026-08-22  
 > 相对：[113 WorldGraph 架构](113-world-graph-local-map-architecture-revision-v0.1.md)（A～D／F 已落地，E 待做）｜[129 Host 出行](129-world-graph-host-travel-scene-isolation-2026-08-16.md)｜[28 江湖关系](../20-systems/28-jianghu-relations.md)｜[26 领地经营](../20-systems/26-territory-management.md)  
 > 飞书：https://my.feishu.cn/docx/FSOcd9I2oosbBWx82CXcKMkZnod
+
+> **historical / target-model 说明（2026-08-22）：** 本文 Phase 1～2 的简单 `ownerId`／四档 `stance`／`ArmyStack`（`MemberCount` 整数）是 **Prototype MVP**，验收记录继续有效。**正式** Faction 三层数据、真实 Character Army、Alliance／Vassalage／War、CaptureObjective 占点 — 以 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md) 为准。不要将此 Phase 历史描述为「当时已实现完整外交」。
 
 ---
 
@@ -179,6 +181,8 @@ winRate = clamp( 0.05, 0.95, 己方战力 / (己方战力 + 敌方战力) × 调
 ---
 
 ## 6. 战略层模块拆分
+
+> **2026-08-22：** 下列 Phase 1～2 模块为 **Prototype MVP**。正式 Faction 三层数据、Opinion/Trust/Threat、Alliance、Vassalage、War 实体见 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)。
 
 ```text
 WorldGraphBoard（已有）

@@ -1,12 +1,18 @@
 # 架构核心规则冻结 v0.2
 
-> 状态：**已冻结（v0.2）** + **2026-08-21 补丁：战略遭遇冻结 WorldTick（ADR-0023）** | 优先级：P0 | 最后更新：2026-08-21  
+> 状态：**已冻结（v0.2）** + **2026-08-21 补丁：ADR-0023** + **2026-08-22 补丁引用：ADR-0024** | 优先级：P0 | 最后更新：2026-08-22  
 > 上级：`docs/00-project/00-overview.md`  
-> 依赖／展开：`31`、`32`、`34`、`35`、`36`、`2B`、`2C`、`2E`、`21`～`28`、`2F`、`2G`、`24`  
+> 依赖／展开：`31`、`32`、`34`、`35`、`36`、`2B`、`2C`、`2E`、`21`～`28`、`2F`、`2G`、`24`、**[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)**  
 > 被引用：全体正式实现、AGENTS、路线图  
 > **本文件是架构冻结阶段的主契约（v0.2）。** 相对 v0.1 纳入审计修补：关系权威、双时间、生命周期、Focus 失能、开局 Membership、地图三层、Core M1 范围。  
 > 变更须：升版本号或记补丁＋写 ADR、记入 `42-devlog.md`。  
 > 旧版：[`33-architecture-core-rules-freeze-v0.1.md`](33-architecture-core-rules-freeze-v0.1.md)（已由本文件取代）。
+
+> **⚠️ 2026-08-22 读 Freeze 前须知（ADR-0024，不升 v0.3）：**  
+> - **修士 = 持久真实 Character + LOD**；**禁止**用 `CultivatorPopulation` 匿名计数代表修士或修士战争。  
+> - **修士战略 Army** = 真实 `MemberCharacterIDs[]` 载体；**`ArmyGroup` 仅**凡人／大规模非修士军队（ADR-0008 部分 superseded）。  
+> - 战略 Faction / 外交 / 占点真源：[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)。  
+> - 当前 Host `PartyWorldPresence`／`ArmyStack` 为 **Prototype**；详见 §4／§10 注记。
 
 ## 0. 冻结纪律
 
@@ -82,7 +88,9 @@ WorldTick 推进
 
 ## 4. 实体与四层模拟（P0）
 
-见 `34`。Character 组合成长；禁止互斥继承树；四层模拟边界不变。
+见 `34`。Character 组合成长；禁止互斥继承树。
+
+> **2026-08-22 后续决策（[ADR-0024](../40-process/43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md)）：** 所有修士 = 持久真实 Character + LOD 模拟（Cold / Strategic / Hot）。**不再**用 `CultivatorPopulation` 匿名计数代表修士战争真源。凡人仍允许 Population 聚合。战略 Army／外交／占点以 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md) 为准。**不升级 Freeze v0.3**；本注记为 v0.2 补丁引用。
 
 ---
 
@@ -141,7 +149,12 @@ World
 
 ## 10. 战斗／AI／军队（方向／边界）
 
-同 v0.1：战术 RTS+暂停；时间表+效用；ArmyGroup 非核心。**M1 不做真战斗与完整 NPC AI。**  
+同 v0.1：战术 RTS+暂停；时间表+效用。**M1 不做真战斗与完整 NPC AI。**
+
+> **2026-08-22（[ADR-0024](../40-process/43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md)）：**  
+> - **修士战略 Army** = 真实 Character 成员 + Army 载体；跨 Node 移动必须经 Army（[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)）。  
+> - **`ArmyGroup`** 收窄为凡人／大规模非修士军队聚合（[ADR-0008](../40-process/43-decisions/ADR-0008-army-group-aggregate.md) 部分 superseded）。  
+> - 当前 Host `ArmyStack`／`PartyWorldPresence` 为 Prototype；historical 验收见 `139`～`150`。
 
 **2026-08-21 补丁（ADR-0023）：** 战略 `BattleOffer`／Manual Encounter 为 Modal，冻结战略 WorldTick；废弃「战斗期间战略世界继续推进」为默认。详见 `21` §10、`23` §12、[144](../40-process/144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md)。
 

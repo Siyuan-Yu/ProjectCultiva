@@ -25,6 +25,8 @@
 - WorldPresence 是 Core 真源；LocalMap 只负责实体表现  
 - 非 Modal 时：进节点门槛＝有我方在场；全员上路可不卸视线（P3 非战斗语境）
 
+> **2026-08-22 补充（target-model）：** 正式产品目标：Character 不能直接跨 Node 战略移动，须经 Army（[ADR-0024](43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md)／[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)）。当前 `PartyWorldPresence` 直上路为 **Prototype**。
+
 下文保留为历史草案；冲突处以 ADR-0023／144 为准。
 
 ---

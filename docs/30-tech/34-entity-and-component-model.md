@@ -1,6 +1,6 @@
 # 实体与能力模块模型
 
-> 状态：**已冻结（对齐 Architecture Freeze v0.2）** | 优先级：P0 | 最后更新：2026-07-31  
+> 状态：**已冻结（对齐 Architecture Freeze v0.2）**；**2026-08-22 修士 Army 见 ADR-0024** | 优先级：P0 | 最后更新：2026-08-22  
 > 依赖：`33-architecture-core-rules-freeze-v0.2.md`、`03-glossary.md`、`27`、`28`、`36`  
 > 被引用：`35`、`2C`、`2E`、`32`、PlayerAgency、Core M1  
 > **本阶段不写实现代码。**
@@ -25,14 +25,15 @@
 | `Settlement` | 据点／聚落（荒村、城镇区块等） |
 | `Faction` | 势力（宗门、政权、妖族等） |
 
-另有聚合对象（**不是**完整 Character）：
+另有聚合对象（**不是**完整 Character；修士战争**不得**再以此类为真源，见 ADR-0024）：
 
 | 类型 | 职责 |
 |---|---|
-| `CultivatorPopulation` | 第三层：普通修士群体聚合 |
 | `MortalPopulation` / `SettlementPopulation` | 第四层：凡人／据点人口统计 |
-| `ArmyGroup` | 军队群体数据（见 `33` 军队边界；非核心玩法） |
-| `Party` | 队伍编组（可跨区域） |
+| `ArmyGroup` | **仅**凡人／大规模非修士军队的群体数据（ADR-0008 收窄）；**不是**修士战略 Army |
+| `Party` | 队伍编组（可跨区域；Legacy／待与正式 Army 模型对齐） |
+
+> **2026-08-22（ADR-0024）：** `CultivatorPopulation` **不再**作为正式修士数量或战争真源。所有修士 = 持久 `Character` + LOD 模拟。修士战略 Army = `MemberCharacterIDs[]` 载体，见 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)。`LocalMap Actor` 只是 Hot 层表现，≠ Character 生命周期。
 
 ## 4. 薄 IEntity 契约
 
@@ -164,25 +165,28 @@ Focus 不可用（重伤／被俘／失踪／暂不可行动）→ 置 `FocusCha
 
 ---
 
-## 6. 四层实体模拟
+## 6. 修士个体化与凡人聚合（2026-08-22 修订 · ADR-0024）
 
-与 `33` §3 / `27` 对齐，补充升降级纪律：
+与 `33` §4 / `27` 对齐：
 
 | 层 | 对象 | 模拟 |
 |---|---|---|
-| 1 | 玩家直接控制约 30～50 名修士 | 完整 Character |
-| 2 | 主管、商人、宗门人物、重要敌人等 | 完整 Character |
-| 3 | 普通修士群体 | `CultivatorPopulation` 聚合 |
+| 1 | 玩家直接控制约 30～50 名修士 | 完整 Character；Hot LOD |
+| 2 | 主管、商人、宗门人物、重要敌人等 | 完整 Character；Hot / Strategic LOD |
+| 3 | **所有其他修士** | **持久 Character**；Cold / Strategic LOD（**不是** `CultivatorPopulation` 匿名计数） |
 | 4 | 凡人群体 | `MortalPopulation` / `SettlementPopulation` 统计 |
+
+> **superseded：** 旧「第三层 = `CultivatorPopulation` 聚合、不模拟每人位置」见 ADR-0024。
 
 ### 6.1 禁止
 
-- 第三、第四层偷偷创建数千个隐藏 `Character`。
-- 为了“看起来热闹”在 Core 里全量个体化。
+- 用 `QiRefiningCount` 等匿名计数代表不存在的修士。
+- 离屏修士偷偷全员 LocalMap Actor／每帧 Update。
+- 第四层凡人偷偷创建数千个隐藏 `Character`（凡人仍用群体统计）。
 
-### 6.2 实体化条件（群体 → Character）
+### 6.2 凡人实体化条件（群体 → Character）
 
-当成员被以下任一关注时，升级为完整实体：
+当**凡人**成员被以下任一关注时，升级为完整 Character：
 
 - 玩家关注／点选命名／招募
 - 发现灵根或进入修仙体系
@@ -190,10 +194,13 @@ Focus 不可用（重伤／被俘／失踪／暂不可行动）→ 置 `FocusCha
 - 拥有关系网节点
 - 拥有独特物品或伤病／任务／历史事件
 
-### 6.3 归并规则（Character → 群体）
+**修士**一旦进入修仙体系即为持久 Character；仅 LOD 在 Cold / Strategic / Hot 间切换，**不归并**回匿名群体。
 
-- **重要实体一旦**拥有名字、关系、修炼进度、库存、伤病、任务或历史事件，**不再归并**回群体。
-- 只有完全普通、未被关注、无独特状态的临时实体允许归并。
+### 6.3 归并规则
+
+- **重要 Character** 拥有名字、关系、修炼进度、库存、伤病、任务或历史事件 → **不再归并**。
+- **凡人**临时实体：只有完全普通、未被关注、无独特状态才允许归并回 MortalPopulation。
+- **修士 Character：禁止归并为匿名计数。**
 
 ## 7. 共享基础引用类型
 

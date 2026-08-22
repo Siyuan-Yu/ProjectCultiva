@@ -1,8 +1,9 @@
 # Demo v0.1 设计文档
 
-> 状态：**原型开发中（M3～M5 已可玩验证）** | 优先级：P0 | 最后更新：2026-07-31
-> 上级：`docs/00-project/00-overview.md`
-> 关联：`20-opening-experience.md`、`2G-first-chapter-flow.md`、`2F-obligation-and-concealment.md`、`21-core-loop-and-time.md`、`25-cultivation-and-breakthrough.md`、`23-combat.md`、`26-territory-management.md`、`27-characters-and-population.md`
+> 状态：**原型开发中（M3～M5 已可玩验证）** | 优先级：P0 | 最后更新：2026-08-22  
+> 上级：`docs/00-project/00-overview.md`  
+> 关联：`20-opening-experience.md`、`2G-first-chapter-flow.md`、`2F-obligation-and-concealment.md`、`21-core-loop-and-time.md`、`25-cultivation-and-breakthrough.md`、`23-combat.md`、`26-territory-management.md`、`27-characters-and-population.md`  
+> **Historical / Superseded（战略占点）：** 下文「外交接管」「控制核心」等为 **Demo v0.1 原型**语境，**不是**现行战略 Faction / 外交 / 占点规则。正式真源：[2A-factions-armies-diplomacy-and-capture.md](../20-systems/2A-factions-armies-diplomacy-and-capture.md)（CaptureObjective generalize 自 ControlCore）。  
 > 美术资源规划：`46-demo-v0.1-art-assets.md`
 > AI 生成批次计划：`47-demo-v0.1-ai-art-batches.md`
 > 最小素材接入：`48-demo-v0.1-minimum-art-integration.md`
@@ -92,7 +93,7 @@ Demo 用**一个荒村区域**承载完整闭环；规则可简化，但体验�
 
 - 目标：主管
 - 方式：攻击**控制核心建筑**（主管府），耐久归零后夺取；并击败／驱逐主管
-- Demo 主推**斩首夺权**一条完整线；逐步瓦解／外交接管可只留接口或简化事件，标为可选
+- Demo 主推**斩首夺权**一条完整线；逐步瓦解／外交接管可只留接口或简化事件，标为可选（**Historical Demo 选项**；正式战略占点见 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)）
 
 ### 阶段 6：成为管理者
 

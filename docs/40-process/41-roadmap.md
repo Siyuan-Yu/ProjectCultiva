@@ -1,10 +1,11 @@
 # 路线图
 
-> 状态：**VS1.0＋样例关可玩弧自动化已验收**｜下一目标：**占点／外交 或 Snapshot↔Strategic**｜最后更新：2026-08-21
+> 状态：**VS1.0＋样例关可玩弧自动化已验收**｜下一目标：**战略势力层文档审核 → 实现批准**｜最后更新：2026-08-22
 
 ## 当前阶段说明
 
 - Architecture Freeze **v0.2**＋**ADR-0023 补丁**（Manual Encounter 冻结 WorldTick）。  
+- **2026-08-22（第二轮）：** 制作人补充 9 条规则（编组地点／统一 FactionId／禁止混编／驻扎不自动解散／无战后保护期／一势力一 Alliance＋联盟战争绑定／Capture 手动收尾与残余守军）；文档同步中，**尚未批准实现**。  
 - 世界结构以 [113](113-world-graph-local-map-architecture-revision-v0.1.md) 为准。  
 - **2026-08-21：** Phase A～F＋Host 打磨 [146](146-adr0023-host-ux-polish-2026-08-21.md) 已落地；验收见 [145](145-adr0023-phases-af-acceptance-2026-08-21.md)。  
 - **2026-08-21：** 残留再进 Offer [150](150-lingering-battlefield-batch3-offer-2026-08-21.md)（EditMode 已验）。  

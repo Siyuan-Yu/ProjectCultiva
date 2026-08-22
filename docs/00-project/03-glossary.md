@@ -150,10 +150,39 @@
 | 实体引用 | EntityRef | 逻辑层对实体的稳定引用 | 禁止 GameObject／Transform |
 | 来源引用 | SourceRef | Modifier／效果来源 | |
 | 随机源 | IRandomSource | 可注入、可保存状态的随机接口 | 世界保存 WorldSeed；分系统可有独立流 |
-| 军队编组 | ArmyGroup | 凡人／群体军队的聚合数据对象 | 非千人完整 AI；见 ADR-0008 |
-| 修士群体 | CultivatorPopulation | 第三层普通修士聚合模拟 | 不逐人位置 |
+| 军队编组 | ArmyGroup | **仅**凡人／大规模非修士军队的聚合数据对象 | ADR-0008 收窄；**不是**修士战略 Army；修士 Army 见 ADR-0024 |
+| 修士群体（Legacy） | CultivatorPopulation | ~~第三层普通修士聚合~~ | **ADR-0024 superseded**；修士 = 真实 Character + LOD |
+| 战略军队 | Army | WorldGraph 跨 Node 移动的组织载体；`MemberCharacterIDs[]`；`Army.FactionId` | 正式产品真源；Prototype 见 ArmyStack |
+| 军队成员归属 | ArmyMembership | Character 当前所属的 Army（若有） | 同时最多 1 支；与 Resident 互斥 |
+| 势力 ID | FactionId | **全系统统一**的势力身份 ID | Character／Army／Node Owner／Alliance／Vassalage／War 共用；禁止多套平行 ID |
+| 节点归属势力 | OwnerFactionId | WorldNode 的占有点归属 Faction | 内容字段名 `ownerId`；Owner 直接易主，无 Controller 双层 |
+| 军队领袖 | ArmyLeader | Army 的 `LeaderCharacterID` | 代表角色、大地图头像；第一版无统帅 Buff |
+| 军队成员 | ArmyMember | Army 中的 Character | 同 Faction；禁止跨势力混编；编组仅能在己方 Node |
+| 势力军队上限 | ArmyCapacity | Faction 同时可维持的 Army 数量上限 | ≠ 单支 Army 人数上限；公式未定 |
+| 驻留角色 | ResidentCharacter | 驻留 WorldNode、未编入 Army 的 Character | 不能跨 Node 战略移动 |
+| 驻扎军队 | GarrisonedArmy | 到达己方 Node 后**保持 Army 身份**驻扎的战略单位 | **不**自动解散；仅 Disband 解除 |
+| 撤退军团 | RetreatingArmy | 战后逃脱 Character 组成的撤退／流亡 Army | 可奔向仍控领土；Landless 仍保留 |
+| 被俘角色 | CapturedCharacter | 战后被俘、失去原控制权的 Character | Lifecycle Captured |
+| 联盟成员身份 | AllianceMembership | 独立 Faction 在 Alliance 中的成员资格 | **同时最多 1 个**正式 Alliance |
+| 势力好感 | FactionOpinion | Faction A→B 单向喜欢／讨厌 | -100～+100；与 Trust、Threat 独立 |
+| 势力信任 | FactionTrust | 是否相信对方 | 喜欢 ≠ 信任 |
+| 势力威胁 | FactionThreat | 对对方实力的畏惧 | 可「恨但怕」 |
+| 联盟 | Alliance | 平等多势力政治实体 | 独立 Faction 同时最多 1 个；第一版成员战争绑定 |
+| 附庸关系 | Vassalage | Overlord ↔ Vassal + Obligations | 附庸内部自治、外交不自治 |
+| 宗主 | Overlord | 附庸的上级势力 | 战争状态与附庸绑定 |
+| 附庸 | Vassal | 臣服于宗主的独立 Faction | 不能套附庸；不能独立结盟 |
+| 臣属义务 | VassalObligation | 附庸对宗主的周期义务 | 含 Tribute 等；周期数值未定 |
+| 贡赋 | Tribute | VassalObligation 中的资源贡品 | 使用 Faction Resource Wallet |
+| 独立倾向 | IndependenceDesire | 附庸的独立意愿 | 公式未定 |
+| 战争（实体） | War | 独立战争对象，多参与方 | 军事占点前提；非仅 stance |
+| 占领目标 | CaptureObjective | 可占领 Node 的核心建筑／要点 | 全部完成才 Capture；generalize 自 ControlCore |
+| 占领区 | CaptureZone | 核心 HP=0 后需持续站立占领的区域 | 可被打断 |
+| 无地势力 | LandlessFaction | 失去全部 Node 但未灭亡的 Faction | 仍可活动、战斗、夺地 |
+| 势力定义 | FactionDefinition | 势力静态定义（ID、名、类型、视觉） | 不含运行时状态 |
+| 剧本势力 setup | ScenarioFactionSetup | 某 Scenario 开局势力状态种子 | 领地、资源、Army、外交 |
+| 势力运行时 | FactionState | 当前局内变化的势力状态 | 领土、资源、成员、Army、外交 |
 | 凡人群体 | MortalPopulation | 第四层凡人统计模拟 | 关注后才实体化 |
-| 势力归属 | FactionMembership | 角色当前正式所属势力 | 可变更；离开保留历史 |
+| 势力归属 | FactionMembership | 角色与 Faction 的**成员关系**（`FactionId`） | 可变更；离开保留历史；**不是**另一套 Faction 实体 |
 | 势力职位 | FactionRole | 宗主／长老／执事／成员／客卿／俘虏／临时盟友等 | 预定义；≠控制权 |
 | 控制权 | ControlAuthority | 玩家可否直接控制／高层命令／纯 AI 等 | 动态权限 |
 | 玩家代理 | PlayerAgency | 焦点人物与控制模式容器 | 含 FocusCharacterUnavailable |
@@ -185,7 +214,7 @@
 | 私藏物 | Contraband | 未上报的私有物资 | 被搜出则没收 |
 | 藏匿点 | Stash | 存放私藏物的地点 | 属性为容量与隐蔽度 |
 | 敛息／敛息草 | BreathConcealment | 短时间隐藏修为气息的资源或手段 | 非永久；需持续采集；炼气后隐藏身份的核心工具 |
-| 控制核心 | ControlCore | 据点控制权所系的核心建筑 | 如主管府、城主府；耐久归零可夺取 |
+| 控制核心 | ControlCore | LocalMap 层据点控制权所系的核心建筑（Prototype） | 如主管府；**正式占点** generalize 为 CaptureObjective |
 | 斩首夺权 | DecapitationCapture | 直接攻击控制核心的占领方式 | 快，危险 |
 | 学校／学塾 | Academy | 定期刷新人才候选的领地建筑 | 约每 2～3 游戏月；可收弟子或任命管事 |
 | 管事 | Steward | 负责凡人治理的任命角色 | 不要求修炼天赋；与开局“管事弟子”不同，此处指玩家任命的治理职 |
@@ -205,7 +234,7 @@
 | 「水」属性是否保留还是并入冰 | 待确定 |
 | 掌握程度六档的最终命名 | 待确定 |
 | 神识 / 灵魂力量 用哪个词 | 待确定，暂用神识 |
-| 凡人分层模拟的层级命名 | **已冻结四层**：CoreCultivator／KeyNpc／CultivatorPopulation／MortalPopulation |
+| 凡人分层模拟的层级命名 | **2026-08-22 修订**：修士 = 真实 Character + LOD（ADR-0024）；凡人 = MortalPopulation 聚合 |
 | 传统五行生克 | **明确不做**为核心规则 |
 | `[新增概念先登记在这里]` | 待定 |
 
