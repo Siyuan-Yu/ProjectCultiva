@@ -210,6 +210,9 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 if ((ent.Tags & EntityTag.Npc) != 0)
                     continue;
+                // 我方弥留／尸体已在接战点：只走强制名单，禁止进可选勾选
+                if (LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
+                    continue;
                 // DirectControl ≈ 玩家可控角色（有 WorldPresence 且非 Npc）
                 if (!ReinforcementRangeService.IsWithinReinforcementRange(
                         world,

@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Combat;
-using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
@@ -119,6 +118,35 @@ namespace XianXia.Unity.Host
             DestroyView(view);
         }
 
+        /// <summary>尸体腐烂 Removed／不可见：从 LocalMap 卸掉表现（不仅是隐藏贴图）。</summary>
+        public void PruneHiddenViews(PlayableHostSession session)
+        {
+            if (session == null || !session.IsInitialized)
+                return;
+            var world = session.World;
+            for (var i = _spawned.Count - 1; i >= 0; i--)
+            {
+                var view = _spawned[i];
+                if (view == null)
+                {
+                    _spawned.RemoveAt(i);
+                    continue;
+                }
+
+                var id = view.EntityId;
+                if (id.IsNone)
+                {
+                    Despawn(id);
+                    continue;
+                }
+
+                if (!LocalMapVisibility.IsEntityVisible(world, id) ||
+                    (world.Entities.TryGet(id, out var ent) &&
+                     CombatLifeStateService.ShouldHideFromSpawn(ent)))
+                    Despawn(id);
+            }
+        }
+
         static Vector3 ResolvePresentationPosition(
             PlayableHostSession session,
             EntityId id,
@@ -158,6 +186,7 @@ namespace XianXia.Unity.Host
         {
             if (session == null || !session.IsInitialized)
                 return;
+            PruneHiddenViews(session);
             var stackAtLocation = new Dictionary<string, int>(System.StringComparer.Ordinal);
             var ids = session.ViewableEntityIds;
             for (var i = 0; i < ids.Count; i++)
@@ -229,15 +258,16 @@ namespace XianXia.Unity.Host
                 return;
             if (!entity.TryGet<LifecycleComponent>(out var life))
                 return;
-            if (life.IsDead && CombatLifeStateService.HasVisibleCorpse(entity))
+            var isCorpse = life.IsDead && CombatLifeStateService.HasVisibleCorpse(entity);
+            if (isCorpse || life.IsIncapacitated)
             {
-                view.SetActivityText("尸体");
-                view.SetBaseColor(new Color(0.35f, 0.32f, 0.30f, 0.85f));
-            }
-            else if (life.IsIncapacitated)
-            {
-                view.SetActivityText("弥留");
-                view.SetBaseColor(new Color(0.72f, 0.45f, 0.42f, 0.92f));
+                var stamped = CombatLifeStateService.FormatLifeStateWithCountdown(world, entity);
+                view.SetActivityText(string.IsNullOrEmpty(stamped)
+                    ? (isCorpse ? "尸体" : "弥留")
+                    : stamped);
+                view.SetBaseColor(isCorpse
+                    ? new Color(0.35f, 0.32f, 0.30f, 0.85f)
+                    : new Color(0.72f, 0.45f, 0.42f, 0.92f));
             }
         }
 

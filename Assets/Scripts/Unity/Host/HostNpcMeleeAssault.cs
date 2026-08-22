@@ -485,6 +485,7 @@ namespace XianXia.Unity.Host
         {
             if (viewSpawner == null || id.IsNone || entity == null)
                 return;
+            moveController?.CancelPresentationMovementPublic(id);
             if (!viewSpawner.Registry.TryGet(id, out var view) || view == null)
                 return;
             if (entity.TryGet<LifecycleComponent>(out var life) && life.IsDead)

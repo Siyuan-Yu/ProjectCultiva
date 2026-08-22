@@ -1,17 +1,17 @@
 # 项目现状总览 — 2026-08-01
 
-> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-21（[150] 残留再进 Offer，EditMode 已验）  
+> 状态：**现行进度真源（过程文档）**｜最后更新：2026-08-22（[152] 大地图 RTS 左右键纪律）  
 > 用途：一次看清 VS0.1～1.0／Content Ready 做到哪、本轮改了什么、下一步是什么。  
 > 架构规则仍以 [33 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) 为准（含 ADR-0023 补丁）。  
-> 近期增量：[151](151-encounter-stub-map-150x80-2026-08-21.md)／[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)／[149](149-lingering-battlefield-batch2-2026-08-21.md)／[148](148-worldmap-linger-incap-ux-2026-08-21.md)
+> 近期增量：[152](152-worldmap-rts-click-discipline-2026-08-22.md)／[151](151-encounter-stub-map-150x80-2026-08-21.md)／[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)／[149](149-lingering-battlefield-batch2-2026-08-21.md)／[148](148-worldmap-linger-incap-ux-2026-08-21.md)
 
 ---
 
 ## 1. 一句话现状
 
 **Architecture Freeze v0.2 有效（+ADR-0023 补丁）。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**。  
-**本轮：** [150](150-lingering-battlefield-batch3-offer-2026-08-21.md) 残留再进走接战 Offer + `LingeringLocalMapId`（EditMode 已验；手操待补）；其下 [149](149-lingering-battlefield-batch2-2026-08-21.md)／[148](148-worldmap-linger-incap-ux-2026-08-21.md)／[147](147-battlefield-linger-no-teleport-2026-08-21.md) 已落地。  
-**下一步：** 138 占点可视化／外交，或 Ch01 接战点填真实 Encounter 图；Snapshot↔Strategic 二选一。
+**本轮：** [152](152-worldmap-rts-click-discipline-2026-08-22.md) 大地图左键选中／右键下令（废 148 反 RTS 点选）；其下 [151](151-encounter-stub-map-150x80-2026-08-21.md)／[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)／[149](149-lingering-battlefield-batch2-2026-08-21.md)／[148](148-worldmap-linger-incap-ux-2026-08-21.md)／[147](147-battlefield-linger-no-teleport-2026-08-21.md)。  
+**下一步：** 制作人手操签收 152；其后 138 占点／外交，或 Ch01 Encounter 图／Snapshot↔Strategic。
 ---
 
 ## 2. 切片进度与验收

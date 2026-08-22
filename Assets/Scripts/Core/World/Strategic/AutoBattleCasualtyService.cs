@@ -25,6 +25,12 @@ namespace XianXia.Core.World.Strategic
     {
         public const double DefaultEnemyDirectKillChanceOnPlayerLoss = 0.45;
 
+        /// <summary>
+        /// 调试：接战名单恰好 1 人时，自动战强制该人进弥留（胜／负都生效）。
+        /// 大地图工具栏可勾选；默认关。
+        /// </summary>
+        public static bool DebugForceSoloAutoBattleIncapacitated = false;
+
         public static AutoBattleReport ApplyPlayerVictory(
             SimulationWorld world,
             IReadOnlyList<EntityId> party,
@@ -39,15 +45,21 @@ namespace XianXia.Core.World.Strategic
 
             var intensity = ResolveIntensity(playerPower, enemyPower);
             ApplyPlayerChipDamage(world, party, intensity, report);
+            var debugForced = TryDebugForceSoloIncapacitated(world, party, report);
 
             var members = Math.Max(1, enemyStack.MemberCount);
             if (executeOnWin)
             {
+                // 处决＝跳过弥留直接阵亡+尸体；栈保留至尸体腐烂（非瞬间消失）
                 report.EnemyMembersEliminated = members;
                 report.EnemyMembersSpared = 0;
+                enemyStack.MemberCount = members;
                 enemyStack.IncapacitatedMemberCount = 0;
-                enemyStack.IsBattlefieldRemnant = false;
-                world.Strategic.Armies.Remove(enemyStack.Id);
+                enemyStack.CorpseMemberCount = members;
+                enemyStack.IsBattlefieldRemnant = true;
+                enemyStack.RemainingTravelTicks = 0;
+                enemyStack.TravelTotalTicks = 0;
+                StrategicEncounterSpawner.ApplyCorpseToLivingTrackedSpawns(world);
             }
             else
             {
@@ -56,11 +68,16 @@ namespace XianXia.Core.World.Strategic
                 report.EnemyMembersSpared = members;
                 enemyStack.MemberCount = members;
                 enemyStack.IncapacitatedMemberCount = members;
+                enemyStack.CorpseMemberCount = 0;
                 enemyStack.IsBattlefieldRemnant = true;
                 enemyStack.CombatPower = Math.Max(1, enemyStack.CombatPower);
+                enemyStack.RemainingTravelTicks = 0;
+                enemyStack.TravelTotalTicks = 0;
+                // 若曾进过 LocalMap：场上存活敌军也同步进弥留，避免与栈人数不一致
+                StrategicEncounterSpawner.ApplyIncapacitatedToLivingTrackedSpawns(world);
             }
 
-            report.Summary = BuildSummary(report, playerWon: true, executeOnWin);
+            report.Summary = BuildSummary(report, playerWon: true, executeOnWin, debugForced);
             return report;
         }
 
@@ -73,6 +90,12 @@ namespace XianXia.Core.World.Strategic
             var report = new AutoBattleReport();
             if (world == null || party == null || party.Count == 0)
                 return report;
+
+            if (TryDebugForceSoloIncapacitated(world, party, report))
+            {
+                report.Summary = BuildSummary(report, playerWon: false, executeOnWin: false, debugForcedSoloIncap: true);
+                return report;
+            }
 
             var intensity = ResolveIntensity(playerPower, enemyPower);
             var killChance = Math.Clamp(
@@ -91,13 +114,13 @@ namespace XianXia.Core.World.Strategic
                 var roll = world.Random.NextDouble();
                 if (roll < killChance)
                 {
-                    ApplyDirectKill(world, entity);
-                    report.PlayerKilled++;
+                    if (ApplyDirectKill(world, entity))
+                        report.PlayerKilled++;
                 }
                 else if (roll < killChance + 0.35)
                 {
-                    ApplyIncapacitated(world, entity);
-                    report.PlayerIncapacitated++;
+                    if (ApplyIncapacitated(world, entity))
+                        report.PlayerIncapacitated++;
                 }
                 else
                 {
@@ -106,8 +129,43 @@ namespace XianXia.Core.World.Strategic
                 }
             }
 
-            report.Summary = BuildSummary(report, playerWon: false, executeOnWin: false);
+            report.Summary = BuildSummary(report, playerWon: false, executeOnWin: false, debugForcedSoloIncap: false);
             return report;
+        }
+
+        /// <summary>名单恰好 1 人且调试开：强制进弥留。返回是否生效。</summary>
+        static bool TryDebugForceSoloIncapacitated(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> party,
+            AutoBattleReport report)
+        {
+            if (!DebugForceSoloAutoBattleIncapacitated ||
+                world == null ||
+                party == null ||
+                party.Count != 1 ||
+                report == null)
+                return false;
+
+            var id = party[0];
+            if (id.IsNone || !world.Entities.TryGet(id, out var entity) || entity == null)
+                return false;
+
+            if (!CombatLifeStateService.CanFight(entity))
+            {
+                // 已是弥留：仍算调试命中，方便摘要一致
+                if (!LingeringBattlefieldPartyService.IsIncapacitated(world, id))
+                    return false;
+                report.PlayerKilled = 0;
+                report.PlayerWounded = 0;
+                report.PlayerIncapacitated = 1;
+                return true;
+            }
+
+            ApplyIncapacitated(world, entity);
+            report.PlayerKilled = 0;
+            report.PlayerWounded = 0;
+            report.PlayerIncapacitated = 1;
+            return true;
         }
 
         static double ResolveIntensity(int playerPower, int enemyPower)
@@ -142,26 +200,30 @@ namespace XianXia.Core.World.Strategic
             }
         }
 
-        static void ApplyDirectKill(SimulationWorld world, Entity entity)
+        static bool ApplyDirectKill(SimulationWorld world, Entity entity)
         {
             if (entity == null)
-                return;
+                return false;
             CombatDamageRules.EnsureVitals(entity);
             if (entity.TryGet<CombatVitalsComponent>(out var vitals))
                 vitals.CurrentHp = 0;
-            if (entity.TryGet<LifecycleComponent>(out var life))
-                life.State = LifecycleState.Incapacitated;
-            CombatLifeStateService.TryConfirmDeath(world, EntityId.None, entity, out _);
+            // 直接阵亡（跳过弥留）；TryConfirmDeath 接受 Alive+0 血
+            return CombatLifeStateService.TryConfirmDeath(
+                world,
+                EntityId.None,
+                entity,
+                out var confirmed) &&
+                confirmed;
         }
 
-        static void ApplyIncapacitated(SimulationWorld world, Entity entity)
+        static bool ApplyIncapacitated(SimulationWorld world, Entity entity)
         {
             if (entity == null)
-                return;
+                return false;
             CombatDamageRules.EnsureVitals(entity);
             if (entity.TryGet<CombatVitalsComponent>(out var vitals))
                 vitals.CurrentHp = 0;
-            CombatLifeStateService.TryEnterIncapacitated(world, entity);
+            return CombatLifeStateService.TryEnterIncapacitated(world, entity);
         }
 
         static void ApplyWound(SimulationWorld world, Entity entity, double severity)
@@ -179,14 +241,18 @@ namespace XianXia.Core.World.Strategic
             vitals.CurrentHp = Math.Max(1, vitals.CurrentHp - loss);
         }
 
-        static string BuildSummary(AutoBattleReport report, bool playerWon, bool executeOnWin)
+        static string BuildSummary(
+            AutoBattleReport report,
+            bool playerWon,
+            bool executeOnWin,
+            bool debugForcedSoloIncap)
         {
             var sb = new StringBuilder(128);
             if (playerWon)
             {
                 sb.Append("自动战斗胜利。");
                 if (executeOnWin)
-                    sb.Append(" 敌军全灭（" + report.EnemyMembersEliminated + " 人）。");
+                    sb.Append(" 敌军 " + report.EnemyMembersEliminated + " 人阵亡（尸体留场）。");
                 else if (report.EnemyMembersSpared > 0)
                     sb.Append(" 敌军 " + report.EnemyMembersSpared + " 人全部弥留（未处决）。");
                 else
@@ -205,6 +271,9 @@ namespace XianXia.Core.World.Strategic
 
             if (report.PlayerWounded > 0 && playerWon)
                 sb.Append(" 我方 " + report.PlayerWounded + " 人负伤。");
+
+            if (debugForcedSoloIncap)
+                sb.Append(" 【调试：单人强制弥留】");
 
             return sb.ToString().Trim();
         }

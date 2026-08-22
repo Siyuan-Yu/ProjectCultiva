@@ -23,7 +23,7 @@ namespace XianXia.Core.World.Strategic
             var snap = world.Strategic.Participants;
             RestoreParticipantsAfterBattle(world, snap);
 
-            var linger = HasLingeringIncapacitated(world);
+            var linger = HasLingeringBattlefieldRemnants(world);
             if (linger)
             {
                 ParkLingeringBattlefield(world, snap);
@@ -32,6 +32,7 @@ namespace XianXia.Core.World.Strategic
                     snap.IsAutoSettlement = false;
                 WorldTravelService.SyncPartyFocus(world);
                 BattleOfferService.FinishOfferResolution(world);
+                NormalizePresenceAfterEncounterExit(world);
                 return Result.Success();
             }
 
@@ -39,22 +40,69 @@ namespace XianXia.Core.World.Strategic
             world.Strategic.ClearBattleOffer();
             WorldTravelService.SyncPartyFocus(world);
             BattleOfferService.FinishOfferResolution(world);
+            NormalizePresenceAfterEncounterExit(world);
             return Result.Success();
         }
 
-        /// <summary>场上已无弥留时销毁残留战场（补刀／清场后调用）。</summary>
-        public static Result TryDestroyIfNoIncapacitated(SimulationWorld world)
+        /// <summary>
+        /// 解冻后把仍卡在 InEncounter 的宏观位置拨回 AtNode／RouteAnchored，
+        /// 避免「只有一人弥留、其他人却不能下令」。
+        /// </summary>
+        public static void NormalizePresenceAfterEncounterExit(SimulationWorld world)
+        {
+            if (world?.WorldPresence?.All == null)
+                return;
+            // 调用方须已 EndFreeze；若仍 Modal 则不要拨（战中）
+            if (StrategicClockFreezeService.IsModalEncounter(world))
+                return;
+
+            foreach (var kv in world.WorldPresence.All)
+            {
+                var wp = kv.Value;
+                if (wp == null || wp.Mode != PartyWorldPresenceMode.InEncounter)
+                    continue;
+
+                if (wp.HasRoutePresentation)
+                {
+                    var progress = wp.RouteAnchorProgress >= 0f
+                        ? Clamp01(wp.RouteAnchorProgress)
+                        : Clamp01(wp.TravelProgress);
+                    wp.Mode = PartyWorldPresenceMode.RouteAnchored;
+                    wp.RouteAnchorProgress = progress;
+                    wp.RemainingTravelTicks = 0;
+                    wp.TravelTotalTicks = 0;
+                    wp.ClearRouteSegment();
+                }
+                else
+                {
+                    wp.Mode = PartyWorldPresenceMode.AtNode;
+                    wp.RouteId = string.Empty;
+                    wp.DestNodeId = string.Empty;
+                    wp.RouteAnchorProgress = -1f;
+                    wp.RemainingTravelTicks = 0;
+                    wp.TravelTotalTicks = 0;
+                    wp.ClearRouteSegment();
+                }
+
+                wp.ClearFollow();
+                wp.ClearCombatPursuit();
+            }
+        }
+
+        /// <summary>场上已无弥留／尸体时销毁残留战场（补刀／清场后调用）。</summary>
+        public static Result TryDestroyIfNoRemnants(SimulationWorld world)
         {
             if (world?.Strategic == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "null");
-            if (HasLingeringIncapacitated(world))
+            if (HasLingeringBattlefieldRemnants(world))
                 return Result.Success();
             DestroyBattlefieldCompletely(world);
             WorldTravelService.SyncPartyFocus(world);
             return Result.Success();
         }
 
-        public static bool HasLingeringIncapacitated(SimulationWorld world)
+        /// <summary>残留战场仍有倒下者（弥留或可见尸体）。</summary>
+        public static bool HasLingeringBattlefieldRemnants(SimulationWorld world)
         {
             if (world?.Strategic == null)
                 return false;
@@ -67,9 +115,7 @@ namespace XianXia.Core.World.Strategic
                     var rec = snap.Records[i];
                     if (rec.EntityId.IsNone)
                         continue;
-                    if (!world.Entities.TryGet(rec.EntityId, out var ent) || ent == null)
-                        continue;
-                    if (ent.TryGet<LifecycleComponent>(out var life) && life.IsIncapacitated)
+                    if (LingeringBattlefieldPartyService.IsLingeringDowned(world, rec.EntityId))
                         return true;
                 }
             }
@@ -80,9 +126,7 @@ namespace XianXia.Core.World.Strategic
                 for (var i = 0; i < rt.SpawnedEntityIds.Count; i++)
                 {
                     var id = new EntityId(rt.SpawnedEntityIds[i]);
-                    if (!world.Entities.TryGet(id, out var ent) || ent == null)
-                        continue;
-                    if (ent.TryGet<LifecycleComponent>(out var life) && life.IsIncapacitated)
+                    if (LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
                         return true;
                 }
             }
@@ -91,7 +135,7 @@ namespace XianXia.Core.World.Strategic
                 !string.IsNullOrEmpty(rt.ArmyStackId) &&
                 world.Strategic.Armies.TryGet(rt.ArmyStackId, out var stack) &&
                 stack != null &&
-                stack.HasIncapacitatedRemnant)
+                stack.HasDownedRemnant)
                 return true;
 
             // 自动战后尚未绑到 Encounter.ArmyStackId 时，看快照主敌栈
@@ -99,8 +143,23 @@ namespace XianXia.Core.World.Strategic
             if (!string.IsNullOrEmpty(primary) &&
                 world.Strategic.Armies.TryGet(primary, out var primaryStack) &&
                 primaryStack != null &&
-                primaryStack.HasIncapacitatedRemnant)
+                primaryStack.HasDownedRemnant)
                 return true;
+
+            // 快照已 Clear 后仍可能有我方弥留／尸体头像钉在宏观图上
+            if (world.WorldPresence?.All != null)
+            {
+                foreach (var kv in world.WorldPresence.All)
+                {
+                    var id = new EntityId(kv.Key);
+                    if (id.IsNone || !world.Entities.TryGet(id, out var ent) || ent == null)
+                        continue;
+                    if ((ent.Tags & EntityTag.Npc) != 0)
+                        continue;
+                    if (LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
+                        return true;
+                }
+            }
 
             return false;
         }
@@ -216,7 +275,6 @@ namespace XianXia.Core.World.Strategic
             var rt = world.Strategic.Encounter;
             rt.BattlefieldLingering = true;
             rt.FieldCleared = true;
-            rt.SpawnOnNextMapLoad = false;
             if (snap != null && !string.IsNullOrEmpty(snap.EncounterLocalMapId))
                 rt.LingeringLocalMapId = snap.EncounterLocalMapId;
             else if (string.IsNullOrEmpty(rt.LingeringLocalMapId))
@@ -228,29 +286,43 @@ namespace XianXia.Core.World.Strategic
                 !string.IsNullOrEmpty(snap.PrimaryEnemyStackId))
                 rt.ArmyStackId = snap.PrimaryEnemyStackId;
 
-            // 退出 Modal：人不再 InEncounter，但遭遇数据保留
-            rt.ClearEngagedParty();
-            world.PartyWorld.EncounterId = string.Empty;
-
-            // 钉住敌军栈在接战点，标为战场残留（可再攻击进入）
+            ArmyStack parkedStack = null;
             if (!string.IsNullOrEmpty(rt.ArmyStackId) &&
-                world.Strategic.Armies.TryGet(rt.ArmyStackId, out var stack) &&
-                stack != null)
+                world.Strategic.Armies.TryGet(rt.ArmyStackId, out parkedStack) &&
+                parkedStack != null)
             {
-                ParkStackAtBattleAnchor(world, stack, snap);
-                var incapSpawns = CountIncapacitatedSpawns(world);
-                if (stack.HasIncapacitatedRemnant || incapSpawns > 0)
+                ParkStackAtBattleAnchor(world, parkedStack, snap);
+                var downedSpawns = CountLingeringDownedSpawns(world);
+                if (parkedStack.HasDownedRemnant || downedSpawns > 0)
                 {
-                    stack.IsBattlefieldRemnant = true;
-                    if (stack.IncapacitatedMemberCount <= 0)
-                        stack.IncapacitatedMemberCount = Math.Max(1, incapSpawns);
-                    if (stack.MemberCount < stack.IncapacitatedMemberCount)
-                        stack.MemberCount = stack.IncapacitatedMemberCount;
+                    parkedStack.IsBattlefieldRemnant = true;
+                    if (parkedStack.IncapacitatedMemberCount <= 0 && parkedStack.CorpseMemberCount <= 0)
+                    {
+                        if (downedSpawns > 0)
+                            parkedStack.CorpseMemberCount = Math.Max(1, downedSpawns);
+                    }
+
+                    var downedCount = Math.Max(
+                        parkedStack.IncapacitatedMemberCount,
+                        parkedStack.CorpseMemberCount);
+                    if (parkedStack.MemberCount < downedCount)
+                        parkedStack.MemberCount = downedCount;
                 }
             }
 
-            // 给弥留敌军补 WorldPresence，大地图能画头像
-            EnsureEnemyIncapWorldPresence(world, snap);
+            // 抽象残留栈尚无实体 → 下次进图刷弥留／尸体；已有 tracked 则复用
+            rt.SpawnOnNextMapLoad =
+                parkedStack != null &&
+                parkedStack.HasDownedRemnant &&
+                !StrategicEncounterSpawner.HasReusableTrackedPresence(world);
+
+            // 给弥留／尸体补 WorldPresence，大地图能画头像（ClearEngagedParty 前仍可读 Engaged 名单）
+            EnsureFriendlyDownedWorldPresence(world, snap);
+            EnsureEnemyDownedWorldPresence(world, snap);
+
+            // 退出 Modal：人不再 InEncounter，但遭遇数据保留
+            rt.ClearEngagedParty();
+            world.PartyWorld.EncounterId = string.Empty;
 
             // 卸掉 ActiveMap 遭遇会话标记：LocalMap 切回焦点节点图由 Host 处理
             if (!string.IsNullOrEmpty(world.PartyWorld.NodeId) &&
@@ -281,6 +353,22 @@ namespace XianXia.Core.World.Strategic
             world.Strategic.Participants.Clear();
         }
 
+        public static void ParkPrimaryEnemyStackAtBattleAnchor(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap)
+        {
+            if (world?.Strategic?.Armies == null || snap == null)
+                return;
+            var stackId = world.Strategic.Encounter?.ArmyStackId;
+            if (string.IsNullOrEmpty(stackId))
+                stackId = snap.PrimaryEnemyStackId ?? string.Empty;
+            if (string.IsNullOrEmpty(stackId) ||
+                !world.Strategic.Armies.TryGet(stackId, out var stack) ||
+                stack == null)
+                return;
+            ParkStackAtBattleAnchor(world, stack, snap);
+        }
+
         static void ParkStackAtBattleAnchor(
             SimulationWorld world,
             ArmyStack stack,
@@ -307,7 +395,13 @@ namespace XianXia.Core.World.Strategic
             }
         }
 
-        static void EnsureEnemyIncapWorldPresence(
+        /// <summary>给已 tracked 的敌军弥留／尸体补接战点 WorldPresence（自动战宏观刷怪后亦调用）。</summary>
+        public static void RefreshEnemyDownedWorldPresence(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap) =>
+            EnsureEnemyDownedWorldPresence(world, snap);
+
+        static void EnsureEnemyDownedWorldPresence(
             SimulationWorld world,
             BattleParticipantSnapshot snap)
         {
@@ -320,7 +414,8 @@ namespace XianXia.Core.World.Strategic
                 var id = new EntityId(rt.SpawnedEntityIds[i]);
                 if (!world.Entities.TryGet(id, out var ent) || ent == null)
                     continue;
-                if (!ent.TryGet<LifecycleComponent>(out var life) || !life.IsIncapacitated)
+                // 弥留与可见尸体都要钉在接战点（再进 LocalMap／大地图倒计时同一套实体）
+                if (!LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
                     continue;
 
                 if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
@@ -334,6 +429,50 @@ namespace XianXia.Core.World.Strategic
                     wp.RouteAnchorProgress = Clamp01(wp.RouteAnchorProgress + bias);
                     slot++;
                 }
+            }
+        }
+
+        /// <summary>自动战／手动战后：我方弥留／尸体钉在接战点（Restore 可能因 PreBattle 漏掉）。</summary>
+        static void EnsureFriendlyDownedWorldPresence(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap)
+        {
+            if (world == null || snap == null)
+                return;
+
+            var slot = 0;
+            for (var i = 0; i < snap.Records.Count; i++)
+            {
+                var rec = snap.Records[i];
+                if (rec.EntityId.IsNone)
+                    continue;
+                if (rec.Kind != BattleParticipantKind.MandatoryFriendly &&
+                    !(rec.Kind == BattleParticipantKind.OptionalFriendly && rec.Selected))
+                    continue;
+                if (!LingeringBattlefieldPartyService.IsLingeringDowned(world, rec.EntityId))
+                    continue;
+                if (!world.WorldPresence.TryGet(rec.EntityId, out var wp) || wp == null)
+                    wp = world.WorldPresence.GetOrCreate(rec.EntityId);
+                PlaceAtBattleAnchor(world, wp, snap);
+                if (wp.Mode == PartyWorldPresenceMode.RouteAnchored)
+                {
+                    var bias = (slot % 5) * 0.008f;
+                    wp.RouteAnchorProgress = Clamp01(wp.RouteAnchorProgress + bias);
+                    slot++;
+                }
+            }
+
+            var engaged = CollectEngaged(world);
+            for (var i = 0; i < engaged.Count; i++)
+            {
+                var id = engaged[i];
+                if (snap.FindByEntity(id) != null)
+                    continue;
+                if (!LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
+                    continue;
+                if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
+                    wp = world.WorldPresence.GetOrCreate(id);
+                PlaceAtBattleAnchor(world, wp, snap);
             }
         }
 
@@ -403,7 +542,7 @@ namespace XianXia.Core.World.Strategic
             return string.Empty;
         }
 
-        static int CountIncapacitatedSpawns(SimulationWorld world)
+        static int CountLingeringDownedSpawns(SimulationWorld world)
         {
             var rt = world?.Strategic?.Encounter;
             if (rt == null)
@@ -412,9 +551,7 @@ namespace XianXia.Core.World.Strategic
             for (var i = 0; i < rt.SpawnedEntityIds.Count; i++)
             {
                 var id = new EntityId(rt.SpawnedEntityIds[i]);
-                if (!world.Entities.TryGet(id, out var ent) || ent == null)
-                    continue;
-                if (ent.TryGet<LifecycleComponent>(out var life) && life.IsIncapacitated)
+                if (LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
                     n++;
             }
 

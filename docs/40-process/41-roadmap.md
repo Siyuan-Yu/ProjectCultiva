@@ -1,15 +1,16 @@
 # 路线图
 
-> 状态：**VS1.0＋样例关可玩弧自动化已验收**｜下一目标：**占点／外交 或 Snapshot↔Strategic**｜最后更新：2026-08-21
+> 状态：**VS1.0＋样例关可玩弧自动化已验收**｜下一目标：**手操签收 152 → 占点／外交 或 Snapshot↔Strategic**｜最后更新：2026-08-22
 
 ## 当前阶段说明
 
 - Architecture Freeze **v0.2**＋**ADR-0023 补丁**（Manual Encounter 冻结 WorldTick）。  
 - 世界结构以 [113](113-world-graph-local-map-architecture-revision-v0.1.md) 为准。  
+- **2026-08-22：** 大地图 RTS 左右键纪律 [152](152-worldmap-rts-click-discipline-2026-08-22.md)（左选右令；废 148 反 RTS 点选）。  
 - **2026-08-21：** Phase A～F＋Host 打磨 [146](146-adr0023-host-ux-polish-2026-08-21.md) 已落地；验收见 [145](145-adr0023-phases-af-acceptance-2026-08-21.md)。  
 - **2026-08-21：** 残留再进 Offer [150](150-lingering-battlefield-batch3-offer-2026-08-21.md)（EditMode 已验）。  
 - **2026-08-21：** 残留战场批 2 [149](149-lingering-battlefield-batch2-2026-08-21.md)（Core 下沉 + 探望到站）。  
-- **2026-08-21：** 大地图弥留交互 [148](148-worldmap-linger-incap-ux-2026-08-21.md)（批 1 已落地）。  
+- **2026-08-21：** 大地图弥留交互 [148](148-worldmap-linger-incap-ux-2026-08-21.md)（批 1；点选规则已由 152 取代）。  
 - **2026-08-21：** 接战点无瞬移＋弥留残留＋支援半径 [147](147-battlefield-linger-no-teleport-2026-08-21.md)。  
 - Core／Data／Host／**VS 0.1～1.0 自动化已验收**。  
 - Demo Runtime 继续冻结。
@@ -21,7 +22,8 @@
 - [x] Host UX 打磨：[146](146-adr0023-host-ux-polish-2026-08-21.md)（支援半径／战后条／自动结算弹窗／山匪可见）
 - [x] Host 手操签收 145／146（2026-08-21）
 - [x] 接战点无瞬移＋弥留残留战场＋支援半径滑块：[147](147-battlefield-linger-no-teleport-2026-08-21.md)
-- [x] 大地图弥留批 1～3：[148](148-worldmap-linger-incap-ux-2026-08-21.md)／[149](149-lingering-battlefield-batch2-2026-08-21.md)／[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)（手操待补）
+- [x] 大地图弥留批 1～3：[148](148-worldmap-linger-incap-ux-2026-08-21.md)／[149](149-lingering-battlefield-batch2-2026-08-21.md)／[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)
+- [x] RTS 左右键纪律：[152](152-worldmap-rts-click-discipline-2026-08-22.md)（手操待签）
 
 ### 样例关可玩弧（2026-08-02）— **自动化 Completed／手操签收中**
 

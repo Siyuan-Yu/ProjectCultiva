@@ -62,7 +62,28 @@ namespace XianXia.Core.World.Strategic
         /// <summary>派人探望弥留成功后，到站打开大地图时衔接「进入残留战场」菜单。</summary>
         public ulong PendingLingeringVisitIncapId { get; set; }
 
-        public void ClearPendingLingeringVisit() => PendingLingeringVisitIncapId = 0;
+        readonly List<ulong> _pendingLingeringVisitPartyIds = new List<ulong>(8);
+
+        public IReadOnlyList<ulong> PendingLingeringVisitPartyIds => _pendingLingeringVisitPartyIds;
+
+        public void SetPendingLingeringVisit(ulong focusIncapId, IReadOnlyList<EntityId> party)
+        {
+            PendingLingeringVisitIncapId = focusIncapId;
+            _pendingLingeringVisitPartyIds.Clear();
+            if (party == null)
+                return;
+            for (var i = 0; i < party.Count; i++)
+            {
+                if (!party[i].IsNone)
+                    _pendingLingeringVisitPartyIds.Add(party[i].Value);
+            }
+        }
+
+        public void ClearPendingLingeringVisit()
+        {
+            PendingLingeringVisitIncapId = 0;
+            _pendingLingeringVisitPartyIds.Clear();
+        }
 
         /// <summary>玩家帮派 id（占点后更新）。</summary>
         public string PlayerFactionId { get; set; } = StrategicFactionCatalog.PlayerFactionId;

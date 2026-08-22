@@ -816,10 +816,15 @@ namespace XianXia.Unity.Host
             var realm = cult != null ? RealmName(cult.Realm, cult.MinorStage) : "—";
             var subtitle = isParty ? "己方 · 上方可下令" : "查看 · 非己方不可下令";
             var lifeLabel = CombatLifeStateService.ResolveLifeStateLabel(entity);
+            var lifeBadge = CombatLifeStateService.FormatLifeStateWithCountdown(
+                bootstrap?.Session?.World,
+                entity);
             var titleX = main.x + 14f;
             if (!string.IsNullOrEmpty(lifeLabel))
             {
-                titleX = DrawLifeStateBadge(main, lifeLabel) + 8f;
+                titleX = DrawLifeStateBadge(
+                    main,
+                    string.IsNullOrEmpty(lifeBadge) ? lifeLabel : lifeBadge) + 8f;
                 if (lifeLabel == "弥留")
                     activity = "弥留之际";
                 else if (lifeLabel == "尸体")
@@ -1855,6 +1860,13 @@ namespace XianXia.Unity.Host
 
         EntityId ResolveFocus(PlayableHostSession session)
         {
+            // 大地图开着时：优先用大地图当前活人选中，避免左上角仍显示 LocalMap 里已倒下的旧焦点
+            var map = bootstrap != null ? bootstrap.WorldMapPanel : null;
+            if (map != null && map.IsOpen && session?.World != null &&
+                map.TryGetPrimarySelectedLiving(session.World, out var mapFocus) &&
+                !mapFocus.IsNone)
+                return mapFocus;
+
             if (selectionController != null && selectionController.State.Count > 0)
                 return selectionController.State.SelectedIds[0];
             return EntityId.None;
@@ -1892,13 +1904,14 @@ namespace XianXia.Unity.Host
             Fill(new Rect(r.xMax - t, r.y, t, r.height), c);
         }
 
-        /// <summary>面板左上角生命状态角标（弥留／尸体）。</summary>
+        /// <summary>面板左上角生命状态角标（弥留／尸体 + 倒计时）。</summary>
         float DrawLifeStateBadge(Rect panel, string label)
         {
-            const float badgeW = 52f;
+            var isCorpse = !string.IsNullOrEmpty(label) && label.StartsWith("尸体", System.StringComparison.Ordinal);
+            var badgeW = string.IsNullOrEmpty(label) || label.Length <= 2 ? 52f : (label.Length <= 6 ? 78f : 96f);
             const float badgeH = 22f;
             var badge = new Rect(panel.x + 8f, panel.y + 6f, badgeW, badgeH);
-            var bg = label == "尸体"
+            var bg = isCorpse
                 ? new Color(0.35f, 0.32f, 0.30f, 0.96f)
                 : new Color(0.78f, 0.38f, 0.30f, 0.96f);
             Fill(badge, bg);

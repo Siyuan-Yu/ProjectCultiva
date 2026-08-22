@@ -232,7 +232,8 @@ namespace XianXia.Unity.Host
             if (world?.Strategic == null)
                 return;
             var freeze = world.Strategic.ClockFreeze;
-            var savedPaused = freeze.HasSavedHostPresentation ? freeze.SavedHostPaused : session.IsPaused;
+            // 有开战前快照则恢复；否则默认走时（勿把结算弹窗造成的暂停当成用户本意）
+            var savedPaused = freeze.HasSavedHostPresentation && freeze.SavedHostPaused;
             var savedSpeed = freeze.HasSavedHostPresentation
                 ? freeze.SavedSpeedMultiplier
                 : (bootstrap != null ? bootstrap.EffectiveSpeedMultiplier() : 1);
@@ -242,10 +243,13 @@ namespace XianXia.Unity.Host
                     _holding = false;
                     if (!world.Strategic.IsWorldTickFrozen)
                     {
+                        // 恢复开战前 pause；开大地图不再二次强制暂停
                         session.IsPaused = savedPaused;
                         if (bootstrap != null)
                             bootstrap.ApplySavedSpeedMultiplier(savedSpeed);
+                        bootstrap.WorldMapPanel?.NotifyAfterBattleResolved(world);
                         bootstrap.WorldMapPanel?.Open();
+                        bootstrap.WorldMapPanel?.RefreshStrategicPresentation(world);
                         if (BattleOfferService.HasLingeringBattlefield(world))
                         {
                             bootstrap.ApplyPartyWorldNodePresentation(closeWorldMap: false);
@@ -381,7 +385,9 @@ namespace XianXia.Unity.Host
                 if (r.Kind == BattleParticipantKind.OptionalFriendly)
                     continue;
                 var tag = r.Kind == BattleParticipantKind.MandatoryFriendly
-                    ? "[强制] "
+                    ? (LingeringBattlefieldPartyService.IsIncapacitated(session.World, r.EntityId)
+                        ? "[强制·弥留] "
+                        : "[强制] ")
                     : (r.Kind == BattleParticipantKind.EnemyReinforcement ? "[敌援] " : "[敌军] ");
                 GUI.Label(
                     new Rect(box.x + 24f, listY, box.width - 40f, 18f),
@@ -420,7 +426,7 @@ namespace XianXia.Unity.Host
             _executeOnWin = GUI.Toggle(
                 new Rect(box.x + 16f, toggleY, box.width - 32f, 22f),
                 _executeOnWin,
-                "战胜时直接击杀（不勾选＝敌军全部弥留，可再进补刀）");
+                "战胜时处决（敌军阵亡留尸体；不勾选＝全部弥留，可再进补刀）");
 
             var y = box.y + box.height - 44f;
             var third = (box.width - 40f) / 3f;
@@ -436,8 +442,11 @@ namespace XianXia.Unity.Host
                 if (resolved.IsSuccess)
                 {
                     // 进入自动战结算弹窗（PostBattle + IsAutoSettlement）
+                    // 结算留在大地图上，不要被「战场禁图」关掉后露出不明 LocalMap
                     _holding = true;
                     session.IsPaused = true;
+                    bootstrap.WorldMapPanel?.Open();
+                    bootstrap.WorldMapPanel?.RefreshStrategicPresentation(session.World);
                 }
                 else
                     ShowToast(resolved.Error.Message);
@@ -456,7 +465,11 @@ namespace XianXia.Unity.Host
 
             if (GUI.Button(new Rect(box.x + 24f + third * 2f, y, third, 32f), "撤退"))
             {
-                StrategicPursuitService.ClearPursuit(session.World);
+                var retreatParty = session.World.Strategic.Participants.CollectSelectedFriendly();
+                if (retreatParty.Count == 0)
+                    retreatParty = ResolveEngagedPartyForManualEncounter(session.World);
+                ArrivalNoticeService.SuppressForParty(session.World, retreatParty);
+                StrategicPursuitService.ClearPursuitForAgents(session.World, retreatParty);
                 session.World.Strategic.ClearBattleOffer();
                 _holding = false;
                 var freeze = session.World.Strategic.ClockFreeze;
@@ -489,6 +502,9 @@ namespace XianXia.Unity.Host
                 localMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
 
             BattleOfferService.RefreshOfferPowerLabels(session.World);
+            // 进场前再钉一次：追击接战窗也可能漏掉半径内已倒下的同伴
+            BattleOfferService.PromoteInRangeIncapacitatedToMandatory(
+                session.World, session.World.Strategic.Participants);
             var engaged = session.World.Strategic.Participants.CollectSelectedFriendly();
             if (engaged.Count == 0)
                 engaged = ResolveEngagedPartyForManualEncounter(session.World);
@@ -534,8 +550,9 @@ namespace XianXia.Unity.Host
             if (session != null)
                 session.PreferredMapLayoutId = map;
 
-            var closeMap = bootstrap.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen;
-            bootstrap.ApplyPartyWorldNodePresentation(closeWorldMap: closeMap);
+            // 进战场：大地图必须关（与 Open 门禁一致）
+            bootstrap.WorldMapPanel?.Close();
+            bootstrap.ApplyPartyWorldNodePresentation(closeWorldMap: true);
         }
 
         static List<EntityId> ResolveEngagedPartyForManualEncounter(SimulationWorld world)

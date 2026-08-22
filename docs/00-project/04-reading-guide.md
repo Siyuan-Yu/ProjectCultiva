@@ -1,6 +1,6 @@
 # 文档通读指南
 
-> 状态：现行 | 最后更新：2026-08-21  
+> 状态：现行 | 最后更新：2026-08-22  
 > 上级：[`00-overview.md`](00-overview.md)  
 > **本页说明怎么读整套策划／架构文档。** 正文仍以各专题页为准；本地 Markdown 与飞书同步页一一对应。
 
@@ -25,13 +25,15 @@
 
 当前结构已经适合「仔细通读 + 交叉跳转」。本轮整理重点是：补齐飞书映射、加强入口导航，**不重写已冻结规则正文**。
 
-## 1.1 当前制作人入口（2026-08-21）
+## 1.1 当前制作人入口（2026-08-22）
 
 | 目的 | 读什么 |
 |------|--------|
-| **本轮（残留再进 Offer）** | [150](../40-process/150-lingering-battlefield-batch3-offer-2026-08-21.md) |
-| **残留战场批 2（探望到站）** | [149](../40-process/149-lingering-battlefield-batch2-2026-08-21.md) |
-| **弥留交互／点击（批 1）** | [148](../40-process/148-worldmap-linger-incap-ux-2026-08-21.md) |
+| **本轮（大地图 RTS 左右键）** | [152](../40-process/152-worldmap-rts-click-discipline-2026-08-22.md) |
+| **Encounter stub 150×80** | [151](../40-process/151-encounter-stub-map-150x80-2026-08-21.md) |
+| **残留再进 Offer** | [150](../40-process/150-lingering-battlefield-batch3-offer-2026-08-21.md) |
+| **残留战场批 2** | [149](../40-process/149-lingering-battlefield-batch2-2026-08-21.md) |
+| **弥留交互／点击（批 1；点选见 152）** | [148](../40-process/148-worldmap-linger-incap-ux-2026-08-21.md) |
 | **接战点／弥留残留** | [147](../40-process/147-battlefield-linger-no-teleport-2026-08-21.md) |
 | **ADR-0023 打磨／验收** | [146](../40-process/146-adr0023-host-ux-polish-2026-08-21.md)／[145](../40-process/145-adr0023-phases-af-acceptance-2026-08-21.md) |
 | **ADR-0023／分期** | [ADR-0023](../40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)／[144](../40-process/144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md) |

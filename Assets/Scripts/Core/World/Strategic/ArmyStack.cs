@@ -15,13 +15,19 @@ namespace XianXia.Core.World.Strategic
         public int CombatPower { get; set; } = 1;
         /// <summary>自动战未处决／手动清场后仍弥留的人数（大地图残留用）。</summary>
         public int IncapacitatedMemberCount { get; set; }
+        /// <summary>自动战处决／清场后仍留尸体的人数（大地图残留用）。</summary>
+        public int CorpseMemberCount { get; set; }
         /// <summary>驻留 Route 上的进度 0..1（-1 表示不在路径锚点）。</summary>
         public float RouteAnchorProgress { get; set; } = -1f;
-        /// <summary>接战点残留：场上有弥留敌军，大地图可再攻击进入。</summary>
+        /// <summary>接战点残留：场上有弥留／尸体，大地图可再攻击进入。</summary>
         public bool IsBattlefieldRemnant { get; set; }
 
         public bool HasIncapacitatedRemnant =>
             IsBattlefieldRemnant && IncapacitatedMemberCount > 0;
+        public bool HasCorpseRemnant =>
+            IsBattlefieldRemnant && CorpseMemberCount > 0;
+        /// <summary>弥留或尸体残留（自动战／清场后仍可再进）。</summary>
+        public bool HasDownedRemnant => HasIncapacitatedRemnant || HasCorpseRemnant;
         public bool IsTraveling => !string.IsNullOrEmpty(RouteId) && RemainingTravelTicks > 0;
         public bool IsRouteAnchored =>
             !string.IsNullOrEmpty(RouteId) && RouteAnchorProgress >= 0f && !IsTraveling;

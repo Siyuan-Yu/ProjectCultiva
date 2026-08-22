@@ -26,6 +26,12 @@ namespace XianXia.Core.World
         /// <summary>攻击／追击目标栈 id；有值则到站不弹「是否查看」，只走接战。</summary>
         public string CombatPursuitStackId { get; set; } = string.Empty;
 
+        /// <summary>
+        /// 已因接战弹窗消费过本次抵达：撤退／关窗后勿再弹「是否查看」。
+        /// 新的宏观出行下令时清除。
+        /// </summary>
+        public bool SuppressArrivalNotice { get; set; }
+
         public bool IsFollowingStack => !string.IsNullOrEmpty(FollowStackId);
 
         public bool IsCombatPursuing => !string.IsNullOrEmpty(CombatPursuitStackId);
@@ -134,6 +140,14 @@ namespace XianXia.Core.World
             if (id.IsNone)
                 return false;
             return _byEntity.TryGetValue(id.Value, out presence);
+        }
+
+        /// <summary>尸体腐烂／实体移除后从大地图抹掉位置（不再参与任何节点／路上演算）。</summary>
+        public bool Remove(EntityId id)
+        {
+            if (id.IsNone)
+                return false;
+            return _byEntity.Remove(id.Value);
         }
 
         public void SetAtNode(EntityId id, string nodeId)

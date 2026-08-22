@@ -36,11 +36,10 @@ namespace XianXia.Core.World.Strategic
             if (lingeringReuse)
             {
                 PruneRemovedSpawns(world);
-                var hasTracked =
-                    CountLivingTracked(world) > 0 || CountIncapacitatedTracked(world) > 0;
-                // 自动战残留尚无实体 → 进图刷弥留；已有弥留实体则复用
+                var hasTracked = HasReusableTrackedPresence(world);
+                // 自动战残留尚无实体 → 进图刷弥留；已有弥留／尸体则复用（禁止重刷刷新倒计时）
                 rt.SpawnOnNextMapLoad = !hasTracked;
-                rt.BattlefieldLingering = false;
+                // 保持 BattlefieldLingering=true：可反复再进；仅 Destroy 时清除
                 rt.FieldCleared = false;
                 if (engagedParty != null && engagedParty.Count > 0)
                     rt.SetEngagedParty(engagedParty);
@@ -50,6 +49,8 @@ namespace XianXia.Core.World.Strategic
                     lingerStack != null)
                     ApplyStackRouteToParty(world, engagedParty, lingerStack);
 
+                // 已有弥留刷怪：再进时补 LocalMap 落点（人还在接战点，不能凭空消失）
+                EnsureTrackedSpawnsLocalPresentation(world);
                 return;
             }
 
@@ -57,20 +58,23 @@ namespace XianXia.Core.World.Strategic
             if (!string.IsNullOrEmpty(armyStackId) &&
                 world.Strategic.Armies.TryGet(armyStackId, out var remnant) &&
                 remnant != null &&
-                remnant.HasIncapacitatedRemnant)
+                remnant.HasDownedRemnant)
             {
                 PruneRemovedSpawns(world);
-                var hasTracked =
-                    CountLivingTracked(world) > 0 || CountIncapacitatedTracked(world) > 0;
+                var hasTracked = HasReusableTrackedPresence(world);
+                // 仅当完全没有场上实体时才清；有弥留／尸体绝不能 Clear（否则倒计时被刷回满）
                 if (!hasTracked)
                     ClearSpawned(world);
                 var keepLingerMap = rt.LingeringLocalMapId;
                 rt.SpawnOnNextMapLoad = !hasTracked;
                 rt.FieldCleared = false;
-                rt.BattlefieldLingering = false;
+                // 再攻残留栈：标记为仍可反复进入的残留战场
+                rt.BattlefieldLingering = true;
                 rt.ArmyStackId = armyStackId;
                 rt.EncounterLinkId = encounterLinkId ?? string.Empty;
-                rt.FallbackMemberCount = Math.Max(1, remnant.IncapacitatedMemberCount);
+                rt.FallbackMemberCount = Math.Max(
+                    1,
+                    Math.Max(remnant.IncapacitatedMemberCount, remnant.CorpseMemberCount));
                 rt.FallbackCombatPowerPerMember = Math.Max(1, remnant.CombatPower);
                 if (string.IsNullOrEmpty(rt.LingeringLocalMapId))
                     rt.LingeringLocalMapId = string.IsNullOrEmpty(keepLingerMap)
@@ -80,6 +84,24 @@ namespace XianXia.Core.World.Strategic
                     rt.SetEngagedParty(engagedParty);
                 MarkPartyInEncounter(world, engagedParty);
                 ApplyStackRouteToParty(world, engagedParty, remnant);
+                EnsureTrackedSpawnsLocalPresentation(world);
+                return;
+            }
+
+            // 安全网：本遭遇仍有弥留／尸体实体时，禁止走「清场重刷」（会把倒计时刷回满）
+            if (!string.IsNullOrEmpty(armyStackId) &&
+                string.Equals(rt.ArmyStackId, armyStackId, StringComparison.Ordinal) &&
+                HasReusableTrackedPresence(world))
+            {
+                PruneRemovedSpawns(world);
+                rt.SpawnOnNextMapLoad = false;
+                rt.FieldCleared = false;
+                if (engagedParty != null && engagedParty.Count > 0)
+                    rt.SetEngagedParty(engagedParty);
+                MarkPartyInEncounter(world, engagedParty);
+                if (world.Strategic.Armies.TryGet(armyStackId, out var keepStack) && keepStack != null)
+                    ApplyStackRouteToParty(world, engagedParty, keepStack);
+                EnsureTrackedSpawnsLocalPresentation(world);
                 return;
             }
 
@@ -87,7 +109,7 @@ namespace XianXia.Core.World.Strategic
             if (!reuse)
                 ClearSpawned(world);
             else
-                PruneDeadSpawns(world);
+                PruneRemovedSpawns(world);
 
             rt.ResetSpawnPlan();
             rt.SpawnOnNextMapLoad = true;
@@ -157,14 +179,14 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.Strategic == null || defenderId.IsNone || !IsTrackedSpawn(world, defenderId))
                 return false;
-            PruneDeadSpawns(world);
+            PruneRemovedSpawns(world);
             // 删栈前先把道路进度落到参战者身上，否则清场后路锚变成 0、无法回程／像瞬移
             SnapshotEngagedRouteFromStack(world);
             SyncArmyStackMemberCount(world);
             TryMarkFieldCleared(world);
             if (world.Strategic.Encounter.BattlefieldLingering &&
-                !StrategicEncounterResolveService.HasLingeringIncapacitated(world))
-                StrategicEncounterResolveService.TryDestroyIfNoIncapacitated(world);
+                !StrategicEncounterResolveService.HasLingeringBattlefieldRemnants(world))
+                StrategicEncounterResolveService.TryDestroyIfNoRemnants(world);
             return true;
         }
 
@@ -302,7 +324,7 @@ namespace XianXia.Core.World.Strategic
                 return Result.Success();
 
             world.Strategic.Encounter.SpawnOnNextMapLoad = false;
-            PruneDeadSpawns(world);
+            PruneRemovedSpawns(world);
 
             ArmyStack stack = null;
             var stackId = world.Strategic.Encounter.ArmyStackId;
@@ -310,28 +332,122 @@ namespace XianXia.Core.World.Strategic
                 world.Strategic.Armies.TryGet(stackId, out stack);
 
             var living = CountLivingTracked(world);
+            var incap = CountIncapacitatedTracked(world);
+            var corpses = CountVisibleCorpseTracked(world);
             var targetCount = stack?.MemberCount > 0
                 ? stack.MemberCount
                 : world.Strategic.Encounter.FallbackMemberCount;
-            if (stack != null && stack.HasIncapacitatedRemnant)
+            if (stack != null && stack.HasCorpseRemnant)
+                targetCount = Math.Max(targetCount, stack.CorpseMemberCount);
+            else if (stack != null && stack.HasIncapacitatedRemnant)
                 targetCount = Math.Max(targetCount, stack.IncapacitatedMemberCount);
-            var toSpawn = Math.Max(0, targetCount - living - CountIncapacitatedTracked(world));
+            // 可见尸体也占坑：不能再刷新弥留把倒计时刷满
+            var toSpawn = Math.Max(0, targetCount - living - incap - corpses);
             if (toSpawn <= 0)
                 return Result.Success();
 
             var power = stack?.CombatPower > 0
                 ? stack.CombatPower
                 : world.Strategic.Encounter.FallbackCombatPowerPerMember;
-            var spawnAsIncap = stack != null && stack.HasIncapacitatedRemnant;
+            var spawnAsCorpse = stack != null && stack.HasCorpseRemnant;
+            var spawnAsIncap = stack != null && stack.HasIncapacitatedRemnant && !spawnAsCorpse;
             var linkId = string.IsNullOrEmpty(world.Strategic.Encounter.EncounterLinkId)
                 ? world.PartyWorld.EncounterId
                 : world.Strategic.Encounter.EncounterLinkId;
+
+            var spawned = SpawnRemnantNpcEntities(
+                world,
+                stack,
+                toSpawn,
+                living + incap + corpses,
+                linkId,
+                power,
+                spawnAsCorpse,
+                spawnAsIncap);
+            if (spawned.IsFailure)
+                return spawned;
+
+            SyncArmyStackMemberCount(world);
+            return Result.Success();
+        }
+
+        /// <summary>
+        /// 自动战未进 LocalMap：在接战点立刻刷弥留／尸体实体并钉 WorldPresence，
+        /// 大地图个体头像与进图再出来一致。
+        /// </summary>
+        public static void EnsureMacroRemnantSpawns(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap)
+        {
+            if (world?.Strategic?.Encounter == null || snap == null)
+                return;
+
+            PruneRemovedSpawns(world);
+            var rt = world.Strategic.Encounter;
+
+            ArmyStack stack = null;
+            var stackId = rt.ArmyStackId;
+            if (string.IsNullOrEmpty(stackId))
+                stackId = snap.PrimaryEnemyStackId ?? string.Empty;
+            if (string.IsNullOrEmpty(stackId) ||
+                !world.Strategic.Armies.TryGet(stackId, out stack) ||
+                stack == null ||
+                !stack.HasDownedRemnant)
+                return;
+
+            var living = CountLivingTracked(world);
+            var incap = CountIncapacitatedTracked(world);
+            var corpses = CountVisibleCorpseTracked(world);
+            var targetCount = Math.Max(
+                stack.MemberCount,
+                stack.HasCorpseRemnant ? stack.CorpseMemberCount : stack.IncapacitatedMemberCount);
+            var toSpawn = Math.Max(0, targetCount - living - incap - corpses);
+            if (toSpawn > 0)
+            {
+                var power = stack.CombatPower > 0
+                    ? stack.CombatPower
+                    : rt.FallbackCombatPowerPerMember;
+                var spawnAsCorpse = stack.HasCorpseRemnant;
+                var spawnAsIncap = stack.HasIncapacitatedRemnant && !spawnAsCorpse;
+                var linkId = string.IsNullOrEmpty(rt.EncounterLinkId)
+                    ? world.PartyWorld.EncounterId
+                    : rt.EncounterLinkId;
+                SpawnRemnantNpcEntities(
+                    world,
+                    stack,
+                    toSpawn,
+                    living + incap + corpses,
+                    linkId,
+                    power,
+                    spawnAsCorpse,
+                    spawnAsIncap);
+            }
+
+            StrategicEncounterResolveService.RefreshEnemyDownedWorldPresence(world, snap);
+            SyncArmyStackMemberCount(world);
+            if (HasReusableTrackedPresence(world))
+                rt.SpawnOnNextMapLoad = false;
+        }
+
+        static Result SpawnRemnantNpcEntities(
+            SimulationWorld world,
+            ArmyStack stack,
+            int toSpawn,
+            int spawnIndexStart,
+            string linkId,
+            int powerPerMember,
+            bool spawnAsCorpse,
+            bool spawnAsIncap)
+        {
+            if (world?.Strategic?.Encounter == null || toSpawn <= 0)
+                return Result.Success();
 
             var startId = world.WorldRegion.StartLocationId;
             world.WorldRegion.TryGet(startId, out var startLoc);
             var baseX = startLoc?.PresentationX ?? 0f;
             var baseZ = startLoc?.PresentationZ ?? 0f;
-            var spawnIndex = living + CountIncapacitatedTracked(world);
+            var spawnIndex = spawnIndexStart;
+            var power = Math.Max(1, powerPerMember);
 
             for (var i = 0; i < toSpawn; i++)
             {
@@ -341,19 +457,19 @@ namespace XianXia.Core.World.Strategic
                 var label = (stack != null && !string.IsNullOrEmpty(stack.DisplayName)
                         ? stack.DisplayName
                         : faction) +
-                    " " + (spawnIndex + i + 1);
+                    " " + (spawnIndex + 1);
                 var created = world.Entities.CreateNpc(BanditGruntDef, label);
                 if (created.IsFailure)
                     return Result.Failure(created.Error);
 
                 var entity = created.Value;
                 ConfigureCombatNpc(entity, power);
-                if (spawnAsIncap)
+                if (spawnAsCorpse)
+                    ApplyImmediateCorpse(world, entity);
+                else if (spawnAsIncap)
                     CombatLifeStateService.TryEnterIncapacitated(world, entity);
                 if (!string.IsNullOrEmpty(linkId))
-                {
                     entity.AddComponent(new EncounterLinkComponent { EncounterId = linkId });
-                }
 
                 if (!entity.TryGet<EntityLocationComponent>(out var loc))
                 {
@@ -367,8 +483,46 @@ namespace XianXia.Core.World.Strategic
                 spawnIndex++;
             }
 
-            SyncArmyStackMemberCount(world);
             return Result.Success();
+        }
+
+        /// <summary>
+        /// 再进残留战场：已 tracked 的敌军（含弥留）补上 LocalMap 表现坐标。
+        /// 与我方弥留同一原则——人钉在接战点，进图必须仍在场上。
+        /// </summary>
+        public static void EnsureTrackedSpawnsLocalPresentation(SimulationWorld world)
+        {
+            if (world?.Strategic?.Encounter == null)
+                return;
+            PruneRemovedSpawns(world);
+            var rt = world.Strategic.Encounter;
+            var startId = world.WorldRegion.StartLocationId;
+            world.WorldRegion.TryGet(startId, out var startLoc);
+            var baseX = startLoc?.PresentationX ?? 0f;
+            var baseZ = startLoc?.PresentationZ ?? 0f;
+            var slot = 0;
+            for (var i = 0; i < rt.SpawnedEntityIds.Count; i++)
+            {
+                var id = new EntityId(rt.SpawnedEntityIds[i]);
+                if (!world.Entities.TryGet(id, out var entity) || entity == null)
+                    continue;
+                if (CombatLifeStateService.ShouldHideFromSpawn(entity))
+                    continue;
+
+                if (!entity.TryGet<EntityLocationComponent>(out var loc) || loc == null)
+                {
+                    loc = new EntityLocationComponent();
+                    entity.AddComponent(loc);
+                }
+
+                if (!loc.HasPresentationOverride)
+                {
+                    loc.LocationId = startId ?? string.Empty;
+                    loc.SetPresentationOverride(baseX + 3.5f + slot * 1.1f, baseZ + 2.2f);
+                }
+
+                slot++;
+            }
         }
 
         public static int CountLivingTrackedSpawns(SimulationWorld world) => CountLivingTracked(world);
@@ -395,6 +549,82 @@ namespace XianXia.Core.World.Strategic
             return count;
         }
 
+        static int CountVisibleCorpseTracked(SimulationWorld world)
+        {
+            if (world?.Strategic == null)
+                return 0;
+            PruneRemovedSpawns(world);
+            var rt = world.Strategic.Encounter;
+            var count = 0;
+            for (var i = 0; i < rt.SpawnedEntityIds.Count; i++)
+            {
+                var id = new EntityId(rt.SpawnedEntityIds[i]);
+                if (!world.Entities.TryGet(id, out var entity) || entity == null)
+                    continue;
+                if (CombatLifeStateService.HasVisibleCorpse(entity))
+                    count++;
+            }
+
+            return count;
+        }
+
+
+        /// <summary>场上仍有可复用的遭遇体（活／弥留／可见尸体）——再进时禁止清掉重刷。</summary>
+        public static bool HasReusableTrackedPresence(SimulationWorld world) =>
+            CountLivingTracked(world) > 0 ||
+            CountIncapacitatedTracked(world) > 0 ||
+            CountVisibleCorpseTracked(world) > 0;
+
+        /// <summary>自动战未处决：把已刷新的存活敌军同步为弥留（与栈上 IncapacitatedMemberCount 一致）。</summary>
+        public static void ApplyIncapacitatedToLivingTrackedSpawns(SimulationWorld world)
+        {
+            if (world?.Strategic == null)
+                return;
+            PruneRemovedSpawns(world);
+            var rt = world.Strategic.Encounter;
+            for (var i = 0; i < rt.SpawnedEntityIds.Count; i++)
+            {
+                var id = new EntityId(rt.SpawnedEntityIds[i]);
+                if (!world.Entities.TryGet(id, out var entity) || entity == null)
+                    continue;
+                if (!CombatLifeStateService.CanFight(entity))
+                    continue;
+                CombatLifeStateService.TryEnterIncapacitated(world, entity);
+            }
+
+            SyncArmyStackMemberCount(world);
+        }
+
+        /// <summary>自动战处决：把已刷新的存活／弥留敌军同步为尸体（与栈上 CorpseMemberCount 一致）。</summary>
+        public static void ApplyCorpseToLivingTrackedSpawns(SimulationWorld world)
+        {
+            if (world?.Strategic == null)
+                return;
+            PruneRemovedSpawns(world);
+            var rt = world.Strategic.Encounter;
+            for (var i = 0; i < rt.SpawnedEntityIds.Count; i++)
+            {
+                var id = new EntityId(rt.SpawnedEntityIds[i]);
+                if (!world.Entities.TryGet(id, out var entity) || entity == null)
+                    continue;
+                if (CombatLifeStateService.HasVisibleCorpse(entity))
+                    continue;
+                ApplyImmediateCorpse(world, entity);
+            }
+
+            SyncArmyStackMemberCount(world);
+        }
+
+        static void ApplyImmediateCorpse(SimulationWorld world, Entity entity)
+        {
+            if (entity == null)
+                return;
+            CombatDamageRules.EnsureVitals(entity);
+            if (entity.TryGet<CombatVitalsComponent>(out var vitals))
+                vitals.CurrentHp = 0;
+            CombatLifeStateService.TryConfirmDeath(world, EntityId.None, entity, out _);
+        }
+
         public static void ClearSpawned(SimulationWorld world)
         {
             if (world?.Strategic == null)
@@ -403,7 +633,10 @@ namespace XianXia.Core.World.Strategic
             for (var i = 0; i < rt.SpawnedEntityIds.Count; i++)
             {
                 var id = new EntityId(rt.SpawnedEntityIds[i]);
-                world.Entities.MarkRemoved(id);
+                if (world.Entities.TryGet(id, out var entity) && entity != null)
+                    CombatLifeStateService.FinalizeRemoval(world, entity);
+                else
+                    world.Entities.MarkRemoved(id);
             }
 
             rt.ClearTrackedIds();
@@ -430,7 +663,7 @@ namespace XianXia.Core.World.Strategic
             var rt = world.Strategic.Encounter;
             if (!string.Equals(rt.ArmyStackId, armyStackId, StringComparison.Ordinal))
                 return false;
-            PruneDeadSpawns(world);
+            PruneRemovedSpawns(world);
             return CountLivingTracked(world) > 0;
         }
 
@@ -454,6 +687,38 @@ namespace XianXia.Core.World.Strategic
             return count;
         }
 
+        /// <summary>尸体腐烂／Removed 后：修剪刷怪追踪，并同步敌军栈（无可见残留则从大地图移除）。</summary>
+        public static void ReconcileAfterLifeDecay(SimulationWorld world, EntityId removedId)
+        {
+            if (world?.Strategic == null)
+                return;
+
+            var wasTracked = !removedId.IsNone && IsTrackedSpawn(world, removedId);
+            PruneRemovedSpawns(world);
+            if (!wasTracked)
+                return;
+
+            SyncArmyStackMemberCount(world);
+
+            // 该遭遇栈追踪的尸体已全部腐烂：连抽象弥留标记一并清掉，大地图不再留敌军点
+            var leftover = CountLivingTracked(world) +
+                           CountIncapacitatedTracked(world) +
+                           CountVisibleCorpseTracked(world);
+            if (leftover > 0)
+                return;
+
+            var stackId = world.Strategic.Encounter.ArmyStackId;
+            if (string.IsNullOrEmpty(stackId) ||
+                !world.Strategic.Armies.TryGet(stackId, out var stack) ||
+                stack == null)
+                return;
+
+            stack.IncapacitatedMemberCount = 0;
+            stack.CorpseMemberCount = 0;
+            stack.IsBattlefieldRemnant = false;
+            world.Strategic.Armies.Remove(stackId);
+        }
+
         static void PruneRemovedSpawns(SimulationWorld world)
         {
             if (world?.Strategic == null)
@@ -473,9 +738,6 @@ namespace XianXia.Core.World.Strategic
             }
         }
 
-        [System.Obsolete("Use PruneRemovedSpawns")]
-        static void PruneDeadSpawns(SimulationWorld world) => PruneRemovedSpawns(world);
-
         static void SyncArmyStackMemberCount(SimulationWorld world)
         {
             if (world?.Strategic == null)
@@ -488,26 +750,26 @@ namespace XianXia.Core.World.Strategic
 
             var living = CountLivingTracked(world);
             var incap = CountIncapacitatedTracked(world);
-            var total = living + incap;
+            var corpses = CountVisibleCorpseTracked(world);
+            var total = living + incap + corpses;
             if (total > 0)
             {
                 stack.MemberCount = total;
                 stack.IncapacitatedMemberCount = incap;
-                if (incap > 0 && living == 0)
-                    stack.IsBattlefieldRemnant = true;
-                else if (living > 0)
-                    stack.IsBattlefieldRemnant = false;
+                stack.CorpseMemberCount = corpses;
+                stack.IsBattlefieldRemnant = living == 0;
                 return;
             }
 
-            // 尚无刷怪实体，但自动战已记下弥留人数 → 保留栈
-            if (stack.HasIncapacitatedRemnant)
+            // 尚无刷怪实体，但自动战已记下残留人数 → 保留抽象栈
+            if (stack.HasDownedRemnant)
             {
-                stack.MemberCount = Math.Max(1, stack.IncapacitatedMemberCount);
+                stack.MemberCount = Math.Max(1, Math.Max(stack.IncapacitatedMemberCount, stack.CorpseMemberCount));
                 return;
             }
 
             stack.IncapacitatedMemberCount = 0;
+            stack.CorpseMemberCount = 0;
             stack.IsBattlefieldRemnant = false;
             world.Strategic.Armies.Remove(stackId);
         }

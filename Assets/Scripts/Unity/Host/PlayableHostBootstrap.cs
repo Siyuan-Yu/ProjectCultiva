@@ -1042,6 +1042,7 @@ namespace XianXia.Unity.Host
                 Debug.LogWarning("[PlayableHost] Strategic encounter spawn: " + spawned.Error, this);
             if (onEncounterMap)
             {
+                StrategicEncounterSpawner.EnsureTrackedSpawnsLocalPresentation(world);
                 _session.RefreshViewableEntityIds();
                 entityViewSpawner?.Rebuild(_session);
             }
@@ -1092,7 +1093,7 @@ namespace XianXia.Unity.Host
                 return;
             var world = _session.World;
             if (world?.Strategic?.Encounter == null ||
-                !world.Strategic.Encounter.BattlefieldLingering)
+                !BattleOfferService.HasLingeringBattlefield(world))
                 return;
 
             var scratch = new List<EntityId>(party.Count);
@@ -1106,11 +1107,19 @@ namespace XianXia.Unity.Host
                 }
             }
 
+            var mandatoryLiving = new List<EntityId>(party.Count);
+            for (var i = 0; i < party.Count; i++)
+            {
+                if (LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, party[i]))
+                    mandatoryLiving.Add(party[i]);
+            }
+
             if (!LingeringBattlefieldPartyService.CanEnterLingeringBattlefield(
                     world,
                     _session.CharacterIds,
                     focus,
-                    scratch))
+                    scratch,
+                    mandatoryLiving))
                 return;
 
             world.Strategic.ClearPendingLingeringVisit();
@@ -1131,6 +1140,8 @@ namespace XianXia.Unity.Host
             StrategicClockFreezeService.BeginOrPromote(
                 world, StrategicClockFreezeReason.ManualEncounter);
             _session.IsPaused = false;
+            if (worldMapPanel != null)
+                worldMapPanel.Close();
             ApplyPartyWorldNodePresentation(closeWorldMap: true);
         }
 
@@ -1163,6 +1174,9 @@ namespace XianXia.Unity.Host
                 Debug.LogError("[PlayableHost] " + tick.Error, this);
                 return;
             }
+
+            // 尸体腐烂后立刻从 LocalMap 卸表现（大地图靠 WorldPresence 已抹）
+            entityViewSpawner?.PruneHiddenViews(_session);
 
             DispatchDrainedEvents();
             RefreshStatus();

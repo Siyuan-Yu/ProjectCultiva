@@ -20,6 +20,7 @@ namespace XianXia.Unity.Host
         string _pursueStackId = string.Empty;
         string _bodyText = string.Empty;
         bool _holdingPause;
+        bool _pausedBeforeConfirm;
         GUIStyle _title;
         GUIStyle _body;
         Texture2D _px;
@@ -37,6 +38,7 @@ namespace XianXia.Unity.Host
             _agents.Clear();
             _target = default;
             _pursueStackId = string.Empty;
+            bootstrap?.Session?.World?.Strategic?.ClearPendingLingeringVisit();
             ReleasePause();
         }
 
@@ -148,6 +150,7 @@ namespace XianXia.Unity.Host
             HostInputGate.BlockWorldInteraction = true;
             if (!_holdingPause)
             {
+                _pausedBeforeConfirm = bootstrap.Session.IsPaused;
                 bootstrap.Session.IsPaused = true;
                 _holdingPause = true;
             }
@@ -159,8 +162,10 @@ namespace XianXia.Unity.Host
                 return;
             _holdingPause = false;
             if (bootstrap?.Session != null)
-                bootstrap.Session.IsPaused = false;
-            HostInputGate.Clear();
+                bootstrap.Session.IsPaused = _pausedBeforeConfirm;
+            // 大地图仍开着时不要 Clear：否则会冲掉地图的镜头／点选封锁
+            if (bootstrap?.WorldMapPanel == null || !bootstrap.WorldMapPanel.IsOpen)
+                HostInputGate.Clear();
         }
 
         void OnGUI()
@@ -206,6 +211,8 @@ namespace XianXia.Unity.Host
             if (HostImguiStyles.ParchmentBtn(no, "取消"))
             {
                 Event.current.Use();
+                // 探望弥留未出发：清掉 pending，避免到站误弹接战
+                bootstrap?.Session?.World?.Strategic?.ClearPendingLingeringVisit();
                 Close();
             }
         }

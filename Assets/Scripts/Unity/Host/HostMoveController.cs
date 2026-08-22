@@ -308,6 +308,15 @@ namespace XianXia.Unity.Host
                 !viewSpawner.Registry.TryGet(id, out var view) || view == null)
                 return false;
 
+            // 弥留／死亡／已移除：LocalMap 禁止移动（大地图宏观令另有门禁）
+            if (bootstrap?.Session?.World != null &&
+                bootstrap.Session.World.Entities.TryGet(id, out var lifeEnt) &&
+                !CombatLifeStateService.CanFight(lifeEnt))
+            {
+                CancelPresentationMovement(id);
+                return false;
+            }
+
             SnapOntoWalkableIfNeeded(view);
             if (!TryBuildWorldPath(view.transform.position, point, _wpScratch))
                 return false;
@@ -354,10 +363,15 @@ namespace XianXia.Unity.Host
             var count = selectionController.State.Count;
             var moveIndex = 0;
             var moveCount = 0;
+            var world = bootstrap?.Session?.World;
             for (var i = 0; i < count; i++)
             {
                 var sid = selectionController.State.SelectedIds[i];
                 if (!selectionController.IsPartyUnit(sid))
+                    continue;
+                if (world != null &&
+                    world.Entities.TryGet(sid, out var ent) &&
+                    !CombatLifeStateService.CanFight(ent))
                     continue;
                 moveCount++;
                 // Drop any in-flight Host path so an old waypoint cannot fight the new order.
@@ -372,6 +386,10 @@ namespace XianXia.Unity.Host
             {
                 var id = selectionController.State.SelectedIds[i];
                 if (!selectionController.IsPartyUnit(id))
+                    continue;
+                if (world != null &&
+                    world.Entities.TryGet(id, out var ent) &&
+                    !CombatLifeStateService.CanFight(ent))
                     continue;
                 var offset = FormationOffset(moveIndex++, moveCount);
                 var goal = ResolveFormationGoal(point, offset);
@@ -543,6 +561,16 @@ namespace XianXia.Unity.Host
                 {
                     if (view != null)
                         done.Add(view);
+                    continue;
+                }
+
+                // 途中倒下：立刻停步
+                if (bootstrap?.Session?.World != null &&
+                    bootstrap.Session.World.Entities.TryGet(view.EntityId, out var movingEnt) &&
+                    !CombatLifeStateService.CanFight(movingEnt))
+                {
+                    done.Add(view);
+                    ClearPending(view.EntityId);
                     continue;
                 }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Simulation;
@@ -21,6 +22,20 @@ namespace XianXia.Core.World.Strategic
             return ent.TryGet<LifecycleComponent>(out var life) && life.IsIncapacitated;
         }
 
+        /// <summary>可见尸体（未腐烂）：与弥留同属「倒下可交互」——可选中／进残留，不可下令。</summary>
+        public static bool IsVisibleCorpse(SimulationWorld world, EntityId id)
+        {
+            if (world == null || id.IsNone)
+                return false;
+            if (!world.Entities.TryGet(id, out var ent) || ent == null)
+                return false;
+            return CombatLifeStateService.HasVisibleCorpse(ent);
+        }
+
+        /// <summary>弥留或可见尸体：残留战场交互（点选／右键进入／探望）同一套。</summary>
+        public static bool IsLingeringDowned(SimulationWorld world, EntityId id) =>
+            IsIncapacitated(world, id) || IsVisibleCorpse(world, id);
+
         public static bool IsLivingForMacroOrder(SimulationWorld world, EntityId id)
         {
             if (world == null || id.IsNone || !world.Entities.TryGet(id, out var ent) || ent == null)
@@ -31,13 +46,15 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 残留战场再入：优先接战锚点半径内存活者；若无则锚点上弥留 solo。
+        /// 残留战场再入：半径内我方弥留／尸体 + 当前行动决定人（mandatoryLiving）强制纳入；
+        /// 其余支援半径内活人由接战窗 Optional 名单勾选，不在此强制。
         /// </summary>
         public static bool CollectViewParty(
             SimulationWorld world,
             IReadOnlyList<EntityId> roster,
             EntityId focusIncap,
-            List<EntityId> into)
+            List<EntityId> into,
+            IReadOnlyList<EntityId> mandatoryLiving = null)
         {
             into.Clear();
             if (world?.Strategic == null || roster == null || into == null)
@@ -47,7 +64,7 @@ namespace XianXia.Core.World.Strategic
 
             if (!TryResolveBattleAnchor(world, focusIncap, out var anchorNode, out var anchorRoute, out var anchorProgress))
             {
-                if (!focusIncap.IsNone && IsIncapacitated(world, focusIncap))
+                if (!focusIncap.IsNone && IsLingeringDowned(world, focusIncap))
                 {
                     into.Add(focusIncap);
                     return true;
@@ -56,60 +73,109 @@ namespace XianXia.Core.World.Strategic
                 return false;
             }
 
-            for (var i = 0; i < roster.Count; i++)
+            AppendMandatoryLivingInRange(
+                world, mandatoryLiving, anchorNode, anchorRoute, anchorProgress, into);
+            // 支援范围内我方弥留／可见尸体：全部强制进场
+            AppendIncapacitatedInRange(world, roster, anchorNode, anchorRoute, anchorProgress, into);
+            EnsureFocusIncapInParty(world, focusIncap, into);
+
+            return into.Count > 0;
+        }
+
+        static void AppendMandatoryLivingInRange(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> mandatoryLiving,
+            string anchorNode,
+            string anchorRoute,
+            float anchorProgress,
+            List<EntityId> into)
+        {
+            if (world == null || mandatoryLiving == null || into == null)
+                return;
+            for (var i = 0; i < mandatoryLiving.Count; i++)
             {
-                var id = roster[i];
+                var id = mandatoryLiving[i];
                 if (id.IsNone || !IsLivingForMacroOrder(world, id))
                     continue;
                 if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
                     continue;
-                if (!WorldTravelService.CanReceiveTravelOrder(world, id))
-                    continue;
                 if (!ReinforcementRangeService.IsWithinReinforcementRange(
                         world, wp, anchorNode, anchorRoute, anchorProgress))
                     continue;
+                for (var j = 0; j < into.Count; j++)
+                {
+                    if (into[j] == id)
+                        goto nextMandatory;
+                }
+
                 into.Add(id);
+                nextMandatory: ;
             }
+        }
 
-            if (into.Count > 0)
-                return true;
-
+        static void AppendIncapacitatedInRange(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> roster,
+            string anchorNode,
+            string anchorRoute,
+            float anchorProgress,
+            List<EntityId> into)
+        {
+            if (world == null || roster == null || into == null)
+                return;
             for (var i = 0; i < roster.Count; i++)
             {
                 var id = roster[i];
-                if (id.IsNone || !IsIncapacitated(world, id))
+                if (id.IsNone || !IsLingeringDowned(world, id))
                     continue;
                 if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
                     continue;
                 if (!ReinforcementRangeService.IsWithinReinforcementRange(
                         world, wp, anchorNode, anchorRoute, anchorProgress))
                     continue;
-                into.Add(id);
-            }
+                var exists = false;
+                for (var j = 0; j < into.Count; j++)
+                {
+                    if (into[j] == id)
+                    {
+                        exists = true;
+                        break;
+                    }
+                }
 
-            if (into.Count == 0 &&
-                !focusIncap.IsNone &&
-                IsIncapacitated(world, focusIncap) &&
-                world.WorldPresence.TryGet(focusIncap, out var focusWp) &&
-                focusWp != null &&
-                ReinforcementRangeService.IsWithinReinforcementRange(
-                    world, focusWp, anchorNode, anchorRoute, anchorProgress))
+                if (!exists)
+                    into.Add(id);
+            }
+        }
+
+        static void EnsureFocusIncapInParty(
+            SimulationWorld world,
+            EntityId focusIncap,
+            List<EntityId> into)
+        {
+            if (into == null || focusIncap.IsNone || !IsLingeringDowned(world, focusIncap))
+                return;
+            for (var i = 0; i < into.Count; i++)
             {
-                into.Add(focusIncap);
+                if (into[i] == focusIncap)
+                    return;
             }
 
-            return into.Count > 0;
+            // 用户从该倒下头像进入：本人始终纳入进场名单
+            into.Add(focusIncap);
         }
 
         public static bool CanEnterLingeringBattlefield(
             SimulationWorld world,
             IReadOnlyList<EntityId> roster,
             EntityId focusIncap,
-            List<EntityId> scratch)
+            List<EntityId> scratch,
+            IReadOnlyList<EntityId> mandatoryLiving = null)
         {
             if (scratch == null)
                 return false;
-            return CollectViewParty(world, roster, focusIncap, scratch) && scratch.Count > 0;
+            return CollectViewParty(world, roster, focusIncap, scratch, mandatoryLiving) &&
+                   scratch.Count > 0;
         }
 
         public static bool TryResolveBattleAnchor(

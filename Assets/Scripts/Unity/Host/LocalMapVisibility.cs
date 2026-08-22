@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using XianXia.Core.Combat;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Simulation;
@@ -176,9 +177,15 @@ namespace XianXia.Unity.Host
             if (world == null || id.IsNone || !world.Entities.TryGet(id, out var entity))
                 return false;
 
+            // 尸体腐烂 Removed：LocalMap 不再显示
+            if (CombatLifeStateService.ShouldHideFromSpawn(entity))
+                return false;
+
+            // 遭遇图上：未进场的我方可控角色隐藏；敌军刷怪／弥留也有 WorldPresence，绝不能误伤
             if (IsActiveStrategicEncounterMap(world) &&
                 world.Strategic?.Encounter != null &&
                 world.Strategic.Encounter.HasEngagedParty &&
+                (entity.Tags & EntityTag.Npc) == 0 &&
                 world.WorldPresence != null &&
                 world.WorldPresence.TryGet(id, out _) &&
                 !world.Strategic.Encounter.IsEngaged(id))
@@ -189,6 +196,15 @@ namespace XianXia.Unity.Host
                 world.WorldPresence.TryGet(id, out var wp) &&
                 wp != null)
             {
+                // 敌军弥留宏观钉在路锚，再进 LocalMap 时仍应显示（与我方弥留同一套「人还在接战点」）
+                if ((wp.Mode == PartyWorldPresenceMode.Traveling ||
+                     wp.Mode == PartyWorldPresenceMode.RouteAnchored) &&
+                    IsStrategicEncounterSpawn(world, id) &&
+                    IsActiveStrategicEncounterMap(world) &&
+                    entity.TryGet<EntityLocationComponent>(out var spawnLoc) &&
+                    spawnLoc.HasPresentationOverride)
+                    return true;
+
                 if (wp.Mode == PartyWorldPresenceMode.Traveling)
                     return false;
                 if (wp.Mode == PartyWorldPresenceMode.RouteAnchored)

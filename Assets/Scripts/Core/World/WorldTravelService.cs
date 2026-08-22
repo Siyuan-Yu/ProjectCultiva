@@ -95,6 +95,7 @@ namespace XianXia.Core.World
             var cost = route.TravelCost > 0 ? route.TravelCost : 1;
             var ticks = ComputeTravelTicks(world, id, cost);
             p.Mode = PartyWorldPresenceMode.Traveling;
+            p.SuppressArrivalNotice = false;
             p.RouteId = route.Id;
             p.DestNodeId = toNodeId;
             p.TravelTotalTicks = ticks;
@@ -302,15 +303,28 @@ namespace XianXia.Core.World
             var target = stack.GetRouteDisplayProgress();
             if (p.Mode == PartyWorldPresenceMode.RouteAnchored)
             {
-                return StartTravelRouteSegment(
+                // 同路：沿进度追；跨路：走 PathService（禁止改 RouteId 保留旧进度 → 瞬移）
+                if (string.Equals(p.RouteId, stack.RouteId, StringComparison.Ordinal))
+                {
+                    return StartTravelRouteSegment(
+                        world,
+                        id,
+                        p,
+                        stack.RouteId,
+                        stack.NodeId,
+                        stack.DestNodeId,
+                        p.RouteAnchorProgress,
+                        target);
+                }
+
+                return WorldTravelPathService.StartAgentTravelToTarget(
                     world,
                     id,
-                    p,
-                    stack.RouteId,
-                    stack.NodeId,
-                    stack.DestNodeId,
-                    p.RouteAnchorProgress,
-                    target);
+                    WorldTravelTarget.OnRoute(
+                        stack.RouteId,
+                        stack.NodeId ?? string.Empty,
+                        stack.DestNodeId ?? string.Empty,
+                        target));
             }
 
             if (p.Mode == PartyWorldPresenceMode.Traveling &&
@@ -384,7 +398,7 @@ namespace XianXia.Core.World
                 return Result.Failure(ErrorCode.InvalidArgument, "Presence missing.");
 
             var current = p.TravelProgress;
-            if (current + 0.02f >= targetProgress)
+            if (Math.Abs(current - targetProgress) <= 0.02f)
             {
                 p.AnchorOnRoute(targetProgress);
                 return Result.Success();
@@ -436,6 +450,7 @@ namespace XianXia.Core.World
             var fraction = Math.Abs(endProgress - startProgress);
             var ticks = Math.Max(4, (int)Math.Round(fullTicks * fraction));
             p.Mode = PartyWorldPresenceMode.Traveling;
+            p.SuppressArrivalNotice = false;
             p.NodeId = originNodeId ?? string.Empty;
             p.DestNodeId = destNodeId ?? string.Empty;
             p.RouteId = routeId;
@@ -548,16 +563,23 @@ namespace XianXia.Core.World
         {
             if (world == null || id.IsNone || !world.WorldPresence.TryGet(id, out var p) || p == null)
                 return false;
+            // 弥留／阵亡／已移除：宏观不可下令移动（与 LocalMap CanFight 门禁一致）
+            if (world.Entities.TryGet(id, out var ent) &&
+                ent.TryGet<LifecycleComponent>(out var life) &&
+                (life.IsIncapacitated || life.IsDead || life.IsRemoved))
+                return false;
             if (StrategicClockFreezeService.IsModalEncounter(world))
                 return false;
             if (p.Mode == PartyWorldPresenceMode.AtNode ||
                 p.Mode == PartyWorldPresenceMode.RouteAnchored ||
                 p.Mode == PartyWorldPresenceMode.Traveling)
                 return true;
-            // 中途打架不可下令离开；敌清空后可在大地图下令（画面可仍留在战场 LocalMap）
-            // ADR-0023：Modal／PostBattle 已在上方拦截；非 Modal 的旧 FieldCleared 路径逐步淘汰
-            return p.Mode == PartyWorldPresenceMode.InEncounter &&
-                   StrategicEncounterSpawner.IsFieldCleared(world);
+            if (p.Mode != PartyWorldPresenceMode.InEncounter)
+                return false;
+            // 主动遭遇未清场禁令；清场后可令。已退出遭遇／残留战场但 Mode 仍卡 InEncounter 时也允许。
+            if (BattleOfferService.HasActiveManualEncounter(world))
+                return StrategicEncounterSpawner.IsFieldCleared(world);
+            return true;
         }
 
         public static bool CanReachNodeFromPresence(
@@ -624,39 +646,54 @@ namespace XianXia.Core.World
             if (world == null)
                 return;
 
-            string bestWithMap = null;
+            // 优先级：存活可控角色（有 LocalMap 的节点）> 存活可控 > 任意可控 > 原焦点
+            // 必须跳过敌军弥留 WorldPresence，否则战后焦点会被钉到接战点，LocalMap／时间表现全乱
+            string bestLivingWithMap = null;
+            string bestLiving = null;
+            string bestAnyWithMap = null;
             string bestAny = null;
+            var anyTraveling = false;
+
             foreach (var kv in world.WorldPresence.All)
             {
                 var p = kv.Value;
                 if (p == null || string.IsNullOrEmpty(p.NodeId))
                     continue;
+
+                var id = new EntityId(kv.Key);
+                if (id.IsNone || !world.Entities.TryGet(id, out var ent) || ent == null)
+                    continue;
+                if ((ent.Tags & EntityTag.Npc) != 0)
+                    continue;
+
                 if (p.Mode == PartyWorldPresenceMode.Traveling)
                 {
+                    anyTraveling = true;
                     bestAny = bestAny ?? p.NodeId;
                     continue;
                 }
 
                 bestAny = p.NodeId;
-                if (world.WorldGraph.TryGetNode(p.NodeId, out var n) &&
-                    !string.IsNullOrWhiteSpace(n.LocalMapId))
-                    bestWithMap = p.NodeId;
+                var hasMap = world.WorldGraph.TryGetNode(p.NodeId, out var n) &&
+                             !string.IsNullOrWhiteSpace(n.LocalMapId);
+                if (hasMap)
+                    bestAnyWithMap = p.NodeId;
+
+                var living = true;
+                if (ent.TryGet<LifecycleComponent>(out var life) && life != null)
+                    living = !life.IsIncapacitated && !life.IsDead && !life.IsRemoved;
+                if (!living)
+                    continue;
+
+                bestLiving = p.NodeId;
+                if (hasMap)
+                    bestLivingWithMap = p.NodeId;
             }
 
-            var focus = bestWithMap ?? bestAny ?? world.PartyWorld.NodeId;
+            var focus = bestLivingWithMap ?? bestLiving ?? bestAnyWithMap ?? bestAny ??
+                        world.PartyWorld.NodeId;
             if (string.IsNullOrEmpty(focus) || !world.WorldGraph.TryGetNode(focus, out var node))
                 return;
-
-            var anyTraveling = false;
-            foreach (var kv in world.WorldPresence.All)
-            {
-                if (kv.Value != null &&
-                    kv.Value.Mode == PartyWorldPresenceMode.Traveling)
-                {
-                    anyTraveling = true;
-                    break;
-                }
-            }
 
             world.PartyWorld.NodeId = focus;
             world.PartyWorld.LocalMapId = BattleOfferService.HasActiveManualEncounter(world)

@@ -103,6 +103,9 @@ namespace XianXia.Unity.Host
                 selectionRing.enabled = false;
             if (label != null)
                 label.gameObject.SetActive(false);
+            var cols = GetComponents<Collider2D>();
+            for (var i = 0; i < cols.Length; i++)
+                cols[i].enabled = false;
         }
 
         void ApplyHitFlash()
@@ -182,18 +185,17 @@ namespace XianXia.Unity.Host
         {
             if (entity == null || !entity.TryGet<LifecycleComponent>(out var life))
                 return;
-            if (life.IsDead && entity.TryGet<XianXia.Core.Combat.CorpseComponent>(out _))
+            var isCorpse = life.IsDead && entity.TryGet<XianXia.Core.Combat.CorpseComponent>(out _);
+            if (isCorpse || life.IsIncapacitated)
             {
-                if (activityText != "尸体")
-                    activityText = "尸体";
-                _baseColor = new Color(0.35f, 0.32f, 0.30f, 0.85f);
-                ApplyVisualState();
-            }
-            else if (life.IsIncapacitated)
-            {
-                if (activityText != "弥留")
-                    activityText = "弥留";
-                _baseColor = new Color(0.72f, 0.45f, 0.42f, 0.92f);
+                var stamped = XianXia.Core.Combat.CombatLifeStateService.FormatLifeStateWithCountdown(
+                    _world,
+                    entity);
+                if (!string.IsNullOrEmpty(stamped) && activityText != stamped)
+                    activityText = stamped;
+                _baseColor = isCorpse
+                    ? new Color(0.35f, 0.32f, 0.30f, 0.85f)
+                    : new Color(0.72f, 0.45f, 0.42f, 0.92f);
                 ApplyVisualState();
             }
         }

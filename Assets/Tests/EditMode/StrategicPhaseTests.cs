@@ -697,6 +697,121 @@ namespace XianXia.Tests
         }
 
         [Test]
+        public void Pursuit_FirstRetreatFromOffer_SecondStillGetsBattleOffer()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var stack));
+            var first = new System.Collections.Generic.List<EntityId> { session.CharacterIds[0] };
+            var second = new System.Collections.Generic.List<EntityId> { session.CharacterIds[1] };
+            var both = new System.Collections.Generic.List<EntityId>
+            {
+                session.CharacterIds[0],
+                session.CharacterIds[1]
+            };
+
+            StrategicPursuitService.BeginPursuit(world, both, stack);
+            Assert.IsTrue(WorldTravelService.StartTravelPartyToStackAnchor(world, both, stack).IsSuccess);
+
+            for (var i = 0; i < 5000; i++)
+            {
+                WorldTravelService.AdvanceTravel(world, 1, StrategicTravelDriver.BeginArrivalCapture());
+                StrategicTravelDriver.AfterTravelTick(world, 1);
+                if (world.Strategic.HasBattleOffer)
+                    break;
+            }
+
+            Assert.IsTrue(world.Strategic.HasBattleOffer, "先到者应弹接战");
+            StrategicPursuitService.ClearPursuitForAgents(world, first);
+            ArrivalNoticeService.SuppressForParty(world, first);
+            BattleOfferService.FinishOfferResolution(world);
+            world.Strategic.ClearBattleOffer();
+
+            Assert.IsTrue(world.WorldPresence.TryGet(session.CharacterIds[1], out var secondP));
+            Assert.IsTrue(secondP.IsCombatPursuing, "第一人撤退不应清掉第二人追击标记");
+
+            world.Strategic.ClearArrivalNotice();
+            for (var i = 0; i < 5000; i++)
+            {
+                WorldTravelService.AdvanceTravel(world, 1, StrategicTravelDriver.BeginArrivalCapture());
+                StrategicTravelDriver.AfterTravelTick(world, 1);
+                if (world.Strategic.HasBattleOffer || world.Strategic.InterruptQueue.Count > 0)
+                    break;
+            }
+
+            Assert.IsTrue(
+                world.Strategic.HasBattleOffer || world.Strategic.InterruptQueue.Count > 0,
+                "第二人到位应弹接战而非到站查看");
+            Assert.IsFalse(world.Strategic.HasArrivalNotice, "追击到位不应弹到站查看");
+        }
+
+        [Test]
+        public void LingeringOffer_OnlyDecisionMakerLivingIsMandatory()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var downed = session.CharacterIds[0];
+            var living = session.CharacterIds[1];
+            var roster = session.CharacterIds;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var enemy));
+
+            var prevDebug = AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated;
+            AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated = true;
+            try
+            {
+                world.Random = new DeterministicRandom(7);
+                Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(
+                    world, new System.Collections.Generic.List<EntityId> { downed }, enemy, "测试"));
+                world.Strategic.BattleOffer.AutoWinPercent = 0;
+                Assert.IsTrue(BattleOfferService.ResolveAuto(world, false, out _, out _).IsSuccess);
+                Assert.IsTrue(StrategicEncounterResolveService.ResolveAndEnd(world).IsSuccess);
+            }
+            finally
+            {
+                AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated = prevDebug;
+            }
+
+            WorldTravelService.PlaceAgentsAtNode(world, new[] { living }, "base:node_huangcun");
+            world.Strategic.ReinforcementWorldRadius = 1f;
+
+            var decisionMakers = new System.Collections.Generic.List<EntityId> { living };
+            Assert.IsTrue(BattleOfferService.TryBuildOfferForLingeringBattlefield(
+                world, roster, downed, "残留战场", decisionMakers));
+
+            var snap = world.Strategic.Participants;
+            var mandatoryLiving = 0;
+            for (var i = 0; i < snap.Records.Count; i++)
+            {
+                var rec = snap.Records[i];
+                if (rec.Kind != BattleParticipantKind.MandatoryFriendly || rec.EntityId.IsNone)
+                    continue;
+                if (LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, rec.EntityId))
+                    mandatoryLiving++;
+            }
+
+            Assert.AreEqual(1, mandatoryLiving, "仅行动决定人应强制参战");
+            Assert.AreEqual(
+                BattleParticipantKind.MandatoryFriendly,
+                snap.FindByEntity(living).Kind);
+            Assert.AreEqual(
+                BattleParticipantKind.MandatoryFriendly,
+                snap.FindByEntity(downed).Kind);
+            for (var i = 0; i < roster.Count; i++)
+            {
+                var id = roster[i];
+                if (id == living || id == downed)
+                    continue;
+                if (!LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id))
+                    continue;
+                var rec = snap.FindByEntity(id);
+                if (rec == null)
+                    continue;
+                Assert.AreEqual(BattleParticipantKind.OptionalFriendly, rec.Kind);
+                Assert.IsFalse(rec.Selected);
+            }
+        }
+
+        [Test]
         public void Pursuit_SecondArrival_OffersJoinBattle()
         {
             var session = StartCh01();
@@ -856,13 +971,14 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void AutoBattle_ExecuteOnWin_RemovesEnemyStack()
+        public void AutoBattle_ExecuteOnWin_LeavesCorpseRemnant()
         {
             var session = StartCh01();
             var world = session.World;
             var party = session.CharacterIds;
             Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var enemy));
             var stackId = enemy.Id;
+            var beforeMembers = enemy.MemberCount;
 
             world.Random = new XianXia.Core.Random.DeterministicRandom(1);
             Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(world, party, enemy, "测试处决"));
@@ -871,9 +987,18 @@ namespace XianXia.Tests
             var resolved = BattleOfferService.ResolveAuto(world, true, out var won, out var report);
             Assert.IsTrue(resolved.IsSuccess);
             Assert.IsTrue(won);
-            Assert.IsFalse(world.Strategic.Armies.TryGet(stackId, out _));
+            Assert.IsTrue(world.Strategic.Armies.TryGet(stackId, out var after));
+            Assert.IsNotNull(after);
+            Assert.IsTrue(after.HasCorpseRemnant);
+            Assert.AreEqual(beforeMembers, after.CorpseMemberCount);
+            Assert.AreEqual(0, after.IncapacitatedMemberCount);
+            Assert.AreEqual(beforeMembers, CountTrackedEnemyDownedSpawns(world));
+            Assert.IsFalse(world.Strategic.Encounter.SpawnOnNextMapLoad);
             Assert.IsNotNull(report);
             Assert.Greater(report.EnemyMembersEliminated, 0);
+
+            Assert.IsTrue(StrategicEncounterResolveService.ResolveAndEnd(world).IsSuccess);
+            Assert.IsTrue(BattleOfferService.HasLingeringBattlefield(world));
         }
 
         [Test]
@@ -897,6 +1022,8 @@ namespace XianXia.Tests
             Assert.AreEqual(beforeMembers, after.MemberCount, "未处决应保留全员为弥留人数");
             Assert.IsTrue(after.HasIncapacitatedRemnant);
             Assert.AreEqual(beforeMembers, after.IncapacitatedMemberCount);
+            Assert.AreEqual(beforeMembers, CountTrackedEnemyDownedSpawns(world));
+            Assert.IsFalse(world.Strategic.Encounter.SpawnOnNextMapLoad);
             Assert.IsNotNull(report);
             Assert.AreEqual(0, report.EnemyMembersEliminated);
             Assert.AreEqual(beforeMembers, report.EnemyMembersSpared);
@@ -905,6 +1032,66 @@ namespace XianXia.Tests
             Assert.IsTrue(BattleOfferService.HasLingeringBattlefield(world));
             Assert.IsTrue(world.Strategic.Armies.TryGet(enemy.Id, out var parked));
             Assert.IsTrue(parked.HasIncapacitatedRemnant);
+        }
+
+        [Test]
+        public void AutoBattle_Defeat_SoloIncap_LingersAfterResolveEnd()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var solo = new System.Collections.Generic.List<EntityId> { session.CharacterIds[0] };
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var enemy));
+
+            var prevDebug = AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated;
+            AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated = true;
+            try
+            {
+                world.Random = new XianXia.Core.Random.DeterministicRandom(7);
+                Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(world, solo, enemy, "测试失利弥留"));
+                world.Strategic.BattleOffer.AutoWinPercent = 0;
+
+                Assert.IsTrue(BattleOfferService.ResolveAuto(world, false, out var won, out var report).IsSuccess);
+                Assert.IsFalse(won);
+                Assert.IsNotNull(report);
+                Assert.AreEqual(1, report.PlayerIncapacitated);
+
+                var id = solo[0];
+                Assert.IsTrue(LingeringBattlefieldPartyService.IsIncapacitated(world, id));
+
+                Assert.IsTrue(StrategicEncounterResolveService.ResolveAndEnd(world).IsSuccess);
+                Assert.IsTrue(BattleOfferService.HasLingeringBattlefield(world));
+                Assert.IsTrue(LingeringBattlefieldPartyService.IsIncapacitated(world, id));
+                Assert.IsTrue(world.WorldPresence.TryGet(id, out var wp));
+                Assert.IsFalse(string.IsNullOrEmpty(wp.NodeId));
+            }
+            finally
+            {
+                AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated = prevDebug;
+            }
+        }
+
+        [Test]
+        public void AutoBattle_SpareOnWin_SpawnsMacroRemnantsImmediately()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            var party = session.CharacterIds;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var enemy));
+            var beforeMembers = enemy.MemberCount;
+
+            world.Random = new XianXia.Core.Random.DeterministicRandom(2);
+            Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(world, party, enemy, "测试弥留刷怪"));
+            world.Strategic.BattleOffer.AutoWinPercent = 100;
+
+            Assert.IsTrue(BattleOfferService.ResolveAuto(world, false, out var won, out _).IsSuccess);
+            Assert.IsTrue(won);
+            Assert.AreEqual(beforeMembers, CountTrackedEnemyDownedSpawns(world));
+            Assert.IsFalse(world.Strategic.Encounter.SpawnOnNextMapLoad);
+
+            Assert.IsTrue(StrategicEncounterResolveService.ResolveAndEnd(world).IsSuccess);
+            Assert.IsTrue(BattleOfferService.HasLingeringBattlefield(world));
+            Assert.AreEqual(beforeMembers, CountTrackedEnemyDownedSpawns(world));
+            Assert.IsFalse(world.Strategic.Encounter.SpawnOnNextMapLoad);
         }
 
         [Test]
@@ -1015,6 +1202,88 @@ namespace XianXia.Tests
             var started = WorldTravelPathService.StartAgentTravelToTarget(
                 world, id, WorldTravelTarget.AtNode("base:node_linjian"));
             Assert.IsTrue(started.IsFailure, "Modal 下禁止战略出行");
+        }
+
+        [Test]
+        public void LingeringReenter_PreservesEnemyIncapAndCorpseTimers()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var stack));
+            stack.MemberCount = 2;
+            stack.IncapacitatedMemberCount = 2;
+            stack.IsBattlefieldRemnant = true;
+
+            StrategicEncounterSpawner.PlanManualEncounter(
+                world, stack.Id, string.Empty, session.CharacterIds, 2, 2);
+            world.PartyWorld.LocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+            Assert.IsTrue(StrategicEncounterSpawner.ApplyPending(world).IsSuccess);
+            Assert.AreEqual(2, world.Strategic.Encounter.SpawnedEntityIds.Count);
+
+            var incapId = new EntityId(world.Strategic.Encounter.SpawnedEntityIds[0]);
+            var corpseId = new EntityId(world.Strategic.Encounter.SpawnedEntityIds[1]);
+            Assert.IsTrue(world.Entities.TryGet(incapId, out var incapEnt));
+            Assert.IsTrue(world.Entities.TryGet(corpseId, out var corpseEnt));
+            Assert.IsTrue(incapEnt.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var incapLife));
+            Assert.IsTrue(incapLife.IsIncapacitated);
+
+            // 我方弥留：再进残留也不该被刷怪逻辑改倒计时
+            var allyId = session.CharacterIds[0];
+            Assert.IsTrue(world.Entities.TryGet(allyId, out var allyEnt));
+            Assert.IsTrue(
+                XianXia.Core.Combat.CombatLifeStateService.TryEnterIncapacitated(world, allyEnt));
+            Assert.IsTrue(allyEnt.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var allyLife));
+            var allyBleedSaved = allyLife.BleedOutAfterTick;
+
+            // 推进时间，让倒计时不再是满值
+            world.Tick = new XianXia.Core.Domain.Time.WorldTick(world.Tick.Value + 17);
+            var bleedSaved = incapLife.BleedOutAfterTick;
+            Assert.Less(
+                bleedSaved - world.Tick.Value,
+                XianXia.Core.Combat.CombatLifeStateService.BleedOutDurationTicks);
+
+            Assert.IsTrue(
+                XianXia.Core.Combat.CombatLifeStateService.TryConfirmDeath(
+                    world, EntityId.None, corpseEnt, out _));
+            Assert.IsTrue(corpseEnt.TryGet<XianXia.Core.Combat.CorpseComponent>(out var corpse));
+            var corpseSaved = corpse.RemoveAfterTick;
+
+            // 模拟出图残留后再进
+            world.Strategic.Encounter.BattlefieldLingering = true;
+            world.Strategic.Encounter.ArmyStackId = stack.Id;
+            StrategicEncounterSpawner.PlanManualEncounter(
+                world, stack.Id, string.Empty, session.CharacterIds, 2, 2);
+            Assert.IsFalse(
+                world.Strategic.Encounter.SpawnOnNextMapLoad,
+                "已有弥留／尸体时不应再计划刷怪");
+            Assert.IsTrue(StrategicEncounterSpawner.ApplyPending(world).IsSuccess);
+
+            Assert.AreEqual(2, world.Strategic.Encounter.SpawnedEntityIds.Count);
+            Assert.IsTrue(world.Entities.TryGet(incapId, out incapEnt));
+            Assert.IsTrue(incapEnt.TryGet<XianXia.Core.Entities.LifecycleComponent>(out incapLife));
+            Assert.AreEqual(bleedSaved, incapLife.BleedOutAfterTick, "再进不得刷新敌军弥留倒计时");
+            Assert.IsTrue(world.Entities.TryGet(corpseId, out corpseEnt));
+            Assert.IsTrue(corpseEnt.TryGet<XianXia.Core.Combat.CorpseComponent>(out corpse));
+            Assert.AreEqual(corpseSaved, corpse.RemoveAfterTick, "再进不得刷新尸体腐烂倒计时");
+            Assert.IsTrue(world.Entities.TryGet(allyId, out allyEnt));
+            Assert.IsTrue(allyEnt.TryGet<XianXia.Core.Entities.LifecycleComponent>(out allyLife));
+            Assert.AreEqual(allyBleedSaved, allyLife.BleedOutAfterTick, "再进不得刷新我方弥留倒计时");
+        }
+
+        static int CountTrackedEnemyDownedSpawns(XianXia.Core.Simulation.SimulationWorld world)
+        {
+            var rt = world?.Strategic?.Encounter;
+            if (rt == null)
+                return 0;
+            var n = 0;
+            for (var i = 0; i < rt.SpawnedEntityIds.Count; i++)
+            {
+                var id = new EntityId(rt.SpawnedEntityIds[i]);
+                if (LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
+                    n++;
+            }
+
+            return n;
         }
     }
 }

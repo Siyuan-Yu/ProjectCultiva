@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Entities;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -48,12 +50,64 @@ namespace XianXia.Core.World.Strategic
             return ActivateOffer(world, playerParty, enemy, title);
         }
 
+        /// <summary>
+        /// 探望弥留到站：若已有 PendingLingeringVisit，且至少一名活人进入支援半径，则弹接战窗。
+        /// 半径内弥留仍由 ActivateLingeringOffer／Promote 强制纳入。
+        /// </summary>
+        public static bool TryResolvePendingLingeringVisitOffer(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> roster)
+        {
+            if (world?.Strategic == null || roster == null)
+                return false;
+            var pending = world.Strategic.PendingLingeringVisitIncapId;
+            if (pending == 0)
+                return false;
+
+            var focus = new EntityId(pending);
+            if (!HasLingeringBattlefield(world) ||
+                !LingeringBattlefieldPartyService.IsLingeringDowned(world, focus))
+            {
+                world.Strategic.ClearPendingLingeringVisit();
+                return false;
+            }
+
+            if (!LingeringBattlefieldPartyService.TryResolveBattleAnchor(
+                    world, focus, out var anchorNode, out var anchorRoute, out var anchorProgress))
+                return false;
+
+            var anyLivingNear = false;
+            for (var i = 0; i < roster.Count; i++)
+            {
+                var id = roster[i];
+                if (id.IsNone || !LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id))
+                    continue;
+                if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
+                    continue;
+                if (wp.Mode == PartyWorldPresenceMode.Traveling)
+                    continue;
+                if (!ReinforcementRangeService.IsWithinReinforcementRange(
+                        world, wp, anchorNode, anchorRoute, anchorProgress))
+                    continue;
+                anyLivingNear = true;
+                break;
+            }
+
+            if (!anyLivingNear)
+                return false;
+
+            var visitParty = CollectPendingLingeringVisitParty(world);
+            return TryBuildOfferForLingeringBattlefield(
+                world, roster, focus, "残留战场", visitParty);
+        }
+
         /// <summary>残留战场再入：弹接战窗（我方弥留头像菜单／敌方残留栈再攻）。</summary>
         public static bool TryBuildOfferForLingeringBattlefield(
             SimulationWorld world,
             IReadOnlyList<EntityId> roster,
             EntityId focusIncap,
-            string title = null)
+            string title = null,
+            IReadOnlyList<EntityId> mandatoryLiving = null)
         {
             if (world?.Strategic?.Encounter == null || !HasLingeringBattlefield(world))
                 return false;
@@ -65,7 +119,8 @@ namespace XianXia.Core.World.Strategic
                     world,
                     roster,
                     focusIncap,
-                    party) ||
+                    party,
+                    mandatoryLiving) ||
                 party.Count == 0)
                 return false;
 
@@ -91,6 +146,7 @@ namespace XianXia.Core.World.Strategic
                     world.Tick.Value * 1000UL + (ulong)world.Strategic.InterruptQueue.Count + 1UL);
                 StrategicClockFreezeService.BeginOrPromote(
                     world, StrategicClockFreezeReason.BattleOffer);
+                world.Strategic.ClearPendingLingeringVisit();
                 return true;
             }
 
@@ -101,6 +157,7 @@ namespace XianXia.Core.World.Strategic
                     stackId,
                     party,
                     world.Tick.Value * 1000UL + (ulong)world.Strategic.InterruptQueue.Count + 1UL);
+                world.Strategic.ClearPendingLingeringVisit();
                 return true;
             }
 
@@ -130,6 +187,12 @@ namespace XianXia.Core.World.Strategic
             snap.EncounterLocalMapId = offer.EncounterLocalMapId;
             world.Strategic.Participants.Clear();
             CopySnapshotInto(world.Strategic.Participants, snap);
+
+            // 与残留再进同一原则：接战锚点半径内我方弥留 = 已在场上，强制参战（追击／再攻／首战皆同）
+            PromoteInRangeIncapacitatedToMandatory(world, world.Strategic.Participants);
+            var selected = world.Strategic.Participants.CollectSelectedFriendly();
+            offer.SetPlayerParty(selected);
+            ArrivalNoticeService.SuppressForParty(world, selected);
 
             RefreshOfferPowerLabels(world);
             StrategicClockFreezeService.BeginOrPromote(world, StrategicClockFreezeReason.BattleOffer);
@@ -199,9 +262,78 @@ namespace XianXia.Core.World.Strategic
                 AddMandatoryPartyRecords(world, snap, playerParty);
             }
 
+            // 残留再进：半径内我方弥留一律强制参战、不可勾掉
+            PromoteInRangeIncapacitatedToMandatory(world, snap);
+            var selected = snap.CollectSelectedFriendly();
+            offer.SetPlayerParty(selected);
+            ArrivalNoticeService.SuppressForParty(world, selected);
+
             RefreshOfferPowerLabels(world);
             StrategicClockFreezeService.BeginOrPromote(world, StrategicClockFreezeReason.BattleOffer);
             return true;
+        }
+
+        /// <summary>
+        /// 支援半径内我方弥留 → MandatoryFriendly。
+        /// 入口无关：追击接战／残留再进／再攻残留栈共用——人已在接战点，不是可选编队。
+        /// </summary>
+        public static void PromoteInRangeIncapacitatedToMandatory(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap)
+        {
+            if (world?.WorldPresence?.All == null || snap == null)
+                return;
+
+            for (var i = snap.Records.Count - 1; i >= 0; i--)
+            {
+                var rec = snap.Records[i];
+                if (rec.EntityId.IsNone)
+                    continue;
+                if (!LingeringBattlefieldPartyService.IsLingeringDowned(world, rec.EntityId))
+                    continue;
+                if (rec.Kind == BattleParticipantKind.OptionalFriendly)
+                {
+                    rec.Kind = BattleParticipantKind.MandatoryFriendly;
+                    rec.Selected = true;
+                    continue;
+                }
+
+                if (rec.Kind == BattleParticipantKind.MandatoryFriendly)
+                    rec.Selected = true;
+            }
+
+            foreach (var kv in world.WorldPresence.All)
+            {
+                var id = new EntityId(kv.Key);
+                var wp = kv.Value;
+                if (wp == null || id.IsNone)
+                    continue;
+                if (!LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
+                    continue;
+                if (!world.Entities.TryGet(id, out var ent) || ent == null)
+                    continue;
+                if ((ent.Tags & EntityTag.Npc) != 0)
+                    continue;
+                if (!ReinforcementRangeService.IsWithinReinforcementRange(
+                        world,
+                        wp,
+                        snap.BattleAnchorNodeId,
+                        snap.BattleAnchorRouteId,
+                        snap.BattleAnchorProgress))
+                    continue;
+                if (snap.FindByEntity(id) != null)
+                    continue;
+
+                snap.Add(new BattleParticipantRecord
+                {
+                    Kind = BattleParticipantKind.MandatoryFriendly,
+                    EntityId = id,
+                    DisplayLabel = string.IsNullOrEmpty(ent.DisplayName) ? id.ToString() : ent.DisplayName,
+                    CombatPower = CombatPowerCalculator.ForEntity(world, id),
+                    Selected = true,
+                    PreBattle = PreBattleWorldPresence.Capture(wp)
+                });
+            }
         }
 
         static string ResolveOfferTitle(SimulationWorld world, ArmyStack enemy, string title)
@@ -222,7 +354,7 @@ namespace XianXia.Core.World.Strategic
 
         static bool IsLingeringReentryOffer(SimulationWorld world, ArmyStack enemy) =>
             HasLingeringBattlefield(world) ||
-            (enemy != null && enemy.HasIncapacitatedRemnant);
+            (enemy != null && enemy.HasDownedRemnant);
 
         static void AddMandatoryPartyRecords(
             SimulationWorld world,
@@ -249,6 +381,22 @@ namespace XianXia.Core.World.Strategic
                     PreBattle = wp != null ? PreBattleWorldPresence.Capture(wp) : default
                 });
             }
+        }
+
+        static List<EntityId> CollectPendingLingeringVisitParty(SimulationWorld world)
+        {
+            var list = new List<EntityId>(4);
+            var ids = world?.Strategic?.PendingLingeringVisitPartyIds;
+            if (ids == null)
+                return list;
+            for (var i = 0; i < ids.Count; i++)
+            {
+                var id = new EntityId(ids[i]);
+                if (!id.IsNone)
+                    list.Add(id);
+            }
+
+            return list;
         }
 
         static void CopySnapshotInto(BattleParticipantSnapshot dst, BattleParticipantSnapshot src)
@@ -313,6 +461,9 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.Strategic == null || id.IsNone)
                 return false;
+            // 弥留不可从参战名单勾掉
+            if (LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
+                return false;
             var rec = world.Strategic.Participants.FindByEntity(id);
             if (rec == null || rec.Kind != BattleParticipantKind.OptionalFriendly)
                 return false;
@@ -336,9 +487,9 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic?.Encounter == null)
                 return false;
             var rt = world.Strategic.Encounter;
-            // 残留战场在大地图上：不算 Modal 进行中，禁止把表现层锁回 Encounter 图
-            if (rt.BattlefieldLingering)
-                return false;
+            // 闲置残留（大地图上、无人进场）：Park 后无 EngagedParty → false，表现层不锁回遭遇图
+            // 再进后已 SetEngagedParty：即使 BattlefieldLingering 仍为 true，也算主动遭遇
+            // （否则 ApplyParty 不落表现，我方弥留在 LocalMap 隐身）
             if (!rt.HasEngagedParty)
                 return false;
             if (rt.SpawnOnNextMapLoad)
@@ -346,11 +497,21 @@ namespace XianXia.Core.World.Strategic
             // 再进战场：场上可能只剩弥留刷怪（无 Alive），仍算遭遇进行中
             if (rt.SpawnedEntityIds.Count > 0)
                 return true;
-            return StrategicEncounterSpawner.CountLivingTrackedSpawns(world) > 0;
+            if (StrategicEncounterSpawner.CountLivingTrackedSpawns(world) > 0)
+                return true;
+            // 仅我方弥留进场、敌尚未刷出：仍算遭遇中
+            return true;
         }
 
-        public static bool HasLingeringBattlefield(SimulationWorld world) =>
-            world?.Strategic?.Encounter != null && world.Strategic.Encounter.BattlefieldLingering;
+        public static bool HasLingeringBattlefield(SimulationWorld world)
+        {
+            if (world?.Strategic?.Encounter == null)
+                return false;
+            if (world.Strategic.Encounter.BattlefieldLingering)
+                return true;
+            // 进图时曾误清标志：只要场上仍有弥留／残留栈，仍视为可再进
+            return StrategicEncounterResolveService.HasLingeringBattlefieldRemnants(world);
+        }
 
         public static string ResolveActiveEncounterLocalMapId(SimulationWorld world)
         {
@@ -402,7 +563,7 @@ namespace XianXia.Core.World.Strategic
 
                 // 敌方增援栈：胜则一并削弱／移除（处决时移除）
                 ApplyEnemyReinforcementAutoOutcome(world, executeOnWin, playerWon: true);
-                StrategicPursuitService.ClearPursuit(world);
+                StrategicPursuitService.ClearPursuitForEngagedKeepEnRoute(world, party);
             }
             else
             {
@@ -413,6 +574,14 @@ namespace XianXia.Core.World.Strategic
                     offer.EnemyPower);
                 StrategicPursuitService.ClearPursuitForEngagedKeepEnRoute(world, party);
             }
+
+            BindEncounterAfterAutoResolve(
+                world,
+                world.Strategic.Participants,
+                offer,
+                party,
+                playerWon,
+                executeOnWin);
 
             offer.LastAutoBattleSummary = report?.Summary ?? string.Empty;
             world.Strategic.Participants.LastBattleSummary = string.IsNullOrEmpty(offer.LastAutoBattleSummary)
@@ -426,6 +595,46 @@ namespace XianXia.Core.World.Strategic
             StrategicClockFreezeService.BeginOrPromote(
                 world, StrategicClockFreezeReason.PostBattle);
             return Result.Success();
+        }
+
+        static void BindEncounterAfterAutoResolve(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap,
+            BattleOfferPending offer,
+            IReadOnlyList<EntityId> party,
+            bool playerWon,
+            bool executeOnWin)
+        {
+            if (world?.Strategic?.Encounter == null || snap == null || offer == null)
+                return;
+
+            var rt = world.Strategic.Encounter;
+            var stackId = !string.IsNullOrEmpty(offer.ArmyStackId)
+                ? offer.ArmyStackId
+                : snap.PrimaryEnemyStackId ?? string.Empty;
+            if (!string.IsNullOrEmpty(stackId))
+                rt.ArmyStackId = stackId;
+            if (!string.IsNullOrEmpty(offer.OfferId))
+                rt.EncounterLinkId = offer.OfferId;
+            if (!string.IsNullOrEmpty(snap.EncounterLocalMapId))
+                rt.LingeringLocalMapId = snap.EncounterLocalMapId;
+            else if (string.IsNullOrEmpty(rt.LingeringLocalMapId))
+                rt.LingeringLocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+
+            if (party != null && party.Count > 0)
+                rt.SetEngagedParty(party);
+
+            // 自动战胜：立刻把残留栈钉到接战点，大地图结算弹窗期间就能看见
+            if (playerWon)
+                StrategicEncounterResolveService.ParkPrimaryEnemyStackAtBattleAnchor(world, snap);
+
+            // 自动战未进 LocalMap：立刻刷弥留／尸体实体 + 接战点 WorldPresence（与进图再出一致）
+            if (playerWon &&
+                !string.IsNullOrEmpty(stackId) &&
+                world.Strategic.Armies.TryGet(stackId, out var stack) &&
+                stack != null &&
+                stack.HasDownedRemnant)
+                StrategicEncounterSpawner.EnsureMacroRemnantSpawns(world, snap);
         }
 
         static void ApplyEnemyReinforcementAutoOutcome(
@@ -446,11 +655,22 @@ namespace XianXia.Core.World.Strategic
                 if (!world.Strategic.Armies.TryGet(stacks[i], out var st) || st == null)
                     continue;
                 if (executeOnWin)
-                    world.Strategic.Armies.Remove(st.Id);
+                {
+                    var members = Math.Max(1, st.MemberCount);
+                    st.MemberCount = members;
+                    st.IncapacitatedMemberCount = 0;
+                    st.CorpseMemberCount = members;
+                    st.IsBattlefieldRemnant = true;
+                }
                 else
                 {
-                    st.MemberCount = Math.Max(1, st.MemberCount / 2);
-                    st.CombatPower = Math.Max(1, st.CombatPower / 2);
+                    // 与主栈一致：未处决 → 全员弥留残留
+                    var members = Math.Max(1, st.MemberCount);
+                    st.MemberCount = members;
+                    st.IncapacitatedMemberCount = members;
+                    st.CorpseMemberCount = 0;
+                    st.IsBattlefieldRemnant = true;
+                    st.CombatPower = Math.Max(1, st.CombatPower);
                 }
             }
         }

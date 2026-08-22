@@ -127,9 +127,14 @@ namespace XianXia.Unity.Host
             DrawFrame(rect, ParchmentDark);
 
             var lifeLabel = CombatLifeStateService.ResolveLifeStateLabel(entity);
+            var lifeBadge = CombatLifeStateService.FormatLifeStateWithCountdown(
+                bootstrap?.Session?.World,
+                entity);
             if (!string.IsNullOrEmpty(lifeLabel))
             {
-                var badge = new Rect(rect.x + 16f, rect.y + 12f, 52f, 28f);
+                var badgeText = string.IsNullOrEmpty(lifeBadge) ? lifeLabel : lifeBadge;
+                var badgeW = badgeText.Length <= 2 ? 52f : (badgeText.Length <= 6 ? 84f : 104f);
+                var badge = new Rect(rect.x + 16f, rect.y + 12f, badgeW, 28f);
                 var prev = GUI.color;
                 GUI.color = lifeLabel == "尸体"
                     ? new Color(0.35f, 0.32f, 0.30f, 0.96f)
@@ -141,10 +146,10 @@ namespace XianXia.Unity.Host
                     alignment = TextAnchor.MiddleCenter,
                     fontSize = 13
                 };
-                GUI.Label(badge, lifeLabel, badgeStyle);
+                GUI.Label(badge, badgeText, badgeStyle);
                 GUI.color = prev;
                 GUI.Label(
-                    new Rect(rect.x + 74f, rect.y + 12f, rect.width - 148f, 28f),
+                    new Rect(badge.xMax + 8f, rect.y + 12f, rect.width - (badge.xMax - rect.x) - 90f, 28f),
                     "人物 · " + name,
                     _title);
             }

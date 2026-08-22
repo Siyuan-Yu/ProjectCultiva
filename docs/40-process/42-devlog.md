@@ -7,6 +7,58 @@
 
 ---
 
+## 2026-08-22 — fix：接战点叠位误选弥留导致「谁都不能动」
+
+**做了什么**
+- 头像命中优先活人；弥留头像下移错开
+- 下令前清掉选中里的弥留；提示文案区分「选的是弥留」vs「活人无法上路」
+
+---
+
+## 2026-08-22 — fix：残留战场可反复再进
+
+**做了什么**
+- 进残留图不再把 `BattlefieldLingering` 清掉（以前退出后再进失败）
+- `HasLingeringBattlefield`／`HasLingeringIncapacitated`：宏观图上仍有我方弥留也算可再进
+- 尸体再进以后再说
+
+---
+
+## 2026-08-22 — TEMP：单人自动战强制弥留（易关）
+
+**做了什么**
+- `AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated = true`
+- 接战名单恰好 1 人时，胜／负结算都强制该人进弥留；摘要带「【调试：单人强制弥留】」
+- **关掉：** 把该 static bool 改成 `false` 即可
+
+---
+
+## 2026-08-22 — 152 补丁：移动误报弥留（列表别名）
+
+**做了什么**
+- `CollectSelectedMacroParty` 写入 `_scratchParty` 时会 Clear 同一列表，选人被掏空，误报「全是弥留」；攻击走 `_attackPartyScratch` 所以仍能打
+- 改为选人缓冲与输出分离，并给 `CollectMacroPartyFrom` 同引用就地过滤
+
+---
+
+## 2026-08-22 — 152 补丁：修复右键移动点不中
+
+**做了什么**
+- 活人头像不再吞掉节点右键；关上下文菜单不 `Use` 事件
+- 道路点选改为屏幕像素 28px 容差（放大后世界距离几乎点不中）
+- 更新 [152](152-worldmap-rts-click-discipline-2026-08-22.md)
+
+---
+
+## 2026-08-22 — 152 大地图 RTS 左右键纪律
+
+**做了什么**
+- `HostWorldMapPanel`：左键只选中、右键只下令；敌军菜单仅「攻击」；弥留可左键选中、右键进入
+- 删探望主路径；缩小敌军命中垫以免抢道路移动
+- [152](152-worldmap-rts-click-discipline-2026-08-22.md)
+
+---
+
 ## 2026-08-22 — 151 Encounter stub 图 150×80
 
 **做了什么**

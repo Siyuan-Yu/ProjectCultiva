@@ -11,6 +11,22 @@ namespace XianXia.Core.World.Strategic
     /// <summary>我方最终目的地到站提示（遇敌接战优先，不叠弹）。</summary>
     public static class ArrivalNoticeService
     {
+        /// <summary>接战弹窗已覆盖本次抵达：参战者不再弹「是否查看」。</summary>
+        public static void SuppressForParty(SimulationWorld world, IReadOnlyList<EntityId> party)
+        {
+            if (world?.WorldPresence == null || party == null)
+                return;
+            for (var i = 0; i < party.Count; i++)
+            {
+                var id = party[i];
+                if (id.IsNone || !world.WorldPresence.TryGet(id, out var p) || p == null)
+                    continue;
+                p.SuppressArrivalNotice = true;
+            }
+
+            world.Strategic?.ClearArrivalNotice();
+        }
+
         public static void AfterTravelTick(SimulationWorld world, IReadOnlyList<EntityId> arrivedThisTick)
         {
             if (world?.Strategic == null || arrivedThisTick == null || arrivedThisTick.Count == 0)
@@ -24,6 +40,11 @@ namespace XianXia.Core.World.Strategic
                 var id = arrivedThisTick[i];
                 // 攻击／追击中的人：到站只走接战，绝不弹「是否查看」
                 if (StrategicPursuitService.IsCombatPursuitTraveler(world, id))
+                    continue;
+                if (!world.WorldPresence.TryGet(id, out var presence) || presence == null)
+                    continue;
+                // 已弹过接战（含撤退）：同一趟抵达不再弹到站查看
+                if (presence.SuppressArrivalNotice)
                     continue;
                 if (!IsFinalPlayerArrival(world, id))
                     continue;

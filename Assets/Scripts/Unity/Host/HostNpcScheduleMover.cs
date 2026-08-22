@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Npc;
@@ -67,6 +68,9 @@ namespace XianXia.Unity.Host
                 if ((entity.Tags & EntityTag.Npc) == 0)
                     continue;
                 if (!LocalMapVisibility.IsEntityVisible(session.World, entity.Id))
+                    continue;
+                // 弥留／尸体不跑日程寻路
+                if (!CombatLifeStateService.CanFight(entity))
                     continue;
                 if (!entity.TryGet<MovementIntentComponent>(out var intent) || !intent.Active)
                     continue;

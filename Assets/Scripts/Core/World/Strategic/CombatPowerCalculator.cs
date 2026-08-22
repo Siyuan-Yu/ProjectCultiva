@@ -64,8 +64,11 @@ namespace XianXia.Core.World.Strategic
         {
             var p = Math.Max(1, playerPower);
             var e = Math.Max(1, enemyPower);
-            var rate = (float)p / (p + e);
-            return (int)Math.Round(Math.Clamp(rate, 0.05f, 0.95f) * 100f);
+            // Logistic 曲线 + 略向 50% 收束：避免 UI 战力比与掷骰结果体感差过大
+            var logit = Math.Log(p / (double)e);
+            var rate = 1.0 / (1.0 + Math.Exp(-logit * 0.9));
+            rate = 0.5 + (rate - 0.5) * 0.85;
+            return (int)Math.Round(Math.Clamp(rate, 0.08, 0.92) * 100.0);
         }
     }
 }

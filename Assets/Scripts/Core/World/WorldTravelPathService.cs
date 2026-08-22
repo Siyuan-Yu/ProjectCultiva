@@ -188,6 +188,11 @@ namespace XianXia.Core.World
             if (string.IsNullOrEmpty(anchor))
                 return false;
 
+            // 锚点已是目标路端点：视为可达（同点 BFS 会失败，不能当不可达）
+            if (string.Equals(anchor, target.RouteFromNodeId, StringComparison.Ordinal) ||
+                string.Equals(anchor, target.RouteToNodeId, StringComparison.Ordinal))
+                return true;
+
             var scratch = new List<string>(16);
             return TryFindNodePath(world, anchor, target.RouteFromNodeId, scratch) ||
                    TryFindNodePath(world, anchor, target.RouteToNodeId, scratch);
@@ -280,7 +285,7 @@ namespace XianXia.Core.World
                     return Result.Failure(ErrorCode.InvalidOperation, "Cannot resolve travel origin.");
 
                 var path = new List<string>(16);
-                if (!TryFindNodePath(world, exit, nodeId, path) || path.Count < 1)
+                if (!TryBuildPathToNodeOrSelf(world, exit, nodeId, path) || path.Count < 1)
                     return Result.Failure(ErrorCode.InvalidOperation, "No macro route to destination.");
 
                 var queue = GetOrCreateQueue(id);
@@ -294,8 +299,12 @@ namespace XianXia.Core.World
             if (string.IsNullOrEmpty(anchor))
                 return Result.Failure(ErrorCode.InvalidOperation, "Cannot resolve travel origin.");
 
+            if (string.Equals(anchor, nodeId, StringComparison.Ordinal) &&
+                presence.Mode == PartyWorldPresenceMode.AtNode)
+                return Result.Failure(ErrorCode.InvalidArgument, "Already at destination node.");
+
             var pathFromAnchor = new List<string>(16);
-            if (!TryFindNodePath(world, anchor, nodeId, pathFromAnchor) || pathFromAnchor.Count < 2)
+            if (!TryBuildPathToNodeOrSelf(world, anchor, nodeId, pathFromAnchor) || pathFromAnchor.Count < 2)
                 return Result.Failure(ErrorCode.InvalidOperation, "No macro route to destination.");
 
             var q = GetOrCreateQueue(id);
@@ -341,16 +350,12 @@ namespace XianXia.Core.World
                 return WorldTravelService.StartTravelToRouteProgress(world, id, target.RouteProgress);
             }
 
-            var pathToFrom = new List<string>(16);
-            var pathToTo = new List<string>(16);
-            var canFrom = TryFindNodePath(world, anchor, target.RouteFromNodeId, pathToFrom);
-            var canTo = TryFindNodePath(world, anchor, target.RouteToNodeId, pathToTo);
-            if (!canFrom && !canTo)
-                return Result.Failure(ErrorCode.InvalidOperation, "Cannot reach target road.");
-
-            var useFrom = canFrom && (!canTo || pathToFrom.Count <= pathToTo.Count);
-            var path = useFrom ? pathToFrom : pathToTo;
-            if (path.Count < 1)
+            if (!TryChooseRouteEntry(
+                    world,
+                    anchor,
+                    target,
+                    out var pathToEntry,
+                    out _))
                 return Result.Failure(ErrorCode.InvalidOperation, "Cannot reach target road.");
 
             var routeLeg = new PendingTravelLeg
@@ -362,7 +367,7 @@ namespace XianXia.Core.World
                 RouteProgress = target.RouteProgress
             };
 
-            // 仍在别的道路中段：先走到较近端，再按节点路径＋目标路进度续走
+            // 仍在别的道路中段：先走到当前路较近端，再按节点路径到入口端，最后挂目标路进度
             if (presence.Mode == PartyWorldPresenceMode.RouteAnchored &&
                 presence.HasRoutePresentation &&
                 !string.Equals(presence.RouteId, target.RouteId, StringComparison.Ordinal))
@@ -372,21 +377,90 @@ namespace XianXia.Core.World
                     return Result.Failure(ErrorCode.InvalidOperation, "Cannot resolve travel origin.");
 
                 var queue = GetOrCreateQueue(id);
-                // path[0] 应为 exit／anchor；其后节点入队，最后目标路进度
-                for (var i = 1; i < path.Count; i++)
-                    queue.Enqueue(new PendingTravelLeg { NodeId = path[i] });
+                // pathToEntry[0] 应为规划起点（exit／anchor）；其后节点入队，最后目标路进度
+                for (var i = 1; i < pathToEntry.Count; i++)
+                    queue.Enqueue(new PendingTravelLeg { NodeId = pathToEntry[i] });
                 queue.Enqueue(routeLeg);
                 return WorldTravelService.StartTravel(world, id, exit);
             }
 
-            if (path.Count < 2)
+            if (pathToEntry.Count < 2)
+            {
+                // 已在入口端点但未挂路（少见）：直接挂路走进度
+                if (CanMountRouteAtSharedEndpoint(presence, target, anchor))
+                {
+                    var start = string.Equals(anchor, target.RouteFromNodeId, StringComparison.Ordinal)
+                        ? 0f
+                        : 1f;
+                    presence.NodeId = target.RouteFromNodeId;
+                    presence.DestNodeId = target.RouteToNodeId;
+                    presence.RouteId = target.RouteId;
+                    presence.AnchorOnRoute(start);
+                    return WorldTravelService.StartTravelToRouteProgress(world, id, target.RouteProgress);
+                }
+
                 return Result.Failure(ErrorCode.InvalidOperation, "Cannot reach target road.");
+            }
 
             var q = GetOrCreateQueue(id);
-            for (var i = 2; i < path.Count; i++)
-                q.Enqueue(new PendingTravelLeg { NodeId = path[i] });
+            for (var i = 2; i < pathToEntry.Count; i++)
+                q.Enqueue(new PendingTravelLeg { NodeId = pathToEntry[i] });
             q.Enqueue(routeLeg);
-            return StartTravelOneIgnoringQueue(world, id, path[1]);
+            return StartTravelOneIgnoringQueue(world, id, pathToEntry[1]);
+        }
+
+        /// <summary>
+        /// 选进入目标路的端点：同点视为 0 跳（禁止因 BFS 同点失败而误选远端，导致先绕到对端再折返）。
+        /// 代价 ≈ 节点跳数 + 入口端沿目标路走到目标进度的比例。
+        /// </summary>
+        static bool TryChooseRouteEntry(
+            SimulationWorld world,
+            string fromNodeId,
+            WorldTravelTarget target,
+            out List<string> pathToEntry,
+            out bool enterViaFrom)
+        {
+            pathToEntry = new List<string>(16);
+            enterViaFrom = true;
+            if (world == null || string.IsNullOrEmpty(fromNodeId) || !target.IsRouteProgress)
+                return false;
+
+            var pathToFrom = new List<string>(16);
+            var pathToTo = new List<string>(16);
+            var canFrom = TryBuildPathToNodeOrSelf(world, fromNodeId, target.RouteFromNodeId, pathToFrom);
+            var canTo = TryBuildPathToNodeOrSelf(world, fromNodeId, target.RouteToNodeId, pathToTo);
+            if (!canFrom && !canTo)
+                return false;
+
+            var progress = Clamp01(target.RouteProgress);
+            var costFrom = canFrom
+                ? (pathToFrom.Count - 1) + progress
+                : float.MaxValue;
+            var costTo = canTo
+                ? (pathToTo.Count - 1) + (1f - progress)
+                : float.MaxValue;
+
+            enterViaFrom = canFrom && (!canTo || costFrom <= costTo);
+            pathToEntry = enterViaFrom ? pathToFrom : pathToTo;
+            return pathToEntry.Count >= 1;
+        }
+
+        static bool TryBuildPathToNodeOrSelf(
+            SimulationWorld world,
+            string fromNodeId,
+            string toNodeId,
+            List<string> pathOut)
+        {
+            pathOut?.Clear();
+            if (pathOut == null || string.IsNullOrEmpty(fromNodeId) || string.IsNullOrEmpty(toNodeId))
+                return false;
+            if (string.Equals(fromNodeId, toNodeId, StringComparison.Ordinal))
+            {
+                pathOut.Add(fromNodeId);
+                return true;
+            }
+
+            return TryFindNodePath(world, fromNodeId, toNodeId, pathOut);
         }
 
         static bool IsOnSameRoute(WorldAgentPresence presence, WorldTravelTarget target)
@@ -469,15 +543,18 @@ namespace XianXia.Core.World
                 return;
             }
 
-            // Dest 缺失或端点不匹配：用目标路端点补齐，尽量保留当前进度
+            // Dest 缺失或端点不匹配：只补齐端点标签，严禁改 RouteId（跨路改 Id 会带着旧进度瞬移）
             var keep = presence.RouteAnchorProgress >= 0f
                 ? presence.RouteAnchorProgress
                 : presence.TravelProgress;
-            presence.NodeId = string.IsNullOrEmpty(target.RouteFromNodeId)
-                ? presence.NodeId
-                : target.RouteFromNodeId;
-            presence.DestNodeId = target.RouteToNodeId ?? string.Empty;
-            presence.RouteId = target.RouteId;
+            if (string.IsNullOrEmpty(presence.DestNodeId) &&
+                !string.IsNullOrEmpty(target.RouteToNodeId) &&
+                string.Equals(presence.NodeId, target.RouteFromNodeId, StringComparison.Ordinal) &&
+                string.Equals(presence.RouteId, target.RouteId, StringComparison.Ordinal))
+            {
+                presence.DestNodeId = target.RouteToNodeId;
+            }
+
             if (presence.Mode == PartyWorldPresenceMode.RouteAnchored)
                 presence.RouteAnchorProgress = Clamp01(keep);
         }
