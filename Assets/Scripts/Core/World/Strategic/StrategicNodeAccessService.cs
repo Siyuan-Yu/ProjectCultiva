@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Results;
@@ -43,16 +44,18 @@ namespace XianXia.Core.World.Strategic
         {
             if (node == null)
                 return string.Empty;
-            var lines = DescribeNode(world, node);
+            var sb = new StringBuilder(DescribeNode(world, node));
+            sb.Append('\n').Append(StrategicAcceptanceInspector.BuildNodeOwnerLine(world, node));
+            StrategicAcceptanceInspector.AppendCaptureObjectivesForNode(world, node, sb);
             var here = CountPartyMembersAtNode(world, node.Id);
-            lines += "\n我方在场：" + (here > 0 ? here + " 人" : "无");
+            sb.Append("\n我方在场：").Append(here > 0 ? here + " 人" : "无");
             if (!string.IsNullOrEmpty(node.LocalMapId))
-                lines += "\n场景：" + node.LocalMapId;
+                sb.Append("\n场景：").Append(node.LocalMapId);
             else
-                lines += "\n场景：" + WorldTravelService.PlaceholderLocalMapId + "（占位）";
+                sb.Append("\n场景：").Append(WorldTravelService.PlaceholderLocalMapId).Append("（占位）");
             var access = CanEnterNodeLocalMap(world, node.Id);
-            lines += access.IsSuccess ? "\n可进入 LocalMap" : "\n" + access.Error.Message;
-            return lines;
+            sb.Append(access.IsSuccess ? "\n可进入 LocalMap" : "\n" + access.Error.Message);
+            return sb.ToString();
         }
 
         public static Result CanEnterNodeLocalMap(SimulationWorld world, string nodeId)

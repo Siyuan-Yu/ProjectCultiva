@@ -30,17 +30,18 @@ namespace XianXia.Core.World.Strategic
                 world.Strategic.ClearBattleOffer();
                 if (snap != null)
                     snap.IsAutoSettlement = false;
-                WorldTravelService.SyncPartyFocus(world);
-                BattleOfferService.FinishOfferResolution(world);
-                NormalizePresenceAfterEncounterExit(world);
-                return Result.Success();
+            }
+            else
+            {
+                DestroyBattlefieldCompletely(world);
+                world.Strategic.ClearBattleOffer();
             }
 
-            DestroyBattlefieldCompletely(world);
-            world.Strategic.ClearBattleOffer();
+            NormalizePresenceAfterEncounterExit(world);
+            ArmyPostBattleSyncService.SyncAttackerArmyAfterBattle(world, snap);
+            StrategicPursuitService.ClearPursuit(world);
             WorldTravelService.SyncPartyFocus(world);
             BattleOfferService.FinishOfferResolution(world);
-            NormalizePresenceAfterEncounterExit(world);
             return Result.Success();
         }
 
@@ -433,6 +434,12 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>自动战／手动战后：我方弥留／尸体钉在接战点（Restore 可能因 PreBattle 漏掉）。</summary>
+        /// <summary>自动战结算弹窗期间：我方弥留／尸体钉在接战点。</summary>
+        public static void EnsureFriendlyDownedWorldPresenceForAutoBattle(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap) =>
+            EnsureFriendlyDownedWorldPresence(world, snap);
+
         static void EnsureFriendlyDownedWorldPresence(
             SimulationWorld world,
             BattleParticipantSnapshot snap)

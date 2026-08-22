@@ -3,7 +3,7 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>日界：AI 帮派派兵（Phase 4）。</summary>
+    /// <summary>日界：AI 帮派派兵（Phase 4）。FormalArmy 真源；禁止 anonymous cultivator ArmyStack。</summary>
     public sealed class StrategicDayHandler : IDayBoundaryHandler
     {
         int _spawnCooldown;
@@ -17,7 +17,7 @@ namespace XianXia.Core.World.Strategic
             if (_spawnCooldown > 0)
                 return;
 
-            TrySpawnBanditPatrol(world);
+            TrySpawnBanditScout(world);
             _spawnCooldown = 2;
         }
 
@@ -25,10 +25,9 @@ namespace XianXia.Core.World.Strategic
         {
         }
 
-        static void TrySpawnBanditPatrol(SimulationWorld world)
+        static void TrySpawnBanditScout(SimulationWorld world)
         {
-            const string stackId = "army:bandit_patrol_auto";
-            if (world.Strategic.Armies.TryGet(stackId, out var existing) &&
+            if (world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditScoutStackId, out var existing) &&
                 existing != null &&
                 (existing.IsTraveling || !string.IsNullOrEmpty(existing.NodeId)))
                 return;
@@ -37,20 +36,22 @@ namespace XianXia.Core.World.Strategic
                 !world.WorldGraph.TryFindRoute("base:node_huangcun", "base:node_linjian", out route))
                 return;
 
-            var stack = new ArmyStack
+            var fromId = route.FromNodeId;
+            var toId = route.ToNodeId;
+            if (!string.Equals(fromId, "base:node_linjian", System.StringComparison.Ordinal))
             {
-                Id = stackId,
-                FactionId = StrategicFactionCatalog.BanditId,
-                DisplayName = "山匪斥候",
-                NodeId = "base:node_linjian",
-                MemberCount = 4,
-                CombatPower = 2,
-                RouteId = route.Id,
-                DestNodeId = route.FromNodeId == "base:node_linjian" ? route.ToNodeId : route.FromNodeId,
-                TravelTotalTicks = System.Math.Max(8, route.TravelCost * WorldTravelService.TravelTicksPerCostAtSpeed8),
-                RemainingTravelTicks = System.Math.Max(8, route.TravelCost * WorldTravelService.TravelTicksPerCostAtSpeed8)
-            };
-            world.Strategic.Armies.Register(stack);
+                fromId = route.ToNodeId;
+                toId = route.FromNodeId;
+            }
+
+            var ticks = System.Math.Max(8, route.TravelCost * WorldTravelService.TravelTicksPerCostAtSpeed8);
+            ArmyStackAdapter.EnsureBanditScoutArmy(
+                world,
+                fromId,
+                route.Id,
+                toId,
+                routeAnchorProgress: -1f,
+                travelTicks: ticks);
         }
     }
 }

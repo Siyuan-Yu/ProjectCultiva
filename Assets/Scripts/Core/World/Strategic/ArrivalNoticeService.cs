@@ -67,6 +67,10 @@ namespace XianXia.Core.World.Strategic
                 return false;
             if (WorldTravelPathService.HasPendingLegs(id))
                 return false;
+            if (ArmyService.TryGetArmyForCharacter(world, id, out var army) &&
+                army != null &&
+                ArmyTravelCommandService.HasPendingLegs(army.ArmyId))
+                return false;
             return p.Mode == PartyWorldPresenceMode.AtNode ||
                    p.Mode == PartyWorldPresenceMode.RouteAnchored;
         }

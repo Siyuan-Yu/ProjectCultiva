@@ -20,6 +20,7 @@ namespace XianXia.Core.World.Strategic
                 return;
 
             ArmyStackService.AdvanceAll(world, ticks);
+            ArmyTravelService.AdvanceAll(world, ticks, ArrivedScratch);
             StrategicFollowService.AfterTravelTick(world);
 
             // 接战优先：即使已有到站弹窗也允许追击接战盖过去

@@ -36,7 +36,8 @@ namespace XianXia.Data.Serialization
                 ["schedules"] = JsonValue.FromArray(SerializeSchedules(snapshot.Schedules)),
                 ["opportunitySites"] = JsonValue.FromArray(SerializeOpportunitySites(snapshot.OpportunitySites)),
                 ["manuals"] = JsonValue.FromArray(SerializeManuals(snapshot.Manuals)),
-                ["observationDiscoverChancePercent"] = JsonValue.FromNumber(snapshot.ObservationDiscoverChancePercent)
+                ["observationDiscoverChancePercent"] = JsonValue.FromNumber(snapshot.ObservationDiscoverChancePercent),
+                ["strategic"] = SerializeStrategic(snapshot.Strategic)
             };
 
             return Result.Ok(SimpleJson.Stringify(JsonValue.FromObject(root)));
@@ -109,6 +110,12 @@ namespace XianXia.Data.Serialization
                     chance.Kind == JsonValueKind.Number)
                 {
                     snapshot.ObservationDiscoverChancePercent = (int)chance.Number;
+                }
+
+                if (root.TryGetProperty("strategic", out var strategic) &&
+                    strategic.Kind == JsonValueKind.Object)
+                {
+                    snapshot.Strategic = ReadStrategic(strategic);
                 }
 
                 return Result.Ok(snapshot);
@@ -458,6 +465,108 @@ namespace XianXia.Data.Serialization
             CultivationSpeed = (int)m.GetNumber("cultivationSpeed"),
             BreakthroughProgress = (int)m.GetNumber("breakthroughProgress")
         };
+
+        static JsonValue SerializeStrategic(StrategicSnapshotDto strategic)
+        {
+            strategic ??= new StrategicSnapshotDto();
+            var armies = new List<JsonValue>();
+            if (strategic.FormalArmies != null)
+            {
+                for (var i = 0; i < strategic.FormalArmies.Count; i++)
+                {
+                    var a = strategic.FormalArmies[i];
+                    if (a == null)
+                        continue;
+                    var members = new List<JsonValue>();
+                    if (a.MemberCharacterIds != null)
+                    {
+                        for (var j = 0; j < a.MemberCharacterIds.Count; j++)
+                            members.Add(U(a.MemberCharacterIds[j]));
+                    }
+
+                    armies.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["armyId"] = JsonValue.FromString(a.ArmyId ?? string.Empty),
+                        ["factionId"] = JsonValue.FromString(a.FactionId ?? string.Empty),
+                        ["leaderCharacterId"] = U(a.LeaderCharacterId),
+                        ["nodeId"] = JsonValue.FromString(a.NodeId ?? string.Empty),
+                        ["state"] = JsonValue.FromNumber(a.State),
+                        ["memberCharacterIds"] = JsonValue.FromArray(members)
+                    }));
+                }
+            }
+
+            var wars = new List<JsonValue>();
+            if (strategic.Wars != null)
+            {
+                for (var i = 0; i < strategic.Wars.Count; i++)
+                {
+                    var w = strategic.Wars[i];
+                    if (w == null)
+                        continue;
+                    wars.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["warId"] = JsonValue.FromString(w.WarId ?? string.Empty),
+                        ["active"] = JsonValue.FromBool(w.Active)
+                    }));
+                }
+            }
+
+            return JsonValue.FromObject(new Dictionary<string, JsonValue>
+            {
+                ["playerFactionId"] = JsonValue.FromString(strategic.PlayerFactionId ?? string.Empty),
+                ["ch01FormationScenarioCompat"] = JsonValue.FromBool(strategic.Ch01FormationScenarioCompat),
+                ["formalArmies"] = JsonValue.FromArray(armies),
+                ["wars"] = JsonValue.FromArray(wars)
+            });
+        }
+
+        static StrategicSnapshotDto ReadStrategic(JsonValue strategic)
+        {
+            var dto = new StrategicSnapshotDto
+            {
+                PlayerFactionId = strategic.GetString("playerFactionId", string.Empty),
+                Ch01FormationScenarioCompat = strategic.TryGetProperty("ch01FormationScenarioCompat", out var c) &&
+                                              c.Kind == JsonValueKind.Boolean && c.Bool
+            };
+
+            if (strategic.TryGetProperty("formalArmies", out var armies) && armies.Kind == JsonValueKind.Array)
+            {
+                foreach (var a in armies.Array)
+                {
+                    var army = new FormalArmySnapshotDto
+                    {
+                        ArmyId = a.GetString("armyId", string.Empty),
+                        FactionId = a.GetString("factionId", string.Empty),
+                        LeaderCharacterId = ReadU(a, "leaderCharacterId"),
+                        NodeId = a.GetString("nodeId", string.Empty),
+                        State = (int)a.GetNumber("state")
+                    };
+                    if (a.TryGetProperty("memberCharacterIds", out var members) && members.Kind == JsonValueKind.Array)
+                    {
+                        foreach (var m in members.Array)
+                            army.MemberCharacterIds.Add((ulong)m.Number);
+                    }
+
+                    dto.FormalArmies.Add(army);
+                }
+            }
+
+            if (strategic.TryGetProperty("wars", out var wars) && wars.Kind == JsonValueKind.Array)
+            {
+                foreach (var w in wars.Array)
+                {
+                    dto.Wars.Add(new WarSnapshotDto
+                    {
+                        WarId = w.GetString("warId", string.Empty),
+                        Active = w.TryGetProperty("active", out var active) &&
+                                   active.Kind == JsonValueKind.Boolean && active.Bool
+                    });
+                }
+            }
+
+            return dto;
+        }
     }
 }
 

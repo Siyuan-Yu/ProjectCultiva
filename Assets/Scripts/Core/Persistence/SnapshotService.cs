@@ -17,6 +17,7 @@ using XianXia.Core.Random;
 using XianXia.Core.Results;
 using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Persistence
 {
@@ -272,6 +273,7 @@ namespace XianXia.Core.Persistence
                 }
             }
 
+            snap.Strategic = StrategicSnapshotHelper.Capture(world);
             return snap;
         }
 
@@ -288,6 +290,14 @@ namespace XianXia.Core.Persistence
         {
             if (snap == null)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Snapshot null.");
+            if (snap.SchemaVersion == WorldSnapshot.LegacySchemaVersion)
+            {
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(
+                    ErrorCode.SnapshotVersionMismatch,
+                    "Schema v1 development saves are unsupported. Start a new game (schema v2 required).",
+                    snap.SchemaVersion.ToString());
+            }
+
             if (snap.SchemaVersion != WorldSnapshot.CurrentSchemaVersion)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotVersionMismatch, "Unsupported snapshot schema.", snap.SchemaVersion.ToString());
 
@@ -605,6 +615,15 @@ namespace XianXia.Core.Persistence
 
             var loop = new SimulationLoop(world);
             loop.RestoreNextOrderId(snap.NextOrderId);
+            if (snap.SchemaVersion >= WorldSnapshot.CurrentSchemaVersion && snap.Strategic != null)
+                StrategicSnapshotHelper.Restore(world, snap.Strategic);
+            else if (snap.SchemaVersion >= WorldSnapshot.CurrentSchemaVersion)
+            {
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(
+                    ErrorCode.SnapshotInvalid,
+                    "Schema v2 snapshot missing strategic state.",
+                    snap.SchemaVersion.ToString());
+            }
             return Result.Ok((world, loop));
         }
 

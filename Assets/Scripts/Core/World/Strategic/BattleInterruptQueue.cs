@@ -124,39 +124,114 @@ namespace XianXia.Core.World.Strategic
                 EncounterLocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId
             };
 
+            ArmyStackAdapter.TryResolveAttackerArmyId(world, mandatoryAttackers, out var attackerArmyId);
+            ArmyStackAdapter.TryResolveDefenderArmyId(primaryEnemy, out var defenderArmyId);
+            snap.AttackerArmyId = attackerArmyId ?? string.Empty;
+            snap.DefenderArmyId = defenderArmyId ?? string.Empty;
+
             if (primaryEnemy != null)
                 ApplyBattleAnchor(snap, primaryEnemy);
 
-            // Mandatory
-            if (mandatoryAttackers != null)
-            {
-                for (var i = 0; i < mandatoryAttackers.Count; i++)
-                {
-                    var id = mandatoryAttackers[i];
-                    if (id.IsNone || !world.WorldPresence.TryGet(id, out var wp) || wp == null)
-                        continue;
-                    if (!world.Entities.TryGet(id, out var ent) || ent == null)
-                        continue;
-                    if ((ent.Tags & EntityTag.Npc) != 0)
-                        continue;
+            AddFriendlyRecords(world, snap, mandatoryAttackers, BattleParticipantKind.MandatoryFriendly, selected: true);
+            CollectOptionalFormalArmies(world, snap, snap.AttackerArmyId, mandatoryAttackers);
+            AddEnemyRecords(world, snap, primaryEnemy);
+            return snap;
+        }
 
+        public static void CollectOptionalFormalArmiesForOffer(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap,
+            string attackerArmyId,
+            IReadOnlyList<EntityId> mandatory) =>
+            CollectOptionalFormalArmies(world, snap, attackerArmyId, mandatory);
+
+        public static BattleParticipantSnapshot BuildArmyVsArmy(
+            SimulationWorld world,
+            string attackerArmyId,
+            ArmyStack defenderStack,
+            string offerId)
+        {
+            var attackers = ResolveArmyParty(world, attackerArmyId);
+            var snap = Build(world, attackers, defenderStack, offerId);
+            snap.AttackerArmyId = attackerArmyId ?? string.Empty;
+            if (defenderStack != null &&
+                ArmyStackAdapter.TryResolveDefenderArmyId(defenderStack, out var defenderArmyId))
+                snap.DefenderArmyId = defenderArmyId;
+            return snap;
+        }
+
+        static List<EntityId> ResolveArmyParty(SimulationWorld world, string armyId)
+        {
+            var list = new List<EntityId>(8);
+            if (world?.Strategic?.FormalArmies == null || string.IsNullOrEmpty(armyId))
+                return list;
+            if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
+                return list;
+            return ArmyStackAdapter.CollectLivingMemberIds(world, army);
+        }
+
+        static void AddFriendlyRecords(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap,
+            IReadOnlyList<EntityId> party,
+            BattleParticipantKind kind,
+            bool selected)
+        {
+            if (party == null)
+                return;
+            for (var i = 0; i < party.Count; i++)
+            {
+                var id = party[i];
+                if (id.IsNone || snap.FindByEntity(id) != null)
+                    continue;
+                if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
+                    continue;
+                if (!world.Entities.TryGet(id, out var ent) || ent == null)
+                    continue;
+                if ((ent.Tags & EntityTag.Npc) != 0)
+                    continue;
+
+                ArmyService.TryGetArmyForCharacter(world, id, out var army);
+                snap.Add(new BattleParticipantRecord
+                {
+                    Kind = kind,
+                    EntityId = id,
+                    FormalArmyId = army?.ArmyId ?? string.Empty,
+                    DisplayLabel = string.IsNullOrEmpty(ent.DisplayName) ? id.ToString() : ent.DisplayName,
+                    CombatPower = CombatPowerCalculator.ForEntity(world, id),
+                    Selected = selected,
+                    PreBattle = PreBattleWorldPresence.Capture(wp)
+                });
+            }
+        }
+
+        static void AddEnemyRecords(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap,
+            ArmyStack primaryEnemy)
+        {
+            if (primaryEnemy == null)
+                return;
+
+            if (ArmyStackAdapter.TryGetFormalArmy(world, primaryEnemy, out var formalArmy))
+            {
+                for (var i = 0; i < formalArmy.MemberCharacterIds.Count; i++)
+                {
+                    var id = new EntityId(formalArmy.MemberCharacterIds[i]);
+                    if (id.IsNone || !world.Entities.TryGet(id, out var ent) || ent == null)
+                        continue;
                     snap.Add(new BattleParticipantRecord
                     {
-                        Kind = BattleParticipantKind.MandatoryFriendly,
+                        Kind = BattleParticipantKind.EnemyPrimary,
                         EntityId = id,
+                        ArmyStackId = primaryEnemy.Id,
                         DisplayLabel = string.IsNullOrEmpty(ent.DisplayName) ? id.ToString() : ent.DisplayName,
                         CombatPower = CombatPowerCalculator.ForEntity(world, id),
-                        Selected = true,
-                        PreBattle = PreBattleWorldPresence.Capture(wp)
+                        Selected = true
                     });
                 }
             }
-
-            // Optional DirectControl（CharacterIds 语义：非 Npc 标签且有 WorldPresence）
-            CollectOptionalFriendly(world, snap, mandatoryAttackers);
-
-            // Enemy primary + reinforcements
-            if (primaryEnemy != null)
+            else
             {
                 snap.Add(new BattleParticipantRecord
                 {
@@ -165,14 +240,12 @@ namespace XianXia.Core.World.Strategic
                     DisplayLabel = string.IsNullOrEmpty(primaryEnemy.DisplayName)
                         ? primaryEnemy.Id
                         : primaryEnemy.DisplayName,
-                    CombatPower = CombatPowerCalculator.ForArmyStack(primaryEnemy),
+                    CombatPower = CombatPowerCalculator.ForArmyStack(world, primaryEnemy),
                     Selected = true
                 });
-
-                CollectEnemyReinforcements(world, snap, primaryEnemy);
             }
 
-            return snap;
+            CollectEnemyReinforcements(world, snap, primaryEnemy);
         }
 
         static void ApplyBattleAnchor(BattleParticipantSnapshot snap, ArmyStack stack)
@@ -193,6 +266,71 @@ namespace XianXia.Core.World.Strategic
             }
         }
 
+        static void CollectOptionalFormalArmies(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap,
+            string attackerArmyId,
+            IReadOnlyList<EntityId> mandatory)
+        {
+            if (world?.Strategic?.FormalArmies == null || snap == null)
+                return;
+
+            foreach (var kv in world.Strategic.FormalArmies.Armies)
+            {
+                var army = kv.Value;
+                if (army == null ||
+                    string.IsNullOrEmpty(army.ArmyId) ||
+                    string.Equals(army.ArmyId, attackerArmyId, StringComparison.Ordinal) ||
+                    !ArmyMacroPartyQueries.IsPlayerFactionArmy(world, army))
+                    continue;
+
+                var livingInRange = new List<EntityId>(army.MemberCharacterIds.Count);
+                for (var i = 0; i < army.MemberCharacterIds.Count; i++)
+                {
+                    var id = new EntityId(army.MemberCharacterIds[i]);
+                    if (id.IsNone ||
+                        ContainsId(mandatory, id) ||
+                        !LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id) ||
+                        !world.WorldPresence.TryGet(id, out var wp) ||
+                        wp == null)
+                        continue;
+                    if (!ReinforcementRangeService.IsWithinReinforcementRange(
+                            world,
+                            wp,
+                            snap.BattleAnchorNodeId,
+                            snap.BattleAnchorRouteId,
+                            snap.BattleAnchorProgress))
+                        continue;
+                    livingInRange.Add(id);
+                }
+
+                if (livingInRange.Count == 0)
+                    continue;
+
+                for (var i = 0; i < livingInRange.Count; i++)
+                {
+                    var id = livingInRange[i];
+                    if (snap.FindByEntity(id) != null)
+                        continue;
+                    if (!world.Entities.TryGet(id, out var ent) || ent == null)
+                        continue;
+                    if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
+                        continue;
+
+                    snap.Add(new BattleParticipantRecord
+                    {
+                        Kind = BattleParticipantKind.OptionalFriendly,
+                        EntityId = id,
+                        FormalArmyId = army.ArmyId,
+                        DisplayLabel = string.IsNullOrEmpty(ent.DisplayName) ? id.ToString() : ent.DisplayName,
+                        CombatPower = CombatPowerCalculator.ForEntity(world, id),
+                        Selected = false,
+                        PreBattle = PreBattleWorldPresence.Capture(wp)
+                    });
+                }
+            }
+        }
+
         static void CollectOptionalFriendly(
             SimulationWorld world,
             BattleParticipantSnapshot snap,
@@ -206,14 +344,14 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 if (ContainsId(mandatory, id))
                     continue;
+                if (ArmyService.TryGetArmyForCharacter(world, id, out _))
+                    continue;
                 if (!world.Entities.TryGet(id, out var ent) || ent == null)
                     continue;
                 if ((ent.Tags & EntityTag.Npc) != 0)
                     continue;
-                // 我方弥留／尸体已在接战点：只走强制名单，禁止进可选勾选
                 if (LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
                     continue;
-                // DirectControl ≈ 玩家可控角色（有 WorldPresence 且非 Npc）
                 if (!ReinforcementRangeService.IsWithinReinforcementRange(
                         world,
                         wp,
@@ -259,7 +397,7 @@ namespace XianXia.Core.World.Strategic
                     Kind = BattleParticipantKind.EnemyReinforcement,
                     ArmyStackId = stack.Id,
                     DisplayLabel = string.IsNullOrEmpty(stack.DisplayName) ? stack.Id : stack.DisplayName,
-                    CombatPower = CombatPowerCalculator.ForArmyStack(stack),
+                    CombatPower = CombatPowerCalculator.ForArmyStack(world, stack),
                     Selected = true // 第一版自动加入
                 });
             }

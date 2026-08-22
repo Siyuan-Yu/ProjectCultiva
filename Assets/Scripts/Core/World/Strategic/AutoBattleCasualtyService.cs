@@ -47,10 +47,29 @@ namespace XianXia.Core.World.Strategic
             ApplyPlayerChipDamage(world, party, intensity, report);
             var debugForced = TryDebugForceSoloIncapacitated(world, party, report);
 
+            if (ArmyStackAdapter.TryGetFormalArmy(world, enemyStack, out var formalArmy))
+            {
+                ApplyFormalArmyEnemyOutcome(world, formalArmy, enemyStack, executeOnWin, report);
+            }
+            else
+            {
+                ApplyLegacyStackEnemyOutcome(world, enemyStack, executeOnWin, report);
+            }
+
+            ArmyStackAdapter.SyncDownedCountsFromMembers(world, enemyStack);
+            report.Summary = BuildSummary(report, playerWon: true, executeOnWin, debugForced);
+            return report;
+        }
+
+        static void ApplyLegacyStackEnemyOutcome(
+            SimulationWorld world,
+            ArmyStack enemyStack,
+            bool executeOnWin,
+            AutoBattleReport report)
+        {
             var members = Math.Max(1, enemyStack.MemberCount);
             if (executeOnWin)
             {
-                // 处决＝跳过弥留直接阵亡+尸体；栈保留至尸体腐烂（非瞬间消失）
                 report.EnemyMembersEliminated = members;
                 report.EnemyMembersSpared = 0;
                 enemyStack.MemberCount = members;
@@ -63,7 +82,6 @@ namespace XianXia.Core.World.Strategic
             }
             else
             {
-                // 未勾选处决：不记阵亡，全员弥留残留在接战点
                 report.EnemyMembersEliminated = 0;
                 report.EnemyMembersSpared = members;
                 enemyStack.MemberCount = members;
@@ -73,12 +91,51 @@ namespace XianXia.Core.World.Strategic
                 enemyStack.CombatPower = Math.Max(1, enemyStack.CombatPower);
                 enemyStack.RemainingTravelTicks = 0;
                 enemyStack.TravelTotalTicks = 0;
-                // 若曾进过 LocalMap：场上存活敌军也同步进弥留，避免与栈人数不一致
                 StrategicEncounterSpawner.ApplyIncapacitatedToLivingTrackedSpawns(world);
             }
+        }
 
-            report.Summary = BuildSummary(report, playerWon: true, executeOnWin, debugForced);
-            return report;
+        static void ApplyFormalArmyEnemyOutcome(
+            SimulationWorld world,
+            FormalArmy formalArmy,
+            ArmyStack enemyStack,
+            bool executeOnWin,
+            AutoBattleReport report)
+        {
+            var eliminated = 0;
+            var spared = 0;
+            for (var i = 0; i < formalArmy.MemberCharacterIds.Count; i++)
+            {
+                var id = new EntityId(formalArmy.MemberCharacterIds[i]);
+                if (id.IsNone || !world.Entities.TryGet(id, out var entity) || entity == null)
+                    continue;
+                if (!CombatLifeStateService.CanFight(entity) &&
+                    !CombatLifeStateService.CanBeAttacked(entity))
+                    continue;
+
+                if (executeOnWin)
+                {
+                    CombatDamageRules.EnsureVitals(entity);
+                    if (entity.TryGet<CombatVitalsComponent>(out var vitals))
+                        vitals.CurrentHp = 0;
+                    if (CombatLifeStateService.TryConfirmDeath(world, EntityId.None, entity, out _))
+                        eliminated++;
+                }
+                else if (CombatLifeStateService.TryEnterIncapacitated(world, entity))
+                {
+                    spared++;
+                }
+            }
+
+            report.EnemyMembersEliminated = eliminated;
+            report.EnemyMembersSpared = spared;
+            enemyStack.IsBattlefieldRemnant = true;
+            enemyStack.RemainingTravelTicks = 0;
+            enemyStack.TravelTotalTicks = 0;
+            if (executeOnWin)
+                StrategicEncounterSpawner.ApplyCorpseToLivingTrackedSpawns(world);
+            else
+                StrategicEncounterSpawner.ApplyIncapacitatedToLivingTrackedSpawns(world);
         }
 
         public static AutoBattleReport ApplyPlayerDefeat(

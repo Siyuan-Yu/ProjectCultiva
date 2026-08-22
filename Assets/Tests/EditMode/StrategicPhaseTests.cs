@@ -93,12 +93,14 @@ namespace XianXia.Tests
         public void Phase4_DayHandler_SpawnsBanditPatrolOnce()
         {
             var world = StartCh01().World;
-            world.Strategic.Armies.Remove("army:bandit_patrol_auto");
+            world.Strategic.Armies.Remove(ArmyStackAdapter.BanditScoutStackId);
             var handler = new StrategicDayHandler();
             handler.OnDayStarted(world, 1);
-            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_auto", out var stack));
+            Assert.IsTrue(world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditScoutStackId, out var stack));
             Assert.IsNotNull(stack);
+            Assert.IsTrue(ArmyStackAdapter.HasFormalArmyLink(stack));
             Assert.AreEqual(StrategicFactionCatalog.BanditId, stack.FactionId);
+            Assert.AreEqual(4, ArmyStackAdapter.GetMemberCount(world, stack));
             Assert.IsTrue(stack.IsTraveling || !string.IsNullOrEmpty(stack.NodeId));
         }
 
@@ -405,8 +407,9 @@ namespace XianXia.Tests
                 2);
             world.PartyWorld.LocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
             Assert.IsTrue(StrategicEncounterSpawner.ApplyPending(world).IsSuccess);
-            Assert.AreEqual(3, stack.MemberCount);
-            Assert.AreEqual(3, world.Strategic.Encounter.SpawnedEntityIds.Count);
+            var expectedLiving = ArmyStackAdapter.GetMemberCount(world, stack);
+            Assert.AreEqual(expectedLiving, stack.MemberCount);
+            Assert.AreEqual(expectedLiving, world.Strategic.Encounter.SpawnedEntityIds.Count);
 
             var first = new EntityId(world.Strategic.Encounter.SpawnedEntityIds[0]);
             if (world.Entities.TryGet(first, out var entity) &&
@@ -746,7 +749,7 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void LingeringOffer_OnlyDecisionMakerLivingIsMandatory()
+        public void LingeringOffer_ActingArmyLivingMembersAreMandatory_NotPerCharacterOptional()
         {
             var session = StartCh01();
             var world = session.World;
@@ -779,17 +782,6 @@ namespace XianXia.Tests
                 world, roster, downed, "残留战场", decisionMakers));
 
             var snap = world.Strategic.Participants;
-            var mandatoryLiving = 0;
-            for (var i = 0; i < snap.Records.Count; i++)
-            {
-                var rec = snap.Records[i];
-                if (rec.Kind != BattleParticipantKind.MandatoryFriendly || rec.EntityId.IsNone)
-                    continue;
-                if (LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, rec.EntityId))
-                    mandatoryLiving++;
-            }
-
-            Assert.AreEqual(1, mandatoryLiving, "仅行动决定人应强制参战");
             Assert.AreEqual(
                 BattleParticipantKind.MandatoryFriendly,
                 snap.FindByEntity(living).Kind);
@@ -806,8 +798,10 @@ namespace XianXia.Tests
                 var rec = snap.FindByEntity(id);
                 if (rec == null)
                     continue;
-                Assert.AreEqual(BattleParticipantKind.OptionalFriendly, rec.Kind);
-                Assert.IsFalse(rec.Selected);
+                Assert.AreNotEqual(
+                    BattleParticipantKind.OptionalFriendly,
+                    rec.Kind,
+                    "散装角色不应再逐人出现在可选支援名单");
             }
         }
 
@@ -1061,6 +1055,7 @@ namespace XianXia.Tests
                 Assert.IsTrue(StrategicEncounterResolveService.ResolveAndEnd(world).IsSuccess);
                 Assert.IsTrue(BattleOfferService.HasLingeringBattlefield(world));
                 Assert.IsTrue(LingeringBattlefieldPartyService.IsIncapacitated(world, id));
+                Assert.IsFalse(ArmyService.TryGetArmyForCharacter(world, id, out _));
                 Assert.IsTrue(world.WorldPresence.TryGet(id, out var wp));
                 Assert.IsFalse(string.IsNullOrEmpty(wp.NodeId));
             }
@@ -1268,6 +1263,47 @@ namespace XianXia.Tests
             Assert.IsTrue(world.Entities.TryGet(allyId, out allyEnt));
             Assert.IsTrue(allyEnt.TryGet<XianXia.Core.Entities.LifecycleComponent>(out allyLife));
             Assert.AreEqual(allyBleedSaved, allyLife.BleedOutAfterTick, "再进不得刷新我方弥留倒计时");
+        }
+
+        [Test]
+        public void FormalArmy_AutoBattleRemnant_DoesNotDuplicateGenericGrunts()
+        {
+            var session = StartCh01();
+            var world = session.World;
+            Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var stack));
+            Assert.IsTrue(ArmyStackAdapter.TryGetFormalArmy(world, stack, out var army));
+
+            for (var i = 0; i < army.MemberCharacterIds.Count; i++)
+            {
+                var id = new EntityId(army.MemberCharacterIds[i]);
+                Assert.IsTrue(world.Entities.TryGet(id, out var entity));
+                Assert.IsTrue(XianXia.Core.Combat.CombatLifeStateService.TryEnterIncapacitated(world, entity));
+            }
+
+            ArmyStackAdapter.SyncDownedCountsFromMembers(world, stack);
+            stack.IsBattlefieldRemnant = true;
+            world.Strategic.Encounter.ArmyStackId = stack.Id;
+
+            var snap = BattleParticipantSnapshotBuilder.BuildArmyVsArmy(
+                world,
+                string.Empty,
+                stack,
+                "test:auto-remnant");
+            StrategicEncounterSpawner.EnsureMacroRemnantSpawns(world, snap);
+
+            Assert.AreEqual(
+                army.MemberCharacterIds.Count,
+                world.Strategic.Encounter.SpawnedEntityIds.Count,
+                "残留应只跟踪 FormalArmy 成员，不应额外刷 generic 山贼");
+
+            for (var i = 0; i < world.Strategic.Encounter.SpawnedEntityIds.Count; i++)
+            {
+                var tracked = new EntityId(world.Strategic.Encounter.SpawnedEntityIds[i]);
+                Assert.IsTrue(army.ContainsMember(tracked));
+                Assert.IsTrue(world.Entities.TryGet(tracked, out var ent));
+                Assert.IsTrue(ent.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var life));
+                Assert.IsTrue(life.IsIncapacitated);
+            }
         }
 
         static int CountTrackedEnemyDownedSpawns(XianXia.Core.Simulation.SimulationWorld world)

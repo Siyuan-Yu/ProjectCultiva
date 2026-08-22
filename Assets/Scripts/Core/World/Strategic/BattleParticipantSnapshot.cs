@@ -72,6 +72,7 @@ namespace XianXia.Core.World.Strategic
         public BattleParticipantKind Kind { get; set; }
         public EntityId EntityId { get; set; }
         public string ArmyStackId { get; set; } = string.Empty;
+        public string FormalArmyId { get; set; } = string.Empty;
         public string DisplayLabel { get; set; } = string.Empty;
         public int CombatPower { get; set; }
         /// <summary>可选支援：玩家是否勾选加入。</summary>
@@ -88,6 +89,8 @@ namespace XianXia.Core.World.Strategic
         public string BattleAnchorRouteId { get; set; } = string.Empty;
         public float BattleAnchorProgress { get; set; } = -1f;
         public string PrimaryEnemyStackId { get; set; } = string.Empty;
+        public string AttackerArmyId { get; set; } = string.Empty;
+        public string DefenderArmyId { get; set; } = string.Empty;
         public string EncounterLocalMapId { get; set; } =
             StrategicEncounterCatalog.DefaultEncounterLocalMapId;
         public string LastBattleSummary { get; set; } = string.Empty;
@@ -107,6 +110,8 @@ namespace XianXia.Core.World.Strategic
             BattleAnchorRouteId = string.Empty;
             BattleAnchorProgress = -1f;
             PrimaryEnemyStackId = string.Empty;
+            AttackerArmyId = string.Empty;
+            DefenderArmyId = string.Empty;
             EncounterLocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
             LastBattleSummary = string.Empty;
             PlayerWon = false;

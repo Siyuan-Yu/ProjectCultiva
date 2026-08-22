@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Entities;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Strategic;
 
@@ -188,7 +189,7 @@ namespace XianXia.Unity.Host
             var world = session.World;
             GUI.depth = -90;
             DrawDim();
-            var box = new Rect(Screen.width * 0.5f - 240f, Screen.height * 0.5f - 130f, 480f, 260f);
+            var box = new Rect(Screen.width * 0.5f - 240f, Screen.height * 0.5f - 170f, 480f, 340f);
             Fill(box, Parchment);
             DrawFrame(box, ParchmentDark);
             GUI.Label(
@@ -201,8 +202,13 @@ namespace XianXia.Unity.Host
                     ? "自动战斗胜利。"
                     : "自动战斗失利。";
             GUI.Label(
-                new Rect(box.x + 16f, box.y + 52f, box.width - 32f, 120f),
-                summary + "\n\n确认后返回战略层并恢复时间。",
+                new Rect(box.x + 16f, box.y + 52f, box.width - 32f, 72f),
+                summary,
+                _body);
+            DrawBattleAftermathSection(world, new Rect(box.x + 16f, box.y + 128f, box.width - 32f, 140f));
+            GUI.Label(
+                new Rect(box.x + 16f, box.y + 272f, box.width - 32f, 24f),
+                "确认后返回战略层并恢复时间。",
                 _body);
             if (GUI.Button(new Rect(box.x + 16f, box.y + box.height - 48f, box.width - 32f, 32f), "确认结算"))
                 ConfirmEndBattle(session);
@@ -212,9 +218,8 @@ namespace XianXia.Unity.Host
         {
             var world = session.World;
             GUI.depth = -40;
-            // 非强制：不遮罩、不挡操作；点「结束战斗」才 Resolve
             var barW = 420f;
-            var barH = 64f;
+            var barH = 210f;
             var box = new Rect(Screen.width - barW - 16f, Screen.height - barH - 72f, barW, barH);
             Fill(box, Parchment);
             DrawFrame(box, ParchmentDark);
@@ -222,8 +227,73 @@ namespace XianXia.Unity.Host
             if (string.IsNullOrEmpty(summary))
                 summary = "敌军已清空。可补刀／交互；点结束才结算。";
             GUI.Label(new Rect(box.x + 10f, box.y + 6f, box.width - 140f, 52f), summary, _body);
-            if (GUI.Button(new Rect(box.xMax - 128f, box.y + 14f, 116f, 36f), "结束战斗"))
+            DrawBattleAftermathSection(world, new Rect(box.x + 10f, box.y + 58f, box.width - 20f, 110f));
+            if (GUI.Button(new Rect(box.xMax - 128f, box.y + box.height - 40f, 116f, 32f), "结束战斗"))
                 ConfirmEndBattle(session);
+        }
+
+        void DrawBattleAftermathSection(SimulationWorld world, Rect rect)
+        {
+            GUI.Label(new Rect(rect.x, rect.y, rect.width, 20f), "Battle Aftermath [ACCEPTANCE]", _title);
+            var report = StrategicAcceptanceInspector.BuildAftermathReport(world);
+            var y = rect.y + 22f;
+            y = DrawAftermathList(rect, y, "Captured:", report.Captured, world);
+            y = DrawAftermathList(rect, y, "Escaped:", report.Escaped, world);
+            y = DrawRetreatingList(rect, y, report.RetreatingArmies, world);
+        }
+
+        float DrawAftermathList(Rect rect, float y, string header, List<EntityId> ids, SimulationWorld world)
+        {
+            GUI.Label(new Rect(rect.x, y, rect.width, 18f), header, _body);
+            y += 18f;
+            if (ids == null || ids.Count == 0)
+            {
+                GUI.Label(new Rect(rect.x + 8f, y, rect.width - 8f, 16f), "None", _body);
+                return y + 18f;
+            }
+
+            for (var i = 0; i < ids.Count; i++)
+            {
+                var label = ResolveCharacterLabel(world, ids[i]);
+                GUI.Label(new Rect(rect.x + 8f, y, rect.width - 8f, 16f), "- " + label, _body);
+                y += 16f;
+            }
+
+            return y + 2f;
+        }
+
+        float DrawRetreatingList(Rect rect, float y, List<RetreatingArmy> armies, SimulationWorld world)
+        {
+            GUI.Label(new Rect(rect.x, y, rect.width, 18f), "Retreating Army:", _body);
+            y += 18f;
+            if (armies == null || armies.Count == 0)
+            {
+                GUI.Label(new Rect(rect.x + 8f, y, rect.width - 8f, 16f), "None", _body);
+                return y + 18f;
+            }
+
+            for (var i = 0; i < armies.Count; i++)
+            {
+                var army = armies[i];
+                if (army == null)
+                    continue;
+                GUI.Label(new Rect(rect.x + 8f, y, rect.width - 8f, 16f),
+                    "- " + army.RetreatingArmyId + " (" + army.FactionId + ", members=" +
+                    army.MemberCharacterIds.Count + ")",
+                    _body);
+                y += 16f;
+            }
+
+            return y + 2f;
+        }
+
+        static string ResolveCharacterLabel(SimulationWorld world, EntityId id)
+        {
+            if (id.IsNone || world?.Entities == null || !world.Entities.TryGet(id, out var entity) || entity == null)
+                return id.ToString();
+            if (!string.IsNullOrWhiteSpace(entity.DisplayName))
+                return entity.DisplayName;
+            return id.ToString();
         }
 
         void ConfirmEndBattle(PlayableHostSession session)
@@ -397,10 +467,58 @@ namespace XianXia.Unity.Host
             }
 
             var anyOptional = false;
+            var drawnArmies = new HashSet<string>(StringComparer.Ordinal);
             for (var i = 0; i < snap.Records.Count; i++)
             {
                 if (snap.Records[i].Kind != BattleParticipantKind.OptionalFriendly)
                     continue;
+                var r = snap.Records[i];
+                if (!string.IsNullOrEmpty(r.FormalArmyId))
+                {
+                    if (drawnArmies.Contains(r.FormalArmyId))
+                        continue;
+                    drawnArmies.Add(r.FormalArmyId);
+                    if (!anyOptional)
+                    {
+                        listY += 6f;
+                        GUI.Label(
+                            new Rect(box.x + 16f, listY, box.width - 32f, 20f),
+                            "可选支援军团（勾选加入；战后回原位置）",
+                            _body);
+                        listY += 20f;
+                        anyOptional = true;
+                    }
+
+                    var armyLabel = r.FormalArmyId;
+                    var armyPower = 0;
+                    var armySelected = true;
+                    if (session.World.Strategic.FormalArmies.TryGet(r.FormalArmyId, out var army) &&
+                        army != null &&
+                        !string.IsNullOrEmpty(army.ArmyId))
+                        armyLabel = army.ArmyId;
+                    for (var j = 0; j < snap.Records.Count; j++)
+                    {
+                        var member = snap.Records[j];
+                        if (member.Kind != BattleParticipantKind.OptionalFriendly)
+                            continue;
+                        if (!string.Equals(member.FormalArmyId, r.FormalArmyId, StringComparison.Ordinal))
+                            continue;
+                        armyPower += member.CombatPower;
+                        if (!member.Selected)
+                            armySelected = false;
+                    }
+
+                    var nextArmy = GUI.Toggle(
+                        new Rect(box.x + 24f, listY, box.width - 40f, 20f),
+                        armySelected,
+                        "军团 " + armyLabel + "  战力 " + armyPower);
+                    if (nextArmy != armySelected)
+                        BattleOfferService.SetOptionalFormalArmySelected(
+                            session.World, r.FormalArmyId, nextArmy);
+                    listY += 22f;
+                    continue;
+                }
+
                 if (!anyOptional)
                 {
                     listY += 6f;
@@ -412,7 +530,6 @@ namespace XianXia.Unity.Host
                     anyOptional = true;
                 }
 
-                var r = snap.Records[i];
                 var next = GUI.Toggle(
                     new Rect(box.x + 24f, listY, box.width - 40f, 20f),
                     r.Selected,

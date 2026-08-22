@@ -36,6 +36,29 @@ namespace XianXia.Core.World.Strategic
         public static bool IsLingeringDowned(SimulationWorld world, EntityId id) =>
             IsIncapacitated(world, id) || IsVisibleCorpse(world, id);
 
+        /// <summary>
+        /// 我方弥留／尸体：可右键「进入残留战场」或「前往并进入」。
+        /// 敌方弥留／尸体须派军团进攻，抵达后弹接战窗，选手动战斗进入。
+        /// </summary>
+        public static bool IsFriendlyLingeringDowned(SimulationWorld world, EntityId id)
+        {
+            if (!IsLingeringDowned(world, id))
+                return false;
+            return IsFriendlyCharacterForLingeringVisit(world, id);
+        }
+
+        public static bool IsFriendlyCharacterForLingeringVisit(SimulationWorld world, EntityId id)
+        {
+            if (world == null || id.IsNone || !world.Entities.TryGet(id, out var ent) || ent == null)
+                return false;
+            if ((ent.Tags & EntityTag.Npc) != 0)
+                return false;
+            var playerFaction = world.Strategic?.PlayerFactionId ?? StrategicFactionCatalog.PlayerFactionId;
+            var faction = ArmyService.ResolveCharacterFactionId(world, id);
+            return !string.IsNullOrEmpty(faction) &&
+                   string.Equals(faction, playerFaction, StringComparison.Ordinal);
+        }
+
         public static bool IsLivingForMacroOrder(SimulationWorld world, EntityId id)
         {
             if (world == null || id.IsNone || !world.Entities.TryGet(id, out var ent) || ent == null)
@@ -64,7 +87,7 @@ namespace XianXia.Core.World.Strategic
 
             if (!TryResolveBattleAnchor(world, focusIncap, out var anchorNode, out var anchorRoute, out var anchorProgress))
             {
-                if (!focusIncap.IsNone && IsLingeringDowned(world, focusIncap))
+                if (!focusIncap.IsNone && IsFriendlyLingeringDowned(world, focusIncap))
                 {
                     into.Add(focusIncap);
                     return true;
@@ -75,6 +98,7 @@ namespace XianXia.Core.World.Strategic
 
             AppendMandatoryLivingInRange(
                 world, mandatoryLiving, anchorNode, anchorRoute, anchorProgress, into);
+            ArmyMacroPartyQueries.ExpandMandatoryLivingToFormalArmies(world, into);
             // 支援范围内我方弥留／可见尸体：全部强制进场
             AppendIncapacitatedInRange(world, roster, anchorNode, anchorRoute, anchorProgress, into);
             EnsureFocusIncapInParty(world, focusIncap, into);
@@ -153,7 +177,7 @@ namespace XianXia.Core.World.Strategic
             EntityId focusIncap,
             List<EntityId> into)
         {
-            if (into == null || focusIncap.IsNone || !IsLingeringDowned(world, focusIncap))
+            if (into == null || focusIncap.IsNone || !IsFriendlyLingeringDowned(world, focusIncap))
                 return;
             for (var i = 0; i < into.Count; i++)
             {
@@ -172,7 +196,7 @@ namespace XianXia.Core.World.Strategic
             List<EntityId> scratch,
             IReadOnlyList<EntityId> mandatoryLiving = null)
         {
-            if (scratch == null)
+            if (scratch == null || !IsFriendlyLingeringDowned(world, focusIncap))
                 return false;
             return CollectViewParty(world, roster, focusIncap, scratch, mandatoryLiving) &&
                    scratch.Count > 0;

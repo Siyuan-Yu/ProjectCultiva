@@ -18,6 +18,8 @@
 5. **Node 防御来自真实世界状态。** Resident Character + Garrison Army + Formation；禁止临时凭空刷修士。
 6. **战略战斗结果必须改变真实世界。** 死亡、伤势、Army 损失、Node Ownership、资源变化最终都回写真实世界状态。
 
+> **Development Acceptance UI（2026-08-22）：** Host `StrategicAcceptancePanel`（F8）为 **非产品 UX**，仅供制作人 Unity 内手操验证 War/Alliance/Vassalage/Army/Aftermath/Snapshot Domain；不是正式外交界面。
+
 ---
 
 ## 0. 与现有系统的关系
@@ -819,3 +821,21 @@ CombatPower 算法：**本轮不重新设计**；沿用／参考现有自动战�
 |------|------|
 | 2026-08-22 | 初版：制作人拍板战略 Faction / Army / Diplomacy / Capture 框架；仅文档，未编码 |
 | 2026-08-22 | 第二轮：己方 Node 编组限制；驻扎不自动解散；统一 FactionId；禁止混编；无战后保护期；一势力一 Alliance + 联盟战争绑定；Capture 收尾与残余守军结算 |
+| 2026-08-22 | Final Closure：Ch01 Scenario 边界 — 开局从属为 Scenario state（非 Generic Vassalage）；荒村 Capture → 玩家政治成立 → 与旧宗门 War → 未来 Vassalage 谈判（Hook only，数值/UI DEFER） |
+
+---
+
+## 44. Ch01 Opening Scenario 边界（Final Closure，2026-08-22）
+
+**原则：** Generic Domain 回答「Faction / Army / War / Vassalage **怎么工作**」；Ch01 Scenario 回答「**什么时候**发生」。
+
+| 阶段 | 语义 | 实现边界 |
+|------|------|----------|
+| Stage 0 开局压榨 | 玩家尚未完成政治成立的独立势力；处于上级体系控制下 | **Scenario-level** provisional dependency（flag / story state）；**禁止**为描述开局强行 `CreateVassalage` |
+| Stage 1 夺取荒村 | 全部 CaptureObjectives 完成 → `Node.OwnerFactionId` 易主 → 玩家取得第一块真正领土 | Domain：`CaptureObjectiveService` + Owner 真源；Scenario Hook：`Ch01ScenarioProgressionHooks`（**不**在 Capture Domain 硬编码 DeclareWar） |
+| Stage 2 与旧宗门 War | 荒村 Capture 后玩家政治激活 → `DeclareWar(PlayerFaction, FormerOverlordSect)` | **Scenario Progression** 触发；**禁止** Generic `StrategicBootstrap` 自动剧情战争 |
+| Stage 3 附庸谈判 | 战争推进后旧宗门主动 Offer Vassalage | Hook：`OfferVassalageNegotiation` → 正式 `VassalageBoard`；谈判 UI / 时间 / AI / 数值 **DEFER** |
+
+**Prototype 回归例外：** Ch01 对 Bandit 的自动 `DeclareWar` 仅允许存在于 `Ch01ScenarioStrategicSetup.ApplyPrototypeRegressionDiplomacy`（非正式剧情战争）。
+
+**Cross-ref：** `152` §1.7 presence-based friendly node；`Ch01ScenarioArmyFormationPolicy`（Scenario Adapter only）。

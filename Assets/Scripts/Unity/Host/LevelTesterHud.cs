@@ -32,6 +32,13 @@ namespace XianXia.Unity.Host
             if (!visible || bootstrap == null)
                 return;
 
+            if (bootstrap.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen)
+                return;
+
+            var formalHud = bootstrap.GetComponent<HostFormalHud>();
+            if (formalHud != null && formalHud.IsHudVisible)
+                return;
+
             const float pad = 8f;
             var w = Mathf.Min(720f, Screen.width - 16f);
             GUI.Box(new Rect(pad, pad, w, 96f), GUIContent.none);

@@ -78,9 +78,13 @@ namespace XianXia.Data.Bootstrap
                             entry.DefinitionId + ":" + entry.FactionRole);
                     }
 
+                    var spawnFactionId = !string.IsNullOrWhiteSpace(entry.FactionId)
+                        ? entry.FactionId.Trim()
+                        : factionId;
+
                     if (!entity.TryGet<FactionMembershipComponent>(out var mem))
                         entity.AddComponent(mem = new FactionMembershipComponent());
-                    mem.Assign(factionId, role);
+                    mem.Assign(spawnFactionId, role);
                 }
 
                 ApplyAiRole(world, entity, entry.AiRole);

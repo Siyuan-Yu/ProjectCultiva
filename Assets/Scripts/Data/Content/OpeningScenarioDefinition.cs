@@ -32,6 +32,8 @@ namespace XianXia.Data.Content
         public string DisplayName { get; set; }
         public bool AssignOpeningFaction { get; set; }
         public string FactionRole { get; set; }
+        /// <summary>可选：覆盖 scenario.openingFactionId（如主角团 vs 压迫宗门 NPC）。</summary>
+        public string FactionId { get; set; }
         public bool BindSchedule { get; set; } = true;
         public bool BindDailyTask { get; set; } = true;
         public bool Recruitable { get; set; }

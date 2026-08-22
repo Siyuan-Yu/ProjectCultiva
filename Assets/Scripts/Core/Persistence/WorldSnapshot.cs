@@ -5,7 +5,9 @@ namespace XianXia.Core.Persistence
 {
     public sealed class WorldSnapshot
     {
-        public const int CurrentSchemaVersion = 1;
+        public const int CurrentSchemaVersion = 2;
+        /// <summary>v1 development saves are explicitly unsupported (Final Closure).</summary>
+        public const int LegacySchemaVersion = 1;
 
         public int SchemaVersion { get; set; } = CurrentSchemaVersion;
         public ulong SnapshotId { get; set; }
@@ -29,6 +31,87 @@ namespace XianXia.Core.Persistence
         public List<OpportunitySiteSnapshotDto> OpportunitySites { get; set; } = new List<OpportunitySiteSnapshotDto>();
         public List<ManualSnapshotDto> Manuals { get; set; } = new List<ManualSnapshotDto>();
         public int ObservationDiscoverChancePercent { get; set; } = 100;
+        public StrategicSnapshotDto Strategic { get; set; } = new StrategicSnapshotDto();
+    }
+
+    public sealed class StrategicSnapshotDto
+    {
+        public string PlayerFactionId { get; set; } = string.Empty;
+        public bool Ch01FormationScenarioCompat { get; set; }
+        public List<FormalArmySnapshotDto> FormalArmies { get; set; } = new List<FormalArmySnapshotDto>();
+        public List<ArmyMembershipSnapshotDto> ArmyMemberships { get; set; } = new List<ArmyMembershipSnapshotDto>();
+        public List<NodeOwnerSnapshotDto> NodeOwners { get; set; } = new List<NodeOwnerSnapshotDto>();
+        public List<WarSnapshotDto> Wars { get; set; } = new List<WarSnapshotDto>();
+        public List<AllianceSnapshotDto> Alliances { get; set; } = new List<AllianceSnapshotDto>();
+        public List<VassalageSnapshotDto> Vassalages { get; set; } = new List<VassalageSnapshotDto>();
+        public List<RetreatingArmySnapshotDto> RetreatingArmies { get; set; } = new List<RetreatingArmySnapshotDto>();
+        public List<CaptureObjectiveSnapshotDto> CaptureObjectives { get; set; } = new List<CaptureObjectiveSnapshotDto>();
+    }
+
+    public sealed class FormalArmySnapshotDto
+    {
+        public string ArmyId { get; set; }
+        public string FactionId { get; set; }
+        public ulong LeaderCharacterId { get; set; }
+        public List<ulong> MemberCharacterIds { get; set; } = new List<ulong>();
+        public string NodeId { get; set; }
+        public int State { get; set; }
+        public string RouteId { get; set; }
+        public string DestNodeId { get; set; }
+        public int RemainingTravelTicks { get; set; }
+        public int TravelTotalTicks { get; set; }
+        public float RouteAnchorProgress { get; set; } = -1f;
+    }
+
+    public sealed class ArmyMembershipSnapshotDto
+    {
+        public ulong CharacterId { get; set; }
+        public string ArmyId { get; set; }
+    }
+
+    public sealed class NodeOwnerSnapshotDto
+    {
+        public string NodeId { get; set; }
+        public string OwnerFactionId { get; set; }
+    }
+
+    public sealed class WarSnapshotDto
+    {
+        public string WarId { get; set; }
+        public bool Active { get; set; }
+        public List<string> Attackers { get; set; } = new List<string>();
+        public List<string> Defenders { get; set; } = new List<string>();
+    }
+
+    public sealed class AllianceSnapshotDto
+    {
+        public string AllianceId { get; set; }
+        public List<string> Members { get; set; } = new List<string>();
+    }
+
+    public sealed class VassalageSnapshotDto
+    {
+        public string VassalFactionId { get; set; }
+        public string OverlordFactionId { get; set; }
+    }
+
+    public sealed class RetreatingArmySnapshotDto
+    {
+        public string RetreatingArmyId { get; set; }
+        public string SourceArmyId { get; set; }
+        public string FactionId { get; set; }
+        public string NodeId { get; set; }
+        public List<ulong> MemberCharacterIds { get; set; } = new List<ulong>();
+    }
+
+    public sealed class CaptureObjectiveSnapshotDto
+    {
+        public string ObjectiveId { get; set; }
+        public string NodeId { get; set; }
+        public string WorkAreaId { get; set; }
+        public int CurrentHp { get; set; }
+        public int MaxHp { get; set; }
+        public bool Completed { get; set; }
     }
 
     public sealed class OpportunitySiteSnapshotDto

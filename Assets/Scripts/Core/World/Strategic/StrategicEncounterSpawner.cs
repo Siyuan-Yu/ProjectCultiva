@@ -227,6 +227,7 @@ namespace XianXia.Core.World.Strategic
 
             rt.FieldCleared = true;
             StrategicPursuitService.ClearPursuit(world);
+            ArmyPostBattleSyncService.RefreshAttackerArmyFromMembers(world);
             StrategicEncounterResolveService.EnterPostBattleIfCleared(world);
             return true;
         }
@@ -331,6 +332,21 @@ namespace XianXia.Core.World.Strategic
             if (!string.IsNullOrEmpty(stackId))
                 world.Strategic.Armies.TryGet(stackId, out stack);
 
+            if (stack != null &&
+                ArmyStackAdapter.TryGetFormalArmy(world, stack, out var formalArmy) &&
+                TryPrepareFormalArmyEncounterEntities(
+                    world,
+                    stack,
+                    formalArmy,
+                    BuildBattleAnchorSnapshotFromStack(stack),
+                    stack.HasDownedRemnant
+                        ? FormalArmyEncounterPick.DownedOnly
+                        : FormalArmyEncounterPick.LivingOnly) > 0)
+            {
+                SyncArmyStackMemberCount(world);
+                return Result.Success();
+            }
+
             var living = CountLivingTracked(world);
             var incap = CountIncapacitatedTracked(world);
             var corpses = CountVisibleCorpseTracked(world);
@@ -395,6 +411,21 @@ namespace XianXia.Core.World.Strategic
                 !stack.HasDownedRemnant)
                 return;
 
+            if (ArmyStackAdapter.TryGetFormalArmy(world, stack, out var formalArmy) &&
+                TryPrepareFormalArmyEncounterEntities(
+                    world,
+                    stack,
+                    formalArmy,
+                    snap,
+                    FormalArmyEncounterPick.DownedOnly) > 0)
+            {
+                StrategicEncounterResolveService.RefreshEnemyDownedWorldPresence(world, snap);
+                SyncArmyStackMemberCount(world);
+                if (HasReusableTrackedPresence(world))
+                    rt.SpawnOnNextMapLoad = false;
+                return;
+            }
+
             var living = CountLivingTracked(world);
             var incap = CountIncapacitatedTracked(world);
             var corpses = CountVisibleCorpseTracked(world);
@@ -427,6 +458,146 @@ namespace XianXia.Core.World.Strategic
             SyncArmyStackMemberCount(world);
             if (HasReusableTrackedPresence(world))
                 rt.SpawnOnNextMapLoad = false;
+        }
+
+        enum FormalArmyEncounterPick
+        {
+            LivingOnly,
+            DownedOnly
+        }
+
+        /// <summary>
+        /// FormalArmy 链接敌军：复用真实成员实体，禁止再刷 strategic_bandit_grunt 占位（否则残留再进会双倍）。
+        /// </summary>
+        static int TryPrepareFormalArmyEncounterEntities(
+            SimulationWorld world,
+            ArmyStack stack,
+            FormalArmy army,
+            BattleParticipantSnapshot anchor,
+            FormalArmyEncounterPick pick)
+        {
+            if (world?.Strategic?.Encounter == null || stack == null || army == null)
+                return 0;
+
+            PruneGenericDuplicateSpawnsForFormalArmy(world, army);
+
+            var rt = world.Strategic.Encounter;
+            var startId = world.WorldRegion.StartLocationId;
+            world.WorldRegion.TryGet(startId, out var startLoc);
+            var baseX = startLoc?.PresentationX ?? 0f;
+            var baseZ = startLoc?.PresentationZ ?? 0f;
+            var slot = 0;
+            var prepared = 0;
+
+            for (var i = 0; i < army.MemberCharacterIds.Count; i++)
+            {
+                var id = new EntityId(army.MemberCharacterIds[i]);
+                if (id.IsNone || !world.Entities.TryGet(id, out var entity) || entity == null)
+                    continue;
+                if (!ShouldIncludeFormalArmyMember(entity, pick))
+                    continue;
+
+                if (!IsTrackedSpawn(world, id))
+                    rt.TrackSpawn(id.Value);
+
+                if (!entity.TryGet<EntityLocationComponent>(out var loc) || loc == null)
+                {
+                    loc = new EntityLocationComponent();
+                    entity.AddComponent(loc);
+                }
+
+                loc.LocationId = startId ?? string.Empty;
+                loc.SetPresentationOverride(baseX + 3.5f + slot * 1.1f, baseZ + 2.2f);
+
+                if (anchor != null)
+                {
+                    if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
+                        wp = world.WorldPresence.GetOrCreate(id);
+                    StrategicEncounterResolveService.PlaceAtBattleAnchor(world, wp, anchor);
+                }
+
+                slot++;
+                prepared++;
+            }
+
+            if (prepared > 0 && anchor != null)
+                StrategicEncounterResolveService.RefreshEnemyDownedWorldPresence(world, anchor);
+
+            return prepared;
+        }
+
+        static void PruneGenericDuplicateSpawnsForFormalArmy(
+            SimulationWorld world,
+            FormalArmy army)
+        {
+            if (world?.Strategic?.Encounter == null || army == null)
+                return;
+
+            var rt = world.Strategic.Encounter;
+            for (var i = rt.SpawnedEntityIds.Count - 1; i >= 0; i--)
+            {
+                var raw = rt.SpawnedEntityIds[i];
+                if (army.ContainsMember(new EntityId(raw)))
+                    continue;
+
+                var id = new EntityId(raw);
+                if (world.Entities.TryGet(id, out var entity) && entity != null)
+                    CombatLifeStateService.FinalizeRemoval(world, entity);
+                else
+                    world.Entities.MarkRemoved(id);
+                rt.RemoveTrackedSpawnAt(i);
+            }
+        }
+
+        static bool ShouldIncludeFormalArmyMember(Entity entity, FormalArmyEncounterPick pick)
+        {
+            if (entity == null || !entity.TryGet<LifecycleComponent>(out var life) || life == null)
+                return false;
+
+            if (pick == FormalArmyEncounterPick.LivingOnly)
+                return CombatLifeStateService.CanFight(entity);
+
+            return life.IsIncapacitated ||
+                   CombatLifeStateService.HasVisibleCorpse(entity);
+        }
+
+        static int CountFormalArmyLivingMembers(SimulationWorld world, FormalArmy army)
+        {
+            if (world == null || army == null)
+                return 0;
+
+            var count = 0;
+            for (var i = 0; i < army.MemberCharacterIds.Count; i++)
+            {
+                var id = new EntityId(army.MemberCharacterIds[i]);
+                if (id.IsNone || !world.Entities.TryGet(id, out var entity) || entity == null)
+                    continue;
+                if (CombatLifeStateService.CanFight(entity))
+                    count++;
+            }
+
+            return count;
+        }
+
+        static BattleParticipantSnapshot BuildBattleAnchorSnapshotFromStack(ArmyStack stack)
+        {
+            var snap = new BattleParticipantSnapshot();
+            if (stack == null)
+                return snap;
+
+            if (stack.IsRoutePositioned)
+            {
+                snap.BattleAnchorRouteId = stack.RouteId ?? string.Empty;
+                snap.BattleAnchorProgress = stack.GetRouteDisplayProgress();
+                snap.BattleAnchorNodeId = stack.NodeId ?? string.Empty;
+                snap.BattleAnchorDestNodeId = stack.DestNodeId ?? string.Empty;
+            }
+            else
+            {
+                snap.BattleAnchorNodeId = stack.NodeId ?? string.Empty;
+            }
+
+            return snap;
         }
 
         static Result SpawnRemnantNpcEntities(
@@ -748,16 +919,33 @@ namespace XianXia.Core.World.Strategic
                 stack == null)
                 return;
 
-            var living = CountLivingTracked(world);
-            var incap = CountIncapacitatedTracked(world);
-            var corpses = CountVisibleCorpseTracked(world);
-            var total = living + incap + corpses;
-            if (total > 0)
+            if (ArmyStackAdapter.TryGetFormalArmy(world, stack, out var formalArmy))
             {
-                stack.MemberCount = total;
-                stack.IncapacitatedMemberCount = incap;
-                stack.CorpseMemberCount = corpses;
-                stack.IsBattlefieldRemnant = living == 0;
+                var living = CountFormalArmyLivingMembers(world, formalArmy);
+                var incap = ArmyStackAdapter.GetIncapacitatedMemberCount(world, stack);
+                var corpses = ArmyStackAdapter.GetCorpseMemberCount(world, stack);
+                var total = living + incap + corpses;
+                if (total > 0)
+                {
+                    stack.MemberCount = total;
+                    stack.IncapacitatedMemberCount = incap;
+                    stack.CorpseMemberCount = corpses;
+                    stack.IsBattlefieldRemnant = living == 0 && (incap > 0 || corpses > 0);
+                    ArmyStackAdapter.RefreshDerivedPresentation(world, stack);
+                    return;
+                }
+            }
+
+            var livingTracked = CountLivingTracked(world);
+            var incapTracked = CountIncapacitatedTracked(world);
+            var corpsesTracked = CountVisibleCorpseTracked(world);
+            var totalTracked = livingTracked + incapTracked + corpsesTracked;
+            if (totalTracked > 0)
+            {
+                stack.MemberCount = totalTracked;
+                stack.IncapacitatedMemberCount = incapTracked;
+                stack.CorpseMemberCount = corpsesTracked;
+                stack.IsBattlefieldRemnant = livingTracked == 0;
                 return;
             }
 

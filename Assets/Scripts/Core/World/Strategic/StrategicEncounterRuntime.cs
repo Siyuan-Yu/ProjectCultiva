@@ -16,6 +16,8 @@ namespace XianXia.Core.World.Strategic
         public string ArmyStackId { get; set; } = string.Empty;
         public string EncounterLinkId { get; set; } = string.Empty;
         public string PursueStackId { get; set; } = string.Empty;
+        public string PursueAttackerArmyId { get; set; } = string.Empty;
+        public string PursueDefenderArmyId { get; set; } = string.Empty;
         public int FallbackMemberCount { get; set; } = StrategicEncounterCatalog.DefaultFallbackMemberCount;
         public int FallbackCombatPowerPerMember { get; set; } = StrategicEncounterCatalog.DefaultFallbackCombatPower;
         readonly List<ulong> _spawnedEntityIds = new List<ulong>(8);
@@ -104,6 +106,8 @@ namespace XianXia.Core.World.Strategic
         public void ClearPursuit()
         {
             PursueStackId = string.Empty;
+            PursueAttackerArmyId = string.Empty;
+            PursueDefenderArmyId = string.Empty;
             ClearPursueParty();
         }
     }

@@ -257,7 +257,31 @@ namespace XianXia.Core.Simulation
                 throw new System.ArgumentException("WorkAreaDefinition.Id required.");
             _workAreas[definition.Id] = definition;
             ControlCores.RegisterOrRefresh(definition);
+            if (definition.IsControlCore &&
+                ControlCores.TryGet(definition.Id, out var core) &&
+                core != null)
+            {
+                var nodeId = ResolveNodeIdForLocation(definition.LocationId);
+                CaptureObjectiveService.RegisterControlCore(this, core, nodeId);
+            }
         }
+
+        static string ResolveNodeIdForLocation(SimulationWorld world, string locationId)
+        {
+            if (world?.WorldGraph == null || string.IsNullOrEmpty(locationId))
+                return string.Empty;
+            foreach (var kv in world.WorldGraph.Nodes)
+            {
+                var node = kv.Value;
+                if (node != null &&
+                    string.Equals(node.LocalMapId, locationId, System.StringComparison.Ordinal))
+                    return node.Id;
+            }
+
+            return string.Empty;
+        }
+
+        string ResolveNodeIdForLocation(string locationId) => ResolveNodeIdForLocation(this, locationId);
 
         public bool TryGetWorkArea(string id, out WorkAreaDefinition definition)
         {

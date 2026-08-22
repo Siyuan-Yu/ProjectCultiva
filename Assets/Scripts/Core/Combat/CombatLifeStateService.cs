@@ -79,6 +79,8 @@ namespace XianXia.Core.Combat
                 return null;
             if (life.IsIncapacitated)
                 return "弥留";
+            if (life.State == LifecycleState.Captured)
+                return "被俘";
             if (life.IsDead && entity.TryGet<CorpseComponent>(out _))
                 return "尸体";
             if (life.IsDead)
@@ -158,6 +160,22 @@ namespace XianXia.Core.Combat
 
             life.State = LifecycleState.Incapacitated;
             life.BleedOutAfterTick = world.Tick.Value + BleedOutDurationTicks;
+            return true;
+        }
+
+        /// <summary>Phase J：战俘状态（不可战斗；概率公式 DEFER）。</summary>
+        public static bool TryEnterCaptured(
+            SimulationWorld world,
+            Entity entity,
+            string captorFactionId = null)
+        {
+            if (world == null || entity == null || !entity.TryGet<LifecycleComponent>(out var life))
+                return false;
+            if (life.State != LifecycleState.Alive && !life.IsIncapacitated)
+                return false;
+
+            life.State = LifecycleState.Captured;
+            life.ClearBleedOut();
             return true;
         }
 

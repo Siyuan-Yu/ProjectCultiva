@@ -15,7 +15,7 @@ namespace XianXia.Core.World.Strategic
             if (string.IsNullOrEmpty(factionId))
                 return "无归属";
             if (string.Equals(factionId, PlayerFactionId, StringComparison.Ordinal))
-                return "玩家";
+                return "主角团";
             if (string.Equals(factionId, HuangcunLaborId, StringComparison.Ordinal))
                 return "压迫宗门";
             if (string.Equals(factionId, FisherVillageId, StringComparison.Ordinal))

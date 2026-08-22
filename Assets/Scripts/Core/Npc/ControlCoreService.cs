@@ -9,6 +9,7 @@ using XianXia.Core.Exploration;
 using XianXia.Core.Results;
 using XianXia.Core.Settlement;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Npc
 {
@@ -97,19 +98,32 @@ namespace XianXia.Core.Npc
         }
 
         /// <summary>Capture after breach + occupy hold completed; grants content privileges.</summary>
-        public static Result TryCapture(SimulationWorld world, string workAreaId)
+        public static Result TryCapture(
+            SimulationWorld world,
+            string workAreaId,
+            string attackerFactionId = null)
         {
             if (world == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "world null");
-            if (!world.ControlCores.TryGet(workAreaId, out _))
+            if (!world.ControlCores.TryGet(workAreaId, out var core))
                 return Result.Failure(ErrorCode.NotFound, "No control core.");
-            if (!world.ControlCores.TryCapture(workAreaId, out var core))
+            if (core.PlayerControlled)
+                return Result.Failure(ErrorCode.InvalidOperation, "Already player-controlled.");
+            if (!core.CaptureAvailable)
                 return Result.Failure(ErrorCode.InvalidOperation, "Occupy hold not finished.");
 
-            world.Flags.Set("settlement_player_controlled");
-            world.Flags.Set("control_core_owned:" + workAreaId);
-            world.Flags.Clear("control_core_capture_available");
-            world.SettlementAuthority.GrantAll(core.GrantsPrivileges);
+            attackerFactionId ??= world.Strategic?.PlayerFactionId ?? StrategicFactionCatalog.PlayerFactionId;
+            var assault = CaptureObjectiveService.TryBeginMilitaryAssault(world, attackerFactionId, workAreaId);
+            if (assault.IsFailure)
+                return assault;
+
+            if (!world.ControlCores.TryCapture(workAreaId, out core))
+                return Result.Failure(ErrorCode.InvalidOperation, "Occupy hold not finished.");
+
+            var complete = CaptureObjectiveService.TryCompleteNodeCapture(world, attackerFactionId, workAreaId);
+            if (complete.IsFailure)
+                return complete;
+
             world.Events.Publish(
                 EventType.ControlCoreCaptured,
                 world.Tick,

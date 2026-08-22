@@ -48,6 +48,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostCommandBridge commandBridge;
         [SerializeField] HostDebugHud debugHud;
         [SerializeField] HostContentDebugPanel contentDebugPanel;
+        [SerializeField] HostStrategicAcceptancePanel strategicAcceptancePanel;
         [SerializeField] HostEventFeed eventFeed;
         [SerializeField] HostSnapshotPanel snapshotPanel;
         [SerializeField] HostMapGraybox mapGraybox;
@@ -111,6 +112,8 @@ namespace XianXia.Unity.Host
         public HostDebugHud DebugHud => debugHud;
 
         public HostContentDebugPanel ContentDebugPanel => contentDebugPanel;
+
+        public HostStrategicAcceptancePanel StrategicAcceptancePanel => strategicAcceptancePanel;
 
         public HostEventFeed EventFeed => eventFeed;
 
@@ -404,6 +407,9 @@ namespace XianXia.Unity.Host
             if (contentDebugPanel == null)
                 contentDebugPanel = GetComponent<HostContentDebugPanel>() ??
                                    gameObject.AddComponent<HostContentDebugPanel>();
+            if (strategicAcceptancePanel == null)
+                strategicAcceptancePanel = GetComponent<HostStrategicAcceptancePanel>() ??
+                                          gameObject.AddComponent<HostStrategicAcceptancePanel>();
             if (eventFeed == null)
                 eventFeed = GetComponent<HostEventFeed>() ?? gameObject.AddComponent<HostEventFeed>();
             if (snapshotPanel == null)
@@ -667,6 +673,8 @@ namespace XianXia.Unity.Host
                 workLoop.Bind(this, commandBridge, moveController);
             debugHud.Bind(this, selectionController);
             contentDebugPanel.Bind(this, selectionController);
+            if (strategicAcceptancePanel != null)
+                strategicAcceptancePanel.Bind(this);
             moveController.Bind(this, selectionController, entityViewSpawner, commandBridge, npcContextMenu);
             var pathPreview = GetComponent<HostPartyPathPreview>();
             if (pathPreview != null)
@@ -757,6 +765,9 @@ namespace XianXia.Unity.Host
             if (contentDebugPanel == null)
                 contentDebugPanel = GetComponent<HostContentDebugPanel>() ??
                                    gameObject.AddComponent<HostContentDebugPanel>();
+            if (strategicAcceptancePanel == null)
+                strategicAcceptancePanel = GetComponent<HostStrategicAcceptancePanel>() ??
+                                          gameObject.AddComponent<HostStrategicAcceptancePanel>();
             if (eventFeed == null)
                 eventFeed = GetComponent<HostEventFeed>() ?? gameObject.AddComponent<HostEventFeed>();
 
@@ -770,6 +781,8 @@ namespace XianXia.Unity.Host
             commandBridge.Bind(_session, selectionController);
             debugHud.Bind(this, selectionController);
             contentDebugPanel.Bind(this, selectionController);
+            if (strategicAcceptancePanel != null)
+                strategicAcceptancePanel.Bind(this);
             eventFeed.Clear();
             DispatchDrainedEvents();
             FrameCameraOnSlots();

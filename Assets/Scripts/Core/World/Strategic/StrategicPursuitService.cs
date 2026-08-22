@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Entities;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 
@@ -16,9 +17,45 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic == null || stack == null || party == null || party.Count == 0)
                 return;
 
+            ArmyStackAdapter.TryResolveAttackerArmyId(world, party, out var attackerArmyId);
+            BeginPursuitInternal(world, party, stack, attackerArmyId);
+        }
+
+        /// <summary>Phase E：Army 追 Army Adapter（内部仍写 CombatPursuitStackId）。</summary>
+        public static void BeginPursuitArmy(
+            SimulationWorld world,
+            string attackerArmyId,
+            ArmyStack defenderStack)
+        {
+            if (world?.Strategic == null || defenderStack == null || string.IsNullOrEmpty(attackerArmyId))
+                return;
+            if (!world.Strategic.FormalArmies.TryGet(attackerArmyId, out var attackerArmy) || attackerArmy == null)
+                return;
+
+            var party = ArmyStackAdapter.CollectLivingMemberIds(world, attackerArmy);
+            if (party.Count == 0)
+                return;
+
+            BeginPursuitInternal(world, party, defenderStack, attackerArmyId);
+        }
+
+        static void BeginPursuitInternal(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> party,
+            ArmyStack stack,
+            string attackerArmyId)
+        {
+            if (world?.Strategic == null || stack == null || party == null || party.Count == 0)
+                return;
+            if (string.IsNullOrEmpty(attackerArmyId) && ContainsPlayerAgent(world, party))
+                return;
+
             world.Strategic.ClearArrivalNotice();
             var rt = world.Strategic.Encounter;
             var stackId = stack.Id ?? string.Empty;
+            rt.PursueAttackerArmyId = attackerArmyId ?? string.Empty;
+            ArmyStackAdapter.TryResolveDefenderArmyId(stack, out var defenderArmyId);
+            rt.PursueDefenderArmyId = defenderArmyId ?? string.Empty;
 
             // 同栈增援：合并追击名单，勿覆盖先到者／仍在路上的人
             if (string.Equals(rt.PursueStackId, stackId, System.StringComparison.Ordinal) &&
@@ -212,21 +249,49 @@ namespace XianXia.Core.World.Strategic
             if (world == null || stack == null || pursue == null)
                 return;
 
-            for (var i = 0; i < pursue.Count; i++)
+            var rt = world.Strategic?.Encounter;
+            if (rt != null &&
+                !string.IsNullOrEmpty(rt.PursueAttackerArmyId) &&
+                world.Strategic.FormalArmies.TryGet(rt.PursueAttackerArmyId, out var attackerArmy) &&
+                attackerArmy != null)
             {
-                var id = pursue[i];
-                if (id.IsNone || !world.WorldPresence.TryGet(id, out var p) || p == null)
-                    continue;
-                if (p.Mode == PartyWorldPresenceMode.InEncounter &&
-                    !StrategicEncounterSpawner.IsFieldCleared(world))
-                    continue;
-                if (!WorldTravelService.CanReceiveTravelOrder(world, id))
-                    continue;
-                if (StrategicEngageRules.IsAgentColocatedWithStack(world, p, stack))
-                    continue;
+                ArmyPursuitCommandService.SyncFormalArmyPursuersToStack(
+                    world,
+                    attackerArmy,
+                    stack,
+                    pursue);
 
-                WorldTravelService.StartTravelToStackAnchor(world, id, stack);
+                for (var i = 0; i < pursue.Count; i++)
+                {
+                    var id = pursue[i];
+                    if (id.IsNone || attackerArmy.ContainsMember(id))
+                        continue;
+                    SyncSoloPursuerToStack(world, id, stack);
+                }
+
+                return;
             }
+
+            for (var i = 0; i < pursue.Count; i++)
+                SyncSoloPursuerToStack(world, pursue[i], stack);
+        }
+
+        static void SyncSoloPursuerToStack(
+            SimulationWorld world,
+            EntityId id,
+            ArmyStack stack)
+        {
+            if (id.IsNone || !world.WorldPresence.TryGet(id, out var p) || p == null)
+                return;
+            if (p.Mode == PartyWorldPresenceMode.InEncounter &&
+                !StrategicEncounterSpawner.IsFieldCleared(world))
+                return;
+            if (!WorldTravelService.CanReceiveTravelOrder(world, id))
+                return;
+            if (StrategicEngageRules.IsAgentColocatedWithStack(world, p, stack))
+                return;
+
+            WorldTravelService.StartTravelToStackAnchor(world, id, stack);
         }
 
         /// <summary>用角色身上的 CombatPursuitStackId 补全追击名单（防止只上路未 BeginPursuit）。</summary>
@@ -280,6 +345,21 @@ namespace XianXia.Core.World.Strategic
             }
 
             return list;
+        }
+
+        static bool ContainsPlayerAgent(SimulationWorld world, IReadOnlyList<EntityId> party)
+        {
+            if (world == null || party == null)
+                return false;
+            for (var i = 0; i < party.Count; i++)
+            {
+                if (party[i].IsNone || !world.Entities.TryGet(party[i], out var entity) || entity == null)
+                    continue;
+                if ((entity.Tags & EntityTag.Npc) == 0)
+                    return true;
+            }
+
+            return false;
         }
     }
 }

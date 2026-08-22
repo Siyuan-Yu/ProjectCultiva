@@ -25,6 +25,8 @@ namespace XianXia.Core.World
 
         public static void ClearAllQueues() => Queues.Clear();
 
+        public static void ClearAgentQueue(EntityId id) => ClearQueue(id);
+
         public static bool HasPendingLegs(EntityId id) =>
             !id.IsNone && Queues.TryGetValue(id.Value, out var q) && q.Count > 0;
 
@@ -214,6 +216,16 @@ namespace XianXia.Core.World
                 return Result.Failure(ErrorCode.NotFound, "Traveler presence missing.", id.Value.ToString());
             if (!WorldTravelService.CanReceiveTravelOrder(world, id))
                 return Result.Failure(ErrorCode.InvalidOperation, "Traveler cannot receive orders now.", id.Value.ToString());
+            if (!WorldTravelService.CanReceivePlayerMacroTravelOrder(world, id))
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "Player macro travel requires Formal Army command.",
+                    id.Value.ToString());
+            if (WorldTravelService.BlocksFormalArmyMemberIndependentTravel(world, id))
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "Formal Army members cannot travel independently.",
+                    id.Value.ToString());
 
             if (presence.Mode == PartyWorldPresenceMode.InEncounter)
             {
@@ -407,6 +419,27 @@ namespace XianXia.Core.World
                 q.Enqueue(new PendingTravelLeg { NodeId = pathToEntry[i] });
             q.Enqueue(routeLeg);
             return StartTravelOneIgnoringQueue(world, id, pathToEntry[1]);
+        }
+
+        public static bool TryChooseRouteEntryForRoute(
+            SimulationWorld world,
+            string fromNodeId,
+            WorldRouteState route,
+            float routeProgress,
+            out List<string> pathToEntry,
+            out bool enterViaFrom)
+        {
+            pathToEntry = new List<string>(16);
+            enterViaFrom = true;
+            if (world == null || route == null || string.IsNullOrEmpty(fromNodeId))
+                return false;
+
+            var target = WorldTravelTarget.OnRoute(
+                route.Id,
+                route.FromNodeId ?? string.Empty,
+                route.ToNodeId ?? string.Empty,
+                routeProgress);
+            return TryChooseRouteEntry(world, fromNodeId, target, out pathToEntry, out enterViaFrom);
         }
 
         /// <summary>

@@ -18,6 +18,7 @@ namespace XianXia.Unity.Host
         WorldTravelTarget _target;
         string _destName = string.Empty;
         string _pursueStackId = string.Empty;
+        string _formalArmyId = string.Empty;
         string _bodyText = string.Empty;
         bool _holdingPause;
         bool _pausedBeforeConfirm;
@@ -38,6 +39,7 @@ namespace XianXia.Unity.Host
             _agents.Clear();
             _target = default;
             _pursueStackId = string.Empty;
+            _formalArmyId = string.Empty;
             bootstrap?.Session?.World?.Strategic?.ClearPendingLingeringVisit();
             ReleasePause();
         }
@@ -45,6 +47,20 @@ namespace XianXia.Unity.Host
         public void Open(IReadOnlyList<EntityId> agents, string destNodeId, string destName)
         {
             OpenInternal(agents, WorldTravelTarget.AtNode(destNodeId), destName, string.Empty);
+        }
+
+        public void OpenArmyTarget(string armyId, WorldTravelTarget target, string destName = null)
+        {
+            if (string.IsNullOrEmpty(armyId))
+                return;
+            _agents.Clear();
+            _target = target;
+            _pursueStackId = string.Empty;
+            _formalArmyId = armyId;
+            var graph = bootstrap.Session.World.WorldGraph;
+            _destName = string.IsNullOrEmpty(destName) ? target.Describe(graph) : destName;
+            _bodyText = BuildArmyBody(bootstrap.Session.World, armyId);
+            _open = true;
         }
 
         public void OpenTarget(IReadOnlyList<EntityId> agents, WorldTravelTarget target, string destName = null)
@@ -91,6 +107,7 @@ namespace XianXia.Unity.Host
             var graph = bootstrap.Session.World.WorldGraph;
             _destName = string.IsNullOrEmpty(destName) ? target.Describe(graph) : destName;
             _pursueStackId = pursueStackId ?? string.Empty;
+            _formalArmyId = string.Empty;
             _bodyText = BuildBody(bootstrap.Session.World);
             _open = true;
         }
@@ -124,6 +141,25 @@ namespace XianXia.Unity.Host
                 sb.Append("· 沿所选道路前往指定位置");
             else
                 sb.Append("· 沿宏观道路逐段前进，途经节点时自动续走");
+            return sb.ToString();
+        }
+
+        string BuildArmyBody(XianXia.Core.Simulation.SimulationWorld world, string armyId)
+        {
+            var label = armyId;
+            if (world.Strategic.FormalArmies.TryGet(armyId, out var army) && army != null)
+            {
+                var leader = EntityLabel(world, army.LeaderCharacterId);
+                label = leader + " 军团（" + army.MemberCharacterIds.Count + " 人）";
+            }
+
+            var sb = new StringBuilder();
+            sb.Append("是否让「").Append(label).Append("」");
+            if (_target.IsRouteProgress)
+                sb.Append("沿道路前往「").Append(_destName).Append("」？\n\n");
+            else
+                sb.Append("移动到「").Append(_destName).Append("」？\n\n");
+            sb.Append("确认后会打断当前宏观行动。\n· 沿宏观道路逐段前进，途经节点时自动续走");
             return sb.ToString();
         }
 
@@ -193,8 +229,13 @@ namespace XianXia.Unity.Host
                 var agents = new List<EntityId>(_agents);
                 var target = _target;
                 var stackId = _pursueStackId;
+                var armyId = _formalArmyId;
                 Close();
-                if (!string.IsNullOrEmpty(stackId) &&
+                if (!string.IsNullOrEmpty(armyId))
+                {
+                    bootstrap.WorldTravelDeparture?.BeginArmyMacroOrder(armyId, target, closeWorldMap: false);
+                }
+                else if (!string.IsNullOrEmpty(stackId) &&
                     bootstrap?.Session != null &&
                     bootstrap.Session.World.Strategic.Armies.TryGet(stackId, out var stack) &&
                     stack != null)

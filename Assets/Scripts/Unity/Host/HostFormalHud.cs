@@ -28,6 +28,9 @@ namespace XianXia.Unity.Host
     public sealed class HostFormalHud : MonoBehaviour
     {
         const float TopH = 48f;
+        const float OpsLegendH = 40f;
+        /// <summary>顶栏 + 操作提示条占用高度（其它 IMGUI 面板应让位）。</summary>
+        public const float HeaderReservedHeight = TopH + OpsLegendH + 4f;
         const float BottomH = 210f;
         const float RailW = 260f;
         const float Pad = 8f;
@@ -67,6 +70,8 @@ namespace XianXia.Unity.Host
         UnitTab _unitTab = UnitTab.Overview;
         Texture2D _px;
         EntityId _unitPanelFocus = EntityId.None;
+
+        public bool IsHudVisible => visible;
 
         static readonly Color Parchment = new Color(0.90f, 0.84f, 0.72f, 0.96f);
         static readonly Color ParchmentDark = new Color(0.72f, 0.62f, 0.48f, 1f);
@@ -206,7 +211,7 @@ namespace XianXia.Unity.Host
                 return;
 
             var tip = BuildContextTip(session);
-            var r = new Rect(Pad, TopH + 2f, Screen.width - RailW - Pad * 3f, 36f);
+            var r = new Rect(Pad, TopH + 4f, Screen.width - RailW - Pad * 3f, OpsLegendH);
             Fill(r, new Color(0.10f, 0.12f, 0.14f, 0.82f));
             HostUiHitTest.Block(r);
             GUI.Label(

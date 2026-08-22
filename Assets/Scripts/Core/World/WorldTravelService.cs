@@ -81,6 +81,14 @@ namespace XianXia.Core.World
                     return Result.Failure(ErrorCode.NotFound, "Traveler has no world node.", id.Value.ToString());
             }
 
+            if (BlocksFormalArmyIndependentTravel(world, id, p))
+            {
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "Formal Army members cannot travel independently.",
+                    id.Value.ToString());
+            }
+
             if (p.Mode == PartyWorldPresenceMode.RouteAnchored)
                 return StartTravelFromRouteAnchor(world, id, p, toNodeId);
             if (string.Equals(p.NodeId, toNodeId, StringComparison.Ordinal))
@@ -515,6 +523,9 @@ namespace XianXia.Core.World
                 var p = kv.Value;
                 if (p == null || p.Mode != PartyWorldPresenceMode.Traveling)
                     continue;
+                // Formal Army 成员 presence 为投影：只由 ArmyTravelService 推进，避免双 tick 瞬移
+                if (BlocksFormalArmyMemberIndependentTravel(world, new EntityId(kv.Key)))
+                    continue;
 
                 p.RemainingTravelTicks -= ticks;
                 if (p.RemainingTravelTicks > 0)
@@ -579,6 +590,52 @@ namespace XianXia.Core.World
             // 主动遭遇未清场禁令；清场后可令。已退出遭遇／残留战场但 Mode 仍卡 InEncounter 时也允许。
             if (BattleOfferService.HasActiveManualEncounter(world))
                 return StrategicEncounterSpawner.IsFieldCleared(world);
+            return true;
+        }
+
+        /// <summary>
+        /// Phase D Legacy Exit：玩家宏观移动令仅通过 FormalArmy 下达。
+        /// <see cref="StartTravel"/> 等 Internal API 不受此限制。
+        /// </summary>
+        public static bool CanReceivePlayerMacroTravelOrder(SimulationWorld world, EntityId id)
+        {
+            if (!CanReceiveTravelOrder(world, id))
+                return false;
+            if (!IsPlayerAgent(world, id))
+                return true;
+            return false;
+        }
+
+        static bool IsPlayerAgent(SimulationWorld world, EntityId id)
+        {
+            if (id.IsNone || !world.Entities.TryGet(id, out var entity) || entity == null)
+                return false;
+            return (entity.Tags & EntityTag.Npc) == 0;
+        }
+
+        public static bool BlocksFormalArmyMemberIndependentTravel(SimulationWorld world, EntityId id)
+        {
+            if (world == null || id.IsNone || !world.WorldPresence.TryGet(id, out var presence) || presence == null)
+                return false;
+            return BlocksFormalArmyIndependentTravel(world, id, presence);
+        }
+
+        static bool BlocksFormalArmyIndependentTravel(
+            SimulationWorld world,
+            EntityId id,
+            WorldAgentPresence presence)
+        {
+            if (world == null || id.IsNone || presence == null || !IsPlayerAgent(world, id))
+                return false;
+            if (!ArmyService.TryGetArmyForCharacter(world, id, out var army) || army == null)
+                return false;
+            // FormalArmy 在途：成员仅投影，禁止 WorldTravel 独立 tick（含跨节点追击）
+            if (army.IsTraveling)
+                return true;
+            if (presence.IsFollowingStack)
+                return false;
+            if (presence.IsCombatPursuing)
+                return false;
             return true;
         }
 

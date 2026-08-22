@@ -7,6 +7,156 @@
 
 ---
 
+## 2026-08-22 — Strategic Host 双入口（角色／军队 · 移除 Node 组军）
+
+**做了什么**
+- 大地图工具栏并列 **「角色」** / **「军队」** 全局一级入口（不依赖 Node）
+- **正式删除** Node 菜单「军团管理／节点组军」及 `OpenForNode` 玩家路径
+- `HostArmyFormPanel` 仅作为军队列表 embedded 的 Detail / Creation UI
+- 地图 Army portrait：单击 → 打开军队列表 + Detail；双击 → 镜头定位
+- 角色列表：左侧多选未编组 + 底部「组建军队」；军队列表 empty state + 「组建军队」
+- 验收清单修订：[153-strategic-layer-runtime-acceptance-checklist-2026-08-22.md](153-strategic-layer-runtime-acceptance-checklist-2026-08-22.md)
+
+**验证**
+- EditMode：`HostStrategicRosterQueriesTests` — **STATIC REVIEW PASSED · UNITY VERIFICATION DEFERRED**
+
+**状态**
+- Host 双入口 **IMPLEMENTED · STATIC REVIEW PASSED · UNITY VERIFICATION DEFERRED**
+
+---
+
+## 2026-08-22 — Strategic Host 双入口（角色／军队列表 · 全战式）
+
+**做了什么**
+- 大地图工具栏并列 **「角色」** / **「军队」** 按钮；无军队时军队按钮 **不灰掉**，列表显示 empty state
+- `HostStrategicCharacterListPanel`：全局角色列表；单击详情；双击跳 Army／Node；多选「组建军队 [ACCEPTANCE]」
+- `HostStrategicArmyListPanel`：全局军队列表；单击详情；双击镜头定位；「新建军队」embedded 创建
+- `HostStrategicRosterQueries`：只读角色／军队列表数据 + 战力摘要
+- `HostArmyFormPanel`：`OpenGlobalDetail` / `OpenGlobalCreate` embedded 模式；仍只走 `ArmyUiCommands`
+- 节点菜单「军团管理」→ **「节点组军（次级）」**；失败原因改 status 提示，不再整按钮灰掉
+- 验收清单：[153-strategic-layer-runtime-acceptance-checklist-2026-08-22.md](153-strategic-layer-runtime-acceptance-checklist-2026-08-22.md)
+
+**验证**
+- EditMode：`HostStrategicRosterQueriesTests` — **STATIC REVIEW PASSED · UNITY VERIFICATION DEFERRED**
+- Host 手操 153 勾选表 — **DEFERRED**
+
+**状态**
+- A–K **IMPLEMENTED · FINAL STATIC CLOSURE PASSED · MANUAL ACCEPTANCE UI IMPLEMENTED**
+- Host 双入口 **IMPLEMENTED · STATIC REVIEW PASSED · UNITY VERIFICATION DEFERRED**
+
+---
+
+## 2026-08-22 — Strategic Manual Acceptance UI（Unity 验证 DEFERRED）
+
+**做了什么**
+- 统一 Host 开发验收面板：`HostStrategicAcceptancePanel`（F8／大地图「战略验收」）；标注 DEVELOPMENT / ACCEPTANCE UI
+- War / Alliance / Vassalage / Tribute hook / Node Owner / Retreating / Landless / Snapshot v2 最小可见与手操
+- `HostArmyFormPanel` 补 AddMember / RemoveMember / ChangeLeader
+- 战后 Aftermath 面板（Captured / Escaped / RetreatingArmy）；`ResolveLifeStateLabel` 显示「被俘」
+- Core：`StrategicAcceptanceCommands` + `StrategicAcceptanceInspector`（薄 wrapper，不写 Board）
+
+**验证**
+- EditMode：`StrategicAcceptanceTests` — **PENDING — UNITY VERIFICATION DEFERRED**
+
+**状态**
+- A–K **IMPLEMENTED · FINAL STATIC CLOSURE PASSED · MANUAL ACCEPTANCE UI IMPLEMENTED · UNITY VERIFICATION DEFERRED**
+
+---
+
+## 2026-08-22 — Strategic Layer Final Closure（Unity 验证 DEFERRED）
+
+**做了什么**
+- Legacy anonymous ArmyStack：`StrategicDayHandler` → `EnsureBanditScoutArmy`（FormalArmy + 4 真实 Scout Character）
+- 玩家 Character 战略入口：`WorldTravelPathService` + Host 全面拦截；仅 Formal Army 移动/追击
+- Ch01 外交污染隔离：`Ch01ScenarioStrategicSetup` / `Ch01ScenarioProgressionHooks`；Generic Bootstrap 不再决定剧情 War
+- Snapshot：**v1 explicit reject**；v2 required + strategic state mandatory
+- 文档：2A §44 Ch01 Scenario 边界；152 §12 Final Closure
+
+**验证**
+- EditMode：`StrategicFinalClosureTests` — **PENDING — UNITY VERIFICATION DEFERRED**
+
+**状态**
+- A–K **IMPLEMENTED · FINAL STATIC CLOSURE PASSED · UNITY VERIFICATION DEFERRED**
+
+---
+
+## 2026-08-22 — Phase E–K 战略层 E–K（Unity 验证 DEFERRED）
+
+**做了什么**
+- **E** BattleOffer AttackerArmyId/DefenderArmyId；Army vs Army 追击 Adapter；BattleParticipantSnapshot 成员 ID  
+- **F** AutoBattle 真实 Character 伤亡；ArmyStackAdapter 派生 downed 统计  
+- **G** WarBoard/WarGateService DeclareWar/IsAtWar/CanAttack；Host/BattleOffer 军事门槛  
+- **H** CaptureObjective + Node Owner 易主；ControlCore 接入；ArmyFormationNodePolicy 移除 presence 通用路径 → Ch01ScenarioArmyFormationPolicy  
+- **I** Alliance/Vassalage/Tribute 占位  
+- **J** Captured/Escaped/RetreatingArmy/Landless hook  
+- **K** WorldSnapshot Schema v2 + StrategicSnapshotHelper + JsonSnapshotSerializer 战略字段  
+
+**验证**
+- EditMode：ArmyPhaseE–KTests 已编写 — **PENDING — UNITY VERIFICATION DEFERRED**  
+
+**下一步**
+- Unity Test Runner 全量回归（含 StrategicPhaseTests + 153 链）  
+
+---
+
+## 2026-08-22 — Phase B 最小组军 UI + WorldMap Army 投影（Unity 验证 DEFERRED）
+
+**做了什么**
+- HostArmyFormPanel + 节点菜单「军团管理」；ArmyUiCommands 薄层  
+- ArmyWorldMapPresentation：FormalArmy @ NodeId + Leader 派生头像；AtNode 角色不重复正式显示  
+- ArmyFormationNodePolicy：Ch01 无 Owner 时 presence-based 己方 Node  
+- ArmyService：AddMember / RemoveMember / ChangeLeader / CollectResidentsAtNode  
+- ArmyPhaseBTests（8 条）+ 152/roadmap 状态更新  
+
+**验证**
+- Unity Test Runner / Host：**DEFERRED**（制作人暂缓）  
+
+**下一步**
+- 恢复 Unity 后补跑 ArmyDomainTests + ArmyPhaseBTests + StrategicPhaseTests + Host 手操  
+- 等待 **Phase C** 批准  
+
+---
+
+## 2026-08-22 — Phase A Formal Army Domain（Unity 验证 DEFERRED）
+
+**做了什么**
+- FormalArmy / ArmyService / ArmyMembership / ArmyDomainTests（11 条）  
+- StrategicBootstrap Owner 保护；静态复核修复（单真源 / ForceDisband / AtNode-only）  
+
+**验证**
+- Unity：**DEFERRED**  
+
+---
+
+## 2026-08-22 — 152 审核后小修（仅文档，未编码）
+
+**做了什么**
+- 152 rev.2：War(G) 先于 Capture(H)；Legacy Character Travel B–D 过渡 + Phase D 正式退出；Phase A 收紧（自动化为主、Host 仅回归、禁 Army Debug UI）  
+- roadmap／overview 状态同步：**Phase A 编码仍未批准**
+
+**未做**
+- 任何代码；Phase A 未开始
+
+**下一步**
+- 等待制作人 **「正式批准 Phase A 开工」**
+
+---
+
+## 2026-08-22 — 152 战略 Faction / Formal Army / Capture 实现分期计划（仅文档）
+
+**做了什么**
+- 只读代码审计结论 + 制作人拍板迁移方向 → 正式实现分期 [152](152-strategic-faction-army-capture-implementation-plan-2026-08-22.md)  
+- 路线：Formal Army Domain + Compatibility Adapter（非 WorldPresence 大爆炸）；A–K 可停点；双真源退出表；第一刀推荐 **Phase A**（Domain + Membership，无移动／无战斗改动）  
+- 最小更新 roadmap／overview 索引
+
+**未做**
+- 任何代码／Scene／测试／Snapshot 改动；**Phase A 未开始**
+
+**下一步**
+- 制作人审核 152 → 明确批准 **Phase A** 后方可编码
+
+---
+
 ## 2026-08-22 — 153 弥留残留收束 + 自动战宏观头像 + 接战／追击修复（已编码）
 
 **做了什么**

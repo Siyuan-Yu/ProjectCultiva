@@ -14,6 +14,9 @@ namespace XianXia.Core.World.Strategic
         public int EnemyPower { get; set; }
         public int AutoWinPercent { get; set; }
         public string ArmyStackId { get; set; } = string.Empty;
+        /// <summary>Phase E+：Formal Army 接战双方。</summary>
+        public string AttackerArmyId { get; set; } = string.Empty;
+        public string DefenderArmyId { get; set; } = string.Empty;
         public string EncounterLocalMapId { get; set; } = string.Empty;
         public bool Resolved { get; set; }
         public bool PlayerWonAuto { get; set; }
@@ -42,13 +45,23 @@ namespace XianXia.Core.World.Strategic
     public sealed class StrategicBoard
     {
         public FactionDiplomacyBoard Diplomacy { get; } = new FactionDiplomacyBoard();
+        public WarBoard Wars { get; } = new WarBoard();
+        public AllianceBoard Alliances { get; } = new AllianceBoard();
+        public VassalageBoard Vassalages { get; } = new VassalageBoard();
+        public CaptureObjectiveBoard CaptureObjectives { get; } = new CaptureObjectiveBoard();
+        public RetreatingArmyBoard RetreatingArmies { get; } = new RetreatingArmyBoard();
         public ArmyStackBoard Armies { get; } = new ArmyStackBoard();
+        /// <summary>Formal Army 领域真源（Phase A）；与 Prototype <see cref="Armies"/> 并存。</summary>
+        public FormalArmyBoard FormalArmies { get; } = new FormalArmyBoard();
         public BattleOfferPending BattleOffer { get; } = new BattleOfferPending();
         public ArrivalNoticePending ArrivalNotice { get; } = new ArrivalNoticePending();
         public StrategicEncounterRuntime Encounter { get; } = new StrategicEncounterRuntime();
         public StrategicClockFreezeState ClockFreeze { get; } = new StrategicClockFreezeState();
         public BattleParticipantSnapshot Participants { get; } = new BattleParticipantSnapshot();
         public BattleInterruptQueue InterruptQueue { get; } = new BattleInterruptQueue();
+
+        /// <summary>Ch01 / LevelTester：启用 presence-based 组军场景 Adapter。</summary>
+        public bool Ch01FormationScenarioCompat { get; set; }
 
         /// <summary>ReinforcementRange 战略 TravelCost 阈值（遗留）。≤0 忽略。</summary>
         public int ReinforcementTravelCostThreshold { get; set; }
@@ -106,6 +119,8 @@ namespace XianXia.Core.World.Strategic
         {
             BattleOffer.OfferId = string.Empty;
             BattleOffer.ArmyStackId = string.Empty;
+            BattleOffer.AttackerArmyId = string.Empty;
+            BattleOffer.DefenderArmyId = string.Empty;
             BattleOffer.ClearPlayerParty();
             BattleOffer.Resolved = true;
         }

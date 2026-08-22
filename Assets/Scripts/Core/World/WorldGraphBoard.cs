@@ -12,6 +12,7 @@ namespace XianXia.Core.World
         public string LocalMapId { get; set; } = string.Empty;
         public float WorldX { get; set; }
         public float WorldY { get; set; }
+        /// <summary>战略政治归属 FactionId（2A OwnerFactionId；字段名暂保留 OwnerId）。</summary>
         public string OwnerId { get; set; } = string.Empty;
         public string State { get; set; } = string.Empty;
         public List<string> Tags { get; } = new List<string>();
