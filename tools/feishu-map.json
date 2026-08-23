@@ -823,15 +823,18 @@
     },
     "hex-world-content-authoring-2026-08-23": {
       "file": "docs/40-process/158-hex-world-content-authoring-pipeline-2026-08-23.md",
-      "title": "158 Hex World Content Pipeline + WorldGraphEditor WYSIWYG（2026-08-23）"
+      "title": "158 Hex World Content Pipeline + WorldGraphEditor WYSIWYG（2026-08-23）",
+      "docId": "YL9FdCYduoIdu0xSt69cHs1Bn2d"
     },
     "adr-0025-strategic-spatial-model-hexgrid": {
       "file": "docs/40-process/43-decisions/ADR-0025-strategic-spatial-model-hexgrid.md",
-      "title": "ADR-0025 战略空间模型 = HexGrid"
+      "title": "ADR-0025 战略空间模型 = HexGrid",
+      "docId": "T1oIdP6FgoVn3Rx7HlDcEErjnNe"
     },
     "hex-strategic-worldmap-migration-2026-08-23": {
       "file": "docs/40-process/155-hex-strategic-worldmap-migration-2026-08-23.md",
-      "title": "155 Hex Strategic WorldMap Migration（2026-08-23）"
+      "title": "155 Hex Strategic WorldMap Migration（2026-08-23）",
+      "docId": "KtCad3KkQoaAz0xaTErcdbTonQd"
     }
   }
 }
