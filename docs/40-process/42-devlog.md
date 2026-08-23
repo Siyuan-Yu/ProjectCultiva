@@ -7,6 +7,63 @@
 
 ---
 
+## 2026-08-24 — Encounter 作用域 Lingering + WeakBandit 参战名单 + 大地图路线预览
+
+**做了什么**
+- **多战场隔离：** `LingeringBattlefieldRegistry`、`BattlefieldSpawnScope`、冻结 Participant 的 Lingering 再进；MULTI-ENCOUNTER / LINGERING_PARTICIPANT EditMode 测试
+- **WeakBandit 参战名单：** `EncounterAssemblyTrace`、Snapshot 统一刷怪、Hex 支援 1 格；`LocalMapVisibility` 遭遇图 Participant 过滤 + 荒村误判修复
+- **大地图 UX：** `HostWorldMapPanel` 路线预览仅绑定当前选中我方 Moving Army（Presentation only）
+- **Hex 右键 / 残留查询：** `HexRightClickResolver`、`StrategicResidualPresentationQuery` 等；多组 EditMode 测试
+- **内容与 Editor：** `ch01_hex_world.json`、WorldGraphEditor / Shared.Tests 增量
+- 收束文档：[159-encounter-scoped-lingering-and-worldmap-path-preview-2026-08-24.md](159-encounter-scoped-lingering-and-worldmap-path-preview-2026-08-24.md)（**未同步飞书**）
+
+**验证**
+- 制作人手操：荒村启动、路线预览、取消选择、Residual/Lingering — **本轮口头 OK**
+- Unity EditMode 全套：**需关 Editor 后 batch**
+
+**状态**
+- 战略 Encounter / Lingering / WorldMap Path Preview **COMMITTED（本地）**
+- 飞书 **NOT SYNCED**
+
+---
+
+## 2026-08-23 — Hex Battlefield Residual 聚合重构（PURE DERIVED）
+
+**做了什么**
+- 废弃 WorldMap 每 Character 散落头像 / 匿名 ArmyStack remnant 正式表现
+- Residual 位置收口：`WorldAgentPresence.AtHex` + `HexCoord`；`StrategicResidualPresenceService`
+- Presentation：`StrategicResidualPresentationQuery`（Hex × DynamicRelation × DEAD/DOWNED）
+- Host：`DrawResidualMarkers`、左键详情、右键穿透；Active Army 优先
+- Snapshot schema **v3 → v4**：`ResidualCharacterPresenceDto`（仅 CharacterId+Hex）
+- EditMode：`ResidualGroupingPresentationTests`（ARMY/GROUP/REL/LIFE/SAVE）
+
+**验证**
+- EditMode Residual / Downed Vis：**需 Unity EditMode Runner**
+- Manual Acceptance A–F：**NOT RUN**（制作人手操）
+
+**状态**
+- Domain + Host + Snapshot **IMPLEMENTED** · Manual Acceptance **PENDING**
+
+---
+
+## 2026-08-23 — WorldGraphEditor Performance Pass（200×100）
+
+**做了什么**
+- 审计：旧实现每次 Refresh 清空 Canvas + 最多 2 万 `Polygon`（per-Hex immediate）
+- 改为 **16×16 Chunk DrawingVisual** 世界坐标缓存 + viewport `MatrixTransform`；visible chunk culling；dirty chunk rebuild
+- Pan/Zoom/Hover **不** rebuild terrain geometry；Brush Stroke 单次 Undo；Validate 不再跟绘制绑定
+- 状态栏 perf 指标；`Shared.Tests` WGE-PERF-01~08
+- 文档：更新 [158](158-hex-world-content-authoring-pipeline-2026-08-23.md) Editor Performance Architecture
+
+**验证**
+- `dotnet test Shared.Tests`：11 passed
+- WorldGraphEditor 手操 Idle/Pan/Zoom/Brush：**NOT RUN**（需制作人本地打开）
+
+**状态**
+- Editor Performance Pass **IMPLEMENTED · MANUAL ACCEPTANCE PENDING**
+
+---
+
 ## 2026-08-23 — 158 Hex World Content Pipeline + WorldGraphEditor WYSIWYG
 
 **做了什么**

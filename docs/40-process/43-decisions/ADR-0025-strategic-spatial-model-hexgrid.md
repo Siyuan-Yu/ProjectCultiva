@@ -28,8 +28,14 @@ Node + Route 图结构导致编辑器工作流笨重（手工拉 Route）、移�
 ## 影响
 
 - 新增 `docs/40-process/155-hex-strategic-worldmap-migration-2026-08-23.md`
-- Snapshot schema 将升级 v3（H7）
+- Snapshot schema：**v4**（Residual Hex Presence；v3 开发存档 unsupported）
 - WorldGraphEditor Route 工作流废弃；Hex WorldMap Editor 替代（H5）
+
+## Residual Strategic Position（2026-08-23）
+
+- 战后 Downed／Visible Corpse 的战略残留位置使用 **`HexCoord`（`WorldAgentPresence.AtHex`）**。
+- **禁止** Residual 使用 NodeId／RouteId／RouteProgress／BattleAnchorRoute 作为正式位置。
+- 聚合 Marker 仅为 Presentation 派生，不是 Domain Entity。
 
 ## 非目标（本轮）
 

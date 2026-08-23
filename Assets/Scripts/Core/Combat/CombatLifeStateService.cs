@@ -20,10 +20,10 @@ namespace XianXia.Core.Combat
     public static class CombatLifeStateService
     {
         /// <summary>弥留未治疗 → 阵亡（现实秒；1x 下 1 tick≈1 秒）。</summary>
-        public const int BleedOutRealSeconds = 50;
+        public const int BleedOutRealSeconds = 200;
 
         /// <summary>尸体留存 → 腐烂消失（现实秒）。</summary>
-        public const int CorpseLifetimeRealSeconds = 50;
+        public const int CorpseLifetimeRealSeconds = 200;
 
         /// <summary>旧修为日数接口保留给内容表；运行时尸体寿命改走现实秒。</summary>
         public const int DefaultCorpseGameDays = 2;

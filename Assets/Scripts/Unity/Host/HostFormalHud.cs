@@ -1118,6 +1118,23 @@ namespace XianXia.Unity.Host
             var rightW = area.width * 0.48f;
             var y = area.y;
 
+            var lifeStamp = CombatLifeStateService.FormatLifeStateWithCountdown(session?.World, entity);
+            if (!string.IsNullOrEmpty(lifeStamp))
+            {
+                var hint = lifeStamp;
+                if (CombatLifeStateService.TryGetLifeStateCountdown(
+                        session?.World, entity, out var cdLabel, out var cdSec))
+                {
+                    if (cdLabel == "弥留")
+                        hint = lifeStamp + "（" + cdSec + "s 后转阵亡）";
+                    else if (cdLabel == "尸体")
+                        hint = lifeStamp + "（" + cdSec + "s 后腐烂）";
+                }
+
+                GUI.Label(new Rect(area.x, y, area.width, 20f), "状态：" + hint, _parchmentBody);
+                y += 22f;
+            }
+
             if (entity.TryGet<AttributesComponent>(out var attrs))
             {
                 CombatDamageRules.EnsureVitals(entity);
@@ -1913,7 +1930,7 @@ namespace XianXia.Unity.Host
         float DrawLifeStateBadge(Rect panel, string label)
         {
             var isCorpse = !string.IsNullOrEmpty(label) && label.StartsWith("尸体", System.StringComparison.Ordinal);
-            var badgeW = string.IsNullOrEmpty(label) || label.Length <= 2 ? 52f : (label.Length <= 6 ? 78f : 96f);
+            var badgeW = string.IsNullOrEmpty(label) || label.Length <= 2 ? 52f : (label.Length <= 6 ? 96f : 124f);
             const float badgeH = 22f;
             var badge = new Rect(panel.x + 8f, panel.y + 6f, badgeW, badgeH);
             var bg = isCorpse

@@ -5,6 +5,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -38,7 +39,7 @@ namespace XianXia.Core.World.Strategic
 
         /// <summary>
         /// 我方弥留／尸体：可右键「进入残留战场」或「前往并进入」。
-        /// 敌方弥留／尸体须派军团进攻，抵达后弹接战窗，选手动战斗进入。
+        /// 敌方也可经残留栈菜单进入；仍可用「追击／再攻」走进攻接战。
         /// </summary>
         public static bool IsFriendlyLingeringDowned(SimulationWorld world, EntityId id)
         {
@@ -96,6 +97,16 @@ namespace XianXia.Core.World.Strategic
                 return false;
             }
 
+            if (ArmyHexBattleAnchorService.TryGetBattleAnchorHex(
+                    world.Strategic.Participants, out var anchorHex))
+            {
+                AppendFriendlyLingeringAtHex(world, roster, anchorHex, into);
+                AppendMandatoryLivingAtHex(world, mandatoryLiving, anchorHex, into);
+                ArmyMacroPartyQueries.ExpandMandatoryLivingToFormalArmies(world, into);
+                EnsureFocusIncapInParty(world, focusIncap, into);
+                return into.Count > 0;
+            }
+
             AppendMandatoryLivingInRange(
                 world, mandatoryLiving, anchorNode, anchorRoute, anchorProgress, into);
             ArmyMacroPartyQueries.ExpandMandatoryLivingToFormalArmies(world, into);
@@ -134,6 +145,66 @@ namespace XianXia.Core.World.Strategic
 
                 into.Add(id);
                 nextMandatory: ;
+            }
+        }
+
+        static void AppendFriendlyLingeringAtHex(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> roster,
+            HexCoord anchorHex,
+            List<EntityId> into)
+        {
+            if (world == null || roster == null || into == null)
+                return;
+            for (var i = 0; i < roster.Count; i++)
+            {
+                var id = roster[i];
+                if (id.IsNone || !IsFriendlyLingeringDowned(world, id))
+                    continue;
+                if (!StrategicResidualPresenceService.TryGetResidualHex(world, id, out var hex) ||
+                    !hex.Equals(anchorHex))
+                    continue;
+                var exists = false;
+                for (var j = 0; j < into.Count; j++)
+                {
+                    if (into[j] == id)
+                    {
+                        exists = true;
+                        break;
+                    }
+                }
+
+                if (!exists)
+                    into.Add(id);
+            }
+        }
+
+        static void AppendMandatoryLivingAtHex(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> mandatoryLiving,
+            HexCoord anchorHex,
+            List<EntityId> into)
+        {
+            if (world == null || mandatoryLiving == null || into == null)
+                return;
+            for (var i = 0; i < mandatoryLiving.Count; i++)
+            {
+                var id = mandatoryLiving[i];
+                if (id.IsNone || !IsLivingForMacroOrder(world, id))
+                    continue;
+                if (!world.WorldPresence.TryGet(id, out var wp) || wp == null || !wp.UsesHexPresence)
+                    continue;
+                if (!wp.ResidualHex.Equals(anchorHex) &&
+                    HexMath.Distance(wp.ResidualHex, anchorHex) > 1)
+                    continue;
+                for (var j = 0; j < into.Count; j++)
+                {
+                    if (into[j] == id)
+                        goto nextLivingHex;
+                }
+
+                into.Add(id);
+                nextLivingHex: ;
             }
         }
 

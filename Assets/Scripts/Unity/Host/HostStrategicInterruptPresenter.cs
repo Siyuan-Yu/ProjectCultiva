@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
@@ -461,7 +463,8 @@ namespace XianXia.Unity.Host
                     : (r.Kind == BattleParticipantKind.EnemyReinforcement ? "[敌援] " : "[敌军] ");
                 GUI.Label(
                     new Rect(box.x + 24f, listY, box.width - 40f, 18f),
-                    tag + r.DisplayLabel + "  战力 " + r.CombatPower,
+                    tag + r.DisplayLabel + "  战力 " + r.CombatPower +
+                    FormatParticipantLifeStamp(session.World, r.EntityId),
                     _body);
                 listY += 18f;
             }
@@ -533,7 +536,7 @@ namespace XianXia.Unity.Host
                 var next = GUI.Toggle(
                     new Rect(box.x + 24f, listY, box.width - 40f, 20f),
                     r.Selected,
-                    r.DisplayLabel + "  战力 " + r.CombatPower);
+                    r.DisplayLabel + "  战力 " + r.CombatPower + FormatParticipantLifeStamp(session.World, r.EntityId));
                 if (next != r.Selected)
                     BattleOfferService.SetOptionalSelected(session.World, r.EntityId, next);
                 listY += 22f;
@@ -628,29 +631,56 @@ namespace XianXia.Unity.Host
 
             var memberCount = StrategicEncounterCatalog.DefaultFallbackMemberCount;
             var power = StrategicEncounterCatalog.DefaultFallbackCombatPower;
-            var enemyIds = session.World.Strategic.Participants.CollectEnemyStackIds();
-            if (enemyIds.Count > 0)
+            if (!string.IsNullOrEmpty(armyStackId) &&
+                session.World.Strategic.Armies.TryGet(armyStackId, out var primaryStack) &&
+                primaryStack != null)
             {
-                memberCount = 0;
-                power = 0;
-                for (var i = 0; i < enemyIds.Count; i++)
+                if (primaryStack.HasDownedRemnant)
                 {
-                    if (!session.World.Strategic.Armies.TryGet(enemyIds[i], out var st) || st == null)
-                        continue;
-                    memberCount += Math.Max(1, st.MemberCount);
-                    power += Math.Max(1, st.CombatPower);
+                    memberCount = Math.Max(
+                        1,
+                        Math.Max(primaryStack.IncapacitatedMemberCount, primaryStack.CorpseMemberCount));
+                }
+                else
+                {
+                    memberCount = Math.Max(1, primaryStack.MemberCount);
                 }
 
-                if (memberCount <= 0)
-                    memberCount = StrategicEncounterCatalog.DefaultFallbackMemberCount;
-                if (power <= 0)
-                    power = StrategicEncounterCatalog.DefaultFallbackCombatPower;
+                power = Math.Max(1, primaryStack.CombatPower);
+            }
+            else
+            {
+                var enemyIds = session.World.Strategic.Participants.CollectEnemyStackIds();
+                if (enemyIds.Count > 0)
+                {
+                    memberCount = 0;
+                    power = 0;
+                    for (var i = 0; i < enemyIds.Count; i++)
+                    {
+                        if (!session.World.Strategic.Armies.TryGet(enemyIds[i], out var st) || st == null)
+                            continue;
+                        memberCount += Math.Max(1, st.MemberCount);
+                        power += Math.Max(1, st.CombatPower);
+                    }
+
+                    if (memberCount <= 0)
+                        memberCount = StrategicEncounterCatalog.DefaultFallbackMemberCount;
+                    if (power <= 0)
+                        power = StrategicEncounterCatalog.DefaultFallbackCombatPower;
+                }
             }
 
             var rt = session.World.Strategic.Encounter;
             var encounterLink = session.World.PartyWorld.EncounterId;
             if (string.IsNullOrEmpty(encounterLink) && rt != null)
                 encounterLink = string.IsNullOrEmpty(rt.EncounterLinkId) ? "linger" : rt.EncounterLinkId;
+
+            HexCoord? lingerHex = null;
+            if (ArmyHexBattleAnchorService.TryGetBattleAnchorHex(
+                    session.World.Strategic.Participants, out var anchorHex))
+                lingerHex = anchorHex;
+
+            StrategicEncounterSpawner.TryPrepareLingeringLocalMapSession(session.World, lingerHex);
 
             StrategicEncounterSpawner.PlanManualEncounter(
                 session.World,
@@ -694,6 +724,16 @@ namespace XianXia.Unity.Host
             GUI.color = new Color(0f, 0f, 0f, 0.55f);
             GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), _px);
             GUI.color = prev;
+        }
+
+        static string FormatParticipantLifeStamp(SimulationWorld world, EntityId id)
+        {
+            if (world == null || id.IsNone || !world.Entities.TryGet(id, out var entity) || entity == null)
+                return string.Empty;
+            var stamped = CombatLifeStateService.FormatLifeStateWithCountdown(world, entity);
+            if (string.IsNullOrEmpty(stamped) || stamped == "存活")
+                return string.Empty;
+            return " · " + stamped;
         }
 
         void Fill(Rect r, Color c)

@@ -13,9 +13,12 @@ namespace XianXia.Unity.Host
             FormalArmyStrategicMutationDiagnostics.Enabled = true;
             FormalArmyStrategicMutationDiagnostics.LogInfo = message => Debug.Log(message);
             FormalArmyStrategicMutationDiagnostics.LogError = message => Debug.LogError(message);
+            LingeringExitPositionTrace.LogInfo = message => Debug.Log(message);
+            LingeringExitPositionTrace.LogWarning = message => Debug.LogWarning(message);
+            SecondBattleAnchorTrace.LogInfo = message => Debug.Log(message);
             ArmyWorldMapRenderDiagnostics.Enabled = true;
             ArmyWorldMapRenderDiagnostics.LogInfo = message => Debug.Log(message);
-            Debug.Log("[FormalArmyPosDiag] Runtime tracing ENABLED. Search Console for ATTACK-BEGIN / FORMAL-ARMY-POS-MUTATION / ILLEGAL-ARMY-TELEPORT / ARMY-RENDER-POS-JUMP.");
+            Debug.Log("[FormalArmyPosDiag] Runtime tracing ENABLED. Search Console for ATTACK-BEGIN / FORMAL-ARMY-POS-MUTATION / ILLEGAL-ARMY-TELEPORT / ARMY-RENDER-POS-JUMP / LINGERING-EXIT-POSITION-TRACE / SECOND-BATTLE-ANCHOR-TRACE.");
         }
 
         public static void BindSession(PlayableHostBootstrap bootstrap)

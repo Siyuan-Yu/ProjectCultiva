@@ -9,6 +9,7 @@ using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -16,6 +17,45 @@ namespace XianXia.Core.World.Strategic
     public static class StrategicEncounterSpawner
     {
         static readonly DefinitionId BanditGruntDef = new DefinitionId("base", "strategic_bandit_grunt");
+
+        /// <summary>进 LocalMap 前绑定 Registry 内独立 Battlefield（Hex → E1/E2）。</summary>
+        public static bool TryPrepareLingeringLocalMapSession(
+            SimulationWorld world,
+            HexCoord? hex = null)
+        {
+            if (world?.Strategic?.Encounter == null)
+                return false;
+
+            var rt = world.Strategic.Encounter;
+            if (!string.IsNullOrEmpty(rt.PendingLingeringEnterBattlefieldId) &&
+                world.Strategic.LingeringBattlefields.TryGetById(
+                    rt.PendingLingeringEnterBattlefieldId, out var pending) &&
+                pending != null)
+            {
+                LingeringBattlefieldRegistry.BeginLocalMapSession(world, pending);
+                rt.PendingLingeringEnterBattlefieldId = string.Empty;
+                return true;
+            }
+
+            if (hex.HasValue &&
+                world.Strategic.LingeringBattlefields.TryGetAtHex(hex.Value, out var atHex) &&
+                atHex != null)
+            {
+                LingeringBattlefieldRegistry.BeginLocalMapSession(world, atHex);
+                return true;
+            }
+
+            if (ArmyHexBattleAnchorService.TryGetBattleAnchorHex(
+                    world.Strategic.Participants, out var snapHex) &&
+                world.Strategic.LingeringBattlefields.TryGetAtHex(snapHex, out var fromSnap) &&
+                fromSnap != null)
+            {
+                LingeringBattlefieldRegistry.BeginLocalMapSession(world, fromSnap);
+                return true;
+            }
+
+            return false;
+        }
 
         public static void PlanManualEncounter(
             SimulationWorld world,
@@ -29,25 +69,64 @@ namespace XianXia.Core.World.Strategic
                 return;
 
             var rt = world.Strategic.Encounter;
+            if (!string.IsNullOrEmpty(armyStackId) &&
+                !string.Equals(rt.ArmyStackId, armyStackId, StringComparison.Ordinal))
+            {
+                UntrackSpawnsForSessionSwitch(world);
+            }
+            else if (!string.IsNullOrEmpty(armyStackId))
+            {
+                PruneTrackedSpawnsForStack(world, armyStackId);
+            }
+
             // 残留战场再进：保留弥留刷怪，禁止 ClearSpawned
-            var lingeringReuse = rt.BattlefieldLingering &&
-                                 (string.IsNullOrEmpty(armyStackId) ||
-                                  string.Equals(rt.ArmyStackId, armyStackId, StringComparison.Ordinal));
+            ArmyStack reuseStack = null;
+            var lingeringReuse = !string.IsNullOrEmpty(rt.ActiveBattlefieldId);
+            if (!lingeringReuse &&
+                (rt.BattlefieldLingering || world.Strategic.LingeringBattlefields.Count > 0) &&
+                !string.IsNullOrEmpty(armyStackId) &&
+                world.Strategic.Armies.TryGet(armyStackId, out reuseStack) &&
+                reuseStack != null &&
+                (reuseStack.HasDownedRemnant || reuseStack.IsBattlefieldRemnant))
+                lingeringReuse = true;
+            else if (lingeringReuse &&
+                     !string.IsNullOrEmpty(armyStackId))
+                world.Strategic.Armies.TryGet(armyStackId, out reuseStack);
+
             if (lingeringReuse)
             {
                 PruneRemovedSpawns(world);
+                if (!string.IsNullOrEmpty(armyStackId))
+                    PruneTrackedSpawnsForStack(world, armyStackId);
                 var hasTracked = HasReusableTrackedPresence(world);
                 // 自动战残留尚无实体 → 进图刷弥留；已有弥留／尸体则复用（禁止重刷刷新倒计时）
                 rt.SpawnOnNextMapLoad = !hasTracked;
                 // 保持 BattlefieldLingering=true：可反复再进；仅 Destroy 时清除
                 rt.FieldCleared = false;
+                rt.ArmyStackId = armyStackId;
                 if (engagedParty != null && engagedParty.Count > 0)
                     rt.SetEngagedParty(engagedParty);
                 MarkPartyInEncounter(world, engagedParty);
-                if (!string.IsNullOrEmpty(rt.ArmyStackId) &&
-                    world.Strategic.Armies.TryGet(rt.ArmyStackId, out var lingerStack) &&
-                    lingerStack != null)
-                    ApplyStackRouteToParty(world, engagedParty, lingerStack);
+                ApplyStackRouteToParty(world, engagedParty, reuseStack);
+
+                if (!hasTracked &&
+                    LingeringBattlefieldParticipantService.TryGetActiveStoredParticipants(
+                        world, out var activeBattlefield, out var storedParticipants) &&
+                    TryPrepareStoredLingeringEnemyParticipants(
+                        world,
+                        storedParticipants,
+                        world.Strategic.Participants) > 0)
+                {
+                    rt.SpawnOnNextMapLoad = false;
+                    var finalIds = new List<EntityId>(8);
+                    storedParticipants.CollectEnemyEntityIds(finalIds);
+                    LingeringParticipantTrace.Emit(
+                        world,
+                        activeBattlefield?.BattleAnchorHex,
+                        activeBattlefield,
+                        finalIds,
+                        "PlanManualEncounter.StoredParticipants");
+                }
 
                 // 已有弥留刷怪：再进时补 LocalMap 落点（人还在接战点，不能凭空消失）
                 EnsureTrackedSpawnsLocalPresentation(world);
@@ -61,6 +140,7 @@ namespace XianXia.Core.World.Strategic
                 remnant.HasDownedRemnant)
             {
                 PruneRemovedSpawns(world);
+                PruneTrackedSpawnsForStack(world, armyStackId);
                 var hasTracked = HasReusableTrackedPresence(world);
                 // 仅当完全没有场上实体时才清；有弥留／尸体绝不能 Clear（否则倒计时被刷回满）
                 if (!hasTracked)
@@ -327,10 +407,61 @@ namespace XianXia.Core.World.Strategic
             world.Strategic.Encounter.SpawnOnNextMapLoad = false;
             PruneRemovedSpawns(world);
 
+            HexCoord? requestedHex = null;
+            if (ArmyHexBattleAnchorService.TryGetBattleAnchorHex(
+                    world.Strategic.Participants, out var anchorHex))
+                requestedHex = anchorHex;
+
+            if (LingeringBattlefieldParticipantService.TryGetActiveStoredParticipants(
+                    world, out var activeBattlefield, out var storedParticipants) &&
+                TryPrepareSnapshotEnemyParticipants(
+                    world,
+                    storedParticipants,
+                    world.Strategic.Participants,
+                    FormalArmyEncounterPick.ByDomainLifeState) > 0)
+            {
+                var finalIds = new List<EntityId>(8);
+                storedParticipants.CollectEnemyEntityIds(finalIds);
+                LingeringParticipantTrace.Emit(
+                    world,
+                    requestedHex,
+                    activeBattlefield,
+                    finalIds,
+                    "ApplyPending.StoredParticipants");
+                EmitAssemblyTraceAfterSpawn(world, finalIds);
+                SyncArmyStackMemberCount(world);
+                return Result.Success();
+            }
+
             ArmyStack stack = null;
             var stackId = world.Strategic.Encounter.ArmyStackId;
             if (!string.IsNullOrEmpty(stackId))
+            {
+                PruneTrackedSpawnsForStack(world, stackId);
                 world.Strategic.Armies.TryGet(stackId, out stack);
+            }
+
+            var anchor = BuildBattleAnchorSnapshotFromStack(world, stack);
+            var isLingeringEntry = !string.IsNullOrEmpty(world.Strategic.Encounter.ActiveBattlefieldId) ||
+                                   (stack != null && stack.HasDownedRemnant);
+            var pick = !string.IsNullOrEmpty(world.Strategic.Encounter.ActiveBattlefieldId)
+                ? FormalArmyEncounterPick.ByDomainLifeState
+                : isLingeringEntry
+                    ? FormalArmyEncounterPick.DownedOnly
+                    : FormalArmyEncounterPick.LivingOnly;
+
+            if (TryPrepareSnapshotEnemyParticipants(
+                    world,
+                    world.Strategic.Participants,
+                    anchor,
+                    pick) > 0)
+            {
+                var spawnedIds = new List<EntityId>(8);
+                world.Strategic.Participants.CollectEnemyEntityIds(spawnedIds);
+                EmitAssemblyTraceAfterSpawn(world, spawnedIds);
+                SyncArmyStackMemberCount(world);
+                return Result.Success();
+            }
 
             if (stack != null &&
                 ArmyStackAdapter.TryGetFormalArmy(world, stack, out var formalArmy) &&
@@ -338,11 +469,12 @@ namespace XianXia.Core.World.Strategic
                     world,
                     stack,
                     formalArmy,
-                    BuildBattleAnchorSnapshotFromStack(world, stack),
-                    stack.HasDownedRemnant
-                        ? FormalArmyEncounterPick.DownedOnly
-                        : FormalArmyEncounterPick.LivingOnly) > 0)
+                    anchor,
+                    pick) > 0)
             {
+                var spawnedIds = new List<EntityId>(8);
+                world.Strategic.Participants.CollectEnemyEntityIds(spawnedIds);
+                EmitAssemblyTraceAfterSpawn(world, spawnedIds);
                 SyncArmyStackMemberCount(world);
                 return Result.Success();
             }
@@ -398,6 +530,8 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic?.Encounter == null || snap == null)
                 return;
 
+            // Macro park 必须写 Active session，禁止污染上一场 LocalMap 的 ActiveBattlefieldId scope
+            world.Strategic.Encounter.ActiveBattlefieldId = string.Empty;
             PruneRemovedSpawns(world);
             var rt = world.Strategic.Encounter;
 
@@ -460,10 +594,86 @@ namespace XianXia.Core.World.Strategic
                 rt.SpawnOnNextMapLoad = false;
         }
 
+        /// <summary>
+        /// 按 ParticipantSnapshot 敌军记录刷 LocalMap（Primary + Reinforcement EntityId）。
+        /// </summary>
+        static int TryPrepareSnapshotEnemyParticipants(
+            SimulationWorld world,
+            BattleParticipantSnapshot storedParticipants,
+            BattleParticipantSnapshot anchor,
+            FormalArmyEncounterPick pick)
+        {
+            if (world?.Strategic?.Encounter == null || storedParticipants == null)
+                return 0;
+
+            PruneRemovedSpawns(world);
+            var startId = world.WorldRegion.StartLocationId;
+            world.WorldRegion.TryGet(startId, out var startLoc);
+            var baseX = startLoc?.PresentationX ?? 0f;
+            var baseZ = startLoc?.PresentationZ ?? 0f;
+            var slot = 0;
+            var prepared = 0;
+
+            for (var i = 0; i < storedParticipants.Records.Count; i++)
+            {
+                var rec = storedParticipants.Records[i];
+                if (rec.EntityId.IsNone)
+                    continue;
+                if (rec.Kind != BattleParticipantKind.EnemyPrimary &&
+                    rec.Kind != BattleParticipantKind.EnemyReinforcement)
+                    continue;
+                if (!world.Entities.TryGet(rec.EntityId, out var entity) || entity == null)
+                    continue;
+                if (!ShouldIncludeFormalArmyMember(entity, pick))
+                    continue;
+
+                if (!IsTrackedSpawn(world, rec.EntityId))
+                    BattlefieldSpawnScope.TrackSpawn(world, rec.EntityId.Value);
+
+                if (!entity.TryGet<EntityLocationComponent>(out var loc) || loc == null)
+                {
+                    loc = new EntityLocationComponent();
+                    entity.AddComponent(loc);
+                }
+
+                loc.LocationId = startId ?? string.Empty;
+                loc.SetPresentationOverride(baseX + 3.5f + slot * 1.1f, baseZ + 2.2f);
+
+                if (anchor != null)
+                {
+                    if (!world.WorldPresence.TryGet(rec.EntityId, out var wp) || wp == null)
+                        wp = world.WorldPresence.GetOrCreate(rec.EntityId);
+                    StrategicEncounterResolveService.PlaceAtBattleAnchor(world, wp, anchor);
+                }
+
+                slot++;
+                prepared++;
+            }
+
+            if (prepared > 0 && anchor != null)
+                StrategicEncounterResolveService.RefreshEnemyDownedWorldPresence(world, anchor);
+
+            return prepared;
+        }
+
+        /// <summary>
+        /// 按 Registry 冻结 Participant Records 恢复敌军 LocalMap（禁止 Living-only / 重查 Active Army）。
+        /// </summary>
+        public static int TryPrepareStoredLingeringEnemyParticipants(
+            SimulationWorld world,
+            BattleParticipantSnapshot storedParticipants,
+            BattleParticipantSnapshot anchor) =>
+            TryPrepareSnapshotEnemyParticipants(
+                world,
+                storedParticipants,
+                anchor,
+                FormalArmyEncounterPick.ByDomainLifeState);
+
         enum FormalArmyEncounterPick
         {
             LivingOnly,
-            DownedOnly
+            DownedOnly,
+            ByDomainLifeState
         }
 
         /// <summary>
@@ -498,7 +708,7 @@ namespace XianXia.Core.World.Strategic
                     continue;
 
                 if (!IsTrackedSpawn(world, id))
-                    rt.TrackSpawn(id.Value);
+                    BattlefieldSpawnScope.TrackSpawn(world, id.Value);
 
                 if (!entity.TryGet<EntityLocationComponent>(out var loc) || loc == null)
                 {
@@ -533,19 +743,32 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic?.Encounter == null || army == null)
                 return;
 
-            var rt = world.Strategic.Encounter;
-            for (var i = rt.SpawnedEntityIds.Count - 1; i >= 0; i--)
+            var scoped = BattlefieldSpawnScope.GetMutableSpawnList(world);
+            if (scoped == null)
+                return;
+
+            for (var i = scoped.Count - 1; i >= 0; i--)
             {
-                var raw = rt.SpawnedEntityIds[i];
+                var raw = scoped[i];
                 if (army.ContainsMember(new EntityId(raw)))
                     continue;
 
                 var id = new EntityId(raw);
+                BattlefieldSpawnScope.AssertNotCrossBattlefieldFinalize(
+                    world, id, nameof(PruneGenericDuplicateSpawnsForFormalArmy));
+
+                // 属于其他 Battlefield 的 entity：禁止 FinalizeRemoval（只从当前 scope 列表摘掉引用）
+                if (BattlefieldSpawnScope.ShouldProtectFromScopedRemoval(world, id, scoped))
+                {
+                    BattlefieldSpawnScope.RemoveTrackedSpawnAt(world, i);
+                    continue;
+                }
+
                 if (world.Entities.TryGet(id, out var entity) && entity != null)
                     CombatLifeStateService.FinalizeRemoval(world, entity);
                 else
                     world.Entities.MarkRemoved(id);
-                rt.RemoveTrackedSpawnAt(i);
+                BattlefieldSpawnScope.RemoveTrackedSpawnAt(world, i);
             }
         }
 
@@ -556,6 +779,9 @@ namespace XianXia.Core.World.Strategic
 
             if (pick == FormalArmyEncounterPick.LivingOnly)
                 return CombatLifeStateService.CanFight(entity);
+
+            if (pick == FormalArmyEncounterPick.ByDomainLifeState)
+                return !CombatLifeStateService.ShouldHideFromSpawn(entity);
 
             return life.IsIncapacitated ||
                    CombatLifeStateService.HasVisibleCorpse(entity);
@@ -638,7 +864,7 @@ namespace XianXia.Core.World.Strategic
 
                 loc.LocationId = startId ?? string.Empty;
                 loc.SetPresentationOverride(baseX + 3.5f + spawnIndex * 1.1f, baseZ + 2.2f);
-                world.Strategic.Encounter.TrackSpawn(entity.Id.Value);
+                BattlefieldSpawnScope.TrackSpawn(world, entity.Id.Value);
                 spawnIndex++;
             }
 
@@ -654,15 +880,18 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic?.Encounter == null)
                 return;
             PruneRemovedSpawns(world);
-            var rt = world.Strategic.Encounter;
+            var scoped = BattlefieldSpawnScope.GetMutableSpawnList(world);
+            if (scoped == null)
+                return;
+
             var startId = world.WorldRegion.StartLocationId;
             world.WorldRegion.TryGet(startId, out var startLoc);
             var baseX = startLoc?.PresentationX ?? 0f;
             var baseZ = startLoc?.PresentationZ ?? 0f;
             var slot = 0;
-            for (var i = 0; i < rt.SpawnedEntityIds.Count; i++)
+            for (var i = 0; i < scoped.Count; i++)
             {
-                var id = new EntityId(rt.SpawnedEntityIds[i]);
+                var id = new EntityId(scoped[i]);
                 if (!world.Entities.TryGet(id, out var entity) || entity == null)
                     continue;
                 if (CombatLifeStateService.ShouldHideFromSpawn(entity))
@@ -694,11 +923,13 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic == null)
                 return 0;
             PruneRemovedSpawns(world);
-            var rt = world.Strategic.Encounter;
+            var scoped = BattlefieldSpawnScope.GetSpawnList(world);
+            if (scoped == null)
+                return 0;
             var count = 0;
-            for (var i = 0; i < rt.SpawnedEntityIds.Count; i++)
+            for (var i = 0; i < scoped.Count; i++)
             {
-                var id = new EntityId(rt.SpawnedEntityIds[i]);
+                var id = new EntityId(scoped[i]);
                 if (!world.Entities.TryGet(id, out var entity) || entity == null)
                     continue;
                 if (entity.TryGet<LifecycleComponent>(out var life) && life.IsIncapacitated)
@@ -713,11 +944,13 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic == null)
                 return 0;
             PruneRemovedSpawns(world);
-            var rt = world.Strategic.Encounter;
+            var scoped = BattlefieldSpawnScope.GetSpawnList(world);
+            if (scoped == null)
+                return 0;
             var count = 0;
-            for (var i = 0; i < rt.SpawnedEntityIds.Count; i++)
+            for (var i = 0; i < scoped.Count; i++)
             {
-                var id = new EntityId(rt.SpawnedEntityIds[i]);
+                var id = new EntityId(scoped[i]);
                 if (!world.Entities.TryGet(id, out var entity) || entity == null)
                     continue;
                 if (CombatLifeStateService.HasVisibleCorpse(entity))
@@ -740,10 +973,12 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic == null)
                 return;
             PruneRemovedSpawns(world);
-            var rt = world.Strategic.Encounter;
-            for (var i = 0; i < rt.SpawnedEntityIds.Count; i++)
+            var scoped = BattlefieldSpawnScope.GetSpawnList(world);
+            if (scoped == null)
+                return;
+            for (var i = 0; i < scoped.Count; i++)
             {
-                var id = new EntityId(rt.SpawnedEntityIds[i]);
+                var id = new EntityId(scoped[i]);
                 if (!world.Entities.TryGet(id, out var entity) || entity == null)
                     continue;
                 if (!CombatLifeStateService.CanFight(entity))
@@ -760,10 +995,12 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic == null)
                 return;
             PruneRemovedSpawns(world);
-            var rt = world.Strategic.Encounter;
-            for (var i = 0; i < rt.SpawnedEntityIds.Count; i++)
+            var scoped = BattlefieldSpawnScope.GetSpawnList(world);
+            if (scoped == null)
+                return;
+            for (var i = 0; i < scoped.Count; i++)
             {
-                var id = new EntityId(rt.SpawnedEntityIds[i]);
+                var id = new EntityId(scoped[i]);
                 if (!world.Entities.TryGet(id, out var entity) || entity == null)
                     continue;
                 if (CombatLifeStateService.HasVisibleCorpse(entity))
@@ -788,32 +1025,55 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.Strategic == null)
                 return;
-            var rt = world.Strategic.Encounter;
-            for (var i = 0; i < rt.SpawnedEntityIds.Count; i++)
+            var scoped = BattlefieldSpawnScope.GetMutableSpawnList(world);
+            if (scoped == null)
+                return;
+            for (var i = scoped.Count - 1; i >= 0; i--)
             {
-                var id = new EntityId(rt.SpawnedEntityIds[i]);
+                var id = new EntityId(scoped[i]);
+                BattlefieldSpawnScope.AssertNotCrossBattlefieldFinalize(
+                    world, id, nameof(ClearSpawned));
+                if (BattlefieldSpawnScope.ShouldProtectFromScopedRemoval(world, id, scoped))
+                {
+                    BattlefieldSpawnScope.RemoveTrackedSpawnAt(world, i);
+                    continue;
+                }
+
                 if (world.Entities.TryGet(id, out var entity) && entity != null)
                     CombatLifeStateService.FinalizeRemoval(world, entity);
                 else
                     world.Entities.MarkRemoved(id);
+                BattlefieldSpawnScope.RemoveTrackedSpawnAt(world, i);
             }
-
-            rt.ClearTrackedIds();
         }
 
-        public static bool IsTrackedSpawn(SimulationWorld world, EntityId id)
+        static void EmitAssemblyTraceAfterSpawn(SimulationWorld world, IList<EntityId> spawnedEnemyIds)
         {
-            if (world?.Strategic?.Encounter == null || id.IsNone)
-                return false;
-            var spawned = world.Strategic.Encounter.SpawnedEntityIds;
-            for (var i = 0; i < spawned.Count; i++)
+            ArmyStack stack = null;
+            var stackId = world?.Strategic?.Encounter?.ArmyStackId;
+            if (!string.IsNullOrEmpty(stackId))
+                world.Strategic.Armies.TryGet(stackId, out stack);
+
+            var finalActors = new List<EntityId>(8);
+            var scoped = BattlefieldSpawnScope.GetSpawnList(world);
+            if (scoped != null)
             {
-                if (spawned[i] == id.Value)
-                    return true;
+                for (var i = 0; i < scoped.Count; i++)
+                    finalActors.Add(new EntityId(scoped[i]));
             }
 
-            return false;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            EncounterAssemblyTrace.Emit(
+                world,
+                stack,
+                "ApplyPending",
+                spawnedEnemyIds,
+                finalActors);
+#endif
         }
+
+        public static bool IsTrackedSpawn(SimulationWorld world, EntityId id) =>
+            BattlefieldSpawnScope.IsTrackedInCurrentScope(world, id);
 
         static bool CanReuseLivingSpawns(SimulationWorld world, string armyStackId)
         {
@@ -831,11 +1091,13 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic == null)
                 return 0;
             PruneRemovedSpawns(world);
-            var rt = world.Strategic.Encounter;
+            var scoped = BattlefieldSpawnScope.GetSpawnList(world);
+            if (scoped == null)
+                return 0;
             var count = 0;
-            for (var i = 0; i < rt.SpawnedEntityIds.Count; i++)
+            for (var i = 0; i < scoped.Count; i++)
             {
-                var id = new EntityId(rt.SpawnedEntityIds[i]);
+                var id = new EntityId(scoped[i]);
                 if (!world.Entities.TryGet(id, out var entity) || entity == null)
                     continue;
                 if (entity.TryGet<LifecycleComponent>(out var life) &&
@@ -882,19 +1144,63 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.Strategic == null)
                 return;
-            var rt = world.Strategic.Encounter;
-            for (var i = rt.SpawnedEntityIds.Count - 1; i >= 0; i--)
+            var scoped = BattlefieldSpawnScope.GetMutableSpawnList(world);
+            if (scoped == null)
+                return;
+            for (var i = scoped.Count - 1; i >= 0; i--)
             {
-                var id = new EntityId(rt.SpawnedEntityIds[i]);
+                var id = new EntityId(scoped[i]);
                 if (!world.Entities.TryGet(id, out var entity) || entity == null)
                 {
-                    rt.RemoveTrackedSpawnAt(i);
+                    BattlefieldSpawnScope.RemoveTrackedSpawnAt(world, i);
                     continue;
                 }
 
                 if (entity.TryGet<LifecycleComponent>(out var life) && life.IsRemoved)
-                    rt.RemoveTrackedSpawnAt(i);
+                    BattlefieldSpawnScope.RemoveTrackedSpawnAt(world, i);
             }
+        }
+
+        /// <summary>
+        /// 切换／再进目标栈时：剔除不属于该 FormalArmy 的 tracked 占位（仅当前 Encounter scope）。
+        /// </summary>
+        public static void PruneTrackedSpawnsForStack(SimulationWorld world, string armyStackId)
+        {
+            if (world?.Strategic?.Encounter == null || string.IsNullOrEmpty(armyStackId))
+                return;
+            if (!world.Strategic.Armies.TryGet(armyStackId, out var stack) || stack == null)
+                return;
+            if (!ArmyStackAdapter.TryGetFormalArmy(world, stack, out var army) || army == null)
+                return;
+
+            PruneRemovedSpawns(world);
+            var scoped = BattlefieldSpawnScope.GetMutableSpawnList(world);
+            if (scoped == null)
+                return;
+            for (var i = scoped.Count - 1; i >= 0; i--)
+            {
+                var id = new EntityId(scoped[i]);
+                if (army.ContainsMember(id))
+                    continue;
+
+                BattlefieldSpawnScope.AssertNotCrossBattlefieldFinalize(
+                    world, id, nameof(PruneTrackedSpawnsForStack));
+                if (world.Entities.TryGet(id, out var entity) && entity != null)
+                    CombatLifeStateService.FinalizeRemoval(world, entity);
+                else
+                    world.Entities.MarkRemoved(id);
+                BattlefieldSpawnScope.RemoveTrackedSpawnAt(world, i);
+            }
+        }
+
+        /// <summary>切换 Active Encounter 栈：清空 Active scope spawns（Registry 内已 park 的不动）。</summary>
+        static void UntrackSpawnsForSessionSwitch(SimulationWorld world)
+        {
+            if (world?.Strategic?.Encounter == null)
+                return;
+
+            PruneRemovedSpawns(world);
+            BattlefieldSpawnScope.ClearScopedSpawns(world);
         }
 
         static void SyncArmyStackMemberCount(SimulationWorld world)
@@ -962,9 +1268,10 @@ namespace XianXia.Core.World.Strategic
                 if (wp.Mode == PartyWorldPresenceMode.Traveling ||
                     wp.Mode == PartyWorldPresenceMode.RouteAnchored ||
                     wp.Mode == PartyWorldPresenceMode.AtNode ||
+                    wp.Mode == PartyWorldPresenceMode.AtHex ||
                     wp.Mode == PartyWorldPresenceMode.InEncounter)
                 {
-                    // 保留路锚坐标，仅切 Mode，便于进遭遇图
+                    // 保留路锚／Hex 坐标，仅切 Mode，便于进遭遇图
                     if (wp.Mode != PartyWorldPresenceMode.InEncounter &&
                         !string.IsNullOrEmpty(wp.RouteId) &&
                         wp.RouteAnchorProgress < 0f &&

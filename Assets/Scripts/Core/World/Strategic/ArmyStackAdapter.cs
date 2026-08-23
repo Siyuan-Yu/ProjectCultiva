@@ -17,8 +17,17 @@ namespace XianXia.Core.World.Strategic
     {
         public const string BanditPatrolStackId = "army:bandit_patrol_1";
         public const string BanditPatrolFormalArmyId = "army:formal_bandit_patrol_1";
+        public const string BanditWeakPatrolStackId = "army:bandit_patrol_weak";
+        public const string BanditWeakPatrolFormalArmyId = "army:formal_bandit_patrol_weak";
         public const string BanditScoutStackId = "army:bandit_patrol_auto";
         public const string BanditScoutFormalArmyId = "army:formal_bandit_scout";
+
+        /// <summary>Prototype 试炼弱匪：专供自动战／弥留回归，自动战视为必胜。</summary>
+        public static bool IsTrivialTestEnemyStack(string stackId) =>
+            string.Equals(stackId, BanditWeakPatrolStackId, StringComparison.Ordinal);
+
+        public static bool IsTrivialTestEnemyArmy(string formalArmyId) =>
+            string.Equals(formalArmyId, BanditWeakPatrolFormalArmyId, StringComparison.Ordinal);
 
         public static bool HasFormalArmyLink(ArmyStack stack) =>
             stack != null && !string.IsNullOrEmpty(stack.FormalArmyId);
@@ -99,6 +108,7 @@ namespace XianXia.Core.World.Strategic
                     world,
                     existing,
                     BanditPatrolStackId,
+                    "荒村山匪",
                     nodeId,
                     routeId,
                     destNodeId,
@@ -129,6 +139,63 @@ namespace XianXia.Core.World.Strategic
                 world,
                 army,
                 BanditPatrolStackId,
+                "荒村山匪",
+                nodeId,
+                routeId,
+                destNodeId,
+                routeAnchorProgress);
+            return Result.Ok(army);
+        }
+
+        public static Result<FormalArmy> EnsureBanditWeakPatrolArmy(
+            SimulationWorld world,
+            string nodeId,
+            string routeId,
+            string destNodeId,
+            float routeAnchorProgress)
+        {
+            if (world == null)
+                return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "world null");
+
+            if (world.Strategic.FormalArmies.TryGet(BanditWeakPatrolFormalArmyId, out var existing) &&
+                existing != null)
+            {
+                SyncBanditStackView(
+                    world,
+                    existing,
+                    BanditWeakPatrolStackId,
+                    "试炼弱匪（自动必胜）",
+                    nodeId,
+                    routeId,
+                    destNodeId,
+                    routeAnchorProgress);
+                return Result.Ok(existing);
+            }
+
+            var members = TestStrategicBootstrap.EnsureWeakBanditCharacters(world, nodeId);
+            if (members.Count < 1)
+                return Result.Fail<FormalArmy>(ErrorCode.InvalidOperation, "Failed to spawn weak bandit characters.");
+
+            var army = new FormalArmy
+            {
+                ArmyId = BanditWeakPatrolFormalArmyId,
+                FactionId = StrategicFactionCatalog.BanditId,
+                LeaderCharacterId = members[0],
+                NodeId = nodeId,
+                State = FormalArmyState.AtNode
+            };
+            var ids = new List<ulong>(members.Count);
+            for (var i = 0; i < members.Count; i++)
+                ids.Add(members[i].Value);
+            army.ReplaceMembers(ids);
+            world.Strategic.FormalArmies.Register(army);
+            SyncMembershipForBanditArmy(world, army);
+
+            SyncBanditStackView(
+                world,
+                army,
+                BanditWeakPatrolStackId,
+                "试炼弱匪（自动必胜）",
                 nodeId,
                 routeId,
                 destNodeId,
@@ -154,6 +221,7 @@ namespace XianXia.Core.World.Strategic
                     world,
                     existing,
                     BanditScoutStackId,
+                    "山匪斥候",
                     nodeId,
                     routeId,
                     destNodeId,
@@ -189,6 +257,7 @@ namespace XianXia.Core.World.Strategic
                 world,
                 army,
                 BanditScoutStackId,
+                "山匪斥候",
                 nodeId,
                 routeId,
                 destNodeId,
@@ -202,6 +271,7 @@ namespace XianXia.Core.World.Strategic
             SimulationWorld world,
             FormalArmy army,
             string stackId,
+            string displayName,
             string nodeId,
             string routeId,
             string destNodeId,
@@ -214,9 +284,7 @@ namespace XianXia.Core.World.Strategic
                 Id = stackId,
                 FormalArmyId = army.ArmyId,
                 FactionId = army.FactionId,
-                DisplayName = string.Equals(stackId, BanditScoutStackId, StringComparison.Ordinal)
-                    ? "山匪斥候"
-                    : "荒村山匪",
+                DisplayName = displayName ?? string.Empty,
                 NodeId = nodeId,
                 RouteId = routeId ?? string.Empty,
                 DestNodeId = destNodeId ?? string.Empty,
@@ -243,6 +311,7 @@ namespace XianXia.Core.World.Strategic
                 world,
                 army,
                 BanditPatrolStackId,
+                "荒村山匪",
                 nodeId,
                 routeId,
                 destNodeId,

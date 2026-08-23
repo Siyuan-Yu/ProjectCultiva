@@ -71,7 +71,7 @@ namespace XianXia.Tests
             StringAssert.Contains("story:chapter_scaffold_started", dump);
             StringAssert.Contains("subject=", dump);
 
-            Assert.AreEqual(3, WorldSnapshot.CurrentSchemaVersion);
+            Assert.AreEqual(4, WorldSnapshot.CurrentSchemaVersion);
         }
     }
 }

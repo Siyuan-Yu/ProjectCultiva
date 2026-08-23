@@ -32,7 +32,14 @@ public sealed class HexWorldEditorDocument
     public HexCoordDto? SelectedHex { get; set; }
     public bool EditFootprintMode { get; set; }
 
+    /// <summary>Title / inspector refresh. Does not imply full map geometry rebuild.</summary>
     public event Action? Changed;
+
+    /// <summary>Terrain/road cells mutated — rebuild only affected render chunks.</summary>
+    public event Action<IReadOnlyList<(int Q, int R)>>? CellsMutated;
+
+    /// <summary>World instance replaced (load / undo / redo / new) — full map rebuild.</summary>
+    public event Action? WorldReplaced;
 
     public void NewWorld(int width, int height, string defaultTerrain, bool passable)
     {
@@ -46,6 +53,7 @@ public sealed class HexWorldEditorDocument
             passable);
         FilePath = null;
         MarkDirty(false);
+        WorldReplaced?.Invoke();
         Notify();
     }
 
@@ -56,6 +64,7 @@ public sealed class HexWorldEditorDocument
         World = world;
         FilePath = path;
         MarkDirty(false);
+        WorldReplaced?.Invoke();
         Notify();
     }
 
@@ -65,6 +74,7 @@ public sealed class HexWorldEditorDocument
         HexWorldContentJson.SaveFile(path, World);
         FilePath = path;
         MarkDirty(false);
+        Notify();
     }
 
     public void MarkDirty(bool dirty = true)
@@ -87,7 +97,8 @@ public sealed class HexWorldEditorDocument
             return false;
         _redo.Push(HexWorldContentJson.Serialize(World));
         World = HexWorldContentJson.Load(_undo.Pop()).Definitions[0];
-        MarkDirty(true);
+        IsDirty = true;
+        WorldReplaced?.Invoke();
         Notify();
         return true;
     }
@@ -98,7 +109,8 @@ public sealed class HexWorldEditorDocument
             return false;
         _undo.Push(HexWorldContentJson.Serialize(World));
         World = HexWorldContentJson.Load(_redo.Pop()).Definitions[0];
-        MarkDirty(true);
+        IsDirty = true;
+        WorldReplaced?.Invoke();
         Notify();
         return true;
     }
@@ -135,26 +147,35 @@ public sealed class HexWorldEditorDocument
     {
         if (singleStrokeUndo)
             PushUndo();
+        var touched = new List<(int Q, int R)>();
         foreach (var hex in CollectBrushHexes(center))
+        {
             HexWorldContentGenerator.SetTerrain(World, hex.Q, hex.R, ActiveTerrain);
-        MarkDirty(true);
-        Notify();
+            touched.Add((hex.Q, hex.R));
+        }
+
+        RaiseCellsMutated(touched);
     }
 
     public void ApplyRoadBrush(HexCoordDto center, bool singleStrokeUndo = true)
     {
         if (singleStrokeUndo)
             PushUndo();
+        var touched = new List<(int Q, int R)>();
         foreach (var hex in CollectBrushHexes(center))
+        {
             HexWorldContentGenerator.PaintRoadTile(World, hex.Q, hex.R);
-        MarkDirty(true);
-        Notify();
+            touched.Add((hex.Q, hex.R));
+        }
+
+        RaiseCellsMutated(touched);
     }
 
     public void ApplyEraseBrush(HexCoordDto center, bool singleStrokeUndo = true)
     {
         if (singleStrokeUndo)
             PushUndo();
+        var touched = new List<(int Q, int R)>();
         foreach (var hex in CollectBrushHexes(center))
         {
             HexWorldContentGenerator.SetTerrain(
@@ -166,10 +187,10 @@ public sealed class HexWorldEditorDocument
             var cell = HexWorldContentGenerator.GetCell(World, hex.Q, hex.R);
             if (cell != null)
                 cell.IsRoad = false;
+            touched.Add((hex.Q, hex.R));
         }
 
-        MarkDirty(true);
-        Notify();
+        RaiseCellsMutated(touched);
     }
 
     public HexWorldSiteDto? FindSiteAt(HexCoordDto hex)
@@ -179,8 +200,11 @@ public sealed class HexWorldEditorDocument
             var footprint = site.Footprint.Count > 0
                 ? site.Footprint
                 : new List<HexCoordDto> { new(site.AnchorQ, site.AnchorR) };
-            if (footprint.Any(h => h.Q == hex.Q && h.R == hex.R))
-                return site;
+            foreach (var h in footprint)
+            {
+                if (h.Q == hex.Q && h.R == hex.R)
+                    return site;
+            }
         }
 
         return null;
@@ -202,8 +226,7 @@ public sealed class HexWorldEditorDocument
         World.Sites.Add(site);
         HexWorldContentGenerator.PaintRoadTile(World, hex.Q, hex.R);
         SelectedSiteId = id;
-        MarkDirty(true);
-        Notify();
+        RaiseCellsMutated(new[] { (hex.Q, hex.R) });
         return site;
     }
 
@@ -213,7 +236,8 @@ public sealed class HexWorldEditorDocument
         World.Sites.RemoveAll(s => string.Equals(s.SiteId, siteId, StringComparison.Ordinal));
         if (string.Equals(SelectedSiteId, siteId, StringComparison.Ordinal))
             SelectedSiteId = null;
-        MarkDirty(true);
+        IsDirty = true;
+        WorldReplaced?.Invoke();
         Notify();
     }
 
@@ -233,15 +257,20 @@ public sealed class HexWorldEditorDocument
         }
         else
         {
-            site.Footprint = site.Footprint
-                .Select(h => new HexCoordDto(h.Q + dq, h.R + dr))
-                .ToList();
+            var moved = new List<HexCoordDto>(site.Footprint.Count);
+            foreach (var h in site.Footprint)
+                moved.Add(new HexCoordDto(h.Q + dq, h.R + dr));
+            site.Footprint = moved;
         }
 
+        var touched = new List<(int Q, int R)>();
         foreach (var hex in site.Footprint)
+        {
             HexWorldContentGenerator.PaintRoadTile(World, hex.Q, hex.R);
-        MarkDirty(true);
-        Notify();
+            touched.Add((hex.Q, hex.R));
+        }
+
+        RaiseCellsMutated(touched);
     }
 
     public void ToggleFootprintHex(string siteId, HexCoordDto hex, bool add)
@@ -263,7 +292,13 @@ public sealed class HexWorldEditorDocument
             site.Footprint.RemoveAll(h => h.Q == hex.Q && h.R == hex.R);
         }
 
-        MarkDirty(true);
-        Notify();
+        RaiseCellsMutated(new[] { (hex.Q, hex.R) });
+    }
+
+    void RaiseCellsMutated(IReadOnlyList<(int Q, int R)> touched)
+    {
+        IsDirty = true;
+        CellsMutated?.Invoke(touched);
+        Changed?.Invoke();
     }
 }

@@ -65,17 +65,14 @@
         </StackPanel>
       </ScrollViewer>
 
-      <Border Grid.Column="1" Background="#1E2228" BorderBrush="#2A2E34" BorderThickness="1" ClipToBounds="True">
-        <Canvas x:Name="MapCanvas"
-                Background="#2A2620"
-                SizeChanged="MapCanvas_SizeChanged"
-                PreviewMouseWheel="MapCanvas_PreviewMouseWheel"
-                MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown"
-                MouseLeftButtonUp="MapCanvas_MouseLeftButtonUp"
-                MouseMove="MapCanvas_MouseMove"
-                MouseDown="MapCanvas_MouseDown"
-                MouseUp="MapCanvas_MouseUp"/>
-      </Border>
+      <Border x:Name="MapHost" Grid.Column="1" Background="#1E2228" BorderBrush="#2A2E34" BorderThickness="1" ClipToBounds="True"
+              SizeChanged="MapHost_SizeChanged"
+              PreviewMouseWheel="MapHost_PreviewMouseWheel"
+              MouseLeftButtonDown="MapHost_MouseLeftButtonDown"
+              MouseLeftButtonUp="MapHost_MouseLeftButtonUp"
+              MouseMove="MapHost_MouseMove"
+              MouseDown="MapHost_MouseDown"
+              MouseUp="MapHost_MouseUp"/>
 
       <GridSplitter Grid.Column="2" Width="8" Background="#2A2E34"/>
 

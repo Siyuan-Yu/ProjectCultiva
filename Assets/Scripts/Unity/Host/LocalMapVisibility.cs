@@ -181,8 +181,12 @@ namespace XianXia.Unity.Host
             if (CombatLifeStateService.ShouldHideFromSpawn(entity))
                 return false;
 
+            var onEncounterMap = IsActiveStrategicEncounterMap(world);
+            if (onEncounterMap && IsForeignBattlefieldEntity(world, id))
+                return false;
+
             // 遭遇图上：未进场的我方可控角色隐藏；敌军刷怪／弥留也有 WorldPresence，绝不能误伤
-            if (IsActiveStrategicEncounterMap(world) &&
+            if (onEncounterMap &&
                 world.Strategic?.Encounter != null &&
                 world.Strategic.Encounter.HasEngagedParty &&
                 (entity.Tags & EntityTag.Npc) == 0 &&
@@ -198,9 +202,10 @@ namespace XianXia.Unity.Host
             {
                 // 敌军弥留宏观钉在路锚，再进 LocalMap 时仍应显示（与我方弥留同一套「人还在接战点」）
                 if ((wp.Mode == PartyWorldPresenceMode.Traveling ||
-                     wp.Mode == PartyWorldPresenceMode.RouteAnchored) &&
+                     wp.Mode == PartyWorldPresenceMode.RouteAnchored ||
+                     wp.Mode == PartyWorldPresenceMode.AtHex) &&
                     IsStrategicEncounterSpawn(world, id) &&
-                    IsActiveStrategicEncounterMap(world) &&
+                    onEncounterMap &&
                     entity.TryGet<EntityLocationComponent>(out var spawnLoc) &&
                     spawnLoc.HasPresentationOverride)
                     return true;
@@ -209,10 +214,24 @@ namespace XianXia.Unity.Host
                     return false;
                 if (wp.Mode == PartyWorldPresenceMode.RouteAnchored)
                     return false;
+                if (wp.Mode == PartyWorldPresenceMode.AtHex)
+                {
+                    // 遭遇图上：非本场 scoped spawn 的 Hex residual 不得靠 LocationId 漏进来
+                    if (onEncounterMap)
+                        return false;
+                    return false;
+                }
+
                 if (wp.Mode == PartyWorldPresenceMode.InEncounter)
                 {
-                    if (IsActiveStrategicEncounterMap(world) &&
-                        entity.TryGet<EntityLocationComponent>(out var encounterLoc) &&
+                    if (!onEncounterMap)
+                        return false;
+                    var enc = world.Strategic?.Encounter;
+                    var allowed = (enc != null && enc.IsEngaged(id)) ||
+                                  IsStrategicEncounterSpawn(world, id);
+                    if (!allowed)
+                        return false;
+                    if (entity.TryGet<EntityLocationComponent>(out var encounterLoc) &&
                         encounterLoc.HasPresentationOverride)
                         return true;
                     return false;
@@ -222,35 +241,67 @@ namespace XianXia.Unity.Host
                     !string.Equals(wp.NodeId, focus, System.StringComparison.Ordinal))
                     return false;
 
-                // 同焦点节点且未上路：一律视为在当前 LocalMap 上（勿因 LocationId 过期而隐身）
+                // 遭遇图：禁止同 Node AtNode 的非参战战略 NPC 漏进战场（如 WeakBandit 战场的 BanditLeader/A/B/C）
                 if (wp.Mode == PartyWorldPresenceMode.AtNode)
+                {
+                    if (onEncounterMap)
+                        return StrategicEncounterHostilityService.IsVisibleOnEncounterLocalMap(world, id);
                     return true;
+                }
             }
 
             if (!entity.TryGet<EntityLocationComponent>(out var loc) || !loc.HasLocation)
             {
                 if (IsStrategicEncounterSpawn(world, id) &&
-                    entity.TryGet<EntityLocationComponent>(out var spawnLoc) &&
-                    spawnLoc.HasPresentationOverride &&
-                    IsActiveStrategicEncounterMap(world))
+                    entity.TryGet<EntityLocationComponent>(out var spawnLoc2) &&
+                    spawnLoc2.HasPresentationOverride &&
+                    onEncounterMap)
                     return true;
                 if (IsCaveBoundNpc(entity) && !world.LocalMap.IsInInterior)
                     return false;
                 if (world.WorldPresence != null && world.WorldPresence.TryGet(id, out _))
+                {
+                    if (onEncounterMap)
+                        return StrategicEncounterHostilityService.IsVisibleOnEncounterLocalMap(world, id);
                     return true;
+                }
                 return false;
             }
 
             if (IsStrategicEncounterSpawn(world, id) &&
                 loc.HasPresentationOverride &&
-                IsActiveStrategicEncounterMap(world))
+                onEncounterMap)
                 return true;
+
+            // 遭遇图：禁止用「LocationId 落在遭遇图地点表」把其他战场 NPC 带进来
+            if (onEncounterMap &&
+                (entity.Tags & EntityTag.Npc) != 0 &&
+                !IsStrategicEncounterSpawn(world, id))
+                return false;
 
             // 地点不在当前地点表（例如已从荒村切到保底节点）：必须隐藏，禁止残留旧场景 NPC
             if (!world.WorldRegion.TryGet(loc.LocationId, out var place))
                 return false;
 
             return IsLocationOnActiveMap(world, place);
+        }
+
+        /// <summary>
+        /// 属于其他 Lingering Battlefield 的 tracked entity，不得在当前遭遇 LocalMap 显示。
+        /// </summary>
+        static bool IsForeignBattlefieldEntity(SimulationWorld world, EntityId id)
+        {
+            if (world?.Strategic?.Encounter == null || id.IsNone)
+                return false;
+
+            var rt = world.Strategic.Encounter;
+            if (string.IsNullOrEmpty(rt.ActiveBattlefieldId))
+                return false;
+
+            if (!BattlefieldSpawnScope.TryFindOwningBattlefieldId(world, id, out var ownerId))
+                return false;
+
+            return !string.Equals(ownerId, rt.ActiveBattlefieldId, System.StringComparison.Ordinal);
         }
 
         public static bool IsInteriorOnlyLocation(WorldLocationState loc)
@@ -290,21 +341,14 @@ namespace XianXia.Unity.Host
             var mapId = world.PartyWorld.LocalMapId;
             if (string.IsNullOrEmpty(mapId))
                 return false;
-            return string.Equals(world.LocalMap.ActiveMapLayoutId, mapId, System.StringComparison.Ordinal);
-        }
-
-        static bool IsStrategicEncounterSpawn(SimulationWorld world, EntityId id)
-        {
-            if (world?.Strategic?.Encounter == null || id.IsNone)
+            if (!string.Equals(world.LocalMap.ActiveMapLayoutId, mapId, System.StringComparison.Ordinal))
                 return false;
-            var spawned = world.Strategic.Encounter.SpawnedEntityIds;
-            for (var i = 0; i < spawned.Count; i++)
-            {
-                if (spawned[i] == id.Value)
-                    return true;
-            }
-
-            return false;
+            // 仅遭遇图实例（base:map_world_node_stub + 活跃 Encounter 状态），
+            // 禁止把青石荒村等普通 LocalMap 误判为遭遇图（否则 AtNode 村民会被 Participant 过滤隐藏）。
+            return IsEncounterMapInstance(world, mapId);
         }
+
+        static bool IsStrategicEncounterSpawn(SimulationWorld world, EntityId id) =>
+            BattlefieldSpawnScope.IsTrackedInCurrentLocalMapScope(world, id);
     }
 }

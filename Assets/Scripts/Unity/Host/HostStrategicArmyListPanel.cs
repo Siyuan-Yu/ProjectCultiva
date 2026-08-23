@@ -86,22 +86,31 @@ namespace XianXia.Unity.Host
 
             var contentTop = panelRect.y + 36f;
             var listW = panelRect.width * 0.42f;
-            var listRect = new Rect(panelRect.x + 8f, contentTop, listW - 12f, panelRect.height - 44f);
-            var detailRect = new Rect(listRect.xMax + 8f, contentTop, panelRect.width - listW - 16f, listRect.height);
-
-            if (GUI.Button(new Rect(panelRect.x + 10f, panelRect.y + 32f, 100f, 22f), "组建军队"))
-            {
-                _showCreate = true;
-                _selectedArmyId = string.Empty;
-                _detailPanel?.OpenGlobalCreate();
-            }
+            const float createButtonH = 28f;
+            const float createButtonPad = 6f;
+            var createBtnY = panelRect.yMax - 8f - createButtonH;
+            var listRect = new Rect(
+                panelRect.x + 8f,
+                contentTop,
+                listW - 12f,
+                createBtnY - contentTop - createButtonPad);
+            var detailRect = new Rect(listRect.xMax + 8f, contentTop, panelRect.width - listW - 16f, panelRect.height - 44f);
 
             DrawArmyList(listRect, onFocusArmy);
 
             if (_rows.Count == 0 && !_showCreate)
             {
-                GUI.Label(new Rect(listRect.x, listRect.y + 40f, listRect.width, 72f),
+                GUI.Label(new Rect(listRect.x, listRect.y + 8f, listRect.width, 72f),
                     "当前没有军队\n可以从角色列表中选择符合条件的角色组建第一支军队", _body);
+            }
+
+            if (GUI.Button(
+                    new Rect(panelRect.x + 10f, createBtnY, listW - 20f, createButtonH),
+                    "组建军队"))
+            {
+                _showCreate = true;
+                _selectedArmyId = string.Empty;
+                _detailPanel?.OpenGlobalCreate();
             }
 
             if (_showCreate || string.IsNullOrEmpty(_selectedArmyId))

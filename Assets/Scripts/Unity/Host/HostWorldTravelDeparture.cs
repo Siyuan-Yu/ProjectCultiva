@@ -240,6 +240,23 @@ namespace XianXia.Unity.Host
                 HideFromLocalMap(agents[i]);
         }
 
+        public void HidePartyFromLocalMapForArmy(string armyId)
+        {
+            if (bootstrap?.Session == null || string.IsNullOrEmpty(armyId))
+                return;
+            var world = bootstrap.Session.World;
+            if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
+                return;
+            for (var i = 0; i < army.MemberCharacterIds.Count; i++)
+            {
+                var id = new EntityId(army.MemberCharacterIds[i]);
+                bootstrap.MoveController?.CancelPresentationMovementPublic(id);
+                HideFromLocalMap(id);
+            }
+
+            bootstrap.Resume();
+        }
+
         void HideFromLocalMap(EntityId id)
         {
             var world = bootstrap.Session?.World;

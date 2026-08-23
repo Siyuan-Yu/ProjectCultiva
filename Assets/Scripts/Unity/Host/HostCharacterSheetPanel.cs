@@ -133,7 +133,7 @@ namespace XianXia.Unity.Host
             if (!string.IsNullOrEmpty(lifeLabel))
             {
                 var badgeText = string.IsNullOrEmpty(lifeBadge) ? lifeLabel : lifeBadge;
-                var badgeW = badgeText.Length <= 2 ? 52f : (badgeText.Length <= 6 ? 84f : 104f);
+                var badgeW = badgeText.Length <= 2 ? 52f : (badgeText.Length <= 6 ? 96f : 124f);
                 var badge = new Rect(rect.x + 16f, rect.y + 12f, badgeW, 28f);
                 var prev = GUI.color;
                 GUI.color = lifeLabel == "尸体"
@@ -171,6 +171,23 @@ namespace XianXia.Unity.Host
         string BuildBody(Entity entity)
         {
             var sb = new StringBuilder(1024);
+            var world = bootstrap?.Session?.World;
+            var life = CombatLifeStateService.FormatLifeStateWithCountdown(world, entity);
+            if (!string.IsNullOrEmpty(life))
+            {
+                sb.AppendLine("【生命状态】");
+                sb.AppendLine(life);
+                if (CombatLifeStateService.TryGetLifeStateCountdown(world, entity, out var cdLabel, out var cdSec))
+                {
+                    if (cdLabel == "弥留")
+                        sb.Append("倒计时：").Append(cdSec).Append("s 后转阵亡\n");
+                    else if (cdLabel == "尸体")
+                        sb.Append("倒计时：").Append(cdSec).Append("s 后腐烂消失\n");
+                }
+
+                sb.AppendLine();
+            }
+
             sb.AppendLine("【属性】");
             if (entity.TryGet<AttributesComponent>(out var attrs))
             {

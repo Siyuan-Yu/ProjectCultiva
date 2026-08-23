@@ -190,7 +190,19 @@ Landless Faction 仍应出现在未来 Faction List（外交不依赖 Node 入�
 | H-07 | Hex contact → BattleOffer | PENDING（H6） |
 | H-08 | Manual Battle 结束返回 EncounterHex | PENDING（H7） |
 | H-09 | Hex WorldMap Editor 刷地形/道路/放 Site | PENDING（H5） |
-| H-10 | Snapshot v3 恢复 Army CurrentHex / mid-step | PENDING（H7） |
+| H-10 | Snapshot 恢复 Army CurrentHex / mid-step（schema **v4**） | PENDING（H7） |
+
+### Residual Grouping Presentation（2026-08-23）
+
+| # | 验收项 | 状态 |
+|---|---|---|
+| RES-01 | Downed／Dead 脱离 FormalArmy；空军 ForceRemove；Leader Refresh | IMPLEMENTED（Domain + EditMode） |
+| RES-02 | Residual Hex Presence = `AtHex`／`HexCoord`；禁止 Node／Route residual path | IMPLEMENTED |
+| RES-03 | Marker 按 Hex × DynamicRelation × DEAD/DOWNED 聚合（PURE DERIVED） | IMPLEMENTED |
+| RES-04 | Marker Priority：SELF>ALLY>OTHER>ENEMY；同 Relation DEAD>DOWNED | IMPLEMENTED |
+| RES-05 | Active Army 绘制／左键命中优先于 Residual；右键穿透 Residual | IMPLEMENTED（Host） |
+| RES-06 | Snapshot 仅存 CharacterId+HexCoord；不存 Relation／Group；schema v4 | IMPLEMENTED |
+| RES-07 | 旧 per-character residual portrait + abstract ArmyStack remnant 退出正式 Runtime | IMPLEMENTED（Hex path） |
 
 ### MAP PRESENTATION PASS 1（2026-08-23）
 

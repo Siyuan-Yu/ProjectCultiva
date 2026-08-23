@@ -88,7 +88,7 @@ namespace XianXia.Tests
             Assert.AreEqual(OrderSource.Player, controllable.Get<ActionStateComponent>().ActiveOrderSource);
 
             // Snapshot schema unchanged; social state intentionally not persisted yet
-            Assert.AreEqual(3, WorldSnapshot.CurrentSchemaVersion);
+            Assert.AreEqual(4, WorldSnapshot.CurrentSchemaVersion);
             var snap = new SnapshotService(new JsonSnapshotSerializer()).Capture(world, loop);
             Assert.AreEqual(2, snap.SchemaVersion);
             Assert.IsNull(snap.GetType().GetProperty("Relationships"));

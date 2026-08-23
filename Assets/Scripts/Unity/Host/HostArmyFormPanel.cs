@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Npc;
@@ -239,8 +240,13 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < army.MemberCharacterIds.Count; i++)
             {
                 var memberId = new EntityId(army.MemberCharacterIds[i]);
+                var life = CombatLifeStateService.FormatLifeStateWithCountdown(world,
+                    world.Entities.TryGet(memberId, out var memberEnt) ? memberEnt : null);
+                var memberLabel = labelFn(world, memberId);
+                if (!string.IsNullOrEmpty(life) && life != "存活")
+                    memberLabel += " · " + life;
                 GUI.Label(new Rect(panelRect.x + 16f, y, panelRect.width - 100f, 18f),
-                    labelFn(world, memberId), _body);
+                    memberLabel, _body);
                 if (GUI.Button(new Rect(panelRect.xMax - 88f, y, 80f, 18f), "Set Leader"))
                 {
                     var cl = ArmyUiCommands.TryChangeLeader(world, army.ArmyId, memberId);

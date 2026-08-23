@@ -433,6 +433,17 @@ namespace XianXia.Tests
         {
             var world = StartCh01().World;
             Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var stack));
+            if (ArmyHexCommandService.IsHexStrategicActive(world))
+            {
+                Assert.IsTrue(world.Strategic.FormalArmies.TryGet(
+                    ArmyStackAdapter.BanditPatrolFormalArmyId,
+                    out var army));
+                Assert.IsTrue(army.UsesHexStrategicPosition);
+                Assert.AreEqual(FormalArmyState.Idle, army.State);
+                Assert.IsFalse(stack.IsTraveling);
+                return;
+            }
+
             Assert.IsTrue(stack.IsRouteAnchored);
             Assert.AreEqual(0.5f, stack.RouteAnchorProgress, 0.001f);
             Assert.AreEqual("base:node_huangcun", stack.NodeId);

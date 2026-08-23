@@ -1,6 +1,7 @@
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Social;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
@@ -104,6 +105,8 @@ namespace XianXia.Unity.Host
                 return false;
             if (!session.World.Entities.TryGet(npcId, out var entity))
                 return false;
+            if (StrategicEncounterHostilityService.IsHostileStrategicNpc(session.World, entity))
+                return true;
             return IsHostileEntity(entity);
         }
 

@@ -57,6 +57,14 @@ namespace XianXia.Core.World.Strategic
         public static Result AttackStack(SimulationWorld world, string attackerArmyId, ArmyStack stack) =>
             ArmyHexPursuitService.BeginAttackStack(world, attackerArmyId, stack);
 
+        public static Result AttackLingeringBattlefield(
+            SimulationWorld world,
+            string attackerArmyId,
+            HexCoord targetHex,
+            string enemyStackId) =>
+            ArmyHexLingeringArrivalService.BeginMoveToAttackLingering(
+                world, attackerArmyId, targetHex, enemyStackId);
+
         public static bool TryBuildPathPreview(
             SimulationWorld world,
             FormalArmy army,

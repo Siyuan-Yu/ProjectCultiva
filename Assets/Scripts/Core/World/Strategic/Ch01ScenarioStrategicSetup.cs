@@ -79,7 +79,13 @@ namespace XianXia.Core.World.Strategic
                     string.Empty,
                     "base:node_qingyun_lu",
                     -1f);
-                PositionPrototypeBanditPatrolArmy(world);
+                ArmyStackAdapter.EnsureBanditWeakPatrolArmy(
+                    world,
+                    "base:node_huangcun",
+                    string.Empty,
+                    "base:node_qingyun_lu",
+                    -1f);
+                PositionPrototypeTestBanditArmies(world);
                 return;
             }
 
@@ -100,20 +106,44 @@ namespace XianXia.Core.World.Strategic
             }
 
             ArmyStackAdapter.EnsureBanditPatrolArmy(world, fromId, route.Id, toId, 0.42f);
+            ArmyStackAdapter.EnsureBanditWeakPatrolArmy(world, fromId, route.Id, toId, 0.35f);
         }
 
-        /// <summary>Hex 模式下将 Prototype 山匪放到荒村外 7～8 格（迁移/重建后也可复用）。</summary>
-        public static void PositionPrototypeBanditPatrolArmy(SimulationWorld world)
+        /// <summary>
+        /// Hex 模式：两波 Prototype 测试山匪静止放置。
+        /// strong=荒村南侧路廊；weak=荒村东侧横路（手操红框位）。
+        /// </summary>
+        public static void PositionPrototypeTestBanditArmies(SimulationWorld world)
         {
             if (!ArmyHexCommandService.IsHexStrategicActive(world))
                 return;
-            if (!world.Strategic.FormalArmies.TryGet(ArmyStackAdapter.BanditPatrolFormalArmyId, out var bandit) ||
-                bandit == null)
+
+            Ch01HexPrototypeMapBuilder.ResolvePrototypeTestBanditHexesBelowHuangcun(
+                world,
+                out var strongHex,
+                out var weakHex);
+            PositionPrototypeBanditArmyAtHex(world, ArmyStackAdapter.BanditPatrolFormalArmyId, strongHex);
+            PositionPrototypeBanditArmyAtHex(world, ArmyStackAdapter.BanditWeakPatrolFormalArmyId, weakHex);
+        }
+
+        /// <summary>Hex 模式下将 Prototype 山匪放到荒村外 7～8 格（迁移/重建后也可复用）。</summary>
+        public static void PositionPrototypeBanditPatrolArmy(SimulationWorld world) =>
+            PositionPrototypeTestBanditArmies(world);
+
+        static void PositionPrototypeBanditArmyAtHex(
+            SimulationWorld world,
+            string formalArmyId,
+            HexCoord hex)
+        {
+            if (!world.Strategic.FormalArmies.TryGet(formalArmyId, out var bandit) || bandit == null)
                 return;
 
-            var patrolHex = Ch01HexPrototypeMapBuilder.ResolvePrototypeBanditPatrolHex(world);
-            ArmyHexTravelService.InitializeArmyAtHex(bandit, patrolHex);
-            if (world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditPatrolStackId, out var stack) && stack != null)
+            Ch01HexPrototypeMapBuilder.EnsurePrototypeTestBanditHexPassable(world, hex);
+            ArmyHexTravelService.InitializeArmyAtHex(bandit, hex);
+            var stackId = string.Equals(formalArmyId, ArmyStackAdapter.BanditWeakPatrolFormalArmyId, StringComparison.Ordinal)
+                ? ArmyStackAdapter.BanditWeakPatrolStackId
+                : ArmyStackAdapter.BanditPatrolStackId;
+            if (world.Strategic.Armies.TryGet(stackId, out var stack) && stack != null)
                 ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, stack);
         }
 

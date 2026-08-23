@@ -58,6 +58,7 @@ namespace XianXia.Core.World.Strategic
         public BattleOfferPending BattleOffer { get; } = new BattleOfferPending();
         public ArrivalNoticePending ArrivalNotice { get; } = new ArrivalNoticePending();
         public StrategicEncounterRuntime Encounter { get; } = new StrategicEncounterRuntime();
+        public LingeringBattlefieldRegistry LingeringBattlefields { get; } = new LingeringBattlefieldRegistry();
         public StrategicClockFreezeState ClockFreeze { get; } = new StrategicClockFreezeState();
         public BattleParticipantSnapshot Participants { get; } = new BattleParticipantSnapshot();
         public BattleInterruptQueue InterruptQueue { get; } = new BattleInterruptQueue();

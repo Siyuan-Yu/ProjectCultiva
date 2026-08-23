@@ -164,6 +164,45 @@ namespace XianXia.Core.World.Strategic
             return list;
         }
 
+        public void CollectEnemyEntityIds(List<EntityId> into)
+        {
+            into?.Clear();
+            if (into == null)
+                return;
+            for (var i = 0; i < _records.Count; i++)
+            {
+                var rec = _records[i];
+                if (rec.EntityId.IsNone)
+                    continue;
+                if (rec.Kind != BattleParticipantKind.EnemyPrimary &&
+                    rec.Kind != BattleParticipantKind.EnemyReinforcement)
+                    continue;
+                var exists = false;
+                for (var j = 0; j < into.Count; j++)
+                {
+                    if (into[j] == rec.EntityId)
+                    {
+                        exists = true;
+                        break;
+                    }
+                }
+
+                if (!exists)
+                    into.Add(rec.EntityId);
+            }
+        }
+
+        public void RemoveFriendlyRecords()
+        {
+            for (var i = _records.Count - 1; i >= 0; i--)
+            {
+                var kind = _records[i].Kind;
+                if (kind == BattleParticipantKind.MandatoryFriendly ||
+                    kind == BattleParticipantKind.OptionalFriendly)
+                    _records.RemoveAt(i);
+            }
+        }
+
         public BattleParticipantRecord FindByEntity(EntityId id)
         {
             if (id.IsNone)
@@ -176,6 +215,65 @@ namespace XianXia.Core.World.Strategic
 
             return null;
         }
+
+        public void CopyFrom(BattleParticipantSnapshot src)
+        {
+            if (src == null)
+            {
+                Clear();
+                return;
+            }
+
+            OfferId = src.OfferId;
+            BattleAnchorNodeId = src.BattleAnchorNodeId;
+            BattleAnchorDestNodeId = src.BattleAnchorDestNodeId;
+            BattleAnchorRouteId = src.BattleAnchorRouteId;
+            BattleAnchorProgress = src.BattleAnchorProgress;
+            BattleAnchorHexQ = src.BattleAnchorHexQ;
+            BattleAnchorHexR = src.BattleAnchorHexR;
+            PrimaryEnemyStackId = src.PrimaryEnemyStackId;
+            AttackerArmyId = src.AttackerArmyId;
+            DefenderArmyId = src.DefenderArmyId;
+            EncounterLocalMapId = src.EncounterLocalMapId;
+            LastBattleSummary = src.LastBattleSummary;
+            PlayerWon = src.PlayerWon;
+            IsAutoSettlement = src.IsAutoSettlement;
+            _records.Clear();
+            for (var i = 0; i < src._records.Count; i++)
+            {
+                var r = src._records[i];
+                if (r == null)
+                    continue;
+                _records.Add(new BattleParticipantRecord
+                {
+                    Kind = r.Kind,
+                    EntityId = r.EntityId,
+                    ArmyStackId = r.ArmyStackId,
+                    FormalArmyId = r.FormalArmyId,
+                    DisplayLabel = r.DisplayLabel,
+                    CombatPower = r.CombatPower,
+                    Selected = r.Selected,
+                    PreBattle = r.PreBattle == null
+                        ? null
+                        : new PreBattleWorldPresence
+                        {
+                            Mode = r.PreBattle.Mode,
+                            NodeId = r.PreBattle.NodeId,
+                            RouteId = r.PreBattle.RouteId,
+                            DestNodeId = r.PreBattle.DestNodeId,
+                            RemainingTravelTicks = r.PreBattle.RemainingTravelTicks,
+                            TravelTotalTicks = r.PreBattle.TravelTotalTicks,
+                            RouteAnchorProgress = r.PreBattle.RouteAnchorProgress,
+                            RouteSegmentOriginProgress = r.PreBattle.RouteSegmentOriginProgress,
+                            RouteSegmentEndProgress = r.PreBattle.RouteSegmentEndProgress,
+                            FollowStackId = r.PreBattle.FollowStackId,
+                            CombatPursuitStackId = r.PreBattle.CombatPursuitStackId
+                        }
+                });
+            }
+        }
+
+        public void CopyInto(BattleParticipantSnapshot dst) => dst?.CopyFrom(this);
     }
 
     /// <summary>

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -27,6 +28,96 @@ namespace XianXia.Core.World.Strategic
             ParkArmyAtBattleAnchor(world, army, snap);
             ArmyPresenceAdapter.SyncFromArmy(world, army);
             StrategicPursuitService.ClearPursuit(world);
+        }
+
+        /// <summary>
+        /// 敌军 FormalArmy 战后：先钉 Residual Hex，再 Detach 非活员。
+        /// 必须在 Presence 放置之后调用；否则 Query 会因仍属 FormalArmy 而排除全部 Downed。
+        /// </summary>
+        public static void SyncEnemyArmyAfterBattle(SimulationWorld world, BattleParticipantSnapshot snap)
+        {
+            if (world?.Strategic == null || snap == null)
+                return;
+
+            if (!TryResolveEnemyFormalArmy(world, snap, out var army) || army == null)
+                return;
+
+            HexCoord encounterHex = default;
+            var hasHex = ArmyHexBattleAnchorService.IsHexAnchorMode(world) &&
+                         StrategicResidualPresenceService.TryResolveEncounterHex(world, snap, out encounterHex);
+
+            // Detach 前先收齐成员并钉 Hex（Detach 可能 ForceRemoveArmy）
+            var memberSnapshot = new List<EntityId>(army.MemberCharacterIds.Count);
+            for (var i = 0; i < army.MemberCharacterIds.Count; i++)
+            {
+                var id = new EntityId(army.MemberCharacterIds[i]);
+                if (!id.IsNone)
+                    memberSnapshot.Add(id);
+            }
+
+            if (hasHex)
+            {
+                for (var i = 0; i < memberSnapshot.Count; i++)
+                {
+                    var id = memberSnapshot[i];
+                    if (!LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
+                        continue;
+                    StrategicResidualPresenceService.PlaceCharacterAtResidualHex(world, id, encounterHex);
+                }
+            }
+
+            ArmyService.DetachNonLivingMembersAtBattlefield(world, army);
+
+            var stackId = ResolveEnemyStackId(world, snap);
+            if (!string.IsNullOrEmpty(stackId) &&
+                world.Strategic.Armies.TryGet(stackId, out var stack) &&
+                stack != null)
+            {
+                // FormalArmy 可能已移除：保留栈上弥留／尸体计数供残留战场再入
+                var incap = 0;
+                var corpse = 0;
+                for (var i = 0; i < memberSnapshot.Count; i++)
+                {
+                    var id = memberSnapshot[i];
+                    if (LingeringBattlefieldPartyService.IsIncapacitated(world, id))
+                        incap++;
+                    else if (LingeringBattlefieldPartyService.IsVisibleCorpse(world, id))
+                        corpse++;
+                }
+
+                if (incap > 0 || corpse > 0)
+                {
+                    stack.IsBattlefieldRemnant = true;
+                    if (incap > 0)
+                        stack.IncapacitatedMemberCount = Math.Max(stack.IncapacitatedMemberCount, incap);
+                    if (corpse > 0)
+                        stack.CorpseMemberCount = Math.Max(stack.CorpseMemberCount, corpse);
+                    stack.MemberCount = Math.Max(
+                        stack.MemberCount,
+                        Math.Max(stack.IncapacitatedMemberCount, stack.CorpseMemberCount));
+                }
+            }
+        }
+
+        static bool TryResolveEnemyFormalArmy(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap,
+            out FormalArmy army)
+        {
+            army = null;
+            var stackId = ResolveEnemyStackId(world, snap);
+            if (string.IsNullOrEmpty(stackId) ||
+                !world.Strategic.Armies.TryGet(stackId, out var stack) ||
+                stack == null)
+                return false;
+            return ArmyStackAdapter.TryGetFormalArmy(world, stack, out army) && army != null;
+        }
+
+        static string ResolveEnemyStackId(SimulationWorld world, BattleParticipantSnapshot snap)
+        {
+            if (snap != null && !string.IsNullOrEmpty(snap.PrimaryEnemyStackId))
+                return snap.PrimaryEnemyStackId;
+            return world?.Strategic?.Encounter?.ArmyStackId ?? string.Empty;
         }
 
         /// <summary>清场后／手动战未 Resolve 前：用 living 成员路锚对齐 FormalArmy（仅位置，不 Detach）。</summary>

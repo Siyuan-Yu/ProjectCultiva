@@ -9,5 +9,7 @@ namespace XianXia.Core.World
         DepartingLocalMap = 3,
         /// <summary>停驻在宏观道路某进度（金丹前仅能在路上）。</summary>
         RouteAnchored = 4,
+        /// <summary>战略 Hex 钉点（战后 Downed / Visible Corpse Residual 专用）。</summary>
+        AtHex = 5,
     }
 }

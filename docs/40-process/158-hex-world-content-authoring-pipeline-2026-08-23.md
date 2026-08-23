@@ -37,7 +37,7 @@ Runtime WorldMap
 | 路径 | `Content/BaseGame/Data/Worlds/ch01_hex_world.json` |
 | DefinitionId | `base:hex_world_ch01` |
 | Scenario 引用 | `openingHexWorldId` on `base:scenario_ch01_reference` |
-| 尺寸 | 100×50（5000 cells） |
+| 尺寸 | 200×100（20000 cells；原 100×50 备份见 `Content/BaseGame/_backups/`） |
 
 ### Content JSON vs Snapshot
 
@@ -72,6 +72,21 @@ Runtime WorldMap
 - **能力：** New / Open / Save / Save As / Validate / Fit / Undo / Redo
 - **默认打开：** `ch01_hex_world.json`
 - **CLI 迁移：** `dotnet run --project WorldGraphEditor -- --migrate-ch01`
+
+### Editor Performance Architecture（2026-08-23）
+
+| 项 | 实现 |
+|---|---|
+| Renderer | **Chunked DrawingVisual cache**（非 per-Hex `Canvas.Polygon`） |
+| Chunk Size | **16×16**（对齐 Runtime `HexWorldScale.RenderChunkSize`） |
+| Geometry | 世界坐标烘焙；Pan/Zoom 只更新 `MatrixTransform` + visible cull |
+| Dirty rebuild | Terrain/Road 笔刷只 rebuild 触及的 chunk |
+| Hover / Select | Overlay DrawingVisual；**不** dirty terrain chunks |
+| Repaint | 无定时强制刷新；仅 pan/zoom/hover-change/content-edit |
+| Undo | 一次 Brush Stroke = 一次 JSON snapshot（非每格） |
+| Validate | 手动「校验」；不在每次绘制时跑全图连通性 |
+
+状态栏显示：`World / Cells / Visible Chunks / Dirty / Rebuild ms / Sync ms`。
 
 ### SUPERSEDED
 

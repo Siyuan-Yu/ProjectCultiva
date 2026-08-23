@@ -122,7 +122,7 @@ namespace XianXia.Tests
                 protagonist.Get<AttributesComponent>().GetBase(XianXia.Core.Attributes.AttributeId.MaxHp),
                 hpBefore);
 
-            Assert.AreEqual(3, WorldSnapshot.CurrentSchemaVersion);
+            Assert.AreEqual(4, WorldSnapshot.CurrentSchemaVersion);
         }
 
         static void PushBreakthroughsToQiRefining(

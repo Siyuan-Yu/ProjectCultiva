@@ -5,11 +5,13 @@ namespace XianXia.Core.Persistence
 {
     public sealed class WorldSnapshot
     {
-        public const int CurrentSchemaVersion = 3;
+        public const int CurrentSchemaVersion = 4;
         /// <summary>v1 development saves are explicitly unsupported.</summary>
         public const int LegacySchemaVersion = 1;
         /// <summary>v2 route-only saves are unsupported after hex migration.</summary>
         public const int LegacySchemaVersionV2 = 2;
+        /// <summary>v3 lacks Residual Hex Presence — unsupported after residual migration.</summary>
+        public const int LegacySchemaVersionV3 = 3;
 
         public int SchemaVersion { get; set; } = CurrentSchemaVersion;
         public ulong SnapshotId { get; set; }
@@ -42,6 +44,9 @@ namespace XianXia.Core.Persistence
         public bool Ch01FormationScenarioCompat { get; set; }
         public List<FormalArmySnapshotDto> FormalArmies { get; set; } = new List<FormalArmySnapshotDto>();
         public List<ArmyMembershipSnapshotDto> ArmyMemberships { get; set; } = new List<ArmyMembershipSnapshotDto>();
+        /// <summary>Detached Residual Character Hex Presence（非 Group Domain）。</summary>
+        public List<ResidualCharacterPresenceDto> ResidualCharacterPresences { get; set; } =
+            new List<ResidualCharacterPresenceDto>();
         public List<NodeOwnerSnapshotDto> NodeOwners { get; set; } = new List<NodeOwnerSnapshotDto>();
         public List<WarSnapshotDto> Wars { get; set; } = new List<WarSnapshotDto>();
         public List<AllianceSnapshotDto> Alliances { get; set; } = new List<AllianceSnapshotDto>();
@@ -85,6 +90,14 @@ namespace XianXia.Core.Persistence
     {
         public ulong CharacterId { get; set; }
         public string ArmyId { get; set; }
+    }
+
+    /// <summary>Snapshot DTO only：CharacterId + HexCoord。不保存 Relation / Group。</summary>
+    public sealed class ResidualCharacterPresenceDto
+    {
+        public ulong CharacterId { get; set; }
+        public int HexQ { get; set; }
+        public int HexR { get; set; }
     }
 
     public sealed class NodeOwnerSnapshotDto

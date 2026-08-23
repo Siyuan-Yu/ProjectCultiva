@@ -1,8 +1,9 @@
 # 153 · 弥留残留战场收束 + 自动战宏观头像 + 接战名单与追击修复（2026-08-22）
 
 > 状态：**已落地（EditMode 已补；手操待验）**｜日期：2026-08-22  
+> **Presentation 更新（2026-08-23）：** Hex WorldMap 正式表现改为 PURE DERIVED 聚合 Marker（`Hex × Relation × DEAD/DOWNED`）；残留位置 = Encounter Hex（`AtHex`），不再用 Battle Node／散落 portrait／匿名 remnant 作为主路径。BattlefieldLingering 再入保留。  
 > 上级：[150 残留 Offer](150-lingering-battlefield-batch3-offer-2026-08-21.md)／[152 RTS 点击纪律](152-worldmap-rts-click-discipline-2026-08-22.md)／[147 接战点弥留](147-battlefield-linger-no-teleport-2026-08-21.md)  
-> 关联代码：`BattleOfferService`／`StrategicEncounterSpawner`／`StrategicEncounterResolveService`／`LingeringBattlefieldPartyService`／`HostWorldMapPanel`／`HostStrategicInterruptPresenter`  
+> 关联代码：`BattleOfferService`／`StrategicEncounterSpawner`／`StrategicEncounterResolveService`／`LingeringBattlefieldPartyService`／`HostWorldMapPanel`／`HostStrategicInterruptPresenter`／`StrategicResidualPresentationQuery`  
 > 游玩入口：`Assets/Scenes/LevelTester.unity` → Ch01 大地图
 
 ---
@@ -123,8 +124,26 @@
 
 ---
 
-## 8. 修订记录
+## 8. Hex WorldMap 正式入口（2026-08-23）
+
+| 交互 | 规则 |
+|------|------|
+| 左键 Residual Marker | 仅 Residual Detail 面板 |
+| 右键 Hex | `HexResidualContextQuery` → Context Menu |
+| 我方残留 | **进入残留战场**（不要求先选军团）→ `BattleOfferService.TryEnterFriendlyLingeringAtHex` |
+| 敌方残留 | 先选我方军团 → **攻击残留战场** → `TryAttackEnemyLingeringAtHex` / `ArmyHexLingeringArrivalService` |
+| 远端攻击 | Hex 路径移动，抵达后再进；禁止 Pursuit／瞬移 |
+| Runtime 查询键 | `BattleAnchorHex` + `BattlefieldLingering`（`LingeringBattlefieldQueryService`） |
+
+**EditMode：** `LingeringBattlefieldHexEntryTests`（LINGER-01..08）
+
+**Save/Load 再进：** `StrategicEncounterRuntime` 仍标注「不入 Snapshot」→ **UNSUPPORTED**
+
+---
+
+## 9. 修订记录
 
 | 日期 | 说明 |
 |------|------|
+| 2026-08-23 | Hex Context 正式入口；Query/Arrival 服务；退役 Hex 下 avatar/stack 残留菜单 |
 | 2026-08-22 | 初版：宏观残留 + 强制名单 + 追击撤退 + 测例 |

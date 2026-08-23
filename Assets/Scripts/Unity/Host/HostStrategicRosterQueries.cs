@@ -118,7 +118,7 @@ namespace XianXia.Unity.Host
                 FactionId = entity.TryGet<FactionMembershipComponent>(out var fm) && fm.IsAffiliated
                     ? fm.FactionId
                     : string.Empty,
-                LifeStateLabel = CombatLifeStateService.ResolveLifeStateLabel(entity) ?? "存活",
+                LifeStateLabel = CombatLifeStateService.FormatLifeStateWithCountdown(world, entity) ?? "存活",
                 NodeId = ArmyService.ResolveCharacterNodeId(world, id) ?? string.Empty
             };
             row.NodeLabel = ResolveNodeLabel(world, row.NodeId);

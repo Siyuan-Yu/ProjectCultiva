@@ -72,6 +72,21 @@ namespace XianXia.Core.Persistence
                 });
             }
 
+            foreach (var kv in world.WorldPresence.All)
+            {
+                var presence = kv.Value;
+                if (presence == null || !presence.UsesHexPresence)
+                    continue;
+                if (!StrategicResidualPresenceService.IsResidualLifeCandidate(world, presence.EntityId))
+                    continue;
+                dto.ResidualCharacterPresences.Add(new ResidualCharacterPresenceDto
+                {
+                    CharacterId = presence.EntityId.Value,
+                    HexQ = presence.HexQ,
+                    HexR = presence.HexR
+                });
+            }
+
             foreach (var kv in world.WorldGraph.Nodes)
             {
                 var node = kv.Value;
@@ -236,6 +251,20 @@ namespace XianXia.Core.Persistence
                         continue;
                     ArmyInvariants.EnsureMembershipComponent(entity);
                     entity.Get<ArmyMembershipComponent>().SetArmyId(m.ArmyId);
+                }
+            }
+
+            if (dto.ResidualCharacterPresences != null)
+            {
+                for (var i = 0; i < dto.ResidualCharacterPresences.Count; i++)
+                {
+                    var r = dto.ResidualCharacterPresences[i];
+                    if (r == null || r.CharacterId == 0)
+                        continue;
+                    var id = new EntityId(r.CharacterId);
+                    if (!world.Entities.TryGet(id, out _))
+                        continue;
+                    world.WorldPresence.SetAtHex(id, new HexCoord(r.HexQ, r.HexR));
                 }
             }
 

@@ -133,6 +133,14 @@ namespace XianXia.Core.World.Strategic
             if (!world.WorldPresence.TryGet(characterId, out var presence) || presence == null)
                 return false;
 
+            // Hex Residual：聚合 Marker 负责；禁止再画独立头像
+            if (LingeringBattlefieldPartyService.IsLingeringDowned(world, characterId))
+            {
+                if (StrategicResidualPresenceService.TryGetResidualHex(world, characterId, out _))
+                    return false;
+                return true;
+            }
+
             if (ArmyService.TryGetArmyForCharacter(world, characterId, out var army) &&
                 army != null &&
                 ShouldSuppressIndependentPortraitForFormalArmyMember(world, characterId, army, presence))

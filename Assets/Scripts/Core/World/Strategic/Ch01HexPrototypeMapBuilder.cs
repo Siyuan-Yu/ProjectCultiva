@@ -322,6 +322,98 @@ namespace XianXia.Core.World.Strategic
             return grid.Contains(QingyunLuHex) ? QingyunLuHex : origin;
         }
 
+        /// <summary>
+        /// Prototype 测试山匪 Hex（对照手操红框）：
+        /// strong = 荒村正南路廊；weak = 荒村正东横路。
+        /// Content 荒村 (80,52) → strong (82,56)、weak (86,52)。
+        /// </summary>
+        public static void ResolvePrototypeTestBanditHexesBelowHuangcun(
+            SimulationWorld world,
+            out HexCoord strongPatrolHex,
+            out HexCoord weakPatrolHex)
+        {
+            var origin = ResolveHuangcunAnchorHex(world);
+            // 屏幕下方 = R+；屏幕右方 = Q+（Odd-R + GUI Y 翻转）
+            strongPatrolHex = new HexCoord(origin.Q + 2, origin.R + 4);
+            weakPatrolHex = new HexCoord(origin.Q + 6, origin.R);
+
+            if (world?.HexWorld == null || !world.HexWorld.HasGrid)
+                return;
+
+            if (!TryResolveStationaryTestHex(world, origin, strongPatrolHex, preferHigherR: true, out strongPatrolHex))
+                strongPatrolHex = new HexCoord(origin.Q + 2, origin.R + 4);
+            if (!TryResolveStationaryTestHex(world, origin, weakPatrolHex, preferHigherR: false, out weakPatrolHex))
+                weakPatrolHex = new HexCoord(origin.Q + 6, origin.R);
+        }
+
+        static bool TryResolveStationaryTestHex(
+            SimulationWorld world,
+            HexCoord origin,
+            HexCoord preferred,
+            bool preferHigherR,
+            out HexCoord picked)
+        {
+            picked = preferred;
+            if (IsStationaryTestBanditCandidate(world, world.HexWorld, origin, preferred))
+                return true;
+
+            HexCoord? best = null;
+            var bestScore = int.MaxValue;
+            for (var dr = -2; dr <= 2; dr++)
+            {
+                for (var dq = -2; dq <= 2; dq++)
+                {
+                    var hex = new HexCoord(preferred.Q + dq, preferred.R + dr);
+                    if (!IsStationaryTestBanditCandidate(world, world.HexWorld, origin, hex))
+                        continue;
+                    if (preferHigherR && hex.R <= origin.R)
+                        continue;
+                    if (!preferHigherR && hex.Q <= origin.Q)
+                        continue;
+
+                    var score = HexMath.Distance(preferred, hex) * 10 + HexMath.Distance(origin, hex);
+                    if (score >= bestScore)
+                        continue;
+                    bestScore = score;
+                    best = hex;
+                }
+            }
+
+            if (!best.HasValue)
+                return false;
+            picked = best.Value;
+            return true;
+        }
+
+        static bool IsStationaryTestBanditCandidate(
+            SimulationWorld world,
+            HexWorld grid,
+            HexCoord origin,
+            HexCoord hex)
+        {
+            if (grid == null || !grid.Contains(hex))
+                return false;
+            if (hex.Equals(origin))
+                return false;
+            if (HexMath.Distance(origin, hex) > 10)
+                return false;
+            if (world.Strategic.Sites.TryGetAtHex(hex, out _))
+                return false;
+            return true;
+        }
+
+        /// <summary>测试山匪驻点：若 Content 未画路，则临时开格保证可放置／接战。</summary>
+        public static void EnsurePrototypeTestBanditHexPassable(SimulationWorld world, HexCoord hex)
+        {
+            if (world?.HexWorld == null || !world.HexWorld.HasGrid || hex.Equals(default))
+                return;
+
+            if (!world.HexWorld.IsInBounds(hex))
+                return;
+
+            PaintRoadTile(world.HexWorld, hex);
+        }
+
         static HexCoord ResolveHuangcunAnchorHex(SimulationWorld world)
         {
             if (world.Strategic.Sites.TryGet(SiteHuangcun, out var site) &&

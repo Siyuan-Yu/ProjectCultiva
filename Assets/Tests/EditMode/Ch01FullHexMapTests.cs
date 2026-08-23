@@ -9,7 +9,7 @@ namespace XianXia.Tests
     public sealed class Ch01FullHexMapTests
     {
         [Test]
-        public void PrototypeBanditPatrol_IsSevenOrMoreHexesFromHuangcun()
+        public void PrototypeTestBandits_AreStationaryAtSouthAndEastOfHuangcun()
         {
             var world = new SimulationWorld();
             LoadCh01Graph(world);
@@ -19,10 +19,36 @@ namespace XianXia.Tests
             Assert.IsTrue(world.Strategic.Sites.TryGet("base:site_huangcun", out var huangcun));
             Assert.IsTrue(world.Strategic.FormalArmies.TryGet(
                 ArmyStackAdapter.BanditPatrolFormalArmyId,
-                out var bandit));
-            Assert.IsTrue(bandit.UsesHexStrategicPosition);
-            Assert.GreaterOrEqual(HexMath.Distance(huangcun.AnchorHex, bandit.CurrentHex), 7);
-            Assert.IsFalse(huangcun.OccupiesHex(bandit.CurrentHex));
+                out var strongBandit));
+            Assert.IsTrue(world.Strategic.FormalArmies.TryGet(
+                ArmyStackAdapter.BanditWeakPatrolFormalArmyId,
+                out var weakBandit));
+            Assert.IsTrue(strongBandit.UsesHexStrategicPosition);
+            Assert.IsTrue(weakBandit.UsesHexStrategicPosition);
+            Assert.AreEqual(FormalArmyState.Idle, strongBandit.State);
+            Assert.AreEqual(FormalArmyState.Idle, weakBandit.State);
+
+            // 南侧红框：R 更大；东侧红框：Q 更大
+            Assert.Greater(strongBandit.CurrentHex.R, huangcun.AnchorHex.R);
+            Assert.Greater(weakBandit.CurrentHex.Q, huangcun.AnchorHex.Q);
+            Assert.AreEqual(
+                new HexCoord(huangcun.AnchorHex.Q + 2, huangcun.AnchorHex.R + 4),
+                strongBandit.CurrentHex);
+            Assert.AreEqual(
+                new HexCoord(huangcun.AnchorHex.Q + 6, huangcun.AnchorHex.R),
+                weakBandit.CurrentHex);
+            Assert.IsFalse(huangcun.OccupiesHex(strongBandit.CurrentHex));
+            Assert.IsFalse(huangcun.OccupiesHex(weakBandit.CurrentHex));
+            Assert.IsTrue(world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditPatrolStackId, out var strongStack));
+            Assert.IsTrue(world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditWeakPatrolStackId, out var weakStack));
+            Assert.IsFalse(strongStack.IsTraveling);
+            Assert.IsFalse(weakStack.IsTraveling);
+            ArmyStackAdapter.RefreshDerivedPresentation(world, strongStack);
+            ArmyStackAdapter.RefreshDerivedPresentation(world, weakStack);
+            Assert.Greater(ArmyStackAdapter.GetCombatPower(world, strongStack),
+                ArmyStackAdapter.GetCombatPower(world, weakStack));
+            Assert.AreEqual(4, ArmyStackAdapter.GetMemberCount(world, strongStack));
+            Assert.AreEqual(1, ArmyStackAdapter.GetMemberCount(world, weakStack));
         }
 
         [Test]

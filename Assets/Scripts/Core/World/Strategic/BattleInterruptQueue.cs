@@ -4,6 +4,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -220,6 +221,9 @@ namespace XianXia.Core.World.Strategic
                     var id = new EntityId(formalArmy.MemberCharacterIds[i]);
                     if (id.IsNone || !world.Entities.TryGet(id, out var ent) || ent == null)
                         continue;
+                    if (primaryEnemy.HasDownedRemnant &&
+                        !LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
+                        continue;
                     snap.Add(new BattleParticipantRecord
                     {
                         Kind = BattleParticipantKind.EnemyPrimary,
@@ -364,6 +368,10 @@ namespace XianXia.Core.World.Strategic
             BattleParticipantSnapshot snap,
             ArmyStack primary)
         {
+            // 残留再进：只处理目标栈上的弥留／尸体，不把附近另一支活匪卷进来
+            if (primary != null && primary.HasDownedRemnant)
+                return;
+
             foreach (var kv in world.Strategic.Armies.Stacks)
             {
                 var stack = kv.Value;
@@ -371,13 +379,39 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 if (!string.Equals(stack.FactionId, primary.FactionId, StringComparison.Ordinal))
                     continue;
-                if (!ReinforcementRangeService.IsStackWithinRange(
-                        world,
-                        stack,
-                        snap.BattleAnchorNodeId,
-                        snap.BattleAnchorRouteId,
-                        snap.BattleAnchorProgress))
+                // 已是残留栈：不再作为增援卷入（避免连环误伤另一支原型匪）
+                if (stack.HasDownedRemnant)
                     continue;
+                if (!IsEnemyStackInReinforcementRange(world, snap, stack))
+                    continue;
+
+                if (ArmyStackAdapter.TryGetFormalArmy(world, stack, out var reinforcementArmy) &&
+                    reinforcementArmy != null)
+                {
+                    for (var i = 0; i < reinforcementArmy.MemberCharacterIds.Count; i++)
+                    {
+                        var memberId = new EntityId(reinforcementArmy.MemberCharacterIds[i]);
+                        if (memberId.IsNone ||
+                            snap.FindByEntity(memberId) != null ||
+                            !world.Entities.TryGet(memberId, out var ent) ||
+                            ent == null)
+                            continue;
+
+                        snap.Add(new BattleParticipantRecord
+                        {
+                            Kind = BattleParticipantKind.EnemyReinforcement,
+                            EntityId = memberId,
+                            ArmyStackId = stack.Id,
+                            DisplayLabel = string.IsNullOrEmpty(ent.DisplayName)
+                                ? memberId.ToString()
+                                : ent.DisplayName,
+                            CombatPower = CombatPowerCalculator.ForEntity(world, memberId),
+                            Selected = true
+                        });
+                    }
+
+                    continue;
+                }
 
                 snap.Add(new BattleParticipantRecord
                 {
@@ -388,6 +422,35 @@ namespace XianXia.Core.World.Strategic
                     Selected = true // 第一版自动加入
                 });
             }
+        }
+
+        /// <summary>
+        /// Hex 接战锚点：仅 1 Hex（锚点格 + 6 邻格）；禁止退回同 Node 世界半径。
+        /// 无 Hex 锚点时退回 Node 世界坐标半径（遗留非 Hex 场景）。
+        /// </summary>
+        static bool IsEnemyStackInReinforcementRange(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap,
+            ArmyStack stack)
+        {
+            if (world == null || snap == null || stack == null)
+                return false;
+
+            if (ArmyHexBattleAnchorService.TryGetBattleAnchorHex(snap, out var anchorHex))
+            {
+                if (ArmyStackAdapter.TryGetFormalArmy(world, stack, out var army) &&
+                    army != null &&
+                    army.UsesHexStrategicPosition)
+                    return HexMath.Distance(army.CurrentHex, anchorHex) <= 1;
+                return false;
+            }
+
+            return ReinforcementRangeService.IsStackWithinRange(
+                world,
+                stack,
+                snap.BattleAnchorNodeId,
+                snap.BattleAnchorRouteId,
+                snap.BattleAnchorProgress);
         }
 
         static bool ContainsId(IReadOnlyList<EntityId> list, EntityId id)

@@ -24,6 +24,22 @@ namespace XianXia.Core.World.Strategic
         public bool TryGetAllianceId(string factionId, out string allianceId) =>
             _factionToAlliance.TryGetValue(factionId ?? string.Empty, out allianceId);
 
+        /// <summary>双方同属一个正式 Alliance（只读）。</summary>
+        public bool AreAllied(string factionA, string factionB)
+        {
+            if (string.IsNullOrEmpty(factionA) || string.IsNullOrEmpty(factionB))
+                return false;
+            if (string.Equals(factionA, factionB, StringComparison.Ordinal))
+                return false;
+            if (!_factionToAlliance.TryGetValue(factionA, out var allianceA) ||
+                string.IsNullOrEmpty(allianceA))
+                return false;
+            if (!_factionToAlliance.TryGetValue(factionB, out var allianceB) ||
+                string.IsNullOrEmpty(allianceB))
+                return false;
+            return string.Equals(allianceA, allianceB, StringComparison.Ordinal);
+        }
+
         public List<string> GetAllianceMembers(string factionId)
         {
             var list = new List<string>(4);

@@ -139,6 +139,13 @@ namespace XianXia.Core.World.Strategic
 
             if (ArmyHexBattleAnchorService.TryDetectHexContact(pursuer, target))
             {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                SecondBattleAnchorTrace.EmitArmyHex(
+                    "Contact.HexPursuit",
+                    world,
+                    pursuer,
+                    target.CurrentHex);
+#endif
                 var pursue = CollectLivingParty(world, pursuer);
                 var ready = new List<EntityId>(pursue.Count);
                 StrategicEngageRules.CollectPartyReadyToEngageStack(world, pursue, stack, ready);

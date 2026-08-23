@@ -1,12 +1,16 @@
 using System;
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.World.Hex;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.World
 {
     /// <summary>单个可控角色在宏观图上的位置。</summary>
     public sealed class WorldAgentPresence
     {
+        public const int InvalidHexComponent = ArmyHexBattleAnchorService.InvalidHexComponent;
+
         public EntityId EntityId { get; set; }
         public PartyWorldPresenceMode Mode { get; set; } = PartyWorldPresenceMode.AtNode;
         /// <summary>停留时＝当前 Node；途中＝出发 Node。</summary>
@@ -31,6 +35,17 @@ namespace XianXia.Core.World
         /// 新的宏观出行下令时清除。
         /// </summary>
         public bool SuppressArrivalNotice { get; set; }
+
+        /// <summary>AtHex Residual 战略坐标（唯一 Residual 位置真源）。</summary>
+        public int HexQ { get; set; } = InvalidHexComponent;
+        public int HexR { get; set; } = InvalidHexComponent;
+
+        public bool UsesHexPresence =>
+            Mode == PartyWorldPresenceMode.AtHex &&
+            HexQ != InvalidHexComponent &&
+            HexR != InvalidHexComponent;
+
+        public HexCoord ResidualHex => new HexCoord(HexQ, HexR);
 
         public bool IsFollowingStack => !string.IsNullOrEmpty(FollowStackId);
 
@@ -87,6 +102,30 @@ namespace XianXia.Core.World
             RouteSegmentEndProgress = -1f;
         }
 
+        public void ClearHexPresence()
+        {
+            HexQ = InvalidHexComponent;
+            HexR = InvalidHexComponent;
+            if (Mode == PartyWorldPresenceMode.AtHex)
+                Mode = PartyWorldPresenceMode.AtNode;
+        }
+
+        public void SetAtHex(HexCoord hex)
+        {
+            Mode = PartyWorldPresenceMode.AtHex;
+            HexQ = hex.Q;
+            HexR = hex.R;
+            NodeId = string.Empty;
+            RouteId = string.Empty;
+            DestNodeId = string.Empty;
+            RemainingTravelTicks = 0;
+            TravelTotalTicks = 0;
+            RouteAnchorProgress = -1f;
+            ClearRouteSegment();
+            ClearFollow();
+            ClearCombatPursuit();
+        }
+
         public void AnchorOnRoute(float progress)
         {
             Mode = PartyWorldPresenceMode.RouteAnchored;
@@ -94,6 +133,7 @@ namespace XianXia.Core.World
             RemainingTravelTicks = 0;
             TravelTotalTicks = 0;
             ClearRouteSegment();
+            ClearHexPresenceFieldsOnly();
         }
 
         public void ClearFollow() => FollowStackId = string.Empty;
@@ -109,7 +149,14 @@ namespace XianXia.Core.World
             TravelTotalTicks = 0;
             RouteAnchorProgress = -1f;
             ClearRouteSegment();
+            ClearHexPresenceFieldsOnly();
             // 注意：不清 CombatPursuitStackId——追击到站后仍要弹接战而非到站查看
+        }
+
+        void ClearHexPresenceFieldsOnly()
+        {
+            HexQ = InvalidHexComponent;
+            HexR = InvalidHexComponent;
         }
     }
 
@@ -155,6 +202,13 @@ namespace XianXia.Core.World
             var p = GetOrCreate(id);
             p.NodeId = nodeId ?? string.Empty;
             p.ClearTravel();
+        }
+
+        public void SetAtHex(EntityId id, HexCoord hex)
+        {
+            var p = GetOrCreate(id);
+            p.EntityId = id;
+            p.SetAtHex(hex);
         }
 
         public void CollectAtNode(string nodeId, List<EntityId> into)

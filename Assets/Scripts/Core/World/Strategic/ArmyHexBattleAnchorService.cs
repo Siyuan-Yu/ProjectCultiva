@@ -128,6 +128,19 @@ namespace XianXia.Core.World.Strategic
 
             if (IsHexAnchorMode(world) && TryResolveParkingHex(world, army, snap, out var hex))
             {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                var oldHex = army.UsesHexStrategicPosition ? army.CurrentHex : default;
+                if (!oldHex.Equals(hex))
+                {
+                    LingeringExitPositionTrace.LogArmyHexMutation(
+                        world,
+                        army,
+                        oldHex,
+                        hex,
+                        nameof(ParkArmyAtBattleAnchor),
+                        "ParkArmyAtBattleAnchor");
+                }
+#endif
                 ArmyHexTravelService.InitializeArmyAtHex(army, hex);
                 army.NodeId = ResolveLegacyNodeForHex(world, hex, snap.BattleAnchorNodeId ?? army.NodeId);
                 return;
@@ -205,14 +218,7 @@ namespace XianXia.Core.World.Strategic
 
             if (IsHexAnchorMode(world) && TryResolveParkingHex(world, null, snap, out var hex))
             {
-                wp.Mode = PartyWorldPresenceMode.AtNode;
-                wp.NodeId = ResolveLegacyNodeForHex(world, hex, snap.BattleAnchorNodeId ?? wp.NodeId);
-                wp.RouteId = string.Empty;
-                wp.DestNodeId = string.Empty;
-                wp.RouteAnchorProgress = -1f;
-                wp.RemainingTravelTicks = 0;
-                wp.TravelTotalTicks = 0;
-                wp.ClearRouteSegment();
+                wp.SetAtHex(hex);
                 return;
             }
 
@@ -297,6 +303,7 @@ namespace XianXia.Core.World.Strategic
             out HexCoord hex)
         {
             hex = default;
+            // 本场 Participants 锚点优先：第二场 Contact H2 不得被第一场残留 H1 覆盖
             if (TryGetBattleAnchorHex(snap, out hex) && world.HexWorld.Contains(hex))
                 return true;
             if (army != null && army.UsesHexStrategicPosition)
@@ -304,7 +311,8 @@ namespace XianXia.Core.World.Strategic
                 hex = army.CurrentHex;
                 return world.HexWorld.Contains(hex);
             }
-            if (!string.IsNullOrEmpty(snap.BattleAnchorNodeId) &&
+            if (!IsHexAnchorMode(world) &&
+                !string.IsNullOrEmpty(snap.BattleAnchorNodeId) &&
                 TryResolveHexForNode(world, snap.BattleAnchorNodeId, out hex))
                 return true;
             return false;

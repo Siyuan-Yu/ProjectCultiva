@@ -335,6 +335,23 @@ Army 可以：
 
 ---
 
+## 13.1 Hex Battlefield Residual Presentation（战后弥留／阵亡）
+
+战后 **Downed（Incapacitated）** 与 **Visible Corpse（Dead）** 必须脱离 FormalArmy（见 `ArmyService.DetachNonLivingMembersAtBattlefield`）。
+
+- **不是 FormalArmy**：无 Leader、不可 Move／Attack／Pursuit、不进 Army List、不占 Army Capacity。
+- **真实单位仍是 Character**（保留 CharacterId／Faction／LifeState／Corpse）；禁止只存匿名 Count。
+- **战略位置**：`WorldAgentPresence.Mode = AtHex` + `HexCoord`（Encounter Hex）。Residual 运行时路径禁止再读 Legacy Node／Route。
+- **WorldMap 聚合（PURE DERIVED）**：Presentation Query 按  
+  `HexCoord × DynamicRelation(SELF/ALLY/OTHER/ENEMY) × ResidualState(DEAD/DOWNED)`  
+  派生 Marker；**不**创建 BattleResidualGroup Domain，**不** Snapshot 保存 Relation／Group／Count。
+- Relation 每次相对 `PlayerFactionId` 动态计算（War／Alliance）；和平后原 ENEMY 尸体自动显示为 OTHER。
+- Marker：统一 Dead／Downed 图标 + 人数角标；Hex 边缘偏移；Active Army 绘制与命中优先于 Residual；右键穿透 Residual。
+
+Cross-ref：ADR-0025 Residual Hex Position；验收见 153 Residual Grouping 段。
+
+---
+
 ## 14. WorldMap 显示 Army，不显示所有 Character
 
 **正式产品目标：**

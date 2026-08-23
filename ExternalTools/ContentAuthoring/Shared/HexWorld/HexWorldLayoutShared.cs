@@ -11,6 +11,8 @@ public static class HexWorldLayoutShared
     public const int PlayableOriginQ = 8;
     public const int PlayableOriginR = 10;
     public const float DefaultHexSize = 1f;
+    /// <summary>Editor/Runtime rendering chunk edge — matches Runtime HexWorldScale.RenderChunkSize.</summary>
+    public const int RenderChunkSize = 16;
     public const string CoordinateSystem = "OddROffsetPointyTop";
 
     public static float HorizontalPitch(float hexSize) =>

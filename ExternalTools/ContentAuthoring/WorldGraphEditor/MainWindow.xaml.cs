@@ -12,10 +12,12 @@ public partial class MainWindow : Window
 {
     readonly HexWorldEditorDocument _document = new();
     readonly HexMapViewport _viewport = new();
+    readonly HexMapViewHost _mapView = new();
     bool _panning;
     Point _panLast;
     bool _painting;
     bool _strokeUndoPushed;
+    HexCoordDto _lastStatusHex = new(-1, -1);
 
     public MainWindow()
     {
@@ -24,7 +26,11 @@ public partial class MainWindow : Window
         foreach (var entry in HexTerrainPalette.Legend)
             TerrainList.Items.Add($"{entry.Label} ({entry.Id})");
         TerrainList.SelectedIndex = 2;
-        _document.Changed += RefreshUi;
+
+        MapHost.Child = _mapView;
+        _document.Changed += OnDocumentChanged;
+        _document.CellsMutated += OnCellsMutated;
+        _document.WorldReplaced += OnWorldReplaced;
         TryLoadDefaultWorld();
     }
 
@@ -34,7 +40,7 @@ public partial class MainWindow : Window
         if (root == null)
         {
             StatusText.Text = "未找到 Content/BaseGame；请用「打开」选择 hexWorld JSON。";
-            RefreshUi();
+            RefreshChrome();
             return;
         }
 
@@ -46,7 +52,7 @@ public partial class MainWindow : Window
         }
 
         StatusText.Text = "未找到 ch01_hex_world.json，已显示空白世界。";
-        RefreshUi();
+        RefreshChrome();
     }
 
     void LoadFromPath(string path)
@@ -54,16 +60,43 @@ public partial class MainWindow : Window
         var world = HexWorldContentJson.LoadDefinition(path);
         _document.Load(world, path);
         _viewport.FitWorld(world.Width, world.Height);
-        RefreshUi();
+        BindMap(fullRebuild: true);
+        RefreshChrome();
+        UpdateValidationSummary();
     }
 
-    void RefreshUi()
+    void BindMap(bool fullRebuild)
+    {
+        _viewport.SetViewportSize(_mapView.ActualWidth > 1 ? _mapView.ActualWidth : MapHost.ActualWidth,
+            _mapView.ActualHeight > 1 ? _mapView.ActualHeight : MapHost.ActualHeight);
+        _mapView.SetWorld(_document.World, _viewport, fullRebuild);
+        _mapView.SetSelection(_document.SelectedHex);
+    }
+
+    void OnWorldReplaced()
+    {
+        BindMap(fullRebuild: true);
+        RefreshChrome();
+    }
+
+    void OnCellsMutated(IReadOnlyList<(int Q, int R)> hexes)
+    {
+        _mapView.MarkHexesDirty(hexes);
+        RefreshChrome();
+        UpdateInspector();
+    }
+
+    void OnDocumentChanged()
+    {
+        RefreshChrome();
+        UpdateInspector();
+    }
+
+    void RefreshChrome()
     {
         Title = (_document.IsDirty ? "* " : string.Empty) + "XianXia · WorldGraphEditor — Hex World";
         PathText.Text = string.IsNullOrEmpty(_document.FilePath) ? "(未保存)" : _document.FilePath;
-        HexMapCanvasRenderer.Render(MapCanvas, _document, _viewport, _painting);
-        UpdateInspector();
-        UpdateValidationSummary();
+        StatusText.Text = _mapView.FormatPerfStatus();
     }
 
     void UpdateInspector()
@@ -115,6 +148,7 @@ public partial class MainWindow : Window
         _document.World.Id = "base:hex_world_new";
         _document.World.Name = "New Hex World";
         _viewport.FitWorld(_document.World.Width, _document.World.Height);
+        BindMap(fullRebuild: true);
     }
 
     void Open_Click(object sender, RoutedEventArgs e)
@@ -139,7 +173,7 @@ public partial class MainWindow : Window
         }
 
         _document.Save(_document.FilePath);
-        StatusText.Text = "已保存 " + _document.FilePath;
+        StatusText.Text = "已保存 " + _document.FilePath + " · " + _mapView.FormatPerfStatus();
     }
 
     void SaveAs_Click(object sender, RoutedEventArgs e)
@@ -160,14 +194,15 @@ public partial class MainWindow : Window
         UpdateValidationSummary();
         var issues = HexWorldContentValidator.Validate(_document.World);
         StatusText.Text = issues.Count == 0
-            ? "Validation OK"
+            ? "Validation OK · " + _mapView.FormatPerfStatus()
             : $"Validation: {issues.Count(i => i.Level == "error")} errors, {issues.Count(i => i.Level == "warn")} warnings";
     }
 
     void Fit_Click(object sender, RoutedEventArgs e)
     {
         _viewport.FitWorld(_document.World.Width, _document.World.Height);
-        RefreshUi();
+        _mapView.SyncViewport(rebuildGeometry: false);
+        RefreshChrome();
     }
 
     void Undo_Click(object sender, RoutedEventArgs e) => _document.Undo();
@@ -229,59 +264,60 @@ public partial class MainWindow : Window
         site.SiteType = SiteTypeBox.Text.Trim();
         site.LocalMapId = SiteLocalMapBox.Text.Trim();
         _document.MarkDirty(true);
+        _mapView.SetSelection(_document.SelectedHex);
+        _mapView.SyncViewport(rebuildGeometry: false);
     }
 
-    void MapCanvas_SizeChanged(object sender, SizeChangedEventArgs e)
+    void MapHost_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         if (_viewport.ViewHalf <= 1)
             _viewport.FitWorld(_document.World.Width, _document.World.Height);
-        RefreshUi();
+        _mapView.SyncViewport(rebuildGeometry: false);
+        RefreshChrome();
     }
 
-    void MapCanvas_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    void MapHost_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
         var factor = e.Delta > 0 ? 1.0 / 1.12 : 1.12;
         _viewport.ViewHalf = Math.Max(2, _viewport.ViewHalf * factor);
-        RefreshUi();
+        _mapView.SyncViewport(rebuildGeometry: false);
+        RefreshChrome();
         e.Handled = true;
     }
 
-    void MapCanvas_MouseDown(object sender, MouseButtonEventArgs e)
+    void MapHost_MouseDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ChangedButton == MouseButton.Middle ||
             (e.ChangedButton == MouseButton.Left && Keyboard.Modifiers.HasFlag(ModifierKeys.Alt)))
         {
             _panning = true;
-            _panLast = e.GetPosition(MapCanvas);
-            MapCanvas.CaptureMouse();
+            _panLast = e.GetPosition(_mapView);
+            _mapView.CaptureMouse();
             e.Handled = true;
         }
     }
 
-    void MapCanvas_MouseUp(object sender, MouseButtonEventArgs e)
+    void MapHost_MouseUp(object sender, MouseButtonEventArgs e)
     {
         if (_panning && (e.ChangedButton == MouseButton.Middle ||
                          (e.ChangedButton == MouseButton.Left && Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))))
         {
             _panning = false;
-            MapCanvas.ReleaseMouseCapture();
+            _mapView.ReleaseMouseCapture();
         }
 
         if (e.ChangedButton == MouseButton.Left && _painting)
         {
             _painting = false;
-            MapCanvas.ReleaseMouseCapture();
+            _mapView.ReleaseMouseCapture();
             _strokeUndoPushed = false;
         }
     }
 
-    void MapCanvas_MouseMove(object sender, MouseEventArgs e)
+    void MapHost_MouseMove(object sender, MouseEventArgs e)
     {
-        var pos = e.GetPosition(MapCanvas);
+        var pos = e.GetPosition(_mapView);
         var hex = _viewport.ScreenToHex(pos.X, pos.Y, _document.World.Width, _document.World.Height);
-        StatusText.Text = hex.Q >= 0
-            ? $"Hex ({hex.Q},{hex.R}) · Tool {_document.ActiveTool} · ZoomHalf {_viewport.ViewHalf:F1}"
-            : "Hex —";
 
         if (_panning)
         {
@@ -289,29 +325,41 @@ public partial class MainWindow : Window
             _panLast = pos;
             _viewport.ViewCenterX -= delta.X / _viewport.Scale;
             _viewport.ViewCenterY += delta.Y / _viewport.Scale;
-            RefreshUi();
+            _mapView.SyncViewport(rebuildGeometry: false);
+            StatusText.Text = _mapView.FormatPerfStatus();
             return;
+        }
+
+        var hoverChanged = _mapView.SetHover(hex.Q >= 0 ? hex : null);
+        if (hoverChanged || hex.Q != _lastStatusHex.Q || hex.R != _lastStatusHex.R)
+        {
+            _lastStatusHex = hex;
+            StatusText.Text = hex.Q >= 0
+                ? $"Hex ({hex.Q},{hex.R}) · Tool {_document.ActiveTool} · {_mapView.FormatPerfStatus()}"
+                : _mapView.FormatPerfStatus();
         }
 
         if (_painting && e.LeftButton == MouseButtonState.Pressed && hex.Q >= 0)
             ApplyTool(hex, false);
     }
 
-    void MapCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    void MapHost_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (_panning)
             return;
-        var pos = e.GetPosition(MapCanvas);
+        var pos = e.GetPosition(_mapView);
         var hex = _viewport.ScreenToHex(pos.X, pos.Y, _document.World.Width, _document.World.Height);
         if (hex.Q < 0)
             return;
 
         _document.SelectedHex = hex;
+        _mapView.SetSelection(hex);
+
         if (_document.ActiveTool is HexEditorTool.Terrain or HexEditorTool.Road or HexEditorTool.Erase)
         {
             _painting = true;
             _strokeUndoPushed = false;
-            MapCanvas.CaptureMouse();
+            _mapView.CaptureMouse();
             ApplyTool(hex, true);
             return;
         }
@@ -332,26 +380,22 @@ public partial class MainWindow : Window
         var site = _document.FindSiteAt(hex);
         if (site != null)
             _document.SelectedSiteId = site.SiteId;
-        RefreshUi();
+        UpdateInspector();
+        RefreshChrome();
     }
 
-    void MapCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    void MapHost_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (!_painting)
             return;
         _painting = false;
-        MapCanvas.ReleaseMouseCapture();
+        _mapView.ReleaseMouseCapture();
         _strokeUndoPushed = false;
     }
 
     void ApplyTool(HexCoordDto hex, bool firstStroke)
     {
-        if (firstStroke && !_strokeUndoPushed)
-        {
-            _document.PushUndo();
-            _strokeUndoPushed = true;
-        }
-        else if (!_strokeUndoPushed)
+        if (!_strokeUndoPushed)
         {
             _document.PushUndo();
             _strokeUndoPushed = true;

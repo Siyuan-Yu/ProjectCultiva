@@ -7,6 +7,7 @@ using XianXia.Core.Events;
 using XianXia.Core.Navigation;
 using XianXia.Core.Results;
 using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Bootstrap;
 using XianXia.Data.Content;
@@ -908,6 +909,8 @@ namespace XianXia.Unity.Host
             world.LocalMap.OverworldMapLayoutId = string.Empty;
             preferredMapLayoutId = string.Empty;
             _session.PreferredMapLayoutId = string.Empty;
+            if (world.Strategic?.Encounter != null)
+                world.Strategic.Encounter.ActiveBattlefieldId = string.Empty;
             if (entityViewSpawner != null)
                 entityViewSpawner.Clear();
             if (mapGraybox != null)
@@ -1066,10 +1069,17 @@ namespace XianXia.Unity.Host
                 _session.RefreshViewableEntityIds();
                 entityViewSpawner?.Rebuild(_session);
             }
-            else if (world.Strategic.Encounter.SpawnedEntityIds.Count > 0)
+            else
             {
-                _session.RefreshViewableEntityIds();
-                entityViewSpawner?.Rebuild(_session);
+                if (world.Strategic?.Encounter != null)
+                {
+                    world.Strategic.Encounter.ActiveBattlefieldId = string.Empty;
+                    if (world.Strategic.Encounter.SpawnedEntityIds.Count > 0)
+                    {
+                        _session.RefreshViewableEntityIds();
+                        entityViewSpawner?.Rebuild(_session);
+                    }
+                }
             }
 
             // 切图后再对齐一次地点坐标（MapLayout sync 之后）并选中在场角色
@@ -1144,11 +1154,19 @@ namespace XianXia.Unity.Host
 
             world.Strategic.ClearPendingLingeringVisit();
 
+            HexCoord targetHex = default;
+            if (StrategicResidualPresenceService.TryGetResidualHex(world, focus, out targetHex) ||
+                ArmyHexBattleAnchorService.TryGetBattleAnchorHex(world.Strategic.Participants, out targetHex))
+                StrategicEncounterSpawner.TryPrepareLingeringLocalMapSession(world, targetHex);
+
             var rt = world.Strategic.Encounter;
             var mapId = BattleOfferService.ResolveActiveEncounterLocalMapId(world);
+            var stackId = !string.IsNullOrEmpty(rt.ArmyStackId)
+                ? rt.ArmyStackId
+                : world.Strategic.Participants?.PrimaryEnemyStackId ?? string.Empty;
             StrategicEncounterSpawner.PlanManualEncounter(
                 world,
-                rt.ArmyStackId,
+                stackId,
                 string.IsNullOrEmpty(rt.EncounterLinkId) ? "linger" : rt.EncounterLinkId,
                 scratch);
             world.PartyWorld.LocalMapId = mapId;

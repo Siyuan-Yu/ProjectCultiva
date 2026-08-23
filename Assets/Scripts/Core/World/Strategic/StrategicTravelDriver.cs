@@ -26,6 +26,8 @@ namespace XianXia.Core.World.Strategic
             ArmyStackAdapter.SyncAllLinkedStacksFromFormalArmies(world);
             ArmyHexPursuitService.AfterTravelTick(world);
             if (!world.Strategic.HasBattleOffer)
+                ArmyHexLingeringArrivalService.AfterTravelTick(world);
+            if (!world.Strategic.HasBattleOffer)
                 TryResolvePendingLingeringVisit(world);
         }
 
