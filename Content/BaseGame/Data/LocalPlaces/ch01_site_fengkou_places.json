@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_site_fengkou",
+      "type": "localPlaceSet",
+      "name": "Ch01·风口隘·地点表",
+      "mapLayoutId": "base:map_site_fengkou",
+      "startLocationId": "base:loc_site_fengkou_start",
+      "locations": [
+        {
+          "id": "base:loc_site_fengkou_start",
+          "name": "风口隘·入口",
+          "kind": "Settlement",
+          "tags": [
+            "prototype",
+            "site",
+            "fengkou"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}

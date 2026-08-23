@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_bei",
+      "type": "mapLayout",
+      "name": "Ch01·北村·Prototype",
+      "worldRegionId": "base:places_site_bei",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_bei",
+          "kind": "treeM",
+          "x": 6,
+          "y": 86,
+          "w": 2,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "北村·左上树（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

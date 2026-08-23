@@ -130,6 +130,13 @@ namespace XianXia.Unity.Host
         Rect _hexMenuRect;
         HexResidualContextView _hexMenuContext;
         HexRightClickResolution _hexMenuResolution;
+
+        // Hex 右键：WorldSite 进入菜单（须点击后才进 LocalMap）
+        bool _hexSiteEnterMenuOpen;
+        string _hexSiteEnterMenuSiteId = string.Empty;
+        HexCoord _hexSiteEnterMenuHex;
+        Rect _hexSiteEnterMenuRect;
+        HexRightClickResolution _hexSiteEnterMenuResolution;
         /// <summary>右侧信息面板聚焦的节点（左键点节点写入；与菜单开闭无关）。</summary>
         string _inspectNodeId = string.Empty;
         Vector2 _inspectScroll;
@@ -299,6 +306,7 @@ namespace XianXia.Unity.Host
             _nodeMenuOpen = false;
             _nodeMenuNodeId = string.Empty;
             _hexMenuOpen = false;
+            CloseHexSiteEnterMenu();
             _avatarMenuOpen = false;
             _avatarMenuVisitMode = false;
             _armyFormPanel?.Close();
@@ -689,6 +697,7 @@ namespace XianXia.Unity.Host
                 DrawReinforcementRadiusOverlay(mapRect, world);
             DrawNodeContextMenu(mapRect, world, graph);
             DrawHexContextMenu(world);
+            DrawHexWorldSiteEnterMenu(world);
             DrawStackContextMenu(world, graph);
             DrawAvatarContextMenu(world);
             DrawInspectPanel(infoRect, world, graph);
@@ -698,7 +707,7 @@ namespace XianXia.Unity.Host
             if (Event.current != null && Event.current.type == EventType.Used)
                 return;
             // 菜单仍开着（点在菜单内）时不处理地图下令；外侧点击已在上面关掉菜单且不吞事件
-            if (_stackMenuOpen || _nodeMenuOpen || _avatarMenuOpen || _hexMenuOpen)
+            if (_stackMenuOpen || _nodeMenuOpen || _avatarMenuOpen || _hexMenuOpen || _hexSiteEnterMenuOpen)
                 return;
             HandleMapInput(mapRect, hexProjection, world, graph);
             HostUiHitTest.EndFrame();
@@ -2738,11 +2747,13 @@ namespace XianXia.Unity.Host
                 attackerFaction,
                 hasSelectedArmy,
                 hasMovableArmy,
-                true);
+                true,
+                selectedArmy);
 
             LogHexRightClickTrace(resolution, selectedArmy, pickedHex);
 
             _hexMenuOpen = false;
+            CloseHexSiteEnterMenu();
             _stackMenuOpen = false;
             _avatarMenuOpen = false;
             _nodeMenuOpen = false;
@@ -2759,6 +2770,9 @@ namespace XianXia.Unity.Host
                     break;
                 case HexRightClickResolvedAction.DirectEnterFriendlyLingering:
                     ExecuteEnterFriendlyLingeringAtHex(world, pickedHex);
+                    break;
+                case HexRightClickResolvedAction.ShowWorldSiteEnterMenu:
+                    OpenHexWorldSiteEnterMenu(resolution, pickedHex, mouse);
                     break;
                 default:
                     _status = string.IsNullOrEmpty(resolution.StatusHint)
@@ -2860,6 +2874,8 @@ namespace XianXia.Unity.Host
                     return "MOVE";
                 case HexRightClickResolvedAction.DirectEnterFriendlyLingering:
                     return "ENTER_LINGERING";
+                case HexRightClickResolvedAction.ShowWorldSiteEnterMenu:
+                    return "ENTER_WORLD_SITE_MENU";
                 case HexRightClickResolvedAction.DirectAttackLingeringBattlefield:
                     return "ATTACK_LINGERING";
                 case HexRightClickResolvedAction.DirectAttackArmy:
@@ -3048,6 +3064,115 @@ namespace XianXia.Unity.Host
             }
 
             _status = "无法进入残留战场（接战点已失效或无可进入对象）";
+        }
+
+        void CloseHexSiteEnterMenu()
+        {
+            _hexSiteEnterMenuOpen = false;
+            _hexSiteEnterMenuSiteId = string.Empty;
+            _hexSiteEnterMenuResolution = null;
+        }
+
+        void OpenHexWorldSiteEnterMenu(
+            HexRightClickResolution resolution,
+            HexCoord hex,
+            Vector2 mouse)
+        {
+            if (resolution == null || string.IsNullOrEmpty(resolution.SiteId))
+                return;
+
+            _hexSiteEnterMenuResolution = resolution;
+            _hexSiteEnterMenuSiteId = resolution.SiteId;
+            _hexSiteEnterMenuHex = hex;
+            _hexSiteEnterMenuRect = AnchorContextMenu(new Rect(mouse.x, mouse.y, 1f, 1f), 196f, 72f);
+            _hexSiteEnterMenuOpen = true;
+            _hexMenuOpen = false;
+            _stackMenuOpen = false;
+            _avatarMenuOpen = false;
+            _nodeMenuOpen = false;
+        }
+
+        void DrawHexWorldSiteEnterMenu(XianXia.Core.Simulation.SimulationWorld world)
+        {
+            if (!_hexSiteEnterMenuOpen || string.IsNullOrEmpty(_hexSiteEnterMenuSiteId))
+                return;
+            if (world?.Strategic?.Sites == null ||
+                !world.Strategic.Sites.TryGet(_hexSiteEnterMenuSiteId, out var site) ||
+                site == null)
+            {
+                CloseHexSiteEnterMenu();
+                return;
+            }
+
+            var prevDepth = GUI.depth;
+            GUI.depth = -85;
+            HostUiHitTest.Block(_hexSiteEnterMenuRect);
+            var prev = GUI.color;
+            GUI.color = new Color(0.16f, 0.17f, 0.19f, 0.96f);
+            GUI.DrawTexture(_hexSiteEnterMenuRect, _px);
+            GUI.color = prev;
+
+            var title = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
+            GUI.Label(
+                new Rect(_hexSiteEnterMenuRect.x + 8f, _hexSiteEnterMenuRect.y + 4f, _hexSiteEnterMenuRect.width - 16f, 18f),
+                title,
+                _body);
+
+            var enterLabel = StrategicWorldSiteAccessService.BuildEnterSiteMenuLabel(site);
+            var canEnter = TryGetSelectedLivingPlayerArmy(world, out var army, out _) &&
+                             army != null &&
+                             StrategicWorldSiteAccessService.CanEnterWorldSiteLocalMap(
+                                 world, site.SiteId, army.ArmyId).IsSuccess;
+            if (StrategicClockFreezeService.IsModalEncounter(world))
+                canEnter = false;
+
+            GUI.enabled = canEnter;
+            var y = _hexSiteEnterMenuRect.y + 28f;
+            var bw = _hexSiteEnterMenuRect.width - 16f;
+            if (GUI.Button(new Rect(_hexSiteEnterMenuRect.x + 8f, y, bw, 22f), enterLabel) && canEnter)
+            {
+                Event.current.Use();
+                ExecuteEnterWorldSiteAtHex(world, _hexSiteEnterMenuResolution);
+                CloseHexSiteEnterMenu();
+            }
+
+            GUI.enabled = true;
+            GUI.depth = prevDepth;
+        }
+
+        void ExecuteEnterWorldSiteAtHex(
+            XianXia.Core.Simulation.SimulationWorld world,
+            HexRightClickResolution resolution)
+        {
+            if (resolution == null || string.IsNullOrEmpty(resolution.SiteId))
+            {
+                _status = "无法进入地点（WorldSite 无效）";
+                return;
+            }
+
+            if (!TryGetSelectedLivingPlayerArmy(world, out var army, out var err))
+            {
+                _status = string.IsNullOrEmpty(err) ? "请先左键选中我方军团" : err;
+                return;
+            }
+
+            if (!world.Strategic.Sites.TryGet(resolution.SiteId, out var site) || site == null)
+            {
+                _status = "WorldSite 不存在";
+                return;
+            }
+
+            var enter = WorldTravelService.EnterWorldSiteScene(world, site.SiteId, army.ArmyId);
+            if (enter.IsSuccess)
+            {
+                CloseAllWorldMapPanels();
+                bootstrap.ApplyPartyWorldNodePresentation(closeWorldMap: true);
+                var title = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
+                _status = "已进入 " + title;
+                return;
+            }
+
+            _status = FormatFail(enter);
         }
 
         void ExecuteAttackEnemyLingeringAtHex(
@@ -3809,15 +3934,19 @@ namespace XianXia.Unity.Host
                 return;
             if (_hexMenuOpen && _hexMenuRect.Contains(ev.mousePosition))
                 return;
+            if (_hexSiteEnterMenuOpen && _hexSiteEnterMenuRect.Contains(ev.mousePosition))
+                return;
             if (_avatarMenuOpen && _avatarMenuRect.Contains(ev.mousePosition))
                 return;
 
-            if (!_stackMenuOpen && !_nodeMenuOpen && !_hexMenuOpen && !_avatarMenuOpen)
+            if (!_stackMenuOpen && !_nodeMenuOpen && !_hexMenuOpen && !_hexSiteEnterMenuOpen &&
+                !_avatarMenuOpen)
                 return;
 
             _stackMenuOpen = false;
             _nodeMenuOpen = false;
             _hexMenuOpen = false;
+            CloseHexSiteEnterMenu();
             _avatarMenuOpen = false;
             _avatarMenuVisitMode = false;
             // 不 Use：同一帧右键仍可落到移动／攻击下令

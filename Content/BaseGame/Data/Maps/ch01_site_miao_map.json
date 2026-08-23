@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_miao",
+      "type": "mapLayout",
+      "name": "Ch01·山神庙·Prototype",
+      "worldRegionId": "base:places_site_miao",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_miao",
+          "kind": "treeL",
+          "x": 40,
+          "y": 10,
+          "w": 3,
+          "h": 3,
+          "blocksMovement": false,
+          "label": "山神庙·标记树4（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

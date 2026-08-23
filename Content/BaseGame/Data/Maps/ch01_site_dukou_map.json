@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_dukou",
+      "type": "mapLayout",
+      "name": "Ch01·渡口·Prototype",
+      "worldRegionId": "base:places_site_dukou",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_dukou",
+          "kind": "treeM",
+          "x": 6,
+          "y": 46,
+          "w": 2,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "渡口·左侧树（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

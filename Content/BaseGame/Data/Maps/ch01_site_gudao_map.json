@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_gudao",
+      "type": "mapLayout",
+      "name": "Ch01·古道驿·Prototype",
+      "worldRegionId": "base:places_site_gudao",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_gudao",
+          "kind": "treeM",
+          "x": 160,
+          "y": 70,
+          "w": 2,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "古道驿·偏右上树（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

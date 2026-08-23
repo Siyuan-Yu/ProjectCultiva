@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_haijiao",
+      "type": "mapLayout",
+      "name": "Ch01·海角·Prototype",
+      "worldRegionId": "base:places_site_haijiao",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_haijiao",
+          "kind": "treeL",
+          "x": 50,
+          "y": 50,
+          "w": 3,
+          "h": 3,
+          "blocksMovement": false,
+          "label": "海角·中央偏左树（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

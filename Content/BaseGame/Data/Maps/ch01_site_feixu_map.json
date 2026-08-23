@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_feixu",
+      "type": "mapLayout",
+      "name": "Ch01·废墟·Prototype",
+      "worldRegionId": "base:places_site_feixu",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_feixu",
+          "kind": "treeL",
+          "x": 30,
+          "y": 20,
+          "w": 3,
+          "h": 3,
+          "blocksMovement": false,
+          "label": "废墟·偏左树（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

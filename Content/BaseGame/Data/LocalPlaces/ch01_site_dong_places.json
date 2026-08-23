@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_site_dong",
+      "type": "localPlaceSet",
+      "name": "Ch01·东林·地点表",
+      "mapLayoutId": "base:map_site_dong",
+      "startLocationId": "base:loc_site_dong_start",
+      "locations": [
+        {
+          "id": "base:loc_site_dong_start",
+          "name": "东林·入口",
+          "kind": "Settlement",
+          "tags": [
+            "prototype",
+            "site",
+            "dong"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}

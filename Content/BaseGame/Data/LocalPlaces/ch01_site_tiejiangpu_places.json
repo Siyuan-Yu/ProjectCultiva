@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_site_tiejiangpu",
+      "type": "localPlaceSet",
+      "name": "Ch01·铁匠铺·地点表",
+      "mapLayoutId": "base:map_site_tiejiangpu",
+      "startLocationId": "base:loc_site_tiejiangpu_start",
+      "locations": [
+        {
+          "id": "base:loc_site_tiejiangpu_start",
+          "name": "铁匠铺·入口",
+          "kind": "Settlement",
+          "tags": [
+            "prototype",
+            "site",
+            "tiejiangpu"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}

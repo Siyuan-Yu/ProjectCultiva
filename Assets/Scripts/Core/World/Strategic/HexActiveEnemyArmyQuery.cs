@@ -128,6 +128,10 @@ namespace XianXia.Core.World.Strategic
                 occupied.Contains(targetHex))
                 return true;
 
+            // Pure Hex：敌军占格只看 FormalArmy.CurrentHex，禁止 stack.NodeId → Legacy Node 回退。
+            if (ArmyHexCommandService.IsHexStrategicActive(world))
+                return false;
+
             if (ArmyHexBattleAnchorService.TryResolveHexForNode(world, stack.NodeId, out var nodeHex) &&
                 nodeHex.Equals(targetHex))
                 return true;

@@ -984,8 +984,16 @@ namespace XianXia.Unity.Host
             if (places.IsFailure)
                 Debug.LogWarning("[PlayableHost] ActivatePlaces: " + places.Error, this);
 
-            // 仅把仍在当前焦点 Node 上的己方落到该图 startLocation（已去别处的人不动）
+            // 仅把仍在当前焦点 Node／WorldSite 上的己方落到该图 startLocation（已去别处的人不动）
             var focusNode = world.PartyWorld.NodeId;
+            var focusSiteId = world.PartyWorld.SiteId;
+            WorldSite focusSite = null;
+            if (!string.IsNullOrEmpty(focusSiteId))
+                world.Strategic?.Sites?.TryGet(focusSiteId, out focusSite);
+            var focusArmyId = world.PartyWorld.FocusFormalArmyId;
+            FormalArmy focusArmy = null;
+            if (!string.IsNullOrEmpty(focusArmyId))
+                world.Strategic?.FormalArmies?.TryGet(focusArmyId, out focusArmy);
             var startId = world.WorldRegion.StartLocationId;
             var encounter = world.Strategic?.Encounter;
             var filterEngaged = onEncounterMap && encounter != null && encounter.HasEngagedParty;
@@ -1001,7 +1009,18 @@ namespace XianXia.Unity.Host
                      wp.Mode == XianXia.Core.World.PartyWorldPresenceMode.Traveling))
                     continue;
                 var engagedInEncounter = filterEngaged && encounter.IsEngaged(id);
-                if (!engagedInEncounter &&
+                if (!engagedInEncounter && focusSite != null)
+                {
+                    if (!StrategicWorldSitePopulationService.IsCharacterPresentAtWorldSite(
+                            world, id, focusSite))
+                        continue;
+                }
+                else if (!engagedInEncounter && focusArmy != null)
+                {
+                    if (!focusArmy.ContainsMember(id))
+                        continue;
+                }
+                else if (!engagedInEncounter &&
                     wp != null &&
                     !string.IsNullOrEmpty(focusNode) &&
                     !string.Equals(wp.NodeId, focusNode, System.StringComparison.Ordinal))

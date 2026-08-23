@@ -206,6 +206,8 @@ namespace XianXia.Core.World.Strategic
             {
                 ApplyStackRouteToParty(world, engagedParty, stack);
             }
+
+            MarkPartyInEncounter(world, engagedParty);
         }
 
         public static void ApplyStackRouteToParty(

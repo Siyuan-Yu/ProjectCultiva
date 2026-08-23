@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_site_nan",
+      "type": "localPlaceSet",
+      "name": "Ch01·南村·地点表",
+      "mapLayoutId": "base:map_site_nan",
+      "startLocationId": "base:loc_site_nan_start",
+      "locations": [
+        {
+          "id": "base:loc_site_nan_start",
+          "name": "南村·入口",
+          "kind": "Settlement",
+          "tags": [
+            "prototype",
+            "site",
+            "nan"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}

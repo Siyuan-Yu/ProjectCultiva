@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_shankou",
+      "type": "mapLayout",
+      "name": "Ch01·山口·Prototype",
+      "worldRegionId": "base:places_site_shankou",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_shankou",
+          "kind": "treeM",
+          "x": 40,
+          "y": 80,
+          "w": 2,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "山口·标记树6（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

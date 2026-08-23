@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_site_bei",
+      "type": "localPlaceSet",
+      "name": "Ch01·北村·地点表",
+      "mapLayoutId": "base:map_site_bei",
+      "startLocationId": "base:loc_site_bei_start",
+      "locations": [
+        {
+          "id": "base:loc_site_bei_start",
+          "name": "北村·入口",
+          "kind": "Settlement",
+          "tags": [
+            "prototype",
+            "site",
+            "bei"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}

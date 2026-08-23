@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_daoguan",
+      "type": "mapLayout",
+      "name": "Ch01·道观·Prototype",
+      "worldRegionId": "base:places_site_daoguan",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_daoguan",
+          "kind": "treeL",
+          "x": 94,
+          "y": 6,
+          "w": 3,
+          "h": 3,
+          "blocksMovement": false,
+          "label": "道观·下方大树（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

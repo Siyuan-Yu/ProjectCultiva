@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_xi",
+      "type": "mapLayout",
+      "name": "Ch01·西渡·Prototype",
+      "worldRegionId": "base:places_site_xi",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_xi",
+          "kind": "treeM",
+          "x": 70,
+          "y": 75,
+          "w": 2,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "西渡·标记树10（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

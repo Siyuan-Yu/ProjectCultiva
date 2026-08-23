@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_yaotian",
+      "type": "mapLayout",
+      "name": "Ch01·药田谷·Prototype",
+      "worldRegionId": "base:places_site_yaotian",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_yaotian",
+          "kind": "treeL",
+          "x": 110,
+          "y": 15,
+          "w": 3,
+          "h": 3,
+          "blocksMovement": false,
+          "label": "药田谷·标记树11（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

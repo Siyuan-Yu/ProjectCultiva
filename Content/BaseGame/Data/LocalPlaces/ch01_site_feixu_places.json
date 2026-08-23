@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_site_feixu",
+      "type": "localPlaceSet",
+      "name": "Ch01·废墟·地点表",
+      "mapLayoutId": "base:map_site_feixu",
+      "startLocationId": "base:loc_site_feixu_start",
+      "locations": [
+        {
+          "id": "base:loc_site_feixu_start",
+          "name": "废墟·入口",
+          "kind": "Settlement",
+          "tags": [
+            "prototype",
+            "site",
+            "feixu"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}

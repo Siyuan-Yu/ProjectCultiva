@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_site_b",
+      "type": "localPlaceSet",
+      "name": "Ch01·荒原乙·地点表",
+      "mapLayoutId": "base:map_site_b",
+      "startLocationId": "base:loc_site_b_start",
+      "locations": [
+        {
+          "id": "base:loc_site_b_start",
+          "name": "荒原乙·入口",
+          "kind": "Settlement",
+          "tags": [
+            "prototype",
+            "site",
+            "b"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_yucun",
+      "type": "mapLayout",
+      "name": "Ch01·渔村·Prototype",
+      "worldRegionId": "base:places_site_yucun",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_yucun",
+          "kind": "treeM",
+          "x": 165,
+          "y": 45,
+          "w": 2,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "渔村·标记树13（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

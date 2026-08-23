@@ -693,6 +693,7 @@ namespace XianXia.Unity.Host
             var map = string.IsNullOrWhiteSpace(localMapId)
                 ? BattleOfferService.ResolveActiveEncounterLocalMapId(session.World)
                 : localMapId.Trim();
+            session.World.PartyWorld.ClearSiteFocus();
             session.World.PartyWorld.LocalMapId = map;
             if (session != null)
                 session.PreferredMapLayoutId = map;

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_tiejiangpu",
+      "type": "mapLayout",
+      "name": "Ch01·铁匠铺·Prototype",
+      "worldRegionId": "base:places_site_tiejiangpu",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_tiejiangpu",
+          "kind": "treeL",
+          "x": 70,
+          "y": 15,
+          "w": 3,
+          "h": 3,
+          "blocksMovement": false,
+          "label": "铁匠铺·标记树8（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

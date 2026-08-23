@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_b",
+      "type": "mapLayout",
+      "name": "Ch01·荒原乙·Prototype",
+      "worldRegionId": "base:places_site_b",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_b",
+          "kind": "treeM",
+          "x": 186,
+          "y": 6,
+          "w": 2,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "荒原乙·右下树（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

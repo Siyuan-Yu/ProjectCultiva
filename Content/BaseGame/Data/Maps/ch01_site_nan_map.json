@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_nan",
+      "type": "mapLayout",
+      "name": "Ch01·南村·Prototype",
+      "worldRegionId": "base:places_site_nan",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_nan",
+          "kind": "treeM",
+          "x": 150,
+          "y": 10,
+          "w": 2,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "南村·标记树5（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

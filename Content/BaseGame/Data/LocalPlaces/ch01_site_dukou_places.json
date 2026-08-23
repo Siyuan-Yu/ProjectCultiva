@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_site_dukou",
+      "type": "localPlaceSet",
+      "name": "Ch01·渡口·地点表",
+      "mapLayoutId": "base:map_site_dukou",
+      "startLocationId": "base:loc_site_dukou_start",
+      "locations": [
+        {
+          "id": "base:loc_site_dukou_start",
+          "name": "渡口·入口",
+          "kind": "Settlement",
+          "tags": [
+            "prototype",
+            "site",
+            "dukou"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_site_xi",
+      "type": "localPlaceSet",
+      "name": "Ch01·西渡·地点表",
+      "mapLayoutId": "base:map_site_xi",
+      "startLocationId": "base:loc_site_xi_start",
+      "locations": [
+        {
+          "id": "base:loc_site_xi_start",
+          "name": "西渡·入口",
+          "kind": "Settlement",
+          "tags": [
+            "prototype",
+            "site",
+            "xi"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}

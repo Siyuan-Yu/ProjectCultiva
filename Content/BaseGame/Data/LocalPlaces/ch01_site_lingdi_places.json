@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_site_lingdi",
+      "type": "localPlaceSet",
+      "name": "Ch01·灵地·地点表",
+      "mapLayoutId": "base:map_site_lingdi",
+      "startLocationId": "base:loc_site_lingdi_start",
+      "locations": [
+        {
+          "id": "base:loc_site_lingdi_start",
+          "name": "灵地·入口",
+          "kind": "Settlement",
+          "tags": [
+            "prototype",
+            "site",
+            "lingdi"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}

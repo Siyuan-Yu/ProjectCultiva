@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_shuizhai",
+      "type": "mapLayout",
+      "name": "Ch01·水寨·Prototype",
+      "worldRegionId": "base:places_site_shuizhai",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_shuizhai",
+          "kind": "treeM",
+          "x": 150,
+          "y": 80,
+          "w": 2,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "水寨·标记树7（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

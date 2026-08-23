@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_wai",
+      "type": "mapLayout",
+      "name": "Ch01·洞府外·Prototype",
+      "worldRegionId": "base:places_site_wai",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_wai",
+          "kind": "treeM",
+          "x": 110,
+          "y": 75,
+          "w": 2,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "洞府外·标记树9（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

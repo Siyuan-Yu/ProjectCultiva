@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_site_wai",
+      "type": "localPlaceSet",
+      "name": "Ch01·洞府外·地点表",
+      "mapLayoutId": "base:map_site_wai",
+      "startLocationId": "base:loc_site_wai_start",
+      "locations": [
+        {
+          "id": "base:loc_site_wai_start",
+          "name": "洞府外·入口",
+          "kind": "Settlement",
+          "tags": [
+            "prototype",
+            "site",
+            "wai"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}

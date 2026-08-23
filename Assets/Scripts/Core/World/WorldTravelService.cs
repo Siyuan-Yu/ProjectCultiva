@@ -802,12 +802,58 @@ namespace XianXia.Core.World
             if (access.IsFailure)
                 return access;
 
+            world.PartyWorld.ClearSiteFocus();
             world.PartyWorld.NodeId = nodeId;
             world.PartyWorld.LocalMapId = ResolveLocalMapId(node);
             world.PartyWorld.Mode = PartyWorldPresenceMode.AtNode;
             world.PartyWorld.ClearTravel();
             ApplyLocalMapSessionFromFocus(world);
             return Result.Success();
+        }
+
+        /// <summary>Hex 战略：从 WorldSite 进入 LocalMap（真源 = SiteId + FormalArmy 足迹，不用 NodeId）。</summary>
+        public static Result EnterWorldSiteScene(
+            SimulationWorld world,
+            string siteId,
+            string formalArmyId)
+        {
+            if (world == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
+
+            var access = StrategicWorldSiteAccessService.CanEnterWorldSiteLocalMap(
+                world, siteId, formalArmyId);
+            if (access.IsFailure)
+                return access;
+
+            if (!world.Strategic.Sites.TryGet(siteId, out var site) || site == null)
+                return Result.Failure(ErrorCode.NotFound, "WorldSite missing.", siteId);
+
+            var localMapId = ResolveWorldSiteLocalMapId(site);
+            if (string.IsNullOrWhiteSpace(localMapId))
+            {
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "WorldSite 未配置 LocalMap，无法进入。",
+                    siteId);
+            }
+
+            world.PartyWorld.ClearSiteFocus();
+            world.PartyWorld.SiteId = siteId;
+            world.PartyWorld.FocusFormalArmyId = formalArmyId ?? string.Empty;
+            world.PartyWorld.NodeId = string.Empty;
+            world.PartyWorld.LocalMapId = localMapId;
+            world.PartyWorld.Mode = PartyWorldPresenceMode.AtNode;
+            world.PartyWorld.EncounterId = string.Empty;
+            world.PartyWorld.ClearTravel();
+            ApplyLocalMapSessionFromFocus(world);
+            return Result.Success();
+        }
+
+        public static string ResolveWorldSiteLocalMapId(WorldSite site)
+        {
+            if (site == null || string.IsNullOrWhiteSpace(site.LocalMapId))
+                return string.Empty;
+            return site.LocalMapId.Trim();
         }
 
         public static Result FocusNode(SimulationWorld world, string nodeId)

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_yingdi",
+      "type": "mapLayout",
+      "name": "Ch01·行商营·Prototype",
+      "worldRegionId": "base:places_site_yingdi",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_yingdi",
+          "kind": "treeM",
+          "x": 25,
+          "y": 45,
+          "w": 2,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "行商营·标记树12（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

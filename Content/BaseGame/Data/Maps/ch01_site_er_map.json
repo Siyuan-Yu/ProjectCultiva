@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_er",
+      "type": "mapLayout",
+      "name": "Ch01·支矿·Prototype",
+      "worldRegionId": "base:places_site_er",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_er",
+          "kind": "treeM",
+          "x": 186,
+          "y": 46,
+          "w": 2,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "支矿·右侧树（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

@@ -24,18 +24,29 @@ namespace XianXia.Unity.Host
         {
             if (world?.WorldPresence == null || id.IsNone || string.IsNullOrWhiteSpace(mapLayoutId))
                 return false;
+
+            var mapId = mapLayoutId.Trim();
+            if (IsEncounterMapInstance(world, mapId))
+            {
+                if (!world.WorldPresence.TryGet(id, out var encWp) || encWp == null)
+                    return false;
+                return encWp.Mode == PartyWorldPresenceMode.InEncounter;
+            }
+
+            if (StrategicWorldSitePopulationService.TryResolvePartyFocusSite(world, out var focusSite) &&
+                string.Equals(
+                    WorldTravelService.ResolveWorldSiteLocalMapId(focusSite),
+                    mapId,
+                    System.StringComparison.Ordinal) &&
+                StrategicWorldSitePopulationService.IsCharacterPresentAtWorldSite(world, id, focusSite))
+                return true;
+
             if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
                 return false;
 
             if (wp.Mode == PartyWorldPresenceMode.Traveling ||
-                wp.Mode == PartyWorldPresenceMode.RouteAnchored)
-                return false;
-
-            var mapId = mapLayoutId.Trim();
-            if (IsEncounterMapInstance(world, mapId))
-                return wp.Mode == PartyWorldPresenceMode.InEncounter;
-
-            if (wp.Mode == PartyWorldPresenceMode.InEncounter)
+                wp.Mode == PartyWorldPresenceMode.RouteAnchored ||
+                wp.Mode == PartyWorldPresenceMode.InEncounter)
                 return false;
 
             if (string.IsNullOrEmpty(wp.NodeId) ||
@@ -84,6 +95,15 @@ namespace XianXia.Unity.Host
                     mapId,
                     BattleOfferService.ResolveActiveEncounterLocalMapId(world),
                     System.StringComparison.Ordinal))
+                return true;
+
+            if (StrategicWorldSitePopulationService.TryResolvePartyFocusSite(world, out var focusSite) &&
+                string.Equals(
+                    WorldTravelService.ResolveWorldSiteLocalMapId(focusSite),
+                    mapId,
+                    System.StringComparison.Ordinal) &&
+                StrategicWorldSitePopulationService.HasFriendlyCharacterPresentAtWorldSite(
+                    world, characterIds, focusSite))
                 return true;
 
             for (var i = 0; i < characterIds.Count; i++)
@@ -182,6 +202,14 @@ namespace XianXia.Unity.Host
                 return false;
 
             var onEncounterMap = IsActiveStrategicEncounterMap(world);
+
+            // WorldSite LocalMap：按地点物理在场显示（不依赖 PartyWorld.NodeId / FocusArmy 过滤）
+            if (!onEncounterMap &&
+                (entity.Tags & EntityTag.Npc) == 0 &&
+                StrategicWorldSitePopulationService.TryResolvePartyFocusSite(world, out var siteFocus) &&
+                StrategicWorldSitePopulationService.IsCharacterPresentAtWorldSite(world, id, siteFocus))
+                return true;
+
             if (onEncounterMap && IsForeignBattlefieldEntity(world, id))
                 return false;
 
@@ -194,6 +222,14 @@ namespace XianXia.Unity.Host
                 world.WorldPresence.TryGet(id, out _) &&
                 !world.Strategic.Encounter.IsEngaged(id))
                 return false;
+
+            // 手动遭遇：参战者已落点（PresentationOverride）即显示；禁止 Hex/WorldSite 空 NodeId 误杀
+            if (onEncounterMap &&
+                world.Strategic?.Encounter != null &&
+                world.Strategic.Encounter.IsEngaged(id) &&
+                entity.TryGet<EntityLocationComponent>(out var engagedSpawnLoc) &&
+                engagedSpawnLoc.HasPresentationOverride)
+                return true;
 
             // 有宏观在场记录的可控角色：只显示「当前焦点节点上、未上路」的人
             if (world.WorldPresence != null &&
@@ -214,6 +250,12 @@ namespace XianXia.Unity.Host
                     return false;
                 if (wp.Mode == PartyWorldPresenceMode.RouteAnchored)
                     return false;
+
+                if (!onEncounterMap &&
+                    StrategicWorldSitePopulationService.TryResolvePartyFocusSite(world, out var focusSite) &&
+                    StrategicWorldSitePopulationService.IsCharacterPresentAtWorldSite(world, id, focusSite))
+                    return true;
+
                 if (wp.Mode == PartyWorldPresenceMode.AtHex)
                 {
                     // 遭遇图上：非本场 scoped spawn 的 Hex residual 不得靠 LocationId 漏进来

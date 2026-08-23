@@ -11,6 +11,7 @@ namespace XianXia.Core.World.Strategic
         DirectAttackArmy,
         DirectAttackLingeringBattlefield,
         DirectEnterFriendlyLingering,
+        ShowWorldSiteEnterMenu,
         ShowAttackTargetMenu
     }
 
@@ -18,6 +19,7 @@ namespace XianXia.Core.World.Strategic
     {
         public HexRightClickResolvedAction Action { get; set; } = HexRightClickResolvedAction.None;
         public string StatusHint { get; set; } = string.Empty;
+        public string SiteId { get; set; } = string.Empty;
         public bool HasEnemyResidualPresentation { get; set; }
         public List<HexStrategicContextActionKind> MenuActions { get; } = new List<HexStrategicContextActionKind>(3);
         public HexResidualContextView Context { get; set; }
@@ -25,7 +27,7 @@ namespace XianXia.Core.World.Strategic
 
     /// <summary>
     /// Hex 右键 RTS 决策：
-    /// Active Enemy Army → Enemy Lingering → Friendly Enter → Direct Move（最后 fallback）。
+    /// Active Enemy Army → Enemy Lingering → Friendly Enter → WorldSite Enter Menu → Direct Move（最后 fallback）。
     /// </summary>
     public static class HexRightClickResolver
     {
@@ -35,7 +37,8 @@ namespace XianXia.Core.World.Strategic
             string attackerFactionId,
             bool hasSelectedLivingArmy,
             bool hasSelectedMovableArmy,
-            bool passableHex)
+            bool passableHex,
+            FormalArmy selectedArmy = null)
         {
             var resolution = new HexRightClickResolution
             {
@@ -81,6 +84,14 @@ namespace XianXia.Core.World.Strategic
                 resolution.Action = HexRightClickResolvedAction.DirectEnterFriendlyLingering;
                 return resolution;
             }
+
+            if (TryResolveShowWorldSiteEnterMenu(
+                    world,
+                    hex,
+                    selectedArmy,
+                    hasSelectedLivingArmy,
+                    resolution))
+                return resolution;
 
             if (hasSelectedMovableArmy && passableHex)
             {
@@ -139,6 +150,40 @@ namespace XianXia.Core.World.Strategic
                 return false;
 
             battlefield = ctx;
+            return true;
+        }
+
+        static bool TryResolveShowWorldSiteEnterMenu(
+            SimulationWorld world,
+            HexCoord hex,
+            FormalArmy selectedArmy,
+            bool hasSelectedLivingArmy,
+            HexRightClickResolution resolution)
+        {
+            if (resolution == null ||
+                !hasSelectedLivingArmy ||
+                selectedArmy == null ||
+                selectedArmy.State == FormalArmyState.Moving ||
+                StrategicClockFreezeService.IsModalEncounter(world))
+                return false;
+
+            if (!StrategicWorldSiteAccessService.TryGetEnterableWorldSiteAtHex(world, hex, out var site) ||
+                site == null)
+                return false;
+
+            if (!StrategicWorldSiteAccessService.IsFormalArmyAtSiteFootprint(selectedArmy, site))
+                return false;
+
+            var access = StrategicWorldSiteAccessService.CanEnterWorldSiteLocalMap(
+                world, site.SiteId, selectedArmy.ArmyId);
+            if (access.IsFailure)
+            {
+                resolution.StatusHint = access.Error.Message;
+                return false;
+            }
+
+            resolution.Action = HexRightClickResolvedAction.ShowWorldSiteEnterMenu;
+            resolution.SiteId = site.SiteId;
             return true;
         }
     }

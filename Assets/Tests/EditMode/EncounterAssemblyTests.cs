@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
+using XianXia.Core.Exploration;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
@@ -127,6 +128,39 @@ namespace XianXia.Tests
             Assert.IsTrue(StrategicEncounterSpawner.ApplyPending(world).IsSuccess);
         }
 
+        static void ApplyEncounterPresentationOverrides(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> engaged)
+        {
+            if (engaged == null || engaged.Count == 0)
+                return;
+            var startId = world.WorldRegion.StartLocationId;
+            WorldLocationState startLoc = null;
+            var hasStart = !string.IsNullOrEmpty(startId) &&
+                           world.WorldRegion.TryGet(startId, out startLoc);
+            for (var i = 0; i < engaged.Count; i++)
+            {
+                var id = engaged[i];
+                if (id.IsNone || !world.Entities.TryGet(id, out var ent))
+                    continue;
+                if (!ent.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc))
+                {
+                    loc = new XianXia.Core.Exploration.EntityLocationComponent();
+                    ent.AddComponent(loc);
+                }
+
+                if (hasStart)
+                {
+                    loc.LocationId = startId;
+                    loc.SetPresentationOverride(startLoc.PresentationX, startLoc.PresentationZ);
+                }
+                else
+                {
+                    loc.SetPresentationOverride(0f, 0f);
+                }
+            }
+        }
+
         [Test]
         public void SUPPORT_01_WeakBandit_NoReinforcementWhenDistanceGreaterThanOne()
         {
@@ -204,6 +238,34 @@ namespace XianXia.Tests
             var scoped = BattlefieldSpawnScope.GetSpawnList(world);
             Assert.AreEqual(1, scoped.Count);
             Assert.AreEqual(weakId.Value, scoped[0]);
+        }
+
+        [Test]
+        public void ENCOUNTER_ASSEMBLY_03_EngagedFriendlyVisible_WithEmptyPartyNodeIdAndSiteFocus()
+        {
+            var world = CreateBanditWorld(out _, out var strongArmy, out var weakHex, out var strongHex);
+            ArmyHexTravelService.InitializeArmyAtHex(strongArmy, strongHex);
+            BuildWeakBanditOffer(world, weakHex);
+
+            var engaged = world.Strategic.Participants.CollectSelectedFriendly();
+            Assert.Greater(engaged.Count, 0);
+
+            world.PartyWorld.NodeId = string.Empty;
+            world.PartyWorld.SiteId = Ch01HexPrototypeMapBuilder.SiteHuangcun;
+            world.PartyWorld.LocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+            world.LocalMap.ActiveMapLayoutId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+            StrategicEncounterSpawner.PlanManualEncounter(
+                world,
+                world.Strategic.BattleOffer.ArmyStackId,
+                "test",
+                engaged);
+            Assert.IsTrue(StrategicEncounterSpawner.ApplyPending(world).IsSuccess);
+            ApplyEncounterPresentationOverrides(world, engaged);
+
+            var leaderId = engaged[0];
+            Assert.IsTrue(LocalMapVisibility.IsEntityVisible(world, leaderId));
+            world.WorldPresence.TryGet(leaderId, out var wp);
+            Assert.AreEqual(PartyWorldPresenceMode.InEncounter, wp.Mode);
         }
 
         [Test]

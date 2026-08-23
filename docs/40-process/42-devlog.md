@@ -7,6 +7,27 @@
 
 ---
 
+## 2026-08-24 — Hex WorldSite 准入/人口、Ch01 全 Site LocalMap、Manual Battle 可见性
+
+**做了什么**
+- **Hex 敌军 Pure 真源：** `HexActiveEnemyArmyQuery` 禁止 Node fallback；修复山匪 hex 误判荒村
+- **WorldSite 进入：** `StrategicWorldSiteAccessService`、`WorldTravelService.EnterWorldSiteScene`、`HostWorldMapPanel` 右键菜单
+- **Site 人口：** `StrategicWorldSitePopulationService`；`LocalMapVisibility` / `PlayableHostBootstrap` 不再用 FocusArmy 作白名单
+- **Ch01 内容：** 28 Site 独立 map/places JSON；`ch01_hex_world.json` 全量 `localMapId`
+- **Manual Battle：** `MarkPartyInEncounter` 主路径补全；遭遇图 `IsEngaged` 可见；Battle 前 `ClearSiteFocus`
+- EditMode：SITE-ENTER、Population、Ch01 Mapping、ENCOUNTER_ASSEMBLY_03
+- 收束文档：[160-hex-worldsite-localmap-and-manual-battle-fix-2026-08-24.md](160-hex-worldsite-localmap-and-manual-battle-fix-2026-08-24.md)（**未同步飞书**）
+
+**验证**
+- 制作人手操：Site 进入、人口、Manual Battle Members — **本轮口头 OK（几乎没有问题）**
+- Unity EditMode 全套：**需关 Editor 后 batch**
+
+**状态**
+- 战略 WorldSite / Content / Manual Battle **COMMITTED + PUSHED**
+- 飞书 **NOT SYNCED**
+
+---
+
 ## 2026-08-24 — Encounter 作用域 Lingering + WeakBandit 参战名单 + 大地图路线预览
 
 **做了什么**

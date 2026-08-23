@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_site_gudao",
+      "type": "localPlaceSet",
+      "name": "Ch01·古道驿·地点表",
+      "mapLayoutId": "base:map_site_gudao",
+      "startLocationId": "base:loc_site_gudao_start",
+      "locations": [
+        {
+          "id": "base:loc_site_gudao_start",
+          "name": "古道驿·入口",
+          "kind": "Settlement",
+          "tags": [
+            "prototype",
+            "site",
+            "gudao"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}

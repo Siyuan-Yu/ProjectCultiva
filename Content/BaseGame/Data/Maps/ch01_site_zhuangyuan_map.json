@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_site_zhuangyuan",
+      "type": "mapLayout",
+      "name": "Ch01·庄院·Prototype",
+      "worldRegionId": "base:places_site_zhuangyuan",
+      "originX": -40,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 200,
+      "height": 100,
+      "placements": [
+        {
+          "id": "marker_zhuangyuan",
+          "kind": "treeM",
+          "x": 100,
+          "y": 8,
+          "w": 2,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "庄院·标记树14（Prototype 标记）"
+        }
+      ]
+    }
+  ]
+}

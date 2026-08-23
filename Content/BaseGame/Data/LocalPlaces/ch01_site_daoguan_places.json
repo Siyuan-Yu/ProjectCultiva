@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_site_daoguan",
+      "type": "localPlaceSet",
+      "name": "Ch01·道观·地点表",
+      "mapLayoutId": "base:map_site_daoguan",
+      "startLocationId": "base:loc_site_daoguan_start",
+      "locations": [
+        {
+          "id": "base:loc_site_daoguan_start",
+          "name": "道观·入口",
+          "kind": "Settlement",
+          "tags": [
+            "prototype",
+            "site",
+            "daoguan"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}
