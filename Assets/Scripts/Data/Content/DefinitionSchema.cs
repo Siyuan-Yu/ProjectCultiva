@@ -24,7 +24,7 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> OpeningScenarioFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "scheduleId", "openingFactionId", "openingSettlementId",
-            "openingWorldRegionId", "openingLocalPlaceSetId", "openingWorldGraphId", "openingChapterId", "spawns", "openingRelations"
+            "openingWorldRegionId", "openingLocalPlaceSetId", "openingWorldGraphId", "openingHexWorldId", "openingChapterId", "spawns", "openingRelations"
         };
 
         public static readonly HashSet<string> CharacterRosterFields = new HashSet<string>(StringComparer.Ordinal)
@@ -123,6 +123,22 @@ namespace XianXia.Data.Content
         {
             "id", "fromNodeId", "toNodeId", "kind", "travelCost", "danger", "ownerId", "state",
             "directed", "traversalRequirements", "encounterPoolId"
+        };
+
+        public static readonly HashSet<string> HexWorldFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "width", "height", "hexSize", "defaultTerrain", "defaultPassable", "cells", "sites"
+        };
+
+        public static readonly HashSet<string> HexWorldCellFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "q", "r", "terrain", "passable", "isRoad"
+        };
+
+        public static readonly HashSet<string> HexWorldSiteFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "siteId", "displayName", "siteType", "anchorQ", "anchorR", "footprint",
+            "localMapId", "ownerFactionId", "legacyNodeId"
         };
 
         public static readonly HashSet<string> QuestFields = new HashSet<string>(StringComparer.Ordinal)

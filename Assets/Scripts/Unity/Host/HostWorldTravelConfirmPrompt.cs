@@ -58,7 +58,8 @@ namespace XianXia.Unity.Host
             _pursueStackId = string.Empty;
             _formalArmyId = armyId;
             var graph = bootstrap.Session.World.WorldGraph;
-            _destName = string.IsNullOrEmpty(destName) ? target.Describe(graph) : destName;
+            var world = bootstrap.Session.World;
+            _destName = string.IsNullOrEmpty(destName) ? target.Describe(graph, world) : destName;
             _bodyText = BuildArmyBody(bootstrap.Session.World, armyId);
             _open = true;
         }
@@ -100,12 +101,13 @@ namespace XianXia.Unity.Host
 
             if (_agents.Count == 0 || bootstrap?.Session == null)
                 return;
-            if (!target.IsRouteProgress && string.IsNullOrEmpty(target.NodeId))
+            if (!target.IsRouteProgress && !target.IsHex && string.IsNullOrEmpty(target.NodeId))
                 return;
 
             _target = target;
             var graph = bootstrap.Session.World.WorldGraph;
-            _destName = string.IsNullOrEmpty(destName) ? target.Describe(graph) : destName;
+            var world = bootstrap.Session.World;
+            _destName = string.IsNullOrEmpty(destName) ? target.Describe(graph, world) : destName;
             _pursueStackId = pursueStackId ?? string.Empty;
             _formalArmyId = string.Empty;
             _bodyText = BuildBody(bootstrap.Session.World);
@@ -155,11 +157,17 @@ namespace XianXia.Unity.Host
 
             var sb = new StringBuilder();
             sb.Append("是否让「").Append(label).Append("」");
-            if (_target.IsRouteProgress)
+            if (_target.IsHex)
+                sb.Append("沿 Hex 路径前往「").Append(_destName).Append("」？\n\n");
+            else if (_target.IsRouteProgress)
                 sb.Append("沿道路前往「").Append(_destName).Append("」？\n\n");
             else
                 sb.Append("移动到「").Append(_destName).Append("」？\n\n");
-            sb.Append("确认后会打断当前宏观行动。\n· 沿宏观道路逐段前进，途经节点时自动续走");
+            sb.Append("确认后会打断当前宏观行动。\n");
+            if (_target.IsHex)
+                sb.Append("· 沿 Hex 格逐格前进，途中可改目标");
+            else
+                sb.Append("· 沿宏观道路逐段前进，途经节点时自动续走");
             return sb.ToString();
         }
 

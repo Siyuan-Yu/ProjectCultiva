@@ -8,6 +8,8 @@ using XianXia.Core.Combat;
 using XianXia.Core.Social;
 using XianXia.Core.World;
 
+using XianXia.Core.World.Hex;
+
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>Phase J：Captured / Escaped / RetreatingArmy 最小衔接（概率占位）。</summary>
@@ -38,6 +40,27 @@ namespace XianXia.Core.World.Strategic
             IReadOnlyList<EntityId> escapedMembers,
             string nodeId)
         {
+            HexCoord? hex = null;
+            if (!string.IsNullOrEmpty(sourceArmyId) &&
+                world?.Strategic?.FormalArmies != null &&
+                world.Strategic.FormalArmies.TryGet(sourceArmyId, out var sourceArmy) &&
+                sourceArmy != null &&
+                sourceArmy.UsesHexStrategicPosition)
+                hex = sourceArmy.CurrentHex;
+            else if (ArmyHexBattleAnchorService.IsHexAnchorMode(world) &&
+                     ArmyHexBattleAnchorService.TryResolveHexForNode(world, nodeId, out var nodeHex))
+                hex = nodeHex;
+
+            return TryAssignEscapedAndRetreat(world, sourceArmyId, escapedMembers, nodeId, hex);
+        }
+
+        public static Result TryAssignEscapedAndRetreat(
+            SimulationWorld world,
+            string sourceArmyId,
+            IReadOnlyList<EntityId> escapedMembers,
+            string nodeId,
+            HexCoord? hex)
+        {
             if (world?.Strategic?.RetreatingArmies == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld incomplete.");
             if (escapedMembers == null || escapedMembers.Count == 0)
@@ -54,6 +77,11 @@ namespace XianXia.Core.World.Strategic
                 FactionId = sourceArmy?.FactionId ?? string.Empty,
                 NodeId = nodeId ?? string.Empty
             };
+            if (hex.HasValue)
+            {
+                retreat.HexQ = hex.Value.Q;
+                retreat.HexR = hex.Value.R;
+            }
             retreat.SetMembers(escapedMembers);
             world.Strategic.RetreatingArmies.Register(retreat);
             return Result.Success();

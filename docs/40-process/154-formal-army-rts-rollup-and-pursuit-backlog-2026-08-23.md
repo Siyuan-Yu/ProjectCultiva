@@ -87,9 +87,93 @@
 | 项 | 状态 |
 |----|------|
 | PUR-01～PUR-11 EditMode | **STATIC TEST WRITTEN** — 待 `run-editmode-tests.ps1` |
+| ATTACK-POS-01～07 EditMode | **STATIC TEST WRITTEN** — Attack 下令帧不瞬移 |
 | ArmyPhaseD/E、StrategicPhase 回归 | **NOT RUN**（本机无 Unity batch） |
 | Host 手操 CASE A～E | **NOT RUN** |
 | RUNTIME ACCEPTED | **禁止** — 须制作人手操通过后 |
+
+### 3.4 Future Strategic Vision Integration
+
+> **制作人正式规则（2026-08-23）：** 本节锁定 Pursuit 与 **未来** Strategic Vision / WorldMap Fog of War 的关系。  
+> **本轮仅文档；不预建 Vision API、不新增 Runtime 字段。**
+
+#### CURRENT（开发阶段 · Strategic Vision 未实现）
+
+Formal Army moving-target pursuit 语义：
+
+```text
+Attack Army → persistent PursuitOrder → TargetArmyId → 持续追踪 moving target
+```
+
+因 **Strategic Vision / WorldMap Fog of War 尚未实现**，当前允许 **开发阶段兼容行为**：
+
+- Pursuit tick 可 **直接读取** Target FormalArmy 的实时 `StrategicPosition`（`FormalArmyBoard` / `ArmyPursuitTargetService`）。
+- 这是 **临时全知追踪**，便于验收移动目标追击；**不是最终产品规则**。
+
+**当前验收：** 不把「失去视野自动停止追击」列为 FAIL 项。
+
+#### FUTURE（Strategic Vision / Fog of War 第一版）
+
+当 WorldMap Strategic Vision / Fog of War 落地后，Pursuit **必须**受目标可见性约束：
+
+| 条件 | 行为 |
+|------|------|
+| Target Army **当前可见**（在 Pursuer／Faction 有效战略视野内） | Pursuit **继续**；允许读取目标当前战略位置并改道 |
+| Target Army **离开**有效战略视野 | **PursuitOrder 自动取消**；Pursuer 停止通过系统全知信息追踪 |
+
+```text
+Pursuit Tick
+  → IsTargetVisibleToFaction(TargetArmyId, PursuerFactionId)?
+       YES → continue tracking
+       NO  → cancel pursuit
+```
+
+**禁止（Fog 下全知追踪）：** Target 已不可见，但 `PursuitController` 仍经 `TargetArmyId → FormalArmyBoard` 读取隐藏目标实时位置并自动改路 — 这会 **绕过 Fog of War**。
+
+具体 Service / API 名称：**等 Strategic Vision 系统设计时再定**；本轮 **不预建接口**。
+
+#### 明确不做（当前 & Vision 第一版）
+
+| 项 | 状态 |
+|----|------|
+| Last Known Position 续追 | **不做** — Lost Vision → Pursuit Cancel（简单第一版） |
+| `LastSeenTick` / `SearchOrder` / `InvestigateOrder` / Scout Pursuit | **不做** — 等 Fog / 侦察玩法专章再议 |
+| WorldMap Fog rendering | **不做** |
+| Scout / Detection runtime | **不做** |
+
+是否未来增加「追到最后已知位置」→ **Fog of War / 侦察玩法讨论时再决定**。
+
+#### Cross-reference TODO（Vision 系统设计时必回看）
+
+当开始设计或实现 **Strategic Vision**、**WorldMap Fog of War**、**Army Detection** 时，**必须重新检查 FormalArmy Pursuit**，至少处理：
+
+1. **Target visibility** — Pursuit tick 前合法性检查  
+2. **Lost-vision pursuit cancellation** — 不可见即 `ClearPursuit`  
+3. **Hidden Army position leakage** — 禁止 UI / Pursuit / BattleOffer 泄露不可见军位置  
+4. **WorldMap Army presentation** — 仅可见军展示；与 Pursuit 状态一致  
+5. **BattleOffer / pursuit legality after loss of contact** — 失去接触后不得凭空接战  
+
+**相关文档：** [141 追击](141-pursuit-stick-and-multi-melee-2026-08-18.md) · [2A Army 规则](../20-systems/2A-factions-armies-diplomacy-and-capture.md) · [153 验收清单](153-strategic-layer-runtime-acceptance-checklist-2026-08-22.md)
+
+### 3.5 Attack-start teleport 根因与修复（2026-08-23）
+
+**现象：** 路中 FormalArmy 点击 Attack 后，有时先瞬移到某 Node 再开始追击。
+
+**根因（DOMAIN）：**
+
+| # | 位置 | 问题 |
+|---|------|------|
+| 1 | `ReconcileArmyWithLivingMembers` | FormalArmy 已 `IsRouteAnchored`，但 leader Presence 仍为 `AtNode` 时，把军团 **降级成纯 AtNode**（清空 RouteId） |
+| 2 | `BeginArmyRouteProgressTarget` 跨路分支 | 用 `ResolveArmyAnchorNodeId`（progress&lt;0.5 恒为 **FromNode**）当出口，路中 0.40 会朝错误端点开拔 |
+
+**瞬移到的 Node 身份：** 多为 **Pursuer 当前 Route.FromNode**（或 path 规划首跳 Node），因 Reconcile 把路中位置抹成 AtNode(FromNode)。
+
+**修复：**
+
+- `ReconcileArmyWithLivingMembers`：`IsRouteAnchored` 时 **跳过**（FormalArmy 为真源）
+- 跨路追击：新增 `ResolveRouteExitNodeToward`，按路径代价选 **ToNode/FromNode 出口**，再 `StartFromRouteAnchor` 从当前 progress 连续开拔
+
+**测试：** `ArmyAttackPositionTests`（ATTACK-POS-01～07）
 
 ---
 
@@ -187,6 +271,7 @@
 | RTS-04 | 残留战场不双倍 generic 敌人 | ✅ |
 | RTS-05 | 名单含弥留/尸体不可勾选 | ✅ |
 | RTS-06 | 追击不弹到站、到站弹接战 | ✅（追上时） |
+| RTS-07 | 失去视野自动停止追击 | **DEFERRED** — REQUIRES STRATEGIC VISION / FOG OF WAR（见 §3.4） |
 | 153 | Global Strategic 双入口 | IMPLEMENTED · Unity 手操 DEFERRED |
 
 **签注（追击 v2）：** 代码+测试已提交 — _______________　**日期：** 2026-08-23
@@ -208,4 +293,4 @@
 .\tools\run-editmode-tests.ps1
 ```
 
-相关类：`ArmyPursuitMovingTargetTests`（PUR-01～11）、`ArmyPhaseDTests`、`ArmyPhaseETests`、`StrategicPhaseTests`（含 `Pursuit_*`）。
+相关类：`ArmyPursuitMovingTargetTests`（PUR-01～11）、`ArmyAttackPositionTests`（ATTACK-POS-01～07）、`ArmyPhaseDTests`、`ArmyPhaseETests`、`StrategicPhaseTests`（含 `Pursuit_*`）。

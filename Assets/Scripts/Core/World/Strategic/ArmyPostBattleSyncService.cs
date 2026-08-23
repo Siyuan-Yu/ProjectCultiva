@@ -131,6 +131,12 @@ namespace XianXia.Core.World.Strategic
             if (army == null || snap == null)
                 return;
 
+            if (ArmyHexBattleAnchorService.IsHexAnchorMode(world))
+            {
+                ArmyHexBattleAnchorService.ParkArmyAtBattleAnchor(world, army, snap);
+                return;
+            }
+
             army.RemainingTravelTicks = 0;
             army.TravelTotalTicks = 0;
             army.ClearRouteSegment();

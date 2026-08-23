@@ -1,5 +1,6 @@
 using System;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -70,6 +71,18 @@ namespace XianXia.Core.World.Strategic
         static void SeedPrototypeBanditArmies(SimulationWorld world)
         {
             world.Strategic.Armies.Clear();
+            if (ArmyHexCommandService.IsHexStrategicActive(world))
+            {
+                ArmyStackAdapter.EnsureBanditPatrolArmy(
+                    world,
+                    "base:node_huangcun",
+                    string.Empty,
+                    "base:node_qingyun_lu",
+                    -1f);
+                PositionPrototypeBanditPatrolArmy(world);
+                return;
+            }
+
             if (!world.WorldGraph.TryFindRoute("base:node_huangcun", "base:node_guanai", out var route) &&
                 !world.WorldGraph.TryFindRoute("base:node_guanai", "base:node_huangcun", out route))
             {
@@ -87,6 +100,21 @@ namespace XianXia.Core.World.Strategic
             }
 
             ArmyStackAdapter.EnsureBanditPatrolArmy(world, fromId, route.Id, toId, 0.42f);
+        }
+
+        /// <summary>Hex 模式下将 Prototype 山匪放到荒村外 7～8 格（迁移/重建后也可复用）。</summary>
+        public static void PositionPrototypeBanditPatrolArmy(SimulationWorld world)
+        {
+            if (!ArmyHexCommandService.IsHexStrategicActive(world))
+                return;
+            if (!world.Strategic.FormalArmies.TryGet(ArmyStackAdapter.BanditPatrolFormalArmyId, out var bandit) ||
+                bandit == null)
+                return;
+
+            var patrolHex = Ch01HexPrototypeMapBuilder.ResolvePrototypeBanditPatrolHex(world);
+            ArmyHexTravelService.InitializeArmyAtHex(bandit, patrolHex);
+            if (world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditPatrolStackId, out var stack) && stack != null)
+                ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, stack);
         }
 
         /// <summary>

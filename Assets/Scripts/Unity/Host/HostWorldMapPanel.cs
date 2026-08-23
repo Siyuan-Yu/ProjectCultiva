@@ -7,7 +7,9 @@ using XianXia.Core.Combat;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
+using XianXia.Core.Simulation;
 using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
@@ -30,6 +32,18 @@ namespace XianXia.Unity.Host
         /// 最大放大：视口半宽（世界单位）。再放大一倍相对「邻站铺满」参考（半宽 1.5 ≈ 满屏跨度 3）。
         /// </summary>
         const float MinViewHalfExtent = 1.5f;
+
+        static float ResolveMinViewHalf(SimulationWorld world)
+        {
+            if (world != null && ArmyHexCommandService.IsHexStrategicActive(world) && world.HexWorld.HasGrid)
+            {
+                return HexWorldScale.ViewHalfForHexesAcross(
+                    HexWorldScale.CloseHexesAcross,
+                    world.HexWorld.HexSize);
+            }
+
+            return MinViewHalfExtent;
+        }
         const float MapPad = 48f;
         /// <summary>道路右键点选：屏幕像素容差（世界距离在放大后过严，几乎点不中）。</summary>
         const float RoutePickScreenPx = 28f;
@@ -55,6 +69,16 @@ namespace XianXia.Unity.Host
         [SerializeField] KeyCode toggleKey = KeyCode.M;
         [SerializeField] bool open;
 
+        readonly List<HexCoord> _hexPathPreview = new List<HexCoord>(32);
+        bool[] _pathMask;
+        int _pathMaskW;
+        int _pathMaskH;
+        bool _terrainLegendExpanded;
+        float _lastMapViewportWidth = 800f;
+        float _lastMapViewportHeight = 600f;
+        HexCoord? _selectedHex;
+        HexCoord? _hoverHex;
+        HexCoord? _lastHoverHex;
         readonly HashSet<ulong> _selected = new HashSet<ulong>();
         readonly List<EntityId> _scratchParty = new List<EntityId>(8);
         readonly List<EntityId> _arrivedScratch = new List<EntityId>(8);
@@ -194,6 +218,9 @@ namespace XianXia.Unity.Host
             if (bootstrap?.Session != null && bootstrap.Session.IsInitialized)
             {
                 var world = bootstrap.Session.World;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                FormalArmyStrategicMutationDiagnostics.BindWorldGraphForPresentationCheck(world);
+#endif
                 StrategicEncounterResolveService.NormalizePresenceAfterEncounterExit(world);
                 PruneRemovedFromSelection(world);
             }
@@ -291,6 +318,20 @@ namespace XianXia.Unity.Host
             _orderPreviewArmyId = armyId ?? string.Empty;
             _orderPreviewTarget = target;
             _orderPreviewActive = !string.IsNullOrEmpty(_orderPreviewArmyId);
+            _hexPathPreview.Clear();
+        }
+
+        public void SetArmyHexPathPreview(string armyId, HexCoord destination)
+        {
+            _orderPreviewArmyId = armyId ?? string.Empty;
+            _orderPreviewActive = false;
+            _hexPathPreview.Clear();
+            var world = bootstrap?.Session?.World;
+            if (world == null || string.IsNullOrEmpty(armyId))
+                return;
+            if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
+                return;
+            ArmyHexCommandService.TryBuildPathPreview(world, army, destination, _hexPathPreview);
         }
 
         void ClearArmyOrderPreview()
@@ -420,29 +461,99 @@ namespace XianXia.Unity.Host
             return (j != null && j.IsOpen) || (inv != null && inv.IsOpen);
         }
 
-        void EnsureView(WorldGraphBoard graph, XianXia.Core.Simulation.SimulationWorld world)
+        void EnsureView(
+            WorldGraphBoard graph,
+            XianXia.Core.Simulation.SimulationWorld world,
+            float mapViewportWidth,
+            float mapViewportHeight)
         {
-            ComputeFullHalf(graph, out _fullHalf);
+            ComputeFullHalf(graph, world, mapViewportWidth, mapViewportHeight, out _fullHalf);
             if (_viewReady)
             {
-                _viewHalf = Mathf.Clamp(_viewHalf, MinViewHalfExtent, _fullHalf);
+                _viewHalf = Mathf.Clamp(_viewHalf, ResolveMinViewHalf(world), _fullHalf);
+                ClampHexCamera(mapViewportWidth, mapViewportHeight, world);
                 return;
             }
 
-            _viewHalf = MinViewHalfExtent;
+            var hexMode = ArmyHexCommandService.IsHexStrategicActive(world) && world.HexWorld.HasGrid;
+            _viewHalf = hexMode
+                ? HexWorldScale.ViewHalfForHexesAcross(
+                    HexWorldScale.DefaultHexesAcross,
+                    world.HexWorld.HexSize)
+                : ResolveMinViewHalf(world);
             _viewCx = 0f;
             _viewCy = 0f;
-            var focusId = world.PartyWorld.NodeId;
-            if (!string.IsNullOrEmpty(focusId) && graph.TryGetNode(focusId, out var focus))
+            if (hexMode)
             {
-                _viewCx = focus.WorldX;
-                _viewCy = focus.WorldY;
+                HexWorldLayout.ComputeWorldCenter(world.HexWorld, out _viewCx, out _viewCy);
+                if (!string.IsNullOrEmpty(_selectedFormalArmyId) &&
+                    world.Strategic.FormalArmies.TryGet(_selectedFormalArmyId, out var army) &&
+                    army != null &&
+                    army.UsesHexStrategicPosition)
+                {
+                    HexMath.ToWorldPosition(army.CurrentHex, world.HexWorld.HexSize, out _viewCx, out _viewCy);
+                }
+                else
+                {
+                    var focusId = world.PartyWorld.NodeId;
+                    if (ArmyHexBattleAnchorService.TryResolveHexForNode(world, focusId, out var focusHex))
+                        HexMath.ToWorldPosition(focusHex, world.HexWorld.HexSize, out _viewCx, out _viewCy);
+                }
+            }
+            else
+            {
+                var focusId = world.PartyWorld.NodeId;
+                if (!string.IsNullOrEmpty(focusId) && graph.TryGetNode(focusId, out var focus))
+                {
+                    _viewCx = focus.WorldX;
+                    _viewCy = focus.WorldY;
+                }
             }
 
+            ClampHexCamera(mapViewportWidth, mapViewportHeight, world);
             _viewReady = true;
         }
 
-        static void ComputeFullHalf(WorldGraphBoard graph, out float fullHalf)
+        void ClampHexCamera(float mapViewportWidth, float mapViewportHeight, SimulationWorld world)
+        {
+            if (world?.HexWorld == null || !world.HexWorld.HasGrid ||
+                !ArmyHexCommandService.IsHexStrategicActive(world))
+                return;
+
+            HexWorldLayout.ClampViewCenter(
+                world.HexWorld,
+                mapViewportWidth,
+                mapViewportHeight,
+                _viewHalf,
+                HexWorldLayout.DefaultCameraMargin,
+                ref _viewCx,
+                ref _viewCy);
+        }
+
+        static void ComputeFullHalf(
+            WorldGraphBoard graph,
+            SimulationWorld world,
+            float mapViewportWidth,
+            float mapViewportHeight,
+            out float fullHalf)
+        {
+            if (ArmyHexCommandService.IsHexStrategicActive(world) && world?.HexWorld != null && world.HexWorld.HasGrid)
+            {
+                var fitHalf = HexWorldLayout.ComputeFitViewHalf(
+                    mapViewportWidth,
+                    mapViewportHeight,
+                    world.HexWorld);
+                var closeHalf = HexWorldScale.ViewHalfForHexesAcross(
+                    HexWorldScale.CloseHexesAcross,
+                    world.HexWorld.HexSize);
+                fullHalf = Mathf.Max(fitHalf, closeHalf);
+                return;
+            }
+
+            ComputeFullHalfFromGraph(graph, out fullHalf);
+        }
+
+        static void ComputeFullHalfFromGraph(WorldGraphBoard graph, out float fullHalf)
         {
             float minX = float.MaxValue, maxX = float.MinValue, minY = float.MaxValue, maxY = float.MinValue;
             foreach (var kv in graph.Nodes)
@@ -496,8 +607,10 @@ namespace XianXia.Unity.Host
 
             GUI.Label(
                 new Rect(pad, titleY, Screen.width - 220f, 28f),
-                "大地图  " + (string.IsNullOrEmpty(graph.GraphName) ? graph.GraphId : graph.GraphName) +
-                "  （左键：选军团／选弥留｜右键：移动/攻击/我方弥留进入｜M 关闭）",
+                ArmyHexCommandService.IsHexStrategicActive(world)
+                    ? "大地图  Hex 战略格  （左键：选格/军团｜右键：移动/攻击｜Ctrl+左键：道路｜M 关闭）"
+                    : "大地图  " + (string.IsNullOrEmpty(graph.GraphName) ? graph.GraphId : graph.GraphName) +
+                      "  （左键：选军团／选弥留｜右键：移动/攻击/我方弥留进入｜M 关闭）",
                 _title);
 
             if (GUI.Button(new Rect(Screen.width - 100f, titleY, 84f, 32f), "关闭"))
@@ -511,7 +624,9 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            EnsureView(graph, world);
+            _lastMapViewportWidth = Screen.width - pad * 2f - InfoPanelW - 8f;
+            _lastMapViewportHeight = Screen.height - mapTop - pad - BottomBarH;
+            EnsureView(graph, world, _lastMapViewportWidth, _lastMapViewportHeight);
 
             var focusName = world.PartyWorld.NodeId;
             if (graph.TryGetNode(world.PartyWorld.NodeId, out var focusNode))
@@ -532,19 +647,33 @@ namespace XianXia.Unity.Host
             var mapRect = new Rect(
                 pad,
                 mapTop,
-                Screen.width - pad * 2f - InfoPanelW - 8f,
-                Screen.height - mapTop - pad - BottomBarH);
+                _lastMapViewportWidth,
+                _lastMapViewportHeight);
             var infoRect = new Rect(
                 mapRect.xMax + 8f,
                 mapTop,
                 InfoPanelW,
                 mapRect.height);
-            GUI.color = new Color(0.12f, 0.14f, 0.16f, 1f);
+            var hexGutterActive = ArmyHexCommandService.IsHexStrategicActive(world) &&
+                                  world?.HexWorld != null &&
+                                  world.HexWorld.HasGrid;
+            GUI.color = hexGutterActive
+                ? HostHexWorldRenderer.ResolveGutterColor()
+                : new Color(0.93f, 0.89f, 0.78f, 1f);
             GUI.DrawTexture(mapRect, _px);
             GUI.color = Color.white;
 
-            HandleCameraInput(mapRect);
-            DrawGraph(mapRect, world, graph);
+            HandleCameraInput(mapRect, world);
+            HexMapViewportProjection hexProjection = default;
+            if (ArmyHexCommandService.IsHexStrategicActive(world) &&
+                world?.HexWorld != null &&
+                world.HexWorld.HasGrid)
+            {
+                hexProjection = BuildHexProjection(mapRect, world);
+            }
+
+            RefreshHexPresentation(hexProjection, world);
+            DrawGraph(mapRect, hexProjection, world, graph);
             if (ShowReinforcementRadiusDebug)
                 DrawReinforcementRadiusOverlay(mapRect, world);
             DrawNodeContextMenu(mapRect, world, graph);
@@ -553,39 +682,55 @@ namespace XianXia.Unity.Host
             DrawInspectPanel(infoRect, world, graph);
             DrawReinforcementRadiusSlider(pad, world);
             DrawStrategicRosterPanels(world);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            DrawFormalArmyDebugOverlay(world);
+#endif
             TryDismissContextMenusOnOutsideClick();
             if (Event.current != null && Event.current.type == EventType.Used)
                 return;
             // 菜单仍开着（点在菜单内）时不处理地图下令；外侧点击已在上面关掉菜单且不吞事件
             if (_stackMenuOpen || _nodeMenuOpen || _avatarMenuOpen)
                 return;
-            HandleMapInput(mapRect, world, graph);
+            HandleMapInput(mapRect, hexProjection, world, graph);
             HostUiHitTest.EndFrame();
             // 进入场景可能在本帧 OnGUI 中途关掉；立刻停画，避免同帧再盖一层
             if (!open)
                 return;
         }
 
-        void HandleCameraInput(Rect mapRect)
+        void HandleCameraInput(Rect mapRect, XianXia.Core.Simulation.SimulationWorld world)
         {
             var e = Event.current;
             if (e == null || !mapRect.Contains(e.mousePosition) && e.type != EventType.MouseUp)
                 return;
 
+            var minHalf = ResolveMinViewHalf(world);
+            var hexMode = ArmyHexCommandService.IsHexStrategicActive(world) && world?.HexWorld != null && world.HexWorld.HasGrid;
+            var projection = hexMode ? BuildHexProjection(mapRect, world) : default;
+
             if (e.type == EventType.ScrollWheel && mapRect.Contains(e.mousePosition))
             {
-                // 滚轮：以鼠标下世界点为锚缩放
-                ScreenToWorld(mapRect, e.mousePosition, out var wx, out var wy);
+                Vector2 worldPoint;
+                if (hexMode)
+                    worldPoint = projection.ScreenToWorld(e.mousePosition);
+                else
+                {
+                    ScreenToWorld(mapRect, e.mousePosition, out var wx, out var wy);
+                    worldPoint = new Vector2(wx, wy);
+                }
+
                 var before = _viewHalf;
                 var factor = e.delta.y > 0f ? 1.12f : 1f / 1.12f;
-                _viewHalf = Mathf.Clamp(before * factor, MinViewHalfExtent, _fullHalf);
-                // 保持锚点屏幕位置不变
+                _viewHalf = Mathf.Clamp(before * factor, minHalf, _fullHalf);
                 var t = 1f - _viewHalf / before;
                 if (before > 0.01f)
                 {
-                    _viewCx += (wx - _viewCx) * t;
-                    _viewCy += (wy - _viewCy) * t;
+                    _viewCx += (worldPoint.x - _viewCx) * t;
+                    _viewCy += (worldPoint.y - _viewCy) * t;
                 }
+
+                if (hexMode)
+                    ClampHexCamera(mapRect.width, mapRect.height, world);
 
                 e.Use();
                 return;
@@ -603,10 +748,11 @@ namespace XianXia.Unity.Host
             {
                 var delta = e.mousePosition - _panLastGui;
                 _panLastGui = e.mousePosition;
-                var scale = MapScale(mapRect);
-                // GUI Y 向下，世界 Y 向上
+                var scale = hexMode ? projection.Scale : MapScale(mapRect);
                 _viewCx -= delta.x / scale;
                 _viewCy += delta.y / scale;
+                if (hexMode)
+                    ClampHexCamera(mapRect.width, mapRect.height, world);
                 e.Use();
                 return;
             }
@@ -635,12 +781,16 @@ namespace XianXia.Unity.Host
             GUI.depth = prevDepth;
         }
 
-        float MapScale(Rect mapRect)
-        {
-            var innerW = mapRect.width - MapPad * 2f;
-            var innerH = mapRect.height - MapPad * 2f;
-            return Mathf.Min(innerW, innerH) / (2f * Mathf.Max(0.01f, _viewHalf));
-        }
+        HexMapViewportProjection BuildHexProjection(Rect mapRect, XianXia.Core.Simulation.SimulationWorld world) =>
+            new HexMapViewportProjection(
+                mapRect,
+                _viewCx,
+                _viewCy,
+                _viewHalf,
+                world.HexWorld.HexSize);
+
+        float MapScale(Rect mapRect) =>
+            Mathf.Min(mapRect.width, mapRect.height) / (2f * Mathf.Max(0.01f, _viewHalf));
 
         Vector2 Project(Rect mapRect, float wx, float wy)
         {
@@ -650,6 +800,13 @@ namespace XianXia.Unity.Host
             return new Vector2(
                 cx + (wx - _viewCx) * scale,
                 cy - (wy - _viewCy) * scale);
+        }
+
+        Vector2 ProjectHex(Rect mapRect, XianXia.Core.Simulation.SimulationWorld world, float wx, float wy)
+        {
+            if (ArmyHexCommandService.IsHexStrategicActive(world) && world?.HexWorld != null && world.HexWorld.HasGrid)
+                return BuildHexProjection(mapRect, world).ProjectWorld(wx, wy);
+            return Project(mapRect, wx, wy);
         }
 
         void ScreenToWorld(Rect mapRect, Vector2 gui, out float wx, out float wy)
@@ -719,6 +876,20 @@ namespace XianXia.Unity.Host
                 AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated = nextForce;
             x += 230f;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (ArmyHexCommandService.IsHexStrategicActive(world))
+            {
+                var strongSep = HostHexWorldRenderer.DebugStrongHexSeparation;
+                var nextStrongSep = GUI.Toggle(
+                    new Rect(x, y + 2f, 260f, 24f),
+                    strongSep,
+                    " Debug：强 Hex Separation");
+                if (nextStrongSep != strongSep)
+                    HostHexWorldRenderer.DebugStrongHexSeparation = nextStrongSep;
+                x += 268f;
+            }
+#endif
+
             if (bootstrap.StrategicAcceptancePanel != null &&
                 GUI.Button(new Rect(x, y, 120f, 26f), "战略验收 F8"))
             {
@@ -748,6 +919,97 @@ namespace XianXia.Unity.Host
                     _body);
             }
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        void DrawFormalArmyDebugOverlay(XianXia.Core.Simulation.SimulationWorld world)
+        {
+            if (!FormalArmyStrategicMutationDiagnostics.Enabled ||
+                string.IsNullOrEmpty(_selectedFormalArmyId) ||
+                world?.Strategic?.FormalArmies == null ||
+                !world.Strategic.FormalArmies.TryGet(_selectedFormalArmyId, out var army) ||
+                army == null)
+                return;
+
+            EnsureStyles();
+            var pursuitTarget = ResolvePursuitTargetArmyId(world, army.ArmyId);
+            var lastReason = FormalArmyStrategicMutationDiagnostics.GetLastMutationReason(army.ArmyId);
+            var illegal = FormalArmyStrategicMutationDiagnostics.HasIllegalTeleport(army.ArmyId);
+            var progress = army.GetRouteDisplayProgress();
+            ArmyWorldMapPresentation.TryResolveArmyWorldPointDetailed(world, army, out var render);
+
+            var sb = new StringBuilder(512);
+            sb.AppendLine("[FormalArmy Pos Debug]");
+            sb.AppendLine("DOMAIN POSITION");
+            sb.Append("ArmyId: ").AppendLine(army.ArmyId);
+            sb.Append("State: ").AppendLine(army.State.ToString());
+            sb.Append("NodeId: ").AppendLine(army.NodeId ?? string.Empty);
+            sb.Append("RouteId: ").AppendLine(army.RouteId ?? string.Empty);
+            sb.Append("Progress: ").AppendLine(progress.ToString("0.###"));
+            sb.Append("DestNodeId: ").AppendLine(army.DestNodeId ?? string.Empty);
+            sb.AppendLine("RENDER POSITION SOURCE");
+            if (render.Resolved)
+            {
+                sb.Append("SourceType: ").AppendLine(render.SourceType.ToString());
+                sb.Append("SourceId: ").AppendLine(render.SourceId);
+                sb.Append("WorldPosition: (")
+                    .Append(render.WorldX.ToString("0.##"))
+                    .Append(", ")
+                    .Append(render.WorldY.ToString("0.##"))
+                    .AppendLine(")");
+                sb.Append("RenderReason: ").AppendLine(render.RenderReason);
+            }
+            else
+            {
+                sb.AppendLine("SourceType: UNRESOLVED");
+            }
+
+            sb.Append("PursuitTargetArmyId: ")
+                .AppendLine(string.IsNullOrEmpty(pursuitTarget) ? "(none)" : pursuitTarget);
+            sb.Append("Last Mutation: ")
+                .AppendLine(string.IsNullOrEmpty(lastReason) ? "(none)" : lastReason);
+            if (!string.IsNullOrEmpty(FormalArmyStrategicMutationDiagnostics.ActiveAttackSessionId))
+            {
+                sb.Append("AttackSession: ")
+                    .AppendLine(FormalArmyStrategicMutationDiagnostics.ActiveAttackSessionId);
+            }
+
+            if (illegal)
+            {
+                sb.AppendLine();
+                sb.AppendLine("ILLEGAL TELEPORT DETECTED");
+                sb.AppendLine("See Console");
+            }
+
+            var content = sb.ToString();
+            const float panelW = 320f;
+            var panelH = _body.CalcHeight(new GUIContent(content), panelW - 16f) + 16f;
+            var rect = new Rect(12f, 88f, panelW, panelH);
+            var prevDepth = GUI.depth;
+            GUI.depth = -90;
+            var prevColor = GUI.color;
+            GUI.color = illegal
+                ? new Color(0.35f, 0.08f, 0.08f, 0.92f)
+                : new Color(0.08f, 0.1f, 0.12f, 0.9f);
+            GUI.DrawTexture(rect, _px != null ? _px : Texture2D.whiteTexture);
+            GUI.color = Color.white;
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 8f, panelW - 16f, panelH - 16f), content, _body);
+            GUI.color = prevColor;
+            GUI.depth = prevDepth;
+        }
+
+        static string ResolvePursuitTargetArmyId(
+            XianXia.Core.Simulation.SimulationWorld world,
+            string armyId)
+        {
+            var rt = world?.Strategic?.Encounter;
+            if (rt == null || string.IsNullOrEmpty(armyId))
+                return string.Empty;
+            if (string.Equals(rt.PursueAttackerArmyId, armyId, StringComparison.Ordinal) &&
+                !string.IsNullOrEmpty(rt.PursueDefenderArmyId))
+                return rt.PursueDefenderArmyId;
+            return string.Empty;
+        }
+#endif
 
         void DrawReinforcementRadiusSlider(float pad, XianXia.Core.Simulation.SimulationWorld world)
         {
@@ -939,8 +1201,99 @@ namespace XianXia.Unity.Host
             return 1;
         }
 
-        void DrawGraph(Rect mapRect, XianXia.Core.Simulation.SimulationWorld world, WorldGraphBoard graph)
+        void RefreshHexPresentation(HexMapViewportProjection projection, XianXia.Core.Simulation.SimulationWorld world)
         {
+            if (!ArmyHexCommandService.IsHexStrategicActive(world) || world?.HexWorld == null || !world.HexWorld.HasGrid)
+                return;
+
+            var ev = Event.current;
+            if (ev != null && ev.type != EventType.Repaint && ev.type != EventType.MouseMove)
+                return;
+
+            var mouse = ev != null ? ev.mousePosition : Vector2.zero;
+            if (HexMapMousePick.TryResolveMouseHex(projection, world.HexWorld, mouse, out var hover))
+                _hoverHex = hover;
+            else
+                _hoverHex = null;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (_hoverHex.HasValue &&
+                !projection.ValidateProjectionRoundTrip(_hoverHex.Value, out var roundTripped))
+            {
+                Debug.LogWarning(
+                    "HexMap projection round-trip failed at hover " + _hoverHex.Value +
+                    " → " + roundTripped);
+            }
+#endif
+
+            if (_hoverHex != _lastHoverHex)
+                _lastHoverHex = _hoverHex;
+
+            if (string.IsNullOrEmpty(_selectedFormalArmyId) ||
+                !world.Strategic.FormalArmies.TryGet(_selectedFormalArmyId, out var army) ||
+                army == null ||
+                !army.UsesHexStrategicPosition ||
+                army.State != FormalArmyState.Moving)
+                return;
+
+            _hexPathPreview.Clear();
+            _hexPathPreview.Add(army.CurrentHex);
+            var path = army.HexPath;
+            for (var i = army.CurrentPathIndex; i < army.HexPathCount; i++)
+                _hexPathPreview.Add(path[i]);
+            if (_hexPathPreview.Count == 1 &&
+                army.State == FormalArmyState.Moving &&
+                army.DestinationHex != army.CurrentHex)
+                _hexPathPreview.Add(army.DestinationHex);
+        }
+
+        void FillPathMask(SimulationWorld world)
+        {
+            if (world?.HexWorld == null || !world.HexWorld.HasGrid)
+                return;
+
+            _pathMaskW = world.HexWorld.Width;
+            _pathMaskH = world.HexWorld.Height;
+            var need = _pathMaskW * _pathMaskH;
+            if (_pathMask == null || _pathMask.Length < need)
+                _pathMask = new bool[need];
+
+            Array.Clear(_pathMask, 0, need);
+            for (var i = 0; i < _hexPathPreview.Count; i++)
+            {
+                var c = _hexPathPreview[i];
+                if (c.Q < 0 || c.R < 0 || c.Q >= _pathMaskW || c.R >= _pathMaskH)
+                    continue;
+                _pathMask[c.Q + c.R * _pathMaskW] = true;
+            }
+        }
+
+        void DrawGraph(
+            Rect mapRect,
+            HexMapViewportProjection projection,
+            XianXia.Core.Simulation.SimulationWorld world,
+            WorldGraphBoard graph)
+        {
+            if (world?.HexWorld != null && world.HexWorld.HasGrid)
+            {
+                _nodeRects.Clear();
+                FillPathMask(world);
+                HostHexGridDrawing.Draw(
+                    projection,
+                    world,
+                    _px,
+                    _selectedHex,
+                    _hoverHex,
+                    _hexPathPreview,
+                    _pathMask,
+                    _pathMaskW,
+                    _pathMaskH);
+                DrawFormalArmyAvatars(mapRect, world);
+                DrawArmyStacks(mapRect, world, graph);
+                DrawLingeringIncapAvatars(mapRect, world);
+                return;
+            }
+
             foreach (var kv in graph.Routes)
             {
                 var r = kv.Value;
@@ -1382,7 +1735,26 @@ namespace XianXia.Unity.Host
         {
             wx = 0f;
             wy = 0f;
-            if (stack == null || graph == null)
+            if (stack == null)
+                return false;
+
+            if (world != null && ArmyHexCommandService.IsHexStrategicActive(world) && world.HexWorld.HasGrid)
+            {
+                if (!string.IsNullOrEmpty(stack.FormalArmyId) &&
+                    world.Strategic.FormalArmies.TryGet(stack.FormalArmyId, out var formal) &&
+                    formal != null &&
+                    formal.UsesHexStrategicPosition &&
+                    FormalArmyHexWorldPositionResolver.TryResolve(world, formal, out wx, out wy))
+                    return true;
+
+                if (ArmyHexBattleAnchorService.TryResolveHexForNode(world, stack.NodeId, out var hex))
+                {
+                    HexMath.ToWorldPosition(hex, world.HexWorld.HexSize, out wx, out wy);
+                    return true;
+                }
+            }
+
+            if (graph == null)
                 return false;
 
             if (stack.IsRoutePositioned &&
@@ -1461,6 +1833,9 @@ namespace XianXia.Unity.Host
             if (string.IsNullOrEmpty(playerFaction))
                 return;
 
+            var hexMode = ArmyHexCommandService.IsHexStrategicActive(world);
+            var avatarSize = hexMode ? 22f : AvatarSize;
+
             _countAtNode.Clear();
             _slotAtNode.Clear();
             foreach (var kv in world.Strategic.FormalArmies.Armies)
@@ -1470,7 +1845,9 @@ namespace XianXia.Unity.Host
                     continue;
                 if (!ArmyWorldMapPresentation.ShouldDrawFormalArmyPortrait(world, army))
                     continue;
-                var key = army.NodeId ?? string.Empty;
+                var key = hexMode && army.UsesHexStrategicPosition
+                    ? army.CurrentHex.ToString()
+                    : army.NodeId ?? string.Empty;
                 _countAtNode.TryGetValue(key, out var c);
                 _countAtNode[key] = c + 1;
             }
@@ -1485,33 +1862,53 @@ namespace XianXia.Unity.Host
                 if (!ArmyWorldMapPresentation.TryResolveArmyWorldPoint(world, army, out var wx, out var wy))
                     continue;
 
+                if (string.Equals(army.ArmyId, _selectedFormalArmyId, StringComparison.Ordinal))
+                {
+                    FormalArmyStrategicMutationDiagnostics.RecordPresentation(army, wx, wy, true, true);
+                }
+
                 var leaderId = ArmyWorldMapPresentation.ResolvePortraitLeader(army);
-                var basePos = Project(mapRect, wx, wy);
-                var key = army.NodeId ?? string.Empty;
+                var basePos = hexMode && army.UsesHexStrategicPosition
+                    ? ProjectHex(mapRect, world, wx, wy)
+                    : Project(mapRect, wx, wy);
+                var key = hexMode && army.UsesHexStrategicPosition
+                    ? army.CurrentHex.ToString()
+                    : army.NodeId ?? string.Empty;
                 _slotAtNode.TryGetValue("fa:" + key, out var slot);
                 _slotAtNode["fa:" + key] = slot + 1;
                 _countAtNode.TryGetValue(key, out var total);
                 if (total < 1)
                     total = 1;
                 const float gap = 2f;
-                const float spacing = AvatarSize + 3f;
+                var spacing = avatarSize + 3f;
                 Vector2 center;
-                if (total <= 1)
+                if (hexMode && army.UsesHexStrategicPosition)
                 {
-                    center = basePos + new Vector2(0f, -(NodeHitH * 0.5f + gap + AvatarSize * 0.25f));
+                    if (total <= 1)
+                        center = basePos;
+                    else
+                    {
+                        var rowY = -(avatarSize + 4f);
+                        var x0 = -(total - 1) * 0.5f * spacing;
+                        center = basePos + new Vector2(x0 + slot * spacing, rowY);
+                    }
+                }
+                else if (total <= 1)
+                {
+                    center = basePos + new Vector2(0f, -(NodeHitH * 0.5f + gap + avatarSize * 0.25f));
                 }
                 else
                 {
-                    var rowY = -(NodeHitH * 0.5f + gap + AvatarSize * 0.5f) - (AvatarSize + 6f);
+                    var rowY = -(NodeHitH * 0.5f + gap + avatarSize * 0.5f) - (avatarSize + 6f);
                     var x0 = -(total - 1) * 0.5f * spacing;
                     center = basePos + new Vector2(x0 + slot * spacing, rowY);
                 }
 
                 var rect = new Rect(
-                    center.x - AvatarSize * 0.5f,
-                    center.y - AvatarSize * 0.5f,
-                    AvatarSize,
-                    AvatarSize);
+                    center.x - avatarSize * 0.5f,
+                    center.y - avatarSize * 0.5f,
+                    avatarSize,
+                    avatarSize);
                 if (!rect.Overlaps(mapRect))
                     continue;
 
@@ -1715,7 +2112,11 @@ namespace XianXia.Unity.Host
         {
             _viewCx = wx;
             _viewCy = wy;
-            _viewHalf = Mathf.Min(_viewHalf, MinViewHalfExtent * 1.25f);
+            var minHalf = ResolveMinViewHalf(bootstrap?.Session?.World);
+            _viewHalf = Mathf.Min(_viewHalf, minHalf * 1.25f);
+            var world = bootstrap?.Session?.World;
+            if (world != null)
+                ClampHexCamera(_lastMapViewportWidth, _lastMapViewportHeight, world);
             _viewReady = true;
         }
 
@@ -1894,7 +2295,11 @@ namespace XianXia.Unity.Host
                    (b.x >= bounds.xMin && b.x <= bounds.xMax);
         }
 
-        void HandleMapInput(Rect mapRect, XianXia.Core.Simulation.SimulationWorld world, WorldGraphBoard graph)
+        void HandleMapInput(
+            Rect mapRect,
+            HexMapViewportProjection projection,
+            XianXia.Core.Simulation.SimulationWorld world,
+            WorldGraphBoard graph)
         {
             if (bootstrap.WorldTravelConfirm != null && bootstrap.WorldTravelConfirm.IsOpen)
                 return;
@@ -2045,6 +2450,12 @@ namespace XianXia.Unity.Host
                     return;
                 }
 
+                if (ArmyHexCommandService.IsHexStrategicActive(world) &&
+                    TryHandleHexLeftClick(projection, world, mouse, e))
+                {
+                    return;
+                }
+
                 if (!e.shift)
                 {
                     _selected.Clear();
@@ -2062,6 +2473,12 @@ namespace XianXia.Unity.Host
 
             if (e.button != 1)
                 return;
+
+            if (ArmyHexCommandService.IsHexStrategicActive(world))
+            {
+                if (TryHandleHexMapCommand(projection, world, mouse, e))
+                    return;
+            }
 
             // —— 右键：只负责下令（永不改选中集合）——
             // 我方弥留／尸体：可右键弹「进入残留战场」（进场仍用已选军团）
@@ -2219,6 +2636,127 @@ namespace XianXia.Unity.Host
 
             _status = "请右键节点名牌或道路线条下达移动";
             e.Use();
+        }
+
+        bool TryHandleHexLeftClick(
+            HexMapViewportProjection projection,
+            XianXia.Core.Simulation.SimulationWorld world,
+            Vector2 mouse,
+            Event e)
+        {
+            if (!HexMapMousePick.TryResolveMouseHex(projection, world.HexWorld, mouse, out var pickedHex))
+                return false;
+
+            _selectedHex = pickedHex;
+            _hoverHex = pickedHex;
+
+            if (e.control)
+            {
+                if (world.HexWorld.TryGetTile(pickedHex, out var tile) && tile != null)
+                {
+                    var willRoad = !tile.IsRoad;
+                    HexMapEditorService.SetRoad(world, pickedHex, willRoad);
+                    _status = "Hex " + pickedHex + (willRoad ? "：已设道路" : "：已取消道路");
+                }
+
+                e.Use();
+                return true;
+            }
+
+            if (!e.shift)
+            {
+                _selected.Clear();
+                _selectedStackId = string.Empty;
+                ClearFormalArmySelection();
+                _inspectNodeId = string.Empty;
+            }
+
+            if (!world.HexWorld.TryGetTile(pickedHex, out var inspectTile) || inspectTile == null)
+            {
+                _status = "Hex " + pickedHex + "（无地块数据）";
+                e.Use();
+                return true;
+            }
+
+            var label = pickedHex.ToString();
+            if (world.Strategic.Sites.TryGetAtHex(pickedHex, out var site) && site != null)
+                label = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
+
+            _status = "Hex " + pickedHex + "｜" + label + "｜" + HexTerrainPresentation.GetDisplayName(inspectTile) +
+                      (inspectTile.IsRoad ? "｜道路" : string.Empty) +
+                      (inspectTile.IsPassable ? "｜可通行" : "｜不可通行");
+            e.Use();
+            return true;
+        }
+
+        bool TryHandleHexMapCommand(
+            HexMapViewportProjection projection,
+            XianXia.Core.Simulation.SimulationWorld world,
+            Vector2 mouse,
+            Event e)
+        {
+            if (TryHitArmyStack(
+                    world,
+                    mouse,
+                    out var menuStackId,
+                    ArmyStackHitPad,
+                    ArmyStackHitPadContested))
+            {
+                if (TryOpenStackAttackMenu(world, menuStackId, mouse))
+                {
+                    e.Use();
+                    return true;
+                }
+            }
+
+            if (!HexMapMousePick.TryResolveMouseHex(projection, world.HexWorld, mouse, out var pickedHex))
+            {
+                _status = "请右键可通行的 Hex";
+                e.Use();
+                return true;
+            }
+
+            _selectedHex = pickedHex;
+            if (!world.HexWorld.TryGetTile(pickedHex, out var tile) || tile == null || !tile.IsPassable)
+            {
+                _status = "该 Hex 不可通行";
+                e.Use();
+                return true;
+            }
+
+            var destLabel = pickedHex.ToString();
+            if (world.Strategic.Sites.TryGetAtHex(pickedHex, out var site) && site != null)
+                destLabel = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
+
+            var target = WorldTravelTarget.AtHex(pickedHex);
+            if (!string.IsNullOrEmpty(_selectedFormalArmyId) &&
+                world.Strategic.FormalArmies.TryGet(_selectedFormalArmyId, out var selectedArmy) &&
+                selectedArmy != null)
+            {
+                if (selectedArmy.State == FormalArmyState.Garrisoned)
+                {
+                    _status = "驻扎中的军团无法移动，请先在军队详情点击「解除驻扎 Mobilize」";
+                    e.Use();
+                    return true;
+                }
+
+                SetArmyHexPathPreview(_selectedFormalArmyId, pickedHex);
+                if (bootstrap.WorldTravelConfirm == null)
+                {
+                    _status = "出行确认组件缺失，无法下达军团移动";
+                    e.Use();
+                    return true;
+                }
+
+                bootstrap.WorldTravelConfirm.OpenArmyTarget(_selectedFormalArmyId, target, destLabel);
+                _status = "等待确认军团移动到「" + destLabel + "」…";
+                e.Use();
+                return true;
+            }
+
+            _status = "请左键选中军团，再右键 Hex 移动";
+            e.Use();
+            return true;
         }
 
         bool TryPickRouteTargetOnScreen(
@@ -3167,32 +3705,68 @@ namespace XianXia.Unity.Host
         {
             HostUiHitTest.Block(panelRect);
             var prev = GUI.color;
-            GUI.color = new Color(0.14f, 0.15f, 0.17f, 0.97f);
+            GUI.color = new Color(0.96f, 0.93f, 0.86f, 0.98f);
             GUI.DrawTexture(panelRect, _px);
-            GUI.color = new Color(0.32f, 0.36f, 0.40f, 1f);
+            GUI.color = new Color(0.62f, 0.54f, 0.42f, 1f);
             GUI.DrawTexture(new Rect(panelRect.x, panelRect.y, 2f, panelRect.height), _px);
             GUI.color = prev;
+
+            var inspectTitle = HostImguiStyles.InkLabel(17, bold: true, ink: new Color(0.22f, 0.18f, 0.12f));
+            var inspectBody = HostImguiStyles.InkLabel(13, wordWrap: true, ink: new Color(0.28f, 0.24f, 0.18f));
 
             GUI.Label(
                 new Rect(panelRect.x + 12f, panelRect.y + 10f, panelRect.width - 24f, 22f),
                 "情报",
-                _title);
+                inspectTitle);
 
             var body = BuildInspectBody(world, graph);
+            var legendReserve = ArmyHexCommandService.IsHexStrategicActive(world) && world?.HexWorld != null && world.HexWorld.HasGrid
+                ? 92f
+                : 0f;
             var textRect = new Rect(
                 panelRect.x + 12f,
                 panelRect.y + 38f,
                 panelRect.width - 24f,
-                panelRect.height - 50f);
+                panelRect.height - 50f - legendReserve);
             var contentH = Mathf.Max(
                 textRect.height,
-                _body.CalcHeight(new GUIContent(body), textRect.width - 18f) + 8f);
+                inspectBody.CalcHeight(new GUIContent(body), textRect.width - 18f) + 8f);
             _inspectScroll = GUI.BeginScrollView(
                 textRect,
                 _inspectScroll,
                 new Rect(0f, 0f, textRect.width - 16f, contentH));
-            GUI.Label(new Rect(0f, 0f, textRect.width - 18f, contentH), body, _body);
+            GUI.Label(new Rect(0f, 0f, textRect.width - 18f, contentH), body, inspectBody);
             GUI.EndScrollView();
+
+            if (legendReserve > 0f)
+                DrawTerrainLegend(new Rect(panelRect.x + 8f, panelRect.yMax - legendReserve + 4f, panelRect.width - 16f, legendReserve - 8f));
+        }
+
+        void DrawTerrainLegend(Rect rect)
+        {
+            var headerStyle = HostImguiStyles.InkLabel(12, bold: true, ink: new Color(0.24f, 0.20f, 0.14f));
+            var entryStyle = HostImguiStyles.InkLabel(11, ink: new Color(0.30f, 0.26f, 0.18f));
+            _terrainLegendExpanded = GUI.Toggle(
+                new Rect(rect.x, rect.y, rect.width, 18f),
+                _terrainLegendExpanded,
+                "地形图例",
+                headerStyle);
+            if (!_terrainLegendExpanded)
+                return;
+
+            var y = rect.y + 22f;
+            var swatch = 12f;
+            var gap = 4f;
+            foreach (var entry in HexTerrainPresentation.LegendEntries)
+            {
+                var color = new Color(entry.Color.R, entry.Color.G, entry.Color.B, 1f);
+                var prev = GUI.color;
+                GUI.color = color;
+                GUI.DrawTexture(new Rect(rect.x + 4f, y + 2f, swatch, swatch), _px);
+                GUI.color = prev;
+                GUI.Label(new Rect(rect.x + swatch + gap + 6f, y, rect.width - swatch - 10f, 16f), entry.Label, entryStyle);
+                y += 18f;
+            }
         }
 
         string BuildInspectBody(
@@ -3204,6 +3778,8 @@ namespace XianXia.Unity.Host
                 world.Strategic.FormalArmies.TryGet(_selectedFormalArmyId, out var formalArmy) &&
                 formalArmy != null)
                 return BuildFormalArmyInspect(world, graph, formalArmy);
+            if (_selectedHex.HasValue && ArmyHexCommandService.IsHexStrategicActive(world))
+                return BuildHexInspect(world, _selectedHex.Value);
             if (_selected.Count > 0)
                 return BuildSelectedAgentsInspect(world, graph);
             if (!string.IsNullOrEmpty(_selectedStackId) &&
@@ -3217,10 +3793,44 @@ namespace XianXia.Unity.Host
                 node != null)
                 return BuildNodeInspect(world, node);
 
-            return "左键点选我方角色、敌军部队或地图节点，在此查看详情。\n\n" +
+            return "左键点选 Hex、我方军团或敌军，在此查看详情。\n\n" +
+                   "· Hex：地形／道路／地点\n" +
                    "· 我方：境界／生命／宏观状态\n" +
-                   "· 敌军：势力／人数／战力／位置\n" +
-                   "· 节点：名称／在场人数／可否进入";
+                   "· 敌军：势力／人数／战力\n" +
+                   "· Ctrl+左键：切换道路（编辑）";
+        }
+
+        string BuildHexInspect(XianXia.Core.Simulation.SimulationWorld world, HexCoord hex)
+        {
+            var sb = new StringBuilder(320);
+            sb.Append("Hex ").Append(hex).Append('\n');
+            if (!world.HexWorld.TryGetTile(hex, out var tile) || tile == null)
+            {
+                sb.Append("（无地块数据）");
+                return sb.ToString();
+            }
+
+            sb.Append("地形：").Append(HexTerrainPresentation.GetDisplayName(tile)).Append('\n');
+            sb.Append("移动代价：").Append(tile.ResolveMovementCost().ToString("0.##")).Append('\n');
+            if (tile.IsRoad)
+                sb.Append("道路：是\n");
+            sb.Append(tile.IsPassable ? "可通行\n" : "不可通行\n");
+
+            if (world.Strategic.Sites.TryGetAtHex(hex, out var site) && site != null)
+            {
+                sb.Append('\n');
+                sb.Append("地点：").Append(string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName).Append('\n');
+                var category = WorldSitePresentationLayer.ResolveCategory(site);
+                sb.Append("类型：").Append(WorldSitePresentationLayer.ResolveCategoryLabel(category)).Append('\n');
+                if (!string.IsNullOrEmpty(site.SiteType))
+                    sb.Append("SiteType：").Append(site.SiteType).Append('\n');
+                if (!string.IsNullOrEmpty(site.OwnerFactionId))
+                    sb.Append("归属：").Append(StrategicFactionCatalog.DisplayName(site.OwnerFactionId)).Append('\n');
+                if (!string.IsNullOrEmpty(site.LocalMapId))
+                    sb.Append("LocalMap：").Append(site.LocalMapId).Append('\n');
+            }
+
+            return sb.ToString();
         }
 
         string BuildSelectedAgentsInspect(
@@ -3375,8 +3985,8 @@ namespace XianXia.Unity.Host
             if (_title != null)
                 return;
             _px = Texture2D.whiteTexture;
-            _title = new GUIStyle(GUI.skin.label) { fontSize = 17, fontStyle = FontStyle.Bold };
-            _body = new GUIStyle(GUI.skin.label) { fontSize = 13, wordWrap = true };
+            _title = HostImguiStyles.InkLabel(17, bold: true, ink: new Color(0.94f, 0.95f, 0.97f));
+            _body = HostImguiStyles.InkLabel(13, wordWrap: true, ink: new Color(0.86f, 0.88f, 0.91f));
             _avatarLabel = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 13,

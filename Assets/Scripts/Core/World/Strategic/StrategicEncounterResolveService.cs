@@ -377,6 +377,12 @@ namespace XianXia.Core.World.Strategic
         {
             if (stack == null || snap == null)
                 return;
+            if (ArmyHexBattleAnchorService.IsHexAnchorMode(world))
+            {
+                ArmyHexBattleAnchorService.ParkStackAtBattleAnchor(world, stack, snap);
+                return;
+            }
+
             stack.RemainingTravelTicks = 0;
             stack.TravelTotalTicks = 0;
             if (!string.IsNullOrEmpty(snap.BattleAnchorRouteId) &&
@@ -490,6 +496,12 @@ namespace XianXia.Core.World.Strategic
         {
             if (wp == null || snap == null)
                 return;
+            if (ArmyHexBattleAnchorService.IsHexAnchorMode(world))
+            {
+                ArmyHexBattleAnchorService.PlacePresenceAtBattleAnchor(world, wp, snap);
+                return;
+            }
+
             if (!string.IsNullOrEmpty(snap.BattleAnchorRouteId) &&
                 snap.BattleAnchorProgress >= 0f)
             {

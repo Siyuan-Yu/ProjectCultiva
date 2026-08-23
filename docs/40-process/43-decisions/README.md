@@ -39,6 +39,7 @@
 | [0022](ADR-0022-core-milestone-1-scope.md) | Core Milestone 1 范围 | 已采纳 | **Freeze v0.2** |
 | [0023](ADR-0023-manual-encounter-freezes-worldtick.md) | Manual Encounter 冻结 WorldTick | 已采纳 | 全战式 Modal；补充 0018 |
 | [0024](ADR-0024-real-cultivators-and-army-strategic-model.md) | 修士真实 Character + Army 战略载体 | 已采纳 | **部分 supersede 0008**；明确 0007 修士 LOD；见 [2A](../../20-systems/2A-factions-armies-diplomacy-and-capture.md) |
+| [0025](ADR-0025-strategic-spatial-model-hexgrid.md) | 战略空间 = HexGrid | 已采纳 | **SUPERSEDED** Route 正式移动；见 [155](../155-hex-strategic-worldmap-migration-2026-08-23.md) · [158](../158-hex-world-content-authoring-pipeline-2026-08-23.md) |
 
 ## Freeze v0.2 相关（优先）
 
@@ -54,3 +55,5 @@
 战略接战时间纪律另见 **[ADR-0023](ADR-0023-manual-encounter-freezes-worldtick.md)**（2026-08-21）。
 
 战略势力／Army 正式模型另见 **[ADR-0024](ADR-0024-real-cultivators-and-army-strategic-model.md)** + **[2A](../../20-systems/2A-factions-armies-diplomacy-and-capture.md)**（2026-08-22）。
+
+战略 Hex 空间与 Content Authoring 另见 **[ADR-0025](ADR-0025-strategic-spatial-model-hexgrid.md)** + **[155](../155-hex-strategic-worldmap-migration-2026-08-23.md)** + **[158](../158-hex-world-content-authoring-pipeline-2026-08-23.md)**（2026-08-23）。

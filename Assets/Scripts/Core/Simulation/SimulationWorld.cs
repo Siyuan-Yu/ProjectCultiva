@@ -18,6 +18,7 @@ using XianXia.Core.Npc;
 using XianXia.Core.Settlement;
 using XianXia.Core.Social;
 using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Simulation
@@ -56,6 +57,7 @@ namespace XianXia.Core.Simulation
             Settlements = new SettlementBoard();
             WorldRegion = new WorldRegionBoard();
             WorldGraph = new WorldGraphBoard();
+            HexWorld = new HexWorld();
             WorldPresence = new WorldPresenceBoard();
             PartyWorld = new PartyWorldPresence();
             Flags = new WorldFlagBoard();
@@ -110,8 +112,14 @@ namespace XianXia.Core.Simulation
         /// <summary>村内地点表（历史名 worldRegion；非正式大世界）。</summary>
         public WorldRegionBoard WorldRegion { get; }
 
-        /// <summary>宏观 WorldGraph（[113]）；session-only。</summary>
+        /// <summary>宏观 WorldGraph（[113]）；session-only。Route 移动 legacy，Hex 迁移后仅保留 Site 元数据桥接。</summary>
         public WorldGraphBoard WorldGraph { get; }
+
+        /// <summary>Hex 战略世界真源（155+）。</summary>
+        public HexWorld HexWorld { get; }
+
+        /// <summary>兼容旧属性名。</summary>
+        public HexWorld HexGrid => HexWorld;
 
         /// <summary>各角色宏观位置。</summary>
         public WorldPresenceBoard WorldPresence { get; }

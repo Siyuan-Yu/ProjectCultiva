@@ -338,7 +338,7 @@ namespace XianXia.Core.World.Strategic
                     world,
                     stack,
                     formalArmy,
-                    BuildBattleAnchorSnapshotFromStack(stack),
+                    BuildBattleAnchorSnapshotFromStack(world, stack),
                     stack.HasDownedRemnant
                         ? FormalArmyEncounterPick.DownedOnly
                         : FormalArmyEncounterPick.LivingOnly) > 0)
@@ -579,24 +579,12 @@ namespace XianXia.Core.World.Strategic
             return count;
         }
 
-        static BattleParticipantSnapshot BuildBattleAnchorSnapshotFromStack(ArmyStack stack)
+        static BattleParticipantSnapshot BuildBattleAnchorSnapshotFromStack(
+            SimulationWorld world,
+            ArmyStack stack)
         {
             var snap = new BattleParticipantSnapshot();
-            if (stack == null)
-                return snap;
-
-            if (stack.IsRoutePositioned)
-            {
-                snap.BattleAnchorRouteId = stack.RouteId ?? string.Empty;
-                snap.BattleAnchorProgress = stack.GetRouteDisplayProgress();
-                snap.BattleAnchorNodeId = stack.NodeId ?? string.Empty;
-                snap.BattleAnchorDestNodeId = stack.DestNodeId ?? string.Empty;
-            }
-            else
-            {
-                snap.BattleAnchorNodeId = stack.NodeId ?? string.Empty;
-            }
-
+            ArmyHexBattleAnchorService.ApplyStackBattleAnchor(world, snap, stack);
             return snap;
         }
 

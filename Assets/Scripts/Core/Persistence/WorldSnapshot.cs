@@ -5,9 +5,11 @@ namespace XianXia.Core.Persistence
 {
     public sealed class WorldSnapshot
     {
-        public const int CurrentSchemaVersion = 2;
-        /// <summary>v1 development saves are explicitly unsupported (Final Closure).</summary>
+        public const int CurrentSchemaVersion = 3;
+        /// <summary>v1 development saves are explicitly unsupported.</summary>
         public const int LegacySchemaVersion = 1;
+        /// <summary>v2 route-only saves are unsupported after hex migration.</summary>
+        public const int LegacySchemaVersionV2 = 2;
 
         public int SchemaVersion { get; set; } = CurrentSchemaVersion;
         public ulong SnapshotId { get; set; }
@@ -61,6 +63,22 @@ namespace XianXia.Core.Persistence
         public int RemainingTravelTicks { get; set; }
         public int TravelTotalTicks { get; set; }
         public float RouteAnchorProgress { get; set; } = -1f;
+        public bool UsesHexStrategicPosition { get; set; }
+        public int CurrentHexQ { get; set; }
+        public int CurrentHexR { get; set; }
+        public int DestinationHexQ { get; set; }
+        public int DestinationHexR { get; set; }
+        public float StepProgress { get; set; }
+        public int StepRemainingTicks { get; set; }
+        public int StepTotalTicks { get; set; }
+        public int CurrentPathIndex { get; set; }
+        public List<HexCoordSnapshotDto> HexPath { get; set; } = new List<HexCoordSnapshotDto>();
+    }
+
+    public sealed class HexCoordSnapshotDto
+    {
+        public int Q { get; set; }
+        public int R { get; set; }
     }
 
     public sealed class ArmyMembershipSnapshotDto
@@ -101,6 +119,8 @@ namespace XianXia.Core.Persistence
         public string SourceArmyId { get; set; }
         public string FactionId { get; set; }
         public string NodeId { get; set; }
+        public int HexQ { get; set; } = int.MinValue;
+        public int HexR { get; set; } = int.MinValue;
         public List<ulong> MemberCharacterIds { get; set; } = new List<ulong>();
     }
 

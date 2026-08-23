@@ -129,20 +129,13 @@ namespace XianXia.Unity.Host
             if (world.Strategic.FormalArmies.TryGet(armyId, out var army) && army != null)
                 ArmyTravelCommandService.ReconcileArmyWithLivingMembers(world, army);
 
-            Result started;
-            if (target.IsRouteProgress)
+            if (!ArmyHexCommandService.TryResolveDestinationHex(world, target, out var destHex, out var destLabel))
             {
-                started = ArmyTravelCommandService.MoveArmyToRouteProgress(
-                    world,
-                    armyId,
-                    target.RouteId,
-                    target.RouteProgress);
-            }
-            else
-            {
-                started = ArmyTravelCommandService.MoveArmyToNode(world, armyId, target.NodeId);
+                _status = "无法解析 Hex 目标";
+                return;
             }
 
+            var started = ArmyHexCommandService.MoveArmy(world, armyId, destHex);
             if (started.IsSuccess)
             {
                 if (world.Strategic.FormalArmies.TryGet(armyId, out army) && army != null)
@@ -155,8 +148,8 @@ namespace XianXia.Unity.Host
                     }
                 }
 
-                bootstrap.WorldMapPanel?.SetArmyOrderPreview(armyId, target);
-                _status = "军团已出发前往 " + target.Describe(world.WorldGraph);
+                bootstrap.WorldMapPanel?.SetArmyHexPathPreview(armyId, destHex);
+                _status = "军团已出发前往 " + destLabel;
             }
             else
                 _status = started.Error.Message;
@@ -188,10 +181,6 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            ArmyTravelCommandService.ReconcileArmyWithLivingMembers(world, army);
-            StrategicPursuitService.BeginPursuitArmy(world, armyId, stack);
-            world.Strategic.ClearArrivalNotice();
-
             for (var i = 0; i < army.MemberCharacterIds.Count; i++)
             {
                 var id = new EntityId(army.MemberCharacterIds[i]);
@@ -201,36 +190,19 @@ namespace XianXia.Unity.Host
                 HideFromLocalMap(id);
             }
 
-            var target = ArmyTravelCommandService.ResolveStackWorldTravelTarget(world, stack);
-            Result started;
-            if (ArmyStackAdapter.TryGetFormalArmy(world, stack, out var defenderArmy) && defenderArmy != null)
-                started = ArmyTravelCommandService.MoveArmyToTargetArmy(world, armyId, defenderArmy.ArmyId);
-            else
-                started = ArmyTravelCommandService.MoveArmyToStackAnchor(world, armyId, stack);
-
-            WorldTravelService.SyncPartyFocus(world);
-            // 仅尝试同格接战；禁止在此调用会 Clamp/改道的整段 Sync（开拔当下进度≈0，旧逻辑会拽回 FromNode）
-            if (started.IsSuccess &&
-                !army.IsTraveling &&
-                !ArmyTravelCommandService.HasPendingLegs(armyId))
+            var hexStarted = ArmyHexCommandService.AttackStack(world, armyId, stack);
+            if (hexStarted.IsSuccess &&
+                world.Strategic.FormalArmies.TryGet(armyId, out army) &&
+                army != null)
             {
-                StrategicPursuitService.AfterTravelTick(world);
+                bootstrap.WorldMapPanel?.SetArmyHexPathPreview(armyId, army.DestinationHex);
+                var stackLabel = string.IsNullOrEmpty(stack.DisplayName) ? stack.Id : stack.DisplayName;
+                _status = world.Strategic.HasBattleOffer
+                    ? "已抵达，接战弹窗已打开"
+                    : "军团已出发追击「" + stackLabel + "」";
             }
-
-            var name = string.IsNullOrEmpty(stack.DisplayName) ? stack.Id : stack.DisplayName;
-            if (world.Strategic.HasBattleOffer)
-            {
-                _status = "已抵达，接战弹窗已打开";
-            }
-            else if (started.IsSuccess)
-            {
-                bootstrap.WorldMapPanel?.SetArmyOrderPreview(armyId, target);
-                _status = "军团已出发追击「" + name + "」";
-            }
-            else
-            {
-                _status = started.Error.Message;
-            }
+            else if (!string.IsNullOrEmpty(hexStarted.Error.Message))
+                _status = hexStarted.Error.Message;
 
             bootstrap.Resume();
         }

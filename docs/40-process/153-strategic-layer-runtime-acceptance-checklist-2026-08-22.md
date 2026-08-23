@@ -127,6 +127,14 @@ Landless Faction 仍应出现在未来 Faction List（外交不依赖 Node 入�
 | ARM-01～09 | 军队流程 + Detail 操作 | ☐ |
 | CHAR-01～02 | 角色单击／双击 | ☐ |
 | — | 选中军队后右键移动 | ☐ |
+| PUR-01 | 攻击停止敌军 → 追上 → BattleOffer | ☐ |
+| PUR-02 | 攻击同路移动敌军 → 持续跟随、不抖、追上接战 | ☐ |
+| PUR-VISION | 失去视野自动停止追击 | **DEFERRED** — REQUIRES STRATEGIC VISION / FOG OF WAR（[154 §3.4](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md)） |
+| RTS-ATTACK-01 | Attack click does not teleport Army | ☐（`ATTACK-POS-01/02`） |
+| RTS-ATTACK-02 | Mid-route attack remains position-continuous | ☐（`ATTACK-POS-03/04/06`） |
+| RTS-ATTACK-03 | Pursuit repath remains position-continuous | ☐（`ATTACK-POS-05/07`） |
+
+> **Pursuit 验收说明：** 当前阶段允许对 `TargetArmyId` 做 **临时全知** 位置追踪（Vision 未实现）。不要把 PUR-VISION 列为本轮 FAIL；Vision 落地后再验收。
 
 **签注：** _______________　**日期：** _______________
 
@@ -153,3 +161,45 @@ Landless Faction 仍应出现在未来 Faction List（外交不依赖 Node 入�
 | `HostWorldMapPanel.cs` | Toolbar 集成、Node 仅地点操作 |
 | `Ch01ScenarioStrategicSetup.cs` | PlayerFaction + Vassalage 绑定 |
 | `scenarios.json` / roster | 主角 `factionId: base:faction_player` |
+
+---
+
+## SUPERSEDED BY HEX STRATEGIC MAP MIGRATION (155 / ADR-0025)
+
+以下验收项依赖 **Node → Route movement / RouteProgress / Route pursuit**，已由制作人正式废弃为战略移动模型：
+
+- 大地图 Node 方框 + Route 连线作为**正式**战略地图呈现
+- FormalArmy `OnRoute` / `RouteProgress` / `RouteAnchor` 作为最终位置真源
+- Pursuit 基于 RouteId / RouteProgress 的接触与改道验收
+- WorldMap Editor：Create Node / Connect Route 工作流
+
+历史记录保留；新验收见 **155 §HEX STRATEGIC MAP RUNTIME ACCEPTANCE**。
+
+---
+
+## HEX STRATEGIC MAP RUNTIME ACCEPTANCE（新增 · IN PROGRESS）
+
+| # | 验收项 | 状态 |
+|---|---|---|
+| H-01 | 按 M 打开大地图显示**连续 HexGrid**（非 Node 方框+连线） | PARTIAL |
+| H-02 | 青石荒村 / 青石路 Site 在 Hex 上，具真实 Hex 距离 | IMPLEMENTED（Domain） |
+| H-03 | Road Hex 串联两 Site | IMPLEMENTED（Ch01 builder） |
+| H-04 | 选 Army → 右键目的地 → Hex path preview | PENDING |
+| H-05 | Army 逐 Hex 移动，StepProgress 视觉平滑 | PARTIAL（Domain yes · Host input pending） |
+| H-06 | Attack / Pursuit 无瞬移（Hex 模型） | PENDING（H6） |
+| H-07 | Hex contact → BattleOffer | PENDING（H6） |
+| H-08 | Manual Battle 结束返回 EncounterHex | PENDING（H7） |
+| H-09 | Hex WorldMap Editor 刷地形/道路/放 Site | PENDING（H5） |
+| H-10 | Snapshot v3 恢复 Army CurrentHex / mid-step | PENDING（H7） |
+
+### MAP PRESENTATION PASS 1（2026-08-23）
+
+| # | 验收项 | 状态 |
+|---|---|---|
+| MAP-PRES-01 | Terrain Legend（图例与 Inspect 中文名一致） | IMPLEMENTED |
+| MAP-PRES-02 | 矩形 Odd-R 100×50 外观（非 axial 平行四边形） | IMPLEMENTED |
+| MAP-PRES-03 | 全图缩放 Fit World to Map Viewport（排除 Info Panel） | IMPLEMENTED |
+| MAP-PRES-04 | 全图模式无大面积无意义空白 | IMPLEMENTED（待 Runtime 验） |
+| MAP-PRES-05 | WorldSite 程序图标（非 debug 小点） | IMPLEMENTED |
+| MAP-PRES-06 | Site 图标不破坏 Hex Picking | IMPLEMENTED（渲染 only） |
+

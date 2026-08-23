@@ -27,6 +27,8 @@ namespace XianXia.Core.World.Strategic
             string attackerArmyId,
             ArmyStack defenderStack)
         {
+            if (ArmyHexCommandService.IsHexStrategicActive(world))
+                return;
             if (world?.Strategic == null || defenderStack == null || string.IsNullOrEmpty(attackerArmyId))
                 return;
             if (!world.Strategic.FormalArmies.TryGet(attackerArmyId, out var attackerArmy) || attackerArmy == null)
@@ -207,6 +209,8 @@ namespace XianXia.Core.World.Strategic
 
         public static void AfterTravelTick(SimulationWorld world)
         {
+            if (ArmyHexCommandService.IsHexStrategicActive(world))
+                return;
             if (world?.Strategic == null)
                 return;
             if (world.Strategic.HasBattleOffer)

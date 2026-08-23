@@ -158,6 +158,7 @@
       "openingSettlementId": "base:settlement_qingshi_cave",
       "openingLocalPlaceSetId": "base:places_ch01_reference",
       "openingWorldGraphId": "base:graph_ch01",
+      "openingHexWorldId": "base:hex_world_ch01",
       "openingChapterId": "base:chapter_ch01_reference",
       "spawns": [
         {

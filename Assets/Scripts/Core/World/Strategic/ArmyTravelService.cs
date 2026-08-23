@@ -12,6 +12,16 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic?.FormalArmies == null || ticks < 1)
                 return;
 
+            using (FormalArmyStrategicMutationDiagnostics.Scope(
+                       FormalArmyStrategicMutationDiagnostics.MutationAllowance.TravelTick,
+                       nameof(AdvanceAll)))
+            {
+                AdvanceAllCore(world, ticks, arrivedOut);
+            }
+        }
+
+        static void AdvanceAllCore(SimulationWorld world, int ticks, List<EntityId> arrivedOut)
+        {
             foreach (var kv in world.Strategic.FormalArmies.Armies)
             {
                 var army = kv.Value;

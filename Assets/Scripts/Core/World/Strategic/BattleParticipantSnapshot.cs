@@ -88,6 +88,8 @@ namespace XianXia.Core.World.Strategic
         public string BattleAnchorDestNodeId { get; set; } = string.Empty;
         public string BattleAnchorRouteId { get; set; } = string.Empty;
         public float BattleAnchorProgress { get; set; } = -1f;
+        public int BattleAnchorHexQ { get; set; } = ArmyHexBattleAnchorService.InvalidHexComponent;
+        public int BattleAnchorHexR { get; set; } = ArmyHexBattleAnchorService.InvalidHexComponent;
         public string PrimaryEnemyStackId { get; set; } = string.Empty;
         public string AttackerArmyId { get; set; } = string.Empty;
         public string DefenderArmyId { get; set; } = string.Empty;
@@ -109,6 +111,8 @@ namespace XianXia.Core.World.Strategic
             BattleAnchorDestNodeId = string.Empty;
             BattleAnchorRouteId = string.Empty;
             BattleAnchorProgress = -1f;
+            BattleAnchorHexQ = ArmyHexBattleAnchorService.InvalidHexComponent;
+            BattleAnchorHexR = ArmyHexBattleAnchorService.InvalidHexComponent;
             PrimaryEnemyStackId = string.Empty;
             AttackerArmyId = string.Empty;
             DefenderArmyId = string.Empty;

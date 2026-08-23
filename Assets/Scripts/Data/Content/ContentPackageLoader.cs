@@ -254,6 +254,9 @@ namespace XianXia.Data.Content
                     case "worldGraph":
                         LoadWorldGraph(item, parsed.Value, registry, report);
                         break;
+                    case "hexWorld":
+                        LoadHexWorldContent(item, parsed.Value, registry, report);
+                        break;
                     case "realmLadder":
                         LoadRealmLadder(item, parsed.Value, registry, report);
                         break;
@@ -681,6 +684,7 @@ namespace XianXia.Data.Content
                 OpeningWorldRegionId = item.GetString("openingWorldRegionId", string.Empty),
                 OpeningLocalPlaceSetId = item.GetString("openingLocalPlaceSetId", string.Empty),
                 OpeningWorldGraphId = item.GetString("openingWorldGraphId", string.Empty),
+                OpeningHexWorldId = item.GetString("openingHexWorldId", string.Empty),
                 OpeningChapterId = item.GetString("openingChapterId", string.Empty)
             };
 
@@ -1635,6 +1639,95 @@ namespace XianXia.Data.Content
             }
 
             var reg = registry.RegisterWorldGraph(graph);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void LoadHexWorldContent(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.HexWorldFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var width = ReadInt(item, "width", 0);
+            var height = ReadInt(item, "height", 0);
+            if (width < 1 || height < 1)
+            {
+                report.Add(ErrorCode.MissingRequiredField, "hexWorld.width/height required.", id.ToString());
+                return;
+            }
+
+            var world = new HexWorldContentDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                Width = width,
+                Height = height,
+                HexSize = ReadFloat(item, "hexSize", 1f),
+                DefaultTerrain = item.GetString("defaultTerrain", "Mountain"),
+                DefaultPassable = item.GetBool("defaultPassable", false),
+            };
+
+            if (item.TryGetProperty("cells", out var cellsNode) && cellsNode.Kind == JsonValueKind.Array)
+            {
+                foreach (var cNode in cellsNode.Array)
+                {
+                    if (cNode.Kind != JsonValueKind.Object)
+                        continue;
+                    world.Cells.Add(new HexWorldCellDefinition
+                    {
+                        Q = ReadInt(cNode, "q", 0),
+                        R = ReadInt(cNode, "r", 0),
+                        Terrain = cNode.GetString("terrain", world.DefaultTerrain),
+                        IsRoad = cNode.GetBool("isRoad", false),
+                        Passable = cNode.TryGetProperty("passable", out var passNode) && passNode.Kind == JsonValueKind.Boolean
+                            ? passNode.Bool
+                            : (bool?)null,
+                    });
+                }
+            }
+
+            if (item.TryGetProperty("sites", out var sitesNode) && sitesNode.Kind == JsonValueKind.Array)
+            {
+                foreach (var sNode in sitesNode.Array)
+                {
+                    if (sNode.Kind != JsonValueKind.Object)
+                        continue;
+                    var site = new HexWorldSiteDefinition
+                    {
+                        SiteId = sNode.GetString("siteId", string.Empty),
+                        DisplayName = sNode.GetString("displayName", string.Empty),
+                        SiteType = sNode.GetString("siteType", string.Empty),
+                        AnchorQ = ReadInt(sNode, "anchorQ", 0),
+                        AnchorR = ReadInt(sNode, "anchorR", 0),
+                        LocalMapId = sNode.GetString("localMapId", string.Empty),
+                        OwnerFactionId = sNode.GetString("ownerFactionId", string.Empty),
+                        LegacyNodeId = sNode.GetString("legacyNodeId", string.Empty),
+                    };
+                    if (sNode.TryGetProperty("footprint", out var fpNode) && fpNode.Kind == JsonValueKind.Array)
+                    {
+                        foreach (var hNode in fpNode.Array)
+                        {
+                            if (hNode.Kind != JsonValueKind.Object)
+                                continue;
+                            site.Footprint.Add(new HexWorldCoordDefinition
+                            {
+                                Q = ReadInt(hNode, "q", 0),
+                                R = ReadInt(hNode, "r", 0),
+                            });
+                        }
+                    }
+
+                    world.Sites.Add(site);
+                }
+            }
+
+            var reg = registry.RegisterHexWorldContent(world);
             if (reg.IsFailure)
                 report.Add(reg.Error);
         }

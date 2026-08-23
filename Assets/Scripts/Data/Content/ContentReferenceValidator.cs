@@ -165,6 +165,7 @@ namespace XianXia.Data.Content
                 RequireDef(registry, s.OpeningWorldRegionId, "worldRegion", ctx + ".openingWorldRegionId", report);
                 RequireDef(registry, s.OpeningLocalPlaceSetId, "localPlaceSet", ctx + ".openingLocalPlaceSetId", report);
                 RequireDef(registry, s.OpeningWorldGraphId, "worldGraph", ctx + ".openingWorldGraphId", report);
+                RequireDef(registry, s.OpeningHexWorldId, "hexWorld", ctx + ".openingHexWorldId", report);
                 RequireDef(registry, s.OpeningChapterId, "chapter", ctx + ".openingChapterId", report);
 
                 if (s.Spawns == null)
@@ -702,6 +703,9 @@ namespace XianXia.Data.Content
                     break;
                 case "worldGraph":
                     ok = registry.WorldGraphs.ContainsKey(id);
+                    break;
+                case "hexWorld":
+                    ok = registry.HexWorldContents.ContainsKey(id);
                     break;
                 case "localPlaceSet":
                     ok = registry.LocalPlaceSets.ContainsKey(id);

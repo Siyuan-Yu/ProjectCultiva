@@ -248,6 +248,10 @@ namespace XianXia.Unity.Host
             if (!_session.IsInitialized)
                 return;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            FormalArmyStrategicMutationDiagnosticsHost.TickFrame();
+#endif
+
             if (Input.GetKeyDown(togglePauseKey))
             {
                 if ((questJournal == null || !questJournal.IsOpen) &&
@@ -743,6 +747,9 @@ namespace XianXia.Unity.Host
                 " Views=" + entityViewSpawner.SpawnedCount +
                 " Content=" + _resolvedContentPath,
                 this);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            FormalArmyStrategicMutationDiagnosticsHost.BindSession(this);
+#endif
             return true;
         }
 

@@ -290,11 +290,12 @@ namespace XianXia.Core.Persistence
         {
             if (snap == null)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Snapshot null.");
-            if (snap.SchemaVersion == WorldSnapshot.LegacySchemaVersion)
+            if (snap.SchemaVersion == WorldSnapshot.LegacySchemaVersionV2 ||
+                snap.SchemaVersion == 1)
             {
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(
                     ErrorCode.SnapshotVersionMismatch,
-                    "Schema v1 development saves are unsupported. Start a new game (schema v2 required).",
+                    "Schema v1/v2 saves are unsupported after hex migration. Start a new game (schema v3 required).",
                     snap.SchemaVersion.ToString());
             }
 

@@ -5,6 +5,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Tests
@@ -13,21 +14,45 @@ namespace XianXia.Tests
   {
     const string FactionA = "test:faction_a";
     const string FactionB = "test:faction_b";
-    const string NodeA = "test:node_a";
-    const string NodeB = "test:node_b";
+    const string NodeA = "base:node_huangcun";
+    const string NodeB = "base:node_qingyun_lu";
     const string NodeC = "test:node_c";
-    const string RouteAb = "test:route_ab";
-    const string RouteBc = "test:route_bc";
+
+    static readonly HexCoord HexA = Ch01HexPrototypeMapBuilder.HuangcunHex;
+    static readonly HexCoord HexB = Ch01HexPrototypeMapBuilder.QingyunLuHex;
+    static HexCoord HexC;
 
     static SimulationWorld CreateWorld()
     {
       var world = new SimulationWorld();
-      world.WorldGraph.RegisterNode(new WorldNodeState { Id = NodeA, Name = "A", OwnerId = FactionA, WorldX = 0f, WorldY = 0f });
-      world.WorldGraph.RegisterNode(new WorldNodeState { Id = NodeB, Name = "B", OwnerId = FactionA, WorldX = 10f, WorldY = 0f });
-      world.WorldGraph.RegisterNode(new WorldNodeState { Id = NodeC, Name = "C", OwnerId = FactionA, WorldX = 20f, WorldY = 0f });
-      world.WorldGraph.RegisterRoute(new WorldRouteState { Id = RouteAb, FromNodeId = NodeA, ToNodeId = NodeB, TravelCost = 1 });
-      world.WorldGraph.RegisterRoute(new WorldRouteState { Id = RouteBc, FromNodeId = NodeB, ToNodeId = NodeC, TravelCost = 1 });
+      HexTestWorldBootstrap.EnsureMinimalHexMap(world);
+      RegisterNodeC(world);
+      WarGateService.DeclareWar(world, FactionA, FactionB);
       return world;
+    }
+
+    static void RegisterNodeC(SimulationWorld world)
+    {
+      HexC = HexAlongPath(world, HexA, HexB, 1f);
+      world.WorldGraph.RegisterNode(new WorldNodeState
+      {
+        Id = NodeC,
+        Name = "C",
+        OwnerId = FactionA,
+        WorldX = 20f,
+        WorldY = 0f
+      });
+      if (world.WorldGraph.TryGetNode(NodeC, out var node) && node != null)
+        WorldSiteRegistrationService.LinkLegacyNodeToHex(node, HexC);
+    }
+
+    static HexCoord HexAlongPath(SimulationWorld world, HexCoord from, HexCoord to, float t)
+    {
+      var path = new List<HexCoord>(32);
+      Assert.IsTrue(HexPathfinder.TryFindPath(world.HexWorld, from, to, path));
+      var idx = (int)System.Math.Round((path.Count - 1) * t);
+      idx = System.Math.Max(0, System.Math.Min(path.Count - 1, idx));
+      return path[idx];
     }
 
     static EntityId SpawnCharacter(SimulationWorld world, string name, string nodeId, string faction = FactionA)
@@ -40,15 +65,29 @@ namespace XianXia.Tests
       return entity.Id;
     }
 
+    static FormalArmy CreateArmyAtHex(
+      SimulationWorld world,
+      string faction,
+      string nodeId,
+      HexCoord hex,
+      EntityId leader)
+    {
+      var army = ArmyService.CreateArmy(world, faction, nodeId, new[] { leader }).Value;
+      FormalArmyTestSupport.AnchorOnHex(army, hex);
+      return army;
+    }
+
     static (FormalArmy army, ArmyStack stack) RegisterLinkedEnemy(
       SimulationWorld world,
       string stackId,
       string nodeId,
+      HexCoord hex,
       EntityId leader)
     {
       var created = ArmyService.CreateArmy(world, FactionB, nodeId, new[] { leader });
       Assert.IsTrue(created.IsSuccess);
       var army = created.Value;
+      FormalArmyTestSupport.AnchorOnHex(army, hex);
       var stack = new ArmyStack
       {
         Id = stackId,
@@ -66,15 +105,15 @@ namespace XianXia.Tests
     {
       for (var i = 0; i < ticks; i++)
       {
-        WorldTravelService.AdvanceTravel(world, 1, StrategicTravelDriver.BeginArrivalCapture());
-        StrategicTravelDriver.AfterTravelTick(world, 1);
+        ArmyHexTravelService.AdvanceAll(world, 1);
+        ArmyStackAdapter.SyncAllLinkedStacksFromFormalArmies(world);
+        ArmyHexPursuitService.AfterTravelTick(world);
       }
     }
 
     static void BeginPursuitAndStartTravel(SimulationWorld world, FormalArmy pursuer, ArmyStack targetStack)
     {
-      StrategicPursuitService.BeginPursuitArmy(world, pursuer.ArmyId, targetStack);
-      Assert.IsTrue(ArmyTravelCommandService.MoveArmyToTargetArmy(world, pursuer.ArmyId, targetStack.FormalArmyId).IsSuccess);
+      Assert.IsTrue(ArmyHexCommandService.AttackStack(world, pursuer.ArmyId, targetStack).IsSuccess);
     }
 
     [Test]
@@ -82,18 +121,16 @@ namespace XianXia.Tests
     {
       var world = CreateWorld();
       var leader = SpawnCharacter(world, "Pursuer", NodeA);
-      var pursuer = ArmyService.CreateArmy(world, FactionA, NodeA, new[] { leader }).Value;
+      var pursuer = CreateArmyAtHex(world, FactionA, NodeA, HexA, leader);
       var enemyLeader = SpawnCharacter(world, "Enemy", NodeA, FactionB);
-      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_static", NodeA, enemyLeader);
-      targetArmy.RouteId = RouteAb;
-      targetArmy.DestNodeId = NodeB;
-      targetArmy.RouteAnchorProgress = 0.62f;
-      targetArmy.State = FormalArmyState.AtNode;
+      var targetHex = HexAlongPath(world, HexA, HexB, 0.62f);
+      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_static", NodeA, targetHex, enemyLeader);
+      FormalArmyTestSupport.SetHexMidTravel(world, targetArmy, targetHex, HexB, 0.10f);
       ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, targetStack);
 
       BeginPursuitAndStartTravel(world, pursuer, targetStack);
       AdvanceWorldTicks(world, 200);
-      Assert.IsTrue(world.Strategic.HasBattleOffer, "PUR-01: static route target should produce BattleOffer");
+      Assert.IsTrue(world.Strategic.HasBattleOffer, "PUR-01: static hex target should produce BattleOffer");
     }
 
     [Test]
@@ -101,28 +138,27 @@ namespace XianXia.Tests
     {
       var world = CreateWorld();
       var leader = SpawnCharacter(world, "Pursuer", NodeA);
-      var pursuer = ArmyService.CreateArmy(world, FactionA, NodeA, new[] { leader }).Value;
+      var pursuer = CreateArmyAtHex(world, FactionA, NodeA, HexA, leader);
       var enemyLeader = SpawnCharacter(world, "Enemy", NodeA, FactionB);
-      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_move", NodeA, enemyLeader);
-      Assert.IsTrue(ArmyTravelCommandService.MoveArmyToNode(world, targetArmy.ArmyId, NodeB).IsSuccess);
+      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_move", NodeA, HexA, enemyLeader);
+      Assert.IsTrue(ArmyHexCommandService.MoveArmy(world, targetArmy.ArmyId, HexB).IsSuccess);
       ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, targetStack);
 
       BeginPursuitAndStartTravel(world, pursuer, targetStack);
       Assert.IsTrue(world.Strategic.FormalArmies.TryGet(pursuer.ArmyId, out var formal));
-      formal.TravelTotalTicks = System.Math.Max(8, formal.TravelTotalTicks / 3);
-      formal.RemainingTravelTicks = formal.TravelTotalTicks;
+      FormalArmyTestSupport.ScaleHexStepTicks(formal, 3);
 
-      var origin = formal.RouteSegmentOriginProgress;
+      var originDest = formal.DestinationHex;
       var maxProgress = 0f;
       for (var i = 0; i < 120 && !world.Strategic.HasBattleOffer; i++)
       {
         AdvanceWorldTicks(world, 1);
-        Assert.IsTrue(formal.IsTraveling, "PUR-02: pursuer must keep traveling while chasing moving target");
-        var progress = formal.GetRouteDisplayProgress();
+        Assert.AreEqual(FormalArmyState.Moving, formal.State, "PUR-02: pursuer must keep traveling while chasing moving target");
+        var progress = formal.StepProgress;
         Assert.GreaterOrEqual(progress, maxProgress - 0.001f, "PUR-02: progress must not backjump");
         maxProgress = System.Math.Max(maxProgress, progress);
         if (i > 0)
-          Assert.AreEqual(origin, formal.RouteSegmentOriginProgress, "PUR-02: must not restart segment origin each tick");
+          Assert.AreEqual(originDest, formal.DestinationHex, "PUR-02: must not restart destination each tick");
       }
 
       Assert.IsTrue(world.Strategic.HasBattleOffer, "PUR-02: faster pursuer should eventually contact moving target");
@@ -133,10 +169,10 @@ namespace XianXia.Tests
     {
       var world = CreateWorld();
       var leader = SpawnCharacter(world, "Pursuer", NodeA);
-      var pursuer = ArmyService.CreateArmy(world, FactionA, NodeA, new[] { leader }).Value;
+      var pursuer = CreateArmyAtHex(world, FactionA, NodeA, HexA, leader);
       var enemyLeader = SpawnCharacter(world, "Enemy", NodeA, FactionB);
-      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_pace", NodeA, enemyLeader);
-      Assert.IsTrue(ArmyTravelCommandService.MoveArmyToNode(world, targetArmy.ArmyId, NodeB).IsSuccess);
+      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_pace", NodeA, HexA, enemyLeader);
+      Assert.IsTrue(ArmyHexCommandService.MoveArmy(world, targetArmy.ArmyId, HexB).IsSuccess);
       ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, targetStack);
 
       BeginPursuitAndStartTravel(world, pursuer, targetStack);
@@ -147,8 +183,10 @@ namespace XianXia.Tests
       {
         AdvanceWorldTicks(world, 1);
         Assert.IsFalse(world.Strategic.HasBattleOffer, "PUR-03: same-speed pursuit must not false-contact early");
-        Assert.IsTrue(formal.IsTraveling, "PUR-03: pursuit should remain active");
-        Assert.Greater(target.GetRouteDisplayProgress(), 0.05f, "PUR-03: target should advance via real ticks");
+        Assert.AreEqual(FormalArmyState.Moving, formal.State, "PUR-03: pursuit should remain active");
+        Assert.IsTrue(
+          target.State == FormalArmyState.Moving || !target.CurrentHex.Equals(HexA),
+          "PUR-03: target should advance via real ticks");
       }
     }
 
@@ -157,25 +195,25 @@ namespace XianXia.Tests
     {
       var world = CreateWorld();
       var leader = SpawnCharacter(world, "Pursuer", NodeA);
-      var pursuer = ArmyService.CreateArmy(world, FactionA, NodeA, new[] { leader }).Value;
+      var pursuer = CreateArmyAtHex(world, FactionA, NodeA, HexA, leader);
       var enemyLeader = SpawnCharacter(world, "Enemy", NodeA, FactionB);
-      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_reroute", NodeA, enemyLeader);
-      Assert.IsTrue(ArmyTravelCommandService.MoveArmyToNode(world, targetArmy.ArmyId, NodeB).IsSuccess);
+      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_reroute", NodeA, HexA, enemyLeader);
+      Assert.IsTrue(ArmyHexCommandService.MoveArmy(world, targetArmy.ArmyId, HexB).IsSuccess);
 
       BeginPursuitAndStartTravel(world, pursuer, targetStack);
       AdvanceWorldTicks(world, 40);
-      Assert.IsTrue(ArmyTravelCommandService.MoveArmyToNode(world, targetArmy.ArmyId, NodeC).IsSuccess);
+      Assert.IsTrue(ArmyHexCommandService.MoveArmy(world, targetArmy.ArmyId, HexC).IsSuccess);
       ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, targetStack);
 
       Assert.IsTrue(world.Strategic.FormalArmies.TryGet(pursuer.ArmyId, out var formal));
-      var beforeDest = formal.DestNodeId;
+      var beforeDest = formal.DestinationHex;
       AdvanceWorldTicks(world, 5);
-      Assert.IsTrue(formal.IsTraveling || ArmyTravelCommandService.HasPendingLegs(formal.ArmyId),
+      Assert.IsTrue(
+        formal.State == FormalArmyState.Moving || !formal.DestinationHex.Equals(beforeDest),
         "PUR-04: pursuer should continue after target topology change");
       Assert.IsTrue(
-        string.Equals(formal.DestNodeId, NodeC, System.StringComparison.Ordinal) ||
-        ArmyTravelCommandService.HasPendingLegs(formal.ArmyId) ||
-        !string.Equals(beforeDest, formal.DestNodeId, System.StringComparison.Ordinal),
+        formal.DestinationHex.Equals(HexC) ||
+        !formal.DestinationHex.Equals(beforeDest),
         "PUR-04: pursuer should repath toward new target topology");
     }
 
@@ -184,24 +222,22 @@ namespace XianXia.Tests
     {
       var world = CreateWorld();
       var leader = SpawnCharacter(world, "Pursuer", NodeA);
-      var pursuer = ArmyService.CreateArmy(world, FactionA, NodeA, new[] { leader }).Value;
+      var pursuer = CreateArmyAtHex(world, FactionA, NodeA, HexA, leader);
       var enemyLeader = SpawnCharacter(world, "Enemy", NodeB, FactionB);
-      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_far", NodeB, enemyLeader);
-      targetArmy.RouteId = RouteBc;
-      targetArmy.DestNodeId = NodeC;
-      targetArmy.RouteAnchorProgress = 0.15f;
-      targetArmy.State = FormalArmyState.AtNode;
+      var targetHex = HexAlongPath(world, HexB, HexC, 0.15f);
+      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_far", NodeB, targetHex, enemyLeader);
+      FormalArmyTestSupport.SetHexMidTravel(world, targetArmy, targetHex, HexC, 0.10f);
       ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, targetStack);
 
       BeginPursuitAndStartTravel(world, pursuer, targetStack);
-      Assert.IsTrue(ArmyTravelCommandService.HasPendingLegs(pursuer.ArmyId) || world.Strategic.FormalArmies.TryGet(pursuer.ArmyId, out var formal) && formal.IsTraveling);
+      Assert.IsTrue(
+        pursuer.State == FormalArmyState.Moving ||
+        !pursuer.CurrentHex.Equals(HexA));
       AdvanceWorldTicks(world, 200);
       Assert.IsFalse(
         world.Strategic.FormalArmies.TryGet(pursuer.ArmyId, out var done) &&
-        done.IsRouteAnchored &&
-        done.RouteAnchorProgress > 0.1f &&
-        done.RouteAnchorProgress < 0.2f &&
-        string.Equals(done.RouteId, RouteBc, System.StringComparison.Ordinal) &&
+        done.State == FormalArmyState.Idle &&
+        done.CurrentHex.Equals(HexAlongPath(world, HexB, HexC, 0.15f)) &&
         !world.Strategic.HasBattleOffer,
         "PUR-05: pursuer must not stop at stale command-time enemy progress");
     }
@@ -215,32 +251,19 @@ namespace XianXia.Tests
 
       var world = CreateWorld();
       var leader = SpawnCharacter(world, "Pursuer", NodeA);
-      var pursuer = ArmyService.CreateArmy(world, FactionA, NodeA, new[] { leader }).Value;
+      var pursuer = CreateArmyAtHex(world, FactionA, NodeA, HexA, leader);
       var enemyLeader = SpawnCharacter(world, "Enemy", NodeA, FactionB);
-      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_opp", NodeA, enemyLeader);
+      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_opp", NodeA, HexB, enemyLeader);
 
-      pursuer.State = FormalArmyState.OnRoute;
-      pursuer.RouteId = RouteAb;
-      pursuer.NodeId = NodeA;
-      pursuer.DestNodeId = NodeB;
-      pursuer.RouteSegmentOriginProgress = 0.54f;
-      pursuer.RouteSegmentEndProgress = 1f;
-      pursuer.TravelTotalTicks = 10;
-      pursuer.RemainingTravelTicks = 10;
-      targetArmy.State = FormalArmyState.OnRoute;
-      targetArmy.RouteId = RouteAb;
-      targetArmy.NodeId = NodeB;
-      targetArmy.DestNodeId = NodeA;
-      targetArmy.RouteSegmentOriginProgress = 0.46f;
-      targetArmy.RouteSegmentEndProgress = 0f;
-      targetArmy.TravelTotalTicks = 10;
-      targetArmy.RemainingTravelTicks = 10;
+      var pursuerHex = HexAlongPath(world, HexA, HexB, 0.54f);
+      var targetHex = HexAlongPath(world, HexA, HexB, 0.46f);
+      FormalArmyTestSupport.SetHexMidTravel(world, pursuer, pursuerHex, HexB, 0.10f);
+      FormalArmyTestSupport.SetHexMidTravel(world, targetArmy, targetHex, HexA, 0.10f);
       ArmyPresenceAdapter.SyncFromArmy(world, pursuer);
       ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, targetStack);
 
-      StrategicPursuitService.BeginPursuitArmy(world, pursuer.ArmyId, targetStack);
-      ArmyPursuitTargetService.CaptureTickSnapshot(pursuer, targetArmy);
-      AdvanceWorldTicks(world, 1);
+      Assert.IsTrue(ArmyHexCommandService.AttackStack(world, pursuer.ArmyId, targetStack).IsSuccess);
+      AdvanceWorldTicks(world, 40);
       Assert.IsTrue(world.Strategic.HasBattleOffer, "PUR-06: pursuit pair swept contact should open BattleOffer");
     }
 
@@ -249,16 +272,11 @@ namespace XianXia.Tests
     {
       var world = CreateWorld();
       var leader = SpawnCharacter(world, "Pursuer", NodeA);
-      var pursuer = ArmyService.CreateArmy(world, FactionA, NodeA, new[] { leader }).Value;
+      var pursuer = CreateArmyAtHex(world, FactionA, NodeA, HexA, leader);
       var enemyLeader = SpawnCharacter(world, "Enemy", NodeA, FactionB);
-      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_stop", NodeA, enemyLeader);
-      Assert.IsTrue(ArmyTravelCommandService.MoveArmyToRouteProgress(world, targetArmy.ArmyId, RouteAb, 0.7f).IsSuccess);
-      AdvanceWorldTicks(world, 50);
-      targetArmy.ClearTravel();
-      targetArmy.State = FormalArmyState.AtNode;
-      targetArmy.RouteId = RouteAb;
-      targetArmy.RouteAnchorProgress = 0.7f;
-      targetArmy.DestNodeId = NodeB;
+      var targetHex = HexAlongPath(world, HexA, HexB, 0.7f);
+      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_stop", NodeA, targetHex, enemyLeader);
+      FormalArmyTestSupport.SetHexMidTravel(world, targetArmy, targetHex, HexB, 0.05f);
       ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, targetStack);
 
       BeginPursuitAndStartTravel(world, pursuer, targetStack);
@@ -272,13 +290,13 @@ namespace XianXia.Tests
     {
       var world = CreateWorld();
       var leader = SpawnCharacter(world, "Pursuer", NodeA);
-      var pursuer = ArmyService.CreateArmy(world, FactionA, NodeA, new[] { leader }).Value;
+      var pursuer = CreateArmyAtHex(world, FactionA, NodeA, HexA, leader);
       var enemyLeader = SpawnCharacter(world, "Enemy", NodeA, FactionB);
-      var (_, targetStack) = RegisterLinkedEnemy(world, "army:enemy_cancel", NodeA, enemyLeader);
+      var (_, targetStack) = RegisterLinkedEnemy(world, "army:enemy_cancel", NodeA, HexA, enemyLeader);
       BeginPursuitAndStartTravel(world, pursuer, targetStack);
       Assert.IsFalse(string.IsNullOrEmpty(world.Strategic.Encounter.PursueStackId));
 
-      Assert.IsTrue(ArmyTravelCommandService.MoveArmyToNode(world, pursuer.ArmyId, NodeB).IsSuccess);
+      Assert.IsTrue(ArmyHexCommandService.MoveArmy(world, pursuer.ArmyId, HexB).IsSuccess);
       Assert.IsTrue(string.IsNullOrEmpty(world.Strategic.Encounter.PursueStackId), "PUR-08: new MoveOrder must clear pursuit");
     }
 
@@ -287,9 +305,9 @@ namespace XianXia.Tests
     {
       var world = CreateWorld();
       var leader = SpawnCharacter(world, "Pursuer", NodeA);
-      var pursuer = ArmyService.CreateArmy(world, FactionA, NodeA, new[] { leader }).Value;
+      var pursuer = CreateArmyAtHex(world, FactionA, NodeA, HexA, leader);
       var enemyLeader = SpawnCharacter(world, "Enemy", NodeA, FactionB);
-      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_gone", NodeA, enemyLeader);
+      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_gone", NodeA, HexA, enemyLeader);
       BeginPursuitAndStartTravel(world, pursuer, targetStack);
       Assert.IsTrue(ArmyService.DisbandArmy(world, targetArmy.ArmyId).IsSuccess);
       targetStack.FormalArmyId = string.Empty;
@@ -302,18 +320,19 @@ namespace XianXia.Tests
     {
       var world = CreateWorld();
       var leader = SpawnCharacter(world, "Pursuer", NodeA);
-      var pursuer = ArmyService.CreateArmy(world, FactionA, NodeA, new[] { leader }).Value;
+      var pursuer = CreateArmyAtHex(world, FactionA, NodeA, HexA, leader);
       var enemyLeader = SpawnCharacter(world, "Enemy", NodeA, FactionB);
-      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_stale", NodeA, enemyLeader);
-      Assert.IsTrue(ArmyTravelCommandService.MoveArmyToNode(world, targetArmy.ArmyId, NodeB).IsSuccess);
-      targetStack.RouteAnchorProgress = 0.05f;
-      targetStack.RouteId = RouteAb;
+      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_stale", NodeA, HexA, enemyLeader);
+      Assert.IsTrue(ArmyHexCommandService.MoveArmy(world, targetArmy.ArmyId, HexB).IsSuccess);
+      targetStack.NodeId = NodeA;
 
       BeginPursuitAndStartTravel(world, pursuer, targetStack);
       AdvanceWorldTicks(world, 10);
       ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, targetStack);
-      Assert.Greater(targetStack.RouteAnchorProgress, 0.1f, "PUR-10: stack must follow FormalArmy live position after sync");
-      Assert.IsTrue(world.Strategic.FormalArmies.TryGet(pursuer.ArmyId, out var formal) && formal.IsTraveling);
+      Assert.IsFalse(
+        targetStack.NodeId.Equals(NodeA) && targetArmy.CurrentHex.Equals(HexA),
+        "PUR-10: stack must follow FormalArmy live position after sync");
+      Assert.IsTrue(world.Strategic.FormalArmies.TryGet(pursuer.ArmyId, out var formal) && formal.State == FormalArmyState.Moving);
     }
 
     [Test]
@@ -321,24 +340,22 @@ namespace XianXia.Tests
     {
       var world = CreateWorld();
       var leader = SpawnCharacter(world, "Pursuer", NodeA);
-      var pursuer = ArmyService.CreateArmy(world, FactionA, NodeA, new[] { leader }).Value;
+      var pursuer = CreateArmyAtHex(world, FactionA, NodeA, HexA, leader);
       var enemyLeader = SpawnCharacter(world, "Enemy", NodeA, FactionB);
-      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_tick", NodeA, enemyLeader);
-      Assert.IsTrue(ArmyTravelCommandService.MoveArmyToNode(world, targetArmy.ArmyId, NodeB).IsSuccess);
+      var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_tick", NodeA, HexA, enemyLeader);
+      Assert.IsTrue(ArmyHexCommandService.MoveArmy(world, targetArmy.ArmyId, HexB).IsSuccess);
       BeginPursuitAndStartTravel(world, pursuer, targetStack);
       Assert.IsTrue(world.Strategic.FormalArmies.TryGet(pursuer.ArmyId, out var formal));
 
-      var segmentOrigin = formal.RouteSegmentOriginProgress;
-      var segmentEnd = formal.RouteSegmentEndProgress;
-      var totalTicks = formal.TravelTotalTicks;
+      var pathCount = formal.HexPathCount;
+      var destinationHex = formal.DestinationHex;
+      var stepTotal = formal.StepTotalTicks;
       for (var i = 0; i < 20; i++)
       {
-        var ticksBefore = formal.RemainingTravelTicks;
         AdvanceWorldTicks(world, 1);
-        Assert.AreEqual(segmentOrigin, formal.RouteSegmentOriginProgress, "PUR-11: segment origin must stay stable");
-        Assert.AreEqual(segmentEnd, formal.RouteSegmentEndProgress, "PUR-11: segment end must stay stable");
-        Assert.AreEqual(totalTicks, formal.TravelTotalTicks, "PUR-11: must not restart travel plan each tick");
-        Assert.LessOrEqual(formal.RemainingTravelTicks, ticksBefore, "PUR-11: remaining ticks should decrease monotonically");
+        Assert.AreEqual(destinationHex, formal.DestinationHex, "PUR-11: destination hex must stay stable");
+        Assert.AreEqual(pathCount, formal.HexPathCount, "PUR-11: must not restart travel plan each tick");
+        Assert.AreEqual(stepTotal, formal.StepTotalTicks, "PUR-11: must not restart travel plan each tick");
       }
     }
 
@@ -346,8 +363,7 @@ namespace XianXia.Tests
     {
       if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
         return;
-      army.TravelTotalTicks = System.Math.Max(8, army.TravelTotalTicks / 4);
-      army.RemainingTravelTicks = army.TravelTotalTicks;
+      FormalArmyTestSupport.ScaleHexStepTicks(army, 4);
     }
   }
 }

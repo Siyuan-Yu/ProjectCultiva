@@ -13,7 +13,13 @@ namespace XianXia.Core.World.Strategic
         public string SourceArmyId { get; set; } = string.Empty;
         public string FactionId { get; set; } = string.Empty;
         public string NodeId { get; set; } = string.Empty;
+        public int HexQ { get; set; } = ArmyHexBattleAnchorService.InvalidHexComponent;
+        public int HexR { get; set; } = ArmyHexBattleAnchorService.InvalidHexComponent;
         readonly List<ulong> _memberCharacterIds = new List<ulong>(8);
+
+        public bool UsesHexPosition =>
+            HexQ != ArmyHexBattleAnchorService.InvalidHexComponent &&
+            HexR != ArmyHexBattleAnchorService.InvalidHexComponent;
 
         public IReadOnlyList<ulong> MemberCharacterIds => _memberCharacterIds;
 

@@ -53,6 +53,8 @@ namespace XianXia.Core.World.Strategic
         public ArmyStackBoard Armies { get; } = new ArmyStackBoard();
         /// <summary>Formal Army 领域真源（Phase A）；与 Prototype <see cref="Armies"/> 并存。</summary>
         public FormalArmyBoard FormalArmies { get; } = new FormalArmyBoard();
+        /// <summary>Hex 战略重要地点（155）；替代 Node 的地点职责。</summary>
+        public WorldSiteBoard Sites { get; } = new WorldSiteBoard();
         public BattleOfferPending BattleOffer { get; } = new BattleOfferPending();
         public ArrivalNoticePending ArrivalNotice { get; } = new ArrivalNoticePending();
         public StrategicEncounterRuntime Encounter { get; } = new StrategicEncounterRuntime();

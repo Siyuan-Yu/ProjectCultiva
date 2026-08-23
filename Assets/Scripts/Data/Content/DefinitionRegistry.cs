@@ -50,6 +50,8 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, WorldGraphDefinition>();
         readonly Dictionary<DefinitionId, LocalPlaceSetDefinition> _localPlaceSets =
             new Dictionary<DefinitionId, LocalPlaceSetDefinition>();
+        readonly Dictionary<DefinitionId, HexWorldContentDefinition> _hexWorldContents =
+            new Dictionary<DefinitionId, HexWorldContentDefinition>();
 
         public IReadOnlyDictionary<DefinitionId, CharacterDefinition> Characters => _characters;
         public IReadOnlyDictionary<DefinitionId, CultivationDefinition> Cultivations => _cultivations;
@@ -73,6 +75,7 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, SpawnTableDefinition> SpawnTables => _spawnTables;
         public IReadOnlyDictionary<DefinitionId, WorldGraphDefinition> WorldGraphs => _worldGraphs;
         public IReadOnlyDictionary<DefinitionId, LocalPlaceSetDefinition> LocalPlaceSets => _localPlaceSets;
+        public IReadOnlyDictionary<DefinitionId, HexWorldContentDefinition> HexWorldContents => _hexWorldContents;
 
         public bool ContainsId(DefinitionId id) =>
             _characters.ContainsKey(id) ||
@@ -96,7 +99,8 @@ namespace XianXia.Data.Content
             _realmLadders.ContainsKey(id) ||
             _spawnTables.ContainsKey(id) ||
             _worldGraphs.ContainsKey(id) ||
-            _localPlaceSets.ContainsKey(id);
+            _localPlaceSets.ContainsKey(id) ||
+            _hexWorldContents.ContainsKey(id);
 
         public Result RegisterCharacter(CharacterDefinition definition)
         {
@@ -252,6 +256,13 @@ namespace XianXia.Data.Content
             return Register(_localPlaceSets, definition, definition.Id);
         }
 
+        public Result RegisterHexWorldContent(HexWorldContentDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "HexWorldContentDefinition is null.");
+            return Register(_hexWorldContents, definition, definition.Id);
+        }
+
         /// <summary>覆盖已有 mapLayout（Level Tester 热换地图文件）。</summary>
         public Result UpsertMapLayout(MapLayoutDefinition definition)
         {
@@ -323,6 +334,9 @@ namespace XianXia.Data.Content
 
         public bool TryGetLocalPlaceSet(DefinitionId id, out LocalPlaceSetDefinition definition) =>
             _localPlaceSets.TryGetValue(id, out definition);
+
+        public bool TryGetHexWorldContent(DefinitionId id, out HexWorldContentDefinition definition) =>
+            _hexWorldContents.TryGetValue(id, out definition);
 
         /// <summary>Prefer content ladder; otherwise null.</summary>
         public bool TryGetPrimaryRealmLadder(out RealmLadderDefinition definition)

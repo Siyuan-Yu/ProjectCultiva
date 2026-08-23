@@ -1,10 +1,12 @@
 # 路线图
 
-> 状态：**VS1.0＋样例关可玩弧自动化已验收**｜下一目标：**2A 实现计划审核 → Phase A 批准**｜最后更新：2026-08-23
+> 状态：**VS1.0＋样例关可玩弧自动化已验收**｜下一目标：**Hex World Content 手操签收**｜最后更新：2026-08-23
 
 ## 当前阶段说明
 
 - Architecture Freeze **v0.2**＋**ADR-0023 补丁**（Manual Encounter 冻结 WorldTick）。  
+- **2026-08-23：** [158](158-hex-world-content-authoring-pipeline-2026-08-23.md) — **HexWorld JSON Pipeline + WorldGraphEditor Hex 重做 + WYSIWYG Layout 对齐**（Unity 手操 DEFERRED）  
+- **2026-08-23：** [155](155-hex-strategic-worldmap-migration-2026-08-23.md) — Hex Strategic WorldMap 迁移（H1–H9）  
 - **2026-08-23：** [154](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md) — Formal Army RTS 收束文档；**追击追移动敌军 KNOWN ISSUES · DEFERRED**  
 - **2026-08-22（第二轮）：** 制作人补充 9 条规则（编组地点／统一 FactionId／禁止混编／驻扎不自动解散／无战后保护期／一势力一 Alliance＋联盟战争绑定／Capture 手动收尾与残余守军）；文档已冻结。  
 - **2026-08-22：** Phase A–K + **Final Closure** + **Manual Acceptance UI** + **Host 双入口（角色／军队列表）** 2A 战略层；**MANUAL ACCEPTANCE UI IMPLEMENTED · Host 双入口 IMPLEMENTED · Unity 验证 DEFERRED**  
@@ -30,6 +32,7 @@
 - [x] RTS 左右键纪律：[152](152-worldmap-rts-click-discipline-2026-08-22.md)（手操待签）
 - [x] 弥留／自动战宏观 + 接战名单 + 追击撤退：[153](153-lingering-remnant-macro-presentation-2026-08-22.md)（手操待签）
 - [x] Formal Army RTS 收束 + 追击 backlog：[154](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md)（**追移动敌 DEFERRED**）
+- [x] Hex World Content Pipeline + WorldGraphEditor Hex 化：[158](158-hex-world-content-authoring-pipeline-2026-08-23.md)（**手操 DEFERRED**）
 - [x] 战略层 Host 双入口（角色／军队列表；**Node 组军已删除**）：[153-strategic-layer-runtime-acceptance-checklist-2026-08-22.md](153-strategic-layer-runtime-acceptance-checklist-2026-08-22.md)（Unity 手操 DEFERRED）
 
 ### 样例关可玩弧（2026-08-02）— **自动化 Completed／手操签收中**

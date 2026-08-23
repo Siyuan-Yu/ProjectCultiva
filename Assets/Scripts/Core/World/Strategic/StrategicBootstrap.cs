@@ -1,3 +1,4 @@
+using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 
 namespace XianXia.Core.World.Strategic
@@ -8,8 +9,15 @@ namespace XianXia.Core.World.Strategic
     /// </summary>
     public static class StrategicBootstrap
     {
-        /// <summary>Ch01 Opening 场景初始化（委托 Scenario Setup）。</summary>
-        public static void ApplyCh01Defaults(SimulationWorld world) =>
+        /// <summary>Ch01 Opening 场景初始化（测试/fixture，无 Content 包）。</summary>
+        public static Result ApplyCh01Defaults(SimulationWorld world)
+        {
             Ch01ScenarioStrategicSetup.Apply(world);
+            var hex = HexStrategicMapBootstrap.TryApplyFromFixture(world);
+            if (hex.IsFailure)
+                return hex;
+            Ch01ScenarioStrategicSetup.PositionPrototypeBanditPatrolArmy(world);
+            return Result.Success();
+        }
     }
 }

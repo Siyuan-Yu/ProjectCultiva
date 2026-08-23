@@ -161,7 +161,9 @@ namespace XianXia.Data.Bootstrap
             if (graph.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(graph.Error);
 
-            StrategicBootstrap.ApplyCh01Defaults(world);
+            var strategic = StrategicContentBootstrap.ApplyCh01Defaults(world, registry, scenario);
+            if (strategic.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(strategic.Error);
 
             var spawnZones = SpawnZoneApplier.ApplyAll(world, registry, world.Random);
             if (spawnZones.IsFailure)

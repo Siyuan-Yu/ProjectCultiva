@@ -19,26 +19,14 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic == null || ticks < 1)
                 return;
 
-            ArmyStackService.AdvanceAll(world, ticks);
-            ArmyTravelService.AdvanceAll(world, ticks, ArrivedScratch);
-            ArmyStackAdapter.SyncAllLinkedStacksFromFormalArmies(world);
-            StrategicFollowService.AfterTravelTick(world);
+            if (!world.HexWorld.HasGrid)
+                return;
 
-            // 接战优先：即使已有到站弹窗也允许追击接战盖过去
-            StrategicPursuitService.AfterTravelTick(world);
+            ArmyHexTravelService.AdvanceAll(world, ticks);
+            ArmyStackAdapter.SyncAllLinkedStacksFromFormalArmies(world);
+            ArmyHexPursuitService.AfterTravelTick(world);
             if (!world.Strategic.HasBattleOffer)
                 TryResolvePendingLingeringVisit(world);
-            if (world.Strategic.HasBattleOffer)
-            {
-                world.Strategic.ClearArrivalNotice();
-                ArrivedScratch.Clear();
-                return;
-            }
-
-            if (!world.Strategic.HasArrivalNotice)
-                ArrivalNoticeService.AfterTravelTick(world, ArrivedScratch);
-
-            ArrivedScratch.Clear();
         }
 
         static void TryResolvePendingLingeringVisit(SimulationWorld world)

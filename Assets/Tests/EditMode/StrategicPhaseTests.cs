@@ -21,6 +21,7 @@ namespace XianXia.Tests
                 BaseGamePath,
                 new PlayableDayOptions { OpeningScenarioId = "base:scenario_ch01_reference" });
             Assert.IsTrue(started.IsSuccess, started.IsFailure ? started.Error.ToString() : "");
+            HexTestWorldBootstrap.EnsureCh01HexMap(started.Value.World);
             return started.Value;
         }
 
@@ -461,6 +462,7 @@ namespace XianXia.Tests
         {
             var hostSession = new PlayableHostSession();
             Assert.IsTrue(hostSession.Initialize(BaseGamePath).IsSuccess, hostSession.LastError);
+            HexTestWorldBootstrap.EnsureCh01HexMap(hostSession.World);
             var world = hostSession.World;
             StrategicEncounterSpawner.PlanManualEncounter(
                 world,

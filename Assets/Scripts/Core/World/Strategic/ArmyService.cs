@@ -73,6 +73,13 @@ namespace XianXia.Core.World.Strategic
 
             world.Strategic.FormalArmies.Register(army);
             SyncMembershipForArmy(world, army);
+            if (HexStrategicRuntime.IsActive(world) &&
+                ArmyFormationSitePolicy.TryGetSiteForLegacyNode(world, nodeId, out var site) &&
+                site != null)
+            {
+                ArmyHexTravelService.InitializeArmyAtHex(army, site.AnchorHex);
+            }
+
             return Result.Ok(army);
         }
 
@@ -83,7 +90,7 @@ namespace XianXia.Core.World.Strategic
             if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
                 return Result.Failure(ErrorCode.NotFound, "Army not found.", armyId);
 
-            if (!TryValidateFriendlyNodeInternal(world, army.FactionId, army.NodeId, out var nodeError))
+            if (!TryValidateArmyFormationLocation(world, army, out var nodeError))
                 return Result.Failure(nodeError);
 
             return ForceRemoveArmy(world, army);
@@ -96,7 +103,7 @@ namespace XianXia.Core.World.Strategic
             if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
                 return Result.Failure(ErrorCode.NotFound, "Army not found.", armyId);
 
-            if (!TryValidateFriendlyNodeInternal(world, army.FactionId, army.NodeId, out var nodeError))
+            if (!TryValidateArmyFormationLocation(world, army, out var nodeError))
                 return Result.Failure(nodeError);
 
             if (army.State == FormalArmyState.Garrisoned)
@@ -133,7 +140,7 @@ namespace XianXia.Core.World.Strategic
             if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
                 return Result.Failure(ErrorCode.NotFound, "Army not found.", armyId);
 
-            if (!TryValidateFriendlyNodeInternal(world, army.FactionId, army.NodeId, out var nodeError))
+            if (!TryValidateArmyFormationLocation(world, army, out var nodeError))
                 return Result.Failure(nodeError);
 
             if (!TryValidateMemberForFormation(world, memberId, army.FactionId, army.NodeId, out var memberError))
@@ -193,7 +200,7 @@ namespace XianXia.Core.World.Strategic
             if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
                 return Result.Failure(ErrorCode.NotFound, "Army not found.", armyId);
 
-            if (!TryValidateFriendlyNodeInternal(world, army.FactionId, army.NodeId, out var nodeError))
+            if (!TryValidateArmyFormationLocation(world, army, out var nodeError))
                 return Result.Failure(nodeError);
 
             if (!army.ContainsMember(memberId))
@@ -219,7 +226,7 @@ namespace XianXia.Core.World.Strategic
             if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
                 return Result.Failure(ErrorCode.NotFound, "Army not found.", armyId);
 
-            if (!TryValidateFriendlyNodeInternal(world, army.FactionId, army.NodeId, out var nodeError))
+            if (!TryValidateArmyFormationLocation(world, army, out var nodeError))
                 return Result.Failure(nodeError);
 
             if (!army.ContainsMember(newLeaderId))
@@ -519,10 +526,31 @@ namespace XianXia.Core.World.Strategic
             string nodeId,
             out GameError error)
         {
+            if (HexStrategicRuntime.IsActive(world))
+                return Ch01ScenarioArmyFormationPolicy.TryValidateFriendlyNode(world, factionId, nodeId, out error);
+
             if (world?.Strategic != null && world.Strategic.Ch01FormationScenarioCompat)
                 return Ch01ScenarioArmyFormationPolicy.TryValidateFriendlyNode(world, factionId, nodeId, out error);
 
             return ArmyFormationNodePolicy.TryValidateFriendlyNode(world, factionId, nodeId, out error);
+        }
+
+        static bool TryValidateArmyFormationLocation(
+            SimulationWorld world,
+            FormalArmy army,
+            out GameError error)
+        {
+            error = default;
+            if (army == null)
+            {
+                error = new GameError(ErrorCode.InvalidArgument, "Army missing.");
+                return false;
+            }
+
+            if (army.UsesHexStrategicPosition && HexStrategicRuntime.IsActive(world))
+                return ArmyFormationSitePolicy.TryValidateFormationAtHex(world, army.FactionId, army.CurrentHex, out error);
+
+            return TryValidateArmyFormationLocation(world, army, out error);
         }
 
         static bool ContainsEntity(IReadOnlyList<EntityId> list, EntityId id)

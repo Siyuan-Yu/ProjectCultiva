@@ -68,6 +68,15 @@ namespace XianXia.Core.World.Strategic
             ArmyStack stack,
             IReadOnlyList<EntityId> pursue)
         {
+            if (HexStrategicRuntime.IsActive(world))
+            {
+                if (ArmyStackAdapter.TryGetFormalArmy(world, stack, out var targetArmy) && targetArmy != null)
+                    ArmyHexPursuitService.BeginAttackArmy(world, army.ArmyId, targetArmy.ArmyId);
+                else
+                    ArmyHexPursuitService.BeginAttackStack(world, army.ArmyId, stack);
+                return;
+            }
+
             var leaderId = army.LeaderCharacterId;
             if (leaderId.IsNone ||
                 !world.WorldPresence.TryGet(leaderId, out var leaderPresence) ||

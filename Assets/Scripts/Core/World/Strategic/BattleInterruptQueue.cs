@@ -130,7 +130,7 @@ namespace XianXia.Core.World.Strategic
             snap.DefenderArmyId = defenderArmyId ?? string.Empty;
 
             if (primaryEnemy != null)
-                ApplyBattleAnchor(snap, primaryEnemy);
+                ApplyBattleAnchor(world, snap, primaryEnemy);
 
             AddFriendlyRecords(world, snap, mandatoryAttackers, BattleParticipantKind.MandatoryFriendly, selected: true);
             CollectOptionalFormalArmies(world, snap, snap.AttackerArmyId, mandatoryAttackers);
@@ -248,22 +248,9 @@ namespace XianXia.Core.World.Strategic
             CollectEnemyReinforcements(world, snap, primaryEnemy);
         }
 
-        static void ApplyBattleAnchor(BattleParticipantSnapshot snap, ArmyStack stack)
+        static void ApplyBattleAnchor(SimulationWorld world, BattleParticipantSnapshot snap, ArmyStack stack)
         {
-            if (stack.IsRoutePositioned)
-            {
-                snap.BattleAnchorRouteId = stack.RouteId ?? string.Empty;
-                snap.BattleAnchorProgress = stack.GetRouteDisplayProgress();
-                snap.BattleAnchorNodeId = stack.NodeId ?? string.Empty;
-                snap.BattleAnchorDestNodeId = stack.DestNodeId ?? string.Empty;
-            }
-            else
-            {
-                snap.BattleAnchorNodeId = stack.NodeId ?? string.Empty;
-                snap.BattleAnchorDestNodeId = string.Empty;
-                snap.BattleAnchorRouteId = string.Empty;
-                snap.BattleAnchorProgress = -1f;
-            }
+            ArmyHexBattleAnchorService.ApplyStackBattleAnchor(world, snap, stack);
         }
 
         static void CollectOptionalFormalArmies(

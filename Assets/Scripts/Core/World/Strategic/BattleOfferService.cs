@@ -359,6 +359,22 @@ namespace XianXia.Core.World.Strategic
                 snap.BattleAnchorRouteId = anchorRoute;
                 snap.BattleAnchorDestNodeId = anchorDest;
                 snap.BattleAnchorProgress = anchorProgress;
+                if (ArmyHexBattleAnchorService.IsHexAnchorMode(world))
+                {
+                    if (!string.IsNullOrEmpty(attackerArmyId) &&
+                        world.Strategic.FormalArmies.TryGet(attackerArmyId, out var atkArmy) &&
+                        atkArmy != null &&
+                        atkArmy.UsesHexStrategicPosition)
+                    {
+                        ArmyHexBattleAnchorService.ApplyFormalArmyBattleAnchor(world, snap, atkArmy);
+                    }
+                    else if (ArmyHexBattleAnchorService.TryResolveHexForNode(world, anchorNode, out var anchorHex))
+                    {
+                        ArmyHexBattleAnchorService.SetBattleAnchorHex(snap, anchorHex);
+                        snap.BattleAnchorRouteId = string.Empty;
+                        snap.BattleAnchorProgress = -1f;
+                    }
+                }
                 AddMandatoryPartyRecords(world, snap, playerParty);
                 if (!string.IsNullOrEmpty(attackerArmyId))
                     snap.AttackerArmyId = attackerArmyId;
@@ -515,6 +531,8 @@ namespace XianXia.Core.World.Strategic
             dst.BattleAnchorDestNodeId = src.BattleAnchorDestNodeId;
             dst.BattleAnchorRouteId = src.BattleAnchorRouteId;
             dst.BattleAnchorProgress = src.BattleAnchorProgress;
+            dst.BattleAnchorHexQ = src.BattleAnchorHexQ;
+            dst.BattleAnchorHexR = src.BattleAnchorHexR;
             dst.PrimaryEnemyStackId = src.PrimaryEnemyStackId;
             dst.AttackerArmyId = src.AttackerArmyId;
             dst.DefenderArmyId = src.DefenderArmyId;

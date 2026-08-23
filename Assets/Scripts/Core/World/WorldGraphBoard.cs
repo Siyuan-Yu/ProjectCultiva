@@ -12,6 +12,10 @@ namespace XianXia.Core.World
         public string LocalMapId { get; set; } = string.Empty;
         public float WorldX { get; set; }
         public float WorldY { get; set; }
+        /// <summary>Hex 迁移：战略空间坐标；int.MinValue 表示未绑定。</summary>
+        public int HexQ { get; set; } = int.MinValue;
+        public int HexR { get; set; } = int.MinValue;
+        public bool HasHexCoord => HexQ != int.MinValue && HexR != int.MinValue;
         /// <summary>战略政治归属 FactionId（2A OwnerFactionId；字段名暂保留 OwnerId）。</summary>
         public string OwnerId { get; set; } = string.Empty;
         public string State { get; set; } = string.Empty;

@@ -289,6 +289,19 @@ Army 可以：
 
 **不要**只设计成 `CurrentNodeId`。
 
+### 11.1 Army 攻击与追击（PursuitOrder）
+
+玩家对敌军 Army 下达 **Attack / Pursue** → 生成持续 **PursuitOrder**（`TargetArmyId`），Pursuer 沿 WorldGraph 追踪目标直至接战或订单取消。
+
+| 阶段 | 目标位置来源 | 视野约束 |
+|------|--------------|----------|
+| **当前（Strategic Vision 未实现）** | 可读 Target FormalArmy **实时**战略位置（开发阶段临时全知；**非最终规则**） | 无 |
+| **未来（Vision / Fog 第一版）** | 仅当 Target **当前可见**时续追 | 离开有效战略视野 → **自动取消 Pursuit** |
+
+**第一版未来不做：** Last Known Position 续追、`SearchOrder`、侦察追击 AI。Lost Vision → Pursuit Cancel。
+
+**Cross-ref：** [154 §3.4 Future Strategic Vision Integration](../40-process/154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md) — Vision 系统设计时必回看 Pursuit 合法性、位置泄露、BattleOffer。
+
 > **Prototype 注记：** 当前 `ArmyStack` 已有 `NodeId`／`RouteId`／`RouteAnchorProgress` 等字段，与 OnEdge 概念部分对齐；正式 Army 以 MemberCharacterIDs 为准（ADR-0024）。
 
 ---
@@ -781,6 +794,14 @@ CombatPower 算法：**本轮不重新设计**；沿用／参考现有自动战�
 - 阵法战力公式
 - 残余守军 Captured / Escaped 概率
 - RetreatingArmy 撤退路径 AI
+
+### Strategic Vision / Fog of War（全部暂缓）
+
+- WorldMap Fog of War 渲染与更新
+- Faction / Army **Strategic Vision** 范围与来源（节点、驻军、侦察等）
+- Scout / Detection / Last Known Position
+- **Pursuit 失去视野自动取消** — 规则已锁定于 [154 §3.4](../40-process/154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md)；实现随 Vision 系统一并交付
+- Pursuit 全知追踪（不可见目标仍读 `FormalArmyBoard` 实时位置）— **未来禁止**
 
 ### 高级战争（不做）
 

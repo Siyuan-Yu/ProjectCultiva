@@ -8,7 +8,7 @@ using XianXia.Core.World;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// Formal Army 战略移动：路中锚点出发须带 RouteSegment，禁止 SyncFromArmy 把单位拉回路线起点。
+    /// Legacy Route/Node 战略移动（已废弃）。HexWorld 存在时全部拒绝；请使用 <see cref="ArmyHexCommandService"/>。
     /// </summary>
     public static class ArmyTravelCommandService
     {
@@ -16,6 +16,16 @@ namespace XianXia.Core.World.Strategic
             new Dictionary<string, Queue<string>>(StringComparer.Ordinal);
 
         static readonly List<string> PathScratch = new List<string>(16);
+
+        static bool IsRouteMovementRemoved(SimulationWorld world) =>
+            world != null && world.HexWorld.HasGrid;
+
+        static Result RouteMovementRemovedResult() =>
+            Result.Failure(
+                ErrorCode.InvalidOperation,
+                "Route strategic movement removed; use Hex travel.");
+
+        static bool RouteMovementRemovedBool() => false;
 
         public static void ClearArmyTravelQueue(string armyId)
         {
@@ -32,6 +42,8 @@ namespace XianXia.Core.World.Strategic
 
         public static bool TryContinueQueuedTravel(SimulationWorld world, string armyId)
         {
+            if (IsRouteMovementRemoved(world))
+                return false;
             if (world == null || string.IsNullOrEmpty(armyId))
                 return false;
             if (!PendingNodeHops.TryGetValue(armyId, out var queue) || queue == null || queue.Count == 0)
@@ -90,6 +102,8 @@ namespace XianXia.Core.World.Strategic
 
         public static Result MoveArmyToNode(SimulationWorld world, string armyId, string toNodeId)
         {
+            if (HexStrategicLegacyGuard.RejectRouteMovement(world, out var hexGuard))
+                return Result.Failure(hexGuard);
             if (world == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
             if (string.IsNullOrWhiteSpace(armyId))
@@ -118,6 +132,8 @@ namespace XianXia.Core.World.Strategic
             string routeId,
             float progress)
         {
+            if (HexStrategicLegacyGuard.RejectRouteMovement(world, out var hexGuard))
+                return Result.Failure(hexGuard);
             if (world == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
             if (string.IsNullOrWhiteSpace(armyId))
@@ -148,6 +164,8 @@ namespace XianXia.Core.World.Strategic
             string armyId,
             ArmyStack stack)
         {
+            if (HexStrategicLegacyGuard.RejectRouteMovement(world, out var hexGuard))
+                return Result.Failure(hexGuard);
             if (world == null || string.IsNullOrWhiteSpace(armyId) || stack == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid pursuit order.");
             if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
@@ -190,6 +208,8 @@ namespace XianXia.Core.World.Strategic
             string armyId,
             string targetArmyId)
         {
+            if (HexStrategicLegacyGuard.RejectRouteMovement(world, out var hexGuard))
+                return Result.Failure(hexGuard);
             if (world == null || string.IsNullOrWhiteSpace(armyId) || string.IsNullOrWhiteSpace(targetArmyId))
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid pursuit order.");
             if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
@@ -304,9 +324,14 @@ namespace XianXia.Core.World.Strategic
                 world.WorldGraph.TryGetRoute(army.RouteId, out var currentRoute) &&
                 currentRoute != null)
             {
-                var exitNode = ResolveArmyAnchorNodeId(army);
+                var graphTarget = pathToEntry[pathToEntry.Count - 1];
+                var exitNode = ResolveRouteExitNodeToward(
+                    world,
+                    currentRoute,
+                    army.RouteAnchorProgress,
+                    graphTarget);
                 if (string.IsNullOrEmpty(exitNode))
-                    return Result.Failure(ErrorCode.InvalidOperation, "Cannot resolve travel origin.");
+                    return Result.Failure(ErrorCode.InvalidOperation, "Cannot resolve route exit.");
 
                 var crossQueue = new Queue<string>(Math.Max(1, pathToEntry.Count));
                 for (var i = 1; i < pathToEntry.Count; i++)
@@ -315,10 +340,7 @@ namespace XianXia.Core.World.Strategic
                 PendingNodeHops[army.ArmyId] = crossQueue;
 
                 NormalizeFormalArmyRouteEndpoints(world, army, currentRoute);
-                if (IsRouteGraphEndpoint(currentRoute, exitNode))
-                    return StartFromRouteAnchor(world, army, exitNode);
-
-                return BeginArmyNodeTargetFromRouteAnchor(world, army, currentRoute, exitNode);
+                return StartFromRouteAnchor(world, army, exitNode);
             }
 
             if (pathToEntry.Count < 2)
@@ -446,6 +468,10 @@ namespace XianXia.Core.World.Strategic
         public static void ReconcileArmyWithLivingMembers(SimulationWorld world, FormalArmy army)
         {
             if (world == null || army == null || army.IsTraveling)
+                return;
+
+            // FormalArmy 路锚为战略真源；禁止用 stale Presence 把路中位置降级成 AtNode。
+            if (army.IsRouteAnchored)
                 return;
 
             if (!TryResolveLivingLeaderPresence(world, army, out _, out var wp) || wp == null)
@@ -1036,6 +1062,32 @@ namespace XianXia.Core.World.Strategic
             }
 
             return army.NodeId ?? string.Empty;
+        }
+
+        /// <summary>路中锚点选最近出口 Node（仅用于规划，不修改当前位置）。</summary>
+        static string ResolveRouteExitNodeToward(
+            SimulationWorld world,
+            WorldRouteState route,
+            float progress,
+            string towardNodeId)
+        {
+            if (route == null || string.IsNullOrEmpty(towardNodeId))
+                return string.Empty;
+
+            progress = Math.Max(0f, Math.Min(1f, progress));
+            PathScratch.Clear();
+            var canFrom = WorldTravelPathService.TryFindNodePath(world, route.FromNodeId, towardNodeId, PathScratch);
+            var fromLen = canFrom ? Math.Max(0, PathScratch.Count - 1) : int.MaxValue;
+            PathScratch.Clear();
+            var canTo = WorldTravelPathService.TryFindNodePath(world, route.ToNodeId, towardNodeId, PathScratch);
+            var toLen = canTo ? Math.Max(0, PathScratch.Count - 1) : int.MaxValue;
+
+            if (fromLen == int.MaxValue && toLen == int.MaxValue)
+                return string.Empty;
+
+            var fromCost = progress + fromLen;
+            var toCost = (1f - progress) + toLen;
+            return toCost <= fromCost ? route.ToNodeId ?? string.Empty : route.FromNodeId ?? string.Empty;
         }
 
         static void ClearArmyMemberPathQueues(SimulationWorld world, FormalArmy army)

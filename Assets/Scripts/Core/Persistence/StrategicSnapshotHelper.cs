@@ -5,6 +5,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Persistence;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Persistence
@@ -38,8 +39,22 @@ namespace XianXia.Core.Persistence
                     DestNodeId = army.DestNodeId,
                     RemainingTravelTicks = army.RemainingTravelTicks,
                     TravelTotalTicks = army.TravelTotalTicks,
-                    RouteAnchorProgress = army.RouteAnchorProgress
+                    RouteAnchorProgress = army.RouteAnchorProgress,
+                    UsesHexStrategicPosition = army.UsesHexStrategicPosition,
+                    CurrentHexQ = army.CurrentHex.Q,
+                    CurrentHexR = army.CurrentHex.R,
+                    DestinationHexQ = army.DestinationHex.Q,
+                    DestinationHexR = army.DestinationHex.R,
+                    StepProgress = army.StepProgress,
+                    StepRemainingTicks = army.StepRemainingTicks,
+                    StepTotalTicks = army.StepTotalTicks,
+                    CurrentPathIndex = army.CurrentPathIndex
                 };
+                for (var p = 0; p < army.HexPathCount; p++)
+                {
+                    var coord = army.HexPath[p];
+                    armyDto.HexPath.Add(new HexCoordSnapshotDto { Q = coord.Q, R = coord.R });
+                }
                 for (var i = 0; i < army.MemberCharacterIds.Count; i++)
                     armyDto.MemberCharacterIds.Add(army.MemberCharacterIds[i]);
                 dto.FormalArmies.Add(armyDto);
@@ -111,7 +126,9 @@ namespace XianXia.Core.Persistence
                     RetreatingArmyId = retreat.RetreatingArmyId,
                     SourceArmyId = retreat.SourceArmyId,
                     FactionId = retreat.FactionId,
-                    NodeId = retreat.NodeId
+                    NodeId = retreat.NodeId,
+                    HexQ = retreat.UsesHexPosition ? retreat.HexQ : int.MinValue,
+                    HexR = retreat.UsesHexPosition ? retreat.HexR : int.MinValue
                 };
                 for (var i = 0; i < retreat.MemberCharacterIds.Count; i++)
                     rDto.MemberCharacterIds.Add(retreat.MemberCharacterIds[i]);
@@ -153,26 +170,58 @@ namespace XianXia.Core.Persistence
 
             if (dto.FormalArmies != null)
             {
-                for (var i = 0; i < dto.FormalArmies.Count; i++)
+                using (FormalArmyStrategicMutationDiagnostics.Scope(
+                           FormalArmyStrategicMutationDiagnostics.MutationAllowance.SnapshotLoad,
+                           nameof(Restore)))
                 {
-                    var a = dto.FormalArmies[i];
-                    if (a == null || string.IsNullOrEmpty(a.ArmyId))
-                        continue;
-                    var army = new FormalArmy
+                    for (var i = 0; i < dto.FormalArmies.Count; i++)
                     {
-                        ArmyId = a.ArmyId,
-                        FactionId = a.FactionId ?? string.Empty,
-                        LeaderCharacterId = new EntityId(a.LeaderCharacterId),
-                        NodeId = a.NodeId ?? string.Empty,
-                        State = (FormalArmyState)a.State,
-                        RouteId = a.RouteId ?? string.Empty,
-                        DestNodeId = a.DestNodeId ?? string.Empty,
-                        RemainingTravelTicks = a.RemainingTravelTicks,
-                        TravelTotalTicks = a.TravelTotalTicks,
-                        RouteAnchorProgress = a.RouteAnchorProgress
-                    };
-                    army.ReplaceMembers(a.MemberCharacterIds);
-                    world.Strategic.FormalArmies.Register(army);
+                        var a = dto.FormalArmies[i];
+                        if (a == null || string.IsNullOrEmpty(a.ArmyId))
+                            continue;
+                        var army = new FormalArmy
+                        {
+                            ArmyId = a.ArmyId,
+                            FactionId = a.FactionId ?? string.Empty,
+                            LeaderCharacterId = new EntityId(a.LeaderCharacterId),
+                            NodeId = a.NodeId ?? string.Empty,
+                            State = (FormalArmyState)a.State,
+                            RouteId = a.RouteId ?? string.Empty,
+                            DestNodeId = a.DestNodeId ?? string.Empty,
+                            RemainingTravelTicks = a.RemainingTravelTicks,
+                            TravelTotalTicks = a.TravelTotalTicks,
+                            RouteAnchorProgress = a.RouteAnchorProgress
+                        };
+                        army.ReplaceMembers(a.MemberCharacterIds);
+                        if (a.UsesHexStrategicPosition)
+                        {
+                            army.UsesHexStrategicPosition = true;
+                            army.CurrentHex = new HexCoord(a.CurrentHexQ, a.CurrentHexR);
+                            army.DestinationHex = new HexCoord(a.DestinationHexQ, a.DestinationHexR);
+                            army.StepProgress = a.StepProgress;
+                            army.StepRemainingTicks = a.StepRemainingTicks;
+                            army.StepTotalTicks = a.StepTotalTicks;
+                            army.CurrentPathIndex = a.CurrentPathIndex;
+                            if (a.HexPath != null && a.HexPath.Count > 0)
+                            {
+                                var path = new List<HexCoord>(a.HexPath.Count);
+                                for (var p = 0; p < a.HexPath.Count; p++)
+                                {
+                                    var c = a.HexPath[p];
+                                    if (c != null)
+                                        path.Add(new HexCoord(c.Q, c.R));
+                                }
+
+                                army.SetHexPath(path, army.DestinationHex);
+                            }
+                            else if (army.State == FormalArmyState.Moving)
+                            {
+                                army.State = FormalArmyState.Idle;
+                            }
+                        }
+
+                        world.Strategic.FormalArmies.Register(army);
+                    }
                 }
             }
 
@@ -260,7 +309,9 @@ namespace XianXia.Core.Persistence
                         RetreatingArmyId = r.RetreatingArmyId,
                         SourceArmyId = r.SourceArmyId ?? string.Empty,
                         FactionId = r.FactionId ?? string.Empty,
-                        NodeId = r.NodeId ?? string.Empty
+                        NodeId = r.NodeId ?? string.Empty,
+                        HexQ = r.HexQ,
+                        HexR = r.HexR
                     };
                     var members = new List<EntityId>(r.MemberCharacterIds?.Count ?? 0);
                     if (r.MemberCharacterIds != null)

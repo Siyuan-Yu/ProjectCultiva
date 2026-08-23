@@ -7,7 +7,7 @@ using XianXia.Core.World;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// Phase B：Formal Army WorldMap 投影规则（EditMode 可测）。位置真源 = FormalArmy.NodeId，非 Leader Presence。
+    /// Phase B：Formal Army WorldMap 投影规则（EditMode 可测）。位置真源 = FormalArmy.StrategicPosition。
     /// </summary>
     public static class ArmyWorldMapPresentation
     {
@@ -25,10 +25,23 @@ namespace XianXia.Core.World.Strategic
                 return false;
             if (!world.Strategic.FormalArmies.TryGet(army.ArmyId, out _))
                 return false;
-            if (string.IsNullOrEmpty(army.NodeId))
-                return false;
-            if (!world.WorldGraph.TryGetNode(army.NodeId, out var node) || node == null)
-                return false;
+            if (world.HexWorld.HasGrid)
+            {
+                if (!army.UsesHexStrategicPosition || !world.HexWorld.Contains(army.CurrentHex))
+                    return false;
+            }
+            else if (army.UsesHexStrategicPosition)
+            {
+                if (!world.HexWorld.Contains(army.CurrentHex))
+                    return false;
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(army.NodeId))
+                    return false;
+                if (!world.WorldGraph.TryGetNode(army.NodeId, out var node) || node == null)
+                    return false;
+            }
             if (ResolvePortraitLeader(army).IsNone)
                 return false;
             if (!ArmyPostBattleSyncService.HasMacroOrderLivingMember(world, army))
@@ -38,7 +51,9 @@ namespace XianXia.Core.World.Strategic
                 return false;
             return army.State == FormalArmyState.AtNode ||
                    army.State == FormalArmyState.Garrisoned ||
-                   army.State == FormalArmyState.OnRoute;
+                   army.State == FormalArmyState.OnRoute ||
+                   army.State == FormalArmyState.Idle ||
+                   army.State == FormalArmyState.Moving;
         }
 
         public static bool TryResolveArmyTravelWorldPoints(
@@ -53,7 +68,7 @@ namespace XianXia.Core.World.Strategic
             if (world == null || army == null)
                 return false;
 
-            if (army.IsTraveling || army.IsRouteAnchored)
+            if (army.State == FormalArmyState.OnRoute || army.IsRouteAnchored)
             {
                 if (string.IsNullOrEmpty(army.RouteId) ||
                     !world.WorldGraph.TryGetRoute(army.RouteId, out var route) ||
@@ -83,27 +98,28 @@ namespace XianXia.Core.World.Strategic
         {
             worldX = 0f;
             worldY = 0f;
-            if (world == null || army == null || string.IsNullOrEmpty(army.NodeId))
-                return false;
-            if (!world.WorldGraph.TryGetNode(army.NodeId, out var node) || node == null)
-                return false;
-
-            if ((army.IsTraveling || army.IsRouteAnchored) &&
-                TryResolveArmyTravelWorldPoints(world, army, out var fx, out var fy, out var tx, out var ty))
-            {
-                var t = army.GetRouteDisplayProgress();
-                worldX = fx + (tx - fx) * t;
-                worldY = fy + (ty - fy) * t;
-                return true;
-            }
-
-            if (TryResolveArmyMacroRouteWorldPoint(world, army, out worldX, out worldY))
+            if (army.UsesHexStrategicPosition &&
+                FormalArmyHexWorldPositionResolver.TryResolve(world, army, out worldX, out worldY))
                 return true;
 
-            worldX = node.WorldX;
-            worldY = node.WorldY;
+            if (!FormalArmyWorldPositionResolver.TryResolve(world, army, out worldX, out worldY, out var info))
+                return false;
+
+            ArmyWorldMapRenderDiagnostics.Record(world, army, info);
             return true;
         }
+
+        /// <summary>带渲染来源元数据的 FormalArmy 大地图坐标解析（真源 = StrategicPosition）。</summary>
+        public static bool TryResolveArmyWorldPointDetailed(
+            SimulationWorld world,
+            FormalArmy army,
+            out FormalArmyWorldPositionResolver.WorldPositionInfo info) =>
+            FormalArmyWorldPositionResolver.TryResolve(
+                world,
+                army,
+                out _,
+                out _,
+                out info);
 
         /// <summary>
         /// Phase B 正式战略显示：AtNode 驻留的 Player Character 不单独画头像（由 Army 或未组军 Resident 规则处理）。
@@ -161,72 +177,6 @@ namespace XianXia.Core.World.Strategic
             if (presence.HasRoutePresentation)
                 return true;
             return IsLegacyRoutePresentation(presence);
-        }
-
-        /// <summary>
-        /// 军团未进入 FormalArmy OnRoute，但成员散装追击／上路时：用队长（优先）或最前成员的路中位置。
-        /// </summary>
-        static bool TryResolveArmyMacroRouteWorldPoint(
-            SimulationWorld world,
-            FormalArmy army,
-            out float worldX,
-            out float worldY)
-        {
-            worldX = worldY = 0f;
-            if (world == null || army == null)
-                return false;
-
-            var leaderId = ResolvePortraitLeader(army);
-            if (!leaderId.IsNone &&
-                TryResolveMemberRouteWorldPoint(world, leaderId, out worldX, out worldY))
-                return true;
-
-            var bestProgress = -1f;
-            var found = false;
-            for (var i = 0; i < army.MemberCharacterIds.Count; i++)
-            {
-                var memberId = new EntityId(army.MemberCharacterIds[i]);
-                if (memberId.IsNone || memberId == leaderId)
-                    continue;
-                if (!world.WorldPresence.TryGet(memberId, out var presence) || presence == null)
-                    continue;
-                if (!presence.HasRoutePresentation && !presence.IsCombatPursuing)
-                    continue;
-                var progress = presence.TravelProgress;
-                if (progress < bestProgress)
-                    continue;
-                if (!TryResolveMemberRouteWorldPoint(world, memberId, out var wx, out var wy))
-                    continue;
-                bestProgress = progress;
-                worldX = wx;
-                worldY = wy;
-                found = true;
-            }
-
-            return found;
-        }
-
-        static bool TryResolveMemberRouteWorldPoint(
-            SimulationWorld world,
-            EntityId memberId,
-            out float worldX,
-            out float worldY)
-        {
-            worldX = worldY = 0f;
-            if (world == null || memberId.IsNone)
-                return false;
-            if (!world.WorldPresence.TryGet(memberId, out var presence) || presence == null)
-                return false;
-            if (!presence.HasRoutePresentation && !presence.IsCombatPursuing)
-                return false;
-            if (!WorldTravelService.TryResolveTravelWorldPoints(
-                    world, presence, out var fx, out var fy, out var tx, out var ty))
-                return false;
-
-            var t = presence.TravelProgress;
-            worldX = fx + (tx - fx) * t;
-            worldY = fy + (ty - fy) * t;
-            return true;
         }
 
         static bool IsLegacyRoutePresentation(WorldAgentPresence presence)

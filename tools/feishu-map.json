@@ -820,6 +820,18 @@
       "file": "docs/40-process/153-lingering-remnant-macro-presentation-2026-08-22.md",
       "title": "153 弥留残留收束 + 自动战宏观头像（2026-08-22）",
       "docId": "V2q9dADwCo7kOfxGfIccco3JnC4"
+    },
+    "hex-world-content-authoring-2026-08-23": {
+      "file": "docs/40-process/158-hex-world-content-authoring-pipeline-2026-08-23.md",
+      "title": "158 Hex World Content Pipeline + WorldGraphEditor WYSIWYG（2026-08-23）"
+    },
+    "adr-0025-strategic-spatial-model-hexgrid": {
+      "file": "docs/40-process/43-decisions/ADR-0025-strategic-spatial-model-hexgrid.md",
+      "title": "ADR-0025 战略空间模型 = HexGrid"
+    },
+    "hex-strategic-worldmap-migration-2026-08-23": {
+      "file": "docs/40-process/155-hex-strategic-worldmap-migration-2026-08-23.md",
+      "title": "155 Hex Strategic WorldMap Migration（2026-08-23）"
     }
   }
 }

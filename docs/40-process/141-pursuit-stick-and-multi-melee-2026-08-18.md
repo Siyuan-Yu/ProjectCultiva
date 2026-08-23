@@ -1,6 +1,6 @@
 # 141 · 追击贴敌＋LocalMap 多选近战（2026-08-18）
 
-> 状态：**已落地 · 追移动敌军仍有问题（2026-08-23 暂缓）**｜日期：2026-08-18；**backlog：** [154](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md) §3  
+> 状态：**v2 移动目标追击已实现（待测）**｜日期：2026-08-18；**backlog / Vision：** [154](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md) §3、§3.4  
 > 相对提交：`c3a036e` 之后 → 本轮 `main`  
 > 上级：[140 收束](140-world-map-rts-battle-return-rollup-2026-08-18.md)｜[139 RTS 规则](139-world-map-rts-orders-2026-08-17.md)  
 > 飞书：https://my.feishu.cn/docx/I36jdoafvos0YCx2SFscxl0anUb
@@ -40,6 +40,17 @@
 | 敌军移动 | 追击名单每 tick 续追当前位置，不停在下令时的旧锚点 |
 | LocalMap 攻击 | 多选＝多人同时攻同一目标；一人 Stop／移动只让该人脱离 |
 
+### 4.1 Pursuit 与 Strategic Vision（当前 vs 未来）
+
+| 阶段 | 规则 |
+|------|------|
+| **当前（无 Vision / Fog）** | `PursuitOrder` 持有 `TargetArmyId`；允许 **临时全知** 读取 Target FormalArmy 实时战略位置（开发兼容，非最终产品） |
+| **未来（有 Vision / Fog）** | Target 在 Pursuer 势力 **有效战略视野内** → 续追；**离开视野** → **自动取消 Pursuit**（第一版不做 Last Known Position 续追） |
+
+详见 [154 §3.4 Future Strategic Vision Integration](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md)。
+
+**禁止（未来）：** 目标已不可见仍经 `FormalArmyBoard` 全知改路 — 绕过 Fog of War。
+
 **明确不是：** 另做一套「只跟不打」的跟随菜单（代码里仍有 `StrategicFollowService`，大地图无入口）。
 
 ---
@@ -51,21 +62,20 @@
 
 ---
 
-## 6. 已知问题（2026-08-23 · DEFERRED）
+## 6. 已知问题（2026-08-23）
 
 | 现象 | 说明 |
 |------|------|
-| **追移动敌军** | FormalArmy 行军中仅同路 `Clamp`；跨路/节点跳时不会跟着敌人路径改道 |
-| **队列 route leg** | 开拔时写死的 progress；敌人在途中移动时可能追到旧位置 |
-| **Stack vs FormalArmy** | 链接敌军栈与 FormalArmy 双轨 tick，锚点可能滞后 |
+| **v2 移动目标追击** | 已实现（`ArmyPursuitTargetService` + PUR-01～11）；EditMode / Host **待签收** — 见 [154 §3](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md) |
+| **失去视野停止追击** | **DEFERRED** — 需 Strategic Vision / Fog of War；见 [154 §3.4](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md) |
 
-**决策：** 暂缓修复；详细根因与建议方向见 [154 §3](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md)。
+~~**决策：** 暂缓修复移动敌追击~~ → v2 已编码；Vision 约束未做。
 
 ---
 
 ## 7. 下一步
 
-1. ~~手操验：攻击林间山匪、敌军沿路移动时人应跟着贴上去再出弹窗~~ → **DEFERRED（154）**
+1. ~~手操验：攻击林间山匪、敌军沿路移动时人应跟着贴上去再出弹窗~~ → **v2 待签收（154 §3.3）**
 2. 手操验：LocalMap 两人打同一敌人应两人都出手  
 3. 跟随菜单／交谈仍暂缓  
-4. **恢复追击专项时：** 先补「敌 IsTraveling + 每 tick 推进」EditMode，再改 `ArmyPursuitCommandService` / `Clamp`
+4. ~~恢复追击专项~~ → v2 已交付；**Vision 约束** 等 Fog 系统 — [154 §3.4](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md)

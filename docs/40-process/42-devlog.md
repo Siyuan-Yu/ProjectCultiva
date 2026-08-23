@@ -7,6 +7,24 @@
 
 ---
 
+## 2026-08-23 — 158 Hex World Content Pipeline + WorldGraphEditor WYSIWYG
+
+**做了什么**
+- **HexWorld JSON Pipeline：** `Content/BaseGame/Data/Worlds/ch01_hex_world.json`；`HexWorldContentLoader`；Scenario `openingHexWorldId`
+- **WorldGraphEditor 彻底 Hex 化：** 删除 Node/Route 编辑；Terrain/Road/Site WYSIWYG + Save JSON
+- **WYSIWYG Layout 修复：** `HexWorldLayoutShared` 对齐 Runtime `HexWorldLayout`（Odd-R parity bug）
+- **校验：** Road 连通性；Content schema `openingHexWorldId` / `hexWorld` reference
+- 文档：[158-hex-world-content-authoring-pipeline-2026-08-23.md](158-hex-world-content-authoring-pipeline-2026-08-23.md)；更新 ADR-0025 / 155 / roadmap
+
+**验证**
+- EditMode：`HexWorldWysiwygLayoutTests`（5000 roundtrip）、`HexWorldContentPipelineTests`
+- Unity PlayMode + Editor 手操：**DEFERRED**
+
+**状态**
+- Hex World Content Authoring **IMPLEMENTED · UNITY MANUAL VERIFICATION DEFERRED**
+
+---
+
 ## 2026-08-23 — 154 Formal Army RTS 收束文档 + 追击暂缓
 
 **做了什么**

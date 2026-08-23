@@ -401,6 +401,17 @@ namespace XianXia.Core.World.Strategic
             stack.NodeId = army.NodeId ?? string.Empty;
             stack.DestNodeId = army.DestNodeId ?? string.Empty;
 
+            if (army.UsesHexStrategicPosition)
+            {
+                stack.RouteId = string.Empty;
+                stack.RouteAnchorProgress = -1f;
+                stack.ClearTravel();
+                if (world.Strategic.Sites.TryGetAtHex(army.CurrentHex, out var site) && site != null)
+                    stack.NodeId = string.IsNullOrEmpty(site.LegacyNodeId) ? site.SiteId : site.LegacyNodeId;
+                stack.DestNodeId = stack.NodeId;
+                return;
+            }
+
             if (army.IsTraveling && !string.IsNullOrEmpty(army.RouteId))
             {
                 stack.RouteId = army.RouteId;
