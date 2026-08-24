@@ -12,11 +12,11 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Tests
 {
-    /// <summary>MULTI-ENCOUNTER-01..11：Encounter-scoped spawn / registry / hostility。</summary>
+    /// <summary>MULTI-ENCOUNTER-01..11：Encounter-scoped spawn / registry / hostility�?/summary>
     public sealed class MultiEncounterLifecycleTests
     {
         const string PlayerFaction = StrategicFactionCatalog.PlayerFactionId;
-        const string NodeA = "base:node_huangcun";
+        const string NodeA = "base:site_huangcun";
         static readonly HexCoord H1 = Ch01HexPrototypeMapBuilder.QingyunLuHex;
         static readonly HexCoord H2 = new HexCoord(42, 20);
         static readonly HexCoord H3 = new HexCoord(45, 18);
@@ -47,7 +47,7 @@ namespace XianXia.Tests
             var created = world.Entities.CreateCharacter(new DefinitionId("test", name), name);
             Assert.IsTrue(created.IsSuccess);
             created.Value.Get<FactionMembershipComponent>().Assign(PlayerFaction, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(created.Value.Id, NodeA);
+            world.WorldPresence.SetAtSite(created.Value.Id, NodeA);
             return created.Value.Id;
         }
 
@@ -67,10 +67,8 @@ namespace XianXia.Tests
         static FormalArmy SpawnEnemyAt(SimulationWorld world, HexCoord hex, bool weak)
         {
             Result<FormalArmy> result = weak
-                ? ArmyStackAdapter.EnsureBanditWeakPatrolArmy(
-                    world, NodeA, string.Empty, string.Empty, -1f)
-                : ArmyStackAdapter.EnsureBanditPatrolArmy(
-                    world, NodeA, string.Empty, string.Empty, -1f);
+                ? ArmyStackAdapter.EnsureBanditWeakPatrolArmy(world, NodeA)
+                : ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(result.IsSuccess);
             ArmyHexTravelService.InitializeArmyAtHex(result.Value, hex);
             return result.Value;

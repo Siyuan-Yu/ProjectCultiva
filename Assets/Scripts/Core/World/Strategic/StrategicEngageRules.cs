@@ -1,21 +1,14 @@
-using System;
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>
-    /// 战略接战空间判定（唯一真源）。
-    /// 过路／同路 ≠ 接战；须与敌军栈在节点或道路进度上真正重合。
-    /// 自动弹窗只由主动攻击／追击抵达触发，不在此处做「同路即遇」。
-    /// </summary>
+    /// <summary>?????????Pure Hex ??????</summary>
     public static class StrategicEngageRules
     {
-        public const float RouteProgressEpsilon = 0.05f;
-
-        /// <summary>单人是否已与该栈处于可接战位置。</summary>
         public static bool IsAgentColocatedWithStack(
             SimulationWorld world,
             WorldAgentPresence p,
@@ -24,46 +17,36 @@ namespace XianXia.Core.World.Strategic
             if (world == null || p == null || stack == null)
                 return false;
 
-            if (HexStrategicRuntime.IsActive(world))
-                return IsAgentHexColocatedWithStack(world, p, stack);
+            if (!ArmyStackAdapter.TryGetFormalArmy(world, stack, out var defender) ||
+                defender == null ||
+                !defender.UsesHexStrategicPosition)
+                return false;
 
-            // 节点驻军：双方同节点
-            if (!stack.IsRoutePositioned && !string.IsNullOrEmpty(stack.NodeId))
+            var agentId = p.EntityId;
+            if (agentId.IsNone)
+                return false;
+
+            if (ArmyService.TryGetArmyForCharacter(world, agentId, out var attacker) &&
+                attacker != null &&
+                attacker.UsesHexStrategicPosition)
+                return ArmyHexBattleAnchorService.TryDetectHexContact(attacker, defender);
+
+            if (p.UsesHexPresence)
             {
-                return (p.Mode == PartyWorldPresenceMode.AtNode ||
-                        p.Mode == PartyWorldPresenceMode.InEncounter) &&
-                       string.Equals(p.NodeId, stack.NodeId, StringComparison.Ordinal);
+                var agentHex = p.ResidualHex;
+                if (defender.CurrentHex == agentHex)
+                    return true;
+                return HexMath.Distance(defender.CurrentHex, agentHex) <= 1;
             }
 
-            // 道路上（行军中或路锚）：同 Route 且进度足够近
-            if (!stack.IsRoutePositioned || string.IsNullOrEmpty(stack.RouteId))
-                return false;
+            if (p.Mode == PartyWorldPresenceMode.AtSite &&
+                !string.IsNullOrEmpty(p.SiteId) &&
+                world.Strategic.Sites.TryGet(p.SiteId, out var site) &&
+                site != null &&
+                site.OccupiesHex(defender.CurrentHex))
+                return true;
 
-            var stackProgress = stack.GetRouteDisplayProgress();
-
-            // 仍在端点节点上、且敌军就在该端点附近
-            if (p.Mode == PartyWorldPresenceMode.AtNode)
-            {
-                if (stackProgress <= RouteProgressEpsilon &&
-                    string.Equals(p.NodeId, stack.NodeId, StringComparison.Ordinal))
-                    return true;
-                if (stackProgress >= 1f - RouteProgressEpsilon &&
-                    string.Equals(p.NodeId, stack.DestNodeId, StringComparison.Ordinal))
-                    return true;
-                return false;
-            }
-
-            if (string.IsNullOrEmpty(p.RouteId) ||
-                !string.Equals(p.RouteId, stack.RouteId, StringComparison.Ordinal))
-                return false;
-
-            if (p.Mode != PartyWorldPresenceMode.Traveling &&
-                p.Mode != PartyWorldPresenceMode.RouteAnchored &&
-                p.Mode != PartyWorldPresenceMode.InEncounter)
-                return false;
-
-            var playerProgress = GetAgentRouteProgress(p);
-            return Math.Abs(playerProgress - stackProgress) <= RouteProgressEpsilon;
+            return false;
         }
 
         public static bool CanEngageStackNow(
@@ -107,38 +90,6 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 into.Add(party[i]);
             }
-        }
-
-        public static float GetAgentRouteProgress(WorldAgentPresence p)
-        {
-            if (p == null)
-                return 0f;
-            if (p.Mode == PartyWorldPresenceMode.RouteAnchored ||
-                p.Mode == PartyWorldPresenceMode.InEncounter)
-                return p.RouteAnchorProgress >= 0f ? p.RouteAnchorProgress : p.TravelProgress;
-            return p.TravelProgress;
-        }
-
-        static bool IsAgentHexColocatedWithStack(
-            SimulationWorld world,
-            WorldAgentPresence p,
-            ArmyStack stack)
-        {
-            if (!ArmyStackAdapter.TryGetFormalArmy(world, stack, out var defender) ||
-                defender == null ||
-                !defender.UsesHexStrategicPosition)
-                return false;
-
-            var agentId = p.EntityId;
-            if (agentId.IsNone)
-                return false;
-
-            if (ArmyService.TryGetArmyForCharacter(world, agentId, out var attacker) &&
-                attacker != null &&
-                attacker.UsesHexStrategicPosition)
-                return ArmyHexBattleAnchorService.TryDetectHexContact(attacker, defender);
-
-            return false;
         }
     }
 }

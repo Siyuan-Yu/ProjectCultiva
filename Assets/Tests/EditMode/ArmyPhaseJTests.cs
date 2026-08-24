@@ -33,10 +33,10 @@ namespace XianXia.Tests
             var world = new SimulationWorld();
             var a = world.Entities.CreateCharacter(new DefinitionId("test", "A"), "A").Value;
             a.Get<FactionMembershipComponent>().Assign(FactionA, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(a.Id, NodeA);
+            world.WorldPresence.SetAtSite(a.Id, NodeA);
             var b = world.Entities.CreateCharacter(new DefinitionId("test", "B"), "B").Value;
             b.Get<FactionMembershipComponent>().Assign(FactionA, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(b.Id, NodeA);
+            world.WorldPresence.SetAtSite(b.Id, NodeA);
             var army = ArmyService.CreateArmy(world, FactionA, NodeA, new List<EntityId> { a.Id }).Value;
             Assert.IsTrue(BattleAftermathService.TryAssignEscapedAndRetreat(
                 world, army.ArmyId, new List<EntityId> { a.Id, b.Id }, NodeA).IsSuccess);

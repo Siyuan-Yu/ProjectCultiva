@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Globalization;
 using XianXia.Core.Persistence;
 using XianXia.Core.Results;
@@ -489,8 +489,16 @@ namespace XianXia.Data.Serialization
                         ["armyId"] = JsonValue.FromString(a.ArmyId ?? string.Empty),
                         ["factionId"] = JsonValue.FromString(a.FactionId ?? string.Empty),
                         ["leaderCharacterId"] = U(a.LeaderCharacterId),
-                        ["nodeId"] = JsonValue.FromString(a.NodeId ?? string.Empty),
                         ["state"] = JsonValue.FromNumber(a.State),
+                        ["usesHexStrategicPosition"] = JsonValue.FromBool(a.UsesHexStrategicPosition),
+                        ["currentHexQ"] = JsonValue.FromNumber(a.CurrentHexQ),
+                        ["currentHexR"] = JsonValue.FromNumber(a.CurrentHexR),
+                        ["destinationHexQ"] = JsonValue.FromNumber(a.DestinationHexQ),
+                        ["destinationHexR"] = JsonValue.FromNumber(a.DestinationHexR),
+                        ["stepProgress"] = JsonValue.FromNumber(a.StepProgress),
+                        ["stepRemainingTicks"] = JsonValue.FromNumber(a.StepRemainingTicks),
+                        ["stepTotalTicks"] = JsonValue.FromNumber(a.StepTotalTicks),
+                        ["currentPathIndex"] = JsonValue.FromNumber(a.CurrentPathIndex),
                         ["memberCharacterIds"] = JsonValue.FromArray(members)
                     }));
                 }
@@ -539,8 +547,17 @@ namespace XianXia.Data.Serialization
                         ArmyId = a.GetString("armyId", string.Empty),
                         FactionId = a.GetString("factionId", string.Empty),
                         LeaderCharacterId = ReadU(a, "leaderCharacterId"),
-                        NodeId = a.GetString("nodeId", string.Empty),
-                        State = (int)a.GetNumber("state")
+                        State = (int)a.GetNumber("state"),
+                        UsesHexStrategicPosition = a.TryGetProperty("usesHexStrategicPosition", out var usesHex) &&
+                                                     usesHex.Kind == JsonValueKind.Boolean && usesHex.Bool,
+                        CurrentHexQ = a.TryGetProperty("currentHexQ", out var cq) ? (int)cq.Number : 0,
+                        CurrentHexR = a.TryGetProperty("currentHexR", out var cr) ? (int)cr.Number : 0,
+                        DestinationHexQ = a.TryGetProperty("destinationHexQ", out var dq) ? (int)dq.Number : 0,
+                        DestinationHexR = a.TryGetProperty("destinationHexR", out var dr) ? (int)dr.Number : 0,
+                        StepProgress = a.TryGetProperty("stepProgress", out var sp) ? (float)sp.Number : 0f,
+                        StepRemainingTicks = a.TryGetProperty("stepRemainingTicks", out var srt) ? (int)srt.Number : 0,
+                        StepTotalTicks = a.TryGetProperty("stepTotalTicks", out var stt) ? (int)stt.Number : 0,
+                        CurrentPathIndex = a.TryGetProperty("currentPathIndex", out var cpi) ? (int)cpi.Number : 0,
                     };
                     if (a.TryGetProperty("memberCharacterIds", out var members) && members.Kind == JsonValueKind.Array)
                     {

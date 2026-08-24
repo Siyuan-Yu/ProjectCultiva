@@ -11,11 +11,11 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Tests
 {
-    /// <summary>LINGER-ATTACK-01..06：敌方残留 Hex 攻击残留战场回归。</summary>
+    /// <summary>LINGER-ATTACK-01..06：敌方残�?Hex 攻击残留战场回归�?/summary>
     public sealed class LingeringAttackRightClickTests
     {
         const string PlayerFaction = StrategicFactionCatalog.PlayerFactionId;
-        const string NodeA = "base:node_huangcun";
+        const string NodeA = "base:site_huangcun";
         static readonly HexCoord BattleHex = Ch01HexPrototypeMapBuilder.HuangcunHex;
         static readonly HexCoord RemoteHex = Ch01HexPrototypeMapBuilder.QingyunLuHex;
 
@@ -33,7 +33,7 @@ namespace XianXia.Tests
             var created = world.Entities.CreateCharacter(new DefinitionId("test", name), name);
             Assert.IsTrue(created.IsSuccess);
             created.Value.Get<FactionMembershipComponent>().Assign(PlayerFaction, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(created.Value.Id, NodeA);
+            world.WorldPresence.SetAtSite(created.Value.Id, NodeA);
             return created.Value.Id;
         }
 
@@ -52,8 +52,7 @@ namespace XianXia.Tests
 
         static FormalArmy SpawnActiveEnemyArmy(SimulationWorld world, HexCoord hex)
         {
-            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(
-                world, NodeA, string.Empty, string.Empty, -1f);
+            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(result.IsSuccess);
             ArmyHexTravelService.InitializeArmyAtHex(result.Value, hex);
             return result.Value;
@@ -75,16 +74,15 @@ namespace XianXia.Tests
         }
 
         /// <summary>
-        /// 模拟 Auto Battle 结束 → ResolveAndEnd → FinishOfferResolution 后的真实状态：
-        /// Character Residual 在 Hex，BattlefieldLingering=true，锚点在 Encounter Runtime。
+        /// 模拟 Auto Battle 结束 �?ResolveAndEnd �?FinishOfferResolution 后的真实状态：
+        /// Character Residual �?Hex，BattlefieldLingering=true，锚点在 Encounter Runtime�?
         /// </summary>
         static void SeedAutoBattleEnemyDownedThenFinish(
             SimulationWorld world,
             HexCoord hex,
             bool executeOnWin)
         {
-            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(
-                world, NodeA, string.Empty, string.Empty, -1f);
+            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(result.IsSuccess);
             ArmyHexTravelService.InitializeArmyAtHex(result.Value, hex);
             Assert.IsTrue(world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditPatrolStackId, out var stack));
@@ -101,7 +99,6 @@ namespace XianXia.Tests
 
             var snap = world.Strategic.Participants;
             snap.PrimaryEnemyStackId = ArmyStackAdapter.BanditPatrolStackId;
-            snap.BattleAnchorNodeId = NodeA;
             ArmyHexBattleAnchorService.SetBattleAnchorHex(snap, hex);
             world.Strategic.Encounter.ArmyStackId = ArmyStackAdapter.BanditPatrolStackId;
 

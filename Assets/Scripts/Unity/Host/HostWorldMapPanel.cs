@@ -15,21 +15,21 @@ using XianXia.Core.World.Strategic;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// Hex 战略大地图全屏页：头像标位、点选、右键 Hex 下令；可缩放平移。
+    /// Hex 战略大地图全屏页：头像标位、点选、右Hex 下令；可缩放平移
     /// </summary>
     public sealed class HostWorldMapPanel : MonoBehaviour
     {
         const float AvatarSize = 40f;
         const float NodeHitW = 128f;
         const float NodeHitH = 44f;
-        /// <summary>敌军栈默认吸附（屏幕像素，圆形半径外延）。偏小以免抢道路右键移动。</summary>
+        /// <summary>敌军栈默认吸附（屏幕像素，圆形半径外延）。偏小以免抢道路右键移动/summary>
         const float ArmyStackHitPad = 10f;
-        /// <summary>与我方头像／接战残留重叠时再缩小。</summary>
+        /// <summary>与我方头像／接战残留重叠时再缩小/summary>
         const float ArmyStackHitPadContested = 4f;
-        /// <summary>判定「叠在一起」：头像与敌军视觉 rect 扩此值后相交。</summary>
+        /// <summary>判定「叠在一起」：头像与敌军视rect 扩此值后相交/summary>
         const float ArmyStackContestedOverlapPx = 4f;
         /// <summary>
-        /// 最大放大：视口半宽（世界单位）。再放大一倍相对「邻站铺满」参考（半宽 1.5 ≈ 满屏跨度 3）。
+        /// 最大放大：视口半宽（世界单位）。再放大一倍相对「邻站铺满」参考（半宽 1.5 满屏跨度 3）
         /// </summary>
         const float MinViewHalfExtent = 1.5f;
 
@@ -45,17 +45,17 @@ namespace XianXia.Unity.Host
             return MinViewHalfExtent;
         }
         const float MapPad = 48f;
-        /// <summary>道路右键点选：屏幕像素容差（世界距离在放大后过严，几乎点不中）。</summary>
+        /// <summary>道路右键点选：屏幕像素容差（世界距离在放大后过严，几乎点不中）/summary>
         const float RoutePickScreenPx = 28f;
-        /// <summary>底部支援半径滑块条高度。</summary>
+        /// <summary>底部支援半径滑块条高度/summary>
         const float BottomBarH = 36f;
-        /// <summary>右侧选中信息面板宽度。</summary>
+        /// <summary>右侧选中信息面板宽度/summary>
         const float InfoPanelW = 300f;
         const float ReinforceRadiusMin = 0.25f;
         const float ReinforceRadiusMax = 4f;
-        /// <summary>Debug：大地图绘制支援半径圈。底栏滑块不受此开关影响。</summary>
+        /// <summary>Debug：大地图绘制支援半径圈。底栏滑块不受此开关影响/summary>
         const bool ShowReinforcementRadiusDebug = false;
-        /// <summary>大地图选中单位：头像外圈高亮（与填充色区分）。</summary>
+        /// <summary>大地图选中单位：头像外圈高亮（与填充色区分）/summary>
         static readonly Color MapSelectionRingColor = new(0.22f, 0.94f, 1f, 0.95f);
         const float MapSelectionRingWidth = 3f;
 
@@ -87,8 +87,8 @@ namespace XianXia.Unity.Host
             new List<(ResidualMarkerGroupView, Rect)>(16);
         ResidualMarkerGroupView _selectedResidualGroup;
         readonly List<(string nodeId, Rect rect)> _nodeRects = new List<(string, Rect)>(64);
-        readonly Dictionary<string, int> _slotAtNode = new Dictionary<string, int>();
-        readonly Dictionary<string, int> _countAtNode = new Dictionary<string, int>();
+        readonly Dictionary<string, int> _slotAtSiteKey = new Dictionary<string, int>();
+        readonly Dictionary<string, int> _countAtSiteKey = new Dictionary<string, int>();
 
         // 部队栈点选／右键菜单
         readonly Dictionary<string, Rect> _armyStackRects = new Dictionary<string, Rect>(16);
@@ -104,16 +104,16 @@ namespace XianXia.Unity.Host
         string _stackMenuStackId = string.Empty;
         Rect _stackMenuRect;
         bool _stackMenuOpen;
-        /// <summary>攻击／移动／进入菜单的输出缓冲（可与选人缓冲分离）。</summary>
+        /// <summary>攻击／移动／进入菜单的输出缓冲（可与选人缓冲分离）/summary>
         readonly List<EntityId> _attackPartyScratch = new List<EntityId>(8);
-        /// <summary>仅作「当前选中 → 过滤」中间表；禁止当作最终 into，避免 Clear 自清。</summary>
+        /// <summary>仅作「当前选中 过滤」中间表；禁止当作最into，避Clear 自清/summary>
         readonly List<EntityId> _orderFilterScratch = new List<EntityId>(8);
         readonly List<string> _previewPathScratch = new List<string>(16);
         string _orderPreviewArmyId = string.Empty;
         WorldTravelTarget _orderPreviewTarget;
         bool _orderPreviewActive;
 
-        // 弥留头像右键：进入残留战场／有活人时「前往并进入」
+        // 弥留头像右键：进入残留战场／有活人时「前往并进入
         ulong _avatarMenuEntityId;
         bool _avatarMenuOpen;
         bool _avatarMenuVisitMode;
@@ -131,22 +131,22 @@ namespace XianXia.Unity.Host
         HexResidualContextView _hexMenuContext;
         HexRightClickResolution _hexMenuResolution;
 
-        // Hex 右键：WorldSite 进入菜单（须点击后才进 LocalMap）
+        // Hex 右键：WorldSite 进入菜单（须点击后才LocalMap
         bool _hexSiteEnterMenuOpen;
         string _hexSiteEnterMenuSiteId = string.Empty;
         HexCoord _hexSiteEnterMenuHex;
         Rect _hexSiteEnterMenuRect;
         HexRightClickResolution _hexSiteEnterMenuResolution;
-        /// <summary>右侧信息面板聚焦的节点（左键点节点写入；与菜单开闭无关）。</summary>
-        string _inspectNodeId = string.Empty;
+        /// <summary>右侧信息面板聚焦的节点（左键点节点写入；与菜单开闭无关）/summary>
+        string _inspectSiteId = string.Empty;
         Vector2 _inspectScroll;
 
         string _status = string.Empty;
         bool _wasBlockingInput;
         int _travelingCountLast;
-        readonly Dictionary<string, string> _lastNodeOwners = new Dictionary<string, string>(StringComparer.Ordinal);
+        readonly Dictionary<string, string> _lastSiteOwners = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        // 地图镜头：世界坐标中心 + 半宽（世界单位）
+        // 地图镜头：世界坐标中+ 半宽（世界单位）
         float _viewCx;
         float _viewCy;
         float _viewHalf;
@@ -173,14 +173,14 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// 战场内（正常手动战／残留再进／手动战后未点结束）：禁止开大地图。
-        /// 接战弹窗、自动战结算弹窗阶段仍可留在／打开大地图。
+        /// 战场内（正常手动战／残留再进／手动战后未点结束）：禁止开大地图
+        /// 接战弹窗、自动战结算弹窗阶段仍可留在／打开大地图
         /// </summary>
         public static bool IsBlockedByBattlefield(XianXia.Core.Simulation.SimulationWorld world)
         {
             if (world?.Strategic == null)
                 return false;
-            // 自动战结算：人还在战略层，结算 UI 应盖在大地图上，不要卸图跳到 LocalMap
+            // 自动战结算：人还在战略层，结UI 应盖在大地图上，不要卸图跳到 LocalMap
             if (world.Strategic.Participants != null &&
                 world.Strategic.Participants.IsAutoSettlement)
                 return false;
@@ -188,7 +188,7 @@ namespace XianXia.Unity.Host
                    BattleOfferService.HasActiveManualEncounter(world);
         }
 
-        /// <summary>战后：清掉已腐烂选中；弥留／尸体仍可选中看情报（不可下令）；刷新战略层绘制状态。</summary>
+        /// <summary>战后：清掉已腐烂选中；弥留／尸体仍可选中看情报（不可下令）；刷新战略层绘制状态/summary>
         public void NotifyAfterBattleResolved(XianXia.Core.Simulation.SimulationWorld world)
         {
             if (world == null)
@@ -196,12 +196,12 @@ namespace XianXia.Unity.Host
             StrategicEncounterResolveService.NormalizePresenceAfterEncounterExit(world);
             PruneRemovedFromSelection(world);
             ClearArmyOrderPreview();
-            // LocalMap 选中仍可能停在已倒下的人上 → FormalHud 左上角误显「弥留」
+            // LocalMap 选中仍可能停在已倒下的人FormalHud 左上角误显「弥留
             bootstrap?.SelectionController?.ClearSelection();
             RefreshStrategicPresentation(world);
         }
 
-        /// <summary>自动战／手动战后：重置大地图缓存与提示，确保残留弥留立刻可见。</summary>
+        /// <summary>自动战／手动战后：重置大地图缓存与提示，确保残留弥留立刻可见/summary>
         public void RefreshStrategicPresentation(XianXia.Core.Simulation.SimulationWorld world)
         {
             _avatarMenuOpen = false;
@@ -242,11 +242,11 @@ namespace XianXia.Unity.Host
                 PruneRemovedFromSelection(world);
             }
 
-            // 开大地图不再强制暂停：战略时间由 Space／工具栏控制（RTS 开图仍可走时）
+            // 开大地图不再强制暂停：战略时间Space／工具栏控制（RTS 开图仍可走时）
             _holdingPauseForMap = false;
         }
 
-        /// <summary>大地图当前主选（活人优先）；供 FormalHud 在开图时不要误显 LocalMap 旧选中的弥留。</summary>
+        /// <summary>大地图当前主选（活人优先）；FormalHud 在开图时不要误显 LocalMap 旧选中的弥留/summary>
         public bool TryGetPrimarySelectedLiving(
             XianXia.Core.Simulation.SimulationWorld world,
             out EntityId id)
@@ -267,7 +267,7 @@ namespace XianXia.Unity.Host
             return false;
         }
 
-        /// <summary>到站弹窗「去查看」：打开后选中刚抵达的角色。</summary>
+        /// <summary>到站弹窗「去查看」：打开后选中刚抵达的角色/summary>
         public void SelectArrivedParty(IReadOnlyList<ulong> arrivedIds)
         {
             _selected.Clear();
@@ -284,7 +284,7 @@ namespace XianXia.Unity.Host
                 _status = "已选到站 " + _selected.Count + " 人｜右键节点/道路移动";
         }
 
-        /// <summary>探望弥留到站后：直接弹接战窗（半径内弥留强制纳入）。</summary>
+        /// <summary>探望弥留到站后：直接弹接战窗（半径内弥留强制纳入）/summary>
         public void TryOpenPendingLingeringVisitAfterArrival()
         {
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
@@ -341,7 +341,7 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// 兼容旧调用点：Hex 路线 overlay 仅由 RefreshSelectedArmyPathPreview 驱动。
+        /// 兼容旧调用点：Hex 路线 overlay 仅由 RefreshSelectedArmyPathPreview 驱动
         /// </summary>
         public void SetArmyHexPathPreview(string armyId, HexCoord destination)
         {
@@ -373,7 +373,7 @@ namespace XianXia.Unity.Host
             _stackMenuOpen = false;
             _nodeMenuOpen = false;
             _nodeMenuNodeId = string.Empty;
-            _inspectNodeId = string.Empty;
+            _inspectSiteId = string.Empty;
             _inspectScroll = Vector2.zero;
         }
 
@@ -397,7 +397,7 @@ namespace XianXia.Unity.Host
                 return;
 
             var world = bootstrap.Session.World;
-            // 进战场后大地图一律关掉且不可再开（正常战／残留再进／未点结束）
+            // 进战场后大地图一律关掉且不可再开（正常战／残留再进／未点结束
             if (IsBlockedByBattlefield(world))
             {
                 if (open)
@@ -459,7 +459,7 @@ namespace XianXia.Unity.Host
             var traveling = 0;
             foreach (var kv in world.WorldPresence.All)
             {
-                if (kv.Value != null && kv.Value.Mode == PartyWorldPresenceMode.Traveling)
+                if (kv.Value != null && kv.Value.Mode == PartyWorldPresenceMode.AtSite)
                     traveling++;
             }
 
@@ -512,8 +512,8 @@ namespace XianXia.Unity.Host
                 }
                 else
                 {
-                    var focusId = world.PartyWorld.NodeId;
-                    if (ArmyHexBattleAnchorService.TryResolveHexForNode(world, focusId, out var focusHex))
+                    var focusId = world.PartyWorld.SiteId;
+                    if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, focusId, out var focusHex))
                         HexMath.ToWorldPosition(focusHex, world.HexWorld.HexSize, out _viewCx, out _viewCy);
                 }
             }
@@ -593,8 +593,7 @@ namespace XianXia.Unity.Host
 
             GUI.Label(
                 new Rect(pad, titleY, Screen.width - 220f, 28f),
-                "大地图  Hex 战略格  （左键：选格/军团｜右键：移动/攻击/残留格进入｜Ctrl+左键：道路｜M 关闭）",
-                _title);
+                "大地 Hex 战略 （左键：选格/军团｜右键：移动/攻击/残留格进入｜Ctrl+左键：道路｜M 关闭", _title);
 
             if (GUI.Button(new Rect(Screen.width - 100f, titleY, 84f, 32f), "关闭"))
                 Close();
@@ -675,12 +674,12 @@ namespace XianXia.Unity.Host
             TryDismissContextMenusOnOutsideClick();
             if (Event.current != null && Event.current.type == EventType.Used)
                 return;
-            // 菜单仍开着（点在菜单内）时不处理地图下令；外侧点击已在上面关掉菜单且不吞事件
+            // 菜单仍开着（点在菜单内）时不处理地图下令；外侧点击已在上面关掉菜单且不吞事
             if (_stackMenuOpen || _nodeMenuOpen || _avatarMenuOpen || _hexMenuOpen || _hexSiteEnterMenuOpen)
                 return;
             HandleMapInput(mapRect, hexProjection, world);
             HostUiHitTest.EndFrame();
-            // 进入场景可能在本帧 OnGUI 中途关掉；立刻停画，避免同帧再盖一层
+            // 进入场景可能在本OnGUI 中途关掉；立刻停画，避免同帧再盖一
             if (!open)
                 return;
         }
@@ -817,7 +816,7 @@ namespace XianXia.Unity.Host
                     continue;
 
                 var owner = site.OwnerFactionId ?? string.Empty;
-                if (_lastNodeOwners.TryGetValue(site.SiteId, out var prev) &&
+                if (_lastSiteOwners.TryGetValue(site.SiteId, out var prev) &&
                     !string.Equals(prev, owner, StringComparison.Ordinal) &&
                     world.Strategic?.CaptureObjectives != null &&
                     world.Strategic.CaptureObjectives.AllCompletedForSite(site.SiteId))
@@ -827,7 +826,7 @@ namespace XianXia.Unity.Host
                               StrategicAcceptanceInspector.ResolveOwnerDisplay(owner);
                 }
 
-                _lastNodeOwners[site.SiteId] = owner;
+                _lastSiteOwners[site.SiteId] = owner;
             }
         }
 
@@ -858,7 +857,7 @@ namespace XianXia.Unity.Host
             var nextForce = GUI.Toggle(
                 new Rect(x, y + 2f, 220f, 24f),
                 forceSolo,
-                " Debug：单人自动战必弥留");
+                    " Debug：单人自动战必弥留");
             if (nextForce != forceSolo)
                 AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated = nextForce;
             x += 230f;
@@ -901,8 +900,7 @@ namespace XianXia.Unity.Host
                 GUI.Label(
                     new Rect(x, y + 4f, 320f, 22f),
                     world.Strategic.HasBlockingInterrupt
-                        ? "战略打断中…"
-                        : "战略时间冻结：" + reason,
+                        ? "战略打断中" : "战略时间冻结\uff1a" + reason,
                     _body);
             }
         }
@@ -932,7 +930,7 @@ namespace XianXia.Unity.Host
 
             var sliderRect = new Rect(bar.x + 128f, bar.y + 10f, Mathf.Max(120f, bar.width - 220f), 18f);
             var next = GUI.HorizontalSlider(sliderRect, radius, ReinforceRadiusMin, ReinforceRadiusMax);
-            // 步进 0.05，避免浮点抖动
+            // 步进 0.05，避免浮点抖
             next = Mathf.Round(next * 20f) / 20f;
             if (!Mathf.Approximately(next, radius))
                 world.Strategic.ReinforcementWorldRadius = next;
@@ -941,7 +939,7 @@ namespace XianXia.Unity.Host
                 world.Strategic.ReinforcementWorldRadius = ReinforcementRangeService.DefaultWorldRadius;
         }
 
-        /// <summary>以当前选中单位／敌军栈为圆心画支援半径圈（世界坐标）。</summary>
+        /// <summary>以当前选中单位／敌军栈为圆心画支援半径圈（世界坐标）/summary>
         void DrawReinforcementRadiusOverlay(Rect mapRect, XianXia.Core.Simulation.SimulationWorld world)
         {
             if (world?.Strategic == null)
@@ -961,7 +959,7 @@ namespace XianXia.Unity.Host
 
             var prev = GUI.color;
             GUI.color = new Color(0.35f, 0.72f, 0.55f, 0.22f);
-            // 半透明填充（近似：中心小方块叠圆环感弱，用环线为主）
+            // 半透明填充（近似：中心小方块叠圆环感弱，用环线为主
             DrawWireCircle(center, pixelR, mapRect, 48);
             GUI.color = new Color(0.35f, 0.72f, 0.55f, 0.85f);
             DrawWireCircle(center, pixelR, mapRect, 64);
@@ -985,7 +983,7 @@ namespace XianXia.Unity.Host
                     return true;
             }
 
-            // 其次：已选己方头像
+            // 其次：已选己方头
             if (_selected.Count > 0)
             {
                 foreach (var idVal in _selected)
@@ -998,19 +996,13 @@ namespace XianXia.Unity.Host
                 }
             }
 
-            // 再次：接战 Offer 锚点
+            // 再次：接Offer 锚点
             var snap = world.Strategic.Participants;
             if (snap != null &&
-                (!string.IsNullOrEmpty(snap.BattleAnchorNodeId) ||
-                 !string.IsNullOrEmpty(snap.BattleAnchorRouteId)))
+                ArmyHexBattleAnchorService.TryGetBattleAnchorHex(snap, out var offerAnchorHex))
             {
-                return ReinforcementRangeService.TryGetAnchorWorldXY(
-                    world,
-                    snap.BattleAnchorNodeId,
-                    snap.BattleAnchorRouteId,
-                    snap.BattleAnchorProgress,
-                    out cx,
-                    out cy);
+                HexMath.ToWorldPosition(offerAnchorHex, world.HexWorld.HexSize, out cx, out cy);
+                return true;
             }
 
             return false;
@@ -1034,7 +1026,7 @@ namespace XianXia.Unity.Host
                 FormalArmyHexWorldPositionResolver.TryResolve(world, formal, out cx, out cy))
                 return true;
 
-            if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, stack.NodeId, out var hex))
+            if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, stack.SiteId, out var hex))
             {
                 HexMath.ToWorldPosition(hex, world.HexWorld.HexSize, out cx, out cy);
                 return true;
@@ -1063,7 +1055,7 @@ namespace XianXia.Unity.Host
 
         void DrawClippedSegment(Vector2 a, Vector2 b, Rect clip)
         {
-            // 粗略：两端都在外则跳过；否则画细线
+            // 粗略：两端都在外则跳过；否则画细
             if (!clip.Contains(a) && !clip.Contains(b))
             {
                 var mid = (a + b) * 0.5f;
@@ -1126,7 +1118,7 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// 仅当前选中的我方军团且有有效移动计划时，填充 Hex 路线 overlay（线 + 格高亮共用）。
+        /// 仅当前选中的我方军团且有有效移动计划时，填Hex 路线 overlay（线 + 格高亮共用）
         /// </summary>
         void RefreshSelectedArmyPathPreview(SimulationWorld world)
         {
@@ -1142,7 +1134,7 @@ namespace XianXia.Unity.Host
                 _hexPathPreview.Add(army.DestinationHex);
         }
 
-        /// <summary>路线预览：SELF + 有效 Hex TravelPlan（剩余路径）才显示。</summary>
+        /// <summary>路线预览：SELF + 有效 Hex TravelPlan（剩余路径）才显示/summary>
         bool TryGetSelectedPlayerArmyForPathPreview(
             SimulationWorld world,
             out FormalArmy army)
@@ -1287,7 +1279,7 @@ namespace XianXia.Unity.Host
                     continue;
 
                 var p = Project(mapRect, wx, wy);
-                // 贴节点时挪到标签外侧，避免「躲在荒村后面」
+                // 贴节点时挪到标签外侧，避免「躲在荒村后面
                 p = NudgeArmyMarkerAwayFromNodes(p);
                 if (!mapRect.Contains(p))
                     continue;
@@ -1303,17 +1295,15 @@ namespace XianXia.Unity.Host
 
                 GUI.color = old;
                 var tag = stack.HasCorpseRemnant
-                    ? stack.CorpseMemberCount + "人·尸体"
-                    : stack.HasIncapacitatedRemnant
-                        ? stack.IncapacitatedMemberCount + "人·弥留"
-                        : stack.MemberCount + "人 · " +
+                    ? stack.CorpseMemberCount + "人·尸体" : stack.HasIncapacitatedRemnant
+                        ? stack.IncapacitatedMemberCount + "人·弥留" : stack.MemberCount + "人 · " +
                           (string.IsNullOrEmpty(stack.DisplayName) ? "敌军" : stack.DisplayName);
                 if (stack.HasCorpseRemnant)
                 {
                     GUI.color = new Color(0.42f, 0.36f, 0.30f, 0.88f);
                     GUI.DrawTexture(new Rect(rect.x + 4f, rect.y + 4f, rect.width - 8f, rect.height - 8f), _px);
                     GUI.color = Color.white;
-                    GUI.Label(new Rect(rect.x, rect.y - 2f, rect.width, rect.height), "尸", _avatarLabel);
+                    GUI.Label(new Rect(rect.x, rect.y - 2f, rect.width, rect.height), "弥", _avatarLabel);
                     GUI.color = old;
                 }
                 else if (stack.HasIncapacitatedRemnant)
@@ -1332,7 +1322,7 @@ namespace XianXia.Unity.Host
             RegisterRemnantStackHitRects(mapRect, world);
         }
 
-        /// <summary>弥留／尸体栈不画聚合标记，但仍需可右键攻击（个体头像会挡住栈心）。</summary>
+        /// <summary>弥留／尸体栈不画聚合标记，但仍需可右键攻击（个体头像会挡住栈心）/summary>
         void RegisterRemnantStackHitRects(
             Rect mapRect,
             XianXia.Core.Simulation.SimulationWorld world)
@@ -1567,7 +1557,7 @@ namespace XianXia.Unity.Host
                     FormalArmyHexWorldPositionResolver.TryResolve(world, formal, out wx, out wy))
                     return true;
 
-                if (ArmyHexBattleAnchorService.TryResolveHexForNode(world, stack.NodeId, out var hex))
+                if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, stack.SiteId, out var hex))
                 {
                     HexMath.ToWorldPosition(hex, world.HexWorld.HexSize, out wx, out wy);
                     return true;
@@ -1590,8 +1580,8 @@ namespace XianXia.Unity.Host
             var hexMode = ArmyHexCommandService.IsHexStrategicActive(world);
             var avatarSize = hexMode ? 22f : AvatarSize;
 
-            _countAtNode.Clear();
-            _slotAtNode.Clear();
+            _countAtSiteKey.Clear();
+            _slotAtSiteKey.Clear();
             foreach (var kv in world.Strategic.FormalArmies.Armies)
             {
                 var army = kv.Value;
@@ -1599,11 +1589,14 @@ namespace XianXia.Unity.Host
                     continue;
                 if (!ArmyWorldMapPresentation.ShouldDrawFormalArmyPortrait(world, army))
                     continue;
+                var armySiteKey = army.UsesHexStrategicPosition
+                    ? army.CurrentHex.ToString()
+                    : (ArmyService.TryResolveArmySiteId(world, army, out var faSite) ? faSite : string.Empty);
                 var key = hexMode && army.UsesHexStrategicPosition
                     ? army.CurrentHex.ToString()
-                    : army.NodeId ?? string.Empty;
-                _countAtNode.TryGetValue(key, out var c);
-                _countAtNode[key] = c + 1;
+                    : armySiteKey;
+                _countAtSiteKey.TryGetValue(key, out var c);
+                _countAtSiteKey[key] = c + 1;
             }
 
             foreach (var kv in world.Strategic.FormalArmies.Armies)
@@ -1625,12 +1618,15 @@ namespace XianXia.Unity.Host
                 var basePos = hexMode && army.UsesHexStrategicPosition
                     ? ProjectHex(mapRect, world, wx, wy)
                     : Project(mapRect, wx, wy);
+                var armySiteKey = army.UsesHexStrategicPosition
+                    ? army.CurrentHex.ToString()
+                    : (ArmyService.TryResolveArmySiteId(world, army, out var faSite) ? faSite : string.Empty);
                 var key = hexMode && army.UsesHexStrategicPosition
                     ? army.CurrentHex.ToString()
-                    : army.NodeId ?? string.Empty;
-                _slotAtNode.TryGetValue("fa:" + key, out var slot);
-                _slotAtNode["fa:" + key] = slot + 1;
-                _countAtNode.TryGetValue(key, out var total);
+                    : armySiteKey;
+                _slotAtSiteKey.TryGetValue("fa:" + key, out var slot);
+                _slotAtSiteKey["fa:" + key] = slot + 1;
+                _countAtSiteKey.TryGetValue(key, out var total);
                 if (total < 1)
                     total = 1;
                 const float gap = 2f;
@@ -1848,7 +1844,8 @@ namespace XianXia.Unity.Host
             if (ArmyWorldMapPresentation.TryResolveArmyWorldPoint(world, army, out var wx, out var wy))
                 FocusCameraOnWorldPoint(wx, wy);
             _selectedFormalArmyId = armyId;
-            _inspectNodeId = army.NodeId ?? string.Empty;
+            ArmyService.TryResolveArmySiteId(world, army, out var inspectSiteId);
+            _inspectSiteId = inspectSiteId ?? string.Empty;
             _status = "已定位军队 " + armyId;
         }
 
@@ -1861,7 +1858,7 @@ namespace XianXia.Unity.Host
                 return;
             HexMath.ToWorldPosition(site.AnchorHex, world.HexWorld.HexSize, out var wx, out var wy);
             FocusCameraOnWorldPoint(wx, wy);
-            _inspectNodeId = nodeId;
+            _inspectSiteId = nodeId;
             _status = "已定位节点 " + HostStrategicRosterQueries.ResolveNodeLabel(world, nodeId);
         }
 
@@ -1892,11 +1889,12 @@ namespace XianXia.Unity.Host
             sb.Append("Id：").Append(army.ArmyId).Append('\n');
             sb.Append("Leader：").Append(EntityLabel(world, army.LeaderCharacterId)).Append('\n');
             sb.Append("State：").Append(army.State).Append('\n');
-            sb.Append("Node：").Append(StrategicNodeAccessService.DescribeNode(world, army.NodeId)).Append('\n');
+            ArmyService.TryResolveArmySiteId(world, army, out var tooltipSiteId);
+            sb.Append("Site?").Append(StrategicSiteAccessService.DescribeSite(world, tooltipSiteId)).Append('\n');
             sb.Append("Members：").Append(army.MemberCharacterIds.Count).Append('\n');
             if (army.State == FormalArmyState.Garrisoned)
-                sb.Append("\n驻扎中：无法移动／追击，请先在军队详情「解除驻扎 Mobilize」");
-            sb.Append("\n操作：Global Strategic Toolbar「军队」；右键节点移动（需 AtNode）");
+                    sb.Append("\n成员状态：\n");
+                    sb.Append("\n成员状态：\n");
             return sb.ToString();
         }
 
@@ -1915,22 +1913,20 @@ namespace XianXia.Unity.Host
             Vector2 ProjectAvatar(float wx, float wy) =>
                 hexMode ? hexProjection.ProjectWorld(wx, wy) : Project(mapRect, wx, wy);
 
-            // 先统计同节点人数，便于紧贴居中排列
-            _countAtNode.Clear();
+            // 先统计同节点人数，便于紧贴居中排
+            _countAtSiteKey.Clear();
             for (var i = 0; i < ids.Count; i++)
             {
                 if (!world.WorldPresence.TryGet(ids[i], out var p) || p == null)
                     continue;
-                if (p.Mode == PartyWorldPresenceMode.Traveling ||
-                    p.Mode == PartyWorldPresenceMode.RouteAnchored ||
-                    (p.Mode == PartyWorldPresenceMode.InEncounter && p.HasRoutePresentation))
+                if (p.Mode == PartyWorldPresenceMode.InEncounter)
                     continue;
-                var key = hexMode ? ids[i].Value.ToString() : p.NodeId ?? "";
-                _countAtNode.TryGetValue(key, out var c);
-                _countAtNode[key] = c + 1;
+                var key = hexMode ? ids[i].Value.ToString() : p.SiteId ?? "";
+                _countAtSiteKey.TryGetValue(key, out var c);
+                _countAtSiteKey[key] = c + 1;
             }
 
-            _slotAtNode.Clear();
+            _slotAtSiteKey.Clear();
             for (var i = 0; i < ids.Count; i++)
             {
                 var id = ids[i];
@@ -1948,11 +1944,10 @@ namespace XianXia.Unity.Host
 
                 var basePos = ProjectAvatar(wx, wy);
                 Vector2 center;
-                if (presence.HasRoutePresentation)
+                if (presence.Mode == PartyWorldPresenceMode.AtHex)
                 {
-                    _slotAtNode.TryGetValue("t:" + id.Value, out var slot);
-                    _slotAtNode["t:" + id.Value] = slot + 1;
-                    // 路锚叠位：拉开间距，弥留下移，避免点选总打到弥留
+                    _slotAtSiteKey.TryGetValue("t:" + id.Value, out var slot);
+                    _slotAtSiteKey["t:" + id.Value] = slot + 1;
                     center = basePos + new Vector2((slot % 3) * (avatarSize * 0.55f) - avatarSize * 0.55f,
                         -avatarSize * 0.55f);
                     if (LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
@@ -1960,19 +1955,19 @@ namespace XianXia.Unity.Host
                 }
                 else if (hexMode)
                 {
-                    _slotAtNode.TryGetValue("h:" + id.Value, out var slot);
-                    _slotAtNode["h:" + id.Value] = slot + 1;
+                    _slotAtSiteKey.TryGetValue("h:" + id.Value, out var slot);
+                    _slotAtSiteKey["h:" + id.Value] = slot + 1;
                     center = basePos + new Vector2((slot % 3) * (avatarSize * 0.45f), -avatarSize * 0.35f);
                 }
                 else
                 {
-                    var key = presence.NodeId ?? "";
-                    _slotAtNode.TryGetValue(key, out var slot);
-                    _slotAtNode[key] = slot + 1;
-                    _countAtNode.TryGetValue(key, out var total);
+                    var key = presence.SiteId ?? "";
+                    _slotAtSiteKey.TryGetValue(key, out var slot);
+                    _slotAtSiteKey[key] = slot + 1;
+                    _countAtSiteKey.TryGetValue(key, out var total);
                     if (total < 1)
                         total = 1;
-                    // 紧贴节点「头顶」外侧，按人数水平居中
+                    // 紧贴节点「头顶」外侧，按人数水平居
                     const float gap = 2f;
                     var spacing = avatarSize + 3f;
                     var rowY = -(NodeHitH * 0.5f + gap + avatarSize * 0.5f);
@@ -1993,13 +1988,13 @@ namespace XianXia.Unity.Host
                 _avatarRects[id.Value] = rect;
 
                 var selected = _selected.Contains(id.Value);
-                var onRoute = presence.HasRoutePresentation;
+                var onRoute = presence.Mode == PartyWorldPresenceMode.AtHex;
                 var inEncounter = presence.Mode == PartyWorldPresenceMode.InEncounter;
                 var incap = LingeringBattlefieldPartyService.IsIncapacitated(world, id);
                 var dead = world.Entities.TryGet(id, out var avatarEnt) &&
                            avatarEnt.TryGet<LifecycleComponent>(out var avatarLife) &&
                            avatarLife.IsDead;
-                // 半透明，避免压住地名；我方弥留用蓝色，尸体用灰褐
+                // 半透明，避免压住地名；我方弥留用蓝色，尸体用灰
                 var fill = dead
                     ? (selected
                         ? new Color(0.55f, 0.48f, 0.40f, 0.88f)
@@ -2024,7 +2019,7 @@ namespace XianXia.Unity.Host
                 if (dead)
                 {
                     GUI.color = Color.white;
-                    GUI.Label(rect, "尸", _avatarLabel);
+                    GUI.Label(rect, "弥", _avatarLabel);
                 }
                 else if (incap)
                 {
@@ -2073,7 +2068,7 @@ namespace XianXia.Unity.Host
 
             var mouse = e.mousePosition;
 
-            // —— 左键：只负责选中（永不弹攻击／进入指令菜单）——
+            // —左键：只负责选中（永不弹攻击／进入指令菜单）—
             if (e.button == 0)
             {
                 if (TryHitFormalArmy(mouse, out var hitArmyId))
@@ -2106,7 +2101,7 @@ namespace XianXia.Unity.Host
                     _selected.Clear();
                     _selectedStackId = string.Empty;
                     // 保留已选军团：便于立刻右键同格进入残留
-                    _inspectNodeId = string.Empty;
+                    _inspectSiteId = string.Empty;
                     var enterHint = BattleOfferService.HasLingeringBattlefield(world)
                         ? (string.IsNullOrEmpty(_selectedFormalArmyId)
                             ? "｜先选我方军团，再右键本格／标记进入残留"
@@ -2117,7 +2112,7 @@ namespace XianXia.Unity.Host
                     return;
                 }
 
-                // 接战点活人／弥留叠在一起时，优先点中活人
+                // 接战点活人／弥留叠在一起时，优先点中活
                 if (TryHitAvatar(mouse, world, out var hitAvatar, preferLiving: true))
                 {
                     var id = new EntityId(hitAvatar);
@@ -2183,11 +2178,11 @@ namespace XianXia.Unity.Host
                         ArmyStackHitPad,
                         ArmyStackHitPadContested))
                 {
-                    // 标准 RTS：点敌军改选敌军，清空我方选中；不弹指令菜单
+                    // 标准 RTS：点敌军改选敌军，清空我方选中；不弹指令菜
                     _selected.Clear();
                     ClearFormalArmySelection();
                     _selectedStackId = hitStackId;
-                    _inspectNodeId = string.Empty;
+                    _inspectSiteId = string.Empty;
                     ClearResidualSelection();
                     _stackMenuOpen = false;
                     _avatarMenuOpen = false;
@@ -2213,7 +2208,7 @@ namespace XianXia.Unity.Host
                     _selected.Clear();
                     _selectedStackId = string.Empty;
                     ClearFormalArmySelection();
-                    _inspectNodeId = string.Empty;
+                    _inspectSiteId = string.Empty;
                     _stackMenuOpen = false;
                     _avatarMenuOpen = false;
                     _status = "已取消选择";
@@ -2232,7 +2227,7 @@ namespace XianXia.Unity.Host
                     return;
             }
 
-            // —— 右键：只负责下令（永不改选中集合）——
+            // —右键：只负责下令（永不改选中集合）—
             // 我方弥留／尸体：可右键弹「进入残留战场」（进场仍用已选军团）
             if (TryHitAvatar(mouse, world, out var menuAvatarId, preferLiving: false))
             {
@@ -2277,13 +2272,13 @@ namespace XianXia.Unity.Host
                         ? "敌方尸体"
                         : "敌方弥留";
                     _status = enemyTag + " " + EntityLabel(world, hitId) +
-                              "：请左键选我方军团，再右键进入残留战场";
+                   "· Ctrl+左键：切换道路（编辑）";
                     e.Use();
                     return;
                 }
             }
 
-            _status = "请右键 Hex 下达移动/攻击";
+                _status = "无法解析倒下角色位置";
             e.Use();
         }
 
@@ -2321,7 +2316,7 @@ namespace XianXia.Unity.Host
                 if (!(BattleOfferService.HasLingeringBattlefield(world) &&
                       LingeringBattlefieldQueryService.TryGetLingeringBattlefieldAtHex(world, pickedHex, out _)))
                     ClearFormalArmySelection();
-                _inspectNodeId = string.Empty;
+                _inspectSiteId = string.Empty;
             }
 
             if (!world.HexWorld.TryGetTile(pickedHex, out var inspectTile) || inspectTile == null)
@@ -2355,7 +2350,7 @@ namespace XianXia.Unity.Host
         {
             if (!HexMapMousePick.TryResolveMouseHex(projection, world.HexWorld, mouse, out var pickedHex))
             {
-                _status = "请右键可通行的 Hex";
+                _status = "无法解析倒下角色位置";
                 e.Use();
                 return true;
             }
@@ -2363,7 +2358,7 @@ namespace XianXia.Unity.Host
             _selectedHex = pickedHex;
             if (!world.HexWorld.TryGetTile(pickedHex, out var tile) || tile == null || !tile.IsPassable)
             {
-                _status = "该 Hex 不可通行";
+                _status = "无法解析倒下角色位置";
                 e.Use();
                 return true;
             }
@@ -2660,7 +2655,7 @@ namespace XianXia.Unity.Host
 
             if (army.State == FormalArmyState.Garrisoned)
             {
-                _status = "驻扎中的军团无法移动，请先在军队详情点击「解除驻扎 Mobilize」";
+                _status = "无法解析倒下角色位置";
                 return;
             }
 
@@ -2684,7 +2679,7 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            _status = "无法进入残留战场（接战点已失效或无可进入对象）";
+                _status = "无法解析倒下角色位置";
         }
 
         void CloseHexSiteEnterMenu()
@@ -2767,7 +2762,7 @@ namespace XianXia.Unity.Host
         {
             if (resolution == null || string.IsNullOrEmpty(resolution.SiteId))
             {
-                _status = "无法进入地点（WorldSite 无效）";
+                _status = "无法解析倒下角色位置";
                 return;
             }
 
@@ -2779,7 +2774,7 @@ namespace XianXia.Unity.Host
 
             if (!world.Strategic.Sites.TryGet(resolution.SiteId, out var site) || site == null)
             {
-                _status = "WorldSite 不存在";
+                _status = "无法解析倒下角色位置";
                 return;
             }
 
@@ -2787,7 +2782,7 @@ namespace XianXia.Unity.Host
             if (enter.IsSuccess)
             {
                 CloseAllWorldMapPanels();
-                bootstrap.ApplyPartyWorldNodePresentation(closeWorldMap: true);
+                bootstrap.ApplyPartyWorldSitePresentation(closeWorldMap: true);
                 var title = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
                 _status = "已进入 " + title;
                 return;
@@ -2828,13 +2823,13 @@ namespace XianXia.Unity.Host
         {
             if (target == null || string.IsNullOrEmpty(target.StackId))
             {
-                _status = "目标军团不存在";
+                _status = "无法解析倒下角色位置";
                 return;
             }
 
             if (!world.Strategic.Armies.TryGet(target.StackId, out var stack) || stack == null)
             {
-                _status = "目标军团不存在";
+                _status = "无法解析倒下角色位置";
                 return;
             }
 
@@ -2848,8 +2843,8 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// 右键「有残留的 Hex」：按原先逻辑进入残留战场（我方弥留头像菜单／敌方残留栈菜单）。
-        /// 无残留或接战点未激活时返回 false，交还给普通 Hex 移动。
+        /// 右键「有残留Hex」：按原先逻辑进入残留战场（我方弥留头像菜单／敌方残留栈菜单）
+        /// 无残留或接战点未激活时返回 false，交还给普Hex 移动
         /// </summary>
         [System.Obsolete("Hex Context Menu 已取代；保留供 legacy Node 路径参考。")]
         bool TryOpenResidualHexEnter(
@@ -2871,14 +2866,14 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
-            // 我方弥留所在格 → 与右键弥留头像同一套菜单
+            // 我方弥留所在格 与右键弥留头像同一套菜
             if (!friendlyFocus.IsNone)
             {
                 OpenIncapAvatarMenu(world, friendlyFocus, mouse);
                 return true;
             }
 
-            // 敌方残留所在格 → 与右键残留栈同一套菜单（进入残留／追击再攻）
+            // 敌方残留所在格 与右键残留栈同一套菜单（进入残留／追击再攻）
             if (!string.IsNullOrEmpty(enemyStackId) &&
                 TryOpenStackAttackMenu(world, enemyStackId, mouse))
                 return true;
@@ -2887,7 +2882,7 @@ namespace XianXia.Unity.Host
             return true;
         }
 
-        /// <summary>该 Hex 上是否有与当前残留战场相关的我方弥留／敌方残留。</summary>
+        /// <summary>Hex 上是否有与当前残留战场相关的我方弥留／敌方残留/summary>
         static bool TryResolveResidualEnterTargetsOnHex(
             XianXia.Core.Simulation.SimulationWorld world,
             HexCoord hex,
@@ -3012,7 +3007,7 @@ namespace XianXia.Unity.Host
                 }
                 else if (LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
                 {
-                    // 弥留／尸体同档；叠人时仍让位给活人
+                    // 弥留／尸体同档；叠人时仍让位给活
                     if (incapId == 0)
                         incapId = kv.Key;
                 }
@@ -3160,7 +3155,7 @@ namespace XianXia.Unity.Host
 
             if (attackerArmy.State == FormalArmyState.Garrisoned)
             {
-                _status = "驻扎中的军团无法追击，请先在军队详情点击「解除驻扎 Mobilize」";
+                _status = "无法解析倒下角色位置";
                 return true;
             }
 
@@ -3174,7 +3169,7 @@ namespace XianXia.Unity.Host
             return true;
         }
 
-        /// <summary>须左键选中我方存活军团；不自动从散装队伍推断攻击方。</summary>
+        /// <summary>须左键选中我方存活军团；不自动从散装队伍推断攻击方/summary>
         bool TryGetSelectedLivingPlayerArmy(
             XianXia.Core.Simulation.SimulationWorld world,
             out FormalArmy army,
@@ -3190,7 +3185,7 @@ namespace XianXia.Unity.Host
 
             if (!world.Strategic.FormalArmies.TryGet(_selectedFormalArmyId, out army) || army == null)
             {
-                error = "所选军团无效。";
+                error = "该军团已无可用成员，无法发起攻击。";
                 return false;
             }
 
@@ -3198,7 +3193,7 @@ namespace XianXia.Unity.Host
             if (!string.IsNullOrEmpty(playerFaction) &&
                 !string.Equals(army.FactionId, playerFaction, StringComparison.Ordinal))
             {
-                error = "只能命令我方军团发起攻击。";
+                error = "该军团已无可用成员，无法发起攻击。";
                 army = null;
                 return false;
             }
@@ -3256,7 +3251,8 @@ namespace XianXia.Unity.Host
             var faction = StrategicFactionCatalog.DisplayName(stack.FactionId);
             var name = string.IsNullOrEmpty(stack.DisplayName) ? stack.Id : stack.DisplayName;
             var power = CombatPowerCalculator.ForArmyStack(world, stack);
-            var where = stack.IsTraveling ? "途中" : stack.NodeId;
+            ArmyStackAdapter.TryGetFormalArmy(world, stack, out var labelArmy);
+            var where = labelArmy != null && labelArmy.State == FormalArmyState.Moving ? "途中" : stack.SiteId;
             return name + " · " + faction + " · " + stack.MemberCount + "人 · 战力" + power +
                    " · " + where;
         }
@@ -3305,10 +3301,10 @@ namespace XianXia.Unity.Host
                 CollectActingArmyLivingParty(world, _scratchParty);
                 var needTravel = false;
                 if (_scratchParty.Count > 0 &&
-                    TryResolveRemnantBattleAnchor(world, stack, out var aNode, out var aRoute, out var aProg))
+                    TryResolveRemnantBattleAnchorHex(world, stack, out var remnantAnchorHex))
                 {
                     needTravel = !IsAnyPartyMemberInReinforcementRange(
-                        world, _scratchParty, aNode, aRoute, aProg);
+                        world, _scratchParty, remnantAnchorHex);
                 }
 
                 GUI.enabled = canAttack && _scratchParty.Count > 0;
@@ -3325,7 +3321,7 @@ namespace XianXia.Unity.Host
                             _status = "无法进入残留战场（接战点已失效或不在范围内）";
                     }
                     else
-                        _status = "请先左键选中我方军团再进入残留";
+                _status = "无法解析倒下角色位置";
                     _stackMenuOpen = false;
                 }
 
@@ -3342,7 +3338,7 @@ namespace XianXia.Unity.Host
                 if (canAttack)
                     ExecuteAttackStack(world, _attackPartyScratch, stack);
                 else
-                    _status = "请先左键选中我方军团再攻击";
+                _status = "无法解析倒下角色位置";
                 _stackMenuOpen = false;
             }
 
@@ -3350,36 +3346,30 @@ namespace XianXia.Unity.Host
             GUI.depth = prevDepth;
         }
 
-        static bool TryResolveRemnantBattleAnchor(
+        static bool TryResolveRemnantBattleAnchorHex(
             XianXia.Core.Simulation.SimulationWorld world,
             ArmyStack stack,
-            out string anchorNode,
-            out string anchorRoute,
-            out float anchorProgress)
+            out HexCoord anchorHex)
         {
-            anchorNode = string.Empty;
-            anchorRoute = string.Empty;
-            anchorProgress = -1f;
-            if (world?.Strategic?.Participants != null)
+            anchorHex = default;
+            if (world?.Strategic?.Participants != null &&
+                ArmyHexBattleAnchorService.TryGetBattleAnchorHex(world.Strategic.Participants, out anchorHex))
+                return true;
+
+            if (stack != null &&
+                ArmyStackAdapter.TryGetFormalArmy(world, stack, out var army) &&
+                army != null &&
+                army.UsesHexStrategicPosition)
             {
-                var snap = world.Strategic.Participants;
-                if (!string.IsNullOrEmpty(snap.BattleAnchorNodeId) ||
-                    !string.IsNullOrEmpty(snap.BattleAnchorRouteId) ||
-                    ArmyHexBattleAnchorService.HasBattleAnchorHex(snap))
-                {
-                    anchorNode = snap.BattleAnchorNodeId ?? string.Empty;
-                    anchorRoute = snap.BattleAnchorRouteId ?? string.Empty;
-                    anchorProgress = snap.BattleAnchorProgress;
-                    return true;
-                }
+                anchorHex = army.CurrentHex;
+                return true;
             }
 
-            if (stack == null)
-                return false;
-            anchorNode = stack.NodeId ?? string.Empty;
-            anchorRoute = stack.RouteId ?? string.Empty;
-            anchorProgress = stack.IsRouteAnchored ? stack.RouteAnchorProgress : -1f;
-            return !string.IsNullOrEmpty(anchorNode) || !string.IsNullOrEmpty(anchorRoute);
+            if (stack != null &&
+                ArmyHexBattleAnchorService.TryResolveHexForSite(world, stack.SiteId, out anchorHex))
+                return true;
+
+            return false;
         }
 
         void ExecuteAttackStack(
@@ -3393,7 +3383,7 @@ namespace XianXia.Unity.Host
                 attackerArmy == null ||
                 !ArmyPostBattleSyncService.HasMacroOrderLivingMember(world, attackerArmy))
             {
-                _status = "请左键选中我方存活军团再攻击";
+                _status = "无法解析倒下角色位置";
                 return;
             }
 
@@ -3404,7 +3394,7 @@ namespace XianXia.Unity.Host
                 !string.Equals(attackerFaction, stack.FactionId, System.StringComparison.Ordinal) &&
                 !WarGateService.CanAttack(world, attackerFaction, stack.FactionId))
             {
-                _status = "未宣战：无法军事攻击该势力军队";
+                _status = "无法解析倒下角色位置";
                 return;
             }
 
@@ -3449,7 +3439,7 @@ namespace XianXia.Unity.Host
             CloseHexSiteEnterMenu();
             _avatarMenuOpen = false;
             _avatarMenuVisitMode = false;
-            // 不 Use：同一帧右键仍可落到移动／攻击下令
+            // Use：同一帧右键仍可落到移动／攻击下令
         }
 
         void DrawAvatarContextMenu(XianXia.Core.Simulation.SimulationWorld world)
@@ -3496,11 +3486,11 @@ namespace XianXia.Unity.Host
             var hasArmy = _scratchParty.Count > 0;
             _avatarMenuVisitMode = false;
             if (hasArmy &&
-                LingeringBattlefieldPartyService.TryResolveBattleAnchor(
-                    world, target, out var anchorNode, out var anchorRoute, out var anchorProgress))
+                LingeringBattlefieldPartyService.TryResolveBattleAnchorHex(
+                    world, target, out var anchorHex))
             {
                 _avatarMenuVisitMode = !IsAnyPartyMemberInReinforcementRange(
-                    world, _scratchParty, anchorNode, anchorRoute, anchorProgress);
+                    world, _scratchParty, anchorHex);
             }
 
             LingeringBattlefieldPartyService.CollectViewParty(
@@ -3512,8 +3502,7 @@ namespace XianXia.Unity.Host
             {
                 GUI.Label(
                     new Rect(_avatarMenuRect.x + 8f, hintY, _avatarMenuRect.width - 16f, 16f),
-                    "接战点已无残留战场",
-                    _body);
+                    "驻扎中不可追击，请先解除驻扎", _body);
                 hintY += 18f;
             }
             else if (!hasArmy)
@@ -3544,8 +3533,7 @@ namespace XianXia.Unity.Host
             {
                 GUI.Label(
                     new Rect(_avatarMenuRect.x + 8f, hintY, _avatarMenuRect.width - 16f, 16f),
-                    "将弹出接战窗（当前军团强制参战），选手动战斗进入",
-                    _body);
+                    "驻扎中不可追击，请先解除驻扎", _body);
                 hintY += 18f;
             }
 
@@ -3586,7 +3574,7 @@ namespace XianXia.Unity.Host
             GUI.depth = prevDepth;
         }
 
-        /// <summary>已选活人前往弥留接战点；已在半径内则直接弹接战窗。</summary>
+        /// <summary>已选活人前往弥留接战点；已在半径内则直接弹接战窗/summary>
         bool TryBeginVisitIncapacitated(
             XianXia.Core.Simulation.SimulationWorld world,
             EntityId focusIncap)
@@ -3606,14 +3594,14 @@ namespace XianXia.Unity.Host
 
             if (!BattleOfferService.HasLingeringBattlefield(world))
             {
-                _status = "接战点已无残留战场";
+                _status = "无法解析倒下角色位置";
                 return false;
             }
 
-            if (LingeringBattlefieldPartyService.TryResolveBattleAnchor(
-                    world, focusIncap, out var anchorNode, out var anchorRoute, out var anchorProgress) &&
+            if (LingeringBattlefieldPartyService.TryResolveBattleAnchorHex(
+                    world, focusIncap, out var anchorHex) &&
                 IsAnyPartyMemberInReinforcementRange(
-                    world, _scratchParty, anchorNode, anchorRoute, anchorProgress))
+                    world, _scratchParty, anchorHex))
             {
                 if (BattleOfferService.TryBuildOfferForLingeringBattlefield(
                         world,
@@ -3658,9 +3646,7 @@ namespace XianXia.Unity.Host
         static bool IsAnyPartyMemberInReinforcementRange(
             XianXia.Core.Simulation.SimulationWorld world,
             IReadOnlyList<EntityId> party,
-            string anchorNode,
-            string anchorRoute,
-            float anchorProgress)
+            HexCoord anchorHex)
         {
             if (world == null || party == null)
                 return false;
@@ -3669,7 +3655,7 @@ namespace XianXia.Unity.Host
                 if (!world.WorldPresence.TryGet(party[i], out var wp) || wp == null)
                     continue;
                 if (ReinforcementRangeService.IsWithinReinforcementRange(
-                        world, wp, anchorNode, anchorRoute, anchorProgress))
+                        world, wp, anchorHex))
                     return true;
             }
 
@@ -3731,22 +3717,22 @@ namespace XianXia.Unity.Host
             var hasLinger = BattleOfferService.HasLingeringBattlefield(world);
             if (!hasLinger)
             {
-                _status = EntityLabel(world, hitId) + "（" + tag + "）｜接战点已无残留战场";
+            _status = EntityLabel(world, hitId) + "（" + tag + "）｜可进入残留战场";
                 return;
             }
 
             if (!hasArmy)
             {
-                _status = EntityLabel(world, hitId) + "（" + tag + "）｜请先左键选军团，再右键进入残留";
+            _status = EntityLabel(world, hitId) + "（" + tag + "）｜可进入残留战场";
                 return;
             }
 
-            if (LingeringBattlefieldPartyService.TryResolveBattleAnchor(
-                    world, hitId, out var anchorNode, out var anchorRoute, out var anchorProgress) &&
+            if (LingeringBattlefieldPartyService.TryResolveBattleAnchorHex(
+                    world, hitId, out var anchorHex) &&
                 !IsAnyPartyMemberInReinforcementRange(
-                    world, _scratchParty, anchorNode, anchorRoute, anchorProgress))
+                    world, _scratchParty, anchorHex))
             {
-                _status = EntityLabel(world, hitId) + "（" + tag + "）｜军团可前往并进入残留战场";
+            _status = EntityLabel(world, hitId) + "（" + tag + "）｜可进入残留战场";
                 return;
             }
 
@@ -3788,10 +3774,10 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            // 选中真源：_selected ∩ Session.CharacterIds
-            // 弥留真源：LifecycleComponent（IsLivingForMacroOrder）
+            // 选中真源：_selected Session.CharacterIds
+            // 弥留真源：LifecycleComponent（IsLivingForMacroOrder
             // 能否上路：CanReceiveTravelOrder
-            // 移动／攻击共用本函数；中间表必须独立，禁止 into 兼缓冲。
+            // 移动／攻击共用本函数；中间表必须独立，禁into 兼缓冲
             CollectSelectedParty(_orderFilterScratch);
             CollectMacroPartyFrom(world, _orderFilterScratch, into, MacroPartyKind.MoveOrAttack);
         }
@@ -3846,7 +3832,7 @@ namespace XianXia.Unity.Host
         static string FormatFail(XianXia.Core.Results.Result r) =>
             r.IsFailure ? (r.Error.Message + (string.IsNullOrEmpty(r.Error.Detail) ? "" : " · " + r.Error.Detail)) : "";
 
-        /// <summary>进入场景时关掉大地图（本实例＋bootstrap 引用）。</summary>
+        /// <summary>进入场景时关掉大地图（本实例＋bootstrap 引用）/summary>
         void CloseAllWorldMapPanels()
         {
             Close();
@@ -3964,8 +3950,8 @@ namespace XianXia.Unity.Host
                 world.Strategic.Armies.TryGet(_selectedStackId, out var stack) &&
                 stack != null)
                 return BuildStackInspect(world, stack);
-            if (!string.IsNullOrEmpty(_inspectNodeId) &&
-                world.Strategic.Sites.TryGet(_inspectNodeId, out var inspectSite) &&
+            if (!string.IsNullOrEmpty(_inspectSiteId) &&
+                world.Strategic.Sites.TryGet(_inspectSiteId, out var inspectSite) &&
                 inspectSite != null)
                 return BuildSiteInspect(world, inspectSite);
 
@@ -4007,7 +3993,7 @@ namespace XianXia.Unity.Host
             ResidualMarkerGroupView group)
         {
             var sb = new StringBuilder(480);
-            sb.Append('【').Append(FormatResidualGroupTitle(group)).Append("】\n");
+            sb.Append('\u3010').Append(FormatResidualGroupTitle(group)).Append("\u3011\n");
             sb.Append("Hex: ").Append(group.Hex).Append('\n');
             var siteName = ResolveHexSiteName(world, group.Hex);
             if (!string.IsNullOrEmpty(siteName))
@@ -4053,7 +4039,7 @@ namespace XianXia.Unity.Host
             sb.Append("Hex ").Append(hex).Append('\n');
             if (!world.HexWorld.TryGetTile(hex, out var tile) || tile == null)
             {
-                sb.Append("（无地块数据）");
+                    sb.Append("\n成员状态：\n");
                 return sb.ToString();
             }
 
@@ -4141,29 +4127,29 @@ namespace XianXia.Unity.Host
             if (p.UsesHexPresence)
                 return p.ResidualHex.ToString();
             if (p.Mode == PartyWorldPresenceMode.AtSite && !string.IsNullOrEmpty(p.SiteId))
-                return StrategicNodeAccessService.DescribeNode(world, p.SiteId);
-            if (!string.IsNullOrEmpty(p.NodeId))
-                return StrategicNodeAccessService.DescribeNode(world, p.NodeId);
+                return StrategicSiteAccessService.DescribeSite(world, p.SiteId);
+            if (!string.IsNullOrEmpty(p.SiteId))
+                return StrategicSiteAccessService.DescribeSite(world, p.SiteId);
             return "unknown";
         }
 
         static string FormatPresenceAction(WorldAgentPresence p)
         {
             if (p == null)
-                return "—";
+            return "驻留";
             if (p.Mode == PartyWorldPresenceMode.InEncounter)
-                return "接战中";
+            return "驻留";
             if (p.IsCombatPursuing)
                 return "追击增援";
-            if (p.HasRoutePresentation || p.Mode == PartyWorldPresenceMode.Traveling)
-                return "行军中";
-            if (p.Mode == PartyWorldPresenceMode.RouteAnchored)
+            if (p.Mode == PartyWorldPresenceMode.AtSite)
+            return "驻留";
+            if (p.Mode == PartyWorldPresenceMode.AtSite)
                 return "路中驻留";
             return "驻留";
         }
 
         static string ResolveNodeName(SimulationWorld world, string nodeId) =>
-            StrategicNodeAccessService.DescribeNode(world, nodeId);
+            StrategicSiteAccessService.DescribeSite(world, nodeId);
 
         string BuildStackInspect(
             XianXia.Core.Simulation.SimulationWorld world,
@@ -4171,7 +4157,7 @@ namespace XianXia.Unity.Host
         {
             var sb = new StringBuilder(320);
             sb.Append("敌军部队\n\n");
-            sb.Append("名称：")
+                sb.Append("道路：")
                 .Append(string.IsNullOrEmpty(stack.DisplayName) ? stack.Id : stack.DisplayName)
                 .Append('\n');
             sb.Append("势力：").Append(StrategicFactionCatalog.DisplayName(stack.FactionId)).Append('\n');
@@ -4183,27 +4169,17 @@ namespace XianXia.Unity.Host
             sb.Append("战力：").Append(CombatPowerCalculator.ForArmyStack(world, stack)).Append('\n');
             if (stack.IsBattlefieldRemnant)
                 sb.Append("类型：残留战场\n");
-            if (stack.IsTraveling)
+            ArmyStackAdapter.TryGetFormalArmy(world, stack, out var tooltipArmy);
+            if (tooltipArmy != null && tooltipArmy.State == FormalArmyState.Moving)
             {
-                sb.Append("状态：行军中\n");
-                sb.Append("自 ").Append(ResolveNodeName(world, stack.NodeId))
-                    .Append(" → ").Append(ResolveNodeName(world, stack.DestNodeId)).Append('\n');
-            }
-            else if (stack.IsRouteAnchored)
-            {
-                sb.Append("状态：路中驻留\n");
-                sb.Append("道路：")
-                    .Append(ResolveNodeName(world, stack.NodeId))
-                    .Append(" ↔ ")
-                    .Append(ResolveNodeName(world, stack.DestNodeId))
-                    .Append("（")
-                    .Append(Mathf.RoundToInt(Mathf.Clamp01(stack.RouteAnchorProgress) * 100f))
-                    .Append("%）\n");
+                sb.Append("??????\n");
+                sb.Append("? ").Append(ResolveNodeName(world, stack.SiteId))
+                    .Append(" ? ").Append(HostStrategicRosterQueries.DescribeHexLabel(world, tooltipArmy.DestinationHex)).Append('\n');
             }
             else
             {
-                sb.Append("状态：驻留\n");
-                sb.Append("节点：").Append(ResolveNodeName(world, stack.NodeId)).Append('\n');
+                sb.Append("?????\n");
+                sb.Append("???").Append(ResolveNodeName(world, stack.SiteId)).Append('\n');
             }
 
             AppendArmyMemberLifeStates(sb, world, stack);
@@ -4245,9 +4221,9 @@ namespace XianXia.Unity.Host
             XianXia.Core.Simulation.SimulationWorld world,
             WorldSite site)
         {
-            var detail = StrategicNodeAccessService.BuildSiteDetailText(world, site);
+            var detail = StrategicSiteAccessService.BuildSiteDetailText(world, site);
             if (string.IsNullOrEmpty(detail))
-                return "地点：" + StrategicNodeAccessService.DescribeSite(site);
+                return "地点\uff1a" + StrategicSiteAccessService.DescribeSite(site);
             return "地图地点\n\n" + detail + "\n\n操作：右键 Hex 移动；有我方在场时可进入场景";
         }
 

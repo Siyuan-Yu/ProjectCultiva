@@ -46,8 +46,6 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, RealmLadderDefinition>();
         readonly Dictionary<DefinitionId, SpawnTableDefinition> _spawnTables =
             new Dictionary<DefinitionId, SpawnTableDefinition>();
-        readonly Dictionary<DefinitionId, WorldGraphDefinition> _worldGraphs =
-            new Dictionary<DefinitionId, WorldGraphDefinition>();
         readonly Dictionary<DefinitionId, LocalPlaceSetDefinition> _localPlaceSets =
             new Dictionary<DefinitionId, LocalPlaceSetDefinition>();
         readonly Dictionary<DefinitionId, HexWorldContentDefinition> _hexWorldContents =
@@ -73,7 +71,6 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, MapLayoutDefinition> MapLayouts => _mapLayouts;
         public IReadOnlyDictionary<DefinitionId, RealmLadderDefinition> RealmLadders => _realmLadders;
         public IReadOnlyDictionary<DefinitionId, SpawnTableDefinition> SpawnTables => _spawnTables;
-        public IReadOnlyDictionary<DefinitionId, WorldGraphDefinition> WorldGraphs => _worldGraphs;
         public IReadOnlyDictionary<DefinitionId, LocalPlaceSetDefinition> LocalPlaceSets => _localPlaceSets;
         public IReadOnlyDictionary<DefinitionId, HexWorldContentDefinition> HexWorldContents => _hexWorldContents;
 
@@ -98,7 +95,6 @@ namespace XianXia.Data.Content
             _mapLayouts.ContainsKey(id) ||
             _realmLadders.ContainsKey(id) ||
             _spawnTables.ContainsKey(id) ||
-            _worldGraphs.ContainsKey(id) ||
             _localPlaceSets.ContainsKey(id) ||
             _hexWorldContents.ContainsKey(id);
 
@@ -242,13 +238,6 @@ namespace XianXia.Data.Content
             return Register(_spawnTables, definition, definition.Id);
         }
 
-        public Result RegisterWorldGraph(WorldGraphDefinition definition)
-        {
-            if (definition == null)
-                return Result.Failure(ErrorCode.InvalidArgument, "WorldGraphDefinition is null.");
-            return Register(_worldGraphs, definition, definition.Id);
-        }
-
         public Result RegisterLocalPlaceSet(LocalPlaceSetDefinition definition)
         {
             if (definition == null)
@@ -328,9 +317,6 @@ namespace XianXia.Data.Content
 
         public bool TryGetSpawnTable(DefinitionId id, out SpawnTableDefinition definition) =>
             _spawnTables.TryGetValue(id, out definition);
-
-        public bool TryGetWorldGraph(DefinitionId id, out WorldGraphDefinition definition) =>
-            _worldGraphs.TryGetValue(id, out definition);
 
         public bool TryGetLocalPlaceSet(DefinitionId id, out LocalPlaceSetDefinition definition) =>
             _localPlaceSets.TryGetValue(id, out definition);

@@ -49,7 +49,6 @@ namespace XianXia.Core.World.Strategic
                 else
                     sb.Append("NONE");
                 sb.AppendLine();
-                sb.Append("Snap.BattleAnchorNodeId=").Append(snap.BattleAnchorNodeId ?? string.Empty).AppendLine();
             }
 
             var offer = world?.Strategic?.BattleOffer;

@@ -13,8 +13,8 @@ namespace XianXia.Tests
     public sealed class ArmyPhaseDTests
     {
         const string TestFactionA = "test:faction_a";
-        const string TestNodeA = "base:node_huangcun";
-        const string TestNodeB = "base:node_qingyun_lu";
+        const string TestNodeA = "base:site_huangcun";
+        const string TestNodeB = "base:site_qingyun_lu";
         const string TestRoute = "test:route_ab";
 
         static readonly HexCoord HexA = Ch01HexPrototypeMapBuilder.HuangcunHex;
@@ -63,7 +63,7 @@ namespace XianXia.Tests
             Assert.IsTrue(created.IsSuccess);
             var entity = created.Value;
             entity.Get<FactionMembershipComponent>().Assign(TestFactionA, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(entity.Id, nodeId);
+            world.WorldPresence.SetAtSite(entity.Id, nodeId);
             return entity.Id;
         }
 
@@ -104,8 +104,8 @@ namespace XianXia.Tests
             ArmyPresenceAdapter.SyncFromArmy(world, army);
             Assert.IsTrue(world.WorldPresence.TryGet(a, out var pa));
             Assert.IsTrue(world.WorldPresence.TryGet(b, out var pb));
-            Assert.AreEqual(TestNodeA, pa.NodeId);
-            Assert.AreEqual(TestNodeA, pb.NodeId);
+            Assert.AreEqual(TestNodeA, pa.SiteId);
+            Assert.AreEqual(TestNodeA, pb.SiteId);
         }
 
         [Test]
@@ -135,13 +135,9 @@ namespace XianXia.Tests
             float routeProgress)
         {
             Assert.IsTrue(world.WorldPresence.TryGet(memberId, out var presence));
-            presence.NodeId = fromNodeId;
-            presence.Mode = PartyWorldPresenceMode.Traveling;
-            presence.RouteId = TestRoute;
-            presence.DestNodeId = TestNodeB;
+            presence.SiteId = fromNodeId;
+            presence.Mode = PartyWorldPresenceMode.AtSite;
             presence.CombatPursuitStackId = "army:test_enemy";
-            presence.TravelTotalTicks = 100;
-            presence.RemainingTravelTicks = (int)(100 * (1f - routeProgress));
         }
 
         [Test]
@@ -153,7 +149,7 @@ namespace XianXia.Tests
             var armyResult = ArmyService.CreateArmy(world, TestFactionA, TestNodeA, new[] { leader, member });
             Assert.IsTrue(armyResult.IsSuccess);
             Assert.IsTrue(world.Strategic.FormalArmies.TryGet(armyResult.Value.ArmyId, out var army));
-            Assert.AreEqual(FormalArmyState.AtNode, army.State);
+            Assert.AreEqual(FormalArmyState.Idle, army.State);
 
             SetMemberPursuitTravel(world, leader, TestNodeA, 0.35f);
             SetMemberPursuitTravel(world, member, TestNodeA, 0.55f);
@@ -190,7 +186,7 @@ namespace XianXia.Tests
             var leader = SpawnCharacter(world, "Leader", TestNodeA);
             var army = CreateArmyAtHex(world, TestNodeA, HexA, leader);
             Assert.IsTrue(ArmyHexCommandService.MoveArmy(world, army.ArmyId, HexB).IsSuccess);
-            world.WorldPresence.SetAtNode(leader, TestNodeB);
+            world.WorldPresence.SetAtSite(leader, TestNodeB);
 
             var enemyLeader = SpawnCharacter(world, "Enemy", TestNodeB);
             var enemyArmy = ArmyService.CreateArmy(world, "enemy:faction", TestNodeB, new[] { enemyLeader }).Value;
@@ -200,14 +196,14 @@ namespace XianXia.Tests
                 Id = "enemy:far",
                 FormalArmyId = enemyArmy.ArmyId,
                 FactionId = "enemy:faction",
-                NodeId = TestNodeB
+                SiteId = TestNodeB
             };
             world.Strategic.Armies.Register(enemy);
 
             Assert.IsTrue(ArmyHexCommandService.AttackStack(world, army.ArmyId, enemy).IsSuccess);
 
             Assert.IsTrue(world.WorldPresence.TryGet(leader, out var leaderP));
-            Assert.AreNotEqual(TestNodeA, leaderP.NodeId,
+            Assert.AreNotEqual(TestNodeA, leaderP.SiteId,
                 "Pursuit must not snap living members back to stale departure node.");
         }
 
@@ -227,7 +223,7 @@ namespace XianXia.Tests
                 Id = "enemy:patrol",
                 FormalArmyId = enemyArmy.ArmyId,
                 FactionId = "enemy:faction",
-                NodeId = TestNodeA
+                SiteId = TestNodeA
             };
             world.Strategic.Armies.Register(stack);
             ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, stack);
@@ -273,7 +269,7 @@ namespace XianXia.Tests
                 Id = "enemy:stack",
                 FormalArmyId = enemyArmy.ArmyId,
                 FactionId = "enemy:faction",
-                NodeId = TestNodeB
+                SiteId = TestNodeB
             };
             world.Strategic.Armies.Register(stack);
             ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, stack);
@@ -306,7 +302,7 @@ namespace XianXia.Tests
                 Id = "enemy:stack",
                 FormalArmyId = enemyArmy.ArmyId,
                 FactionId = "enemy:faction",
-                NodeId = TestNodeB
+                SiteId = TestNodeB
             };
             world.Strategic.Armies.Register(stack);
             ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, stack);
@@ -337,7 +333,7 @@ namespace XianXia.Tests
                 Id = "enemy:stack",
                 FormalArmyId = enemyArmy.ArmyId,
                 FactionId = "enemy:faction",
-                NodeId = TestNodeB
+                SiteId = TestNodeB
             };
             world.Strategic.Armies.Register(stack);
             ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, stack);
@@ -347,7 +343,7 @@ namespace XianXia.Tests
 
             Assert.IsTrue(world.WorldPresence.TryGet(leader, out var leaderP));
             Assert.IsTrue(world.WorldPresence.TryGet(member, out var memberP));
-            Assert.AreEqual(leaderP.NodeId, memberP.NodeId);
+            Assert.AreEqual(leaderP.SiteId, memberP.SiteId);
             Assert.AreEqual(leaderP.CombatPursuitStackId, memberP.CombatPursuitStackId);
         }
 

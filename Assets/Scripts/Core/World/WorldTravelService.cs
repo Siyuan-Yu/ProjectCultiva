@@ -8,7 +8,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.World
 {
-    /// <summary>Hex 战略：LocalMap 入口与队伍焦点；legacy Route/Node 旅行已移除。</summary>
+    /// <summary>Hex 战略：LocalMap 入口与队伍焦点；legacy Route/Node 旅行已移除�?/summary>
     public static class WorldTravelService
     {
         public static Result AdvanceTravel(
@@ -30,9 +30,7 @@ namespace XianXia.Core.World
                 return false;
             if (StrategicClockFreezeService.IsModalEncounter(world))
                 return false;
-            if (p.Mode == PartyWorldPresenceMode.AtSite ||
-                p.Mode == PartyWorldPresenceMode.AtNode ||
-                p.Mode == PartyWorldPresenceMode.Traveling)
+            if (p.Mode == PartyWorldPresenceMode.AtSite)
                 return true;
             if (p.Mode != PartyWorldPresenceMode.InEncounter)
                 return false;
@@ -42,7 +40,7 @@ namespace XianXia.Core.World
         }
 
         /// <summary>
-        /// Phase D Legacy Exit：玩家宏观移动令仅通过 FormalArmy 下达。
+        /// Phase D Legacy Exit：玩家宏观移动令仅通过 FormalArmy 下达�?
         /// </summary>
         public static bool CanReceivePlayerMacroTravelOrder(SimulationWorld world, EntityId id)
         {
@@ -76,7 +74,7 @@ namespace XianXia.Core.World
                 return false;
             if (!ArmyService.TryGetArmyForCharacter(world, id, out var army) || army == null)
                 return false;
-            if (army.IsTraveling)
+            if (army.State == FormalArmyState.Moving)
                 return true;
             if (presence.IsFollowingStack)
                 return false;
@@ -110,8 +108,8 @@ namespace XianXia.Core.World
                 string siteId = null;
                 if (p.Mode == PartyWorldPresenceMode.AtSite && !string.IsNullOrEmpty(p.SiteId))
                     siteId = p.SiteId;
-                else if (!string.IsNullOrEmpty(p.NodeId) &&
-                         world.Strategic.Sites.TryGet(p.NodeId, out var nodeAsSite) &&
+                else if (!string.IsNullOrEmpty(p.SiteId) &&
+                         world.Strategic.Sites.TryGet(p.SiteId, out var nodeAsSite) &&
                          nodeAsSite != null)
                     siteId = nodeAsSite.SiteId;
 
@@ -144,12 +142,10 @@ namespace XianXia.Core.World
                 return;
 
             world.PartyWorld.SiteId = focusSiteId;
-            world.PartyWorld.NodeId = string.Empty;
             world.PartyWorld.LocalMapId = BattleOfferService.HasActiveManualEncounter(world)
                 ? BattleOfferService.ResolveActiveEncounterLocalMapId(world)
                 : ResolveWorldSiteLocalMapId(focusSite);
             world.PartyWorld.Mode = PartyWorldPresenceMode.AtSite;
-            world.PartyWorld.ClearTravel();
         }
 
         public static void ApplyLocalMapSessionFromFocus(SimulationWorld world)
@@ -169,7 +165,7 @@ namespace XianXia.Core.World
             }
         }
 
-        /// <summary>从 WorldSite 进入 LocalMap（真源 = SiteId + FormalArmy 足迹）。</summary>
+        /// <summary>�?WorldSite 进入 LocalMap（真�?= SiteId + FormalArmy 足迹）�?/summary>
         public static Result EnterWorldSiteScene(
             SimulationWorld world,
             string siteId,
@@ -191,18 +187,16 @@ namespace XianXia.Core.World
             {
                 return Result.Failure(
                     ErrorCode.InvalidOperation,
-                    "WorldSite 未配置 LocalMap，无法进入。",
+                    "WorldSite \u672a\u914d\u7f6e LocalMap\uff0c\u65e0\u6cd5\u8fdb\u5165\u3002",
                     siteId);
             }
 
             world.PartyWorld.ClearSiteFocus();
             world.PartyWorld.SiteId = siteId;
             world.PartyWorld.FocusFormalArmyId = formalArmyId ?? string.Empty;
-            world.PartyWorld.NodeId = string.Empty;
             world.PartyWorld.LocalMapId = localMapId;
             world.PartyWorld.Mode = PartyWorldPresenceMode.AtSite;
             world.PartyWorld.EncounterId = string.Empty;
-            world.PartyWorld.ClearTravel();
             ApplyLocalMapSessionFromFocus(world);
             return Result.Success();
         }

@@ -11,11 +11,11 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Tests
 {
-    /// <summary>AUTO-RES：敌军 Auto 战后 Residual Marker 数据链回归。</summary>
+    /// <summary>AUTO-RES：敌�?Auto 战后 Residual Marker 数据链回归�?/summary>
     public sealed class AutoResidualEnemyMarkerTests
     {
         const string PlayerFaction = StrategicFactionCatalog.PlayerFactionId;
-        const string NodeA = "base:node_huangcun";
+        const string NodeA = "base:site_huangcun";
 
         static SimulationWorld CreateWorld()
         {
@@ -31,7 +31,7 @@ namespace XianXia.Tests
             var created = world.Entities.CreateCharacter(new DefinitionId("test", "hero"), "Hero");
             Assert.IsTrue(created.IsSuccess);
             created.Value.Get<FactionMembershipComponent>().Assign(PlayerFaction, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(created.Value.Id, NodeA);
+            world.WorldPresence.SetAtSite(created.Value.Id, NodeA);
             return created.Value.Id;
         }
 
@@ -39,8 +39,7 @@ namespace XianXia.Tests
             SimulationWorld world,
             HexCoord hex)
         {
-            var armyResult = ArmyStackAdapter.EnsureBanditPatrolArmy(
-                world, NodeA, string.Empty, string.Empty, -1f);
+            var armyResult = ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(armyResult.IsSuccess);
             var army = armyResult.Value;
             ArmyHexTravelService.InitializeArmyAtHex(army, hex);
@@ -61,8 +60,7 @@ namespace XianXia.Tests
                 PrimaryEnemyStackId = ArmyStackAdapter.BanditPatrolStackId,
                 BattleAnchorHexQ = hex.Q,
                 BattleAnchorHexR = hex.R,
-                BattleAnchorNodeId = NodeA
-            };
+                };
             ArmyHexBattleAnchorService.SetBattleAnchorHex(snap, hex);
             return snap;
         }
@@ -132,7 +130,7 @@ namespace XianXia.Tests
             world.Strategic.Encounter.ArmyStackId = ArmyStackAdapter.BanditPatrolStackId;
             StrategicEncounterSpawner.EnsureMacroRemnantSpawns(world, snap);
 
-            // 故意不 SyncEnemyArmyAfterBattle：模拟修复前断点
+            // 故意�?SyncEnemyArmyAfterBattle：模拟修复前断点
             for (var i = 0; i < members.Count; i++)
                 Assert.IsTrue(ArmyService.TryGetArmyForCharacter(world, members[i], out _));
 
@@ -227,7 +225,6 @@ namespace XianXia.Tests
             world.Strategic.Participants.PrimaryEnemyStackId = ArmyStackAdapter.BanditPatrolStackId;
             world.Strategic.Participants.BattleAnchorHexQ = hex.Q;
             world.Strategic.Participants.BattleAnchorHexR = hex.R;
-            world.Strategic.Participants.BattleAnchorNodeId = NodeA;
             ArmyHexBattleAnchorService.SetBattleAnchorHex(world.Strategic.Participants, hex);
             world.Strategic.Encounter.ArmyStackId = ArmyStackAdapter.BanditPatrolStackId;
             StrategicEncounterSpawner.EnsureMacroRemnantSpawns(world, snap);

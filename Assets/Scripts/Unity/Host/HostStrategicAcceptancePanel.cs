@@ -6,7 +6,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
-    /// <summary>Development / Acceptance UI — 非正式游戏 UX。F8 切换。</summary>
+    /// <summary>Development / Acceptance UI 非正式游UX。F8 切换/summary>
     public sealed class HostStrategicAcceptancePanel : MonoBehaviour
     {
         [SerializeField] PlayableHostBootstrap bootstrap;
@@ -136,7 +136,7 @@ namespace XianXia.Unity.Host
                 y += 6f;
             }
 
-            y = DrawSectionHeader(w, y, "[WARS — read-only]");
+            y = DrawSectionHeader(w, y, "[SNAPSHOT]");
             var anyWar = false;
             if (world.Strategic?.Wars?.All != null)
             {
@@ -185,7 +185,8 @@ namespace XianXia.Unity.Host
                         continue;
                     y = DrawWrapped(w, y,
                         army.RetreatingArmyId + "  Faction=" + army.FactionId +
-                        "  Node=" + army.NodeId + "  Members=" + army.MemberCharacterIds.Count);
+                        "  Hex=" + (army.UsesHexPosition ? army.HexQ + "," + army.HexR : "none") +
+                        "  Members=" + army.MemberCharacterIds.Count);
                 }
             }
 
@@ -194,7 +195,7 @@ namespace XianXia.Unity.Host
 
         float DrawWarControls(SimulationWorld world, float w, float y)
         {
-            y = DrawSectionHeader(w, y, "[WAR — ACCEPTANCE]");
+            y = DrawSectionHeader(w, y, "[SNAPSHOT]");
             if (_factions.Count < 2)
             {
                 y = DrawWrapped(w, y, "Need at least 2 factions.");
@@ -223,7 +224,7 @@ namespace XianXia.Unity.Host
 
         float DrawAllianceControls(SimulationWorld world, float w, float y)
         {
-            y = DrawSectionHeader(w, y, "[ALLIANCE — ACCEPTANCE]");
+            y = DrawSectionHeader(w, y, "[SNAPSHOT]");
             if (world.Strategic?.Alliances?.All != null)
             {
                 foreach (var kv in world.Strategic.Alliances.All)
@@ -252,7 +253,7 @@ namespace XianXia.Unity.Host
 
         float DrawVassalageControls(SimulationWorld world, float w, float y)
         {
-            y = DrawSectionHeader(w, y, "[VASSALAGE — ACCEPTANCE / TEST]");
+            y = DrawSectionHeader(w, y, "[SNAPSHOT]");
             if (world.Strategic?.Vassalages?.All != null)
             {
                 foreach (var kv in world.Strategic.Vassalages.All)
@@ -281,7 +282,7 @@ namespace XianXia.Unity.Host
 
         float DrawTributeControls(SimulationWorld world, float w, float y)
         {
-            y = DrawSectionHeader(w, y, "[TRIBUTE — PLACEHOLDER]");
+            y = DrawSectionHeader(w, y, "[SNAPSHOT]");
             y = DrawWrapped(w, y, "Placeholder amount: " + TributeService.PlaceholderTributeAmount);
             if (_factions.Count < 2)
                 return y + 4f;

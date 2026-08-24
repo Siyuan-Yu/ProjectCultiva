@@ -4,70 +4,9 @@ using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>EditMode 测试专用：设置 FormalArmy 战略位置。勿在 Runtime 产品路径调用。</summary>
+    /// <summary>EditMode ??????? FormalArmy ?? Hex ????? Runtime ???????</summary>
     public static class FormalArmyTestSupport
     {
-        public static void AnchorOnRoute(
-            FormalArmy army,
-            string routeId,
-            string destNodeId,
-            float progress,
-            string nodeId = null)
-        {
-            if (army == null)
-                return;
-
-            army.ClearTravel();
-            army.State = FormalArmyState.AtNode;
-            army.RouteId = routeId ?? string.Empty;
-            army.DestNodeId = destNodeId ?? string.Empty;
-            if (!string.IsNullOrEmpty(nodeId))
-                army.NodeId = nodeId;
-            army.RouteAnchorProgress = progress;
-        }
-
-        public static void SetRouteTravel(
-            FormalArmy army,
-            string routeId,
-            string nodeId,
-            string destNodeId,
-            float segmentOrigin,
-            float segmentEnd,
-            int travelTotalTicks,
-            int remainingTravelTicks)
-        {
-            if (army == null)
-                return;
-
-            army.State = FormalArmyState.OnRoute;
-            army.RouteId = routeId ?? string.Empty;
-            army.NodeId = nodeId ?? string.Empty;
-            army.DestNodeId = destNodeId ?? string.Empty;
-            army.RouteSegmentOriginProgress = segmentOrigin;
-            army.RouteSegmentEndProgress = segmentEnd;
-            army.TravelTotalTicks = travelTotalTicks;
-            army.RemainingTravelTicks = remainingTravelTicks;
-            army.RouteAnchorProgress = -1f;
-        }
-
-        public static void SetDestNodeId(FormalArmy army, string destNodeId)
-        {
-            if (army == null)
-                return;
-
-            army.DestNodeId = destNodeId ?? string.Empty;
-        }
-
-        public static void ScaleTravelTicks(FormalArmy army, int divisor)
-        {
-            if (army == null || divisor < 1)
-                return;
-
-            var scaled = System.Math.Max(8, army.TravelTotalTicks / divisor);
-            army.TravelTotalTicks = scaled;
-            army.RemainingTravelTicks = scaled;
-        }
-
         public static void AnchorOnHex(FormalArmy army, HexCoord hex, bool garrisoned = false)
         {
             if (army == null)

@@ -11,8 +11,8 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// 结束 Modal／结算：参战者落在 BattleAnchor（禁止瞬移回家）；
-    /// 场上仍有弥留则保留遭遇战场，否则销毁。
+    /// 结束 Modal／结算：参战者落�?BattleAnchor（禁止瞬移回家）�?
+    /// 场上仍有弥留则保留遭遇战场，否则销毁�?
     /// </summary>
     public static class StrategicEncounterResolveService
     {
@@ -48,14 +48,14 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 解冻后把仍卡在 InEncounter 的宏观位置拨回 AtHex／AtNode／RouteAnchored，
-        /// 避免「只有一人弥留、其他人却不能下令」。
+        /// 解冻后把仍卡�?InEncounter 的宏观位置拨�?AtHex／AtSite�?
+        /// 避免「只有一人弥留、其他人却不能下令」�?
         /// </summary>
         public static void NormalizePresenceAfterEncounterExit(SimulationWorld world)
         {
             if (world?.WorldPresence?.All == null)
                 return;
-            // 调用方须已 EndFreeze；若仍 Modal 则不要拨（战中）
+            // 调用方须�?EndFreeze；若�?Modal 则不要拨（战中）
             if (StrategicClockFreezeService.IsModalEncounter(world))
                 return;
 
@@ -71,26 +71,17 @@ namespace XianXia.Core.World.Strategic
                 {
                     wp.SetAtHex(new HexCoord(wp.HexQ, wp.HexR));
                 }
-                else if (wp.HasRoutePresentation)
+                else if (wp.UsesHexPresence)
                 {
-                    var progress = wp.RouteAnchorProgress >= 0f
-                        ? Clamp01(wp.RouteAnchorProgress)
-                        : Clamp01(wp.TravelProgress);
-                    wp.Mode = PartyWorldPresenceMode.RouteAnchored;
-                    wp.RouteAnchorProgress = progress;
-                    wp.RemainingTravelTicks = 0;
-                    wp.TravelTotalTicks = 0;
-                    wp.ClearRouteSegment();
+                    wp.SetAtHex(wp.ResidualHex);
+                }
+                else if (!string.IsNullOrEmpty(wp.SiteId))
+                {
+                    wp.Mode = PartyWorldPresenceMode.AtSite;
                 }
                 else
                 {
-                    wp.Mode = PartyWorldPresenceMode.AtNode;
-                    wp.RouteId = string.Empty;
-                    wp.DestNodeId = string.Empty;
-                    wp.RouteAnchorProgress = -1f;
-                    wp.RemainingTravelTicks = 0;
-                    wp.TravelTotalTicks = 0;
-                    wp.ClearRouteSegment();
+                    wp.Mode = PartyWorldPresenceMode.AtSite;
                 }
 
                 wp.ClearFollow();
@@ -98,7 +89,7 @@ namespace XianXia.Core.World.Strategic
             }
         }
 
-        /// <summary>场上已无弥留／尸体时销毁残留战场（补刀／清场后调用）。</summary>
+        /// <summary>场上已无弥留／尸体时销毁残留战场（补刀／清场后调用）�?/summary>
         public static Result TryDestroyIfNoRemnants(SimulationWorld world)
         {
             if (world?.Strategic == null)
@@ -110,7 +101,7 @@ namespace XianXia.Core.World.Strategic
             return Result.Success();
         }
 
-        /// <summary>残留战场仍有倒下者（弥留或可见尸体）。</summary>
+        /// <summary>残留战场仍有倒下者（弥留或可见尸体）�?/summary>
         public static bool HasLingeringBattlefieldRemnants(SimulationWorld world)
         {
             if (world?.Strategic == null)
@@ -171,7 +162,7 @@ namespace XianXia.Core.World.Strategic
                 primaryStack.HasDownedRemnant)
                 return true;
 
-            // 快照已 Clear 后仍可能有我方弥留／尸体头像钉在宏观图上
+            // 快照�?Clear 后仍可能有我方弥留／尸体头像钉在宏观图上
             if (world.WorldPresence?.All != null)
             {
                 foreach (var kv in world.WorldPresence.All)
@@ -192,7 +183,7 @@ namespace XianXia.Core.World.Strategic
         public static void EnterPostBattleIfCleared(SimulationWorld world) =>
             TryEnterPostBattleFromManual(world);
 
-        /// <summary>敌军清空或我方全倒 → PostBattle（仍冻结，可点结束战斗）。</summary>
+        /// <summary>敌军清空或我方全�?�?PostBattle（仍冻结，可点结束战斗）�?/summary>
         public static void TryEnterPostBattleFromManual(SimulationWorld world)
         {
             if (world?.Strategic == null)
@@ -238,8 +229,8 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 参战／勾选支援者一律落到 BattleAnchor；禁止 Apply PreBattle 瞬移回家。
-        /// 未参战、未勾选者不改位置。
+        /// 参战／勾选支援者一律落�?BattleAnchor；禁�?Apply PreBattle 瞬移回家�?
+        /// 未参战、未勾选者不改位置�?
         /// </summary>
         public static void RestoreParticipantsAfterBattle(
             SimulationWorld world,
@@ -261,16 +252,14 @@ namespace XianXia.Core.World.Strategic
                 if (!world.Entities.TryGet(rec.EntityId, out var ent) || ent == null)
                     continue;
 
-                // 强制参战、已上场／已 Engaged 的支援 → BattleAnchor；
-                // 仅勾选、未上场的远处支援 → 留 PreBattle（禁止瞬移到接战点，也禁止把路上人送回家）
+                // 强制参战、已上场／已 Engaged 的支�?�?BattleAnchor�?
+                // 仅勾选、未上场的远处支�?�?�?PreBattle（禁止瞬移到接战点，也禁止把路上人送回家）
                 var mustAnchor =
                     rec.Kind == BattleParticipantKind.MandatoryFriendly ||
                     world.Strategic.Encounter.IsEngaged(rec.EntityId) ||
                     wp.Mode == PartyWorldPresenceMode.InEncounter ||
                     (rec.PreBattle != null &&
-                     (rec.PreBattle.Mode == PartyWorldPresenceMode.Traveling ||
-                      rec.PreBattle.Mode == PartyWorldPresenceMode.RouteAnchored ||
-                      rec.PreBattle.Mode == PartyWorldPresenceMode.InEncounter));
+                     rec.PreBattle.Mode == PartyWorldPresenceMode.InEncounter);
 
                 if (mustAnchor)
                     PlaceAtBattleAnchor(world, wp, snap);
@@ -308,7 +297,7 @@ namespace XianXia.Core.World.Strategic
             else if (string.IsNullOrEmpty(rt.LingeringLocalMapId))
                 rt.LingeringLocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
 
-            // 自动战未进过 LocalMap：把主敌栈绑到 Encounter，否则再进／残留丢失
+            // 自动战未进过 LocalMap：把主敌栈绑�?Encounter，否则再进／残留丢失
             if (string.IsNullOrEmpty(rt.ArmyStackId) &&
                 snap != null &&
                 !string.IsNullOrEmpty(snap.PrimaryEnemyStackId))
@@ -338,19 +327,19 @@ namespace XianXia.Core.World.Strategic
                 }
             }
 
-            // 抽象残留栈尚无实体 → 下次进图刷弥留／尸体；已有 tracked 则复用
+            // 抽象残留栈尚无实�?�?下次进图刷弥留／尸体；已�?tracked 则复�?
             var trackedCount = parkedState?.SpawnedEntityIds.Count ?? 0;
             rt.SpawnOnNextMapLoad =
                 parkedStack != null &&
                 parkedStack.HasDownedRemnant &&
                 trackedCount <= 0;
 
-            // 给弥留／尸体补 WorldPresence，大地图能画头像（ClearEngagedParty 前仍可读 Engaged 名单）
+            // 给弥留／尸体�?WorldPresence，大地图能画头像（ClearEngagedParty 前仍可读 Engaged 名单�?
             EnsureFriendlyDownedWorldPresence(world, snap);
             EnsureEnemyDownedWorldPresence(world, snap, parkedState?.SpawnedEntityIds);
             ArmyPostBattleSyncService.SyncEnemyArmyAfterBattle(world, snap);
 
-            // 退出 Modal：人不再 InEncounter，但遭遇数据保留
+            // 退�?Modal：人不再 InEncounter，但遭遇数据保留
             rt.ClearEngagedParty();
             world.PartyWorld.EncounterId = string.Empty;
 
@@ -394,9 +383,9 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 残留战场再进：Participants 快照必须使用「该 Hex」的 canonical Anchor，
-        /// 禁止从敌军栈 Legacy NodeId（常为 spawn 点青石荒村）推导。
-        /// 仅供 Lingering re-entry；禁止用于新 Active Enemy BattleOffer。
+        /// 残留战场再进：Participants 快照必须使用「该 Hex」的 canonical Anchor�?
+        /// 禁止从敌军栈 Legacy NodeId（常�?spawn 点青石荒村）推导�?
+        /// 仅供 Lingering re-entry；禁止用于新 Active Enemy BattleOffer�?
         /// </summary>
         public static bool TryApplyCanonicalLingeringBattleAnchor(
             SimulationWorld world,
@@ -426,16 +415,12 @@ namespace XianXia.Core.World.Strategic
                 return false;
 
             ArmyHexBattleAnchorService.SetBattleAnchorHex(snap, hex);
-            snap.BattleAnchorNodeId = ArmyHexBattleAnchorService.ResolveSiteIdForHex(
-                world, hex, snap.BattleAnchorNodeId);
-            snap.BattleAnchorRouteId = string.Empty;
-            snap.BattleAnchorProgress = -1f;
             return true;
         }
 
         /// <summary>
-        /// 把本场接战 Hex 注册为残留战场锚点。
-        /// 新场 snap Hex 优先；不得用旧残留 Hex 覆盖本场 Participants。
+        /// 把本场接�?Hex 注册为残留战场锚点�?
+        /// 新场 snap Hex 优先；不得用旧残�?Hex 覆盖本场 Participants�?
         /// </summary>
         public static void PersistLingeringBattleAnchor(
             SimulationWorld world,
@@ -485,7 +470,7 @@ namespace XianXia.Core.World.Strategic
             }
         }
 
-        /// <summary>残留战场 Hex 查询：优先 Encounter Runtime 最新锚点，其次 Participants。</summary>
+        /// <summary>残留战场 Hex 查询：优�?Encounter Runtime 最新锚点，其次 Participants�?/summary>
         public static bool TryGetLingeringBattleAnchorHex(
             SimulationWorld world,
             out HexCoord hex)
@@ -502,7 +487,7 @@ namespace XianXia.Core.World.Strategic
                 world.Strategic.Participants, out hex);
         }
 
-        /// <summary>指定 Hex 是否已注册为残留战场（支持多场 H1/H2 并存）。</summary>
+        /// <summary>指定 Hex 是否已注册为残留战场（支持多�?H1/H2 并存）�?/summary>
         public static bool HasLingeringBattlefieldRegisteredAtHex(
             SimulationWorld world,
             HexCoord hex)
@@ -537,7 +522,7 @@ namespace XianXia.Core.World.Strategic
             ArmyHexBattleAnchorService.ParkStackAtBattleAnchor(world, stack, snap);
         }
 
-        /// <summary>给已 tracked 的敌军弥留／尸体补接战点 WorldPresence（自动战宏观刷怪后亦调用）。</summary>
+        /// <summary>给已 tracked 的敌军弥留／尸体补接战点 WorldPresence（自动战宏观刷怪后亦调用）�?/summary>
         public static void RefreshEnemyDownedWorldPresence(
             SimulationWorld world,
             BattleParticipantSnapshot snap) =>
@@ -561,7 +546,7 @@ namespace XianXia.Core.World.Strategic
                 var id = new EntityId(spawnIds[i]);
                 if (!world.Entities.TryGet(id, out var ent) || ent == null)
                     continue;
-                // 弥留与可见尸体都要钉在接战点（再进 LocalMap／大地图倒计时同一套实体）
+                // 弥留与可见尸体都要钉在接战点（再�?LocalMap／大地图倒计时同一套实体）
                 if (!LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
                     continue;
 
@@ -569,18 +554,11 @@ namespace XianXia.Core.World.Strategic
                     wp = world.WorldPresence.GetOrCreate(id);
 
                 PlaceAtBattleAnchor(world, wp, snap);
-                // 微偏进度避免完全重叠（仅 legacy RouteAnchored；Hex Residual 由聚合 Marker 负责）
-                if (wp.Mode == PartyWorldPresenceMode.RouteAnchored)
-                {
-                    var bias = (slot % 5) * 0.008f;
-                    wp.RouteAnchorProgress = Clamp01(wp.RouteAnchorProgress + bias);
-                    slot++;
-                }
             }
         }
 
-        /// <summary>自动战／手动战后：我方弥留／尸体钉在接战点（Restore 可能因 PreBattle 漏掉）。</summary>
-        /// <summary>自动战结算弹窗期间：我方弥留／尸体钉在接战点。</summary>
+        /// <summary>自动战／手动战后：我方弥留／尸体钉在接战点（Restore 可能漏 PreBattle）。</summary>
+        /// <summary>自动战结算弹窗期间：我方弥留／尸体钉在接战点�?/summary>
         public static void EnsureFriendlyDownedWorldPresenceForAutoBattle(
             SimulationWorld world,
             BattleParticipantSnapshot snap) =>
@@ -593,7 +571,6 @@ namespace XianXia.Core.World.Strategic
             if (world == null || snap == null)
                 return;
 
-            var slot = 0;
             for (var i = 0; i < snap.Records.Count; i++)
             {
                 var rec = snap.Records[i];
@@ -607,12 +584,6 @@ namespace XianXia.Core.World.Strategic
                 if (!world.WorldPresence.TryGet(rec.EntityId, out var wp) || wp == null)
                     wp = world.WorldPresence.GetOrCreate(rec.EntityId);
                 PlaceAtBattleAnchor(world, wp, snap);
-                if (wp.Mode == PartyWorldPresenceMode.RouteAnchored)
-                {
-                    var bias = (slot % 5) * 0.008f;
-                    wp.RouteAnchorProgress = Clamp01(wp.RouteAnchorProgress + bias);
-                    slot++;
-                }
             }
 
             var engaged = CollectEngaged(world);
@@ -647,20 +618,7 @@ namespace XianXia.Core.World.Strategic
                 ArmyHexBattleAnchorService.PlacePresenceAtBattleAnchor(world, wp, snap);
                 return;
             }
-
-            wp.Mode = PartyWorldPresenceMode.AtNode;
-            wp.NodeId = snap.BattleAnchorNodeId ?? wp.NodeId ?? string.Empty;
-            wp.SiteId = snap.BattleAnchorNodeId ?? wp.SiteId ?? string.Empty;
-            wp.RouteId = string.Empty;
-            wp.DestNodeId = string.Empty;
-            wp.RouteAnchorProgress = -1f;
-            wp.RemainingTravelTicks = 0;
-            wp.TravelTotalTicks = 0;
-            wp.ClearRouteSegment();
         }
-
-        static string ResolveAnchorDest(SimulationWorld world, BattleParticipantSnapshot snap) =>
-            snap?.BattleAnchorDestNodeId ?? string.Empty;
 
         static int CountLingeringDownedSpawns(
             SimulationWorld world,

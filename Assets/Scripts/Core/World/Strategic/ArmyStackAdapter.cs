@@ -10,8 +10,8 @@ using XianXia.Core.World;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// ArmyStack 收敛 Adapter（Phase C+）：FormalArmy 为真源；ArmyStack 为 Battle/Presentation 兼容视图。
-    /// 禁止在 ArmyStack 上独立维护与 FormalArmy 冲突的 living roster。
+    /// ArmyStack 收敛 Adapter（Phase C+）：FormalArmy 为真源；ArmyStack �?Battle/Presentation 兼容视图�?
+    /// 禁止�?ArmyStack 上独立维护与 FormalArmy 冲突�?living roster�?
     /// </summary>
     public static class ArmyStackAdapter
     {
@@ -22,7 +22,7 @@ namespace XianXia.Core.World.Strategic
         public const string BanditScoutStackId = "army:bandit_patrol_auto";
         public const string BanditScoutFormalArmyId = "army:formal_bandit_scout";
 
-        /// <summary>Prototype 试炼弱匪：专供自动战／弥留回归，自动战视为必胜。</summary>
+        /// <summary>Prototype 试炼弱匪：专供自动战／弥留回归，自动战视为必胜�?/summary>
         public static bool IsTrivialTestEnemyStack(string stackId) =>
             string.Equals(stackId, BanditWeakPatrolStackId, StringComparison.Ordinal);
 
@@ -41,7 +41,7 @@ namespace XianXia.Core.World.Strategic
             return world.Strategic.FormalArmies.TryGet(stack.FormalArmyId, out army) && army != null;
         }
 
-        /// <summary>Living member count：FormalArmy 链接时从 MemberCharacterIds 派生。</summary>
+        /// <summary>Living member count：FormalArmy 链接时从 MemberCharacterIds 派生�?/summary>
         public static int GetMemberCount(SimulationWorld world, ArmyStack stack)
         {
             if (stack == null)
@@ -74,7 +74,7 @@ namespace XianXia.Core.World.Strategic
             return Math.Max(1, basePower * count);
         }
 
-        /// <summary>将 FormalArmy 的 living 统计同步到 Stack 兼容字段（只读展示用）。</summary>
+        /// <summary>�?FormalArmy �?living 统计同步�?Stack 兼容字段（只读展示用）�?/summary>
         public static void RefreshDerivedPresentation(SimulationWorld world, ArmyStack stack)
         {
             if (world == null || stack == null || !HasFormalArmyLink(stack))
@@ -93,10 +93,7 @@ namespace XianXia.Core.World.Strategic
 
         public static Result<FormalArmy> EnsureBanditPatrolArmy(
             SimulationWorld world,
-            string nodeId,
-            string routeId,
-            string destNodeId,
-            float routeAnchorProgress)
+            string siteId)
         {
             if (world == null)
                 return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "world null");
@@ -104,19 +101,11 @@ namespace XianXia.Core.World.Strategic
             if (world.Strategic.FormalArmies.TryGet(BanditPatrolFormalArmyId, out var existing) &&
                 existing != null)
             {
-                SyncBanditStackView(
-                    world,
-                    existing,
-                    BanditPatrolStackId,
-                    "荒村山匪",
-                    nodeId,
-                    routeId,
-                    destNodeId,
-                    routeAnchorProgress);
+                SyncBanditStackView(world, existing, BanditPatrolStackId, "荒村山匪", siteId);
                 return Result.Ok(existing);
             }
 
-            var members = TestStrategicBootstrap.EnsureBanditCharacters(world, nodeId);
+            var members = TestStrategicBootstrap.EnsureBanditCharacters(world, siteId);
             if (members.Count < 1)
                 return Result.Fail<FormalArmy>(ErrorCode.InvalidOperation, "Failed to spawn bandit characters.");
 
@@ -125,34 +114,23 @@ namespace XianXia.Core.World.Strategic
                 ArmyId = BanditPatrolFormalArmyId,
                 FactionId = StrategicFactionCatalog.BanditId,
                 LeaderCharacterId = members[0],
-                NodeId = nodeId,
-                State = FormalArmyState.AtNode
+                State = FormalArmyState.Idle
             };
             var ids = new List<ulong>(members.Count);
             for (var i = 0; i < members.Count; i++)
                 ids.Add(members[i].Value);
             army.ReplaceMembers(ids);
+            if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, siteId, out var hex))
+                ArmyHexTravelService.InitializeArmyAtHex(world, army, hex);
             world.Strategic.FormalArmies.Register(army);
             SyncMembershipForBanditArmy(world, army);
-
-            SyncBanditStackView(
-                world,
-                army,
-                BanditPatrolStackId,
-                "荒村山匪",
-                nodeId,
-                routeId,
-                destNodeId,
-                routeAnchorProgress);
+            SyncBanditStackView(world, army, BanditPatrolStackId, "荒村山匪", siteId);
             return Result.Ok(army);
         }
 
         public static Result<FormalArmy> EnsureBanditWeakPatrolArmy(
             SimulationWorld world,
-            string nodeId,
-            string routeId,
-            string destNodeId,
-            float routeAnchorProgress)
+            string siteId)
         {
             if (world == null)
                 return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "world null");
@@ -160,19 +138,11 @@ namespace XianXia.Core.World.Strategic
             if (world.Strategic.FormalArmies.TryGet(BanditWeakPatrolFormalArmyId, out var existing) &&
                 existing != null)
             {
-                SyncBanditStackView(
-                    world,
-                    existing,
-                    BanditWeakPatrolStackId,
-                    "试炼弱匪（自动必胜）",
-                    nodeId,
-                    routeId,
-                    destNodeId,
-                    routeAnchorProgress);
+                SyncBanditStackView(world, existing, BanditWeakPatrolStackId, "试炼弱匪（自动必胜）", siteId);
                 return Result.Ok(existing);
             }
 
-            var members = TestStrategicBootstrap.EnsureWeakBanditCharacters(world, nodeId);
+            var members = TestStrategicBootstrap.EnsureWeakBanditCharacters(world, siteId);
             if (members.Count < 1)
                 return Result.Fail<FormalArmy>(ErrorCode.InvalidOperation, "Failed to spawn weak bandit characters.");
 
@@ -181,35 +151,23 @@ namespace XianXia.Core.World.Strategic
                 ArmyId = BanditWeakPatrolFormalArmyId,
                 FactionId = StrategicFactionCatalog.BanditId,
                 LeaderCharacterId = members[0],
-                NodeId = nodeId,
-                State = FormalArmyState.AtNode
+                State = FormalArmyState.Idle
             };
             var ids = new List<ulong>(members.Count);
             for (var i = 0; i < members.Count; i++)
                 ids.Add(members[i].Value);
             army.ReplaceMembers(ids);
+            if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, siteId, out var hex))
+                ArmyHexTravelService.InitializeArmyAtHex(world, army, hex);
             world.Strategic.FormalArmies.Register(army);
             SyncMembershipForBanditArmy(world, army);
-
-            SyncBanditStackView(
-                world,
-                army,
-                BanditWeakPatrolStackId,
-                "试炼弱匪（自动必胜）",
-                nodeId,
-                routeId,
-                destNodeId,
-                routeAnchorProgress);
+            SyncBanditStackView(world, army, BanditWeakPatrolStackId, "试炼弱匪（自动必胜）", siteId);
             return Result.Ok(army);
         }
 
         public static Result<FormalArmy> EnsureBanditScoutArmy(
             SimulationWorld world,
-            string nodeId,
-            string routeId,
-            string destNodeId,
-            float routeAnchorProgress,
-            int travelTicks)
+            string siteId)
         {
             if (world == null)
                 return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "world null");
@@ -217,20 +175,11 @@ namespace XianXia.Core.World.Strategic
             if (world.Strategic.FormalArmies.TryGet(BanditScoutFormalArmyId, out var existing) &&
                 existing != null)
             {
-                SyncBanditStackView(
-                    world,
-                    existing,
-                    BanditScoutStackId,
-                    "山匪斥候",
-                    nodeId,
-                    routeId,
-                    destNodeId,
-                    routeAnchorProgress,
-                    travelTicks);
+                SyncBanditStackView(world, existing, BanditScoutStackId, "山匪斥候", siteId);
                 return Result.Ok(existing);
             }
 
-            var members = TestStrategicBootstrap.EnsureBanditScoutCharacters(world, nodeId);
+            var members = TestStrategicBootstrap.EnsureBanditScoutCharacters(world, siteId);
             if (members.Count < 1)
                 return Result.Fail<FormalArmy>(ErrorCode.InvalidOperation, "Failed to spawn bandit scout characters.");
 
@@ -239,30 +188,17 @@ namespace XianXia.Core.World.Strategic
                 ArmyId = BanditScoutFormalArmyId,
                 FactionId = StrategicFactionCatalog.BanditId,
                 LeaderCharacterId = members[0],
-                NodeId = nodeId,
-                State = FormalArmyState.OnRoute,
-                RouteId = routeId ?? string.Empty,
-                DestNodeId = destNodeId ?? string.Empty,
-                TravelTotalTicks = Math.Max(1, travelTicks),
-                RemainingTravelTicks = Math.Max(1, travelTicks)
+                State = FormalArmyState.Idle
             };
             var ids = new List<ulong>(members.Count);
             for (var i = 0; i < members.Count; i++)
                 ids.Add(members[i].Value);
             army.ReplaceMembers(ids);
+            if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, siteId, out var hex))
+                ArmyHexTravelService.InitializeArmyAtHex(world, army, hex);
             world.Strategic.FormalArmies.Register(army);
             SyncMembershipForBanditArmy(world, army);
-
-            SyncBanditStackView(
-                world,
-                army,
-                BanditScoutStackId,
-                "山匪斥候",
-                nodeId,
-                routeId,
-                destNodeId,
-                routeAnchorProgress,
-                travelTicks);
+            SyncBanditStackView(world, army, BanditScoutStackId, "山匪斥候", siteId);
             ArmyPresenceAdapter.SyncFromArmy(world, army);
             return Result.Ok(army);
         }
@@ -272,11 +208,7 @@ namespace XianXia.Core.World.Strategic
             FormalArmy army,
             string stackId,
             string displayName,
-            string nodeId,
-            string routeId,
-            string destNodeId,
-            float routeAnchorProgress,
-            int travelTicks = 0)
+            string siteId)
         {
             world.Strategic.Armies.Remove(stackId);
             var stack = new ArmyStack
@@ -285,37 +217,10 @@ namespace XianXia.Core.World.Strategic
                 FormalArmyId = army.ArmyId,
                 FactionId = army.FactionId,
                 DisplayName = displayName ?? string.Empty,
-                NodeId = nodeId,
-                RouteId = routeId ?? string.Empty,
-                DestNodeId = destNodeId ?? string.Empty,
-                RouteAnchorProgress = routeAnchorProgress
+                SiteId = siteId ?? string.Empty,
             };
-            if (travelTicks > 0)
-            {
-                stack.TravelTotalTicks = travelTicks;
-                stack.RemainingTravelTicks = travelTicks;
-            }
             RefreshDerivedPresentation(world, stack);
             world.Strategic.Armies.Register(stack);
-        }
-
-        static void SyncBanditStackView(
-            SimulationWorld world,
-            FormalArmy army,
-            string nodeId,
-            string routeId,
-            string destNodeId,
-            float routeAnchorProgress)
-        {
-            SyncBanditStackView(
-                world,
-                army,
-                BanditPatrolStackId,
-                "荒村山匪",
-                nodeId,
-                routeId,
-                destNodeId,
-                routeAnchorProgress);
         }
 
         static void SyncMembershipForBanditArmy(SimulationWorld world, FormalArmy army)
@@ -460,48 +365,16 @@ namespace XianXia.Core.World.Strategic
             RefreshDerivedPresentation(world, stack);
         }
 
-        /// <summary>FormalArmy 战略位置 → ArmyStack 展示/接战兼容视图（禁止双轨 Advance）。</summary>
+        /// <summary>FormalArmy 战略位置 �?ArmyStack 展示/接战兼容视图（禁止双�?Advance）�?/summary>
         public static void SyncStackTravelFromFormalArmy(SimulationWorld world, ArmyStack stack)
         {
             if (world == null || stack == null || !TryGetFormalArmy(world, stack, out var army) || army == null)
                 return;
 
             stack.FactionId = army.FactionId ?? string.Empty;
-            stack.NodeId = army.NodeId ?? string.Empty;
-            stack.DestNodeId = army.DestNodeId ?? string.Empty;
-
-            if (army.UsesHexStrategicPosition)
-            {
-                stack.RouteId = string.Empty;
-                stack.RouteAnchorProgress = -1f;
-                stack.ClearTravel();
-                if (world.Strategic.Sites.TryGetAtHex(army.CurrentHex, out var site) && site != null)
-                    stack.NodeId = site.SiteId;
-                stack.DestNodeId = stack.NodeId;
-                return;
-            }
-
-            if (army.IsTraveling && !string.IsNullOrEmpty(army.RouteId))
-            {
-                stack.RouteId = army.RouteId;
-                stack.RouteAnchorProgress = army.GetRouteDisplayProgress();
-                stack.RemainingTravelTicks = 0;
-                stack.TravelTotalTicks = 0;
-                return;
-            }
-
-            if (army.IsRouteAnchored)
-            {
-                stack.RouteId = army.RouteId;
-                stack.RouteAnchorProgress = army.RouteAnchorProgress;
-                stack.RemainingTravelTicks = 0;
-                stack.TravelTotalTicks = 0;
-                return;
-            }
-
-            stack.RouteId = string.Empty;
-            stack.RouteAnchorProgress = -1f;
-            stack.ClearTravel();
+            stack.SiteId = string.Empty;
+            if (ArmyService.TryResolveArmySiteId(world, army, out var siteId))
+                stack.SiteId = siteId;
         }
 
         public static void SyncAllLinkedStacksFromFormalArmies(SimulationWorld world)

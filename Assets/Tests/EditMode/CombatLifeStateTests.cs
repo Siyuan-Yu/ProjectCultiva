@@ -22,7 +22,7 @@ namespace XianXia.Tests
                 new EntityId(1001),
                 new DefinitionId("test", "fighter"),
                 EntityTag.Npc,
-                "测试者");
+                "测试�");
             defender.AddComponent(new AttributesComponent(factory));
             defender.AddComponent(new LifecycleComponent(LifecycleState.Alive));
             defender.AddComponent(new CultivationComponent());
@@ -31,13 +31,13 @@ namespace XianXia.Tests
             defender.Get<AttributesComponent>().SetBase(AttributeId.Defense, 0);
             CombatDamageRules.EnsureVitals(defender);
             Assert.IsTrue(world.Entities.AddExisting(defender).IsSuccess);
-            world.WorldPresence.SetAtNode(defender.Id, "node:test");
+            world.WorldPresence.SetAtSite(defender.Id, "node:test");
 
             attacker = new Entity(
                 new EntityId(1002),
                 new DefinitionId("test", "attacker"),
                 EntityTag.Npc,
-                "攻");
+                "�");
             attacker.AddComponent(new AttributesComponent(factory));
             attacker.AddComponent(new LifecycleComponent(LifecycleState.Alive));
             attacker.AddComponent(new CombatVitalsComponent());

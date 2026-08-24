@@ -1,13 +1,11 @@
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// FormalArmy StrategicPosition → 成员 WorldAgentPresence 单向投影（Phase D）。
-    /// 禁止从 Character Presence 反推 Army 位置。
+    /// FormalArmy StrategicPosition ? ?? WorldAgentPresence ?????Pure Hex??
     /// </summary>
     public static class ArmyPresenceAdapter
     {
@@ -49,72 +47,17 @@ namespace XianXia.Core.World.Strategic
             else
                 presence.CombatPursuitStackId = pursueStackId;
 
-            if (army.IsTraveling)
+            if (world.Strategic.Sites.TryGetAtHex(army.CurrentHex, out var site) &&
+                site != null &&
+                !string.IsNullOrEmpty(site.SiteId))
             {
-                presence.Mode = PartyWorldPresenceMode.Traveling;
-                presence.NodeId = army.NodeId;
-                presence.RouteId = army.RouteId;
-                presence.DestNodeId = army.DestNodeId;
-                presence.TravelTotalTicks = army.TravelTotalTicks;
-                presence.RemainingTravelTicks = army.RemainingTravelTicks;
-                presence.RouteAnchorProgress = -1f;
-                if (army.RouteSegmentOriginProgress >= 0f && army.RouteSegmentEndProgress >= 0f)
-                {
-                    presence.RouteSegmentOriginProgress = army.RouteSegmentOriginProgress;
-                    presence.RouteSegmentEndProgress = army.RouteSegmentEndProgress;
-                }
-                else
-                    presence.ClearRouteSegment();
+                presence.Mode = PartyWorldPresenceMode.AtSite;
+                presence.SiteId = site.SiteId;
+                presence.ClearHexPresence();
                 return;
             }
 
-            if (army.IsRouteAnchored)
-            {
-                presence.Mode = PartyWorldPresenceMode.RouteAnchored;
-                presence.NodeId = army.NodeId;
-                presence.RouteId = army.RouteId;
-                presence.DestNodeId = army.DestNodeId;
-                presence.RouteAnchorProgress = army.RouteAnchorProgress;
-                presence.RemainingTravelTicks = 0;
-                presence.TravelTotalTicks = 0;
-                presence.ClearRouteSegment();
-                return;
-            }
-
-            if (army.UsesHexStrategicPosition)
-            {
-                presence.NodeId = string.Empty;
-                presence.RouteId = string.Empty;
-                presence.DestNodeId = string.Empty;
-                presence.RouteAnchorProgress = -1f;
-                presence.RemainingTravelTicks = 0;
-                presence.TravelTotalTicks = 0;
-                presence.ClearRouteSegment();
-
-                if (world.Strategic.Sites.TryGetAtHex(army.CurrentHex, out var site) &&
-                    site != null &&
-                    !string.IsNullOrEmpty(site.SiteId))
-                {
-                    presence.Mode = PartyWorldPresenceMode.AtSite;
-                    presence.SiteId = site.SiteId;
-                    presence.ClearHexPresence();
-                }
-                else
-                {
-                    presence.SetAtHex(army.CurrentHex);
-                }
-
-                return;
-            }
-
-            presence.Mode = PartyWorldPresenceMode.AtNode;
-            presence.NodeId = army.NodeId;
-            presence.RouteId = string.Empty;
-            presence.DestNodeId = string.Empty;
-            presence.RouteAnchorProgress = -1f;
-            presence.RemainingTravelTicks = 0;
-            presence.TravelTotalTicks = 0;
-            presence.ClearRouteSegment();
+            presence.SetAtHex(army.CurrentHex);
         }
 
         static string ResolvePursuitStackId(SimulationWorld world, FormalArmy army)

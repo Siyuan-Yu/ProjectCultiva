@@ -10,7 +10,7 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// 残留战场再入队伍收集与锚点解析（Core 真源；Host 只负责点击与菜单）。
+    /// 残留战场再入队伍收集与锚点解析（Core 真源；Host 只负责点击与菜单）�?
     /// </summary>
     public static class LingeringBattlefieldPartyService
     {
@@ -23,7 +23,7 @@ namespace XianXia.Core.World.Strategic
             return ent.TryGet<LifecycleComponent>(out var life) && life.IsIncapacitated;
         }
 
-        /// <summary>可见尸体（未腐烂）：与弥留同属「倒下可交互」——可选中／进残留，不可下令。</summary>
+        /// <summary>可见尸体（未腐烂）：与弥留同属「倒下可交互」——可选中／进残留，不可下令�?/summary>
         public static bool IsVisibleCorpse(SimulationWorld world, EntityId id)
         {
             if (world == null || id.IsNone)
@@ -33,13 +33,13 @@ namespace XianXia.Core.World.Strategic
             return CombatLifeStateService.HasVisibleCorpse(ent);
         }
 
-        /// <summary>弥留或可见尸体：残留战场交互（点选／右键进入／探望）同一套。</summary>
+        /// <summary>弥留或可见尸体：残留战场交互（点选／右键进入／探望）同一套�?/summary>
         public static bool IsLingeringDowned(SimulationWorld world, EntityId id) =>
             IsIncapacitated(world, id) || IsVisibleCorpse(world, id);
 
         /// <summary>
-        /// 我方弥留／尸体：可右键「进入残留战场」或「前往并进入」。
-        /// 敌方也可经残留栈菜单进入；仍可用「追击／再攻」走进攻接战。
+        /// 我方弥留／尸体：可右键「进入残留战场」或「前往并进入」�?
+        /// 敌方也可经残留栈菜单进入；仍可用「追击／再攻」走进攻接战�?
         /// </summary>
         public static bool IsFriendlyLingeringDowned(SimulationWorld world, EntityId id)
         {
@@ -70,8 +70,8 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 残留战场再入：半径内我方弥留／尸体 + 当前行动决定人（mandatoryLiving）强制纳入；
-        /// 其余支援半径内活人由接战窗 Optional 名单勾选，不在此强制。
+        /// 残留战场再入：半径内我方弥留／尸�?+ 当前行动决定人（mandatoryLiving）强制纳入；
+        /// 其余支援半径内活人由接战�?Optional 名单勾选，不在此强制�?
         /// </summary>
         public static bool CollectViewParty(
             SimulationWorld world,
@@ -86,7 +86,7 @@ namespace XianXia.Core.World.Strategic
             if (!BattleOfferService.HasLingeringBattlefield(world))
                 return false;
 
-            if (!TryResolveBattleAnchor(world, focusIncap, out var anchorNode, out var anchorRoute, out var anchorProgress))
+            if (!TryResolveBattleAnchorHex(world, focusIncap, out var anchorHex))
             {
                 if (!focusIncap.IsNone && IsFriendlyLingeringDowned(world, focusIncap))
                 {
@@ -97,55 +97,12 @@ namespace XianXia.Core.World.Strategic
                 return false;
             }
 
-            if (ArmyHexBattleAnchorService.TryGetBattleAnchorHex(
-                    world.Strategic.Participants, out var anchorHex))
-            {
-                AppendFriendlyLingeringAtHex(world, roster, anchorHex, into);
-                AppendMandatoryLivingAtHex(world, mandatoryLiving, anchorHex, into);
-                ArmyMacroPartyQueries.ExpandMandatoryLivingToFormalArmies(world, into);
-                EnsureFocusIncapInParty(world, focusIncap, into);
-                return into.Count > 0;
-            }
-
-            AppendMandatoryLivingInRange(
-                world, mandatoryLiving, anchorNode, anchorRoute, anchorProgress, into);
+            AppendFriendlyLingeringAtHex(world, roster, anchorHex, into);
+            AppendMandatoryLivingAtHex(world, mandatoryLiving, anchorHex, into);
+            AppendIncapacitatedAtHex(world, roster, anchorHex, into);
             ArmyMacroPartyQueries.ExpandMandatoryLivingToFormalArmies(world, into);
-            // 支援范围内我方弥留／可见尸体：全部强制进场
-            AppendIncapacitatedInRange(world, roster, anchorNode, anchorRoute, anchorProgress, into);
             EnsureFocusIncapInParty(world, focusIncap, into);
-
             return into.Count > 0;
-        }
-
-        static void AppendMandatoryLivingInRange(
-            SimulationWorld world,
-            IReadOnlyList<EntityId> mandatoryLiving,
-            string anchorNode,
-            string anchorRoute,
-            float anchorProgress,
-            List<EntityId> into)
-        {
-            if (world == null || mandatoryLiving == null || into == null)
-                return;
-            for (var i = 0; i < mandatoryLiving.Count; i++)
-            {
-                var id = mandatoryLiving[i];
-                if (id.IsNone || !IsLivingForMacroOrder(world, id))
-                    continue;
-                if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
-                    continue;
-                if (!ReinforcementRangeService.IsWithinReinforcementRange(
-                        world, wp, anchorNode, anchorRoute, anchorProgress))
-                    continue;
-                for (var j = 0; j < into.Count; j++)
-                {
-                    if (into[j] == id)
-                        goto nextMandatory;
-                }
-
-                into.Add(id);
-                nextMandatory: ;
-            }
         }
 
         static void AppendFriendlyLingeringAtHex(
@@ -192,10 +149,9 @@ namespace XianXia.Core.World.Strategic
                 var id = mandatoryLiving[i];
                 if (id.IsNone || !IsLivingForMacroOrder(world, id))
                     continue;
-                if (!world.WorldPresence.TryGet(id, out var wp) || wp == null || !wp.UsesHexPresence)
+                if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
                     continue;
-                if (!wp.ResidualHex.Equals(anchorHex) &&
-                    HexMath.Distance(wp.ResidualHex, anchorHex) > 1)
+                if (!ReinforcementRangeService.IsWithinReinforcementRange(world, wp, anchorHex))
                     continue;
                 for (var j = 0; j < into.Count; j++)
                 {
@@ -208,12 +164,10 @@ namespace XianXia.Core.World.Strategic
             }
         }
 
-        static void AppendIncapacitatedInRange(
+        static void AppendIncapacitatedAtHex(
             SimulationWorld world,
             IReadOnlyList<EntityId> roster,
-            string anchorNode,
-            string anchorRoute,
-            float anchorProgress,
+            HexCoord anchorHex,
             List<EntityId> into)
         {
             if (world == null || roster == null || into == null)
@@ -223,10 +177,8 @@ namespace XianXia.Core.World.Strategic
                 var id = roster[i];
                 if (id.IsNone || !IsLingeringDowned(world, id))
                     continue;
-                if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
-                    continue;
-                if (!ReinforcementRangeService.IsWithinReinforcementRange(
-                        world, wp, anchorNode, anchorRoute, anchorProgress))
+                if (!StrategicResidualPresenceService.TryGetResidualHex(world, id, out var hex) ||
+                    !hex.Equals(anchorHex))
                     continue;
                 var exists = false;
                 for (var j = 0; j < into.Count; j++)
@@ -256,7 +208,7 @@ namespace XianXia.Core.World.Strategic
                     return;
             }
 
-            // 用户从该倒下头像进入：本人始终纳入进场名单
+            // 用户从该倒下头像进入：本人始终纳入进场名�?
             into.Add(focusIncap);
         }
 
@@ -273,18 +225,13 @@ namespace XianXia.Core.World.Strategic
                    scratch.Count > 0;
         }
 
-        public static bool TryResolveBattleAnchor(
+        public static bool TryResolveBattleAnchorHex(
             SimulationWorld world,
             EntityId focusIncap,
-            out string anchorNode,
-            out string anchorRoute,
-            out float anchorProgress)
+            out HexCoord anchorHex)
         {
-            anchorNode = string.Empty;
-            anchorRoute = string.Empty;
-            anchorProgress = -1f;
-
-            if (TryResolveBattleAnchorFromParticipants(world, out anchorNode, out anchorRoute, out anchorProgress))
+            anchorHex = default;
+            if (TryResolveBattleAnchorHexFromParticipants(world, out anchorHex))
                 return true;
 
             if (focusIncap.IsNone ||
@@ -292,62 +239,39 @@ namespace XianXia.Core.World.Strategic
                 wp == null)
                 return false;
 
-            return TryResolveBattleAnchorFromPresence(wp, out anchorNode, out anchorRoute, out anchorProgress);
+            return TryResolveBattleAnchorHexFromPresence(world, wp, out anchorHex);
         }
 
-        static bool TryResolveBattleAnchorFromParticipants(
+        static bool TryResolveBattleAnchorHexFromParticipants(
             SimulationWorld world,
-            out string anchorNode,
-            out string anchorRoute,
-            out float anchorProgress)
+            out HexCoord anchorHex)
         {
-            anchorNode = string.Empty;
-            anchorRoute = string.Empty;
-            anchorProgress = -1f;
-
+            anchorHex = default;
             var snap = world?.Strategic?.Participants;
-            if (snap == null ||
-                (string.IsNullOrEmpty(snap.BattleAnchorNodeId) &&
-                 string.IsNullOrEmpty(snap.BattleAnchorRouteId)))
-                return false;
-
-            anchorNode = snap.BattleAnchorNodeId ?? string.Empty;
-            anchorRoute = snap.BattleAnchorRouteId ?? string.Empty;
-            anchorProgress = snap.BattleAnchorProgress;
-            return true;
+            return snap != null &&
+                   ArmyHexBattleAnchorService.TryGetBattleAnchorHex(snap, out anchorHex);
         }
 
-        static bool TryResolveBattleAnchorFromPresence(
+        static bool TryResolveBattleAnchorHexFromPresence(
+            SimulationWorld world,
             WorldAgentPresence wp,
-            out string anchorNode,
-            out string anchorRoute,
-            out float anchorProgress)
+            out HexCoord anchorHex)
         {
-            anchorNode = string.Empty;
-            anchorRoute = string.Empty;
-            anchorProgress = -1f;
+            anchorHex = default;
             if (wp == null)
                 return false;
 
-            if (wp.HasRoutePresentation && !string.IsNullOrEmpty(wp.RouteId))
+            if (wp.UsesHexPresence)
             {
-                anchorNode = wp.NodeId ?? string.Empty;
-                anchorRoute = wp.RouteId;
-                anchorProgress = wp.Mode == PartyWorldPresenceMode.RouteAnchored
-                    ? Clamp01(wp.RouteAnchorProgress)
-                    : Clamp01(wp.TravelProgress);
+                anchorHex = wp.ResidualHex;
                 return true;
             }
 
-            if (!string.IsNullOrEmpty(wp.NodeId))
-            {
-                anchorNode = wp.NodeId;
+            if (!string.IsNullOrEmpty(wp.SiteId) &&
+                ArmyHexBattleAnchorService.TryResolveHexForSite(world, wp.SiteId, out anchorHex))
                 return true;
-            }
 
             return false;
         }
-
-        static float Clamp01(float v) => Math.Max(0f, Math.Min(1f, v));
     }
 }

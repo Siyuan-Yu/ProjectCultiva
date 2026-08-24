@@ -16,8 +16,6 @@ namespace XianXia.Data.Content
         public string OpeningWorldRegionId { get; set; }
         /// <summary>村内地点表（绑 mapLayout）。</summary>
         public string OpeningLocalPlaceSetId { get; set; }
-        /// <summary>宏观 WorldGraph id（[113] legacy）。</summary>
-        public string OpeningWorldGraphId { get; set; }
         /// <summary>正式 Hex 战略大地图 content id。</summary>
         public string OpeningHexWorldId { get; set; }
         /// <summary>Chapter Production: optional opening chapter definition id.</summary>

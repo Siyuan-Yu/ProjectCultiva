@@ -13,12 +13,12 @@ using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>战略手动接战：进 Encounter LocalMap 时刷敌对 NPC。</summary>
+    /// <summary>战略手动接战：进 Encounter LocalMap 时刷敌对 NPC�?/summary>
     public static class StrategicEncounterSpawner
     {
         static readonly DefinitionId BanditGruntDef = new DefinitionId("base", "strategic_bandit_grunt");
 
-        /// <summary>进 LocalMap 前绑定 Registry 内独立 Battlefield（Hex → E1/E2）。</summary>
+        /// <summary>�?LocalMap 前绑�?Registry 内独�?Battlefield（Hex �?E1/E2）�?/summary>
         public static bool TryPrepareLingeringLocalMapSession(
             SimulationWorld world,
             HexCoord? hex = null)
@@ -99,9 +99,9 @@ namespace XianXia.Core.World.Strategic
                 if (!string.IsNullOrEmpty(armyStackId))
                     PruneTrackedSpawnsForStack(world, armyStackId);
                 var hasTracked = HasReusableTrackedPresence(world);
-                // 自动战残留尚无实体 → 进图刷弥留；已有弥留／尸体则复用（禁止重刷刷新倒计时）
+                // 自动战残留尚无实�?�?进图刷弥留；已有弥留／尸体则复用（禁止重刷刷新倒计时）
                 rt.SpawnOnNextMapLoad = !hasTracked;
-                // 保持 BattlefieldLingering=true：可反复再进；仅 Destroy 时清除
+                // 保持 BattlefieldLingering=true：可反复再进；仅 Destroy 时清�?
                 rt.FieldCleared = false;
                 rt.ArmyStackId = armyStackId;
                 if (engagedParty != null && engagedParty.Count > 0)
@@ -128,7 +128,7 @@ namespace XianXia.Core.World.Strategic
                         "PlanManualEncounter.StoredParticipants");
                 }
 
-                // 已有弥留刷怪：再进时补 LocalMap 落点（人还在接战点，不能凭空消失）
+                // 已有弥留刷怪：再进时补 LocalMap 落点（人还在接战点，不能凭空消失�?
                 EnsureTrackedSpawnsLocalPresentation(world);
                 return;
             }
@@ -142,7 +142,7 @@ namespace XianXia.Core.World.Strategic
                 PruneRemovedSpawns(world);
                 PruneTrackedSpawnsForStack(world, armyStackId);
                 var hasTracked = HasReusableTrackedPresence(world);
-                // 仅当完全没有场上实体时才清；有弥留／尸体绝不能 Clear（否则倒计时被刷回满）
+                // 仅当完全没有场上实体时才清；有弥留／尸体绝不�?Clear（否则倒计时被刷回满）
                 if (!hasTracked)
                     ClearSpawned(world);
                 var keepLingerMap = rt.LingeringLocalMapId;
@@ -168,7 +168,7 @@ namespace XianXia.Core.World.Strategic
                 return;
             }
 
-            // 安全网：本遭遇仍有弥留／尸体实体时，禁止走「清场重刷」（会把倒计时刷回满）
+            // 安全网：本遭遇仍有弥留／尸体实体时，禁止走「清场重刷」（会把倒计时刷回满�?
             if (!string.IsNullOrEmpty(armyStackId) &&
                 string.Equals(rt.ArmyStackId, armyStackId, StringComparison.Ordinal) &&
                 HasReusableTrackedPresence(world))
@@ -215,54 +215,22 @@ namespace XianXia.Core.World.Strategic
             IReadOnlyList<EntityId> party,
             ArmyStack stack)
         {
-            if (world == null || stack == null || party == null || !stack.IsRoutePositioned)
-                return;
-
-            for (var i = 0; i < party.Count; i++)
-            {
-                var id = party[i];
-                if (id.IsNone || !world.WorldPresence.TryGet(id, out var wp) || wp == null)
-                    continue;
-
-                ApplyStackRouteToPresence(wp, stack);
-            }
+            // Pure Hex: presence is already hex/site anchored before encounter.
         }
 
         static void ApplyStackRouteToPresence(WorldAgentPresence wp, ArmyStack stack)
         {
-            if (wp == null || stack == null || !stack.IsRoutePositioned)
-                return;
-
-            wp.NodeId = stack.NodeId ?? string.Empty;
-            wp.DestNodeId = stack.DestNodeId ?? string.Empty;
-            wp.RouteId = stack.RouteId ?? string.Empty;
-            if (stack.IsRouteAnchored)
-            {
-                wp.RouteAnchorProgress = stack.GetRouteDisplayProgress();
-                wp.RemainingTravelTicks = 0;
-                wp.TravelTotalTicks = 0;
-                wp.ClearRouteSegment();
-                wp.Mode = PartyWorldPresenceMode.InEncounter;
-            }
-            else if (stack.IsTraveling)
-            {
-                wp.Mode = PartyWorldPresenceMode.InEncounter;
-                wp.TravelTotalTicks = Math.Max(1, stack.TravelTotalTicks);
-                wp.RemainingTravelTicks = Math.Max(0, stack.RemainingTravelTicks);
-                wp.RouteAnchorProgress = -1f;
-                wp.ClearRouteSegment();
-            }
         }
 
         /// <summary>
-        /// 遭遇战刷出的敌军倒下：同步伤亡；敌清空时标记 FieldCleared（无结算、不卸图、不弹大地图）。
+        /// 遭遇战刷出的敌军倒下：同步伤亡；敌清空时标记 FieldCleared（无结算、不卸图、不弹大地图）�?
         /// </summary>
         public static bool OnCombatantDefeated(SimulationWorld world, EntityId defenderId)
         {
             if (world?.Strategic == null || defenderId.IsNone || !IsTrackedSpawn(world, defenderId))
                 return false;
             PruneRemovedSpawns(world);
-            // 删栈前先把道路进度落到参战者身上，否则清场后路锚变成 0、无法回程／像瞬移
+            // 删栈前先把道路进度落到参战者身上，否则清场后路锚变�?0、无法回程／像瞬�?
             SnapshotEngagedRouteFromStack(world);
             SyncArmyStackMemberCount(world);
             TryMarkFieldCleared(world);
@@ -272,29 +240,12 @@ namespace XianXia.Core.World.Strategic
             return true;
         }
 
-        /// <summary>敌军栈尚在时，把宏观路点进度写入所有参战者。</summary>
+        /// <summary>敌军栈尚在时，把宏观路点进度写入所有参战者�?/summary>
         public static void SnapshotEngagedRouteFromStack(SimulationWorld world)
         {
-            if (world?.Strategic == null)
-                return;
-            var rt = world.Strategic.Encounter;
-            if (string.IsNullOrEmpty(rt.ArmyStackId) || !rt.HasEngagedParty)
-                return;
-            if (!world.Strategic.Armies.TryGet(rt.ArmyStackId, out var stack) || stack == null)
-                return;
-            if (!stack.IsRoutePositioned)
-                return;
-
-            for (var i = 0; i < rt.EngagedPartyIds.Count; i++)
-            {
-                var id = new EntityId(rt.EngagedPartyIds[i]);
-                if (id.IsNone || !world.WorldPresence.TryGet(id, out var wp) || wp == null)
-                    continue;
-                ApplyStackRouteToPresence(wp, stack);
-            }
         }
 
-        /// <summary>场上已无存活遭遇敌军且仍有参战者 → 解锁宏观移动，不弹结算。</summary>
+        /// <summary>场上已无存活遭遇敌军且仍有参战�?�?解锁宏观移动，不弹结算�?/summary>
         public static bool TryMarkFieldCleared(SimulationWorld world)
         {
             if (world?.Strategic == null)
@@ -317,7 +268,7 @@ namespace XianXia.Core.World.Strategic
         public static bool IsFieldCleared(SimulationWorld world) =>
             world?.Strategic?.Encounter != null && world.Strategic.Encounter.FieldCleared;
 
-        /// <summary>清场后宏观上路：退出 Engaged，落回 AtNode／路锚（不卸 LocalMap）。</summary>
+        /// <summary>清场后宏观上路：退�?Engaged，落�?AtSite／路锚（不卸 LocalMap）�?/summary>
         public static void ReleaseEngagedForMacroTravel(SimulationWorld world, EntityId id)
         {
             if (world?.Strategic == null || id.IsNone)
@@ -328,27 +279,7 @@ namespace XianXia.Core.World.Strategic
             var rt = world.Strategic.Encounter;
             rt.RemoveEngagedPartyMember(id);
 
-            if (!string.IsNullOrEmpty(wp.RouteId) &&
-                !string.IsNullOrEmpty(wp.DestNodeId) &&
-                !string.Equals(wp.NodeId, wp.DestNodeId, StringComparison.Ordinal))
-            {
-                wp.AnchorOnRoute(ResolveMacroRouteProgress(wp));
-            }
-            else
-            {
-                wp.Mode = PartyWorldPresenceMode.AtNode;
-                wp.RemainingTravelTicks = 0;
-                wp.TravelTotalTicks = 0;
-                wp.RouteAnchorProgress = -1f;
-                wp.ClearRouteSegment();
-                if (string.IsNullOrEmpty(wp.DestNodeId) ||
-                    string.Equals(wp.NodeId, wp.DestNodeId, StringComparison.Ordinal))
-                {
-                    wp.RouteId = string.Empty;
-                    wp.DestNodeId = string.Empty;
-                }
-            }
-
+            wp.Mode = PartyWorldPresenceMode.AtSite;
             if (!rt.HasEngagedParty)
             {
                 rt.FieldCleared = false;
@@ -356,49 +287,6 @@ namespace XianXia.Core.World.Strategic
                 rt.EncounterLinkId = string.Empty;
                 ClearSpawned(world);
             }
-        }
-
-        /// <summary>
-        /// 释放上路用的道路进度。丢失进度时用 0.5，避免钉在 0／1 导致「回不去出发端」或端点瞬移。
-        /// </summary>
-        public static float ResolveMacroRouteProgress(WorldAgentPresence wp)
-        {
-            if (wp == null)
-                return 0.5f;
-            if (wp.RouteAnchorProgress >= 0f && wp.RouteAnchorProgress <= 1f)
-                return wp.RouteAnchorProgress;
-            if (wp.TravelTotalTicks > 0)
-            {
-                var t = wp.TravelProgress;
-                if (t < 0f)
-                    return 0.5f;
-                if (t > 1f)
-                    return 1f;
-                return t;
-            }
-
-            return 0.5f;
-        }
-
-        /// <summary>进 Encounter 图前：保留宏观路进度，再清旅行 tick。</summary>
-        public static void PreserveRouteProgressForEncounter(WorldAgentPresence wp)
-        {
-            if (wp == null)
-                return;
-            if (wp.RouteAnchorProgress < 0f &&
-                !string.IsNullOrEmpty(wp.RouteId) &&
-                !string.IsNullOrEmpty(wp.DestNodeId))
-            {
-                if (wp.TravelTotalTicks > 0)
-                    wp.RouteAnchorProgress = Math.Max(0f, Math.Min(1f, wp.TravelProgress));
-                else
-                    wp.RouteAnchorProgress = 0.5f;
-            }
-
-            wp.RemainingTravelTicks = 0;
-            wp.TravelTotalTicks = 0;
-            wp.ClearRouteSegment();
-            wp.Mode = PartyWorldPresenceMode.InEncounter;
         }
 
         public static Result ApplyPending(SimulationWorld world)
@@ -491,7 +379,7 @@ namespace XianXia.Core.World.Strategic
                 targetCount = Math.Max(targetCount, stack.CorpseMemberCount);
             else if (stack != null && stack.HasIncapacitatedRemnant)
                 targetCount = Math.Max(targetCount, stack.IncapacitatedMemberCount);
-            // 可见尸体也占坑：不能再刷新弥留把倒计时刷满
+            // 可见尸体也占坑：不能再刷新弥留把倒计时刷�?
             var toSpawn = Math.Max(0, targetCount - living - incap - corpses);
             if (toSpawn <= 0)
                 return Result.Success();
@@ -522,8 +410,8 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 自动战未进 LocalMap：在接战点立刻刷弥留／尸体实体并钉 WorldPresence，
-        /// 大地图个体头像与进图再出来一致。
+        /// 自动战未�?LocalMap：在接战点立刻刷弥留／尸体实体并�?WorldPresence�?
+        /// 大地图个体头像与进图再出来一致�?
         /// </summary>
         public static void EnsureMacroRemnantSpawns(
             SimulationWorld world,
@@ -532,7 +420,7 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic?.Encounter == null || snap == null)
                 return;
 
-            // Macro park 必须写 Active session，禁止污染上一场 LocalMap 的 ActiveBattlefieldId scope
+            // Macro park 必须�?Active session，禁止污染上一�?LocalMap �?ActiveBattlefieldId scope
             world.Strategic.Encounter.ActiveBattlefieldId = string.Empty;
             PruneRemovedSpawns(world);
             var rt = world.Strategic.Encounter;
@@ -597,7 +485,7 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 按 ParticipantSnapshot 敌军记录刷 LocalMap（Primary + Reinforcement EntityId）。
+        /// �?ParticipantSnapshot 敌军记录�?LocalMap（Primary + Reinforcement EntityId）�?
         /// </summary>
         static int TryPrepareSnapshotEnemyParticipants(
             SimulationWorld world,
@@ -659,7 +547,7 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 按 Registry 冻结 Participant Records 恢复敌军 LocalMap（禁止 Living-only / 重查 Active Army）。
+        /// �?Registry 冻结 Participant Records 恢复敌军 LocalMap（禁�?Living-only / 重查 Active Army）�?
         /// </summary>
         public static int TryPrepareStoredLingeringEnemyParticipants(
             SimulationWorld world,
@@ -679,7 +567,7 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// FormalArmy 链接敌军：复用真实成员实体，禁止再刷 strategic_bandit_grunt 占位（否则残留再进会双倍）。
+        /// FormalArmy 链接敌军：复用真实成员实体，禁止再刷 strategic_bandit_grunt 占位（否则残留再进会双倍）�?
         /// </summary>
         static int TryPrepareFormalArmyEncounterEntities(
             SimulationWorld world,
@@ -759,7 +647,7 @@ namespace XianXia.Core.World.Strategic
                 BattlefieldSpawnScope.AssertNotCrossBattlefieldFinalize(
                     world, id, nameof(PruneGenericDuplicateSpawnsForFormalArmy));
 
-                // 属于其他 Battlefield 的 entity：禁止 FinalizeRemoval（只从当前 scope 列表摘掉引用）
+                // 属于其他 Battlefield �?entity：禁�?FinalizeRemoval（只从当�?scope 列表摘掉引用�?
                 if (BattlefieldSpawnScope.ShouldProtectFromScopedRemoval(world, id, scoped))
                 {
                     BattlefieldSpawnScope.RemoveTrackedSpawnAt(world, i);
@@ -874,8 +762,8 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 再进残留战场：已 tracked 的敌军（含弥留）补上 LocalMap 表现坐标。
-        /// 与我方弥留同一原则——人钉在接战点，进图必须仍在场上。
+        /// 再进残留战场：已 tracked 的敌军（含弥留）补上 LocalMap 表现坐标�?
+        /// 与我方弥留同一原则——人钉在接战点，进图必须仍在场上�?
         /// </summary>
         public static void EnsureTrackedSpawnsLocalPresentation(SimulationWorld world)
         {
@@ -963,13 +851,13 @@ namespace XianXia.Core.World.Strategic
         }
 
 
-        /// <summary>场上仍有可复用的遭遇体（活／弥留／可见尸体）——再进时禁止清掉重刷。</summary>
+        /// <summary>场上仍有可复用的遭遇体（活／弥留／可见尸体）——再进时禁止清掉重刷�?/summary>
         public static bool HasReusableTrackedPresence(SimulationWorld world) =>
             CountLivingTracked(world) > 0 ||
             CountIncapacitatedTracked(world) > 0 ||
             CountVisibleCorpseTracked(world) > 0;
 
-        /// <summary>自动战未处决：把已刷新的存活敌军同步为弥留（与栈上 IncapacitatedMemberCount 一致）。</summary>
+        /// <summary>自动战未处决：把已刷新的存活敌军同步为弥留（与栈�?IncapacitatedMemberCount 一致）�?/summary>
         public static void ApplyIncapacitatedToLivingTrackedSpawns(SimulationWorld world)
         {
             if (world?.Strategic == null)
@@ -991,7 +879,7 @@ namespace XianXia.Core.World.Strategic
             SyncArmyStackMemberCount(world);
         }
 
-        /// <summary>自动战处决：把已刷新的存活／弥留敌军同步为尸体（与栈上 CorpseMemberCount 一致）。</summary>
+        /// <summary>自动战处决：把已刷新的存活／弥留敌军同步为尸体（与栈�?CorpseMemberCount 一致）�?/summary>
         public static void ApplyCorpseToLivingTrackedSpawns(SimulationWorld world)
         {
             if (world?.Strategic == null)
@@ -1110,7 +998,7 @@ namespace XianXia.Core.World.Strategic
             return count;
         }
 
-        /// <summary>尸体腐烂／Removed 后：修剪刷怪追踪，并同步敌军栈（无可见残留则从大地图移除）。</summary>
+        /// <summary>尸体腐烂／Removed 后：修剪刷怪追踪，并同步敌军栈（无可见残留则从大地图移除）�?/summary>
         public static void ReconcileAfterLifeDecay(SimulationWorld world, EntityId removedId)
         {
             if (world?.Strategic == null)
@@ -1123,7 +1011,7 @@ namespace XianXia.Core.World.Strategic
 
             SyncArmyStackMemberCount(world);
 
-            // 该遭遇栈追踪的尸体已全部腐烂：连抽象弥留标记一并清掉，大地图不再留敌军点
+            // 该遭遇栈追踪的尸体已全部腐烂：连抽象弥留标记一并清掉，大地图不再留敌军�?
             var leftover = CountLivingTracked(world) +
                            CountIncapacitatedTracked(world) +
                            CountVisibleCorpseTracked(world);
@@ -1164,7 +1052,7 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 切换／再进目标栈时：剔除不属于该 FormalArmy 的 tracked 占位（仅当前 Encounter scope）。
+        /// 切换／再进目标栈时：剔除不属于该 FormalArmy �?tracked 占位（仅当前 Encounter scope）�?
         /// </summary>
         public static void PruneTrackedSpawnsForStack(SimulationWorld world, string armyStackId)
         {
@@ -1195,7 +1083,7 @@ namespace XianXia.Core.World.Strategic
             }
         }
 
-        /// <summary>切换 Active Encounter 栈：清空 Active scope spawns（Registry 内已 park 的不动）。</summary>
+        /// <summary>切换 Active Encounter 栈：清空 Active scope spawns（Registry 内已 park 的不动）�?/summary>
         static void UntrackSpawnsForSessionSwitch(SimulationWorld world)
         {
             if (world?.Strategic?.Encounter == null)
@@ -1245,7 +1133,7 @@ namespace XianXia.Core.World.Strategic
                 return;
             }
 
-            // 尚无刷怪实体，但自动战已记下残留人数 → 保留抽象栈
+            // 尚无刷怪实体，但自动战已记下残留人�?�?保留抽象�?
             if (stack.HasDownedRemnant)
             {
                 stack.MemberCount = Math.Max(1, Math.Max(stack.IncapacitatedMemberCount, stack.CorpseMemberCount));
@@ -1267,18 +1155,10 @@ namespace XianXia.Core.World.Strategic
                 var id = party[i];
                 if (id.IsNone || !world.WorldPresence.TryGet(id, out var wp) || wp == null)
                     continue;
-                if (wp.Mode == PartyWorldPresenceMode.Traveling ||
-                    wp.Mode == PartyWorldPresenceMode.RouteAnchored ||
-                    wp.Mode == PartyWorldPresenceMode.AtNode ||
+                if (wp.Mode == PartyWorldPresenceMode.AtSite ||
                     wp.Mode == PartyWorldPresenceMode.AtHex ||
                     wp.Mode == PartyWorldPresenceMode.InEncounter)
                 {
-                    // 保留路锚／Hex 坐标，仅切 Mode，便于进遭遇图
-                    if (wp.Mode != PartyWorldPresenceMode.InEncounter &&
-                        !string.IsNullOrEmpty(wp.RouteId) &&
-                        wp.RouteAnchorProgress < 0f &&
-                        wp.TravelTotalTicks > 0)
-                        wp.RouteAnchorProgress = Math.Max(0f, Math.Min(1f, wp.TravelProgress));
                     wp.Mode = PartyWorldPresenceMode.InEncounter;
                 }
             }

@@ -30,7 +30,7 @@ namespace XianXia.Tests
         {
             var world = StartCh01().World;
             Assert.IsTrue(world.Strategic.Sites.TryGet(Ch01HexPrototypeMapBuilder.SiteHuangcun, out var huangcun));
-            Assert.IsTrue(string.IsNullOrEmpty(huangcun.OwnerFactionId), "暂不做节点势力归属");
+            Assert.IsTrue(string.IsNullOrEmpty(huangcun.OwnerFactionId), "暂不做节点势力归�");
             Assert.IsTrue(world.Strategic.Sites.TryGet("base:site_linjian", out var linjian));
             Assert.IsTrue(string.IsNullOrEmpty(linjian.OwnerFactionId));
         }
@@ -73,7 +73,7 @@ namespace XianXia.Tests
             var resolved = BattleOfferService.ResolveAuto(world, false, out _, out _);
             Assert.IsTrue(resolved.IsSuccess, resolved.IsFailure ? resolved.Error.ToString() : "");
             Assert.IsTrue(world.Strategic.Participants.IsAutoSettlement);
-            Assert.IsTrue(world.Strategic.HasBlockingInterrupt, "自动战结算弹窗仍为打断");
+            Assert.IsTrue(world.Strategic.HasBlockingInterrupt, "自动战结算弹窗仍为打�");
             Assert.IsTrue(StrategicEncounterResolveService.ResolveAndEnd(world).IsSuccess);
             Assert.IsFalse(world.Strategic.HasBlockingInterrupt);
             Assert.LessOrEqual(world.Strategic.Armies.Stacks.Count, stacksBefore);
@@ -102,17 +102,17 @@ namespace XianXia.Tests
             Assert.IsTrue(ArmyStackAdapter.HasFormalArmyLink(stack));
             Assert.AreEqual(StrategicFactionCatalog.BanditId, stack.FactionId);
             Assert.AreEqual(4, ArmyStackAdapter.GetMemberCount(world, stack));
-            Assert.IsTrue(stack.IsTraveling || !string.IsNullOrEmpty(stack.NodeId));
+            Assert.IsFalse(string.IsNullOrEmpty(stack.SiteId));
         }
 
         [Test]
         public void NodeAccess_NoPartyAtNode_Blocked()
         {
             var world = StartCh01().World;
-            Assert.IsFalse(StrategicNodeAccessService.HasPartyMemberAtNode(world, "base:node_linjian"));
-            var access = StrategicNodeAccessService.CanEnterNodeLocalMap(world, "base:node_linjian");
+            Assert.IsFalse(StrategicSiteAccessService.HasPartyMemberAtSite(world, "base:site_linjian"));
+            var access = StrategicSiteAccessService.CanEnterSiteLocalMap(world, "base:site_linjian");
             Assert.IsTrue(access.IsFailure);
-            StringAssert.Contains("无己方角色", access.Error.Message);
+            StringAssert.Contains("无己方角�", access.Error.Message);
         }
 
         [Test]
@@ -120,8 +120,8 @@ namespace XianXia.Tests
         {
             var session = StartCh01();
             var world = session.World;
-            Assert.AreEqual("base:node_huangcun", world.PartyWorld.NodeId);
-            var access = StrategicNodeAccessService.CanEnterNodeLocalMap(world, "base:node_linjian");
+            Assert.AreEqual("base:site_huangcun", world.PartyWorld.SiteId);
+            var access = StrategicSiteAccessService.CanEnterSiteLocalMap(world, "base:site_linjian");
             Assert.IsTrue(access.IsFailure, access.IsFailure ? access.Error.ToString() : "expected blocked");
         }
 
@@ -137,7 +137,7 @@ namespace XianXia.Tests
         {
             var session = StartCh01();
             var world = session.World;
-            var access = StrategicNodeAccessService.CanEnterNodeLocalMap(world, "base:node_huangcun");
+            var access = StrategicSiteAccessService.CanEnterSiteLocalMap(world, "base:site_huangcun");
             Assert.IsTrue(access.IsSuccess, "荒村有我方时应可进入场景");
         }
 
@@ -268,14 +268,10 @@ namespace XianXia.Tests
                     out var army));
                 Assert.IsTrue(army.UsesHexStrategicPosition);
                 Assert.AreEqual(FormalArmyState.Idle, army.State);
-                Assert.IsFalse(stack.IsTraveling);
                 return;
             }
 
-            Assert.IsTrue(stack.IsRouteAnchored);
-            Assert.AreEqual(0.5f, stack.RouteAnchorProgress, 0.001f);
-            Assert.AreEqual("base:node_huangcun", stack.NodeId);
-            Assert.AreEqual("base:node_linjian", stack.DestNodeId);
+            Assert.AreEqual("base:site_huangcun", stack.SiteId);
         }
 
         [Test]
@@ -338,8 +334,8 @@ namespace XianXia.Tests
             presence.Mode = PartyWorldPresenceMode.InEncounter;
             presence.SiteId = huangcun;
 
-            Assert.IsTrue(StrategicNodeAccessService.HasPartyMemberAtSite(world, huangcun));
-            var access = StrategicNodeAccessService.CanEnterSiteLocalMap(world, huangcun);
+            Assert.IsTrue(StrategicSiteAccessService.HasPartyMemberAtSite(world, huangcun));
+            var access = StrategicSiteAccessService.CanEnterSiteLocalMap(world, huangcun);
             Assert.IsTrue(access.IsSuccess, access.IsFailure ? access.Error.ToString() : "");
         }
 
@@ -508,7 +504,7 @@ namespace XianXia.Tests
                 Assert.AreNotEqual(
                     BattleParticipantKind.OptionalFriendly,
                     rec.Kind,
-                    "散装角色不应再逐人出现在可选支援名单");
+                    "散装角色不应再逐人出现在可选支援名�");
             }
         }
 
@@ -609,7 +605,7 @@ namespace XianXia.Tests
             Assert.IsTrue(won);
             Assert.IsTrue(world.Strategic.Armies.TryGet(enemy.Id, out var after));
             Assert.IsNotNull(after);
-            Assert.AreEqual(beforeMembers, after.MemberCount, "未处决应保留全员为弥留人数");
+            Assert.AreEqual(beforeMembers, after.MemberCount, "未处决应保留全员为弥留人�");
             Assert.IsTrue(after.HasIncapacitatedRemnant);
             Assert.AreEqual(beforeMembers, after.IncapacitatedMemberCount);
             Assert.AreEqual(beforeMembers, CountTrackedEnemyDownedSpawns(world));
@@ -653,7 +649,7 @@ namespace XianXia.Tests
                 Assert.IsTrue(LingeringBattlefieldPartyService.IsIncapacitated(world, id));
                 Assert.IsFalse(ArmyService.TryGetArmyForCharacter(world, id, out _));
                 Assert.IsTrue(world.WorldPresence.TryGet(id, out var wp));
-                Assert.IsFalse(string.IsNullOrEmpty(wp.NodeId));
+                Assert.IsFalse(string.IsNullOrEmpty(wp.SiteId));
             }
             finally
             {
@@ -671,7 +667,7 @@ namespace XianXia.Tests
             var beforeMembers = enemy.MemberCount;
 
             world.Random = new XianXia.Core.Random.DeterministicRandom(2);
-            Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(world, party, enemy, "测试弥留刷怪"));
+            Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(world, party, enemy, "测试弥留刷�"));
             world.Strategic.BattleOffer.AutoWinPercent = 100;
 
             Assert.IsTrue(BattleOfferService.ResolveAuto(world, false, out var won, out _).IsSuccess);
@@ -702,7 +698,7 @@ namespace XianXia.Tests
 
             const string lingerMap = "base:map_world_node_stub";
             world.Strategic.Encounter.LingeringLocalMapId = lingerMap;
-            var anchorSite = world.Strategic.Participants.BattleAnchorNodeId;
+            ArmyHexBattleAnchorService.TryGetBattleAnchorHex(world.Strategic.Participants, out var anchorHex); var anchorSite = ArmyHexBattleAnchorService.ResolveSiteIdForHex(world, anchorHex, string.Empty);
             if (string.IsNullOrEmpty(anchorSite))
                 anchorSite = Ch01HexPrototypeMapBuilder.SiteHuangcun;
             foreach (var id in party)
@@ -774,7 +770,7 @@ namespace XianXia.Tests
 
             Assert.IsFalse(
                 WorldTravelService.CanReceiveTravelOrder(world, id),
-                "Modal 下禁止战略出行");
+                "Modal 下禁止战略出�");
         }
 
         [Test]
@@ -800,7 +796,7 @@ namespace XianXia.Tests
             Assert.IsTrue(incapEnt.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var incapLife));
             Assert.IsTrue(incapLife.IsIncapacitated);
 
-            // 我方弥留：再进残留也不该被刷怪逻辑改倒计时
+            // 我方弥留：再进残留也不该被刷怪逻辑改倒计�?
             var allyId = session.CharacterIds[0];
             Assert.IsTrue(world.Entities.TryGet(allyId, out var allyEnt));
             Assert.IsTrue(
@@ -808,7 +804,7 @@ namespace XianXia.Tests
             Assert.IsTrue(allyEnt.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var allyLife));
             var allyBleedSaved = allyLife.BleedOutAfterTick;
 
-            // 推进时间，让倒计时不再是满值
+            // 推进时间，让倒计时不再是满�?
             world.Tick = new XianXia.Core.Domain.Time.WorldTick(world.Tick.Value + 17);
             var bleedSaved = incapLife.BleedOutAfterTick;
             Assert.Less(
@@ -821,26 +817,26 @@ namespace XianXia.Tests
             Assert.IsTrue(corpseEnt.TryGet<XianXia.Core.Combat.CorpseComponent>(out var corpse));
             var corpseSaved = corpse.RemoveAfterTick;
 
-            // 模拟出图残留后再进
+            // 模拟出图残留后再�?
             world.Strategic.Encounter.BattlefieldLingering = true;
             world.Strategic.Encounter.ArmyStackId = stack.Id;
             StrategicEncounterSpawner.PlanManualEncounter(
                 world, stack.Id, string.Empty, session.CharacterIds, 2, 2);
             Assert.IsFalse(
                 world.Strategic.Encounter.SpawnOnNextMapLoad,
-                "已有弥留／尸体时不应再计划刷怪");
+                "已有弥留／尸体时不应再计划刷�");
             Assert.IsTrue(StrategicEncounterSpawner.ApplyPending(world).IsSuccess);
 
             Assert.AreEqual(2, world.Strategic.Encounter.SpawnedEntityIds.Count);
             Assert.IsTrue(world.Entities.TryGet(incapId, out incapEnt));
             Assert.IsTrue(incapEnt.TryGet<XianXia.Core.Entities.LifecycleComponent>(out incapLife));
-            Assert.AreEqual(bleedSaved, incapLife.BleedOutAfterTick, "再进不得刷新敌军弥留倒计时");
+            Assert.AreEqual(bleedSaved, incapLife.BleedOutAfterTick, "再进不得刷新敌军弥留倒计�");
             Assert.IsTrue(world.Entities.TryGet(corpseId, out corpseEnt));
             Assert.IsTrue(corpseEnt.TryGet<XianXia.Core.Combat.CorpseComponent>(out corpse));
-            Assert.AreEqual(corpseSaved, corpse.RemoveAfterTick, "再进不得刷新尸体腐烂倒计时");
+            Assert.AreEqual(corpseSaved, corpse.RemoveAfterTick, "再进不得刷新尸体腐烂倒计�");
             Assert.IsTrue(world.Entities.TryGet(allyId, out allyEnt));
             Assert.IsTrue(allyEnt.TryGet<XianXia.Core.Entities.LifecycleComponent>(out allyLife));
-            Assert.AreEqual(allyBleedSaved, allyLife.BleedOutAfterTick, "再进不得刷新我方弥留倒计时");
+            Assert.AreEqual(allyBleedSaved, allyLife.BleedOutAfterTick, "再进不得刷新我方弥留倒计�");
         }
 
         [Test]

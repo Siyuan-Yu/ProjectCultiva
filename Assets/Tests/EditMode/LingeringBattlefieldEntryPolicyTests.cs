@@ -28,7 +28,7 @@ namespace XianXia.Tests
             Assert.IsTrue(created.IsSuccess);
             var entity = created.Value;
             entity.Get<FactionMembershipComponent>().Assign(TestFactionA, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(entity.Id, TestNodeA);
+            world.WorldPresence.SetAtSite(entity.Id, TestNodeA);
             return entity.Id;
         }
 
@@ -38,7 +38,7 @@ namespace XianXia.Tests
             Assert.IsTrue(created.IsSuccess);
             var entity = created.Value;
             entity.Get<FactionMembershipComponent>().Assign(TestFactionB, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(entity.Id, TestNodeA);
+            world.WorldPresence.SetAtSite(entity.Id, TestNodeA);
             return entity.Id;
         }
 
@@ -55,7 +55,6 @@ namespace XianXia.Tests
         {
             world.Strategic.Encounter.BattlefieldLingering = true;
             world.Strategic.Encounter.ArmyStackId = enemy.Id;
-            world.Strategic.Participants.BattleAnchorNodeId = TestNodeA;
         }
 
         [Test]
@@ -68,7 +67,7 @@ namespace XianXia.Tests
             {
                 Id = "enemy:stack",
                 FactionId = TestFactionB,
-                NodeId = TestNodeA,
+                SiteId = TestNodeA,
                 IsBattlefieldRemnant = true,
                 IncapacitatedMemberCount = 1
             };
@@ -95,7 +94,7 @@ namespace XianXia.Tests
             {
                 Id = "enemy:stack",
                 FactionId = TestFactionB,
-                NodeId = TestNodeA,
+                SiteId = TestNodeA,
                 IsBattlefieldRemnant = true,
                 IncapacitatedMemberCount = 1
             };
@@ -121,7 +120,7 @@ namespace XianXia.Tests
             {
                 Id = "enemy:stack",
                 FactionId = TestFactionB,
-                NodeId = TestNodeA,
+                SiteId = TestNodeA,
                 IsBattlefieldRemnant = true,
                 IncapacitatedMemberCount = 2,
                 MemberCount = 2
@@ -129,7 +128,7 @@ namespace XianXia.Tests
             world.Strategic.Armies.Register(enemy);
             SetupLingeringEncounter(world, enemy);
             WarGateService.DeclareWar(world, TestFactionA, TestFactionB);
-            world.WorldPresence.SetAtNode(attacker, TestNodeA);
+            world.WorldPresence.SetAtSite(attacker, TestNodeA);
 
             Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(
                 world,

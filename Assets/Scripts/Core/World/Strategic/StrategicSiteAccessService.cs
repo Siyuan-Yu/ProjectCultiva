@@ -10,7 +10,7 @@ using XianXia.Core.World;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>Hex 战略：WorldSite LocalMap 准入与栈接战描述。</summary>
-    public static class StrategicNodeAccessService
+    public static class StrategicSiteAccessService
     {
         public static bool HasPartyMemberAtSite(SimulationWorld world, string siteId)
         {
@@ -39,12 +39,6 @@ namespace XianXia.Core.World.Strategic
 
             return count;
         }
-
-        public static bool HasPartyMemberAtNode(SimulationWorld world, string siteOrNodeId) =>
-            HasPartyMemberAtSite(world, siteOrNodeId);
-
-        public static int CountPartyMembersAtNode(SimulationWorld world, string siteOrNodeId) =>
-            CountPartyMembersAtSite(world, siteOrNodeId);
 
         public static string BuildSiteDetailText(SimulationWorld world, WorldSite site)
         {
@@ -77,9 +71,6 @@ namespace XianXia.Core.World.Strategic
             return Result.Success();
         }
 
-        public static Result CanEnterNodeLocalMap(SimulationWorld world, string siteId) =>
-            CanEnterSiteLocalMap(world, siteId);
-
         public static string DescribeSite(WorldSite site)
         {
             if (site == null)
@@ -87,7 +78,7 @@ namespace XianXia.Core.World.Strategic
             return string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
         }
 
-        public static string DescribeNode(SimulationWorld world, string siteId)
+        public static string DescribeSite(SimulationWorld world, string siteId)
         {
             if (world?.Strategic?.Sites != null &&
                 world.Strategic.Sites.TryGet(siteId, out var site) &&
@@ -100,7 +91,7 @@ namespace XianXia.Core.World.Strategic
         {
             if (stack == null)
                 return string.Empty;
-            return stack.NodeId ?? string.Empty;
+            return stack.SiteId ?? string.Empty;
         }
 
         public static string DescribeStackTravelTarget(SimulationWorld world, ArmyStack stack)
@@ -108,9 +99,9 @@ namespace XianXia.Core.World.Strategic
             if (stack == null)
                 return string.Empty;
             var stackName = string.IsNullOrEmpty(stack.DisplayName) ? stack.Id : stack.DisplayName;
-            if (!string.IsNullOrEmpty(stack.NodeId) &&
+            if (!string.IsNullOrEmpty(stack.SiteId) &&
                 world?.Strategic?.Sites != null &&
-                world.Strategic.Sites.TryGet(stack.NodeId, out var site) &&
+                world.Strategic.Sites.TryGet(stack.SiteId, out var site) &&
                 site != null)
             {
                 var siteName = DescribeSite(site);
@@ -171,8 +162,7 @@ namespace XianXia.Core.World.Strategic
                 return string.Equals(p.SiteId, siteId, StringComparison.Ordinal);
 
             if (p.Mode == PartyWorldPresenceMode.InEncounter)
-                return string.Equals(p.SiteId, siteId, StringComparison.Ordinal) ||
-                       string.Equals(p.NodeId, siteId, StringComparison.Ordinal);
+                return string.Equals(p.SiteId, siteId, StringComparison.Ordinal);
 
             return false;
         }

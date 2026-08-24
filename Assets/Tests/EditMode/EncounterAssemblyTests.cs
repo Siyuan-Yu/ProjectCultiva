@@ -13,10 +13,10 @@ using XianXia.Unity.Host;
 
 namespace XianXia.Tests
 {
-    /// <summary>SUPPORT-01..04 + WeakBandit 首战 Participant / LocalMap 一致性。</summary>
+    /// <summary>SUPPORT-01..04 + WeakBandit 首战 Participant / LocalMap 一致性�?/summary>
     public sealed class EncounterAssemblyTests
     {
-        const string NodeA = "base:node_huangcun";
+        const string NodeA = "base:site_huangcun";
 
         static SimulationWorld CreateBanditWorld(
             out FormalArmy weakArmy,
@@ -27,10 +27,8 @@ namespace XianXia.Tests
             var world = new SimulationWorld();
             world.Strategic.PlayerFactionId = StrategicFactionCatalog.PlayerFactionId;
             HexTestWorldBootstrap.EnsureMinimalHexMap(world);
-            Assert.IsTrue(ArmyStackAdapter.EnsureBanditPatrolArmy(
-                world, NodeA, string.Empty, string.Empty, -1f).IsSuccess);
-            Assert.IsTrue(ArmyStackAdapter.EnsureBanditWeakPatrolArmy(
-                world, NodeA, string.Empty, string.Empty, -1f).IsSuccess);
+            Assert.IsTrue(ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA).IsSuccess);
+            Assert.IsTrue(ArmyStackAdapter.EnsureBanditWeakPatrolArmy(world, NodeA).IsSuccess);
             Ch01ScenarioStrategicSetup.PositionPrototypeTestBanditArmies(world);
             WarGateService.DeclareWar(
                 world,
@@ -54,7 +52,7 @@ namespace XianXia.Tests
             Assert.IsTrue(created.IsSuccess);
             created.Value.Get<FactionMembershipComponent>()
                 .Assign(StrategicFactionCatalog.PlayerFactionId, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(created.Value.Id, NodeA);
+            world.WorldPresence.SetAtSite(created.Value.Id, NodeA);
             var armyCreated = ArmyService.CreateArmy(
                 world,
                 StrategicFactionCatalog.PlayerFactionId,
@@ -109,7 +107,7 @@ namespace XianXia.Tests
 
         static void EnterEncounterLocalMap(SimulationWorld world, IReadOnlyList<EntityId> engaged)
         {
-            world.PartyWorld.NodeId = NodeA;
+            world.PartyWorld.SiteId = NodeA;
             world.PartyWorld.LocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
             world.LocalMap.ActiveMapLayoutId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
             StrategicEncounterSpawner.PlanManualEncounter(
@@ -242,7 +240,7 @@ namespace XianXia.Tests
             var engaged = world.Strategic.Participants.CollectSelectedFriendly();
             Assert.Greater(engaged.Count, 0);
 
-            world.PartyWorld.NodeId = string.Empty;
+            world.PartyWorld.SiteId = string.Empty;
             world.PartyWorld.SiteId = Ch01HexPrototypeMapBuilder.SiteHuangcun;
             world.PartyWorld.LocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
             world.LocalMap.ActiveMapLayoutId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;

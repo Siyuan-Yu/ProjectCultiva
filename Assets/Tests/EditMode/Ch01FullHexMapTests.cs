@@ -39,8 +39,10 @@ namespace XianXia.Tests
             Assert.IsFalse(huangcun.OccupiesHex(weakBandit.CurrentHex));
             Assert.IsTrue(world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditPatrolStackId, out var strongStack));
             Assert.IsTrue(world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditWeakPatrolStackId, out var weakStack));
-            Assert.IsFalse(strongStack.IsTraveling);
-            Assert.IsFalse(weakStack.IsTraveling);
+            Assert.IsTrue(ArmyStackAdapter.TryGetFormalArmy(world, strongStack, out var strongArmy));
+            Assert.IsTrue(ArmyStackAdapter.TryGetFormalArmy(world, weakStack, out var weakArmy));
+            Assert.AreNotEqual(FormalArmyState.Moving, strongArmy.State);
+            Assert.AreNotEqual(FormalArmyState.Moving, weakArmy.State);
             ArmyStackAdapter.RefreshDerivedPresentation(world, strongStack);
             ArmyStackAdapter.RefreshDerivedPresentation(world, weakStack);
             Assert.Greater(ArmyStackAdapter.GetCombatPower(world, strongStack),

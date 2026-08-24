@@ -27,7 +27,7 @@ namespace XianXia.Tests
             Assert.IsTrue(created.IsSuccess);
             var entity = created.Value;
             entity.Get<FactionMembershipComponent>().Assign(TestFactionA, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(entity.Id, TestNodeA);
+            world.WorldPresence.SetAtSite(entity.Id, TestNodeA);
             return entity.Id;
         }
 
@@ -44,7 +44,7 @@ namespace XianXia.Tests
             {
                 Id = "enemy:stack",
                 FactionId = "enemy:faction",
-                NodeId = TestNodeA,
+                SiteId = TestNodeA,
                 IsBattlefieldRemnant = true,
                 IncapacitatedMemberCount = 1
             };

@@ -42,7 +42,7 @@ namespace XianXia.Data.Bootstrap
             return PlaceOpeningSpawns(world, scenario, lookup, spawnEntries);
         }
 
-        /// <summary>换 WorldNode 后按 mapLayout 切换村内地点表（库存／任务保留）。</summary>
+        /// <summary>换 WorldSite 后按 mapLayout 切换村内地点表（库存／任务保留）。</summary>
         public static Result ActivatePlacesForMapLayout(
             SimulationWorld world,
             DefinitionRegistry registry,

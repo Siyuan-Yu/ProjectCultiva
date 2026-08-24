@@ -7,7 +7,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
-    /// <summary>战略层角色列表（全战式 Host 一级入口；只读 + 组军薄命令）。</summary>
+    /// <summary>战略层角色列表（全战Host 一级入口；只读 + 组军薄命令）/summary>
     public sealed class HostStrategicCharacterListPanel
     {
         const float DoubleClickWindowSec = 0.35f;
@@ -147,7 +147,7 @@ namespace XianXia.Unity.Host
 
                 var armyLabel = row.IsGrouped
                     ? "Army: " + row.ArmyId
-                    : row.NodeLabel + "  ·  未编组";
+                    : row.SiteLabel + "  \u00b7  \u672a\u7f16\u7ec4";
                 var label = row.DisplayName + "  ·  " + row.LifeStateLabel + "\n" +
                             StrategicFactionCatalog.DisplayName(row.FactionId) + "  ·  " + armyLabel;
                 var labelRect = new Rect(indent, y, itemRect.width - indent, 48f);
@@ -178,8 +178,8 @@ namespace XianXia.Unity.Host
                 _selectedCharacterValue = idKey;
                 if (row.IsGrouped && !string.IsNullOrEmpty(row.ArmyId))
                     onFocusArmy?.Invoke(row.ArmyId);
-                else if (!string.IsNullOrEmpty(row.NodeId))
-                    onFocusNode?.Invoke(row.NodeId);
+                else if (!string.IsNullOrEmpty(row.SiteId))
+                    onFocusNode?.Invoke(row.SiteId);
                 return;
             }
 
@@ -207,12 +207,12 @@ namespace XianXia.Unity.Host
             }
 
             var row = FindRow(new EntityId(idVal));
-            var membership = row?.IsGrouped == true ? row.ArmyId : "无";
+            var membership = row?.IsGrouped == true ? row.ArmyId : "\u2014";
             GUI.Label(new Rect(detailRect.x, y, detailRect.width, 88f),
                 labelFn(world, entity.Id) + "\n" +
-                "势力：" + StrategicFactionCatalog.DisplayName(row?.FactionId) + "\n" +
-                "位置：" + (row?.NodeLabel ?? "—") + "\n" +
-                "状态：" + (row?.LifeStateLabel ?? "—") + "  编组：" + membership,
+                "\u52bf\u529b\uff1a" + StrategicFactionCatalog.DisplayName(row?.FactionId) + "\n" +
+                "\u4f4d\u7f6e\uff1a" + (row?.SiteLabel ?? "\u2014") + "\n" +
+                "\u72b6\u6001\uff1a" + (row?.LifeStateLabel ?? "\u2014") + "  \u7f16\u7ec4\uff1a" + membership,
                 _body);
         }
 

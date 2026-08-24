@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using NUnit.Framework;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
@@ -14,8 +14,8 @@ namespace XianXia.Tests
   {
     const string FactionA = "test:faction_a";
     const string FactionB = "test:faction_b";
-    const string NodeA = "base:node_huangcun";
-    const string NodeB = "base:node_qingyun_lu";
+    const string NodeA = "base:site_huangcun";
+    const string NodeB = "base:site_qingyun_lu";
     const string NodeC = "test:node_c";
 
     static readonly HexCoord HexA = Ch01HexPrototypeMapBuilder.HuangcunHex;
@@ -57,7 +57,7 @@ namespace XianXia.Tests
       Assert.IsTrue(created.IsSuccess);
       var entity = created.Value;
       entity.Get<FactionMembershipComponent>().Assign(faction, FactionRoleKind.Member);
-      world.WorldPresence.SetAtNode(entity.Id, nodeId);
+      world.WorldPresence.SetAtSite(entity.Id, nodeId);
       return entity.Id;
     }
 
@@ -90,7 +90,7 @@ namespace XianXia.Tests
         FormalArmyId = army.ArmyId,
         FactionId = FactionB,
         DisplayName = "Enemy",
-        NodeId = nodeId
+        SiteId = nodeId
       };
       world.Strategic.Armies.Register(stack);
       ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, stack);
@@ -320,13 +320,13 @@ namespace XianXia.Tests
       var enemyLeader = SpawnCharacter(world, "Enemy", NodeA, FactionB);
       var (targetArmy, targetStack) = RegisterLinkedEnemy(world, "army:enemy_stale", NodeA, HexA, enemyLeader);
       Assert.IsTrue(ArmyHexCommandService.MoveArmy(world, targetArmy.ArmyId, HexB).IsSuccess);
-      targetStack.NodeId = NodeA;
+      targetStack.SiteId = NodeA;
 
       BeginPursuitAndStartTravel(world, pursuer, targetStack);
       AdvanceWorldTicks(world, 10);
       ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, targetStack);
       Assert.IsFalse(
-        targetStack.NodeId.Equals(NodeA) && targetArmy.CurrentHex.Equals(HexA),
+        targetStack.SiteId.Equals(NodeA) && targetArmy.CurrentHex.Equals(HexA),
         "PUR-10: stack must follow FormalArmy live position after sync");
       Assert.IsTrue(world.Strategic.FormalArmies.TryGet(pursuer.ArmyId, out var formal) && formal.State == FormalArmyState.Moving);
     }

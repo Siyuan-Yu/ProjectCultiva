@@ -6,24 +6,7 @@ namespace XianXia.Core.World.Strategic
     {
         public static void AdvanceAll(SimulationWorld world, int ticks)
         {
-            if (world?.Strategic == null || ticks < 1)
-                return;
-
-            foreach (var kv in world.Strategic.Armies.Stacks)
-            {
-                var stack = kv.Value;
-                if (stack == null || !stack.IsTraveling)
-                    continue;
-                if (ArmyStackAdapter.HasFormalArmyLink(stack))
-                    continue;
-                stack.RemainingTravelTicks -= ticks;
-                if (stack.RemainingTravelTicks > 0)
-                    continue;
-
-                if (!string.IsNullOrEmpty(stack.DestNodeId))
-                    stack.NodeId = stack.DestNodeId;
-                stack.ClearTravel();
-            }
+            // Pure Hex: stack travel is derived from linked FormalArmy hex motion only.
         }
     }
 }

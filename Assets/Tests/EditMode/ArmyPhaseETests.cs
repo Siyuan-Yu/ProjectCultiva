@@ -27,7 +27,7 @@ namespace XianXia.Tests
             var created = world.Entities.CreateCharacter(new DefinitionId("test", name), name);
             Assert.IsTrue(created.IsSuccess);
             created.Value.Get<FactionMembershipComponent>().Assign(factionId, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(created.Value.Id, nodeId);
+            world.WorldPresence.SetAtSite(created.Value.Id, nodeId);
             return created.Value.Id;
         }
 
@@ -40,7 +40,7 @@ namespace XianXia.Tests
             var army = ArmyService.CreateArmy(world, FactionA, NodeA, new[] { a, b }).Value;
 
             TestStrategicBootstrap.EnsureBanditCharacters(world, NodeA);
-            ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA, string.Empty, string.Empty, -1f);
+            ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditPatrolStackId, out var enemy));
 
             var party = ArmyStackAdapter.CollectLivingMemberIds(world, army);
@@ -57,7 +57,7 @@ namespace XianXia.Tests
             var a = Spawn(world, "A", FactionA, NodeA);
             var army = ArmyService.CreateArmy(world, FactionA, NodeA, new[] { a }).Value;
             TestStrategicBootstrap.EnsureBanditCharacters(world, NodeA);
-            ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA, string.Empty, string.Empty, -1f);
+            ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditPatrolStackId, out var enemy));
 
             StrategicPursuitService.BeginPursuitArmy(world, army.ArmyId, enemy);
@@ -76,7 +76,7 @@ namespace XianXia.Tests
             var b = Spawn(world, "B", FactionA, NodeA);
             var army = ArmyService.CreateArmy(world, FactionA, NodeA, new[] { a, b }).Value;
             TestStrategicBootstrap.EnsureBanditCharacters(world, NodeA);
-            ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA, string.Empty, string.Empty, -1f);
+            ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditPatrolStackId, out var enemy));
 
             var snap = BattleParticipantSnapshotBuilder.BuildArmyVsArmy(

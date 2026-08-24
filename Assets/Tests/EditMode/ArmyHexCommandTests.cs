@@ -11,8 +11,8 @@ namespace XianXia.Tests
 {
     public sealed class ArmyHexCommandTests
     {
-        const string NodeHuangcun = "base:node_huangcun";
-        const string NodeQingyunLu = "base:node_qingyun_lu";
+        const string NodeHuangcun = "base:site_huangcun";
+        const string NodeQingyunLu = "base:site_qingyun_lu";
         const string FactionA = StrategicFactionCatalog.PlayerFactionId;
         const string FactionB = StrategicFactionCatalog.BanditId;
 
@@ -48,7 +48,7 @@ namespace XianXia.Tests
                 FormalArmyId = defender.ArmyId,
                 FactionId = FactionB,
                 DisplayName = "Enemy",
-                NodeId = NodeQingyunLu
+                SiteId = NodeQingyunLu
             };
             world.Strategic.Armies.Register(stack);
             ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, stack);

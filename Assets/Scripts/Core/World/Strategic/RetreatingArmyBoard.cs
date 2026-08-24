@@ -12,7 +12,6 @@ namespace XianXia.Core.World.Strategic
         public string RetreatingArmyId { get; set; } = string.Empty;
         public string SourceArmyId { get; set; } = string.Empty;
         public string FactionId { get; set; } = string.Empty;
-        public string NodeId { get; set; } = string.Empty;
         public int HexQ { get; set; } = ArmyHexBattleAnchorService.InvalidHexComponent;
         public int HexR { get; set; } = ArmyHexBattleAnchorService.InvalidHexComponent;
         readonly List<ulong> _memberCharacterIds = new List<ulong>(8);

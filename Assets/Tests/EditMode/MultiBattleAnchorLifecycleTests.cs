@@ -11,11 +11,11 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Tests
 {
-    /// <summary>MULTI-BATTLE-01..06：连续多场 Encounter Anchor 生命周期。</summary>
+    /// <summary>MULTI-BATTLE-01..06：连续多�?Encounter Anchor 生命周期�?/summary>
     public sealed class MultiBattleAnchorLifecycleTests
     {
         const string PlayerFaction = StrategicFactionCatalog.PlayerFactionId;
-        const string NodeA = "base:node_huangcun";
+        const string NodeA = "base:site_huangcun";
         static readonly HexCoord H1 = Ch01HexPrototypeMapBuilder.QingyunLuHex;
         static readonly HexCoord H2 = new HexCoord(42, 20);
         static readonly HexCoord H3 = new HexCoord(45, 18);
@@ -47,7 +47,7 @@ namespace XianXia.Tests
             var created = world.Entities.CreateCharacter(new DefinitionId("test", name), name);
             Assert.IsTrue(created.IsSuccess);
             created.Value.Get<FactionMembershipComponent>().Assign(PlayerFaction, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(created.Value.Id, NodeA);
+            world.WorldPresence.SetAtSite(created.Value.Id, NodeA);
             return created.Value.Id;
         }
 
@@ -69,15 +69,13 @@ namespace XianXia.Tests
             FormalArmy army;
             if (string.Equals(stackId, ArmyStackAdapter.BanditPatrolStackId, System.StringComparison.Ordinal))
             {
-                var result = ArmyStackAdapter.EnsureBanditPatrolArmy(
-                    world, NodeA, string.Empty, string.Empty, -1f);
+                var result = ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
                 Assert.IsTrue(result.IsSuccess);
                 army = result.Value;
             }
             else
             {
-                var result = ArmyStackAdapter.EnsureBanditWeakPatrolArmy(
-                    world, NodeA, string.Empty, string.Empty, -1f);
+                var result = ArmyStackAdapter.EnsureBanditWeakPatrolArmy(world, NodeA);
                 Assert.IsTrue(result.IsSuccess);
                 army = result.Value;
             }
@@ -88,8 +86,7 @@ namespace XianXia.Tests
 
         static FormalArmy SpawnCustomEnemyAt(SimulationWorld world, HexCoord hex, string name)
         {
-            var result = ArmyStackAdapter.EnsureBanditScoutArmy(
-                world, NodeA, string.Empty, string.Empty, -1f, 0);
+            var result = ArmyStackAdapter.EnsureBanditScoutArmy(world, NodeA);
             Assert.IsTrue(result.IsSuccess, name);
             ArmyHexTravelService.InitializeArmyAtHex(result.Value, hex);
             return result.Value;

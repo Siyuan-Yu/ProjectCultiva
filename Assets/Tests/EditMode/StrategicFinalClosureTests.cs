@@ -77,7 +77,7 @@ namespace XianXia.Tests
             Assert.AreEqual(2, StrategicAcceptanceInspector.CountOwnedSites(
                 world, StrategicFactionCatalog.XiJinGuildId));
 
-            Assert.IsTrue(world.Strategic.Sites.TryGet("base:node_huangcun", out var huangcun));
+            Assert.IsTrue(world.Strategic.Sites.TryGet("base:site_huangcun", out var huangcun));
             Assert.IsTrue(string.IsNullOrEmpty(huangcun.OwnerFactionId));
             Assert.AreEqual(StrategicFactionCatalog.NanYanLeagueId,
                 WorldSiteOwnershipService.GetOwner(world, "base:site_nan"));
@@ -142,12 +142,14 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             var player = world.Entities.CreateCharacter(new DefinitionId("test", "p"), "P").Value;
-            world.WorldPresence.SetAtNode(player.Id, NodeA);
-            var stack = new ArmyStack { Id = "enemy", FactionId = "enemy:faction", NodeId = NodeB };
+            world.WorldPresence.SetAtSite(player.Id, NodeA);
+            var stack = new ArmyStack { Id = "enemy", FactionId = "enemy:faction", SiteId = NodeB };
             world.Strategic.Armies.Register(stack);
 
             StrategicPursuitService.BeginPursuit(world, new[] { player.Id }, stack);
-            Assert.IsFalse(stack.IsTraveling);
+            Assert.IsFalse(
+                ArmyStackAdapter.TryGetFormalArmy(world, stack, out var formalArmy) &&
+                formalArmy.State == FormalArmyState.Moving);
         }
 
         [Test]

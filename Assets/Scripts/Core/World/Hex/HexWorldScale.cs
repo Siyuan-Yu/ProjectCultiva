@@ -34,8 +34,8 @@ namespace XianXia.Core.World.Hex
         /// <summary>最大放大：横向约 14 Hex（约为旧版 2× 放大）。</summary>
         public const float CloseHexesAcross = 14f;
 
-        /// <summary>导入 WorldGraph 时，每 1 个 graph world 单位对应多少 Hex 步。</summary>
-        public const int WorldGraphHexStepsPerUnit = 4;
+        /// <summary>Legacy 内容导入比例：每 1 个 world 单位对应多少 Hex 步。</summary>
+        public const int LegacyWorldHexStepsPerUnit = 4;
 
         /// <summary>内容 Site 在 100×50 地图内的布局原点（q,r）。</summary>
         public const int PlayableOriginQ = 8;

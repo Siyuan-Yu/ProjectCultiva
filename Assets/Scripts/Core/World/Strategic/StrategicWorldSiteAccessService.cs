@@ -4,7 +4,7 @@ using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>Hex 战略：WorldSite LocalMap 准入（真源 = WorldSite + FormalArmy 足迹）。</summary>
+    /// <summary>Hex \u6218\u7565\uff1aWorldSite LocalMap \u51c6\u5165\uff08\u771f\u6e90 = WorldSite + FormalArmy \u8db3\u8ff9\uff09\u3002</summary>
     public static class StrategicWorldSiteAccessService
     {
         public static bool TryGetEnterableWorldSiteAtHex(
@@ -49,7 +49,7 @@ namespace XianXia.Core.World.Strategic
             if (world == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
             if (StrategicClockFreezeService.IsModalEncounter(world))
-                return Result.Failure(ErrorCode.InvalidOperation, "遭遇中锁定，无法进入地点。");
+                return Result.Failure(ErrorCode.InvalidOperation, "\u9047\u9047\u4e2d\u9501\u5b9a\uff0c\u65e0\u6cd5\u8fdb\u5165\u5730\u70b9\u3002");
             if (string.IsNullOrEmpty(siteId))
                 return Result.Failure(ErrorCode.InvalidArgument, "siteId required.");
             if (!world.Strategic.Sites.TryGet(siteId, out var site) || site == null)
@@ -58,17 +58,16 @@ namespace XianXia.Core.World.Strategic
             if (string.IsNullOrWhiteSpace(site.LocalMapId))
                 return Result.Failure(
                     ErrorCode.InvalidOperation,
-                    "WorldSite 未配置 LocalMap，无法进入。",
+                    "WorldSite \u672a\u914d\u7f6e LocalMap\uff0c\u65e0\u6cd5\u8fdb\u5165\u3002",
                     siteId);
 
-            // 开局 / 无选中军团：队伍已在 Site 即可进入（Playable bootstrap）。
             if (string.IsNullOrEmpty(formalArmyId))
             {
-                if (!StrategicNodeAccessService.HasPartyMemberAtSite(world, siteId))
+                if (!StrategicSiteAccessService.HasPartyMemberAtSite(world, siteId))
                 {
                     return Result.Failure(
                         ErrorCode.InvalidOperation,
-                        "无己方角色在此地点，无法进入场景。");
+                        "\u65e0\u5df1\u65b9\u89d2\u8272\u5728\u6b64\u5730\u70b9\uff0c\u65e0\u6cd5\u8fdb\u5165\u573a\u666f\u3002");
                 }
 
                 return Result.Success();
@@ -76,16 +75,16 @@ namespace XianXia.Core.World.Strategic
 
             if (!world.Strategic.FormalArmies.TryGet(formalArmyId, out var army) ||
                 army == null)
-                return Result.Failure(ErrorCode.InvalidOperation, "请先左键选中我方军团。");
+                return Result.Failure(ErrorCode.InvalidOperation, "\u8bf7\u5148\u5de6\u952e\u9009\u4e2d\u6211\u65b9\u519b\u56e2\u3002");
 
             if (!IsSelfFormalArmy(world, army))
-                return Result.Failure(ErrorCode.InvalidOperation, "仅我方军团可进入地点。");
+                return Result.Failure(ErrorCode.InvalidOperation, "\u4ec5\u6211\u65b9\u519b\u56e2\u53ef\u8fdb\u5165\u5730\u70b9\u3002");
 
             if (army.State == FormalArmyState.Moving)
-                return Result.Failure(ErrorCode.InvalidOperation, "军团移动中，无法进入地点。");
+                return Result.Failure(ErrorCode.InvalidOperation, "\u519b\u56e2\u79fb\u52a8\u4e2d\uff0c\u65e0\u6cd5\u8fdb\u5165\u5730\u70b9\u3002");
 
             if (!IsFormalArmyAtSiteFootprint(army, site))
-                return Result.Failure(ErrorCode.InvalidOperation, "军团不在该地点，无法进入。");
+                return Result.Failure(ErrorCode.InvalidOperation, "\u519b\u56e2\u4e0d\u5728\u8be5\u5730\u70b9\uff0c\u65e0\u6cd5\u8fdb\u5165\u3002");
 
             return Result.Success();
         }
@@ -93,10 +92,9 @@ namespace XianXia.Core.World.Strategic
         public static string BuildEnterSiteMenuLabel(WorldSite site)
         {
             if (site == null)
-                return "进入地点";
+                return "\u8fdb\u5165\u5730\u70b9";
             var name = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
-            return "进入" + name;
+            return "\u8fdb\u5165" + name;
         }
     }
-
 }

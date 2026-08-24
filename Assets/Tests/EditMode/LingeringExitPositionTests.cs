@@ -11,11 +11,11 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Tests
 {
-    /// <summary>LINGER-POS-01..：残留战场再进 / 退出战略 Hex 回归。</summary>
+    /// <summary>LINGER-POS-01..：残留战场再�?/ 退出战�?Hex 回归�?/summary>
     public sealed class LingeringExitPositionTests
     {
         const string PlayerFaction = StrategicFactionCatalog.PlayerFactionId;
-        const string NodeA = "base:node_huangcun";
+        const string NodeA = "base:site_huangcun";
         static readonly HexCoord HuangcunHex = Ch01HexPrototypeMapBuilder.HuangcunHex;
         static readonly HexCoord BattleHex = Ch01HexPrototypeMapBuilder.QingyunLuHex;
 
@@ -33,7 +33,7 @@ namespace XianXia.Tests
             var created = world.Entities.CreateCharacter(new DefinitionId("test", name), name);
             Assert.IsTrue(created.IsSuccess);
             created.Value.Get<FactionMembershipComponent>().Assign(PlayerFaction, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(created.Value.Id, NodeA);
+            world.WorldPresence.SetAtSite(created.Value.Id, NodeA);
             return created.Value.Id;
         }
 
@@ -61,8 +61,7 @@ namespace XianXia.Tests
             HexCoord hex,
             bool executeOnWin)
         {
-            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(
-                world, NodeA, string.Empty, string.Empty, -1f);
+            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(result.IsSuccess);
             ArmyHexTravelService.InitializeArmyAtHex(result.Value, hex);
             Assert.IsTrue(world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditPatrolStackId, out var stack));
@@ -79,7 +78,6 @@ namespace XianXia.Tests
 
             var snap = world.Strategic.Participants;
             snap.PrimaryEnemyStackId = ArmyStackAdapter.BanditPatrolStackId;
-            snap.BattleAnchorNodeId = NodeA;
             ArmyHexBattleAnchorService.SetBattleAnchorHex(snap, hex);
             world.Strategic.Encounter.ArmyStackId = ArmyStackAdapter.BanditPatrolStackId;
 
@@ -129,7 +127,7 @@ namespace XianXia.Tests
             Assert.AreEqual(
                 BattleHex,
                 offerAnchor,
-                "再进 Offer 必须把 BattleAnchorHex 钉在 canonical lingering hex，而非 spawn Node");
+                "再进 Offer 必须�?BattleAnchorHex 钉在 canonical lingering hex，而非 spawn Node");
 
             StrategicClockFreezeService.BeginOrPromote(
                 world, StrategicClockFreezeReason.ManualEncounter);

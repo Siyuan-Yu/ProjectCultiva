@@ -5,12 +5,13 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Random;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Bootstrap;
 
 namespace XianXia.Tests
 {
-    /// <summary>ADR-0023 Phase A～E 核心断言。</summary>
+    /// <summary>ADR-0023 Phase A～E 核心断言�?/summary>
     public sealed class Adr0023BattlePhasesTests
     {
         static string BaseGamePath =>
@@ -36,10 +37,8 @@ namespace XianXia.Tests
             var b = session.CharacterIds[1];
             world.WorldPresence.SetAtSite(a, "base:site_huangcun");
             world.WorldPresence.SetAtSite(b, "base:site_huangcun");
-            enemy.NodeId = "base:node_huangcun";
-            enemy.RouteId = string.Empty;
-            enemy.RemainingTravelTicks = 0;
-            enemy.RouteAnchorProgress = -1f;
+            if (ArmyStackAdapter.TryGetFormalArmy(world, enemy, out var enemyArmy) && enemyArmy != null)
+                ArmyHexTravelService.InitializeArmyAtHex(enemyArmy, Ch01HexPrototypeMapBuilder.HuangcunHex);
 
             world.Strategic.ReinforcementWorldRadius = 1f;
             Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(
@@ -49,7 +48,7 @@ namespace XianXia.Tests
             Assert.AreEqual(1, CountKind(snap, BattleParticipantKind.MandatoryFriendly));
             Assert.GreaterOrEqual(CountKind(snap, BattleParticipantKind.OptionalFriendly), 1);
             Assert.AreEqual(1, CountKind(snap, BattleParticipantKind.EnemyPrimary));
-            Assert.IsFalse(string.IsNullOrEmpty(snap.BattleAnchorNodeId));
+            Assert.IsTrue(ArmyHexBattleAnchorService.HasBattleAnchorHex(snap));
         }
 
         [Test]
@@ -62,14 +61,15 @@ namespace XianXia.Tests
             Assert.IsTrue(world.WorldPresence.TryGet(a, out var p));
 
             world.Strategic.ReinforcementWorldRadius = 1f;
+            ArmyHexBattleAnchorService.TryResolveHexForSite(world, "base:site_huangcun", out var huangcunHex);
             Assert.IsTrue(ReinforcementRangeService.IsWithinReinforcementRange(
-                world, p, "base:node_huangcun", null, -1f));
-            // 邻村林间世界距＝3＞1，不可支援
+                world, p, huangcunHex));
+            ArmyHexBattleAnchorService.TryResolveHexForSite(world, "base:site_qingyun_lu", out var remoteHex);
             Assert.IsTrue(ReinforcementRangeService.TryGetWorldDistance(
-                world, p, "base:node_linjian", null, -1f, out var dist));
+                world, p, remoteHex, out var dist));
             Assert.Greater(dist, 1f);
             Assert.IsFalse(ReinforcementRangeService.IsWithinReinforcementRange(
-                world, p, "base:node_linjian", null, -1f));
+                world, p, remoteHex));
         }
 
         [Test]
@@ -82,8 +82,8 @@ namespace XianXia.Tests
             var b = session.CharacterIds[1];
             world.WorldPresence.SetAtSite(a, "base:site_huangcun");
             world.WorldPresence.SetAtSite(b, "base:site_huangcun");
-            enemy.NodeId = "base:node_huangcun";
-            enemy.RouteId = string.Empty;
+            if (ArmyStackAdapter.TryGetFormalArmy(world, enemy, out var enemyArmy) && enemyArmy != null)
+                ArmyHexTravelService.InitializeArmyAtHex(enemyArmy, Ch01HexPrototypeMapBuilder.HuangcunHex);
             world.Strategic.ReinforcementWorldRadius = 1f;
 
             Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(
@@ -105,8 +105,8 @@ namespace XianXia.Tests
             var b = session.CharacterIds[1];
             world.WorldPresence.SetAtSite(a, "base:site_huangcun");
             world.WorldPresence.SetAtSite(b, "base:site_huangcun");
-            enemy.NodeId = "base:node_huangcun";
-            enemy.RouteId = string.Empty;
+            if (ArmyStackAdapter.TryGetFormalArmy(world, enemy, out var enemyArmy) && enemyArmy != null)
+                ArmyHexTravelService.InitializeArmyAtHex(enemyArmy, Ch01HexPrototypeMapBuilder.HuangcunHex);
             world.Strategic.ReinforcementWorldRadius = 1f;
 
             Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(
@@ -115,7 +115,7 @@ namespace XianXia.Tests
 
             Assert.IsTrue(world.WorldPresence.TryGet(b, out var bp));
             bp.Mode = PartyWorldPresenceMode.InEncounter;
-            bp.NodeId = "base:node_huangcun";
+            bp.SiteId = "base:site_huangcun";
             world.Strategic.Encounter.AddEngagedPartyMember(b);
 
             world.Strategic.Participants.PlayerWon = true;
@@ -124,7 +124,7 @@ namespace XianXia.Tests
             Assert.IsTrue(StrategicEncounterResolveService.ResolveAndEnd(world).IsSuccess);
 
             Assert.IsTrue(world.WorldPresence.TryGet(b, out var after));
-            Assert.AreEqual("base:node_huangcun", after.NodeId, "上场支援留在接战锚点，禁止瞬移回家");
+            Assert.AreEqual("base:site_huangcun", after.SiteId, "上场支援留在接战锚点，禁止瞬移回�");
         }
 
         [Test]
@@ -134,21 +134,21 @@ namespace XianXia.Tests
             var world = session.World;
             Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var e1));
 
-            // 注册第二敌军栈
+            // 注册第二敌军�?
             var e2 = world.Strategic.Armies.Register(new ArmyStack
             {
                 Id = "army:test_bandit_2",
                 FactionId = e1.FactionId,
-                DisplayName = "测试匪2",
-                NodeId = "base:node_huangcun",
+                DisplayName = "测试匪",
+                SiteId = "base:site_huangcun",
                 MemberCount = 2,
                 CombatPower = 4
             });
 
             var a = session.CharacterIds[0];
             world.WorldPresence.SetAtSite(a, "base:site_huangcun");
-            e1.NodeId = "base:node_huangcun";
-            e1.RouteId = string.Empty;
+            if (ArmyStackAdapter.TryGetFormalArmy(world, e1, out var e1Army) && e1Army != null)
+                ArmyHexTravelService.InitializeArmyAtHex(e1Army, Ch01HexPrototypeMapBuilder.HuangcunHex);
 
             var tick = world.Tick.Value;
             Assert.IsTrue(BattleOfferService.TryBuildOfferForArmy(
@@ -162,7 +162,7 @@ namespace XianXia.Tests
             world.Strategic.BattleOffer.AutoWinPercent = 100;
             Assert.IsTrue(BattleOfferService.ResolveAuto(world, false, out _, out _).IsSuccess);
             Assert.AreEqual(tick, world.Tick.Value);
-            Assert.IsTrue(world.Strategic.Participants.IsAutoSettlement, "自动战应先出结算态");
+            Assert.IsTrue(world.Strategic.Participants.IsAutoSettlement, "自动战应先出结算�");
             Assert.IsTrue(StrategicEncounterResolveService.ResolveAndEnd(world).IsSuccess);
             Assert.IsTrue(world.Strategic.HasBattleOffer, "确认结算后应弹出队列中的 B");
             Assert.AreEqual(e2.Id, world.Strategic.BattleOffer.ArmyStackId);
@@ -171,7 +171,7 @@ namespace XianXia.Tests
             world.Strategic.BattleOffer.AutoWinPercent = 100;
             Assert.IsTrue(BattleOfferService.ResolveAuto(world, false, out _, out _).IsSuccess);
             Assert.IsTrue(StrategicEncounterResolveService.ResolveAndEnd(world).IsSuccess);
-            Assert.IsFalse(world.Strategic.IsWorldTickFrozen, "队列清空后解冻");
+            Assert.IsFalse(world.Strategic.IsWorldTickFrozen, "队列清空后解�");
             Assert.AreEqual(tick, world.Tick.Value);
         }
 

@@ -34,18 +34,8 @@ namespace XianXia.Core.World.Strategic
         static void SeedPrototypeBanditArmies(SimulationWorld world)
         {
             world.Strategic.Armies.Clear();
-            ArmyStackAdapter.EnsureBanditPatrolArmy(
-                world,
-                Ch01HexPrototypeMapBuilder.SiteHuangcun,
-                string.Empty,
-                Ch01HexPrototypeMapBuilder.SiteQingyunLu,
-                -1f);
-            ArmyStackAdapter.EnsureBanditWeakPatrolArmy(
-                world,
-                Ch01HexPrototypeMapBuilder.SiteHuangcun,
-                string.Empty,
-                Ch01HexPrototypeMapBuilder.SiteQingyunLu,
-                -1f);
+            ArmyStackAdapter.EnsureBanditPatrolArmy(world, Ch01HexPrototypeMapBuilder.SiteHuangcun);
+            ArmyStackAdapter.EnsureBanditWeakPatrolArmy(world, Ch01HexPrototypeMapBuilder.SiteHuangcun);
             PositionPrototypeTestBanditArmies(world);
         }
 

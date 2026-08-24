@@ -28,19 +28,5 @@ namespace XianXia.Core.World.Strategic
             if (!string.IsNullOrEmpty(id))
                 _stacks.Remove(id);
         }
-
-        public IEnumerable<ArmyStack> AllOnRoute(string routeId)
-        {
-            if (string.IsNullOrEmpty(routeId))
-                yield break;
-            foreach (var kv in _stacks)
-            {
-                var s = kv.Value;
-                if (s == null || !string.Equals(s.RouteId, routeId, StringComparison.Ordinal))
-                    continue;
-                if (s.IsTraveling || s.IsRouteAnchored)
-                    yield return s;
-            }
-        }
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Simulation;
 using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
@@ -9,21 +10,14 @@ namespace XianXia.Core.World.Strategic
     /// <summary>
     /// Formal Army 领域真源（Phase A）。成员正向真源为 <see cref="MemberCharacterIds"/>；
     /// Character 侧 <see cref="ArmyMembershipComponent"/> 仅为反向索引。
+    /// 战略位置真源：<see cref="CurrentHex"/>（Pure Hex）。
     /// </summary>
     public sealed class FormalArmy
     {
         readonly List<ulong> _memberCharacterIds = new List<ulong>(8);
         ReadOnlyCollection<ulong> _memberCharacterIdsView;
 
-        string _nodeId = string.Empty;
-        FormalArmyState _state = FormalArmyState.AtNode;
-        string _routeId = string.Empty;
-        string _destNodeId = string.Empty;
-        int _remainingTravelTicks;
-        int _travelTotalTicks;
-        float _routeAnchorProgress = -1f;
-        float _routeSegmentOriginProgress = -1f;
-        float _routeSegmentEndProgress = -1f;
+        FormalArmyState _state = FormalArmyState.Idle;
 
         HexCoord _currentHex;
         HexCoord _destinationHex;
@@ -100,100 +94,22 @@ namespace XianXia.Core.World.Strategic
 
         ReadOnlyCollection<HexCoord> _hexPathView;
 
-        public string NodeId
-        {
-            get => _nodeId;
-            internal set => FormalArmyStrategicMutationDiagnostics.WriteString(this, nameof(NodeId), ref _nodeId, value);
-        }
-
         public FormalArmyState State
         {
             get => _state;
             internal set => FormalArmyStrategicMutationDiagnostics.WriteState(this, ref _state, value);
         }
 
-        public string RouteId
+        /// <summary>若当前 Hex 落在 WorldSite 足迹内，返回该 SiteId。</summary>
+        public bool TryGetFormationSiteId(SimulationWorld world, out string siteId)
         {
-            get => _routeId;
-            internal set => FormalArmyStrategicMutationDiagnostics.WriteString(this, nameof(RouteId), ref _routeId, value);
-        }
-
-        public string DestNodeId
-        {
-            get => _destNodeId;
-            internal set => FormalArmyStrategicMutationDiagnostics.WriteString(this, nameof(DestNodeId), ref _destNodeId, value);
-        }
-
-        public int RemainingTravelTicks
-        {
-            get => _remainingTravelTicks;
-            internal set => FormalArmyStrategicMutationDiagnostics.WriteInt(this, nameof(RemainingTravelTicks), ref _remainingTravelTicks, value);
-        }
-
-        public int TravelTotalTicks
-        {
-            get => _travelTotalTicks;
-            internal set => FormalArmyStrategicMutationDiagnostics.WriteInt(this, nameof(TravelTotalTicks), ref _travelTotalTicks, value);
-        }
-
-        public float RouteAnchorProgress
-        {
-            get => _routeAnchorProgress;
-            internal set => FormalArmyStrategicMutationDiagnostics.WriteFloat(this, nameof(RouteAnchorProgress), ref _routeAnchorProgress, value);
-        }
-
-        public float RouteSegmentOriginProgress
-        {
-            get => _routeSegmentOriginProgress;
-            internal set => FormalArmyStrategicMutationDiagnostics.WriteFloat(this, nameof(RouteSegmentOriginProgress), ref _routeSegmentOriginProgress, value);
-        }
-
-        public float RouteSegmentEndProgress
-        {
-            get => _routeSegmentEndProgress;
-            internal set => FormalArmyStrategicMutationDiagnostics.WriteFloat(this, nameof(RouteSegmentEndProgress), ref _routeSegmentEndProgress, value);
-        }
-
-        public bool IsTraveling =>
-            State == FormalArmyState.OnRoute &&
-            !string.IsNullOrEmpty(RouteId) &&
-            RemainingTravelTicks > 0;
-
-        public bool IsRouteAnchored =>
-            !string.IsNullOrEmpty(RouteId) &&
-            RouteAnchorProgress >= 0f &&
-            !IsTraveling;
-
-        public float TravelProgress
-        {
-            get
-            {
-                if (!IsTraveling || TravelTotalTicks <= 0)
-                    return 0f;
-                var done = TravelTotalTicks - RemainingTravelTicks;
-                if (done <= 0)
-                    return 0f;
-                if (done >= TravelTotalTicks)
-                    return 1f;
-                return (float)done / TravelTotalTicks;
-            }
-        }
-
-        public float GetRouteDisplayProgress()
-        {
-            if (IsTraveling &&
-                RouteSegmentOriginProgress >= 0f &&
-                RouteSegmentEndProgress >= 0f)
-            {
-                return RouteSegmentOriginProgress +
-                       (RouteSegmentEndProgress - RouteSegmentOriginProgress) * TravelProgress;
-            }
-
-            if (IsTraveling)
-                return TravelProgress;
-            if (IsRouteAnchored)
-                return RouteAnchorProgress;
-            return 0f;
+            siteId = string.Empty;
+            if (world?.Strategic?.Sites == null)
+                return false;
+            if (!world.Strategic.Sites.TryGetAtHex(CurrentHex, out var site) || site == null)
+                return false;
+            siteId = site.SiteId ?? string.Empty;
+            return !string.IsNullOrEmpty(siteId);
         }
 
         internal void SetHexPath(IReadOnlyList<HexCoord> path, HexCoord destination)
@@ -247,29 +163,6 @@ namespace XianXia.Core.World.Strategic
             from = _hexPath[_currentPathIndex];
             to = _hexPath[_currentPathIndex + 1];
             return true;
-        }
-
-        internal void ClearTravel()
-        {
-            FormalArmyStrategicMutationDiagnostics.ExecuteMutation(this, nameof(ClearTravel), () =>
-            {
-                if (!IsRouteAnchored)
-                    _routeId = string.Empty;
-                _destNodeId = string.Empty;
-                _remainingTravelTicks = 0;
-                _travelTotalTicks = 0;
-                _routeSegmentOriginProgress = -1f;
-                _routeSegmentEndProgress = -1f;
-            });
-        }
-
-        internal void ClearRouteSegment()
-        {
-            FormalArmyStrategicMutationDiagnostics.ExecuteMutation(this, nameof(ClearRouteSegment), () =>
-            {
-                _routeSegmentOriginProgress = -1f;
-                _routeSegmentEndProgress = -1f;
-            });
         }
 
         public IReadOnlyList<ulong> MemberCharacterIds =>

@@ -10,7 +10,7 @@ using XianXia.Unity.Host;
 
 namespace XianXia.Tests
 {
-    /// <summary>Host 战略层角色／军队列表只读查询（非 IMGUI）。</summary>
+    /// <summary>Host 战略层角色／军队列表只读查询（非 IMGUI）�?/summary>
     public sealed class HostStrategicRosterQueriesTests
     {
         const string FactionA = "test:faction_a";
@@ -53,14 +53,14 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void Roster_CollectUngroupedCharactersAtNode_ExcludesGrouped()
+        public void Roster_CollectUngroupedCharactersAtSite_ExcludesGrouped()
         {
             var world = BootstrapNodeWithCharacters(out var leader, out var recruit);
             var create = ArmyUiCommands.TryCreateArmy(world, NodeA, FactionA, new[] { leader });
             Assert.IsTrue(create.IsSuccess);
 
             var ungrouped = new List<EntityId>();
-            HostStrategicRosterQueries.CollectUngroupedCharactersAtNode(
+            HostStrategicRosterQueries.CollectUngroupedCharactersAtSite(
                 world, NodeA, FactionA, new[] { leader, recruit }, ungrouped);
             Assert.AreEqual(1, ungrouped.Count);
             Assert.AreEqual(recruit, ungrouped[0]);
@@ -143,8 +143,8 @@ namespace XianXia.Tests
             recruit = r.Value.Id;
             l.Value.Get<FactionMembershipComponent>().Assign(FactionA, FactionRoleKind.Member);
             r.Value.Get<FactionMembershipComponent>().Assign(FactionA, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(leader, NodeA);
-            world.WorldPresence.SetAtNode(recruit, NodeA);
+            world.WorldPresence.SetAtSite(leader, NodeA);
+            world.WorldPresence.SetAtSite(recruit, NodeA);
             return world;
         }
     }

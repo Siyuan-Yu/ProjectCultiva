@@ -11,11 +11,11 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Tests
 {
-    /// <summary>SITE-RCLICK-01..05 + 回归：Hex WorldSite 菜单进入 LocalMap。</summary>
+    /// <summary>SITE-RCLICK-01..05 + 回归：Hex WorldSite 菜单进入 LocalMap�?/summary>
     public sealed class WorldSiteEntryTests
     {
         const string PlayerFaction = StrategicFactionCatalog.PlayerFactionId;
-        const string NodeHuangcun = "base:node_huangcun";
+        const string NodeHuangcun = "base:site_huangcun";
         const string SiteHuangcun = "base:site_huangcun";
         static readonly HexCoord HuangcunHex = Ch01HexPrototypeMapBuilder.HuangcunHex;
         static readonly HexCoord QingyunLuHex = Ch01HexPrototypeMapBuilder.QingyunLuHex;
@@ -54,8 +54,7 @@ namespace XianXia.Tests
 
         static FormalArmy SpawnActiveEnemyArmy(SimulationWorld world, HexCoord hex)
         {
-            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(
-                world, NodeHuangcun, string.Empty, string.Empty, -1f);
+            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeHuangcun);
             Assert.IsTrue(result.IsSuccess);
             ArmyHexTravelService.InitializeArmyAtHex(result.Value, hex);
             return result.Value;
@@ -66,7 +65,7 @@ namespace XianXia.Tests
             var enemyHex = new HexCoord(HuangcunHex.Q + 2, HuangcunHex.R + 4);
             var army = SpawnActiveEnemyArmy(world, enemyHex);
             Assert.IsTrue(world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditPatrolStackId, out var stack));
-            Assert.AreEqual(NodeHuangcun, stack.NodeId);
+            Assert.AreEqual(NodeHuangcun, stack.SiteId);
             return army;
         }
 
@@ -95,7 +94,6 @@ namespace XianXia.Tests
 
             world.Strategic.Encounter.BattlefieldLingering = true;
             ArmyHexBattleAnchorService.SetBattleAnchorHex(world.Strategic.Participants, hex);
-            world.Strategic.Participants.BattleAnchorNodeId = NodeHuangcun;
         }
 
         static void EnterIncapacitated(SimulationWorld world, EntityId id)
@@ -163,7 +161,7 @@ namespace XianXia.Tests
                 world, Ch01HexPrototypeMapBuilder.SiteHuangcun, army.ArmyId);
             Assert.IsTrue(enter.IsSuccess, enter.IsFailure ? enter.Error.ToString() : "");
             Assert.AreEqual("base:map_huangcun", world.PartyWorld.LocalMapId);
-            Assert.AreEqual(string.Empty, world.PartyWorld.NodeId);
+            Assert.AreEqual(Ch01HexPrototypeMapBuilder.SiteHuangcun, world.PartyWorld.SiteId);
             Assert.AreEqual(army.ArmyId, world.PartyWorld.FocusFormalArmyId);
         }
 
@@ -180,7 +178,7 @@ namespace XianXia.Tests
             var blocked = WorldTravelService.EnterWorldSiteScene(
                 world, Ch01HexPrototypeMapBuilder.SiteHuangcun, army.ArmyId);
             Assert.IsTrue(blocked.IsFailure);
-            StringAssert.Contains("不在该地点", blocked.Error.Message);
+            StringAssert.Contains("不在该地�", blocked.Error.Message);
             Assert.AreEqual(PlainHex, army.CurrentHex);
         }
 

@@ -31,7 +31,7 @@ namespace XianXia.Tests
             Assert.IsTrue(created.IsSuccess);
             var entity = created.Value;
             entity.Get<FactionMembershipComponent>().Assign(FactionA, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(entity.Id, "legacy:hex:" + hex);
+            world.WorldPresence.SetAtSite(entity.Id, "legacy:hex:" + hex);
             return entity.Id;
         }
 

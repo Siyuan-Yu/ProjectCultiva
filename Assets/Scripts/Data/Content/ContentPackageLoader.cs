@@ -251,9 +251,6 @@ namespace XianXia.Data.Content
                     case "spawnTable":
                         LoadSpawnTable(item, parsed.Value, registry, report);
                         break;
-                    case "worldGraph":
-                        LoadWorldGraph(item, parsed.Value, registry, report);
-                        break;
                     case "hexWorld":
                         LoadHexWorldContent(item, parsed.Value, registry, report);
                         break;
@@ -683,7 +680,6 @@ namespace XianXia.Data.Content
                 OpeningSettlementId = item.GetString("openingSettlementId", string.Empty),
                 OpeningWorldRegionId = item.GetString("openingWorldRegionId", string.Empty),
                 OpeningLocalPlaceSetId = item.GetString("openingLocalPlaceSetId", string.Empty),
-                OpeningWorldGraphId = item.GetString("openingWorldGraphId", string.Empty),
                 OpeningHexWorldId = item.GetString("openingHexWorldId", string.Empty),
                 OpeningChapterId = item.GetString("openingChapterId", string.Empty)
             };
@@ -1513,136 +1509,6 @@ namespace XianXia.Data.Content
                 report.Add(reg.Error);
         }
 
-        static void LoadWorldGraph(
-            JsonValue item,
-            DefinitionId id,
-            DefinitionRegistry registry,
-            ValidationReport report)
-        {
-            var errorsBefore = report.Errors.Count;
-            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.WorldGraphFields, report, id.ToString());
-            if (report.Errors.Count > errorsBefore)
-                return;
-
-            var graph = new WorldGraphDefinition
-            {
-                Id = id,
-                Name = item.GetString("name", string.Empty),
-                StartNodeId = item.GetString("startNodeId", string.Empty)
-            };
-
-            if (!item.TryGetProperty("nodes", out var nodesNode) || nodesNode.Kind != JsonValueKind.Array)
-            {
-                report.Add(ErrorCode.MissingRequiredField, "worldGraph.nodes required.", id.ToString());
-                return;
-            }
-
-            foreach (var nNode in nodesNode.Array)
-            {
-                if (nNode.Kind != JsonValueKind.Object)
-                    continue;
-                DefinitionSchema.RejectUnknownFields(
-                    nNode, DefinitionSchema.WorldNodeFields, report, id + ".node");
-                if (report.Errors.Count > errorsBefore)
-                    return;
-
-                var node = new WorldNodeEntry
-                {
-                    Id = nNode.GetString("id", string.Empty),
-                    Name = nNode.GetString("name", string.Empty),
-                    Kind = nNode.GetString("kind", string.Empty),
-                    LocalMapId = nNode.GetString("localMapId", string.Empty),
-                    WorldX = ReadFloat(nNode, "worldX", 0f),
-                    WorldY = ReadFloat(nNode, "worldY", 0f),
-                    OwnerId = nNode.GetString("ownerId", string.Empty),
-                    State = nNode.GetString("state", string.Empty)
-                };
-                if (string.IsNullOrWhiteSpace(node.Id))
-                {
-                    report.Add(ErrorCode.MissingRequiredField, "worldGraph.node.id required.", id.ToString());
-                    return;
-                }
-
-                if (nNode.TryGetProperty("tags", out var tagsNode) && tagsNode.Kind == JsonValueKind.Array)
-                {
-                    foreach (var t in tagsNode.Array)
-                    {
-                        if (t.Kind == JsonValueKind.String && !string.IsNullOrWhiteSpace(t.String))
-                            node.Tags.Add(t.String);
-                    }
-                }
-
-                graph.Nodes.Add(node);
-            }
-
-            if (graph.Nodes.Count == 0)
-            {
-                report.Add(ErrorCode.MissingRequiredField, "worldGraph.nodes empty.", id.ToString());
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(graph.StartNodeId))
-            {
-                report.Add(ErrorCode.MissingRequiredField, "worldGraph.startNodeId required.", id.ToString());
-                return;
-            }
-
-            if (item.TryGetProperty("routes", out var routesNode))
-            {
-                if (routesNode.Kind != JsonValueKind.Array)
-                {
-                    report.Add(ErrorCode.ContentLoadFailed, "worldGraph.routes must be array.", id.ToString());
-                    return;
-                }
-
-                foreach (var rNode in routesNode.Array)
-                {
-                    if (rNode.Kind != JsonValueKind.Object)
-                        continue;
-                    DefinitionSchema.RejectUnknownFields(
-                        rNode, DefinitionSchema.WorldRouteFields, report, id + ".route");
-                    if (report.Errors.Count > errorsBefore)
-                        return;
-
-                    var route = new WorldRouteEntry
-                    {
-                        Id = rNode.GetString("id", string.Empty),
-                        FromNodeId = rNode.GetString("fromNodeId", string.Empty),
-                        ToNodeId = rNode.GetString("toNodeId", string.Empty),
-                        Kind = rNode.GetString("kind", string.Empty),
-                        TravelCost = ReadInt(rNode, "travelCost", 0),
-                        Danger = ReadFloat(rNode, "danger", 0f),
-                        OwnerId = rNode.GetString("ownerId", string.Empty),
-                        State = rNode.GetString("state", string.Empty),
-                        Directed = ReadBool(rNode, "directed", false),
-                        EncounterPoolId = rNode.GetString("encounterPoolId", string.Empty)
-                    };
-                    if (string.IsNullOrWhiteSpace(route.Id) ||
-                        string.IsNullOrWhiteSpace(route.FromNodeId) ||
-                        string.IsNullOrWhiteSpace(route.ToNodeId))
-                    {
-                        report.Add(
-                            ErrorCode.MissingRequiredField,
-                            "worldGraph.route id／fromNodeId／toNodeId required.",
-                            id.ToString());
-                        return;
-                    }
-
-                    ReadConditions(
-                        rNode,
-                        "traversalRequirements",
-                        route.TraversalRequirements,
-                        report,
-                        id + "." + route.Id);
-                    graph.Routes.Add(route);
-                }
-            }
-
-            var reg = registry.RegisterWorldGraph(graph);
-            if (reg.IsFailure)
-                report.Add(reg.Error);
-        }
-
         static void LoadHexWorldContent(
             JsonValue item,
             DefinitionId id,
@@ -1707,7 +1573,6 @@ namespace XianXia.Data.Content
                         AnchorR = ReadInt(sNode, "anchorR", 0),
                         LocalMapId = sNode.GetString("localMapId", string.Empty),
                         OwnerFactionId = sNode.GetString("ownerFactionId", string.Empty),
-                        LegacyNodeId = sNode.GetString("legacyNodeId", string.Empty),
                     };
                     if (sNode.TryGetProperty("footprint", out var fpNode) && fpNode.Kind == JsonValueKind.Array)
                     {

@@ -12,7 +12,7 @@ namespace XianXia.Tests
     public sealed class ArmyHexBattleAnchorTests
     {
         const string FactionA = StrategicFactionCatalog.PlayerFactionId;
-        const string NodeA = "base:node_huangcun";
+        const string NodeA = "base:site_huangcun";
 
         static SimulationWorld CreateWorld()
         {
@@ -31,14 +31,13 @@ namespace XianXia.Tests
 
             var snap = new BattleParticipantSnapshot();
             ArmyHexBattleAnchorService.SetBattleAnchorHex(snap, Ch01HexPrototypeMapBuilder.QingyunLuHex);
-            snap.BattleAnchorNodeId = NodeA;
 
             ArmyHexBattleAnchorService.ParkArmyAtBattleAnchor(world, army, snap);
 
             Assert.IsTrue(army.UsesHexStrategicPosition);
             Assert.AreEqual(Ch01HexPrototypeMapBuilder.QingyunLuHex, army.CurrentHex);
-            Assert.AreEqual(string.Empty, army.RouteId);
-            Assert.AreEqual(-1f, army.RouteAnchorProgress);
+            Assert.IsTrue(army.UsesHexStrategicPosition);
+            
         }
 
         [Test]
@@ -59,7 +58,7 @@ namespace XianXia.Tests
             var army = ArmyService.CreateArmy(world, FactionA, NodeA, new[] { leader }).Value;
             ArmyHexTravelService.InitializeArmyAtHex(army, Ch01HexPrototypeMapBuilder.HuangcunHex);
 
-            var result = ArmyHexCommandService.MoveArmyToSite(world, army.ArmyId, "base:node_qingyun_lu");
+            var result = ArmyHexCommandService.MoveArmyToSite(world, army.ArmyId, "base:site_qingyun_lu");
             Assert.IsFalse(result.IsSuccess);
         }
 
@@ -67,7 +66,7 @@ namespace XianXia.Tests
         {
             var created = world.Entities.CreateCharacter(new DefinitionId("test", name), name);
             created.Value.Get<FactionMembershipComponent>().Assign(FactionA, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(created.Value.Id, NodeA);
+            world.WorldPresence.SetAtSite(created.Value.Id, NodeA);
             return created.Value.Id;
         }
 

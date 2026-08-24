@@ -11,11 +11,11 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Tests
 {
-    /// <summary>LINGER-01..11：Hex 残留战场再进。</summary>
+    /// <summary>LINGER-01..11：Hex 残留战场再进�?/summary>
     public sealed class LingeringBattlefieldHexEntryTests
     {
         const string PlayerFaction = StrategicFactionCatalog.PlayerFactionId;
-        const string NodeA = "base:node_huangcun";
+        const string NodeA = "base:site_huangcun";
         static readonly HexCoord BattleHex = Ch01HexPrototypeMapBuilder.HuangcunHex;
         static readonly HexCoord RemoteHex = Ch01HexPrototypeMapBuilder.QingyunLuHex;
 
@@ -33,7 +33,7 @@ namespace XianXia.Tests
             var created = world.Entities.CreateCharacter(new DefinitionId("test", name), name);
             Assert.IsTrue(created.IsSuccess);
             created.Value.Get<FactionMembershipComponent>().Assign(PlayerFaction, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(created.Value.Id, NodeA);
+            world.WorldPresence.SetAtSite(created.Value.Id, NodeA);
             return created.Value.Id;
         }
 
@@ -63,7 +63,7 @@ namespace XianXia.Tests
             SimulationWorld world,
             HexCoord hex)
         {
-            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA, string.Empty, string.Empty, -1f);
+            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(result.IsSuccess);
             var army = result.Value;
             ArmyHexTravelService.InitializeArmyAtHex(army, hex);
@@ -87,7 +87,6 @@ namespace XianXia.Tests
             world.Strategic.Encounter.ArmyStackId = stack.Id;
             world.Strategic.Participants.PrimaryEnemyStackId = stack.Id;
             ArmyHexBattleAnchorService.SetBattleAnchorHex(world.Strategic.Participants, hex);
-            world.Strategic.Participants.BattleAnchorNodeId = NodeA;
 
             return (stack, members);
         }

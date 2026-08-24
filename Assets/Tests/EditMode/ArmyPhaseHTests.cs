@@ -66,8 +66,8 @@ namespace XianXia.Tests
         public void NodeDefense_CountsGarrisonedArmiesAndResidents()
         {
             var world = CreateWorld();
-            Assert.GreaterOrEqual(NodeDefenseService.CountResidents(world, NodeB), 0);
-            Assert.AreEqual(0, NodeDefenseService.CountGarrisonedArmies(world, NodeB, FactionB));
+            Assert.GreaterOrEqual(SiteDefenseService.CountResidents(world, NodeB), 0);
+            Assert.AreEqual(0, SiteDefenseService.CountGarrisonedArmies(world, NodeB, FactionB));
         }
 
         [Test]

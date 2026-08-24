@@ -9,7 +9,7 @@ using XianXia.Core.Social;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>Phase C 测试夹具：BanditLeader + A/B/C 真实 Character Entity。</summary>
+    /// <summary>Phase C 测试夹具：BanditLeader + A/B/C 真实 Character Entity�?/summary>
     public static class TestStrategicBootstrap
     {
         const string BanditLeaderDef = "test:bandit_leader";
@@ -41,7 +41,7 @@ namespace XianXia.Core.World.Strategic
             {
                 if (TryFindByKey(world, BanditNames[i], out var existing))
                 {
-                    world.WorldPresence.SetAtNode(existing, nodeId);
+                    world.WorldPresence.SetAtSite(existing, nodeId);
                     result.Add(existing);
                     continue;
                 }
@@ -54,14 +54,14 @@ namespace XianXia.Core.World.Strategic
                 var entity = created.Value;
                 entity.Get<FactionMembershipComponent>()
                     .Assign(StrategicFactionCatalog.BanditId, FactionRoleKind.Member);
-                world.WorldPresence.SetAtNode(entity.Id, nodeId);
+                world.WorldPresence.SetAtSite(entity.Id, nodeId);
                 result.Add(entity.Id);
             }
 
             return result;
         }
 
-        /// <summary>Prototype 弱测山匪：单人凡人 + 低属性，便于自动战快速取胜。</summary>
+        /// <summary>Prototype 弱测山匪：单人凡�?+ 低属性，便于自动战快速取胜�?/summary>
         public static List<EntityId> EnsureWeakBanditCharacters(SimulationWorld world, string nodeId)
         {
             var result = new List<EntityId>(WeakBanditNames.Length);
@@ -72,7 +72,7 @@ namespace XianXia.Core.World.Strategic
             {
                 if (TryFindBanditByName(world, WeakBanditNames[i], out var existing))
                 {
-                    world.WorldPresence.SetAtNode(existing, nodeId);
+                    world.WorldPresence.SetAtSite(existing, nodeId);
                     result.Add(existing);
                     continue;
                 }
@@ -87,7 +87,7 @@ namespace XianXia.Core.World.Strategic
                 entity.Get<FactionMembershipComponent>()
                     .Assign(StrategicFactionCatalog.BanditId, FactionRoleKind.Member);
                 ConfigureWeakBanditCombatProfile(entity);
-                world.WorldPresence.SetAtNode(entity.Id, nodeId);
+                world.WorldPresence.SetAtSite(entity.Id, nodeId);
                 result.Add(entity.Id);
             }
 
@@ -125,7 +125,7 @@ namespace XianXia.Core.World.Strategic
             {
                 if (TryFindBanditByName(world, scoutNames[i], out var existing))
                 {
-                    world.WorldPresence.SetAtNode(existing, nodeId);
+                    world.WorldPresence.SetAtSite(existing, nodeId);
                     result.Add(existing);
                     continue;
                 }
@@ -138,7 +138,7 @@ namespace XianXia.Core.World.Strategic
                 var entity = created.Value;
                 entity.Get<FactionMembershipComponent>()
                     .Assign(StrategicFactionCatalog.BanditId, FactionRoleKind.Member);
-                world.WorldPresence.SetAtNode(entity.Id, nodeId);
+                world.WorldPresence.SetAtSite(entity.Id, nodeId);
                 result.Add(entity.Id);
             }
 

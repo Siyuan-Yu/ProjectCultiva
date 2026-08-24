@@ -10,12 +10,12 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
-    /// <summary>按当前 Active LocalMap／宏观所在节点过滤实体／地点是否应显示。</summary>
+    /// <summary>按当Active LocalMap／宏观所在节点过滤实体／地点是否应显示/summary>
     public static class LocalMapVisibility
     {
         /// <summary>
-        /// 我方角色是否仍占用指定 LocalMap（上路／路锚不算）。
-        /// 遭遇图实例只认 InEncounter；普通节点图按 Node→LocalMapId 对齐。
+        /// 我方角色是否仍占用指LocalMap（上路／路锚不算）
+        /// 遭遇图实例只InEncounter；普通节点图Node→LocalMapId 对齐
         /// </summary>
         public static bool IsFriendlyCharacterOnMapLayout(
             SimulationWorld world,
@@ -44,9 +44,7 @@ namespace XianXia.Unity.Host
             if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
                 return false;
 
-            if (wp.Mode == PartyWorldPresenceMode.Traveling ||
-                wp.Mode == PartyWorldPresenceMode.RouteAnchored ||
-                wp.Mode == PartyWorldPresenceMode.InEncounter)
+            if (wp.Mode == PartyWorldPresenceMode.InEncounter)
                 return false;
 
             if (wp.Mode == PartyWorldPresenceMode.AtSite &&
@@ -80,8 +78,8 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// 装图用：只要有人 AtNode 落在该 LocalMapId，或遭遇中人在遭遇图，就允许加载。
-        /// （不因遭遇残留把同保底图 id 的村庄节点误判成空图）
+        /// 装图用：只要有人 AtSite 落在LocalMapId，或遭遇中人在遭遇图，就允许加载
+        /// （不因遭遇残留把同保底图 id 的村庄节点误判成空图
         /// </summary>
         public static bool CanLoadMapLayoutForParty(
             SimulationWorld world,
@@ -115,9 +113,6 @@ namespace XianXia.Unity.Host
                 var id = characterIds[i];
                 if (id.IsNone || !world.WorldPresence.TryGet(id, out var wp) || wp == null)
                     continue;
-                if (wp.Mode == PartyWorldPresenceMode.Traveling ||
-                    wp.Mode == PartyWorldPresenceMode.RouteAnchored)
-                    continue;
                 if (wp.Mode == PartyWorldPresenceMode.InEncounter)
                 {
                     if (string.Equals(
@@ -143,7 +138,7 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// 保底图 id 与遭遇图共用时：只要遭遇运行时仍挂着参战／刷怪／待刷，就按遭遇实例计。
+        /// 保底id 与遭遇图共用时：只要遭遇运行时仍挂着参战／刷怪／待刷，就按遭遇实例计
         /// </summary>
         static bool IsEncounterMapInstance(SimulationWorld world, string mapLayoutId)
         {
@@ -187,7 +182,7 @@ namespace XianXia.Unity.Host
             var lm = world.LocalMap;
             if (!lm.IsInInterior)
             {
-                // 洞内／秘境地点：地表绝不显示（即使 LocalMapId 漏填，也认 interior 标签）
+                // 洞内／秘境地点：地表绝不显示（即LocalMapId 漏填，也interior 标签
                 if (IsInteriorOnlyLocation(loc))
                     return false;
                 return string.IsNullOrEmpty(loc.LocalMapId) ||
@@ -208,9 +203,9 @@ namespace XianXia.Unity.Host
 
             var onEncounterMap = IsActiveStrategicEncounterMap(world);
 
-            // WorldSite LocalMap 硬门禁：有宏观 Presence 的实体只按「是否物理在当前 Site」显示。
-            // 禁止世界其它地点的 NPC／Army 成员落到同一张图（含开局荒村）。
-            // 无 WorldPresence、仅绑 LocationId 的场景 NPC（守卫／商人等）仍走下方地点过滤。
+            // WorldSite LocalMap 硬门禁：有宏Presence 的实体只按「是否物理在当前 Site」显示
+            // 禁止世界其它地点NPC／Army 成员落到同一张图（含开局荒村）
+            // WorldPresence、仅LocationId 的场NPC（守卫／商人等）仍走下方地点过滤
             if (!onEncounterMap &&
                 StrategicWorldSitePopulationService.TryResolvePartyFocusSite(world, out var siteFocus) &&
                 world.WorldPresence != null &&
@@ -233,7 +228,7 @@ namespace XianXia.Unity.Host
                 !world.Strategic.Encounter.IsEngaged(id))
                 return false;
 
-            // 手动遭遇：参战者已落点（PresentationOverride）即显示；禁止 Hex/WorldSite 空 NodeId 误杀
+            // 手动遭遇：参战者已落点（PresentationOverride）即显示；禁Hex/WorldSite SiteId 误杀
             if (onEncounterMap &&
                 world.Strategic?.Encounter != null &&
                 world.Strategic.Encounter.IsEngaged(id) &&
@@ -241,32 +236,25 @@ namespace XianXia.Unity.Host
                 engagedSpawnLoc.HasPresentationOverride)
                 return true;
 
-            // 有宏观在场记录的可控角色：只显示「当前焦点节点上、未上路」的人
+            // 有宏观在场记录的可控角色：只显示「当前焦点节点上、未上路」的
             if (world.WorldPresence != null &&
                 world.WorldPresence.TryGet(id, out var wp) &&
                 wp != null)
             {
-                // 敌军弥留宏观钉在路锚，再进 LocalMap 时仍应显示（与我方弥留同一套「人还在接战点」）
-                if ((wp.Mode == PartyWorldPresenceMode.Traveling ||
-                     wp.Mode == PartyWorldPresenceMode.RouteAnchored ||
-                     wp.Mode == PartyWorldPresenceMode.AtHex) &&
+                // 敌军弥留宏观钉在路锚，再LocalMap 时仍应显示（与我方弥留同一套「人还在接战点」）
+                if (wp.Mode == PartyWorldPresenceMode.AtHex &&
                     IsStrategicEncounterSpawn(world, id) &&
                     onEncounterMap &&
                     entity.TryGet<EntityLocationComponent>(out var spawnLoc) &&
                     spawnLoc.HasPresentationOverride)
                     return true;
 
-                if (wp.Mode == PartyWorldPresenceMode.Traveling)
-                    return false;
-                if (wp.Mode == PartyWorldPresenceMode.RouteAnchored)
-                    return false;
-
                 if (wp.Mode == PartyWorldPresenceMode.AtHex)
                 {
-                    // 遭遇图上：非本场 scoped spawn 的 Hex residual 不得靠 LocationId 漏进来
+                    // 遭遇图上：非本场 scoped spawn Hex residual 不得LocationId 漏进
                     if (onEncounterMap)
                         return false;
-                    // 非遭遇 LocalMap：Hex 宏观单位不进场景（除非上面 WorldSite 硬门禁已放行）
+                    // 非遭LocalMap：Hex 宏观单位不进场景（除非上WorldSite 硬门禁已放行
                     return false;
                 }
 
@@ -285,11 +273,10 @@ namespace XianXia.Unity.Host
                     return false;
                 }
 
-                // Hex FormalArmy 成员若仍残留 AtNode Presence，不得凭 NodeId 误进任意 LocalMap
+                // Hex FormalArmy 成员若仍残留 AtSite Presence，不得凭 SiteId 误进任意 LocalMap
                 if (!onEncounterMap && IsHexStrategicArmyMember(world, id))
                     return false;
 
-                var focus = world.PartyWorld != null ? world.PartyWorld.NodeId : null;
                 var focusSite = world.PartyWorld != null ? world.PartyWorld.SiteId : null;
                 if (wp.Mode == PartyWorldPresenceMode.AtSite)
                 {
@@ -298,18 +285,6 @@ namespace XianXia.Unity.Host
                         return !onEncounterMap ||
                                StrategicEncounterHostilityService.IsVisibleOnEncounterLocalMap(world, id);
                     return false;
-                }
-
-                if (string.IsNullOrEmpty(focus) ||
-                    !string.Equals(wp.NodeId, focus, System.StringComparison.Ordinal))
-                    return false;
-
-                // 遭遇图：禁止同 Node AtNode 的非参战战略 NPC 漏进战场（如 WeakBandit 战场的 BanditLeader/A/B/C）
-                if (wp.Mode == PartyWorldPresenceMode.AtNode)
-                {
-                    if (onEncounterMap)
-                        return StrategicEncounterHostilityService.IsVisibleOnEncounterLocalMap(world, id);
-                    return true;
                 }
             }
 
@@ -322,7 +297,7 @@ namespace XianXia.Unity.Host
                     return true;
                 if (IsCaveBoundNpc(entity) && !world.LocalMap.IsInInterior)
                     return false;
-                // 有宏观 Presence 但无地点、又未过 WorldSite 硬门禁 → 不显示
+                // 有宏Presence 但无地点、又未过 WorldSite 硬门不显
                 if (world.WorldPresence != null && world.WorldPresence.TryGet(id, out _))
                 {
                     if (onEncounterMap)
@@ -337,7 +312,7 @@ namespace XianXia.Unity.Host
                 onEncounterMap)
                 return true;
 
-            // 遭遇图：禁止用「LocationId 落在遭遇图地点表」把其他战场 NPC 带进来
+            // 遭遇图：禁止用「LocationId 落在遭遇图地点表」把其他战场 NPC 带进
             if (onEncounterMap &&
                 (entity.Tags & EntityTag.Npc) != 0 &&
                 !IsStrategicEncounterSpawn(world, id))
@@ -351,7 +326,7 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// 属于其他 Lingering Battlefield 的 tracked entity，不得在当前遭遇 LocalMap 显示。
+        /// 属于其他 Lingering Battlefield tracked entity，不得在当前遭遇 LocalMap 显示
         /// </summary>
         static bool IsForeignBattlefieldEntity(SimulationWorld world, EntityId id)
         {
@@ -407,8 +382,8 @@ namespace XianXia.Unity.Host
                 return false;
             if (!string.Equals(world.LocalMap.ActiveMapLayoutId, mapId, System.StringComparison.Ordinal))
                 return false;
-            // 仅遭遇图实例（base:map_world_node_stub + 活跃 Encounter 状态），
-            // 禁止把青石荒村等普通 LocalMap 误判为遭遇图（否则 AtNode 村民会被 Participant 过滤隐藏）。
+            // 仅遭遇图实例（base:map_world_node_stub + 活跃 Encounter 状态）
+            // 禁止把青石荒村等普LocalMap 误判为遭遇图（否AtSite 村民会被 Participant 过滤隐藏）
             return IsEncounterMapInstance(world, mapId);
         }
 

@@ -76,8 +76,6 @@ namespace XianXia.Core.World.Strategic
                 enemyStack.IncapacitatedMemberCount = 0;
                 enemyStack.CorpseMemberCount = members;
                 enemyStack.IsBattlefieldRemnant = true;
-                enemyStack.RemainingTravelTicks = 0;
-                enemyStack.TravelTotalTicks = 0;
                 StrategicEncounterSpawner.ApplyCorpseToLivingTrackedSpawns(world);
             }
             else
@@ -89,8 +87,6 @@ namespace XianXia.Core.World.Strategic
                 enemyStack.CorpseMemberCount = 0;
                 enemyStack.IsBattlefieldRemnant = true;
                 enemyStack.CombatPower = Math.Max(1, enemyStack.CombatPower);
-                enemyStack.RemainingTravelTicks = 0;
-                enemyStack.TravelTotalTicks = 0;
                 StrategicEncounterSpawner.ApplyIncapacitatedToLivingTrackedSpawns(world);
             }
         }
@@ -130,8 +126,6 @@ namespace XianXia.Core.World.Strategic
             report.EnemyMembersEliminated = eliminated;
             report.EnemyMembersSpared = spared;
             enemyStack.IsBattlefieldRemnant = true;
-            enemyStack.RemainingTravelTicks = 0;
-            enemyStack.TravelTotalTicks = 0;
             if (executeOnWin)
                 StrategicEncounterSpawner.ApplyCorpseToLivingTrackedSpawns(world);
             else

@@ -24,12 +24,12 @@ namespace XianXia.Unity.Host
         [SerializeField] string contentPackageDirectoryOverride = "";
 
         [Header("Level Tester · 关卡地图")]
-        [Tooltip("选中的 mapLayout JSON（相对工程根或绝对路径）。点 Inspector 里「选择关卡地图 JSON」浏览。")]
+        [Tooltip("1x 下每 Tick 现实秒数。1 tick=5 游戏分；默认 1s → 1 现实秒=5 游戏分，5x=25 游戏分/秒。")]
         [SerializeField] string mapLayoutFilePath = "";
-        [Tooltip("空则用 base:scenario_ch01_reference（Level Tester 默认第一章，洞府残影在洞内）。")]
+        [Tooltip("1x 下每 Tick 现实秒数。1 tick=5 游戏分；默认 1s → 1 现实秒=5 游戏分，5x=25 游戏分/秒。")]
         [SerializeField] string openingScenarioId = "base:scenario_ch01_reference";
         [Header("Level Tester · 人物名册")]
-        [Tooltip("人物编辑器导出的 characterRoster id。有则按名册刷人（非 Unity 场景摆放）。空＝用剧本 spawns。")]
+        [Tooltip("1x 下每 Tick 现实秒数。1 tick=5 游戏分；默认 1s → 1 现实秒=5 游戏分，5x=25 游戏分/秒。")]
         [SerializeField] string characterRosterId = "base:roster_level_tester";
         [HideInInspector]
         [SerializeField] string preferredMapLayoutId = "";
@@ -328,7 +328,7 @@ namespace XianXia.Unity.Host
             return speed < 1 ? 1 : speed;
         }
 
-        /// <summary>ADR-0023：Resolve 后恢复开战前倍速。</summary>
+        /// <summary>ADR-0023：Resolve 后恢复开战前倍速/summary>
         public void ApplySavedSpeedMultiplier(int multiplier)
         {
             EnsureDebugHud();
@@ -339,8 +339,8 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// 顶栏 1x／2x／5x／20x：统一改 Host 倍速。
-        /// Tick 驱动的工作／休息／吃饭／修炼／作息与表现层移动共用此倍率。
+        /// 顶栏 1xxx0x：统一Host 倍速
+        /// Tick 驱动的工作／休息／吃饭／修炼／作息与表现层移动共用此倍率
         /// </summary>
         public void SetSpeedMultiplier(int multiplier)
         {
@@ -359,8 +359,8 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// 表现层帧间隔：受暂停与 Host 倍速影响（移动／分离等）。
-        /// Core 行动进度靠 Tick（已按倍速推进）；连续位移必须用同一倍率。
+        /// 表现层帧间隔：受暂停Host 倍速影响（移动／分离等）
+        /// Core 行动进度Tick（已按倍速推进）；连续位移必须用同一倍率
         /// </summary>
         public float PresentationDeltaTime
         {
@@ -710,7 +710,7 @@ namespace XianXia.Unity.Host
                 cam);
             npcScheduleMover.Bind(this, moveController, entityViewSpawner);
             snapshotPanel.Bind(this);
-            // Bootstrap already published WorldInitialized／EntityCreated — capture once.
+            // Bootstrap already published WorldInitialized／EntityCreated capture once.
             DispatchDrainedEvents();
             FrameCameraOnSlots();
 
@@ -777,7 +777,7 @@ namespace XianXia.Unity.Host
             if (cameraRig == null)
                 return;
 
-            // 进出洞府：优先对准可见己方，避免整图中心与落点错位
+            // 进出洞府：优先对准可见己方，避免整图中心与落点错
             if (TryFrameCameraOnParty())
                 return;
 
@@ -832,8 +832,8 @@ namespace XianXia.Unity.Host
             return true;
         }
 
-        /// <summary>LocalMap 进出后：切 PreferredMapLayout、重建灰盒／实体／寻路。</summary>
-        /// <param name="frameCamera">勘查显形等轻量刷新应传 false，避免镜头乱跳。</param>
+        /// <summary>LocalMap 进出后：PreferredMapLayout、重建灰盒／实体／寻路/summary>
+        /// <param name="frameCamera">勘查显形等轻量刷新应false，避免镜头乱跳/param>
         public void ReloadLocalMapPresentation(bool frameCamera = true)
         {
             if (!_session.IsInitialized)
@@ -857,7 +857,7 @@ namespace XianXia.Unity.Host
             RefreshStatus();
         }
 
-        /// <summary>显式清空 Active LocalMap 表现（进入场景失败／无目标图时用）。全员上路时不要调用。</summary>
+        /// <summary>显式清空 Active LocalMap 表现（进入场景失败／无目标图时用）。全员上路时不要调用/summary>
         public void UnloadActiveLocalMapPresentation(bool clearEmptyEncounter = false)
         {
             if (!_session.IsInitialized)
@@ -897,10 +897,10 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// WorldGraph 到站后：按 PartyWorld.LocalMapId 卸／装实体图；切换 localPlaceSet；队伍落到 startLocation。
+        /// WorldSite 到站后：PartyWorld.LocalMapId 卸／装实体图；切localPlaceSet；队伍落startLocation
         /// </summary>
-        /// <param name="closeWorldMap">从大地图「进入场景」时应为 true，关掉全屏地图页。</param>
-        public void ApplyPartyWorldNodePresentation(bool closeWorldMap = false)
+        /// <param name="closeWorldMap">从大地图「进入场景」时应为 true，关掉全屏地图页/param>
+        public void ApplyPartyWorldSitePresentation(bool closeWorldMap = false)
         {
             if (closeWorldMap && worldMapPanel != null)
                 worldMapPanel.Close();
@@ -937,7 +937,7 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            // 目标图必须在内容包里，否则禁止带着荒村图「假装切换」
+            // 目标图必须在内容包里，否则禁止带着荒村图「假装切换
             if (!string.IsNullOrWhiteSpace(targetMap))
             {
                 var parsedMap = XianXia.Core.Domain.Ids.DefinitionId.Parse(targetMap.Trim());
@@ -946,7 +946,7 @@ namespace XianXia.Unity.Host
                 {
                     Debug.LogError(
                         "[PlayableHost] LocalMap missing in registry: " + targetMap +
-                        " — 无法进入该节点场景（请确认 Content 已含保底图）。",
+                        "Maps",
                         this);
                     RefreshStatus();
                     return;
@@ -959,7 +959,7 @@ namespace XianXia.Unity.Host
                 Debug.LogWarning("[PlayableHost] ActivatePlaces: " + places.Error, this);
 
             // 仅把仍在当前焦点 Node／WorldSite 上的己方落到该图 startLocation（已去别处的人不动）
-            var focusNode = world.PartyWorld.NodeId;
+            var focusNode = world.PartyWorld.SiteId;
             var focusSiteId = world.PartyWorld.SiteId;
             WorldSite focusSite = null;
             if (!string.IsNullOrEmpty(focusSiteId))
@@ -980,7 +980,7 @@ namespace XianXia.Unity.Host
                 if (wp != null &&
                     !onEncounterMap &&
                     (wp.Mode == XianXia.Core.World.PartyWorldPresenceMode.InEncounter ||
-                     wp.Mode == XianXia.Core.World.PartyWorldPresenceMode.Traveling))
+                     wp.Mode == XianXia.Core.World.PartyWorldPresenceMode.AtSite))
                     continue;
                 var engagedInEncounter = filterEngaged && encounter.IsEngaged(id);
                 if (!engagedInEncounter && focusSite != null)
@@ -997,16 +997,16 @@ namespace XianXia.Unity.Host
                 else if (!engagedInEncounter &&
                     wp != null &&
                     !string.IsNullOrEmpty(focusNode) &&
-                    !string.Equals(wp.NodeId, focusNode, System.StringComparison.Ordinal))
+                    !string.Equals(wp.SiteId, focusNode, System.StringComparison.Ordinal))
                     continue;
-                if (wp != null && wp.Mode == XianXia.Core.World.PartyWorldPresenceMode.Traveling)
+                if (wp != null && wp.Mode == XianXia.Core.World.PartyWorldPresenceMode.AtSite)
                 {
                     if (!onEncounterMap)
                         continue;
                     wp.Mode = XianXia.Core.World.PartyWorldPresenceMode.InEncounter;
                 }
                 else if (wp != null &&
-                         wp.Mode == XianXia.Core.World.PartyWorldPresenceMode.RouteAnchored &&
+                         wp.Mode == XianXia.Core.World.PartyWorldPresenceMode.AtSite &&
                          onEncounterMap &&
                          engagedInEncounter)
                 {
@@ -1036,7 +1036,7 @@ namespace XianXia.Unity.Host
 
             if (string.IsNullOrWhiteSpace(targetMap))
             {
-                // 焦点图为空但画面仍在：保留当前 LocalMap（全员上路时视线不带走）
+                // 焦点图为空但画面仍在：保留当LocalMap（全员上路时视线不带走）
                 if (!string.IsNullOrWhiteSpace(world.LocalMap.ActiveMapLayoutId))
                 {
                     RefreshStatus();
@@ -1109,7 +1109,7 @@ namespace XianXia.Unity.Host
             }
         }
 
-        /// <summary>残留战场：存活角色「查看」弥留同伴／再入接战 LocalMap。</summary>
+        /// <summary>残留战场：存活角色「查看」弥留同伴／再入接战 LocalMap/summary>
         public void EnterLingeringBattlefield(IReadOnlyList<EntityId> party)
         {
             if (!_session.IsInitialized || party == null || party.Count == 0)
@@ -1173,10 +1173,10 @@ namespace XianXia.Unity.Host
             _session.IsPaused = false;
             if (worldMapPanel != null)
                 worldMapPanel.Close();
-            ApplyPartyWorldNodePresentation(closeWorldMap: true);
+            ApplyPartyWorldSitePresentation(closeWorldMap: true);
         }
 
-        /// <summary>仅重刷地表戳（如勘查显形），不重建实体、不挪镜头。</summary>
+        /// <summary>仅重刷地表戳（如勘查显形），不重建实体、不挪镜头/summary>
         public void RefreshMapStampsOnly()
         {
             if (!_session.IsInitialized)
@@ -1206,14 +1206,14 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            // 尸体腐烂后立刻从 LocalMap 卸表现（大地图靠 WorldPresence 已抹）
+            // 尸体腐烂后立刻从 LocalMap 卸表现（大地图靠 WorldPresence 已抹
             entityViewSpawner?.PruneHiddenViews(_session);
 
             DispatchDrainedEvents();
             RefreshStatus();
         }
 
-        /// <summary>Host 表现层触发的 Content／Quest 事件立即送给打断呈现。</summary>
+        /// <summary>Host 表现层触发的 Content／Quest 事件立即送给打断呈现/summary>
         public void DispatchDrainedEvents()
         {
             if (_session?.World?.Events == null)
@@ -1225,7 +1225,7 @@ namespace XianXia.Unity.Host
                 if (evt?.Type == XianXia.Core.Events.EventType.CombatantDefeated &&
                     evt.Target.HasValue)
                 {
-                    // 只同步遭遇敌军伤亡；敌清空 → FieldCleared（无结算弹窗、不卸图、不弹大地图）
+                    // 只同步遭遇敌军伤亡；敌清FieldCleared（无结算弹窗、不卸图、不弹大地图
                     StrategicEncounterSpawner.OnCombatantDefeated(
                         _session.World,
                         evt.Target.Value);

@@ -11,11 +11,11 @@ using XianXia.Unity.Host;
 
 namespace XianXia.Tests
 {
-    /// <summary>WorldSite LocalMap 人口：Resident + 足迹内 Army 成员，EnteringArmy 不作人口过滤。</summary>
+    /// <summary>WorldSite LocalMap 人口：Resident + 足迹�?Army 成员，EnteringArmy 不作人口过滤�?/summary>
     public sealed class WorldSiteLocalMapPopulationTests
     {
         const string PlayerFaction = StrategicFactionCatalog.PlayerFactionId;
-        const string NodeHuangcun = "base:node_huangcun";
+        const string NodeHuangcun = "base:site_huangcun";
         const string SiteHuangcun = "base:site_huangcun";
         static readonly HexCoord HuangcunHex = Ch01HexPrototypeMapBuilder.HuangcunHex;
 

@@ -9,7 +9,7 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// WorldSite LocalMap 人口：按地点物理在场解析 CharacterId（与 EnteringArmy / Focus 分离）。
+    /// WorldSite LocalMap 人口：按地点物理在场解析 CharacterId（与 EnteringArmy / Focus 分离）�?
     /// </summary>
     public static class StrategicWorldSitePopulationService
     {
@@ -66,7 +66,7 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 解析应在 WorldSite LocalMap 出现的可控 Character（Resident + 足迹内 FormalArmy 成员，按 CharacterId 去重）。
+        /// 解析应在 WorldSite LocalMap 出现的可�?Character（Resident + 足迹�?FormalArmy 成员，按 CharacterId 去重）�?
         /// </summary>
         public static void CollectCharacterIdsPresentAtWorldSite(
             SimulationWorld world,
@@ -160,10 +160,6 @@ namespace XianXia.Core.World.Strategic
             if (army.UsesHexStrategicPosition)
                 return site.OccupiesHex(army.CurrentHex);
 
-            if (world.Strategic.Sites.TryGet(army.NodeId, out var armySite) &&
-                armySite != null)
-                return string.Equals(armySite.SiteId, site.SiteId, StringComparison.Ordinal);
-
             return false;
         }
 
@@ -180,9 +176,7 @@ namespace XianXia.Core.World.Strategic
                 presence == null)
                 return false;
 
-            if (presence.Mode == PartyWorldPresenceMode.Traveling ||
-                presence.Mode == PartyWorldPresenceMode.RouteAnchored ||
-                presence.Mode == PartyWorldPresenceMode.InEncounter ||
+            if (presence.Mode == PartyWorldPresenceMode.InEncounter ||
                 presence.Mode == PartyWorldPresenceMode.AtHex)
                 return false;
 

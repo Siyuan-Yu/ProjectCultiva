@@ -5,7 +5,7 @@ using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>Hex H 上 Active Enemy Army 查询（真源 = FormalArmy.CurrentHex + linked Stack）。</summary>
+    /// <summary>Hex H �?Active Enemy Army 查询（真�?= FormalArmy.CurrentHex + linked Stack）�?/summary>
     public static class HexActiveEnemyArmyQuery
     {
         public static void CollectAtHex(
@@ -128,11 +128,11 @@ namespace XianXia.Core.World.Strategic
                 occupied.Contains(targetHex))
                 return true;
 
-            // Pure Hex：敌军占格只看 FormalArmy.CurrentHex，禁止 stack.NodeId → Legacy Node 回退。
+            // Pure Hex：敌军占格只�?FormalArmy.CurrentHex，禁�?stack.SiteId �?Legacy Node 回退�?
             if (ArmyHexCommandService.IsHexStrategicActive(world))
                 return false;
 
-            if (ArmyHexBattleAnchorService.TryResolveHexForNode(world, stack.NodeId, out var nodeHex) &&
+            if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, stack.SiteId, out var nodeHex) &&
                 nodeHex.Equals(targetHex))
                 return true;
 
@@ -172,7 +172,7 @@ namespace XianXia.Core.World.Strategic
                 return;
 
             target.CanAttack = false;
-            target.BlockReason = "未宣战：无法军事攻击该势力军队";
+            target.BlockReason = "\u672a\u5ba3\u6218\uff1a\u65e0\u6cd5\u519b\u4e8b\u653b\u51fb\u8be5\u52bf\u529b\u519b\u961f\u3002";
         }
 
         static string ResolveDisplayName(ArmyStack stack, string fallback)

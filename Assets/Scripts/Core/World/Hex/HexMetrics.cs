@@ -5,7 +5,7 @@ namespace XianXia.Core.World.Hex
     /// <summary>
     /// Hex 几何真源：Renderer 与 Mouse Picking 必须只读此配置。
     /// Pointy-top；Compact 网格中 Q=列、R=行（Odd-R offset 矩形布局，见 HexWorldLayout）。
-    /// WorldGraphEditor 镜像：ExternalTools Shared HexWorldLayoutShared（必须保持公式一致）。
+    /// HexWorldEditor 镜像：ExternalTools Shared HexWorldLayoutShared（必须保持公式一致）。
     /// </summary>
     public static class HexMetrics
     {

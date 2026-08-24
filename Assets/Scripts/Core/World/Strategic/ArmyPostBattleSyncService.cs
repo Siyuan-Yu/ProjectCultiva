@@ -131,7 +131,7 @@ namespace XianXia.Core.World.Strategic
                 return;
             if (!HasMacroOrderLivingMember(world, army))
                 return;
-            if (army.IsTraveling)
+            if (army.State == FormalArmyState.Moving)
                 return;
 
             ArmyPresenceAdapter.SyncFromArmy(world, army);

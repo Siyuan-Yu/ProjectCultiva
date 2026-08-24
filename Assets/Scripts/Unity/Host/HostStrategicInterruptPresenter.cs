@@ -324,7 +324,7 @@ namespace XianXia.Unity.Host
                         bootstrap.WorldMapPanel?.RefreshStrategicPresentation(world);
                         if (BattleOfferService.HasLingeringBattlefield(world))
                         {
-                            bootstrap.ApplyPartyWorldNodePresentation(closeWorldMap: false);
+                            bootstrap.ApplyPartyWorldSitePresentation(closeWorldMap: false);
                             ShowToast("已退出战斗。弥留者仍在接战点，战场未消失。");
                         }
                         else
@@ -700,7 +700,7 @@ namespace XianXia.Unity.Host
 
             // 进战场：大地图必须关（与 Open 门禁一致）
             bootstrap.WorldMapPanel?.Close();
-            bootstrap.ApplyPartyWorldNodePresentation(closeWorldMap: true);
+            bootstrap.ApplyPartyWorldSitePresentation(closeWorldMap: true);
         }
 
         static List<EntityId> ResolveEngagedPartyForManualEncounter(SimulationWorld world)

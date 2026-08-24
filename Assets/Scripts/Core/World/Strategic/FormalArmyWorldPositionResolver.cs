@@ -4,17 +4,16 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// FormalArmy 战略位置 → 大地图世界坐标的唯一纯函数真源（Hex-only）。
+    /// FormalArmy ???? ? ????????????????Hex-only??
     /// </summary>
     public static class FormalArmyWorldPositionResolver
     {
         public enum RenderSourceType
         {
             None = 0,
-            AtNode,
+            AtSite,
             Garrisoned,
-            OnRouteInterpolation,
-            RouteAnchored,
+            HexMoving,
         }
 
         public readonly struct WorldPositionInfo
@@ -72,15 +71,16 @@ namespace XianXia.Core.World.Strategic
                     worldX,
                     worldY,
                     army.State == FormalArmyState.Moving
-                        ? RenderSourceType.OnRouteInterpolation
-                        : RenderSourceType.AtNode,
+                        ? RenderSourceType.HexMoving
+                        : RenderSourceType.AtSite,
                     army.CurrentHex.ToString(),
                     hexReason,
                     true);
                 return true;
             }
 
-            if (world.Strategic.Sites.TryGet(army.NodeId, out var site) && site != null)
+            if (ArmyService.TryResolveArmySiteId(world, army, out var siteId) &&
+                world.Strategic.Sites.TryGet(siteId, out var site) && site != null)
             {
                 HexMath.ToWorldPosition(site.AnchorHex, world.HexWorld.HexSize, out worldX, out worldY);
                 info = new WorldPositionInfo(
@@ -88,7 +88,7 @@ namespace XianXia.Core.World.Strategic
                     worldY,
                     army.State == FormalArmyState.Garrisoned
                         ? RenderSourceType.Garrisoned
-                        : RenderSourceType.AtNode,
+                        : RenderSourceType.AtSite,
                     site.SiteId,
                     army.State == FormalArmyState.Garrisoned ? "Garrisoned" : "AtSite",
                     true);

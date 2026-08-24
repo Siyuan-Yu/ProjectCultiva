@@ -48,8 +48,8 @@ namespace XianXia.Core.World.Strategic
                 sourceArmy.UsesHexStrategicPosition)
                 hex = sourceArmy.CurrentHex;
             else if (ArmyHexBattleAnchorService.IsHexAnchorMode(world) &&
-                     ArmyHexBattleAnchorService.TryResolveHexForNode(world, nodeId, out var nodeHex))
-                hex = nodeHex;
+                     ArmyHexBattleAnchorService.TryResolveHexForSite(world, nodeId, out var siteHex))
+                hex = siteHex;
 
             return TryAssignEscapedAndRetreat(world, sourceArmyId, escapedMembers, nodeId, hex);
         }
@@ -75,7 +75,6 @@ namespace XianXia.Core.World.Strategic
                 RetreatingArmyId = world.Strategic.RetreatingArmies.AllocateId(),
                 SourceArmyId = sourceArmyId ?? string.Empty,
                 FactionId = sourceArmy?.FactionId ?? string.Empty,
-                NodeId = nodeId ?? string.Empty
             };
             if (hex.HasValue)
             {

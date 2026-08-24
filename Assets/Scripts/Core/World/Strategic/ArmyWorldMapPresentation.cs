@@ -6,7 +6,7 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>Formal Army WorldMap 投影规则（Hex-only）。</summary>
+    /// <summary>Formal Army WorldMap 投影规则（Hex-only）�?/summary>
     public static class ArmyWorldMapPresentation
     {
         public static EntityId ResolvePortraitLeader(FormalArmy army)
@@ -33,9 +33,9 @@ namespace XianXia.Core.World.Strategic
             var leader = ResolvePortraitLeader(army);
             if (!LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, leader))
                 return false;
-            return army.State == FormalArmyState.AtNode ||
+            return army.State == FormalArmyState.Idle ||
                    army.State == FormalArmyState.Garrisoned ||
-                   army.State == FormalArmyState.OnRoute ||
+                   army.State == FormalArmyState.Moving ||
                    army.State == FormalArmyState.Idle ||
                    army.State == FormalArmyState.Moving;
         }
@@ -114,24 +114,25 @@ namespace XianXia.Core.World.Strategic
             return false;
         }
 
-        public static bool IsCharacterGroupedFormalResidentAtNode(SimulationWorld world, EntityId characterId)
+        public static bool IsCharacterGroupedFormalResidentAtSite(SimulationWorld world, EntityId characterId)
         {
             if (!ArmyService.TryGetArmyForCharacter(world, characterId, out var army) || army == null)
                 return false;
 
             if (army.UsesHexStrategicPosition && HexStrategicRuntime.IsActive(world))
             {
-                if (!world.Strategic.Sites.TryGet(army.NodeId, out var formationSite) ||
+                if (!ArmyService.TryResolveArmySiteId(world, army, out var formationSiteId) ||
+                    !world.Strategic.Sites.TryGet(formationSiteId, out var formationSite) ||
                     formationSite == null)
                     return false;
                 return formationSite.OccupiesHex(army.CurrentHex);
             }
 
             var siteId = ArmyService.ResolveCharacterSiteId(world, characterId);
-            if (!string.IsNullOrEmpty(siteId))
-                return string.Equals(siteId, army.NodeId, StringComparison.Ordinal);
-            var nodeId = ArmyService.ResolveCharacterNodeId(world, characterId);
-            return string.Equals(nodeId, army.NodeId, StringComparison.Ordinal);
+            if (!string.IsNullOrEmpty(siteId) &&
+                ArmyService.TryResolveArmySiteId(world, army, out var armySiteId))
+                return string.Equals(siteId, armySiteId, StringComparison.Ordinal);
+            return false;
         }
 
         static bool ShouldSuppressIndependentPortraitForFormalArmyMember(
@@ -144,7 +145,7 @@ namespace XianXia.Core.World.Strategic
                 return false;
             if (LingeringBattlefieldPartyService.IsLingeringDowned(world, characterId))
                 return false;
-            if (army.State == FormalArmyState.OnRoute || army.State == FormalArmyState.Moving)
+            if (army.State == FormalArmyState.Moving || army.State == FormalArmyState.Moving)
                 return true;
             if (presence.Mode == PartyWorldPresenceMode.AtSite)
                 return true;

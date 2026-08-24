@@ -3,7 +3,7 @@ using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>将 FormalArmy 从 legacy Node 引用迁移到 Hex 位置（会话引导）。</summary>
+    /// <summary>�?FormalArmy �?legacy Node 引用违移�?Hex 佝置（会话引导）�?/summary>
     public static class ArmyHexMigrationHelper
     {
         public static void MigrateFormalArmies(SimulationWorld world)
@@ -28,8 +28,8 @@ namespace XianXia.Core.World.Strategic
             if (army == null)
                 return false;
 
-            if (!string.IsNullOrEmpty(army.NodeId) &&
-                world.Strategic.Sites.TryGet(army.NodeId, out var site) &&
+            if (army.TryGetFormationSiteId(world, out var siteId) &&
+                world.Strategic.Sites.TryGet(siteId, out var site) &&
                 site != null)
             {
                 hex = site.AnchorHex;

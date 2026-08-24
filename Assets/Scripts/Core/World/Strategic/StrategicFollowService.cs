@@ -6,7 +6,7 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>大地图 RTS：选中部队跟随目标 ArmyStack。</summary>
+    /// <summary>大地�?RTS：选中部队跟隝目标 ArmyStack�?/summary>
     public static class StrategicFollowService
     {
         public static void BeginFollow(
@@ -79,10 +79,6 @@ namespace XianXia.Core.World.Strategic
             if (presence.Mode == PartyWorldPresenceMode.InEncounter)
                 return;
             if (!WorldTravelService.CanReceiveTravelOrder(world, id))
-                return;
-
-            if (stack.IsRouteAnchored &&
-                StrategicNodeAccessService.IsAgentAtStackAnchor(world, presence, stack))
                 return;
 
             // Pure Hex: legacy stack follow travel removed.

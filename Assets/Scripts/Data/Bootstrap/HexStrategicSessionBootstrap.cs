@@ -8,7 +8,7 @@ using XianXia.Data.Content;
 
 namespace XianXia.Data.Bootstrap
 {
-    /// <summary>Playable 开局：Hex 战略会话引导（替代 WorldGraphBootstrap）。</summary>
+    /// <summary>Playable ???Hex ???????</summary>
     public static class HexStrategicSessionBootstrap
     {
         public const string DefaultStartSiteId = "base:site_huangcun";
@@ -23,9 +23,8 @@ namespace XianXia.Data.Bootstrap
                 return Result.Failure(ErrorCode.InvalidArgument, "HexStrategic session bootstrap args null.");
 
             world.WorldPresence.Clear();
-            world.PartyWorld.ClearTravel();
             world.PartyWorld.ClearSiteFocus();
-            world.PartyWorld.NodeId = string.Empty;
+            world.PartyWorld.SiteId = string.Empty;
             world.PartyWorld.LocalMapId = string.Empty;
 
             var startSiteId = DefaultStartSiteId;

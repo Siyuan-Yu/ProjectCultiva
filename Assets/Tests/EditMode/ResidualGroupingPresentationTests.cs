@@ -423,15 +423,12 @@ namespace XianXia.Tests
             {
                 BattleAnchorHexQ = hex.Q,
                 BattleAnchorHexR = hex.R,
-                BattleAnchorNodeId = TestNode,
-                BattleAnchorRouteId = "should_not_use",
-                BattleAnchorProgress = 0.5f
-            };
+                };
             StrategicEncounterResolveService.PlaceAtBattleAnchor(
                 world, world.WorldPresence.GetOrCreate(id), snap);
             Assert.IsTrue(world.WorldPresence.TryGet(id, out var wp));
             Assert.AreEqual(PartyWorldPresenceMode.AtHex, wp.Mode);
-            Assert.IsTrue(string.IsNullOrEmpty(wp.RouteId));
+            
             Assert.IsFalse(ArmyWorldMapPresentation.ShouldDrawIndependentCharacterPortrait(world, id));
         }
 

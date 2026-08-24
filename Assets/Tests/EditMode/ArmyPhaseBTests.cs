@@ -26,7 +26,7 @@ namespace XianXia.Tests
             Assert.IsTrue(created.IsSuccess);
             var entity = created.Value;
             entity.Get<FactionMembershipComponent>().Assign(TestFactionA, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(entity.Id, nodeId);
+            world.WorldPresence.SetAtSite(entity.Id, nodeId);
             return entity.Id;
         }
 
@@ -116,7 +116,7 @@ namespace XianXia.Tests
             var a = SpawnCharacter(world, "A", TestNodeA);
             var xFaction = world.Entities.CreateCharacter(new DefinitionId("test", "X"), "X").Value;
             xFaction.Get<FactionMembershipComponent>().Assign("test:faction_b", FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(xFaction.Id, TestNodeA);
+            world.WorldPresence.SetAtSite(xFaction.Id, TestNodeA);
 
             var result = ArmyUiCommands.TryCreateArmy(
                 world,

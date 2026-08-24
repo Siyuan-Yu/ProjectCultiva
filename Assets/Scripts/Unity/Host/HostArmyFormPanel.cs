@@ -94,7 +94,8 @@ namespace XianXia.Unity.Host
                 detailArmyRef != null &&
                 string.IsNullOrEmpty(_nodeId))
             {
-                _nodeId = detailArmyRef.NodeId ?? string.Empty;
+                ArmyService.TryResolveArmySiteId(world, detailArmyRef, out var formationSiteId);
+                _nodeId = formationSiteId ?? string.Empty;
             }
 
             var y = panelRect.y + 8f;
@@ -176,7 +177,7 @@ namespace XianXia.Unity.Host
                 FillScratchPartyFromSelection(_scratchParty);
                 if (_scratchParty.Count < 1)
                 {
-                    _lastMessage = "请至少选择一名角色";
+                    _lastMessage = "请至少选择一名角色。";
                 }
                 else
                 {
@@ -229,9 +230,10 @@ namespace XianXia.Unity.Host
             GUI.Label(new Rect(panelRect.x + 8f, y, panelRect.width - 16f, 20f),
                 "State：" + army.State, _body);
             y += 22f;
-            var travel = HostStrategicRosterQueries.ResolveNodeLabel(world, army.NodeId);
-            if (army.State == FormalArmyState.OnRoute && !string.IsNullOrEmpty(army.DestNodeId))
-                travel += " → " + HostStrategicRosterQueries.ResolveNodeLabel(world, army.DestNodeId);
+            ArmyService.TryResolveArmySiteId(world, army, out var armySiteId);
+            var travel = HostStrategicRosterQueries.ResolveSiteLabel(world, armySiteId);
+            if (army.State == FormalArmyState.Moving)
+                travel += " → " + HostStrategicRosterQueries.DescribeHexLabel(world, army.DestinationHex);
             GUI.Label(new Rect(panelRect.x + 8f, y, panelRect.width - 16f, 20f),
                 "Location：" + travel, _body);
             y += 22f;
@@ -250,7 +252,7 @@ namespace XianXia.Unity.Host
                 if (GUI.Button(new Rect(panelRect.xMax - 88f, y, 80f, 18f), "Set Leader"))
                 {
                     var cl = ArmyUiCommands.TryChangeLeader(world, army.ArmyId, memberId);
-                    _lastMessage = cl.IsSuccess ? "已更换 Leader" : ArmyUiCommands.DescribeError(cl.Error);
+                    _lastMessage = cl.IsSuccess ? "已更新 Leader" : ArmyUiCommands.DescribeError(cl.Error);
                     changed |= cl.IsSuccess;
                 }
 
@@ -275,7 +277,7 @@ namespace XianXia.Unity.Host
                     ? ArmyUiCommands.TryMobilize(world, army.ArmyId)
                     : ArmyUiCommands.TryGarrison(world, army.ArmyId);
                 _lastMessage = result.IsSuccess
-                    ? (garrisoned ? "已解除驻扎，可移动／追击" : "已驻扎")
+                    ? (garrisoned ? "已解除驻扎，可移动／追击" : "已驻扎。")
                     : ArmyUiCommands.DescribeError(result.Error);
                 changed |= result.IsSuccess;
             }
@@ -284,7 +286,7 @@ namespace XianXia.Unity.Host
                     "解散 Disband"))
             {
                 var d = ArmyUiCommands.TryDisband(world, army.ArmyId);
-                _lastMessage = d.IsSuccess ? "已解散" : ArmyUiCommands.DescribeError(d.Error);
+                _lastMessage = d.IsSuccess ? "已解散。" : ArmyUiCommands.DescribeError(d.Error);
                 if (d.IsSuccess)
                 {
                     _detailArmyId = string.Empty;
@@ -308,7 +310,8 @@ namespace XianXia.Unity.Host
         {
             var changed = false;
             _scratchResidents.Clear();
-            CollectUngroupedResidentsAtNode(world, army.NodeId, factionId, partyCharacterIds, army, _scratchResidents);
+            ArmyService.TryResolveArmySiteId(world, army, out var formSiteId);
+            CollectUngroupedResidentsAtSite(world, formSiteId, factionId, partyCharacterIds, army, _scratchResidents);
 
             var available = 0;
             for (var i = 0; i < _scratchResidents.Count; i++)
@@ -356,7 +359,7 @@ namespace XianXia.Unity.Host
 
                 if (added > 0)
                 {
-                    _lastMessage = "已添加 " + added + " 名成员";
+                    _lastMessage = "已添加 " + added + " 名成员。";
                     _addMemberSelection.Clear();
                     changed = true;
                 }
@@ -366,7 +369,7 @@ namespace XianXia.Unity.Host
             return changed;
         }
 
-        static void CollectUngroupedResidentsAtNode(
+        static void CollectUngroupedResidentsAtSite(
             SimulationWorld world,
             string nodeId,
             string factionId,
@@ -380,7 +383,7 @@ namespace XianXia.Unity.Host
 
             if (partyCharacterIds != null)
             {
-                ArmyService.CollectResidentsAtNode(
+                ArmyService.CollectResidentsAtSite(
                     world, nodeId, factionId, partyCharacterIds, into, _scratchArmiesStatic);
                 for (var i = into.Count - 1; i >= 0; i--)
                 {

@@ -1,86 +1,63 @@
-Ôªøusing System;
+using System;
 using System.Collections.Generic;
 using XianXia.Core.Simulation;
-using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// PursuitOrder ÁßªÂä®ÁõÆÊ†áÁúüÊ∫êÔºöFormalArmy.StrategicPositionÔºõÊãìÊâëÁ≠æÂêç‰∏çÂê´ Progress„ÄÇ
+    /// PursuitOrder “∆∂Øƒø±Í’Ê‘¥£∫FormalArmy.CurrentHex£ªÕÿ∆À«©√˚≤ª∫¨ StepProgress°£
     /// </summary>
     public static class ArmyPursuitTargetService
     {
-        public const string PursuitRouteLegPrefix = "__route_pursuit__:";
-
         public readonly struct PursuitMacroSignature : IEquatable<PursuitMacroSignature>
         {
             public readonly string TargetArmyId;
             public readonly FormalArmyState State;
-            public readonly string NodeId;
-            public readonly string RouteId;
-            public readonly string DestNodeId;
-            public readonly int TravelDirection;
+            public readonly int HexQ;
+            public readonly int HexR;
 
             public PursuitMacroSignature(
                 string targetArmyId,
                 FormalArmyState state,
-                string nodeId,
-                string routeId,
-                string destNodeId,
-                int travelDirection)
+                int hexQ,
+                int hexR)
             {
                 TargetArmyId = targetArmyId ?? string.Empty;
                 State = state;
-                NodeId = nodeId ?? string.Empty;
-                RouteId = routeId ?? string.Empty;
-                DestNodeId = destNodeId ?? string.Empty;
-                TravelDirection = travelDirection;
+                HexQ = hexQ;
+                HexR = hexR;
             }
 
             public bool Equals(PursuitMacroSignature other) =>
                 string.Equals(TargetArmyId, other.TargetArmyId, StringComparison.Ordinal) &&
                 State == other.State &&
-                string.Equals(NodeId, other.NodeId, StringComparison.Ordinal) &&
-                string.Equals(RouteId, other.RouteId, StringComparison.Ordinal) &&
-                string.Equals(DestNodeId, other.DestNodeId, StringComparison.Ordinal) &&
-                TravelDirection == other.TravelDirection;
+                HexQ == other.HexQ &&
+                HexR == other.HexR;
 
             public override bool Equals(object obj) => obj is PursuitMacroSignature other && Equals(other);
+
             public override int GetHashCode()
             {
                 unchecked
                 {
                     var hash = TargetArmyId.GetHashCode();
                     hash = (hash * 397) ^ (int)State;
-                    hash = (hash * 397) ^ NodeId.GetHashCode();
-                    hash = (hash * 397) ^ RouteId.GetHashCode();
-                    hash = (hash * 397) ^ DestNodeId.GetHashCode();
-                    hash = (hash * 397) ^ TravelDirection;
+                    hash = (hash * 397) ^ HexQ;
+                    hash = (hash * 397) ^ HexR;
                     return hash;
                 }
             }
         }
 
-        struct PursuitTickSnapshot
-        {
-            public float PursuerProgress;
-            public float TargetProgress;
-            public string RouteId;
-            public bool Valid;
-        }
-
         static readonly Dictionary<string, PursuitMacroSignature> LastMacroSignatures =
             new Dictionary<string, PursuitMacroSignature>(StringComparer.Ordinal);
-
-        static readonly Dictionary<string, PursuitTickSnapshot> LastTickSnapshots =
-            new Dictionary<string, PursuitTickSnapshot>(StringComparer.Ordinal);
 
         public static void ClearTracking(string pursuerArmyId)
         {
             if (string.IsNullOrEmpty(pursuerArmyId))
                 return;
             LastMacroSignatures.Remove(pursuerArmyId);
-            LastTickSnapshots.Remove(pursuerArmyId);
         }
 
         public static bool TryResolveTargetArmy(SimulationWorld world, out FormalArmy targetArmy)
@@ -97,13 +74,12 @@ namespace XianXia.Core.World.Strategic
         {
             if (army == null)
                 return default;
+            var hex = army.UsesHexStrategicPosition ? army.CurrentHex : default;
             return new PursuitMacroSignature(
                 army.ArmyId,
                 army.State,
-                army.NodeId,
-                army.RouteId,
-                army.DestNodeId,
-                ResolveTravelDirection(army));
+                hex.Q,
+                hex.R);
         }
 
         public static bool NeedsTopologyRetarget(PursuitMacroSignature previous, PursuitMacroSignature current) =>
@@ -120,7 +96,7 @@ namespace XianXia.Core.World.Strategic
             var signature = BuildMacroSignature(target);
             var hasPrevious = LastMacroSignatures.TryGetValue(pursuer.ArmyId, out var previous);
 
-            if (pursuer.IsTraveling &&
+            if (pursuer.State == FormalArmyState.Moving &&
                 (!hasPrevious || !NeedsTopologyRetarget(previous, signature)) &&
                 IsActivePursuitTravelValid(pursuer, target))
             {
@@ -142,98 +118,17 @@ namespace XianXia.Core.World.Strategic
 
         public static bool IsActivePursuitTravelValid(FormalArmy pursuer, FormalArmy target)
         {
-            if (pursuer == null || target == null || !pursuer.IsTraveling)
+            if (pursuer == null || target == null || pursuer.State != FormalArmyState.Moving)
                 return false;
-
-            if (IsStaticRouteTarget(target))
-            {
-                if (!string.Equals(pursuer.RouteId, target.RouteId, StringComparison.Ordinal))
-                    return false;
-                var targetProgress = target.GetRouteDisplayProgress();
-                return pursuer.RouteSegmentEndProgress >= 0f &&
-                       Math.Abs(pursuer.RouteSegmentEndProgress - targetProgress) <= 0.03f;
-            }
-
-            if (!string.Equals(pursuer.RouteId, target.RouteId, StringComparison.Ordinal))
+            if (!pursuer.UsesHexStrategicPosition || !target.UsesHexStrategicPosition)
                 return false;
-
-            var chaseEnd = ResolveChaseEndpoint(target);
-            return pursuer.RouteSegmentEndProgress >= 0f &&
-                   Math.Abs(pursuer.RouteSegmentEndProgress - chaseEnd) <= 0.03f;
-        }
-
-        public static bool IsStaticRouteTarget(FormalArmy target)
-        {
-            if (target == null)
-                return false;
-            if (target.IsRouteAnchored)
-                return true;
-            return !target.IsTraveling &&
-                   !string.IsNullOrEmpty(target.RouteId) &&
-                   target.RouteAnchorProgress >= 0f;
-        }
-
-        public static float ResolveChaseEndpoint(FormalArmy target)
-        {
-            if (target == null)
-                return 1f;
-            if (IsStaticRouteTarget(target))
-                return target.GetRouteDisplayProgress();
-
-            if (target.IsTraveling &&
-                target.RouteSegmentOriginProgress >= 0f &&
-                target.RouteSegmentEndProgress >= 0f)
-            {
-                return target.RouteSegmentEndProgress >= target.RouteSegmentOriginProgress ? 1f : 0f;
-            }
-
-            var display = target.GetRouteDisplayProgress();
-            return display >= 0.5f ? 1f : 0f;
-        }
-
-        public static float ResolveTargetRouteProgressForLeg(SimulationWorld world, FormalArmy target, string routeId)
-        {
-            if (target == null)
-                return 0f;
-            if (IsStaticRouteTarget(target) &&
-                string.Equals(target.RouteId, routeId, StringComparison.Ordinal))
-                return target.GetRouteDisplayProgress();
-
-            return ResolveChaseEndpoint(target);
-        }
-
-        static int ResolveTravelDirection(FormalArmy army)
-        {
-            if (army == null)
-                return 0;
-            if (army.IsTraveling &&
-                army.RouteSegmentOriginProgress >= 0f &&
-                army.RouteSegmentEndProgress >= 0f)
-            {
-                if (army.RouteSegmentEndProgress > army.RouteSegmentOriginProgress + 0.001f)
-                    return 1;
-                if (army.RouteSegmentEndProgress < army.RouteSegmentOriginProgress - 0.001f)
-                    return -1;
-            }
-
-            if (army.IsRouteAnchored || (!army.IsTraveling && army.RouteAnchorProgress >= 0f))
-                return 0;
-            return 0;
+            return pursuer.DestinationHex.Equals(target.CurrentHex) ||
+                   pursuer.CurrentHex == target.CurrentHex;
         }
 
         public static void CaptureTickSnapshot(FormalArmy pursuer, FormalArmy target)
         {
-            if (pursuer == null || target == null || string.IsNullOrEmpty(pursuer.ArmyId))
-                return;
-
-            LastTickSnapshots[pursuer.ArmyId] = new PursuitTickSnapshot
-            {
-                Valid = !string.IsNullOrEmpty(pursuer.RouteId) &&
-                        string.Equals(pursuer.RouteId, target.RouteId, StringComparison.Ordinal),
-                RouteId = pursuer.RouteId ?? string.Empty,
-                PursuerProgress = pursuer.GetRouteDisplayProgress(),
-                TargetProgress = target.GetRouteDisplayProgress()
-            };
+            // Hex pursuit uses contact detection only; tick snapshots are obsolete.
         }
 
         public static bool TryDetectFormalArmyPursuitContact(
@@ -244,23 +139,10 @@ namespace XianXia.Core.World.Strategic
             if (pursuer == null || target == null)
                 return false;
 
-            if (TryDetectNodeContact(pursuer, target))
+            if (TryDetectSameSiteContact(pursuer, target))
                 return true;
 
-            if (!TryGetSharedRouteId(pursuer, target, out _))
-                return false;
-
-            var pursuerProgress = pursuer.GetRouteDisplayProgress();
-            var targetProgress = target.GetRouteDisplayProgress();
-            if (Math.Abs(pursuerProgress - targetProgress) <= StrategicEngageRules.RouteProgressEpsilon)
-                return true;
-
-            if (string.IsNullOrEmpty(pursuerArmyId) ||
-                !LastTickSnapshots.TryGetValue(pursuerArmyId, out var prev) ||
-                !prev.Valid)
-                return false;
-
-            return DetectSweptRouteContact(prev.PursuerProgress, prev.TargetProgress, pursuerProgress, targetProgress);
+            return ArmyHexBattleAnchorService.TryDetectHexContact(pursuer, target);
         }
 
         public static bool DetectSweptRouteContact(
@@ -275,39 +157,13 @@ namespace XianXia.Core.World.Strategic
             return false;
         }
 
-        static bool TryDetectNodeContact(FormalArmy pursuer, FormalArmy target)
+        static bool TryDetectSameSiteContact(FormalArmy pursuer, FormalArmy target)
         {
-            if (pursuer.State == FormalArmyState.AtNode &&
-                target.State == FormalArmyState.AtNode &&
-                !string.IsNullOrEmpty(pursuer.NodeId) &&
-                string.Equals(pursuer.NodeId, target.NodeId, StringComparison.Ordinal))
-                return true;
-            return false;
-        }
-
-        static bool TryGetSharedRouteId(FormalArmy pursuer, FormalArmy target, out string routeId)
-        {
-            routeId = string.Empty;
-            if (pursuer == null || target == null)
+            if (pursuer.State != FormalArmyState.Idle || target.State != FormalArmyState.Idle)
                 return false;
-            if (string.IsNullOrEmpty(pursuer.RouteId) || string.IsNullOrEmpty(target.RouteId))
+            if (!pursuer.UsesHexStrategicPosition || !target.UsesHexStrategicPosition)
                 return false;
-            if (!string.Equals(pursuer.RouteId, target.RouteId, StringComparison.Ordinal))
-                return false;
-            routeId = pursuer.RouteId;
-            return true;
-        }
-
-        public static string FormatPursuitRouteLeg(string routeId) => PursuitRouteLegPrefix + routeId;
-
-        public static bool TryConsumePursuitRouteLeg(string legToken, out string routeId)
-        {
-            routeId = string.Empty;
-            if (string.IsNullOrEmpty(legToken) ||
-                !legToken.StartsWith(PursuitRouteLegPrefix, StringComparison.Ordinal))
-                return false;
-            routeId = legToken.Substring(PursuitRouteLegPrefix.Length);
-            return !string.IsNullOrEmpty(routeId);
+            return pursuer.CurrentHex == target.CurrentHex;
         }
     }
 }

@@ -12,7 +12,7 @@ using XianXia.Core.World;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// RTS 移动：沿 WalkGrid A* 航点行进；交互／修炼抵达后下令。支持 NPC 无 Stop 订单的走位。
+    /// RTS 移动：沿 WalkGrid A* 航点行进；交互／修炼抵达后下令。支NPC Stop 订单的走位
     /// </summary>
     public sealed class HostMoveController : MonoBehaviour
     {
@@ -27,7 +27,7 @@ namespace XianXia.Unity.Host
         [SerializeField] float formationSpacing = 1.25f;
         [SerializeField] float separationRadius = 1.2f;
         [SerializeField] float separationStrength = 3.2f;
-        [Tooltip("站定／工作中也轻轻推开，避免多人叠在同一点；仍可穿过彼此。")]
+        [Tooltip("站定／工作中也轻轻推开，避免多人叠在同一点；仍可穿过彼此：")]
         [SerializeField] float idleSeparationStrength = 4.5f;
         [SerializeField] float hardOverlapRadius = 0.4f;
         [SerializeField] float maxSeparationSpeed = 5.5f;
@@ -177,7 +177,7 @@ namespace XianXia.Unity.Host
 
         public bool OrderPartyToPointPublic(Vector3 point) => OrderPartyToPoint(point, null);
 
-        /// <summary>单人寻路；抵达后调用 onArrive（用于入洞等）。</summary>
+        /// <summary>单人寻路；抵达后调用 onArrive（用于入洞等）/summary>
         public bool OrderEntityToWorldPointPublic(EntityId id, Vector3 point, System.Action onArrive)
         {
             if (!OrderEntityToWorldPoint(id, point, null, issueStop: true))
@@ -198,7 +198,7 @@ namespace XianXia.Unity.Host
             {
                 var delta = actorView.transform.position - target;
                 delta.z = 0f;
-                // 停在交战距离内侧；开斗气纱衣时用远程半径，避免白走贴脸
+                // 停在交战距离内侧；开斗气纱衣时用远程半径，避免白走贴
                 var engage = HostNpcInteraction.DefaultMeleeEngageRange;
                 if (action == HostNpcArriveAction.Attack &&
                     bootstrap?.Session?.World != null &&
@@ -248,7 +248,7 @@ namespace XianXia.Unity.Host
             if (viewSpawner != null &&
                 viewSpawner.Registry.TryGet(npc, out var view) &&
                 view != null)
-                view.SetActivityText("稍候");
+                view.SetActivityText("\u7a0d\u5019");
         }
 
         public void ReleaseNpcForInteraction(EntityId npc)
@@ -279,7 +279,7 @@ namespace XianXia.Unity.Host
             _targets.Remove(view);
         }
 
-        /// <summary>进出洞府等瞬切前：清掉表现层走位，避免 Location 被错误吸附。</summary>
+        /// <summary>进出洞府等瞬切前：清掉表现层走位，避Location 被错误吸附/summary>
         public void CancelPresentationMovementPublic(EntityId id) => CancelPresentationMovement(id);
 
         bool RegisterPendingNpcIntent(EntityId actor, EntityId npc, HostNpcArriveAction action)
@@ -296,7 +296,7 @@ namespace XianXia.Unity.Host
         public bool OrderPartyToPointThen(Vector3 point, PlayerCommandKind arriveCommand, string arriveLocationId) =>
             OrderPartyToPoint(point, arriveCommand, arriveLocationId);
 
-        /// <summary>任意单位寻路移动（NPC 日程用 issueStop=false，避免冲掉其 Schedule 订单）。</summary>
+        /// <summary>任意单位寻路移动（NPC 日程issueStop=false，避免冲掉其 Schedule 订单）/summary>
         public bool OrderEntityToWorldPoint(
             EntityId id,
             Vector3 point,
@@ -337,7 +337,7 @@ namespace XianXia.Unity.Host
             SnapOntoWalkableIfNeeded(view);
             _targets[view] = path[0];
             _movingIds.Add(id.Value);
-            view.SetActivityText("移动中");
+            view.SetActivityText("\u79fb\u52a8\u4e2d");
             if (arriveCommand.HasValue)
                 _pendingOnArrive[id.Value] = arriveCommand.Value;
             if (!string.IsNullOrEmpty(arriveLocationId))
@@ -495,7 +495,7 @@ namespace XianXia.Unity.Host
             if (_walkGrid == null)
             {
                 Debug.LogWarning(
-                    "[HostMove] WalkGrid missing — straight-line move (will ignore blocksMovement). " +
+                    "[HostMove] WalkGrid missing straight-line move (will ignore blocksMovement). " +
                     "Ensure PlayableHostBootstrap finished Initialize.",
                     this);
                 waypoints.Add(new Vector3(to.x, to.y, HostPresentationSpace.EntityZ));
@@ -551,7 +551,7 @@ namespace XianXia.Unity.Host
             if (dt <= 0f)
                 return;
 
-            // 不能在 foreach Dictionary 时改 _targets（切下一航点会写入）
+            // 不能foreach Dictionary 时改 _targets（切下一航点会写入）
             var views = new List<EntityView>(_targets.Keys);
             var done = new List<EntityView>();
             for (var vi = 0; vi < views.Count; vi++)
@@ -564,7 +564,7 @@ namespace XianXia.Unity.Host
                     continue;
                 }
 
-                // 途中倒下：立刻停步
+                // 途中倒下：立刻停
                 if (bootstrap?.Session?.World != null &&
                     bootstrap.Session.World.Entities.TryGet(view.EntityId, out var movingEnt) &&
                     !CombatLifeStateService.CanFight(movingEnt))
@@ -617,8 +617,8 @@ namespace XianXia.Unity.Host
                     ApplyPendingArriveAction(id);
                 else if (IsActiveMeleeAttacker(id))
                 {
-                    // 追击到位后不要 HoldStandby→Stop，否则会 Disengage 整场交战
-                    view.SetActivityText("交战中");
+                    // 追击到位后不HoldStandby→Stop，否则会 Disengage 整场交战
+                    view.SetActivityText("\u4ea4\u6218\u4e2d");
                 }
                 else if (IsFarmingUnit(id))
                 {
@@ -702,8 +702,8 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// 站定单位软斥力：不挡路、可穿过，只避免完全叠在同一坐标。
-        /// 正在寻路移动的单位已在 <see cref="TickMoves"/> 里推过，这里跳过以免加倍。
+        /// 站定单位软斥力：不挡路、可穿过，只避免完全叠在同一坐标
+        /// 正在寻路移动的单位已<see cref="TickMoves"/> 里推过，这里跳过以免加倍
         /// </summary>
         void TickIdleCrowdSpacing()
         {
@@ -767,7 +767,7 @@ namespace XianXia.Unity.Host
                 if (sq > r2)
                     continue;
 
-                // 完全重合时旧逻辑会跳过 → 永远叠在一起；用双方 id 生成稳定侧向推力。
+                // 完全重合时旧逻辑会跳永远叠在一起；用双id 生成稳定侧向推力
                 if (sq < 1e-6f)
                 {
                     var otherId = other.EntityId.Value;
@@ -793,12 +793,12 @@ namespace XianXia.Unity.Host
             if (!_pendingArriveActions.TryGetValue(id.Value, out var action))
                 return;
             _pendingArriveActions.Remove(id.Value);
-            // 先到站回调，再 Stop（路上 Traveling 的人跳过 Stop，避免打断宏观移动）
+            // 先到站回调，Stop（路Traveling 的人跳过 Stop，避免打断宏观移动）
             action?.Invoke();
             if (bootstrap?.Session != null &&
                 bootstrap.Session.World.WorldPresence.TryGet(id, out var p) &&
                 p != null &&
-                p.Mode == PartyWorldPresenceMode.Traveling)
+                p.Mode == PartyWorldPresenceMode.AtSite)
                 return;
             StopOne(id);
         }
@@ -867,7 +867,7 @@ namespace XianXia.Unity.Host
             var bestDist = HostZoneQuery.DefaultCenterRadius;
             foreach (var kv in session.World.WorldRegion.Locations)
             {
-                // 洞内／地表切换后禁止吸附到另一张图的地点，否则离开时带不走人。
+                // 洞内／地表切换后禁止吸附到另一张图的地点，否则离开时带不走人
                 if (!LocalMapVisibility.IsLocationOnActiveMap(session.World, kv.Value))
                     continue;
                 var dx = kv.Value.PresentationX - p.x;
@@ -886,7 +886,7 @@ namespace XianXia.Unity.Host
                     ApplyPresentationArrival(session, view.EntityId, best, bootstrap);
                 else
                     loc.LocationId = best;
-                // 记下当前表现坐标，进出图 Rebuild 时不再弹回地点中心
+                // 记下当前表现坐标，进出图 Rebuild 时不再弹回地点中
                 loc.SetPresentationOverride(p.x, p.y);
             }
         }
@@ -947,7 +947,7 @@ namespace XianXia.Unity.Host
                 view != null)
             {
                 _targets.Remove(view);
-                if (view.ActivityText == "移动中")
+                if (view.ActivityText == "\u79fb\u52a8\u4e2d")
                     view.SetActivityText(string.Empty);
             }
         }

@@ -35,7 +35,7 @@ namespace XianXia.Core.World.Strategic
 
         /// <summary>
         /// 遭遇 LocalMap 上是否应显示该实体（scoped spawn / 已进场 / 正式 Participant）。
-        /// 禁止把同 Node 的非参战 AtNode 战略 NPC 画进战场。
+        /// 禁止把同 Site 的非参战 AtSite 战略 NPC 画进战场。
         /// </summary>
         public static bool IsVisibleOnEncounterLocalMap(SimulationWorld world, EntityId id)
         {

@@ -84,12 +84,6 @@ namespace XianXia.Core.World.Strategic
                 (world?.HexWorld == null || !world.HexWorld.HasGrid || world.HexWorld.Contains(hex)))
                 return true;
 
-            if (!ArmyHexBattleAnchorService.IsHexAnchorMode(world) &&
-                snap != null &&
-                !string.IsNullOrEmpty(snap.BattleAnchorNodeId) &&
-                ArmyHexBattleAnchorService.TryResolveHexForNode(world, snap.BattleAnchorNodeId, out hex))
-                return true;
-
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (ArmyHexBattleAnchorService.IsHexAnchorMode(world))
                 LingeringExitPositionTrace.LogMissingHexAnchor(

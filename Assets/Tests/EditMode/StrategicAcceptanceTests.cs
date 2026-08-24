@@ -10,7 +10,7 @@ using XianXia.Data.Serialization;
 
 namespace XianXia.Tests
 {
-    /// <summary>Manual Acceptance UI command wrappers â€” Domain wiring only (not IMGUI).</summary>
+    /// <summary>Manual Acceptance UI command wrappers â€?Domain wiring only (not IMGUI).</summary>
     public sealed class StrategicAcceptanceTests
     {
         const string FactionA = "test:faction_a";
@@ -132,8 +132,8 @@ namespace XianXia.Tests
             recruit = r.Value.Id;
             l.Value.Get<FactionMembershipComponent>().Assign(FactionA, FactionRoleKind.Member);
             r.Value.Get<FactionMembershipComponent>().Assign(FactionA, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(leader, NodeA);
-            world.WorldPresence.SetAtNode(recruit, NodeA);
+            world.WorldPresence.SetAtSite(leader, NodeA);
+            world.WorldPresence.SetAtSite(recruit, NodeA);
             return world;
         }
     }

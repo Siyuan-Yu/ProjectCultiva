@@ -39,7 +39,6 @@ public sealed class HexWorldSiteDto
     public List<HexCoordDto> Footprint { get; set; } = new();
     public string LocalMapId { get; set; } = string.Empty;
     public string OwnerFactionId { get; set; } = string.Empty;
-    public string LegacyNodeId { get; set; } = string.Empty;
 }
 
 public readonly record struct HexCoordDto(int Q, int R)

@@ -6,7 +6,7 @@ using XianXia.Core.Simulation;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>Development-only：追踪 FormalArmy 大地图 portrait 渲染坐标跳变（与 Domain mutation 独立）。</summary>
+    /// <summary>Development-only：追�?FormalArmy 大地�?portrait 渲染坝标跳坘（与 Domain mutation 独立）�?/summary>
     public static class ArmyWorldMapRenderDiagnostics
     {
         public enum RenderOperation
@@ -97,10 +97,9 @@ namespace XianXia.Core.World.Strategic
             sb.Append("Current Operation: ").Append(CurrentOperation).AppendLine();
             sb.AppendLine("DOMAIN");
             sb.Append("  State: ").Append(army.State).AppendLine();
-            sb.Append("  Node: ").Append(army.NodeId).AppendLine();
-            sb.Append("  Route: ").Append(army.RouteId).AppendLine();
-            sb.Append("  Progress: ").Append(army.GetRouteDisplayProgress().ToString("0.###")).AppendLine();
-            sb.Append("  Dest: ").Append(army.DestNodeId).AppendLine();
+            sb.Append("  Hex: ").Append(army.CurrentHex).AppendLine();
+            sb.Append("  DestHex: ").Append(army.DestinationHex).AppendLine();
+            sb.Append("  Progress: ").Append(army.MoveProgress.ToString("0.###")).AppendLine();
             sb.AppendLine("RENDER BEFORE");
             sb.Append("  WorldPosition: (").Append(before.WorldX.ToString("0.###"))
                 .Append(',').Append(before.WorldY.ToString("0.###")).AppendLine(")");

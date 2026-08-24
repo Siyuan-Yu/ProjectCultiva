@@ -8,7 +8,7 @@ using XianXia.Data.Content;
 
 namespace XianXia.Tests
 {
-    /// <summary>Pure Hex Ownership + Character Strategic Presence migration (decisions 1â€“10).</summary>
+    /// <summary>Pure Hex Ownership + Character Strategic Presence migration (decisions 1â€?0).</summary>
     public sealed class PureHexOwnershipMigrationTests
     {
         const string FactionA = "test:faction_a";
@@ -24,7 +24,7 @@ namespace XianXia.Tests
             var b = world.Entities.CreateCharacter(new Core.Domain.Ids.DefinitionId("test", "b"), "B").Value;
             world.WorldPresence.SetAtSite(a.Id, SiteB);
             world.WorldPresence.SetAtSite(b.Id, SiteB);
-            world.WorldPresence.SetAtNode(b.Id, "other:node");
+            world.WorldPresence.SetAtSite(b.Id, "other:node");
 
             var atSite = new System.Collections.Generic.List<Core.Domain.Ids.EntityId>(4);
             world.WorldPresence.CollectAtSite(SiteB, atSite);
@@ -33,7 +33,7 @@ namespace XianXia.Tests
             Assert.IsTrue(world.WorldPresence.TryGet(a.Id, out var presence));
             Assert.AreEqual(PartyWorldPresenceMode.AtSite, presence.Mode);
             Assert.AreEqual(SiteB, presence.SiteId);
-            Assert.AreEqual(string.Empty, presence.NodeId);
+            Assert.AreEqual(string.Empty, presence.SiteId);
         }
 
         [Test]

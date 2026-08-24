@@ -149,7 +149,7 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// Hex 战略：Army 成员 WorldPresence 与 FormalArmy.CurrentHex 对齐（禁止仍留 AtNode 他处）。
+        /// Hex 战略：Army 成员 WorldPresence 与 FormalArmy.CurrentHex 对齐（禁止仍留 AtSite 他处）。
         /// </summary>
         public static void SyncMemberPresenceToArmyHex(SimulationWorld world, FormalArmy army)
         {

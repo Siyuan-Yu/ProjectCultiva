@@ -35,7 +35,6 @@ namespace XianXia.Data.Content
         public List<HexWorldCoordDefinition> Footprint { get; set; } = new List<HexWorldCoordDefinition>();
         public string LocalMapId { get; set; } = string.Empty;
         public string OwnerFactionId { get; set; } = string.Empty;
-        public string LegacyNodeId { get; set; } = string.Empty;
     }
 
     public sealed class HexWorldCoordDefinition

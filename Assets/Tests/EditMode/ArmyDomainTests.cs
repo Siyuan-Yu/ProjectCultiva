@@ -10,7 +10,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Tests
 {
-    /// <summary>152 Phase A — Formal Army Domain + ArmyMembership。</summary>
+    /// <summary>152 Phase A �?Formal Army Domain + ArmyMembership�?/summary>
     public sealed class ArmyDomainTests
     {
         const string TestFactionA = "test:faction_a";
@@ -35,7 +35,7 @@ namespace XianXia.Tests
             Assert.IsTrue(created.IsSuccess, created.IsFailure ? created.Error.ToString() : "");
             var entity = created.Value;
             entity.Get<FactionMembershipComponent>().Assign(factionId, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(entity.Id, nodeId);
+            world.WorldPresence.SetAtSite(entity.Id, nodeId);
             return entity.Id;
         }
 
@@ -63,8 +63,9 @@ namespace XianXia.Tests
             Assert.AreEqual(TestFactionA, army.FactionId);
             Assert.AreEqual(a, army.LeaderCharacterId);
             Assert.AreEqual(2, army.MemberCharacterIds.Count);
-            Assert.AreEqual(TestNodeA, army.NodeId);
-            Assert.AreEqual(FormalArmyState.AtNode, army.State);
+            Assert.IsTrue(army.TryGetFormationSiteId(world, out var formationSiteId));
+            Assert.AreEqual(TestNodeA, formationSiteId);
+            Assert.AreEqual(FormalArmyState.Idle, army.State);
 
             Assert.IsTrue(ArmyService.TryGetArmyForCharacter(world, a, out var armyForA));
             Assert.AreEqual(army.ArmyId, armyForA.ArmyId);

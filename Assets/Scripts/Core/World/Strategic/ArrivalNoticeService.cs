@@ -7,7 +7,7 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>Hex 战略：到站提示（legacy Route 旅行已移除）。</summary>
+    /// <summary>Hex 战略：到站杝示（legacy Route 旅行已移除）�?/summary>
     public static class ArrivalNoticeService
     {
         public static void SuppressForParty(SimulationWorld world, IReadOnlyList<EntityId> party)
@@ -59,10 +59,7 @@ namespace XianXia.Core.World.Strategic
                 return false;
             if (!world.WorldPresence.TryGet(id, out var p) || p == null)
                 return false;
-            if (p.Mode == PartyWorldPresenceMode.Traveling)
-                return false;
-            return p.Mode == PartyWorldPresenceMode.AtSite ||
-                   p.Mode == PartyWorldPresenceMode.AtNode;
+            return p.Mode == PartyWorldPresenceMode.AtSite;
         }
 
         static void TryBuildNotice(SimulationWorld world, IReadOnlyList<EntityId> arrived)
@@ -84,7 +81,7 @@ namespace XianXia.Core.World.Strategic
                     byPlace[placeKey] = list;
                     placeLabels[placeKey] = label;
                     if (firstFocus == null)
-                        firstFocus = p.SiteId ?? p.NodeId ?? string.Empty;
+                        firstFocus = p.SiteId ?? p.SiteId ?? string.Empty;
                 }
 
                 list.Add(id);
@@ -104,7 +101,7 @@ namespace XianXia.Core.World.Strategic
                     firstPlaceLabel = place;
                 if (sb.Length > 0)
                     sb.Append('\n');
-                sb.Append(names).Append(" 抵达「").Append(place).Append("」");
+                sb.Append(names).Append(" \u62b5\u8fbe\u300c").Append(place).Append("\u300d");
                 for (var i = 0; i < kv.Value.Count; i++)
                     all.Add(kv.Value[i]);
             }
@@ -122,7 +119,7 @@ namespace XianXia.Core.World.Strategic
         {
             if (p.Mode == PartyWorldPresenceMode.AtSite && !string.IsNullOrEmpty(p.SiteId))
                 return "site:" + p.SiteId;
-            return "node:" + (p.NodeId ?? string.Empty);
+            return "site:" + (p.SiteId ?? string.Empty);
         }
 
         static string ResolvePlaceLabel(SimulationWorld world, WorldAgentPresence p)
@@ -134,13 +131,13 @@ namespace XianXia.Core.World.Strategic
                 !string.IsNullOrWhiteSpace(site.DisplayName))
                 return site.DisplayName;
 
-            return PlaceSiteName(world, p.SiteId ?? p.NodeId);
+            return PlaceSiteName(world, p.SiteId ?? p.SiteId);
         }
 
         static string PlaceSiteName(SimulationWorld world, string siteId)
         {
             if (string.IsNullOrEmpty(siteId))
-                return "未知地点";
+                return "\u672a\u77e5\u5730\u70b9";
             if (world.Strategic.Sites.TryGet(siteId, out var site) &&
                 site != null &&
                 !string.IsNullOrWhiteSpace(site.DisplayName))
@@ -151,28 +148,28 @@ namespace XianXia.Core.World.Strategic
         static string FormatPartyNames(SimulationWorld world, IReadOnlyList<EntityId> party)
         {
             if (party == null || party.Count == 0)
-                return "我方";
+                return "\u6211\u65b9";
             var sb = new System.Text.StringBuilder(32);
             var n = Math.Min(party.Count, 3);
             for (var i = 0; i < n; i++)
             {
                 if (i > 0)
-                    sb.Append('、');
+                    sb.Append('\u3001');
                 sb.Append(EntityName(world, party[i]));
             }
 
             if (party.Count > 3)
-                sb.Append(" 等").Append(party.Count).Append("人");
+                sb.Append(" \u7b49").Append(party.Count).Append("\u4eba");
             return sb.ToString();
         }
 
         static string EntityName(SimulationWorld world, EntityId id)
         {
             if (!world.Entities.TryGet(id, out var e) || e == null)
-                return "同伴";
+                return "\u540c\u4f34";
             if (!string.IsNullOrWhiteSpace(e.DisplayName))
                 return e.DisplayName;
-            return "同伴";
+            return "\u540c\u4f34";
         }
 
         static bool IsPlayerAgent(SimulationWorld world, EntityId id)

@@ -27,7 +27,6 @@ namespace XianXia.Data.Content
             ValidateScenarios(registry, report);
             ValidateWorldRegions(registry, locations, report);
             ValidateLocalPlaceSets(registry, locations, report);
-            ValidateWorldGraphs(registry, report);
             ValidateItems(registry, report);
             ValidateSpawnTables(registry, report);
             ValidateMapSpawnZones(registry, locations, report);
@@ -164,7 +163,6 @@ namespace XianXia.Data.Content
                 RequireDef(registry, s.OpeningSettlementId, "settlement", ctx + ".openingSettlementId", report);
                 RequireDef(registry, s.OpeningWorldRegionId, "worldRegion", ctx + ".openingWorldRegionId", report);
                 RequireDef(registry, s.OpeningLocalPlaceSetId, "localPlaceSet", ctx + ".openingLocalPlaceSetId", report);
-                RequireDef(registry, s.OpeningWorldGraphId, "worldGraph", ctx + ".openingWorldGraphId", report);
                 RequireDef(registry, s.OpeningHexWorldId, "hexWorld", ctx + ".openingHexWorldId", report);
                 RequireDef(registry, s.OpeningChapterId, "chapter", ctx + ".openingChapterId", report);
 
@@ -277,72 +275,6 @@ namespace XianXia.Data.Content
                         for (var q = 0; q < loc.QuestOfferIds.Count; q++)
                             RequireDef(registry, loc.QuestOfferIds[q], "quest", lctx + ".questOffer", report);
                     }
-                }
-            }
-        }
-
-        void ValidateWorldGraphs(DefinitionRegistry registry, ValidationReport report)
-        {
-            foreach (var kv in registry.WorldGraphs)
-            {
-                var graph = kv.Value;
-                var ctx = graph.Id.ToString();
-                var nodeIds = new HashSet<string>(StringComparer.Ordinal);
-                if (graph.Nodes != null)
-                {
-                    for (var i = 0; i < graph.Nodes.Count; i++)
-                    {
-                        var node = graph.Nodes[i];
-                        if (string.IsNullOrWhiteSpace(node.Id))
-                        {
-                            report.Add(ErrorCode.MissingRequiredField, "worldGraph.node.id required.", ctx);
-                            continue;
-                        }
-
-                        if (!nodeIds.Add(node.Id))
-                            report.Add(ErrorCode.DuplicateDefinitionId, "duplicate worldGraph node id.", ctx + ":" + node.Id);
-
-                        if (!string.IsNullOrWhiteSpace(node.LocalMapId))
-                        {
-                            var mapParsed = DefinitionId.Parse(node.LocalMapId);
-                            if (mapParsed.IsFailure || !registry.MapLayouts.ContainsKey(mapParsed.Value))
-                            {
-                                report.Add(
-                                    ErrorCode.NotFound,
-                                    "worldGraph.node.localMapId missing mapLayout.",
-                                    ctx + "." + node.Id + ":" + node.LocalMapId);
-                            }
-                        }
-                    }
-                }
-
-                if (!string.IsNullOrWhiteSpace(graph.StartNodeId) && !nodeIds.Contains(graph.StartNodeId))
-                {
-                    report.Add(
-                        ErrorCode.NotFound,
-                        "worldGraph.startNodeId missing in nodes.",
-                        ctx + ":" + graph.StartNodeId);
-                }
-
-                if (graph.Routes == null)
-                    continue;
-
-                for (var r = 0; r < graph.Routes.Count; r++)
-                {
-                    var route = graph.Routes[r];
-                    var rctx = ctx + "." + route.Id;
-                    if (!nodeIds.Contains(route.FromNodeId))
-                        report.Add(ErrorCode.NotFound, "route.fromNodeId missing.", rctx + ":" + route.FromNodeId);
-                    if (!nodeIds.Contains(route.ToNodeId))
-                        report.Add(ErrorCode.NotFound, "route.toNodeId missing.", rctx + ":" + route.ToNodeId);
-                    ScanConditions(
-                        route.TraversalRequirements,
-                        registry,
-                        new HashSet<string>(StringComparer.Ordinal),
-                        null,
-                        null,
-                        rctx + ".traversal",
-                        report);
                 }
             }
         }
@@ -700,9 +632,6 @@ namespace XianXia.Data.Content
                     break;
                 case "worldRegion":
                     ok = registry.WorldRegions.ContainsKey(id);
-                    break;
-                case "worldGraph":
-                    ok = registry.WorldGraphs.ContainsKey(id);
                     break;
                 case "hexWorld":
                     ok = registry.HexWorldContents.ContainsKey(id);

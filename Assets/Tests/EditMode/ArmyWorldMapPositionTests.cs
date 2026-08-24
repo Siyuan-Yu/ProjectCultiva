@@ -14,8 +14,8 @@ namespace XianXia.Tests
     {
         const string FactionA = "test:faction_a";
         const string FactionB = "test:faction_b";
-        const string NodeA = "base:node_huangcun";
-        const string NodeB = "base:node_qingyun_lu";
+        const string NodeA = "base:site_huangcun";
+        const string NodeB = "base:site_qingyun_lu";
         const string NodeC = "test:node_c";
 
         static readonly HexCoord HexA = Ch01HexPrototypeMapBuilder.HuangcunHex;
@@ -57,7 +57,7 @@ namespace XianXia.Tests
             Assert.IsTrue(created.IsSuccess);
             var entity = created.Value;
             entity.Get<FactionMembershipComponent>().Assign(faction, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(entity.Id, nodeId);
+            world.WorldPresence.SetAtSite(entity.Id, nodeId);
             return entity.Id;
         }
 
@@ -90,7 +90,7 @@ namespace XianXia.Tests
                 FormalArmyId = army.ArmyId,
                 FactionId = FactionB,
                 DisplayName = "Enemy",
-                NodeId = nodeId
+                SiteId = nodeId
             };
             world.Strategic.Armies.Register(stack);
             ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, stack);
@@ -172,7 +172,6 @@ namespace XianXia.Tests
             FormalArmyTestSupport.SetHexMidTravel(world, pursuer, pursuerHex, HexB, 0.35f);
 
             var before = CaptureRender(world, pursuer);
-            FormalArmyTestSupport.SetDestNodeId(pursuer, NodeC);
             var after = CaptureRender(world, pursuer);
 
             Assert.AreEqual(before.x, after.x, 0.001f, "ARMY-VIS-03: render X");

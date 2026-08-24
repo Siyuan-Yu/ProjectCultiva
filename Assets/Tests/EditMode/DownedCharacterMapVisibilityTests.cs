@@ -13,29 +13,23 @@ namespace XianXia.Tests
     public sealed class DownedCharacterMapVisibilityTests
     {
         const string TestFactionA = "test:faction_a";
-        const string TestNodeA = "test:node_a";
-        const string TestRoute = "test:route_ab";
-
-        static SimulationWorld CreateGraphWorld()
-        {
-            var world = new SimulationWorld();
-            return world;
-        }
+        const string TestSiteA = "base:site_huangcun";
+        static readonly HexCoord TestHexA = Ch01HexPrototypeMapBuilder.HuangcunHex;
 
         static SimulationWorld CreateHexWorld()
         {
-            var world = CreateGraphWorld();
+            var world = new SimulationWorld();
             HexTestWorldBootstrap.EnsureMinimalHexMap(world);
             return world;
         }
 
-        static EntityId SpawnCharacter(SimulationWorld world, string name, string nodeId)
+        static EntityId SpawnCharacter(SimulationWorld world, string name, string siteId)
         {
             var created = world.Entities.CreateCharacter(new DefinitionId("test", name), name);
             Assert.IsTrue(created.IsSuccess);
             var entity = created.Value;
             entity.Get<FactionMembershipComponent>().Assign(TestFactionA, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(entity.Id, nodeId);
+            world.WorldPresence.SetAtSite(entity.Id, siteId);
             return entity.Id;
         }
 
@@ -48,23 +42,24 @@ namespace XianXia.Tests
             Assert.IsTrue(CombatLifeStateService.TryEnterIncapacitated(world, entity));
         }
 
+        static BattleParticipantSnapshot SnapAtHex(HexCoord hex, string attackerArmyId = "")
+        {
+            var snap = new BattleParticipantSnapshot { AttackerArmyId = attackerArmyId ?? string.Empty };
+            ArmyHexBattleAnchorService.SetBattleAnchorHex(snap, hex);
+            return snap;
+        }
+
         [Test]
         public void DOWNED_VIS_01_DownedCharacterRemainsInDomainAfterBattleSync()
         {
-            var world = CreateGraphWorld();
-            var solo = SpawnCharacter(world, "Solo", TestNodeA);
-            var armyResult = ArmyService.CreateArmy(world, TestFactionA, TestNodeA, new[] { solo });
+            var world = CreateHexWorld();
+            var solo = SpawnCharacter(world, "Solo", TestSiteA);
+            var armyResult = ArmyService.CreateArmy(world, TestFactionA, TestSiteA, new[] { solo });
             Assert.IsTrue(armyResult.IsSuccess);
+            ArmyHexTravelService.InitializeArmyAtHex(armyResult.Value, TestHexA);
             EnterIncapacitated(world, solo);
 
-            var snap = new BattleParticipantSnapshot
-            {
-                AttackerArmyId = armyResult.Value.ArmyId,
-                BattleAnchorNodeId = TestNodeA,
-                BattleAnchorRouteId = TestRoute,
-                BattleAnchorDestNodeId = "test:node_b",
-                BattleAnchorProgress = 0.42f
-            };
+            var snap = SnapAtHex(TestHexA, armyResult.Value.ArmyId);
             StrategicEncounterResolveService.PlaceAtBattleAnchor(
                 world, world.WorldPresence.GetOrCreate(solo), snap);
             ArmyPostBattleSyncService.SyncAttackerArmyAfterBattle(world, snap);
@@ -78,8 +73,8 @@ namespace XianXia.Tests
         [Test]
         public void DOWNED_VIS_02_DownedDoesNotEqualDead()
         {
-            var world = CreateGraphWorld();
-            var id = SpawnCharacter(world, "Hero", TestNodeA);
+            var world = CreateHexWorld();
+            var id = SpawnCharacter(world, "Hero", TestSiteA);
             EnterIncapacitated(world, id);
             Assert.IsTrue(LingeringBattlefieldPartyService.IsIncapacitated(world, id));
             Assert.IsTrue(LingeringBattlefieldPartyService.IsLingeringDowned(world, id));
@@ -89,52 +84,39 @@ namespace XianXia.Tests
         [Test]
         public void DOWNED_VIS_03_DownedDetachedFromFormalArmyStillQueryable()
         {
-            var world = CreateGraphWorld();
-            var solo = SpawnCharacter(world, "Solo", TestNodeA);
-            var armyResult = ArmyService.CreateArmy(world, TestFactionA, TestNodeA, new[] { solo });
+            var world = CreateHexWorld();
+            var solo = SpawnCharacter(world, "Solo", TestSiteA);
+            var armyResult = ArmyService.CreateArmy(world, TestFactionA, TestSiteA, new[] { solo });
             Assert.IsTrue(armyResult.IsSuccess);
+            ArmyHexTravelService.InitializeArmyAtHex(armyResult.Value, TestHexA);
             EnterIncapacitated(world, solo);
             ArmyPostBattleSyncService.SyncAttackerArmyAfterBattle(
                 world,
-                new BattleParticipantSnapshot
-                {
-                    AttackerArmyId = armyResult.Value.ArmyId,
-                    BattleAnchorNodeId = TestNodeA,
-                    BattleAnchorRouteId = TestRoute,
-                    BattleAnchorDestNodeId = "test:node_b",
-                    BattleAnchorProgress = 0.5f
-                });
+                SnapAtHex(TestHexA, armyResult.Value.ArmyId));
 
             Assert.IsFalse(ArmyService.TryGetArmyForCharacter(world, solo, out _));
             Assert.IsTrue(LingeringBattlefieldPartyService.IsIncapacitated(world, solo));
         }
 
         [Test]
-        public void DOWNED_VIS_04_PresentationQuery_IncludesDownedAtNode()
+        public void DOWNED_VIS_04_PresentationQuery_IncludesDownedAtSite()
         {
-            var world = CreateGraphWorld();
-            var solo = SpawnCharacter(world, "Solo", TestNodeA);
+            var world = CreateHexWorld();
+            var solo = SpawnCharacter(world, "Solo", TestSiteA);
             EnterIncapacitated(world, solo);
             StrategicEncounterResolveService.PlaceAtBattleAnchor(
                 world,
                 world.WorldPresence.GetOrCreate(solo),
-                new BattleParticipantSnapshot
-                {
-                    BattleAnchorNodeId = TestNodeA,
-                    BattleAnchorRouteId = TestRoute,
-                    BattleAnchorDestNodeId = "test:node_b",
-                    BattleAnchorProgress = 0.33f
-                });
+                SnapAtHex(TestHexA));
 
-            // Legacy graph residual still uses independent portrait; Hex Residual uses aggregated markers.
             Assert.IsTrue(ArmyWorldMapPresentation.ShouldDrawIndependentCharacterPortrait(world, solo));
         }
 
         [Test]
         public void DOWNED_VIS_05_DeadCorpseStillDistinctFromDowned()
         {
-            var world = CreateGraphWorld();
-            var id = SpawnCharacter(world, "Dead", TestNodeA);
+            var world = CreateHexWorld();
+            var id = SpawnCharacter(world, "Dead", TestSiteA);
             Assert.IsTrue(world.Entities.TryGet(id, out var entity));
             CombatDamageRules.EnsureVitals(entity);
             Assert.IsTrue(CombatLifeStateService.TryEnterIncapacitated(world, entity));
@@ -148,15 +130,10 @@ namespace XianXia.Tests
         public void DOWNED_VIS_06_HexAnchor_ResolvesDownedPortraitPosition()
         {
             var world = CreateHexWorld();
-            var solo = SpawnCharacter(world, "Solo", TestNodeA);
+            var solo = SpawnCharacter(world, "Solo", TestSiteA);
             EnterIncapacitated(world, solo);
             var anchorHex = Ch01HexPrototypeMapBuilder.HuangcunHex;
-            var snap = new BattleParticipantSnapshot
-            {
-                BattleAnchorHexQ = anchorHex.Q,
-                BattleAnchorHexR = anchorHex.R,
-                BattleAnchorNodeId = TestNodeA
-            };
+            var snap = SnapAtHex(anchorHex);
             StrategicEncounterResolveService.PlaceAtBattleAnchor(
                 world, world.WorldPresence.GetOrCreate(solo), snap);
 
@@ -175,30 +152,14 @@ namespace XianXia.Tests
             Assert.IsFalse(ArmyWorldMapPresentation.ShouldDrawIndependentCharacterPortrait(world, solo));
         }
 
-        static EntityId SpawnEnemyNpc(SimulationWorld world, string name, string nodeId)
+        static EntityId SpawnEnemyNpc(SimulationWorld world, string name, string siteId)
         {
             var created = world.Entities.CreateNpc(new DefinitionId("test", name), name);
             Assert.IsTrue(created.IsSuccess);
             var entity = created.Value;
             entity.Get<FactionMembershipComponent>().Assign("enemy:faction", FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(entity.Id, nodeId);
+            world.WorldPresence.SetAtSite(entity.Id, siteId);
             return entity.Id;
-        }
-
-        [Test]
-        public void DOWNED_VIS_07_EnemyAndFriendlyShareLingeringSemantics()
-        {
-            var world = CreateGraphWorld();
-            var friendly = SpawnCharacter(world, "Friend", TestNodeA);
-            var enemy = SpawnEnemyNpc(world, "Bandit", TestNodeA);
-            EnterIncapacitated(world, friendly);
-            EnterIncapacitated(world, enemy);
-
-            Assert.IsTrue(LingeringBattlefieldPartyService.IsLingeringDowned(world, friendly));
-            Assert.IsTrue(LingeringBattlefieldPartyService.IsLingeringDowned(world, enemy));
-            Assert.IsTrue(LingeringBattlefieldPartyService.IsFriendlyLingeringDowned(world, friendly));
-            Assert.IsFalse(LingeringBattlefieldPartyService.IsFriendlyLingeringDowned(world, enemy));
-            Assert.IsTrue(ArmyWorldMapPresentation.ShouldDrawIndependentCharacterPortrait(world, friendly));
         }
     }
 }

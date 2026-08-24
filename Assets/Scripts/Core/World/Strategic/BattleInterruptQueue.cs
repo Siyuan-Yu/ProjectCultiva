@@ -285,12 +285,12 @@ namespace XianXia.Core.World.Strategic
                         !world.WorldPresence.TryGet(id, out var wp) ||
                         wp == null)
                         continue;
+                    if (!ArmyHexBattleAnchorService.TryGetBattleAnchorHex(snap, out var anchorHex))
+                        continue;
                     if (!ReinforcementRangeService.IsWithinReinforcementRange(
                             world,
                             wp,
-                            snap.BattleAnchorNodeId,
-                            snap.BattleAnchorRouteId,
-                            snap.BattleAnchorProgress))
+                            anchorHex))
                         continue;
                     livingInRange.Add(id);
                 }
@@ -343,12 +343,12 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 if (LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
                     continue;
+                if (!ArmyHexBattleAnchorService.TryGetBattleAnchorHex(snap, out var anchorHex))
+                    continue;
                 if (!ReinforcementRangeService.IsWithinReinforcementRange(
                         world,
                         wp,
-                        snap.BattleAnchorNodeId,
-                        snap.BattleAnchorRouteId,
-                        snap.BattleAnchorProgress))
+                        anchorHex))
                     continue;
 
                 snap.Add(new BattleParticipantRecord
@@ -445,12 +445,8 @@ namespace XianXia.Core.World.Strategic
                 return false;
             }
 
-            return ReinforcementRangeService.IsStackWithinRange(
-                world,
-                stack,
-                snap.BattleAnchorNodeId,
-                snap.BattleAnchorRouteId,
-                snap.BattleAnchorProgress);
+            return ArmyHexBattleAnchorService.TryGetBattleAnchorHex(snap, out var fallbackAnchorHex) &&
+                   ReinforcementRangeService.IsStackWithinRange(world, stack, fallbackAnchorHex);
         }
 
         static bool ContainsId(IReadOnlyList<EntityId> list, EntityId id)

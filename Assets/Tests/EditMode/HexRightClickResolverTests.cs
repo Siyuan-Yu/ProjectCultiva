@@ -11,11 +11,11 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Tests
 {
-    /// <summary>RIGHTCLICK-01..08 + HEX-CONTEXT 回归：Hex RTS 右键决策。</summary>
+    /// <summary>RIGHTCLICK-01..08 + HEX-CONTEXT 回归：Hex RTS 右键决策�?/summary>
     public sealed class HexRightClickResolverTests
     {
         const string PlayerFaction = StrategicFactionCatalog.PlayerFactionId;
-        const string NodeA = "base:node_huangcun";
+        const string NodeA = "base:site_huangcun";
         const string SiteA = Ch01HexPrototypeMapBuilder.SiteHuangcun;
         static readonly HexCoord BattleHex = Ch01HexPrototypeMapBuilder.HuangcunHex;
         static readonly HexCoord RemoteHex = Ch01HexPrototypeMapBuilder.QingyunLuHex;
@@ -61,8 +61,7 @@ namespace XianXia.Tests
 
         static FormalArmy SpawnActiveEnemyArmy(SimulationWorld world, HexCoord hex)
         {
-            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(
-                world, NodeA, string.Empty, string.Empty, -1f);
+            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(result.IsSuccess);
             ArmyHexTravelService.InitializeArmyAtHex(result.Value, hex);
             return result.Value;
@@ -79,8 +78,7 @@ namespace XianXia.Tests
 
         static void SeedEnemyRemnantOnly(SimulationWorld world, HexCoord hex)
         {
-            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(
-                world, NodeA, string.Empty, string.Empty, -1f);
+            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(result.IsSuccess);
             Assert.IsTrue(world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditPatrolStackId, out var stack));
 
@@ -99,7 +97,6 @@ namespace XianXia.Tests
             world.Strategic.Encounter.ArmyStackId = stack.Id;
             world.Strategic.Participants.PrimaryEnemyStackId = stack.Id;
             ArmyHexBattleAnchorService.SetBattleAnchorHex(world.Strategic.Participants, hex);
-            world.Strategic.Participants.BattleAnchorNodeId = NodeA;
         }
 
         static void SeedEnemyLingeringWithLivingArmy(SimulationWorld world, HexCoord hex)
@@ -119,7 +116,6 @@ namespace XianXia.Tests
             world.Strategic.Encounter.ArmyStackId = stack.Id;
             world.Strategic.Participants.PrimaryEnemyStackId = stack.Id;
             ArmyHexBattleAnchorService.SetBattleAnchorHex(world.Strategic.Participants, hex);
-            world.Strategic.Participants.BattleAnchorNodeId = NodeA;
         }
 
         static void SeedSelfLingeringAtHex(SimulationWorld world, HexCoord hex)
@@ -130,7 +126,6 @@ namespace XianXia.Tests
 
             world.Strategic.Encounter.BattlefieldLingering = true;
             ArmyHexBattleAnchorService.SetBattleAnchorHex(world.Strategic.Participants, hex);
-            world.Strategic.Participants.BattleAnchorNodeId = NodeA;
         }
 
         static HexRightClickResolution Resolve(
