@@ -198,10 +198,6 @@ namespace XianXia.Core.Persistence
                         army.UsesHexStrategicPosition = true;
                         army.CurrentHex = new HexCoord(a.CurrentHexQ, a.CurrentHexR);
                         army.DestinationHex = new HexCoord(a.DestinationHexQ, a.DestinationHexR);
-                        army.StepProgress = a.StepProgress;
-                        army.StepRemainingTicks = a.StepRemainingTicks;
-                        army.StepTotalTicks = a.StepTotalTicks;
-                        army.CurrentPathIndex = a.CurrentPathIndex;
                         if (a.HexPath != null && a.HexPath.Count > 0)
                         {
                             var path = new List<HexCoord>(a.HexPath.Count);
@@ -213,10 +209,19 @@ namespace XianXia.Core.Persistence
                             }
 
                             army.SetHexPath(path, army.DestinationHex);
+                            army.CurrentPathIndex = a.CurrentPathIndex;
+                            army.StepProgress = a.StepProgress;
+                            army.StepRemainingTicks = a.StepRemainingTicks;
+                            army.StepTotalTicks = a.StepTotalTicks;
                         }
-                        else if (army.State == FormalArmyState.Moving)
+                        else
                         {
-                            army.State = FormalArmyState.Idle;
+                            army.StepProgress = a.StepProgress;
+                            army.StepRemainingTicks = a.StepRemainingTicks;
+                            army.StepTotalTicks = a.StepTotalTicks;
+                            army.CurrentPathIndex = a.CurrentPathIndex;
+                            if (army.State == FormalArmyState.Moving)
+                                army.State = FormalArmyState.Idle;
                         }
 
                         world.Strategic.FormalArmies.Register(army);

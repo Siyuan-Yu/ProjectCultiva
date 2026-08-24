@@ -409,7 +409,14 @@ namespace XianXia.Data.Serialization
         static ulong ReadU(JsonValue root, string name)
         {
             if (!root.TryGetProperty(name, out var v)) return 0;
-            if (v.Kind == JsonValueKind.String && ulong.TryParse(v.String, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+            return ReadUValue(v);
+        }
+
+        static ulong ReadUValue(JsonValue v)
+        {
+            if (v == null) return 0;
+            if (v.Kind == JsonValueKind.String &&
+                ulong.TryParse(v.String, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
                 return parsed;
             if (v.Kind == JsonValueKind.Number)
                 return (ulong)v.Number;
@@ -466,6 +473,43 @@ namespace XianXia.Data.Serialization
             BreakthroughProgress = (int)m.GetNumber("breakthroughProgress")
         };
 
+        static List<JsonValue> SerializeHexPath(List<HexCoordSnapshotDto> path)
+        {
+            var list = new List<JsonValue>();
+            if (path == null)
+                return list;
+            for (var i = 0; i < path.Count; i++)
+            {
+                var coord = path[i];
+                if (coord == null)
+                    continue;
+                list.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["q"] = JsonValue.FromNumber(coord.Q),
+                    ["r"] = JsonValue.FromNumber(coord.R)
+                }));
+            }
+
+            return list;
+        }
+
+        static List<HexCoordSnapshotDto> ReadHexPath(JsonValue pathNode)
+        {
+            var list = new List<HexCoordSnapshotDto>();
+            if (pathNode.Kind != JsonValueKind.Array)
+                return list;
+            foreach (var node in pathNode.Array)
+            {
+                list.Add(new HexCoordSnapshotDto
+                {
+                    Q = (int)node.GetNumber("q"),
+                    R = (int)node.GetNumber("r")
+                });
+            }
+
+            return list;
+        }
+
         static JsonValue SerializeStrategic(StrategicSnapshotDto strategic)
         {
             strategic ??= new StrategicSnapshotDto();
@@ -499,7 +543,57 @@ namespace XianXia.Data.Serialization
                         ["stepRemainingTicks"] = JsonValue.FromNumber(a.StepRemainingTicks),
                         ["stepTotalTicks"] = JsonValue.FromNumber(a.StepTotalTicks),
                         ["currentPathIndex"] = JsonValue.FromNumber(a.CurrentPathIndex),
-                        ["memberCharacterIds"] = JsonValue.FromArray(members)
+                        ["memberCharacterIds"] = JsonValue.FromArray(members),
+                        ["hexPath"] = JsonValue.FromArray(SerializeHexPath(a.HexPath))
+                    }));
+                }
+            }
+
+            var memberships = new List<JsonValue>();
+            if (strategic.ArmyMemberships != null)
+            {
+                for (var i = 0; i < strategic.ArmyMemberships.Count; i++)
+                {
+                    var m = strategic.ArmyMemberships[i];
+                    if (m == null)
+                        continue;
+                    memberships.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["characterId"] = U(m.CharacterId),
+                        ["armyId"] = JsonValue.FromString(m.ArmyId ?? string.Empty)
+                    }));
+                }
+            }
+
+            var residuals = new List<JsonValue>();
+            if (strategic.ResidualCharacterPresences != null)
+            {
+                for (var i = 0; i < strategic.ResidualCharacterPresences.Count; i++)
+                {
+                    var r = strategic.ResidualCharacterPresences[i];
+                    if (r == null)
+                        continue;
+                    residuals.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["characterId"] = U(r.CharacterId),
+                        ["hexQ"] = JsonValue.FromNumber(r.HexQ),
+                        ["hexR"] = JsonValue.FromNumber(r.HexR)
+                    }));
+                }
+            }
+
+            var siteOwners = new List<JsonValue>();
+            if (strategic.WorldSiteOwners != null)
+            {
+                for (var i = 0; i < strategic.WorldSiteOwners.Count; i++)
+                {
+                    var s = strategic.WorldSiteOwners[i];
+                    if (s == null)
+                        continue;
+                    siteOwners.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["siteId"] = JsonValue.FromString(s.SiteId ?? string.Empty),
+                        ["ownerFactionId"] = JsonValue.FromString(s.OwnerFactionId ?? string.Empty)
                     }));
                 }
             }
@@ -515,7 +609,88 @@ namespace XianXia.Data.Serialization
                     wars.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
                     {
                         ["warId"] = JsonValue.FromString(w.WarId ?? string.Empty),
-                        ["active"] = JsonValue.FromBool(w.Active)
+                        ["active"] = JsonValue.FromBool(w.Active),
+                        ["attackers"] = JsonValue.FromArray(SerializeStringList(w.Attackers)),
+                        ["defenders"] = JsonValue.FromArray(SerializeStringList(w.Defenders))
+                    }));
+                }
+            }
+
+            var alliances = new List<JsonValue>();
+            if (strategic.Alliances != null)
+            {
+                for (var i = 0; i < strategic.Alliances.Count; i++)
+                {
+                    var a = strategic.Alliances[i];
+                    if (a == null)
+                        continue;
+                    alliances.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["allianceId"] = JsonValue.FromString(a.AllianceId ?? string.Empty),
+                        ["members"] = JsonValue.FromArray(SerializeStringList(a.Members))
+                    }));
+                }
+            }
+
+            var vassalages = new List<JsonValue>();
+            if (strategic.Vassalages != null)
+            {
+                for (var i = 0; i < strategic.Vassalages.Count; i++)
+                {
+                    var v = strategic.Vassalages[i];
+                    if (v == null)
+                        continue;
+                    vassalages.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["vassalFactionId"] = JsonValue.FromString(v.VassalFactionId ?? string.Empty),
+                        ["overlordFactionId"] = JsonValue.FromString(v.OverlordFactionId ?? string.Empty)
+                    }));
+                }
+            }
+
+            var retreating = new List<JsonValue>();
+            if (strategic.RetreatingArmies != null)
+            {
+                for (var i = 0; i < strategic.RetreatingArmies.Count; i++)
+                {
+                    var r = strategic.RetreatingArmies[i];
+                    if (r == null)
+                        continue;
+                    var retreatMembers = new List<JsonValue>();
+                    if (r.MemberCharacterIds != null)
+                    {
+                        for (var j = 0; j < r.MemberCharacterIds.Count; j++)
+                            retreatMembers.Add(U(r.MemberCharacterIds[j]));
+                    }
+
+                    retreating.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["retreatingArmyId"] = JsonValue.FromString(r.RetreatingArmyId ?? string.Empty),
+                        ["sourceArmyId"] = JsonValue.FromString(r.SourceArmyId ?? string.Empty),
+                        ["factionId"] = JsonValue.FromString(r.FactionId ?? string.Empty),
+                        ["hexQ"] = JsonValue.FromNumber(r.HexQ),
+                        ["hexR"] = JsonValue.FromNumber(r.HexR),
+                        ["memberCharacterIds"] = JsonValue.FromArray(retreatMembers)
+                    }));
+                }
+            }
+
+            var captureObjectives = new List<JsonValue>();
+            if (strategic.CaptureObjectives != null)
+            {
+                for (var i = 0; i < strategic.CaptureObjectives.Count; i++)
+                {
+                    var c = strategic.CaptureObjectives[i];
+                    if (c == null)
+                        continue;
+                    captureObjectives.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["objectiveId"] = JsonValue.FromString(c.ObjectiveId ?? string.Empty),
+                        ["siteId"] = JsonValue.FromString(c.SiteId ?? string.Empty),
+                        ["workAreaId"] = JsonValue.FromString(c.WorkAreaId ?? string.Empty),
+                        ["currentHp"] = JsonValue.FromNumber(c.CurrentHp),
+                        ["maxHp"] = JsonValue.FromNumber(c.MaxHp),
+                        ["completed"] = JsonValue.FromBool(c.Completed)
                     }));
                 }
             }
@@ -525,7 +700,14 @@ namespace XianXia.Data.Serialization
                 ["playerFactionId"] = JsonValue.FromString(strategic.PlayerFactionId ?? string.Empty),
                 ["ch01FormationScenarioCompat"] = JsonValue.FromBool(strategic.Ch01FormationScenarioCompat),
                 ["formalArmies"] = JsonValue.FromArray(armies),
-                ["wars"] = JsonValue.FromArray(wars)
+                ["armyMemberships"] = JsonValue.FromArray(memberships),
+                ["residualCharacterPresences"] = JsonValue.FromArray(residuals),
+                ["worldSiteOwners"] = JsonValue.FromArray(siteOwners),
+                ["wars"] = JsonValue.FromArray(wars),
+                ["alliances"] = JsonValue.FromArray(alliances),
+                ["vassalages"] = JsonValue.FromArray(vassalages),
+                ["retreatingArmies"] = JsonValue.FromArray(retreating),
+                ["captureObjectives"] = JsonValue.FromArray(captureObjectives)
             });
         }
 
@@ -562,10 +744,53 @@ namespace XianXia.Data.Serialization
                     if (a.TryGetProperty("memberCharacterIds", out var members) && members.Kind == JsonValueKind.Array)
                     {
                         foreach (var m in members.Array)
-                            army.MemberCharacterIds.Add((ulong)m.Number);
+                            army.MemberCharacterIds.Add(ReadUValue(m));
                     }
 
+                    if (a.TryGetProperty("hexPath", out var hexPath))
+                        army.HexPath = ReadHexPath(hexPath);
+
                     dto.FormalArmies.Add(army);
+                }
+            }
+
+            if (strategic.TryGetProperty("armyMemberships", out var armyMemberships) &&
+                armyMemberships.Kind == JsonValueKind.Array)
+            {
+                foreach (var m in armyMemberships.Array)
+                {
+                    dto.ArmyMemberships.Add(new ArmyMembershipSnapshotDto
+                    {
+                        CharacterId = ReadU(m, "characterId"),
+                        ArmyId = m.GetString("armyId", string.Empty)
+                    });
+                }
+            }
+
+            if (strategic.TryGetProperty("residualCharacterPresences", out var residuals) &&
+                residuals.Kind == JsonValueKind.Array)
+            {
+                foreach (var r in residuals.Array)
+                {
+                    dto.ResidualCharacterPresences.Add(new ResidualCharacterPresenceDto
+                    {
+                        CharacterId = ReadU(r, "characterId"),
+                        HexQ = (int)r.GetNumber("hexQ"),
+                        HexR = (int)r.GetNumber("hexR")
+                    });
+                }
+            }
+
+            if (strategic.TryGetProperty("worldSiteOwners", out var siteOwners) &&
+                siteOwners.Kind == JsonValueKind.Array)
+            {
+                foreach (var s in siteOwners.Array)
+                {
+                    dto.WorldSiteOwners.Add(new WorldSiteOwnerSnapshotDto
+                    {
+                        SiteId = s.GetString("siteId", string.Empty),
+                        OwnerFactionId = s.GetString("ownerFactionId", string.Empty)
+                    });
                 }
             }
 
@@ -573,11 +798,104 @@ namespace XianXia.Data.Serialization
             {
                 foreach (var w in wars.Array)
                 {
-                    dto.Wars.Add(new WarSnapshotDto
+                    var war = new WarSnapshotDto
                     {
                         WarId = w.GetString("warId", string.Empty),
                         Active = w.TryGetProperty("active", out var active) &&
-                                   active.Kind == JsonValueKind.Boolean && active.Bool
+                                 active.Kind == JsonValueKind.Boolean && active.Bool
+                    };
+                    if (w.TryGetProperty("attackers", out var attackers) && attackers.Kind == JsonValueKind.Array)
+                    {
+                        foreach (var faction in attackers.Array)
+                        {
+                            if (faction.Kind == JsonValueKind.String)
+                                war.Attackers.Add(faction.String);
+                        }
+                    }
+
+                    if (w.TryGetProperty("defenders", out var defenders) && defenders.Kind == JsonValueKind.Array)
+                    {
+                        foreach (var faction in defenders.Array)
+                        {
+                            if (faction.Kind == JsonValueKind.String)
+                                war.Defenders.Add(faction.String);
+                        }
+                    }
+
+                    dto.Wars.Add(war);
+                }
+            }
+
+            if (strategic.TryGetProperty("alliances", out var alliances) && alliances.Kind == JsonValueKind.Array)
+            {
+                foreach (var a in alliances.Array)
+                {
+                    var alliance = new AllianceSnapshotDto
+                    {
+                        AllianceId = a.GetString("allianceId", string.Empty)
+                    };
+                    if (a.TryGetProperty("members", out var members) && members.Kind == JsonValueKind.Array)
+                    {
+                        foreach (var member in members.Array)
+                        {
+                            if (member.Kind == JsonValueKind.String)
+                                alliance.Members.Add(member.String);
+                        }
+                    }
+
+                    dto.Alliances.Add(alliance);
+                }
+            }
+
+            if (strategic.TryGetProperty("vassalages", out var vassalages) && vassalages.Kind == JsonValueKind.Array)
+            {
+                foreach (var v in vassalages.Array)
+                {
+                    dto.Vassalages.Add(new VassalageSnapshotDto
+                    {
+                        VassalFactionId = v.GetString("vassalFactionId", string.Empty),
+                        OverlordFactionId = v.GetString("overlordFactionId", string.Empty)
+                    });
+                }
+            }
+
+            if (strategic.TryGetProperty("retreatingArmies", out var retreating) &&
+                retreating.Kind == JsonValueKind.Array)
+            {
+                foreach (var r in retreating.Array)
+                {
+                    var retreat = new RetreatingArmySnapshotDto
+                    {
+                        RetreatingArmyId = r.GetString("retreatingArmyId", string.Empty),
+                        SourceArmyId = r.GetString("sourceArmyId", string.Empty),
+                        FactionId = r.GetString("factionId", string.Empty),
+                        HexQ = (int)r.GetNumber("hexQ"),
+                        HexR = (int)r.GetNumber("hexR")
+                    };
+                    if (r.TryGetProperty("memberCharacterIds", out var members) && members.Kind == JsonValueKind.Array)
+                    {
+                        foreach (var member in members.Array)
+                            retreat.MemberCharacterIds.Add(ReadUValue(member));
+                    }
+
+                    dto.RetreatingArmies.Add(retreat);
+                }
+            }
+
+            if (strategic.TryGetProperty("captureObjectives", out var captureObjectives) &&
+                captureObjectives.Kind == JsonValueKind.Array)
+            {
+                foreach (var objNode in captureObjectives.Array)
+                {
+                    dto.CaptureObjectives.Add(new CaptureObjectiveSnapshotDto
+                    {
+                        ObjectiveId = objNode.GetString("objectiveId", string.Empty),
+                        SiteId = objNode.GetString("siteId", string.Empty),
+                        WorkAreaId = objNode.GetString("workAreaId", string.Empty),
+                        CurrentHp = (int)objNode.GetNumber("currentHp"),
+                        MaxHp = (int)objNode.GetNumber("maxHp"),
+                        Completed = objNode.TryGetProperty("completed", out var completed) &&
+                                    completed.Kind == JsonValueKind.Boolean && completed.Bool
                     });
                 }
             }

@@ -1,15 +1,25 @@
 param(
-  [string]$Project = "D:\UnityProjects\XianXia",
-  [string]$Label = "m1"
+  [string]$Project = "",
+  [string]$Label = "m1",
+  [string]$Filter = ""
 )
 
 $ErrorActionPreference = "Stop"
+if ([string]::IsNullOrWhiteSpace($Project)) {
+  $Project = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+}
 $unity = "D:\UnityEditor\2022.3.6f1\Editor\Unity.exe"
+if (-not (Test-Path $unity)) {
+  Write-Output "UNITY_NOT_FOUND=$unity"
+  exit 1
+}
 $logs = Join-Path $Project "Logs"
 New-Item -ItemType Directory -Force -Path $logs | Out-Null
 $compileLog = Join-Path $logs "$Label-compile.log"
 $testLog = Join-Path $logs "$Label-editmode-tests.log"
 $testResults = Join-Path $logs "$Label-editmode-results.xml"
+
+Write-Output "PROJECT=$Project"
 
 function Wait-UnityFree {
   for ($i = 0; $i -lt 90; $i++) {
@@ -36,7 +46,11 @@ if ($p.ExitCode -ne 0 -or $errors.Count -gt 0) {
 }
 
 Wait-UnityFree
-$p2 = Start-Process -FilePath $unity -ArgumentList @("-batchmode","-nographics","-projectPath",$Project,"-runTests","-testPlatform","editmode","-testResults",$testResults,"-logFile",$testLog) -Wait -PassThru -NoNewWindow
+$testArgs = @("-batchmode","-nographics","-projectPath",$Project,"-runTests","-testPlatform","editmode","-testResults",$testResults,"-logFile",$testLog)
+if (-not [string]::IsNullOrWhiteSpace($Filter)) {
+  $testArgs += @("-testFilter", $Filter)
+}
+$p2 = Start-Process -FilePath $unity -ArgumentList $testArgs -Wait -PassThru -NoNewWindow
 Write-Output "TEST_EXIT=$($p2.ExitCode)"
 if (-not (Test-Path $testResults)) { Write-Output "NO_RESULTS"; exit 1 }
 [xml]$xml = Get-Content $testResults
