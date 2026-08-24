@@ -1,7 +1,7 @@
 # 161 — Pure Hex Legacy Purge + 编译/运行/编码修复收束（2026-08-24）
 
-> **相对提交：** `1e89a7b`（Pure Hex ownership）→ 本轮 `main`（待 push）  
-> **前置文档：** [160 Hex WorldSite LocalMap](160-hex-worldsite-localmap-and-manual-battle-fix-2026-08-24.md)、[156 Pure Hex 替换](156-pure-hex-world-replacement-2026-08-23.md)
+> **相对提交：** `1e89a7b`（Pure Hex ownership）→ `8a41534`（main）  
+> **后续：** [162 终局审计 + Snapshot v6 JSON](162-pure-hex-final-audit-and-snapshot-v6-json-2026-08-24.md)（`ff112cd`）
 
 ## 背景
 
