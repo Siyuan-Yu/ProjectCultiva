@@ -6,7 +6,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>WorldAgentPresence → 大地图世界坐标（Graph + Hex Residual）。</summary>
+    /// <summary>WorldAgentPresence → 大地图世界坐标（Hex-only）。</summary>
     public static class WorldAgentMapPositionResolver
     {
         public static bool TryResolve(
@@ -17,63 +17,38 @@ namespace XianXia.Core.World.Strategic
             out float worldY)
         {
             worldX = worldY = 0f;
-            if (world == null || presence == null)
+            if (world == null || presence == null || !world.HexWorld.HasGrid)
                 return false;
 
-            // Residual Hex：唯一位置真源 = AtHex / HexCoord（禁止读 Node / Route）
             if (presence.UsesHexPresence)
             {
-                if (world.HexWorld != null && world.HexWorld.HasGrid)
-                {
-                    HexMath.ToWorldPosition(presence.ResidualHex, world.HexWorld.HexSize, out worldX, out worldY);
-                    return true;
-                }
-
-                HexMath.ToWorldPosition(presence.ResidualHex, HexWorldScale.DefaultHexOuterRadius, out worldX, out worldY);
+                HexMath.ToWorldPosition(presence.ResidualHex, world.HexWorld.HexSize, out worldX, out worldY);
                 return true;
             }
 
-            if (ArmyHexCommandService.IsHexStrategicActive(world) &&
-                world.HexWorld != null &&
-                world.HexWorld.HasGrid)
+            if (presence.Mode == PartyWorldPresenceMode.AtSite &&
+                !string.IsNullOrEmpty(presence.SiteId) &&
+                world.Strategic.Sites.TryGet(presence.SiteId, out var site) &&
+                site != null)
             {
-                if (ArmyHexBattleAnchorService.TryResolveHexForNode(world, presence.NodeId, out var nodeHex))
-                {
-                    HexMath.ToWorldPosition(nodeHex, world.HexWorld.HexSize, out worldX, out worldY);
-                    return true;
-                }
+                HexMath.ToWorldPosition(site.AnchorHex, world.HexWorld.HexSize, out worldX, out worldY);
+                return true;
             }
 
-            if (!WorldTravelService.TryResolveTravelWorldPoints(
-                    world,
-                    presence,
-                    out var fromX,
-                    out var fromY,
-                    out var toX,
-                    out var toY))
-                return false;
-
-            worldX = fromX;
-            worldY = fromY;
-            if (presence.HasRoutePresentation)
+            if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, presence.SiteId, out var siteHex) ||
+                ArmyHexBattleAnchorService.TryResolveHexForSite(world, presence.NodeId, out siteHex))
             {
-                var t = presence.Mode == PartyWorldPresenceMode.RouteAnchored
-                    ? Clamp01(presence.RouteAnchorProgress)
-                    : Clamp01(presence.TravelProgress);
-                worldX = fromX + (toX - fromX) * t;
-                worldY = fromY + (toY - fromY) * t;
+                HexMath.ToWorldPosition(siteHex, world.HexWorld.HexSize, out worldX, out worldY);
+                return true;
             }
 
-            return true;
-        }
+            if (ArmyService.TryGetArmyForCharacter(world, entityId, out var army) &&
+                army != null &&
+                army.UsesHexStrategicPosition &&
+                FormalArmyHexWorldPositionResolver.TryResolve(world, army, out worldX, out worldY))
+                return true;
 
-        static float Clamp01(float v)
-        {
-            if (v < 0f)
-                return 0f;
-            if (v > 1f)
-                return 1f;
-            return v;
+            return false;
         }
     }
 }

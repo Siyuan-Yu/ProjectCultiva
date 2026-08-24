@@ -129,13 +129,15 @@ namespace XianXia.Core.World.Strategic
                 return true;
             }
 
-            if (ArmyTravelCommandService.HasPendingLegs(pursuer.ArmyId))
-                return ArmyTravelCommandService.TryContinueQueuedTravel(world, pursuer.ArmyId);
+            if (HexStrategicRuntime.IsActive(world))
+            {
+                var move = ArmyHexPursuitService.BeginAttackArmy(world, pursuer.ArmyId, target.ArmyId);
+                if (move.IsSuccess)
+                    LastMacroSignatures[pursuer.ArmyId] = signature;
+                return move.IsSuccess;
+            }
 
-            var move = ArmyTravelCommandService.MoveArmyToTargetArmy(world, pursuer.ArmyId, target.ArmyId);
-            if (move.IsSuccess)
-                LastMacroSignatures[pursuer.ArmyId] = signature;
-            return move.IsSuccess;
+            return false;
         }
 
         public static bool IsActivePursuitTravelValid(FormalArmy pursuer, FormalArmy target)
@@ -189,12 +191,12 @@ namespace XianXia.Core.World.Strategic
             return display >= 0.5f ? 1f : 0f;
         }
 
-        public static float ResolveTargetRouteProgressForLeg(SimulationWorld world, FormalArmy target, WorldRouteState route)
+        public static float ResolveTargetRouteProgressForLeg(SimulationWorld world, FormalArmy target, string routeId)
         {
-            if (target == null || route == null)
+            if (target == null)
                 return 0f;
             if (IsStaticRouteTarget(target) &&
-                string.Equals(target.RouteId, route.Id, StringComparison.Ordinal))
+                string.Equals(target.RouteId, routeId, StringComparison.Ordinal))
                 return target.GetRouteDisplayProgress();
 
             return ResolveChaseEndpoint(target);

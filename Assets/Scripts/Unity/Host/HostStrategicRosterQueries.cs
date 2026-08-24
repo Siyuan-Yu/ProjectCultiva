@@ -119,7 +119,7 @@ namespace XianXia.Unity.Host
                     ? fm.FactionId
                     : string.Empty,
                 LifeStateLabel = CombatLifeStateService.FormatLifeStateWithCountdown(world, entity) ?? "存活",
-                NodeId = ArmyService.ResolveCharacterNodeId(world, id) ?? string.Empty
+                NodeId = ArmyService.ResolveCharacterFormationLocationId(world, id) ?? string.Empty
             };
             row.NodeLabel = ResolveNodeLabel(world, row.NodeId);
             if (ArmyService.TryGetArmyForCharacter(world, id, out var army) && army != null)
@@ -226,11 +226,11 @@ namespace XianXia.Unity.Host
         {
             if (string.IsNullOrEmpty(nodeId))
                 return "—";
-            if (world?.WorldGraph != null &&
-                world.WorldGraph.TryGetNode(nodeId, out var node) &&
-                node != null &&
-                !string.IsNullOrEmpty(node.Name))
-                return node.Name;
+            if (world?.Strategic?.Sites != null &&
+                world.Strategic.Sites.TryGet(nodeId, out var site) &&
+                site != null &&
+                !string.IsNullOrEmpty(site.DisplayName))
+                return site.DisplayName;
             return nodeId;
         }
 

@@ -30,7 +30,6 @@ namespace XianXia.Tests
         public void GenericBootstrap_DelegatesToCh01ScenarioSetup()
         {
             var world = new SimulationWorld();
-            world.WorldGraph.RegisterNode(new WorldNodeState { Id = NodeA });
             StrategicBootstrap.ApplyCh01Defaults(world);
             Assert.IsTrue(world.Strategic.Ch01FormationScenarioCompat);
         }
@@ -39,15 +38,6 @@ namespace XianXia.Tests
         public void Ch01ScenarioSetup_PrototypeWar_IsBanditRegressionOnly()
         {
             var world = new SimulationWorld();
-            world.WorldGraph.RegisterNode(new WorldNodeState { Id = "base:node_huangcun" });
-            world.WorldGraph.RegisterNode(new WorldNodeState { Id = "base:node_linjian" });
-            world.WorldGraph.RegisterRoute(new WorldRouteState
-            {
-                Id = "r1",
-                FromNodeId = "base:node_huangcun",
-                ToNodeId = "base:node_linjian",
-                TravelCost = 1
-            });
             Ch01ScenarioStrategicSetup.Apply(world);
             Assert.IsTrue(WarGateService.IsAtWar(world, StrategicFactionCatalog.PlayerFactionId, StrategicFactionCatalog.BanditId));
         }
@@ -65,65 +55,74 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void Ch01ScenarioSetup_AssignsRegionalTerritoryOwners()
+        public void Ch01ScenarioSetup_AssignsRegionalTerritoryOwnersViaContentSites()
         {
             var world = BootstrapCh01Graph();
+            RegisterCh01TerritorySites(world);
             Ch01ScenarioStrategicSetup.Apply(world);
 
-            Assert.AreEqual(3, StrategicAcceptanceInspector.CountOwnedNodes(
+            Assert.AreEqual(3, StrategicAcceptanceInspector.CountOwnedSites(
                 world, StrategicFactionCatalog.HuangcunLaborId));
+            Assert.AreEqual(StrategicFactionCatalog.HuangcunLaborId,
+                WorldSiteOwnershipService.GetOwner(world, "base:site_huangcun"));
 
-            Assert.IsTrue(world.WorldGraph.TryGetNode("base:node_huangcun", out var huangcun));
-            Assert.AreEqual(StrategicFactionCatalog.HuangcunLaborId, huangcun.OwnerId);
-
-            Assert.AreEqual(2, StrategicAcceptanceInspector.CountOwnedNodes(
+            Assert.AreEqual(2, StrategicAcceptanceInspector.CountOwnedSites(
                 world, StrategicFactionCatalog.NanYanLeagueId));
-            Assert.AreEqual(3, StrategicAcceptanceInspector.CountOwnedNodes(
+            Assert.AreEqual(3, StrategicAcceptanceInspector.CountOwnedSites(
                 world, StrategicFactionCatalog.FisherVillageId));
-            Assert.AreEqual(2, StrategicAcceptanceInspector.CountOwnedNodes(
+            Assert.AreEqual(2, StrategicAcceptanceInspector.CountOwnedSites(
                 world, StrategicFactionCatalog.ShuoFengFortId));
-            Assert.AreEqual(3, StrategicAcceptanceInspector.CountOwnedNodes(
+            Assert.AreEqual(3, StrategicAcceptanceInspector.CountOwnedSites(
                 world, StrategicFactionCatalog.DongLinGuildId));
-            Assert.AreEqual(2, StrategicAcceptanceInspector.CountOwnedNodes(
+            Assert.AreEqual(2, StrategicAcceptanceInspector.CountOwnedSites(
                 world, StrategicFactionCatalog.XiJinGuildId));
 
-            Assert.IsTrue(world.WorldGraph.TryGetNode("base:node_cunzhuang_nan", out var nanCun));
-            Assert.AreEqual(StrategicFactionCatalog.NanYanLeagueId, nanCun.OwnerId);
-            Assert.IsTrue(world.WorldGraph.TryGetNode("base:node_haijiao", out var haijiao));
-            Assert.AreEqual(StrategicFactionCatalog.FisherVillageId, haijiao.OwnerId);
-            Assert.IsTrue(world.WorldGraph.TryGetNode("base:node_dukou_xi", out var xidu));
-            Assert.AreEqual(StrategicFactionCatalog.XiJinGuildId, xidu.OwnerId);
+            Assert.IsTrue(world.Strategic.Sites.TryGet("base:node_huangcun", out var huangcun));
+            Assert.IsTrue(string.IsNullOrEmpty(huangcun.OwnerFactionId));
+            Assert.AreEqual(StrategicFactionCatalog.NanYanLeagueId,
+                WorldSiteOwnershipService.GetOwner(world, "base:site_nan"));
+            Assert.AreEqual(StrategicFactionCatalog.FisherVillageId,
+                WorldSiteOwnershipService.GetOwner(world, "base:site_haijiao"));
+            Assert.AreEqual(StrategicFactionCatalog.XiJinGuildId,
+                WorldSiteOwnershipService.GetOwner(world, "base:site_xi"));
+        }
+
+        static void RegisterCh01TerritorySites(SimulationWorld world)
+        {
+            HexTestWorldBootstrap.EnsureMinimalHexMap(world);
+            RegisterSite(world, "base:site_huangcun", StrategicFactionCatalog.HuangcunLaborId);
+            RegisterSite(world, "base:site_lu", StrategicFactionCatalog.HuangcunLaborId);
+            RegisterSite(world, "base:site_lingdi", StrategicFactionCatalog.HuangcunLaborId);
+            RegisterSite(world, "base:site_nan", StrategicFactionCatalog.NanYanLeagueId);
+            RegisterSite(world, "base:site_zhuangyuan", StrategicFactionCatalog.NanYanLeagueId);
+            RegisterSite(world, "base:site_haijiao", StrategicFactionCatalog.FisherVillageId);
+            RegisterSite(world, "base:site_shuizhai", StrategicFactionCatalog.FisherVillageId);
+            RegisterSite(world, "base:site_yucun", StrategicFactionCatalog.FisherVillageId);
+            RegisterSite(world, "base:site_bei", StrategicFactionCatalog.ShuoFengFortId);
+            RegisterSite(world, "base:site_shankou", StrategicFactionCatalog.ShuoFengFortId);
+            RegisterSite(world, "base:site_dong", StrategicFactionCatalog.DongLinGuildId);
+            RegisterSite(world, "base:site_miao", StrategicFactionCatalog.DongLinGuildId);
+            RegisterSite(world, "base:site_gudao", StrategicFactionCatalog.DongLinGuildId);
+            RegisterSite(world, "base:site_xi", StrategicFactionCatalog.XiJinGuildId);
+            RegisterSite(world, "base:site_yaotian", StrategicFactionCatalog.XiJinGuildId);
+        }
+
+        static void RegisterSite(
+            SimulationWorld world,
+            string siteId,
+            string ownerFactionId)
+        {
+            world.Strategic.Sites.Register(new WorldSite
+            {
+                SiteId = siteId,
+                OwnerFactionId = ownerFactionId
+            });
         }
 
         static SimulationWorld BootstrapCh01Graph()
         {
             var world = new SimulationWorld();
-            var nodeIds = new[]
-            {
-                "base:node_huangcun", "base:node_qingyun_lu", "base:node_lingdi",
-                "base:node_cunzhuang_nan", "base:node_zhuangyuan",
-                "base:node_haijiao", "base:node_shuizhai", "base:node_yucun",
-                "base:node_cunzhuang_bei", "base:node_shankou",
-                "base:node_shulin_dong", "base:node_miao", "base:node_gudao",
-                "base:node_dukou_xi", "base:node_yaotian",
-                "base:node_linjian", "base:node_guanai"
-            };
-            for (var i = 0; i < nodeIds.Length; i++)
-                world.WorldGraph.RegisterNode(new WorldNodeState { Id = nodeIds[i] });
-            world.WorldGraph.RegisterRoute(new WorldRouteState
-            {
-                Id = "base:route_huangcun_linjian",
-                FromNodeId = "base:node_huangcun",
-                ToNodeId = "base:node_linjian",
-                TravelCost = 1
-            });
-            world.WorldGraph.RegisterRoute(new WorldRouteState
-            {
-                Id = "base:route_huangcun_guanai",
-                FromNodeId = "base:node_huangcun",
-                ToNodeId = "base:node_guanai",
-                TravelCost = 1
-            });
+            HexTestWorldBootstrap.EnsureCh01HexMap(world);
             return world;
         }
 
@@ -131,25 +130,11 @@ namespace XianXia.Tests
         public void PlayerUngroupedCharacter_CannotUseMacroTravelPathService()
         {
             var world = new SimulationWorld();
-            world.WorldGraph.RegisterNode(new WorldNodeState { Id = NodeA });
-            world.WorldGraph.RegisterNode(new WorldNodeState { Id = NodeB });
-            world.WorldGraph.RegisterRoute(new WorldRouteState
-            {
-                Id = "r",
-                FromNodeId = NodeA,
-                ToNodeId = NodeB,
-                TravelCost = 1
-            });
             var created = world.Entities.CreateCharacter(new DefinitionId("test", "solo"), "Solo");
             Assert.IsTrue(created.IsSuccess);
-            world.WorldPresence.SetAtNode(created.Value.Id, NodeA);
+            world.WorldPresence.SetAtSite(created.Value.Id, "test:site_a");
 
-            var started = WorldTravelPathService.StartAgentTravelToTarget(
-                world,
-                created.Value.Id,
-                WorldTravelTarget.AtNode(NodeB));
-            Assert.IsTrue(started.IsFailure);
-            StringAssert.Contains("Formal Army", started.Error.Message);
+            Assert.IsFalse(WorldTravelService.CanReceivePlayerMacroTravelOrder(world, created.Value.Id));
         }
 
         [Test]
@@ -170,22 +155,30 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             Ch01ScenarioProgressionHooks.Register(world);
-            ScenarioProgressionHooks.NotifyAllCaptureObjectivesCompletedForNode(
+            ScenarioProgressionHooks.NotifyAllCaptureObjectivesCompletedForSite(
                 world,
-                Ch01ScenarioProgressionHooks.HuangcunNodeId);
+                Ch01ScenarioProgressionHooks.HuangcunSiteId);
             Assert.IsTrue(world.Flags.Has(Ch01ScenarioProgressionHooks.FlagPlayerFactionPoliticallyActive));
         }
 
         [Test]
-        public void ArmyFormationNodePolicy_NoPresenceBasedFriendlyNode()
+        public void ArmyFormationSitePolicy_RequiresSiteOwner_NotPresenceOnly()
         {
             var world = new SimulationWorld();
-            world.WorldGraph.RegisterNode(new WorldNodeState { Id = NodeA, OwnerId = string.Empty });
+            HexTestWorldBootstrap.EnsureMinimalHexMap(world);
+            world.Strategic.Sites.Register(new WorldSite
+            {
+                SiteId = "test:site_a",
+                OwnerFactionId = "test:faction_other",
+                LocalMapId = "loc_test",
+                AnchorHex = new XianXia.Core.World.Hex.HexCoord(1, 1)
+            });
             var c = world.Entities.CreateCharacter(new DefinitionId("test", "c"), "C").Value;
             c.Get<FactionMembershipComponent>().Assign(FactionA, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(c.Id, NodeA);
+            world.WorldPresence.SetAtSite(c.Id, "test:site_a");
 
-            Assert.IsFalse(ArmyFormationNodePolicy.TryValidateFriendlyNode(world, FactionA, NodeA, out _));
+            Assert.IsFalse(ArmyFormationSitePolicy.TryValidateFriendlySiteForSiteId(
+                world, FactionA, "test:site_a", out _));
         }
     }
 }

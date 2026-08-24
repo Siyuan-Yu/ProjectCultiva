@@ -87,15 +87,15 @@ namespace XianXia.Core.Persistence
                 });
             }
 
-            foreach (var kv in world.WorldGraph.Nodes)
+            foreach (var kv in world.Strategic.Sites.Sites)
             {
-                var node = kv.Value;
-                if (node == null || string.IsNullOrEmpty(node.OwnerId))
+                var site = kv.Value;
+                if (site == null || string.IsNullOrEmpty(site.OwnerFactionId))
                     continue;
-                dto.NodeOwners.Add(new NodeOwnerSnapshotDto
+                dto.WorldSiteOwners.Add(new WorldSiteOwnerSnapshotDto
                 {
-                    NodeId = node.Id,
-                    OwnerFactionId = node.OwnerId
+                    SiteId = site.SiteId,
+                    OwnerFactionId = site.OwnerFactionId
                 });
             }
 
@@ -158,7 +158,7 @@ namespace XianXia.Core.Persistence
                 dto.CaptureObjectives.Add(new CaptureObjectiveSnapshotDto
                 {
                     ObjectiveId = obj.ObjectiveId,
-                    NodeId = obj.NodeId,
+                    SiteId = obj.SiteId,
                     WorkAreaId = obj.WorkAreaId,
                     CurrentHp = obj.CurrentHp,
                     MaxHp = obj.MaxHp,
@@ -268,15 +268,14 @@ namespace XianXia.Core.Persistence
                 }
             }
 
-            if (dto.NodeOwners != null)
+            if (dto.WorldSiteOwners != null)
             {
-                for (var i = 0; i < dto.NodeOwners.Count; i++)
+                for (var i = 0; i < dto.WorldSiteOwners.Count; i++)
                 {
-                    var n = dto.NodeOwners[i];
-                    if (n == null || string.IsNullOrEmpty(n.NodeId))
+                    var s = dto.WorldSiteOwners[i];
+                    if (s == null || string.IsNullOrEmpty(s.SiteId))
                         continue;
-                    if (world.WorldGraph.TryGetNode(n.NodeId, out var node) && node != null)
-                        node.OwnerId = n.OwnerFactionId ?? string.Empty;
+                    WorldSiteOwnershipService.SetOwner(world, s.SiteId, s.OwnerFactionId ?? string.Empty);
                 }
             }
 
@@ -364,7 +363,7 @@ namespace XianXia.Core.Persistence
                     world.Strategic.CaptureObjectives.Register(new CaptureObjectiveState
                     {
                         ObjectiveId = c.ObjectiveId,
-                        NodeId = c.NodeId ?? string.Empty,
+                        SiteId = c.SiteId ?? string.Empty,
                         WorkAreaId = c.WorkAreaId ?? string.Empty,
                         CurrentHp = c.CurrentHp,
                         MaxHp = c.MaxHp,

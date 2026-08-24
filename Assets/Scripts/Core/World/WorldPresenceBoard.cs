@@ -15,6 +15,8 @@ namespace XianXia.Core.World
         public PartyWorldPresenceMode Mode { get; set; } = PartyWorldPresenceMode.AtNode;
         /// <summary>停留时＝当前 Node；途中＝出发 Node。</summary>
         public string NodeId { get; set; } = string.Empty;
+        /// <summary>Pure Hex AtSite 模式：WorldSiteId 战略位置真源。</summary>
+        public string SiteId { get; set; } = string.Empty;
         public string RouteId { get; set; } = string.Empty;
         public string DestNodeId { get; set; } = string.Empty;
         public int RemainingTravelTicks { get; set; }
@@ -106,8 +108,6 @@ namespace XianXia.Core.World
         {
             HexQ = InvalidHexComponent;
             HexR = InvalidHexComponent;
-            if (Mode == PartyWorldPresenceMode.AtHex)
-                Mode = PartyWorldPresenceMode.AtNode;
         }
 
         public void SetAtHex(HexCoord hex)
@@ -116,6 +116,7 @@ namespace XianXia.Core.World
             HexQ = hex.Q;
             HexR = hex.R;
             NodeId = string.Empty;
+            SiteId = string.Empty;
             RouteId = string.Empty;
             DestNodeId = string.Empty;
             RemainingTravelTicks = 0;
@@ -133,7 +134,7 @@ namespace XianXia.Core.World
             RemainingTravelTicks = 0;
             TravelTotalTicks = 0;
             ClearRouteSegment();
-            ClearHexPresenceFieldsOnly();
+            ClearHexPresence();
         }
 
         public void ClearFollow() => FollowStackId = string.Empty;
@@ -149,14 +150,8 @@ namespace XianXia.Core.World
             TravelTotalTicks = 0;
             RouteAnchorProgress = -1f;
             ClearRouteSegment();
-            ClearHexPresenceFieldsOnly();
+            ClearHexPresence();
             // 注意：不清 CombatPursuitStackId——追击到站后仍要弹接战而非到站查看
-        }
-
-        void ClearHexPresenceFieldsOnly()
-        {
-            HexQ = InvalidHexComponent;
-            HexR = InvalidHexComponent;
         }
     }
 
@@ -201,7 +196,25 @@ namespace XianXia.Core.World
         {
             var p = GetOrCreate(id);
             p.NodeId = nodeId ?? string.Empty;
+            p.SiteId = string.Empty;
             p.ClearTravel();
+        }
+
+        public void SetAtSite(EntityId id, string siteId)
+        {
+            var p = GetOrCreate(id);
+            p.SiteId = siteId ?? string.Empty;
+            p.NodeId = string.Empty;
+            p.Mode = PartyWorldPresenceMode.AtSite;
+            p.RouteId = string.Empty;
+            p.DestNodeId = string.Empty;
+            p.RemainingTravelTicks = 0;
+            p.TravelTotalTicks = 0;
+            p.RouteAnchorProgress = -1f;
+            p.ClearRouteSegment();
+            p.ClearHexPresence();
+            p.ClearFollow();
+            p.ClearCombatPursuit();
         }
 
         public void SetAtHex(EntityId id, HexCoord hex)
@@ -221,6 +234,20 @@ namespace XianXia.Core.World
                 if (p == null || p.Mode != PartyWorldPresenceMode.AtNode)
                     continue;
                 if (string.Equals(p.NodeId, nodeId, StringComparison.Ordinal))
+                    into.Add(p.EntityId);
+            }
+        }
+
+        public void CollectAtSite(string siteId, List<EntityId> into)
+        {
+            if (into == null || string.IsNullOrEmpty(siteId))
+                return;
+            foreach (var kv in _byEntity)
+            {
+                var p = kv.Value;
+                if (p == null || p.Mode != PartyWorldPresenceMode.AtSite)
+                    continue;
+                if (string.Equals(p.SiteId, siteId, StringComparison.Ordinal))
                     into.Add(p.EntityId);
             }
         }

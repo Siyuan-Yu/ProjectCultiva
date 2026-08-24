@@ -355,11 +355,11 @@ namespace XianXia.Core.World.Strategic
             world.PartyWorld.EncounterId = string.Empty;
 
             // 卸掉 ActiveMap 遭遇会话标记：LocalMap 切回焦点节点图由 Host 处理
-            if (!string.IsNullOrEmpty(world.PartyWorld.NodeId) &&
-                world.WorldGraph.TryGetNode(world.PartyWorld.NodeId, out var focus) &&
-                focus != null &&
-                !string.IsNullOrEmpty(focus.LocalMapId))
-                world.PartyWorld.LocalMapId = focus.LocalMapId;
+            if (!string.IsNullOrEmpty(world.PartyWorld.SiteId) &&
+                world.Strategic.Sites.TryGet(world.PartyWorld.SiteId, out var focusSite) &&
+                focusSite != null &&
+                !string.IsNullOrEmpty(focusSite.LocalMapId))
+                world.PartyWorld.LocalMapId = focusSite.LocalMapId;
         }
 
         static void DestroyBattlefieldCompletely(SimulationWorld world)
@@ -426,7 +426,7 @@ namespace XianXia.Core.World.Strategic
                 return false;
 
             ArmyHexBattleAnchorService.SetBattleAnchorHex(snap, hex);
-            snap.BattleAnchorNodeId = ArmyHexBattleAnchorService.ResolveLegacyNodeForHex(
+            snap.BattleAnchorNodeId = ArmyHexBattleAnchorService.ResolveSiteIdForHex(
                 world, hex, snap.BattleAnchorNodeId);
             snap.BattleAnchorRouteId = string.Empty;
             snap.BattleAnchorProgress = -1f;
@@ -534,29 +534,7 @@ namespace XianXia.Core.World.Strategic
         {
             if (stack == null || snap == null)
                 return;
-            if (ArmyHexBattleAnchorService.IsHexAnchorMode(world))
-            {
-                ArmyHexBattleAnchorService.ParkStackAtBattleAnchor(world, stack, snap);
-                return;
-            }
-
-            stack.RemainingTravelTicks = 0;
-            stack.TravelTotalTicks = 0;
-            if (!string.IsNullOrEmpty(snap.BattleAnchorRouteId) &&
-                snap.BattleAnchorProgress >= 0f)
-            {
-                stack.RouteId = snap.BattleAnchorRouteId;
-                stack.RouteAnchorProgress = snap.BattleAnchorProgress;
-                stack.NodeId = snap.BattleAnchorNodeId ?? string.Empty;
-                stack.DestNodeId = ResolveAnchorDest(world, snap);
-            }
-            else
-            {
-                stack.RouteId = string.Empty;
-                stack.RouteAnchorProgress = -1f;
-                stack.NodeId = snap.BattleAnchorNodeId ?? stack.NodeId ?? string.Empty;
-                stack.DestNodeId = string.Empty;
-            }
+            ArmyHexBattleAnchorService.ParkStackAtBattleAnchor(world, stack, snap);
         }
 
         /// <summary>给已 tracked 的敌军弥留／尸体补接战点 WorldPresence（自动战宏观刷怪后亦调用）。</summary>
@@ -670,40 +648,9 @@ namespace XianXia.Core.World.Strategic
                 return;
             }
 
-            if (!string.IsNullOrEmpty(snap.BattleAnchorRouteId) &&
-                snap.BattleAnchorProgress >= 0f)
-            {
-                wp.Mode = PartyWorldPresenceMode.RouteAnchored;
-                wp.RouteId = snap.BattleAnchorRouteId;
-                wp.NodeId = snap.BattleAnchorNodeId ?? string.Empty;
-                wp.DestNodeId = ResolveAnchorDest(world, snap);
-                // Dest 为空时从路网补齐，否则 HasRoutePresentation=false，改点路上目标会走挂路瞬移分支
-                if ((string.IsNullOrEmpty(wp.DestNodeId) ||
-                     string.Equals(wp.NodeId, wp.DestNodeId, System.StringComparison.Ordinal)) &&
-                    world?.WorldGraph != null &&
-                    world.WorldGraph.TryGetRoute(wp.RouteId, out var route) &&
-                    route != null)
-                {
-                    if (string.Equals(route.FromNodeId, wp.NodeId, System.StringComparison.Ordinal))
-                        wp.DestNodeId = route.ToNodeId ?? string.Empty;
-                    else if (string.Equals(route.ToNodeId, wp.NodeId, System.StringComparison.Ordinal))
-                        wp.DestNodeId = route.FromNodeId ?? string.Empty;
-                    else
-                    {
-                        wp.NodeId = route.FromNodeId ?? wp.NodeId;
-                        wp.DestNodeId = route.ToNodeId ?? string.Empty;
-                    }
-                }
-
-                wp.RouteAnchorProgress = Clamp01(snap.BattleAnchorProgress);
-                wp.RemainingTravelTicks = 0;
-                wp.TravelTotalTicks = 0;
-                wp.ClearRouteSegment();
-                return;
-            }
-
             wp.Mode = PartyWorldPresenceMode.AtNode;
             wp.NodeId = snap.BattleAnchorNodeId ?? wp.NodeId ?? string.Empty;
+            wp.SiteId = snap.BattleAnchorNodeId ?? wp.SiteId ?? string.Empty;
             wp.RouteId = string.Empty;
             wp.DestNodeId = string.Empty;
             wp.RouteAnchorProgress = -1f;
@@ -712,22 +659,8 @@ namespace XianXia.Core.World.Strategic
             wp.ClearRouteSegment();
         }
 
-        static string ResolveAnchorDest(SimulationWorld world, BattleParticipantSnapshot snap)
-        {
-            if (!string.IsNullOrEmpty(snap.BattleAnchorDestNodeId))
-                return snap.BattleAnchorDestNodeId;
-            if (world?.WorldGraph != null &&
-                !string.IsNullOrEmpty(snap.BattleAnchorRouteId) &&
-                world.WorldGraph.TryGetRoute(snap.BattleAnchorRouteId, out var route) &&
-                route != null)
-            {
-                if (string.Equals(route.FromNodeId, snap.BattleAnchorNodeId, System.StringComparison.Ordinal))
-                    return route.ToNodeId ?? string.Empty;
-                return route.FromNodeId ?? string.Empty;
-            }
-
-            return string.Empty;
-        }
+        static string ResolveAnchorDest(SimulationWorld world, BattleParticipantSnapshot snap) =>
+            snap?.BattleAnchorDestNodeId ?? string.Empty;
 
         static int CountLingeringDownedSpawns(
             SimulationWorld world,

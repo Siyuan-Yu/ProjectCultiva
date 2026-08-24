@@ -136,6 +136,7 @@ namespace XianXia.Core.World.Strategic
             }
 
             ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, stack);
+            ArmyPresenceAdapter.SyncFromArmy(world, pursuer);
 
             if (ArmyHexBattleAnchorService.TryDetectHexContact(pursuer, target))
             {

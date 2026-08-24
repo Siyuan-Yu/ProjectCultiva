@@ -1,11 +1,10 @@
 using XianXia.Core.Simulation;
-using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// FormalArmy 战略位置 → 大地图世界坐标的唯一纯函数真源。
-    /// 只读 FormalArmy.StrategicPosition + WorldGraph；无副作用、无缓存。
+    /// FormalArmy 战略位置 → 大地图世界坐标的唯一纯函数真源（Hex-only）。
     /// </summary>
     public static class FormalArmyWorldPositionResolver
     {
@@ -66,9 +65,7 @@ namespace XianXia.Core.World.Strategic
             if (world == null || army == null)
                 return false;
 
-            if (world.HexWorld.HasGrid &&
-                army.UsesHexStrategicPosition &&
-                FormalArmyHexWorldPositionResolver.TryResolve(world, army, out worldX, out worldY))
+            if (FormalArmyHexWorldPositionResolver.TryResolve(world, army, out worldX, out worldY))
             {
                 var hexReason = army.State == FormalArmyState.Moving ? "HexMoving" : "HexStationary";
                 info = new WorldPositionInfo(
@@ -83,72 +80,22 @@ namespace XianXia.Core.World.Strategic
                 return true;
             }
 
-            if (TryResolveRouteInterpolation(world, army, out worldX, out worldY, out var routeId, out var reason, out var sourceType))
+            if (world.Strategic.Sites.TryGet(army.NodeId, out var site) && site != null)
             {
-                info = new WorldPositionInfo(worldX, worldY, sourceType, routeId, reason, true);
+                HexMath.ToWorldPosition(site.AnchorHex, world.HexWorld.HexSize, out worldX, out worldY);
+                info = new WorldPositionInfo(
+                    worldX,
+                    worldY,
+                    army.State == FormalArmyState.Garrisoned
+                        ? RenderSourceType.Garrisoned
+                        : RenderSourceType.AtNode,
+                    site.SiteId,
+                    army.State == FormalArmyState.Garrisoned ? "Garrisoned" : "AtSite",
+                    true);
                 return true;
             }
 
-            if (string.IsNullOrEmpty(army.NodeId) ||
-                !world.WorldGraph.TryGetNode(army.NodeId, out var node) ||
-                node == null)
-                return false;
-
-            worldX = node.WorldX;
-            worldY = node.WorldY;
-            if (army.State == FormalArmyState.Garrisoned)
-            {
-                info = new WorldPositionInfo(worldX, worldY, RenderSourceType.Garrisoned, army.NodeId, "Garrisoned", true);
-                return true;
-            }
-
-            info = new WorldPositionInfo(worldX, worldY, RenderSourceType.AtNode, army.NodeId, "AtNode", true);
-            return true;
-        }
-
-        static bool TryResolveRouteInterpolation(
-            SimulationWorld world,
-            FormalArmy army,
-            out float worldX,
-            out float worldY,
-            out string routeId,
-            out string renderReason,
-            out RenderSourceType sourceType)
-        {
-            worldX = worldY = 0f;
-            routeId = string.Empty;
-            renderReason = string.Empty;
-            sourceType = RenderSourceType.None;
-
-            if (army == null || string.IsNullOrEmpty(army.RouteId))
-                return false;
-            if (!world.WorldGraph.TryGetRoute(army.RouteId, out var route) || route == null)
-                return false;
-            if (!world.WorldGraph.TryGetNode(route.FromNodeId, out var fromNode) || fromNode == null)
-                return false;
-            if (!world.WorldGraph.TryGetNode(route.ToNodeId, out var toNode) || toNode == null)
-                return false;
-
-            var useRoute = army.State == FormalArmyState.OnRoute || army.IsRouteAnchored;
-            if (!useRoute)
-                return false;
-
-            var t = army.GetRouteDisplayProgress();
-            worldX = fromNode.WorldX + (toNode.WorldX - fromNode.WorldX) * t;
-            worldY = fromNode.WorldY + (toNode.WorldY - fromNode.WorldY) * t;
-            routeId = army.RouteId;
-            if (army.State == FormalArmyState.OnRoute)
-            {
-                sourceType = RenderSourceType.OnRouteInterpolation;
-                renderReason = "OnRouteInterpolation";
-            }
-            else
-            {
-                sourceType = RenderSourceType.RouteAnchored;
-                renderReason = "RouteAnchored";
-            }
-
-            return true;
+            return false;
         }
     }
 }

@@ -56,7 +56,6 @@ namespace XianXia.Core.Simulation
             Relationships = new RelationshipLedger();
             Settlements = new SettlementBoard();
             WorldRegion = new WorldRegionBoard();
-            WorldGraph = new WorldGraphBoard();
             HexWorld = new HexWorld();
             WorldPresence = new WorldPresenceBoard();
             PartyWorld = new PartyWorldPresence();
@@ -111,9 +110,6 @@ namespace XianXia.Core.Simulation
 
         /// <summary>村内地点表（历史名 worldRegion；非正式大世界）。</summary>
         public WorldRegionBoard WorldRegion { get; }
-
-        /// <summary>宏观 WorldGraph（[113]）；session-only。Route 移动 legacy，Hex 迁移后仅保留 Site 元数据桥接。</summary>
-        public WorldGraphBoard WorldGraph { get; }
 
         /// <summary>Hex 战略世界真源（155+）。</summary>
         public HexWorld HexWorld { get; }
@@ -269,27 +265,35 @@ namespace XianXia.Core.Simulation
                 ControlCores.TryGet(definition.Id, out var core) &&
                 core != null)
             {
-                var nodeId = ResolveNodeIdForLocation(definition.LocationId);
-                CaptureObjectiveService.RegisterControlCore(this, core, nodeId);
+                var siteId = ResolveSiteIdForLocation(definition.LocationId);
+                CaptureObjectiveService.RegisterControlCore(this, core, siteId);
             }
         }
 
-        static string ResolveNodeIdForLocation(SimulationWorld world, string locationId)
+        static string ResolveSiteIdForLocation(SimulationWorld world, string locationId)
         {
-            if (world?.WorldGraph == null || string.IsNullOrEmpty(locationId))
+            if (world?.Strategic?.Sites == null || string.IsNullOrEmpty(locationId))
                 return string.Empty;
-            foreach (var kv in world.WorldGraph.Nodes)
+
+            var partySiteId = world.PartyWorld?.SiteId;
+            if (!string.IsNullOrEmpty(partySiteId) &&
+                world.Strategic.Sites.TryGet(partySiteId, out var partySite) &&
+                partySite != null &&
+                string.Equals(partySite.LocalMapId, locationId, System.StringComparison.Ordinal))
+                return partySiteId;
+
+            foreach (var kv in world.Strategic.Sites.Sites)
             {
-                var node = kv.Value;
-                if (node != null &&
-                    string.Equals(node.LocalMapId, locationId, System.StringComparison.Ordinal))
-                    return node.Id;
+                var site = kv.Value;
+                if (site != null &&
+                    string.Equals(site.LocalMapId, locationId, System.StringComparison.Ordinal))
+                    return site.SiteId;
             }
 
             return string.Empty;
         }
 
-        string ResolveNodeIdForLocation(string locationId) => ResolveNodeIdForLocation(this, locationId);
+        string ResolveSiteIdForLocation(string locationId) => ResolveSiteIdForLocation(this, locationId);
 
         public bool TryGetWorkArea(string id, out WorkAreaDefinition definition)
         {

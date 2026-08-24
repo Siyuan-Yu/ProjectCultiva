@@ -23,30 +23,7 @@ namespace XianXia.Tests
         static SimulationWorld CreateWorld()
         {
             var world = new SimulationWorld();
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = TestNodeA,
-                Name = "A",
-                OwnerId = TestFactionA,
-                WorldX = 0f,
-                WorldY = 0f
-            });
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = TestNodeB,
-                Name = "B",
-                OwnerId = TestFactionA,
-                WorldX = 10f,
-                WorldY = 0f
-            });
-            world.WorldGraph.RegisterRoute(new WorldRouteState
-            {
-                Id = TestRoute,
-                FromNodeId = TestNodeA,
-                ToNodeId = TestNodeB,
-                TravelCost = 1
-            });
-            return world;
+            Ch01HexPrototypeMapBuilder.Build(world);return world;
         }
 
         static SimulationWorld CreateHexWorld()
@@ -137,8 +114,7 @@ namespace XianXia.Tests
             var world = CreateWorld();
             var solo = SpawnCharacter(world, "Solo", TestNodeA);
             Assert.IsFalse(WorldTravelService.CanReceivePlayerMacroTravelOrder(world, solo));
-            var move = WorldTravelService.StartTravel(world, solo, TestNodeB);
-            Assert.IsTrue(move.IsSuccess, "Internal StartTravel API still allowed for compatibility.");
+            Assert.IsFalse(WorldTravelService.BlocksFormalArmyMemberIndependentTravel(world, solo));
         }
 
         [Test]
@@ -148,7 +124,7 @@ namespace XianXia.Tests
             var a = SpawnCharacter(world, "A", TestNodeA);
             var armyResult = ArmyService.CreateArmy(world, TestFactionA, TestNodeA, new[] { a });
             Assert.IsTrue(armyResult.IsSuccess);
-            var move = ArmyTravelCommandService.MoveArmyToNode(world, armyResult.Value.ArmyId, TestNodeB);
+            var move = ArmyHexCommandService.MoveArmyToSite(world, armyResult.Value.ArmyId, TestNodeB);
             Assert.IsTrue(move.IsSuccess);
         }
 
@@ -383,9 +359,8 @@ namespace XianXia.Tests
             var member = SpawnCharacter(world, "Member", TestNodeA);
             Assert.IsTrue(ArmyService.CreateArmy(world, TestFactionA, TestNodeA, new[] { leader, member }).IsSuccess);
 
-            var move = WorldTravelService.StartTravel(world, member, TestNodeB);
-            Assert.IsTrue(move.IsFailure);
-            StringAssert.Contains("cannot travel independently", move.Error.Message);
+            Assert.IsFalse(WorldTravelService.CanReceivePlayerMacroTravelOrder(world, member));
+            Assert.IsTrue(WorldTravelService.BlocksFormalArmyMemberIndependentTravel(world, member));
         }
     }
 }

@@ -9,85 +9,97 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>宏观节点 LocalMap 准入：有我方在场即可进（暂不做敌对封锁）。</summary>
+    /// <summary>Hex 战略：WorldSite LocalMap 准入与栈接战描述。</summary>
     public static class StrategicNodeAccessService
     {
-        public static bool HasPartyMemberAtNode(SimulationWorld world, string nodeId)
+        public static bool HasPartyMemberAtSite(SimulationWorld world, string siteId)
         {
-            if (world == null || string.IsNullOrEmpty(nodeId))
+            if (world == null || string.IsNullOrEmpty(siteId))
                 return false;
 
             foreach (var kv in world.WorldPresence.All)
             {
-                if (IsPartyMemberAssociatedWithNode(world, kv.Value, nodeId))
+                if (IsPartyMemberAtSite(world, kv.Value, siteId))
                     return true;
             }
 
             return false;
         }
 
-        public static int CountPartyMembersAtNode(SimulationWorld world, string nodeId)
+        public static int CountPartyMembersAtSite(SimulationWorld world, string siteId)
         {
-            if (world == null || string.IsNullOrEmpty(nodeId))
+            if (world == null || string.IsNullOrEmpty(siteId))
                 return 0;
             var count = 0;
             foreach (var kv in world.WorldPresence.All)
             {
-                if (IsPartyMemberAssociatedWithNode(world, kv.Value, nodeId))
+                if (IsPartyMemberAtSite(world, kv.Value, siteId))
                     count++;
             }
 
             return count;
         }
 
-        public static string BuildNodeDetailText(SimulationWorld world, WorldNodeState node)
+        public static bool HasPartyMemberAtNode(SimulationWorld world, string siteOrNodeId) =>
+            HasPartyMemberAtSite(world, siteOrNodeId);
+
+        public static int CountPartyMembersAtNode(SimulationWorld world, string siteOrNodeId) =>
+            CountPartyMembersAtSite(world, siteOrNodeId);
+
+        public static string BuildSiteDetailText(SimulationWorld world, WorldSite site)
         {
-            if (node == null)
+            if (site == null)
                 return string.Empty;
-            var sb = new StringBuilder(DescribeNode(world, node));
-            sb.Append('\n').Append(StrategicAcceptanceInspector.BuildNodeOwnerLine(world, node));
-            StrategicAcceptanceInspector.AppendCaptureObjectivesForNode(world, node, sb);
-            var here = CountPartyMembersAtNode(world, node.Id);
+            var sb = new StringBuilder(DescribeSite(site));
+            sb.Append('\n').Append(StrategicAcceptanceInspector.BuildSiteOwnerLine(world, site));
+            StrategicAcceptanceInspector.AppendCaptureObjectivesForSite(world, site, sb);
+            var here = CountPartyMembersAtSite(world, site.SiteId);
             sb.Append("\n我方在场：").Append(here > 0 ? here + " 人" : "无");
-            if (!string.IsNullOrEmpty(node.LocalMapId))
-                sb.Append("\n场景：").Append(node.LocalMapId);
-            else
-                sb.Append("\n场景：").Append(WorldTravelService.PlaceholderLocalMapId).Append("（占位）");
-            var access = CanEnterNodeLocalMap(world, node.Id);
+            if (!string.IsNullOrEmpty(site.LocalMapId))
+                sb.Append("\n场景：").Append(site.LocalMapId);
+            var access = CanEnterSiteLocalMap(world, site.SiteId);
             sb.Append(access.IsSuccess ? "\n可进入 LocalMap" : "\n" + access.Error.Message);
             return sb.ToString();
         }
 
-        public static Result CanEnterNodeLocalMap(SimulationWorld world, string nodeId)
+        public static Result CanEnterSiteLocalMap(SimulationWorld world, string siteId)
         {
             if (world == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
-            if (string.IsNullOrEmpty(nodeId))
-                return Result.Failure(ErrorCode.InvalidArgument, "nodeId required.");
-            if (!world.WorldGraph.TryGetNode(nodeId, out var node) || node == null)
-                return Result.Failure(ErrorCode.NotFound, "World node missing.", nodeId);
+            if (string.IsNullOrEmpty(siteId))
+                return Result.Failure(ErrorCode.InvalidArgument, "siteId required.");
+            if (!world.Strategic.Sites.TryGet(siteId, out var site) || site == null)
+                return Result.Failure(ErrorCode.NotFound, "WorldSite missing.", siteId);
 
-            if (!HasPartyMemberAtNode(world, nodeId))
-                return Result.Failure(ErrorCode.InvalidOperation, "无己方角色在此节点，无法进入场景。");
+            if (!HasPartyMemberAtSite(world, siteId))
+                return Result.Failure(ErrorCode.InvalidOperation, "无己方角色在此地点，无法进入场景。");
 
             return Result.Success();
         }
 
-        public static string DescribeNode(SimulationWorld world, WorldNodeState node)
+        public static Result CanEnterNodeLocalMap(SimulationWorld world, string siteId) =>
+            CanEnterSiteLocalMap(world, siteId);
+
+        public static string DescribeSite(WorldSite site)
         {
-            if (node == null)
+            if (site == null)
                 return string.Empty;
-            return string.IsNullOrEmpty(node.Name) ? node.Id : node.Name;
+            return string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
+        }
+
+        public static string DescribeNode(SimulationWorld world, string siteId)
+        {
+            if (world?.Strategic?.Sites != null &&
+                world.Strategic.Sites.TryGet(siteId, out var site) &&
+                site != null)
+                return DescribeSite(site);
+            return siteId ?? string.Empty;
         }
 
         public static string ResolveStackTravelTarget(ArmyStack stack)
         {
             if (stack == null)
                 return string.Empty;
-            if (stack.IsTraveling && !string.IsNullOrEmpty(stack.DestNodeId))
-                return stack.DestNodeId;
-            if (stack.IsRouteAnchored && !string.IsNullOrEmpty(stack.DestNodeId))
-                return stack.DestNodeId;
             return stack.NodeId ?? string.Empty;
         }
 
@@ -96,20 +108,13 @@ namespace XianXia.Core.World.Strategic
             if (stack == null)
                 return string.Empty;
             var stackName = string.IsNullOrEmpty(stack.DisplayName) ? stack.Id : stack.DisplayName;
-            if (stack.IsTraveling && world?.WorldGraph != null &&
-                !string.IsNullOrEmpty(stack.DestNodeId) &&
-                world.WorldGraph.TryGetNode(stack.DestNodeId, out var dest))
-            {
-                var destName = string.IsNullOrEmpty(dest.Name) ? dest.Id : dest.Name;
-                return "追击「" + stackName + "」至 " + destName;
-            }
-
             if (!string.IsNullOrEmpty(stack.NodeId) &&
-                world?.WorldGraph != null &&
-                world.WorldGraph.TryGetNode(stack.NodeId, out var node))
+                world?.Strategic?.Sites != null &&
+                world.Strategic.Sites.TryGet(stack.NodeId, out var site) &&
+                site != null)
             {
-                var nodeName = string.IsNullOrEmpty(node.Name) ? node.Id : node.Name;
-                return "接战「" + stackName + "」@" + nodeName;
+                var siteName = DescribeSite(site);
+                return "接战「" + stackName + "」@" + siteName;
             }
 
             return "接战「" + stackName + "」";
@@ -154,30 +159,22 @@ namespace XianXia.Core.World.Strategic
             List<EntityId> into) =>
             StrategicEngageRules.CollectPartyReadyToEngageStack(world, party, stack, into);
 
-        static bool IsPartyMemberAssociatedWithNode(
+        static bool IsPartyMemberAtSite(
             SimulationWorld world,
             WorldAgentPresence p,
-            string nodeId)
+            string siteId)
         {
-            if (p == null || string.IsNullOrEmpty(nodeId) || !IsPlayerAgent(world, p.EntityId))
+            if (p == null || string.IsNullOrEmpty(siteId) || !IsPlayerAgent(world, p.EntityId))
                 return false;
 
-            switch (p.Mode)
-            {
-                case PartyWorldPresenceMode.AtNode:
-                case PartyWorldPresenceMode.InEncounter:
-                    return string.Equals(p.NodeId, nodeId, StringComparison.Ordinal);
-                case PartyWorldPresenceMode.RouteAnchored:
-                    if (p.RouteAnchorProgress <= 0.01f &&
-                        string.Equals(p.NodeId, nodeId, StringComparison.Ordinal))
-                        return true;
-                    if (p.RouteAnchorProgress >= 0.99f &&
-                        string.Equals(p.DestNodeId, nodeId, StringComparison.Ordinal))
-                        return true;
-                    return false;
-                default:
-                    return false;
-            }
+            if (p.Mode == PartyWorldPresenceMode.AtSite)
+                return string.Equals(p.SiteId, siteId, StringComparison.Ordinal);
+
+            if (p.Mode == PartyWorldPresenceMode.InEncounter)
+                return string.Equals(p.SiteId, siteId, StringComparison.Ordinal) ||
+                       string.Equals(p.NodeId, siteId, StringComparison.Ordinal);
+
+            return false;
         }
 
         static bool IsPlayerAgent(SimulationWorld world, EntityId id)

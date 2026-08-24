@@ -18,7 +18,6 @@ namespace XianXia.Tests
         public void BattleAftermath_AssignsCapturedState()
         {
             var world = new SimulationWorld();
-            world.WorldGraph.RegisterNode(new WorldNodeState { Id = NodeA, OwnerId = FactionA });
             var created = world.Entities.CreateCharacter(new DefinitionId("test", "P"), "P");
             Assert.IsTrue(created.IsSuccess);
             var id = created.Value.Id;
@@ -32,7 +31,6 @@ namespace XianXia.Tests
         public void BattleAftermath_EscapedFormsRetreatingArmy()
         {
             var world = new SimulationWorld();
-            world.WorldGraph.RegisterNode(new WorldNodeState { Id = NodeA, OwnerId = FactionA });
             var a = world.Entities.CreateCharacter(new DefinitionId("test", "A"), "A").Value;
             a.Get<FactionMembershipComponent>().Assign(FactionA, FactionRoleKind.Member);
             world.WorldPresence.SetAtNode(a.Id, NodeA);

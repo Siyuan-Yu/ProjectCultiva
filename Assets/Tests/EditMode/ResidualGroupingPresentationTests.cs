@@ -26,14 +26,6 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             world.Strategic.PlayerFactionId = PlayerFaction;
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = TestNode,
-                Name = "A",
-                OwnerId = PlayerFaction,
-                WorldX = 0f,
-                WorldY = 0f
-            });
             HexTestWorldBootstrap.EnsureMinimalHexMap(world);
             return world;
         }

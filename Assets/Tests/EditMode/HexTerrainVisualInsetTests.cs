@@ -71,7 +71,7 @@ namespace XianXia.Tests.EditMode
         {
             var world = new SimulationWorld();
             LoadCh01Graph(world);
-            Ch01HexPrototypeMapBuilder.BuildFullFromWorldGraph(world);
+            Ch01HexPrototypeMapBuilder.Build(world);
 
             HostHexWorldRenderer.ComputeWorldBounds(
                 world.HexWorld,
@@ -98,7 +98,7 @@ namespace XianXia.Tests.EditMode
         {
             var world = new SimulationWorld();
             LoadCh01Graph(world);
-            Ch01HexPrototypeMapBuilder.BuildFullFromWorldGraph(world);
+            Ch01HexPrototypeMapBuilder.Build(world);
 
             HostHexWorldRenderer.ComputeWorldBounds(
                 world.HexWorld,
@@ -126,27 +126,8 @@ namespace XianXia.Tests.EditMode
 
         static void LoadCh01Graph(SimulationWorld world)
         {
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = "base:node_huangcun",
-                Name = "青石荒村",
-                WorldX = 0f,
-                WorldY = 0f
-            });
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = "base:node_qingyun_lu",
-                Name = "青云路",
-                WorldX = -1f,
-                WorldY = 1f
-            });
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = "base:node_guanai",
-                Name = "关隘",
-                WorldX = 2f,
-                WorldY = 1f
-            });
-        }
+            
+            
+            }
     }
 }

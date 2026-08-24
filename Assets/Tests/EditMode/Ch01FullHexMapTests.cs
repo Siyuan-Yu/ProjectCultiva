@@ -12,8 +12,7 @@ namespace XianXia.Tests
         public void PrototypeTestBandits_AreStationaryAtSouthAndEastOfHuangcun()
         {
             var world = new SimulationWorld();
-            LoadCh01Graph(world);
-            Ch01HexPrototypeMapBuilder.BuildFullFromWorldGraph(world);
+            Ch01HexPrototypeMapBuilder.Build(world);
             Ch01ScenarioStrategicSetup.Apply(world);
 
             Assert.IsTrue(world.Strategic.Sites.TryGet("base:site_huangcun", out var huangcun));
@@ -28,7 +27,6 @@ namespace XianXia.Tests
             Assert.AreEqual(FormalArmyState.Idle, strongBandit.State);
             Assert.AreEqual(FormalArmyState.Idle, weakBandit.State);
 
-            // 南侧红框：R 更大；东侧红框：Q 更大
             Assert.Greater(strongBandit.CurrentHex.R, huangcun.AnchorHex.R);
             Assert.Greater(weakBandit.CurrentHex.Q, huangcun.AnchorHex.Q);
             Assert.AreEqual(
@@ -52,50 +50,18 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void H9_FullCh01Map_RegistersAllWorldGraphNodesAsSites()
+        public void H9_PrototypeMap_RegistersCoreSites()
         {
             var world = new SimulationWorld();
-            LoadCh01Graph(world);
-            Ch01HexPrototypeMapBuilder.BuildFullFromWorldGraph(world);
+            Ch01HexPrototypeMapBuilder.Build(world);
 
-            Assert.GreaterOrEqual(world.Strategic.Sites.Sites.Count, 3);
+            Assert.GreaterOrEqual(world.Strategic.Sites.Sites.Count, 2);
             Assert.IsTrue(world.Strategic.Sites.TryGet("base:site_huangcun", out var huangcun));
             Assert.AreEqual(HexWorldScale.PlayableV1Width, world.HexWorld.Width);
             Assert.AreEqual(HexWorldScale.PlayableV1Height, world.HexWorld.Height);
             Assert.AreEqual(HexWorldScale.PlayableV1Width * HexWorldScale.PlayableV1Height, world.HexWorld.CellCount);
             Assert.IsTrue(world.HexWorld.UsesCompactStorage);
             Assert.IsTrue(huangcun.OccupiesHex(huangcun.AnchorHex));
-        }
-
-        static void LoadCh01Graph(SimulationWorld world)
-        {
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = "base:node_huangcun",
-                Name = "青石荒村",
-                WorldX = 0f,
-                WorldY = 0f
-            });
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = "base:node_qingyun_lu",
-                Name = "青云路",
-                WorldX = -1f,
-                WorldY = 1f
-            });
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = "base:node_guanai",
-                Name = "关隘",
-                WorldX = 2f,
-                WorldY = 1f
-            });
-            world.WorldGraph.RegisterRoute(new WorldRouteState
-            {
-                Id = "test:route",
-                FromNodeId = "base:node_huangcun",
-                ToNodeId = "base:node_guanai"
-            });
         }
     }
 }

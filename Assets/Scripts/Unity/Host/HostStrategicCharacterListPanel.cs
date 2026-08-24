@@ -236,7 +236,7 @@ namespace XianXia.Unity.Host
                 return false;
             }
 
-            var nodeId = ArmyService.ResolveCharacterNodeId(world, _createPartyScratch[0]) ?? string.Empty;
+            var nodeId = ArmyService.ResolveCharacterFormationLocationId(world, _createPartyScratch[0]) ?? string.Empty;
             var result = ArmyUiCommands.TryCreateArmy(world, nodeId, factionId, _createPartyScratch);
             if (result.IsSuccess)
             {

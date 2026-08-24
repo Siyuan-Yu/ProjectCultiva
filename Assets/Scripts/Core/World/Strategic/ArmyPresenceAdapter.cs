@@ -1,6 +1,7 @@
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -77,6 +78,32 @@ namespace XianXia.Core.World.Strategic
                 presence.RemainingTravelTicks = 0;
                 presence.TravelTotalTicks = 0;
                 presence.ClearRouteSegment();
+                return;
+            }
+
+            if (army.UsesHexStrategicPosition)
+            {
+                presence.NodeId = string.Empty;
+                presence.RouteId = string.Empty;
+                presence.DestNodeId = string.Empty;
+                presence.RouteAnchorProgress = -1f;
+                presence.RemainingTravelTicks = 0;
+                presence.TravelTotalTicks = 0;
+                presence.ClearRouteSegment();
+
+                if (world.Strategic.Sites.TryGetAtHex(army.CurrentHex, out var site) &&
+                    site != null &&
+                    !string.IsNullOrEmpty(site.SiteId))
+                {
+                    presence.Mode = PartyWorldPresenceMode.AtSite;
+                    presence.SiteId = site.SiteId;
+                    presence.ClearHexPresence();
+                }
+                else
+                {
+                    presence.SetAtHex(army.CurrentHex);
+                }
+
                 return;
             }
 

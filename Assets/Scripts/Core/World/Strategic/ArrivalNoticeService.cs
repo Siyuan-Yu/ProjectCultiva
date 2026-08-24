@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Simulation;
@@ -8,10 +7,9 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>我方最终目的地到站提示（遇敌接战优先，不叠弹）。</summary>
+    /// <summary>Hex 战略：到站提示（legacy Route 旅行已移除）。</summary>
     public static class ArrivalNoticeService
     {
-        /// <summary>接战弹窗已覆盖本次抵达：参战者不再弹「是否查看」。</summary>
         public static void SuppressForParty(SimulationWorld world, IReadOnlyList<EntityId> party)
         {
             if (world?.WorldPresence == null || party == null)
@@ -38,12 +36,10 @@ namespace XianXia.Core.World.Strategic
             for (var i = 0; i < arrivedThisTick.Count; i++)
             {
                 var id = arrivedThisTick[i];
-                // 攻击／追击中的人：到站只走接战，绝不弹「是否查看」
                 if (StrategicPursuitService.IsCombatPursuitTraveler(world, id))
                     continue;
                 if (!world.WorldPresence.TryGet(id, out var presence) || presence == null)
                     continue;
-                // 已弹过接战（含撤退）：同一趟抵达不再弹到站查看
                 if (presence.SuppressArrivalNotice)
                     continue;
                 if (!IsFinalPlayerArrival(world, id))
@@ -65,14 +61,8 @@ namespace XianXia.Core.World.Strategic
                 return false;
             if (p.Mode == PartyWorldPresenceMode.Traveling)
                 return false;
-            if (WorldTravelPathService.HasPendingLegs(id))
-                return false;
-            if (ArmyService.TryGetArmyForCharacter(world, id, out var army) &&
-                army != null &&
-                ArmyTravelCommandService.HasPendingLegs(army.ArmyId))
-                return false;
-            return p.Mode == PartyWorldPresenceMode.AtNode ||
-                   p.Mode == PartyWorldPresenceMode.RouteAnchored;
+            return p.Mode == PartyWorldPresenceMode.AtSite ||
+                   p.Mode == PartyWorldPresenceMode.AtNode;
         }
 
         static void TryBuildNotice(SimulationWorld world, IReadOnlyList<EntityId> arrived)
@@ -94,7 +84,7 @@ namespace XianXia.Core.World.Strategic
                     byPlace[placeKey] = list;
                     placeLabels[placeKey] = label;
                     if (firstFocus == null)
-                        firstFocus = p.NodeId ?? string.Empty;
+                        firstFocus = p.SiteId ?? p.NodeId ?? string.Empty;
                 }
 
                 list.Add(id);
@@ -103,7 +93,7 @@ namespace XianXia.Core.World.Strategic
             if (byPlace.Count == 0)
                 return;
 
-            var sb = new StringBuilder(128);
+            var sb = new System.Text.StringBuilder(128);
             var all = new List<EntityId>(arrived.Count);
             var firstPlaceLabel = string.Empty;
             foreach (var kv in byPlace)
@@ -130,42 +120,39 @@ namespace XianXia.Core.World.Strategic
 
         static string ResolvePlaceKey(WorldAgentPresence p)
         {
-            if (p.Mode == PartyWorldPresenceMode.RouteAnchored && !string.IsNullOrEmpty(p.RouteId))
-                return "route:" + p.RouteId + ":" + p.RouteAnchorProgress.ToString("0.###");
+            if (p.Mode == PartyWorldPresenceMode.AtSite && !string.IsNullOrEmpty(p.SiteId))
+                return "site:" + p.SiteId;
             return "node:" + (p.NodeId ?? string.Empty);
         }
 
         static string ResolvePlaceLabel(SimulationWorld world, WorldAgentPresence p)
         {
-            if (p.Mode == PartyWorldPresenceMode.RouteAnchored &&
-                !string.IsNullOrEmpty(p.RouteId) &&
-                world.WorldGraph.TryGetRoute(p.RouteId, out var route) &&
-                route != null)
-            {
-                var from = PlaceNodeName(world, route.FromNodeId);
-                var to = PlaceNodeName(world, route.ToNodeId);
-                return from + "—" + to + " 路上";
-            }
+            if (p.Mode == PartyWorldPresenceMode.AtSite &&
+                !string.IsNullOrEmpty(p.SiteId) &&
+                world.Strategic.Sites.TryGet(p.SiteId, out var site) &&
+                site != null &&
+                !string.IsNullOrWhiteSpace(site.DisplayName))
+                return site.DisplayName;
 
-            return PlaceNodeName(world, p.NodeId);
+            return PlaceSiteName(world, p.SiteId ?? p.NodeId);
         }
 
-        static string PlaceNodeName(SimulationWorld world, string nodeId)
+        static string PlaceSiteName(SimulationWorld world, string siteId)
         {
-            if (string.IsNullOrEmpty(nodeId))
+            if (string.IsNullOrEmpty(siteId))
                 return "未知地点";
-            if (world.WorldGraph.TryGetNode(nodeId, out var node) &&
-                node != null &&
-                !string.IsNullOrWhiteSpace(node.Name))
-                return node.Name;
-            return nodeId;
+            if (world.Strategic.Sites.TryGet(siteId, out var site) &&
+                site != null &&
+                !string.IsNullOrWhiteSpace(site.DisplayName))
+                return site.DisplayName;
+            return siteId;
         }
 
         static string FormatPartyNames(SimulationWorld world, IReadOnlyList<EntityId> party)
         {
             if (party == null || party.Count == 0)
                 return "我方";
-            var sb = new StringBuilder(32);
+            var sb = new System.Text.StringBuilder(32);
             var n = Math.Min(party.Count, 3);
             for (var i = 0; i < n; i++)
             {

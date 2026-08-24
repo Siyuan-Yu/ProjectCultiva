@@ -100,14 +100,15 @@ namespace XianXia.Core.World.Strategic
     {
         public static bool IsLandless(SimulationWorld world, string factionId)
         {
-            if (world?.WorldGraph == null || string.IsNullOrEmpty(factionId))
+            if (world == null || string.IsNullOrEmpty(factionId))
                 return false;
-            foreach (var kv in world.WorldGraph.Nodes)
+
+            foreach (var kv in world.Strategic.Sites.Sites)
             {
-                var node = kv.Value;
-                if (node == null || string.IsNullOrEmpty(node.OwnerId))
+                var site = kv.Value;
+                if (site == null || string.IsNullOrEmpty(site.OwnerFactionId))
                     continue;
-                if (string.Equals(node.OwnerId, factionId, StringComparison.Ordinal))
+                if (string.Equals(site.OwnerFactionId, factionId, StringComparison.Ordinal))
                     return false;
             }
 

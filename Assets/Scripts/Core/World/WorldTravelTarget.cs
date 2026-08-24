@@ -53,9 +53,7 @@ namespace XianXia.Core.World
             float progress) =>
             new WorldTravelTarget(true, false, string.Empty, routeId, fromNodeId, toNodeId, progress, int.MinValue, int.MinValue);
 
-        public string Describe(WorldGraphBoard graph) => Describe(graph, null);
-
-        public string Describe(WorldGraphBoard graph, Simulation.SimulationWorld world)
+        public string Describe(Simulation.SimulationWorld world)
         {
             if (IsHex)
             {
@@ -74,21 +72,14 @@ namespace XianXia.Core.World
 
             if (!IsRouteProgress)
             {
-                if (graph != null && graph.TryGetNode(NodeId, out var node) && node != null)
-                    return string.IsNullOrEmpty(node.Name) ? node.Id : node.Name;
+                if (world?.Strategic?.Sites != null &&
+                    world.Strategic.Sites.TryGet(NodeId, out var site) &&
+                    site != null)
+                    return string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
                 return NodeId;
             }
 
             var pct = (int)Math.Round(RouteProgress * 100f);
-            if (graph != null &&
-                graph.TryGetNode(RouteFromNodeId, out var from) &&
-                graph.TryGetNode(RouteToNodeId, out var to))
-            {
-                var a = string.IsNullOrEmpty(from.Name) ? from.Id : from.Name;
-                var b = string.IsNullOrEmpty(to.Name) ? to.Id : to.Name;
-                return a + " ↔ " + b + "（" + pct + "%）";
-            }
-
             return "道路 " + pct + "%";
         }
 

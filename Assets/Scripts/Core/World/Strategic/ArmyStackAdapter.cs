@@ -476,7 +476,7 @@ namespace XianXia.Core.World.Strategic
                 stack.RouteAnchorProgress = -1f;
                 stack.ClearTravel();
                 if (world.Strategic.Sites.TryGetAtHex(army.CurrentHex, out var site) && site != null)
-                    stack.NodeId = string.IsNullOrEmpty(site.LegacyNodeId) ? site.SiteId : site.LegacyNodeId;
+                    stack.NodeId = site.SiteId;
                 stack.DestNodeId = stack.NodeId;
                 return;
             }

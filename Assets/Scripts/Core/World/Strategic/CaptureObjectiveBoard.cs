@@ -7,7 +7,7 @@ namespace XianXia.Core.World.Strategic
     public sealed class CaptureObjectiveState
     {
         public string ObjectiveId { get; set; } = string.Empty;
-        public string NodeId { get; set; } = string.Empty;
+        public string SiteId { get; set; } = string.Empty;
         public string WorkAreaId { get; set; } = string.Empty;
         public int CurrentHp { get; set; }
         public int MaxHp { get; set; }
@@ -21,7 +21,7 @@ namespace XianXia.Core.World.Strategic
         readonly Dictionary<string, CaptureObjectiveState> _byObjectiveId =
             new Dictionary<string, CaptureObjectiveState>(StringComparer.Ordinal);
 
-        readonly Dictionary<string, List<string>> _nodeObjectives =
+        readonly Dictionary<string, List<string>> _siteObjectives =
             new Dictionary<string, List<string>>(StringComparer.Ordinal);
 
         public IReadOnlyDictionary<string, CaptureObjectiveState> All => _byObjectiveId;
@@ -31,12 +31,12 @@ namespace XianXia.Core.World.Strategic
             if (objective == null || string.IsNullOrEmpty(objective.ObjectiveId))
                 return;
             _byObjectiveId[objective.ObjectiveId] = objective;
-            if (string.IsNullOrEmpty(objective.NodeId))
+            if (string.IsNullOrEmpty(objective.SiteId))
                 return;
-            if (!_nodeObjectives.TryGetValue(objective.NodeId, out var list))
+            if (!_siteObjectives.TryGetValue(objective.SiteId, out var list))
             {
                 list = new List<string>(2);
-                _nodeObjectives[objective.NodeId] = list;
+                _siteObjectives[objective.SiteId] = list;
             }
 
             if (!list.Contains(objective.ObjectiveId))
@@ -46,10 +46,10 @@ namespace XianXia.Core.World.Strategic
         public bool TryGet(string objectiveId, out CaptureObjectiveState objective) =>
             _byObjectiveId.TryGetValue(objectiveId ?? string.Empty, out objective);
 
-        public bool AllCompletedForNode(string nodeId)
+        public bool AllCompletedForSite(string siteId)
         {
-            if (string.IsNullOrEmpty(nodeId) ||
-                !_nodeObjectives.TryGetValue(nodeId, out var ids) ||
+            if (string.IsNullOrEmpty(siteId) ||
+                !_siteObjectives.TryGetValue(siteId, out var ids) ||
                 ids.Count == 0)
                 return false;
             for (var i = 0; i < ids.Count; i++)
@@ -61,10 +61,10 @@ namespace XianXia.Core.World.Strategic
             return true;
         }
 
-        public IReadOnlyList<string> GetObjectiveIdsForNode(string nodeId)
+        public IReadOnlyList<string> GetObjectiveIdsForSite(string siteId)
         {
-            if (string.IsNullOrEmpty(nodeId) ||
-                !_nodeObjectives.TryGetValue(nodeId, out var list))
+            if (string.IsNullOrEmpty(siteId) ||
+                !_siteObjectives.TryGetValue(siteId, out var list))
                 return Array.Empty<string>();
             return list;
         }
@@ -72,7 +72,7 @@ namespace XianXia.Core.World.Strategic
         public void Clear()
         {
             _byObjectiveId.Clear();
-            _nodeObjectives.Clear();
+            _siteObjectives.Clear();
         }
     }
 }

@@ -9,14 +9,14 @@ namespace XianXia.Core.World.Strategic
     /// </summary>
     public static class ScenarioProgressionHooks
     {
-        /// <summary>Node 全部 CaptureObjective 完成且 Owner 已更新后触发（Scenario 可选订阅）。</summary>
-        public static Action<SimulationWorld, string> OnAllCaptureObjectivesCompletedForNode;
+        /// <summary>WorldSite 全部 CaptureObjective 完成且 Owner 已更新后触发（Scenario 可选订阅）。</summary>
+        public static Action<SimulationWorld, string> OnAllCaptureObjectivesCompletedForSite;
 
-        public static void NotifyAllCaptureObjectivesCompletedForNode(SimulationWorld world, string nodeId)
+        public static void NotifyAllCaptureObjectivesCompletedForSite(SimulationWorld world, string siteId)
         {
-            if (world == null || string.IsNullOrEmpty(nodeId))
+            if (world == null || string.IsNullOrEmpty(siteId))
                 return;
-            OnAllCaptureObjectivesCompletedForNode?.Invoke(world, nodeId);
+            OnAllCaptureObjectivesCompletedForSite?.Invoke(world, siteId);
         }
     }
 }

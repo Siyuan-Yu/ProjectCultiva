@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -369,14 +370,15 @@ namespace XianXia.Core.World.Strategic
             x = y = 0f;
             if (_presentationWorld == null || army == null || string.IsNullOrEmpty(army.NodeId))
                 return false;
-            if (!_presentationWorld.WorldGraph.TryGetNode(army.NodeId, out var node) || node == null)
+            if (!_presentationWorld.Strategic.Sites.TryGet(army.NodeId, out var site) || site == null)
                 return false;
-            x = node.WorldX;
-            y = node.WorldY;
+            if (_presentationWorld.HexWorld == null || !_presentationWorld.HexWorld.HasGrid)
+                return false;
+            HexMath.ToWorldPosition(site.AnchorHex, _presentationWorld.HexWorld.HexSize, out x, out y);
             return true;
         }
 
-        public static void BindWorldGraphForPresentationCheck(SimulationWorld world) =>
+        public static void BindPresentationWorld(SimulationWorld world) =>
             _presentationWorld = world;
 
         static SimulationWorld _presentationWorld;

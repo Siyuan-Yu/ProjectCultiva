@@ -66,8 +66,6 @@ namespace XianXia.Unity.Host
         [SerializeField] HostQuestJournal questJournal;
         [SerializeField] HostInventoryPanel inventoryPanel;
         [SerializeField] HostWorldMapPanel worldMapPanel;
-        [SerializeField] HostWorldTravelConfirmPrompt worldTravelConfirm;
-        [SerializeField] HostWorldTravelDeparture worldTravelDeparture;
         [SerializeField] HostManualLearnPrompt manualLearnPrompt;
         [SerializeField] HostCombatArtLearnPrompt combatArtLearnPrompt;
         [SerializeField] HostCombatArtsPanel combatArtsPanel;
@@ -135,10 +133,6 @@ namespace XianXia.Unity.Host
         public HostInventoryPanel InventoryPanel => inventoryPanel;
 
         public HostWorldMapPanel WorldMapPanel => worldMapPanel;
-
-        public HostWorldTravelConfirmPrompt WorldTravelConfirm => worldTravelConfirm;
-
-        public HostWorldTravelDeparture WorldTravelDeparture => worldTravelDeparture;
 
         public HostManualLearnPrompt ManualLearnPrompt => manualLearnPrompt;
         public HostCombatArtLearnPrompt CombatArtLearnPrompt => combatArtLearnPrompt;
@@ -216,12 +210,6 @@ namespace XianXia.Unity.Host
             if (worldMapPanel == null)
                 worldMapPanel = GetComponent<HostWorldMapPanel>() ??
                                GetComponentInChildren<HostWorldMapPanel>();
-            if (worldTravelConfirm == null)
-                worldTravelConfirm = GetComponent<HostWorldTravelConfirmPrompt>() ??
-                                    GetComponentInChildren<HostWorldTravelConfirmPrompt>();
-            if (worldTravelDeparture == null)
-                worldTravelDeparture = GetComponent<HostWorldTravelDeparture>() ??
-                                      GetComponentInChildren<HostWorldTravelDeparture>();
             if (manualLearnPrompt == null)
                 manualLearnPrompt = GetComponent<HostManualLearnPrompt>() ??
                                    GetComponentInChildren<HostManualLearnPrompt>();
@@ -477,12 +465,6 @@ namespace XianXia.Unity.Host
             if (worldMapPanel == null)
                 worldMapPanel = GetComponent<HostWorldMapPanel>() ??
                                gameObject.AddComponent<HostWorldMapPanel>();
-            if (worldTravelConfirm == null)
-                worldTravelConfirm = GetComponent<HostWorldTravelConfirmPrompt>() ??
-                                    gameObject.AddComponent<HostWorldTravelConfirmPrompt>();
-            if (worldTravelDeparture == null)
-                worldTravelDeparture = GetComponent<HostWorldTravelDeparture>() ??
-                                      gameObject.AddComponent<HostWorldTravelDeparture>();
             if (manualLearnPrompt == null)
                 manualLearnPrompt = GetComponent<HostManualLearnPrompt>() ??
                                    gameObject.AddComponent<HostManualLearnPrompt>();
@@ -552,10 +534,6 @@ namespace XianXia.Unity.Host
                 inventoryPanel.ClearSessionState();
             if (worldMapPanel != null)
                 worldMapPanel.ClearSessionState();
-            if (worldTravelConfirm != null)
-                worldTravelConfirm.ClearSessionState();
-            if (worldTravelDeparture != null)
-                worldTravelDeparture.ClearSessionState();
             if (manualLearnPrompt != null)
                 manualLearnPrompt.ClearSessionState();
             if (combatArtLearnPrompt != null)
@@ -705,10 +683,6 @@ namespace XianXia.Unity.Host
                 interactSpotPresenter.Bind(this);
             if (worldMapPanel != null)
                 worldMapPanel.Bind(this);
-            if (worldTravelConfirm != null)
-                worldTravelConfirm.Bind(this);
-            if (worldTravelDeparture != null)
-                worldTravelDeparture.Bind(this);
             if (manualLearnPrompt != null)
                 manualLearnPrompt.Bind(this);
             if (combatArtLearnPrompt != null)

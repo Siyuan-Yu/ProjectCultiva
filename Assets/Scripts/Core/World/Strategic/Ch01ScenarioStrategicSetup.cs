@@ -12,12 +12,11 @@ namespace XianXia.Core.World.Strategic
     {
         public static void Apply(SimulationWorld world)
         {
-            if (world?.Strategic == null || !world.WorldGraph.HasGraph)
+            if (world?.Strategic == null)
                 return;
 
             world.Strategic.Ch01FormationScenarioCompat = true;
             ApplyPlayerFactionAndVassalage(world);
-            ApplyCh01TerritoryOwners(world);
             SeedPrototypeBanditArmies(world);
             ApplyPrototypeRegressionDiplomacy(world);
             Ch01ScenarioProgressionHooks.Register(world);
@@ -32,81 +31,22 @@ namespace XianXia.Core.World.Strategic
                 StrategicFactionCatalog.HuangcunLaborId);
         }
 
-        /// <summary>
-        /// Ch01 Prototype 领土：压迫宗门 3 节点 + 五方区域势力各 2～3 节点；其余保持无归属。
-        /// 山匪无领土（Landless），仅游荡军队。
-        /// </summary>
-        static void ApplyCh01TerritoryOwners(SimulationWorld world)
-        {
-            var overlord = StrategicFactionCatalog.HuangcunLaborId;
-            SetNodeOwner(world, "base:node_huangcun", overlord);
-            SetNodeOwner(world, "base:node_qingyun_lu", overlord);
-            SetNodeOwner(world, "base:node_lingdi", overlord);
-
-            SetNodeOwner(world, "base:node_cunzhuang_nan", StrategicFactionCatalog.NanYanLeagueId);
-            SetNodeOwner(world, "base:node_zhuangyuan", StrategicFactionCatalog.NanYanLeagueId);
-
-            SetNodeOwner(world, "base:node_haijiao", StrategicFactionCatalog.FisherVillageId);
-            SetNodeOwner(world, "base:node_shuizhai", StrategicFactionCatalog.FisherVillageId);
-            SetNodeOwner(world, "base:node_yucun", StrategicFactionCatalog.FisherVillageId);
-
-            SetNodeOwner(world, "base:node_cunzhuang_bei", StrategicFactionCatalog.ShuoFengFortId);
-            SetNodeOwner(world, "base:node_shankou", StrategicFactionCatalog.ShuoFengFortId);
-
-            SetNodeOwner(world, "base:node_shulin_dong", StrategicFactionCatalog.DongLinGuildId);
-            SetNodeOwner(world, "base:node_miao", StrategicFactionCatalog.DongLinGuildId);
-            SetNodeOwner(world, "base:node_gudao", StrategicFactionCatalog.DongLinGuildId);
-
-            SetNodeOwner(world, "base:node_dukou_xi", StrategicFactionCatalog.XiJinGuildId);
-            SetNodeOwner(world, "base:node_yaotian", StrategicFactionCatalog.XiJinGuildId);
-        }
-
-        static void SetNodeOwner(SimulationWorld world, string nodeId, string ownerFactionId)
-        {
-            if (!world.WorldGraph.TryGetNode(nodeId, out var node) || node == null)
-                return;
-            node.OwnerId = ownerFactionId ?? string.Empty;
-        }
-
         static void SeedPrototypeBanditArmies(SimulationWorld world)
         {
             world.Strategic.Armies.Clear();
-            if (ArmyHexCommandService.IsHexStrategicActive(world))
-            {
-                ArmyStackAdapter.EnsureBanditPatrolArmy(
-                    world,
-                    "base:node_huangcun",
-                    string.Empty,
-                    "base:node_qingyun_lu",
-                    -1f);
-                ArmyStackAdapter.EnsureBanditWeakPatrolArmy(
-                    world,
-                    "base:node_huangcun",
-                    string.Empty,
-                    "base:node_qingyun_lu",
-                    -1f);
-                PositionPrototypeTestBanditArmies(world);
-                return;
-            }
-
-            if (!world.WorldGraph.TryFindRoute("base:node_huangcun", "base:node_guanai", out var route) &&
-                !world.WorldGraph.TryFindRoute("base:node_guanai", "base:node_huangcun", out route))
-            {
-                if (!world.WorldGraph.TryFindRoute("base:node_huangcun", "base:node_linjian", out route) &&
-                    !world.WorldGraph.TryFindRoute("base:node_linjian", "base:node_huangcun", out route))
-                    return;
-            }
-
-            var fromId = route.FromNodeId;
-            var toId = route.ToNodeId;
-            if (!string.Equals(fromId, "base:node_huangcun", StringComparison.Ordinal))
-            {
-                fromId = route.ToNodeId;
-                toId = route.FromNodeId;
-            }
-
-            ArmyStackAdapter.EnsureBanditPatrolArmy(world, fromId, route.Id, toId, 0.42f);
-            ArmyStackAdapter.EnsureBanditWeakPatrolArmy(world, fromId, route.Id, toId, 0.35f);
+            ArmyStackAdapter.EnsureBanditPatrolArmy(
+                world,
+                Ch01HexPrototypeMapBuilder.SiteHuangcun,
+                string.Empty,
+                Ch01HexPrototypeMapBuilder.SiteQingyunLu,
+                -1f);
+            ArmyStackAdapter.EnsureBanditWeakPatrolArmy(
+                world,
+                Ch01HexPrototypeMapBuilder.SiteHuangcun,
+                string.Empty,
+                Ch01HexPrototypeMapBuilder.SiteQingyunLu,
+                -1f);
+            PositionPrototypeTestBanditArmies(world);
         }
 
         /// <summary>

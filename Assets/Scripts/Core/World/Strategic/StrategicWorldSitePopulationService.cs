@@ -160,7 +160,7 @@ namespace XianXia.Core.World.Strategic
             if (army.UsesHexStrategicPosition)
                 return site.OccupiesHex(army.CurrentHex);
 
-            if (ArmyFormationSitePolicy.TryGetSiteForLegacyNode(world, army.NodeId, out var armySite) &&
+            if (world.Strategic.Sites.TryGet(army.NodeId, out var armySite) &&
                 armySite != null)
                 return string.Equals(armySite.SiteId, site.SiteId, StringComparison.Ordinal);
 
@@ -186,14 +186,10 @@ namespace XianXia.Core.World.Strategic
                 presence.Mode == PartyWorldPresenceMode.AtHex)
                 return false;
 
-            if (presence.Mode != PartyWorldPresenceMode.AtNode)
+            if (presence.Mode != PartyWorldPresenceMode.AtSite)
                 return false;
 
-            if (!ArmyFormationSitePolicy.TryGetSiteForLegacyNode(world, presence.NodeId, out var residentSite) ||
-                residentSite == null)
-                return false;
-
-            return string.Equals(residentSite.SiteId, site.SiteId, StringComparison.Ordinal);
+            return string.Equals(presence.SiteId, site.SiteId, StringComparison.Ordinal);
         }
     }
 }

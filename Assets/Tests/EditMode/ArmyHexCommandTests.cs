@@ -61,7 +61,10 @@ namespace XianXia.Tests
             var created = world.Entities.CreateCharacter(new DefinitionId("test", name), name);
             var entity = created.Value;
             entity.Get<FactionMembershipComponent>().Assign(faction, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(entity.Id, nodeId);
+            var siteId = string.Equals(nodeId, NodeHuangcun, System.StringComparison.Ordinal)
+                ? Ch01HexPrototypeMapBuilder.SiteHuangcun
+                : Ch01HexPrototypeMapBuilder.SiteQingyunLu;
+            world.WorldPresence.SetAtSite(entity.Id, siteId);
             return entity.Id;
         }
 

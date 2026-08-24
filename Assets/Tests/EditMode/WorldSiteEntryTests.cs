@@ -16,6 +16,7 @@ namespace XianXia.Tests
     {
         const string PlayerFaction = StrategicFactionCatalog.PlayerFactionId;
         const string NodeHuangcun = "base:node_huangcun";
+        const string SiteHuangcun = "base:site_huangcun";
         static readonly HexCoord HuangcunHex = Ch01HexPrototypeMapBuilder.HuangcunHex;
         static readonly HexCoord QingyunLuHex = Ch01HexPrototypeMapBuilder.QingyunLuHex;
         static readonly HexCoord PlainHex = new HexCoord(15, 15);
@@ -24,15 +25,6 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             world.Strategic.PlayerFactionId = PlayerFaction;
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = NodeHuangcun,
-                Name = "青石荒村",
-                OwnerId = PlayerFaction,
-                LocalMapId = "base:map_huangcun",
-                WorldX = 0f,
-                WorldY = 0f
-            });
             HexTestWorldBootstrap.EnsureMinimalHexMap(world);
             WarGateService.DeclareWar(world, PlayerFaction, StrategicFactionCatalog.BanditId);
             return world;
@@ -43,7 +35,7 @@ namespace XianXia.Tests
             var created = world.Entities.CreateCharacter(new DefinitionId("test", name), name);
             Assert.IsTrue(created.IsSuccess);
             created.Value.Get<FactionMembershipComponent>().Assign(PlayerFaction, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(created.Value.Id, NodeHuangcun);
+            world.WorldPresence.SetAtSite(created.Value.Id, SiteHuangcun);
             return created.Value.Id;
         }
 
@@ -227,7 +219,7 @@ namespace XianXia.Tests
 
             var leader = world.Entities.CreateCharacter(new DefinitionId("test", "L"), "L").Value;
             leader.Get<FactionMembershipComponent>().Assign(PlayerFaction, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(leader.Id, NodeHuangcun);
+            world.WorldPresence.SetAtSite(leader.Id, SiteHuangcun);
             var created = ArmyService.CreateArmy(world, PlayerFaction, NodeHuangcun, new[] { leader.Id });
             Assert.IsTrue(created.IsSuccess);
             ArmyHexTravelService.InitializeArmyAtHex(created.Value, hex);

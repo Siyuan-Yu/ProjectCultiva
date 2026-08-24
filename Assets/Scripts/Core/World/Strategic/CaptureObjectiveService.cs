@@ -7,10 +7,10 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>Phase H：CaptureObjective 泛化 + Node Owner 易主 + SettlementAuthority 同步。</summary>
+    /// <summary>Phase H：CaptureObjective 泛化 + WorldSite Owner 易主 + SettlementAuthority 同步。</summary>
     public static class CaptureObjectiveService
     {
-        public static void RegisterControlCore(SimulationWorld world, ControlCoreState core, string nodeId)
+        public static void RegisterControlCore(SimulationWorld world, ControlCoreState core, string siteId)
         {
             if (world?.Strategic?.CaptureObjectives == null || core == null)
                 return;
@@ -19,7 +19,7 @@ namespace XianXia.Core.World.Strategic
             {
                 ObjectiveId = "capture:" + core.WorkAreaId,
                 WorkAreaId = core.WorkAreaId ?? string.Empty,
-                NodeId = nodeId ?? string.Empty,
+                SiteId = siteId ?? string.Empty,
                 CurrentHp = Math.Max(0, core.CurrentDurability),
                 MaxHp = Math.Max(1, core.MaxDurability),
                 OccupyHoldSeconds = Math.Max(0.1f, core.OccupyHoldSeconds),
@@ -38,20 +38,20 @@ namespace XianXia.Core.World.Strategic
             if (!world.ControlCores.TryGet(workAreaId, out var core))
                 return Result.Failure(ErrorCode.NotFound, "Control core not found.", workAreaId);
 
-            var nodeOwner = ResolveNodeOwnerForCore(world, core);
-            if (!string.IsNullOrEmpty(nodeOwner) &&
-                !WarGateService.CanMilitaryCapture(world, attackerFactionId, nodeOwner))
+            var siteOwner = ResolveSiteOwnerForCore(world, core);
+            if (!string.IsNullOrEmpty(siteOwner) &&
+                !WarGateService.CanMilitaryCapture(world, attackerFactionId, siteOwner))
             {
                 return Result.Failure(
                     ErrorCode.InvalidOperation,
                     "Military capture requires active war.",
-                    attackerFactionId + "->" + nodeOwner);
+                    attackerFactionId + "->" + siteOwner);
             }
 
             return Result.Success();
         }
 
-        public static Result TryCompleteNodeCapture(
+        public static Result TryCompleteWorldSiteCapture(
             SimulationWorld world,
             string attackerFactionId,
             string workAreaId)
@@ -64,39 +64,35 @@ namespace XianXia.Core.World.Strategic
                 objective == null)
                 return Result.Failure(ErrorCode.NotFound, "Capture objective missing.", workAreaId);
 
-            var nodeOwner = ResolveNodeOwnerForCore(world, core);
-            if (!string.IsNullOrEmpty(nodeOwner) &&
-                !WarGateService.CanMilitaryCapture(world, attackerFactionId, nodeOwner))
+            var siteOwner = ResolveSiteOwnerForCore(world, core);
+            if (!string.IsNullOrEmpty(siteOwner) &&
+                !WarGateService.CanMilitaryCapture(world, attackerFactionId, siteOwner))
             {
                 return Result.Failure(
                     ErrorCode.InvalidOperation,
                     "Military capture requires active war.",
-                    attackerFactionId + "->" + nodeOwner);
+                    attackerFactionId + "->" + siteOwner);
             }
 
             objective.Completed = true;
             objective.CurrentHp = 0;
             core.PlayerControlled = true;
 
-            if (!string.IsNullOrEmpty(objective.NodeId) &&
-                world.WorldGraph.TryGetNode(objective.NodeId, out var node) &&
-                node != null)
-            {
-                node.OwnerId = attackerFactionId;
-            }
+            if (!string.IsNullOrEmpty(objective.SiteId))
+                WorldSiteOwnershipService.SetOwner(world, objective.SiteId, attackerFactionId);
 
             world.SettlementAuthority.GrantAll(core.GrantsPrivileges);
             world.Flags.Set("settlement_player_controlled");
             world.Flags.Set("control_core_owned:" + workAreaId);
             world.Flags.Clear("control_core_capture_available");
 
-            if (!string.IsNullOrEmpty(objective.NodeId) &&
-                world.Strategic.CaptureObjectives.AllCompletedForNode(objective.NodeId))
+            if (!string.IsNullOrEmpty(objective.SiteId) &&
+                world.Strategic.CaptureObjectives.AllCompletedForSite(objective.SiteId))
             {
-                world.Flags.Set("node_captured:" + objective.NodeId);
-                ScenarioProgressionHooks.NotifyAllCaptureObjectivesCompletedForNode(
+                world.Flags.Set("site_captured:" + objective.SiteId);
+                ScenarioProgressionHooks.NotifyAllCaptureObjectivesCompletedForSite(
                     world,
-                    objective.NodeId);
+                    objective.SiteId);
             }
 
             return Result.Success();
@@ -118,7 +114,7 @@ namespace XianXia.Core.World.Strategic
                 objective.Completed = true;
         }
 
-        static string ResolveNodeOwnerForCore(SimulationWorld world, ControlCoreState core)
+        static string ResolveSiteOwnerForCore(SimulationWorld world, ControlCoreState core)
         {
             if (world == null || core == null)
                 return string.Empty;
@@ -126,21 +122,16 @@ namespace XianXia.Core.World.Strategic
             if (world.Strategic?.CaptureObjectives != null &&
                 world.Strategic.CaptureObjectives.TryGet("capture:" + core.WorkAreaId, out var objective) &&
                 objective != null &&
-                !string.IsNullOrEmpty(objective.NodeId) &&
-                world.WorldGraph.TryGetNode(objective.NodeId, out var ownedNode) &&
-                ownedNode != null &&
-                !string.IsNullOrEmpty(ownedNode.OwnerId))
-                return ownedNode.OwnerId;
+                !string.IsNullOrEmpty(objective.SiteId))
+                return WorldSiteOwnershipService.GetOwner(world, objective.SiteId);
 
-            foreach (var kv in world.WorldGraph.Nodes)
-            {
-                var nodeState = kv.Value;
-                if (nodeState == null || string.IsNullOrEmpty(nodeState.LocalMapId))
-                    continue;
-                if (!string.Equals(nodeState.LocalMapId, core.LocationId, StringComparison.Ordinal))
-                    continue;
-                return nodeState.OwnerId ?? string.Empty;
-            }
+            var partySiteId = world.PartyWorld?.SiteId;
+            if (!string.IsNullOrEmpty(partySiteId) &&
+                world.Strategic?.Sites != null &&
+                world.Strategic.Sites.TryGet(partySiteId, out var partySite) &&
+                partySite != null &&
+                string.Equals(partySite.LocalMapId, core.LocationId, StringComparison.Ordinal))
+                return partySite.OwnerFactionId ?? string.Empty;
 
             return string.Empty;
         }

@@ -28,20 +28,11 @@ namespace XianXia.Core.World.Strategic
             if (army == null)
                 return false;
 
-            foreach (var siteKv in world.Strategic.Sites.Sites)
+            if (!string.IsNullOrEmpty(army.NodeId) &&
+                world.Strategic.Sites.TryGet(army.NodeId, out var site) &&
+                site != null)
             {
-                var site = siteKv.Value;
-                if (site == null || string.IsNullOrEmpty(site.LegacyNodeId))
-                    continue;
-                if (!string.Equals(site.LegacyNodeId, army.NodeId, System.StringComparison.Ordinal))
-                    continue;
                 hex = site.AnchorHex;
-                return true;
-            }
-
-            if (world.WorldGraph.TryGetNode(army.NodeId, out var node) && node != null && node.HasHexCoord)
-            {
-                hex = new HexCoord(node.HexQ, node.HexR);
                 return world.HexWorld.Contains(hex);
             }
 

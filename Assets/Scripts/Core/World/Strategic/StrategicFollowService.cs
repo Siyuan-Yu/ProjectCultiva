@@ -85,7 +85,7 @@ namespace XianXia.Core.World.Strategic
                 StrategicNodeAccessService.IsAgentAtStackAnchor(world, presence, stack))
                 return;
 
-            WorldTravelService.StartTravelToStackAnchor(world, id, stack);
+            // Pure Hex: legacy stack follow travel removed.
         }
 
         public static Result BeginFollowTravel(
@@ -97,7 +97,7 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid follow order.");
 
             BeginFollow(world, party, stack);
-            return WorldTravelService.StartTravelPartyToStackAnchor(world, party, stack);
+            return Result.Success();
         }
     }
 }

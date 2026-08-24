@@ -61,8 +61,20 @@ namespace XianXia.Core.World.Strategic
                     "WorldSite 未配置 LocalMap，无法进入。",
                     siteId);
 
-            if (string.IsNullOrEmpty(formalArmyId) ||
-                !world.Strategic.FormalArmies.TryGet(formalArmyId, out var army) ||
+            // 开局 / 无选中军团：队伍已在 Site 即可进入（Playable bootstrap）。
+            if (string.IsNullOrEmpty(formalArmyId))
+            {
+                if (!StrategicNodeAccessService.HasPartyMemberAtSite(world, siteId))
+                {
+                    return Result.Failure(
+                        ErrorCode.InvalidOperation,
+                        "无己方角色在此地点，无法进入场景。");
+                }
+
+                return Result.Success();
+            }
+
+            if (!world.Strategic.FormalArmies.TryGet(formalArmyId, out var army) ||
                 army == null)
                 return Result.Failure(ErrorCode.InvalidOperation, "请先左键选中我方军团。");
 

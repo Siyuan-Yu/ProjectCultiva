@@ -21,19 +21,7 @@ namespace XianXia.Tests
         static SimulationWorld CreateFixtureWorld()
         {
             var world = new SimulationWorld();
-            world.WorldGraph.GraphId = "test:graph_army_domain";
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = TestNodeA,
-                Name = "Test Node A",
-                OwnerId = TestFactionA
-            });
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = TestNodeB,
-                Name = "Test Node B",
-                OwnerId = TestFactionB
-            });
+            Ch01HexPrototypeMapBuilder.Build(world);
             return world;
         }
 
@@ -224,8 +212,8 @@ namespace XianXia.Tests
             Assert.IsTrue(world.Entities.TryGet(a, out var leaderEntity));
             leaderEntity.Get<LifecycleComponent>().State = LifecycleState.Dead;
 
-            Assert.IsTrue(world.WorldGraph.TryGetNode(TestNodeA, out var node));
-            node.OwnerId = TestFactionB;
+            Assert.IsTrue(world.Strategic.Sites.TryGet(TestNodeA, out var node));
+            node.OwnerFactionId = TestFactionB;
 
             var refresh = ArmyService.RefreshLeader(world, armyId);
             Assert.IsTrue(refresh.IsSuccess, refresh.IsFailure ? refresh.Error.ToString() : "");
@@ -238,21 +226,15 @@ namespace XianXia.Tests
         public void NodeOwner_TestFixture_NotClearedByBootstrap()
         {
             var world = CreateFixtureWorld();
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = "base:node_huangcun",
-                Name = "Huangcun Prototype",
-                OwnerId = string.Empty
-            });
-            Assert.IsTrue(world.WorldGraph.TryGetNode(TestNodeA, out var nodeBefore));
-            Assert.AreEqual(TestFactionA, nodeBefore.OwnerId);
+            Assert.IsTrue(world.Strategic.Sites.TryGet(TestNodeA, out var nodeBefore));
+            Assert.AreEqual(TestFactionA, nodeBefore.OwnerFactionId);
 
             StrategicBootstrap.ApplyCh01Defaults(world);
 
-            Assert.IsTrue(world.WorldGraph.TryGetNode(TestNodeA, out var nodeAfter));
-            Assert.AreEqual(TestFactionA, nodeAfter.OwnerId, "Bootstrap must not clear established OwnerFactionId.");
-            Assert.IsTrue(world.WorldGraph.TryGetNode("base:node_huangcun", out var huangcun));
-            Assert.IsTrue(string.IsNullOrEmpty(huangcun.OwnerId), "Ch01 prototype nodes remain ownerless.");
+            Assert.IsTrue(world.Strategic.Sites.TryGet(TestNodeA, out var nodeAfter));
+            Assert.AreEqual(TestFactionA, nodeAfter.OwnerFactionId, "Bootstrap must not clear established OwnerFactionId.");
+            Assert.IsTrue(world.Strategic.Sites.TryGet(Ch01HexPrototypeMapBuilder.SiteHuangcun, out var huangcun));
+            Assert.IsTrue(string.IsNullOrEmpty(huangcun.OwnerFactionId), "Ch01 prototype sites remain ownerless.");
         }
 
         [Test]

@@ -31,8 +31,8 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 敌军 FormalArmy 战后：先钉 Residual Hex，再 Detach 非活员。
-        /// 必须在 Presence 放置之后调用；否则 Query 会因仍属 FormalArmy 而排除全部 Downed。
+        /// 敌军 FormalArmy 战后：先 Detach 非活员，再钉 Residual Hex。
+        /// Detach 期间不得把弥留者送回编组 Site（见 ArmyService.RemoveMemberInternal）。
         /// </summary>
         public static void SyncEnemyArmyAfterBattle(SimulationWorld world, BattleParticipantSnapshot snap)
         {
@@ -55,6 +55,9 @@ namespace XianXia.Core.World.Strategic
                     memberSnapshot.Add(id);
             }
 
+            ArmyService.DetachNonLivingMembersAtBattlefield(world, army);
+
+            // Detach 后再钉 Hex：RemoveMemberInternal 不再盖掉 Residual，Query 也不再被 FormalArmy 挡住。
             if (hasHex)
             {
                 for (var i = 0; i < memberSnapshot.Count; i++)
@@ -65,8 +68,6 @@ namespace XianXia.Core.World.Strategic
                     StrategicResidualPresenceService.PlaceCharacterAtResidualHex(world, id, encounterHex);
                 }
             }
-
-            ArmyService.DetachNonLivingMembersAtBattlefield(world, army);
 
             var stackId = ResolveEnemyStackId(world, snap);
             if (!string.IsNullOrEmpty(stackId) &&
@@ -133,7 +134,6 @@ namespace XianXia.Core.World.Strategic
             if (army.IsTraveling)
                 return;
 
-            ArmyTravelCommandService.ReconcileArmyWithLivingMembers(world, army);
             ArmyPresenceAdapter.SyncFromArmy(world, army);
         }
 
@@ -222,63 +222,7 @@ namespace XianXia.Core.World.Strategic
             if (army == null || snap == null)
                 return;
 
-            if (ArmyHexBattleAnchorService.IsHexAnchorMode(world))
-            {
-                ArmyHexBattleAnchorService.ParkArmyAtBattleAnchor(world, army, snap);
-                return;
-            }
-
-            army.RemainingTravelTicks = 0;
-            army.TravelTotalTicks = 0;
-            army.ClearRouteSegment();
-            army.State = FormalArmyState.AtNode;
-
-            if (!string.IsNullOrEmpty(snap.BattleAnchorRouteId) &&
-                snap.BattleAnchorProgress >= 0f)
-            {
-                army.RouteId = snap.BattleAnchorRouteId;
-                if (world?.WorldGraph != null &&
-                    world.WorldGraph.TryGetRoute(snap.BattleAnchorRouteId, out var route) &&
-                    route != null)
-                {
-                    ArmyTravelCommandService.NormalizeFormalArmyRouteEndpoints(world, army, route);
-                    army.RouteAnchorProgress = ArmyTravelCommandService.ToGraphRouteProgress(
-                        route,
-                        snap.BattleAnchorNodeId ?? string.Empty,
-                        snap.BattleAnchorDestNodeId ?? ResolveAnchorDest(world, snap),
-                        snap.BattleAnchorProgress);
-                }
-                else
-                {
-                    army.RouteAnchorProgress = snap.BattleAnchorProgress;
-                    army.NodeId = snap.BattleAnchorNodeId ?? string.Empty;
-                    army.DestNodeId = ResolveAnchorDest(world, snap);
-                }
-            }
-            else
-            {
-                army.RouteId = string.Empty;
-                army.RouteAnchorProgress = -1f;
-                army.NodeId = snap.BattleAnchorNodeId ?? army.NodeId ?? string.Empty;
-                army.DestNodeId = string.Empty;
-            }
-        }
-
-        static string ResolveAnchorDest(SimulationWorld world, BattleParticipantSnapshot snap)
-        {
-            if (!string.IsNullOrEmpty(snap.BattleAnchorDestNodeId))
-                return snap.BattleAnchorDestNodeId;
-            if (world?.WorldGraph != null &&
-                !string.IsNullOrEmpty(snap.BattleAnchorRouteId) &&
-                world.WorldGraph.TryGetRoute(snap.BattleAnchorRouteId, out var route) &&
-                route != null)
-            {
-                if (string.Equals(route.FromNodeId, snap.BattleAnchorNodeId, StringComparison.Ordinal))
-                    return route.ToNodeId ?? string.Empty;
-                return route.FromNodeId ?? string.Empty;
-            }
-
-            return string.Empty;
+            ArmyHexBattleAnchorService.ParkArmyAtBattleAnchor(world, army, snap);
         }
     }
 }

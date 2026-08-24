@@ -56,7 +56,6 @@ namespace XianXia.Data.Content
                 }
             }
 
-            LinkLegacyNodes(world);
             return Result.Success();
         }
 
@@ -87,7 +86,6 @@ namespace XianXia.Data.Content
                 AnchorHex = anchor,
                 LocalMapId = src.LocalMapId ?? string.Empty,
                 OwnerFactionId = src.OwnerFactionId ?? string.Empty,
-                LegacyNodeId = src.LegacyNodeId ?? string.Empty,
             };
 
             if (src.Footprint != null && src.Footprint.Count > 0)
@@ -102,31 +100,7 @@ namespace XianXia.Data.Content
                 site.SetFootprint(new[] { anchor });
             }
 
-            if (!string.IsNullOrEmpty(site.LegacyNodeId) &&
-                world.WorldGraph.TryGetNode(site.LegacyNodeId, out var node) &&
-                node != null)
-            {
-                if (string.IsNullOrEmpty(site.OwnerFactionId))
-                    site.OwnerFactionId = node.OwnerId ?? string.Empty;
-                if (string.IsNullOrEmpty(site.LocalMapId) && !string.IsNullOrEmpty(node.LocalMapId))
-                    site.LocalMapId = node.LocalMapId;
-                WorldSiteRegistrationService.LinkLegacyNodeToHex(node, anchor);
-            }
-
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
-        }
-
-        static void LinkLegacyNodes(SimulationWorld world)
-        {
-            foreach (var kv in world.Strategic.Sites.Sites)
-            {
-                var site = kv.Value;
-                if (site == null || string.IsNullOrEmpty(site.LegacyNodeId))
-                    continue;
-                if (!world.WorldGraph.TryGetNode(site.LegacyNodeId, out var node) || node == null)
-                    continue;
-                WorldSiteRegistrationService.LinkLegacyNodeToHex(node, site.AnchorHex);
-            }
         }
 
         static HexTerrainType ParseTerrain(string terrain)

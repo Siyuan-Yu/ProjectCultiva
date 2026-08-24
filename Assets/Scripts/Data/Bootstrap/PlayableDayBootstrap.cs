@@ -156,14 +156,14 @@ namespace XianXia.Data.Bootstrap
             if (region.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(region.Error);
 
-            var graph = WorldGraphBootstrap.ApplyOpening(
-                world, registry, scenario, lookup, spawnEntries);
-            if (graph.IsFailure)
-                return Result.Fail<PlayableDayBootstrapResult>(graph.Error);
-
             var strategic = StrategicContentBootstrap.ApplyCh01Defaults(world, registry, scenario);
             if (strategic.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(strategic.Error);
+
+            var hexSession = HexStrategicSessionBootstrap.ApplyOpening(
+                world, scenario, lookup, spawnEntries);
+            if (hexSession.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(hexSession.Error);
 
             var spawnZones = SpawnZoneApplier.ApplyAll(world, registry, world.Random);
             if (spawnZones.IsFailure)

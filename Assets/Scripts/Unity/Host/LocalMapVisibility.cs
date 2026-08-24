@@ -49,14 +49,18 @@ namespace XianXia.Unity.Host
                 wp.Mode == PartyWorldPresenceMode.InEncounter)
                 return false;
 
-            if (string.IsNullOrEmpty(wp.NodeId) ||
-                !world.WorldGraph.TryGetNode(wp.NodeId, out var node))
-                return false;
+            if (wp.Mode == PartyWorldPresenceMode.AtSite &&
+                !string.IsNullOrEmpty(wp.SiteId) &&
+                world.Strategic.Sites.TryGet(wp.SiteId, out var site) &&
+                site != null)
+            {
+                return string.Equals(
+                    WorldTravelService.ResolveWorldSiteLocalMapId(site),
+                    mapId,
+                    System.StringComparison.Ordinal);
+            }
 
-            return string.Equals(
-                WorldTravelService.ResolveLocalMapId(node),
-                mapId,
-                System.StringComparison.Ordinal);
+            return false;
         }
 
         public static bool HasFriendlyCharacterOnMapLayout(
@@ -124,11 +128,12 @@ namespace XianXia.Unity.Host
                     continue;
                 }
 
-                if (string.IsNullOrEmpty(wp.NodeId) ||
-                    !world.WorldGraph.TryGetNode(wp.NodeId, out var node))
-                    continue;
-                if (string.Equals(
-                        WorldTravelService.ResolveLocalMapId(node),
+                if (wp.Mode == PartyWorldPresenceMode.AtSite &&
+                    !string.IsNullOrEmpty(wp.SiteId) &&
+                    world.Strategic.Sites.TryGet(wp.SiteId, out var site) &&
+                    site != null &&
+                    string.Equals(
+                        WorldTravelService.ResolveWorldSiteLocalMapId(site),
                         mapId,
                         System.StringComparison.Ordinal))
                     return true;
@@ -285,6 +290,16 @@ namespace XianXia.Unity.Host
                     return false;
 
                 var focus = world.PartyWorld != null ? world.PartyWorld.NodeId : null;
+                var focusSite = world.PartyWorld != null ? world.PartyWorld.SiteId : null;
+                if (wp.Mode == PartyWorldPresenceMode.AtSite)
+                {
+                    if (!string.IsNullOrEmpty(focusSite) &&
+                        string.Equals(wp.SiteId, focusSite, System.StringComparison.Ordinal))
+                        return !onEncounterMap ||
+                               StrategicEncounterHostilityService.IsVisibleOnEncounterLocalMap(world, id);
+                    return false;
+                }
+
                 if (string.IsNullOrEmpty(focus) ||
                     !string.Equals(wp.NodeId, focus, System.StringComparison.Ordinal))
                     return false;

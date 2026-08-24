@@ -156,17 +156,17 @@ namespace XianXia.Unity.Host
             if (!anyWar)
                 y = DrawWrapped(w, y, "(none)");
 
-            y = DrawSectionHeader(w, y, "[NODES]");
-            if (world.WorldGraph?.Nodes != null)
+            y = DrawSectionHeader(w, y, "[SITES]");
+            if (world.Strategic?.Sites?.Sites != null)
             {
-                foreach (var kv in world.WorldGraph.Nodes)
+                foreach (var kv in world.Strategic.Sites.Sites)
                 {
-                    var node = kv.Value;
-                    if (node == null)
+                    var site = kv.Value;
+                    if (site == null)
                         continue;
-                    var label = string.IsNullOrEmpty(node.Name) ? node.Id : node.Name;
+                    var label = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
                     y = DrawWrapped(w, y,
-                        label + "\n  Owner: " + StrategicAcceptanceInspector.ResolveOwnerDisplay(node.OwnerId));
+                        label + "\n  Owner: " + StrategicAcceptanceInspector.ResolveOwnerDisplay(site.OwnerFactionId));
                 }
             }
 

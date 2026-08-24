@@ -34,8 +34,8 @@ namespace XianXia.Tests
 
             var a = session.CharacterIds[0];
             var b = session.CharacterIds[1];
-            WorldTravelService.PlaceAgentsAtNode(world, new[] { a }, "base:node_huangcun");
-            WorldTravelService.PlaceAgentsAtNode(world, new[] { b }, "base:node_huangcun");
+            world.WorldPresence.SetAtSite(a, "base:site_huangcun");
+            world.WorldPresence.SetAtSite(b, "base:site_huangcun");
             enemy.NodeId = "base:node_huangcun";
             enemy.RouteId = string.Empty;
             enemy.RemainingTravelTicks = 0;
@@ -58,7 +58,7 @@ namespace XianXia.Tests
             var session = StartCh01();
             var world = session.World;
             var a = session.CharacterIds[0];
-            WorldTravelService.PlaceAgentsAtNode(world, new[] { a }, "base:node_huangcun");
+            world.WorldPresence.SetAtSite(a, "base:site_huangcun");
             Assert.IsTrue(world.WorldPresence.TryGet(a, out var p));
 
             world.Strategic.ReinforcementWorldRadius = 1f;
@@ -80,7 +80,8 @@ namespace XianXia.Tests
             Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var enemy));
             var a = session.CharacterIds[0];
             var b = session.CharacterIds[1];
-            WorldTravelService.PlaceAgentsAtNode(world, new[] { a, b }, "base:node_huangcun");
+            world.WorldPresence.SetAtSite(a, "base:site_huangcun");
+            world.WorldPresence.SetAtSite(b, "base:site_huangcun");
             enemy.NodeId = "base:node_huangcun";
             enemy.RouteId = string.Empty;
             world.Strategic.ReinforcementWorldRadius = 1f;
@@ -102,7 +103,8 @@ namespace XianXia.Tests
             Assert.IsTrue(world.Strategic.Armies.TryGet("army:bandit_patrol_1", out var enemy));
             var a = session.CharacterIds[0];
             var b = session.CharacterIds[1];
-            WorldTravelService.PlaceAgentsAtNode(world, new[] { a, b }, "base:node_huangcun");
+            world.WorldPresence.SetAtSite(a, "base:site_huangcun");
+            world.WorldPresence.SetAtSite(b, "base:site_huangcun");
             enemy.NodeId = "base:node_huangcun";
             enemy.RouteId = string.Empty;
             world.Strategic.ReinforcementWorldRadius = 1f;
@@ -144,7 +146,7 @@ namespace XianXia.Tests
             });
 
             var a = session.CharacterIds[0];
-            WorldTravelService.PlaceAgentsAtNode(world, new[] { a }, "base:node_huangcun");
+            world.WorldPresence.SetAtSite(a, "base:site_huangcun");
             e1.NodeId = "base:node_huangcun";
             e1.RouteId = string.Empty;
 
@@ -179,12 +181,8 @@ namespace XianXia.Tests
             var session = StartCh01();
             var world = session.World;
             var id = session.CharacterIds[0];
-            WorldTravelService.PlaceAgentsAtNode(world, new[] { id }, "base:node_huangcun");
             StrategicClockFreezeService.BeginOrPromote(world, StrategicClockFreezeReason.ManualEncounter);
             Assert.IsFalse(WorldTravelService.CanReceiveTravelOrder(world, id));
-            var started = WorldTravelPathService.StartAgentTravelToTarget(
-                world, id, WorldTravelTarget.AtNode("base:node_linjian"));
-            Assert.IsTrue(started.IsFailure);
         }
 
         static int CountKind(BattleParticipantSnapshot snap, BattleParticipantKind kind)

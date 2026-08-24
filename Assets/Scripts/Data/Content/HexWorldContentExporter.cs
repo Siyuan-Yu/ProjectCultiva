@@ -54,7 +54,6 @@ namespace XianXia.Data.Content
                     AnchorR = site.AnchorHex.R,
                     LocalMapId = site.LocalMapId,
                     OwnerFactionId = site.OwnerFactionId,
-                    LegacyNodeId = site.LegacyNodeId,
                 };
                 foreach (var hex in site.EnumerateFootprintHexes())
                     dto.Footprint.Add(new HexWorldCoordDefinition { Q = hex.Q, R = hex.R });

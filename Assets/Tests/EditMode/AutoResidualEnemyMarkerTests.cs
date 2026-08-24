@@ -21,14 +21,6 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             world.Strategic.PlayerFactionId = PlayerFaction;
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = NodeA,
-                Name = "荒村",
-                OwnerId = PlayerFaction,
-                WorldX = 0f,
-                WorldY = 0f
-            });
             HexTestWorldBootstrap.EnsureMinimalHexMap(world);
             WarGateService.DeclareWar(world, PlayerFaction, StrategicFactionCatalog.BanditId);
             return world;
@@ -255,6 +247,37 @@ namespace XianXia.Tests
             }
 
             Assert.AreEqual(4, n);
+        }
+
+        [Test]
+        public void AUTO_RES_05_EnemyDownedAtSiteHex_KeepsResidualAfterDetach()
+        {
+            var world = CreateWorld();
+            var player = SpawnPlayer(world);
+            var hex = Ch01HexPrototypeMapBuilder.HuangcunHex;
+            Assert.IsTrue(world.Strategic.Sites.TryGetAtHex(hex, out _),
+                "Regression guard: battle at Site hex used to promote downed to AtSite and hide markers.");
+
+            var (army, stack, members) = SeedBandits(world, hex);
+            AutoBattleCasualtyService.ApplyPlayerVictory(
+                world, new[] { player }, stack, 20, 10, executeOnWin: false);
+
+            var snap = BuildSnap(army, hex);
+            world.Strategic.Encounter.ArmyStackId = ArmyStackAdapter.BanditPatrolStackId;
+            StrategicEncounterSpawner.EnsureMacroRemnantSpawns(world, snap);
+            ArmyPostBattleSyncService.SyncEnemyArmyAfterBattle(world, snap);
+
+            for (var i = 0; i < members.Count; i++)
+            {
+                Assert.IsTrue(
+                    StrategicResidualPresenceService.TryGetResidualHex(world, members[i], out var rh),
+                    "Enemy downed must keep AtHex after DetachNonLivingMembersAtBattlefield.");
+                Assert.AreEqual(hex, rh);
+                Assert.IsTrue(world.WorldPresence.TryGet(members[i], out var wp) && wp != null);
+                Assert.AreNotEqual(PartyWorldPresenceMode.AtSite, wp.Mode);
+            }
+
+            Assert.Greater(CountEnemyDownedCandidates(world), 0);
         }
 
         static int CountEnemyDownedCandidates(SimulationWorld world)

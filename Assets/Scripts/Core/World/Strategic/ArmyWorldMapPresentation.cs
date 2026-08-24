@@ -6,12 +6,9 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>
-    /// Phase B：Formal Army WorldMap 投影规则（EditMode 可测）。位置真源 = FormalArmy.StrategicPosition。
-    /// </summary>
+    /// <summary>Formal Army WorldMap 投影规则（Hex-only）。</summary>
     public static class ArmyWorldMapPresentation
     {
-        /// <summary>Leader 头像派生源；不引入第二 Portrait 字段。</summary>
         public static EntityId ResolvePortraitLeader(FormalArmy army)
         {
             if (army == null || army.LeaderCharacterId.IsNone)
@@ -25,23 +22,10 @@ namespace XianXia.Core.World.Strategic
                 return false;
             if (!world.Strategic.FormalArmies.TryGet(army.ArmyId, out _))
                 return false;
-            if (world.HexWorld.HasGrid)
-            {
-                if (!army.UsesHexStrategicPosition || !world.HexWorld.Contains(army.CurrentHex))
-                    return false;
-            }
-            else if (army.UsesHexStrategicPosition)
-            {
-                if (!world.HexWorld.Contains(army.CurrentHex))
-                    return false;
-            }
-            else
-            {
-                if (string.IsNullOrEmpty(army.NodeId))
-                    return false;
-                if (!world.WorldGraph.TryGetNode(army.NodeId, out var node) || node == null)
-                    return false;
-            }
+            if (!world.HexWorld.HasGrid)
+                return false;
+            if (!army.UsesHexStrategicPosition || !world.HexWorld.Contains(army.CurrentHex))
+                return false;
             if (ResolvePortraitLeader(army).IsNone)
                 return false;
             if (!ArmyPostBattleSyncService.HasMacroOrderLivingMember(world, army))
@@ -65,29 +49,11 @@ namespace XianXia.Core.World.Strategic
             out float toY)
         {
             fromX = fromY = toX = toY = 0f;
-            if (world == null || army == null)
+            if (!TryResolveArmyWorldPoint(world, army, out fromX, out fromY))
                 return false;
-
-            if (army.State == FormalArmyState.OnRoute || army.IsRouteAnchored)
-            {
-                if (string.IsNullOrEmpty(army.RouteId) ||
-                    !world.WorldGraph.TryGetRoute(army.RouteId, out var route) ||
-                    route == null)
-                    return false;
-                if (!world.WorldGraph.TryGetNode(route.FromNodeId, out var fromNode) || fromNode == null)
-                    return false;
-                if (!world.WorldGraph.TryGetNode(route.ToNodeId, out var toNode) || toNode == null)
-                    return false;
-                fromX = fromNode.WorldX;
-                fromY = fromNode.WorldY;
-                toX = toNode.WorldX;
-                toY = toNode.WorldY;
-                return true;
-            }
-
-            return TryResolveArmyWorldPoint(world, army, out fromX, out fromY) &&
-                   (toX = fromX) == fromX &&
-                   (toY = fromY) == fromY;
+            toX = fromX;
+            toY = fromY;
+            return true;
         }
 
         public static bool TryResolveArmyWorldPoint(
@@ -109,7 +75,6 @@ namespace XianXia.Core.World.Strategic
             return true;
         }
 
-        /// <summary>带渲染来源元数据的 FormalArmy 大地图坐标解析（真源 = StrategicPosition）。</summary>
         public static bool TryResolveArmyWorldPointDetailed(
             SimulationWorld world,
             FormalArmy army,
@@ -121,11 +86,6 @@ namespace XianXia.Core.World.Strategic
                 out _,
                 out info);
 
-        /// <summary>
-        /// Phase B 正式战略显示：AtNode 驻留的 Player Character 不单独画头像（由 Army 或未组军 Resident 规则处理）。
-        /// Phase D：Army OnRoute 时成员 presence 为投影，不单独画独立头像。
-        /// 追击／legacy 散装 Travel 时，Formal Army 成员也只显示军团头像（队长派生）。
-        /// </summary>
         public static bool ShouldDrawIndependentCharacterPortrait(SimulationWorld world, EntityId characterId)
         {
             if (world == null || characterId.IsNone)
@@ -133,7 +93,6 @@ namespace XianXia.Core.World.Strategic
             if (!world.WorldPresence.TryGet(characterId, out var presence) || presence == null)
                 return false;
 
-            // Hex Residual：聚合 Marker 负责；禁止再画独立头像
             if (LingeringBattlefieldPartyService.IsLingeringDowned(world, characterId))
             {
                 if (StrategicResidualPresenceService.TryGetResidualHex(world, characterId, out _))
@@ -146,13 +105,10 @@ namespace XianXia.Core.World.Strategic
                 ShouldSuppressIndependentPortraitForFormalArmyMember(world, characterId, army, presence))
                 return false;
 
-            if (IsLegacyRoutePresentation(presence))
-                return true;
-
-            if (presence.Mode == PartyWorldPresenceMode.AtNode)
+            if (presence.Mode == PartyWorldPresenceMode.AtSite)
                 return false;
 
-            if (presence.Mode == PartyWorldPresenceMode.InEncounter && !presence.HasRoutePresentation)
+            if (presence.Mode == PartyWorldPresenceMode.InEncounter)
                 return false;
 
             return false;
@@ -162,8 +118,20 @@ namespace XianXia.Core.World.Strategic
         {
             if (!ArmyService.TryGetArmyForCharacter(world, characterId, out var army) || army == null)
                 return false;
-            var node = ArmyService.ResolveCharacterNodeId(world, characterId);
-            return string.Equals(node, army.NodeId, StringComparison.Ordinal);
+
+            if (army.UsesHexStrategicPosition && HexStrategicRuntime.IsActive(world))
+            {
+                if (!world.Strategic.Sites.TryGet(army.NodeId, out var formationSite) ||
+                    formationSite == null)
+                    return false;
+                return formationSite.OccupiesHex(army.CurrentHex);
+            }
+
+            var siteId = ArmyService.ResolveCharacterSiteId(world, characterId);
+            if (!string.IsNullOrEmpty(siteId))
+                return string.Equals(siteId, army.NodeId, StringComparison.Ordinal);
+            var nodeId = ArmyService.ResolveCharacterNodeId(world, characterId);
+            return string.Equals(nodeId, army.NodeId, StringComparison.Ordinal);
         }
 
         static bool ShouldSuppressIndependentPortraitForFormalArmyMember(
@@ -176,25 +144,13 @@ namespace XianXia.Core.World.Strategic
                 return false;
             if (LingeringBattlefieldPartyService.IsLingeringDowned(world, characterId))
                 return false;
-            if (army.State == FormalArmyState.OnRoute)
+            if (army.State == FormalArmyState.OnRoute || army.State == FormalArmyState.Moving)
                 return true;
-            if (presence.Mode == PartyWorldPresenceMode.AtNode)
+            if (presence.Mode == PartyWorldPresenceMode.AtSite)
                 return true;
             if (presence.IsCombatPursuing)
                 return true;
-            if (presence.HasRoutePresentation)
-                return true;
-            return IsLegacyRoutePresentation(presence);
-        }
-
-        static bool IsLegacyRoutePresentation(WorldAgentPresence presence)
-        {
-            if (presence == null)
-                return false;
-            if (presence.Mode == PartyWorldPresenceMode.Traveling ||
-                presence.Mode == PartyWorldPresenceMode.RouteAnchored)
-                return true;
-            return presence.Mode == PartyWorldPresenceMode.InEncounter && presence.HasRoutePresentation;
+            return false;
         }
     }
 }

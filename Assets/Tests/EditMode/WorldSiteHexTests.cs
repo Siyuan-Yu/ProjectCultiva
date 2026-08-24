@@ -29,27 +29,22 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void SITE02_SiteOwnerPreservedFromNodeMigration()
+        public void SITE02_SiteRegistrationPreservesLocalMapId()
         {
             var world = new SimulationWorld();
             world.HexWorld.FillRectangle(4, 4);
-            world.WorldGraph.RegisterNode(new WorldNodeState
+            var site = new WorldSite
             {
-                Id = "base:node_huangcun",
-                Name = "青石荒村",
-                OwnerId = "base:sect_huangcun_labor",
+                SiteId = "base:site_huangcun",
+                DisplayName = "Huangcun",
+                AnchorHex = new HexCoord(1, 1),
                 LocalMapId = "base:map_huangcun",
-            });
-
-            var site = WorldSiteRegistrationService.CreateSiteFromNode(
-                world.WorldGraph.Nodes["base:node_huangcun"],
-                new HexCoord(1, 1));
+            };
             site.SetFootprint(new[] { new HexCoord(1, 1) });
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
 
-            Assert.AreEqual("base:sect_huangcun_labor", site.OwnerFactionId);
+            Assert.AreEqual(string.Empty, site.OwnerFactionId);
             Assert.AreEqual("base:map_huangcun", site.LocalMapId);
-            Assert.AreEqual("base:node_huangcun", site.LegacyNodeId);
         }
 
         [Test]
@@ -57,16 +52,13 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             world.HexWorld.FillRectangle(4, 4);
-            world.WorldGraph.RegisterNode(new WorldNodeState
+            var site = new WorldSite
             {
-                Id = "base:node_qingyun_lu",
-                Name = "青石路",
+                SiteId = "base:site_qingyun_lu",
+                DisplayName = "Qingyun Lu",
+                AnchorHex = new HexCoord(3, 2),
                 LocalMapId = "base:map_qingyun_lu",
-            });
-
-            var site = WorldSiteRegistrationService.CreateSiteFromNode(
-                world.WorldGraph.Nodes["base:node_qingyun_lu"],
-                new HexCoord(3, 2));
+            };
             site.SetFootprint(new[] { new HexCoord(3, 2) });
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
 

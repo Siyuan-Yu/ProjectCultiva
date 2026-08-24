@@ -25,14 +25,6 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             world.Strategic.PlayerFactionId = PlayerFaction;
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = NodeA,
-                Name = "荒村",
-                OwnerId = PlayerFaction,
-                WorldX = 0f,
-                WorldY = 0f
-            });
             HexTestWorldBootstrap.EnsureMinimalHexMap(world);
             EnsurePassable(world, H1);
             EnsurePassable(world, H2);

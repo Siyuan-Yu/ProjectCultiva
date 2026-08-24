@@ -16,6 +16,7 @@ namespace XianXia.Tests
     {
         const string PlayerFaction = StrategicFactionCatalog.PlayerFactionId;
         const string NodeA = "base:node_huangcun";
+        const string SiteA = Ch01HexPrototypeMapBuilder.SiteHuangcun;
         static readonly HexCoord BattleHex = Ch01HexPrototypeMapBuilder.HuangcunHex;
         static readonly HexCoord RemoteHex = Ch01HexPrototypeMapBuilder.QingyunLuHex;
 
@@ -23,14 +24,6 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             world.Strategic.PlayerFactionId = PlayerFaction;
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = NodeA,
-                Name = "荒村",
-                OwnerId = PlayerFaction,
-                WorldX = 0f,
-                WorldY = 0f
-            });
             HexTestWorldBootstrap.EnsureMinimalHexMap(world);
             WarGateService.DeclareWar(world, PlayerFaction, StrategicFactionCatalog.BanditId);
             return world;
@@ -40,14 +33,6 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             world.Strategic.PlayerFactionId = PlayerFaction;
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = NodeA,
-                Name = "荒村",
-                OwnerId = PlayerFaction,
-                WorldX = 0f,
-                WorldY = 0f
-            });
             HexTestWorldBootstrap.EnsureMinimalHexMap(world);
             return world;
         }
@@ -57,7 +42,7 @@ namespace XianXia.Tests
             var created = world.Entities.CreateCharacter(new DefinitionId("test", name), name);
             Assert.IsTrue(created.IsSuccess);
             created.Value.Get<FactionMembershipComponent>().Assign(PlayerFaction, FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(created.Value.Id, NodeA);
+            world.WorldPresence.SetAtSite(created.Value.Id, SiteA);
             return created.Value.Id;
         }
 

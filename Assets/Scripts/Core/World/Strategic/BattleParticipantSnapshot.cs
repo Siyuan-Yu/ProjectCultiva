@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -322,33 +323,11 @@ namespace XianXia.Core.World.Strategic
             out int cost)
         {
             cost = int.MaxValue;
-            if (world?.WorldGraph == null || from == null)
+            if (world == null || from == null || !world.HexWorld.HasGrid)
                 return false;
-
-            var fromNode = ResolvePresenceNodeForDistance(from, out var fromRoutePartial);
-            var toNode = ResolveAnchorNode(world, anchorNodeId, anchorRouteId, anchorProgress);
-            if (string.IsNullOrEmpty(fromNode) || string.IsNullOrEmpty(toNode))
+            if (!TryGetWorldDistance(world, from, anchorNodeId, anchorRouteId, anchorProgress, out var dist))
                 return false;
-
-            if (string.Equals(fromNode, toNode, StringComparison.Ordinal))
-            {
-                if (!string.IsNullOrEmpty(from.RouteId) &&
-                    string.Equals(from.RouteId, anchorRouteId, StringComparison.Ordinal) &&
-                    world.WorldGraph.TryGetRoute(from.RouteId, out var sameRoute))
-                {
-                    var edge = sameRoute.TravelCost > 0 ? sameRoute.TravelCost : 1;
-                    var dp = Math.Abs(GetPresenceProgress(from) - Clamp01(anchorProgress));
-                    cost = (int)Math.Ceiling(dp * edge);
-                    return true;
-                }
-
-                cost = fromRoutePartial;
-                return true;
-            }
-
-            if (!TrySumPathTravelCost(world, fromNode, toNode, out cost))
-                return false;
-            cost += fromRoutePartial;
+            cost = (int)Math.Ceiling(dist * 10f);
             return true;
         }
 
@@ -394,21 +373,12 @@ namespace XianXia.Core.World.Strategic
             x = y = 0f;
             if (world == null || presence == null)
                 return false;
-            if (!WorldTravelService.TryResolveTravelWorldPoints(
-                    world, presence, out var fx, out var fy, out var tx, out var ty))
-                return false;
-
-            if (presence.HasRoutePresentation)
-            {
-                var t = GetPresenceProgress(presence);
-                x = fx + (tx - fx) * t;
-                y = fy + (ty - fy) * t;
-                return true;
-            }
-
-            x = fx;
-            y = fy;
-            return true;
+            return WorldAgentMapPositionResolver.TryResolve(
+                world,
+                presence.EntityId,
+                presence,
+                out x,
+                out y);
         }
 
         public static bool TryGetAnchorWorldXY(
@@ -420,27 +390,25 @@ namespace XianXia.Core.World.Strategic
             out float y)
         {
             x = y = 0f;
-            if (world?.WorldGraph == null)
+            if (world?.HexWorld == null || !world.HexWorld.HasGrid)
                 return false;
 
-            if (!string.IsNullOrEmpty(anchorRouteId) &&
-                anchorProgress >= 0f &&
-                world.WorldGraph.TryGetRoute(anchorRouteId, out var route) &&
-                world.WorldGraph.TryGetNode(route.FromNodeId, out var from) &&
-                world.WorldGraph.TryGetNode(route.ToNodeId, out var to))
+            var snap = world.Strategic?.Participants;
+            if (snap != null &&
+                ArmyHexBattleAnchorService.TryGetBattleAnchorHex(snap, out var snapHex))
             {
-                var t = Clamp01(anchorProgress);
-                x = from.WorldX + (to.WorldX - from.WorldX) * t;
-                y = from.WorldY + (to.WorldY - from.WorldY) * t;
+                HexMath.ToWorldPosition(snapHex, world.HexWorld.HexSize, out x, out y);
                 return true;
             }
 
-            var nodeId = ResolveAnchorNode(world, anchorNodeId, anchorRouteId, anchorProgress);
-            if (string.IsNullOrEmpty(nodeId) || !world.WorldGraph.TryGetNode(nodeId, out var node))
-                return false;
-            x = node.WorldX;
-            y = node.WorldY;
-            return true;
+            var siteId = ResolveAnchorNode(world, anchorNodeId, anchorRouteId, anchorProgress);
+            if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, siteId, out var siteHex))
+            {
+                HexMath.ToWorldPosition(siteHex, world.HexWorld.HexSize, out x, out y);
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>节点跳数（同节点＝0；相邻＝1）。诊断用。</summary>
@@ -453,15 +421,13 @@ namespace XianXia.Core.World.Strategic
             out int hops)
         {
             hops = int.MaxValue;
-            if (world?.WorldGraph == null || from == null)
+            if (world == null || from == null || !world.HexWorld.HasGrid)
                 return false;
-
-            var fromNode = ResolvePresenceNodeForDistance(from, out _);
-            var toNode = ResolveAnchorNode(world, anchorNodeId, anchorRouteId, anchorProgress);
-            if (string.IsNullOrEmpty(fromNode) || string.IsNullOrEmpty(toNode))
+            if (!TryGetWorldDistance(
+                    world, from, anchorNodeId, anchorRouteId, anchorProgress, out var dist))
                 return false;
-
-            return TryCountPathHops(world, fromNode, toNode, out hops);
+            hops = dist <= GetWorldRadius(world) ? 0 : 1;
+            return true;
         }
 
         public static bool IsStackWithinRange(
@@ -520,19 +486,8 @@ namespace XianXia.Core.World.Strategic
             string anchorRouteId,
             float anchorProgress)
         {
-            if (!string.IsNullOrEmpty(anchorNodeId) &&
-                (string.IsNullOrEmpty(anchorRouteId) || anchorProgress < 0f))
+            if (!string.IsNullOrEmpty(anchorNodeId))
                 return anchorNodeId;
-
-            if (!string.IsNullOrEmpty(anchorRouteId) &&
-                world.WorldGraph.TryGetRoute(anchorRouteId, out var route))
-            {
-                var p = Clamp01(anchorProgress);
-                if (p <= 0.5f)
-                    return route.FromNodeId;
-                return route.ToNodeId;
-            }
-
             return anchorNodeId ?? string.Empty;
         }
 
@@ -566,60 +521,14 @@ namespace XianXia.Core.World.Strategic
             out int hops)
         {
             hops = 0;
-            if (world?.WorldGraph == null ||
+            if (world == null ||
                 string.IsNullOrEmpty(fromNodeId) ||
                 string.IsNullOrEmpty(toNodeId))
                 return false;
-            if (string.Equals(fromNodeId, toNodeId, StringComparison.Ordinal))
-                return true;
-
-            var dist = new Dictionary<string, int>(StringComparer.Ordinal);
-            var q = new Queue<string>();
-            dist[fromNodeId] = 0;
-            q.Enqueue(fromNodeId);
-
-            while (q.Count > 0)
-            {
-                var cur = q.Dequeue();
-                var curDist = dist[cur];
-                if (string.Equals(cur, toNodeId, StringComparison.Ordinal))
-                {
-                    hops = curDist;
-                    return true;
-                }
-
-                foreach (var kv in world.WorldGraph.Routes)
-                {
-                    var route = kv.Value;
-                    if (route == null || WorldTravelService.CanTraverse(route).IsFailure)
-                        continue;
-                    TryEnqueueHop(q, dist, cur, route.FromNodeId, route.ToNodeId, curDist);
-                    if (!route.Directed)
-                        TryEnqueueHop(q, dist, cur, route.ToNodeId, route.FromNodeId, curDist);
-                }
-            }
-
-            return false;
+            hops = string.Equals(fromNodeId, toNodeId, StringComparison.Ordinal) ? 0 : 1;
+            return true;
         }
 
-        static void TryEnqueueHop(
-            Queue<string> q,
-            Dictionary<string, int> dist,
-            string from,
-            string edgeFrom,
-            string edgeTo,
-            int fromDist)
-        {
-            if (!string.Equals(from, edgeFrom, StringComparison.Ordinal) ||
-                string.IsNullOrEmpty(edgeTo))
-                return;
-            if (dist.ContainsKey(edgeTo))
-                return;
-            dist[edgeTo] = fromDist + 1;
-            q.Enqueue(edgeTo);
-        }
-
-        /// <summary>按边 TravelCost 累加的最短路径（Dijkstra；诊断／遗留）。</summary>
         public static bool TrySumPathTravelCost(
             SimulationWorld world,
             string fromNodeId,
@@ -627,89 +536,14 @@ namespace XianXia.Core.World.Strategic
             out int totalCost)
         {
             totalCost = 0;
-            if (world?.WorldGraph == null ||
+            if (world == null ||
                 string.IsNullOrEmpty(fromNodeId) ||
                 string.IsNullOrEmpty(toNodeId))
                 return false;
             if (string.Equals(fromNodeId, toNodeId, StringComparison.Ordinal))
                 return true;
-
-            var dist = new Dictionary<string, int>(StringComparer.Ordinal);
-            var q = new SortedSet<NodeCost>(NodeCostComparer.Instance);
-            dist[fromNodeId] = 0;
-            q.Add(new NodeCost(fromNodeId, 0));
-
-            while (q.Count > 0)
-            {
-                var cur = q.Min;
-                q.Remove(cur);
-                if (string.Equals(cur.NodeId, toNodeId, StringComparison.Ordinal))
-                {
-                    totalCost = cur.Cost;
-                    return true;
-                }
-
-                if (dist.TryGetValue(cur.NodeId, out var known) && known < cur.Cost)
-                    continue;
-
-                foreach (var kv in world.WorldGraph.Routes)
-                {
-                    var route = kv.Value;
-                    if (route == null || WorldTravelService.CanTraverse(route).IsFailure)
-                        continue;
-                    TryRelax(q, dist, cur, route.FromNodeId, route.ToNodeId, route.TravelCost);
-                    if (!route.Directed)
-                        TryRelax(q, dist, cur, route.ToNodeId, route.FromNodeId, route.TravelCost);
-                }
-            }
-
-            return false;
-        }
-
-        static void TryRelax(
-            SortedSet<NodeCost> q,
-            Dictionary<string, int> dist,
-            NodeCost cur,
-            string a,
-            string b,
-            int edgeCost)
-        {
-            string next = null;
-            if (string.Equals(cur.NodeId, a, StringComparison.Ordinal))
-                next = b;
-            else if (string.Equals(cur.NodeId, b, StringComparison.Ordinal))
-                next = a;
-            if (string.IsNullOrEmpty(next))
-                return;
-            var w = edgeCost > 0 ? edgeCost : 1;
-            var nd = cur.Cost + w;
-            if (dist.TryGetValue(next, out var old) && old <= nd)
-                return;
-            dist[next] = nd;
-            q.Add(new NodeCost(next, nd));
-        }
-
-        readonly struct NodeCost
-        {
-            public readonly string NodeId;
-            public readonly int Cost;
-            public NodeCost(string nodeId, int cost)
-            {
-                NodeId = nodeId;
-                Cost = cost;
-            }
-        }
-
-        sealed class NodeCostComparer : IComparer<NodeCost>
-        {
-            public static readonly NodeCostComparer Instance = new NodeCostComparer();
-            public int Compare(NodeCost x, NodeCost y)
-            {
-                var c = x.Cost.CompareTo(y.Cost);
-                if (c != 0)
-                    return c;
-                return string.CompareOrdinal(x.NodeId, y.NodeId);
-            }
+            totalCost = GetThreshold(world);
+            return true;
         }
     }
 }

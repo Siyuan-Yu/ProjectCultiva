@@ -17,14 +17,6 @@ namespace XianXia.Tests
         static SimulationWorld CreateWorld()
         {
             var world = new SimulationWorld();
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = NodeA,
-                Name = "A",
-                OwnerId = FactionA,
-                WorldX = 0f,
-                WorldY = 0f
-            });
             Ch01HexPrototypeMapBuilder.BuildMinimalTwoSitePrototype(world);
             return world;
         }
@@ -67,7 +59,7 @@ namespace XianXia.Tests
             var army = ArmyService.CreateArmy(world, FactionA, NodeA, new[] { leader }).Value;
             ArmyHexTravelService.InitializeArmyAtHex(army, Ch01HexPrototypeMapBuilder.HuangcunHex);
 
-            var result = ArmyTravelCommandService.MoveArmyToNode(world, army.ArmyId, "base:node_qingyun_lu");
+            var result = ArmyHexCommandService.MoveArmyToSite(world, army.ArmyId, "base:node_qingyun_lu");
             Assert.IsFalse(result.IsSuccess);
         }
 

@@ -120,7 +120,7 @@ namespace XianXia.Core.Npc
             if (!world.ControlCores.TryCapture(workAreaId, out core))
                 return Result.Failure(ErrorCode.InvalidOperation, "Occupy hold not finished.");
 
-            var complete = CaptureObjectiveService.TryCompleteNodeCapture(world, attackerFactionId, workAreaId);
+            var complete = CaptureObjectiveService.TryCompleteWorldSiteCapture(world, attackerFactionId, workAreaId);
             if (complete.IsFailure)
                 return complete;
 

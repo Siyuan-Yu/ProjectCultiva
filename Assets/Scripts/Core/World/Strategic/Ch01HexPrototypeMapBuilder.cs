@@ -3,7 +3,7 @@ using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>Ch01 Hex 战略地图：第一版 100×50 正式验收世界 + WorldGraph 内容导入。</summary>
+    /// <summary>Ch01 Hex 战略地图：最小两 Site 原型。</summary>
     public static class Ch01HexPrototypeMapBuilder
     {
         public const string MapId = "base:hex_ch01_prototype";
@@ -13,17 +13,11 @@ namespace XianXia.Core.World.Strategic
         public static readonly HexCoord HuangcunHex = new HexCoord(20, 25);
         public static readonly HexCoord QingyunLuHex = new HexCoord(38, 22);
 
-        const string HuangcunNodeId = "base:node_huangcun";
-
         public static void Build(SimulationWorld world)
         {
             if (world == null)
                 return;
-
-            if (world.WorldGraph.TryGetNode(HuangcunNodeId, out _))
-                BuildFullFromWorldGraph(world);
-            else
-                BuildMinimalTwoSitePrototype(world);
+            BuildMinimalTwoSitePrototype(world);
         }
 
         public static void BuildMinimalTwoSitePrototype(SimulationWorld world)
@@ -32,92 +26,11 @@ namespace XianXia.Core.World.Strategic
                 return;
 
             BuildPlayableRectangle(world, MapId, "Ch01 Hex Prototype (minimal)");
-            RegisterSite(world, SiteHuangcun, "青石荒村", "Village", HuangcunHex,
-                "base:node_huangcun", "base:map_huangcun");
-            RegisterSite(world, SiteQingyunLu, "青石路", "Road", QingyunLuHex,
-                "base:node_qingyun_lu", "base:map_qingyun_lu");
+            RegisterSite(world, SiteHuangcun, "青石荒村", "Village", HuangcunHex, "base:map_huangcun");
+            RegisterSite(world, SiteQingyunLu, "青石路", "Road", QingyunLuHex, "base:map_qingyun_lu");
             ApplyTerrainForSite(world, HuangcunHex, "Village");
             ApplyTerrainForSite(world, QingyunLuHex, "Road");
             PaintRoadPath(world.HexWorld, HuangcunHex, QingyunLuHex);
-            LinkLegacyNodes(world);
-        }
-
-        public static void BuildFullFromWorldGraph(SimulationWorld world)
-        {
-            if (world?.WorldGraph == null)
-                return;
-
-            BuildPlayableRectangle(world, MapId, "Ch01 Hex Strategic");
-
-            var rawHex = new System.Collections.Generic.Dictionary<string, HexCoord>(64);
-            var minQx = float.MaxValue;
-            var maxQx = float.MinValue;
-            var minQy = float.MaxValue;
-            var maxQy = float.MinValue;
-
-            foreach (var kv in world.WorldGraph.Nodes)
-            {
-                var node = kv.Value;
-                if (node == null || string.IsNullOrEmpty(node.Id))
-                    continue;
-                rawHex[node.Id] = WorldGraphToHex(node.WorldX, node.WorldY);
-                minQx = System.Math.Min(minQx, node.WorldX);
-                maxQx = System.Math.Max(maxQx, node.WorldX);
-                minQy = System.Math.Min(minQy, node.WorldY);
-                maxQy = System.Math.Max(maxQy, node.WorldY);
-            }
-
-            if (rawHex.Count == 0)
-                return;
-
-            var spanX = System.Math.Max(1f, maxQx - minQx);
-            var spanY = System.Math.Max(1f, maxQy - minQy);
-            var placeW = HexWorldScale.PlayableV1Width - HexWorldScale.PlayableOriginQ * 2;
-            var placeH = HexWorldScale.PlayableV1Height - HexWorldScale.PlayableOriginR * 2;
-
-            var nodeHex = new System.Collections.Generic.Dictionary<string, HexCoord>(rawHex.Count);
-            foreach (var kv in world.WorldGraph.Nodes)
-            {
-                var node = kv.Value;
-                if (node == null || string.IsNullOrEmpty(node.Id))
-                    continue;
-                var tq = (int)System.Math.Round((node.WorldX - minQx) / spanX * (placeW - 1));
-                var tr = (int)System.Math.Round((node.WorldY - minQy) / spanY * (placeH - 1));
-                nodeHex[node.Id] = new HexCoord(
-                    HexWorldScale.PlayableOriginQ + tq,
-                    HexWorldScale.PlayableOriginR + tr);
-            }
-
-            foreach (var kv in nodeHex)
-            {
-                var nodeId = kv.Key;
-                if (!world.WorldGraph.TryGetNode(nodeId, out var node) || node == null)
-                    continue;
-                var anchor = kv.Value;
-                var siteId = "base:site_" + nodeId.Substring(nodeId.LastIndexOf('_') + 1);
-                RegisterSite(
-                    world,
-                    siteId,
-                    string.IsNullOrEmpty(node.Name) ? nodeId : node.Name,
-                    node.Kind ?? "Site",
-                    anchor,
-                    nodeId,
-                    node.LocalMapId ?? string.Empty);
-                ApplyTerrainForSite(world, anchor, node.Kind);
-            }
-
-            foreach (var kv in world.WorldGraph.Routes)
-            {
-                var route = kv.Value;
-                if (route == null)
-                    continue;
-                if (!nodeHex.TryGetValue(route.FromNodeId ?? string.Empty, out var from) ||
-                    !nodeHex.TryGetValue(route.ToNodeId ?? string.Empty, out var to))
-                    continue;
-                PaintRoadPath(world.HexWorld, from, to);
-            }
-
-            LinkLegacyNodes(world);
         }
 
         static void BuildPlayableRectangle(SimulationWorld world, string mapId, string mapName)
@@ -155,7 +68,6 @@ namespace XianXia.Core.World.Strategic
             string displayName,
             string kind,
             HexCoord anchor,
-            string legacyNodeId,
             string localMapId)
         {
             var site = new WorldSite
@@ -165,18 +77,8 @@ namespace XianXia.Core.World.Strategic
                 SiteType = kind,
                 AnchorHex = anchor,
                 LocalMapId = localMapId,
-                LegacyNodeId = legacyNodeId,
             };
             site.SetFootprint(BuildFootprintForKind(world.HexWorld, anchor, kind));
-
-            if (world.WorldGraph.TryGetNode(legacyNodeId, out var node) && node != null)
-            {
-                site.OwnerFactionId = node.OwnerId ?? string.Empty;
-                if (!string.IsNullOrEmpty(node.LocalMapId))
-                    site.LocalMapId = node.LocalMapId;
-                WorldSiteRegistrationService.LinkLegacyNodeToHex(node, anchor);
-            }
-
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
         }
 
@@ -217,24 +119,6 @@ namespace XianXia.Core.World.Strategic
             }
         }
 
-        static void LinkLegacyNodes(SimulationWorld world)
-        {
-            foreach (var kv in world.Strategic.Sites.Sites)
-            {
-                var site = kv.Value;
-                if (site == null || string.IsNullOrEmpty(site.LegacyNodeId))
-                    continue;
-                if (!world.WorldGraph.TryGetNode(site.LegacyNodeId, out var node) || node == null)
-                    continue;
-                WorldSiteRegistrationService.LinkLegacyNodeToHex(node, site.AnchorHex);
-            }
-        }
-
-        public static HexCoord WorldGraphToHex(float worldX, float worldY) =>
-            new HexCoord(
-                (int)System.Math.Round(worldX * HexWorldScale.WorldGraphHexStepsPerUnit),
-                -(int)System.Math.Round(worldY * HexWorldScale.WorldGraphHexStepsPerUnit));
-
         static void PaintRoadPath(HexWorld grid, HexCoord from, HexCoord to)
         {
             var path = new System.Collections.Generic.List<HexCoord>(64);
@@ -270,7 +154,7 @@ namespace XianXia.Core.World.Strategic
                 var t = i / (float)steps;
                 var q = from.Q + (to.Q - from.Q) * t;
                 var r = from.R + (to.R - from.R) * t;
-                var s = from.S + (to.S - to.S) * t;
+                var s = from.S + (to.S - from.S) * t;
                 pathOut.Add(CubeRound(q, r, s));
             }
         }
@@ -333,7 +217,6 @@ namespace XianXia.Core.World.Strategic
             out HexCoord weakPatrolHex)
         {
             var origin = ResolveHuangcunAnchorHex(world);
-            // 屏幕下方 = R+；屏幕右方 = Q+（Odd-R + GUI Y 翻转）
             strongPatrolHex = new HexCoord(origin.Q + 2, origin.R + 4);
             weakPatrolHex = new HexCoord(origin.Q + 6, origin.R);
 
@@ -421,7 +304,7 @@ namespace XianXia.Core.World.Strategic
                 !site.AnchorHex.Equals(default))
                 return site.AnchorHex;
 
-            if (ArmyHexBattleAnchorService.TryResolveHexForNode(world, HuangcunNodeId, out var hex))
+            if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, SiteHuangcun, out var hex))
                 return hex;
 
             return HuangcunHex;

@@ -20,9 +20,6 @@ namespace XianXia.Core.World.Strategic
         public string OwnerFactionId { get; set; } = string.Empty;
         public string LocalMapId { get; set; } = string.Empty;
 
-        /// <summary>内容导入期临时字段；战略空间真源为 Hex，不得作为正式位置。</summary>
-        public string LegacyNodeId { get; set; } = string.Empty;
-
         public HexCoord AnchorHex { get; set; }
 
         /// <summary>兼容旧字段名。</summary>

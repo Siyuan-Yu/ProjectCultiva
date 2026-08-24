@@ -92,31 +92,8 @@ namespace XianXia.Core.World.Strategic
             if (target.IsHex)
             {
                 destination = target.HexCoord;
-                label = target.Describe(world.WorldGraph, world);
+                label = target.Describe(world);
                 return world.HexWorld.Contains(destination);
-            }
-
-            if (!string.IsNullOrEmpty(target.NodeId))
-            {
-                foreach (var kv in world.Strategic.Sites.Sites)
-                {
-                    var site = kv.Value;
-                    if (site == null ||
-                        !string.Equals(site.LegacyNodeId, target.NodeId, System.StringComparison.Ordinal))
-                        continue;
-                    destination = site.HexCoord;
-                    label = site.DisplayName;
-                    return true;
-                }
-
-                if (world.WorldGraph.TryGetNode(target.NodeId, out var node) &&
-                    node != null &&
-                    node.HasHexCoord)
-                {
-                    destination = new HexCoord(node.HexQ, node.HexR);
-                    label = string.IsNullOrEmpty(node.Name) ? node.Id : node.Name;
-                    return world.HexWorld.Contains(destination);
-                }
             }
 
             return false;

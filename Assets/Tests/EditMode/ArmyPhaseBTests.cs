@@ -17,15 +17,7 @@ namespace XianXia.Tests
         static SimulationWorld CreateWorld()
         {
             var world = new SimulationWorld();
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = TestNodeA,
-                Name = "A",
-                OwnerId = TestFactionA,
-                WorldX = 1f,
-                WorldY = 2f
-            });
-            return world;
+            Ch01HexPrototypeMapBuilder.Build(world);return world;
         }
 
         static EntityId SpawnCharacter(SimulationWorld world, string name, string nodeId)
@@ -139,10 +131,11 @@ namespace XianXia.Tests
         public void ArmyFormation_PrototypeNode_AllowsPresenceBasedFriendlyNode()
         {
             var world = CreateWorld();
-            Assert.IsTrue(world.WorldGraph.TryGetNode(TestNodeA, out var node));
-            node.OwnerId = string.Empty;
+            Assert.IsTrue(world.Strategic.Sites.TryGet(TestNodeA, out var node));
+            node.OwnerFactionId = string.Empty;
             var a = SpawnCharacter(world, "A", TestNodeA);
-            Assert.IsTrue(ArmyFormationNodePolicy.IsFriendlyNodeForFaction(world, TestNodeA, TestFactionA));
+            Assert.IsTrue(Ch01ScenarioArmyFormationPolicy.IsFriendlyNodeForFormation(
+                world, TestNodeA, TestFactionA));
             Assert.IsTrue(ArmyService.CreateArmy(world, TestFactionA, TestNodeA, new[] { a }).IsSuccess);
         }
     }

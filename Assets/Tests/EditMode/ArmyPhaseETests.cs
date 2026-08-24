@@ -18,15 +18,7 @@ namespace XianXia.Tests
         static SimulationWorld CreateWorld()
         {
             var world = new SimulationWorld();
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = NodeA,
-                Name = "A",
-                OwnerId = FactionA,
-                WorldX = 0f,
-                WorldY = 0f
-            });
-            WarGateService.DeclareWar(world, FactionA, FactionB);
+            Ch01HexPrototypeMapBuilder.Build(world);WarGateService.DeclareWar(world, FactionA, FactionB);
             return world;
         }
 
@@ -70,7 +62,7 @@ namespace XianXia.Tests
 
             StrategicPursuitService.BeginPursuitArmy(world, army.ArmyId, enemy);
             var pursue = ArmyStackAdapter.CollectLivingMemberIds(world, army);
-            Assert.IsTrue(ArmyTravelCommandService.MoveArmyToStackAnchor(world, army.ArmyId, enemy).IsSuccess);
+            Assert.IsTrue(ArmyHexCommandService.AttackStack(world, army.ArmyId, enemy).IsSuccess);
             StrategicPursuitService.SyncPursuersToStack(world, pursue, enemy);
             StrategicPursuitService.AfterTravelTick(world);
             Assert.IsTrue(world.Strategic.HasBattleOffer || world.Strategic.Encounter.HasPursueParty);

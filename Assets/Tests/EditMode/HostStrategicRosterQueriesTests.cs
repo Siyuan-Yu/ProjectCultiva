@@ -135,7 +135,6 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             world.Strategic.PlayerFactionId = FactionA;
-            world.WorldGraph.RegisterNode(new WorldNodeState { Id = NodeA, Name = "NodeA", OwnerId = FactionA });
             var l = world.Entities.CreateCharacter(new DefinitionId("test", "leader"), "Leader");
             var r = world.Entities.CreateCharacter(new DefinitionId("test", "recruit"), "Recruit");
             Assert.IsTrue(l.IsSuccess);

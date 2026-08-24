@@ -140058,7 +140058,7 @@
             }
           ],
           "localMapId": "base:map_site_bei",
-          "ownerFactionId": "",
+          "ownerFactionId": "base:faction_shuofeng",
           "legacyNodeId": "base:node_cunzhuang_bei"
         },
         {
@@ -140118,7 +140118,7 @@
             }
           ],
           "localMapId": "base:map_site_dong",
-          "ownerFactionId": "",
+          "ownerFactionId": "base:faction_donglin",
           "legacyNodeId": "base:node_shulin_dong"
         },
         {
@@ -140218,7 +140218,7 @@
             }
           ],
           "localMapId": "base:map_site_gudao",
-          "ownerFactionId": "",
+          "ownerFactionId": "base:faction_donglin",
           "legacyNodeId": "base:node_gudao"
         },
         {
@@ -140234,7 +140234,7 @@
             }
           ],
           "localMapId": "base:map_site_haijiao",
-          "ownerFactionId": "",
+          "ownerFactionId": "base:faction_fisher_village",
           "legacyNodeId": "base:node_haijiao"
         },
         {
@@ -140250,7 +140250,7 @@
             }
           ],
           "localMapId": "base:map_ch01_reference",
-          "ownerFactionId": "",
+          "ownerFactionId": "base:sect_huangcun_labor",
           "legacyNodeId": "base:node_huangcun"
         },
         {
@@ -140286,7 +140286,7 @@
             }
           ],
           "localMapId": "base:map_site_lingdi",
-          "ownerFactionId": "",
+          "ownerFactionId": "base:sect_huangcun_labor",
           "legacyNodeId": "base:node_lingdi"
         },
         {
@@ -140318,7 +140318,7 @@
             }
           ],
           "localMapId": "base:map_site_lu",
-          "ownerFactionId": "",
+          "ownerFactionId": "base:sect_huangcun_labor",
           "legacyNodeId": "base:node_qingyun_lu"
         },
         {
@@ -140334,7 +140334,7 @@
             }
           ],
           "localMapId": "base:map_site_miao",
-          "ownerFactionId": "",
+          "ownerFactionId": "base:faction_donglin",
           "legacyNodeId": "base:node_miao"
         },
         {
@@ -140350,7 +140350,7 @@
             }
           ],
           "localMapId": "base:map_site_nan",
-          "ownerFactionId": "",
+          "ownerFactionId": "base:faction_nan_yan",
           "legacyNodeId": "base:node_cunzhuang_nan"
         },
         {
@@ -140366,7 +140366,7 @@
             }
           ],
           "localMapId": "base:map_site_shankou",
-          "ownerFactionId": "",
+          "ownerFactionId": "base:faction_shuofeng",
           "legacyNodeId": "base:node_shankou"
         },
         {
@@ -140382,7 +140382,7 @@
             }
           ],
           "localMapId": "base:map_site_shuizhai",
-          "ownerFactionId": "",
+          "ownerFactionId": "base:faction_fisher_village",
           "legacyNodeId": "base:node_shuizhai"
         },
         {
@@ -140454,7 +140454,7 @@
             }
           ],
           "localMapId": "base:map_site_xi",
-          "ownerFactionId": "",
+          "ownerFactionId": "base:faction_xijin",
           "legacyNodeId": "base:node_dukou_xi"
         },
         {
@@ -140470,7 +140470,7 @@
             }
           ],
           "localMapId": "base:map_site_yaotian",
-          "ownerFactionId": "",
+          "ownerFactionId": "base:faction_xijin",
           "legacyNodeId": "base:node_yaotian"
         },
         {
@@ -140502,7 +140502,7 @@
             }
           ],
           "localMapId": "base:map_site_yucun",
-          "ownerFactionId": "",
+          "ownerFactionId": "base:faction_fisher_village",
           "legacyNodeId": "base:node_yucun"
         },
         {
@@ -140518,7 +140518,7 @@
             }
           ],
           "localMapId": "base:map_site_zhuangyuan",
-          "ownerFactionId": "",
+          "ownerFactionId": "base:faction_nan_yan",
           "legacyNodeId": "base:node_zhuangyuan"
         }
       ]

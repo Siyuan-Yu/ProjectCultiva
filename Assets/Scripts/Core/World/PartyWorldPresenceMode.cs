@@ -11,5 +11,7 @@ namespace XianXia.Core.World
         RouteAnchored = 4,
         /// <summary>战略 Hex 钉点（战后 Downed / Visible Corpse Residual 专用）。</summary>
         AtHex = 5,
+        /// <summary>Pure Hex：角色战略位置真源为 WorldSite（非 NodeId）。</summary>
+        AtSite = 6,
     }
 }

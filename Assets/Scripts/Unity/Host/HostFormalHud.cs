@@ -176,7 +176,6 @@ namespace XianXia.Unity.Host
                  (bootstrap.CharacterSheetPanel != null && bootstrap.CharacterSheetPanel.IsOpen) ||
                  (bootstrap.RelationPanel != null && bootstrap.RelationPanel.IsOpen) ||
                  (bootstrap.CultivateConfirm != null && bootstrap.CultivateConfirm.IsOpen) ||
-                 (bootstrap.WorldTravelConfirm != null && bootstrap.WorldTravelConfirm.IsOpen) ||
                  (bootstrap.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen)))
                 return;
 

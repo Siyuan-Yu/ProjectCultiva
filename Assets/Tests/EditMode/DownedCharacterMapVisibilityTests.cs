@@ -19,29 +19,6 @@ namespace XianXia.Tests
         static SimulationWorld CreateGraphWorld()
         {
             var world = new SimulationWorld();
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = TestNodeA,
-                Name = "A",
-                OwnerId = TestFactionA,
-                WorldX = 0f,
-                WorldY = 0f
-            });
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = "test:node_b",
-                Name = "B",
-                OwnerId = TestFactionA,
-                WorldX = 10f,
-                WorldY = 0f
-            });
-            world.WorldGraph.RegisterRoute(new WorldRouteState
-            {
-                Id = TestRoute,
-                FromNodeId = TestNodeA,
-                ToNodeId = "test:node_b",
-                TravelCost = 1
-            });
             return world;
         }
 

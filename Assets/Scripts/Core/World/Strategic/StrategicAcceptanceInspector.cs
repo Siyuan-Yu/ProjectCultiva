@@ -30,13 +30,13 @@ namespace XianXia.Core.World.Strategic
             for (var i = 0; i < StrategicFactionCatalog.Ch01RegionalFactionIds.Length; i++)
                 AddFaction(into, StrategicFactionCatalog.Ch01RegionalFactionIds[i]);
 
-            if (world.WorldGraph?.Nodes != null)
+            if (world.Strategic?.Sites != null)
             {
-                foreach (var kv in world.WorldGraph.Nodes)
+                foreach (var kv in world.Strategic.Sites.Sites)
                 {
-                    var node = kv.Value;
-                    if (node != null)
-                        AddFaction(into, node.OwnerId);
+                    var site = kv.Value;
+                    if (site != null)
+                        AddFaction(into, site.OwnerFactionId);
                 }
             }
 
@@ -91,16 +91,19 @@ namespace XianXia.Core.World.Strategic
             into.Sort(StringComparer.Ordinal);
         }
 
-        public static int CountOwnedNodes(SimulationWorld world, string factionId)
+        public static int CountOwnedNodes(SimulationWorld world, string factionId) =>
+            CountOwnedSites(world, factionId);
+
+        public static int CountOwnedSites(SimulationWorld world, string factionId)
         {
-            if (world?.WorldGraph?.Nodes == null || string.IsNullOrEmpty(factionId))
+            if (world?.Strategic?.Sites?.Sites == null || string.IsNullOrEmpty(factionId))
                 return 0;
             var count = 0;
-            foreach (var kv in world.WorldGraph.Nodes)
+            foreach (var kv in world.Strategic.Sites.Sites)
             {
-                var node = kv.Value;
-                if (node != null &&
-                    string.Equals(node.OwnerId, factionId, StringComparison.Ordinal))
+                var site = kv.Value;
+                if (site != null &&
+                    string.Equals(site.OwnerFactionId, factionId, StringComparison.Ordinal))
                     count++;
             }
 
@@ -132,21 +135,21 @@ namespace XianXia.Core.World.Strategic
             return StrategicFactionCatalog.DisplayName(factionId) + " (" + factionId + ")";
         }
 
-        public static string BuildNodeOwnerLine(SimulationWorld world, WorldNodeState node)
+        public static string BuildSiteOwnerLine(SimulationWorld world, WorldSite site)
         {
-            if (node == null)
+            if (site == null)
                 return "Owner: —";
-            return "Owner: " + ResolveOwnerDisplay(node.OwnerId);
+            return "Owner: " + ResolveOwnerDisplay(site.OwnerFactionId);
         }
 
-        public static void AppendCaptureObjectivesForNode(
+        public static void AppendCaptureObjectivesForSite(
             SimulationWorld world,
-            WorldNodeState node,
+            WorldSite site,
             System.Text.StringBuilder sb)
         {
-            if (world?.Strategic?.CaptureObjectives == null || node == null || sb == null)
+            if (world?.Strategic?.CaptureObjectives == null || site == null || sb == null)
                 return;
-            var ids = world.Strategic.CaptureObjectives.GetObjectiveIdsForNode(node.Id);
+            var ids = world.Strategic.CaptureObjectives.GetObjectiveIdsForSite(site.SiteId);
             if (ids == null || ids.Count == 0)
                 return;
 

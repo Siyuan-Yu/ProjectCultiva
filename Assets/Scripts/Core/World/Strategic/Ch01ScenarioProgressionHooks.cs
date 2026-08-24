@@ -8,29 +8,30 @@ namespace XianXia.Core.World.Strategic
     /// </summary>
     public static class Ch01ScenarioProgressionHooks
     {
-        public const string HuangcunNodeId = "base:node_huangcun";
+        public const string HuangcunSiteId = "base:site_huangcun";
         public const string FlagPlayerFactionPoliticallyActive = "ch01:player_faction_politically_active";
         public const string FlagVassalageNegotiationOffered = "ch01:vassalage_negotiation_offered";
 
         public static void Register(SimulationWorld world)
         {
-            ScenarioProgressionHooks.OnAllCaptureObjectivesCompletedForNode = HandleAllCaptureObjectivesCompleted;
+            ScenarioProgressionHooks.OnAllCaptureObjectivesCompletedForSite = HandleAllCaptureObjectivesCompleted;
         }
 
         public static void Unregister()
         {
-            if (ScenarioProgressionHooks.OnAllCaptureObjectivesCompletedForNode == (Action<SimulationWorld, string>)HandleAllCaptureObjectivesCompleted)
-                ScenarioProgressionHooks.OnAllCaptureObjectivesCompletedForNode = null;
+            if (ScenarioProgressionHooks.OnAllCaptureObjectivesCompletedForSite ==
+                (Action<SimulationWorld, string>)HandleAllCaptureObjectivesCompleted)
+                ScenarioProgressionHooks.OnAllCaptureObjectivesCompletedForSite = null;
         }
 
-        static void HandleAllCaptureObjectivesCompleted(SimulationWorld world, string nodeId)
+        static void HandleAllCaptureObjectivesCompleted(SimulationWorld world, string siteId)
         {
-            if (world == null || string.IsNullOrEmpty(nodeId))
+            if (world == null || string.IsNullOrEmpty(siteId))
                 return;
 
             // Future Ch01 story hook — NOT implemented in Final Closure:
             // Huangcun captured → player faction politically active → DeclareWar(Player, FormerOverlordSect)
-            if (string.Equals(nodeId, HuangcunNodeId, System.StringComparison.Ordinal))
+            if (string.Equals(siteId, HuangcunSiteId, System.StringComparison.Ordinal))
                 world.Flags.Set(FlagPlayerFactionPoliticallyActive);
         }
 

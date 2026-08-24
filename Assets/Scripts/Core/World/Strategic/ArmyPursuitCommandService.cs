@@ -6,8 +6,7 @@ using XianXia.Core.World;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// Formal Army 追击 tick 同步：TargetArmyId → FormalArmy.StrategicPosition 真源；
-    /// TRACK EVERY TICK，仅拓扑变化时 Repath。
+    /// Formal Army 追击 tick 同步：Hex 战略真源。
     /// </summary>
     public static class ArmyPursuitCommandService
     {
@@ -22,7 +21,7 @@ namespace XianXia.Core.World.Strategic
 
             if (!ArmyStackAdapter.TryGetFormalArmy(world, stack, out var targetArmy) || targetArmy == null)
             {
-                SyncFormalArmyPursuersToStackLegacy(world, army, stack, pursue);
+                SyncFormalArmyPursuersToStackHex(world, army, stack);
                 return;
             }
 
@@ -62,48 +61,15 @@ namespace XianXia.Core.World.Strategic
             ArmyPresenceAdapter.SyncFromArmy(world, army);
         }
 
-        static void SyncFormalArmyPursuersToStackLegacy(
+        static void SyncFormalArmyPursuersToStackHex(
             SimulationWorld world,
             FormalArmy army,
-            ArmyStack stack,
-            IReadOnlyList<EntityId> pursue)
+            ArmyStack stack)
         {
-            if (HexStrategicRuntime.IsActive(world))
-            {
-                if (ArmyStackAdapter.TryGetFormalArmy(world, stack, out var targetArmy) && targetArmy != null)
-                    ArmyHexPursuitService.BeginAttackArmy(world, army.ArmyId, targetArmy.ArmyId);
-                else
-                    ArmyHexPursuitService.BeginAttackStack(world, army.ArmyId, stack);
-                return;
-            }
-
-            var leaderId = army.LeaderCharacterId;
-            if (leaderId.IsNone ||
-                !world.WorldPresence.TryGet(leaderId, out var leaderPresence) ||
-                leaderPresence == null)
-                return;
-
-            if (leaderPresence.Mode == PartyWorldPresenceMode.InEncounter &&
-                !StrategicEncounterSpawner.IsFieldCleared(world))
-                return;
-
-            if (!WorldTravelService.CanReceiveTravelOrder(world, leaderId))
-                return;
-
-            if (StrategicEngageRules.IsAgentColocatedWithStack(world, leaderPresence, stack))
-                return;
-
-            if (army.IsTraveling)
-                return;
-
-            if (ArmyTravelCommandService.HasPendingLegs(army.ArmyId))
-            {
-                ArmyTravelCommandService.TryContinueQueuedTravel(world, army.ArmyId);
-                ArmyPresenceAdapter.SyncFromArmy(world, army);
-                return;
-            }
-
-            ArmyTravelCommandService.MoveArmyToStackAnchor(world, army.ArmyId, stack);
+            if (ArmyStackAdapter.TryGetFormalArmy(world, stack, out var targetArmy) && targetArmy != null)
+                ArmyHexPursuitService.BeginAttackArmy(world, army.ArmyId, targetArmy.ArmyId);
+            else
+                ArmyHexPursuitService.BeginAttackStack(world, army.ArmyId, stack);
         }
     }
 }

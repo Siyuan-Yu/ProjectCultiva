@@ -46,10 +46,6 @@ namespace XianXia.Core.World.Hex
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid site.");
 
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
-            if (!string.IsNullOrEmpty(site.LegacyNodeId) &&
-                world.WorldGraph.TryGetNode(site.LegacyNodeId, out var node) &&
-                node != null)
-                WorldSiteRegistrationService.LinkLegacyNodeToHex(node, site.AnchorHex);
             return Result.Success();
         }
     }

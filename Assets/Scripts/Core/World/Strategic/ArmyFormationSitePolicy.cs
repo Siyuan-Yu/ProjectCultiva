@@ -8,26 +8,6 @@ namespace XianXia.Core.World.Strategic
     /// <summary>组军／解散／驻扎：须在己方 WorldSite 足迹内（Hex 战略真源）。</summary>
     public static class ArmyFormationSitePolicy
     {
-        public static bool TryGetSiteForLegacyNode(SimulationWorld world, string nodeId, out WorldSite site)
-        {
-            site = null;
-            if (world?.Strategic?.Sites == null || string.IsNullOrEmpty(nodeId))
-                return false;
-
-            foreach (var kv in world.Strategic.Sites.Sites)
-            {
-                var candidate = kv.Value;
-                if (candidate == null || string.IsNullOrEmpty(candidate.LegacyNodeId))
-                    continue;
-                if (!string.Equals(candidate.LegacyNodeId, nodeId, StringComparison.Ordinal))
-                    continue;
-                site = candidate;
-                return true;
-            }
-
-            return false;
-        }
-
         public static bool IsFriendlySiteForFaction(WorldSite site, string factionId)
         {
             if (site == null || string.IsNullOrEmpty(factionId))
@@ -56,11 +36,9 @@ namespace XianXia.Core.World.Strategic
                 var presence = kv.Value;
                 if (presence == null || presence.EntityId.IsNone)
                     continue;
-                if (presence.Mode != PartyWorldPresenceMode.AtNode)
+                if (presence.Mode != PartyWorldPresenceMode.AtSite)
                     continue;
-                if (!TryGetSiteForLegacyNode(world, presence.NodeId, out var residentSite) ||
-                    residentSite == null ||
-                    !string.Equals(residentSite.SiteId, site.SiteId, StringComparison.Ordinal))
+                if (!string.Equals(presence.SiteId, site.SiteId, StringComparison.Ordinal))
                     continue;
                 var charFaction = ArmyService.ResolveCharacterFactionId(world, presence.EntityId);
                 if (string.Equals(charFaction, factionId, StringComparison.Ordinal))
@@ -104,16 +82,16 @@ namespace XianXia.Core.World.Strategic
             return false;
         }
 
-        public static bool TryValidateFriendlySiteForNode(
+        public static bool TryValidateFriendlySiteForSiteId(
             SimulationWorld world,
             string factionId,
-            string nodeId,
+            string siteId,
             out GameError error)
         {
             error = default;
-            if (!TryGetSiteForLegacyNode(world, nodeId, out var site) || site == null)
+            if (!world.Strategic.Sites.TryGet(siteId, out var site) || site == null)
             {
-                error = new GameError(ErrorCode.NotFound, "WorldSite not found for node.", nodeId);
+                error = new GameError(ErrorCode.NotFound, "WorldSite not found.", siteId);
                 return false;
             }
 
@@ -139,5 +117,4 @@ namespace XianXia.Core.World.Strategic
             return TryValidateFriendlySite(world, factionId, site, out error);
         }
     }
-
 }

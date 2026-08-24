@@ -90,21 +90,27 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void Acceptance_NodeOwner_ReadsOwnerFactionId()
+        public void Acceptance_SiteOwner_ReadsOwnerFactionId()
         {
             var world = new SimulationWorld();
-            var node = new WorldNodeState { Id = NodeA, Name = "NodeA", OwnerId = FactionB };
-            world.WorldGraph.RegisterNode(node);
-            var line = StrategicAcceptanceInspector.BuildNodeOwnerLine(world, node);
+            Ch01HexPrototypeMapBuilder.Build(world);
+            var site = new WorldSite
+            {
+                SiteId = NodeA,
+                DisplayName = "NodeA",
+                OwnerFactionId = FactionB,
+                AnchorHex = Ch01HexPrototypeMapBuilder.HuangcunHex,
+            };
+            WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
+            var line = StrategicAcceptanceInspector.BuildSiteOwnerLine(world, site);
             StringAssert.Contains(FactionB, line);
-            Assert.AreEqual(1, StrategicAcceptanceInspector.CountOwnedNodes(world, FactionB));
+            Assert.AreEqual(1, StrategicAcceptanceInspector.CountOwnedSites(world, FactionB));
         }
 
         [Test]
         public void Acceptance_Snapshot_UsesSchemaV2()
         {
             var world = new SimulationWorld();
-            world.WorldGraph.RegisterNode(new WorldNodeState { Id = NodeA, OwnerId = FactionA });
             var service = new SnapshotService(new JsonSnapshotSerializer());
             var captured = service.Capture(world, new SimulationLoop(world));
             Assert.AreEqual(WorldSnapshot.CurrentSchemaVersion, captured.SchemaVersion);
@@ -118,7 +124,6 @@ namespace XianXia.Tests
         static SimulationWorld BootstrapArmyNode(out EntityId leader, out EntityId recruit)
         {
             var world = new SimulationWorld();
-            world.WorldGraph.RegisterNode(new WorldNodeState { Id = NodeA, OwnerId = FactionA });
             var l = world.Entities.CreateCharacter(new DefinitionId("test", "leader"), "Leader");
             var r = world.Entities.CreateCharacter(new DefinitionId("test", "recruit"), "Recruit");
             Assert.IsTrue(l.IsSuccess);

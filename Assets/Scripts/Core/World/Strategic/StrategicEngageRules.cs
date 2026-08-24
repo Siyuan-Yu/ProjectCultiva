@@ -24,6 +24,9 @@ namespace XianXia.Core.World.Strategic
             if (world == null || p == null || stack == null)
                 return false;
 
+            if (HexStrategicRuntime.IsActive(world))
+                return IsAgentHexColocatedWithStack(world, p, stack);
+
             // 节点驻军：双方同节点
             if (!stack.IsRoutePositioned && !string.IsNullOrEmpty(stack.NodeId))
             {
@@ -114,6 +117,28 @@ namespace XianXia.Core.World.Strategic
                 p.Mode == PartyWorldPresenceMode.InEncounter)
                 return p.RouteAnchorProgress >= 0f ? p.RouteAnchorProgress : p.TravelProgress;
             return p.TravelProgress;
+        }
+
+        static bool IsAgentHexColocatedWithStack(
+            SimulationWorld world,
+            WorldAgentPresence p,
+            ArmyStack stack)
+        {
+            if (!ArmyStackAdapter.TryGetFormalArmy(world, stack, out var defender) ||
+                defender == null ||
+                !defender.UsesHexStrategicPosition)
+                return false;
+
+            var agentId = p.EntityId;
+            if (agentId.IsNone)
+                return false;
+
+            if (ArmyService.TryGetArmyForCharacter(world, agentId, out var attacker) &&
+                attacker != null &&
+                attacker.UsesHexStrategicPosition)
+                return ArmyHexBattleAnchorService.TryDetectHexContact(attacker, defender);
+
+            return false;
         }
     }
 }

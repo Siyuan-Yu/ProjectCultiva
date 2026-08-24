@@ -28,7 +28,7 @@ namespace XianXia.Unity.Host
 
             var world = bootstrap.Session.World;
             FormalArmyStrategicMutationDiagnostics.WorldTickProvider = () => world.Tick.Value;
-            FormalArmyStrategicMutationDiagnostics.BindWorldGraphForPresentationCheck(world);
+                FormalArmyStrategicMutationDiagnostics.BindPresentationWorld(world);
         }
 
         public static void TickFrame() =>

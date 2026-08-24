@@ -26,14 +26,6 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             world.Strategic.PlayerFactionId = StrategicFactionCatalog.PlayerFactionId;
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = NodeA,
-                Name = "荒村",
-                OwnerId = StrategicFactionCatalog.HuangcunLaborId,
-                WorldX = 0f,
-                WorldY = 0f
-            });
             HexTestWorldBootstrap.EnsureMinimalHexMap(world);
             Assert.IsTrue(ArmyStackAdapter.EnsureBanditPatrolArmy(
                 world, NodeA, string.Empty, string.Empty, -1f).IsSuccess);

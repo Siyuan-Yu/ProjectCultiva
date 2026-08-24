@@ -5,64 +5,45 @@ namespace XianXia.Core.World.Strategic
 {
     /// <summary>
     /// Phase H：Ch01 / LevelTester 场景 Adapter。
-    /// Hex 模式下使用 WorldSite 足迹；legacy Node 规则仅作无 Hex 地图时的测试后备。
+    /// Hex 模式下使用 WorldSite 足迹。
     /// </summary>
     public static class Ch01ScenarioArmyFormationPolicy
     {
-        public static bool IsFriendlyNodeForFormation(SimulationWorld world, string nodeId, string factionId)
+        public static bool IsFriendlyNodeForFormation(SimulationWorld world, string siteId, string factionId)
         {
-            if (HexStrategicRuntime.IsActive(world))
-            {
-                if (ArmyFormationSitePolicy.TryGetSiteForLegacyNode(world, nodeId, out var site) &&
-                    site != null &&
-                    ArmyFormationSitePolicy.IsFriendlySiteForFaction(site, factionId))
-                    return true;
-                if (ArmyFormationSitePolicy.TryGetSiteForLegacyNode(world, nodeId, out site) &&
-                    site != null &&
-                    ArmyFormationSitePolicy.HasFactionMemberAtSite(world, site, factionId))
-                    return true;
+            if (!world.Strategic.Sites.TryGet(siteId, out var site) || site == null)
                 return false;
-            }
-
-            if (ArmyFormationNodePolicy.IsFriendlyNodeForFaction(world, nodeId, factionId))
+            if (ArmyFormationSitePolicy.IsFriendlySiteForFaction(site, factionId))
                 return true;
-            return ArmyFormationNodePolicy.HasFactionMemberAtNode(world, nodeId, factionId);
+            return ArmyFormationSitePolicy.HasFactionMemberAtSite(world, site, factionId);
         }
 
         public static bool TryValidateFriendlyNode(
             SimulationWorld world,
             string factionId,
-            string nodeId,
+            string siteId,
             out GameError error)
         {
-            if (HexStrategicRuntime.IsActive(world))
+            if (!world.Strategic.Sites.TryGet(siteId, out var site) || site == null)
             {
-                if (ArmyFormationSitePolicy.TryGetSiteForLegacyNode(world, nodeId, out var site) &&
-                    site != null &&
-                    ArmyFormationSitePolicy.TryValidateFriendlySite(world, factionId, site, out error))
-                    return true;
-                if (ArmyFormationSitePolicy.TryGetSiteForLegacyNode(world, nodeId, out site) &&
-                    site != null &&
-                    ArmyFormationSitePolicy.HasFactionMemberAtSite(world, site, factionId))
-                {
-                    error = default;
-                    return true;
-                }
-
-                error = new GameError(
-                    ErrorCode.InvalidOperation,
-                    "Army operations require friendly WorldSite.",
-                    nodeId + ";faction=" + factionId);
+                error = new GameError(ErrorCode.NotFound, "WorldSite not found.", siteId);
                 return false;
             }
 
-            if (IsFriendlyNodeForFormation(world, nodeId, factionId))
+            if (ArmyFormationSitePolicy.TryValidateFriendlySite(world, factionId, site, out error))
+                return true;
+
+            if (ArmyFormationSitePolicy.HasFactionMemberAtSite(world, site, factionId))
             {
                 error = default;
                 return true;
             }
 
-            return ArmyFormationNodePolicy.TryValidateFriendlyNode(world, factionId, nodeId, out error);
+            error = new GameError(
+                ErrorCode.InvalidOperation,
+                "Army operations require friendly WorldSite.",
+                siteId + ";faction=" + factionId);
+            return false;
         }
     }
 }

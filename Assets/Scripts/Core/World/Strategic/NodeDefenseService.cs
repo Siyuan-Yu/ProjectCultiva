@@ -5,13 +5,22 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>Phase H：Node Defense 接口（数值公式 DEFER）。</summary>
+    /// <summary>
+    /// Phase H：地点防御力统计（参数名 nodeId 兼容 SiteId）。
+    /// 完整攻防公式 DEFER；Capture 门禁已接 WarGate。
+    /// </summary>
     public static class NodeDefenseService
     {
         public static int CountResidents(SimulationWorld world, string nodeId)
         {
             if (world?.WorldPresence == null || string.IsNullOrEmpty(nodeId))
                 return 0;
+
+            if (HexStrategicRuntime.IsActive(world) &&
+                world.Strategic.Sites.TryGet(nodeId, out var site) &&
+                site != null)
+                return StrategicNodeAccessService.CountPartyMembersAtSite(world, site.SiteId);
+
             var count = 0;
             foreach (var kv in world.WorldPresence.All)
             {
@@ -32,6 +41,12 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.Strategic?.FormalArmies == null || string.IsNullOrEmpty(nodeId))
                 return 0;
+
+            if (HexStrategicRuntime.IsActive(world) &&
+                world.Strategic.Sites.TryGet(nodeId, out var site) &&
+                site != null)
+                return CountGarrisonedArmiesAtSite(world, site, ownerFactionId);
+
             var count = 0;
             foreach (var kv in world.Strategic.FormalArmies.Armies)
             {
@@ -41,6 +56,32 @@ namespace XianXia.Core.World.Strategic
                 if (!string.Equals(army.NodeId, nodeId, StringComparison.Ordinal))
                     continue;
                 if (army.State != FormalArmyState.AtNode && army.State != FormalArmyState.Garrisoned)
+                    continue;
+                if (!string.IsNullOrEmpty(ownerFactionId) &&
+                    !string.Equals(army.FactionId, ownerFactionId, StringComparison.Ordinal))
+                    continue;
+                count++;
+            }
+
+            return count;
+        }
+
+        static int CountGarrisonedArmiesAtSite(
+            SimulationWorld world,
+            WorldSite site,
+            string ownerFactionId)
+        {
+            var count = 0;
+            foreach (var kv in world.Strategic.FormalArmies.Armies)
+            {
+                var army = kv.Value;
+                if (army == null || !army.UsesHexStrategicPosition)
+                    continue;
+                if (!site.OccupiesHex(army.CurrentHex))
+                    continue;
+                if (army.State != FormalArmyState.Idle &&
+                    army.State != FormalArmyState.Moving &&
+                    army.State != FormalArmyState.Garrisoned)
                     continue;
                 if (!string.IsNullOrEmpty(ownerFactionId) &&
                     !string.Equals(army.FactionId, ownerFactionId, StringComparison.Ordinal))

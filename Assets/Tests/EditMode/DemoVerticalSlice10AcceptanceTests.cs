@@ -98,7 +98,7 @@ namespace XianXia.Tests
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(
                 ids[0], PlayerCommandKind.Help, 1, ids[1])).IsSuccess);
 
-            Assert.AreEqual(4, WorldSnapshot.CurrentSchemaVersion);
+            Assert.AreEqual(5, WorldSnapshot.CurrentSchemaVersion);
             var snap = new SnapshotService(new JsonSnapshotSerializer()).CaptureJson(world, loop);
             Assert.IsTrue(snap.IsSuccess, snap.IsFailure ? snap.Error.ToString() : "");
         }

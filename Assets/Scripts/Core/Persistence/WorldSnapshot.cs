@@ -5,13 +5,15 @@ namespace XianXia.Core.Persistence
 {
     public sealed class WorldSnapshot
     {
-        public const int CurrentSchemaVersion = 4;
+        public const int CurrentSchemaVersion = 5;
         /// <summary>v1 development saves are explicitly unsupported.</summary>
         public const int LegacySchemaVersion = 1;
         /// <summary>v2 route-only saves are unsupported after hex migration.</summary>
         public const int LegacySchemaVersionV2 = 2;
         /// <summary>v3 lacks Residual Hex Presence — unsupported after residual migration.</summary>
         public const int LegacySchemaVersionV3 = 3;
+        /// <summary>v4 uses NodeOwners — unsupported after Pure Hex ownership migration.</summary>
+        public const int LegacySchemaVersionV4 = 4;
 
         public int SchemaVersion { get; set; } = CurrentSchemaVersion;
         public ulong SnapshotId { get; set; }
@@ -47,7 +49,7 @@ namespace XianXia.Core.Persistence
         /// <summary>Detached Residual Character Hex Presence（非 Group Domain）。</summary>
         public List<ResidualCharacterPresenceDto> ResidualCharacterPresences { get; set; } =
             new List<ResidualCharacterPresenceDto>();
-        public List<NodeOwnerSnapshotDto> NodeOwners { get; set; } = new List<NodeOwnerSnapshotDto>();
+        public List<WorldSiteOwnerSnapshotDto> WorldSiteOwners { get; set; } = new List<WorldSiteOwnerSnapshotDto>();
         public List<WarSnapshotDto> Wars { get; set; } = new List<WarSnapshotDto>();
         public List<AllianceSnapshotDto> Alliances { get; set; } = new List<AllianceSnapshotDto>();
         public List<VassalageSnapshotDto> Vassalages { get; set; } = new List<VassalageSnapshotDto>();
@@ -100,6 +102,12 @@ namespace XianXia.Core.Persistence
         public int HexR { get; set; }
     }
 
+    public sealed class WorldSiteOwnerSnapshotDto
+    {
+        public string SiteId { get; set; }
+        public string OwnerFactionId { get; set; }
+    }
+
     public sealed class NodeOwnerSnapshotDto
     {
         public string NodeId { get; set; }
@@ -140,7 +148,7 @@ namespace XianXia.Core.Persistence
     public sealed class CaptureObjectiveSnapshotDto
     {
         public string ObjectiveId { get; set; }
-        public string NodeId { get; set; }
+        public string SiteId { get; set; }
         public string WorkAreaId { get; set; }
         public int CurrentHp { get; set; }
         public int MaxHp { get; set; }

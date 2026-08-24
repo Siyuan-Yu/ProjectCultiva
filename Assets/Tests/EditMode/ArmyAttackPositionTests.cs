@@ -81,16 +81,12 @@ namespace XianXia.Tests
     static void RegisterNodeC(SimulationWorld world)
     {
       HexC = HexAlongPath(world, HexA, HexB, 1f);
-      world.WorldGraph.RegisterNode(new WorldNodeState
+      WorldSiteRegistrationService.RegisterSiteOnGrid(world, new WorldSite
       {
-        Id = NodeC,
-        Name = "C",
-        OwnerId = FactionA,
-        WorldX = 20f,
-        WorldY = 0f
+        SiteId = NodeC,
+        AnchorHex = HexC,
+        LocalMapId = "loc_test_c",
       });
-      if (world.WorldGraph.TryGetNode(NodeC, out var node) && node != null)
-        WorldSiteRegistrationService.LinkLegacyNodeToHex(node, HexC);
     }
 
     static HexCoord HexAlongPath(SimulationWorld world, HexCoord from, HexCoord to, float t)
@@ -150,7 +146,7 @@ namespace XianXia.Tests
 
     static void ExecuteAttackCommand(SimulationWorld world, FormalArmy pursuer, ArmyStack targetStack)
     {
-      ArmyTravelCommandService.ReconcileArmyWithLivingMembers(world, pursuer);
+      // removed: ReconcileArmyWithLivingMembers(world, pursuer);
       Assert.IsTrue(ArmyHexCommandService.AttackStack(world, pursuer.ArmyId, targetStack).IsSuccess);
     }
 

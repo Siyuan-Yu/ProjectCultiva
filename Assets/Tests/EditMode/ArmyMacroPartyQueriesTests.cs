@@ -17,16 +17,8 @@ namespace XianXia.Tests
         static SimulationWorld CreateWorld()
         {
             var world = new SimulationWorld();
-            world.Strategic.PlayerFactionId = TestFactionA;
-            world.WorldGraph.RegisterNode(new WorldNodeState
-            {
-                Id = TestNodeA,
-                Name = "A",
-                OwnerId = TestFactionA,
-                WorldX = 0f,
-                WorldY = 0f
-            });
-            return world;
+            Ch01HexPrototypeMapBuilder.Build(world);
+            world.Strategic.PlayerFactionId = TestFactionA;return world;
         }
 
         static EntityId SpawnCharacter(SimulationWorld world, string name)

@@ -346,7 +346,7 @@ namespace XianXia.Core.World.Strategic
             if (StrategicEngageRules.IsAgentColocatedWithStack(world, p, stack))
                 return;
 
-            WorldTravelService.StartTravelToStackAnchor(world, id, stack);
+            // Pure Hex: solo agent macro pursuit removed; FormalArmy path handles pursuit.
         }
 
         /// <summary>用角色身上的 CombatPursuitStackId 补全追击名单（防止只上路未 BeginPursuit）。</summary>

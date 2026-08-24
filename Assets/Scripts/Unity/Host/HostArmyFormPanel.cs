@@ -180,7 +180,7 @@ namespace XianXia.Unity.Host
                 }
                 else
                 {
-                    var nodeId = ArmyService.ResolveCharacterNodeId(world, _scratchParty[0]) ?? string.Empty;
+                    var nodeId = ArmyService.ResolveCharacterFormationLocationId(world, _scratchParty[0]) ?? string.Empty;
                     var result = ArmyUiCommands.TryCreateArmy(world, nodeId, factionId, _scratchParty);
                     if (result.IsSuccess)
                     {

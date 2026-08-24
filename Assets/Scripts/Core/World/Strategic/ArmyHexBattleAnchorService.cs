@@ -76,7 +76,7 @@ namespace XianXia.Core.World.Strategic
                 formal.UsesHexStrategicPosition)
             {
                 SetBattleAnchorHex(snap, formal.CurrentHex);
-                snap.BattleAnchorNodeId = ResolveLegacyNodeForHex(world, formal.CurrentHex, snap.BattleAnchorNodeId);
+                snap.BattleAnchorNodeId = ResolveSiteIdForHex(world, formal.CurrentHex, snap.BattleAnchorNodeId);
                 return;
             }
 
@@ -108,7 +108,7 @@ namespace XianXia.Core.World.Strategic
             }
 
             SetBattleAnchorHex(snap, army.CurrentHex);
-            snap.BattleAnchorNodeId = ResolveLegacyNodeForHex(world, army.CurrentHex, snap.BattleAnchorNodeId);
+            snap.BattleAnchorNodeId = ResolveSiteIdForHex(world, army.CurrentHex, snap.BattleAnchorNodeId);
         }
 
         public static void ParkArmyAtBattleAnchor(
@@ -142,35 +142,11 @@ namespace XianXia.Core.World.Strategic
                 }
 #endif
                 ArmyHexTravelService.InitializeArmyAtHex(army, hex);
-                army.NodeId = ResolveLegacyNodeForHex(world, hex, snap.BattleAnchorNodeId ?? army.NodeId);
+                army.NodeId = ResolveSiteIdForHex(world, hex, snap.BattleAnchorNodeId ?? army.NodeId);
                 return;
             }
 
             army.State = FormalArmyState.AtNode;
-            if (!string.IsNullOrEmpty(snap.BattleAnchorRouteId) && snap.BattleAnchorProgress >= 0f)
-            {
-                army.RouteId = snap.BattleAnchorRouteId;
-                if (world?.WorldGraph != null &&
-                    world.WorldGraph.TryGetRoute(snap.BattleAnchorRouteId, out var route) &&
-                    route != null)
-                {
-                    ArmyTravelCommandService.NormalizeFormalArmyRouteEndpoints(world, army, route);
-                    army.RouteAnchorProgress = ArmyTravelCommandService.ToGraphRouteProgress(
-                        route,
-                        snap.BattleAnchorNodeId ?? string.Empty,
-                        snap.BattleAnchorDestNodeId ?? string.Empty,
-                        snap.BattleAnchorProgress);
-                }
-                else
-                {
-                    army.RouteAnchorProgress = snap.BattleAnchorProgress;
-                    army.NodeId = snap.BattleAnchorNodeId ?? string.Empty;
-                    army.DestNodeId = snap.BattleAnchorDestNodeId ?? string.Empty;
-                }
-
-                return;
-            }
-
             army.NodeId = snap.BattleAnchorNodeId ?? army.NodeId ?? string.Empty;
         }
 
@@ -187,25 +163,13 @@ namespace XianXia.Core.World.Strategic
                 stack.RouteId = string.Empty;
                 stack.RouteAnchorProgress = -1f;
                 stack.ClearTravel();
-                stack.NodeId = ResolveLegacyNodeForHex(world, hex, snap.BattleAnchorNodeId ?? stack.NodeId);
+                stack.NodeId = ResolveSiteIdForHex(world, hex, snap.BattleAnchorNodeId ?? stack.NodeId);
                 stack.DestNodeId = stack.NodeId;
                 return;
             }
 
-            if (!string.IsNullOrEmpty(snap.BattleAnchorRouteId) && snap.BattleAnchorProgress >= 0f)
-            {
-                stack.RouteId = snap.BattleAnchorRouteId;
-                stack.RouteAnchorProgress = snap.BattleAnchorProgress;
-                stack.NodeId = snap.BattleAnchorNodeId ?? string.Empty;
-                stack.DestNodeId = snap.BattleAnchorDestNodeId ?? string.Empty;
-                return;
-            }
-
-            stack.RouteId = string.Empty;
-            stack.RouteAnchorProgress = -1f;
-            stack.ClearTravel();
             stack.NodeId = snap.BattleAnchorNodeId ?? stack.NodeId ?? string.Empty;
-            stack.DestNodeId = string.Empty;
+            stack.DestNodeId = snap.BattleAnchorDestNodeId ?? string.Empty;
         }
 
         public static void PlacePresenceAtBattleAnchor(
@@ -256,44 +220,36 @@ namespace XianXia.Core.World.Strategic
             return HexMath.Distance(pursuer.CurrentHex, target.CurrentHex) <= 1;
         }
 
-        public static bool TryResolveHexForNode(SimulationWorld world, string nodeId, out HexCoord hex)
+        public static bool TryResolveHexForSite(SimulationWorld world, string siteId, out HexCoord hex)
         {
             hex = default;
-            if (world == null || string.IsNullOrEmpty(nodeId))
+            if (world == null || string.IsNullOrEmpty(siteId))
                 return false;
 
-            foreach (var kv in world.Strategic.Sites.Sites)
+            if (world.Strategic.Sites.TryGet(siteId, out var site) && site != null)
             {
-                var site = kv.Value;
-                if (site == null || string.IsNullOrEmpty(site.LegacyNodeId))
-                    continue;
-                if (!string.Equals(site.LegacyNodeId, nodeId, System.StringComparison.Ordinal))
-                    continue;
-                hex = site.HexCoord;
-                return world.HexWorld.Contains(hex);
-            }
-
-            if (world.WorldGraph.TryGetNode(nodeId, out var node) && node != null && node.HasHexCoord)
-            {
-                hex = new HexCoord(node.HexQ, node.HexR);
+                hex = site.AnchorHex;
                 return world.HexWorld.Contains(hex);
             }
 
             return false;
         }
 
-        public static string ResolveLegacyNodeForHex(
+        public static bool TryResolveHexForNode(SimulationWorld world, string nodeId, out HexCoord hex) =>
+            TryResolveHexForSite(world, nodeId, out hex);
+
+        public static string ResolveSiteIdForHex(
             SimulationWorld world,
             HexCoord hex,
-            string fallbackNodeId)
+            string fallbackSiteId)
         {
             if (world?.Strategic?.Sites != null &&
                 world.Strategic.Sites.TryGetAtHex(hex, out var site) &&
                 site != null &&
-                !string.IsNullOrEmpty(site.LegacyNodeId))
-                return site.LegacyNodeId;
+                !string.IsNullOrEmpty(site.SiteId))
+                return site.SiteId;
 
-            return fallbackNodeId ?? string.Empty;
+            return fallbackSiteId ?? string.Empty;
         }
 
         static bool TryResolveParkingHex(

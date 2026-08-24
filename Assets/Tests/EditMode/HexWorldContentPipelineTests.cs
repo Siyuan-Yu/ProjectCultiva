@@ -14,12 +14,10 @@ namespace XianXia.Tests
         public void WGE05_TerrainRoundtrip_FromBuilderExportShape()
         {
             var world = new SimulationWorld();
-            world.WorldGraph.RegisterNode(new WorldNodeState { Id = "base:node_huangcun", Name = "青石荒村", WorldX = 0, WorldY = 0 });
-            Ch01HexPrototypeMapBuilder.BuildFullFromWorldGraph(world);
+            Ch01HexPrototypeMapBuilder.Build(world);
 
             var definition = HexWorldContentExporter.Export(world);
             var loaded = new SimulationWorld();
-            loaded.WorldGraph.RegisterNode(new WorldNodeState { Id = "base:node_huangcun", Name = "青石荒村", WorldX = 0, WorldY = 0 });
             Assert.IsTrue(HexWorldContentLoader.Apply(loaded, definition).IsSuccess);
             Assert.AreEqual(world.HexWorld.Width, loaded.HexWorld.Width);
             Assert.AreEqual(world.HexWorld.Height, loaded.HexWorld.Height);

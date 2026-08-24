@@ -11,17 +11,17 @@ namespace XianXia.Tests
         const string FactionA = "test:faction_a";
         const string FactionB = "test:faction_b";
         const string NodeB = "test:node_b";
+        const string SiteB = "test:site_b";
 
         static SimulationWorld CreateWorld()
         {
             var world = new SimulationWorld();
-            world.WorldGraph.RegisterNode(new WorldNodeState
+            Ch01HexPrototypeMapBuilder.Build(world);
+            world.Strategic.Sites.Register(new WorldSite
             {
-                Id = NodeB,
-                Name = "B",
-                OwnerId = FactionB,
-                WorldX = 1f,
-                WorldY = 0f
+                SiteId = SiteB,
+                LocalMapId = "loc_test",
+                OwnerFactionId = FactionB,
             });
             world.RegisterWorkArea(new WorkAreaDefinition
             {
@@ -32,7 +32,6 @@ namespace XianXia.Tests
                 MaxDurability = 50,
                 OccupyHoldSeconds = 1f
             });
-            CaptureObjectiveService.RegisterControlCore(world, world.ControlCores.All["wa_test_core"], NodeB);
             return world;
         }
 
@@ -53,15 +52,14 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void Capture_AllObjectives_TransfersNodeOwner()
+        public void Capture_AllObjectives_TransfersSiteOwner()
         {
             var world = CreateWorld();
             WarGateService.DeclareWar(world, FactionA, FactionB);
             world.ControlCores.ApplyDamage("wa_test_core", 100, out _, false);
             world.ControlCores.AddOccupyProgress("wa_test_core", 1f, out _);
             Assert.IsTrue(ControlCoreService.TryCapture(world, "wa_test_core", FactionA).IsSuccess);
-            Assert.IsTrue(world.WorldGraph.TryGetNode(NodeB, out var node));
-            Assert.AreEqual(FactionA, node.OwnerId);
+            Assert.AreEqual(FactionA, WorldSiteOwnershipService.GetOwner(world, SiteB));
         }
 
         [Test]
@@ -73,18 +71,27 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void ArmyFormationNodePolicy_RequiresOwner_NotPresence()
+        public void ArmyFormationSitePolicy_RequiresOwner_NotPresence()
         {
             var world = new SimulationWorld();
-            world.WorldGraph.RegisterNode(new WorldNodeState { Id = "n1", Name = "N1" });
-            Assert.IsFalse(ArmyFormationNodePolicy.IsFriendlyNodeForFaction(world, "n1", FactionA));
+            HexTestWorldBootstrap.EnsureMinimalHexMap(world);
+            const string siteId = "test:site_n1";
+            world.Strategic.Sites.Register(new WorldSite
+            {
+                SiteId = siteId,
+                OwnerFactionId = FactionB,
+                LocalMapId = "loc_test",
+                AnchorHex = new Core.World.Hex.HexCoord(5, 5),
+            });
+            Assert.IsFalse(ArmyFormationSitePolicy.TryValidateFriendlySiteForSiteId(
+                world, FactionA, siteId, out _));
             world.Strategic.Ch01FormationScenarioCompat = true;
             var created = world.Entities.CreateCharacter(new Core.Domain.Ids.DefinitionId("test", "x"), "x");
             Assert.IsTrue(created.IsSuccess);
             created.Value.Get<Core.Social.FactionMembershipComponent>()
                 .Assign(FactionA, Core.Social.FactionRoleKind.Member);
-            world.WorldPresence.SetAtNode(created.Value.Id, "n1");
-            Assert.IsTrue(Ch01ScenarioArmyFormationPolicy.IsFriendlyNodeForFormation(world, "n1", FactionA));
+            world.WorldPresence.SetAtSite(created.Value.Id, siteId);
+            Assert.IsTrue(Ch01ScenarioArmyFormationPolicy.IsFriendlyNodeForFormation(world, siteId, FactionA));
         }
     }
 }

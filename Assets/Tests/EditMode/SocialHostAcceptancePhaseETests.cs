@@ -58,7 +58,7 @@ namespace XianXia.Tests
                     bootstrap.Session.World.Events.Drain()
                         .Exists(e => e.Type == CoreEventType.FactionMembershipChanged));
 
-                Assert.AreEqual(4, WorldSnapshot.CurrentSchemaVersion);
+                Assert.AreEqual(5, WorldSnapshot.CurrentSchemaVersion);
             }
             finally
             {
