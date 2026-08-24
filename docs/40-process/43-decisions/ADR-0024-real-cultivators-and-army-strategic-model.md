@@ -3,7 +3,7 @@
 - 状态：**已采纳**
 - 日期：2026-08-22（第二轮补充：编组／FactionId／联盟／占点收尾）
 - 决策者：项目负责人（战略势力层设计拍板）
-- 关联：[2A 势力、军队、外交与战略占领](../../20-systems/2A-factions-armies-diplomacy-and-capture.md)
+- 关联：[2A 势力、军队、外交与战略占领](../../20-systems/2A-factions-armies-diplomacy-and-capture.md)、[2J Hex Territory / WorldSite / Bandit](../../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)
 
 ## 背景
 

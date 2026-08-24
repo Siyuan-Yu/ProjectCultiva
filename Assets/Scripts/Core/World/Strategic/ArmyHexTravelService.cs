@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Hex;
@@ -135,6 +136,33 @@ namespace XianXia.Core.World.Strategic
             army.DestinationHex = hex;
             army.ClearHexPath();
             army.State = garrisoned ? FormalArmyState.Garrisoned : FormalArmyState.Idle;
+        }
+
+        public static void InitializeArmyAtHex(
+            SimulationWorld world,
+            FormalArmy army,
+            HexCoord hex,
+            bool garrisoned = false)
+        {
+            InitializeArmyAtHex(army, hex, garrisoned);
+            SyncMemberPresenceToArmyHex(world, army);
+        }
+
+        /// <summary>
+        /// Hex 战略：Army 成员 WorldPresence 与 FormalArmy.CurrentHex 对齐（禁止仍留 AtNode 他处）。
+        /// </summary>
+        public static void SyncMemberPresenceToArmyHex(SimulationWorld world, FormalArmy army)
+        {
+            if (world?.WorldPresence == null || army == null || !army.UsesHexStrategicPosition)
+                return;
+
+            for (var i = 0; i < army.MemberCharacterIds.Count; i++)
+            {
+                var memberId = new EntityId(army.MemberCharacterIds[i]);
+                if (memberId.IsNone)
+                    continue;
+                world.WorldPresence.SetAtHex(memberId, army.CurrentHex);
+            }
         }
     }
 }

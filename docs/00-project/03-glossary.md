@@ -198,6 +198,22 @@
 | 数据迁移 | DataMigration | DefinitionId 改名等数据迁移 | |
 | 补丁定义 | PatchDefinition | 显式修改既有定义的补丁契约 | 禁止静默覆盖 |
 
+## Pure Hex 战略空间（2026-08-24 · 真源 [2J](../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)）
+
+| 中文 | Code | 含义 | 备注 |
+|---|---|---|---|
+| Hex 领土 | Hex Territory | 单个 Hex 当前由哪个 **正式 Territorial Faction** 政治控制 | `ControlFactionId` = Faction 或 None；见 2J §6 |
+| 辖区 | TerritoryRegion | 一组 Hex 的地图组织单元；绑定 Primary WorldSite | 不是第二套政治真源；Runtime 读固化 `Hexes[]` |
+| 地点足迹 | WorldSite Footprint | WorldSite 在战略地图上占用的 Hex 集合 | `FootprintHexes[]`；与 Territory 严格分离 |
+| 锚点 Hex | AnchorHex | Multi-Hex Site 的图标／名称／编辑器视觉中心 | **不是** Army 是否在 Site 的唯一判断；进入用 Footprint.Contains |
+| 固定地点 | Fixed WorldSite | 来自 World Content JSON、开局位置固定的 WorldSite | Capture 改 Owner；不因战斗删除 |
+| 动态地点 | Dynamic WorldSite | Runtime 生成、可永久摧毁的 WorldSite Instance | 第一版主要用于山贼寨 |
+| 山贼寨 | Bandit Camp | Footprint **永远 1 Hex** 的动态 WorldSite | 每寨独立 Bandit Faction；见 2J §4 |
+| 领土势力 | Territorial Faction | 可拥有 Hex Territory、外交、MapColor 的正式政治 Faction | 与 Bandit Faction 相对 |
+| 非外交敌对势力 | Non-Diplomatic Hostile Faction | 永远敌对、无外交、无正式 Territory 的 Faction 类型 | 动态山贼寨使用；仍用统一 FactionId |
+
+> Legacy：**OwnerFactionId**（WorldNode `ownerId`）在 Pure Hex 下 supersede 为 Hex **ControlFactionId** + Site **OwnerFactionId**（Fixed Site）；详见 2J Supersede 表。
+
 ## 义务与隐匿
 
 | 中文 | Code | 含义 | 备注 |

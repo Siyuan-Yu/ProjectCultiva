@@ -1,6 +1,6 @@
 # 系统设计索引
 
-> 最后更新：2026-08-22（[2A](2A-factions-armies-diplomacy-and-capture.md) 设计拍板）
+> 最后更新：2026-08-24（[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md) Hex Territory 设计拍板）
 > 上级：`docs/00-project/00-overview.md`（最高层大纲）
 > 通读顺序见 [`../00-project/04-reading-guide.md`](../00-project/04-reading-guide.md)。
 > 新增系统请复制 `docs/90-templates/system-design-template.md`。
@@ -39,6 +39,7 @@
 | 2G | [第一章流程](2G-first-chapter-flow.md) | P0 | 开局 Membership 已冻 | |
 | 2H | [功法系统规则](2H-manual-system-rules.md) | P0 | 核心规则已定方向 | |
 | 2I | [荒村杂役阶段叙事](2I-huangcun-labor-phase-narrative-v0.1.md) | P0 | **Draft v0.1／待审核**；非线性阶段框架 | |
+| 2J | [Hex Territory、Multi-Hex WorldSite 与动态山贼](2J-hex-territory-worldsites-and-dynamic-bandits.md) | P0 | **设计已拍板／尚未实现** | Pure Hex 领土／Site Footprint／Bandit |
 
 ## 架构文档（`30-tech`）
 
@@ -63,4 +64,5 @@
       ├── 2B · 2H · 2D → 25 → 26
       └── 27 → 28 → 29
       └── 2A（战略势力／Army／外交／占点）
+           └── 2J（Hex Territory／Multi-Hex Site／Dynamic Bandit）
 ```

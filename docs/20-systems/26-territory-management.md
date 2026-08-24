@@ -1,8 +1,9 @@
 # 领地经营
 
-> 状态：夺取控制权、时间表权限与成长循环已定方向；**2026-08-22 战略占点见 [2A](2A-factions-armies-diplomacy-and-capture.md)** | 优先级：P0 | 最后更新：2026-08-22
+> 状态：夺取控制权、时间表权限与成长循环已定方向；**2026-08-22 战略占点见 [2A](2A-factions-armies-diplomacy-and-capture.md)** | 优先级：P0 | 最后更新：2026-08-24
 > 上级：`docs/00-project/00-overview.md`
-> 关联：`25-cultivation-and-breakthrough.md`、`24-world-and-settlements.md`、`27-characters-and-population.md`、`22-realms-and-abilities.md`
+> 关联：`25-cultivation-and-breakthrough.md`、`24-world-and-settlements.md`、`27-characters-and-population.md`、`22-realms-and-abilities.md`、**[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**
+> **Hex Territory / TerritoryRegion / Capture 后整块易主：** 正式规则见 **[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**（2026-08-24）。本文 §2「Strategic Node」术语在 Pure Hex 下对应 **Fixed WorldSite + TerritoryRegion**。
 
 ## 1. 这个系统解决什么问题
 

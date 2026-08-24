@@ -149,5 +149,42 @@ namespace XianXia.Tests
             Assert.IsTrue(LocalMapVisibility.CanLoadMapLayoutForParty(
                 world, new List<EntityId> { resident }, mapId));
         }
+
+        [Test]
+        public void SITE_POP_05_PrototypeBanditsOutsideSite_NotVisibleOnHuangcunLocalMap()
+        {
+            var world = CreateWorld();
+            world.Strategic.PlayerFactionId = PlayerFaction;
+            Ch01ScenarioStrategicSetup.Apply(world);
+
+            var army = CreatePlayerArmyAtHuangcun(world, SpawnFriendly(world, "Leader"));
+            EnterHuangcunLocalMap(world, army);
+
+            var banditNames = new[] { "BanditLeader", "BanditA", "BanditB", "BanditC", "WeakBandit" };
+            for (var i = 0; i < banditNames.Length; i++)
+            {
+                var id = FindEntityByName(world, banditNames[i]);
+                Assert.IsFalse(
+                    id.IsNone,
+                    banditNames[i] + " should exist after Ch01 setup");
+                Assert.IsFalse(
+                    LocalMapVisibility.IsEntityVisible(world, id),
+                    banditNames[i] + " must not appear on initial 荒村 LocalMap");
+            }
+
+            var resident = SpawnFriendly(world, "VillageResident");
+            Assert.IsTrue(LocalMapVisibility.IsEntityVisible(world, resident));
+        }
+
+        static EntityId FindEntityByName(SimulationWorld world, string displayName)
+        {
+            foreach (var entity in world.Entities.All)
+            {
+                if (string.Equals(entity.DisplayName, displayName, System.StringComparison.Ordinal))
+                    return entity.Id;
+            }
+
+            return EntityId.None;
+        }
     }
 }

@@ -12,6 +12,7 @@
 > - **修士 = 持久真实 Character + LOD**；**禁止**用 `CultivatorPopulation` 匿名计数代表修士或修士战争。  
 > - **修士战略 Army** = 真实 `MemberCharacterIDs[]` 载体；**`ArmyGroup` 仅**凡人／大规模非修士军队（ADR-0008 部分 superseded）。  
 > - 战略 Faction / 外交 / 占点真源：[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)。  
+> - **Hex Territory / Multi-Hex WorldSite / Dynamic Bandit（2026-08-24）：** [2J](../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)。  
 > - 当前 Host `PartyWorldPresence`／`ArmyStack` 为 **Prototype**；详见 §4／§10 注记。
 
 ## 0. 冻结纪律

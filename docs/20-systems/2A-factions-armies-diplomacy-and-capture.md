@@ -5,7 +5,8 @@
 > 关联：`24`、`26`、`27`、`28`、`113`、`138`、`ADR-0024`  
 > 被引用：`03-glossary.md`、`34`、`41-roadmap`  
 > **本页是战略势力层的产品与领域规则真源。**  
-> **本阶段不写实现代码。** 当前 Host 中的 `PartyWorldPresence`／`ArmyStack` 等为 **Prototype**，见各过程文档 historical 注记。
+> **本阶段不写实现代码。** 当前 Host 中的 `PartyWorldPresence`／`ArmyStack` 等为 **Prototype**，见各过程文档 historical 注记。  
+> **Hex Territory / Multi-Hex WorldSite / Dynamic Bandit（2026-08-24）：** 见 [2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)。Territory／Site Footprint／Bandit 专题以 **2J** 为准；本文 § 中 **Node Owner / Node Territory** 表述为 Legacy，Pure Hex 下以 **ControlFactionId + TerritoryRegion** 为准。
 
 ---
 

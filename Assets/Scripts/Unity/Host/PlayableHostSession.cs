@@ -195,7 +195,8 @@ namespace XianXia.Unity.Host
 
             Add(recruitableNpc);
 
-            // Demo parity: show all NPC actors in Host (guards／merchant／supervisor…).
+            // 候选列表可含全世界 NPC；真正刷图由 LocalMapVisibility.IsEntityVisible 按当前 LocalMap 过滤。
+            // 禁止在此「无条件全部显示」——否则其它地点／战略 Army 会落到同一张图。
             if (world != null)
             {
                 foreach (var entity in world.Entities.All)

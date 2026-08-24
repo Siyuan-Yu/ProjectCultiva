@@ -139,7 +139,7 @@ namespace XianXia.Core.World.Strategic
                 return;
 
             Ch01HexPrototypeMapBuilder.EnsurePrototypeTestBanditHexPassable(world, hex);
-            ArmyHexTravelService.InitializeArmyAtHex(bandit, hex);
+            ArmyHexTravelService.InitializeArmyAtHex(world, bandit, hex);
             var stackId = string.Equals(formalArmyId, ArmyStackAdapter.BanditWeakPatrolFormalArmyId, StringComparison.Ordinal)
                 ? ArmyStackAdapter.BanditWeakPatrolStackId
                 : ArmyStackAdapter.BanditPatrolStackId;

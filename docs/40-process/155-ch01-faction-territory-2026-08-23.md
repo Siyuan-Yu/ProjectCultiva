@@ -1,7 +1,8 @@
 # 155 · Ch01 势力领土配置（2026-08-23）
 
 > **状态：** IMPLEMENTED（`Ch01ScenarioStrategicSetup.ApplyCh01TerritoryOwners`）  
-> **用途：** F8 外交验收、大地图节点染色、未宣战攻击门槛验证
+> **用途：** F8 外交验收、大地图节点染色、未宣战攻击门槛验证  
+> **⚠️ 2026-08-24：** 本文 Node 级领土与单一 `base:faction_bandits` 为 **Legacy Prototype**。正式 Hex Territory / TerritoryRegion / 每寨独立 Bandit Faction 见 **[2J](../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)**。
 
 ---
 

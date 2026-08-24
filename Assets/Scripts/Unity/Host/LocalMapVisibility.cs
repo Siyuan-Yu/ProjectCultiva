@@ -203,12 +203,17 @@ namespace XianXia.Unity.Host
 
             var onEncounterMap = IsActiveStrategicEncounterMap(world);
 
-            // WorldSite LocalMap：按地点物理在场显示（不依赖 PartyWorld.NodeId / FocusArmy 过滤）
+            // WorldSite LocalMap 硬门禁：有宏观 Presence 的实体只按「是否物理在当前 Site」显示。
+            // 禁止世界其它地点的 NPC／Army 成员落到同一张图（含开局荒村）。
+            // 无 WorldPresence、仅绑 LocationId 的场景 NPC（守卫／商人等）仍走下方地点过滤。
             if (!onEncounterMap &&
-                (entity.Tags & EntityTag.Npc) == 0 &&
                 StrategicWorldSitePopulationService.TryResolvePartyFocusSite(world, out var siteFocus) &&
-                StrategicWorldSitePopulationService.IsCharacterPresentAtWorldSite(world, id, siteFocus))
-                return true;
+                world.WorldPresence != null &&
+                world.WorldPresence.TryGet(id, out _))
+            {
+                return StrategicWorldSitePopulationService.IsCharacterPresentAtWorldSite(
+                    world, id, siteFocus);
+            }
 
             if (onEncounterMap && IsForeignBattlefieldEntity(world, id))
                 return false;
@@ -251,16 +256,12 @@ namespace XianXia.Unity.Host
                 if (wp.Mode == PartyWorldPresenceMode.RouteAnchored)
                     return false;
 
-                if (!onEncounterMap &&
-                    StrategicWorldSitePopulationService.TryResolvePartyFocusSite(world, out var focusSite) &&
-                    StrategicWorldSitePopulationService.IsCharacterPresentAtWorldSite(world, id, focusSite))
-                    return true;
-
                 if (wp.Mode == PartyWorldPresenceMode.AtHex)
                 {
                     // 遭遇图上：非本场 scoped spawn 的 Hex residual 不得靠 LocationId 漏进来
                     if (onEncounterMap)
                         return false;
+                    // 非遭遇 LocalMap：Hex 宏观单位不进场景（除非上面 WorldSite 硬门禁已放行）
                     return false;
                 }
 
@@ -278,6 +279,11 @@ namespace XianXia.Unity.Host
                         return true;
                     return false;
                 }
+
+                // Hex FormalArmy 成员若仍残留 AtNode Presence，不得凭 NodeId 误进任意 LocalMap
+                if (!onEncounterMap && IsHexStrategicArmyMember(world, id))
+                    return false;
+
                 var focus = world.PartyWorld != null ? world.PartyWorld.NodeId : null;
                 if (string.IsNullOrEmpty(focus) ||
                     !string.Equals(wp.NodeId, focus, System.StringComparison.Ordinal))
@@ -301,11 +307,12 @@ namespace XianXia.Unity.Host
                     return true;
                 if (IsCaveBoundNpc(entity) && !world.LocalMap.IsInInterior)
                     return false;
+                // 有宏观 Presence 但无地点、又未过 WorldSite 硬门禁 → 不显示
                 if (world.WorldPresence != null && world.WorldPresence.TryGet(id, out _))
                 {
                     if (onEncounterMap)
                         return StrategicEncounterHostilityService.IsVisibleOnEncounterLocalMap(world, id);
-                    return true;
+                    return false;
                 }
                 return false;
             }
@@ -392,5 +399,14 @@ namespace XianXia.Unity.Host
 
         static bool IsStrategicEncounterSpawn(SimulationWorld world, EntityId id) =>
             BattlefieldSpawnScope.IsTrackedInCurrentLocalMapScope(world, id);
+
+        static bool IsHexStrategicArmyMember(SimulationWorld world, EntityId id)
+        {
+            if (world == null || id.IsNone)
+                return false;
+            if (!ArmyService.TryGetArmyForCharacter(world, id, out var army) || army == null)
+                return false;
+            return army.UsesHexStrategicPosition;
+        }
     }
 }
