@@ -191,6 +191,21 @@ namespace XianXia.Core.Persistence
                 });
             }
 
+            var motion = world.PlayerPartyTravel;
+            if (motion != null && motion.HasPosition)
+            {
+                dto.PlayerPartyTravel = new PlayerPartyTravelSnapshotDto
+                {
+                    HasPosition = true,
+                    LocationKind = (int)motion.LocationKind,
+                    SiteId = motion.SiteId ?? string.Empty,
+                    WorldX = motion.WorldPosition.X,
+                    WorldY = motion.WorldPosition.Y,
+                    CurrentHexQ = motion.CurrentHex.Q,
+                    CurrentHexR = motion.CurrentHex.R
+                };
+            }
+
             return dto;
         }
 
@@ -415,6 +430,32 @@ namespace XianXia.Core.Persistence
                     });
                 }
             }
+
+            RestorePlayerPartyTravel(world, dto.PlayerPartyTravel);
+        }
+
+        static void RestorePlayerPartyTravel(SimulationWorld world, PlayerPartyTravelSnapshotDto travel)
+        {
+            if (world?.PlayerPartyTravel == null || travel == null || !travel.HasPosition)
+                return;
+
+            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                ? world.HexWorld.HexSize
+                : 1f;
+            var motion = world.PlayerPartyTravel;
+            if (travel.LocationKind == (int)PlayerPartyLocationKind.AtWorldSite &&
+                !string.IsNullOrEmpty(travel.SiteId))
+            {
+                if (world.Strategic.Sites.TryResolveSitePresenceHex(travel.SiteId, out var presence))
+                    motion.SetAtWorldSite(travel.SiteId, presence, hexSize);
+                else
+                    motion.SetAtWorldSite(travel.SiteId, new HexCoord(travel.CurrentHexQ, travel.CurrentHexR), hexSize);
+                return;
+            }
+
+            var pos = new WorldVec2(travel.WorldX, travel.WorldY);
+            var derived = HexMath.WorldToHex(pos.X, pos.Y, hexSize);
+            motion.SetAtWorldPosition(pos, derived);
         }
     }
 }

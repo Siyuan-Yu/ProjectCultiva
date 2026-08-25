@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_wilderness_plain_fallback",
+      "type": "localPlaceSet",
+      "name": "Wilderness·Plain Fallback 地点表",
+      "mapLayoutId": "base:map_wilderness_plain_fallback",
+      "startLocationId": "base:loc_wilderness_plain_start",
+      "locations": [
+        {
+          "id": "base:loc_wilderness_plain_start",
+          "name": "平原荒野·中心",
+          "kind": "Wilderness",
+          "tags": ["wilderness", "plain", "fallback"],
+          "allowedActivities": ["Idle", "Patrol"],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}

@@ -27,6 +27,20 @@ namespace XianXia.Core.World.Strategic
             if (world == null || characterId.IsNone)
                 return false;
 
+            var motion = world.PlayerPartyTravel;
+            if (motion != null &&
+                motion.HasPosition &&
+                IsTravelingMember(motion, characterId))
+            {
+                if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                    !string.IsNullOrEmpty(motion.SiteId) &&
+                    world.Strategic.Sites.TryResolveSitePresenceHex(motion.SiteId, out worldHex))
+                    return true;
+
+                worldHex = motion.CurrentHex;
+                return true;
+            }
+
             if (ArmyService.TryGetArmyForCharacter(world, characterId, out var army) &&
                 army != null &&
                 army.UsesHexStrategicPosition)
@@ -120,6 +134,20 @@ namespace XianXia.Core.World.Strategic
                     return false;
                 localMapLoaded = IsLocalMapLoadedForSite(world, siteId);
                 return true;
+            }
+
+            return false;
+        }
+
+        static bool IsTravelingMember(PlayerPartyWorldMotion motion, EntityId characterId)
+        {
+            var members = motion.TravelingMembers;
+            if (members == null || members.Count == 0)
+                return false;
+            for (var i = 0; i < members.Count; i++)
+            {
+                if (members[i] == characterId)
+                    return true;
             }
 
             return false;

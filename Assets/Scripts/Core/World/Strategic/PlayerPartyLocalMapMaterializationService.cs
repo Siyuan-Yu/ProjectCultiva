@@ -20,7 +20,16 @@ namespace XianXia.Core.World.Strategic
         /// </summary>
         public static void MaterializePartyOnResolvedLocalMap(
             SimulationWorld world,
-            IReadOnlyList<EntityId> partyMembers)
+            IReadOnlyList<EntityId> partyMembers) =>
+            MaterializePartyOnResolvedLocalMap(world, partyMembers, null);
+
+        /// <param name="wildernessPlayableBounds">
+        /// Wilderness 展开时用于 WorldPosition→Local 投影的可玩矩形；Site 展开可省略。
+        /// </param>
+        public static void MaterializePartyOnResolvedLocalMap(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> partyMembers,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds? wildernessPlayableBounds)
         {
             if (world?.LocalMap == null || partyMembers == null || partyMembers.Count == 0)
                 return;
@@ -41,6 +50,32 @@ namespace XianXia.Core.World.Strategic
             var px = hasStart ? startLoc.PresentationX : 0f;
             var pz = hasStart ? startLoc.PresentationZ : 0f;
 
+            var motion = world.PlayerPartyTravel;
+            var useWildernessProjection = IsWildernessLocalExpand(world) &&
+                                          motion != null &&
+                                          motion.HasPosition &&
+                                          motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
+                                          wildernessPlayableBounds.HasValue;
+            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                ? world.HexWorld.HexSize
+                : 1f;
+            if (useWildernessProjection &&
+                WildernessLocalWorldProjection.TryProjectWorldToLocal(
+                    motion.WorldPosition,
+                    wildernessPlayableBounds.Value,
+                    hexSize,
+                    out var activeLocalX,
+                    out var activeLocalY))
+            {
+                px = activeLocalX;
+                pz = activeLocalY;
+                hasStart = false;
+            }
+            else
+            {
+                useWildernessProjection = false;
+            }
+
             for (var i = 0; i < partyMembers.Count; i++)
             {
                 var id = partyMembers[i];
@@ -58,13 +93,95 @@ namespace XianXia.Core.World.Strategic
                     ent.AddComponent(loc);
                 }
 
+                var memberX = px;
+                var memberZ = pz;
+                if (useWildernessProjection)
+                    ApplyFollowerPresentationOffset(i, ref memberX, ref memberZ);
+
                 loc.LocationId = hasStart ? startId : string.Empty;
-                loc.SetPresentationOverride(px, pz);
+                loc.SetPresentationOverride(memberX, memberZ);
             }
 
             // 保持 TravelingMembers 与当前展开队伍对齐，供可见性／后续 Close→Expand 复用。
             if (world.PlayerPartyTravel != null)
                 world.PlayerPartyTravel.CaptureTravelingMembers(partyMembers);
+        }
+
+        /// <summary>
+        /// Active 在当前已展开 LocalMap 上应恰好有一份 presentation，且落点在可玩矩形内。
+        /// </summary>
+        public static bool TryAssertActiveMaterializedOnce(
+            SimulationWorld world,
+            EntityId activeId,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds? playableBounds,
+            out string error)
+        {
+            error = string.Empty;
+            if (world?.LocalMap == null || activeId.IsNone)
+            {
+                error = "Invalid world/active.";
+                return false;
+            }
+
+            var loaded = world.LocalMap.ActiveMapLayoutId?.Trim() ?? string.Empty;
+            var focus = world.PartyWorld?.LocalMapId?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(loaded) || !string.Equals(loaded, focus, System.StringComparison.Ordinal))
+            {
+                error = "Active LocalMapId mismatch: loaded=" + loaded + " focus=" + focus;
+                return false;
+            }
+
+            if (!world.LocalMap.ContainsOccupant(activeId))
+            {
+                error = "Active not occupant of resolved LocalMap.";
+                return false;
+            }
+
+            if (!world.Entities.TryGet(activeId, out var ent) ||
+                ent == null ||
+                !ent.TryGet<EntityLocationComponent>(out var loc) ||
+                loc == null ||
+                !loc.HasPresentationOverride)
+            {
+                error = "Active missing LocalMap presentation override.";
+                return false;
+            }
+
+            if (playableBounds.HasValue)
+            {
+                var b = playableBounds.Value;
+                var x = loc.PresentationOverrideX;
+                var z = loc.PresentationOverrideZ;
+                if (x < b.MinX - 0.01f || x > b.MaxX + 0.01f ||
+                    z < b.MinY - 0.01f || z > b.MaxY + 0.01f)
+                {
+                    error = "Active presentation outside playable bounds.";
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        static void ApplyFollowerPresentationOffset(int memberIndex, ref float x, ref float z)
+        {
+            if (memberIndex == 0)
+                return;
+            switch (memberIndex % 4)
+            {
+                case 1:
+                    x -= 0.9f;
+                    break;
+                case 2:
+                    x += 0.9f;
+                    break;
+                case 3:
+                    z -= 0.9f;
+                    break;
+                default:
+                    z += 0.9f;
+                    break;
+            }
         }
 
         /// <summary>

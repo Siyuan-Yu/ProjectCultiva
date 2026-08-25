@@ -255,10 +255,16 @@ namespace XianXia.Tests
         {
             Assert.IsTrue(WildernessLocalMapFallback.TryResolve(HexTerrainType.Plain, out var plain));
             Assert.AreEqual(WildernessLocalMapFallback.PlainsWildernessLocalMapId, plain);
+            Assert.AreNotEqual(WildernessLocalMapFallback.ForbiddenHuangyuanSiteLocalMapId, plain);
+            Assert.IsTrue(WildernessLocalMapFallback.TryResolve(HexTerrainType.Road, out var road));
+            Assert.AreEqual(WildernessLocalMapFallback.RoadWildernessLocalMapId, road);
+            Assert.AreNotEqual(WildernessLocalMapFallback.ForbiddenHuangyuanSiteLocalMapId, road);
             Assert.IsTrue(WildernessLocalMapFallback.TryResolve(HexTerrainType.Forest, out var forest));
             Assert.AreEqual(WildernessLocalMapFallback.ForestWildernessLocalMapId, forest);
+            Assert.AreNotEqual(WildernessLocalMapFallback.ForbiddenHuangyuanSiteLocalMapId, forest);
             Assert.IsTrue(WildernessLocalMapFallback.TryResolve(HexTerrainType.Mountain, out var mountain));
             Assert.AreEqual(WildernessLocalMapFallback.MountainWildernessLocalMapId, mountain);
+            Assert.AreNotEqual(WildernessLocalMapFallback.ForbiddenHuangyuanSiteLocalMapId, mountain);
             Assert.IsFalse(WildernessLocalMapFallback.TryResolve(HexTerrainType.Water, out _));
 
             var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);

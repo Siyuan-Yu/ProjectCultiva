@@ -168,7 +168,7 @@ namespace XianXia.Unity.Host
         public void Toggle()
         {
             if (open)
-                Close();
+                CloseWithLocalMapTakeover();
             else
                 Open();
         }
@@ -302,6 +302,35 @@ namespace XianXia.Unity.Host
 
         public void Close()
         {
+            CloseInternal(takeoverLocalMap: false);
+        }
+
+        /// <summary>
+        /// Phase 2C：关闭 WorldMap = 中断 AutoTravel（若有）+ 在当前真实位置展开／恢复 LocalMap。
+        /// </summary>
+        public void CloseWithLocalMapTakeover()
+        {
+            CloseInternal(takeoverLocalMap: true);
+        }
+
+        void CloseInternal(bool takeoverLocalMap)
+        {
+            var world = bootstrap?.Session != null && bootstrap.Session.IsInitialized
+                ? bootstrap.Session.World
+                : null;
+            var party = bootstrap?.Session?.PlayerParty;
+            var wasMoving = world?.PlayerPartyTravel != null && world.PlayerPartyTravel.IsMoving;
+
+            // Peek：权威位置与当前 LocalMap 已一致 → 只关 Overlay，绝不改 LocationKind / SiteId。
+            var matches = world != null &&
+                          party != null &&
+                          PlayerPartyHexTravelService.PartyLocalMapMatchesAuthoritativeLocation(world, party);
+            var needExpand = takeoverLocalMap &&
+                             party != null &&
+                             party.HasActive &&
+                             world != null &&
+                             (wasMoving || !matches);
+
             open = false;
             _requestClose = false;
             _nodeMenuOpen = false;
@@ -319,6 +348,16 @@ namespace XianXia.Unity.Host
             _panning = false;
             ForceClearInputBlock();
             ReleaseMapPause();
+
+            if (!needExpand)
+                return;
+
+            if (wasMoving)
+                PlayerPartyHexTravelService.CancelTravel(world, party);
+
+            var enter = PlayerPartyHexTravelService.EnterLocalViewAtCurrentHex(world, party);
+            if (enter.IsSuccess && bootstrap != null)
+                bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
         }
 
         void ReleaseMapPause()
@@ -393,7 +432,7 @@ namespace XianXia.Unity.Host
         void Update()
         {
             if (_requestClose)
-                Close();
+                CloseWithLocalMapTakeover();
 
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
                 return;
@@ -419,7 +458,7 @@ namespace XianXia.Unity.Host
             if (Input.GetKeyDown(toggleKey))
             {
                 if (open)
-                    Close();
+                    CloseWithLocalMapTakeover();
                 else
                 {
                     Open();
@@ -467,8 +506,17 @@ namespace XianXia.Unity.Host
 
             if (_travelingCountLast > 0 && traveling < _travelingCountLast)
             {
-                WorldTravelService.SyncPartyFocus(world);
-                _status = "有人抵达站点";
+                // 仅当 PlayerParty 仍属 Site 聚合时才同步焦点；开世界旅行中禁止回写。
+                var travel = world.PlayerPartyTravel;
+                var allowSync = travel == null ||
+                                !travel.HasPosition ||
+                                (!travel.IsMoving &&
+                                 travel.LocationKind == PlayerPartyLocationKind.AtWorldSite);
+                if (allowSync)
+                {
+                    WorldTravelService.SyncPartyFocus(world);
+                    _status = "有人抵达站点";
+                }
             }
 
             _travelingCountLast = traveling;
@@ -595,10 +643,10 @@ namespace XianXia.Unity.Host
 
             GUI.Label(
                 new Rect(pad, titleY, Screen.width - 220f, 28f),
-                "大地 Hex 战略 （左键：选格/军团｜右键：军团移动或 Party Travel｜停止/进入近景见顶栏｜M 关闭", _title);
+                "大地 Hex 战略 （左键：选格/军团｜右键：军团移动或 Party Travel｜停止 Party 旅行｜M 关闭回近景", _title);
 
             if (GUI.Button(new Rect(Screen.width - 100f, titleY, 84f, 32f), "关闭"))
-                Close();
+                CloseWithLocalMapTakeover();
 
             DrawMapToolbar(pad, toolbarY, world);
 
@@ -2757,7 +2805,14 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
-            var move = PlayerPartyHexTravelService.BeginTravel(world, party, hex);
+            if (!WorldMapPartyTravelCommand.TryResolve(world, hex, out var cmd))
+            {
+                status = "无法解析旅行目标";
+                return true;
+            }
+
+            var move = PlayerPartyHexTravelService.BeginTravel(
+                world, party, cmd.DestinationHex, cmd.TargetSiteId ?? string.Empty);
             if (move.IsFailure)
             {
                 status = FormatFail(move);
@@ -2766,8 +2821,10 @@ namespace XianXia.Unity.Host
 
             _selectedFormalArmyId = string.Empty;
             RefreshPlayerPartyPathPreview(world);
-            var destLabel = hex.ToString();
-            if (world.Strategic.Sites.TryGetAtHex(hex, out var site) && site != null)
+            var destLabel = cmd.TargetHex.ToString();
+            if (!string.IsNullOrEmpty(cmd.TargetSiteId) &&
+                world.Strategic.Sites.TryGet(cmd.TargetSiteId, out var site) &&
+                site != null)
                 destLabel = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
             status = "PlayerParty Travel → " + destLabel + "（未创建军队）";
             return true;
@@ -2783,12 +2840,11 @@ namespace XianXia.Unity.Host
                 return;
             if (ArmyService.TryGetArmyForCharacter(world, party.ActiveCharacterId, out _))
                 return;
-            if (!PlayerPartyHexTravelService.TryResolvePartyWorldHex(world, party, out var hex))
-                return;
-            if (!world.HexWorld.Contains(hex))
+            if (!PlayerPartyWorldLocationQuery.TryResolve(world, party, out var resolved))
                 return;
 
-            HexMath.ToWorldPosition(hex, world.HexWorld.HexSize, out var wx, out var wy);
+            var wx = resolved.WorldPosition.X;
+            var wy = resolved.WorldPosition.Y;
             var screen = ProjectHex(mapRect, world, wx, wy);
             const float size = 24f;
             var rect = new Rect(screen.x - size * 0.5f, screen.y - size * 0.5f, size, size);

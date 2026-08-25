@@ -46,7 +46,11 @@ namespace XianXia.Data.Bootstrap
 
             if (world.Strategic.Sites.TryResolveSitePresenceHex(startSiteId, out var presenceHex))
             {
-                world.PlayerPartyTravel.SetIdleAt(presenceHex);
+                var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                    ? world.HexWorld.HexSize
+                    : 1f;
+                // Phase 2C：开局必须是 AtWorldSite，禁止 SetIdleAt（会写成 AtWorldPosition）。
+                world.PlayerPartyTravel.SetAtWorldSite(startSiteId, presenceHex, hexSize);
                 world.PlayerPartyTravel.CaptureTravelingMembers(party);
             }
 
@@ -55,6 +59,16 @@ namespace XianXia.Data.Bootstrap
                 return enter;
 
             WorldTravelService.SyncPartyFocus(world);
+            // 确保 Travel 与 PartyWorld 同为 AtWorldSite（EnterWorldSiteScene 不改 Travel）。
+            if (world.Strategic.Sites.TryResolveSitePresenceHex(startSiteId, out var presenceAgain))
+            {
+                var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                    ? world.HexWorld.HexSize
+                    : 1f;
+                world.PlayerPartyTravel.SetAtWorldSite(startSiteId, presenceAgain, hexSize);
+                world.PlayerPartyTravel.CaptureTravelingMembers(party);
+            }
+
             return Result.Success();
         }
 

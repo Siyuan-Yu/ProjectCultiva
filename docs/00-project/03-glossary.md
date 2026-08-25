@@ -1,10 +1,10 @@
 # 术语表
 
-> 状态：持续维护 | 最后更新：2026-08-21
+> 状态：持续维护 | 最后更新：2026-08-26
 >
 > 规则：**代码标识符、配置表字段、文档用词必须与本表一致。**
 > 新增概念时先来这里登记，再去写代码。这一条是长期可维护性的关键，也是交接时对方最需要的文件。
-> 架构冻结相关术语以 **`33` v0.2**／`34`／`35`／`36`／`2C`／`2E` 为准。
+> 架构冻结相关术语以 **`33` v0.2**／`34`／`35`／`36`／`2C`／`2E` 为准；RPG-First／连续世界以 **`2K`／ADR-0026** 为准。
 
 ## 使用约定
 
@@ -114,12 +114,17 @@
 | 跟随者 | Follower | PlayerParty 内非 Active 成员；AI 控制 | Follow ≡ 加入 PlayerParty |
 | 后台角色 | Background Character | 非 Party、非 FormalArmy 的我方角色 | 可后台旅行／战斗；WorldMap 不常驻头像；无 Capture 权 |
 | 角色方针 | Character Policy | 非 Active 的长期权限／行为倾向（非即时命令） | 如 AllowLeaveFactionTerritory；见 2K |
-| 世界位置代理格 | PresenceHex | Multi-Hex Site 上 Character 位于该 Site LocalMap 时的固定世界 Hex | ⊆ Footprint；≠ AnchorHex；见 2K／2J |
+| 世界位置代理格 | PresenceHex | Multi-Hex／Aggregated Site 上 Character 位于该 Site LocalMap 时的固定世界 Hex | ⊆ Footprint；≠ AnchorHex；WorldMap 投影真源；见 2K／2J |
 | 连续 Hex 世界 | Continuous Hex World | HexWorld=唯一世界拓扑；LocalMap=近景；逻辑连续旅行 | 非必须 Unity 无缝开放世界 |
+| 连续世界坐标 | Continuous WorldPosition | Runtime **位置真源**（连续世界坐标） | `CurrentHex = WorldToHex(...)` 为**派生**；见 2K §5.8 |
+| 世界定位 | WorldLocation | `AtWorldSite{SiteId}` \| `AtWorldPosition{ContinuousPosition}` | 与 MovementState 分离；Party 共用一个 |
+| 移动状态 | MovementState | `Idle` \| `AutoTravel` | 与 WorldLocation 正交；见 2K §5.8 |
+| 聚合地点定位 | Aggregated WorldSite Location | 全体 WorldSite（1-Hex／Multi）在站内只改 LocalPosition；WorldMap 投影=PresenceHex | 禁止按 Local 坐标投影到 Footprint 其他格 |
+| 精确世界目的地 | PreciseWorldDestination | ~~WorldMap 点击像素／精确连续坐标作命令目标~~ | **FORBIDDEN（永久）**；WorldMap 命令精度仅 Hex／WorldSite |
 | 世界存在 | World Presence | Character／Party／Army 在 HexWorld 上的存在状态 | Party／Background／Army 分层 |
-| 自动旅行 | Auto Travel | WorldMap 选目标后沿 Hex 真实逐格移动（非传送） | Future；见 2K |
+| 自动旅行 | Auto Travel | WorldMap 选 **Hex／WorldSite** 后进入 `MovementState.AutoTravel`；以 Continuous WorldPosition 真实移动（非传送） | Phase 2C 契约（Party）；见 2K §5.8 |
 | 手动介入 | Manual Intervention | Party 距 BattleHex ≤1 时亲自参战；不接管 Army | 仅控 Active；见 2K |
-| 继承控制 | Succession | Party 全灭后从己方 Site 合格角色重建 Party／Active | 非默认 Game Over；细则 Deferred |
+| 继承控制 | Succession | Party 全灭后从己方 Site 合格角色重建 Party／Active | 非默认 Game Over；细则见 2K §4 |
 | 自动结算 | AutoResolve | 战力悬殊或玩家选择跳过时进行的战斗结果计算 | 战略层瞬时；**不**额外推进 WorldTick；ADR-0023 |
 | 暂停即时 | RealTimeWithPause | 战术层时间可暂停下令 | 简称 RTwP；战略冻结时战术暂停仍可用 |
 | 接战弹窗 | BattleOffer | 战略相遇后的自动／手动选择 | 产生即冻结 WorldTick |

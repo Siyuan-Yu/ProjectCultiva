@@ -169,6 +169,8 @@ namespace XianXia.Unity.Host
 
         void Awake()
         {
+            PlayerPartyWorldLocationDebug.Sink = msg => Debug.Log(msg, this);
+
             if (entityViewSpawner == null)
                 entityViewSpawner = GetComponent<EntityViewSpawner>() ?? GetComponentInChildren<EntityViewSpawner>();
             if (cameraRig == null)
@@ -629,6 +631,11 @@ namespace XianXia.Unity.Host
             selectionController.SetPartyFilter(_session.CharacterIds);
             if (_session.CharacterIds.Count > 0 && !_session.PlayerParty.HasActive)
                 _session.PlayerParty.TryInitialize(_session.CharacterIds[0], out _);
+            // 开局权威位置愈合：禁止 AtWorldPosition 漂移冒充 Site。
+            PlayerPartyWorldLocationQuery.TryResolve(
+                _session.World, _session.PlayerParty, out _, healDrift: true);
+            PlayerPartyWorldLocationDebug.LogSnapshot(
+                _session.World, _session.PlayerParty, "StartupResolve");
             var playerPartyController = GetComponent<HostPlayerPartyController>() ??
                                         gameObject.AddComponent<HostPlayerPartyController>();
             playerPartyController.Bind(this);
@@ -974,21 +981,6 @@ namespace XianXia.Unity.Host
             if (places.IsFailure)
                 Debug.LogWarning("[PlayableHost] ActivatePlaces: " + places.Error, this);
 
-            // Phase 2B：Site / Wilderness 共用 — Resolve 后 Materialize 当前 PlayerParty
-            if (!onEncounterMap &&
-                !string.IsNullOrWhiteSpace(targetMap) &&
-                _session.PlayerParty != null &&
-                _session.PlayerParty.Count > 0)
-            {
-                PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(
-                    world, _session.PlayerParty.Members);
-            }
-            else
-            {
-                // 遭遇／无 Party：保留旧 Army／Encounter 落点逻辑
-                PlaceLegacyFocusCharactersOnLocalMap(world, onEncounterMap);
-            }
-
             if (string.IsNullOrWhiteSpace(targetMap))
             {
                 // 焦点图为空但画面仍在：保留当LocalMap（全员上路时视线不带走）
@@ -1002,12 +994,55 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            // Phase 2C：先绑定目标 LocalMap 并装图，再用该图 WalkGrid 做 Materialize。
+            // 禁止在旧图 bounds 上投影后再切图（会导致 Active 落点非法／看起来「消失」）。
             preferredMapLayoutId = targetMap;
             _session.PreferredMapLayoutId = targetMap;
             world.LocalMap.ActiveMapLayoutId = targetMap;
             world.LocalMap.OverworldMapLayoutId = targetMap;
             _session.RefreshViewableEntityIds();
-            ReloadLocalMapPresentation(frameCamera: true);
+            ReloadLocalMapPresentation(frameCamera: false);
+
+            WildernessLocalWorldProjection.WildernessLocalMapBounds? materializeBounds = null;
+            if (!onEncounterMap &&
+                !string.IsNullOrWhiteSpace(targetMap) &&
+                _session.PlayerParty != null &&
+                _session.PlayerParty.Count > 0)
+            {
+                if (PlayerPartyLocalMapMaterializationService.IsWildernessLocalExpand(world) ||
+                    (world.PlayerPartyTravel != null &&
+                     world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition))
+                {
+                    var walk = ResolveWalkGrid();
+                    if (walk != null)
+                    {
+                        materializeBounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
+                            walk.OriginX, walk.OriginY, walk.CellSize, walk.Width, walk.Height);
+                    }
+                }
+
+                PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(
+                    world, _session.PlayerParty.Members, materializeBounds);
+                PlayerPartyWorldLocationDebug.LogSnapshot(
+                    world, _session.PlayerParty, "MaterializeLocalView");
+
+                if (_session.PlayerParty.HasActive &&
+                    !PlayerPartyLocalMapMaterializationService.TryAssertActiveMaterializedOnce(
+                        world,
+                        _session.PlayerParty.ActiveCharacterId,
+                        materializeBounds,
+                        out var matErr))
+                {
+                    Debug.LogError(
+                        "[PlayableHost] Active materialize assert failed: " + matErr,
+                        this);
+                }
+            }
+            else
+            {
+                // 遭遇／无 Party：保留旧 Army／Encounter 落点逻辑
+                PlaceLegacyFocusCharactersOnLocalMap(world, onEncounterMap);
+            }
 
             var spawned = StrategicEncounterSpawner.ApplyPending(world);
             if (spawned.IsFailure)
@@ -1039,7 +1074,15 @@ namespace XianXia.Unity.Host
             var startId = world.WorldRegion.StartLocationId;
             var encounter = world.Strategic?.Encounter;
             var filterEngaged = onEncounterMap && encounter != null && encounter.HasEngagedParty;
-            if (!string.IsNullOrEmpty(startId) && world.WorldRegion.TryGet(startId, out var syncedStart))
+            // Wilderness AtWorldPosition：Materialize 已按 WorldPosition 投影，禁止再吸回 startLocation。
+            var skipStartSnapForWilderness =
+                world.PlayerPartyTravel != null &&
+                world.PlayerPartyTravel.HasPosition &&
+                world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
+                string.IsNullOrEmpty(world.PartyWorld?.SiteId);
+            if (!skipStartSnapForWilderness &&
+                !string.IsNullOrEmpty(startId) &&
+                world.WorldRegion.TryGet(startId, out var syncedStart))
             {
                 for (var i = 0; i < _session.CharacterIds.Count; i++)
                 {
@@ -1056,27 +1099,32 @@ namespace XianXia.Unity.Host
                 }
 
                 entityViewSpawner?.SyncLocations(_session);
-                if (selectionController != null)
+            }
+            else if (skipStartSnapForWilderness)
+            {
+                entityViewSpawner?.SyncLocations(_session);
+            }
+
+            if (selectionController != null)
+            {
+                var party = _session.PlayerParty;
+                if (party != null && party.HasActive &&
+                    LocalMapVisibility.IsEntityVisible(world, party.ActiveCharacterId))
+                    selectionController.SelectEntity(party.ActiveCharacterId, false);
+                else
                 {
-                    var party = _session.PlayerParty;
-                    if (party != null && party.HasActive &&
-                        LocalMapVisibility.IsEntityVisible(world, party.ActiveCharacterId))
-                        selectionController.SelectEntity(party.ActiveCharacterId, false);
-                    else
+                    for (var i = 0; i < _session.CharacterIds.Count; i++)
                     {
-                        for (var i = 0; i < _session.CharacterIds.Count; i++)
-                        {
-                            var id = _session.CharacterIds[i];
-                            if (!LocalMapVisibility.IsEntityVisible(world, id))
-                                continue;
-                            selectionController.SelectEntity(id, false);
-                            break;
-                        }
+                        var id = _session.CharacterIds[i];
+                        if (!LocalMapVisibility.IsEntityVisible(world, id))
+                            continue;
+                        selectionController.SelectEntity(id, false);
+                        break;
                     }
                 }
-
-                TryFrameCameraOnParty();
             }
+
+            TryFrameCameraOnParty();
         }
 
         void PlaceLegacyFocusCharactersOnLocalMap(SimulationWorld world, bool onEncounterMap)

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_wilderness_road_fallback",
+      "type": "mapLayout",
+      "name": "Wilderness·Road Fallback 50x50",
+      "worldRegionId": "base:places_wilderness_road_fallback",
+      "originX": -25,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 50,
+      "height": 50,
+      "placements": [
+        {
+          "id": "road_strip_center",
+          "kind": "road",
+          "x": 5,
+          "y": 24,
+          "w": 40,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "道路（Prototype）"
+        },
+        {
+          "id": "edge_marker_ne",
+          "kind": "treeM",
+          "x": 44,
+          "y": 44,
+          "w": 1,
+          "h": 1,
+          "blocksMovement": false,
+          "label": "NE Edge"
+        },
+        {
+          "id": "edge_marker_sw",
+          "kind": "treeM",
+          "x": 4,
+          "y": 4,
+          "w": 1,
+          "h": 1,
+          "blocksMovement": false,
+          "label": "SW Edge"
+        }
+      ]
+    }
+  ]
+}

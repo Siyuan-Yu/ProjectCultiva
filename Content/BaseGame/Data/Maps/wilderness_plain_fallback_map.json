@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_wilderness_plain_fallback",
+      "type": "mapLayout",
+      "name": "Wilderness·Plain Fallback 50x50",
+      "worldRegionId": "base:places_wilderness_plain_fallback",
+      "originX": -25,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 50,
+      "height": 50,
+      "placements": [
+        {
+          "id": "plain_center_mark",
+          "kind": "rock",
+          "x": 24,
+          "y": 24,
+          "w": 1,
+          "h": 1,
+          "blocksMovement": false,
+          "label": "平原中心"
+        },
+        {
+          "id": "plain_edge_e",
+          "kind": "treeM",
+          "x": 46,
+          "y": 24,
+          "w": 1,
+          "h": 1,
+          "blocksMovement": false,
+          "label": "E Edge"
+        }
+      ]
+    }
+  ]
+}

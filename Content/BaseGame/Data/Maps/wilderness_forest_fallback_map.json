@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_wilderness_forest_fallback",
+      "type": "mapLayout",
+      "name": "Wilderness·Forest Fallback 50x50",
+      "worldRegionId": "base:places_wilderness_forest_fallback",
+      "originX": -25,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 50,
+      "height": 50,
+      "placements": [
+        {
+          "id": "forest_tree_a",
+          "kind": "treeM",
+          "x": 12,
+          "y": 18,
+          "w": 2,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "林树A"
+        },
+        {
+          "id": "forest_tree_b",
+          "kind": "treeM",
+          "x": 30,
+          "y": 28,
+          "w": 2,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "林树B"
+        }
+      ]
+    }
+  ]
+}

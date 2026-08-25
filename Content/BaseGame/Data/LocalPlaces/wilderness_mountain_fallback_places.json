@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_wilderness_mountain_fallback",
+      "type": "localPlaceSet",
+      "name": "Wilderness·Mountain Fallback 地点表",
+      "mapLayoutId": "base:map_wilderness_mountain_fallback",
+      "startLocationId": "base:loc_wilderness_mountain_start",
+      "locations": [
+        {
+          "id": "base:loc_wilderness_mountain_start",
+          "name": "山地荒野·中心",
+          "kind": "Wilderness",
+          "tags": ["wilderness", "mountain", "fallback"],
+          "allowedActivities": ["Idle", "Patrol"],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}

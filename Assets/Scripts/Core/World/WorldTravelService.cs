@@ -89,6 +89,12 @@ namespace XianXia.Core.World
             if (world == null)
                 return;
 
+            // Domain authority: once PlayerPartyWorldMotion has a position, never let NPC AtSite
+            // presence rewrite PartyWorld (that revived departure Site after ordinary Hex TravelComplete).
+            var travel = world.PlayerPartyTravel;
+            if (travel != null && travel.HasPosition)
+                return;
+
             string bestLivingWithMap = null;
             string bestLiving = null;
             string bestAnyWithMap = null;

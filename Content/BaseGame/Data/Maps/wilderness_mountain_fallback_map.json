@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_wilderness_mountain_fallback",
+      "type": "mapLayout",
+      "name": "Wilderness·Mountain Fallback 50x50",
+      "worldRegionId": "base:places_wilderness_mountain_fallback",
+      "originX": -25,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 50,
+      "height": 50,
+      "placements": [
+        {
+          "id": "mtn_rock_a",
+          "kind": "rock",
+          "x": 18,
+          "y": 20,
+          "w": 2,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "山石A"
+        },
+        {
+          "id": "mtn_rock_b",
+          "kind": "rock",
+          "x": 28,
+          "y": 32,
+          "w": 2,
+          "h": 2,
+          "blocksMovement": false,
+          "label": "山石B"
+        }
+      ]
+    }
+  ]
+}

@@ -714,7 +714,7 @@ namespace XianXia.Data.Serialization
                 }
             }
 
-            return JsonValue.FromObject(new Dictionary<string, JsonValue>
+            var root = new Dictionary<string, JsonValue>
             {
                 ["playerFactionId"] = JsonValue.FromString(strategic.PlayerFactionId ?? string.Empty),
                 ["ch01FormationScenarioCompat"] = JsonValue.FromBool(strategic.Ch01FormationScenarioCompat),
@@ -728,7 +728,24 @@ namespace XianXia.Data.Serialization
                 ["vassalages"] = JsonValue.FromArray(vassalages),
                 ["retreatingArmies"] = JsonValue.FromArray(retreating),
                 ["captureObjectives"] = JsonValue.FromArray(captureObjectives)
-            });
+            };
+
+            if (strategic.PlayerPartyTravel != null && strategic.PlayerPartyTravel.HasPosition)
+            {
+                var p = strategic.PlayerPartyTravel;
+                root["playerPartyTravel"] = JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["hasPosition"] = JsonValue.FromBool(true),
+                    ["locationKind"] = JsonValue.FromNumber(p.LocationKind),
+                    ["siteId"] = JsonValue.FromString(p.SiteId ?? string.Empty),
+                    ["worldX"] = JsonValue.FromNumber(p.WorldX),
+                    ["worldY"] = JsonValue.FromNumber(p.WorldY),
+                    ["currentHexQ"] = JsonValue.FromNumber(p.CurrentHexQ),
+                    ["currentHexR"] = JsonValue.FromNumber(p.CurrentHexR)
+                });
+            }
+
+            return JsonValue.FromObject(root);
         }
 
         static StrategicSnapshotDto ReadStrategic(JsonValue strategic)
@@ -934,6 +951,22 @@ namespace XianXia.Data.Serialization
                                     completed.Kind == JsonValueKind.Boolean && completed.Bool
                     });
                 }
+            }
+
+            if (strategic.TryGetProperty("playerPartyTravel", out var partyTravel) &&
+                partyTravel.Kind == JsonValueKind.Object)
+            {
+                dto.PlayerPartyTravel = new PlayerPartyTravelSnapshotDto
+                {
+                    HasPosition = partyTravel.TryGetProperty("hasPosition", out var hasPos) &&
+                                    hasPos.Kind == JsonValueKind.Boolean && hasPos.Bool,
+                    LocationKind = partyTravel.TryGetProperty("locationKind", out var lk) ? (int)lk.Number : 0,
+                    SiteId = partyTravel.GetString("siteId", string.Empty),
+                    WorldX = partyTravel.TryGetProperty("worldX", out var wx) ? (float)wx.Number : 0f,
+                    WorldY = partyTravel.TryGetProperty("worldY", out var wy) ? (float)wy.Number : 0f,
+                    CurrentHexQ = partyTravel.TryGetProperty("currentHexQ", out var cq) ? (int)cq.Number : 0,
+                    CurrentHexR = partyTravel.TryGetProperty("currentHexR", out var cr) ? (int)cr.Number : 0
+                };
             }
 
             return dto;

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_wilderness_road_fallback",
+      "type": "localPlaceSet",
+      "name": "Wilderness·Road Fallback 地点表",
+      "mapLayoutId": "base:map_wilderness_road_fallback",
+      "startLocationId": "base:loc_wilderness_road_start",
+      "locations": [
+        {
+          "id": "base:loc_wilderness_road_start",
+          "name": "道路荒野·中心",
+          "kind": "Wilderness",
+          "tags": ["wilderness", "road", "fallback"],
+          "allowedActivities": ["Idle", "Patrol"],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}

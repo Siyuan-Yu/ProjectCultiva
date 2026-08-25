@@ -1,11 +1,11 @@
 # RPG-First：Active Character、PlayerParty、连续 Hex 世界与 FormalArmy 军事层
 
-> 状态：**设计规则已拍板（2026-08-25）**｜优先级：P0｜最后更新：2026-08-25  
+> 状态：**Phase 2B 已封板**｜**Phase 2C Continuous World Movement 契约已锁定（2026-08-26）**｜优先级：P0｜最后更新：2026-08-26  
 > 上级：`docs/00-project/00-overview.md`  
 > 关联：`2A`、`2J`、`24`、`27`、`23`、`ADR-0020`、`ADR-0024`、`ADR-0025`、`ADR-0026`  
 > 被引用：`03-glossary.md`、`04-reading-guide.md`、`41-roadmap`、`AGENTS.md`  
 > **本页是玩家控制模型、PlayerParty、世界存在状态、连续 Hex 世界与 FormalArmy 职责边界的正式产品真源。**  
-> **本阶段不写实现代码。** 当前 Host 的 RTS 多选、Army-required World Travel、远距离切换控制等视为 **Prototype / Legacy 待迁移**。
+> **本文件只锁契约与产品规则；不写 Runtime C#。** 当前 Host 的 RTS 多选、Army-required World Travel、远距离切换控制等视为 **Prototype / Legacy 待迁移**。
 
 ---
 
@@ -169,43 +169,178 @@ Pure Hex **保留**。正式定义：
 
 ### 5.3 LocalMap 逻辑连续（目标体验）
 
-旧体验（关卡进出）：进 LocalMap → 退回 WorldMap → 战略跳点 → 再进下一张。**Superseded（目标态）**。
+旧体验（关卡进出）：进 LocalMap → 退回 WorldMap → 战略跳点 → 再进下一张。**Superseded**。
 
 目标：
 
 > Character 走出 LocalMap = 真正离开当前位置并进入相邻世界空间。
 
-V1 允许：
-
-```text
-走到边缘 → Fade/Loading → 世界位置跨到邻接 Hex → 加载对应 LocalMap → 从对应边缘出现
-```
-
-**不要求** Unity 无缝开放世界；**要求**逻辑连续。实现 **Deferred（Roadmap Phase 5）**。
+**正式不可逆契约见 [§5.8](#58-continuous-world-movementphase-2c-正式契约)。**  
+V1 允许 Fade／Loading；**不要求** Unity 无缝开放世界；**要求**逻辑连续，且邻格过渡**不** snap 到邻格中心。
 
 ### 5.4 普通 Hex 也是世界
 
 无 WorldSite 的 Forest / Plains / Mountain 等 Hex **本身也是世界**。WorldSite 是 POI／聚落／洞府，不是世界本身。
 
-### 5.5 Wilderness LocalMap（Future）
+### 5.5 Wilderness LocalMap
 
-普通 Hex → Wilderness LocalMap（按 Terrain / Seed 选或生成）。本轮不实现；架构**不得阻止**任意普通 Hex 展开为 Wilderness。
+普通／荒野 Hex → **1 Hex = 1 逻辑 LocalMap 实例**（可共享模板／Terrain／Seed）。架构**不得阻止**任意普通 Hex 展开为 Wilderness。细则见 §5.8。
 
 ### 5.6 WorldMap 长期职责
 
 1. 观察世界  
 2. 查看当前位置  
-3. 选择远距离目的地  
-4. Auto Travel（Future）  
+3. 选择远距离目的地（**仅 Hex／WorldSite 级精度**，见 §5.8）  
+4. Auto Travel（`MovementState.AutoTravel`；Phase 2C 契约）  
 5. 查看 FormalArmy  
 6. 查看 WorldSite  
 
-**不是**「所有角色必须进入战略单位模式才能移动」。
+**不是**「所有角色必须进入战略单位模式才能移动」。  
+**永远不是**「在 WorldMap 上点像素／PreciseWorldDestination 下精确世界坐标命令」。
 
-### 5.7 Auto Travel / TravelMode（Future）
+### 5.7 Auto Travel / TravelMode
 
-PlayerParty 可选目标 → 沿 Hex 路径真实逐格移动 → 世界时间流逝；途中可遭遇／停止／展开 LocalMap。  
-预留 **TravelMode**（地面／未来飞行等）；**本轮不实现飞行**，但文档禁止把旅行写死为「仅 FormalArmy + Ground」。
+PlayerParty 选 **Hex 或 WorldSite** 目标 → 进入 `MovementState.AutoTravel` → 沿路径以 **Continuous WorldPosition** 真实移动 → 世界时间流逝；途中可遭遇／取消／展开 LocalMap。  
+预留 **TravelMode**（地面／未来飞行等）；**本轮不实现飞行**。完整契约见 §5.8。
+
+---
+
+## 5.8 Continuous World Movement（Phase 2C 正式契约）
+
+> **本小节 = Continuous World Movement 的正式产品真源。**  
+> Phase **2B 已封板**；Phase **2C 契约锁定于 2026-08-26**。  
+> **只锁规则；不写 Runtime C#。** PresenceHex／PlayerParty／FormalArmy 边界（§6／§7）继续有效，本小节不推翻。
+
+### 5.8.1 三层职责（不可逆）
+
+| 概念 | 唯一职责 |
+|------|----------|
+| **HexWorld** | **唯一**世界拓扑（邻接、距离、Footprint、路径图） |
+| **WorldMap** | HexWorld 的**总览／AutoTravel UI** |
+| **LocalMap** | 某一世界位置的 **RPG 近景** |
+
+禁止把 WorldMap 或 LocalMap 当成第二套世界坐标真源。
+
+### 5.8.2 WorldMap 命令精度锁（FOREVER）
+
+WorldMap 上玩家可下达的目的地精度 **永远且仅限**：
+
+```text
+Hex  |  WorldSite
+```
+
+| 禁止 | 说明 |
+|------|------|
+| **PreciseWorldDestination** | **FORBIDDEN** — 永久禁止 |
+| 点击像素／屏幕点反推的连续世界坐标作命令目标 | **FORBIDDEN** |
+
+WorldMap 选格／选 Site → 系统换算为合法 `WorldLocation` 目标；**不得**把点击位置当作 Runtime 目的地真源。
+
+### 5.8.3 Runtime 真源：Continuous WorldPosition
+
+| 概念 | 规则 |
+|------|------|
+| **Continuous WorldPosition** | Runtime **位置真源**（连续世界坐标） |
+| **CurrentHex** | **派生量**：`CurrentHex = WorldToHex(ContinuousWorldPosition)` |
+| 禁止 | 以离散 CurrentHex 为唯一真源再「猜」连续位置（普通／荒野连续态） |
+
+### 5.8.4 WorldLocation vs MovementState（分离）
+
+**WorldLocation**（在哪）与 **MovementState**（是否在自动旅行）**必须分离**：
+
+```text
+WorldLocation =
+  | AtWorldSite { SiteId }
+  | AtWorldPosition { ContinuousPosition }
+
+MovementState =
+  | Idle
+  | AutoTravel
+```
+
+- `AtWorldSite`：位于某 WorldSite（聚合态；见下）  
+- `AtWorldPosition`：位于普通／荒野连续世界坐标  
+- `Idle`：未在 AutoTravel  
+- `AutoTravel`：正沿 WorldMap 下达的 Hex／Site 目标自动移动  
+
+二者正交：例如 `AtWorldPosition + AutoTravel`、`AtWorldSite + Idle`。
+
+### 5.8.5 Aggregated WorldSite（全体 Site）
+
+**所有 WorldSite**（1-Hex 与 Multi-Hex）均为 **Aggregated**：
+
+| 规则 | 说明 |
+|------|------|
+| Site 内 LocalMap 移动 | **只**改变 **LocalPosition** |
+| WorldMap 投影 | **永远** = 该 Site 的 **PresenceHex** |
+| 禁止 | 按 LocalMap 内坐标把角色投影到 Footprint 内其他 Hex |
+
+进入 Site 后：`WorldLocation = AtWorldSite{SiteId}`；离站／外出进入连续荒野后改为 `AtWorldPosition`。
+
+### 5.8.6 普通／荒野 Hex
+
+| 规则 | 说明 |
+|------|------|
+| 位置模型 | 使用 **Continuous WorldPosition**（非 Site 聚合） |
+| LocalMap | **1 Hex = 1 逻辑 LocalMap 实例**；可共享模板／生成规则 |
+| 世界投影 | 由 ContinuousPosition 经 `WorldToHex` 派生 |
+
+### 5.8.7 LocalMap 边缘 → 邻格连续过渡
+
+```text
+走到当前 LocalMap 边缘
+→ 过渡到 Neighbor Hex
+→ Continuous WorldPosition 连续进入邻格
+→ 不 snap 到邻格中心
+```
+
+| 要求 | 禁止 |
+|------|------|
+| 逻辑连续跨 Hex | Snap 到 Neighbor Hex.Center 作为过渡终点 |
+| 可 Fade／Loading | 把跨格做成「传送到邻格中心再展开」的战略跳点体验 |
+
+### 5.8.8 关闭 WorldMap（AutoTravel 中）
+
+关闭 WorldMap **≠** 永久 UX「进入近景」模式切换。
+
+正式行为：
+
+```text
+AutoTravel 中关闭 WorldMap
+→ Cancel AutoTravel（MovementState → Idle）
+→ 保留当前 Continuous WorldPosition / WorldLocation
+→ Expand LocalMap（展开当前位置近景）
+```
+
+**不**引入永久「进入近景」正式产品状态机；Expand 是表现／加载，不是与 WorldLocation 并列的第三套存在态。
+
+### 5.8.9 PlayerParty 与延期项
+
+| 规则 | 说明 |
+|------|------|
+| **共用 WorldLocation** | 整个 PlayerParty **共享一个** `WorldLocation` |
+| **无 Fake Army** | Party 连续旅行 **不是** FormalArmy；禁止伪装成 Army 单位旅行 |
+| Phase 2C 范围 | **PlayerParty** 连续世界移动／AutoTravel |
+| **Background Continuous Travel** | **Deferred** |
+| **FormalArmy continuous** | **Deferred**（Army 仍用既有战略层；本契约不授权 Army 连续位姿） |
+
+### 5.8.10 V1 目的地解析
+
+| WorldMap 目标 | V1 到达语义 |
+|---------------|-------------|
+| **TargetHex** | 目的地 = 该 **Hex.Center**（连续坐标）；到达后 `WorldLocation = AtWorldPosition{Center}` |
+| **WorldSite** | 进入后 `WorldLocation = AtWorldSite{SiteId}`；WorldMap 投影 = **PresenceHex** |
+
+路径行进过程中位置真源始终是 Continuous WorldPosition（Site 目标在**完成进入**前可走连续路径；**入站完成**后切 Aggregated）。
+
+### 5.8.11 与既有条款的关系
+
+| 条款 | 关系 |
+|------|------|
+| §5.1–5.2 HexWorld／三层 | **保持**；本小节锁定命令精度与连续真源 |
+| §6 PresenceHex | **保持**；Aggregated Site 的 WorldMap 投影真源 |
+| §7 PlayerParty／Background／Army | **保持**；2C 只做 Party 连续旅行 |
+| OLD-06 | **加强**：WorldMap 永不接受像素级世界目的地 |
 
 ---
 
@@ -238,6 +373,8 @@ Footprint = 世界尺度占地，≠ LocalMap 数量
 
 Character 在「青石镇 LocalMap」时，世界层统一视为 `Character World Hex = Site.PresenceHex`。
 
+> **Phase 2C：** 全体 WorldSite（含 1-Hex）均为 Aggregated；站内只改 LocalPosition，WorldMap 投影恒为 PresenceHex。见 [§5.8.5](#585-aggregated-worldsite全体-site)。1-Hex Site 的 PresenceHex = 其唯一 Footprint Hex。
+
 ---
 
 ## 7. 三种主要世界存在状态
@@ -263,7 +400,7 @@ Background Character **可以**在 HexWorld 中进行 World Travel，**不代表
 
 | 实体 | 玩家可下达的世界层命令 |
 |------|------------------------|
-| **PlayerParty** | 直接世界旅行（WorldMap 选点、Auto Travel Future、LocalMap 连续移动等） |
+| **PlayerParty** | 直接世界旅行（WorldMap 选 Hex／Site、AutoTravel、LocalMap 连续移动等；**禁止** PreciseWorldDestination） |
 | **FormalArmy** | 战略军事命令（移动、Attack Army／Site、驻扎等） |
 | **Background Character** | **无**远程逐步移动命令 |
 
@@ -447,7 +584,9 @@ Territory 未来是 AI 合法边界，不只是涂色；本轮**不做** Territo
 
 ## 13. Deferred / Future（本轮不展开实现）
 
-Sect Mission Board 完整玩法、高级 Personality AI、Policy 紧急破例、社交驱动跨世界旅行、**Background Battle 通知／日志 UX 粒度**、复杂 Wilderness 程序生成、大型城市 LocalArea、精确 Site 四向入口、Flight 正式实现、Territory Tint／Border、Diplomacy 扩展、Economy／Supply、Fog of War、Dynamic Bandit。
+Sect Mission Board 完整玩法、高级 Personality AI、Policy 紧急破例、社交驱动跨世界旅行、**Background Battle 通知／日志 UX 粒度**、复杂 Wilderness 程序生成、大型城市 LocalArea、精确 Site 四向入口、Flight 正式实现、Territory Tint／Border、Diplomacy 扩展、Economy／Supply、Fog of War、Dynamic Bandit、**Background Continuous Travel**、**FormalArmy Continuous Movement**。
+
+> Phase 2C **已锁定** PlayerParty Continuous World Movement 契约（§5.8）；上列 Background／Army 连续移动仍 Deferred。
 
 ---
 
@@ -483,12 +622,16 @@ FormalArmy
  （军事远征；默认 Auto Battle；我方 Site 组／解散）
 
 HexWorld = 唯一世界拓扑
- ├─ WorldSite (+ Footprint + PresenceHex + AnchorHex)
- ├─ Wilderness Hex（未来 LocalMap）
- ├─ PlayerParty Presence
- ├─ Background Presence
- └─ FormalArmy Presence
+ ├─ WorldSite（Aggregated：LocalPosition + PresenceHex 投影）
+ ├─ Wilderness Hex（1 Hex = 1 逻辑 LocalMap；Continuous WorldPosition）
+ ├─ PlayerParty：共用 WorldLocation + MovementState（Phase 2C）
+ ├─ Background Presence（连续旅行 Deferred）
+ └─ FormalArmy Presence（连续位姿 Deferred）
 
-LocalMap  = RPG Close-up
-WorldMap  = Overview / Travel View
+位置真源 = Continuous WorldPosition（普通／荒野）
+         | AtWorldSite（聚合；投影=PresenceHex）
+CurrentHex = WorldToHex(...)（派生）
+
+LocalMap  = RPG 近景
+WorldMap  = 总览 / AutoTravel UI（命令精度永久=Hex|WorldSite）
 ```

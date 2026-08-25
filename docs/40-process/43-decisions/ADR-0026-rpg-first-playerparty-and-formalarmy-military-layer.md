@@ -1,7 +1,7 @@
 # ADR-0026：RPG-First — 单 Active Character、PlayerParty、连续 Hex 世界与 FormalArmy 军事层
 
 - 状态：**已采纳**
-- 日期：2026-08-25
+- 日期：2026-08-25（Decision #12 补钉：2026-08-26）
 - 决策者：项目负责人（核心玩法与世界架构方向调整）
 - 关联：[2K RPG-First 系统真源](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、[2A](../../20-systems/2A-factions-armies-diplomacy-and-capture.md)、[2J](../../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)、[ADR-0020](ADR-0020-focus-vs-control-authority.md)、[ADR-0024](ADR-0024-real-cultivators-and-army-strategic-model.md)、[ADR-0025](ADR-0025-strategic-spatial-model-hexgrid.md)
 
@@ -31,7 +31,8 @@
 8. **Character Policy** — 非 Active 以长期权限／倾向控制，不做远程逐步 RTS 命令。  
 9. **PlayerParty Capture** — 攻占据点须完整 **War + CaptureObjective + Capture**（2A）；特权仅为不必转 FormalArmy 且可 LocalMap 手动战。  
 10. **宗门公共资源** — Sect/Faction Storage 默认仅玩家分配；NPC 不得自主领取（未来开放须玩家授权）。  
-11. **LocalMap Camera（2026-08-25 补钉）** — **仅 WASD Direct Movement** 触发 Snap＋Hard Follow；**RTS／右键寻路完全不控制镜头**；中键仅自由 Pan。细则见 [2K §1.1](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。
+11. **LocalMap Camera（2026-08-25 补钉）** — **仅 WASD Direct Movement** 触发 Snap＋Hard Follow；**RTS／右键寻路完全不控制镜头**；中键仅自由 Pan。细则见 [2K §1.1](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。  
+12. **Continuous WorldPosition + WorldMap 命令精度锁（2026-08-26 · Phase 2C）** — Runtime 位置真源为 **Continuous WorldPosition**；`CurrentHex = WorldToHex(...)` 为派生。**WorldMap 命令精度永久仅限 Hex／WorldSite**；**PreciseWorldDestination／点击像素作目的地 FOREVER FORBIDDEN**。`WorldLocation`（`AtWorldSite`｜`AtWorldPosition`）与 `MovementState`（`Idle`｜`AutoTravel`）分离。全体 WorldSite 为 Aggregated（LocalMap 只改 LocalPosition；WorldMap 投影=PresenceHex）。Phase **2C 实现 PlayerParty 连续旅行**（非 FormalArmy；无 Fake Army）；Background Continuous Travel／FormalArmy continuous **Deferred**。细则见 [2K §5.8](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。
 
 ### 对既有 ADR 的关系
 
@@ -49,13 +50,13 @@
 - **Army 职责边界**变更：组军 UX、WorldMap 选中、旅行入口需改（Phase 3）。  
 - **World Presence** 需区分 Party／Background／Army（Phase 2）。  
 - **Manual Battle 权限**收紧：远方 Army 不可手操切入（Phase 4）。  
-- **Continuous LocalMap↔Hex** 与 Auto Travel／Wilderness／Flight／Policy／Sect Mission 分阶段 Future。  
+- **Continuous LocalMap↔Hex** 与 Party AutoTravel：契约见 2K §5.8（Phase 2C）；Background／Army 连续移动、Flight／Policy／Sect Mission 分阶段 Future。  
 - Snapshot／Save 可能需增加 Party／Policy／PresenceHex 字段（实现阶段再定 schema）。  
 - **不**删除 FormalArmy 系统；是重新定义职责，不是推倒。
 
 ## 非目标（本 ADR 不授权实现）
 
-写代码、改 Runtime／JSON／Editor、实现 Party／连续世界／Policy／Auto Travel／Flight／Territory Tint／Dynamic Bandit。
+写 Runtime C#、改 JSON／Editor 实现细节；本 ADR **锁定产品契约**。Background Continuous Travel、FormalArmy Continuous Movement、Flight、Territory Tint、Dynamic Bandit 仍不在本决策授权范围内。
 
 ## 未决
 

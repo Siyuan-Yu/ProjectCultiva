@@ -7,7 +7,8 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// PlayerParty 世界旅行运动状态（独立于 FormalArmy；成员 WorldPresence 同步到 CurrentHex）。
+    /// PlayerParty 世界位置 + 移动状态真源（Phase 2C）。
+    /// WorldPosition 为开世界真源；CurrentHex 由 WorldToHex 派生；AtWorldSite 时投影 PresenceHex。
     /// </summary>
     public sealed class PlayerPartyWorldMotion
     {
@@ -15,15 +16,21 @@ namespace XianXia.Core.World.Strategic
         readonly List<EntityId> _travelingMembers = new List<EntityId>(6);
         ReadOnlyCollection<HexCoord> _hexPathView;
 
-        public bool IsMoving { get; private set; }
+        public PlayerPartyLocationKind LocationKind { get; private set; } = PlayerPartyLocationKind.AtWorldSite;
+        public PlayerPartyMovementKind MovementKind { get; private set; } = PlayerPartyMovementKind.Idle;
+        public string SiteId { get; private set; } = string.Empty;
+        public WorldVec2 WorldPosition { get; private set; }
         public HexTravelMode TravelMode { get; private set; } = HexTravelMode.Ground;
-        public HexCoord CurrentHex { get; private set; }
         public HexCoord DestinationHex { get; private set; }
-        public int CurrentPathIndex { get; private set; }
-        public float StepProgress { get; private set; }
-        public int StepRemainingTicks { get; private set; }
-        public int StepTotalTicks { get; private set; }
+        public string DestinationSiteId { get; private set; } = string.Empty;
+        public int SegmentIndex { get; private set; }
+        public float SegmentProgress { get; private set; }
         public bool HasPosition { get; private set; }
+
+        /// <summary>派生格：AtWorldSite 用 Presence 查询侧解析；AtWorldPosition 缓存最近推导结果。</summary>
+        public HexCoord CurrentHex { get; private set; }
+
+        public bool IsMoving => MovementKind == PlayerPartyMovementKind.AutoTravel;
 
         public int HexPathCount => _hexPath.Count;
 
@@ -32,30 +39,52 @@ namespace XianXia.Core.World.Strategic
 
         public IReadOnlyList<EntityId> TravelingMembers => _travelingMembers;
 
+        // ---- Phase 2B compat aliases ----
+        public int CurrentPathIndex => SegmentIndex;
+        public float StepProgress => SegmentProgress;
+        public int StepRemainingTicks { get; private set; }
+        public int StepTotalTicks { get; private set; }
+
         public void Clear()
         {
             _hexPath.Clear();
             _travelingMembers.Clear();
-            CurrentPathIndex = 0;
-            StepProgress = 0f;
+            SegmentIndex = 0;
+            SegmentProgress = 0f;
             StepRemainingTicks = 0;
             StepTotalTicks = 0;
-            IsMoving = false;
+            MovementKind = PlayerPartyMovementKind.Idle;
             DestinationHex = CurrentHex;
+            DestinationSiteId = string.Empty;
             TravelMode = HexTravelMode.Ground;
+        }
+
+        public void SetAtWorldSite(string siteId, HexCoord presenceHex, float hexSize)
+        {
+            LocationKind = PlayerPartyLocationKind.AtWorldSite;
+            SiteId = siteId ?? string.Empty;
+            CurrentHex = presenceHex;
+            HexMath.ToWorldPosition(presenceHex, hexSize, out var x, out var y);
+            WorldPosition = new WorldVec2(x, y);
+            HasPosition = true;
+            ClearMovementKeepMembers();
+        }
+
+        public void SetAtWorldPosition(WorldVec2 worldPos, HexCoord derivedHex)
+        {
+            LocationKind = PlayerPartyLocationKind.AtWorldPosition;
+            SiteId = string.Empty;
+            WorldPosition = worldPos;
+            CurrentHex = derivedHex;
+            HasPosition = true;
+            ClearMovementKeepMembers();
         }
 
         public void SetIdleAt(HexCoord hex)
         {
-            CurrentHex = hex;
-            DestinationHex = hex;
-            HasPosition = true;
-            _hexPath.Clear();
-            CurrentPathIndex = 0;
-            StepProgress = 0f;
-            StepRemainingTicks = 0;
-            StepTotalTicks = 0;
-            IsMoving = false;
+            // Phase 2B compat：视为停在该格中心的开世界位置。
+            HexMath.ToWorldPosition(hex, 1f, out var x, out var y);
+            SetAtWorldPosition(new WorldVec2(x, y), hex);
         }
 
         public void CaptureTravelingMembers(IReadOnlyList<EntityId> members)
@@ -70,9 +99,16 @@ namespace XianXia.Core.World.Strategic
             }
         }
 
-        internal void SetHexPath(IReadOnlyList<HexCoord> path, HexCoord destination, HexTravelMode mode)
+        public void BeginAutoTravel(
+            IReadOnlyList<HexCoord> path,
+            HexCoord destinationHex,
+            string destinationSiteId,
+            HexTravelMode mode,
+            float hexSize)
         {
             TravelMode = mode;
+            DestinationHex = destinationHex;
+            DestinationSiteId = destinationSiteId ?? string.Empty;
             _hexPath.Clear();
             if (path != null)
             {
@@ -80,33 +116,57 @@ namespace XianXia.Core.World.Strategic
                     _hexPath.Add(path[i]);
             }
 
-            DestinationHex = destination;
-            CurrentPathIndex = 0;
-            StepProgress = 0f;
-            if (_hexPath.Count < 2 || CurrentHex == destination)
+            SegmentIndex = 0;
+            SegmentProgress = 0f;
+            if (_hexPath.Count < 1)
             {
                 CompleteMove();
                 return;
             }
 
-            IsMoving = true;
+            // 若已在开世界且不在起点中心：路径几何从当前 WorldPosition 接到下一格中心。
+            if (LocationKind == PlayerPartyLocationKind.AtWorldSite)
+            {
+                // Site Exit：离散转为 Presence 中心开世界位置后再连续移动。
+                HexMath.ToWorldPosition(CurrentHex, hexSize, out var sx, out var sy);
+                WorldPosition = new WorldVec2(sx, sy);
+                LocationKind = PlayerPartyLocationKind.AtWorldPosition;
+                SiteId = string.Empty;
+            }
+
+            if (_hexPath.Count == 1 || CurrentHex == destinationHex)
+            {
+                SnapToHexCenter(destinationHex, hexSize);
+                CompleteMove();
+                return;
+            }
+
+            // Phase 2C：path[0]==CurrentHex 且 off-center 时，段 0 从 live WorldPosition 出发（TryGetActiveSegmentWorld），不在此 snap。
+
+            MovementKind = PlayerPartyMovementKind.AutoTravel;
             StepTotalTicks = Math.Max(4, 8);
             StepRemainingTicks = StepTotalTicks;
-            StepProgress = 0f;
         }
+
+        /// <summary>Phase 2B compat path setter.</summary>
+        internal void SetHexPath(IReadOnlyList<HexCoord> path, HexCoord destination, HexTravelMode mode) =>
+            BeginAutoTravel(path, destination, string.Empty, mode, 1f);
 
         internal void CompleteMove()
         {
             _hexPath.Clear();
-            CurrentPathIndex = 0;
-            StepProgress = 0f;
+            SegmentIndex = 0;
+            SegmentProgress = 0f;
             StepRemainingTicks = 0;
             StepTotalTicks = 0;
             DestinationHex = CurrentHex;
-            IsMoving = false;
+            DestinationSiteId = string.Empty;
+            MovementKind = PlayerPartyMovementKind.Idle;
         }
 
         internal void CancelAtCurrentHex() => CompleteMove();
+
+        public void CancelAutoTravelPreservePosition() => CompleteMove();
 
         internal void AdvanceToHex(HexCoord hex)
         {
@@ -114,24 +174,90 @@ namespace XianXia.Core.World.Strategic
             HasPosition = true;
         }
 
+        public void SetWorldPositionInternal(WorldVec2 pos, HexCoord derivedHex)
+        {
+            WorldPosition = pos;
+            CurrentHex = derivedHex;
+            LocationKind = PlayerPartyLocationKind.AtWorldPosition;
+            SiteId = string.Empty;
+            HasPosition = true;
+        }
+
+        public void SnapToHexCenter(HexCoord hex, float hexSize)
+        {
+            HexMath.ToWorldPosition(hex, hexSize, out var x, out var y);
+            SetWorldPositionInternal(new WorldVec2(x, y), hex);
+        }
+
         internal void SetStep(int total, int remaining, float progress)
         {
             StepTotalTicks = total;
             StepRemainingTicks = remaining;
-            StepProgress = progress;
+            SegmentProgress = progress;
+            StepProgressCompat(progress);
         }
 
-        internal void IncrementPathIndex() => CurrentPathIndex++;
+        void StepProgressCompat(float progress) => SegmentProgress = progress;
+
+        internal void IncrementPathIndex() => SegmentIndex++;
+
+        public void SetSegment(int index, float progress)
+        {
+            SegmentIndex = index;
+            SegmentProgress = Math.Max(0f, Math.Min(1f, progress));
+        }
 
         public bool TryGetActiveStepHexes(out HexCoord from, out HexCoord to)
         {
             from = CurrentHex;
             to = CurrentHex;
-            if (_hexPath.Count < 2 || CurrentPathIndex < 0 || CurrentPathIndex >= _hexPath.Count - 1)
+            if (_hexPath.Count < 2 || SegmentIndex < 0 || SegmentIndex >= _hexPath.Count - 1)
                 return false;
-            from = _hexPath[CurrentPathIndex];
-            to = _hexPath[CurrentPathIndex + 1];
+            from = _hexPath[SegmentIndex];
+            to = _hexPath[SegmentIndex + 1];
             return true;
+        }
+
+        /// <summary>当前 AutoTravel 段的世界几何：fromPos → toCenter（首段 from 可为任意 WorldPosition）。</summary>
+        public bool TryGetActiveSegmentWorld(
+            float hexSize,
+            out WorldVec2 fromPos,
+            out WorldVec2 toPos)
+        {
+            fromPos = WorldPosition;
+            toPos = WorldPosition;
+            if (!IsMoving || _hexPath.Count < 2)
+                return false;
+
+            if (SegmentIndex >= _hexPath.Count - 1)
+                return false;
+
+            var toHex = _hexPath[SegmentIndex + 1];
+            HexMath.ToWorldPosition(toHex, hexSize, out var tx, out var ty);
+            toPos = new WorldVec2(tx, ty);
+
+            if (SegmentIndex == 0)
+            {
+                fromPos = WorldPosition;
+                return true;
+            }
+
+            var fromHex = _hexPath[SegmentIndex];
+            HexMath.ToWorldPosition(fromHex, hexSize, out var fx, out var fy);
+            fromPos = new WorldVec2(fx, fy);
+            return true;
+        }
+
+        void ClearMovementKeepMembers()
+        {
+            _hexPath.Clear();
+            SegmentIndex = 0;
+            SegmentProgress = 0f;
+            StepRemainingTicks = 0;
+            StepTotalTicks = 0;
+            MovementKind = PlayerPartyMovementKind.Idle;
+            DestinationHex = CurrentHex;
+            DestinationSiteId = string.Empty;
         }
     }
 }

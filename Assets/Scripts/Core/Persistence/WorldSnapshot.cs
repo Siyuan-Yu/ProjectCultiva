@@ -63,6 +63,22 @@ namespace XianXia.Core.Persistence
         public List<VassalageSnapshotDto> Vassalages { get; set; } = new List<VassalageSnapshotDto>();
         public List<RetreatingArmySnapshotDto> RetreatingArmies { get; set; } = new List<RetreatingArmySnapshotDto>();
         public List<CaptureObjectiveSnapshotDto> CaptureObjectives { get; set; } = new List<CaptureObjectiveSnapshotDto>();
+        /// <summary>
+        /// Phase 2C：PlayerParty 连续世界位置（可选；旧存档缺省时不恢复 motion）。
+        /// </summary>
+        public PlayerPartyTravelSnapshotDto PlayerPartyTravel { get; set; }
+    }
+
+    /// <summary>Phase 2C：PlayerParty 开世界连续位置快照（MovementState 恢复为 Idle）。</summary>
+    public sealed class PlayerPartyTravelSnapshotDto
+    {
+        public bool HasPosition { get; set; }
+        public int LocationKind { get; set; }
+        public string SiteId { get; set; } = string.Empty;
+        public float WorldX { get; set; }
+        public float WorldY { get; set; }
+        public int CurrentHexQ { get; set; }
+        public int CurrentHexR { get; set; }
     }
 
     public sealed class FormalArmySnapshotDto

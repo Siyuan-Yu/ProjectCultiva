@@ -10,7 +10,7 @@
 
 | 文档 | 角色 |
 |------|------|
-| **[2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)** | **最高优先级产品真源**：Active／Party／Policy／Background／Army 边界／连续世界／PresenceHex／Succession |
+| **[2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)** | **最高优先级产品真源**：Active／Party／Policy／Background／Army 边界／连续世界／PresenceHex／Succession／**§5.8 Continuous World Movement** |
 | **[ADR-0026](43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)** | 架构决策记录 |
 | [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md) | 外交／War／Capture／真实成员等仍有效；**「Army=唯一移动载体」已 supersede** |
 | [2J](../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md) | Territory／Footprint／Bandit；**PresenceHex 由 2K 补充** |
@@ -83,7 +83,8 @@
 - **Must Not Break：** Party／Army 现有 Hex 位置  
 - **Acceptance：** Background 可数据层定位；无 Capture 权断言  
 - **2026-08-25 进度：** **Phase 2A 已封板**（PresenceHex Content／Runtime／Editor／Query／最小 Snapshot；不含 Travel／Combat；人工验收通过）。详见 [roadmap](41-roadmap.md)／[devlog](42-devlog.md)。  
-- **2026-08-25 Phase 2B：** PlayerParty World Travel MVP 已落地（非 Fake Army；30×15 测试世界；Wilderness Fallback；Materialize 闭环）。下一阶段再做 Close→Expand／Continuous Transition／Background Travel。  
+- **2026-08-25 Phase 2B：** **已封板** — PlayerParty World Travel MVP（非 Fake Army；30×15 测试世界；Wilderness Fallback；Materialize 闭环）。  
+- **2026-08-26 Phase 2C（进行中）：** Continuous World Movement — 契约已锁于 [2K §5.8](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)／ADR-0026 #12。目标：Continuous WorldPosition 真源；WorldLocation∥MovementState；WorldMap 命令精度永久 Hex／WorldSite；Aggregated Site；LocalMap 边缘邻格连续过渡（不 snap 中心）；AutoTravel 中关 WorldMap＝Cancel＋保位＋Expand LocalMap；**仅 PlayerParty**（Background／FormalArmy continuous Deferred）。  
 
 ### Phase 3 — FormalArmy 职责迁移
 
@@ -101,16 +102,18 @@
 
 ### Phase 5 — Continuous LocalMap ↔ Hex
 
-- **Goal：** 边缘过渡逻辑连续（Fade+邻接 Hex+对应入口）  
+- **Goal：** 边缘过渡逻辑连续（Fade+邻接 Hex；**不** snap 邻格中心）；与 Phase 2C 契约对齐  
 - **Affected：** Map load、Travel、Presentation  
 - **Must Not Break：** Site LocalMap 玩法、Encounter 图  
-- **Acceptance：** 走出荒村边缘进入邻接世界语义成立（可先 Site↔Wilderness stub）  
+- **Acceptance：** 走出边缘进入邻接世界语义成立；Continuous WorldPosition 连续  
+- **Note：** 产品契约已在 Phase 2C／2K §5.8 锁定；本 Phase 侧重实现落地与表现。  
 
 ### Phase 6 — WorldMap Auto Travel
 
-- **Goal：** Party 选目标、逐 Hex、时间流逝  
-- **Must Not Break：** 手动展开 LocalMap、中断  
-- **Acceptance：** 非传送的路径旅行可演示  
+- **Goal：** Party 选 **Hex／WorldSite**、`AutoTravel`、Continuous 移动、时间流逝；关 WorldMap＝Cancel＋Expand  
+- **Must Not Break：** 手动展开 LocalMap、中断保位  
+- **Acceptance：** 非传送、非 PreciseWorldDestination 的路径旅行可演示  
+- **Note：** 与 Phase 2C 目标重叠时以 2K §5.8 为准合并验收。  
 
 ### Phase 7 — Wilderness LocalMap
 
