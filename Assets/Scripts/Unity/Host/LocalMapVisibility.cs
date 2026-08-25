@@ -58,6 +58,14 @@ namespace XianXia.Unity.Host
                     System.StringComparison.Ordinal);
             }
 
+            if (wp.Mode == PartyWorldPresenceMode.AtHex &&
+                wp.UsesHexPresence &&
+                string.Equals(
+                    world.PartyWorld?.LocalMapId?.Trim(),
+                    mapId,
+                    System.StringComparison.Ordinal))
+                return true;
+
             return false;
         }
 
@@ -129,6 +137,15 @@ namespace XianXia.Unity.Host
                     site != null &&
                     string.Equals(
                         WorldTravelService.ResolveWorldSiteLocalMapId(site),
+                        mapId,
+                        System.StringComparison.Ordinal))
+                    return true;
+
+                // Phase 2B：Wilderness Fallback — AtHex 成员 + PartyWorld.LocalMapId 对齐即可装图
+                if (wp.Mode == PartyWorldPresenceMode.AtHex &&
+                    wp.UsesHexPresence &&
+                    string.Equals(
+                        world.PartyWorld?.LocalMapId?.Trim(),
                         mapId,
                         System.StringComparison.Ordinal))
                     return true;
@@ -254,8 +271,9 @@ namespace XianXia.Unity.Host
                     // 遭遇图上：非本场 scoped spawn Hex residual 不得LocationId 漏进
                     if (onEncounterMap)
                         return false;
-                    // 非遭LocalMap：Hex 宏观单位不进场景（除非上WorldSite 硬门禁已放行
-                    return false;
+                    // Phase 2B：Wilderness Fallback LocalMap — PlayerParty AtHex 必须可见
+                    return PlayerPartyLocalMapMaterializationService.IsWildernessPartyMemberVisibleOnActiveLocalMap(
+                        world, id, wp);
                 }
 
                 if (wp.Mode == PartyWorldPresenceMode.InEncounter)

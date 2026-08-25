@@ -83,7 +83,7 @@
 - **Must Not Break：** Party／Army 现有 Hex 位置  
 - **Acceptance：** Background 可数据层定位；无 Capture 权断言  
 - **2026-08-25 进度：** **Phase 2A 已封板**（PresenceHex Content／Runtime／Editor／Query／最小 Snapshot；不含 Travel／Combat；人工验收通过）。详见 [roadmap](41-roadmap.md)／[devlog](42-devlog.md)。  
-- **2026-08-25 下一阶段：** Phase 2B = PlayerParty World Travel MVP（非 Fake Army）＋独立 30×15 测试世界＋Wilderness Fallback Stub。  
+- **2026-08-25 Phase 2B：** PlayerParty World Travel MVP 已落地（非 Fake Army；30×15 测试世界；Wilderness Fallback；Materialize 闭环）。下一阶段再做 Close→Expand／Continuous Transition／Background Travel。  
 
 ### Phase 3 — FormalArmy 职责迁移
 

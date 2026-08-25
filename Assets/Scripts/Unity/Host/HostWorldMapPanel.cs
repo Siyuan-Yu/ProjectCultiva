@@ -595,7 +595,7 @@ namespace XianXia.Unity.Host
 
             GUI.Label(
                 new Rect(pad, titleY, Screen.width - 220f, 28f),
-                "大地 Hex 战略 （左键：选格/军团｜右键：移动/攻击/残留格进入｜Ctrl+左键：道路｜M 关闭", _title);
+                "大地 Hex 战略 （左键：选格/军团｜右键：军团移动或 Party Travel｜停止/进入近景见顶栏｜M 关闭", _title);
 
             if (GUI.Button(new Rect(Screen.width - 100f, titleY, 84f, 32f), "关闭"))
                 Close();
@@ -891,11 +891,47 @@ namespace XianXia.Unity.Host
                 HandleGlobalStrategicToolbarClick(clickedModule);
             x += _globalStrategicToolbar.LastDrawnWidth;
 
+            // Phase 2B：PlayerParty Travel（不创建 FormalArmy）
+            x += 12f;
+            var party = bootstrap?.Session?.PlayerParty;
+            var partyMoving = world.PlayerPartyTravel != null && world.PlayerPartyTravel.IsMoving;
+            GUI.enabled = partyMoving;
+            if (GUI.Button(new Rect(x, y, 120f, 26f), "停止 Party 旅行") && partyMoving)
+            {
+                var cancel = PlayerPartyHexTravelService.CancelTravel(world, party);
+                _status = cancel.IsSuccess
+                    ? "已停止 Party 旅行 @" + world.PlayerPartyTravel.CurrentHex
+                    : cancel.Error.Message;
+            }
+
+            // Phase 2B Prototype / Debug UX only — 非正式最终 UX。
+            // 最终方向：关闭 WorldMap 即自动 Expand 当前 Party 所在 LocalMap。
+            GUI.enabled = party != null && party.HasActive && !partyMoving;
+            x += 128f;
+            if (GUI.Button(new Rect(x, y, 120f, 26f), "进入近景(调试)") &&
+                party != null &&
+                party.HasActive &&
+                !partyMoving)
+            {
+                var enter = PlayerPartyHexTravelService.EnterLocalViewAtCurrentHex(world, party);
+                if (enter.IsSuccess)
+                {
+                    CloseAllWorldMapPanels();
+                    bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: true);
+                    _status = "已展开近景 " + (world.PartyWorld.LocalMapId ?? string.Empty);
+                }
+                else
+                    _status = enter.Error.Message;
+            }
+
+            GUI.enabled = true;
+            x += 128f;
+
             if (world.Strategic != null &&
                 (world.Strategic.HasBlockingInterrupt ||
                  StrategicClockFreezeService.IsWorldTickFrozen(world)))
             {
-                x += 230f;
+                x += 12f;
                 var reason = world.Strategic.ClockFreeze != null
                     ? world.Strategic.ClockFreeze.Reason.ToString()
                     : "?";
@@ -1117,6 +1153,24 @@ namespace XianXia.Unity.Host
                 _lastHoverHex = _hoverHex;
 
             RefreshSelectedArmyPathPreview(world);
+            RefreshPlayerPartyPathPreview(world);
+        }
+
+        void RefreshPlayerPartyPathPreview(SimulationWorld world)
+        {
+            if (!string.IsNullOrEmpty(_selectedFormalArmyId))
+                return;
+            if (world?.PlayerPartyTravel == null || !world.PlayerPartyTravel.IsMoving)
+                return;
+
+            _hexPathPreview.Clear();
+            var motion = world.PlayerPartyTravel;
+            _hexPathPreview.Add(motion.CurrentHex);
+            var path = motion.HexPath;
+            for (var i = motion.CurrentPathIndex; i < motion.HexPathCount; i++)
+                _hexPathPreview.Add(path[i]);
+            if (_hexPathPreview.Count == 1 && motion.DestinationHex != motion.CurrentHex)
+                _hexPathPreview.Add(motion.DestinationHex);
         }
 
         /// <summary>
@@ -1253,6 +1307,7 @@ namespace XianXia.Unity.Host
                           world.HexWorld.HasGrid;
             DrawResidualMarkers(mapRect, world, hexMode: true, hexProjection: projection);
             DrawFormalArmyAvatars(mapRect, world);
+            DrawPlayerPartyMarker(mapRect, world, projection);
             DrawArmyStacks(mapRect, world);
             DrawAvatars(mapRect, world, hexMode: true, hexProjection: projection);
 
@@ -2411,9 +2466,12 @@ namespace XianXia.Unity.Host
                     OpenHexWorldSiteEnterMenu(resolution, pickedHex, mouse);
                     break;
                 default:
-                    _status = string.IsNullOrEmpty(resolution.StatusHint)
-                        ? "请左键选中军团，再右键 Hex 移动"
-                        : resolution.StatusHint;
+                    if (TryExecutePlayerPartyTravel(world, pickedHex, out var partyStatus))
+                        _status = partyStatus;
+                    else
+                        _status = string.IsNullOrEmpty(resolution.StatusHint)
+                            ? "右键：无军团时下令 PlayerParty Travel；或先选军团移动"
+                            : resolution.StatusHint;
                     break;
             }
 
@@ -2658,6 +2716,12 @@ namespace XianXia.Unity.Host
                 !world.Strategic.FormalArmies.TryGet(_selectedFormalArmyId, out var army) ||
                 army == null)
             {
+                if (TryExecutePlayerPartyTravel(world, hex, out var partyStatus))
+                {
+                    _status = partyStatus;
+                    return;
+                }
+
                 _status = "请左键选中军团，再右键 Hex 移动";
                 return;
             }
@@ -2675,6 +2739,71 @@ namespace XianXia.Unity.Host
             SetArmyHexPathPreview(_selectedFormalArmyId, hex);
             var move = ArmyHexCommandService.MoveArmy(world, _selectedFormalArmyId, hex);
             _status = move.IsSuccess ? "军团已出发前往 " + destLabel : FormatFail(move);
+        }
+
+        bool TryExecutePlayerPartyTravel(
+            XianXia.Core.Simulation.SimulationWorld world,
+            HexCoord hex,
+            out string status)
+        {
+            status = string.Empty;
+            var party = bootstrap?.Session?.PlayerParty;
+            if (party == null || !party.HasActive)
+                return false;
+
+            if (!world.HexWorld.TryGetTile(hex, out var tile) || tile == null || !tile.IsPassable)
+            {
+                status = "目标 Hex 不可通行";
+                return true;
+            }
+
+            var move = PlayerPartyHexTravelService.BeginTravel(world, party, hex);
+            if (move.IsFailure)
+            {
+                status = FormatFail(move);
+                return true;
+            }
+
+            _selectedFormalArmyId = string.Empty;
+            RefreshPlayerPartyPathPreview(world);
+            var destLabel = hex.ToString();
+            if (world.Strategic.Sites.TryGetAtHex(hex, out var site) && site != null)
+                destLabel = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
+            status = "PlayerParty Travel → " + destLabel + "（未创建军队）";
+            return true;
+        }
+
+        void DrawPlayerPartyMarker(
+            Rect mapRect,
+            XianXia.Core.Simulation.SimulationWorld world,
+            HexMapViewportProjection projection)
+        {
+            var party = bootstrap?.Session?.PlayerParty;
+            if (party == null || !party.HasActive)
+                return;
+            if (ArmyService.TryGetArmyForCharacter(world, party.ActiveCharacterId, out _))
+                return;
+            if (!PlayerPartyHexTravelService.TryResolvePartyWorldHex(world, party, out var hex))
+                return;
+            if (!world.HexWorld.Contains(hex))
+                return;
+
+            HexMath.ToWorldPosition(hex, world.HexWorld.HexSize, out var wx, out var wy);
+            var screen = ProjectHex(mapRect, world, wx, wy);
+            const float size = 24f;
+            var rect = new Rect(screen.x - size * 0.5f, screen.y - size * 0.5f, size, size);
+            if (!rect.Overlaps(mapRect))
+                return;
+
+            var old = GUI.color;
+            GUI.color = new Color(0.95f, 0.72f, 0.22f, 0.92f);
+            GUI.DrawTexture(rect, _px);
+            GUI.color = Color.white;
+            var shortName = EntityLabel(world, party.ActiveCharacterId);
+            if (shortName.Length > 2)
+                shortName = shortName.Substring(0, 2);
+            GUI.Label(rect, shortName, _avatarLabel);
+            GUI.color = old;
         }
 
         void ExecuteEnterFriendlyLingeringAtHex(

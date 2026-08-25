@@ -6,6 +6,7 @@ using XianXia.Core.Domain.Time;
 using XianXia.Core.Events;
 using XianXia.Core.Navigation;
 using XianXia.Core.Results;
+using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
@@ -909,9 +910,16 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// WorldSite 到站后：PartyWorld.LocalMapId 卸／装实体图；切localPlaceSet；队伍落startLocation
+        /// 正式展开链路：当前 PartyWorld 已 Resolve 的 LocalMap → Materialize PlayerParty → 重建表现。
+        /// WorldSite 与 Wilderness 共用；未来 Close WorldMap 也应调用此入口。
         /// </summary>
-        /// <param name="closeWorldMap">从大地图「进入场景」时应为 true，关掉全屏地图页/param>
+        public void ExpandLocalMapForCurrentPartyWorld(bool closeWorldMap = false) =>
+            ApplyPartyWorldSitePresentation(closeWorldMap);
+
+        /// <summary>
+        /// WorldSite／Wilderness 到站后：PartyWorld.LocalMapId 卸／装实体图；Materialize PlayerParty。
+        /// </summary>
+        /// <param name="closeWorldMap">从大地图「进入场景」时应为 true，关掉全屏地图页</param>
         public void ApplyPartyWorldSitePresentation(bool closeWorldMap = false)
         {
             if (closeWorldMap && worldMapPanel != null)
@@ -927,11 +935,6 @@ namespace XianXia.Unity.Host
                 targetMap = BattleOfferService.ResolveActiveEncounterLocalMapId(world);
                 world.PartyWorld.LocalMapId = targetMap;
             }
-            var inStrategicEncounter = world.Strategic?.Encounter != null &&
-                                         !world.Strategic.Encounter.BattlefieldLingering &&
-                                         (world.Strategic.Encounter.SpawnOnNextMapLoad ||
-                                          world.Strategic.Encounter.SpawnedEntityIds.Count > 0 ||
-                                          !string.IsNullOrEmpty(world.PartyWorld.EncounterId));
             var onEncounterMap = BattleOfferService.HasActiveManualEncounter(world) &&
                                  !string.IsNullOrWhiteSpace(targetMap) &&
                                  string.Equals(
@@ -940,6 +943,7 @@ namespace XianXia.Unity.Host
                                      System.StringComparison.Ordinal);
 
             // 目标图上暂无我方（例如全员已上路）：保持当前 LocalMap 画面，禁止卸图把视线带走
+            // Wilderness：CanLoadMapLayoutForParty 已认 AtHex + PartyWorld.LocalMapId
             if (!string.IsNullOrWhiteSpace(targetMap) &&
                 !(world.Strategic?.Encounter != null && world.Strategic.Encounter.SpawnOnNextMapLoad) &&
                 !LocalMapVisibility.CanLoadMapLayoutForParty(
@@ -970,7 +974,113 @@ namespace XianXia.Unity.Host
             if (places.IsFailure)
                 Debug.LogWarning("[PlayableHost] ActivatePlaces: " + places.Error, this);
 
-            // 仅把仍在当前焦点 Node／WorldSite 上的己方落到该图 startLocation（已去别处的人不动）
+            // Phase 2B：Site / Wilderness 共用 — Resolve 后 Materialize 当前 PlayerParty
+            if (!onEncounterMap &&
+                !string.IsNullOrWhiteSpace(targetMap) &&
+                _session.PlayerParty != null &&
+                _session.PlayerParty.Count > 0)
+            {
+                PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(
+                    world, _session.PlayerParty.Members);
+            }
+            else
+            {
+                // 遭遇／无 Party：保留旧 Army／Encounter 落点逻辑
+                PlaceLegacyFocusCharactersOnLocalMap(world, onEncounterMap);
+            }
+
+            if (string.IsNullOrWhiteSpace(targetMap))
+            {
+                // 焦点图为空但画面仍在：保留当LocalMap（全员上路时视线不带走）
+                if (!string.IsNullOrWhiteSpace(world.LocalMap.ActiveMapLayoutId))
+                {
+                    RefreshStatus();
+                    return;
+                }
+
+                UnloadActiveLocalMapPresentation(clearEmptyEncounter: false);
+                return;
+            }
+
+            preferredMapLayoutId = targetMap;
+            _session.PreferredMapLayoutId = targetMap;
+            world.LocalMap.ActiveMapLayoutId = targetMap;
+            world.LocalMap.OverworldMapLayoutId = targetMap;
+            _session.RefreshViewableEntityIds();
+            ReloadLocalMapPresentation(frameCamera: true);
+
+            var spawned = StrategicEncounterSpawner.ApplyPending(world);
+            if (spawned.IsFailure)
+                Debug.LogWarning("[PlayableHost] Strategic encounter spawn: " + spawned.Error, this);
+            if (onEncounterMap)
+            {
+                StrategicEncounterSpawner.EnsureTrackedSpawnsLocalPresentation(world);
+                _session.RefreshViewableEntityIds();
+                entityViewSpawner?.Rebuild(_session);
+            }
+            else
+            {
+                if (world.Strategic?.Encounter != null)
+                {
+                    world.Strategic.Encounter.ActiveBattlefieldId = string.Empty;
+                    if (world.Strategic.Encounter.SpawnedEntityIds.Count > 0)
+                    {
+                        _session.RefreshViewableEntityIds();
+                        entityViewSpawner?.Rebuild(_session);
+                    }
+                }
+
+                // Wilderness／Site：确保 Materialize 后的 Party 视图已刷出
+                _session.RefreshViewableEntityIds();
+                entityViewSpawner?.Rebuild(_session);
+            }
+
+            // 切图后再对齐一次地点坐标（MapLayout sync 之后）并选中在场角色
+            var startId = world.WorldRegion.StartLocationId;
+            var encounter = world.Strategic?.Encounter;
+            var filterEngaged = onEncounterMap && encounter != null && encounter.HasEngagedParty;
+            if (!string.IsNullOrEmpty(startId) && world.WorldRegion.TryGet(startId, out var syncedStart))
+            {
+                for (var i = 0; i < _session.CharacterIds.Count; i++)
+                {
+                    var id = _session.CharacterIds[i];
+                    if (filterEngaged && !encounter.IsEngaged(id))
+                        continue;
+                    if (!LocalMapVisibility.IsEntityVisible(world, id))
+                        continue;
+                    if (!world.Entities.TryGet(id, out var ent) ||
+                        !ent.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc))
+                        continue;
+                    loc.LocationId = startId;
+                    loc.SetPresentationOverride(syncedStart.PresentationX, syncedStart.PresentationZ);
+                }
+
+                entityViewSpawner?.SyncLocations(_session);
+                if (selectionController != null)
+                {
+                    var party = _session.PlayerParty;
+                    if (party != null && party.HasActive &&
+                        LocalMapVisibility.IsEntityVisible(world, party.ActiveCharacterId))
+                        selectionController.SelectEntity(party.ActiveCharacterId, false);
+                    else
+                    {
+                        for (var i = 0; i < _session.CharacterIds.Count; i++)
+                        {
+                            var id = _session.CharacterIds[i];
+                            if (!LocalMapVisibility.IsEntityVisible(world, id))
+                                continue;
+                            selectionController.SelectEntity(id, false);
+                            break;
+                        }
+                    }
+                }
+
+                TryFrameCameraOnParty();
+            }
+        }
+
+        void PlaceLegacyFocusCharactersOnLocalMap(SimulationWorld world, bool onEncounterMap)
+        {
             var focusNode = world.PartyWorld.SiteId;
             var focusSiteId = world.PartyWorld.SiteId;
             WorldSite focusSite = null;
@@ -1040,88 +1150,13 @@ namespace XianXia.Unity.Host
                 }
                 else
                 {
-                    // 无地点表时仍落在表现原点，保证能刷出实体
                     loc.LocationId = string.Empty;
                     loc.SetPresentationOverride(0f, 0f);
                 }
             }
-
-            if (string.IsNullOrWhiteSpace(targetMap))
-            {
-                // 焦点图为空但画面仍在：保留当LocalMap（全员上路时视线不带走）
-                if (!string.IsNullOrWhiteSpace(world.LocalMap.ActiveMapLayoutId))
-                {
-                    RefreshStatus();
-                    return;
-                }
-
-                UnloadActiveLocalMapPresentation(clearEmptyEncounter: false);
-                return;
-            }
-
-            preferredMapLayoutId = targetMap;
-            _session.PreferredMapLayoutId = targetMap;
-            world.LocalMap.ActiveMapLayoutId = targetMap;
-            world.LocalMap.OverworldMapLayoutId = targetMap;
-            ReloadLocalMapPresentation(frameCamera: true);
-
-            var spawned = StrategicEncounterSpawner.ApplyPending(world);
-            if (spawned.IsFailure)
-                Debug.LogWarning("[PlayableHost] Strategic encounter spawn: " + spawned.Error, this);
-            if (onEncounterMap)
-            {
-                StrategicEncounterSpawner.EnsureTrackedSpawnsLocalPresentation(world);
-                _session.RefreshViewableEntityIds();
-                entityViewSpawner?.Rebuild(_session);
-            }
-            else
-            {
-                if (world.Strategic?.Encounter != null)
-                {
-                    world.Strategic.Encounter.ActiveBattlefieldId = string.Empty;
-                    if (world.Strategic.Encounter.SpawnedEntityIds.Count > 0)
-                    {
-                        _session.RefreshViewableEntityIds();
-                        entityViewSpawner?.Rebuild(_session);
-                    }
-                }
-            }
-
-            // 切图后再对齐一次地点坐标（MapLayout sync 之后）并选中在场角色
-            if (!string.IsNullOrEmpty(startId) && world.WorldRegion.TryGet(startId, out var syncedStart))
-            {
-                for (var i = 0; i < _session.CharacterIds.Count; i++)
-                {
-                    var id = _session.CharacterIds[i];
-                    if (filterEngaged && !encounter.IsEngaged(id))
-                        continue;
-                    if (!LocalMapVisibility.IsEntityVisible(world, id))
-                        continue;
-                    if (!world.Entities.TryGet(id, out var ent) ||
-                        !ent.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc))
-                        continue;
-                    loc.LocationId = startId;
-                    loc.SetPresentationOverride(syncedStart.PresentationX, syncedStart.PresentationZ);
-                }
-
-                entityViewSpawner?.SyncLocations(_session);
-                if (selectionController != null)
-                {
-                    for (var i = 0; i < _session.CharacterIds.Count; i++)
-                    {
-                        var id = _session.CharacterIds[i];
-                        if (!LocalMapVisibility.IsEntityVisible(world, id))
-                            continue;
-                        selectionController.SelectEntity(id, false);
-                        break;
-                    }
-                }
-
-                TryFrameCameraOnParty();
-            }
         }
 
-        /// <summary>残留战场：存活角色「查看」弥留同伴／再入接战 LocalMap/summary>
+        /// <summary>残留战场：存活角色「查看」弥留同伴／再入接战 LocalMap</summary>
         public void EnterLingeringBattlefield(IReadOnlyList<EntityId> party)
         {
             if (!_session.IsInitialized || party == null || party.Count == 0)

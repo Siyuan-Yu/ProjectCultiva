@@ -28,10 +28,23 @@ namespace XianXia.Core.World.Hex
             HexWorld grid,
             HexCoord start,
             HexCoord goal,
-            List<HexCoord> pathOut)
+            List<HexCoord> pathOut) =>
+            TryFindPath(grid, start, goal, pathOut, HexTravelMode.Ground);
+
+        /// <summary>
+        /// Hex A*。TravelMode 预留；V1 Ground 与旧行为一致（不绑定 FormalArmy）。
+        /// </summary>
+        public static bool TryFindPath(
+            HexWorld grid,
+            HexCoord start,
+            HexCoord goal,
+            List<HexCoord> pathOut,
+            HexTravelMode travelMode)
         {
             pathOut?.Clear();
             if (grid == null || pathOut == null)
+                return false;
+            if (travelMode != HexTravelMode.Ground)
                 return false;
             if (!grid.TryGetTile(start, out _) || !grid.TryGetTile(goal, out _))
                 return false;

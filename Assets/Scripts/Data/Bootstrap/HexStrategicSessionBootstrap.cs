@@ -44,6 +44,12 @@ namespace XianXia.Data.Bootstrap
                 world.WorldPresence.SetAtSite(party[i], startSiteId);
             }
 
+            if (world.Strategic.Sites.TryResolveSitePresenceHex(startSiteId, out var presenceHex))
+            {
+                world.PlayerPartyTravel.SetIdleAt(presenceHex);
+                world.PlayerPartyTravel.CaptureTravelingMembers(party);
+            }
+
             var enter = WorldTravelService.EnterWorldSiteScene(world, startSiteId, string.Empty);
             if (enter.IsFailure)
                 return enter;

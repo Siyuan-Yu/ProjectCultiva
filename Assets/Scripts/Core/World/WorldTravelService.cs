@@ -4,6 +4,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.World
@@ -206,6 +207,31 @@ namespace XianXia.Core.World
             if (site == null || string.IsNullOrWhiteSpace(site.LocalMapId))
                 return string.Empty;
             return site.LocalMapId.Trim();
+        }
+
+        /// <summary>
+        /// Phase 2B??? Wilderness Fallback LocalMap?? Hex ?????WorldHex ????? Hex??
+        /// </summary>
+        public static Result EnterWildernessLocalMap(
+            SimulationWorld world,
+            HexCoord wildernessHex,
+            string localMapId)
+        {
+            if (world == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
+            if (string.IsNullOrWhiteSpace(localMapId))
+                return Result.Failure(ErrorCode.InvalidArgument, "Wilderness LocalMapId required.");
+            if (!world.HexWorld.HasGrid || !world.HexWorld.Contains(wildernessHex))
+                return Result.Failure(ErrorCode.InvalidArgument, "Wilderness hex out of bounds.");
+
+            world.PartyWorld.ClearSiteFocus();
+            world.PartyWorld.SiteId = string.Empty;
+            world.PartyWorld.FocusFormalArmyId = string.Empty;
+            world.PartyWorld.LocalMapId = localMapId.Trim();
+            world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
+            world.PartyWorld.EncounterId = string.Empty;
+            ApplyLocalMapSessionFromFocus(world);
+            return Result.Success();
         }
     }
 }

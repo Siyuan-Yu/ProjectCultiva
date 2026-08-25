@@ -7,6 +7,23 @@
 
 ---
 
+## 2026-08-25 — Phase 2B PlayerParty World Travel MVP
+
+**做了什么**
+- **独立测试世界** ase:hex_world_travel_mvp_30x15（30×15／6 Site）；正式 ase:hex_world_ch01 保留；开局 scenario 指向测试世界
+- **PlayerParty Hex Travel**（非 Fake Army）：PlayerPartyWorldMotion／PlayerPartyHexTravelService；共用 Hex A*（HexTravelMode.Ground）与 per-Hex tick；可取消停当前格
+- **WorldMap**：Active 头像 Marker；无军团时右键 Party Travel；路径预览；顶栏停止旅行
+- **Wilderness Fallback**：Terrain→复用 LocalMap 模板（Plain→map_site_a／Forest→map_site_linjian／Mountain→map_site_kuangshan）
+- **Materialize 闭环**：PlayerPartyLocalMapMaterializationService + ExpandLocalMapForCurrentPartyWorld；修复 AtHex 在非遭遇 LocalMap 被隐藏导致「进近景无 Party」
+- **UX 注记**：「进入近景(调试)」仅为 Phase 2B Prototype；正式方向为关 WorldMap 自动 Expand
+- **测试**：PlayerPartyWorldTravelPhase2BTests（含 Materialize／Background 不跟随）
+- **未做**：Continuous LocalMap 边跨 Hex、Close→自动 Expand、Background Travel／Combat、正式 Wilderness 生成
+
+**状态**
+- Phase 2B 代码落地并 push；手操继续验证 Travel／Wilderness Materialize
+
+---
+
 ## 2026-08-25 — Phase 2A 人工验收封板
 
 **做了什么**

@@ -123,6 +123,9 @@ namespace XianXia.Core.Simulation
         /// <summary>当前镜头／焦点 Node 摘要。</summary>
         public PartyWorldPresence PartyWorld { get; }
 
+        /// <summary>PlayerParty 世界旅行运动状态（非 FormalArmy）。</summary>
+        public PlayerPartyWorldMotion PlayerPartyTravel { get; } = new PlayerPartyWorldMotion();
+
         /// <summary>宏观战略层：外交／军队／遭遇／接战（[138]）。</summary>
         public StrategicBoard Strategic { get; } = new StrategicBoard();
 
