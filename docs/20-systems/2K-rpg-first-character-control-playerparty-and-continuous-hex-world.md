@@ -42,8 +42,24 @@ ActiveControlledCharacter
 | 旧术语 | 与本页关系 |
 |--------|------------|
 | `DirectControl` | 语义对齐 **ActiveControlledCharacter** 的即时控制 |
-| `FocusCharacter` | 镜头／叙事焦点；通常跟随 Active；可短暂分离但不得绕过 Active 切换规则 |
-| `FactionLeader` / `PlayerIdentity` | **仍分离**；Active 死亡 ≠ 立即抹掉玩家身份（见 §5 Succession） |
+| `FocusCharacter` | 镜头／叙事焦点；**可与 Active 短暂分离**（见 §1.1 Camera）；不得绕过 Active 切换规则 |
+
+### 1.1 LocalMap Camera（最终规则，2026-08-25）
+
+> **Supersede：** 此前「RTS／Click Move 默认 Camera Follow，中键可打断」作废。
+
+| 规则 | 说明 |
+|------|------|
+| **仅 WASD** | Active 收到有效 **WASD Direct Movement** 时：Camera **立即 Snap** 到 Active，持续期间 **Hard Follow** |
+| **松开 WASD** | Hard Follow 解除；Camera 停在当前位置，恢复自由观察 |
+| **RTS／右键寻路** | Active 正常走路径；Camera **不 Snap、不 Follow、不因新 RTS 命令回 Active** |
+| **中键** | 仅自由 Pan；**不**绑定／取消任何 Camera Follow 状态（RTS 已与镜头解耦） |
+| **判断依据** | 玩家 WASD Direct Input；**禁止**用 `Character.IsMoving` 驱动跟随 |
+| **切换 Active** | 一次性 Snap／Focus 到新 Active；之后静止／RTS 均为 Free；仅 WASD 才 Hard Follow |
+| **RTS → WASD** | 取消 RTS Path；WASD 接管；Camera 立即 Snap + Hard Follow |
+| **WASD → RTS** | 松开 WASD 后镜头自由；再右键寻路时 Active 走、Camera 不跟 |
+
+仍仅 Active 可 WASD／RTS Move／Route Preview；非 Active 不可移动命令、不可 fallback 控 Active。
 
 ---
 
@@ -84,7 +100,7 @@ PlayerParty
 不允许把同 LocalMap、同势力、但未加入 Party 的角色直接设为 Active。  
 **禁止**远距离点击头像 → 加载远方角色 → 接管控制（废除上帝附身模型）。
 
-正常 RPG 视角始终跟随当前 PlayerParty。
+正常 RPG 视角：**切换 Active 时一次性聚焦新主控**；日常探索镜头规则见 [§1.1](#11-localmap-camera最终规则2026-08-25)（仅 WASD Hard Follow；RTS 不控镜头）。
 
 ---
 

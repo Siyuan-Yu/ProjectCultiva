@@ -106,6 +106,7 @@ namespace XianXia.Tests
                 Assert.AreEqual(sample.Anchor, site.AnchorHex, sample.SiteId);
                 Assert.AreEqual(sample.ExpectedCount, WorldSiteFootprintValidator.CountFootprintHexes(site), sample.SiteId);
                 Assert.IsTrue(WorldSiteFootprintValidator.IsAnchorInFootprint(site), sample.SiteId);
+                Assert.IsTrue(WorldSiteFootprintValidator.IsPresenceInFootprint(site), sample.SiteId);
 
                 var seen = new HashSet<HexCoord>();
                 foreach (var hex in site.EnumerateFootprintHexes())

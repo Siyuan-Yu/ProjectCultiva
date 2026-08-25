@@ -6,7 +6,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>WorldAgentPresence �?大地图世界坐标（Hex-only）�?/summary>
+    /// <summary>WorldAgentPresence �?大地图世界坝标（Hex-only）�?/summary>
     public static class WorldAgentMapPositionResolver
     {
         public static bool TryResolve(
@@ -31,7 +31,8 @@ namespace XianXia.Core.World.Strategic
                 world.Strategic.Sites.TryGet(presence.SiteId, out var site) &&
                 site != null)
             {
-                HexMath.ToWorldPosition(site.AnchorHex, world.HexWorld.HexSize, out worldX, out worldY);
+                site.EnsurePresenceHexValid();
+                HexMath.ToWorldPosition(site.PresenceHex, world.HexWorld.HexSize, out worldX, out worldY);
                 return true;
             }
 

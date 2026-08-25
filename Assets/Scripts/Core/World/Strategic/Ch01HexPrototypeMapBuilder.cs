@@ -79,6 +79,8 @@ namespace XianXia.Core.World.Strategic
                 LocalMapId = localMapId,
             };
             site.SetFootprint(BuildFootprintForKind(world.HexWorld, anchor, kind));
+            site.PresenceHex = anchor;
+            site.EnsurePresenceHexValid();
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
         }
 

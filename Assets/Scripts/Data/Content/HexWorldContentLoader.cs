@@ -78,12 +78,16 @@ namespace XianXia.Data.Content
         static void RegisterSite(SimulationWorld world, HexWorldSiteDefinition src)
         {
             var anchor = new HexCoord(src.AnchorQ, src.AnchorR);
+            var presence = new HexCoord(
+                src.PresenceQ ?? src.AnchorQ,
+                src.PresenceR ?? src.AnchorR);
             var site = new WorldSite
             {
                 SiteId = src.SiteId,
                 DisplayName = src.DisplayName ?? src.SiteId,
                 SiteType = src.SiteType ?? "Site",
                 AnchorHex = anchor,
+                PresenceHex = presence,
                 LocalMapId = src.LocalMapId ?? string.Empty,
                 OwnerFactionId = src.OwnerFactionId ?? string.Empty,
             };
@@ -100,6 +104,7 @@ namespace XianXia.Data.Content
                 site.SetFootprint(new[] { anchor });
             }
 
+            site.EnsurePresenceHexValid();
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
         }
 

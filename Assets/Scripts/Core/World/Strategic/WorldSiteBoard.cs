@@ -31,6 +31,7 @@ namespace XianXia.Core.World.Strategic
             }
 
             _sitesById[site.SiteId] = site;
+            site.EnsurePresenceHexValid();
             foreach (var hex in site.EnumerateFootprintHexes())
                 _siteIdByHex[hex] = site.SiteId;
         }
@@ -53,6 +54,18 @@ namespace XianXia.Core.World.Strategic
             return true;
         }
 
+        /// <summary>Character World Presence 用：Site → PresenceHex（≠ Anchor 展示锚点）。</summary>
+        public bool TryResolveSitePresenceHex(string siteId, out HexCoord coord)
+        {
+            coord = default;
+            if (!TryGet(siteId, out var site) || site == null)
+                return false;
+            site.EnsurePresenceHexValid();
+            coord = site.PresenceHex;
+            return true;
+        }
+
+        /// <summary>兼容旧调用：仍返回 AnchorHex（Army／UI 展示锚）。Character 世界格请用 <see cref="TryResolveSitePresenceHex"/>。</summary>
         public bool TryResolveSiteHex(string siteId, out HexCoord coord) =>
             TryResolveSiteAnchorHex(siteId, out coord);
     }

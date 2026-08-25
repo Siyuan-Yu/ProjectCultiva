@@ -231,6 +231,8 @@ public sealed class HexWorldEditorDocument
             SiteType = ActiveSiteType,
             AnchorQ = hex.Q,
             AnchorR = hex.R,
+            PresenceQ = hex.Q,
+            PresenceR = hex.R,
             Footprint = new List<HexCoordDto> { hex },
         };
         World.Sites.Add(site);
@@ -260,9 +262,14 @@ public sealed class HexWorldEditorDocument
         var dr = newAnchor.R - site.AnchorR;
         site.AnchorQ = newAnchor.Q;
         site.AnchorR = newAnchor.R;
+        HexWorldPresenceRules.EnsurePresenceDefaults(site);
+        site.PresenceQ = site.PresenceQ!.Value + dq;
+        site.PresenceR = site.PresenceR!.Value + dr;
         if (site.Footprint.Count <= 1)
         {
             site.Footprint = new List<HexCoordDto> { newAnchor };
+            site.PresenceQ = newAnchor.Q;
+            site.PresenceR = newAnchor.R;
         }
         else
         {
@@ -314,6 +321,28 @@ public sealed class HexWorldEditorDocument
 
         var snapshot = HexWorldContentJson.Serialize(World);
         var result = HexWorldEditorFootprintService.TrySetAnchorHex(site, hex);
+        if (!result.Success)
+        {
+            World = HexWorldContentJson.Load(snapshot).Definitions[0];
+            LastFootprintEditMessage = result.Message;
+            Notify();
+            return result;
+        }
+
+        PushUndoFromSnapshot(snapshot);
+        LastFootprintEditMessage = result.Message;
+        RaiseSitesMutated(new[] { (hex.Q, hex.R) });
+        return result;
+    }
+
+    public FootprintEditResult SetSitePresence(string siteId, HexCoordDto hex)
+    {
+        var site = World.Sites.FirstOrDefault(s => string.Equals(s.SiteId, siteId, StringComparison.Ordinal));
+        if (site == null)
+            return FootprintEditResult.Fail("未找到 WorldSite。");
+
+        var snapshot = HexWorldContentJson.Serialize(World);
+        var result = HexWorldEditorFootprintService.TrySetPresenceHex(site, hex);
         if (!result.Success)
         {
             World = HexWorldContentJson.Load(snapshot).Definitions[0];

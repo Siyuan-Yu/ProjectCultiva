@@ -121,7 +121,7 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> HexWorldSiteFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "siteId", "displayName", "siteType", "anchorQ", "anchorR", "footprint",
+            "siteId", "displayName", "siteType", "anchorQ", "anchorR", "presenceQ", "presenceR", "footprint",
             "localMapId", "ownerFactionId"
         };
 

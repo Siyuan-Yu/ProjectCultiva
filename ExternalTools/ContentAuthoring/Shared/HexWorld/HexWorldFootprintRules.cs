@@ -98,6 +98,9 @@ public static class HexWorldFootprintRules
             return FootprintEditResult.Fail("Footprint 不能为空。");
         if (!ContainsFootprint(site, new HexCoordDto(site.AnchorQ, site.AnchorR)))
             return FootprintEditResult.Fail("AnchorHex 必须属于 Footprint。");
+        var presenceCheck = HexWorldPresenceRules.ValidatePresenceHex(site);
+        if (!presenceCheck.Success)
+            return presenceCheck;
         if (footprint.Count > 1 && !IsConnected(footprint))
             return FootprintEditResult.Fail("Footprint 必须连续。");
         return FootprintEditResult.Ok();

@@ -1,10 +1,12 @@
 # 路线图
 
-> 状态：**RPG-First Phase 1 已封板**｜下一目标：**Phase 2A Character World Presence + PresenceHex**｜最后更新：2026-08-25
+> 状态：**RPG-First Phase 1 已封板；Phase 2A Presence 真源已落地（待手操签收）**｜下一目标：**Phase 2A 人工验收后决定 commit 边界／再开 2B**｜最后更新：2026-08-25
 
 ## 当前阶段说明
 
-- **2026-08-25：** Phase 1 人工验收通过并封板（`aa1ebb9`／`e683aab`／`8770fb0`）：Single Active／PlayerParty≤6／Follow／Switch／Camera／View≠Command。  
+- **2026-08-25：** LocalMap Camera **最终规则**：仅 WASD Hard Follow；RTS／右键寻路不控镜头（[2K §1.1](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)）。  
+- **2026-08-25：** Phase 2A 代码落地：`WorldSite.PresenceHex`、Character World Presence 查询、Editor／Validation／Snapshot 最小扩展；青石荒村 Content 改为 4-Hex 且 Anchor≠Presence（验收用）。**不含** Background Travel／Combat。  
+- **2026-08-25：** Phase 1 人工验收通过并封板（`aa1ebb9`／`e683aab`／`8770fb0`／`961d0d2`）：Single Active／PlayerParty≤6／Follow／Switch／View≠Command。  
 - **2026-08-25：** [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0026](43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) + [163 迁移计划](163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md) — RPG-First 文档真源。  
 - Architecture Freeze **v0.2**＋**ADR-0023**＋**ADR-0024（部分 superseded）**＋**ADR-0025**＋**ADR-0026**。  
 - **2026-08-24：** Multi-Hex footprint Runtime／Editor／Ch01（`0a40a86`）；Snapshot v6 JSON（`ff112cd`）；Purge 审计（162）。  
@@ -14,8 +16,11 @@
 ### RPG-First 迁移分期
 
 - [x] **Phase 0** 文档 + 架构审计 + Supersede：[2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)／[163](163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md)
-- [x] **Phase 1** Single Active Character／PlayerParty 控制模型（封板 2026-08-25）
-- [ ] **Phase 2** Background Character World Presence／Simulation + PresenceHex（本轮先做 2A：Presence 真源，不含 Travel／Combat）
+- [x] **Phase 1** Single Active Character／PlayerParty 控制模型（封板 2026-08-25；Camera 最终规则同日补钉）
+- [ ] **Phase 2** Background Character World Presence／Simulation + PresenceHex  
+  - **2A（已实现、待手操）：** PresenceHex Content／Runtime／Editor；`GetCharacterWorldHex`；AtSite 存 SiteId；Stop Follow 保 Presence；Snapshot `characterWorldPresences`；Background 不画 WorldMap 头像  
+  - **2B（未做）：** Background Travel  
+  - **后续：** Background Combat／Policy 等
 - [ ] **Phase 3** FormalArmy 职责迁移（旅行≠Army；军事层保留）
 - [ ] **Phase 4** Manual Battle Permission（远方 Auto；≤1 Hex 介入）
 - [ ] **Phase 5** Continuous LocalMap ↔ HexWorld Transition

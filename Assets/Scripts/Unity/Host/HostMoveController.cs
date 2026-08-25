@@ -56,7 +56,7 @@ namespace XianXia.Unity.Host
 
         /// <summary>
         /// Increments each time Active receives a new player RTS/click path order.
-        /// Camera uses this to re-enable RTS follow after MMB cancel (TEST S3).
+        /// Not used by Camera (RTS path is camera-decoupled).
         /// </summary>
         public int PlayerPartyPathMoveSerial => _playerPartyPathMoveSerial;
 

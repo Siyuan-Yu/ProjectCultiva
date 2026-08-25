@@ -963,13 +963,34 @@ namespace XianXia.Unity.Host
                 _parchmentTitle);
 
             var headerExtra = 0f;
+            if (CharacterWorldPresenceQuery.TryDescribe(
+                    session.World,
+                    focus,
+                    out var presenceState,
+                    out var presenceSiteId,
+                    out var presenceHex,
+                    out var localLoaded))
+            {
+                var siteLabel = string.IsNullOrEmpty(presenceSiteId)
+                    ? "—"
+                    : StrategicSiteAccessService.DescribeSite(session.World, presenceSiteId);
+                GUI.Label(
+                    new Rect(main.x + 14f, main.y + 30f + headerExtra, main.width - 24f, 18f),
+                    "Presence:" + presenceState +
+                    " · Site:" + siteLabel +
+                    " · Hex:" + presenceHex +
+                    " · Local:" + (localLoaded ? "Loaded" : "Unloaded"),
+                    _small);
+                headerExtra += 16f;
+            }
+
             if (isPartyMember && !isActive)
             {
                 GUI.Label(
-                    new Rect(main.x + 14f, main.y + 30f, main.width - 24f, 18f),
+                    new Rect(main.x + 14f, main.y + 30f + headerExtra, main.width - 24f, 18f),
                     "仅主控角色接受移动／战斗指令",
                     _small);
-                headerExtra = 16f;
+                headerExtra += 16f;
             }
 
             var content = new Rect(

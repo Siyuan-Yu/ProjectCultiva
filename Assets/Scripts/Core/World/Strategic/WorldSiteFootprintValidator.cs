@@ -13,6 +13,13 @@ namespace XianXia.Core.World.Strategic
             return site.OccupiesHex(site.AnchorHex);
         }
 
+        public static bool IsPresenceInFootprint(WorldSite site)
+        {
+            if (site == null)
+                return false;
+            return site.OccupiesHex(site.PresenceHex);
+        }
+
         public static bool IsFootprintConnected(IReadOnlyList<HexCoord> footprint)
         {
             if (footprint == null || footprint.Count <= 1)

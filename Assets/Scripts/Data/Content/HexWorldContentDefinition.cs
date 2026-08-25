@@ -32,6 +32,9 @@ namespace XianXia.Data.Content
         public string SiteType { get; set; } = string.Empty;
         public int AnchorQ { get; set; }
         public int AnchorR { get; set; }
+        /// <summary>缺省时由 Loader 确定性迁移为 Anchor。</summary>
+        public int? PresenceQ { get; set; }
+        public int? PresenceR { get; set; }
         public List<HexWorldCoordDefinition> Footprint { get; set; } = new List<HexWorldCoordDefinition>();
         public string LocalMapId { get; set; } = string.Empty;
         public string OwnerFactionId { get; set; } = string.Empty;

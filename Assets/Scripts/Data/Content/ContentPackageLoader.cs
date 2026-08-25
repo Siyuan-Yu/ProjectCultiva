@@ -1574,6 +1574,19 @@ namespace XianXia.Data.Content
                         LocalMapId = sNode.GetString("localMapId", string.Empty),
                         OwnerFactionId = sNode.GetString("ownerFactionId", string.Empty),
                     };
+                    if (sNode.TryGetProperty("presenceQ", out var pqNode) &&
+                        sNode.TryGetProperty("presenceR", out var prNode) &&
+                        pqNode.Kind == JsonValueKind.Number &&
+                        prNode.Kind == JsonValueKind.Number)
+                    {
+                        site.PresenceQ = (int)pqNode.Number;
+                        site.PresenceR = (int)prNode.Number;
+                    }
+                    else
+                    {
+                        site.PresenceQ = site.AnchorQ;
+                        site.PresenceR = site.AnchorR;
+                    }
                     if (sNode.TryGetProperty("footprint", out var fpNode) && fpNode.Kind == JsonValueKind.Array)
                     {
                         foreach (var hNode in fpNode.Array)

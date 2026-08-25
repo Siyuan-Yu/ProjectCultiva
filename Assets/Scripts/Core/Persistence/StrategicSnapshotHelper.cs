@@ -81,6 +81,38 @@ namespace XianXia.Core.Persistence
                 });
             }
 
+            foreach (var kv in world.WorldPresence.All)
+            {
+                var presence = kv.Value;
+                if (presence == null || presence.EntityId.IsNone)
+                    continue;
+                if (presence.Mode == PartyWorldPresenceMode.InEncounter)
+                    continue;
+                if (presence.Mode == PartyWorldPresenceMode.AtSite)
+                {
+                    if (string.IsNullOrEmpty(presence.SiteId))
+                        continue;
+                    dto.CharacterWorldPresences.Add(new CharacterWorldPresenceSnapshotDto
+                    {
+                        CharacterId = presence.EntityId.Value,
+                        Mode = (int)PartyWorldPresenceMode.AtSite,
+                        SiteId = presence.SiteId
+                    });
+                    continue;
+                }
+
+                if (presence.UsesHexPresence)
+                {
+                    dto.CharacterWorldPresences.Add(new CharacterWorldPresenceSnapshotDto
+                    {
+                        CharacterId = presence.EntityId.Value,
+                        Mode = (int)PartyWorldPresenceMode.AtHex,
+                        HexQ = presence.HexQ,
+                        HexR = presence.HexR
+                    });
+                }
+            }
+
             foreach (var kv in world.Strategic.Sites.Sites)
             {
                 var site = kv.Value;
@@ -240,6 +272,30 @@ namespace XianXia.Core.Persistence
                         continue;
                     ArmyInvariants.EnsureMembershipComponent(entity);
                     entity.Get<ArmyMembershipComponent>().SetArmyId(m.ArmyId);
+                }
+            }
+
+            if (dto.CharacterWorldPresences != null)
+            {
+                for (var i = 0; i < dto.CharacterWorldPresences.Count; i++)
+                {
+                    var p = dto.CharacterWorldPresences[i];
+                    if (p == null || p.CharacterId == 0)
+                        continue;
+                    var id = new EntityId(p.CharacterId);
+                    if (!world.Entities.TryGet(id, out _))
+                        continue;
+                    if (p.Mode == (int)PartyWorldPresenceMode.AtSite &&
+                        !string.IsNullOrEmpty(p.SiteId))
+                    {
+                        world.WorldPresence.SetAtSite(id, p.SiteId);
+                        continue;
+                    }
+
+                    if (p.Mode == (int)PartyWorldPresenceMode.AtHex &&
+                        p.HexQ != int.MinValue &&
+                        p.HexR != int.MinValue)
+                        world.WorldPresence.SetAtHex(id, new HexCoord(p.HexQ, p.HexR));
                 }
             }
 

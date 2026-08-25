@@ -235,60 +235,22 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void CameraFollowPolicy_RtsDefaultFollow_MmbCancel_WasdHard()
+        public void CameraFollowPolicy_WasdOnly_RtsNeverFollows()
         {
             var free = HostActiveCameraFollowMode.Free;
-            var rts = HostActiveCameraFollowMode.RtsMoveFollow;
             var wasd = HostActiveCameraFollowMode.WasdHardFollow;
 
-            // TEST S1: new RTS move → follow
-            Assert.AreEqual(
-                rts,
-                HostPlayerPartyController.ResolveCameraFollowMode(
-                    free, wasdDirectActive: false, pathMoving: true,
-                    newRtsMoveIssued: true, middlePanInterrupt: false, pathMoveEnded: false));
+            // CAMERA-A/B: no WASD → Free (RTS path irrelevant)
+            Assert.AreEqual(free, HostPlayerPartyController.ResolveCameraFollowMode(false));
 
-            // TEST S2: MMB cancels RTS follow only
-            Assert.AreEqual(
-                free,
-                HostPlayerPartyController.ResolveCameraFollowMode(
-                    rts, wasdDirectActive: false, pathMoving: true,
-                    newRtsMoveIssued: false, middlePanInterrupt: true, pathMoveEnded: false));
+            // CAMERA-C: WASD → Hard Follow
+            Assert.AreEqual(wasd, HostPlayerPartyController.ResolveCameraFollowMode(true));
 
-            // TEST S3: new RTS while free (after cancel) → follow again
-            Assert.AreEqual(
-                rts,
-                HostPlayerPartyController.ResolveCameraFollowMode(
-                    free, wasdDirectActive: false, pathMoving: true,
-                    newRtsMoveIssued: true, middlePanInterrupt: false, pathMoveEnded: false));
+            // CAMERA-D: release WASD → Free
+            Assert.AreEqual(free, HostPlayerPartyController.ResolveCameraFollowMode(wasd, wasdDirectActive: false));
 
-            // TEST S4: arrive ends follow
-            Assert.AreEqual(
-                free,
-                HostPlayerPartyController.ResolveCameraFollowMode(
-                    rts, wasdDirectActive: false, pathMoving: false,
-                    newRtsMoveIssued: false, middlePanInterrupt: false, pathMoveEnded: true));
-
-            // TEST S5/S6: WASD wins from free or cancelled RTS
-            Assert.AreEqual(
-                wasd,
-                HostPlayerPartyController.ResolveCameraFollowMode(
-                    free, wasdDirectActive: true, pathMoving: true,
-                    newRtsMoveIssued: false, middlePanInterrupt: false, pathMoveEnded: false));
-
-            // TEST S7: WASD release → free
-            Assert.AreEqual(
-                free,
-                HostPlayerPartyController.ResolveCameraFollowMode(
-                    wasd, wasdDirectActive: false, pathMoving: false,
-                    newRtsMoveIssued: false, middlePanInterrupt: false, pathMoveEnded: false));
-
-            // MMB during cancelled path must not re-follow without new RTS
-            Assert.AreEqual(
-                free,
-                HostPlayerPartyController.ResolveCameraFollowMode(
-                    free, wasdDirectActive: false, pathMoving: true,
-                    newRtsMoveIssued: false, middlePanInterrupt: false, pathMoveEnded: false));
+            // CAMERA-E: WASD from Free
+            Assert.AreEqual(wasd, HostPlayerPartyController.ResolveCameraFollowMode(free, wasdDirectActive: true));
         }
 
         static XianXia.Core.Actions.IAction ActiveOf(PlayableHostBootstrap bootstrap, XianXia.Core.Domain.Ids.EntityId id)

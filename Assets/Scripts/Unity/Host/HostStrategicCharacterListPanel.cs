@@ -208,12 +208,30 @@ namespace XianXia.Unity.Host
 
             var row = FindRow(new EntityId(idVal));
             var membership = row?.IsGrouped == true ? row.ArmyId : "\u2014";
-            GUI.Label(new Rect(detailRect.x, y, detailRect.width, 88f),
+            GUI.Label(new Rect(detailRect.x, y, detailRect.width, 120f),
                 labelFn(world, entity.Id) + "\n" +
                 "\u52bf\u529b\uff1a" + StrategicFactionCatalog.DisplayName(row?.FactionId) + "\n" +
                 "\u4f4d\u7f6e\uff1a" + (row?.SiteLabel ?? "\u2014") + "\n" +
-                "\u72b6\u6001\uff1a" + (row?.LifeStateLabel ?? "\u2014") + "  \u7f16\u7ec4\uff1a" + membership,
+                "\u72b6\u6001\uff1a" + (row?.LifeStateLabel ?? "\u2014") + "  \u7f16\u7ec4\uff1a" + membership + "\n" +
+                FormatWorldPresenceDebug(world, entity.Id),
                 _body);
+        }
+
+        static string FormatWorldPresenceDebug(SimulationWorld world, EntityId id)
+        {
+            if (!CharacterWorldPresenceQuery.TryDescribe(
+                    world,
+                    id,
+                    out var state,
+                    out var siteId,
+                    out var hex,
+                    out var localLoaded))
+                return "Presence：—";
+            var site = string.IsNullOrEmpty(siteId) ? "—" : siteId;
+            return "Presence：" + state +
+                   "\nWorldSite：" + site +
+                   "\nWorldHex：" + hex +
+                   "\nLocalMap：" + (localLoaded ? "Loaded" : "Unloaded");
         }
 
         bool TryCreateArmyFromSelection(

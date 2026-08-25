@@ -74,4 +74,44 @@ public sealed class HexWorldEditorFootprintTests
         Assert.Equal(6, site.AnchorQ);
         Assert.Equal(5, site.AnchorR);
     }
+
+    [Fact]
+    public void EditorPresence_AllowsNonAnchorInsideFootprint()
+    {
+        var site = MakeSite("base:site_a", 5, 5, (5, 5), (6, 5), (5, 6));
+        var result = HexWorldEditorFootprintService.TrySetPresenceHex(site, new HexCoordDto(6, 5));
+        Assert.True(result.Success);
+        Assert.Equal(6, site.PresenceQ);
+        Assert.Equal(5, site.PresenceR);
+        Assert.Equal(5, site.AnchorQ);
+    }
+
+    [Fact]
+    public void EditorPresence_RejectsOutsideFootprint()
+    {
+        var site = MakeSite("base:site_a", 5, 5, (5, 5), (6, 5));
+        var result = HexWorldEditorFootprintService.TrySetPresenceHex(site, new HexCoordDto(9, 9));
+        Assert.False(result.Success);
+    }
+
+    [Fact]
+    public void EditorPresence_RejectsRemovingPresenceHex()
+    {
+        var site = MakeSite("base:site_a", 5, 5, (5, 5), (6, 5), (5, 6));
+        Assert.True(HexWorldEditorFootprintService.TrySetPresenceHex(site, new HexCoordDto(6, 5)).Success);
+        var result = HexWorldEditorFootprintService.TryRemoveFootprintHex(site, new HexCoordDto(6, 5));
+        Assert.False(result.Success);
+        Assert.Contains("PresenceHex", result.Message);
+    }
+
+    [Fact]
+    public void LegacySite_WithoutPresence_DefaultsToAnchor()
+    {
+        var site = MakeSite("base:site_legacy", 5, 5, (5, 5), (6, 5));
+        Assert.Null(site.PresenceQ);
+        var presence = HexWorldPresenceRules.ResolvePresenceHex(site);
+        Assert.Equal(5, presence.Q);
+        Assert.Equal(5, presence.R);
+        Assert.True(HexWorldPresenceRules.ValidatePresenceHex(site).Success);
+    }
 }

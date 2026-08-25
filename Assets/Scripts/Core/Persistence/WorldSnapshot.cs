@@ -51,6 +51,12 @@ namespace XianXia.Core.Persistence
         /// <summary>Detached Residual Character Hex Presence（非 Group Domain）。</summary>
         public List<ResidualCharacterPresenceDto> ResidualCharacterPresences { get; set; } =
             new List<ResidualCharacterPresenceDto>();
+        /// <summary>
+        /// Phase 2A：Character World Presence（AtSite 存 SiteId；AtHex 存 Hex）。
+        /// 可选字段；旧存档缺省时不做随机补全。
+        /// </summary>
+        public List<CharacterWorldPresenceSnapshotDto> CharacterWorldPresences { get; set; } =
+            new List<CharacterWorldPresenceSnapshotDto>();
         public List<WorldSiteOwnerSnapshotDto> WorldSiteOwners { get; set; } = new List<WorldSiteOwnerSnapshotDto>();
         public List<WarSnapshotDto> Wars { get; set; } = new List<WarSnapshotDto>();
         public List<AllianceSnapshotDto> Alliances { get; set; } = new List<AllianceSnapshotDto>();
@@ -96,6 +102,16 @@ namespace XianXia.Core.Persistence
         public ulong CharacterId { get; set; }
         public int HexQ { get; set; }
         public int HexR { get; set; }
+    }
+
+    /// <summary>Phase 2A：持久化 Background／Party Character 的世界存在（SiteId 真源，不另存可漂移 Site Hex）。</summary>
+    public sealed class CharacterWorldPresenceSnapshotDto
+    {
+        public ulong CharacterId { get; set; }
+        public int Mode { get; set; }
+        public string SiteId { get; set; } = string.Empty;
+        public int HexQ { get; set; } = int.MinValue;
+        public int HexR { get; set; } = int.MinValue;
     }
 
     public sealed class WorldSiteOwnerSnapshotDto

@@ -36,6 +36,8 @@ public sealed class HexWorldSiteDto
     public string SiteType { get; set; } = "Village";
     public int AnchorQ { get; set; }
     public int AnchorR { get; set; }
+    public int? PresenceQ { get; set; }
+    public int? PresenceR { get; set; }
     public List<HexCoordDto> Footprint { get; set; } = new();
     public string LocalMapId { get; set; } = string.Empty;
     public string OwnerFactionId { get; set; } = string.Empty;

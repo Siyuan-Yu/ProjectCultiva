@@ -582,6 +582,25 @@ namespace XianXia.Data.Serialization
                 }
             }
 
+            var characterWorldPresences = new List<JsonValue>();
+            if (strategic.CharacterWorldPresences != null)
+            {
+                for (var i = 0; i < strategic.CharacterWorldPresences.Count; i++)
+                {
+                    var p = strategic.CharacterWorldPresences[i];
+                    if (p == null)
+                        continue;
+                    characterWorldPresences.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["characterId"] = U(p.CharacterId),
+                        ["mode"] = JsonValue.FromNumber(p.Mode),
+                        ["siteId"] = JsonValue.FromString(p.SiteId ?? string.Empty),
+                        ["hexQ"] = JsonValue.FromNumber(p.HexQ),
+                        ["hexR"] = JsonValue.FromNumber(p.HexR)
+                    }));
+                }
+            }
+
             var siteOwners = new List<JsonValue>();
             if (strategic.WorldSiteOwners != null)
             {
@@ -702,6 +721,7 @@ namespace XianXia.Data.Serialization
                 ["formalArmies"] = JsonValue.FromArray(armies),
                 ["armyMemberships"] = JsonValue.FromArray(memberships),
                 ["residualCharacterPresences"] = JsonValue.FromArray(residuals),
+                ["characterWorldPresences"] = JsonValue.FromArray(characterWorldPresences),
                 ["worldSiteOwners"] = JsonValue.FromArray(siteOwners),
                 ["wars"] = JsonValue.FromArray(wars),
                 ["alliances"] = JsonValue.FromArray(alliances),
@@ -777,6 +797,22 @@ namespace XianXia.Data.Serialization
                         CharacterId = ReadU(r, "characterId"),
                         HexQ = (int)r.GetNumber("hexQ"),
                         HexR = (int)r.GetNumber("hexR")
+                    });
+                }
+            }
+
+            if (strategic.TryGetProperty("characterWorldPresences", out var charPresences) &&
+                charPresences.Kind == JsonValueKind.Array)
+            {
+                foreach (var p in charPresences.Array)
+                {
+                    dto.CharacterWorldPresences.Add(new CharacterWorldPresenceSnapshotDto
+                    {
+                        CharacterId = ReadU(p, "characterId"),
+                        Mode = p.TryGetProperty("mode", out var modeNode) ? (int)modeNode.Number : 0,
+                        SiteId = p.GetString("siteId", string.Empty),
+                        HexQ = p.TryGetProperty("hexQ", out var hq) ? (int)hq.Number : int.MinValue,
+                        HexR = p.TryGetProperty("hexR", out var hr) ? (int)hr.Number : int.MinValue
                     });
                 }
             }

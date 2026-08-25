@@ -113,6 +113,7 @@ namespace XianXia.Tests
             StringAssert.Contains("\"worldSiteOwners\"", json.Value);
             StringAssert.Contains("\"hexPath\"", json.Value);
             StringAssert.Contains("\"residualCharacterPresences\"", json.Value);
+            StringAssert.Contains("\"characterWorldPresences\"", json.Value);
         }
 
         [Test]
@@ -237,6 +238,7 @@ namespace XianXia.Tests
             Assert.AreEqual(expected.FormalArmies.Count, actual.FormalArmies.Count);
             Assert.AreEqual(expected.ArmyMemberships.Count, actual.ArmyMemberships.Count);
             Assert.AreEqual(expected.ResidualCharacterPresences.Count, actual.ResidualCharacterPresences.Count);
+            Assert.AreEqual(expected.CharacterWorldPresences.Count, actual.CharacterWorldPresences.Count);
             Assert.AreEqual(expected.WorldSiteOwners.Count, actual.WorldSiteOwners.Count);
             Assert.AreEqual(expected.Wars.Count, actual.Wars.Count);
             Assert.AreEqual(expected.Alliances.Count, actual.Alliances.Count);

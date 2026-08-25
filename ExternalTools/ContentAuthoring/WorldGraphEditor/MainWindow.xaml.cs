@@ -155,15 +155,19 @@ public partial class MainWindow : Window
         if (site == null)
         {
             SiteAnchorText.Text = "AnchorHex：—";
+            SitePresenceText.Text = "PresenceHex：—";
             SiteFootprintCountText.Text = "Footprint Count：—";
             SiteFootprintListText.Text = "Footprint Hexes：—";
             FootprintEditStatusText.Text = string.Empty;
             SetAnchorButton.IsEnabled = false;
+            SetPresenceButton.IsEnabled = false;
             return;
         }
 
         var footprint = HexWorldFootprintRules.ResolveFootprint(site);
+        var presence = HexWorldPresenceRules.ResolvePresenceHex(site);
         SiteAnchorText.Text = $"AnchorHex：({site.AnchorQ},{site.AnchorR})";
+        SitePresenceText.Text = $"PresenceHex：({presence.Q},{presence.R})";
         SiteFootprintCountText.Text = $"Footprint Count：{footprint.Count}";
         SiteFootprintListText.Text = "Footprint Hexes：\n" +
                                       string.Join("\n", footprint.Select(h => $"({h.Q},{h.R})"));
@@ -176,6 +180,7 @@ public partial class MainWindow : Window
         if (!string.IsNullOrEmpty(_document.LastFootprintEditMessage))
             FootprintEditStatusText.Text = _document.LastFootprintEditMessage;
         SetAnchorButton.IsEnabled = _document.SelectedHex is { Q: >= 0 };
+        SetPresenceButton.IsEnabled = _document.SelectedHex is { Q: >= 0 };
     }
 
     void SetAnchor_Click(object sender, RoutedEventArgs e)
@@ -183,6 +188,16 @@ public partial class MainWindow : Window
         if (string.IsNullOrEmpty(_document.SelectedSiteId) || _document.SelectedHex is not { Q: >= 0 } hex)
             return;
         var result = _document.SetSiteAnchor(_document.SelectedSiteId, hex);
+        StatusText.Text = result.Message + " · " + _mapView.FormatPerfStatus();
+        UpdateSiteFootprintPanel();
+        SyncSiteOverlay();
+    }
+
+    void SetPresence_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrEmpty(_document.SelectedSiteId) || _document.SelectedHex is not { Q: >= 0 } hex)
+            return;
+        var result = _document.SetSitePresence(_document.SelectedSiteId, hex);
         StatusText.Text = result.Message + " · " + _mapView.FormatPerfStatus();
         UpdateSiteFootprintPanel();
         SyncSiteOverlay();

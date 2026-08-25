@@ -7,10 +7,39 @@
 
 ---
 
+## 2026-08-25 — Phase 2A PresenceHex + Character World Presence（代码落地）
+
+**做了什么**
+- **PresenceHex**：Content `presenceQ/R`、Loader 缺省→Anchor 确定性迁移、Runtime `WorldSite.PresenceHex`、Validator／WorldGraphEditor 查看与设置（≠ Anchor 允许）
+- **Character World Presence 查询**：`CharacterWorldPresenceQuery`（AtSite→Site.PresenceHex；Army 成员→Army.CurrentHex；AtHex 预留）
+- **真源纪律**：AtSite 存 SiteId，不另存可漂移 Hex；Stop Follow 保留 Site Presence；Background 不画 WorldMap 个人头像
+- **Snapshot**：可选 `characterWorldPresences`（v6 向后兼容）
+- **验收 Content**：青石荒村 `base:site_huangcun` Footprint 扩为 4 格；Anchor `(80,52)`；Presence `(81,52)`
+- **Camera 最终规则**（同日）：仅 WASD Hard Follow；RTS 不控镜头 — 见上条／[2K §1.1](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)
+- **未做：** Background Travel／Combat／Continuous Exit／Wilderness／Party WorldMap Avatar／FormalArmy 重构
+- **已知缺口：** Prototype **无** WorldSite LocalMap→卸载近景的正式 Exit；开「地图」仅叠 UI
+
+**状态**
+- 代码待制作人手操 Presence／Camera；本轮按指示 push GitHub；**不同步飞书**
+
+---
+
+## 2026-08-25 — LocalMap Camera 最终规则（仅 WASD Follow）
+
+**做了什么**
+- **Supersede**「RTS 默认 Follow／中键取消 Follow」
+- 最终：仅 WASD → Snap＋Hard Follow；RTS／右键寻路完全不控镜头；切换 Active 一次性 Snap
+- 真源写入 [2K §1.1](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、ADR-0026 补钉；Host 实现已对齐
+
+**状态**
+- 规则已定；待制作人 CAMERA-A～F 手操签收
+
+---
+
 ## 2026-08-25 — Phase 1 PlayerParty 封板
 
 **做了什么**
-- 人工验收确认：Single Active／Party≤6／Follow／Stop Follow／Active Switch／Followers Move+Combat／Group Work／View≠Command／非 Active 右键不 fallback／Route Preview 仅 Active／RTS 默认可取消 Follow／WASD Hard Follow+远处 Snap／Dying·Dead 不可 Active／FormalArmy 与 Party 互斥
+- 人工验收确认：Single Active／Party≤6／Follow／Stop Follow／Active Switch／Followers Move+Combat／Group Work／View≠Command／非 Active 右键不 fallback／Route Preview 仅 Active／**Camera：仅 WASD Hard Follow（RTS 完全不控镜头）**／Dying·Dead 不可 Active／FormalArmy 与 Party 互斥
 - 代码已在 `aa1ebb9`／`e683aab`／`8770fb0`；本条仅文档封板，不 push
 
 **状态**

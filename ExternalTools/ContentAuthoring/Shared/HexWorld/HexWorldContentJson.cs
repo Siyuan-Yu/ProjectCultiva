@@ -74,6 +74,7 @@ public static class HexWorldContentJson
             .ToList();
         foreach (var site in definition.Sites)
         {
+            HexWorldPresenceRules.EnsurePresenceDefaults(site);
             site.Footprint = site.Footprint
                 .Distinct()
                 .OrderBy(h => h.R)

@@ -106,11 +106,12 @@ namespace XianXia.Core.World.Strategic
                 return false;
 
             if (presence.Mode == PartyWorldPresenceMode.AtSite)
-                return false;
+                return false; // Background / AtSite?WorldMap ???????
 
             if (presence.Mode == PartyWorldPresenceMode.InEncounter)
                 return false;
 
+            // Phase 2A??? Background Character ??? WorldHex ????? Avatar
             return false;
         }
 

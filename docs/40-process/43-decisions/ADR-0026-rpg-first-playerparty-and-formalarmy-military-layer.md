@@ -30,7 +30,8 @@
 7. **Succession V1** — Party 全灭进入继承流程，不默认 Game Over；合格角色：同 Faction、Alive、可行动、未 Captured、不在出征 Army、位于己方 Site；**无境界门槛**。  
 8. **Character Policy** — 非 Active 以长期权限／倾向控制，不做远程逐步 RTS 命令。  
 9. **PlayerParty Capture** — 攻占据点须完整 **War + CaptureObjective + Capture**（2A）；特权仅为不必转 FormalArmy 且可 LocalMap 手动战。  
-10. **宗门公共资源** — Sect/Faction Storage 默认仅玩家分配；NPC 不得自主领取（未来开放须玩家授权）。
+10. **宗门公共资源** — Sect/Faction Storage 默认仅玩家分配；NPC 不得自主领取（未来开放须玩家授权）。  
+11. **LocalMap Camera（2026-08-25 补钉）** — **仅 WASD Direct Movement** 触发 Snap＋Hard Follow；**RTS／右键寻路完全不控制镜头**；中键仅自由 Pan。细则见 [2K §1.1](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。
 
 ### 对既有 ADR 的关系
 

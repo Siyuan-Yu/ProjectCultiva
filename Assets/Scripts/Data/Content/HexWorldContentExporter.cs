@@ -52,6 +52,8 @@ namespace XianXia.Data.Content
                     SiteType = site.SiteType,
                     AnchorQ = site.AnchorHex.Q,
                     AnchorR = site.AnchorHex.R,
+                    PresenceQ = site.PresenceHex.Q,
+                    PresenceR = site.PresenceHex.R,
                     LocalMapId = site.LocalMapId,
                     OwnerFactionId = site.OwnerFactionId,
                 };

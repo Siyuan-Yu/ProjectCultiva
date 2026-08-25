@@ -4171,7 +4171,12 @@ namespace XianXia.Unity.Host
             if (p.UsesHexPresence)
                 return p.ResidualHex.ToString();
             if (p.Mode == PartyWorldPresenceMode.AtSite && !string.IsNullOrEmpty(p.SiteId))
-                return StrategicSiteAccessService.DescribeSite(world, p.SiteId);
+            {
+                var siteName = StrategicSiteAccessService.DescribeSite(world, p.SiteId);
+                if (world.Strategic.Sites.TryResolveSitePresenceHex(p.SiteId, out var presenceHex))
+                    return siteName + " · WorldHex " + presenceHex;
+                return siteName;
+            }
             if (!string.IsNullOrEmpty(p.SiteId))
                 return StrategicSiteAccessService.DescribeSite(world, p.SiteId);
             return "unknown";

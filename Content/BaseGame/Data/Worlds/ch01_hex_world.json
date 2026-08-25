@@ -140019,25 +140019,27 @@
           "siteType": "Wild",
           "anchorQ": 68,
           "anchorR": 40,
+          "presenceQ": 68,
+          "presenceR": 40,
           "footprint": [
             {
               "q": 68,
-              "r": 40
-            },
-            {
-              "q": 69,
-              "r": 40
-            },
-            {
-              "q": 69,
               "r": 39
             },
             {
-              "q": 68,
+              "q": 69,
               "r": 39
             },
             {
               "q": 67,
+              "r": 40
+            },
+            {
+              "q": 68,
+              "r": 40
+            },
+            {
+              "q": 69,
               "r": 40
             },
             {
@@ -140054,25 +140056,27 @@
           "siteType": "Wild",
           "anchorQ": 106,
           "anchorR": 26,
+          "presenceQ": 106,
+          "presenceR": 26,
           "footprint": [
             {
               "q": 106,
-              "r": 26
-            },
-            {
-              "q": 107,
-              "r": 26
-            },
-            {
-              "q": 107,
               "r": 25
             },
             {
-              "q": 106,
+              "q": 107,
               "r": 25
             },
             {
               "q": 105,
+              "r": 26
+            },
+            {
+              "q": 106,
+              "r": 26
+            },
+            {
+              "q": 107,
               "r": 26
             },
             {
@@ -140089,6 +140093,8 @@
           "siteType": "Village",
           "anchorQ": 80,
           "anchorR": 78,
+          "presenceQ": 80,
+          "presenceR": 78,
           "footprint": [
             {
               "q": 80,
@@ -140104,14 +140110,12 @@
           "siteType": "Town",
           "anchorQ": 118,
           "anchorR": 46,
+          "presenceQ": 118,
+          "presenceR": 46,
           "footprint": [
             {
               "q": 118,
-              "r": 46
-            },
-            {
-              "q": 119,
-              "r": 46
+              "r": 45
             },
             {
               "q": 119,
@@ -140119,7 +140123,11 @@
             },
             {
               "q": 118,
-              "r": 45
+              "r": 46
+            },
+            {
+              "q": 119,
+              "r": 46
             }
           ],
           "localMapId": "base:map_site_chengzhen",
@@ -140131,6 +140139,8 @@
           "siteType": "Sect",
           "anchorQ": 54,
           "anchorR": 66,
+          "presenceQ": 54,
+          "presenceR": 66,
           "footprint": [
             {
               "q": 54,
@@ -140150,6 +140160,8 @@
           "siteType": "Forest",
           "anchorQ": 156,
           "anchorR": 66,
+          "presenceQ": 156,
+          "presenceR": 66,
           "footprint": [
             {
               "q": 156,
@@ -140165,6 +140177,8 @@
           "siteType": "Ferry",
           "anchorQ": 130,
           "anchorR": 32,
+          "presenceQ": 130,
+          "presenceR": 32,
           "footprint": [
             {
               "q": 130,
@@ -140175,11 +140189,30 @@
           "ownerFactionId": ""
         },
         {
+          "siteId": "base:site_dukou_xi",
+          "displayName": "??",
+          "siteType": "Ferry",
+          "anchorQ": 28,
+          "anchorR": 26,
+          "presenceQ": 28,
+          "presenceR": 26,
+          "footprint": [
+            {
+              "q": 28,
+              "r": 26
+            }
+          ],
+          "localMapId": "base:map_site_dukou_xi",
+          "ownerFactionId": "base:faction_xijin"
+        },
+        {
           "siteId": "base:site_er",
           "displayName": "支矿",
           "siteType": "Mine",
           "anchorQ": 144,
           "anchorR": 46,
+          "presenceQ": 144,
+          "presenceR": 46,
           "footprint": [
             {
               "q": 144,
@@ -140199,6 +140232,8 @@
           "siteType": "Ruin",
           "anchorQ": 130,
           "anchorR": 78,
+          "presenceQ": 130,
+          "presenceR": 78,
           "footprint": [
             {
               "q": 130,
@@ -140214,6 +140249,8 @@
           "siteType": "Pass",
           "anchorQ": 54,
           "anchorR": 78,
+          "presenceQ": 54,
+          "presenceR": 78,
           "footprint": [
             {
               "q": 54,
@@ -140229,6 +140266,8 @@
           "siteType": "Pass",
           "anchorQ": 106,
           "anchorR": 58,
+          "presenceQ": 106,
+          "presenceR": 58,
           "footprint": [
             {
               "q": 106,
@@ -140244,6 +140283,8 @@
           "siteType": "Road",
           "anchorQ": 118,
           "anchorR": 66,
+          "presenceQ": 118,
+          "presenceR": 66,
           "footprint": [
             {
               "q": 118,
@@ -140259,6 +140300,8 @@
           "siteType": "Ferry",
           "anchorQ": 182,
           "anchorR": 20,
+          "presenceQ": 182,
+          "presenceR": 20,
           "footprint": [
             {
               "q": 182,
@@ -140274,9 +140317,23 @@
           "siteType": "Village",
           "anchorQ": 80,
           "anchorR": 52,
+          "presenceQ": 80,
+          "presenceR": 51,
           "footprint": [
             {
               "q": 80,
+              "r": 51
+            },
+            {
+              "q": 81,
+              "r": 51
+            },
+            {
+              "q": 80,
+              "r": 52
+            },
+            {
+              "q": 81,
               "r": 52
             }
           ],
@@ -140289,6 +140346,8 @@
           "siteType": "Mine",
           "anchorQ": 130,
           "anchorR": 58,
+          "presenceQ": 130,
+          "presenceR": 58,
           "footprint": [
             {
               "q": 130,
@@ -140308,6 +140367,8 @@
           "siteType": "SpiritLand",
           "anchorQ": 42,
           "anchorR": 52,
+          "presenceQ": 42,
+          "presenceR": 52,
           "footprint": [
             {
               "q": 42,
@@ -140323,6 +140384,8 @@
           "siteType": "Forest",
           "anchorQ": 80,
           "anchorR": 32,
+          "presenceQ": 80,
+          "presenceR": 32,
           "footprint": [
             {
               "q": 80,
@@ -140338,6 +140401,8 @@
           "siteType": "Road",
           "anchorQ": 68,
           "anchorR": 58,
+          "presenceQ": 68,
+          "presenceR": 58,
           "footprint": [
             {
               "q": 68,
@@ -140353,6 +140418,8 @@
           "siteType": "Ruin",
           "anchorQ": 144,
           "anchorR": 72,
+          "presenceQ": 144,
+          "presenceR": 72,
           "footprint": [
             {
               "q": 144,
@@ -140368,6 +140435,8 @@
           "siteType": "Village",
           "anchorQ": 92,
           "anchorR": 20,
+          "presenceQ": 92,
+          "presenceR": 20,
           "footprint": [
             {
               "q": 92,
@@ -140383,6 +140452,8 @@
           "siteType": "Pass",
           "anchorQ": 92,
           "anchorR": 72,
+          "presenceQ": 92,
+          "presenceR": 72,
           "footprint": [
             {
               "q": 92,
@@ -140398,6 +140469,8 @@
           "siteType": "Ferry",
           "anchorQ": 170,
           "anchorR": 40,
+          "presenceQ": 170,
+          "presenceR": 40,
           "footprint": [
             {
               "q": 170,
@@ -140408,11 +140481,30 @@
           "ownerFactionId": "base:faction_fisher_village"
         },
         {
+          "siteId": "base:site_shulin_xi",
+          "displayName": "??",
+          "siteType": "Forest",
+          "anchorQ": 16,
+          "anchorR": 58,
+          "presenceQ": 16,
+          "presenceR": 58,
+          "footprint": [
+            {
+              "q": 16,
+              "r": 58
+            }
+          ],
+          "localMapId": "base:map_site_shulin_xi",
+          "ownerFactionId": ""
+        },
+        {
           "siteId": "base:site_tiejiangpu",
           "displayName": "铁匠铺",
           "siteType": "Town",
           "anchorQ": 144,
           "anchorR": 52,
+          "presenceQ": 144,
+          "presenceR": 52,
           "footprint": [
             {
               "q": 146,
@@ -140436,6 +140528,8 @@
           "siteType": "Ruin",
           "anchorQ": 42,
           "anchorR": 72,
+          "presenceQ": 42,
+          "presenceR": 72,
           "footprint": [
             {
               "q": 42,
@@ -140446,41 +140540,13 @@
           "ownerFactionId": ""
         },
         {
-          "siteId": "base:site_shulin_xi",
-          "displayName": "??",
-          "siteType": "Forest",
-          "anchorQ": 16,
-          "anchorR": 58,
-          "footprint": [
-            {
-              "q": 16,
-              "r": 58
-            }
-          ],
-          "localMapId": "base:map_site_shulin_xi",
-          "ownerFactionId": ""
-        },
-        {
-          "siteId": "base:site_dukou_xi",
-          "displayName": "??",
-          "siteType": "Ferry",
-          "anchorQ": 28,
-          "anchorR": 26,
-          "footprint": [
-            {
-              "q": 28,
-              "r": 26
-            }
-          ],
-          "localMapId": "base:map_site_dukou_xi",
-          "ownerFactionId": "base:faction_xijin"
-        },
-        {
           "siteId": "base:site_yaotian",
           "displayName": "药田谷",
           "siteType": "SpiritLand",
           "anchorQ": 28,
           "anchorR": 40,
+          "presenceQ": 28,
+          "presenceR": 40,
           "footprint": [
             {
               "q": 28,
@@ -140496,6 +140562,8 @@
           "siteType": "Camp",
           "anchorQ": 106,
           "anchorR": 52,
+          "presenceQ": 106,
+          "presenceR": 52,
           "footprint": [
             {
               "q": 106,
@@ -140511,6 +140579,8 @@
           "siteType": "Village",
           "anchorQ": 156,
           "anchorR": 26,
+          "presenceQ": 156,
+          "presenceR": 26,
           "footprint": [
             {
               "q": 156,
@@ -140526,14 +140596,12 @@
           "siteType": "Village",
           "anchorQ": 118,
           "anchorR": 32,
+          "presenceQ": 118,
+          "presenceR": 32,
           "footprint": [
             {
               "q": 118,
-              "r": 32
-            },
-            {
-              "q": 119,
-              "r": 32
+              "r": 31
             },
             {
               "q": 119,
@@ -140541,7 +140609,11 @@
             },
             {
               "q": 118,
-              "r": 31
+              "r": 32
+            },
+            {
+              "q": 119,
+              "r": 32
             }
           ],
           "localMapId": "base:map_site_zhuangyuan",

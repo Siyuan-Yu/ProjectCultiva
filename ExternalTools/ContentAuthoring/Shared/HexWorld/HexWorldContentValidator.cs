@@ -55,6 +55,27 @@ public static class HexWorldContentValidator
             if (!anchorInFootprint)
                 issues.Add(Error($"Site anchor not in footprint: {site.SiteId}.", site.SiteId, site.AnchorQ, site.AnchorR));
 
+            HexWorldPresenceRules.EnsurePresenceDefaults(site);
+            var presenceQ = site.PresenceQ!.Value;
+            var presenceR = site.PresenceR!.Value;
+            if (!footprint.Any(h => h.Q == presenceQ && h.R == presenceR))
+            {
+                issues.Add(Error(
+                    $"Site PresenceHex not in footprint: {site.SiteId} ({presenceQ},{presenceR}).",
+                    site.SiteId,
+                    presenceQ,
+                    presenceR));
+            }
+
+            if (!IsInBounds(world, presenceQ, presenceR))
+            {
+                issues.Add(Error(
+                    $"Site PresenceHex out of bounds: {site.SiteId} ({presenceQ},{presenceR}).",
+                    site.SiteId,
+                    presenceQ,
+                    presenceR));
+            }
+
             foreach (var hex in footprint)
             {
                 if (!IsInBounds(world, hex.Q, hex.R))

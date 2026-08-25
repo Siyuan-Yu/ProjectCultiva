@@ -348,10 +348,22 @@ public sealed class HexMapViewHost : FrameworkElement
 
         if (selectedSite != null)
         {
+            var presence = HexWorldPresenceRules.ResolvePresenceHex(selectedSite);
+            var presenceFill = new SolidColorBrush(Color.FromArgb(110, 70, 160, 220));
+            presenceFill.Freeze();
+            var presencePen = new Pen(new SolidColorBrush(Color.FromRgb(70, 160, 220)), 1.6);
+            presencePen.Freeze();
             foreach (var hex in HexWorldFootprintRules.ResolveFootprint(selectedSite))
             {
                 HexWorldLayoutShared.CoordToWorldCenter(hex, hexSize, out var fx, out var fy);
                 var isAnchor = hex.Q == selectedSite.AnchorQ && hex.R == selectedSite.AnchorR;
+                var isPresence = hex.Q == presence.Q && hex.R == presence.R;
+                if (isPresence && !isAnchor)
+                {
+                    dc.DrawGeometry(presenceFill, presencePen, BuildHexGeometry(fx, fy, radius * 1.02));
+                    continue;
+                }
+
                 dc.DrawGeometry(
                     isAnchor ? anchorFill : footprintFill,
                     isAnchor ? anchorPen : footprintPen,
