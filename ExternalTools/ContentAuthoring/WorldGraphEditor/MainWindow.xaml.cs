@@ -31,6 +31,7 @@ public partial class MainWindow : Window
         _document.Changed += OnDocumentChanged;
         _document.CellsMutated += OnCellsMutated;
         _document.WorldReplaced += OnWorldReplaced;
+        _document.SitesMutated += OnSitesMutated;
         TryLoadDefaultWorld();
     }
 
@@ -71,6 +72,18 @@ public partial class MainWindow : Window
             _mapView.ActualHeight > 1 ? _mapView.ActualHeight : MapHost.ActualHeight);
         _mapView.SetWorld(_document.World, _viewport, fullRebuild);
         _mapView.SetSelection(_document.SelectedHex);
+        SyncSiteOverlay();
+    }
+
+    void SyncSiteOverlay() =>
+        _mapView.SetSiteOverlay(_document.SelectedSiteId, _document.EditFootprintMode);
+
+    void OnSitesMutated()
+    {
+        SyncSiteOverlay();
+        RefreshChrome();
+        UpdateInspector();
+        UpdateSiteFootprintPanel();
     }
 
     void OnWorldReplaced()
@@ -90,6 +103,8 @@ public partial class MainWindow : Window
     {
         RefreshChrome();
         UpdateInspector();
+        UpdateSiteFootprintPanel();
+        SyncSiteOverlay();
     }
 
     void RefreshChrome()
@@ -130,6 +145,47 @@ public partial class MainWindow : Window
             SiteLocalMapBox.Text = site.LocalMapId;
             _document.SelectedSiteId = site.SiteId;
         }
+
+        UpdateSiteFootprintPanel();
+    }
+
+    void UpdateSiteFootprintPanel()
+    {
+        var site = _document.GetSelectedSite();
+        if (site == null)
+        {
+            SiteAnchorText.Text = "AnchorHex：—";
+            SiteFootprintCountText.Text = "Footprint Count：—";
+            SiteFootprintListText.Text = "Footprint Hexes：—";
+            FootprintEditStatusText.Text = string.Empty;
+            SetAnchorButton.IsEnabled = false;
+            return;
+        }
+
+        var footprint = HexWorldFootprintRules.ResolveFootprint(site);
+        SiteAnchorText.Text = $"AnchorHex：({site.AnchorQ},{site.AnchorR})";
+        SiteFootprintCountText.Text = $"Footprint Count：{footprint.Count}";
+        SiteFootprintListText.Text = "Footprint Hexes：\n" +
+                                      string.Join("\n", footprint.Select(h => $"({h.Q},{h.R})"));
+        var validation = HexWorldFootprintRules.ValidateSiteFootprint(site);
+        FootprintEditStatusText.Text = validation.Success
+            ? (_document.EditFootprintMode
+                ? "Footprint 编辑模式：左键加入 · 右键移除"
+                : string.Empty)
+            : validation.Message;
+        if (!string.IsNullOrEmpty(_document.LastFootprintEditMessage))
+            FootprintEditStatusText.Text = _document.LastFootprintEditMessage;
+        SetAnchorButton.IsEnabled = _document.SelectedHex is { Q: >= 0 };
+    }
+
+    void SetAnchor_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrEmpty(_document.SelectedSiteId) || _document.SelectedHex is not { Q: >= 0 } hex)
+            return;
+        var result = _document.SetSiteAnchor(_document.SelectedSiteId, hex);
+        StatusText.Text = result.Message + " · " + _mapView.FormatPerfStatus();
+        UpdateSiteFootprintPanel();
+        SyncSiteOverlay();
     }
 
     void UpdateValidationSummary()
@@ -241,8 +297,12 @@ public partial class MainWindow : Window
             _document.ActiveSiteType = item.Content?.ToString() ?? "Village";
     }
 
-    void FootprintMode_Changed(object sender, RoutedEventArgs e) =>
+    void FootprintMode_Changed(object sender, RoutedEventArgs e)
+    {
         _document.EditFootprintMode = FootprintModeBox.IsChecked == true;
+        SyncSiteOverlay();
+        UpdateSiteFootprintPanel();
+    }
 
     void DeleteSite_Click(object sender, RoutedEventArgs e)
     {
@@ -373,7 +433,10 @@ public partial class MainWindow : Window
         if (_document.EditFootprintMode && !string.IsNullOrEmpty(_document.SelectedSiteId))
         {
             var add = Keyboard.Modifiers != ModifierKeys.Control;
-            _document.ToggleFootprintHex(_document.SelectedSiteId, hex, add);
+            var result = _document.ToggleFootprintHex(_document.SelectedSiteId, hex, add);
+            StatusText.Text = result.Message + " · " + _mapView.FormatPerfStatus();
+            UpdateSiteFootprintPanel();
+            SyncSiteOverlay();
             return;
         }
 
@@ -382,6 +445,24 @@ public partial class MainWindow : Window
             _document.SelectedSiteId = site.SiteId;
         UpdateInspector();
         RefreshChrome();
+    }
+
+    void MapHost_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!_document.EditFootprintMode || string.IsNullOrEmpty(_document.SelectedSiteId))
+            return;
+        var pos = e.GetPosition(_mapView);
+        var hex = _viewport.ScreenToHex(pos.X, pos.Y, _document.World.Width, _document.World.Height);
+        if (hex.Q < 0)
+            return;
+
+        _document.SelectedHex = hex;
+        _mapView.SetSelection(hex);
+        var result = _document.ToggleFootprintHex(_document.SelectedSiteId, hex, add: false);
+        StatusText.Text = result.Message + " · " + _mapView.FormatPerfStatus();
+        UpdateSiteFootprintPanel();
+        SyncSiteOverlay();
+        e.Handled = true;
     }
 
     void MapHost_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)

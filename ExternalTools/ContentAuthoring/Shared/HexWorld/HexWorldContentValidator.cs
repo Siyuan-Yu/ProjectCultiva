@@ -60,7 +60,12 @@ public static class HexWorldContentValidator
                 if (!IsInBounds(world, hex.Q, hex.R))
                     issues.Add(Error($"Site footprint out of bounds: {site.SiteId} ({hex.Q},{hex.R}).", site.SiteId, hex.Q, hex.R));
             }
+
+            if (footprint.Count > 1 && !HexWorldFootprintRules.IsConnected(footprint))
+                issues.Add(Error($"Site footprint not connected: {site.SiteId}.", site.SiteId, site.AnchorQ, site.AnchorR));
         }
+
+        ValidateFootprintOverlap(world, issues);
 
         for (var i = 0; i < world.Cells.Count; i++)
         {
@@ -74,6 +79,36 @@ public static class HexWorldContentValidator
         ValidateRoadConnectivity(world, issues);
 
         return issues;
+    }
+
+    static void ValidateFootprintOverlap(HexWorldDefinitionDto world, List<HexWorldValidationIssue> issues)
+    {
+        var owner = new Dictionary<(int Q, int R), string>();
+        foreach (var site in world.Sites)
+        {
+            if (string.IsNullOrWhiteSpace(site.SiteId))
+                continue;
+
+            var footprint = site.Footprint.Count > 0
+                ? site.Footprint
+                : new List<HexCoordDto> { new(site.AnchorQ, site.AnchorR) };
+            foreach (var hex in footprint)
+            {
+                var key = (hex.Q, hex.R);
+                if (owner.TryGetValue(key, out var other) && !string.Equals(other, site.SiteId, StringComparison.Ordinal))
+                {
+                    issues.Add(Error(
+                        $"Site footprint overlap: {other} and {site.SiteId} at ({hex.Q},{hex.R}).",
+                        site.SiteId,
+                        hex.Q,
+                        hex.R));
+                }
+                else
+                {
+                    owner[key] = site.SiteId;
+                }
+            }
+        }
     }
 
     static void ValidateRoadConnectivity(HexWorldDefinitionDto world, List<HexWorldValidationIssue> issues)

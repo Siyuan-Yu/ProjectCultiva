@@ -41,6 +41,11 @@ public sealed class HexWorldEditorDocument
     /// <summary>World instance replaced (load / undo / redo / new) — full map rebuild.</summary>
     public event Action? WorldReplaced;
 
+    /// <summary>Site footprint / selection changed — overlay refresh only.</summary>
+    public event Action? SitesMutated;
+
+    public string? LastFootprintEditMessage { get; private set; } = string.Empty;
+
     public void NewWorld(int width, int height, string defaultTerrain, bool passable)
     {
         PushUndo();
@@ -87,7 +92,12 @@ public sealed class HexWorldEditorDocument
 
     public void PushUndo()
     {
-        _undo.Push(HexWorldContentJson.Serialize(World));
+        PushUndoFromSnapshot(HexWorldContentJson.Serialize(World));
+    }
+
+    void PushUndoFromSnapshot(string snapshot)
+    {
+        _undo.Push(snapshot);
         _redo.Clear();
     }
 
@@ -224,9 +234,8 @@ public sealed class HexWorldEditorDocument
             Footprint = new List<HexCoordDto> { hex },
         };
         World.Sites.Add(site);
-        HexWorldContentGenerator.PaintRoadTile(World, hex.Q, hex.R);
         SelectedSiteId = id;
-        RaiseCellsMutated(new[] { (hex.Q, hex.R) });
+        RaiseSitesMutated();
         return site;
     }
 
@@ -265,34 +274,74 @@ public sealed class HexWorldEditorDocument
 
         var touched = new List<(int Q, int R)>();
         foreach (var hex in site.Footprint)
-        {
-            HexWorldContentGenerator.PaintRoadTile(World, hex.Q, hex.R);
             touched.Add((hex.Q, hex.R));
-        }
 
-        RaiseCellsMutated(touched);
+        RaiseSitesMutated(touched);
     }
 
-    public void ToggleFootprintHex(string siteId, HexCoordDto hex, bool add)
+    public FootprintEditResult ToggleFootprintHex(string siteId, HexCoordDto hex, bool add)
     {
         var site = World.Sites.FirstOrDefault(s => string.Equals(s.SiteId, siteId, StringComparison.Ordinal));
         if (site == null)
-            return;
-        PushUndo();
+            return FootprintEditResult.Fail("未找到 WorldSite。");
+
+        var snapshot = HexWorldContentJson.Serialize(World);
+        FootprintEditResult result;
         if (add)
-        {
-            if (!site.Footprint.Any(h => h.Q == hex.Q && h.R == hex.R))
-                site.Footprint.Add(hex);
-            HexWorldContentGenerator.PaintRoadTile(World, hex.Q, hex.R);
-        }
+            result = HexWorldEditorFootprintService.TryAddFootprintHex(site, hex, World);
         else
+            result = HexWorldEditorFootprintService.TryRemoveFootprintHex(site, hex);
+
+        if (!result.Success)
         {
-            if (hex.Q == site.AnchorQ && hex.R == site.AnchorR)
-                return;
-            site.Footprint.RemoveAll(h => h.Q == hex.Q && h.R == hex.R);
+            World = HexWorldContentJson.Load(snapshot).Definitions[0];
+            LastFootprintEditMessage = result.Message;
+            Notify();
+            return result;
         }
 
-        RaiseCellsMutated(new[] { (hex.Q, hex.R) });
+        PushUndoFromSnapshot(snapshot);
+        LastFootprintEditMessage = result.Message;
+        RaiseSitesMutated(new[] { (hex.Q, hex.R) });
+        return result;
+    }
+
+    public FootprintEditResult SetSiteAnchor(string siteId, HexCoordDto hex)
+    {
+        var site = World.Sites.FirstOrDefault(s => string.Equals(s.SiteId, siteId, StringComparison.Ordinal));
+        if (site == null)
+            return FootprintEditResult.Fail("未找到 WorldSite。");
+
+        var snapshot = HexWorldContentJson.Serialize(World);
+        var result = HexWorldEditorFootprintService.TrySetAnchorHex(site, hex);
+        if (!result.Success)
+        {
+            World = HexWorldContentJson.Load(snapshot).Definitions[0];
+            LastFootprintEditMessage = result.Message;
+            Notify();
+            return result;
+        }
+
+        PushUndoFromSnapshot(snapshot);
+        LastFootprintEditMessage = result.Message;
+        RaiseSitesMutated(new[] { (hex.Q, hex.R) });
+        return result;
+    }
+
+    public HexWorldSiteDto? GetSelectedSite()
+    {
+        if (string.IsNullOrEmpty(SelectedSiteId))
+            return null;
+        return World.Sites.FirstOrDefault(s => string.Equals(s.SiteId, SelectedSiteId, StringComparison.Ordinal));
+    }
+
+    void RaiseSitesMutated(IReadOnlyList<(int Q, int R)>? touched = null)
+    {
+        IsDirty = true;
+        if (touched != null && touched.Count > 0)
+            CellsMutated?.Invoke(touched);
+        SitesMutated?.Invoke();
+        Changed?.Invoke();
     }
 
     void RaiseCellsMutated(IReadOnlyList<(int Q, int R)> touched)

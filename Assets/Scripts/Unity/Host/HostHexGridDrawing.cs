@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Hex;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
@@ -15,6 +16,7 @@ namespace XianXia.Unity.Host
             Texture2D pixel,
             HexCoord? selectedHex,
             HexCoord? hoverHex,
+            WorldSite selectedWorldSite,
             IReadOnlyList<HexCoord> pathPreview,
             bool[] pathMask,
             int pathMaskWidth,
@@ -26,6 +28,7 @@ namespace XianXia.Unity.Host
                 pixel,
                 selectedHex,
                 hoverHex,
+                selectedWorldSite,
                 pathMask,
                 pathMaskWidth,
                 pathMaskHeight);

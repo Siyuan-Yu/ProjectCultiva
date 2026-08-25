@@ -13,11 +13,13 @@ namespace WorldGraphEditor;
 public sealed class HexMapViewHost : FrameworkElement
 {
     const double CellFillScale = 0.92;
-    const double LabelScaleThreshold = 4.5;
+    /// <summary>WorldSite 名称始终显示；仅控制字号随缩放微调的下限。</summary>
+    const double LabelMinScale = 0.5;
 
     readonly VisualCollection _visuals;
     readonly Dictionary<(int Cx, int Cy), DrawingVisual> _chunkVisuals = new();
     readonly DrawingVisual _overlayVisual = new();
+    readonly DrawingVisual _labelOverlayVisual = new();
     readonly Dictionary<int, SolidColorBrush> _brushCache = new();
     readonly HexEditorRenderCache _cache = new();
 
@@ -25,6 +27,8 @@ public sealed class HexMapViewHost : FrameworkElement
     HexMapViewport? _viewport;
     HexCoordDto? _selected;
     HexCoordDto? _hover;
+    string? _selectedSiteId;
+    bool _editFootprintMode;
     MatrixTransform? _worldToScreen;
     int _visibleAttached;
     double _lastRebuildMs;
@@ -33,7 +37,7 @@ public sealed class HexMapViewHost : FrameworkElement
 
     public HexMapViewHost()
     {
-        _visuals = new VisualCollection(this) { _overlayVisual };
+        _visuals = new VisualCollection(this) { _overlayVisual, _labelOverlayVisual };
         Focusable = false;
         ClipToBounds = true;
         SnapsToDevicePixels = true;
@@ -120,6 +124,13 @@ public sealed class HexMapViewHost : FrameworkElement
     public void SetSelection(HexCoordDto? selected)
     {
         _selected = selected;
+        RedrawOverlay();
+    }
+
+    public void SetSiteOverlay(string? selectedSiteId, bool editFootprintMode)
+    {
+        _selectedSiteId = selectedSiteId;
+        _editFootprintMode = editFootprintMode;
         RedrawOverlay();
     }
 
@@ -246,6 +257,7 @@ public sealed class HexMapViewHost : FrameworkElement
         foreach (var visual in _chunkVisuals.Values)
             visual.Transform = _worldToScreen;
         _overlayVisual.Transform = _worldToScreen;
+        _labelOverlayVisual.Transform = Transform.Identity;
     }
 
     void UpdateChunkVisibility()
@@ -284,6 +296,7 @@ public sealed class HexMapViewHost : FrameworkElement
         }
 
         _visibleAttached = visible.Count;
+        EnsureLabelOverlayOnTop();
     }
 
     (int Cx, int Cy)? FindChunkKey(Visual visual)
@@ -318,8 +331,33 @@ public sealed class HexMapViewHost : FrameworkElement
         outlinePen.Freeze();
         var hoverPen = new Pen(new SolidColorBrush(Color.FromArgb(200, 240, 220, 80)), 1.5 / scale);
         hoverPen.Freeze();
+        var footprintFill = new SolidColorBrush(Color.FromArgb(90, 255, 230, 80));
+        footprintFill.Freeze();
+        var footprintPen = new Pen(new SolidColorBrush(Color.FromArgb(230, 255, 150, 30)), 2.6 / scale);
+        footprintPen.Freeze();
+        var anchorPen = new Pen(new SolidColorBrush(Color.FromArgb(255, 255, 60, 60)), 3.2 / scale);
+        anchorPen.Freeze();
+        var anchorFill = new SolidColorBrush(Color.FromArgb(120, 255, 90, 90));
+        anchorFill.Freeze();
 
         using var dc = _overlayVisual.RenderOpen();
+
+        HexWorldSiteDto? selectedSite = null;
+        if (!string.IsNullOrEmpty(_selectedSiteId))
+            selectedSite = _world.Sites.FirstOrDefault(s => s.SiteId == _selectedSiteId);
+
+        if (selectedSite != null)
+        {
+            foreach (var hex in HexWorldFootprintRules.ResolveFootprint(selectedSite))
+            {
+                HexWorldLayoutShared.CoordToWorldCenter(hex, hexSize, out var fx, out var fy);
+                var isAnchor = hex.Q == selectedSite.AnchorQ && hex.R == selectedSite.AnchorR;
+                dc.DrawGeometry(
+                    isAnchor ? anchorFill : footprintFill,
+                    isAnchor ? anchorPen : footprintPen,
+                    BuildHexGeometry(fx, fy, radius * 1.02));
+            }
+        }
 
         if (_hover is { Q: >= 0 } hover)
         {
@@ -335,21 +373,80 @@ public sealed class HexMapViewHost : FrameworkElement
 
         foreach (var site in _world.Sites)
         {
-            HexWorldLayoutShared.CoordToWorldCenter(new HexCoordDto(site.AnchorQ, site.AnchorR), hexSize, out var wx, out var wy);
-            DrawSiteIcon(dc, wx, wy, hexSize * 1.8);
-            if (_viewport.Scale > LabelScaleThreshold)
+            var footprint = HexWorldFootprintRules.ResolveFootprint(site);
+            var isSelected = selectedSite != null &&
+                             string.Equals(site.SiteId, selectedSite.SiteId, StringComparison.Ordinal);
+            foreach (var hex in footprint)
             {
-                var text = new FormattedText(
-                    site.DisplayName ?? string.Empty,
-                    CultureInfo.CurrentUICulture,
-                    FlowDirection.LeftToRight,
-                    new Typeface("Segoe UI"),
-                    11.0 / scale,
-                    Brushes.Black,
-                    VisualTreeHelper.GetDpi(this).PixelsPerDip);
-                dc.DrawText(text, new Point(wx - text.Width * 0.5, wy - hexSize * 2.4 - text.Height));
+                HexWorldLayoutShared.CoordToWorldCenter(hex, hexSize, out var wx, out var wy);
+                DrawSiteIconUpright(dc, wx, wy, hexSize * 1.55);
             }
+
+            HexWorldLayoutShared.CoordToWorldCenter(new HexCoordDto(site.AnchorQ, site.AnchorR), hexSize, out var ax, out var ay);
+            if (_editFootprintMode && isSelected)
+                dc.DrawGeometry(null, anchorPen, BuildHexGeometry(ax, ay, radius * 1.08));
         }
+
+        RedrawLabelOverlay(hexSize);
+    }
+
+    void RedrawLabelOverlay(double hexSize)
+    {
+        if (_world == null || _viewport == null)
+            return;
+
+        using var dc = _labelOverlayVisual.RenderOpen();
+        if (_viewport.Scale < LabelMinScale)
+            return;
+
+        var labelBrush = GetBrush(0xE8, 0xE4, 0xDC);
+        var haloBrush = GetBrush(0x1A, 0x18, 0x14);
+        var fontSize = Math.Clamp(_viewport.Scale * 2.4, 10.0, 14.0);
+        var hexScreenRadius = hexSize * _viewport.Scale * CellFillScale;
+
+        foreach (var site in _world.Sites)
+        {
+            var name = site.DisplayName;
+            if (string.IsNullOrWhiteSpace(name))
+                continue;
+
+            var (sx, sy) = _viewport.ProjectHexCenter(new HexCoordDto(site.AnchorQ, site.AnchorR));
+            var text = new FormattedText(
+                name,
+                CultureInfo.CurrentUICulture,
+                FlowDirection.LeftToRight,
+                new Typeface("Segoe UI"),
+                fontSize,
+                labelBrush,
+                VisualTreeHelper.GetDpi(this).PixelsPerDip);
+            var padX = 4.0;
+            var padY = 2.0;
+            var labelX = sx - text.Width * 0.5;
+            var labelY = sy - hexScreenRadius * 2.0 - text.Height - padY;
+            if (labelY < 2.0)
+                labelY = sy + hexScreenRadius * 1.2;
+            var bg = new Rect(labelX - padX, labelY - padY, text.Width + padX * 2, text.Height + padY * 2);
+            dc.DrawRoundedRectangle(haloBrush, null, bg, 3, 3);
+            dc.DrawText(text, new Point(labelX, labelY));
+        }
+
+        EnsureLabelOverlayOnTop();
+    }
+
+    void EnsureLabelOverlayOnTop()
+    {
+        if (_visuals.Contains(_labelOverlayVisual))
+        {
+            _visuals.Remove(_labelOverlayVisual);
+            _visuals.Add(_labelOverlayVisual);
+        }
+    }
+
+    void DrawSiteIconUpright(DrawingContext dc, double cx, double cy, double size)
+    {
+        dc.PushTransform(new MatrixTransform(new Matrix(1, 0, 0, -1, 0, 2 * cy)));
+        DrawSiteIcon(dc, cx, cy, size);
+        dc.Pop();
     }
 
     void DrawSiteIcon(DrawingContext dc, double cx, double cy, double size)

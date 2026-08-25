@@ -28,6 +28,8 @@ namespace XianXia.Unity.Host
         static readonly Color PathPreviewBorder = new Color(0.18f, 0.58f, 0.78f, 0.92f);
         static readonly Color HoverBorder = new Color(0.95f, 0.78f, 0.10f, 1f);
         static readonly Color SelectBorder = new Color(0.92f, 0.48f, 0.06f, 1f);
+        static readonly Color SiteFootprintSelectFill = new Color(1f, 0.92f, 0.20f, 0.28f);
+        static readonly Color SiteFootprintSelectBorder = new Color(1f, 0.55f, 0.05f, 1f);
 
         static readonly float[] CornerWx = new float[6];
         static readonly float[] CornerWy = new float[6];
@@ -77,6 +79,7 @@ namespace XianXia.Unity.Host
             Texture2D pixel,
             HexCoord? selectedHex,
             HexCoord? hoverHex,
+            WorldSite selectedWorldSite,
             bool[] pathMask,
             int pathMaskWidth,
             int pathMaskHeight)
@@ -125,9 +128,74 @@ namespace XianXia.Unity.Host
                 FlushTriangles(TerrainVx, TerrainVy, TerrainCr, TerrainCg, TerrainCb, TerrainCa, terrainCount);
             }
 
+            if (selectedWorldSite != null)
+                DrawWorldSiteFootprintSelection(projection, grid, selectedWorldSite, ref terrainCount);
+
+            var suppressSingleHexSelect = selectedWorldSite != null &&
+                                          selectedHex.HasValue &&
+                                          selectedWorldSite.OccupiesHex(selectedHex.Value);
             DrawOverlayOutline(projection, grid, hoverHex, selectedHex, HoverBorder, HoverOutlineHalfWidthPx);
-            DrawOverlayOutline(projection, grid, selectedHex, null, SelectBorder, SelectOutlineHalfWidthPx);
+            if (!suppressSingleHexSelect)
+                DrawOverlayOutline(projection, grid, selectedHex, null, SelectBorder, SelectOutlineHalfWidthPx);
+
             WorldSitePresentationLayer.Draw(projection, world, pixel, hexScreenRadius);
+        }
+
+        static void DrawWorldSiteFootprintSelection(
+            HexMapViewportProjection projection,
+            HexWorld grid,
+            WorldSite site,
+            ref int vertCount)
+        {
+            if (site == null)
+                return;
+
+            const float fillInset = 0.94f;
+            foreach (var hex in site.EnumerateFootprintHexes())
+            {
+                if (!grid.Contains(hex))
+                    continue;
+                if (vertCount + 18 >= MaxVerts)
+                {
+                    FlushTriangles(TerrainVx, TerrainVy, TerrainCr, TerrainCg, TerrainCb, TerrainCa, vertCount);
+                    vertCount = 0;
+                }
+
+                EmitTerrainFill(projection, hex, grid.HexSize, SiteFootprintSelectFill, fillInset, ref vertCount);
+            }
+
+            FlushTriangles(TerrainVx, TerrainVy, TerrainCr, TerrainCg, TerrainCb, TerrainCa, vertCount);
+            vertCount = 0;
+
+            foreach (var hex in site.EnumerateFootprintHexes())
+            {
+                if (!grid.Contains(hex))
+                    continue;
+
+                ProjectLogicalHexCorners(projection, hex, grid.HexSize, CornerScreen);
+                for (var i = 0; i < 6; i++)
+                {
+                    var next = (i + 1) % 6;
+                    if (vertCount + 18 >= MaxVerts)
+                    {
+                        FlushTriangles(TerrainVx, TerrainVy, TerrainCr, TerrainCg, TerrainCb, TerrainCa, vertCount);
+                        vertCount = 0;
+                    }
+
+                    AppendLineQuad(
+                        CornerScreen[i],
+                        CornerScreen[next],
+                        3.4f,
+                        SiteFootprintSelectBorder.r,
+                        SiteFootprintSelectBorder.g,
+                        SiteFootprintSelectBorder.b,
+                        SiteFootprintSelectBorder.a,
+                        ref vertCount);
+                }
+            }
+
+            FlushTriangles(TerrainVx, TerrainVy, TerrainCr, TerrainCg, TerrainCb, TerrainCa, vertCount);
+            vertCount = 0;
         }
 
         public static void DrawPathPolyline(

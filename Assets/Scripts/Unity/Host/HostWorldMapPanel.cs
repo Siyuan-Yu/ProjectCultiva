@@ -139,6 +139,7 @@ namespace XianXia.Unity.Host
         HexRightClickResolution _hexSiteEnterMenuResolution;
         /// <summary>右侧信息面板聚焦的节点（左键点节点写入；与菜单开闭无关）/summary>
         string _inspectSiteId = string.Empty;
+        string _selectedWorldSiteId = string.Empty;
         Vector2 _inspectScroll;
 
         string _status = string.Empty;
@@ -374,6 +375,7 @@ namespace XianXia.Unity.Host
             _nodeMenuOpen = false;
             _nodeMenuNodeId = string.Empty;
             _inspectSiteId = string.Empty;
+            _selectedWorldSiteId = string.Empty;
             _inspectScroll = Vector2.zero;
         }
 
@@ -1230,6 +1232,7 @@ namespace XianXia.Unity.Host
                     _px,
                     _selectedHex,
                     _hoverHex,
+                    ResolveSelectedWorldSite(world),
                     _hexPathPreview,
                     _pathMask,
                     _pathMaskW,
@@ -2317,7 +2320,13 @@ namespace XianXia.Unity.Host
                       LingeringBattlefieldQueryService.TryGetLingeringBattlefieldAtHex(world, pickedHex, out _)))
                     ClearFormalArmySelection();
                 _inspectSiteId = string.Empty;
+                _selectedWorldSiteId = string.Empty;
             }
+
+            if (world.Strategic.Sites.TryGetAtHex(pickedHex, out var selectedSite) && selectedSite != null)
+                _selectedWorldSiteId = selectedSite.SiteId;
+            else
+                _selectedWorldSiteId = string.Empty;
 
             if (!world.HexWorld.TryGetTile(pickedHex, out var inspectTile) || inspectTile == null)
             {
@@ -3942,7 +3951,13 @@ namespace XianXia.Unity.Host
                 formalArmy != null)
                 return BuildFormalArmyInspect(world, formalArmy);
             if (_selectedHex.HasValue && ArmyHexCommandService.IsHexStrategicActive(world))
+            {
+                if (!string.IsNullOrEmpty(_selectedWorldSiteId) &&
+                    world.Strategic.Sites.TryGet(_selectedWorldSiteId, out var selectedSite) &&
+                    selectedSite != null)
+                    return BuildWorldSiteSelectionInspect(world, selectedSite, _selectedHex.Value);
                 return BuildHexInspect(world, _selectedHex.Value);
+            }
             if (_selected.Count > 0)
                 return BuildSelectedAgentsInspect(world);
             if (!string.IsNullOrEmpty(_selectedStackId) &&
@@ -4033,6 +4048,37 @@ namespace XianXia.Unity.Host
             return string.Empty;
         }
 
+        WorldSite ResolveSelectedWorldSite(XianXia.Core.Simulation.SimulationWorld world)
+        {
+            if (string.IsNullOrEmpty(_selectedWorldSiteId) || world?.Strategic?.Sites == null)
+                return null;
+            return world.Strategic.Sites.TryGet(_selectedWorldSiteId, out var site) ? site : null;
+        }
+
+        string BuildWorldSiteSelectionInspect(
+            XianXia.Core.Simulation.SimulationWorld world,
+            WorldSite site,
+            HexCoord clickedHex)
+        {
+            var sb = new StringBuilder(640);
+            var siteName = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
+            var footprintCount = WorldSiteFootprintValidator.CountFootprintHexes(site);
+            sb.Append("WorldSite：").Append(siteName).Append('\n');
+            sb.Append("WorldSiteId：").Append(site.SiteId).Append("\n\n");
+            sb.Append("AnchorHex：").Append(site.AnchorHex).Append('\n');
+            sb.Append("Footprint Count：").Append(footprintCount).Append("\n\n");
+            sb.Append("Footprint Hexes：\n");
+            foreach (var hex in site.EnumerateFootprintHexes())
+                sb.Append(hex).Append('\n');
+            sb.Append('\n');
+            if (!string.IsNullOrEmpty(site.LocalMapId))
+                sb.Append("LocalMapId：").Append(site.LocalMapId).Append('\n');
+            if (!string.IsNullOrEmpty(site.OwnerFactionId))
+                sb.Append("OwnerFactionId：").Append(site.OwnerFactionId).Append('\n');
+            sb.Append("Clicked Hex：").Append(clickedHex).Append('\n');
+            return sb.ToString();
+        }
+
         string BuildHexInspect(XianXia.Core.Simulation.SimulationWorld world, HexCoord hex)
         {
             var sb = new StringBuilder(320);
@@ -4053,10 +4099,8 @@ namespace XianXia.Unity.Host
             {
                 sb.Append('\n');
                 sb.Append("地点：").Append(string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName).Append('\n');
-                var category = WorldSitePresentationLayer.ResolveCategory(site);
-                sb.Append("类型：").Append(WorldSitePresentationLayer.ResolveCategoryLabel(category)).Append('\n');
                 if (!string.IsNullOrEmpty(site.SiteType))
-                    sb.Append("SiteType：").Append(site.SiteType).Append('\n');
+                    sb.Append("类型：").Append(site.SiteType).Append('\n');
                 if (!string.IsNullOrEmpty(site.OwnerFactionId))
                     sb.Append("归属：").Append(StrategicFactionCatalog.DisplayName(site.OwnerFactionId)).Append('\n');
                 if (!string.IsNullOrEmpty(site.LocalMapId))
