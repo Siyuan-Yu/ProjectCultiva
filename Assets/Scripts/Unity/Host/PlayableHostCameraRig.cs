@@ -21,6 +21,7 @@ namespace XianXia.Unity.Host
         Vector3 _focus;
         bool _panning;
         Vector3 _lastPanScreen;
+        bool _userMiddlePanThisFrame;
 
         void Awake()
         {
@@ -34,6 +35,8 @@ namespace XianXia.Unity.Host
         {
             if (targetCamera == null)
                 return;
+
+            _userMiddlePanThisFrame = false;
 
             if (HostInputGate.BlockWorldCamera)
             {
@@ -77,6 +80,8 @@ namespace XianXia.Unity.Host
             {
                 _panning = true;
                 _lastPanScreen = Input.mousePosition;
+                // Button-down counts as user intent to take the camera (cancel RTS follow).
+                _userMiddlePanThisFrame = true;
             }
 
             if (Input.GetMouseButtonUp(2))
@@ -89,9 +94,19 @@ namespace XianXia.Unity.Host
             var prev = targetCamera.ScreenToWorldPoint(new Vector3(_lastPanScreen.x, _lastPanScreen.y, -cameraZ));
             var now = targetCamera.ScreenToWorldPoint(new Vector3(current.x, current.y, -cameraZ));
             var delta = prev - now;
+            if (delta.sqrMagnitude > 0.0000001f)
+                _userMiddlePanThisFrame = true;
             _focus.x += delta.x;
             _focus.y += delta.y;
             _lastPanScreen = current;
+        }
+
+        /// <summary>True if the player used middle-mouse pan this frame (consume once).</summary>
+        public bool ConsumeUserMiddlePanThisFrame()
+        {
+            var v = _userMiddlePanThisFrame;
+            _userMiddlePanThisFrame = false;
+            return v;
         }
 
         public void FrameSlots(Vector3 center)
@@ -113,6 +128,9 @@ namespace XianXia.Unity.Host
             _focus = Vector3.Lerp(_focus, target, t);
             ApplyTransform();
         }
+
+        /// <summary>Instant recenter (WASD Hard Follow / Active switch snap).</summary>
+        public void HardFollow(Vector3 worldPoint) => FrameWorldPoint(worldPoint);
 
         void ApplyTransform()
         {

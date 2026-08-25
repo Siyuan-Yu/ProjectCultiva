@@ -9,8 +9,20 @@ using XianXia.Core.World;
 
 namespace XianXia.Unity.Host
 {
+    /// <summary>Active character camera follow policy (Phase 1).</summary>
+    public enum HostActiveCameraFollowMode
+    {
+        /// <summary>Free look; middle-mouse pan owns the camera.</summary>
+        Free = 0,
+        /// <summary>Default follow during Active RTS/click path; MMB cancels this move's follow only.</summary>
+        RtsMoveFollow = 1,
+        /// <summary>WASD Direct Movement lock; MMB cannot permanently detach.</summary>
+        WasdHardFollow = 2
+    }
+
     /// <summary>
-    /// Phase 1: PlayerParty follow AI, Active WASD, camera soft-follow, combat/group-work hooks.
+    /// Phase 1: PlayerParty follow AI, Active WASD, camera follow-by-move-source, combat/group-work hooks.
+    /// RTS path → default follow (MMB cancellable); WASD → Hard Follow + snap.
     /// </summary>
     public sealed class HostPlayerPartyController : MonoBehaviour
     {
@@ -27,6 +39,9 @@ namespace XianXia.Unity.Host
             new Dictionary<ulong, HostPartySharedActivity>();
         HostPartySharedActivity _lastActiveSharedActivity = HostPartySharedActivity.FollowIdle;
         bool _wasdHeldLastFrame;
+        HostActiveCameraFollowMode _cameraMode = HostActiveCameraFollowMode.Free;
+        int _lastRtsPathMoveSerial = -1;
+        bool _pathMovingLastFrame;
 
         [SerializeField] float followerChopSearchRadius = 10f;
 
@@ -113,6 +128,9 @@ namespace XianXia.Unity.Host
                 return false;
 
             ClearDirectControlFor(oldActive);
+            _cameraMode = HostActiveCameraFollowMode.Free;
+            _lastRtsPathMoveSerial = _move != null ? _move.PlayerPartyPathMoveSerial : -1;
+            _pathMovingLastFrame = false;
             FrameCameraOn(newActive);
             if (bootstrap?.SelectionController != null)
                 bootstrap.SelectionController.SelectEntity(newActive, false);
@@ -147,6 +165,16 @@ namespace XianXia.Unity.Host
             TickPartyDerivedGroupActivity();
             TickFollowers();
             TickCombatFollow();
+        }
+
+        void LateUpdate()
+        {
+            // After CameraRig middle-pan so WASD Hard Follow wins the same frame.
+            if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized || Party == null)
+                return;
+            if (Party.IsAwaitingSuccession || Party.ActiveCharacterId.IsNone)
+                return;
+
             TickCameraFollow();
         }
 
@@ -168,8 +196,17 @@ namespace XianXia.Unity.Host
             if (wasdHeld)
             {
                 if (!_wasdHeldLastFrame)
+                {
+                    // Cancel RTS/Click path; enter Hard Follow (TEST S5 / S6).
                     _move.CancelPresentationMovementPublic(active);
+                    EnterWasdHardFollow(active);
+                }
+
                 _move.TickDirectWasdMove(active, dir, wasdMoveSpeed);
+            }
+            else if (_wasdHeldLastFrame && _cameraMode == HostActiveCameraFollowMode.WasdHardFollow)
+            {
+                _cameraMode = HostActiveCameraFollowMode.Free;
             }
 
             _wasdHeldLastFrame = wasdHeld;
@@ -472,27 +509,110 @@ namespace XianXia.Unity.Host
                 view == null)
                 return;
 
-            if (!IsActivePlayerDrivenMoving(active))
-                return;
+            var wasd = HasActiveWasdDirectInput();
+            var pathMoving = _move != null && _move.IsPlayerPartyPathMoving(active);
+            var serial = _move != null ? _move.PlayerPartyPathMoveSerial : _lastRtsPathMoveSerial;
+            var newRtsIssued = pathMoving && serial != _lastRtsPathMoveSerial;
+            if (pathMoving)
+                _lastRtsPathMoveSerial = serial;
 
-            _cameraRig.SoftFollow(view.transform.position, cameraFollowLerp);
+            var pathEnded = _pathMovingLastFrame && !pathMoving;
+            _pathMovingLastFrame = pathMoving;
+
+            var mmb = _cameraRig.ConsumeUserMiddlePanThisFrame();
+
+            _cameraMode = ResolveCameraFollowMode(
+                _cameraMode,
+                wasdDirectActive: wasd,
+                pathMoving: pathMoving,
+                newRtsMoveIssued: newRtsIssued,
+                middlePanInterrupt: mmb,
+                pathMoveEnded: pathEnded);
+
+            if (_cameraMode == HostActiveCameraFollowMode.WasdHardFollow)
+            {
+                _cameraRig.HardFollow(view.transform.position);
+                return;
+            }
+
+            if (_cameraMode == HostActiveCameraFollowMode.RtsMoveFollow)
+            {
+                // New RTS command focuses Active even if camera was far (TEST S3).
+                if (newRtsIssued)
+                    _cameraRig.FrameWorldPoint(view.transform.position);
+                else
+                    _cameraRig.SoftFollow(view.transform.position, cameraFollowLerp);
+            }
         }
 
-        /// <summary>Active 正在 WASD 或点击寻路移动（玩家驱动），非 Follower／AI 移动。</summary>
+        void EnterWasdHardFollow(EntityId active)
+        {
+            _cameraMode = HostActiveCameraFollowMode.WasdHardFollow;
+            SnapCameraTo(active);
+        }
+
+        /// <summary>
+        /// Camera Hard Follow source: valid player WASD Direct Movement only.
+        /// </summary>
+        public bool HasActiveWasdDirectInput()
+        {
+            if (HostInputGate.BlockWorldInteraction)
+                return false;
+            if (Party == null || Party.ActiveCharacterId.IsNone)
+                return false;
+            return ReadWasdDirection().sqrMagnitude > 0.01f;
+        }
+
+        public HostActiveCameraFollowMode CameraFollowMode => _cameraMode;
+
+        /// <summary>
+        /// Pure camera policy (EditMode／docs). Does not use Character.IsMoving.
+        /// </summary>
+        public static HostActiveCameraFollowMode ResolveCameraFollowMode(
+            HostActiveCameraFollowMode current,
+            bool wasdDirectActive,
+            bool pathMoving,
+            bool newRtsMoveIssued,
+            bool middlePanInterrupt,
+            bool pathMoveEnded)
+        {
+            if (wasdDirectActive)
+                return HostActiveCameraFollowMode.WasdHardFollow;
+
+            if (current == HostActiveCameraFollowMode.WasdHardFollow)
+                current = HostActiveCameraFollowMode.Free;
+
+            if (newRtsMoveIssued)
+                return HostActiveCameraFollowMode.RtsMoveFollow;
+
+            if (current == HostActiveCameraFollowMode.RtsMoveFollow)
+            {
+                if (middlePanInterrupt)
+                    return HostActiveCameraFollowMode.Free;
+                if (pathMoveEnded || !pathMoving)
+                    return HostActiveCameraFollowMode.Free;
+            }
+
+            return current;
+        }
+
+        /// <summary>Active 正在 WASD 或点击寻路移动（玩家驱动）——供 Party 共享活动，非 Camera 策略。</summary>
         public bool IsActivePlayerDrivenMoving(EntityId active)
         {
             if (active.IsNone || Party == null || !Party.IsActive(active))
                 return false;
 
-            if (!HostInputGate.BlockWorldInteraction && ReadWasdDirection().sqrMagnitude > 0.01f)
+            if (HasActiveWasdDirectInput())
                 return true;
 
             return _move != null && _move.IsPlayerPartyPathMoving(active);
         }
 
-        void FrameCameraOn(EntityId id)
+        void FrameCameraOn(EntityId id) => SnapCameraTo(id);
+
+        void SnapCameraTo(EntityId id)
         {
-            if (_cameraRig == null || _spawner == null || id.IsNone)
+            if (!enableCameraFollow || _cameraRig == null || _spawner == null || id.IsNone)
                 return;
             if (_spawner.Registry.TryGet(id, out var view) && view != null)
                 _cameraRig.FrameWorldPoint(view.transform.position);

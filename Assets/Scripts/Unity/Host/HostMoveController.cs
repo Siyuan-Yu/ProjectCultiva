@@ -54,6 +54,14 @@ namespace XianXia.Unity.Host
         public bool IsPlayerPartyPathMoving(EntityId id) =>
             !id.IsNone && _playerPartyPathMoveIds.Contains(id.Value);
 
+        /// <summary>
+        /// Increments each time Active receives a new player RTS/click path order.
+        /// Camera uses this to re-enable RTS follow after MMB cancel (TEST S3).
+        /// </summary>
+        public int PlayerPartyPathMoveSerial => _playerPartyPathMoveSerial;
+
+        int _playerPartyPathMoveSerial;
+
         public WalkGrid WalkGrid => _walkGrid;
 
         /// <summary>Active A* polyline for a moving unit: current pos + remaining waypoints.</summary>
@@ -372,6 +380,7 @@ namespace XianXia.Unity.Host
             if (OrderEntityToWorldPoint(active, point, arriveCommand, issueStop: false, arriveLocationId))
             {
                 _playerPartyPathMoveIds.Add(active.Value);
+                _playerPartyPathMoveSerial++;
                 if (arriveCommand == null)
                 {
                     NotifyMeleeDisengageForMove(active);

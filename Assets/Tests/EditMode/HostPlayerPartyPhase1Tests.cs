@@ -234,6 +234,63 @@ namespace XianXia.Tests
             Assert.AreNotEqual(a, HostPartySharedActivity.Farming("loc_field_b"));
         }
 
+        [Test]
+        public void CameraFollowPolicy_RtsDefaultFollow_MmbCancel_WasdHard()
+        {
+            var free = HostActiveCameraFollowMode.Free;
+            var rts = HostActiveCameraFollowMode.RtsMoveFollow;
+            var wasd = HostActiveCameraFollowMode.WasdHardFollow;
+
+            // TEST S1: new RTS move → follow
+            Assert.AreEqual(
+                rts,
+                HostPlayerPartyController.ResolveCameraFollowMode(
+                    free, wasdDirectActive: false, pathMoving: true,
+                    newRtsMoveIssued: true, middlePanInterrupt: false, pathMoveEnded: false));
+
+            // TEST S2: MMB cancels RTS follow only
+            Assert.AreEqual(
+                free,
+                HostPlayerPartyController.ResolveCameraFollowMode(
+                    rts, wasdDirectActive: false, pathMoving: true,
+                    newRtsMoveIssued: false, middlePanInterrupt: true, pathMoveEnded: false));
+
+            // TEST S3: new RTS while free (after cancel) → follow again
+            Assert.AreEqual(
+                rts,
+                HostPlayerPartyController.ResolveCameraFollowMode(
+                    free, wasdDirectActive: false, pathMoving: true,
+                    newRtsMoveIssued: true, middlePanInterrupt: false, pathMoveEnded: false));
+
+            // TEST S4: arrive ends follow
+            Assert.AreEqual(
+                free,
+                HostPlayerPartyController.ResolveCameraFollowMode(
+                    rts, wasdDirectActive: false, pathMoving: false,
+                    newRtsMoveIssued: false, middlePanInterrupt: false, pathMoveEnded: true));
+
+            // TEST S5/S6: WASD wins from free or cancelled RTS
+            Assert.AreEqual(
+                wasd,
+                HostPlayerPartyController.ResolveCameraFollowMode(
+                    free, wasdDirectActive: true, pathMoving: true,
+                    newRtsMoveIssued: false, middlePanInterrupt: false, pathMoveEnded: false));
+
+            // TEST S7: WASD release → free
+            Assert.AreEqual(
+                free,
+                HostPlayerPartyController.ResolveCameraFollowMode(
+                    wasd, wasdDirectActive: false, pathMoving: false,
+                    newRtsMoveIssued: false, middlePanInterrupt: false, pathMoveEnded: false));
+
+            // MMB during cancelled path must not re-follow without new RTS
+            Assert.AreEqual(
+                free,
+                HostPlayerPartyController.ResolveCameraFollowMode(
+                    free, wasdDirectActive: false, pathMoving: true,
+                    newRtsMoveIssued: false, middlePanInterrupt: false, pathMoveEnded: false));
+        }
+
         static XianXia.Core.Actions.IAction ActiveOf(PlayableHostBootstrap bootstrap, XianXia.Core.Domain.Ids.EntityId id)
         {
             if (!bootstrap.Session.World.Entities.TryGet(id, out var entity))
