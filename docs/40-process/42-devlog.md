@@ -7,6 +7,18 @@
 
 ---
 
+## 2026-08-26 — Phase 2B 人工验收封板
+
+**做了什么**
+- 制作人确认 Phase 2B 手操通过：PlayerParty Travel／Wilderness／Materialize／Background 留下
+- EditMode 回归 PASS（含 Travel／Presence／Party／MultiHex／Snapshot）；补测具 HexWorld.MapId 与 MH05 Anchor 断言
+- 代码真源：\c895d3d- 本条封板 commit：**不 push**；不混入 Phase 2C
+
+**状态**
+- Phase 2B **封板**；进入 Phase 2C（Continuous World Movement／双向投影／Edge Transition）
+
+---
+
 ## 2026-08-25 — Phase 2B PlayerParty World Travel MVP
 
 **做了什么**

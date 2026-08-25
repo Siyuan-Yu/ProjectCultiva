@@ -26,6 +26,7 @@ namespace XianXia.Tests
             out HexCoord midHex)
         {
             var world = new SimulationWorld();
+            world.HexWorld.MapId = "test:tiny_travel_world";
             world.HexWorld.FillRectangle(20, 12, HexTerrainType.Plain);
             for (var r = 0; r < 12; r++)
             for (var q = 0; q < 20; q++)

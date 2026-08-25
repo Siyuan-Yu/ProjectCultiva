@@ -1,9 +1,10 @@
 # 路线图
 
-> 状态：**RPG-First Phase 1／2A 已封板；Phase 2B PlayerParty World Travel MVP 已落地（手操续验）**｜最后更新：2026-08-25
+> 状态：**RPG-First Phase 1／2A／2B 已封板；下一目标 Phase 2C Continuous World Movement**｜最后更新：2026-08-26
 
 ## 当前阶段说明
 
+- **2026-08-26：** Phase 2B **人工验收通过并封板**（`c895d3d`）：PlayerParty Hex Travel／30×15 测试世界／Wilderness Fallback／Materialize；下一目标 Phase 2C。  
 - **2026-08-25：** Phase 2B 落地：PlayerParty Hex Travel（非 Fake Army）＋30×15 测试世界＋Wilderness Fallback＋LocalMap Materialize 闭环；「进入近景」为 Prototype／Debug UX。  
 - **2026-08-25：** Phase 2A **人工验收通过并封板**（`18600af`／`8d49bf4`／`61bca9a`）：PresenceHex／Character World Presence；**不含** Travel。  
 - **2026-08-25：** LocalMap Camera **最终规则**：仅 WASD Hard Follow；RTS／右键寻路不控镜头（[2K §1.1](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)）。  
@@ -21,8 +22,9 @@
 - [x] **Phase 1** Single Active Character／PlayerParty 控制模型（封板 2026-08-25；Camera 最终规则同日补钉）
 - [ ] **Phase 2** Background Character World Presence／Simulation + PresenceHex  
   - **2A（已封板）：** PresenceHex Content／Runtime／Editor；`GetCharacterWorldHex`；AtSite 存 SiteId；Stop Follow 保 Presence；Snapshot `characterWorldPresences`；Background 不画 WorldMap 头像  
-  - **2B（已落地／手操续验）：** PlayerParty World Travel MVP＋30×15 测试世界＋Minimal Wilderness Fallback＋LocalMap Materialize；**非** Background Travel；「进入近景」为 Prototype  
-  - **下一阶段：** Close WorldMap → 自动 Expand；Continuous LocalMap 过渡；Background Travel／Combat／Policy 等
+  - **2B（已封板）：** PlayerParty World Travel MVP＋30×15 测试世界＋Minimal Wilderness Fallback＋LocalMap Materialize；**非** Background Travel  
+  - **2C（进行中）：** Continuous WorldPosition；WorldMap↔Wilderness 双向投影；LocalMap Edge→Neighbor；Close WorldMap = Cancel＋Expand；**无** PreciseWorldDestination  
+  - **后续：** Background Travel／Combat／Policy；FormalArmy 连续 Marker；Directional Site Entry 等
 - [ ] **Phase 3** FormalArmy 职责迁移（旅行≠Army；军事层保留）
 - [ ] **Phase 4** Manual Battle Permission（远方 Auto；≤1 Hex 介入）
 - [ ] **Phase 5** Continuous LocalMap ↔ HexWorld Transition

@@ -80,9 +80,11 @@ namespace XianXia.Tests
             {
                 SiteId = "test:site_bad_anchor",
                 DisplayName = "Bad Anchor",
-                AnchorHex = new HexCoord(5, 5),
+                AnchorHex = new HexCoord(1, 1),
             };
             site.SetFootprint(new[] { new HexCoord(1, 1), new HexCoord(2, 1) });
+            // 事后把 Anchor 改到 Footprint 外：校验器必须拒绝（SetFootprint 本身会吸收当时的 Anchor）。
+            site.AnchorHex = new HexCoord(5, 5);
             Assert.IsFalse(WorldSiteFootprintValidator.IsAnchorInFootprint(site));
         }
 
