@@ -1,6 +1,6 @@
 # 文档通读指南
 
-> 状态：现行 | 最后更新：2026-08-22  
+> 状态：现行 | 最后更新：2026-08-25  
 > 上级：[`00-overview.md`](00-overview.md)  
 > **本页说明怎么读整套策划／架构文档。** 正文仍以各专题页为准；本地 Markdown 与飞书同步页一一对应。
 
@@ -25,29 +25,16 @@
 
 当前结构已经适合「仔细通读 + 交叉跳转」。本轮整理重点是：补齐飞书映射、加强入口导航，**不重写已冻结规则正文**。
 
-## 1.1 当前制作人入口（2026-08-22）
+## 1.1 当前制作人入口（2026-08-25）
 
 | 目的 | 读什么 |
 |------|--------|
-| **战略势力层设计真源（本轮）** | [2A 势力、军队、外交与战略占领](../20-systems/2A-factions-armies-diplomacy-and-capture.md) |
-| **修士 Army 架构决策** | [ADR-0024](../40-process/43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md) |
-| **本轮（残留再进 Offer）** | [150](../40-process/150-lingering-battlefield-batch3-offer-2026-08-21.md) |
-| **残留战场批 2（探望到站）** | [149](../40-process/149-lingering-battlefield-batch2-2026-08-21.md) |
-| **弥留交互／点击（批 1）** | [148](../40-process/148-worldmap-linger-incap-ux-2026-08-21.md) |
-| **接战点／弥留残留** | [147](../40-process/147-battlefield-linger-no-teleport-2026-08-21.md) |
-| **ADR-0023 打磨／验收** | [146](../40-process/146-adr0023-host-ux-polish-2026-08-21.md)／[145](../40-process/145-adr0023-phases-af-acceptance-2026-08-21.md) |
-| **ADR-0023／分期** | [ADR-0023](../40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)／[144](../40-process/144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md) |
-| **143（部分 superseded）** | [143](../40-process/143-localmap-worldmap-interaction-behavior-spec-2026-08-20.md) |
-| **自动战／弥留** | [142](../40-process/142-auto-battle-incap-corpse-2026-08-20.md) |
-| **追击贴敌＋多选近战** | [141](../40-process/141-pursuit-stick-and-multi-melee-2026-08-18.md) |
-| **收束（纯 RTS／接战／清场回程）** | [140](../40-process/140-world-map-rts-battle-return-rollup-2026-08-18.md) |
-| **大地图 RTS 操作规则** | [139](../40-process/139-world-map-rts-orders-2026-08-17.md) |
-| **战略层／接战弹窗设计** | [138](../40-process/138-world-strategic-battle-offer-plan-2026-08-17.md) |
-| **上一轮收束（熟练／纱衣／田区／砍树）** | [137](../40-process/137-skill-mastery-farm-veil-chop-rollup-2026-08-17.md) |
-| **功法／斗技蓄势＋熟练度** | [131](../40-process/131-skill-mastery-study-ritual-2026-08-16.md)／[132](../40-process/132-skill-mastery-config-absolute-tiers-2026-08-16.md) |
-| **斗气纱衣** | [134](../40-process/134-spirit-veil-ranged-normal-attack-2026-08-16.md) |
-| **况栏／砍树／田区** | [135](../40-process/135-world-object-inspect-and-tree-chop-2026-08-16.md)／[136](../40-process/136-farm-field-zone-labor-2026-08-16.md) |
-| **功法／斗技编辑器** | [133](../40-process/133-manual-art-editor-and-cleanup-2026-08-16.md) |
+| **RPG-First 控制／Party／连续世界／Army 边界（最新真源）** | [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0026](../40-process/43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) |
+| **迁移计划／代码冲突审计** | [163](../40-process/163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md) |
+| **战略势力层（外交／Capture／Army 军事仍有效部分）** | [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)（跨点必须 Army 已 supersede） |
+| **Hex Territory／Multi-Hex Site** | [2J](../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md) |
+| **修士真实 Character（部分 superseded）** | [ADR-0024](../40-process/43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md) |
+| **Pure Hex 收束** | [162](../40-process/162-pure-hex-final-audit-and-snapshot-v6-json-2026-08-24.md)／[161](../40-process/161-pure-hex-legacy-purge-and-post-fix-rollup-2026-08-24.md) |
 | **LocalPlaceEditor** | [130](../40-process/130-local-place-editor-usage.md) |
 | **上一轮（WorldGraph Host 出行／隔离）** | [129](../40-process/129-world-graph-host-travel-scene-isolation-2026-08-16.md) |
 | **WorldGraph 架构** | [113](../40-process/113-world-graph-local-map-architecture-revision-v0.1.md) |

@@ -108,7 +108,18 @@
 | 领地 | Territory | 玩家势力控制的一组据点及其人口、资源 | |
 | 群体模拟 | PopulationSim | 普通凡人以人口统计／岗位组模拟，不逐人存档 | 地图用代表性群体单位表现 |
 | 关键 NPC | KeyNpc | 实体化的重要凡人／功能角色 | 商人、村长、剧情人物等 |
-| 小队 | Party | 由少量核心修士组成的行动或战斗编组 | |
+| 小队 | Party | 由少量核心修士组成的行动或战斗编组 | **正式 RPG 编组见 PlayerParty（2K）** |
+| 玩家冒险队 | PlayerParty | 当前玩家本人所在少人数 RPG 队：1 Active + Followers；上限 6 | **≠ FormalArmy**；见 [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) |
+| 当前主控角色 | ActiveControlledCharacter | 任意时刻玩家唯一可直接即时控制的 Character | 对齐 DirectControl；切换仅限 Party 成员（Succession 例外） |
+| 跟随者 | Follower | PlayerParty 内非 Active 成员；AI 控制 | Follow ≡ 加入 PlayerParty |
+| 后台角色 | Background Character | 非 Party、非 FormalArmy 的我方角色 | 可后台旅行／战斗；WorldMap 不常驻头像；无 Capture 权 |
+| 角色方针 | Character Policy | 非 Active 的长期权限／行为倾向（非即时命令） | 如 AllowLeaveFactionTerritory；见 2K |
+| 世界位置代理格 | PresenceHex | Multi-Hex Site 上 Character 位于该 Site LocalMap 时的固定世界 Hex | ⊆ Footprint；≠ AnchorHex；见 2K／2J |
+| 连续 Hex 世界 | Continuous Hex World | HexWorld=唯一世界拓扑；LocalMap=近景；逻辑连续旅行 | 非必须 Unity 无缝开放世界 |
+| 世界存在 | World Presence | Character／Party／Army 在 HexWorld 上的存在状态 | Party／Background／Army 分层 |
+| 自动旅行 | Auto Travel | WorldMap 选目标后沿 Hex 真实逐格移动（非传送） | Future；见 2K |
+| 手动介入 | Manual Intervention | Party 距 BattleHex ≤1 时亲自参战；不接管 Army | 仅控 Active；见 2K |
+| 继承控制 | Succession | Party 全灭后从己方 Site 合格角色重建 Party／Active | 非默认 Game Over；细则 Deferred |
 | 自动结算 | AutoResolve | 战力悬殊或玩家选择跳过时进行的战斗结果计算 | 战略层瞬时；**不**额外推进 WorldTick；ADR-0023 |
 | 暂停即时 | RealTimeWithPause | 战术层时间可暂停下令 | 简称 RTwP；战略冻结时战术暂停仍可用 |
 | 接战弹窗 | BattleOffer | 战略相遇后的自动／手动选择 | 产生即冻结 WorldTick |
@@ -152,14 +163,14 @@
 | 随机源 | IRandomSource | 可注入、可保存状态的随机接口 | 世界保存 WorldSeed；分系统可有独立流 |
 | 军队编组 | ArmyGroup | **仅**凡人／大规模非修士军队的聚合数据对象 | ADR-0008 收窄；**不是**修士战略 Army；修士 Army 见 ADR-0024 |
 | 修士群体（Legacy） | CultivatorPopulation | ~~第三层普通修士聚合~~ | **ADR-0024 superseded**；修士 = 真实 Character + LOD |
-| 战略军队 | Army | WorldGraph 跨 Node 移动的组织载体；`MemberCharacterIDs[]`；`Army.FactionId` | 正式产品真源；Prototype 见 ArmyStack |
-| 军队成员归属 | ArmyMembership | Character 当前所属的 Army（若有） | 同时最多 1 支；与 Resident 互斥 |
-| 势力 ID | FactionId | **全系统统一**的势力身份 ID | Character／Army／Node Owner／Alliance／Vassalage／War 共用；禁止多套平行 ID |
-| 节点归属势力 | OwnerFactionId | WorldNode 的占有点归属 Faction | 内容字段名 `ownerId`；Owner 直接易主，无 Controller 双层 |
+| 战略军队 | Army / FormalArmy | **正式军事远征组织**；`MemberCharacterIDs[]`；`Army.FactionId` | **不再是**世界移动资格（ADR-0026／2K）；Prototype 见 ArmyStack |
+| 军队成员归属 | ArmyMembership | Character 当前所属的 Army（若有） | 同时最多 1 支 |
+| 势力 ID | FactionId | **全系统统一**的势力身份 ID | Character／Army／Site Owner／Alliance／Vassalage／War 共用；禁止多套平行 ID |
+| 节点归属势力 | OwnerFactionId | WorldSite（历史称 WorldNode）占有点归属 Faction | Pure Hex 下 Site Owner；见 2J |
 | 军队领袖 | ArmyLeader | Army 的 `LeaderCharacterID` | 代表角色、大地图头像；第一版无统帅 Buff |
-| 军队成员 | ArmyMember | Army 中的 Character | 同 Faction；禁止跨势力混编；编组仅能在己方 Node |
+| 军队成员 | ArmyMember | Army 中的 Character | 同 Faction；禁止跨势力混编；编组仅能在己方 WorldSite |
 | 势力军队上限 | ArmyCapacity | Faction 同时可维持的 Army 数量上限 | ≠ 单支 Army 人数上限；公式未定 |
-| 驻留角色 | ResidentCharacter | 驻留 WorldNode、未编入 Army 的 Character | 不能跨 Node 战略移动 |
+| 驻留角色 | ResidentCharacter | 位于 WorldSite、未编入 Army／非当前 Party 主旅行态的 Character | **可**后台世界旅行（2K）；旧「不能跨点」已 supersede |
 | 驻扎军队 | GarrisonedArmy | 到达己方 Node 后**保持 Army 身份**驻扎的战略单位 | **不**自动解散；仅 Disband 解除 |
 | 撤退军团 | RetreatingArmy | 战后逃脱 Character 组成的撤退／流亡 Army | 可奔向仍控领土；Landless 仍保留 |
 | 被俘角色 | CapturedCharacter | 战后被俘、失去原控制权的 Character | Lifecycle Captured |
@@ -205,7 +216,7 @@
 | Hex 领土 | Hex Territory | 单个 Hex 当前由哪个 **正式 Territorial Faction** 政治控制 | `ControlFactionId` = Faction 或 None；见 2J §6 |
 | 辖区 | TerritoryRegion | 一组 Hex 的地图组织单元；绑定 Primary WorldSite | 不是第二套政治真源；Runtime 读固化 `Hexes[]` |
 | 地点足迹 | WorldSite Footprint | WorldSite 在战略地图上占用的 Hex 集合 | `FootprintHexes[]`；与 Territory 严格分离 |
-| 锚点 Hex | AnchorHex | Multi-Hex Site 的图标／名称／编辑器视觉中心 | **不是** Army 是否在 Site 的唯一判断；进入用 Footprint.Contains |
+| 锚点 Hex | AnchorHex | Multi-Hex Site 的图标／名称／编辑器视觉中心 | ≠ PresenceHex；进入用 Footprint.Contains |
 | 固定地点 | Fixed WorldSite | 来自 World Content JSON、开局位置固定的 WorldSite | Capture 改 Owner；不因战斗删除 |
 | 动态地点 | Dynamic WorldSite | Runtime 生成、可永久摧毁的 WorldSite Instance | 第一版主要用于山贼寨 |
 | 山贼寨 | Bandit Camp | Footprint **永远 1 Hex** 的动态 WorldSite | 每寨独立 Bandit Faction；见 2J §4 |

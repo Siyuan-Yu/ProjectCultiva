@@ -13,7 +13,8 @@
 > - **修士战略 Army** = 真实 `MemberCharacterIDs[]` 载体；**`ArmyGroup` 仅**凡人／大规模非修士军队（ADR-0008 部分 superseded）。  
 > - 战略 Faction / 外交 / 占点真源：[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)。  
 > - **Hex Territory / Multi-Hex WorldSite / Dynamic Bandit（2026-08-24）：** [2J](../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)。  
-> - 当前 Host `PartyWorldPresence`／`ArmyStack` 为 **Prototype**；详见 §4／§10 注记。
+> - 当前 Host `PartyWorldPresence`／`ArmyStack`／WorldMap RTS 多选为 **Prototype**；详见 §4／§10 注记。  
+> - **2026-08-25 RPG-First（[ADR-0026](../40-process/43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)／[2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)）：** 单 Active／PlayerParty／连续 HexWorld；**废除「跨点必须 Army」**；FormalArmy=军事远征层。**不升级 Freeze v0.3**；本注记为 v0.2 补丁引用。
 
 ## 0. 冻结纪律
 
@@ -153,9 +154,9 @@ World
 同 v0.1：战术 RTS+暂停；时间表+效用。**M1 不做真战斗与完整 NPC AI。**
 
 > **2026-08-22（[ADR-0024](../40-process/43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md)）：**  
-> - **修士战略 Army** = 真实 Character 成员 + Army 载体；跨 Node 移动必须经 Army（[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)）。  
+> - **修士 FormalArmy** = 真实 Character 成员 + **军事远征**载体；**不再**要求跨 Hex 必须经 Army（[2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)／[ADR-0026](../40-process/43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)）。外交／Capture 仍见 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)。  
 > - **`ArmyGroup`** 收窄为凡人／大规模非修士军队聚合（[ADR-0008](../40-process/43-decisions/ADR-0008-army-group-aggregate.md) 部分 superseded）。  
-> - 当前 Host `ArmyStack`／`PartyWorldPresence` 为 Prototype；historical 验收见 `139`～`150`。
+> - 当前 Host `ArmyStack`／`PartyWorldPresence`／RTS 多选为 Prototype；historical 验收见 `139`～`154`。
 
 **2026-08-21 补丁（ADR-0023）：** 战略 `BattleOffer`／Manual Encounter 为 Modal，冻结战略 WorldTick；废弃「战斗期间战略世界继续推进」为默认。详见 `21` §10、`23` §12、[144](../40-process/144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md)。
 

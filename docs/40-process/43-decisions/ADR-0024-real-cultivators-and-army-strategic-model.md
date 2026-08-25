@@ -1,9 +1,9 @@
 # ADR-0024：修士真实角色与 Army 战略载体模型
 
-- 状态：**已采纳**
+- 状态：**已采纳**（2026-08-25：**部分 superseded** — 「跨点必须 Army」见 [ADR-0026](ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)／[2K](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)）
 - 日期：2026-08-22（第二轮补充：编组／FactionId／联盟／占点收尾）
 - 决策者：项目负责人（战略势力层设计拍板）
-- 关联：[2A 势力、军队、外交与战略占领](../../20-systems/2A-factions-armies-diplomacy-and-capture.md)、[2J Hex Territory / WorldSite / Bandit](../../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)
+- 关联：[2A](../../20-systems/2A-factions-armies-diplomacy-and-capture.md)、[2J](../../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)、[2K](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、[ADR-0026](ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)
 
 ## 背景
 
@@ -34,8 +34,8 @@ Architecture Freeze v0.2 与 `27`／`34` 曾将「第三层普通修士」表述
    - **Cold / Data：** 低频／事件驱动 CharacterState  
    - **Strategic：** 在 Army 中，记录 MemberCharacterIDs，无 LocalMap Actor  
    - **Hot：** 进入 LocalMap／手动 Encounter 等才实例化 Actor；离开后写回 CharacterState  
-4. **Army 是 WorldGraph 跨 Node 移动的唯合法载体。** 即使 1 人出征，也必须是 1 人 Army。  
-5. **Army 保存 `MemberCharacterIDs[]` 与 `LeaderCharacterID`**，CombatPower 从成员计算，不是独立匿名池。  
+4. ~~**Army 是 WorldGraph 跨 Node 移动的唯合法载体。** 即使 1 人出征，也必须是 1 人 Army。~~ → **SUPERSEDED by ADR-0026（2026-08-25）**。FormalArmy 改为正式军事远征组织；PlayerParty／普通 Character 可独立世界旅行。  
+5. **Army 保存 `MemberCharacterIDs[]` 与 `LeaderCharacterID`**，CombatPower 从成员计算，不是独立匿名池。（**仍有效**）  
 6. **Node Defense** 来自 Resident Characters + Garrison Armies + Formation 等真实状态；禁止按 Node 等级临时刷匿名守军。  
 7. **战略战斗结果**（死亡、伤势、Army 损失、Owner 变更、资源）必须回写真实世界状态。
 

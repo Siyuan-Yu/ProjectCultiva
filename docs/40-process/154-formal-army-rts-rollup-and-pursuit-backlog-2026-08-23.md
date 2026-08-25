@@ -1,5 +1,7 @@
 # 154 · Formal Army 大地图 RTS 收束 + 追击已知问题（暂缓）
 
+> **2026-08-25：** FormalArmy **仍保留**；职责边界改为「正式军事远征」——普通 Character 旅行不再强制 Army；玩家控制 → [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)／[ADR-0026](43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)／审计 [163](163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md)。
+>
 > **日期：** 2026-08-23（v2 实现：2026-08-23 晚）  
 > **Git：** `f6eb844` —「战略层 Formal Army 与大地图 RTS 追击/残留战场收束」  
 > **状态：** 移动/攻击/预览/残留/名单 **部分已验收**；**追击 v2（移动目标）已实现 + PUR-01～11 测试已编码** — Unity EditMode / Host 手操 **待签收**  

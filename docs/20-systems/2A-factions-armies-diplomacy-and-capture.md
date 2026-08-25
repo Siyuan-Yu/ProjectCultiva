@@ -1,11 +1,12 @@
 # 势力、军队、外交与战略占领
 
-> 状态：**设计规则已拍板（2026-08-22）**｜优先级：P0｜最后更新：2026-08-22（第二轮：编组地点／统一 FactionId／联盟绑定／占点收尾）  
+> 状态：**设计规则已拍板（2026-08-22）**｜优先级：P0｜最后更新：2026-08-25（RPG-First supersede 注记）  
 > 上级：`docs/00-project/00-overview.md`  
-> 关联：`24`、`26`、`27`、`28`、`113`、`138`、`ADR-0024`  
+> 关联：`24`、`26`、`27`、`28`、`113`、`138`、`ADR-0024`、`2K`、`ADR-0026`  
 > 被引用：`03-glossary.md`、`34`、`41-roadmap`  
-> **本页是战略势力层的产品与领域规则真源。**  
-> **本阶段不写实现代码。** 当前 Host 中的 `PartyWorldPresence`／`ArmyStack` 等为 **Prototype**，见各过程文档 historical 注记。  
+> **本页是战略势力层（Faction／外交／War／Capture／Army 军事规则）的产品真源。**  
+> **玩家控制模型／PlayerParty／连续世界／「跨点是否必须 Army」以 [2K](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0026](../40-process/43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) 为准。**  
+> **本阶段不写实现代码。** 当前 Host 中的 `PartyWorldPresence`／`ArmyStack`／RTS 多选等为 **Prototype**，见各过程文档 historical 注记。  
 > **Hex Territory / Multi-Hex WorldSite / Dynamic Bandit（2026-08-24）：** 见 [2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)。Territory／Site Footprint／Bandit 专题以 **2J** 为准；本文 § 中 **Node Owner / Node Territory** 表述为 Legacy，Pure Hex 下以 **ControlFactionId + TerritoryRegion** 为准。
 
 ---
@@ -14,10 +15,10 @@
 
 1. **修士不是匿名兵力数字。** 所有修士都是持久 `Character`。
 2. **真实 Character ≠ 全员实时 Actor。** 离屏角色采用分级／数据模拟（Cold / Strategic / Hot）。
-3. **Character 与 Army 是两层。** Army 只是战略组织与移动载体。
-4. **不加入 Army 就不能跨 Node 战略移动。** 一人出征也必须先成立一人 Army。
-5. **Node 防御来自真实世界状态。** Resident Character + Garrison Army + Formation；禁止临时凭空刷修士。
-6. **战略战斗结果必须改变真实世界。** 死亡、伤势、Army 损失、Node Ownership、资源变化最终都回写真实世界状态。
+3. **Character 与 Army 是两层。** Army 是正式**军事远征组织**（2026-08-25：[2K](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)），不再是「世界移动资格」。
+4. ~~**不加入 Army 就不能跨 Node 战略移动。** 一人出征也必须先成立一人 Army。~~ → **SUPERSEDED（2026-08-25）**。普通 Character／PlayerParty 可在 HexWorld 旅行；FormalArmy 仅军事远征。见 2K OLD-01／02、ADR-0026。
+5. **Node／Site 防御来自真实世界状态。** Resident Character + Garrison Army + Formation；禁止临时凭空刷修士。
+6. **战略战斗结果必须改变真实世界。** 死亡、伤势、Army 损失、Ownership、资源变化最终都回写真实世界状态。
 
 > **Development Acceptance UI（2026-08-22）：** Host `StrategicAcceptancePanel`（F8）为 **非产品 UX**，仅供制作人 Unity 内手操验证 War/Alliance/Vassalage/Army/Aftermath/Snapshot Domain；不是正式外交界面。
 
@@ -143,22 +144,19 @@ GoldenCoreCount = 1
 
 ---
 
-## 4. Army：唯一合法的大地图跨节点载体
+## 4. Army：正式军事远征组织（不再是唯一世界移动载体）
 
-**正式产品规则：** 任何 Character 都不能脱离 Army 单独进行战略跨 Node 移动。
+> **SUPERSEDED（2026-08-25）：** 旧文「任何 Character 都不能脱离 Army 单独跨点移动／1 人也必须 Army」已废除。  
+> **新真源：** [2K §7–§8](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、[ADR-0026](../40-process/43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)。
 
-哪怕只有一人从荒村前往另一 Node，也必须：
+**现行产品规则：**
 
-```text
-Army
-Members = [Character]
-```
+- **PlayerParty／Background Character** 可以在 HexWorld 旅行（后台角色走低频率模拟）。  
+- **FormalArmy** = 正式军事远征组织：公开进攻、Capture、战争参与、WorldMap 常驻 Leader 标记。  
+- **只有 PlayerParty 或 FormalArmy** 拥有 AttackWorldSite／CaptureWorldSite。  
+- 组军／解散仍仅在**己方控制 WorldSite**，成员须真实在场（§6.1 精神保留，空间真源改为 Site／Hex）。
 
-以 **1 人 Army** 形式出征。
-
-**不存在**非军事角色以隐藏的「个人战略移动状态」跨节点旅行。
-
-> **Prototype 注记：** 当前 Host 仍允许选中 Character 直接 `PartyWorldPresence` 上路（见 `139` historical）。正式目标以本节为准。
+> **Prototype 注记：** Host 大地图仍以选中 FormalArmy 为主要 RTS 操作（`139`／`152`／`154` historical）。迁移见 [163](../40-process/163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md)。
 
 ---
 

@@ -1,5 +1,7 @@
 # 139 · 大地图 RTS 下令与部队交互（2026-08-17）
 
+> **2026-08-25：** 本页「大地图 RTS 多人下令」保留为 FormalArmy 战略层 **Legacy／历史验收**。玩家本体控制真源 → [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)／[ADR-0026](43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)。
+>
 > 状态：**已实现（纯 RTS Prototype；时间纪律见 ADR-0023）**｜日期：2026-08-18；**2026-08-21 修订**；**2026-08-22 target-model 注记**  
 > 相对：[138 接战弹窗计划](138-world-strategic-battle-offer-plan-2026-08-17.md)｜[140 收束](140-world-map-rts-battle-return-rollup-2026-08-18.md)｜[ADR-0023](43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)｜[ADR-0024](43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md)｜[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)｜[144](144-battle-worldtick-freeze-impact-and-phases-2026-08-21.md)  
 > **进出／Modal 遭遇：** 以 ADR-0023／144 为准；[143](143-localmap-worldmap-interaction-behavior-spec-2026-08-20.md) 中「回战场」等已 superseded  

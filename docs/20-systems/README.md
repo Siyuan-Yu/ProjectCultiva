@@ -1,10 +1,10 @@
 # 系统设计索引
 
-> 最后更新：2026-08-24（[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md) Hex Territory 设计拍板）
+> 最后更新：2026-08-25（[2K](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) RPG-First 真源）
 > 上级：`docs/00-project/00-overview.md`（最高层大纲）
 > 通读顺序见 [`../00-project/04-reading-guide.md`](../00-project/04-reading-guide.md)。
 > 新增系统请复制 `docs/90-templates/system-design-template.md`。
-> **当前阶段：Architecture Freeze v0.2；开发焦点：VS0.6 人工试玩验收（Social Host 已接入）。** 主契约见 `../30-tech/33-architecture-core-rules-freeze-v0.2.md`。
+> **当前阶段：Architecture Freeze v0.2 + RPG-First 方向（ADR-0026）；实现迁移见 [163](../40-process/163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md)。** 主契约见 `../30-tech/33-architecture-core-rules-freeze-v0.2.md`。
 
 ## 规则
 
@@ -40,6 +40,7 @@
 | 2H | [功法系统规则](2H-manual-system-rules.md) | P0 | 核心规则已定方向 | |
 | 2I | [荒村杂役阶段叙事](2I-huangcun-labor-phase-narrative-v0.1.md) | P0 | **Draft v0.1／待审核**；非线性阶段框架 | |
 | 2J | [Hex Territory、Multi-Hex WorldSite 与动态山贼](2J-hex-territory-worldsites-and-dynamic-bandits.md) | P0 | **设计已拍板／尚未实现** | Pure Hex 领土／Site Footprint／Bandit |
+| 2K | [RPG-First：Active／PlayerParty／连续 Hex／FormalArmy](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) | P0 | **设计已拍板／未实现** | ADR-0026；控制与世界存在真源 |
 
 ## 架构文档（`30-tech`）
 
@@ -63,6 +64,7 @@
       ├── 22 → 23；24
       ├── 2B · 2H · 2D → 25 → 26
       └── 27 → 28 → 29
-      └── 2A（战略势力／Army／外交／占点）
-           └── 2J（Hex Territory／Multi-Hex Site／Dynamic Bandit）
+      └── 2A（战略势力／Army 军事／外交／占点）
+           ├── 2J（Hex Territory／Multi-Hex Site／Dynamic Bandit）
+           └── 2K（RPG-First：Party／连续世界／Army 职责边界）← **控制模型真源**
 ```

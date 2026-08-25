@@ -1,25 +1,27 @@
 # 路线图
 
-> 状态：**VS1.0＋样例关可玩弧自动化已验收**｜下一目标：**Hex World Content 手操签收**｜最后更新：2026-08-23
+> 状态：**RPG-First 方向已拍板（文档 Phase 0）**｜下一目标：**审核 2K／ADR-0026 后选 Phase 1 开工**｜最后更新：2026-08-25
 
 ## 当前阶段说明
 
-- Architecture Freeze **v0.2**＋**ADR-0023 补丁**（Manual Encounter 冻结 WorldTick）。  
-- **2026-08-23：** [158](158-hex-world-content-authoring-pipeline-2026-08-23.md) — **HexWorld JSON Pipeline + WorldGraphEditor Hex 重做 + WYSIWYG Layout 对齐**（Unity 手操 DEFERRED）  
-- **2026-08-23：** [155](155-hex-strategic-worldmap-migration-2026-08-23.md) — Hex Strategic WorldMap 迁移（H1–H9）  
-- **2026-08-23：** [154](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md) — Formal Army RTS 收束文档；**追击追移动敌军 KNOWN ISSUES · DEFERRED**  
-- **2026-08-22（第二轮）：** 制作人补充 9 条规则（编组地点／统一 FactionId／禁止混编／驻扎不自动解散／无战后保护期／一势力一 Alliance＋联盟战争绑定／Capture 手动收尾与残余守军）；文档已冻结。  
-- **2026-08-22：** Phase A–K + **Final Closure** + **Manual Acceptance UI** + **Host 双入口（角色／军队列表）** 2A 战略层；**MANUAL ACCEPTANCE UI IMPLEMENTED · Host 双入口 IMPLEMENTED · Unity 验证 DEFERRED**  
-- 世界结构以 [113](113-world-graph-local-map-architecture-revision-v0.1.md) 为准。  
-- **2026-08-22：** 弥留收束 [153](153-lingering-remnant-macro-presentation-2026-08-22.md)（宏观个体头像／强制名单／追击撤退；EditMode 已补）。  
-- **2026-08-22：** 大地图 RTS 左右键纪律 [152](152-worldmap-rts-click-discipline-2026-08-22.md)（左选右令；废 148 反 RTS 点选）。  
-- **2026-08-21：** Phase A～F＋Host 打磨 [146](146-adr0023-host-ux-polish-2026-08-21.md) 已落地；验收见 [145](145-adr0023-phases-af-acceptance-2026-08-21.md)。  
-- **2026-08-21：** 残留再进 Offer [150](150-lingering-battlefield-batch3-offer-2026-08-21.md)（EditMode 已验）。  
-- **2026-08-21：** 残留战场批 2 [149](149-lingering-battlefield-batch2-2026-08-21.md)（Core 下沉 + 探望到站）。  
-- **2026-08-21：** 大地图弥留交互 [148](148-worldmap-linger-incap-ux-2026-08-21.md)（批 1；点选规则已由 152 取代）。  
-- **2026-08-21：** 接战点无瞬移＋弥留残留＋支援半径 [147](147-battlefield-linger-no-teleport-2026-08-21.md)。  
-- Core／Data／Host／**VS 0.1～1.0 自动化已验收**。  
-- Demo Runtime 继续冻结。
+- **2026-08-25：** [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0026](43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) + [163 迁移计划](163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md) — **RPG-First 文档真源；禁止自动开工实现**  
+- Architecture Freeze **v0.2**＋**ADR-0023**＋**ADR-0024（部分 superseded）**＋**ADR-0025**＋**ADR-0026**。  
+- **2026-08-24：** Multi-Hex footprint Runtime／Editor／Ch01（`0a40a86`）；Snapshot v6 JSON（`ff112cd`）；Purge 审计（162）。  
+- **2026-08-23：** [158](158-hex-world-content-authoring-pipeline-2026-08-23.md) HexWorld Pipeline；[155](155-hex-strategic-worldmap-migration-2026-08-23.md) Hex 迁移。  
+- Demo Runtime 继续冻结。旧 WorldMap **纯 RTS** 路径（139／152／154）视为 **Legacy Prototype**，迁移见 163。
+
+### RPG-First 迁移分期（规划，未实施）
+
+- [x] **Phase 0** 文档 + 架构审计 + Supersede：[2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)／[163](163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md)
+- [ ] **Phase 1** Single Active Character／PlayerParty 控制模型
+- [ ] **Phase 2** Background Character World Presence／Simulation + PresenceHex
+- [ ] **Phase 3** FormalArmy 职责迁移（旅行≠Army；军事层保留）
+- [ ] **Phase 4** Manual Battle Permission（远方 Auto；≤1 Hex 介入）
+- [ ] **Phase 5** Continuous LocalMap ↔ HexWorld Transition
+- [ ] **Phase 6** WorldMap Auto Travel
+- [ ] **Phase 7** Wilderness LocalMap
+- [ ] **Phase 8** Character Policy V1
+- [ ] **Future** Flight／Sect Mission Board／Advanced AI／Territory Tint／Dynamic Bandit
 
 ### 战略战斗时间纪律（2026-08-21）
 

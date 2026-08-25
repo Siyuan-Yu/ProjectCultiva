@@ -1,6 +1,6 @@
 # 架构决策记录（ADR）索引
 
-> 状态：现行 | 最后更新：2026-08-22  
+> 状态：现行 | 最后更新：2026-08-25  
 > 上级：[`00-overview.md`](../../00-project/00-overview.md)、[`33` 冻结 v0.2](../../30-tech/33-architecture-core-rules-freeze-v0.2.md)  
 > 模板：[`adr-template.md`](../../90-templates/adr-template.md)  
 > **编号 0009 预留正式 UI 方案。**
@@ -38,22 +38,14 @@
 | [0021](ADR-0021-world-region-localmap.md) | World／Region／LocalMap | 已采纳 | **Freeze v0.2** |
 | [0022](ADR-0022-core-milestone-1-scope.md) | Core Milestone 1 范围 | 已采纳 | **Freeze v0.2** |
 | [0023](ADR-0023-manual-encounter-freezes-worldtick.md) | Manual Encounter 冻结 WorldTick | 已采纳 | 全战式 Modal；补充 0018 |
-| [0024](ADR-0024-real-cultivators-and-army-strategic-model.md) | 修士真实 Character + Army 战略载体 | 已采纳 | **部分 supersede 0008**；明确 0007 修士 LOD；见 [2A](../../20-systems/2A-factions-armies-diplomacy-and-capture.md) |
+| [0024](ADR-0024-real-cultivators-and-army-strategic-model.md) | 修士真实 Character + Army | 已采纳／**部分 superseded** | 「跨点必须 Army」→ [0026](ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)；真实成员／LOD 仍有效 |
 | [0025](ADR-0025-strategic-spatial-model-hexgrid.md) | 战略空间 = HexGrid | 已采纳 | **SUPERSEDED** Route 正式移动；见 [155](../155-hex-strategic-worldmap-migration-2026-08-23.md) · [158](../158-hex-world-content-authoring-pipeline-2026-08-23.md) |
-
-## Freeze v0.2 相关（优先）
-
-若只审核本轮修补，优先阅读：
-
-1. [ADR-0017](ADR-0017-relationship-ledger-source-of-truth.md)  
-2. [ADR-0018](ADR-0018-worldtick-actionclock-duties.md)  
-3. [ADR-0019](ADR-0019-dead-vs-removed.md)  
-4. [ADR-0020](ADR-0020-focus-vs-control-authority.md)  
-5. [ADR-0021](ADR-0021-world-region-localmap.md)  
-6. [ADR-0022](ADR-0022-core-milestone-1-scope.md)  
+| [0026](ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) | RPG-First：单 Active／PlayerParty／连续 Hex／Army 军事层 | 已采纳 | 真源 [2K](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)；迁移 [163](../163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md) |
 
 战略接战时间纪律另见 **[ADR-0023](ADR-0023-manual-encounter-freezes-worldtick.md)**（2026-08-21）。
 
-战略势力／Army 正式模型另见 **[ADR-0024](ADR-0024-real-cultivators-and-army-strategic-model.md)** + **[2A](../../20-systems/2A-factions-armies-diplomacy-and-capture.md)**（2026-08-22）。
+RPG-First 控制模型另见 **[ADR-0026](ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)** + **[2K](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)**（2026-08-25）。
+
+战略势力／Army 军事规则另见 **[ADR-0024](ADR-0024-real-cultivators-and-army-strategic-model.md)** + **[2A](../../20-systems/2A-factions-armies-diplomacy-and-capture.md)**（跨点必须 Army 已 supersede）。
 
 战略 Hex 空间与 Content Authoring 另见 **[ADR-0025](ADR-0025-strategic-spatial-model-hexgrid.md)** + **[155](../155-hex-strategic-worldmap-migration-2026-08-23.md)** + **[158](../158-hex-world-content-authoring-pipeline-2026-08-23.md)**（2026-08-23）。

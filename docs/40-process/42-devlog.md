@@ -7,6 +7,21 @@
 
 ---
 
+## 2026-08-25 — RPG-First 架构真源（仅文档）
+
+**做了什么**
+- **新真源 [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)**：ActiveControlledCharacter / PlayerParty(≤6) / PresenceHex / 连续 HexWorld / FormalArmy 军事层 / Character Policy V1 / Succession
+- **[ADR-0026](43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)**：从「多人 RTS + 移动必 Army」迁到 RPG-first
+- **[163](163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md)**：代码冲突审计 + Phase 0–8 迁移计划（**未实现代码**）
+- Supersede：2A 铁则 4、ADR-0024 部分、Glossary／Roadmap／Overview／AGENTS；RTS 过程文档加 Legacy 注记
+- **禁止本轮：** 任何 C#／Prefab／Content／Snapshot／Editor 改动
+
+**状态**
+- 文档 Phase 0 **完成**；等待制作人审核后再开 Phase 1
+- 飞书 **NOT SYNCED**
+
+---
+
 ## 2026-08-24 — Hex WorldSite 准入/人口、Ch01 全 Site LocalMap、Manual Battle 可见性
 
 **做了什么**

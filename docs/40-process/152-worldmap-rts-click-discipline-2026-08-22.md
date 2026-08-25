@@ -1,5 +1,7 @@
 # 152 · 大地图 RTS 左右键纪律收束（2026-08-22）
 
+> **2026-08-25：** FormalArmy 大地图点选纪律仍可参考；**玩家本体**不再以多人 RTS 为长期模型 → [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)／[ADR-0026](43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)。
+>
 > 状态：**已落地（Host；待手操）**｜日期：2026-08-22  
 > 上级：[139 大地图 RTS](139-world-map-rts-orders-2026-08-17.md)／[148 弥留交互](148-worldmap-linger-incap-ux-2026-08-21.md)／[150 残留 Offer](150-lingering-battlefield-batch3-offer-2026-08-21.md)  
 > 游玩入口：`Assets/Scenes/LevelTester.unity`  

@@ -5,6 +5,7 @@
 > 关联：`2A`、`24`、`26`、`28`、`03-glossary`、`ADR-0024`、`ADR-0025`、[`155`](../40-process/155-hex-strategic-worldmap-migration-2026-08-23.md)、[`158`](../40-process/158-hex-world-content-authoring-pipeline-2026-08-23.md)  
 > 被引用：`03-glossary.md`、`41-roadmap`  
 > **本页是 Pure Hex 战略空间下 Territory / WorldSite Footprint / Dynamic Site 的正式设计真源。**  
+> **PresenceHex（Character 位于 Multi-Hex Site 时的世界位置代理）见 [2K](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) §6；本页 Footprint／Anchor 规则不推翻。**  
 > **本阶段不写实现代码、不改 JSON、不做技术审计。**
 
 ---
@@ -283,7 +284,12 @@ Multi-Hex WorldSite 仍可有 **AnchorHex**，主要用于：
 - Site 图标中心、DisplayName 放置
 - 编辑器定位、摄像机 Focus、默认视觉中心
 
-**AnchorHex 不是**「Army 是否在这个 Site」的唯一判断条件。
+**AnchorHex 不是**「Army／Character 是否在这个 Site」的唯一判断条件。
+
+### 5.6.1 PresenceHex（2026-08-25，见 2K）
+
+Character 位于该 Site 的 **LocalMap** 时，HexWorld 层统一视为位于固定 **PresenceHex**（必须 ∈ Footprint；可与 Anchor 相同或不同）。  
+Runtime **不**根据 LocalMap 内坐标动态归属 A/B/C/D。Authoring／Editor 编辑 Deferred。产品真源：[2K §6](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。
 
 ### 5.7 Footprint 必须显式保存
 
