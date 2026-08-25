@@ -1,20 +1,21 @@
 # 路线图
 
-> 状态：**RPG-First 方向已拍板（文档 Phase 0）**｜下一目标：**审核 2K／ADR-0026 后选 Phase 1 开工**｜最后更新：2026-08-25
+> 状态：**RPG-First Phase 1 已封板**｜下一目标：**Phase 2A Character World Presence + PresenceHex**｜最后更新：2026-08-25
 
 ## 当前阶段说明
 
-- **2026-08-25：** [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0026](43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) + [163 迁移计划](163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md) — **RPG-First 文档真源；禁止自动开工实现**  
+- **2026-08-25：** Phase 1 人工验收通过并封板（`aa1ebb9`／`e683aab`／`8770fb0`）：Single Active／PlayerParty≤6／Follow／Switch／Camera／View≠Command。  
+- **2026-08-25：** [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0026](43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) + [163 迁移计划](163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md) — RPG-First 文档真源。  
 - Architecture Freeze **v0.2**＋**ADR-0023**＋**ADR-0024（部分 superseded）**＋**ADR-0025**＋**ADR-0026**。  
 - **2026-08-24：** Multi-Hex footprint Runtime／Editor／Ch01（`0a40a86`）；Snapshot v6 JSON（`ff112cd`）；Purge 审计（162）。  
 - **2026-08-23：** [158](158-hex-world-content-authoring-pipeline-2026-08-23.md) HexWorld Pipeline；[155](155-hex-strategic-worldmap-migration-2026-08-23.md) Hex 迁移。  
 - Demo Runtime 继续冻结。旧 WorldMap **纯 RTS** 路径（139／152／154）视为 **Legacy Prototype**，迁移见 163。
 
-### RPG-First 迁移分期（规划，未实施）
+### RPG-First 迁移分期
 
 - [x] **Phase 0** 文档 + 架构审计 + Supersede：[2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)／[163](163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md)
-- [ ] **Phase 1** Single Active Character／PlayerParty 控制模型
-- [ ] **Phase 2** Background Character World Presence／Simulation + PresenceHex
+- [x] **Phase 1** Single Active Character／PlayerParty 控制模型（封板 2026-08-25）
+- [ ] **Phase 2** Background Character World Presence／Simulation + PresenceHex（本轮先做 2A：Presence 真源，不含 Travel／Combat）
 - [ ] **Phase 3** FormalArmy 职责迁移（旅行≠Army；军事层保留）
 - [ ] **Phase 4** Manual Battle Permission（远方 Auto；≤1 Hex 介入）
 - [ ] **Phase 5** Continuous LocalMap ↔ HexWorld Transition

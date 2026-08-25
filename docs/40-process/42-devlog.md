@@ -7,6 +7,17 @@
 
 ---
 
+## 2026-08-25 — Phase 1 PlayerParty 封板
+
+**做了什么**
+- 人工验收确认：Single Active／Party≤6／Follow／Stop Follow／Active Switch／Followers Move+Combat／Group Work／View≠Command／非 Active 右键不 fallback／Route Preview 仅 Active／RTS 默认可取消 Follow／WASD Hard Follow+远处 Snap／Dying·Dead 不可 Active／FormalArmy 与 Party 互斥
+- 代码已在 `aa1ebb9`／`e683aab`／`8770fb0`；本条仅文档封板，不 push
+
+**状态**
+- Phase 1 **封板**；进入 Phase 2A（PresenceHex + Character World Presence 真源）
+
+---
+
 ## 2026-08-25 — RPG-First 架构真源（仅文档）
 
 **做了什么**
