@@ -18,6 +18,7 @@ namespace XianXia.Unity.Host
 
         readonly Dictionary<ulong, PlayerCommandKind> _looping =
             new Dictionary<ulong, PlayerCommandKind>();
+        readonly HashSet<ulong> _partyDerived = new HashSet<ulong>();
 
         public void Bind(PlayableHostBootstrap host, HostCommandBridge bridge, HostMoveController move)
         {
@@ -46,10 +47,42 @@ namespace XianXia.Unity.Host
         public void StopLoop(EntityId id)
         {
             if (!id.IsNone)
+            {
                 _looping.Remove(id.Value);
+                _partyDerived.Remove(id.Value);
+            }
         }
 
-        public void StopAll() => _looping.Clear();
+        public void StartPartyDerivedLoop(EntityId id, PlayerCommandKind kind = PlayerCommandKind.Labor)
+        {
+            StartLoop(id, kind);
+            if (!id.IsNone)
+                _partyDerived.Add(id.Value);
+        }
+
+        public void StopPartyDerived(EntityId id)
+        {
+            if (id.IsNone || !_partyDerived.Remove(id.Value))
+                return;
+            StopLoop(id);
+        }
+
+        public bool IsPartyDerivedLooping(EntityId id) =>
+            !id.IsNone && _partyDerived.Contains(id.Value);
+
+        public bool TryGetLoopKind(EntityId id, out PlayerCommandKind kind)
+        {
+            kind = PlayerCommandKind.Stop;
+            if (id.IsNone || !_looping.TryGetValue(id.Value, out kind))
+                return false;
+            return true;
+        }
+
+        public void StopAll()
+        {
+            _looping.Clear();
+            _partyDerived.Clear();
+        }
 
         public bool IsLooping(EntityId id) => !id.IsNone && _looping.ContainsKey(id.Value);
 

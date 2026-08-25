@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Attributes;
 using XianXia.Core.Combat;
@@ -8,10 +9,20 @@ using XianXia.Core.Entities;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// 砍树／拆墙：选中己方靠近后按攻击力拆血量；树归零后粗木进队伍背包。
+    /// 砍树／拆墙：靠近后按攻击力拆血量；树归零后粗木进队伍背包。
+    /// 支持多名攻击者（PlayerParty Follower 可各自找附近树）。
     /// </summary>
     public sealed class HostDestructibleAssault : MonoBehaviour
     {
+        sealed class Session
+        {
+            public EntityId Attacker;
+            public HostMapDestructible Target;
+            public float Cooldown;
+            public float NextRepath;
+            public bool FromPartyFollow;
+        }
+
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] EntityViewSpawner viewSpawner;
         [SerializeField] HostMoveController moveController;
@@ -20,13 +31,10 @@ namespace XianXia.Unity.Host
         [SerializeField] float engageRange = 1.85f;
         [SerializeField] float repathInterval = 0.25f;
 
-        HostMapDestructible _target;
-        EntityId _attacker = EntityId.None;
-        float _cooldown;
-        float _nextRepath;
+        readonly List<Session> _sessions = new List<Session>(4);
 
-        public bool IsAssaulting => _target != null && !_attacker.IsNone;
-        public HostMapDestructible Target => _target;
+        public bool IsAssaulting => _sessions.Count > 0;
+        public HostMapDestructible Target => _sessions.Count > 0 ? _sessions[0].Target : null;
 
         public void Bind(PlayableHostBootstrap host)
         {
@@ -40,89 +48,159 @@ namespace XianXia.Unity.Host
             selectionController = host.GetComponent<HostSelectionController>();
         }
 
-        public void Begin(EntityId attacker, HostMapDestructible target)
+        public bool IsAttacker(EntityId id)
+        {
+            if (id.IsNone)
+                return false;
+            for (var i = 0; i < _sessions.Count; i++)
+            {
+                if (_sessions[i].Attacker == id)
+                    return true;
+            }
+
+            return false;
+        }
+
+        public bool IsPartyDerivedAttacker(EntityId id)
+        {
+            if (id.IsNone)
+                return false;
+            for (var i = 0; i < _sessions.Count; i++)
+            {
+                if (_sessions[i].Attacker == id && _sessions[i].FromPartyFollow)
+                    return true;
+            }
+
+            return false;
+        }
+
+        public HostMapDestructible GetTargetForAttacker(EntityId id)
+        {
+            for (var i = 0; i < _sessions.Count; i++)
+            {
+                if (_sessions[i].Attacker == id)
+                    return _sessions[i].Target;
+            }
+
+            return null;
+        }
+
+        public void Begin(EntityId attacker, HostMapDestructible target, bool fromPartyFollow = false)
         {
             if (attacker.IsNone || target == null || target.IsDestroyed)
                 return;
-            _attacker = attacker;
-            _target = target;
-            _cooldown = 0f;
-            _nextRepath = 0f;
-            bootstrap?.GetComponent<HostHousingAreaSelection>()?.SelectDestructible(target);
+
+            for (var i = 0; i < _sessions.Count; i++)
+            {
+                if (_sessions[i].Attacker != attacker)
+                    continue;
+                _sessions[i].Target = target;
+                _sessions[i].Cooldown = 0f;
+                _sessions[i].NextRepath = 0f;
+                _sessions[i].FromPartyFollow = fromPartyFollow || _sessions[i].FromPartyFollow;
+                if (!fromPartyFollow)
+                    bootstrap?.GetComponent<HostHousingAreaSelection>()?.SelectDestructible(target);
+                return;
+            }
+
+            _sessions.Add(new Session
+            {
+                Attacker = attacker,
+                Target = target,
+                Cooldown = 0f,
+                NextRepath = 0f,
+                FromPartyFollow = fromPartyFollow
+            });
+
+            if (!fromPartyFollow)
+                bootstrap?.GetComponent<HostHousingAreaSelection>()?.SelectDestructible(target);
         }
 
-        public void Clear()
-        {
-            _attacker = EntityId.None;
-            _target = null;
-            _cooldown = 0f;
-        }
+        public void Clear() => ClearAllSessions(clearInspect: true);
 
         public void DisengageIfAttacker(EntityId id)
         {
-            if (IsAssaulting && id == _attacker)
-                Clear();
+            if (id.IsNone)
+                return;
+            RemoveSession(id, clearInspect: true);
+        }
+
+        public void StopPartyDerived(EntityId id)
+        {
+            if (id.IsNone)
+                return;
+            for (var i = _sessions.Count - 1; i >= 0; i--)
+            {
+                if (_sessions[i].Attacker != id || !_sessions[i].FromPartyFollow)
+                    continue;
+                _sessions.RemoveAt(i);
+            }
         }
 
         void Update()
         {
-            if (!IsAssaulting || bootstrap?.Session?.World == null)
+            if (_sessions.Count == 0 || bootstrap?.Session?.World == null)
                 return;
             if (bootstrap.Session.IsPaused)
                 return;
-            if (_target == null || _target.IsDestroyed)
+
+            for (var i = _sessions.Count - 1; i >= 0; i--)
             {
-                Clear();
-                return;
+                if (!TickSession(_sessions[i]))
+                    _sessions.RemoveAt(i);
             }
+        }
+
+        bool TickSession(Session session)
+        {
+            if (session == null)
+                return false;
+
+            var target = session.Target;
+            if (target == null || target.IsDestroyed)
+                return false;
 
             var world = bootstrap.Session.World;
-            if (!world.Entities.TryGet(_attacker, out var atk) ||
+            var attacker = session.Attacker;
+            if (!world.Entities.TryGet(attacker, out var atk) ||
                 !atk.TryGet<LifecycleComponent>(out var life) ||
                 life.IsDead || life.IsRemoved)
-            {
-                Clear();
-                return;
-            }
+                return false;
 
-            if (!TryGetPresentation(_attacker, out var ax, out var ay))
-            {
-                Clear();
-                return;
-            }
+            if (!TryGetPresentation(attacker, out var ax, out var ay))
+                return false;
 
-            var tp = HostPresentationSpace.ToPresentation(_target.transform.position);
+            var tp = HostPresentationSpace.ToPresentation(target.transform.position);
             var dist = Vector2.Distance(new Vector2(ax, ay), new Vector2(tp.x, tp.y));
             if (dist > engageRange)
             {
-                Chase();
-                return;
+                Chase(session);
+                return true;
             }
 
             var dt = bootstrap.PresentationDeltaTime;
-            _cooldown -= dt;
-            if (_cooldown > 0f)
-                return;
-            _cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
+            session.Cooldown -= dt;
+            if (session.Cooldown > 0f)
+                return true;
+            session.Cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
 
             var damage = 1;
             if (atk.TryGet<AttributesComponent>(out var attrs))
                 damage = Mathf.Max(1, attrs.GetFinal(AttributeId.Attack));
 
-            // 先记下掉落信息：ApplyDamage 会 Destroy 目标
-            var isTree = _target.IsTree;
-            var kind = _target.Kind;
-            var expectedYield = _target.ResolveWoodYield();
-            var hitPos = _target.transform.position;
-            var dealt = _target.ApplyDamage(damage, out var destroyed);
+            var isTree = target.IsTree;
+            var kind = target.Kind;
+            var expectedYield = target.ResolveWoodYield();
+            var hitPos = target.transform.position;
+            var dealt = target.ApplyDamage(damage, out var destroyed);
             if (dealt > 0)
             {
                 strikeVfx?.Play(hitPos + Vector3.up * 0.4f, hitPos);
-                Toast(_attacker, "-" + dealt, new Color(0.75f, 0.9f, 0.45f));
+                Toast(attacker, "-" + dealt, new Color(0.75f, 0.9f, 0.45f));
             }
 
             if (!destroyed)
-                return;
+                return true;
 
             var wood = 0;
             if (isTree && expectedYield > 0)
@@ -148,10 +226,45 @@ namespace XianXia.Unity.Host
             else
                 msg = "摧毁";
 
-            Toast(_attacker, msg, new Color(0.55f, 1f, 0.55f));
-            bootstrap.GetComponent<HostHousingAreaSelection>()?.Clear();
+            Toast(attacker, msg, new Color(0.55f, 1f, 0.55f));
+            if (!session.FromPartyFollow)
+                bootstrap.GetComponent<HostHousingAreaSelection>()?.Clear();
             bootstrap.DispatchDrainedEvents();
-            Clear();
+            RemoveSessionsOnTarget(target, clearInspect: !session.FromPartyFollow);
+            return false;
+        }
+
+        void RemoveSessionsOnTarget(HostMapDestructible target, bool clearInspect)
+        {
+            for (var i = _sessions.Count - 1; i >= 0; i--)
+            {
+                if (_sessions[i].Target != target)
+                    continue;
+                _sessions.RemoveAt(i);
+            }
+
+            if (clearInspect)
+                bootstrap?.GetComponent<HostHousingAreaSelection>()?.Clear();
+        }
+
+        void RemoveSession(EntityId attacker, bool clearInspect)
+        {
+            for (var i = _sessions.Count - 1; i >= 0; i--)
+            {
+                if (_sessions[i].Attacker != attacker)
+                    continue;
+                _sessions.RemoveAt(i);
+            }
+
+            if (clearInspect && _sessions.Count == 0)
+                bootstrap?.GetComponent<HostHousingAreaSelection>()?.Clear();
+        }
+
+        void ClearAllSessions(bool clearInspect)
+        {
+            _sessions.Clear();
+            if (clearInspect)
+                bootstrap?.GetComponent<HostHousingAreaSelection>()?.Clear();
         }
 
         static int GrantRoughWood(XianXia.Core.Simulation.SimulationWorld world, int yield)
@@ -160,7 +273,6 @@ namespace XianXia.Unity.Host
                 return 0;
 
             var id = HostMapDestructible.RoughWoodItemId;
-            // 确保目录有粗木条目（堆叠／显示名）；缺失时仍可 TryAdd（默认堆 99）
             if (!world.InventoryCatalog.TryGet(id, out _))
                 world.InventoryCatalog.Register(id, "粗木", 99, new[] { "resource", "wood" });
 
@@ -184,16 +296,16 @@ namespace XianXia.Unity.Host
             return added;
         }
 
-        void Chase()
+        void Chase(Session session)
         {
-            if (moveController == null || _target == null)
+            if (moveController == null || session?.Target == null)
                 return;
-            if (Time.unscaledTime < _nextRepath)
+            if (Time.unscaledTime < session.NextRepath)
                 return;
-            _nextRepath = Time.unscaledTime + repathInterval;
-            var dest = _target.transform.position;
+            session.NextRepath = Time.unscaledTime + repathInterval;
+            var dest = session.Target.transform.position;
             if (viewSpawner != null &&
-                viewSpawner.Registry.TryGet(_attacker, out var atkView) &&
+                viewSpawner.Registry.TryGet(session.Attacker, out var atkView) &&
                 atkView != null)
             {
                 var delta = atkView.transform.position - dest;
@@ -204,7 +316,7 @@ namespace XianXia.Unity.Host
 
             dest.z = HostPresentationSpace.EntityZ;
             moveController.OrderEntityToWorldPoint(
-                _attacker, dest, arriveCommand: null, issueStop: false);
+                session.Attacker, dest, arriveCommand: null, issueStop: false);
         }
 
         bool TryGetPresentation(EntityId id, out float x, out float y)

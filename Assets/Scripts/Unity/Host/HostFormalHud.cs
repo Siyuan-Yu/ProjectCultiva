@@ -18,6 +18,8 @@ using XianXia.Core.Schedule;
 using XianXia.Core.Settlement;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
+using XianXia.Core.World;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
@@ -70,6 +72,8 @@ namespace XianXia.Unity.Host
         UnitTab _unitTab = UnitTab.Overview;
         Texture2D _px;
         EntityId _unitPanelFocus = EntityId.None;
+        string _partyStatusMessage = string.Empty;
+        float _partyStatusUntil;
 
         public bool IsHudVisible => visible;
 
@@ -189,6 +193,7 @@ namespace XianXia.Unity.Host
             }
 
             DrawTopBar(session);
+            DrawPlayerPartyBar(session);
             DrawOpsLegend(session);
             DrawWorldObjectInspectPanel(session);
             DrawRightRail(session);
@@ -201,6 +206,115 @@ namespace XianXia.Unity.Host
             bootstrap != null &&
             bootstrap.DialoguePresenter != null &&
             bootstrap.DialoguePresenter.IsActive;
+
+        void DrawPlayerPartyBar(PlayableHostSession session)
+        {
+            var party = session.PlayerParty;
+            if (party == null || party.Count == 0 || party.IsAwaitingSuccession)
+                return;
+
+            const float size = 46f;
+            const float gap = 6f;
+            var x = 12f;
+            var y = HeaderReservedHeight + 6f;
+            var controller = bootstrap != null ? bootstrap.PlayerPartyController : null;
+
+            for (var i = 0; i < party.Members.Count; i++)
+            {
+                var id = party.Members[i];
+                if (!session.World.Entities.TryGet(id, out var ent))
+                    continue;
+
+                var rect = new Rect(x, y, size, size);
+                HostUiHitTest.Block(rect);
+                var isActive = party.IsActive(id);
+                Fill(rect, isActive ? AccentGold : Parchment);
+                DrawFrame(rect, isActive ? new Color(0.95f, 0.55f, 0.12f) : ParchmentDark);
+
+                var label = string.IsNullOrEmpty(ent.DisplayName)
+                    ? id.Value.ToString()
+                    : ent.DisplayName.Substring(0, Mathf.Min(1, ent.DisplayName.Length));
+                GUI.Label(new Rect(rect.x, rect.y + 12f, rect.width, 22f), label, _parchmentTitle);
+
+                if (GUI.Button(rect, GUIContent.none, GUIStyle.none) && controller != null)
+                {
+                    if (controller.TrySwitchActive(id, out var err))
+                        SetPartyStatus(isActive ? null : "切换主控：" + ent.DisplayName);
+                    else if (!string.IsNullOrEmpty(err))
+                        SetPartyStatus(err);
+                }
+
+                x += size + gap;
+            }
+
+            if (!string.IsNullOrEmpty(_partyStatusMessage) && Time.unscaledTime < _partyStatusUntil)
+            {
+                var toast = new Rect(12f, y + size + 8f, 280f, 22f);
+                GUI.Label(toast, _partyStatusMessage, _small);
+            }
+        }
+
+        void DrawPartyFollowControls(Rect row, EntityId focus, PlayableHostSession session)
+        {
+            if (focus.IsNone || bootstrap == null)
+                return;
+
+            var party = session.PlayerParty;
+            var controller = bootstrap.PlayerPartyController;
+            if (controller == null)
+                return;
+
+            if (party.IsActive(focus))
+                return;
+
+            HostUiHitTest.Block(row);
+
+            if (party.IsFollower(focus))
+            {
+                if (GUI.Button(row, "停止跟随"))
+                {
+                    if (controller.TryStopFollow(focus, out var err))
+                        SetPartyStatus("已停止跟随");
+                    else
+                        SetPartyStatus(err);
+                }
+
+                return;
+            }
+
+            if (!selectionController.IsPartyUnit(focus))
+                return;
+
+            if (ArmyService.TryGetArmyForCharacter(session.World, focus, out _))
+            {
+                GUI.enabled = false;
+                GUI.Button(row, "该角色当前属于军队，无法加入同行队伍");
+                GUI.enabled = true;
+                return;
+            }
+
+            if (!party.ValidateJoin(session.World, session.CharacterIds, focus, out var deny))
+            {
+                GUI.enabled = false;
+                GUI.Button(row, deny ?? "无法加入同行队伍");
+                GUI.enabled = true;
+                return;
+            }
+
+            if (GUI.Button(row, "跟随主控"))
+            {
+                if (controller.TryFollowActive(focus, out var err))
+                    SetPartyStatus("已加入同行队伍");
+                else
+                    SetPartyStatus(err);
+            }
+        }
+
+        void SetPartyStatus(string message)
+        {
+            _partyStatusMessage = message ?? string.Empty;
+            _partyStatusUntil = Time.unscaledTime + 2.5f;
+        }
 
         void DrawOpsLegend(PlayableHostSession session)
         {
@@ -772,17 +886,21 @@ namespace XianXia.Unity.Host
                 _unitPanelScroll = Vector2.zero;
             }
 
-            var isParty = selectionController.IsPartyUnit(focus);
+            var isPartyMember = session.PlayerParty.IsMember(focus);
+            var isActive = session.PlayerParty.IsActive(focus);
+            var isRoster = selectionController.IsPartyUnit(focus);
             var panelH = BottomH - 18f;
             var panelX = (Screen.width - PanelW) * 0.5f;
             var panelY = Screen.height - panelH - 10f;
             var actionY = panelY - ActionOrb - 10f;
 
-            if (isParty)
+            if (isActive && isRoster)
             {
                 DrawActionOrbRow(panelX, actionY, PanelW, focus);
                 HostUiHitTest.Block(new Rect(panelX, actionY, PanelW, ActionOrb + 8f));
             }
+
+            DrawPartyFollowControls(new Rect(panelX, actionY - 36f, PanelW, 28f), focus, session);
 
             var main = new Rect(panelX, panelY, PanelW, panelH);
             Fill(main, Parchment);
@@ -795,7 +913,7 @@ namespace XianXia.Unity.Host
                 main.y + 8f,
                 CombatArtRailW,
                 main.height - 16f);
-            DrawCombatArtSideRail(artRail, focus, entity, isParty);
+            DrawCombatArtSideRail(artRail, focus, entity, isActive && isRoster);
             HostUiHitTest.Block(artRail);
 
             var tabStrip = new Rect(
@@ -818,7 +936,7 @@ namespace XianXia.Unity.Host
                 activity = "参悟中";
             entity.TryGet<CultivationComponent>(out var cult);
             var realm = cult != null ? RealmName(cult.Realm, cult.MinorStage) : "—";
-            var subtitle = isParty ? "己方 · 上方可下令" : "查看 · 非己方不可下令";
+            var subtitle = isActive ? "主控 · 上方可下令" : isPartyMember ? "同行 · 跟随主控" : isRoster ? "己方 · 可邀请同行" : "查看 · 非己方不可下令";
             var lifeLabel = CombatLifeStateService.ResolveLifeStateLabel(entity);
             var lifeBadge = CombatLifeStateService.FormatLifeStateWithCountdown(
                 bootstrap?.Session?.World,
@@ -845,11 +963,11 @@ namespace XianXia.Unity.Host
                 _parchmentTitle);
 
             var headerExtra = 0f;
-            if (isParty && selectionController.State.Count > 1)
+            if (isPartyMember && !isActive)
             {
                 GUI.Label(
                     new Rect(main.x + 14f, main.y + 30f, main.width - 24f, 18f),
-                    "框选 " + selectionController.State.Count + " 人时：指令只令「" + name + "」；群体移动请右键",
+                    "仅主控角色接受移动／战斗指令",
                     _small);
                 headerExtra = 16f;
             }
@@ -1559,7 +1677,7 @@ namespace XianXia.Unity.Host
         void HandleActionHotkeys(PlayableHostSession session)
         {
             var focus = ResolveFocus(session);
-            if (focus.IsNone || selectionController == null || !selectionController.IsPartyUnit(focus))
+            if (focus.IsNone || selectionController == null || !session.PlayerParty.IsActive(focus))
                 return;
 
             // F5／F9 存读档；Q/E/F8＝移动/交互/战斗；F2＝斗气纱衣；F7＝勘查；F1＝停止；F6＝修炼；G＝敛息。
@@ -1585,7 +1703,8 @@ namespace XianXia.Unity.Host
         {
             if (focus.IsNone)
                 return;
-            if (selectionController != null && !selectionController.IsPartyUnit(focus))
+            var session = bootstrap?.Session;
+            if (session == null || !session.PlayerParty.IsActive(focus))
                 return;
             EnsureFocusSelected(focus);
             var mode = bootstrap != null ? bootstrap.WorkTargetMode : null;
@@ -1897,8 +2016,10 @@ namespace XianXia.Unity.Host
         {
             if (commandBridge == null || focus.IsNone)
                 return;
+            var session = bootstrap?.Session;
+            if (session != null && !session.PlayerParty.IsActive(focus))
+                return;
             EnsureFocusSelected(focus);
-            var session = bootstrap != null ? bootstrap.Session : null;
             if (session != null && !session.World.ContentEvents.HasActive &&
                 kind != PlayerCommandKind.Stop)
                 session.IsPaused = false;

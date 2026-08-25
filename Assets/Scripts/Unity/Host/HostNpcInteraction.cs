@@ -140,18 +140,11 @@ namespace XianXia.Unity.Host
             return !string.IsNullOrEmpty(definitionId);
         }
 
-        public static EntityId ResolvePartyActor(HostSelectionController selection)
-        {
-            if (selection == null || selection.State.Count == 0)
-                return EntityId.None;
-            for (var i = 0; i < selection.State.Count; i++)
-            {
-                var id = selection.State.SelectedIds[i];
-                if (selection.IsPartyUnit(id))
-                    return id;
-            }
+        public static EntityId ResolveActiveCommandAuthority(PlayableHostSession session) =>
+            session?.PlayerParty?.ActiveCharacterId ?? EntityId.None;
 
-            return EntityId.None;
-        }
+        /// <summary>World ground move / work-target move: respects view-selection command context.</summary>
+        public static EntityId ResolvePartyActor(HostSelectionController selection, PlayableHostSession session = null) =>
+            HostPlayerMoveCommandGate.ResolveActiveForWorldMove(selection, session);
     }
 }

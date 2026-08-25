@@ -7,6 +7,7 @@ using XianXia.Core.Input;
 using XianXia.Core.Persistence;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.World;
 using XianXia.Data.Bootstrap;
 using XianXia.Data.Content;
 using XianXia.Data.Serialization;
@@ -31,6 +32,9 @@ namespace XianXia.Unity.Host
         public string ScheduleDefinitionId { get; private set; }
 
         public IReadOnlyList<EntityId> CharacterIds { get; private set; } = Array.Empty<EntityId>();
+
+        /// <summary>RPG-First LocalMap party (Active + Followers). Phase 1 runtime truth.</summary>
+        public PlayerPartyRuntime PlayerParty { get; } = new PlayerPartyRuntime();
 
         /// <summary>VS0.6: CharacterIds + visible Npcs (presentation／selection).</summary>
         public IReadOnlyList<EntityId> ViewableEntityIds { get; private set; } = Array.Empty<EntityId>();
@@ -100,6 +104,7 @@ namespace XianXia.Unity.Host
             LoadedContent = null;
             ScheduleDefinitionId = string.Empty;
             CharacterIds = Array.Empty<EntityId>();
+            PlayerParty.Reset();
             ViewableEntityIds = Array.Empty<EntityId>();
             RecruitableNpcId = EntityId.None;
             PreferredMapLayoutId = string.Empty;

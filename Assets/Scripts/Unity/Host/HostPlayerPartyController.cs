@@ -1,0 +1,508 @@
+using System.Collections.Generic;
+using UnityEngine;
+using XianXia.Core.Actions;
+using XianXia.Core.Combat;
+using XianXia.Core.Domain.Ids;
+using XianXia.Core.Entities;
+using XianXia.Core.Input;
+using XianXia.Core.World;
+
+namespace XianXia.Unity.Host
+{
+    /// <summary>
+    /// Phase 1: PlayerParty follow AI, Active WASD, camera soft-follow, combat/group-work hooks.
+    /// </summary>
+    public sealed class HostPlayerPartyController : MonoBehaviour
+    {
+        [SerializeField] PlayableHostBootstrap bootstrap;
+        [SerializeField] float followStopDistance = 2.2f;
+        [SerializeField] float followRepathInterval = 0.35f;
+        [SerializeField] float followerSpreadRadius = 1.1f;
+        [SerializeField] float wasdMoveSpeed = 5.5f;
+        [SerializeField] float cameraFollowLerp = 8f;
+        [SerializeField] bool enableCameraFollow = true;
+
+        readonly Dictionary<ulong, float> _nextFollowRepath = new Dictionary<ulong, float>();
+        readonly Dictionary<ulong, HostPartySharedActivity> _followerSharedActivity =
+            new Dictionary<ulong, HostPartySharedActivity>();
+        HostPartySharedActivity _lastActiveSharedActivity = HostPartySharedActivity.FollowIdle;
+        bool _wasdHeldLastFrame;
+
+        [SerializeField] float followerChopSearchRadius = 10f;
+
+        HostMoveController _move;
+        HostCommandBridge _commands;
+        HostNpcMeleeAssault _melee;
+        HostFarmFieldLabor _farm;
+        HostDestructibleAssault _chop;
+        HostWorkLoop _workLoop;
+        PlayableHostCameraRig _cameraRig;
+        EntityViewSpawner _spawner;
+
+        public PlayerPartyRuntime Party =>
+            bootstrap != null && bootstrap.Session != null
+                ? bootstrap.Session.PlayerParty
+                : null;
+
+        public EntityId ActiveCharacterId =>
+            Party != null ? Party.ActiveCharacterId : EntityId.None;
+
+        public void Bind(PlayableHostBootstrap host)
+        {
+            bootstrap = host;
+            if (host == null)
+                return;
+
+            _move = host.MoveController;
+            _commands = host.CommandBridge;
+            _melee = host.GetComponent<HostNpcMeleeAssault>();
+            _farm = host.GetComponent<HostFarmFieldLabor>();
+            _chop = host.GetComponent<HostDestructibleAssault>();
+            _workLoop = host.GetComponent<HostWorkLoop>();
+            _cameraRig = host.GetComponent<PlayableHostCameraRig>();
+            _spawner = host.ViewSpawner;
+        }
+
+        public bool TryFollowActive(EntityId candidate, out string error)
+        {
+            error = null;
+            var session = bootstrap?.Session;
+            if (session == null || !session.IsInitialized || Party == null)
+            {
+                error = "Session not ready.";
+                return false;
+            }
+
+            if (!Party.TryAddMember(session.World, session.CharacterIds, candidate, out error))
+                return false;
+
+            session.World.LocalMap.AddOccupant(candidate);
+            _nextFollowRepath.Remove(candidate.Value);
+            OrderFollowerTowardActive(candidate);
+            return true;
+        }
+
+        public bool TryStopFollow(EntityId id, out string error)
+        {
+            error = null;
+            if (Party == null || !Party.TryRemoveMember(id, out error))
+                return false;
+
+            _nextFollowRepath.Remove(id.Value);
+            _followerSharedActivity.Remove(id.Value);
+            StopFollowerPartyDerivedWork(id);
+            StopFollowerDirectControl(id);
+            return true;
+        }
+
+        public bool TrySwitchActive(EntityId newActive, out string error)
+        {
+            error = null;
+            var session = bootstrap?.Session;
+            if (session == null || Party == null)
+            {
+                error = "Session not ready.";
+                return false;
+            }
+
+            var oldActive = Party.ActiveCharacterId;
+            if (oldActive == newActive)
+                return true;
+
+            if (!Party.TrySetActive(session.World, newActive, out error))
+                return false;
+
+            ClearDirectControlFor(oldActive);
+            FrameCameraOn(newActive);
+            if (bootstrap?.SelectionController != null)
+                bootstrap.SelectionController.SelectEntity(newActive, false);
+            return true;
+        }
+
+        public void ClearDirectControlFor(EntityId id)
+        {
+            if (id.IsNone)
+                return;
+
+            _move?.CancelPresentationMovementPublic(id);
+            _workLoop?.StopLoop(id);
+            _farm?.Stop(id);
+            _melee?.DisengageIfAttacker(id);
+            if (_commands != null && bootstrap?.Session != null)
+                _commands.IssueOne(id, PlayerCommandKind.Stop, 0);
+        }
+
+        void Update()
+        {
+            if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized || Party == null)
+                return;
+            if (Party.IsAwaitingSuccession)
+                return;
+
+            Party.RefreshActiveAfterLifeState(bootstrap.Session.World);
+            if (Party.IsAwaitingSuccession || Party.ActiveCharacterId.IsNone)
+                return;
+
+            TickWasdForActive();
+            TickPartyDerivedGroupActivity();
+            TickFollowers();
+            TickCombatFollow();
+            TickCameraFollow();
+        }
+
+        void TickWasdForActive()
+        {
+            if (HostInputGate.BlockWorldInteraction)
+                return;
+
+            var active = Party.ActiveCharacterId;
+            if (active.IsNone || _move == null)
+                return;
+
+            if (!bootstrap.Session.World.Entities.TryGet(active, out var ent) ||
+                !CombatLifeStateService.CanFight(ent))
+                return;
+
+            var dir = ReadWasdDirection();
+            var wasdHeld = dir.sqrMagnitude > 0.01f;
+            if (wasdHeld)
+            {
+                if (!_wasdHeldLastFrame)
+                    _move.CancelPresentationMovementPublic(active);
+                _move.TickDirectWasdMove(active, dir, wasdMoveSpeed);
+            }
+
+            _wasdHeldLastFrame = wasdHeld;
+        }
+
+        static Vector2 ReadWasdDirection()
+        {
+            if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
+                return Vector2.zero;
+
+            var dir = Vector2.zero;
+            if (Input.GetKey(KeyCode.W)) dir.y += 1f;
+            if (Input.GetKey(KeyCode.S)) dir.y -= 1f;
+            if (Input.GetKey(KeyCode.A)) dir.x -= 1f;
+            if (Input.GetKey(KeyCode.D)) dir.x += 1f;
+            if (dir.sqrMagnitude > 1f)
+                dir.Normalize();
+            return dir;
+        }
+
+        void TickFollowers()
+        {
+            var active = Party.ActiveCharacterId;
+            if (active.IsNone || _move == null || _spawner == null)
+                return;
+
+            if (!_spawner.Registry.TryGet(active, out var activeView) || activeView == null)
+                return;
+
+            var activePos = activeView.transform.position;
+            var followerIndex = 0;
+            for (var i = 0; i < Party.Members.Count; i++)
+            {
+                var id = Party.Members[i];
+                if (Party.IsActive(id))
+                    continue;
+
+                if (_melee != null && _melee.IsAttacker(id))
+                    continue;
+                if (_chop != null && _chop.IsAttacker(id))
+                    continue;
+                if (_farm != null && _farm.IsFarming(id))
+                    continue;
+                if (_move.IsMoving(id))
+                    continue;
+
+                if (!ShouldRepathFollower(id))
+                    continue;
+
+                if (!_spawner.Registry.TryGet(id, out var view) || view == null)
+                    continue;
+
+                var offset = FollowerOffset(followerIndex++);
+                var goal = activePos + offset;
+                goal.z = HostPresentationSpace.EntityZ;
+                var dist = Vector2.Distance(
+                    new Vector2(view.transform.position.x, view.transform.position.y),
+                    new Vector2(activePos.x + offset.x, activePos.y + offset.y));
+                if (dist <= followStopDistance)
+                    continue;
+
+                _move.OrderEntityToWorldPoint(id, goal, null, issueStop: false);
+                _nextFollowRepath[id.Value] = Time.unscaledTime + followRepathInterval;
+            }
+        }
+
+        bool ShouldRepathFollower(EntityId id)
+        {
+            if (!_nextFollowRepath.TryGetValue(id.Value, out var next))
+                return true;
+            return Time.unscaledTime >= next;
+        }
+
+        Vector3 FollowerOffset(int index)
+        {
+            if (index <= 0)
+                return new Vector3(-followerSpreadRadius, 0f, 0f);
+            var angle = index * 137.5f * Mathf.Deg2Rad;
+            var r = followerSpreadRadius * (1f + 0.15f * (index % 3));
+            return new Vector3(Mathf.Cos(angle) * r, Mathf.Sin(angle) * r, 0f);
+        }
+
+        void OrderFollowerTowardActive(EntityId follower)
+        {
+            var active = Party.ActiveCharacterId;
+            if (follower.IsNone || active.IsNone || _move == null || _spawner == null)
+                return;
+
+            if (!_spawner.Registry.TryGet(active, out var activeView) || activeView == null)
+                return;
+
+            var goal = activeView.transform.position;
+            goal.z = HostPresentationSpace.EntityZ;
+            _move.OrderEntityToWorldPoint(follower, goal, null, issueStop: true);
+            _nextFollowRepath[follower.Value] = Time.unscaledTime + followRepathInterval;
+        }
+
+        void TickCombatFollow()
+        {
+            if (_melee == null || !_melee.IsFighting)
+                return;
+
+            var active = Party.ActiveCharacterId;
+            if (!_melee.IsAttacker(active))
+                return;
+
+            var defender = _melee.DefenderId;
+            for (var i = 0; i < Party.Members.Count; i++)
+            {
+                var id = Party.Members[i];
+                if (Party.IsActive(id) || _melee.IsAttacker(id))
+                    continue;
+                if (!bootstrap.Session.World.Entities.TryGet(id, out var ent) ||
+                    !CombatLifeStateService.CanFight(ent))
+                    continue;
+
+                _melee.Begin(id, defender);
+            }
+        }
+
+        void TickPartyDerivedGroupActivity()
+        {
+            var active = Party.ActiveCharacterId;
+            if (active.IsNone)
+                return;
+
+            var current = ResolveActiveSharedActivity(active);
+            if (current != _lastActiveSharedActivity)
+            {
+                for (var i = 0; i < Party.Members.Count; i++)
+                {
+                    var id = Party.Members[i];
+                    if (Party.IsActive(id))
+                        continue;
+                    if (_followerSharedActivity.TryGetValue(id.Value, out var assigned) &&
+                        assigned == current)
+                        continue;
+                    StopFollowerPartyDerivedWork(id);
+                }
+
+                _lastActiveSharedActivity = current;
+            }
+
+            if (!current.IsShareable)
+            {
+                ClearFollowerPartyDerivedWork();
+                return;
+            }
+
+            for (var i = 0; i < Party.Members.Count; i++)
+            {
+                var id = Party.Members[i];
+                if (Party.IsActive(id))
+                    continue;
+                if (_followerSharedActivity.TryGetValue(id.Value, out var assigned) &&
+                    assigned == current)
+                    continue;
+
+                if (TryAssignFollowerSharedActivity(id, current, active))
+                    _followerSharedActivity[id.Value] = current;
+            }
+        }
+
+        HostPartySharedActivity ResolveActiveSharedActivity(EntityId active)
+        {
+            if (_melee != null && _melee.IsAttacker(active))
+                return HostPartySharedActivity.Combat;
+
+            if (IsActivePlayerDrivenMoving(active))
+                return HostPartySharedActivity.Movement;
+
+            if (_farm != null && _farm.IsFarming(active))
+            {
+                var loc = ResolveFarmLocation(active);
+                if (!string.IsNullOrEmpty(loc))
+                    return HostPartySharedActivity.Farming(loc);
+            }
+
+            if (_chop != null && _chop.IsAttacker(active))
+            {
+                var target = _chop.GetTargetForAttacker(active);
+                var instanceId = target != null ? target.GetInstanceID() : 0;
+                return HostPartySharedActivity.Woodcutting(instanceId);
+            }
+
+            if (_workLoop != null && _workLoop.IsLooping(active) &&
+                _workLoop.TryGetLoopKind(active, out var loopKind))
+            {
+                var loc = ResolveEntityLocation(active);
+                if (!string.IsNullOrEmpty(loc))
+                    return HostPartySharedActivity.Gathering(loc, loopKind);
+            }
+
+            return HostPartySharedActivity.FollowIdle;
+        }
+
+        bool TryAssignFollowerSharedActivity(
+            EntityId follower,
+            HostPartySharedActivity activity,
+            EntityId active)
+        {
+            StopFollowerPartyDerivedWork(follower);
+
+            switch (activity.Kind)
+            {
+                case HostPartySharedActivityKind.Farming:
+                    return _farm != null &&
+                           _farm.Begin(follower, activity.LocationId, fromPartyFollow: true);
+                case HostPartySharedActivityKind.Woodcutting:
+                    return TryBeginFollowerWoodcut(follower, active);
+                case HostPartySharedActivityKind.Gathering:
+                    if (_workLoop == null)
+                        return false;
+                    _workLoop.StartPartyDerivedLoop(follower, activity.LoopKind);
+                    return _workLoop.IsPartyDerivedLooping(follower);
+                default:
+                    return false;
+            }
+        }
+
+        bool TryBeginFollowerWoodcut(EntityId follower, EntityId active)
+        {
+            if (_chop == null || _spawner == null)
+                return false;
+
+            if (!_spawner.Registry.TryGet(follower, out var followerView) || followerView == null)
+                return false;
+
+            var from = followerView.transform.position;
+            HostMapDestructible activeTarget = null;
+            if (_chop.IsAttacker(active))
+                activeTarget = _chop.GetTargetForAttacker(active);
+
+            if (!HostMapObjectRegistry.TryFindNearestDestructible(
+                    from,
+                    followerChopSearchRadius,
+                    out var tree,
+                    treesOnly: true,
+                    exclude: activeTarget) &&
+                activeTarget != null)
+                tree = activeTarget;
+
+            if (tree == null)
+                return false;
+
+            _chop.Begin(follower, tree, fromPartyFollow: true);
+            return _chop.IsAttacker(follower);
+        }
+
+        void StopFollowerPartyDerivedWork(EntityId id)
+        {
+            _farm?.StopPartyDerived(id);
+            _chop?.StopPartyDerived(id);
+            _workLoop?.StopPartyDerived(id);
+            _followerSharedActivity.Remove(id.Value);
+        }
+
+        void ClearFollowerPartyDerivedWork()
+        {
+            for (var i = 0; i < Party.Members.Count; i++)
+            {
+                var id = Party.Members[i];
+                if (Party.IsActive(id))
+                    continue;
+                if (_followerSharedActivity.ContainsKey(id.Value) ||
+                    (_farm != null && _farm.IsPartyDerivedFarming(id)) ||
+                    (_chop != null && _chop.IsPartyDerivedAttacker(id)) ||
+                    (_workLoop != null && _workLoop.IsPartyDerivedLooping(id)))
+                    StopFollowerPartyDerivedWork(id);
+            }
+        }
+
+        string ResolveFarmLocation(EntityId id)
+        {
+            if (_farm != null && _farm.TryGetFarmLocation(id, out var loc))
+                return loc;
+            return ResolveEntityLocation(id);
+        }
+
+        string ResolveEntityLocation(EntityId id)
+        {
+            if (bootstrap?.Session?.World == null ||
+                !bootstrap.Session.World.Entities.TryGet(id, out var ent) ||
+                !ent.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc) ||
+                !loc.HasLocation)
+                return null;
+            return loc.LocationId;
+        }
+
+        void TickCameraFollow()
+        {
+            if (!enableCameraFollow || _cameraRig == null || _spawner == null)
+                return;
+            if (HostInputGate.BlockWorldCamera)
+                return;
+
+            var active = Party.ActiveCharacterId;
+            if (active.IsNone ||
+                !_spawner.Registry.TryGet(active, out var view) ||
+                view == null)
+                return;
+
+            if (!IsActivePlayerDrivenMoving(active))
+                return;
+
+            _cameraRig.SoftFollow(view.transform.position, cameraFollowLerp);
+        }
+
+        /// <summary>Active 正在 WASD 或点击寻路移动（玩家驱动），非 Follower／AI 移动。</summary>
+        public bool IsActivePlayerDrivenMoving(EntityId active)
+        {
+            if (active.IsNone || Party == null || !Party.IsActive(active))
+                return false;
+
+            if (!HostInputGate.BlockWorldInteraction && ReadWasdDirection().sqrMagnitude > 0.01f)
+                return true;
+
+            return _move != null && _move.IsPlayerPartyPathMoving(active);
+        }
+
+        void FrameCameraOn(EntityId id)
+        {
+            if (_cameraRig == null || _spawner == null || id.IsNone)
+                return;
+            if (_spawner.Registry.TryGet(id, out var view) && view != null)
+                _cameraRig.FrameWorldPoint(view.transform.position);
+        }
+
+        void StopFollowerDirectControl(EntityId id)
+        {
+            _move?.CancelPresentationMovementPublic(id);
+            StopFollowerPartyDerivedWork(id);
+            _melee?.DisengageIfAttacker(id);
+        }
+    }
+}

@@ -86,7 +86,7 @@ namespace XianXia.Unity.Host
             if (HostUiHitTest.ContainsScreenPoint(Input.mousePosition))
                 return false;
 
-            var actor = HostNpcInteraction.ResolvePartyActor(selectionController);
+            var actor = HostNpcInteraction.ResolveActiveCommandAuthority(bootstrap?.Session);
             if (actor.IsNone)
                 return false;
 

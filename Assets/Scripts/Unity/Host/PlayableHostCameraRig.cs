@@ -100,6 +100,20 @@ namespace XianXia.Unity.Host
             ApplyTransform();
         }
 
+        public void FrameWorldPoint(Vector3 worldPoint)
+        {
+            _focus = new Vector3(worldPoint.x, worldPoint.y, 0f);
+            ApplyTransform();
+        }
+
+        public void SoftFollow(Vector3 worldPoint, float lerpSpeed)
+        {
+            var target = new Vector3(worldPoint.x, worldPoint.y, 0f);
+            var t = 1f - Mathf.Exp(-Mathf.Max(0.01f, lerpSpeed) * Time.unscaledDeltaTime);
+            _focus = Vector3.Lerp(_focus, target, t);
+            ApplyTransform();
+        }
+
         void ApplyTransform()
         {
             if (targetCamera == null)

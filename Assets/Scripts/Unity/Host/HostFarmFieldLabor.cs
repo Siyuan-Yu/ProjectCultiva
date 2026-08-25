@@ -29,6 +29,7 @@ namespace XianXia.Unity.Host
             public float WorkLeft;
             public int ReservedCellId;
             public bool FromNpcSchedule;
+            public bool FromPartyFollow;
         }
 
         [SerializeField] PlayableHostBootstrap bootstrap;
@@ -52,6 +53,17 @@ namespace XianXia.Unity.Host
             workLoop = host.GetComponent<HostWorkLoop>();
         }
 
+        public bool IsPartyDerivedFarming(EntityId id)
+        {
+            for (var i = 0; i < _workers.Count; i++)
+            {
+                if (_workers[i].Id == id && _workers[i].FromPartyFollow)
+                    return true;
+            }
+
+            return false;
+        }
+
         public bool IsFarming(EntityId id)
         {
             for (var i = 0; i < _workers.Count; i++)
@@ -61,6 +73,32 @@ namespace XianXia.Unity.Host
             }
 
             return false;
+        }
+
+        public bool TryGetFarmLocation(EntityId id, out string locationId)
+        {
+            locationId = null;
+            for (var i = 0; i < _workers.Count; i++)
+            {
+                if (_workers[i].Id != id)
+                    continue;
+                locationId = _workers[i].LocationId;
+                return !string.IsNullOrEmpty(locationId);
+            }
+
+            return false;
+        }
+
+        public void StopPartyDerived(EntityId id)
+        {
+            for (var i = _workers.Count - 1; i >= 0; i--)
+            {
+                if (_workers[i].Id != id || !_workers[i].FromPartyFollow)
+                    continue;
+                ReleaseReserve(_workers[i]);
+                ClearActivity(_workers[i].Id);
+                _workers.RemoveAt(i);
+            }
         }
 
         public void Stop(EntityId id)
@@ -108,7 +146,7 @@ namespace XianXia.Unity.Host
             return n;
         }
 
-        public bool Begin(EntityId id, string locationId, bool fromNpcSchedule = false)
+        public bool Begin(EntityId id, string locationId, bool fromNpcSchedule = false, bool fromPartyFollow = false)
         {
             if (id.IsNone || string.IsNullOrEmpty(locationId) ||
                 !HostFarmFieldRegistry.TryGetPlots(locationId, out _))
@@ -121,12 +159,14 @@ namespace XianXia.Unity.Host
                 {
                     _workers[i].FromNpcSchedule =
                         fromNpcSchedule || _workers[i].FromNpcSchedule;
+                    _workers[i].FromPartyFollow =
+                        fromPartyFollow || _workers[i].FromPartyFollow;
                     return true;
                 }
             }
 
             Stop(id);
-            if (!fromNpcSchedule)
+            if (!fromNpcSchedule && !fromPartyFollow)
                 workLoop?.StopLoop(id);
 
             var w = new Worker
@@ -134,7 +174,8 @@ namespace XianXia.Unity.Host
                 Id = id,
                 LocationId = locationId,
                 Phase = Phase.Idle,
-                FromNpcSchedule = fromNpcSchedule
+                FromNpcSchedule = fromNpcSchedule,
+                FromPartyFollow = fromPartyFollow
             };
             _workers.Add(w);
             if (!AssignNextCell(w))

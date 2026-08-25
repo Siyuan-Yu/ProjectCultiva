@@ -74,9 +74,12 @@ namespace XianXia.Unity.Host
 
         void TryCastSlot(int slotIndex)
         {
-            if (selectionController == null || selectionController.State.Count == 0)
-                return;
-            var caster = selectionController.State.SelectedIds[0];
+            var caster = EntityId.None;
+            if (bootstrap?.Session?.PlayerParty != null &&
+                !bootstrap.Session.PlayerParty.ActiveCharacterId.IsNone)
+                caster = bootstrap.Session.PlayerParty.ActiveCharacterId;
+            else if (selectionController != null && selectionController.State.Count > 0)
+                caster = selectionController.State.SelectedIds[0];
             if (caster.IsNone)
                 return;
             var world = bootstrap.Session.World;

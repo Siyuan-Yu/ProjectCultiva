@@ -362,7 +362,7 @@ namespace XianXia.Unity.Host
             if (HostMapObjectRegistry.TryPickDestructible(point, 2.2f, out var chopTarget))
             {
                 Resume();
-                var actor = HostNpcInteraction.ResolvePartyActor(selectionController);
+                var actor = HostNpcInteraction.ResolvePartyActor(selectionController, bootstrap?.Session);
                 if (!actor.IsNone)
                 {
                     if (moveController != null)
@@ -470,7 +470,7 @@ namespace XianXia.Unity.Host
             if (HostMapObjectRegistry.TryPickDestructible(point, 2.2f, out var destructible))
             {
                 Resume();
-                var actor = HostNpcInteraction.ResolvePartyActor(selectionController);
+                var actor = HostNpcInteraction.ResolvePartyActor(selectionController, bootstrap?.Session);
                 if (actor.IsNone)
                 {
                     Debug.LogWarning("[Host] 未选中己方，无法砍伐／拆毁。");
@@ -565,15 +565,9 @@ namespace XianXia.Unity.Host
                 FallbackSnapAndIssue(locId, PlayerCommandKind.Labor);
 
             var loop = bootstrap != null ? bootstrap.GetComponent<HostWorkLoop>() : null;
-            if (loop != null && selectionController != null)
-            {
-                for (var i = 0; i < selectionController.State.Count; i++)
-                {
-                    var id = selectionController.State.SelectedIds[i];
-                    if (selectionController.IsPartyUnit(id))
-                        loop.StartLoop(id);
-                }
-            }
+            var actor = HostNpcInteraction.ResolvePartyActor(selectionController, bootstrap?.Session);
+            if (loop != null && !actor.IsNone)
+                loop.StartLoop(actor);
         }
 
         void IssueCultivateAtSpot(HostInteractSpot spot)
@@ -601,7 +595,7 @@ namespace XianXia.Unity.Host
             if (string.IsNullOrEmpty(spot.LootItemId) || string.IsNullOrEmpty(spot.LootSpotId))
                 return;
 
-            var actor = HostNpcInteraction.ResolvePartyActor(selectionController);
+            var actor = HostNpcInteraction.ResolvePartyActor(selectionController, bootstrap?.Session);
             if (actor.IsNone)
                 return;
 
@@ -636,18 +630,10 @@ namespace XianXia.Unity.Host
                 bootstrap.Session.IsPaused = false;
         }
 
-        bool HasCommandableParty()
-        {
-            if (selectionController == null || selectionController.State.Count == 0)
-                return false;
-            for (var i = 0; i < selectionController.State.Count; i++)
-            {
-                if (selectionController.IsPartyUnit(selectionController.State.SelectedIds[i]))
-                    return true;
-            }
-
-            return false;
-        }
+        bool HasCommandableParty() =>
+            HostPlayerMoveCommandGate.IsActiveCommandContext(
+                selectionController,
+                bootstrap?.Session?.PlayerParty);
 
         bool TryViewCenter(EntityId id, out Vector3 center)
         {
@@ -688,20 +674,17 @@ namespace XianXia.Unity.Host
 
         void FallbackSnapAndIssue(string locId, PlayerCommandKind kind)
         {
-            for (var i = 0; i < selectionController.State.Count; i++)
-            {
-                var id = selectionController.State.SelectedIds[i];
-                if (!selectionController.IsPartyUnit(id))
-                    continue;
-                if (!bootstrap.Session.World.Entities.TryGet(id, out var entity))
-                    continue;
-                if (entity.TryGet<EntityLocationComponent>(out var loc))
-                    loc.LocationId = locId;
-            }
+            var actor = HostNpcInteraction.ResolvePartyActor(selectionController, bootstrap?.Session);
+            if (actor.IsNone ||
+                !bootstrap.Session.World.Entities.TryGet(actor, out var entity))
+                return;
+
+            if (entity.TryGet<EntityLocationComponent>(out var loc))
+                loc.LocationId = locId;
 
             Resume();
             if (commandBridge != null)
-                commandBridge.IssueSelected(kind);
+                commandBridge.IssueOne(actor, kind);
         }
 
         void ApplyCursor(bool ok)

@@ -41,6 +41,7 @@ namespace XianXia.Unity.Host
         readonly Dictionary<ulong, HostNpcArriveIntent> _pendingNpcIntent = new Dictionary<ulong, HostNpcArriveIntent>();
         readonly HashSet<ulong> _interactionHeldNpcs = new HashSet<ulong>();
         readonly HashSet<ulong> _movingIds = new HashSet<ulong>();
+        readonly HashSet<ulong> _playerPartyPathMoveIds = new HashSet<ulong>();
         readonly List<float> _pathScratch = new List<float>(64);
         readonly List<Vector3> _wpScratch = new List<Vector3>(32);
         readonly List<EntityView> _crowdScratch = new List<EntityView>(64);
@@ -48,6 +49,10 @@ namespace XianXia.Unity.Host
         WalkGrid _walkGrid;
 
         public bool IsMoving(EntityId id) => !id.IsNone && _movingIds.Contains(id.Value);
+
+        /// <summary>Active 经由 OrderPartyToPoint* 下发的玩家点击寻路（非 Follower／Melee／Schedule）。</summary>
+        public bool IsPlayerPartyPathMoving(EntityId id) =>
+            !id.IsNone && _playerPartyPathMoveIds.Contains(id.Value);
 
         public WalkGrid WalkGrid => _walkGrid;
 
@@ -272,6 +277,7 @@ namespace XianXia.Unity.Host
                 return;
             ClearPath(id);
             _movingIds.Remove(id.Value);
+            _playerPartyPathMoveIds.Remove(id.Value);
             if (viewSpawner == null)
                 return;
             if (!viewSpawner.Registry.TryGet(id, out var view) || view == null)
@@ -351,62 +357,139 @@ namespace XianXia.Unity.Host
 
         bool OrderPartyToPoint(Vector3 point, PlayerCommandKind? arriveCommand, string arriveLocationId = null)
         {
-            if (selectionController == null || selectionController.State.Count == 0)
+            var active = ResolveActiveCharacter();
+            if (active.IsNone)
                 return false;
 
             ResumeTime();
             if (commandBridge != null)
-                commandBridge.IssueSelected(PlayerCommandKind.Stop, 0);
+                commandBridge.IssueOne(active, PlayerCommandKind.Stop, 0);
             else
-                StopSelectedViaPort();
+                StopActiveViaPort(active);
 
-            var count = selectionController.State.Count;
-            var moveIndex = 0;
-            var moveCount = 0;
-            var world = bootstrap?.Session?.World;
-            for (var i = 0; i < count; i++)
+            ClearHostMove(active);
+
+            if (OrderEntityToWorldPoint(active, point, arriveCommand, issueStop: false, arriveLocationId))
             {
-                var sid = selectionController.State.SelectedIds[i];
-                if (!selectionController.IsPartyUnit(sid))
-                    continue;
-                if (world != null &&
-                    world.Entities.TryGet(sid, out var ent) &&
-                    !CombatLifeStateService.CanFight(ent))
-                    continue;
-                moveCount++;
-                // Drop any in-flight Host path so an old waypoint cannot fight the new order.
-                ClearHostMove(sid);
+                _playerPartyPathMoveIds.Add(active.Value);
+                if (arriveCommand == null)
+                {
+                    NotifyMeleeDisengageForMove(active);
+                    NotifyDestructibleDisengageForMove(active);
+                    NotifyFarmLaborStopForMove(active);
+                }
+
+                return true;
             }
 
-            if (moveCount == 0)
-                return false;
+            return false;
+        }
 
-            var any = false;
-            for (var i = 0; i < count; i++)
+        EntityId ResolveActiveCharacter() =>
+            HostPlayerMoveCommandGate.ResolveActiveForWorldMove(
+                selectionController,
+                bootstrap?.Session?.PlayerParty);
+
+        void NotifyMeleeDisengageForMove(EntityId id)
+        {
+            var melee = bootstrap != null
+                ? bootstrap.GetComponent<HostNpcMeleeAssault>()
+                : GetComponent<HostNpcMeleeAssault>();
+            melee?.DisengageIfAttacker(id);
+        }
+
+        void NotifyDestructibleDisengageForMove(EntityId id)
+        {
+            var chop = bootstrap != null
+                ? bootstrap.GetComponent<HostDestructibleAssault>()
+                : GetComponent<HostDestructibleAssault>();
+            chop?.DisengageIfAttacker(id);
+        }
+
+        void NotifyFarmLaborStopForMove(EntityId id)
+        {
+            var farm = bootstrap != null
+                ? bootstrap.GetComponent<HostFarmFieldLabor>()
+                : GetComponent<HostFarmFieldLabor>();
+            farm?.Stop(id);
+        }
+
+        void StopActiveViaPort(EntityId active)
+        {
+            var session = bootstrap?.Session;
+            if (session?.Port == null || active.IsNone)
+                return;
+            session.Port.Submit(new PlayerCommandRequest(active, PlayerCommandKind.Stop, 0));
+        }
+
+        /// <summary>Direct WASD locomotion for Active only; cancels click-move path.</summary>
+        public void TickDirectWasdMove(EntityId id, Vector2 dir, float speed)
+        {
+            if (id.IsNone || dir.sqrMagnitude < 0.0001f || viewSpawner == null ||
+                !viewSpawner.Registry.TryGet(id, out var view) || view == null)
+                return;
+
+            if (bootstrap?.Session?.World != null &&
+                bootstrap.Session.World.Entities.TryGet(id, out var ent) &&
+                !CombatLifeStateService.CanFight(ent))
+                return;
+
+            ClearHostMove(id);
+            ResumeTime();
+
+            var dt = Time.deltaTime;
+            var pos = view.transform.position;
+            var dx = dir.x * speed * dt;
+            var dy = dir.y * speed * dt;
+
+            if (_walkGrid != null)
             {
-                var id = selectionController.State.SelectedIds[i];
-                if (!selectionController.IsPartyUnit(id))
-                    continue;
-                if (world != null &&
-                    world.Entities.TryGet(id, out var ent) &&
-                    !CombatLifeStateService.CanFight(ent))
-                    continue;
-                var offset = FormationOffset(moveIndex++, moveCount);
-                var goal = ResolveFormationGoal(point, offset);
-                if (OrderEntityToWorldPoint(id, goal, arriveCommand, issueStop: false, arriveLocationId))
-                    any = true;
-                else if (OrderEntityToWorldPoint(id, point, arriveCommand, issueStop: false, arriveLocationId))
-                    any = true;
+                TryAxisStep(view, ref pos, dx, 0f);
+                TryAxisStep(view, ref pos, 0f, dy);
+            }
+            else
+            {
+                pos.x += dx;
+                pos.y += dy;
             }
 
-            if (any && arriveCommand == null)
+            pos.z = HostPresentationSpace.EntityZ;
+            view.transform.position = pos;
+        }
+
+        void TryAxisStep(EntityView view, ref Vector3 pos, float dx, float dy)
+        {
+            if (Mathf.Abs(dx) < 0.00001f && Mathf.Abs(dy) < 0.00001f)
+                return;
+
+            var next = pos;
+            next.x += dx;
+            next.y += dy;
+            next.z = HostPresentationSpace.EntityZ;
+            if (_walkGrid.TryWorldToCell(next.x, next.y, out var gx, out var gy) &&
+                _walkGrid.IsWalkable(gx, gy))
             {
-                NotifyMeleeDisengageForPartyMove();
-                NotifyDestructibleDisengageForPartyMove();
-                NotifyFarmLaborStopForPartyMove();
+                pos = next;
+                return;
             }
 
-            return any;
+            if (Mathf.Abs(dx) > 0.00001f)
+            {
+                next = pos;
+                next.x += dx;
+                if (_walkGrid.TryWorldToCell(next.x, next.y, out gx, out gy) &&
+                    _walkGrid.IsWalkable(gx, gy))
+                    pos = next;
+            }
+
+            if (Mathf.Abs(dy) > 0.00001f)
+            {
+                next = pos;
+                next.y += dy;
+                if (_walkGrid.TryWorldToCell(next.x, next.y, out gx, out gy) &&
+                    _walkGrid.IsWalkable(gx, gy))
+                    pos = next;
+            }
         }
 
         void NotifyMeleeDisengageForPartyMove()
@@ -607,6 +690,7 @@ namespace XianXia.Unity.Host
                 view.SetActivityText(string.Empty);
                 var id = view.EntityId;
                 _movingIds.Remove(id.Value);
+                _playerPartyPathMoveIds.Remove(id.Value);
                 ClearPath(id);
                 SyncLocation(view);
                 if (_pendingNpcIntent.ContainsKey(id.Value))
@@ -942,6 +1026,7 @@ namespace XianXia.Unity.Host
             ClearPending(id);
             ClearPath(id);
             _movingIds.Remove(id.Value);
+            _playerPartyPathMoveIds.Remove(id.Value);
             if (viewSpawner != null &&
                 viewSpawner.Registry.TryGet(id, out var view) &&
                 view != null)

@@ -120,6 +120,9 @@ namespace XianXia.Unity.Host
 
         public HostMoveController MoveController => moveController;
 
+        public HostPlayerPartyController PlayerPartyController =>
+            GetComponent<HostPlayerPartyController>();
+
         public HostWorkTargetMode WorkTargetMode => workTargetMode;
 
         public HostContentInterruptPresenter ContentInterrupt => contentInterrupt;
@@ -623,6 +626,11 @@ namespace XianXia.Unity.Host
             var cam = Camera.main;
             selectionController.Bind(entityViewSpawner, cam);
             selectionController.SetPartyFilter(_session.CharacterIds);
+            if (_session.CharacterIds.Count > 0 && !_session.PlayerParty.HasActive)
+                _session.PlayerParty.TryInitialize(_session.CharacterIds[0], out _);
+            var playerPartyController = GetComponent<HostPlayerPartyController>() ??
+                                        gameObject.AddComponent<HostPlayerPartyController>();
+            playerPartyController.Bind(this);
             var housingSel = GetComponent<HostHousingAreaSelection>();
             if (housingSel != null)
                 housingSel.Bind(this, selectionController, cam);
@@ -648,7 +656,11 @@ namespace XianXia.Unity.Host
             if (vitalsBars != null)
                 vitalsBars.Bind(this);
             if (_session.CharacterIds.Count > 0)
-                selectionController.SelectEntity(_session.CharacterIds[0], false);
+            {
+                if (!_session.PlayerParty.HasActive)
+                    _session.PlayerParty.TryInitialize(_session.CharacterIds[0], out _);
+                selectionController.SelectEntity(_session.PlayerParty.ActiveCharacterId, false);
+            }
             feedbackOverlay.Bind(cam);
             commandBridge.Bind(_session, selectionController, feedbackOverlay);
             var workLoop = GetComponent<HostWorkLoop>();

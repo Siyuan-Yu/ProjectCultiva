@@ -61,8 +61,20 @@ namespace XianXia.Unity.Host
 
         public static bool TryPickDestructible(Vector3 worldPoint, float radius, out HostMapDestructible target)
         {
+            return TryFindNearestDestructible(worldPoint, radius, out target);
+        }
+
+        /// <summary>Nearest destructible within radius; optional tree-only filter.</summary>
+        public static bool TryFindNearestDestructible(
+            Vector3 worldPoint,
+            float maxRadius,
+            out HostMapDestructible target,
+            bool treesOnly = false,
+            HostMapDestructible exclude = null)
+        {
             target = null;
-            var best = radius * radius;
+            var best = maxRadius * maxRadius;
+            var excludeId = exclude != null ? exclude.GetInstanceID() : 0;
             for (var i = Destructibles.Count - 1; i >= 0; i--)
             {
                 var d = Destructibles[i];
@@ -71,6 +83,11 @@ namespace XianXia.Unity.Host
                     Destructibles.RemoveAt(i);
                     continue;
                 }
+
+                if (treesOnly && !d.IsTree)
+                    continue;
+                if (excludeId != 0 && d.GetInstanceID() == excludeId)
+                    continue;
 
                 var d2 = (d.transform.position - worldPoint).sqrMagnitude;
                 if (d2 > best)

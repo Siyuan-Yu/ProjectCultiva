@@ -5,8 +5,8 @@ using XianXia.Core.Domain.Ids;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// RTS path lines for player party — like classic RTS:
-    /// ghost while RMB aiming; active route only for currently selected units.
+    /// Player move route preview — only for ActiveControlledCharacter (Phase 1).
+    /// View selection may include others; preview follows Command Authority only.
     /// </summary>
     public sealed class HostPartyPathPreview : MonoBehaviour
     {
@@ -21,7 +21,6 @@ namespace XianXia.Unity.Host
         Transform _root;
         readonly List<LineRenderer> _pool = new List<LineRenderer>(8);
         readonly List<Vector3> _scratch = new List<Vector3>(64);
-        readonly List<EntityId> _partyScratch = new List<EntityId>(8);
         static Material _sharedMaterial;
         int _used;
 
@@ -62,8 +61,8 @@ namespace XianXia.Unity.Host
             if (worldCamera == null)
                 worldCamera = Camera.main;
 
-            CollectSelectedParty(_partyScratch);
-            if (_partyScratch.Count == 0)
+            var active = ResolveActiveForPreview();
+            if (active.IsNone)
             {
                 HideUnused();
                 return;
@@ -74,34 +73,26 @@ namespace XianXia.Unity.Host
                 worldCamera != null &&
                 HostPresentationSpace.TryRaycastPlane(worldCamera, Input.mousePosition, out var click))
             {
-                var moveCount = _partyScratch.Count;
-                for (var i = 0; i < moveCount; i++)
+                if (TryGetViewPos(active, out var from) &&
+                    moveController.TryBuildPathPreview(from, click, _scratch) &&
+                    _scratch.Count >= 2)
                 {
-                    var id = _partyScratch[i];
-                    if (!TryGetViewPos(id, out var from))
-                        continue;
-                    var goal = moveController.PreviewFormationGoal(click, i, moveCount);
-                    if (!moveController.TryBuildPathPreview(from, goal, _scratch) &&
-                        !moveController.TryBuildPathPreview(from, click, _scratch))
-                        continue;
-                    if (_scratch.Count < 2)
-                        continue;
                     DrawPolyline(_scratch, cursorPreviewColor, taper: true);
                 }
             }
-            else
+            else if (moveController.IsPlayerPartyPathMoving(active) &&
+                     moveController.TryGetRemainingPath(active, _scratch))
             {
-                // Selected only: show current ordered route while walking (standard RTS).
-                for (var i = 0; i < _partyScratch.Count; i++)
-                {
-                    var id = _partyScratch[i];
-                    if (moveController.TryGetRemainingPath(id, _scratch))
-                        DrawPolyline(_scratch, activePathColor, taper: true);
-                }
+                DrawPolyline(_scratch, activePathColor, taper: true);
             }
 
             HideUnused();
         }
+
+        EntityId ResolveActiveForPreview() =>
+            HostPlayerMoveCommandGate.ResolveActiveForWorldMove(
+                selectionController,
+                bootstrap?.Session?.PlayerParty);
 
         bool IsAimingMoveOrder()
         {
@@ -122,6 +113,11 @@ namespace XianXia.Unity.Host
             if (menu != null && menu.IsOpen)
                 return false;
 
+            if (!HostPlayerMoveCommandGate.IsActiveCommandContext(
+                    selectionController,
+                    bootstrap?.Session?.PlayerParty))
+                return false;
+
             return true;
         }
 
@@ -134,18 +130,6 @@ namespace XianXia.Unity.Host
             if (bootstrap.Session.World.ContentEvents.HasActive)
                 return false;
             return true;
-        }
-
-        void CollectSelectedParty(List<EntityId> into)
-        {
-            into.Clear();
-            var state = selectionController.State;
-            for (var i = 0; i < state.Count; i++)
-            {
-                var id = state.SelectedIds[i];
-                if (selectionController.IsPartyUnit(id))
-                    into.Add(id);
-            }
         }
 
         bool TryGetViewPos(EntityId id, out Vector3 pos)

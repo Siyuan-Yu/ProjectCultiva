@@ -6,6 +6,7 @@ using XianXia.Core.Input;
 using XianXia.Core.Results;
 using XianXia.Core.Exploration;
 using XianXia.Core.Settlement;
+using XianXia.Core.World;
 
 namespace XianXia.Unity.Host
 {
@@ -510,11 +511,18 @@ namespace XianXia.Unity.Host
                 return 0;
             }
 
+            var active = ResolveActiveCharacter();
             var allowed = BuildAllowedSet(_session.CharacterIds);
             for (var i = 0; i < targets.Count; i++)
             {
                 var id = targets[i];
                 if (id.IsNone || !allowed.Contains(id.Value))
+                {
+                    _lastFailureCount++;
+                    continue;
+                }
+
+                if (!active.IsNone && id != active)
                 {
                     _lastFailureCount++;
                     continue;
@@ -534,7 +542,7 @@ namespace XianXia.Unity.Host
             return _lastSuccessCount;
         }
 
-        /// <summary>Issue labor-style command to selected Characters only.</summary>
+        /// <summary>Issue labor-style command to Active Character only (Phase 1 RPG-First).</summary>
         public int IssueSelected(PlayerCommandKind kind, ulong durationTicks = DefaultDurationTicks)
         {
             if (kind == PlayerCommandKind.Help ||
@@ -542,15 +550,16 @@ namespace XianXia.Unity.Host
                 kind == PlayerCommandKind.Recruit)
                 return IssueSocial(kind) ? 1 : 0;
 
-            if (selectionController == null)
+            var active = ResolveActiveCharacter();
+            if (active.IsNone)
             {
-                _lastStatus = "No selection controller";
+                _lastStatus = "No active character";
                 _lastSuccessCount = 0;
                 _lastFailureCount = 0;
                 return 0;
             }
 
-            return IssueTo(selectionController.State.SelectedIds, kind, ResolveDuration(kind, durationTicks));
+            return IssueTo(new[] { active }, kind, ResolveDuration(kind, durationTicks));
         }
 
         /// <summary>ACS 角色面板：只对单个焦点角色下令（不是全选）。</summary>
@@ -559,6 +568,16 @@ namespace XianXia.Unity.Host
             if (subject.IsNone)
             {
                 _lastStatus = "IssueOne: empty subject";
+                _lastSuccessCount = 0;
+                _lastFailureCount = 1;
+                return 0;
+            }
+
+            var active = ResolveActiveCharacter();
+            var utility = kind == PlayerCommandKind.Stop || kind == PlayerCommandKind.UseConcealGrass;
+            if (!utility && !active.IsNone && subject != active)
+            {
+                _lastStatus = "IssueOne: not active character";
                 _lastSuccessCount = 0;
                 _lastFailureCount = 1;
                 return 0;
@@ -767,6 +786,10 @@ namespace XianXia.Unity.Host
 
         EntityId ResolveContentSubject()
         {
+            var active = ResolveActiveCharacter();
+            if (!active.IsNone)
+                return active;
+
             if (selectionController != null)
             {
                 var selected = selectionController.State.SelectedIds;
@@ -869,6 +892,7 @@ namespace XianXia.Unity.Host
             }
 
             var allowed = BuildAllowedSet(_session.CharacterIds);
+            var active = ResolveActiveCharacter();
             for (var i = 0; i < targets.Count; i++)
             {
                 var id = targets[i];
@@ -876,6 +900,12 @@ namespace XianXia.Unity.Host
                 {
                     _lastFailureCount++;
                     Debug.LogWarning("[HostCommand] Skip non-controllable entity: " + id, this);
+                    continue;
+                }
+
+                if (!utility && !active.IsNone && id != active)
+                {
+                    _lastFailureCount++;
                     continue;
                 }
 
@@ -1060,5 +1090,23 @@ namespace XianXia.Unity.Host
 
         static string FormatError(Result result) =>
             result.IsFailure ? result.Error.ToString() : "ok";
+
+        EntityId ResolveActiveCharacter()
+        {
+            if (_session?.PlayerParty != null && !_session.PlayerParty.ActiveCharacterId.IsNone)
+                return _session.PlayerParty.ActiveCharacterId;
+
+            if (selectionController == null || selectionController.State.Count == 0)
+                return EntityId.None;
+
+            for (var i = 0; i < selectionController.State.Count; i++)
+            {
+                var id = selectionController.State.SelectedIds[i];
+                if (selectionController.IsPartyUnit(id))
+                    return id;
+            }
+
+            return EntityId.None;
+        }
     }
 }
