@@ -1,9 +1,21 @@
-# 开发日志
+﻿# 开发日志
 
 > **倒序追加：最新的记录写在最上面。**
 > 这是项目的历史记录，用于跨设备/跨时间恢复上下文，以及交接给他人时说明"为什么代码长这样"。
 >
 > 每次有实质进展就追加一条。宁可短，不可漏。
+
+---
+
+## 2026-08-25 — Phase 2A 人工验收封板
+
+**做了什么**
+- 制作人确认 Phase 2A 手操通过：PresenceHex／Character World Presence／青石荒村 Multi-Hex／Background 不画 WorldMap 头像
+- 代码真源：`18600af`（feat）／`8d49bf4`（docs note）
+- 本条仅文档封板；**不 push**；不混入 Phase 2B
+
+**状态**
+- Phase 2A **封板**；下一阶段 Phase 2B（PlayerParty World Travel MVP + 30×15 测试世界 + Wilderness Fallback）
 
 ---
 
