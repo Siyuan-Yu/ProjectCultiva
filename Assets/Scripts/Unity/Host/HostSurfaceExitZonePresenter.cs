@@ -31,6 +31,7 @@ namespace XianXia.Unity.Host
 
         public int VisibleZoneCount { get; private set; }
         public float CachedExitTriggerDepth => _cachedDepth;
+        public string CachedMapLayoutId => _cachedMapId;
 
         public void Bind(PlayableHostBootstrap host) => bootstrap = host;
 

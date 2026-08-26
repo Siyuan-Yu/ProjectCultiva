@@ -707,8 +707,6 @@ namespace XianXia.Unity.Host
             inventoryPanel.Bind(this);
             if (interactSpotPresenter != null)
                 interactSpotPresenter.Bind(this);
-            if (surfaceExitZonePresenter != null)
-                surfaceExitZonePresenter.Bind(this);
             if (worldMapPanel != null)
                 worldMapPanel.Bind(this);
             if (manualLearnPrompt != null)
@@ -738,6 +736,7 @@ namespace XianXia.Unity.Host
                 cam);
             npcScheduleMover.Bind(this, moveController, entityViewSpawner);
             snapshotPanel.Bind(this);
+            ActivateSurfaceLocalMapPresentation();
             // Bootstrap already published WorldInitialized／EntityCreated capture once.
             DispatchDrainedEvents();
             FrameCameraOnSlots();
@@ -796,6 +795,11 @@ namespace XianXia.Unity.Host
             eventFeed.Clear();
             DispatchDrainedEvents();
             FrameCameraOnSlots();
+            if (mapGraybox != null)
+                mapGraybox.Rebuild(_session);
+            if (moveController != null)
+                moveController.SetWalkGrid(ResolveWalkGrid());
+            ActivateSurfaceLocalMapPresentation();
             _autoTickAccumulator = 0f;
             RefreshStatus();
         }
@@ -881,8 +885,7 @@ namespace XianXia.Unity.Host
                 interactSpotPresenter.Rebuild();
             if (moveController != null)
                 moveController.SetWalkGrid(ResolveWalkGrid());
-            if (surfaceExitZonePresenter != null)
-                surfaceExitZonePresenter.Rebuild();
+            ActivateSurfaceLocalMapPresentation();
             if (frameCamera)
                 FrameCameraOnSlots();
             RefreshStatus();
@@ -1170,7 +1173,7 @@ namespace XianXia.Unity.Host
             }
 
             TryFrameCameraOnParty();
-            RefreshSurfaceExitZones();
+            ActivateSurfaceLocalMapPresentation();
         }
 
         void PlaceLegacyFocusCharactersOnLocalMap(SimulationWorld world, bool onEncounterMap)
@@ -1329,16 +1332,32 @@ namespace XianXia.Unity.Host
                 interactSpotPresenter.Rebuild();
         }
 
-        /// <summary>Surface Exit Zone 与 WalkGrid 对齐后强制刷新（Expand 末尾保险）。</summary>
-        public void RefreshSurfaceExitZones()
+        /// <summary>
+        /// Surface LocalMap 正式激活后：同步 ExitTriggerDepth 并 Bind Exit Zone Presentation。
+        /// 所有进入 Surface 图的路径（开局／Load／Expand／Reload）必须调用；Interior 自动 Clear。
+        /// </summary>
+        public void ActivateSurfaceLocalMapPresentation()
         {
+            if (!_session.IsInitialized)
+                return;
+
             if (surfaceExitZonePresenter == null)
                 surfaceExitZonePresenter = GetComponent<HostSurfaceExitZonePresenter>() ??
                                           gameObject.AddComponent<HostSurfaceExitZonePresenter>();
+
+            if (!SurfaceExitZoneCalculator.ShouldPresent(_session.World))
+            {
+                surfaceExitZonePresenter.Clear();
+                return;
+            }
+
             SyncExitTriggerDepthFromActiveMap();
             surfaceExitZonePresenter.Bind(this);
             surfaceExitZonePresenter.Rebuild();
         }
+
+        /// <summary>Surface Exit Zone 与 WalkGrid 对齐后强制刷新（Expand 末尾保险）。</summary>
+        public void RefreshSurfaceExitZones() => ActivateSurfaceLocalMapPresentation();
 
         public void StepTick()
         {
