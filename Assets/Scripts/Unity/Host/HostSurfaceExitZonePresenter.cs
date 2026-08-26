@@ -70,8 +70,7 @@ namespace XianXia.Unity.Host
             {
                 var z = _zones[i];
                 _rects.Clear();
-                SurfaceExitZoneCalculator.AppendCoverageRects(
-                    bounds, depth, z.DirectionIndex, _rects);
+                SurfaceExitZoneCalculator.AppendConnectionCoverageRects(z.Connection, _rects);
                 for (var r = 0; r < _rects.Count; r++)
                     SpawnRect(_rects[r], z.DirectionIndex, r, fillMat, filled: true);
             }

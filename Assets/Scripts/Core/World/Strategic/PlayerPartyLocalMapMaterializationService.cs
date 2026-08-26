@@ -79,9 +79,20 @@ namespace XianXia.Core.World.Strategic
                     !WildernessLocalWorldProjection.IsInSafeInterior(
                         px, pz, wildernessPlayableBounds.Value))
                 {
-                    var entryDir = WildernessLocalWorldProjection.OppositeDirection(gate.LastExitDirection);
+                    var currentHex = motion.CurrentHex;
+                    var cameFromHex = HexMath.Neighbor(
+                        currentHex,
+                        WildernessLocalWorldProjection.OppositeDirection(gate.LastExitDirection));
+                    var depth = SurfaceExitZoneCalculator.ResolveDepthFromSession(
+                        world, wildernessPlayableBounds.Value);
                     WildernessLocalWorldProjection.GetLocalPositionNearEdge(
-                        wildernessPlayableBounds.Value, entryDir, out px, out pz);
+                        wildernessPlayableBounds.Value,
+                        currentHex,
+                        cameFromHex,
+                        hexSize,
+                        depth,
+                        out px,
+                        out pz);
                 }
             }
             else

@@ -240,8 +240,8 @@ namespace XianXia.Unity.Host
             var proposedY = pos.y + dir.y * speed * dt;
 
             // Canonical Exit Trigger：Zone 内 + 向外；进入 Zone 本身不触发。
-            if (!WildernessLocalWorldProjection.TryResolveExitTriggerIntent(
-                    pos.x, pos.y, proposedX, proposedY, bounds, depth, out var edgeDir))
+            if (!WildernessLocalWorldProjection.TryResolveExitTriggerConnection(
+                    world, pos.x, pos.y, proposedX, proposedY, bounds, depth, out var edgeConnection))
             {
                 // WalkGrid 出界但尚无正式 intent：用上一帧 Local（若有）再判一次。
                 var grid = _move != null ? _move.WalkGrid : null;
@@ -249,13 +249,13 @@ namespace XianXia.Unity.Host
                                      !grid.TryWorldToCell(proposedX, proposedY, out _, out _);
                 if (!leavesWalkGrid)
                     return false;
-                if (!WildernessLocalWorldProjection.TryResolveExitTriggerIntent(
-                        pos.x, pos.y, proposedX, proposedY, bounds, depth, out edgeDir))
+                if (!WildernessLocalWorldProjection.TryResolveExitTriggerConnection(
+                        world, pos.x, pos.y, proposedX, proposedY, bounds, depth, out edgeConnection))
                     return false;
             }
 
             var cross = PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
-                world, party, edgeDir);
+                world, party, edgeConnection);
             if (!cross.IsSuccess)
                 return false;
 
@@ -319,11 +319,11 @@ namespace XianXia.Unity.Host
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite)
             {
                 if (hasPrev &&
-                    WildernessLocalWorldProjection.TryResolveExitTriggerIntent(
-                        prevX, prevY, localX, localY, bounds, depth, out var siteDir))
+                    WildernessLocalWorldProjection.TryResolveExitTriggerConnection(
+                        world, prevX, prevY, localX, localY, bounds, depth, out var siteConnection))
                 {
                     var exit = PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
-                        world, party, siteDir);
+                        world, party, siteConnection);
                     if (exit.IsSuccess)
                     {
                         bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
@@ -346,11 +346,11 @@ namespace XianXia.Unity.Host
                 world, localX, localY, bounds);
 
             if (hasPrev &&
-                WildernessLocalWorldProjection.TryResolveExitTriggerIntent(
-                    prevX, prevY, localX, localY, bounds, depth, out var dir))
+                WildernessLocalWorldProjection.TryResolveExitTriggerConnection(
+                    world, prevX, prevY, localX, localY, bounds, depth, out var connection))
             {
                 var cross = PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
-                    world, party, dir);
+                    world, party, connection);
                 if (cross.IsSuccess)
                 {
                     bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);

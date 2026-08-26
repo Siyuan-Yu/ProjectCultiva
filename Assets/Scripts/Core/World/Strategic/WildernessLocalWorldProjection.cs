@@ -1,4 +1,5 @@
 using System;
+using XianXia.Core.Simulation;
 using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
@@ -208,6 +209,7 @@ namespace XianXia.Core.World.Strategic
         /// 或 playable bounds Inside→Outside。进入 Zone 本身不触发。
         /// </summary>
         public static bool TryResolveExitTriggerIntent(
+            SimulationWorld world,
             float fromX,
             float fromY,
             float toX,
@@ -217,6 +219,24 @@ namespace XianXia.Core.World.Strategic
             out int directionIndex)
         {
             directionIndex = 0;
+            if (!TryResolveExitTriggerConnection(
+                    world, fromX, fromY, toX, toY, bounds, exitTriggerDepth, out var connection))
+                return false;
+            directionIndex = connection.DirectionIndex;
+            return true;
+        }
+
+        public static bool TryResolveExitTriggerConnection(
+            SimulationWorld world,
+            float fromX,
+            float fromY,
+            float toX,
+            float toY,
+            WildernessLocalMapBounds bounds,
+            float exitTriggerDepth,
+            out SurfaceExitConnection connection)
+        {
+            connection = default;
             var moveX = toX - fromX;
             var moveY = toY - fromY;
             if (moveX * moveX + moveY * moveY < 1e-12f)
@@ -228,13 +248,15 @@ namespace XianXia.Core.World.Strategic
                 return false;
 
             if (!fromOutside && toOutside)
-                return TryClassifyExitTriggerDirection(
-                    toX, toY, bounds, exitTriggerDepth, out directionIndex);
+                return SurfaceExitZoneCalculator.TryGetConnectionAtPoint(
+                    world, fromX, fromY, bounds, exitTriggerDepth, out connection);
 
-            var depth = SurfaceExitZoneCalculator.NormalizeDepth(exitTriggerDepth, bounds);
-            if (!IsInExitTriggerBand(fromX, fromY, bounds, depth))
+            if (!SurfaceExitZoneCalculator.TryGetConnectionAtPoint(
+                    world, fromX, fromY, bounds, exitTriggerDepth, out _))
                 return false;
-            if (!toOutside && !IsInExitTriggerBand(toX, toY, bounds, depth))
+            if (!toOutside &&
+                !SurfaceExitZoneCalculator.TryGetConnectionAtPoint(
+                    world, toX, toY, bounds, exitTriggerDepth, out _))
                 return false;
 
             var fromCx = fromX - bounds.CenterX;
@@ -242,12 +264,13 @@ namespace XianXia.Core.World.Strategic
             if (fromCx * moveX + fromCy * moveY <= 0f)
                 return false;
 
-            return TryClassifyExitTriggerDirection(
-                toX, toY, bounds, exitTriggerDepth, out directionIndex);
+            return SurfaceExitZoneCalculator.TryGetConnectionAtPoint(
+                world, fromX, fromY, bounds, exitTriggerDepth, out connection);
         }
 
-        /// <summary>Exit Trigger Band（或界外）上的方向分类。</summary>
+        /// <summary>Canonical Exit Slot 上的方向分类。</summary>
         public static bool TryClassifyExitTriggerDirection(
+            SimulationWorld world,
             float localX,
             float localY,
             WildernessLocalMapBounds bounds,
@@ -255,21 +278,17 @@ namespace XianXia.Core.World.Strategic
             out int directionIndex)
         {
             directionIndex = 0;
-            var depth = SurfaceExitZoneCalculator.NormalizeDepth(exitTriggerDepth, bounds);
-            var outside = IsOutsideBounds(localX, localY, bounds);
-            if (!outside && !IsInExitTriggerBand(localX, localY, bounds, depth))
+            if (SurfaceExitZoneCalculator.TryClassifyConnectionAtPoint(
+                    world, localX, localY, bounds, exitTriggerDepth, out directionIndex))
+                return true;
+
+            if (!IsOutsideBounds(localX, localY, bounds))
                 return false;
 
-            var dx = localX - bounds.CenterX;
-            var dy = localY - bounds.CenterY;
-            if (Math.Abs(dx) < 0.0001f && Math.Abs(dy) < 0.0001f)
-            {
-                directionIndex = 0;
-                return true;
-            }
-
-            directionIndex = AngleToDirection((float)Math.Atan2(dy, dx));
-            return true;
+            var cx = Clamp(localX, bounds.MinX, bounds.MaxX);
+            var cy = Clamp(localY, bounds.MinY, bounds.MaxY);
+            return SurfaceExitZoneCalculator.TryClassifyConnectionAtPoint(
+                world, cx, cy, bounds, exitTriggerDepth, out directionIndex);
         }
 
         public static bool IsOutsideBounds(
@@ -308,28 +327,71 @@ namespace XianXia.Core.World.Strategic
             return true;
         }
 
-        /// <summary>进入邻格后，在 LocalMap 对侧边缘内侧落点（明确 Interior Inset，避开近缘带）。</summary>
+        /// <summary>进入邻格后，沿 cameFrom→entering 真实世界方向在 perimeter 内侧落点。</summary>
+        public static void GetLocalPositionNearEdge(
+            WildernessLocalMapBounds bounds,
+            HexCoord enteringHex,
+            HexCoord cameFromHex,
+            float hexSize,
+            float exitTriggerDepth,
+            out float localX,
+            out float localY)
+        {
+            localX = bounds.CenterX;
+            localY = bounds.CenterY;
+            var depth = SurfaceExitZoneCalculator.NormalizeDepth(exitTriggerDepth, bounds);
+            if (LocalMapHexDirectionProjection.TryGetEntryPositionNearEdge(
+                    bounds,
+                    enteringHex,
+                    cameFromHex,
+                    hexSize,
+                    depth,
+                    SurfaceExitZoneCalculator.DefaultSlotSpanFraction,
+                    out localX,
+                    out localY))
+                return;
+
+            var entryDir = ResolveDirectionIndexBetween(enteringHex, cameFromHex);
+            GetLocalPositionNearEdgeLegacy(bounds, entryDir, out localX, out localY);
+        }
+
+        /// <summary>兼容：以 reference hex (0,0) 的轴向方向近似 entry 边。</summary>
         public static void GetLocalPositionNearEdge(
             WildernessLocalMapBounds bounds,
             int entryDirectionIndex,
             out float localX,
             out float localY)
         {
-            var dir = NormalizeDirection(entryDirectionIndex);
-            var angle = DirectionAngles[dir];
-            var cos = (float)Math.Cos(angle);
-            var sin = (float)Math.Sin(angle);
-            var edgeDist = RayDistanceToBounds(bounds, cos, sin);
-            // 比近缘带宽更深：避免 Spawn 后立刻被 Classify 为仍在跨边。
-            var inset = Math.Max(
-                Math.Max(NearEdgeMarginX(bounds), NearEdgeMarginY(bounds)) * 1.5f,
-                Math.Min(bounds.HalfWidth, bounds.HalfHeight) * 0.22f);
-            var t = Math.Max(0f, edgeDist - inset);
-            localX = bounds.CenterX + cos * t;
-            localY = bounds.CenterY + sin * t;
-            // 钳制进 playable 内（绝不生成在界外）。
-            localX = Clamp(localX, bounds.MinX + 0.01f, bounds.MaxX - 0.01f);
-            localY = Clamp(localY, bounds.MinY + 0.01f, bounds.MaxY - 0.01f);
+            GetLocalPositionNearEdgeLegacy(bounds, entryDirectionIndex, out localX, out localY);
+        }
+
+        static void GetLocalPositionNearEdgeLegacy(
+            WildernessLocalMapBounds bounds,
+            int entryDirectionIndex,
+            out float localX,
+            out float localY)
+        {
+            var entering = new HexCoord(0, 0);
+            var cameFrom = HexMath.Neighbor(entering, NormalizeDirection(entryDirectionIndex));
+            GetLocalPositionNearEdge(
+                bounds,
+                entering,
+                cameFrom,
+                1f,
+                SurfaceExitZoneCalculator.DefaultExitTriggerDepth,
+                out localX,
+                out localY);
+        }
+
+        static int ResolveDirectionIndexBetween(HexCoord fromHex, HexCoord toHex)
+        {
+            for (var i = 0; i < 6; i++)
+            {
+                if (HexMath.Neighbor(fromHex, i).Equals(toHex))
+                    return i;
+            }
+
+            return 0;
         }
 
         /// <summary>
@@ -456,34 +518,7 @@ namespace XianXia.Core.World.Strategic
             return Math.Abs(diff);
         }
 
-        static float RayDistanceToBounds(WildernessLocalMapBounds bounds, float dirX, float dirY)
-        {
-            var tx = float.PositiveInfinity;
-            var ty = float.PositiveInfinity;
-            if (Math.Abs(dirX) > 0.0001f)
-            {
-                var toMax = (bounds.MaxX - bounds.CenterX) / dirX;
-                var toMin = (bounds.MinX - bounds.CenterX) / dirX;
-                if (toMax > 0f)
-                    tx = Math.Min(tx, toMax);
-                if (toMin > 0f)
-                    tx = Math.Min(tx, toMin);
-            }
-
-            if (Math.Abs(dirY) > 0.0001f)
-            {
-                var toMax = (bounds.MaxY - bounds.CenterY) / dirY;
-                var toMin = (bounds.MinY - bounds.CenterY) / dirY;
-                if (toMax > 0f)
-                    ty = Math.Min(ty, toMax);
-                if (toMin > 0f)
-                    ty = Math.Min(ty, toMin);
-            }
-
-            var t = Math.Min(tx, ty);
-            if (!float.IsFinite(t) || t <= 0f)
-                return Math.Min(bounds.HalfWidth, bounds.HalfHeight);
-            return t;
-        }
+        static float RayDistanceToBounds(WildernessLocalMapBounds bounds, float dirX, float dirY) =>
+            LocalMapHexDirectionProjection.RayDistanceToBounds(bounds, dirX, dirY);
     }
 }

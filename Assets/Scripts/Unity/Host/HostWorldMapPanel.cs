@@ -4251,7 +4251,10 @@ namespace XianXia.Unity.Host
             sb.Append("WorldSite：").Append(siteName).Append('\n');
             sb.Append("WorldSiteId：").Append(site.SiteId).Append("\n\n");
             sb.Append("AnchorHex：").Append(site.AnchorHex).Append('\n');
-            sb.Append("Footprint Count：").Append(footprintCount).Append("\n\n");
+            sb.Append("Footprint Count：").Append(footprintCount).Append("\n");
+            var outsideCount = WorldSiteFootprintExitConnectionResolver.CountUniqueTraversableOutsideNeighbors(
+                world, site);
+            sb.Append("Surface Exit Connections：").Append(outsideCount).Append("\n\n");
             sb.Append("Footprint Hexes：\n");
             foreach (var hex in site.EnumerateFootprintHexes())
                 sb.Append(hex).Append('\n');

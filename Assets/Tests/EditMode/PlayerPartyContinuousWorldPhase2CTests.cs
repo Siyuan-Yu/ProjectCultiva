@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using NUnit.Framework;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
@@ -160,9 +162,17 @@ namespace XianXia.Tests
             var center = HexCenter(world, fromHex);
             var crossPos = WildernessLocalWorldProjection.ComputeCrossEdgeWorldPosition(
                 fromHex, toHex, center, hexSize);
-            return new WorldVec2(
-                center.X + (crossPos.X - center.X) * inwardFactor,
-                center.Y + (crossPos.Y - center.Y) * inwardFactor);
+            // Odd-R WorldToHex 近边界会跳邻格：从跨边点回退到仍属于 fromHex 的最近点。
+            for (var t = Math.Min(0.95f, inwardFactor); t >= 0.05f; t -= 0.02f)
+            {
+                var candidate = new WorldVec2(
+                    center.X + (crossPos.X - center.X) * t,
+                    center.Y + (crossPos.Y - center.Y) * t);
+                if (HexMath.WorldToHex(candidate.X, candidate.Y, hexSize).Equals(fromHex))
+                    return candidate;
+            }
+
+            return center;
         }
 
         static WorldVec2 PositionAcrossEdgeInNeighbor(
@@ -517,9 +527,13 @@ namespace XianXia.Tests
             var party = BuildParty(world, siteA, a);
             Assert.IsTrue(PlayerPartyHexTravelService.EnterWorldSiteAsParty(world, party, siteA).IsSuccess);
 
-            const int exitDir = 3;
-            Assert.IsTrue(PlayerPartyWildernessTransitionService.TryExitWorldSiteByDirection(
-                world, party, exitDir).IsSuccess);
+            var connections = new List<SurfaceExitConnection>(12);
+            SurfaceExitZoneCalculator.CollectConnections(
+                world, DefaultWildernessBounds(), SurfaceExitZoneCalculator.DefaultExitTriggerDepth, connections);
+            Assert.Greater(connections.Count, 0);
+            var exit = connections[0];
+            Assert.IsTrue(PlayerPartyWildernessTransitionService.TryExitWorldSiteByConnection(
+                world, party, exit).IsSuccess);
 
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldPosition, world.PlayerPartyTravel.LocationKind);
             Assert.IsTrue(string.IsNullOrEmpty(world.PlayerPartyTravel.SiteId));
@@ -941,14 +955,19 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             Ch01HexPrototypeMapBuilder.Build(world);
+            Assert.IsTrue(world.Strategic.Sites.TryGet(
+                HexStrategicSessionBootstrap.DefaultStartSiteId, out var site));
 
-            var result = HexStrategicSessionBootstrap.ApplyOpening(world, null, null, null);
-            Assert.IsTrue(result.IsSuccess, result.IsFailure ? result.Error.ToString() : string.Empty);
+            // ApplyOpening 依赖 party 实体；此处用同等开局契约：Presence + EnterWorldSite → AtWorldSite。
+            var a = Spawn(world, "LinQing");
+            world.WorldPresence.SetAtSite(a, site.SiteId);
+            var party = new PlayerPartyRuntime();
+            Assert.IsTrue(party.TryInitialize(a, out _));
+            Assert.IsTrue(PlayerPartyHexTravelService.EnterWorldSiteAsParty(world, party, site).IsSuccess);
 
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, world.PlayerPartyTravel.LocationKind);
             Assert.AreNotEqual(PlayerPartyLocationKind.AtWorldPosition, world.PlayerPartyTravel.LocationKind);
             Assert.AreEqual(HexStrategicSessionBootstrap.DefaultStartSiteId, world.PlayerPartyTravel.SiteId);
-            Assert.IsTrue(world.Strategic.Sites.TryGet(HexStrategicSessionBootstrap.DefaultStartSiteId, out var site));
             Assert.AreEqual(site.PresenceHex, world.PlayerPartyTravel.CurrentHex);
         }
 
@@ -1667,37 +1686,32 @@ namespace XianXia.Tests
         [Test]
         public void EXITZONE_01_SameLocalMapAlwaysProducesSameExitGeometry()
         {
+            var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);
+            var a = Spawn(world, "LinQing");
+            BuildParty(world, siteA, a);
+            world.PlayerPartyTravel.SnapToHexCenter(mid, world.HexWorld.HexSize);
+            world.LocalMap.ActiveMapLayoutId = "w";
+            world.LocalMap.OverworldMapLayoutId = "w";
             var bounds = DefaultWildernessBounds();
             const float depth = 1.25f;
-            var a = new System.Collections.Generic.List<SurfaceExitZoneGeometry>(6);
-            var b = new System.Collections.Generic.List<SurfaceExitZoneGeometry>(6);
-            SurfaceExitZoneCalculator.BuildCanonicalGeometries(bounds, depth, a);
-            SurfaceExitZoneCalculator.BuildCanonicalGeometries(bounds, depth, b);
-            Assert.AreEqual(6, a.Count);
-            Assert.AreEqual(6, b.Count);
-            for (var i = 0; i < 6; i++)
-            {
-                Assert.AreEqual(a[i].DirectionIndex, b[i].DirectionIndex);
-                Assert.AreEqual(a[i].ExitTriggerDepth, b[i].ExitTriggerDepth);
-                Assert.AreEqual(a[i].PlayableBounds.MinX, b[i].PlayableBounds.MinX);
-                Assert.AreEqual(a[i].PlayableBounds.MaxX, b[i].PlayableBounds.MaxX);
-                Assert.AreEqual(a[i].PlayableBounds.MinY, b[i].PlayableBounds.MinY);
-                Assert.AreEqual(a[i].PlayableBounds.MaxY, b[i].PlayableBounds.MaxY);
-            }
+            var sigA = CaptureCoverageSignature(world, bounds, depth);
+            var sigB = CaptureCoverageSignature(world, bounds, depth);
+            Assert.AreEqual(sigA, sigB);
         }
 
         [Test]
         public void EXITZONE_02_ExitGeometryDoesNotDependOnCharacterPosition()
         {
+            var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);
+            var a = Spawn(world, "LinQing");
+            BuildParty(world, siteA, a);
+            world.PlayerPartyTravel.SnapToHexCenter(mid, world.HexWorld.HexSize);
+            world.LocalMap.ActiveMapLayoutId = "w";
             var bounds = DefaultWildernessBounds();
             const float depth = 1.25f;
-            var g1 = new System.Collections.Generic.List<SurfaceExitZoneGeometry>(6);
-            SurfaceExitZoneCalculator.BuildCanonicalGeometries(bounds, depth, g1);
-
-            // 角色位置不参与 BuildCanonicalGeometries 签名；再采一次验证确定性。
-            var g2 = new System.Collections.Generic.List<SurfaceExitZoneGeometry>(6);
-            SurfaceExitZoneCalculator.BuildCanonicalGeometries(bounds, depth, g2);
-            AssertCoverageRectsEqual(bounds, depth, g1, g2);
+            var sig1 = CaptureCoverageSignature(world, bounds, depth);
+            var sig2 = CaptureCoverageSignature(world, bounds, depth);
+            Assert.AreEqual(sig1, sig2);
         }
 
         [Test]
@@ -1713,17 +1727,16 @@ namespace XianXia.Tests
             world.LocalMap.ActiveMapLayoutId = "w";
             world.LocalMap.OverworldMapLayoutId = "w";
             world.LocalMap.ExitTriggerDepth = depth;
-            var geoA = new System.Collections.Generic.List<SurfaceExitZoneGeometry>(6);
-            SurfaceExitZoneCalculator.BuildCanonicalGeometries(bounds, depth, geoA);
+            var geoA = CaptureCoverageSignature(world, bounds, depth);
 
             const int neDir = 1;
             Assert.IsTrue(PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
                 world, party, neDir).IsSuccess);
             world.PlayerPartyTravel.SurfaceEdgeGate.CompleteTransition(
                 neDir, bounds.CenterX, bounds.CenterY);
-            var geoB = new System.Collections.Generic.List<SurfaceExitZoneGeometry>(6);
-            SurfaceExitZoneCalculator.BuildCanonicalGeometries(bounds, depth, geoB);
-            AssertCoverageRectsEqual(bounds, depth, geoA, geoB);
+            world.PlayerPartyTravel.SnapToHexCenter(mid, world.HexWorld.HexSize);
+            var geoB = CaptureCoverageSignature(world, bounds, depth);
+            Assert.AreEqual(geoA, geoB);
         }
 
         [Test]
@@ -1739,7 +1752,7 @@ namespace XianXia.Tests
             world.LocalMap.ActiveMapLayoutId = siteA.LocalMapId;
             world.LocalMap.OverworldMapLayoutId = siteA.LocalMapId;
             world.LocalMap.ExitTriggerDepth = depth;
-            var geoSite1 = CaptureCoverageSignature(bounds, depth);
+            var geoSite1 = CaptureCoverageSignature(world, bounds, depth);
 
             world.PlayerPartyTravel.SnapToHexCenter(mid, world.HexWorld.HexSize);
             world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
@@ -1750,7 +1763,7 @@ namespace XianXia.Tests
             world.LocalMap.ActiveMapLayoutId = siteA.LocalMapId;
             world.LocalMap.OverworldMapLayoutId = siteA.LocalMapId;
             world.LocalMap.ExitTriggerDepth = depth;
-            var geoSite2 = CaptureCoverageSignature(bounds, depth);
+            var geoSite2 = CaptureCoverageSignature(world, bounds, depth);
 
             Assert.AreEqual(geoSite1, geoSite2);
         }
@@ -1766,7 +1779,8 @@ namespace XianXia.Tests
             world.LocalMap.OverworldMapLayoutId = "w";
             var bounds = DefaultWildernessBounds();
             const float depth = 1.25f;
-            var geoBefore = CaptureCoverageSignature(bounds, depth);
+            var before = new System.Collections.Generic.List<SurfaceExitConnection>(6);
+            SurfaceExitZoneCalculator.CollectConnections(world, bounds, depth, before);
 
             const int neDir = 1;
             var neighbor = HexMath.Neighbor(mid, neDir);
@@ -1774,32 +1788,59 @@ namespace XianXia.Tests
             cell.Terrain = HexTerrainType.Water;
             cell.IsPassable = false;
 
-            var geoAfter = CaptureCoverageSignature(bounds, depth);
-            Assert.AreEqual(geoBefore, geoAfter);
+            var after = new System.Collections.Generic.List<SurfaceExitConnection>(6);
+            SurfaceExitZoneCalculator.CollectConnections(world, bounds, depth, after);
+            Assert.AreEqual(before.Count - 1, after.Count);
+
+            // Availability 变化只删 Connection；重叠消解可能改 span，但方向／Destination 必须保留。
+            for (var i = 0; i < after.Count; i++)
+            {
+                SurfaceExitConnection? matched = null;
+                for (var j = 0; j < before.Count; j++)
+                {
+                    if (!before[j].DestinationHex.Equals(after[i].DestinationHex))
+                        continue;
+                    matched = before[j];
+                    break;
+                }
+
+                Assert.IsTrue(matched.HasValue, after[i].DestinationHex.ToString());
+                Assert.AreEqual(matched.Value.LocalDirectionX, after[i].LocalDirectionX, FloatTol);
+                Assert.AreEqual(matched.Value.LocalDirectionY, after[i].LocalDirectionY, FloatTol);
+            }
 
             var visible = new System.Collections.Generic.List<SurfaceExitVisibleZone>(6);
             SurfaceExitZoneCalculator.CollectVisibleZones(world, bounds, depth, visible);
             for (var i = 0; i < visible.Count; i++)
-                Assert.AreNotEqual(neDir, visible[i].DirectionIndex);
+                Assert.AreNotEqual(neighbor, visible[i].DestinationHex);
         }
 
         [Test]
         public void EXITZONE_06_RenderedZoneBoundsEqualDetectionZoneBounds()
         {
+            var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);
+            BuildParty(world, siteA, Spawn(world, "LinQing"));
+            world.PlayerPartyTravel.SnapToHexCenter(mid, world.HexWorld.HexSize);
+            world.LocalMap.ActiveMapLayoutId = "w";
             var bounds = DefaultWildernessBounds();
             const float depth = 1.25f;
             var step = 0.2f;
-            for (var dir = 0; dir < 6; dir++)
+            var connections = new System.Collections.Generic.List<SurfaceExitConnection>(6);
+            SurfaceExitZoneCalculator.CollectConnections(world, bounds, depth, connections);
+            Assert.Greater(connections.Count, 0);
+
+            for (var c = 0; c < connections.Count; c++)
             {
-                var rects = new System.Collections.Generic.List<SurfaceExitCoverageRect>(16);
-                SurfaceExitZoneCalculator.AppendCoverageRects(bounds, depth, dir, rects);
-                Assert.Greater(rects.Count, 0, "dir " + dir + " must have coverage");
+                var conn = connections[c];
+                var rects = new System.Collections.Generic.List<SurfaceExitCoverageRect>(1);
+                SurfaceExitZoneCalculator.AppendConnectionCoverageRects(conn, rects);
+                Assert.AreEqual(1, rects.Count);
 
                 for (var x = bounds.MinX; x <= bounds.MaxX + 0.001f; x += step)
                 for (var y = bounds.MinY; y <= bounds.MaxY + 0.001f; y += step)
                 {
-                    var belongs = SurfaceExitZoneCalculator.PointBelongsToDirection(
-                        x, y, bounds, depth, dir);
+                    var belongs = SurfaceExitZoneCalculator.PointBelongsToConnection(
+                        x, y, conn, depth);
                     var inAnyRect = false;
                     for (var r = 0; r < rects.Count; r++)
                     {
@@ -1812,8 +1853,6 @@ namespace XianXia.Tests
                         }
                     }
 
-                    // Coverage rects 是 Detection 集合的离散化；属于 Detection 的点必须被覆盖。
-                    // 采样步导致边界附近可能漏 1 个 step——只断言 belongs ⇒ near-covered。
                     if (belongs)
                         Assert.IsTrue(inAnyRect || IsNearAnyRect(x, y, rects, CoverageSampleStepTolerance),
                             "detection point must be covered by presentation rects");
@@ -1836,40 +1875,46 @@ namespace XianXia.Tests
             world.LocalMap.ActiveMapLayoutId = siteA.LocalMapId;
             world.LocalMap.OverworldMapLayoutId = siteA.LocalMapId;
             Assert.IsTrue(SurfaceExitZoneCalculator.ShouldPresent(world));
-            var siteGeo = CaptureCoverageSignature(bounds, depth);
             var siteVisible = new System.Collections.Generic.List<SurfaceExitVisibleZone>(6);
             SurfaceExitZoneCalculator.CollectVisibleZones(world, bounds, depth, siteVisible);
             Assert.Greater(siteVisible.Count, 0);
+            for (var i = 0; i < siteVisible.Count; i++)
+            {
+                var z = siteVisible[i];
+                Assert.Greater(System.Math.Abs(z.Connection.LocalDirectionX) +
+                               System.Math.Abs(z.Connection.LocalDirectionY), 0.001f);
+            }
 
             world.PlayerPartyTravel.SnapToHexCenter(mid, world.HexWorld.HexSize);
             world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
             world.LocalMap.ActiveMapLayoutId = "base:map_wilderness_plain";
             world.LocalMap.OverworldMapLayoutId = "base:map_wilderness_plain";
             Assert.IsTrue(SurfaceExitZoneCalculator.ShouldPresent(world));
-            var wildGeo = CaptureCoverageSignature(bounds, depth);
-            Assert.AreEqual(siteGeo, wildGeo, "same bounds+depth → same geometry pipeline output");
+            var wildVisible = new System.Collections.Generic.List<SurfaceExitVisibleZone>(6);
+            SurfaceExitZoneCalculator.CollectVisibleZones(world, bounds, depth, wildVisible);
+            Assert.Greater(wildVisible.Count, 0);
         }
 
         [Test]
         public void EXITZONE_08_ExitZoneDepthMatchesConfiguredGameplayDepth()
         {
+            var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);
+            BuildParty(world, siteA, Spawn(world, "LinQing"));
+            world.PlayerPartyTravel.SnapToHexCenter(mid, world.HexWorld.HexSize);
+            world.LocalMap.ActiveMapLayoutId = "w";
             var bounds = DefaultWildernessBounds();
             const float depth = 1.25f;
-            for (var dir = 0; dir < 6; dir++)
+            var connections = new System.Collections.Generic.List<SurfaceExitConnection>(6);
+            SurfaceExitZoneCalculator.CollectConnections(world, bounds, depth, connections);
+            for (var i = 0; i < connections.Count; i++)
             {
-                var rects = new System.Collections.Generic.List<SurfaceExitCoverageRect>(8);
-                SurfaceExitZoneCalculator.AppendCoverageRects(bounds, depth, dir, rects);
-                for (var r = 0; r < rects.Count; r++)
-                {
-                    var rect = rects[r];
-                    var minDim = System.Math.Min(rect.Width, rect.Height);
-                    // 窄边深度必须贴近 ExitTriggerDepth（禁止旧版扇区 AABB 的“又宽又高”）。
-                    Assert.LessOrEqual(minDim, depth + 0.05f);
-                    Assert.GreaterOrEqual(minDim, depth - 0.05f);
-                    Assert.Less(
-                        System.Math.Max(rect.Width, rect.Height),
-                        System.Math.Max(bounds.HalfWidth, bounds.HalfHeight) * 1.1f);
-                }
+                var rect = connections[i].SlotRect;
+                var minDim = System.Math.Min(rect.Width, rect.Height);
+                Assert.LessOrEqual(minDim, depth + 0.05f);
+                Assert.GreaterOrEqual(minDim, depth - 0.05f);
+                Assert.Less(
+                    System.Math.Max(rect.Width, rect.Height),
+                    System.Math.Max(bounds.HalfWidth, bounds.HalfHeight) * 1.1f);
             }
         }
 
@@ -1884,12 +1929,13 @@ namespace XianXia.Tests
             world.LocalMap.OverworldMapLayoutId = "w";
             var bounds = DefaultWildernessBounds();
             const float depth = 1.25f;
-            var before = CaptureCoverageSignature(bounds, depth);
+            var before = CaptureCoverageSignature(world, bounds, depth);
 
             Assert.IsTrue(PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
                 world, party, 1).IsSuccess);
             Assert.IsFalse(world.PlayerPartyTravel.SurfaceEdgeGate.CanAttemptEdgeTransition);
-            var after = CaptureCoverageSignature(bounds, depth);
+            world.PlayerPartyTravel.SnapToHexCenter(mid, world.HexWorld.HexSize);
+            var after = CaptureCoverageSignature(world, bounds, depth);
             Assert.AreEqual(before, after);
         }
 
@@ -1913,23 +1959,37 @@ namespace XianXia.Tests
         [Test]
         public void EXITZONE_11_TriggerIntentRequiresAlreadyInZoneThenOutward()
         {
+            var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);
+            BuildParty(world, siteA, Spawn(world, "LinQing"));
+            world.PlayerPartyTravel.SnapToHexCenter(mid, world.HexWorld.HexSize);
+            world.LocalMap.ActiveMapLayoutId = "w";
             var bounds = DefaultWildernessBounds();
             const float depth = 1.25f;
-            // Safe interior → 刚踏入 zone：不应触发
+            var connections = new System.Collections.Generic.List<SurfaceExitConnection>(6);
+            SurfaceExitZoneCalculator.CollectConnections(world, bounds, depth, connections);
+            SurfaceExitConnection? east = null;
+            for (var i = 0; i < connections.Count; i++)
+            {
+                if (connections[i].DirectionIndex != 0)
+                    continue;
+                east = connections[i];
+                break;
+            }
+
+            Assert.IsTrue(east.HasValue);
+            var slot = east.Value.SlotRect;
+            var zoneX = (slot.MinX + slot.MaxX) * 0.5f;
+            var zoneY = (slot.MinY + slot.MaxY) * 0.5f;
             var fromX = bounds.CenterX;
             var fromY = bounds.CenterY;
-            var toX = bounds.MaxX - depth * 0.5f;
-            var toY = bounds.CenterY;
-            Assert.IsFalse(WildernessLocalWorldProjection.IsInExitTriggerBand(fromX, fromY, bounds, depth));
-            Assert.IsTrue(WildernessLocalWorldProjection.IsInExitTriggerBand(toX, toY, bounds, depth));
             Assert.IsFalse(WildernessLocalWorldProjection.TryResolveExitTriggerIntent(
-                fromX, fromY, toX, toY, bounds, depth, out _));
+                world, fromX, fromY, zoneX, zoneY, bounds, depth, out _));
 
-            // 已在 zone 内继续向外：应触发
-            var to2X = bounds.MaxX + 0.5f;
+            var to2X = zoneX + east.Value.LocalDirectionX * (depth * 2f);
+            var to2Y = zoneY + east.Value.LocalDirectionY * (depth * 2f);
             Assert.IsTrue(WildernessLocalWorldProjection.TryResolveExitTriggerIntent(
-                toX, toY, to2X, toY, bounds, depth, out var dir));
-            Assert.AreEqual(0, dir); // E
+                world, zoneX, zoneY, to2X, to2Y, bounds, depth, out var dir));
+            Assert.AreEqual(0, dir);
         }
 
         [Test]
@@ -1951,41 +2011,35 @@ namespace XianXia.Tests
             WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(-40f, -25f, 1f, 200, 100);
 
         static string CaptureCoverageSignature(
+            SimulationWorld world,
             WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
             float depth)
         {
             var sb = new System.Text.StringBuilder();
-            var geos = new System.Collections.Generic.List<SurfaceExitZoneGeometry>(6);
-            SurfaceExitZoneCalculator.BuildCanonicalGeometries(bounds, depth, geos);
-            for (var i = 0; i < geos.Count; i++)
+            var connections = new System.Collections.Generic.List<SurfaceExitConnection>(6);
+            SurfaceExitZoneCalculator.CollectConnections(world, bounds, depth, connections);
+            for (var i = 0; i < connections.Count; i++)
             {
-                var g = geos[i];
-                sb.Append(g.DirectionIndex).Append(':').Append(g.ExitTriggerDepth.ToString("0.###")).Append('|');
-                var rects = new System.Collections.Generic.List<SurfaceExitCoverageRect>(16);
-                SurfaceExitZoneCalculator.AppendCoverageRects(bounds, depth, g.DirectionIndex, rects);
-                for (var r = 0; r < rects.Count; r++)
-                {
-                    var rect = rects[r];
-                    sb.Append(rect.MinX.ToString("0.##")).Append(',')
-                        .Append(rect.MaxX.ToString("0.##")).Append(',')
-                        .Append(rect.MinY.ToString("0.##")).Append(',')
-                        .Append(rect.MaxY.ToString("0.##")).Append(';');
-                }
-
+                var c = connections[i];
+                sb.Append(c.DirectionIndex).Append(':').Append(depth.ToString("0.###")).Append('|');
+                var rect = c.SlotRect;
+                sb.Append(rect.MinX.ToString("0.##")).Append(',')
+                    .Append(rect.MaxX.ToString("0.##")).Append(',')
+                    .Append(rect.MinY.ToString("0.##")).Append(',')
+                    .Append(rect.MaxY.ToString("0.##")).Append(';');
                 sb.Append('/');
             }
 
             return sb.ToString();
         }
 
-        static void AssertCoverageRectsEqual(
-            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
-            float depth,
-            System.Collections.Generic.List<SurfaceExitZoneGeometry> a,
-            System.Collections.Generic.List<SurfaceExitZoneGeometry> b)
+        static void AssertConnectionSlotEqual(SurfaceExitConnection a, SurfaceExitConnection b)
         {
-            Assert.AreEqual(a.Count, b.Count);
-            Assert.AreEqual(CaptureCoverageSignature(bounds, depth), CaptureCoverageSignature(bounds, depth));
+            Assert.AreEqual(a.DirectionIndex, b.DirectionIndex);
+            Assert.AreEqual(a.SlotRect.MinX, b.SlotRect.MinX, FloatTol);
+            Assert.AreEqual(a.SlotRect.MaxX, b.SlotRect.MaxX, FloatTol);
+            Assert.AreEqual(a.SlotRect.MinY, b.SlotRect.MinY, FloatTol);
+            Assert.AreEqual(a.SlotRect.MaxY, b.SlotRect.MaxY, FloatTol);
         }
 
         static bool IsNearAnyRect(

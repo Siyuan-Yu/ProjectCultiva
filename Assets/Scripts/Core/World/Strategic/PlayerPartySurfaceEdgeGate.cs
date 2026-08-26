@@ -25,13 +25,35 @@ namespace XianXia.Core.World.Strategic
 
         public int LastExitDirection { get; private set; } = -1;
 
+        public HexCoord LastExitDestinationHex { get; private set; }
+
+        public HexCoord LastExitSourceFootprintHex { get; private set; }
+
+        public bool HasExitBoundaryContext { get; private set; }
+
         public bool CanAttemptEdgeTransition => !TransitionInProgress && EdgeArmed;
 
         public void BeginTransition(int exitDirection)
         {
+            BeginTransition(exitDirection, default, default, false);
+        }
+
+        public void BeginTransition(
+            int exitDirection,
+            HexCoord destinationHex,
+            HexCoord sourceFootprintHex,
+            bool hasBoundaryContext)
+        {
             TransitionInProgress = true;
             EdgeArmed = false;
             LastExitDirection = exitDirection;
+            HasExitBoundaryContext = hasBoundaryContext;
+            if (hasBoundaryContext)
+            {
+                LastExitDestinationHex = destinationHex;
+                LastExitSourceFootprintHex = sourceFootprintHex;
+            }
+
             HasLastLocal = false;
         }
 
@@ -73,6 +95,7 @@ namespace XianXia.Core.World.Strategic
             HasEntryEdge = false;
             HasLastLocal = false;
             LastExitDirection = -1;
+            HasExitBoundaryContext = false;
         }
     }
 }

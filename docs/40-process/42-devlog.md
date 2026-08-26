@@ -7,6 +7,22 @@
 
 ---
 
+## 2026-08-26 — Phase 2C Continuous Player World Movement 人工验收封板
+
+**做了什么**
+- Continuous Player World Movement：WorldPosition 真源、LocalMap↔HexWorld 双向投影、Edge Transition
+- **Ordinary Hex Actual Connections**：合法 Neighbor 数 = Exit Connection 数；真实世界方向 → LocalMap 周界投影；Overlap Resolution
+- **WorldSite Full-Footprint Boundary Connections**：全 Footprint 外围唯一 Outside Hex；非固定 6 出口；FootprintWorldCenter 方向投影；ExitZone→Connection→DestinationHex Transition
+- Edge Ping-Pong Guard、Canonical Exit Trigger Geometry、Host Presentation／Debug
+- EditMode：`SurfaceExitConnectionTests`／`SurfaceExitZoneOverlapTests`／`WorldSiteFootprintExitConnectionTests`／`PlayerPartyContinuousWorldPhase2CTests`
+- 文档：164／roadmap／2K §5.8.7 状态更新
+- **未**同步飞书；**未 push**
+
+**状态**
+- Phase 2C **封板**；下一目标 Background Travel／Directional Site Entry Spawn 等 Deferred 项
+
+---
+
 ## 2026-08-26 — Phase 2C Surface Exit Zone／Edge Transition 入仓
 
 **做了什么**
@@ -18,7 +34,7 @@
 - **未**同步飞书
 
 **状态**
-- Phase 2C 竖切入仓；全 Phase 封板仍待最终人工验收
+- Phase 2C 竖切入仓；已由后续封板 commit 取代
 
 ---
 

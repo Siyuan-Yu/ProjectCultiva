@@ -1,6 +1,6 @@
 # Phase 2C：Surface Edge Transition 与 Canonical Exit Trigger Zone（2026-08-26）
 
-> 状态：**实现已落地／人工验收进行中**｜最后更新：2026-08-26  
+> 状态：**Phase 2C 已人工验收封板（2026-08-26）**｜最后更新：2026-08-26  
 > 产品契约真源：[2K §5.8](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)／[ADR-0026 #12](43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)  
 > **不写飞书同步**；本文件记录 Runtime／Presentation 落地要点。
 
@@ -10,10 +10,12 @@
 
 | 项 | 状态 |
 |----|------|
-| Continuous WorldPosition 真源／到达地点回滚修复 | 已实现 |
-| Surface LocalMap Edge → Neighbor Hex／Site Exit | 已实现（人工 PASS） |
-| Edge Ping-Pong Guard（Disarm／Rearm／TransitionInProgress） | 已实现（人工 PASS） |
-| Canonical Surface Exit Trigger Geometry + Presentation | 已实现（待最终人工对照） |
+| Continuous WorldPosition 真源／到达地点回滚修复 | ✅ 已封板 |
+| Surface LocalMap Edge → Neighbor Hex／Site Exit | ✅ 已封板 |
+| Edge Ping-Pong Guard（Disarm／Rearm／TransitionInProgress） | ✅ 已封板 |
+| Ordinary Hex Actual Connections + 方向投影 + Overlap Resolution | ✅ 已封板 |
+| WorldSite Full-Footprint Boundary Connections + 方向投影 | ✅ 已封板 |
+| Canonical Surface Exit Trigger Geometry + Presentation | ✅ 已封板 |
 | PreciseWorldDestination | 仍禁止 |
 | Background／FormalArmy continuous | Deferred |
 
@@ -96,5 +98,5 @@ Detection 与 Presentation 共用：
 
 ## 5. 与 Phase 2C 封板关系
 
-本文件记录的 Edge Transition + Exit Zone 为 Phase 2C 关键竖切。  
-**全 Phase 2C 封板**仍以制作人最终人工验收 + 统一 commit 为准；此前单项可随代码入仓。
+本文件记录的 Edge Transition + Exit Zone + Actual Connections 为 Phase 2C 完整竖切。  
+**Phase 2C 已于 2026-08-26 人工验收封板**（Continuous Player World Movement／Ordinary Hex Actual Connections／WorldSite Full-Footprint Boundary Connections）。

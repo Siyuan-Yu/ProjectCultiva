@@ -1071,6 +1071,27 @@ namespace XianXia.Unity.Host
 
                 PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(
                     world, _session.PlayerParty.Members, materializeBounds);
+
+                WildernessLocalWorldProjection.WildernessLocalMapBounds? logBounds = materializeBounds;
+                if (!logBounds.HasValue)
+                {
+                    var walkForLog = ResolveWalkGrid();
+                    if (walkForLog != null)
+                    {
+                        logBounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
+                            walkForLog.OriginX, walkForLog.OriginY, walkForLog.CellSize,
+                            walkForLog.Width, walkForLog.Height);
+                    }
+                }
+
+                if (logBounds.HasValue)
+                {
+                    var depth = SurfaceExitZoneCalculator.ResolveDepthFromSession(
+                        world, logBounds.Value);
+                    SurfaceExitZoneCalculator.LogSurfaceExitConnectionsOnMaterialize(
+                        world, logBounds.Value, depth);
+                }
+
                 PlayerPartyWorldLocationDebug.LogSnapshot(
                     world, _session.PlayerParty, "MaterializeLocalView");
 

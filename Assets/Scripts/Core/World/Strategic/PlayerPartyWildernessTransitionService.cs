@@ -40,6 +40,38 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidOperation, "Surface hex edge transition disabled.");
 
             var motion = world.PlayerPartyTravel;
+            if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                TryFindSiteConnectionByDirection(world, directionIndex, out var siteConnection))
+                return TryAttemptSurfaceEdgeTransition(world, party, siteConnection);
+
+            return TryAttemptSurfaceEdgeTransitionInternal(
+                world, party, directionIndex, default, false);
+        }
+
+        public static Result TryAttemptSurfaceEdgeTransition(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            SurfaceExitConnection connection)
+        {
+            if (!IsSurfaceHexEdgeTransitionEnabled(world))
+                return Result.Failure(ErrorCode.InvalidOperation, "Surface hex edge transition disabled.");
+
+            return TryAttemptSurfaceEdgeTransitionInternal(
+                world,
+                party,
+                connection.DirectionIndex,
+                connection,
+                true);
+        }
+
+        static Result TryAttemptSurfaceEdgeTransitionInternal(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            int directionIndex,
+            SurfaceExitConnection connection,
+            bool hasConnection)
+        {
+            var motion = world.PlayerPartyTravel;
             var gate = motion.SurfaceEdgeGate;
             if (gate != null && !gate.CanAttemptEdgeTransition)
                 return Result.Failure(ErrorCode.InvalidOperation, "Edge transition gated (in progress or disarmed).");
@@ -47,19 +79,38 @@ namespace XianXia.Core.World.Strategic
             var dir = NormalizeDirection(directionIndex);
             ProbeNeighbor(world, motion, dir, out var sourceHex, out var neighbor, out var passable, out var terrain);
 
-            gate?.BeginTransition(dir);
+            if (hasConnection)
+            {
+                sourceHex = connection.SourceHex;
+                neighbor = connection.DestinationHex;
+                passable = IsGroundPassable(world.HexWorld, neighbor);
+                gate?.BeginTransition(
+                    connection.DirectionIndex,
+                    connection.DestinationHex,
+                    connection.SourceHex,
+                    hasBoundaryContext: motion.LocationKind == PlayerPartyLocationKind.AtWorldSite);
+            }
+            else
+            {
+                gate?.BeginTransition(dir);
+            }
 
             Result result;
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite)
-                result = TryExitWorldSiteByDirection(world, party, dir);
+            {
+                result = hasConnection
+                    ? TryExitWorldSiteByConnection(world, party, connection)
+                    : TryExitWorldSiteByDirection(world, party, dir);
+            }
             else
-                result = TryCrossWildernessEdge(world, party, dir);
+            {
+                result = hasConnection
+                    ? TryCrossWildernessEdge(world, party, connection.DestinationHex)
+                    : TryCrossWildernessEdge(world, party, dir);
+            }
 
             if (result.IsFailure)
-            {
-                // 失败：恢复为可再试（保持 Armed，清 InProgress）
                 gate?.ClearEdgeState();
-            }
 
             LogEdgeAttempt(
                 world,
@@ -87,12 +138,28 @@ namespace XianXia.Core.World.Strategic
             if (gate == null)
                 return;
             var exitDir = gate.LastExitDirection >= 0 ? gate.LastExitDirection : 0;
-            // 若 spawn 仍在近缘，强制推到 Entry Interior Inset。
-            var entryDir = WildernessLocalWorldProjection.OppositeDirection(exitDir);
+            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                ? world.HexWorld.HexSize
+                : 1f;
+            var depth = SurfaceExitZoneCalculator.ResolveDepthFromSession(world, bounds);
+            var currentHex = motion.CurrentHex;
+            HexCoord cameFromHex;
+            if (gate.HasExitBoundaryContext)
+                cameFromHex = gate.LastExitSourceFootprintHex;
+            else
+                cameFromHex = HexMath.Neighbor(
+                    currentHex,
+                    WildernessLocalWorldProjection.OppositeDirection(exitDir));
             if (!WildernessLocalWorldProjection.IsInSafeInterior(spawnLocalX, spawnLocalY, bounds))
             {
                 WildernessLocalWorldProjection.GetLocalPositionNearEdge(
-                    bounds, entryDir, out spawnLocalX, out spawnLocalY);
+                    bounds,
+                    currentHex,
+                    cameFromHex,
+                    hexSize,
+                    depth,
+                    out spawnLocalX,
+                    out spawnLocalY);
             }
 
             gate.CompleteTransition(exitDir, spawnLocalX, spawnLocalY);
@@ -134,6 +201,19 @@ namespace XianXia.Core.World.Strategic
             PlayerPartyRuntime party,
             int directionIndex)
         {
+            directionIndex = NormalizeDirection(directionIndex);
+            var motion = world?.PlayerPartyTravel;
+            if (motion == null || !motion.HasPosition)
+                return Result.Failure(ErrorCode.InvalidOperation, "Party has no world position.");
+            var neighbor = HexMath.Neighbor(motion.CurrentHex, directionIndex);
+            return TryCrossWildernessEdge(world, party, neighbor);
+        }
+
+        public static Result TryCrossWildernessEdge(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            HexCoord destinationHex)
+        {
             if (world == null || party == null || !party.HasActive)
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid wilderness edge args.");
             var motion = world.PlayerPartyTravel;
@@ -144,16 +224,16 @@ namespace XianXia.Core.World.Strategic
             if (motion.IsMoving)
                 return Result.Failure(ErrorCode.InvalidOperation, "Stop travel before crossing hex edge.");
 
-            directionIndex = NormalizeDirection(directionIndex);
             var currentHex = motion.CurrentHex;
-            var neighbor = HexMath.Neighbor(currentHex, directionIndex);
-            if (!IsGroundPassable(world.HexWorld, neighbor))
+            if (!IsNeighborHex(currentHex, destinationHex))
+                return Result.Failure(ErrorCode.InvalidOperation, "Destination hex is not a neighbor.");
+            if (!IsGroundPassable(world.HexWorld, destinationHex))
                 return Result.Failure(ErrorCode.InvalidOperation, "Neighbor hex is impassable.");
 
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             var newWorldPos = WildernessLocalWorldProjection.ComputeCrossEdgeWorldPosition(
                 currentHex,
-                neighbor,
+                destinationHex,
                 motion.WorldPosition,
                 hexSize);
             var derived = HexMath.WorldToHex(newWorldPos.X, newWorldPos.Y, hexSize);
@@ -161,20 +241,40 @@ namespace XianXia.Core.World.Strategic
             motion.SetAtWorldPosition(newWorldPos, derived);
             ApplyTravelingMembersAtHex(world, derived);
 
-            if (world.Strategic.Sites.TryGetAtHex(neighbor, out var site) && site != null)
+            if (world.Strategic.Sites.TryGetAtHex(destinationHex, out var site) && site != null)
                 return PlayerPartyHexTravelService.EnterWorldSiteAsParty(world, party, site);
 
-            if (!WildernessLocalMapFallback.TryResolve(world, neighbor, out var mapId) ||
+            if (!WildernessLocalMapFallback.TryResolve(world, destinationHex, out var mapId) ||
                 string.IsNullOrEmpty(mapId))
                 return Result.Failure(ErrorCode.InvalidOperation, "No wilderness fallback LocalMap for neighbor.");
 
-            return WorldTravelService.EnterWildernessLocalMap(world, neighbor, mapId);
+            return WorldTravelService.EnterWildernessLocalMap(world, destinationHex, mapId);
         }
 
         public static Result TryExitWorldSiteByDirection(
             SimulationWorld world,
             PlayerPartyRuntime party,
             int directionIndex)
+        {
+            if (!TryFindSiteConnectionByDirection(world, directionIndex, out var connection))
+                return Result.Failure(ErrorCode.InvalidOperation, "No site exit for that direction.");
+            return TryExitWorldSiteByConnection(world, party, connection);
+        }
+
+        public static Result TryExitWorldSiteByDestinationHex(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            HexCoord destinationHex)
+        {
+            if (!TryFindSiteConnectionByDestination(world, destinationHex, out var connection))
+                return Result.Failure(ErrorCode.InvalidOperation, "No site exit for destination hex.");
+            return TryExitWorldSiteByConnection(world, party, connection);
+        }
+
+        public static Result TryExitWorldSiteByConnection(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            SurfaceExitConnection connection)
         {
             if (world == null || party == null || !party.HasActive)
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid site exit args.");
@@ -190,11 +290,10 @@ namespace XianXia.Core.World.Strategic
             if (!world.Strategic.Sites.TryGet(motion.SiteId, out var site) || site == null)
                 return Result.Failure(ErrorCode.NotFound, "WorldSite missing.", motion.SiteId);
 
-            directionIndex = NormalizeDirection(directionIndex);
-            if (!TryPickOutermostFootprintHex(site, directionIndex, out var outerHex))
-                return Result.Failure(ErrorCode.InvalidOperation, "No site edge in that direction.");
-
-            var external = HexMath.Neighbor(outerHex, directionIndex);
+            var sourceFootprint = connection.SourceHex;
+            var external = connection.DestinationHex;
+            if (!site.OccupiesHex(sourceFootprint))
+                return Result.Failure(ErrorCode.InvalidOperation, "Exit source is not in site footprint.");
             if (site.OccupiesHex(external))
                 return Result.Failure(ErrorCode.InvalidOperation, "No external neighbor outside footprint.");
             if (!IsGroundPassable(world.HexWorld, external))
@@ -202,7 +301,7 @@ namespace XianXia.Core.World.Strategic
 
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             var worldPos = WildernessLocalWorldProjection.ComputeCrossEdgeWorldPosition(
-                outerHex,
+                sourceFootprint,
                 external,
                 motion.WorldPosition,
                 hexSize);
@@ -211,6 +310,9 @@ namespace XianXia.Core.World.Strategic
             motion.SetAtWorldPosition(worldPos, derived);
             ApplyTravelingMembersAtHex(world, derived);
 
+            if (world.Strategic.Sites.TryGetAtHex(external, out var destSite) && destSite != null)
+                return PlayerPartyHexTravelService.EnterWorldSiteAsParty(world, party, destSite);
+
             if (!WildernessLocalMapFallback.TryResolve(world, external, out var mapId) ||
                 string.IsNullOrEmpty(mapId))
                 return Result.Failure(ErrorCode.InvalidOperation, "No wilderness fallback LocalMap for exit hex.");
@@ -218,10 +320,6 @@ namespace XianXia.Core.World.Strategic
             return WorldTravelService.EnterWildernessLocalMap(world, external, mapId);
         }
 
-        /// <summary>
-        /// 只读评估某方向出口是否合法（不触发 Transition、不改 Gate）。
-        /// Presentation 与 Detection 共用。
-        /// </summary>
         public static bool TryEvaluateSurfaceExitLegality(
             SimulationWorld world,
             int directionIndex,
@@ -245,17 +343,15 @@ namespace XianXia.Core.World.Strategic
                     !world.Strategic.Sites.TryGet(motion.SiteId, out var site) ||
                     site == null)
                     return false;
-                if (!TryPickOutermostFootprintHex(site, dir, out var outer))
-                    return false;
-                var external = HexMath.Neighbor(outer, dir);
-                if (site.OccupiesHex(external))
+
+                if (TryFindSiteConnectionByDirection(world, dir, out var connection))
                 {
-                    passable = false;
+                    neighborHex = connection.DestinationHex;
+                    passable = IsGroundPassable(world.HexWorld, neighborHex);
                     return true;
                 }
 
-                neighborHex = external;
-                passable = IsGroundPassable(world.HexWorld, external);
+                passable = false;
                 return true;
             }
 
@@ -264,6 +360,113 @@ namespace XianXia.Core.World.Strategic
 
             passable = IsGroundPassable(world.HexWorld, neighborHex);
             return true;
+        }
+
+        /// <summary>WorldSite 某方向的 Footprint 最外缘 Hex（供旧 API 兼容；新逻辑请用 Connection）。</summary>
+        public static bool TryResolveSiteExitSourceHex(
+            SimulationWorld world,
+            string siteId,
+            int directionIndex,
+            out HexCoord outerHex)
+        {
+            outerHex = default;
+            if (TryFindSiteConnectionByDirection(world, directionIndex, out var connection))
+            {
+                outerHex = connection.SourceHex;
+                return true;
+            }
+
+            if (world?.Strategic?.Sites == null ||
+                string.IsNullOrEmpty(siteId) ||
+                !world.Strategic.Sites.TryGet(siteId, out var site) ||
+                site == null)
+                return false;
+            return TryPickOutermostFootprintHex(site, directionIndex, out outerHex);
+        }
+
+        public static bool TryFindSiteConnectionByDestination(
+            SimulationWorld world,
+            HexCoord destinationHex,
+            out SurfaceExitConnection connection)
+        {
+            connection = default;
+            var motion = world?.PlayerPartyTravel;
+            if (motion == null ||
+                motion.LocationKind != PlayerPartyLocationKind.AtWorldSite ||
+                string.IsNullOrEmpty(motion.SiteId))
+                return false;
+
+            var bounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
+                0f, 0f, 1f, 16, 16);
+            var depth = SurfaceExitZoneCalculator.DefaultExitTriggerDepth;
+            var list = new System.Collections.Generic.List<SurfaceExitConnection>(12);
+            SurfaceExitZoneCalculator.CollectConnections(world, bounds, depth, list);
+            for (var i = 0; i < list.Count; i++)
+            {
+                if (list[i].DestinationHex != destinationHex)
+                    continue;
+                connection = list[i];
+                return true;
+            }
+
+            return false;
+        }
+
+        static bool TryFindSiteConnectionByDirection(
+            SimulationWorld world,
+            int directionIndex,
+            out SurfaceExitConnection connection)
+        {
+            connection = default;
+            var motion = world?.PlayerPartyTravel;
+            if (motion == null ||
+                motion.LocationKind != PlayerPartyLocationKind.AtWorldSite ||
+                string.IsNullOrEmpty(motion.SiteId))
+                return false;
+
+            var dir = NormalizeDirection(directionIndex);
+            var bounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
+                0f, 0f, 1f, 16, 16);
+            var depth = SurfaceExitZoneCalculator.DefaultExitTriggerDepth;
+            var list = new System.Collections.Generic.List<SurfaceExitConnection>(12);
+            SurfaceExitZoneCalculator.CollectConnections(world, bounds, depth, list);
+            SurfaceExitConnection? best = null;
+            for (var i = 0; i < list.Count; i++)
+            {
+                if (list[i].DirectionIndex != dir)
+                    continue;
+                if (!best.HasValue)
+                {
+                    best = list[i];
+                    continue;
+                }
+
+                // 同方向多连接：取 Destination 排序第一（确定性，非随机合并）。
+                if (CompareHex(list[i].DestinationHex, best.Value.DestinationHex) < 0)
+                    best = list[i];
+            }
+
+            if (!best.HasValue)
+                return false;
+            connection = best.Value;
+            return true;
+        }
+
+        static int CompareHex(HexCoord a, HexCoord b)
+        {
+            var cmp = a.Q.CompareTo(b.Q);
+            return cmp != 0 ? cmp : a.R.CompareTo(b.R);
+        }
+
+        static bool IsNeighborHex(HexCoord a, HexCoord b)
+        {
+            for (var d = 0; d < 6; d++)
+            {
+                if (HexMath.Neighbor(a, d).Equals(b))
+                    return true;
+            }
+
+            return false;
         }
 
         static void ProbeNeighbor(
@@ -281,6 +484,13 @@ namespace XianXia.Core.World.Strategic
             terrain = HexTerrainType.Plain;
 
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                !string.IsNullOrEmpty(motion.SiteId) &&
+                TryFindSiteConnectionByDirection(world, directionIndex, out var siteConnection))
+            {
+                sourceHex = siteConnection.SourceHex;
+                neighbor = siteConnection.DestinationHex;
+            }
+            else if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(motion.SiteId) &&
                 world.Strategic.Sites.TryGet(motion.SiteId, out var site) &&
                 site != null &&

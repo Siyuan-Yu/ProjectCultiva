@@ -6,28 +6,29 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// 固定 Canonical Exit Trigger Geometry（只依赖 PlayableBounds + ExitTriggerDepth + 方向）。
-    /// 禁止依赖角色位置 / EntryDirection / WorldPosition / CurrentHex。
+    /// 固定 Canonical Exit Trigger Geometry（Connection + PlayableBounds + ExitTriggerDepth）。
+    /// 禁止依赖角色位置 / EntryDirection / WorldPosition。
     /// </summary>
     public readonly struct SurfaceExitZoneGeometry
     {
         public SurfaceExitZoneGeometry(
-            int directionIndex,
+            SurfaceExitConnection connection,
             WildernessLocalWorldProjection.WildernessLocalMapBounds playableBounds,
             float exitTriggerDepth)
         {
-            DirectionIndex = directionIndex;
+            Connection = connection;
             PlayableBounds = playableBounds;
             ExitTriggerDepth = exitTriggerDepth;
         }
 
-        public int DirectionIndex { get; }
+        public SurfaceExitConnection Connection { get; }
         public WildernessLocalWorldProjection.WildernessLocalMapBounds PlayableBounds { get; }
         public float ExitTriggerDepth { get; }
+        public int DirectionIndex => Connection.DirectionIndex;
 
         public bool Contains(float localX, float localY) =>
-            SurfaceExitZoneCalculator.PointBelongsToDirection(
-                localX, localY, PlayableBounds, ExitTriggerDepth, DirectionIndex);
+            SurfaceExitZoneCalculator.PointBelongsToConnection(
+                localX, localY, Connection, ExitTriggerDepth);
     }
 
     /// <summary>Runtime 可用性（可变）；不改变 Geometry。</summary>
@@ -45,51 +46,41 @@ namespace XianXia.Core.World.Strategic
         public HexCoord DestinationHex { get; }
     }
 
-    /// <summary>沿边界的精确覆盖矩形（Presentation = Detection 同一几何的离散覆盖）。</summary>
-    public readonly struct SurfaceExitCoverageRect
-    {
-        public SurfaceExitCoverageRect(float minX, float maxX, float minY, float maxY)
-        {
-            MinX = minX;
-            MaxX = maxX;
-            MinY = minY;
-            MaxY = maxY;
-        }
-
-        public float MinX { get; }
-        public float MaxX { get; }
-        public float MinY { get; }
-        public float MaxY { get; }
-
-        public float Width => MaxX - MinX;
-        public float Height => MaxY - MinY;
-    }
-
-    /// <summary>可见 Active Zone = Canonical Geometry ∩ Availability。</summary>
+    /// <summary>可见 Active Zone = 合法 Connection（已含 Canonical Geometry）。</summary>
     public readonly struct SurfaceExitVisibleZone
     {
-        public SurfaceExitVisibleZone(SurfaceExitZoneGeometry geometry, HexCoord destinationHex)
+        public SurfaceExitVisibleZone(SurfaceExitConnection connection)
         {
-            Geometry = geometry;
-            DestinationHex = destinationHex;
+            Connection = connection;
         }
 
-        public SurfaceExitZoneGeometry Geometry { get; }
-        public HexCoord DestinationHex { get; }
-        public int DirectionIndex => Geometry.DirectionIndex;
+        public SurfaceExitConnection Connection { get; }
+        public HexCoord DestinationHex => Connection.DestinationHex;
+        public int DirectionIndex => Connection.DirectionIndex;
 
-        public bool Contains(float localX, float localY) => Geometry.Contains(localX, localY);
+        public bool Contains(float localX, float localY) =>
+            SurfaceExitZoneCalculator.PointBelongsToConnection(
+                localX, localY, Connection, SurfaceExitZoneCalculator.DefaultExitTriggerDepth);
     }
 
     /// <summary>
-    /// Surface Exit Zone 真源：Geometry 固定；Availability 运行时；Detection 与 Presentation 共用。
+    /// Surface Exit 真源：Actual Connections 由 Hex 邻接推导；Zone 位置由世界方向向量投射。
     /// </summary>
     public static class SurfaceExitZoneCalculator
     {
-        /// <summary>默认 ExitTriggerDepth（world units）。窄边缘带，不随地图半宽比例膨胀。</summary>
+        /// <summary>默认 ExitTriggerDepth（world units）。</summary>
         public const float DefaultExitTriggerDepth = 1.25f;
 
-        const float CoverageSampleStep = 0.25f;
+        /// <summary>Exit Zone 沿边跨度比例（推荐默认约 1/4～1/3）。</summary>
+        public const float DefaultSlotSpanFraction = 0.30f;
+
+        /// <summary>最小沿边占用（1/6）。</summary>
+        public const float MinSlotSpanFraction = 1f / 6f;
+
+        /// <summary>最大沿边占用（1/2）。</summary>
+        public const float MaxSlotSpanFraction = 0.5f;
+
+        static readonly List<SurfaceExitConnection> ScratchConnections = new List<SurfaceExitConnection>(6);
 
         public static float NormalizeDepth(
             float authoredDepth,
@@ -106,6 +97,13 @@ namespace XianXia.Core.World.Strategic
             return depth;
         }
 
+        public static float EffectiveSlotSpan(float edgeLength, float spanFraction)
+        {
+            var frac = spanFraction > 0.0001f ? spanFraction : DefaultSlotSpanFraction;
+            frac = Math.Max(MinSlotSpanFraction, Math.Min(MaxSlotSpanFraction, frac));
+            return Math.Max(0.01f, edgeLength * frac);
+        }
+
         public static float ResolveDepthFromSession(
             SimulationWorld world,
             WildernessLocalWorldProjection.WildernessLocalMapBounds bounds)
@@ -114,7 +112,6 @@ namespace XianXia.Core.World.Strategic
             return NormalizeDepth(authored, bounds);
         }
 
-        /// <summary>非 Interior 的 Surface LocalMap 才启用 Exit Zone 管线。</summary>
         public static bool ShouldPresent(SimulationWorld world)
         {
             if (world?.LocalMap == null)
@@ -127,9 +124,47 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 只由 bounds+depth 生成 6 向 Canonical Geometry。与角色/Hex/Entry 无关。
+        /// 收集当前 Context 的全部 Actual Surface Exit Connections（仅合法、可通行）。
+        /// 普通 Hex：Connection 数 = 可通行 Neighbor 数（0–6）。
         /// </summary>
+        public static int CollectConnections(
+            SimulationWorld world,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float exitTriggerDepth,
+            IList<SurfaceExitConnection> connectionsOut)
+        {
+            if (connectionsOut == null)
+                return 0;
+            connectionsOut.Clear();
+            if (world?.PlayerPartyTravel == null || !world.PlayerPartyTravel.HasPosition)
+                return 0;
+            if (world.LocalMap != null && world.LocalMap.IsInInterior)
+                return 0;
+
+            var motion = world.PlayerPartyTravel;
+            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                ? world.HexWorld.HexSize
+                : 1f;
+            var depth = NormalizeDepth(exitTriggerDepth, bounds);
+            var spanFraction = DefaultSlotSpanFraction;
+
+            if (motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition)
+            {
+                CollectOrdinaryHexConnections(
+                    world, motion.CurrentHex, hexSize, bounds, depth, spanFraction, connectionsOut);
+            }
+            else if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                     !string.IsNullOrEmpty(motion.SiteId))
+            {
+                CollectWorldSiteConnections(
+                    world, motion.SiteId, hexSize, bounds, depth, spanFraction, connectionsOut);
+            }
+
+            return connectionsOut.Count;
+        }
+
         public static int BuildCanonicalGeometries(
+            SimulationWorld world,
             WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
             float exitTriggerDepth,
             IList<SurfaceExitZoneGeometry> geometriesOut)
@@ -137,32 +172,152 @@ namespace XianXia.Core.World.Strategic
             if (geometriesOut == null)
                 return 0;
             geometriesOut.Clear();
+            ScratchConnections.Clear();
+            CollectConnections(world, bounds, exitTriggerDepth, ScratchConnections);
             var depth = NormalizeDepth(exitTriggerDepth, bounds);
-            for (var dir = 0; dir < 6; dir++)
-                geometriesOut.Add(new SurfaceExitZoneGeometry(dir, bounds, depth));
+            for (var i = 0; i < ScratchConnections.Count; i++)
+            {
+                geometriesOut.Add(new SurfaceExitZoneGeometry(
+                    ScratchConnections[i], bounds, depth));
+            }
+
             return geometriesOut.Count;
         }
 
+        public static bool TryGetConnectionSlotRect(
+            SurfaceExitConnection connection,
+            out SurfaceExitCoverageRect rect)
+        {
+            rect = connection.SlotRect;
+            return rect.Width > 0.0001f && rect.Height > 0.0001f;
+        }
+
+        /// <summary>兼容旧 API：按 directionIndex 查找 Connection slot。</summary>
+        public static bool TryGetCanonicalSlotRect(
+            SimulationWorld world,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float exitTriggerDepth,
+            int directionIndex,
+            out SurfaceExitCoverageRect rect)
+        {
+            rect = default;
+            ScratchConnections.Clear();
+            CollectConnections(world, bounds, exitTriggerDepth, ScratchConnections);
+            var dir = NormalizeDirection(directionIndex);
+            for (var i = 0; i < ScratchConnections.Count; i++)
+            {
+                if (ScratchConnections[i].DirectionIndex != dir)
+                    continue;
+                rect = ScratchConnections[i].SlotRect;
+                return true;
+            }
+
+            return false;
+        }
+
+        public static bool PointBelongsToConnection(
+            float localX,
+            float localY,
+            SurfaceExitConnection connection,
+            float exitTriggerDepth)
+        {
+            _ = exitTriggerDepth;
+            var slot = connection.SlotRect;
+            return localX >= slot.MinX - 0.0001f &&
+                   localX <= slot.MaxX + 0.0001f &&
+                   localY >= slot.MinY - 0.0001f &&
+                   localY <= slot.MaxY + 0.0001f;
+        }
+
         public static bool PointBelongsToDirection(
+            SimulationWorld world,
             float localX,
             float localY,
             WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
             float exitTriggerDepth,
             int directionIndex)
         {
-            var depth = NormalizeDepth(exitTriggerDepth, bounds);
-            if (!WildernessLocalWorldProjection.IsInExitTriggerBand(localX, localY, bounds, depth))
-                return false;
             if (WildernessLocalWorldProjection.IsOutsideBounds(localX, localY, bounds))
                 return false;
-            if (!WildernessLocalWorldProjection.TryClassifyExitTriggerDirection(
-                    localX, localY, bounds, depth, out var dir))
-                return false;
-            return dir == NormalizeDirection(directionIndex);
+            ScratchConnections.Clear();
+            CollectConnections(world, bounds, exitTriggerDepth, ScratchConnections);
+            var dir = NormalizeDirection(directionIndex);
+            for (var i = 0; i < ScratchConnections.Count; i++)
+            {
+                var c = ScratchConnections[i];
+                if (c.DirectionIndex != dir)
+                    continue;
+                return PointBelongsToConnection(localX, localY, c, exitTriggerDepth);
+            }
+
+            return false;
         }
 
-        /// <summary>精确覆盖矩形：仅 ExitTriggerDepth 边缘带 ∩ 方向扇区（无 AABB 膨胀）。</summary>
+        public static bool TryClassifyConnectionAtPoint(
+            SimulationWorld world,
+            float localX,
+            float localY,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float exitTriggerDepth,
+            out int directionIndex)
+        {
+            directionIndex = -1;
+            if (!TryGetConnectionAtPoint(
+                    world, localX, localY, bounds, exitTriggerDepth, out var connection))
+                return false;
+            directionIndex = connection.DirectionIndex;
+            return true;
+        }
+
+        public static bool TryGetConnectionAtPoint(
+            SimulationWorld world,
+            float localX,
+            float localY,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float exitTriggerDepth,
+            out SurfaceExitConnection connection)
+        {
+            connection = default;
+            if (WildernessLocalWorldProjection.IsOutsideBounds(localX, localY, bounds))
+                return false;
+
+            ScratchConnections.Clear();
+            CollectConnections(world, bounds, exitTriggerDepth, ScratchConnections);
+            SurfaceExitConnection? best = null;
+            var bestDistSq = float.MaxValue;
+            for (var i = 0; i < ScratchConnections.Count; i++)
+            {
+                var c = ScratchConnections[i];
+                if (!PointBelongsToConnection(localX, localY, c, exitTriggerDepth))
+                    continue;
+                var dx = localX - c.ExitCenterLocalX;
+                var dy = localY - c.ExitCenterLocalY;
+                var distSq = dx * dx + dy * dy;
+                if (distSq < bestDistSq)
+                {
+                    bestDistSq = distSq;
+                    best = c;
+                }
+            }
+
+            if (!best.HasValue)
+                return false;
+            connection = best.Value;
+            return true;
+        }
+
+        public static int AppendConnectionCoverageRects(
+            SurfaceExitConnection connection,
+            IList<SurfaceExitCoverageRect> rectsOut)
+        {
+            if (rectsOut == null || !TryGetConnectionSlotRect(connection, out var slot))
+                return 0;
+            rectsOut.Add(slot);
+            return 1;
+        }
+
         public static int AppendCoverageRects(
+            SimulationWorld world,
             WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
             float exitTriggerDepth,
             int directionIndex,
@@ -170,32 +325,10 @@ namespace XianXia.Core.World.Strategic
         {
             if (rectsOut == null)
                 return 0;
-            var depth = NormalizeDepth(exitTriggerDepth, bounds);
-            var dir = NormalizeDirection(directionIndex);
-            var before = rectsOut.Count;
-
-            AppendHorizontalEdgeRuns(
-                bounds, depth, dir,
-                y0: bounds.MaxY - depth, y1: bounds.MaxY,
-                sampleY: bounds.MaxY - depth * 0.5f,
-                rectsOut);
-            AppendHorizontalEdgeRuns(
-                bounds, depth, dir,
-                y0: bounds.MinY, y1: bounds.MinY + depth,
-                sampleY: bounds.MinY + depth * 0.5f,
-                rectsOut);
-            AppendVerticalEdgeRuns(
-                bounds, depth, dir,
-                x0: bounds.MaxX - depth, x1: bounds.MaxX,
-                sampleX: bounds.MaxX - depth * 0.5f,
-                rectsOut);
-            AppendVerticalEdgeRuns(
-                bounds, depth, dir,
-                x0: bounds.MinX, x1: bounds.MinX + depth,
-                sampleX: bounds.MinX + depth * 0.5f,
-                rectsOut);
-
-            return rectsOut.Count - before;
+            if (!TryGetCanonicalSlotRect(world, bounds, exitTriggerDepth, directionIndex, out var slot))
+                return 0;
+            rectsOut.Add(slot);
+            return 1;
         }
 
         public static int CollectAvailability(
@@ -205,6 +338,26 @@ namespace XianXia.Core.World.Strategic
             if (availabilityOut == null)
                 return 0;
             availabilityOut.Clear();
+            var motion = world?.PlayerPartyTravel;
+            if (motion == null || !motion.HasPosition)
+                return 0;
+
+            if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite)
+            {
+                ScratchConnections.Clear();
+                var bounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
+                    0f, 0f, 1f, 16, 16);
+                CollectConnections(world, bounds, DefaultExitTriggerDepth, ScratchConnections);
+                for (var i = 0; i < ScratchConnections.Count; i++)
+                {
+                    var c = ScratchConnections[i];
+                    availabilityOut.Add(new SurfaceExitAvailability(
+                        c.DirectionIndex, true, c.DestinationHex));
+                }
+
+                return availabilityOut.Count;
+            }
+
             for (var dir = 0; dir < 6; dir++)
             {
                 if (!PlayerPartyWildernessTransitionService.TryEvaluateSurfaceExitLegality(
@@ -220,7 +373,36 @@ namespace XianXia.Core.World.Strategic
             return availabilityOut.Count;
         }
 
-        /// <summary>Canonical Geometry + Runtime Availability → 可见 Zones（几何不变）。</summary>
+        /// <summary>LocalMap Materialize 时单次打印 Surface Exit Connections（非每帧）。</summary>
+        public static void LogSurfaceExitConnectionsOnMaterialize(
+            SimulationWorld world,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float exitTriggerDepth)
+        {
+            if (PlayerPartyWorldLocationDebug.Sink == null || !ShouldPresent(world))
+                return;
+
+            ScratchConnections.Clear();
+            CollectConnections(world, bounds, exitTriggerDepth, ScratchConnections);
+            var motion = world.PlayerPartyTravel;
+            var context = motion != null ? motion.LocationKind.ToString() : "?";
+            if (motion != null && motion.LocationKind == PlayerPartyLocationKind.AtWorldSite)
+                context += " site=" + (motion.SiteId ?? string.Empty);
+
+            PlayerPartyWorldLocationDebug.Sink(
+                "[SurfaceExitConnections] " + context +
+                " count=" + ScratchConnections.Count);
+            for (var i = 0; i < ScratchConnections.Count; i++)
+            {
+                var c = ScratchConnections[i];
+                PlayerPartyWorldLocationDebug.Sink(
+                    "  [" + i + "] dest=" + c.DestinationHex +
+                    " kind=" + c.DestinationKind +
+                    " contact=(" + c.BoundaryContactWorldX.ToString("0.###") + "," +
+                    c.BoundaryContactWorldY.ToString("0.###") + ")");
+            }
+        }
+
         public static int CollectVisibleZones(
             SimulationWorld world,
             WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
@@ -233,109 +415,205 @@ namespace XianXia.Core.World.Strategic
             if (!ShouldPresent(world))
                 return 0;
 
-            var depth = NormalizeDepth(exitTriggerDepth, bounds);
-            var geometries = new List<SurfaceExitZoneGeometry>(6);
-            BuildCanonicalGeometries(bounds, depth, geometries);
-
-            var availability = new List<SurfaceExitAvailability>(6);
-            CollectAvailability(world, availability);
-
-            for (var i = 0; i < geometries.Count; i++)
-            {
-                var g = geometries[i];
-                SurfaceExitAvailability a = default;
-                var found = false;
-                for (var j = 0; j < availability.Count; j++)
-                {
-                    if (availability[j].DirectionIndex != g.DirectionIndex)
-                        continue;
-                    a = availability[j];
-                    found = true;
-                    break;
-                }
-
-                if (!found || !a.IsPassable)
-                    continue;
-                zonesOut.Add(new SurfaceExitVisibleZone(g, a.DestinationHex));
-            }
-
+            ScratchConnections.Clear();
+            CollectConnections(world, bounds, exitTriggerDepth, ScratchConnections);
+            for (var i = 0; i < ScratchConnections.Count; i++)
+                zonesOut.Add(new SurfaceExitVisibleZone(ScratchConnections[i]));
             return zonesOut.Count;
         }
 
-        static void AppendHorizontalEdgeRuns(
+        static void CollectOrdinaryHexConnections(
+            SimulationWorld world,
+            HexCoord sourceHex,
+            float hexSize,
             WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
             float depth,
-            int directionIndex,
-            float y0,
-            float y1,
-            float sampleY,
-            IList<SurfaceExitCoverageRect> rectsOut)
+            float spanFraction,
+            IList<SurfaceExitConnection> connectionsOut)
         {
-            if (y1 <= y0)
-                return;
-            float runStart = 0f;
-            var inRun = false;
-            for (var x = bounds.MinX; x <= bounds.MaxX + 0.0001f; x += CoverageSampleStep)
+            for (var dir = 0; dir < 6; dir++)
             {
-                var px = x > bounds.MaxX ? bounds.MaxX : x;
-                var belongs = PointBelongsToDirection(px, sampleY, bounds, depth, directionIndex);
-                if (belongs && !inRun)
-                {
-                    inRun = true;
-                    runStart = px;
-                }
-                else if (!belongs && inRun)
-                {
-                    inRun = false;
-                    var runEnd = px;
-                    if (runEnd > runStart + 0.001f)
-                        rectsOut.Add(new SurfaceExitCoverageRect(runStart, runEnd, y0, y1));
-                }
+                if (!TryBuildConnectionAlongDirection(
+                        world, sourceHex, dir, hexSize, bounds, depth, spanFraction, out var connection))
+                    continue;
+                connectionsOut.Add(connection);
             }
 
-            if (inRun)
-                rectsOut.Add(new SurfaceExitCoverageRect(runStart, bounds.MaxX, y0, y1));
+            SurfaceExitZoneOverlapResolver.ResolveOrdinaryHexOverlaps(bounds, depth, connectionsOut);
         }
 
-        static void AppendVerticalEdgeRuns(
+        static void CollectWorldSiteConnections(
+            SimulationWorld world,
+            string siteId,
+            float hexSize,
             WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
             float depth,
-            int directionIndex,
-            float x0,
-            float x1,
-            float sampleX,
-            IList<SurfaceExitCoverageRect> rectsOut)
+            float spanFraction,
+            IList<SurfaceExitConnection> connectionsOut)
         {
-            if (x1 <= x0)
-                return;
-            // 角落已由水平条覆盖：竖直条内缩避免重复加厚视觉（几何 Contains 仍用 PointBelongs）。
-            var yMin = bounds.MinY + depth;
-            var yMax = bounds.MaxY - depth;
-            if (yMax <= yMin)
+            if (world?.Strategic?.Sites == null ||
+                string.IsNullOrEmpty(siteId) ||
+                !world.Strategic.Sites.TryGet(siteId, out var site) ||
+                site == null)
                 return;
 
-            float runStart = 0f;
-            var inRun = false;
-            for (var y = yMin; y <= yMax + 0.0001f; y += CoverageSampleStep)
+            WorldSiteFootprintExitConnectionResolver.CollectConnections(
+                world, site, hexSize, bounds, depth, spanFraction, connectionsOut);
+        }
+
+        static bool TryBuildConnectionAlongDirection(
+            SimulationWorld world,
+            HexCoord sourceHex,
+            int directionIndex,
+            float hexSize,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float depth,
+            float spanFraction,
+            out SurfaceExitConnection connection)
+        {
+            connection = default;
+            var neighbor = HexMath.Neighbor(sourceHex, directionIndex);
+            if (world.HexWorld == null ||
+                !world.HexWorld.TryGetTile(neighbor, out var tile) ||
+                tile == null)
+                return false;
+            if (!IsGroundPassable(world.HexWorld, neighbor))
+                return false;
+
+            return TryBuildConnectionBetweenHexes(
+                world, sourceHex, neighbor, directionIndex, hexSize, bounds, depth, spanFraction, out connection);
+        }
+
+        public static bool TryBuildConnectionBetweenHexes(
+            SimulationWorld world,
+            HexCoord sourceHex,
+            HexCoord destinationHex,
+            int directionIndex,
+            float hexSize,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float depth,
+            float spanFraction,
+            out SurfaceExitConnection connection)
+        {
+            connection = default;
+            HexMath.ToWorldPosition(sourceHex, hexSize, out var sx, out var sy);
+            HexMath.ToWorldPosition(destinationHex, hexSize, out var dx, out var dy);
+            var contactX = (sx + dx) * 0.5f;
+            var contactY = (sy + dy) * 0.5f;
+            return TryBuildConnectionFromFootprintBoundary(
+                world,
+                sourceHex,
+                destinationHex,
+                contactX,
+                contactY,
+                sx,
+                sy,
+                hexSize,
+                bounds,
+                depth,
+                spanFraction,
+                out connection,
+                NormalizeDirection(directionIndex));
+        }
+
+        public static bool TryBuildConnectionFromFootprintBoundary(
+            SimulationWorld world,
+            HexCoord sourceHex,
+            HexCoord destinationHex,
+            float boundaryContactWorldX,
+            float boundaryContactWorldY,
+            float directionOriginWorldX,
+            float directionOriginWorldY,
+            float hexSize,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float depth,
+            float spanFraction,
+            out SurfaceExitConnection connection,
+            int directionIndexOverride = -1)
+        {
+            connection = default;
+            var worldDx = boundaryContactWorldX - directionOriginWorldX;
+            var worldDy = boundaryContactWorldY - directionOriginWorldY;
+            LocalMapHexDirectionProjection.HexWorldDeltaToLocalPlane(
+                worldDx, worldDy, out var ldx, out var ldy);
+            if (!LocalMapHexDirectionProjection.TryProjectToPerimeterCenter(
+                    bounds, ldx, ldy, out var cx, out var cy))
+                return false;
+            if (!LocalMapHexDirectionProjection.TryBuildSlotRect(
+                    bounds, depth, spanFraction, cx, cy, ldx, ldy, out var slot))
+                return false;
+
+            var kind = SurfaceExitDestinationKind.WildernessHex;
+            var siteId = string.Empty;
+            if (world.Strategic?.Sites != null &&
+                world.Strategic.Sites.TryGetAtHex(destinationHex, out var site) &&
+                site != null)
             {
-                var py = y > yMax ? yMax : y;
-                var belongs = PointBelongsToDirection(sampleX, py, bounds, depth, directionIndex);
-                if (belongs && !inRun)
+                kind = SurfaceExitDestinationKind.WorldSite;
+                siteId = site.SiteId ?? string.Empty;
+            }
+
+            var len = (float)Math.Sqrt(ldx * ldx + ldy * ldy);
+            if (len < 1e-6f)
+                return false;
+
+            var directionIndex = directionIndexOverride >= 0
+                ? NormalizeDirection(directionIndexOverride)
+                : DirectionIndexFromLocalPlane(ldx / len, ldy / len);
+
+            connection = new SurfaceExitConnection(
+                sourceHex,
+                destinationHex,
+                directionIndex,
+                kind,
+                siteId,
+                ldx / len,
+                ldy / len,
+                cx,
+                cy,
+                slot,
+                boundaryContactWorldX,
+                boundaryContactWorldY);
+            return true;
+        }
+
+        static int DirectionIndexFromLocalPlane(float localDirX, float localDirY)
+        {
+            var angle = (float)Math.Atan2(localDirY, localDirX);
+            var best = 0;
+            var bestDiff = float.MaxValue;
+            for (var i = 0; i < 6; i++)
+            {
+                var neighbor = HexMath.Neighbor(new HexCoord(0, 0), i);
+                HexMath.ToWorldPosition(neighbor, 1f, out var nx, out var ny);
+                var dirAngle = (float)Math.Atan2(ny, nx);
+                var diff = Math.Abs(NormalizeAngle(dirAngle - angle));
+                if (diff < bestDiff)
                 {
-                    inRun = true;
-                    runStart = py;
-                }
-                else if (!belongs && inRun)
-                {
-                    inRun = false;
-                    var runEnd = py;
-                    if (runEnd > runStart + 0.001f)
-                        rectsOut.Add(new SurfaceExitCoverageRect(x0, x1, runStart, runEnd));
+                    bestDiff = diff;
+                    best = i;
                 }
             }
 
-            if (inRun)
-                rectsOut.Add(new SurfaceExitCoverageRect(x0, x1, runStart, yMax));
+            return best;
+        }
+
+        static float NormalizeAngle(float radians)
+        {
+            while (radians > Math.PI)
+                radians -= (float)(Math.PI * 2d);
+            while (radians < -Math.PI)
+                radians += (float)(Math.PI * 2d);
+            return Math.Abs(radians);
+        }
+
+        static bool IsGroundPassable(HexWorld grid, HexCoord coord)
+        {
+            if (grid == null || !grid.TryGetTile(coord, out var tile) || tile == null)
+                return false;
+            if (tile.Terrain == HexTerrainType.Water)
+                return false;
+            return tile.IsPassable;
         }
 
         static int NormalizeDirection(int directionIndex)
@@ -344,6 +622,216 @@ namespace XianXia.Core.World.Strategic
             if (d < 0)
                 d += 6;
             return d;
+        }
+    }
+
+    /// <summary>
+    /// WorldSite 全 Footprint 外围：唯一合法 Outside Neighbor → Surface Exit Connection。
+    /// </summary>
+    public static class WorldSiteFootprintExitConnectionResolver
+    {
+        struct BoundaryAggregate
+        {
+            public HexCoord Destination;
+            public HexCoord RepresentativeSource;
+            public float ContactSumX;
+            public float ContactSumY;
+            public int ContactCount;
+        }
+
+        static readonly List<BoundaryAggregate> ScratchAggregates = new List<BoundaryAggregate>(16);
+
+        /// <summary>统计 Footprint 外围唯一可通行 Outside Hex 数（与 Connection 数一致）。</summary>
+        public static int CountUniqueTraversableOutsideNeighbors(SimulationWorld world, WorldSite site)
+        {
+            if (world?.HexWorld == null || site == null)
+                return 0;
+
+            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            CollectAggregates(world, site, hexSize, ScratchAggregates);
+            return ScratchAggregates.Count;
+        }
+
+        public static int CollectConnections(
+            SimulationWorld world,
+            WorldSite site,
+            float hexSize,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float depth,
+            float spanFraction,
+            IList<SurfaceExitConnection> connectionsOut)
+        {
+            if (connectionsOut == null || world?.HexWorld == null || site == null)
+                return 0;
+
+            connectionsOut.Clear();
+            if (hexSize <= 0.0001f)
+                hexSize = 1f;
+
+            CollectAggregates(world, site, hexSize, ScratchAggregates);
+            if (ScratchAggregates.Count == 0)
+                return 0;
+
+            ComputeFootprintWorldCenter(site, hexSize, out var centerX, out var centerY);
+
+            for (var i = 0; i < ScratchAggregates.Count; i++)
+            {
+                var agg = ScratchAggregates[i];
+                var contactX = agg.ContactSumX / agg.ContactCount;
+                var contactY = agg.ContactSumY / agg.ContactCount;
+                if (!SurfaceExitZoneCalculator.TryBuildConnectionFromFootprintBoundary(
+                        world,
+                        agg.RepresentativeSource,
+                        agg.Destination,
+                        contactX,
+                        contactY,
+                        centerX,
+                        centerY,
+                        hexSize,
+                        bounds,
+                        depth,
+                        spanFraction,
+                        out var connection))
+                    continue;
+                connectionsOut.Add(connection);
+            }
+
+            SurfaceExitZoneOverlapResolver.ResolveOverlaps(bounds, depth, connectionsOut);
+            LogLayoutOverflowIfNeeded(site, connectionsOut, bounds, depth);
+            return connectionsOut.Count;
+        }
+
+        static void CollectAggregates(
+            SimulationWorld world,
+            WorldSite site,
+            float hexSize,
+            List<BoundaryAggregate> aggregatesOut)
+        {
+            aggregatesOut.Clear();
+            var indexByDestination = new Dictionary<HexCoord, int>();
+
+            foreach (var footprintHex in site.EnumerateFootprintHexes())
+            {
+                for (var dir = 0; dir < 6; dir++)
+                {
+                    var neighbor = HexMath.Neighbor(footprintHex, dir);
+                    if (site.OccupiesHex(neighbor))
+                        continue;
+                    if (!world.HexWorld.TryGetTile(neighbor, out var tile) || tile == null)
+                        continue;
+                    if (!IsGroundPassable(tile))
+                        continue;
+
+                    HexMath.ToWorldPosition(footprintHex, hexSize, out var fx, out var fy);
+                    HexMath.ToWorldPosition(neighbor, hexSize, out var nx, out var ny);
+                    var contactX = (fx + nx) * 0.5f;
+                    var contactY = (fy + ny) * 0.5f;
+
+                    if (!indexByDestination.TryGetValue(neighbor, out var idx))
+                    {
+                        idx = aggregatesOut.Count;
+                        indexByDestination[neighbor] = idx;
+                        aggregatesOut.Add(new BoundaryAggregate
+                        {
+                            Destination = neighbor,
+                            RepresentativeSource = footprintHex,
+                            ContactSumX = contactX,
+                            ContactSumY = contactY,
+                            ContactCount = 1,
+                        });
+                        continue;
+                    }
+
+                    var agg = aggregatesOut[idx];
+                    agg.ContactSumX += contactX;
+                    agg.ContactSumY += contactY;
+                    agg.ContactCount++;
+                    if (CompareHex(footprintHex, agg.RepresentativeSource) < 0)
+                        agg.RepresentativeSource = footprintHex;
+                    aggregatesOut[idx] = agg;
+                }
+            }
+
+            aggregatesOut.Sort(CompareAggregates);
+        }
+
+        static int CompareAggregates(BoundaryAggregate a, BoundaryAggregate b)
+        {
+            var cmp = a.Destination.Q.CompareTo(b.Destination.Q);
+            return cmp != 0 ? cmp : a.Destination.R.CompareTo(b.Destination.R);
+        }
+
+        static int CompareHex(HexCoord a, HexCoord b)
+        {
+            var cmp = a.Q.CompareTo(b.Q);
+            return cmp != 0 ? cmp : a.R.CompareTo(b.R);
+        }
+
+        public static void ComputeFootprintWorldCenter(
+            WorldSite site,
+            float hexSize,
+            out float centerX,
+            out float centerY)
+        {
+            centerX = 0f;
+            centerY = 0f;
+            var count = 0;
+            foreach (var hex in site.EnumerateFootprintHexes())
+            {
+                HexMath.ToWorldPosition(hex, hexSize, out var x, out var y);
+                centerX += x;
+                centerY += y;
+                count++;
+            }
+
+            if (count <= 0)
+                return;
+            centerX /= count;
+            centerY /= count;
+        }
+
+        static bool IsGroundPassable(HexCell tile)
+        {
+            if (tile == null)
+                return false;
+            if (tile.Terrain == HexTerrainType.Water)
+                return false;
+            return tile.IsPassable;
+        }
+
+        static void LogLayoutOverflowIfNeeded(
+            WorldSite site,
+            IList<SurfaceExitConnection> connections,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float depth)
+        {
+            if (connections == null || connections.Count < 2 || PlayerPartyWorldLocationDebug.Sink == null)
+                return;
+
+            for (var i = 0; i < connections.Count; i++)
+            {
+                for (var j = i + 1; j < connections.Count; j++)
+                {
+                    if (!RectsOverlap(connections[i].SlotRect, connections[j].SlotRect))
+                        continue;
+
+                    PlayerPartyWorldLocationDebug.Sink(
+                        "[WorldSiteExitLayout] overlap remains site=" + (site?.SiteId ?? "?") +
+                        " connectionCount=" + connections.Count +
+                        " minSpan=" + SurfaceExitZoneCalculator.MinSlotSpanFraction +
+                        " perimeter=(" + bounds.MinX + "," + bounds.MinY + ")-(" +
+                        bounds.MaxX + "," + bounds.MaxY + ")");
+                    return;
+                }
+            }
+        }
+
+        static bool RectsOverlap(SurfaceExitCoverageRect a, SurfaceExitCoverageRect b)
+        {
+            return a.MinX < b.MaxX - 0.0001f &&
+                   a.MaxX > b.MinX + 0.0001f &&
+                   a.MinY < b.MaxY - 0.0001f &&
+                   a.MaxY > b.MinY + 0.0001f;
         }
     }
 }

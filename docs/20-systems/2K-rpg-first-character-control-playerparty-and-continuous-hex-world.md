@@ -1,6 +1,6 @@
 # RPG-First：Active Character、PlayerParty、连续 Hex 世界与 FormalArmy 军事层
 
-> 状态：**Phase 2B 已封板**｜**Phase 2C Continuous World Movement 契约已锁定；Surface Exit Trigger／Edge Transition 已落地（2026-08-26）**｜优先级：P0｜最后更新：2026-08-26  
+> 状态：**Phase 2B／2C 已封板**｜**Phase 2C Continuous World Movement 已人工验收封板（2026-08-26）**｜优先级：P0｜最后更新：2026-08-26  
 > 上级：`docs/00-project/00-overview.md`  
 > 关联：`2A`、`2J`、`24`、`27`、`23`、`ADR-0020`、`ADR-0024`、`ADR-0025`、`ADR-0026`  
 > 被引用：`03-glossary.md`、`04-reading-guide.md`、`41-roadmap`、`AGENTS.md`  
