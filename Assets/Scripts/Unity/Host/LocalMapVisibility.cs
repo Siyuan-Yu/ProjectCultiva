@@ -276,6 +276,14 @@ namespace XianXia.Unity.Host
                         world, id, wp);
                 }
 
+                if (wp.Mode == PartyWorldPresenceMode.AtWorldPosition && wp.HasContinuousWorldPosition)
+                {
+                    if (onEncounterMap)
+                        return false;
+                    return LoadedDestinationArrivalMaterializer.IsBackgroundCharacterVisibleOnLoadedWildernessLocalMap(
+                        world, id);
+                }
+
                 if (wp.Mode == PartyWorldPresenceMode.InEncounter)
                 {
                     if (!onEncounterMap)

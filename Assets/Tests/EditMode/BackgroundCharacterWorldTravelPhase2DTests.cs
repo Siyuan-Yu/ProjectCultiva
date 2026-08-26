@@ -338,6 +338,26 @@ namespace XianXia.Tests
         }
 
         [Test]
+        public void BeginTravelToHexInsideFootprintCanonicalizesToAtWorldSite()
+        {
+            var world = BuildTravelWorld(out var siteA, out var siteB, out var mid);
+            var a = Spawn(world, "A");
+            world.WorldPresence.SetAtHex(a, mid);
+            Assert.IsTrue(BackgroundCharacterTravelService.BeginTravelToHex(
+                world, a, siteB.PresenceHex).IsSuccess);
+            BackgroundCharacterTravelService.AdvanceAll(world, 256);
+            Assert.IsFalse(world.BackgroundCharacterTravel.IsTraveling(a));
+            Assert.IsTrue(world.WorldPresence.TryGet(a, out var presence));
+            Assert.AreEqual(PartyWorldPresenceMode.AtSite, presence.Mode);
+            Assert.AreEqual(siteB.SiteId, presence.SiteId);
+            Assert.IsTrue(BackgroundCharacterTravelService.TryResolveCharacterWorldLocation(
+                world, a, out var kind, out var siteId, out _, out var derivedHex));
+            Assert.AreEqual(BackgroundCharacterLocationKind.AtWorldSite, kind);
+            Assert.AreEqual(siteB.SiteId, siteId);
+            Assert.AreEqual(siteB.PresenceHex, derivedHex);
+        }
+
+        [Test]
         public void BackgroundTravelDestinationHexUsesCanonicalHexDestination()
         {
             var world = BuildTravelWorld(out _, out _, out var mid);

@@ -199,6 +199,54 @@ namespace XianXia.Unity.Host
             }
         }
 
+        /// <summary>Background Arrival 等增量 Materialize：只补尚未刷出的可见实体。</summary>
+        public void SpawnMissingVisibleViews(PlayableHostSession session)
+        {
+            if (session == null || !session.IsInitialized)
+                return;
+
+            EnsureRoot();
+            var ids = session.ViewableEntityIds;
+            var stackAtLocation = new Dictionary<string, int>(System.StringComparer.Ordinal);
+            for (var i = 0; i < ids.Count; i++)
+            {
+                var id = ids[i];
+                if (_registry.TryGet(id, out _))
+                    continue;
+                if (!LocalMapVisibility.IsEntityVisible(session.World, id))
+                    continue;
+                if (session.World.Entities.TryGet(id, out var lifeEnt) &&
+                    CombatLifeStateService.ShouldHideFromSpawn(lifeEnt))
+                    continue;
+
+                var position = ResolvePresentationPosition(session, id, i, stackAtLocation, slotPositions);
+                var isNpc = session.World.Entities.TryGet(id, out var entity) &&
+                             (entity.Tags & EntityTag.Npc) != 0;
+                var color = CharacterSlotColors[i % CharacterSlotColors.Length];
+                if (isNpc)
+                {
+                    color = NpcSlotColor;
+                    if (HostNpcInteraction.IsHostileEntity(entity))
+                        color = HostileNpcColor;
+                    else if (entity.TryGet<XianXia.Core.Social.NpcAiRoleComponent>(out var ai) &&
+                             ai.Role == XianXia.Core.Social.NpcAiRoleKind.Supervisor)
+                        color = SupervisorColor;
+                }
+
+                var view = CreateSpriteView(id, position);
+                if (!view.Bind(session.World, id))
+                {
+                    DestroyView(view);
+                    continue;
+                }
+
+                view.SetBaseColor(color);
+                ApplyLifeStateVisual(session.World, entity, view);
+                _registry.Register(id, view);
+                _spawned.Add(view);
+            }
+        }
+
         EntityView CreateSpriteView(EntityId id, Vector3 position)
         {
             var go = new GameObject("EntityView_" + id.Value);

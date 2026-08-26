@@ -157,6 +157,7 @@ namespace XianXia.Core.World
 
         public static void ApplyLocalMapSessionFromFocus(SimulationWorld world)
         {
+            LoadedDestinationArrivalMaterializer.ReleaseEligibleOccupantsOnLocalMapUnload(world, null);
             var presence = world.PartyWorld;
             world.LocalMap.ClearOccupants();
             world.LocalMap.ReturnLocationId = string.Empty;

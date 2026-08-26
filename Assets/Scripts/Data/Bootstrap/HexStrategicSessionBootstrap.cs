@@ -36,12 +36,12 @@ namespace XianXia.Data.Bootstrap
                     startSiteId);
             }
 
-            var party = CollectPartyEntityIds(scenario, lookup, spawnEntries);
-            for (var i = 0; i < party.Count; i++)
+            var openingCharacters = CollectOpeningCharacterEntityIds(scenario, lookup, spawnEntries);
+            for (var i = 0; i < openingCharacters.Count; i++)
             {
-                if (party[i].IsNone)
+                if (openingCharacters[i].IsNone)
                     continue;
-                world.WorldPresence.SetAtSite(party[i], startSiteId);
+                world.WorldPresence.SetAtSite(openingCharacters[i], startSiteId);
             }
 
             if (world.Strategic.Sites.TryResolveSitePresenceHex(startSiteId, out var presenceHex))
@@ -51,7 +51,9 @@ namespace XianXia.Data.Bootstrap
                     : 1f;
                 // Phase 2C：开局必须是 AtWorldSite，禁止 SetIdleAt（会写成 AtWorldPosition）。
                 world.PlayerPartyTravel.SetAtWorldSite(startSiteId, presenceHex, hexSize);
-                world.PlayerPartyTravel.CaptureTravelingMembers(party);
+                // 仅主控跟随 PlayerPartyTravel 同步；Background 同伴保持独立 AtWorldSite。
+                world.PlayerPartyTravel.CaptureTravelingMembers(
+                    CollectOpeningTravelSyncMemberIds(openingCharacters));
             }
 
             var enter = WorldTravelService.EnterWorldSiteScene(world, startSiteId, string.Empty);
@@ -66,13 +68,14 @@ namespace XianXia.Data.Bootstrap
                     ? world.HexWorld.HexSize
                     : 1f;
                 world.PlayerPartyTravel.SetAtWorldSite(startSiteId, presenceAgain, hexSize);
-                world.PlayerPartyTravel.CaptureTravelingMembers(party);
+                world.PlayerPartyTravel.CaptureTravelingMembers(
+                    CollectOpeningTravelSyncMemberIds(openingCharacters));
             }
 
             return Result.Success();
         }
 
-        static List<EntityId> CollectPartyEntityIds(
+        static List<EntityId> CollectOpeningCharacterEntityIds(
             OpeningScenarioDefinition scenario,
             GameStartLookup lookup,
             IList<OpeningSpawnEntry> spawnEntries)
@@ -96,6 +99,19 @@ namespace XianXia.Data.Bootstrap
                 list.Add(id);
             }
 
+            return list;
+        }
+
+        /// <summary>
+        /// 开局仅主控（首个 character spawn）跟随 PlayerPartyTravel 同步；同伴保持 Background AtWorldSite。
+        /// </summary>
+        internal static List<EntityId> CollectOpeningTravelSyncMemberIds(IReadOnlyList<EntityId> openingCharacters)
+        {
+            var list = new List<EntityId>(1);
+            if (openingCharacters == null || openingCharacters.Count == 0)
+                return list;
+            if (!openingCharacters[0].IsNone)
+                list.Add(openingCharacters[0]);
             return list;
         }
     }

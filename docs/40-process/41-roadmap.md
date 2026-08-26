@@ -1,9 +1,10 @@
 # 路线图
 
-> 状态：**RPG-First Phase 1／2A／2B／2C 已封板**｜最后更新：2026-08-26
+> 状态：**RPG-First Phase 1／2A／2B／2C／2D 已封板**｜最后更新：2026-08-27
 
 ## 当前阶段说明
 
+- **2026-08-27：** Phase 2D **人工验收通过并封板**：Background Character World Travel Core；Loaded LocalMap Materialization；Site Departure 真实 Travel；Destination Canonicalization；F12 Debug + BGTRAVEL Trace；实现索引 [165](165-phase-2d-background-character-world-travel-2026-08-26.md)。  
 - **2026-08-26：** Phase 2C **人工验收通过并封板**：Continuous Player World Movement；Ordinary Hex Actual Connections；WorldSite Full-Footprint Boundary Connections；Surface Exit Trigger／Edge Transition／Overlap Resolution；实现索引 [164](164-phase-2c-surface-exit-zone-and-edge-transition-2026-08-26.md)。  
 - **2026-08-26：** Phase 2B **人工验收通过并封板**（`c895d3d`）：PlayerParty Hex Travel／30×15 测试世界／Wilderness Fallback／Materialize；下一目标 Phase 2C。  
 - **2026-08-25：** Phase 2B 落地：PlayerParty Hex Travel（非 Fake Army）＋30×15 测试世界＋Wilderness Fallback＋LocalMap Materialize 闭环；「进入近景」为 Prototype／Debug UX。  
@@ -25,7 +26,8 @@
   - **2A（已封板）：** PresenceHex Content／Runtime／Editor；`GetCharacterWorldHex`；AtSite 存 SiteId；Stop Follow 保 Presence；Snapshot `characterWorldPresences`；Background 不画 WorldMap 头像  
   - **2B（已封板）：** PlayerParty World Travel MVP＋30×15 测试世界＋Minimal Wilderness Fallback＋LocalMap Materialize；**非** Background Travel  
   - **2C（已封板）：** Continuous WorldPosition；Actual Surface Exit Connections（Ordinary Hex + WorldSite Full-Footprint）；WorldMap↔Wilderness 双向投影；LocalMap Edge→Neighbor；Canonical Exit Trigger Zone + Overlap Resolution；Close WorldMap = Cancel＋Expand；**无** PreciseWorldDestination；见 [164](164-phase-2c-surface-exit-zone-and-edge-transition-2026-08-26.md)  
-  - **后续：** Background Travel／Combat／Policy；FormalArmy 连续 Marker；Directional Site Entry 等
+  - **2D（已封板）：** Background Character Travel Core；Scheduler；Loaded LocalMap Materialization；Site Departure；Destination Canonicalization；Save/Load；F12 Debug；见 [165](165-phase-2d-background-character-world-travel-2026-08-26.md)  
+  - **后续：** Background Combat／Autonomous AI Travel／Policy；FormalArmy 连续 Marker；Directional Site Entry 等
 - [ ] **Phase 3** FormalArmy 职责迁移（旅行≠Army；军事层保留）
 - [ ] **Phase 4** Manual Battle Permission（远方 Auto；≤1 Hex 介入）
 - [ ] **Phase 5** Continuous LocalMap ↔ HexWorld Transition

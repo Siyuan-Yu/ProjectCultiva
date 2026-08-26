@@ -16,6 +16,7 @@ namespace XianXia.Unity.Host
             LingeringExitPositionTrace.LogInfo = message => Debug.Log(message);
             LingeringExitPositionTrace.LogWarning = message => Debug.LogWarning(message);
             SecondBattleAnchorTrace.LogInfo = message => Debug.Log(message);
+            BackgroundTravelTraceSink.LogInfo = message => Debug.Log(message);
             ArmyWorldMapRenderDiagnostics.Enabled = true;
             ArmyWorldMapRenderDiagnostics.LogInfo = message => Debug.Log(message);
             Debug.Log("[FormalArmyPosDiag] Runtime tracing ENABLED. Search Console for ATTACK-BEGIN / FORMAL-ARMY-POS-MUTATION / ILLEGAL-ARMY-TELEPORT / ARMY-RENDER-POS-JUMP / LINGERING-EXIT-POSITION-TRACE / SECOND-BATTLE-ANCHOR-TRACE.");

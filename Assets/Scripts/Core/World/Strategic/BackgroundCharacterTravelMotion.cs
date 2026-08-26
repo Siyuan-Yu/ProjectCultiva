@@ -33,6 +33,17 @@ namespace XianXia.Core.World.Strategic
         public IReadOnlyList<HexCoord> HexPath =>
             _hexPathView ?? (_hexPathView = _hexPath.AsReadOnly());
 
+        /// <summary>WorldSite 出发过渡期：仍 AtWorldSite，用虚拟世界坐标推进至 Boundary Entry。</summary>
+        public bool IsSiteDeparturePending { get; private set; }
+
+        public WorldVec2 SiteDepartureVirtualPosition { get; private set; }
+
+        public WorldVec2 SiteDepartureBoundaryEntry { get; private set; }
+
+        public HexCoord SiteDepartureFootprintHex { get; private set; }
+
+        public HexCoord SiteDepartureExitHex { get; private set; }
+
         public void ClearTravel()
         {
             _hexPath.Clear();
@@ -43,7 +54,20 @@ namespace XianXia.Core.World.Strategic
             DestinationHex = default;
             DestinationSiteId = string.Empty;
             TravelMode = HexTravelMode.Ground;
+            ClearSiteDeparturePending();
         }
+
+        public void ClearSiteDeparturePending()
+        {
+            IsSiteDeparturePending = false;
+            SiteDepartureVirtualPosition = default;
+            SiteDepartureBoundaryEntry = default;
+            SiteDepartureFootprintHex = default;
+            SiteDepartureExitHex = default;
+        }
+
+        public void SetSiteDepartureVirtualPosition(WorldVec2 pos) =>
+            SiteDepartureVirtualPosition = pos;
 
         public void BeginTravel(
             IReadOnlyList<HexCoord> path,
@@ -70,6 +94,27 @@ namespace XianXia.Core.World.Strategic
             }
 
             MovementKind = BackgroundCharacterTravelMovementKind.Traveling;
+        }
+
+        public void BeginSiteDepartureTravel(
+            IReadOnlyList<HexCoord> path,
+            HexCoord destinationHex,
+            string destinationSiteId,
+            HexCoord footprintHex,
+            HexCoord exitHex,
+            WorldVec2 footprintCenterWorld,
+            WorldVec2 boundaryEntryWorld,
+            HexTravelMode mode)
+        {
+            BeginTravel(path, destinationHex, destinationSiteId, mode);
+            if (!IsMoving)
+                return;
+
+            IsSiteDeparturePending = true;
+            SiteDepartureFootprintHex = footprintHex;
+            SiteDepartureExitHex = exitHex;
+            SiteDepartureBoundaryEntry = boundaryEntryWorld;
+            SiteDepartureVirtualPosition = footprintCenterWorld;
         }
 
         public void CancelTravelPreserveProgress() => ClearTravel();

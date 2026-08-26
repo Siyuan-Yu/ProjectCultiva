@@ -67,7 +67,9 @@ namespace XianXia.Core.Events
         /// <summary>LocalMap 进出：ActiveMapLayoutId 已切换（session）。</summary>
         LocalMapChanged = 35,
         /// <summary>战斗 Alpha：单位被击倒（NPC Dead／己方重伤）。</summary>
-        CombatantDefeated = 36
+        CombatantDefeated = 36,
+        /// <summary>Phase 2D：Background Character DerivedHex 进入新 World Hex。</summary>
+        BackgroundCharacterEnteredWorldHex = 37
     }
 }
 

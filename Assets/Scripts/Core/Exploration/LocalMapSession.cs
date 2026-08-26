@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Exploration
 {
@@ -24,6 +25,52 @@ namespace XianXia.Core.Exploration
         /// 只影响 Detection/Presentation 共用的 Exit Zone，不进 Snapshot。
         /// </summary>
         public float ExitTriggerDepth { get; set; }
+
+        public float PlayableOriginX { get; set; }
+        public float PlayableOriginY { get; set; }
+        public float PlayableCellSize { get; set; } = 1f;
+        public int PlayableWidth { get; set; }
+        public int PlayableHeight { get; set; }
+
+        public bool HasPlayableBounds => PlayableWidth > 0 && PlayableHeight > 0;
+
+        public void SetPlayableBounds(
+            float originX,
+            float originY,
+            float cellSize,
+            int width,
+            int height)
+        {
+            PlayableOriginX = originX;
+            PlayableOriginY = originY;
+            PlayableCellSize = cellSize > 0.0001f ? cellSize : 1f;
+            PlayableWidth = width;
+            PlayableHeight = height;
+        }
+
+        public bool TryGetPlayableBounds(
+            out WildernessLocalWorldProjection.WildernessLocalMapBounds bounds)
+        {
+            bounds = default;
+            if (!HasPlayableBounds)
+                return false;
+            bounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
+                PlayableOriginX,
+                PlayableOriginY,
+                PlayableCellSize,
+                PlayableWidth,
+                PlayableHeight);
+            return true;
+        }
+
+        public void ClearPlayableBounds()
+        {
+            PlayableOriginX = 0f;
+            PlayableOriginY = 0f;
+            PlayableCellSize = 1f;
+            PlayableWidth = 0;
+            PlayableHeight = 0;
+        }
 
         /// <summary>当前仍在洞内的己方（进洞登记；离开关闭时清空）。</summary>
         public IReadOnlyList<EntityId> OccupantIds => _occupantIds;
@@ -100,6 +147,7 @@ namespace XianXia.Core.Exploration
             OverworldMapLayoutId = string.Empty;
             ReturnLocationId = string.Empty;
             ExitTriggerDepth = 0f;
+            ClearPlayableBounds();
             _occupantIds.Clear();
         }
     }

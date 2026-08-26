@@ -78,5 +78,63 @@ namespace XianXia.Core.World.Strategic
             var cq = a.Q.CompareTo(b.Q);
             return cq != 0 ? cq : a.R.CompareTo(b.R);
         }
+
+        /// <summary>
+        /// 离开 Site 时使用的 Outside Exit Hex 所邻接的 Footprint 源格（Boundary Connection 内侧）。
+        /// </summary>
+        public static bool TryResolveDepartureFootprintHex(
+            WorldSite site,
+            HexCoord outsideExitHex,
+            out HexCoord footprintHex)
+        {
+            footprintHex = default;
+            if (site == null)
+                return false;
+
+            var found = false;
+            foreach (var hex in site.EnumerateFootprintHexes())
+            {
+                for (var dir = 0; dir < 6; dir++)
+                {
+                    if (!HexMath.Neighbor(hex, dir).Equals(outsideExitHex))
+                        continue;
+                    if (!found || CompareHex(hex, footprintHex) < 0)
+                    {
+                        footprintHex = hex;
+                        found = true;
+                    }
+                }
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// Footprint 内侧 → Outside Hex 边界上的世界坐标 Entry（Domain-only）。
+        /// </summary>
+        public static bool TryResolveDepartureBoundaryEntryWorldPosition(
+            HexCoord footprintHex,
+            HexCoord outsideExitHex,
+            float hexSize,
+            out WorldVec2 entryWorldPos)
+        {
+            entryWorldPos = default;
+            var size = hexSize > 0f ? hexSize : 1f;
+            HexMath.ToWorldPosition(footprintHex, size, out var fx, out var fy);
+            HexMath.ToWorldPosition(outsideExitHex, size, out var ox, out var oy);
+            entryWorldPos = new WorldVec2((fx + ox) * 0.5f, (fy + oy) * 0.5f);
+            return true;
+        }
+
+        public static int ResolveDirectionBetween(HexCoord fromHex, HexCoord toHex)
+        {
+            for (var i = 0; i < 6; i++)
+            {
+                if (HexMath.Neighbor(fromHex, i).Equals(toHex))
+                    return i;
+            }
+
+            return 0;
+        }
     }
 }

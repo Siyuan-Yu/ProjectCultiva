@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
@@ -33,9 +34,10 @@ namespace XianXia.Core.World.Strategic
         {
             if (world == null || characterId.IsNone || string.IsNullOrEmpty(siteId))
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid background site travel.");
-            if (!world.Strategic.Sites.TryResolveSiteHex(siteId, out var approach))
+            if (!world.Strategic.Sites.TryGet(siteId, out _))
                 return Result.Failure(ErrorCode.NotFound, "Site not found.", siteId);
-            return BeginTravel(world, characterId, approach, siteId, party, debugOverrideLocalOccupant);
+            // Destination 真源是 WorldSiteId；路径入口由 Footprint Boundary 解析，不用 Anchor/Presence 作唯一入口。
+            return BeginTravel(world, characterId, default, siteId, party, debugOverrideLocalOccupant);
         }
 
         public static Result BeginTravel(
@@ -50,10 +52,6 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidOperation, "Background travel board missing.");
             if (!world.HexWorld.HasGrid)
                 return Result.Failure(ErrorCode.InvalidOperation, "Hex grid not loaded.");
-            if (!world.HexWorld.TryGetTile(destinationHex, out var destTile) ||
-                destTile == null ||
-                !destTile.IsPassable)
-                return Result.Failure(ErrorCode.InvalidArgument, "Destination hex is not passable.");
 
             var canStart = debugOverrideLocalOccupant
                 ? CharacterWorldMovementAuthorityQuery.CanStartBackgroundTravelDebug(
@@ -66,40 +64,268 @@ namespace XianXia.Core.World.Strategic
             if (!TryResolveCharacterWorldLocation(world, characterId, out var startKind, out var startSiteId, out var startPos, out var startHex))
                 return Result.Failure(ErrorCode.InvalidOperation, "Character has no world location.");
 
+            var requestedHex = destinationHex;
+            destinationSiteId = TryCanonicalizeFootprintHexDestination(
+                world, destinationHex, destinationSiteId, out var canonicalizedFromFootprint);
+
             var goalHex = destinationHex;
             if (!string.IsNullOrEmpty(destinationSiteId) &&
                 world.Strategic.Sites.TryGet(destinationSiteId, out var targetSite) &&
                 targetSite != null)
                 goalHex = ResolveDeterministicSiteApproachHex(world, startHex, targetSite);
 
+            if (!world.HexWorld.TryGetTile(goalHex, out var destTile) ||
+                destTile == null ||
+                !destTile.IsPassable)
+                return Result.Failure(ErrorCode.InvalidArgument, "Destination hex is not passable.");
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            var traceId = BackgroundBgTravelFullTrace.BeginTrace();
+            var sourceLocation = startKind == BackgroundCharacterLocationKind.AtWorldSite && !string.IsNullOrEmpty(startSiteId)
+                ? "AtWorldSite(" + startSiteId + ")"
+                : "AtWorldPosition(" + startHex + ")";
+            var destinationKind = string.IsNullOrEmpty(destinationSiteId)
+                ? "WildernessHex"
+                : "WorldSite(" + destinationSiteId + ")";
+            if (canonicalizedFromFootprint)
+                destinationKind += " RequestedHex=" + requestedHex + "→ResolvedWorldSite";
+            BackgroundBgTravelFullTrace.LogIntent(
+                characterId,
+                sourceLocation,
+                goalHex,
+                destinationKind);
+#endif
+
             if (startKind == BackgroundCharacterLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(startSiteId) &&
                 world.Strategic.Sites.TryGet(startSiteId, out var fromSite) &&
                 fromSite != null)
             {
-                if (!TryBuildPathLeavingSite(world, fromSite, goalHex, FullPathScratch, out var exitHex))
+                if (!TryBuildPathLeavingSite(world, fromSite, goalHex, FullPathScratch, out var exitHex, out var departureFootprintHex))
                     return Result.Failure(ErrorCode.InvalidOperation, "No path leaving WorldSite.");
-                startPos = HexCenter(exitHex, world.HexWorld.HexSize);
-                startHex = exitHex;
+
+                var hexSizeForDeparture = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+                if (!BackgroundCharacterSiteDepartureResolver.TryResolveDepartureBoundaryEntryWorldPosition(
+                        departureFootprintHex,
+                        exitHex,
+                        hexSizeForDeparture,
+                        out var boundaryEntryPos))
+                {
+                    boundaryEntryPos = HexCenter(exitHex, hexSizeForDeparture);
+                }
+
+                if (debugOverrideLocalOccupant && world.LocalMap != null)
+                    world.LocalMap.RemoveOccupant(characterId);
+
+                var motion = world.BackgroundCharacterTravel.GetOrCreate(characterId);
+                var footprintCenter = HexCenter(departureFootprintHex, hexSizeForDeparture);
+                motion.BeginSiteDepartureTravel(
+                    FullPathScratch,
+                    goalHex,
+                    destinationSiteId,
+                    departureFootprintHex,
+                    exitHex,
+                    footprintCenter,
+                    boundaryEntryPos,
+                    HexTravelMode.Ground);
+                motion.LastProcessedWorldTick = world.Tick.Value;
+                var isTravelingAfterBegin = motion.IsMoving;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                var derivedBeforeCommit = fromSite.PresenceHex;
+                var previousLocationDesc = "AtWorldSite(" + startSiteId + ")";
+                var segmentStart = FullPathScratch.Count >= 1
+                    ? FullPathScratch[0].ToString()
+                    : "None";
+                var segmentEnd = FullPathScratch.Count >= 1
+                    ? FullPathScratch[FullPathScratch.Count - 1].ToString()
+                    : "None";
+                var departureDistance = WorldVec2.Distance(footprintCenter, boundaryEntryPos);
+                var segmentDistance = WorldVec2.Distance(boundaryEntryPos, HexCenter(exitHex, hexSizeForDeparture));
+                BackgroundBgTravelFullTrace.LogLocationCommit(
+                    previousLocationDesc,
+                    "AtWorldSite(" + startSiteId + ") [SiteDeparturePending]",
+                    derivedBeforeCommit,
+                    derivedBeforeCommit,
+                    "BeginTravel.SiteDeparturePending");
+                BackgroundBgTravelFullTrace.LogRoute(
+                    BackgroundSiteDepartureTravelTrace.FormatRoute(FullPathScratch),
+                    FullPathScratch.Count,
+                    exitHex,
+                    departureFootprintHex,
+                    motion.HexPathCount >= 2 ? motion.HexPathCount - 1 : 0,
+                    segmentStart,
+                    segmentEnd,
+                    isTravelingAfterBegin);
+                BackgroundBgTravelFullTrace.Log(
+                    "SiteDeparture",
+                    "FootprintCenter=" + BackgroundSiteDepartureTravelTrace.FormatWorldVec(footprintCenter) +
+                    " BoundaryEntry=" + BackgroundSiteDepartureTravelTrace.FormatWorldVec(boundaryEntryPos) +
+                    " ExitCenter=" + BackgroundSiteDepartureTravelTrace.FormatWorldVec(HexCenter(exitHex, hexSizeForDeparture)) +
+                    " DepartureDistance=" + departureDistance.ToString("0.###") +
+                    " BoundaryToExitCenterDistance=" + segmentDistance.ToString("0.###"));
+                BackgroundBgTravelFullTrace.LogTravelComplete(
+                    !isTravelingAfterBegin,
+                    "BeginTravel.AfterSiteDepartureBegin");
+                BackgroundSiteDepartureTravelTrace.Log(new BackgroundSiteDepartureTravelTrace.Snapshot(
+                    characterId,
+                    previousLocationDesc,
+                    goalHex,
+                    exitHex,
+                    departureFootprintHex,
+                    BackgroundCharacterSiteDepartureResolver.ResolveDirectionBetween(departureFootprintHex, exitHex),
+                    BackgroundSiteDepartureTravelTrace.FormatRoute(FullPathScratch),
+                    motion.HexPathCount >= 2 ? motion.HexPathCount - 1 : 0,
+                    BackgroundSiteDepartureTravelTrace.FormatWorldVec(footprintCenter),
+                    BackgroundSiteDepartureTravelTrace.FormatWorldVec(boundaryEntryPos),
+                    worldLocationCommitted: false,
+                    enteredHexRaised: false,
+                    travelCompleteRaised: !isTravelingAfterBegin,
+                    materializeRequested: false,
+                    isTravelingAfterBegin: isTravelingAfterBegin));
+#endif
+
+                return Result.Success();
             }
-            else
-            {
-                if (!HexPathfinder.TryFindPath(world.HexWorld, startHex, goalHex, FullPathScratch) ||
-                    FullPathScratch.Count < 1)
-                    return Result.Failure(ErrorCode.InvalidOperation, "No hex path to destination.");
-            }
+
+            if (!HexPathfinder.TryFindPath(world.HexWorld, startHex, goalHex, FullPathScratch) ||
+                FullPathScratch.Count < 1)
+                return Result.Failure(ErrorCode.InvalidOperation, "No hex path to destination.");
 
             if (debugOverrideLocalOccupant && world.LocalMap != null)
                 world.LocalMap.RemoveOccupant(characterId);
 
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-            var derived = HexMath.WorldToHex(startPos.X, startPos.Y, hexSize);
-            world.WorldPresence.SetAtWorldPosition(characterId, startPos, derived);
+            var derivedBeforeCommitWild = startHex;
+            var previousLocationDescWild = startKind == BackgroundCharacterLocationKind.AtWorldSite && !string.IsNullOrEmpty(startSiteId)
+                ? "AtWorldSite(" + startSiteId + ")"
+                : "AtWorldPosition(" + startHex + ")";
+            var derivedWild = HexMath.WorldToHex(startPos.X, startPos.Y, hexSize);
+            world.WorldPresence.SetAtWorldPosition(characterId, startPos, derivedWild);
 
-            var motion = world.BackgroundCharacterTravel.GetOrCreate(characterId);
-            motion.BeginTravel(FullPathScratch, goalHex, destinationSiteId, HexTravelMode.Ground);
-            motion.LastProcessedWorldTick = world.Tick.Value;
+            var motionWild = world.BackgroundCharacterTravel.GetOrCreate(characterId);
+            motionWild.BeginTravel(FullPathScratch, goalHex, destinationSiteId, HexTravelMode.Ground);
+            motionWild.LastProcessedWorldTick = world.Tick.Value;
+            var isTravelingAfterBeginWild = motionWild.IsMoving;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            var segmentStartWild = FullPathScratch.Count >= 1
+                ? FullPathScratch[0].ToString()
+                : "None";
+            var segmentEndWild = FullPathScratch.Count >= 1
+                ? FullPathScratch[FullPathScratch.Count - 1].ToString()
+                : "None";
+            BackgroundBgTravelFullTrace.LogLocationCommit(
+                previousLocationDescWild,
+                "AtWorldPosition(" + derivedWild + ")",
+                derivedBeforeCommitWild,
+                derivedWild,
+                "BeginTravel.SetAtWorldPosition");
+            BackgroundBgTravelFullTrace.LogRoute(
+                BackgroundSiteDepartureTravelTrace.FormatRoute(FullPathScratch),
+                FullPathScratch.Count,
+                startHex,
+                startHex,
+                motionWild.HexPathCount >= 2 ? motionWild.HexPathCount - 1 : 0,
+                segmentStartWild,
+                segmentEndWild,
+                isTravelingAfterBeginWild);
+            BackgroundBgTravelFullTrace.LogTravelComplete(
+                !isTravelingAfterBeginWild,
+                "BeginTravel.AfterMotionBegin");
+#endif
+
             return Result.Success();
+        }
+
+        static void CommitSiteDepartureBoundaryCrossing(
+            SimulationWorld world,
+            EntityId characterId,
+            BackgroundCharacterTravelMotion motion,
+            PlayerPartyRuntime party)
+        {
+            if (!motion.IsSiteDeparturePending)
+                return;
+
+            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var boundaryEntry = motion.SiteDepartureBoundaryEntry;
+            var enteredHex = motion.SiteDepartureExitHex;
+            var ingressFromHex = motion.SiteDepartureFootprintHex;
+            var derived = HexMath.WorldToHex(boundaryEntry.X, boundaryEntry.Y, hexSize);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (BackgroundBgTravelFullTrace.ActiveTraceId > 0)
+            {
+                BackgroundBgTravelFullTrace.LogLocationCommit(
+                    "AtWorldSite [SiteDeparturePending]",
+                    "AtWorldPosition(" + derived + ")",
+                    ingressFromHex,
+                    enteredHex,
+                    "CommitSiteDepartureBoundaryCrossing.SetAtWorldPosition");
+            }
+#endif
+
+            world.WorldPresence.SetAtWorldPosition(characterId, boundaryEntry, derived);
+            motion.ClearSiteDeparturePending();
+
+            BackgroundCharacterWildernessLocalMapMaterialization.NotifyEnteredWorldHex(
+                world,
+                characterId,
+                enteredHex,
+                ingressFromHex,
+                party);
+        }
+
+        static bool ShouldCommitSiteDepartureBoundaryCrossing(
+            BackgroundCharacterTravelMotion motion,
+            WorldVec2 previousPos,
+            WorldVec2 newPos,
+            float hexSize)
+        {
+            if (!motion.IsSiteDeparturePending)
+                return false;
+
+            var size = hexSize > 0f ? hexSize : 1f;
+            HexMath.ToWorldPosition(motion.SiteDepartureFootprintHex, size, out var fx, out var fy);
+            var footprintCenter = new WorldVec2(fx, fy);
+            var boundary = motion.SiteDepartureBoundaryEntry;
+            var dPrev = WorldVec2.Distance(footprintCenter, previousPos);
+            var dNew = WorldVec2.Distance(footprintCenter, newPos);
+            var dBoundary = WorldVec2.Distance(footprintCenter, boundary);
+            return dPrev + 0.0001f < dBoundary && dNew + 0.0001f >= dBoundary;
+        }
+
+        static bool TryResolveSiteDepartureTravelPosition(
+            SimulationWorld world,
+            EntityId characterId,
+            BackgroundCharacterTravelMotion motion,
+            out WorldVec2 pos,
+            out HexCoord previousDerived,
+            out bool isSiteDepartureVirtual)
+        {
+            pos = default;
+            previousDerived = default;
+            isSiteDepartureVirtual = false;
+            if (!world.WorldPresence.TryGet(characterId, out var presence) || presence == null)
+                return false;
+
+            if (motion.IsSiteDeparturePending &&
+                presence.Mode == PartyWorldPresenceMode.AtSite)
+            {
+                pos = motion.SiteDepartureVirtualPosition;
+                if (world.Strategic.Sites.TryResolveSitePresenceHex(presence.SiteId, out var siteHex))
+                    previousDerived = siteHex;
+                isSiteDepartureVirtual = true;
+                return true;
+            }
+
+            if (!presence.HasContinuousWorldPosition)
+                return false;
+
+            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            pos = presence.ContinuousWorldPosition;
+            previousDerived = HexMath.WorldToHex(pos.X, pos.Y, hexSize);
+            return true;
         }
 
         public static Result CancelTravel(SimulationWorld world, EntityId characterId)
@@ -131,15 +357,23 @@ namespace XianXia.Core.World.Strategic
             BackgroundSimulationScheduler.AdvanceTravelBatch(world, (ulong)ticks);
         }
 
-        public static void AdvanceDistanceBudget(SimulationWorld world, EntityId characterId, float distanceBudget)
+        public static void AdvanceDistanceBudget(
+            SimulationWorld world,
+            EntityId characterId,
+            float distanceBudget,
+            PlayerPartyRuntime party = null)
         {
             if (world?.BackgroundCharacterTravel == null || characterId.IsNone || distanceBudget <= 0f)
                 return;
             if (!world.BackgroundCharacterTravel.TryGet(characterId, out var motion) || motion == null || !motion.IsMoving)
                 return;
-            if (!world.WorldPresence.TryGet(characterId, out var presence) ||
-                presence == null ||
-                !presence.HasContinuousWorldPosition)
+            if (!TryResolveSiteDepartureTravelPosition(
+                    world,
+                    characterId,
+                    motion,
+                    out var pos,
+                    out var previousDerived,
+                    out var isSiteDepartureVirtual))
                 return;
 
             if (world.Entities.TryGet(characterId, out var entity) &&
@@ -150,14 +384,29 @@ namespace XianXia.Core.World.Strategic
             }
 
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-            var pos = presence.ContinuousWorldPosition;
             var remainingBudget = distanceBudget;
             var guard = 0;
             while (remainingBudget > 0.0001f && motion.IsMoving && guard++ < 64)
             {
                 if (!motion.TryGetActiveSegmentWorld(pos, hexSize, out var fromPos, out var toPos))
                 {
-                    FinishArrival(world, characterId, motion, hexSize);
+                    if (isSiteDepartureVirtual)
+                    {
+                        CommitSiteDepartureBoundaryCrossing(world, characterId, motion, party);
+                        if (!world.BackgroundCharacterTravel.IsTraveling(characterId))
+                            return;
+                        if (!TryResolveSiteDepartureTravelPosition(
+                                world,
+                                characterId,
+                                motion,
+                                out pos,
+                                out previousDerived,
+                                out isSiteDepartureVirtual))
+                            return;
+                        continue;
+                    }
+
+                    FinishArrival(world, characterId, motion, hexSize, party);
                     return;
                 }
 
@@ -167,7 +416,23 @@ namespace XianXia.Core.World.Strategic
                     motion.IncrementPathIndex();
                     if (motion.SegmentIndex >= motion.HexPathCount - 1)
                     {
-                        FinishArrival(world, characterId, motion, hexSize);
+                        if (isSiteDepartureVirtual)
+                        {
+                            CommitSiteDepartureBoundaryCrossing(world, characterId, motion, party);
+                            if (!world.BackgroundCharacterTravel.IsTraveling(characterId))
+                                return;
+                            if (!TryResolveSiteDepartureTravelPosition(
+                                    world,
+                                    characterId,
+                                    motion,
+                                    out pos,
+                                    out previousDerived,
+                                    out isSiteDepartureVirtual))
+                                return;
+                            continue;
+                        }
+
+                        FinishArrival(world, characterId, motion, hexSize, party);
                         return;
                     }
 
@@ -177,15 +442,41 @@ namespace XianXia.Core.World.Strategic
                 var remainingOnSegment = WorldVec2.Distance(pos, toPos);
                 if (remainingOnSegment <= remainingBudget + 0.0001f)
                 {
+                    var previousPos = pos;
                     pos = toPos;
+                    if (isSiteDepartureVirtual)
+                    {
+                        motion.SetSiteDepartureVirtualPosition(pos);
+                        if (ShouldCommitSiteDepartureBoundaryCrossing(motion, previousPos, pos, hexSize))
+                            CommitSiteDepartureBoundaryCrossing(world, characterId, motion, party);
+                        if (!world.BackgroundCharacterTravel.IsTraveling(characterId))
+                            return;
+                        if (!TryResolveSiteDepartureTravelPosition(
+                                world,
+                                characterId,
+                                motion,
+                                out pos,
+                                out previousDerived,
+                                out isSiteDepartureVirtual))
+                            return;
+
+                        remainingBudget -= remainingOnSegment;
+                        continue;
+                    }
+
                     var derived = HexMath.WorldToHex(pos.X, pos.Y, hexSize);
                     world.WorldPresence.SetAtWorldPosition(characterId, pos, derived);
+                    NotifyWildernessHexEnteredIfChanged(
+                        world, characterId, derived, previousDerived, party);
+                    previousDerived = derived;
                     motion.SetSegment(motion.SegmentIndex, 1f);
                     remainingBudget -= remainingOnSegment;
                     motion.IncrementPathIndex();
+                    if (!world.BackgroundCharacterTravel.IsTraveling(characterId))
+                        return;
                     if (motion.SegmentIndex >= motion.HexPathCount - 1)
                     {
-                        FinishArrival(world, characterId, motion, hexSize);
+                        FinishArrival(world, characterId, motion, hexSize, party);
                         return;
                     }
 
@@ -194,13 +485,78 @@ namespace XianXia.Core.World.Strategic
 
                 var dirX = (toPos.X - pos.X) / remainingOnSegment;
                 var dirY = (toPos.Y - pos.Y) / remainingOnSegment;
+                var previousPosMid = pos;
                 pos = new WorldVec2(pos.X + dirX * remainingBudget, pos.Y + dirY * remainingBudget);
+                if (isSiteDepartureVirtual)
+                {
+                    motion.SetSiteDepartureVirtualPosition(pos);
+                    if (ShouldCommitSiteDepartureBoundaryCrossing(motion, previousPosMid, pos, hexSize))
+                        CommitSiteDepartureBoundaryCrossing(world, characterId, motion, party);
+                    if (!world.BackgroundCharacterTravel.IsTraveling(characterId))
+                        return;
+                    if (TryResolveSiteDepartureTravelPosition(
+                            world,
+                            characterId,
+                            motion,
+                            out pos,
+                            out previousDerived,
+                            out isSiteDepartureVirtual) &&
+                        !isSiteDepartureVirtual &&
+                        remainingBudget > 0.0001f &&
+                        motion.IsMoving)
+                    {
+                        var used = WorldVec2.Distance(previousPosMid, pos);
+                        remainingBudget = Math.Max(0f, remainingBudget - used);
+                        continue;
+                    }
+
+                    var virtualProgress = 1f - WorldVec2.Distance(pos, toPos) / segmentLen;
+                    motion.SetSegment(motion.SegmentIndex, virtualProgress);
+                    remainingBudget = 0f;
+                    continue;
+                }
+
                 var midDerived = HexMath.WorldToHex(pos.X, pos.Y, hexSize);
                 world.WorldPresence.SetAtWorldPosition(characterId, pos, midDerived);
+                NotifyWildernessHexEnteredIfChanged(
+                    world, characterId, midDerived, previousDerived, party);
+                if (!world.BackgroundCharacterTravel.IsTraveling(characterId))
+                    return;
+                previousDerived = midDerived;
                 var progress = 1f - WorldVec2.Distance(pos, toPos) / segmentLen;
                 motion.SetSegment(motion.SegmentIndex, progress);
                 remainingBudget = 0f;
             }
+        }
+
+        static void NotifyWildernessHexEnteredIfChanged(
+            SimulationWorld world,
+            EntityId characterId,
+            HexCoord derived,
+            HexCoord previousDerived,
+            PlayerPartyRuntime party = null)
+        {
+            if (derived.Equals(previousDerived))
+                return;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (BackgroundBgTravelFullTrace.ActiveTraceId > 0)
+            {
+                BackgroundBgTravelFullTrace.LogLocationCommit(
+                    "AtWorldPosition(" + previousDerived + ")",
+                    "AtWorldPosition(" + derived + ")",
+                    previousDerived,
+                    derived,
+                    "AdvanceDistanceBudget.SetAtWorldPosition");
+            }
+#endif
+
+            BackgroundCharacterWildernessLocalMapMaterialization.NotifyEnteredWorldHex(
+                world,
+                characterId,
+                derived,
+                previousDerived,
+                party);
         }
 
         public static bool TryDescribeTravel(
@@ -252,10 +608,17 @@ namespace XianXia.Core.World.Strategic
             SimulationWorld world,
             EntityId characterId,
             BackgroundCharacterTravelMotion motion,
-            float hexSize)
+            float hexSize,
+            PlayerPartyRuntime party = null)
         {
+            BackgroundTravelArrivalContext.TryFromMotion(world, motion, out var arrivalContext);
+
             var destHex = motion.DestinationHex;
             var destSiteId = motion.DestinationSiteId ?? string.Empty;
+            if (string.IsNullOrEmpty(destSiteId))
+                destSiteId = TryCanonicalizeFootprintHexDestination(
+                    world, destHex, destSiteId, out _);
+
             var center = HexCenter(destHex, hexSize);
 
             if (!string.IsNullOrEmpty(destSiteId) &&
@@ -263,15 +626,33 @@ namespace XianXia.Core.World.Strategic
                 site != null)
             {
                 world.WorldPresence.SetAtSite(characterId, site.SiteId);
-            }
-            else
-            {
-                var derived = HexMath.WorldToHex(center.X, center.Y, hexSize);
-                world.WorldPresence.SetAtWorldPosition(characterId, center, derived);
+                motion.ClearTravel();
+                world.BackgroundCharacterTravel.Remove(characterId);
+                var request = LoadedDestinationArrivalMaterializer.LoadedLocalMapMaterializationRequest
+                    .ForRuntimeSiteArrival(in arrivalContext);
+                LoadedDestinationArrivalMaterializer.TryMaterializeCharacterIntoLoadedLocalMap(
+                    world,
+                    characterId,
+                    party,
+                    in request);
+                return;
             }
 
+            var derived = HexMath.WorldToHex(center.X, center.Y, hexSize);
             motion.ClearTravel();
             world.BackgroundCharacterTravel.Remove(characterId);
+
+            if (world.LocalMap.ContainsOccupant(characterId))
+                return;
+
+            world.WorldPresence.SetAtWorldPosition(characterId, center, derived);
+            var wildernessRequest = LoadedDestinationArrivalMaterializer.LoadedLocalMapMaterializationRequest
+                .ForRuntimeArrival(stopBackgroundTravel: false);
+            LoadedDestinationArrivalMaterializer.TryMaterializeCharacterIntoLoadedLocalMap(
+                world,
+                characterId,
+                party,
+                in wildernessRequest);
         }
 
         static bool TryBuildPathLeavingSite(
@@ -279,30 +660,35 @@ namespace XianXia.Core.World.Strategic
             WorldSite site,
             HexCoord goalHex,
             List<HexCoord> into,
-            out HexCoord exitHex)
+            out HexCoord exitHex,
+            out HexCoord departureFootprintHex)
         {
             into.Clear();
             exitHex = default;
+            departureFootprintHex = default;
             if (!BackgroundCharacterSiteDepartureResolver.TryResolveDepartureHex(world, site, goalHex, out exitHex))
                 return false;
 
+            if (!BackgroundCharacterSiteDepartureResolver.TryResolveDepartureFootprintHex(
+                    site,
+                    exitHex,
+                    out departureFootprintHex))
+                return false;
+
+            into.Add(departureFootprintHex);
             into.Add(exitHex);
             if (exitHex == goalHex)
-                return true;
+                return into.Count >= 2;
 
             PathScratch.Clear();
             if (!HexPathfinder.TryFindPath(world.HexWorld, exitHex, goalHex, PathScratch) ||
                 PathScratch.Count < 1)
                 return false;
 
-            for (var i = 0; i < PathScratch.Count; i++)
-            {
-                if (i == 0 && PathScratch[i] == exitHex)
-                    continue;
+            for (var i = 1; i < PathScratch.Count; i++)
                 into.Add(PathScratch[i]);
-            }
 
-            return into.Count >= 1;
+            return into.Count >= 2;
         }
 
         public static bool TryResolveCharacterWorldLocation(
@@ -382,6 +768,30 @@ namespace XianXia.Core.World.Strategic
             }
 
             return best;
+        }
+
+        /// <summary>
+        /// Travel To Hex 命中 WorldSite Footprint 时 canonicalize 为 TargetWorldSite(siteId)。
+        /// </summary>
+        static string TryCanonicalizeFootprintHexDestination(
+            SimulationWorld world,
+            HexCoord destinationHex,
+            string destinationSiteId,
+            out bool canonicalizedFromFootprint)
+        {
+            canonicalizedFromFootprint = false;
+            if (!string.IsNullOrEmpty(destinationSiteId))
+                return destinationSiteId;
+
+            if (world.Strategic?.Sites != null &&
+                world.Strategic.Sites.TryGetAtHex(destinationHex, out var site) &&
+                site != null)
+            {
+                canonicalizedFromFootprint = true;
+                return site.SiteId;
+            }
+
+            return string.Empty;
         }
 
         static WorldVec2 HexCenter(HexCoord hex, float hexSize)

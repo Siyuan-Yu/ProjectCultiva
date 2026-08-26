@@ -55,6 +55,7 @@ namespace XianXia.Core.World.Strategic
 
         static void ProcessTravelBucket(SimulationWorld world, int bucket, ulong currentWorldTick)
         {
+            TravelingScratch.Clear();
             foreach (var kv in world.BackgroundCharacterTravel.All)
             {
                 if (kv.Value == null || !kv.Value.IsMoving)
@@ -64,12 +65,28 @@ namespace XianXia.Core.World.Strategic
                 if (ResolveTravelBucket(id) != bucket)
                     continue;
 
-                var elapsed = currentWorldTick - kv.Value.LastProcessedWorldTick;
+                if (currentWorldTick - kv.Value.LastProcessedWorldTick == 0)
+                    continue;
+
+                TravelingScratch.Add(id);
+            }
+
+            for (var i = 0; i < TravelingScratch.Count; i++)
+            {
+                var id = TravelingScratch[i];
+                if (!world.BackgroundCharacterTravel.TryGet(id, out var motion) ||
+                    motion == null ||
+                    !motion.IsMoving)
+                    continue;
+
+                var elapsed = currentWorldTick - motion.LastProcessedWorldTick;
                 if (elapsed == 0)
                     continue;
 
                 AdvanceTravelCharacter(world, id, elapsed, advanceLastProcessed: true, currentWorldTick);
             }
+
+            TravelingScratch.Clear();
         }
 
         static void AdvanceTravelCharacter(

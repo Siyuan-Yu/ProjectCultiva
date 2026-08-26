@@ -7,6 +7,24 @@
 
 ---
 
+## 2026-08-27 — Phase 2D Background Character World Travel 人工验收封板
+
+**做了什么**
+- **2D-A～D**（延续 720f585）：Background Simulation Scheduler、Travel Core、Save/Load、F12 Debug
+- **2D-E Loaded LocalMap Materialization**：`LoadedDestinationArrivalMaterializer`（Initial Load + Runtime Arrival 共用）；Wilderness Hex Notify；Site Ingress `BackgroundTravelArrivalContext`；Belonging Query + Explain
+- **2D-F Site Departure 语义**：禁止 BeginTravel 同步 instant arrival；`BeginSiteDepartureTravel` 保持 `AtWorldSite` 直至跨过 Boundary；真实 FootprintCenter→BoundaryEntry Travel
+- **2D-G Destination Canonicalization**：Travel To Hex 命中 Footprint → `AtWorldSite(siteId)`；Travel To Site 真源 `WorldSiteId`；AnchorHex 仅 Presentation；Character 投影 PresenceHex
+- **Bootstrap 修复**：同伴开局 `AtWorldSite(荒村)` + PresenceHex；`CaptureTravelingMembers` 仅主控
+- **Development Trace**：`BGTRAVEL TRACE #N`（Core TraceSink + Host 注入）
+- EditMode：`BackgroundCharacterWorldTravelPhase2DTests`／`BackgroundLoadedDestinationArrivalTests`／`BackgroundWildernessLocalMapMaterializationTests`
+- 文档：[165](165-phase-2d-background-character-world-travel-2026-08-26.md) 封板更新；roadmap 2D 标记完成
+- **未**同步飞书
+
+**状态**
+- Phase 2D **封板**；Deferred：Autonomous AI Travel、Background Combat UX、FormalArmy Continuous Marker
+
+---
+
 ## 2026-08-26 — Phase 2C Continuous Player World Movement 人工验收封板
 
 **做了什么**

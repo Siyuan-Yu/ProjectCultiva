@@ -915,6 +915,7 @@ namespace XianXia.Unity.Host
             if (lm.IsInInterior)
             {
                 lm.ExitTriggerDepth = 0f;
+                lm.ClearPlayableBounds();
                 return;
             }
 
@@ -928,7 +929,24 @@ namespace XianXia.Unity.Host
                     lm.ExitTriggerDepth = cs * SurfaceExitZoneCalculator.DefaultExitTriggerDepth;
                 }
 
+                var cellSize = layout.CellSize > 0.0001f ? layout.CellSize : 1f;
+                lm.SetPlayableBounds(layout.OriginX, layout.OriginY, cellSize, layout.Width, layout.Height);
                 return;
+            }
+
+            var walk = ResolveWalkGrid();
+            if (walk != null)
+            {
+                lm.SetPlayableBounds(
+                    walk.OriginX,
+                    walk.OriginY,
+                    walk.CellSize > 0.0001f ? walk.CellSize : 1f,
+                    walk.Width,
+                    walk.Height);
+            }
+            else
+            {
+                lm.ClearPlayableBounds();
             }
 
             if (lm.ExitTriggerDepth <= 0.0001f)
@@ -957,8 +975,13 @@ namespace XianXia.Unity.Host
                 world.Strategic.Encounter.ClearEngagedParty();
             }
 
+            LoadedDestinationArrivalMaterializer.ReleaseEligibleOccupantsOnLocalMapUnload(
+                world,
+                _session.PlayerParty);
+
             world.LocalMap.ActiveMapLayoutId = string.Empty;
             world.LocalMap.OverworldMapLayoutId = string.Empty;
+            world.LocalMap.ClearPlayableBounds();
             preferredMapLayoutId = string.Empty;
             _session.PreferredMapLayoutId = string.Empty;
             if (world.Strategic?.Encounter != null)
@@ -1084,6 +1107,15 @@ namespace XianXia.Unity.Host
                 PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(
                     world, _session.PlayerParty.Members, materializeBounds);
 
+                if (materializeBounds.HasValue &&
+                    PlayerPartyLocalMapMaterializationService.IsWildernessLocalExpand(world))
+                {
+                    LoadedDestinationArrivalMaterializer.MaterializeEligibleWildernessCharactersOnLocalMap(
+                        world,
+                        _session.PlayerParty,
+                        materializeBounds.Value);
+                }
+
                 WildernessLocalWorldProjection.WildernessLocalMapBounds? logBounds = materializeBounds;
                 if (!logBounds.HasValue)
                 {
@@ -1149,6 +1181,7 @@ namespace XianXia.Unity.Host
                 // Wilderness／Site：确保 Materialize 后的 Party 视图已刷出
                 _session.RefreshViewableEntityIds();
                 entityViewSpawner?.Rebuild(_session);
+                FlushLoadedDestinationArrivals();
             }
 
             // 切图后再对齐一次地点坐标（MapLayout sync 之后）并选中在场角色
@@ -1400,6 +1433,29 @@ namespace XianXia.Unity.Host
         /// <summary>Surface Exit Zone 与 WalkGrid 对齐后强制刷新（Expand 末尾保险）。</summary>
         public void RefreshSurfaceExitZones() => ActivateSurfaceLocalMapPresentation();
 
+        /// <summary>Background Travel 到达已 Loaded LocalMap 后刷出增量 EntityView。</summary>
+        public void FlushLoadedDestinationArrivals()
+        {
+            if (!_session.IsInitialized || entityViewSpawner == null)
+                return;
+
+            var pending = LoadedDestinationArrivalMaterializer.PendingPresentationFlush;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (BackgroundBgTravelFullTrace.ActiveTraceId > 0)
+            {
+                BackgroundBgTravelFullTrace.LogFlush(
+                    pending?.Count ?? 0,
+                    spawnedHint: -1);
+            }
+#endif
+            if (pending == null || pending.Count == 0)
+                return;
+
+            _session.RefreshViewableEntityIds();
+            entityViewSpawner.SpawnMissingVisibleViews(_session);
+            LoadedDestinationArrivalMaterializer.ClearPendingPresentationFlush();
+        }
+
         public void StepTick()
         {
             if (!_session.IsInitialized)
@@ -1420,6 +1476,7 @@ namespace XianXia.Unity.Host
 
             // 尸体腐烂后立刻从 LocalMap 卸表现（大地图靠 WorldPresence 已抹
             entityViewSpawner?.PruneHiddenViews(_session);
+            FlushLoadedDestinationArrivals();
 
             DispatchDrainedEvents();
             RefreshStatus();
