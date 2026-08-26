@@ -87,6 +87,7 @@ namespace XianXia.Unity.Host
             if (!Party.TryAddMember(session.World, session.CharacterIds, candidate, out error))
                 return false;
 
+            BackgroundCharacterTravelService.CancelTravelIfAny(session.World, candidate);
             session.World.LocalMap.AddOccupant(candidate);
             _nextFollowRepath.Remove(candidate.Value);
             OrderFollowerTowardActive(candidate);
