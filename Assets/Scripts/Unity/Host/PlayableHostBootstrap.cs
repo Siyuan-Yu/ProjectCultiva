@@ -689,6 +689,8 @@ namespace XianXia.Unity.Host
             if (pathPreview != null)
                 pathPreview.Bind(this, moveController, selectionController, cam);
             moveController.SetWalkGrid(ResolveWalkGrid());
+            moveController.BindLocalMapContext(_session.World.LocalMap.ActiveMapLayoutId);
+            playerPartyController.OnLocalMapMaterialized(_session.World.LocalMap.ActiveMapLayoutId);
             if (npcContextMenu != null)
                 npcContextMenu.Bind(this, selectionController, moveController, dialoguePresenter, localMapEnterPrompt);
             if (localMapEnterPrompt != null)
@@ -798,8 +800,12 @@ namespace XianXia.Unity.Host
             if (mapGraybox != null)
                 mapGraybox.Rebuild(_session);
             if (moveController != null)
+            {
                 moveController.SetWalkGrid(ResolveWalkGrid());
+                moveController.BindLocalMapContext(_session.World.LocalMap.ActiveMapLayoutId);
+            }
             ActivateSurfaceLocalMapPresentation();
+            RestorePlayerPartyLocalMapPresentation(_session.World.LocalMap.ActiveMapLayoutId);
             _autoTickAccumulator = 0f;
             RefreshStatus();
         }
@@ -884,7 +890,10 @@ namespace XianXia.Unity.Host
             if (interactSpotPresenter != null)
                 interactSpotPresenter.Rebuild();
             if (moveController != null)
+            {
                 moveController.SetWalkGrid(ResolveWalkGrid());
+                moveController.BindLocalMapContext(active?.Trim() ?? string.Empty);
+            }
             ActivateSurfaceLocalMapPresentation();
             if (frameCamera)
                 FrameCameraOnSlots();
@@ -1195,6 +1204,14 @@ namespace XianXia.Unity.Host
 
             TryFrameCameraOnParty();
             ActivateSurfaceLocalMapPresentation();
+            RestorePlayerPartyLocalMapPresentation(targetMap);
+        }
+
+        void RestorePlayerPartyLocalMapPresentation(string localMapId)
+        {
+            if (string.IsNullOrWhiteSpace(localMapId))
+                return;
+            PlayerPartyController?.OnLocalMapMaterialized(localMapId.Trim());
         }
 
         void PlaceLegacyFocusCharactersOnLocalMap(SimulationWorld world, bool onEncounterMap)

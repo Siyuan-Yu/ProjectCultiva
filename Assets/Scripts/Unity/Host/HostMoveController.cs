@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Combat;
@@ -42,13 +43,68 @@ namespace XianXia.Unity.Host
         readonly HashSet<ulong> _interactionHeldNpcs = new HashSet<ulong>();
         readonly HashSet<ulong> _movingIds = new HashSet<ulong>();
         readonly HashSet<ulong> _playerPartyPathMoveIds = new HashSet<ulong>();
+        readonly Dictionary<ulong, string> _pathLocalMapIds = new Dictionary<ulong, string>();
         readonly List<float> _pathScratch = new List<float>(64);
         readonly List<Vector3> _wpScratch = new List<Vector3>(32);
         readonly List<EntityView> _crowdScratch = new List<EntityView>(64);
 
         WalkGrid _walkGrid;
+        string _boundLocalMapId = string.Empty;
 
-        public bool IsMoving(EntityId id) => !id.IsNone && _movingIds.Contains(id.Value);
+        public WalkGrid WalkGrid => _walkGrid;
+
+        /// <summary>LocalMap layout id that current paths / WalkGrid belong to.</summary>
+        public string BoundLocalMapId => _boundLocalMapId;
+
+        public bool IsMoving(EntityId id)
+        {
+            if (id.IsNone || !_movingIds.Contains(id.Value))
+                return false;
+
+            if (!HasActiveMoveTarget(id))
+            {
+                ClearStaleMoveState(id);
+                return false;
+            }
+
+            if (_pathLocalMapIds.TryGetValue(id.Value, out var pathMap) &&
+                !string.IsNullOrEmpty(_boundLocalMapId) &&
+                !string.Equals(pathMap, _boundLocalMapId, StringComparison.Ordinal))
+            {
+                CancelPresentationMovement(id);
+                return false;
+            }
+
+            return true;
+        }
+
+        public bool HasMovementPath(EntityId id) =>
+            !id.IsNone && _paths.ContainsKey(id.Value);
+
+        public bool TryGetPathLocalMapId(EntityId id, out string localMapId) =>
+            _pathLocalMapIds.TryGetValue(id.Value, out localMapId);
+
+        /// <summary>Bind presentation movement to the loaded LocalMap layout.</summary>
+        public void BindLocalMapContext(string localMapId) =>
+            _boundLocalMapId = localMapId?.Trim() ?? string.Empty;
+
+        /// <summary>
+        /// LocalMap materialize / transition: drop party-local paths that cannot cross maps.
+        /// </summary>
+        public void InvalidatePartyLocalMovement(IReadOnlyList<EntityId> partyMembers)
+        {
+            if (partyMembers == null)
+                return;
+
+            for (var i = 0; i < partyMembers.Count; i++)
+            {
+                var id = partyMembers[i];
+                if (!id.IsNone)
+                    CancelPresentationMovement(id);
+            }
+
+            PurgeOrphanedMoveTargets();
+        }
 
         /// <summary>Active 经由 OrderPartyToPoint* 下发的玩家点击寻路（非 Follower／Melee／Schedule）。</summary>
         public bool IsPlayerPartyPathMoving(EntityId id) =>
@@ -61,8 +117,6 @@ namespace XianXia.Unity.Host
         public int PlayerPartyPathMoveSerial => _playerPartyPathMoveSerial;
 
         int _playerPartyPathMoveSerial;
-
-        public WalkGrid WalkGrid => _walkGrid;
 
         /// <summary>Active A* polyline for a moving unit: current pos + remaining waypoints.</summary>
         public bool TryGetRemainingPath(EntityId id, List<Vector3> into)
@@ -119,6 +173,45 @@ namespace XianXia.Unity.Host
         }
 
         public void SetWalkGrid(WalkGrid grid) => _walkGrid = grid;
+
+        bool HasActiveMoveTarget(EntityId id)
+        {
+            if (viewSpawner == null ||
+                !viewSpawner.Registry.TryGet(id, out var view) ||
+                view == null)
+                return false;
+            return _targets.ContainsKey(view);
+        }
+
+        void ClearStaleMoveState(EntityId id)
+        {
+            if (id.IsNone)
+                return;
+            _movingIds.Remove(id.Value);
+            _playerPartyPathMoveIds.Remove(id.Value);
+            ClearPath(id);
+            if (viewSpawner != null &&
+                viewSpawner.Registry.TryGet(id, out var view) &&
+                view != null &&
+                view.ActivityText == "\u79fb\u52a8\u4e2d")
+                view.SetActivityText(string.Empty);
+        }
+
+        void PurgeOrphanedMoveTargets()
+        {
+            if (_targets.Count == 0)
+                return;
+
+            var staleViews = new List<EntityView>();
+            foreach (var kv in _targets)
+            {
+                if (kv.Key == null || !kv.Key.IsBound)
+                    staleViews.Add(kv.Key);
+            }
+
+            for (var i = 0; i < staleViews.Count; i++)
+                _targets.Remove(staleViews[i]);
+        }
 
         void Update()
         {
@@ -348,6 +441,10 @@ namespace XianXia.Unity.Host
             path.AddRange(_wpScratch);
             _paths[id.Value] = path;
             _pathIndex[id.Value] = 0;
+            if (!string.IsNullOrEmpty(_boundLocalMapId))
+                _pathLocalMapIds[id.Value] = _boundLocalMapId;
+            else
+                _pathLocalMapIds.Remove(id.Value);
             SnapOntoWalkableIfNeeded(view);
             _targets[view] = path[0];
             _movingIds.Add(id.Value);
@@ -1067,6 +1164,7 @@ namespace XianXia.Unity.Host
                 return;
             _paths.Remove(id.Value);
             _pathIndex.Remove(id.Value);
+            _pathLocalMapIds.Remove(id.Value);
         }
 
         void StopSelectedViaPort()

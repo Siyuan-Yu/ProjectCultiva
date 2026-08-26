@@ -132,6 +132,32 @@ namespace XianXia.Unity.Host
             return true;
         }
 
+        /// <summary>
+        /// PlayerParty LocalMap materialize / transition: invalidate old-map locomotion and restore follow.
+        /// </summary>
+        public void OnLocalMapMaterialized(string localMapId)
+        {
+            if (Party == null)
+                return;
+
+            var mapId = localMapId?.Trim() ?? string.Empty;
+            _move?.BindLocalMapContext(mapId);
+            _move?.InvalidatePartyLocalMovement(Party.Members);
+            InvalidatePartyDerivedLocalActions();
+            ResetFollowAfterMaterialize();
+        }
+
+        void InvalidatePartyDerivedLocalActions()
+        {
+            _lastActiveSharedActivity = HostPartySharedActivity.FollowIdle;
+            ClearFollowerPartyDerivedWork();
+        }
+
+        void ResetFollowAfterMaterialize()
+        {
+            _nextFollowRepath.Clear();
+        }
+
         public void ClearDirectControlFor(EntityId id)
         {
             if (id.IsNone)
