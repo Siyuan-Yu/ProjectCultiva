@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
 using XianXia.Core.Persistence;
 using XianXia.Core.Simulation;
@@ -453,6 +454,86 @@ namespace XianXia.Tests
             var motion = world.BackgroundCharacterTravel.GetOrCreate(a);
             Assert.Greater(motion.HexPathCount, 0);
             Assert.IsTrue(motion.IsMoving);
+        }
+
+        static EntityId SpawnWithBucketZero(SimulationWorld world, HexCoord at, HexCoord dest)
+        {
+            EntityId id = EntityId.None;
+            for (var i = 0; i < 16; i++)
+                id = Spawn(world, "bucket0_" + i);
+            Assert.AreEqual(0, BackgroundSimulationScheduler.ResolveTravelBucket(id));
+            world.WorldPresence.SetAtHex(id, at);
+            BackgroundCharacterTravelService.BeginTravelToHex(world, id, dest);
+            return id;
+        }
+
+        [Test]
+        public void BackgroundSimulationSchedulerUsesElapsedWorldTimeNotUpdateFrequency()
+        {
+            var world = BuildTravelWorld(out _, out _, out var mid);
+            var dest = new HexCoord(mid.Q + 6, mid.R);
+            var id = SpawnWithBucketZero(world, mid, dest);
+            var motion = world.BackgroundCharacterTravel.GetOrCreate(id);
+            motion.LastProcessedWorldTick = 0;
+            world.Tick = new WorldTick(16);
+
+            BackgroundSimulationScheduler.AfterSimulationTick(world, 1);
+
+            Assert.IsTrue(world.WorldPresence.TryGet(id, out var staggered));
+            var staggeredX = staggered.WorldPosX;
+
+            var worldBatch = BuildTravelWorld(out _, out _, out mid);
+            var idBatch = SpawnWithBucketZero(worldBatch, mid, dest);
+            BackgroundSimulationScheduler.AdvanceTravelBatch(worldBatch, 16);
+            Assert.IsTrue(worldBatch.WorldPresence.TryGet(idBatch, out var batched));
+
+            Assert.AreEqual(batched.WorldPosX, staggeredX, FloatTol);
+            Assert.AreEqual(motion.LastProcessedWorldTick, 16UL);
+        }
+
+        [Test]
+        public void BackgroundSimulationFiveHundredCharacterBatchBenchmark()
+        {
+            var world = BuildTravelWorld(out _, out _, out var mid);
+            var dest = new HexCoord(mid.Q + 10, mid.R);
+            world.LocalMap.ClearOccupants();
+
+            var traveling = 0;
+            for (var i = 0; i < 500; i++)
+            {
+                var id = Spawn(world, "bg500_" + i);
+                world.WorldPresence.SetAtHex(id, mid);
+                if (i % 2 == 0)
+                {
+                    Assert.IsTrue(
+                        BackgroundCharacterTravelService.BeginTravelToHex(world, id, dest).IsSuccess);
+                    traveling++;
+                }
+            }
+
+            Assert.AreEqual(250, traveling);
+            Assert.AreEqual(0, world.LocalMap.OccupantIds.Count);
+
+            for (ulong t = 1; t <= 32; t++)
+            {
+                world.Tick = new WorldTick(t);
+                BackgroundSimulationScheduler.AfterSimulationTick(world, 1);
+            }
+
+            var moved = 0;
+            foreach (var kv in world.BackgroundCharacterTravel.All)
+            {
+                if (kv.Value == null || !kv.Value.IsMoving)
+                    continue;
+                var cid = new EntityId(kv.Key);
+                if (!world.WorldPresence.TryGet(cid, out var p) || !p.HasContinuousWorldPosition)
+                    continue;
+                if (System.Math.Abs(p.WorldPosX - mid.Q) > 0.05f)
+                    moved++;
+            }
+
+            Assert.Greater(moved, 50);
+            Assert.AreEqual(0, world.LocalMap.OccupantIds.Count);
         }
     }
 }

@@ -247,7 +247,8 @@ namespace XianXia.Core.Persistence
                         DestinationHexR = kv.Value.DestinationHex.R,
                         DestinationSiteId = kv.Value.DestinationSiteId ?? string.Empty,
                         SegmentIndex = kv.Value.SegmentIndex,
-                        SegmentProgress = kv.Value.SegmentProgress
+                        SegmentProgress = kv.Value.SegmentProgress,
+                        LastProcessedWorldTick = kv.Value.LastProcessedWorldTick
                     };
                     if (kv.Value.IsMoving)
                     {
@@ -561,6 +562,9 @@ namespace XianXia.Core.Persistence
                     t.DestinationSiteId ?? string.Empty,
                     HexTravelMode.Ground);
                 motion.SetSegment(t.SegmentIndex, t.SegmentProgress);
+                motion.LastProcessedWorldTick = t.LastProcessedWorldTick > 0
+                    ? t.LastProcessedWorldTick
+                    : world.Tick.Value;
             }
         }
 

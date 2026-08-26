@@ -95,7 +95,7 @@ namespace XianXia.Unity.Host
         [SerializeField] KeyCode stepTickAltKey = KeyCode.N;
         [SerializeField] KeyCode cycleSpeedKey = KeyCode.RightBracket;
         [SerializeField] KeyCode cycleSpeedAltKey = KeyCode.LeftBracket;
-        [SerializeField] KeyCode rebuildKey = KeyCode.F12;
+        [SerializeField] KeyCode rebuildKey = KeyCode.R;
 
         PlayableHostSession _session = new PlayableHostSession();
         float _autoTickAccumulator;

@@ -23,6 +23,9 @@ namespace XianXia.Core.World.Strategic
         public int SegmentIndex { get; private set; }
         public float SegmentProgress { get; private set; }
 
+        /// <summary>上次 Scheduler 处理时的 Simulation WorldTick（绝对值）。</summary>
+        public ulong LastProcessedWorldTick { get; set; }
+
         public bool IsMoving => MovementKind == BackgroundCharacterTravelMovementKind.Traveling;
 
         public int HexPathCount => _hexPath.Count;
@@ -35,6 +38,7 @@ namespace XianXia.Core.World.Strategic
             _hexPath.Clear();
             SegmentIndex = 0;
             SegmentProgress = 0f;
+            LastProcessedWorldTick = 0;
             MovementKind = BackgroundCharacterTravelMovementKind.Idle;
             DestinationHex = default;
             DestinationSiteId = string.Empty;

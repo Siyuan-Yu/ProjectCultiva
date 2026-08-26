@@ -89,6 +89,7 @@ namespace XianXia.Core.Persistence
         public string DestinationSiteId { get; set; } = string.Empty;
         public int SegmentIndex { get; set; }
         public float SegmentProgress { get; set; }
+        public ulong LastProcessedWorldTick { get; set; }
         public List<HexCoordSnapshotDto> HexPath { get; set; } = new List<HexCoordSnapshotDto>();
     }
 

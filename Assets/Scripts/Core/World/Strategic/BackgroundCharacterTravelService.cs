@@ -98,6 +98,7 @@ namespace XianXia.Core.World.Strategic
 
             var motion = world.BackgroundCharacterTravel.GetOrCreate(characterId);
             motion.BeginTravel(FullPathScratch, goalHex, destinationSiteId, HexTravelMode.Ground);
+            motion.LastProcessedWorldTick = world.Tick.Value;
             return Result.Success();
         }
 
@@ -125,23 +126,9 @@ namespace XianXia.Core.World.Strategic
 
         public static void AdvanceAll(SimulationWorld world, int ticks)
         {
-            if (world?.BackgroundCharacterTravel == null || ticks < 1)
+            if (ticks < 1)
                 return;
-
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-            var budget = PlayerPartyHexTravelService.WorldUnitsPerTick(hexSize) * ticks;
-            if (budget <= 0f)
-                return;
-
-            var traveling = new List<EntityId>(world.BackgroundCharacterTravel.All.Count);
-            foreach (var kv in world.BackgroundCharacterTravel.All)
-            {
-                if (kv.Value != null && kv.Value.IsMoving)
-                    traveling.Add(new EntityId(kv.Key));
-            }
-
-            for (var i = 0; i < traveling.Count; i++)
-                AdvanceDistanceBudget(world, traveling[i], budget);
+            BackgroundSimulationScheduler.AdvanceTravelBatch(world, (ulong)ticks);
         }
 
         public static void AdvanceDistanceBudget(SimulationWorld world, EntityId characterId, float distanceBudget)

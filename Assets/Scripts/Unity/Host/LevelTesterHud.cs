@@ -56,7 +56,7 @@ namespace XianXia.Unity.Host
                 (string.IsNullOrEmpty(bootstrap.CharacterRosterId) ? "(用剧本spawns)" : bootstrap.CharacterRosterId));
             y += 18f;
             GUI.Label(new Rect(pad + 8f, y, w - 16f, 20f),
-                "Space 暂停 · .／N 步进 · [ ] 变速 · F12／R 重载 · F1 隐藏本栏 · Inspector 换地图／剧本／名册");
+                "Space 暂停 · .／N 步进 · [ ] 变速 · R 重载 · F12 Background Travel DEBUG · F1 隐藏本栏 · Inspector 换地图／剧本／名册");
         }
 
         void RefreshMapLine()

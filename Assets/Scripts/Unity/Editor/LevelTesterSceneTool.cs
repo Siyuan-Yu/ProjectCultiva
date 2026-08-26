@@ -61,7 +61,7 @@ namespace XianXia.Unity.EditorTools
             bootstrapSo.FindProperty("preferredMapLayoutId").stringValue = "base:map_ch01_reference";
             bootstrapSo.FindProperty("mapLayoutFilePath").stringValue = DefaultMapLayoutPath;
             bootstrapSo.FindProperty("secondsPerAutoTickAt1x").floatValue = 1f;
-            bootstrapSo.FindProperty("rebuildKey").intValue = (int)KeyCode.F12;
+            bootstrapSo.FindProperty("rebuildKey").intValue = (int)KeyCode.R;
             bootstrapSo.ApplyModifiedPropertiesWithoutUndo();
 
             var interruptSo = new SerializedObject(hostGo.GetComponent<HostContentInterruptPresenter>());
@@ -235,7 +235,7 @@ namespace XianXia.Unity.EditorTools
 
             if (Application.isPlaying)
             {
-                EditorGUILayout.HelpBox("Play 模式下请用 F12 重载；Import 仅用于编辑模式预览。", MessageType.Info);
+                EditorGUILayout.HelpBox("Play 模式下请用 R 重载；F12 仅开关 Background Travel DEBUG；Import 仅用于编辑模式预览。", MessageType.Info);
             }
 
             EditorGUILayout.Space(6);
@@ -248,7 +248,7 @@ namespace XianXia.Unity.EditorTools
                     scenarioProp.stringValue = "base:scenario_ch01_reference";
             }
 
-            if (Application.isPlaying && GUILayout.Button("立即重载（F12）"))
+            if (Application.isPlaying && GUILayout.Button("立即重载（R）"))
             {
                 serializedObject.ApplyModifiedProperties();
                 bootstrap.TryInitialize();
