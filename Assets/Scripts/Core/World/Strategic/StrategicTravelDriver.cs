@@ -24,6 +24,7 @@ namespace XianXia.Core.World.Strategic
 
             ArmyHexTravelService.AdvanceAll(world, ticks);
             PlayerPartyHexTravelService.AdvanceAll(world, ticks);
+            BackgroundCharacterTravelService.AdvanceAll(world, ticks);
             ArmyStackAdapter.SyncAllLinkedStacksFromFormalArmies(world);
             ArmyHexPursuitService.AfterTravelTick(world);
             if (!world.Strategic.HasBattleOffer)

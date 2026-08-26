@@ -67,6 +67,29 @@ namespace XianXia.Core.Persistence
         /// Phase 2C：PlayerParty 连续世界位置（可选；旧存档缺省时不恢复 motion）。
         /// </summary>
         public PlayerPartyTravelSnapshotDto PlayerPartyTravel { get; set; }
+
+        /// <summary>Phase 2D：Background Character 中途旅行状态（可选）。</summary>
+        public List<BackgroundCharacterTravelSnapshotDto> BackgroundCharacterTravels { get; set; } =
+            new List<BackgroundCharacterTravelSnapshotDto>();
+    }
+
+    /// <summary>Phase 2D：Background Character 旅行快照（WorldLocation + route progress）。</summary>
+    public sealed class BackgroundCharacterTravelSnapshotDto
+    {
+        public ulong CharacterId { get; set; }
+        public int LocationKind { get; set; }
+        public string SiteId { get; set; } = string.Empty;
+        public float WorldX { get; set; }
+        public float WorldY { get; set; }
+        public int CurrentHexQ { get; set; }
+        public int CurrentHexR { get; set; }
+        public bool IsTraveling { get; set; }
+        public int DestinationHexQ { get; set; }
+        public int DestinationHexR { get; set; }
+        public string DestinationSiteId { get; set; } = string.Empty;
+        public int SegmentIndex { get; set; }
+        public float SegmentProgress { get; set; }
+        public List<HexCoordSnapshotDto> HexPath { get; set; } = new List<HexCoordSnapshotDto>();
     }
 
     /// <summary>Phase 2C：PlayerParty 开世界连续位置快照（MovementState 恢复为 Idle）。</summary>
@@ -128,6 +151,8 @@ namespace XianXia.Core.Persistence
         public string SiteId { get; set; } = string.Empty;
         public int HexQ { get; set; } = int.MinValue;
         public int HexR { get; set; } = int.MinValue;
+        public float WorldX { get; set; }
+        public float WorldY { get; set; }
     }
 
     public sealed class WorldSiteOwnerSnapshotDto

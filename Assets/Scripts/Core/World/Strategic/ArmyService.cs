@@ -141,6 +141,7 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(memberError);
 
             army.AddMember(memberId);
+            BackgroundCharacterTravelService.CancelTravelIfAny(world, memberId);
             SyncMembershipForArmy(world, army);
             return Result.Success();
         }

@@ -126,6 +126,10 @@ namespace XianXia.Core.Simulation
         /// <summary>PlayerParty 世界旅行运动状态（非 FormalArmy）。</summary>
         public PlayerPartyWorldMotion PlayerPartyTravel { get; } = new PlayerPartyWorldMotion();
 
+        /// <summary>Phase 2D：Background Character 世界旅行 route 状态（位置真源仍在 WorldPresence）。</summary>
+        public BackgroundCharacterTravelBoard BackgroundCharacterTravel { get; } =
+            new BackgroundCharacterTravelBoard();
+
         /// <summary>宏观战略层：外交／军队／遭遇／接战（[138]）。</summary>
         public StrategicBoard Strategic { get; } = new StrategicBoard();
 

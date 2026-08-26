@@ -30,6 +30,11 @@ namespace XianXia.Core.World
         public int HexQ { get; set; } = InvalidHexComponent;
         public int HexR { get; set; } = InvalidHexComponent;
 
+        /// <summary>Phase 2D：AtWorldPosition 连续世界坐标真源。</summary>
+        public float WorldPosX { get; set; }
+        public float WorldPosY { get; set; }
+        public bool HasContinuousWorldPosition { get; set; }
+
         public bool UsesHexPresence =>
             Mode == PartyWorldPresenceMode.AtHex &&
             HexQ != InvalidHexComponent &&
@@ -53,9 +58,31 @@ namespace XianXia.Core.World
             HexQ = hex.Q;
             HexR = hex.R;
             SiteId = string.Empty;
+            HasContinuousWorldPosition = false;
             ClearFollow();
             ClearCombatPursuit();
         }
+
+        public void SetAtWorldPosition(WorldVec2 pos, HexCoord derivedHex)
+        {
+            Mode = PartyWorldPresenceMode.AtWorldPosition;
+            SiteId = string.Empty;
+            HasContinuousWorldPosition = true;
+            WorldPosX = pos.X;
+            WorldPosY = pos.Y;
+            HexQ = derivedHex.Q;
+            HexR = derivedHex.R;
+            ClearFollow();
+            ClearCombatPursuit();
+        }
+
+        public WorldVec2 ContinuousWorldPosition =>
+            HasContinuousWorldPosition ? new WorldVec2(WorldPosX, WorldPosY) : default;
+
+        public HexCoord DerivedHexFromWorldPosition =>
+            HexQ != InvalidHexComponent && HexR != InvalidHexComponent
+                ? new HexCoord(HexQ, HexR)
+                : default;
 
         public void ClearFollow() => FollowStackId = string.Empty;
 
@@ -105,6 +132,7 @@ namespace XianXia.Core.World
             p.SiteId = siteId ?? string.Empty;
             p.Mode = PartyWorldPresenceMode.AtSite;
             p.ClearHexPresence();
+            p.HasContinuousWorldPosition = false;
             p.ClearFollow();
             p.ClearCombatPursuit();
         }
@@ -114,6 +142,13 @@ namespace XianXia.Core.World
             var p = GetOrCreate(id);
             p.EntityId = id;
             p.SetAtHex(hex);
+        }
+
+        public void SetAtWorldPosition(EntityId id, WorldVec2 pos, HexCoord derivedHex)
+        {
+            var p = GetOrCreate(id);
+            p.EntityId = id;
+            p.SetAtWorldPosition(pos, derivedHex);
         }
 
         public void CollectAtSite(string siteId, List<EntityId> into)

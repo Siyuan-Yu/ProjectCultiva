@@ -66,6 +66,21 @@ namespace XianXia.Core.Exploration
             _occupantIds.Add(id);
         }
 
+        public bool RemoveOccupant(EntityId id)
+        {
+            if (id.IsNone)
+                return false;
+            for (var i = 0; i < _occupantIds.Count; i++)
+            {
+                if (_occupantIds[i] != id)
+                    continue;
+                _occupantIds.RemoveAt(i);
+                return true;
+            }
+
+            return false;
+        }
+
         public bool ContainsOccupant(EntityId id)
         {
             if (id.IsNone)

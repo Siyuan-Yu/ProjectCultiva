@@ -110,6 +110,21 @@ namespace XianXia.Core.Persistence
                         HexQ = presence.HexQ,
                         HexR = presence.HexR
                     });
+                    continue;
+                }
+
+                if (presence.Mode == PartyWorldPresenceMode.AtWorldPosition &&
+                    presence.HasContinuousWorldPosition)
+                {
+                    dto.CharacterWorldPresences.Add(new CharacterWorldPresenceSnapshotDto
+                    {
+                        CharacterId = presence.EntityId.Value,
+                        Mode = (int)PartyWorldPresenceMode.AtWorldPosition,
+                        HexQ = presence.HexQ,
+                        HexR = presence.HexR,
+                        WorldX = presence.WorldPosX,
+                        WorldY = presence.WorldPosY
+                    });
                 }
             }
 
@@ -204,6 +219,51 @@ namespace XianXia.Core.Persistence
                     CurrentHexQ = motion.CurrentHex.Q,
                     CurrentHexR = motion.CurrentHex.R
                 };
+            }
+
+            dto.BackgroundCharacterTravels.Clear();
+            if (world.BackgroundCharacterTravel?.All != null)
+            {
+                foreach (var kv in world.BackgroundCharacterTravel.All)
+                {
+                    var id = new EntityId(kv.Key);
+                    if (id.IsNone || kv.Value == null)
+                        continue;
+                    if (!BackgroundCharacterTravelService.TryResolveCharacterWorldLocation(
+                            world, id, out var kind, out var siteId, out var pos, out var derived))
+                        continue;
+
+                    var snap = new BackgroundCharacterTravelSnapshotDto
+                    {
+                        CharacterId = id.Value,
+                        LocationKind = (int)kind,
+                        SiteId = siteId ?? string.Empty,
+                        WorldX = pos.X,
+                        WorldY = pos.Y,
+                        CurrentHexQ = derived.Q,
+                        CurrentHexR = derived.R,
+                        IsTraveling = kv.Value.IsMoving,
+                        DestinationHexQ = kv.Value.DestinationHex.Q,
+                        DestinationHexR = kv.Value.DestinationHex.R,
+                        DestinationSiteId = kv.Value.DestinationSiteId ?? string.Empty,
+                        SegmentIndex = kv.Value.SegmentIndex,
+                        SegmentProgress = kv.Value.SegmentProgress
+                    };
+                    if (kv.Value.IsMoving)
+                    {
+                        var path = kv.Value.HexPath;
+                        for (var pi = 0; pi < path.Count; pi++)
+                        {
+                            snap.HexPath.Add(new HexCoordSnapshotDto
+                            {
+                                Q = path[pi].Q,
+                                R = path[pi].R
+                            });
+                        }
+                    }
+
+                    dto.BackgroundCharacterTravels.Add(snap);
+                }
             }
 
             return dto;
@@ -310,7 +370,22 @@ namespace XianXia.Core.Persistence
                     if (p.Mode == (int)PartyWorldPresenceMode.AtHex &&
                         p.HexQ != int.MinValue &&
                         p.HexR != int.MinValue)
+                    {
                         world.WorldPresence.SetAtHex(id, new HexCoord(p.HexQ, p.HexR));
+                        continue;
+                    }
+
+                    if (p.Mode == (int)PartyWorldPresenceMode.AtWorldPosition)
+                    {
+                        var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                            ? world.HexWorld.HexSize
+                            : 1f;
+                        var pos = new WorldVec2(p.WorldX, p.WorldY);
+                        var derived = p.HexQ != int.MinValue && p.HexR != int.MinValue
+                            ? new HexCoord(p.HexQ, p.HexR)
+                            : HexMath.WorldToHex(pos.X, pos.Y, hexSize);
+                        world.WorldPresence.SetAtWorldPosition(id, pos, derived);
+                    }
                 }
             }
 
@@ -432,6 +507,61 @@ namespace XianXia.Core.Persistence
             }
 
             RestorePlayerPartyTravel(world, dto.PlayerPartyTravel);
+            RestoreBackgroundCharacterTravels(world, dto.BackgroundCharacterTravels);
+        }
+
+        static void RestoreBackgroundCharacterTravels(
+            SimulationWorld world,
+            List<BackgroundCharacterTravelSnapshotDto> travels)
+        {
+            world?.BackgroundCharacterTravel?.Clear();
+            if (world?.BackgroundCharacterTravel == null || travels == null)
+                return;
+
+            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                ? world.HexWorld.HexSize
+                : 1f;
+
+            for (var i = 0; i < travels.Count; i++)
+            {
+                var t = travels[i];
+                if (t == null || t.CharacterId == 0)
+                    continue;
+                var id = new EntityId(t.CharacterId);
+                if (t.LocationKind == (int)BackgroundCharacterLocationKind.AtWorldSite &&
+                    !string.IsNullOrEmpty(t.SiteId))
+                {
+                    world.WorldPresence.SetAtSite(id, t.SiteId);
+                }
+                else
+                {
+                    var pos = new WorldVec2(t.WorldX, t.WorldY);
+                    var derived = HexMath.WorldToHex(pos.X, pos.Y, hexSize);
+                    world.WorldPresence.SetAtWorldPosition(id, pos, derived);
+                }
+
+                if (!t.IsTraveling || t.HexPath == null || t.HexPath.Count < 2)
+                    continue;
+
+                var path = new List<HexCoord>(t.HexPath.Count);
+                for (var p = 0; p < t.HexPath.Count; p++)
+                {
+                    var c = t.HexPath[p];
+                    if (c != null)
+                        path.Add(new HexCoord(c.Q, c.R));
+                }
+
+                if (path.Count < 2)
+                    continue;
+
+                var motion = world.BackgroundCharacterTravel.GetOrCreate(id);
+                motion.BeginTravel(
+                    path,
+                    new HexCoord(t.DestinationHexQ, t.DestinationHexR),
+                    t.DestinationSiteId ?? string.Empty,
+                    HexTravelMode.Ground);
+                motion.SetSegment(t.SegmentIndex, t.SegmentProgress);
+            }
         }
 
         static void RestorePlayerPartyTravel(SimulationWorld world, PlayerPartyTravelSnapshotDto travel)
