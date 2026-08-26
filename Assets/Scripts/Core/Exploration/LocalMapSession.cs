@@ -19,6 +19,12 @@ namespace XianXia.Core.Exploration
         /// <summary>离开时把队伍送回的地点（通常是洞口）。</summary>
         public string ReturnLocationId { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Surface Exit Trigger Depth（Gameplay）。由当前 MapLayout 写入；≤0 表示使用默认值。
+        /// 只影响 Detection/Presentation 共用的 Exit Zone，不进 Snapshot。
+        /// </summary>
+        public float ExitTriggerDepth { get; set; }
+
         /// <summary>当前仍在洞内的己方（进洞登记；离开关闭时清空）。</summary>
         public IReadOnlyList<EntityId> OccupantIds => _occupantIds;
 
@@ -78,6 +84,7 @@ namespace XianXia.Core.Exploration
             ActiveMapLayoutId = string.Empty;
             OverworldMapLayoutId = string.Empty;
             ReturnLocationId = string.Empty;
+            ExitTriggerDepth = 0f;
             _occupantIds.Clear();
         }
     }

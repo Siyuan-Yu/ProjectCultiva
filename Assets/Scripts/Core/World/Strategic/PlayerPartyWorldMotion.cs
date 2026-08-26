@@ -39,6 +39,9 @@ namespace XianXia.Core.World.Strategic
 
         public IReadOnlyList<EntityId> TravelingMembers => _travelingMembers;
 
+        /// <summary>Surface LocalMap 边界跨格防抖（不改 WorldPosition）。</summary>
+        public PlayerPartySurfaceEdgeGate SurfaceEdgeGate { get; } = new PlayerPartySurfaceEdgeGate();
+
         // ---- Phase 2B compat aliases ----
         public int CurrentPathIndex => SegmentIndex;
         public float StepProgress => SegmentProgress;

@@ -84,7 +84,7 @@
 - **Acceptance：** Background 可数据层定位；无 Capture 权断言  
 - **2026-08-25 进度：** **Phase 2A 已封板**（PresenceHex Content／Runtime／Editor／Query／最小 Snapshot；不含 Travel／Combat；人工验收通过）。详见 [roadmap](41-roadmap.md)／[devlog](42-devlog.md)。  
 - **2026-08-25 Phase 2B：** **已封板** — PlayerParty World Travel MVP（非 Fake Army；30×15 测试世界；Wilderness Fallback；Materialize 闭环）。  
-- **2026-08-26 Phase 2C（进行中）：** Continuous World Movement — 契约已锁于 [2K §5.8](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)／ADR-0026 #12。目标：Continuous WorldPosition 真源；WorldLocation∥MovementState；WorldMap 命令精度永久 Hex／WorldSite；Aggregated Site；LocalMap 边缘邻格连续过渡（不 snap 中心）；AutoTravel 中关 WorldMap＝Cancel＋保位＋Expand LocalMap；**仅 PlayerParty**（Background／FormalArmy continuous Deferred）。  
+- **2026-08-26 Phase 2C（进行中／竖切入仓）：** Continuous World Movement — 契约见 [2K §5.8](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)／ADR-0026 #12。已落地：Continuous WorldPosition；Edge Transition（Site／Wilderness）；Ping-Pong Guard；**Canonical Exit Trigger Geometry**（`ExitTriggerDepth`；Geometry∥Availability；Detection＝Presentation）；实现索引 [164](164-phase-2c-surface-exit-zone-and-edge-transition-2026-08-26.md)。仍待：全 Phase 2C 最终人工封板。Background／FormalArmy continuous Deferred。  
 
 ### Phase 3 — FormalArmy 职责迁移
 

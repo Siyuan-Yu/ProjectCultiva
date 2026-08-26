@@ -1,6 +1,6 @@
 # RPG-First：Active Character、PlayerParty、连续 Hex 世界与 FormalArmy 军事层
 
-> 状态：**Phase 2B 已封板**｜**Phase 2C Continuous World Movement 契约已锁定（2026-08-26）**｜优先级：P0｜最后更新：2026-08-26  
+> 状态：**Phase 2B 已封板**｜**Phase 2C Continuous World Movement 契约已锁定；Surface Exit Trigger／Edge Transition 已落地（2026-08-26）**｜优先级：P0｜最后更新：2026-08-26  
 > 上级：`docs/00-project/00-overview.md`  
 > 关联：`2A`、`2J`、`24`、`27`、`23`、`ADR-0020`、`ADR-0024`、`ADR-0025`、`ADR-0026`  
 > 被引用：`03-glossary.md`、`04-reading-guide.md`、`41-roadmap`、`AGENTS.md`  
@@ -298,6 +298,35 @@ MovementState =
 |------|------|
 | 逻辑连续跨 Hex | Snap 到 Neighbor Hex.Center 作为过渡终点 |
 | 可 Fade／Loading | 把跨格做成「传送到邻格中心再展开」的战略跳点体验 |
+
+#### Surface Exit Trigger Zone（正式）
+
+Surface LocalMap（WorldSite Surface 与 Wilderness 共用）在可玩边界内侧有固定深度的 **Exit Trigger Zone**：
+
+```text
+Canonical Geometry（固定）
+= PlayableBounds + ExitTriggerDepth + Hex Direction
+
+Runtime Availability（可变）
+= Neighbor／Site 出站合法性／Terrain passable
+
+Visible Overlay
+= Geometry ∩ Availability
+```
+
+| 规则 | 说明 |
+|------|------|
+| Geometry 真源 | **只**由当前 LocalMap 的 PlayableBounds + `ExitTriggerDepth` 决定 |
+| 确定性 | 同一 LocalMap：首次进入／返回／SaveLoad／任意 EntryDirection／角色站位 → Geometry **完全相同** |
+| Availability | CurrentHex／Site Footprint 等**只**决定某方向 Enabled／Disabled，**不得**改 Bounds |
+| Detection | 已在 Enabled Zone 内 + 继续向外 intent → Transition；刚踏入 Zone **不**自动传送 |
+| Presentation | Overlay **精确**覆盖 Trigger Geometry（可简陋半透明块）；禁止另估「宽边提示带」 |
+| Interior | 洞窟／室内等 Interior：**不**显示 Surface Exit Zone，**不**启用 Hex Edge Transition |
+| 禁止 | 每张地图手摆 Portal Prefab；用 Prefab 位姿作 Exit 判定真源 |
+
+`ExitTriggerDepth` 为 **Gameplay** 参数（MapLayout 可配置）；默认应是明显但较窄的边缘带，不得随地图半宽比例膨胀到覆盖大片地图。
+
+实现索引见 [164](../40-process/164-phase-2c-surface-exit-zone-and-edge-transition-2026-08-26.md)。
 
 ### 5.8.8 关闭 WorldMap（AutoTravel 中）
 

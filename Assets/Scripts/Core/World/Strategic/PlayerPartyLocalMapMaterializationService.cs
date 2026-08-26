@@ -70,6 +70,19 @@ namespace XianXia.Core.World.Strategic
                 px = activeLocalX;
                 pz = activeLocalY;
                 hasStart = false;
+
+                // Edge Transition 后：若投影仍落在近缘带，推到 Entry Interior Inset。
+                var gate = motion.SurfaceEdgeGate;
+                if (gate != null &&
+                    (gate.TransitionInProgress || !gate.EdgeArmed) &&
+                    gate.LastExitDirection >= 0 &&
+                    !WildernessLocalWorldProjection.IsInSafeInterior(
+                        px, pz, wildernessPlayableBounds.Value))
+                {
+                    var entryDir = WildernessLocalWorldProjection.OppositeDirection(gate.LastExitDirection);
+                    WildernessLocalWorldProjection.GetLocalPositionNearEdge(
+                        wildernessPlayableBounds.Value, entryDir, out px, out pz);
+                }
             }
             else
             {
@@ -105,6 +118,27 @@ namespace XianXia.Core.World.Strategic
             // 保持 TravelingMembers 与当前展开队伍对齐，供可见性／后续 Close→Expand 复用。
             if (world.PlayerPartyTravel != null)
                 world.PlayerPartyTravel.CaptureTravelingMembers(partyMembers);
+
+            // Edge Gate：Materialize 完成后 Disarm（不改 WorldPosition）。
+            if (useWildernessProjection &&
+                wildernessPlayableBounds.HasValue &&
+                world.PlayerPartyTravel?.SurfaceEdgeGate != null &&
+                world.PlayerPartyTravel.SurfaceEdgeGate.TransitionInProgress)
+            {
+                PlayerPartyWildernessTransitionService.CompleteEdgeTransitionPresentation(
+                    world, wildernessPlayableBounds.Value, px, pz);
+            }
+            else if (world.PlayerPartyTravel?.SurfaceEdgeGate != null &&
+                     world.PlayerPartyTravel.SurfaceEdgeGate.TransitionInProgress)
+            {
+                // Site 展开：用 start / 原点完成 Gate。
+                PlayerPartyWildernessTransitionService.CompleteEdgeTransitionPresentation(
+                    world,
+                    WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
+                        -20f, -20f, 1f, 40, 40),
+                    px,
+                    pz);
+            }
         }
 
         /// <summary>

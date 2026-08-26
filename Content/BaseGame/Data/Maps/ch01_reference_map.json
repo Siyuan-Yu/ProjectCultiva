@@ -11,6 +11,7 @@
       "cellSize": 1,
       "width": 200,
       "height": 100,
+      "exitTriggerDepth": 1.25,
       "placements": [
         {
           "id": "block_supervisor_mansion",

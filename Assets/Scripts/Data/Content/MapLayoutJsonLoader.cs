@@ -106,7 +106,8 @@ namespace XianXia.Data.Content
                 OriginY = (float)item.GetNumber("originY", 0),
                 CellSize = (float)item.GetNumber("cellSize", 1),
                 Width = (int)item.GetNumber("width", 0),
-                Height = (int)item.GetNumber("height", 0)
+                Height = (int)item.GetNumber("height", 0),
+                ExitTriggerDepth = (float)item.GetNumber("exitTriggerDepth", 0)
             };
 
             if (layout.Width <= 0 || layout.Height <= 0 || layout.CellSize <= 0f)

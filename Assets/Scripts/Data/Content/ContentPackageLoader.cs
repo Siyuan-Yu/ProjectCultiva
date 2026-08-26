@@ -1377,7 +1377,8 @@ namespace XianXia.Data.Content
                 OriginY = ReadFloat(item, "originY", 0f),
                 CellSize = ReadFloat(item, "cellSize", 1f),
                 Width = ReadInt(item, "width", 0),
-                Height = ReadInt(item, "height", 0)
+                Height = ReadInt(item, "height", 0),
+                ExitTriggerDepth = ReadFloat(item, "exitTriggerDepth", 0f)
             };
 
             if (layout.Width <= 0 || layout.Height <= 0 || layout.CellSize <= 0f)

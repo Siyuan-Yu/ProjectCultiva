@@ -117,6 +117,8 @@
 | 世界位置代理格 | PresenceHex | Multi-Hex／Aggregated Site 上 Character 位于该 Site LocalMap 时的固定世界 Hex | ⊆ Footprint；≠ AnchorHex；WorldMap 投影真源；见 2K／2J |
 | 连续 Hex 世界 | Continuous Hex World | HexWorld=唯一世界拓扑；LocalMap=近景；逻辑连续旅行 | 非必须 Unity 无缝开放世界 |
 | 连续世界坐标 | Continuous WorldPosition | Runtime **位置真源**（连续世界坐标） | `CurrentHex = WorldToHex(...)` 为**派生**；见 2K §5.8 |
+| 地表出口触发深度 | ExitTriggerDepth | Surface LocalMap 自边界向内的 Exit Trigger 深度（Gameplay） | MapLayout 可配；见 2K §5.8.7／164 |
+| 地表出口触发区 | Surface Exit Trigger Zone | 可触发 Hex／Site 边缘过渡的固定几何 ∩ 运行时合法性 | Geometry 固定；Availability 可变；见 2K §5.8.7 |
 | 世界定位 | WorldLocation | `AtWorldSite{SiteId}` \| `AtWorldPosition{ContinuousPosition}` | 与 MovementState 分离；Party 共用一个 |
 | 移动状态 | MovementState | `Idle` \| `AutoTravel` | 与 WorldLocation 正交；见 2K §5.8 |
 | 聚合地点定位 | Aggregated WorldSite Location | 全体 WorldSite（1-Hex／Multi）在站内只改 LocalPosition；WorldMap 投影=PresenceHex | 禁止按 Local 坐标投影到 Footprint 其他格 |

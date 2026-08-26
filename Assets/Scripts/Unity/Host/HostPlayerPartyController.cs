@@ -163,106 +163,6 @@ namespace XianXia.Unity.Host
             TickWildernessWorldSyncAndEdge();
         }
 
-        void TickWildernessWorldSyncAndEdge()
-        {
-            if (HostInputGate.BlockWorldInteraction)
-                return;
-            if (bootstrap?.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen)
-                return;
-
-            var session = bootstrap.Session;
-            var world = session.World;
-            var party = Party;
-            if (world?.PlayerPartyTravel == null || party == null)
-                return;
-
-            var motion = world.PlayerPartyTravel;
-            if (!motion.HasPosition || motion.IsMoving)
-                return;
-
-            // 禁止每帧 Heal：PartyWorld / 背景 Site Presence 不得覆盖 AtWorldPosition。
-
-            if (_spawner == null ||
-                !_spawner.Registry.TryGet(party.ActiveCharacterId, out var activeView) ||
-                activeView == null)
-                return;
-
-            var pos = activeView.transform.position;
-            var localX = pos.x;
-            var localY = pos.y;
-            if (!TryResolveWildernessBounds(out var bounds))
-                return;
-
-            if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite)
-            {
-                if (IsOutsideLocalBounds(localX, localY, bounds) &&
-                    WildernessLocalWorldProjection.TryClassifyEdgeDirection(
-                        localX, localY, bounds, out var siteDir))
-                {
-                    var exit = PlayerPartyWildernessTransitionService.TryExitWorldSiteByDirection(
-                        world, party, siteDir);
-                    if (exit.IsSuccess)
-                        bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
-                }
-
-                return;
-            }
-
-            if (motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
-                return;
-
-            PlayerPartyWildernessTransitionService.TrySyncLocalMovementToWorldPosition(
-                world, localX, localY, bounds);
-
-            if (IsOutsideLocalBounds(localX, localY, bounds) &&
-                WildernessLocalWorldProjection.TryClassifyEdgeDirection(
-                    localX, localY, bounds, out var dir))
-            {
-                var cross = PlayerPartyWildernessTransitionService.TryCrossWildernessEdge(
-                    world, party, dir);
-                if (cross.IsSuccess)
-                    bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
-            }
-        }
-
-        static bool IsOutsideLocalBounds(
-            float localX,
-            float localY,
-            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds) =>
-            localX < bounds.MinX ||
-            localX > bounds.MaxX ||
-            localY < bounds.MinY ||
-            localY > bounds.MaxY;
-
-        bool TryResolveWildernessBounds(
-            out WildernessLocalWorldProjection.WildernessLocalMapBounds bounds)
-        {
-            bounds = default;
-            var grid = bootstrap != null ? bootstrap.MoveController?.WalkGrid : null;
-            if (grid == null)
-            {
-                // Fallback logical rectangle when WalkGrid not ready.
-                bounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
-                    -20f, -20f, 1f, 40, 40);
-                return true;
-            }
-
-            bounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
-                grid.OriginX, grid.OriginY, grid.CellSize, grid.Width, grid.Height);
-            return true;
-        }
-
-        void LateUpdate()
-        {
-            // After CameraRig middle-pan so WASD Hard Follow wins the same frame.
-            if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized || Party == null)
-                return;
-            if (Party.IsAwaitingSuccession || Party.ActiveCharacterId.IsNone)
-                return;
-
-            TickCameraFollow();
-        }
-
         void TickWasdForActive()
         {
             if (HostInputGate.BlockWorldInteraction)
@@ -287,6 +187,13 @@ namespace XianXia.Unity.Host
                     EnterWasdHardFollow(active);
                 }
 
+                // Crossing Intent 必须在 WalkGrid Clamp 之前处理，否则永远无法 OutOfBounds。
+                if (TryConsumeSurfaceEdgeCrossingFromMovement(active, dir, wasdMoveSpeed))
+                {
+                    _wasdHeldLastFrame = true;
+                    return;
+                }
+
                 _move.TickDirectWasdMove(active, dir, wasdMoveSpeed);
             }
             else if (_wasdHeldLastFrame && _cameraMode == HostActiveCameraFollowMode.WasdHardFollow)
@@ -295,6 +202,228 @@ namespace XianXia.Unity.Host
             }
 
             _wasdHeldLastFrame = wasdHeld;
+        }
+
+        /// <summary>
+        /// WASD 本帧位移若试图跨出 LocalMap playable bounds，先 Resolve Neighbor 再 Transition。
+        /// 邻格非法时返回 false，交由 WalkGrid Clamp 挡住。
+        /// </summary>
+        bool TryConsumeSurfaceEdgeCrossingFromMovement(EntityId active, Vector2 dir, float speed)
+        {
+            var session = bootstrap?.Session;
+            var world = session?.World;
+            var party = Party;
+            if (world == null || party == null || active.IsNone)
+                return false;
+            if (!PlayerPartyWildernessTransitionService.IsSurfaceHexEdgeTransitionEnabled(world))
+                return false;
+
+            var gate = world.PlayerPartyTravel?.SurfaceEdgeGate;
+            if (gate != null && !gate.CanAttemptEdgeTransition)
+                return false;
+
+            if (_spawner == null ||
+                !_spawner.Registry.TryGet(active, out var view) ||
+                view == null)
+                return false;
+            if (!TryResolveWildernessBounds(out var bounds))
+                return false;
+
+            var depth = SurfaceExitZoneCalculator.ResolveDepthFromSession(world, bounds);
+            SyncExitTriggerDepthToSession(world, depth);
+
+            var pos = view.transform.position;
+            var dt = Time.deltaTime;
+            if (dt <= 0f)
+                dt = Time.unscaledDeltaTime;
+            var proposedX = pos.x + dir.x * speed * dt;
+            var proposedY = pos.y + dir.y * speed * dt;
+
+            // Canonical Exit Trigger：Zone 内 + 向外；进入 Zone 本身不触发。
+            if (!WildernessLocalWorldProjection.TryResolveExitTriggerIntent(
+                    pos.x, pos.y, proposedX, proposedY, bounds, depth, out var edgeDir))
+            {
+                // WalkGrid 出界但尚无正式 intent：用上一帧 Local（若有）再判一次。
+                var grid = _move != null ? _move.WalkGrid : null;
+                var leavesWalkGrid = grid != null &&
+                                     !grid.TryWorldToCell(proposedX, proposedY, out _, out _);
+                if (!leavesWalkGrid)
+                    return false;
+                if (!WildernessLocalWorldProjection.TryResolveExitTriggerIntent(
+                        pos.x, pos.y, proposedX, proposedY, bounds, depth, out edgeDir))
+                    return false;
+            }
+
+            var cross = PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
+                world, party, edgeDir);
+            if (!cross.IsSuccess)
+                return false;
+
+            bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
+            EnsureEdgeGateCompletedAfterExpand(world);
+            return true;
+        }
+
+        void TickWildernessWorldSyncAndEdge()
+        {
+            if (HostInputGate.BlockWorldInteraction)
+                return;
+            if (bootstrap?.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen)
+                return;
+
+            var session = bootstrap.Session;
+            var world = session.World;
+            var party = Party;
+            if (world?.PlayerPartyTravel == null || party == null)
+                return;
+
+            var motion = world.PlayerPartyTravel;
+            if (!motion.HasPosition || motion.IsMoving)
+                return;
+            if (!PlayerPartyWildernessTransitionService.IsSurfaceHexEdgeTransitionEnabled(world))
+                return;
+
+            if (_spawner == null ||
+                !_spawner.Registry.TryGet(party.ActiveCharacterId, out var activeView) ||
+                activeView == null)
+                return;
+
+            var pos = activeView.transform.position;
+            var localX = pos.x;
+            var localY = pos.y;
+            if (!TryResolveWildernessBounds(out var bounds))
+                return;
+
+            var depth = SurfaceExitZoneCalculator.ResolveDepthFromSession(world, bounds);
+            SyncExitTriggerDepthToSession(world, depth);
+
+            var gate = motion.SurfaceEdgeGate;
+            var prevX = localX;
+            var prevY = localY;
+            var hasPrev = gate != null && gate.HasLastLocal;
+            if (hasPrev)
+            {
+                prevX = gate.LastLocalX;
+                prevY = gate.LastLocalY;
+            }
+
+            gate?.TickRearm(localX, localY, bounds);
+
+            // TransitionInProgress 或 Disarmed：禁止任何跨边（仍更新 LastLocal 供下帧）。
+            if (gate != null && !gate.CanAttemptEdgeTransition)
+            {
+                gate.NoteLocalPosition(localX, localY);
+                return;
+            }
+
+            if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite)
+            {
+                if (hasPrev &&
+                    WildernessLocalWorldProjection.TryResolveExitTriggerIntent(
+                        prevX, prevY, localX, localY, bounds, depth, out var siteDir))
+                {
+                    var exit = PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
+                        world, party, siteDir);
+                    if (exit.IsSuccess)
+                    {
+                        bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
+                        EnsureEdgeGateCompletedAfterExpand(world);
+                        return;
+                    }
+                }
+
+                gate?.NoteLocalPosition(localX, localY);
+                return;
+            }
+
+            if (motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
+            {
+                gate?.NoteLocalPosition(localX, localY);
+                return;
+            }
+
+            PlayerPartyWildernessTransitionService.TrySyncLocalMovementToWorldPosition(
+                world, localX, localY, bounds);
+
+            if (hasPrev &&
+                WildernessLocalWorldProjection.TryResolveExitTriggerIntent(
+                    prevX, prevY, localX, localY, bounds, depth, out var dir))
+            {
+                var cross = PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
+                    world, party, dir);
+                if (cross.IsSuccess)
+                {
+                    bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
+                    EnsureEdgeGateCompletedAfterExpand(world);
+                    return;
+                }
+            }
+
+            gate?.NoteLocalPosition(localX, localY);
+        }
+
+        static void SyncExitTriggerDepthToSession(
+            XianXia.Core.Simulation.SimulationWorld world,
+            float depth)
+        {
+            if (world?.LocalMap == null)
+                return;
+            if (world.LocalMap.ExitTriggerDepth > 0.0001f)
+                return;
+            world.LocalMap.ExitTriggerDepth = depth;
+        }
+
+        void EnsureEdgeGateCompletedAfterExpand(XianXia.Core.Simulation.SimulationWorld world)
+        {
+            var gate = world?.PlayerPartyTravel?.SurfaceEdgeGate;
+            if (gate == null || !gate.TransitionInProgress)
+                return;
+            if (!TryResolveWildernessBounds(out var bounds))
+                return;
+
+            float sx = bounds.CenterX;
+            float sy = bounds.CenterY;
+            var party = Party;
+            if (party != null &&
+                party.HasActive &&
+                _spawner != null &&
+                _spawner.Registry.TryGet(party.ActiveCharacterId, out var view) &&
+                view != null)
+            {
+                sx = view.transform.position.x;
+                sy = view.transform.position.y;
+            }
+
+            PlayerPartyWildernessTransitionService.CompleteEdgeTransitionPresentation(
+                world, bounds, sx, sy);
+        }
+
+        bool TryResolveWildernessBounds(
+            out WildernessLocalWorldProjection.WildernessLocalMapBounds bounds)
+        {
+            bounds = default;
+            var grid = bootstrap != null ? bootstrap.MoveController?.WalkGrid : null;
+            if (grid == null)
+            {
+                bounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
+                    -20f, -20f, 1f, 40, 40);
+                return true;
+            }
+
+            bounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
+                grid.OriginX, grid.OriginY, grid.CellSize, grid.Width, grid.Height);
+            return true;
+        }
+
+        void LateUpdate()
+        {
+            // After CameraRig middle-pan so WASD Hard Follow wins the same frame.
+            if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized || Party == null)
+                return;
+            if (Party.IsAwaitingSuccession || Party.ActiveCharacterId.IsNone)
+                return;
+
+            TickCameraFollow();
         }
 
         static Vector2 ReadWasdDirection()

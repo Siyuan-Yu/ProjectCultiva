@@ -17,6 +17,11 @@ namespace XianXia.Data.Content
         public float CellSize { get; set; } = 1f;
         public int Width { get; set; }
         public int Height { get; set; }
+        /// <summary>
+        /// Surface Exit Trigger 向内深度（world units）。≤0＝运行时用默认值。
+        /// Gameplay Detection 参数，非 Presentation。
+        /// </summary>
+        public float ExitTriggerDepth { get; set; }
         public List<MapPlacement> Placements { get; set; } = new List<MapPlacement>();
     }
 

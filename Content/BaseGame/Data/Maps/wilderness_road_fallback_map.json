@@ -11,6 +11,7 @@
       "cellSize": 1,
       "width": 50,
       "height": 50,
+      "exitTriggerDepth": 1.25,
       "placements": [
         {
           "id": "road_strip_center",

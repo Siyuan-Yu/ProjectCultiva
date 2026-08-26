@@ -81,6 +81,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostLocalMapEnterPrompt localMapEnterPrompt;
         [SerializeField] HostSelectedUnitChrome selectedUnitChrome;
         [SerializeField] HostInteractSpotPresenter interactSpotPresenter;
+        [SerializeField] HostSurfaceExitZonePresenter surfaceExitZonePresenter;
         [SerializeField] HostNpcScheduleMover npcScheduleMover;
         [SerializeField] HostNpcContextMenu npcContextMenu;
 
@@ -515,6 +516,9 @@ namespace XianXia.Unity.Host
             if (interactSpotPresenter == null)
                 interactSpotPresenter = GetComponent<HostInteractSpotPresenter>() ??
                                        gameObject.AddComponent<HostInteractSpotPresenter>();
+            if (surfaceExitZonePresenter == null)
+                surfaceExitZonePresenter = GetComponent<HostSurfaceExitZonePresenter>() ??
+                                          gameObject.AddComponent<HostSurfaceExitZonePresenter>();
             if (npcScheduleMover == null)
                 npcScheduleMover = GetComponent<HostNpcScheduleMover>() ??
                                   gameObject.AddComponent<HostNpcScheduleMover>();
@@ -568,6 +572,8 @@ namespace XianXia.Unity.Host
                 localMapEnterPrompt.ClearSessionState();
             mapGraybox.Clear();
             interactSpotPresenter.Clear();
+            if (surfaceExitZonePresenter != null)
+                surfaceExitZonePresenter.Clear();
 
             if (!TryResolveContentPackageDirectory(out _resolvedContentPath, out var pathError))
             {
@@ -701,6 +707,8 @@ namespace XianXia.Unity.Host
             inventoryPanel.Bind(this);
             if (interactSpotPresenter != null)
                 interactSpotPresenter.Bind(this);
+            if (surfaceExitZonePresenter != null)
+                surfaceExitZonePresenter.Bind(this);
             if (worldMapPanel != null)
                 worldMapPanel.Bind(this);
             if (manualLearnPrompt != null)
@@ -864,6 +872,7 @@ namespace XianXia.Unity.Host
                 _session.PreferredMapLayoutId = active.Trim();
 
             MapLayoutPresentationSync.Apply(_session);
+            SyncExitTriggerDepthFromActiveMap();
             if (entityViewSpawner != null)
                 entityViewSpawner.Rebuild(_session);
             if (mapGraybox != null)
@@ -872,9 +881,43 @@ namespace XianXia.Unity.Host
                 interactSpotPresenter.Rebuild();
             if (moveController != null)
                 moveController.SetWalkGrid(ResolveWalkGrid());
+            if (surfaceExitZonePresenter != null)
+                surfaceExitZonePresenter.Rebuild();
             if (frameCamera)
                 FrameCameraOnSlots();
             RefreshStatus();
+        }
+
+        /// <summary>
+        /// 从当前 Active MapLayout 写入 ExitTriggerDepth（Gameplay）。
+        /// Geometry 只认 MapLayout；与角色位置 / Entry 无关。
+        /// </summary>
+        void SyncExitTriggerDepthFromActiveMap()
+        {
+            if (!_session.IsInitialized || _session.World?.LocalMap == null)
+                return;
+            var lm = _session.World.LocalMap;
+            if (lm.IsInInterior)
+            {
+                lm.ExitTriggerDepth = 0f;
+                return;
+            }
+
+            if (MapLayoutPick.TryGet(_session, out var layout) && layout != null)
+            {
+                if (layout.ExitTriggerDepth > 0.0001f)
+                    lm.ExitTriggerDepth = layout.ExitTriggerDepth;
+                else
+                {
+                    var cs = layout.CellSize > 0.0001f ? layout.CellSize : 1f;
+                    lm.ExitTriggerDepth = cs * SurfaceExitZoneCalculator.DefaultExitTriggerDepth;
+                }
+
+                return;
+            }
+
+            if (lm.ExitTriggerDepth <= 0.0001f)
+                lm.ExitTriggerDepth = SurfaceExitZoneCalculator.DefaultExitTriggerDepth;
         }
 
         /// <summary>显式清空 Active LocalMap 表现（进入场景失败／无目标图时用）。全员上路时不要调用/summary>
@@ -911,6 +954,8 @@ namespace XianXia.Unity.Host
                 mapGraybox.Rebuild(_session);
             if (interactSpotPresenter != null)
                 interactSpotPresenter.Rebuild();
+            if (surfaceExitZonePresenter != null)
+                surfaceExitZonePresenter.Clear();
             if (moveController != null)
                 moveController.SetWalkGrid(null);
             RefreshStatus();
@@ -1125,6 +1170,7 @@ namespace XianXia.Unity.Host
             }
 
             TryFrameCameraOnParty();
+            RefreshSurfaceExitZones();
         }
 
         void PlaceLegacyFocusCharactersOnLocalMap(SimulationWorld world, bool onEncounterMap)
@@ -1281,6 +1327,17 @@ namespace XianXia.Unity.Host
                 mapGraybox.Rebuild(_session);
             if (interactSpotPresenter != null)
                 interactSpotPresenter.Rebuild();
+        }
+
+        /// <summary>Surface Exit Zone 与 WalkGrid 对齐后强制刷新（Expand 末尾保险）。</summary>
+        public void RefreshSurfaceExitZones()
+        {
+            if (surfaceExitZonePresenter == null)
+                surfaceExitZonePresenter = GetComponent<HostSurfaceExitZonePresenter>() ??
+                                          gameObject.AddComponent<HostSurfaceExitZonePresenter>();
+            SyncExitTriggerDepthFromActiveMap();
+            surfaceExitZonePresenter.Bind(this);
+            surfaceExitZonePresenter.Rebuild();
         }
 
         public void StepTick()

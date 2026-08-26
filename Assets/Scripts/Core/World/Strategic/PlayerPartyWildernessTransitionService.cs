@@ -10,6 +10,94 @@ namespace XianXia.Core.World.Strategic
     /// </summary>
     public static class PlayerPartyWildernessTransitionService
     {
+        /// <summary>
+        /// 仅 Surface World Location LocalMap 启用 Hex 边界跨格；Interior（洞窟／室内）禁用。
+        /// </summary>
+        public static bool IsSurfaceHexEdgeTransitionEnabled(SimulationWorld world)
+        {
+            if (world?.LocalMap == null || world.PlayerPartyTravel == null)
+                return false;
+            if (world.LocalMap.IsInInterior)
+                return false;
+
+            var motion = world.PlayerPartyTravel;
+            if (!motion.HasPosition || motion.IsMoving)
+                return false;
+
+            return motion.LocationKind == PlayerPartyLocationKind.AtWorldSite ||
+                   motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition;
+        }
+
+        /// <summary>
+        /// 根据 LocationKind 尝试 Site Exit 或 Wilderness Cross；单次 Debug（非每帧）。
+        /// </summary>
+        public static Result TryAttemptSurfaceEdgeTransition(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            int directionIndex)
+        {
+            if (!IsSurfaceHexEdgeTransitionEnabled(world))
+                return Result.Failure(ErrorCode.InvalidOperation, "Surface hex edge transition disabled.");
+
+            var motion = world.PlayerPartyTravel;
+            var gate = motion.SurfaceEdgeGate;
+            if (gate != null && !gate.CanAttemptEdgeTransition)
+                return Result.Failure(ErrorCode.InvalidOperation, "Edge transition gated (in progress or disarmed).");
+
+            var dir = NormalizeDirection(directionIndex);
+            ProbeNeighbor(world, motion, dir, out var sourceHex, out var neighbor, out var passable, out var terrain);
+
+            gate?.BeginTransition(dir);
+
+            Result result;
+            if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite)
+                result = TryExitWorldSiteByDirection(world, party, dir);
+            else
+                result = TryCrossWildernessEdge(world, party, dir);
+
+            if (result.IsFailure)
+            {
+                // 失败：恢复为可再试（保持 Armed，清 InProgress）
+                gate?.ClearEdgeState();
+            }
+
+            LogEdgeAttempt(
+                world,
+                party,
+                dir,
+                sourceHex,
+                neighbor,
+                terrain,
+                passable,
+                result);
+            return result;
+        }
+
+        /// <summary>
+        /// Expand/Materialize 完成后：用目的 LocalMap bounds + Entry 边完成 Gate（Disarm）。
+        /// </summary>
+        public static void CompleteEdgeTransitionPresentation(
+            SimulationWorld world,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float spawnLocalX,
+            float spawnLocalY)
+        {
+            var motion = world?.PlayerPartyTravel;
+            var gate = motion?.SurfaceEdgeGate;
+            if (gate == null)
+                return;
+            var exitDir = gate.LastExitDirection >= 0 ? gate.LastExitDirection : 0;
+            // 若 spawn 仍在近缘，强制推到 Entry Interior Inset。
+            var entryDir = WildernessLocalWorldProjection.OppositeDirection(exitDir);
+            if (!WildernessLocalWorldProjection.IsInSafeInterior(spawnLocalX, spawnLocalY, bounds))
+            {
+                WildernessLocalWorldProjection.GetLocalPositionNearEdge(
+                    bounds, entryDir, out spawnLocalX, out spawnLocalY);
+            }
+
+            gate.CompleteTransition(exitDir, spawnLocalX, spawnLocalY);
+        }
+
         public static Result TrySyncLocalMovementToWorldPosition(
             SimulationWorld world,
             float localX,
@@ -128,6 +216,143 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidOperation, "No wilderness fallback LocalMap for exit hex.");
 
             return WorldTravelService.EnterWildernessLocalMap(world, external, mapId);
+        }
+
+        /// <summary>
+        /// 只读评估某方向出口是否合法（不触发 Transition、不改 Gate）。
+        /// Presentation 与 Detection 共用。
+        /// </summary>
+        public static bool TryEvaluateSurfaceExitLegality(
+            SimulationWorld world,
+            int directionIndex,
+            out HexCoord neighborHex,
+            out bool passable)
+        {
+            neighborHex = default;
+            passable = false;
+            if (world?.PlayerPartyTravel == null || !world.PlayerPartyTravel.HasPosition)
+                return false;
+            if (world.LocalMap != null && world.LocalMap.IsInInterior)
+                return false;
+
+            var motion = world.PlayerPartyTravel;
+            var dir = NormalizeDirection(directionIndex);
+            ProbeNeighbor(world, motion, dir, out _, out neighborHex, out passable, out _);
+
+            if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite)
+            {
+                if (string.IsNullOrEmpty(motion.SiteId) ||
+                    !world.Strategic.Sites.TryGet(motion.SiteId, out var site) ||
+                    site == null)
+                    return false;
+                if (!TryPickOutermostFootprintHex(site, dir, out var outer))
+                    return false;
+                var external = HexMath.Neighbor(outer, dir);
+                if (site.OccupiesHex(external))
+                {
+                    passable = false;
+                    return true;
+                }
+
+                neighborHex = external;
+                passable = IsGroundPassable(world.HexWorld, external);
+                return true;
+            }
+
+            if (motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
+                return false;
+
+            passable = IsGroundPassable(world.HexWorld, neighborHex);
+            return true;
+        }
+
+        static void ProbeNeighbor(
+            SimulationWorld world,
+            PlayerPartyWorldMotion motion,
+            int directionIndex,
+            out HexCoord sourceHex,
+            out HexCoord neighbor,
+            out bool passable,
+            out HexTerrainType terrain)
+        {
+            sourceHex = motion.CurrentHex;
+            neighbor = default;
+            passable = false;
+            terrain = HexTerrainType.Plain;
+
+            if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                !string.IsNullOrEmpty(motion.SiteId) &&
+                world.Strategic.Sites.TryGet(motion.SiteId, out var site) &&
+                site != null &&
+                TryPickOutermostFootprintHex(site, directionIndex, out var outer))
+            {
+                sourceHex = outer;
+                neighbor = HexMath.Neighbor(outer, directionIndex);
+            }
+            else
+            {
+                neighbor = HexMath.Neighbor(sourceHex, directionIndex);
+            }
+
+            if (world.HexWorld != null &&
+                world.HexWorld.TryGetTile(neighbor, out var tile) &&
+                tile != null)
+            {
+                terrain = tile.Terrain;
+                passable = IsGroundPassable(world.HexWorld, neighbor);
+            }
+        }
+
+        static string _lastEdgeLogKey = string.Empty;
+
+        static void LogEdgeAttempt(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            int directionIndex,
+            HexCoord sourceHex,
+            HexCoord neighbor,
+            HexTerrainType terrain,
+            bool passable,
+            Result result)
+        {
+            if (PlayerPartyWorldLocationDebug.Sink == null)
+                return;
+
+            var active = party != null && party.HasActive
+                ? party.ActiveCharacterId.Value.ToString()
+                : "none";
+            var motion = world?.PlayerPartyTravel;
+            var msg =
+                "[PlayerPartyEdgeTransition] attempt" +
+                " active=" + active +
+                " exitDir=" + directionIndex +
+                " sourceKind=" + (motion != null ? motion.LocationKind.ToString() : "?") +
+                " sourceSite=" + (motion?.SiteId ?? "") +
+                " sourceHex=" + sourceHex +
+                " neighbor=" + neighbor +
+                " terrain=" + terrain +
+                " passable=" + passable +
+                " result=" + (result.IsSuccess ? "OK" : FormatResultError(result)) +
+                " afterKind=" + (motion != null ? motion.LocationKind.ToString() : "?") +
+                " afterHex=" + (motion != null ? motion.CurrentHex.ToString() : "?");
+            if (msg == _lastEdgeLogKey)
+                return;
+            _lastEdgeLogKey = msg;
+            PlayerPartyWorldLocationDebug.Sink(msg);
+        }
+
+        static string FormatResultError(Result result)
+        {
+            if (result.IsSuccess)
+                return "OK";
+            try
+            {
+                return result.Error.ToString();
+            }
+            catch
+            {
+                return "FAIL";
+            }
         }
 
         static bool TryPickOutermostFootprintHex(WorldSite site, int directionIndex, out HexCoord outerHex)

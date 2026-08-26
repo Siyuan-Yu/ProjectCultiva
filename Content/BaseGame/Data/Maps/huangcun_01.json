@@ -10,6 +10,7 @@
       "cellSize": 1,
       "width": 80,
       "height": 50,
+      "exitTriggerDepth": 1.25,
       "placements": [
         {
           "id": "place_house_143311062",

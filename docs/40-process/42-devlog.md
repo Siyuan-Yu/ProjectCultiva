@@ -7,6 +7,21 @@
 
 ---
 
+## 2026-08-26 — Phase 2C Surface Exit Zone／Edge Transition 入仓
+
+**做了什么**
+- Surface LocalMap Edge Transition（Site Exit／Wilderness 跨 Hex；不 snap 邻格中心）
+- Ping-Pong Guard：`PlayerPartySurfaceEdgeGate`（TransitionInProgress／Disarm／Rearm）；不改 Zone Geometry
+- **Canonical Exit Trigger Geometry**：`ExitTriggerDepth` + PlayableBounds；Geometry∥Availability；Detection 与 Presentation 共用
+- MapLayout 字段 `exitTriggerDepth`；Host `HostSurfaceExitZonePresenter` 半透明精确覆盖
+- 文档：2K §5.8.7 Exit Trigger；[164](164-phase-2c-surface-exit-zone-and-edge-transition-2026-08-26.md)；glossary／roadmap／163
+- **未**同步飞书
+
+**状态**
+- Phase 2C 竖切入仓；全 Phase 封板仍待最终人工验收
+
+---
+
 ## 2026-08-26 — Phase 2B 人工验收封板
 
 **做了什么**
