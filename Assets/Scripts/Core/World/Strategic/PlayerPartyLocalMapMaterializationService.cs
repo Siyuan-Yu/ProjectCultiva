@@ -124,6 +124,13 @@ namespace XianXia.Core.World.Strategic
 
                 loc.LocationId = hasStart ? startId : string.Empty;
                 loc.SetPresentationOverride(memberX, memberZ);
+
+                var isFollower = i > 0;
+                PlayerPartyTransitionMembership.LogMaterializeMember(
+                    id,
+                    mapId,
+                    spawned: true,
+                    followReboundHint: isFollower);
             }
 
             // 保持 TravelingMembers 与当前展开队伍对齐，供可见性／后续 Close→Expand 复用。

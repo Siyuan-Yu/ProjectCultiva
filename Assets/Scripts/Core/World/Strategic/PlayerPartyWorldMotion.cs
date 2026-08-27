@@ -27,8 +27,19 @@ namespace XianXia.Core.World.Strategic
         public float SegmentProgress { get; private set; }
         public bool HasPosition { get; private set; }
 
-        /// <summary>派生格：AtWorldSite 用 Presence 查询侧解析；AtWorldPosition 缓存最近推导结果。</summary>
+        /// <summary>派生格：Travel Presentation 或 Authority 投影。</summary>
         public HexCoord CurrentHex { get; private set; }
+
+        /// <summary>Site 内 Travel Presentation（Authority 仍为 AtWorldSite）。</summary>
+        public bool IsSiteDeparturePending { get; private set; }
+        public WorldVec2 SiteDepartureVirtualPosition { get; private set; }
+        public WorldVec2 SiteDepartureBoundaryEntry { get; private set; }
+        public HexCoord SiteDepartureFootprintHex { get; private set; }
+        public HexCoord SiteDepartureExitHex { get; private set; }
+
+        /// <summary>跨入 Destination Site 后 Footprint 内 Presentation（Authority 已为 AtWorldSite）。</summary>
+        public bool UsesTravelPresentation { get; private set; }
+        public WorldVec2 TravelPresentationPosition { get; private set; }
 
         public bool IsMoving => MovementKind == PlayerPartyMovementKind.AutoTravel;
 
@@ -60,6 +71,59 @@ namespace XianXia.Core.World.Strategic
             DestinationHex = CurrentHex;
             DestinationSiteId = string.Empty;
             TravelMode = HexTravelMode.Ground;
+            ClearSiteDeparturePending();
+            UsesTravelPresentation = false;
+        }
+
+        public void ClearSiteDeparturePending()
+        {
+            IsSiteDeparturePending = false;
+            SiteDepartureVirtualPosition = default;
+            SiteDepartureBoundaryEntry = default;
+            SiteDepartureFootprintHex = default;
+            SiteDepartureExitHex = default;
+        }
+
+        public void SetSiteDepartureVirtualPosition(WorldVec2 pos) =>
+            SiteDepartureVirtualPosition = pos;
+
+        public void SetSiteDepartureVirtualPosition(WorldVec2 pos, float hexSize)
+        {
+            SiteDepartureVirtualPosition = pos;
+            CurrentHex = HexMath.WorldToHex(pos.X, pos.Y, hexSize > 0f ? hexSize : 1f);
+            HasPosition = true;
+        }
+
+        /// <summary>跨入 Destination Site Footprint：Authority 立即 AtWorldSite，Presentation 继续沿路径。</summary>
+        public void CommitSiteArrivalAuthority(
+            string siteId,
+            WorldVec2 presentationPos,
+            HexCoord presentationHex)
+        {
+            LocationKind = PlayerPartyLocationKind.AtWorldSite;
+            SiteId = siteId ?? string.Empty;
+            ClearSiteDeparturePending();
+            SetTravelPresentation(presentationPos, presentationHex);
+            WorldPosition = presentationPos;
+        }
+
+        public void SetTravelPresentation(WorldVec2 pos, HexCoord derivedHex)
+        {
+            TravelPresentationPosition = pos;
+            CurrentHex = derivedHex;
+            UsesTravelPresentation = true;
+            HasPosition = true;
+        }
+
+        public void ClearTravelPresentation() => UsesTravelPresentation = false;
+
+        public WorldVec2 ResolveTravelPresentationWorld(float hexSize)
+        {
+            if (IsSiteDeparturePending)
+                return SiteDepartureVirtualPosition;
+            if (UsesTravelPresentation)
+                return TravelPresentationPosition;
+            return WorldPosition;
         }
 
         public void SetAtWorldSite(string siteId, HexCoord presenceHex, float hexSize)
@@ -71,6 +135,8 @@ namespace XianXia.Core.World.Strategic
             WorldPosition = new WorldVec2(x, y);
             HasPosition = true;
             ClearMovementKeepMembers();
+            ClearSiteDeparturePending();
+            UsesTravelPresentation = false;
         }
 
         public void SetAtWorldPosition(WorldVec2 worldPos, HexCoord derivedHex)
@@ -81,6 +147,8 @@ namespace XianXia.Core.World.Strategic
             CurrentHex = derivedHex;
             HasPosition = true;
             ClearMovementKeepMembers();
+            ClearSiteDeparturePending();
+            UsesTravelPresentation = false;
         }
 
         public void SetIdleAt(HexCoord hex)
@@ -127,15 +195,8 @@ namespace XianXia.Core.World.Strategic
                 return;
             }
 
-            // 若已在开世界且不在起点中心：路径几何从当前 WorldPosition 接到下一格中心。
-            if (LocationKind == PlayerPartyLocationKind.AtWorldSite)
-            {
-                // Site Exit：离散转为 Presence 中心开世界位置后再连续移动。
-                HexMath.ToWorldPosition(CurrentHex, hexSize, out var sx, out var sy);
-                WorldPosition = new WorldVec2(sx, sy);
-                LocationKind = PlayerPartyLocationKind.AtWorldPosition;
-                SiteId = string.Empty;
-            }
+            // Site Exit：Authority 保持 AtWorldSite；Presentation 由 SiteDepartureVirtualPosition 承载。
+            // 非 Site 出发的 AutoTravel 不在此切换 LocationKind。
 
             if (_hexPath.Count == 1 || CurrentHex == destinationHex)
             {
@@ -149,6 +210,29 @@ namespace XianXia.Core.World.Strategic
             MovementKind = PlayerPartyMovementKind.AutoTravel;
             StepTotalTicks = Math.Max(4, 8);
             StepRemainingTicks = StepTotalTicks;
+        }
+
+        public void BeginSiteDepartureTravel(
+            IReadOnlyList<HexCoord> path,
+            HexCoord destinationHex,
+            string destinationSiteId,
+            HexCoord footprintHex,
+            HexCoord exitHex,
+            WorldVec2 footprintCenterWorld,
+            WorldVec2 boundaryEntryWorld,
+            HexTravelMode mode,
+            float hexSize)
+        {
+            BeginAutoTravel(path, destinationHex, destinationSiteId, mode, hexSize);
+            if (!IsMoving)
+                return;
+
+            IsSiteDeparturePending = true;
+            SiteDepartureFootprintHex = footprintHex;
+            SiteDepartureExitHex = exitHex;
+            SiteDepartureBoundaryEntry = boundaryEntryWorld;
+            SiteDepartureVirtualPosition = footprintCenterWorld;
+            UsesTravelPresentation = false;
         }
 
         /// <summary>Phase 2B compat path setter.</summary>
@@ -165,6 +249,8 @@ namespace XianXia.Core.World.Strategic
             DestinationHex = CurrentHex;
             DestinationSiteId = string.Empty;
             MovementKind = PlayerPartyMovementKind.Idle;
+            ClearSiteDeparturePending();
+            UsesTravelPresentation = false;
         }
 
         internal void CancelAtCurrentHex() => CompleteMove();
@@ -184,6 +270,8 @@ namespace XianXia.Core.World.Strategic
             LocationKind = PlayerPartyLocationKind.AtWorldPosition;
             SiteId = string.Empty;
             HasPosition = true;
+            ClearSiteDeparturePending();
+            UsesTravelPresentation = false;
         }
 
         public void SnapToHexCenter(HexCoord hex, float hexSize)
@@ -241,7 +329,7 @@ namespace XianXia.Core.World.Strategic
 
             if (SegmentIndex == 0)
             {
-                fromPos = WorldPosition;
+                fromPos = ResolveTravelPresentationWorld(hexSize);
                 return true;
             }
 
@@ -261,6 +349,8 @@ namespace XianXia.Core.World.Strategic
             MovementKind = PlayerPartyMovementKind.Idle;
             DestinationHex = CurrentHex;
             DestinationSiteId = string.Empty;
+            ClearSiteDeparturePending();
+            UsesTravelPresentation = false;
         }
     }
 }

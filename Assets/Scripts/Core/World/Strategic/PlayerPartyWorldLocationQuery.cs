@@ -47,18 +47,28 @@ namespace XianXia.Core.World.Strategic
                 world.Strategic.Sites.TryGet(motion.SiteId, out var site) &&
                 site != null)
             {
-                HexMath.ToWorldPosition(
-                    site.PresenceHex,
-                    world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f,
-                    out var sx,
-                    out var sy);
+                var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                    ? world.HexWorld.HexSize
+                    : 1f;
+                var markerPos = motion.IsMoving
+                    ? motion.ResolveTravelPresentationWorld(hexSize)
+                    : default(WorldVec2?);
+                if (!markerPos.HasValue)
+                {
+                    HexMath.ToWorldPosition(site.PresenceHex, hexSize, out var sx, out var sy);
+                    markerPos = new WorldVec2(sx, sy);
+                }
+
+                var derivedHex = motion.IsMoving
+                    ? motion.CurrentHex
+                    : site.PresenceHex;
                 resolved = new Resolved
                 {
                     HasValue = true,
                     LocationKind = PlayerPartyLocationKind.AtWorldSite,
                     SiteId = site.SiteId,
-                    WorldPosition = new WorldVec2(sx, sy),
-                    DerivedHex = site.PresenceHex,
+                    WorldPosition = markerPos.Value,
+                    DerivedHex = derivedHex,
                     ResolvedLocalMapId = site.LocalMapId ?? string.Empty,
                 };
                 return true;
@@ -67,18 +77,21 @@ namespace XianXia.Core.World.Strategic
             var hexSize2 = world.HexWorld != null && world.HexWorld.HexSize > 0f
                 ? world.HexWorld.HexSize
                 : 1f;
-            var derived = HexMath.WorldToHex(motion.WorldPosition.X, motion.WorldPosition.Y, hexSize2);
-            if (derived != motion.CurrentHex)
-                motion.SetWorldPositionInternal(motion.WorldPosition, derived);
+            var worldPos = motion.IsMoving
+                ? motion.ResolveTravelPresentationWorld(hexSize2)
+                : motion.WorldPosition;
+            var derived2 = HexMath.WorldToHex(worldPos.X, worldPos.Y, hexSize2);
+            if (!motion.IsMoving && derived2 != motion.CurrentHex)
+                motion.SetWorldPositionInternal(motion.WorldPosition, derived2);
 
-            WildernessLocalMapFallback.TryResolve(world, derived, out var mapId);
+            WildernessLocalMapFallback.TryResolve(world, derived2, out var mapId);
             resolved = new Resolved
             {
                 HasValue = true,
                 LocationKind = PlayerPartyLocationKind.AtWorldPosition,
                 SiteId = string.Empty,
-                WorldPosition = motion.WorldPosition,
-                DerivedHex = derived,
+                WorldPosition = worldPos,
+                DerivedHex = derived2,
                 ResolvedLocalMapId = mapId ?? string.Empty,
             };
             return true;
@@ -151,6 +164,22 @@ namespace XianXia.Core.World.Strategic
                 return;
 
             var motion = world.PlayerPartyTravel;
+            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                ? world.HexWorld.HexSize
+                : 1f;
+            var travelPresentation = motion.IsMoving
+                ? motion.ResolveTravelPresentationWorld(hexSize)
+                : default(WorldVec2?);
+            var insideSiteId = string.Empty;
+            WorldSite footprintSite = null;
+            var insideSite = motion.IsMoving &&
+                             WorldSiteFootprintLocationAuthority.TryGetSiteAtHex(
+                                 world,
+                                 motion.CurrentHex,
+                                 out footprintSite) &&
+                             footprintSite != null;
+            if (insideSite)
+                insideSiteId = footprintSite.SiteId;
             var active = party != null && party.HasActive
                 ? party.ActiveCharacterId.Value.ToString()
                 : "none";
@@ -160,8 +189,13 @@ namespace XianXia.Core.World.Strategic
                 " kind=" + motion.LocationKind +
                 " site=" + (motion.SiteId ?? "") +
                 " pos=" + motion.WorldPosition +
+                " travelPresentation=" + (travelPresentation.HasValue ? travelPresentation.Value.ToString() : "n/a") +
                 " hex=" + motion.CurrentHex +
+                " insideSite=" + insideSite +
+                " insideSiteId=" + insideSiteId +
                 " moving=" + motion.IsMoving +
+                " siteDeparturePending=" + motion.IsSiteDeparturePending +
+                " usesTravelPresentation=" + motion.UsesTravelPresentation +
                 " destSite=" + (motion.DestinationSiteId ?? "") +
                 " partyWorld.site=" + (world.PartyWorld?.SiteId ?? "") +
                 " partyWorld.map=" + (world.PartyWorld?.LocalMapId ?? "");

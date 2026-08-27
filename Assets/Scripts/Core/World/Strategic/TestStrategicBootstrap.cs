@@ -31,6 +31,19 @@ namespace XianXia.Core.World.Strategic
         static readonly string[] WeakBanditDefs = { "test:bandit_weak_grunt" };
         static readonly string[] WeakBanditNames = { "WeakBandit" };
 
+        static readonly string[] StrongCasualtyBanditDefs =
+        {
+            "test:bandit_strong_leader",
+            "test:bandit_strong_a",
+            "test:bandit_strong_b",
+        };
+        static readonly string[] StrongCasualtyBanditNames =
+        {
+            "StrongBanditLeader",
+            "StrongBanditA",
+            "StrongBanditB",
+        };
+
         public static List<EntityId> EnsureBanditCharacters(SimulationWorld world, string nodeId)
         {
             var result = new List<EntityId>(4);
@@ -61,7 +74,7 @@ namespace XianXia.Core.World.Strategic
             return result;
         }
 
-        /// <summary>Prototype 弱测山匪：单人凡�?+ 低属性，便于自动战快速取胜�?/summary>
+        /// <summary>Prototype 弱测山匪：坕人凡�?+ 低属性，便于自动战快速坖胜�?/summary>
         public static List<EntityId> EnsureWeakBanditCharacters(SimulationWorld world, string nodeId)
         {
             var result = new List<EntityId>(WeakBanditNames.Length);
@@ -108,6 +121,58 @@ namespace XianXia.Core.World.Strategic
                 attrs.SetBase(AttributeId.Defense, 1);
                 attrs.SetBase(AttributeId.MaxHp, 12);
                 attrs.SetBase(AttributeId.Speed, 6);
+            }
+
+            CombatDamageRules.EnsureVitals(entity);
+        }
+
+        /// <summary>Prototype ?????3 ???????????????????</summary>
+        public static List<EntityId> EnsureStrongCasualtyTestBanditCharacters(SimulationWorld world, string nodeId)
+        {
+            var result = new List<EntityId>(StrongCasualtyBanditNames.Length);
+            if (world?.Entities == null)
+                return result;
+
+            for (var i = 0; i < StrongCasualtyBanditNames.Length; i++)
+            {
+                if (TryFindBanditByName(world, StrongCasualtyBanditNames[i], out var existing))
+                {
+                    world.WorldPresence.SetAtSite(existing, nodeId);
+                    result.Add(existing);
+                    continue;
+                }
+
+                var created = world.Entities.CreateNpc(
+                    new DefinitionId("test", StrongCasualtyBanditDefs[i]),
+                    StrongCasualtyBanditNames[i]);
+                if (created.IsFailure)
+                    continue;
+
+                var entity = created.Value;
+                entity.Get<FactionMembershipComponent>()
+                    .Assign(StrategicFactionCatalog.BanditId, FactionRoleKind.Member);
+                ConfigureStrongCasualtyTestBanditCombatProfile(entity);
+                world.WorldPresence.SetAtSite(entity.Id, nodeId);
+                result.Add(entity.Id);
+            }
+
+            return result;
+        }
+
+        static void ConfigureStrongCasualtyTestBanditCombatProfile(Entity entity)
+        {
+            if (entity == null)
+                return;
+
+            if (entity.TryGet<CultivationComponent>(out var cult) && cult != null)
+                cult.Realm = RealmStage.Foundation;
+
+            if (entity.TryGet<AttributesComponent>(out var attrs) && attrs != null)
+            {
+                attrs.SetBase(AttributeId.Attack, 36);
+                attrs.SetBase(AttributeId.Defense, 24);
+                attrs.SetBase(AttributeId.MaxHp, 150);
+                attrs.SetBase(AttributeId.Speed, 16);
             }
 
             CombatDamageRules.EnsureVitals(entity);

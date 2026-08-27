@@ -14,13 +14,16 @@ namespace XianXia.Core.World.Strategic
             string nodeId,
             string factionId,
             IReadOnlyList<EntityId> selectedMembers,
-            EntityId? explicitLeaderId = null)
+            EntityId? explicitLeaderId = null,
+            PlayerPartyRuntime party = null)
         {
             if (world == null)
                 return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "SimulationWorld is null.");
             if (selectedMembers == null || selectedMembers.Count < 1)
                 return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "Select at least one member.");
-            return ArmyService.CreateArmy(world, factionId, nodeId, selectedMembers, explicitLeaderId);
+            var activeId = ArmyAuthorityRules.ResolveActiveControlledCharacterId(party);
+            return ArmyService.CreateArmy(
+                world, factionId, nodeId, selectedMembers, explicitLeaderId, party, activeId);
         }
 
         public static Result TryGarrison(SimulationWorld world, string armyId) =>
@@ -35,8 +38,15 @@ namespace XianXia.Core.World.Strategic
         public static Result TryChangeLeader(SimulationWorld world, string armyId, EntityId leaderId) =>
             ArmyService.ChangeLeader(world, armyId, leaderId);
 
-        public static Result TryAddMember(SimulationWorld world, string armyId, EntityId memberId) =>
-            ArmyService.AddMember(world, armyId, memberId);
+        public static Result TryAddMember(
+            SimulationWorld world,
+            string armyId,
+            EntityId memberId,
+            PlayerPartyRuntime party = null)
+        {
+            var activeId = ArmyAuthorityRules.ResolveActiveControlledCharacterId(party);
+            return ArmyService.AddMember(world, armyId, memberId, party, activeId);
+        }
 
         public static Result TryRemoveMember(SimulationWorld world, string armyId, EntityId memberId) =>
             ArmyService.RemoveMember(world, armyId, memberId);
@@ -51,8 +61,13 @@ namespace XianXia.Core.World.Strategic
             if (msg.Contains("Cross-faction"))
                 return "不能组军：角色不属于同一势力";
             if (msg.Contains("friendly node") || msg.Contains("friendly node owner") ||
-                msg.Contains("OwnerFactionId") || msg.Contains("faction presence"))
+                msg.Contains("OwnerFactionId") || msg.Contains("faction presence") ||
+                msg.Contains("player-controlled WorldSite"))
                 return "不能组军：当前地点不是己方据点";
+            if (msg.Contains("Active controlled character") || msg.Contains("Active character cannot"))
+                return "不能加入：主控角色不可编入军团";
+            if (msg.Contains("PlayerParty member must leave") || msg.Contains("leave the party before joining"))
+                return "不能加入：须先退出 PlayerParty（Stop Follow）";
             if (msg.Contains("already in an army"))
                 return "不能加入：角色已经属于其他军团";
             if (msg.Contains("Cannot remove last member"))

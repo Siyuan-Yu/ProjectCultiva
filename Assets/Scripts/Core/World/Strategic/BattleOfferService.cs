@@ -693,6 +693,9 @@ namespace XianXia.Core.World.Strategic
             if (enemyStacks.Count == 1 &&
                 ArmyStackAdapter.IsTrivialTestEnemyStack(enemyStacks[0]))
                 offer.AutoWinPercent = 99;
+            else if (enemyStacks.Count == 1 &&
+                     ArmyStackAdapter.IsCasualtyTestEnemyStack(enemyStacks[0]))
+                offer.AutoWinPercent = 95;
             offer.PlayerLabel = "\u6211\u65b9 " + friendlies.Count + " \u4eba";
             offer.EnemyLabel = enemyStacks.Count <= 1
                 ? (string.IsNullOrEmpty(offer.EnemyLabel) ? "\u654c\u519b" : DescribePrimaryEnemy(world, offer.ArmyStackId))
@@ -834,7 +837,9 @@ namespace XianXia.Core.World.Strategic
             var roll = world.Random.NextDouble();
             var winChance = offer.AutoWinPercent / 100.0;
             // 试炼弱匪：夹具必胜，避免战力刻度压平后仍被自动战掷骰团灭
-            playerWon = ArmyStackAdapter.IsTrivialTestEnemyStack(offer.ArmyStackId) || roll <= winChance;
+            playerWon = ArmyStackAdapter.IsTrivialTestEnemyStack(offer.ArmyStackId) ||
+                        ArmyStackAdapter.IsCasualtyTestEnemyStack(offer.ArmyStackId) ||
+                        roll <= winChance;
             offer.PlayerWonAuto = playerWon;
             offer.Resolved = true;
 

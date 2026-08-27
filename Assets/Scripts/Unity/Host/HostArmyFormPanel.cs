@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Combat;
@@ -6,6 +7,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Npc;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
@@ -75,6 +77,7 @@ namespace XianXia.Unity.Host
             SimulationWorld world,
             IReadOnlyList<EntityId> partyCharacterIds,
             System.Func<SimulationWorld, EntityId, string> labelFn,
+            PlayerPartyRuntime partyRuntime = null,
             bool embedded = true)
         {
             if (!_open || world == null)
@@ -120,11 +123,11 @@ namespace XianXia.Unity.Host
                 world.Strategic.FormalArmies.TryGet(_detailArmyId, out var detailArmy) &&
                 detailArmy != null)
             {
-                changed |= DrawArmyDetail(panelRect, ref y, world, detailArmy, partyCharacterIds, labelFn);
+                changed |= DrawArmyDetail(panelRect, ref y, world, detailArmy, partyCharacterIds, partyRuntime, labelFn);
             }
             else
             {
-                changed |= DrawCreateForm(panelRect, ref y, world, factionId, partyCharacterIds, labelFn);
+                changed |= DrawCreateForm(panelRect, ref y, world, factionId, partyCharacterIds, partyRuntime, labelFn);
             }
 
             return changed;
@@ -136,12 +139,13 @@ namespace XianXia.Unity.Host
             SimulationWorld world,
             string factionId,
             IReadOnlyList<EntityId> partyCharacterIds,
+            PlayerPartyRuntime partyRuntime,
             System.Func<SimulationWorld, EntityId, string> labelFn)
         {
             var changed = false;
             _scratchResidents.Clear();
             HostStrategicRosterQueries.CollectUngroupedPlayerCharacters(
-                world, factionId, partyCharacterIds, _scratchResidents);
+                world, factionId, partyCharacterIds, _scratchResidents, partyRuntime);
 
             GUI.Label(new Rect(panelRect.x + 8f, y, panelRect.width - 16f, 20f), "选择未编组角色", _body);
             y += 22f;
@@ -182,7 +186,8 @@ namespace XianXia.Unity.Host
                 else
                 {
                     var nodeId = ArmyService.ResolveCharacterFormationLocationId(world, _scratchParty[0]) ?? string.Empty;
-                    var result = ArmyUiCommands.TryCreateArmy(world, nodeId, factionId, _scratchParty);
+                    var result = ArmyUiCommands.TryCreateArmy(
+                        world, nodeId, factionId, _scratchParty, explicitLeaderId: null, party: partyRuntime);
                     if (result.IsSuccess)
                     {
                         _lastMessage = "已创建 " + result.Value.ArmyId;
@@ -215,6 +220,7 @@ namespace XianXia.Unity.Host
             SimulationWorld world,
             FormalArmy army,
             IReadOnlyList<EntityId> partyCharacterIds,
+            PlayerPartyRuntime partyRuntime,
             System.Func<SimulationWorld, EntityId, string> labelFn)
         {
             var changed = false;
@@ -237,6 +243,14 @@ namespace XianXia.Unity.Host
             GUI.Label(new Rect(panelRect.x + 8f, y, panelRect.width - 16f, 20f),
                 "Location：" + travel, _body);
             y += 22f;
+            var motion = army.WorldMotion;
+            GUI.Label(new Rect(panelRect.x + 8f, y, panelRect.width - 16f, 36f),
+                "TravelDbg: Kind=" + motion.LocationKind +
+                " Hex=" + motion.CurrentHex +
+                " Order=" + motion.CurrentOrderKind +
+                " Seg=" + motion.SegmentIndex + "/" + Math.Max(0, motion.HexPathCount - 1) +
+                " Prog=" + motion.SegmentProgress.ToString("0.##"), _body);
+            y += 38f;
             GUI.Label(new Rect(panelRect.x + 8f, y, panelRect.width - 16f, 18f), "Members：", _body);
             y += 20f;
             for (var i = 0; i < army.MemberCharacterIds.Count; i++)
@@ -247,7 +261,14 @@ namespace XianXia.Unity.Host
                 var memberLabel = labelFn(world, memberId);
                 if (!string.IsNullOrEmpty(life) && life != "存活")
                     memberLabel += " · " + life;
-                GUI.Label(new Rect(panelRect.x + 16f, y, panelRect.width - 100f, 18f),
+                CharacterWorldMovementAuthorityQuery.TryGetAuthority(
+                    world, memberId, partyRuntime, out var authority);
+                var inParty = partyRuntime != null && partyRuntime.IsMember(memberId);
+                ArmyService.TryGetArmyForCharacter(world, memberId, out var memberArmy);
+                memberLabel += "\n  Auth=" + authority +
+                                " Party=" + (inParty ? "Yes" : "No") +
+                                " Army=" + (memberArmy != null ? memberArmy.ArmyId : "—");
+                GUI.Label(new Rect(panelRect.x + 16f, y, panelRect.width - 100f, 36f),
                     memberLabel, _body);
                 if (GUI.Button(new Rect(panelRect.xMax - 88f, y, 80f, 18f), "Set Leader"))
                 {
@@ -263,11 +284,12 @@ namespace XianXia.Unity.Host
                     changed |= rm.IsSuccess;
                 }
 
-                y += 20f;
+                y += 38f;
             }
 
             y += 4f;
-            changed |= DrawAddMemberSection(panelRect, ref y, world, army, factionId, partyCharacterIds, labelFn);
+            changed |= DrawAddMemberSection(
+                panelRect, ref y, world, army, factionId, partyCharacterIds, partyRuntime, labelFn);
 
             var garrisoned = army.State == FormalArmyState.Garrisoned;
             if (GUI.Button(new Rect(panelRect.x + 8f, y, (panelRect.width - 20f) * 0.5f, 24f),
@@ -306,12 +328,14 @@ namespace XianXia.Unity.Host
             FormalArmy army,
             string factionId,
             IReadOnlyList<EntityId> partyCharacterIds,
+            PlayerPartyRuntime partyRuntime,
             System.Func<SimulationWorld, EntityId, string> labelFn)
         {
             var changed = false;
             _scratchResidents.Clear();
             ArmyService.TryResolveArmySiteId(world, army, out var formSiteId);
-            CollectUngroupedResidentsAtSite(world, formSiteId, factionId, partyCharacterIds, army, _scratchResidents);
+            CollectUngroupedResidentsAtSite(
+                world, formSiteId, factionId, partyCharacterIds, partyRuntime, army, _scratchResidents);
 
             var available = 0;
             for (var i = 0; i < _scratchResidents.Count; i++)
@@ -350,7 +374,8 @@ namespace XianXia.Unity.Host
                 var added = 0;
                 foreach (var idVal in _addMemberSelection)
                 {
-                    var add = ArmyUiCommands.TryAddMember(world, army.ArmyId, new EntityId(idVal));
+                    var add = ArmyUiCommands.TryAddMember(
+                        world, army.ArmyId, new EntityId(idVal), partyRuntime);
                     if (add.IsSuccess)
                         added++;
                     else if (added == 0)
@@ -374,6 +399,7 @@ namespace XianXia.Unity.Host
             string nodeId,
             string factionId,
             IReadOnlyList<EntityId> partyCharacterIds,
+            PlayerPartyRuntime partyRuntime,
             FormalArmy army,
             List<EntityId> into)
         {
@@ -384,7 +410,7 @@ namespace XianXia.Unity.Host
             if (partyCharacterIds != null)
             {
                 ArmyService.CollectResidentsAtSite(
-                    world, nodeId, factionId, partyCharacterIds, into, _scratchArmiesStatic);
+                    world, nodeId, factionId, partyCharacterIds, into, _scratchArmiesStatic, partyRuntime);
                 for (var i = into.Count - 1; i >= 0; i--)
                 {
                     if (army.ContainsMember(into[i]))

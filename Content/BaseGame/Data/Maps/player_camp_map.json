@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:map_player_camp",
+      "type": "mapLayout",
+      "name": "主角临时营地",
+      "worldRegionId": "base:places_player_camp",
+      "originX": -25,
+      "originY": -25,
+      "cellSize": 1,
+      "width": 50,
+      "height": 50,
+      "exitTriggerDepth": 1.25,
+      "placements": [
+        {
+          "id": "player_camp_center_mark",
+          "kind": "rock",
+          "x": 24,
+          "y": 24,
+          "w": 1,
+          "h": 1,
+          "blocksMovement": false,
+          "label": "营地中心"
+        },
+        {
+          "id": "player_camp_edge_e",
+          "kind": "treeM",
+          "x": 46,
+          "y": 24,
+          "w": 1,
+          "h": 1,
+          "blocksMovement": false,
+          "label": "E Edge"
+        }
+      ]
+    }
+  ]
+}

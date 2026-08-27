@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
+using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
@@ -62,6 +63,7 @@ namespace XianXia.Unity.Host
             SimulationWorld world,
             IReadOnlyList<EntityId> partyCharacterIds,
             Func<SimulationWorld, EntityId, string> labelFn,
+            PlayerPartyRuntime partyRuntime,
             Action<string> onFocusArmy,
             Action onChanged)
         {
@@ -116,7 +118,7 @@ namespace XianXia.Unity.Host
             if (_showCreate || string.IsNullOrEmpty(_selectedArmyId))
             {
                 if (_detailPanel != null &&
-                    _detailPanel.Draw(detailRect, world, partyCharacterIds, labelFn, embedded: true))
+                    _detailPanel.Draw(detailRect, world, partyCharacterIds, labelFn, partyRuntime, embedded: true))
                 {
                     changed = true;
                     onChanged?.Invoke();
@@ -134,7 +136,7 @@ namespace XianXia.Unity.Host
                 {
                     _selectedArmyId = string.Empty;
                 }
-                else if (_detailPanel.Draw(detailRect, world, partyCharacterIds, labelFn, embedded: true))
+                else if (_detailPanel.Draw(detailRect, world, partyCharacterIds, labelFn, partyRuntime, embedded: true))
                 {
                     changed = true;
                     onChanged?.Invoke();

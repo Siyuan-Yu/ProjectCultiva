@@ -17,6 +17,7 @@ namespace XianXia.Data.Bootstrap
             var hex = HexStrategicMapContentBootstrap.TryApplyToSession(world, registry, scenario);
             if (hex.IsFailure)
                 return hex;
+            Ch01ScenarioStrategicSetup.EnsureLevelTesterFixtures(world);
             Ch01ScenarioStrategicSetup.PositionPrototypeBanditPatrolArmy(world);
             return Result.Success();
         }

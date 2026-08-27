@@ -238,6 +238,14 @@ namespace XianXia.Core.World.Strategic
                 hexSize);
             var derived = HexMath.WorldToHex(newWorldPos.X, newWorldPos.Y, hexSize);
 
+            PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
+            PlayerPartyTransitionMembership.LogPartyTransition(
+                world,
+                party,
+                "CrossWildernessEdge.BeforeApply",
+                destinationHex,
+                world.PartyWorld?.LocalMapId);
+
             motion.SetAtWorldPosition(newWorldPos, derived);
             ApplyTravelingMembersAtHex(world, derived);
 
@@ -306,6 +314,14 @@ namespace XianXia.Core.World.Strategic
                 motion.WorldPosition,
                 hexSize);
             var derived = HexMath.WorldToHex(worldPos.X, worldPos.Y, hexSize);
+
+            PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
+            PlayerPartyTransitionMembership.LogPartyTransition(
+                world,
+                party,
+                "ExitWorldSite.BeforeApply",
+                external,
+                world.PartyWorld?.LocalMapId);
 
             motion.SetAtWorldPosition(worldPos, derived);
             ApplyTravelingMembersAtHex(world, derived);

@@ -32,6 +32,7 @@
 | **3G** Save / Load | `FormalArmySnapshotRestore` + Snapshot DTO Phase 3 字段；旧档 `CurrentHex` 回退 | ✅ 入仓 |
 | **3H** Attack Authority 审计 | 未改 Battle Offer／接战链；仅位置真源迁移 | ✅ 审计 |
 | **3I** Debug + EditMode | F11 `HostFormalArmyDebugPanel`；`FormalArmyPhase3AuthorityTests` | ✅ 入仓 · **待跑通／手操** |
+| **3J** 收口（167） | A2 第二轮 Authority；PP-Follower 跨图；主角营地；试炼三军 + 伤亡夹具 | ✅ 入仓 · **待手操** |
 
 **并行收口：PresenceHex == AnchorHex**
 
@@ -63,7 +64,7 @@
 | 规则 | 实现 |
 |------|------|
 | Active 不可入军 | `ArmyAuthorityRules` + `ArmyService.CreateArmy` |
-| Follower 入军 | 自动 `PlayerParty.TryRemoveMember`（原子） |
+| Follower 入军 | **禁止**静默踢 Party；须玩家主动 Leave Party 后再组军（见 [167](./167-phase-3-closure-playerparty-and-casualty-fixtures-2026-08-27.md)） |
 | Background Travel 中 | `CancelTravelIfAny` 后入军 |
 | Party / Army 互斥 | 同一 Character 不可同时在 Party 与 Army |
 | Wilderness | 禁止 `DisbandArmy`、禁止改 Roster（沿用 Domain 校验） |
@@ -150,6 +151,7 @@
 
 ## 10. 相关文档
 
+- [167 Phase 3 收口](./167-phase-3-closure-playerparty-and-casualty-fixtures-2026-08-27.md) — A2 重验、PP-Follower、试炼敌军、伤亡夹具
 - [165 Phase 2D Background Travel](./165-phase-2d-background-character-world-travel-2026-08-26.md) — Site Departure／Canonicalization 先例
 - [164 Phase 2C Surface Exit](./164-phase-2c-surface-exit-zone-and-edge-transition-2026-08-26.md)
 - [163 RPG-First 迁移计划](./163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md)

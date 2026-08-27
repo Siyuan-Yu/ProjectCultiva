@@ -1,10 +1,11 @@
 # 路线图
 
-> 状态：**RPG-First Phase 1／2A／2B／2C／2D 已封板；Phase 3 实现入仓待验收**｜最后更新：2026-08-27
+> 状态：**RPG-First Phase 1／2A／2B／2C／2D 已封板；Phase 3 实现+收口入仓待验收**｜最后更新：2026-08-27
 
 ## 当前阶段说明
 
-- **2026-08-27：** Phase 3 **实现入仓（待人工验收）**：FormalArmy Continuous World + RPG-First Authority；F11 Debug；EditMode `FormalArmyPhase3AuthorityTests`；`PresenceHex==AnchorHex` 兼容收口；实现索引 [166](166-phase-3-formal-army-continuous-world-2026-08-27.md)。  
+- **2026-08-27：** Phase 3 **收口入仓（待人工验收）**：A2 Authority 第二轮；PP-Follower 跨图；主角营地独立 LocalMap；三支试炼山匪 + 伤亡夹具；实现索引 [167](167-phase-3-closure-playerparty-and-casualty-fixtures-2026-08-27.md)。  
+- **2026-08-27：** Phase 3 **主体入仓（待人工验收）**：FormalArmy Continuous World + RPG-First Authority；F11 Debug；EditMode `FormalArmyPhase3AuthorityTests`；`PresenceHex==AnchorHex` 兼容收口；实现索引 [166](166-phase-3-formal-army-continuous-world-2026-08-27.md)。  
 - **2026-08-27：** Phase 2D **人工验收通过并封板**：Background Character World Travel Core；Loaded LocalMap Materialization；Site Departure 真实 Travel；Destination Canonicalization；F12 Debug + BGTRAVEL Trace；实现索引 [165](165-phase-2d-background-character-world-travel-2026-08-26.md)。  
 - **2026-08-26：** Phase 2C **人工验收通过并封板**：Continuous Player World Movement；Ordinary Hex Actual Connections；WorldSite Full-Footprint Boundary Connections；Surface Exit Trigger／Edge Transition／Overlap Resolution；实现索引 [164](164-phase-2c-surface-exit-zone-and-edge-transition-2026-08-26.md)。  
 - **2026-08-26：** Phase 2B **人工验收通过并封板**（`c895d3d`）：PlayerParty Hex Travel／30×15 测试世界／Wilderness Fallback／Materialize；下一目标 Phase 2C。  
@@ -31,7 +32,8 @@
   - **后续：** Background Combat／Autonomous AI Travel／Policy；Directional Site Entry 等
 - [ ] **Phase 3** FormalArmy 职责迁移（旅行≠Army；军事层保留）  
   - **进行中（2026-08-27）：** Continuous World + Authority + Save/Load + F11 Debug 已入仓；见 [166](166-phase-3-formal-army-continuous-world-2026-08-27.md)  
-  - **待验收：** F11 TEST 1–10；EditMode `FormalArmyPhase3AuthorityTests`  
+  - **收口（2026-08-27）：** A2 重验、PP-Follower、主角营地、试炼三军/伤亡夹具；见 [167](167-phase-3-closure-playerparty-and-casualty-fixtures-2026-08-27.md)  
+  - **待验收：** F11 TEST 1–10 + 167 清单 1–12  
   - **Deferred：** FormalArmy WorldMap 连续 Marker 表现、Autonomous AI Order
 - [ ] **Phase 4** Manual Battle Permission（远方 Auto；≤1 Hex 介入）
 - [ ] **Phase 5** Continuous LocalMap ↔ HexWorld Transition

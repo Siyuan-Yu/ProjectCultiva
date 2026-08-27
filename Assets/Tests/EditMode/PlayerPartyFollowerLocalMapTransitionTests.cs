@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Simulation;
+using XianXia.Core.Social;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
@@ -16,6 +18,7 @@ namespace XianXia.Tests
         const string MapA = "base:map_ch01_reference";
         const string MapB = "base:map_wilderness_plain_fallback";
         const string MapC = "base:map_site_chengzhen";
+        const string TestFaction = "test:faction_a";
 
         static PlayableHostBootstrap CreateCh01Bootstrap(out GameObject hostGo)
         {
@@ -181,6 +184,75 @@ namespace XianXia.Tests
         static WildernessLocalWorldProjection.WildernessLocalMapBounds DefaultWildernessBounds() =>
             WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
                 -20f, -20f, 1f, 40, 40);
+
+        [Test]
+        public void FollowerWorldPresenceUpdatesWhenTravelingMembersWasActiveOnly()
+        {
+            var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);
+            var a = Spawn(world, "LinQing");
+            var b = Spawn(world, "WangChen");
+            var party = BuildParty(world, siteA, a, b);
+            world.PlayerPartyTravel.SnapToHexCenter(mid, world.HexWorld.HexSize);
+            world.WorldPresence.SetAtHex(a, mid);
+            world.WorldPresence.SetAtHex(b, mid);
+
+            // 模拟开局 bootstrap：TravelingMembers 仅含 Active。
+            world.PlayerPartyTravel.CaptureTravelingMembers(new List<EntityId> { a });
+
+            var neighbor = HexMath.Neighbor(mid, 1);
+            Assert.IsTrue(PlayerPartyWildernessTransitionService.TryCrossWildernessEdge(
+                world, party, neighbor).IsSuccess);
+
+            Assert.IsTrue(world.WorldPresence.TryGet(b, out var followerPresence));
+            Assert.AreEqual(PartyWorldPresenceMode.AtHex, followerPresence.Mode);
+            Assert.AreEqual(neighbor, followerPresence.ResidualHex);
+
+            var foundFollower = false;
+            for (var i = 0; i < world.PlayerPartyTravel.TravelingMembers.Count; i++)
+            {
+                if (world.PlayerPartyTravel.TravelingMembers[i] == b)
+                    foundFollower = true;
+            }
+
+            Assert.IsTrue(foundFollower, "Follower must be in TravelingMembers after edge cross.");
+        }
+
+        static EntityId SpawnWithFaction(SimulationWorld world, string name, string factionId)
+        {
+            var id = Spawn(world, name);
+            if (world.Entities.TryGet(id, out var entity) && entity != null)
+                entity.Get<FactionMembershipComponent>().Assign(factionId, FactionRoleKind.Member);
+            return id;
+        }
+
+        [Test]
+        public void FormalArmyMemberExcludedFromPartyTransition()
+        {
+            var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);
+            siteA.OwnerFactionId = TestFaction;
+            world.Strategic.PlayerFactionId = TestFaction;
+            var a = SpawnWithFaction(world, "LinQing", TestFaction);
+            var b = SpawnWithFaction(world, "Soldier", TestFaction);
+            var party = BuildParty(world, siteA, a);
+
+            world.WorldPresence.SetAtSite(b, siteA.SiteId);
+            var armyResult = ArmyService.CreateArmy(
+                world, TestFaction, siteA.SiteId, new List<EntityId> { b }, b);
+            Assert.IsTrue(armyResult.IsSuccess, armyResult.IsFailure ? armyResult.Error.ToString() : string.Empty);
+
+            world.PlayerPartyTravel.SnapToHexCenter(mid, world.HexWorld.HexSize);
+            world.WorldPresence.SetAtHex(a, mid);
+            world.WorldPresence.SetAtHex(b, mid);
+            world.PlayerPartyTravel.CaptureTravelingMembers(new List<EntityId> { a });
+
+            var neighbor = HexMath.Neighbor(mid, 1);
+            Assert.IsTrue(PlayerPartyWildernessTransitionService.TryCrossWildernessEdge(
+                world, party, neighbor).IsSuccess);
+
+            Assert.IsTrue(world.WorldPresence.TryGet(b, out var armyMemberPresence));
+            Assert.AreEqual(mid, armyMemberPresence.ResidualHex,
+                "FormalArmy member must not follow PlayerParty edge transition.");
+        }
 
         [Test]
         public void FollowerStillBelongsToPartyAfterLocalMapTransition()

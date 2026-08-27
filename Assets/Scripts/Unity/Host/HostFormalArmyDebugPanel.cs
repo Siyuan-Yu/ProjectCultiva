@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Simulation;
@@ -79,18 +81,27 @@ namespace XianXia.Unity.Host
 
             if (!string.IsNullOrEmpty(_selectedArmyId) &&
                 world.Strategic.FormalArmies.TryGet(_selectedArmyId, out var army) &&
-                army != null &&
-                FormalArmyWorldLocationQuery.TryResolve(
-                    world, army, out var kind, out var siteId, out var pos, out var hex))
+                army != null)
             {
+                var motion = army.WorldMotion;
                 GUI.Label(new Rect(pad, y, innerW, LineH),
-                    "LocationKind=" + kind + " SiteId=" + siteId + " Hex=" + hex);
+                    "LocationKind=" + motion.LocationKind + " SiteId=" + (motion.SiteId ?? "—"));
                 y += LineH;
                 GUI.Label(new Rect(pad, y, innerW, LineH),
-                    "WorldPos=(" + pos.X.ToString("0.##") + "," + pos.Y.ToString("0.##") + ")" +
-                    " Moving=" + army.WorldMotion.IsMoving +
-                    " Order=" + army.WorldMotion.CurrentOrderKind +
-                    " Progress=" + army.WorldMotion.SegmentProgress.ToString("0.##"));
+                    "WorldPos=(" + motion.WorldPosition.X.ToString("0.##") + "," +
+                    motion.WorldPosition.Y.ToString("0.##") + ") Hex=" + motion.CurrentHex);
+                y += LineH;
+                GUI.Label(new Rect(pad, y, innerW, LineH),
+                    "InsideSite=" + (motion.LocationKind == FormalArmyLocationKind.AtWorldSite) +
+                    " Order=" + motion.CurrentOrderKind +
+                    " Dest=" + motion.DestinationHex +
+                    (string.IsNullOrEmpty(motion.DestinationSiteId) ? "" : "→" + motion.DestinationSiteId));
+                y += LineH;
+                GUI.Label(new Rect(pad, y, innerW, LineH),
+                    "Travel Moving=" + motion.IsMoving +
+                    " Seg=" + motion.SegmentIndex + "/" + Math.Max(0, motion.HexPathCount - 1) +
+                    " Prog=" + motion.SegmentProgress.ToString("0.##") +
+                    " SiteDeparturePending=" + motion.IsSiteDeparturePending);
                 y += LineH;
                 GUI.Label(new Rect(pad, y, innerW, LineH),
                     "Leader=" + army.LeaderCharacterId.Value + " Members=" + army.MemberCharacterIds.Count);
@@ -147,15 +158,55 @@ namespace XianXia.Unity.Host
                 SelectFirstArmy(world);
             y += 28f;
 
+            if (!string.IsNullOrEmpty(_selectedArmyId) &&
+                world.Strategic.FormalArmies.TryGet(_selectedArmyId, out var casualtyArmy) &&
+                casualtyArmy != null &&
+                casualtyArmy.MemberCharacterIds.Count > 0)
+            {
+                if (GUI.Button(new Rect(pad, y, innerW * 0.48f, 24f), "Incap Leader (G16)"))
+                    IncapacitateArmyMember(world, casualtyArmy, casualtyArmy.LeaderCharacterId);
+                if (GUI.Button(new Rect(pad + innerW * 0.52f, y, innerW * 0.48f, 24f), "Incap Member[1] (G17)"))
+                {
+                    var idx = casualtyArmy.MemberCharacterIds.Count > 1 ? 1 : 0;
+                    IncapacitateArmyMember(
+                        world, casualtyArmy, new EntityId(casualtyArmy.MemberCharacterIds[idx]));
+                }
+                y += 28f;
+                if (GUI.Button(new Rect(pad, y, innerW, 24f), "Sync Casualties (G16/G17/G18)"))
+                    SyncCasualties(world, casualtyArmy);
+                y += 28f;
+            }
+
+            if (!string.IsNullOrEmpty(_selectedArmyId) &&
+                world.Strategic.FormalArmies.TryGet(_selectedArmyId, out var inspectArmy) &&
+                inspectArmy != null)
+            {
+                for (var mi = 0; mi < inspectArmy.MemberCharacterIds.Count; mi++)
+                {
+                    var memberId = new EntityId(inspectArmy.MemberCharacterIds[mi]);
+                    world.WorldPresence.TryGet(memberId, out var memberPresence);
+                    var life = world.Entities.TryGet(memberId, out var memberEnt)
+                        ? CombatLifeStateService.FormatLifeStateWithCountdown(world, memberEnt)
+                        : "?";
+                    GUI.Label(new Rect(pad, y, innerW, LineH),
+                        "Member " + memberId.Value + " Life=" + life +
+                        " PresenceHex=" + (memberPresence?.ResidualHex.ToString() ?? "—"));
+                    y += LineH;
+                }
+                y += 4f;
+            }
+
             GUI.Label(new Rect(pad, y, innerW, 40f), _actionLog);
         }
 
         void RefreshLists(SimulationWorld world, PlayerPartyRuntime party)
         {
             _siteIds.Clear();
+            var factionId = world.Strategic.PlayerFactionId;
             foreach (var kv in world.Strategic.Sites.Sites)
             {
-                if (kv.Value != null && ArmyFormationSitePolicy.IsFriendlySiteForFaction(kv.Value, world.Strategic.PlayerFactionId))
+                if (kv.Value != null &&
+                    FormalArmyManagementSitePolicy.CanManageFormalArmyAtSite(world, kv.Key, factionId))
                     _siteIds.Add(kv.Key);
             }
 
@@ -173,11 +224,11 @@ namespace XianXia.Unity.Host
                     continue;
                 if (!string.Equals(presence.SiteId, siteId, System.StringComparison.Ordinal))
                     continue;
-                if (ArmyService.TryGetArmyForCharacter(world, presence.EntityId, out _))
+                if (!ArmyService.IsEligibleFormalArmyCandidate(world, presence.EntityId, party, out _))
                     continue;
                 if (!string.Equals(
                         ArmyService.ResolveCharacterFactionId(world, presence.EntityId),
-                        world.Strategic.PlayerFactionId,
+                        factionId,
                         System.StringComparison.Ordinal))
                     continue;
                 _candidates.Add(presence.EntityId);
@@ -279,6 +330,46 @@ namespace XianXia.Unity.Host
             }
 
             _actionLog = "No armies.";
+        }
+
+        void IncapacitateArmyMember(SimulationWorld world, FormalArmy army, EntityId memberId)
+        {
+            if (world == null || army == null || memberId.IsNone)
+            {
+                _actionLog = "Invalid incap target.";
+                return;
+            }
+
+            if (!world.Entities.TryGet(memberId, out var entity) || entity == null)
+            {
+                _actionLog = "Member entity missing.";
+                return;
+            }
+
+            CombatDamageRules.EnsureVitals(entity);
+            if (!CombatLifeStateService.TryEnterIncapacitated(world, entity))
+            {
+                _actionLog = "Incap failed for " + memberId.Value;
+                return;
+            }
+
+            ArmyService.SyncNonLivingMembers(world, army);
+            _actionLog = "Incapacitated " + memberId.Value + " and synced casualties.";
+        }
+
+        void SyncCasualties(SimulationWorld world, FormalArmy army)
+        {
+            if (world == null || army == null)
+            {
+                _actionLog = "No army for casualty sync.";
+                return;
+            }
+
+            ArmyService.SyncNonLivingMembers(world, army);
+            if (world.Strategic.FormalArmies.TryGet(army.ArmyId, out _))
+                _actionLog = "Synced casualties for " + army.ArmyId + ".";
+            else
+                _actionLog = "Army destroyed after casualty sync (G18).";
         }
     }
 }

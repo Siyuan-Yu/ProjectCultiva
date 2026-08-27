@@ -58,7 +58,8 @@ namespace XianXia.Unity.Host
             SimulationWorld world,
             string playerFactionId,
             IReadOnlyList<EntityId> partyCharacterIds,
-            List<StrategicCharacterRosterRow> into)
+            List<StrategicCharacterRosterRow> into,
+            PlayerPartyRuntime partyRuntime = null)
         {
             into.Clear();
             if (world == null || into == null)
@@ -68,7 +69,7 @@ namespace XianXia.Unity.Host
             if (partyCharacterIds != null)
             {
                 for (var i = 0; i < partyCharacterIds.Count; i++)
-                    TryAddCharacter(world, playerFactionId, partyCharacterIds[i], into, seen);
+                    TryAddCharacter(world, playerFactionId, partyCharacterIds[i], into, seen, partyRuntime);
             }
 
             foreach (var entity in world.Entities.All)
@@ -80,7 +81,7 @@ namespace XianXia.Unity.Host
                 if (!string.IsNullOrEmpty(playerFactionId) &&
                     !string.Equals(mem.FactionId, playerFactionId, StringComparison.Ordinal))
                     continue;
-                TryAddCharacter(world, playerFactionId, entity.Id, into, seen);
+                TryAddCharacter(world, playerFactionId, entity.Id, into, seen, partyRuntime);
             }
         }
 
@@ -89,7 +90,8 @@ namespace XianXia.Unity.Host
             string playerFactionId,
             EntityId id,
             List<StrategicCharacterRosterRow> into,
-            HashSet<ulong> seen)
+            HashSet<ulong> seen,
+            PlayerPartyRuntime partyRuntime)
         {
             if (id.IsNone || seen.Contains(id.Value))
                 return;
@@ -128,7 +130,8 @@ namespace XianXia.Unity.Host
 
             row.CanSelectForArmyCreation =
                 !row.IsGrouped &&
-                LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id);
+                LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id) &&
+                ArmyService.IsEligibleFormalArmyCandidate(world, id, partyRuntime, out _);
 
             into.Add(row);
         }
@@ -186,14 +189,15 @@ namespace XianXia.Unity.Host
             SimulationWorld world,
             string playerFactionId,
             IReadOnlyList<EntityId> partyCharacterIds,
-            List<EntityId> into)
+            List<EntityId> into,
+            PlayerPartyRuntime partyRuntime = null)
         {
             into.Clear();
             if (world == null || into == null)
                 return;
 
             var rows = new List<StrategicCharacterRosterRow>(32);
-            CollectPlayerCharacters(world, playerFactionId, partyCharacterIds, rows);
+            CollectPlayerCharacters(world, playerFactionId, partyCharacterIds, rows, partyRuntime);
             for (var i = 0; i < rows.Count; i++)
             {
                 if (!rows[i].IsGrouped && rows[i].CanSelectForArmyCreation)
@@ -206,7 +210,8 @@ namespace XianXia.Unity.Host
             string siteId,
             string factionId,
             IReadOnlyList<EntityId> partyCharacterIds,
-            List<EntityId> into)
+            List<EntityId> into,
+            PlayerPartyRuntime partyRuntime = null)
         {
             into.Clear();
             if (world == null || into == null || string.IsNullOrEmpty(siteId))
@@ -215,7 +220,7 @@ namespace XianXia.Unity.Host
             var scratchResidents = new List<EntityId>(8);
             var scratchArmies = new List<FormalArmy>(4);
             ArmyService.CollectResidentsAtSite(
-                world, siteId, factionId, partyCharacterIds, scratchResidents, scratchArmies);
+                world, siteId, factionId, partyCharacterIds, scratchResidents, scratchArmies, partyRuntime);
             for (var i = 0; i < scratchResidents.Count; i++)
                 into.Add(scratchResidents[i]);
         }

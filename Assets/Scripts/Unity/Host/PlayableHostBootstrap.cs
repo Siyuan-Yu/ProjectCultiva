@@ -1054,8 +1054,7 @@ namespace XianXia.Unity.Host
                     !_session.Registry.TryGetMapLayout(parsedMap.Value, out _))
                 {
                     Debug.LogError(
-                        "[PlayableHost] LocalMap missing in registry: " + targetMap +
-                        "Maps",
+                        "[PlayableHost] LocalMap missing in registry: " + targetMap,
                         this);
                     RefreshStatus();
                     return;

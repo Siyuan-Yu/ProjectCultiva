@@ -22,6 +22,14 @@ namespace XianXia.Core.World.Strategic
             Ch01ScenarioProgressionHooks.Register(world);
         }
 
+        /// <summary>LevelTester / Ch01FormationScenarioCompat：注册验收用 Player-controlled Site。</summary>
+        public static void EnsureLevelTesterFixtures(SimulationWorld world)
+        {
+            if (world?.Strategic == null || !world.Strategic.Ch01FormationScenarioCompat)
+                return;
+            Ch01HexPrototypeMapBuilder.EnsureLevelTesterPlayerCampSite(world);
+        }
+
         /// <summary>主角团（PlayerFaction）为压迫宗门附庸；战略 UI 只认 PlayerFaction 成员。</summary>
         static void ApplyPlayerFactionAndVassalage(SimulationWorld world)
         {
@@ -36,12 +44,13 @@ namespace XianXia.Core.World.Strategic
             world.Strategic.Armies.Clear();
             ArmyStackAdapter.EnsureBanditPatrolArmy(world, Ch01HexPrototypeMapBuilder.SiteHuangcun);
             ArmyStackAdapter.EnsureBanditWeakPatrolArmy(world, Ch01HexPrototypeMapBuilder.SiteHuangcun);
+            ArmyStackAdapter.EnsureBanditCasualtyTestArmy(world, Ch01HexPrototypeMapBuilder.SiteHuangcun);
             PositionPrototypeTestBanditArmies(world);
         }
 
         /// <summary>
-        /// Hex 模式：两波 Prototype 测试山匪静止放置。
-        /// strong=荒村南侧路廊；weak=荒村东侧横路（手操红框位）。
+        /// Hex 模式：三波 Prototype 测试山匪静止放置。
+        /// strong=荒村南侧路廊；weak=荒村东侧横路；casualtyTest=荒村西北（自动战伤亡夹具）。
         /// </summary>
         public static void PositionPrototypeTestBanditArmies(SimulationWorld world)
         {
@@ -51,9 +60,11 @@ namespace XianXia.Core.World.Strategic
             Ch01HexPrototypeMapBuilder.ResolvePrototypeTestBanditHexesBelowHuangcun(
                 world,
                 out var strongHex,
-                out var weakHex);
+                out var weakHex,
+                out var casualtyHex);
             PositionPrototypeBanditArmyAtHex(world, ArmyStackAdapter.BanditPatrolFormalArmyId, strongHex);
             PositionPrototypeBanditArmyAtHex(world, ArmyStackAdapter.BanditWeakPatrolFormalArmyId, weakHex);
+            PositionPrototypeBanditArmyAtHex(world, ArmyStackAdapter.BanditCasualtyTestFormalArmyId, casualtyHex);
         }
 
         /// <summary>Hex 模式下将 Prototype 山匪放到荒村外 7～8 格（迁移/重建后也可复用）。</summary>
@@ -72,7 +83,9 @@ namespace XianXia.Core.World.Strategic
             ArmyHexTravelService.InitializeArmyAtHex(world, bandit, hex);
             var stackId = string.Equals(formalArmyId, ArmyStackAdapter.BanditWeakPatrolFormalArmyId, StringComparison.Ordinal)
                 ? ArmyStackAdapter.BanditWeakPatrolStackId
-                : ArmyStackAdapter.BanditPatrolStackId;
+                : string.Equals(formalArmyId, ArmyStackAdapter.BanditCasualtyTestFormalArmyId, StringComparison.Ordinal)
+                    ? ArmyStackAdapter.BanditCasualtyTestStackId
+                    : ArmyStackAdapter.BanditPatrolStackId;
             if (world.Strategic.Armies.TryGet(stackId, out var stack) && stack != null)
                 ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, stack);
         }

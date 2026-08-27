@@ -1,13 +1,20 @@
+using System.IO;
 using NUnit.Framework;
+using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
+using XianXia.Data.Content;
 
 namespace XianXia.Tests
 {
     public sealed class Ch01FullHexMapTests
     {
+        const string TravelWorldId = "base:hex_world_travel_mvp_30x15";
+
+        static string BaseGamePath =>
+            Path.GetFullPath(Path.Combine(UnityEngine.Application.dataPath, "..", "Content", "BaseGame"));
         [Test]
         public void PrototypeTestBandits_AreStationaryAtSouthAndEastOfHuangcun()
         {
@@ -47,8 +54,53 @@ namespace XianXia.Tests
             ArmyStackAdapter.RefreshDerivedPresentation(world, weakStack);
             Assert.Greater(ArmyStackAdapter.GetCombatPower(world, strongStack),
                 ArmyStackAdapter.GetCombatPower(world, weakStack));
+            Assert.IsTrue(world.Strategic.FormalArmies.TryGet(
+                ArmyStackAdapter.BanditCasualtyTestFormalArmyId,
+                out var casualtyBandit));
+            Assert.IsTrue(world.Strategic.Armies.TryGet(
+                ArmyStackAdapter.BanditCasualtyTestStackId,
+                out var casualtyStack));
+            Assert.IsTrue(world.HexWorld.Contains(casualtyBandit.CurrentHex));
+            Assert.Less(casualtyBandit.CurrentHex.Q, huangcun.AnchorHex.Q);
+            Assert.Less(casualtyBandit.CurrentHex.R, huangcun.AnchorHex.R);
+            Assert.AreEqual(
+                new HexCoord(huangcun.AnchorHex.Q - 4, huangcun.AnchorHex.R - 2),
+                casualtyBandit.CurrentHex);
+            Assert.Greater(ArmyStackAdapter.GetCombatPower(world, casualtyStack),
+                ArmyStackAdapter.GetCombatPower(world, weakStack));
             Assert.AreEqual(4, ArmyStackAdapter.GetMemberCount(world, strongStack));
             Assert.AreEqual(1, ArmyStackAdapter.GetMemberCount(world, weakStack));
+            Assert.AreEqual(3, ArmyStackAdapter.GetMemberCount(world, casualtyStack));
+        }
+
+        [Test]
+        public void PrototypeTestBandits_TravelMvp_CasualtyTestArmy_IsInBoundsNorthWestOfHuangcun()
+        {
+            var loaded = new ContentPackageLoader().Load(new[] { BaseGamePath });
+            Assert.IsTrue(loaded.IsSuccess, loaded.IsFailure ? loaded.Error.ToString() : string.Empty);
+            Assert.IsTrue(
+                loaded.Value.Registry.TryGetHexWorldContent(
+                    DefinitionId.Parse(TravelWorldId).Value,
+                    out var definition));
+
+            var world = new SimulationWorld();
+            Assert.IsTrue(HexWorldContentLoader.Apply(world, definition).IsSuccess);
+            Ch01ScenarioStrategicSetup.Apply(world);
+            Ch01ScenarioStrategicSetup.PositionPrototypeTestBanditArmies(world);
+
+            Assert.IsTrue(world.Strategic.Sites.TryGet("base:site_huangcun", out var huangcun));
+            Assert.IsTrue(world.Strategic.FormalArmies.TryGet(
+                ArmyStackAdapter.BanditCasualtyTestFormalArmyId,
+                out var casualtyBandit));
+            Assert.IsTrue(world.Strategic.Armies.TryGet(
+                ArmyStackAdapter.BanditCasualtyTestStackId,
+                out var casualtyStack));
+            Assert.IsTrue(world.HexWorld.Contains(casualtyBandit.CurrentHex));
+            Assert.Less(casualtyBandit.CurrentHex.Q, huangcun.AnchorHex.Q);
+            Assert.Less(casualtyBandit.CurrentHex.R, huangcun.AnchorHex.R);
+            Assert.IsTrue(FormalArmyHexWorldPositionResolver.TryResolve(
+                world, casualtyBandit, out _, out _));
+            Assert.AreEqual(3, ArmyStackAdapter.GetMemberCount(world, casualtyStack));
         }
 
         [Test]

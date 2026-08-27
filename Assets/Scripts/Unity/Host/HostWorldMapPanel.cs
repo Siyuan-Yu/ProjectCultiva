@@ -1896,15 +1896,17 @@ namespace XianXia.Unity.Host
         void DrawStrategicRosterPanels(XianXia.Core.Simulation.SimulationWorld world)
         {
             EnsureStrategicRosterPanels();
-            var party = bootstrap.Session.CharacterIds;
+            var partyCharacterIds = bootstrap.Session.CharacterIds;
+            var partyRuntime = bootstrap.Session.PlayerParty;
             if (_armyListPanel.IsOpen)
             {
                 var rect = new Rect(12f, 104f, Mathf.Min(720f, Screen.width - 24f), Screen.height - 140f);
                 if (_armyListPanel.Draw(
                         rect,
                         world,
-                        party,
+                        partyCharacterIds,
                         EntityLabel,
+                        partyRuntime,
                         FocusCameraOnArmy,
                         () => RefreshStrategicPresentation(world)))
                 {
@@ -1917,7 +1919,8 @@ namespace XianXia.Unity.Host
             {
                 if (_characterListPanel.Draw(
                         world,
-                        party,
+                        partyCharacterIds,
+                        partyRuntime,
                         EntityLabel,
                         FocusCameraOnArmy,
                         FocusCameraOnNode,
@@ -1990,17 +1993,49 @@ namespace XianXia.Unity.Host
             XianXia.Core.Simulation.SimulationWorld world,
             FormalArmy army)
         {
-            var sb = new StringBuilder(256);
+            var sb = new StringBuilder(512);
             sb.Append("我方军团\n\n");
             sb.Append("Id：").Append(army.ArmyId).Append('\n');
             sb.Append("Leader：").Append(EntityLabel(world, army.LeaderCharacterId)).Append('\n');
             sb.Append("State：").Append(army.State).Append('\n');
             ArmyService.TryResolveArmySiteId(world, army, out var tooltipSiteId);
             sb.Append("Site?").Append(StrategicSiteAccessService.DescribeSite(world, tooltipSiteId)).Append('\n');
+
+            var motion = army.WorldMotion;
+            sb.Append("LocationKind：").Append(motion.LocationKind).Append('\n');
+            sb.Append("SiteId：").Append(motion.SiteId ?? "—").Append('\n');
+            sb.Append("WorldPosition：(")
+                .Append(motion.WorldPosition.X.ToString("0.##")).Append(',')
+                .Append(motion.WorldPosition.Y.ToString("0.##")).Append(")\n");
+            sb.Append("CurrentHex：").Append(motion.CurrentHex).Append('\n');
+            sb.Append("InsideWorldSite：").Append(
+                motion.LocationKind == FormalArmyLocationKind.AtWorldSite).Append('\n');
+            sb.Append("CurrentOrder：").Append(motion.CurrentOrderKind).Append('\n');
+            sb.Append("Destination：").Append(motion.DestinationHex);
+            if (!string.IsNullOrEmpty(motion.DestinationSiteId))
+                sb.Append(" (Site ").Append(motion.DestinationSiteId).Append(')');
+            sb.Append('\n');
+            sb.Append("TravelState：Moving=").Append(motion.IsMoving)
+                .Append(" Seg=").Append(motion.SegmentIndex)
+                .Append('/').Append(Math.Max(0, motion.HexPathCount - 1))
+                .Append(" Prog=").Append(motion.SegmentProgress.ToString("0.##")).Append('\n');
             sb.Append("Members：").Append(army.MemberCharacterIds.Count).Append('\n');
+            for (var i = 0; i < army.MemberCharacterIds.Count; i++)
+            {
+                var memberId = new EntityId(army.MemberCharacterIds[i]);
+                var party = bootstrap?.Session?.PlayerParty;
+                CharacterWorldMovementAuthorityQuery.TryGetAuthority(world, memberId, party, out var auth);
+                ArmyService.TryGetArmyForCharacter(world, memberId, out var memberArmy);
+                var inParty = party != null && party.IsMember(memberId);
+                sb.Append(" · ").Append(EntityLabel(world, memberId))
+                    .Append(" Auth=").Append(auth)
+                    .Append(" Party=").Append(inParty ? "Yes" : "No")
+                    .Append(" Army=").Append(memberArmy != null ? memberArmy.ArmyId : "—")
+                    .Append('\n');
+            }
+
             if (army.State == FormalArmyState.Garrisoned)
-                    sb.Append("\n成员状态：\n");
-                    sb.Append("\n成员状态：\n");
+                sb.Append("\n成员状态：\n");
             return sb.ToString();
         }
 

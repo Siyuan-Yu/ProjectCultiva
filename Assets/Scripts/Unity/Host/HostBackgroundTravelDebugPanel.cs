@@ -254,6 +254,12 @@ namespace XianXia.Unity.Host
             world.Entities.TryGet(id, out var entity);
             var displayName = entity != null ? entity.DisplayName : id.Value.ToString();
 
+            if (party != null && party.HasActive && party.ActiveCharacterId == id &&
+                world.PlayerPartyTravel != null)
+            {
+                return DrawPlayerPartyAuthorityBlock(world, party, displayName, id, pad, y, innerW);
+            }
+
             if (!BackgroundCharacterTravelService.TryDescribeTravel(
                     world, id, party,
                     out var authority,
@@ -297,6 +303,53 @@ namespace XianXia.Unity.Host
             DrawStatusLine(pad, ref y, innerW, "WorldPosition:",
                 "(" + pos.X.ToString("F2") + ", " + pos.Y.ToString("F2") + ")");
             DrawStatusLine(pad, ref y, innerW, "TravelState:", travelKind.ToString());
+            DrawStatusLine(pad, ref y, innerW, "Destination:", destText);
+            DrawStatusLine(pad, ref y, innerW, "Route Progress:", routeProgress);
+            return y;
+        }
+
+        static float DrawPlayerPartyAuthorityBlock(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            string displayName,
+            EntityId id,
+            float pad,
+            float y,
+            float innerW)
+        {
+            var motion = world.PlayerPartyTravel;
+            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                ? world.HexWorld.HexSize
+                : 1f;
+            var travelPresentation = motion.IsMoving
+                ? motion.ResolveTravelPresentationWorld(hexSize)
+                : motion.WorldPosition;
+            var insideSite = WorldSiteFootprintLocationAuthority.TryGetSiteAtHex(
+                world,
+                motion.CurrentHex,
+                out var footprintSite) &&
+                footprintSite != null;
+            var travelState = motion.IsMoving ? "AutoTravel" : "Idle";
+            var destText = !string.IsNullOrEmpty(motion.DestinationSiteId)
+                ? ResolveSiteDisplayName(world, motion.DestinationSiteId)
+                : motion.DestinationHex.ToString();
+            var routeProgress = motion.IsMoving
+                ? "Seg " + motion.SegmentIndex + "  P=" + motion.SegmentProgress.ToString("F2")
+                : "-";
+
+            DrawStatusLine(pad, ref y, innerW, "Character:", displayName + "  Id=" + id.Value + "  [PlayerParty]");
+            DrawStatusLine(pad, ref y, innerW, "WorldLocationKind:", motion.LocationKind.ToString());
+            DrawStatusLine(pad, ref y, innerW, "WorldLocationSiteId:",
+                string.IsNullOrEmpty(motion.SiteId) ? "-" : ResolveSiteDisplayName(world, motion.SiteId));
+            DrawStatusLine(pad, ref y, innerW, "CurrentHex:", motion.CurrentHex.ToString());
+            DrawStatusLine(pad, ref y, innerW, "InsideWorldSite:", insideSite ? "true" : "false");
+            DrawStatusLine(pad, ref y, innerW, "InsideSiteId:",
+                insideSite ? ResolveSiteDisplayName(world, footprintSite.SiteId) : "-");
+            DrawStatusLine(pad, ref y, innerW, "TravelPresentationPosition:",
+                "(" + travelPresentation.X.ToString("F2") + ", " + travelPresentation.Y.ToString("F2") + ")");
+            DrawStatusLine(pad, ref y, innerW, "TravelState:", travelState);
+            DrawStatusLine(pad, ref y, innerW, "SiteDeparturePending:", motion.IsSiteDeparturePending.ToString());
+            DrawStatusLine(pad, ref y, innerW, "UsesTravelPresentation:", motion.UsesTravelPresentation.ToString());
             DrawStatusLine(pad, ref y, innerW, "Destination:", destText);
             DrawStatusLine(pad, ref y, innerW, "Route Progress:", routeProgress);
             return y;

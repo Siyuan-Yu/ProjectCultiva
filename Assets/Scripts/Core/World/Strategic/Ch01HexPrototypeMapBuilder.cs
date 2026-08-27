@@ -1,3 +1,4 @@
+using System;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Hex;
 
@@ -9,6 +10,10 @@ namespace XianXia.Core.World.Strategic
         public const string MapId = "base:hex_ch01_prototype";
         public const string SiteHuangcun = "base:site_huangcun";
         public const string SiteQingyunLu = "base:site_qingyun_lu";
+        public const string SitePlayerCamp = "test:site_player_camp";
+
+        /// <summary>LevelTester 主角营地专用 LocalMap（野外 fallback 布局，独立 id）。</summary>
+        public const string PlayerCampLocalMapId = "base:map_player_camp";
 
         public static readonly HexCoord HuangcunHex = new HexCoord(20, 25);
         public static readonly HexCoord QingyunLuHex = new HexCoord(38, 22);
@@ -210,50 +215,102 @@ namespace XianXia.Core.World.Strategic
 
         /// <summary>
         /// Prototype 测试山匪 Hex（对照手操红框）：
-        /// strong = 荒村正南路廊；weak = 荒村正东横路。
-        /// Content 荒村 (80,52) → strong (82,56)、weak (86,52)。
+        /// strong = 荒村正南路廊；weak = 荒村正东横路；casualtyTest = 荒村西北。
+        /// Content 荒村 (80,52) → strong (82,56)、weak (86,52)、casualty (76,50)。
+        /// LevelTester travel_mvp 小图时 (Q-4,R-2) 可能出界，会回退到边界内西北可放置格。
         /// </summary>
         public static void ResolvePrototypeTestBanditHexesBelowHuangcun(
             SimulationWorld world,
             out HexCoord strongPatrolHex,
-            out HexCoord weakPatrolHex)
+            out HexCoord weakPatrolHex,
+            out HexCoord casualtyTestHex)
         {
             var origin = ResolveHuangcunAnchorHex(world);
             strongPatrolHex = new HexCoord(origin.Q + 2, origin.R + 4);
             weakPatrolHex = new HexCoord(origin.Q + 6, origin.R);
+            casualtyTestHex = new HexCoord(origin.Q - 4, origin.R - 2);
 
             if (world?.HexWorld == null || !world.HexWorld.HasGrid)
                 return;
 
-            if (!TryResolveStationaryTestHex(world, origin, strongPatrolHex, preferHigherR: true, out strongPatrolHex))
+            if (!TryResolveStationaryTestHex(
+                    world, origin, strongPatrolHex, StationaryTestBanditDirection.South, out strongPatrolHex))
                 strongPatrolHex = new HexCoord(origin.Q + 2, origin.R + 4);
-            if (!TryResolveStationaryTestHex(world, origin, weakPatrolHex, preferHigherR: false, out weakPatrolHex))
+            if (!TryResolveStationaryTestHex(
+                    world, origin, weakPatrolHex, StationaryTestBanditDirection.East, out weakPatrolHex))
                 weakPatrolHex = new HexCoord(origin.Q + 6, origin.R);
+            if (!TryResolveStationaryTestHex(
+                    world, origin, casualtyTestHex, StationaryTestBanditDirection.NorthWest, out casualtyTestHex))
+                casualtyTestHex = ResolveNorthWestCasualtyFallbackHex(world, origin);
+        }
+
+        enum StationaryTestBanditDirection
+        {
+            South,
+            East,
+            NorthWest,
         }
 
         static bool TryResolveStationaryTestHex(
             SimulationWorld world,
             HexCoord origin,
             HexCoord preferred,
-            bool preferHigherR,
+            StationaryTestBanditDirection direction,
             out HexCoord picked)
         {
             picked = preferred;
             if (IsStationaryTestBanditCandidate(world, world.HexWorld, origin, preferred))
                 return true;
 
+            if (TryPickDirectionalTestHex(
+                    world,
+                    origin,
+                    preferred,
+                    direction,
+                    localRadius: 2,
+                    out picked))
+                return true;
+
+            if (direction != StationaryTestBanditDirection.NorthWest)
+                return false;
+
+            picked = ResolveNorthWestCasualtyFallbackHex(world, origin);
+            return IsStationaryTestBanditCandidate(world, world.HexWorld, origin, picked);
+        }
+
+        static HexCoord ResolveNorthWestCasualtyFallbackHex(SimulationWorld world, HexCoord origin)
+        {
+            if (TryPickDirectionalTestHex(
+                    world,
+                    origin,
+                    new HexCoord(origin.Q - 4, origin.R - 2),
+                    StationaryTestBanditDirection.NorthWest,
+                    localRadius: 10,
+                    out var picked))
+                return picked;
+
+            return new HexCoord(origin.Q - 1, origin.R - 1);
+        }
+
+        static bool TryPickDirectionalTestHex(
+            SimulationWorld world,
+            HexCoord origin,
+            HexCoord preferred,
+            StationaryTestBanditDirection direction,
+            int localRadius,
+            out HexCoord picked)
+        {
+            picked = preferred;
             HexCoord? best = null;
             var bestScore = int.MaxValue;
-            for (var dr = -2; dr <= 2; dr++)
+            for (var dr = -localRadius; dr <= localRadius; dr++)
             {
-                for (var dq = -2; dq <= 2; dq++)
+                for (var dq = -localRadius; dq <= localRadius; dq++)
                 {
                     var hex = new HexCoord(preferred.Q + dq, preferred.R + dr);
                     if (!IsStationaryTestBanditCandidate(world, world.HexWorld, origin, hex))
                         continue;
-                    if (preferHigherR && hex.R <= origin.R)
-                        continue;
-                    if (!preferHigherR && hex.Q <= origin.Q)
+                    if (!MatchesStationaryTestBanditDirection(origin, hex, direction))
                         continue;
 
                     var score = HexMath.Distance(preferred, hex) * 10 + HexMath.Distance(origin, hex);
@@ -268,6 +325,24 @@ namespace XianXia.Core.World.Strategic
                 return false;
             picked = best.Value;
             return true;
+        }
+
+        static bool MatchesStationaryTestBanditDirection(
+            HexCoord origin,
+            HexCoord hex,
+            StationaryTestBanditDirection direction)
+        {
+            switch (direction)
+            {
+                case StationaryTestBanditDirection.South:
+                    return hex.R > origin.R;
+                case StationaryTestBanditDirection.East:
+                    return hex.Q > origin.Q;
+                case StationaryTestBanditDirection.NorthWest:
+                    return hex.Q < origin.Q && hex.R < origin.R;
+                default:
+                    return true;
+            }
         }
 
         static bool IsStationaryTestBanditCandidate(
@@ -379,6 +454,54 @@ namespace XianXia.Core.World.Strategic
                     hex = HexMath.Neighbor(hex, side);
                 }
             }
+        }
+
+        /// <summary>LevelTester 专用：Player-controlled WorldSite；不修改 Ch01 剧情 Site 归属。</summary>
+        public static void EnsureLevelTesterPlayerCampSite(SimulationWorld world)
+        {
+            if (world?.Strategic?.Sites == null || !world.HexWorld.HasGrid)
+                return;
+
+            var localMapId = PlayerCampLocalMapId;
+            if (world.Strategic.Sites.TryGet(SitePlayerCamp, out var existing) && existing != null)
+            {
+                if (!string.Equals(existing.LocalMapId, localMapId, StringComparison.Ordinal))
+                    existing.LocalMapId = localMapId;
+                return;
+            }
+
+            var anchor = ResolvePlayerCampAnchorHex(world);
+            EnsurePrototypeTestBanditHexPassable(world, anchor);
+
+            var site = new WorldSite
+            {
+                SiteId = SitePlayerCamp,
+                DisplayName = "TEST 主角营地",
+                SiteType = "Camp",
+                AnchorHex = anchor,
+                PresenceHex = anchor,
+                LocalMapId = localMapId,
+                OwnerFactionId = StrategicFactionCatalog.PlayerFactionId,
+            };
+            site.SetFootprint(new[] { anchor });
+            site.EnsurePresenceHexValid();
+            WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
+        }
+
+        static HexCoord ResolvePlayerCampAnchorHex(SimulationWorld world)
+        {
+            var huangcun = ResolveHuangcunAnchorHex(world);
+            for (var d = 0; d < 6; d++)
+            {
+                var hex = HexMath.Neighbor(huangcun, d);
+                if (!world.HexWorld.IsInBounds(hex))
+                    continue;
+                if (world.Strategic.Sites.TryGetAtHex(hex, out _))
+                    continue;
+                return hex;
+            }
+
+            return new HexCoord(huangcun.Q - 2, huangcun.R);
         }
     }
 }

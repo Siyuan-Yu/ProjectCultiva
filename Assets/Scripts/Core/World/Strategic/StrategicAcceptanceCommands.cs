@@ -42,8 +42,18 @@ namespace XianXia.Core.World.Strategic
             out int amount) =>
             TributeService.TryCollectTribute(world, payerFactionId, receiverFactionId, out amount);
 
-        public static Result TryAddArmyMember(SimulationWorld world, string armyId, EntityId memberId) =>
-            ArmyService.AddMember(world, armyId, memberId);
+        public static Result TryAddArmyMember(
+            SimulationWorld world,
+            string armyId,
+            EntityId memberId,
+            PlayerPartyRuntime party = null,
+            EntityId activeControlledCharacterId = default) =>
+            ArmyService.AddMember(
+                world,
+                armyId,
+                memberId,
+                party,
+                ArmyAuthorityRules.ResolveActiveControlledCharacterId(party, activeControlledCharacterId));
 
         public static Result TryRemoveArmyMember(SimulationWorld world, string armyId, EntityId memberId) =>
             ArmyService.RemoveMember(world, armyId, memberId);

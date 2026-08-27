@@ -367,11 +367,11 @@ namespace XianXia.Tests
             for (var i = 0; i < 4 && world.PlayerPartyTravel.IsMoving; i++)
                 PlayerPartyHexTravelService.AdvanceAll(world, 1);
 
-            var frozen = world.PlayerPartyTravel.WorldPosition;
             Assert.IsTrue(PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party).IsSuccess);
-            Assert.AreEqual(frozen.X, world.PlayerPartyTravel.WorldPosition.X, FloatTol);
-            Assert.AreEqual(frozen.Y, world.PlayerPartyTravel.WorldPosition.Y, FloatTol);
             Assert.IsFalse(world.PlayerPartyTravel.IsMoving);
+            Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, world.PlayerPartyTravel.LocationKind);
+            Assert.AreEqual(siteA.SiteId, world.PlayerPartyTravel.SiteId);
+            Assert.AreEqual(siteA.LocalMapId, world.PartyWorld.LocalMapId);
         }
 
         [Test]
@@ -380,18 +380,24 @@ namespace XianXia.Tests
             var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);
             var a = Spawn(world, "LinQing");
             var party = BuildParty(world, siteA, a);
-            SetPartyOffCenter(world, siteA.PresenceHex, 0.3f, 0.05f);
-            world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
+            SetPartyAtSiteOpen(world, siteA, party);
 
             Assert.IsTrue(PlayerPartyHexTravelService.BeginTravel(world, party, mid).IsSuccess);
-            for (var i = 0; i < 5 && world.PlayerPartyTravel.IsMoving; i++)
-                PlayerPartyHexTravelService.AdvanceAll(world, 1);
+            Assert.IsTrue(AdvanceUntil(
+                world,
+                () => world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
+                      !WorldSiteFootprintLocationAuthority.IsInsideSiteFootprint(
+                          siteA, world.PlayerPartyTravel.CurrentHex),
+                500));
 
-            var pos = world.PlayerPartyTravel.WorldPosition;
-            var expectedHex = HexMath.WorldToHex(pos.X, pos.Y, world.HexWorld.HexSize);
             Assert.IsTrue(PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party).IsSuccess);
-            Assert.AreEqual(expectedHex, world.PlayerPartyTravel.CurrentHex);
-            Assert.AreNotEqual(siteA.PresenceHex, world.PlayerPartyTravel.CurrentHex);
+            Assert.IsFalse(world.PlayerPartyTravel.IsMoving);
+            Assert.AreEqual(PlayerPartyLocationKind.AtWorldPosition, world.PlayerPartyTravel.LocationKind);
+            Assert.IsFalse(WorldSiteFootprintLocationAuthority.IsInsideSiteFootprint(
+                siteA, world.PlayerPartyTravel.CurrentHex));
+            Assert.IsTrue(WildernessLocalMapFallback.TryResolve(
+                world, world.PlayerPartyTravel.CurrentHex, out var mapId));
+            Assert.AreEqual(mapId, world.PartyWorld.LocalMapId);
         }
 
         [Test]
@@ -623,13 +629,15 @@ namespace XianXia.Tests
         [Test]
         public void CONTINUOUS_24_Snapshot_PreservesContinuousWorldPosition()
         {
-            var world = BuildTinyTravelWorld(out var siteA, out _, out var mid);
+            var world = BuildTinyTravelWorld(out _, out _, out var mid);
             var a = Spawn(world, "LinQing");
-            var party = BuildParty(world, siteA, a);
-            SetPartyOffCenter(world, siteA.PresenceHex, -0.3f, 0.15f);
+            var party = new PlayerPartyRuntime();
+            Assert.IsTrue(party.TryInitialize(a, out _));
+            SetPartyOffCenter(world, mid, -0.3f, 0.15f);
             world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
 
-            Assert.IsTrue(PlayerPartyHexTravelService.BeginTravel(world, party, mid).IsSuccess);
+            var dest = new HexCoord(mid.Q + 2, mid.R);
+            Assert.IsTrue(PlayerPartyHexTravelService.BeginTravel(world, party, dest).IsSuccess);
             for (var i = 0; i < 3 && world.PlayerPartyTravel.IsMoving; i++)
                 PlayerPartyHexTravelService.AdvanceAll(world, 1);
 
@@ -853,12 +861,14 @@ namespace XianXia.Tests
 
             var hexSize = world.HexWorld.HexSize;
             var unitsPerTick = PlayerPartyHexTravelService.WorldUnitsPerTick(hexSize);
-            var prev = world.PlayerPartyTravel.WorldPosition;
+            var motion = world.PlayerPartyTravel;
+            WorldVec2 TravelPos() => motion.ResolveTravelPresentationWorld(hexSize);
+            var prev = TravelPos();
             var tickSpeeds = new System.Collections.Generic.List<float>(8);
-            for (var i = 0; i < 8 && world.PlayerPartyTravel.IsMoving; i++)
+            for (var i = 0; i < 8 && motion.IsMoving; i++)
             {
                 PlayerPartyHexTravelService.AdvanceAll(world, 1);
-                var next = world.PlayerPartyTravel.WorldPosition;
+                var next = TravelPos();
                 tickSpeeds.Add(WorldVec2.Distance(prev, next));
                 prev = next;
             }
@@ -873,12 +883,13 @@ namespace XianXia.Tests
             var segmentIndexAfterShort = world.PlayerPartyTravel.SegmentIndex;
             var totalDist = 0f;
             var totalTicks = 0;
-            var prevPos = world.PlayerPartyTravel.WorldPosition;
+            var prevPos = TravelPos();
             while (world.PlayerPartyTravel.IsMoving && totalTicks < 24)
             {
                 PlayerPartyHexTravelService.AdvanceAll(world, 1);
-                totalDist += WorldVec2.Distance(prevPos, world.PlayerPartyTravel.WorldPosition);
-                prevPos = world.PlayerPartyTravel.WorldPosition;
+                var nextPos = TravelPos();
+                totalDist += WorldVec2.Distance(prevPos, nextPos);
+                prevPos = nextPos;
                 totalTicks++;
             }
 
@@ -1238,7 +1249,8 @@ namespace XianXia.Tests
             world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
 
             Assert.IsTrue(PlayerPartyHexTravelService.BeginTravel(world, party, mid).IsSuccess);
-            Assert.AreEqual(PlayerPartyLocationKind.AtWorldPosition, world.PlayerPartyTravel.LocationKind);
+            Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, world.PlayerPartyTravel.LocationKind);
+            Assert.AreEqual(siteA.SiteId, world.PlayerPartyTravel.SiteId);
             Assert.IsTrue(string.IsNullOrEmpty(world.PartyWorld.SiteId));
             Assert.IsTrue(string.IsNullOrEmpty(world.PartyWorld.LocalMapId));
 
@@ -1247,7 +1259,8 @@ namespace XianXia.Tests
             world.PartyWorld.LocalMapId = siteA.LocalMapId;
             WorldTravelService.SyncPartyFocus(world);
             Assert.IsTrue(PlayerPartyWorldLocationQuery.TryResolve(world, party, out var midTravel));
-            Assert.AreEqual(PlayerPartyLocationKind.AtWorldPosition, midTravel.LocationKind);
+            Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, midTravel.LocationKind);
+            Assert.AreEqual(siteA.SiteId, midTravel.SiteId);
 
             ForceAdvanceToDestination(world);
             world.PartyWorld.SiteId = siteA.SiteId;
@@ -2040,6 +2053,144 @@ namespace XianXia.Tests
             Assert.AreEqual(a.SlotRect.MaxX, b.SlotRect.MaxX, FloatTol);
             Assert.AreEqual(a.SlotRect.MinY, b.SlotRect.MinY, FloatTol);
             Assert.AreEqual(a.SlotRect.MaxY, b.SlotRect.MaxY, FloatTol);
+        }
+
+        static bool AdvanceUntil(SimulationWorld world, System.Func<bool> condition, int maxTicks = 500)
+        {
+            for (var i = 0; i < maxTicks; i++)
+            {
+                if (condition())
+                    return true;
+                if (!world.PlayerPartyTravel.IsMoving)
+                    break;
+                PlayerPartyHexTravelService.AdvanceAll(world, 1);
+            }
+
+            return condition();
+        }
+
+        [Test]
+        public void LOC_AUTH_01_CloseDuringSiteFootprintTravel_LoadsSiteLocalMap()
+        {
+            var world = BuildTinyTravelWorld(out var siteA, out _, out var midHex);
+            var a = Spawn(world, "LinQing");
+            var party = BuildParty(world, siteA, a);
+            SetPartyAtSiteOpen(world, siteA, party);
+
+            Assert.IsTrue(PlayerPartyHexTravelService.BeginTravel(world, party, midHex).IsSuccess);
+            Assert.IsTrue(world.PlayerPartyTravel.IsSiteDeparturePending);
+            Assert.IsTrue(AdvanceUntil(
+                world,
+                () => world.PlayerPartyTravel.IsMoving &&
+                      world.PlayerPartyTravel.CurrentHex != siteA.PresenceHex,
+                64));
+
+            Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, world.PlayerPartyTravel.LocationKind);
+            Assert.AreEqual(siteA.SiteId, world.PlayerPartyTravel.SiteId);
+            Assert.IsTrue(WorldSiteFootprintLocationAuthority.IsInsideSiteFootprint(
+                siteA, world.PlayerPartyTravel.CurrentHex));
+
+            Assert.IsTrue(PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party).IsSuccess);
+            Assert.AreEqual(siteA.LocalMapId, world.PartyWorld.LocalMapId);
+            Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, world.PlayerPartyTravel.LocationKind);
+            Assert.AreEqual(siteA.SiteId, world.PlayerPartyTravel.SiteId);
+        }
+
+        [Test]
+        public void LOC_AUTH_02_CloseAfterBoundaryCrossing_LoadsWildernessLocalMap()
+        {
+            var world = BuildTinyTravelWorld(out var siteA, out _, out var midHex);
+            var a = Spawn(world, "LinQing");
+            var party = BuildParty(world, siteA, a);
+            SetPartyAtSiteOpen(world, siteA, party);
+
+            Assert.IsTrue(PlayerPartyHexTravelService.BeginTravel(world, party, midHex).IsSuccess);
+            Assert.IsTrue(AdvanceUntil(
+                world,
+                () => !world.PlayerPartyTravel.IsSiteDeparturePending &&
+                      world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
+                      !WorldSiteFootprintLocationAuthority.IsInsideSiteFootprint(
+                          siteA, world.PlayerPartyTravel.CurrentHex),
+                500));
+            Assert.IsTrue(PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party).IsSuccess);
+            Assert.IsTrue(WildernessLocalMapFallback.TryResolve(
+                world, world.PlayerPartyTravel.CurrentHex, out var mapId));
+            Assert.AreEqual(mapId, world.PartyWorld.LocalMapId);
+            Assert.AreNotEqual(siteA.LocalMapId, world.PartyWorld.LocalMapId);
+        }
+
+        [Test]
+        public void LOC_AUTH_03_FootprintTravelPresentation_AllowsCurrentHexChangeWhileAtWorldSite()
+        {
+            var world = BuildTinyTravelWorld(out var siteA, out _, out var midHex);
+            var a = Spawn(world, "LinQing");
+            var party = BuildParty(world, siteA, a);
+            SetPartyAtSiteOpen(world, siteA, party);
+            var startHex = world.PlayerPartyTravel.CurrentHex;
+
+            Assert.IsTrue(PlayerPartyHexTravelService.BeginTravel(world, party, midHex).IsSuccess);
+            Assert.IsTrue(world.PlayerPartyTravel.IsSiteDeparturePending);
+            var sawHexChange = false;
+            while (world.PlayerPartyTravel.IsSiteDeparturePending)
+            {
+                Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, world.PlayerPartyTravel.LocationKind);
+                Assert.AreEqual(siteA.SiteId, world.PlayerPartyTravel.SiteId);
+                if (!world.PlayerPartyTravel.CurrentHex.Equals(startHex))
+                    sawHexChange = true;
+                PlayerPartyHexTravelService.AdvanceAll(world, 1);
+            }
+
+            Assert.IsTrue(sawHexChange, "Expected CurrentHex to change during Site Footprint presentation.");
+        }
+
+        [Test]
+        public void LOC_AUTH_04_TravelToSite_IngressCommitsAtWorldSiteBeforeAnchor()
+        {
+            var world = BuildTinyTravelWorld(out _, out var siteB, out var midHex);
+            var a = Spawn(world, "LinQing");
+            var party = BuildParty(world, siteB, a);
+            world.PlayerPartyTravel.SetAtWorldPosition(HexCenter(world, midHex), midHex);
+            world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
+            world.PartyWorld.LocalMapId = WildernessLocalMapFallback.PlainsWildernessLocalMapId;
+            world.PartyWorld.SiteId = string.Empty;
+
+            var approachHex = ResolveDeterministicSiteApproachHexForTest(world, midHex, siteB);
+            Assert.IsTrue(PlayerPartyHexTravelService.BeginTravel(
+                world, party, approachHex, siteB.SiteId).IsSuccess);
+
+            Assert.IsTrue(AdvanceUntil(
+                world,
+                () => world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                      string.Equals(world.PlayerPartyTravel.SiteId, siteB.SiteId, StringComparison.Ordinal) &&
+                      world.PlayerPartyTravel.IsMoving,
+                500));
+
+            Assert.IsTrue(PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party).IsSuccess);
+            Assert.AreEqual(siteB.LocalMapId, world.PartyWorld.LocalMapId);
+            Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, world.PlayerPartyTravel.LocationKind);
+        }
+
+        static HexCoord ResolveDeterministicSiteApproachHexForTest(
+            SimulationWorld world,
+            HexCoord from,
+            WorldSite site)
+        {
+            HexCoord best = site.PresenceHex;
+            var bestDist = int.MaxValue;
+            foreach (var hex in site.EnumerateFootprintHexes())
+            {
+                if (!world.HexWorld.TryGetTile(hex, out var tile) || tile == null || !tile.IsPassable)
+                    continue;
+                var d = HexMath.Distance(from, hex);
+                if (d < bestDist ||
+                    (d == bestDist && (hex.Q < best.Q || (hex.Q == best.Q && hex.R < best.R))))
+                {
+                    bestDist = d;
+                    best = hex;
+                }
+            }
+
+            return best;
         }
 
         static bool IsNearAnyRect(

@@ -40,7 +40,7 @@ namespace XianXia.Tests
             Assert.IsTrue(world.Strategic.FormalArmies.TryGet(
                 ArmyStackAdapter.BanditPatrolFormalArmyId, out strongArmy));
             Ch01HexPrototypeMapBuilder.ResolvePrototypeTestBanditHexesBelowHuangcun(
-                world, out strongHex, out weakHex);
+                world, out strongHex, out weakHex, out _);
             return world;
         }
 

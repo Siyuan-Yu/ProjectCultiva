@@ -7,6 +7,24 @@
 
 ---
 
+## 2026-08-27 — Phase 3 收口：A2 Authority 重验、PP-Follower、试炼三军与伤亡夹具
+
+**做了什么**
+- **A2 Authority 第二轮：** 禁止 FormalArmy 静默 `RemoveFromPlayerParty`；PlayerParty 成员须先 Leave Party 再组军；`ArmyAuthorityRules.TryValidateNotPlayerPartyMember`；`FormalArmyPhase3AuthorityTests` 扩充
+- **G16–G18：** Moving Army `SyncNonLivingMembers`；F11 Debug Incap/Sync Casualties/Presence 显示
+- **PP-Follower：** `PlayerPartyTransitionMembership` — Follower 跨 LocalMap/Hex 与 Active 同步；`PlayerPartyFollowerLocalMapTransitionTests`
+- **主角营地：** 独立 `base:map_player_camp` + `player_camp_places.json`；不再复用荒村 LocalMap
+- **试炼三军：** 荒村山匪 / 试炼弱匪（必胜）/ 试炼强匪（自动伤亡）；travel_mvp 小图西北放置出界修复
+- **伤亡夹具：** 试炼强匪自动战必胜 + **必定 1 人弥留或阵亡**；`AutoBattleCasualtyFixtureTests`
+- 文档：[167](167-phase-3-closure-playerparty-and-casualty-fixtures-2026-08-27.md)；166/roadmap 更新
+- **未**人工验收封板；**未**跑全量 Unity Tests
+
+**状态**
+- Phase 3 **收口入仓** — 待 LevelTester 167 验收清单 + 166 F11 TEST 1–10
+- **未做：** Phase 4 Battle Authority、Legacy 战斗入口删除
+
+---
+
 ## 2026-08-27 — Phase 3 FormalArmy Continuous World 实现入仓（待验收）
 
 **做了什么**

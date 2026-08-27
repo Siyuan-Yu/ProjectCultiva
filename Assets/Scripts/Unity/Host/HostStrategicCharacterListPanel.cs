@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
+using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
@@ -54,6 +55,7 @@ namespace XianXia.Unity.Host
         public bool Draw(
             SimulationWorld world,
             IReadOnlyList<EntityId> partyCharacterIds,
+            PlayerPartyRuntime partyRuntime,
             Func<SimulationWorld, EntityId, string> labelFn,
             Action<string> onFocusArmy,
             Action<string> onFocusNode,
@@ -65,7 +67,8 @@ namespace XianXia.Unity.Host
 
             var changed = false;
             var factionId = HostStrategicRosterQueries.ResolvePlayerFactionId(world, partyCharacterIds);
-            HostStrategicRosterQueries.CollectPlayerCharacters(world, factionId, partyCharacterIds, _rows);
+            HostStrategicRosterQueries.CollectPlayerCharacters(
+                world, factionId, partyCharacterIds, _rows, partyRuntime);
 
             var panelW = Mathf.Min(640f, Screen.width - 24f);
             var panelH = Screen.height - 120f;
@@ -93,7 +96,7 @@ namespace XianXia.Unity.Host
 
             if (GUI.Button(new Rect(panelRect.x + 8f, panelRect.yMax - 36f, 120f, 28f), "组建军队"))
             {
-                changed |= TryCreateArmyFromSelection(world, factionId, onArmyCreated, onChanged);
+                changed |= TryCreateArmyFromSelection(world, factionId, partyRuntime, onArmyCreated, onChanged);
             }
 
             if (!string.IsNullOrEmpty(_status))
@@ -237,6 +240,7 @@ namespace XianXia.Unity.Host
         bool TryCreateArmyFromSelection(
             SimulationWorld world,
             string factionId,
+            PlayerPartyRuntime partyRuntime,
             Action<string> onArmyCreated,
             Action onChanged)
         {
@@ -255,7 +259,8 @@ namespace XianXia.Unity.Host
             }
 
             var nodeId = ArmyService.ResolveCharacterFormationLocationId(world, _createPartyScratch[0]) ?? string.Empty;
-            var result = ArmyUiCommands.TryCreateArmy(world, nodeId, factionId, _createPartyScratch);
+            var result = ArmyUiCommands.TryCreateArmy(
+                world, nodeId, factionId, _createPartyScratch, explicitLeaderId: null, party: partyRuntime);
             if (result.IsSuccess)
             {
                 _status = "已创建 " + result.Value.ArmyId;

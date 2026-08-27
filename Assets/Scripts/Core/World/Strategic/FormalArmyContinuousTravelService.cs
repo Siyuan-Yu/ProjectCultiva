@@ -83,7 +83,14 @@ namespace XianXia.Core.World.Strategic
                 world.Strategic.Sites.TryGet(startSiteId, out var fromSite) &&
                 fromSite != null)
             {
-                if (!TryBuildPathLeavingSite(world, fromSite, goalHex, FullPathScratch, out var exitHex, out var departureFootprintHex))
+                if (!TryBuildPathLeavingSite(
+                        world,
+                        fromSite,
+                        startHex,
+                        goalHex,
+                        FullPathScratch,
+                        out var exitHex,
+                        out var departureFootprintHex))
                     return Result.Failure(ErrorCode.InvalidOperation, "No path leaving WorldSite.");
 
                 var hexSizeForDeparture = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
@@ -96,7 +103,7 @@ namespace XianXia.Core.World.Strategic
                     boundaryEntryPos = HexCenter(exitHex, hexSizeForDeparture);
                 }
 
-                var footprintCenter = HexCenter(departureFootprintHex, hexSizeForDeparture);
+                var departureStartWorld = HexCenter(startHex, hexSizeForDeparture);
                 motion.BeginSiteDepartureTravel(
                     orderKind,
                     FullPathScratch,
@@ -104,7 +111,7 @@ namespace XianXia.Core.World.Strategic
                     destinationSiteId,
                     departureFootprintHex,
                     exitHex,
-                    footprintCenter,
+                    departureStartWorld,
                     boundaryEntryPos,
                     HexTravelMode.Ground);
                 motion.LastProcessedWorldTick = world.Tick.Value;
@@ -143,6 +150,7 @@ namespace XianXia.Core.World.Strategic
                 if (army == null || !army.WorldMotion.IsMoving)
                     continue;
                 AdvanceDistanceBudget(world, army, budget);
+                ArmyService.SyncNonLivingMembers(world, army);
             }
         }
 
@@ -209,28 +217,37 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 }
 
-                if (segmentLen <= remainingBudget + 0.0001f)
+                var remainingOnSegment = WorldVec2.Distance(pos, toPos);
+                if (remainingOnSegment <= remainingBudget + 0.0001f)
                 {
-                    var previousPos = pos;
                     pos = toPos;
                     if (isSiteDepartureVirtual)
                     {
-                        motion.SetSiteDepartureVirtualPosition(pos);
-                        if (ShouldCommitSiteDepartureBoundaryCrossing(motion, previousPos, pos, hexSize))
+                        var previousHex = motion.CurrentHex;
+                        motion.SetSiteDepartureVirtualPosition(pos, hexSize);
+                        if (ShouldCommitSiteDepartureBoundaryCrossing(world, army, motion, previousHex, motion.CurrentHex))
                             CommitSiteDepartureBoundaryCrossing(world, army, motion);
                         if (!motion.IsMoving)
                             return;
                         pos = motion.WorldPosition;
                         previousDerived = motion.CurrentHex;
-                        isSiteDepartureVirtual = false;
-                        remainingBudget -= segmentLen;
+                        isSiteDepartureVirtual = motion.IsSiteDeparturePending &&
+                                                  motion.LocationKind == FormalArmyLocationKind.AtWorldSite;
+                        remainingBudget -= remainingOnSegment;
+                        motion.IncrementPathIndex();
+                        if (motion.SegmentIndex >= motion.HexPathCount - 1 && !isSiteDepartureVirtual)
+                        {
+                            FinishArrival(world, army, motion, hexSize);
+                            return;
+                        }
+
                         continue;
                     }
 
                     var derived = HexMath.WorldToHex(pos.X, pos.Y, hexSize);
                     motion.SetWorldPositionInternal(pos, derived);
                     motion.SetSegment(motion.SegmentIndex, 1f);
-                    remainingBudget -= segmentLen;
+                    remainingBudget -= remainingOnSegment;
                     motion.IncrementPathIndex();
                     if (motion.SegmentIndex >= motion.HexPathCount - 1)
                     {
@@ -241,14 +258,15 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 }
 
-                var dirX = (toPos.X - pos.X) / segmentLen;
-                var dirY = (toPos.Y - pos.Y) / segmentLen;
+                var dirX = (toPos.X - pos.X) / remainingOnSegment;
+                var dirY = (toPos.Y - pos.Y) / remainingOnSegment;
                 var previousPosMid = pos;
                 pos = new WorldVec2(pos.X + dirX * remainingBudget, pos.Y + dirY * remainingBudget);
                 if (isSiteDepartureVirtual)
                 {
-                    motion.SetSiteDepartureVirtualPosition(pos);
-                    if (ShouldCommitSiteDepartureBoundaryCrossing(motion, previousPosMid, pos, hexSize))
+                    var previousHex = motion.CurrentHex;
+                    motion.SetSiteDepartureVirtualPosition(pos, hexSize);
+                    if (ShouldCommitSiteDepartureBoundaryCrossing(world, army, motion, previousHex, motion.CurrentHex))
                         CommitSiteDepartureBoundaryCrossing(world, army, motion);
                     if (!motion.IsMoving)
                         return;
@@ -290,30 +308,25 @@ namespace XianXia.Core.World.Strategic
 
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             var boundaryEntry = motion.SiteDepartureBoundaryEntry;
-            var derived = HexMath.WorldToHex(boundaryEntry.X, boundaryEntry.Y, hexSize);
-            motion.SetWorldPositionInternal(boundaryEntry, derived);
+            var exitHex = motion.SiteDepartureExitHex;
+            motion.SetWorldPositionInternal(boundaryEntry, exitHex);
             motion.ClearSiteDeparturePending();
             army.SyncLegacyFromWorldMotion();
             FormalArmyMemberPresenceSync.SyncAll(world, army);
         }
 
         static bool ShouldCommitSiteDepartureBoundaryCrossing(
+            SimulationWorld world,
+            FormalArmy army,
             FormalArmyWorldMotion motion,
-            WorldVec2 previousPos,
-            WorldVec2 newPos,
-            float hexSize)
+            HexCoord previousHex,
+            HexCoord newHex)
         {
-            if (!motion.IsSiteDeparturePending)
+            if (!motion.IsSiteDeparturePending || string.IsNullOrEmpty(motion.SiteId))
                 return false;
-
-            var size = hexSize > 0f ? hexSize : 1f;
-            HexMath.ToWorldPosition(motion.SiteDepartureFootprintHex, size, out var fx, out var fy);
-            var footprintCenter = new WorldVec2(fx, fy);
-            var boundary = motion.SiteDepartureBoundaryEntry;
-            var dPrev = WorldVec2.Distance(footprintCenter, previousPos);
-            var dNew = WorldVec2.Distance(footprintCenter, newPos);
-            var dBoundary = WorldVec2.Distance(footprintCenter, boundary);
-            return dPrev + 0.0001f < dBoundary && dNew + 0.0001f >= dBoundary;
+            if (!world.Strategic.Sites.TryGet(motion.SiteId, out var site) || site == null)
+                return false;
+            return site.OccupiesHex(previousHex) && !site.OccupiesHex(newHex);
         }
 
         static void FinishArrival(
@@ -350,6 +363,7 @@ namespace XianXia.Core.World.Strategic
         static bool TryBuildPathLeavingSite(
             SimulationWorld world,
             WorldSite site,
+            HexCoord startHex,
             HexCoord goalHex,
             List<HexCoord> into,
             out HexCoord exitHex,
@@ -367,8 +381,28 @@ namespace XianXia.Core.World.Strategic
                     out departureFootprintHex))
                 return false;
 
-            into.Add(departureFootprintHex);
-            into.Add(exitHex);
+            PathScratch.Clear();
+            if (!startHex.Equals(departureFootprintHex) &&
+                HexPathfinder.TryFindPath(world.HexWorld, startHex, departureFootprintHex, PathScratch) &&
+                PathScratch.Count >= 1)
+            {
+                for (var i = 0; i < PathScratch.Count; i++)
+                {
+                    if (into.Count == 0 || !into[into.Count - 1].Equals(PathScratch[i]))
+                        into.Add(PathScratch[i]);
+                }
+            }
+            else if (into.Count == 0 || !into[into.Count - 1].Equals(departureFootprintHex))
+            {
+                into.Add(departureFootprintHex);
+            }
+
+            if (!into[into.Count - 1].Equals(departureFootprintHex))
+                into.Add(departureFootprintHex);
+
+            if (!into[into.Count - 1].Equals(exitHex))
+                into.Add(exitHex);
+
             if (exitHex == goalHex)
                 return into.Count >= 2;
 
@@ -378,7 +412,10 @@ namespace XianXia.Core.World.Strategic
                 return false;
 
             for (var i = 1; i < PathScratch.Count; i++)
-                into.Add(PathScratch[i]);
+            {
+                if (into.Count == 0 || !into[into.Count - 1].Equals(PathScratch[i]))
+                    into.Add(PathScratch[i]);
+            }
 
             return into.Count >= 2;
         }

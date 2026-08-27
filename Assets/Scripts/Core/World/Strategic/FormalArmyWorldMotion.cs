@@ -65,6 +65,13 @@ namespace XianXia.Core.World.Strategic
         public void SetSiteDepartureVirtualPosition(WorldVec2 pos) =>
             SiteDepartureVirtualPosition = pos;
 
+        public void SetSiteDepartureVirtualPosition(WorldVec2 pos, float hexSize)
+        {
+            SiteDepartureVirtualPosition = pos;
+            CurrentHex = HexMath.WorldToHex(pos.X, pos.Y, hexSize > 0f ? hexSize : 1f);
+            HasPosition = true;
+        }
+
         public void SetAtWorldSite(string siteId, HexCoord representativeHex, float hexSize)
         {
             LocationKind = FormalArmyLocationKind.AtWorldSite;

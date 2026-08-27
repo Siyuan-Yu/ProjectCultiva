@@ -21,13 +21,22 @@ namespace XianXia.Core.World.Strategic
         public const string BanditWeakPatrolFormalArmyId = "army:formal_bandit_patrol_weak";
         public const string BanditScoutStackId = "army:bandit_patrol_auto";
         public const string BanditScoutFormalArmyId = "army:formal_bandit_scout";
+        public const string BanditCasualtyTestStackId = "army:bandit_patrol_casualty_test";
+        public const string BanditCasualtyTestFormalArmyId = "army:formal_bandit_casualty_test";
 
-        /// <summary>Prototype 试炼弱匪：专供自动战／弥留回归，自动战视为必胜�?/summary>
+        /// <summary>Prototype 试炼弱匪：专供自动战／弥留回归，自动战视为必胜。</summary>
         public static bool IsTrivialTestEnemyStack(string stackId) =>
             string.Equals(stackId, BanditWeakPatrolStackId, StringComparison.Ordinal);
 
         public static bool IsTrivialTestEnemyArmy(string formalArmyId) =>
             string.Equals(formalArmyId, BanditWeakPatrolFormalArmyId, StringComparison.Ordinal);
+
+        /// <summary>Prototype 试炼强匪：高战力展示 + 自动战必胜但必对我方造成 1 人弥留或阵亡（测试夹具）。</summary>
+        public static bool IsCasualtyTestEnemyStack(string stackId) =>
+            string.Equals(stackId, BanditCasualtyTestStackId, StringComparison.Ordinal);
+
+        public static bool IsCasualtyTestEnemyArmy(string formalArmyId) =>
+            string.Equals(formalArmyId, BanditCasualtyTestFormalArmyId, StringComparison.Ordinal);
 
         public static bool HasFormalArmyLink(ArmyStack stack) =>
             stack != null && !string.IsNullOrEmpty(stack.FormalArmyId);
@@ -200,6 +209,44 @@ namespace XianXia.Core.World.Strategic
             SyncMembershipForBanditArmy(world, army);
             SyncBanditStackView(world, army, BanditScoutStackId, "山匪斥候", siteId);
             ArmyPresenceAdapter.SyncFromArmy(world, army);
+            return Result.Ok(army);
+        }
+
+        /// <summary>Prototype 试炼强匪：3 人筑基高战；自动战夹具必定对我方造成 1 人弥留或阵亡。</summary>
+        public static Result<FormalArmy> EnsureBanditCasualtyTestArmy(
+            SimulationWorld world,
+            string siteId)
+        {
+            if (world == null)
+                return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "world null");
+
+            if (world.Strategic.FormalArmies.TryGet(BanditCasualtyTestFormalArmyId, out var existing) &&
+                existing != null)
+            {
+                SyncBanditStackView(world, existing, BanditCasualtyTestStackId, "试炼强匪（自动伤亡）", siteId);
+                return Result.Ok(existing);
+            }
+
+            var members = TestStrategicBootstrap.EnsureStrongCasualtyTestBanditCharacters(world, siteId);
+            if (members.Count < 1)
+                return Result.Fail<FormalArmy>(ErrorCode.InvalidOperation, "Failed to spawn casualty-test bandit characters.");
+
+            var army = new FormalArmy
+            {
+                ArmyId = BanditCasualtyTestFormalArmyId,
+                FactionId = StrategicFactionCatalog.BanditId,
+                LeaderCharacterId = members[0],
+                State = FormalArmyState.Idle
+            };
+            var ids = new List<ulong>(members.Count);
+            for (var i = 0; i < members.Count; i++)
+                ids.Add(members[i].Value);
+            army.ReplaceMembers(ids);
+            if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, siteId, out var hex))
+                ArmyHexTravelService.InitializeArmyAtHex(world, army, hex);
+            world.Strategic.FormalArmies.Register(army);
+            SyncMembershipForBanditArmy(world, army);
+            SyncBanditStackView(world, army, BanditCasualtyTestStackId, "试炼强匪（自动伤亡）", siteId);
             return Result.Ok(army);
         }
 

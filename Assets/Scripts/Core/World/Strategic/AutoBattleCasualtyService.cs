@@ -17,6 +17,7 @@ namespace XianXia.Core.World.Strategic
         public int PlayerWounded { get; set; }
         public int EnemyMembersEliminated { get; set; }
         public int EnemyMembersSpared { get; set; }
+        public bool CasualtyTestFixtureApplied { get; set; }
         public string Summary { get; set; } = string.Empty;
     }
 
@@ -44,7 +45,10 @@ namespace XianXia.Core.World.Strategic
                 return report;
 
             var intensity = ResolveIntensity(playerPower, enemyPower);
-            ApplyPlayerChipDamage(world, party, intensity, report);
+            if (enemyStack != null && ArmyStackAdapter.IsCasualtyTestEnemyStack(enemyStack.Id))
+                ApplyCasualtyTestFixtureDamage(world, party, report);
+            else
+                ApplyPlayerChipDamage(world, party, intensity, report);
             var debugForced = TryDebugForceSoloIncapacitated(world, party, report);
 
             if (ArmyStackAdapter.TryGetFormalArmy(world, enemyStack, out var formalArmy))
@@ -226,6 +230,77 @@ namespace XianXia.Core.World.Strategic
             return e / (p + e);
         }
 
+        static void ApplyCasualtyTestFixtureDamage(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> party,
+            AutoBattleReport report)
+        {
+            if (world == null || party == null || party.Count == 0 || report == null)
+                return;
+
+            var living = new List<EntityId>(party.Count);
+            for (var i = 0; i < party.Count; i++)
+            {
+                var id = party[i];
+                if (id.IsNone || !world.Entities.TryGet(id, out var entity) || entity == null)
+                    continue;
+                if (!CombatLifeStateService.CanFight(entity))
+                    continue;
+                living.Add(id);
+            }
+
+            if (living.Count == 0)
+                return;
+
+            var victimIndex = world.Random.NextInt(0, living.Count);
+            if (!world.Entities.TryGet(living[victimIndex], out var victim) || victim == null)
+                return;
+
+            report.CasualtyTestFixtureApplied = ApplyGuaranteedPlayerCasualty(world, victim, report);
+        }
+
+        /// <summary>试炼强匪夹具：必定让一名接战成员进入弥留或阵亡。</summary>
+        static bool ApplyGuaranteedPlayerCasualty(
+            SimulationWorld world,
+            Entity entity,
+            AutoBattleReport report)
+        {
+            if (world == null || entity == null || report == null)
+                return false;
+
+            var preferKill = world.Random.NextDouble() < 0.35;
+            if (preferKill)
+            {
+                if (ApplyDirectKill(world, entity))
+                {
+                    report.PlayerKilled++;
+                    return true;
+                }
+
+                if (ApplyIncapacitated(world, entity))
+                {
+                    report.PlayerIncapacitated++;
+                    return true;
+                }
+            }
+            else
+            {
+                if (ApplyIncapacitated(world, entity))
+                {
+                    report.PlayerIncapacitated++;
+                    return true;
+                }
+
+                if (ApplyDirectKill(world, entity))
+                {
+                    report.PlayerKilled++;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         static void ApplyPlayerChipDamage(
             SimulationWorld world,
             IReadOnlyList<EntityId> party,
@@ -308,6 +383,11 @@ namespace XianXia.Core.World.Strategic
                     sb.Append(" 敌军 " + report.EnemyMembersSpared + " 人全部弥留（未处决）。");
                 else
                     sb.Append(" 敌军已溃。");
+
+                if (report.PlayerKilled > 0)
+                    sb.Append(" 我方 " + report.PlayerKilled + " 人阵亡。");
+                if (report.PlayerIncapacitated > 0)
+                    sb.Append(" 我方 " + report.PlayerIncapacitated + " 人弥留。");
             }
             else
             {
@@ -325,6 +405,8 @@ namespace XianXia.Core.World.Strategic
 
             if (debugForcedSoloIncap)
                 sb.Append(" 【调试：单人强制弥留】");
+            if (report.CasualtyTestFixtureApplied)
+                sb.Append(" 【试炼强匪伤亡夹具】");
 
             return sb.ToString().Trim();
         }

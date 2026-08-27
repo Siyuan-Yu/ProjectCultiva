@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:places_player_camp",
+      "type": "localPlaceSet",
+      "name": "主角临时营地·地点表",
+      "mapLayoutId": "base:map_player_camp",
+      "startLocationId": "base:loc_player_camp_start",
+      "locations": [
+        {
+          "id": "base:loc_player_camp_start",
+          "name": "主角临时营地",
+          "kind": "Wilderness",
+          "tags": ["wilderness", "plain", "camp", "test"],
+          "allowedActivities": ["Idle", "Patrol"],
+          "adjacentIds": [],
+          "presentationX": 0.0,
+          "presentationZ": 0.0
+        }
+      ]
+    }
+  ]
+}
