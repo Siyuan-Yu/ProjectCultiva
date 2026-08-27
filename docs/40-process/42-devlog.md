@@ -7,6 +7,26 @@
 
 ---
 
+## 2026-08-27 — Phase 3 FormalArmy Continuous World 实现入仓（待验收）
+
+**做了什么**
+- **3A Authority：** `ArmyAuthorityRules`；Active 禁入军；Follower 入军原子退出 Party；Background Travel Cancel
+- **3B–C World Motion + Travel：** `FormalArmyWorldMotion`／`FormalArmyContinuousTravelService`；Site Departure；Footprint → `AtWorldSite` canonicalize；`ArmyHexTravelService` 委托连续推进
+- **3D Presence：** `FormalArmyMemberPresenceSync` 成员 Presence 从 Army 派生
+- **3E–G ArmyService：** 仅 friendly Site 组军；Wilderness 禁 Disband；Snapshot Phase 3 字段 + `FormalArmySnapshotRestore`
+- **PresenceHex 收口：** `EnsurePresenceHexValid()` 强制 `PresenceHex == AnchorHex`；Loader／Editor／Validation；30×15 测试 Content 调整
+- **Host：** F11 `HostFormalArmyDebugPanel`（`PlayableHostBootstrap` 挂载）
+- **EditMode：** `FormalArmyPhase3AuthorityTests`
+- **编译修复：** Snapshot `armyMotion` 重名；`TryGetActiveSegmentWorld` 签名；DebugPanel `using`
+- 文档：[166](166-phase-3-formal-army-continuous-world-2026-08-27.md)；roadmap／163 更新
+- **未**同步飞书；**未**人工验收封板
+
+**状态**
+- Phase 3 **未封板** — 待 LevelTester F11 人工 TEST 1–10 + EditMode 全绿
+- **未做：** Battle Authority（Phase 4）、FormalArmy WorldMap Marker、Autonomous AI
+
+---
+
 ## 2026-08-27 — Phase 2D Background Character World Travel 人工验收封板
 
 **做了什么**

@@ -29,7 +29,21 @@ public static class HexWorldContentJson
     {
         var file = JsonSerializer.Deserialize<HexWorldContentFile>(json, ReadOptions)
                    ?? throw new InvalidDataException("Hex world JSON root is null.");
+        NormalizeLoadedSites(file);
         return file;
+    }
+
+    static void NormalizeLoadedSites(HexWorldContentFile file)
+    {
+        if (file.Definitions == null)
+            return;
+        foreach (var definition in file.Definitions)
+        {
+            if (definition?.Sites == null)
+                continue;
+            foreach (var site in definition.Sites)
+                HexWorldPresenceRules.SyncPresenceToAnchor(site);
+        }
     }
 
     public static HexWorldDefinitionDto LoadDefinition(string path) =>
@@ -74,7 +88,7 @@ public static class HexWorldContentJson
             .ToList();
         foreach (var site in definition.Sites)
         {
-            HexWorldPresenceRules.EnsurePresenceDefaults(site);
+            HexWorldPresenceRules.SyncPresenceToAnchor(site);
             site.Footprint = site.Footprint
                 .Distinct()
                 .OrderBy(h => h.R)

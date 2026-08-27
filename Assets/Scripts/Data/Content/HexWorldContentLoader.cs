@@ -78,7 +78,7 @@ namespace XianXia.Data.Content
         static void RegisterSite(SimulationWorld world, HexWorldSiteDefinition src)
         {
             var anchor = new HexCoord(src.AnchorQ, src.AnchorR);
-            var presence = new HexCoord(
+            var loadedPresence = new HexCoord(
                 src.PresenceQ ?? src.AnchorQ,
                 src.PresenceR ?? src.AnchorR);
             var site = new WorldSite
@@ -87,7 +87,7 @@ namespace XianXia.Data.Content
                 DisplayName = src.DisplayName ?? src.SiteId,
                 SiteType = src.SiteType ?? "Site",
                 AnchorHex = anchor,
-                PresenceHex = presence,
+                PresenceHex = anchor,
                 LocalMapId = src.LocalMapId ?? string.Empty,
                 OwnerFactionId = src.OwnerFactionId ?? string.Empty,
             };
@@ -102,6 +102,14 @@ namespace XianXia.Data.Content
             else
             {
                 site.SetFootprint(new[] { anchor });
+            }
+
+            if (site.HasPresenceAnchorMismatch(loadedPresence))
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    "[HexWorldContentLoader] PresenceHex != AnchorHex for site '" + src.SiteId +
+                    "': loaded (" + loadedPresence.Q + "," + loadedPresence.R + ") -> anchor (" +
+                    anchor.Q + "," + anchor.R + ").");
             }
 
             site.EnsurePresenceHexValid();

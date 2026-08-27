@@ -122,6 +122,16 @@ namespace XianXia.Core.Persistence
         public int StepTotalTicks { get; set; }
         public int CurrentPathIndex { get; set; }
         public List<HexCoordSnapshotDto> HexPath { get; set; } = new List<HexCoordSnapshotDto>();
+
+        /// <summary>Phase 3 连续位置（可选；旧存档缺省时从 CurrentHex 迁移）。</summary>
+        public int LocationKind { get; set; }
+        public string SiteId { get; set; } = string.Empty;
+        public float WorldX { get; set; }
+        public float WorldY { get; set; }
+        public string DestinationSiteId { get; set; } = string.Empty;
+        public int CurrentOrderKind { get; set; }
+        public float SegmentProgress { get; set; }
+        public int SegmentIndex { get; set; }
     }
 
     public sealed class HexCoordSnapshotDto

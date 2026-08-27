@@ -3169,7 +3169,7 @@
           "siteType": "Village",
           "anchorQ": 3,
           "anchorR": 7,
-          "presenceQ": 4,
+          "presenceQ": 3,
           "presenceR": 7,
           "footprint": [
             {
@@ -3245,7 +3245,7 @@
           "anchorQ": 16,
           "anchorR": 5,
           "presenceQ": 16,
-          "presenceR": 4,
+          "presenceR": 5,
           "footprint": [
             {
               "q": 16,

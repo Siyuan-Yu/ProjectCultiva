@@ -262,14 +262,9 @@ public sealed class HexWorldEditorDocument
         var dr = newAnchor.R - site.AnchorR;
         site.AnchorQ = newAnchor.Q;
         site.AnchorR = newAnchor.R;
-        HexWorldPresenceRules.EnsurePresenceDefaults(site);
-        site.PresenceQ = site.PresenceQ!.Value + dq;
-        site.PresenceR = site.PresenceR!.Value + dr;
         if (site.Footprint.Count <= 1)
         {
             site.Footprint = new List<HexCoordDto> { newAnchor };
-            site.PresenceQ = newAnchor.Q;
-            site.PresenceR = newAnchor.R;
         }
         else
         {
@@ -278,6 +273,8 @@ public sealed class HexWorldEditorDocument
                 moved.Add(new HexCoordDto(h.Q + dq, h.R + dr));
             site.Footprint = moved;
         }
+
+        HexWorldPresenceRules.SyncPresenceToAnchor(site);
 
         var touched = new List<(int Q, int R)>();
         foreach (var hex in site.Footprint)

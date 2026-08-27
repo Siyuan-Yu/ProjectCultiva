@@ -98,7 +98,7 @@
           <TextBlock x:Name="SiteFootprintCountText" Foreground="#C8C4BC" Margin="0,0,0,4"/>
           <TextBlock x:Name="SiteFootprintListText" Foreground="#A8A49C" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6"/>
           <Button x:Name="SetAnchorButton" Content="将当前 Hex 设为 Anchor" Margin="0,0,0,6" Click="SetAnchor_Click"/>
-          <Button x:Name="SetPresenceButton" Content="将当前 Hex 设为 Presence" Margin="0,0,0,6" Click="SetPresence_Click"/>
+          <Button x:Name="SetPresenceButton" Content="将当前 Hex 设为 Presence" Margin="0,0,0,6" Click="SetPresence_Click" Visibility="Collapsed"/>
           <TextBlock x:Name="FootprintEditStatusText" Foreground="#FFAA66" TextWrapping="Wrap" Margin="0,0,0,8"/>
           <Button Content="删除地点" Margin="0,0,0,8" Click="DeleteSite_Click"/>
           <TextBlock x:Name="ValidationText" Foreground="#FFAA66" TextWrapping="Wrap"/>

@@ -28,6 +28,7 @@ namespace XianXia.Core.Persistence
                 var army = kv.Value;
                 if (army == null)
                     continue;
+                var armyMotion = army.WorldMotion;
                 var armyDto = new FormalArmySnapshotDto
                 {
                     ArmyId = army.ArmyId,
@@ -42,7 +43,15 @@ namespace XianXia.Core.Persistence
                     StepProgress = army.StepProgress,
                     StepRemainingTicks = army.StepRemainingTicks,
                     StepTotalTicks = army.StepTotalTicks,
-                    CurrentPathIndex = army.CurrentPathIndex
+                    CurrentPathIndex = army.CurrentPathIndex,
+                    LocationKind = (int)armyMotion.LocationKind,
+                    SiteId = armyMotion.SiteId ?? string.Empty,
+                    WorldX = armyMotion.WorldPosition.X,
+                    WorldY = armyMotion.WorldPosition.Y,
+                    DestinationSiteId = armyMotion.DestinationSiteId ?? string.Empty,
+                    CurrentOrderKind = (int)armyMotion.CurrentOrderKind,
+                    SegmentProgress = armyMotion.SegmentProgress,
+                    SegmentIndex = armyMotion.SegmentIndex,
                 };
                 for (var p = 0; p < army.HexPathCount; p++)
                 {
@@ -333,6 +342,7 @@ namespace XianXia.Core.Persistence
                         }
 
                         world.Strategic.FormalArmies.Register(army);
+                        FormalArmySnapshotRestore.Apply(world, army, a);
                     }
                 }
             }

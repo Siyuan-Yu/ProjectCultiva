@@ -37,10 +37,6 @@ public static class HexWorldEditorFootprintService
         if (hex.Q == site.AnchorQ && hex.R == site.AnchorR)
             return FootprintEditResult.Fail("不能删除 AnchorHex；请先将其他 Hex 设为 Anchor。");
 
-        HexWorldPresenceRules.EnsurePresenceDefaults(site);
-        if (hex.Q == site.PresenceQ && hex.R == site.PresenceR)
-            return FootprintEditResult.Fail("不能删除 PresenceHex；请先将其他 Footprint Hex 设为 Presence。");
-
         if (!HexWorldFootprintRules.WouldRemainConnectedAfterRemove(footprint, hex))
             return FootprintEditResult.Fail("删除此格会使 Footprint 断开，操作已拒绝。");
 
@@ -55,16 +51,15 @@ public static class HexWorldEditorFootprintService
 
         site.AnchorQ = hex.Q;
         site.AnchorR = hex.R;
-        return FootprintEditResult.Ok($"AnchorHex 已设为 ({hex.Q},{hex.R})。");
+        HexWorldPresenceRules.SyncPresenceToAnchor(site);
+        return FootprintEditResult.Ok($"AnchorHex 已设为 ({hex.Q},{hex.R})；PresenceHex 已同步。");
     }
 
     public static FootprintEditResult TrySetPresenceHex(HexWorldSiteDto site, HexCoordDto hex)
     {
-        if (!HexWorldFootprintRules.ContainsFootprint(site, hex))
-            return FootprintEditResult.Fail("PresenceHex 必须属于 Footprint。");
-
-        site.PresenceQ = hex.Q;
-        site.PresenceR = hex.R;
-        return FootprintEditResult.Ok($"PresenceHex 已设为 ({hex.Q},{hex.R})。");
+        _ = site;
+        _ = hex;
+        return FootprintEditResult.Fail(
+            "PresenceHex 已与 AnchorHex 锁定相同（兼容字段）；请修改 AnchorHex。");
     }
 }

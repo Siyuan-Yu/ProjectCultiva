@@ -58,6 +58,15 @@ public static class HexWorldContentValidator
             HexWorldPresenceRules.EnsurePresenceDefaults(site);
             var presenceQ = site.PresenceQ!.Value;
             var presenceR = site.PresenceR!.Value;
+            if (presenceQ != site.AnchorQ || presenceR != site.AnchorR)
+            {
+                issues.Add(Warn(
+                    $"PresenceHex != AnchorHex for {site.SiteId} ({presenceQ},{presenceR}) vs anchor ({site.AnchorQ},{site.AnchorR}); will be corrected on save/load.",
+                    site.SiteId,
+                    presenceQ,
+                    presenceR));
+            }
+
             if (!footprint.Any(h => h.Q == presenceQ && h.R == presenceR))
             {
                 issues.Add(Error(

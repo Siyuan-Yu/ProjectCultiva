@@ -516,7 +516,7 @@ namespace XianXia.Tests
             var center = HexCenter(world, siteA.PresenceHex);
             Assert.AreEqual(center.X, pos.X, FloatTol);
             Assert.AreEqual(center.Y, pos.Y, FloatTol);
-            Assert.AreNotEqual(siteA.AnchorHex, siteA.PresenceHex);
+            Assert.AreEqual(siteA.AnchorHex, siteA.PresenceHex);
         }
 
         [Test]
@@ -550,7 +550,7 @@ namespace XianXia.Tests
             Assert.IsTrue(PlayerPartyHexTravelService.EnterWorldSiteAsParty(world, party, siteA).IsSuccess);
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, world.PlayerPartyTravel.LocationKind);
             Assert.AreEqual(siteA.PresenceHex, world.PlayerPartyTravel.CurrentHex);
-            Assert.AreNotEqual(siteA.AnchorHex, siteA.PresenceHex);
+            Assert.AreEqual(siteA.AnchorHex, siteA.PresenceHex);
 
             Assert.IsTrue(PlayerPartyHexTravelService.EnterWorldSiteAsParty(world, party, siteB).IsSuccess);
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, world.PlayerPartyTravel.LocationKind);

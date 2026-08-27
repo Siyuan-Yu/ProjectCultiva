@@ -73,35 +73,17 @@ public sealed class HexWorldEditorFootprintTests
         Assert.True(result.Success);
         Assert.Equal(6, site.AnchorQ);
         Assert.Equal(5, site.AnchorR);
+        Assert.Equal(6, site.PresenceQ);
+        Assert.Equal(5, site.PresenceR);
     }
 
     [Fact]
-    public void EditorPresence_AllowsNonAnchorInsideFootprint()
+    public void EditorPresence_RejectsIndependentSet()
     {
         var site = MakeSite("base:site_a", 5, 5, (5, 5), (6, 5), (5, 6));
         var result = HexWorldEditorFootprintService.TrySetPresenceHex(site, new HexCoordDto(6, 5));
-        Assert.True(result.Success);
-        Assert.Equal(6, site.PresenceQ);
-        Assert.Equal(5, site.PresenceR);
-        Assert.Equal(5, site.AnchorQ);
-    }
-
-    [Fact]
-    public void EditorPresence_RejectsOutsideFootprint()
-    {
-        var site = MakeSite("base:site_a", 5, 5, (5, 5), (6, 5));
-        var result = HexWorldEditorFootprintService.TrySetPresenceHex(site, new HexCoordDto(9, 9));
         Assert.False(result.Success);
-    }
-
-    [Fact]
-    public void EditorPresence_RejectsRemovingPresenceHex()
-    {
-        var site = MakeSite("base:site_a", 5, 5, (5, 5), (6, 5), (5, 6));
-        Assert.True(HexWorldEditorFootprintService.TrySetPresenceHex(site, new HexCoordDto(6, 5)).Success);
-        var result = HexWorldEditorFootprintService.TryRemoveFootprintHex(site, new HexCoordDto(6, 5));
-        Assert.False(result.Success);
-        Assert.Contains("PresenceHex", result.Message);
+        Assert.Contains("AnchorHex", result.Message);
     }
 
     [Fact]
@@ -113,5 +95,16 @@ public sealed class HexWorldEditorFootprintTests
         Assert.Equal(5, presence.Q);
         Assert.Equal(5, presence.R);
         Assert.True(HexWorldPresenceRules.ValidatePresenceHex(site).Success);
+    }
+
+    [Fact]
+    public void LegacySite_MismatchedPresence_SyncsToAnchorOnLoad()
+    {
+        var site = MakeSite("base:site_legacy", 5, 5, (5, 5), (6, 5));
+        site.PresenceQ = 6;
+        site.PresenceR = 5;
+        Assert.True(HexWorldPresenceRules.SyncPresenceToAnchor(site));
+        Assert.Equal(site.AnchorQ, site.PresenceQ);
+        Assert.Equal(site.AnchorR, site.PresenceR);
     }
 }

@@ -160,14 +160,15 @@ public partial class MainWindow : Window
             SiteFootprintListText.Text = "Footprint Hexes：—";
             FootprintEditStatusText.Text = string.Empty;
             SetAnchorButton.IsEnabled = false;
-            SetPresenceButton.IsEnabled = false;
+            SetPresenceButton.Visibility = Visibility.Collapsed;
             return;
         }
 
         var footprint = HexWorldFootprintRules.ResolveFootprint(site);
-        var presence = HexWorldPresenceRules.ResolvePresenceHex(site);
+        HexWorldPresenceRules.SyncPresenceToAnchor(site);
         SiteAnchorText.Text = $"AnchorHex：({site.AnchorQ},{site.AnchorR})";
-        SitePresenceText.Text = $"PresenceHex：({presence.Q},{presence.R})";
+        SitePresenceText.Text =
+            $"PresenceHex = AnchorHex (compatibility)：({site.AnchorQ},{site.AnchorR})";
         SiteFootprintCountText.Text = $"Footprint Count：{footprint.Count}";
         SiteFootprintListText.Text = "Footprint Hexes：\n" +
                                       string.Join("\n", footprint.Select(h => $"({h.Q},{h.R})"));
@@ -180,7 +181,7 @@ public partial class MainWindow : Window
         if (!string.IsNullOrEmpty(_document.LastFootprintEditMessage))
             FootprintEditStatusText.Text = _document.LastFootprintEditMessage;
         SetAnchorButton.IsEnabled = _document.SelectedHex is { Q: >= 0 };
-        SetPresenceButton.IsEnabled = _document.SelectedHex is { Q: >= 0 };
+        SetPresenceButton.Visibility = Visibility.Collapsed;
     }
 
     void SetAnchor_Click(object sender, RoutedEventArgs e)

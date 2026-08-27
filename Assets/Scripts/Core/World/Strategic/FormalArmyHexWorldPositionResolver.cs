@@ -3,7 +3,7 @@ using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>FormalArmy Hex 战略位置 → 大地图世界坐标（唯一真源）。</summary>
+    /// <summary>FormalArmy 连续世界位置 → 大地图坐标。</summary>
     public static class FormalArmyHexWorldPositionResolver
     {
         public static bool TryResolve(
@@ -15,6 +15,14 @@ namespace XianXia.Core.World.Strategic
             worldX = worldY = 0f;
             if (world?.HexWorld == null || army == null || !army.UsesHexStrategicPosition)
                 return false;
+
+            var motion = army.WorldMotion;
+            if (motion.HasPosition)
+            {
+                worldX = motion.WorldPosition.X;
+                worldY = motion.WorldPosition.Y;
+                return world.HexWorld.Contains(motion.CurrentHex);
+            }
 
             var hexSize = world.HexWorld.HexSize;
             if (army.State == FormalArmyState.Moving &&

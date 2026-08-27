@@ -21,7 +21,8 @@ namespace XianXia.Core.World.Strategic
             string factionId,
             string siteId,
             IReadOnlyList<EntityId> memberCharacterIds,
-            EntityId? explicitLeaderId = null)
+            EntityId? explicitLeaderId = null,
+            PlayerPartyRuntime party = null)
         {
             if (world?.Strategic?.FormalArmies == null)
                 return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "SimulationWorld incomplete.");
@@ -42,7 +43,20 @@ namespace XianXia.Core.World.Strategic
                 if (memberId.IsNone)
                     return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "Invalid member EntityId.");
 
-                if (!TryValidateMemberForFormation(world, memberId, factionId, siteId, out var memberError))
+                if (!ArmyAuthorityRules.TryValidateNotActive(party, memberId, out var activeErr))
+                    return Result.Fail<FormalArmy>(ErrorCode.InvalidOperation, activeErr);
+
+                if (party != null && party.IsMember(memberId))
+                {
+                    if (party.ActiveCharacterId == memberId)
+                        return Result.Fail<FormalArmy>(ErrorCode.InvalidOperation, "Active character cannot join FormalArmy.");
+                    if (!party.TryRemoveMember(memberId, out _))
+                        return Result.Fail<FormalArmy>(ErrorCode.InvalidOperation, "Failed to remove follower from PlayerParty.");
+                }
+
+                BackgroundCharacterTravelService.CancelTravelIfAny(world, memberId);
+
+                if (!TryValidateMemberForFormation(world, memberId, factionId, siteId, null, out var memberError))
                     return Result.Fail<FormalArmy>(memberError);
 
                 if (ContainsEntity(resolvedMembers, memberId))
@@ -72,8 +86,7 @@ namespace XianXia.Core.World.Strategic
 
             world.Strategic.FormalArmies.Register(army);
             SyncMembershipForArmy(world, army);
-            if (world.Strategic.Sites.TryGet(siteId, out var site) && site != null)
-                ArmyHexTravelService.InitializeArmyAtHex(army, site.AnchorHex);
+            FormalArmyContinuousTravelService.InitializeAtWorldSite(world, army, siteId);
 
             return Result.Ok(army);
         }
@@ -124,7 +137,11 @@ namespace XianXia.Core.World.Strategic
             return Result.Success();
         }
 
-        public static Result AddMember(SimulationWorld world, string armyId, EntityId memberId)
+        public static Result AddMember(
+            SimulationWorld world,
+            string armyId,
+            EntityId memberId,
+            PlayerPartyRuntime party = null)
         {
             if (world?.Strategic?.FormalArmies == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld incomplete.");
@@ -137,12 +154,40 @@ namespace XianXia.Core.World.Strategic
             if (!TryResolveArmySiteId(world, army, out var armySiteId))
                 return Result.Failure(ErrorCode.InvalidOperation, "Army has no formation site.");
 
-            if (!TryValidateMemberForFormation(world, memberId, army.FactionId, armySiteId, out var memberError))
-                return Result.Failure(memberError);
+            var join = TryJoinMemberWithAuthorityTransfer(world, army, memberId, armySiteId, army.FactionId, party);
+            if (join.IsFailure)
+                return join;
 
             army.AddMember(memberId);
-            BackgroundCharacterTravelService.CancelTravelIfAny(world, memberId);
             SyncMembershipForArmy(world, army);
+            FormalArmyMemberPresenceSync.SyncAll(world, army);
+            return Result.Success();
+        }
+
+        public static Result TryJoinMemberWithAuthorityTransfer(
+            SimulationWorld world,
+            FormalArmy army,
+            EntityId memberId,
+            string siteId,
+            string factionId,
+            PlayerPartyRuntime party)
+        {
+            if (!ArmyAuthorityRules.TryValidateNotActive(party, memberId, out var activeErr))
+                return Result.Failure(ErrorCode.InvalidOperation, activeErr);
+
+            if (party != null && party.IsMember(memberId))
+            {
+                if (party.ActiveCharacterId == memberId)
+                    return Result.Failure(ErrorCode.InvalidOperation, "Active character cannot join FormalArmy.");
+                if (!party.TryRemoveMember(memberId, out _))
+                    return Result.Failure(ErrorCode.InvalidOperation, "Failed to remove follower from PlayerParty.");
+            }
+
+            BackgroundCharacterTravelService.CancelTravelIfAny(world, memberId);
+
+            if (!TryValidateMemberForFormation(world, memberId, factionId, siteId, party, out var memberError))
+                return Result.Failure(memberError);
+
             return Result.Success();
         }
 
@@ -364,13 +409,7 @@ namespace XianXia.Core.World.Strategic
                 entity.TryGet<ArmyMembershipComponent>(out var mem))
                 mem.ClearArmyId();
             army.RemoveMember(memberId);
-            ClearAtSitePresence(world, memberId);
-            if (LingeringBattlefieldPartyService.IsLingeringDowned(world, memberId))
-                return;
-
-            var site = TryResolveDisbandSite(world, army);
-            if (site != null)
-                world.WorldPresence.SetAtSite(memberId, site.SiteId);
+            FormalArmyMemberPresenceSync.DetachMemberAtArmyLocation(world, army, memberId);
         }
 
         static bool TryValidateMemberForFormation(
@@ -378,9 +417,24 @@ namespace XianXia.Core.World.Strategic
             EntityId memberId,
             string factionId,
             string siteId,
+            PlayerPartyRuntime party,
             out GameError error)
         {
             error = default;
+            if (!ArmyAuthorityRules.TryValidateNotActive(party, memberId, out var activeErr))
+            {
+                error = new GameError(ErrorCode.InvalidOperation, activeErr);
+                return false;
+            }
+
+            if (party != null && party.IsMember(memberId))
+            {
+                error = new GameError(
+                    ErrorCode.InvalidOperation,
+                    "Party follower must leave PlayerParty before joining FormalArmy.",
+                    memberId.ToString());
+                return false;
+            }
             if (!world.Entities.TryGet(memberId, out var entity))
             {
                 error = new GameError(ErrorCode.EntityNotFound, "Member not found.", memberId.ToString());
@@ -531,6 +585,21 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.Strategic?.Sites == null || army == null)
                 return null;
+            if (FormalArmyWorldLocationQuery.TryResolve(
+                    world,
+                    army,
+                    out var kind,
+                    out var siteId,
+                    out _,
+                    out _) &&
+                kind == FormalArmyLocationKind.AtWorldSite &&
+                !string.IsNullOrEmpty(siteId) &&
+                world.Strategic.Sites.TryGet(siteId, out var site) &&
+                site != null)
+            {
+                return site;
+            }
+
             if (world.Strategic.Sites.TryGetAtHex(army.CurrentHex, out var hexSite) && hexSite != null)
                 return hexSite;
             return null;
@@ -558,7 +627,16 @@ namespace XianXia.Core.World.Strategic
                 return false;
             }
 
-            return ArmyFormationSitePolicy.TryValidateFormationAtHex(world, army.FactionId, army.CurrentHex, out error);
+            if (!FormalArmyWorldLocationQuery.IsAtFriendlyWorldSite(world, army))
+            {
+                error = new GameError(
+                    ErrorCode.InvalidOperation,
+                    "Army roster operations require friendly WorldSite.",
+                    army.ArmyId);
+                return false;
+            }
+
+            return true;
         }
 
         static bool ContainsEntity(IReadOnlyList<EntityId> list, EntityId id)

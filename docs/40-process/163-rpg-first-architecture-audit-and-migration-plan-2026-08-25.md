@@ -92,6 +92,7 @@
 - **Affected：** Army UI、WorldMap 命令入口、文档对齐 Runtime  
 - **Must Not Break：** Army vs Army／Site Capture／War  
 - **Acceptance：** 无 Army 的 Party 可世界移动；隔空组军仍失败  
+- **2026-08-27 进度（入仓 · 未封板）：** FormalArmy Continuous WorldPosition + RPG-First Authority + Save/Load + F11 Debug；实现索引 [166](166-phase-3-formal-army-continuous-world-2026-08-27.md)。仍待人工验收 TEST 1–10。  
 
 ### Phase 4 — Manual Battle Permission
 

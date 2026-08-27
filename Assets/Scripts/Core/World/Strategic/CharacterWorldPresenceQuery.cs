@@ -45,6 +45,9 @@ namespace XianXia.Core.World.Strategic
                 army != null &&
                 army.UsesHexStrategicPosition)
             {
+                if (FormalArmyWorldLocationQuery.TryResolve(
+                        world, army, out _, out _, out _, out worldHex))
+                    return true;
                 worldHex = army.CurrentHex;
                 return true;
             }

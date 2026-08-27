@@ -685,6 +685,9 @@ namespace XianXia.Unity.Host
             var bgTravelDebug = GetComponent<HostBackgroundTravelDebugPanel>() ??
                                 gameObject.AddComponent<HostBackgroundTravelDebugPanel>();
             bgTravelDebug.Bind(this, selectionController);
+            var armyDebug = GetComponent<HostFormalArmyDebugPanel>() ??
+                            gameObject.AddComponent<HostFormalArmyDebugPanel>();
+            armyDebug.Bind(this);
             if (strategicAcceptancePanel != null)
                 strategicAcceptancePanel.Bind(this);
             moveController.Bind(this, selectionController, entityViewSpawner, commandBridge, npcContextMenu);

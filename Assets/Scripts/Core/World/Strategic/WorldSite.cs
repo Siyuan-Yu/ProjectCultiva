@@ -23,7 +23,7 @@ namespace XianXia.Core.World.Strategic
         public HexCoord AnchorHex { get; set; }
 
         /// <summary>
-        /// Character 位于该 Site LocalMap 时的 HexWorld 位置代理（⊆ Footprint；可与 Anchor 不同）。
+        /// Character 位于该 Site LocalMap 时的 HexWorld 位置代理（兼容字段；必须与 <see cref="AnchorHex"/> 相同）。
         /// Authoring／Content 固定；Runtime 不随 LocalPosition 漂移。
         /// </summary>
         public HexCoord PresenceHex { get; set; }
@@ -70,24 +70,30 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 若 PresenceHex 不在 Footprint：优先落回合法 Anchor，否则取 Footprint 首格（确定性迁移，非随机）。
+        /// 确保 PresenceHex 在 Footprint 内，并强制 PresenceHex == AnchorHex（兼容 invariant）。
         /// </summary>
         public void EnsurePresenceHexValid()
         {
-            if (OccupiesHex(PresenceHex))
-                return;
-            if (OccupiesHex(AnchorHex))
+            if (!OccupiesHex(PresenceHex) && OccupiesHex(AnchorHex))
             {
                 PresenceHex = AnchorHex;
-                return;
+            }
+            else if (!OccupiesHex(PresenceHex))
+            {
+                foreach (var hex in EnumerateFootprintHexes())
+                {
+                    PresenceHex = hex;
+                    break;
+                }
             }
 
-            foreach (var hex in EnumerateFootprintHexes())
-            {
-                PresenceHex = hex;
-                return;
-            }
+            if (OccupiesHex(AnchorHex))
+                PresenceHex = AnchorHex;
         }
+
+        /// <summary>PresenceHex 是否与 AnchorHex 不一致（加载旧 Content 时可用来打 Development warning）。</summary>
+        public bool HasPresenceAnchorMismatch(HexCoord loadedPresence) =>
+            !loadedPresence.Equals(default) && loadedPresence != AnchorHex;
 
         public IEnumerable<HexCoord> EnumerateFootprintHexes()
         {

@@ -32,6 +32,9 @@ namespace XianXia.Core.World.Strategic
         public string FactionId { get; internal set; } = string.Empty;
         public EntityId LeaderCharacterId { get; internal set; }
 
+        /// <summary>Phase 3：连续世界位置 + 旅行状态真源。</summary>
+        public FormalArmyWorldMotion WorldMotion { get; } = new FormalArmyWorldMotion();
+
         public bool UsesHexStrategicPosition
         {
             get => _usesHexStrategicPosition;
@@ -100,10 +103,18 @@ namespace XianXia.Core.World.Strategic
             internal set => FormalArmyStrategicMutationDiagnostics.WriteState(this, ref _state, value);
         }
 
-        /// <summary>若当前 Hex 落在 WorldSite 足迹内，返回该 SiteId。</summary>
+        /// <summary>若 Army 位于 WorldSite，返回 SiteId（Phase 3：优先 WorldMotion）。</summary>
         public bool TryGetFormationSiteId(SimulationWorld world, out string siteId)
         {
             siteId = string.Empty;
+            if (WorldMotion.HasPosition &&
+                WorldMotion.LocationKind == FormalArmyLocationKind.AtWorldSite &&
+                !string.IsNullOrEmpty(WorldMotion.SiteId))
+            {
+                siteId = WorldMotion.SiteId;
+                return true;
+            }
+
             if (world?.Strategic?.Sites == null)
                 return false;
             if (!world.Strategic.Sites.TryGetAtHex(CurrentHex, out var site) || site == null)
@@ -111,6 +122,36 @@ namespace XianXia.Core.World.Strategic
             siteId = site.SiteId ?? string.Empty;
             return !string.IsNullOrEmpty(siteId);
         }
+
+        internal void SyncLegacyFromWorldMotion()
+        {
+            var motion = WorldMotion;
+            UsesHexStrategicPosition = motion.HasPosition;
+            CurrentHex = motion.CurrentHex;
+            DestinationHex = motion.DestinationHex;
+            StepProgress = motion.SegmentProgress;
+            CurrentPathIndex = motion.SegmentIndex;
+            StepRemainingTicks = 0;
+            StepTotalTicks = 0;
+
+            _hexPath.Clear();
+            for (var i = 0; i < motion.HexPathCount; i++)
+                _hexPath.Add(motion.HexPath[i]);
+
+            if (motion.IsMoving)
+            {
+                if (State != FormalArmyState.Moving)
+                    State = FormalArmyState.Moving;
+            }
+            else if (State == FormalArmyState.Moving)
+            {
+                State = FormalArmyState.Idle;
+            }
+        }
+
+        /// <summary>兼容旧调用：仍基于 CurrentHex 查 Site。</summary>
+        public bool TryGetFormationSiteIdLegacy(SimulationWorld world, out string siteId) =>
+            TryGetFormationSiteId(world, out siteId);
 
         internal void SetHexPath(IReadOnlyList<HexCoord> path, HexCoord destination)
         {

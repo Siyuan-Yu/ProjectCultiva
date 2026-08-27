@@ -42,8 +42,9 @@ namespace XianXia.Tests
                 LocalMapId = "test:map_qingshi",
             };
             site.SetFootprint(footprint);
+            presenceHex = site.PresenceHex;
             Assert.IsTrue(WorldSiteFootprintValidator.IsPresenceInFootprint(site));
-            Assert.AreNotEqual(site.AnchorHex, site.PresenceHex);
+            Assert.AreEqual(site.AnchorHex, site.PresenceHex);
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
             return world;
         }
@@ -72,23 +73,23 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void PRESENCE_02_MultiHexSite_AllowsNonAnchorPresenceHex()
+        public void PRESENCE_02_MultiHexSite_PresenceMatchesAnchor()
         {
             BuildSiteWorld(out var site, out var presence);
-            Assert.AreNotEqual(site.AnchorHex, presence);
-            Assert.AreEqual(presence, site.PresenceHex);
+            Assert.AreEqual(site.AnchorHex, presence);
+            Assert.AreEqual(site.AnchorHex, site.PresenceHex);
             Assert.IsTrue(site.OccupiesHex(presence));
         }
 
         [Test]
-        public void PRESENCE_03_QueryReturnsPresenceHex_NotAnchor()
+        public void PRESENCE_03_QueryReturnsRepresentativeHex_EqualsAnchor()
         {
             var world = BuildSiteWorld(out var site, out var presence);
             var id = Spawn(world, "WangChen");
             world.WorldPresence.SetAtSite(id, site.SiteId);
             Assert.IsTrue(CharacterWorldPresenceQuery.TryGetWorldHex(world, id, out var hex));
             Assert.AreEqual(presence, hex);
-            Assert.AreNotEqual(site.AnchorHex, hex);
+            Assert.AreEqual(site.AnchorHex, hex);
         }
 
         [Test]
@@ -302,6 +303,41 @@ namespace XianXia.Tests
             Assert.IsTrue(HexWorldContentLoader.Apply(world, definition).IsSuccess);
             Assert.IsTrue(world.Strategic.Sites.TryGet("base:site_chengzhen", out var site));
             Assert.IsTrue(WorldSiteFootprintValidator.IsPresenceInFootprint(site));
+            Assert.AreEqual(site.AnchorHex, site.PresenceHex);
+        }
+
+        [Test]
+        public void PRESENCE_14_LegacyContent_MismatchedPresence_SyncsToAnchorOnLoad()
+        {
+            var def = new HexWorldContentDefinition
+            {
+                Id = DefinitionId.Parse("test:hex_mismatch_presence").Value,
+                Name = "Mismatch",
+                Width = 12,
+                Height = 12,
+                HexSize = 1f,
+            };
+            def.Sites.Add(new HexWorldSiteDefinition
+            {
+                SiteId = "test:mismatch_site",
+                DisplayName = "Mismatch Site",
+                SiteType = "Village",
+                AnchorQ = 3,
+                AnchorR = 7,
+                PresenceQ = 4,
+                PresenceR = 7,
+                Footprint =
+                {
+                    new HexWorldCoordDefinition { Q = 3, R = 7 },
+                    new HexWorldCoordDefinition { Q = 4, R = 7 },
+                },
+            });
+
+            var world = new SimulationWorld();
+            Assert.IsTrue(HexWorldContentLoader.Apply(world, def).IsSuccess);
+            Assert.IsTrue(world.Strategic.Sites.TryGet("test:mismatch_site", out var site));
+            Assert.AreEqual(new HexCoord(3, 7), site.AnchorHex);
+            Assert.AreEqual(site.AnchorHex, site.PresenceHex);
         }
     }
 }
