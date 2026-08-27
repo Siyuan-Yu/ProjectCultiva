@@ -24,9 +24,7 @@ namespace XianXia.Unity.EditorTools
             hostGo.AddComponent<HostSelectionController>();
             hostGo.AddComponent<HostCommandBridge>();
             hostGo.AddComponent<HostDebugHud>();
-            hostGo.AddComponent<HostContentDebugPanel>();
             hostGo.AddComponent<HostEventFeed>();
-            hostGo.AddComponent<HostSnapshotPanel>();
             hostGo.AddComponent<HostMapGraybox>();
             hostGo.AddComponent<HostMoveController>();
             hostGo.AddComponent<HostActionMenu>();

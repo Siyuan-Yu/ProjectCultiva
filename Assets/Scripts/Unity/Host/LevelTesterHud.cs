@@ -3,7 +3,7 @@ using UnityEngine;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// Level Tester 顶栏：当前包／地图／剧本与快捷键提示。
+    /// Level Tester 顶栏：当前包／地图／剧本与 Cheat Tools 入口。
     /// </summary>
     public sealed class LevelTesterHud : MonoBehaviour
     {
@@ -40,7 +40,7 @@ namespace XianXia.Unity.Host
                 return;
 
             const float pad = 8f;
-            var w = Mathf.Min(720f, Screen.width - 16f);
+            var w = Mathf.Min(760f, Screen.width - 16f);
             GUI.Box(new Rect(pad, pad, w, 96f), GUIContent.none);
             var y = pad + 6f;
             GUI.Label(new Rect(pad + 8f, y, w - 16f, 20f),
@@ -55,8 +55,15 @@ namespace XianXia.Unity.Host
                 " ｜ 名册: " +
                 (string.IsNullOrEmpty(bootstrap.CharacterRosterId) ? "(用剧本spawns)" : bootstrap.CharacterRosterId));
             y += 18f;
-            GUI.Label(new Rect(pad + 8f, y, w - 16f, 20f),
-                "Space 暂停 · .／N 步进 · [ ] 变速 · R 重载 · F12 Background Travel DEBUG · F1 隐藏本栏 · Inspector 换地图／剧本／名册");
+            GUI.Label(new Rect(pad + 8f, y, w - 220f, 20f),
+                "Space 暂停 ｜ FormalHud 顶栏变速 ｜ ` 打开 Cheat Tools ｜ F1 隐藏本栏 ｜ Inspector 换地图／剧本／名册");
+            if (GUI.Button(new Rect(pad + w - 108f, y - 2f, 100f, 22f), "Cheat Tools"))
+            {
+                var cheat = bootstrap.LevelTesterCheatPanel ??
+                            bootstrap.GetComponent<HostLevelTesterCheatPanel>();
+                if (cheat != null)
+                    cheat.ToggleVisible();
+            }
         }
 
         void RefreshMapLine()

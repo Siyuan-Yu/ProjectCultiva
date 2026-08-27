@@ -1,4 +1,4 @@
-%YAML 1.1
+﻿%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!29 &1
 OcclusionCullingSettings:
@@ -215201,7 +215201,6 @@ GameObject:
   - component: {fileID: 1052075882}
   - component: {fileID: 1052075881}
   - component: {fileID: 1052075880}
-  - component: {fileID: 1052075879}
   - component: {fileID: 1052075878}
   - component: {fileID: 1052075877}
   - component: {fileID: 1052075876}
@@ -215375,22 +215374,6 @@ MonoBehaviour:
   mapRoot: {fileID: 0}
   tileWorldSize: 1
   patchRadius: 3
---- !u!114 &1052075879
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1052075869}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8edd0161482c2f34e867139ad8329ca0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  bootstrap: {fileID: 0}
-  saveKey: 286
-  loadKey: 290
-  showButtons: 0
 --- !u!114 &1052075880
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -215535,9 +215518,8 @@ MonoBehaviour:
   selectionController: {fileID: 0}
   commandBridge: {fileID: 0}
   debugHud: {fileID: 0}
-  contentDebugPanel: {fileID: 0}
+  levelTesterCheatPanel: {fileID: 0}
   eventFeed: {fileID: 0}
-  snapshotPanel: {fileID: 0}
   mapGraybox: {fileID: 0}
   moveController: {fileID: 0}
   actionMenu: {fileID: 0}
@@ -215557,11 +215539,6 @@ MonoBehaviour:
   autoTickWhenUnpaused: 1
   secondsPerAutoTickAt1x: 3
   togglePauseKey: 32
-  stepTickKey: 46
-  stepTickAltKey: 110
-  cycleSpeedKey: 93
-  cycleSpeedAltKey: 91
-  rebuildKey: 114
 --- !u!4 &1052075887
 Transform:
   m_ObjectHideFlags: 0

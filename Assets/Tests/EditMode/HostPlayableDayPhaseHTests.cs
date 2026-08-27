@@ -63,9 +63,11 @@ namespace XianXia.Tests
                     entity.Get<DailyTaskComponent>().PendingReprimand,
                     bootstrap.EventFeed.ToDebugText());
 
-                Assert.IsTrue(bootstrap.SnapshotPanel.TrySave(), bootstrap.SnapshotPanel.Status);
+                var save = HostLevelTesterSnapshotOps.TrySave(bootstrap);
+                Assert.IsTrue(save.Success, save.Message);
                 var tick = bootstrap.Session.World.Tick.Value;
-                Assert.IsTrue(bootstrap.SnapshotPanel.TryLoad(), bootstrap.SnapshotPanel.Status);
+                var load = HostLevelTesterSnapshotOps.TryLoad(bootstrap);
+                Assert.IsTrue(load.Success, load.Message);
                 Assert.AreEqual(tick, bootstrap.Session.World.Tick.Value);
                 Assert.AreEqual(3, bootstrap.Session.CharacterIds.Count);
                 // Snapshot restore does not persist Npc social spawn; views rebuild from restored world tags.
@@ -73,7 +75,7 @@ namespace XianXia.Tests
             }
             finally
             {
-                var slot = bootstrap.SnapshotPanel.SlotPath;
+                var slot = HostLevelTesterSnapshotOps.SlotPath;
                 if (System.IO.File.Exists(slot))
                     System.IO.File.Delete(slot);
                 Object.DestroyImmediate(host);
@@ -92,12 +94,10 @@ namespace XianXia.Tests
             host.AddComponent<HostCommandBridge>();
             host.AddComponent<HostDebugHud>();
             host.AddComponent<HostEventFeed>();
-            host.AddComponent<HostSnapshotPanel>();
             Assert.IsTrue(bootstrap.TryInitialize(), bootstrap.StatusLine);
             bootstrap.SelectionController.Bind(bootstrap.ViewSpawner, cam);
             bootstrap.CommandBridge.Bind(bootstrap.Session, bootstrap.SelectionController);
             bootstrap.DebugHud.Bind(bootstrap, bootstrap.SelectionController);
-            bootstrap.SnapshotPanel.Bind(bootstrap);
             return host;
         }
     }

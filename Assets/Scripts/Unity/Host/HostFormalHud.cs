@@ -1701,7 +1701,7 @@ namespace XianXia.Unity.Host
             if (focus.IsNone || selectionController == null || !session.PlayerParty.IsActive(focus))
                 return;
 
-            // F5／F9 存读档；Q/E/F8＝移动/交互/战斗；F2＝斗气纱衣；F7＝勘查；F1＝停止；F6＝修炼；G＝敛息。
+            // Q/E/F8＝移动/交互/战斗；F2＝斗气纱衣；F7＝勘查；F1＝停止；F6＝修炼；G＝敛息。
             if (Input.GetKeyDown(KeyCode.Q) && !Input.GetKey(KeyCode.LeftAlt) && !Input.GetKey(KeyCode.RightAlt))
                 InvokeActionIndex(focus, 0);
             else if (Input.GetKeyDown(KeyCode.F1))

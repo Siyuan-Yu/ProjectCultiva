@@ -899,40 +899,7 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(x, y, 72f, 26f), speed + "x"))
                 bootstrap.SetSpeedMultiplier(CycleSpeedValue(speed));
             x += 80f;
-            GUI.Label(new Rect(x, y + 4f, 88f, 22f), "[ / ] 调倍速", _body);
-            x += 96f;
 
-            // Debug：单人自动战强制弥留（测残留／弥留流程）
-            var forceSolo = AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated;
-            var nextForce = GUI.Toggle(
-                new Rect(x, y + 2f, 220f, 24f),
-                forceSolo,
-                    " Debug：单人自动战必弥留");
-            if (nextForce != forceSolo)
-                AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated = nextForce;
-            x += 230f;
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (ArmyHexCommandService.IsHexStrategicActive(world))
-            {
-                var strongSep = HostHexWorldRenderer.DebugStrongHexSeparation;
-                var nextStrongSep = GUI.Toggle(
-                    new Rect(x, y + 2f, 260f, 24f),
-                    strongSep,
-                    " Debug：强 Hex Separation");
-                if (nextStrongSep != strongSep)
-                    HostHexWorldRenderer.DebugStrongHexSeparation = nextStrongSep;
-                x += 268f;
-            }
-#endif
-
-            if (bootstrap.StrategicAcceptancePanel != null &&
-                GUI.Button(new Rect(x, y, 120f, 26f), "战略验收 F8"))
-            {
-                bootstrap.StrategicAcceptancePanel.Toggle();
-            }
-
-            x += 128f;
             EnsureStrategicRosterPanels();
             var clickedModule = _globalStrategicToolbar.Draw(x, y, _body);
             if (clickedModule != HostGlobalStrategicToolbar.ModuleId.None)
@@ -952,28 +919,7 @@ namespace XianXia.Unity.Host
                     : cancel.Error.Message;
             }
 
-            // Phase 2B Prototype / Debug UX only — 非正式最终 UX。
-            // 最终方向：关闭 WorldMap 即自动 Expand 当前 Party 所在 LocalMap。
-            GUI.enabled = party != null && party.HasActive && !partyMoving;
-            x += 128f;
-            if (GUI.Button(new Rect(x, y, 120f, 26f), "进入近景(调试)") &&
-                party != null &&
-                party.HasActive &&
-                !partyMoving)
-            {
-                var enter = PlayerPartyHexTravelService.EnterLocalViewAtCurrentHex(world, party);
-                if (enter.IsSuccess)
-                {
-                    CloseAllWorldMapPanels();
-                    bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: true);
-                    _status = "已展开近景 " + (world.PartyWorld.LocalMapId ?? string.Empty);
-                }
-                else
-                    _status = enter.Error.Message;
-            }
-
             GUI.enabled = true;
-            x += 128f;
 
             if (world.Strategic != null &&
                 (world.Strategic.HasBlockingInterrupt ||

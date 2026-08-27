@@ -49,10 +49,8 @@ namespace XianXia.Unity.Host
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] HostCommandBridge commandBridge;
         [SerializeField] HostDebugHud debugHud;
-        [SerializeField] HostContentDebugPanel contentDebugPanel;
-        [SerializeField] HostStrategicAcceptancePanel strategicAcceptancePanel;
+        [SerializeField] HostLevelTesterCheatPanel levelTesterCheatPanel;
         [SerializeField] HostEventFeed eventFeed;
-        [SerializeField] HostSnapshotPanel snapshotPanel;
         [SerializeField] HostMapGraybox mapGraybox;
         [SerializeField] HostMoveController moveController;
         [SerializeField] HostActionMenu actionMenu;
@@ -91,11 +89,6 @@ namespace XianXia.Unity.Host
         [Tooltip("1x 下每 Tick 现实秒数。1 tick=5 游戏分；默认 1s → 1 现实秒=5 游戏分，5x=25 游戏分/秒。")]
         [SerializeField] float secondsPerAutoTickAt1x = SimulationTickPacing.SecondsPerTickAt1x;
         [SerializeField] KeyCode togglePauseKey = KeyCode.Space;
-        [SerializeField] KeyCode stepTickKey = KeyCode.Period;
-        [SerializeField] KeyCode stepTickAltKey = KeyCode.N;
-        [SerializeField] KeyCode cycleSpeedKey = KeyCode.RightBracket;
-        [SerializeField] KeyCode cycleSpeedAltKey = KeyCode.LeftBracket;
-        [SerializeField] KeyCode rebuildKey = KeyCode.R;
 
         PlayableHostSession _session = new PlayableHostSession();
         float _autoTickAccumulator;
@@ -112,13 +105,9 @@ namespace XianXia.Unity.Host
 
         public HostDebugHud DebugHud => debugHud;
 
-        public HostContentDebugPanel ContentDebugPanel => contentDebugPanel;
-
-        public HostStrategicAcceptancePanel StrategicAcceptancePanel => strategicAcceptancePanel;
+        public HostLevelTesterCheatPanel LevelTesterCheatPanel => levelTesterCheatPanel;
 
         public HostEventFeed EventFeed => eventFeed;
-
-        public HostSnapshotPanel SnapshotPanel => snapshotPanel;
 
         public HostMoveController MoveController => moveController;
 
@@ -184,13 +173,8 @@ namespace XianXia.Unity.Host
                                GetComponentInChildren<HostCommandBridge>();
             if (debugHud == null)
                 debugHud = GetComponent<HostDebugHud>() ?? GetComponentInChildren<HostDebugHud>();
-            if (contentDebugPanel == null)
-                contentDebugPanel = GetComponent<HostContentDebugPanel>() ??
-                                   GetComponentInChildren<HostContentDebugPanel>();
             if (eventFeed == null)
                 eventFeed = GetComponent<HostEventFeed>() ?? GetComponentInChildren<HostEventFeed>();
-            if (snapshotPanel == null)
-                snapshotPanel = GetComponent<HostSnapshotPanel>() ?? GetComponentInChildren<HostSnapshotPanel>();
             if (mapGraybox == null)
                 mapGraybox = GetComponent<HostMapGraybox>() ?? GetComponentInChildren<HostMapGraybox>();
             if (moveController == null)
@@ -229,15 +213,28 @@ namespace XianXia.Unity.Host
 
         void Start()
         {
-            if (GetComponent<LevelTesterHud>() == null &&
-                (!string.IsNullOrWhiteSpace(preferredMapLayoutId) ||
-                 !string.IsNullOrWhiteSpace(mapLayoutFilePath) ||
-                 mapLayoutJsonOverride != null))
-                gameObject.AddComponent<LevelTesterHud>();
-
+            EnsureLevelTesterComponents();
             if (initializeOnPlay)
                 TryInitialize();
         }
+
+        void EnsureLevelTesterComponents()
+        {
+            if (!IsLevelTesterContext())
+                return;
+
+            if (GetComponent<LevelTesterHud>() == null)
+                gameObject.AddComponent<LevelTesterHud>();
+
+            if (GetComponent<HostLevelTesterCheatPanel>() == null)
+                gameObject.AddComponent<HostLevelTesterCheatPanel>();
+        }
+
+        public bool IsLevelTesterContext() =>
+            GetComponent<LevelTesterHud>() != null ||
+            !string.IsNullOrWhiteSpace(mapLayoutFilePath) ||
+            !string.IsNullOrWhiteSpace(preferredMapLayoutId) ||
+            mapLayoutJsonOverride != null;
 
         void Update()
         {
@@ -266,37 +263,6 @@ namespace XianXia.Unity.Host
                     _session.IsPaused = !_session.IsPaused;
                 RefreshStatus();
             }
-
-            if (Input.GetKeyDown(stepTickKey) || Input.GetKeyDown(stepTickAltKey))
-            {
-                if ((questJournal == null || !questJournal.IsOpen) &&
-                    (inventoryPanel == null || !inventoryPanel.IsOpen) &&
-                    (manualLearnPrompt == null || !manualLearnPrompt.IsOpen) &&
-                    (combatArtLearnPrompt == null || !combatArtLearnPrompt.IsOpen) &&
-                    (combatArtsPanel == null || !combatArtsPanel.IsOpen) &&
-                    (cultivationPanel == null || !cultivationPanel.IsOpen) &&
-                    (characterSheetPanel == null || !characterSheetPanel.IsOpen) &&
-                    (relationPanel == null || !relationPanel.IsOpen) &&
-                    (cultivateConfirm == null || !cultivateConfirm.IsOpen) &&
-                    (breakthroughRitual == null || !breakthroughRitual.IsResultOpen) &&
-                    (ticTacToePanel == null || !ticTacToePanel.IsOpen) &&
-                    (contentInterrupt == null || !contentInterrupt.HasBlockingInterrupt) &&
-                    (strategicInterrupt == null || !strategicInterrupt.HasBlockingInterrupt))
-                    StepTick();
-            }
-
-            if (Input.GetKeyDown(cycleSpeedKey) || Input.GetKeyDown(cycleSpeedAltKey))
-            {
-                if (contentInterrupt == null || !contentInterrupt.HasBlockingInterrupt)
-                {
-                    if (debugHud != null)
-                        debugHud.CycleSpeed();
-                    RefreshStatus();
-                }
-            }
-
-            if (Input.GetKeyDown(rebuildKey))
-                TryInitialize();
 
             if (!_session.IsPaused &&
                 autoTickWhenUnpaused &&
@@ -365,6 +331,14 @@ namespace XianXia.Unity.Host
             debugHud.Bind(this, selectionController);
         }
 
+        void EnsureLevelTesterCheatPanel()
+        {
+            if (!IsLevelTesterContext())
+                return;
+            levelTesterCheatPanel = GetComponent<HostLevelTesterCheatPanel>() ??
+                                    gameObject.AddComponent<HostLevelTesterCheatPanel>();
+        }
+
         /// <summary>
         /// 表现层帧间隔：受暂停Host 倍速影响（移动／分离等）
         /// Core 行动进度Tick（已按倍速推进）；连续位移必须用同一倍率
@@ -404,16 +378,9 @@ namespace XianXia.Unity.Host
                                gameObject.AddComponent<HostCommandBridge>();
             if (debugHud == null)
                 debugHud = GetComponent<HostDebugHud>() ?? gameObject.AddComponent<HostDebugHud>();
-            if (contentDebugPanel == null)
-                contentDebugPanel = GetComponent<HostContentDebugPanel>() ??
-                                   gameObject.AddComponent<HostContentDebugPanel>();
-            if (strategicAcceptancePanel == null)
-                strategicAcceptancePanel = GetComponent<HostStrategicAcceptancePanel>() ??
-                                          gameObject.AddComponent<HostStrategicAcceptancePanel>();
+            EnsureLevelTesterCheatPanel();
             if (eventFeed == null)
                 eventFeed = GetComponent<HostEventFeed>() ?? gameObject.AddComponent<HostEventFeed>();
-            if (snapshotPanel == null)
-                snapshotPanel = GetComponent<HostSnapshotPanel>() ?? gameObject.AddComponent<HostSnapshotPanel>();
             if (mapGraybox == null)
                 mapGraybox = GetComponent<HostMapGraybox>() ?? gameObject.AddComponent<HostMapGraybox>();
             if (moveController == null)
@@ -681,15 +648,9 @@ namespace XianXia.Unity.Host
             if (workLoop != null)
                 workLoop.Bind(this, commandBridge, moveController);
             debugHud.Bind(this, selectionController);
-            contentDebugPanel.Bind(this, selectionController);
-            var bgTravelDebug = GetComponent<HostBackgroundTravelDebugPanel>() ??
-                                gameObject.AddComponent<HostBackgroundTravelDebugPanel>();
-            bgTravelDebug.Bind(this, selectionController);
-            var armyDebug = GetComponent<HostFormalArmyDebugPanel>() ??
-                            gameObject.AddComponent<HostFormalArmyDebugPanel>();
-            armyDebug.Bind(this);
-            if (strategicAcceptancePanel != null)
-                strategicAcceptancePanel.Bind(this);
+            EnsureLevelTesterCheatPanel();
+            if (levelTesterCheatPanel != null)
+                levelTesterCheatPanel.Bind(this, selectionController);
             moveController.Bind(this, selectionController, entityViewSpawner, commandBridge, npcContextMenu);
             var pathPreview = GetComponent<HostPartyPathPreview>();
             if (pathPreview != null)
@@ -743,7 +704,6 @@ namespace XianXia.Unity.Host
                 relationPanel,
                 cam);
             npcScheduleMover.Bind(this, moveController, entityViewSpawner);
-            snapshotPanel.Bind(this);
             ActivateSurfaceLocalMapPresentation();
             // Bootstrap already published WorldInitialized／EntityCreated capture once.
             DispatchDrainedEvents();
@@ -763,6 +723,131 @@ namespace XianXia.Unity.Host
             return true;
         }
 
+        /// <summary>
+        /// Snapshot 恢复 Domain 后，从 PlayerPartyTravel / WorldPresence 重建 PartyWorld 与 Active LocalMap。
+        /// PartyWorld 不在 Snapshot 内；未同步时 LocalMapVisibility 会过滤掉全部实体。
+        /// </summary>
+        void SyncPartyWorldPresentationAfterSnapshotRestore()
+        {
+            if (!_session.IsInitialized)
+                return;
+
+            var world = _session.World;
+            if (_session.CharacterIds.Count > 0)
+            {
+                _session.PlayerParty.Reset();
+                _session.PlayerParty.TryInitialize(_session.CharacterIds[0], out _);
+            }
+            else
+            {
+                _session.PlayerParty.Reset();
+            }
+
+            PlayerPartyWorldLocationQuery.TryResolve(
+                world, _session.PlayerParty, out var resolved, healDrift: true);
+
+            var mapId = string.Empty;
+            if (resolved.HasValue)
+            {
+                mapId = resolved.ResolvedLocalMapId?.Trim() ?? string.Empty;
+                if (resolved.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                    !string.IsNullOrEmpty(resolved.SiteId))
+                {
+                    world.PartyWorld.SiteId = resolved.SiteId;
+                    world.PartyWorld.LocalMapId = mapId;
+                    world.PartyWorld.Mode = PartyWorldPresenceMode.AtSite;
+                }
+                else
+                {
+                    world.PartyWorld.ClearSiteFocus();
+                    world.PartyWorld.LocalMapId = mapId;
+                    world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
+                }
+            }
+            else
+            {
+                SyncPartyWorldFromActiveCharacterPresence(world, _session.CharacterIds, ref mapId);
+            }
+
+            if (string.IsNullOrWhiteSpace(mapId) &&
+                !string.IsNullOrWhiteSpace(_session.PreferredMapLayoutId))
+                mapId = _session.PreferredMapLayoutId.Trim();
+
+            if (!string.IsNullOrWhiteSpace(mapId))
+            {
+                var places = WorldRegionBootstrap.ActivatePlacesForMapLayout(
+                    world, _session.Registry, mapId);
+                if (places.IsFailure)
+                    Debug.LogWarning("[PlayableHost] Snapshot load ActivatePlaces: " + places.Error, this);
+                world.LocalMap.EnsureOverworld(mapId);
+                world.LocalMap.ActiveMapLayoutId = mapId;
+                _session.PreferredMapLayoutId = mapId;
+                if (string.IsNullOrWhiteSpace(world.PartyWorld.LocalMapId))
+                    world.PartyWorld.LocalMapId = mapId;
+                _session.RefreshViewableEntityIds();
+            }
+        }
+
+        static void SyncPartyWorldFromActiveCharacterPresence(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> characterIds,
+            ref string mapId)
+        {
+            if (world?.WorldPresence == null)
+                return;
+
+            if (characterIds != null)
+            {
+                for (var i = 0; i < characterIds.Count; i++)
+                {
+                    if (TryApplyPartyWorldFromPresence(world, characterIds[i], ref mapId))
+                        return;
+                }
+            }
+
+            foreach (var kv in world.WorldPresence.All)
+            {
+                var wp = kv.Value;
+                if (wp == null || wp.EntityId.IsNone)
+                    continue;
+                if (TryApplyPartyWorldFromPresence(world, wp.EntityId, ref mapId))
+                    return;
+            }
+        }
+
+        static bool TryApplyPartyWorldFromPresence(
+            SimulationWorld world,
+            EntityId id,
+            ref string mapId)
+        {
+            if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
+                return false;
+
+            if (wp.Mode == PartyWorldPresenceMode.AtSite && !string.IsNullOrEmpty(wp.SiteId))
+            {
+                if (!world.Strategic.Sites.TryGet(wp.SiteId, out var site) || site == null)
+                    return false;
+                world.PartyWorld.SiteId = wp.SiteId;
+                mapId = WorldTravelService.ResolveWorldSiteLocalMapId(site)?.Trim() ?? string.Empty;
+                world.PartyWorld.LocalMapId = mapId;
+                world.PartyWorld.Mode = PartyWorldPresenceMode.AtSite;
+                return true;
+            }
+
+            if (wp.Mode == PartyWorldPresenceMode.AtHex && wp.UsesHexPresence)
+            {
+                WildernessLocalMapFallback.TryResolve(
+                    world, new HexCoord(wp.HexQ, wp.HexR), out var wildMap);
+                world.PartyWorld.ClearSiteFocus();
+                mapId = wildMap?.Trim() ?? string.Empty;
+                world.PartyWorld.LocalMapId = mapId;
+                world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
+                return !string.IsNullOrEmpty(mapId);
+            }
+
+            return false;
+        }
+
         /// <summary>After Snapshot restore: rebuild views and rebind Host adapters.</summary>
         public void RebuildPresentationAfterLoad()
         {
@@ -779,39 +864,25 @@ namespace XianXia.Unity.Host
                                gameObject.AddComponent<HostCommandBridge>();
             if (debugHud == null)
                 debugHud = GetComponent<HostDebugHud>() ?? gameObject.AddComponent<HostDebugHud>();
-            if (contentDebugPanel == null)
-                contentDebugPanel = GetComponent<HostContentDebugPanel>() ??
-                                   gameObject.AddComponent<HostContentDebugPanel>();
-            if (strategicAcceptancePanel == null)
-                strategicAcceptancePanel = GetComponent<HostStrategicAcceptancePanel>() ??
-                                          gameObject.AddComponent<HostStrategicAcceptancePanel>();
+            EnsureLevelTesterCheatPanel();
             if (eventFeed == null)
                 eventFeed = GetComponent<HostEventFeed>() ?? gameObject.AddComponent<HostEventFeed>();
 
             selectionController.ClearSelection();
             entityViewSpawner.Clear();
-            MapLayoutPresentationSync.Apply(_session);
-            entityViewSpawner.Rebuild(_session);
+            SyncPartyWorldPresentationAfterSnapshotRestore();
+            ReloadLocalMapPresentation(frameCamera: true);
+
             var cam = Camera.main != null ? Camera.main : Object.FindObjectOfType<Camera>();
             selectionController.Bind(entityViewSpawner, cam);
             selectionController.SetPartyFilter(_session.CharacterIds);
             commandBridge.Bind(_session, selectionController);
             debugHud.Bind(this, selectionController);
-            contentDebugPanel.Bind(this, selectionController);
-            if (strategicAcceptancePanel != null)
-                strategicAcceptancePanel.Bind(this);
+            if (levelTesterCheatPanel != null)
+                levelTesterCheatPanel.Bind(this, selectionController);
             eventFeed.Clear();
             DispatchDrainedEvents();
             FrameCameraOnSlots();
-            if (mapGraybox != null)
-                mapGraybox.Rebuild(_session);
-            if (moveController != null)
-            {
-                moveController.SetWalkGrid(ResolveWalkGrid());
-                moveController.BindLocalMapContext(_session.World.LocalMap.ActiveMapLayoutId);
-            }
-            ActivateSurfaceLocalMapPresentation();
-            RestorePlayerPartyLocalMapPresentation(_session.World.LocalMap.ActiveMapLayoutId);
             _autoTickAccumulator = 0f;
             RefreshStatus();
         }

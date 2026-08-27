@@ -30,7 +30,6 @@ namespace XianXia.Unity.EditorTools
             hostGo.AddComponent<HostCommandBridge>();
             hostGo.AddComponent<HostDebugHud>();
             hostGo.AddComponent<HostEventFeed>();
-            hostGo.AddComponent<HostSnapshotPanel>();
             hostGo.AddComponent<HostMapGraybox>();
             hostGo.AddComponent<HostDemoTileMap>();
             hostGo.AddComponent<HostMoveController>();
@@ -47,14 +46,6 @@ namespace XianXia.Unity.EditorTools
             bootstrapSo.FindProperty("openingScenarioId").stringValue = "base:scenario_ch01_reference";
             bootstrapSo.FindProperty("secondsPerAutoTickAt1x").floatValue = 1f;
             bootstrapSo.ApplyModifiedPropertiesWithoutUndo();
-
-            var bridgeSo = new SerializedObject(hostGo.GetComponent<HostCommandBridge>());
-            bridgeSo.FindProperty("showDebugButtons").boolValue = false;
-            bridgeSo.ApplyModifiedPropertiesWithoutUndo();
-
-            var snapSo = new SerializedObject(hostGo.GetComponent<HostSnapshotPanel>());
-            snapSo.FindProperty("showButtons").boolValue = false;
-            snapSo.ApplyModifiedPropertiesWithoutUndo();
 
             var debugSo = new SerializedObject(hostGo.GetComponent<HostDebugHud>());
             debugSo.FindProperty("visible").boolValue = false;

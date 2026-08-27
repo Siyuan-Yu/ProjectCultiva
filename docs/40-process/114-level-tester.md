@@ -1,9 +1,10 @@
 # 114 · Level Tester（逻辑关卡试玩台）
 
-> 状态：**可用**｜日期：2026-08-13  
+> 状态：**可用**｜日期：2026-08-27（Cheat Tools 统一整理）  
 > 场景：`Assets/Scenes/LevelTester.unity`  
 > 入口：`PlayableHostBootstrap` + `LevelTesterHud`  
-> 菜单：`XianXia/Level Tester/…`
+> 菜单：`XianXia/Level Tester/…`  
+> 实现索引：[168-level-tester-cheat-tools-consolidation-2026-08-27.md](168-level-tester-cheat-tools-consolidation-2026-08-27.md)
 
 ---
 
@@ -22,7 +23,7 @@ Level Tester 用来试玩 **某一个大地图节点的 LocalMap**（例如荒�
 | 7 | RTS：选中、移动、右键劳动／修炼 | ✅ Host 全套 |
 | 8 | 时间：暂停／步进／变速、日程 | ✅ |
 | 9 | HUD：任务／事件／角色状态 | ✅ Formal + **任务日志 J** + EventFeed |
-| 10 | 热重载：改 JSON 后 F12 重进 | ✅ |
+| 10 | 开发 Cheat：构造验收状态 | ✅ **LevelTester Cheat Tools**（`` ` `` 或顶栏按钮） |
 | 11 | 顶栏显示当前包／地图／剧本 | ✅ `LevelTesterHud` |
 | 12 | Inspector 浏览磁盘 map JSON（Content 在 Assets 外） | ✅ CustomInspector 按钮 |
 | 13 | 编辑模式 Import 预览（prefab 刷图，无需 Play） | ✅ Inspector「Import」 |
@@ -54,7 +55,7 @@ Level Tester 用来试玩 **某一个大地图节点的 LocalMap**（例如荒�
 
 1. MapEditor 编好后 **Ctrl+S** 写回 Content，或另存到同目录  
 2. 选中 **LevelTester** → Inspector 点 **「选择文件…」** → 选 `Content/BaseGame/Data/*.json`  
-3. 点 **Import** 在 Scene 里看 prefab 预览；Play 或 F12 测逻辑  
+3. 点 **Import** 在 Scene 里看 prefab 预览；Play 后如需重建 Session，用 Cheat Tools → **Snapshot / Session → Reset LevelTester Session**  
 
 改 JSON 后再点 **Import** 会先清掉预览根下全部旧物件再刷（不必先切走再重进场景）。若仍叠图，先点 **Clear Preview** 再 Import。
 
@@ -62,17 +63,40 @@ NPC／任务仍来自 Content 包；这里只换「这一张本地图」。
 
 ---
 
-## 操作键
+## LevelTester Cheat Tools（开发验收）
+
+**打开方式：**
+
+- 键盘 **`` ` ``**（BackQuote）
+- 或 `LevelTesterHud` 顶栏 **「Cheat Tools」** 按钮
+
+**分类（Foldout）：**
+
+| 区 | 能力 |
+|----|------|
+| Time / Simulation | Step 1 Tick、Advance N Ticks、Advance 1 Day、Speed 1/2/5/20x |
+| Background Character | 选角色、Travel To Site/Hex、Cancel、只读 Travel 状态 |
+| FormalArmy | Create（含明确 Leader）、Select Army、Disband、Travel、Incap、Sync Casualties |
+| Content | Set/Clear Flag、Force Event、Dump Content State |
+| Diplomacy | Declare War、Alliance、Vassalage（选 Faction） |
+| Snapshot / Session | Save/Load Snapshot、**Reset LevelTester Session**（二次确认） |
+| Battle / Acceptance | DEBUG: Next Solo Auto-Battle Guaranteed Incapacitation |
+| Diagnostics | Hex Separation 等纯视觉 Debug（如有） |
+
+Cheat Tools **仅**用于 LevelTester 开发／人工验收，不进入正式 Gameplay UI，不为各系统单独占用 F-Key。
+
+---
+
+## 操作键（正式 Gameplay）
 
 | 键 | 作用 |
 |----|------|
-| Space | 暂停／继续 |
-| . ／ N | 步进 Tick |
-| [ ] | 变速 |
-| F12 | 重载当前配置 |
-| F1 | 显隐 Level Tester 顶栏 |
+| Space | 暂停／继续（FormalHud 时间控制） |
 | J | 任务日志（打开时暂停世界；可接／进行中／已完成；追踪显示在右侧任务栏） |
+| Q / E / F1 / F6 / F7 / F8 / G 等 | 正式 Gameplay 行动（见 FormalHud） |
 | 中键／键盘 | 相机平移缩放（Host 相机） |
+
+> **已移除（勿再使用）：** F3/F4/F8/F11/F12 独立 Debug Panel、F5/F9 Snapshot 快捷键、`.`/`N` Bootstrap Step Tick、`[`/`]` Bootstrap 变速、`R` Runtime Session Rebuild。
 
 ---
 
@@ -82,7 +106,8 @@ NPC／任务仍来自 Content 包；这里只换「这一张本地图」。
 |--|----------------|--------------|
 | 目的 | 样板回归／签收 | 日常换关测逻辑 |
 | 换地图 | 不方便 | id／路径／TextAsset |
-| HUD | 偏干净 | 逻辑调试开着 |
+| HUD | 偏干净 | 逻辑调试 + Cheat Tools |
+| 验收场景 | 非主要 | **唯一主要人工验收场景** |
 
 ---
 
@@ -90,5 +115,6 @@ NPC／任务仍来自 Content 包；这里只换「这一张本地图」。
 
 | 日期 | 说明 |
 |------|------|
+| 2026-08-27 | 统一 `HostLevelTesterCheatPanel`；移除分散 Debug Panel 与旧 Development Hotkey |
 | 2026-08-13 | 地图真源改 Content/BaseGame/Data |
 | 2026-08-13 | 初版：选图／覆盖 JSON／场景菜单／顶栏 |

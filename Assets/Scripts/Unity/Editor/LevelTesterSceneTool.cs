@@ -35,9 +35,8 @@ namespace XianXia.Unity.EditorTools
             hostGo.AddComponent<HostSelectionController>();
             hostGo.AddComponent<HostCommandBridge>();
             hostGo.AddComponent<HostDebugHud>();
-            hostGo.AddComponent<HostContentDebugPanel>();
+            hostGo.AddComponent<HostLevelTesterCheatPanel>();
             hostGo.AddComponent<HostEventFeed>();
-            hostGo.AddComponent<HostSnapshotPanel>();
             hostGo.AddComponent<HostMapGraybox>();
             hostGo.AddComponent<HostDemoTileMap>();
             hostGo.AddComponent<HostMoveController>();
@@ -61,7 +60,6 @@ namespace XianXia.Unity.EditorTools
             bootstrapSo.FindProperty("preferredMapLayoutId").stringValue = "base:map_ch01_reference";
             bootstrapSo.FindProperty("mapLayoutFilePath").stringValue = DefaultMapLayoutPath;
             bootstrapSo.FindProperty("secondsPerAutoTickAt1x").floatValue = 1f;
-            bootstrapSo.FindProperty("rebuildKey").intValue = (int)KeyCode.R;
             bootstrapSo.ApplyModifiedPropertiesWithoutUndo();
 
             var interruptSo = new SerializedObject(hostGo.GetComponent<HostContentInterruptPresenter>());
@@ -69,27 +67,6 @@ namespace XianXia.Unity.EditorTools
             {
                 interruptSo.FindProperty("enableContentEventPopups").boolValue = true;
                 interruptSo.ApplyModifiedPropertiesWithoutUndo();
-            }
-
-            var bridgeSo = new SerializedObject(hostGo.GetComponent<HostCommandBridge>());
-            if (bridgeSo.FindProperty("showDebugButtons") != null)
-            {
-                bridgeSo.FindProperty("showDebugButtons").boolValue = true;
-                bridgeSo.ApplyModifiedPropertiesWithoutUndo();
-            }
-
-            var snapSo = new SerializedObject(hostGo.GetComponent<HostSnapshotPanel>());
-            if (snapSo.FindProperty("showButtons") != null)
-            {
-                snapSo.FindProperty("showButtons").boolValue = true;
-                snapSo.ApplyModifiedPropertiesWithoutUndo();
-            }
-
-            var debugSo = new SerializedObject(hostGo.GetComponent<HostDebugHud>());
-            if (debugSo.FindProperty("visible") != null)
-            {
-                debugSo.FindProperty("visible").boolValue = true;
-                debugSo.ApplyModifiedPropertiesWithoutUndo();
             }
 
             var feedSo = new SerializedObject(hostGo.GetComponent<HostEventFeed>());
@@ -235,7 +212,9 @@ namespace XianXia.Unity.EditorTools
 
             if (Application.isPlaying)
             {
-                EditorGUILayout.HelpBox("Play 模式下请用 R 重载；F12 仅开关 Background Travel DEBUG；Import 仅用于编辑模式预览。", MessageType.Info);
+                EditorGUILayout.HelpBox(
+                    "Play 模式下用 LevelTester Cheat Tools（` 或顶栏按钮）Reset Session；Import 仅用于编辑模式预览。",
+                    MessageType.Info);
             }
 
             EditorGUILayout.Space(6);
@@ -246,13 +225,6 @@ namespace XianXia.Unity.EditorTools
                 idProp.stringValue = "base:map_ch01_reference";
                 if (string.IsNullOrWhiteSpace(scenarioProp.stringValue))
                     scenarioProp.stringValue = "base:scenario_ch01_reference";
-            }
-
-            if (Application.isPlaying && GUILayout.Button("立即重载（R）"))
-            {
-                serializedObject.ApplyModifiedProperties();
-                bootstrap.TryInitialize();
-                return;
             }
 
             EditorGUILayout.EndHorizontal();

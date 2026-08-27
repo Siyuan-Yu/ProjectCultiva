@@ -4,15 +4,13 @@ using XianXia.Core.Domain.Ids;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// VS0.4 Phase E: IMGUI debug HUD. Read-only; no Core mutation buttons.
+    /// Simulation speed 状态真源 + 可选只读 Runtime 诊断（LevelTester）。
     /// </summary>
     public sealed class HostDebugHud : MonoBehaviour
     {
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostSelectionController selectionController;
-        [SerializeField] bool visible = false;
-        // F1 留给 FormalHud「休息」；调试面板改 F11，避免和正式操作抢键。
-        [SerializeField] KeyCode toggleVisibleKey = KeyCode.F11;
+        [SerializeField] bool visible;
 
         int _speedMultiplier = 1;
         HostHudSnapshot _last = new HostHudSnapshot();
@@ -60,12 +58,6 @@ namespace XianXia.Unity.Host
             return _last;
         }
 
-        void Update()
-        {
-            if (Input.GetKeyDown(toggleVisibleKey))
-                visible = !visible;
-        }
-
         void OnGUI()
         {
             if (!visible)
@@ -77,17 +69,8 @@ namespace XianXia.Unity.Host
             var width = 460f;
             var height = 250f;
             var rect = new Rect(pad, Screen.height - height - pad, width, height);
-            GUI.Box(rect, "PlayableHost HUD (F11)");
+            GUI.Box(rect, "Runtime Diagnostics");
             GUI.Label(new Rect(rect.x + 8f, rect.y + 22f, rect.width - 16f, rect.height - 28f), text);
-
-            const float tipH = 72f;
-            var tip = new Rect(pad, rect.y - tipH - 6f, width, tipH);
-            GUI.Box(tip, "Demo 0.1 路径");
-            GUI.Label(
-                new Rect(tip.x + 8f, tip.y + 20f, tip.width - 16f, tip.height - 24f),
-                "Y旅行→洞口  T探索学机缘  4修炼突破  8/9/0分工  过日产资源  5帮助/7招募\n" +
-                "F3内容调试  F4跳+1日  设Flag／强制事件\n" +
-                "Ch1 Harness: scenario_chapter1_harness（见制作规范）");
         }
     }
 }

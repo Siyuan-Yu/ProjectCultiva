@@ -24,21 +24,6 @@ namespace XianXia.Unity.Host
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] PlayableHostBootstrap hostBootstrap;
         [SerializeField] HostWorkLoop workLoop;
-        [SerializeField] bool enableDebugKeys = true;
-        [SerializeField] bool showDebugButtons = false;
-        // 数字键 1–6 专供斗技栏（HostCombatSkillBar）；以下行动改走 V／菜单／底部按钮，不再绑数字。
-        [SerializeField] KeyCode laborKey = KeyCode.None;
-        [SerializeField] KeyCode restKey = KeyCode.None;
-        [SerializeField] KeyCode observeKey = KeyCode.None;
-        [SerializeField] KeyCode cultivateKey = KeyCode.None;
-        [SerializeField] KeyCode helpKey = KeyCode.None;
-        [SerializeField] KeyCode slightKey = KeyCode.None;
-        [SerializeField] KeyCode recruitKey = KeyCode.None;
-        [SerializeField] KeyCode assignLaborKey = KeyCode.None;
-        [SerializeField] KeyCode assignGatherKey = KeyCode.None;
-        [SerializeField] KeyCode assignCultivateKey = KeyCode.None;
-        [SerializeField] KeyCode exploreKey = KeyCode.T;
-        [SerializeField] KeyCode travelKey = KeyCode.None;
         [SerializeField] EntityViewSpawner viewSpawner;
         [SerializeField] HostFeedbackOverlay feedbackOverlay;
 
@@ -88,105 +73,6 @@ namespace XianXia.Unity.Host
             return durationTicks;
         }
 
-        void Update()
-        {
-            if (!enableDebugKeys || _session == null || !_session.IsInitialized)
-                return;
-
-            // Demo letter keys [49] (W work-target mode is HostWorkTargetMode; camera: arrows / Alt+WASD).
-            if (Input.GetKeyDown(KeyCode.S))
-                IssueSelected(PlayerCommandKind.Stop, 0);
-            else if (Input.GetKeyDown(KeyCode.C))
-            {
-                if (hostBootstrap != null &&
-                    hostBootstrap.CultivateConfirm != null &&
-                    selectionController != null &&
-                    selectionController.State.Count > 0)
-                    hostBootstrap.CultivateConfirm.OpenFor(selectionController.State.SelectedIds[0]);
-                else
-                    IssueSelected(PlayerCommandKind.Cultivate);
-            }
-            else if (Input.GetKeyDown(KeyCode.X))
-                IssueSelected(PlayerCommandKind.Stop, 0);
-            else if (Input.GetKeyDown(KeyCode.G))
-                IssueSelected(PlayerCommandKind.UseConcealGrass, 0);
-            else if (IsBoundKeyDown(laborKey))
-                IssueSelected(PlayerCommandKind.Labor);
-            else if (IsBoundKeyDown(restKey))
-                IssueSelected(PlayerCommandKind.Rest);
-            else if (IsBoundKeyDown(observeKey))
-                IssueSelected(PlayerCommandKind.Observe);
-            else if (IsBoundKeyDown(cultivateKey))
-            {
-                if (hostBootstrap != null &&
-                    hostBootstrap.CultivateConfirm != null &&
-                    selectionController != null &&
-                    selectionController.State.Count > 0)
-                    hostBootstrap.CultivateConfirm.OpenFor(selectionController.State.SelectedIds[0]);
-                else
-                    IssueSelected(PlayerCommandKind.Cultivate);
-            }
-            else if (IsBoundKeyDown(helpKey))
-                IssueSocial(PlayerCommandKind.Help);
-            else if (IsBoundKeyDown(slightKey))
-                IssueSocial(PlayerCommandKind.Slight);
-            else if (IsBoundKeyDown(recruitKey))
-                IssueSocial(PlayerCommandKind.Recruit);
-            else if (IsBoundKeyDown(assignLaborKey))
-                IssueAssignWork(WorkRoleKind.Labor);
-            else if (IsBoundKeyDown(assignGatherKey))
-                IssueAssignWork(WorkRoleKind.Gather);
-            else if (IsBoundKeyDown(assignCultivateKey))
-                IssueAssignWork(WorkRoleKind.Cultivate);
-            else if (IsBoundKeyDown(exploreKey))
-                IssueExplore();
-            else if (IsBoundKeyDown(travelKey))
-                IssueTravelNextAdjacent();
-        }
-
-        static bool IsBoundKeyDown(KeyCode key) =>
-            key != KeyCode.None && Input.GetKeyDown(key);
-
-        void OnGUI()
-        {
-            if (!showDebugButtons || _session == null || !_session.IsInitialized)
-                return;
-
-            const float w = 88f;
-            const float h = 28f;
-            var y = 8f;
-            if (GUI.Button(new Rect(8f, y, w, h), "劳动"))
-                IssueSelected(PlayerCommandKind.Labor);
-            if (GUI.Button(new Rect(8f + (w + 6f), y, w, h), "休息"))
-                IssueSelected(PlayerCommandKind.Rest);
-            if (GUI.Button(new Rect(8f + 2f * (w + 6f), y, w, h), "观察"))
-                IssueSelected(PlayerCommandKind.Observe);
-            if (GUI.Button(new Rect(8f + 3f * (w + 6f), y, w, h), "修炼"))
-                IssueSelected(PlayerCommandKind.Cultivate);
-
-            y += h + 6f;
-            if (GUI.Button(new Rect(8f, y, w, h), "帮助"))
-                IssueSocial(PlayerCommandKind.Help);
-            if (GUI.Button(new Rect(8f + (w + 6f), y, w, h), "轻慢"))
-                IssueSocial(PlayerCommandKind.Slight);
-            if (GUI.Button(new Rect(8f + 2f * (w + 6f), y, w, h), "招募"))
-                IssueSocial(PlayerCommandKind.Recruit);
-
-            y += h + 6f;
-            if (GUI.Button(new Rect(8f, y, w, h), "分工劳"))
-                IssueAssignWork(WorkRoleKind.Labor);
-            if (GUI.Button(new Rect(8f + (w + 6f), y, w, h), "分工采"))
-                IssueAssignWork(WorkRoleKind.Gather);
-            if (GUI.Button(new Rect(8f + 2f * (w + 6f), y, w, h), "分工修"))
-                IssueAssignWork(WorkRoleKind.Cultivate);
-
-            y += h + 6f;
-            if (GUI.Button(new Rect(8f, y, w, h), "探索(T)"))
-                IssueExplore();
-            if (GUI.Button(new Rect(8f + (w + 6f), y, w, h), "本地邻接"))
-                IssueTravelNextAdjacent();
-        }
-
         public int IssueExplore()
         {
             if (selectionController == null || selectionController.State.Count == 0)
@@ -212,53 +98,6 @@ namespace XianXia.Unity.Host
             {
                 _lastFailureCount = 1;
                 _lastStatus = "Explore FAIL " + FormatError(result);
-            }
-
-            return _lastSuccessCount;
-        }
-
-        public int IssueTravelNextAdjacent()
-        {
-            if (selectionController == null || selectionController.State.Count == 0 || _session?.Port == null)
-            {
-                _lastStatus = "Cannot travel";
-                return 0;
-            }
-
-            var id = selectionController.State.SelectedIds[0];
-            if (!_session.World.Entities.TryGet(id, out var entity) ||
-                !entity.TryGet<EntityLocationComponent>(out var loc) ||
-                !loc.HasLocation ||
-                !_session.World.WorldRegion.TryGet(loc.LocationId, out var location) ||
-                location.AdjacentIds.Count == 0)
-            {
-                _lastStatus = "No adjacent location";
-                _lastFailureCount = 1;
-                return 0;
-            }
-
-            var target = location.AdjacentIds[0];
-            var result = _session.Port.Submit(
-                new PlayerCommandRequest(
-                    id,
-                    PlayerCommandKind.Travel,
-                    1,
-                    EntityId.None,
-                    WorkRoleKind.None,
-                    target));
-            if (result.IsSuccess)
-            {
-                _lastSuccessCount = 1;
-                _lastFailureCount = 0;
-                _lastStatus = "Travel → " + target;
-                if (viewSpawner != null)
-                    viewSpawner.SyncLocations(_session);
-            }
-            else
-            {
-                _lastSuccessCount = 0;
-                _lastFailureCount = 1;
-                _lastStatus = "Travel FAIL " + FormatError(result);
             }
 
             return _lastSuccessCount;

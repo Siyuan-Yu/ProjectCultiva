@@ -20,7 +20,7 @@
 5. **Node／Site 防御来自真实世界状态。** Resident Character + Garrison Army + Formation；禁止临时凭空刷修士。
 6. **战略战斗结果必须改变真实世界。** 死亡、伤势、Army 损失、Ownership、资源变化最终都回写真实世界状态。
 
-> **Development Acceptance UI（2026-08-22）：** Host `StrategicAcceptancePanel`（F8）为 **非产品 UX**，仅供制作人 Unity 内手操验证 War/Alliance/Vassalage/Army/Aftermath/Snapshot Domain；不是正式外交界面。
+> **Development Acceptance UI（2026-08-27）：** LevelTester 使用统一 **`HostLevelTesterCheatPanel`**（`` ` `` 或顶栏「Cheat Tools」）中的 Diplomacy 区手操验证 War/Alliance/Vassalage；**非产品 UX**。旧 `HostStrategicAcceptancePanel`（F8）已移除。
 
 ---
 

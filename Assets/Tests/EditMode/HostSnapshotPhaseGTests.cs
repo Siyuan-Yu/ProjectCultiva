@@ -14,7 +14,7 @@ namespace XianXia.Tests
         public void Save_Load_RestoresTick_Quota_AndViews()
         {
             var host = CreateHost(out var bootstrap);
-            var slot = bootstrap.SnapshotPanel.SlotPath;
+            var slot = HostLevelTesterSnapshotOps.SlotPath;
             try
             {
                 if (File.Exists(slot))
@@ -30,14 +30,16 @@ namespace XianXia.Tests
                 var tickBefore = bootstrap.Session.World.Tick.Value;
                 var completedBefore = before.Get<DailyTaskComponent>().CompletedAmount;
 
-                Assert.IsTrue(bootstrap.SnapshotPanel.TrySave(), bootstrap.SnapshotPanel.Status);
+                var save = HostLevelTesterSnapshotOps.TrySave(bootstrap);
+                Assert.IsTrue(save.Success, save.Message);
 
                 // Mutate runtime then load.
                 bootstrap.CommandBridge.IssueTo(new[] { id }, PlayerCommandKind.Labor);
                 for (var i = 0; i < 4; i++)
                     bootstrap.StepTick();
 
-                Assert.IsTrue(bootstrap.SnapshotPanel.TryLoad(), bootstrap.SnapshotPanel.Status);
+                var load = HostLevelTesterSnapshotOps.TryLoad(bootstrap);
+                Assert.IsTrue(load.Success, load.Message);
                 Assert.AreEqual(tickBefore, bootstrap.Session.World.Tick.Value);
                 Assert.AreEqual(bootstrap.Session.ViewableEntityIds.Count, bootstrap.ViewSpawner.SpawnedCount);
 
@@ -65,11 +67,9 @@ namespace XianXia.Tests
             host.AddComponent<HostCommandBridge>();
             host.AddComponent<HostDebugHud>();
             host.AddComponent<HostEventFeed>();
-            host.AddComponent<HostSnapshotPanel>();
             Assert.IsTrue(bootstrap.TryInitialize(), bootstrap.StatusLine);
             bootstrap.SelectionController.Bind(bootstrap.ViewSpawner, cam);
             bootstrap.CommandBridge.Bind(bootstrap.Session, bootstrap.SelectionController);
-            bootstrap.SnapshotPanel.Bind(bootstrap);
             return host;
         }
     }
