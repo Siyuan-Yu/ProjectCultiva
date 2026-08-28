@@ -1,9 +1,10 @@
 # 路线图
 
-> 状态：**RPG-First Phase 0–4 Accepted / Sealed；Phase 5+ Not Started**｜最后更新：2026-08-28
+> 状态：**RPG-First Phase 0–4 Accepted / Sealed；Phase 5A Cleanup In Progress（未验收）**｜最后更新：2026-08-29
 
 ## 当前阶段说明
 
+- **2026-08-29：** Phase 5A **Travel 代码清理 / Authority 收口（进行中，未 commit）**：行为基线 `dev_1 @ 47b3f89`；不实现 LocalVisible／Close-Preserve；真源 [172](172-phase-5a-travel-cleanup-authority-consolidation-2026-08-29.md)。  
 - **2026-08-28：** Phase 3 **Accepted / Sealed**（用户正式确认）：FormalArmy 军事层收敛；PlayerParty 独立旅行 Authority；Continuous WorldPosition／Travel／Presence／Save-Load；已在 LevelTester 持续使用及 Phase 4 验收中实际验证；真源 [166](166-phase-3-formal-army-continuous-world-2026-08-27.md)／[167](167-phase-3-closure-playerparty-and-casualty-fixtures-2026-08-27.md)。  
 - **2026-08-28：** Phase 4 **Accepted / Sealed**：Battle Authority；真源 [171](171-phase-4-battle-authority-2026-08-28.md)。**未开始 Phase 5。**  
 - **2026-08-27：** LevelTester **Cheat Tools 统一整理入仓**：`HostLevelTesterCheatPanel` 替代 F3/F4/F8/F11/F12 等分散 Debug Panel；实现索引 [168](168-level-tester-cheat-tools-consolidation-2026-08-27.md)；操作真源 [114](114-level-tester.md)。  

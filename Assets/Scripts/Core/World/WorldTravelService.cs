@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using XianXia.Core.Attributes;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
@@ -9,18 +8,9 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.World
 {
-    /// <summary>Hex 战略：LocalMap 入口与队伍焦点；legacy Route/Node 旅行已移除�?/summary>
+    /// <summary>Hex strategic helpers (site enter / party focus). Tick advance is StrategicTravelDriver.AfterTravelTick, not this type.</summary>
     public static class WorldTravelService
     {
-        public static Result AdvanceTravel(
-            SimulationWorld world,
-            int ticks = 1,
-            List<EntityId> arrivedOut = null)
-        {
-            arrivedOut?.Clear();
-            return Result.Success();
-        }
-
         public static bool CanReceiveTravelOrder(SimulationWorld world, EntityId id)
         {
             if (world == null || id.IsNone || !world.WorldPresence.TryGet(id, out var p) || p == null)

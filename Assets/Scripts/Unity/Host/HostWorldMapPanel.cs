@@ -355,10 +355,9 @@ namespace XianXia.Unity.Host
             if (!needExpand)
                 return;
 
-            if (wasMoving)
-                PlayerPartyHexTravelService.CancelTravel(world, party);
-
-            var enter = PlayerPartyHexTravelService.EnterLocalViewAtCurrentHex(world, party);
+            // Phase 5A: Host delegates Cancel+EnterLocal to existing Core CloseWorldMapTakeover.
+            // Same behavior as before; ExpandLocalMap stays Host-side.
+            var enter = PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party);
             if (enter.IsSuccess && bootstrap != null)
                 bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
         }

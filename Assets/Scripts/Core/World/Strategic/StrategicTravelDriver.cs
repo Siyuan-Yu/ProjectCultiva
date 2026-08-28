@@ -6,12 +6,12 @@ using XianXia.Core.Simulation;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// Travel tick 后的战略层推进。
-    /// 接战弹窗优先于到站提示；追击抵达／探望弥留到站走 BattleOffer，普通最终到站走 ArrivalNotice。
+    /// SimulationLoop 之后的战略层 Travel 真推进入口。
+    /// PlayerParty：AfterTravelTick → PlayerPartyHexTravelService.AdvanceAll（及距离预算）。
+    /// 接战弹窗优先；追击抵达／探望弥留到站走 BattleOffer。
     /// </summary>
     public static class StrategicTravelDriver
     {
-        static readonly List<EntityId> ArrivedScratch = new List<EntityId>(16);
         static readonly List<EntityId> RosterScratch = new List<EntityId>(16);
 
         public static void AfterTravelTick(SimulationWorld world, int ticks = 1)
@@ -56,13 +56,6 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 into.Add(id);
             }
-        }
-
-        /// <summary>由 SimulationLoop 在 AdvanceTravel 前清空、AdvanceTravel 写入到站名单。</summary>
-        public static List<EntityId> BeginArrivalCapture()
-        {
-            ArrivedScratch.Clear();
-            return ArrivedScratch;
         }
     }
 }

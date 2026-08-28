@@ -170,7 +170,10 @@ namespace XianXia.Core.Simulation
             _supervisorAngerDriver.Tick(_world);
             if (_socialTickEnabled)
                 _socialTickDriver.Tick(_world);
-            WorldTravelService.AdvanceTravel(_world, 1, StrategicTravelDriver.BeginArrivalCapture());
+            // PlayerParty World Travel advance:
+            // SimulationLoop -> StrategicTravelDriver.AfterTravelTick
+            //   -> PlayerPartyHexTravelService.AdvanceAll -> AdvanceDistanceBudget
+            // (FormalArmy / Background also advanced inside AfterTravelTick.)
             StrategicTravelDriver.AfterTravelTick(_world, 1);
             CombatLifeStateService.TickCorpseDecay(_world);
             return Result.Success();
