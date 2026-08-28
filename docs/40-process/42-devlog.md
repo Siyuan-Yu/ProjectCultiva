@@ -7,6 +7,21 @@
 
 ---
 
+## 2026-08-28 — Snapshot Faction / Test Entity 生命周期审计
+
+**做了什么**
+- 审计 LevelTester Save→Load：**主角团变 None** + **测试山贼消失** 为同一 Snapshot 链路类问题，非 Faction Registry 丢失
+- 主角团：`base:faction_player` 为 Catalog ID（无 Faction JSON）；根因 `JsonSnapshotSerializer` 漏写 entity `factionId`
+- 山贼：Snapshot **含** entity 19–26；根因 Restore 顺序（Membership 晚于 FormalArmy Apply）+ **ArmyStack 未从 FormalArmy 重建**
+- 统一修法：`StrategicSnapshotHelper.FinalizeRuntimeLinks` + `ArmyStackAdapter.EnsurePresentationStacksFromFormalArmies` + Rehydration 后二次 Finalize
+- 文档：[169](169-snapshot-faction-test-entity-lifecycle-audit-2026-08-28.md)
+- **未** commit 代码改动（文档先行）；**未**人工验收封板
+
+**状态**
+- 待 LevelTester TEST 1–2 重验 + 新 Save 含 entity `factionId`
+
+---
+
 ## 2026-08-27 — Phase 3 收口：A2 Authority 重验、PP-Follower、试炼三军与伤亡夹具
 
 **做了什么**
