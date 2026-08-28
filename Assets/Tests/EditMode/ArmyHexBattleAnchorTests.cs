@@ -47,7 +47,7 @@ namespace XianXia.Tests
             var pursuer = MakeArmy(world, Ch01HexPrototypeMapBuilder.HuangcunHex);
             var target = MakeArmy(world, HexMath.Neighbor(Ch01HexPrototypeMapBuilder.HuangcunHex, 0));
 
-            Assert.IsTrue(ArmyHexBattleAnchorService.TryDetectHexContact(pursuer, target));
+            Assert.IsTrue(ArmyHexBattleAnchorService.TryDetectHexContact(world, pursuer, target));
         }
 
         [Test]

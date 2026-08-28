@@ -63,6 +63,8 @@ namespace XianXia.Core.World.Strategic
         public int CombatPower { get; set; }
         public bool Selected { get; set; }
         public PreBattleWorldPresence PreBattle { get; set; }
+        /// <summary>Phase 4 Debug：写入 Participants 的原因。</summary>
+        public string IncludedReason { get; set; } = string.Empty;
     }
 
     /// <summary>BattleOffer ?????????ADR-0023 Phase B?Pure Hex??</summary>

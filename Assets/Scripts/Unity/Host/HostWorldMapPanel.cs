@@ -1316,6 +1316,7 @@ namespace XianXia.Unity.Host
             DrawResidualMarkers(mapRect, world, hexMode: true, hexProjection: projection);
             DrawFormalArmyAvatars(mapRect, world);
             DrawPlayerPartyMarker(mapRect, world, projection);
+            BattleEngagementWorldMapDebug.Draw(projection, world);
             DrawArmyStacks(mapRect, world);
             DrawAvatars(mapRect, world, hexMode: true, hexProjection: projection);
 

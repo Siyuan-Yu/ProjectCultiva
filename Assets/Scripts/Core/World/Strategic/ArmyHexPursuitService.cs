@@ -195,7 +195,7 @@ namespace XianXia.Core.World.Strategic
             ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, stack);
             ArmyPresenceAdapter.SyncFromArmy(world, pursuer);
 
-            if (ArmyHexBattleAnchorService.TryDetectHexContact(pursuer, target))
+            if (ArmyHexBattleAnchorService.TryDetectHexContact(world, pursuer, target))
             {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 SecondBattleAnchorTrace.EmitArmyHex(
@@ -222,8 +222,11 @@ namespace XianXia.Core.World.Strategic
             }
         }
 
-        public static bool TryDetectHexContact(FormalArmy pursuer, FormalArmy target) =>
-            ArmyHexBattleAnchorService.TryDetectHexContact(pursuer, target);
+        public static bool TryDetectHexContact(
+            SimulationWorld world,
+            FormalArmy pursuer,
+            FormalArmy target) =>
+            BattleEngagementTriggerService.TryDetectEngagementContact(world, pursuer, target);
 
         static List<EntityId> CollectLivingParty(SimulationWorld world, FormalArmy army)
         {

@@ -1,3 +1,4 @@
+using System;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
@@ -136,15 +137,16 @@ namespace XianXia.Core.World.Strategic
             wp.SiteId = ResolveSiteIdForHex(world, default, wp.SiteId);
         }
 
-        public static bool TryDetectHexContact(FormalArmy pursuer, FormalArmy target)
+        public static bool TryDetectHexContact(
+            SimulationWorld world,
+            FormalArmy pursuer,
+            FormalArmy target)
         {
-            if (pursuer == null || target == null)
+            if (world == null || pursuer == null || target == null)
                 return false;
-            if (!pursuer.UsesHexStrategicPosition || !target.UsesHexStrategicPosition)
-                return false;
-            if (pursuer.CurrentHex == target.CurrentHex)
-                return true;
-            return HexMath.Distance(pursuer.CurrentHex, target.CurrentHex) <= 1;
+
+            return BattleEngagementTriggerService.TryDetectEngagementContact(
+                world, pursuer, target);
         }
 
         public static bool TryResolveHexForSite(SimulationWorld world, string siteId, out HexCoord hex)

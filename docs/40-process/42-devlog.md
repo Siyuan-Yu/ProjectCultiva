@@ -7,6 +7,78 @@
 
 ---
 
+## 2026-08-28 — Phase 4 Participant 来源追踪：PlayerHex Authority + 删除 Snapshot 旁路
+
+**做了什么**
+- **根因确认（LevelTester 实测）：** `BattleAreaHexes` / `SupportAreaHexes` **计算正确**；Player 误加入因 **PlayerHex Authority 与 WorldMap Marker 分裂**（Gathering 旧读 `WorldPresence`，Marker 读 `PlayerPartyTravel`）
+- **Battle Trigger（A）：** 新增 `BattleEngagementTriggerService`；Initiator **已提交 Hex** ∈ Defender SupportArea；禁止 ContinuousWorldPosition 派生格提前接战
+- **Player Hex Authority：** `BattleEngagementSpatialQuery` 优先 `PlayerPartyTravel`；idle 用 `WorldToHex(WorldPosition)` 与 Marker 对齐
+- **Participant 旁路删除：** 移除 `ApplyLockedParticipantsToSnapshot` 内 **`seedMandatoryAttackers` 循环**（曾可在 `PlayerPartyIncluded` 时绕过 SupportArea 写 Snapshot）
+- **逐成员 Gathering：** 每个 Party 成员独立 `MemberHex ∈ SupportArea`；Snapshot 写入二次校验
+- **IncludedReason + 硬断言：** `BattleParticipantInclusionReason` / `BattleParticipantSpatialGuard`；Cheat Panel 输出判定链（Before/After Gathering/Snapshot）
+- **WorldMap Debug：** `BattleEngagementWorldMapDebug` 橙框 BattleArea、蓝框 SupportArea
+- **Tests：** Trigger 回归、Player 距 Defender 2 格、stale WorldPresence、`OfferPath_PlayerTwoHexFromDefender` 全路径集成测试
+- 文档：[171](171-phase-4-battle-authority-2026-08-28.md) §4A–4B 根因与 IncludedReason
+- **未**同步飞书；**未**人工验收；EditMode **待 Unity 跑通**（BatchMode 因 Editor 占用未执行）
+
+**状态**
+- Phase 4 Trigger + Gathering + Participant 追踪入仓 · push GitHub
+
+---
+
+## 2026-08-28 — Phase 4 SupportAreaHexes 集合规则（supersede 中心距离 ≤1）
+
+**做了什么**
+- **规则变更：** Participant Gathering 改用 **`BattleAreaHexes` + `SupportAreaHexes`** 冻结集合；资格判断为 `SupportAreaHexes.Contains(UnitHex)`
+- **BattleArea：** 野外 = Defender 接战 Hex；多 Hex Site = 全 Footprint（非 Anchor 代替）
+- **SupportArea：** BattleArea + 与其中任一 Hex 直接共边相邻的全部 Hex
+- **Domain：** 新增 `BattleEngagementSupportArea`；重写 `BattleParticipantGatheringService` / `BattleEngagementAuthorityService` / Debug / Snapshot 持久化 SupportArea 列表
+- **Bugfix：** `ApplyLockedParticipantsToSnapshot` 中 `seedMandatoryAttackers` 不再绕过 Gathering 空间规则
+- **Tests：** T1–T10、LevelTester 回归、SeedMandatoryAttackers 快照测试
+- 文档：[171](171-phase-4-battle-authority-2026-08-28.md) 更新；「BattleLocationHex 距离 ≤1」标记 superseded
+- **未**同步飞书；**未**人工验收
+
+**状态**
+- Phase 4 SupportArea 规则入仓 · 待 EditMode 跑通
+
+---
+
+## 2026-08-28 — Phase 4 BattleLocationHex 规则修正（supersede Initiator 扫描）
+
+**做了什么**
+- **规则变更：** Participant Gathering 唯一空间 Authority 改回 **`BattleLocationHex`**（纯 Hex Graph Distance ≤1）
+- **Initiator + Defender** 无条件加入；其他 Army 须同交战方 Faction + 距 BattleLocationHex ≤1 + 无 Battle Lock
+- **PlayerParty** 强制加入条件改为距 BattleLocationHex ≤1（非 Initiator）
+- **`InitiatorEngagementLocation`** 降为 Debug-only，不参与资格判断
+- **Domain：** 重写 `BattleParticipantGatheringService`、`BattleEngagementHexDistance`（`HexDistanceToBattleLocation` / `ResolveBattleLocationHex`）
+- **Tests：** `BattleAuthorityTests` T1–T9 按新规则重写（含 T6 防 Initiator 回归、T7 第三方、T9 不重新扫描）
+- **Debug：** Cheat Panel 战斗页输出 BattleLocationHex / PlayerPartyHex / ManualEligible
+- 文档：[171](171-phase-4-battle-authority-2026-08-28.md) 更新；旧 Initiator-centered 规则标记 superseded
+- **未**同步飞书；**未**人工验收
+
+**状态**
+- Phase 4 规则修正入仓 · 待 EditMode 跑通
+
+---
+
+## 2026-08-28 — Phase 4 Battle Authority 入仓 + Initiator 扫描中心修正
+
+**做了什么**
+- **Phase 4 Domain：** `PendingEngagementRuntime`、`BattleEngagementAuthorityService`、`BattleParticipantGatheringService`、`BattleDecisionPolicy`、`BattleManualEntryPolicy`、`BattleRetreatService`
+- **语义分离：** `BattleInitiator` vs `PlayerDecisionSubject`；Manual 仅 `PlayerPartyIncluded`；拒绝远程 FormalArmy Manual
+- **Initiator 扫描中心修正：** 原 `GatherAndLock` 误用 `BattleLocation`（Defender Hex 优先）；改为 `InitiatorEngagementLocation` 唯一中心；`BattleLocation` 仅 Presentation / LocalMap 锚点
+- **接线：** `BattleOfferService.ActivateOffer` → Authority；`HostStrategicInterruptPresenter` 按钮由 Policy 驱动；Snapshot Pending Engagement + Initiator 字段
+- **EditMode：** `BattleAuthorityTests` T1–T9（含 T8 关键 Initiator≠接触点场景）
+- **编译修复：** `CreateParty` 适配 `TryAddMember` 新签名
+- 文档：[171](171-phase-4-battle-authority-2026-08-28.md)
+- **未**同步飞书；**未**人工验收；**未**跑全量 Unity Tests
+
+**状态**
+- Phase 4 **实现入仓 · 待 EditMode 跑通** — 产品指令：**暂停扩展与人工验收**
+- **未做：** Legacy 战斗入口删除、Initiator=PlayerParty 路径、LevelTester 手操封板
+
+---
+
 ## 2026-08-28 — WorldMap 选中真源、Attack Order Snapshot 与 Strategic UI 输入优先级
 
 **做了什么**

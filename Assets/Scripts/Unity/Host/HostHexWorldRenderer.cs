@@ -215,6 +215,18 @@ namespace XianXia.Unity.Host
             }
         }
 
+        public static void DrawHexOutline(
+            HexMapViewportProjection projection,
+            HexWorld grid,
+            HexCoord coord,
+            Color border,
+            float halfWidthPx)
+        {
+            if (Event.current != null && Event.current.type != EventType.Repaint)
+                return;
+            DrawOverlayOutline(projection, grid, coord, null, border, halfWidthPx);
+        }
+
         [Obsolete("Use HexMapViewportProjection.TryPickHex.")]
         public static bool TryPickHex(SimulationWorld world, float worldX, float worldY, out HexCoord coord)
         {

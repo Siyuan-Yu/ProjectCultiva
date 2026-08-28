@@ -242,6 +242,9 @@ namespace XianXia.Unity.Host
             if (!_session.IsInitialized)
                 return;
 
+            if (_session.World?.Strategic != null)
+                _session.World.Strategic.PlayerPartyContext = _session.PlayerParty;
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             FormalArmyStrategicMutationDiagnosticsHost.TickFrame();
 #endif

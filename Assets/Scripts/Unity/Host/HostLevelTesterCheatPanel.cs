@@ -313,6 +313,23 @@ namespace XianXia.Unity.Host
                 "调试：下次单人自动战斗必定失能");
             if (next != forceSolo)
                 AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated = next;
+            y += 28f;
+
+            var showBattleHexOverlay = BattleEngagementWorldMapDebug.ShowOverlay;
+            var nextOverlay = GUI.Toggle(
+                new Rect(x, y, width, 22f),
+                showBattleHexOverlay,
+                "调试：WorldMap 高亮 BattleArea(橙) / SupportArea(蓝)");
+            if (nextOverlay != showBattleHexOverlay)
+                BattleEngagementWorldMapDebug.ShowOverlay = nextOverlay;
+            y += 28f;
+
+            var world = bootstrap?.Session?.World;
+            if (world != null)
+            {
+                var summary = BattleEngagementAuthorityDebug.BuildSummary(world);
+                GUI.Label(new Rect(x, y, width, 360f), summary, _body);
+            }
         }
 
         void DrawDiagnosticsTab(float x, float y, float width)

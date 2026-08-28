@@ -14,6 +14,7 @@ namespace XianXia.Core.World.Strategic
     {
         static readonly List<HexCoord> PathScratch = new List<HexCoord>(64);
         static readonly List<HexCoord> FullPathScratch = new List<HexCoord>(64);
+        static readonly List<string> AdvanceArmyScratch = new List<string>(32);
 
         public static Result MoveArmyToHex(SimulationWorld world, string armyId, HexCoord destination) =>
             BeginTravel(world, armyId, destination, string.Empty, FormalArmyOrderKind.TravelToHex);
@@ -179,11 +180,22 @@ namespace XianXia.Core.World.Strategic
 
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             var budget = PlayerPartyHexTravelService.WorldUnitsPerTick(hexSize) * ticks;
+            AdvanceArmyScratch.Clear();
             foreach (var kv in world.Strategic.FormalArmies.Armies)
             {
                 var army = kv.Value;
                 if (army == null || !army.WorldMotion.IsMoving)
                     continue;
+                AdvanceArmyScratch.Add(kv.Key);
+            }
+
+            for (var i = 0; i < AdvanceArmyScratch.Count; i++)
+            {
+                if (!world.Strategic.FormalArmies.TryGet(AdvanceArmyScratch[i], out var army) ||
+                    army == null ||
+                    !army.WorldMotion.IsMoving)
+                    continue;
+
                 AdvanceDistanceBudget(world, army, budget);
                 ArmyService.SyncNonLivingMembers(world, army);
             }

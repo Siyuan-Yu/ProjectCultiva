@@ -61,6 +61,13 @@ namespace XianXia.Core.World.Strategic
                 return true;
             }
 
+            if (presence.Mode == PartyWorldPresenceMode.AtWorldPosition &&
+                presence.DerivedHexFromWorldPosition.Q != ArmyHexBattleAnchorService.InvalidHexComponent)
+            {
+                worldHex = presence.DerivedHexFromWorldPosition;
+                return true;
+            }
+
             if (presence.Mode == PartyWorldPresenceMode.AtSite &&
                 !string.IsNullOrEmpty(presence.SiteId))
                 return world.Strategic.Sites.TryResolveSitePresenceHex(presence.SiteId, out worldHex);
@@ -71,13 +78,8 @@ namespace XianXia.Core.World.Strategic
         public static bool TryGetPartyWorldHex(
             SimulationWorld world,
             PlayerPartyRuntime party,
-            out HexCoord worldHex)
-        {
-            worldHex = default;
-            if (world == null || party == null || !party.HasActive)
-                return false;
-            return TryGetWorldHex(world, party.ActiveCharacterId, out worldHex);
-        }
+            out HexCoord worldHex) =>
+            BattleEngagementSpatialQuery.TryGetCommittedPartyHex(world, party, out worldHex);
 
         public static bool TryDescribe(
             SimulationWorld world,

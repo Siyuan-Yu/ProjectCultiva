@@ -29,14 +29,22 @@ namespace XianXia.Core.World.Strategic
             if (ArmyService.TryGetArmyForCharacter(world, agentId, out var attacker) &&
                 attacker != null &&
                 attacker.UsesHexStrategicPosition)
-                return ArmyHexBattleAnchorService.TryDetectHexContact(attacker, defender);
+                return BattleEngagementTriggerService.TryDetectEngagementContact(
+                    world, attacker, defender);
+
+            if (BattleEngagementSpatialQuery.TryGetCommittedCharacterHex(
+                    world, agentId, out var agentHex))
+            {
+                var supportArea = BattleEngagementSupportArea.ResolveAndFreeze(
+                    world, defender.ArmyId);
+                return supportArea.HasValue && supportArea.Contains(agentHex);
+            }
 
             if (p.UsesHexPresence)
             {
-                var agentHex = p.ResidualHex;
-                if (defender.CurrentHex == agentHex)
-                    return true;
-                return HexMath.Distance(defender.CurrentHex, agentHex) <= 1;
+                var supportArea = BattleEngagementSupportArea.ResolveAndFreeze(
+                    world, defender.ArmyId);
+                return supportArea.HasValue && supportArea.Contains(p.ResidualHex);
             }
 
             if (p.Mode == PartyWorldPresenceMode.AtSite &&

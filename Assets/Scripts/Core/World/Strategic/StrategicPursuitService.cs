@@ -248,6 +248,7 @@ namespace XianXia.Core.World.Strategic
                 pursuerArmy != null)
             {
                 if (ArmyPursuitTargetService.TryDetectFormalArmyPursuitContact(
+                        world,
                         pursuerArmy,
                         targetArmy,
                         rt.PursueAttackerArmyId))

@@ -89,6 +89,66 @@ namespace XianXia.Core.Persistence
         /// <summary>Phase 2D：Background Character 中途旅行状态（可选）。</summary>
         public List<BackgroundCharacterTravelSnapshotDto> BackgroundCharacterTravels { get; set; } =
             new List<BackgroundCharacterTravelSnapshotDto>();
+
+        /// <summary>Phase 4：Pending Engagement 决策态（弹窗已出现时可恢复）。</summary>
+        public PendingEngagementSnapshotDto PendingEngagement { get; set; }
+    }
+
+    public sealed class PendingEngagementSnapshotDto
+    {
+        public string EngagementId { get; set; } = string.Empty;
+        public int InitiatorKind { get; set; }
+        public string InitiatorFormalArmyId { get; set; } = string.Empty;
+        public bool InitiatorIsPlayerSide { get; set; }
+        public int DecisionSubjectKind { get; set; }
+        public string DecisionSubjectFormalArmyId { get; set; } = string.Empty;
+        public int BattleLocationHexQ { get; set; }
+        public int BattleLocationHexR { get; set; }
+        public List<int> BattleAreaHexQList { get; set; } = new List<int>(8);
+        public List<int> BattleAreaHexRList { get; set; } = new List<int>(8);
+        public List<int> SupportAreaHexQList { get; set; } = new List<int>(16);
+        public List<int> SupportAreaHexRList { get; set; } = new List<int>(16);
+        public int InitiatorEngagementHexQ { get; set; }
+        public int InitiatorEngagementHexR { get; set; }
+        public string InitiatorEngagementSiteId { get; set; } = string.Empty;
+        public string AttackerFormalArmyId { get; set; } = string.Empty;
+        public string DefenderFormalArmyId { get; set; } = string.Empty;
+        public bool PlayerPartyIncluded { get; set; }
+        public bool InvolvesPlayerSide { get; set; }
+        public string OfferId { get; set; } = string.Empty;
+        public string OfferTitle { get; set; } = string.Empty;
+        public string ArmyStackId { get; set; } = string.Empty;
+        public string EncounterLocalMapId { get; set; } = string.Empty;
+        public List<string> PlayerFormalArmyIds { get; set; } = new List<string>(8);
+        public List<string> EnemyFormalArmyIds { get; set; } = new List<string>(8);
+        public List<ulong> PlayerPartyMemberIds { get; set; } = new List<ulong>(8);
+        public int RetreatArmyLocationKind { get; set; }
+        public int RetreatPartyLocationKind { get; set; }
+        public string RetreatSiteId { get; set; } = string.Empty;
+        public float RetreatWorldX { get; set; }
+        public float RetreatWorldY { get; set; }
+        public int RetreatHexQ { get; set; }
+        public int RetreatHexR { get; set; }
+        public bool RetreatIsPlayerParty { get; set; }
+        public string ParticipantOfferId { get; set; } = string.Empty;
+        public string ParticipantAttackerArmyId { get; set; } = string.Empty;
+        public string ParticipantDefenderArmyId { get; set; } = string.Empty;
+        public string ParticipantPrimaryEnemyStackId { get; set; } = string.Empty;
+        public int ParticipantBattleAnchorHexQ { get; set; }
+        public int ParticipantBattleAnchorHexR { get; set; }
+        public List<PendingEngagementParticipantRecordDto> ParticipantRecords { get; set; } =
+            new List<PendingEngagementParticipantRecordDto>(32);
+    }
+
+    public sealed class PendingEngagementParticipantRecordDto
+    {
+        public int Kind { get; set; }
+        public ulong EntityId { get; set; }
+        public string ArmyStackId { get; set; } = string.Empty;
+        public string FormalArmyId { get; set; } = string.Empty;
+        public string DisplayLabel { get; set; } = string.Empty;
+        public int CombatPower { get; set; }
+        public bool Selected { get; set; }
     }
 
     /// <summary>Phase 2D：Background Character 旅行快照（WorldLocation + route progress）。</summary>

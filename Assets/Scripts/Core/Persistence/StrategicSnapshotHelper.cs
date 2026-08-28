@@ -279,6 +279,7 @@ namespace XianXia.Core.Persistence
 
             PlayerPartySnapshotRestore.Capture(party, dto);
             LoadedLocalMapPlacementSnapshotRestore.Capture(world, dto);
+            PendingEngagementSnapshotRestore.Capture(world, dto);
             return dto;
         }
 
@@ -490,6 +491,7 @@ namespace XianXia.Core.Persistence
             RestoreBackgroundCharacterTravels(world, dto.BackgroundCharacterTravels);
             LoadedLocalMapPlacementSnapshotRestore.BeginRestoreFromSnapshot(dto);
             FinalizeRuntimeLinks(world);
+            PendingEngagementSnapshotRestore.Restore(world, dto);
         }
 
         /// <summary>

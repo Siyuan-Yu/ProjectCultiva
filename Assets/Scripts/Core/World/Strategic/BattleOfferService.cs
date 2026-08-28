@@ -357,36 +357,51 @@ namespace XianXia.Core.World.Strategic
             string attackerArmyId = null)
         {
             world.Strategic.Encounter.ClearActiveEncounterSession();
-            var offer = world.Strategic.BattleOffer;
-            offer.Resolved = false;
-            offer.OfferId = "offer:" + enemy.Id + ":" + world.Tick.Value + ":" +
-                            world.Strategic.InterruptQueue.Count;
-            offer.ArmyStackId = enemy.Id;
-            ArmyStackAdapter.TryResolveDefenderArmyId(enemy, out var defenderArmyId);
-            offer.DefenderArmyId = defenderArmyId ?? string.Empty;
             if (string.IsNullOrEmpty(attackerArmyId))
                 ArmyStackAdapter.TryResolveAttackerArmyId(world, playerParty, out attackerArmyId);
+            ArmyStackAdapter.TryResolveDefenderArmyId(enemy, out var defenderArmyId);
+
+            var offerId = "offer:" + enemy.Id + ":" + world.Tick.Value + ":" +
+                          world.Strategic.InterruptQueue.Count;
+            var partyContext = world.Strategic.PlayerPartyContext;
+
+            if (!BattleEngagementAuthorityService.TryBeginEngagement(
+                    world,
+                    partyContext,
+                    attackerArmyId,
+                    defenderArmyId,
+                    enemy,
+                    playerParty,
+                    offerId,
+                    out var thirdPartyResolved))
+                return false;
+
+            if (thirdPartyResolved)
+                return true;
+
+            var offer = world.Strategic.BattleOffer;
+            offer.Resolved = false;
+            offer.OfferId = offerId;
+            offer.ArmyStackId = enemy.Id;
+            offer.DefenderArmyId = defenderArmyId ?? string.Empty;
             offer.AttackerArmyId = attackerArmyId ?? string.Empty;
             offer.Title = ResolveOfferTitle(world, enemy, title);
             offer.EncounterLocalMapId = ResolveOfferEncounterLocalMapId(world, enemy);
             offer.SetPlayerParty(playerParty);
             offer.ExecuteOnWin = false;
 
-            var snap = string.IsNullOrEmpty(offer.AttackerArmyId)
-                ? BattleParticipantSnapshotBuilder.Build(
-                    world, playerParty, enemy, offer.OfferId)
-                : BattleParticipantSnapshotBuilder.BuildArmyVsArmy(
-                    world, offer.AttackerArmyId, enemy, offer.OfferId);
-            snap.EncounterLocalMapId = offer.EncounterLocalMapId;
-            world.Strategic.Participants.Clear();
-            CopySnapshotInto(world.Strategic.Participants, snap);
+            BattleEngagementAuthorityService.BuildSnapshotFromEngagement(
+                world,
+                world.Strategic.PendingEngagement,
+                enemy,
+                playerParty,
+                offerId);
 
-            // 禁止：旧残留战场 Hex 污染�?Active Enemy Encounter �?BattleAnchor�?
-            // Canonical lingering 同步仅允�?ActivateLingeringOffer�?
+            var participants = world.Strategic.Participants;
+            participants.EncounterLocalMapId = offer.EncounterLocalMapId;
 
-            // 与残留再进同一原则：接战锚点半径内我方弥留 = 已在场上，强制参战（追击／再攻／首战皆同�?
-            PromoteInRangeIncapacitatedToMandatory(world, world.Strategic.Participants);
-            var selected = world.Strategic.Participants.CollectSelectedFriendly();
+            PromoteInRangeIncapacitatedToMandatory(world, participants);
+            var selected = participants.CollectSelectedFriendly();
             offer.SetPlayerParty(selected);
             ArrivalNoticeService.SuppressForParty(world, selected);
 
@@ -577,7 +592,8 @@ namespace XianXia.Core.World.Strategic
                     DisplayLabel = string.IsNullOrEmpty(ent.DisplayName) ? id.ToString() : ent.DisplayName,
                     CombatPower = CombatPowerCalculator.ForEntity(world, id),
                     Selected = true,
-                    PreBattle = PreBattleWorldPresence.Capture(wp)
+                    PreBattle = PreBattleWorldPresence.Capture(wp),
+                    IncludedReason = BattleParticipantInclusionReason.PromoteInRangeIncapacitated
                 });
             }
         }
@@ -877,6 +893,8 @@ namespace XianXia.Core.World.Strategic
                 playerWon,
                 executeOnWin);
 
+            ClearAttackOrdersAfterBattle(world, world.Strategic.Participants);
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             FormalArmy settleArmy = null;
             if (!string.IsNullOrEmpty(world.Strategic.Participants?.AttackerArmyId))
@@ -1007,7 +1025,24 @@ namespace XianXia.Core.World.Strategic
             }
         }
 
-        /// <summary>Offer／遭遇结束后：先解冻，再出队下一场或清空快照�?/summary>
+        static void ClearAttackOrdersAfterBattle(SimulationWorld world, BattleParticipantSnapshot snap)
+        {
+            if (world?.Strategic?.FormalArmies == null || snap == null)
+                return;
+
+            if (!string.IsNullOrEmpty(snap.AttackerArmyId) &&
+                world.Strategic.FormalArmies.TryGet(snap.AttackerArmyId, out var attacker) &&
+                attacker != null)
+                attacker.WorldMotion.ClearOrderTarget();
+
+            if (!string.IsNullOrEmpty(snap.DefenderArmyId) &&
+                world.Strategic.FormalArmies.TryGet(snap.DefenderArmyId, out var defender) &&
+                defender != null &&
+                !ArmyPostBattleSyncService.HasMacroOrderLivingMember(world, defender))
+                defender.WorldMotion.ClearOrderTarget();
+        }
+
+        /// <summary>Offer???????????????????????</summary>
         public static Result FinishOfferResolution(SimulationWorld world)
         {
             if (world?.Strategic == null)

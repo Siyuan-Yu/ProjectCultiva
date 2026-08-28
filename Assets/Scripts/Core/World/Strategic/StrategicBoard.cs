@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -61,10 +62,14 @@ namespace XianXia.Core.World.Strategic
         public LingeringBattlefieldRegistry LingeringBattlefields { get; } = new LingeringBattlefieldRegistry();
         public StrategicClockFreezeState ClockFreeze { get; } = new StrategicClockFreezeState();
         public BattleParticipantSnapshot Participants { get; } = new BattleParticipantSnapshot();
+        public PendingEngagementRuntime PendingEngagement { get; } = new PendingEngagementRuntime();
         public BattleInterruptQueue InterruptQueue { get; } = new BattleInterruptQueue();
 
         /// <summary>Ch01 / LevelTester：启用 presence-based 组军场景 Adapter。</summary>
         public bool Ch01FormationScenarioCompat { get; set; }
+
+        /// <summary>Host 注入：Engagement 收集 PlayerParty 时使用（Domain 不依赖 Session）。</summary>
+        public PlayerPartyRuntime PlayerPartyContext { get; set; }
 
         /// <summary>ReinforcementRange 战略 TravelCost 阈值（遗留）。≤0 忽略。</summary>
         public int ReinforcementTravelCostThreshold { get; set; }
@@ -126,6 +131,7 @@ namespace XianXia.Core.World.Strategic
             BattleOffer.DefenderArmyId = string.Empty;
             BattleOffer.ClearPlayerParty();
             BattleOffer.Resolved = true;
+            PendingEngagement?.Clear();
         }
 
         public void ClearArrivalNotice()

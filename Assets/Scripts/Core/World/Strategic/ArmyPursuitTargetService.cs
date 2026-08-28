@@ -132,6 +132,7 @@ namespace XianXia.Core.World.Strategic
         }
 
         public static bool TryDetectFormalArmyPursuitContact(
+            SimulationWorld world,
             FormalArmy pursuer,
             FormalArmy target,
             string pursuerArmyId)
@@ -142,7 +143,7 @@ namespace XianXia.Core.World.Strategic
             if (TryDetectSameSiteContact(pursuer, target))
                 return true;
 
-            return ArmyHexBattleAnchorService.TryDetectHexContact(pursuer, target);
+            return ArmyHexBattleAnchorService.TryDetectHexContact(world, pursuer, target);
         }
 
         public static bool DetectSweptRouteContact(

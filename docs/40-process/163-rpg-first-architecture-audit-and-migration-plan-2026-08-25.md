@@ -100,6 +100,7 @@
 - **Affected：** BattleOffer、Encounter 入口、Host 打断  
 - **Must Not Break：** ADR-0023 WorldTick 冻结、战损回写  
 - **Acceptance：** 远距离无法切入手动；邻格可介入仅控 Active  
+- **2026-08-28 进度（入仓 · 未封板）：** Battle Authority Domain + Initiator 扫描中心修正；实现索引 [171](171-phase-4-battle-authority-2026-08-28.md)。EditMode T1–T9 待跑通；**人工验收暂停**。
 
 ### Phase 5 — Continuous LocalMap ↔ Hex
 

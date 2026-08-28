@@ -36,7 +36,11 @@
   - **收口（2026-08-27）：** A2 重验、PP-Follower、主角营地、试炼三军/伤亡夹具；见 [167](167-phase-3-closure-playerparty-and-casualty-fixtures-2026-08-27.md)  
   - **待验收：** F11 TEST 1–10 + 167 清单 1–12  
   - **Deferred：** FormalArmy WorldMap 连续 Marker 表现、Autonomous AI Order
-- [ ] **Phase 4** Manual Battle Permission（远方 Auto；≤1 Hex 介入）
+- [ ] **Phase 4** Manual Battle Permission（远方 Auto；≤1 Hex 介入）  
+  - **进行中（2026-08-28）：** Battle Authority Domain + Initiator 扫描中心修正已入仓；见 [171](171-phase-4-battle-authority-2026-08-28.md)  
+  - **待：** EditMode T1–T9 跑通  
+  - **暂停：** 人工验收（产品指令 2026-08-28）  
+  - **Deferred：** Legacy 战斗入口删除、PlayerParty 作 Initiator
 - [ ] **Phase 5** Continuous LocalMap ↔ HexWorld Transition
 - [ ] **Phase 6** WorldMap Auto Travel
 - [ ] **Phase 7** Wilderness LocalMap

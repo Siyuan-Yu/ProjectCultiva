@@ -407,11 +407,16 @@ namespace XianXia.Unity.Host
         {
             DrawDim();
             var snap = session.World.Strategic.Participants;
+            var decision = BattleDecisionPolicy.ResolveDecisionOptions(session.World);
+            var hideOptionalPickers = session.World.Strategic.PendingEngagement.IsActive;
             var optionalCount = 0;
-            for (var i = 0; i < snap.Records.Count; i++)
+            if (!hideOptionalPickers)
             {
-                if (snap.Records[i].Kind == BattleParticipantKind.OptionalFriendly)
-                    optionalCount++;
+                for (var i = 0; i < snap.Records.Count; i++)
+                {
+                    if (snap.Records[i].Kind == BattleParticipantKind.OptionalFriendly)
+                        optionalCount++;
+                }
             }
 
             var extra = Mathf.Min(optionalCount, 6) * 22f + 72f;
@@ -471,6 +476,7 @@ namespace XianXia.Unity.Host
 
             var anyOptional = false;
             var drawnArmies = new HashSet<string>(StringComparer.Ordinal);
+            if (!hideOptionalPickers)
             for (var i = 0; i < snap.Records.Count; i++)
             {
                 if (snap.Records[i].Kind != BattleParticipantKind.OptionalFriendly)
@@ -549,8 +555,12 @@ namespace XianXia.Unity.Host
                 "战胜时处决（敌军阵亡留尸体；不勾选＝全部弥留，可再进补刀）");
 
             var y = box.y + box.height - 44f;
-            var third = (box.width - 40f) / 3f;
-            if (GUI.Button(new Rect(box.x + 16f, y, third, 32f), "自动战斗"))
+            var buttonCount = decision.Manual ? 3 : 2;
+            var third = (box.width - 40f) / buttonCount;
+            var btnIndex = 0;
+
+            if (decision.Auto &&
+                GUI.Button(new Rect(box.x + 16f + third * btnIndex, y, third, 32f), "自动战斗"))
             {
                 offer.ExecuteOnWin = _executeOnWin;
                 var resolved = BattleOfferService.ResolveAuto(
@@ -561,8 +571,7 @@ namespace XianXia.Unity.Host
                 _executeOnWin = false;
                 if (resolved.IsSuccess)
                 {
-                    // 进入自动战结算弹窗（PostBattle + IsAutoSettlement）
-                    // 结算留在大地图上，不要被「战场禁图」关掉后露出不明 LocalMap
+                    session.World.Strategic.PendingEngagement.Clear();
                     _holding = true;
                     session.IsPaused = true;
                     bootstrap.WorldMapPanel?.Open();
@@ -572,42 +581,60 @@ namespace XianXia.Unity.Host
                     ShowToast(resolved.Error.Message);
             }
 
-            if (GUI.Button(new Rect(box.x + 20f + third, y, third, 32f), "手动战斗"))
-            {
-                EnterManualEncounter(session, offer.EncounterLocalMapId, offer.ArmyStackId);
-                session.World.Strategic.ClearBattleOffer();
-                StrategicClockFreezeService.BeginOrPromote(
-                    session.World,
-                    StrategicClockFreezeReason.ManualEncounter);
-                session.IsPaused = false;
-                _holding = false;
-            }
+            btnIndex++;
 
-            if (GUI.Button(new Rect(box.x + 24f + third * 2f, y, third, 32f), "撤退"))
+            if (decision.Manual &&
+                GUI.Button(new Rect(box.x + 16f + third * btnIndex, y, third, 32f), "手动战斗"))
             {
-                var retreatParty = session.World.Strategic.Participants.CollectSelectedFriendly();
-                if (retreatParty.Count == 0)
-                    retreatParty = ResolveEngagedPartyForManualEncounter(session.World);
-                ArrivalNoticeService.SuppressForParty(session.World, retreatParty);
-                StrategicPursuitService.ClearPursuitForAgents(session.World, retreatParty);
-                session.World.Strategic.ClearBattleOffer();
-                _holding = false;
-                var freeze = session.World.Strategic.ClockFreeze;
-                var savedPaused = freeze.HasSavedHostPresentation
-                    ? freeze.SavedHostPaused
-                    : session.IsPaused;
-                var savedSpeed = freeze.HasSavedHostPresentation
-                    ? freeze.SavedSpeedMultiplier
-                    : (bootstrap != null ? bootstrap.EffectiveSpeedMultiplier() : 1);
-                BattleOfferService.FinishOfferResolution(session.World);
-                if (!session.World.Strategic.IsWorldTickFrozen)
+                var gate = BattleManualEntryPolicy.ValidateManualEntry(session.World);
+                if (gate.IsFailure)
                 {
-                    session.IsPaused = savedPaused;
-                    if (bootstrap != null)
-                        bootstrap.ApplySavedSpeedMultiplier(savedSpeed);
+                    ShowToast(gate.Error.Message);
                 }
                 else
-                    session.IsPaused = true;
+                {
+                    EnterManualEncounter(session, offer.EncounterLocalMapId, offer.ArmyStackId);
+                    session.World.Strategic.ClearBattleOffer();
+                    session.World.Strategic.PendingEngagement.Clear();
+                    StrategicClockFreezeService.BeginOrPromote(
+                        session.World,
+                        StrategicClockFreezeReason.ManualEncounter);
+                    session.IsPaused = false;
+                    _holding = false;
+                }
+            }
+
+            if (decision.Manual)
+                btnIndex++;
+
+            if (decision.Retreat &&
+                GUI.Button(new Rect(box.x + 16f + third * btnIndex, y, third, 32f), "撤退"))
+            {
+                var retreat = BattleRetreatService.ExecuteRetreat(session.World, session.PlayerParty);
+                _holding = false;
+                if (retreat.IsFailure)
+                {
+                    ShowToast(retreat.Error.Message);
+                }
+                else
+                {
+                    var freeze = session.World.Strategic.ClockFreeze;
+                    var savedPaused = freeze.HasSavedHostPresentation
+                        ? freeze.SavedHostPaused
+                        : session.IsPaused;
+                    var savedSpeed = freeze.HasSavedHostPresentation
+                        ? freeze.SavedSpeedMultiplier
+                        : (bootstrap != null ? bootstrap.EffectiveSpeedMultiplier() : 1);
+                    BattleOfferService.FinishOfferResolution(session.World);
+                    if (!session.World.Strategic.IsWorldTickFrozen)
+                    {
+                        session.IsPaused = savedPaused;
+                        if (bootstrap != null)
+                            bootstrap.ApplySavedSpeedMultiplier(savedSpeed);
+                    }
+                    else
+                        session.IsPaused = true;
+                }
             }
         }
 
@@ -618,6 +645,14 @@ namespace XianXia.Unity.Host
         {
             if (session?.World == null || bootstrap == null)
                 return;
+
+            var gate = BattleManualEntryPolicy.ValidateManualEntry(session.World);
+            if (gate.IsFailure)
+            {
+                ShowToast(gate.Error.Message);
+                return;
+            }
+
             if (string.IsNullOrWhiteSpace(localMapId))
                 localMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
 
