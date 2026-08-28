@@ -31,8 +31,8 @@ namespace XianXia.Core.World.Hex
         /// <summary>默认战略视角：横向可见 Hex 数（约 80）。</summary>
         public const float DefaultHexesAcross = 80f;
 
-        /// <summary>最大放大：横向约 14 Hex（约为旧版 2× 放大）。</summary>
-        public const float CloseHexesAcross = 14f;
+        /// <summary>最大放大：横向约 7 Hex（约为旧版 4× 放大）。</summary>
+        public const float CloseHexesAcross = 7f;
 
         /// <summary>Legacy 内容导入比例：每 1 个 world 单位对应多少 Hex 步。</summary>
         public const int LegacyWorldHexStepsPerUnit = 4;

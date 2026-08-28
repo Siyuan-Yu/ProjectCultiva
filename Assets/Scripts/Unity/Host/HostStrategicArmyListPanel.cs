@@ -87,17 +87,22 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(panelRect.xMax - 92f, panelRect.y + 6f, 80f, 24f), "关闭"))
                 Close();
 
+            const float footerH = 28f;
+            const float footerPad = 8f;
             var contentTop = panelRect.y + 36f;
+            var contentBottom = panelRect.yMax - footerPad - footerH;
             var listW = panelRect.width * 0.42f;
-            const float createButtonH = 28f;
-            const float createButtonPad = 6f;
-            var createBtnY = panelRect.yMax - 8f - createButtonH;
             var listRect = new Rect(
                 panelRect.x + 8f,
                 contentTop,
                 listW - 12f,
-                createBtnY - contentTop - createButtonPad);
-            var detailRect = new Rect(listRect.xMax + 8f, contentTop, panelRect.width - listW - 16f, panelRect.height - 44f);
+                contentBottom - contentTop);
+            var detailRect = new Rect(
+                listRect.xMax + 8f,
+                contentTop,
+                panelRect.width - listW - 16f,
+                contentBottom - contentTop);
+            var createBtnY = panelRect.yMax - footerPad - footerH;
 
             DrawArmyList(listRect, onFocusArmy, onArmySelectionChanged);
 
@@ -108,7 +113,7 @@ namespace XianXia.Unity.Host
             }
 
             if (GUI.Button(
-                    new Rect(panelRect.x + 10f, createBtnY, listW - 20f, createButtonH),
+                    new Rect(panelRect.x + 10f, createBtnY, listW - 20f, footerH),
                     "组建军队"))
             {
                 _showCreate = true;

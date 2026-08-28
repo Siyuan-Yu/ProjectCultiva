@@ -1865,7 +1865,7 @@ namespace XianXia.Unity.Host
             var partyRuntime = bootstrap.Session.PlayerParty;
             if (_armyListPanel.IsOpen)
             {
-                var rect = new Rect(12f, 104f, Mathf.Min(720f, Screen.width - 24f), Screen.height - 140f);
+                var rect = HostStrategicRosterPanelLayout.Compute(Screen.width, Screen.height);
                 if (_armyListPanel.Draw(
                         rect,
                         world,
@@ -1882,7 +1882,9 @@ namespace XianXia.Unity.Host
 
             if (_characterListPanel.IsOpen)
             {
+                var rect = HostStrategicRosterPanelLayout.Compute(Screen.width, Screen.height);
                 if (_characterListPanel.Draw(
+                        rect,
                         world,
                         partyCharacterIds,
                         partyRuntime,

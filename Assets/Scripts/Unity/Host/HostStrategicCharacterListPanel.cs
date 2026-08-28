@@ -53,6 +53,7 @@ namespace XianXia.Unity.Host
         }
 
         public bool Draw(
+            Rect panelRect,
             SimulationWorld world,
             IReadOnlyList<EntityId> partyCharacterIds,
             PlayerPartyRuntime partyRuntime,
@@ -70,9 +71,6 @@ namespace XianXia.Unity.Host
             HostStrategicRosterQueries.CollectPlayerCharacters(
                 world, factionId, partyCharacterIds, _rows, partyRuntime);
 
-            var panelW = Mathf.Min(640f, Screen.width - 24f);
-            var panelH = Screen.height - 120f;
-            var panelRect = new Rect(12f, 100f, panelW, panelH);
             HostUiHitTest.Block(panelRect);
 
             var prev = GUI.color;
@@ -85,10 +83,17 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(panelRect.xMax - 88f, panelRect.y + 6f, 76f, 24f), "关闭"))
                 Close();
 
+            const float footerH = 36f;
+            const float footerPad = 8f;
             var contentTop = panelRect.y + 36f;
+            var contentBottom = panelRect.yMax - footerPad - footerH;
             var listW = panelRect.width * 0.48f;
-            var listRect = new Rect(panelRect.x + 8f, contentTop, listW - 8f, panelRect.height - 88f);
-            var detailRect = new Rect(listRect.xMax + 8f, contentTop, panelRect.width - listW - 24f, listRect.height);
+            var listRect = new Rect(panelRect.x + 8f, contentTop, listW - 8f, contentBottom - contentTop);
+            var detailRect = new Rect(
+                listRect.xMax + 8f,
+                contentTop,
+                panelRect.width - listW - 24f,
+                contentBottom - contentTop);
 
             DrawCharacterList(listRect, onFocusArmy, onFocusNode);
 
