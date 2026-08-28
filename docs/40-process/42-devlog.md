@@ -7,6 +7,21 @@
 
 ---
 
+## 2026-08-28 — WorldMap 选中真源、Attack Order Snapshot 与 Strategic UI 输入优先级
+
+**做了什么**
+- **Army Marker Load：** 玩家 FormalArmy 不再误走 ArmyStack Presentation；`ArmyWorldMapPresentation.ShouldDrawArmyStackMarker`；`ARMY_VIS07`
+- **选中真源：** 新增 `HostWorldMapSelectionAuthority`；Marker / Army List / 右键 Dispatcher 统一读取；移除空 Id fallback PlayerParty
+- **Attack Order Snapshot：** `AttackFormalArmy` + `OrderTargetArmyId` 持久化；`RestoreAttackOrderIfNeeded`；`FormalArmyOrderSnapshotTests`
+- **Strategic UI Input Priority：** 修复 `HandleMapInput` 提前导致 Panel Block 未注册 + `e.Use()` 吞 Checkbox；`HostUiHitTest` 双通道；OnGUI 顺序收口
+- 文档：[170](170-worldmap-selection-strategic-ui-input-2026-08-28.md)
+- LevelTester CASE 1–6 **人工验收通过**
+
+**状态**
+- 已 commit + push；**未**同步飞书
+
+---
+
 ## 2026-08-28 — Snapshot Faction / Test Entity 生命周期审计
 
 **做了什么**

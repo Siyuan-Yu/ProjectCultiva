@@ -438,18 +438,33 @@ namespace XianXia.Core.World.Strategic
             }
         }
 
+        public static bool IsPlayerFactionFormalArmy(SimulationWorld world, FormalArmy army)
+        {
+            if (army == null || string.IsNullOrEmpty(army.FactionId))
+                return false;
+            var playerFactionId = world?.Strategic?.PlayerFactionId;
+            if (string.IsNullOrEmpty(playerFactionId))
+                playerFactionId = StrategicFactionCatalog.PlayerFactionId;
+            return string.Equals(army.FactionId, playerFactionId, StringComparison.Ordinal);
+        }
+
         /// <summary>
         /// Snapshot Restore 后：从 FormalArmy 真源重建 ArmyStack 展示视图（不创建 Character、不 respawn fixture）。
+        /// 玩家 FormalArmy 与正常 Gameplay 一致，不注册 Stack（由 WorldMap FormalArmy 头像呈现）。
         /// </summary>
         public static void EnsurePresentationStacksFromFormalArmies(SimulationWorld world)
         {
             if (world?.Strategic?.FormalArmies == null || world.Strategic.Armies == null)
                 return;
 
+            PurgePlayerFactionPresentationStacks(world);
+
             foreach (var kv in world.Strategic.FormalArmies.Armies)
             {
                 var army = kv.Value;
                 if (army == null || string.IsNullOrEmpty(army.ArmyId))
+                    continue;
+                if (IsPlayerFactionFormalArmy(world, army))
                     continue;
 
                 var stackId = ResolvePresentationStackId(army.ArmyId);
@@ -475,6 +490,20 @@ namespace XianXia.Core.World.Strategic
 
                 SyncStackTravelFromFormalArmy(world, stack);
                 RefreshDerivedPresentation(world, stack);
+            }
+        }
+
+        static void PurgePlayerFactionPresentationStacks(SimulationWorld world)
+        {
+            if (world?.Strategic?.FormalArmies == null || world.Strategic.Armies == null)
+                return;
+
+            foreach (var kv in world.Strategic.FormalArmies.Armies)
+            {
+                var army = kv.Value;
+                if (army == null || !IsPlayerFactionFormalArmy(world, army))
+                    continue;
+                world.Strategic.Armies.Remove(ResolvePresentationStackId(army.ArmyId));
             }
         }
 

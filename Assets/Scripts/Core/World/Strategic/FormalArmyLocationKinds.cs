@@ -18,5 +18,6 @@ namespace XianXia.Core.World.Strategic
         None = 0,
         TravelToHex = 1,
         TravelToWorldSite = 2,
+        AttackFormalArmy = 3,
     }
 }

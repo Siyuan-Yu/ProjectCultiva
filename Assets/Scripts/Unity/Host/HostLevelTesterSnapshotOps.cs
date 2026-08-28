@@ -99,9 +99,13 @@ namespace XianXia.Unity.Host
             HostSnapshotSessionRehydration.LogDomainTrace(
                 bootstrap.Session,
                 "AfterRehydrate.BeforePresentation");
+            WorldMapArmyMarkerDiagnostics.LogFormalArmyDomainAfterLoad(
+                bootstrap.Session,
+                "AfterRehydrate");
             HostLevelTesterSnapshotSummary.RecordRuntime(bootstrap.Session.World, bootstrap.Session);
 
             bootstrap.RebuildPresentationAfterLoad();
+            WorldMapArmyMarkerDiagnostics.LogWorldMapArmyMarkers(bootstrap.Session);
             HostLevelTesterSnapshotSummary.RecordRuntime(bootstrap.Session.World, bootstrap.Session);
             result.Success = true;
             result.Message = "Loaded tick=" + bootstrap.Session.World.Tick.Value;

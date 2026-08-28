@@ -17,6 +17,7 @@ namespace XianXia.Core.World.Strategic
         public FormalArmyLocationKind LocationKind { get; private set; } = FormalArmyLocationKind.Unknown;
         public FormalArmyMovementKind MovementKind { get; private set; } = FormalArmyMovementKind.Idle;
         public FormalArmyOrderKind CurrentOrderKind { get; private set; } = FormalArmyOrderKind.None;
+        public string OrderTargetArmyId { get; private set; } = string.Empty;
         public string SiteId { get; private set; } = string.Empty;
         public WorldVec2 WorldPosition { get; private set; }
         public HexCoord CurrentHex { get; private set; }
@@ -48,6 +49,7 @@ namespace XianXia.Core.World.Strategic
             SegmentProgress = 0f;
             MovementKind = FormalArmyMovementKind.Idle;
             CurrentOrderKind = FormalArmyOrderKind.None;
+            OrderTargetArmyId = string.Empty;
             DestinationHex = CurrentHex;
             DestinationSiteId = string.Empty;
             ClearSiteDeparturePending();
@@ -153,6 +155,19 @@ namespace XianXia.Core.World.Strategic
             HasPosition = true;
         }
 
+        public void SetAttackOrder(string targetArmyId)
+        {
+            OrderTargetArmyId = targetArmyId ?? string.Empty;
+            CurrentOrderKind = FormalArmyOrderKind.AttackFormalArmy;
+        }
+
+        public void ClearOrderTarget()
+        {
+            OrderTargetArmyId = string.Empty;
+            if (CurrentOrderKind == FormalArmyOrderKind.AttackFormalArmy)
+                CurrentOrderKind = FormalArmyOrderKind.None;
+        }
+
         public void SetSegment(int index, float progress)
         {
             SegmentIndex = index;
@@ -211,9 +226,13 @@ namespace XianXia.Core.World.Strategic
             HexCoord destinationHex,
             string destinationSiteId,
             int segmentIndex,
-            float segmentProgress)
+            float segmentProgress,
+            string orderTargetArmyId = null)
         {
             CurrentOrderKind = orderKind;
+            OrderTargetArmyId = orderTargetArmyId ?? string.Empty;
+            if (orderKind != FormalArmyOrderKind.AttackFormalArmy)
+                OrderTargetArmyId = string.Empty;
             DestinationHex = destinationHex;
             DestinationSiteId = destinationSiteId ?? string.Empty;
             _hexPath.Clear();

@@ -69,8 +69,14 @@ namespace XianXia.Core.Persistence
                     destHex,
                     dto.DestinationSiteId ?? string.Empty,
                     segmentIndex,
-                    segmentProgress);
+                    segmentProgress,
+                    dto.OrderTargetArmyId);
                 army.State = FormalArmyState.Moving;
+            }
+            else if (dto.CurrentOrderKind == (int)FormalArmyOrderKind.AttackFormalArmy &&
+                     !string.IsNullOrEmpty(dto.OrderTargetArmyId))
+            {
+                motion.SetAttackOrder(dto.OrderTargetArmyId);
             }
 
             army.SyncLegacyFromWorldMotion();

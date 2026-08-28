@@ -10,24 +10,50 @@ namespace XianXia.Unity.Host
     {
         static readonly List<Rect> _current = new List<Rect>(16);
         static readonly List<Rect> _published = new List<Rect>(16);
+        static bool _selectionWholeScreen;
 
         public static void BeginFrame()
         {
             _current.Clear();
+            _selectionWholeScreen = false;
         }
 
+        /// <summary>登记 IMGUI 遮挡区：本帧 WorldMap 指针 dispatch 与下一帧 Selection 均忽略。</summary>
         public static void Block(Rect guiRect)
         {
             if (guiRect.width > 1f && guiRect.height > 1f)
                 _current.Add(guiRect);
         }
 
+        /// <summary>
+        /// 仅交给下一帧 RTS Selection 的全屏占位（大地图打开时挡近景点选）；
+        /// 不计入本帧 <see cref="ContainsCurrentGuiPoint"/>，避免误挡 WorldMap 自身输入。
+        /// </summary>
+        public static void BlockSelectionWholeScreen()
+        {
+            _selectionWholeScreen = true;
+        }
+
         /// <summary>OnGUI 末尾调用：把本帧遮挡区交给下一帧的 Update 选中逻辑。</summary>
         public static void EndFrame()
         {
             _published.Clear();
+            if (_selectionWholeScreen)
+                _published.Add(new Rect(0f, 0f, Screen.width, Screen.height));
             for (var i = 0; i < _current.Count; i++)
                 _published.Add(_current[i]);
+        }
+
+        /// <summary>本帧已登记 IMGUI 遮挡区（GUI 坐标，原点左上）。</summary>
+        public static bool ContainsCurrentGuiPoint(Vector2 guiPoint)
+        {
+            for (var i = 0; i < _current.Count; i++)
+            {
+                if (_current[i].Contains(guiPoint))
+                    return true;
+            }
+
+            return false;
         }
 
         /// <summary><paramref name="screenPoint"/> 为 Input.mousePosition（原点左下）。</summary>

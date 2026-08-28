@@ -666,6 +666,15 @@ namespace XianXia.Data.Serialization
                         ["stepRemainingTicks"] = JsonValue.FromNumber(a.StepRemainingTicks),
                         ["stepTotalTicks"] = JsonValue.FromNumber(a.StepTotalTicks),
                         ["currentPathIndex"] = JsonValue.FromNumber(a.CurrentPathIndex),
+                        ["locationKind"] = JsonValue.FromNumber(a.LocationKind),
+                        ["siteId"] = JsonValue.FromString(a.SiteId ?? string.Empty),
+                        ["worldX"] = JsonValue.FromNumber(a.WorldX),
+                        ["worldY"] = JsonValue.FromNumber(a.WorldY),
+                        ["destinationSiteId"] = JsonValue.FromString(a.DestinationSiteId ?? string.Empty),
+                        ["currentOrderKind"] = JsonValue.FromNumber(a.CurrentOrderKind),
+                        ["orderTargetArmyId"] = JsonValue.FromString(a.OrderTargetArmyId ?? string.Empty),
+                        ["segmentProgress"] = JsonValue.FromNumber(a.SegmentProgress),
+                        ["segmentIndex"] = JsonValue.FromNumber(a.SegmentIndex),
                         ["memberCharacterIds"] = JsonValue.FromArray(members),
                         ["hexPath"] = JsonValue.FromArray(SerializeHexPath(a.HexPath))
                     }));
@@ -935,6 +944,15 @@ namespace XianXia.Data.Serialization
                         StepRemainingTicks = a.TryGetProperty("stepRemainingTicks", out var srt) ? (int)srt.Number : 0,
                         StepTotalTicks = a.TryGetProperty("stepTotalTicks", out var stt) ? (int)stt.Number : 0,
                         CurrentPathIndex = a.TryGetProperty("currentPathIndex", out var cpi) ? (int)cpi.Number : 0,
+                        LocationKind = a.TryGetProperty("locationKind", out var lk) ? (int)lk.Number : 0,
+                        SiteId = a.GetString("siteId", string.Empty),
+                        WorldX = a.TryGetProperty("worldX", out var wx) ? (float)wx.Number : 0f,
+                        WorldY = a.TryGetProperty("worldY", out var wy) ? (float)wy.Number : 0f,
+                        DestinationSiteId = a.GetString("destinationSiteId", string.Empty),
+                        CurrentOrderKind = a.TryGetProperty("currentOrderKind", out var ok) ? (int)ok.Number : 0,
+                        OrderTargetArmyId = a.GetString("orderTargetArmyId", string.Empty),
+                        SegmentProgress = a.TryGetProperty("segmentProgress", out var sp2) ? (float)sp2.Number : 0f,
+                        SegmentIndex = a.TryGetProperty("segmentIndex", out var si) ? (int)si.Number : 0,
                     };
                     if (a.TryGetProperty("memberCharacterIds", out var members) && members.Kind == JsonValueKind.Array)
                     {

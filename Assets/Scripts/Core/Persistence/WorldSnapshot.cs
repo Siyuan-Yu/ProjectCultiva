@@ -164,6 +164,7 @@ namespace XianXia.Core.Persistence
         public float WorldY { get; set; }
         public string DestinationSiteId { get; set; } = string.Empty;
         public int CurrentOrderKind { get; set; }
+        public string OrderTargetArmyId { get; set; } = string.Empty;
         public float SegmentProgress { get; set; }
         public int SegmentIndex { get; set; }
     }

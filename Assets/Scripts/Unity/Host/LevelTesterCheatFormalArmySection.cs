@@ -220,7 +220,11 @@ namespace XianXia.Unity.Host
             y = DrawLine(x, y, width, lineH, body, "队长", army.LeaderCharacterId.Value.ToString());
             y = DrawLine(x, y, width, lineH, body, "成员", army.MemberCharacterIds.Count.ToString());
             y = DrawLine(x, y, width, lineH, body, "Hex", motion.CurrentHex.ToString());
-            y = DrawLine(x, y, width, lineH, body, "移动", motion.CurrentOrderKind.ToString());
+            y = DrawLine(x, y, width, lineH, body, "WorldPos",
+                "(" + motion.WorldPosition.X.ToString("0.0") + "," + motion.WorldPosition.Y.ToString("0.0") + ")");
+            y = DrawLine(x, y, width, lineH, body, "TravelState",
+                motion.IsMoving ? "Moving seg=" + motion.SegmentIndex : army.State.ToString());
+            y = DrawLine(x, y, width, lineH, body, "Order", motion.CurrentOrderKind.ToString());
             y = DrawLine(x, y, width, lineH, body, "目的地",
                 string.IsNullOrEmpty(motion.DestinationSiteId)
                     ? motion.DestinationHex.ToString()

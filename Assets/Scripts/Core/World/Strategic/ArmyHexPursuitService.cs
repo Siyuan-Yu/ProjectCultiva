@@ -38,7 +38,12 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(gateError);
 
             BeginPursuitInternal(world, attackerArmyId, targetArmyId, stack);
-            return ArmyHexTravelService.MoveArmyToHex(world, attackerArmyId, target.CurrentHex);
+            var move = ArmyHexTravelService.MoveArmyToHex(world, attackerArmyId, target.CurrentHex);
+            if (move.IsSuccess &&
+                world.Strategic.FormalArmies.TryGet(attackerArmyId, out attacker) &&
+                attacker != null)
+                attacker.WorldMotion.SetAttackOrder(targetArmyId);
+            return move;
         }
 
         public static Result BeginAttackStack(
@@ -97,7 +102,59 @@ namespace XianXia.Core.World.Strategic
             if (!string.Equals(rt.PursueAttackerArmyId, attackerArmyId, StringComparison.Ordinal))
                 return;
 
+            if (world.Strategic.FormalArmies.TryGet(attackerArmyId, out var army) && army != null)
+                army.WorldMotion.ClearOrderTarget();
+
             StrategicPursuitService.ClearPursuit(world);
+        }
+
+        /// <summary>Snapshot Restore 后：恢复 AttackFormalArmy 宏指令与 Pursuit 绑定（不重置已恢复路线）。</summary>
+        public static void RestoreAttackOrderIfNeeded(SimulationWorld world, FormalArmy army)
+        {
+            if (world == null || army == null)
+                return;
+
+            var motion = army.WorldMotion;
+            if (motion.CurrentOrderKind != FormalArmyOrderKind.AttackFormalArmy)
+                return;
+
+            var targetArmyId = motion.OrderTargetArmyId;
+            if (string.IsNullOrEmpty(targetArmyId))
+            {
+                FormalArmyOrderRestoreTrace.LogFailed(army.ArmyId, targetArmyId, "MissingTargetArmyId");
+                CancelAttackOrderToIdle(world, army);
+                return;
+            }
+
+            if (!world.Strategic.FormalArmies.TryGet(targetArmyId, out var target) || target == null)
+            {
+                FormalArmyOrderRestoreTrace.LogFailed(army.ArmyId, targetArmyId, "TargetNotFound");
+                CancelAttackOrderToIdle(world, army);
+                return;
+            }
+
+            if (!TryResolveLinkedStack(world, targetArmyId, out var stack) || stack == null)
+            {
+                FormalArmyOrderRestoreTrace.LogFailed(army.ArmyId, targetArmyId, "TargetStackMissing");
+                CancelAttackOrderToIdle(world, army);
+                return;
+            }
+
+            BeginPursuitInternal(world, army.ArmyId, targetArmyId, stack);
+            FormalArmyOrderRestoreTrace.LogRestored(army.ArmyId, targetArmyId);
+        }
+
+        static void CancelAttackOrderToIdle(SimulationWorld world, FormalArmy army)
+        {
+            if (army == null)
+                return;
+
+            army.WorldMotion.ClearOrderTarget();
+            if (army.WorldMotion.IsMoving)
+                return;
+
+            army.State = FormalArmyState.Idle;
+            ArmyStackAdapter.SyncAllLinkedStacksFromFormalArmies(world);
         }
 
         public static void AfterTravelTick(SimulationWorld world)

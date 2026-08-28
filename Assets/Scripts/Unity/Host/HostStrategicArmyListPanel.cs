@@ -65,7 +65,8 @@ namespace XianXia.Unity.Host
             Func<SimulationWorld, EntityId, string> labelFn,
             PlayerPartyRuntime partyRuntime,
             Action<string> onFocusArmy,
-            Action onChanged)
+            Action onChanged,
+            Action<string> onArmySelectionChanged = null)
         {
             if (!_open || world == null)
                 return false;
@@ -98,7 +99,7 @@ namespace XianXia.Unity.Host
                 createBtnY - contentTop - createButtonPad);
             var detailRect = new Rect(listRect.xMax + 8f, contentTop, panelRect.width - listW - 16f, panelRect.height - 44f);
 
-            DrawArmyList(listRect, onFocusArmy);
+            DrawArmyList(listRect, onFocusArmy, onArmySelectionChanged);
 
             if (_rows.Count == 0 && !_showCreate)
             {
@@ -155,7 +156,7 @@ namespace XianXia.Unity.Host
             return changed;
         }
 
-        void DrawArmyList(Rect listRect, Action<string> onFocusArmy)
+        void DrawArmyList(Rect listRect, Action<string> onFocusArmy, Action<string> onArmySelectionChanged)
         {
             var viewH = Mathf.Max(listRect.height, _rows.Count * 58f + 8f);
             _listScroll = GUI.BeginScrollView(
@@ -180,7 +181,7 @@ namespace XianXia.Unity.Host
                             HostStrategicRosterQueries.DescribeArmyTravel(row) +
                             "  ·  战力 " + row.CombatPower;
                 if (GUI.Button(itemRect, label, _body))
-                    HandleArmyListClick(row.ArmyId, onFocusArmy);
+                    HandleArmyListClick(row.ArmyId, onFocusArmy, onArmySelectionChanged);
 
                 y += 58f;
             }
@@ -188,7 +189,10 @@ namespace XianXia.Unity.Host
             GUI.EndScrollView();
         }
 
-        void HandleArmyListClick(string armyId, Action<string> onFocusArmy)
+        void HandleArmyListClick(
+            string armyId,
+            Action<string> onFocusArmy,
+            Action<string> onArmySelectionChanged)
         {
             var now = Time.realtimeSinceStartupAsDouble;
             if (string.Equals(_lastClickArmyId, armyId, StringComparison.Ordinal) &&
@@ -196,6 +200,7 @@ namespace XianXia.Unity.Host
             {
                 _lastClickArmyId = string.Empty;
                 SelectArmy(armyId);
+                onArmySelectionChanged?.Invoke(armyId);
                 onFocusArmy?.Invoke(armyId);
                 return;
             }
@@ -203,6 +208,7 @@ namespace XianXia.Unity.Host
             _lastClickArmyId = armyId;
             _lastClickTime = now;
             SelectArmy(armyId);
+            onArmySelectionChanged?.Invoke(armyId);
         }
 
         public void SelectArmy(string armyId)

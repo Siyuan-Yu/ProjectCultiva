@@ -372,6 +372,30 @@ namespace XianXia.Tests
         }
 
         [Test]
+        public void MidTravelRedirect_ReplacesDestinationFromCurrentWorldPosition()
+        {
+            var world = BuildWorld(out var site, out var mid);
+            var redirect = new HexCoord(10, 7);
+            var a = Spawn(world, "A");
+            world.WorldPresence.SetAtSite(a, site.SiteId);
+            var created = ArmyService.CreateArmy(world, FactionA, site.SiteId, new List<EntityId> { a }, a);
+            Assert.IsTrue(FormalArmyContinuousTravelService.MoveArmyToHex(world, created.Value.ArmyId, mid).IsSuccess);
+            FormalArmyContinuousTravelService.AdvanceAll(world, 4);
+            var army = created.Value;
+            Assert.IsTrue(army.WorldMotion.IsMoving);
+            var posBefore = army.WorldMotion.WorldPosition;
+            var oldDest = army.WorldMotion.DestinationHex;
+
+            Assert.IsTrue(FormalArmyContinuousTravelService.MoveArmyToHex(world, army.ArmyId, redirect).IsSuccess);
+            Assert.IsTrue(army.WorldMotion.IsMoving);
+            Assert.AreEqual(redirect, army.WorldMotion.DestinationHex);
+            Assert.AreNotEqual(oldDest, army.WorldMotion.DestinationHex);
+            Assert.AreEqual(posBefore.X, army.WorldMotion.WorldPosition.X, FloatTol);
+            Assert.AreEqual(posBefore.Y, army.WorldMotion.WorldPosition.Y, FloatTol);
+            Assert.AreEqual(0, army.WorldMotion.SegmentIndex);
+        }
+
+        [Test]
         public void SaveLoadPreservesMidTravelArmyState()
         {
             var world = BuildWorld(out var site, out var mid);

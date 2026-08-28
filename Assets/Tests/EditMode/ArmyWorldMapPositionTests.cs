@@ -6,6 +6,7 @@ using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
+using XianXia.Core.Persistence;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Tests
@@ -241,6 +242,39 @@ namespace XianXia.Tests
             Assert.AreEqual(FormalArmyState.Idle, army.State);
             Assert.AreEqual(HexB, army.CurrentHex);
             AssertWorldPoint(world, army, destX, destY, context: "ARMY-VIS-06");
+        }
+
+        [Test]
+        public void ARMY_VIS07_SnapshotFinalize_DoesNotRegisterPlayerArmyStack()
+        {
+            var world = CreateWorld();
+            world.Strategic.PlayerFactionId = StrategicFactionCatalog.PlayerFactionId;
+            var leader = SpawnCharacter(
+                world,
+                "Leader",
+                NodeA,
+                StrategicFactionCatalog.PlayerFactionId);
+            var army = CreateArmyAtHex(
+                world,
+                StrategicFactionCatalog.PlayerFactionId,
+                NodeA,
+                HexA,
+                leader);
+
+            StrategicSnapshotHelper.FinalizeRuntimeLinks(world);
+
+            Assert.IsFalse(
+                world.Strategic.Armies.TryGet(army.ArmyId, out _),
+                "Player FormalArmy must not get a WorldMap ArmyStack after snapshot finalize.");
+            Assert.IsTrue(
+                ArmyWorldMapPresentation.ShouldDrawFormalArmyPortrait(world, army),
+                "Player FormalArmy should use portrait marker path.");
+            Assert.IsFalse(
+                ArmyWorldMapPresentation.ShouldDrawArmyStackMarker(
+                    world,
+                    new ArmyStack { Id = army.ArmyId, FormalArmyId = army.ArmyId, FactionId = army.FactionId },
+                    StrategicFactionCatalog.PlayerFactionId),
+                "Player stack marker must be suppressed when portrait draws.");
         }
     }
 }

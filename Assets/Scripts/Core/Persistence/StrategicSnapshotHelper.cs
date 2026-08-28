@@ -50,6 +50,7 @@ namespace XianXia.Core.Persistence
                     WorldY = armyMotion.WorldPosition.Y,
                     DestinationSiteId = armyMotion.DestinationSiteId ?? string.Empty,
                     CurrentOrderKind = (int)armyMotion.CurrentOrderKind,
+                    OrderTargetArmyId = armyMotion.OrderTargetArmyId ?? string.Empty,
                     SegmentProgress = armyMotion.SegmentProgress,
                     SegmentIndex = armyMotion.SegmentIndex,
                 };
@@ -505,6 +506,12 @@ namespace XianXia.Core.Persistence
             {
                 if (kv.Value != null)
                     FormalArmyMemberPresenceSync.SyncAll(world, kv.Value);
+            }
+
+            foreach (var kv in world.Strategic.FormalArmies.Armies)
+            {
+                if (kv.Value != null)
+                    ArmyHexPursuitService.RestoreAttackOrderIfNeeded(world, kv.Value);
             }
         }
 

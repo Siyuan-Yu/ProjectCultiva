@@ -16,6 +16,25 @@ namespace XianXia.Core.World.Strategic
             return army.LeaderCharacterId;
         }
 
+        /// <summary>
+        /// ?? FormalArmy ??????????? ArmyStack ???????? Gameplay ????
+        /// </summary>
+        public static bool ShouldDrawArmyStackMarker(
+            SimulationWorld world,
+            ArmyStack stack,
+            string playerFactionId)
+        {
+            if (world == null || stack == null)
+                return false;
+            if (!ArmyStackAdapter.TryGetFormalArmy(world, stack, out var army) || army == null)
+                return true;
+            if (string.IsNullOrEmpty(playerFactionId))
+                return true;
+            if (!string.Equals(army.FactionId, playerFactionId, StringComparison.Ordinal))
+                return true;
+            return !ShouldDrawFormalArmyPortrait(world, army);
+        }
+
         public static bool ShouldDrawFormalArmyPortrait(SimulationWorld world, FormalArmy army)
         {
             if (world == null || army == null || string.IsNullOrEmpty(army.ArmyId))

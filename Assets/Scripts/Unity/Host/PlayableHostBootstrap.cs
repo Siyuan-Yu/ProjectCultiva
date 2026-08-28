@@ -813,6 +813,8 @@ namespace XianXia.Unity.Host
                 _session.PlayerParty);
 
             selectionController.ClearSelection();
+            if (worldMapPanel != null)
+                worldMapPanel.ClearSessionState();
             entityViewSpawner.Clear();
             if (moveController != null)
                 moveController.ResetPresentationMovementState();

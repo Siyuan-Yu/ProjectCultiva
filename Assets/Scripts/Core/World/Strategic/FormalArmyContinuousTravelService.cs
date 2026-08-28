@@ -56,12 +56,22 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.NotFound, "Army not found.", armyId);
             if (!world.HexWorld.HasGrid)
                 return Result.Failure(ErrorCode.InvalidOperation, "Hex grid not loaded.");
-            if (army.State == FormalArmyState.Moving || army.WorldMotion.IsMoving)
-                return Result.Failure(ErrorCode.InvalidOperation, "Army is already traveling.");
+            if (army.State == FormalArmyState.Garrisoned)
+                return Result.Failure(ErrorCode.InvalidOperation, "Army is garrisoned.");
 
             if (!FormalArmyWorldLocationQuery.TryResolve(
-                    world, army, out var startKind, out var startSiteId, out var startPos, out var startHex))
+                    world, army, out var startKind, out var startSiteId, out _, out var startHex))
                 return Result.Failure(ErrorCode.InvalidOperation, "Army has no world location.");
+
+            var motion = army.WorldMotion;
+            var isReplace = army.State == FormalArmyState.Moving || motion.IsMoving;
+            if (orderKind == FormalArmyOrderKind.TravelToHex ||
+                orderKind == FormalArmyOrderKind.TravelToWorldSite)
+                motion.ClearOrderTarget();
+
+            FormalArmyOrderReplaceTrace.Capture replaceTrace = default;
+            if (isReplace)
+                replaceTrace = FormalArmyOrderReplaceTrace.CaptureBeforeReplace(motion);
 
             destinationSiteId = TryCanonicalizeFootprintHexDestination(
                 world, destinationHex, destinationSiteId, out _);
@@ -77,7 +87,6 @@ namespace XianXia.Core.World.Strategic
                 !destTile.IsPassable)
                 return Result.Failure(ErrorCode.InvalidArgument, "Destination hex is not passable.");
 
-            var motion = army.WorldMotion;
             if (startKind == FormalArmyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(startSiteId) &&
                 world.Strategic.Sites.TryGet(startSiteId, out var fromSite) &&
@@ -103,7 +112,10 @@ namespace XianXia.Core.World.Strategic
                     boundaryEntryPos = HexCenter(exitHex, hexSizeForDeparture);
                 }
 
-                var departureStartWorld = HexCenter(startHex, hexSizeForDeparture);
+                var departureStartWorld = motion.IsSiteDeparturePending &&
+                                          motion.LocationKind == FormalArmyLocationKind.AtWorldSite
+                    ? motion.SiteDepartureVirtualPosition
+                    : HexCenter(startHex, hexSizeForDeparture);
                 motion.BeginSiteDepartureTravel(
                     orderKind,
                     FullPathScratch,
@@ -116,6 +128,17 @@ namespace XianXia.Core.World.Strategic
                     HexTravelMode.Ground);
                 motion.LastProcessedWorldTick = world.Tick.Value;
                 army.SyncLegacyFromWorldMotion();
+                FormalArmyMemberPresenceSync.SyncAll(world, army);
+                if (isReplace)
+                {
+                    FormalArmyOrderReplaceTrace.Emit(
+                        army,
+                        replaceTrace,
+                        goalHex,
+                        destinationSiteId,
+                        FullPathScratch);
+                }
+
                 return Result.Success();
             }
 
@@ -125,6 +148,7 @@ namespace XianXia.Core.World.Strategic
 
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             if (startKind == FormalArmyLocationKind.AtWorldSite &&
+                !isReplace &&
                 world.Strategic.Sites.TryResolveSitePresenceHex(startSiteId, out var presenceHex))
             {
                 var center = HexCenter(presenceHex, hexSize);
@@ -134,6 +158,17 @@ namespace XianXia.Core.World.Strategic
             motion.BeginAutoTravel(orderKind, FullPathScratch, goalHex, destinationSiteId, HexTravelMode.Ground);
             motion.LastProcessedWorldTick = world.Tick.Value;
             army.SyncLegacyFromWorldMotion();
+            FormalArmyMemberPresenceSync.SyncAll(world, army);
+            if (isReplace)
+            {
+                FormalArmyOrderReplaceTrace.Emit(
+                    army,
+                    replaceTrace,
+                    goalHex,
+                    destinationSiteId,
+                    FullPathScratch);
+            }
+
             return Result.Success();
         }
 
