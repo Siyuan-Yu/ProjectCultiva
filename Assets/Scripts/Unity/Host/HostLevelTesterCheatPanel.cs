@@ -9,9 +9,35 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostLevelTesterCheatPanel : MonoBehaviour
     {
+        enum CheatTab
+        {
+            Time = 0,
+            Background = 1,
+            FormalArmy = 2,
+            Content = 3,
+            Diplomacy = 4,
+            Snapshot = 5,
+            Battle = 6,
+            Diagnostics = 7,
+        }
+
+        static readonly string[] TabLabels =
+        {
+            "时间",
+            "后台角色",
+            "正规军",
+            "内容",
+            "外交",
+            "存档",
+            "战斗",
+            "诊断",
+        };
+
         const int WindowId = 0x1E7E573;
         const float PanelWidth = 620f;
         const float PanelMinHeight = 480f;
+        const float TabRowHeight = 24f;
+        const int TabsPerRow = 4;
 
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostSelectionController selectionController;
@@ -24,18 +50,11 @@ namespace XianXia.Unity.Host
         readonly LevelTesterCheatContentSection _content = new LevelTesterCheatContentSection();
         readonly LevelTesterCheatDiplomacySection _diplomacy = new LevelTesterCheatDiplomacySection();
 
-        bool _foldTime = true;
-        bool _foldBackground = true;
-        bool _foldFormalArmy = true;
-        bool _foldContent;
-        bool _foldDiplomacy;
-        bool _foldSnapshot = true;
-        bool _foldBattle;
-        bool _foldDiagnostics;
+        CheatTab _activeTab = CheatTab.Time;
         bool _resetConfirmPending;
         string _sessionStatus = string.Empty;
         string _snapshotStatus = string.Empty;
-        Vector2 _scroll;
+        Vector2 _tabScroll;
         Rect _panelRect;
         bool _panelRectInitialized;
         GUIStyle _title;
@@ -68,7 +87,7 @@ namespace XianXia.Unity.Host
 
             EnsureStyles();
             EnsurePanelRect();
-            _panelRect = GUI.Window(WindowId, _panelRect, DrawWindow, "LevelTester Cheat Tools");
+            _panelRect = GUI.Window(WindowId, _panelRect, DrawWindow, "LevelTester 开发工具");
             HostUiHitTest.Block(_panelRect);
         }
 
@@ -91,153 +110,218 @@ namespace XianXia.Unity.Host
         void DrawWindow(int id)
         {
             GUI.DragWindow(new Rect(0f, 0f, PanelWidth, 22f));
+
+            if (GUI.Button(new Rect(PanelWidth - 72f, 4f, 64f, 20f), "关闭"))
+                visible = false;
+
             const float pad = 8f;
             var innerW = PanelWidth - pad * 2f - 16f;
-            var viewH = _panelRect.height - 36f;
-            var contentH = 3200f;
-            _scroll = GUI.BeginScrollView(
-                new Rect(pad, 26f, PanelWidth - pad * 2f, viewH),
-                _scroll,
+            var tabBarTop = 26f;
+            var tabBarWidth = PanelWidth - pad * 2f;
+            var tabW = tabBarWidth / TabsPerRow - 2f;
+
+            for (var i = 0; i < TabLabels.Length; i++)
+            {
+                var row = i / TabsPerRow;
+                var col = i % TabsPerRow;
+                var rect = new Rect(
+                    pad + col * (tabW + 2f),
+                    tabBarTop + row * TabRowHeight,
+                    tabW,
+                    TabRowHeight - 2f);
+                var selected = _activeTab == (CheatTab)i;
+                if (GUI.Toggle(rect, selected, TabLabels[i], GUI.skin.button))
+                    _activeTab = (CheatTab)i;
+            }
+
+            var tabRows = (TabLabels.Length + TabsPerRow - 1) / TabsPerRow;
+            var contentTop = tabBarTop + tabRows * TabRowHeight + 4f;
+            var viewH = Mathf.Max(120f, _panelRect.height - contentTop - pad);
+            var contentH = EstimateActiveTabContentHeight();
+            _tabScroll = GUI.BeginScrollView(
+                new Rect(pad, contentTop, PanelWidth - pad * 2f, viewH),
+                _tabScroll,
                 new Rect(0f, 0f, innerW, contentH));
 
-            var y = 0f;
-            y = DrawFoldoutSection(ref _foldTime, "Time / Simulation", y, innerW,
-                w => _time.Draw(bootstrap, 0f, w, innerW, _body));
-            y = DrawFoldoutSection(ref _foldBackground, "Background Character", y, innerW,
-                w => _background.Draw(bootstrap, 0f, w, innerW, _body));
-            y = DrawFoldoutSection(ref _foldFormalArmy, "FormalArmy", y, innerW,
-                w => _formalArmy.Draw(bootstrap, 0f, w, innerW, _body));
-            y = DrawFoldoutSection(ref _foldContent, "Content", y, innerW,
-                w => _content.Draw(bootstrap, selectionController, 0f, w, innerW, _body));
-            y = DrawFoldoutSection(ref _foldDiplomacy, "Diplomacy", y, innerW,
-                w => _diplomacy.Draw(bootstrap, 0f, w, innerW, _body));
-            y = DrawSnapshotSection(y, innerW);
-            y = DrawBattleSection(y, innerW);
-            y = DrawDiagnosticsSection(y, innerW);
-
+            DrawActiveTab(0f, innerW);
             GUI.EndScrollView();
-
-            if (GUI.Button(new Rect(PanelWidth - 72f, 4f, 64f, 20f), "Close"))
-                visible = false;
         }
 
-        float DrawFoldoutSection(
-            ref bool expanded,
-            string title,
-            float y,
-            float width,
-            System.Func<float, float> drawContent)
+        float EstimateActiveTabContentHeight()
         {
-            expanded = GUI.Toggle(new Rect(0f, y, width, 22f), expanded, title, _title);
-            y += 24f;
-            if (!expanded)
-                return y + 4f;
-            y = drawContent(y) + 8f;
-            return y;
+            switch (_activeTab)
+            {
+                case CheatTab.Time:
+                    return 280f;
+                case CheatTab.Background:
+                    return 520f;
+                case CheatTab.FormalArmy:
+                    return 960f;
+                case CheatTab.Content:
+                    return 480f;
+                case CheatTab.Diplomacy:
+                    return 420f;
+                case CheatTab.Snapshot:
+                    return 260f;
+                case CheatTab.Battle:
+                    return 80f;
+                case CheatTab.Diagnostics:
+                    return 80f;
+                default:
+                    return 400f;
+            }
         }
 
-        float DrawSnapshotSection(float y, float width)
+        void DrawActiveTab(float x, float width)
         {
-            _foldSnapshot = GUI.Toggle(new Rect(0f, y, width, 22f), _foldSnapshot, "Snapshot / Session", _title);
-            y += 24f;
-            if (!_foldSnapshot)
-                return y + 4f;
+            switch (_activeTab)
+            {
+                case CheatTab.Time:
+                    _time.Draw(bootstrap, x, 0f, width, _body);
+                    break;
+                case CheatTab.Background:
+                    _background.Draw(bootstrap, x, 0f, width, _body);
+                    break;
+                case CheatTab.FormalArmy:
+                    _formalArmy.Draw(bootstrap, x, 0f, width, _body);
+                    break;
+                case CheatTab.Content:
+                    _content.Draw(bootstrap, selectionController, x, 0f, width, _body);
+                    break;
+                case CheatTab.Diplomacy:
+                    _diplomacy.Draw(bootstrap, x, 0f, width, _body);
+                    break;
+                case CheatTab.Snapshot:
+                    DrawSnapshotTab(x, 0f, width);
+                    break;
+                case CheatTab.Battle:
+                    DrawBattleTab(x, 0f, width);
+                    break;
+                case CheatTab.Diagnostics:
+                    DrawDiagnosticsTab(x, 0f, width);
+                    break;
+            }
+        }
 
+        void DrawSnapshotTab(float x, float y, float width)
+        {
             var lineH = 18f;
-            GUI.Label(new Rect(0f, y, width, lineH),
-                "Snapshot v" + HostLevelTesterSnapshotOps.SchemaVersion + "  " +
+            GUI.Label(new Rect(x, y, width, lineH),
+                "存档 v" + HostLevelTesterSnapshotOps.SchemaVersion + "  " +
                 HostLevelTesterSnapshotOps.SlotPath, _body);
             y += lineH + 4f;
 
-            if (GUI.Button(new Rect(0f, y, width * 0.48f, 24f), "Save Snapshot"))
+            var saved = HostLevelTesterSnapshotSummary.LastSaved;
+            var runtime = HostLevelTesterSnapshotSummary.LastRuntime;
+            GUI.Label(new Rect(x, y, width, lineH),
+                "上次保存: Ch=" + saved.CharacterCount +
+                " Party=" + saved.PlayerPartyCount +
+                " Army=" + saved.FormalArmyCount +
+                " " + saved.WorldLocation, _body);
+            y += lineH;
+            GUI.Label(new Rect(x, y, width, lineH),
+                "当前 Runtime: Ch=" + runtime.CharacterCount +
+                " Party=" + runtime.PlayerPartyCount +
+                " Army=" + runtime.FormalArmyCount +
+                " " + runtime.WorldLocation, _body);
+            y += lineH;
+            if (!string.IsNullOrEmpty(saved.PlayerPartyDetail))
             {
-                var r = HostLevelTesterSnapshotOps.TrySave(bootstrap);
-                _snapshotStatus = (r.Success ? "OK: " : "FAIL: ") + r.Message;
+                GUI.Label(new Rect(x, y, width, lineH), saved.PlayerPartyDetail, _body);
+                y += lineH;
             }
 
-            if (GUI.Button(new Rect(width * 0.52f, y, width * 0.48f, 24f), "Load Snapshot"))
+            if (!string.IsNullOrEmpty(saved.LocalPlacementsDetail))
+            {
+                GUI.Label(new Rect(x, y, width, lineH), saved.LocalPlacementsDetail, _body);
+                y += lineH;
+            }
+
+            if (!string.IsNullOrEmpty(runtime.PlayerPartyDetail))
+            {
+                GUI.Label(new Rect(x, y, width, lineH), runtime.PlayerPartyDetail, _body);
+                y += lineH;
+            }
+
+            if (!string.IsNullOrEmpty(runtime.LocalPlacementsDetail))
+            {
+                GUI.Label(new Rect(x, y, width, lineH), runtime.LocalPlacementsDetail, _body);
+                y += lineH;
+            }
+
+            if (bootstrap?.ViewSpawner != null)
+            {
+                GUI.Label(new Rect(x, y, width, lineH),
+                    "Presented=" + bootstrap.ViewSpawner.SpawnedCount, _body);
+                y += lineH;
+            }
+
+            if (GUI.Button(new Rect(x, y, width * 0.48f, 24f), "保存存档"))
+            {
+                var r = HostLevelTesterSnapshotOps.TrySave(bootstrap);
+                _snapshotStatus = (r.Success ? "成功：" : "失败：") + r.Message;
+            }
+
+            if (GUI.Button(new Rect(x + width * 0.52f, y, width * 0.48f, 24f), "读取存档"))
             {
                 var r = HostLevelTesterSnapshotOps.TryLoad(bootstrap);
-                _snapshotStatus = (r.Success ? "OK: " : "FAIL: ") + r.Message;
+                _snapshotStatus = (r.Success ? "成功：" : "失败：") + r.Message;
             }
 
             y += 28f;
             if (!_resetConfirmPending)
             {
-                if (GUI.Button(new Rect(0f, y, width, 24f), "Reset LevelTester Session..."))
+                if (GUI.Button(new Rect(x, y, width, 24f), "重置 LevelTester 会话…"))
                     _resetConfirmPending = true;
-                y += 28f;
             }
             else
             {
-                GUI.Label(new Rect(0f, y, width, lineH * 2f),
-                    "This rebuilds the entire session from current Inspector config.", _body);
+                GUI.Label(new Rect(x, y, width, lineH * 2f),
+                    "将按当前 Inspector 配置重建整个会话。", _body);
                 y += lineH * 2f;
-                if (GUI.Button(new Rect(0f, y, width * 0.48f, 24f), "Confirm Reset"))
+                if (GUI.Button(new Rect(x, y, width * 0.48f, 24f), "确认重置"))
                 {
                     _resetConfirmPending = false;
                     if (bootstrap != null)
                     {
                         var ok = bootstrap.TryInitialize();
-                        _sessionStatus = ok ? "OK: Session reset." : "FAIL: Session reset failed.";
+                        _sessionStatus = ok ? "成功：会话已重置。" : "失败：会话重置失败。";
                     }
                     else
                     {
-                        _sessionStatus = "FAIL: No bootstrap.";
+                        _sessionStatus = "失败：未找到 Bootstrap。";
                     }
                 }
 
-                if (GUI.Button(new Rect(width * 0.52f, y, width * 0.48f, 24f), "Cancel"))
+                if (GUI.Button(new Rect(x + width * 0.52f, y, width * 0.48f, 24f), "取消"))
                     _resetConfirmPending = false;
-                y += 28f;
             }
 
+            y += 28f;
             if (!string.IsNullOrEmpty(_snapshotStatus))
-            {
-                GUI.Label(new Rect(0f, y, width, lineH * 2f), _snapshotStatus, _body);
-                y += lineH * 2f;
-            }
-
+                GUI.Label(new Rect(x, y, width, lineH * 2f), _snapshotStatus, _body);
             if (!string.IsNullOrEmpty(_sessionStatus))
-            {
-                GUI.Label(new Rect(0f, y, width, lineH * 2f), _sessionStatus, _body);
-                y += lineH * 2f;
-            }
-
-            return y + 4f;
+                GUI.Label(new Rect(x, y + lineH * 2f, width, lineH * 2f), _sessionStatus, _body);
         }
 
-        float DrawBattleSection(float y, float width)
+        void DrawBattleTab(float x, float y, float width)
         {
-            _foldBattle = GUI.Toggle(new Rect(0f, y, width, 22f), _foldBattle, "Battle / Acceptance", _title);
-            y += 24f;
-            if (!_foldBattle)
-                return y + 4f;
-
             var forceSolo = AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated;
             var next = GUI.Toggle(
-                new Rect(0f, y, width, 22f),
+                new Rect(x, y, width, 22f),
                 forceSolo,
-                "DEBUG: Next Solo Auto-Battle Guaranteed Incapacitation");
+                "调试：下次单人自动战斗必定失能");
             if (next != forceSolo)
                 AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated = next;
-            y += 26f;
-            return y + 4f;
         }
 
-        float DrawDiagnosticsSection(float y, float width)
+        void DrawDiagnosticsTab(float x, float y, float width)
         {
-            _foldDiagnostics = GUI.Toggle(new Rect(0f, y, width, 22f), _foldDiagnostics, "Diagnostics (Visualization)", _title);
-            y += 24f;
-            if (!_foldDiagnostics)
-                return y + 4f;
-
             var strongSep = HostHexWorldRenderer.DebugStrongHexSeparation;
-            var nextSep = GUI.Toggle(new Rect(0f, y, width, 22f), strongSep, "Debug: Strong Hex Separation (render only)");
+            var nextSep = GUI.Toggle(new Rect(x, y, width, 22f), strongSep,
+                "调试：强化 Hex 分离（仅渲染）");
             if (nextSep != strongSep)
                 HostHexWorldRenderer.DebugStrongHexSeparation = nextSep;
-            y += 26f;
-            return y + 4f;
         }
     }
 }

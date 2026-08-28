@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
+using XianXia.Core.Persistence;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
@@ -119,10 +120,27 @@ namespace XianXia.Core.World.Strategic
 
                 var memberX = px;
                 var memberZ = pz;
+                var placementSource = LoadedLocalMapPlacementSnapshotRestore.SpawnPlacementSource.DefaultStart;
                 if (useWildernessProjection)
+                {
                     ApplyFollowerPresentationOffset(i, ref memberX, ref memberZ);
+                }
+                else
+                {
+                    LoadedLocalMapPlacementSnapshotRestore.TryResolveWorldSiteSpawnPosition(
+                        id,
+                        mapId,
+                        px,
+                        pz,
+                        out memberX,
+                        out memberZ,
+                        out placementSource);
+                }
 
-                loc.LocationId = hasStart ? startId : string.Empty;
+                if (hasStart &&
+                    placementSource ==
+                    LoadedLocalMapPlacementSnapshotRestore.SpawnPlacementSource.DefaultStart)
+                    loc.LocationId = startId;
                 loc.SetPresentationOverride(memberX, memberZ);
 
                 var isFollower = i > 0;

@@ -106,6 +106,24 @@ namespace XianXia.Unity.Host
             PurgeOrphanedMoveTargets();
         }
 
+        /// <summary>Snapshot Rebuild：丢弃旧 EntityView 上的全部 presentation movement 状态。</summary>
+        public void ResetPresentationMovementState()
+        {
+            _targets.Clear();
+            _paths.Clear();
+            _pathIndex.Clear();
+            _pendingOnArrive.Clear();
+            _pendingArriveLocation.Clear();
+            _pendingArriveActions.Clear();
+            _pendingNpcIntent.Clear();
+            _interactionHeldNpcs.Clear();
+            _movingIds.Clear();
+            _playerPartyPathMoveIds.Clear();
+            _pathLocalMapIds.Clear();
+            _playerPartyPathMoveSerial = 0;
+            PurgeOrphanedMoveTargets();
+        }
+
         /// <summary>Active 经由 OrderPartyToPoint* 下发的玩家点击寻路（非 Follower／Melee／Schedule）。</summary>
         public bool IsPlayerPartyPathMoving(EntityId id) =>
             !id.IsNone && _playerPartyPathMoveIds.Contains(id.Value);

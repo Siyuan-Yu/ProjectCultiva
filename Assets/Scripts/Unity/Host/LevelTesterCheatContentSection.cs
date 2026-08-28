@@ -24,33 +24,33 @@ namespace XianXia.Unity.Host
             GUIStyle body)
         {
             var lineH = 18f;
-            GUI.Label(new Rect(x, y, width, lineH), "Content", body);
+            GUI.Label(new Rect(x, y, width, lineH), "内容", body);
             y += lineH + 4f;
 
             var session = bootstrap?.Session;
             if (session == null || !session.IsInitialized)
             {
-                GUI.Label(new Rect(x, y, width, lineH), "Session not ready.");
+                GUI.Label(new Rect(x, y, width, lineH), "会话未就绪。");
                 return y + lineH;
             }
 
             RefreshDump(session, selection);
 
-            GUI.Label(new Rect(x, y, 40f, lineH), "Flag");
+            GUI.Label(new Rect(x, y, 40f, lineH), "标记");
             _flagInput = GUI.TextField(new Rect(x + 44f, y, width - 200f, 22f), _flagInput);
-            if (GUI.Button(new Rect(x + width - 148f, y, 68f, 22f), "Set"))
+            if (GUI.Button(new Rect(x + width - 148f, y, 68f, 22f), "设置"))
                 RunFlag(session, selection, true);
-            if (GUI.Button(new Rect(x + width - 74f, y, 68f, 22f), "Clear"))
+            if (GUI.Button(new Rect(x + width - 74f, y, 68f, 22f), "清除"))
                 RunFlag(session, selection, false);
             y += 26f;
 
-            GUI.Label(new Rect(x, y, 40f, lineH), "Event");
+            GUI.Label(new Rect(x, y, 40f, lineH), "事件");
             _eventInput = GUI.TextField(new Rect(x + 44f, y, width - 100f, 22f), _eventInput);
-            if (GUI.Button(new Rect(x + width - 90f, y, 88f, 22f), "Force Present"))
+            if (GUI.Button(new Rect(x + width - 90f, y, 88f, 22f), "强制呈现"))
                 ForceEvent(session, selection);
             y += 26f;
 
-            if (GUI.Button(new Rect(x, y, 100f, 24f), "Refresh Dump"))
+            if (GUI.Button(new Rect(x, y, 100f, 24f), "刷新 Dump"))
                 RefreshDump(session, selection);
             y += 28f;
 
@@ -73,15 +73,15 @@ namespace XianXia.Unity.Host
                 ? _debug.SetFlag(session.World, _flagInput, subject)
                 : _debug.ClearFlag(session.World, _flagInput, subject);
             _sectionStatus = r.IsSuccess
-                ? (set ? "OK: Flag set." : "OK: Flag cleared.")
-                : "FAIL: " + r.Error;
+                ? (set ? "成功：标记已设置。" : "成功：标记已清除。")
+                : "失败：" + r.Error;
             RefreshDump(session, selection);
         }
 
         void ForceEvent(PlayableHostSession session, HostSelectionController selection)
         {
             var r = _debug.ForcePresentEvent(session.World, FocusId(session, selection), _eventInput);
-            _sectionStatus = r.IsSuccess ? "OK: Event presented." : "FAIL: " + r.Error;
+            _sectionStatus = r.IsSuccess ? "成功：事件已呈现。" : "失败：" + r.Error;
             RefreshDump(session, selection);
         }
 

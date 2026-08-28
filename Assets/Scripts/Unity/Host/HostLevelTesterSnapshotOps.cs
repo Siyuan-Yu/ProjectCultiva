@@ -28,6 +28,7 @@ namespace XianXia.Unity.Host
                 return result;
             }
 
+            HostSnapshotLocalPlacementCaptureSync.SyncLoadedLocalMapOccupantsFromViews(bootstrap);
             var captured = bootstrap.Session.CaptureSnapshotJson();
             if (captured.IsFailure)
             {
@@ -40,6 +41,8 @@ namespace XianXia.Unity.Host
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(SlotPath) ?? Application.persistentDataPath);
                 File.WriteAllText(SlotPath, captured.Value);
+                HostLevelTesterSnapshotSummary.RecordSavedFromJson(captured.Value);
+                HostLevelTesterSnapshotSummary.RecordRuntime(bootstrap.Session.World, bootstrap.Session);
                 result.Success = true;
                 result.Message = "Saved " + SlotPath;
                 Debug.Log("[LevelTesterSnapshot] " + result.Message);
@@ -89,7 +92,17 @@ namespace XianXia.Unity.Host
                 return result;
             }
 
+            HostSnapshotSessionRehydration.LogDomainTrace(
+                bootstrap.Session,
+                "AfterRestoreJson.BeforePresentation");
+            HostSnapshotSessionRehydration.RehydrateAfterRestore(bootstrap);
+            HostSnapshotSessionRehydration.LogDomainTrace(
+                bootstrap.Session,
+                "AfterRehydrate.BeforePresentation");
+            HostLevelTesterSnapshotSummary.RecordRuntime(bootstrap.Session.World, bootstrap.Session);
+
             bootstrap.RebuildPresentationAfterLoad();
+            HostLevelTesterSnapshotSummary.RecordRuntime(bootstrap.Session.World, bootstrap.Session);
             result.Success = true;
             result.Message = "Loaded tick=" + bootstrap.Session.World.Tick.Value;
             Debug.Log("[LevelTesterSnapshot] " + result.Message);

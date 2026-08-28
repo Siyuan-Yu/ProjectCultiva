@@ -3193,6 +3193,23 @@
           "ownerFactionId": "base:sect_huangcun_labor"
         },
         {
+          "siteId": "test:site_player_camp",
+          "displayName": "TEST 主角营地",
+          "siteType": "Camp",
+          "anchorQ": 4,
+          "anchorR": 6,
+          "presenceQ": 4,
+          "presenceR": 6,
+          "footprint": [
+            {
+              "q": 4,
+              "r": 6
+            }
+          ],
+          "localMapId": "base:map_player_camp",
+          "ownerFactionId": "base:faction_player"
+        },
+        {
           "siteId": "base:site_linjian",
           "displayName": "林间",
           "siteType": "Forest",

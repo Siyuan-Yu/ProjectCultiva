@@ -32,18 +32,20 @@
 | `Assets/Scripts/Unity/Host/LevelTesterCheatContentSection.cs` | Content |
 | `Assets/Scripts/Unity/Host/LevelTesterCheatDiplomacySection.cs` | Diplomacy |
 
-### 2.2 Section 结构
+### 2.2 顶层 Tab 结构
 
-| Foldout | 能力 |
-|---------|------|
-| **Time / Simulation** | Step 1 Tick、Advance N（clamp 500）、Advance 1 Day、Speed 1/2/5/20x |
-| **Background Character** | 选角色、Travel To Site/Hex、Cancel、只读 Travel 状态；`debugOverrideLocalOccupant` 标注 Debug Override |
+| Tab | 能力 |
+|-----|------|
+| **Time** | Step 1 Tick、Advance N（clamp 500）、Advance 1 Day、Speed 1/2/5/20x |
+| **Background** | 选角色、Travel To Site/Hex、Cancel、只读 Travel 状态；`debugOverrideLocalOccupant` 标注 Debug Override |
 | **FormalArmy** | Create（**明确 Leader**）、Army 下拉、Disband、Travel、Incap 目标选择、Sync Casualties |
 | **Content** | Set/Clear Flag、Force Event、Dump |
 | **Diplomacy** | Declare War、Alliance、Vassalage |
-| **Snapshot / Session** | Save/Load Snapshot、Reset LevelTester Session（二次确认） |
-| **Battle / Acceptance** | DEBUG: Next Solo Auto-Battle Guaranteed Incapacitation |
+| **Snapshot** | Save/Load Snapshot、Reset LevelTester Session（二次确认） |
+| **Battle** | DEBUG: Next Solo Auto-Battle Guaranteed Incapacitation |
 | **Diagnostics** | Strong Hex Separation（纯视觉） |
+
+顶层固定页签导航；不使用全页面纵向 Foldout + 滚轮。页签内内容超出时才用局部 ScrollView。
 
 ### 2.3 打开方式
 
@@ -162,7 +164,7 @@ Play 后 LevelTester 上下文仅一套 Cheat Tools UI：
 
 **原因：** Snapshot 恢复 Domain（`World` / `WorldPresence` / `PlayerPartyTravel`），不恢复 Host 侧 `PartyWorld` 缓存；Load 后 `LocalMapVisibility` 可能过滤全部实体。
 
-**已做 partial fix：** `PlayableHostBootstrap.SyncPartyWorldPresentationAfterSnapshotRestore()` + `RebuildPresentationAfterLoad` 调整；**测试仍未全绿**，需单独任务完善 Snapshot Load ↔ 表现层重建。
+**Snapshot Load ↔ View 重建** 仍为已知缺口；Cheat Tools 迁移不包含 Snapshot 修复（见单独任务）。
 
 **不影响：** Cheat Tools 迁移本身；LevelTester 手动 smoke test（构造状态 → Advance Tick → 观察 Foldout 只读区）仍可按 114 操作。
 

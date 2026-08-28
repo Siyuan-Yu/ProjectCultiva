@@ -6,6 +6,7 @@ using XianXia.Core.Domain.Time;
 using XianXia.Core.Events;
 using XianXia.Core.Navigation;
 using XianXia.Core.Results;
+using XianXia.Core.Persistence;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
@@ -723,129 +724,68 @@ namespace XianXia.Unity.Host
             return true;
         }
 
-        /// <summary>
-        /// Snapshot 恢复 Domain 后，从 PlayerPartyTravel / WorldPresence 重建 PartyWorld 与 Active LocalMap。
-        /// PartyWorld 不在 Snapshot 内；未同步时 LocalMapVisibility 会过滤掉全部实体。
-        /// </summary>
-        void SyncPartyWorldPresentationAfterSnapshotRestore()
+        /// <summary>After Snapshot restore: rebuild views and rebind Host adapters.</summary>
+        public void RebindHostControlAfterSnapshotRestore()
         {
             if (!_session.IsInitialized)
                 return;
 
-            var world = _session.World;
-            if (_session.CharacterIds.Count > 0)
+            HostInputGate.Clear();
+            _session.IsPaused = false;
+
+            var cam = Camera.main != null ? Camera.main : Object.FindObjectOfType<Camera>();
+            if (selectionController != null && entityViewSpawner != null)
+                selectionController.Bind(entityViewSpawner, cam);
+
+            if (commandBridge != null && selectionController != null)
+                commandBridge.Bind(_session, selectionController);
+
+            if (debugHud != null && selectionController != null)
+                debugHud.Bind(this, selectionController);
+            if (levelTesterCheatPanel != null && selectionController != null)
+                levelTesterCheatPanel.Bind(this, selectionController);
+
+            if (moveController != null && selectionController != null && entityViewSpawner != null)
             {
-                _session.PlayerParty.Reset();
-                _session.PlayerParty.TryInitialize(_session.CharacterIds[0], out _);
-            }
-            else
-            {
-                _session.PlayerParty.Reset();
+                moveController.Bind(this, selectionController, entityViewSpawner, commandBridge, npcContextMenu);
+                moveController.ResetPresentationMovementState();
+                moveController.SetWalkGrid(ResolveWalkGrid());
+                moveController.BindLocalMapContext(_session.World.LocalMap.ActiveMapLayoutId);
+                if (_session.PlayerParty != null && _session.PlayerParty.Count > 0)
+                    moveController.InvalidatePartyLocalMovement(_session.PlayerParty.Members);
             }
 
-            PlayerPartyWorldLocationQuery.TryResolve(
-                world, _session.PlayerParty, out var resolved, healDrift: true);
+            var partyController = PlayerPartyController;
+            if (partyController != null)
+                partyController.Bind(this);
 
-            var mapId = string.Empty;
-            if (resolved.HasValue)
-            {
-                mapId = resolved.ResolvedLocalMapId?.Trim() ?? string.Empty;
-                if (resolved.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
-                    !string.IsNullOrEmpty(resolved.SiteId))
-                {
-                    world.PartyWorld.SiteId = resolved.SiteId;
-                    world.PartyWorld.LocalMapId = mapId;
-                    world.PartyWorld.Mode = PartyWorldPresenceMode.AtSite;
-                }
-                else
-                {
-                    world.PartyWorld.ClearSiteFocus();
-                    world.PartyWorld.LocalMapId = mapId;
-                    world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
-                }
-            }
-            else
-            {
-                SyncPartyWorldFromActiveCharacterPresence(world, _session.CharacterIds, ref mapId);
-            }
+            if (selectionController != null && _session.PlayerParty.HasActive)
+                selectionController.SelectEntity(_session.PlayerParty.ActiveCharacterId, false);
 
-            if (string.IsNullOrWhiteSpace(mapId) &&
-                !string.IsNullOrWhiteSpace(_session.PreferredMapLayoutId))
-                mapId = _session.PreferredMapLayoutId.Trim();
+            if (selectionController != null)
+                selectionController.SetPartyFilter(_session.CharacterIds);
 
-            if (!string.IsNullOrWhiteSpace(mapId))
-            {
-                var places = WorldRegionBootstrap.ActivatePlacesForMapLayout(
-                    world, _session.Registry, mapId);
-                if (places.IsFailure)
-                    Debug.LogWarning("[PlayableHost] Snapshot load ActivatePlaces: " + places.Error, this);
-                world.LocalMap.EnsureOverworld(mapId);
-                world.LocalMap.ActiveMapLayoutId = mapId;
-                _session.PreferredMapLayoutId = mapId;
-                if (string.IsNullOrWhiteSpace(world.PartyWorld.LocalMapId))
-                    world.PartyWorld.LocalMapId = mapId;
-                _session.RefreshViewableEntityIds();
-            }
+            SnapCameraToActiveAfterSnapshotRestore();
+
+            HostSnapshotActiveControlTrace.LogAfterPresentationRebuild(this);
         }
 
-        static void SyncPartyWorldFromActiveCharacterPresence(
-            SimulationWorld world,
-            IReadOnlyList<EntityId> characterIds,
-            ref string mapId)
+        /// <summary>Snapshot Load 完成后：对准 Materialize 后的 Active Presentation（一次性）。</summary>
+        void SnapCameraToActiveAfterSnapshotRestore()
         {
-            if (world?.WorldPresence == null)
+            var partyController = PlayerPartyController;
+            if (partyController != null)
+            {
+                partyController.SnapCameraToActiveOnce();
+                return;
+            }
+
+            if (cameraRig == null || entityViewSpawner == null || !_session.PlayerParty.HasActive)
                 return;
 
-            if (characterIds != null)
-            {
-                for (var i = 0; i < characterIds.Count; i++)
-                {
-                    if (TryApplyPartyWorldFromPresence(world, characterIds[i], ref mapId))
-                        return;
-                }
-            }
-
-            foreach (var kv in world.WorldPresence.All)
-            {
-                var wp = kv.Value;
-                if (wp == null || wp.EntityId.IsNone)
-                    continue;
-                if (TryApplyPartyWorldFromPresence(world, wp.EntityId, ref mapId))
-                    return;
-            }
-        }
-
-        static bool TryApplyPartyWorldFromPresence(
-            SimulationWorld world,
-            EntityId id,
-            ref string mapId)
-        {
-            if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
-                return false;
-
-            if (wp.Mode == PartyWorldPresenceMode.AtSite && !string.IsNullOrEmpty(wp.SiteId))
-            {
-                if (!world.Strategic.Sites.TryGet(wp.SiteId, out var site) || site == null)
-                    return false;
-                world.PartyWorld.SiteId = wp.SiteId;
-                mapId = WorldTravelService.ResolveWorldSiteLocalMapId(site)?.Trim() ?? string.Empty;
-                world.PartyWorld.LocalMapId = mapId;
-                world.PartyWorld.Mode = PartyWorldPresenceMode.AtSite;
-                return true;
-            }
-
-            if (wp.Mode == PartyWorldPresenceMode.AtHex && wp.UsesHexPresence)
-            {
-                WildernessLocalMapFallback.TryResolve(
-                    world, new HexCoord(wp.HexQ, wp.HexR), out var wildMap);
-                world.PartyWorld.ClearSiteFocus();
-                mapId = wildMap?.Trim() ?? string.Empty;
-                world.PartyWorld.LocalMapId = mapId;
-                world.PartyWorld.Mode = PartyWorldPresenceMode.AtHex;
-                return !string.IsNullOrEmpty(mapId);
-            }
-
-            return false;
+            var activeId = _session.PlayerParty.ActiveCharacterId;
+            if (entityViewSpawner.Registry.TryGet(activeId, out var view) && view != null)
+                cameraRig.FrameWorldPoint(view.transform.position);
         }
 
         /// <summary>After Snapshot restore: rebuild views and rebind Host adapters.</summary>
@@ -868,21 +808,25 @@ namespace XianXia.Unity.Host
             if (eventFeed == null)
                 eventFeed = GetComponent<HostEventFeed>() ?? gameObject.AddComponent<HostEventFeed>();
 
+            HostSnapshotSessionRehydration.ResolvePartyWorldFromActiveControlledCharacter(
+                _session.World,
+                _session.PlayerParty);
+
             selectionController.ClearSelection();
             entityViewSpawner.Clear();
-            SyncPartyWorldPresentationAfterSnapshotRestore();
-            ReloadLocalMapPresentation(frameCamera: true);
-
-            var cam = Camera.main != null ? Camera.main : Object.FindObjectOfType<Camera>();
-            selectionController.Bind(entityViewSpawner, cam);
-            selectionController.SetPartyFilter(_session.CharacterIds);
+            if (moveController != null)
+                moveController.ResetPresentationMovementState();
             commandBridge.Bind(_session, selectionController);
             debugHud.Bind(this, selectionController);
             if (levelTesterCheatPanel != null)
                 levelTesterCheatPanel.Bind(this, selectionController);
             eventFeed.Clear();
+
+            ApplyPartyWorldSitePresentation(closeWorldMap: false);
+
+            RebindHostControlAfterSnapshotRestore();
+
             DispatchDrainedEvents();
-            FrameCameraOnSlots();
             _autoTickAccumulator = 0f;
             RefreshStatus();
         }
@@ -1093,6 +1037,16 @@ namespace XianXia.Unity.Host
                 return;
 
             var world = _session.World;
+            if (SnapshotActiveControlledLocalMapResolver.TryResolveRequiredLocalMap(
+                    world,
+                    _session.PlayerParty,
+                    out var requiredFocus) &&
+                requiredFocus.HasValue &&
+                !string.IsNullOrEmpty(requiredFocus.LocalMapId))
+            {
+                SnapshotActiveControlledLocalMapResolver.ApplyResolvedPartyWorldFocus(world, in requiredFocus);
+            }
+
             var targetMap = world.PartyWorld.LocalMapId ?? string.Empty;
             if (BattleOfferService.HasActiveManualEncounter(world))
             {
@@ -1111,7 +1065,9 @@ namespace XianXia.Unity.Host
             if (!string.IsNullOrWhiteSpace(targetMap) &&
                 !(world.Strategic?.Encounter != null && world.Strategic.Encounter.SpawnOnNextMapLoad) &&
                 !LocalMapVisibility.CanLoadMapLayoutForParty(
-                    world, _session.CharacterIds, targetMap.Trim()))
+                    world, _session.CharacterIds, targetMap.Trim()) &&
+                !SnapshotActiveControlledLocalMapResolver.ActiveAuthorizesMapLoad(
+                    world, _session.PlayerParty, targetMap.Trim()))
             {
                 RefreshStatus();
                 return;
@@ -1157,6 +1113,14 @@ namespace XianXia.Unity.Host
             world.LocalMap.ActiveMapLayoutId = targetMap;
             world.LocalMap.OverworldMapLayoutId = targetMap;
             _session.RefreshViewableEntityIds();
+
+            if (LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot)
+            {
+                LoadedLocalMapPlacementSnapshotRestore.ApplySavedPlacementsToDomain(world, targetMap);
+                HostSnapshotLocalPlacementTrace.LogPartyMembersAfterPhase(
+                    world, _session.PlayerParty, targetMap, "PreReload");
+            }
+
             ReloadLocalMapPresentation(frameCamera: false);
 
             WildernessLocalWorldProjection.WildernessLocalMapBounds? materializeBounds = null;
@@ -1179,6 +1143,12 @@ namespace XianXia.Unity.Host
 
                 PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(
                     world, _session.PlayerParty.Members, materializeBounds);
+
+                if (LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot)
+                {
+                    HostSnapshotLocalPlacementTrace.LogPartyMembersAfterPhase(
+                        world, _session.PlayerParty, targetMap, "Materialize");
+                }
 
                 if (materializeBounds.HasValue &&
                     PlayerPartyLocalMapMaterializationService.IsWildernessLocalExpand(world))
@@ -1267,7 +1237,11 @@ namespace XianXia.Unity.Host
                 world.PlayerPartyTravel.HasPosition &&
                 world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
                 string.IsNullOrEmpty(world.PartyWorld?.SiteId);
+            var activeMapForSnap = world.LocalMap.ActiveMapLayoutId?.Trim() ?? string.Empty;
+            var skipStartSnapForSavedPlacements =
+                LoadedLocalMapPlacementSnapshotRestore.HasRestoredPlacementsForMap(activeMapForSnap);
             if (!skipStartSnapForWilderness &&
+                !skipStartSnapForSavedPlacements &&
                 !string.IsNullOrEmpty(startId) &&
                 world.WorldRegion.TryGet(startId, out var syncedStart))
             {
@@ -1278,6 +1252,9 @@ namespace XianXia.Unity.Host
                         continue;
                     if (!LocalMapVisibility.IsEntityVisible(world, id))
                         continue;
+                    var activeMapId = world.LocalMap.ActiveMapLayoutId?.Trim() ?? string.Empty;
+                    if (LoadedLocalMapPlacementSnapshotRestore.TryGetPlacement(id, activeMapId, out _, out _))
+                        continue;
                     if (!world.Entities.TryGet(id, out var ent) ||
                         !ent.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc))
                         continue;
@@ -1287,9 +1264,15 @@ namespace XianXia.Unity.Host
 
                 entityViewSpawner?.SyncLocations(_session);
             }
-            else if (skipStartSnapForWilderness)
+            else if (skipStartSnapForWilderness || skipStartSnapForSavedPlacements)
             {
                 entityViewSpawner?.SyncLocations(_session);
+            }
+
+            if (LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot)
+            {
+                HostSnapshotLocalPlacementTrace.LogPartyMembersAfterPhase(
+                    world, _session.PlayerParty, activeMapForSnap, "Rebuild");
             }
 
             if (selectionController != null)
@@ -1311,7 +1294,8 @@ namespace XianXia.Unity.Host
                 }
             }
 
-            TryFrameCameraOnParty();
+            if (!LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot)
+                TryFrameCameraOnParty();
             ActivateSurfaceLocalMapPresentation();
             RestorePlayerPartyLocalMapPresentation(targetMap);
         }
@@ -1320,7 +1304,29 @@ namespace XianXia.Unity.Host
         {
             if (string.IsNullOrWhiteSpace(localMapId))
                 return;
+
+            if (LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot &&
+                _session?.PlayerParty != null)
+            {
+                for (var i = 0; i < _session.PlayerParty.Members.Count; i++)
+                {
+                    var id = _session.PlayerParty.Members[i];
+                    HostSnapshotLocalPlacementTrace.LogWorldSiteLocalRestore(
+                        _session.World,
+                        id,
+                        localMapId.Trim(),
+                        LoadedLocalMapPlacementSnapshotRestore.TryGetPlacement(
+                            id,
+                            localMapId,
+                            out _,
+                            out _)
+                            ? "SnapshotLocalPlacement"
+                            : "DefaultStart");
+                }
+            }
+
             PlayerPartyController?.OnLocalMapMaterialized(localMapId.Trim());
+            LoadedLocalMapPlacementSnapshotRestore.FinishRestorePresentation();
         }
 
         void PlaceLegacyFocusCharactersOnLocalMap(SimulationWorld world, bool onEncounterMap)

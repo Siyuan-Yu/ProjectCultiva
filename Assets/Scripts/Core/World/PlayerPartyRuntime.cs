@@ -58,6 +58,44 @@ namespace XianXia.Core.World
             return true;
         }
 
+        /// <summary>
+        /// Snapshot restore：按存档顺序重建 Membership，跳过 Join 校验（LocalMap 尚未 Materialize）。
+        /// </summary>
+        public bool TryRestoreFromSnapshot(
+            EntityId activeId,
+            IReadOnlyList<EntityId> orderedMembers,
+            out string error)
+        {
+            error = null;
+            Reset();
+            if (orderedMembers == null || orderedMembers.Count == 0)
+            {
+                error = "No members.";
+                return false;
+            }
+
+            for (var i = 0; i < orderedMembers.Count && _members.Count < MaxMembers; i++)
+            {
+                var id = orderedMembers[i];
+                if (id.IsNone || _members.Contains(id))
+                    continue;
+                _members.Add(id);
+            }
+
+            if (_members.Count == 0)
+            {
+                error = "No valid members.";
+                return false;
+            }
+
+            if (activeId.IsNone || !_members.Contains(activeId))
+                activeId = _members[0];
+
+            _activeId = activeId;
+            _awaitingSuccession = false;
+            return true;
+        }
+
         public bool TryAddMember(
             SimulationWorld world,
             IReadOnlyList<EntityId> roster,

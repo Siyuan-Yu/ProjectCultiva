@@ -3,6 +3,7 @@ using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
+using XianXia.Core.Persistence;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
@@ -609,6 +610,21 @@ namespace XianXia.Core.World.Strategic
             EntityId characterId,
             WildernessLocalWorldProjection.WildernessLocalMapBounds bounds)
         {
+            var mapId = world.LocalMap?.ActiveMapLayoutId?.Trim() ?? string.Empty;
+            if (!string.IsNullOrEmpty(mapId) &&
+                LoadedLocalMapPlacementSnapshotRestore.TryResolveWorldSiteSpawnPosition(
+                    characterId,
+                    mapId,
+                    bounds.CenterX,
+                    bounds.CenterY,
+                    out var savedX,
+                    out var savedY,
+                    out var source) &&
+                source == LoadedLocalMapPlacementSnapshotRestore.SpawnPlacementSource.SnapshotLocalPlacement)
+            {
+                return ApplyWildernessPresentationOverride(world, characterId, savedX, savedY);
+            }
+
             var startId = world.WorldRegion?.StartLocationId ?? string.Empty;
             if (!string.IsNullOrEmpty(startId) &&
                 world.WorldRegion.TryGet(startId, out var startLoc) &&

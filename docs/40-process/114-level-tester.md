@@ -70,18 +70,20 @@ NPC／任务仍来自 Content 包；这里只换「这一张本地图」。
 - 键盘 **`` ` ``**（BackQuote）
 - 或 `LevelTesterHud` 顶栏 **「Cheat Tools」** 按钮
 
-**分类（Foldout）：**
+**顶层页签（Tab）：**
 
-| 区 | 能力 |
-|----|------|
-| Time / Simulation | Step 1 Tick、Advance N Ticks、Advance 1 Day、Speed 1/2/5/20x |
-| Background Character | 选角色、Travel To Site/Hex、Cancel、只读 Travel 状态 |
+| Tab | 能力 |
+|-----|------|
+| Time | Step 1 Tick、Advance N Ticks、Advance 1 Day、Speed 1/2/5/20x |
+| Background | 选角色、Travel To Site/Hex、Cancel、只读 Travel 状态 |
 | FormalArmy | Create（含明确 Leader）、Select Army、Disband、Travel、Incap、Sync Casualties |
 | Content | Set/Clear Flag、Force Event、Dump Content State |
 | Diplomacy | Declare War、Alliance、Vassalage（选 Faction） |
-| Snapshot / Session | Save/Load Snapshot、**Reset LevelTester Session**（二次确认） |
-| Battle / Acceptance | DEBUG: Next Solo Auto-Battle Guaranteed Incapacitation |
+| Snapshot | Save/Load Snapshot、**Reset LevelTester Session**（二次确认） |
+| Battle | DEBUG: Next Solo Auto-Battle Guaranteed Incapacitation |
 | Diagnostics | Hex Separation 等纯视觉 Debug（如有） |
+
+打开面板后通过页签切换系统；仅单个页签内容超出高度时使用页内 ScrollView。
 
 Cheat Tools **仅**用于 LevelTester 开发／人工验收，不进入正式 Gameplay UI，不为各系统单独占用 F-Key。
 

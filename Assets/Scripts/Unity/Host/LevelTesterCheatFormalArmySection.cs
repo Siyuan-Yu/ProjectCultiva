@@ -42,12 +42,12 @@ namespace XianXia.Unity.Host
             var world = session?.World;
             var party = session?.PlayerParty;
 
-            GUI.Label(new Rect(x, y, width, lineH), "FormalArmy", body);
+            GUI.Label(new Rect(x, y, width, lineH), "正规军", body);
             y += lineH + 4f;
 
             if (world == null || !session.IsInitialized)
             {
-                GUI.Label(new Rect(x, y, width, lineH), "Session not ready.");
+                GUI.Label(new Rect(x, y, width, lineH), "会话未就绪。");
                 return y + lineH;
             }
 
@@ -55,7 +55,7 @@ namespace XianXia.Unity.Host
             RefreshArmyList(world);
             EnsureArmySelection();
 
-            GUI.Label(new Rect(x, y, 70f, lineH), "Army");
+            GUI.Label(new Rect(x, y, 70f, lineH), "军队");
             if (_armyIds.Count > 0)
             {
                 _selectedArmyIndex = Mathf.Clamp(_selectedArmyIndex, 0, _armyIds.Count - 1);
@@ -68,7 +68,7 @@ namespace XianXia.Unity.Host
             }
             else
             {
-                GUI.Label(new Rect(x + 72f, y, width - 72f, lineH), "(no armies)", body);
+                GUI.Label(new Rect(x + 72f, y, width - 72f, lineH), "（无军队）", body);
                 _selectedArmyId = string.Empty;
             }
 
@@ -76,7 +76,7 @@ namespace XianXia.Unity.Host
             y = DrawSelectedArmyStatus(world, x, y, width, lineH, body);
             y += 6f;
 
-            GUI.Label(new Rect(x, y, width, lineH), "— Create Army —", body);
+            GUI.Label(new Rect(x, y, width, lineH), "— 创建军队 —", body);
             y += lineH;
             if (_siteIds.Count > 0)
             {
@@ -84,7 +84,7 @@ namespace XianXia.Unity.Host
                 _selectedSiteIndex = (int)GUI.HorizontalSlider(
                     new Rect(x, y, width, 20f), _selectedSiteIndex, 0, _siteIds.Count - 1);
                 y += 22f;
-                GUI.Label(new Rect(x, y, width, lineH), "Formation Site: " + _siteIds[_selectedSiteIndex], body);
+                GUI.Label(new Rect(x, y, width, lineH), "组建地点：" + _siteIds[_selectedSiteIndex], body);
                 y += lineH;
             }
 
@@ -111,22 +111,22 @@ namespace XianXia.Unity.Host
             RebuildCreateMembersFromSet();
             if (_createMembers.Count > 0)
             {
-                GUI.Label(new Rect(x, y, width, lineH), "Leader (must be selected member):", body);
+                GUI.Label(new Rect(x, y, width, lineH), "队长（须为已选成员）：", body);
                 y += lineH;
                 _createLeaderIndex = Mathf.Clamp(_createLeaderIndex, 0, _createMembers.Count - 1);
                 for (var li = 0; li < _createMembers.Count; li++)
                 {
                     world.Entities.TryGet(_createMembers[li], out var lm);
                     var llabel = lm != null ? lm.DisplayName : _createMembers[li].Value.ToString();
-                    if (GUI.Toggle(new Rect(x, y, width, lineH), _createLeaderIndex == li, "Leader: " + llabel))
+                    if (GUI.Toggle(new Rect(x, y, width, lineH), _createLeaderIndex == li, "队长：" + llabel))
                         _createLeaderIndex = li;
                     y += lineH;
                 }
             }
 
-            if (GUI.Button(new Rect(x, y, width * 0.48f, 24f), "Create Army"))
+            if (GUI.Button(new Rect(x, y, width * 0.48f, 24f), "创建军队"))
                 CreateArmy(world, party);
-            if (GUI.Button(new Rect(x + width * 0.52f, y, width * 0.48f, 24f), "Disband Army"))
+            if (GUI.Button(new Rect(x + width * 0.52f, y, width * 0.48f, 24f), "解散军队"))
                 DisbandArmy(world);
             y += 28f;
 
@@ -136,9 +136,9 @@ namespace XianXia.Unity.Host
             _hexRText = GUI.TextField(new Rect(x + 106f, y, 48f, 22f), _hexRText);
             y += 26f;
 
-            if (GUI.Button(new Rect(x, y, width * 0.48f, 24f), "Travel To Hex"))
+            if (GUI.Button(new Rect(x, y, width * 0.48f, 24f), "前往 Hex"))
                 TravelToHex(world);
-            if (GUI.Button(new Rect(x + width * 0.52f, y, width * 0.48f, 24f), "Travel To Site"))
+            if (GUI.Button(new Rect(x + width * 0.52f, y, width * 0.48f, 24f), "前往地点"))
                 TravelToSite(world);
             y += 28f;
 
@@ -147,7 +147,7 @@ namespace XianXia.Unity.Host
                 incapArmy != null &&
                 incapArmy.MemberCharacterIds.Count > 0)
             {
-                GUI.Label(new Rect(x, y, width, lineH), "Incapacitate target:", body);
+                GUI.Label(new Rect(x, y, width, lineH), "失能目标：", body);
                 y += lineH;
                 var memberCount = incapArmy.MemberCharacterIds.Count;
                 _incapTargetIndex = Mathf.Clamp(_incapTargetIndex, 0, memberCount - 1);
@@ -158,20 +158,20 @@ namespace XianXia.Unity.Host
                     var mlabel = ment != null ? ment.DisplayName : mid.Value.ToString();
                     var isLeader = mid == incapArmy.LeaderCharacterId;
                     if (GUI.Toggle(new Rect(x, y, width, lineH), _incapTargetIndex == mi,
-                            (isLeader ? "[Leader] " : "") + mlabel))
+                            (isLeader ? "[队长] " : "") + mlabel))
                         _incapTargetIndex = mi;
                     y += lineH;
                 }
 
-                if (GUI.Button(new Rect(x, y, width, 24f), "Incapacitate Selected Member"))
+                if (GUI.Button(new Rect(x, y, width, 24f), "使选中成员失能"))
                     IncapacitateSelected(world, incapArmy);
                 y += 28f;
-                if (GUI.Button(new Rect(x, y, width, 24f), "Sync Casualties"))
+                if (GUI.Button(new Rect(x, y, width, 24f), "同步伤亡"))
                 {
                     ArmyService.SyncNonLivingMembers(world, incapArmy);
                     _sectionStatus = world.Strategic.FormalArmies.TryGet(incapArmy.ArmyId, out _)
-                        ? "OK: Synced casualties."
-                        : "OK: Army destroyed after sync (G18).";
+                        ? "成功：已同步伤亡。"
+                        : "成功：同步后军队已销毁（G18）。";
                 }
 
                 y += 28f;
@@ -212,16 +212,16 @@ namespace XianXia.Unity.Host
                 !world.Strategic.FormalArmies.TryGet(_selectedArmyId, out var army) ||
                 army == null)
             {
-                GUI.Label(new Rect(x, y, width, lineH), "No army selected.", body);
+                GUI.Label(new Rect(x, y, width, lineH), "未选择军队。", body);
                 return y + lineH;
             }
 
             var motion = army.WorldMotion;
-            y = DrawLine(x, y, width, lineH, body, "Leader", army.LeaderCharacterId.Value.ToString());
-            y = DrawLine(x, y, width, lineH, body, "Members", army.MemberCharacterIds.Count.ToString());
+            y = DrawLine(x, y, width, lineH, body, "队长", army.LeaderCharacterId.Value.ToString());
+            y = DrawLine(x, y, width, lineH, body, "成员", army.MemberCharacterIds.Count.ToString());
             y = DrawLine(x, y, width, lineH, body, "Hex", motion.CurrentHex.ToString());
-            y = DrawLine(x, y, width, lineH, body, "Motion", motion.CurrentOrderKind.ToString());
-            y = DrawLine(x, y, width, lineH, body, "Destination",
+            y = DrawLine(x, y, width, lineH, body, "移动", motion.CurrentOrderKind.ToString());
+            y = DrawLine(x, y, width, lineH, body, "目的地",
                 string.IsNullOrEmpty(motion.DestinationSiteId)
                     ? motion.DestinationHex.ToString()
                     : motion.DestinationSiteId);
@@ -234,8 +234,8 @@ namespace XianXia.Unity.Host
                     ? CombatLifeStateService.FormatLifeStateWithCountdown(world, memberEnt)
                     : "?";
                 GUI.Label(new Rect(x, y, width, lineH),
-                    "  " + memberId.Value + " Life=" + life +
-                    " Presence=" + (presence?.ResidualHex.ToString() ?? "-"), body);
+                    "  " + memberId.Value + " 生命=" + life +
+                    " 存在=" + (presence?.ResidualHex.ToString() ?? "-"), body);
                 y += lineH;
             }
 
@@ -325,7 +325,7 @@ namespace XianXia.Unity.Host
             RebuildCreateMembersFromSet();
             if (_siteIds.Count == 0 || _createMembers.Count < 1)
             {
-                _sectionStatus = "FAIL: Select site and at least one member.";
+                _sectionStatus = "失败：请选择地点和至少一名成员。";
                 return;
             }
 
@@ -343,11 +343,11 @@ namespace XianXia.Unity.Host
                 _selectedArmyId = result.Value.ArmyId;
                 _createMemberSet.Clear();
                 _createMembers.Clear();
-                _sectionStatus = "OK: Created " + result.Value.ArmyId;
+                _sectionStatus = "成功：已创建 " + result.Value.ArmyId;
             }
             else
             {
-                _sectionStatus = "FAIL: " + result.Error;
+                _sectionStatus = "失败：" + result.Error;
             }
         }
 
@@ -355,19 +355,19 @@ namespace XianXia.Unity.Host
         {
             if (string.IsNullOrEmpty(_selectedArmyId))
             {
-                _sectionStatus = "FAIL: No army selected.";
+                _sectionStatus = "失败：未选择军队。";
                 return;
             }
 
             var result = ArmyService.DisbandArmy(world, _selectedArmyId);
             if (result.IsSuccess)
             {
-                _sectionStatus = "OK: Disbanded.";
+                _sectionStatus = "成功：已解散。";
                 _selectedArmyId = string.Empty;
             }
             else
             {
-                _sectionStatus = "FAIL: " + result.Error;
+                _sectionStatus = "失败：" + result.Error;
             }
         }
 
@@ -375,41 +375,41 @@ namespace XianXia.Unity.Host
         {
             if (string.IsNullOrEmpty(_selectedArmyId))
             {
-                _sectionStatus = "FAIL: Select army.";
+                _sectionStatus = "失败：请选择军队。";
                 return;
             }
 
             if (!int.TryParse(_hexQText, out var q) || !int.TryParse(_hexRText, out var r))
             {
-                _sectionStatus = "FAIL: Invalid hex.";
+                _sectionStatus = "失败：Hex 无效。";
                 return;
             }
 
             var result = FormalArmyContinuousTravelService.MoveArmyToHex(
                 world, _selectedArmyId, new XianXia.Core.World.Hex.HexCoord(q, r));
-            _sectionStatus = result.IsSuccess ? "OK: Travel To Hex started." : "FAIL: " + result.Error;
+            _sectionStatus = result.IsSuccess ? "成功：已开始前往 Hex。" : "失败：" + result.Error;
         }
 
         void TravelToSite(SimulationWorld world)
         {
             if (string.IsNullOrEmpty(_selectedArmyId) || _siteIds.Count == 0)
             {
-                _sectionStatus = "FAIL: Select army and site.";
+                _sectionStatus = "失败：请选择军队和地点。";
                 return;
             }
 
             var siteId = _siteIds[Mathf.Clamp(_selectedSiteIndex, 0, _siteIds.Count - 1)];
             var result = FormalArmyContinuousTravelService.MoveArmyToWorldSite(world, _selectedArmyId, siteId);
             _sectionStatus = result.IsSuccess
-                ? "OK: Travel To Site -> " + siteId
-                : "FAIL: " + result.Error;
+                ? "成功：前往地点 -> " + siteId
+                : "失败：" + result.Error;
         }
 
         void IncapacitateSelected(SimulationWorld world, FormalArmy army)
         {
             if (army == null || army.MemberCharacterIds.Count == 0)
             {
-                _sectionStatus = "FAIL: No members.";
+                _sectionStatus = "失败：无成员。";
                 return;
             }
 
@@ -417,19 +417,19 @@ namespace XianXia.Unity.Host
             var memberId = new EntityId(army.MemberCharacterIds[idx]);
             if (!world.Entities.TryGet(memberId, out var entity) || entity == null)
             {
-                _sectionStatus = "FAIL: Member entity missing.";
+                _sectionStatus = "失败：成员实体缺失。";
                 return;
             }
 
             CombatDamageRules.EnsureVitals(entity);
             if (!CombatLifeStateService.TryEnterIncapacitated(world, entity))
             {
-                _sectionStatus = "FAIL: Incap failed for " + memberId.Value;
+                _sectionStatus = "失败：失能失败 " + memberId.Value;
                 return;
             }
 
             ArmyService.SyncNonLivingMembers(world, army);
-            _sectionStatus = "OK: Incapacitated " + memberId.Value;
+            _sectionStatus = "成功：已使 " + memberId.Value + " 失能";
         }
     }
 }

@@ -5,6 +5,7 @@ using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Input;
+using XianXia.Core.Persistence;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 
@@ -37,6 +38,7 @@ namespace XianXia.Unity.Host
             new Dictionary<ulong, HostPartySharedActivity>();
         HostPartySharedActivity _lastActiveSharedActivity = HostPartySharedActivity.FollowIdle;
         bool _wasdHeldLastFrame;
+        bool _pendingSnapshotFollowRebind;
         HostActiveCameraFollowMode _cameraMode = HostActiveCameraFollowMode.Free;
 
         [SerializeField] float followerChopSearchRadius = 10f;
@@ -134,6 +136,18 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
+        /// Snapshot Load / Active switch：一次性对准 Active Presentation，不进入 WASD Hard Follow。
+        /// </summary>
+        public void SnapCameraToActiveOnce()
+        {
+            if (Party == null || !Party.HasActive)
+                return;
+
+            _cameraMode = HostActiveCameraFollowMode.Free;
+            SnapCameraTo(Party.ActiveCharacterId);
+        }
+
+        /// <summary>
         /// PlayerParty LocalMap materialize / transition: invalidate old-map locomotion and restore follow.
         /// </summary>
         public void OnLocalMapMaterialized(string localMapId)
@@ -157,6 +171,30 @@ namespace XianXia.Unity.Host
         void ResetFollowAfterMaterialize()
         {
             _nextFollowRepath.Clear();
+            if (Party == null || _spawner == null)
+                return;
+
+            if (LoadedLocalMapPlacementSnapshotRestore.DeferFollowRebind)
+            {
+                _pendingSnapshotFollowRebind = true;
+                return;
+            }
+
+            RebindAllFollowers();
+        }
+
+        void RebindAllFollowers()
+        {
+            if (Party == null || _spawner == null)
+                return;
+
+            for (var i = 0; i < Party.Members.Count; i++)
+            {
+                var id = Party.Members[i];
+                if (Party.IsActive(id))
+                    continue;
+                OrderFollowerTowardActive(id);
+            }
         }
 
         public void ClearDirectControlFor(EntityId id)
@@ -182,6 +220,12 @@ namespace XianXia.Unity.Host
             Party.RefreshActiveAfterLifeState(bootstrap.Session.World);
             if (Party.IsAwaitingSuccession || Party.ActiveCharacterId.IsNone)
                 return;
+
+            if (_pendingSnapshotFollowRebind)
+            {
+                _pendingSnapshotFollowRebind = false;
+                RebindAllFollowers();
+            }
 
             TickWasdForActive();
             TickPartyDerivedGroupActivity();

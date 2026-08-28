@@ -149,6 +149,16 @@ namespace XianXia.Unity.Host
                         mapId,
                         System.StringComparison.Ordinal))
                     return true;
+
+                if (wp.Mode == PartyWorldPresenceMode.AtWorldPosition &&
+                    world.PlayerPartyTravel != null &&
+                    world.PlayerPartyTravel.HasPosition &&
+                    world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
+                    string.Equals(
+                        world.PartyWorld?.LocalMapId?.Trim(),
+                        mapId,
+                        System.StringComparison.Ordinal))
+                    return true;
             }
 
             return false;

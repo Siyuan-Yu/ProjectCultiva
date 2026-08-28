@@ -10,6 +10,7 @@ using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
+using XianXia.Core.Inventory;
 using XianXia.Core.Labor;
 using XianXia.Core.Opportunity;
 using XianXia.Core.Orders;
@@ -17,6 +18,8 @@ using XianXia.Core.Random;
 using XianXia.Core.Results;
 using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
+using XianXia.Core.Social;
+using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Persistence
@@ -31,13 +34,19 @@ namespace XianXia.Core.Persistence
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
         }
 
-        public Result<string> CaptureJson(SimulationWorld world, SimulationLoop loop)
+        public Result<string> CaptureJson(
+            SimulationWorld world,
+            SimulationLoop loop,
+            PlayerPartyRuntime playerParty = null)
         {
-            var snap = Capture(world, loop);
+            var snap = Capture(world, loop, playerParty);
             return _serializer.Serialize(snap);
         }
 
-        public WorldSnapshot Capture(SimulationWorld world, SimulationLoop loop)
+        public WorldSnapshot Capture(
+            SimulationWorld world,
+            SimulationLoop loop,
+            PlayerPartyRuntime playerParty = null)
         {
             var random = world.Random.CaptureState();
             var snap = new WorldSnapshot
@@ -71,7 +80,10 @@ namespace XianXia.Core.Persistence
                 };
 
                 if (entity.TryGet<LifecycleComponent>(out var life))
+                {
                     dto.Lifecycle = (int)life.State;
+                    dto.BleedOutAfterTick = life.BleedOutAfterTick;
+                }
 
                 if (entity.TryGet<AttributesComponent>(out var attrs))
                 {
@@ -173,6 +185,34 @@ namespace XianXia.Core.Persistence
                 if (entity.TryGet<PersonalConcealmentRiskComponent>(out var risk))
                     dto.PersonalConcealmentRisk = risk.Value;
 
+                if (entity.TryGet<FactionMembershipComponent>(out var factionMem) && factionMem != null)
+                {
+                    dto.FactionId = factionMem.FactionId ?? string.Empty;
+                    dto.FactionRole = (int)factionMem.Role;
+                }
+
+                if (entity.TryGet<CombatVitalsComponent>(out var vitals) && vitals != null)
+                {
+                    dto.HasCombatVitals = true;
+                    dto.CurrentHp = vitals.CurrentHp;
+                    dto.CurrentSpiritPower = vitals.CurrentSpiritPower;
+                    dto.VitalsPoolsInitialized = vitals.PoolsInitialized;
+                }
+
+                if (entity.TryGet<CorpseComponent>(out var corpse) && corpse != null)
+                {
+                    dto.HasCorpse = true;
+                    dto.CorpseRemoveAfterTick = corpse.RemoveAfterTick;
+                }
+
+                if (entity.TryGet<PersonalityProfileComponent>(out var personality) &&
+                    personality != null &&
+                    personality.Count > 0)
+                {
+                    foreach (var tag in personality.Tags)
+                        dto.PersonalityTags.Add(tag);
+                }
+
                 snap.Entities.Add(dto);
             }
 
@@ -273,8 +313,58 @@ namespace XianXia.Core.Persistence
                 }
             }
 
-            snap.Strategic = StrategicSnapshotHelper.Capture(world);
+            snap.Strategic = StrategicSnapshotHelper.Capture(world, playerParty);
+            CapturePartyInventory(world, snap);
+            CaptureRelationshipLedger(world, snap);
             return snap;
+        }
+
+        static void CapturePartyInventory(SimulationWorld world, WorldSnapshot snap)
+        {
+            if (world?.Inventory == null || snap == null)
+                return;
+
+            var slots = world.Inventory.Slots;
+            for (var i = 0; i < slots.Count; i++)
+            {
+                var s = slots[i];
+                if (s == null || s.IsEmpty)
+                    continue;
+                snap.PartyInventorySlots.Add(new PartyInventorySlotSnapshotDto
+                {
+                    ItemId = s.ItemId ?? string.Empty,
+                    Count = s.Count
+                });
+            }
+        }
+
+        static void CaptureRelationshipLedger(SimulationWorld world, WorldSnapshot snap)
+        {
+            if (world?.Relationships == null || snap == null)
+                return;
+
+            var events = world.Relationships.Events;
+            for (var i = 0; i < events.Count; i++)
+            {
+                var e = events[i];
+                if (e == null)
+                    continue;
+                var dto = new RelationshipEventSnapshotDto
+                {
+                    Tick = e.Tick.Value,
+                    FromEntityId = e.From.Value,
+                    ToEntityId = e.To.Value,
+                    Delta = e.Delta,
+                    ReasonTag = e.ReasonTag ?? string.Empty
+                };
+                if (e.CauseEventId.HasValue && !e.CauseEventId.Value.IsNone)
+                {
+                    dto.HasCauseEventId = true;
+                    dto.CauseEventId = e.CauseEventId.Value.Value;
+                }
+
+                snap.RelationshipEvents.Add(dto);
+            }
         }
 
         public Result<(SimulationWorld world, SimulationLoop loop)> RestoreJson(string json, string expectedPackageVersion = null)
@@ -394,7 +484,11 @@ namespace XianXia.Core.Persistence
                 foreach (var m in e.Modifiers)
                     RestoreModifier(attrs, m);
                 entity.AddComponent(attrs);
-                entity.AddComponent(new LifecycleComponent((LifecycleState)e.Lifecycle));
+                var life = new LifecycleComponent((LifecycleState)e.Lifecycle)
+                {
+                    BleedOutAfterTick = e.BleedOutAfterTick
+                };
+                entity.AddComponent(life);
                 var actionState = new ActionStateComponent
                 {
                     ActiveActionId = new ActionId(e.ActiveActionId),
@@ -513,6 +607,44 @@ namespace XianXia.Core.Persistence
                 entity.AddComponent(known);
                 entity.AddComponent(new PersonalConcealmentRiskComponent { Value = e.PersonalConcealmentRisk });
 
+                var faction = new FactionMembershipComponent();
+                if (!string.IsNullOrEmpty(e.FactionId))
+                    faction.Assign(e.FactionId, (FactionRoleKind)e.FactionRole);
+#if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
+                else if (!string.IsNullOrEmpty(snap.Strategic?.PlayerFactionId) &&
+                         IsLikelyPlayerRosterCharacter(snap, e.Id))
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        "[SnapshotFactionRestore] CharacterId=" + e.Id +
+                        " FactionId=(empty) FAILED: membership missing from snapshot entity JSON");
+                }
+#endif
+                entity.AddComponent(faction);
+
+                var vitals = new CombatVitalsComponent();
+                if (e.HasCombatVitals)
+                {
+                    vitals.CurrentHp = e.CurrentHp;
+                    vitals.CurrentSpiritPower = e.CurrentSpiritPower;
+                    vitals.PoolsInitialized = e.VitalsPoolsInitialized;
+                }
+                entity.AddComponent(vitals);
+
+                if (e.HasCorpse)
+                {
+                    entity.AddComponent(new CorpseComponent
+                    {
+                        RemoveAfterTick = e.CorpseRemoveAfterTick
+                    });
+                }
+
+                var personality = new PersonalityProfileComponent();
+                if (e.PersonalityTags != null && e.PersonalityTags.Count > 0)
+                    personality.SetTags(e.PersonalityTags);
+                entity.AddComponent(personality);
+
+                entity.AddComponent(new RelationshipComponent());
+
                 // Inject into store via reflection-free path: recreate through internal add
                 InjectEntity(world.Entities, entity);
             }
@@ -627,7 +759,110 @@ namespace XianXia.Core.Persistence
                     "Schema v2 snapshot missing strategic state.",
                     snap.SchemaVersion.ToString());
             }
+
+            RestorePartyInventory(world, snap);
+            RestoreRelationshipLedger(world, snap);
             return Result.Ok((world, loop));
+        }
+
+        static void RestorePartyInventory(SimulationWorld world, WorldSnapshot snap)
+        {
+            if (world?.Inventory == null || snap?.PartyInventorySlots == null)
+                return;
+
+            var slots = world.Inventory.Slots;
+            for (var i = 0; i < slots.Count; i++)
+                slots[i].Clear();
+
+            for (var i = 0; i < snap.PartyInventorySlots.Count; i++)
+            {
+                var s = snap.PartyInventorySlots[i];
+                if (s == null || string.IsNullOrEmpty(s.ItemId) || s.Count <= 0)
+                    continue;
+                world.Inventory.TryAdd(s.ItemId, s.Count);
+            }
+        }
+
+        static void RestoreRelationshipLedger(SimulationWorld world, WorldSnapshot snap)
+        {
+            if (world?.Relationships == null || snap?.RelationshipEvents == null)
+                return;
+
+            world.Relationships.Clear();
+            for (var i = 0; i < snap.RelationshipEvents.Count; i++)
+            {
+                var d = snap.RelationshipEvents[i];
+                if (d == null)
+                    continue;
+                EventId? cause = null;
+                if (d.HasCauseEventId && d.CauseEventId != 0)
+                    cause = new EventId(d.CauseEventId);
+                world.Relationships.Append(new RelationshipEvent(
+                    new WorldTick(d.Tick),
+                    new EntityId(d.FromEntityId),
+                    new EntityId(d.ToEntityId),
+                    d.Delta,
+                    d.ReasonTag ?? string.Empty,
+                    cause));
+            }
+
+            RebuildRelationshipCaches(world);
+        }
+
+        static void RebuildRelationshipCaches(SimulationWorld world)
+        {
+            if (world?.Relationships == null)
+                return;
+
+            var events = world.Relationships.Events;
+            for (var i = 0; i < events.Count; i++)
+            {
+                var e = events[i];
+                if (e == null)
+                    continue;
+                RelationshipService.RefreshPairCaches(world, e.From, e.To);
+            }
+        }
+
+        static bool IsLikelyPlayerRosterCharacter(WorldSnapshot snap, ulong entityId)
+        {
+            var party = snap?.Strategic?.PlayerParty;
+            if (party != null)
+            {
+                if (party.ActiveCharacterId == entityId)
+                    return true;
+                if (party.MemberCharacterIds != null)
+                {
+                    for (var i = 0; i < party.MemberCharacterIds.Count; i++)
+                    {
+                        if (party.MemberCharacterIds[i] == entityId)
+                            return true;
+                    }
+                }
+            }
+
+            var playerFaction = snap?.Strategic?.PlayerFactionId;
+            if (string.IsNullOrEmpty(playerFaction) || snap.Strategic.FormalArmies == null)
+                return false;
+
+            for (var i = 0; i < snap.Strategic.FormalArmies.Count; i++)
+            {
+                var army = snap.Strategic.FormalArmies[i];
+                if (army == null ||
+                    !string.Equals(army.FactionId, playerFaction, StringComparison.Ordinal))
+                    continue;
+                if (army.LeaderCharacterId == entityId)
+                    return true;
+                if (army.MemberCharacterIds == null)
+                    continue;
+                for (var m = 0; m < army.MemberCharacterIds.Count; m++)
+                {
+                    if (army.MemberCharacterIds[m] == entityId)
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         static ModifierSnapshotDto ToModifierDto(AttributeModifier m)

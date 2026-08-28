@@ -56,8 +56,8 @@ namespace XianXia.Unity.Host
                 (string.IsNullOrEmpty(bootstrap.CharacterRosterId) ? "(用剧本spawns)" : bootstrap.CharacterRosterId));
             y += 18f;
             GUI.Label(new Rect(pad + 8f, y, w - 220f, 20f),
-                "Space 暂停 ｜ FormalHud 顶栏变速 ｜ ` 打开 Cheat Tools ｜ F1 隐藏本栏 ｜ Inspector 换地图／剧本／名册");
-            if (GUI.Button(new Rect(pad + w - 108f, y - 2f, 100f, 22f), "Cheat Tools"))
+                "Space 暂停 ｜ FormalHud 顶栏变速 ｜ ` 打开开发工具 ｜ F1 隐藏本栏 ｜ Inspector 换地图／剧本／名册");
+            if (GUI.Button(new Rect(pad + w - 108f, y - 2f, 100f, 22f), "开发工具"))
             {
                 var cheat = bootstrap.LevelTesterCheatPanel ??
                             bootstrap.GetComponent<HostLevelTesterCheatPanel>();

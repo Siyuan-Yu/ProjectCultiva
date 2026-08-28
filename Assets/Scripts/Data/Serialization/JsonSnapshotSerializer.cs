@@ -37,6 +37,8 @@ namespace XianXia.Data.Serialization
                 ["opportunitySites"] = JsonValue.FromArray(SerializeOpportunitySites(snapshot.OpportunitySites)),
                 ["manuals"] = JsonValue.FromArray(SerializeManuals(snapshot.Manuals)),
                 ["observationDiscoverChancePercent"] = JsonValue.FromNumber(snapshot.ObservationDiscoverChancePercent),
+                ["partyInventorySlots"] = JsonValue.FromArray(SerializePartyInventorySlots(snapshot.PartyInventorySlots)),
+                ["relationshipEvents"] = JsonValue.FromArray(SerializeRelationshipEvents(snapshot.RelationshipEvents)),
                 ["strategic"] = SerializeStrategic(snapshot.Strategic)
             };
 
@@ -110,6 +112,47 @@ namespace XianXia.Data.Serialization
                     chance.Kind == JsonValueKind.Number)
                 {
                     snapshot.ObservationDiscoverChancePercent = (int)chance.Number;
+                }
+
+                if (root.TryGetProperty("partyInventorySlots", out var invSlots) &&
+                    invSlots.Kind == JsonValueKind.Array)
+                {
+                    foreach (var slot in invSlots.Array)
+                    {
+                        if (slot.Kind != JsonValueKind.Object)
+                            continue;
+                        var itemId = slot.GetString("itemId", string.Empty);
+                        var count = (int)slot.GetNumber("count");
+                        if (string.IsNullOrEmpty(itemId) || count <= 0)
+                            continue;
+                        snapshot.PartyInventorySlots.Add(new PartyInventorySlotSnapshotDto
+                        {
+                            ItemId = itemId,
+                            Count = count
+                        });
+                    }
+                }
+
+                if (root.TryGetProperty("relationshipEvents", out var relEvents) &&
+                    relEvents.Kind == JsonValueKind.Array)
+                {
+                    foreach (var ev in relEvents.Array)
+                    {
+                        if (ev.Kind != JsonValueKind.Object)
+                            continue;
+                        snapshot.RelationshipEvents.Add(new RelationshipEventSnapshotDto
+                        {
+                            Tick = ReadU(ev, "tick"),
+                            FromEntityId = ReadU(ev, "fromEntityId"),
+                            ToEntityId = ReadU(ev, "toEntityId"),
+                            Delta = (int)ev.GetNumber("delta"),
+                            ReasonTag = ev.GetString("reasonTag", string.Empty),
+                            CauseEventId = ReadU(ev, "causeEventId"),
+                            HasCauseEventId = ev.TryGetProperty("hasCauseEventId", out var hce) &&
+                                              hce.Kind == JsonValueKind.Boolean &&
+                                              hce.Bool
+                        });
+                    }
                 }
 
                 if (root.TryGetProperty("strategic", out var strategic) &&
@@ -191,9 +234,64 @@ namespace XianXia.Data.Serialization
                     ["scheduleDefinitionId"] = JsonValue.FromString(e.ScheduleDefinitionId ?? string.Empty),
                     ["activeOrderSource"] = JsonValue.FromNumber(e.ActiveOrderSource),
                     ["knownSiteIds"] = JsonValue.FromArray(SerializeStringList(e.KnownSiteIds)),
-                    ["personalConcealmentRisk"] = JsonValue.FromNumber(e.PersonalConcealmentRisk)
+                    ["personalConcealmentRisk"] = JsonValue.FromNumber(e.PersonalConcealmentRisk),
+                    ["factionId"] = JsonValue.FromString(e.FactionId ?? string.Empty),
+                    ["factionRole"] = JsonValue.FromNumber(e.FactionRole),
+                    ["hasCombatVitals"] = JsonValue.FromBool(e.HasCombatVitals),
+                    ["currentHp"] = JsonValue.FromNumber(e.CurrentHp),
+                    ["currentSpiritPower"] = JsonValue.FromNumber(e.CurrentSpiritPower),
+                    ["vitalsPoolsInitialized"] = JsonValue.FromBool(e.VitalsPoolsInitialized),
+                    ["bleedOutAfterTick"] = U(e.BleedOutAfterTick),
+                    ["hasCorpse"] = JsonValue.FromBool(e.HasCorpse),
+                    ["corpseRemoveAfterTick"] = U(e.CorpseRemoveAfterTick),
+                    ["personalityTags"] = JsonValue.FromArray(SerializeStringList(e.PersonalityTags))
                 }));
             }
+            return list;
+        }
+
+        static List<JsonValue> SerializePartyInventorySlots(List<PartyInventorySlotSnapshotDto> slots)
+        {
+            var list = new List<JsonValue>();
+            if (slots == null)
+                return list;
+            for (var i = 0; i < slots.Count; i++)
+            {
+                var s = slots[i];
+                if (s == null || string.IsNullOrEmpty(s.ItemId) || s.Count <= 0)
+                    continue;
+                list.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["itemId"] = JsonValue.FromString(s.ItemId ?? string.Empty),
+                    ["count"] = JsonValue.FromNumber(s.Count)
+                }));
+            }
+
+            return list;
+        }
+
+        static List<JsonValue> SerializeRelationshipEvents(List<RelationshipEventSnapshotDto> events)
+        {
+            var list = new List<JsonValue>();
+            if (events == null)
+                return list;
+            for (var i = 0; i < events.Count; i++)
+            {
+                var ev = events[i];
+                if (ev == null)
+                    continue;
+                list.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["tick"] = U(ev.Tick),
+                    ["fromEntityId"] = U(ev.FromEntityId),
+                    ["toEntityId"] = U(ev.ToEntityId),
+                    ["delta"] = JsonValue.FromNumber(ev.Delta),
+                    ["reasonTag"] = JsonValue.FromString(ev.ReasonTag ?? string.Empty),
+                    ["causeEventId"] = U(ev.CauseEventId),
+                    ["hasCauseEventId"] = JsonValue.FromBool(ev.HasCauseEventId)
+                }));
+            }
+
             return list;
         }
 
@@ -346,7 +444,22 @@ namespace XianXia.Data.Serialization
                 HasSchedule = e.TryGetProperty("hasSchedule", out var hs) && hs.Kind == JsonValueKind.Boolean && hs.Bool,
                 ScheduleDefinitionId = e.GetString("scheduleDefinitionId", string.Empty),
                 ActiveOrderSource = (int)e.GetNumber("activeOrderSource"),
-                PersonalConcealmentRisk = (int)e.GetNumber("personalConcealmentRisk")
+                PersonalConcealmentRisk = (int)e.GetNumber("personalConcealmentRisk"),
+                FactionId = e.GetString("factionId", string.Empty),
+                FactionRole = (int)e.GetNumber("factionRole"),
+                HasCombatVitals = e.TryGetProperty("hasCombatVitals", out var hcv) &&
+                                  hcv.Kind == JsonValueKind.Boolean &&
+                                  hcv.Bool,
+                CurrentHp = (int)e.GetNumber("currentHp"),
+                CurrentSpiritPower = (int)e.GetNumber("currentSpiritPower"),
+                VitalsPoolsInitialized = e.TryGetProperty("vitalsPoolsInitialized", out var vpi) &&
+                                         vpi.Kind == JsonValueKind.Boolean &&
+                                         vpi.Bool,
+                BleedOutAfterTick = ReadU(e, "bleedOutAfterTick"),
+                HasCorpse = e.TryGetProperty("hasCorpse", out var hco) &&
+                            hco.Kind == JsonValueKind.Boolean &&
+                            hco.Bool,
+                CorpseRemoveAfterTick = ReadU(e, "corpseRemoveAfterTick")
             };
 
             if (e.TryGetProperty("knownSiteIds", out var known) && known.Kind == JsonValueKind.Array)
@@ -355,6 +468,16 @@ namespace XianXia.Data.Serialization
                 {
                     if (k.Kind == JsonValueKind.String)
                         dto.KnownSiteIds.Add(k.String);
+                }
+            }
+
+            if (e.TryGetProperty("personalityTags", out var personalityTags) &&
+                personalityTags.Kind == JsonValueKind.Array)
+            {
+                foreach (var tag in personalityTags.Array)
+                {
+                    if (tag.Kind == JsonValueKind.String)
+                        dto.PersonalityTags.Add(tag.String);
                 }
             }
 
@@ -745,6 +868,41 @@ namespace XianXia.Data.Serialization
                 });
             }
 
+            if (strategic.PlayerParty != null && strategic.PlayerParty.MemberCharacterIds != null &&
+                strategic.PlayerParty.MemberCharacterIds.Count > 0)
+            {
+                var members = new List<JsonValue>();
+                for (var i = 0; i < strategic.PlayerParty.MemberCharacterIds.Count; i++)
+                    members.Add(U(strategic.PlayerParty.MemberCharacterIds[i]));
+                root["playerParty"] = JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["activeCharacterId"] = U(strategic.PlayerParty.ActiveCharacterId),
+                    ["memberCharacterIds"] = JsonValue.FromArray(members)
+                });
+            }
+
+            if (strategic.LoadedLocalMapCharacterPlacements != null &&
+                strategic.LoadedLocalMapCharacterPlacements.Count > 0)
+            {
+                var placements = new List<JsonValue>();
+                for (var i = 0; i < strategic.LoadedLocalMapCharacterPlacements.Count; i++)
+                {
+                    var p = strategic.LoadedLocalMapCharacterPlacements[i];
+                    if (p == null || p.CharacterId == 0 || string.IsNullOrWhiteSpace(p.LocalMapId))
+                        continue;
+                    placements.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["characterId"] = U(p.CharacterId),
+                        ["localMapId"] = JsonValue.FromString(p.LocalMapId),
+                        ["localX"] = JsonValue.FromNumber(p.LocalX),
+                        ["localZ"] = JsonValue.FromNumber(p.LocalZ)
+                    }));
+                }
+
+                if (placements.Count > 0)
+                    root["loadedLocalMapCharacterPlacements"] = JsonValue.FromArray(placements);
+            }
+
             return JsonValue.FromObject(root);
         }
 
@@ -967,6 +1125,38 @@ namespace XianXia.Data.Serialization
                     CurrentHexQ = partyTravel.TryGetProperty("currentHexQ", out var cq) ? (int)cq.Number : 0,
                     CurrentHexR = partyTravel.TryGetProperty("currentHexR", out var cr) ? (int)cr.Number : 0
                 };
+            }
+
+            if (strategic.TryGetProperty("playerParty", out var playerParty) &&
+                playerParty.Kind == JsonValueKind.Object)
+            {
+                dto.PlayerParty = new PlayerPartyRuntimeSnapshotDto
+                {
+                    ActiveCharacterId = ReadU(playerParty, "activeCharacterId")
+                };
+                if (playerParty.TryGetProperty("memberCharacterIds", out var members) &&
+                    members.Kind == JsonValueKind.Array)
+                {
+                    foreach (var m in members.Array)
+                        dto.PlayerParty.MemberCharacterIds.Add(ReadUValue(m));
+                }
+            }
+
+            if (strategic.TryGetProperty("loadedLocalMapCharacterPlacements", out var placements) &&
+                placements.Kind == JsonValueKind.Array)
+            {
+                foreach (var node in placements.Array)
+                {
+                    if (node.Kind != JsonValueKind.Object)
+                        continue;
+                    dto.LoadedLocalMapCharacterPlacements.Add(new LoadedLocalMapCharacterPlacementSnapshotDto
+                    {
+                        CharacterId = ReadU(node, "characterId"),
+                        LocalMapId = node.GetString("localMapId", string.Empty),
+                        LocalX = node.TryGetProperty("localX", out var lx) ? (float)lx.Number : 0f,
+                        LocalZ = node.TryGetProperty("localZ", out var lz) ? (float)lz.Number : 0f
+                    });
+                }
             }
 
             return dto;

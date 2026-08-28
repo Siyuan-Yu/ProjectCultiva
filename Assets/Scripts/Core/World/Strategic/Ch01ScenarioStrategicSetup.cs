@@ -22,10 +22,15 @@ namespace XianXia.Core.World.Strategic
             Ch01ScenarioProgressionHooks.Register(world);
         }
 
-        /// <summary>LevelTester / Ch01FormationScenarioCompat：注册验收用 Player-controlled Site。</summary>
+        /// <summary>
+        /// LevelTester / Ch01FormationScenarioCompat：历史兼容 — 仅当 Content 未声明 Site 时补注册。
+        /// LevelTester 真源：<c>travel_mvp_hex_world_30x15.json</c> 内 <c>test:site_player_camp</c>。
+        /// </summary>
         public static void EnsureLevelTesterFixtures(SimulationWorld world)
         {
             if (world?.Strategic == null || !world.Strategic.Ch01FormationScenarioCompat)
+                return;
+            if (world.Strategic.Sites.TryGet(Ch01HexPrototypeMapBuilder.SitePlayerCamp, out _))
                 return;
             Ch01HexPrototypeMapBuilder.EnsureLevelTesterPlayerCampSite(world);
         }

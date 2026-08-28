@@ -51,12 +51,12 @@ namespace XianXia.Unity.Host
             var world = session?.World;
             var party = session?.PlayerParty;
 
-            GUI.Label(new Rect(x, y, width, lineH), "Background Character  (Debug Override: local occupant)", body);
+            GUI.Label(new Rect(x, y, width, lineH), "后台角色（调试覆盖：本地占用）", body);
             y += lineH + 4f;
 
             if (world == null || !session.IsInitialized)
             {
-                GUI.Label(new Rect(x, y, width, lineH), "Session not ready.");
+                GUI.Label(new Rect(x, y, width, lineH), "会话未就绪。");
                 return y + lineH;
             }
 
@@ -65,7 +65,7 @@ namespace XianXia.Unity.Host
             EnsureSelectedCharacter();
             EnsureSelectedSiteIndex();
 
-            GUI.Label(new Rect(x, y, 70f, lineH), "Character");
+            GUI.Label(new Rect(x, y, 70f, lineH), "角色");
             var charBtn = new Rect(x + 72f, y, width - 72f, 22f);
             if (DrawDropdownButton(charBtn, GetSelectedCharacterLabel(), ref _characterMenuOpen))
             {
@@ -84,7 +84,7 @@ namespace XianXia.Unity.Host
                 y += lineH * 2f;
             }
 
-            GUI.Label(new Rect(x, y, 70f, lineH), "Site");
+            GUI.Label(new Rect(x, y, 70f, lineH), "地点");
             var siteBtn = new Rect(x + 72f, y, width - 72f, 22f);
             if (DrawDropdownButton(siteBtn, GetSelectedSiteLabel(), ref _siteMenuOpen))
             {
@@ -100,12 +100,12 @@ namespace XianXia.Unity.Host
 
             y += 26f;
             GUI.enabled = travelEligible;
-            if (GUI.Button(new Rect(x, y, 140f, 24f), "Travel To WorldSite"))
+            if (GUI.Button(new Rect(x, y, 140f, 24f), "前往世界地点"))
                 TravelToSite(bootstrap);
-            if (GUI.Button(new Rect(x + 148f, y, 120f, 24f), "Travel To Hex"))
+            if (GUI.Button(new Rect(x + 148f, y, 120f, 24f), "前往 Hex"))
                 TravelToHex(bootstrap);
             GUI.enabled = true;
-            if (GUI.Button(new Rect(x + 276f, y, 80f, 24f), "Cancel"))
+            if (GUI.Button(new Rect(x + 276f, y, 80f, 24f), "取消"))
                 CancelTravel(bootstrap);
 
             y += 30f;
@@ -171,7 +171,7 @@ namespace XianXia.Unity.Host
             var id = _selectedCharacterId;
             if (id.IsNone)
             {
-                GUI.Label(new Rect(x, y, width, lineH), "Character: (none)", body);
+                GUI.Label(new Rect(x, y, width, lineH), "角色：（无）", body);
                 return y + lineH;
             }
 
@@ -197,7 +197,7 @@ namespace XianXia.Unity.Host
                     out var seg,
                     out var segProgress))
             {
-                GUI.Label(new Rect(x, y, width, lineH), displayName + " — (no world location)", body);
+                GUI.Label(new Rect(x, y, width, lineH), displayName + " —（无世界位置）", body);
                 return y + lineH;
             }
 
@@ -205,16 +205,16 @@ namespace XianXia.Unity.Host
                 ? ResolveSiteDisplayName(world, destSite)
                 : destHex.ToString();
             var route = travelKind == BackgroundCharacterTravelMovementKind.Traveling
-                ? "Seg " + seg + " P=" + segProgress.ToString("F2")
+                ? "段 " + seg + " 进度=" + segProgress.ToString("F2")
                 : "-";
 
-            y = DrawLine(x, y, width, lineH, body, "Authority", authority.ToString());
-            y = DrawLine(x, y, width, lineH, body, "Location", kind.ToString());
+            y = DrawLine(x, y, width, lineH, body, "权限", authority.ToString());
+            y = DrawLine(x, y, width, lineH, body, "位置", kind.ToString());
             y = DrawLine(x, y, width, lineH, body, "Hex", hex.ToString());
-            y = DrawLine(x, y, width, lineH, body, "Site", ResolveSiteDisplayName(world, siteId));
-            y = DrawLine(x, y, width, lineH, body, "Travel", travelKind.ToString());
-            y = DrawLine(x, y, width, lineH, body, "Destination", destText);
-            y = DrawLine(x, y, width, lineH, body, "Route", route);
+            y = DrawLine(x, y, width, lineH, body, "地点", ResolveSiteDisplayName(world, siteId));
+            y = DrawLine(x, y, width, lineH, body, "旅行", travelKind.ToString());
+            y = DrawLine(x, y, width, lineH, body, "目的地", destText);
+            y = DrawLine(x, y, width, lineH, body, "路线", route);
             return y;
         }
 
@@ -229,9 +229,9 @@ namespace XianXia.Unity.Host
             GUIStyle body)
         {
             var motion = world.PlayerPartyTravel;
-            y = DrawLine(x, y, width, lineH, body, "Character", displayName + " [PlayerParty]");
+            y = DrawLine(x, y, width, lineH, body, "角色", displayName + " [玩家队伍]");
             y = DrawLine(x, y, width, lineH, body, "Hex", motion.CurrentHex.ToString());
-            y = DrawLine(x, y, width, lineH, body, "Travel", motion.IsMoving ? "Moving" : "Idle");
+            y = DrawLine(x, y, width, lineH, body, "旅行", motion.IsMoving ? "移动中" : "空闲");
             return y;
         }
 
@@ -322,14 +322,14 @@ namespace XianXia.Unity.Host
         string GetSelectedCharacterLabel()
         {
             if (_characters.Count == 0 || _selectedCharacterIndex < 0 || _selectedCharacterIndex >= _characters.Count)
-                return "(select character)";
+                return "（选择角色）";
             return _characters[_selectedCharacterIndex].DropdownLabel;
         }
 
         string GetSelectedSiteLabel()
         {
             if (_sites.Count == 0)
-                return "(no sites)";
+                return "（无地点）";
             return _sites[Mathf.Clamp(_selectedSiteIndex, 0, _sites.Count - 1)].DisplayName;
         }
 
@@ -345,7 +345,7 @@ namespace XianXia.Unity.Host
             reason = string.Empty;
             if (_selectedCharacterId.IsNone)
             {
-                reason = "Not eligible: no character selected.";
+                reason = "不可行：未选择角色。";
                 return false;
             }
 
@@ -353,7 +353,7 @@ namespace XianXia.Unity.Host
                     world, _selectedCharacterId, party, out var err))
                 return true;
 
-            reason = string.IsNullOrEmpty(err) ? "Not eligible." : err;
+            reason = string.IsNullOrEmpty(err) ? "不可行。" : err;
             return false;
         }
 
@@ -374,7 +374,7 @@ namespace XianXia.Unity.Host
             var siteId = GetSelectedSiteId();
             if (session == null || _selectedCharacterId.IsNone || string.IsNullOrEmpty(siteId))
             {
-                _sectionStatus = "Select character and site.";
+                _sectionStatus = "请选择角色和地点。";
                 return;
             }
 
@@ -385,8 +385,8 @@ namespace XianXia.Unity.Host
                 session.PlayerParty,
                 debugOverrideLocalOccupant: true);
             _sectionStatus = result.IsSuccess
-                ? "OK: Travel To Site -> " + ResolveSiteDisplayName(session.World, siteId)
-                : "FAIL: " + result.Error;
+                ? "成功：前往地点 -> " + ResolveSiteDisplayName(session.World, siteId)
+                : "失败：" + result.Error;
             if (result.IsSuccess)
                 bootstrap.FlushLoadedDestinationArrivals();
         }
@@ -396,13 +396,13 @@ namespace XianXia.Unity.Host
             var session = bootstrap?.Session;
             if (session == null || _selectedCharacterId.IsNone)
             {
-                _sectionStatus = "Select character.";
+                _sectionStatus = "请选择角色。";
                 return;
             }
 
             if (!int.TryParse(_hexQText, out var q) || !int.TryParse(_hexRText, out var r))
             {
-                _sectionStatus = "Invalid hex Q/R.";
+                _sectionStatus = "Hex Q/R 无效。";
                 return;
             }
 
@@ -413,8 +413,8 @@ namespace XianXia.Unity.Host
                 session.PlayerParty,
                 debugOverrideLocalOccupant: true);
             _sectionStatus = result.IsSuccess
-                ? "OK: Travel To Hex (" + q + "," + r + ")"
-                : "FAIL: " + result.Error;
+                ? "成功：前往 Hex (" + q + "," + r + ")"
+                : "失败：" + result.Error;
             if (result.IsSuccess)
                 bootstrap.FlushLoadedDestinationArrivals();
         }
@@ -424,12 +424,12 @@ namespace XianXia.Unity.Host
             var session = bootstrap?.Session;
             if (session == null || _selectedCharacterId.IsNone)
             {
-                _sectionStatus = "Select character.";
+                _sectionStatus = "请选择角色。";
                 return;
             }
 
             var result = BackgroundCharacterTravelService.CancelTravel(session.World, _selectedCharacterId);
-            _sectionStatus = result.IsSuccess ? "OK: Canceled travel." : "FAIL: " + result.Error;
+            _sectionStatus = result.IsSuccess ? "成功：已取消旅行。" : "失败：" + result.Error;
         }
     }
 }

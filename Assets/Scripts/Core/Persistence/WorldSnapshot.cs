@@ -40,6 +40,14 @@ namespace XianXia.Core.Persistence
         public List<ManualSnapshotDto> Manuals { get; set; } = new List<ManualSnapshotDto>();
         public int ObservationDiscoverChancePercent { get; set; } = 100;
         public StrategicSnapshotDto Strategic { get; set; } = new StrategicSnapshotDto();
+
+        /// <summary>Party 共享背包 Runtime 真源（v6 optional；旧档缺省＝空背包）。</summary>
+        public List<PartyInventorySlotSnapshotDto> PartyInventorySlots { get; set; } =
+            new List<PartyInventorySlotSnapshotDto>();
+
+        /// <summary>RelationshipLedger 事件流（v6 optional；旧档缺省＝空）。</summary>
+        public List<RelationshipEventSnapshotDto> RelationshipEvents { get; set; } =
+            new List<RelationshipEventSnapshotDto>();
     }
 
     public sealed class StrategicSnapshotDto
@@ -67,6 +75,16 @@ namespace XianXia.Core.Persistence
         /// Phase 2C：PlayerParty 连续世界位置（可选；旧存档缺省时不恢复 motion）。
         /// </summary>
         public PlayerPartyTravelSnapshotDto PlayerPartyTravel { get; set; }
+
+        /// <summary>Phase 1：PlayerParty 成员与 Active（可选；旧存档可推断）。</summary>
+        public PlayerPartyRuntimeSnapshotDto PlayerParty { get; set; }
+
+        /// <summary>
+        /// 当前 Loaded LocalMap 中 Character 的表现落点（可选；旧存档缺省则 Default Spawn）。
+        /// 非 WorldLocation 真源；WorldSite 读档 Materialize 时使用。
+        /// </summary>
+        public List<LoadedLocalMapCharacterPlacementSnapshotDto> LoadedLocalMapCharacterPlacements { get; set; } =
+            new List<LoadedLocalMapCharacterPlacementSnapshotDto>();
 
         /// <summary>Phase 2D：Background Character 中途旅行状态（可选）。</summary>
         public List<BackgroundCharacterTravelSnapshotDto> BackgroundCharacterTravels { get; set; } =
@@ -103,6 +121,22 @@ namespace XianXia.Core.Persistence
         public float WorldY { get; set; }
         public int CurrentHexQ { get; set; }
         public int CurrentHexR { get; set; }
+    }
+
+    /// <summary>PlayerParty Runtime 成员快照（Host Session 层；Domain Character 仍存 entities）。</summary>
+    public sealed class PlayerPartyRuntimeSnapshotDto
+    {
+        public ulong ActiveCharacterId { get; set; }
+        public List<ulong> MemberCharacterIds { get; set; } = new List<ulong>();
+    }
+
+    /// <summary>Save 时当前 Loaded LocalMap 内 Character 的 Local 表现坐标。</summary>
+    public sealed class LoadedLocalMapCharacterPlacementSnapshotDto
+    {
+        public ulong CharacterId { get; set; }
+        public string LocalMapId { get; set; } = string.Empty;
+        public float LocalX { get; set; }
+        public float LocalZ { get; set; }
     }
 
     public sealed class FormalArmySnapshotDto
@@ -284,6 +318,44 @@ namespace XianXia.Core.Persistence
         public int ActiveOrderSource { get; set; }
         public List<string> KnownSiteIds { get; set; } = new List<string>();
         public int PersonalConcealmentRisk { get; set; }
+
+        /// <summary>Runtime FactionMembership（招募后可变；旧档缺省为空＝无归属）。</summary>
+        public string FactionId { get; set; } = string.Empty;
+        /// <summary><see cref="XianXia.Core.Social.FactionRoleKind"/> 整型。</summary>
+        public int FactionRole { get; set; }
+
+        /// <summary>CombatVitals 当前生命；旧档缺省时 Restore 不灌满（PoolsInitialized=false 仅在无 vitals 字段时）。</summary>
+        public bool HasCombatVitals { get; set; }
+        public int CurrentHp { get; set; }
+        public int CurrentSpiritPower { get; set; }
+        public bool VitalsPoolsInitialized { get; set; }
+
+        /// <summary>Lifecycle 弥留到期 tick；0＝未计时。</summary>
+        public ulong BleedOutAfterTick { get; set; }
+
+        /// <summary>尸体留存；HasCorpse=false 时不恢复 CorpseComponent。</summary>
+        public bool HasCorpse { get; set; }
+        public ulong CorpseRemoveAfterTick { get; set; }
+
+        /// <summary>PersonalityProfile tags（若运行中可变）。旧档缺省＝空。</summary>
+        public List<string> PersonalityTags { get; set; } = new List<string>();
+    }
+
+    public sealed class PartyInventorySlotSnapshotDto
+    {
+        public string ItemId { get; set; } = string.Empty;
+        public int Count { get; set; }
+    }
+
+    public sealed class RelationshipEventSnapshotDto
+    {
+        public ulong Tick { get; set; }
+        public ulong FromEntityId { get; set; }
+        public ulong ToEntityId { get; set; }
+        public int Delta { get; set; }
+        public string ReasonTag { get; set; } = string.Empty;
+        public ulong CauseEventId { get; set; }
+        public bool HasCauseEventId { get; set; }
     }
 
     public sealed class AttrBaseDto

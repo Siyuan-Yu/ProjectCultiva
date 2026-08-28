@@ -137,7 +137,7 @@ namespace XianXia.Unity.Host
             }
 
             var service = new SnapshotService(new JsonSnapshotSerializer());
-            var captured = service.CaptureJson(World, Loop);
+            var captured = service.CaptureJson(World, Loop, PlayerParty);
             if (captured.IsFailure)
                 LastError = captured.Error.ToString();
             return captured;
@@ -152,8 +152,16 @@ namespace XianXia.Unity.Host
             }
 
             var expectedVersion = World != null ? World.EnabledPackageVersion : null;
-            var service = new SnapshotService(new JsonSnapshotSerializer());
-            var restored = service.RestoreJson(json, expectedVersion);
+            var serializer = new JsonSnapshotSerializer();
+            var service = new SnapshotService(serializer);
+            var parsed = serializer.Deserialize(json);
+            if (parsed.IsFailure)
+            {
+                LastError = parsed.Error.ToString();
+                return Result.Failure(parsed.Error);
+            }
+
+            var restored = service.Restore(parsed.Value, expectedVersion);
             if (restored.IsFailure)
             {
                 LastError = restored.Error.ToString();
@@ -166,6 +174,10 @@ namespace XianXia.Unity.Host
             CharacterIds = CollectTaggedIds(World, EntityTag.Character);
             RecruitableNpcId = FindFirstTagged(World, EntityTag.Npc);
             ViewableEntityIds = BuildViewableEntityIds(World, CharacterIds, RecruitableNpcId);
+            PlayerPartySnapshotRestore.Apply(
+                World,
+                PlayerParty,
+                parsed.Value.Strategic?.PlayerParty);
             ScheduleDefinitionId = CharacterIds.Count > 0 &&
                                    World.Entities.TryGet(CharacterIds[0], out var first) &&
                                    first.TryGet<XianXia.Core.Schedule.ScheduleComponent>(out var schedule)

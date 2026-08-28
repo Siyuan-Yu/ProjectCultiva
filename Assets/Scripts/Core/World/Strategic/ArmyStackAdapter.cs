@@ -437,5 +437,71 @@ namespace XianXia.Core.World.Strategic
                 RefreshDerivedPresentation(world, stack);
             }
         }
+
+        /// <summary>
+        /// Snapshot Restore 后：从 FormalArmy 真源重建 ArmyStack 展示视图（不创建 Character、不 respawn fixture）。
+        /// </summary>
+        public static void EnsurePresentationStacksFromFormalArmies(SimulationWorld world)
+        {
+            if (world?.Strategic?.FormalArmies == null || world.Strategic.Armies == null)
+                return;
+
+            foreach (var kv in world.Strategic.FormalArmies.Armies)
+            {
+                var army = kv.Value;
+                if (army == null || string.IsNullOrEmpty(army.ArmyId))
+                    continue;
+
+                var stackId = ResolvePresentationStackId(army.ArmyId);
+                if (!world.Strategic.Armies.TryGet(stackId, out var stack) || stack == null)
+                {
+                    stack = new ArmyStack
+                    {
+                        Id = stackId,
+                        FormalArmyId = army.ArmyId,
+                        FactionId = army.FactionId ?? string.Empty,
+                        DisplayName = ResolvePresentationStackDisplayName(army.ArmyId) ?? string.Empty,
+                    };
+                    world.Strategic.Armies.Register(stack);
+                }
+                else
+                {
+                    stack.FormalArmyId = army.ArmyId;
+                    stack.FactionId = army.FactionId ?? string.Empty;
+                    var displayName = ResolvePresentationStackDisplayName(army.ArmyId);
+                    if (!string.IsNullOrEmpty(displayName))
+                        stack.DisplayName = displayName;
+                }
+
+                SyncStackTravelFromFormalArmy(world, stack);
+                RefreshDerivedPresentation(world, stack);
+            }
+        }
+
+        static string ResolvePresentationStackId(string formalArmyId)
+        {
+            if (string.Equals(formalArmyId, BanditPatrolFormalArmyId, StringComparison.Ordinal))
+                return BanditPatrolStackId;
+            if (string.Equals(formalArmyId, BanditWeakPatrolFormalArmyId, StringComparison.Ordinal))
+                return BanditWeakPatrolStackId;
+            if (string.Equals(formalArmyId, BanditScoutFormalArmyId, StringComparison.Ordinal))
+                return BanditScoutStackId;
+            if (string.Equals(formalArmyId, BanditCasualtyTestFormalArmyId, StringComparison.Ordinal))
+                return BanditCasualtyTestStackId;
+            return formalArmyId ?? string.Empty;
+        }
+
+        static string ResolvePresentationStackDisplayName(string formalArmyId)
+        {
+            if (string.Equals(formalArmyId, BanditPatrolFormalArmyId, StringComparison.Ordinal))
+                return "荒村山匪";
+            if (string.Equals(formalArmyId, BanditWeakPatrolFormalArmyId, StringComparison.Ordinal))
+                return "试炼弱匪（自动必胜）";
+            if (string.Equals(formalArmyId, BanditScoutFormalArmyId, StringComparison.Ordinal))
+                return "山匪斥候";
+            if (string.Equals(formalArmyId, BanditCasualtyTestFormalArmyId, StringComparison.Ordinal))
+                return "试炼强匪（自动伤亡）";
+            return string.Empty;
+        }
     }
 }
