@@ -1,8 +1,10 @@
 # Phase 3：FormalArmy Continuous World + RPG-First Authority（2026-08-27）
 
-> 状态：**实现入仓 · 待人工验收**｜最后更新：2026-08-27  
+> **状态：Accepted / Sealed（正式封板）**｜封板日期：2026-08-28（用户正式确认）  
+> 实现完成 · EditMode 用例已入仓 · 核心能力已在 LevelTester 持续使用及 Phase 4 开发／人工验收中实际验证  
 > 产品契约真源：[2K §7–8 FormalArmy](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)／[ADR-0026](43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)  
-> **人工验收 Scene（唯一）：** `Assets/Scenes/LevelTester.unity`（`PlayableHostBootstrap`；**不用** PlayableHost）
+> **人工验收 Scene（唯一）：** `Assets/Scenes/LevelTester.unity`（`PlayableHostBootstrap`；**不用** PlayableHost）  
+> **说明：** 原计划 F11 TEST 1–10 逐条签字表未单独归档；不再作为阻塞项。封板依据为用户确认 + 后续实际运行验证，**非**本轮 Cursor 独立执行 Unity 人工验收。
 
 ---
 
@@ -31,8 +33,8 @@
 | **3F** Casualty / Leader | Leader 自动顺位；伤亡脱离保留当时 Location（沿用既有 Domain） | ✅ 沿用 |
 | **3G** Save / Load | `FormalArmySnapshotRestore` + Snapshot DTO Phase 3 字段；旧档 `CurrentHex` 回退 | ✅ 入仓 |
 | **3H** Attack Authority 审计 | 未改 Battle Offer／接战链；仅位置真源迁移 | ✅ 审计 |
-| **3I** Debug + EditMode | F11 `HostFormalArmyDebugPanel`；`FormalArmyPhase3AuthorityTests` | ✅ 入仓 · **待跑通／手操** |
-| **3J** 收口（167） | A2 第二轮 Authority；PP-Follower 跨图；主角营地；试炼三军 + 伤亡夹具 | ✅ 入仓 · **待手操** |
+| **3I** Debug + EditMode | F11 `HostFormalArmyDebugPanel`；`FormalArmyPhase3AuthorityTests` | ✅ 入仓 |
+| **3J** 收口（167） | A2 第二轮 Authority；PP-Follower 跨图；主角营地；试炼三军 + 伤亡夹具 | ✅ 入仓 |
 
 **并行收口：PresenceHex == AnchorHex**
 
@@ -109,24 +111,44 @@
 | `ArmyWorldPositionTravelIsContinuous` | 连续位移非 teleport |
 | `SnapshotRoundtripPreservesArmyWorldMotion` | Save/Load 中途旅行 |
 
-**待确认：** Unity EditMode 全绿（本地编译已通过 CS 修复）
+用例已入仓；以仓库测试为准。未在本轮单独报告 Editor 全绿数字。
 
 ---
 
-## 7. 人工验收清单（F11 · LevelTester · 待签收）
+## 7. 封板验收记录
 
-1. **TEST 1** 在 friendly Site 选 Follower → Create Army → 确认 Army 位于 Site、`WorldMotion.AtWorldSite`
-2. **TEST 2** Active 在候选列表 → Create Army 应失败
-3. **TEST 3** Travel To Hex（Wilderness）→ Advance Ticks → `AtWorldPosition` 连续变化
-4. **TEST 4** Travel To Hex（敌方 Footprint 内格）→ 到达 `AtWorldSite`（非 Footprint 内浮点坐标）
-5. **TEST 5** Travel To Site → Advance → 到达目标 Site
-6. **TEST 6** 从 Site 出发 Travel → 需 Advance 才离开（非 instant snap）
-7. **TEST 7** 旅行中 Disband → 应失败
-8. **TEST 8** Site 上 Disband → 成员回 `AtSite` Presence
-9. **TEST 9** Save/Load 中途旅行 → 位置与路径延续
-10. **TEST 10** 成员 WorldPresence 跟 Army 移动（Host HUD／Debug 可查）
+### 核心目标（已完成）
 
-**Deferred：** FormalArmy WorldMap Marker 连续表现、Autonomous AI Order、Battle Authority Phase 4
+| 目标 | 状态 |
+|------|------|
+| FormalArmy 不再是角色世界旅行的前置条件 | ✅ |
+| PlayerParty／普通角色独立世界旅行 Authority | ✅ |
+| FormalArmy 收敛为军事层对象 | ✅ |
+| Army Continuous WorldPosition / Travel | ✅ |
+| Army 成员 Presence 同步 | ✅ |
+| Army Save / Load | ✅ |
+| Army 组建／解散／Authority 边界 | ✅ |
+| Active Character 不可直接被塞入 FormalArmy | ✅ |
+| PlayerParty / FormalArmy Authority 分离 | ✅ |
+| Army Marker / Strategic Selection / Attack Order 等后续收口 | ✅（Phase 4 前已依赖） |
+| Snapshot 生命周期相关问题 | ✅ 已修复 |
+
+### 验证方式
+
+- 核心功能在 **LevelTester 持续使用** 及 **Phase 4 开发／人工验收** 过程中实际验证
+- **2026-08-28 用户正式确认** Phase 3 封板
+- 原计划 **F11 TEST 1–10** 逐条签字表未单独归档 → **不再作为阻塞项**
+- **不**将「用户确认封板」表述为 Cursor 独立完成 Unity 人工验收
+
+### 历史清单（参考 · 非阻塞）
+
+166 原 F11 TEST 1–10 与 167 验收 1–12 仍可作为回归参考，但**不**再阻止封板。
+
+### Backlog / Deferred（不拉回 Phase 3）
+
+- FormalArmy WorldMap Marker 连续表现
+- Autonomous AI Order
+- 更复杂 Army AI、主动战争、多方战争、Army Capacity 等 → 未来 Phase / Backlog
 
 ---
 
@@ -140,12 +162,11 @@
 
 ---
 
-## 9. Git / 下一里程碑
+## 9. 封板状态
 
-- **本提交：** Phase 3 实现 + PresenceHex 收口 + 文档（**未封板**）
-- **封板条件：** 上节 F11 TEST 1–10 人工通过 + EditMode 全绿
-- **封板后：** 更新本文档状态 → `人工验收封板`；roadmap Phase 3 勾选；可选更新 2K §13 Deferred 列表
-- **下一 Phase：** Phase 4 Manual Battle Permission（远方 Auto；≤1 Hex 介入）
+- **Phase 3 = Accepted / Sealed（2026-08-28）**
+- 实现 + 收口（167）已完成；Phase 4 人工验收与实际运行未暴露需重开 Phase 3 的阻塞问题
+- **下一 Phase：** Phase 4 已封板；Phase 5 **Not Started**
 
 ---
 

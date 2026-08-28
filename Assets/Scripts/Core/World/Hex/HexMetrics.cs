@@ -4,7 +4,8 @@ namespace XianXia.Core.World.Hex
 {
     /// <summary>
     /// Hex 几何真源：Renderer 与 Mouse Picking 必须只读此配置。
-    /// Pointy-top；Compact 网格中 Q=列、R=行（Odd-R offset 矩形布局，见 HexWorldLayout）。
+    /// Pointy-top + Odd-R offset：Compact 网格 Q=列、R=行（见 HexWorldLayout）。
+    /// 拓扑 Authority：HexMath.Neighbor / Distance（禁止把存储坐标当 axial）。
     /// HexWorldEditor 镜像：ExternalTools Shared HexWorldLayoutShared（必须保持公式一致）。
     /// </summary>
     public static class HexMetrics

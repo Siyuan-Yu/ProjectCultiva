@@ -146,45 +146,8 @@ namespace XianXia.Core.World.Strategic
             tile.IsPassable = true;
         }
 
-        static void CollectHexLine(HexCoord from, HexCoord to, System.Collections.Generic.List<HexCoord> pathOut)
-        {
-            pathOut.Clear();
-            var steps = HexMath.Distance(from, to);
-            if (steps <= 0)
-            {
-                pathOut.Add(from);
-                return;
-            }
-
-            for (var i = 0; i <= steps; i++)
-            {
-                var t = i / (float)steps;
-                var q = from.Q + (to.Q - from.Q) * t;
-                var r = from.R + (to.R - from.R) * t;
-                var s = from.S + (to.S - from.S) * t;
-                pathOut.Add(CubeRound(q, r, s));
-            }
-        }
-
-        static HexCoord CubeRound(float q, float r, float s)
-        {
-            var rq = System.Math.Round(q);
-            var rr = System.Math.Round(r);
-            var rs = System.Math.Round(s);
-
-            var dq = System.Math.Abs(rq - q);
-            var dr = System.Math.Abs(rr - r);
-            var ds = System.Math.Abs(rs - s);
-
-            if (dq > dr && dq > ds)
-                rq = -rr - rs;
-            else if (dr > ds)
-                rr = -rq - rs;
-            else
-                rs = -rq - rr;
-
-            return new HexCoord((int)rq, (int)rr);
-        }
+        static void CollectHexLine(HexCoord from, HexCoord to, System.Collections.Generic.List<HexCoord> pathOut) =>
+            HexMath.CollectHexLine(from, to, pathOut);
 
         static void ApplyTerrainForSite(SimulationWorld world, HexCoord hex, string kind)
         {
@@ -442,10 +405,10 @@ namespace XianXia.Core.World.Strategic
             if (radius <= 0)
                 return;
 
-            var startDir = HexMath.AxialDirections[4];
-            var hex = new HexCoord(
-                center.Q + startDir.Q * radius,
-                center.R + startDir.R * radius);
+            // Odd-R：用 Neighbor 走出半径，禁止对 offset 坐标直接乘 axial delta。
+            var hex = center;
+            for (var i = 0; i < radius; i++)
+                hex = HexMath.Neighbor(hex, 4);
             for (var side = 0; side < 6; side++)
             {
                 for (var step = 0; step < radius; step++)

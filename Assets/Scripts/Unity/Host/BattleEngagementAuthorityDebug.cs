@@ -27,11 +27,15 @@ namespace XianXia.Unity.Host
             sb.AppendLine("BattleInitiator=" + engagement.InitiatorKind + " " + engagement.InitiatorFormalArmyId);
             sb.AppendLine("Defender=" + engagement.DefenderFormalArmyId);
 
+            AppendArmyHexLine(world, "Initiator", engagement.InitiatorFormalArmyId, sb);
+            AppendArmyHexLine(world, "Defender", engagement.DefenderFormalArmyId, sb);
+
             if (engagement.HasSupportArea)
             {
                 var supportArea = engagement.SupportArea;
                 AppendHexList(sb, "BattleAreaHexes", supportArea.BattleAreaHexes);
                 AppendHexList(sb, "SupportAreaHexes", supportArea.SupportAreaHexes);
+                AppendSupportAreaConstructionTrace(world, engagement, supportArea, sb);
             }
             else
             {
@@ -39,8 +43,6 @@ namespace XianXia.Unity.Host
                 sb.AppendLine("SupportAreaHexes=(none)");
             }
 
-            AppendArmyHexLine(world, "Initiator", engagement.InitiatorFormalArmyId, sb);
-            AppendArmyHexLine(world, "Defender", engagement.DefenderFormalArmyId, sb);
             AppendPlayerHexSection(world, engagement, sb);
 
             sb.AppendLine("PlayerPartyIncluded=" + engagement.PlayerPartyIncluded);
@@ -134,6 +136,50 @@ namespace XianXia.Unity.Host
             sb.AppendLine(label + " ContinuousDerivedHex=" + FormatHex(derivedHex));
             if (army.WorldMotion != null && army.WorldMotion.HasPosition)
                 sb.AppendLine(label + " ContinuousWorldPosition=" + army.WorldMotion.WorldPosition);
+        }
+
+        static void AppendSupportAreaConstructionTrace(
+            SimulationWorld world,
+            PendingEngagementRuntime engagement,
+            BattleEngagementSupportArea supportArea,
+            StringBuilder sb)
+        {
+            var defenderHex = supportArea.PresentationAnchorHex;
+            if (engagement.DefenderCommittedHexQ != ArmyHexBattleAnchorService.InvalidHexComponent)
+                defenderHex = engagement.DefenderCommittedHex;
+            else if (BattleEngagementSpatialQuery.TryGetCommittedArmyHex(
+                         world, engagement.DefenderFormalArmyId, out var resolvedDefenderHex))
+                defenderHex = resolvedDefenderHex;
+
+            var hasInitiatorHex = engagement.HasInitiatorCommittedHex;
+            var initiatorHex = engagement.InitiatorCommittedHex;
+            if (!hasInitiatorHex &&
+                BattleEngagementSpatialQuery.TryGetCommittedArmyHex(
+                    world, engagement.InitiatorFormalArmyId, out var resolvedInitiatorHex))
+            {
+                hasInitiatorHex = true;
+                initiatorHex = resolvedInitiatorHex;
+            }
+
+            var hasPlayerHex = false;
+            var playerHex = default(HexCoord);
+            var party = world?.Strategic?.PlayerPartyContext;
+            if (party != null &&
+                party.HasActive &&
+                BattleEngagementSpatialQuery.TryGetCommittedPartyHex(
+                    world, party, out var authorityHex, out _))
+            {
+                hasPlayerHex = true;
+                playerHex = authorityHex;
+            }
+
+            supportArea.AppendConstructionTrace(
+                sb,
+                defenderHex,
+                initiatorHex,
+                hasInitiatorHex,
+                playerHex,
+                hasPlayerHex);
         }
 
         static void AppendPlayerHexSection(

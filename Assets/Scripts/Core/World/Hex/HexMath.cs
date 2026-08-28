@@ -3,8 +3,21 @@ using System.Collections.Generic;
 
 namespace XianXia.Core.World.Hex
 {
+    /// <summary>
+    /// Hex 拓扑 Authority。
+    /// 存储坐标为 <b>Odd-R offset</b>（Q=列, R=行），布局为 pointy-top。
+    /// 邻居 / 距离一律：Odd-R → axial → 计算 → 必要时再转回 Odd-R。
+    /// 禁止把存储坐标直接当 axial 加减方向表。
+    /// </summary>
     public static class HexMath
     {
+        public const int DirectionCount = 6;
+
+        /// <summary>
+        /// Axial 方向表（E, NE, NW, W, SW, SE）。
+        /// 仅可作用于 axial 坐标；对存储的 Odd-R <see cref="HexCoord"/> 必须经
+        /// <see cref="Neighbor"/> / <see cref="CollectNeighbors"/>。
+        /// </summary>
         public static readonly HexCoord[] AxialDirections =
         {
             new HexCoord(1, 0),
@@ -19,24 +32,113 @@ namespace XianXia.Core.World.Hex
 
         public static HexCoord Neighbor(HexCoord coord, int directionIndex)
         {
-            if (directionIndex < 0 || directionIndex >= AxialDirections.Length)
+            if (directionIndex < 0 || directionIndex >= DirectionCount)
                 throw new ArgumentOutOfRangeException(nameof(directionIndex));
-            return Add(coord, AxialDirections[directionIndex]);
+
+            OffsetOddRToAxial(coord, out var aq, out var ar);
+            var d = AxialDirections[directionIndex];
+            return AxialToOffsetOddR(aq + d.Q, ar + d.R);
         }
 
         public static void CollectNeighbors(HexCoord coord, List<HexCoord> neighborsOut)
         {
             neighborsOut.Clear();
+            OffsetOddRToAxial(coord, out var aq, out var ar);
             for (var i = 0; i < AxialDirections.Length; i++)
-                neighborsOut.Add(Add(coord, AxialDirections[i]));
+            {
+                var d = AxialDirections[i];
+                neighborsOut.Add(AxialToOffsetOddR(aq + d.Q, ar + d.R));
+            }
         }
 
+        /// <summary>Odd-R offset → cube/axial 距离。</summary>
         public static int Distance(HexCoord a, HexCoord b)
         {
-            var dq = Math.Abs(a.Q - b.Q);
-            var dr = Math.Abs(a.R - b.R);
-            var ds = Math.Abs(a.S - b.S);
-            return (dq + dr + ds) / 2;
+            OffsetOddRToAxial(a, out var aq, out var ar);
+            OffsetOddRToAxial(b, out var bq, out var br);
+            var asCube = -aq - ar;
+            var bsCube = -bq - br;
+            return (Math.Abs(aq - bq) + Math.Abs(ar - br) + Math.Abs(asCube - bsCube)) / 2;
+        }
+
+        /// <summary>
+        /// Odd-R 直线：先转 axial/cube，再 lerp + round，再转回 Odd-R。
+        /// 禁止对存储的 (Q,R) 直接做 cube lerp。
+        /// </summary>
+        public static void CollectHexLine(HexCoord from, HexCoord to, List<HexCoord> pathOut)
+        {
+            if (pathOut == null)
+                throw new ArgumentNullException(nameof(pathOut));
+
+            pathOut.Clear();
+            var steps = Distance(from, to);
+            if (steps <= 0)
+            {
+                pathOut.Add(from);
+                return;
+            }
+
+            OffsetOddRToAxial(from, out var aq, out var ar);
+            OffsetOddRToAxial(to, out var bq, out var br);
+            var asCube = -aq - ar;
+            var bsCube = -bq - br;
+
+            for (var i = 0; i <= steps; i++)
+            {
+                var t = i / (float)steps;
+                var q = aq + (bq - aq) * t;
+                var r = ar + (br - ar) * t;
+                var s = asCube + (bsCube - asCube) * t;
+                CubeRound(q, r, s, out var rq, out var rr);
+                pathOut.Add(AxialToOffsetOddR(rq, rr));
+            }
+        }
+
+        /// <summary>Odd-R（col,row）→ axial（q,r）。</summary>
+        public static void OffsetOddRToAxial(HexCoord offset, out int axialQ, out int axialR)
+        {
+            axialQ = offset.Q - (offset.R - (offset.R & 1)) / 2;
+            axialR = offset.R;
+        }
+
+        /// <summary>axial（q,r）→ Odd-R（col,row）。</summary>
+        public static HexCoord AxialToOffsetOddR(int axialQ, int axialR)
+        {
+            var col = axialQ + (axialR - (axialR & 1)) / 2;
+            return new HexCoord(col, axialR);
+        }
+
+        static void CubeRound(float q, float r, float s, out int roundQ, out int roundR)
+        {
+            var rq = Math.Round(q);
+            var rr = Math.Round(r);
+            var rs = Math.Round(s);
+
+            var dq = Math.Abs(rq - q);
+            var dr = Math.Abs(rr - r);
+            var ds = Math.Abs(rs - s);
+
+            if (dq > dr && dq > ds)
+                rq = -rr - rs;
+            else if (dr > ds)
+                rr = -rq - rs;
+
+            roundQ = (int)rq;
+            roundR = (int)rr;
+        }
+
+        /// <summary>两格中心世界距离是否等于 pointy-top 共边邻居间距（√3 · hexSize）。</summary>
+        public static bool AreWorldEdgeAdjacent(HexCoord a, HexCoord b, float hexSize, float relativeTolerance = 0.02f)
+        {
+            if (hexSize <= 0.0001f)
+                return false;
+            ToWorldPosition(a, hexSize, out var ax, out var ay);
+            ToWorldPosition(b, hexSize, out var bx, out var by);
+            var dx = ax - bx;
+            var dy = ay - by;
+            var dist = Math.Sqrt(dx * dx + dy * dy);
+            var expected = Math.Sqrt(3.0) * hexSize;
+            return Math.Abs(dist - expected) <= expected * relativeTolerance;
         }
 
         /// <summary>Odd-R 矩形布局：Q=列，R=行 → 世界平面（Presentation + Picking 共用）。</summary>
@@ -58,7 +160,7 @@ namespace XianXia.Core.World.Hex
             worldY = fy + (ty - fy) * t;
         }
 
-        /// <summary>世界坐标 → 最近 Hex（Odd-R offset，与矩形 100×50 布局一致）。</summary>
+        /// <summary>世界坐标 → 最近 Hex（Odd-R offset，与矩形布局一致）。</summary>
         public static HexCoord WorldToHex(float worldX, float worldY, float hexSize) =>
             HexWorldLayout.WorldToCoord(worldX, worldY, hexSize);
 

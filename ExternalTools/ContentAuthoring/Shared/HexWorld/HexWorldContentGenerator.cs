@@ -78,40 +78,6 @@ public static class HexWorldContentGenerator
         return cell.Q == q && cell.R == r ? cell : world.Cells.FirstOrDefault(c => c.Q == q && c.R == r);
     }
 
-    public static void CollectHexLine(HexCoordDto from, HexCoordDto to, List<HexCoordDto> pathOut)
-    {
-        pathOut.Clear();
-        var steps = HexWorldLayoutShared.Distance(from, to);
-        if (steps <= 0)
-        {
-            pathOut.Add(from);
-            return;
-        }
-
-        for (var i = 0; i <= steps; i++)
-        {
-            var t = i / (float)steps;
-            var q = from.Q + (to.Q - from.Q) * t;
-            var r = from.R + (to.R - from.R) * t;
-            var s = (-from.Q - from.R) + ((-to.Q - to.R) - (-from.Q - from.R)) * t;
-            pathOut.Add(CubeRound(q, r, s));
-        }
-    }
-
-    static HexCoordDto CubeRound(float q, float r, float s)
-    {
-        var rq = Math.Round(q);
-        var rr = Math.Round(r);
-        var rs = Math.Round(s);
-        var dq = Math.Abs(rq - q);
-        var dr = Math.Abs(rr - r);
-        var ds = Math.Abs(rs - s);
-        if (dq > dr && dq > ds)
-            rq = -rr - rs;
-        else if (dr > ds)
-            rr = -rq - rs;
-        else
-            rs = -rq - rr;
-        return new HexCoordDto((int)rq, (int)rr);
-    }
+    public static void CollectHexLine(HexCoordDto from, HexCoordDto to, List<HexCoordDto> pathOut) =>
+        HexWorldLayoutShared.CollectHexLine(from, to, pathOut);
 }

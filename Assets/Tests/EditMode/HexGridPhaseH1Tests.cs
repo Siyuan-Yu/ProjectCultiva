@@ -8,6 +8,7 @@ namespace XianXia.Tests
         [Test]
         public void HEX01_HexHasExactlySixNeighbors()
         {
+            // Odd-R 偶数行 (3,4)：共边邻居，不是轴向 delta 直加结果
             var center = new HexCoord(3, 4);
             var neighbors = new System.Collections.Generic.List<HexCoord>(6);
             HexMath.CollectNeighbors(center, neighbors);
@@ -16,8 +17,8 @@ namespace XianXia.Tests
             var expected = new[]
             {
                 new HexCoord(4, 4),
-                new HexCoord(4, 3),
                 new HexCoord(3, 3),
+                new HexCoord(2, 3),
                 new HexCoord(2, 4),
                 new HexCoord(2, 5),
                 new HexCoord(3, 5),
@@ -25,6 +26,9 @@ namespace XianXia.Tests
 
             for (var i = 0; i < expected.Length; i++)
                 Assert.Contains(expected[i], neighbors, "Neighbor " + i);
+
+            // 旧 bug：axial 直加会把 (4,3) 误当成偶数行邻居
+            CollectionAssert.DoesNotContain(neighbors, new HexCoord(4, 3));
         }
 
         [Test]
@@ -35,7 +39,8 @@ namespace XianXia.Tests
             var c = new HexCoord(0, 3);
             Assert.AreEqual(3, HexMath.Distance(a, b));
             Assert.AreEqual(3, HexMath.Distance(a, c));
-            Assert.AreEqual(5, HexMath.Distance(new HexCoord(2, 3), new HexCoord(5, 1)));
+            // Odd-R→axial 后 (2,3)↔(5,1) 距离为 4（旧 axial-on-offset 误算为 3）
+            Assert.AreEqual(4, HexMath.Distance(new HexCoord(2, 3), new HexCoord(5, 1)));
         }
 
         [Test]

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using NUnit.Framework;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
@@ -8,6 +9,7 @@ using XianXia.Core.Social;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
+using XianXia.Data.Content;
 
 namespace XianXia.Tests
 {
@@ -16,9 +18,13 @@ namespace XianXia.Tests
         const string FactionPlayer = StrategicFactionCatalog.PlayerFactionId;
         const string FactionBandit = StrategicFactionCatalog.BanditId;
         const string FactionThirdParty = StrategicFactionCatalog.DongLinGuildId;
+        const string TravelWorldId = "base:hex_world_travel_mvp_30x15";
         static readonly HexCoord HexA = Ch01HexPrototypeMapBuilder.HuangcunHex;
         static readonly HexCoord HexB = Ch01HexPrototypeMapBuilder.QingyunLuHex;
         static readonly HexCoord HexNeighbor = HexMath.Neighbor(HexA, 0);
+
+        static string BaseGamePath =>
+            Path.GetFullPath(Path.Combine(UnityEngine.Application.dataPath, "..", "Content", "BaseGame"));
 
         static SimulationWorld CreateWorld()
         {
@@ -767,6 +773,142 @@ namespace XianXia.Tests
             Assert.IsNull(snap.FindByEntity(hero));
             Assert.AreEqual(BattleParticipantInclusionReason.None, engagement.PlayerInclusionReason);
             Assert.IsFalse(engagement.PlayerInclusionTrace.PlayerInSnapshotRecords);
+        }
+
+        [Test]
+        public void SupportArea_AtWorldSiteOutsideFootprint_UsesCommittedDefenderHexOnly()
+        {
+            var world = CreateWorld();
+            var anchor = HexA;
+            var fieldHex = HexMath.Neighbor(anchor, 4);
+            Assert.IsFalse(world.Strategic.Sites.TryGetAtHex(fieldHex, out _));
+            Assert.IsTrue(world.Strategic.Sites.TryGet(Ch01HexPrototypeMapBuilder.SiteHuangcun, out var huangcun));
+            Assert.IsFalse(huangcun.OccupiesHex(fieldHex));
+
+            var defender = CreateArmyAt(world, FactionBandit, fieldHex,
+                SpawnCharacter(world, "FieldDefender", FactionBandit, fieldHex));
+            defender.WorldMotion.SetAtWorldSite(
+                Ch01HexPrototypeMapBuilder.SiteHuangcun,
+                fieldHex,
+                world.HexWorld.HexSize);
+
+            var area = BattleEngagementSupportArea.ResolveAndFreeze(world, defender.ArmyId);
+            Assert.AreEqual(1, area.BattleAreaHexes.Count);
+            Assert.AreEqual(fieldHex, area.BattleAreaHexes[0]);
+            Assert.IsTrue(area.Contains(fieldHex));
+            Assert.IsFalse(area.Contains(anchor));
+        }
+
+        [Test]
+        public void FromFrozenLists_RebuildsSupportFromBattleArea_IgnoresStaleSupportList()
+        {
+            var defenderHex = HexA;
+            var initiatorHex = HexNeighbor;
+            HexCoord playerHex = default;
+            for (var d = 0; d < 6; d++)
+            {
+                var mid = HexMath.Neighbor(defenderHex, d);
+                for (var e = 0; e < 6; e++)
+                {
+                    var candidate = HexMath.Neighbor(mid, e);
+                    if (HexMath.Distance(candidate, defenderHex) == 2)
+                    {
+                        playerHex = candidate;
+                        break;
+                    }
+                }
+
+                if (!playerHex.Equals(default))
+                    break;
+            }
+
+            Assert.IsFalse(playerHex.Equals(default));
+            var staleSupport = new List<HexCoord>
+            {
+                defenderHex,
+                initiatorHex,
+                playerHex,
+            };
+
+            var area = BattleEngagementSupportArea.FromFrozenLists(
+                new[] { defenderHex },
+                staleSupport,
+                defenderHex);
+
+            Assert.AreEqual(1, area.BattleAreaHexes.Count);
+            Assert.IsTrue(area.Contains(defenderHex));
+            Assert.IsTrue(area.Contains(initiatorHex));
+            Assert.IsFalse(area.Contains(playerHex));
+        }
+
+        static SimulationWorld CreateTravelMvpWorld()
+        {
+            var loaded = new ContentPackageLoader().Load(new[] { BaseGamePath });
+            Assert.IsTrue(loaded.IsSuccess, loaded.IsFailure ? loaded.Error.ToString() : string.Empty);
+            Assert.IsTrue(
+                loaded.Value.Registry.TryGetHexWorldContent(
+                    DefinitionId.Parse(TravelWorldId).Value,
+                    out var definition));
+
+            var world = new SimulationWorld();
+            Assert.IsTrue(HexWorldContentLoader.Apply(world, definition).IsSuccess);
+            Ch01ScenarioStrategicSetup.Apply(world);
+            Ch01ScenarioStrategicSetup.EnsureLevelTesterFixtures(world);
+            Ch01ScenarioStrategicSetup.PositionPrototypeTestBanditArmies(world);
+            return world;
+        }
+
+        [Test]
+        public void TravelMvp_WeakBanditFieldBattle_SupportAreaExcludesDist2Player()
+        {
+            var world = CreateTravelMvpWorld();
+            Assert.IsTrue(world.Strategic.FormalArmies.TryGet(
+                ArmyStackAdapter.BanditWeakPatrolFormalArmyId,
+                out var defender));
+            Assert.IsTrue(world.Strategic.Sites.TryGet(
+                Ch01HexPrototypeMapBuilder.SiteHuangcun,
+                out var huangcun));
+            Assert.IsFalse(huangcun.OccupiesHex(defender.CurrentHex));
+
+            var defenderHex = defender.CurrentHex;
+            var initiatorHex = HexMath.Neighbor(defenderHex, 0);
+            HexCoord playerHex = default;
+            for (var d = 0; d < 6; d++)
+            {
+                var mid = HexMath.Neighbor(defenderHex, d);
+                for (var e = 0; e < 6; e++)
+                {
+                    var candidate = HexMath.Neighbor(mid, e);
+                    if (HexMath.Distance(candidate, defenderHex) != 2)
+                        continue;
+                    if (HexMath.Distance(candidate, initiatorHex) != 1)
+                        continue;
+                    playerHex = candidate;
+                    break;
+                }
+
+                if (!playerHex.Equals(default))
+                    break;
+            }
+
+            Assert.IsFalse(playerHex.Equals(default));
+
+            var initiator = CreateArmyAt(world, FactionPlayer, initiatorHex,
+                SpawnCharacter(world, "InitA", FactionPlayer, initiatorHex),
+                SpawnCharacter(world, "InitB", FactionPlayer, initiatorHex));
+            PlacePlayerParty(world, playerHex);
+            var hero = SpawnCharacter(world, "Hero", FactionPlayer, playerHex);
+            var party = CreateParty(world, hero);
+            world.Strategic.PlayerPartyContext = party;
+
+            BeginEngagement(world, party, initiator, defender);
+
+            var engagement = world.Strategic.PendingEngagement;
+            Assert.AreEqual(1, engagement.SupportArea.BattleAreaHexes.Count);
+            Assert.AreEqual(defenderHex, engagement.SupportArea.BattleAreaHexes[0]);
+            Assert.AreNotEqual(initiatorHex, engagement.SupportArea.BattleAreaHexes[0]);
+            Assert.IsFalse(engagement.SupportArea.Contains(playerHex));
+            Assert.IsFalse(engagement.PlayerPartyIncluded);
         }
     }
 }

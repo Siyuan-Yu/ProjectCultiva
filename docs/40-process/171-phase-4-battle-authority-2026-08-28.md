@@ -1,9 +1,10 @@
 # Phase 4：Battle Authority — Manual / Auto / Retreat + Participant Gathering（2026-08-28）
 
-> 状态：**实现入仓 · SupportArea 集合规则 · Trigger/Gathering 分离 · Participant 来源追踪 · 待 EditMode 跑通 · 未人工验收**｜最后更新：2026-08-28（夜）  
-> 产品契约真源：[2K §8](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)／[ADR-0026](43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)／[163 Phase 4 规划](163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md)  
-> **人工验收 Scene（唯一）：** `Assets/Scenes/LevelTester.unity`（`PlayableHostBootstrap`）  
-> **未同步飞书**
+> **状态：Accepted / Sealed（正式封板）**｜封板日期：2026-08-28  
+> 实现完成 · EditMode 用例已入仓（以仓库测试为准）· **`Assets/Scenes/LevelTester.unity` 人工验收通过**  
+> **本文件 §1 = Phase 4 Battle Authority 当前正式真源**  
+> 产品契约对齐：[2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)／[ADR-0026](43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)／[163](163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md)  
+> **未开始 Phase 5**
 
 ---
 
@@ -12,32 +13,43 @@
 | 项 | 说明 |
 |----|------|
 | **Goal** | FormalArmy / PlayerParty 战斗权限与接战流程；`BattleInitiator` vs `PlayerDecisionSubject`；Participant Gathering；Manual / Auto / Retreat；拒绝远程 FormalArmy Manual |
-| **Must Not Break** | ADR-0023 WorldTick 冻结、战损回写、Army vs Army / War 链、Snapshot v6 向后兼容 |
-| **Explicitly Out of Scope** | 盟友援军、中立第三方参战、动态增援、多方大战、Legacy 入口删除、Phase 5+ |
+| **Must Not Break** | ADR-0023 WorldTick 冻结、战损回写、Army vs Army / War 链、Snapshot 向后兼容 |
+| **Explicitly Out of Scope** | 盟友援军、中立第三方参战、动态增援、多方大战、Legacy 入口删除、**Phase 5+**、战略 AI 主动交战 |
+| **封板结论** | Phase 4 = **Accepted / Sealed**；Deferred 见 §8（不阻塞封板） |
 
 ---
 
-## 1. 已确认产品语义（硬规则 · 当前有效）
+## 1. 最终 Battle Authority（正式真源 · Sealed）
 
-### 1.0 Battle Trigger（A）与 Participant Gathering（B）分离
+以下为封板后唯一有效规则。历史 Initiator-centered／中心距离 ≤1 等口径一律废弃（见 §1A）。
 
-| 阶段 | 规则 |
-|------|------|
-| **A. Battle Trigger** | Initiator **已提交 Hex**（非 ContinuousWorldPosition 派生格）必须落入 Defender `SupportAreaHexes` 才允许创建 PendingBattle |
-| **B. Participant Gathering** | 冻结 SupportArea 后，各单位 **已提交 Hex** 须满足 `SupportAreaHexes.Contains(UnitHex)`；Initiator/Defender 强制加入 |
+### 1.0 Battle Trigger
 
-禁止用 `WorldToHex` 中途派生格、WorldPosition 半径、或 Initiator 中心距离替代上述判定。
+普通 Army 主动攻击 Defender：
 
-### 1.1 BattleAreaHexes
+- **仅当** Initiator **当前 Hex** 与 Defender **当前 Hex** 真正 **共边相邻** 时，才允许成立接战／创建 Pending Battle。
+- **禁止**使用 `WorldPosition` 浮点距离提前触发。
+- 位置以 **已提交 Hex**（Hex Authority）为准，不以 ContinuousWorldPosition 中途派生格替代。
 
-接战创建瞬间，先确定**实际战斗区域**：
+### 1.1 BattleArea
 
-| 场景 | BattleAreaHexes |
-|------|-----------------|
-| 普通单 Hex 野外战斗 | Defender **接战瞬间**所在 Hex |
-| 多 Hex WorldSite 内战斗 | 该 WorldSite **Footprint 占据的全部 Hex**（禁止仅用 AnchorHex 代表整站） |
+普通 Army vs Army：
 
-### 1.2 SupportAreaHexes（唯一空间 Authority）
+```
+BattleAreaHexes = { Defender 当前所在 Hex }
+```
+
+即：被攻击方所在 Hex 就是本次战场实际位置。
+
+多 Hex WorldSite：若战斗明确属于整个 Site，则
+
+```
+BattleAreaHexes = Site 实际占据的全部 Hex
+```
+
+**禁止**仅用 AnchorHex 代替整站 Footprint。
+
+### 1.2 SupportArea
 
 ```
 SupportAreaHexes =
@@ -45,70 +57,56 @@ SupportAreaHexes =
   ∪ { 与 BattleAreaHexes 中任意 Hex 直接共边相邻的全部 Hex }
 ```
 
-| 场景 | 支援范围 |
-|------|----------|
-| 单 Hex 战场 | 战场 Hex + 6 邻格 = 7 Hex |
-| 多 Hex WorldSite | Site 全部 Footprint + 外围与任一 Footprint Hex 直接相邻的 Hex |
-
-**空间资格判断：**
+参战空间资格：
 
 ```
-SupportAreaHexes.Contains(UnitHex)
+UnitHex ∈ SupportAreaHexes
 ```
 
 **明确禁止：**
 
-- Initiator 周围 1 Hex
-- InitiatorEngagementLocation 周围 1 Hex
-- Defender WorldPosition 圆形距离
-- BattleLocation 的 Vector2 / Vector3 distance
-- Site AnchorHex 周围 1 Hex 代替整站
-- 已加入援军继续向外扫描下一圈
-- `Distance(UnitPosition, SomePosition) <= radius`
+- Initiator 周围范围
+- `InitiatorEngagementLocation` 作为资格中心
+- WorldPosition radius／浮点距离
+- 链式援军扫描（已纳入单位再向外扩圈）
 
-接战创建时冻结 `BattleEngagementSupportArea`；`BattleLocationHex` 仅 **Presentation / BattleAnchor**（Defender PresenceHex）。
+邻接判定必须走统一 **Hex topology Authority**（Odd-R → axial → Neighbor／Distance → Odd-R），见 §7。
 
-### 1.3 Initiator + Defender
+### 1.3 Participants
 
-**BattleInitiator** 与 **直接 Defender** **无条件**加入，不检查 `SupportAreaHexes`。
+| 角色 | 规则 |
+|------|------|
+| **Initiator** | 强制加入 |
+| **Defender** | 强制加入 |
+| **交战双方势力合法单位** | 位于 SupportArea → **强制加入** |
+| **Player / Active Character** | 属于交战一方 **且** 位于 SupportArea → **强制加入**；否则不加入 |
+| **第三方／中立** | **不**自动加入（即使站在 SupportArea） |
+| **已被其他 Battle Lock 的单位** | **不能**重复加入 |
+| **援军连锁** | **不**进行 |
 
-### 1.4 其他 FormalArmy
+创建时**单次**扫描并冻结名单；Save／Load 恢复 Locked Participants + 冻结 BattleArea／SupportArea，**禁止** Load 后重新扫描。
 
-创建 Battle 时**单次**扫描。其他 Army 须同时满足：
+### 1.4 Manual
 
-- 属于当前交战双方中的某一方（同 Faction）
-- `SupportAreaHexes.Contains(ArmyHex)`
-- 未被其他 Pending / Active Battle Lock
+- **只有** Player／Active Character **实际进入本次战场**（被 Gathering 纳入／位于 SupportArea）时，才具备 Manual Battle 基础资格。
+- **不能**远程接管远方 FormalArmy。
+- Manual 资格读 `PlayerPartyIncluded`（或等价字段）；**禁止**因 Manual 按钮反向把 Player 写入 Participants。
 
-**不包含：** 盟友、中立第三方（即使站在 SupportArea 内）。
+### 1.5 Auto / Retreat（封板范围内）
 
-### 1.5 PlayerParty / Active Character
+| 选项 | 规则 |
+|------|------|
+| **Auto** | 涉及玩家侧时可用；远方交战默认 Auto |
+| **Retreat** | 仅 PlayerDecisionSubject；撤至接战前合法位置 |
 
-- `SupportAreaHexes.Contains(PlayerHex)` → **强制加入**
-- 否则 → **不加入**
-
-Manual 空间资格：`PlayerPartyIncluded == true`（即 Player 实际被 Gathering 锁定）。
-
-`ApplyLockedParticipantsToSnapshot` 中 `seedMandatoryAttackers` **不得**绕过 Gathering 空间规则。
-
-### 1.6 禁止连锁
-
-只依据冻结的 SupportAreaHexes 扫描一次；已纳入单位**不会**成为新扫描中心。
-
-### 1.7 Save / Load
-
-Pending Battle Restore **禁止**重新扫描 Participants；恢复 Locked 名单 + 冻结的 BattleArea / SupportArea Hex 列表。
-
-### 1.8 InitiatorEngagementLocation（Debug-only）
-
-不参与 Participant Gathering / Manual 空间资格。
+敌军主动攻击我方时的 Retreat、AI vs AI 主动接战完整人工验收 → **Deferred**（§8），不阻塞封板。
 
 ---
 
 ## 1A. Superseded 规则（勿再实现）
 
 <details>
-<summary>2026-08-28 日间的 Initiator-centered 规则（已废弃）</summary>
+<summary>2026-08-28 日间 Initiator-centered（已废弃）</summary>
 
 ```
 Distance(Candidate, BattleInitiator engagement-start location) <= 1
@@ -123,180 +121,125 @@ Distance(Candidate, BattleInitiator engagement-start location) <= 1
 HexDistance(UnitHex, BattleLocationHex) <= 1
 ```
 
-该表述易被实现成错误的单点中心距离逻辑；已由 **SupportAreaHexes 集合模型**（§1.1–1.2）取代。
+已由 **SupportAreaHexes 集合模型**（§1.1–1.2）取代。
 </details>
 
 ---
 
-## 2. Manual / Auto / Retreat
+## 2. 封板验收记录
 
-| 选项 | 资格 |
-|------|------|
-| **Manual** | `PlayerPartyIncluded == true` |
-| **Auto** | 涉及玩家侧时始终可用 |
-| **Retreat** | 仅 `PlayerDecisionSubject`；撤至 `PreEngagementLegalLocation` |
-| **远程 FormalArmy Manual** | 拒绝（`RemoteFormalArmyManualBlocked`） |
-
----
-
-## 3. 实现进度
-
-| 子项 | 状态 |
-|------|------|
-| Domain Runtime / Decision / Retreat | ✅ |
-| Participant Gathering（SupportAreaHexes Authority） | ✅ |
-| Battle Trigger（Committed Hex · 禁止派生格提前接战） | ✅ **2026-08-28 夜** |
-| Player Hex Authority（与 WorldMap Marker 对齐） | ✅ **2026-08-28 夜** |
-| Participant IncludedReason + SpatialGuard 断言 | ✅ **2026-08-28 夜** |
-| 删除 seedMandatoryAttackers Snapshot 旁路 | ✅ **2026-08-28 夜** |
-| Snapshot Restore（不重新扫描 + 冻结 SupportArea） | ✅ |
-| WorldMap Debug 高亮 BattleArea / SupportArea | ✅ |
-| EditMode Tests T1–T10 + 集成回归 | ✅ 入仓 · 待 Unity 跑通 |
-| Debug UI（判定链 + IncludedReason） | ✅ |
-| 人工验收 | ⏸ 未开始 |
+| 项 | 结果 |
+|----|------|
+| 实现 | ✅ 完成并入仓 |
+| EditMode 自动测试 | ✅ 用例已入仓（`BattleAuthorityTests` 等）；以仓库为准记录，本轮不另报 Editor 全绿数字 |
+| 人工验收 Scene | ✅ `Assets/Scenes/LevelTester.unity` |
+| 人工验收结论 | ✅ **通过** |
+| Phase 状态 | **Accepted / Sealed** |
+| Phase 5 | **Not Started**（本轮不启动） |
 
 ---
 
-## 4. 核心 Domain 落点
+## 3. 实现落点（索引）
 
 | 文件 | 职责 |
 |------|------|
-| `BattleEngagementSupportArea.cs` | `ResolveAndFreeze`；BattleArea + 六向邻接 → SupportArea；`Contains` |
-| `BattleEngagementTriggerService.cs` | **A. Battle Trigger**：Initiator 已提交 Hex ∈ SupportArea(Defender) |
-| `BattleEngagementSpatialQuery.cs` | 已提交 Hex Authority；PlayerParty 与 WorldMap Marker 对齐（`WorldToHex(WorldPosition)`） |
-| `BattleEngagementHexDistance.cs` | Defender / Army PresenceHex；Presentation `BattleLocationHex`；Debug Initiator 快照 |
-| `BattleParticipantGatheringService.cs` | **B. Gathering**：逐成员 `SupportAreaHexes.Contains`；Initiator/Defender 强制；**无 seed 旁路** |
-| `BattleParticipantInclusionReason.cs` | IncludedReason 常量 + Player 判定链 Trace |
-| `BattleParticipantSpatialGuard.cs` | Gathering / Snapshot 后硬断言；违规 `Debug.LogError` |
-| `BattleEngagementAuthorityService.cs` | Trigger 门控 → 冻结 SupportArea → Gather → Lock → Snapshot |
-| `PendingEngagementSnapshotRestore.cs` | Restore Locked Participants + SupportArea 列表，不调用 `GatherAndLock` |
-| `BattleEngagementAuthorityDebug.cs` | 接战触发 + 参与者收集 + 判定链 + Snapshot IncludedReason |
-| `BattleEngagementWorldMapDebug.cs` | LevelTester：橙框 BattleArea、蓝框 SupportArea |
+| `BattleEngagementSupportArea.cs` | 冻结 BattleArea + 共边邻接 → SupportArea；`Contains` |
+| `BattleEngagementTriggerService.cs` | Battle Trigger：已提交 Hex 共边／SupportArea 门控；禁派生格 |
+| `BattleEngagementSpatialQuery.cs` | 已提交 Hex Authority；Player 与 WorldMap Marker 对齐 |
+| `BattleParticipantGatheringService.cs` | Gathering：`SupportAreaHexes.Contains`；Initiator/Defender 强制；无 seed 旁路 |
+| `BattleParticipantInclusionReason.cs` | IncludedReason + Player 判定链 Trace |
+| `BattleParticipantSpatialGuard.cs` | Gathering／Snapshot 后硬断言 |
+| `BattleEngagementAuthorityService.cs` | Trigger → 冻结 → Gather → Lock → Snapshot |
+| `PendingEngagementSnapshotRestore.cs` | Restore Locked + SupportArea，不重新 Gather |
+| `Assets/Scripts/Core/World/Hex/HexMath.cs` | Odd-R Hex topology Authority（Neighbor／Distance／CollectHexLine） |
+
+过程根因（PlayerHex Authority 分裂、Snapshot `seedMandatoryAttackers` 旁路等）已在封板前修复；细节保留在 Git 历史与既有测试名中，不再作为开放问题。
 
 ---
 
-## 4A. 根因分析（2026-08-28 夜 · LevelTester 实测）
+## 4. EditMode 测试索引（入仓）
 
-### 结论摘要
+覆盖 Trigger 共边、SupportArea 集合、Player 两格外不加入、第三方不加入、无连锁、Save／Load 不重扫、多 Hex Site Footprint、派生格不得提前 Offer 等。详见 `Assets/Tests/EditMode` 下 `BattleAuthority*`／相关回归。
 
-| 问题 | 根因 | 是否共享 SupportArea 算错 |
-|------|------|---------------------------|
-| **提前触发 Battle** | Initiator 使用 ContinuousWorldPosition **派生 CurrentHex** 而非已提交 Step | 否（Trigger 阶段） |
-| **Player 误加入** | **PlayerHex Authority 分裂** + **Snapshot 旁路** | **否** — BattleArea/SupportArea 在 Debug 中已正确 |
+---
 
-实测案例中 `BattleAreaHexes = (55,60)`（紫色 Defender）、SupportArea 7 格均**正确**；Player 被加入是因为 Domain 认为 `PlayerHex = (54,61)` ∈ SupportArea，而 WorldMap 黄色 Marker 实际在距 Defender **2 格**处。
+## 5. LevelTester 人工验收要点（封板已通过）
 
-### PlayerHex Authority 分裂
+1. A 攻 B：仅共边相邻可触发；BattleArea = Defender Hex。
+2. SupportArea = BattleArea + 共边邻格；邻格友军加入；两格外 Player 不加入、无 Manual。
+3. 第三方邻格不纳入。
+4. WorldMap 高亮 BattleArea／SupportArea 与规则一致。
+5. 弹窗态 Save→Load：Locked 名单与 SupportArea 不变。
 
-| 用途 | 旧数据源 | 问题 |
-|------|----------|------|
-| WorldMap Marker | `PlayerPartyWorldLocationQuery` → `PlayerPartyTravel.WorldPosition` | 视觉真源 |
-| Participant Gathering（旧） | 非 `TravelingMembers` 时回退 **`WorldPresence.ResidualHex`** | 可与 Marker 不一致 |
+---
 
-修复：`BattleEngagementSpatialQuery.TryGetCommittedPartyHex` 优先 `PlayerPartyTravel`；idle 时用 `WorldToHex(WorldPosition)` 与 Marker 对齐。
+## 6. 本轮附带验收通过的体验调整（非独立 Phase）
 
-### 第二条写入旁路（已删除）
+| 调整 | 说明 |
+|------|------|
+| WorldMap Army／Character 管理列表 | 尺寸收紧并支持滚动 |
+| WorldMap Zoom | 最大 Zoom In 范围扩大（Zoom Out 保持封板前口径） |
+| Cheat Tools | 与 F10 HUD Hide 解耦；外层 UI 可直接进入 |
 
-`ApplyLockedParticipantsToSnapshot` → `AddFormalArmiesAsMandatory` 内 **`seedMandatoryAttackers` 循环**：
+不扩写成新 Phase。
 
-- 条件：`PlayerPartyIncluded && ContainsLockedPartyMember(id)`
-- 可把追击 `ready` 列表中的 Party 成员写入 Snapshot，**不再校验 SupportArea**
-- **2026-08-28 夜已整段删除**；Player 仅经 `AddPlayerPartyMandatory`（Gathering 锁定后 + 二次空间校验）
+---
 
-### ManualEligible 方向
+## 7. Hex topology Authority 修复（非 Phase 4 特补丁）
+
+### 正式 Layout
+
+- **Odd-R offset** + **pointy-top**
+- 存储：`HexCoord` = Odd-R（Q=列，R=行）
+
+### 旧错误
+
+`HexCoord` 实际存 Odd-R，但 Neighbor／Distance 曾**直接按 axial** 计算 → 奇数行固定错误邻格 → SupportArea 向某一斜向多出一格，并连带造成 Player 误拉入、非共边位置可能提前触发 Battle。
+
+### 正式修复
 
 ```
-Player ∈ SupportArea → PlayerPartyIncluded → ManualEligible
+Odd-R → axial → Neighbor / Distance / CollectHexLine → Odd-R
 ```
 
-**不存在**反向：`ManualEligible` 不会把 Player 塞进 Participants（`BattleDecisionPolicy` 只读 `PlayerPartyIncluded`）。
+Authority：`Assets/Scripts/Core/World/Hex/HexMath.cs`  
+回归：`HexAdjacencyAuthorityTests`、`HexCollectHexLineAuthorityTests`
 
-### Faction 扩展
+### 归类
 
-同 Faction **不**自动全员参战。Army / Player 各自满足 `SupportAreaHexes.Contains(OwnHex)`；仅 Initiator / Defender 无条件加入。
+属 **Hex topology Authority** 修复，**不是** Phase 4 业务特补丁。该修复同时校正：
 
----
+- Battle SupportArea 邻接错误
+- Player 被错误拉入战场
+- 非真正共边位置可能提前触发 Battle
 
-## 4B. Participant IncludedReason
+### CollectHexLine
 
-每条 Snapshot 记录与 Engagement 均带 IncludedReason（Debug / 断言）：
-
-| IncludedReason | 含义 |
-|----------------|------|
-| `DirectInitiator` | Initiator FormalArmy 强制 |
-| `DirectDefender` | Defender FormalArmy / EnemyPrimary 强制 |
-| `SupportAreaArmy` | 同交战方 Army，`ArmyHex ∈ SupportArea` |
-| `SupportAreaPlayer` | PlayerParty 成员，`MemberHex ∈ SupportArea` |
-| `PromoteInRangeIncapacitated` | 仅 downed 角色 · `PromoteInRangeIncapacitatedToMandatory` |
-| `ExcludedNotInSupportArea` | Debug 候选未纳入 |
-
-Player 判定链（Cheat Panel → 战斗）：
-
-```
-Player Included Before Gathering
-Player Included After Gathering
-Player Included After Snapshot
-Player In Snapshot Records
-Player IncludedReason(final)
-Player Last Write Source
-SupportArea.Contains(PlayerHex)
-=== Snapshot Participants === (每条 IncludedReason)
-```
-
-违规时 `BattleParticipantSpatialGuard` 输出 `Debug.LogError`（Editor / Development Build）。
+**已在代码中按同一 Odd-R→axial 路径修复**（`HexMath.CollectHexLine` + `HexCollectHexLineAuthorityTests`）。**不**记为未收掉技术债。
 
 ---
 
-## 5. EditMode 测试（BattleAuthorityTests）
+## 8. Deferred / Future Regression（不阻塞 Phase 4）
 
-| 测试 | 验证点 |
-|------|--------|
-| **T1** | Initiator + Defender 永远加入 |
-| **T2** | 同 Faction Army 在 SupportArea → 加入 |
-| **T3** | Army 不在 SupportArea → 不加入 |
-| **T4** | 邻接 Hex 资格不受 WorldPosition 偏移影响 |
-| **T5** | PlayerParty 在 SupportArea → 强制加入 + ManualEligible |
-| **T6** | PlayerParty 近 Initiator 但不在 SupportArea → **不加入** |
-| **T7** | 第三方 Faction 在 SupportArea → 不加入 |
-| **T8** | 无连锁：B 在 SupportArea，C 仅近 B → 只有 B |
-| **T9** | Save/Load 恢复 Participants，Load 后不重新扫描 |
-| **T10** | 多 Hex Site：BattleArea = 全 Footprint，非 Anchor 邻格援军加入 |
-| **LevelTester 回归** | A 攻 B：DefenderHex=BattleArea；两邻格友军加入；Active 不在 SupportArea → 不 Manual |
-| **SeedMandatoryAttackers** | 距 SupportArea 外的 roster 不得写入 Participant Snapshot |
-| **Trigger_CommittedHexTwoAway** | 距 Defender 2 格不得 `TryBeginEngagement` |
-| **Trigger_CommittedHexAdjacent** | 邻接格可触发 |
-| **Trigger_DerivedHexAdjacentButCommittedTwoAway** | 派生格邻接、committed 2 格 away → 不弹 Offer |
-| **Gathering_PlayerTwoHexFromDefenderNearReinforcement** | Player 近援军、距 Defender 2 格 → 不加入 |
-| **Gathering_BelligerentReinforcementInSupportArea** | 援军在 SupportArea 加入；第三方不加入 |
-| **Gathering_PlayerAdjacentToInitiatorButTwoFromDefender** | stale WorldPresence + PartyTravel 2 格 away → 不加入 |
-| **OfferPath_PlayerTwoHexFromDefender** | 完整 `TryBuildOfferForArmyVsArmy` 路径 · 无 Player · ManualIneligible |
-| 补充 | EnemyInitiated Retreat；Remote Manual 拒绝 |
+因当前**缺少敌方主动攻击／AI 主动交战能力**，下列项无法完整人工制造场景：
+
+| 项 | 标记 | 原因 |
+|----|------|------|
+| 敌军主动攻击我方时的 Retreat 人工验收 | **Deferred / Future Regression** | 无敌方主动攻击能力 |
+| AI vs AI 主动发起接战／自动战人工验收 | **Deferred / Future Regression** | 无 AI 主动交战能力 |
+
+- **不是** Phase 4 验收失败  
+- **不要**为补验现在实现战略 AI  
+- 未来实现相关 AI 后 **必须回归**这两项  
 
 ---
 
-## 6. LevelTester 人工验收清单（短）
-
-1. Cheat Panel → **战斗**：判定链 + `IncludedReason` + `SupportArea.Contains(PlayerHex)`。
-2. 勾选 **WorldMap 高亮 BattleArea(橙) / SupportArea(蓝)**：橙框必须在紫色 Defender Hex。
-3. A 攻 B：`BattleAreaHexes = [(DefenderQ,DefenderR)]`；邻格友军 `inSupport=true` 并 Locked。
-4. 黄色 Active 与 BattleArea **无直接共边相邻** → `PlayerInSupportArea=false`，`PlayerPartyIncluded=false`，无 Manual。
-5. 第三方邻格 → 不纳入。
-6. 若 Player 误加入 → Console 应出现 `[BattleParticipantSpatialGuard]` LogError。
-7. 弹窗态 Save→Load → Locked 名单与 SupportArea 不变。
-
----
-
-## 7. 变更日志
+## 9. 变更日志
 
 | 日期 | 内容 |
 |------|------|
 | 2026-08-28 | Phase 4 初版入仓 |
-| 2026-08-28 日 | Initiator-centered 扫描（**已 superseded**） |
-| 2026-08-28 晚 | BattleLocationHex 中心距离 ≤1（**已 superseded**） |
-| 2026-08-28 晚 | `FormalArmyContinuousTravelService.AdvanceAll` 遍历时修改集合修复 |
-| 2026-08-28 晚（二次） | Defender PresenceHex；LevelTester 回归测试 |
-| 2026-08-28 晚（三次） | **SupportAreaHexes 集合 Authority**；修复 seedMandatoryAttackers 绕过 Gathering；T10 + Debug 扩展 |
-| 2026-08-28 夜（四次） | **Battle Trigger**：`BattleEngagementTriggerService` + Committed Hex；禁止派生格提前接战 |
-| 2026-08-28 夜（五次） | **PlayerHex Authority** 与 WorldMap Marker 对齐；删除 Snapshot `seedMandatoryAttackers` 旁路 |
-| 2026-08-28 夜（六次） | **IncludedReason** + `BattleParticipantSpatialGuard` 硬断言 + 判定链 Debug + WorldMap 高亮 |
-| 2026-08-28 夜（六次） | 逐成员 Gathering / Snapshot 二次空间校验；集成测试 `OfferPath_PlayerTwoHexFromDefender` |
+| 2026-08-28 | 多轮规则迭代（Initiator-centered／中心距离 ≤1 → SupportArea 集合；均已 superseded） |
+| 2026-08-28 夜 | Trigger Committed Hex；PlayerHex Authority；删除 Snapshot seed 旁路；IncludedReason／SpatialGuard |
+| 2026-08-28 | Hex topology Authority：Odd-R↔axial（Neighbor／Distance／CollectHexLine） |
+| 2026-08-28 | **Phase 4 Accepted / Sealed**；Deferred Retreat／AI vs AI；附带 UX 调整记入 §6 |

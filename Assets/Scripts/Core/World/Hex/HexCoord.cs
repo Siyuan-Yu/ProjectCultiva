@@ -2,7 +2,10 @@ using System;
 
 namespace XianXia.Core.World.Hex
 {
-    /// <summary>Axial hex coordinate (q, r). 战略空间身份；禁止用 float 世界坐标作 Domain 身份。</summary>
+    /// <summary>
+    /// Hex 战略空间身份（Odd-R offset：Q=列, R=行；pointy-top 布局）。
+    /// 禁止用 float 世界坐标作 Domain 身份；邻居/距离必须走 <see cref="HexMath"/>。
+    /// </summary>
     public readonly struct HexCoord : IEquatable<HexCoord>
     {
         public int Q { get; }
@@ -14,6 +17,10 @@ namespace XianXia.Core.World.Hex
             R = r;
         }
 
+        /// <summary>
+        /// Cube S 仅在 axial 空间有意义。存储为 Odd-R 时请先
+        /// <see cref="HexMath.OffsetOddRToAxial"/>，不要直接用本属性算距离。
+        /// </summary>
         public int S => -Q - R;
 
         public bool Equals(HexCoord other) => Q == other.Q && R == other.R;

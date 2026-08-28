@@ -34,13 +34,19 @@ namespace XianXia.Tests.EditMode
         }
 
         [Test]
-        public void WYSIWYG_04_NeighborDistance_IsOneForAxialDirections()
+        public void WYSIWYG_04_NeighborDistance_IsOneForBothRowParities()
         {
-            var origin = new HexCoord(40, 20);
-            for (var d = 0; d < HexMath.AxialDirections.Length; d++)
+            AssertNeighborDistances(new HexCoord(40, 20)); // even R
+            AssertNeighborDistances(new HexCoord(40, 21)); // odd R
+        }
+
+        static void AssertNeighborDistances(HexCoord origin)
+        {
+            for (var d = 0; d < HexMath.DirectionCount; d++)
             {
                 var neighbor = HexMath.Neighbor(origin, d);
-                Assert.AreEqual(1, HexMath.Distance(origin, neighbor), "dir " + d);
+                Assert.AreEqual(1, HexMath.Distance(origin, neighbor), origin + " dir " + d);
+                Assert.IsTrue(HexMath.AreWorldEdgeAdjacent(origin, neighbor, HexSize), origin + " world dir " + d);
             }
         }
 

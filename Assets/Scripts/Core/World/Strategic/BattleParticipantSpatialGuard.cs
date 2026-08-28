@@ -1,5 +1,5 @@
+using System.Diagnostics;
 using System.Text;
-using UnityEngine;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Hex;
@@ -182,7 +182,7 @@ namespace XianXia.Core.World.Strategic
             sb.AppendLine("DetailC=" + detailC);
             sb.AppendLine("PlayerIncludedAfterGathering=" + engagement.PlayerPartyIncluded);
             sb.AppendLine("PlayerIncludedReason=" + engagement.PlayerInclusionReason);
-            Debug.LogError(sb.ToString());
+            Debug.WriteLine(sb.ToString());
         }
 
         static string FormatHex(HexCoord hex) => "(" + hex.Q + "," + hex.R + ")";

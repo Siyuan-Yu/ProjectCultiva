@@ -92,15 +92,29 @@
 - **Affected：** Army UI、WorldMap 命令入口、文档对齐 Runtime  
 - **Must Not Break：** Army vs Army／Site Capture／War  
 - **Acceptance：** 无 Army 的 Party 可世界移动；隔空组军仍失败  
-- **2026-08-27 进度（入仓 · 未封板）：** FormalArmy Continuous WorldPosition + RPG-First Authority + Save/Load + F11 Debug；实现索引 [166](166-phase-3-formal-army-continuous-world-2026-08-27.md)。仍待人工验收 TEST 1–10。  
+- **2026-08-28 封板：Accepted / Sealed**  
+  - 实现索引：[166](166-phase-3-formal-army-continuous-world-2026-08-27.md) + [167](167-phase-3-closure-playerparty-and-casualty-fixtures-2026-08-27.md)  
+  - 核心目标已完成：FormalArmy 军事层收敛；PlayerParty 独立旅行 Authority；Continuous WorldPosition／Travel／Presence／Save-Load／Authority 边界  
+  - 验证：LevelTester 持续使用 + Phase 4 开发／人工验收实际依赖；**2026-08-28 用户正式确认封板**  
+  - 原计划 F11 TEST 1–10／167 验收 1–12 逐条签字表未单独归档 → 不再阻塞  
+  - **Backlog / Deferred：** FormalArmy WorldMap Marker 连续表现、Autonomous AI Order、更复杂 Army AI／主动战争／Army Capacity 等  
+  - **Phase 4：** 已封板；**Phase 5：** Not Started
 
 ### Phase 4 — Manual Battle Permission
 
-- **Goal：** 远方 Army 默认 Auto；≤1 Hex 介入且不接管 Army  
+- **Goal：** 远方 Army 默认 Auto；邻格介入且不接管 Army  
 - **Affected：** BattleOffer、Encounter 入口、Host 打断  
 - **Must Not Break：** ADR-0023 WorldTick 冻结、战损回写  
 - **Acceptance：** 远距离无法切入手动；邻格可介入仅控 Active  
-- **2026-08-28 进度（入仓 · 未封板）：** Battle Authority Domain + Initiator 扫描中心修正；实现索引 [171](171-phase-4-battle-authority-2026-08-28.md)。EditMode T1–T9 待跑通；**人工验收暂停**。
+- **2026-08-28 封板：Accepted / Sealed**  
+  - 正式真源：[171](171-phase-4-battle-authority-2026-08-28.md) §1  
+  - Battle Trigger＝共边相邻（禁 WorldPosition 距离）；BattleArea＝Defender Hex（多 Hex Site＝全 Footprint）；SupportArea＝BattleArea∪共边邻格  
+  - Participants 按 SupportArea + 交战方；Manual 仅 Player 实际入场  
+  - Hex topology Authority（Odd-R↔axial；含 CollectHexLine）已修（Hex 真源修复，非 Phase 4 特补丁）  
+  - LevelTester 人工验收通过；EditMode 用例已入仓  
+  - **Deferred / Future Regression：** 敌军主动攻击 Retreat 人工验收；AI vs AI 主动接战人工验收（缺战略 AI）  
+  - **Deferred（原范围）：** Legacy 战斗入口删除、PlayerParty 作 Initiator  
+  - **Phase 5：** Not Started（本轮不启动）
 
 ### Phase 5 — Continuous LocalMap ↔ Hex
 

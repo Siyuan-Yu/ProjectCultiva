@@ -1,8 +1,9 @@
 # Phase 3 收口：Authority 重验、PlayerParty 跨图、试炼敌军与伤亡夹具（2026-08-27）
 
-> 状态：**实现入仓 · 部分人工验收待签收**｜最后更新：2026-08-27  
+> **状态：Accepted / Sealed（正式封板）**｜封板日期：2026-08-28（用户正式确认）  
 > 前置：[166 Phase 3 FormalArmy Continuous World](./166-phase-3-formal-army-continuous-world-2026-08-27.md)  
-> **人工验收 Scene（唯一）：** `Assets/Scenes/LevelTester.unity`
+> **人工验收 Scene（唯一）：** `Assets/Scenes/LevelTester.unity`  
+> **说明：** 原计划本节验收 1–12 逐条签字表未单独归档；不再作为阻塞项。封板依据为用户确认 + LevelTester 持续使用及 Phase 4 实际验证。
 
 ---
 
@@ -14,7 +15,7 @@
 |------|------|------|
 | **A2** | FormalArmy Authority 第二轮：禁止静默抢 PlayerParty | ✅ 入仓 |
 | **G16–G18** | Moving Army 成员 Presence 同步 + Debug 伤亡工具 | ✅ 入仓 |
-| **H19** | Save/Load 中段 FormalArmy 恢复（沿用 Snapshot） | ✅ 已有 · 待手操 |
+| **H19** | Save/Load 中段 FormalArmy 恢复（沿用 Snapshot） | ✅ 已有 |
 | **Legacy** | 旧 RTS 战斗入口标记未删 | ✅ 标记 |
 | **PP-Follower** | PlayerParty Follower 跨 LocalMap 同步 | ✅ 入仓 |
 | **Player Camp** | 主角临时营地独立 LocalMap | ✅ 入仓 |
@@ -179,42 +180,34 @@ LevelTester 使用 `base:hex_world_travel_mvp_30x15`（荒村 anchor 约 `(3,7)`
 
 ---
 
-## 9. 人工验收清单（待签收）
+## 9. 封板验收记录
 
-### A2 Authority
+### 验证方式
 
-1. Active 在组军候选 → **不可选/失败**
-2. Follower **未** Leave Party → CreateArmy/AddMember **失败**
-3. Follower Stop Follow → Background → 同 Site 组军 **成功**
-4. 组军过程 **不** 静默改 PlayerParty 成员列表
+- A2 Authority、PP-Follower、主角营地、试炼三军／伤亡夹具等已在 LevelTester **持续使用** 及 **Phase 4 开发／人工验收** 中实际验证
+- **2026-08-28 用户正式确认** Phase 3 整体封板
+- 原计划 **166 F11 TEST 1–10** + **本节验收 1–12** 逐条签字表未单独归档 → **不再作为阻塞项**
+- **不**将「用户确认封板」表述为 Cursor 独立完成 Unity 人工验收
 
-### PP-Follower
+### 历史清单（参考 · 非阻塞）
 
-5. 2+ 人 Party（1 Active + Follower）Wilderness 跨 Hex / 进 Site → Follower 同图可见
+<details>
+<summary>原 A2 / PP-Follower / 营地 / 试炼 / G16–G18 / H19 验收项（参考）</summary>
 
-### 主角营地
+**A2 Authority：** Active 不可组军；Follower 须 Leave Party；不静默改 Party  
+**PP-Follower：** 2+ 人 Party 跨 Hex／进 Site 同步  
+**主角营地：** 独立 `base:map_player_camp`  
+**试炼敌军：** 三支可见；强匪夹具 1 人伤亡；弱匪必胜  
+**G16–G18 / H19：** F11 Presence／伤亡 Debug；F5/F9 中途存读
 
-6. TEST 主角营地点「进入近景」→ 加载 `base:map_player_camp`，**非**荒村 map
-
-### 试炼敌军
-
-7. 大地图可见 **三支** 紫色敌军（重进 Play 刷新）
-8. 打「试炼强匪（自动伤亡）」→ 自动战胜利 + **我方恰好 1 人** 弥留或阵亡
-9. 打「试炼弱匪」→ 自动必胜、无夹具伤亡
-
-### G16–G18 / H19
-
-10. F11：Moving Army Advance → 成员 Presence 跟 Army
-11. F11：Incap Leader/Member、Sync Casualties 可用
-12. F5/F9 中途存读 FormalArmy 旅行状态
+</details>
 
 ---
 
-## 10. Git / 下一里程碑
+## 10. 封板状态
 
-- **本提交：** Phase 3 收口 + 文档 + Content（**未整体封板**）
-- **封板条件：** 166 F11 TEST 1–10 + 本节验收 1–12
-- **下一 Phase：** Phase 4 Manual Battle Permission
+- **Phase 3 = Accepted / Sealed（2026-08-28）**
+- **下一 Phase：** Phase 4 已封板；Phase 5 **Not Started**
 
 ---
 

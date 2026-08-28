@@ -7,6 +7,41 @@
 
 ---
 
+## 2026-08-28 — Phase 3 + Phase 4 文档封板收口
+
+**做了什么**
+- **Phase 3 = Accepted / Sealed**（用户正式确认；**非** Cursor 独立 Unity 人工验收）
+  - 核心目标：FormalArmy 军事层；PlayerParty 独立旅行；Continuous WorldPosition／Travel／Presence／Save-Load／Authority 边界
+  - 验证：LevelTester 持续使用 + Phase 4 开发／人工验收实际依赖
+  - 原计划 166 F11 TEST 1–10／167 验收 1–12 逐条签字表未单独归档 → 不再阻塞
+  - 真源：[166](166-phase-3-formal-army-continuous-world-2026-08-27.md)／[167](167-phase-3-closure-playerparty-and-casualty-fixtures-2026-08-27.md)
+- **Phase 4 = Accepted / Sealed**（LevelTester 人工验收通过）— 见同日较早条目
+- 同步 [41-roadmap](41-roadmap.md)、[163](163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md)
+
+**状态**
+- Phase 0–4 **Accepted / Sealed** · Phase 5 **Not Started**
+
+---
+
+## 2026-08-28 — Phase 4 Accepted / Sealed（仅文档／Roadmap 收口）
+
+**做了什么**
+- 正式标记 **Phase 4 = Accepted / Sealed**；**未**扩功能、**未**启动 Phase 5
+- 最终 Battle Authority 写入 [171](171-phase-4-battle-authority-2026-08-28.md) §1 为正式真源：
+  - Trigger＝Initiator/Defender **共边相邻**（禁 WorldPosition 距离）
+  - BattleArea＝Defender 当前 Hex（多 Hex Site＝全 Footprint）
+  - SupportArea＝BattleArea ∪ 共边邻格；Participants／Manual 按 SupportArea + 交战方
+- 记录 Hex topology Authority 修复（Odd-R↔axial；含 **CollectHexLine 已修**）；归类为 Hex 真源修复，非 Phase 4 特补丁
+- **Deferred / Future Regression：** 敌军主动攻击 Retreat 人工验收；AI vs AI 主动接战人工验收（缺战略 AI，不阻塞封板）— 见 171 §8
+- 附带体验：WorldMap 列表滚动收紧、Zoom In 扩大、Cheat Tools 与 F10 解耦（171 §6）
+- 同步 [41-roadmap](41-roadmap.md)、[163](163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md)
+- 唯一人工验收 Scene：`Assets/Scenes/LevelTester.unity`
+
+**状态**
+- Phase 4 **封板完成** · Phase 5 **Not Started**
+
+---
+
 ## 2026-08-28 — Phase 4 Participant 来源追踪：PlayerHex Authority + 删除 Snapshot 旁路
 
 **做了什么**

@@ -1,8 +1,9 @@
 namespace ContentAuthoring.Shared.HexWorld;
 
 /// <summary>
-/// Odd-R offset, pointy-top — MUST stay identical to Runtime <c>XianXia.Core.World.Hex.HexWorldLayout</c>.
-/// JSON / Domain: HexCoord.Q = column, HexCoord.R = row.
+/// Odd-R offset, pointy-top — MUST stay identical to Runtime <c>XianXia.Core.World.Hex.HexWorldLayout</c>
+/// and neighbor/distance Authority in <c>HexMath</c>.
+/// JSON / Domain: HexCoord.Q = column, HexCoord.R = row（Odd-R offset，不是 axial）。
 /// </summary>
 public static class HexWorldLayoutShared
 {
@@ -11,9 +12,15 @@ public static class HexWorldLayoutShared
     public const int PlayableOriginQ = 8;
     public const int PlayableOriginR = 10;
     public const float DefaultHexSize = 1f;
-    /// <summary>Editor/Runtime rendering chunk edge — matches Runtime HexWorldScale.RenderChunkSize.</summary>
     public const int RenderChunkSize = 16;
     public const string CoordinateSystem = "OddROffsetPointyTop";
+    public const int DirectionCount = 6;
+
+    /// <summary>Axial 方向；仅作用于 axial 坐标。存储 Odd-R 请用 <see cref="Neighbor"/>。</summary>
+    static readonly (int Q, int R)[] AxialDirections =
+    {
+        (1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1),
+    };
 
     public static float HorizontalPitch(float hexSize) =>
         (float)(Math.Sqrt(3) * hexSize);
@@ -75,28 +82,90 @@ public static class HexWorldLayoutShared
         return roundTripped.Q == coord.Q && roundTripped.R == coord.R;
     }
 
-    /// <summary>Cube / axial distance — matches Runtime <see cref="HexMath.Distance"/> on stored Q,R.</summary>
     public static int Distance(HexCoordDto a, HexCoordDto b)
     {
-        var dq = Math.Abs(a.Q - b.Q);
-        var dr = Math.Abs(a.R - b.R);
-        var aS = -a.Q - a.R;
-        var bS = -b.Q - b.R;
-        var ds = Math.Abs(aS - bS);
-        return (dq + dr + ds) / 2;
+        OffsetOddRToAxial(a, out var aq, out var ar);
+        OffsetOddRToAxial(b, out var bq, out var br);
+        var asCube = -aq - ar;
+        var bsCube = -bq - br;
+        return (Math.Abs(aq - bq) + Math.Abs(ar - br) + Math.Abs(asCube - bsCube)) / 2;
+    }
+
+    /// <summary>
+    /// Odd-R 直线：先转 axial/cube，再 lerp + round，再转回 Odd-R。
+    /// 禁止对存储的 (Q,R) 直接做 cube lerp。
+    /// </summary>
+    public static void CollectHexLine(HexCoordDto from, HexCoordDto to, List<HexCoordDto> pathOut)
+    {
+        if (pathOut == null)
+            throw new ArgumentNullException(nameof(pathOut));
+
+        pathOut.Clear();
+        var steps = Distance(from, to);
+        if (steps <= 0)
+        {
+            pathOut.Add(from);
+            return;
+        }
+
+        OffsetOddRToAxial(from, out var aq, out var ar);
+        OffsetOddRToAxial(to, out var bq, out var br);
+        var asCube = -aq - ar;
+        var bsCube = -bq - br;
+
+        for (var i = 0; i <= steps; i++)
+        {
+            var t = i / (float)steps;
+            var q = aq + (bq - aq) * t;
+            var r = ar + (br - ar) * t;
+            var s = asCube + (bsCube - asCube) * t;
+            CubeRound(q, r, s, out var rq, out var rr);
+            pathOut.Add(AxialToOffsetOddR(rq, rr));
+        }
     }
 
     public static HexCoordDto Neighbor(HexCoordDto coord, int directionIndex)
     {
-        ReadOnlySpan<(int Q, int R)> dirs = stackalloc (int, int)[]
-        {
-            (1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1)
-        };
-        var d = dirs[directionIndex];
-        return new HexCoordDto(coord.Q + d.Q, coord.R + d.R);
+        if (directionIndex < 0 || directionIndex >= DirectionCount)
+            throw new ArgumentOutOfRangeException(nameof(directionIndex));
+
+        OffsetOddRToAxial(coord, out var aq, out var ar);
+        var d = AxialDirections[directionIndex];
+        return AxialToOffsetOddR(aq + d.Q, ar + d.R);
     }
 
     public static bool AreNeighbors(HexCoordDto a, HexCoordDto b) => Distance(a, b) == 1;
+
+    public static void OffsetOddRToAxial(HexCoordDto offset, out int axialQ, out int axialR)
+    {
+        axialQ = offset.Q - (offset.R - (offset.R & 1)) / 2;
+        axialR = offset.R;
+    }
+
+    public static HexCoordDto AxialToOffsetOddR(int axialQ, int axialR)
+    {
+        var col = axialQ + (axialR - (axialR & 1)) / 2;
+        return new HexCoordDto(col, axialR);
+    }
+
+    static void CubeRound(float q, float r, float s, out int roundQ, out int roundR)
+    {
+        var rq = Math.Round(q);
+        var rr = Math.Round(r);
+        var rs = Math.Round(s);
+
+        var dq = Math.Abs(rq - q);
+        var dr = Math.Abs(rr - r);
+        var ds = Math.Abs(rs - s);
+
+        if (dq > dr && dq > ds)
+            rq = -rr - rs;
+        else if (dr > ds)
+            rr = -rq - rs;
+
+        roundQ = (int)rq;
+        roundR = (int)rr;
+    }
 
     static void SampleCellBounds(
         HexCoordDto coord,

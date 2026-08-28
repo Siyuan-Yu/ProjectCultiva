@@ -54,6 +54,14 @@ namespace XianXia.Core.World.Strategic
                 }
             }
 
+            area.PresentationAnchorHex = presentationAnchorHex;
+
+            if (area._battleAreaHexes.Count > 0)
+            {
+                area.BuildSupportFromBattleArea();
+                return area;
+            }
+
             if (supportAreaHexes != null && supportAreaHexes.Count > 0)
             {
                 for (var i = 0; i < supportAreaHexes.Count; i++)
@@ -63,12 +71,7 @@ namespace XianXia.Core.World.Strategic
                         area._supportAreaHexes.Add(hex);
                 }
             }
-            else
-            {
-                area.BuildSupportFromBattleArea();
-            }
 
-            area.PresentationAnchorHex = presentationAnchorHex;
             return area;
         }
 
@@ -90,11 +93,7 @@ namespace XianXia.Core.World.Strategic
                 world, defender, out var defenderPresenceHex);
             PresentationAnchorHex = defenderPresenceHex;
 
-            if (defender.WorldMotion != null &&
-                defender.WorldMotion.LocationKind == FormalArmyLocationKind.AtWorldSite &&
-                !string.IsNullOrEmpty(defender.WorldMotion.SiteId) &&
-                world.Strategic.Sites.TryGet(defender.WorldMotion.SiteId, out var site) &&
-                site != null)
+            if (ShouldUseSiteFootprintAsBattleArea(world, defender, defenderPresenceHex, out var site))
             {
                 foreach (var hex in site.EnumerateFootprintHexes())
                 {
@@ -110,18 +109,39 @@ namespace XianXia.Core.World.Strategic
             BuildSupportFromBattleArea();
         }
 
+        static bool ShouldUseSiteFootprintAsBattleArea(
+            SimulationWorld world,
+            FormalArmy defender,
+            HexCoord defenderPresenceHex,
+            out WorldSite site)
+        {
+            site = null;
+            if (defender?.WorldMotion == null ||
+                defender.WorldMotion.LocationKind != FormalArmyLocationKind.AtWorldSite ||
+                string.IsNullOrEmpty(defender.WorldMotion.SiteId) ||
+                defenderPresenceHex.Equals(default) ||
+                world?.Strategic?.Sites == null ||
+                !world.Strategic.Sites.TryGet(defender.WorldMotion.SiteId, out site) ||
+                site == null)
+                return false;
+
+            return site.OccupiesHex(defenderPresenceHex);
+        }
+
         void BuildSupportFromBattleArea()
         {
             _supportAreaHexes.Clear();
             _supportSet.Clear();
 
-            for (var i = 0; i < _battleAreaHexes.Count; i++)
-                _supportSet.Add(_battleAreaHexes[i]);
+            var battleArea = new List<HexCoord>(_battleAreaHexes);
+            for (var i = 0; i < battleArea.Count; i++)
+                _supportSet.Add(battleArea[i]);
 
-            for (var i = 0; i < _battleAreaHexes.Count; i++)
+            for (var i = 0; i < battleArea.Count; i++)
             {
+                var battleHex = battleArea[i];
                 for (var d = 0; d < 6; d++)
-                    _supportSet.Add(HexMath.Neighbor(_battleAreaHexes[i], d));
+                    _supportSet.Add(HexMath.Neighbor(battleHex, d));
             }
 
             foreach (var hex in _supportSet)
@@ -146,5 +166,83 @@ namespace XianXia.Core.World.Strategic
 
             sb.AppendLine();
         }
+
+        public void AppendConstructionTrace(
+            StringBuilder sb,
+            HexCoord defenderHex,
+            HexCoord initiatorHex,
+            bool hasInitiatorHex,
+            HexCoord playerHex,
+            bool hasPlayerHex)
+        {
+            sb.AppendLine("=== SupportArea 构造 ===");
+            sb.AppendLine("DefenderHex=" + FormatHex(defenderHex));
+            if (hasInitiatorHex)
+                sb.AppendLine("InitiatorHex=" + FormatHex(initiatorHex));
+            else
+                sb.AppendLine("InitiatorHex=(none)");
+
+            AppendHexList(sb, "BattleAreaHexes", _battleAreaHexes);
+            sb.AppendLine("SupportArea (逐项):");
+            for (var i = 0; i < _supportAreaHexes.Count; i++)
+            {
+                var supportHex = _supportAreaHexes[i];
+                TryResolveSupportEntrySource(supportHex, out var sourceBattleHex, out var reason);
+                sb.Append("SupportHex ")
+                    .Append(FormatHex(supportHex))
+                    .Append(" SourceBattleHex=")
+                    .Append(FormatHex(sourceBattleHex))
+                    .Append(" Reason=")
+                    .AppendLine(reason);
+            }
+
+            if (!hasPlayerHex)
+                return;
+
+            sb.AppendLine("PlayerHex=" + FormatHex(playerHex));
+            var inSupport = Contains(playerHex);
+            sb.AppendLine("SupportArea.Contains(PlayerHex)=" + inSupport);
+            if (!inSupport)
+                return;
+
+            TryResolveSupportEntrySource(playerHex, out var playerSource, out var playerReason);
+            sb.AppendLine("PlayerSupportSourceBattleHex=" + FormatHex(playerSource));
+            sb.AppendLine("PlayerSupportReason=" + playerReason);
+        }
+
+        void TryResolveSupportEntrySource(
+            HexCoord supportHex,
+            out HexCoord sourceBattleHex,
+            out string reason)
+        {
+            sourceBattleHex = default;
+            reason = "Unknown";
+            for (var i = 0; i < _battleAreaHexes.Count; i++)
+            {
+                var battleHex = _battleAreaHexes[i];
+                if (battleHex.Equals(supportHex))
+                {
+                    sourceBattleHex = battleHex;
+                    reason = "BattleArea";
+                    return;
+                }
+            }
+
+            for (var i = 0; i < _battleAreaHexes.Count; i++)
+            {
+                var battleHex = _battleAreaHexes[i];
+                for (var d = 0; d < 6; d++)
+                {
+                    if (!HexMath.Neighbor(battleHex, d).Equals(supportHex))
+                        continue;
+
+                    sourceBattleHex = battleHex;
+                    reason = "DirectNeighbor";
+                    return;
+                }
+            }
+        }
+
+        static string FormatHex(HexCoord hex) => "(" + hex.Q + "," + hex.R + ")";
     }
 }
