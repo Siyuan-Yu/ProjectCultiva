@@ -340,5 +340,30 @@ namespace XianXia.Unity.Host
             if (nextSep != strongSep)
                 HostHexWorldRenderer.DebugStrongHexSeparation = nextSep;
         }
+
+        public const float TopBarEntryY = 8f;
+        public const float TopBarEntryW = 72f;
+        public const float TopBarEntryH = 32f;
+        /// <summary>FormalHud 顶栏：紧挨 20x 右侧（pause@300 + 60 + 4×44 + 4）。</summary>
+        public const float TopBarEntryX = 540f;
+
+        public static void DrawTopBarEntryButton(PlayableHostBootstrap bootstrap)
+        {
+            DrawTopBarEntryButton(bootstrap, TopBarEntryX);
+        }
+
+        public static void DrawTopBarEntryButton(PlayableHostBootstrap bootstrap, float x)
+        {
+            if (bootstrap == null)
+                return;
+
+            var btn = new Rect(x, TopBarEntryY, TopBarEntryW, TopBarEntryH);
+            HostUiHitTest.Block(btn);
+            var cheat = bootstrap.LevelTesterCheatPanel ??
+                        bootstrap.GetComponent<HostLevelTesterCheatPanel>();
+            var label = cheat != null && cheat.IsVisible ? "关闭作弊" : "作弊工具";
+            if (GUI.Button(btn, label) && cheat != null)
+                cheat.ToggleVisible();
+        }
     }
 }

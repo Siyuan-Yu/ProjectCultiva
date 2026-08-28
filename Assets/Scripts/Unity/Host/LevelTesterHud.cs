@@ -3,17 +3,13 @@ using UnityEngine;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// Level Tester 顶栏：当前包／地图／剧本与 Cheat Tools 入口。
-    /// 作弊工具入口与 F10 Formal HUD 显隐解耦，HUD 显示时仍可打开。
+    /// Level Tester 顶栏：当前包／地图／剧本。作弊入口在 FormalHud 暂停/变速旁；本组件仅作 F10 隐藏 HUD 时的兜底。
     /// </summary>
     public sealed class LevelTesterHud : MonoBehaviour
     {
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] bool visible = true;
         [SerializeField] KeyCode toggleKey = KeyCode.F1;
-
-        const float CheatButtonW = 88f;
-        const float CheatButtonH = 24f;
 
         string _mapLine = "-";
 
@@ -33,41 +29,26 @@ namespace XianXia.Unity.Host
 
         void OnGUI()
         {
-            if (!visible || bootstrap == null)
+            if (bootstrap == null)
                 return;
 
             var worldMapOpen = bootstrap.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen;
             var formalHud = bootstrap.GetComponent<HostFormalHud>();
-            var formalHudVisible = formalHud != null && formalHud.IsHudVisible;
-            var compactEntry = worldMapOpen || formalHudVisible;
+            var formalTopBarActive = formalHud != null && formalHud.IsHudVisible && !worldMapOpen;
 
-            // 完整试玩台顶栏仅在正式 HUD 隐藏且非大地图时显示；入口按钮始终可点
-            if (!compactEntry)
-                DrawFullTesterBar();
+            if (!formalTopBarActive && !worldMapOpen)
+                HostLevelTesterCheatPanel.DrawTopBarEntryButton(bootstrap);
 
-            DrawCheatToolsEntry(compactEntry);
-        }
+            if (!visible)
+                return;
 
-        void DrawCheatToolsEntry(bool compactEntry)
-        {
-            Rect btn;
-            if (compactEntry)
-            {
-                // Formal HUD / WorldMap 占用顶区时，入口沉底左侧，避免抢正式 HUD
-                btn = new Rect(8f, Screen.height - CheatButtonH - 8f, CheatButtonW, CheatButtonH);
-            }
-            else
-            {
-                var w = Mathf.Min(760f, Screen.width - 16f);
-                btn = new Rect(8f + w - 108f, 8f + 6f + 18f * 3f - 2f, 100f, 22f);
-            }
+            if (worldMapOpen)
+                return;
 
-            HostUiHitTest.Block(btn);
-            var cheat = bootstrap.LevelTesterCheatPanel ??
-                        bootstrap.GetComponent<HostLevelTesterCheatPanel>();
-            var label = cheat != null && cheat.IsVisible ? "关闭作弊" : "作弊工具";
-            if (GUI.Button(btn, label) && cheat != null)
-                cheat.ToggleVisible();
+            if (formalHud != null && formalHud.IsHudVisible)
+                return;
+
+            DrawFullTesterBar();
         }
 
         void DrawFullTesterBar()
@@ -88,9 +69,8 @@ namespace XianXia.Unity.Host
                 " ｜ 名册: " +
                 (string.IsNullOrEmpty(bootstrap.CharacterRosterId) ? "(用剧本spawns)" : bootstrap.CharacterRosterId));
             y += 18f;
-            GUI.Label(new Rect(pad + 8f, y, w - 220f, 20f),
-                "Space 暂停 ｜ FormalHud 顶栏变速 ｜ ` 打开作弊工具 ｜ F1 隐藏本栏 ｜ F10 显隐正式 HUD");
-            // 同帧按钮已由 DrawCheatToolsEntry 绘制在栏内位置
+            GUI.Label(new Rect(pad + 8f, y, w - 120f, 20f),
+                "Space 暂停 ｜ FormalHud 顶栏变速旁「作弊工具」 ｜ ` 快捷键 ｜ F1 隐藏本栏 ｜ F10 显隐正式 HUD");
         }
 
         void RefreshMapLine()

@@ -230,8 +230,9 @@ namespace XianXia.Unity.Host
             if (!session.FromPartyFollow)
                 bootstrap.GetComponent<HostHousingAreaSelection>()?.Clear();
             bootstrap.DispatchDrainedEvents();
+            // 已从 _sessions 批量移除；勿 return false，否则 Update 会再次 RemoveAt(i) 越界。
             RemoveSessionsOnTarget(target, clearInspect: !session.FromPartyFollow);
-            return false;
+            return true;
         }
 
         void RemoveSessionsOnTarget(HostMapDestructible target, bool clearInspect)

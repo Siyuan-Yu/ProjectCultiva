@@ -487,6 +487,8 @@ namespace XianXia.Unity.Host
             x += 44f;
             if (GUI.Button(new Rect(x, 8f, 44f, 32f), "20x"))
                 SetHostSpeed(20);
+            x += 44f;
+            HostLevelTesterCheatPanel.DrawTopBarEntryButton(bootstrap, x + 4f);
             var bag = session.World.Inventory;
             var wood = bag.GetCount("base:resource_rough_wood");
             var herb = bag.GetCount("base:resource_spirit_herb");
