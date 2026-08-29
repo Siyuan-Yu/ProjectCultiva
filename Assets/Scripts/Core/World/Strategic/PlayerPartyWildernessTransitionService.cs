@@ -120,7 +120,10 @@ namespace XianXia.Core.World.Strategic
             }
 
             if (result.IsFailure)
+            {
                 gate?.ClearEdgeState();
+                PlayerPartyWorldLocationDebug.LogSnapshot(world, party, "SurfaceExit.Failed");
+            }
 
             LogEdgeAttempt(
                 world,
@@ -200,9 +203,14 @@ namespace XianXia.Core.World.Strategic
                     out var worldPos))
                 return Result.Failure(ErrorCode.InvalidOperation, "Local to world projection failed.");
 
-            var derived = HexMath.WorldToHex(worldPos.X, worldPos.Y, hexSize);
-            motion.SetWorldPositionInternal(worldPos, derived);
-            ApplyTravelingMembersAtHex(world, derived);
+            // Phase 5R-B3B.2：LocalMap 边缘 = 真实 Hex polygon 边界中点（B3A），WorldToHex 在该点
+            // 数值歧义（banker's rounding 奇偶/浮点噪声可翻到邻格）。正式 Wilderness Context 由
+            // Context/Transition authority 提交（已加载 LocalMap 的 hex），不由连续位置在边界反推；
+            // 故 CurrentHex 保持已提交 Context，只同步 WorldPosition（不 snap、不加 epsilon）。
+            var authoritative = WildernessLocalWorldProjection.ResolveAuthoritativeWildernessHex(
+                motion.CurrentHex, worldPos, hexSize);
+            motion.SetWorldPositionInternal(worldPos, authoritative);
+            ApplyTravelingMembersAtHex(world, authoritative);
             return Result.Success();
         }
 
@@ -247,12 +255,58 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidOperation, "Neighbor hex is impassable.");
 
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+
+            // Phase 5R-B3B.1：目标 WorldSite → 正式 BoundaryContact Ingress。
+            // Physical Position 来自 WorldSiteFootprintExitConnectionResolver 的正式
+            // SurfaceExitConnection.BoundaryContactWorld（footprint 格与外格真实 Hex 共享边中点），
+            // 不再经过 ComputeCrossEdgeWorldPosition 的 legacy 0.45 fallback。
+            // 无正式 connection 时明确失败（不静默回退 Presence/Anchor/ingressHex center）。
+            if (world.Strategic?.Sites != null &&
+                world.Strategic.Sites.TryGetAtHex(destinationHex, out var site) &&
+                site != null)
+            {
+                if (!WorldSiteFootprintExitConnectionResolver.TryResolveFormalIngressConnection(
+                        world,
+                        site,
+                        destinationHex,
+                        currentHex,
+                        hexSize,
+                        out var ingressConnection))
+                    return Result.Failure(
+                        ErrorCode.InvalidOperation,
+                        "No formal site ingress connection from wilderness hex " + currentHex +
+                        " into site footprint hex " + destinationHex + " (5R-B3B.1).");
+
+                var boundaryWorld = new WorldVec2(
+                    ingressConnection.BoundaryContactWorldX,
+                    ingressConnection.BoundaryContactWorldY);
+                var derived = HexMath.WorldToHex(boundaryWorld.X, boundaryWorld.Y, hexSize);
+
+                PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
+                PlayerPartyTransitionMembership.LogPartyTransition(
+                    world,
+                    party,
+                    "CrossWildernessEdge.FormalSiteIngress",
+                    destinationHex,
+                    world.PartyWorld?.LocalMapId);
+
+                // Phase 5R-B3C1.2：保存正式 ingress connection 的 transient context（footprint hex /
+                // 来向荒野 hex / outward Local 方向 / boundary world），供 Host Materialize 的 Safe
+                // Landing 解析 inward 方向（不按 CurrentHex/WorldToHex/Anchor/Presence 重猜）。
+                motion.SurfaceEdgeGate?.SetIngressContext(ingressConnection);
+                motion.SetAtWorldPosition(boundaryWorld, derived);
+                ApplyTravelingMembersAtHex(world, derived);
+                return PlayerPartyHexTravelService.EnterWorldSiteAsParty(
+                    world, party, site, destinationHex);
+            }
+
+            // Wilderness→Wilderness：保持 5C ComputeCrossEdgeWorldPosition（0.45 fallback 仅此使用）。
             var newWorldPos = WildernessLocalWorldProjection.ComputeCrossEdgeWorldPosition(
                 currentHex,
                 destinationHex,
                 motion.WorldPosition,
                 hexSize);
-            var derived = HexMath.WorldToHex(newWorldPos.X, newWorldPos.Y, hexSize);
+            var derivedHex = HexMath.WorldToHex(newWorldPos.X, newWorldPos.Y, hexSize);
 
             PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
             PlayerPartyTransitionMembership.LogPartyTransition(
@@ -262,12 +316,8 @@ namespace XianXia.Core.World.Strategic
                 destinationHex,
                 world.PartyWorld?.LocalMapId);
 
-            motion.SetAtWorldPosition(newWorldPos, derived);
-            ApplyTravelingMembersAtHex(world, derived);
-
-            if (world.Strategic.Sites.TryGetAtHex(destinationHex, out var site) && site != null)
-                return PlayerPartyHexTravelService.EnterWorldSiteAsParty(
-                    world, party, site, destinationHex);
+            motion.SetAtWorldPosition(newWorldPos, derivedHex);
+            ApplyTravelingMembersAtHex(world, derivedHex);
 
             if (!WildernessLocalMapFallback.TryResolve(world, destinationHex, out var mapId) ||
                 string.IsNullOrEmpty(mapId))

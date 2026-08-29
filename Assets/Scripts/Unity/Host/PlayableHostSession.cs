@@ -50,6 +50,39 @@ namespace XianXia.Unity.Host
         /// <summary>Level Tester／Host：优先使用的 mapLayout id（空则回退启发式）。</summary>
         public string PreferredMapLayoutId { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Phase 5R-B3B.3：NewGame 初始 WorldSite 的一次性 Bootstrap provenance（transient，
+        /// 不落盘、不进入 PlayerPartyWorldMotion / Save）。由启动链记录（ApplyOpening 后初始
+        /// PartyWorld.SiteId）；首次初始 Site 展开消费后清空。空 = 本次启动初始 Context 不在
+        /// WorldSite（例如起点在 Wilderness）→ 任何 Site 展开都不得 BootstrapFromAuthoredLocal，
+        /// 一律 ProjectCanonicalWorldToLocal。
+        /// </summary>
+        public string InitialBootstrapSiteId { get; private set; } = string.Empty;
+
+        /// <summary>
+        /// Phase 5R-B3B.5：初始 Site Bootstrap 是否<b>尚未消费</b>。与 InitialBootstrapSiteId 同生命周期，
+        /// 但挂在 PlayableHostSession（完整运行 Session），不挂在 PlayableHostBootstrap 实例
+        /// （scene／WorldMap／LocalMap 重建会让实例字段归零 → consumed 重新变 false → 再次 Bootstrap）。
+        /// 真正第一次 Bootstrap 完成后 ConsumeInitialBootstrap() 清空 id + pending，之后即使：
+        /// 离开初始 Site 再进入 / 开关 WorldMap / LocalMap 重建 / Host 表现层重建，
+        /// 都不得重新 Bootstrap（一律 ProjectCanonicalWorldToLocal）。
+        /// </summary>
+        public bool InitialBootstrapPending { get; private set; }
+
+        /// <summary>清空初始 Bootstrap provenance（不消费语义，供状态重置）。</summary>
+        public void ClearInitialBootstrapSite() => InitialBootstrapSiteId = string.Empty;
+
+        /// <summary>
+        /// 消费初始 Site Bootstrap token：NewGame 初始 Site 真正第一次 Materialize 完成后调用，
+        /// 一次性永久失效（清 id + pending）。此后任何 Site 展开（含再次进入初始 Site）只能
+        /// ProjectCanonicalWorldToLocal。runtime opening provenance，不落盘、不入 motion。
+        /// </summary>
+        public void ConsumeInitialBootstrap()
+        {
+            InitialBootstrapSiteId = string.Empty;
+            InitialBootstrapPending = false;
+        }
+
         public Result Initialize(string packageDirectory, PlayableDayOptions options = null)
         {
             Clear();
@@ -76,6 +109,14 @@ namespace XianXia.Unity.Host
             CharacterIds = started.Value.CharacterIds;
             RecruitableNpcId = started.Value.RecruitableNpcId;
             ViewableEntityIds = BuildViewableEntityIds(World, CharacterIds, RecruitableNpcId);
+            // Phase 5R-B3B.3：记录本次启动的初始 Context。若初始 Context 在 WorldSite（ApplyOpening
+            // 已 EnterWorldSiteScene(startSiteId)），则初始 Site 首次展开允许 BootstrapFromAuthoredLocal
+            // （StartLocation→Canonical，NewGame 专属）；否则（初始在 Wilderness 等）保持空 → 任何
+            // Site 展开都只能 ProjectCanonicalWorldToLocal。仅 Host 会话 transient，不落盘。
+            InitialBootstrapSiteId = string.IsNullOrWhiteSpace(World?.PartyWorld?.SiteId)
+                ? string.Empty
+                : World.PartyWorld.SiteId;
+            InitialBootstrapPending = !string.IsNullOrWhiteSpace(InitialBootstrapSiteId);
             LastError = string.Empty;
             return Result.Success();
         }
@@ -108,6 +149,8 @@ namespace XianXia.Unity.Host
             ViewableEntityIds = Array.Empty<EntityId>();
             RecruitableNpcId = EntityId.None;
             PreferredMapLayoutId = string.Empty;
+            InitialBootstrapSiteId = string.Empty;
+            InitialBootstrapPending = false;
             IsPaused = true;
         }
 

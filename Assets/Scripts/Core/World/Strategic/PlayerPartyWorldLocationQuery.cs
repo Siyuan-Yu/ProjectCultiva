@@ -32,7 +32,9 @@ namespace XianXia.Core.World.Strategic
         {
             resolved = default;
             if (world?.PlayerPartyTravel == null)
+            {
                 return false;
+            }
 
             var motion = world.PlayerPartyTravel;
             // healDrift 仅允许 Startup 等显式调用；且不得用 PartyWorld 覆盖已成立的 AtWorldPosition。
@@ -40,7 +42,9 @@ namespace XianXia.Core.World.Strategic
                 TryHealStartupOnly(world, party, motion);
 
             if (!motion.HasPosition)
+            {
                 return false;
+            }
 
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(motion.SiteId) &&
@@ -80,18 +84,22 @@ namespace XianXia.Core.World.Strategic
             var worldPos = motion.IsMoving
                 ? motion.ResolveTravelPresentationWorld(hexSize2)
                 : motion.WorldPosition;
-            var derived2 = HexMath.WorldToHex(worldPos.X, worldPos.Y, hexSize2);
-            if (!motion.IsMoving && derived2 != motion.CurrentHex)
-                motion.SetWorldPositionInternal(motion.WorldPosition, derived2);
 
-            WildernessLocalMapFallback.TryResolve(world, derived2, out var mapId);
+            // Phase 5R-B3B.2：正式 Wilderness Context = motion.CurrentHex（由 Context/Transition
+            // authority 提交：正式跨格 / TravelPlan leg 起点）。Hex 边界中点 WorldToHex 存在数值歧义
+            // （可翻到邻格），不得用它强写 CurrentHex / 决定 LocalMap / 当作上下文；否则会与已加载
+            // LocalMap 的 hex 分裂 → SurfaceExit authority / reopen materialization 错乱。
+            // 因此 map 与 DerivedHex（权威 Hex，供 reopen 加载 / presence / legal location）
+            // 统一取已提交 Context，不再从连续位置反推。
+            var contextHex = motion.CurrentHex;
+            WildernessLocalMapFallback.TryResolve(world, contextHex, out var mapId);
             resolved = new Resolved
             {
                 HasValue = true,
                 LocationKind = PlayerPartyLocationKind.AtWorldPosition,
                 SiteId = string.Empty,
                 WorldPosition = worldPos,
-                DerivedHex = derived2,
+                DerivedHex = contextHex,
                 ResolvedLocalMapId = mapId ?? string.Empty,
             };
             return true;
@@ -243,5 +251,6 @@ namespace XianXia.Core.World.Strategic
                 " partyWorld.site=" + (world.PartyWorld?.SiteId ?? "") +
                 " partyWorld.map=" + (world.PartyWorld?.LocalMapId ?? ""));
         }
+
     }
 }

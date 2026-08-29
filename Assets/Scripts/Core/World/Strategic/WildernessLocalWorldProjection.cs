@@ -66,6 +66,33 @@ namespace XianXia.Core.World.Strategic
         public static int OppositeDirection(int directionIndex) => (directionIndex + 3) % 6;
 
         /// <summary>
+        /// Phase 5R-B3B.2：正式 Wilderness Context 解析（Hex 边界中点歧义防护）。
+        /// B3A 起 LocalMap 边缘映射到真实 Hex polygon 边界<b>中点</b>（East/West = ±0.866·hexSize、
+        /// North/South = ±1.0·hexSize），而这些点正是 <see cref="HexWorldLayout.WorldToCoord"/> 的
+        /// <c>Math.Round</c>（banker's rounding）平局点（q+0.5 / r+0.5）——WorldToHex 会按列/行奇偶与
+        /// 浮点噪声翻到邻格。正式 Wilderness Context（已加载 LocalMap 所代表的 hex）必须由
+        /// Context/Transition authority 提交（正式跨格 / TravelPlan leg 起点），<b>不能</b>由连续位置在
+        /// 边界反推。规则：派生格是 committed 的邻格（即共享边中点歧义区）→ 保持 committed；
+        /// 远程漂移（异常，非边界歧义）→ 采纳 derived 自愈。纯确定性归并，无分配、恒返回。
+        /// </summary>
+        public static HexCoord ResolveAuthoritativeWildernessHex(
+            HexCoord committedHex,
+            WorldVec2 worldPosition,
+            float hexSize)
+        {
+            var derived = HexMath.WorldToHex(worldPosition.X, worldPosition.Y, hexSize);
+            if (derived.Equals(committedHex))
+                return committedHex;
+            for (var i = 0; i < 6; i++)
+            {
+                if (HexMath.Neighbor(committedHex, i).Equals(derived))
+                    return committedHex;
+            }
+
+            return derived;
+        }
+
+        /// <summary>
         /// 5R-B3A：Local → World 走共享 <see cref="HexFootprintSpatialMapping"/>（footprint = 单 Hex）。
         /// LocalMap 左/右/上/下 → 该 Hex polygon world bbox 西/东/北/南；LocalMap 边缘 → 真实 Hex
         /// polygon boundary（取代旧 InteriorRadiusFactor 0.45 内缩矩形，LocalMap 最右不再只到 Hex 中央附近）。
@@ -189,6 +216,93 @@ namespace XianXia.Core.World.Strategic
             WildernessLocalMapBounds bounds) =>
             !IsOutsideBounds(localX, localY, bounds) &&
             !IsInNearEdgeBand(localX, localY, bounds);
+
+        /// <summary>
+        /// Phase 5R-B3C1.2：Safe Ingress Landing —— 从真实 boundary 对应 local 点沿 inward 方向
+        /// 推进到同时满足 !IsInExitTriggerBand 且 IsInSafeInterior 的最小 SafeInterior 点。
+        /// 目标矩形 = bounds 内缩 <paramref name="insetX"/>/<paramref name="insetY"/>，由调用方用
+        /// 正式几何计算（max(<see cref="NearEdgeMarginX/Y"/>, <see cref="SurfaceExitZoneCalculator.NormalizeDepth"/>)，
+        /// 无 magic 数值）。沿 inward 单位向量做 Ray-AABB 求交，取最小 t + 数值 epsilon；
+        /// tangential coordinate 保持不变（只沿 inward 推进，不把入口沿边位置拉到边中央）。
+        /// start 已在目标矩形内 → 原样返回（不推进）。inward 退化 / 无法求交 → 返回 false（调用方 fallback）。
+        /// 纯函数，零副作用，可测。
+        /// </summary>
+        public static bool TryResolveSafeIngressLanding(
+            WildernessLocalMapBounds bounds,
+            float insetX,
+            float insetY,
+            float startX,
+            float startY,
+            float inwardDirX,
+            float inwardDirY,
+            out float landingX,
+            out float landingY)
+        {
+            landingX = startX;
+            landingY = startY;
+            if (IsOutsideBounds(startX, startY, bounds))
+                return false;
+
+            var inMinX = bounds.MinX + insetX;
+            var inMaxX = bounds.MaxX - insetX;
+            var inMinY = bounds.MinY + insetY;
+            var inMaxY = bounds.MaxY - insetY;
+            if (inMaxX <= inMinX || inMaxY <= inMinY)
+                return false;
+
+            if (startX >= inMinX && startX <= inMaxX &&
+                startY >= inMinY && startY <= inMaxY)
+                return true; // 已在 SafeInterior（inset 由正式几何保证两个条件）
+
+            var lenSq = inwardDirX * inwardDirX + inwardDirY * inwardDirY;
+            if (lenSq < 1e-9f)
+                return false;
+
+            // Ray-AABB：沿 inward 射线进入内缩矩形的最小 t（轴向求交，取进入最大值）。
+            var tNear = float.NegativeInfinity;
+            var tFar = float.PositiveInfinity;
+            if (Math.Abs(inwardDirX) > 1e-9f)
+            {
+                var t1 = (inMinX - startX) / inwardDirX;
+                var t2 = (inMaxX - startX) / inwardDirX;
+                if (t1 > t2)
+                {
+                    var tmp = t1;
+                    t1 = t2;
+                    t2 = tmp;
+                }
+                tNear = Math.Max(tNear, t1);
+                tFar = Math.Min(tFar, t2);
+            }
+
+            if (Math.Abs(inwardDirY) > 1e-9f)
+            {
+                var t1 = (inMinY - startY) / inwardDirY;
+                var t2 = (inMaxY - startY) / inwardDirY;
+                if (t1 > t2)
+                {
+                    var tmp = t1;
+                    t1 = t2;
+                    t2 = tmp;
+                }
+                tNear = Math.Max(tNear, t1);
+                tFar = Math.Min(tFar, t2);
+            }
+
+            if (float.IsPositiveInfinity(tFar) || tFar < tNear || tFar < 0f)
+                return false;
+
+            var t = Math.Max(tNear, 0f);
+            // 数值 epsilon（防浮点落在内缩边界），远小于 inset ≥ 0.55；非 magic inset。
+            var eps = Math.Max(0.01f, Math.Min(insetX, insetY) * 0.02f);
+            var lx = startX + inwardDirX * (t + eps);
+            var ly = startY + inwardDirY * (t + eps);
+            if (IsOutsideBounds(lx, ly, bounds))
+                return false;
+            landingX = lx;
+            landingY = ly;
+            return true;
+        }
 
         /// <summary>
         /// 跨边意图：必须从界内穿越到界外／跨出近缘（Inside→Outside），禁止“靠边站着”误触发。

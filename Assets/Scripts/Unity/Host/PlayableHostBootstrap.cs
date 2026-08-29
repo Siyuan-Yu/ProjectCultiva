@@ -95,9 +95,11 @@ namespace XianXia.Unity.Host
         float _autoTickAccumulator;
         string _resolvedContentPath = string.Empty;
         string _status = "Idle";
-        // Phase 5R-B2：NewGame 首次 Site 展开时用 BootstrapFromAuthoredLocal（StartLocation→Canonical），
-        // 之后 Site 展开一律 ProjectCanonicalWorldToLocal。仅 Host 会话 transient，不落盘、不入 motion。
-        bool _siteInitialBootstrapDone;
+        // Phase 5R-B3B.3：NewGame 初始 Site 的一次性 Bootstrap provenance 与 consumed 状态全部由
+        // _session 持有（InitialBootstrapSiteId + InitialBootstrapPending，完整运行 Session 生命周期）。
+        // B3B.5 修复：consumed 之前挂在 PlayableHostBootstrap 实例字段（scene／WorldMap／LocalMap 重建
+        // 会归零 → 离开初始 Site 再进入时重新 Bootstrap 覆盖 Boundary Canonical）。现在真正第一次
+        // Bootstrap 完成后 _session.ConsumeInitialBootstrap() 一次性清空 id + pending。
 
         public PlayableHostSession Session => _session;
 
@@ -164,6 +166,10 @@ namespace XianXia.Unity.Host
         void Awake()
         {
             PlayerPartyWorldLocationDebug.Sink = msg => Debug.Log(msg, this);
+            // Phase 5R-B3B.4：Site ingress 结构化诊断（保留 ownership / 映射数值 / failure；
+            // 已移除一次性 writer 追踪）。订阅前先清去重/id，避免上次会话残留干扰。
+            PlayerPartySiteIngressTrace.ResetDedupe();
+            PlayerPartySiteIngressTrace.Sink = msg => Debug.Log(msg, this);
 
             if (entityViewSpawner == null)
                 entityViewSpawner = GetComponent<EntityViewSpawner>() ?? GetComponentInChildren<EntityViewSpawner>();
@@ -284,6 +290,7 @@ namespace XianXia.Unity.Host
                     StepTick();
                 }
             }
+
         }
 
         /// <summary>Set before <see cref="TryInitialize"/> (sample scene / EditMode).</summary>
@@ -663,6 +670,9 @@ namespace XianXia.Unity.Host
             if (pathPreview != null)
                 pathPreview.Bind(this, moveController, selectionController, cam);
             moveController.SetWalkGrid(ResolveWalkGrid());
+            // Phase 5R-B3C1：NewGame 初始 Site 的第一次 Bootstrap 必须在【初始 LocalMap 第一次真正建立】
+            // 时发生（TryInitialize 启动链内），不能等玩家离开 Site 再回来才第一次执行。
+            TryRunInitialSiteBootstrap();
             moveController.BindLocalMapContext(_session.World.LocalMap.ActiveMapLayoutId);
             playerPartyController.OnLocalMapMaterialized(_session.World.LocalMap.ActiveMapLayoutId);
             if (npcContextMenu != null)
@@ -1132,6 +1142,7 @@ namespace XianXia.Unity.Host
             ReloadLocalMapPresentation(frameCamera: false);
 
             WildernessLocalWorldProjection.WildernessLocalMapBounds? materializeBounds = null;
+            var playerPartyMaterialized = false;
             if (!onEncounterMap &&
                 !string.IsNullOrWhiteSpace(targetMap) &&
                 _session.PlayerParty != null &&
@@ -1155,6 +1166,8 @@ namespace XianXia.Unity.Host
                 // 其余（Wilderness→Site 进入 / WorldMap 重开 / 新格式 restore）= ProjectCanonicalWorldToLocal。
                 WorldSiteSpatialMapping.WorldSiteLocalMapBounds? siteBounds = null;
                 var siteMode = PlayerPartySiteMaterializeMode.Default;
+                // Phase 5R-B3C1：消费决策 out 提升到本方法层（isSiteExpand 块外也要读，见 Materialize 消费段）。
+                var consumeBootstrapNow = false;
                 var isSiteExpand = !string.IsNullOrWhiteSpace(world.PartyWorld?.SiteId) &&
                                    world.PlayerPartyTravel != null &&
                                    world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite;
@@ -1168,23 +1181,62 @@ namespace XianXia.Unity.Host
                             walkForSite.Width, walkForSite.Height);
                     }
 
-                    if (LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot)
-                    {
-                        siteMode = PlayerPartySiteMaterializeMode.LegacyRestoreLocal;
-                    }
-                    else if (!_siteInitialBootstrapDone)
-                    {
-                        siteMode = PlayerPartySiteMaterializeMode.BootstrapFromAuthoredLocal;
-                        _siteInitialBootstrapDone = true;
-                    }
-                    else
-                    {
-                        siteMode = PlayerPartySiteMaterializeMode.ProjectCanonicalWorldToLocal;
-                    }
+                    // Phase 5R-B3B.3：ownership 由 Core 纯函数按真正 provenance 解析——
+                    // BootstrapFromAuthoredLocal 仅限 NewGame 初始 Site 的首次展开（启动链记录
+                    // _session.InitialBootstrapSiteId）；起点在 Wilderness 等场景该值空 → 任何
+                    // Wilderness→Site 进入都只能 ProjectCanonicalWorldToLocal（不覆盖 BoundaryContact）。
+                    siteMode = SiteMaterializeModeResolver.Resolve(
+                        LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot,
+                        _session.InitialBootstrapSiteId,
+                        world.PartyWorld?.SiteId ?? string.Empty,
+                        !_session.InitialBootstrapPending,
+                        out consumeBootstrapNow);
+                    // Phase 5R-B3B.4：[3 MaterializeDecision] —— 决策输入（真正 provenance）；
+                    // 同一 ingress trace id。Materialize 内 [4 WorldToLocal] 输出映射结果对照。
+                    var decisionReason =
+                        LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot
+                            ? "snapshot restore (LegacyRestore priority)"
+                            : !string.IsNullOrEmpty(_session.InitialBootstrapSiteId) &&
+                              string.Equals(
+                                  _session.InitialBootstrapSiteId,
+                                  world.PartyWorld?.SiteId ?? string.Empty,
+                                  System.StringComparison.Ordinal) &&
+                              _session.InitialBootstrapPending
+                                ? "NewGame initial site first expand (Bootstrap)"
+                                : "canonical existing (ProjectCanonicalWorldToLocal)";
+                    PlayerPartySiteIngressTrace.Log(
+                        "MaterializeDecision",
+                        "mode=" + siteMode +
+                        " initialBootstrapSiteId=" + (_session.InitialBootstrapSiteId ?? string.Empty) +
+                        " currentSiteId=" + (world.PartyWorld?.SiteId ?? string.Empty) +
+                        " bootstrapConsumed=" + !_session.InitialBootstrapPending +
+                        " hasSnapshot=" + LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot +
+                        " reason=" + decisionReason);
                 }
 
-                PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(
+                // Phase 5R-B3C1：Materialize 返回 Result —— Bootstrap 成功（IsSuccess）才消费 token；
+                // 失败明确 error 且不消费（保留 pending，下次正确执行）。ProjectCanonical 失败已由
+                // Materialize 内部 return Failure（不静默 DefaultStart）。
+                var materializeResult = PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(
                     world, _session.PlayerParty.Members, materializeBounds, siteBounds, siteMode);
+                playerPartyMaterialized = true;
+                if (SiteMaterializeModeResolver.ShouldConsumeBootstrap(
+                        consumeBootstrapNow, materializeResult.IsSuccess))
+                {
+                    _session.ConsumeInitialBootstrap();
+                    PlayerPartySiteIngressTrace.Log(
+                        "BootstrapTokenConsumed",
+                        "site=" + (world.PartyWorld?.SiteId ?? string.Empty));
+                }
+                else if (consumeBootstrapNow)
+                {
+                    Debug.LogError(
+                        "[PlayableHost] Initial site bootstrap FAILED; token NOT consumed: " +
+                        materializeResult.Error, this);
+                    PlayerPartySiteIngressTrace.Log(
+                        "BootstrapTokenKept",
+                        "error=" + materializeResult.Error);
+                }
 
                 if (LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot)
                 {
@@ -1282,8 +1334,12 @@ namespace XianXia.Unity.Host
             var activeMapForSnap = world.LocalMap.ActiveMapLayoutId?.Trim() ?? string.Empty;
             var skipStartSnapForSavedPlacements =
                 LoadedLocalMapPlacementSnapshotRestore.HasRestoredPlacementsForMap(activeMapForSnap);
-            if (!skipStartSnapForWilderness &&
-                !skipStartSnapForSavedPlacements &&
+            // Phase 5R-B3C1：PlayerParty 已经过 Materialization → 其输出就是唯一 placement authority，
+            // 禁止再被 legacy StartLocation snap 覆盖；snap 仅保留给无 PlayerParty 的 legacy 分支。
+            if (SiteMaterializeModeResolver.ShouldApplyLegacyStartLocationSnap(
+                    playerPartyMaterialized,
+                    skipStartSnapForWilderness,
+                    skipStartSnapForSavedPlacements) &&
                 !string.IsNullOrEmpty(startId) &&
                 world.WorldRegion.TryGet(startId, out var syncedStart))
             {
@@ -1337,7 +1393,22 @@ namespace XianXia.Unity.Host
             }
 
             if (!LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot)
-                TryFrameCameraOnParty();
+            {
+                // Phase 5R-B3C1.1：正式 Site transition（Wilderness→WorldSite / reopen / ingress）后
+                // one-shot 对准 Active Character —— SnapCameraToActiveOnce 置 Free 模式 + 一次性对准，
+                // 不进入持续跟随；普通状态自由镜头 / WASD / 中键 / RTS 右键规则不变。
+                // Wilderness→Wilderness 保持既有 TryFrameCameraOnParty 行为，不受影响。
+                var atSiteTransition = playerPartyMaterialized &&
+                                       world.PlayerPartyTravel != null &&
+                                       world.PlayerPartyTravel.LocationKind ==
+                                       PlayerPartyLocationKind.AtWorldSite;
+                var pc = PlayerPartyController;
+                if (atSiteTransition && pc != null &&
+                    _session.PlayerParty != null && _session.PlayerParty.HasActive)
+                    pc.SnapCameraToActiveOnce();
+                else
+                    TryFrameCameraOnParty();
+            }
             ActivateSurfaceLocalMapPresentation();
             RestorePlayerPartyLocalMapPresentation(targetMap);
         }
@@ -1672,6 +1743,77 @@ namespace XianXia.Unity.Host
                       " chars=" + _session.CharacterIds.Count +
                       " selected=" + selected +
                       " cmd=" + cmd;
+        }
+
+        /// <summary>
+        /// Phase 5R-B3C1：NewGame 初始 Site 的第一次 Bootstrap 在启动链（TryInitialize）真正执行。
+        /// Authored StartLocation → WorldSiteSpatialMapping.LocalToWorld → Canonical WorldPosition。
+        /// 复用 Materialize BootstrapFromAuthoredLocal（不复制 mapping）；成功才消费 token，失败不消费。
+        /// </summary>
+        void TryRunInitialSiteBootstrap()
+        {
+            if (!_session.IsInitialized || !_session.InitialBootstrapPending)
+                return;
+            var world = _session.World;
+            var motion = world?.PlayerPartyTravel;
+            if (motion == null)
+                return;
+            var atWorldSite = motion.LocationKind == PlayerPartyLocationKind.AtWorldSite;
+            if (!SiteMaterializeModeResolver.ShouldRunStartupBootstrap(
+                    _session.InitialBootstrapPending,
+                    _session.InitialBootstrapSiteId,
+                    world.PartyWorld?.SiteId ?? string.Empty,
+                    atWorldSite))
+                return;
+
+            var mapId = world.PartyWorld?.LocalMapId?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(mapId))
+            {
+                Debug.LogError(
+                    "[PlayableHost] Initial site bootstrap: no PartyWorld.LocalMapId", this);
+                return; // 不消费
+            }
+            world.LocalMap.ActiveMapLayoutId = mapId;
+            world.LocalMap.OverworldMapLayoutId = mapId;
+
+            var walk = ResolveWalkGrid();
+            if (walk == null)
+            {
+                Debug.LogError(
+                    "[PlayableHost] Initial site bootstrap: no walk grid for " + mapId, this);
+                return; // 不消费
+            }
+            var siteBounds = WorldSiteSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
+                walk.OriginX, walk.OriginY, walk.CellSize, walk.Width, walk.Height);
+
+            var result = PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(
+                world,
+                _session.PlayerParty.Members,
+                null,
+                siteBounds,
+                PlayerPartySiteMaterializeMode.BootstrapFromAuthoredLocal);
+            if (SiteMaterializeModeResolver.ShouldConsumeBootstrap(true, result.IsSuccess))
+            {
+                _session.ConsumeInitialBootstrap();
+                PlayerPartySiteIngressTrace.Log(
+                    "StartupBootstrapCommitted",
+                    "site=" + (world.PartyWorld?.SiteId ?? string.Empty) +
+                    " world=" + motion.WorldPosition);
+                _session.RefreshViewableEntityIds();
+                entityViewSpawner?.Rebuild(_session);
+                if (selectionController != null && _session.PlayerParty.HasActive)
+                    selectionController.SelectEntity(_session.PlayerParty.ActiveCharacterId, false);
+            }
+            else
+            {
+                Debug.LogError(
+                    "[PlayableHost] Initial site bootstrap FAILED (token NOT consumed): " + result.Error,
+                    this);
+                PlayerPartySiteIngressTrace.Log(
+                    "StartupBootstrapFailed",
+                    "site=" + (world.PartyWorld?.SiteId ?? string.Empty) +
+                    " error=" + result.Error);
+            }
         }
 
         WalkGrid ResolveWalkGrid()

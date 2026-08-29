@@ -732,22 +732,46 @@ namespace XianXia.Core.World.Strategic
                 destSiteId = TryCanonicalizeFootprintHexDestination(
                     world, destHex, destSiteId, out _);
 
-            // 普通 TargetHex：停在目标 canonical center，保持 AtWorldPosition。
-            motion.SnapToHexCenter(destHex, hexSize);
-
-            // 仅当旅行目标明确是 WorldSite 时才聚合；禁止用出发 Site / PartyWorld 复活。
+            // Phase 5R-B3B：Site 目标<b>不</b> SnapToHexCenter —— Physical Position 保持段行进中
+            // TryCommitSiteArrivalIngress → CommitSiteArrivalAuthority 已提交的跨边界连续位置。
             if (!string.IsNullOrEmpty(destSiteId) &&
                 world.Strategic.Sites.TryGet(destSiteId, out var site) &&
                 site != null)
             {
-                motion.SetAtWorldSite(site.SiteId, site.PresenceHex, hexSize);
+                // 正常路径：行进中已跨入 footprint → AtWorldSite 已成立，仅收尾 Presence / Context。
+                if (motion.LocationKind != PlayerPartyLocationKind.AtWorldSite ||
+                    !string.Equals(motion.SiteId, site.SiteId, StringComparison.Ordinal))
+                {
+                    // 退化：目标 Site 但从未在行进中跨入（应极少）。用当前连续 Canonical WorldPosition
+                    // 补提交；无位置时记录链路缺口。<b>5R-D 暂存：</b>仅此异常路径保留旧 hex-center snap
+                    // 语义作为 legacy compatibility，与正常 PlayerParty ingress 主链隔离 —— 主链无
+                    // position 时 EnterWorldSiteAsParty 直接 Failure，绝不静默 snap（B3B.1 §六）。
+                    if (motion.HasPosition)
+                    {
+                        if (!motion.TrySetAtWorldSitePreservingWorldPosition(
+                                site.SiteId,
+                                motion.WorldPosition))
+                            PlayerPartyWorldLocationDebug.LogBeforeAfter(
+                                world, null, "FinishArrival.SiteCommitFailed",
+                                kindBefore, siteBefore, posBefore, hexBefore);
+                    }
+                    else
+                    {
+                        PlayerPartyWorldLocationDebug.LogBeforeAfter(
+                            world, null, "FinishArrival.NoCanonicalGap",
+                            kindBefore, siteBefore, posBefore, hexBefore);
+                        // Legacy snap（5R-D 删除）：仅异常退化路径兑底，不属正式 ingress 主链。
+                        motion.SetAtWorldSite(site.SiteId, destHex, hexSize);
+                    }
+                }
+
                 ApplyTravelingMembersAtSite(world, site.SiteId);
                 // Site 到达：Domain 已是 AtWorldSite；PartyWorld 仍等玩家关地图再 Expand。
                 ClearPartyWorldPresentationCacheForOpenWorld(world);
             }
             else
             {
-                // 普通 Hex：确保 LocationKind 仍为 AtWorldPosition，且无 SiteId。
+                // 普通 TargetHex：停在目标 canonical center，保持 AtWorldPosition。
                 motion.SnapToHexCenter(destHex, hexSize);
                 ClearPartyWorldPresentationCacheForOpenWorld(world);
                 ApplyTravelingMembersAtHex(world, destHex);
@@ -804,10 +828,21 @@ namespace XianXia.Core.World.Strategic
                         focusSite.LocalMapId?.Trim() ?? string.Empty,
                         System.StringComparison.Ordinal))
                 {
-                    world.PlayerPartyTravel.SetAtWorldSite(
-                        focusSite.SiteId,
-                        focusSite.PresenceHex,
-                        world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f);
+                    var hexSizePeek = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                        ? world.HexWorld.HexSize
+                        : 1f;
+                    // Phase 5R-B3B：Site LocalMap 重开不 snap —— 有可信 Canonical 时保持连续位置；
+                    // 无位置时才回退 legacy PresenceHex（兼容，随 5R-D 删除）。
+                    if (!world.PlayerPartyTravel.HasPosition ||
+                        !world.PlayerPartyTravel.TrySetAtWorldSitePreservingWorldPosition(
+                            focusSite.SiteId,
+                            world.PlayerPartyTravel.ResolveTravelPresentationWorld(hexSizePeek)))
+                    {
+                        world.PlayerPartyTravel.SetAtWorldSite(
+                            focusSite.SiteId,
+                            focusSite.PresenceHex,
+                            hexSizePeek);
+                    }
                     ApplyTravelingMembersAtSite(world, focusSite.SiteId);
                     PlayerPartyWorldLocationDebug.LogTransition(world, party, "EnterLocalView.SitePeekRestore");
                     return Result.Success();
@@ -864,18 +899,59 @@ namespace XianXia.Core.World.Strategic
             if (world == null || party == null || site == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid site enter args.");
 
-            // Phase 5D-B2a: 正式 Site Ingress 的权威位置。
-            // 默认 site.PresenceHex（兼容旧调用）；多 Hex footprint 到来向对应格时，
-            // 调用方传入 ingressFootprintHex（approach 已按距 start 最近方向选取），
-            // 不再永远进 Anchor。仅接受 footprint 内的格，否则回退 PresenceHex。
+            // Phase 5R-B3B：ingressHex 仅保留 routing/topology/debug 职责（确认从 footprint
+            // 哪一侧/哪一格进入）；<b>不再决定 Physical Position</b>（B3B invariant：
+            // Context change 不 snap Physical Position）。
             var ingressHex =
                 ingressFootprintHex.HasValue && site.OccupiesHex(ingressFootprintHex.Value)
                     ? ingressFootprintHex.Value
                     : site.PresenceHex;
+            _ = ingressHex; // routing/debug 用途（不参与物理位置）
 
             world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
-            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-            world.PlayerPartyTravel.SetAtWorldSite(site.SiteId, ingressHex, hexSize);
+            var motion = world.PlayerPartyTravel;
+            if (motion == null)
+                return Result.Failure(ErrorCode.InvalidOperation, "No party travel state for site enter.");
+
+            // Phase 5R-B3B.1 Ingress Physical Continuity：
+            // Physical Position 来自调用方跨边前已显式设置的 <b>Canonical WorldPosition</b>（正式
+            // SurfaceExitConnection.BoundaryContactWorld 或连续位置：TryCrossWildernessEdge /
+            // LocalVisibleAutoTravel 均已先 SetWorldPositionInternal/SetAtWorldPosition(boundary)）。
+            // 不再用 ResolveTravelPresentationWorld（presentation 是 travel 中 transient，B3B.1 后
+            // 不参与 final context-preserving commit）。禁止 fallback PresenceHex / AnchorHex center；
+            // 无位置时明确失败并报告链路缺口（不用 magic offset 修）。
+            // Phase 5R-B3B.4：统一 ingress trace id —— [1 IngressBoundary]（含 boundary /
+            // fromHex=进入前 CurrentHex / ingressFootprintHex），后续节点（AtSiteCommit /
+            // MaterializeDecision / WorldToLocal / IngressAborted）均带同一 id（ActiveIngressId），
+            // Materialize 完成后 EndIngress 清空。不改变行为。
+            PlayerPartySiteIngressTrace.BeginIngress(
+                site.SiteId,
+                motion.WorldPosition,
+                motion.CurrentHex,
+                ingressHex);
+            if (!motion.HasPosition)
+            {
+                PlayerPartyWorldLocationDebug.LogTransition(
+                    world, party, "EnterWorldSiteAsParty.NoCanonicalGap");
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "EnterWorldSiteAsParty: no canonical physical position for context-preserving ingress (5R-B3B gap).");
+            }
+
+            if (!motion.TrySetAtWorldSitePreservingWorldPosition(
+                    site.SiteId,
+                    motion.WorldPosition))
+            {
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "EnterWorldSiteAsParty: context-preserving AtSite commit failed.");
+            }
+
+            PlayerPartySiteIngressTrace.Log(
+                "AtSiteCommit",
+                "kind=" + motion.LocationKind + " site=" + motion.SiteId +
+                " world=" + motion.WorldPosition + " hasPos=" + motion.HasPosition);
+
             ApplyTravelingMembersAtSite(world, site.SiteId);
             PlayerPartyWorldLocationDebug.LogTransition(world, party, "EnterWorldSiteAsParty");
             return WorldTravelService.EnterWorldSiteScene(world, site.SiteId, string.Empty);

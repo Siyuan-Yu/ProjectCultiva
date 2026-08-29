@@ -939,11 +939,19 @@ namespace XianXia.Unity.Host
                 return;
 
             _crowdScratch.Clear();
+            // Phase 5R-B3B.5：PlayerParty Active Character 的位置 authority 在 Materialization /
+            // EntityLocationComponent（PresentationOverride）与正式 movement；TickIdleCrowdSpacing
+            // 不得绕过它直接移动 physical transform（运行时铁证：ingress 后 old=(0.5,-6,0) →
+            // new=(-4.34,0.96,0)，kind=AtWorldSite moving=False）。排除 Active Character；
+            // 普通 NPC / crowd presentation 原行为保持。
+            var activeChar = bootstrap?.Session?.PlayerParty?.ActiveCharacterId ?? EntityId.None;
             foreach (var view in viewSpawner.Registry.All)
             {
                 if (view == null || !view.IsBound)
                     continue;
                 if (_movingIds.Contains(view.EntityId.Value))
+                    continue;
+                if (!activeChar.IsNone && view.EntityId.Equals(activeChar))
                     continue;
                 _crowdScratch.Add(view);
             }

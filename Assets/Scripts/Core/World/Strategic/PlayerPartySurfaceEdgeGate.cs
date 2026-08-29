@@ -33,6 +33,37 @@ namespace XianXia.Core.World.Strategic
 
         public bool CanAttemptEdgeTransition => !TransitionInProgress && EdgeArmed;
 
+        /// <summary>
+        /// Phase 5R-B3C1.2：正式 ingress connection 的 transient context —— 跨 Core ingress（
+        /// TryCrossWildernessEdge / LocalVisible）→ Host 展开 → Materialize 存活，供 Safe Landing
+        /// 解析 inward 方向。只保存本次 transition 所需；不落 Save、不是新 Position truth。
+        /// </summary>
+        public HexCoord IngressFootprintHex { get; private set; }
+
+        public HexCoord IngressFromWildernessHex { get; private set; }
+
+        /// <summary>Local 平面 outward 方向（footprint 格 → 来向荒野格）；inward = 取反。</summary>
+        public float IngressDirectionLocalX { get; private set; }
+
+        public float IngressDirectionLocalY { get; private set; }
+
+        public float IngressBoundaryWorldX { get; private set; }
+
+        public float IngressBoundaryWorldY { get; private set; }
+
+        public bool HasIngressContext { get; private set; }
+
+        public void SetIngressContext(SurfaceExitConnection connection)
+        {
+            IngressFootprintHex = connection.SourceHex;
+            IngressFromWildernessHex = connection.DestinationHex;
+            IngressDirectionLocalX = connection.LocalDirectionX;
+            IngressDirectionLocalY = connection.LocalDirectionY;
+            IngressBoundaryWorldX = connection.BoundaryContactWorldX;
+            IngressBoundaryWorldY = connection.BoundaryContactWorldY;
+            HasIngressContext = true;
+        }
+
         public void BeginTransition(int exitDirection)
         {
             BeginTransition(exitDirection, default, default, false);
@@ -96,6 +127,13 @@ namespace XianXia.Core.World.Strategic
             HasLastLocal = false;
             LastExitDirection = -1;
             HasExitBoundaryContext = false;
+            IngressFootprintHex = default;
+            IngressFromWildernessHex = default;
+            IngressDirectionLocalX = 0f;
+            IngressDirectionLocalY = 0f;
+            IngressBoundaryWorldX = 0f;
+            IngressBoundaryWorldY = 0f;
+            HasIngressContext = false;
         }
     }
 }

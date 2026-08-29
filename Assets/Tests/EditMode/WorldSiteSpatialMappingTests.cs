@@ -284,5 +284,224 @@ namespace XianXia.Tests.EditMode
                     site, HexSize, out _, out _, out _, out _),
                 "ComputeDomain 空 footprint 必须 false");
         }
+
+        // ---- Phase 5R-B3B：Context-preserving Final Arrival API + Boundary Direction Mapping ----
+
+        [Test]
+        public void WSSM_12_PreservePosition_AtWorldPosition_To_AtSite_WorldPositionUnchanged()
+        {
+            var motion = new PlayerPartyWorldMotion();
+            var continuous = new WorldVec2(7.4f, -3.1f); // 跨边界连续位置（非任何 hex center）
+            motion.SetAtWorldPosition(continuous, new HexCoord(11, 11));
+
+            Assert.IsTrue(
+                motion.TrySetAtWorldSitePreservingWorldPosition("test:site_guanai", continuous),
+                "AtWorldPosition 有可信 Canonical 时必须成功进入 AtSite");
+
+            Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, motion.LocationKind,
+                "LocationKind 必须切换为 AtWorldSite");
+            Assert.AreEqual("test:site_guanai", motion.SiteId, "SiteId 必须写入");
+            Assert.AreEqual(continuous, motion.WorldPosition,
+                "Physical Position 必须保持不变（Context change 不 snap）");
+            Assert.AreEqual(new HexCoord(11, 11), motion.CurrentHex,
+                "CurrentHex 不得被本 API 改动（三职责分类留 5R-C）");
+            Assert.IsTrue(motion.HasPosition);
+        }
+
+        [Test]
+        public void WSSM_13_PreservePosition_InvalidArgs_RejectedNoChange()
+        {
+            var motion = new PlayerPartyWorldMotion();
+            motion.SetAtWorldPosition(new WorldVec2(5f, 5f), new HexCoord(0, 0));
+            var before = motion.WorldPosition;
+
+            Assert.IsFalse(
+                motion.TrySetAtWorldSitePreservingWorldPosition("", new WorldVec2(1f, 1f)),
+                "空 siteId 必须拒绝");
+            Assert.AreEqual(before, motion.WorldPosition, "拒绝时 WorldPosition 不得改变");
+            Assert.AreEqual(PlayerPartyLocationKind.AtWorldPosition, motion.LocationKind);
+
+            Assert.IsFalse(
+                motion.TrySetAtWorldSitePreservingWorldPosition(
+                    "test:site_guanai", new WorldVec2(float.NaN, 0f)),
+                "NaN 位置必须拒绝");
+            Assert.AreEqual(before, motion.WorldPosition, "拒绝时 WorldPosition 不得改变");
+            Assert.AreEqual(PlayerPartyLocationKind.AtWorldPosition, motion.LocationKind);
+        }
+
+        [Test]
+        public void WSSM_14_BoundaryWorldPoint_MapsToMatchingLocalSide()
+        {
+            // 单 Hex Site：Local 西/东/北/南 edge ↔ footprint polygon 西/东/北/南 boundary。
+            // （world +Y 朝下：Local 上=MinY ↔ 北 boundary cy-edgeY；Local 下=MaxY ↔ 南 boundary cy+edgeY）
+            var site = MakeSite(new HexCoord(5, 7));
+            HexMath.ToWorldPosition(new HexCoord(5, 7), HexSize, out var cx, out var cy);
+            var edgeX = HexSize * 0.8660254f;
+            var edgeY = HexSize;
+
+            Assert.IsTrue(WorldSiteSpatialMapping.TryWorldSurfaceToLocal(
+                site, Bounds50x50, new WorldVec2(cx - edgeX, cy), HexSize, out var westLocal), "west W2L");
+            Assert.Less(westLocal.X, 0.5f, "West boundary → Local 西侧");
+
+            Assert.IsTrue(WorldSiteSpatialMapping.TryWorldSurfaceToLocal(
+                site, Bounds50x50, new WorldVec2(cx + edgeX, cy), HexSize, out var eastLocal), "east W2L");
+            Assert.Greater(eastLocal.X, 49.5f, "East boundary → Local 东侧");
+
+            Assert.IsTrue(WorldSiteSpatialMapping.TryWorldSurfaceToLocal(
+                site, Bounds50x50, new WorldVec2(cx, cy - edgeY), HexSize, out var northLocal), "north W2L");
+            Assert.Less(northLocal.Y, 0.5f, "North boundary → Local 北侧（MinY）");
+
+            Assert.IsTrue(WorldSiteSpatialMapping.TryWorldSurfaceToLocal(
+                site, Bounds50x50, new WorldVec2(cx, cy + edgeY), HexSize, out var southLocal), "south W2L");
+            Assert.Greater(southLocal.Y, 49.5f, "South boundary → Local 南侧（MaxY）");
+        }
+
+        [Test]
+        public void WSSM_15_IngressBoundaryRoundtrip_WorldLocalWorld_CloseToOriginal()
+        {
+            // 进入 Site 后 World→Local→World roundtrip 保持接近同一 boundary position（B3B 验收）。
+            var site = MakeSite(new HexCoord(5, 7));
+            HexMath.ToWorldPosition(new HexCoord(5, 7), HexSize, out var cx, out var cy);
+            var boundary = new WorldVec2(cx - HexSize * 0.8660254f, cy + 0.3f); // 西侧 boundary 附近
+
+            Assert.IsTrue(WorldSiteSpatialMapping.TryWorldSurfaceToLocal(
+                site, Bounds50x50, boundary, HexSize, out var local), "ingress W2L");
+            Assert.IsTrue(WorldSiteSpatialMapping.TryLocalToWorldSurface(
+                site, Bounds50x50, local, HexSize, out var back), "materialize L2W");
+            Assert.Less(WorldVec2.Distance(boundary, back), 0.05f,
+                "进入 Site 后 roundtrip 必须接近原 boundary position，got " + back);
+        }
+
+        // ---- Phase 5R-B3B.1：Formal BoundaryContact Ingress（Wilderness→WorldSite）----
+
+        static SurfaceExitConnection MakeConnection(HexCoord source, HexCoord dest, int dir)
+        {
+            return new SurfaceExitConnection(
+                source,
+                dest,
+                dir,
+                SurfaceExitDestinationKind.WildernessHex,
+                string.Empty,
+                1f,
+                0f,
+                0f,
+                0f,
+                new SurfaceExitCoverageRect(0f, 1f, 0f, 1f),
+                (source.Q + dest.Q) * 0.5f,
+                (source.R + dest.R) * 0.5f);
+        }
+
+        [Test]
+        public void WSSM_16_TryMatchIngressConnection_MatchesByCanonicalIdentity()
+        {
+            // 按 canonical identity（SourceHex==footprint 格 && DestinationHex==外部荒野格）匹配，
+            // 不按最近距离 / direction 猜。
+            var fp = new HexCoord(5, 7);
+            var extWest = new HexCoord(5, 6);
+            var extEast = new HexCoord(6, 7);
+            var list = new List<SurfaceExitConnection>
+            {
+                MakeConnection(fp, extWest, 2),
+                MakeConnection(fp, extEast, 3),
+                MakeConnection(new HexCoord(0, 0), new HexCoord(0, 1), 1),
+            };
+
+            Assert.IsTrue(
+                WorldSiteFootprintExitConnectionResolver.TryMatchIngressConnection(
+                    list, fp, extEast, out var matched),
+                "必须按 identity 匹配到 (fp→extEast)");
+            Assert.AreEqual(fp, matched.SourceHex, "匹配到的 SourceHex 必须是 footprint 格");
+            Assert.AreEqual(extEast, matched.DestinationHex, "匹配到的 DestinationHex 必须是外部格");
+
+            Assert.IsFalse(
+                WorldSiteFootprintExitConnectionResolver.TryMatchIngressConnection(
+                    list, fp, new HexCoord(9, 9), out _),
+                "无匹配 connection 必须 false");
+            Assert.IsFalse(
+                WorldSiteFootprintExitConnectionResolver.TryMatchIngressConnection(
+                    null, fp, extWest, out _),
+                "null 列表必须 false");
+        }
+
+        [Test]
+        public void WSSM_17_FormalIngressConnection_ResolvesBoundaryContact_AllDirections()
+        {
+            // LocalVisible Wilderness→Site：Physical ingress point == 正式 SurfaceExitConnection
+            // BoundaryContactWorld ==（footprint 格中心 + 外部格中心）/2（真实 Hex 共享边中点）。
+            var world = new XianXia.Core.Simulation.SimulationWorld();
+            world.HexWorld.HexSize = HexSize;
+            var fp = new HexCoord(5, 7);
+            var site = new WorldSite
+            {
+                SiteId = "test:site_ingress",
+                DisplayName = "Ingress Test",
+                AnchorHex = fp,
+                PresenceHex = fp,
+            };
+            site.SetFootprint(new[] { fp });
+            world.Strategic.Sites.Register(site);
+
+            HexMath.ToWorldPosition(fp, HexSize, out var fx, out var fy);
+            for (var d = 0; d < 6; d++)
+            {
+                var ext = HexMath.Neighbor(fp, d);
+                world.HexWorld.SetTile(new HexCell { Coord = ext });
+
+                Assert.IsTrue(
+                    WorldSiteFootprintExitConnectionResolver.TryResolveFormalIngressConnection(
+                        world, site, fp, ext, HexSize, out var conn),
+                    "方向 " + d + " 必须有正式 ingress connection");
+
+                HexMath.ToWorldPosition(ext, HexSize, out var ex, out var ey);
+                Assert.AreEqual(
+                    (fx + ex) * 0.5f, conn.BoundaryContactWorldX, 0.001f,
+                    "方向 " + d + " BoundaryContactWorldX 必须为 Hex 共享边中点 X");
+                Assert.AreEqual(
+                    (fy + ey) * 0.5f, conn.BoundaryContactWorldY, 0.001f,
+                    "方向 " + d + " BoundaryContactWorldY 必须为 Hex 共享边中点 Y");
+            }
+        }
+
+        [Test]
+        public void WSSM_18_FormalIngressConnection_Fails_WhenNoValidConnection()
+        {
+            var world = new XianXia.Core.Simulation.SimulationWorld();
+            world.HexWorld.HexSize = HexSize;
+            var fp = new HexCoord(5, 7);
+            var site = new WorldSite
+            {
+                SiteId = "test:site_ingress_none",
+                DisplayName = "Ingress None",
+                AnchorHex = fp,
+                PresenceHex = fp,
+            };
+            site.SetFootprint(new[] { fp });
+            world.Strategic.Sites.Register(site);
+
+            // footprintHex 不在 site footprint → false
+            Assert.IsFalse(
+                WorldSiteFootprintExitConnectionResolver.TryResolveFormalIngressConnection(
+                    world, site, new HexCoord(0, 0), new HexCoord(0, 1), HexSize, out _),
+                "footprintHex 不属于 Site 必须 false");
+
+            // fromWildernessHex ∈ footprint（不是外部格）→ false
+            Assert.IsFalse(
+                WorldSiteFootprintExitConnectionResolver.TryResolveFormalIngressConnection(
+                    world, site, fp, fp, HexSize, out _),
+                "fromWildernessHex ∈ footprint 必须 false");
+
+            // 外部格无 tile（不可通行/未知）→ 无 connection → false
+            var noTileExt = HexMath.Neighbor(fp, 0);
+            Assert.IsFalse(
+                WorldSiteFootprintExitConnectionResolver.TryResolveFormalIngressConnection(
+                    world, site, fp, noTileExt, HexSize, out _),
+                "外部格无 tile 必须 false（不静默回退中心点）");
+
+            // null world → false
+            Assert.IsFalse(
+                WorldSiteFootprintExitConnectionResolver.TryResolveFormalIngressConnection(
+                    null, site, fp, new HexCoord(5, 6), HexSize, out _),
+                "null world 必须 false");
+        }
     }
 }

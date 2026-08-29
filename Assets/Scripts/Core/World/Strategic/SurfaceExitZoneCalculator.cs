@@ -652,6 +652,75 @@ namespace XianXia.Core.World.Strategic
             return ScratchAggregates.Count;
         }
 
+        /// <summary>
+        /// Phase 5R-B3B.1：LocalVisible Wilderness→WorldSite 的正式连续入口几何。
+        /// 按 canonical connection identity（<see cref="SurfaceExitConnection.SourceHex"/>==footprint 格
+        /// 且 <see cref="SurfaceExitConnection.DestinationHex"/>==当前荒野格）匹配唯一正式
+        /// <see cref="SurfaceExitConnection"/>，返回其 <c>BoundaryContactWorldX/Y</c>（footprint 格
+        /// 中心与外部荒野格中心的中点 = 真实 Hex 共享边中点）。
+        ///
+        /// 复用 <see cref="CollectConnections"/> 产出的正式 connection，不重算第二套 boundary。
+        /// <paramref name="bounds"/> 仅用于 slot rect（Local 平面）几何，不影响 BoundaryContactWorld
+        /// （完全由 footprint + HexMath 真实几何决定）；此处传名义 bounds，与既有
+        /// <c>PlayerPartyWildernessTransitionService.TryFindSiteConnectionByDestination</c> 一致。
+        /// 匹配失败（无合法 connection / footprint 格不在 Site / fromHex 不是外部格）→ 明确失败，
+        /// 不静默回退 Presence/Anchor/ingressHex center。
+        /// </summary>
+        public static bool TryResolveFormalIngressConnection(
+            SimulationWorld world,
+            WorldSite site,
+            HexCoord footprintHex,
+            HexCoord fromWildernessHex,
+            float hexSize,
+            out SurfaceExitConnection connection)
+        {
+            connection = default;
+            if (world?.HexWorld == null || site == null || hexSize <= 0.0001f)
+                return false;
+            if (!site.OccupiesHex(footprintHex) || site.OccupiesHex(fromWildernessHex))
+                return false;
+
+            var bounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
+                0f, 0f, 1f, 16, 16);
+            var scratch = new List<SurfaceExitConnection>(12);
+            CollectConnections(
+                world,
+                site,
+                hexSize,
+                bounds,
+                SurfaceExitZoneCalculator.DefaultExitTriggerDepth,
+                SurfaceExitZoneCalculator.DefaultSlotSpanFraction,
+                scratch);
+            return TryMatchIngressConnection(scratch, footprintHex, fromWildernessHex, out connection);
+        }
+
+        /// <summary>
+        /// 纯匹配（可单测）：在 connection 列表中按 canonical identity
+        /// （SourceHex==footprintHex 且 DestinationHex==fromWildernessHex）找唯一匹配。
+        /// 不按最近距离 / direction 猜测。
+        /// </summary>
+        public static bool TryMatchIngressConnection(
+            IList<SurfaceExitConnection> connections,
+            HexCoord footprintHex,
+            HexCoord fromWildernessHex,
+            out SurfaceExitConnection connection)
+        {
+            connection = default;
+            if (connections == null)
+                return false;
+            for (var i = 0; i < connections.Count; i++)
+            {
+                var c = connections[i];
+                if (c.SourceHex.Equals(footprintHex) && c.DestinationHex.Equals(fromWildernessHex))
+                {
+                    connection = c;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public static int CollectConnections(
             SimulationWorld world,
             WorldSite site,

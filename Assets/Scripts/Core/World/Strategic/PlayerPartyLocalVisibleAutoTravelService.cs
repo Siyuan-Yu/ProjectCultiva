@@ -178,12 +178,36 @@ namespace XianXia.Core.World.Strategic
                 world.Strategic.Sites.TryGetAtHex(destinationHex, out var destSite) &&
                 destSite != null)
             {
-                // Phase 5D-B2a: 目标 WorldSite → 正式 Site Ingress。
+                // Phase 5R-B3B.1: 目标 WorldSite → 正式 BoundaryContact Ingress。
                 // destinationHex 是 approach 按距 start 最近方向选取的 footprint 格（多 Hex
-                // footprint 不强制 Anchor）。EnterWorldSiteAsParty 内部 SetAtWorldSite 会
-                // ClearMovementKeepMembers → 进入 Site LocalMap 即 Travel Complete
-                // （MovementKind=Idle / ExecutionMode=None / 清 path / AtSite），保留
-                // PartyWorld.SiteId / LocalMapId / Active ingress 位置，不 Snap、不重新物化。
+                // footprint 不强制 Anchor）。跨边前先把 WorldPosition 设为正式
+                // SurfaceExitConnection.BoundaryContactWorld（保留 path / AutoTravel /
+                // ExecutionMode，SetWorldPositionInternal 不 Clear）；EnterWorldSiteAsParty 内部
+                // TrySetAtWorldSitePreservingWorldPosition 会 ClearMovementKeepMembers → 进入
+                // Site LocalMap 即 Travel Complete（MovementKind=Idle / ExecutionMode=None /
+                // 清 path / AtSite），保留 PartyWorld.SiteId / LocalMapId / Active ingress 位置。
+                // 无正式 connection → 明确失败，不静默回退中心点。
+                // 注：变量命名避开外层方法体块的 hexSize/derived（CS0136：子块不得与外层块同名）。
+                var siteHexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                    ? world.HexWorld.HexSize
+                    : 1f;
+                if (!WorldSiteFootprintExitConnectionResolver.TryResolveFormalIngressConnection(
+                        world,
+                        destSite,
+                        destinationHex,
+                        motion.CurrentHex,
+                        siteHexSize,
+                        out var ingressConnection))
+                    return Result.Failure(
+                        ErrorCode.InvalidOperation,
+                        "No formal site ingress connection from hex " + motion.CurrentHex +
+                        " into site footprint hex " + destinationHex + " (5R-B3B.1).");
+
+                var boundary = new WorldVec2(
+                    ingressConnection.BoundaryContactWorldX,
+                    ingressConnection.BoundaryContactWorldY);
+                var ingressDerived = HexMath.WorldToHex(boundary.X, boundary.Y, siteHexSize);
+
                 PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
                 PlayerPartyTransitionMembership.LogPartyTransition(
                     world,
@@ -191,6 +215,13 @@ namespace XianXia.Core.World.Strategic
                     "CrossWildernessEdge.LocalVisibleSiteIngress",
                     destinationHex,
                     world.PartyWorld?.LocalMapId);
+
+                // Phase 5R-B3C1.2：保存正式 ingress connection 的 transient context（见
+                // PlayerPartySurfaceEdgeGate.SetIngressContext），供 Materialize 的 Safe Landing 解析
+                // inward 方向。保留 path / AutoTravel / ExecutionMode；只移动位置（不 Clear）。
+                motion.SurfaceEdgeGate?.SetIngressContext(ingressConnection);
+                motion.SetWorldPositionInternal(boundary, ingressDerived);
+                ApplyTravelingMembersAtHex(world, ingressDerived);
                 return PlayerPartyHexTravelService.EnterWorldSiteAsParty(
                     world, party, destSite, destinationHex);
             }

@@ -194,8 +194,8 @@ namespace XianXia.Unity.Host
                 var id = ids[i];
                 if (!_registry.TryGet(id, out var view) || view == null)
                     continue;
-                view.transform.position = ResolvePresentationPosition(
-                    session, id, i, stackAtLocation, slotPositions);
+                var target = ResolvePresentationPosition(session, id, i, stackAtLocation, slotPositions);
+                view.transform.position = target;
             }
         }
 

@@ -376,7 +376,9 @@ namespace XianXia.Unity.Host
             // ExpandLocalMap stays Host-side.
             var enter = PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party);
             if (enter.IsSuccess && bootstrap != null)
+            {
                 bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
+            }
         }
 
         void ReleaseMapPause()

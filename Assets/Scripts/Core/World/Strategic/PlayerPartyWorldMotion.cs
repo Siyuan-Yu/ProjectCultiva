@@ -351,6 +351,30 @@ namespace XianXia.Core.World.Strategic
             return true;
         }
 
+        /// <summary>
+        /// Phase 5R-B3B：Final Arrival / Site Enter 的 Context-preserving AtSite 提交。
+        /// 与 <see cref="SetAtWorldSite"/>（snap 到 hex center）不同：<b>绝不</b>把
+        /// <see cref="WorldPosition"/> 设为 PresenceHex / AnchorHex / ingress hex center。
+        /// 只改 LocationKind / SiteId / WorldPosition / HasPosition；
+        /// <b>不修改 <see cref="CurrentHex"/></b>（三职责分类留 5R-C）。
+        /// 结束 travel transient（ClearMovementKeepMembers，含 UsesTravelPresentation=false /
+        /// ClearSiteDeparturePending），用于正式进入 Site / 到达收尾（区别于
+        /// <see cref="CommitSiteArrivalAuthority"/> 的 mid-travel 保留 presentation）。
+        /// 调用方必须先确认已有可信 Canonical（HasPosition）——本方法不做来源判断，
+        /// 仅校验 siteId 非空与 worldPosition 非 NaN；无 Canonical 时由调用方决定缺口处理。
+        /// </summary>
+        public bool TrySetAtWorldSitePreservingWorldPosition(string siteId, WorldVec2 worldPosition)
+        {
+            if (string.IsNullOrEmpty(siteId) || float.IsNaN(worldPosition.X) || float.IsNaN(worldPosition.Y))
+                return false;
+            LocationKind = PlayerPartyLocationKind.AtWorldSite;
+            SiteId = siteId;
+            WorldPosition = worldPosition;
+            HasPosition = true;
+            ClearMovementKeepMembers();
+            return true;
+        }
+
         public void SnapToHexCenter(HexCoord hex, float hexSize)
         {
             HexMath.ToWorldPosition(hex, hexSize, out var x, out var y);
