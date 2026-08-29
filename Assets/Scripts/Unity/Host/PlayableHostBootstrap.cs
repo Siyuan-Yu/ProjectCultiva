@@ -95,6 +95,9 @@ namespace XianXia.Unity.Host
         float _autoTickAccumulator;
         string _resolvedContentPath = string.Empty;
         string _status = "Idle";
+        // Phase 5R-B2：NewGame 首次 Site 展开时用 BootstrapFromAuthoredLocal（StartLocation→Canonical），
+        // 之后 Site 展开一律 ProjectCanonicalWorldToLocal。仅 Host 会话 transient，不落盘、不入 motion。
+        bool _siteInitialBootstrapDone;
 
         public PlayableHostSession Session => _session;
 
@@ -1146,8 +1149,42 @@ namespace XianXia.Unity.Host
                     }
                 }
 
+                // Phase 5R-B2：Site Spatial Initialization Handshake —— 识别 ownership 并构造真实 bounds。
+                // NewGame（首次 AtWorldSite 展开）= BootstrapFromAuthoredLocal（StartLocation→Canonical）；
+                // Snapshot restore = LegacyRestoreLocal（snapshot local placement→bootstrap，无则保持默认）；
+                // 其余（Wilderness→Site 进入 / WorldMap 重开 / 新格式 restore）= ProjectCanonicalWorldToLocal。
+                WorldSiteSpatialMapping.WorldSiteLocalMapBounds? siteBounds = null;
+                var siteMode = PlayerPartySiteMaterializeMode.Default;
+                var isSiteExpand = !string.IsNullOrWhiteSpace(world.PartyWorld?.SiteId) &&
+                                   world.PlayerPartyTravel != null &&
+                                   world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite;
+                if (isSiteExpand)
+                {
+                    var walkForSite = ResolveWalkGrid();
+                    if (walkForSite != null)
+                    {
+                        siteBounds = WorldSiteSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
+                            walkForSite.OriginX, walkForSite.OriginY, walkForSite.CellSize,
+                            walkForSite.Width, walkForSite.Height);
+                    }
+
+                    if (LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot)
+                    {
+                        siteMode = PlayerPartySiteMaterializeMode.LegacyRestoreLocal;
+                    }
+                    else if (!_siteInitialBootstrapDone)
+                    {
+                        siteMode = PlayerPartySiteMaterializeMode.BootstrapFromAuthoredLocal;
+                        _siteInitialBootstrapDone = true;
+                    }
+                    else
+                    {
+                        siteMode = PlayerPartySiteMaterializeMode.ProjectCanonicalWorldToLocal;
+                    }
+                }
+
                 PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(
-                    world, _session.PlayerParty.Members, materializeBounds);
+                    world, _session.PlayerParty.Members, materializeBounds, siteBounds, siteMode);
 
                 if (LoadedLocalMapPlacementSnapshotRestore.IsRestoringFromSnapshot)
                 {

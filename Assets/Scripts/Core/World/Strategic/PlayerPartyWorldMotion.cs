@@ -326,6 +326,31 @@ namespace XianXia.Core.World.Strategic
             UsesTravelPresentation = false;
         }
 
+        /// <summary>
+        /// Phase 5R-B2A：Site LocalMap 内移动时仅同步 Canonical WorldPosition 的
+        /// Context-preserving API。仅当当前 <see cref="LocationKind"/> == AtWorldSite 且
+        /// <see cref="SiteId"/> == expectedSiteId 时才允许更新。
+        /// 只改 <see cref="WorldPosition"/> + <see cref="HasPosition"/>；
+        /// 保持 AtWorldSite Context（LocationKind / SiteId 不变）。
+        /// 禁止：SetAtWorldPosition、清 SiteId、ClearMovement、CompleteMove、Snap、
+        /// 改 PartyWorld / Presence / LocalMap / Destination / Segment。
+        /// <b>不修改 <see cref="CurrentHex"/></b>——CurrentHex 仍混合
+        /// CurrentWildernessHex / DerivedSurfaceHex / RouteCommittedHex 三职责，分类留 5R-C；
+        /// Site 内具体 footprint Hex 需要时经
+        /// <see cref="WorldSiteSpatialMapping.TryResolveDerivedFootprintHex"/> 即时派生。
+        /// </summary>
+        /// <summary>返回是否成功更新；失败（非 AtWorldSite 或 SiteId 不匹配）时不改任何状态。</summary>
+        public bool TryUpdateWorldPositionWithinSite(string expectedSiteId, WorldVec2 worldPosition)
+        {
+            if (LocationKind != PlayerPartyLocationKind.AtWorldSite)
+                return false;
+            if (!string.Equals(SiteId, expectedSiteId ?? string.Empty, StringComparison.Ordinal))
+                return false;
+            WorldPosition = worldPosition;
+            HasPosition = true;
+            return true;
+        }
+
         public void SnapToHexCenter(HexCoord hex, float hexSize)
         {
             HexMath.ToWorldPosition(hex, hexSize, out var x, out var y);

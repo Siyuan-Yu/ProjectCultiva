@@ -10,6 +10,23 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
+    /// Phase 5R-B2：Site LocalMap Materialization 初始化 ownership 的 transient 模式。
+    /// 只在 Materialize 调用阶段区分「第一次建立 Canonical WorldPosition」的来源；
+    /// 不落盘、不进入 <see cref="PlayerPartyWorldMotion"/>、不是长期位置真源。
+    /// </summary>
+    public enum PlayerPartySiteMaterializeMode
+    {
+        /// <summary>不改变既有行为（非 Site 展开或调用方未指定）。</summary>
+        Default = 0,
+        /// <summary>NewGame 首次出生在 Site：StartLocation Local → LocalToWorld → 建立真实 Canonical。</summary>
+        BootstrapFromAuthoredLocal = 1,
+        /// <summary>已有可信 Canonical（Wilderness→Site 进入 / WorldMap 重开 / 新格式 save）：World → WorldToLocal。</summary>
+        ProjectCanonicalWorldToLocal = 2,
+        /// <summary>Legacy save 无可信 Canonical：仅当 snapshot 提供 Local placement 时 Local → LocalToWorld 一次性 bootstrap。</summary>
+        LegacyRestoreLocal = 3,
+    }
+
+    /// <summary>
     /// World Position → Resolve LocalMap 之后：把当前 PlayerParty Materialize 到该次 LocalMap 表现。
     /// Site / Wilderness 共用；不创建 Character／Army，不重置 Party Membership／Active。
     /// </summary>
@@ -22,7 +39,7 @@ namespace XianXia.Core.World.Strategic
         public static void MaterializePartyOnResolvedLocalMap(
             SimulationWorld world,
             IReadOnlyList<EntityId> partyMembers) =>
-            MaterializePartyOnResolvedLocalMap(world, partyMembers, null);
+            MaterializePartyOnResolvedLocalMap(world, partyMembers, null, null, PlayerPartySiteMaterializeMode.Default);
 
         /// <param name="wildernessPlayableBounds">
         /// Wilderness 展开时用于 WorldPosition→Local 投影的可玩矩形；Site 展开可省略。
@@ -30,7 +47,21 @@ namespace XianXia.Core.World.Strategic
         public static void MaterializePartyOnResolvedLocalMap(
             SimulationWorld world,
             IReadOnlyList<EntityId> partyMembers,
-            WildernessLocalWorldProjection.WildernessLocalMapBounds? wildernessPlayableBounds)
+            WildernessLocalWorldProjection.WildernessLocalMapBounds? wildernessPlayableBounds) =>
+            MaterializePartyOnResolvedLocalMap(
+                world, partyMembers, wildernessPlayableBounds, null, PlayerPartySiteMaterializeMode.Default);
+
+        /// <param name="siteBounds">
+        /// Phase 5R-B2：Site 展开时由 Data/Unity 调用层从真实 MapLayoutDefinition 构造的
+        /// <see cref="WorldSiteSpatialMapping.WorldSiteLocalMapBounds"/>（Core 不引用 Data 层）。
+        /// </param>
+        /// <param name="siteMode">Phase 5R-B2：Site 初始化 ownership（transient，见 <see cref="PlayerPartySiteMaterializeMode"/>）。</param>
+        public static void MaterializePartyOnResolvedLocalMap(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> partyMembers,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds? wildernessPlayableBounds,
+            WorldSiteSpatialMapping.WorldSiteLocalMapBounds? siteBounds,
+            PlayerPartySiteMaterializeMode siteMode)
         {
             if (world?.LocalMap == null || partyMembers == null || partyMembers.Count == 0)
                 return;
@@ -110,6 +141,43 @@ namespace XianXia.Core.World.Strategic
                 useWildernessProjection = false;
             }
 
+            // Phase 5R-B2：Site Spatial Initialization Handshake（transient，不落盘、不成为长期真源）。
+            // ownership：NewGame = Local→World bootstrap（StartLocation 为准，拒绝 legacy presenceHex 覆盖）；
+            // ExistingCanonical = World→Local（startLocation/default spawn 仅作 fallback）；
+            // LegacyRestore = 仅 snapshot local placement 时 Local→World 一次性 bootstrap（见循环内 i==0）。
+            WorldSite siteCtx = null;
+            var isSiteExpand = !string.IsNullOrWhiteSpace(world.PartyWorld?.SiteId) &&
+                               motion != null &&
+                               motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                               !string.IsNullOrEmpty(motion.SiteId) &&
+                               world.Strategic?.Sites != null &&
+                               world.Strategic.Sites.TryGet(motion.SiteId, out siteCtx) &&
+                               siteCtx != null &&
+                               siteBounds.HasValue && siteBounds.Value.IsValid;
+            if (isSiteExpand)
+            {
+                switch (siteMode)
+                {
+                    case PlayerPartySiteMaterializeMode.BootstrapFromAuthoredLocal:
+                        if (WorldSiteSpatialMapping.TryLocalToWorldSurface(
+                                siteCtx, siteBounds.Value, new WorldVec2(px, pz), hexSize, out var bootstrapped))
+                            motion.TryUpdateWorldPositionWithinSite(motion.SiteId, bootstrapped);
+                        break;
+                    case PlayerPartySiteMaterializeMode.ProjectCanonicalWorldToLocal:
+                        if (motion.HasPosition &&
+                            WorldSiteSpatialMapping.TryWorldSurfaceToLocal(
+                                siteCtx, siteBounds.Value, motion.WorldPosition, hexSize, out var projected))
+                        {
+                            px = projected.X;
+                            pz = projected.Y;
+                            hasStart = false;
+                        }
+                        break;
+                    case PlayerPartySiteMaterializeMode.LegacyRestoreLocal:
+                        break; // per-member：见循环内 i==0 的 snapshot placement bootstrap。
+                }
+            }
+
             for (var i = 0; i < partyMembers.Count; i++)
             {
                 var id = partyMembers[i];
@@ -144,6 +212,19 @@ namespace XianXia.Core.World.Strategic
                         out memberX,
                         out memberZ,
                         out placementSource);
+                }
+
+                // Phase 5R-B2：Legacy save 无可信 Canonical → 仅当 snapshot 提供了 Local placement 时，
+                // 用主控（i==0）的 snapshot local 一次性 Local→World bootstrap Canonical。
+                if (i == 0 && isSiteExpand &&
+                    siteMode == PlayerPartySiteMaterializeMode.LegacyRestoreLocal &&
+                    placementSource ==
+                    LoadedLocalMapPlacementSnapshotRestore.SpawnPlacementSource.SnapshotLocalPlacement &&
+                    WorldSiteSpatialMapping.TryLocalToWorldSurface(
+                        siteCtx, siteBounds.Value, new WorldVec2(memberX, memberZ), hexSize,
+                        out var legacyRestored))
+                {
+                    motion.TryUpdateWorldPositionWithinSite(motion.SiteId, legacyRestored);
                 }
 
                 if (hasStart &&
