@@ -3224,7 +3224,8 @@
             }
           ],
           "localMapId": "base:map_site_guanai",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "transitMode": "Gateway"
         },
         {
           "siteId": "base:site_huangcun",

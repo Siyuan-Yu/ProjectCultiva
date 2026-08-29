@@ -26,6 +26,11 @@ namespace XianXia.Core.World.Strategic
         public HexTravelMode TravelMode { get; private set; } = HexTravelMode.Ground;
         public HexCoord DestinationHex { get; private set; }
         public string DestinationSiteId { get; private set; } = string.Empty;
+        /// <summary>
+        /// Phase 5D: 当前正在处理的 Mandatory Gateway SiteId —— 仅表示「本次旅行当前正在处理的
+        /// 强制中间节点」（单一值），不是完整 Gateway 列表；5D-A 仅占位无调用方，5D-B/D 接入。
+        /// </summary>
+        public string MandatoryWaypointSiteId { get; private set; } = string.Empty;
         public int SegmentIndex { get; private set; }
         public float SegmentProgress { get; private set; }
         public bool HasPosition { get; private set; }
@@ -74,6 +79,7 @@ namespace XianXia.Core.World.Strategic
             ExecutionMode = PlayerPartyTravelExecutionMode.None;
             DestinationHex = CurrentHex;
             DestinationSiteId = string.Empty;
+            MandatoryWaypointSiteId = string.Empty;
             TravelMode = HexTravelMode.Ground;
             ClearSiteDeparturePending();
             UsesTravelPresentation = false;
@@ -256,6 +262,7 @@ namespace XianXia.Core.World.Strategic
             StepTotalTicks = 0;
             DestinationHex = CurrentHex;
             DestinationSiteId = string.Empty;
+            MandatoryWaypointSiteId = string.Empty;
             MovementKind = PlayerPartyMovementKind.Idle;
             ExecutionMode = PlayerPartyTravelExecutionMode.None;
             ClearSiteDeparturePending();
@@ -370,6 +377,7 @@ namespace XianXia.Core.World.Strategic
             ExecutionMode = PlayerPartyTravelExecutionMode.None;
             DestinationHex = CurrentHex;
             DestinationSiteId = string.Empty;
+            MandatoryWaypointSiteId = string.Empty;
             ClearSiteDeparturePending();
             UsesTravelPresentation = false;
         }

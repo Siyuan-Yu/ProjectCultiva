@@ -90,6 +90,7 @@ namespace XianXia.Data.Content
                 PresenceHex = anchor,
                 LocalMapId = src.LocalMapId ?? string.Empty,
                 OwnerFactionId = src.OwnerFactionId ?? string.Empty,
+                TransitMode = ParseTransitMode(src.TransitMode),
             };
 
             if (src.Footprint != null && src.Footprint.Count > 0)
@@ -114,6 +115,14 @@ namespace XianXia.Data.Content
 
             site.EnsurePresenceHexValid();
             WorldSiteRegistrationService.RegisterSiteOnGrid(world, site);
+        }
+
+        static WorldSiteTransitMode ParseTransitMode(string transitMode)
+        {
+            if (!string.IsNullOrWhiteSpace(transitMode) &&
+                string.Equals(transitMode.Trim(), "Gateway", StringComparison.OrdinalIgnoreCase))
+                return WorldSiteTransitMode.Gateway;
+            return WorldSiteTransitMode.None;
         }
 
         static HexTerrainType ParseTerrain(string terrain)

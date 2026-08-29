@@ -122,7 +122,7 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> HexWorldSiteFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "siteId", "displayName", "siteType", "anchorQ", "anchorR", "presenceQ", "presenceR", "footprint",
-            "localMapId", "ownerFactionId"
+            "localMapId", "ownerFactionId", "transitMode"
         };
 
         public static readonly HashSet<string> QuestFields = new HashSet<string>(StringComparer.Ordinal)

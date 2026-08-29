@@ -93,11 +93,19 @@ namespace XianXia.Core.World.Strategic
                 world.Strategic.Sites.TryGet(startSiteId, out var fromSite) &&
                 fromSite != null)
             {
+                // Phase 5D: 非目标 Site footprint 不可作为中转（与 PlayerParty 同一 policy）。
+                // 出发 Site 自身 footprint 是 departure 段合法路径（内部 → 边界），先移除。
+                var blockedSiteHexes = WorldSiteTransitPolicy.BuildBlockedFootprintHexes(
+                    world, destinationSiteId, allowedTransitSiteIds: null);
+                foreach (var hex in fromSite.EnumerateFootprintHexes())
+                    blockedSiteHexes.Remove(hex);
+
                 if (!TryBuildPathLeavingSite(
                         world,
                         fromSite,
                         startHex,
                         goalHex,
+                        blockedSiteHexes,
                         FullPathScratch,
                         out var exitHex,
                         out var departureFootprintHex))
@@ -143,7 +151,16 @@ namespace XianXia.Core.World.Strategic
                 return Result.Success();
             }
 
-            if (!HexPathfinder.TryFindPath(world.HexWorld, startHex, goalHex, FullPathScratch) ||
+            // Phase 5D: 与 PlayerParty 同一 WorldSite Transit Policy —— 普通非目标 Site 的
+            // footprint 不可作为中转格（避免 Army 把城镇当平原直穿）。
+            if (!HexPathfinder.TryFindPath(
+                    world.HexWorld,
+                    startHex,
+                    goalHex,
+                    FullPathScratch,
+                    HexTravelMode.Ground,
+                    WorldSiteTransitPolicy.BuildBlockedFootprintHexes(
+                        world, destinationSiteId, allowedTransitSiteIds: null)) ||
                 FullPathScratch.Count < 1)
                 return Result.Failure(ErrorCode.InvalidOperation, "No hex path to destination.");
 
@@ -412,6 +429,7 @@ namespace XianXia.Core.World.Strategic
             WorldSite site,
             HexCoord startHex,
             HexCoord goalHex,
+            IReadOnlyCollection<HexCoord> blocked,
             List<HexCoord> into,
             out HexCoord exitHex,
             out HexCoord departureFootprintHex)
@@ -430,7 +448,9 @@ namespace XianXia.Core.World.Strategic
 
             PathScratch.Clear();
             if (!startHex.Equals(departureFootprintHex) &&
-                HexPathfinder.TryFindPath(world.HexWorld, startHex, departureFootprintHex, PathScratch) &&
+                HexPathfinder.TryFindPath(
+                    world.HexWorld, startHex, departureFootprintHex, PathScratch,
+                    HexTravelMode.Ground, blocked) &&
                 PathScratch.Count >= 1)
             {
                 for (var i = 0; i < PathScratch.Count; i++)
@@ -454,7 +474,9 @@ namespace XianXia.Core.World.Strategic
                 return into.Count >= 2;
 
             PathScratch.Clear();
-            if (!HexPathfinder.TryFindPath(world.HexWorld, exitHex, goalHex, PathScratch) ||
+            if (!HexPathfinder.TryFindPath(
+                    world.HexWorld, exitHex, goalHex, PathScratch,
+                    HexTravelMode.Ground, blocked) ||
                 PathScratch.Count < 1)
                 return false;
 

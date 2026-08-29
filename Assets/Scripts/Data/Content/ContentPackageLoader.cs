@@ -1574,6 +1574,7 @@ namespace XianXia.Data.Content
                         AnchorR = ReadInt(sNode, "anchorR", 0),
                         LocalMapId = sNode.GetString("localMapId", string.Empty),
                         OwnerFactionId = sNode.GetString("ownerFactionId", string.Empty),
+                        TransitMode = sNode.GetString("transitMode", "None"),
                     };
                     if (sNode.TryGetProperty("presenceQ", out var pqNode) &&
                         sNode.TryGetProperty("presenceR", out var prNode) &&

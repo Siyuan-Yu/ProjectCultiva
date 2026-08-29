@@ -251,31 +251,15 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 收集“非本次目的地”的所有 WorldSite footprint 格：它们不可作为普通中转 Hex。
-        /// 目标 Site（destinationSiteId）保留 —— 允许路线到达其正式 ingress 邻接（footprint 内
-        /// 最近可达格）；其余 Site 全部阻塞。destinationSiteId 为空时阻塞所有 Site。
+        /// Phase 5D: 委托共享 <see cref="WorldSiteTransitPolicy"/> —— 非目标 Site footprint
+        /// 不可作为普通中转 Hex；目标 Site 保留（允许到 ingress）。5D-A 阶段无 Gateway route
+        /// selection，allowedTransitSiteIds 为空 —— 除目标外全部 blocked（与 5C 封板一致）。
         /// </summary>
         static HashSet<HexCoord> BuildNonDestinationSiteBlockedHexes(
             SimulationWorld world,
-            string destinationSiteId)
-        {
-            var blocked = new HashSet<HexCoord>();
-            if (world?.Strategic?.Sites == null)
-                return blocked;
-
-            foreach (var kv in world.Strategic.Sites.Sites)
-            {
-                if (string.Equals(kv.Key, destinationSiteId, StringComparison.Ordinal))
-                    continue; // 目标 Site：允许到 ingress，不阻塞。
-                var site = kv.Value;
-                if (site == null)
-                    continue;
-                foreach (var hex in site.EnumerateFootprintHexes())
-                    blocked.Add(hex);
-            }
-
-            return blocked;
-        }
+            string destinationSiteId) =>
+            WorldSiteTransitPolicy.BuildBlockedFootprintHexes(
+                world, destinationSiteId, allowedTransitSiteIds: null);
 
         static WorldVec2 HexCenter(HexCoord hex, float hexSize)
         {

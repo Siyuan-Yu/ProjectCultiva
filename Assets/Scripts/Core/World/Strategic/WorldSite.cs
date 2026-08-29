@@ -6,6 +6,16 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
+    /// Phase 5D: WorldSite 战略 Transit 属性。默认 None（普通地点）；
+    /// 只有明确配置的关隘 / 渡口 / 山口等才是 Gateway。禁止按名字猜。
+    /// </summary>
+    public enum WorldSiteTransitMode
+    {
+        None = 0,
+        Gateway = 1,
+    }
+
+    /// <summary>
     /// 战略世界地点（城镇、宗门、遗迹等）。Hex 才是空间基础单位；
     /// <see cref="AnchorHex"/> 仅用于 UI / 镜头 / LocalMap 入口。
     /// </summary>
@@ -19,6 +29,9 @@ namespace XianXia.Core.World.Strategic
         public string SiteType { get; set; } = string.Empty;
         public string OwnerFactionId { get; set; } = string.Empty;
         public string LocalMapId { get; set; } = string.Empty;
+
+        /// <summary>Phase 5D: 战略 Transit 属性（None / Gateway）。默认 None。</summary>
+        public WorldSiteTransitMode TransitMode { get; set; } = WorldSiteTransitMode.None;
 
         public HexCoord AnchorHex { get; set; }
 
