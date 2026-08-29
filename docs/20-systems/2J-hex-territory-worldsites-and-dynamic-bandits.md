@@ -5,7 +5,7 @@
 > 关联：`2A`、`24`、`26`、`28`、`03-glossary`、`ADR-0024`、`ADR-0025`、[`155`](../40-process/155-hex-strategic-worldmap-migration-2026-08-23.md)、[`158`](../40-process/158-hex-world-content-authoring-pipeline-2026-08-23.md)  
 > 被引用：`03-glossary.md`、`41-roadmap`  
 > **本页是 Pure Hex 战略空间下 Territory / WorldSite Footprint / Dynamic Site 的正式设计真源。**  
-> **PresenceHex（Character 位于 Multi-Hex Site 时的世界位置代理）见 [2K](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) §6；本页 Footprint／Anchor 规则不推翻。**  
+> **PresenceHex 已由 [ADR-0027](../40-process/43-decisions/ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md) 改为 Derived（CanonicalWorldSurfacePosition → WorldToHex）；见 [2K §6](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。本页 Footprint／Anchor 占地规则不推翻。**  
 > **本阶段不写实现代码、不改 JSON、不做技术审计。**
 
 ---
@@ -277,6 +277,8 @@ Bandit Camp 被摧毁 **≠** 立刻删除 Bandit Faction。
 第一版 **不做** 东门 / 西门不同 SpawnPoint。  
 以后若 EntryHex 只影响 LocalMap 出生点，仍然 **不会** 产生不同 LocalMap。
 
+> **ADR-0027 supersede：** 5D-B2a 起，进入**目标 Site** 时按真实来向选择 footprint 入口 Hex（ingress 位置随方向，不再无条件 Anchor）。仍不产生不同 LocalMap 实例；EntryHex 影响 ingress 落点与出生位置。
+
 ### 5.6 AnchorHex 的正式职责
 
 Multi-Hex WorldSite 仍可有 **AnchorHex**，主要用于：
@@ -284,12 +286,15 @@ Multi-Hex WorldSite 仍可有 **AnchorHex**，主要用于：
 - Site 图标中心、DisplayName 放置
 - 编辑器定位、摄像机 Focus、默认视觉中心
 
-**AnchorHex 不是**「Army／Character 是否在这个 Site」的唯一判断条件。
+**AnchorHex 不是**「Army／Character 是否在这个 Site」的唯一判断条件。  
+**禁止** 用 AnchorHex 作为 PlayerParty AtSite 时的 World Position（ADR-0027 #5）；仅保留 Site 图标／标签／编辑器参考点／默认镜头焦点职责。
 
 ### 5.6.1 PresenceHex（2026-08-25，见 2K）
 
 Character 位于该 Site 的 **LocalMap** 时，HexWorld 层统一视为位于固定 **PresenceHex**（必须 ∈ Footprint；可与 Anchor 相同或不同）。  
 Runtime **不**根据 LocalMap 内坐标动态归属 A/B/C/D。Authoring／Editor 编辑 Deferred。产品真源：[2K §6](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。
+
+> **ADR-0027 SUPERSEDED：** PresenceHex 不再是固定 Authoring 值；改为 **DerivedPresenceHex**（`LocalPosition → WorldSiteSpatialMapping → CanonicalWorldSurfacePosition → WorldToHex`），仅查询/cache。本条保留历史描述。
 
 ### 5.7 Footprint 必须显式保存
 
@@ -314,6 +319,8 @@ Fixed Multi-Hex Site 的 `FootprintHexes` **必须** 是一片连续 Hex。
 大型城市占 6 Hex **并不意味着** Army 不能经过这些 Hex。Footprint 只表示战略地点范围；Army 仍可进入、驻留、穿过。
 
 未来城墙、城门、围城、关隘封锁影响移动，应由 **Passability / Siege / Gate** 等系统实现。**不要** 让 WorldSite Footprint 自己承担阻挡职责。
+
+> **World Travel 路由例外（5D-A 起，ADR-0027 #8）：** 在 PlayerParty / FormalArmy 的**世界旅行寻路路由**层，所有**非目标** WorldSite footprint 默认 **blocked**（不可当普通道路穿过）；目标 Site 可到达。若 A→B 因某 Site 阻断，由 **Dynamic MandatoryTransitSite**（反事实 permeability probe，逐 Site 临时移除 footprint 验证 A→B 连通且 ProbePath 真实经过该 Site）动态识别该 Site 为本次路线的必经点 —— 必经点是路径中的**动态关系**，不是 Site 固有属性。本条「可穿过」对 Army 战略存在语义（驻留／进入／穿过 Site 归属）保留，不覆盖旅行路由 blocked。
 
 ### 5.11 同一 Multi-Hex Site 内的 Army
 

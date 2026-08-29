@@ -1,5 +1,7 @@
 # Phase 2D：Background Character World Travel Core（2026-08-26 → 封板 2026-08-27）
 
+> **⚠️ 2026-08-30 · 「WorldMap 投影 = PresenceHex」表述被 [ADR-0027](43-decisions/ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md) SUPERSEDED（改 CanonicalWorldSurfacePosition 派生）。本页 Background Travel 契约保持。**
+
 > 状态：**人工验收封板**｜最后更新：2026-08-27  
 > 产品契约真源：[2K §5 Background Character](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)  
 > **人工验收 Scene（唯一）：** `Assets/Scenes/LevelTester.unity`（复用 `PlayableHostBootstrap`）

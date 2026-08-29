@@ -1,5 +1,7 @@
 # 160 — Hex WorldSite 准入/人口、Ch01 全 Site LocalMap 与 Manual Battle 可见性（2026-08-24）
 
+> **⚠️ 2026-08-30 · 进入 WorldSite 的空间模型部分被 [ADR-0027](../../40-process/43-decisions/ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md) SUPERSEDED（ingress 按来向 footprint 格 + Spatial Mapping；不再无条件 Anchor）。本页准入/人口链路结论保持。**
+
 > **飞书同步：** 本轮 **未** 同步（制作人要求先本地 commit + 文档）。
 
 ## 背景

@@ -1,5 +1,7 @@
 # Phase 2C：Surface Edge Transition 与 Canonical Exit Trigger Zone（2026-08-26）
 
+> **⚠️ 2026-08-30 · 「未改契约边界：…PresenceHex / WorldSite Aggregation」部分被 [ADR-0027](43-decisions/ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md) SUPERSEDED（Site 内改为 Spatial Mapping + DerivedPresenceHex）。本页 Exit Trigger Zone 几何规则保持。**
+
 > 状态：**Phase 2C 已人工验收封板（2026-08-26，含 Follower LocalMap Transition Bugfix）**｜最后更新：2026-08-26  
 > 产品契约真源：[2K §5.8](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)／[ADR-0026 #12](43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)  
 > **不写飞书同步**；本文件记录 Runtime／Presentation 落地要点。

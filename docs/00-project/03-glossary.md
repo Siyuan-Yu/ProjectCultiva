@@ -114,14 +114,14 @@
 | 跟随者 | Follower | PlayerParty 内非 Active 成员；AI 控制 | Follow ≡ 加入 PlayerParty |
 | 后台角色 | Background Character | 非 Party、非 FormalArmy 的我方角色 | 可后台旅行／战斗；WorldMap 不常驻头像；无 Capture 权 |
 | 角色方针 | Character Policy | 非 Active 的长期权限／行为倾向（非即时命令） | 如 AllowLeaveFactionTerritory；见 2K |
-| 世界位置代理格 | PresenceHex | Multi-Hex／Aggregated Site 上 Character 位于该 Site LocalMap 时的固定世界 Hex | ⊆ Footprint；≠ AnchorHex；WorldMap 投影真源；见 2K／2J |
+| 派生位置格 | DerivedPresenceHex | `CanonicalWorldSurfacePosition → WorldToHex` 的**派生查询结果**（不落盘为真源；Site 内经 WorldSiteSpatialMapping） | Site Context 内 ∈ Footprint；ADR-0027 |
 | 连续 Hex 世界 | Continuous Hex World | HexWorld=唯一世界拓扑；LocalMap=近景；逻辑连续旅行 | 非必须 Unity 无缝开放世界 |
-| 连续世界坐标 | Continuous WorldPosition | Runtime **位置真源**（连续世界坐标） | `CurrentHex = WorldToHex(...)` 为**派生**；见 2K §5.8 |
+| 连续世界坐标 | CanonicalWorldSurfacePosition | PlayerParty 在连续世界表面的**唯一物理位置真源**（Wilderness 与 WorldSite 内统一） | `DerivedPresenceHex` 为**派生**；`CurrentHex` 为混合语义（PhysicalDerivedHex／RouteCommittedHex／CurrentWildernessHex，5R-C 分类）；LocalPosition 非持久真源；见 2K §5.8／ADR-0027 |
 | 地表出口触发深度 | ExitTriggerDepth | Surface LocalMap 自边界向内的 Exit Trigger 深度（Gameplay） | MapLayout 可配；见 2K §5.8.7／164 |
 | 地表出口触发区 | Surface Exit Trigger Zone | 可触发 Hex／Site 边缘过渡的固定几何 ∩ 运行时合法性 | Geometry 固定；Availability 可变；见 2K §5.8.7 |
 | 世界定位 | WorldLocation | `AtWorldSite{SiteId}` \| `AtWorldPosition{ContinuousPosition}` | 与 MovementState 分离；Party 共用一个 |
 | 移动状态 | MovementState | `Idle` \| `AutoTravel` | 与 WorldLocation 正交；见 2K §5.8 |
-| 聚合地点定位 | Aggregated WorldSite Location | 全体 WorldSite（1-Hex／Multi）在站内只改 LocalPosition；WorldMap 投影=PresenceHex | 禁止按 Local 坐标投影到 Footprint 其他格 |
+| 地点定位 | WorldSite Location Context | 全体 WorldSite（1-Hex／Multi）站内 = `AtSite(SiteId)`；WorldMap 投影 = **CanonicalWorldSurfacePosition**（SiteSpatialMapping 派生，不跳 Anchor） | ADR-0027 取代旧 Aggregated 固定 PresenceHex 投影 |
 | 精确世界目的地 | PreciseWorldDestination | ~~WorldMap 点击像素／精确连续坐标作命令目标~~ | **FORBIDDEN（永久）**；WorldMap 命令精度仅 Hex／WorldSite |
 | 世界存在 | World Presence | Character／Party／Army 在 HexWorld 上的存在状态 | Party／Background／Army 分层 |
 | 自动旅行 | Auto Travel | WorldMap 选 **Hex／WorldSite** 后进入 `MovementState.AutoTravel`；以 Continuous WorldPosition 真实移动（非传送） | Phase 2C 契约（Party）；见 2K §5.8 |
@@ -223,7 +223,7 @@
 | Hex 领土 | Hex Territory | 单个 Hex 当前由哪个 **正式 Territorial Faction** 政治控制 | `ControlFactionId` = Faction 或 None；见 2J §6 |
 | 辖区 | TerritoryRegion | 一组 Hex 的地图组织单元；绑定 Primary WorldSite | 不是第二套政治真源；Runtime 读固化 `Hexes[]` |
 | 地点足迹 | WorldSite Footprint | WorldSite 在战略地图上占用的 Hex 集合 | `FootprintHexes[]`；与 Territory 严格分离 |
-| 锚点 Hex | AnchorHex | Multi-Hex Site 的图标／名称／编辑器视觉中心 | ≠ PresenceHex；进入用 Footprint.Contains |
+| 锚点 Hex | AnchorHex | Multi-Hex Site 的图标／名称／编辑器参考点／默认镜头焦点 | 禁止作为 PlayerParty AtSite 的实际位置（ADR-0027）；进入用 Footprint.Contains |
 | 固定地点 | Fixed WorldSite | 来自 World Content JSON、开局位置固定的 WorldSite | Capture 改 Owner；不因战斗删除 |
 | 动态地点 | Dynamic WorldSite | Runtime 生成、可永久摧毁的 WorldSite Instance | 第一版主要用于山贼寨 |
 | 山贼寨 | Bandit Camp | Footprint **永远 1 Hex** 的动态 WorldSite | 每寨独立 Bandit Faction；见 2J §4 |

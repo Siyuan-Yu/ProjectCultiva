@@ -208,8 +208,8 @@ PlayerParty 选 **Hex 或 WorldSite** 目标 → 进入 `MovementState.AutoTrave
 ## 5.8 Continuous World Movement（Phase 2C 正式契约）
 
 > **本小节 = Continuous World Movement 的正式产品真源。**  
-> Phase **2B 已封板**；Phase **2C 契约锁定于 2026-08-26**。  
-> **只锁规则；不写 Runtime C#。** PresenceHex／PlayerParty／FormalArmy 边界（§6／§7）继续有效，本小节不推翻。
+> Phase **2B 已封板**；Phase **2C 契约锁定于 2026-08-26**；Phase **5R 契约锁定于 2026-08-30（[ADR-0027](../40-process/43-decisions/ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md)）**。  
+> **只锁规则；不写 Runtime C#。** §5.8.3／§5.8.5／§6 由 **ADR-0027** 扩展：Canonical World Surface Position 统一真源（Wilderness 与 WorldSite 内）、WorldSiteSpatialMapping、PresenceHex 改 derived。§7 PlayerParty／Background／Army 边界继续有效。
 
 ### 5.8.1 三层职责（不可逆）
 
@@ -236,13 +236,17 @@ Hex  |  WorldSite
 
 WorldMap 选格／选 Site → 系统换算为合法 `WorldLocation` 目标；**不得**把点击位置当作 Runtime 目的地真源。
 
-### 5.8.3 Runtime 真源：Continuous WorldPosition
+### 5.8.3 Runtime 真源：Canonical World Surface Position（ADR-0027）
+
+> 5R 正式名：**CanonicalWorldSurfacePosition**（= 本节原 Continuous WorldPosition 唯一真源语义，扩展到 WorldSite 内，见 [ADR-0027](../40-process/43-decisions/ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md)）。
 
 | 概念 | 规则 |
 |------|------|
-| **Continuous WorldPosition** | Runtime **位置真源**（连续世界坐标） |
-| **CurrentHex** | **派生量**：`CurrentHex = WorldToHex(ContinuousWorldPosition)` |
-| 禁止 | 以离散 CurrentHex 为唯一真源再「猜」连续位置（普通／荒野连续态） |
+| **CanonicalWorldSurfacePosition** | PlayerParty 在整个连续世界表面（Wilderness 与 WorldSite 内）的**唯一物理位置真源** |
+| **LocalPosition** | **非持久真源（5R-0.1 修正 #1）**：LocalMap execution/presentation coordinate，由 `EntityView.transform.position`／`EntityLocationComponent.PresentationOverrideX/Z`／`LoadedLocalMapPlacementSnapshotRestore` 承担；LocalMap 可见时经 `WorldSiteSpatialMapping.LocalToWorld` 更新 `motion.WorldPosition`，不在 motion 持久化 |
+| **CurrentHex** | **混合语义，禁止立即删除/全局替换（5R-0.1 修正 #3）**：① `PhysicalDerivedHex = WorldToHex(WorldPosition)`；② `RouteCommittedHex = HexPath[SegmentIndex]`（Travel 正式提交格）；③ `CurrentWildernessHex = 当前 Wilderness LocalMap/Surface Context`。Hex 边界附近 ①② 可暂时不同（Phase 5C takeover 分叉即证据）；先审计调用点分类（5R-C），再逐步退役 |
+| **DerivedPresenceHex** | **派生量（staged deprecation，5R-0.1 修正 #4）**：Site 内 = `LocalPosition → WorldSiteSpatialMapping → CanonicalWorldSurfacePosition → WorldToHex`；Site 外 = DerivedSurfaceHex。只作查询/cache，不落盘为真源；字段级 PresenceHex 保留为 Legacy Compatibility Representative Hex（等价 AnchorHex），逐系统迁移后删除 |
+| 禁止 | 以离散 CurrentHex 为唯一真源再「猜」连续位置；多个可独立漂移的位置字段并存争夺真源；AtSite 时跳 Anchor／PresenceHex／ingress center（修正 #5） |
 
 ### 5.8.4 WorldLocation vs MovementState（分离）
 
@@ -265,17 +269,19 @@ MovementState =
 
 二者正交：例如 `AtWorldPosition + AutoTravel`、`AtWorldSite + Idle`。
 
-### 5.8.5 Aggregated WorldSite（全体 Site）
+### 5.8.5 WorldSite：AtSite Context + Spatial Mapping（ADR-0027 取代旧 Aggregated 固定投影）
 
-**所有 WorldSite**（1-Hex 与 Multi-Hex）均为 **Aggregated**：
+> **旧「Aggregated：LocalMap 只改 LocalPosition；WorldMap 投影恒 = PresenceHex；禁止按 Local 坐标投影」由 [ADR-0027](../40-process/43-decisions/ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md) SUPERSEDED。**
 
 | 规则 | 说明 |
 |------|------|
-| Site 内 LocalMap 移动 | **只**改变 **LocalPosition** |
-| WorldMap 投影 | **永远** = 该 Site 的 **PresenceHex** |
-| 禁止 | 按 LocalMap 内坐标把角色投影到 Footprint 内其他 Hex |
+| 战略 Context | Site 内一律 `AtSite(SiteId)`（Strategic Place，**不覆盖物理位置**） |
+| Site 内 LocalMap 移动 | 改变 **Local transform**（execution/presentation，非持久真源）；经 **WorldSiteSpatialMapping.LocalToWorld** 实时更新 **CanonicalWorldSurfacePosition**（5R-0.1 修正 #1） |
+| WorldMap 投影 | = **CanonicalWorldSurfacePosition**（mapping 后连续位置）；**不跳 Anchor、不固定 PresenceHex**（修正 #7：`DrawPlayerPartyMarker` 只消费 `PlayerPartyWorldLocationQuery.WorldPosition`） |
+| 进入 Site | 连续位置从 Wilderness 映射进入 Site LocalMap，无坐标跳变（Context change 不改变 Physical Position，修正 #5） |
+| 离开 Site | 从当前 Site Local transform 经 mapping 自然确定外部 Hex；不跳 Anchor、不重猜 FootprintHex |
 
-进入 Site 后：`WorldLocation = AtWorldSite{SiteId}`；离站／外出进入连续荒野后改为 `AtWorldPosition`。
+进入 Site 后：`WorldLocation = AtWorldSite{SiteId}`；`CanonicalWorldSurfacePosition` 仍指向 footprint 内对应区域。离站后改为 `AtWorldPosition`（连续）。
 
 ### 5.8.6 普通／荒野 Hex
 
@@ -358,51 +364,58 @@ AutoTravel 中关闭 WorldMap
 | WorldMap 目标 | V1 到达语义 |
 |---------------|-------------|
 | **TargetHex** | 目的地 = 该 **Hex.Center**（连续坐标）；到达后 `WorldLocation = AtWorldPosition{Center}` |
-| **WorldSite** | 进入后 `WorldLocation = AtWorldSite{SiteId}`；WorldMap 投影 = **PresenceHex** |
+| **WorldSite** | 进入后 `WorldLocation = AtWorldSite{SiteId}`；WorldMap 投影 = **CanonicalWorldSurfacePosition（WorldSiteSpatialMapping 派生，非固定 PresenceHex）**；见 ADR-0027 |
 
-路径行进过程中位置真源始终是 Continuous WorldPosition（Site 目标在**完成进入**前可走连续路径；**入站完成**后切 Aggregated）。
+路径行进过程中位置真源始终是 **CanonicalWorldSurfacePosition**（Site 目标在**完成进入**前可走连续路径；**入站完成**后切 **AtSite Context**，物理位置继续由 Spatial Mapping 保持 Canonical，不跳 Anchor；ADR-0027）。
 
 ### 5.8.11 与既有条款的关系
 
 | 条款 | 关系 |
 |------|------|
 | §5.1–5.2 HexWorld／三层 | **保持**；本小节锁定命令精度与连续真源 |
-| §6 PresenceHex | **保持**；Aggregated Site 的 WorldMap 投影真源 |
+| §6 PresenceHex | **ADR-0027 SUPERSEDED 为 derived**（不再是独立真源；WorldMap 投影 = Canonical 位置） |
 | §7 PlayerParty／Background／Army | **保持**；2C 只做 Party 连续旅行 |
 | OLD-06 | **加强**：WorldMap 永不接受像素级世界目的地 |
 
 ---
 
-## 6. Multi-Hex WorldSite 与 PresenceHex
+## 6. Multi-Hex WorldSite、AnchorHex 与 Derived PresenceHex（ADR-0027）
 
-已落地的 Multi-Hex Footprint **不推翻**（见 [2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)）：
+> **旧 §6「固定 PresenceHex 作 WorldMap 投影真源」由 [ADR-0027](../40-process/43-decisions/ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md) SUPERSEDED。** 多 Hex Footprint 本身不推翻（见 [2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)）：
 
 ```text
 1 WorldSiteId · 1 LocalMapId · 1 OwnerFactionId · 1 LocalMap
 Footprint = 世界尺度占地，≠ LocalMap 数量
 ```
 
-### PresenceHex（新增）
-
-每个 Multi-Hex WorldSite 有生成／Authoring 后**固定**的 **PresenceHex**：
+### AnchorHex（职责保留）
 
 | 概念 | 职责 |
 |------|------|
-| **AnchorHex** | 名字、主图标、Presentation 中心 |
-| **PresenceHex** | Character 位于该 Site LocalMap 时的**世界位置代理** |
+| **AnchorHex** | 名字、主图标、编辑器参考点、默认镜头焦点、Site 数据锚点 |
+
+**禁止** 用 AnchorHex 代表 PlayerParty 在 Site 内的实际位置（ADR-0027）。
+
+### Derived PresenceHex（新规则，取代固定 PresenceHex）
+
+| 概念 | 规则 |
+|------|------|
+| **CanonicalWorldSurfacePosition** | PlayerParty 唯一物理位置真源（Site 内 = LocalPosition 经 WorldSiteSpatialMapping 映射） |
+| **DerivedPresenceHex** | 派生量：`LocalPosition → WorldSiteSpatialMapping(normalized u,v → footprint domain) → CanonicalWorldSurfacePosition → WorldToHex`；仅查询返回，不落盘为独立字段 |
+| 缓存 | 若为性能缓存 DerivedPresenceHex，须明确为 cache、可重建，**不能成为 authority** |
 
 规则：
 
 | ID | 规则 |
 |----|------|
-| **PH01** | `FootprintHexes.Contains(PresenceHex)` |
-| **PH02** | Content 固定；Runtime **不**动态按 LocalMap 内坐标重算所属 Hex |
-| **PH03** | Anchor 与 Presence **可同可不同** |
-| **PH04** | WorldGraphEditor 应能编辑／查看 PresenceHex（实现 Deferred） |
+| **PH01（新）** | Site Context 内 `DerivedPresenceHex ∈ Site.FootprintHexes` |
+| **PH02（新）** | Runtime 由 `LocalPosition → WorldSiteSpatialMapping → CanonicalWorldSurfacePosition → WorldToHex` 实时派生（映射数学见 ADR-0027 技术附录：normalized (u,v) → footprint WorldSurface domain，irregular footprint project/clamp），**不**固定为 Authoring 值；不新增 `PlayerPartyWorldMotion.LocalPosition` 持久字段（修正 #1） |
+| **PH03（新）** | Anchor 与 Derived 可同可不同（由派生结果决定，不强制） |
+| **PH04（旧，保留）** | WorldGraphEditor 可查看 AnchorHex（实现 Deferred） |
 
-Character 在「青石镇 LocalMap」时，世界层统一视为 `Character World Hex = Site.PresenceHex`。
+> **Phase 5R：** WorldSite LocalMap 与 footprint 建立稳定连续映射（**WorldSiteSpatialMapping**，设计见 ADR-0027 技术附录）：LocalMap 左上/右下/东/西 分别对应 footprint 左上/右下/东/西区域；多 Hex Site 不强制 Anchor；不使用 fake bounds。
 
-> **Phase 2C：** 全体 WorldSite（含 1-Hex）均为 Aggregated；站内只改 LocalPosition，WorldMap 投影恒为 PresenceHex。见 [§5.8.5](#585-aggregated-worldsite全体-site)。1-Hex Site 的 PresenceHex = 其唯一 Footprint Hex。
+> **Phase 2C 历史：** 旧 Aggregated 规则（站内只改 LocalPosition、WorldMap 投影恒为 PresenceHex）已由 ADR-0027 取代；1-Hex Site 的 DerivedPresenceHex = 其唯一 Footprint Hex。
 
 ---
 
@@ -651,15 +664,16 @@ FormalArmy
  （军事远征；默认 Auto Battle；我方 Site 组／解散）
 
 HexWorld = 唯一世界拓扑
- ├─ WorldSite（Aggregated：LocalPosition + PresenceHex 投影）
- ├─ Wilderness Hex（1 Hex = 1 逻辑 LocalMap；Continuous WorldPosition）
+ ├─ WorldSite（AtSite Context + WorldSiteSpatialMapping；ADR-0027）
+ ├─ Wilderness Hex（1 Hex = 1 逻辑 LocalMap；CanonicalWorldSurfacePosition）
  ├─ PlayerParty：共用 WorldLocation + MovementState（Phase 2C）
  ├─ Background Presence（连续旅行 Deferred）
  └─ FormalArmy Presence（连续位姿 Deferred）
 
-位置真源 = Continuous WorldPosition（普通／荒野）
-         | AtWorldSite（聚合；投影=PresenceHex）
-CurrentHex = WorldToHex(...)（派生）
+位置真源 = CanonicalWorldSurfacePosition（Wilderness 与 WorldSite 内统一）
+         | AtSite(SiteId) = 战略 Context（不覆盖物理位置）
+DerivedPresenceHex = WorldToHex(...)（派生；Site 内经 SpatialMapping）
+CurrentHex = 混合语义（PhysicalDerivedHex / RouteCommittedHex / CurrentWildernessHex），5R-C 分类后退役
 
 LocalMap  = RPG 近景
 WorldMap  = 总览 / AutoTravel UI（命令精度永久=Hex|WorldSite）

@@ -1,5 +1,7 @@
 # 163 — RPG-First 架构审计与代码迁移计划（2026-08-25）
 
+> **⚠️ 2026-08-30 · PresenceHex 相关迁移条目部分被 [ADR-0027](43-decisions/ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md) SUPERSEDED（改 derived，不再作为固定世界位置代理）。** 本页其余审计结论保持。
+
 > **类型：** 文档／架构审计（**禁止改代码**）  
 > **真源：** [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0026](43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)  
 > **基线 HEAD（审计时）：** `0a40a86`（Multi-Hex footprint）之上文档提交  
