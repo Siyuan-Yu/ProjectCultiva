@@ -20,8 +20,8 @@
 - 未改 Marker / Route Preview / Hex Math / WorldLocationQuery
 - 未改 Phase 2C Edge / Wilderness Transition
 - 未动 `ArrivalNoticeService.AfterTravelTick` 等未证明安全的孤儿 API
-- Close 契约不变：AutoTravel 中关 WorldMap → Cancel Travel → Expand LocalMap
+- Close 契约（5A 当时）：AutoTravel 中关 WorldMap → Cancel Travel → Expand LocalMap（**已被 Phase 5B supersede**）
 
 ## 后续 Phase 5（未实现）
 
-Close 保留 Travel、World Advance 暂停、LocalVisible 接管、Executor Authority。
+Phase 5B 已完成 View Takeover（Preserve + LocalVisible）；Executor / Local A* 仍属后续。见 [173](173-phase-5b-worldmap-localmap-travel-view-takeover-2026-08-29.md)。

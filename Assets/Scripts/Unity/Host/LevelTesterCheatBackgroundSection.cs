@@ -7,6 +7,7 @@ using XianXia.Core.World;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
+using XianXia.Core.Exploration;
 namespace XianXia.Unity.Host
 {
     /// <summary>LevelTester Cheat · Background Character travel。</summary>
@@ -229,9 +230,33 @@ namespace XianXia.Unity.Host
             GUIStyle body)
         {
             var motion = world.PlayerPartyTravel;
+            var dest = !string.IsNullOrEmpty(motion.DestinationSiteId)
+                ? motion.DestinationSiteId
+                : motion.DestinationHex.ToString();
+            var localMap = world.PartyWorld?.LocalMapId ?? "-";
+            var localPos = "-";
+            if (party.HasActive &&
+                world.Entities.TryGet(party.ActiveCharacterId, out var ent) &&
+                ent != null &&
+                ent.TryGet<EntityLocationComponent>(out var loc) &&
+                loc != null &&
+                loc.HasPresentationOverride)
+            {
+                localPos = loc.PresentationOverrideX.ToString("F1") + "," +
+                           loc.PresentationOverrideZ.ToString("F1");
+            }
+
             y = DrawLine(x, y, width, lineH, body, "角色", displayName + " [玩家队伍]");
-            y = DrawLine(x, y, width, lineH, body, "Hex", motion.CurrentHex.ToString());
-            y = DrawLine(x, y, width, lineH, body, "旅行", motion.IsMoving ? "移动中" : "空闲");
+            y = DrawLine(x, y, width, lineH, body, "MovementKind", motion.MovementKind.ToString());
+            y = DrawLine(x, y, width, lineH, body, "ExecutionMode", motion.ExecutionMode.ToString());
+            y = DrawLine(x, y, width, lineH, body, "Destination", dest);
+            y = DrawLine(x, y, width, lineH, body, "CurrentHex", motion.CurrentHex.ToString());
+            y = DrawLine(
+                x, y, width, lineH, body, "Segment",
+                motion.SegmentIndex + " / " + motion.SegmentProgress.ToString("F2"));
+            y = DrawLine(x, y, width, lineH, body, "WorldPos", motion.WorldPosition.ToString());
+            y = DrawLine(x, y, width, lineH, body, "LocalMapId", localMap);
+            y = DrawLine(x, y, width, lineH, body, "LocalPos", localPos);
             return y;
         }
 

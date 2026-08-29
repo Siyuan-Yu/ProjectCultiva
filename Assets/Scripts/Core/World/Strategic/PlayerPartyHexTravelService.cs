@@ -283,6 +283,9 @@ namespace XianXia.Core.World.Strategic
                 return;
             if (!world.PlayerPartyTravel.IsMoving)
                 return;
+            // Phase 5B: LocalVisible => World Tick must not advance PlayerParty.
+            if (world.PlayerPartyTravel.ExecutionMode == PlayerPartyTravelExecutionMode.LocalVisible)
+                return;
 
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             AdvanceDistanceBudget(world, WorldUnitsPerTick(hexSize) * ticks);
@@ -294,6 +297,8 @@ namespace XianXia.Core.World.Strategic
             if (world?.PlayerPartyTravel == null || distanceBudget <= 0f)
                 return;
             if (!world.PlayerPartyTravel.IsMoving)
+                return;
+            if (world.PlayerPartyTravel.ExecutionMode == PlayerPartyTravelExecutionMode.LocalVisible)
                 return;
 
             var motion = world.PlayerPartyTravel;
@@ -580,12 +585,26 @@ namespace XianXia.Core.World.Strategic
 
         public static Result EnterLocalViewAtCurrentHex(
             SimulationWorld world,
-            PlayerPartyRuntime party)
+            PlayerPartyRuntime party) =>
+            EnterLocalViewAtCurrentHex(world, party, allowWhileTraveling: false);
+
+        /// <param name="allowWhileTraveling">
+        /// Phase 5B: Close WorldMap Preserve Travel — Mid-Segment enter without Cancel/Snap.
+        /// </param>
+        public static Result EnterLocalViewAtCurrentHex(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            bool allowWhileTraveling)
         {
             if (world == null || party == null || !party.HasActive)
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid party enter args.");
-            if (world.PlayerPartyTravel != null && world.PlayerPartyTravel.IsMoving)
+
+            var moving = world.PlayerPartyTravel != null && world.PlayerPartyTravel.IsMoving;
+            if (moving && !allowWhileTraveling)
                 return Result.Failure(ErrorCode.InvalidOperation, "Stop travel before entering local view.");
+
+            if (moving && allowWhileTraveling)
+                return EnterLocalViewPreservingAutoTravel(world, party);
 
             if (!PlayerPartyWorldLocationQuery.TryResolve(world, party, out var resolved))
                 return Result.Failure(ErrorCode.InvalidOperation, "PlayerParty has no world location.");
@@ -627,6 +646,32 @@ namespace XianXia.Core.World.Strategic
             return WorldTravelService.EnterWildernessLocalMap(world, hex, mapId);
         }
 
+        /// <summary>
+        /// Phase 5B Mid-Segment Takeover: keep AutoTravel fields; expand Wilderness LocalMap at continuous position.
+        /// Forbids Cancel / CompleteMove / Snap / BeginTravel / SetAtWorldSite (clears path).
+        /// </summary>
+        static Result EnterLocalViewPreservingAutoTravel(
+            SimulationWorld world,
+            PlayerPartyRuntime party)
+        {
+            var motion = world.PlayerPartyTravel;
+            if (motion == null || !motion.IsMoving)
+                return Result.Failure(ErrorCode.InvalidOperation, "Preserve enter requires AutoTravel.");
+
+            world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
+            // Align Presence to derived hex only; never Snap / EnsureMotionHasContinuousStart.
+            ApplyTravelingMembersPresence(world);
+
+            var hex = motion.CurrentHex;
+            if (!WildernessLocalMapFallback.TryResolve(world, hex, out var mapId) ||
+                string.IsNullOrEmpty(mapId))
+                return Result.Failure(ErrorCode.InvalidOperation, "No wilderness fallback LocalMap for hex.");
+
+            PlayerPartyWorldLocationDebug.LogTransition(
+                world, party, "EnterLocalView.PreserveAutoTravel");
+            return WorldTravelService.EnterWildernessLocalMap(world, hex, mapId);
+        }
+
         public static Result EnterWorldSiteAsParty(
             SimulationWorld world,
             PlayerPartyRuntime party,
@@ -643,7 +688,11 @@ namespace XianXia.Core.World.Strategic
             return WorldTravelService.EnterWorldSiteScene(world, site.SiteId, string.Empty);
         }
 
-        /// <summary>关闭 WorldMap／中断 AutoTravel：保留连续位置并解析近景。</summary>
+        /// <summary>
+        /// Close WorldMap → local view takeover.
+        /// Idle: same as Phase 2C (Enter Local).
+        /// AutoTravel (Phase 5B): Preserve Travel + ExecutionMode=LocalVisible; do not Cancel.
+        /// </summary>
         public static Result CloseWorldMapTakeover(
             SimulationWorld world,
             PlayerPartyRuntime party)
@@ -652,10 +701,32 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid takeover args.");
 
             if (world.PlayerPartyTravel != null && world.PlayerPartyTravel.IsMoving)
-                CancelTravel(world, party);
+            {
+                world.PlayerPartyTravel.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
+                PlayerPartyWorldLocationDebug.LogTransition(
+                    world, party, "CloseWorldMapTakeover.PreserveAutoTravel");
+                return EnterLocalViewAtCurrentHex(world, party, allowWhileTraveling: true);
+            }
 
             PlayerPartyWorldLocationDebug.LogTransition(world, party, "CloseWorldMapTakeover");
             return EnterLocalViewAtCurrentHex(world, party);
+        }
+
+        /// <summary>
+        /// Re-open WorldMap: LocalVisible → World; Path / Progress / WorldPosition unchanged.
+        /// </summary>
+        public static void ResumeWorldTravelExecutionIfNeeded(SimulationWorld world)
+        {
+            var motion = world?.PlayerPartyTravel;
+            if (motion == null)
+                return;
+            if (motion.ExecutionMode != PlayerPartyTravelExecutionMode.LocalVisible)
+                return;
+
+            motion.SetExecutionMode(
+                motion.IsMoving
+                    ? PlayerPartyTravelExecutionMode.World
+                    : PlayerPartyTravelExecutionMode.None);
         }
 
         /// <summary>
@@ -687,6 +758,12 @@ namespace XianXia.Core.World.Strategic
         static void EnsureMotionHasContinuousStart(SimulationWorld world, HexCoord startHex)
         {
             var motion = world.PlayerPartyTravel;
+            if (motion == null)
+                return;
+            // Phase 5B: Mid-Segment / in-flight AutoTravel must not Snap or SetAtWorldSite.
+            if (motion.IsMoving)
+                return;
+
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite)
             {

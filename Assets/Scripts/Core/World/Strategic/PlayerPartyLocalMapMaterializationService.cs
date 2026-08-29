@@ -52,17 +52,26 @@ namespace XianXia.Core.World.Strategic
             var pz = hasStart ? startLoc.PresentationZ : 0f;
 
             var motion = world.PlayerPartyTravel;
-            var useWildernessProjection = IsWildernessLocalExpand(world) &&
-                                          motion != null &&
-                                          motion.HasPosition &&
-                                          motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
-                                          wildernessPlayableBounds.HasValue;
             var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
                 ? world.HexWorld.HexSize
                 : 1f;
+            // Phase 5B Mid-Segment LocalVisible: project continuous presentation (incl. site-departure).
+            // Idle materialize keeps AtWorldPosition-only rule.
+            var midTravelLocalVisible = motion != null &&
+                                        motion.IsMoving &&
+                                        motion.ExecutionMode == PlayerPartyTravelExecutionMode.LocalVisible;
+            var useWildernessProjection = IsWildernessLocalExpand(world) &&
+                                          motion != null &&
+                                          motion.HasPosition &&
+                                          wildernessPlayableBounds.HasValue &&
+                                          (motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition ||
+                                           midTravelLocalVisible);
+            var projectWorld = motion != null && motion.IsMoving
+                ? motion.ResolveTravelPresentationWorld(hexSize)
+                : (motion != null ? motion.WorldPosition : default);
             if (useWildernessProjection &&
                 WildernessLocalWorldProjection.TryProjectWorldToLocal(
-                    motion.WorldPosition,
+                    projectWorld,
                     wildernessPlayableBounds.Value,
                     hexSize,
                     out var activeLocalX,

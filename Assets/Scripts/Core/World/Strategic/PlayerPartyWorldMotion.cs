@@ -18,6 +18,9 @@ namespace XianXia.Core.World.Strategic
 
         public PlayerPartyLocationKind LocationKind { get; private set; } = PlayerPartyLocationKind.AtWorldSite;
         public PlayerPartyMovementKind MovementKind { get; private set; } = PlayerPartyMovementKind.Idle;
+        /// <summary>Phase 5B：谁推进 AutoTravel；不复制 Path/Progress/Position。</summary>
+        public PlayerPartyTravelExecutionMode ExecutionMode { get; private set; } =
+            PlayerPartyTravelExecutionMode.None;
         public string SiteId { get; private set; } = string.Empty;
         public WorldVec2 WorldPosition { get; private set; }
         public HexTravelMode TravelMode { get; private set; } = HexTravelMode.Ground;
@@ -68,12 +71,16 @@ namespace XianXia.Core.World.Strategic
             StepRemainingTicks = 0;
             StepTotalTicks = 0;
             MovementKind = PlayerPartyMovementKind.Idle;
+            ExecutionMode = PlayerPartyTravelExecutionMode.None;
             DestinationHex = CurrentHex;
             DestinationSiteId = string.Empty;
             TravelMode = HexTravelMode.Ground;
             ClearSiteDeparturePending();
             UsesTravelPresentation = false;
         }
+
+        public void SetExecutionMode(PlayerPartyTravelExecutionMode mode) =>
+            ExecutionMode = mode;
 
         public void ClearSiteDeparturePending()
         {
@@ -208,6 +215,7 @@ namespace XianXia.Core.World.Strategic
             // Phase 2C：path[0]==CurrentHex 且 off-center 时，段 0 从 live WorldPosition 出发（TryGetActiveSegmentWorld），不在此 snap。
 
             MovementKind = PlayerPartyMovementKind.AutoTravel;
+            ExecutionMode = PlayerPartyTravelExecutionMode.World;
             StepTotalTicks = Math.Max(4, 8);
             StepRemainingTicks = StepTotalTicks;
         }
@@ -249,6 +257,7 @@ namespace XianXia.Core.World.Strategic
             DestinationHex = CurrentHex;
             DestinationSiteId = string.Empty;
             MovementKind = PlayerPartyMovementKind.Idle;
+            ExecutionMode = PlayerPartyTravelExecutionMode.None;
             ClearSiteDeparturePending();
             UsesTravelPresentation = false;
         }
@@ -347,6 +356,7 @@ namespace XianXia.Core.World.Strategic
             StepRemainingTicks = 0;
             StepTotalTicks = 0;
             MovementKind = PlayerPartyMovementKind.Idle;
+            ExecutionMode = PlayerPartyTravelExecutionMode.None;
             DestinationHex = CurrentHex;
             DestinationSiteId = string.Empty;
             ClearSiteDeparturePending();

@@ -239,6 +239,8 @@ namespace XianXia.Unity.Host
             if (bootstrap?.Session != null && bootstrap.Session.IsInitialized)
             {
                 var world = bootstrap.Session.World;
+                // Phase 5B: LocalVisible -> World; Path/Progress/WorldPosition unchanged.
+                PlayerPartyHexTravelService.ResumeWorldTravelExecutionIfNeeded(world);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 FormalArmyStrategicMutationDiagnostics.BindPresentationWorld(world);
 #endif
@@ -355,8 +357,8 @@ namespace XianXia.Unity.Host
             if (!needExpand)
                 return;
 
-            // Phase 5A: Host delegates Cancel+EnterLocal to existing Core CloseWorldMapTakeover.
-            // Same behavior as before; ExpandLocalMap stays Host-side.
+            // Phase 5B: CloseWorldMapTakeover preserves AutoTravel (LocalVisible); Idle EnterLocal.
+            // ExpandLocalMap stays Host-side.
             var enter = PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party);
             if (enter.IsSuccess && bootstrap != null)
                 bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);

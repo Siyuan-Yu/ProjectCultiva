@@ -15,4 +15,18 @@ namespace XianXia.Core.World.Strategic
         Idle = 0,
         AutoTravel = 1,
     }
+
+    /// <summary>
+    /// 当前由谁推进 PlayerParty AutoTravel（Phase 5B View Takeover）。
+    /// 不保存第二份 Path / Progress / WorldPosition——那些仍在 PlayerPartyWorldMotion。
+    /// </summary>
+    public enum PlayerPartyTravelExecutionMode
+    {
+        /// <summary>无进行中的 AutoTravel 执行权（Idle）。</summary>
+        None = 0,
+        /// <summary>World Tick：StrategicTravelDriver / AdvanceDistanceBudget 可推进。</summary>
+        World = 1,
+        /// <summary>近景可见：World Advance 必须跳过该 PlayerParty。</summary>
+        LocalVisible = 2,
+    }
 }
