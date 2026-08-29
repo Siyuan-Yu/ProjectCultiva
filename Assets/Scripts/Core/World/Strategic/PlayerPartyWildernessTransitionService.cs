@@ -21,7 +21,17 @@ namespace XianXia.Core.World.Strategic
                 return false;
 
             var motion = world.PlayerPartyTravel;
-            if (!motion.HasPosition || motion.IsMoving)
+            if (!motion.HasPosition)
+                return false;
+
+            // Phase 5C-W1: LocalVisible AutoTravel keeps Wilderness edge enabled so the
+            // Host driver can cross into the next hex. WorldSite LocalVisible stays
+            // stand-still (Phase 5B behavior).
+            var localVisible =
+                PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion);
+            if (motion.IsMoving && !localVisible)
+                return false;
+            if (localVisible && motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
                 return false;
 
             return motion.LocationKind == PlayerPartyLocationKind.AtWorldSite ||
@@ -222,7 +232,13 @@ namespace XianXia.Core.World.Strategic
             if (motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
                 return Result.Failure(ErrorCode.InvalidOperation, "Not in continuous wilderness position.");
             if (motion.IsMoving)
+            {
+                // Phase 5C-W1: LocalVisible AutoTravel crosses while preserving path (Wilderness only).
+                if (PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion))
+                    return PlayerPartyLocalVisibleAutoTravelService
+                        .TryCrossWildernessEdgePreservingLocalVisibleAutoTravel(world, party, destinationHex);
                 return Result.Failure(ErrorCode.InvalidOperation, "Stop travel before crossing hex edge.");
+            }
 
             var currentHex = motion.CurrentHex;
             if (!IsNeighborHex(currentHex, destinationHex))

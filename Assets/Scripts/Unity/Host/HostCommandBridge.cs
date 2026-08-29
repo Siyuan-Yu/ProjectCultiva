@@ -780,6 +780,14 @@ namespace XianXia.Unity.Host
 
                 if (kind == PlayerCommandKind.Stop)
                 {
+                    // Phase 5C: 玩家 Stop 必须能夺回主控 —— LocalVisible AutoTravel 的
+                    // IsMoving + ExecutionMode 不受 Domain Stop 命令影响，若不清除，下一帧
+                    // TickLocalVisibleAutoTravelMovement 会重新下令。保留位置、不清 WorldPosition。
+                    CancelLocalVisibleAutoTravelIfActive();
+                    var moveController = hostBootstrap != null
+                        ? hostBootstrap.GetComponent<HostMoveController>()
+                        : GetComponent<HostMoveController>();
+                    moveController?.CancelPresentationMovementPublic(id);
                     NotifyMeleeDisengage(id);
                     NotifyFarmLaborStop(id);
                 }
@@ -805,6 +813,21 @@ namespace XianXia.Unity.Host
                           " ok=" + _lastSuccessCount +
                           " fail=" + _lastFailureCount;
             return _lastSuccessCount;
+        }
+
+        /// <summary>
+        /// Phase 5C: 玩家 Stop 打断 LocalVisible AutoTravel（保留位置，不清 WorldPosition，
+        /// 不重新 Materialize）。非 LocalVisible 时为 no-op。与 HostMoveController 右键路径一致。
+        /// </summary>
+        void CancelLocalVisibleAutoTravelIfActive()
+        {
+            var world = _session?.World;
+            var motion = world?.PlayerPartyTravel;
+            if (motion == null ||
+                !XianXia.Core.World.Strategic.PlayerPartyLocalVisibleAutoTravelService
+                    .IsActiveLocalVisibleAutoTravel(motion))
+                return;
+            XianXia.Core.World.Strategic.PlayerPartyHexTravelService.CancelTravel(world);
         }
 
         void NotifyMeleeDisengage(EntityId id)

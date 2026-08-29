@@ -1525,10 +1525,11 @@ namespace XianXia.Unity.Host
 
             var pending = LoadedDestinationArrivalMaterializer.PendingPresentationFlush;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (BackgroundBgTravelFullTrace.ActiveTraceId > 0)
+            if (BackgroundBgTravelFullTrace.ActiveTraceId > 0 &&
+                pending != null && pending.Count > 0)
             {
                 BackgroundBgTravelFullTrace.LogFlush(
-                    pending?.Count ?? 0,
+                    pending.Count,
                     spawnedHint: -1);
             }
 #endif

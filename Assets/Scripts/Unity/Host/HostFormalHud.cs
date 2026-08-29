@@ -72,6 +72,9 @@ namespace XianXia.Unity.Host
         UnitTab _unitTab = UnitTab.Overview;
         Texture2D _px;
         EntityId _unitPanelFocus = EntityId.None;
+        // 左上角头像：双击左键 -> 镜头立即定位到当前 Active（不切换主控、不 Cancel Travel）。
+        EntityId _partyBarLastClickId = EntityId.None;
+        float _partyBarLastClickTime = float.MinValue;
         string _partyStatusMessage = string.Empty;
         float _partyStatusUntil;
 
@@ -236,12 +239,33 @@ namespace XianXia.Unity.Host
                     : ent.DisplayName.Substring(0, Mathf.Min(1, ent.DisplayName.Length));
                 GUI.Label(new Rect(rect.x, rect.y + 12f, rect.width, 22f), label, _parchmentTitle);
 
-                if (GUI.Button(rect, GUIContent.none, GUIStyle.none) && controller != null)
+                if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
                 {
-                    if (controller.TrySwitchActive(id, out var err))
-                        SetPartyStatus(isActive ? null : "切换主控：" + ent.DisplayName);
-                    else if (!string.IsNullOrEmpty(err))
-                        SetPartyStatus(err);
+                    var now = Time.unscaledTime;
+                    var isDoubleClick =
+                        !_partyBarLastClickId.IsNone &&
+                        _partyBarLastClickId == id &&
+                        now - _partyBarLastClickTime <= 0.3f;
+                    _partyBarLastClickId = id;
+                    _partyBarLastClickTime = now;
+
+                    if (isDoubleClick)
+                    {
+                        // 双击：只把镜头定位到当前 Active Character 的实际 Presentation 位置。
+                        // 不切换主控、不 Cancel AutoTravel、不 Teleport、不改 Camera Follow 模式。
+                        if (controller != null)
+                        {
+                            controller.SnapCameraToActiveOnce();
+                            SetPartyStatus("镜头定位主控：" + ent.DisplayName);
+                        }
+                    }
+                    else if (controller != null)
+                    {
+                        if (controller.TrySwitchActive(id, out var err))
+                            SetPartyStatus(isActive ? null : "切换主控：" + ent.DisplayName);
+                        else if (!string.IsNullOrEmpty(err))
+                            SetPartyStatus(err);
+                    }
                 }
 
                 x += size + gap;

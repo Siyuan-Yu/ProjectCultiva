@@ -272,6 +272,17 @@ namespace XianXia.Core.World.Strategic
             HasPosition = true;
         }
 
+        /// <summary>
+        /// Phase 5C-W2 Takeover Canonical State：仅把派生 CurrentHex 对齐到指定格（TravelPlan 段真源）。
+        /// 不改 WorldPosition / Path / Segment / MovementKind / ExecutionMode，不 Snap、不 Teleport。
+        /// 用于 World → LocalVisible 接管前消除 WorldToHex 实时派生与 SegmentIndex 的分叉。
+        /// </summary>
+        public void AlignCurrentHex(HexCoord hex)
+        {
+            CurrentHex = hex;
+            HasPosition = true;
+        }
+
         public void SetWorldPositionInternal(WorldVec2 pos, HexCoord derivedHex)
         {
             WorldPosition = pos;

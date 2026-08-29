@@ -63,7 +63,13 @@ namespace XianXia.Core.World.Strategic
                 {
                     var single = EdgeScratch[0];
                     single.ResolvedSpan = DefaultSpanForSingle(single.EdgeLength);
-                    single.ResolvedAlongCoord = single.OriginalAlongCoord;
+                    // Phase 5C-W3：单连接也把 Exit Center 的沿边坐标 clamp 到 [Min+half, Max-half]，
+                    // 避免斜对角 Hex 方向的 perimeter 射线打在矩形角上 → SlotRect 贴角且沿边越界，
+                    // 导致 A* 目标落在墙角（几何修正，非 Host magic offset）。
+                    var half = single.ResolvedSpan * 0.5f;
+                    GetEdgeAlongLimits(single.Edge, bounds, half, out var limMin, out var limMax);
+                    single.ResolvedAlongCoord =
+                        Math.Max(limMin, Math.Min(limMax, single.OriginalAlongCoord));
                     WriteBack(ref drafts, single);
                     continue;
                 }

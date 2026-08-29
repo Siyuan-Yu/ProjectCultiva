@@ -40,6 +40,7 @@ namespace XianXia.Unity.Host
         public string SettlementLine { get; private set; } = "-";
         public string WorkRoleLine { get; private set; } = "-";
         public string LocationLine { get; private set; } = "-";
+        public string TravelLine { get; private set; } = "-";
 
         public static HostHudSnapshot Capture(
             PlayableHostSession session,
@@ -61,6 +62,7 @@ namespace XianXia.Unity.Host
             snap.DayIndex = day.DayIndex;
             snap.HourOfDay = day.HourOfDay;
             snap.TickInDay = day.TickInDay;
+            snap.TravelLine = FormatTravel(session);
 
             if (focusId.IsNone || !session.World.Entities.TryGet(focusId, out var entity))
             {
@@ -86,6 +88,43 @@ namespace XianXia.Unity.Host
             return snap;
         }
 
+        /// <summary>Phase 5C-W2 Travel diagnostics（Host 驱动写入真源字段，此处只读）。</summary>
+        static string FormatTravel(PlayableHostSession session)
+        {
+            if (session?.World == null)
+                return "(no world)";
+            var world = session.World;
+            var motion = world.PlayerPartyTravel;
+            if (motion == null)
+                return "(no travel)";
+
+            var path = motion.HexPath;
+            var nextHex = "-";
+            if (motion.IsMoving && path != null &&
+                motion.SegmentIndex >= 0 && motion.SegmentIndex + 1 < path.Count)
+                nextHex = path[motion.SegmentIndex + 1].ToString();
+
+            var gate = motion.SurfaceEdgeGate;
+            var activeId = session.PlayerParty != null ? session.PlayerParty.ActiveCharacterId : default;
+            var activeExists = !activeId.IsNone && world.Entities.TryGet(activeId, out _);
+            return "hex=" + motion.CurrentHex +
+                   " next=" + nextHex +
+                   " seg=" + motion.SegmentIndex + "/" + (path != null ? path.Count : 0) +
+                   " gateArmed=" + (gate != null ? gate.EdgeArmed.ToString() : "n/a") +
+                   " canAttempt=" + (gate != null ? gate.CanAttemptEdgeTransition.ToString() : "n/a") +
+                   " tInProg=" + (gate != null ? gate.TransitionInProgress.ToString() : "n/a") +
+                   " | exitSrc=" + HostPlayerPartyController.LastExitSourceHex +
+                   " exitDst=" + HostPlayerPartyController.LastExitDestinationHex +
+                   " slot=" + HostPlayerPartyController.LastExitSlotRect +
+                   " insideSlot=" + HostPlayerPartyController.LastActiveInsideExitSlot +
+                   " | map=" + (world.LocalMap != null ? world.LocalMap.ActiveMapLayoutId : "-") +
+                   " ent=" + activeExists +
+                   " | " + HostPlayerPartyController.LastTransitionStatus +
+                   (string.IsNullOrEmpty(HostPlayerPartyController.LastTransitionFailureReason)
+                       ? string.Empty
+                       : " fail=" + HostPlayerPartyController.LastTransitionFailureReason);
+        }
+
         public string ToDebugText()
         {
             if (!Ready)
@@ -109,6 +148,7 @@ namespace XianXia.Unity.Host
             sb.Append("Action: ").Append(ActionLine).Append('\n');
             sb.Append("Schedule: ").Append(ScheduleLine).Append('\n');
             sb.Append("Quota: ").Append(QuotaLine).Append('\n');
+            sb.Append("Travel: ").Append(TravelLine).Append('\n');
             sb.Append("Risk: ").Append(Risk)
                 .Append("  Realm: ").Append(RealmLine)
                 .Append("  Sites: ").Append(KnownSites);

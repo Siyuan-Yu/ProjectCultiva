@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace XianXia.Core.World.Hex
 {
@@ -29,7 +30,7 @@ namespace XianXia.Core.World.Hex
             HexCoord start,
             HexCoord goal,
             List<HexCoord> pathOut) =>
-            TryFindPath(grid, start, goal, pathOut, HexTravelMode.Ground);
+            TryFindPath(grid, start, goal, pathOut, HexTravelMode.Ground, null);
 
         /// <summary>
         /// Hex A*。TravelMode 预留；V1 Ground 与旧行为一致（不绑定 FormalArmy）。
@@ -39,7 +40,21 @@ namespace XianXia.Core.World.Hex
             HexCoord start,
             HexCoord goal,
             List<HexCoord> pathOut,
-            HexTravelMode travelMode)
+            HexTravelMode travelMode) =>
+            TryFindPath(grid, start, goal, pathOut, travelMode, null);
+
+        /// <summary>
+        /// Hex A* with blocked hexes（不可作为中转的格集合，例如非目标 WorldSite footprint）。
+        /// blocked 为 null/空时行为与不带 blocked 的版本完全一致；起点/终点本身被 blocked
+        /// 时不作拦截（只拦截展开过程中的中间格）。
+        /// </summary>
+        public static bool TryFindPath(
+            HexWorld grid,
+            HexCoord start,
+            HexCoord goal,
+            List<HexCoord> pathOut,
+            HexTravelMode travelMode,
+            IReadOnlyCollection<HexCoord> blocked)
         {
             pathOut?.Clear();
             if (grid == null || pathOut == null)
@@ -87,6 +102,8 @@ namespace XianXia.Core.World.Hex
                 for (var i = 0; i < NeighborScratch.Count; i++)
                 {
                     var neighborCoord = NeighborScratch[i];
+                    if (blocked != null && blocked.Contains(neighborCoord))
+                        continue;
                     if (!grid.TryGetTile(neighborCoord, out var neighborTile) || neighborTile == null)
                         continue;
                     if (!neighborTile.IsPassable)

@@ -9,6 +9,7 @@ using XianXia.Core.Exploration;
 using XianXia.Core.Input;
 using XianXia.Core.Navigation;
 using XianXia.Core.World;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
@@ -480,6 +481,9 @@ namespace XianXia.Unity.Host
 
         bool OrderPartyToPoint(Vector3 point, PlayerCommandKind? arriveCommand, string arriveLocationId = null)
         {
+            // Phase 5C-W1: any RTS point order immediately cancels LocalVisible AutoTravel (keep position).
+            CancelLocalVisibleAutoTravelIfActive();
+
             var active = ResolveActiveCharacter();
             if (active.IsNone)
                 return false;
@@ -514,6 +518,19 @@ namespace XianXia.Unity.Host
                 selectionController,
                 bootstrap?.Session?.PlayerParty);
 
+        /// <summary>
+        /// Phase 5C-W1: RTS point order cancels LocalVisible AutoTravel (preserves position,
+        /// no domain-side re-materialize). No-op when AutoTravel is not in LocalVisible mode.
+        /// </summary>
+        void CancelLocalVisibleAutoTravelIfActive()
+        {
+            var world = bootstrap?.Session?.World;
+            var motion = world?.PlayerPartyTravel;
+            if (motion == null ||
+                !PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion))
+                return;
+            PlayerPartyHexTravelService.CancelTravel(world);
+        }
         void NotifyMeleeDisengageForMove(EntityId id)
         {
             var melee = bootstrap != null

@@ -42,3 +42,12 @@ Idle 关闭 WorldMap：仍为原 Enter Local 行为。
 ## 明确未做（非本阶段）
 
 自动走 Exit、Local A*、Cross-Hex 续行、Marker/Route/Hex Math、SaveLoad、Timing、Follower、Battle Interrupt、大型 Executor 架构。
+
+## Phase 5C — Wilderness Visible Continuous AutoTravel（已封板）
+
+自动走 Exit / Local A* / Cross-Hex 续行由 Phase 5C 实现，LevelTester 人工验收通过。
+
+Phase 5C accepted limitation:
+Rare diagonal wilderness exit/local-navigation cases may leave
+the Active Character near a map edge/corner.
+Core travel remains valid; this is deferred to later navigation polish.

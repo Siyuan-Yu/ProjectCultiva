@@ -32,6 +32,31 @@ namespace XianXia.Unity.Host
         [SerializeField] float followerSpreadRadius = 1.1f;
         [SerializeField] float wasdMoveSpeed = 5.5f;
         [SerializeField] bool enableCameraFollow = true;
+        [SerializeField] float localVisibleAutoTravelFollowLerp = 5f;
+
+        int _autoTravelLegSegmentIndex = -1;
+        Vector3 _lastAutoTravelTarget;
+        // Back-off after a failed drive attempt (no Exit / A* blocked): avoid per-frame re-path.
+        float _autoTravelRetryCooldownUntil;
+        // Phase 5C-W1 (3rd pass): rising-edge of ExecutionMode -> LocalVisible marks a fresh
+        // takeover; every takeover re-arms the CURRENT leg (independent of WorldMap open/close).
+        bool _localVisibleTakeoverActive;
+        // Phase 5C-W2: driving toward the final Wilderness LocalMap safe interior before
+        // FinishArrival (no instant arrival at the hex edge).
+        bool _finalArrivalApproachInProgress;
+
+        // Phase 5C-W2 diagnostics: last LocalVisible AutoTravel transition outcome.
+        // Read by HostHudSnapshot (Runtime Diagnostics) so LevelTester can see the real failure.
+        public static string LastTransitionStatus = "Idle";
+        public static string LastTransitionFailureReason = string.Empty;
+        public static string LastExitSourceHex = "-";
+        public static string LastExitDestinationHex = "-";
+        public static string LastExitSlotRect = "-";
+        public static bool LastActiveInsideExitSlot;
+
+        // Phase 5C-W1 (2nd pass): middle-mouse pan detaches camera until a NEW AutoTravel session.
+        bool _cameraDetachedByPlayer;
+        bool _hasAutoTravelSession;
 
         readonly Dictionary<ulong, float> _nextFollowRepath = new Dictionary<ulong, float>();
         readonly Dictionary<ulong, HostPartySharedActivity> _followerSharedActivity =
@@ -232,6 +257,7 @@ namespace XianXia.Unity.Host
             TickFollowers();
             TickCombatFollow();
             TickWildernessWorldSyncAndEdge();
+            TickLocalVisibleAutoTravelMovement();
         }
 
         void TickWasdForActive()
@@ -253,6 +279,8 @@ namespace XianXia.Unity.Host
             {
                 if (!_wasdHeldLastFrame)
                 {
+                    // Phase 5C-W1: WASD interrupt cancels LocalVisible AutoTravel (keep position).
+                    CancelLocalVisibleAutoTravelForPlayerInterrupt();
                     // Cancel RTS/Click path; Camera snaps + Hard Follow (CAMERA-E).
                     _move.CancelPresentationMovementPublic(active);
                     EnterWasdHardFollow(active);
@@ -349,8 +377,17 @@ namespace XianXia.Unity.Host
                 return;
 
             var motion = world.PlayerPartyTravel;
-            if (!motion.HasPosition || motion.IsMoving)
+            if (!motion.HasPosition)
                 return;
+
+            // Phase 5C-W1: LocalVisible AutoTravel in Wilderness keeps Host sync + edge enabled;
+            // normal moving (World execution) still early-returns (World Advance drives position).
+            var localVisibleAutoTravel =
+                PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion);
+            if (motion.IsMoving && !localVisibleAutoTravel)
+                return;
+            if (localVisibleAutoTravel && motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
+                return; // WorldSite LocalVisible: keep Phase 5B (stand still, no Site Egress logic).
             if (!PlayerPartyWildernessTransitionService.IsSurfaceHexEdgeTransitionEnabled(world))
                 return;
 
@@ -416,6 +453,18 @@ namespace XianXia.Unity.Host
             PlayerPartyWildernessTransitionService.TrySyncLocalMovementToWorldPosition(
                 world, localX, localY, bounds);
 
+            // Phase 5C-W2 修复 2：LocalVisible AutoTravel 时唯一 Executor 是
+            // TickLocalVisibleAutoTravelMovement（TravelPlan official NextHex → resolved
+            // connection → TryAttemptSurfaceEdgeTransition）。这里保留 Local→World sync /
+            // SurfaceEdgeGate.TickRearm / NoteLocalPosition，但禁止 Generic Edge Detector
+            // 自行选出口触发 Transition，以免物理 Trigger 选了另一个 Exit →
+            // "Exit destination is not the active NextHex"。
+            if (localVisibleAutoTravel)
+            {
+                gate?.NoteLocalPosition(localX, localY);
+                return;
+            }
+
             if (hasPrev &&
                 WildernessLocalWorldProjection.TryResolveExitTriggerConnection(
                     world, prevX, prevY, localX, localY, bounds, depth, out var connection))
@@ -473,6 +522,27 @@ namespace XianXia.Unity.Host
             out WildernessLocalWorldProjection.WildernessLocalMapBounds bounds)
         {
             bounds = default;
+            // 真源优先：与 HostSurfaceExitZonePresenter 同一 MapLayout 解析，保证 Debug 方块 /
+            // AutoTravel 到达判定 / materialize 使用同一 bounds（WalkGrid 由同一 layout 构建，
+            // 但 layout 显式解析更稳，避免依赖 WalkGrid 时序）。
+            var session = bootstrap?.Session;
+            var mapId = session?.World?.LocalMap?.ActiveMapLayoutId?.Trim() ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(mapId) && session?.Registry != null)
+            {
+                var parsed = DefinitionId.Parse(mapId.Trim());
+                if (parsed.IsSuccess &&
+                    session.Registry.TryGetMapLayout(parsed.Value, out var layout) &&
+                    layout != null &&
+                    layout.Width > 0 &&
+                    layout.Height > 0)
+                {
+                    var cs = layout.CellSize > 0.0001f ? layout.CellSize : 1f;
+                    bounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
+                        layout.OriginX, layout.OriginY, cs, layout.Width, layout.Height);
+                    return true;
+                }
+            }
+
             var grid = bootstrap != null ? bootstrap.MoveController?.WalkGrid : null;
             if (grid == null)
             {
@@ -495,6 +565,371 @@ namespace XianXia.Unity.Host
                 return;
 
             TickCameraFollow();
+        }
+
+        /// <summary>
+        /// Phase 5C-W1: drive Active via existing Local A* toward the formal Wilderness Exit
+        /// approach point while ExecutionMode=LocalVisible and LocationKind=AtWorldPosition.
+        /// WorldSite LocalVisible is deliberately ignored (Phase 5B stands still).
+        /// Wilderness Continuous Visible AutoTravel: after crossing into the next hex the driver
+        /// waits for the new LocalMap presentation to finish, then re-arms the NEW current leg and
+        /// keeps going automatically (no one-map pause, no repeated WorldMap dance).
+        /// </summary>
+        void TickLocalVisibleAutoTravelMovement()
+        {
+            if (HostInputGate.BlockWorldInteraction)
+                return;
+
+            var session = bootstrap?.Session;
+            var world = session?.World;
+            var party = Party;
+            if (world == null || party == null || !party.HasActive)
+                return;
+
+            var motion = world.PlayerPartyTravel;
+            // LocalVisible active = travel preserved + ExecutionMode LocalVisible + continuous
+            // Wilderness position (WorldSite LocalVisible stays Phase 5B: stand still).
+            var isLocalVisible =
+                motion != null &&
+                motion.IsMoving &&
+                motion.ExecutionMode == PlayerPartyTravelExecutionMode.LocalVisible &&
+                motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition;
+
+            if (!isLocalVisible)
+            {
+                // Left LocalVisible (e.g. WorldMap reopened, travel cancelled): only clear Host
+                // execution state. Never touch TravelPlan / Segment / Destination / WorldPosition /
+                // CameraDetachedByPlayer here.
+                _localVisibleTakeoverActive = false;
+                ResetLocalVisibleAutoTravelTracking();
+                return;
+            }
+
+            // Rising edge: ExecutionMode entered LocalVisible (1st / 2nd / 3rd Close behave
+            // identically). Every takeover re-arms the CURRENT leg unconditionally, regardless of
+            // a previously issued Order, a different SegmentIndex, a stale paused flag or an
+            // identical last target.
+            if (!_localVisibleTakeoverActive)
+            {
+                _localVisibleTakeoverActive = true;
+                ReArmCurrentLocalLeg(motion);
+            }
+
+            // Crossed into the next hex DURING this LocalVisible session: the new Wilderness
+            // LocalMap is loading. Wait for the edge presentation to finish, then re-arm the
+            // CURRENT (new) leg and continue driving automatically (no one-map pause).
+            var gate = motion.SurfaceEdgeGate;
+            if (_autoTravelLegSegmentIndex >= 0 &&
+                motion.SegmentIndex != _autoTravelLegSegmentIndex)
+            {
+                if (gate != null && gate.TransitionInProgress)
+                    return; // new LocalMap still finalizing; retry next frame
+                _autoTravelLegSegmentIndex = motion.SegmentIndex;
+                _lastAutoTravelTarget = default; // force re-issue for the new leg
+            }
+
+            // Failed drive attempts back off briefly instead of re-path spamming every frame.
+            if (Time.time < _autoTravelRetryCooldownUntil)
+                return;
+
+            var active = party.ActiveCharacterId;
+            if (active.IsNone || _spawner == null)
+                return;
+            if (!_spawner.Registry.TryGet(active, out var activeView) || activeView == null)
+                return;
+
+            if (!PlayerPartyLocalVisibleAutoTravelService.TryResolveActiveLeg(
+                    motion, out var currentHex, out var nextHex, out var directionIndex))
+            {
+                // No remaining leg: either the path ended at the final Wilderness destination hex
+                // (walk to its LocalMap center, then FinishArrival) or the plan is exhausted.
+                LastTransitionStatus = "FinalLeg";
+                TryDriveFinalWildernessArrival(world, motion);
+                return;
+            }
+
+            // Next leg enters a WorldSite: stop Visible AutoTravel, keep TravelPlan.
+            // (No WorldSite Egress / Arrival in this scope.)
+            if (world.Strategic?.Sites != null &&
+                world.Strategic.Sites.TryGetAtHex(nextHex, out _))
+            {
+                LastTransitionStatus = "WorldSiteAhead(StandStill)";
+                return;
+            }
+
+            if (!TryResolveWildernessBounds(out var bounds))
+                return;
+
+            if (!PlayerPartyLocalVisibleAutoTravelService.TryResolveWildernessExitConnection(
+                    world, bounds, currentHex, nextHex, directionIndex, out var connection))
+            {
+                LastTransitionStatus = "NoExit";
+                _autoTravelRetryCooldownUntil = Time.time + 0.5f; // No Exit => back off.
+                return;
+            }
+
+            LastExitSourceHex = connection.SourceHex.ToString();
+            LastExitDestinationHex = connection.DestinationHex.ToString();
+            LastExitSlotRect =
+                "(" + connection.SlotRect.MinX.ToString("0.##") + "," + connection.SlotRect.MinY.ToString("0.##") +
+                ")-(" + connection.SlotRect.MaxX.ToString("0.##") + "," + connection.SlotRect.MaxY.ToString("0.##") + ")";
+
+            var activePos = activeView.transform.position;
+            var depth = SurfaceExitZoneCalculator.ResolveDepthFromSession(world, bounds);
+
+            // 到达正式 Exit = 角色位置进入该 connection 的 SlotRect（唯一权威判定，
+            // 与真实 Trigger / 半透明 Debug 方块同一真源）。不再使用 ExitCenter 半径 fallback。
+            var arrivedAtExit = SurfaceExitZoneCalculator.PointBelongsToConnection(
+                activePos.x, activePos.y, connection, depth);
+            LastActiveInsideExitSlot = arrivedAtExit;
+
+            if (arrivedAtExit)
+            {
+                // SurfaceEdgeGate 未 armed：不向外推（LocalMap bounds 不允许真正离图）。
+                // 先让 Active 走向地图中心（Safe Interior），TickRearm 途中重新 armed，
+                // 下一轮到达 Exit 即可触发 —— 绝不永久顶在边缘（不重写 Gate）。
+                if (gate != null && !gate.CanAttemptEdgeTransition)
+                {
+                    LastTransitionStatus = "GateDisarmed";
+                    LastTransitionFailureReason = string.Empty;
+                    var centerTarget =
+                        new Vector3(bounds.CenterX, bounds.CenterY, HostPresentationSpace.EntityZ);
+                    var centerMoving = _move != null && _move.IsMoving(active);
+                    var sameCenter = Vector3.Distance(centerTarget, _lastAutoTravelTarget) < 0.05f;
+                    if (!(centerMoving && sameCenter) &&
+                        (_move == null ||
+                         !_move.OrderEntityToWorldPoint(active, centerTarget, null, issueStop: false)))
+                    {
+                        _autoTravelRetryCooldownUntil = Time.time + 0.5f;
+                        return;
+                    }
+
+                    _lastAutoTravelTarget = centerTarget;
+                    SyncLocalVisibleProgress(world, motion);
+                    return;
+                }
+
+                // 已到达正式 Exit 且 Gate 允许：直接汇入与手动离图相同的正式 Transition
+                // Authority。服务内部再次校验 connection 对应 CurrentHex→NextHex / 可通行 /
+                // WorldSite 拦截，并完成 World Hex 切换、SetSegment 推进、EnterWildernessLocalMap
+                // （新图加载 + Entry projection）、Gate 状态 —— 不自行 Snap / 不 Reload。
+                var cross = PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
+                    world, party, connection);
+                if (cross.IsSuccess)
+                {
+                    LastTransitionStatus = "Crossed->" + nextHex;
+                    LastTransitionFailureReason = string.Empty;
+                    bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
+                    EnsureEdgeGateCompletedAfterExpand(world);
+                    return;
+                }
+
+                LastTransitionStatus = "Rejected";
+                LastTransitionFailureReason = cross.Error.ToString();
+                _autoTravelRetryCooldownUntil = Time.time + 0.5f; // 触发被拒（gate 竞争等）→ 退避。
+                return;
+            }
+
+            // 未到达 Exit：Local A* 正常走向该 connection 的 approach 点（Exit Zone 内侧，
+            // 不要求目标位于 bounds 外）。
+            PlayerPartyLocalVisibleAutoTravelService.GetExitApproachLocalPoint(
+                connection, bounds, out var localX, out var localY);
+            // 权威校验：请求目标必须 ∈ 正式 SlotRect ∩ playable bounds。几何修正后 approach
+            // 恒在其中；此处仅作 clamp 防御（非 magic offset），禁止 Pathfinder 把非法 Exit
+            // target 静默解析到不属于 SlotRect 的墙角。
+            if (!SurfaceExitZoneCalculator.PointBelongsToConnection(
+                    localX, localY, connection, depth))
+            {
+                var slot = connection.SlotRect;
+                localX = Mathf.Clamp(
+                    localX,
+                    Mathf.Max(slot.MinX, bounds.MinX),
+                    Mathf.Min(slot.MaxX, bounds.MaxX));
+                localY = Mathf.Clamp(
+                    localY,
+                    Mathf.Max(slot.MinY, bounds.MinY),
+                    Mathf.Min(slot.MaxY, bounds.MaxY));
+            }
+
+            var target = new Vector3(localX, localY, HostPresentationSpace.EntityZ);
+
+            var alreadyMoving = _move != null && _move.IsMoving(active);
+            var sameTarget = Vector3.Distance(target, _lastAutoTravelTarget) < 0.05f;
+            if (alreadyMoving && sameTarget)
+            {
+                SyncLocalVisibleProgress(world, motion);
+                return;
+            }
+
+            if (_move == null ||
+                !_move.OrderEntityToWorldPoint(active, target, null, issueStop: false))
+            {
+                LastTransitionStatus = "PathBlocked";
+                _autoTravelRetryCooldownUntil = Time.time + 0.5f; // A* failed => back off.
+                return;
+            }
+
+            _lastAutoTravelTarget = target;
+            SyncLocalVisibleProgress(world, motion);
+        }
+
+        void SyncLocalVisibleProgress(
+            XianXia.Core.Simulation.SimulationWorld world,
+            PlayerPartyWorldMotion motion)
+        {
+            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                ? world.HexWorld.HexSize
+                : 1f;
+            PlayerPartyLocalVisibleAutoTravelService.SyncSegmentProgressFromWorldPosition(motion, hexSize);
+        }
+
+        /// <summary>
+        /// Phase 5C-W2: Final Wilderness Arrival（专用完成路径）。跨入目标 Wilderness Hex 后保留
+        /// AutoTravel / LocalVisible，驱动 Active 用既有 Local A* 真实走向该 LocalMap 中心；
+        /// 到达中心附近后才走 CompleteWildernessFinalArrival —— 只结束 AutoTravel，不 Snap /
+        /// 不 ClearPartyWorldPresentationCache / 不重新 Materialize，位置保持一致。
+        /// 走向中心的过程会让 SurfaceEdgeGate 自然离开边缘并 re-arm。
+        /// </summary>
+        void TryDriveFinalWildernessArrival(
+            XianXia.Core.Simulation.SimulationWorld world,
+            PlayerPartyWorldMotion motion)
+        {
+            if (!PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion))
+                return;
+            if (motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
+                return; // WorldSite：不在此范围。
+            if (!string.IsNullOrEmpty(motion.DestinationSiteId))
+                return; // WorldSite 目标：保留 TravelPlan，不做 Site Arrival。
+            if (!motion.CurrentHex.Equals(motion.DestinationHex))
+                return; // 尚未跨入目标 Hex。
+
+            var active = Party != null ? Party.ActiveCharacterId : EntityId.None;
+            if (active.IsNone || _spawner == null ||
+                !_spawner.Registry.TryGet(active, out var activeView) ||
+                activeView == null)
+                return;
+            if (!TryResolveWildernessBounds(out var bounds))
+                return;
+
+            var pos = activeView.transform.position;
+
+            // 到达判定：真正接近 LocalMap 中心（由 bounds 推导，非 magic offset），而非 Safe
+            // Interior（50x50 图离边约 2 格即满足，不是中心）。角色用 Local A* 真实走向中心。
+            var centerRadius = Mathf.Max(0.5f, Mathf.Min(bounds.HalfWidth, bounds.HalfHeight) * 0.25f);
+            var dxCenter = pos.x - bounds.CenterX;
+            var dyCenter = pos.y - bounds.CenterY;
+            var arrived = dxCenter * dxCenter + dyCenter * dyCenter <= centerRadius * centerRadius;
+            if (arrived)
+            {
+                // 最后一次 LocalPosition → WorldPosition sync（保持连续位置一致，不 Snap）。
+                PlayerPartyWildernessTransitionService.TrySyncLocalMovementToWorldPosition(
+                    world, pos.x, pos.y, bounds);
+                var finish = PlayerPartyHexTravelService.CompleteWildernessFinalArrival(world);
+                if (finish.IsFailure)
+                {
+                    LastTransitionStatus = "FinalArrivalRejected";
+                    LastTransitionFailureReason = finish.Error.ToString();
+                }
+                else
+                {
+                    LastTransitionStatus = "Arrived";
+                    LastTransitionFailureReason = string.Empty;
+                }
+
+                _finalArrivalApproachInProgress = false;
+                // Arrival 完成后角色已在 Wilderness 中心区域：让 Gate 通过现有 re-arm 逻辑
+                // 恢复为可再次 Transition 的状态（不强制、不绕过）。
+                TryRearmEdgeGateIfInSafeInterior(motion);
+                return;
+            }
+
+            _finalArrivalApproachInProgress = true;
+            var center = new Vector3(bounds.CenterX, bounds.CenterY, HostPresentationSpace.EntityZ);
+            var alreadyMoving = _move != null && _move.IsMoving(active);
+            var sameTarget = Vector3.Distance(center, _lastAutoTravelTarget) < 0.05f;
+            if (alreadyMoving && sameTarget)
+            {
+                SyncLocalVisibleProgress(world, motion);
+                return;
+            }
+
+            if (_move == null ||
+                !_move.OrderEntityToWorldPoint(active, center, null, issueStop: false))
+                return; // A* 失败：保持现状，下帧重试。
+
+            _lastAutoTravelTarget = center;
+            SyncLocalVisibleProgress(world, motion);
+        }
+
+        void CancelLocalVisibleAutoTravelForPlayerInterrupt()
+        {
+            var world = bootstrap?.Session?.World;
+            if (world == null)
+                return;
+            var motion = world.PlayerPartyTravel;
+            if (motion == null ||
+                !PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion))
+                return;
+
+            PlayerPartyHexTravelService.CancelTravel(world);
+            _localVisibleTakeoverActive = false;
+            ResetLocalVisibleAutoTravelTracking();
+        }
+
+        void ResetLocalVisibleAutoTravelTracking()
+        {
+            _autoTravelLegSegmentIndex = -1;
+            _lastAutoTravelTarget = default;
+            _autoTravelRetryCooldownUntil = 0f;
+            _finalArrivalApproachInProgress = false;
+        }
+
+        /// <summary>
+        /// Fresh LocalVisible takeover: unconditionally re-arm the current leg.
+        /// - clears the paused flag
+        /// - anchors the leg to the CURRENT SegmentIndex
+        /// - clears last target / any issued Local Move so the A* re-issues for the current Exit
+        /// </summary>
+        void ReArmCurrentLocalLeg(PlayerPartyWorldMotion motion)
+        {
+            _autoTravelLegSegmentIndex = motion != null ? motion.SegmentIndex : -1;
+            _lastAutoTravelTarget = default;
+            _autoTravelRetryCooldownUntil = 0f;
+
+            var active = Party != null ? Party.ActiveCharacterId : EntityId.None;
+            if (!active.IsNone && _move != null)
+                _move.CancelPresentationMovementPublic(active);
+
+            // 新一趟 AutoTravel 开始时：若角色当前已处于正式 Safe Interior，立即通过现有
+            // Gate re-arm 逻辑恢复（TickRearm 本身要求 Safe Interior 且不强制）。
+            // 若不在 Safe Interior，保持现有规则，不绕过 Gate。
+            TryRearmEdgeGateIfInSafeInterior(motion);
+        }
+
+        /// <summary>
+        /// 仅当角色位置属于正式 Safe Interior 时，通过现有 PlayerPartySurfaceEdgeGate.TickRearm
+        /// 恢复 Gate。不强制 armed、不绕过 Gate、不新增状态机。
+        /// </summary>
+        void TryRearmEdgeGateIfInSafeInterior(PlayerPartyWorldMotion motion)
+        {
+            if (motion?.SurfaceEdgeGate == null)
+                return;
+            if (motion.SurfaceEdgeGate.CanAttemptEdgeTransition)
+                return; // 已 armed：无需处理。
+
+            var active = Party != null ? Party.ActiveCharacterId : EntityId.None;
+            if (active.IsNone || _spawner == null ||
+                !_spawner.Registry.TryGet(active, out var view) ||
+                view == null)
+                return;
+            if (!TryResolveWildernessBounds(out var bounds))
+                return;
+
+            var pos = view.transform.position;
+            if (!WildernessLocalWorldProjection.IsInSafeInterior(pos.x, pos.y, bounds))
+                return; // 不在 Safe Interior：保持现有规则，不绕过。
+
+            motion.SurfaceEdgeGate.TickRearm(pos.x, pos.y, bounds);
         }
 
         static Vector2 ReadWasdDirection()
@@ -793,6 +1228,35 @@ namespace XianXia.Unity.Host
                 !_spawner.Registry.TryGet(active, out var view) ||
                 view == null)
                 return;
+
+            // Phase 5C-W1: LocalVisible AutoTravel follows Active; middle-mouse pan DETACHES the
+            // camera until a NEW AutoTravel session starts (restored only on fresh session; not on
+            // Open/Close WorldMap within the same travel).
+            var world = bootstrap?.Session?.World;
+            if (world?.PlayerPartyTravel != null)
+            {
+                var sessionMotion = world.PlayerPartyTravel;
+                // Travel ended / cancelled: next LocalVisible takeover is a NEW session.
+                if (!sessionMotion.IsMoving)
+                    _hasAutoTravelSession = false;
+            }
+
+            if (world?.PlayerPartyTravel != null &&
+                PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(world.PlayerPartyTravel) &&
+                world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition)
+            {
+                if (!_hasAutoTravelSession)
+                {
+                    _hasAutoTravelSession = true;
+                    _cameraDetachedByPlayer = false; // new AutoTravel session: follow by default
+                }
+
+                if (_cameraRig.ConsumeUserMiddlePanThisFrame())
+                    _cameraDetachedByPlayer = true; // player took the camera: stay detached
+                if (!_cameraDetachedByPlayer)
+                    _cameraRig.SoftFollow(view.transform.position, localVisibleAutoTravelFollowLerp);
+                return;
+            }
 
             var wasd = HasActiveWasdDirectInput();
             _cameraMode = ResolveCameraFollowMode(wasd);

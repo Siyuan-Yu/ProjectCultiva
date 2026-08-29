@@ -95,16 +95,24 @@ namespace XianXia.Core.World.Strategic
             var motion = world.PlayerPartyTravel;
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
 
+            // 非目标 WorldSite 的全部 footprint 格不可作为中转：路线必须绕开（保留目标 Site）。
+            var blockedSiteHexes = BuildNonDestinationSiteBlockedHexes(world, destinationSiteId);
+
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(motion.SiteId) &&
                 world.Strategic.Sites.TryGet(motion.SiteId, out var fromSite) &&
                 fromSite != null)
             {
+                // 出发 Site 自身的 footprint 是 departure 段合法路径（site 内部 → 边界），不阻塞。
+                foreach (var hex in fromSite.EnumerateFootprintHexes())
+                    blockedSiteHexes.Remove(hex);
+
                 if (!TryBuildPathLeavingSite(
                         world,
                         fromSite,
                         startHex,
                         goalHex,
+                        blockedSiteHexes,
                         PathScratch,
                         out var exitHex,
                         out var departureFootprintHex))
@@ -135,7 +143,8 @@ namespace XianXia.Core.World.Strategic
                 return Result.Success();
             }
 
-            if (!HexPathfinder.TryFindPath(world.HexWorld, startHex, goalHex, PathScratch, mode) ||
+            if (!HexPathfinder.TryFindPath(
+                    world.HexWorld, startHex, goalHex, PathScratch, mode, blockedSiteHexes) ||
                 PathScratch.Count < 1)
                 return Result.Failure(ErrorCode.InvalidOperation, "No hex path to destination.");
 
@@ -184,6 +193,7 @@ namespace XianXia.Core.World.Strategic
             WorldSite site,
             HexCoord startHex,
             HexCoord goalHex,
+            IReadOnlyCollection<HexCoord> blocked,
             List<HexCoord> into,
             out HexCoord exitHex,
             out HexCoord departureFootprintHex)
@@ -202,7 +212,7 @@ namespace XianXia.Core.World.Strategic
 
             var scratch = new List<HexCoord>(64);
             if (!startHex.Equals(departureFootprintHex) &&
-                HexPathfinder.TryFindPath(world.HexWorld, startHex, departureFootprintHex, scratch) &&
+                HexPathfinder.TryFindPath(world.HexWorld, startHex, departureFootprintHex, scratch, HexTravelMode.Ground, blocked) &&
                 scratch.Count >= 1)
             {
                 for (var i = 0; i < scratch.Count; i++)
@@ -226,7 +236,8 @@ namespace XianXia.Core.World.Strategic
                 return into.Count >= 2;
 
             scratch.Clear();
-            if (!HexPathfinder.TryFindPath(world.HexWorld, exitHex, goalHex, scratch) ||
+            if (!HexPathfinder.TryFindPath(
+                    world.HexWorld, exitHex, goalHex, scratch, HexTravelMode.Ground, blocked) ||
                 scratch.Count < 1)
                 return false;
 
@@ -237,6 +248,33 @@ namespace XianXia.Core.World.Strategic
             }
 
             return into.Count >= 2;
+        }
+
+        /// <summary>
+        /// 收集“非本次目的地”的所有 WorldSite footprint 格：它们不可作为普通中转 Hex。
+        /// 目标 Site（destinationSiteId）保留 —— 允许路线到达其正式 ingress 邻接（footprint 内
+        /// 最近可达格）；其余 Site 全部阻塞。destinationSiteId 为空时阻塞所有 Site。
+        /// </summary>
+        static HashSet<HexCoord> BuildNonDestinationSiteBlockedHexes(
+            SimulationWorld world,
+            string destinationSiteId)
+        {
+            var blocked = new HashSet<HexCoord>();
+            if (world?.Strategic?.Sites == null)
+                return blocked;
+
+            foreach (var kv in world.Strategic.Sites.Sites)
+            {
+                if (string.Equals(kv.Key, destinationSiteId, StringComparison.Ordinal))
+                    continue; // 目标 Site：允许到 ingress，不阻塞。
+                var site = kv.Value;
+                if (site == null)
+                    continue;
+                foreach (var hex in site.EnumerateFootprintHexes())
+                    blocked.Add(hex);
+            }
+
+            return blocked;
         }
 
         static WorldVec2 HexCenter(HexCoord hex, float hexSize)
@@ -532,6 +570,41 @@ namespace XianXia.Core.World.Strategic
             motion.SetWorldPositionInternal(pos, derived);
         }
 
+        /// <summary>
+        /// Phase 5C-W2 LocalVisible Final Wilderness Arrival（专用完成路径）。
+        /// 仅当 Active 已真实走到目标 Wilderness LocalMap 中心附近后才调用。
+        /// 只结束 AutoTravel（Idle / ExecutionMode=None / clear path），保留
+        /// WorldPosition / PartyWorld.LocalMapId / 当前 LocalMap / Occupants / Presentation：
+        /// 不 SnapToHexCenter、不 ClearPartyWorldPresentationCacheForOpenWorld、不重新 Materialize。
+        /// 旧 FinishArrival 保留给 World Executor 使用。
+        /// </summary>
+        public static Result CompleteWildernessFinalArrival(SimulationWorld world)
+        {
+            if (world?.PlayerPartyTravel == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "No party travel state.");
+            var motion = world.PlayerPartyTravel;
+            if (!motion.IsMoving)
+                return Result.Failure(ErrorCode.InvalidOperation, "Travel already ended.");
+            if (motion.ExecutionMode != PlayerPartyTravelExecutionMode.LocalVisible)
+                return Result.Failure(ErrorCode.InvalidOperation, "Final arrival requires LocalVisible.");
+            if (motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
+                return Result.Failure(ErrorCode.InvalidOperation, "Final arrival requires wilderness position.");
+            if (!motion.CurrentHex.Equals(motion.DestinationHex))
+                return Result.Failure(ErrorCode.InvalidOperation, "Not at destination hex yet.");
+            if (!string.IsNullOrEmpty(motion.DestinationSiteId))
+                return Result.Failure(ErrorCode.InvalidOperation, "Destination is a WorldSite (out of scope).");
+
+            var destHex = motion.DestinationHex;
+
+            // 只结束 AutoTravel：保留 WorldPosition / LocalMap / Occupants / Presentation。
+            motion.CancelAutoTravelPreservePosition();
+
+            // Presence 保持当前目标 Wilderness Hex（不 ClearPartyWorldPresentationCacheForOpenWorld）。
+            ApplyTravelingMembersAtHex(world, destHex);
+
+            return Result.Success();
+        }
+
         static void FinishArrival(SimulationWorld world)
         {
             var motion = world.PlayerPartyTravel;
@@ -692,6 +765,8 @@ namespace XianXia.Core.World.Strategic
         /// Close WorldMap → local view takeover.
         /// Idle: same as Phase 2C (Enter Local).
         /// AutoTravel (Phase 5B): Preserve Travel + ExecutionMode=LocalVisible; do not Cancel.
+        /// Phase 5C-W2: 接管前先把派生 CurrentHex canonicalize 到 TravelPlan 当前段起点，避免
+        /// segment boundary 附近 WorldToHex 提前切 NextHex 导致 LocalMap / presence / Exit 解析分叉。
         /// </summary>
         public static Result CloseWorldMapTakeover(
             SimulationWorld world,
@@ -702,6 +777,7 @@ namespace XianXia.Core.World.Strategic
 
             if (world.PlayerPartyTravel != null && world.PlayerPartyTravel.IsMoving)
             {
+                CanonicalizeTakeoverHexToActiveSegment(world);
                 world.PlayerPartyTravel.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
                 PlayerPartyWorldLocationDebug.LogTransition(
                     world, party, "CloseWorldMapTakeover.PreserveAutoTravel");
@@ -710,6 +786,30 @@ namespace XianXia.Core.World.Strategic
 
             PlayerPartyWorldLocationDebug.LogTransition(world, party, "CloseWorldMapTakeover");
             return EnterLocalViewAtCurrentHex(world, party);
+        }
+
+        /// <summary>
+        /// Phase 5C-W2 Takeover Canonical State：World → LocalVisible 前，把派生 CurrentHex 对齐到
+        /// 正式 TravelPlan 当前段起点（path[SegmentIndex]）。World 推进时 CommitCanonicalWorldPosition
+        /// 用 WorldToHex(实时位置) 派生 CurrentHex，在段尾（progress &lt; 1）可能提前切到 nextHex；
+        /// 段未完成时权威所在 Hex 必须是 leg 起点，否则 LocalMap 加载 / presence / Exit 解析三者各认
+        /// 各的 Hex，LocalVisible 会 NoExit 卡住。
+        /// 不动 WorldPosition / Path / Segment；不 Snap、不 Teleport、不重置路线。
+        /// </summary>
+        static void CanonicalizeTakeoverHexToActiveSegment(SimulationWorld world)
+        {
+            var motion = world?.PlayerPartyTravel;
+            if (motion == null || !motion.IsMoving)
+                return;
+            if (motion.SegmentProgress >= 1f)
+                return; // 段已正式完成：World 推进已 Commit + IncrementPathIndex，状态一致。
+            if (!motion.TryGetActiveStepHexes(out var fromHex, out _))
+                return;
+            if (motion.CurrentHex.Equals(fromHex))
+                return; // 已一致。
+
+            motion.AlignCurrentHex(fromHex);
+            ApplyTravelingMembersPresence(world);
         }
 
         /// <summary>
