@@ -7,10 +7,18 @@ namespace XianXia.Core.World.Strategic
     /// <summary>
     /// 普通 Wilderness Hex 的逻辑 Local ↔ Continuous WorldPosition 映射（非 GIS）。
     /// Local X/Y 对应表现层 X 与 Z（Y 轴）。
+    ///
+    /// 5R-B3A：Local ↔ World 位置映射统一走共享 <see cref="HexFootprintSpatialMapping"/>（footprint = 单 Hex），
+    /// LocalMap 边缘映射到真实 Hex polygon boundary（与 WorldSite 多 Hex footprint 同一套几何语义）。
+    /// 其余方法（edge band / exit trigger / entry inset / cross-edge world position）保持原职责。
     /// </summary>
     public static class WildernessLocalWorldProjection
     {
-        /// <summary>格内偏移半径系数，保证在出边前仍落在当前 Hex 内。</summary>
+        /// <summary>
+        /// 遗留：仅保留给 <see cref="ComputeCrossEdgeWorldPosition"/> 的跨边 fallback（SurfaceExit / transition
+        /// 范畴，5R-B3A 不触碰）。Local ↔ World 映射已由 <see cref="HexFootprintSpatialMapping"/> 统一
+        /// （LocalMap 边缘 → 真实 Hex polygon boundary），不再使用本系数。
+        /// </summary>
         public const float InteriorRadiusFactor = 0.45f;
 
         const float EdgeMarginFraction = 0.08f;
@@ -57,29 +65,33 @@ namespace XianXia.Core.World.Strategic
 
         public static int OppositeDirection(int directionIndex) => (directionIndex + 3) % 6;
 
+        /// <summary>
+        /// 5R-B3A：Local → World 走共享 <see cref="HexFootprintSpatialMapping"/>（footprint = 单 Hex）。
+        /// LocalMap 左/右/上/下 → 该 Hex polygon world bbox 西/东/北/南；LocalMap 边缘 → 真实 Hex
+        /// polygon boundary（取代旧 InteriorRadiusFactor 0.45 内缩矩形，LocalMap 最右不再只到 Hex 中央附近）。
+        /// </summary>
         public static bool TryProjectLocalToWorld(
             HexCoord currentHex,
             float localX,
             float localY,
             WildernessLocalMapBounds bounds,
             float hexSize,
-            out WorldVec2 worldPosition)
-        {
-            worldPosition = default;
-            if (hexSize <= 0.0001f)
-                return false;
+            out WorldVec2 worldPosition) =>
+            HexFootprintSpatialMapping.TryLocalToWorldSurface(
+                currentHex,
+                bounds.MinX, bounds.MaxX, bounds.MinY, bounds.MaxY,
+                new WorldVec2(localX, localY),
+                hexSize,
+                out worldPosition);
 
-            var normX = (localX - bounds.CenterX) / bounds.HalfWidth;
-            var normY = (localY - bounds.CenterY) / bounds.HalfHeight;
-            HexMath.ToWorldPosition(currentHex, hexSize, out var cx, out var cy);
-            var radius = hexSize * InteriorRadiusFactor;
-            worldPosition = new WorldVec2(
-                cx + normX * radius,
-                cy + normY * radius);
-            return true;
-        }
-
+        /// <summary>
+        /// 5R-B3A：World → Local 走共享 <see cref="HexFootprintSpatialMapping"/>，使用<b>调用方给出的
+        /// 当前 Wilderness context Hex</b>（不自行 WorldToHex 推导）。恰在 polygon 顶点 / 多 hex 共享边界
+        /// 的数值歧义下，由该 context hex 决定映射域，roundtrip 稳定。不切换任何 CurrentHex / Context
+        /// （Hex Context transition 仍由 SurfaceExit / transition authority 提交）。
+        /// </summary>
         public static bool TryProjectWorldToLocal(
+            HexCoord contextHex,
             WorldVec2 worldPosition,
             WildernessLocalMapBounds bounds,
             float hexSize,
@@ -91,18 +103,33 @@ namespace XianXia.Core.World.Strategic
             if (hexSize <= 0.0001f)
                 return false;
 
-            var hex = HexMath.WorldToHex(worldPosition.X, worldPosition.Y, hexSize);
-            HexMath.ToWorldPosition(hex, hexSize, out var cx, out var cy);
-            var radius = hexSize * InteriorRadiusFactor;
-            if (radius <= 0.0001f)
+            if (!HexFootprintSpatialMapping.TryWorldSurfaceToLocal(
+                    contextHex,
+                    bounds.MinX, bounds.MaxX, bounds.MinY, bounds.MaxY,
+                    worldPosition,
+                    hexSize,
+                    out var local))
                 return false;
 
-            var normX = (worldPosition.X - cx) / radius;
-            var normY = (worldPosition.Y - cy) / radius;
-            // 钳制到可玩矩形，避免投影落在 playable bounds 外导致 Active「看不见」。
-            localX = Clamp(bounds.CenterX + normX * bounds.HalfWidth, bounds.MinX, bounds.MaxX);
-            localY = Clamp(bounds.CenterY + normY * bounds.HalfHeight, bounds.MinY, bounds.MaxY);
+            localX = local.X;
+            localY = local.Y;
             return true;
+        }
+
+        /// <summary>
+        /// 便捷重载（无 context hex 场景）：以 WorldToHex(worldPosition) 推导 hex 作 footprint，
+        /// 仅作 best-effort —— 恰在 polygon 顶点 / 边界时归属可能随 WorldToHex 判定而变化。
+        /// 有 context hex 的调用方（如 PlayerPartyLocalMapMaterializationService）应优先用带 contextHex 的重载。
+        /// </summary>
+        public static bool TryProjectWorldToLocal(
+            WorldVec2 worldPosition,
+            WildernessLocalMapBounds bounds,
+            float hexSize,
+            out float localX,
+            out float localY)
+        {
+            var hex = HexMath.WorldToHex(worldPosition.X, worldPosition.Y, hexSize);
+            return TryProjectWorldToLocal(hex, worldPosition, bounds, hexSize, out localX, out localY);
         }
 
         static float Clamp(float v, float min, float max)

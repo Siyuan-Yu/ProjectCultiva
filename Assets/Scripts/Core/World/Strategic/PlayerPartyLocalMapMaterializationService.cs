@@ -102,6 +102,7 @@ namespace XianXia.Core.World.Strategic
                 : (motion != null ? motion.WorldPosition : default);
             if (useWildernessProjection &&
                 WildernessLocalWorldProjection.TryProjectWorldToLocal(
+                    motion.CurrentHex,
                     projectWorld,
                     wildernessPlayableBounds.Value,
                     hexSize,

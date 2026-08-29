@@ -243,5 +243,46 @@ namespace XianXia.Tests.EditMode
                 "AtWorldPosition 时禁止 Site 内更新");
             Assert.AreEqual(PlayerPartyLocationKind.AtWorldPosition, motion.LocationKind);
         }
+
+        // ---- 8. Empty footprint：Physical Mapping 必须明确失败（Anchor fallback 已移除，ADR-0027） ----
+
+        [Test]
+        public void WSSM_11_EmptyFootprint_AllPhysicalMappingFails_EvenWithAnchor()
+        {
+            // AnchorHex 有效但无合法 footprint（OccupiedHexes 为空；不调用 SetFootprint）。
+            // ADR-0027：AnchorHex 不是 Physical Position / Spatial Mapping authority，
+            // 即使有效也绝不能回退为 fake single-hex physical domain。
+            var site = new WorldSite
+            {
+                SiteId = "test:site_empty",
+                DisplayName = "Empty Test",
+                AnchorHex = new HexCoord(3, 4),
+                PresenceHex = new HexCoord(3, 4),
+            };
+
+            Assert.IsTrue(site.AnchorHex.Equals(new HexCoord(3, 4)), "precondition: anchor must be valid");
+            Assert.AreEqual(0, site.OccupiedHexes.Count, "precondition: no legal footprint");
+
+            Assert.IsFalse(
+                WorldSiteSpatialMapping.TryLocalToWorldSurface(
+                    site, Bounds50x50, new WorldVec2(25f, 25f), HexSize, out _),
+                "LocalToWorld 空 footprint 必须 false");
+            Assert.IsFalse(
+                WorldSiteSpatialMapping.TryLocalToWorldSurface(
+                    site, Bounds50x50, new WorldVec2(25f, 25f), out _),
+                "LocalToWorld（默认 hexSize 重载）空 footprint 必须 false");
+            Assert.IsFalse(
+                WorldSiteSpatialMapping.TryWorldSurfaceToLocal(
+                    site, Bounds50x50, new WorldVec2(0f, 0f), HexSize, out _),
+                "WorldToLocal 空 footprint 必须 false");
+            Assert.IsFalse(
+                WorldSiteSpatialMapping.TryResolveDerivedFootprintHex(
+                    site, new WorldVec2(0f, 0f), HexSize, out _),
+                "DerivedFootprintHex 空 footprint 必须 false");
+            Assert.IsFalse(
+                WorldSiteSpatialMapping.TryComputeFootprintWorldDomain(
+                    site, HexSize, out _, out _, out _, out _),
+                "ComputeDomain 空 footprint 必须 false");
+        }
     }
 }
