@@ -266,7 +266,8 @@ namespace XianXia.Core.World.Strategic
             ApplyTravelingMembersAtHex(world, derived);
 
             if (world.Strategic.Sites.TryGetAtHex(destinationHex, out var site) && site != null)
-                return PlayerPartyHexTravelService.EnterWorldSiteAsParty(world, party, site);
+                return PlayerPartyHexTravelService.EnterWorldSiteAsParty(
+                    world, party, site, destinationHex);
 
             if (!WildernessLocalMapFallback.TryResolve(world, destinationHex, out var mapId) ||
                 string.IsNullOrEmpty(mapId))

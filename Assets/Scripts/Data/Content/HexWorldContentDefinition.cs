@@ -38,8 +38,6 @@ namespace XianXia.Data.Content
         public List<HexWorldCoordDefinition> Footprint { get; set; } = new List<HexWorldCoordDefinition>();
         public string LocalMapId { get; set; } = string.Empty;
         public string OwnerFactionId { get; set; } = string.Empty;
-        /// <summary>Phase 5D: 战略中转属性（"None" / "Gateway"；缺省 None）。</summary>
-        public string TransitMode { get; set; } = "None";
     }
 
     public sealed class HexWorldCoordDefinition

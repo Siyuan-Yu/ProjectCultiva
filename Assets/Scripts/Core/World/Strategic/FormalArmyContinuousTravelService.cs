@@ -96,7 +96,7 @@ namespace XianXia.Core.World.Strategic
                 // Phase 5D: 非目标 Site footprint 不可作为中转（与 PlayerParty 同一 policy）。
                 // 出发 Site 自身 footprint 是 departure 段合法路径（内部 → 边界），先移除。
                 var blockedSiteHexes = WorldSiteTransitPolicy.BuildBlockedFootprintHexes(
-                    world, destinationSiteId, allowedTransitSiteIds: null);
+                    world, destinationSiteId);
                 foreach (var hex in fromSite.EnumerateFootprintHexes())
                     blockedSiteHexes.Remove(hex);
 
@@ -160,7 +160,7 @@ namespace XianXia.Core.World.Strategic
                     FullPathScratch,
                     HexTravelMode.Ground,
                     WorldSiteTransitPolicy.BuildBlockedFootprintHexes(
-                        world, destinationSiteId, allowedTransitSiteIds: null)) ||
+                        world, destinationSiteId)) ||
                 FullPathScratch.Count < 1)
                 return Result.Failure(ErrorCode.InvalidOperation, "No hex path to destination.");
 

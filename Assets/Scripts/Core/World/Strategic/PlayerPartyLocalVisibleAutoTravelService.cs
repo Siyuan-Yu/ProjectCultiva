@@ -177,7 +177,23 @@ namespace XianXia.Core.World.Strategic
             if (world.Strategic?.Sites != null &&
                 world.Strategic.Sites.TryGetAtHex(destinationHex, out var destSite) &&
                 destSite != null)
-                return Result.Failure(ErrorCode.InvalidOperation, "Destination is a WorldSite (not in 5C-W1 scope).");
+            {
+                // Phase 5D-B2a: 目标 WorldSite → 正式 Site Ingress。
+                // destinationHex 是 approach 按距 start 最近方向选取的 footprint 格（多 Hex
+                // footprint 不强制 Anchor）。EnterWorldSiteAsParty 内部 SetAtWorldSite 会
+                // ClearMovementKeepMembers → 进入 Site LocalMap 即 Travel Complete
+                // （MovementKind=Idle / ExecutionMode=None / 清 path / AtSite），保留
+                // PartyWorld.SiteId / LocalMapId / Active ingress 位置，不 Snap、不重新物化。
+                PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
+                PlayerPartyTransitionMembership.LogPartyTransition(
+                    world,
+                    party,
+                    "CrossWildernessEdge.LocalVisibleSiteIngress",
+                    destinationHex,
+                    world.PartyWorld?.LocalMapId);
+                return PlayerPartyHexTravelService.EnterWorldSiteAsParty(
+                    world, party, destSite, destinationHex);
+            }
 
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             var newWorldPos = WildernessLocalWorldProjection.ComputeCrossEdgeWorldPosition(

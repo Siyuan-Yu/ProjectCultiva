@@ -28,9 +28,16 @@ namespace XianXia.Core.World.Strategic
         public string DestinationSiteId { get; private set; } = string.Empty;
         /// <summary>
         /// Phase 5D: 当前正在处理的 Mandatory Gateway SiteId —— 仅表示「本次旅行当前正在处理的
-        /// 强制中间节点」（单一值），不是完整 Gateway 列表；5D-A 仅占位无调用方，5D-B/D 接入。
+        /// 强制中间节点」（单一值），不是完整 Gateway 列表；5D-B1 由 Gateway route fallback 设置。
         /// </summary>
         public string MandatoryWaypointSiteId { get; private set; } = string.Empty;
+        /// <summary>
+        /// Phase 5D-B1: 玩家原始最终目标（FinalDestination）。普通旅行时与 DestinationHex 相同；
+        /// 仅当 Mandatory Gateway 中间 leg 生效时，DestinationHex 为 Gateway、FinalDestinationHex
+        /// 仍为玩家点击的原目标 —— 不能把玩家意图覆盖成 Gateway。
+        /// </summary>
+        public HexCoord FinalDestinationHex { get; private set; }
+        public string FinalDestinationSiteId { get; private set; } = string.Empty;
         public int SegmentIndex { get; private set; }
         public float SegmentProgress { get; private set; }
         public bool HasPosition { get; private set; }
@@ -80,6 +87,8 @@ namespace XianXia.Core.World.Strategic
             DestinationHex = CurrentHex;
             DestinationSiteId = string.Empty;
             MandatoryWaypointSiteId = string.Empty;
+            FinalDestinationHex = CurrentHex;
+            FinalDestinationSiteId = string.Empty;
             TravelMode = HexTravelMode.Ground;
             ClearSiteDeparturePending();
             UsesTravelPresentation = false;
@@ -87,6 +96,17 @@ namespace XianXia.Core.World.Strategic
 
         public void SetExecutionMode(PlayerPartyTravelExecutionMode mode) =>
             ExecutionMode = mode;
+
+        /// <summary>Phase 5D-B1: 标记当前正在处理的 Mandatory Gateway（单一值，非列表）。</summary>
+        public void SetMandatoryWaypoint(string siteId) =>
+            MandatoryWaypointSiteId = siteId ?? string.Empty;
+
+        /// <summary>Phase 5D-B1: 设定玩家最终意图（仅在 Gateway 中间 leg 时与 DestinationHex 不同）。</summary>
+        public void SetFinalDestination(HexCoord hex, string siteId)
+        {
+            FinalDestinationHex = hex;
+            FinalDestinationSiteId = siteId ?? string.Empty;
+        }
 
         public void ClearSiteDeparturePending()
         {
@@ -193,6 +213,9 @@ namespace XianXia.Core.World.Strategic
             TravelMode = mode;
             DestinationHex = destinationHex;
             DestinationSiteId = destinationSiteId ?? string.Empty;
+            // 默认 FinalDestination == 当前 Leg 目标（普通旅行）；Gateway fallback 会随后覆盖。
+            FinalDestinationHex = destinationHex;
+            FinalDestinationSiteId = destinationSiteId ?? string.Empty;
             _hexPath.Clear();
             if (path != null)
             {
@@ -263,6 +286,8 @@ namespace XianXia.Core.World.Strategic
             DestinationHex = CurrentHex;
             DestinationSiteId = string.Empty;
             MandatoryWaypointSiteId = string.Empty;
+            FinalDestinationHex = CurrentHex;
+            FinalDestinationSiteId = string.Empty;
             MovementKind = PlayerPartyMovementKind.Idle;
             ExecutionMode = PlayerPartyTravelExecutionMode.None;
             ClearSiteDeparturePending();
@@ -378,6 +403,8 @@ namespace XianXia.Core.World.Strategic
             DestinationHex = CurrentHex;
             DestinationSiteId = string.Empty;
             MandatoryWaypointSiteId = string.Empty;
+            FinalDestinationHex = CurrentHex;
+            FinalDestinationSiteId = string.Empty;
             ClearSiteDeparturePending();
             UsesTravelPresentation = false;
         }

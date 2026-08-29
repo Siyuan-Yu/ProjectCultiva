@@ -140,6 +140,19 @@ namespace XianXia.Unity.Host
         HexCoord _hexSiteEnterMenuHex;
         Rect _hexSiteEnterMenuRect;
         HexRightClickResolution _hexSiteEnterMenuResolution;
+
+        // Phase 5D-B1（降级）：Gateway 前方目标不可直达时的轻量确认框（仅 PlayerParty）
+        bool _gatewayConfirmOpen;
+        string _gatewayConfirmSiteId = string.Empty;
+        string _gatewayConfirmDisplayName = string.Empty;
+        HexCoord _gatewayConfirmApproachHex;
+        Rect _gatewayConfirmRect;
+        Vector2 _lastContextMousePos;
+        // Phase 5D-B1（UI 生命周期）：打开确认框的帧 —— 该帧内的 outside-click 不得关闭刚打开的框（openedThisFrame）
+        int _gatewayConfirmOpenFrame = -1;
+        bool _gatewayConfirmDrawWasOpen;
+        bool _gatewayConfirmSuppressLogged;
+
         /// <summary>右侧信息面板聚焦的节点（左键点节点写入；与菜单开闭无关）/summary>
         string _inspectSiteId = string.Empty;
         string _selectedWorldSiteId = string.Empty;
@@ -211,6 +224,7 @@ namespace XianXia.Unity.Host
             _avatarMenuOpen = false;
             _stackMenuOpen = false;
             _nodeMenuOpen = false;
+            _gatewayConfirmOpen = false;
             _inspectScroll = Vector2.zero;
 
             if (world?.Strategic?.Armies != null &&
@@ -342,6 +356,7 @@ namespace XianXia.Unity.Host
             _nodeMenuNodeId = string.Empty;
             _hexMenuOpen = false;
             CloseHexSiteEnterMenu();
+            CloseGatewayConfirm();
             _avatarMenuOpen = false;
             _avatarMenuVisitMode = false;
             _armyFormPanel?.Close();
@@ -417,6 +432,7 @@ namespace XianXia.Unity.Host
             _stackMenuOpen = false;
             _nodeMenuOpen = false;
             _nodeMenuNodeId = string.Empty;
+            CloseGatewayConfirm();
             _inspectSiteId = string.Empty;
             _selectedWorldSiteId = string.Empty;
             _inspectScroll = Vector2.zero;
@@ -719,6 +735,7 @@ namespace XianXia.Unity.Host
 
             DrawHexContextMenu(world);
             DrawHexWorldSiteEnterMenu(world);
+            DrawGatewayConfirm(world);
             DrawStackContextMenu(world);
             DrawAvatarContextMenu(world);
             DrawInspectPanel(infoRect, world);
@@ -728,7 +745,8 @@ namespace XianXia.Unity.Host
             if (Event.current != null && Event.current.type == EventType.Used)
                 return;
             // 菜单仍开着（点在菜单内）时不处理地图下令；外侧点击已在上面关掉菜单且不吞事
-            if (_stackMenuOpen || _nodeMenuOpen || _avatarMenuOpen || _hexMenuOpen || _hexSiteEnterMenuOpen)
+            if (_stackMenuOpen || _nodeMenuOpen || _avatarMenuOpen || _hexMenuOpen || _hexSiteEnterMenuOpen ||
+                _gatewayConfirmOpen)
                 return;
             HandleMapInput(mapRect, hexProjection, world);
             HandleCameraInput(mapRect, world);
@@ -2370,7 +2388,19 @@ namespace XianXia.Unity.Host
             if (e.button != 1)
                 return;
 
-            if (ArmyHexCommandService.IsHexStrategicActive(world))
+            UnityEngine.Debug.Log("[GatewayB1Trace] 1 HandleMapInput rightClick mouse=" + mouse +
+                " targetHex=" + (HexMapMousePick.TryResolveMouseHex(projection, world.HexWorld, mouse, out var traceHex)
+                    ? traceHex.ToString()
+                    : "none") +
+                " selectionKind=" + _worldMapSelection.DescribeKind() +
+                " selectedArmyId=" + (SelectedFormalArmyId ?? string.Empty) +
+                " activeId=" + (bootstrap?.Session?.PlayerParty != null
+                    ? bootstrap.Session.PlayerParty.ActiveCharacterId.ToString()
+                    : "none"));
+
+            var hexStrategicActive = ArmyHexCommandService.IsHexStrategicActive(world);
+            UnityEngine.Debug.Log("[GatewayB1Trace] 1b IsHexStrategicActive=" + hexStrategicActive);
+            if (hexStrategicActive)
             {
                 if (TryHandleHexMapCommand(projection, world, mouse, e))
                     return;
@@ -2509,20 +2539,28 @@ namespace XianXia.Unity.Host
             Vector2 mouse,
             Event e)
         {
+            _lastContextMousePos = mouse;
             if (!HexMapMousePick.TryResolveMouseHex(projection, world.HexWorld, mouse, out var pickedHex))
             {
+                UnityEngine.Debug.Log("[GatewayB1Trace] 2 TryHandleHexMapCommand FAIL mousePick");
                 _status = "无法解析倒下角色位置";
                 e.Use();
                 return true;
             }
 
+            UnityEngine.Debug.Log("[GatewayB1Trace] 2 TryHandleHexMapCommand pickedHex=" + pickedHex +
+                " selectionKind=" + _worldMapSelection.DescribeKind());
             _selectedHex = pickedHex;
             if (!world.HexWorld.TryGetTile(pickedHex, out var tile) || tile == null || !tile.IsPassable)
             {
+                UnityEngine.Debug.Log("[GatewayB1Trace] 2b BLOCKED tileExists=" +
+                    world.HexWorld.TryGetTile(pickedHex, out _) + " passable=false");
                 _status = "无法解析倒下角色位置";
                 e.Use();
                 return true;
             }
+
+            UnityEngine.Debug.Log("[GatewayB1Trace] 2b tileExists=true passable=true");
 
             var hasSelectedArmy = TryGetSelectedLivingPlayerArmy(world, out var selectedArmy, out _);
             var hasMovableArmy = hasSelectedArmy &&
@@ -2538,6 +2576,10 @@ namespace XianXia.Unity.Host
                 true,
                 selectedArmy);
 
+            UnityEngine.Debug.Log("[GatewayB1Trace] 3 Resolve action=" + resolution.Action +
+                " statusHint=" + (resolution.StatusHint ?? string.Empty) +
+                " selectedArmyId=" + (SelectedFormalArmyId ?? string.Empty));
+
             LogHexRightClickTrace(resolution, selectedArmy, pickedHex);
 
             _hexMenuOpen = false;
@@ -2549,20 +2591,36 @@ namespace XianXia.Unity.Host
             switch (resolution.Action)
             {
                 case HexRightClickResolvedAction.DirectMove:
+                    UnityEngine.Debug.Log("[GatewayB1Trace] 4 Branch=DirectMove kind=" +
+                        _worldMapSelection.DescribeKind());
+                    // Phase 5D-B1: PlayerParty 选中态下，即使 Resolver 因残留军团选中判成
+                    // DirectMove，也必须走 PlayerParty 旅行（含 Mandatory Gateway fallback），
+                    // 不能让军团移动分支抢先导致 BeginTravel 不调用（右键 B 无任何反馈）。
+                    if (_worldMapSelection.Kind != HostWorldMapSelectionKind.FormalArmy)
+                    {
+                        UnityEngine.Debug.Log("[GatewayB1Trace] 4b DirectMove redirected to PlayerParty travel");
+                        DispatchHexRightClickTravel(world, pickedHex, resolution.StatusHint);
+                        break;
+                    }
+
                     ExecuteDirectMoveArmyToHex(world, pickedHex);
                     if (!string.IsNullOrEmpty(resolution.StatusHint))
                         _status = resolution.StatusHint + " " + _status;
                     break;
                 case HexRightClickResolvedAction.ShowAttackTargetMenu:
+                    UnityEngine.Debug.Log("[GatewayB1Trace] 4 Branch=Attack");
                     OpenHexAttackTargetMenu(resolution, pickedHex, mouse);
                     break;
                 case HexRightClickResolvedAction.DirectEnterFriendlyLingering:
+                    UnityEngine.Debug.Log("[GatewayB1Trace] 4 Branch=Lingering");
                     ExecuteEnterFriendlyLingeringAtHex(world, pickedHex);
                     break;
                 case HexRightClickResolvedAction.ShowWorldSiteEnterMenu:
+                    UnityEngine.Debug.Log("[GatewayB1Trace] 4 Branch=SiteMenu");
                     OpenHexWorldSiteEnterMenu(resolution, pickedHex, mouse);
                     break;
                 default:
+                    UnityEngine.Debug.Log("[GatewayB1Trace] 4 Branch=Travel");
                     DispatchHexRightClickTravel(world, pickedHex, resolution.StatusHint);
                     break;
             }
@@ -2580,6 +2638,7 @@ namespace XianXia.Unity.Host
             if (_hexMenuContext != null && _hexMenuContext.HasActiveLingering)
                 rows += 1f;
             _hexMenuRect = AnchorContextMenu(new Rect(mouse.x, mouse.y, 1f, 1f), 220f, 28f + rows * 24f);
+            CloseGatewayConfirm();
             _hexMenuOpen = true;
         }
 
@@ -2839,15 +2898,20 @@ namespace XianXia.Unity.Host
             HexCoord hex,
             string statusHint)
         {
+            UnityEngine.Debug.Log("[GatewayB1Trace] 5 DispatchTravel=true targetHex=" + hex +
+                " selectionKind=" + _worldMapSelection.DescribeKind());
             if (_worldMapSelection.Kind == HostWorldMapSelectionKind.FormalArmy)
             {
                 if (string.IsNullOrEmpty(SelectedFormalArmyId) ||
                     !world.Strategic.FormalArmies.TryGet(SelectedFormalArmyId, out _))
                 {
+                    UnityEngine.Debug.Log("[GatewayB1Trace] 5b FormalArmy selection broken → blocked");
                     WarnBrokenFormalArmySelection("DispatchHexRightClickTravel");
                     _status = "FormalArmy 选中态损坏，已阻止移动（未 fallback PlayerParty）";
                     return;
                 }
+
+                UnityEngine.Debug.Log("[GatewayB1Trace] 5b Kind=FormalArmy → army branch (no PlayerParty travel)");
 
                 _status = string.IsNullOrEmpty(statusHint)
                     ? "当前选中军团：请右键有效目标或使用攻击菜单"
@@ -2883,8 +2947,11 @@ namespace XianXia.Unity.Host
             out string status)
         {
             status = string.Empty;
+            UnityEngine.Debug.Log("[GatewayB1Trace] 6 EnterTryExecute=true targetHex=" + hex);
             if (_worldMapSelection.Kind != HostWorldMapSelectionKind.PlayerParty)
             {
+                UnityEngine.Debug.Log("[GatewayB1Trace] 6b ReturnReason=KindNotPlayerParty kind=" +
+                    _worldMapSelection.DescribeKind());
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 UnityEngine.Debug.LogWarning(
                     "[WorldMapSelection] Blocked PlayerParty travel: authority Kind=" +
@@ -2896,16 +2963,21 @@ namespace XianXia.Unity.Host
 
             var party = bootstrap?.Session?.PlayerParty;
             if (party == null || !party.HasActive)
+            {
+                UnityEngine.Debug.Log("[GatewayB1Trace] 6b ReturnReason=NoActiveParty");
                 return false;
+            }
 
             if (!world.HexWorld.TryGetTile(hex, out var tile) || tile == null || !tile.IsPassable)
             {
+                UnityEngine.Debug.Log("[GatewayB1Trace] 6b ReturnReason=TargetNotPassable");
                 status = "目标 Hex 不可通行";
                 return true;
             }
 
             if (!WorldMapPartyTravelCommand.TryResolve(world, hex, out var cmd))
             {
+                UnityEngine.Debug.Log("[GatewayB1Trace] 6b ReturnReason=ResolveTravelTargetFailed");
                 status = "无法解析旅行目标";
                 return true;
             }
@@ -2914,6 +2986,33 @@ namespace XianXia.Unity.Host
                 world, party, cmd.DestinationHex, cmd.TargetSiteId ?? string.Empty);
             if (move.IsFailure)
             {
+                UnityEngine.Debug.Log("[GatewayB1Trace] 6b ReturnReason=BeginTravelFailed msg=" + move.Error);
+                // Phase 5D-B1（降级）：自动 StartGatewayLeg 未生效时，若仍存在合法单 Gateway
+                // （A→G 可达 且 G→B 理论可达），弹出轻量确认 —— 保证右键必有反馈。
+                // 复用同一 resolver；确认后只下达普通 PlayerParty → Gateway 旅行
+                // （到达 Gateway = AtSite + Travel Complete；不保留 B continuation，不自动出关）。
+                if (PlayerPartyHexTravelService.TryResolveGatewayTravelCandidate(
+                        world, party, cmd.DestinationHex, cmd.TargetSiteId ?? string.Empty,
+                        out var gSiteId, out var gDisplay, out var gApproach))
+                {
+                    _gatewayConfirmSiteId = gSiteId;
+                    _gatewayConfirmDisplayName = gDisplay;
+                    _gatewayConfirmApproachHex = gApproach;
+                    _gatewayConfirmRect = AnchorContextMenu(
+                        new Rect(_lastContextMousePos.x, _lastContextMousePos.y, 1f, 1f), 300f, 80f);
+                    _gatewayConfirmOpen = true;
+                    _gatewayConfirmOpenFrame = Time.frameCount;
+                    _gatewayConfirmSuppressLogged = false;
+                    UnityEngine.Debug.Log("[GatewayConfirmUI] Open open=true gatewaySiteId=" + gSiteId +
+                        " gatewayName=" + gDisplay + " requestedFinalHex=" + cmd.DestinationHex +
+                        " rect=(" + _gatewayConfirmRect.x.ToString("0") + "," + _gatewayConfirmRect.y.ToString("0") +
+                        "," + _gatewayConfirmRect.width.ToString("0") + "," + _gatewayConfirmRect.height.ToString("0") +
+                        ") screen=" + Screen.width + "x" + Screen.height +
+                        " frame=" + Time.frameCount + " mouse=" + _lastContextMousePos);
+                    status = "无法直接前往目标地点，需要先经过【" + gDisplay + "】";
+                    return true;
+                }
+
                 status = FormatFail(move);
                 return true;
             }
@@ -2925,7 +3024,20 @@ namespace XianXia.Unity.Host
                 world.Strategic.Sites.TryGet(cmd.TargetSiteId, out var site) &&
                 site != null)
                 destLabel = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
-            status = "PlayerParty Travel → " + destLabel;
+            // Phase 5D-B1: Mandatory Gateway fallback —— 当前路线先去 Gateway，最终目标仍是 B。
+            var travel = world.PlayerPartyTravel;
+            if (travel != null && !string.IsNullOrEmpty(travel.MandatoryWaypointSiteId) &&
+                world.Strategic.Sites.TryGet(travel.MandatoryWaypointSiteId, out var via) &&
+                via != null)
+            {
+                var viaName = string.IsNullOrEmpty(via.DisplayName) ? via.SiteId : via.DisplayName;
+                status = "PlayerParty Travel → " + viaName + "（最终 " + destLabel + "）";
+            }
+            else
+            {
+                status = "PlayerParty Travel → " + destLabel;
+            }
+
             return true;
         }
 
@@ -2982,6 +3094,96 @@ namespace XianXia.Unity.Host
             _hexSiteEnterMenuResolution = null;
         }
 
+        void CloseGatewayConfirm(string reason = null)
+        {
+            if (!_gatewayConfirmOpen)
+                return; // 未打开不记录：只在状态改变时打印
+            _gatewayConfirmOpen = false;
+            _gatewayConfirmSiteId = string.Empty;
+            _gatewayConfirmDisplayName = string.Empty;
+            _gatewayConfirmApproachHex = default;
+            UnityEngine.Debug.Log("[GatewayConfirmUI] Close reason=" + (reason ?? "unspecified") +
+                " frame=" + Time.frameCount);
+        }
+
+        void DrawGatewayConfirm(XianXia.Core.Simulation.SimulationWorld world)
+        {
+            var drawable = _gatewayConfirmOpen && !string.IsNullOrEmpty(_gatewayConfirmSiteId);
+            if (drawable != _gatewayConfirmDrawWasOpen)
+            {
+                UnityEngine.Debug.Log("[GatewayConfirmUI] Draw drawCalled=" + drawable +
+                    " openState=" + (_gatewayConfirmOpen ? "open" : "closed") +
+                    " frame=" + Time.frameCount);
+                _gatewayConfirmDrawWasOpen = drawable;
+            }
+            if (!_gatewayConfirmOpen || string.IsNullOrEmpty(_gatewayConfirmSiteId))
+                return;
+            if (bootstrap?.Session?.PlayerParty == null || !bootstrap.Session.PlayerParty.HasActive)
+            {
+                CloseGatewayConfirm();
+                return;
+            }
+
+            var prevDepth = GUI.depth;
+            GUI.depth = -86;
+            HostUiHitTest.Block(_gatewayConfirmRect);
+            var prevColor = GUI.color;
+            GUI.color = new Color(0.16f, 0.17f, 0.19f, 0.97f);
+            GUI.DrawTexture(_gatewayConfirmRect, _px);
+            GUI.color = prevColor;
+
+            GUI.Label(
+                new Rect(_gatewayConfirmRect.x + 10f, _gatewayConfirmRect.y + 6f, _gatewayConfirmRect.width - 20f, 18f),
+                "无法直接前往目标地点",
+                _body);
+            GUI.Label(
+                new Rect(_gatewayConfirmRect.x + 10f, _gatewayConfirmRect.y + 26f, _gatewayConfirmRect.width - 20f, 18f),
+                "需要先经过【" + _gatewayConfirmDisplayName + "】",
+                _body);
+
+            var y = _gatewayConfirmRect.y + 50f;
+            var bw = (_gatewayConfirmRect.width - 24f) * 0.5f;
+            if (GUI.Button(new Rect(_gatewayConfirmRect.x + 10f, y, bw, 24f), "前往 " + _gatewayConfirmDisplayName))
+            {
+                UnityEngine.Debug.Log("[GatewayConfirmUI] ConfirmClicked=true gatewaySiteId=" +
+                    _gatewayConfirmSiteId + " frame=" + Time.frameCount);
+                Event.current.Use();
+                ExecuteGatewayConfirmTravel(world);
+                CloseGatewayConfirm("confirmClicked");
+            }
+
+            if (GUI.Button(new Rect(_gatewayConfirmRect.x + 14f + bw, y, bw, 24f), "取消"))
+            {
+                UnityEngine.Debug.Log("[GatewayConfirmUI] CancelClicked=true frame=" + Time.frameCount);
+                Event.current.Use();
+                CloseGatewayConfirm("cancelClicked");
+            }
+
+            GUI.depth = prevDepth;
+        }
+
+        void ExecuteGatewayConfirmTravel(XianXia.Core.Simulation.SimulationWorld world)
+        {
+            var party = bootstrap?.Session?.PlayerParty;
+            if (party == null || !party.HasActive)
+                return;
+
+            // 复用稳定 Direct Target WorldSite Ingress：普通 PlayerParty → Gateway 旅行
+            //（到达 Gateway = AtSite + Travel Complete；不保留 B continuation，不自动出关）。
+            var move = PlayerPartyHexTravelService.BeginTravel(
+                world, party, _gatewayConfirmApproachHex, _gatewayConfirmSiteId);
+            if (move.IsSuccess)
+            {
+                _worldMapSelection.SelectPlayerParty();
+                RefreshPlayerPartyPathPreview(world);
+                _status = "PlayerParty Travel → " + _gatewayConfirmDisplayName;
+            }
+            else
+            {
+                _status = FormatFail(move);
+            }
+        }
+
         void OpenHexWorldSiteEnterMenu(
             HexRightClickResolution resolution,
             HexCoord hex,
@@ -2995,6 +3197,7 @@ namespace XianXia.Unity.Host
             _hexSiteEnterMenuHex = hex;
             _hexSiteEnterMenuRect = AnchorContextMenu(new Rect(mouse.x, mouse.y, 1f, 1f), 196f, 72f);
             _hexSiteEnterMenuOpen = true;
+            CloseGatewayConfirm();
             _hexMenuOpen = false;
             _stackMenuOpen = false;
             _avatarMenuOpen = false;
@@ -3711,6 +3914,21 @@ namespace XianXia.Unity.Host
             if (ev.button != 0 && ev.button != 1)
                 return;
 
+            // Phase 5D-B1（UI 生命周期）：触发打开确认框的那次右键事件，
+            // 不得在同一帧被 outside-click 判断关闭刚打开的确认框（openedThisFrame 模式，
+            // 非 magic delay）。打开帧内跳过全部菜单关闭；下一帧起恢复正常 dismiss。
+            if (_gatewayConfirmOpen && Time.frameCount == _gatewayConfirmOpenFrame)
+            {
+                if (!_gatewayConfirmSuppressLogged)
+                {
+                    _gatewayConfirmSuppressLogged = true;
+                    UnityEngine.Debug.Log("[GatewayConfirmUI] DismissSkipped openingFrame=" +
+                        _gatewayConfirmOpenFrame + " currentFrame=" + Time.frameCount +
+                        " mouseOutsideRect=" + !_gatewayConfirmRect.Contains(ev.mousePosition));
+                }
+                return;
+            }
+
             if (_stackMenuOpen && _stackMenuRect.Contains(ev.mousePosition))
                 return;
             if (_nodeMenuOpen && _nodeMenuRect.Contains(ev.mousePosition))
@@ -3721,15 +3939,18 @@ namespace XianXia.Unity.Host
                 return;
             if (_avatarMenuOpen && _avatarMenuRect.Contains(ev.mousePosition))
                 return;
+            if (_gatewayConfirmOpen && _gatewayConfirmRect.Contains(ev.mousePosition))
+                return;
 
             if (!_stackMenuOpen && !_nodeMenuOpen && !_hexMenuOpen && !_hexSiteEnterMenuOpen &&
-                !_avatarMenuOpen)
+                !_avatarMenuOpen && !_gatewayConfirmOpen)
                 return;
 
             _stackMenuOpen = false;
             _nodeMenuOpen = false;
             _hexMenuOpen = false;
             CloseHexSiteEnterMenu();
+            CloseGatewayConfirm("outsideClick");
             _avatarMenuOpen = false;
             _avatarMenuVisitMode = false;
             // Use：同一帧右键仍可落到移动／攻击下令
@@ -3999,6 +4220,7 @@ namespace XianXia.Unity.Host
                 return;
 
             _avatarMenuEntityId = hitId.Value;
+            CloseGatewayConfirm();
             _avatarMenuOpen = true;
             _avatarMenuRect = new Rect(mouse.x + 4f, mouse.y + 4f, 196f, 118f);
 
