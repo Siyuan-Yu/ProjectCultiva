@@ -1218,50 +1218,50 @@
         {
           "q": 22,
           "r": 5,
-          "terrain": "Plain",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
           "q": 23,
           "r": 5,
-          "terrain": "Plain",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
           "q": 24,
           "r": 5,
-          "terrain": "Plain",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
           "q": 25,
           "r": 5,
-          "terrain": "Plain",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
           "q": 26,
           "r": 5,
-          "terrain": "Water",
+          "terrain": "Mountain",
           "passable": false,
           "isRoad": false
         },
         {
           "q": 27,
           "r": 5,
-          "terrain": "Plain",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
           "q": 28,
           "r": 5,
-          "terrain": "Plain",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
@@ -1456,8 +1456,8 @@
         {
           "q": 26,
           "r": 6,
-          "terrain": "Water",
-          "passable": false,
+          "terrain": "Plain",
+          "passable": true,
           "isRoad": false
         },
         {
@@ -1477,8 +1477,8 @@
         {
           "q": 29,
           "r": 6,
-          "terrain": "Plain",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
@@ -1638,43 +1638,43 @@
         {
           "q": 22,
           "r": 7,
-          "terrain": "Forest",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
           "q": 23,
           "r": 7,
-          "terrain": "Forest",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
           "q": 24,
           "r": 7,
-          "terrain": "Plain",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
           "q": 25,
           "r": 7,
-          "terrain": "Plain",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
           "q": 26,
           "r": 7,
-          "terrain": "Water",
+          "terrain": "Mountain",
           "passable": false,
           "isRoad": false
         },
         {
           "q": 27,
           "r": 7,
-          "terrain": "Plain",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
@@ -1687,8 +1687,8 @@
         {
           "q": 29,
           "r": 7,
-          "terrain": "Plain",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
@@ -1883,8 +1883,8 @@
         {
           "q": 27,
           "r": 8,
-          "terrain": "Plain",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
@@ -1897,8 +1897,8 @@
         {
           "q": 29,
           "r": 8,
-          "terrain": "Plain",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
@@ -2086,8 +2086,8 @@
         {
           "q": 26,
           "r": 9,
-          "terrain": "Plain",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
@@ -2100,432 +2100,432 @@
         {
           "q": 28,
           "r": 9,
+          "terrain": "Mountain",
+          "passable": false,
+          "isRoad": false
+        },
+        {
+          "q": 29,
+          "r": 9,
+          "terrain": "Mountain",
+          "passable": false,
+          "isRoad": false
+        },
+        {
+          "q": 0,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 1,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 2,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 3,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 4,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 5,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 6,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 7,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 8,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 9,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 10,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 11,
+          "r": 10,
+          "terrain": "Road",
+          "passable": true,
+          "isRoad": true
+        },
+        {
+          "q": 12,
+          "r": 10,
+          "terrain": "Road",
+          "passable": true,
+          "isRoad": true
+        },
+        {
+          "q": 13,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 14,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 15,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 16,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 17,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 18,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 19,
+          "r": 10,
+          "terrain": "Forest",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 20,
+          "r": 10,
+          "terrain": "Forest",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 21,
+          "r": 10,
+          "terrain": "Forest",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 22,
+          "r": 10,
+          "terrain": "Forest",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 23,
+          "r": 10,
+          "terrain": "Forest",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 24,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 25,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 26,
+          "r": 10,
+          "terrain": "Mountain",
+          "passable": false,
+          "isRoad": false
+        },
+        {
+          "q": 27,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 28,
+          "r": 10,
+          "terrain": "Mountain",
+          "passable": false,
+          "isRoad": false
+        },
+        {
+          "q": 29,
+          "r": 10,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 0,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 1,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 2,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 3,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 4,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 5,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 6,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 7,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 8,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 9,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 10,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 11,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 12,
+          "r": 11,
+          "terrain": "Road",
+          "passable": true,
+          "isRoad": true
+        },
+        {
+          "q": 13,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 14,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 15,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 16,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 17,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 18,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 19,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 20,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 21,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 22,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 23,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 24,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 25,
+          "r": 11,
+          "terrain": "Mountain",
+          "passable": false,
+          "isRoad": false
+        },
+        {
+          "q": 26,
+          "r": 11,
+          "terrain": "Plain",
+          "passable": true,
+          "isRoad": false
+        },
+        {
+          "q": 27,
+          "r": 11,
+          "terrain": "Mountain",
+          "passable": false,
+          "isRoad": false
+        },
+        {
+          "q": 28,
+          "r": 11,
           "terrain": "Plain",
           "passable": true,
           "isRoad": false
         },
         {
           "q": 29,
-          "r": 9,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 0,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 1,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 2,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 3,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 4,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 5,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 6,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 7,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 8,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 9,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 10,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 11,
-          "r": 10,
-          "terrain": "Road",
-          "passable": true,
-          "isRoad": true
-        },
-        {
-          "q": 12,
-          "r": 10,
-          "terrain": "Road",
-          "passable": true,
-          "isRoad": true
-        },
-        {
-          "q": 13,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 14,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 15,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 16,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 17,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 18,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 19,
-          "r": 10,
-          "terrain": "Forest",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 20,
-          "r": 10,
-          "terrain": "Forest",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 21,
-          "r": 10,
-          "terrain": "Forest",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 22,
-          "r": 10,
-          "terrain": "Forest",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 23,
-          "r": 10,
-          "terrain": "Forest",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 24,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 25,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 26,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 27,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 28,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 29,
-          "r": 10,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 0,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 1,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 2,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 3,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 4,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 5,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 6,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 7,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 8,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 9,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 10,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 11,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 12,
-          "r": 11,
-          "terrain": "Road",
-          "passable": true,
-          "isRoad": true
-        },
-        {
-          "q": 13,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 14,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 15,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 16,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 17,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 18,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 19,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 20,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 21,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 22,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 23,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 24,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 25,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 26,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 27,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 28,
-          "r": 11,
-          "terrain": "Plain",
-          "passable": true,
-          "isRoad": false
-        },
-        {
-          "q": 29,
           "r": 11,
           "terrain": "Plain",
           "passable": true,
@@ -2716,8 +2716,8 @@
         {
           "q": 26,
           "r": 12,
-          "terrain": "Plain",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
@@ -2730,8 +2730,8 @@
         {
           "q": 28,
           "r": 12,
-          "terrain": "Plain",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
@@ -2926,8 +2926,8 @@
         {
           "q": 26,
           "r": 13,
-          "terrain": "Plain",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
@@ -2940,8 +2940,8 @@
         {
           "q": 28,
           "r": 13,
-          "terrain": "Plain",
-          "passable": true,
+          "terrain": "Mountain",
+          "passable": false,
           "isRoad": false
         },
         {
@@ -3164,6 +3164,69 @@
       ],
       "sites": [
         {
+          "siteId": "base:site_chengzhen",
+          "displayName": "青石镇",
+          "siteType": "Town",
+          "anchorQ": 10,
+          "anchorR": 7,
+          "presenceQ": 10,
+          "presenceR": 7,
+          "footprint": [
+            {
+              "q": 10,
+              "r": 7
+            },
+            {
+              "q": 11,
+              "r": 7
+            },
+            {
+              "q": 10,
+              "r": 8
+            },
+            {
+              "q": 11,
+              "r": 8
+            }
+          ],
+          "localMapId": "base:map_site_chengzhen",
+          "ownerFactionId": ""
+        },
+        {
+          "siteId": "base:site_editor_8",
+          "displayName": "新地点",
+          "siteType": "Village",
+          "anchorQ": 28,
+          "anchorR": 7,
+          "presenceQ": 28,
+          "presenceR": 7,
+          "footprint": [
+            {
+              "q": 28,
+              "r": 7
+            }
+          ],
+          "localMapId": "",
+          "ownerFactionId": ""
+        },
+        {
+          "siteId": "base:site_guanai",
+          "displayName": "青石关",
+          "siteType": "Pass",
+          "anchorQ": 12,
+          "anchorR": 11,
+          "presenceQ": 12,
+          "presenceR": 11,
+          "footprint": [
+            {
+              "q": 12,
+              "r": 11
+            }
+          ],
+          "localMapId": "base:map_site_guanai",
+          "ownerFactionId": ""
+        },
+        {
           "siteId": "base:site_huangcun",
           "displayName": "青石荒村",
           "siteType": "Village",
@@ -3193,21 +3256,21 @@
           "ownerFactionId": "base:sect_huangcun_labor"
         },
         {
-          "siteId": "test:site_player_camp",
-          "displayName": "TEST 主角营地",
-          "siteType": "Camp",
-          "anchorQ": 4,
+          "siteId": "base:site_lingdi",
+          "displayName": "灵地",
+          "siteType": "SpiritLand",
+          "anchorQ": 22,
           "anchorR": 6,
-          "presenceQ": 4,
+          "presenceQ": 22,
           "presenceR": 6,
           "footprint": [
             {
-              "q": 4,
+              "q": 22,
               "r": 6
             }
           ],
-          "localMapId": "base:map_player_camp",
-          "ownerFactionId": "base:faction_player"
+          "localMapId": "base:map_site_lingdi",
+          "ownerFactionId": "base:sect_huangcun_labor"
         },
         {
           "siteId": "base:site_linjian",
@@ -3224,35 +3287,6 @@
             }
           ],
           "localMapId": "base:map_site_linjian",
-          "ownerFactionId": ""
-        },
-        {
-          "siteId": "base:site_chengzhen",
-          "displayName": "青石镇",
-          "siteType": "Town",
-          "anchorQ": 10,
-          "anchorR": 7,
-          "presenceQ": 10,
-          "presenceR": 7,
-          "footprint": [
-            {
-              "q": 10,
-              "r": 7
-            },
-            {
-              "q": 11,
-              "r": 7
-            },
-            {
-              "q": 10,
-              "r": 8
-            },
-            {
-              "q": 11,
-              "r": 8
-            }
-          ],
-          "localMapId": "base:map_site_chengzhen",
           "ownerFactionId": ""
         },
         {
@@ -3285,38 +3319,21 @@
           "ownerFactionId": "base:faction_nan_yan"
         },
         {
-          "siteId": "base:site_guanai",
-          "displayName": "青石关",
-          "siteType": "Pass",
-          "anchorQ": 12,
-          "anchorR": 11,
-          "presenceQ": 12,
-          "presenceR": 11,
-          "footprint": [
-            {
-              "q": 12,
-              "r": 11
-            }
-          ],
-          "localMapId": "base:map_site_guanai",
-          "ownerFactionId": ""
-        },
-        {
-          "siteId": "base:site_lingdi",
-          "displayName": "灵地",
-          "siteType": "SpiritLand",
-          "anchorQ": 22,
+          "siteId": "test:site_player_camp",
+          "displayName": "TEST 主角营地",
+          "siteType": "Camp",
+          "anchorQ": 4,
           "anchorR": 6,
-          "presenceQ": 22,
+          "presenceQ": 4,
           "presenceR": 6,
           "footprint": [
             {
-              "q": 22,
+              "q": 4,
               "r": 6
             }
           ],
-          "localMapId": "base:map_site_lingdi",
-          "ownerFactionId": "base:sect_huangcun_labor"
+          "localMapId": "base:map_player_camp",
+          "ownerFactionId": "base:faction_player"
         }
       ]
     }
