@@ -7,6 +7,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Input;
 using XianXia.Core.Persistence;
 using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
@@ -65,6 +66,17 @@ namespace XianXia.Unity.Host
         bool _wasdHeldLastFrame;
         bool _pendingSnapshotFollowRebind;
         HostActiveCameraFollowMode _cameraMode = HostActiveCameraFollowMode.Free;
+
+        // Phase 5R-B4: transient Site LocalVisible→Canonical sync state（不落盘、不是 Position truth）。
+        // _siteSyncHeld：Materialize 完成帧标记 —— OnLocalMapMaterialized 置 true，下一次 sync tick
+        // 只清标记不反写（ownership transition：materialize 完成帧禁止同帧 Local→Canonical）。
+        bool _siteSyncHeld;
+        string _siteSyncCacheSiteId = string.Empty;
+        string _siteSyncCacheMapId = string.Empty;
+        WorldSiteSpatialMapping.WorldSiteLocalMapBounds _siteSyncCacheBounds;
+        HexFootprintSpatialGeometry _siteSyncCacheGeometry;
+        string _siteSyncLastFailureKind = string.Empty;
+        float _siteSyncLastFailureTime = -10f;
 
         [SerializeField] float followerChopSearchRadius = 10f;
 
@@ -179,6 +191,13 @@ namespace XianXia.Unity.Host
         {
             if (Party == null)
                 return;
+
+            // Phase 5R-B4: Materialize 完成 → 本帧禁止 Local→Canonical 反写（ownership transition）；
+            // 同时失效 V2 geometry cache（Site/LocalMap 可能已变，下一次 sync tick 重建）。
+            _siteSyncHeld = true;
+            _siteSyncCacheGeometry = null;
+            _siteSyncCacheSiteId = string.Empty;
+            _siteSyncCacheMapId = string.Empty;
 
             var mapId = localMapId?.Trim() ?? string.Empty;
             _move?.BindLocalMapContext(mapId);
@@ -564,7 +583,169 @@ namespace XianXia.Unity.Host
             if (Party.IsAwaitingSuccession || Party.ActiveCharacterId.IsNone)
                 return;
 
+            // Phase 5R-B4: 本帧所有 Local 移动 writer（WASD / RTS / AutoTravel / SnapWalkable）都已在
+            // Update 阶段结束，Active Transform 已最终确定 → 在此做 LocalVisible→Canonical sync。
+            TickWorldSiteCanonicalSync();
             TickCameraFollow();
+        }
+
+        /// <summary>
+        /// Phase 5R-B4：WorldSite LocalVisible → Canonical 单向同步（唯一 Local→Canonical writer）。
+        /// 时机：LateUpdate（最终 Local Transform 已确定之后）。
+        /// 单向 ownership：仅 WorldMap closed + AtWorldSite + LocalMap Materialized（held=false）+
+        /// Active View 有效 + 非 departure/transition 时 Local→Canonical；
+        /// WorldMap OPEN / Materialize 完成帧 / departure → 禁止（保留旧 Canonical）。
+        /// </summary>
+        void TickWorldSiteCanonicalSync()
+        {
+            // Materialize 完成帧（OnLocalMapMaterialized 已置 held）：本帧不反写，下一帧 ownership 接管。
+            if (_siteSyncHeld)
+            {
+                _siteSyncHeld = false;
+                return;
+            }
+
+            if (HostInputGate.BlockWorldInteraction)
+                return;
+            var session = bootstrap?.Session;
+            var world = session?.World;
+            var motion = world?.PlayerPartyTravel;
+            if (world == null || motion == null || !motion.HasPosition)
+                return;
+
+            var active = Party.ActiveCharacterId;
+            if (active.IsNone || _spawner == null ||
+                !_spawner.Registry.TryGet(active, out var view) ||
+                view == null)
+                return;
+
+            if (!TryResolveSiteSyncGeometry(world, motion, out var bounds, out var geometry))
+            {
+                LogSiteSyncFailureThrottled("GeometryUnavailable", motion.SiteId);
+                return;
+            }
+
+            var isWorldMapOpen = bootstrap.WorldMapPanel != null && bootstrap.WorldMapPanel.IsOpen;
+            var ctx = new WorldSiteLocalVisibleSyncContext(
+                inputBlocked: HostInputGate.BlockWorldInteraction,
+                isWorldMapOpen: isWorldMapOpen,
+                hasActiveView: true,
+                isAtWorldSite: motion.LocationKind == PlayerPartyLocationKind.AtWorldSite,
+                hasSiteId: !string.IsNullOrEmpty(motion.SiteId),
+                isSiteDeparturePending: motion.IsSiteDeparturePending,
+                usesTravelPresentation: motion.UsesTravelPresentation,
+                isMaterializeHeld: false,
+                hasGeometry: true);
+            if (!WorldSiteLocalVisibleSyncPolicy.CanSync(ctx))
+                return;
+
+            var local = new WorldVec2(view.transform.position.x, view.transform.position.y);
+            var outcome = PlayerPartyWorldSiteLocalVisibleSync.TrySync(
+                motion, geometry, bounds, local, out _);
+            if (outcome == WorldSiteSyncOutcome.MappingFailed)
+                LogSiteSyncFailureThrottled("MappingFailed", motion.SiteId);
+            else if (outcome == WorldSiteSyncOutcome.SiteIdRejected)
+                LogSiteSyncFailureThrottled("SiteIdRejected", motion.SiteId);
+        }
+
+        /// <summary>
+        /// Phase 5R-B4：解析 / 复用 V2 geometry cache。绑定 SiteId + ActiveMapLayoutId；任一变化即重建
+        /// （Site/LocalMap 切换时失效）。构建一次后 B4 每帧复用（V2_07 已验证零堆分配热路径）。
+        /// </summary>
+        bool TryResolveSiteSyncGeometry(
+            XianXia.Core.Simulation.SimulationWorld world,
+            PlayerPartyWorldMotion motion,
+            out WorldSiteSpatialMapping.WorldSiteLocalMapBounds bounds,
+            out HexFootprintSpatialGeometry geometry)
+        {
+            bounds = default;
+            geometry = null;
+
+            var mapId = world.LocalMap != null
+                ? (world.LocalMap.ActiveMapLayoutId ?? string.Empty).Trim()
+                : string.Empty;
+            var siteId = motion.SiteId ?? string.Empty;
+            if (_siteSyncCacheGeometry != null &&
+                string.Equals(_siteSyncCacheSiteId, siteId, System.StringComparison.Ordinal) &&
+                string.Equals(_siteSyncCacheMapId, mapId, System.StringComparison.Ordinal))
+            {
+                bounds = _siteSyncCacheBounds;
+                geometry = _siteSyncCacheGeometry;
+                return true;
+            }
+
+            if (string.IsNullOrEmpty(siteId))
+                return false;
+
+            WorldSite site = null;
+            if (world.Strategic?.Sites == null ||
+                !world.Strategic.Sites.TryGet(siteId, out site) ||
+                site == null)
+                return false;
+
+            if (!TryResolveSiteSyncBounds(out var newBounds))
+                return false;
+
+            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                ? world.HexWorld.HexSize
+                : 1f;
+            if (!WorldSiteSpatialMapping.TryBuildGeometry(site, hexSize, out var newGeometry) ||
+                !newGeometry.HasKernel)
+                return false;
+
+            _siteSyncCacheSiteId = siteId;
+            _siteSyncCacheMapId = mapId;
+            _siteSyncCacheBounds = newBounds;
+            _siteSyncCacheGeometry = newGeometry;
+            bounds = newBounds;
+            geometry = newGeometry;
+            return true;
+        }
+
+        /// <summary>与 <see cref="TryResolveWildernessBounds"/> 同源解析：MapLayout → WorldSiteLocalMapBounds。</summary>
+        bool TryResolveSiteSyncBounds(out WorldSiteSpatialMapping.WorldSiteLocalMapBounds bounds)
+        {
+            bounds = default;
+            var session = bootstrap?.Session;
+            var mapId = session?.World?.LocalMap?.ActiveMapLayoutId?.Trim() ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(mapId) && session?.Registry != null)
+            {
+                var parsed = DefinitionId.Parse(mapId.Trim());
+                if (parsed.IsSuccess &&
+                    session.Registry.TryGetMapLayout(parsed.Value, out var layout) &&
+                    layout != null &&
+                    layout.Width > 0 &&
+                    layout.Height > 0)
+                {
+                    var cs = layout.CellSize > 0.0001f ? layout.CellSize : 1f;
+                    bounds = WorldSiteSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
+                        layout.OriginX, layout.OriginY, cs, layout.Width, layout.Height);
+                    return true;
+                }
+            }
+
+            var grid = bootstrap != null ? bootstrap.MoveController?.WalkGrid : null;
+            if (grid == null)
+                return false;
+            bounds = WorldSiteSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
+                grid.OriginX, grid.OriginY, grid.CellSize, grid.Width, grid.Height);
+            return true;
+        }
+
+        /// <summary>mapping failure 诊断：once / state-change / throttled（&gt;2s 才再打），避免每帧刷 Console。</summary>
+        void LogSiteSyncFailureThrottled(string kind, string siteId)
+        {
+            if (string.Equals(_siteSyncLastFailureKind, kind, System.StringComparison.Ordinal) &&
+                Time.unscaledTime - _siteSyncLastFailureTime < 2f)
+                return;
+            _siteSyncLastFailureKind = kind;
+            _siteSyncLastFailureTime = Time.unscaledTime;
+            Debug.LogWarning(
+                "[B4 SiteSync] " + kind +
+                " site=" + (siteId ?? "") +
+                " map=" + (_siteSyncCacheMapId ?? "") +
+                " geometry=" + (_siteSyncCacheGeometry != null ? "cached" : "null") +
+                " held=" + _siteSyncHeld);
         }
 
         /// <summary>
