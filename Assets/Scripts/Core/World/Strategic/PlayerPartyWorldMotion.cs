@@ -7,6 +7,30 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
+    /// Phase 5R-B6：PlayerParty WorldSite departure 细分阶段。
+    /// 将「计划离开 Site」与「已经进入 Boundary Transition」拆开，避免单一 bool 让 B4
+    /// ownership 模糊（approaching 时角色仍 AtWorldSite、LocalVisible owns，B4 必须继续；
+    /// 仅 TransitionCommit 时 transition authority 接管、B4 停止）。
+    /// </summary>
+    public enum PlayerPartyDeparturePhase
+    {
+        /// <summary>无 departure。</summary>
+        None = 0,
+
+        /// <summary>WorldMap 已接受外部 Travel Order，DeparturePlan 已形成（route/first outside hex
+        /// 已解析）。WorldMap open 期间仅 plan，不虚拟推进 Canonical。</summary>
+        Planned = 1,
+
+        /// <summary>WorldMap close，LocalVisible 驱动角色在 Site LocalMap 内自动走向正式出口。
+        /// 期间角色仍 AtWorldSite + SiteId 不变，LocalVisible owns → B4 Local→Canonical 继续。</summary>
+        Approaching = 2,
+
+        /// <summary>已到达正式 SurfaceExit，transition authority 接管 → B4 停止，随后正式 egress
+        /// （AtWorldSite → AtWorldPosition + EnterWildernessLocalMap）。</summary>
+        TransitionCommit = 3,
+    }
+
+    /// <summary>
     /// PlayerParty 世界位置 + 移动状态真源（Phase 2C）。
     /// WorldPosition 为开世界真源；CurrentHex 由 WorldToHex 派生；AtWorldSite 时投影 PresenceHex。
     /// </summary>
@@ -51,6 +75,22 @@ namespace XianXia.Core.World.Strategic
         public WorldVec2 SiteDepartureBoundaryEntry { get; private set; }
         public HexCoord SiteDepartureFootprintHex { get; private set; }
         public HexCoord SiteDepartureExitHex { get; private set; }
+
+        /// <summary>
+        /// Phase 5R-B6：WorldSite departure 细分阶段（区分「计划/走向出口」与「真正 crossing」）。
+        ///  <see cref="PlayerPartyDeparturePhase.Planned"/>：WorldMap 接受外部 order，plan 已形成（WorldMap open 仅 plan，不虚拟推进）；
+        ///  <see cref="PlayerPartyDeparturePhase.Approaching"/>：WorldMap close，LocalVisible 驱动角色在 Site LocalMap 内走向正式出口
+        ///      —— 期间角色仍 AtWorldSite、LocalVisible owns，<b>B4 Local→Canonical 必须继续</b>；
+        ///  <see cref="PlayerPartyDeparturePhase.TransitionCommit"/>：到达出口，transition authority 接管（B4 停止）。
+        /// <see cref="IsSiteDeparturePending"/> 保留为“已有 departure 意图”的兼容聚合（!= None）。
+        /// </summary>
+        public PlayerPartyDeparturePhase DeparturePhase { get; private set; }
+
+        public void SetDeparturePhase(PlayerPartyDeparturePhase phase)
+        {
+            DeparturePhase = phase;
+            IsSiteDeparturePending = phase != PlayerPartyDeparturePhase.None;
+        }
 
         /// <summary>跨入 Destination Site 后 Footprint 内 Presentation（Authority 已为 AtWorldSite）。</summary>
         public bool UsesTravelPresentation { get; private set; }
@@ -111,6 +151,7 @@ namespace XianXia.Core.World.Strategic
         public void ClearSiteDeparturePending()
         {
             IsSiteDeparturePending = false;
+            DeparturePhase = PlayerPartyDeparturePhase.None;
             SiteDepartureVirtualPosition = default;
             SiteDepartureBoundaryEntry = default;
             SiteDepartureFootprintHex = default;
@@ -265,6 +306,7 @@ namespace XianXia.Core.World.Strategic
                 return;
 
             IsSiteDeparturePending = true;
+            DeparturePhase = PlayerPartyDeparturePhase.Planned;
             SiteDepartureFootprintHex = footprintHex;
             SiteDepartureExitHex = exitHex;
             SiteDepartureBoundaryEntry = boundaryEntryWorld;

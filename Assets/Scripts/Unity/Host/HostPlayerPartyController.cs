@@ -78,6 +78,14 @@ namespace XianXia.Unity.Host
         string _siteSyncLastFailureKind = string.Empty;
         float _siteSyncLastFailureTime = -10f;
 
+        // Phase 5R-B6.1：WorldSite→Wilderness 正式 egress 后的一次性 recenter 请求。
+        // egress 成功分支置 true；下一次 OnLocalMapMaterialized（materialize + 实体重建完成后）
+        // 消费 → SnapCameraToActiveOnce。普通 WorldMap open/close 不设此标志，自由镜头语义不受影响。
+        bool _pendingEgressRecenter;
+        // Phase 5R-B6.2：egress 时所在 LocalMapId —— 消费时要求 LocalMap 已切换（egress 必然换图），
+        // 防止标志泄漏到后续无关的同图 materialize（普通 WorldMap 开关）而误 recenter。
+        string _pendingEgressRecenterMapId = string.Empty;
+
         [SerializeField] float followerChopSearchRadius = 10f;
 
         HostMoveController _move;
@@ -204,6 +212,27 @@ namespace XianXia.Unity.Host
             _move?.InvalidatePartyLocalMovement(Party.Members);
             InvalidatePartyDerivedLocalActions();
             ResetFollowAfterMaterialize();
+
+            // Phase 5R-B6.1：WorldSite→Wilderness egress 的 materialize 完成点（entity 重建后、
+            // Active Character final transform 已确定）→ one-shot 对准主控。
+            // 不进入永久 Follow（SnapCameraToActiveOnce 置 Free + 一次性对准）。
+            // Phase 5R-B6.2：消费要求"已换图 + 已 AtWorldPosition"（egress 必然换图）；同图
+            // materialize（普通 WorldMap 开关 / materialize 失败后的残留）仅清理标志，不 recenter，
+            // 防泄漏到无关的后续 materialize。
+            if (_pendingEgressRecenter)
+            {
+                var pendingMapId = _pendingEgressRecenterMapId ?? string.Empty;
+                _pendingEgressRecenter = false;
+                _pendingEgressRecenterMapId = string.Empty;
+                var egressMotion = bootstrap?.Session?.World?.PlayerPartyTravel;
+                var isEgressCompletion =
+                    !string.IsNullOrEmpty(localMapId) &&
+                    !string.Equals(localMapId, pendingMapId, System.StringComparison.OrdinalIgnoreCase) &&
+                    egressMotion != null &&
+                    egressMotion.LocationKind == PlayerPartyLocationKind.AtWorldPosition;
+                if (isEgressCompletion)
+                    SnapCameraToActiveOnce();
+            }
         }
 
         void InvalidatePartyDerivedLocalActions()
@@ -632,7 +661,7 @@ namespace XianXia.Unity.Host
                 hasActiveView: true,
                 isAtWorldSite: motion.LocationKind == PlayerPartyLocationKind.AtWorldSite,
                 hasSiteId: !string.IsNullOrEmpty(motion.SiteId),
-                isSiteDeparturePending: motion.IsSiteDeparturePending,
+                isDepartureTransitionCommit: motion.DeparturePhase == PlayerPartyDeparturePhase.TransitionCommit,
                 usesTravelPresentation: motion.UsesTravelPresentation,
                 isMaterializeHeld: false,
                 hasGeometry: true);
@@ -768,6 +797,19 @@ namespace XianXia.Unity.Host
                 return;
 
             var motion = world.PlayerPartyTravel;
+            // Phase 5R-B6：WorldSite departure approach —— 角色在 Site LocalMap 内自动走向正式出口。
+            // 条件：AtWorldSite + AutoTravel + ExecutionMode=LocalVisible + departure pending
+            // （BeginTravel 已生成 DeparturePlan；CloseWorldMapTakeover 已把 ExecutionMode 切 LocalVisible）。
+            if (motion != null &&
+                motion.IsMoving &&
+                motion.ExecutionMode == PlayerPartyTravelExecutionMode.LocalVisible &&
+                motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                motion.IsSiteDeparturePending)
+            {
+                TickWorldSiteDepartureApproach(world, motion, party);
+                return;
+            }
+
             // LocalVisible active = travel preserved + ExecutionMode LocalVisible + continuous
             // Wilderness position (WorldSite LocalVisible stays Phase 5B: stand still).
             var isLocalVisible =
@@ -959,6 +1001,142 @@ namespace XianXia.Unity.Host
             {
                 LastTransitionStatus = "PathBlocked";
                 _autoTravelRetryCooldownUntil = Time.time + 0.5f; // A* failed => back off.
+                return;
+            }
+
+            _lastAutoTravelTarget = target;
+            SyncLocalVisibleProgress(world, motion);
+        }
+
+        /// <summary>
+        /// Phase 5R-B6：WorldSite LocalVisible → 正式出口 approach 驱动。
+        /// 角色在 Site LocalMap 内自动走向 DeparturePlan 的正式 <see cref="SurfaceExitConnection"/>
+        /// （由 TryBuildPathLeavingSite 的 first outside hex 决定，不按 Anchor/Presence/最近边猜测）：
+        ///  1. departure phase Planned → Approaching（LocalVisible owns，B4 继续 Local→Canonical）；
+        ///  2. 解析正式 connection（真实 MapLayout bounds → SlotRect 与 presenter 视觉方块同源）
+        ///     → BoundaryContactWorld → V2 WorldToLocal；
+        ///  3. Local A* 驱动 → 到达正式 SlotRect 触发带（approach 目标权威 clamp 进触发带内，
+        ///     不再停在带外）→ TransitionCommit（B4 停）→
+        ///     TryCrossWorldSiteEdgePreservingLocalVisibleAutoTravel 正式 egress
+        ///     （AtWorldSite → AtWorldPosition + EnterWildernessLocalMap），原 route 继续。
+        /// 任何失败：不 teleport、不 fallback，保留 AtWorldSite + 当前 Canonical，throttled 诊断。
+        /// cross 失败回退 Approaching（恢复 B4），不残留 TransitionCommit 卡死。
+        /// </summary>
+        void TickWorldSiteDepartureApproach(
+            XianXia.Core.Simulation.SimulationWorld world,
+            PlayerPartyWorldMotion motion,
+            PlayerPartyRuntime party)
+        {
+            if (motion.DeparturePhase == PlayerPartyDeparturePhase.Planned)
+                motion.SetDeparturePhase(PlayerPartyDeparturePhase.Approaching);
+
+            var active = party != null ? party.ActiveCharacterId : EntityId.None;
+            if (active.IsNone || _spawner == null ||
+                !_spawner.Registry.TryGet(active, out var activeView) ||
+                activeView == null)
+                return;
+
+            var siteId = motion.SiteId ?? string.Empty;
+            WorldSite site = null;
+            if (string.IsNullOrEmpty(siteId) ||
+                world.Strategic?.Sites == null ||
+                !world.Strategic.Sites.TryGet(siteId, out site) ||
+                site == null)
+            {
+                LastTransitionStatus = "DepartureNoSite";
+                return;
+            }
+
+            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                ? world.HexWorld.HexSize
+                : 1f;
+
+            // 真实 Site LocalMap playable bounds（与 HostSurfaceExitZonePresenter 同源）→
+            // connection.SlotRect 与视觉方块一致。
+            if (!TryResolveSiteSyncGeometry(world, motion, out var bounds, out var geometry))
+            {
+                LastTransitionStatus = "DepartureNoGeometry";
+                return;
+            }
+
+            var wildBounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
+                bounds.OriginX, bounds.OriginY, bounds.CellSize, bounds.Width, bounds.Height);
+
+            // 正式出口连接：DeparturePlan 的 first outside hex（TryBuildPathLeavingSite 已选）。
+            if (!WorldSiteFootprintExitConnectionResolver.TryResolveFormalExitConnection(
+                    world,
+                    site,
+                    motion.SiteDepartureFootprintHex,
+                    motion.SiteDepartureExitHex,
+                    hexSize,
+                    wildBounds,
+                    out var connection))
+            {
+                LastTransitionStatus = "DepartureNoConnection";
+                _autoTravelRetryCooldownUntil = Time.time + 0.5f;
+                return;
+            }
+
+            var activePos = activeView.transform.position;
+            var authoredDepth = world?.LocalMap != null ? world.LocalMap.ExitTriggerDepth : 0f;
+            var depth = authoredDepth > 0.0001f
+                ? authoredDepth
+                : SurfaceExitZoneCalculator.DefaultExitTriggerDepth;
+
+            // 到达判定：角色进入该 connection 的 SlotRect（与 presenter 视觉方块同一真源：
+            // 同一 connection → 同一真实 bounds 派生 SlotRect）。
+            var arrivedAtExit = SurfaceExitZoneCalculator.PointBelongsToConnection(
+                activePos.x, activePos.y, connection, depth);
+
+            if (arrivedAtExit)
+            {
+                // 正式 egress：先置 TransitionCommit（B4 停止），随后 egress 保留原 route。
+                motion.SetDeparturePhase(PlayerPartyDeparturePhase.TransitionCommit);
+                var cross = PlayerPartyLocalVisibleAutoTravelService
+                    .TryCrossWorldSiteEdgePreservingLocalVisibleAutoTravel(world, party, connection);
+                if (cross.IsSuccess)
+                {
+                    LastTransitionStatus = "SiteExit->" + connection.DestinationHex;
+                    LastTransitionFailureReason = string.Empty;
+                    // Phase 5R-B6.1：请求 egress 后 materialize 完成的 one-shot recenter
+                    // （OnLocalMapMaterialized 消费，final transform 确定后对准主控）。
+                    // B6.2：记录 egress 时 LocalMapId，消费要求换图，防泄漏误 recenter。
+                    _pendingEgressRecenter = true;
+                    _pendingEgressRecenterMapId =
+                        world.LocalMap?.ActiveMapLayoutId ?? string.Empty;
+                    bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
+                    return;
+                }
+
+                // Phase 5R-B6.2：cross 失败 → 回退 Approaching（恢复 B4 sync），不残留
+                // TransitionCommit 卡死；保留当前位置可重试，不 teleport。
+                motion.SetDeparturePhase(PlayerPartyDeparturePhase.Approaching);
+                LastTransitionStatus = "SiteExitRejected";
+                LastTransitionFailureReason = cross.Error.ToString();
+                _autoTravelRetryCooldownUntil = Time.time + 0.5f;
+                return;
+            }
+
+            // 未到达：正式 approach 点（起点 = connection.ExitCenterLocal（真实 bounds 周界，
+            // presenter 同源）→ 沿 inward 退正式 inset → 权威 clamp 进 SlotRect 触发带内；
+            // 保证 A* 终点进入触发区，到达即 crossing，不再停在带外）。
+            PlayerPartyLocalVisibleAutoTravelService.ResolveWorldSiteExitApproachLocalPoint(
+                connection, bounds, depth, out var ax, out var ay);
+            var target = new Vector3(ax, ay, HostPresentationSpace.EntityZ);
+
+            var alreadyMoving = _move != null && _move.IsMoving(active);
+            var sameTarget = Vector3.Distance(target, _lastAutoTravelTarget) < 0.05f;
+            if (alreadyMoving && sameTarget)
+            {
+                SyncLocalVisibleProgress(world, motion);
+                return;
+            }
+
+            if (_move == null ||
+                !_move.OrderEntityToWorldPoint(active, target, null, issueStop: false))
+            {
+                LastTransitionStatus = "DeparturePathBlocked";
+                _autoTravelRetryCooldownUntil = Time.time + 0.5f;
                 return;
             }
 
@@ -1436,7 +1614,11 @@ namespace XianXia.Unity.Host
 
             if (world?.PlayerPartyTravel != null &&
                 PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(world.PlayerPartyTravel) &&
-                world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition)
+                (world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition ||
+                 // Phase 5R-B6.2：WorldSite DepartureApproach（AtWorldSite + departure pending + LocalVisible
+                 // AutoTravel）也是 LocalVisible execution —— Camera 跟随 Active Character。
+                 (world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                  world.PlayerPartyTravel.IsSiteDeparturePending)))
             {
                 if (!_hasAutoTravelSession)
                 {

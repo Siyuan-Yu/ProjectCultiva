@@ -374,7 +374,7 @@ namespace XianXia.Tests
                 hasActiveView: true,
                 isAtWorldSite: true,
                 hasSiteId: true,
-                isSiteDeparturePending: false,
+                isDepartureTransitionCommit: false,
                 usesTravelPresentation: false,
                 isMaterializeHeld: held,
                 hasGeometry: true);
@@ -471,7 +471,7 @@ namespace XianXia.Tests
                 WorldSiteLocalVisibleSyncPolicy.CanSync(
                     new WorldSiteLocalVisibleSyncContext(
                         ctx.InputBlocked, isWorldMapOpen: true, ctx.HasActiveView, ctx.IsAtWorldSite,
-                        ctx.HasSiteId, ctx.IsSiteDeparturePending, ctx.UsesTravelPresentation,
+                        ctx.HasSiteId, ctx.IsDepartureTransitionCommit, ctx.UsesTravelPresentation,
                         ctx.IsMaterializeHeld, ctx.HasGeometry)),
                 "WorldMap OPEN → World executor owns → Local→Canonical 禁止");
         }
@@ -503,7 +503,7 @@ namespace XianXia.Tests
                 WorldSiteLocalVisibleSyncPolicy.CanSync(
                     new WorldSiteLocalVisibleSyncContext(
                         ctx.InputBlocked, ctx.IsWorldMapOpen, ctx.HasActiveView, isAtWorldSite: false,
-                        ctx.HasSiteId, ctx.IsSiteDeparturePending, ctx.UsesTravelPresentation,
+                        ctx.HasSiteId, ctx.IsDepartureTransitionCommit, ctx.UsesTravelPresentation,
                         ctx.IsMaterializeHeld, ctx.HasGeometry)),
                 "AtWorldPosition / Wilderness → 禁止 Local→Canonical");
         }
@@ -607,19 +607,21 @@ namespace XianXia.Tests
             Assert.AreEqual(a, b, "同一 local → 同一 canonical（移动原因无关，单一 writer）");
         }
 
-        // ============================ [14] Site departure → sync disabled ============================
+        // ============================ [14] Site TransitionCommit → sync disabled ============================
 
         [Test]
         public void B4_14_SiteDeparture_DisablesSync()
         {
+            // Phase 5R-B6：departure 细分后仅 TransitionCommit（真正 crossing）禁 B4；
+            // Planned / Approaching（角色在 Site LocalMap 走向出口，LocalVisible owns）允许 B4 继续。
             var ctx = OkCtx();
             Assert.IsFalse(
                 WorldSiteLocalVisibleSyncPolicy.CanSync(
                     new WorldSiteLocalVisibleSyncContext(
                         ctx.InputBlocked, ctx.IsWorldMapOpen, ctx.HasActiveView, ctx.IsAtWorldSite,
-                        ctx.HasSiteId, isSiteDeparturePending: true, ctx.UsesTravelPresentation,
+                        ctx.HasSiteId, isDepartureTransitionCommit: true, ctx.UsesTravelPresentation,
                         ctx.IsMaterializeHeld, ctx.HasGeometry)),
-                "Site departure / transition ownership → B4 停止");
+                "TransitionCommit（boundary crossing）→ B4 停止");
         }
 
         // ============================ [15] geometry 在 ownership 生命周期复用（不 per-frame rebuild） ============================

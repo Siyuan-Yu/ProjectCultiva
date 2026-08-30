@@ -255,7 +255,7 @@ namespace XianXia.Core.World.Strategic
             bool hasActiveView,
             bool isAtWorldSite,
             bool hasSiteId,
-            bool isSiteDeparturePending,
+            bool isDepartureTransitionCommit,
             bool usesTravelPresentation,
             bool isMaterializeHeld,
             bool hasGeometry)
@@ -265,7 +265,7 @@ namespace XianXia.Core.World.Strategic
             HasActiveView = hasActiveView;
             IsAtWorldSite = isAtWorldSite;
             HasSiteId = hasSiteId;
-            IsSiteDeparturePending = isSiteDeparturePending;
+            IsDepartureTransitionCommit = isDepartureTransitionCommit;
             UsesTravelPresentation = usesTravelPresentation;
             IsMaterializeHeld = isMaterializeHeld;
             HasGeometry = hasGeometry;
@@ -286,8 +286,12 @@ namespace XianXia.Core.World.Strategic
         /// <summary>motion.SiteId 非空（与 AtWorldSite 配套防御）。</summary>
         public bool HasSiteId { get; }
 
-        /// <summary>Site departure / transition ownership 进行中（BeginSiteDepartureTravel）→ 停止 B4。</summary>
-        public bool IsSiteDeparturePending { get; }
+        /// <summary>
+        /// Phase 5R-B6：仅当 departure 处于 <see cref="PlayerPartyDeparturePhase.TransitionCommit"/>
+        /// （到达正式出口、transition authority 接管）时 true → B4 停止。
+        /// Planned / Approaching（角色仍在 Site LocalMap 走向出口，LocalVisible owns）必须允许 B4 继续。
+        /// </summary>
+        public bool IsDepartureTransitionCommit { get; }
 
         /// <summary>跨入 Destination Site 的 mid-travel presentation（非 LocalVisible owner）→ 停止 B4。</summary>
         public bool UsesTravelPresentation { get; }
@@ -325,8 +329,8 @@ namespace XianXia.Core.World.Strategic
                 return false; // 仅 AtWorldSite 可写
             if (!ctx.HasSiteId)
                 return false;
-            if (ctx.IsSiteDeparturePending)
-                return false; // departure/transition ownership → B4 停止
+            if (ctx.IsDepartureTransitionCommit)
+                return false; // TransitionCommit：transition authority 接管，B4 停止
             if (ctx.UsesTravelPresentation)
                 return false; // travel 跨入中（非 LocalVisible owner）
             if (ctx.IsMaterializeHeld)
@@ -347,7 +351,7 @@ namespace XianXia.Core.World.Strategic
                 ctx.HasActiveView,
                 ctx.IsAtWorldSite,
                 ctx.HasSiteId,
-                ctx.IsSiteDeparturePending,
+                ctx.IsDepartureTransitionCommit,
                 ctx.UsesTravelPresentation,
                 isMaterializeHeld: false,
                 ctx.HasGeometry));

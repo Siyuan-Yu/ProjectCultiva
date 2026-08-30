@@ -86,16 +86,15 @@ namespace XianXia.Core.World.Strategic
                     derivedHex = site.PresenceHex;
                     isLegacyFallback = true;
                 }
-                else if (motion.IsMoving)
-                {
-                    // travel 中（Site departure / route progress）：World executor owns，
-                    // 用 travel presentation 插值位置（保留既有行为，非 B5 范围）。
-                    markerPos = motion.ResolveTravelPresentationWorld(hexSize);
-                    derivedHex = motion.CurrentHex;
-                }
                 else
                 {
-                    // B5 主路径：LocalVisible owns → Canonical 连续位置。
+                    // Phase 5R-B6.1：AtWorldSite 阶段 Physical executor 恒为 Site LocalVisible
+                    // （Idle / DeparturePhase.Planned / Approaching / IsMoving 均如此）。B4 持续
+                    // Local→Canonical（Approach 中），或 WorldMap open 时保留最后一次 Canonical。
+                    // 一律 Canonical-first，不再用 IsMoving 区分 authority —— IsMoving 现在也覆盖
+                    // LocalDepartureApproach，不代表 World executor owns。
+                    // 真正 egress commit 后 LocationKind 已切 AtWorldPosition，走下方分支用
+                    // TravelPresentation（AtWorldPosition + World travel 保留）。
                     markerPos = motion.WorldPosition;
                     derivedHex = HexMath.WorldToHex(markerPos.X, markerPos.Y, hexSize);
                 }
@@ -116,6 +115,8 @@ namespace XianXia.Core.World.Strategic
             var hexSize2 = world.HexWorld != null && world.HexWorld.HexSize > 0f
                 ? world.HexWorld.HexSize
                 : 1f;
+            // AtWorldPosition + World travel（egress 后 / 开世界旅行中）：World executor owns，
+            // 用 TravelPresentation（正式 crossing 路径 / 插值）；Idle 用 WorldPosition。
             var worldPos = motion.IsMoving
                 ? motion.ResolveTravelPresentationWorld(hexSize2)
                 : motion.WorldPosition;

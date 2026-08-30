@@ -122,6 +122,12 @@ namespace XianXia.Core.World.Strategic
                 foreach (var hex in fromSite.EnumerateFootprintHexes())
                     blockedSiteHexes.Remove(hex);
 
+                // Phase 5R-B6 §十六：战略目标最终仍属于当前 Site footprint → 不启动 departure。
+                if (fromSite.OccupiesHex(goalHex))
+                    return Result.Failure(
+                        ErrorCode.InvalidArgument,
+                        "Target is inside current WorldSite; no egress required.");
+
                 if (!TryBuildPathLeavingSite(
                         world,
                         fromSite,
@@ -447,6 +453,12 @@ namespace XianXia.Core.World.Strategic
             if (!world.PlayerPartyTravel.IsMoving)
                 return;
             if (world.PlayerPartyTravel.ExecutionMode == PlayerPartyTravelExecutionMode.LocalVisible)
+                return;
+            // Phase 5R-B6：PlayerParty WorldSite departure 一律由 LocalVisible 物理执行
+            // （WorldMap close 后角色在 Site LocalMap 内真实走向正式出口），不做 World 虚拟推进
+            // —— WorldMap open 期间仅形成 DeparturePlan，绝不把 Canonical 提前拉到 footprint 外。
+            if (world.PlayerPartyTravel.IsSiteDeparturePending &&
+                world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite)
                 return;
 
             var motion = world.PlayerPartyTravel;
@@ -1017,6 +1029,14 @@ namespace XianXia.Core.World.Strategic
             if (motion == null)
                 return;
             if (motion.ExecutionMode != PlayerPartyTravelExecutionMode.LocalVisible)
+                return;
+
+            // Phase 5R-B6：WorldSite departure（Planned/Approaching）期间保持 LocalVisible ——
+            // WorldMap reopen 只暂停 Local 移动，不把执行切回 World（否则 AdvanceDistanceBudget
+            // 的 SiteDepartureVirtualPosition 虚拟推进会与角色真实 Local 位置脱节，且会把 Canonical
+            // 提前拉到 footprint 外）。close 后从当前 Local 位置继续同一 departure。
+            if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                motion.IsSiteDeparturePending)
                 return;
 
             motion.SetExecutionMode(

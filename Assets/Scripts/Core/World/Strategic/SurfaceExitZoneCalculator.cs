@@ -746,6 +746,48 @@ namespace XianXia.Core.World.Strategic
             return false;
         }
 
+        /// <summary>
+        /// Phase 5R-B6：WorldSite 正式 departure connection 解析（对称于
+        /// <see cref="TryResolveFormalIngressConnection"/>）。按 canonical identity
+        /// （SourceHex==footprintHex 且 DestinationHex==exitHex）匹配唯一正式
+        /// <see cref="SurfaceExitConnection"/>，返回其 <c>BoundaryContactWorld</c>（严格位于
+        /// footprint perimeter，B3C3.1 保证）/ SlotRect / LocalDirection。
+        /// 由 DeparturePlan 的 <c>SiteDepartureFootprintHex</c> + <c>SiteDepartureExitHex</c>
+        /// （<c>TryBuildPathLeavingSite</c> 已选出的 first outside hex）驱动，不按 Anchor/Presence/
+        /// 最近边/方向猜测出口。匹配失败 → 明确失败，不静默回退。
+        ///
+        /// Phase 5R-B6.2：<paramref name="bounds"/> 必须是当前 WorldSite LocalMap 的<b>真实</b>
+        /// playable bounds（与 HostSurfaceExitZonePresenter 视觉方块同源）——SlotRect 由 bounds
+        /// 派生，若用名义 bounds 则 predicate 触发带与视觉方块错位，角色走进方块也不 crossing。
+        /// 不得传 FromOriginSize(0,0,1,16,16) 之类的名义 bounds。
+        /// </summary>
+        public static bool TryResolveFormalExitConnection(
+            SimulationWorld world,
+            WorldSite site,
+            HexCoord footprintHex,
+            HexCoord exitHex,
+            float hexSize,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            out SurfaceExitConnection connection)
+        {
+            connection = default;
+            if (world?.HexWorld == null || site == null || hexSize <= 0.0001f)
+                return false;
+            if (!site.OccupiesHex(footprintHex) || site.OccupiesHex(exitHex))
+                return false;
+
+            var scratch = new List<SurfaceExitConnection>(12);
+            CollectConnections(
+                world,
+                site,
+                hexSize,
+                bounds,
+                SurfaceExitZoneCalculator.DefaultExitTriggerDepth,
+                SurfaceExitZoneCalculator.DefaultSlotSpanFraction,
+                scratch);
+            return TryMatchIngressConnection(scratch, footprintHex, exitHex, out connection);
+        }
+
         public static int CollectConnections(
             SimulationWorld world,
             WorldSite site,

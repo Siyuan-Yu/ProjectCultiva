@@ -112,6 +112,49 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
+        /// Phase 5R-B6.2：WorldSite departure 的正式 approach 点（对称 Wilderness 版，但额外保证
+        /// 返回点<b>必然落在正式 SlotRect 触发带内</b>）。
+        /// 背景：B6 原实现从 footprint perimeter（V2 inverse）反向 inset，且不 clamp 进 SlotRect ——
+        /// 角色会被 A* 送到"看起来在方块旁"的位置，但 PointBelongsToConnection（只认 SlotRect）
+        /// 恒 false → 永不 crossing。
+        /// 修复：起点 = <see cref="SurfaceExitConnection.ExitCenterLocalX/Y"/>（真实 MapLayout bounds
+        /// 周界点，与 HostSurfaceExitZonePresenter 视觉方块同源），沿 outward LocalDirection 反向
+        /// （inward）退正式 inset 后，权威 clamp 进 SlotRect ∩ bounds。非 magic offset：仅复用
+        /// ExitTriggerDepth 的正式 inset 与 SlotRect 本身。
+        /// </summary>
+        public static void ResolveWorldSiteExitApproachLocalPoint(
+            SurfaceExitConnection connection,
+            WorldSiteSpatialMapping.WorldSiteLocalMapBounds bounds,
+            float exitTriggerDepth,
+            out float localX,
+            out float localY)
+        {
+            localX = connection.ExitCenterLocalX;
+            localY = connection.ExitCenterLocalY;
+
+            var depth = exitTriggerDepth > 0.0001f
+                ? exitTriggerDepth
+                : SurfaceExitZoneCalculator.DefaultExitTriggerDepth;
+            var inset = Math.Max(0.35f, depth * 0.35f);
+            localX -= connection.LocalDirectionX * inset;
+            localY -= connection.LocalDirectionY * inset;
+
+            // 权威校验：approach 必须在正式 SlotRect 触发带内，否则 clamp 进 SlotRect ∩ bounds
+            // （保证 A* 目标在触发区内，到达即 crossing）。
+            var slot = connection.SlotRect;
+            if (!(localX >= slot.MinX && localX <= slot.MaxX &&
+                  localY >= slot.MinY && localY <= slot.MaxY))
+            {
+                localX = Math.Max(slot.MinX, Math.Min(slot.MaxX, localX));
+                localY = Math.Max(slot.MinY, Math.Min(slot.MaxY, localY));
+            }
+
+            // 防御 clamp 到 playable bounds（SlotRect 由同一 bounds 派生，理论上已在其内）。
+            localX = Math.Max(bounds.MinX, Math.Min(bounds.MaxX, localX));
+            localY = Math.Max(bounds.MinY, Math.Min(bounds.MaxY, localY));
+        }
+
+        /// <summary>
         /// Project continuous WorldPosition onto formal segment geometry; write SegmentProgress (keep SegmentIndex).
         /// </summary>
         public static void SyncSegmentProgressFromWorldPosition(
@@ -289,6 +332,75 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 world.WorldPresence.SetAtHex(id, hex);
             }
+        }
+
+        /// <summary>
+        /// Phase 5R-B6：WorldSite 正式 egress（LocalVisible 模式下）—— 对称于
+        /// <see cref="TryCrossWildernessEdgePreservingLocalVisibleAutoTravel"/>。
+        /// 角色在 Site LocalMap 内已走到正式 <see cref="SurfaceExitConnection"/> 出口：
+        ///  - Canonical 置为 <c>BoundaryContactWorld</c>（严格位于 footprint perimeter，B3C3.1）；
+        ///  - Context：AtWorldSite → AtWorldPosition（<see cref="PlayerPartyWorldMotion.SetWorldPositionInternal"/>）；
+        ///  - 保留 path / AutoTravel / ExecutionMode（不 Cancel / 不 Snap / 不 CompleteMove）；
+        ///  - 推进 Segment（进入 exitHex → 下一段），随后展开外部 Wilderness LocalMap，
+        ///    原 route 由既有 AtWorldPosition LocalVisible 驱动继续。
+        /// 失败（非 AtWorldSite / 无 departure / connection 不匹配 / 外部格不可通行 / 无图）→
+        /// 明确失败，不 teleport、不 fallback Anchor/Presence/hex center。
+        /// </summary>
+        public static Result TryCrossWorldSiteEdgePreservingLocalVisibleAutoTravel(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            SurfaceExitConnection connection)
+        {
+            if (world == null || party == null || !party.HasActive)
+                return Result.Failure(ErrorCode.InvalidArgument, "Invalid world site egress args.");
+            var motion = world.PlayerPartyTravel;
+            if (motion == null || !motion.HasPosition)
+                return Result.Failure(ErrorCode.InvalidOperation, "Party has no world position.");
+            if (motion.LocationKind != PlayerPartyLocationKind.AtWorldSite ||
+                string.IsNullOrEmpty(motion.SiteId))
+                return Result.Failure(ErrorCode.InvalidOperation, "Not at a WorldSite.");
+            if (!motion.IsSiteDeparturePending)
+                return Result.Failure(ErrorCode.InvalidOperation, "No site departure pending.");
+            if (!IsActiveLocalVisibleAutoTravel(motion))
+                return Result.Failure(ErrorCode.InvalidOperation, "LocalVisible AutoTravel required.");
+
+            var sourceFootprint = connection.SourceHex;
+            var external = connection.DestinationHex;
+            if (!motion.SiteDepartureFootprintHex.Equals(sourceFootprint))
+                return Result.Failure(ErrorCode.InvalidOperation, "Exit connection source is not the departure footprint hex.");
+            if (!motion.SiteDepartureExitHex.Equals(external))
+                return Result.Failure(ErrorCode.InvalidOperation, "Exit connection destination is not the departure exit hex.");
+            if (!IsGroundPassable(world.HexWorld, external))
+                return Result.Failure(ErrorCode.InvalidOperation, "External hex is impassable.");
+
+            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                ? world.HexWorld.HexSize
+                : 1f;
+            var boundary = new WorldVec2(connection.BoundaryContactWorldX, connection.BoundaryContactWorldY);
+            var derived = HexMath.WorldToHex(boundary.X, boundary.Y, hexSize);
+
+            PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
+            PlayerPartyTransitionMembership.LogPartyTransition(
+                world,
+                party,
+                "ExitWorldSite.LocalVisiblePreserve",
+                external,
+                world.PartyWorld?.LocalMapId);
+
+            // Preserve path / AutoTravel / ExecutionMode; move to formal BoundaryContactWorld
+            // (clears IsSiteDeparturePending + DeparturePhase). Never SetAtWorldSite / Snap / Cancel.
+            motion.SetWorldPositionInternal(boundary, derived);
+
+            // Advance Segment so the next LocalVisible drive continues the route after the exit hex.
+            if (motion.SegmentIndex + 1 < motion.HexPathCount)
+                motion.SetSegment(motion.SegmentIndex + 1, 0f);
+            ApplyTravelingMembersAtHex(world, derived);
+
+            if (!WildernessLocalMapFallback.TryResolve(world, external, out var mapId) ||
+                string.IsNullOrEmpty(mapId))
+                return Result.Failure(ErrorCode.InvalidOperation, "No wilderness fallback LocalMap for exit hex.");
+
+            return WorldTravelService.EnterWildernessLocalMap(world, external, mapId);
         }
     }
 }
