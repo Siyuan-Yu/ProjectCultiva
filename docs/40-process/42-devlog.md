@@ -7,6 +7,24 @@
 
 ---
 
+## 2026-08-30 — Phase 5R-B7A WorldSite Surface Passability（实现完成／待人工验收）
+
+**做了什么**
+- 静态 A/B 证明截图绕线不由 non-target Site blocking 导致：`(3,7)→(6,9)` blocked/unblocked 同 path、同 cost=4.4，MandatoryTransit=false
+- 精确根因是 Preview 绘制 Site departure 的内部 hex-center 拼接前缀，而 World／LocalVisible executor 实际从 Canonical 直走正式 BoundaryContact
+- PlayerParty 普通 Surface route 删除 non-target Site blocked 与 MandatoryTransit fallback；Site 身份不再改变 passability
+- 保留 target Site whole-footprint goal-set；补齐非目标 Site 的同 Order `Wilderness→Site→Wilderness` Context continuation
+- Preview 在 departure 时从正式 outside exit 绘制，与 executor 共用 egress authority
+- 非 Unity Core harness：B7A_01～10 **10 PASS / 0 FAIL**；Unity／LevelTester 待人工
+
+**真源**
+- [175](175-phase-5r-b7a-worldsite-surface-passability-2026-08-30.md)
+
+**状态**
+- Phase 5R-B7A **实现完成，待人工验收；未提交**
+
+---
+
 ## 2026-08-28 — Phase 3 + Phase 4 文档封板收口
 
 **做了什么**

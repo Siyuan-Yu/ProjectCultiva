@@ -3000,32 +3000,6 @@ namespace XianXia.Unity.Host
             if (move.IsFailure)
             {
                 UnityEngine.Debug.Log("[GatewayB1Trace] 6b ReturnReason=BeginTravelFailed msg=" + move.Error);
-                // Phase 5D-B1（降级）：自动 StartGatewayLeg 未生效时，若仍存在合法单 Gateway
-                // （A→G 可达 且 G→B 理论可达），弹出轻量确认 —— 保证右键必有反馈。
-                // 复用同一 resolver；确认后只下达普通 PlayerParty → Gateway 旅行
-                // （到达 Gateway = AtSite + Travel Complete；不保留 B continuation，不自动出关）。
-                if (PlayerPartyHexTravelService.TryResolveGatewayTravelCandidate(
-                        world, party, cmd.DestinationHex, cmd.TargetSiteId ?? string.Empty,
-                        out var gSiteId, out var gDisplay, out var gApproach))
-                {
-                    _gatewayConfirmSiteId = gSiteId;
-                    _gatewayConfirmDisplayName = gDisplay;
-                    _gatewayConfirmApproachHex = gApproach;
-                    _gatewayConfirmRect = AnchorContextMenu(
-                        new Rect(_lastContextMousePos.x, _lastContextMousePos.y, 1f, 1f), 300f, 80f);
-                    _gatewayConfirmOpen = true;
-                    _gatewayConfirmOpenFrame = Time.frameCount;
-                    _gatewayConfirmSuppressLogged = false;
-                    UnityEngine.Debug.Log("[GatewayConfirmUI] Open open=true gatewaySiteId=" + gSiteId +
-                        " gatewayName=" + gDisplay + " requestedFinalHex=" + cmd.DestinationHex +
-                        " rect=(" + _gatewayConfirmRect.x.ToString("0") + "," + _gatewayConfirmRect.y.ToString("0") +
-                        "," + _gatewayConfirmRect.width.ToString("0") + "," + _gatewayConfirmRect.height.ToString("0") +
-                        ") screen=" + Screen.width + "x" + Screen.height +
-                        " frame=" + Time.frameCount + " mouse=" + _lastContextMousePos);
-                    status = "无法直接前往目标地点，需要先经过【" + gDisplay + "】";
-                    return true;
-                }
-
                 status = FormatFail(move);
                 return true;
             }

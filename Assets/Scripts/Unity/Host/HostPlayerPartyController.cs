@@ -871,26 +871,9 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            // Next leg 进入 WorldSite footprint。
-            // Phase 5D-B2a: 若它是当前旅行目标 Site（motion.DestinationSiteId 已 canonical，
-            // 精确匹配 SiteId），放行 —— LocalVisible 继续走向正式 Exit，到达后经
-            // TryCrossWildernessEdge → EnterWorldSiteAsParty 完成 Site Ingress（AtSite +
-            // Travel Complete + 进入 Site LocalMap），不再停在 Site 前一格。
-            // 非目标 Site（理论上被 blocked 排除，防御保留）：保持 5C StandStill，不跨入。
-            if (world.Strategic?.Sites != null &&
-                world.Strategic.Sites.TryGetAtHex(nextHex, out var nextSite) &&
-                nextSite != null)
-            {
-                var destSiteId = motion.DestinationSiteId ?? string.Empty;
-                var isDestinationFootprint =
-                    !string.IsNullOrEmpty(destSiteId) &&
-                    string.Equals(nextSite.SiteId, destSiteId, System.StringComparison.Ordinal);
-                if (!isDestinationFootprint)
-                {
-                    LastTransitionStatus = "WorldSiteAhead(StandStill)";
-                    return;
-                }
-            }
+            // Phase 5R-B7A：WorldSite footprint 与普通 Surface 共用 passability。
+            // 目标 Site 仍在 ingress 时完成 Travel；非目标 Site 由 transition service 保留
+            // 同一 HexPath/Destination，进入 Site LocalMap 后自动形成正式 departure 并继续。
 
             if (!TryResolveWildernessBounds(out var bounds))
                 return;

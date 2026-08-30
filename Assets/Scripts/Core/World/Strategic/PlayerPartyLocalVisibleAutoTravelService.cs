@@ -228,14 +228,10 @@ namespace XianXia.Core.World.Strategic
                 world.Strategic.Sites.TryGetAtHex(destinationHex, out var destSite) &&
                 destSite != null)
             {
-                // Phase 5R-B3B.1: 目标 WorldSite → 正式 BoundaryContact Ingress。
+                // Phase 5R-B3B.1/B7A: WorldSite → 正式 BoundaryContact Ingress。
                 // destinationHex 是 approach 按距 start 最近方向选取的 footprint 格（多 Hex
-                // footprint 不强制 Anchor）。跨边前先把 WorldPosition 设为正式
-                // SurfaceExitConnection.BoundaryContactWorld（保留 path / AutoTravel /
-                // ExecutionMode，SetWorldPositionInternal 不 Clear）；EnterWorldSiteAsParty 内部
-                // TrySetAtWorldSitePreservingWorldPosition 会 ClearMovementKeepMembers → 进入
-                // Site LocalMap 即 Travel Complete（MovementKind=Idle / ExecutionMode=None /
-                // 清 path / AtSite），保留 PartyWorld.SiteId / LocalMapId / Active ingress 位置。
+                // footprint 不强制 Anchor）。目标 Site 仍完成 Travel；非目标 Site 则保持同一
+                // HexPath / Destination，并从路径中解析正式 egress，进入 Site LocalMap 后继续。
                 // 无正式 connection → 明确失败，不静默回退中心点。
                 // 注：变量命名避开外层方法体块的 hexSize/derived（CS0136：子块不得与外层块同名）。
                 var siteHexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
@@ -270,10 +266,51 @@ namespace XianXia.Core.World.Strategic
                 // PlayerPartySurfaceEdgeGate.SetIngressContext），供 Materialize 的 Safe Landing 解析
                 // inward 方向。保留 path / AutoTravel / ExecutionMode；只移动位置（不 Clear）。
                 motion.SurfaceEdgeGate?.SetIngressContext(ingressConnection);
-                motion.SetWorldPositionInternal(boundary, ingressDerived);
-                ApplyTravelingMembersAtHex(world, ingressDerived);
-                return PlayerPartyHexTravelService.EnterWorldSiteAsParty(
-                    world, party, destSite, destinationHex);
+                var isDestinationSite =
+                    !string.IsNullOrEmpty(motion.DestinationSiteId) &&
+                    string.Equals(
+                        motion.DestinationSiteId,
+                        destSite.SiteId,
+                        System.StringComparison.Ordinal);
+                if (isDestinationSite)
+                {
+                    motion.SetWorldPositionInternal(boundary, ingressDerived);
+                    ApplyTravelingMembersAtHex(world, ingressDerived);
+                    return PlayerPartyHexTravelService.EnterWorldSiteAsParty(
+                        world, party, destSite, destinationHex);
+                }
+
+                PlayerPartySiteIngressTrace.BeginIngress(
+                    destSite.SiteId,
+                    boundary,
+                    motion.CurrentHex,
+                    destinationHex);
+                if (!PlayerPartyHexTravelService.TryCommitThroughSitePassage(
+                        world,
+                        motion,
+                        destSite,
+                        boundary,
+                        destinationHex,
+                        siteHexSize,
+                        out var ingressPathIndex))
+                {
+                    PlayerPartySiteIngressTrace.Log(
+                        "IngressAborted",
+                        "reason=NoThroughSiteEgress site=" + destSite.SiteId);
+                    return Result.Failure(
+                        ErrorCode.InvalidOperation,
+                        "No formal through-Site egress in active HexPath.");
+                }
+
+                motion.SetSegment(ingressPathIndex, 0f);
+                ApplyTravelingMembersAtSite(world, destSite.SiteId);
+                PlayerPartySiteIngressTrace.Log(
+                    "AtSiteTransitCommit",
+                    "site=" + destSite.SiteId +
+                    " ingress=" + destinationHex +
+                    " egress=" + motion.SiteDepartureExitHex);
+                return WorldTravelService.EnterWorldSiteScene(
+                    world, destSite.SiteId, string.Empty);
             }
 
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
@@ -338,6 +375,22 @@ namespace XianXia.Core.World.Strategic
                 if (id.IsNone)
                     continue;
                 world.WorldPresence.SetAtHex(id, hex);
+            }
+        }
+
+        static void ApplyTravelingMembersAtSite(SimulationWorld world, string siteId)
+        {
+            if (world?.WorldPresence == null ||
+                world.PlayerPartyTravel == null ||
+                string.IsNullOrEmpty(siteId))
+                return;
+            var members = world.PlayerPartyTravel.TravelingMembers;
+            for (var i = 0; i < members.Count; i++)
+            {
+                var id = members[i];
+                if (id.IsNone)
+                    continue;
+                world.WorldPresence.SetAtSite(id, siteId);
             }
         }
 

@@ -15,7 +15,6 @@ namespace XianXia.Core.World.Strategic
     public static class PlayerPartyHexTravelService
     {
         static readonly List<HexCoord> PathScratch = new List<HexCoord>(64);
-        static readonly List<HexCoord> GatewayPathScratch = new List<HexCoord>(64);
 
         /// <summary>相邻格心距折算为恒定速度的参考 tick 数（距离预算，非“每段固定 N tick”）。</summary>
         public const float GroundBaseStepTicks = 8f;
@@ -91,21 +90,10 @@ namespace XianXia.Core.World.Strategic
                     ? world.PlayerPartyTravel.SiteId
                     : string.Empty));
 
-            // 非目标 WorldSite 的全部 footprint 格不可作为中转：路线必须绕开（保留目标 Site）。
-            // Phase 5R-B6.4：goal 解析与最终 path 必须用同一 blocked（含出发 Site 豁免），
-            // 否则 goal 格的 A* 可达性/代价与最终路径不一致 → 次优 goal。
-            var motion0 = world.PlayerPartyTravel;
-            var blockedSiteHexes = BuildNonDestinationSiteBlockedHexes(world, destinationSiteId);
-            if (motion0 != null &&
-                motion0.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
-                !string.IsNullOrEmpty(motion0.SiteId) &&
-                world.Strategic.Sites.TryGet(motion0.SiteId, out var fromSite0) &&
-                fromSite0 != null)
-            {
-                // 出发 Site 自身的 footprint 是 departure 段合法路径（site 内部 → 边界），不阻塞。
-                foreach (var hex in fromSite0.EnumerateFootprintHexes())
-                    blockedSiteHexes.Remove(hex);
-            }
+            // Phase 5R-B7A：WorldSite 是 Surface Context overlay，不是战略障碍。
+            // 普通 PlayerParty route 只消费 HexWorld terrain / explicit passability；SiteId、
+            // Anchor、Presence、是否为非目标 Site 均不改变 path topology。
+            IReadOnlyCollection<HexCoord> blockedSiteHexes = null;
 
             // TargetHex V1：目的地语义为该格 canonical center（不存点击像素）。
             var goalHex = destination;
@@ -151,15 +139,6 @@ namespace XianXia.Core.World.Strategic
                         out var departureFootprintHex))
                 {
                     PlayerPartyWorldLocationDebug.Sink?.Invoke(
-                        "[GatewayB1Trace] 8a SiteLeaveNormalRouteSuccess=false");
-                    // Phase 5D-B2: Site 出发普通 Route 失败 → Dynamic MandatoryTransit fallback
-                    // （fromSite footprint 已在 blockedSiteHexes 移除；resolver 同样对其 exempt）。
-                    if (WorldSiteTransitPolicy.TryResolveMandatoryTransitSite(
-                            world, startHex, goalHex, destinationSiteId, mode,
-                            motion.SiteId, GatewayPathScratch, out var gSite, out var gApproach))
-                        return StartGatewayLeg(world, party, motion, hexSize, mode,
-                            GatewayPathScratch, gSite, gApproach, goalHex, destinationSiteId);
-                    PlayerPartyWorldLocationDebug.Sink?.Invoke(
                         "[GatewayB1Trace] 9e FinalResult=NoRoute");
                     return Result.Failure(ErrorCode.InvalidOperation, "No path leaving WorldSite.");
                 }
@@ -200,13 +179,6 @@ namespace XianXia.Core.World.Strategic
                 "[GatewayB1Trace] 8b NormalRouteSuccess=" + normalRouteOk);
             if (!normalRouteOk)
             {
-                // Phase 5D-B2: 普通 Route 不可达时，动态解析单个 MandatoryTransitSite：
-                // 存在某非目标 Site 单独放开 footprint 后 A→B 真正连通 → 当前 Leg 先去该 Site。
-                if (WorldSiteTransitPolicy.TryResolveMandatoryTransitSite(
-                        world, startHex, goalHex, destinationSiteId, mode,
-                        motion.SiteId, GatewayPathScratch, out var gSite, out var gApproach))
-                    return StartGatewayLeg(world, party, motion, hexSize, mode,
-                        GatewayPathScratch, gSite, gApproach, goalHex, destinationSiteId);
                 PlayerPartyWorldLocationDebug.Sink?.Invoke(
                     "[GatewayB1Trace] 9e FinalResult=NoRoute");
                 return Result.Failure(ErrorCode.InvalidOperation, "No hex path to destination.");
@@ -312,99 +284,6 @@ namespace XianXia.Core.World.Strategic
             }
 
             return into.Count >= 2;
-        }
-
-        /// <summary>
-        /// 委托共享 <see cref="WorldSiteTransitPolicy"/>：所有非目标 WorldSite footprint
-        /// 不可作为普通中转 Hex；仅目标 Site 保留（允许到 ingress）。
-        /// </summary>
-        static HashSet<HexCoord> BuildNonDestinationSiteBlockedHexes(
-            SimulationWorld world,
-            string destinationSiteId) =>
-            WorldSiteTransitPolicy.BuildBlockedFootprintHexes(world, destinationSiteId);
-
-        /// <summary>
-        /// PlayerParty 降级 UX 入口：普通 Route 失败时查询是否存在合法单 MandatoryTransitSite，
-        /// 复用 <see cref="WorldSiteTransitPolicy.TryResolveMandatoryTransitSite"/> 同一 resolver
-        /// （战略层公共，非 UI 专属）。不启动任何 Travel；由调用方决定自动 StartGatewayLeg
-        /// （已存在）或弹确认提示后下达普通 PlayerParty → Transit Site 旅行。
-        /// </summary>
-        public static bool TryResolveGatewayTravelCandidate(
-            SimulationWorld world,
-            PlayerPartyRuntime party,
-            HexCoord destinationHex,
-            string destinationSiteId,
-            out string gatewaySiteId,
-            out string gatewayDisplayName,
-            out HexCoord gatewayApproachHex)
-        {
-            gatewaySiteId = string.Empty;
-            gatewayDisplayName = string.Empty;
-            gatewayApproachHex = default;
-            if (world == null || party == null || !party.HasActive)
-                return false;
-            if (!TryResolvePartyWorldHex(world, party, out var startHex))
-                return false;
-
-            var goalHex = destinationHex;
-            if (!string.IsNullOrEmpty(destinationSiteId) &&
-                world.Strategic?.Sites != null &&
-                world.Strategic.Sites.TryGet(destinationSiteId, out var targetSite) &&
-                targetSite != null)
-                goalHex = ResolveDeterministicSiteApproachHex(
-                    world, startHex, targetSite,
-                    BuildNonDestinationSiteBlockedHexes(world, destinationSiteId));
-
-            var fromSiteId = world.PlayerPartyTravel?.SiteId ?? string.Empty;
-            var scratch = new List<HexCoord>(64);
-            if (!WorldSiteTransitPolicy.TryResolveMandatoryTransitSite(
-                    world, startHex, goalHex, destinationSiteId, HexTravelMode.Ground,
-                    fromSiteId, scratch, out gatewaySiteId, out gatewayApproachHex))
-            {
-                gatewaySiteId = string.Empty;
-                gatewayApproachHex = default;
-                return false;
-            }
-
-            if (world.Strategic?.Sites != null &&
-                world.Strategic.Sites.TryGet(gatewaySiteId, out var g) &&
-                g != null)
-                gatewayDisplayName = string.IsNullOrEmpty(g.DisplayName) ? g.SiteId : g.DisplayName;
-            return true;
-        }
-
-        /// <summary>
-        /// Phase 5D-B1: 用 Gateway Leg 路径开始 AutoTravel：Destination = Gateway（CurrentLeg），
-        /// 玩家原始点击目标经 SetFinalDestination 保留；MandatoryWaypointSiteId = Gateway。
-        /// </summary>
-        static Result StartGatewayLeg(
-            SimulationWorld world,
-            PlayerPartyRuntime party,
-            PlayerPartyWorldMotion motion,
-            float hexSize,
-            HexTravelMode mode,
-            List<HexCoord> gatewayPath,
-            string gatewaySiteId,
-            HexCoord gatewayApproachHex,
-            HexCoord finalGoalHex,
-            string finalDestinationSiteId)
-        {
-            if (gatewayPath == null || gatewayPath.Count < 1)
-                return Result.Failure(ErrorCode.InvalidOperation, "No gateway leg path.");
-
-            PlayerPartyWorldLocationDebug.Sink?.Invoke(
-                "[GatewayB1Trace] 10 FinalResult=StartedGatewayLeg gateway=" + gatewaySiteId +
-                " legPathLen=" + gatewayPath.Count + " finalGoalHex=" + finalGoalHex);
-            EnsureMotionHasContinuousStart(world, gatewayPath[0]);
-            ApplyTravelingMembersPresence(world);
-            ClearPartyWorldPresentationCacheForOpenWorld(world);
-            PlayerPartyWorldLocationDebug.LogSnapshot(world, party, "BeginTravel.GatewayLeg");
-            motion.BeginAutoTravel(gatewayPath, gatewayApproachHex, gatewaySiteId, mode, hexSize);
-            motion.SetMandatoryWaypoint(gatewaySiteId);
-            motion.SetFinalDestination(finalGoalHex, finalDestinationSiteId);
-            ApplyTravelingMembersPresence(world);
-            PlayerPartyWorldLocationDebug.LogSnapshot(world, party, "BeginTravel.AfterGatewayLeg");
-            return Result.Success();
         }
 
         static WorldVec2 HexCenter(HexCoord hex, float hexSize)
@@ -569,6 +448,17 @@ namespace XianXia.Core.World.Strategic
                     remainingBudget -= remainingOnSegment;
                     motion.IncrementPathIndex();
                     ApplyTravelingMembersPresence(world);
+                    if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                        motion.IsSiteDeparturePending)
+                    {
+                        // B7A through-Site：进入非目标 footprint 后，余下预算直接交给与
+                        // LocalVisible 共用的正式 Site departure authority；不沿仅供战略
+                        // topology 的 footprint hex-center 前缀移动。
+                        if (remainingBudget > 0.0001f)
+                            AdvanceWorldSiteDepartureCanonical(
+                                world, motion, hexSize, remainingBudget);
+                        return;
+                    }
                     if (motion.SegmentIndex >= motion.HexPathCount - 1)
                     {
                         FinishArrival(world);
@@ -784,19 +674,119 @@ namespace XianXia.Core.World.Strategic
                 site != null &&
                 motion.LocationKind != PlayerPartyLocationKind.AtWorldSite)
             {
+                var isDestination =
+                    !string.IsNullOrEmpty(motion.DestinationSiteId) &&
+                    string.Equals(
+                        motion.DestinationSiteId,
+                        site.SiteId,
+                        StringComparison.Ordinal);
+                if (isDestination)
+                {
+                    motion.CommitSiteArrivalAuthority(site.SiteId, pos, derived);
+                    return;
+                }
+
                 var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-                motion.CommitSiteArrivalAuthority(site.SiteId, pos, derived);
-                return;
+                // 非目标 Site：Context 进入，但保留同一个 Travel Order，并立即由 HexPath
+                // 解析正式 through-egress。若路线没有合法离开该 Site 的相邻段，则不伪造
+                // Context/teleport，继续保持普通 Surface position。
+                if (TryCommitThroughSitePassage(
+                        world, motion, site, pos, derived, hexSize, out _))
+                    return;
             }
 
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
                 motion.UsesTravelPresentation)
             {
-                motion.SetTravelPresentation(pos, derived);
+                if (world.Strategic.Sites.TryGet(motion.SiteId, out var currentSite) &&
+                    currentSite != null &&
+                    currentSite.OccupiesHex(derived))
+                {
+                    motion.SetTravelPresentation(pos, derived);
+                    return;
+                }
+
+                // 防御：World executor 已离开 through-Site footprint，但 departure transient
+                // 未接管时也必须恢复 Surface Context；保留 Travel，不 CompleteMove。
+                motion.SetWorldPositionInternal(pos, derived);
                 return;
             }
 
             motion.SetWorldPositionInternal(pos, derived);
+        }
+
+        /// <summary>
+        /// Phase 5R-B7A：把 HexPath 中连续的非目标 Site footprint 段解释为一次
+        /// Wilderness→Site→Wilderness Context passage。路径与 Destination 原样保留；
+        /// 只建立正式 ingress 后的 departure transient。World executor 与 LocalVisible ingress
+        /// 共用，避免两套 through-Site topology。
+        /// </summary>
+        public static bool TryCommitThroughSitePassage(
+            SimulationWorld world,
+            PlayerPartyWorldMotion motion,
+            WorldSite site,
+            WorldVec2 ingressWorldPosition,
+            HexCoord ingressFootprintHex,
+            float hexSize,
+            out int ingressPathIndex)
+        {
+            ingressPathIndex = -1;
+            if (world == null || motion == null || site == null || !motion.IsMoving)
+                return false;
+            if (!site.OccupiesHex(ingressFootprintHex))
+                return false;
+            if (!string.IsNullOrEmpty(motion.DestinationSiteId) &&
+                string.Equals(motion.DestinationSiteId, site.SiteId, StringComparison.Ordinal))
+                return false;
+
+            var path = motion.HexPath;
+            var searchFrom = Math.Max(0, motion.SegmentIndex);
+            for (var i = searchFrom; i < path.Count; i++)
+            {
+                if (path[i].Equals(ingressFootprintHex))
+                {
+                    ingressPathIndex = i;
+                    break;
+                }
+            }
+
+            if (ingressPathIndex < 0)
+                return false;
+
+            var lastFootprintIndex = ingressPathIndex;
+            while (lastFootprintIndex + 1 < path.Count &&
+                   site.OccupiesHex(path[lastFootprintIndex + 1]))
+                lastFootprintIndex++;
+            if (lastFootprintIndex + 1 >= path.Count)
+                return false;
+
+            var footprintHex = path[lastFootprintIndex];
+            var exitHex = path[lastFootprintIndex + 1];
+            var adjacent = false;
+            for (var d = 0; d < HexMath.DirectionCount; d++)
+            {
+                if (HexMath.Neighbor(footprintHex, d).Equals(exitHex))
+                {
+                    adjacent = true;
+                    break;
+                }
+            }
+
+            if (!adjacent ||
+                !BackgroundCharacterSiteDepartureResolver
+                    .TryResolveDepartureBoundaryEntryWorldPosition(
+                        footprintHex,
+                        exitHex,
+                        hexSize,
+                        out var boundaryEntry))
+                return false;
+
+            motion.CommitSiteArrivalAuthority(
+                site.SiteId,
+                ingressWorldPosition,
+                ingressFootprintHex);
+            motion.PlanThroughSiteDeparture(footprintHex, exitHex, boundaryEntry);
+            return true;
         }
 
         /// <summary>
@@ -998,6 +988,16 @@ namespace XianXia.Core.World.Strategic
             world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
             // Align Presence to derived hex only; never Snap / EnsureMotionHasContinuousStart.
             ApplyTravelingMembersPresence(world);
+
+            if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                !string.IsNullOrEmpty(motion.SiteId))
+            {
+                if (!world.Strategic.Sites.TryGet(motion.SiteId, out var site) || site == null)
+                    return Result.Failure(ErrorCode.NotFound, "WorldSite missing.", motion.SiteId);
+                PlayerPartyWorldLocationDebug.LogTransition(
+                    world, party, "EnterLocalView.PreserveAutoTravelThroughSite");
+                return WorldTravelService.EnterWorldSiteScene(world, site.SiteId, string.Empty);
+            }
 
             var hex = motion.CurrentHex;
             if (!WildernessLocalMapFallback.TryResolve(world, hex, out var mapId) ||

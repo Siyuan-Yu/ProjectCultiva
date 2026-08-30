@@ -198,8 +198,9 @@ namespace XianXia.Core.World.Strategic
         /// presence/ingress 值 → route 画出 "presence→真实位置" 伪前缀 = 人工看到的
         /// “先绕行再转向目标”）。
         /// 其余 Context（AtWorldPosition / 无 departure）保持既有行为（CurrentHex）。
-        /// 返回 pathIndex：从 HexPath 哪个索引开始追加（path[CurrentPathIndex] == startHex 时跳过
-        /// 避免同点重复）。只读，不写 motion。始终返回 true（world/motion 非空时）。
+        /// 返回 pathIndex：Site departure 时直接从正式 outside exit hex 开始追加，因为 World 与
+        /// LocalVisible executor 都由 Canonical 直走 BoundaryContact，不逐格执行 footprint 内的
+        /// 战略拼接前缀；其余情况在 path[current]==start 时跳过同点。只读，不写 motion。
         /// </summary>
         public static bool TryResolveRouteStartHex(
             SimulationWorld world,
@@ -226,12 +227,23 @@ namespace XianXia.Core.World.Strategic
                     : 1f;
                 startHex = HexMath.WorldToHex(motion.WorldPosition.X, motion.WorldPosition.Y, hexSize);
                 var path = motion.HexPath;
-                if (path != null &&
-                    motion.CurrentPathIndex < path.Count &&
-                    path[motion.CurrentPathIndex].Equals(startHex))
+                pathIndex = motion.CurrentPathIndex;
+                if (path != null && motion.IsSiteDeparturePending)
+                {
+                    for (var i = motion.CurrentPathIndex; i < path.Count; i++)
+                    {
+                        if (!path[i].Equals(motion.SiteDepartureExitHex))
+                            continue;
+                        pathIndex = i;
+                        break;
+                    }
+                }
+                else if (path != null &&
+                         motion.CurrentPathIndex < path.Count &&
+                         path[motion.CurrentPathIndex].Equals(startHex))
+                {
                     pathIndex = motion.CurrentPathIndex + 1;
-                else
-                    pathIndex = motion.CurrentPathIndex;
+                }
             }
             else if (motion.HexPath != null &&
                      motion.CurrentPathIndex < motion.HexPath.Count &&

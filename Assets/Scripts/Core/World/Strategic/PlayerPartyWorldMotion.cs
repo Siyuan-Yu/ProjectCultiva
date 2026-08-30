@@ -181,6 +181,25 @@ namespace XianXia.Core.World.Strategic
             WorldPosition = presentationPos;
         }
 
+        /// <summary>
+        /// Phase 5R-B7A：经过非目标 WorldSite 时，为同一条 AutoTravel 建立穿越离场计划。
+        /// 只写 Site departure transient；不重建/清空 HexPath，不改变 Destination、MovementKind、
+        /// ExecutionMode 或 Segment。调用方须先用 <see cref="CommitSiteArrivalAuthority"/> 提交
+        /// AtWorldSite Context，并保证 footprintHex → exitHex 是当前路线中的相邻正式跨界。
+        /// </summary>
+        public void PlanThroughSiteDeparture(
+            HexCoord footprintHex,
+            HexCoord exitHex,
+            WorldVec2 boundaryEntryWorld)
+        {
+            IsSiteDeparturePending = true;
+            DeparturePhase = PlayerPartyDeparturePhase.Planned;
+            SiteDepartureFootprintHex = footprintHex;
+            SiteDepartureExitHex = exitHex;
+            SiteDepartureBoundaryEntry = boundaryEntryWorld;
+            SiteDepartureVirtualPosition = WorldPosition;
+        }
+
         public void SetTravelPresentation(WorldVec2 pos, HexCoord derivedHex)
         {
             TravelPresentationPosition = pos;

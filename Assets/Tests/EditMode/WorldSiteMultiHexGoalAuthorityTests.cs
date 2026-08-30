@@ -91,9 +91,9 @@ namespace XianXia.Tests
             PlayerPartyHexTravelService.TryResolvePartyWorldHex(world, party, out var startHex);
             Assert.AreEqual(new HexCoord(81, 52), startHex, "startHex = canonical derived");
 
-            var blocked = WorldSiteTransitPolicy.BuildBlockedFootprintHexes(world, siteB.SiteId);
-            foreach (var h in huangcun.EnumerateFootprintHexes())
-                blocked.Remove(h);
+            // Phase 5R-B7A：WorldSite overlay 不再构造 PlayerParty blocked topology；
+            // 目标 goal-set 与最终 route 都只消费 Surface terrain/passability。
+            IReadOnlyCollection<HexCoord> blocked = null;
 
             // 目标 site_b：hex 距离最近格 (105,26) 实际 A* cost 69-70；A* 最优 (107,26) cost 67-68。
             var result = PlayerPartyHexTravelService.BeginTravel(world, party, siteB.PresenceHex, siteB.SiteId);
