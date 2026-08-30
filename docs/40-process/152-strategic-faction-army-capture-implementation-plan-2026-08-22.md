@@ -1,6 +1,6 @@
 # 152 · 战略 Faction / Formal Army / Capture 实现分期计划（2026-08-22）
 
-> 状态：**Phase A–K 已实现 + 静态复核通过；Unity 运行时验证制作人暂缓（DEFERRED）**｜日期：2026-08-22（rev.3 + Phase E–K 实现）  
+> 状态：**Phase A–K 已实现 + 静态复核通过；Unity 运行时验证制作人暂缓（延期）**｜日期：2026-08-22（rev.3 + Phase E–K 实现）  
 > 性质：**实现分期计划（非代码）** — 未来实施时 **一次只批准一个 Phase**；无制作人明确批准 **不得** 自动进入下一 Phase。  
 > 产品真源：[2A 势力、军队、外交与战略占领](../20-systems/2A-factions-armies-diplomacy-and-capture.md)  
 > 架构决策：[ADR-0024](43-decisions/ADR-0024-real-cultivators-and-army-strategic-model.md)  
@@ -227,7 +227,7 @@ ControlCore ──► SettlementAuthority            Army vs Army ──► Batt
 
 ## Phase A — Formal Faction Identity + Formal Army Domain + ArmyMembership
 
-> **状态：IMPLEMENTED · STATIC REVIEW PASSED · UNITY VERIFICATION DEFERRED**
+> **状态：已实现 · STATIC REVIEW PASSED · UNITY VERIFICATION 延期**
 
 ### 1. 目标
 
@@ -346,7 +346,7 @@ Host 手工验收 **只** 证明新 Domain **没有把旧游戏搞坏**。启动
 
 ## Phase B — 最小组军 UI + Garrison/Disband + WorldMap Army 头像投影
 
-> **状态：IMPLEMENTED · STATIC REVIEW PASSED · UNITY VERIFICATION DEFERRED**
+> **状态：已实现 · STATIC REVIEW PASSED · UNITY VERIFICATION 延期**
 
 ### 1. 目标
 
@@ -1070,7 +1070,7 @@ Manual 战结束 → 指定测试角色 state=Captured（脚本/调试触发）
 | Landless Faction | ADD（hook） | J |
 | Strategic Snapshot | MODIFY | K |
 | Formation 阵法 | DEFER | Future |
-| Node Defense 完整公式 | PARTIAL | H（接口）Future（数值） |
+| Node Defense 完整公式 | 部分实现 | H（接口）Future（数值） |
 | AI 组军／宣战／Retreat 路径 | DEFER | Future |
 | PartyWorldPresence rename | DEFER | Future |
 | War Score / Casus Belli / Truce | DEFER | 禁止擅自加 |
@@ -1122,9 +1122,9 @@ Manual 战结束 → 指定测试角色 state=Captured（脚本/调试触发）
 |------|------|
 | 2026-08-22 | 初版：制作人拍板 Migration=C+Adapter；A–K 分期；第一刀=Phase A |
 | 2026-08-22 rev.2 | 审核后小修：War(G) 先于 Capture(H)；Legacy Travel B–D 与 D 退出验收；Phase A 收紧（自动化为主、Host 仅回归、禁 Debug UI） |
-| 2026-08-22 Phase A | Formal Army Domain 实现；静态复核通过；Unity 验证 DEFERRED |
-| 2026-08-22 Phase B | 组军 UI + WorldMap Army 投影；静态复核通过；Unity 验证 DEFERRED |
-| 2026-08-22 Phase C–K | ArmyStack/Travel/War/Capture/Diplomacy/Snapshot v2；静态复核通过；Unity 验证 DEFERRED |
+| 2026-08-22 Phase A | Formal Army Domain 实现；静态复核通过；Unity 验证 延期 |
+| 2026-08-22 Phase B | 组军 UI + WorldMap Army 投影；静态复核通过；Unity 验证 延期 |
+| 2026-08-22 Phase C–K | ArmyStack/Travel/War/Capture/Diplomacy/Snapshot v2；静态复核通过；Unity 验证 延期 |
 | 2026-08-22 Final Closure | Legacy anonymous ArmyStack 退出正式路径；玩家 Character 战略入口关闭；Ch01 Scenario 外交隔离；Snapshot v1 明确拒绝；FINAL STATIC CLOSURE PASSED |
 | 2026-08-22 Manual Acceptance UI | Host `StrategicAcceptancePanel`（F8／大地图入口）；War/Alliance/Vassalage/Army/Aftermath/Node Owner/Snapshot 最小验收 UI；**非 final UX** |
 
@@ -1132,7 +1132,7 @@ Manual 战结束 → 指定测试角色 state=Captured（脚本/调试触发）
 
 ## 13. Manual Acceptance UI（2026-08-22）
 
-> **状态：MANUAL ACCEPTANCE UI IMPLEMENTED · STATIC REVIEW PASSED · UNITY VERIFICATION DEFERRED**
+> **状态：MANUAL ACCEPTANCE UI 已实现 · STATIC REVIEW PASSED · UNITY VERIFICATION 延期**
 
 | 验收入口 | 说明 |
 |----------|------|
@@ -1148,7 +1148,7 @@ Manual 战结束 → 指定测试角色 state=Captured（脚本/调试触发）
 
 ## 12. Final Closure（2026-08-22）
 
-> **状态：A–K IMPLEMENTED · FINAL STATIC CLOSURE PASSED · MANUAL ACCEPTANCE UI IMPLEMENTED · UNITY VERIFICATION DEFERRED**
+> **状态：A–K 已实现 · FINAL STATIC CLOSURE PASSED · MANUAL ACCEPTANCE UI 已实现 · UNITY VERIFICATION 延期**
 
 | 收口项 | 结论 |
 |--------|------|
@@ -1163,4 +1163,4 @@ Manual 战结束 → 指定测试角色 state=Captured（脚本/调试触发）
 
 **【代码修改】 Phase E–K 已实现**  
 **【运行时数据修改】 NONE（Session 外）**  
-**【是否已经开始实现】 YES — Phase A–K + Manual Acceptance UI 已落地，Unity 验证 DEFERRED**
+**【是否已经开始实现】 YES — Phase A–K + Manual Acceptance UI 已落地，Unity 验证 延期**

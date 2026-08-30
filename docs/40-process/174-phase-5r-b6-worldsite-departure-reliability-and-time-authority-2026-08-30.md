@@ -1,8 +1,8 @@
 # Phase 5R-B6 系列 — WorldSite 本地离场、Crossing 可靠性、Route/Goal 权威、执行与时间权威统一
 
-- Date: 2026-08-30
-- Baseline: `dev @ 690d57f`（B6/B6.1/B6.2 已封板）
-- Status: **本批次（B6.3/B6.3A/B6.4/B6.5）实现完成，待人工验收**
+- 日期：2026-08-30
+- 基线：`dev @ 690d57f`（B6/B6.1/B6.2 已封板）
+- 状态：**本批次（B6.3/B6.3A/B6.4/B6.5）实现完成，待人工验收**
 - 人工验证场景：`Assets/Scenes/LevelTester.unity`
 
 ## 阶段链（已提交）

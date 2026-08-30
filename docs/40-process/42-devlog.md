@@ -1,9 +1,25 @@
-﻿# 开发日志
+# 开发日志
 
 > **倒序追加：最新的记录写在最上面。**
 > 这是项目的历史记录，用于跨设备/跨时间恢复上下文，以及交接给他人时说明"为什么代码长这样"。
 >
 > 每次有实质进展就追加一条。宁可短，不可漏。
+
+---
+
+## 2026-08-30 — Phase 5S-B2-2.2 同图手动遭遇装配诊断（待人工复验）
+
+**做了什么**
+- B2-2.1 已人工确认真实 WorldSite LocalMap 与 Active 主控角色正确；敌方 Participants、我方 FormalArmy Participants 仍未见。
+- 静态确认同图复用仍进入 `PlayableHostBootstrap.ApplyPartyWorldSitePresentation` 内唯一的 `StrategicEncounterSpawner.ApplyPending(world)` 调用点；`SpawnOnNextMapLoad` 是既有一次性消费标记。
+- 在该真实调用点加入一次性 `[WorldCombatAssembly]` 前后日志，读取 Snapshot、追踪、表现落点、可见性、地图解析与同图复用状态，供 LevelTester 直接区分实体准备、表现与视图层断点。
+- 未增加平行 assembly，不重载 LocalMap；未改 `LocalMapVisibility`、Participant Gathering、Battle completion、Travel、Pause 或 Camera。
+
+**真源**
+- [184](184-phase-5s-b2-2-2-same-map-manual-encounter-assembly-diagnosis-2026-08-30.md)
+
+**状态**
+- Phase 5S-B2-2.2：诊断已入仓，待最小 LevelTester 复验；尚未依据运行时结果修复参与者缺失。
 
 ---
 
@@ -402,7 +418,7 @@
 - Manual Acceptance A–F：**NOT RUN**（制作人手操）
 
 **状态**
-- Domain + Host + Snapshot **IMPLEMENTED** · Manual Acceptance **PENDING**
+- Domain + Host + Snapshot **已实现** · Manual Acceptance **PENDING**
 
 ---
 
@@ -420,7 +436,7 @@
 - WorldGraphEditor 手操 Idle/Pan/Zoom/Brush：**NOT RUN**（需制作人本地打开）
 
 **状态**
-- Editor Performance Pass **IMPLEMENTED · MANUAL ACCEPTANCE PENDING**
+- Editor Performance Pass **已实现 · MANUAL ACCEPTANCE PENDING**
 
 ---
 
@@ -435,10 +451,10 @@
 
 **验证**
 - EditMode：`HexWorldWysiwygLayoutTests`（5000 roundtrip）、`HexWorldContentPipelineTests`
-- Unity PlayMode + Editor 手操：**DEFERRED**
+- Unity PlayMode + Editor 手操：**延期**
 
 **状态**
-- Hex World Content Authoring **IMPLEMENTED · UNITY MANUAL VERIFICATION DEFERRED**
+- Hex World Content Authoring **已实现 · UNITY MANUAL VERIFICATION 延期**
 
 ---
 
@@ -454,8 +470,8 @@
 - 无新代码提交；文档收束 only
 
 **状态**
-- Formal Army RTS **PARTIAL ACCEPTANCE**（移动/攻击/预览/残留/名单 OK）
-- 追击追移动敌 **KNOWN ISSUES · DEFERRED**
+- Formal Army RTS **部分实现 ACCEPTANCE**（移动/攻击/预览/残留/名单 OK）
+- 追击追移动敌 **KNOWN ISSUES · 延期**
 
 ---
 
@@ -470,10 +486,10 @@
 - 验收清单修订：[153-strategic-layer-runtime-acceptance-checklist-2026-08-22.md](153-strategic-layer-runtime-acceptance-checklist-2026-08-22.md)
 
 **验证**
-- EditMode：`HostStrategicRosterQueriesTests` — **STATIC REVIEW PASSED · UNITY VERIFICATION DEFERRED**
+- EditMode：`HostStrategicRosterQueriesTests` — **STATIC REVIEW PASSED · UNITY VERIFICATION 延期**
 
 **状态**
-- Host 双入口 **IMPLEMENTED · STATIC REVIEW PASSED · UNITY VERIFICATION DEFERRED**
+- Host 双入口 **已实现 · STATIC REVIEW PASSED · UNITY VERIFICATION 延期**
 
 ---
 
@@ -489,16 +505,16 @@
 - 验收清单：[153-strategic-layer-runtime-acceptance-checklist-2026-08-22.md](153-strategic-layer-runtime-acceptance-checklist-2026-08-22.md)
 
 **验证**
-- EditMode：`HostStrategicRosterQueriesTests` — **STATIC REVIEW PASSED · UNITY VERIFICATION DEFERRED**
-- Host 手操 153 勾选表 — **DEFERRED**
+- EditMode：`HostStrategicRosterQueriesTests` — **STATIC REVIEW PASSED · UNITY VERIFICATION 延期**
+- Host 手操 153 勾选表 — **延期**
 
 **状态**
-- A–K **IMPLEMENTED · FINAL STATIC CLOSURE PASSED · MANUAL ACCEPTANCE UI IMPLEMENTED**
-- Host 双入口 **IMPLEMENTED · STATIC REVIEW PASSED · UNITY VERIFICATION DEFERRED**
+- A–K **已实现 · FINAL STATIC CLOSURE PASSED · MANUAL ACCEPTANCE UI 已实现**
+- Host 双入口 **已实现 · STATIC REVIEW PASSED · UNITY VERIFICATION 延期**
 
 ---
 
-## 2026-08-22 — Strategic Manual Acceptance UI（Unity 验证 DEFERRED）
+## 2026-08-22 — Strategic Manual Acceptance UI（Unity 验证 延期）
 
 **做了什么**
 - 统一 Host 开发验收面板：`HostStrategicAcceptancePanel`（F8／大地图「战略验收」）；标注 DEVELOPMENT / ACCEPTANCE UI
@@ -508,14 +524,14 @@
 - Core：`StrategicAcceptanceCommands` + `StrategicAcceptanceInspector`（薄 wrapper，不写 Board）
 
 **验证**
-- EditMode：`StrategicAcceptanceTests` — **PENDING — UNITY VERIFICATION DEFERRED**
+- EditMode：`StrategicAcceptanceTests` — **PENDING — UNITY VERIFICATION 延期**
 
 **状态**
-- A–K **IMPLEMENTED · FINAL STATIC CLOSURE PASSED · MANUAL ACCEPTANCE UI IMPLEMENTED · UNITY VERIFICATION DEFERRED**
+- A–K **已实现 · FINAL STATIC CLOSURE PASSED · MANUAL ACCEPTANCE UI 已实现 · UNITY VERIFICATION 延期**
 
 ---
 
-## 2026-08-22 — Strategic Layer Final Closure（Unity 验证 DEFERRED）
+## 2026-08-22 — Strategic Layer Final Closure（Unity 验证 延期）
 
 **做了什么**
 - Legacy anonymous ArmyStack：`StrategicDayHandler` → `EnsureBanditScoutArmy`（FormalArmy + 4 真实 Scout Character）
@@ -525,14 +541,14 @@
 - 文档：2A §44 Ch01 Scenario 边界；152 §12 Final Closure
 
 **验证**
-- EditMode：`StrategicFinalClosureTests` — **PENDING — UNITY VERIFICATION DEFERRED**
+- EditMode：`StrategicFinalClosureTests` — **PENDING — UNITY VERIFICATION 延期**
 
 **状态**
-- A–K **IMPLEMENTED · FINAL STATIC CLOSURE PASSED · UNITY VERIFICATION DEFERRED**
+- A–K **已实现 · FINAL STATIC CLOSURE PASSED · UNITY VERIFICATION 延期**
 
 ---
 
-## 2026-08-22 — Phase E–K 战略层 E–K（Unity 验证 DEFERRED）
+## 2026-08-22 — Phase E–K 战略层 E–K（Unity 验证 延期）
 
 **做了什么**
 - **E** BattleOffer AttackerArmyId/DefenderArmyId；Army vs Army 追击 Adapter；BattleParticipantSnapshot 成员 ID  
@@ -544,14 +560,14 @@
 - **K** WorldSnapshot Schema v2 + StrategicSnapshotHelper + JsonSnapshotSerializer 战略字段  
 
 **验证**
-- EditMode：ArmyPhaseE–KTests 已编写 — **PENDING — UNITY VERIFICATION DEFERRED**  
+- EditMode：ArmyPhaseE–KTests 已编写 — **PENDING — UNITY VERIFICATION 延期**  
 
 **下一步**
 - Unity Test Runner 全量回归（含 StrategicPhaseTests + 153 链）  
 
 ---
 
-## 2026-08-22 — Phase B 最小组军 UI + WorldMap Army 投影（Unity 验证 DEFERRED）
+## 2026-08-22 — Phase B 最小组军 UI + WorldMap Army 投影（Unity 验证 延期）
 
 **做了什么**
 - HostArmyFormPanel + 节点菜单「军团管理」；ArmyUiCommands 薄层  
@@ -561,7 +577,7 @@
 - ArmyPhaseBTests（8 条）+ 152/roadmap 状态更新  
 
 **验证**
-- Unity Test Runner / Host：**DEFERRED**（制作人暂缓）  
+- Unity Test Runner / Host：**延期**（制作人暂缓）  
 
 **下一步**
 - 恢复 Unity 后补跑 ArmyDomainTests + ArmyPhaseBTests + StrategicPhaseTests + Host 手操  
@@ -569,14 +585,14 @@
 
 ---
 
-## 2026-08-22 — Phase A Formal Army Domain（Unity 验证 DEFERRED）
+## 2026-08-22 — Phase A Formal Army Domain（Unity 验证 延期）
 
 **做了什么**
 - FormalArmy / ArmyService / ArmyMembership / ArmyDomainTests（11 条）  
 - StrategicBootstrap Owner 保护；静态复核修复（单真源 / ForceDisband / AtNode-only）  
 
 **验证**
-- Unity：**DEFERRED**  
+- Unity：**延期**  
 
 ---
 
@@ -3304,3 +3320,21 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 - 删除 PlayerParty `MandatoryWaypointSiteId` 及 Host 对应旧状态显示；确认无存档兼容影响。
 - Host `GatewayConfirm` scaffold 因共享依赖尚未完全证明而延期，FormalArmy 逻辑未动。
 - 完成静态 consumer audit；未运行 Unity／PlayMode／Test Runner，也未重新执行非 Unity compile；B7C 保持未提交。
+
+## 2026-08-30 — Phase 5R Final Closure
+
+- B7C 已封板于 `5da552a`（未 push）。
+- 新增 5R 最终 WorldSite／Wilderness authority map、Pause 规则、KEEP／REMOVE／DEFER 与 Known Issues 总结。
+- 未发现当前 PlayerParty 旅行范围内的已知阻塞问题；未修改 Runtime。
+
+## 2026-08-30 — Phase 5S-A battle spatial authority
+
+- 新增纯 Core `WorldSiteBattleSpatialPolicy`：OccupiedHexes 为 BattleArea，六邻接 union-minus-area 为 SupportRing1。
+- 保留地形不可通行格的空间支援含义；未接入战斗结算、单位或旅行逻辑。
+- 新增几何 EditMode 测试；未运行 Unity，未提交。
+
+## 2026-08-30 — Phase 5S-A.1 existing battle audit
+
+- 发现现有 `BattleEngagementSupportArea` 已提供 FormalArmy 接战的 footprint/support 构造，但 SupportArea 当前包含 BattleArea 且不做 world-boundary 过滤。
+- PlayerParty→WorldSite 正式攻击入口未发现；Character Combat 与 FormalArmy 接战能力为 partial/implemented 混合状态。
+- `WorldSiteBattleSpatialPolicy` 暂作为 provisional candidate，未接线、未修改 Runtime。

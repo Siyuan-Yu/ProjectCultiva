@@ -1,8 +1,8 @@
 # Phase 5B — WorldMap ↔ LocalMap Travel View Takeover
 
-- Date: 2026-08-29
-- Baseline: `dev_1 @ 47b3f89`
-- Status: **Accepted / Sealed**
+- 日期： 2026-08-29
+- 基线： `dev_1 @ 47b3f89`
+- 状态： **Accepted / Sealed**
 - Manual acceptance: `Assets/Scenes/LevelTester.unity`
 
 ## 产品行为（已封板）

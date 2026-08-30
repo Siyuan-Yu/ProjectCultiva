@@ -1,7 +1,7 @@
 # 155 — Hex Strategic WorldMap Migration
 
 > **日期：** 2026-08-23  
-> **状态：** READY FOR ACCEPTANCE（H1–H9 + RimWorld 视觉 IMPLEMENTED · H8 源码待删）  
+> **状态：** READY FOR ACCEPTANCE（H1–H9 + RimWorld 视觉 已实现 · H8 源码待删）  
 > **制作人决定：** 战略空间从 Node+Route 图结构迁移为连续 HexGrid + StrategicSite
 
 ---
@@ -46,7 +46,7 @@
 - WorldMap Editor：Create Node → Connect Route
 - 153 中所有 Node→Route movement 验收项（见 153 修订）
 
-### DEFERRED
+### 延期
 
 - Fog of War / Vision
 - HexOwnerFactionId / Territory / Borders
@@ -105,15 +105,15 @@ EditMode：`ArmyHexCommandTests`（HEX-CMD-02/04/05 子集）。Unity Runtime：
 
 | Phase | 内容 | 状态 |
 |---|---|---|
-| H1 | HexCoord / HexGrid / HexMath / A* / HEX-01~05 | **IMPLEMENTED** |
-| H2 | StrategicSite / Site-on-Hex / SITE-01~03 | **IMPLEMENTED** |
-| H3 | FormalArmy Hex position / ArmyHexTravel / ARMY-HEX-01~04,06 | **IMPLEMENTED** |
-| H4 | WorldMap RimWorld 式 Hex 格渲染 / 悬停 / 选格情报 / 路径高亮 | **IMPLEMENTED** |
-| H5 | Hex WorldMap Editor（刷地形/道路/放 Site） | **IMPLEMENTED** — [158](158-hex-world-content-authoring-pipeline-2026-08-23.md) `WorldGraphEditor` + JSON Pipeline |
-| H6 | Pursuit / Battle Contact on Hex | **IMPLEMENTED**（相邻格接战） |
-| H7 | Battle Return / Snapshot v3 | **IMPLEMENTED** |
-| H8 | Legacy Route movement removal | **PARTIAL**（Runtime 守卫；源码待删） |
-| H9 | 全 Prototype 地图迁移 | **IMPLEMENTED**（`BuildFullFromWorldGraph`） |
+| H1 | HexCoord / HexGrid / HexMath / A* / HEX-01~05 | **已实现** |
+| H2 | StrategicSite / Site-on-Hex / SITE-01~03 | **已实现** |
+| H3 | FormalArmy Hex position / ArmyHexTravel / ARMY-HEX-01~04,06 | **已实现** |
+| H4 | WorldMap RimWorld 式 Hex 格渲染 / 悬停 / 选格情报 / 路径高亮 | **已实现** |
+| H5 | Hex WorldMap Editor（刷地形/道路/放 Site） | **已实现** — [158](158-hex-world-content-authoring-pipeline-2026-08-23.md) `WorldGraphEditor` + JSON Pipeline |
+| H6 | Pursuit / Battle Contact on Hex | **已实现**（相邻格接战） |
+| H7 | Battle Return / Snapshot v3 | **已实现** |
+| H8 | Legacy Route movement removal | **部分实现**（Runtime 守卫；源码待删） |
+| H9 | 全 Prototype 地图迁移 | **已实现**（`BuildFullFromWorldGraph`） |
 | H10 | 验收 + 153 更新 | **READY FOR ACCEPTANCE** |
 
 ---
@@ -133,7 +133,7 @@ EditMode：`ArmyHexCommandTests`（HEX-CMD-02/04/05 子集）。Unity Runtime：
 
 ---
 
-## Pursuit + Vision（DEFERRED）
+## Pursuit + Vision（延期）
 
 HexGrid 为未来 Fog of War 基础。Pursuit 在 H6 改为 `TargetArmy.CurrentHex` 跟踪；视野外取消 Pursuit 规则仅文档记录，本轮不实现。
 
@@ -143,7 +143,7 @@ HexGrid 为未来 Fog of War 基础。Pursuit 在 H6 改为 `TargetArmy.CurrentH
 
 **Schema v3**（`WorldSnapshot.CurrentSchemaVersion = 3`）：保存 `CurrentHex`, `HexPath`, `StepProgress`, `RetreatingArmy.HexQ/R`。v1/v2 存档 **不兼容**。
 
-## 视觉（RimWorld 式 — IMPLEMENTED）
+## 视觉（RimWorld 式 — 已实现）
 
 - 填充六边形格 + 描边（`HostHexGridDrawing` GL 三角扇）
 - 地形着色（平原/森林/山地/水域/道路）

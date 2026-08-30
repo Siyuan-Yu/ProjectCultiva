@@ -1,7 +1,7 @@
 # 156 — Pure Hex World Model 替换
 
 > 日期：2026-08-23  
-> 状态：**IMPLEMENTED（战略 Runtime）** — 性能优化 DEFER
+> 状态：**已实现（战略 Runtime）** — 性能优化 DEFER
 
 ## 已完成
 

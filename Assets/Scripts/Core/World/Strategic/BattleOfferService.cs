@@ -386,7 +386,10 @@ namespace XianXia.Core.World.Strategic
             offer.DefenderArmyId = defenderArmyId ?? string.Empty;
             offer.AttackerArmyId = attackerArmyId ?? string.Empty;
             offer.Title = ResolveOfferTitle(world, enemy, title);
-            offer.EncounterLocalMapId = ResolveOfferEncounterLocalMapId(world, enemy);
+            var mapResolution = BattleLocalMapResolver.ResolvePendingEngagement(world);
+            if (!mapResolution.Success)
+                return false;
+            offer.EncounterLocalMapId = mapResolution.LocalMapId;
             offer.SetPlayerParty(playerParty);
             offer.ExecuteOnWin = false;
 

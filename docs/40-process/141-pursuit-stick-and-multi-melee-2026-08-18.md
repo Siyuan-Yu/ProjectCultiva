@@ -67,7 +67,7 @@
 | 现象 | 说明 |
 |------|------|
 | **v2 移动目标追击** | 已实现（`ArmyPursuitTargetService` + PUR-01～11）；EditMode / Host **待签收** — 见 [154 §3](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md) |
-| **失去视野停止追击** | **DEFERRED** — 需 Strategic Vision / Fog of War；见 [154 §3.4](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md) |
+| **失去视野停止追击** | **延期** — 需 Strategic Vision / Fog of War；见 [154 §3.4](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md) |
 
 ~~**决策：** 暂缓修复移动敌追击~~ → v2 已编码；Vision 约束未做。
 

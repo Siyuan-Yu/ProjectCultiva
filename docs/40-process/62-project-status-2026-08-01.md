@@ -10,7 +10,7 @@
 ## 1. 一句话现状
 
 **Architecture Freeze v0.2 有效（+ADR-0023／ADR-0024 补丁引用）。** Core／Data／Host **VS0.1～1.0 Demo 自动化已验收**。大地图接战 Prototype（`139`～**154**）已落地至 Formal Army RTS；弥留／自动战宏观／接战名单／残留收束。**追击追移动敌军仍有问题 — 2026-08-23 暂缓**（见 [154](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md)）。  
-**当前阶段：** Formal Army 移动/攻击/预览 **部分手操 OK**；追击 **DEFERRED**；153 / 152 手操待签；2A 全量实现尚未批准。
+**当前阶段：** Formal Army 移动/攻击/预览 **部分手操 OK**；追击 **延期**；153 / 152 手操待签；2A 全量实现尚未批准。
 ---
 
 ## 2. 切片进度与验收

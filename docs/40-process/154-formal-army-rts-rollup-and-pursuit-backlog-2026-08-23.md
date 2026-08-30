@@ -56,7 +56,7 @@
 
 ---
 
-## 3. 追击 v2：移动目标 PursuitOrder（IMPLEMENTED · 待测）
+## 3. 追击 v2：移动目标 PursuitOrder（已实现 · 待测）
 
 > **2026-08-23 晚：** 按 Formal Army Moving-Target Pursuit v2 任务书实现；**普通 Army Move 保护区未改主链**。
 
@@ -273,8 +273,8 @@ Pursuit Tick
 | RTS-04 | 残留战场不双倍 generic 敌人 | ✅ |
 | RTS-05 | 名单含弥留/尸体不可勾选 | ✅ |
 | RTS-06 | 追击不弹到站、到站弹接战 | ✅（追上时） |
-| RTS-07 | 失去视野自动停止追击 | **DEFERRED** — REQUIRES STRATEGIC VISION / FOG OF WAR（见 §3.4） |
-| 153 | Global Strategic 双入口 | IMPLEMENTED · Unity 手操 DEFERRED |
+| RTS-07 | 失去视野自动停止追击 | **延期** — REQUIRES STRATEGIC VISION / FOG OF WAR（见 §3.4） |
+| 153 | Global Strategic 双入口 | 已实现 · Unity 手操 延期 |
 
 **签注（追击 v2）：** 代码+测试已提交 — _______________　**日期：** 2026-08-23
 

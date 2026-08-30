@@ -911,6 +911,94 @@ namespace XianXia.Unity.Host
             return true;
         }
 
+        void LogWorldCombatAssembly(
+            SimulationWorld world,
+            string resolvedBattleLocalMapId,
+            string activeMapBeforePresentation,
+            string phase)
+        {
+            var strategic = world?.Strategic;
+            var encounter = strategic?.Encounter;
+            var snapshot = strategic?.Participants;
+            if (encounter == null || snapshot == null)
+                return;
+
+            var tracked = BattlefieldSpawnScope.GetSpawnList(world);
+            var trackedCount = tracked?.Count ?? 0;
+            var livingTrackedCount = 0;
+            var presentedTrackedCount = 0;
+            if (tracked != null)
+            {
+                for (var i = 0; i < tracked.Count; i++)
+                {
+                    var id = new XianXia.Core.Domain.Ids.EntityId(tracked[i]);
+                    if (!world.Entities.TryGet(id, out var entity))
+                        continue;
+                    if (entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var location) &&
+                        location.HasPresentationOverride)
+                        presentedTrackedCount++;
+                    if (entity.TryGet<XianXia.Core.Entities.LifecycleComponent>(out var life) &&
+                        life.State == XianXia.Core.Entities.LifecycleState.Alive)
+                        livingTrackedCount++;
+                }
+            }
+
+            var enemyIds = new List<XianXia.Core.Domain.Ids.EntityId>(8);
+            snapshot.CollectEnemyEntityIds(enemyIds);
+            var enemyEntityCount = 0;
+            var visibleEnemyCount = 0;
+            for (var i = 0; i < enemyIds.Count; i++)
+            {
+                if (world.Entities.TryGet(enemyIds[i], out _))
+                    enemyEntityCount++;
+                if (LocalMapVisibility.IsEntityVisible(world, enemyIds[i]))
+                    visibleEnemyCount++;
+            }
+
+            var selectedFriendlyCount = 0;
+            var friendlyFormalArmyParticipantCount = 0;
+            var visibleFriendlyArmyCount = 0;
+            for (var i = 0; i < snapshot.Records.Count; i++)
+            {
+                var record = snapshot.Records[i];
+                var selectedFriendly =
+                    record.Kind == BattleParticipantKind.MandatoryFriendly ||
+                    (record.Kind == BattleParticipantKind.OptionalFriendly && record.Selected);
+                if (selectedFriendly)
+                    selectedFriendlyCount++;
+                if (!selectedFriendly || string.IsNullOrEmpty(record.FormalArmyId))
+                    continue;
+
+                friendlyFormalArmyParticipantCount++;
+                if (LocalMapVisibility.IsEntityVisible(world, record.EntityId))
+                    visibleFriendlyArmyCount++;
+            }
+
+            var activeMap = world.LocalMap?.ActiveMapLayoutId ?? string.Empty;
+            var reuseCurrentMap = string.Equals(
+                activeMapBeforePresentation?.Trim(),
+                resolvedBattleLocalMapId?.Trim(),
+                System.StringComparison.Ordinal);
+            Debug.Log(
+                "[WorldCombatAssembly] " + phase +
+                " SpawnOnNextMapLoad=" + encounter.SpawnOnNextMapLoad +
+                " ParticipantCount=" + snapshot.Records.Count +
+                " SelectedFriendlyCount=" + selectedFriendlyCount +
+                " EnemyStackCount=" + snapshot.CollectEnemyStackIds().Count +
+                " EngagedPartyCount=" + encounter.EngagedPartyIds.Count +
+                " TrackedCount=" + trackedCount +
+                " LivingTrackedCount=" + livingTrackedCount +
+                " PresentedTrackedCount=" + presentedTrackedCount +
+                " EnemyEntityCount=" + enemyEntityCount +
+                " FriendlyFormalArmyParticipantCount=" + friendlyFormalArmyParticipantCount +
+                " VisibleEnemyCount=" + visibleEnemyCount +
+                " VisibleFriendlyArmyCount=" + visibleFriendlyArmyCount +
+                " ActiveMapLayoutId=" + activeMap +
+                " ResolvedBattleLocalMapId=" + (resolvedBattleLocalMapId ?? string.Empty) +
+                " ReuseCurrentLocalMap=" + reuseCurrentMap,
+                this);
+        }
+
         /// <summary>LocalMap 进出后：PreferredMapLayout、重建灰盒／实体／寻路/summary>
         /// <param name="frameCamera">勘查显形等轻量刷新应false，避免镜头乱跳/param>
         public void ReloadLocalMapPresentation(bool frameCamera = true)
@@ -1057,6 +1145,11 @@ namespace XianXia.Unity.Host
                 return;
 
             var world = _session.World;
+            // World Combat 复用已加载的真实 LocalMap 时，不会有另一条隐藏的装图入口。
+            // 记录正式 ApplyPending 调用点的前后状态，用于区分「未消费 pending」与
+            // 「已准备实体但未落表现／未重建视图」。PendingEngagement 会在调用方返回后清理，
+            // 因而必须在本次 presentation 调用中判定。
+            var activeMapBeforePresentation = world.LocalMap?.ActiveMapLayoutId ?? string.Empty;
             if (SnapshotActiveControlledLocalMapResolver.TryResolveRequiredLocalMap(
                     world,
                     _session.PlayerParty,
@@ -1079,6 +1172,14 @@ namespace XianXia.Unity.Host
                                      targetMap.Trim(),
                                      StrategicEncounterCatalog.DefaultEncounterLocalMapId,
                                      System.StringComparison.Ordinal);
+            var sameMapWorldCombat =
+                world.Strategic?.PendingEngagement != null &&
+                world.Strategic.PendingEngagement.IsActive &&
+                !string.IsNullOrWhiteSpace(targetMap) &&
+                string.Equals(
+                    activeMapBeforePresentation.Trim(),
+                    targetMap.Trim(),
+                    System.StringComparison.Ordinal);
 
             // 目标图上暂无我方（例如全员已上路）：保持当前 LocalMap 画面，禁止卸图把视线带走
             // Wilderness：CanLoadMapLayoutForParty 已认 AtHex + PartyWorld.LocalMapId
@@ -1296,9 +1397,14 @@ namespace XianXia.Unity.Host
                 PlaceLegacyFocusCharactersOnLocalMap(world, onEncounterMap);
             }
 
+            if (sameMapWorldCombat)
+                LogWorldCombatAssembly(world, targetMap, activeMapBeforePresentation, "Before");
+
             var spawned = StrategicEncounterSpawner.ApplyPending(world);
             if (spawned.IsFailure)
                 Debug.LogWarning("[PlayableHost] Strategic encounter spawn: " + spawned.Error, this);
+            if (sameMapWorldCombat)
+                LogWorldCombatAssembly(world, targetMap, activeMapBeforePresentation, "AfterApplyPending");
             if (onEncounterMap)
             {
                 StrategicEncounterSpawner.EnsureTrackedSpawnsLocalPresentation(world);

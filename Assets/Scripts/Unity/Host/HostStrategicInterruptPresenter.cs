@@ -653,7 +653,24 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(localMapId))
+            // 普通世界接战直接消费 Phase 4 冻结的 PendingEngagement 地点；显式 Encounter
+            // 才保留旧的专用地图／默认地图兼容路径。
+            var pending = session.World.Strategic?.PendingEngagement;
+            var worldCombat = pending != null && pending.IsActive;
+            BattleLocalMapResolution worldResolution = null;
+            if (worldCombat)
+            {
+                worldResolution = BattleLocalMapResolver.ResolvePendingEngagement(session.World);
+                if (!worldResolution.Success)
+                {
+                    ShowToast("无法解析世界战斗地点：" + worldResolution.FailureReason);
+                    return;
+                }
+
+                localMapId = worldResolution.LocalMapId;
+            }
+
+            if (!worldCombat && string.IsNullOrWhiteSpace(localMapId))
                 localMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
 
             BattleOfferService.RefreshOfferPowerLabels(session.World);
@@ -723,13 +740,31 @@ namespace XianXia.Unity.Host
                 encounterLink,
                 engaged,
                 memberCount,
-                Math.Max(1, power / Math.Max(1, memberCount)));
+                Math.Max(1, power / Math.Max(1, memberCount)),
+                markPartyInEncounter: !worldCombat);
             StrategicPursuitService.ClearPursuitForEngagedKeepEnRoute(session.World, engaged);
             var map = string.IsNullOrWhiteSpace(localMapId)
                 ? BattleOfferService.ResolveActiveEncounterLocalMapId(session.World)
                 : localMapId.Trim();
-            session.World.PartyWorld.ClearSiteFocus();
+            if (!worldCombat)
+                session.World.PartyWorld.ClearSiteFocus();
             session.World.PartyWorld.LocalMapId = map;
+            if (worldCombat)
+            {
+                // Bootstrap 现有 active-encounter targetMap authority 读取此字段；这里只记录
+                // 已解析的真实地图，不创建第二套位置状态。
+                session.World.Strategic.Encounter.LingeringLocalMapId = map;
+                var currentMap = session.World.LocalMap?.ActiveMapLayoutId ?? string.Empty;
+                var reuse = string.Equals(currentMap, map, StringComparison.Ordinal);
+                UnityEngine.Debug.Log("[WorldCombatManualEntry] Kind=" + worldResolution.Kind +
+                    " SiteId=" + (worldResolution.SiteId ?? string.Empty) +
+                    " BattleHex=" + worldResolution.BattleHex +
+                    " ResolvedLocalMapId=" + map +
+                    " CurrentLocalMapId=" + currentMap +
+                    " ReuseCurrentLocalMap=" + reuse +
+                    " PlayerPartyIncluded=" + pending.PlayerPartyIncluded +
+                    " ParticipantCount=" + engaged.Count);
+            }
             if (session != null)
                 session.PreferredMapLayoutId = map;
 

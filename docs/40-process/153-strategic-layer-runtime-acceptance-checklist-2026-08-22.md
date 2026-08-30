@@ -2,7 +2,7 @@
 
 > **日期：** 2026-08-22（修订：Global Strategic UI 架构）  
 > **范围：** Host / Acceptance 交互层 only；**不改 Strategic Domain 规则**  
-> **状态：** IMPLEMENTED · **STATIC REVIEW PASSED** · **UNITY VERIFICATION DEFERRED**
+> **状态：** 已实现 · **STATIC REVIEW PASSED** · **UNITY VERIFICATION 延期**
 
 ---
 
@@ -22,14 +22,14 @@
 - 不依赖镜头位置  
 - 随时可打开；展示全局数据  
 
-**本轮 IMPLEMENTED：**
+**本轮 已实现：**
 
 | 模块 | 按钮 | 面板 |
 |---|---|---|
 | Character | 「角色」 | 全局 Character List + Detail + 组军 |
 | Army | 「军队」 | 全局 FormalArmy List + Detail |
 
-**未来 RESERVED（未实现，勿标 IMPLEMENTED）：**
+**未来 RESERVED（未实现，勿标 已实现）：**
 
 | 模块 | 预期职责 |
 |---|---|
@@ -129,7 +129,7 @@ Landless Faction 仍应出现在未来 Faction List（外交不依赖 Node 入�
 | — | 选中军队后右键移动 | ☐ |
 | PUR-01 | 攻击停止敌军 → 追上 → BattleOffer | ☐ |
 | PUR-02 | 攻击同路移动敌军 → 持续跟随、不抖、追上接战 | ☐ |
-| PUR-VISION | 失去视野自动停止追击 | **DEFERRED** — REQUIRES STRATEGIC VISION / FOG OF WAR（[154 §3.4](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md)） |
+| PUR-VISION | 失去视野自动停止追击 | **延期** — REQUIRES STRATEGIC VISION / FOG OF WAR（[154 §3.4](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md)） |
 | RTS-ATTACK-01 | Attack click does not teleport Army | ☐（`ATTACK-POS-01/02`） |
 | RTS-ATTACK-02 | Mid-route attack remains position-continuous | ☐（`ATTACK-POS-03/04/06`） |
 | RTS-ATTACK-03 | Pursuit repath remains position-continuous | ☐（`ATTACK-POS-05/07`） |
@@ -145,7 +145,7 @@ Landless Faction 仍应出现在未来 Faction List（外交不依赖 Node 入�
 - EditMode：`HostStrategicRosterQueriesTests`、`StrategicFinalClosureTests`（附庸绑定）  
 - Host：`HostGlobalStrategicToolbar` + 双 Panel + Node 无组军  
 
-**Unity 手操：** DEFERRED
+**Unity 手操：** 延期
 
 ---
 
@@ -181,11 +181,11 @@ Landless Faction 仍应出现在未来 Faction List（外交不依赖 Node 入�
 
 | # | 验收项 | 状态 |
 |---|---|---|
-| H-01 | 按 M 打开大地图显示**连续 HexGrid**（非 Node 方框+连线） | PARTIAL |
-| H-02 | 青石荒村 / 青石路 Site 在 Hex 上，具真实 Hex 距离 | IMPLEMENTED（Domain） |
-| H-03 | Road Hex 串联两 Site | IMPLEMENTED（Ch01 builder） |
+| H-01 | 按 M 打开大地图显示**连续 HexGrid**（非 Node 方框+连线） | 部分实现 |
+| H-02 | 青石荒村 / 青石路 Site 在 Hex 上，具真实 Hex 距离 | 已实现（Domain） |
+| H-03 | Road Hex 串联两 Site | 已实现（Ch01 builder） |
 | H-04 | 选 Army → 右键目的地 → Hex path preview | PENDING |
-| H-05 | Army 逐 Hex 移动，StepProgress 视觉平滑 | PARTIAL（Domain yes · Host input pending） |
+| H-05 | Army 逐 Hex 移动，StepProgress 视觉平滑 | 部分实现（Domain yes · Host input pending） |
 | H-06 | Attack / Pursuit 无瞬移（Hex 模型） | PENDING（H6） |
 | H-07 | Hex contact → BattleOffer | PENDING（H6） |
 | H-08 | Manual Battle 结束返回 EncounterHex | PENDING（H7） |
@@ -196,22 +196,22 @@ Landless Faction 仍应出现在未来 Faction List（外交不依赖 Node 入�
 
 | # | 验收项 | 状态 |
 |---|---|---|
-| RES-01 | Downed／Dead 脱离 FormalArmy；空军 ForceRemove；Leader Refresh | IMPLEMENTED（Domain + EditMode） |
-| RES-02 | Residual Hex Presence = `AtHex`／`HexCoord`；禁止 Node／Route residual path | IMPLEMENTED |
-| RES-03 | Marker 按 Hex × DynamicRelation × DEAD/DOWNED 聚合（PURE DERIVED） | IMPLEMENTED |
-| RES-04 | Marker Priority：SELF>ALLY>OTHER>ENEMY；同 Relation DEAD>DOWNED | IMPLEMENTED |
-| RES-05 | Active Army 绘制／左键命中优先于 Residual；右键穿透 Residual | IMPLEMENTED（Host） |
-| RES-06 | Snapshot 仅存 CharacterId+HexCoord；不存 Relation／Group；schema v4 | IMPLEMENTED |
-| RES-07 | 旧 per-character residual portrait + abstract ArmyStack remnant 退出正式 Runtime | IMPLEMENTED（Hex path） |
+| RES-01 | Downed／Dead 脱离 FormalArmy；空军 ForceRemove；Leader Refresh | 已实现（Domain + EditMode） |
+| RES-02 | Residual Hex Presence = `AtHex`／`HexCoord`；禁止 Node／Route residual path | 已实现 |
+| RES-03 | Marker 按 Hex × DynamicRelation × DEAD/DOWNED 聚合（PURE DERIVED） | 已实现 |
+| RES-04 | Marker Priority：SELF>ALLY>OTHER>ENEMY；同 Relation DEAD>DOWNED | 已实现 |
+| RES-05 | Active Army 绘制／左键命中优先于 Residual；右键穿透 Residual | 已实现（Host） |
+| RES-06 | Snapshot 仅存 CharacterId+HexCoord；不存 Relation／Group；schema v4 | 已实现 |
+| RES-07 | 旧 per-character residual portrait + abstract ArmyStack remnant 退出正式 Runtime | 已实现（Hex path） |
 
 ### MAP PRESENTATION PASS 1（2026-08-23）
 
 | # | 验收项 | 状态 |
 |---|---|---|
-| MAP-PRES-01 | Terrain Legend（图例与 Inspect 中文名一致） | IMPLEMENTED |
-| MAP-PRES-02 | 矩形 Odd-R 100×50 外观（非 axial 平行四边形） | IMPLEMENTED |
-| MAP-PRES-03 | 全图缩放 Fit World to Map Viewport（排除 Info Panel） | IMPLEMENTED |
-| MAP-PRES-04 | 全图模式无大面积无意义空白 | IMPLEMENTED（待 Runtime 验） |
-| MAP-PRES-05 | WorldSite 程序图标（非 debug 小点） | IMPLEMENTED |
-| MAP-PRES-06 | Site 图标不破坏 Hex Picking | IMPLEMENTED（渲染 only） |
+| MAP-PRES-01 | Terrain Legend（图例与 Inspect 中文名一致） | 已实现 |
+| MAP-PRES-02 | 矩形 Odd-R 100×50 外观（非 axial 平行四边形） | 已实现 |
+| MAP-PRES-03 | 全图缩放 Fit World to Map Viewport（排除 Info Panel） | 已实现 |
+| MAP-PRES-04 | 全图模式无大面积无意义空白 | 已实现（待 Runtime 验） |
+| MAP-PRES-05 | WorldSite 程序图标（非 debug 小点） | 已实现 |
+| MAP-PRES-06 | Site 图标不破坏 Hex Picking | 已实现（渲染 only） |
 

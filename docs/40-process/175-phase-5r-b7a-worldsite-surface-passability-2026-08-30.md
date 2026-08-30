@@ -1,22 +1,22 @@
-# Phase 5R-B7A — WorldSite Surface Passability Unification
+# Phase 5R-B7A — WorldSite 地表通行统一
 
-- Date: 2026-08-30
-- Baseline: `dev @ 8f7e673`
-- Status: **人工验收通过；已封板（提交 d551ea0）**
-- Scope: PlayerParty Surface Travel；不改 FormalArmy／Battle／SupportRing／外交／Gate system
+- 日期：2026-08-30
+- 基线：`dev @ 8f7e673`
+- 状态： **人工验收通过；已封板（提交 d551ea0）**
+- 范围：PlayerParty 地表旅行；不改 FormalArmy／Battle／SupportRing／外交／Gate 系统
 
 ## 1. 截图现象静态 A/B 结论
 
 截图对应的 `travel_mvp_hex_world_30x15` 青石荒村类场景，取 Canonical／Derived start
 `(3,7)`、右下 destination `(6,9)`：
 
-| 规则 | HexPath | total cost |
+| 规则 | HexPath | 总成本 |
 |---|---|---:|
 | A：非目标 Site blocked | `(3,7)→(4,7)→(5,7)→(6,8)→(6,9)` | 4.4 |
 | B：Site 按普通 Surface passability | `(3,7)→(4,7)→(5,7)→(6,8)→(6,9)` | 4.4 |
 
 - blocked footprint（已豁免出发荒村）：`(10,7)(11,7)(10,8)(11,8)(28,7)(12,11)(22,6)(7,5)(16,4)(17,4)(16,5)(17,5)(4,6)`
-- MandatoryTransit probe：`false`
+- MandatoryTransit 探测：`false`
 - 因此截图的可见绕向 **不是** non-target Site blocking，也没有触发 MandatoryTransit。
 
 真实分叉：`BeginTravel` 的 Site departure route 会把“Canonical start → departure footprint →

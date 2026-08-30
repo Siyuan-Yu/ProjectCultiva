@@ -13,10 +13,12 @@ namespace XianXia.Core.World.Strategic
     {
         readonly List<HexCoord> _battleAreaHexes = new List<HexCoord>(8);
         readonly List<HexCoord> _supportAreaHexes = new List<HexCoord>(16);
+        readonly List<HexCoord> _supportRingHexes = new List<HexCoord>(16);
         readonly HashSet<HexCoord> _supportSet = new HashSet<HexCoord>();
 
         public IReadOnlyList<HexCoord> BattleAreaHexes => _battleAreaHexes;
         public IReadOnlyList<HexCoord> SupportAreaHexes => _supportAreaHexes;
+        public IReadOnlyList<HexCoord> SupportRingHexes => _supportRingHexes;
         public HexCoord PresentationAnchorHex { get; private set; }
         public bool HasValue => _supportSet.Count > 0;
 
@@ -25,6 +27,9 @@ namespace XianXia.Core.World.Strategic
         }
 
         public bool Contains(HexCoord hex) => _supportSet.Contains(hex);
+        public bool ContainsBattleArea(HexCoord hex) => _battleAreaHexes.Contains(hex);
+        public bool ContainsSupportRing(HexCoord hex) => _supportRingHexes.Contains(hex);
+        public bool ContainsEngagementArea(HexCoord hex) => Contains(hex);
 
         /// <summary>
         /// 接战创建瞬间冻结 BattleArea / SupportArea；PresentationAnchorHex 供 UI / BattleAnchor。
@@ -93,13 +98,13 @@ namespace XianXia.Core.World.Strategic
                 world, defender, out var defenderPresenceHex);
             PresentationAnchorHex = defenderPresenceHex;
 
-            if (ShouldUseSiteFootprintAsBattleArea(world, defender, defenderPresenceHex, out var site))
+            WorldSite site;
+            if (ShouldUseSiteFootprintAsBattleArea(world, defender, defenderPresenceHex, out site))
             {
-                foreach (var hex in site.EnumerateFootprintHexes())
-                {
-                    if (!_battleAreaHexes.Contains(hex))
-                        _battleAreaHexes.Add(hex);
-                }
+                foreach (var hex in WorldSiteBattleSpatialPolicy.CollectBattleArea(site))
+                    _battleAreaHexes.Add(hex);
+                foreach (var hex in WorldSiteBattleSpatialPolicy.CollectSupportRing(site, world.HexWorld))
+                    _supportRingHexes.Add(hex);
             }
             else if (!defenderPresenceHex.Equals(default))
             {
@@ -107,6 +112,17 @@ namespace XianXia.Core.World.Strategic
             }
 
             BuildSupportFromBattleArea();
+            if (site != null)
+            {
+                _supportRingHexes.Clear();
+                foreach (var hex in WorldSiteBattleSpatialPolicy.CollectSupportRing(site, world.HexWorld))
+                    _supportRingHexes.Add(hex);
+                _supportSet.Clear();
+                for (var i = 0; i < _battleAreaHexes.Count; i++) _supportSet.Add(_battleAreaHexes[i]);
+                for (var i = 0; i < _supportRingHexes.Count; i++) _supportSet.Add(_supportRingHexes[i]);
+                _supportAreaHexes.Clear();
+                foreach (var hex in _supportSet) _supportAreaHexes.Add(hex);
+            }
         }
 
         static bool ShouldUseSiteFootprintAsBattleArea(
@@ -119,18 +135,18 @@ namespace XianXia.Core.World.Strategic
             if (defender?.WorldMotion == null ||
                 defender.WorldMotion.LocationKind != FormalArmyLocationKind.AtWorldSite ||
                 string.IsNullOrEmpty(defender.WorldMotion.SiteId) ||
-                defenderPresenceHex.Equals(default) ||
                 world?.Strategic?.Sites == null ||
                 !world.Strategic.Sites.TryGet(defender.WorldMotion.SiteId, out site) ||
                 site == null)
                 return false;
 
-            return site.OccupiesHex(defenderPresenceHex);
+            return true;
         }
 
         void BuildSupportFromBattleArea()
         {
             _supportAreaHexes.Clear();
+            _supportRingHexes.Clear();
             _supportSet.Clear();
 
             var battleArea = new List<HexCoord>(_battleAreaHexes);
@@ -141,7 +157,11 @@ namespace XianXia.Core.World.Strategic
             {
                 var battleHex = battleArea[i];
                 for (var d = 0; d < 6; d++)
-                    _supportSet.Add(HexMath.Neighbor(battleHex, d));
+                {
+                    var neighbor = HexMath.Neighbor(battleHex, d);
+                    if (!_supportSet.Contains(neighbor)) _supportRingHexes.Add(neighbor);
+                    _supportSet.Add(neighbor);
+                }
             }
 
             foreach (var hex in _supportSet)

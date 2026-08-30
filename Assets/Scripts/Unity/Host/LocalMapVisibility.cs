@@ -230,6 +230,16 @@ namespace XianXia.Unity.Host
 
             var onEncounterMap = IsActiveStrategicEncounterMap(world);
 
+            // 真实 LocalMap 上的世界战斗：参战／作用域实体是常驻人口的补集，不能先被
+            // WorldSite 常驻人口门禁挡掉；仍要求当前战斗、当前地图作用域与已有落点。
+            if (!onEncounterMap &&
+                world.Strategic?.Encounter != null &&
+                world.Strategic.Encounter.IsEngaged(id) &&
+                IsStrategicEncounterSpawn(world, id) &&
+                entity.TryGet<EntityLocationComponent>(out var realMapBattleLoc) &&
+                realMapBattleLoc.HasPresentationOverride)
+                return true;
+
             // WorldSite LocalMap 硬门禁：有宏Presence 的实体只按「是否物理在当前 Site」显示
             // 禁止世界其它地点NPC／Army 成员落到同一张图（含开局荒村）
             // WorldPresence、仅LocationId 的场NPC（守卫／商人等）仍走下方地点过滤

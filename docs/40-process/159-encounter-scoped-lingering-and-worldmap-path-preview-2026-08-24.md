@@ -40,7 +40,7 @@
 
 ## 已知限制 / 未做
 
-- Snapshot 多 Lingering save/load：**DEFERRED**
+- Snapshot 多 Lingering save/load：**延期**
 - Legacy `StrategicEncounterRuntime._lingeringBattlefieldHexes` 与 Registry 双轨：**待后续收敛**
 - Unity EditMode 全套在 Editor 已打开时可能 batch 失败：**需关 Editor 后跑**
 - 飞书 docId 映射：**本轮未更新**

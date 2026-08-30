@@ -63,7 +63,8 @@ namespace XianXia.Core.World.Strategic
             string encounterLinkId,
             IReadOnlyList<EntityId> engagedParty = null,
             int fallbackMembers = StrategicEncounterCatalog.DefaultFallbackMemberCount,
-            int fallbackPowerPerMember = StrategicEncounterCatalog.DefaultFallbackCombatPower)
+            int fallbackPowerPerMember = StrategicEncounterCatalog.DefaultFallbackCombatPower,
+            bool markPartyInEncounter = true)
         {
             if (world?.Strategic == null)
                 return;
@@ -106,7 +107,8 @@ namespace XianXia.Core.World.Strategic
                 rt.ArmyStackId = armyStackId;
                 if (engagedParty != null && engagedParty.Count > 0)
                     rt.SetEngagedParty(engagedParty);
-                MarkPartyInEncounter(world, engagedParty);
+                if (markPartyInEncounter)
+                    MarkPartyInEncounter(world, engagedParty);
                 ApplyStackRouteToParty(world, engagedParty, reuseStack);
 
                 if (!hasTracked &&
@@ -162,7 +164,8 @@ namespace XianXia.Core.World.Strategic
                         : keepLingerMap;
                 if (engagedParty != null && engagedParty.Count > 0)
                     rt.SetEngagedParty(engagedParty);
-                MarkPartyInEncounter(world, engagedParty);
+                if (markPartyInEncounter)
+                    MarkPartyInEncounter(world, engagedParty);
                 ApplyStackRouteToParty(world, engagedParty, remnant);
                 EnsureTrackedSpawnsLocalPresentation(world);
                 return;
@@ -178,7 +181,8 @@ namespace XianXia.Core.World.Strategic
                 rt.FieldCleared = false;
                 if (engagedParty != null && engagedParty.Count > 0)
                     rt.SetEngagedParty(engagedParty);
-                MarkPartyInEncounter(world, engagedParty);
+                if (markPartyInEncounter)
+                    MarkPartyInEncounter(world, engagedParty);
                 if (world.Strategic.Armies.TryGet(armyStackId, out var keepStack) && keepStack != null)
                     ApplyStackRouteToParty(world, engagedParty, keepStack);
                 EnsureTrackedSpawnsLocalPresentation(world);
@@ -207,7 +211,8 @@ namespace XianXia.Core.World.Strategic
                 ApplyStackRouteToParty(world, engagedParty, stack);
             }
 
-            MarkPartyInEncounter(world, engagedParty);
+            if (markPartyInEncounter)
+                MarkPartyInEncounter(world, engagedParty);
         }
 
         public static void ApplyStackRouteToParty(

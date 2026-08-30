@@ -1,8 +1,8 @@
 # Phase 5A — Travel Code Cleanup & Authority Consolidation
 
-- Date: 2026-08-29
-- Baseline: `dev_1 @ 47b3f89`（phase4真正完整的版本）
-- Status: behavior-preserving cleanup only（待 LevelTester 人工验收；未 commit）
+- 日期： 2026-08-29
+- 基线： `dev_1 @ 47b3f89`（phase4真正完整的版本）
+- 状态： behavior-preserving cleanup only（待 LevelTester 人工验收；未 commit）
 
 ## 做了什么
 

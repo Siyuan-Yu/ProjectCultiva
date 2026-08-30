@@ -1,10 +1,10 @@
-# Phase 5R-B7B — WorldSite Transit / Destination Authority Cleanup
+# Phase 5R-B7B — WorldSite 经过与目的地权威清理
 
-- Date: 2026-08-30
-- Baseline: `d551ea0`（B7A，已存在于 `origin/dev`）
-- Status: **审计完成；本轮不提交**
+- 日期：2026-08-30
+- 基线：`d551ea0`（B7A，已存在于 `origin/dev`）
+- 状态：**审计完成；本轮不提交**
 
-## Authority matrix
+## 权威矩阵
 
 | 场景 | DestinationSiteId | 允许正式 ingress / CompleteMove | 权威入口 |
 |---|---|---|---|

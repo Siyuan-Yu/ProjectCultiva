@@ -63,9 +63,9 @@
 - [x] 大地图弥留批 1～3：[148](148-worldmap-linger-incap-ux-2026-08-21.md)／[149](149-lingering-battlefield-batch2-2026-08-21.md)／[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)
 - [x] RTS 左右键纪律：[152](152-worldmap-rts-click-discipline-2026-08-22.md)（手操待签）
 - [x] 弥留／自动战宏观 + 接战名单 + 追击撤退：[153](153-lingering-remnant-macro-presentation-2026-08-22.md)（手操待签）
-- [x] Formal Army RTS 收束 + 追击 backlog：[154](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md)（**追移动敌 DEFERRED**）
-- [x] Hex World Content Pipeline + WorldGraphEditor Hex 化：[158](158-hex-world-content-authoring-pipeline-2026-08-23.md)（**手操 DEFERRED**）
-- [x] 战略层 Host 双入口（角色／军队列表；**Node 组军已删除**）：[153-strategic-layer-runtime-acceptance-checklist-2026-08-22.md](153-strategic-layer-runtime-acceptance-checklist-2026-08-22.md)（Unity 手操 DEFERRED）
+- [x] Formal Army RTS 收束 + 追击 backlog：[154](154-formal-army-rts-rollup-and-pursuit-backlog-2026-08-23.md)（**追移动敌 延期**）
+- [x] Hex World Content Pipeline + WorldGraphEditor Hex 化：[158](158-hex-world-content-authoring-pipeline-2026-08-23.md)（**手操 延期**）
+- [x] 战略层 Host 双入口（角色／军队列表；**Node 组军已删除**）：[153-strategic-layer-runtime-acceptance-checklist-2026-08-22.md](153-strategic-layer-runtime-acceptance-checklist-2026-08-22.md)（Unity 手操 延期）
 
 ### 样例关可玩弧（2026-08-02）— **自动化 Completed／手操签收中**
 

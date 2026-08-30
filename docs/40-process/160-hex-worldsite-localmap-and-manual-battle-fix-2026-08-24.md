@@ -55,7 +55,7 @@
 
 - 飞书 docId 映射：**本轮未更新**
 - Unity EditMode 全套在 Editor 已打开时可能 batch 失败：**需关 Editor 后跑**
-- Snapshot 多 Lingering save/load：**DEFERRED**（同 159）
+- Snapshot 多 Lingering save/load：**延期**（同 159）
 
 ## 手操 Smoke Test（建议）
 

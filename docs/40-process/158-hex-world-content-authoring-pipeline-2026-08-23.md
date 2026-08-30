@@ -1,7 +1,7 @@
 # 158 — Hex World Content Authoring Pipeline + WorldGraphEditor WYSIWYG
 
 > **日期：** 2026-08-23  
-> **状态：** IMPLEMENTED · Unity 手操验收 **DEFERRED**  
+> **状态：** 已实现 · Unity 手操验收 **延期**  
 > **关联：** [ADR-0025](43-decisions/ADR-0025-strategic-spatial-model-hexgrid.md) · [155](155-hex-strategic-worldmap-migration-2026-08-23.md)
 
 ---
@@ -139,18 +139,18 @@ worldY = 1.5 * hexSize * row
 
 | ID | 项 | 状态 |
 |---|---|---|
-| EDITOR-HEX-01 | WorldGraphEditor 打开当前 Hex 世界 | IMPLEMENTED |
-| EDITOR-HEX-02 | WYSIWYG 地形 | IMPLEMENTED |
-| EDITOR-HEX-03 | Terrain brush | IMPLEMENTED |
-| EDITOR-HEX-04 | Road brush | IMPLEMENTED |
-| EDITOR-HEX-05 | Site create/edit/delete | IMPLEMENTED |
-| EDITOR-HEX-06 | Multi-Hex footprint | IMPLEMENTED |
-| EDITOR-HEX-07 | Save JSON | IMPLEMENTED |
-| EDITOR-HEX-08 | Load JSON | IMPLEMENTED |
-| EDITOR-HEX-09 | Runtime reads same JSON | IMPLEMENTED |
-| EDITOR-HEX-10 | Editor/Runtime layout match | **FIXED · Unity 手操 DEFERRED** |
-| EDITOR-HEX-11 | Validation | IMPLEMENTED |
-| EDITOR-HEX-12 | Undo / Redo | IMPLEMENTED |
+| EDITOR-HEX-01 | WorldGraphEditor 打开当前 Hex 世界 | 已实现 |
+| EDITOR-HEX-02 | WYSIWYG 地形 | 已实现 |
+| EDITOR-HEX-03 | Terrain brush | 已实现 |
+| EDITOR-HEX-04 | Road brush | 已实现 |
+| EDITOR-HEX-05 | Site create/edit/delete | 已实现 |
+| EDITOR-HEX-06 | Multi-Hex footprint | 已实现 |
+| EDITOR-HEX-07 | Save JSON | 已实现 |
+| EDITOR-HEX-08 | Load JSON | 已实现 |
+| EDITOR-HEX-09 | Runtime reads same JSON | 已实现 |
+| EDITOR-HEX-10 | Editor/Runtime layout match | **FIXED · Unity 手操 延期** |
+| EDITOR-HEX-11 | Validation | 已实现 |
+| EDITOR-HEX-12 | Undo / Redo | 已实现 |
 
 ### WYSIWYG 自动测试
 
@@ -175,4 +175,4 @@ worldY = 1.5 * hexSize * row
 
 - Army / Pursuit / Battle 规则变更  
 - Scenario 重排 Geography（Ch01 仅剧情 / 山匪位置，不改 JSON 地形）  
-- 程序生成新世界工具（DEFERRED）
+- 程序生成新世界工具（延期）
