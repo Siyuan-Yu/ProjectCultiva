@@ -190,6 +190,58 @@ namespace XianXia.Core.World.Strategic
             PlayerPartyRuntime party,
             PlayerPartyWorldMotion motion) =>
             TryHealStartupOnly(world, party, motion);
+
+        /// <summary>
+        /// Phase 5R-B6.3A：WorldMap route preview 起点解析（唯一 authority，Query 侧）。
+        /// AtWorldSite + departure + valid Canonical 时 route 起点 = Canonical 派生 hex（WorldToHex），
+        /// 不得用 <see cref="PlayerPartyWorldMotion.CurrentHex"/>（AtWorldSite 期间冻结为进入时
+        /// presence/ingress 值 → route 画出 "presence→真实位置" 伪前缀 = 人工看到的
+        /// “先绕行再转向目标”）。
+        /// 其余 Context（AtWorldPosition / 无 departure）保持既有行为（CurrentHex）。
+        /// 返回 pathIndex：从 HexPath 哪个索引开始追加（path[CurrentPathIndex] == startHex 时跳过
+        /// 避免同点重复）。只读，不写 motion。始终返回 true（world/motion 非空时）。
+        /// </summary>
+        public static bool TryResolveRouteStartHex(
+            SimulationWorld world,
+            PlayerPartyWorldMotion motion,
+            out HexCoord startHex,
+            out int pathIndex)
+        {
+            startHex = motion != null ? motion.CurrentHex : default;
+            pathIndex = motion != null ? motion.CurrentPathIndex : 0;
+            if (world == null || motion == null)
+                return false;
+
+            if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                !string.IsNullOrEmpty(motion.SiteId) &&
+                motion.IsSiteDeparturePending &&
+                motion.HasPosition &&
+                !float.IsNaN(motion.WorldPosition.X) &&
+                !float.IsInfinity(motion.WorldPosition.X) &&
+                !float.IsNaN(motion.WorldPosition.Y) &&
+                !float.IsInfinity(motion.WorldPosition.Y))
+            {
+                var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                    ? world.HexWorld.HexSize
+                    : 1f;
+                startHex = HexMath.WorldToHex(motion.WorldPosition.X, motion.WorldPosition.Y, hexSize);
+                var path = motion.HexPath;
+                if (path != null &&
+                    motion.CurrentPathIndex < path.Count &&
+                    path[motion.CurrentPathIndex].Equals(startHex))
+                    pathIndex = motion.CurrentPathIndex + 1;
+                else
+                    pathIndex = motion.CurrentPathIndex;
+            }
+            else if (motion.HexPath != null &&
+                     motion.CurrentPathIndex < motion.HexPath.Count &&
+                     motion.HexPath[motion.CurrentPathIndex].Equals(motion.CurrentHex))
+            {
+                pathIndex = motion.CurrentPathIndex + 1;
+            }
+
+            return true;
+        }
     }
 
     /// <summary>关键点单次 Debug（非每帧）。</summary>

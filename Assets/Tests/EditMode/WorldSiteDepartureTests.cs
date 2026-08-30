@@ -173,7 +173,7 @@ namespace XianXia.Tests
         // ============================ [2] WorldMap open：plan 不 teleport ============================
 
         [Test]
-        public void B6_04_WorldMapOpen_PlanExists_NoVirtualTeleport()
+        public void B6_04_WorldMapOpen_WorldExecutor_AdvancesCanonicalToBoundary()
         {
             var (world, site, party) = BuildWorld();
             var fp0 = new HexCoord(80, 51);
@@ -182,13 +182,30 @@ namespace XianXia.Tests
 
             var m = BeginDeparture(world, site, party, fp0, outsideWest, goalFar, new WorldVec2(138.2f, 76.5f));
             var before = m.WorldPosition;
+            var exitHex = m.SiteDepartureExitHex;
             Assert.IsTrue(m.IsSiteDeparturePending, "plan exists after Begin");
 
-            // ExecutionMode=World（WorldMap open 战略模式）时 Advance 必须被抑制（不拉出 footprint）
-            PlayerPartyHexTravelService.AdvanceDistanceBudget(world, 10f);
-            var dx = m.WorldPosition.X - before.X;
-            var dy = m.WorldPosition.Y - before.Y;
-            Assert.IsTrue(dx * dx + dy * dy < 1e-8f, "canonical NOT virtually advanced (no teleport to boundary)");
+            // Phase 5R-B6.5-B：WorldMap open（ExecutionMode=World）→ World executor 推进 Canonical
+            // 朝正式 BoundaryContactWorld（唯一 physical truth），到达后正式 egress commit
+            // （AtWorldPosition + route 对齐 DestinationHex）。不再抑制（旧 B6 语义）。
+            var target = m.SiteDepartureBoundaryEntry;
+            var dist = WorldVec2.Distance(before, target);
+            Assert.IsTrue(dist > 0.001f, "formal boundary distinct from canonical");
+
+            PlayerPartyHexTravelService.AdvanceDistanceBudget(world, dist * 0.3f);
+            Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, m.LocationKind,
+                "not committed before boundary");
+            Assert.IsTrue(
+                WorldVec2.Distance(before, m.WorldPosition) > 0.01f,
+                "canonical advanced toward boundary");
+            Assert.IsTrue(m.IsMoving, "still moving");
+
+            // 精确预算直达 boundary：恰好 commit（不递归推进后续段），验证 commit 瞬间 route hex。
+            PlayerPartyHexTravelService.AdvanceDistanceBudget(world, dist + 0.001f);
+            Assert.AreEqual(PlayerPartyLocationKind.AtWorldPosition, m.LocationKind,
+                "committed at boundary (egress)");
+            Assert.AreEqual(exitHex, m.CurrentHex, "route hex = exit hex (no WorldToHex tie)");
+            Assert.IsTrue(m.IsMoving, "route continues after commit");
         }
 
         // ============================ [3] Close → LocalVisible approach（B4 继续） ============================
@@ -314,7 +331,7 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void B6_15_WorldMapReopen_KeepsLocalVisible_NoWorldAdvance()
+        public void B6_15_WorldMapReopen_SwitchesToWorldExecutor()
         {
             var (world, site, party) = BuildWorld();
             var fp0 = new HexCoord(80, 51);
@@ -328,9 +345,12 @@ namespace XianXia.Tests
 
             PlayerPartyHexTravelService.ResumeWorldTravelExecutionIfNeeded(world);
 
-            Assert.AreEqual(PlayerPartyTravelExecutionMode.LocalVisible, m.ExecutionMode,
-                "reopen keeps LocalVisible (no World virtual advance)");
-            Assert.AreEqual(canonicalBefore, m.WorldPosition, "canonical preserved");
+            // Phase 5R-B6.5-B：WorldMap reopen → World executor（departure 由 World executor 推进
+            // Canonical 朝正式 BoundaryContact；WorldMap open 强制 ManualPaused，Resume 后 tick 即推进）。
+            Assert.AreEqual(PlayerPartyTravelExecutionMode.World, m.ExecutionMode,
+                "reopen switches to World executor");
+            Assert.AreEqual(canonicalBefore, m.WorldPosition,
+                "canonical preserved at switch (advance only on tick)");
             Assert.IsTrue(m.IsSiteDeparturePending, "departure plan persists");
         }
 

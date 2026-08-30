@@ -112,15 +112,17 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// Phase 5R-B6.2：WorldSite departure 的正式 approach 点（对称 Wilderness 版，但额外保证
-        /// 返回点<b>必然落在正式 SlotRect 触发带内</b>）。
-        /// 背景：B6 原实现从 footprint perimeter（V2 inverse）反向 inset，且不 clamp 进 SlotRect ——
-        /// 角色会被 A* 送到"看起来在方块旁"的位置，但 PointBelongsToConnection（只认 SlotRect）
-        /// 恒 false → 永不 crossing。
-        /// 修复：起点 = <see cref="SurfaceExitConnection.ExitCenterLocalX/Y"/>（真实 MapLayout bounds
-        /// 周界点，与 HostSurfaceExitZonePresenter 视觉方块同源），沿 outward LocalDirection 反向
-        /// （inward）退正式 inset 后，权威 clamp 进 SlotRect ∩ bounds。非 magic offset：仅复用
-        /// ExitTriggerDepth 的正式 inset 与 SlotRect 本身。
+        /// Phase 5R-B6.3：WorldSite departure 的正式 approach 点（可靠版）。
+        /// 背景（B6.2→B6.3）：旧实现从 ExitCenter 沿 inward 退 inset 后 clamp 进 SlotRect，
+        /// 对正常边 connection 有效；但对<b>角 / 双邻接 connection</b>（LocalDirection 斜对角，
+        /// perimeter 射线落在另一条边，导致 SlotRect 沿边 span 可能越出 playable bounds）会出两类
+        /// 确定性失败：① approach 被 clamp 到 SlotRect 内边缘，停点（arriveEpsilon≈0.2）偏内即
+        /// 滑出触发带；② approach 沿边坐标落在 bounds 外（OOB cell），A* 不可达。人工观测 ~20%
+        /// = 荒村 2/10 条角 connection 确定性失败。
+        /// 修复：approach = <b>SlotRect 深度方向中点</b>（窄维度，距两缘 depth/2 = 0.625 &gt;
+        /// 停点余量 0.3）+ <b>沿边方向取 SlotRect ∩ playable bounds 的中点</b>（恒在 walkable 边界内）。
+        /// 数学保证：approach 及其停点区间（±0.2）都 ∈ SlotRect ∩ bounds —— 到达即 crossing。
+        /// 不 teleport、不追 exact perimeter pixel；A* 终点 = 带内 walkable 点。
         /// </summary>
         public static void ResolveWorldSiteExitApproachLocalPoint(
             SurfaceExitConnection connection,
@@ -129,24 +131,29 @@ namespace XianXia.Core.World.Strategic
             out float localX,
             out float localY)
         {
-            localX = connection.ExitCenterLocalX;
-            localY = connection.ExitCenterLocalY;
-
-            var depth = exitTriggerDepth > 0.0001f
-                ? exitTriggerDepth
-                : SurfaceExitZoneCalculator.DefaultExitTriggerDepth;
-            var inset = Math.Max(0.35f, depth * 0.35f);
-            localX -= connection.LocalDirectionX * inset;
-            localY -= connection.LocalDirectionY * inset;
-
-            // 权威校验：approach 必须在正式 SlotRect 触发带内，否则 clamp 进 SlotRect ∩ bounds
-            // （保证 A* 目标在触发区内，到达即 crossing）。
             var slot = connection.SlotRect;
-            if (!(localX >= slot.MinX && localX <= slot.MaxX &&
-                  localY >= slot.MinY && localY <= slot.MaxY))
+            if (slot.Width <= slot.Height)
             {
-                localX = Math.Max(slot.MinX, Math.Min(slot.MaxX, localX));
-                localY = Math.Max(slot.MinY, Math.Min(slot.MaxY, localY));
+                // X 主导（East/West 贴边带）：深度方向 = x（取中点），沿边方向 = y（slot∩bounds 中点）。
+                localX = (slot.MinX + slot.MaxX) * 0.5f;
+                var lo = Math.Max(slot.MinY, bounds.MinY);
+                var hi = Math.Min(slot.MaxY, bounds.MaxY);
+                localY = (lo + hi) * 0.5f;
+            }
+            else
+            {
+                // Y 主导（North/South 贴边带）：深度方向 = y（取中点），沿边方向 = x（slot∩bounds 中点）。
+                localY = (slot.MinY + slot.MaxY) * 0.5f;
+                var lo = Math.Max(slot.MinX, bounds.MinX);
+                var hi = Math.Min(slot.MaxX, bounds.MaxX);
+                localX = (lo + hi) * 0.5f;
+            }
+
+            // 防御：无效沿边区间（slot 完全在 bounds 外）时退回 slot 深度中点 + bounds 中心。
+            if (float.IsNaN(localX) || float.IsNaN(localY))
+            {
+                localX = bounds.CenterX;
+                localY = bounds.CenterY;
             }
 
             // 防御 clamp 到 playable bounds（SlotRect 由同一 bounds 派生，理论上已在其内）。
@@ -373,11 +380,7 @@ namespace XianXia.Core.World.Strategic
             if (!IsGroundPassable(world.HexWorld, external))
                 return Result.Failure(ErrorCode.InvalidOperation, "External hex is impassable.");
 
-            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
-                : 1f;
             var boundary = new WorldVec2(connection.BoundaryContactWorldX, connection.BoundaryContactWorldY);
-            var derived = HexMath.WorldToHex(boundary.X, boundary.Y, hexSize);
 
             PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
             PlayerPartyTransitionMembership.LogPartyTransition(
@@ -387,14 +390,14 @@ namespace XianXia.Core.World.Strategic
                 external,
                 world.PartyWorld?.LocalMapId);
 
-            // Preserve path / AutoTravel / ExecutionMode; move to formal BoundaryContactWorld
-            // (clears IsSiteDeparturePending + DeparturePhase). Never SetAtWorldSite / Snap / Cancel.
-            motion.SetWorldPositionInternal(boundary, derived);
-
-            // Advance Segment so the next LocalVisible drive continues the route after the exit hex.
-            if (motion.SegmentIndex + 1 < motion.HexPathCount)
-                motion.SetSegment(motion.SegmentIndex + 1, 0f);
-            ApplyTravelingMembersAtHex(world, derived);
+            // Phase 5R-B6.5-A：Canonical physical truth = boundary（BoundaryContactWorld）；
+            // Route progress truth = FormalConnection.DestinationHex（已提交的 first outside hex）。
+            // 不再用 WorldToHex(BoundaryContactWorld) 猜 route hex —— BoundaryContact 恰在 Hex
+            // perimeter，multi-hex Site 内部 seam / corner 时天然可能 tie 回 footprint 格或邻格。
+            motion.SetWorldPositionInternal(boundary, connection.DestinationHex);
+            // Route progress 对齐到已提交 connection 的 DestinationHex（不重复推进、不跳过下一段）。
+            PlayerPartyHexTravelService.AlignRouteProgressAfterSiteEgress(motion, connection.DestinationHex);
+            ApplyTravelingMembersAtHex(world, connection.DestinationHex);
 
             if (!WildernessLocalMapFallback.TryResolve(world, external, out var mapId) ||
                 string.IsNullOrEmpty(mapId))

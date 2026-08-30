@@ -258,22 +258,24 @@ namespace XianXia.Unity.Host
             FormalArmyStrategicMutationDiagnosticsHost.TickFrame();
 #endif
 
-            if (Input.GetKeyDown(togglePauseKey))
+            // Phase 5R-B6.5-B：Modal 强制暂停期间 Space 不能切换（ModalHardPaused 分层）。
+            if (Input.GetKeyDown(togglePauseKey) &&
+                !_session.ModalHardPaused &&
+                (questJournal == null || !questJournal.IsOpen) &&
+                (inventoryPanel == null || !inventoryPanel.IsOpen) &&
+                (manualLearnPrompt == null || !manualLearnPrompt.IsOpen) &&
+                (combatArtLearnPrompt == null || !combatArtLearnPrompt.IsOpen) &&
+                (combatArtsPanel == null || !combatArtsPanel.IsOpen) &&
+                (cultivationPanel == null || !cultivationPanel.IsOpen) &&
+                (characterSheetPanel == null || !characterSheetPanel.IsOpen) &&
+                (relationPanel == null || !relationPanel.IsOpen) &&
+                (cultivateConfirm == null || !cultivateConfirm.IsOpen) &&
+                (breakthroughRitual == null || !breakthroughRitual.IsResultOpen) &&
+                (ticTacToePanel == null || !ticTacToePanel.IsOpen) &&
+                (contentInterrupt == null || !contentInterrupt.HasBlockingInterrupt) &&
+                (strategicInterrupt == null || !strategicInterrupt.HasBlockingInterrupt))
             {
-                if ((questJournal == null || !questJournal.IsOpen) &&
-                    (inventoryPanel == null || !inventoryPanel.IsOpen) &&
-                    (manualLearnPrompt == null || !manualLearnPrompt.IsOpen) &&
-                    (combatArtLearnPrompt == null || !combatArtLearnPrompt.IsOpen) &&
-                    (combatArtsPanel == null || !combatArtsPanel.IsOpen) &&
-                    (cultivationPanel == null || !cultivationPanel.IsOpen) &&
-                    (characterSheetPanel == null || !characterSheetPanel.IsOpen) &&
-                    (relationPanel == null || !relationPanel.IsOpen) &&
-                    (cultivateConfirm == null || !cultivateConfirm.IsOpen) &&
-                    (breakthroughRitual == null || !breakthroughRitual.IsResultOpen) &&
-                    (ticTacToePanel == null || !ticTacToePanel.IsOpen) &&
-                    (contentInterrupt == null || !contentInterrupt.HasBlockingInterrupt) &&
-                    (strategicInterrupt == null || !strategicInterrupt.HasBlockingInterrupt))
-                    _session.IsPaused = !_session.IsPaused;
+                _session.ManualPaused = !_session.ManualPaused;
                 RefreshStatus();
             }
 

@@ -43,7 +43,34 @@ namespace XianXia.Unity.Host
 
         public bool IsInitialized => World != null && Loop != null;
 
-        public bool IsPaused { get; set; } = true;
+        public bool IsPaused
+        {
+            get => ManualPaused || ModalHardPaused;
+            set => ManualPaused = value;
+        }
+
+        /// <summary>
+        /// Phase 5R-B6.5-B：ManualPaused = 用户 Space／Pause-UI 可自由切换的层。
+        /// Travel Order（PlayerParty／FormalArmy）绝不修改它；WorldMap open（false→true）强制置 true；
+        /// WorldMap→LocalMap 不修改；reopen 再次强制 true。
+        /// </summary>
+        public bool ManualPaused { get; set; } = true;
+
+        int _modalHardPauseDepth;
+
+        /// <summary>
+        /// Modal／Popup 强制暂停层：与 ManualPaused 独立分层。Modal 打开期间 EffectivePaused 恒 true，
+        /// Space／Pause-UI 不能解除；Modal 关闭（PopModalPause）后恢复到底层 ManualPaused 状态。
+        /// </summary>
+        public bool ModalHardPaused => _modalHardPauseDepth > 0;
+
+        public void PushModalPause() => _modalHardPauseDepth++;
+
+        public void PopModalPause()
+        {
+            if (_modalHardPauseDepth > 0)
+                _modalHardPauseDepth--;
+        }
 
         public string LastError { get; private set; } = string.Empty;
 
@@ -151,7 +178,8 @@ namespace XianXia.Unity.Host
             PreferredMapLayoutId = string.Empty;
             InitialBootstrapSiteId = string.Empty;
             InitialBootstrapPending = false;
-            IsPaused = true;
+            ManualPaused = true;
+            _modalHardPauseDepth = 0;
         }
 
         public Result TickOnce()

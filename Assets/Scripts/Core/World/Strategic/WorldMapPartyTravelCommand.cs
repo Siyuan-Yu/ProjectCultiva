@@ -82,9 +82,14 @@ namespace XianXia.Core.World.Strategic
         {
             HexCoord best = site.PresenceHex;
             var bestDist = int.MaxValue;
+            // Phase 5R-B6.4：from 用 Canonical 派生 hex（PlayerPartyWorldLocationQuery 权威，
+            // 与 BeginTravel 的 startHex 同源），不再用 AtWorldSite 冻结的 CurrentHex（= presence）。
+            // 无有效位置时才回退 clickedHex。
             var from = fallback;
-            if (world.PlayerPartyTravel != null && world.PlayerPartyTravel.HasPosition)
-                from = world.PlayerPartyTravel.CurrentHex;
+            if (world.PlayerPartyTravel != null && world.PlayerPartyTravel.HasPosition &&
+                PlayerPartyWorldLocationQuery.TryResolve(world, null, out var resolved) &&
+                resolved.HasValue)
+                from = resolved.DerivedHex;
 
             foreach (var hex in site.EnumerateFootprintHexes())
             {

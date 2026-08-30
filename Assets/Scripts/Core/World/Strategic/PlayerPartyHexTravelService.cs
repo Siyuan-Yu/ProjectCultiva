@@ -91,14 +91,32 @@ namespace XianXia.Core.World.Strategic
                     ? world.PlayerPartyTravel.SiteId
                     : string.Empty));
 
+            // 非目标 WorldSite 的全部 footprint 格不可作为中转：路线必须绕开（保留目标 Site）。
+            // Phase 5R-B6.4：goal 解析与最终 path 必须用同一 blocked（含出发 Site 豁免），
+            // 否则 goal 格的 A* 可达性/代价与最终路径不一致 → 次优 goal。
+            var motion0 = world.PlayerPartyTravel;
+            var blockedSiteHexes = BuildNonDestinationSiteBlockedHexes(world, destinationSiteId);
+            if (motion0 != null &&
+                motion0.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                !string.IsNullOrEmpty(motion0.SiteId) &&
+                world.Strategic.Sites.TryGet(motion0.SiteId, out var fromSite0) &&
+                fromSite0 != null)
+            {
+                // 出发 Site 自身的 footprint 是 departure 段合法路径（site 内部 → 边界），不阻塞。
+                foreach (var hex in fromSite0.EnumerateFootprintHexes())
+                    blockedSiteHexes.Remove(hex);
+            }
+
             // TargetHex V1：目的地语义为该格 canonical center（不存点击像素）。
             var goalHex = destination;
             if (!string.IsNullOrEmpty(destinationSiteId) &&
                 world.Strategic.Sites.TryGet(destinationSiteId, out var targetSite) &&
                 targetSite != null)
             {
-                // Site 目标：路径落到 footprint 上最近可达格；进入后再聚合 PresenceHex。
-                goalHex = ResolveDeterministicSiteApproachHex(world, startHex, targetSite);
+                // Site 目标：路径落到 footprint 上 A* 实际代价最低的可达格（Phase 5R-B6.4，
+                // 不再用 hex 直线距离）；进入后再聚合 PresenceHex。
+                goalHex = ResolveDeterministicSiteApproachHex(
+                    world, startHex, targetSite, blockedSiteHexes);
             }
 
             if (startHex == goalHex &&
@@ -110,18 +128,12 @@ namespace XianXia.Core.World.Strategic
             var motion = world.PlayerPartyTravel;
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
 
-            // 非目标 WorldSite 的全部 footprint 格不可作为中转：路线必须绕开（保留目标 Site）。
-            var blockedSiteHexes = BuildNonDestinationSiteBlockedHexes(world, destinationSiteId);
-
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(motion.SiteId) &&
                 world.Strategic.Sites.TryGet(motion.SiteId, out var fromSite) &&
                 fromSite != null)
             {
-                // 出发 Site 自身的 footprint 是 departure 段合法路径（site 内部 → 边界），不阻塞。
-                foreach (var hex in fromSite.EnumerateFootprintHexes())
-                    blockedSiteHexes.Remove(hex);
-
+                // 出发 Site 自身的 footprint 已在 blockedSiteHexes 中豁免（见上）；此处仅判断目标归属。
                 // Phase 5R-B6 §十六：战略目标最终仍属于当前 Site footprint → 不启动 departure。
                 if (fromSite.OccupiesHex(goalHex))
                     return Result.Failure(
@@ -339,7 +351,9 @@ namespace XianXia.Core.World.Strategic
                 world.Strategic?.Sites != null &&
                 world.Strategic.Sites.TryGet(destinationSiteId, out var targetSite) &&
                 targetSite != null)
-                goalHex = ResolveDeterministicSiteApproachHex(world, startHex, targetSite);
+                goalHex = ResolveDeterministicSiteApproachHex(
+                    world, startHex, targetSite,
+                    BuildNonDestinationSiteBlockedHexes(world, destinationSiteId));
 
             var fromSiteId = world.PlayerPartyTravel?.SiteId ?? string.Empty;
             var scratch = new List<HexCoord>(64);
@@ -454,15 +468,21 @@ namespace XianXia.Core.World.Strategic
                 return;
             if (world.PlayerPartyTravel.ExecutionMode == PlayerPartyTravelExecutionMode.LocalVisible)
                 return;
-            // Phase 5R-B6：PlayerParty WorldSite departure 一律由 LocalVisible 物理执行
-            // （WorldMap close 后角色在 Site LocalMap 内真实走向正式出口），不做 World 虚拟推进
-            // —— WorldMap open 期间仅形成 DeparturePlan，绝不把 Canonical 提前拉到 footprint 外。
-            if (world.PlayerPartyTravel.IsSiteDeparturePending &&
-                world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite)
-                return;
 
             var motion = world.PlayerPartyTravel;
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+
+            // Phase 5R-B6.5-B：AtWorldSite + departure + World executor（WorldMap open + Running）
+            // → Canonical 沿直线朝正式 BoundaryContactWorld 推进（唯一 physical truth），到达后正式
+            // egress commit（AtWorldPosition + route 对齐 DestinationHex），后续段继续由 World
+            // executor 推进。不再阻断（旧 B6：WorldMap open 期间仅形成 DeparturePlan，绝不把
+            // Canonical 提前拉到 footprint 外 —— 现按 B6.5-B5/B6 改为 World executor 语义）。
+            if (motion.IsSiteDeparturePending &&
+                motion.LocationKind == PlayerPartyLocationKind.AtWorldSite)
+            {
+                AdvanceWorldSiteDepartureCanonical(world, motion, hexSize, distanceBudget);
+                return;
+            }
             var pos = motion.IsSiteDeparturePending &&
                       motion.LocationKind == PlayerPartyLocationKind.AtWorldSite
                 ? motion.SiteDepartureVirtualPosition
@@ -589,7 +609,12 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 }
 
-                var midDerived = HexMath.WorldToHex(pos.X, pos.Y, hexSize);
+                // Phase 5R-B6.5-A：段内推进的 route hex = 当前段起点（route truth），不实时
+                // WorldToHex(pos)。pos 在 hex perimeter 附近（典型：egress 后 WorldPosition =
+                // BoundaryContact，恰在共享边中点）时 WorldToHex 会 tie 到错误格，把 CurrentHex
+                // 从已提交的 DestinationHex 拉走 → 后续段推进错乱。跨段才更新（段完成分支用
+                // toPos=下一 hex center，WorldToHex 无 tie）。
+                var midDerived = motion.CurrentHex;
                 TryCommitSiteArrivalIngress(world, motion, previousDerived, midDerived, pos, hexSize);
                 CommitCanonicalWorldPosition(world, motion, pos, midDerived);
                 previousDerived = motion.CurrentHex;
@@ -612,6 +637,84 @@ namespace XianXia.Core.World.Strategic
             return motion.WorldPosition;
         }
 
+        /// <summary>
+        /// Phase 5R-B6.5-B：World executor 的 AtWorldSite departure 推进（WorldMap open + Running）。
+        /// Canonical（WorldPosition）是唯一 physical truth：沿直线朝正式 BoundaryContactWorld
+        /// （SiteDepartureBoundaryEntry）消耗 distance budget 推进；到达后
+        /// <see cref="CommitSiteDepartureBoundaryCrossing"/> 正式 egress（AtWorldPosition +
+        /// CurrentHex=SiteDepartureExitHex + route 对齐），随后用剩余预算继续推进 AtWorldPosition 段。
+        /// 不使用 SiteDepartureVirtualPosition（旧 presentation 状态，不重新变成 physical truth）；
+        /// 不 teleport 到 hex center；不改 B4 Local sync；不新增第二套 route。
+        /// </summary>
+        static void AdvanceWorldSiteDepartureCanonical(
+            SimulationWorld world,
+            PlayerPartyWorldMotion motion,
+            float hexSize,
+            float distanceBudget)
+        {
+            var target = motion.SiteDepartureBoundaryEntry;
+            if (float.IsNaN(target.X) || float.IsNaN(target.Y))
+                return; // 无正式 Boundary（departure 尚未完整形成）：保持现状，等待 close 后 LocalVisible。
+
+            var d = WorldVec2.Distance(motion.WorldPosition, target);
+            if (d <= distanceBudget + 0.0001f)
+            {
+                CommitSiteDepartureBoundaryCrossing(world, motion, hexSize);
+                if (!motion.IsMoving)
+                    return;
+                var remaining = Math.Max(0f, distanceBudget - d);
+                if (remaining > 0.0001f)
+                    AdvanceDistanceBudget(world, remaining);
+                return;
+            }
+
+            var t = distanceBudget / d;
+            var nx = motion.WorldPosition.X + (target.X - motion.WorldPosition.X) * t;
+            var ny = motion.WorldPosition.Y + (target.Y - motion.WorldPosition.Y) * t;
+            // Canonical 推进（AtWorldSite context 保留）：复用 B4 sync 的 context-preserving API。
+            motion.TryUpdateWorldPositionWithinSite(motion.SiteId, new WorldVec2(nx, ny));
+            ApplyTravelingMembersPresence(world);
+        }
+
+        /// <summary>
+        /// Phase 5R-B6.5-A：egress commit 后把 Route Progress 对齐到已提交的 first outside hex
+        /// （FormalConnection.DestinationHex）。在 HexPath 中定位该格并把 SegmentIndex 设为其起点段；
+        /// 找不到（防御）才退回旧 +1 推进。exactly once、不重复推进、不跳过下一段、不依赖
+        /// WorldToHex(BoundaryContactWorld) tie-break。
+        /// 背景：LocalVisible departure 全程 SegmentIndex 恒 0（SyncSegmentProgressFromWorldPosition
+        /// 只写 progress），旧 SetSegment(SegmentIndex+1,0) 在 HexPath 前部含多个 footprint hex
+        /// （multi-hex Site 内部 seam 出发）时会落在 footprint 内部段 → 后续 Wilderness Exit 匹配
+        /// 失败 → 出了 Site 就停下。
+        /// LocalVisible egress（TryCrossWorldSiteEdgePreservingLocalVisibleAutoTravel）与 World
+        /// executor commit（CommitSiteDepartureBoundaryCrossing）共用。
+        /// </summary>
+        public static void AlignRouteProgressAfterSiteEgress(
+            PlayerPartyWorldMotion motion,
+            HexCoord committedOutsideHex)
+        {
+            if (motion == null)
+                return;
+            var path = motion.HexPath;
+            var idx = -1;
+            for (var i = 0; i < path.Count; i++)
+            {
+                if (path[i].Equals(committedOutsideHex))
+                {
+                    idx = i;
+                    break;
+                }
+            }
+
+            if (idx >= 0)
+            {
+                motion.SetSegment(idx, 0f);
+                return;
+            }
+
+            if (motion.SegmentIndex + 1 < motion.HexPathCount)
+                motion.SetSegment(motion.SegmentIndex + 1, 0f);
+        }
+
         static void CommitSiteDepartureBoundaryCrossing(
             SimulationWorld world,
             PlayerPartyWorldMotion motion,
@@ -622,7 +725,11 @@ namespace XianXia.Core.World.Strategic
 
             var boundaryEntry = motion.SiteDepartureBoundaryEntry;
             var exitHex = motion.SiteDepartureExitHex;
+            // Phase 5R-B6.5-A：Route progress truth = SiteDepartureExitHex（= FormalConnection.
+            // DestinationHex，已提交的 first outside hex），不依赖 WorldToHex(BoundaryContactWorld)
+            // 的 perimeter tie。Canonical physical truth = boundaryEntry（WorldPosition）。
             motion.SetWorldPositionInternal(boundaryEntry, exitHex);
+            AlignRouteProgressAfterSiteEgress(motion, exitHex);
             motion.ClearSiteDeparturePending();
         }
 
@@ -1031,14 +1138,10 @@ namespace XianXia.Core.World.Strategic
             if (motion.ExecutionMode != PlayerPartyTravelExecutionMode.LocalVisible)
                 return;
 
-            // Phase 5R-B6：WorldSite departure（Planned/Approaching）期间保持 LocalVisible ——
-            // WorldMap reopen 只暂停 Local 移动，不把执行切回 World（否则 AdvanceDistanceBudget
-            // 的 SiteDepartureVirtualPosition 虚拟推进会与角色真实 Local 位置脱节，且会把 Canonical
-            // 提前拉到 footprint 外）。close 后从当前 Local 位置继续同一 departure。
-            if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
-                motion.IsSiteDeparturePending)
-                return;
-
+            // Phase 5R-B6.5-B：不再保留 departure 特例 —— WorldMap open（World executor）时
+            // AtWorldSite departure 由 AdvanceWorldSiteDepartureCanonical 推进（WorldMap open 强制
+            // ManualPaused；用户 Space Resume 后下一 tick 即推进 Canonical 朝正式 BoundaryContact）。
+            // close 后 LocalVisible 接管继续同一 departure。
             motion.SetExecutionMode(
                 motion.IsMoving
                     ? PlayerPartyTravelExecutionMode.World
@@ -1098,20 +1201,50 @@ namespace XianXia.Core.World.Strategic
         static HexCoord ResolveDeterministicSiteApproachHex(
             SimulationWorld world,
             HexCoord from,
-            WorldSite site)
+            WorldSite site,
+            IReadOnlyCollection<HexCoord> blocked)
         {
+            // Phase 5R-B6.4：目标 Site goal = footprint 中「A* 实际路径代价」最低的 walkable 格
+            // （§四 总代价最低合法 ingress）。不再用 hex 直线距离 —— 真实地形/阻塞下直线最近格
+            // 可能实际绕路（ch01 实测 site_daoguan/site_b 各 2 次次优）。Anchor/Presence 不参与。
             HexCoord best = site.PresenceHex;
             var bestDist = int.MaxValue;
+            var bestCost = int.MaxValue;
+            var pathScratch = new List<HexCoord>(64);
             foreach (var hex in site.EnumerateFootprintHexes())
             {
                 if (!world.HexWorld.TryGetTile(hex, out var tile) || tile == null || !tile.IsPassable)
                     continue;
-                var d = HexMath.Distance(from, hex);
-                if (d < bestDist ||
-                    (d == bestDist && (hex.Q < best.Q || (hex.Q == best.Q && hex.R < best.R))))
+                if (!HexPathfinder.TryFindPath(
+                        world.HexWorld, from, hex, pathScratch, HexTravelMode.Ground, blocked) ||
+                    pathScratch.Count < 1)
+                    continue;
+                var cost = pathScratch.Count;
+                var dist = HexMath.Distance(from, hex);
+                if (cost < bestCost ||
+                    (cost == bestCost && dist < bestDist))
                 {
-                    bestDist = d;
+                    bestCost = cost;
+                    bestDist = dist;
                     best = hex;
+                }
+            }
+
+            // 全部不可达（极端）：退回 hex 距离最近 walkable 格（保底；正常数据不会走到）。
+            if (bestCost == int.MaxValue)
+            {
+                best = site.PresenceHex;
+                bestDist = int.MaxValue;
+                foreach (var hex in site.EnumerateFootprintHexes())
+                {
+                    if (!world.HexWorld.TryGetTile(hex, out var tile) || tile == null || !tile.IsPassable)
+                        continue;
+                    var d = HexMath.Distance(from, hex);
+                    if (d < bestDist)
+                    {
+                        bestDist = d;
+                        best = hex;
+                    }
                 }
             }
 

@@ -262,7 +262,11 @@ namespace XianXia.Unity.Host
                 PruneRemovedFromSelection(world);
             }
 
-            // 开大地图不再强制暂停：战略时间Space／工具栏控制（RTS 开图仍可走时）
+            // Phase 5R-B6.5-B：打开 WorldMap 强制 ManualPaused=true（一次性 false→true edge）。
+            // WorldMap 已打开期间用户 Space／Pause-UI 自由决定状态；关闭不改 ManualPaused；
+            // reopen 再次强制暂停。
+            if (bootstrap?.Session != null && bootstrap.Session.IsInitialized)
+                bootstrap.Session.ManualPaused = true;
             _holdingPauseForMap = false;
         }
 
@@ -1194,11 +1198,18 @@ namespace XianXia.Unity.Host
 
             _hexPathPreview.Clear();
             var motion = world.PlayerPartyTravel;
-            _hexPathPreview.Add(motion.CurrentHex);
             var path = motion.HexPath;
-            for (var i = motion.CurrentPathIndex; i < motion.HexPathCount; i++)
+
+            // Phase 5R-B6.3A：route 起点 authority 统一走 Query。AtWorldSite + departure 时
+            // 起点 = Canonical 派生 hex（不再是冻结的 CurrentHex=presence），消除
+            // “presence→真实位置”伪前缀（人工看到的先绕行再转向目标）。
+            PlayerPartyWorldLocationQuery.TryResolveRouteStartHex(
+                world, motion, out var startHex, out var pathIndex);
+
+            _hexPathPreview.Add(startHex);
+            for (var i = pathIndex; i < motion.HexPathCount; i++)
                 _hexPathPreview.Add(path[i]);
-            if (_hexPathPreview.Count == 1 && motion.DestinationHex != motion.CurrentHex)
+            if (_hexPathPreview.Count == 1 && motion.DestinationHex != startHex)
                 _hexPathPreview.Add(motion.DestinationHex);
         }
 
