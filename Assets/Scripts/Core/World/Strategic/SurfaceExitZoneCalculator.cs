@@ -634,10 +634,35 @@ namespace XianXia.Core.World.Strategic
         {
             public HexCoord Destination;
             public HexCoord RepresentativeSource;
-            public float ContactSumX;
-            public float ContactSumY;
-            public int ContactCount;
+            /// <summary>共享边段在 <see cref="ScratchSharedSegs"/> 的起始索引（每段 4 个 float：A.X/A.Y/B.X/B.Y）。</summary>
+            public int SharedSegOffset;
+            public int SharedSegCount;
         }
+
+        /// <summary>共享边段 scratch（footprint×6 上限；构建期一次性，零分配复用）。</summary>
+        static readonly float[] ScratchSharedSegs = new float[512];
+        static int ScratchSharedSegCount;
+        static readonly float[] ScratchCornerX = new float[6];
+        static readonly float[] ScratchCornerY = new float[6];
+
+        struct EdgeSeg
+        {
+            public WorldVec2 A;
+            public WorldVec2 B;
+
+            public EdgeSeg(WorldVec2 a, WorldVec2 b)
+            {
+                A = a;
+                B = b;
+            }
+
+            public float Length =>
+                (float)Math.Sqrt((B.X - A.X) * (B.X - A.X) + (B.Y - A.Y) * (B.Y - A.Y));
+        }
+
+        static readonly List<EdgeSeg> ScratchSegs = new List<EdgeSeg>(8);
+        static readonly List<EdgeSeg> ScratchChain = new List<EdgeSeg>(8);
+        static readonly List<EdgeSeg> ScratchBestChain = new List<EdgeSeg>(8);
 
         static readonly List<BoundaryAggregate> ScratchAggregates = new List<BoundaryAggregate>(16);
 
@@ -746,8 +771,16 @@ namespace XianXia.Core.World.Strategic
             for (var i = 0; i < ScratchAggregates.Count; i++)
             {
                 var agg = ScratchAggregates[i];
-                var contactX = agg.ContactSumX / agg.ContactCount;
-                var contactY = agg.ContactSumY / agg.ContactCount;
+                // Phase 5R-B3C3.1：BoundaryContact 必须位于真实 footprint perimeter。
+                // 同一 destination 与 footprint 多条共享边时不得算术平均（双邻接在拐角处
+                // 会落入 polygon 外侧 off-surface 点，导致 V2 inverse r>1 → local 越界）；
+                // 取"共享边并集沿 perimeter 的弧长中点"（仍在真实边界上）。
+                if (!ResolveBoundaryContactOnPerimeter(
+                        agg.SharedSegOffset,
+                        agg.SharedSegCount,
+                        out var contactX,
+                        out var contactY))
+                    continue;
                 if (!SurfaceExitZoneCalculator.TryBuildConnectionFromFootprintBoundary(
                         world,
                         agg.RepresentativeSource,
@@ -777,8 +810,13 @@ namespace XianXia.Core.World.Strategic
             List<BoundaryAggregate> aggregatesOut)
         {
             aggregatesOut.Clear();
+            ScratchSharedSegCount = 0;
             var indexByDestination = new Dictionary<HexCoord, int>();
 
+            // 共享边段表必须按 destination 连续布局（同一 dest 的段可能被其它 dest 的段隔开，
+            // 若按 (hex,dir) 全局顺序写，SharedSegOffset/Count 的连续读会串入别的 dest 的段）。
+            // pass 1：统计每个 dest 的共享边数（并选 RepresentativeSource）；
+            // pass 2：按 dest 前缀和 offset 连续填充段表。
             foreach (var footprintHex in site.EnumerateFootprintHexes())
             {
                 for (var dir = 0; dir < 6; dir++)
@@ -791,11 +829,6 @@ namespace XianXia.Core.World.Strategic
                     if (!IsGroundPassable(tile))
                         continue;
 
-                    HexMath.ToWorldPosition(footprintHex, hexSize, out var fx, out var fy);
-                    HexMath.ToWorldPosition(neighbor, hexSize, out var nx, out var ny);
-                    var contactX = (fx + nx) * 0.5f;
-                    var contactY = (fy + ny) * 0.5f;
-
                     if (!indexByDestination.TryGetValue(neighbor, out var idx))
                     {
                         idx = aggregatesOut.Count;
@@ -804,24 +837,201 @@ namespace XianXia.Core.World.Strategic
                         {
                             Destination = neighbor,
                             RepresentativeSource = footprintHex,
-                            ContactSumX = contactX,
-                            ContactSumY = contactY,
-                            ContactCount = 1,
+                            SharedSegOffset = 0,
+                            SharedSegCount = 0,
                         });
-                        continue;
                     }
 
                     var agg = aggregatesOut[idx];
-                    agg.ContactSumX += contactX;
-                    agg.ContactSumY += contactY;
-                    agg.ContactCount++;
+                    agg.SharedSegCount++;
                     if (CompareHex(footprintHex, agg.RepresentativeSource) < 0)
                         agg.RepresentativeSource = footprintHex;
                     aggregatesOut[idx] = agg;
                 }
             }
 
+            var offset = 0;
+            for (var i = 0; i < aggregatesOut.Count; i++)
+            {
+                var a = aggregatesOut[i];
+                a.SharedSegOffset = offset;
+                offset += a.SharedSegCount;
+                aggregatesOut[i] = a;
+            }
+
+            var cursor = new int[aggregatesOut.Count];
+            foreach (var footprintHex in site.EnumerateFootprintHexes())
+            {
+                for (var dir = 0; dir < 6; dir++)
+                {
+                    var neighbor = HexMath.Neighbor(footprintHex, dir);
+                    if (site.OccupiesHex(neighbor))
+                        continue;
+                    if (!world.HexWorld.TryGetTile(neighbor, out var tile) || tile == null)
+                        continue;
+                    if (!IsGroundPassable(tile))
+                        continue;
+
+                    var idx = indexByDestination[neighbor];
+                    var agg = aggregatesOut[idx];
+                    WriteSharedSegAt(agg.SharedSegOffset + cursor[idx], footprintHex, dir, hexSize);
+                    cursor[idx]++;
+                }
+            }
+
             aggregatesOut.Sort(CompareAggregates);
+        }
+
+        /// <summary>把一条共享 hex 边（footprint 格 dir 方向的外露边）端点写入 scratch 段表指定位置。</summary>
+        static void WriteSharedSegAt(int segIndex, HexCoord hex, int dir, float hexSize)
+        {
+            HexMath.CollectCornerWorldPositions(hex, hexSize, ScratchCornerX, ScratchCornerY);
+            var i = (5 - dir) % 6;
+            var j = (i + 1) % 6;
+            var baseIdx = segIndex * 4;
+            if (baseIdx + 4 > ScratchSharedSegs.Length)
+                return; // 防御：段表满（真实 footprint 远小于容量）
+            ScratchSharedSegs[baseIdx] = ScratchCornerX[i];
+            ScratchSharedSegs[baseIdx + 1] = ScratchCornerY[i];
+            ScratchSharedSegs[baseIdx + 2] = ScratchCornerX[j];
+            ScratchSharedSegs[baseIdx + 3] = ScratchCornerY[j];
+            if (segIndex >= ScratchSharedSegCount)
+                ScratchSharedSegCount = segIndex + 1;
+        }
+
+        /// <summary>
+        /// Phase 5R-B3C3.1：BoundaryContact = 共享边并集沿 footprint perimeter 的弧长中点。
+        /// 所有共享边段拼接为最长连续 chain（端点相接），取总弧长中点处插值——
+        /// 单边 → 边中点；共线多边 → 并集中心（仍在线上）；拐角多边 → 公共角点。
+        /// 保证结果永远位于真实 footprint perimeter（绝不做算术平均落入 polygon 外侧）。
+        /// </summary>
+        static bool ResolveBoundaryContactOnPerimeter(
+            int segOffset,
+            int segCount,
+            out float contactX,
+            out float contactY)
+        {
+            contactX = contactY = 0f;
+            if (segCount <= 0)
+                return false;
+
+            ScratchSegs.Clear();
+            for (var s = 0; s < segCount; s++)
+            {
+                var b = (segOffset + s) * 4;
+                ScratchSegs.Add(new EdgeSeg(
+                    new WorldVec2(ScratchSharedSegs[b], ScratchSharedSegs[b + 1]),
+                    new WorldVec2(ScratchSharedSegs[b + 2], ScratchSharedSegs[b + 3])));
+            }
+
+            var n = ScratchSegs.Count;
+            var used = new bool[n];
+            ScratchBestChain.Clear();
+            for (var start = 0; start < n; start++)
+            {
+                if (used[start])
+                    continue;
+                ScratchChain.Clear();
+                var cur = ScratchSegs[start];
+                used[start] = true;
+                ScratchChain.Add(cur);
+                var head = cur.A;
+                var tail = cur.B;
+                var grew = true;
+                while (grew)
+                {
+                    grew = false;
+                    for (var k = 0; k < n; k++)
+                    {
+                        if (used[k])
+                            continue;
+                        var cand = ScratchSegs[k];
+                        if (Connect(tail, cand.A))
+                        {
+                            used[k] = true;
+                            ScratchChain.Add(cand);
+                            tail = cand.B;
+                            grew = true;
+                            break;
+                        }
+
+                        if (Connect(tail, cand.B))
+                        {
+                            used[k] = true;
+                            var rev = new EdgeSeg(cand.B, cand.A);
+                            ScratchChain.Add(rev);
+                            tail = rev.B;
+                            grew = true;
+                            break;
+                        }
+
+                        if (Connect(head, cand.B))
+                        {
+                            used[k] = true;
+                            var rev2 = new EdgeSeg(cand.B, cand.A);
+                            ScratchChain.Insert(0, rev2);
+                            head = rev2.A;
+                            grew = true;
+                            break;
+                        }
+
+                        if (Connect(head, cand.A))
+                        {
+                            used[k] = true;
+                            ScratchChain.Insert(0, cand);
+                            head = cand.A;
+                            grew = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (ChainLength(ScratchChain) > ChainLength(ScratchBestChain))
+                {
+                    ScratchBestChain.Clear();
+                    ScratchBestChain.AddRange(ScratchChain);
+                }
+            }
+
+            if (ScratchBestChain.Count == 0)
+                return false;
+
+            var total = ChainLength(ScratchBestChain);
+            var target = total * 0.5f;
+            var acc = 0f;
+            for (var k = 0; k < ScratchBestChain.Count; k++)
+            {
+                var seg = ScratchBestChain[k];
+                var len = seg.Length;
+                if (acc + len >= target - 1e-6f || k == ScratchBestChain.Count - 1)
+                {
+                    var t = len <= 1e-9f ? 0f : (target - acc) / len;
+                    contactX = seg.A.X + t * (seg.B.X - seg.A.X);
+                    contactY = seg.A.Y + t * (seg.B.Y - seg.A.Y);
+                    return true;
+                }
+
+                acc += len;
+            }
+
+            contactX = ScratchBestChain[ScratchBestChain.Count - 1].B.X;
+            contactY = ScratchBestChain[ScratchBestChain.Count - 1].B.Y;
+            return true;
+        }
+
+        static bool Connect(WorldVec2 p, WorldVec2 q)
+        {
+            var dx = p.X - q.X;
+            var dy = p.Y - q.Y;
+            return dx * dx + dy * dy <= 1e-8f; // eps=1e-4 world
+        }
+
+        static float ChainLength(List<EdgeSeg> chain)
+        {
+            var total = 0f;
+            for (var k = 0; k < chain.Count; k++)
+                total += chain[k].Length;
+            return total;
         }
 
         static int CompareAggregates(BoundaryAggregate a, BoundaryAggregate b)

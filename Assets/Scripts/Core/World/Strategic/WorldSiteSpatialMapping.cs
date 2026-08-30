@@ -5,29 +5,28 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// Phase 5R-B1（Shadow）→ 5R-B3A（Unified）：WorldSite LocalMap 空间 ↔ HexWorld 连续世界表面空间映射。
-    /// 5R-B3A 起<b>内部全部 delegate 到共享 <see cref="HexFootprintSpatialMapping"/></b>（Wilderness 单 Hex 与
-    /// WorldSite 多 Hex 同一种真实 Pointy-Top / Odd-R polygon 几何语义）；本类只保留 WorldSite 适配层
-    /// （footprint 解析 + 防御性 guards），不再持有任何映射算法，避免与共享 helper 双实现漂移。
+    /// Phase 5R-B3A（Unified）→ 5R-B3C3（V2 Kernel Radial）：WorldSite LocalMap 空间 ↔ HexWorld
+    /// 连续世界表面空间映射。
+    ///
+    /// 5R-B3C3 起内部<b>正式切到 <see cref="HexFootprintSpatialGeometry"/>（star-shaped radial）</b>：
+    ///  - Local 矩形归一化到 square [-1,1]² → 从 footprint kernel 沿方向 ray → polygon boundary，
+    ///    不再经过 AABB 空洞 + nearest projection（V1 collapse 根因，见 5R-B3C2.1 验收 FAIL）。
+    ///  - 前提：footprint 必须非空 kernel（star-shaped）。kernel-empty → 明确失败，不 fallback V1。
+    ///  - <see cref="TryBuildGeometry"/> 一次性构建 geometry（B4 每帧调用复用）；
+    ///    既有 site+bounds API 保留，内部走同一 geometry。
+    ///  - 独立投影（最近 footprint 点）降级为 <see cref="ProjectWorldPointToFootprint"/>，不混入
+    ///    coordinate mapping 主链。
     ///
     /// 职责边界（ADR-0027 §11）：只负责物理位置映射；不负责 Battle / Travel / PlayerParty Context /
     /// Army / Presence sync / Materialization / Ingress-Egress 行为。
     ///
     /// 设计约束（ADR-0027 + 5R-0.1 修正）：
-    ///  - 不依赖 UnityEngine / XianXia.Data —— Core 程序集零引用（XianXia.Core.asmdef references=[]）。
-    ///    调用方从 <see cref="XianXia.Data.Content.MapLayoutDefinition"/> 取值构造
-    ///    <see cref="WorldSiteLocalMapBounds"/>（OriginX/OriginY/CellSize/Width/Height）。
-    ///  - 不用 MapLayout 的 absolute coordinate 直接当 HexWorld 坐标；world domain 必须来自真实
-    ///    OccupiedHexes + HexMath Pointy-Top / Odd-R 几何（footprint polygon 外接框）。
-    ///  - 保持 Local 左/右/上/下 ↔ footprint world 域左/右/上/下；不同 LocalMap 尺寸合法
-    ///    （normalized (u,v) 语义，如 50×50 与 100×80 的中心都映射到 footprint 域中心）。
+    ///  - 不依赖 UnityEngine / XianXia.Data —— Core 程序集零引用。
+    ///  - 不用 MapLayout 的 absolute coordinate 直接当 HexWorld 坐标；world domain 来自真实
+    ///    OccupiedHexes + HexMath Pointy-Top / Odd-R 几何。
     ///  - AnchorHex / PresenceHex / DisplayName / SiteType 不参与物理映射。
-    ///  - irregular / concave footprint：candidate 落在包络空洞时投影到最近 occupied hex polygon
-    ///    上的最近合法点（不做 nearest-hex-center 跳变）。
-    ///  - 无 per-call 堆分配（OccupiedHexes 为缓存 ReadOnlyCollection）。
-    ///  - <b>OccupiedHexes 为空时所有 Physical Mapping API 明确失败</b>：AnchorHex / PresenceHex
-    ///    不是 Physical Position / Spatial Mapping authority（ADR-0027），绝不回退
-    ///    AnchorHex fake single-hex physical domain。
+    ///  - <b>OccupiedHexes 为空 / kernel 为空时所有 Physical Mapping API 明确失败</b>（不伪造
+    ///    AnchorHex fake single-hex physical domain，不静默 fallback）。
     /// </summary>
     public static class WorldSiteSpatialMapping
     {
@@ -113,7 +112,26 @@ namespace XianXia.Core.World.Strategic
                 footprint, hexSize, out minX, out maxX, out minY, out maxY);
         }
 
-        /// <summary>V1 映射：Local normalized (u,v) → footprint world domain → 验证/投影。</summary>
+        /// <summary>
+        /// Phase 5R-B3C3：一次性构建 V2 geometry（boundary + kernel）。B4 每帧调用应在此处构建一次并
+        /// 复用 <see cref="HexFootprintSpatialGeometry"/>（radial 方法零堆分配）。
+        /// footprint 空 / kernel-empty → false（不 fallback V1）。
+        /// </summary>
+        public static bool TryBuildGeometry(
+            WorldSite site,
+            float hexSize,
+            out HexFootprintSpatialGeometry geometry)
+        {
+            geometry = null;
+            if (site == null || hexSize <= 0.0001f)
+                return false;
+            if (!ResolveFootprint(site, out var footprint))
+                return false;
+            return HexFootprintSpatialGeometry.TryBuild(footprint, hexSize, out geometry) && geometry.HasKernel;
+        }
+
+        /// <summary>V2 主映射：Local normalized (u,v) → footprint kernel radial → world surface。
+        /// 内部构建 geometry（每调用一次）；高频路径应改用 <see cref="TryBuildGeometry"/> 复用。</summary>
         public static bool TryLocalToWorldSurface(
             WorldSite site,
             WorldSiteLocalMapBounds bounds,
@@ -124,11 +142,24 @@ namespace XianXia.Core.World.Strategic
             worldPosition = default;
             if (site == null || !bounds.IsValid || hexSize <= 0.0001f)
                 return false;
-            if (!ResolveFootprint(site, out var footprint))
+            if (!TryBuildGeometry(site, hexSize, out var geometry))
                 return false;
-            return HexFootprintSpatialMapping.TryLocalToWorldSurface(
-                footprint, bounds.MinX, bounds.MaxX, bounds.MinY, bounds.MaxY,
-                localPosition, hexSize, out worldPosition);
+            return geometry.TryLocalToWorldSurface(
+                bounds.MinX, bounds.MaxX, bounds.MinY, bounds.MaxY, localPosition, out worldPosition);
+        }
+
+        /// <summary>V2 主映射（复用 geometry，零堆分配；B4 推荐路径）。</summary>
+        public static bool TryLocalToWorldSurface(
+            HexFootprintSpatialGeometry geometry,
+            WorldSiteLocalMapBounds bounds,
+            WorldVec2 localPosition,
+            out WorldVec2 worldPosition)
+        {
+            worldPosition = default;
+            if (geometry == null || !bounds.IsValid)
+                return false;
+            return geometry.TryLocalToWorldSurface(
+                bounds.MinX, bounds.MaxX, bounds.MinY, bounds.MaxY, localPosition, out worldPosition);
         }
 
         /// <summary>便捷重载：hexSize = <see cref="HexWorldScale.DefaultHexOuterRadius"/>（1f）。</summary>
@@ -140,8 +171,8 @@ namespace XianXia.Core.World.Strategic
             TryLocalToWorldSurface(site, bounds, localPosition, HexWorldScale.DefaultHexOuterRadius, out worldPosition);
 
         /// <summary>
-        /// 近似可逆 inverse：worldPosition → footprint world-domain normalized (u,v) → Local playable bounds。
-        /// 输入在 footprint 外/空洞时先投影到最近合法 occupied polygon（deterministic，非严格双射）。
+        /// V2 inverse：worldSurface → 同一 kernel radial authority → Local。
+        /// footprint 外点由 radial 语义投影到 polygon（非 V1 AABB collapse；bijective 域内稳定）。
         /// </summary>
         public static bool TryWorldSurfaceToLocal(
             WorldSite site,
@@ -153,11 +184,44 @@ namespace XianXia.Core.World.Strategic
             localPosition = default;
             if (site == null || !bounds.IsValid || hexSize <= 0.0001f)
                 return false;
-            if (!ResolveFootprint(site, out var footprint))
+            if (!TryBuildGeometry(site, hexSize, out var geometry))
                 return false;
-            return HexFootprintSpatialMapping.TryWorldSurfaceToLocal(
-                footprint, bounds.MinX, bounds.MaxX, bounds.MinY, bounds.MaxY,
-                worldPosition, hexSize, out localPosition);
+            return geometry.TryWorldSurfaceToLocal(
+                bounds.MinX, bounds.MaxX, bounds.MinY, bounds.MaxY, worldPosition, out localPosition);
+        }
+
+        /// <summary>V2 inverse（复用 geometry，零堆分配；B4 推荐路径）。</summary>
+        public static bool TryWorldSurfaceToLocal(
+            HexFootprintSpatialGeometry geometry,
+            WorldSiteLocalMapBounds bounds,
+            WorldVec2 worldPosition,
+            out WorldVec2 localPosition)
+        {
+            localPosition = default;
+            if (geometry == null || !bounds.IsValid)
+                return false;
+            return geometry.TryWorldSurfaceToLocal(
+                bounds.MinX, bounds.MaxX, bounds.MinY, bounds.MaxY, worldPosition, out localPosition);
+        }
+
+        /// <summary>
+        /// 独立 helper（非主 mapping）：world 点 → footprint 最近合法点。仅供 legacy / DerivedHex 等
+        /// 需要"最近点"的场景；不再混入 coordinate mapping（5R-B3C3 §十）。
+        /// </summary>
+        public static bool ProjectWorldPointToFootprint(
+            WorldSite site,
+            WorldVec2 worldPosition,
+            float hexSize,
+            out WorldVec2 projected,
+            out HexCoord nearestHex)
+        {
+            projected = default;
+            nearestHex = default;
+            if (site == null || hexSize <= 0.0001f)
+                return false;
+            if (!TryBuildGeometry(site, hexSize, out var geometry))
+                return false;
+            return geometry.TryProjectWorldPointToFootprint(worldPosition, out projected, out nearestHex);
         }
 
         /// <summary>

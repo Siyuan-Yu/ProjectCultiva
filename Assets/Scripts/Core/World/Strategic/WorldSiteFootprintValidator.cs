@@ -6,6 +6,59 @@ namespace XianXia.Core.World.Strategic
     /// <summary>WorldSite Footprint 内容/Runtime 校验（与 Terrain 无关）。</summary>
     public static class WorldSiteFootprintValidator
     {
+        /// <summary>
+        /// Phase 5R-B3C3：单一 WorldSite footprint 的正式内容约束（WorldGraph 编辑期/加载期调用）：
+        ///  A. OccupiedHexes 非空；
+        ///  B. 6-neighbor connectivity（单一连续物理区域）；
+        ///  C. V2 spatial kernel non-empty（star-shaped，可被
+        ///     <see cref="HexFootprintSpatialGeometry.TryBuild"/> 径向映射覆盖）。
+        /// 返回错误列表（空 = 通过）。每条含 SiteId + OccupiedHexes + failure reason。
+        /// kernel 判定<b>复用</b> <see cref="HexFootprintSpatialGeometry.TryBuild"/>，不复制第二套算法。
+        /// </summary>
+        public static List<string> ValidateFootprint(WorldSite site, float hexSize = 1f)
+        {
+            var errors = new List<string>();
+            if (site == null)
+            {
+                errors.Add("WorldSiteFootprint.Empty site=null");
+                return errors;
+            }
+
+            if (site.OccupiedHexes.Count == 0)
+            {
+                errors.Add("WorldSiteFootprint.Empty site=" + site.SiteId);
+                return errors;
+            }
+
+            if (!IsFootprintConnected(site.OccupiedHexes))
+            {
+                errors.Add(
+                    "WorldSiteFootprint.Disconnected site=" + site.SiteId +
+                    " footprint=[" + FormatHexes(site.OccupiedHexes) + "]");
+            }
+
+            if (!HexFootprintSpatialGeometry.TryBuild(site.OccupiedHexes, hexSize, out var geometry) ||
+                !geometry.HasKernel)
+            {
+                errors.Add(
+                    "WorldSiteFootprint.NoSpatialKernel site=" + site.SiteId +
+                    " footprint=[" + FormatHexes(site.OccupiedHexes) + "]");
+            }
+
+            return errors;
+        }
+
+        static string FormatHexes(IReadOnlyList<HexCoord> footprint)
+        {
+            var s = string.Empty;
+            for (var i = 0; i < footprint.Count; i++)
+            {
+                s += (i == 0 ? "" : " ") + "(" + footprint[i].Q + "," + footprint[i].R + ")";
+            }
+
+            return s;
+        }
+
         public static bool IsAnchorInFootprint(WorldSite site)
         {
             if (site == null)
