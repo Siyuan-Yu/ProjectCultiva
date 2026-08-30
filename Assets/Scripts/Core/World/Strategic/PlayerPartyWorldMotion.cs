@@ -54,7 +54,6 @@ namespace XianXia.Core.World.Strategic
         /// Phase 5D: 当前正在处理的 Mandatory Gateway SiteId —— 仅表示「本次旅行当前正在处理的
         /// 强制中间节点」（单一值），不是完整 Gateway 列表；5D-B1 由 Gateway route fallback 设置。
         /// </summary>
-        public string MandatoryWaypointSiteId { get; private set; } = string.Empty;
         /// <summary>
         /// Phase 5D-B1: 玩家原始最终目标（FinalDestination）。普通旅行时与 DestinationHex 相同；
         /// 仅当 Mandatory Gateway 中间 leg 生效时，DestinationHex 为 Gateway、FinalDestinationHex
@@ -126,7 +125,6 @@ namespace XianXia.Core.World.Strategic
             ExecutionMode = PlayerPartyTravelExecutionMode.None;
             DestinationHex = CurrentHex;
             DestinationSiteId = string.Empty;
-            MandatoryWaypointSiteId = string.Empty;
             FinalDestinationHex = CurrentHex;
             FinalDestinationSiteId = string.Empty;
             TravelMode = HexTravelMode.Ground;
@@ -138,9 +136,6 @@ namespace XianXia.Core.World.Strategic
             ExecutionMode = mode;
 
         /// <summary>Phase 5D-B1: 标记当前正在处理的 Mandatory Gateway（单一值，非列表）。</summary>
-        public void SetMandatoryWaypoint(string siteId) =>
-            MandatoryWaypointSiteId = siteId ?? string.Empty;
-
         /// <summary>Phase 5D-B1: 设定玩家最终意图（仅在 Gateway 中间 leg 时与 DestinationHex 不同）。</summary>
         public void SetFinalDestination(HexCoord hex, string siteId)
         {
@@ -346,7 +341,6 @@ namespace XianXia.Core.World.Strategic
             StepTotalTicks = 0;
             DestinationHex = CurrentHex;
             DestinationSiteId = string.Empty;
-            MandatoryWaypointSiteId = string.Empty;
             FinalDestinationHex = CurrentHex;
             FinalDestinationSiteId = string.Empty;
             MovementKind = PlayerPartyMovementKind.Idle;
@@ -512,7 +506,6 @@ namespace XianXia.Core.World.Strategic
             ExecutionMode = PlayerPartyTravelExecutionMode.None;
             DestinationHex = CurrentHex;
             DestinationSiteId = string.Empty;
-            MandatoryWaypointSiteId = string.Empty;
             FinalDestinationHex = CurrentHex;
             FinalDestinationSiteId = string.Empty;
             ClearSiteDeparturePending();

@@ -3011,19 +3011,7 @@ namespace XianXia.Unity.Host
                 world.Strategic.Sites.TryGet(cmd.TargetSiteId, out var site) &&
                 site != null)
                 destLabel = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
-            // Phase 5D-B1: Mandatory Gateway fallback —— 当前路线先去 Gateway，最终目标仍是 B。
-            var travel = world.PlayerPartyTravel;
-            if (travel != null && !string.IsNullOrEmpty(travel.MandatoryWaypointSiteId) &&
-                world.Strategic.Sites.TryGet(travel.MandatoryWaypointSiteId, out var via) &&
-                via != null)
-            {
-                var viaName = string.IsNullOrEmpty(via.DisplayName) ? via.SiteId : via.DisplayName;
-                status = "PlayerParty Travel → " + viaName + "（最终 " + destLabel + "）";
-            }
-            else
-            {
-                status = "PlayerParty Travel → " + destLabel;
-            }
+            status = "PlayerParty Travel → " + destLabel;
 
             return true;
         }

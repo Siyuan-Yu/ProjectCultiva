@@ -3298,3 +3298,9 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 - B7A 已由 `d551ea0` 封板（该提交已在 `origin/dev`；并非本轮执行）。
 - 完成 WorldSite transit / destination authority 静态审计：目标 Site 才允许正式 ingress 与 `CompleteMove`，非目标 Site 保持最终目的地并继续 egress。
 - 本轮未运行 Unity、未修改 Travel／Exit／Camera／Repath，也未提交 B7B。
+
+## 2026-08-30 — Phase 5R-B7C legacy state cleanup
+
+- 删除 PlayerParty `MandatoryWaypointSiteId` 及 Host 对应旧状态显示；确认无存档兼容影响。
+- Host `GatewayConfirm` scaffold 因共享依赖尚未完全证明而延期，FormalArmy 逻辑未动。
+- 完成静态 consumer audit；未运行 Unity／PlayMode／Test Runner，也未重新执行非 Unity compile；B7C 保持未提交。
