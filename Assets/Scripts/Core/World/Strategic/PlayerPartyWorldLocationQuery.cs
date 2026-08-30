@@ -1,3 +1,4 @@
+using System;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
@@ -19,6 +20,12 @@ namespace XianXia.Core.World.Strategic
             public HexCoord DerivedHex;
             public string ResolvedLocalMapId;
             public bool HasValue;
+
+            /// <summary>
+            /// Phase 5R-B5：仅当 Canonical WorldPosition 缺失/非有限时的 legacy 位置（PresenceHex）
+            /// 才为 true。只标记查询输出，绝不写回 motion。正常 B4 / ingress / materialize 链恒为 false。
+            /// </summary>
+            public bool IsLegacyFallback;
         }
 
         /// <summary>
@@ -54,26 +61,54 @@ namespace XianXia.Core.World.Strategic
                 var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
                     ? world.HexWorld.HexSize
                     : 1f;
-                var markerPos = motion.IsMoving
-                    ? motion.ResolveTravelPresentationWorld(hexSize)
-                    : default(WorldVec2?);
-                if (!markerPos.HasValue)
+
+                // Phase 5R-B5：Context 与 Physical 分离。
+                // Physical truth = motion.WorldPosition（B4 LocalVisible→Canonical 已同步 /
+                // ingress / materialize 后均在 Site footprint 表面）。不再用 PresenceHex / AnchorHex
+                // center 代表 Site 内位置。
+                // 仅当 WorldPosition 缺失或非有限 → legacy fallback = PresenceHex（只读查询输出，
+                // 不写回 motion，IsLegacyFallback=true）。
+                // DerivedHex = HexMath.WorldToHex(Canonical)（derived/debug，不写 CurrentHex；
+                // polygon boundary 数值误差落到邻接 hex 也不 snap —— Canonical 优先）。
+                var finitePos = motion.HasPosition &&
+                                !float.IsNaN(motion.WorldPosition.X) &&
+                                !float.IsInfinity(motion.WorldPosition.X) &&
+                                !float.IsNaN(motion.WorldPosition.Y) &&
+                                !float.IsInfinity(motion.WorldPosition.Y);
+
+                WorldVec2 markerPos;
+                HexCoord derivedHex;
+                var isLegacyFallback = false;
+                if (!finitePos)
                 {
                     HexMath.ToWorldPosition(site.PresenceHex, hexSize, out var sx, out var sy);
                     markerPos = new WorldVec2(sx, sy);
+                    derivedHex = site.PresenceHex;
+                    isLegacyFallback = true;
+                }
+                else if (motion.IsMoving)
+                {
+                    // travel 中（Site departure / route progress）：World executor owns，
+                    // 用 travel presentation 插值位置（保留既有行为，非 B5 范围）。
+                    markerPos = motion.ResolveTravelPresentationWorld(hexSize);
+                    derivedHex = motion.CurrentHex;
+                }
+                else
+                {
+                    // B5 主路径：LocalVisible owns → Canonical 连续位置。
+                    markerPos = motion.WorldPosition;
+                    derivedHex = HexMath.WorldToHex(markerPos.X, markerPos.Y, hexSize);
                 }
 
-                var derivedHex = motion.IsMoving
-                    ? motion.CurrentHex
-                    : site.PresenceHex;
                 resolved = new Resolved
                 {
                     HasValue = true,
                     LocationKind = PlayerPartyLocationKind.AtWorldSite,
                     SiteId = site.SiteId,
-                    WorldPosition = markerPos.Value,
+                    WorldPosition = markerPos,
                     DerivedHex = derivedHex,
                     ResolvedLocalMapId = site.LocalMapId ?? string.Empty,
+                    IsLegacyFallback = isLegacyFallback,
                 };
                 return true;
             }

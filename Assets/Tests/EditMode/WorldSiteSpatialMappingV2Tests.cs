@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
@@ -473,43 +474,45 @@ namespace XianXia.Tests
     /// <summary>最小 JSON 解析 helper（避免 EditMode 依赖 JsonUtility 序列化限制）。</summary>
     internal sealed class SimpleJson
     {
-        readonly System.Text.Json.JsonDocument _doc;
+        readonly TestJsonValue _v;
 
-        SimpleJson(System.Text.Json.JsonDocument doc)
+        SimpleJson(TestJsonValue v)
         {
-            _doc = doc;
+            _v = v;
         }
 
         public static SimpleJson Parse(string text)
         {
-            return new SimpleJson(System.Text.Json.JsonDocument.Parse(text));
+            return new SimpleJson(TestJson.Parse(text));
         }
 
         public SimpleJsonObject GetArray(string name)
         {
-            return new SimpleJsonObject(_doc.RootElement.GetProperty(name));
+            return new SimpleJsonObject(_v.Get(name));
         }
 
         public sealed class SimpleJsonObject
         {
-            readonly System.Text.Json.JsonElement _e;
+            readonly TestJsonValue _v;
 
-            public SimpleJsonObject(System.Text.Json.JsonElement e)
+            public SimpleJsonObject(TestJsonValue v)
             {
-                _e = e;
+                _v = v;
             }
 
-            public SimpleJsonObject this[int index] => new SimpleJsonObject(_e[index]);
+            public SimpleJsonObject this[int index] => new SimpleJsonObject(_v.At(index));
 
-            public int Length => _e.GetArrayLength();
+            public int Length => _v.ArrayCount;
 
-            public string GetString(string name) => _e.TryGetProperty(name, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.String ? v.GetString() : null;
+            public SimpleJsonObject GetArray(string name) => new SimpleJsonObject(_v.Get(name));
 
-            public int GetInt(string name) => _e.GetProperty(name).GetInt32();
+            public string GetString(string name) => _v.Get(name).IsString ? _v.Get(name).Str : null;
 
-            public float GetFloat(string name) => _e.GetProperty(name).GetSingle();
+            public int GetInt(string name) => (int)_v.Get(name).Num;
 
-            public bool GetBool(string name) => _e.GetProperty(name).GetBoolean();
+            public float GetFloat(string name) => (float)_v.Get(name).Num;
+
+            public bool GetBool(string name) => _v.Get(name).IsBool && _v.Get(name).Bool;
         }
     }
 }
