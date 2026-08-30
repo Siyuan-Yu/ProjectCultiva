@@ -3292,3 +3292,9 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 
 **下一步**
 - 回答 Q1–Q5 → 定稿差异化 → 进入 M1 纸上原型
+
+## 2026-08-30 — Phase 5R-B7B authority audit
+
+- B7A 已由 `d551ea0` 封板（该提交已在 `origin/dev`；并非本轮执行）。
+- 完成 WorldSite transit / destination authority 静态审计：目标 Site 才允许正式 ingress 与 `CompleteMove`，非目标 Site 保持最终目的地并继续 egress。
+- 本轮未运行 Unity、未修改 Travel／Exit／Camera／Repath，也未提交 B7B。

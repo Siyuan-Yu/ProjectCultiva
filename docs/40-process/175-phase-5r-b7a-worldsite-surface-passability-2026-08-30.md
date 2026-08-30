@@ -2,7 +2,7 @@
 
 - Date: 2026-08-30
 - Baseline: `dev @ 8f7e673`
-- Status: **实现完成，待 LevelTester 人工验收；未提交**
+- Status: **人工验收通过；已封板（提交 d551ea0）**
 - Scope: PlayerParty Surface Travel；不改 FormalArmy／Battle／SupportRing／外交／Gate system
 
 ## 1. 截图现象静态 A/B 结论
