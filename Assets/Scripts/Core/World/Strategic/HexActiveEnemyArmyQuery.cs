@@ -5,7 +5,7 @@ using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>Hex H �?Active Enemy Army 查询（真�?= FormalArmy.CurrentHex + linked Stack）�?/summary>
+    /// <summary>Hex H �?Active Enemy Army 查询（真�?= FormalArmy.CurrentHex + linked Stack）�?/summary>
     public static class HexActiveEnemyArmyQuery
     {
         public static void CollectAtHex(
@@ -34,8 +34,6 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 if (!TryResolveLinkedStack(world, army.ArmyId, out var stack) || stack == null)
                     continue;
-                if (stack.HasDownedRemnant)
-                    continue;
                 if (!seenStackIds.Add(stack.Id))
                     continue;
 
@@ -50,7 +48,8 @@ namespace XianXia.Core.World.Strategic
                 var stack = kv.Value;
                 if (stack == null || string.IsNullOrEmpty(stack.Id) || seenStackIds.Contains(stack.Id))
                     continue;
-                if (stack.HasDownedRemnant)
+                // raw ArmyStack（无 living FormalArmy authority）的 abstract/remnant 栈不可攻击
+                if (stack.HasDownedRemnant || stack.IsBattlefieldRemnant)
                     continue;
                 if (IsFriendlyFaction(stack.FactionId, friendlyFactionId))
                     continue;
@@ -128,7 +127,7 @@ namespace XianXia.Core.World.Strategic
                 occupied.Contains(targetHex))
                 return true;
 
-            // Pure Hex：敌军占格只�?FormalArmy.CurrentHex，禁�?stack.SiteId �?Legacy Node 回退�?
+            // Pure Hex：敌军占格只�?FormalArmy.CurrentHex，禁�?stack.SiteId �?Legacy Node 回退�?
             if (ArmyHexCommandService.IsHexStrategicActive(world))
                 return false;
 

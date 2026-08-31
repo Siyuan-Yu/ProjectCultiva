@@ -22,27 +22,34 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
 
             var snap = world.Strategic.Participants;
-            RestoreParticipantsAfterBattle(world, snap);
-
-            var linger = HasLingeringBattlefieldRemnants(world);
             // Phase 5S-B2-3.1：区分真实世界战（WorldSite / Wilderness）与 Explicit EncounterMap。
             var realWorldCombat = snap != null &&
                                   (snap.LocalMapResolutionKind == BattleLocalMapResolutionKind.WorldSite ||
                                    snap.LocalMapResolutionKind == BattleLocalMapResolutionKind.Wilderness);
-            if (linger)
+
+            // WORLD_COMBAT 不走 legacy RestoreParticipantsAfterBattle（PreBattle 模型）：
+            // PlayerParty + FormalArmy 已在「点击 Manual」时 commit 到真实 BattleHex，
+            // End Battle 不需要 restore / return / re-anchor living participant。
+            if (!realWorldCombat)
+                RestoreParticipantsAfterBattle(world, snap);
+
+            var linger = HasLingeringBattlefieldRemnants(world);
+            if (realWorldCombat)
+            {
+                // 真实 WORLD_COMBAT：先释放 battle scope（不删实体），再 detach / sync 所有
+                // participant FormalArmies —— detach 阶段由 DetachMemberAtArmyLocation 直接把
+                // downed 成员钉到 army.WorldMotion.CurrentHex（residual-safe），因此这里不再提前
+                // 钉 residual（旧顺序会被后续 detach 覆盖）。residual 的 final authority 移到
+                // 三个 Army sync 之后、Participants.Clear 之前统一收口。
+                ReleaseWorldCombatScopeWithoutRemovingEntities(world);
+                world.Strategic.ClearBattleOffer();
+            }
+            else if (linger)
             {
                 ParkLingeringBattlefield(world, snap);
                 world.Strategic.ClearBattleOffer();
                 if (snap != null)
                     snap.IsAutoSettlement = false;
-            }
-            else if (realWorldCombat)
-            {
-                // Phase 5S-B2-3.1：真实 LocalMap 世界战 —— 即使无弥留／尸体，也绝不
-                // FinalizeRemoval 仍活着的真实敌军／现场实体（living survivor 必须继续存在）。
-                // 只释放 Encounter scope 引用，实体保留在世界上由普通 LocalMap population 显示。
-                ReleaseWorldCombatScopeWithoutRemovingEntities(world);
-                world.Strategic.ClearBattleOffer();
             }
             else
             {
@@ -57,6 +64,17 @@ namespace XianXia.Core.World.Strategic
             ArmyPostBattleSyncService.SyncParticipantFormalArmiesAfterBattle(world, snap);
             StrategicPursuitService.ClearPursuit(world);
             WorldTravelService.SyncPartyFocus(world);
+
+            if (realWorldCombat)
+            {
+                // FINAL RESIDUAL AUTHORITY：FormalArmy detach 全部完成后，把本场所有 downed
+                // participant（friendly + enemy）钉到 BattleAnchorHex，并 assert 不变量。
+                // 必须在 Participants.Clear（FinishOfferResolution）之前，因为需要 frozen snapshot。
+                EnsureFriendlyDownedWorldPresence(world, snap);
+                EnsureEnemyDownedWorldPresence(world, snap);
+                AssertFinalResidualAuthority(world, snap);
+            }
+
             BattleOfferService.FinishOfferResolution(world);
             return Result.Success();
         }
@@ -216,8 +234,8 @@ namespace XianXia.Core.World.Strategic
             if (string.IsNullOrEmpty(world.Strategic.Participants.LastBattleSummary))
             {
                 world.Strategic.Participants.LastBattleSummary = fieldCleared
-                    ? "敌军已清空。可继续补刀／交互；点「结束战斗」退出 Modal（有弥留则战场仍留在接战点）。"
-                    : "我方已全部倒下。点「结束战斗」退出；弥留者仍留在接战点，可再派人查看。";
+                    ? "敌军已全部失去战斗能力。可查看现场；点击「结束战斗」后恢复世界时间。"
+                    : "我方已全部失去战斗能力。点击「结束战斗」后结束本次战斗并恢复世界时间。";
             }
 
             world.Strategic.Participants.PlayerWon = fieldCleared;
@@ -424,7 +442,10 @@ namespace XianXia.Core.World.Strategic
                 }
             }
 
-            world.Strategic.Encounter?.ClearActiveEncounterSession();
+            // 完整清本场 active battle transient（含 FieldCleared / ArmyStackId /
+            // EncounterLinkId / LingeringLocalMapId / PendingLingeringEnterBattlefieldId），
+            // 结束后的 Runtime 不再像旧战斗；Registry / Residual / Pursuit 不动。
+            world.Strategic.Encounter?.ClearCompletedWorldCombatSession();
         }
 
         /// <summary>
@@ -582,16 +603,37 @@ namespace XianXia.Core.World.Strategic
             if (rt == null || snap == null)
                 return;
 
+            // A. frozen snapshot 真实敌军（WORLD_COMBAT 不再依赖 spawn scope 也能把真实
+            // enemy residual 钉到 BattleAnchorHex）。
+            for (var i = 0; i < snap.Records.Count; i++)
+            {
+                var rec = snap.Records[i];
+                if (rec.EntityId.IsNone)
+                    continue;
+                if (rec.Kind != BattleParticipantKind.EnemyPrimary &&
+                    rec.Kind != BattleParticipantKind.EnemyReinforcement)
+                    continue;
+                if (!LingeringBattlefieldPartyService.IsLingeringDowned(world, rec.EntityId))
+                    continue;
+                if (!world.Entities.TryGet(rec.EntityId, out var ent) || ent == null)
+                    continue;
+                if (!world.WorldPresence.TryGet(rec.EntityId, out var wp) || wp == null)
+                    wp = world.WorldPresence.GetOrCreate(rec.EntityId);
+                PlaceAtBattleAnchor(world, wp, snap);
+            }
+
+            // B. legacy tracked fallback synthetic spawn（encounter-owned NPC）
             if (spawnIds == null)
                 spawnIds = BattlefieldSpawnScope.GetSpawnList(world) ?? rt.SpawnedEntityIds;
 
-            var slot = 0;
             for (var i = 0; i < spawnIds.Count; i++)
             {
                 var id = new EntityId(spawnIds[i]);
+                if (snap.IsEnemyParticipant(id))
+                    continue; // 已在 A 处理，避免重复定位
                 if (!world.Entities.TryGet(id, out var ent) || ent == null)
                     continue;
-                // 弥留与可见尸体都要钉在接战点（再�?LocalMap／大地图倒计时同一套实体）
+                // 弥留与可见尸体都要钉在接战点（再进 LocalMap／大地图倒计时同一套实体）
                 if (!LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
                     continue;
 
@@ -644,6 +686,53 @@ namespace XianXia.Core.World.Strategic
                 PlaceAtBattleAnchor(world, wp, snap);
             }
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        /// <summary>
+        /// 真实 WORLD_COMBAT 收口 invariant：本场所有 downed participant（friendly + enemy）
+        /// 若已脱离 FormalArmy，最终必须 Mode == AtHex 且 ResidualHex == BattleAnchorHex。
+        /// 若仍挂在 FormalArmy 上则是 DetachNonLivingMembersAtBattlefield 的 bug——不 silently
+        /// mask，直接 assert 暴露。仅 DEVELOPMENT_BUILD / UNITY_EDITOR 下生效，不增加 runtime log。
+        /// </summary>
+        static void AssertFinalResidualAuthority(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap)
+        {
+            if (world == null || snap == null)
+                return;
+            if (!ArmyHexBattleAnchorService.TryGetBattleAnchorHex(snap, out var anchorHex))
+                return;
+
+            for (var i = 0; i < snap.Records.Count; i++)
+            {
+                var rec = snap.Records[i];
+                if (rec.EntityId.IsNone)
+                    continue;
+                if (rec.Kind != BattleParticipantKind.MandatoryFriendly &&
+                    rec.Kind != BattleParticipantKind.EnemyPrimary &&
+                    rec.Kind != BattleParticipantKind.EnemyReinforcement &&
+                    !(rec.Kind == BattleParticipantKind.OptionalFriendly && rec.Selected))
+                    continue;
+                if (!LingeringBattlefieldPartyService.IsLingeringDowned(world, rec.EntityId))
+                    continue;
+
+                if (ArmyService.TryGetArmyForCharacter(world, rec.EntityId, out _))
+                {
+                    System.Diagnostics.Debug.Assert(
+                        false,
+                        "WORLD_COMBAT downed participant still in FormalArmy after post-battle sync: " +
+                        rec.EntityId.Value);
+                    continue;
+                }
+
+                if (!world.WorldPresence.TryGet(rec.EntityId, out var wp) || wp == null)
+                    continue;
+                System.Diagnostics.Debug.Assert(
+                    wp.Mode == PartyWorldPresenceMode.AtHex && wp.ResidualHex.Equals(anchorHex),
+                    "WORLD_COMBAT residual not anchored at BattleAnchorHex: " + rec.EntityId.Value);
+            }
+        }
+#endif
 
         public static void PlaceAtBattleAnchor(
             SimulationWorld world,

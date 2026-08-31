@@ -24,7 +24,18 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> OpeningScenarioFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "scheduleId", "openingFactionId", "openingSettlementId",
-            "openingWorldRegionId", "openingLocalPlaceSetId", "openingHexWorldId", "openingChapterId", "spawns", "openingRelations"
+            "openingWorldRegionId", "openingLocalPlaceSetId", "openingHexWorldId", "openingChapterId", "spawns", "openingRelations",
+            "initialFormalArmyIds"
+        };
+
+        public static readonly HashSet<string> FormalArmyFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "runtimeArmyId", "runtimeStackId", "factionId", "assemblySiteId", "members"
+        };
+
+        public static readonly HashSet<string> FormalArmyMemberFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "characterDefinitionId", "displayName", "leader"
         };
 
         public static readonly HashSet<string> CharacterRosterFields = new HashSet<string>(StringComparer.Ordinal)

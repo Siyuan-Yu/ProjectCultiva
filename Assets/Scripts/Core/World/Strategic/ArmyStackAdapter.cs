@@ -100,186 +100,30 @@ namespace XianXia.Core.World.Strategic
                 RefreshDerivedPresentation(world, kv.Value);
         }
 
-        public static Result<FormalArmy> EnsureBanditPatrolArmy(
-            SimulationWorld world,
-            string siteId)
-        {
-            if (world == null)
-                return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "world null");
-
-            if (world.Strategic.FormalArmies.TryGet(BanditPatrolFormalArmyId, out var existing) &&
-                existing != null)
-            {
-                SyncBanditStackView(world, existing, BanditPatrolStackId, "荒村山匪", siteId);
-                return Result.Ok(existing);
-            }
-
-            var members = TestStrategicBootstrap.EnsureBanditCharacters(world, siteId);
-            if (members.Count < 1)
-                return Result.Fail<FormalArmy>(ErrorCode.InvalidOperation, "Failed to spawn bandit characters.");
-
-            var army = new FormalArmy
-            {
-                ArmyId = BanditPatrolFormalArmyId,
-                FactionId = StrategicFactionCatalog.BanditId,
-                LeaderCharacterId = members[0],
-                State = FormalArmyState.Idle
-            };
-            var ids = new List<ulong>(members.Count);
-            for (var i = 0; i < members.Count; i++)
-                ids.Add(members[i].Value);
-            army.ReplaceMembers(ids);
-            if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, siteId, out var hex))
-                ArmyHexTravelService.InitializeArmyAtHex(world, army, hex);
-            world.Strategic.FormalArmies.Register(army);
-            SyncMembershipForBanditArmy(world, army);
-            SyncBanditStackView(world, army, BanditPatrolStackId, "荒村山匪", siteId);
-            return Result.Ok(army);
-        }
-
-        public static Result<FormalArmy> EnsureBanditWeakPatrolArmy(
-            SimulationWorld world,
-            string siteId)
-        {
-            if (world == null)
-                return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "world null");
-
-            if (world.Strategic.FormalArmies.TryGet(BanditWeakPatrolFormalArmyId, out var existing) &&
-                existing != null)
-            {
-                SyncBanditStackView(world, existing, BanditWeakPatrolStackId, "试炼弱匪（自动必胜）", siteId);
-                return Result.Ok(existing);
-            }
-
-            var members = TestStrategicBootstrap.EnsureWeakBanditCharacters(world, siteId);
-            if (members.Count < 1)
-                return Result.Fail<FormalArmy>(ErrorCode.InvalidOperation, "Failed to spawn weak bandit characters.");
-
-            var army = new FormalArmy
-            {
-                ArmyId = BanditWeakPatrolFormalArmyId,
-                FactionId = StrategicFactionCatalog.BanditId,
-                LeaderCharacterId = members[0],
-                State = FormalArmyState.Idle
-            };
-            var ids = new List<ulong>(members.Count);
-            for (var i = 0; i < members.Count; i++)
-                ids.Add(members[i].Value);
-            army.ReplaceMembers(ids);
-            if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, siteId, out var hex))
-                ArmyHexTravelService.InitializeArmyAtHex(world, army, hex);
-            world.Strategic.FormalArmies.Register(army);
-            SyncMembershipForBanditArmy(world, army);
-            SyncBanditStackView(world, army, BanditWeakPatrolStackId, "试炼弱匪（自动必胜）", siteId);
-            return Result.Ok(army);
-        }
-
-        public static Result<FormalArmy> EnsureBanditScoutArmy(
-            SimulationWorld world,
-            string siteId)
-        {
-            if (world == null)
-                return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "world null");
-
-            if (world.Strategic.FormalArmies.TryGet(BanditScoutFormalArmyId, out var existing) &&
-                existing != null)
-            {
-                SyncBanditStackView(world, existing, BanditScoutStackId, "山匪斥候", siteId);
-                return Result.Ok(existing);
-            }
-
-            var members = TestStrategicBootstrap.EnsureBanditScoutCharacters(world, siteId);
-            if (members.Count < 1)
-                return Result.Fail<FormalArmy>(ErrorCode.InvalidOperation, "Failed to spawn bandit scout characters.");
-
-            var army = new FormalArmy
-            {
-                ArmyId = BanditScoutFormalArmyId,
-                FactionId = StrategicFactionCatalog.BanditId,
-                LeaderCharacterId = members[0],
-                State = FormalArmyState.Idle
-            };
-            var ids = new List<ulong>(members.Count);
-            for (var i = 0; i < members.Count; i++)
-                ids.Add(members[i].Value);
-            army.ReplaceMembers(ids);
-            if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, siteId, out var hex))
-                ArmyHexTravelService.InitializeArmyAtHex(world, army, hex);
-            world.Strategic.FormalArmies.Register(army);
-            SyncMembershipForBanditArmy(world, army);
-            SyncBanditStackView(world, army, BanditScoutStackId, "山匪斥候", siteId);
-            ArmyPresenceAdapter.SyncFromArmy(world, army);
-            return Result.Ok(army);
-        }
-
-        /// <summary>Prototype 试炼强匪：3 人筑基高战；自动战夹具必定对我方造成 1 人弥留或阵亡。</summary>
-        public static Result<FormalArmy> EnsureBanditCasualtyTestArmy(
-            SimulationWorld world,
-            string siteId)
-        {
-            if (world == null)
-                return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "world null");
-
-            if (world.Strategic.FormalArmies.TryGet(BanditCasualtyTestFormalArmyId, out var existing) &&
-                existing != null)
-            {
-                SyncBanditStackView(world, existing, BanditCasualtyTestStackId, "试炼强匪（自动伤亡）", siteId);
-                return Result.Ok(existing);
-            }
-
-            var members = TestStrategicBootstrap.EnsureStrongCasualtyTestBanditCharacters(world, siteId);
-            if (members.Count < 1)
-                return Result.Fail<FormalArmy>(ErrorCode.InvalidOperation, "Failed to spawn casualty-test bandit characters.");
-
-            var army = new FormalArmy
-            {
-                ArmyId = BanditCasualtyTestFormalArmyId,
-                FactionId = StrategicFactionCatalog.BanditId,
-                LeaderCharacterId = members[0],
-                State = FormalArmyState.Idle
-            };
-            var ids = new List<ulong>(members.Count);
-            for (var i = 0; i < members.Count; i++)
-                ids.Add(members[i].Value);
-            army.ReplaceMembers(ids);
-            if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, siteId, out var hex))
-                ArmyHexTravelService.InitializeArmyAtHex(world, army, hex);
-            world.Strategic.FormalArmies.Register(army);
-            SyncMembershipForBanditArmy(world, army);
-            SyncBanditStackView(world, army, BanditCasualtyTestStackId, "试炼强匪（自动伤亡）", siteId);
-            return Result.Ok(army);
-        }
-
-        static void SyncBanditStackView(
+        /// <summary>
+        /// FormalArmy 链接的 ArmyStack 兼容视图（Content bootstrap 通用入口）。
+        /// 创建或刷新 stack 并同步 FormalArmy 派生的 travel / 展示字段；重复调用幂等。
+        /// </summary>
+        public static void EnsureLinkedStackView(
             SimulationWorld world,
             FormalArmy army,
             string stackId,
-            string displayName,
-            string siteId)
+            string displayName)
         {
+            if (world?.Strategic?.Armies == null || army == null || string.IsNullOrEmpty(stackId))
+                return;
+
             world.Strategic.Armies.Remove(stackId);
             var stack = new ArmyStack
             {
                 Id = stackId,
                 FormalArmyId = army.ArmyId,
-                FactionId = army.FactionId,
-                DisplayName = displayName ?? string.Empty,
-                SiteId = siteId ?? string.Empty,
+                FactionId = army.FactionId ?? string.Empty,
+                DisplayName = displayName ?? string.Empty
             };
+            SyncStackTravelFromFormalArmy(world, stack);
             RefreshDerivedPresentation(world, stack);
             world.Strategic.Armies.Register(stack);
-        }
-
-        static void SyncMembershipForBanditArmy(SimulationWorld world, FormalArmy army)
-        {
-            for (var i = 0; i < army.MemberCharacterIds.Count; i++)
-            {
-                var memberId = new EntityId(army.MemberCharacterIds[i]);
-                if (!world.Entities.TryGet(memberId, out var entity))
-                    continue;
-                ArmyInvariants.EnsureMembershipComponent(entity);
-                entity.Get<ArmyMembershipComponent>().SetArmyId(army.ArmyId);
-            }
         }
 
         static int CountLivingMembers(SimulationWorld world, FormalArmy army)

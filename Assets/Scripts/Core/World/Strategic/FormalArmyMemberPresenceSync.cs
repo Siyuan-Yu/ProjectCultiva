@@ -46,6 +46,13 @@ namespace XianXia.Core.World.Strategic
             world.WorldPresence.SetAtWorldPosition(memberId, motion.WorldPosition, motion.CurrentHex);
         }
 
+        /// <summary>
+        /// 成员退出 Army 时的 Presence 收口。
+        /// 新 authority：被 detach 的角色若处于 Residual life state（Incapacitated / VisibleCorpse），
+        /// 直接钉到 army.WorldMotion.CurrentHex（Manual WORLD_COMBAT 已在入场时 exact commit 到
+        /// BattleAnchorHex），绝不再被 SetAtWorldPosition / SetAtSite 覆盖成无 ResidualHex 的
+        /// AtWorldPosition —— 否则 WorldMap 无 residual marker 且离开再回来无法 rematerialize。
+        /// </summary>
         public static void DetachMemberAtArmyLocation(
             SimulationWorld world,
             FormalArmy army,
@@ -55,6 +62,20 @@ namespace XianXia.Core.World.Strategic
                 return;
 
             var motion = army.WorldMotion;
+
+            if (StrategicResidualPresenceService.IsResidualLifeCandidate(world, memberId))
+            {
+                // Residual member：以 army 当前 Hex 为 ResidualHex；无 position 时保留已有合法
+                // AtHex presence（不拿 default (0,0) 覆盖），缺失由 Resolve final assert 暴露。
+                if (motion.HasPosition)
+                    StrategicResidualPresenceService.PlaceCharacterAtResidualHex(
+                        world,
+                        memberId,
+                        motion.CurrentHex);
+                return;
+            }
+
+            // Living member 普通退出 Army：保持当前旧行为。
             if (motion.LocationKind == FormalArmyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(motion.SiteId))
             {

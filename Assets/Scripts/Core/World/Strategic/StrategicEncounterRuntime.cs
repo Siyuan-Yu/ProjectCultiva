@@ -225,6 +225,25 @@ namespace XianXia.Core.World.Strategic
             SpawnOnNextMapLoad = false;
         }
 
+        /// <summary>
+        /// 真实 WORLD_COMBAT 结束后完整清空本场 active battle transient。
+        /// 不清 LingeringBattlefields Registry / StrategicResidualPresence / 历史 Hex residual /
+        /// Pursuit（由 StrategicPursuitService 原流程处理）。BattlefieldLingering 保持不动：
+        /// legacy Explicit/Auto compatibility 仍可能依赖 Registry；新 WORLD_COMBAT 不写不读它。
+        /// </summary>
+        public void ClearCompletedWorldCombatSession()
+        {
+            ActiveBattlefieldId = string.Empty;
+            ClearTrackedIds();
+            ClearEngagedParty();
+            SpawnOnNextMapLoad = false;
+            FieldCleared = false;
+            ArmyStackId = string.Empty;
+            EncounterLinkId = string.Empty;
+            LingeringLocalMapId = string.Empty;
+            PendingLingeringEnterBattlefieldId = string.Empty;
+        }
+
         public void RemoveTrackedSpawnAt(int index)
         {
             if (index >= 0 && index < _spawnedEntityIds.Count)

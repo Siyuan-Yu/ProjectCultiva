@@ -11,7 +11,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Tests
 {
-    /// <summary>LINGER-ATTACK-01..06：敌方残�?Hex 攻击残留战场回归�?/summary>
+    /// <summary>LINGER-ATTACK-01..06：敌方残�?Hex 攻击残留战场回归�?/summary>
     public sealed class LingeringAttackRightClickTests
     {
         const string PlayerFaction = StrategicFactionCatalog.PlayerFactionId;
@@ -52,7 +52,7 @@ namespace XianXia.Tests
 
         static FormalArmy SpawnActiveEnemyArmy(SimulationWorld world, HexCoord hex)
         {
-            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
+            var result = TestArmyFixtures.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(result.IsSuccess);
             ArmyHexTravelService.InitializeArmyAtHex(result.Value, hex);
             return result.Value;
@@ -74,15 +74,15 @@ namespace XianXia.Tests
         }
 
         /// <summary>
-        /// 模拟 Auto Battle 结束 �?ResolveAndEnd �?FinishOfferResolution 后的真实状态：
-        /// Character Residual �?Hex，BattlefieldLingering=true，锚点在 Encounter Runtime�?
+        /// 模拟 Auto Battle 结束 �?ResolveAndEnd �?FinishOfferResolution 后的真实状态：
+        /// Character Residual �?Hex，BattlefieldLingering=true，锚点在 Encounter Runtime�?
         /// </summary>
         static void SeedAutoBattleEnemyDownedThenFinish(
             SimulationWorld world,
             HexCoord hex,
             bool executeOnWin)
         {
-            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
+            var result = TestArmyFixtures.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(result.IsSuccess);
             ArmyHexTravelService.InitializeArmyAtHex(result.Value, hex);
             Assert.IsTrue(world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditPatrolStackId, out var stack));

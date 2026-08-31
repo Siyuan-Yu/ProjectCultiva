@@ -13,6 +13,9 @@ Content/BaseGame/
     Characters/                # type = character
       characters.json
       ch01_reference_characters.json
+      strategic_bandits.json
+    Armies/                    # type = formalArmy（战略军团 · Phase 5S）
+      ch01_test_armies.json
     Cultivation/               # type = cultivation｜realmLadder
       cultivation.json
       realm_ladder.json
@@ -90,7 +93,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 ### type 一览
 
-`character`｜`cultivation`｜`combatArt`｜`realmLadder`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`localPlaceSet`｜`worldGraph`｜`mapLayout`｜`spawnTable`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`
+`character`｜`cultivation`｜`combatArt`｜`realmLadder`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`localPlaceSet`｜`worldGraph`｜`mapLayout`｜`spawnTable`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`｜`formalArmy`
 
 ## type = character
 
@@ -188,6 +191,27 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 | `openingChapterId` | Chapter Production：开局激活章节 |
 | `spawns[]` | 见下 |
 | `openingRelations[]` | from／to／delta／reasonTag／mutual |
+| `initialFormalArmyIds[]` | Phase 5S：开局实例化的 `formalArmy` definition id 列表（顺序即创建顺序）。缺省为空（不生成任何军团） |
+
+## type = formalArmy（Phase 5S · Content 驱动的战略军团）
+
+| Field | Notes |
+|---|---|
+| `runtimeArmyId` | 稳定 FormalArmy runtime id（`army:...`）；迁移前与代码 fixture 完全一致，Save/Load 依赖 |
+| `runtimeStackId` | ArmyStack 兼容视图 id（`army:...`）；同样须与迁移前一致 |
+| `factionId` | 军团势力（如 `base:faction_bandits`） |
+| `assemblySiteId` | 成员 spawn 后先放置的 Site；再由 scenario placement policy 移至实际 Hex |
+| `members[]` | 见下；至少 1 名且**恰好 1 名 leader** |
+
+### formalArmy member
+
+| Field | Notes |
+|---|---|
+| `characterDefinitionId` | 指向 `character`；成员属性／Realm 全部来自该定义（禁止在 Army 层复制 Attack／Defense／MaxHp／Realm） |
+| `displayName` | 同名 CharacterDefinition 可被多个成员复用，靠本字段区分（如 BanditA／BanditB） |
+| `leader` | bool；整支军团恰好 1 名 leader，且必须是 macro-order living |
+
+正式启动链：`openingScenario.initialFormalArmyIds` → `FormalArmyContentBootstrap` → 每个成员经 `BuildSpawnFromDefinition`＋`SpawnIntoWorld`（NPC）→ `ArmyService.CreateAuthoredArmy` → `ArmyStackAdapter.EnsureLinkedStackView`。运行时的 Travel／Battle／Residual 不区分来源。
 
 ### spawn entry
 

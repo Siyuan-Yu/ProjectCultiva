@@ -89,7 +89,7 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic == null || enemy == null || playerParty == null || playerParty.Count == 0)
                 return false;
 
-            // 已有 Offer／Modal／Queue 头正在展�?�?入队，不�?
+            // 已有 Offer／Modal／Queue 头正在展�?�?入队，不�?
             if (world.Strategic.HasBattleOffer ||
                 world.Strategic.IsModalEncounter ||
                 world.Strategic.ClockFreeze.Reason == StrategicClockFreezeReason.InterruptQueue)
@@ -121,8 +121,8 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 探望弥留到站：若已有 PendingLingeringVisit，且至少一名活人进入支援半径，则弹接战窗�?
-        /// 半径内弥留仍�?ActivateLingeringOffer／Promote 强制纳入�?
+        /// 探望弥留到站：若已有 PendingLingeringVisit，且至少一名活人进入支援半径，则弹接战窗�?
+        /// 半径内弥留仍�?ActivateLingeringOffer／Promote 强制纳入�?
         /// </summary>
         public static bool TryResolvePendingLingeringVisitOffer(
             SimulationWorld world,
@@ -171,7 +171,7 @@ namespace XianXia.Core.World.Strategic
                 world, roster, focus, "残留战场", visitParty);
         }
 
-        /// <summary>残留战场再入：我方弥留头像菜单／探望到站。敌方见 <see cref="TryBuildOfferForEnemyRemnantReentry"/>�?/summary>
+        /// <summary>残留战场再入：我方弥留头像菜单／探望到站。敌方见 <see cref="TryBuildOfferForEnemyRemnantReentry"/>�?/summary>
         public static bool TryBuildOfferForLingeringBattlefield(
             SimulationWorld world,
             IReadOnlyList<EntityId> roster,
@@ -241,7 +241,7 @@ namespace XianXia.Core.World.Strategic
                 world, party, enemy, stackId, offerTitle, attackerArmyId, lingeringHex);
         }
 
-        /// <summary>Hex：我方残留格右键直接进入（不要求先选军团）�?/summary>
+        /// <summary>Hex：我方残留格右键直接进入（不要求先选军团）�?/summary>
         public static bool TryEnterFriendlyLingeringAtHex(
             SimulationWorld world,
             HexCoord hex,
@@ -260,7 +260,7 @@ namespace XianXia.Core.World.Strategic
                 lingeringHex: hex);
         }
 
-        /// <summary>Hex：已选军团攻击敌方残留战场（同格直接进，异格�?Hex 移动）�?/summary>
+        /// <summary>Hex：已选军团攻击敌方残留战场（同格直接进，异格�?Hex 移动）�?/summary>
         public static bool TryAttackEnemyLingeringAtHex(
             SimulationWorld world,
             string attackerArmyId,
@@ -294,7 +294,7 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 敌方弥留／尸体残留再入：已选我方活人军团在接战点附近时，直接弹接战窗（可选手动进入）�?
+        /// 敌方弥留／尸体残留再入：已选我方活人军团在接战点附近时，直接弹接战窗（可选手动进入）�?
         /// </summary>
         public static bool TryBuildOfferForEnemyRemnantReentry(
             SimulationWorld world,
@@ -429,8 +429,8 @@ namespace XianXia.Core.World.Strategic
             string attackerArmyId = null,
             HexCoord? lingeringHex = null)
         {
-            // 禁止沿用上一�?LocalMap �?ActiveBattlefieldId，否�?EnsureMacroRemnantSpawns / Prune
-            // 会写�?/ 清掉错误 battlefield �?SpawnedEntityIds�?
+            // 禁止沿用上一�?LocalMap �?ActiveBattlefieldId，否�?EnsureMacroRemnantSpawns / Prune
+            // 会写�?/ 清掉错误 battlefield �?SpawnedEntityIds�?
             world.Strategic.Encounter.ActiveBattlefieldId = string.Empty;
 
             var offer = world.Strategic.BattleOffer;
@@ -503,9 +503,9 @@ namespace XianXia.Core.World.Strategic
                     world, snap, snap.AttackerArmyId, playerParty);
             }
 
-            // 残留再进：半径内我方弥留一律强制参战、不可勾�?
+            // 残留再进：半径内我方弥留一律强制参战、不可勾�?
             PromoteInRangeIncapacitatedToMandatory(world, snap);
-            // 必须用本场残�?Hex（如 H1），禁止被最新场 H2 顶掉
+            // 必须用本场残�?Hex（如 H1），禁止被最新场 H2 顶掉
             StrategicEncounterResolveService.TryApplyCanonicalLingeringBattleAnchor(
                 world, snap, lingeringHex);
 
@@ -538,8 +538,8 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 支援半径内我方弥�?�?MandatoryFriendly�?
-        /// 入口无关：追击接战／残留再进／再攻残留栈共用——人已在接战点，不是可选编队�?
+        /// 支援半径内我方弥�?�?MandatoryFriendly�?
+        /// 入口无关：追击接战／残留再进／再攻残留栈共用——人已在接战点，不是可选编队�?
         /// </summary>
         public static void PromoteInRangeIncapacitatedToMandatory(
             SimulationWorld world,
@@ -708,7 +708,7 @@ namespace XianXia.Core.World.Strategic
             offer.PlayerPower = playerPower;
             offer.EnemyPower = enemyPower;
             offer.AutoWinPercent = CombatPowerCalculator.EstimateAutoWinPercent(playerPower, enemyPower);
-            // 试炼弱匪：战力刻度被凡人压平后仍可能「掷骰翻车」；测试夹具直接视为必胜�?
+            // 试炼弱匪：战力刻度被凡人压平后仍可能「掷骰翻车」；测试夹具直接视为必胜�?
             if (enemyStacks.Count == 1 &&
                 ArmyStackAdapter.IsTrivialTestEnemyStack(enemyStacks[0]))
                 offer.AutoWinPercent = 99;
@@ -740,7 +740,7 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.Strategic == null || id.IsNone)
                 return false;
-            // 弥留不可从参战名单勾�?
+            // 弥留不可从参战名单勾�?
             if (LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
                 return false;
             var rec = world.Strategic.Participants.FindByEntity(id);
@@ -796,14 +796,14 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic?.Encounter == null)
                 return false;
             var rt = world.Strategic.Encounter;
-            // 闲置残留（大地图上、无人进场）：Park 后无 EngagedParty �?false，表现层不锁回遭遇图
-            // 再进后已 SetEngagedParty：即�?BattlefieldLingering 仍为 true，也算主动遭�?
-            // （否�?ApplyParty 不落表现，我方弥留在 LocalMap 隐身�?
+            // 闲置残留（大地图上、无人进场）：Park 后无 EngagedParty �?false，表现层不锁回遭遇图
+            // 再进后已 SetEngagedParty：即�?BattlefieldLingering 仍为 true，也算主动遭�?
+            // （否�?ApplyParty 不落表现，我方弥留在 LocalMap 隐身�?
             if (!rt.HasEngagedParty)
                 return false;
             if (rt.SpawnOnNextMapLoad)
                 return true;
-            // 再进战场：场上可能只剩弥留刷怪（�?Alive），仍算遭遇进行�?
+            // 再进战场：场上可能只剩弥留刷怪（�?Alive），仍算遭遇进行�?
             if (rt.SpawnedEntityIds.Count > 0)
                 return true;
             if (StrategicEncounterSpawner.CountLivingTrackedSpawns(world) > 0)
@@ -874,7 +874,7 @@ namespace XianXia.Core.World.Strategic
                         executeOnWin)
                     : new AutoBattleReport { Summary = "\u81ea\u52a8\u6218\u6597\u80dc\u5229\u3002" };
 
-                // 敌方增援栈：胜则一并削弱／移除（处决时移除�?
+                // 敌方增援栈：胜则一并削弱／移除（处决时移除�?
                 ApplyEnemyReinforcementAutoOutcome(world, executeOnWin, playerWon: true);
                 StrategicPursuitService.ClearPursuitForEngagedKeepEnRoute(world, party);
             }
@@ -916,7 +916,7 @@ namespace XianXia.Core.World.Strategic
             world.Strategic.Participants.PlayerWon = playerWon;
             world.Strategic.Participants.IsAutoSettlement = true;
 
-            // 先关 Offer，进入战后结算弹窗；确认后再 Finish／出�?
+            // 先关 Offer，进入战后结算弹窗；确认后再 Finish／出�?
             world.Strategic.ClearBattleOffer();
             StrategicClockFreezeService.BeginOrPromote(
                 world, StrategicClockFreezeReason.PostBattle);
@@ -958,8 +958,8 @@ namespace XianXia.Core.World.Strategic
             if (playerWon)
                 StrategicEncounterResolveService.ParkPrimaryEnemyStackAtBattleAnchor(world, snap);
 
-            // 自动战未�?LocalMap：立刻刷弥留／尸体实�?+ 接战�?WorldPresence（与进图再出一致）
-            // 强制�?Active session spawn list，禁止写进上一�?lingering scope�?
+            // 自动战未�?LocalMap：立刻刷弥留／尸体实�?+ 接战�?WorldPresence（与进图再出一致）
+            // 强制�?Active session spawn list，禁止写进上一�?lingering scope�?
             rt.ActiveBattlefieldId = string.Empty;
             if (playerWon &&
                 !string.IsNullOrEmpty(stackId) &&
@@ -968,7 +968,7 @@ namespace XianXia.Core.World.Strategic
                 stack.HasDownedRemnant)
                 StrategicEncounterSpawner.EnsureMacroRemnantSpawns(world, snap);
 
-            // Presence 钉好后再 Detach 敌军 Downed／Dead（否�?Residual Query 会因 FormalArmy membership 全排除）
+            // Presence 钉好后再 Detach 敌军 Downed／Dead（否�?Residual Query 会因 FormalArmy membership 全排除）
             if (playerWon)
                 ArmyPostBattleSyncService.SyncEnemyArmyAfterBattle(world, snap);
 
@@ -1004,7 +1004,7 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 if (!world.Strategic.Armies.TryGet(stacks[i], out var st) || st == null)
                     continue;
-                // FormalArmy 真源：禁止只刷抽象残留（DrawArmyStacks 会藏标记、又无弥留头�?�?整队「消失」）
+                // FormalArmy 真源：禁止只刷抽象残留（DrawArmyStacks 会藏标记、又无弥留头�?�?整队「消失」）
                 if (ArmyStackAdapter.HasFormalArmyLink(st))
                     continue;
                 if (executeOnWin)
@@ -1017,7 +1017,7 @@ namespace XianXia.Core.World.Strategic
                 }
                 else
                 {
-                    // 与主栈一致：未处�?�?全员弥留残留
+                    // 与主栈一致：未处�?�?全员弥留残留
                     var members = Math.Max(1, st.MemberCount);
                     st.MemberCount = members;
                     st.IncapacitatedMemberCount = members;
@@ -1051,7 +1051,7 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "null world");
 
-            // 必须先结�?Modal，否�?TryPromote 会被 IsModalEncounter 挡住
+            // 必须先结�?Modal，否�?TryPromote 会被 IsModalEncounter 挡住
             StrategicClockFreezeService.EndFreeze(world);
             if (world.Strategic.Participants != null)
                 world.Strategic.Participants.IsAutoSettlement = false;
@@ -1060,7 +1060,14 @@ namespace XianXia.Core.World.Strategic
                 return Result.Success();
 
             // 残留战场期间：Participants.Clear 前把 Hex 锚点写入 Registry
-            if (world.Strategic.Encounter != null &&
+            // （仅 legacy Explicit / Auto compatibility —— 真实 WORLD_COMBAT 的 residual 走
+            // StrategicResidualPresence / LoadedStrategicPopulation，绝不写 Lingering Registry）。
+            var participants = world.Strategic.Participants;
+            var realWorldCombat = participants != null &&
+                                  (participants.LocalMapResolutionKind == BattleLocalMapResolutionKind.WorldSite ||
+                                   participants.LocalMapResolutionKind == BattleLocalMapResolutionKind.Wilderness);
+            if (!realWorldCombat &&
+                world.Strategic.Encounter != null &&
                 (world.Strategic.Encounter.BattlefieldLingering ||
                  StrategicEncounterResolveService.HasLingeringBattlefieldRemnants(world)))
             {
@@ -1125,7 +1132,7 @@ namespace XianXia.Core.World.Strategic
             StrategicEngageRules.CollectPartyReadyToEngageStack(world, party, enemy, ready);
             if (ready.Count == 0)
             {
-                // 排队轮到但人未到：上路追击，到站后由 AfterTravelTick 弹接战（禁止远程瞬开 Offer�?
+                // 排队轮到但人未到：上路追击，到站后由 AfterTravelTick 弹接战（禁止远程瞬开 Offer�?
                 StrategicPursuitService.BeginPursuit(world, party, enemy);
                 StrategicPursuitService.SyncPursuersToStack(world, party, enemy);
                 return false;

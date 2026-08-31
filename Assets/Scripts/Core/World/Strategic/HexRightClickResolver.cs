@@ -27,7 +27,8 @@ namespace XianXia.Core.World.Strategic
 
     /// <summary>
     /// Hex 右键 RTS 决策：
-    /// Active Enemy Army → Enemy Lingering → Friendly Enter → WorldSite Enter Menu → Direct Move（最后 fallback）。
+    /// Active living Enemy FormalArmy → WorldSite Enter Menu → Direct Move（最后 fallback）。
+    /// Residual 不参与 command resolution：Residual-only Hex 永远允许普通移动（只要 tile passable）。
     /// </summary>
     public static class HexRightClickResolver
     {
@@ -52,36 +53,19 @@ namespace XianXia.Core.World.Strategic
                 return resolution;
             }
 
+            // 仅信息性 / debug：Residual presence 不阻止普通移动，不产生 Encounter action。
             resolution.HasEnemyResidualPresentation =
                 !string.IsNullOrEmpty(ctx.EnemyResidualSummary);
 
             var hasAttackArmy = hasSelectedLivingArmy && ctx.HasActiveEnemyArmy;
-            var hasAttackLingering = hasSelectedLivingArmy && ctx.CanAttackEnemyLingering;
-            var hasEnterFriendly = ctx.CanEnterFriendlyLingering;
-
-            if (hasEnterFriendly && !hasAttackArmy)
-            {
-                resolution.Action = HexRightClickResolvedAction.DirectEnterFriendlyLingering;
-                return resolution;
-            }
 
             resolution.MenuActions.Clear();
             if (hasAttackArmy)
                 resolution.MenuActions.Add(HexStrategicContextActionKind.AttackArmy);
-            if (hasEnterFriendly && hasAttackArmy)
-                resolution.MenuActions.Add(HexStrategicContextActionKind.EnterLingeringBattlefield);
-            if (hasAttackLingering)
-                resolution.MenuActions.Add(HexStrategicContextActionKind.AttackLingeringBattlefield);
 
             if (resolution.MenuActions.Count > 0)
             {
                 resolution.Action = HexRightClickResolvedAction.ShowAttackTargetMenu;
-                return resolution;
-            }
-
-            if (hasEnterFriendly)
-            {
-                resolution.Action = HexRightClickResolvedAction.DirectEnterFriendlyLingering;
                 return resolution;
             }
 
@@ -95,22 +79,11 @@ namespace XianXia.Core.World.Strategic
 
             if (hasSelectedMovableArmy && passableHex)
             {
-                if (hasSelectedLivingArmy &&
-                    resolution.HasEnemyResidualPresentation &&
-                    !ctx.CanAttackEnemyLingering)
-                {
-                    resolution.StatusHint =
-                        "敌方残留存在但残留战场 Runtime 不可用（数据不一致），禁止普通移动";
-                    resolution.Action = HexRightClickResolvedAction.None;
-                    return resolution;
-                }
-
                 resolution.Action = HexRightClickResolvedAction.DirectMove;
                 return resolution;
             }
 
-            if (!hasSelectedLivingArmy &&
-                (ctx.HasActiveEnemyArmy || ctx.CanAttackEnemyLingering))
+            if (!hasSelectedLivingArmy && ctx.HasActiveEnemyArmy)
             {
                 resolution.StatusHint = "请先左键选中我方军团";
             }

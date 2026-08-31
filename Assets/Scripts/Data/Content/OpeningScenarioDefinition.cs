@@ -22,6 +22,9 @@ namespace XianXia.Data.Content
         public string OpeningChapterId { get; set; }
         public List<OpeningSpawnEntry> Spawns { get; set; } = new List<OpeningSpawnEntry>();
         public List<OpeningRelationEntry> OpeningRelations { get; set; } = new List<OpeningRelationEntry>();
+
+        /// <summary>Phase 5S：开局实例化的 FormalArmyDefinition ids（顺序即创建顺序）。</summary>
+        public List<string> InitialFormalArmyIds { get; set; } = new List<string>();
     }
 
     public sealed class OpeningSpawnEntry

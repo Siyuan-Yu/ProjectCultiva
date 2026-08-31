@@ -57,6 +57,44 @@ namespace XianXia.Core.World.Strategic
             return false;
         }
 
+        /// <summary>
+        /// 新的 living-world battle（WORLD_COMBAT）专用 planning path —— 绝不经过旧
+        /// PlanManualEncounter 的 lingering reuse 分支（ActiveBattlefieldId reuse /
+        /// BattlefieldLingering reuse / LingeringBattlefields.Count reuse /
+        /// stack.HasDownedRemnant → DownedOnly re-entry / HasReusableTrackedPresence reuse）。
+        /// 语义：同 Hex 有历史 casualty 不影响本场 —— 本场 enemy participants 只来自当前
+        /// frozen BattleParticipantSnapshot（living FormalArmy）。
+        /// 保持 WORLD_COMBAT 架构原则 markPartyInEncounter = false：真实 Character 的存在
+        /// 由 PlayerPartyWorldMotion / FormalArmy.WorldMotion / StrategicResidualPresence 负责，
+        /// 不绑定 Lingering Registry。
+        /// </summary>
+        public static void PlanFreshWorldCombatManualEncounter(
+            SimulationWorld world,
+            string armyStackId,
+            string encounterLinkId,
+            IReadOnlyList<EntityId> engagedParty = null,
+            int fallbackMembers = StrategicEncounterCatalog.DefaultFallbackMemberCount,
+            int fallbackPowerPerMember = StrategicEncounterCatalog.DefaultFallbackCombatPower)
+        {
+            if (world?.Strategic == null)
+                return;
+
+            var rt = world.Strategic.Encounter;
+            // 清理 Active Encounter transient（ActiveBattlefieldId / tracked / engaged /
+            // SpawnOnNextMapLoad）。LingeringBattlefields Registry / StrategicResidualPresence /
+            // 旧 Hex residual 是世界历史，不是本场 —— 不清。
+            rt.ClearActiveEncounterSession();
+
+            rt.ResetSpawnPlan();
+            rt.SpawnOnNextMapLoad = true;
+            rt.ArmyStackId = armyStackId ?? string.Empty;
+            rt.EncounterLinkId = encounterLinkId ?? string.Empty;
+            rt.FallbackMemberCount = Math.Max(1, fallbackMembers);
+            rt.FallbackCombatPowerPerMember = Math.Max(1, fallbackPowerPerMember);
+            if (engagedParty != null && engagedParty.Count > 0)
+                rt.SetEngagedParty(engagedParty);
+        }
+
         public static void PlanManualEncounter(
             SimulationWorld world,
             string armyStackId,
@@ -228,16 +266,28 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 遭遇战刷出的敌军倒下：同步伤亡；敌清空时标记 FieldCleared（无结算、不卸图、不弹大地图）�?
+        /// 遭遇战刷出的敌军倒下：同步伤亡；敌清空时标记 FieldCleared（无结算、不卸图、不弹大地图）。
+        /// 新 WORLD_COMBAT：正式 participant authority = BattleParticipantSnapshot（真实 FormalArmy
+        /// 已不进入 spawn scope）；legacy synthetic fallback 仍按 tracked spawn 处理。
         /// </summary>
         public static bool OnCombatantDefeated(SimulationWorld world, EntityId defenderId)
         {
-            if (world?.Strategic == null || defenderId.IsNone || !IsTrackedSpawn(world, defenderId))
+            if (world?.Strategic == null || defenderId.IsNone)
                 return false;
+
+            var isSnapshotEnemy = world.Strategic.Participants != null &&
+                                  world.Strategic.Participants.IsEnemyParticipant(defenderId);
+            var isTrackedOwnedSpawn = IsTrackedSpawn(world, defenderId);
+            if (!isSnapshotEnemy && !isTrackedOwnedSpawn)
+                return false;
+
             PruneRemovedSpawns(world);
             // 删栈前先把道路进度落到参战者身上，否则清场后路锚变�?0、无法回程／像瞬�?
             SnapshotEngagedRouteFromStack(world);
-            SyncArmyStackMemberCount(world);
+            // 真实 FormalArmy enemy 不依赖 tracked 数同步（scope 不含它，按 tracked 同步会把
+            // 真实 Army count 写成 0）；正式 Army count 由 ArmyPostBattleSyncService 负责。
+            if (isTrackedOwnedSpawn)
+                SyncArmyStackMemberCount(world);
             TryMarkFieldCleared(world);
             if (world.Strategic.Encounter.BattlefieldLingering &&
                 !StrategicEncounterResolveService.HasLingeringBattlefieldRemnants(world))
@@ -260,6 +310,10 @@ namespace XianXia.Core.World.Strategic
                 return rt.FieldCleared;
             if (rt.SpawnOnNextMapLoad)
                 return false;
+            // Phase 5S：正式 participant authority = frozen BattleParticipantSnapshot
+            // （真实 FormalArmy enemy）。legacy / fallback synthetic 仍按 tracked 判断。
+            if (HasCombatCapableEnemyParticipant(world))
+                return false;
             if (CountLivingTracked(world) > 0)
                 return false;
 
@@ -268,6 +322,33 @@ namespace XianXia.Core.World.Strategic
             ArmyPostBattleSyncService.RefreshAttackerArmyFromMembers(world);
             StrategicEncounterResolveService.EnterPostBattleIfCleared(world);
             return true;
+        }
+
+        /// <summary>
+        /// frozen snapshot 中是否仍有可战斗的敌方 participant（EnemyPrimary / EnemyReinforcement）。
+        /// 只认 snapshot membership + 生命状态；不查 spawn scope —— 真实 FormalArmy enemy
+        /// 的生命状态由实体自身决定。
+        /// </summary>
+        static bool HasCombatCapableEnemyParticipant(SimulationWorld world)
+        {
+            var snap = world?.Strategic?.Participants;
+            if (snap == null)
+                return false;
+            for (var i = 0; i < snap.Records.Count; i++)
+            {
+                var rec = snap.Records[i];
+                if (rec.EntityId.IsNone)
+                    continue;
+                if (rec.Kind != BattleParticipantKind.EnemyPrimary &&
+                    rec.Kind != BattleParticipantKind.EnemyReinforcement)
+                    continue;
+                if (!world.Entities.TryGet(rec.EntityId, out var ent) || ent == null)
+                    continue;
+                if (CombatLifeStateService.CanFight(ent))
+                    return true;
+            }
+
+            return false;
         }
 
         public static bool IsFieldCleared(SimulationWorld world) =>
@@ -307,13 +388,23 @@ namespace XianXia.Core.World.Strategic
                     world.Strategic.Participants, out var anchorHex))
                 requestedHex = anchorHex;
 
-            if (LingeringBattlefieldParticipantService.TryGetActiveStoredParticipants(
+            // Phase 5S：新鲜 WORLD_COMBAT（WorldSite / Wilderness Manual Battle）
+            // —— 只认当前 frozen Participants；绝不经 stored Lingering / 残留栈 reuse。
+            var kind = world.Strategic.Participants?.LocalMapResolutionKind
+                       ?? BattleLocalMapResolutionKind.ExplicitEncounterMap;
+            var freshWorldCombat =
+                kind == BattleLocalMapResolutionKind.WorldSite ||
+                kind == BattleLocalMapResolutionKind.Wilderness;
+
+            if (!freshWorldCombat &&
+                LingeringBattlefieldParticipantService.TryGetActiveStoredParticipants(
                     world, out var activeBattlefield, out var storedParticipants) &&
                 TryPrepareSnapshotEnemyParticipants(
                     world,
                     storedParticipants,
                     world.Strategic.Participants,
-                    FormalArmyEncounterPick.ByDomainLifeState) > 0)
+                    FormalArmyEncounterPick.ByDomainLifeState,
+                    trackInEncounterScope: true) > 0)
             {
                 var finalIds = new List<EntityId>(8);
                 storedParticipants.CollectEnemyEntityIds(finalIds);
@@ -337,8 +428,9 @@ namespace XianXia.Core.World.Strategic
             }
 
             var anchor = BuildBattleAnchorSnapshotFromStack(world, stack);
-            var isLingeringEntry = !string.IsNullOrEmpty(world.Strategic.Encounter.ActiveBattlefieldId) ||
-                                   (stack != null && stack.HasDownedRemnant);
+            var isLingeringEntry = !freshWorldCombat &&
+                                   (!string.IsNullOrEmpty(world.Strategic.Encounter.ActiveBattlefieldId) ||
+                                    (stack != null && stack.HasDownedRemnant));
             var pick = !string.IsNullOrEmpty(world.Strategic.Encounter.ActiveBattlefieldId)
                 ? FormalArmyEncounterPick.ByDomainLifeState
                 : isLingeringEntry
@@ -349,7 +441,8 @@ namespace XianXia.Core.World.Strategic
                     world,
                     world.Strategic.Participants,
                     anchor,
-                    pick) > 0)
+                    pick,
+                    trackInEncounterScope: !freshWorldCombat) > 0)
             {
                 var spawnedIds = new List<EntityId>(8);
                 world.Strategic.Participants.CollectEnemyEntityIds(spawnedIds);
@@ -365,7 +458,8 @@ namespace XianXia.Core.World.Strategic
                     stack,
                     formalArmy,
                     anchor,
-                    pick) > 0)
+                    pick,
+                    trackInEncounterScope: !freshWorldCombat) > 0)
             {
                 var spawnedIds = new List<EntityId>(8);
                 world.Strategic.Participants.CollectEnemyEntityIds(spawnedIds);
@@ -581,7 +675,8 @@ namespace XianXia.Core.World.Strategic
             SimulationWorld world,
             BattleParticipantSnapshot storedParticipants,
             BattleParticipantSnapshot anchor,
-            FormalArmyEncounterPick pick)
+            FormalArmyEncounterPick pick,
+            bool trackInEncounterScope = true)
         {
             if (world?.Strategic?.Encounter == null || storedParticipants == null)
                 return 0;
@@ -607,7 +702,10 @@ namespace XianXia.Core.World.Strategic
                 if (!ShouldIncludeFormalArmyMember(entity, pick))
                     continue;
 
-                if (!IsTrackedSpawn(world, rec.EntityId))
+                // 真实 FormalArmy participant 不是 encounter-owned spawn：生命周期由
+                // FormalArmy members / ArmyPostBattleSyncService / StrategicResidualPresence
+                // 负责，绝不由 BattlefieldSpawnScope.ClearSpawned() 决定生死。
+                if (trackInEncounterScope && !IsTrackedSpawn(world, rec.EntityId))
                     BattlefieldSpawnScope.TrackSpawn(world, rec.EntityId.Value);
 
                 if (!entity.TryGet<EntityLocationComponent>(out var loc) || loc == null)
@@ -664,7 +762,8 @@ namespace XianXia.Core.World.Strategic
             ArmyStack stack,
             FormalArmy army,
             BattleParticipantSnapshot anchor,
-            FormalArmyEncounterPick pick)
+            FormalArmyEncounterPick pick,
+            bool trackInEncounterScope = true)
         {
             if (world?.Strategic?.Encounter == null || stack == null || army == null)
                 return 0;
@@ -687,7 +786,9 @@ namespace XianXia.Core.World.Strategic
                 if (!ShouldIncludeFormalArmyMember(entity, pick))
                     continue;
 
-                if (!IsTrackedSpawn(world, id))
+                // 真实 FormalArmy member 不是 encounter-owned spawn：禁止进入
+                // BattlefieldSpawnScope（该 scope 的 ClearSpawned 会 FinalizeRemoval）。
+                if (trackInEncounterScope && !IsTrackedSpawn(world, id))
                     BattlefieldSpawnScope.TrackSpawn(world, id.Value);
 
                 if (!entity.TryGet<EntityLocationComponent>(out var loc) || loc == null)

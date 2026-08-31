@@ -120,7 +120,14 @@ Desktop.ini
 *.tmp
 *.bak
 
-# Content authoring tools (WPF) ¡ª track project files
+# ---- Added: local test/compile artifacts ----
+/TestResults/
+*.rsp
+*.dll
+*.exe
+*.runtimeconfig.json
+
+# Content authoring tools (WPF) ï¿½ï¿½ track project files
 !/ExternalTools/**/*.csproj
 !/ExternalTools/**/*.sln
 

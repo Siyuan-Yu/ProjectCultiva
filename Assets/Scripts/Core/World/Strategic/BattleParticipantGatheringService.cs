@@ -355,7 +355,11 @@ namespace XianXia.Core.World.Strategic
                     var id = new EntityId(formalArmy.MemberCharacterIds[i]);
                     if (id.IsNone || !world.Entities.TryGet(id, out var ent) || ent == null)
                         continue;
+                    // living FormalArmy 战斗：纳入 IsLivingForMacroOrder 成员；
+                    // 不因 linked stack 的历史 casualty（HasDownedRemnant）把 living member 排除。
+                    // 弥留／尸体仅在 legacy residual reentry 兼容时纳入。
                     if (primaryEnemy.HasDownedRemnant &&
+                        !LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id) &&
                         !LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
                         continue;
                     snap.Add(new BattleParticipantRecord

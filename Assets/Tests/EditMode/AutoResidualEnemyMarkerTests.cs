@@ -11,7 +11,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Tests
 {
-    /// <summary>AUTO-RES：敌�?Auto 战后 Residual Marker 数据链回归�?/summary>
+    /// <summary>AUTO-RES：敌�?Auto 战后 Residual Marker 数据链回归�?/summary>
     public sealed class AutoResidualEnemyMarkerTests
     {
         const string PlayerFaction = StrategicFactionCatalog.PlayerFactionId;
@@ -39,7 +39,7 @@ namespace XianXia.Tests
             SimulationWorld world,
             HexCoord hex)
         {
-            var armyResult = ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
+            var armyResult = TestArmyFixtures.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(armyResult.IsSuccess);
             var army = armyResult.Value;
             ArmyHexTravelService.InitializeArmyAtHex(army, hex);
@@ -130,7 +130,7 @@ namespace XianXia.Tests
             world.Strategic.Encounter.ArmyStackId = ArmyStackAdapter.BanditPatrolStackId;
             StrategicEncounterSpawner.EnsureMacroRemnantSpawns(world, snap);
 
-            // 故意�?SyncEnemyArmyAfterBattle：模拟修复前断点
+            // 故意�?SyncEnemyArmyAfterBattle：模拟修复前断点
             for (var i = 0; i < members.Count; i++)
                 Assert.IsTrue(ArmyService.TryGetArmyForCharacter(world, members[i], out _));
 

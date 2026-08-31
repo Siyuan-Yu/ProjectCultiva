@@ -11,7 +11,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Tests
 {
-    /// <summary>RIGHTCLICK-01..08 + HEX-CONTEXT 回归：Hex RTS 右键决策�?/summary>
+    /// <summary>RIGHTCLICK-01..08 + HEX-CONTEXT 回归：Hex RTS 右键决策�?/summary>
     public sealed class HexRightClickResolverTests
     {
         const string PlayerFaction = StrategicFactionCatalog.PlayerFactionId;
@@ -61,7 +61,7 @@ namespace XianXia.Tests
 
         static FormalArmy SpawnActiveEnemyArmy(SimulationWorld world, HexCoord hex)
         {
-            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
+            var result = TestArmyFixtures.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(result.IsSuccess);
             ArmyHexTravelService.InitializeArmyAtHex(result.Value, hex);
             return result.Value;
@@ -78,7 +78,7 @@ namespace XianXia.Tests
 
         static void SeedEnemyRemnantOnly(SimulationWorld world, HexCoord hex)
         {
-            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
+            var result = TestArmyFixtures.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(result.IsSuccess);
             Assert.IsTrue(world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditPatrolStackId, out var stack));
 

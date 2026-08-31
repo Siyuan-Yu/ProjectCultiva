@@ -17,7 +17,6 @@ namespace XianXia.Core.World.Strategic
 
             world.Strategic.Ch01FormationScenarioCompat = true;
             ApplyPlayerFactionAndVassalage(world);
-            SeedPrototypeBanditArmies(world);
             ApplyPrototypeRegressionDiplomacy(world);
             Ch01ScenarioProgressionHooks.Register(world);
         }
@@ -42,15 +41,6 @@ namespace XianXia.Core.World.Strategic
             world.Strategic.Vassalages.TryBindVassalage(
                 StrategicFactionCatalog.PlayerFactionId,
                 StrategicFactionCatalog.HuangcunLaborId);
-        }
-
-        static void SeedPrototypeBanditArmies(SimulationWorld world)
-        {
-            world.Strategic.Armies.Clear();
-            ArmyStackAdapter.EnsureBanditPatrolArmy(world, Ch01HexPrototypeMapBuilder.SiteHuangcun);
-            ArmyStackAdapter.EnsureBanditWeakPatrolArmy(world, Ch01HexPrototypeMapBuilder.SiteHuangcun);
-            ArmyStackAdapter.EnsureBanditCasualtyTestArmy(world, Ch01HexPrototypeMapBuilder.SiteHuangcun);
-            PositionPrototypeTestBanditArmies(world);
         }
 
         /// <summary>

@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:formal_army_bandit_patrol",
+      "type": "formalArmy",
+      "name": "荒村山匪",
+      "runtimeArmyId": "army:formal_bandit_patrol_1",
+      "runtimeStackId": "army:bandit_patrol_1",
+      "factionId": "base:faction_bandits",
+      "assemblySiteId": "base:site_huangcun",
+      "members": [
+        {
+          "characterDefinitionId": "base:character_bandit_patrol_leader",
+          "displayName": "BanditLeader",
+          "leader": true
+        },
+        {
+          "characterDefinitionId": "base:character_bandit_patrol_grunt",
+          "displayName": "BanditA"
+        },
+        {
+          "characterDefinitionId": "base:character_bandit_patrol_grunt",
+          "displayName": "BanditB"
+        },
+        {
+          "characterDefinitionId": "base:character_bandit_patrol_grunt",
+          "displayName": "BanditC"
+        }
+      ]
+    },
+    {
+      "id": "base:formal_army_bandit_weak",
+      "type": "formalArmy",
+      "name": "试炼弱匪（自动必胜）",
+      "runtimeArmyId": "army:formal_bandit_patrol_weak",
+      "runtimeStackId": "army:bandit_patrol_weak",
+      "factionId": "base:faction_bandits",
+      "assemblySiteId": "base:site_huangcun",
+      "members": [
+        {
+          "characterDefinitionId": "base:character_bandit_weak_grunt",
+          "displayName": "WeakBandit",
+          "leader": true
+        }
+      ]
+    },
+    {
+      "id": "base:formal_army_bandit_casualty_test",
+      "type": "formalArmy",
+      "name": "试炼强匪（自动伤亡）",
+      "runtimeArmyId": "army:formal_bandit_casualty_test",
+      "runtimeStackId": "army:bandit_patrol_casualty_test",
+      "factionId": "base:faction_bandits",
+      "assemblySiteId": "base:site_huangcun",
+      "members": [
+        {
+          "characterDefinitionId": "base:character_bandit_casualty_grunt",
+          "displayName": "StrongBanditLeader",
+          "leader": true
+        },
+        {
+          "characterDefinitionId": "base:character_bandit_casualty_grunt",
+          "displayName": "StrongBanditA"
+        },
+        {
+          "characterDefinitionId": "base:character_bandit_casualty_grunt",
+          "displayName": "StrongBanditB"
+        }
+      ]
+    }
+  ]
+}

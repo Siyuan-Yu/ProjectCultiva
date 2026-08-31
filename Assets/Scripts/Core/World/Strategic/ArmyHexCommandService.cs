@@ -57,6 +57,12 @@ namespace XianXia.Core.World.Strategic
         public static Result AttackStack(SimulationWorld world, string attackerArmyId, ArmyStack stack) =>
             ArmyHexPursuitService.BeginAttackStack(world, attackerArmyId, stack);
 
+        /// <summary>
+        /// 旧：攻击残留战场（Residual-only battlefield 作为攻击目标）。
+        /// 已退役：Residual-only Hex 不再产生 BattleOffer；改用 MoveArmy 普通移动到该格。
+        /// 保留 API 以兼容旧状态，production resolver / UI 不再调用。
+        /// </summary>
+        [System.Obsolete("Residual-only battlefields are no longer attack targets; use MoveArmy for residual-only hexes.")]
         public static Result AttackLingeringBattlefield(
             SimulationWorld world,
             string attackerArmyId,

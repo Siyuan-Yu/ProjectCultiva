@@ -394,7 +394,6 @@ namespace XianXia.Unity.Host
                 {
                     bootstrap.WorldMapPanel.Open();
                     bootstrap.WorldMapPanel.SelectArrivedParty(arrivedCopy);
-                    bootstrap.WorldMapPanel.TryOpenPendingLingeringVisitAfterArrival();
                 }
             }
 
@@ -761,16 +760,34 @@ namespace XianXia.Unity.Host
                     session.World.Strategic.Participants, out var anchorHex))
                 lingerHex = anchorHex;
 
-            StrategicEncounterSpawner.TryPrepareLingeringLocalMapSession(session.World, lingerHex);
-
-            StrategicEncounterSpawner.PlanManualEncounter(
-                session.World,
-                armyStackId,
-                encounterLink,
-                engaged,
-                memberCount,
-                Math.Max(1, power / Math.Max(1, memberCount)),
-                markPartyInEncounter: !worldCombat);
+            if (worldCombat)
+            {
+                // Phase 5S：普通 WORLD_COMBAT 走 fresh planning path —— 不绑定旧 Lingering
+                // Registry（ActiveBattlefieldId / stored participants / stack.HasDownedRemnant
+                // reuse 全部绕过）。新 living Army 战斗绝不会因同 Hex 有历史 casualty 变成
+                // residual re-entry。markPartyInEncounter 保持 false：真实 Character 的存在由
+                // PlayerPartyWorldMotion / FormalArmy.WorldMotion / StrategicResidualPresence 负责。
+                StrategicEncounterSpawner.PlanFreshWorldCombatManualEncounter(
+                    session.World,
+                    armyStackId,
+                    encounterLink,
+                    engaged,
+                    memberCount,
+                    Math.Max(1, power / Math.Max(1, memberCount)));
+            }
+            else
+            {
+                // legacy ExplicitEncounter / 旧 Lingering compatibility 保持原路径。
+                StrategicEncounterSpawner.TryPrepareLingeringLocalMapSession(session.World, lingerHex);
+                StrategicEncounterSpawner.PlanManualEncounter(
+                    session.World,
+                    armyStackId,
+                    encounterLink,
+                    engaged,
+                    memberCount,
+                    Math.Max(1, power / Math.Max(1, memberCount)),
+                    markPartyInEncounter: true);
+            }
             StrategicPursuitService.ClearPursuitForEngagedKeepEnRoute(session.World, engaged);
             // Phase 5S：冻结本场 Manual Battle 的地点解析类别（真实 LocalMap 或 ExplicitEncounterMap）。
             session.World.Strategic.Participants.LocalMapResolutionKind = worldCombat

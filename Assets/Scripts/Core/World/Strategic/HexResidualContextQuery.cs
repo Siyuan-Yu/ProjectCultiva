@@ -99,6 +99,11 @@ namespace XianXia.Core.World.Strategic
                 view.EnemyResidualSummary = FormatSummary(counts.EnemyDowned, counts.EnemyDead);
         }
 
+        /// <summary>
+        /// 生产菜单动作：只因为真正 Active Enemy FormalArmy 产生 AttackArmy。
+        /// Residual 只是 world population 信息（CanEnterFriendlyLingering / CanAttackEnemyLingering
+        /// 保留为 legacy query 兼容字段），不再产生任何特殊 Encounter action。
+        /// </summary>
         public static List<HexStrategicContextActionKind> BuildMenuActionKinds(HexResidualContextView view)
         {
             var actions = new List<HexStrategicContextActionKind>(3);
@@ -107,10 +112,6 @@ namespace XianXia.Core.World.Strategic
 
             if (view.HasActiveEnemyArmy)
                 actions.Add(HexStrategicContextActionKind.AttackArmy);
-            if (view.CanEnterFriendlyLingering && view.HasActiveEnemyArmy)
-                actions.Add(HexStrategicContextActionKind.EnterLingeringBattlefield);
-            if (view.CanAttackEnemyLingering)
-                actions.Add(HexStrategicContextActionKind.AttackLingeringBattlefield);
             return actions;
         }
 

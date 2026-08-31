@@ -159,6 +159,11 @@
       "openingLocalPlaceSetId": "base:places_ch01_reference",
       "openingHexWorldId": "base:hex_world_travel_mvp_30x15",
       "openingChapterId": "base:chapter_ch01_reference",
+      "initialFormalArmyIds": [
+        "base:formal_army_bandit_patrol",
+        "base:formal_army_bandit_weak",
+        "base:formal_army_bandit_casualty_test"
+      ],
       "spawns": [
         {
           "definitionId": "base:character_protagonist",

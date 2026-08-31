@@ -25,7 +25,7 @@ namespace XianXia.Tests
 
         static FormalArmy SeedBanditAtEnemyHexWithSiteContext(SimulationWorld world)
         {
-            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(world, SiteHuangcun);
+            var result = TestArmyFixtures.EnsureBanditPatrolArmy(world, SiteHuangcun);
             Assert.IsTrue(result.IsSuccess);
             ArmyHexTravelService.InitializeArmyAtHex(result.Value, EnemyHex);
             Assert.IsTrue(world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditPatrolStackId, out var stack));

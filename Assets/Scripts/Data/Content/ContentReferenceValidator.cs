@@ -25,6 +25,7 @@ namespace XianXia.Data.Content
             var consumedFlags = new HashSet<string>(StringComparer.Ordinal);
 
             ValidateScenarios(registry, report);
+            ValidateFormalArmies(registry, report);
             ValidateWorldRegions(registry, locations, report);
             ValidateLocalPlaceSets(registry, locations, report);
             ValidateItems(registry, report);
@@ -183,6 +184,68 @@ namespace XianXia.Data.Content
                     var e = s.OpeningRelations[i];
                     RequireDef(registry, e.FromDefinitionId, "character", ctx + ".relation.from", report);
                     RequireDef(registry, e.ToDefinitionId, "character", ctx + ".relation.to", report);
+                }
+
+                if (s.InitialFormalArmyIds == null)
+                    continue;
+                for (var i = 0; i < s.InitialFormalArmyIds.Count; i++)
+                {
+                    RequireDef(
+                        registry,
+                        s.InitialFormalArmyIds[i],
+                        "formalArmy",
+                        ctx + ".initialFormalArmyIds[" + i + "]",
+                        report);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 每个 member.characterDefinitionId 必须存在；runtimeArmyId / runtimeStackId 全局唯一；
+        /// 恰好一个 leader 已在 Load 层验证，这里再补成员数 / 引用完整性。
+        /// </summary>
+        static void ValidateFormalArmies(DefinitionRegistry registry, ValidationReport report)
+        {
+            var seenArmyIds = new HashSet<string>(StringComparer.Ordinal);
+            var seenStackIds = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (var kv in registry.FormalArmies)
+            {
+                var def = kv.Value;
+                var ctx = def.Id.ToString();
+                if (def.Members == null || def.Members.Count == 0)
+                {
+                    report.Add(ErrorCode.MissingRequiredField, "formalArmy.members empty.", ctx);
+                    continue;
+                }
+
+                if (!string.IsNullOrEmpty(def.RuntimeArmyId) && !seenArmyIds.Add(def.RuntimeArmyId))
+                {
+                    report.Add(
+                        ErrorCode.DuplicateDefinitionId,
+                        "Duplicate formalArmy.runtimeArmyId.",
+                        ctx + ":" + def.RuntimeArmyId);
+                }
+
+                if (!string.IsNullOrEmpty(def.RuntimeStackId) && !seenStackIds.Add(def.RuntimeStackId))
+                {
+                    report.Add(
+                        ErrorCode.DuplicateDefinitionId,
+                        "Duplicate formalArmy.runtimeStackId.",
+                        ctx + ":" + def.RuntimeStackId);
+                }
+
+                for (var i = 0; i < def.Members.Count; i++)
+                {
+                    var member = def.Members[i];
+                    if (member == null)
+                        continue;
+                    RequireDef(
+                        registry,
+                        member.CharacterDefinitionId,
+                        "character",
+                        ctx + ".members[" + i + "].characterDefinitionId",
+                        report);
                 }
             }
         }
@@ -671,6 +734,9 @@ namespace XianXia.Data.Content
                     break;
                 case "spawnTable":
                     ok = registry.SpawnTables.ContainsKey(id);
+                    break;
+                case "formalArmy":
+                    ok = registry.FormalArmies.ContainsKey(id);
                     break;
             }
 

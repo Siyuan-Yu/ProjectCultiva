@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:character_bandit_patrol_leader",
+      "type": "character",
+      "name": "荒村山匪头目",
+      "tags": [
+        "bandit",
+        "prototype_test"
+      ],
+      "personalityTags": [
+        "personality_aggressive"
+      ],
+      "backgroundTags": [
+        "background_bandit"
+      ],
+      "talentTags": [],
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": []
+    },
+    {
+      "id": "base:character_bandit_patrol_grunt",
+      "type": "character",
+      "name": "荒村山匪喽啰",
+      "tags": [
+        "bandit",
+        "prototype_test"
+      ],
+      "personalityTags": [
+        "personality_aggressive"
+      ],
+      "backgroundTags": [
+        "background_bandit"
+      ],
+      "talentTags": [],
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": []
+    },
+    {
+      "id": "base:character_bandit_weak_grunt",
+      "type": "character",
+      "name": "试炼弱匪",
+      "baseAttributes": {
+        "Attack": 3,
+        "Defense": 1,
+        "MaxHp": 12,
+        "Speed": 6
+      },
+      "initialRealmPlaceholder": "凡人",
+      "tags": [
+        "bandit",
+        "prototype_test",
+        "trivial_test_enemy"
+      ],
+      "personalityTags": [
+        "personality_cowardly"
+      ],
+      "backgroundTags": [
+        "background_bandit"
+      ],
+      "talentTags": [],
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": []
+    },
+    {
+      "id": "base:character_bandit_casualty_grunt",
+      "type": "character",
+      "name": "试炼强匪",
+      "baseAttributes": {
+        "Attack": 36,
+        "Defense": 24,
+        "MaxHp": 150,
+        "Speed": 16
+      },
+      "initialRealmPlaceholder": "筑基",
+      "tags": [
+        "bandit",
+        "prototype_test",
+        "casualty_test_enemy"
+      ],
+      "personalityTags": [
+        "personality_ferocious"
+      ],
+      "backgroundTags": [
+        "background_bandit"
+      ],
+      "talentTags": [],
+      "hometown": "",
+      "reputation": 0,
+      "goals": [],
+      "desires": []
+    }
+  ]
+}

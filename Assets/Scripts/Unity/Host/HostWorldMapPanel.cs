@@ -116,10 +116,9 @@ namespace XianXia.Unity.Host
         WorldTravelTarget _orderPreviewTarget;
         bool _orderPreviewActive;
 
-        // 弥留头像右键：进入残留战场／有活人时「前往并进入
+        // 弥留头像菜单（Retired：残留战场不再是 gateway，仅 inspect 信息）
         ulong _avatarMenuEntityId;
         bool _avatarMenuOpen;
-        bool _avatarMenuVisitMode;
         Rect _avatarMenuRect;
 
         // 节点左键菜单
@@ -127,7 +126,7 @@ namespace XianXia.Unity.Host
         Rect _nodeMenuRect;
         bool _nodeMenuOpen;
 
-        // Hex 右键 Context（残留战场正式入口）
+        // Hex 右键 Context（Active living Enemy Army / WorldSite / Move）
         bool _hexMenuOpen;
         HexCoord _hexMenuHex;
         Rect _hexMenuRect;
@@ -233,7 +232,7 @@ namespace XianXia.Unity.Host
                 _selectedStackId = string.Empty;
 
             if (BattleOfferService.HasLingeringBattlefield(world))
-                _status = "残留战场在接战点；敌军弥留／残留栈可左键选中";
+                _status = "战后残留仍在｜弥留／尸体可左键查看，移动至该格可见现场";
             else if (_selected.Count == 0)
                 _status = "战后请重新左键点选活人再移动";
         }
@@ -308,21 +307,8 @@ namespace XianXia.Unity.Host
                 _status = "已选到站 " + _selected.Count + " 人｜右键节点/道路移动";
         }
 
-        /// <summary>探望弥留到站后：直接弹接战窗（半径内弥留强制纳入）/summary>
-        public void TryOpenPendingLingeringVisitAfterArrival()
-        {
-            if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
-                return;
-            var world = bootstrap.Session.World;
-            if (BattleOfferService.TryResolvePendingLingeringVisitOffer(
-                    world, bootstrap.Session.CharacterIds))
-            {
-                if (!open)
-                    Open();
-                _status = "接战弹窗已打开";
-            }
-        }
-
+        /// <summary>到站「去查看」：只打开 WorldMap 定位/选中对象；
+        /// 目标 Hex 有 residual 也不自动打开 Encounter/BattleOffer（残留战场不再是 gateway）。</summary>
         public void Close()
         {
             CloseInternal(takeoverLocalMap: false);
@@ -362,7 +348,6 @@ namespace XianXia.Unity.Host
             CloseHexSiteEnterMenu();
             CloseGatewayConfirm();
             _avatarMenuOpen = false;
-            _avatarMenuVisitMode = false;
             _armyFormPanel?.Close();
             _armyListPanel?.Close();
             _characterListPanel?.Close();
@@ -1420,32 +1405,6 @@ namespace XianXia.Unity.Host
                 GUI.Label(new Rect(rect.x - 12f, rect.yMax + 2f, 120f, 18f), tag, _avatarLabel);
                 _armyStackRects[stack.Id] = rect;
             }
-
-            RegisterRemnantStackHitRects(mapRect, world);
-        }
-
-        /// <summary>弥留／尸体栈不画聚合标记，但仍需可右键攻击（个体头像会挡住栈心）/summary>
-        void RegisterRemnantStackHitRects(
-            Rect mapRect,
-            XianXia.Core.Simulation.SimulationWorld world)
-        {
-            foreach (var kv in world.Strategic.Armies.Stacks)
-            {
-                var stack = kv.Value;
-                if (stack == null || !stack.HasDownedRemnant)
-                    continue;
-                if (!TryResolveArmyStackWorldPoint(world, stack, out var wx, out var wy))
-                    continue;
-
-                var p = Project(mapRect, wx, wy);
-                p = NudgeArmyMarkerAwayFromNodes(p);
-                if (!mapRect.Contains(p))
-                    continue;
-
-                var size = 30f;
-                var rect = new Rect(p.x - size * 0.5f, p.y - size * 0.5f, size, size);
-                _armyStackRects[stack.Id] = rect;
-            }
         }
 
         Vector2 NudgeArmyMarkerAwayFromNodes(Vector2 screenPos)
@@ -2273,14 +2232,10 @@ namespace XianXia.Unity.Host
                     _selectedHex = residualGroup.Hex;
                     _selected.Clear();
                     _selectedStackId = string.Empty;
-                    // 保留已选军团：便于立刻右键同格进入残留
                     _inspectSiteId = string.Empty;
-                    var enterHint = BattleOfferService.HasLingeringBattlefield(world)
-                        ? (string.IsNullOrEmpty(SelectedFormalArmyId)
-                            ? "｜先选我方军团，再右键本格／标记进入残留"
-                            : "｜右键本格或残留标记进入残留战场")
-                        : string.Empty;
-                    _status = FormatResidualGroupTitle(residualGroup) + " ×" + residualGroup.Count + enterHint;
+                    // 纯 Inspect：marker 只是信息展示，不是 Encounter gateway。
+                    _status = FormatResidualGroupTitle(residualGroup) + " ×" + residualGroup.Count +
+                              "｜移动至该格后可在 LocalMap 查看现场";
                     e.Use();
                     return;
                 }
@@ -2311,15 +2266,9 @@ namespace XianXia.Unity.Host
                             : string.Empty;
                         string armyHint;
                         if (LingeringBattlefieldPartyService.IsFriendlyLingeringDowned(world, id))
-                        {
-                            armyHint = string.IsNullOrEmpty(SelectedFormalArmyId)
-                                ? "｜请先左键选军团，再右键该头像进入残留战场"
-                                : "｜右键该头像进入残留战场";
-                        }
+                            armyHint = "｜移动至该格后可在 LocalMap 查看现场";
                         else
-                        {
-                            armyHint = "｜敌方残留：请左键选我方军团，再右键进入残留战场";
-                        }
+                            armyHint = "｜敌方战场残留｜移动至该格可查看现场";
 
                         _status = "已选" + tag + " " + EntityLabel(world, id) +
                                   (string.IsNullOrEmpty(cd) ? "" : "｜" + cd) + armyHint;
@@ -2332,7 +2281,7 @@ namespace XianXia.Unity.Host
                         memberArmy != null)
                     {
                         SyncFormalArmySelection(memberArmy.ArmyId);
-                        _status = "已选军团 " + memberArmy.ArmyId + "｜右键节点移动或右键敌军攻击/进入残留";
+                        _status = "已选军团 " + memberArmy.ArmyId + "｜右键节点移动或右键敌军攻击";
                     }
                     else
                     {
@@ -2420,18 +2369,7 @@ namespace XianXia.Unity.Host
             }
 
             // —右键：只负责下令（永不改选中集合）—
-            // 我方弥留／尸体：可右键弹「进入残留战场」（进场仍用已选军团）
-            if (TryHitAvatar(mouse, world, out var menuAvatarId, preferLiving: false))
-            {
-                var hitId = new EntityId(menuAvatarId);
-                if (LingeringBattlefieldPartyService.IsFriendlyLingeringDowned(world, hitId))
-                {
-                    OpenIncapAvatarMenu(world, hitId, mouse);
-                    e.Use();
-                    return;
-                }
-            }
-
+            // 弥留／尸体 avatar 已退役为纯 inspect（左键）；右键不再弹残留战场菜单。
             if (TryHitArmyStack(
                     world,
                     mouse,
@@ -2441,30 +2379,6 @@ namespace XianXia.Unity.Host
             {
                 if (TryOpenStackAttackMenu(world, menuStackId, mouse))
                 {
-                    e.Use();
-                    return;
-                }
-            }
-
-            if (TryHitAvatar(mouse, world, out menuAvatarId, preferLiving: false))
-            {
-                var hitId = new EntityId(menuAvatarId);
-                if (LingeringBattlefieldPartyService.IsLingeringDowned(world, hitId) &&
-                    !LingeringBattlefieldPartyService.IsFriendlyLingeringDowned(world, hitId))
-                {
-                    // 敌方弥留／尸体：有选中军团时走残留进入／攻击菜单（与我方弥留对称）
-                    if (TryResolveEnemyRemnantStackId(world, out var remnantStackId) &&
-                        TryOpenStackAttackMenu(world, remnantStackId, mouse))
-                    {
-                        e.Use();
-                        return;
-                    }
-
-                    var enemyTag = LingeringBattlefieldPartyService.IsVisibleCorpse(world, hitId)
-                        ? "敌方尸体"
-                        : "敌方弥留";
-                    _status = enemyTag + " " + EntityLabel(world, hitId) +
-                   "· Ctrl+左键：切换道路（编辑）";
                     e.Use();
                     return;
                 }
@@ -2510,7 +2424,7 @@ namespace XianXia.Unity.Host
             {
                 _selected.Clear();
                 _selectedStackId = string.Empty;
-                // 残留接战格：保留已选军团，便于立刻右键进入
+                // 残留格：保留已选军团，便于右键移动／攻击 living Army
                 if (!(BattleOfferService.HasLingeringBattlefield(world) &&
                       LingeringBattlefieldQueryService.TryGetLingeringBattlefieldAtHex(world, pickedHex, out _)))
                     ClearFormalArmySelection();
@@ -2540,7 +2454,7 @@ namespace XianXia.Unity.Host
             if (BattleOfferService.HasLingeringBattlefield(world) &&
                 LingeringBattlefieldQueryService.TryGetLingeringBattlefieldAtHex(world, pickedHex, out _))
             {
-                _status += "｜有残留：右键本格可进入／攻击残留战场";
+                _status += "｜有战场残留｜移动至本格可在 LocalMap 查看";
             }
             e.Use();
             return true;
@@ -2625,8 +2539,10 @@ namespace XianXia.Unity.Host
                     OpenHexAttackTargetMenu(resolution, pickedHex, mouse);
                     break;
                 case HexRightClickResolvedAction.DirectEnterFriendlyLingering:
-                    UnityEngine.Debug.Log("[GatewayB1Trace] 4 Branch=Lingering");
-                    ExecuteEnterFriendlyLingeringAtHex(world, pickedHex);
+                    // Legacy enum 兼容：production resolver 不再返回；若旧 resolution 残留，
+                    // 回落普通移动，绝不进入 Encounter。
+                    UnityEngine.Debug.Log("[GatewayB1Trace] 4 Branch=LegacyLingering→Travel");
+                    DispatchHexRightClickTravel(world, pickedHex, resolution.StatusHint);
                     break;
                 case HexRightClickResolvedAction.ShowWorldSiteEnterMenu:
                     UnityEngine.Debug.Log("[GatewayB1Trace] 4 Branch=SiteMenu");
@@ -2648,7 +2564,9 @@ namespace XianXia.Unity.Host
             _hexMenuContext = resolution.Context;
             _hexMenuHex = hex;
             var rows = 1f + (resolution.MenuActions?.Count ?? 0);
-            if (_hexMenuContext != null && _hexMenuContext.HasActiveLingering)
+            if (_hexMenuContext != null &&
+                (!string.IsNullOrEmpty(_hexMenuContext.FriendlyResidualSummary) ||
+                 !string.IsNullOrEmpty(_hexMenuContext.EnemyResidualSummary)))
                 rows += 1f;
             _hexMenuRect = AnchorContextMenu(new Rect(mouse.x, mouse.y, 1f, 1f), 220f, 28f + rows * 24f);
             CloseGatewayConfirm();
@@ -2783,7 +2701,7 @@ namespace XianXia.Unity.Host
             var y = _hexMenuRect.y + 26f;
             var bw = _hexMenuRect.width - 16f;
 
-            if (_hexMenuContext != null && _hexMenuContext.HasActiveLingering)
+            if (_hexMenuContext != null)
             {
                 if (!string.IsNullOrEmpty(_hexMenuContext.FriendlyResidualSummary))
                 {
@@ -2843,11 +2761,6 @@ namespace XianXia.Unity.Host
                         return target.BlockReason;
                     return "攻击军队";
                 }
-                case HexStrategicContextActionKind.AttackLingeringBattlefield:
-                    enabled = TryGetSelectedLivingPlayerArmy(world, out _, out _);
-                    return enabled ? "攻击残留战场" : "攻击残留战场（请先选军团）";
-                case HexStrategicContextActionKind.EnterLingeringBattlefield:
-                    return "进入残留战场";
                 default:
                     enabled = false;
                     return action.ToString();
@@ -2862,12 +2775,6 @@ namespace XianXia.Unity.Host
             {
                 case HexStrategicContextActionKind.AttackArmy:
                     ExecuteAttackEnemyArmyFromHex(world, _hexMenuContext?.PrimaryActiveEnemyArmy);
-                    break;
-                case HexStrategicContextActionKind.AttackLingeringBattlefield:
-                    ExecuteAttackEnemyLingeringAtHex(world, _hexMenuHex);
-                    break;
-                case HexStrategicContextActionKind.EnterLingeringBattlefield:
-                    ExecuteEnterFriendlyLingeringAtHex(world, _hexMenuHex);
                     break;
             }
         }
@@ -3046,20 +2953,6 @@ namespace XianXia.Unity.Host
                 shortName = shortName.Substring(0, 2);
             GUI.Label(rect, shortName, _avatarLabel);
             GUI.color = old;
-        }
-
-        void ExecuteEnterFriendlyLingeringAtHex(
-            XianXia.Core.Simulation.SimulationWorld world,
-            HexCoord hex)
-        {
-            if (BattleOfferService.TryEnterFriendlyLingeringAtHex(
-                    world, hex, bootstrap.Session.CharacterIds))
-            {
-                _status = "接战弹窗已打开";
-                return;
-            }
-
-                _status = "无法解析倒下角色位置";
         }
 
         void CloseHexSiteEnterMenu()
@@ -3262,32 +3155,6 @@ namespace XianXia.Unity.Host
             _status = FormatFail(enter);
         }
 
-        void ExecuteAttackEnemyLingeringAtHex(
-            XianXia.Core.Simulation.SimulationWorld world,
-            HexCoord hex)
-        {
-            if (!TryGetSelectedLivingPlayerArmy(world, out var army, out var err))
-            {
-                _status = string.IsNullOrEmpty(err) ? "请先左键选中我方军团" : err;
-                return;
-            }
-
-            if (BattleOfferService.TryAttackEnemyLingeringAtHex(world, army.ArmyId, hex, out var hint))
-            {
-                if (world.Strategic.HasBattleOffer)
-                {
-                    _status = "接战弹窗已打开";
-                    return;
-                }
-
-                SetArmyHexPathPreview(army.ArmyId, hex);
-                _status = hint;
-                return;
-            }
-
-            _status = string.IsNullOrEmpty(hint) ? "无法攻击残留战场" : hint;
-        }
-
         void ExecuteAttackEnemyArmyFromHex(
             XianXia.Core.Simulation.SimulationWorld world,
             HexActiveEnemyArmyTarget target)
@@ -3314,8 +3181,8 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// 右键「有残留Hex」：按原先逻辑进入残留战场（我方弥留头像菜单／敌方残留栈菜单）
-        /// 无残留或接战点未激活时返回 false，交还给普Hex 移动
+        /// Legacy（Obsolete）：残留战场不再是 Encounter gateway。
+        /// 保留供旧状态参考；production resolver / UI 不再调用，不产生 BattleOffer。
         /// </summary>
         [System.Obsolete("Hex Context Menu 已取代；保留供 legacy Node 路径参考。")]
         bool TryOpenResidualHexEnter(
@@ -3332,28 +3199,26 @@ namespace XianXia.Unity.Host
             if (!TryGetSelectedLivingPlayerArmy(world, out _, out var selectionError))
             {
                 _status = string.IsNullOrEmpty(selectionError)
-                    ? "请先左键选中我方军团，再右键该格进入残留战场"
+                    ? "该格有战场残留｜移动至本格可在 LocalMap 查看现场"
                     : selectionError;
                 return true;
             }
 
-            // 我方弥留所在格 与右键弥留头像同一套菜
             if (!friendlyFocus.IsNone)
             {
                 OpenIncapAvatarMenu(world, friendlyFocus, mouse);
                 return true;
             }
 
-            // 敌方残留所在格 与右键残留栈同一套菜单（进入残留／追击再攻）
             if (!string.IsNullOrEmpty(enemyStackId) &&
                 TryOpenStackAttackMenu(world, enemyStackId, mouse))
                 return true;
 
-            _status = "该格有残留，但无法打开进入菜单";
+            _status = "该格有战场残留，但无法打开菜单";
             return true;
         }
 
-        /// <summary>Hex 上是否有与当前残留战场相关的我方弥留／敌方残留/summary>
+        /// <summary>Hex 上是否仍有与当前残留战场相关的我方弥留／敌方残留（legacy query）/summary>
         static bool TryResolveResidualEnterTargetsOnHex(
             XianXia.Core.Simulation.SimulationWorld world,
             HexCoord hex,
@@ -3605,6 +3470,14 @@ namespace XianXia.Unity.Host
             if (!world.Strategic.Armies.TryGet(stackId, out var stack) || stack == null)
                 return false;
 
+            // Residual-only stack（无 living FormalArmy member，仅剩弥留／尸体）不再是攻击目标；
+            // 它只是 legacy bookkeeping / residual metadata。living 敌军走正常 Hex AttackArmy 路径。
+            if (stack.HasDownedRemnant || stack.IsBattlefieldRemnant)
+            {
+                if (!TryResolveLivingLinkedArmy(world, stack, out _))
+                    return false;
+            }
+
             var playerFaction = ResolvePlayerFactionId(world);
             if (!string.IsNullOrEmpty(playerFaction) &&
                 string.Equals(stack.FactionId, playerFaction, StringComparison.Ordinal))
@@ -3632,12 +3505,24 @@ namespace XianXia.Unity.Host
 
             _stackMenuStackId = stackId;
             _stackMenuOpen = true;
-            var isRemnant = stack.HasDownedRemnant || stack.IsBattlefieldRemnant;
-            _stackMenuRect = new Rect(mouse.x + 4f, mouse.y + 4f, 196f, isRemnant ? 86f : 56f);
-            _status = isRemnant
-                ? "残留战场｜" + DescribeStack(world, stack)
-                : "下令攻击｜" + DescribeStack(world, stack);
+            _stackMenuRect = new Rect(mouse.x + 4f, mouse.y + 4f, 196f, 56f);
+            _status = "下令攻击｜" + DescribeStack(world, stack);
             return true;
+        }
+
+        /// <summary>linked FormalArmy 是否仍有 living macro-order member（能否作为 Active Enemy Army）。</summary>
+        static bool TryResolveLivingLinkedArmy(
+            XianXia.Core.Simulation.SimulationWorld world,
+            ArmyStack stack,
+            out FormalArmy army)
+        {
+            army = null;
+            if (world?.Strategic?.FormalArmies == null || stack == null ||
+                string.IsNullOrEmpty(stack.FormalArmyId))
+                return false;
+            if (!world.Strategic.FormalArmies.TryGet(stack.FormalArmyId, out army) || army == null)
+                return false;
+            return ArmyPostBattleSyncService.HasMacroOrderLivingMember(world, army);
         }
 
         /// <summary>须左键选中我方存活军团；不自动从散装队伍推断攻击方/summary>
@@ -3692,17 +3577,6 @@ namespace XianXia.Unity.Host
             GUI.color = old;
         }
 
-        static bool TryResolveEnemyRemnantStackId(
-            XianXia.Core.Simulation.SimulationWorld world,
-            out string stackId)
-        {
-            stackId = string.Empty;
-            if (!TryGetEncounterRemnantStack(world, out var stack) || stack == null)
-                return false;
-            stackId = stack.Id;
-            return !string.IsNullOrEmpty(stackId);
-        }
-
         string FormatSelectionSummary()
         {
             if (!string.IsNullOrEmpty(SelectedFormalArmyId))
@@ -3738,10 +3612,7 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            var hexMode = ArmyHexCommandService.IsHexStrategicActive(world);
-            var isRemnant = stack.HasDownedRemnant || stack.IsBattlefieldRemnant;
-            var hasLinger = BattleOfferService.HasLingeringBattlefield(world);
-            var menuH = isRemnant && hasLinger ? 86f : 56f;
+            var menuH = 56f;
 
             var prevDepth = GUI.depth;
             GUI.depth = -85;
@@ -3767,43 +3638,9 @@ namespace XianXia.Unity.Host
                 canAttack = false;
             }
 
-            if (isRemnant && hasLinger)
-            {
-                CollectActingArmyLivingParty(world, _scratchParty);
-                var needTravel = false;
-                if (_scratchParty.Count > 0 &&
-                    TryResolveRemnantBattleAnchorHex(world, stack, out var remnantAnchorHex))
-                {
-                    needTravel = !IsAnyPartyMemberInReinforcementRange(
-                        world, _scratchParty, remnantAnchorHex);
-                }
-
-                GUI.enabled = canAttack && _scratchParty.Count > 0;
-                var enterLabel = needTravel ? "前往并进入残留战场" : "进入残留战场";
-                if (GUI.Button(new Rect(_stackMenuRect.x + 8f, y, bw, 22f), enterLabel))
-                {
-                    Event.current.Use();
-                    if (canAttack && _scratchParty.Count > 0)
-                    {
-                        if (needTravel)
-                            ExecuteAttackStack(world, _scratchParty, stack);
-                        else if (!BattleOfferService.TryBuildOfferForEnemyRemnantReentry(
-                                     world, _scratchParty, stack.Id, "残留战场"))
-                            _status = "无法进入残留战场（接战点已失效或不在范围内）";
-                    }
-                    else
-                _status = "无法解析倒下角色位置";
-                    _stackMenuOpen = false;
-                }
-
-                y += 26f;
-                GUI.enabled = true;
-            }
-
             GUI.enabled = canAttack;
 
-            var attackLabel = isRemnant ? "追击／再攻" : "攻击";
-            if (GUI.Button(new Rect(_stackMenuRect.x + 8f, y, bw, 22f), attackLabel))
+            if (GUI.Button(new Rect(_stackMenuRect.x + 8f, y, bw, 22f), "攻击"))
             {
                 Event.current.Use();
                 if (canAttack)
@@ -3927,10 +3764,14 @@ namespace XianXia.Unity.Host
             CloseHexSiteEnterMenu();
             CloseGatewayConfirm("outsideClick");
             _avatarMenuOpen = false;
-            _avatarMenuVisitMode = false;
             // Use：同一帧右键仍可落到移动／攻击下令
         }
 
+        /// <summary>
+        /// Retired：弥留／尸体 avatar 菜单已退役 —— 残留战场不再是 Encounter gateway。
+        /// 现在只保留 inspect 信息（姓名 / life state / countdown / 提示移动至该 Hex 查看）。
+        /// 绝不 Build BattleOffer、SetPendingLingeringVisit、自动派军或进入 Encounter。
+        /// </summary>
         void DrawAvatarContextMenu(XianXia.Core.Simulation.SimulationWorld world)
         {
             if (!_avatarMenuOpen)
@@ -3945,17 +3786,9 @@ namespace XianXia.Unity.Host
                 !LingeringBattlefieldPartyService.IsFriendlyLingeringDowned(world, target))
             {
                 _avatarMenuOpen = false;
-                _avatarMenuVisitMode = false;
                 return;
             }
 
-            var prevDepth = GUI.depth;
-            GUI.depth = -85;
-            HostUiHitTest.Block(_avatarMenuRect);
-            var prev = GUI.color;
-            GUI.color = new Color(0.16f, 0.17f, 0.19f, 0.96f);
-            GUI.DrawTexture(_avatarMenuRect, _px);
-            GUI.color = prev;
             var downTag = LingeringBattlefieldPartyService.IsVisibleCorpse(world, target)
                 ? "尸体"
                 : "弥留";
@@ -3966,101 +3799,9 @@ namespace XianXia.Unity.Host
                     downTag = stamped;
             }
 
-            GUI.Label(
-                new Rect(_avatarMenuRect.x + 8f, _avatarMenuRect.y + 4f, _avatarMenuRect.width - 16f, 18f),
-                EntityLabel(world, target) + " · " + downTag,
-                _body);
-
-            CollectActingArmyLivingParty(world, _scratchParty);
-            var hasArmy = _scratchParty.Count > 0;
-            _avatarMenuVisitMode = false;
-            if (hasArmy &&
-                LingeringBattlefieldPartyService.TryResolveBattleAnchorHex(
-                    world, target, out var anchorHex))
-            {
-                _avatarMenuVisitMode = !IsAnyPartyMemberInReinforcementRange(
-                    world, _scratchParty, anchorHex);
-            }
-
-            LingeringBattlefieldPartyService.CollectViewParty(
-                world, bootstrap.Session.CharacterIds, target, _attackPartyScratch, _scratchParty);
-            var hasLinger = BattleOfferService.HasLingeringBattlefield(world);
-            var canEnter = hasLinger && hasArmy && !_avatarMenuVisitMode && _attackPartyScratch.Count > 0;
-            var hintY = _avatarMenuRect.y + 24f;
-            if (!hasLinger)
-            {
-                GUI.Label(
-                    new Rect(_avatarMenuRect.x + 8f, hintY, _avatarMenuRect.width - 16f, 16f),
-                    "驻扎中不可追击，请先解除驻扎", _body);
-                hintY += 18f;
-            }
-            else if (!hasArmy)
-            {
-                GUI.Label(
-                    new Rect(_avatarMenuRect.x + 8f, hintY, _avatarMenuRect.width - 16f, 16f),
-                    "请先左键选中我方军团",
-                    _body);
-                hintY += 18f;
-            }
-            else if (_avatarMenuVisitMode)
-            {
-                GUI.Label(
-                    new Rect(_avatarMenuRect.x + 8f, hintY, _avatarMenuRect.width - 16f, 16f),
-                    "军团将前往该处，抵达后弹接战窗",
-                    _body);
-                hintY += 18f;
-            }
-            else if (!canEnter)
-            {
-                GUI.Label(
-                    new Rect(_avatarMenuRect.x + 8f, hintY, _avatarMenuRect.width - 16f, 16f),
-                    "无法再入（接战锚点缺失或无人可进场）",
-                    _body);
-                hintY += 18f;
-            }
-            else
-            {
-                GUI.Label(
-                    new Rect(_avatarMenuRect.x + 8f, hintY, _avatarMenuRect.width - 16f, 16f),
-                    "驻扎中不可追击，请先解除驻扎", _body);
-                hintY += 18f;
-            }
-
-            GUI.enabled = hasLinger && hasArmy && (_avatarMenuVisitMode || canEnter);
-            var btnLabel = _avatarMenuVisitMode ? "前往并进入残留战场" : "进入残留战场";
-            if (GUI.Button(
-                    new Rect(_avatarMenuRect.x + 8f, _avatarMenuRect.y + 58f, _avatarMenuRect.width - 16f, 28f),
-                    btnLabel) &&
-                hasLinger &&
-                hasArmy)
-            {
-                Event.current.Use();
-                if (_avatarMenuVisitMode)
-                {
-                    if (TryBeginVisitIncapacitated(world, target))
-                    {
-                        _avatarMenuOpen = false;
-                        _avatarMenuVisitMode = false;
-                    }
-                }
-                else if (canEnter &&
-                         BattleOfferService.TryBuildOfferForLingeringBattlefield(
-                             world,
-                             bootstrap.Session.CharacterIds,
-                             target,
-                             "残留战场",
-                             _scratchParty))
-                {
-                    _avatarMenuOpen = false;
-                    _avatarMenuVisitMode = false;
-                    _status = "接战弹窗已打开";
-                }
-                else
-                    _status = "无法打开接战弹窗";
-            }
-
-            GUI.enabled = true;
-            GUI.depth = prevDepth;
+            _status = EntityLabel(world, target) + " · " + downTag +
+                      "｜移动至该格后可在 LocalMap 查看现场";
+            _avatarMenuOpen = false;
         }
 
         /// <summary>已选活人前往弥留接战点；已在半径内则直接弹接战窗/summary>
@@ -4207,13 +3948,13 @@ namespace XianXia.Unity.Host
             var hasLinger = BattleOfferService.HasLingeringBattlefield(world);
             if (!hasLinger)
             {
-            _status = EntityLabel(world, hitId) + "（" + tag + "）｜可进入残留战场";
+                _status = EntityLabel(world, hitId) + "（" + tag + "）｜移动至该格后可查看现场";
                 return;
             }
 
             if (!hasArmy)
             {
-            _status = EntityLabel(world, hitId) + "（" + tag + "）｜可进入残留战场";
+                _status = EntityLabel(world, hitId) + "（" + tag + "）｜移动至该格后可查看现场";
                 return;
             }
 
@@ -4222,11 +3963,11 @@ namespace XianXia.Unity.Host
                 !IsAnyPartyMemberInReinforcementRange(
                     world, _scratchParty, anchorHex))
             {
-            _status = EntityLabel(world, hitId) + "（" + tag + "）｜可进入残留战场";
+                _status = EntityLabel(world, hitId) + "（" + tag + "）｜移动至该格后可查看现场";
                 return;
             }
 
-            _status = EntityLabel(world, hitId) + "（" + tag + "）｜可进入残留战场";
+            _status = EntityLabel(world, hitId) + "（" + tag + "）｜移动至该格后可查看现场";
         }
 
         void CollectActingArmyLivingParty(

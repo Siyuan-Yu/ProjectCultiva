@@ -221,7 +221,10 @@ namespace XianXia.Core.World.Strategic
                     var id = new EntityId(formalArmy.MemberCharacterIds[i]);
                     if (id.IsNone || !world.Entities.TryGet(id, out var ent) || ent == null)
                         continue;
+                    // 与 BattleParticipantGatheringService.AddPrimaryEnemy 同步：
+                    // living FormalArmy 战斗纳入 IsLivingForMacroOrder 成员，不因历史伤亡排除。
                     if (primaryEnemy.HasDownedRemnant &&
+                        !LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id) &&
                         !LingeringBattlefieldPartyService.IsLingeringDowned(world, id))
                         continue;
                     snap.Add(new BattleParticipantRecord

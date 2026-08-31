@@ -89,6 +89,110 @@ namespace XianXia.Core.World.Strategic
             return Result.Ok(army);
         }
 
+        /// <summary>
+        /// Content/bootstrap 专用世界 seeding API（Phase 5S：Prototype Bandit 迁移 Content JSON）。
+        /// 与玩家 <see cref="CreateArmy"/> 职责不同：敌军开局生成不是玩家「组建军队」命令，
+        /// 不走 <c>Ch01ScenarioArmyFormationPolicy</c>／<c>FormalArmyManagementSitePolicy</c>。
+        /// 但必须验证 Domain invariants，且不让 Data assembly 直接改 FormalArmy 内部字段。
+        /// </summary>
+        public static Result<FormalArmy> CreateAuthoredArmy(
+            SimulationWorld world,
+            string stableArmyId,
+            string factionId,
+            string assemblySiteId,
+            IReadOnlyList<EntityId> memberIds,
+            EntityId leaderId)
+        {
+            if (world?.Strategic?.FormalArmies == null)
+                return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "SimulationWorld incomplete.");
+            if (string.IsNullOrWhiteSpace(stableArmyId))
+                return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "stableArmyId required.");
+            if (world.Strategic.FormalArmies.TryGet(stableArmyId, out _))
+                return Result.Fail<FormalArmy>(ErrorCode.AlreadyExists, "Army already registered.", stableArmyId);
+            if (string.IsNullOrWhiteSpace(factionId))
+                return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "FactionId required.");
+            if (string.IsNullOrWhiteSpace(assemblySiteId) ||
+                !world.Strategic.Sites.TryGet(assemblySiteId, out _))
+            {
+                return Result.Fail<FormalArmy>(
+                    ErrorCode.NotFound,
+                    "Assembly site not found.",
+                    assemblySiteId);
+            }
+
+            if (memberIds == null || memberIds.Count < 1)
+                return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "Army requires at least one member.");
+
+            var resolvedMembers = new List<EntityId>(memberIds.Count);
+            for (var i = 0; i < memberIds.Count; i++)
+            {
+                var memberId = memberIds[i];
+                if (memberId.IsNone || !world.Entities.TryGet(memberId, out var entity))
+                    return Result.Fail<FormalArmy>(ErrorCode.EntityNotFound, "Member entity missing.", memberId.ToString());
+
+                if (!entity.TryGet<FactionMembershipComponent>(out var mem) ||
+                    !string.Equals(mem.FactionId, factionId, StringComparison.Ordinal))
+                {
+                    return Result.Fail<FormalArmy>(
+                        ErrorCode.InvalidOperation,
+                        "Member faction mismatch.",
+                        memberId.ToString());
+                }
+
+                if (entity.TryGet<ArmyMembershipComponent>(out var armyMem) &&
+                    armyMem.IsInArmy &&
+                    !string.Equals(armyMem.ArmyId, stableArmyId, StringComparison.Ordinal))
+                {
+                    return Result.Fail<FormalArmy>(
+                        ErrorCode.InvalidOperation,
+                        "Member already belongs to another FormalArmy.",
+                        memberId.ToString());
+                }
+
+                if (world.WorldPresence.TryGet(memberId, out var presence) &&
+                    presence != null &&
+                    presence.Mode == PartyWorldPresenceMode.AtSite &&
+                    !string.Equals(presence.SiteId, assemblySiteId, StringComparison.Ordinal))
+                {
+                    return Result.Fail<FormalArmy>(
+                        ErrorCode.InvalidOperation,
+                        "Member not located at assembly site.",
+                        memberId.ToString());
+                }
+
+                if (ContainsEntity(resolvedMembers, memberId))
+                    continue;
+                resolvedMembers.Add(memberId);
+            }
+
+            if (resolvedMembers.Count < 1)
+                return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "Army requires at least one member.");
+
+            if (leaderId.IsNone || !ContainsEntity(resolvedMembers, leaderId))
+                return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "Leader must be a member.");
+            if (!IsValidLeaderAtFormation(world, leaderId))
+                return Result.Fail<FormalArmy>(ErrorCode.InvalidOperation, "Leader must be macro-order living.");
+
+            var memberValues = new List<ulong>(resolvedMembers.Count);
+            for (var i = 0; i < resolvedMembers.Count; i++)
+                memberValues.Add(resolvedMembers[i].Value);
+
+            var army = new FormalArmy
+            {
+                ArmyId = stableArmyId,
+                FactionId = factionId,
+                LeaderCharacterId = leaderId,
+                State = FormalArmyState.Idle
+            };
+            army.ReplaceMembers(memberValues);
+
+            world.Strategic.FormalArmies.Register(army);
+            SyncMembershipForArmy(world, army);
+            FormalArmyContinuousTravelService.InitializeAtWorldSite(world, army, assemblySiteId);
+
+            return Result.Ok(army);
+        }
+
         public static Result DisbandArmy(SimulationWorld world, string armyId)
         {
             if (world?.Strategic?.FormalArmies == null)

@@ -13,7 +13,7 @@ using XianXia.Unity.Host;
 
 namespace XianXia.Tests
 {
-    /// <summary>SUPPORT-01..04 + WeakBandit 首战 Participant / LocalMap 一致性�?/summary>
+    /// <summary>SUPPORT-01..04 + WeakBandit 首战 Participant / LocalMap 一致性�?/summary>
     public sealed class EncounterAssemblyTests
     {
         const string NodeA = "base:site_huangcun";
@@ -27,8 +27,8 @@ namespace XianXia.Tests
             var world = new SimulationWorld();
             world.Strategic.PlayerFactionId = StrategicFactionCatalog.PlayerFactionId;
             HexTestWorldBootstrap.EnsureMinimalHexMap(world);
-            Assert.IsTrue(ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA).IsSuccess);
-            Assert.IsTrue(ArmyStackAdapter.EnsureBanditWeakPatrolArmy(world, NodeA).IsSuccess);
+            Assert.IsTrue(TestArmyFixtures.EnsureBanditPatrolArmy(world, NodeA).IsSuccess);
+            Assert.IsTrue(TestArmyFixtures.EnsureBanditWeakPatrolArmy(world, NodeA).IsSuccess);
             Ch01ScenarioStrategicSetup.PositionPrototypeTestBanditArmies(world);
             WarGateService.DeclareWar(
                 world,

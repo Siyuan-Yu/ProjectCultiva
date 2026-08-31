@@ -201,6 +201,48 @@ namespace XianXia.Core.World.Strategic
             return null;
         }
 
+        /// <summary>
+        /// 纯 membership：该 EntityId 是否本场 Enemy participant（EnemyPrimary / EnemyReinforcement）。
+        /// 只认 frozen snapshot，不查询 CombatLifeState —— 本场是否仍有可战之敌由调用方结合生命状态判定。
+        /// </summary>
+        public bool IsEnemyParticipant(EntityId id)
+        {
+            if (id.IsNone)
+                return false;
+            for (var i = 0; i < _records.Count; i++)
+            {
+                var r = _records[i];
+                if (r.EntityId != id)
+                    continue;
+                if (r.Kind == BattleParticipantKind.EnemyPrimary ||
+                    r.Kind == BattleParticipantKind.EnemyReinforcement)
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 纯 membership：该 EntityId 是否本场 selected Friendly participant
+        /// （MandatoryFriendly / OptionalFriendly 且 Selected）。
+        /// </summary>
+        public bool IsSelectedFriendlyParticipant(EntityId id)
+        {
+            if (id.IsNone)
+                return false;
+            for (var i = 0; i < _records.Count; i++)
+            {
+                var r = _records[i];
+                if (r.EntityId != id)
+                    continue;
+                if (r.Kind == BattleParticipantKind.MandatoryFriendly ||
+                    (r.Kind == BattleParticipantKind.OptionalFriendly && r.Selected))
+                    return true;
+            }
+
+            return false;
+        }
+
         public void CopyFrom(BattleParticipantSnapshot src)
         {
             if (src == null)

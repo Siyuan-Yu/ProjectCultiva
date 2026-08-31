@@ -11,7 +11,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Tests
 {
-    /// <summary>MULTI-BATTLE-01..06：连续多�?Encounter Anchor 生命周期�?/summary>
+    /// <summary>MULTI-BATTLE-01..06：连续多�?Encounter Anchor 生命周期�?/summary>
     public sealed class MultiBattleAnchorLifecycleTests
     {
         const string PlayerFaction = StrategicFactionCatalog.PlayerFactionId;
@@ -69,13 +69,13 @@ namespace XianXia.Tests
             FormalArmy army;
             if (string.Equals(stackId, ArmyStackAdapter.BanditPatrolStackId, System.StringComparison.Ordinal))
             {
-                var result = ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
+                var result = TestArmyFixtures.EnsureBanditPatrolArmy(world, NodeA);
                 Assert.IsTrue(result.IsSuccess);
                 army = result.Value;
             }
             else
             {
-                var result = ArmyStackAdapter.EnsureBanditWeakPatrolArmy(world, NodeA);
+                var result = TestArmyFixtures.EnsureBanditWeakPatrolArmy(world, NodeA);
                 Assert.IsTrue(result.IsSuccess);
                 army = result.Value;
             }
@@ -86,7 +86,7 @@ namespace XianXia.Tests
 
         static FormalArmy SpawnCustomEnemyAt(SimulationWorld world, HexCoord hex, string name)
         {
-            var result = ArmyStackAdapter.EnsureBanditScoutArmy(world, NodeA);
+            var result = TestArmyFixtures.EnsureBanditScoutArmy(world, NodeA);
             Assert.IsTrue(result.IsSuccess, name);
             ArmyHexTravelService.InitializeArmyAtHex(result.Value, hex);
             return result.Value;

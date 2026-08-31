@@ -11,7 +11,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Tests
 {
-    /// <summary>LINGER-01..11：Hex 残留战场再进�?/summary>
+    /// <summary>LINGER-01..11：Hex 残留战场再进�?/summary>
     public sealed class LingeringBattlefieldHexEntryTests
     {
         const string PlayerFaction = StrategicFactionCatalog.PlayerFactionId;
@@ -63,7 +63,7 @@ namespace XianXia.Tests
             SimulationWorld world,
             HexCoord hex)
         {
-            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
+            var result = TestArmyFixtures.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(result.IsSuccess);
             var army = result.Value;
             ArmyHexTravelService.InitializeArmyAtHex(army, hex);

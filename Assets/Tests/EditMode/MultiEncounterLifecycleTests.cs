@@ -12,7 +12,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Tests
 {
-    /// <summary>MULTI-ENCOUNTER-01..11：Encounter-scoped spawn / registry / hostility�?/summary>
+    /// <summary>MULTI-ENCOUNTER-01..11：Encounter-scoped spawn / registry / hostility�?/summary>
     public sealed class MultiEncounterLifecycleTests
     {
         const string PlayerFaction = StrategicFactionCatalog.PlayerFactionId;
@@ -67,8 +67,8 @@ namespace XianXia.Tests
         static FormalArmy SpawnEnemyAt(SimulationWorld world, HexCoord hex, bool weak)
         {
             Result<FormalArmy> result = weak
-                ? ArmyStackAdapter.EnsureBanditWeakPatrolArmy(world, NodeA)
-                : ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
+                ? TestArmyFixtures.EnsureBanditWeakPatrolArmy(world, NodeA)
+                : TestArmyFixtures.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(result.IsSuccess);
             ArmyHexTravelService.InitializeArmyAtHex(result.Value, hex);
             return result.Value;

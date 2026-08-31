@@ -18,7 +18,10 @@ namespace XianXia.Data.Bootstrap
             if (hex.IsFailure)
                 return hex;
             Ch01ScenarioStrategicSetup.EnsureLevelTesterFixtures(world);
-            Ch01ScenarioStrategicSetup.PositionPrototypeBanditPatrolArmy(world);
+            var armies = FormalArmyContentBootstrap.Apply(world, registry, scenario);
+            if (armies.IsFailure)
+                return armies;
+            Ch01ScenarioStrategicSetup.PositionPrototypeTestBanditArmies(world);
             return Result.Success();
         }
     }

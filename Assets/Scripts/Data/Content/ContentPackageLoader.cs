@@ -257,6 +257,9 @@ namespace XianXia.Data.Content
                     case "realmLadder":
                         LoadRealmLadder(item, parsed.Value, registry, report);
                         break;
+                    case "formalArmy":
+                        LoadFormalArmy(item, parsed.Value, registry, report);
+                        break;
                     default:
                         report.Add(ErrorCode.InvalidArgument, "Unknown definition type.", type);
                         break;
@@ -778,7 +781,130 @@ namespace XianXia.Data.Content
                 return;
             }
 
+            if (item.TryGetProperty("initialFormalArmyIds", out var armyIdsNode))
+            {
+                if (armyIdsNode.Kind != JsonValueKind.Array)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "initialFormalArmyIds must be array.", id.ToString());
+                    return;
+                }
+
+                foreach (var armyIdNode in armyIdsNode.Array)
+                {
+                    if (armyIdNode.Kind != JsonValueKind.String || string.IsNullOrWhiteSpace(armyIdNode.String))
+                    {
+                        report.Add(ErrorCode.ContentLoadFailed, "initialFormalArmyIds entries must be strings.", id.ToString());
+                        continue;
+                    }
+
+                    scenario.InitialFormalArmyIds.Add(armyIdNode.String);
+                }
+            }
+
             var reg = registry.RegisterOpeningScenario(scenario);
+            if (reg.IsFailure)
+                report.Add(reg.Error);
+        }
+
+        static void LoadFormalArmy(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.FormalArmyFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var def = new FormalArmyDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", string.Empty),
+                RuntimeArmyId = item.GetString("runtimeArmyId", string.Empty),
+                RuntimeStackId = item.GetString("runtimeStackId", string.Empty),
+                FactionId = item.GetString("factionId", string.Empty),
+                AssemblySiteId = item.GetString("assemblySiteId", string.Empty)
+            };
+
+            if (string.IsNullOrWhiteSpace(def.RuntimeArmyId))
+            {
+                report.Add(ErrorCode.MissingRequiredField, "formalArmy.runtimeArmyId required.", id.ToString());
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(def.RuntimeStackId))
+            {
+                report.Add(ErrorCode.MissingRequiredField, "formalArmy.runtimeStackId required.", id.ToString());
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(def.FactionId))
+            {
+                report.Add(ErrorCode.MissingRequiredField, "formalArmy.factionId required.", id.ToString());
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(def.AssemblySiteId))
+            {
+                report.Add(ErrorCode.MissingRequiredField, "formalArmy.assemblySiteId required.", id.ToString());
+                return;
+            }
+
+            if (!item.TryGetProperty("members", out var membersNode) || membersNode.Kind != JsonValueKind.Array)
+            {
+                report.Add(ErrorCode.MissingRequiredField, "formalArmy.members required array.", id.ToString());
+                return;
+            }
+
+            var leaderCount = 0;
+            foreach (var memberNode in membersNode.Array)
+            {
+                if (memberNode.Kind != JsonValueKind.Object)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "formalArmy.members entries must be objects.", id.ToString());
+                    continue;
+                }
+
+                var memberErrorsBefore = report.Errors.Count;
+                DefinitionSchema.RejectUnknownFields(
+                    memberNode, DefinitionSchema.FormalArmyMemberFields, report, id + ".member");
+                if (report.Errors.Count > memberErrorsBefore)
+                    continue;
+
+                var member = new FormalArmyMemberDefinition
+                {
+                    CharacterDefinitionId = memberNode.GetString("characterDefinitionId", string.Empty),
+                    DisplayName = memberNode.GetString("displayName", string.Empty),
+                    Leader = memberNode.GetBool("leader", false)
+                };
+                if (string.IsNullOrWhiteSpace(member.CharacterDefinitionId))
+                {
+                    report.Add(ErrorCode.MissingRequiredField, "formalArmy.member.characterDefinitionId required.", id.ToString());
+                    continue;
+                }
+
+                if (member.Leader)
+                    leaderCount++;
+                def.Members.Add(member);
+            }
+
+            if (def.Members.Count == 0)
+            {
+                report.Add(ErrorCode.MissingRequiredField, "formalArmy.members must be non-empty.", id.ToString());
+                return;
+            }
+
+            if (leaderCount != 1)
+            {
+                report.Add(
+                    ErrorCode.InvalidArgument,
+                    "formalArmy.members requires exactly one leader.",
+                    id.ToString());
+                return;
+            }
+
+            var reg = registry.RegisterFormalArmy(def);
             if (reg.IsFailure)
                 report.Add(reg.Error);
         }

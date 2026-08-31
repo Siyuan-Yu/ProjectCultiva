@@ -11,7 +11,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Tests
 {
-    /// <summary>LINGER-POS-01..：残留战场再�?/ 退出战�?Hex 回归�?/summary>
+    /// <summary>LINGER-POS-01..：残留战场再�?/ 退出战�?Hex 回归�?/summary>
     public sealed class LingeringExitPositionTests
     {
         const string PlayerFaction = StrategicFactionCatalog.PlayerFactionId;
@@ -61,7 +61,7 @@ namespace XianXia.Tests
             HexCoord hex,
             bool executeOnWin)
         {
-            var result = ArmyStackAdapter.EnsureBanditPatrolArmy(world, NodeA);
+            var result = TestArmyFixtures.EnsureBanditPatrolArmy(world, NodeA);
             Assert.IsTrue(result.IsSuccess);
             ArmyHexTravelService.InitializeArmyAtHex(result.Value, hex);
             Assert.IsTrue(world.Strategic.Armies.TryGet(ArmyStackAdapter.BanditPatrolStackId, out var stack));
@@ -127,7 +127,7 @@ namespace XianXia.Tests
             Assert.AreEqual(
                 BattleHex,
                 offerAnchor,
-                "再进 Offer 必须�?BattleAnchorHex 钉在 canonical lingering hex，而非 spawn Node");
+                "再进 Offer 必须�?BattleAnchorHex 钉在 canonical lingering hex，而非 spawn Node");
 
             StrategicClockFreezeService.BeginOrPromote(
                 world, StrategicClockFreezeReason.ManualEncounter);

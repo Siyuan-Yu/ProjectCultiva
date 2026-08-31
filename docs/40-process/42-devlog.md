@@ -7,7 +7,83 @@
 
 ---
 
-## 2026-08-30 — Phase 5S-B2-2.2 同图手动遭遇装配诊断（待人工复验）
+## 2026-08-31 — Prototype Bandit FormalArmy → Content JSON 迁移（【暂未验收】）
+
+**做了什么**
+- 3 支 Prototype Bandit FormalArmy（荒村山匪 4 / 试炼弱匪 1 / 试炼强匪 3）从 C# 硬生成迁移到 Content JSON 驱动；runtime IDs（`army:formal_bandit_patrol_1` / `army:formal_bandit_patrol_weak` / `army:formal_bandit_casualty_test`）保持完全不变
+- Data 层新增 `FormalArmyDefinition` / `FormalArmyMemberDefinition`；`DefinitionRegistry`、`DefinitionSchema`、`ContentPackageLoader` 增加 `formalArmy` 类型与严格字段校验；`ContentReferenceValidator` 校验成员 character 引用、leader 唯一、runtime id 全局唯一、scenario 引用存在
+- `OpeningScenarioDefinition.InitialFormalArmyIds` 决定实际出生的军队；`FormalArmyContentBootstrap` 按 `initialFormalArmyIds` 复用 `ContentGameStart.BuildSpawnFromDefinition` → `GameStartBootstrap.SpawnIntoWorld` → Faction 指派 → `SetAtSite(assemblySiteId)` → `ArmyService.CreateAuthoredArmy` → `ArmyStackAdapter.EnsureLinkedStackView`；bootstrap 内禁设属性/Realm（只来自 CharacterDefinition）
+- Core 新增 `ArmyService.CreateAuthoredArmy`（Content/seeding 专用，验证全部 Domain invariants，不走玩家组建策略）；`ArmyStackAdapter.SyncBanditStackView` 泛化为 `EnsureLinkedStackView`
+- `Ch01ScenarioStrategicSetup` 删除 `SeedPrototypeBanditArmies`（含 `Armies.Clear()`）；`ArmyStackAdapter` 删除 5 个 EnsureBandit* 方法；**`TestStrategicBootstrap.cs` 整文件删除**；BanditScout 生成路径一并删除
+- 新 Content：`Characters/strategic_bandits.json`（4 个 character，弱匪 凡人 3/1/12/6、强匪 筑基 36/24/150/16 原样迁移）、`Armies/ch01_test_armies.json`；`scenarios.json` 加 `initialFormalArmyIds`；`SCHEMA.md` 记录新类型
+- 刻意保留：`IsTrivialTestEnemyStack` / `IsCasualtyTestEnemyStack` 及 runtime ID 常量（AutoBattle/diagnostics 仍用）；`PositionPrototypeTestBanditArmies` placement policy（仅 TryGet 已存在 army → 放置，不创建）
+- EditMode 测试迁到新 `TestArmyFixtures` helper（纯测试夹具）；
+
+**验证（非 Unity）**
+- Core/Data/Unity/EditMode 四程序集编译 0 error（Unity 官方 rsp 引用）；Content 实载校验 PASS；端到端 `PlayableDayBootstrap.Start(ch01_reference)` 验证 3 支 Army（4/1/3）、runtime IDs、弱匪 Realm=Mortal+Attack3、强匪 Realm=Foundation+Attack36 全部正确
+- 静态 production-reference check：`Assets/Scripts` 中 `EnsureBandit*` / `SeedPrototypeBanditArmies` / `TestStrategicBootstrap` / `test:bandit_` 0 命中；三个 runtime IDs 的实例创建唯一来源为 formalArmy Content bootstrap
+
+**真源**
+- 本轮 devlog（未单独归档 phase 文档）
+
+**状态**
+- 【暂未验收】：Unity 内 10 项验收（开局 3 支 Army／runtime IDs／弱强匪属性／Travel／LocalMap 可见／WORLD_COMBAT／residual marker／Save-Load smoke）待人工
+
+---
+
+## 2026-08-31 — WORLD_COMBAT 战后 residual ownership 修复（【暂未验收】）
+
+**做了什么**
+- 根因：`FormalArmyMemberPresenceSync.DetachMemberAtArmyLocation` 对 downed 成员统一走 `SetAtSite/SetAtWorldPosition`，覆盖了 `EnsureEnemyDownedWorldPresence` 已建立的 AtHex Residual authority，导致 WorldMap 无统一 Downed marker、离开再回来不 rematerialize
+- `DetachMemberAtArmyLocation` 改为 residual-safe：Incapacitated / VisibleCorpse → `StrategicResidualPresenceService.PlaceCharacterAtResidualHex(world, memberId, army.WorldMotion.CurrentHex)` 后 return；living 保持旧行为；无 position 不拿 (0,0) 覆盖
+- `ResolveAndEnd` realWorldCombat 分支重排：Release scope → 三个 Army sync（Attacker/Enemy/Participant）→ **FINAL RESIDUAL AUTHORITY**（EnsureFriendly/EnemyDownedWorldPresence + `AssertFinalResidualAuthority`）→ FinishOfferResolution；assert 仅 DEV/EDITOR 下 Debug.Assert，无 runtime log
+- 无 prototype-specific special case（BanditPatrol/WeakBandit 无特判）；detach 结果与 battle role / sync 顺序无关
+
+**真源**
+- 本轮 devlog
+
+**状态**
+- 【暂未验收】：Case A 荒村山匪 4 弥留 marker=4；Case B 离开再回来 materialize；Case C 弱匪无 regression；Case D 敌军发起 Engagement 全灭；Case E Reinforcement 全灭
+
+---
+
+## 2026-08-31 — Phase 5S WORLD_COMBAT Battle Lifecycle Authority Cleanup（【暂未验收】）
+
+**做了什么**
+- WORLD_COMBAT 只拥有 participant / hostility / combat state / presentation / freeze-postbattle；世界实体存在只属于 PlayerPartyWorldMotion / FormalArmy.WorldMotion / StrategicResidualPresence / LoadedStrategicPopulation
+- `StrategicEncounterSpawner` 新增薄 `PlanFreshWorldCombatManualEncounter`：清 Active Encounter transient（不清 Lingering Registry / Residual / 历史 Hex residual），不走旧 Lingering reuse 分支；`ApplyPending` 增 `freshWorldCombat` 判定（LocalMapResolutionKind WorldSite/Wilderness）
+- `TryPrepareSnapshotEnemyParticipants` / `TryPrepareFormalArmyEncounterEntities` 增 `trackInEncounterScope` 参数：真实 WORLD_COMBAT 传 false（真实 FormalArmy 不再进入 BattlefieldSpawnScope 的 owned-entity 生命周期）；legacy Explicit/stored lingering/AutoBattle 保持 true
+- `OnCombatantDefeated` / `TryMarkFieldCleared` 改为双通道：frozen `BattleParticipantSnapshot`（真实 enemy，`HasCombatCapableEnemyParticipant`）+ tracked spawn（synthetic fallback）；snapshot 增纯 membership helper `IsEnemyParticipant` / `IsSelectedFriendlyParticipant`
+- `StrategicEncounterResolveService.ResolveAndEnd`：realWorldCombat 分支优先（不 Park Lingering）；`RestoreParticipantsAfterBattle` 仅 legacy 走；`ReleaseWorldCombatScopeWithoutRemovingEntities` 改调新增 `ClearCompletedWorldCombatSession`（清 ActiveBattlefieldId/tracked/EngagedPartyIds/SpawnOnNextMapLoad/FieldCleared/ArmyStackId/EncounterLinkId/LingeringLocalMapId/PendingLingeringEnterBattlefieldId；不清 Registry/Residual/Pursuit/BattlefieldLingering）
+- `BattleOfferService.FinishOfferResolution`：`!realWorldCombat` 才写 LingeringBattlefieldRegistry（WORLD_COMBAT residual 走 StrategicResidualPresence）
+- `HostStrategicInterruptPresenter.EnterManualEncounter`：worldCombat → fresh path；legacy 保留 `TryPrepareLingeringLocalMapSession + PlanManualEncounter`；PostBattle 文案去掉“残留战场/再派人进入”旧语义
+- `StrategicEncounterHostilityService` 未改（snapshot+tracked+engaged 已正确）；AutoBattle / ExplicitEncounterMap 本轮保持
+
+**真源**
+- 本轮 devlog
+
+**状态**
+- 【暂未验收】：6 个 Case（无 residual／有 residual／同 Hex 旧 residual+新 living Army／living Army 历史伤亡／我方全倒／ExplicitEncounter smoke）待人工
+
+---
+
+## 2026-08-31 — Lingering Battlefield 特殊入口退役（【暂未验收】）
+
+**做了什么**
+- 产品模型：弥留/尸体 = 真实 Character 的 strategic residual presence（WorldMap marker 纯信息展示，非 Encounter gateway）；residual-only Hex 一律普通移动，不再产生 BattleOffer
+- `HexResidualContextQuery.BuildMenuActionKinds` 只因 ActiveEnemyArmy 产生 `AttackArmy`；`HexRightClickResolver` 重写为 Active living Enemy Army → WorldSite → Move（删除“敌方残留存在但 Runtime 不可用→禁移动”旧规则；`HasEnemyResidualPresentation` 仅信息性）
+- `StrategicTravelDriver.AfterTravelTick` 移除 `ArmyHexLingeringArrivalService.AfterTravelTick` 与 `TryResolvePendingLingeringVisit`（旧 PendingLingering intent 不再自动弹 BattleOffer）；`ArmyHexCommandService.AttackLingeringBattlefield` 标 `[Obsolete]`
+- `HostWorldMapPanel`：Hex/Stack/Avatar 菜单删“攻击/进入残留战场”“追击/再攻”production gateway；residual marker 左键改纯 Inspect（“移动至该格可在 LocalMap 查看现场”）；`DrawArmyStacks` 不再注册 remnant 隐形 hit rect；`TryOpenStackAttackMenu` residual-only stack 直接 return false；`TryOpenPendingLingeringVisitAfterArrival` 等无调用者方法删除；`HostStrategicInterruptPresenter`“去查看”不再自动进残留
+- `HexActiveEnemyArmyQuery`：living FormalArmy 不再因 `HasDownedRemnant` 被排除；raw abstract stack 仍排除 remnant；`BattleParticipantGatheringService` / `BattleInterruptQueue` 的 living member 不再被历史 casualty 过滤
+- 刻意保留：StrategicResidualPresenceService / LoadedStrategicPopulationMaterializer / LingeringBattlefieldRegistry / BattleOfferService lingering 方法 / ArmyHexLingeringArrivalService 等底层兼容（只关产品入口，不删旧 Domain）
+
+**真源**
+- 本轮 devlog
+
+**状态**
+- 【暂未验收】：6 个人工 Case（Enemy residual-only / PlayerParty / Friendly residual / living+casualty / Army 到 residual Hex / End Battle regression）待人工
+
+---
 
 **做了什么**
 - B2-2.1 已人工确认真实 WorldSite LocalMap 与 Active 主控角色正确；敌方 Participants、我方 FormalArmy Participants 仍未见。
