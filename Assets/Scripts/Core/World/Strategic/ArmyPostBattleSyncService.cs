@@ -100,6 +100,62 @@ namespace XianXia.Core.World.Strategic
             }
         }
 
+        /// <summary>
+        /// Phase 5S：战后补齐所有实际参战 FormalArmy 的位置同步（Friendly Support /
+        /// Enemy Reinforcement）。Attacker（SyncAttackerArmyAfterBattle）与 Enemy primary
+        /// （SyncEnemyArmyAfterBattle）已处理，此处跳过避免重复；其余 participant 军团
+        /// 先 Detach 非活员、若仍有 living 成员则 ParkArmyAtBattleAnchor（exact WorldMotion
+        /// commit）+ 同步 Presence。Army 被全灭删除时由 detach/残留逻辑留在 BattleHex。
+        /// </summary>
+        public static void SyncParticipantFormalArmiesAfterBattle(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap)
+        {
+            if (world?.Strategic?.FormalArmies == null || snap == null)
+                return;
+
+            var armyIds = new List<string>(8);
+            ArmyHexBattleAnchorService.CollectParticipantFormalArmyIds(world, snap, armyIds);
+            var primaryEnemyArmyId = ResolvePrimaryEnemyArmyId(world, snap);
+            for (var i = 0; i < armyIds.Count; i++)
+            {
+                var armyId = armyIds[i];
+                if (string.IsNullOrEmpty(armyId))
+                    continue;
+                // Attacker / Enemy primary 由 specialized sync 处理，跳过（idempotent）。
+                if (!string.IsNullOrEmpty(snap.AttackerArmyId) &&
+                    string.Equals(armyId, snap.AttackerArmyId, StringComparison.Ordinal))
+                    continue;
+                if (!string.IsNullOrEmpty(primaryEnemyArmyId) &&
+                    string.Equals(armyId, primaryEnemyArmyId, StringComparison.Ordinal))
+                    continue;
+
+                if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
+                    continue;
+                ArmyService.DetachNonLivingMembersAtBattlefield(world, army);
+                if (!world.Strategic.FormalArmies.TryGet(armyId, out army) || army == null)
+                    continue;
+                if (!HasMacroOrderLivingMember(world, army))
+                    continue;
+                ParkArmyAtBattleAnchor(world, army, snap);
+                ArmyPresenceAdapter.SyncFromArmy(world, army);
+            }
+        }
+
+        static string ResolvePrimaryEnemyArmyId(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap)
+        {
+            var stackId = ResolveEnemyStackId(world, snap);
+            if (string.IsNullOrEmpty(stackId))
+                return string.Empty;
+            if (!world.Strategic.Armies.TryGet(stackId, out var stack) || stack == null)
+                return string.Empty;
+            if (!ArmyStackAdapter.TryGetFormalArmy(world, stack, out var army) || army == null)
+                return string.Empty;
+            return army.ArmyId;
+        }
+
         static bool TryResolveEnemyFormalArmy(
             SimulationWorld world,
             BattleParticipantSnapshot snap,

@@ -45,10 +45,15 @@ namespace XianXia.Core.World.Strategic
                 defender.WorldMotion.LocationKind == FormalArmyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(defender.WorldMotion.SiteId))
             {
+                // Phase 5S-B2-3.2：WorldSite 接战必须携带冻结的 BattleHex（multi-hex Site 不
+                // 能用 AnchorHex / PresenceHex 代替 frozen battle location）。
+                if (!engagement.HasBattleLocation)
+                    return BattleLocalMapResolution.Failed(null, "WorldSite 接战缺少冻结的战斗 Hex。");
                 return Resolve(world, new BattleLocalMapLocation
                 {
                     Kind = BattleLocalMapResolutionKind.WorldSite,
-                    SiteId = defender.WorldMotion.SiteId
+                    SiteId = defender.WorldMotion.SiteId,
+                    BattleHex = engagement.BattleLocation
                 });
             }
 

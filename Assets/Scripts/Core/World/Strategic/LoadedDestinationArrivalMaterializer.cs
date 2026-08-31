@@ -460,8 +460,10 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 if (party != null && party.IsMember(id))
                     continue;
-                if (ArmyService.TryGetArmyForCharacter(world, id, out _))
-                    continue;
+                // Phase 5S-B2-3.1：FormalArmy Local presentation 是派生缓存
+                // （World authority = FormalArmy.WorldMotion），LocalMap unload 可以安全 release；
+                // 下一张正确地图由 LoadedStrategicPopulationMaterializer 重新 rematerialize。
+                // 不清 FormalArmy.WorldMotion、不 disband、不修改成员 WorldPresence 世界位置。
                 if (world.BackgroundCharacterTravel != null &&
                     world.BackgroundCharacterTravel.IsTraveling(id))
                     continue;

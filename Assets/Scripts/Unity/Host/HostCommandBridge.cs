@@ -780,10 +780,12 @@ namespace XianXia.Unity.Host
 
                 if (kind == PlayerCommandKind.Stop)
                 {
-                    // Phase 5C: 玩家 Stop 必须能夺回主控 —— LocalVisible AutoTravel 的
-                    // IsMoving + ExecutionMode 不受 Domain Stop 命令影响，若不清除，下一帧
-                    // TickLocalVisibleAutoTravelMovement 会重新下令。保留位置、不清 WorldPosition。
-                    CancelLocalVisibleAutoTravelIfActive();
+                    // Phase 5R-B6.7（P0）：Stop 只在 subject 是 PlayerParty Active Character 时才
+                    // 取消整队 LocalVisible AutoTravel（玩家主动夺回主控）。Follower / 其他可控角色
+                    // 的内部 Stop（RebindAllFollowers / ClearDirectControlFor / OrderFollowerTowardActive）
+                    // 只停该角色自己 —— 绝不能 CancelTravel / CompleteMove / 清掉整队 travel plan。
+                    if (!active.IsNone && id == active)
+                        CancelLocalVisibleAutoTravelIfActive();
                     var moveController = hostBootstrap != null
                         ? hostBootstrap.GetComponent<HostMoveController>()
                         : GetComponent<HostMoveController>();

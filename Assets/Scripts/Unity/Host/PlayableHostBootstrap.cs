@@ -35,6 +35,11 @@ namespace XianXia.Unity.Host
         [SerializeField] string characterRosterId = "base:roster_level_tester";
         [HideInInspector]
         [SerializeField] string preferredMapLayoutId = "";
+        // Phase 5S-B2-3.1：Loaded 战略人口 reconcile 的 playable bounds 缓存（按 ActiveMapLayoutId
+        // 键控，仅地图切换时重建一次 WalkGrid，StepTick 每帧复用；避免刷日志 / 每帧重建）。
+        string _loadedStrategicBoundsMapId = string.Empty;
+        WildernessLocalWorldProjection.WildernessLocalMapBounds? _loadedStrategicWildernessBounds;
+        WorldSiteSpatialMapping.WorldSiteLocalMapBounds? _loadedStrategicSiteBounds;
         [HideInInspector]
         [SerializeField] TextAsset mapLayoutJsonOverride;
 
@@ -1109,6 +1114,9 @@ namespace XianXia.Unity.Host
             world.LocalMap.OverworldMapLayoutId = string.Empty;
             world.LocalMap.ClearPlayableBounds();
             preferredMapLayoutId = string.Empty;
+            _loadedStrategicBoundsMapId = string.Empty;
+            _loadedStrategicWildernessBounds = null;
+            _loadedStrategicSiteBounds = null;
             _session.PreferredMapLayoutId = string.Empty;
             if (world.Strategic?.Encounter != null)
                 world.Strategic.Encounter.ActiveBattlefieldId = string.Empty;
@@ -1397,6 +1405,17 @@ namespace XianXia.Unity.Host
                 PlaceLegacyFocusCharactersOnLocalMap(world, onEncounterMap);
             }
 
+            // Phase 5S-B2-3.2：Friendly battle tactical assembly 必须在正确 Battle LocalMap
+            // 加载后（PlayerParty 已按 BattleHex materialize）、enemy ApplyPending 前执行。
+            // participant authority 用当前 frozen BattleParticipantSnapshot（不清扫 SupportArea、
+            // 不重新 gather）；ExplicitEncounterMap 与战后（Participants.Clear 后 kind 重置）不触发。
+            if (!onEncounterMap &&
+                StrategicEncounterSpawner.HasActiveRealLocalMapManualEncounter(world))
+            {
+                StrategicEncounterSpawner.MaterializeFriendlyParticipantsForRealLocalMap(
+                    world, _session.PlayerParty);
+            }
+
             if (sameMapWorldCombat)
                 LogWorldCombatAssembly(world, targetMap, activeMapBeforePresentation, "Before");
 
@@ -1424,6 +1443,9 @@ namespace XianXia.Unity.Host
                 }
 
                 // Wilderness／Site：确保 Materialize 后的 Party 视图已刷出
+                // Phase 5S-B2-3.1：补齐 FormalArmy / Residual 战略人口 —— Player 走到 Army A 的
+                // Hex / WorldSite → load LocalMap → Army A members 当场出现，无需 Battle。
+                ReconcileLoadedStrategicPopulation();
                 _session.RefreshViewableEntityIds();
                 entityViewSpawner?.Rebuild(_session);
                 FlushLoadedDestinationArrivals();
@@ -1757,6 +1779,73 @@ namespace XianXia.Unity.Host
             LoadedDestinationArrivalMaterializer.ClearPendingPresentationFlush();
         }
 
+        /// <summary>
+        /// Phase 5S-B2-3.1：当前 Loaded surface LocalMap 的 playable bounds 缓存（按 map id 键控）。
+        /// 仅地图切换时重建一次；StepTick 每帧复用，避免重建 WalkGrid / 刷日志。
+        /// </summary>
+        void ResolveLoadedStrategicBounds(SimulationWorld world)
+        {
+            var mapId = world?.LocalMap?.ActiveMapLayoutId?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(mapId))
+                return;
+            if (string.Equals(mapId, _loadedStrategicBoundsMapId, System.StringComparison.Ordinal))
+                return;
+
+            _loadedStrategicWildernessBounds = null;
+            _loadedStrategicSiteBounds = null;
+            _loadedStrategicBoundsMapId = mapId;
+
+            var walk = ResolveWalkGrid();
+            if (walk == null)
+                return;
+
+            if (PlayerPartyLocalMapMaterializationService.IsWildernessLocalExpand(world))
+            {
+                _loadedStrategicWildernessBounds =
+                    WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
+                        walk.OriginX, walk.OriginY, walk.CellSize, walk.Width, walk.Height);
+            }
+            else if (!string.IsNullOrWhiteSpace(world.PartyWorld?.SiteId))
+            {
+                _loadedStrategicSiteBounds =
+                    WorldSiteSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
+                        walk.OriginX, walk.OriginY, walk.CellSize, walk.Width, walk.Height);
+            }
+        }
+
+        /// <summary>
+        /// Phase 5S-B2-3.1：reconcile 当前 Loaded LocalMap 的 FormalArmy / Residual 战略人口。
+        /// 返回是否发生变化（Added / Removed）。只改变 LocalMap occupant + presentation，
+        /// 不修改 WorldMotion / WorldPresence / PlayerParty。
+        /// </summary>
+        public bool ReconcileLoadedStrategicPopulation()
+        {
+            if (!_session.IsInitialized)
+                return false;
+
+            var world = _session.World;
+            ResolveLoadedStrategicBounds(world);
+            var result = LoadedStrategicPopulationMaterializer.ReconcileLoadedStrategicPopulation(
+                world,
+                _session.PlayerParty,
+                _loadedStrategicWildernessBounds,
+                _loadedStrategicSiteBounds);
+            return result.Changed;
+        }
+
+        /// <summary>Phase 5S-B2-3.1：reconcile + 条件视图刷新（Changed 才 Refresh/Spawn/Prune）。</summary>
+        public void RefreshLoadedStrategicPopulation()
+        {
+            if (!_session.IsInitialized || entityViewSpawner == null)
+                return;
+            if (!ReconcileLoadedStrategicPopulation())
+                return;
+
+            _session.RefreshViewableEntityIds();
+            entityViewSpawner.SpawnMissingVisibleViews(_session);
+            entityViewSpawner.PruneHiddenViews(_session);
+        }
+
         public void StepTick()
         {
             if (!_session.IsInitialized)
@@ -1773,6 +1862,15 @@ namespace XianXia.Unity.Host
                 _status = "TICK FAILED: " + tick.Error;
                 Debug.LogError("[PlayableHost] " + tick.Error, this);
                 return;
+            }
+
+            // Phase 5S-B2-3.1：FormalArmy 世界旅行在 TickOnce 内推进 → 移入 / 移出当前 Hex
+            // 后下一 tick 战略人口自动出现 / 消失（只 changed 才刷新视图）。
+            var strategicPopulationChanged = ReconcileLoadedStrategicPopulation();
+            if (strategicPopulationChanged)
+            {
+                _session.RefreshViewableEntityIds();
+                entityViewSpawner?.SpawnMissingVisibleViews(_session);
             }
 
             // 尸体腐烂后立刻从 LocalMap 卸表现（大地图靠 WorldPresence 已抹

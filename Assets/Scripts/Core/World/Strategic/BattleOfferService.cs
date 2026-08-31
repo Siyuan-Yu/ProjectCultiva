@@ -1064,10 +1064,13 @@ namespace XianXia.Core.World.Strategic
                 (world.Strategic.Encounter.BattlefieldLingering ||
                  StrategicEncounterResolveService.HasLingeringBattlefieldRemnants(world)))
             {
-                LingeringBattlefieldRegistry.CommitActiveSession(
-                    world, world.Strategic.Participants);
-                world.Strategic.Encounter.BattlefieldLingering =
-                    world.Strategic.LingeringBattlefields.Count > 0;
+                if (!WasActiveSessionAlreadyCommitted(world, world.Strategic.Participants))
+                {
+                    LingeringBattlefieldRegistry.CommitActiveSession(
+                        world, world.Strategic.Participants);
+                    world.Strategic.Encounter.BattlefieldLingering =
+                        world.Strategic.LingeringBattlefields.Count > 0;
+                }
             }
 
             world.Strategic.Participants.Clear();
@@ -1077,6 +1080,32 @@ namespace XianXia.Core.World.Strategic
             return Result.Success();
         }
 
+
+        /// <summary>
+        /// Phase 5S-B2-3.1 double-commit guard: a battle (same Registry hex + same
+        /// Participants.OfferId) already committed by ParkLingeringBattlefield must not
+        /// be committed again - the second empty commit would ClearTrackedIds and wipe
+        /// the saved tracked IDs. No existing battlefield, or a different OfferId at the
+        /// same hex (a new battle), still allows commit/update.
+        /// </summary>
+        static bool WasActiveSessionAlreadyCommitted(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap)
+        {
+            if (snap == null || string.IsNullOrEmpty(snap.OfferId))
+                return false;
+            if (!ArmyHexBattleAnchorService.TryGetBattleAnchorHex(snap, out var hex))
+                return false;
+            if (!world.Strategic.LingeringBattlefields.TryGetAtHex(hex, out var existing) ||
+                existing == null)
+                return false;
+            if (string.IsNullOrEmpty(existing.Participants.OfferId))
+                return false;
+            return string.Equals(
+                existing.Participants.OfferId,
+                snap.OfferId,
+                System.StringComparison.Ordinal);
+        }
         public static bool TryPromoteNextQueuedOffer(SimulationWorld world)
         {
             if (world?.Strategic == null)

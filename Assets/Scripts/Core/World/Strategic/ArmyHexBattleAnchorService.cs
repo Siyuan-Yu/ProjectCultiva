@@ -100,11 +100,123 @@ namespace XianXia.Core.World.Strategic
                         "ParkArmyAtBattleAnchor");
                 }
 #endif
-                ArmyHexTravelService.InitializeArmyAtHex(army, hex);
+                CommitArmyAtExactBattleHex(world, army, hex);
                 return;
             }
 
             army.State = FormalArmyState.Idle;
+        }
+
+        /// <summary>
+        /// Phase 5S：把 FormalArmy 以具体 BattleHex 战略 commit（精确格，不落 WorldSite.AnchorHex）。
+        /// WorldMotion 为 WorldMap 权威位置（WorldPosition + CurrentHex=exact hex），
+        /// legacy CurrentHex/DestinationHex 同步，Army 停为 Idle，成员 Presence 同步到战场。
+        /// 不使用 InitializeAtWorldSite —— 多格 WorldSite 不能吸回 AnchorHex。
+        /// </summary>
+        public static void CommitArmyAtExactBattleHex(
+            SimulationWorld world,
+            FormalArmy army,
+            HexCoord hex)
+        {
+            if (world == null || army == null || army.WorldMotion == null)
+                return;
+
+            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            HexMath.ToWorldPosition(hex, hexSize, out var worldX, out var worldY);
+            army.UsesHexStrategicPosition = true;
+            army.WorldMotion.SetAtWorldPosition(new WorldVec2(worldX, worldY), hex);
+            army.SyncLegacyFromWorldMotion();
+            army.State = FormalArmyState.Idle;
+            ArmyPresenceAdapter.SyncFromArmy(world, army);
+        }
+
+        /// <summary>
+        /// Phase 5S：手动战正式进入时，把所有实际参战 FormalArmy 一次性 commit 到 BattleAnchorHex
+        /// （MandatoryFriendly / selected OptionalFriendly / EnemyPrimary / EnemyReinforcement，
+        /// 含 AttackerArmyId / DefenderArmyId safety fallback；FormalArmyId 缺失时经 ArmyStackId 解析）。
+        /// Snapshot 是冻结 authority：不清扫 SupportArea、不重新 gather participant。
+        /// 这一步代表战略意义的“确认参战 → 已进入 BattleHex”，可清除该 Army 原有 travel/order path。
+        /// </summary>
+        public static void CommitParticipantFormalArmiesAtBattleAnchor(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap)
+        {
+            if (world == null || snap == null)
+                return;
+            if (!TryGetBattleAnchorHex(snap, out var anchorHex))
+                return;
+            if (world.HexWorld == null || !world.HexWorld.Contains(anchorHex))
+                return;
+            if (world.Strategic?.FormalArmies == null)
+                return;
+
+            var armyIds = new System.Collections.Generic.List<string>(8);
+            CollectParticipantFormalArmyIds(world, snap, armyIds);
+            for (var i = 0; i < armyIds.Count; i++)
+            {
+                var armyId = armyIds[i];
+                if (string.IsNullOrEmpty(armyId))
+                    continue;
+                if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
+                    continue;
+                CommitArmyAtExactBattleHex(world, army, anchorHex);
+            }
+        }
+
+        /// <summary>从冻结 Snapshot 收集全部实际参战 FormalArmyId（去重，含 stack 兼容解析）。</summary>
+        public static void CollectParticipantFormalArmyIds(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap,
+            System.Collections.Generic.List<string> into)
+        {
+            into?.Clear();
+            if (into == null || snap == null)
+                return;
+
+            for (var i = 0; i < snap.Records.Count; i++)
+            {
+                var rec = snap.Records[i];
+                if (rec.EntityId.IsNone)
+                    continue;
+                if (rec.Kind != BattleParticipantKind.MandatoryFriendly &&
+                    !(rec.Kind == BattleParticipantKind.OptionalFriendly && rec.Selected) &&
+                    rec.Kind != BattleParticipantKind.EnemyPrimary &&
+                    rec.Kind != BattleParticipantKind.EnemyReinforcement)
+                    continue;
+
+                var armyId = ResolveParticipantFormalArmyId(world, rec);
+                if (string.IsNullOrEmpty(armyId) || into.Contains(armyId))
+                    continue;
+                into.Add(armyId);
+            }
+
+            // Direct combatant safety fallback
+            AddUnique(into, snap.AttackerArmyId);
+            AddUnique(into, snap.DefenderArmyId);
+        }
+
+        static void AddUnique(System.Collections.Generic.List<string> into, string armyId)
+        {
+            if (string.IsNullOrEmpty(armyId) || into.Contains(armyId))
+                return;
+            into.Add(armyId);
+        }
+
+        static string ResolveParticipantFormalArmyId(
+            SimulationWorld world,
+            BattleParticipantRecord rec)
+        {
+            if (rec == null)
+                return string.Empty;
+            if (!string.IsNullOrEmpty(rec.FormalArmyId))
+                return rec.FormalArmyId;
+            if (string.IsNullOrEmpty(rec.ArmyStackId) || world == null || world.Strategic?.Armies == null)
+                return string.Empty;
+            if (!world.Strategic.Armies.TryGet(rec.ArmyStackId, out var stack) || stack == null)
+                return string.Empty;
+            return ArmyStackAdapter.TryGetFormalArmy(world, stack, out var army) && army != null
+                ? army.ArmyId
+                : string.Empty;
         }
 
         public static void ParkStackAtBattleAnchor(

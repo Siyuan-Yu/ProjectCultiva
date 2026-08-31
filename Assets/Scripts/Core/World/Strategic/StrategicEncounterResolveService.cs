@@ -25,12 +25,24 @@ namespace XianXia.Core.World.Strategic
             RestoreParticipantsAfterBattle(world, snap);
 
             var linger = HasLingeringBattlefieldRemnants(world);
+            // Phase 5S-B2-3.1：区分真实世界战（WorldSite / Wilderness）与 Explicit EncounterMap。
+            var realWorldCombat = snap != null &&
+                                  (snap.LocalMapResolutionKind == BattleLocalMapResolutionKind.WorldSite ||
+                                   snap.LocalMapResolutionKind == BattleLocalMapResolutionKind.Wilderness);
             if (linger)
             {
                 ParkLingeringBattlefield(world, snap);
                 world.Strategic.ClearBattleOffer();
                 if (snap != null)
                     snap.IsAutoSettlement = false;
+            }
+            else if (realWorldCombat)
+            {
+                // Phase 5S-B2-3.1：真实 LocalMap 世界战 —— 即使无弥留／尸体，也绝不
+                // FinalizeRemoval 仍活着的真实敌军／现场实体（living survivor 必须继续存在）。
+                // 只释放 Encounter scope 引用，实体保留在世界上由普通 LocalMap population 显示。
+                ReleaseWorldCombatScopeWithoutRemovingEntities(world);
+                world.Strategic.ClearBattleOffer();
             }
             else
             {
@@ -41,6 +53,8 @@ namespace XianXia.Core.World.Strategic
             NormalizePresenceAfterEncounterExit(world);
             ArmyPostBattleSyncService.SyncAttackerArmyAfterBattle(world, snap);
             ArmyPostBattleSyncService.SyncEnemyArmyAfterBattle(world, snap);
+            // Phase 5S：补齐 support / reinforcement FormalArmy（跳过已处理的 Attacker/Enemy primary）
+            ArmyPostBattleSyncService.SyncParticipantFormalArmiesAfterBattle(world, snap);
             StrategicPursuitService.ClearPursuit(world);
             WorldTravelService.SyncPartyFocus(world);
             BattleOfferService.FinishOfferResolution(world);
@@ -254,8 +268,17 @@ namespace XianXia.Core.World.Strategic
 
                 // 强制参战、已上场／已 Engaged 的支�?�?BattleAnchor�?
                 // 仅勾选、未上场的远处支�?�?�?PreBattle（禁止瞬移到接战点，也禁止把路上人送回家）
+                // Phase 5S：真实 LocalMap 手动战（WorldSite/Wilderness）中 selected OptionalFriendly
+                // 已被 materialize 进本场战斗，属于实际参战者 —— 同样必须落 BattleAnchor，
+                // 禁止走 PreBattle 回战前位置。
+                var realLocalMapBattle =
+                    snap.LocalMapResolutionKind == BattleLocalMapResolutionKind.WorldSite ||
+                    snap.LocalMapResolutionKind == BattleLocalMapResolutionKind.Wilderness;
                 var mustAnchor =
                     rec.Kind == BattleParticipantKind.MandatoryFriendly ||
+                    (rec.Kind == BattleParticipantKind.OptionalFriendly &&
+                     rec.Selected &&
+                     realLocalMapBattle) ||
                     world.Strategic.Encounter.IsEngaged(rec.EntityId) ||
                     wp.Mode == PartyWorldPresenceMode.InEncounter ||
                     (rec.PreBattle != null &&
@@ -380,6 +403,28 @@ namespace XianXia.Core.World.Strategic
             rt.ClearLingeringBattleAnchorHex();
             rt.ClearAllLingeringBattlefieldHexes();
             rt.ClearAllLingeringBattlefields();
+        }
+
+        /// <summary>
+        /// Phase 5S-B2-3.1：WORLD_COMBAT 非破坏性 release —— 只解除 Encounter scope 对
+        /// tracked spawn 的引用并清空 Active 遭遇会话，<b>不</b> FinalizeRemoval 任何仍存在的
+        /// gameplay entity（living survivor / downed / visible corpse 都是真实世界实体）。
+        /// 这些实体由 LoadedStrategicPopulationMaterializer 作为普通 LocalMap population 显示。
+        /// </summary>
+        static void ReleaseWorldCombatScopeWithoutRemovingEntities(SimulationWorld world)
+        {
+            var scoped = BattlefieldSpawnScope.GetMutableSpawnList(world);
+            if (scoped != null)
+            {
+                for (var i = scoped.Count - 1; i >= 0; i--)
+                {
+                    var id = new EntityId(scoped[i]);
+                    BattlefieldSpawnScope.RemoveTrackedSpawnAt(world, i);
+                    // 不删除实体：living survivor / downed / corpse 继续存在。
+                }
+            }
+
+            world.Strategic.Encounter?.ClearActiveEncounterSession();
         }
 
         /// <summary>

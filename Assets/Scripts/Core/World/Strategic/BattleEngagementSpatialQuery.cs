@@ -124,11 +124,31 @@ namespace XianXia.Core.World.Strategic
 
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(motion.SiteId) &&
-                world?.Strategic?.Sites != null &&
-                world.Strategic.Sites.TryResolveSitePresenceHex(motion.SiteId, out var siteHex))
+                world?.Strategic?.Sites != null)
             {
-                hex = siteHex;
-                return true;
+                // Phase 5S-B2-3.2：WorldSite 内具体 footprint Hex 必须从 motion.WorldPosition
+                // 即时派生（canonical 权威），不再把 Site PresenceHex 当作正常 Player battle
+                // eligibility authority（避免 Active 实际在 Battle SupportArea 但 PresenceHex
+                // 不在 SupportArea → PlayerPartyIncluded=false → 手动按钮消失）。
+                if (world.Strategic.Sites.TryGet(motion.SiteId, out var site) && site != null)
+                {
+                    var footprintHexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                        ? world.HexWorld.HexSize
+                        : 1f;
+                    if (WorldSiteSpatialMapping.TryResolveDerivedFootprintHex(
+                            site, motion.WorldPosition, footprintHexSize, out var footprintHex))
+                    {
+                        hex = footprintHex;
+                        return true;
+                    }
+                }
+
+                // 仅 legacy / canonical 数据缺失时 fallback（PresenceHex），不作正常 authority。
+                if (world.Strategic.Sites.TryResolveSitePresenceHex(motion.SiteId, out var siteHex))
+                {
+                    hex = siteHex;
+                    return true;
+                }
             }
 
             var hexSize = world?.HexWorld != null && world.HexWorld.HexSize > 0f

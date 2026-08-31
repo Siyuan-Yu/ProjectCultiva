@@ -230,14 +230,26 @@ namespace XianXia.Unity.Host
 
             var onEncounterMap = IsActiveStrategicEncounterMap(world);
 
-            // 真实 LocalMap 上的世界战斗：参战／作用域实体是常驻人口的补集，不能先被
-            // WorldSite 常驻人口门禁挡掉；仍要求当前战斗、当前地图作用域与已有落点。
+            // 真实 LocalMap 上的世界战斗：参战者（当前 battle participant + 有效 LocalMap 落点）
+            // 不能先被 WorldSite 常驻人口门禁挡掉。participant 语义复用
+            // StrategicEncounterHostilityService（BattleParticipantSnapshot + engaged + tracked spawn），
+            // 不再要求 engaged 与 tracked 同时成立 —— Enemy 常 tracked=true/engaged=false，
+            // Friendly FormalArmy 常 engaged=true/tracked=false，AND 会让两边都被门禁隐藏。
+            // 仍限定当前战斗 LocalMap（Encounter.LingeringLocalMapId == 激活图）＋ 有效 PresentationOverride。
             if (!onEncounterMap &&
-                world.Strategic?.Encounter != null &&
-                world.Strategic.Encounter.IsEngaged(id) &&
-                IsStrategicEncounterSpawn(world, id) &&
+                IsCurrentRealLocalMapBattle(world) &&
+                StrategicEncounterHostilityService.IsVisibleOnEncounterLocalMap(world, id) &&
                 entity.TryGet<EntityLocationComponent>(out var realMapBattleLoc) &&
                 realMapBattleLoc.HasPresentationOverride)
+                return true;
+
+            // Phase 5S-B2-3.1：普通战略人口（FormalArmy living member / Strategic Residual）
+            // 已作为正常 LocalMap population materialize 到当前 Loaded Real LocalMap。
+            // 物理在场 → 继续显示，不依赖 Battle Encounter / ParticipantSnapshot /
+            // BattlefieldSpawnScope —— 这是「实体物理上就在这张地图」，不是战斗临时
+            // visibility exception。必须在 WorldSite 硬门禁之前判定。
+            if (!onEncounterMap &&
+                LoadedStrategicPopulationQuery.IsMaterializedStrategicCharacterOnLoadedMap(world, id))
                 return true;
 
             // WorldSite LocalMap 硬门禁：有宏Presence 的实体只按「是否物理在当前 Site」显示
@@ -417,6 +429,31 @@ namespace XianXia.Unity.Host
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// 是否正处于「真实 LocalMap 上的 active manual strategic combat」：
+        /// Encounter 已解析到真实 LocalMap（EnterManualEncounter worldCombat 路径写
+        /// Encounter.LingeringLocalMapId），且该图 == 当前激活 LocalMap，且战斗仍在进行
+        /// （有 engaged party 或场上 spawn）。用于把本场 battle participant 从 WorldSite
+        /// 常驻人口门禁豁免；其它地图／普通 WorldSite 不豁免（防战略角色泄漏）。
+        /// </summary>
+        static bool IsCurrentRealLocalMapBattle(SimulationWorld world)
+        {
+            if (world?.Strategic?.Encounter == null || world.LocalMap == null || world.PartyWorld == null)
+                return false;
+            var rt = world.Strategic.Encounter;
+            var battleMap = rt.LingeringLocalMapId;
+            if (string.IsNullOrEmpty(battleMap))
+                return false;
+            var activeMap = world.LocalMap.ActiveMapLayoutId;
+            if (string.IsNullOrEmpty(activeMap) ||
+                string.IsNullOrEmpty(world.PartyWorld.LocalMapId) ||
+                !string.Equals(activeMap, world.PartyWorld.LocalMapId, System.StringComparison.Ordinal))
+                return false;
+            if (!string.Equals(battleMap, activeMap, System.StringComparison.Ordinal))
+                return false;
+            return rt.HasEngagedParty || rt.SpawnedEntityIds.Count > 0;
         }
 
         static bool IsActiveStrategicEncounterMap(SimulationWorld world)

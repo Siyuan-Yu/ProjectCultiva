@@ -78,6 +78,12 @@ namespace XianXia.Core.World.Strategic
         public string DefenderArmyId { get; set; } = string.Empty;
         public string EncounterLocalMapId { get; set; } =
             StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+        /// <summary>
+        /// 本场 Manual Battle 的地点解析类别（Phase 5S：结束战斗时按类别决定
+        /// 原地留在真实 LocalMap 还是回 ExplicitEncounterMap 旧路径）。
+        /// </summary>
+        public BattleLocalMapResolutionKind LocalMapResolutionKind { get; set; }
+            = BattleLocalMapResolutionKind.ExplicitEncounterMap;
         public string LastBattleSummary { get; set; } = string.Empty;
         public bool PlayerWon { get; set; }
         public bool IsAutoSettlement { get; set; }
@@ -95,6 +101,7 @@ namespace XianXia.Core.World.Strategic
             AttackerArmyId = string.Empty;
             DefenderArmyId = string.Empty;
             EncounterLocalMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
+            LocalMapResolutionKind = BattleLocalMapResolutionKind.ExplicitEncounterMap;
             LastBattleSummary = string.Empty;
             PlayerWon = false;
             IsAutoSettlement = false;
@@ -209,6 +216,7 @@ namespace XianXia.Core.World.Strategic
             AttackerArmyId = src.AttackerArmyId;
             DefenderArmyId = src.DefenderArmyId;
             EncounterLocalMapId = src.EncounterLocalMapId;
+            LocalMapResolutionKind = src.LocalMapResolutionKind;
             LastBattleSummary = src.LastBattleSummary;
             PlayerWon = src.PlayerWon;
             IsAutoSettlement = src.IsAutoSettlement;

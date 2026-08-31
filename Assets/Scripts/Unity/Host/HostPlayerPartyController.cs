@@ -1318,28 +1318,39 @@ namespace XianXia.Unity.Host
                 if (Party.IsActive(id))
                     continue;
 
+                // Formation slot 按 Party.Members 稳定顺序分配：每遇到一个非 Active follower
+                // 立即确定它自己的 slot；之后即使因 melee/farm/moving/cooldown 被 continue，
+                // 也不会改变其他 follower 的 slot（修复：原实现 followerIndex++ 在多个
+                // early continue 之后，slot 会随"本帧谁需要 repath"漂移）。
+                var offset = FollowerOffset(followerIndex);
+                followerIndex++;
+
                 if (_melee != null && _melee.IsAttacker(id))
                     continue;
                 if (_chop != null && _chop.IsAttacker(id))
                     continue;
                 if (_farm != null && _farm.IsFarming(id))
                     continue;
-                if (_move.IsMoving(id))
-                    continue;
 
-                if (!ShouldRepathFollower(id))
-                    continue;
-
+                // 已跟上 Active（距 formation goal 足够近）：不再生成新 path。
+                // 不做 stale movement 全局 Cancel —— 无法安全区分 Follow path 与
+                // schedule 等特殊行为 path，保持最小改动（仅周期性 repath）。
                 if (!_spawner.Registry.TryGet(id, out var view) || view == null)
                     continue;
 
-                var offset = FollowerOffset(followerIndex++);
                 var goal = activePos + offset;
                 goal.z = HostPresentationSpace.EntityZ;
                 var dist = Vector2.Distance(
                     new Vector2(view.transform.position.x, view.transform.position.y),
                     new Vector2(activePos.x + offset.x, activePos.y + offset.y));
                 if (dist <= followStopDistance)
+                    continue;
+
+                // 周期性 repath throttle：moving follower 也允许在 followRepathInterval 后
+                // 读取 Active 最新位置重算 formation goal（修复：原实现以
+                // _move.IsMoving(id) 永久跳过，导致持续 AutoTravel 时 follower 停在
+                // Active 的历史位置）。OrderEntityToWorldPoint 内部 ClearPath 重建，无叠加。
+                if (!ShouldRepathFollower(id))
                     continue;
 
                 _move.OrderEntityToWorldPoint(id, goal, null, issueStop: false);
@@ -1374,7 +1385,11 @@ namespace XianXia.Unity.Host
 
             var goal = activeView.transform.position;
             goal.z = HostPresentationSpace.EntityZ;
-            _move.OrderEntityToWorldPoint(follower, goal, null, issueStop: true);
+            // Phase 5R-B6.7（P0）：普通 Follow / Rebind 是内部 presentation 追随，不是玩家 Stop 命令。
+            // issueStop:true 会发 Domain Stop（StopOne → commandBridge → CancelTravel），
+            // 错误取消整队 PlayerParty LocalVisible AutoTravel。OrderEntityToWorldPoint(issueStop:false)
+            // 仍会 ClearPath/ClearPending 并重建 Local A* path（见 HostMoveController:426）。
+            _move.OrderEntityToWorldPoint(follower, goal, null, issueStop: false);
             _nextFollowRepath[follower.Value] = Time.unscaledTime + followRepathInterval;
         }
 

@@ -107,15 +107,28 @@ namespace XianXia.Core.World.Strategic
             switch (loadedContext.Kind)
             {
                 case LoadedLocalMapKind.WorldSite:
-                    return presence.Mode == PartyWorldPresenceMode.AtSite &&
-                           !string.IsNullOrEmpty(presence.SiteId) &&
-                           loadedContext.Site != null &&
-                           string.Equals(
-                               presence.SiteId,
-                               loadedContext.Site.SiteId,
-                               System.StringComparison.Ordinal);
+                    // AtSite（含成员残留在 Site）或 AtHex 落在 Site footprint 内任一 OccupiedHex
+                    // 都属于当前真实 Site LocalMap（Multi-Hex 必须整个 footprint 同属一张图，不用 Anchor）。
+                    if (presence.Mode == PartyWorldPresenceMode.AtSite &&
+                        !string.IsNullOrEmpty(presence.SiteId) &&
+                        loadedContext.Site != null &&
+                        string.Equals(
+                            presence.SiteId,
+                            loadedContext.Site.SiteId,
+                            System.StringComparison.Ordinal))
+                        return true;
+                    if (presence.Mode == PartyWorldPresenceMode.AtHex &&
+                        presence.UsesHexPresence &&
+                        loadedContext.Site != null &&
+                        loadedContext.Site.OccupiesHex(presence.ResidualHex))
+                        return true;
+                    return false;
 
                 case LoadedLocalMapKind.WildernessHex:
+                    if (presence.Mode == PartyWorldPresenceMode.AtHex &&
+                        presence.UsesHexPresence &&
+                        presence.ResidualHex.Equals(loadedContext.WildernessHex))
+                        return true;
                     if (presence.Mode != PartyWorldPresenceMode.AtWorldPosition ||
                         !presence.HasContinuousWorldPosition)
                         return false;

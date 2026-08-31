@@ -492,6 +492,91 @@ namespace XianXia.Core.World.Strategic
         /// <summary>
         /// �?ParticipantSnapshot 敌军记录�?LocalMap（Primary + Reinforcement EntityId）�?
         /// </summary>
+        /// <summary>
+        /// 是否当前处于「真实 LocalMap 手动遭遇」：WorldSite / Wilderness 且 ManualEncounter
+        /// 活跃（Encounter.HasEngagedParty）。ExplicitEncounterMap 不算；战后 Participants.Clear
+        /// 会把 LocalMapResolutionKind 重置回 ExplicitEncounterMap，此 gate 自动失效。
+        /// </summary>
+        public static bool HasActiveRealLocalMapManualEncounter(SimulationWorld world)
+        {
+            if (world?.Strategic?.Participants == null)
+                return false;
+            var kind = world.Strategic.Participants.LocalMapResolutionKind;
+            if (kind != BattleLocalMapResolutionKind.WorldSite &&
+                kind != BattleLocalMapResolutionKind.Wilderness)
+                return false;
+            return BattleOfferService.HasActiveManualEncounter(world);
+        }
+
+        /// <summary>
+        /// 真实 LocalMap 手动遭遇（worldCombat）：在正确 Battle LocalMap 已加载后、enemy
+        /// ApplyPending 前，给本场实际 selected Friendly（MandatoryFriendly + 勾选的
+        /// OptionalFriendly，PlayerParty 之外）补 battle tactical presentation。
+        /// 使用原始 EntityId / Character Entity —— 禁止 clone、禁止加入 PlayerParty、禁止为了
+        /// visibility 塞进 BattlefieldSpawnScope（该 scope 有 encounter-spawn/remnant cleanup
+        /// 语义，不能污染真实 Friendly FormalArmy member）。
+        /// 本场 active real battle map 上，battle tactical assembly 覆盖旧 normal-world local
+        /// override（上一轮 Normal Army population 可能已给 member 建过 PresentationOverride）；
+        /// 只补本场所需落点，不修改 Canonical WorldPosition / FormalArmy ownership。
+        /// PlayerParty 成员跳过 —— 已由 PlayerParty materializer 按 BattleHex 放置。
+        /// 位置锚点与敌军同一 StartLocation 基准，slot 用独立偏移带避免与敌军重叠。
+        /// </summary>
+        public static void MaterializeFriendlyParticipantsForRealLocalMap(
+            SimulationWorld world,
+            PlayerPartyRuntime party)
+        {
+            if (world?.Strategic == null)
+                return;
+            var snap = world.Strategic.Participants;
+            if (snap == null)
+                return;
+
+            var startId = string.Empty;
+            var baseX = 0f;
+            var baseZ = 0f;
+            if (world.WorldRegion != null)
+            {
+                startId = world.WorldRegion.StartLocationId ?? string.Empty;
+                if (world.WorldRegion.TryGet(startId, out var startLoc) && startLoc != null)
+                {
+                    baseX = startLoc.PresentationX;
+                    baseZ = startLoc.PresentationZ;
+                }
+            }
+
+            var slot = 0;
+            for (var i = 0; i < snap.Records.Count; i++)
+            {
+                var rec = snap.Records[i];
+                if (rec.EntityId.IsNone)
+                    continue;
+                if (rec.Kind != BattleParticipantKind.MandatoryFriendly &&
+                    !(rec.Kind == BattleParticipantKind.OptionalFriendly && rec.Selected))
+                    continue;
+
+                var id = rec.EntityId;
+                // 已属于 PlayerParty 的成员由既有 party materialization 显示，不重新定位。
+                if (party != null && party.IsMember(id))
+                    continue;
+                if (!world.Entities.TryGet(id, out var entity) || entity == null)
+                    continue;
+
+                if (!world.LocalMap.ContainsOccupant(id))
+                    world.LocalMap.AddOccupant(id);
+
+                if (!entity.TryGet<EntityLocationComponent>(out var loc) || loc == null)
+                {
+                    loc = new EntityLocationComponent();
+                    entity.AddComponent(loc);
+                }
+
+                // 本场 active real battle map：覆盖旧 normal-world local override（不再跳过）。
+                loc.LocationId = startId;
+                loc.SetPresentationOverride(baseX - 4.2f - slot * 1.1f, baseZ + 2.2f);
+                slot++;
+            }
+        }
+
         static int TryPrepareSnapshotEnemyParticipants(
             SimulationWorld world,
             BattleParticipantSnapshot storedParticipants,

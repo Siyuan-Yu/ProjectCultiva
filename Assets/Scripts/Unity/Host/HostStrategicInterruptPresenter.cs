@@ -5,6 +5,7 @@ using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Simulation;
+using XianXia.Core.World;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
@@ -309,6 +310,11 @@ namespace XianXia.Unity.Host
             var savedSpeed = freeze.HasSavedHostPresentation
                 ? freeze.SavedSpeedMultiplier
                 : (bootstrap != null ? bootstrap.EffectiveSpeedMultiplier() : 1);
+            // Phase 5S：Resolve 前 capture（FinishOfferResolution 会清 Participants）。
+            var completionKind = world.Strategic.Participants.LocalMapResolutionKind;
+            var completeInPlace =
+                completionKind == BattleLocalMapResolutionKind.WorldSite ||
+                completionKind == BattleLocalMapResolutionKind.Wilderness;
             var resolved = StrategicEncounterResolveService.ResolveAndEnd(world);
                 if (resolved.IsSuccess)
                 {
@@ -320,15 +326,30 @@ namespace XianXia.Unity.Host
                         if (bootstrap != null)
                             bootstrap.ApplySavedSpeedMultiplier(savedSpeed);
                         bootstrap.WorldMapPanel?.NotifyAfterBattleResolved(world);
-                        bootstrap.WorldMapPanel?.Open();
-                        bootstrap.WorldMapPanel?.RefreshStrategicPresentation(world);
-                        if (BattleOfferService.HasLingeringBattlefield(world))
+                        if (completeInPlace)
                         {
-                            bootstrap.ApplyPartyWorldSitePresentation(closeWorldMap: false);
-                            ShowToast("已退出战斗。弥留者仍在接战点，战场未消失。");
+                            // Phase 5S：普通真实 LocalMap 手动战 —— 原地结束：清除
+                            // Combat/PostBattle 状态、EndFreeze、恢复 pause/speed、
+                            // 保留当前 LocalMap session 与现场位置。禁止 Open WorldMap /
+                            // ApplyPartyWorldSitePresentation / ReloadLocalMap / Rebuild。
+                            // Phase 5S-B2-3.1：battle context 已释放 → 立即把参战
+                            // FormalArmy / Residual 转成普通 LocalMap population
+                            // （保留战斗落点、不 teleport），并轻量刷新视图。
+                            bootstrap?.RefreshLoadedStrategicPopulation();
+                            ShowToast("战斗结束，世界时间已恢复。");
                         }
                         else
-                            ShowToast("遭遇已结束，返回战略层。");
+                        {
+                            bootstrap.WorldMapPanel?.Open();
+                            bootstrap.WorldMapPanel?.RefreshStrategicPresentation(world);
+                            if (BattleOfferService.HasLingeringBattlefield(world))
+                            {
+                                bootstrap.ApplyPartyWorldSitePresentation(closeWorldMap: false);
+                                ShowToast("已退出战斗。弥留者仍在接战点，战场未消失。");
+                            }
+                            else
+                                ShowToast("遭遇已结束，返回战略层。");
+                        }
                     }
                     else
                     {
@@ -492,7 +513,7 @@ namespace XianXia.Unity.Host
                         listY += 6f;
                         GUI.Label(
                             new Rect(box.x + 16f, listY, box.width - 32f, 20f),
-                            "可选支援军团（勾选加入；战后回原位置）",
+                            "可选支援军团（勾选加入；参战后进入战场格）",
                             _body);
                         listY += 20f;
                         anyOptional = true;
@@ -533,7 +554,7 @@ namespace XianXia.Unity.Host
                     listY += 6f;
                     GUI.Label(
                         new Rect(box.x + 16f, listY, box.width - 32f, 20f),
-                        "可选支援（勾选加入；战后回原位置）",
+                        "可选支援（勾选加入；参战后进入战场格）",
                         _body);
                     listY += 20f;
                     anyOptional = true;
@@ -667,6 +688,14 @@ namespace XianXia.Unity.Host
                     return;
                 }
 
+                // Phase 5S-B2-3.2：Snapshot BattleAnchorHex 是 frozen authority，缺它不能入场。
+                if (!ArmyHexBattleAnchorService.TryGetBattleAnchorHex(
+                        session.World.Strategic.Participants, out _))
+                {
+                    ShowToast("手动战斗缺少冻结的 BattleAnchorHex。");
+                    return;
+                }
+
                 localMapId = worldResolution.LocalMapId;
             }
 
@@ -743,6 +772,43 @@ namespace XianXia.Unity.Host
                 Math.Max(1, power / Math.Max(1, memberCount)),
                 markPartyInEncounter: !worldCombat);
             StrategicPursuitService.ClearPursuitForEngagedKeepEnRoute(session.World, engaged);
+            // Phase 5S：冻结本场 Manual Battle 的地点解析类别（真实 LocalMap 或 ExplicitEncounterMap）。
+            session.World.Strategic.Participants.LocalMapResolutionKind = worldCombat
+                ? worldResolution.Kind
+                : BattleLocalMapResolutionKind.ExplicitEncounterMap;
+            if (worldCombat)
+                session.World.Strategic.Participants.EncounterLocalMapId = worldResolution.LocalMapId;
+            // Phase 5S-B2-3.2：Manual Battle 入场 = 所有实际参战战略单位（PlayerParty + 全部
+            // 参战 FormalArmy）正式 commit 到 BattleAnchorHex。这是正式改变旧的
+            // 「Active 不 teleport / PlayerParty 保持 SupportArea」policy —— 选择 Manual Battle
+            // 本身就代表 PlayerParty 从 SupportArea 正式加入 BattleHex。
+            // Friendly battle presentation 不再在此处提前执行，移入 map-loaded assembly 阶段
+            // （PlayableHostBootstrap.ApplyPartyWorldSitePresentation 的 PlayerParty materialize
+            // 之后、enemy ApplyPending 之前）。
+            if (worldCombat)
+            {
+                // 必须在 commit 前 capture 旧 physical loaded surface（Wilderness context 读
+                // PlayerPartyTravel.CurrentHex，commit 后已指向 BattleHex）。
+                LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(
+                    session.World, out var previousLoaded);
+
+                var commitResult = ManualBattleWorldCommitService.CommitWorldCombatParticipants(
+                    session.World,
+                    session.PlayerParty,
+                    session.World.Strategic.Participants,
+                    worldResolution);
+                if (commitResult.IsFailure)
+                {
+                    ShowToast("战斗入场 commit 失败：" + commitResult.Error.Message);
+                    return;
+                }
+
+                // physical surface 变化（S→B 即使共用同一 MapLayoutId 也按 Hex/Site 语义判定）
+                // 时重置旧 LocalMap domain session（background occupant / army presentation /
+                // residual / stale local override 清掉），再进入 Battle surface。
+                if (ManualBattleWorldCommitService.PhysicalSurfaceChanged(previousLoaded, worldResolution))
+                    WorldTravelService.ApplyLocalMapSessionFromFocus(session.World);
+            }
             var map = string.IsNullOrWhiteSpace(localMapId)
                 ? BattleOfferService.ResolveActiveEncounterLocalMapId(session.World)
                 : localMapId.Trim();
