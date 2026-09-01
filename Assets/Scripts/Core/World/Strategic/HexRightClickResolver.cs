@@ -39,7 +39,8 @@ namespace XianXia.Core.World.Strategic
             bool hasSelectedLivingArmy,
             bool hasSelectedMovableArmy,
             bool passableHex,
-            FormalArmy selectedArmy = null)
+            FormalArmy selectedArmy = null,
+            bool canPlayerPartyAttackTarget = false)
         {
             var resolution = new HexRightClickResolution
             {
@@ -57,7 +58,11 @@ namespace XianXia.Core.World.Strategic
             resolution.HasEnemyResidualPresentation =
                 !string.IsNullOrEmpty(ctx.EnemyResidualSummary);
 
-            var hasAttackArmy = hasSelectedLivingArmy && ctx.HasActiveEnemyArmy;
+            // Phase 5S-B2-3.5：PlayerParty 选中且 CanIssueAttackOrder 成立时同样产生 AttackArmy ——
+            // 菜单与距离解耦（与 FormalArmy 一致）：无论 PlayerParty 在同 Hex / 邻 Hex / 5+ Hex 外，
+            // 只要目标是合法 living Enemy FormalArmy 就显示「攻击军队」；点击后由 command service
+            // 决定立即接战或先追击（远距离不再只显示普通旅行）。
+            var hasAttackArmy = (hasSelectedLivingArmy || canPlayerPartyAttackTarget) && ctx.HasActiveEnemyArmy;
 
             resolution.MenuActions.Clear();
             if (hasAttackArmy)

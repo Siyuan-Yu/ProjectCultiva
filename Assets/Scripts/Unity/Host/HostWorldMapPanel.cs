@@ -2494,6 +2494,11 @@ namespace XianXia.Unity.Host
                                  selectedArmy != null &&
                                  selectedArmy.State != FormalArmyState.Garrisoned;
             var attackerFaction = ResolveAttackerFactionForHexContext(world);
+            // Phase 5S-B2-3.5：PlayerParty 选中时只要 CanIssueAttackOrder 成立就产生 AttackArmy 菜单
+            //（与距离解耦，同 FormalArmy）；点击后由 command service 决定立即接战或先追击。
+            var canPlayerPartyAttackTarget =
+                _worldMapSelection.Kind == HostWorldMapSelectionKind.PlayerParty &&
+                TryResolvePlayerPartyAttackEligibility(world, pickedHex, attackerFaction);
             var resolution = HexRightClickResolver.Resolve(
                 world,
                 pickedHex,
@@ -2501,7 +2506,8 @@ namespace XianXia.Unity.Host
                 hasSelectedArmy,
                 hasMovableArmy,
                 true,
-                selectedArmy);
+                selectedArmy,
+                canPlayerPartyAttackTarget);
 
             UnityEngine.Debug.Log("[GatewayB1Trace] 3 Resolve action=" + resolution.Action +
                 " statusHint=" + (resolution.StatusHint ?? string.Empty) +
@@ -2675,6 +2681,29 @@ namespace XianXia.Unity.Host
             return ResolvePlayerFactionId(world);
         }
 
+        /// <summary>
+        /// Phase 5S-B2-3.5：PlayerParty 选中态下，目标 Hex 主敌是否可被 PlayerParty 下达攻击命令。
+        /// 仅用 CanIssueAttackOrder（目标/派系/战争 gate，不检查距离）—— 菜单与距离解耦；
+        /// 点击后由 AttackArmy 决定立即接战或先追击。
+        /// </summary>
+        bool TryResolvePlayerPartyAttackEligibility(
+            XianXia.Core.Simulation.SimulationWorld world,
+            HexCoord hex,
+            string attackerFaction)
+        {
+            if (world?.Strategic == null)
+                return false;
+            var party = bootstrap?.Session?.PlayerParty;
+            if (party == null || !party.HasActive)
+                return false;
+            var ctx = HexResidualContextQuery.Build(world, hex, attackerFaction);
+            var target = ctx?.PrimaryActiveEnemyArmy;
+            if (target == null || string.IsNullOrEmpty(target.FormalArmyId))
+                return false;
+            return PlayerPartyStrategicCombatCommandService.CanIssueAttackOrder(
+                world, party, target.FormalArmyId, out _);
+        }
+
         void DrawHexContextMenu(XianXia.Core.Simulation.SimulationWorld world)
         {
             if (!_hexMenuOpen || _hexMenuResolution == null)
@@ -2755,6 +2784,21 @@ namespace XianXia.Unity.Host
                                 attackerArmy.State != FormalArmyState.Garrisoned &&
                                 target != null &&
                                 target.CanAttack;
+                    // Phase 5S-B2-3.5：PlayerParty 选中态下的 AttackArmy 资格（菜单已由 resolver 判过，
+                    // 这里按同 gate CanIssueAttackOrder 保持 enabled，与距离无关 —— 远距离也会
+                    // 出现攻击菜单，点击后由 command service 决定立即接战或先追击）。
+                    if (!enabled &&
+                        _worldMapSelection.Kind == HostWorldMapSelectionKind.PlayerParty &&
+                        target != null &&
+                        !string.IsNullOrEmpty(target.FormalArmyId))
+                    {
+                        var party = bootstrap?.Session?.PlayerParty;
+                        enabled = party != null &&
+                                  party.HasActive &&
+                                  PlayerPartyStrategicCombatCommandService.CanIssueAttackOrder(
+                                      world, party, target.FormalArmyId, out _);
+                    }
+
                     if (target != null && !string.IsNullOrEmpty(target.DisplayName))
                         return "攻击军队·" + target.DisplayName;
                     if (target != null && !target.CanAttack && !string.IsNullOrEmpty(target.BlockReason))
@@ -2902,6 +2946,10 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
+            // Phase 5S-B2-3.5：新的普通 Move order 代表玩家明确意图 → 取消既有 Attack pursuit，
+            // 否则 pursuit tick 下一帧会把路线抢回 Enemy。
+            PlayerPartyHexPursuitService.CancelPursuit(world, party);
+
             var move = PlayerPartyHexTravelService.BeginTravel(
                 world, party, cmd.DestinationHex, cmd.TargetSiteId ?? string.Empty);
             if (move.IsFailure)
@@ -3038,6 +3086,8 @@ namespace XianXia.Unity.Host
 
             // 复用稳定 Direct Target WorldSite Ingress：普通 PlayerParty → Gateway 旅行
             //（到达 Gateway = AtSite + Travel Complete；不保留 B continuation，不自动出关）。
+            // Phase 5S-B2-3.5：新的 Gateway 旅行也是新 Move order → 取消既有 Attack pursuit。
+            PlayerPartyHexPursuitService.CancelPursuit(world, party);
             var move = PlayerPartyHexTravelService.BeginTravel(
                 world, party, _gatewayConfirmApproachHex, _gatewayConfirmSiteId);
             if (move.IsSuccess)
@@ -3168,6 +3218,35 @@ namespace XianXia.Unity.Host
             if (!world.Strategic.Armies.TryGet(target.StackId, out var stack) || stack == null)
             {
                 _status = "无法解析倒下角色位置";
+                return;
+            }
+
+            // Phase 5S-B2-3.4：按 selection authority 分流 —— PlayerParty 攻击走新命令 service，
+            // 不在此处拼 PendingEngagement / Gather / freeze；FormalArmy 保持既有 ArmyHexCommandService。
+            if (_worldMapSelection.Kind == HostWorldMapSelectionKind.PlayerParty)
+            {
+                var party = bootstrap?.Session?.PlayerParty;
+                if (party == null || !party.HasActive || string.IsNullOrEmpty(target.FormalArmyId))
+                {
+                    _status = "PlayerParty 无法发起攻击（缺少目标军团）。";
+                    return;
+                }
+
+                var result = PlayerPartyStrategicCombatCommandService.AttackArmy(
+                    world, party, target.FormalArmyId);
+                if (!result.IsSuccess)
+                {
+                    _status = FormatFail(result);
+                    return;
+                }
+
+                // Phase 5S-B2-3.5：Host 只发 Attack Enemy Army —— 立即接战或先追击由 Core 决定。
+                if (world.Strategic.HasBattleOffer)
+                    _status = "接战弹窗已打开";
+                else if (PlayerPartyHexPursuitService.HasPursuit(world))
+                    _status = "PlayerParty 开始追击 " + (target.DisplayName ?? "目标军团");
+                else
+                    _status = "PlayerParty 已发起攻击";
                 return;
             }
 

@@ -61,6 +61,24 @@ namespace XianXia.Core.World.Strategic
         /// </summary>
         public HexCoord FinalDestinationHex { get; private set; }
         public string FinalDestinationSiteId { get; private set; } = string.Empty;
+
+        /// <summary>
+        /// Phase 5S-B2-3.5：PlayerParty 追击目标 FormalArmy 的 strategic order metadata。
+        /// 不是第二份 position authority（WorldPosition / CurrentHex / HexPath 仍是唯一物理真源），
+        /// 只表达「正在追击哪个 target」；pursuit 每 tick 由 PlayerPartyHexPursuitService 驱动：
+        /// 目标移动时 retarget、进入 Defender SupportArea 时立即转为 PendingEngagement。
+        /// 生命周期完全由 PlayerPartyHexPursuitService 管理（BeginAttackArmy 设置 / CancelPursuit
+        /// 清除）；CompleteMove / ClearMovementKeepMembers 不清，避免 contact 流程的 CancelTravel
+        /// 误清 pursuit intent。Save→Load 后 Movement 恢复 Idle，pursuit target 亦清空（见
+        /// StrategicSnapshotHelper.RestorePlayerPartyTravel）。
+        /// </summary>
+        public string AttackOrderTargetArmyId { get; private set; } = string.Empty;
+
+        public void SetAttackOrder(string targetArmyId) =>
+            AttackOrderTargetArmyId = targetArmyId ?? string.Empty;
+
+        public void ClearAttackOrder() => AttackOrderTargetArmyId = string.Empty;
+
         public int SegmentIndex { get; private set; }
         public float SegmentProgress { get; private set; }
         public bool HasPosition { get; private set; }
@@ -117,6 +135,7 @@ namespace XianXia.Core.World.Strategic
         {
             _hexPath.Clear();
             _travelingMembers.Clear();
+            AttackOrderTargetArmyId = string.Empty;
             SegmentIndex = 0;
             SegmentProgress = 0f;
             StepRemainingTicks = 0;

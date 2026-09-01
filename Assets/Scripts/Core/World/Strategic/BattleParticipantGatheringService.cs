@@ -63,9 +63,52 @@ namespace XianXia.Core.World.Strategic
                     BattleParticipantInclusionReason.SupportAreaArmy);
             }
 
-            TryGatherPlayerParty(world, engagement, party, partyRosterFallback, supportArea);
+            if (engagement.InitiatorKind == BattleInitiatorKind.PlayerParty)
+                TryGatherDirectPlayerPartyInitiator(
+                    world, engagement, party, partyRosterFallback, supportArea);
+            else
+                TryGatherPlayerParty(world, engagement, party, partyRosterFallback, supportArea);
             engagement.PlayerInclusionTrace.PlayerIncludedAfterGathering = engagement.PlayerPartyIncluded;
             BattleParticipantSpatialGuard.ValidateAfterGathering(world, engagement, party);
+        }
+
+        /// <summary>
+        /// Phase 5S-B2-3.4：PlayerParty 是 DirectInitiator（不是普通 SupportAreaPlayer）。
+        /// 成员资格与 Support 路径一致（living、非 FormalArmy、committed Hex ∈ frozen SupportArea），
+        /// 但 IncludedReason = DirectInitiator。Active Character 必须在 SupportArea 内；
+        /// 若 Active 都不在 SupportArea，由调用方（TryBeginPlayerPartyEngagement）拒绝整个 engagement。
+        /// </summary>
+        static void TryGatherDirectPlayerPartyInitiator(
+            SimulationWorld world,
+            PendingEngagementRuntime engagement,
+            PlayerPartyRuntime party,
+            IReadOnlyList<EntityId> partyRosterFallback,
+            BattleEngagementSupportArea supportArea)
+        {
+            if (party != null && party.Members != null && party.Members.Count > 0)
+            {
+                TryIncludeEligiblePartyMembers(
+                    world,
+                    engagement,
+                    party.Members,
+                    party,
+                    supportArea,
+                    BattleParticipantInclusionReason.DirectInitiator,
+                    "GatherAndLock.DirectPlayerPartyInitiator");
+                return;
+            }
+
+            if (partyRosterFallback == null || partyRosterFallback.Count == 0)
+                return;
+
+            TryIncludeEligiblePartyMembers(
+                world,
+                engagement,
+                partyRosterFallback,
+                world.Strategic.PlayerPartyContext,
+                supportArea,
+                BattleParticipantInclusionReason.DirectInitiator,
+                "GatherAndLock.DirectPlayerPartyInitiator");
         }
 
         static void TryGatherPlayerParty(
@@ -83,6 +126,7 @@ namespace XianXia.Core.World.Strategic
                     party.Members,
                     party,
                     supportArea,
+                    BattleParticipantInclusionReason.SupportAreaPlayer,
                     "GatherAndLock.PlayerParty");
                 return;
             }
@@ -96,6 +140,7 @@ namespace XianXia.Core.World.Strategic
                 partyRosterFallback,
                 world.Strategic.PlayerPartyContext,
                 supportArea,
+                BattleParticipantInclusionReason.SupportAreaPlayer,
                 "GatherAndLock.PartyRosterFallback");
         }
 
@@ -105,6 +150,7 @@ namespace XianXia.Core.World.Strategic
             IReadOnlyList<EntityId> candidates,
             PlayerPartyRuntime partyContext,
             BattleEngagementSupportArea supportArea,
+            string inclusionReason,
             string writeSource)
         {
             var members = new List<EntityId>(candidates.Count);
@@ -127,7 +173,7 @@ namespace XianXia.Core.World.Strategic
             {
                 engagement.SetPlayerPartyMembers(
                     members,
-                    BattleParticipantInclusionReason.SupportAreaPlayer,
+                    inclusionReason,
                     writeSource);
             }
         }

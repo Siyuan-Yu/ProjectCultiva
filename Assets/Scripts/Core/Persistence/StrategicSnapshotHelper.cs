@@ -659,6 +659,9 @@ namespace XianXia.Core.Persistence
                 ? world.HexWorld.HexSize
                 : 1f;
             var motion = world.PlayerPartyTravel;
+            // Phase 5S-B2-3.5：pursuit target 与普通 PlayerParty travel 同契约 —— Save→Load 后
+            // Movement 恢复 Idle，pursuit 亦清空（不单独引入更强 persistence）。
+            motion.ClearAttackOrder();
             if (travel.LocationKind == (int)PlayerPartyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(travel.SiteId))
             {

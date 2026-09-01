@@ -44,6 +44,137 @@ namespace XianXia.Core.World.Strategic
                 world, defenderArmyId, out var defenderCommittedHex);
 
             var supportArea = BattleEngagementSupportArea.ResolveAndFreeze(world, defenderArmyId);
+            var primaryEnemyFaction = ResolvePrimaryEnemyFaction(
+                world, attackerArmyId, defenderArmyId, primaryEnemyStack, attackerIsPlayer);
+
+            return CommitEngagement(
+                world,
+                party,
+                attackerArmyId,
+                defenderArmyId,
+                primaryEnemyStack,
+                seedMandatoryAttackers,
+                offerId,
+                triggerReason,
+                initiatorCommittedHex,
+                defenderCommittedHex,
+                supportArea,
+                BattleInitiatorKind.FormalArmy,
+                attackerArmyId,
+                attackerIsPlayer,
+                defenderIsPlayer,
+                playerFaction,
+                primaryEnemyFaction,
+                involvesPlayer,
+                out resolvedWithoutPlayerPrompt);
+        }
+
+        /// <summary>
+        /// Phase 5S-B2-3.4：PlayerParty 作为直接 Initiator 成立 PendingEngagement。
+        /// 不伪造 FormalArmyId：AttackerFormalArmyId = ""，InitiatorFormalArmyId = ""，
+        /// DecisionSubject = PlayerParty，Retreat 落回接战前合法位置（PreEngagementLegalLocation）。
+        /// 空间 trigger = CanTriggerPlayerPartyEngagement（PlayerParty committed Hex ∈ Defender SupportArea）。
+        /// 后续 Participant Gathering / Snapshot / Offer 全部复用既有主链（TryBeginEngagement 同一套）。
+        /// </summary>
+        public static bool TryBeginPlayerPartyEngagement(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            string defenderArmyId,
+            ArmyStack primaryEnemyStack,
+            string offerId,
+            out bool resolvedWithoutPlayerPrompt)
+        {
+            resolvedWithoutPlayerPrompt = false;
+            if (world?.Strategic == null)
+                return false;
+            if (party == null || !party.HasActive)
+                return false;
+
+            if (!BattleEngagementTriggerService.CanTriggerPlayerPartyEngagement(
+                    world,
+                    party,
+                    defenderArmyId,
+                    out _))
+                return false;
+
+            if (!BattleEngagementSpatialQuery.TryGetCommittedPartyHex(
+                    world, party, out var initiatorCommittedHex))
+                return false;
+            BattleEngagementSpatialQuery.TryGetCommittedArmyHex(
+                world, defenderArmyId, out var defenderCommittedHex);
+
+            var supportArea = BattleEngagementSupportArea.ResolveAndFreeze(world, defenderArmyId);
+            var playerFaction = world.Strategic.PlayerFactionId ?? string.Empty;
+            var enemyFaction = string.Empty;
+            if (world.Strategic.FormalArmies.TryGet(defenderArmyId, out var defender) &&
+                defender != null)
+                enemyFaction = defender.FactionId ?? string.Empty;
+            if (string.IsNullOrEmpty(enemyFaction))
+                enemyFaction = primaryEnemyStack?.FactionId ?? string.Empty;
+
+            var committed = CommitEngagement(
+                world,
+                party,
+                string.Empty,
+                defenderArmyId,
+                primaryEnemyStack,
+                party.Members,
+                offerId,
+                BattleEngagementTriggerService.ReasonAdjacentToBattleArea,
+                initiatorCommittedHex,
+                defenderCommittedHex,
+                supportArea,
+                BattleInitiatorKind.PlayerParty,
+                string.Empty,
+                true,
+                false,
+                playerFaction,
+                enemyFaction,
+                true,
+                out resolvedWithoutPlayerPrompt);
+            if (!committed)
+                return false;
+
+            // 直接 combatant invariant：Active Character 必须实际被成功加入。
+            // 若 Active 都不在 SupportArea，整个 PlayerParty engagement 不成立。
+            var engagement = world.Strategic.PendingEngagement;
+            if (!engagement.PlayerPartyIncluded ||
+                !engagement.ContainsLockedPartyMember(party.ActiveCharacterId))
+            {
+                engagement.Clear();
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// 双方共享的 Engagement 建立核心：frozen SupportArea / BattleLocation / defender hex /
+        /// EngagementId / faction / initiator+decision subject / GatherAndLock / snapshot lifecycle。
+        /// 两个薄入口（FormalArmy / PlayerParty）只负责各自的 trigger、空间解析与 initiator 字段。
+        /// </summary>
+        static bool CommitEngagement(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            string attackerFormalArmyId,
+            string defenderFormalArmyId,
+            ArmyStack primaryEnemyStack,
+            IReadOnlyList<EntityId> seedMandatoryAttackers,
+            string offerId,
+            string triggerReason,
+            HexCoord initiatorCommittedHex,
+            HexCoord defenderCommittedHex,
+            BattleEngagementSupportArea supportArea,
+            BattleInitiatorKind initiatorKind,
+            string initiatorFormalArmyId,
+            bool initiatorIsPlayerSide,
+            bool defenderIsPlayer,
+            string primaryPlayerFactionId,
+            string primaryEnemyFactionId,
+            bool involvesPlayer,
+            out bool resolvedWithoutPlayerPrompt)
+        {
+            resolvedWithoutPlayerPrompt = false;
             var engagement = world.Strategic.PendingEngagement;
             engagement.Clear();
             engagement.EngagementId = string.IsNullOrEmpty(offerId)
@@ -53,29 +184,37 @@ namespace XianXia.Core.World.Strategic
             if (!supportArea.HasValue)
             {
                 engagement.SetBattleLocation(BattleEngagementHexDistance.ResolveBattleLocationHex(
-                    world, attackerArmyId, defenderArmyId));
+                    world, attackerFormalArmyId, defenderFormalArmyId));
             }
 
             engagement.SetTriggerSpatialSnapshot(
                 triggerReason,
                 initiatorCommittedHex,
                 defenderCommittedHex);
-            engagement.AttackerFormalArmyId = attackerArmyId ?? string.Empty;
-            engagement.DefenderFormalArmyId = defenderArmyId ?? string.Empty;
-            engagement.PrimaryPlayerFactionId = playerFaction;
-            engagement.PrimaryEnemyFactionId = ResolvePrimaryEnemyFaction(
-                world, attackerArmyId, defenderArmyId, primaryEnemyStack, attackerIsPlayer);
+            engagement.AttackerFormalArmyId = attackerFormalArmyId ?? string.Empty;
+            engagement.DefenderFormalArmyId = defenderFormalArmyId ?? string.Empty;
+            engagement.PrimaryPlayerFactionId = primaryPlayerFactionId ?? string.Empty;
+            engagement.PrimaryEnemyFactionId = primaryEnemyFactionId ?? string.Empty;
             engagement.InvolvesPlayerSide = involvesPlayer;
             engagement.RequiresPlayerDecision = involvesPlayer;
 
-            engagement.InitiatorKind = BattleInitiatorKind.FormalArmy;
-            engagement.InitiatorFormalArmyId = attackerArmyId ?? string.Empty;
-            engagement.InitiatorIsPlayerSide = attackerIsPlayer;
+            engagement.InitiatorKind = initiatorKind;
+            engagement.InitiatorFormalArmyId = initiatorFormalArmyId ?? string.Empty;
+            engagement.InitiatorIsPlayerSide = initiatorIsPlayerSide;
             engagement.SetInitiatorEngagementLocation(
-                BattleEngagementHexDistance.ResolveInitiatorEngagementLocation(
-                    world, engagement.InitiatorFormalArmyId));
+                initiatorKind == BattleInitiatorKind.FormalArmy
+                    ? BattleEngagementHexDistance.ResolveInitiatorEngagementLocation(
+                        world, engagement.InitiatorFormalArmyId)
+                    : BattleEngagementHexDistance.ResolvePlayerPartyInitiatorEngagementLocation(
+                        world, party));
 
-            ResolveDecisionSubject(engagement, attackerIsPlayer, defenderIsPlayer, attackerArmyId, defenderArmyId);
+            ResolveDecisionSubject(
+                engagement,
+                initiatorKind,
+                initiatorIsPlayerSide,
+                defenderIsPlayer,
+                attackerFormalArmyId,
+                defenderFormalArmyId);
             engagement.DecisionSubjectRetreatLocation = CaptureDecisionSubjectRetreatLocation(
                 world, party, engagement);
 
@@ -146,11 +285,20 @@ namespace XianXia.Core.World.Strategic
 
         static void ResolveDecisionSubject(
             PendingEngagementRuntime engagement,
+            BattleInitiatorKind initiatorKind,
             bool attackerIsPlayer,
             bool defenderIsPlayer,
             string attackerArmyId,
             string defenderArmyId)
         {
+            if (initiatorKind == BattleInitiatorKind.PlayerParty)
+            {
+                // PlayerParty Initiator：DecisionSubject = PlayerParty，不伪造 FormalArmyId。
+                engagement.DecisionSubjectKind = BattleDecisionSubjectKind.PlayerParty;
+                engagement.DecisionSubjectFormalArmyId = string.Empty;
+                return;
+            }
+
             if (attackerIsPlayer)
             {
                 engagement.DecisionSubjectKind = BattleDecisionSubjectKind.FormalArmy;

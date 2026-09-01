@@ -1864,6 +1864,12 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            // Phase 5S-B2-3.5：PlayerParty pursuit tick（Core 无 party runtime，故在 Host 驱动）。
+            // TickOnce 内 ArmyHexTravelService.AdvanceAll 与 PlayerPartyHexTravelService.AdvanceAll
+            // 均已推进 → target.CurrentHex 为最新；先检查 contact（进入 SupportArea 即接战），
+            // 未接触则 target 移动 / Player 停下时自动 retarget。
+            PlayerPartyHexPursuitService.AfterTravelTick(_session.World, _session.PlayerParty);
+
             // Phase 5S-B2-3.1：FormalArmy 世界旅行在 TickOnce 内推进 → 移入 / 移出当前 Hex
             // 后下一 tick 战略人口自动出现 / 消失（只 changed 才刷新视图）。
             var strategicPopulationChanged = ReconcileLoadedStrategicPopulation();

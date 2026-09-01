@@ -144,6 +144,13 @@ namespace XianXia.Core.Persistence
             for (var i = 0; i < src.PlayerPartyMemberIds.Count; i++)
                 partyMembers.Add(new XianXia.Core.Domain.Ids.EntityId(src.PlayerPartyMemberIds[i]));
             engagement.SetPlayerPartyMembers(partyMembers);
+            // Phase 5S-B2-3.4：PlayerParty Initiator 加载后 IncludedReason 恢复为 DirectInitiator
+            // （locked members 已持久化，无需重新 Gather；reason 从 InitiatorKind 推导，不加新 DTO 字段）。
+            if (engagement.InitiatorKind == BattleInitiatorKind.PlayerParty &&
+                engagement.PlayerPartyIncluded)
+            {
+                engagement.PlayerInclusionReason = BattleParticipantInclusionReason.DirectInitiator;
+            }
 
             engagement.DecisionSubjectRetreatLocation = new PreEngagementLegalLocation
             {

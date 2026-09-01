@@ -349,6 +349,68 @@ namespace XianXia.Core.World.Strategic
                 world, party, enemy, enemyStackId, offerTitle, attackerArmyId, lingeringHex);
         }
 
+        /// <summary>
+        /// Phase 5S-B2-3.4: PlayerParty active attack on a living Enemy FormalArmy
+        /// (BattleInitiator V1). PlayerParty is an independent strategic subject: it does
+        /// not form a FormalArmy and never fabricates AttackerArmyId.
+        /// Validate -&gt; TryBeginPlayerPartyEngagement (frozen BattleAnchorHex / SupportArea /
+        /// DirectInitiator) -&gt; shared offer tail (LocalMapResolver / BuildSnapshot / labels / freeze).
+        /// </summary>
+        public static bool TryBuildOfferForPlayerPartyAttack(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            ArmyStack enemy,
+            string title = null)
+        {
+            if (world?.Strategic == null || enemy == null || party == null || !party.HasActive)
+                return false;
+
+            if (world.Strategic.HasBattleOffer ||
+                world.Strategic.IsModalEncounter ||
+                world.Strategic.ClockFreeze.Reason == StrategicClockFreezeReason.InterruptQueue)
+            {
+                world.Strategic.InterruptQueue.Enqueue(
+                    title ?? "Encounter",
+                    enemy.Id,
+                    party.Members,
+                    world.Tick.Value * 1000UL + (ulong)world.Strategic.InterruptQueue.Count + 1UL);
+                StrategicClockFreezeService.BeginOrPromote(
+                    world, StrategicClockFreezeReason.BattleOffer);
+                return true;
+            }
+
+            if (!ArmyStackAdapter.TryGetFormalArmy(world, enemy, out var defender) || defender == null)
+                return false;
+            if (!ArmyPostBattleSyncService.HasMacroOrderLivingMember(world, defender))
+                return false;
+
+            var playerFaction = world.Strategic.PlayerFactionId ?? string.Empty;
+            if (!string.IsNullOrEmpty(playerFaction) &&
+                !string.IsNullOrEmpty(enemy.FactionId) &&
+                !string.Equals(playerFaction, enemy.FactionId, StringComparison.Ordinal) &&
+                !WarGateService.CanAttack(world, playerFaction, enemy.FactionId))
+                return false;
+
+            var offerId = "pp-offer:" + enemy.Id + ":" + world.Tick.Value + ":" +
+                          world.Strategic.InterruptQueue.Count;
+            var partyContext = world.Strategic.PlayerPartyContext;
+
+            if (!BattleEngagementAuthorityService.TryBeginPlayerPartyEngagement(
+                    world,
+                    partyContext,
+                    defender.ArmyId,
+                    enemy,
+                    offerId,
+                    out var thirdPartyResolved))
+                return false;
+
+            if (thirdPartyResolved)
+                return true;
+
+            return CompleteOfferAfterEngagement(world, party.Members, enemy, title, offerId);
+        }
+
+
         static bool ActivateOffer(
             SimulationWorld world,
             IReadOnlyList<EntityId> playerParty,
@@ -379,12 +441,27 @@ namespace XianXia.Core.World.Strategic
             if (thirdPartyResolved)
                 return true;
 
+            return CompleteOfferAfterEngagement(
+                world, playerParty, enemy, title, offerId);
+        }
+
+        /// <summary>
+        /// Phase 5S-B2-3.4: Shared offer tail after engagement creation (FormalArmy / PlayerParty).
+        /// AttackerArmyId comes from the frozen PendingEngagement (PlayerParty Initiator keeps "").
+        /// </summary>
+        static bool CompleteOfferAfterEngagement(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> playerParty,
+            ArmyStack enemy,
+            string title,
+            string offerId)
+        {
             var offer = world.Strategic.BattleOffer;
             offer.Resolved = false;
             offer.OfferId = offerId;
             offer.ArmyStackId = enemy.Id;
-            offer.DefenderArmyId = defenderArmyId ?? string.Empty;
-            offer.AttackerArmyId = attackerArmyId ?? string.Empty;
+            offer.DefenderArmyId = world.Strategic.PendingEngagement?.DefenderFormalArmyId ?? string.Empty;
+            offer.AttackerArmyId = world.Strategic.PendingEngagement?.AttackerFormalArmyId ?? string.Empty;
             offer.Title = ResolveOfferTitle(world, enemy, title);
             var mapResolution = BattleLocalMapResolver.ResolvePendingEngagement(world);
             if (!mapResolution.Success)
@@ -422,6 +499,7 @@ namespace XianXia.Core.World.Strategic
 #endif
             return true;
         }
+
 
         static bool ActivateLingeringOffer(
             SimulationWorld world,

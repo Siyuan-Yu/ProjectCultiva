@@ -1,4 +1,5 @@
 using XianXia.Core.Simulation;
+using XianXia.Core.World;
 using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
@@ -115,6 +116,29 @@ namespace XianXia.Core.World.Strategic
                     hex,
                     army.WorldMotion.SiteId,
                     true);
+            }
+
+            return new InitiatorEngagementLocation(hex, string.Empty, true);
+        }
+
+        /// <summary>
+        /// Phase 5S-B2-3.4：PlayerParty Initiator 位置快照（frozen/debug/persistence consistency 用，
+        /// 不参与 Participant 空间资格）。Hex = PlayerPartyWorldMotion committed Hex（canonical authority）；
+        /// AtWorldSite 时 SiteId = PlayerPartyTravel.SiteId，否则为空。不伪造 FormalArmyId。
+        /// </summary>
+        public static InitiatorEngagementLocation ResolvePlayerPartyInitiatorEngagementLocation(
+            SimulationWorld world,
+            PlayerPartyRuntime party)
+        {
+            if (!BattleEngagementSpatialQuery.TryGetCommittedPartyHex(world, party, out var hex))
+                return default;
+
+            var motion = world?.PlayerPartyTravel;
+            if (motion != null &&
+                motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                !string.IsNullOrEmpty(motion.SiteId))
+            {
+                return new InitiatorEngagementLocation(hex, motion.SiteId, true);
             }
 
             return new InitiatorEngagementLocation(hex, string.Empty, true);
