@@ -1,5 +1,8 @@
 # 159 — Encounter 作用域 Lingering、参战名单与大地图路线预览（2026-08-24）
 
+> **⚠️ 2026-09-01 · 已被 [186 Phase 5S Final Architecture Closure](186-phase-5s-final-architecture-closure-2026-09-01.md) §2 SUPERSEDED（Lingering 再入部分）：**
+> Encounter 作用域 Lingering 再入（`LingeringBattlefieldParticipantService` 等）不再是新 WORLD_COMBAT 主路径的一部分；Registry 仅 legacy / compatibility（invariant 1387 / 1388）。历史记录保留不改。
+
 > **飞书同步：** 本轮 **未** 同步（制作人要求先本地 commit + 文档）。
 
 ## 背景

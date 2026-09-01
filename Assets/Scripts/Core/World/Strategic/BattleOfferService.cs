@@ -402,6 +402,9 @@ namespace XianXia.Core.World.Strategic
 
             var participants = world.Strategic.Participants;
             participants.EncounterLocalMapId = offer.EncounterLocalMapId;
+            // Phase 5S-B2-3.3: Auto/Manual parity - freeze resolution kind at offer creation,
+            // so Auto never falls back to legacy ExplicitEncounterMap lifecycle.
+            participants.LocalMapResolutionKind = mapResolution.Kind;
 
             PromoteInRangeIncapacitatedToMandatory(world, participants);
             var selected = participants.CollectSelectedFriendly();
@@ -862,6 +865,11 @@ namespace XianXia.Core.World.Strategic
             offer.PlayerWonAuto = playerWon;
             offer.Resolved = true;
 
+            // Phase 5S-B2-3.3: Auto WORLD_COMBAT - commit all actual participants (PlayerParty if
+            // truly participating + all participating FormalArmies) to frozen BattleAnchorHex
+            // BEFORE casualty math, sharing the same authority as Manual.
+            CommitAutoWorldCombatParticipants(world);
+
             if (playerWon)
             {
                 report = enemyStack != null
@@ -923,6 +931,29 @@ namespace XianXia.Core.World.Strategic
             return Result.Success();
         }
 
+
+        /// <summary>
+        /// Phase 5S-B2-3.3: Auto WORLD_COMBAT pre-casualty participant commit.
+        /// Reuses ManualBattleWorldCommitService (same authority, no duplicated implementation).
+        /// PlayerParty only committed when snapshot actually contains a party member.
+        /// </summary>
+        static void CommitAutoWorldCombatParticipants(SimulationWorld world)
+        {
+            var engagement = world?.Strategic?.PendingEngagement;
+            if (engagement == null || !engagement.IsActive)
+                return;
+            var snap = world.Strategic.Participants;
+            if (snap == null ||
+                !ArmyHexBattleAnchorService.TryGetBattleAnchorHex(snap, out _))
+                return;
+            var resolution = BattleLocalMapResolver.ResolvePendingEngagement(world);
+            if (!resolution.Success)
+                return;
+            var partyMembers = world.Strategic.PlayerPartyContext?.Members;
+            ManualBattleWorldCommitService.CommitWorldCombatParticipants(
+                world, partyMembers, snap, resolution);
+        }
+
         static void BindEncounterAfterAutoResolve(
             SimulationWorld world,
             BattleParticipantSnapshot snap,
@@ -950,40 +981,55 @@ namespace XianXia.Core.World.Strategic
             if (party != null && party.Count > 0)
                 rt.SetEngagedParty(party);
 
-            StrategicEncounterResolveService.RestoreParticipantsAfterBattle(world, snap);
-            StrategicEncounterResolveService.EnsureFriendlyDownedWorldPresenceForAutoBattle(world, snap);
-            ArmyPostBattleSyncService.SyncAttackerArmyAfterBattle(world, snap);
-
-            // 自动战胜：立刻把残留栈钉到接战点，大地图结算弹窗期间就能看见
-            if (playerWon)
-                StrategicEncounterResolveService.ParkPrimaryEnemyStackAtBattleAnchor(world, snap);
-
-            // 自动战未�?LocalMap：立刻刷弥留／尸体实�?+ 接战�?WorldPresence（与进图再出一致）
-            // 强制�?Active session spawn list，禁止写进上一�?lingering scope�?
-            rt.ActiveBattlefieldId = string.Empty;
-            if (playerWon &&
-                !string.IsNullOrEmpty(stackId) &&
-                world.Strategic.Armies.TryGet(stackId, out var stack) &&
-                stack != null &&
-                stack.HasDownedRemnant)
-                StrategicEncounterSpawner.EnsureMacroRemnantSpawns(world, snap);
-
-            // Presence 钉好后再 Detach 敌军 Downed／Dead（否�?Residual Query 会因 FormalArmy membership 全排除）
-            if (playerWon)
-                ArmyPostBattleSyncService.SyncEnemyArmyAfterBattle(world, snap);
-
-            // 自动战结算弹窗期间即可右键攻击残留：提前 park lingering + Hex 锚点
-            if (playerWon && StrategicEncounterResolveService.HasLingeringBattlefieldRemnants(world))
+            var realWorldCombat =
+                snap.LocalMapResolutionKind == BattleLocalMapResolutionKind.WorldSite ||
+                snap.LocalMapResolutionKind == BattleLocalMapResolutionKind.Wilderness;
+            if (realWorldCombat)
             {
-                rt.BattlefieldLingering = true;
-                StrategicEncounterResolveService.PersistLingeringBattleAnchor(world, snap, rt);
-                var parkedState = LingeringBattlefieldRegistry.CommitActiveSession(world, snap);
-                if (parkedState != null && parkedState.SpawnedEntityIds.Count > 0)
-                    rt.SpawnOnNextMapLoad = false;
-                if (string.IsNullOrEmpty(rt.ArmyStackId) && !string.IsNullOrEmpty(stackId))
-                    rt.ArmyStackId = stackId;
+                // Phase 5S-B2-3.3 (Auto WORLD_COMBAT parity): participant world commit already
+                // done in ResolveAuto pre-casualty stage (CommitAutoWorldCombatParticipants -> unified
+                // BattleAnchorHex). Only army post-battle sync + downed presence here.
+                // FORBIDDEN: RestoreParticipantsAfterBattle (PreBattle model) / EnsureMacroRemnantSpawns
+                // / BattlefieldLingering / PersistLingeringBattleAnchor / CommitActiveSession -- same as Manual.
+                ArmyPostBattleSyncService.SyncAttackerArmyAfterBattle(world, snap);
+                ArmyPostBattleSyncService.SyncEnemyArmyAfterBattle(world, snap);
+                ArmyPostBattleSyncService.SyncParticipantFormalArmiesAfterBattle(world, snap);
+                StrategicEncounterResolveService.EnsureFriendlyDownedWorldPresenceForAutoBattle(world, snap);
+                StrategicEncounterResolveService.RefreshEnemyDownedWorldPresence(world, snap);
             }
+            else
+            {
+                // legacy ExplicitEncounter / compatibility: keep old Restore + Lingering flow.
+                StrategicEncounterResolveService.RestoreParticipantsAfterBattle(world, snap);
+                StrategicEncounterResolveService.EnsureFriendlyDownedWorldPresenceForAutoBattle(world, snap);
+                ArmyPostBattleSyncService.SyncAttackerArmyAfterBattle(world, snap);
 
+                // Auto victory: pin remnant stack at battle anchor so WorldMap settlement sees it.
+                if (playerWon)
+                    StrategicEncounterResolveService.ParkPrimaryEnemyStackAtBattleAnchor(world, snap);
+
+                rt.ActiveBattlefieldId = string.Empty;
+                if (playerWon &&
+                    !string.IsNullOrEmpty(stackId) &&
+                    world.Strategic.Armies.TryGet(stackId, out var stack) &&
+                    stack != null &&
+                    stack.HasDownedRemnant)
+                    StrategicEncounterSpawner.EnsureMacroRemnantSpawns(world, snap);
+
+                if (playerWon)
+                    ArmyPostBattleSyncService.SyncEnemyArmyAfterBattle(world, snap);
+
+                if (playerWon && StrategicEncounterResolveService.HasLingeringBattlefieldRemnants(world))
+                {
+                    rt.BattlefieldLingering = true;
+                    StrategicEncounterResolveService.PersistLingeringBattleAnchor(world, snap, rt);
+                    var parkedState = LingeringBattlefieldRegistry.CommitActiveSession(world, snap);
+                    if (parkedState != null && parkedState.SpawnedEntityIds.Count > 0)
+                        rt.SpawnOnNextMapLoad = false;
+                    if (string.IsNullOrEmpty(rt.ArmyStackId) && !string.IsNullOrEmpty(stackId))
+                        rt.ArmyStackId = stackId;
+                }
+            }
             AutoResidualTrace.EmitAfterAutoBind(world, snap, playerWon);
         }
 

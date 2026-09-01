@@ -1,5 +1,8 @@
 # 150 · 残留战场批 3：接战 Offer + Encounter 地图（2026-08-21）
 
+> **⚠️ 2026-09-01 · 已被 [186 Phase 5S Final Architecture Closure](186-phase-5s-final-architecture-closure-2026-09-01.md) §2 SUPERSEDED：**
+> 敌方残留栈再进（`LingeringLocalMapId` 产品入口）不再是 production 路径；`LingeringBattlefieldRegistry` 仅 legacy / compatibility 职责（invariant 1386 / 1387）。历史实现记录保留不改。
+
 > 状态：**已落地（EditMode 通过；手操待验）**｜日期：2026-08-21  
 > 上级：[149 批 2](149-lingering-battlefield-batch2-2026-08-21.md)／[138 战略接战](138-world-strategic-battle-offer-plan-2026-08-17.md)  
 > 飞书：https://my.feishu.cn/docx/XE8EdWZCDoSDPjxRSXTcat5bn7R  

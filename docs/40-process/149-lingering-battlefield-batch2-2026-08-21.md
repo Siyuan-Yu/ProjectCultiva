@@ -1,5 +1,8 @@
 # 149 · 残留战场批 2：Core 下沉 + 探望到站（2026-08-21）
 
+> **⚠️ 2026-09-01 · 已被 [186 Phase 5S Final Architecture Closure](186-phase-5s-final-architecture-closure-2026-09-01.md) §2 SUPERSEDED：**
+> 「进入残留战场」菜单 / 探望到站自动衔接再入不再存在；残余角色按普通 LocalMap 人口出现（invariant 1386）。历史实现记录保留不改。
+
 > 状态：**已落地**｜日期：2026-08-21  
 > 上级：[148 大地图弥留交互](148-worldmap-linger-incap-ux-2026-08-21.md)／[147 接战点／弥留残留](147-battlefield-linger-no-teleport-2026-08-21.md)  
 > 飞书：https://my.feishu.cn/docx/G8ffdmXmUob8O2xV2aycr39pnGe  

@@ -1,5 +1,8 @@
 # 153 · 弥留残留战场收束 + 自动战宏观头像 + 接战名单与追击修复（2026-08-22）
 
+> **⚠️ 2026-09-01 · 已被 [186 Phase 5S Final Architecture Closure](186-phase-5s-final-architecture-closure-2026-09-01.md) §2 部分 SUPERSEDED：**
+> PURE DERIVED 聚合 Marker 部分保留（与 invariant 1385 一致）；「BattlefieldLingering 再入保留」不再成立 —— 残余角色经普通 LocalMap population 自然出现（invariant 1386）。历史记录保留不改。
+
 > 状态：**已落地（EditMode 已补；手操待验）**｜日期：2026-08-22  
 > **Presentation 更新（2026-08-23）：** Hex WorldMap 正式表现改为 PURE DERIVED 聚合 Marker（`Hex × Relation × DEAD/DOWNED`）；残留位置 = Encounter Hex（`AtHex`），不再用 Battle Node／散落 portrait／匿名 remnant 作为主路径。BattlefieldLingering 再入保留。  
 > 上级：[150 残留 Offer](150-lingering-battlefield-batch3-offer-2026-08-21.md)／[152 RTS 点击纪律](152-worldmap-rts-click-discipline-2026-08-22.md)／[147 接战点弥留](147-battlefield-linger-no-teleport-2026-08-21.md)  

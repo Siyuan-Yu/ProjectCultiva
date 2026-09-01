@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
@@ -18,9 +19,16 @@ namespace XianXia.Core.World.Strategic
     /// </summary>
     public static class ManualBattleWorldCommitService
     {
+        /// <summary>
+        /// Phase 5S-B2-3.3：Manual 与 Auto WORLD_COMBAT 共用同一 strategic world commit。
+        /// partyMembers = PlayerPartyRuntime.Members（Core 侧经 PlayerPartyContext 获取）。
+        /// 只有 snapshot 真的包含 PlayerParty member（实际参战）时才 commit PlayerPartyWorldMotion /
+        /// PartyWorld —— 第三方 Army vs Army 或 Player 未参与时，只 commit FormalArmies，
+        /// 绝不把远处主控 teleport 到 BattleHex。
+        /// </summary>
         public static Result CommitWorldCombatParticipants(
             SimulationWorld world,
-            PlayerPartyRuntime party,
+            IReadOnlyList<EntityId> partyMembers,
             BattleParticipantSnapshot snap,
             BattleLocalMapResolution resolution)
         {
@@ -35,19 +43,18 @@ namespace XianXia.Core.World.Strategic
             // EnemyPrimary / EnemyReinforcement + Attacker/Defender fallback）—— 不重复逻辑。
             ArmyHexBattleAnchorService.CommitParticipantFormalArmiesAtBattleAnchor(world, snap);
 
-            if (party == null || party.Count == 0 || world.PlayerPartyTravel == null)
-            {
-                world.PartyWorld.LocalMapId = resolution.LocalMapId;
+            // PlayerParty 只在“实际参战”时 commit；未参战不动 PlayerPartyWorldMotion / PartyWorld。
+            if (!HasActualPlayerPartyParticipant(snap, partyMembers) ||
+                world.PlayerPartyTravel == null)
                 return Result.Success();
-            }
 
             var motion = world.PlayerPartyTravel;
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             HexMath.ToWorldPosition(battleHex, hexSize, out var worldX, out var worldY);
             var battleWorld = new WorldVec2(worldX, worldY);
 
-            // Manual Battle 加入 = 当前 PlayerParty AutoTravel 终止（正确行为）。
-            motion.CaptureTravelingMembers(party.Members);
+            // 加入战斗 = 当前 PlayerParty AutoTravel 终止（正确行为）。
+            motion.CaptureTravelingMembers(partyMembers);
 
             if (resolution.Kind == BattleLocalMapResolutionKind.WorldSite &&
                 !string.IsNullOrEmpty(resolution.SiteId))
@@ -59,8 +66,8 @@ namespace XianXia.Core.World.Strategic
                     return Result.Failure(ErrorCode.InvalidOperation, "TrySetAtWorldSitePreservingWorldPosition 失败（不 silent snap）。");
                 motion.AlignCurrentHex(battleHex);
 
-                for (var i = 0; i < party.Members.Count; i++)
-                    world.WorldPresence.SetAtSite(party.Members[i], resolution.SiteId);
+                for (var i = 0; i < partyMembers.Count; i++)
+                    world.WorldPresence.SetAtSite(partyMembers[i], resolution.SiteId);
 
                 world.PartyWorld.SiteId = resolution.SiteId;
                 world.PartyWorld.FocusFormalArmyId = string.Empty;
@@ -71,8 +78,8 @@ namespace XianXia.Core.World.Strategic
             {
                 // Wilderness（或未知 → 按 Wilderness 处理）：PlayerParty exact commit 到 BattleHex。
                 motion.SetAtWorldPosition(battleWorld, battleHex);
-                for (var i = 0; i < party.Members.Count; i++)
-                    world.WorldPresence.SetAtWorldPosition(party.Members[i], battleWorld, battleHex);
+                for (var i = 0; i < partyMembers.Count; i++)
+                    world.WorldPresence.SetAtWorldPosition(partyMembers[i], battleWorld, battleHex);
 
                 world.PartyWorld.ClearSiteFocus();
                 world.PartyWorld.LocalMapId = resolution.LocalMapId;
@@ -80,6 +87,31 @@ namespace XianXia.Core.World.Strategic
             }
 
             return Result.Success();
+        }
+
+        /// <summary>
+        /// snapshot（frozen authority）是否真的包含 PlayerParty member（实际参战）。
+        /// 只认 EntityId 匹配，不因 PlayerPartyContext 存在就 teleport 主控。
+        /// </summary>
+        public static bool HasActualPlayerPartyParticipant(
+            BattleParticipantSnapshot snap,
+            IReadOnlyList<EntityId> partyMembers)
+        {
+            if (snap == null || partyMembers == null || partyMembers.Count == 0)
+                return false;
+            for (var i = 0; i < snap.Records.Count; i++)
+            {
+                var id = snap.Records[i].EntityId;
+                if (id.IsNone)
+                    continue;
+                for (var j = 0; j < partyMembers.Count; j++)
+                {
+                    if (id == partyMembers[j])
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

@@ -1,5 +1,9 @@
 # 147 · 接战点无瞬移＋弥留残留战场＋支援半径（2026-08-21）
 
+> **⚠️ 2026-09-01 · 已被 [186 Phase 5S Final Architecture Closure](186-phase-5s-final-architecture-closure-2026-09-01.md) §2 SUPERSEDED（残留再入 gateway 部分）：**
+> `EnterLingeringBattlefield`／攻击残留再入不再是 production gateway；残余角色（弥留／可见尸体）通过普通世界移动 + `LoadedStrategicPopulationMaterializer` 自然成为 Loaded LocalMap 人口（invariant 1384 / 1386）。
+> 历史 diagnosis 保留不改。
+
 > 状态：**已落地（代码已推 `eece220`）**｜日期：2026-08-21  
 > 相对提交：`3b563de` → **`eece220`**（`main`）  
 > **后续 Host 交互修补：** [148 大地图弥留交互与点击](148-worldmap-linger-incap-ux-2026-08-21.md)（待手操验）  

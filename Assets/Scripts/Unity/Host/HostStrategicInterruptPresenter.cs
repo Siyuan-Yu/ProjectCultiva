@@ -310,11 +310,14 @@ namespace XianXia.Unity.Host
             var savedSpeed = freeze.HasSavedHostPresentation
                 ? freeze.SavedSpeedMultiplier
                 : (bootstrap != null ? bootstrap.EffectiveSpeedMultiplier() : 1);
-            // Phase 5S：Resolve 前 capture（FinishOfferResolution 会清 Participants）。
+            // Phase 5S：Resolve 前 capture（FinishOfferResolution 会清 Participants / IsAutoSettlement）。
             var completionKind = world.Strategic.Participants.LocalMapResolutionKind;
             var completeInPlace =
                 completionKind == BattleLocalMapResolutionKind.WorldSite ||
                 completionKind == BattleLocalMapResolutionKind.Wilderness;
+            // Phase 5S-B2-3.3：Auto settlement 必须在 Resolve 前 capture —— Auto 从未进入 Battle
+            // LocalMap，确认结算后需要走正式 Apply 链切到 BattleHex surface；Manual 原地保留。
+            var autoSettlement = world.Strategic.Participants.IsAutoSettlement;
             var resolved = StrategicEncounterResolveService.ResolveAndEnd(world);
                 if (resolved.IsSuccess)
                 {
@@ -328,15 +331,28 @@ namespace XianXia.Unity.Host
                         bootstrap.WorldMapPanel?.NotifyAfterBattleResolved(world);
                         if (completeInPlace)
                         {
-                            // Phase 5S：普通真实 LocalMap 手动战 —— 原地结束：清除
-                            // Combat/PostBattle 状态、EndFreeze、恢复 pause/speed、
-                            // 保留当前 LocalMap session 与现场位置。禁止 Open WorldMap /
-                            // ApplyPartyWorldSitePresentation / ReloadLocalMap / Rebuild。
-                            // Phase 5S-B2-3.1：battle context 已释放 → 立即把参战
-                            // FormalArmy / Residual 转成普通 LocalMap population
-                            // （保留战斗落点、不 teleport），并轻量刷新视图。
-                            bootstrap?.RefreshLoadedStrategicPopulation();
-                            ShowToast("战斗结束，世界时间已恢复。");
+                            if (autoSettlement)
+                            {
+                                // Phase 5S-B2-3.3：real WORLD_COMBAT + Auto —— 结算确认后把 LocalMap
+                                // 从 canonical PartyWorld 展开/切到 BattleHex authoritative surface。
+                                // WorldMap 保持打开（后台准备 LocalMap）；禁止 WorldMap.Open /
+                                // ReloadLocalMap / Rebuild 整图。Auto 此前未进入 Battle LocalMap，
+                                // 因此不适用 Manual 的“原地保留”分支。
+                                bootstrap.ApplyPartyWorldSitePresentation(closeWorldMap: false);
+                                ShowToast("战斗已结束，世界时间已恢复。");
+                            }
+                            else
+                            {
+                                // Phase 5S：普通真实 LocalMap 手动战 —— 原地结束：清除
+                                // Combat/PostBattle 状态、EndFreeze、恢复 pause/speed、
+                                // 保留当前 LocalMap session 与现场位置。禁止 Open WorldMap /
+                                // ApplyPartyWorldSitePresentation / ReloadLocalMap / Rebuild。
+                                // Phase 5S-B2-3.1：battle context 已释放 → 立即把参战
+                                // FormalArmy / Residual 转成普通 LocalMap population
+                                // （保留战斗落点、不 teleport），并轻量刷新视图。
+                                bootstrap?.RefreshLoadedStrategicPopulation();
+                                ShowToast("战斗结束，世界时间已恢复。");
+                            }
                         }
                         else
                         {
@@ -811,7 +827,7 @@ namespace XianXia.Unity.Host
 
                 var commitResult = ManualBattleWorldCommitService.CommitWorldCombatParticipants(
                     session.World,
-                    session.PlayerParty,
+                    session.PlayerParty != null ? session.PlayerParty.Members : null,
                     session.World.Strategic.Participants,
                     worldResolution);
                 if (commitResult.IsFailure)

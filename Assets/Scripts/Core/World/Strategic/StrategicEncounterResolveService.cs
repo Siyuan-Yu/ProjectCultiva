@@ -72,7 +72,9 @@ namespace XianXia.Core.World.Strategic
                 // 必须在 Participants.Clear（FinishOfferResolution）之前，因为需要 frozen snapshot。
                 EnsureFriendlyDownedWorldPresence(world, snap);
                 EnsureEnemyDownedWorldPresence(world, snap);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 AssertFinalResidualAuthority(world, snap);
+#endif
             }
 
             BattleOfferService.FinishOfferResolution(world);

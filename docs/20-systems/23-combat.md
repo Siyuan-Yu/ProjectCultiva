@@ -1,5 +1,9 @@
 # 战斗
 
+> **⚠️ 2026-09-01 · 本文 §2 的「战略遭遇 = Modal Encounter LocalMap」模型已被 [186 Phase 5S Final Architecture Closure](../40-process/186-phase-5s-final-architecture-closure-2026-09-01.md) §2 SUPERSEDED：**
+> 当前 WORLD_COMBAT 主路径 = 真实 Wilderness / WorldSite LocalMap（Manual → tactical LocalMap；Auto → mathematical resolution 后切到 BattleHex 权威 LocalMap）；`ExplicitEncounterMap` 仅 legacy / compatibility（invariant 1379 / 1388）。
+> 历史内容保留不改；正文战斗规则（技能、重伤、战利品等）仍有效。
+
 > 状态：小队战斗框架已定方向；**战略接战冻结 WorldTick（ADR-0023）**；弥留／尸体／自动战见 142 | 优先级：P0 | 最后更新：2026-08-21
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`21-core-loop-and-time.md`、`22-realms-and-abilities.md`、`2B-attributes-and-affinity.md`、`2D-manuals-arts-and-equipment.md`、`2H-manual-system-rules.md`、`28-jianghu-relations.md`、`29-karma-and-consequence.md`、[ADR-0023](../40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)
