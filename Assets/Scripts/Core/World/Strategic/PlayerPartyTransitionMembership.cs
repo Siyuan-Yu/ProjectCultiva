@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Text;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
+using XianXia.Core.World;
 using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
@@ -126,6 +127,79 @@ namespace XianXia.Core.World.Strategic
                 " DestinationMap=" + (destinationMap ?? string.Empty) +
                 " Spawned=" + spawned +
                 " FollowRebound=" + followReboundHint);
+        }
+
+        /// <summary>
+        /// PlayerParty member WorldPresence 单向 consistency guard：motion（PlayerPartyWorldMotion）
+        /// 是 strategic truth，individual member presence 只是兼容/查询状态。
+        /// 只允许 motion → member presence 单向 repair；绝对禁止 member presence → motion
+        /// （SiteId / CurrentHex / WorldPosition）反向覆盖。
+        /// 调用点：成功 EnterWorldSiteAsParty / surface LocalMap materialize / final arrival 后。
+        /// 实际发生 repair 时打一次 diagnostics（member id / old / new / motion context / phase）。
+        /// </summary>
+        public static void ReconcilePlayerPartyMemberWorldPresenceFromMotion(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            string phase)
+        {
+            if (world?.PlayerPartyTravel == null || party == null || world.WorldPresence == null)
+                return;
+
+            var motion = world.PlayerPartyTravel;
+            if (!motion.HasPosition)
+                return;
+
+            var atSite = motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                         !string.IsNullOrEmpty(motion.SiteId);
+            var atHex = !atSite &&
+                        motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition;
+            if (!atSite && !atHex)
+                return;
+
+            for (var i = 0; i < party.Members.Count; i++)
+            {
+                var id = party.Members[i];
+                if (id.IsNone || !ShouldMemberTransitionWithParty(world, party, id))
+                    continue;
+                if (!world.Entities.TryGet(id, out var ent) || ent == null)
+                    continue;
+
+                var changed = false;
+                if (atSite)
+                {
+                    if (!world.WorldPresence.TryGet(id, out var wp) ||
+                        wp == null ||
+                        wp.Mode != PartyWorldPresenceMode.AtSite ||
+                        !string.Equals(wp.SiteId, motion.SiteId, System.StringComparison.Ordinal))
+                    {
+                        world.WorldPresence.SetAtSite(id, motion.SiteId);
+                        changed = true;
+                    }
+                }
+                else if (atHex)
+                {
+                    if (!world.WorldPresence.TryGet(id, out var wp) ||
+                        wp == null ||
+                        wp.Mode != PartyWorldPresenceMode.AtHex ||
+                        wp.UsesHexPresence && !wp.ResidualHex.Equals(motion.CurrentHex))
+                    {
+                        world.WorldPresence.SetAtHex(id, motion.CurrentHex);
+                        changed = true;
+                    }
+                }
+
+                if (changed && PlayerPartyWorldLocationDebug.Sink != null)
+                {
+                    PlayerPartyWorldLocationDebug.Sink(
+                        "[PresenceReconcile] phase=" + (phase ?? "?") +
+                        " member=" + id.Value +
+                        " kind=" + motion.LocationKind +
+                        " site=" + (motion.SiteId ?? string.Empty) +
+                        " hex=" + motion.CurrentHex +
+                        " -> At" +
+                        (atSite ? "Site(" + motion.SiteId + ")" : "Hex(" + motion.CurrentHex + ")"));
+                }
+            }
         }
     }
 }

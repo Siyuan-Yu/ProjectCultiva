@@ -24,7 +24,7 @@ namespace XianXia.Data.Content
             var producedFlags = new HashSet<string>(StringComparer.Ordinal);
             var consumedFlags = new HashSet<string>(StringComparer.Ordinal);
 
-            ValidateScenarios(registry, report);
+            ValidateScenarios(registry, locations, report);
             ValidateFormalArmies(registry, report);
             ValidateWorldRegions(registry, locations, report);
             ValidateLocalPlaceSets(registry, locations, report);
@@ -155,7 +155,44 @@ namespace XianXia.Data.Content
             }
         }
 
-        void ValidateScenarios(DefinitionRegistry registry, ValidationReport report)
+        /// <summary>
+        /// characterRoster.entries 与 openingScenario.spawns 同形，支持 optional authored placement。
+        /// definitionId → character；jobId → job；localLocationId → 已存在地点表。
+        /// worldSiteId 依赖配对 scenario 的 HexWorld context，此处不猜测。
+        /// </summary>
+        void ValidateCharacterRosters(
+            DefinitionRegistry registry,
+            HashSet<string> locations,
+            ValidationReport report)
+        {
+            foreach (var kv in registry.CharacterRosters)
+            {
+                var roster = kv.Value;
+                var ctx = kv.Key.ToString();
+                if (roster.Entries == null)
+                    continue;
+                for (var i = 0; i < roster.Entries.Count; i++)
+                {
+                    var entry = roster.Entries[i];
+                    RequireDef(registry, entry.DefinitionId, "character", ctx + ".entry[" + i + "]", report);
+                    if (!string.IsNullOrWhiteSpace(entry.JobId))
+                        RequireDef(registry, entry.JobId, "job", ctx + ".entry[" + i + "].jobId", report);
+                    if (!string.IsNullOrWhiteSpace(entry.LocalLocationId) &&
+                        !locations.Contains(entry.LocalLocationId))
+                    {
+                        report.Add(
+                            ErrorCode.NotFound,
+                            "roster.entry.localLocationId missing in any localPlaceSet/worldRegion.",
+                            ctx + ".entry[" + i + "].localLocationId:" + entry.LocalLocationId);
+                    }
+                }
+            }
+        }
+
+        void ValidateScenarios(
+            DefinitionRegistry registry,
+            HashSet<string> locations,
+            ValidationReport report)
         {
             foreach (var kv in registry.OpeningScenarios)
             {
@@ -167,6 +204,17 @@ namespace XianXia.Data.Content
                 RequireDef(registry, s.OpeningHexWorldId, "hexWorld", ctx + ".openingHexWorldId", report);
                 RequireDef(registry, s.OpeningChapterId, "chapter", ctx + ".openingChapterId", report);
 
+                var hexWorld = ResolveScenarioHexWorld(registry, s, ctx, report);
+                var worldSites = new HashSet<string>(StringComparer.Ordinal);
+                if (hexWorld?.Sites != null)
+                {
+                    for (var si = 0; si < hexWorld.Sites.Count; si++)
+                    {
+                        if (!string.IsNullOrEmpty(hexWorld.Sites[si].SiteId))
+                            worldSites.Add(hexWorld.Sites[si].SiteId);
+                    }
+                }
+
                 if (s.Spawns == null)
                     continue;
                 for (var i = 0; i < s.Spawns.Count; i++)
@@ -175,6 +223,38 @@ namespace XianXia.Data.Content
                     RequireDef(registry, spawn.DefinitionId, "character", ctx + ".spawn[" + i + "]", report);
                     if (!string.IsNullOrWhiteSpace(spawn.JobId))
                         RequireDef(registry, spawn.JobId, "job", ctx + ".spawn[" + i + "].jobId", report);
+
+                    // Optional authored placement 校验：
+                    // localLocationId 必须存在于某个 LocalPlaceSet／WorldRegion 地点表。
+                    // worldSiteId 必须存在于该 scenario 的 OpeningHexWorldId 对应 HexWorld 站点。
+                    if (!string.IsNullOrWhiteSpace(spawn.LocalLocationId))
+                    {
+                        if (!locations.Contains(spawn.LocalLocationId))
+                        {
+                            report.Add(
+                                ErrorCode.NotFound,
+                                "spawn.localLocationId missing in any localPlaceSet/worldRegion.",
+                                ctx + ".spawn[" + i + "].localLocationId:" + spawn.LocalLocationId);
+                        }
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(spawn.WorldSiteId))
+                    {
+                        if (hexWorld == null)
+                        {
+                            report.Add(
+                                ErrorCode.InvalidArgument,
+                                "spawn.worldSiteId requires scenario.openingHexWorldId.",
+                                ctx + ".spawn[" + i + "].worldSiteId:" + spawn.WorldSiteId);
+                        }
+                        else if (!worldSites.Contains(spawn.WorldSiteId))
+                        {
+                            report.Add(
+                                ErrorCode.NotFound,
+                                "spawn.worldSiteId missing in opening hex world sites.",
+                                ctx + ".spawn[" + i + "].worldSiteId:" + spawn.WorldSiteId);
+                        }
+                    }
                 }
 
                 if (s.OpeningRelations == null)
@@ -190,15 +270,126 @@ namespace XianXia.Data.Content
                     continue;
                 for (var i = 0; i < s.InitialFormalArmyIds.Count; i++)
                 {
-                    RequireDef(
-                        registry,
-                        s.InitialFormalArmyIds[i],
-                        "formalArmy",
-                        ctx + ".initialFormalArmyIds[" + i + "]",
-                        report);
+                    var armyId = s.InitialFormalArmyIds[i];
+                    RequireDef(registry, armyId, "formalArmy", ctx + ".initialFormalArmyIds[" + i + "]", report);
+                    ValidateInitialFormalArmyHex(registry, armyId, hexWorld, ctx + ".initialFormalArmyIds[" + i + "]", report);
                 }
             }
         }
+
+        /// <summary>
+        /// FormalArmy.initialHex 是 scenario-aware：坐标是否合法取决于该 scenario
+        /// 选的 OpeningHexWorld。在 bounds 内且 passable、且不属于任何 WorldSite footprint
+        /// 才合法（footprint 内应改用 assemblySiteId 的 AtWorldSite 部署）。
+        /// </summary>
+        static void ValidateInitialFormalArmyHex(
+            DefinitionRegistry registry,
+            string armyIdText,
+            HexWorldContentDefinition hexWorld,
+            string ctx,
+            ValidationReport report)
+        {
+            if (string.IsNullOrWhiteSpace(armyIdText) ||
+                !DefinitionId.TryParse(armyIdText, out var armyId))
+                return;
+            if (!registry.FormalArmies.TryGetValue(armyId, out var def) || def == null)
+                return;
+            if (def.InitialHex == null)
+                return;
+
+            if (hexWorld == null)
+            {
+                report.Add(
+                    ErrorCode.InvalidArgument,
+                    "formalArmy.initialHex requires scenario.openingHexWorldId.",
+                    ctx + ":" + def.Id);
+                return;
+            }
+
+            var q = def.InitialHex.Q;
+            var r = def.InitialHex.R;
+            if (q < 0 || r < 0 || q >= hexWorld.Width || r >= hexWorld.Height)
+            {
+                report.Add(
+                    ErrorCode.InvalidArgument,
+                    "formalArmy.initialHex out of hex world bounds.",
+                    ctx + ":" + def.Id + " (q=" + q + ", r=" + r + ")");
+                return;
+            }
+
+            if (!IsCellPassable(hexWorld, q, r))
+            {
+                report.Add(
+                    ErrorCode.InvalidArgument,
+                    "formalArmy.initialHex not passable in opening hex world.",
+                    ctx + ":" + def.Id + " (q=" + q + ", r=" + r + ")");
+            }
+
+            if (hexWorld.Sites != null)
+            {
+                for (var i = 0; i < hexWorld.Sites.Count; i++)
+                {
+                    var site = hexWorld.Sites[i];
+                    if (site?.Footprint == null)
+                        continue;
+                    for (var f = 0; f < site.Footprint.Count; f++)
+                    {
+                        if (site.Footprint[f] == null)
+                            continue;
+                        if (site.Footprint[f].Q == q && site.Footprint[f].R == r)
+                        {
+                            report.Add(
+                                ErrorCode.InvalidArgument,
+                                "formalArmy.initialHex inside WorldSite footprint; use assemblySiteId for AtWorldSite deployment.",
+                                ctx + ":" + def.Id + " (q=" + q + ", r=" + r + " in " + site.SiteId + ")");
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        static bool IsCellPassable(HexWorldContentDefinition hexWorld, int q, int r)
+        {
+            if (hexWorld?.Cells != null)
+            {
+                for (var i = 0; i < hexWorld.Cells.Count; i++)
+                {
+                    var cell = hexWorld.Cells[i];
+                    if (cell == null || cell.Q != q || cell.R != r)
+                        continue;
+                    return cell.Passable ?? hexWorld.DefaultPassable;
+                }
+            }
+
+            return hexWorld != null && hexWorld.DefaultPassable;
+        }
+
+        /// <summary>解析 scenario 的 OpeningHexWorld；缺省时返回 null（含错误已记录）。</summary>
+        static HexWorldContentDefinition ResolveScenarioHexWorld(
+            DefinitionRegistry registry,
+            OpeningScenarioDefinition scenario,
+            string ctx,
+            ValidationReport report)
+        {
+            var hexWorldId = scenario?.OpeningHexWorldId;
+            if (string.IsNullOrWhiteSpace(hexWorldId))
+                return null;
+            if (!DefinitionId.TryParse(hexWorldId, out var id))
+            {
+                report.Add(ErrorCode.InvalidDefinitionId, "Invalid openingHexWorldId.", ctx + ":" + hexWorldId);
+                return null;
+            }
+
+            if (!registry.HexWorldContents.TryGetValue(id, out var def))
+            {
+                report.Add(ErrorCode.NotFound, "openingHexWorldId missing.", ctx + ":" + hexWorldId);
+                return null;
+            }
+
+            return def;
+        }
+
 
         /// <summary>
         /// 每个 member.characterDefinitionId 必须存在；runtimeArmyId / runtimeStackId 全局唯一；

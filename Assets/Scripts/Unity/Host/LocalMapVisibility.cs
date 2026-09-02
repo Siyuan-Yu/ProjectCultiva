@@ -6,6 +6,7 @@ using XianXia.Core.Simulation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Social;
 using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
@@ -219,6 +220,34 @@ namespace XianXia.Unity.Host
             return string.Equals(loc.LocalMapId, lm.ActiveMapLayoutId, System.StringComparison.Ordinal);
         }
 
+        /// <summary>
+        /// 解析「当前 LocalMap 可见性焦点 WorldSite」。
+        /// 优先 PartyWorld.SiteId（正式 EnterWorldSiteScene / AtSite）；当玩家以 AtHex / AtWorldPosition
+        /// （Wilderness 邻接 / travel 呈现）停留在某 Site footprint hex 上时，画面已是该 Site LocalMap，
+        /// 按玩家物理 hex 反查所属 Site 作为焦点 —— 与 garrison materialize 的 wilderness reconcile
+        /// （army.CurrentHex == 玩家 hex）同源一致。荒野 hex（不属于任何 Site）→ false（resident 不泄漏）。
+        /// </summary>
+        static bool TryResolveVisibilityFocusSite(SimulationWorld world, out WorldSite site)
+        {
+            if (StrategicWorldSitePopulationService.TryResolvePartyFocusSite(world, out site) && site != null)
+                return true;
+
+            var travel = world?.PlayerPartyTravel;
+            if (travel == null || !travel.HasPosition)
+                return false;
+
+            var hex = travel.LocationKind == PlayerPartyLocationKind.AtWorldPosition
+                ? HexMath.WorldToHex(
+                    travel.WorldPosition.X,
+                    travel.WorldPosition.Y,
+                    world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f)
+                : travel.CurrentHex;
+
+            return world.Strategic?.Sites != null &&
+                   world.Strategic.Sites.TryGetAtHex(hex, out site) &&
+                   site != null;
+        }
+
         public static bool IsEntityVisible(SimulationWorld world, EntityId id)
         {
             if (world == null || id.IsNone || !world.Entities.TryGet(id, out var entity))
@@ -335,7 +364,9 @@ namespace XianXia.Unity.Host
                 if (!onEncounterMap && IsHexStrategicArmyMember(world, id))
                     return false;
 
-                var focusSite = world.PartyWorld != null ? world.PartyWorld.SiteId : null;
+                var focusSite = TryResolveVisibilityFocusSite(world, out var focusSiteState)
+                    ? focusSiteState.SiteId
+                    : null;
                 if (wp.Mode == PartyWorldPresenceMode.AtSite)
                 {
                     if (!string.IsNullOrEmpty(focusSite) &&

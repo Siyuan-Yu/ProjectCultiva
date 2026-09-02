@@ -484,10 +484,17 @@ namespace XianXia.Unity.Host
             GUI.color = new Color(0.78f, 0.32f, 0.28f, 0.9f);
             GUI.DrawTexture(new Rect(box.x + 16f + pw, barY, barW - pw, 14f), _px);
             GUI.color = Color.white;
-            GUI.Label(
-                new Rect(box.x + 16f, barY + 18f, box.width - 32f, 22f),
-                "自动战胜率约 " + offer.AutoWinPercent + "% · WorldTick 已冻结",
-                _body);
+            // CORRECTION V1: Auto 专属文案（自动战胜率 / 处决 toggle）只在 Auto 可用时显示。
+            if (decision.Auto)
+                GUI.Label(
+                    new Rect(box.x + 16f, barY + 18f, box.width - 32f, 22f),
+                    "自动战胜率约 " + offer.AutoWinPercent + "% · WorldTick 已冻结",
+                    _body);
+            else
+                GUI.Label(
+                    new Rect(box.x + 16f, barY + 18f, box.width - 32f, 22f),
+                    "WorldTick 已冻结",
+                    _body);
 
             var listY = barY + 44f;
             GUI.Label(new Rect(box.x + 16f, listY, box.width - 32f, 20f), "强制参战／敌军", _body);
@@ -584,94 +591,188 @@ namespace XianXia.Unity.Host
                 listY += 22f;
             }
 
-            var toggleY = box.y + box.height - 78f;
-            _executeOnWin = GUI.Toggle(
-                new Rect(box.x + 16f, toggleY, box.width - 32f, 22f),
-                _executeOnWin,
-                "战胜时处决（敌军阵亡留尸体；不勾选＝全部弥留，可再进补刀）");
+            var noticeY = box.y + box.height - 78f;
+            if (decision.Auto)
+            {
+                _executeOnWin = GUI.Toggle(
+                    new Rect(box.x + 16f, noticeY, box.width - 32f, 22f),
+                    _executeOnWin,
+                    "战胜时处决（敌军阵亡留尸体；不勾选＝全部弥留，可再进补刀）");
+            }
+            else if (offer.RequiresWarDeclaration)
+            {
+                // CORRECTION V1: Neutral 宣战 warning 放在同一个 BattleOffer，不再弹第二个 modal。
+                GUI.Label(
+                    new Rect(box.x + 16f, noticeY, box.width - 32f, 22f),
+                    "确认手动战斗将向【" +
+                    StrategicFactionCatalog.DisplayName(offer.PendingWarDefenderFactionId) +
+                    "】宣战。",
+                    _body);
+            }
 
             var y = box.y + box.height - 44f;
-            var buttonCount = decision.Manual ? 3 : 2;
-            var third = (box.width - 40f) / buttonCount;
-            var btnIndex = 0;
-
-            if (decision.Auto &&
-                GUI.Button(new Rect(box.x + 16f + third * btnIndex, y, third, 32f), "自动战斗"))
-            {
-                offer.ExecuteOnWin = _executeOnWin;
-                var resolved = BattleOfferService.ResolveAuto(
-                    session.World,
-                    _executeOnWin,
-                    out _,
-                    out _);
-                _executeOnWin = false;
-                if (resolved.IsSuccess)
+            // FIX: 按钮布局改为「动作列表驱动」。
+            // 旧实现把 btnIndex++ 放在 GUI.Button 点击条件体内：未点击帧 btnIndex 恒为 0，
+            // LocalMap-origin（Auto=false）时 Manual 与 Retreat 全部落在同一槽位 → 视觉重叠且点击命中同一 rect。
+            // 现在按 decision 生成有序动作列表，x 只由列表下标决定，与点击状态无关。
+            var specs = new List<ButtonSpec>(3);
+            if (decision.Auto)
+                specs.Add(new ButtonSpec("自动战斗", () =>
                 {
-                    session.World.Strategic.PendingEngagement.Clear();
-                    _holding = true;
-                    session.IsPaused = true;
-                    bootstrap.WorldMapPanel?.Open();
-                    bootstrap.WorldMapPanel?.RefreshStrategicPresentation(session.World);
-                }
-                else
-                    ShowToast(resolved.Error.Message);
-            }
-
-            btnIndex++;
-
-            if (decision.Manual &&
-                GUI.Button(new Rect(box.x + 16f + third * btnIndex, y, third, 32f), "手动战斗"))
-            {
-                var gate = BattleManualEntryPolicy.ValidateManualEntry(session.World);
-                if (gate.IsFailure)
-                {
-                    ShowToast(gate.Error.Message);
-                }
-                else
-                {
-                    EnterManualEncounter(session, offer.EncounterLocalMapId, offer.ArmyStackId);
-                    session.World.Strategic.ClearBattleOffer();
-                    session.World.Strategic.PendingEngagement.Clear();
-                    StrategicClockFreezeService.BeginOrPromote(
+                    offer.ExecuteOnWin = _executeOnWin;
+                    var resolved = BattleOfferService.ResolveAuto(
                         session.World,
-                        StrategicClockFreezeReason.ManualEncounter);
-                    session.IsPaused = false;
-                    _holding = false;
-                }
-            }
-
-            if (decision.Manual)
-                btnIndex++;
-
-            if (decision.Retreat &&
-                GUI.Button(new Rect(box.x + 16f + third * btnIndex, y, third, 32f), "撤退"))
-            {
-                var retreat = BattleRetreatService.ExecuteRetreat(session.World, session.PlayerParty);
-                _holding = false;
-                if (retreat.IsFailure)
-                {
-                    ShowToast(retreat.Error.Message);
-                }
-                else
-                {
-                    var freeze = session.World.Strategic.ClockFreeze;
-                    var savedPaused = freeze.HasSavedHostPresentation
-                        ? freeze.SavedHostPaused
-                        : session.IsPaused;
-                    var savedSpeed = freeze.HasSavedHostPresentation
-                        ? freeze.SavedSpeedMultiplier
-                        : (bootstrap != null ? bootstrap.EffectiveSpeedMultiplier() : 1);
-                    BattleOfferService.FinishOfferResolution(session.World);
-                    if (!session.World.Strategic.IsWorldTickFrozen)
+                        _executeOnWin,
+                        out _,
+                        out _);
+                    _executeOnWin = false;
+                    if (resolved.IsSuccess)
                     {
-                        session.IsPaused = savedPaused;
-                        if (bootstrap != null)
-                            bootstrap.ApplySavedSpeedMultiplier(savedSpeed);
+                        session.World.Strategic.PendingEngagement.Clear();
+                        _holding = true;
+                        session.IsPaused = true;
+                        bootstrap.WorldMapPanel?.Open();
+                        bootstrap.WorldMapPanel?.RefreshStrategicPresentation(session.World);
                     }
                     else
-                        session.IsPaused = true;
+                        ShowToast(resolved.Error.Message);
+                }));
+            if (decision.Manual)
+                specs.Add(new ButtonSpec("手动战斗", () => CommitManualWithWarDeclarationIfNeeded(session, offer)));
+            if (decision.Retreat)
+                specs.Add(new ButtonSpec("撤退", () =>
+                {
+                    var retreat = BattleRetreatService.ExecuteRetreat(session.World, session.PlayerParty);
+                    _holding = false;
+                    if (retreat.IsFailure)
+                    {
+                        ShowToast(retreat.Error.Message);
+                    }
+                    else
+                    {
+                        var freeze = session.World.Strategic.ClockFreeze;
+                        var savedPaused = freeze.HasSavedHostPresentation
+                            ? freeze.SavedHostPaused
+                            : session.IsPaused;
+                        var savedSpeed = freeze.HasSavedHostPresentation
+                            ? freeze.SavedSpeedMultiplier
+                            : (bootstrap != null ? bootstrap.EffectiveSpeedMultiplier() : 1);
+                        BattleOfferService.FinishOfferResolution(session.World);
+                        if (!session.World.Strategic.IsWorldTickFrozen)
+                        {
+                            session.IsPaused = savedPaused;
+                            if (bootstrap != null)
+                                bootstrap.ApplySavedSpeedMultiplier(savedSpeed);
+                        }
+                        else
+                            session.IsPaused = true;
+                    }
+                }));
+
+            var count = Mathf.Max(1, specs.Count);
+            var slotW = (box.width - 40f) / count;
+            for (var i = 0; i < specs.Count; i++)
+            {
+                var rect = new Rect(box.x + 16f + slotW * i, y, slotW, 32f);
+                if (GUI.Button(rect, specs[i].Label))
+                    specs[i].Invoke();
+            }
+        }
+
+        /// <summary>BattleOffer 底部动作按钮描述：动作列表驱动布局，隐藏按钮后不残留槽位。</summary>
+        readonly struct ButtonSpec
+        {
+            public ButtonSpec(string label, Action action)
+            {
+                Label = label;
+                Action = action;
+            }
+
+            public string Label { get; }
+
+            public Action Action { get; }
+
+            public void Invoke() => Action?.Invoke();
+        }
+
+        /// <summary>
+        /// CORRECTION V1: Manual 点击的 DeclareWar commitment point。
+        /// 先 ValidateManualEntry；若 Offer 带 pending 宣战 metadata，则 defensive re-validate
+        /// （engagement 仍 active / defender 存在 / faction 一致 / 非 same faction / 非 Friendly）
+        /// 后调 StrategicMilitaryAggressionService.TryEscalateToWar；失败则保持 Offer 不进入战斗。
+        /// 已 War 的 Offer（RequiresWarDeclaration=false）直接进入 Manual，无宣战步骤。
+        /// </summary>
+        void CommitManualWithWarDeclarationIfNeeded(PlayableHostSession session, BattleOfferPending offer)
+        {
+            var world = session.World;
+            var gate = BattleManualEntryPolicy.ValidateManualEntry(world);
+            if (gate.IsFailure)
+            {
+                ShowToast(gate.Error.Message);
+                return;
+            }
+
+            if (offer.RequiresWarDeclaration)
+            {
+                var engagement = world.Strategic.PendingEngagement;
+                if (engagement == null || !engagement.IsActive)
+                {
+                    ShowToast("接战状态已失效，无法宣战。");
+                    return;
+                }
+                if (!world.Strategic.FormalArmies.TryGet(offer.DefenderArmyId, out var defender) ||
+                    defender == null)
+                {
+                    ShowToast("目标军团已不存在，无法宣战。");
+                    return;
+                }
+
+                var currentPlayerFaction = world.Strategic.PlayerFactionId ?? string.Empty;
+                var defenderFaction = defender.FactionId ?? string.Empty;
+                if (!string.Equals(
+                        currentPlayerFaction,
+                        offer.PendingWarAttackerFactionId,
+                        StringComparison.Ordinal) ||
+                    !string.Equals(
+                        defenderFaction,
+                        offer.PendingWarDefenderFactionId,
+                        StringComparison.Ordinal))
+                {
+                    ShowToast("宣战方/目标阵营已变化，请重新发起。");
+                    return;
+                }
+                if (string.Equals(currentPlayerFaction, defenderFaction, StringComparison.Ordinal))
+                {
+                    ShowToast("不能攻击同阵营单位。");
+                    return;
+                }
+                var stance = world.Strategic.Diplomacy?.GetStance(currentPlayerFaction, defenderFaction) ??
+                             FactionStance.Neutral;
+                if (stance == FactionStance.Friendly)
+                {
+                    ShowToast("该阵营为友好关系，不能宣战。");
+                    return;
+                }
+
+                if (!StrategicMilitaryAggressionService.TryEscalateToWar(
+                        world,
+                        currentPlayerFaction,
+                        defenderFaction,
+                        out var warReason))
+                {
+                    ShowToast("宣战失败：" + warReason);
+                    return;
                 }
             }
+
+            EnterManualEncounter(session, offer.EncounterLocalMapId, offer.ArmyStackId);
+            session.World.Strategic.ClearBattleOffer();
+            session.World.Strategic.PendingEngagement.Clear();
+            StrategicClockFreezeService.BeginOrPromote(
+                session.World,
+                StrategicClockFreezeReason.ManualEncounter);
+            session.IsPaused = false;
+            _holding = false;
         }
 
         void EnterManualEncounter(

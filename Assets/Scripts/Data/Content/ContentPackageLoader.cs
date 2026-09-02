@@ -725,7 +725,9 @@ namespace XianXia.Data.Content
                         WorkRole = spawnNode.GetString("workRole", string.Empty),
                         ScheduleId = spawnNode.GetString("scheduleId", string.Empty),
                         AiRole = spawnNode.GetString("aiRole", string.Empty),
-                        JobId = spawnNode.GetString("jobId", string.Empty)
+                        JobId = spawnNode.GetString("jobId", string.Empty),
+                        WorldSiteId = spawnNode.GetString("worldSiteId", string.Empty),
+                        LocalLocationId = spawnNode.GetString("localLocationId", string.Empty)
                     };
                     if (string.IsNullOrWhiteSpace(entry.DefinitionId))
                     {
@@ -826,6 +828,33 @@ namespace XianXia.Data.Content
                 FactionId = item.GetString("factionId", string.Empty),
                 AssemblySiteId = item.GetString("assemblySiteId", string.Empty)
             };
+
+            if (item.TryGetProperty("initialHex", out var hexNode))
+            {
+                if (hexNode.Kind != JsonValueKind.Object)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "formalArmy.initialHex must be object.", id.ToString());
+                    return;
+                }
+
+                var hexErrorsBefore = report.Errors.Count;
+                DefinitionSchema.RejectUnknownFields(
+                    hexNode, DefinitionSchema.FormalArmyInitialHexFields, report, id + ".initialHex");
+                if (report.Errors.Count > hexErrorsBefore)
+                    return;
+
+                // (0,0) 是合法 Hex：以 InitialHex != null 为 presence authority，
+                // 不能靠 Q/R 是否为 0 判断有没有 initialHex。
+                def.InitialHex = new FormalArmyInitialHexDefinition
+                {
+                    Q = hexNode.TryGetProperty("q", out var qNode) && qNode.Kind == JsonValueKind.Number
+                        ? (int)qNode.Number
+                        : 0,
+                    R = hexNode.TryGetProperty("r", out var rNode) && rNode.Kind == JsonValueKind.Number
+                        ? (int)rNode.Number
+                        : 0
+                };
+            }
 
             if (string.IsNullOrWhiteSpace(def.RuntimeArmyId))
             {
@@ -962,7 +991,9 @@ namespace XianXia.Data.Content
                     WorkRole = spawnNode.GetString("workRole", string.Empty),
                     ScheduleId = spawnNode.GetString("scheduleId", string.Empty),
                     AiRole = spawnNode.GetString("aiRole", string.Empty),
-                    JobId = spawnNode.GetString("jobId", string.Empty)
+                    JobId = spawnNode.GetString("jobId", string.Empty),
+                    WorldSiteId = spawnNode.GetString("worldSiteId", string.Empty),
+                    LocalLocationId = spawnNode.GetString("localLocationId", string.Empty)
                 };
                 if (string.IsNullOrWhiteSpace(entry.DefinitionId))
                 {

@@ -162,7 +162,9 @@
       "initialFormalArmyIds": [
         "base:formal_army_bandit_patrol",
         "base:formal_army_bandit_weak",
-        "base:formal_army_bandit_casualty_test"
+        "base:formal_army_bandit_casualty_test",
+        "base:formal_army_qingshi_acceptance_shuofeng_garrison",
+        "base:formal_army_qingshi_acceptance_shuofeng_reinforcement"
       ],
       "spawns": [
         {
@@ -364,6 +366,65 @@
           "bindDailyTask": false,
           "scheduleId": "base:schedule_jiang_lao_pace",
           "aiRole": "Mortal"
+        },
+        {
+          "definitionId": "base:character_qingshi_acceptance_unaffiliated_a",
+          "entityKind": "npc",
+          "displayName": "青石散人甲",
+          "assignOpeningFaction": false,
+          "bindSchedule": false,
+          "bindDailyTask": false,
+          "recruitable": false,
+          "worldSiteId": "base:site_chengzhen",
+          "localLocationId": "base:loc_site_chengzhen_acceptance_unaffiliated_a"
+        },
+        {
+          "definitionId": "base:character_qingshi_acceptance_unaffiliated_b",
+          "entityKind": "npc",
+          "displayName": "青石散人乙",
+          "assignOpeningFaction": false,
+          "bindSchedule": false,
+          "bindDailyTask": false,
+          "recruitable": false,
+          "worldSiteId": "base:site_chengzhen",
+          "localLocationId": "base:loc_site_chengzhen_acceptance_unaffiliated_b"
+        },
+        {
+          "definitionId": "base:character_qingshi_acceptance_unaffiliated_hostile",
+          "entityKind": "npc",
+          "displayName": "青石挑衅者",
+          "assignOpeningFaction": false,
+          "bindSchedule": false,
+          "bindDailyTask": false,
+          "recruitable": false,
+          "worldSiteId": "base:site_chengzhen",
+          "localLocationId": "base:loc_site_chengzhen_acceptance_unaffiliated_hostile"
+        },
+        {
+          "definitionId": "base:character_qingshi_acceptance_shuofeng_civilian_a",
+          "entityKind": "npc",
+          "displayName": "朔风镇民甲",
+          "assignOpeningFaction": true,
+          "factionId": "base:faction_shuofeng",
+          "factionRole": "Member",
+          "bindSchedule": false,
+          "bindDailyTask": false,
+          "recruitable": false,
+          "worldSiteId": "base:site_chengzhen",
+          "localLocationId": "base:loc_site_chengzhen_acceptance_shuofeng_civilian_a"
+        },
+        {
+          "definitionId": "base:character_qingshi_acceptance_shuofeng_civilian_b",
+          "entityKind": "npc",
+          "displayName": "朔风镇民乙",
+          "assignOpeningFaction": true,
+          "factionId": "base:faction_shuofeng",
+          "factionRole": "Member",
+          "bindSchedule": false,
+          "bindDailyTask": false,
+          "recruitable": false,
+          "worldSiteId": "base:site_chengzhen",
+          "localLocationId": "base:loc_site_chengzhen_acceptance_shuofeng_civilian_b"
         }
       ],
       "openingRelations": [

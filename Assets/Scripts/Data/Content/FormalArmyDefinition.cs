@@ -23,11 +23,28 @@ namespace XianXia.Data.Content
 
         public string FactionId { get; set; } = string.Empty;
 
-        /// <summary>创建成员时先放置于该 Site，再由 scenario placement policy 移至实际 Hex。</summary>
+        /// <summary>
+        /// 创建成员时放置的合法 assembly Site，也是没有 InitialHex 时的默认开局物理位置
+        /// （FormalArmy.WorldMotion = AtWorldSite）。
+        /// </summary>
         public string AssemblySiteId { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Optional authored initial wilderness deployment：创建完成且注册后立刻把
+        /// FormalArmy 部署到该 Hex（FormalArmy.WorldMotion = Hex authority）。
+        /// 以 null 为 presence authority（(0,0) 也是合法 hex）。
+        /// </summary>
+        public FormalArmyInitialHexDefinition InitialHex { get; set; }
 
         public List<FormalArmyMemberDefinition> Members { get; set; }
             = new List<FormalArmyMemberDefinition>();
+    }
+
+    /// <summary>FormalArmy 可选初始 Hex（axial q/r）。</summary>
+    public sealed class FormalArmyInitialHexDefinition
+    {
+        public int Q { get; set; }
+        public int R { get; set; }
     }
 
     public sealed class FormalArmyMemberDefinition

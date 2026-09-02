@@ -219,7 +219,7 @@ namespace XianXia.Unity.Host
             GUI.Label(new Rect(detailRect.x, y, detailRect.width, 120f),
                 labelFn(world, entity.Id) + "\n" +
                 "\u52bf\u529b\uff1a" + StrategicFactionCatalog.DisplayName(row?.FactionId) + "\n" +
-                "\u4f4d\u7f6e\uff1a" + (row?.SiteLabel ?? "\u2014") + "\n" +
+                "\u4f4d\u7f6e\uff1a" + (string.IsNullOrEmpty(row?.LocationLabel) ? (row?.SiteLabel ?? "\u2014") : row.LocationLabel) + "\n" +
                 "\u72b6\u6001\uff1a" + (row?.LifeStateLabel ?? "\u2014") + "  \u7f16\u7ec4\uff1a" + membership + "\n" +
                 FormatWorldPresenceDebug(world, entity.Id),
                 _body);

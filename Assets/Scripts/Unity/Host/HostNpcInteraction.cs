@@ -95,7 +95,7 @@ namespace XianXia.Unity.Host
 
     public static class HostNpcInteraction
     {
-        /// <summary>内容敌对姿态：洞府威胁等。有此标＝开打免确认；无此标＝中立／未宣战，攻击需确认。</summary>
+        /// <summary>Local/content hostility posture; not StrategicMilitary identity or faction-war authority.</summary>
         public const string HostileTag = "hostile";
         public const float DefaultMeleeEngageRange = 1.85f;
 
@@ -107,6 +107,18 @@ namespace XianXia.Unity.Host
                 return false;
             if (StrategicEncounterHostilityService.IsHostileStrategicNpc(session.World, entity))
                 return true;
+
+            if (!HostileActionClassificationService.TryClassifyTarget(
+                    session.World, npcId, out var classification, out _))
+                return false;
+            if (classification.Scope == HostileActionScope.StrategicMilitary)
+            {
+                var playerFaction = session.World.Strategic?.PlayerFactionId;
+                if (string.IsNullOrEmpty(playerFaction))
+                    playerFaction = StrategicFactionCatalog.PlayerFactionId;
+                return WarGateService.CanAttack(session.World, playerFaction, classification.TargetFactionId);
+            }
+
             return IsHostileEntity(entity);
         }
 

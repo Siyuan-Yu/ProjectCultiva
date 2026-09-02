@@ -119,6 +119,11 @@ namespace XianXia.Core.Persistence
         public string OfferTitle { get; set; } = string.Empty;
         public string ArmyStackId { get; set; } = string.Empty;
         public string EncounterLocalMapId { get; set; } = string.Empty;
+        /// <summary>BattleOfferOrigin（Local-origin 决策态恢复用）。</summary>
+        public int OfferOrigin { get; set; }
+        public bool OfferRequiresWarDeclaration { get; set; }
+        public string PendingWarAttackerFactionId { get; set; } = string.Empty;
+        public string PendingWarDefenderFactionId { get; set; } = string.Empty;
         public List<string> PlayerFormalArmyIds { get; set; } = new List<string>(8);
         public List<string> EnemyFormalArmyIds { get; set; } = new List<string>(8);
         public List<ulong> PlayerPartyMemberIds { get; set; } = new List<ulong>(8);

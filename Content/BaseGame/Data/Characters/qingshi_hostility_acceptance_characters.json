@@ -1,0 +1,247 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:character_qingshi_acceptance_unaffiliated_a",
+      "type": "character",
+      "name": "青石散人甲",
+      "baseAttributes": {
+        "MaxHp": 100,
+        "Physique": 10,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 8,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "initialRealmPlaceholder": "凡人",
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "tags": [
+        "acceptance_fixture",
+        "qingshi"
+      ],
+      "personalityTags": [],
+      "backgroundTags": [],
+      "talentTags": [],
+      "hometown": "青石镇",
+      "reputation": 0,
+      "goals": [],
+      "desires": []
+    },
+    {
+      "id": "base:character_qingshi_acceptance_unaffiliated_b",
+      "type": "character",
+      "name": "青石散人乙",
+      "baseAttributes": {
+        "MaxHp": 100,
+        "Physique": 10,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 8,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "initialRealmPlaceholder": "凡人",
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "tags": [
+        "acceptance_fixture",
+        "qingshi"
+      ],
+      "personalityTags": [],
+      "backgroundTags": [],
+      "talentTags": [],
+      "hometown": "青石镇",
+      "reputation": 0,
+      "goals": [],
+      "desires": []
+    },
+    {
+      "id": "base:character_qingshi_acceptance_unaffiliated_hostile",
+      "type": "character",
+      "name": "青石挑衅者",
+      "baseAttributes": {
+        "MaxHp": 100,
+        "Physique": 10,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 8,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "initialRealmPlaceholder": "凡人",
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "tags": [
+        "acceptance_fixture",
+        "qingshi"
+      ],
+      "personalityTags": [
+        "hostile"
+      ],
+      "backgroundTags": [],
+      "talentTags": [],
+      "hometown": "青石镇",
+      "reputation": 0,
+      "goals": [],
+      "desires": []
+    },
+    {
+      "id": "base:character_qingshi_acceptance_shuofeng_civilian_a",
+      "type": "character",
+      "name": "朔风镇民甲",
+      "baseAttributes": {
+        "MaxHp": 100,
+        "Physique": 10,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 8,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "initialRealmPlaceholder": "凡人",
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "tags": [
+        "acceptance_fixture",
+        "qingshi"
+      ],
+      "personalityTags": [],
+      "backgroundTags": [],
+      "talentTags": [],
+      "hometown": "朔风堡",
+      "reputation": 0,
+      "goals": [],
+      "desires": []
+    },
+    {
+      "id": "base:character_qingshi_acceptance_shuofeng_civilian_b",
+      "type": "character",
+      "name": "朔风镇民乙",
+      "baseAttributes": {
+        "MaxHp": 100,
+        "Physique": 10,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 8,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "initialRealmPlaceholder": "凡人",
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "tags": [
+        "acceptance_fixture",
+        "qingshi"
+      ],
+      "personalityTags": [],
+      "backgroundTags": [],
+      "talentTags": [],
+      "hometown": "朔风堡",
+      "reputation": 0,
+      "goals": [],
+      "desires": []
+    },
+    {
+      "id": "base:character_qingshi_acceptance_shuofeng_guard",
+      "type": "character",
+      "name": "朔风卫兵",
+      "baseAttributes": {
+        "MaxHp": 100,
+        "Physique": 10,
+        "Attack": 8,
+        "Defense": 4,
+        "Speed": 8,
+        "Stamina": 50,
+        "SpiritSense": 5,
+        "Comprehension": 5,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 50
+      },
+      "initialRealmPlaceholder": "凡人",
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "tags": [
+        "acceptance_fixture",
+        "qingshi"
+      ],
+      "personalityTags": [],
+      "backgroundTags": [],
+      "talentTags": [],
+      "hometown": "朔风堡",
+      "reputation": 0,
+      "goals": [],
+      "desires": []
+    }
+  ]
+}

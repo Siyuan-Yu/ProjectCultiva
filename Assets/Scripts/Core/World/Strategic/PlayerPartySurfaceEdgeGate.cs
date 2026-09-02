@@ -64,6 +64,23 @@ namespace XianXia.Core.World.Strategic
             HasIngressContext = true;
         }
 
+        /// <summary>
+        /// IngressContext 是 one-shot：本次 destination materialize + final landing 完成后消费，
+        /// 防止 WorldSite→WorldSite / 无新 SetIngressContext 的 materialize 读到上一 Site 的
+        /// 旧 ingress direction。只清 ingress 字段；不动 TransitionInProgress / EdgeArmed /
+        /// LastLocal / LastExit* 等其它 gate state。
+        /// </summary>
+        public void ConsumeIngressContext()
+        {
+            IngressFootprintHex = default;
+            IngressFromWildernessHex = default;
+            IngressDirectionLocalX = 0f;
+            IngressDirectionLocalY = 0f;
+            IngressBoundaryWorldX = 0f;
+            IngressBoundaryWorldY = 0f;
+            HasIngressContext = false;
+        }
+
         public void BeginTransition(int exitDirection)
         {
             BeginTransition(exitDirection, default, default, false);

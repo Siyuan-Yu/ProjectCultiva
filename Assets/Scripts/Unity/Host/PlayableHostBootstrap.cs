@@ -681,6 +681,9 @@ namespace XianXia.Unity.Host
             // 时发生（TryInitialize 启动链内），不能等玩家离开 Site 再回来才第一次执行。
             TryRunInitialSiteBootstrap();
             moveController.BindLocalMapContext(_session.World.LocalMap.ActiveMapLayoutId);
+            // Host-side Safe+Walkable fallback：materialize+Rebuild 之后、OnLocalMapMaterialized
+            // （→RebindAllFollowers）之前 —— WalkGrid 已 ready、EntityView 已就位。
+            playerPartyController.ValidateAndRepairPlayerPartyMaterializedPlacement();
             playerPartyController.OnLocalMapMaterialized(_session.World.LocalMap.ActiveMapLayoutId);
             if (npcContextMenu != null)
                 npcContextMenu.Bind(this, selectionController, moveController, dialoguePresenter, localMapEnterPrompt);
@@ -1384,6 +1387,12 @@ namespace XianXia.Unity.Host
                         world, logBounds.Value, depth);
                 }
 
+                if (materializeResult.IsSuccess)
+                {
+                    PlayerPartyTransitionMembership.ReconcilePlayerPartyMemberWorldPresenceFromMotion(
+                        world, _session.PlayerParty, "SurfaceMaterialize");
+                }
+
                 PlayerPartyWorldLocationDebug.LogSnapshot(
                     world, _session.PlayerParty, "MaterializeLocalView");
 
@@ -1568,6 +1577,7 @@ namespace XianXia.Unity.Host
                 }
             }
 
+            PlayerPartyController?.ValidateAndRepairPlayerPartyMaterializedPlacement();
             PlayerPartyController?.OnLocalMapMaterialized(localMapId.Trim());
             LoadedLocalMapPlacementSnapshotRestore.FinishRestorePresentation();
         }

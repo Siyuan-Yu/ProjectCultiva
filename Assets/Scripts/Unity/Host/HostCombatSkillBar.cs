@@ -109,6 +109,39 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            // CORRECTION V1: 右键攻击与主动技能必须走同一 pre-damage coordinator。
+            // 返回 true = 输入被消费（确认窗 / BattleOffer / reject）；false = 直接执行原技能。
+            var npcMenu = bootstrap != null ? bootstrap.GetComponent<HostNpcContextMenu>() : null;
+            if (npcMenu == null)
+            {
+                Toast(caster, "Hostile action router unavailable", new Color(1f, 0.4f, 0.35f));
+                return;
+            }
+            var consumed = npcMenu.TryHandlePlayerHostileAction(
+                caster, target, () => ExecuteResolvedHostileCast(caster, target, slotIndex));
+            if (!consumed)
+                ExecuteResolvedHostileCast(caster, target, slotIndex);
+        }
+
+        /// <summary>
+        /// 确认后真正执行原技能（cooldown 只在实际成功 cast 后写入；Cancel / 军事路由不扣）。
+        /// </summary>
+        void ExecuteResolvedHostileCast(EntityId caster, EntityId target, int slotIndex)
+        {
+            var world = bootstrap.Session.World;
+            if (!world.Entities.TryGet(caster, out var entity) ||
+                !entity.TryGet<CombatArtsComponent>(out var arts))
+                return;
+            var artId = arts.GetEquipped(slotIndex);
+            if (!artId.HasValue)
+                return;
+            if (!world.TryGetCombatArt(artId.Value, out var art) || art == null || !art.IsActiveSkill)
+                return;
+
+            var cds = GetCooldownArray(caster);
+            if (cds[slotIndex] > 0.05f)
+                return;
+
             var result = _melee.CastEquippedArt(
                 world, caster, target, slotIndex,
                 out var total, out var hits, out var defeated);

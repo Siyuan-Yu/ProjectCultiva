@@ -587,6 +587,14 @@ namespace XianXia.Unity.Host
             {
                 TryAxisStep(view, ref pos, dx, 0f);
                 TryAxisStep(view, ref pos, 0f, dy);
+
+                // 卡边缘保底：仅当 Active 当前 cell 本身不可走/出界（出生进了 blocked 格或透明
+                // exit / grid 外）时才用 nearest-safe-walkable resolver 拉回最近合法 cell。
+                // 正常撞墙（站在 walkable 格上被阻挡）不触发，避免按向障碍物时瞬移。
+                if (!_walkGrid.TryWorldToCell(pos.x, pos.y, out var gx2, out var gy2))
+                    SnapOntoWalkableIfNeeded(view);
+                else if (!_walkGrid.IsWalkable(gx2, gy2))
+                    SnapOntoWalkableIfNeeded(view);
             }
             else
             {
@@ -894,13 +902,57 @@ namespace XianXia.Unity.Host
                 return;
             var pos = view.transform.position;
             if (!_walkGrid.TryWorldToCell(pos.x, pos.y, out var cx, out var cy))
+            {
+                // Outside-grid 修复：角色出生在 WalkGrid 外（透明 exit / 边界外）时 TryWorldToCell
+                // 返回 false，旧实现直接 return 导致永远没有 recovery。现在按 raw world index clamp
+                // 到 grid 再搜最近 walkable。
+                if (!TryResolveNearestWalkableWorldPoint(pos.x, pos.y, 12, out var recovered))
+                    return;
+                view.transform.position = new Vector3(recovered.x, recovered.y, HostPresentationSpace.EntityZ);
                 return;
+            }
+
             if (_walkGrid.IsWalkable(cx, cy))
                 return;
             if (!_walkGrid.TryFindNearestWalkable(cx, cy, 12, out var nx, out var ny))
                 return;
             _walkGrid.CellToWorldCenter(nx, ny, out var wx, out var wy);
             view.transform.position = new Vector3(wx, wy, HostPresentationSpace.EntityZ);
+        }
+
+        /// <summary>
+        /// 通用 nearest-safe-walkable resolver：即使 world point 在 WalkGrid 外（raw index 超 bounds）
+        /// 也能恢复 —— 先按 raw cell index clamp 到 grid 作为搜索起点，再 ring/BFS nearest walkable；
+        /// 命中返回 cell center world 坐标。SafeInterior / exit-slot 过滤由调用方（Host repair）用
+        /// 返回值再做最终判定。
+        /// </summary>
+        public bool TryResolveNearestWalkableWorldPoint(
+            float worldX,
+            float worldY,
+            int maxRadius,
+            out Vector3 worldPoint)
+        {
+            worldPoint = default;
+            if (_walkGrid == null)
+                return false;
+
+            var rawX = (int)Math.Floor((worldX - _walkGrid.OriginX) / _walkGrid.CellSize);
+            var rawY = (int)Math.Floor((worldY - _walkGrid.OriginY) / _walkGrid.CellSize);
+            var cx = Mathf.Clamp(rawX, 0, _walkGrid.Width - 1);
+            var cy = Mathf.Clamp(rawY, 0, _walkGrid.Height - 1);
+
+            if (_walkGrid.IsWalkable(cx, cy))
+            {
+                _walkGrid.CellToWorldCenter(cx, cy, out var wx, out var wy);
+                worldPoint = new Vector3(wx, wy, HostPresentationSpace.EntityZ);
+                return true;
+            }
+
+            if (!_walkGrid.TryFindNearestWalkable(cx, cy, maxRadius, out var nx, out var ny))
+                return false;
+            _walkGrid.CellToWorldCenter(nx, ny, out var fx, out var fy);
+            worldPoint = new Vector3(fx, fy, HostPresentationSpace.EntityZ);
+            return true;
         }
 
         Vector3 ClampToWalkable(Vector3 from, Vector3 proposed)

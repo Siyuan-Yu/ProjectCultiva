@@ -355,12 +355,77 @@ namespace XianXia.Core.World.Strategic
         /// not form a FormalArmy and never fabricates AttackerArmyId.
         /// Validate -&gt; TryBeginPlayerPartyEngagement (frozen BattleAnchorHex / SupportArea /
         /// DirectInitiator) -&gt; shared offer tail (LocalMapResolver / BuildSnapshot / labels / freeze).
+        /// WorldMap path keeps requireExistingWar = true (existing WarGate gate).
         /// </summary>
         public static bool TryBuildOfferForPlayerPartyAttack(
             SimulationWorld world,
             PlayerPartyRuntime party,
             ArmyStack enemy,
             string title = null)
+        {
+            if (world?.Strategic == null || enemy == null || party == null || !party.HasActive)
+                return false;
+            return TryBuildOfferForPlayerPartyAttackCore(
+                world,
+                party,
+                enemy,
+                title,
+                BattleOfferOrigin.StrategicCommand,
+                requireExistingWar: true,
+                string.Empty,
+                string.Empty,
+                requiresWarDeclaration: false);
+        }
+
+        /// <summary>
+        /// CORRECTION V1: LocalMap 玩家主动军事攻击（对 FormalArmy member）。
+        /// 不要求已 War（Neutral 也可提前建立 preview）；RequiresWarDeclaration 作为 pending
+        /// metadata 写入 Offer，commit point 在玩家确认「手动战斗」时（Host 层调
+        /// StrategicMilitaryAggressionService）。与 WorldMap 共用同一套 engagement /
+        /// gathering / snapshot / offer tail，禁止复制 participant building。
+        /// </summary>
+        public static bool TryBuildOfferForLocalPlayerPartyMilitaryAttack(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            ArmyStack enemy,
+            string title = null)
+        {
+            if (world?.Strategic == null || enemy == null || party == null || !party.HasActive)
+                return false;
+
+            var playerFaction = world.Strategic.PlayerFactionId ?? string.Empty;
+            var enemyFaction = enemy.FactionId ?? string.Empty;
+            var requiresWar = !string.IsNullOrEmpty(playerFaction) &&
+                              !string.IsNullOrEmpty(enemyFaction) &&
+                              !string.Equals(playerFaction, enemyFaction, StringComparison.Ordinal) &&
+                              !WarGateService.CanAttack(world, playerFaction, enemyFaction);
+            return TryBuildOfferForPlayerPartyAttackCore(
+                world,
+                party,
+                enemy,
+                title,
+                BattleOfferOrigin.LocalMapHostileAction,
+                requireExistingWar: false,
+                playerFaction,
+                enemyFaction,
+                requiresWar);
+        }
+
+        /// <summary>
+        /// PlayerParty 接战 Offer 共享 core：queue gate / defender living / (可选) WarGate /
+        /// TryBeginPlayerPartyEngagement / CompleteOfferAfterEngagement。WorldMap 与 LocalMap
+        /// 两个薄入口只负责 origin / war gate 差异。
+        /// </summary>
+        static bool TryBuildOfferForPlayerPartyAttackCore(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            ArmyStack enemy,
+            string title,
+            BattleOfferOrigin origin,
+            bool requireExistingWar,
+            string pendingWarAttackerFactionId,
+            string pendingWarDefenderFactionId,
+            bool requiresWarDeclaration)
         {
             if (world?.Strategic == null || enemy == null || party == null || !party.HasActive)
                 return false;
@@ -385,7 +450,8 @@ namespace XianXia.Core.World.Strategic
                 return false;
 
             var playerFaction = world.Strategic.PlayerFactionId ?? string.Empty;
-            if (!string.IsNullOrEmpty(playerFaction) &&
+            if (requireExistingWar &&
+                !string.IsNullOrEmpty(playerFaction) &&
                 !string.IsNullOrEmpty(enemy.FactionId) &&
                 !string.Equals(playerFaction, enemy.FactionId, StringComparison.Ordinal) &&
                 !WarGateService.CanAttack(world, playerFaction, enemy.FactionId))
@@ -407,7 +473,16 @@ namespace XianXia.Core.World.Strategic
             if (thirdPartyResolved)
                 return true;
 
-            return CompleteOfferAfterEngagement(world, party.Members, enemy, title, offerId);
+            return CompleteOfferAfterEngagement(
+                world,
+                party.Members,
+                enemy,
+                title,
+                offerId,
+                origin,
+                requiresWarDeclaration,
+                pendingWarAttackerFactionId,
+                pendingWarDefenderFactionId);
         }
 
 
@@ -448,13 +523,18 @@ namespace XianXia.Core.World.Strategic
         /// <summary>
         /// Phase 5S-B2-3.4: Shared offer tail after engagement creation (FormalArmy / PlayerParty).
         /// AttackerArmyId comes from the frozen PendingEngagement (PlayerParty Initiator keeps "").
+        /// Local-origin (CORRECTION V1) 携带 pending war metadata：commit point 在玩家确认 Manual。
         /// </summary>
         static bool CompleteOfferAfterEngagement(
             SimulationWorld world,
             IReadOnlyList<EntityId> playerParty,
             ArmyStack enemy,
             string title,
-            string offerId)
+            string offerId,
+            BattleOfferOrigin origin = BattleOfferOrigin.StrategicCommand,
+            bool requiresWarDeclaration = false,
+            string pendingWarAttackerFactionId = null,
+            string pendingWarDefenderFactionId = null)
         {
             var offer = world.Strategic.BattleOffer;
             offer.Resolved = false;
@@ -463,6 +543,10 @@ namespace XianXia.Core.World.Strategic
             offer.DefenderArmyId = world.Strategic.PendingEngagement?.DefenderFormalArmyId ?? string.Empty;
             offer.AttackerArmyId = world.Strategic.PendingEngagement?.AttackerFormalArmyId ?? string.Empty;
             offer.Title = ResolveOfferTitle(world, enemy, title);
+            offer.Origin = origin;
+            offer.RequiresWarDeclaration = requiresWarDeclaration;
+            offer.PendingWarAttackerFactionId = pendingWarAttackerFactionId ?? string.Empty;
+            offer.PendingWarDefenderFactionId = pendingWarDefenderFactionId ?? string.Empty;
             var mapResolution = BattleLocalMapResolver.ResolvePendingEngagement(world);
             if (!mapResolution.Success)
                 return false;
@@ -520,6 +604,10 @@ namespace XianXia.Core.World.Strategic
             offer.ArmyStackId = armyStackId ?? string.Empty;
             offer.Title = string.IsNullOrEmpty(title) ? "残留战场" : title;
             offer.EncounterLocalMapId = ResolveActiveEncounterLocalMapId(world);
+            offer.Origin = BattleOfferOrigin.StrategicCommand;
+            offer.RequiresWarDeclaration = false;
+            offer.PendingWarAttackerFactionId = string.Empty;
+            offer.PendingWarDefenderFactionId = string.Empty;
             offer.SetPlayerParty(playerParty);
             offer.ExecuteOnWin = false;
             if (string.IsNullOrEmpty(attackerArmyId))
@@ -926,6 +1014,13 @@ namespace XianXia.Core.World.Strategic
             var offer = world.Strategic.BattleOffer;
             if (offer.Resolved || string.IsNullOrEmpty(offer.OfferId))
                 return Result.Failure(ErrorCode.InvalidOperation, "No battle offer.");
+
+            // CORRECTION V1: UI 不是 authority —— Local-origin Offer 不可能通过任何 caller 偷偷 Auto resolve。
+            if (offer.Origin == BattleOfferOrigin.LocalMapHostileAction &&
+                !BattleDecisionPolicy.ResolveDecisionOptions(world).Auto)
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "Local-origin battle offer cannot be auto-resolved.");
 
             RefreshOfferPowerLabels(world);
             var party = world.Strategic.Participants.CollectSelectedFriendly();

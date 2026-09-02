@@ -337,20 +337,51 @@ namespace XianXia.Core.World.Strategic
                 var memberX = px;
                 var memberZ = pz;
                 var placementSource = LoadedLocalMapPlacementSnapshotRestore.SpawnPlacementSource.DefaultStart;
+                var isFollower = i > 0;
+                var fromSnapshotPlacement = false;
                 if (useWildernessProjection)
                 {
-                    ApplyFollowerPresentationOffset(i, ref memberX, ref memberZ);
+                    if (isFollower)
+                        ApplyPartyFormationOffset(i, ref memberX, ref memberZ);
                 }
                 else
                 {
-                    LoadedLocalMapPlacementSnapshotRestore.TryResolveWorldSiteSpawnPosition(
-                        id,
-                        mapId,
-                        px,
-                        pz,
-                        out memberX,
-                        out memberZ,
-                        out placementSource);
+                    // WorldSite：Snapshot 保留每个 member 自己的 Saved 落点（不加 offset）；
+                    // DefaultStart / ProjectCanonical fresh placement 的 follower 必须加 formation
+                    // offset —— 否则 Active + Followers 全部落在 px,pz 同一点（root cause 1）。
+                    fromSnapshotPlacement =
+                        LoadedLocalMapPlacementSnapshotRestore.TryResolveWorldSiteSpawnPosition(
+                            id,
+                            mapId,
+                            px,
+                            pz,
+                            out memberX,
+                            out memberZ,
+                            out placementSource);
+                    if (!fromSnapshotPlacement && isFollower)
+                        ApplyPartyFormationOffset(i, ref memberX, ref memberZ);
+                }
+
+                // Formation candidate 必须留在 SafeInterior（不得因 offset 被推回边缘 / exit band）。
+                // Snapshot placement 不 clamp —— 除非 Host safety validator 判定 invalid/unwalkable。
+                if (isFollower && !fromSnapshotPlacement)
+                {
+                    if (useWildernessProjection && wildernessPlayableBounds.HasValue)
+                    {
+                        ClampFormationCandidateToSafeInterior(
+                            memberX, memberZ, wildernessPlayableBounds.Value, ref memberX, ref memberZ);
+                    }
+                    else if (isSiteExpand && siteBounds.HasValue)
+                    {
+                        var sitePlacementBounds =
+                            new WildernessLocalWorldProjection.WildernessLocalMapBounds(
+                                siteBounds.Value.MinX,
+                                siteBounds.Value.MaxX,
+                                siteBounds.Value.MinY,
+                                siteBounds.Value.MaxY);
+                        ClampFormationCandidateToSafeInterior(
+                            memberX, memberZ, sitePlacementBounds, ref memberX, ref memberZ);
+                    }
                 }
 
                 // Phase 5R-B2：Legacy save 无可信 Canonical → 仅当 snapshot 提供了 Local placement 时，
@@ -372,7 +403,6 @@ namespace XianXia.Core.World.Strategic
                     loc.LocationId = startId;
                 loc.SetPresentationOverride(memberX, memberZ);
 
-                var isFollower = i > 0;
                 PlayerPartyTransitionMembership.LogMaterializeMember(
                     id,
                     mapId,
@@ -411,6 +441,10 @@ namespace XianXia.Core.World.Strategic
                 PlayerPartyWildernessTransitionService.CompleteEdgeTransitionPresentation(
                     world, realSiteBounds, px, pz);
             }
+
+            // IngressContext 是 one-shot：本次 destination materialize + final landing 完成即消费，
+            // 防止 WorldSite→WorldSite / 无新 SetIngressContext 的 materialize 读到旧 ingress direction。
+            world.PlayerPartyTravel?.SurfaceEdgeGate?.ConsumeIngressContext();
 
             return Result.Success();
         }
@@ -466,12 +500,20 @@ namespace XianXia.Core.World.Strategic
                     error = "Active presentation outside playable bounds.";
                     return false;
                 }
+
+                // WorldSite 调用方曾传 materializeBounds 而实际使用 siteBounds 导致漏查；
+                // 现统一按传入的实际 bounds 同时断言 SafeInterior（Core 不查 WalkGrid）。
+                if (!WildernessLocalWorldProjection.IsInSafeInterior(x, z, b))
+                {
+                    error = "Active presentation outside SafeInterior (near-edge band).";
+                    return false;
+                }
             }
 
             return true;
         }
 
-        static void ApplyFollowerPresentationOffset(int memberIndex, ref float x, ref float z)
+        static void ApplyPartyFormationOffset(int memberIndex, ref float x, ref float z)
         {
             if (memberIndex == 0)
                 return;
@@ -489,6 +531,33 @@ namespace XianXia.Core.World.Strategic
                 default:
                     z += 0.9f;
                     break;
+            }
+        }
+
+        /// <summary>
+        /// 通用纯函数：formation candidate 收敛到 SafeInterior（wilderness / WorldSite 通用，
+        /// 用同一正式几何 NearEdgeMarginX/Y，无 magic world distance）。先 clamp 到近缘带内侧，
+        /// 若仍不在 SafeInterior（极小图）则回退 bounds 中心。
+        /// </summary>
+        public static void ClampFormationCandidateToSafeInterior(
+            float x,
+            float z,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            ref float outX,
+            ref float outZ)
+        {
+            var marginX = WildernessLocalWorldProjection.NearEdgeMarginX(bounds);
+            var marginY = WildernessLocalWorldProjection.NearEdgeMarginY(bounds);
+            var loX = bounds.MinX + marginX;
+            var hiX = bounds.MaxX - marginX;
+            var loY = bounds.MinY + marginY;
+            var hiY = bounds.MaxY - marginY;
+            outX = x < loX ? loX : (x > hiX ? hiX : x);
+            outZ = z < loY ? loY : (z > hiY ? hiY : z);
+            if (!WildernessLocalWorldProjection.IsInSafeInterior(outX, outZ, bounds))
+            {
+                outX = bounds.CenterX;
+                outZ = bounds.CenterY;
             }
         }
 

@@ -4,6 +4,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
+using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 
@@ -108,6 +109,53 @@ namespace XianXia.Data.Bootstrap
                 return Result.Failure(created.Error);
 
             ArmyStackAdapter.EnsureLinkedStackView(world, created.Value, def.RuntimeStackId, def.Name);
+
+            // Optional authored wilderness deployment：initialHex != null 时把
+            // FormalArmy 部署到该 Hex（FormalArmy.WorldMotion = Hex authority）。
+            // 绝不直接改 stack.CurrentHex / member.WorldPresence 绕过 WorldMotion。
+            if (def.InitialHex != null)
+            {
+                var deploy = DeployArmyToInitialHex(world, created.Value, def);
+                if (deploy.IsFailure)
+                    return deploy;
+            }
+
+            return Result.Success();
+        }
+
+        static Result DeployArmyToInitialHex(
+            SimulationWorld world,
+            FormalArmy army,
+            FormalArmyDefinition def)
+        {
+            if (world.HexWorld == null || !world.HexWorld.HasGrid)
+            {
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "formalArmy.initialHex requires a loaded HexWorld.",
+                    def.Id.ToString());
+            }
+
+            var hex = new HexCoord(def.InitialHex.Q, def.InitialHex.R);
+            if (!world.HexWorld.Contains(hex))
+            {
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "formalArmy.initialHex out of bounds.",
+                    def.Id + " (q=" + def.InitialHex.Q + ", r=" + def.InitialHex.R + ")");
+            }
+
+            if (world.HexWorld.TryGetCell(hex, out var cell) && cell != null && !cell.IsPassable)
+            {
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "formalArmy.initialHex not passable.",
+                    def.Id + " (q=" + def.InitialHex.Q + ", r=" + def.InitialHex.R + ")");
+            }
+
+            ArmyHexTravelService.InitializeArmyAtHex(world, army, hex);
+            if (world.Strategic.Armies.TryGet(def.RuntimeStackId, out var linked) && linked != null)
+                ArmyStackAdapter.SyncStackTravelFromFormalArmy(world, linked);
             return Result.Success();
         }
     }

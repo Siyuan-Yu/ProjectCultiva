@@ -41,6 +41,10 @@ namespace XianXia.Core.Persistence
                 OfferTitle = offer.Title,
                 ArmyStackId = offer.ArmyStackId,
                 EncounterLocalMapId = offer.EncounterLocalMapId,
+                OfferOrigin = (int)offer.Origin,
+                OfferRequiresWarDeclaration = offer.RequiresWarDeclaration,
+                PendingWarAttackerFactionId = offer.PendingWarAttackerFactionId,
+                PendingWarDefenderFactionId = offer.PendingWarDefenderFactionId,
             };
 
             if (engagement.HasSupportArea)
@@ -172,6 +176,10 @@ namespace XianXia.Core.Persistence
             offer.AttackerArmyId = src.AttackerFormalArmyId ?? string.Empty;
             offer.DefenderArmyId = src.DefenderFormalArmyId ?? string.Empty;
             offer.EncounterLocalMapId = src.EncounterLocalMapId ?? string.Empty;
+            offer.Origin = (BattleOfferOrigin)src.OfferOrigin;
+            offer.RequiresWarDeclaration = src.OfferRequiresWarDeclaration;
+            offer.PendingWarAttackerFactionId = src.PendingWarAttackerFactionId ?? string.Empty;
+            offer.PendingWarDefenderFactionId = src.PendingWarDefenderFactionId ?? string.Empty;
 
             var participants = world.Strategic.Participants;
             participants.Clear();

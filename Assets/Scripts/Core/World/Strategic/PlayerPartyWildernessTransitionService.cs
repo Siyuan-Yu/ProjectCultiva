@@ -138,7 +138,11 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// Expand/Materialize 完成后：用目的 LocalMap bounds + Entry 边完成 Gate（Disarm）。
+        /// Expand/Materialize 完成后：用调用方提供的「实际最终落点」完成 Gate（Disarm）。
+        /// 禁止 silently invent 一个与 actual Character 不同的 spawn point：
+        /// 若 actual 不在 SafeInterior → 仍按 actual 完成（保持 Disarmed），diagnostics 记录 unsafe，
+        /// 由 Host safety repair 接管（repair 成功后 gate.NoteLocalPosition + TickRearm 才会 re-arm，
+        /// 绝不硬开 EdgeArmed）。
         /// </summary>
         public static void CompleteEdgeTransitionPresentation(
             SimulationWorld world,
@@ -151,28 +155,16 @@ namespace XianXia.Core.World.Strategic
             if (gate == null)
                 return;
             var exitDir = gate.LastExitDirection >= 0 ? gate.LastExitDirection : 0;
-            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
-                : 1f;
-            var depth = SurfaceExitZoneCalculator.ResolveDepthFromSession(world, bounds);
-            var currentHex = motion.CurrentHex;
-            HexCoord cameFromHex;
-            if (gate.HasExitBoundaryContext)
-                cameFromHex = gate.LastExitSourceFootprintHex;
-            else
-                cameFromHex = HexMath.Neighbor(
-                    currentHex,
-                    WildernessLocalWorldProjection.OppositeDirection(exitDir));
+
             if (!WildernessLocalWorldProjection.IsInSafeInterior(spawnLocalX, spawnLocalY, bounds))
             {
-                WildernessLocalWorldProjection.GetLocalPositionNearEdge(
-                    bounds,
-                    currentHex,
-                    cameFromHex,
-                    hexSize,
-                    depth,
-                    out spawnLocalX,
-                    out spawnLocalY);
+                // 不重算、不写 fake safe 点：记 actual，gate 保持 Disarmed，等 Host repair。
+                PlayerPartyWorldLocationDebug.Sink?.Invoke(
+                    "[EdgeGate] CompleteEdgeTransition unsafe landing: " +
+                    spawnLocalX.ToString("0.###") + "," + spawnLocalY.ToString("0.###") +
+                    " bounds=[" + bounds.MinX.ToString("0.###") + "," + bounds.MaxX.ToString("0.###") +
+                    "," + bounds.MinY.ToString("0.###") + "," + bounds.MaxY.ToString("0.###") + "]" +
+                    " -> kept Disarmed (Host safety repair will rearm).");
             }
 
             gate.CompleteTransition(exitDir, spawnLocalX, spawnLocalY);
@@ -280,7 +272,6 @@ namespace XianXia.Core.World.Strategic
                 var boundaryWorld = new WorldVec2(
                     ingressConnection.BoundaryContactWorldX,
                     ingressConnection.BoundaryContactWorldY);
-                var derived = HexMath.WorldToHex(boundaryWorld.X, boundaryWorld.Y, hexSize);
 
                 PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
                 PlayerPartyTransitionMembership.LogPartyTransition(
@@ -293,9 +284,11 @@ namespace XianXia.Core.World.Strategic
                 // Phase 5R-B3C1.2：保存正式 ingress connection 的 transient context（footprint hex /
                 // 来向荒野 hex / outward Local 方向 / boundary world），供 Host Materialize 的 Safe
                 // Landing 解析 inward 方向（不按 CurrentHex/WorldToHex/Anchor/Presence 重猜）。
+                // committed hex = 正式 topology destinationHex（BoundaryContact 恰在 perimeter 中点，
+                // WorldToHex 有 tie 歧义，不再用它猜 committed hex）。
                 motion.SurfaceEdgeGate?.SetIngressContext(ingressConnection);
-                motion.SetAtWorldPosition(boundaryWorld, derived);
-                ApplyTravelingMembersAtHex(world, derived);
+                motion.SetAtWorldPosition(boundaryWorld, destinationHex);
+                ApplyTravelingMembersAtHex(world, destinationHex);
                 return PlayerPartyHexTravelService.EnterWorldSiteAsParty(
                     world, party, site, destinationHex);
             }
@@ -380,7 +373,6 @@ namespace XianXia.Core.World.Strategic
                 external,
                 motion.WorldPosition,
                 hexSize);
-            var derived = HexMath.WorldToHex(worldPos.X, worldPos.Y, hexSize);
 
             PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
             PlayerPartyTransitionMembership.LogPartyTransition(
@@ -390,11 +382,42 @@ namespace XianXia.Core.World.Strategic
                 external,
                 world.PartyWorld?.LocalMapId);
 
-            motion.SetAtWorldPosition(worldPos, derived);
-            ApplyTravelingMembersAtHex(world, derived);
-
             if (world.Strategic.Sites.TryGetAtHex(external, out var destSite) && destSite != null)
-                return PlayerPartyHexTravelService.EnterWorldSiteAsParty(world, party, destSite);
+            {
+                // Direct WorldSite → WorldSite：必须为目标 Site 建立正式 ingress context（否则会读到
+                // 上一 Site 的旧 ingress / fallback direction）。canonical physical position = 正式
+                // BoundaryContactWorld；committed ingress footprint hex = external。无正式 destination
+                // ingress → 明确失败，不 silent enter、不依赖上一 Site 的 LastExitDirection 猜。
+                if (!WorldSiteFootprintExitConnectionResolver.TryResolveFormalIngressConnection(
+                        world,
+                        destSite,
+                        external,
+                        sourceFootprint,
+                        hexSize,
+                        out var destinationIngress))
+                {
+                    motion.SurfaceEdgeGate?.ClearEdgeState();
+                    return Result.Failure(
+                        ErrorCode.InvalidOperation,
+                        "No formal destination-site ingress from " + sourceFootprint +
+                        " into " + external + " (Site→Site).");
+                }
+
+                var boundaryWorld = new WorldVec2(
+                    destinationIngress.BoundaryContactWorldX,
+                    destinationIngress.BoundaryContactWorldY);
+                motion.SurfaceEdgeGate?.SetIngressContext(destinationIngress);
+                motion.SetAtWorldPosition(boundaryWorld, external);
+                ApplyTravelingMembersAtHex(world, external);
+                return PlayerPartyHexTravelService.EnterWorldSiteAsParty(
+                    world, party, destSite, external);
+            }
+
+            // 普通 Wilderness 出口：committed hex = formal connection destination（external），
+            // 不再用 BoundaryContact WorldToHex 猜（B3A 后 boundary 恰在多 hex 边界时 WorldToHex
+            // 有 tie 歧义）。
+            motion.SetAtWorldPosition(worldPos, external);
+            ApplyTravelingMembersAtHex(world, external);
 
             if (!WildernessLocalMapFallback.TryResolve(world, external, out var mapId) ||
                 string.IsNullOrEmpty(mapId))

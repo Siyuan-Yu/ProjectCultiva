@@ -1072,6 +1072,8 @@ namespace XianXia.Core.World.Strategic
                 " world=" + motion.WorldPosition + " hasPos=" + motion.HasPosition);
 
             ApplyTravelingMembersAtSite(world, site.SiteId);
+            PlayerPartyTransitionMembership.ReconcilePlayerPartyMemberWorldPresenceFromMotion(
+                world, party, "EnterWorldSiteAsParty");
             PlayerPartyWorldLocationDebug.LogTransition(world, party, "EnterWorldSiteAsParty");
             return WorldTravelService.EnterWorldSiteScene(world, site.SiteId, string.Empty);
         }

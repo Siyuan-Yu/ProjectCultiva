@@ -252,7 +252,6 @@ namespace XianXia.Core.World.Strategic
                 var boundary = new WorldVec2(
                     ingressConnection.BoundaryContactWorldX,
                     ingressConnection.BoundaryContactWorldY);
-                var ingressDerived = HexMath.WorldToHex(boundary.X, boundary.Y, siteHexSize);
 
                 PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
                 PlayerPartyTransitionMembership.LogPartyTransition(
@@ -265,6 +264,8 @@ namespace XianXia.Core.World.Strategic
                 // Phase 5R-B3C1.2：保存正式 ingress connection 的 transient context（见
                 // PlayerPartySurfaceEdgeGate.SetIngressContext），供 Materialize 的 Safe Landing 解析
                 // inward 方向。保留 path / AutoTravel / ExecutionMode；只移动位置（不 Clear）。
+                // committed hex = 正式 topology destinationHex（BoundaryContact 位于 perimeter 中点，
+                // WorldToHex 有 tie 歧义；不再用 ingressDerived 猜）。
                 motion.SurfaceEdgeGate?.SetIngressContext(ingressConnection);
                 var isDestinationSite =
                     !string.IsNullOrEmpty(motion.DestinationSiteId) &&
@@ -274,8 +275,8 @@ namespace XianXia.Core.World.Strategic
                         System.StringComparison.Ordinal);
                 if (isDestinationSite)
                 {
-                    motion.SetWorldPositionInternal(boundary, ingressDerived);
-                    ApplyTravelingMembersAtHex(world, ingressDerived);
+                    motion.SetWorldPositionInternal(boundary, destinationHex);
+                    ApplyTravelingMembersAtHex(world, destinationHex);
                     return PlayerPartyHexTravelService.EnterWorldSiteAsParty(
                         world, party, destSite, destinationHex);
                 }
@@ -451,6 +452,41 @@ namespace XianXia.Core.World.Strategic
             // Route progress 对齐到已提交 connection 的 DestinationHex（不重复推进、不跳过下一段）。
             PlayerPartyHexTravelService.AlignRouteProgressAfterSiteEgress(motion, connection.DestinationHex);
             ApplyTravelingMembersAtHex(world, connection.DestinationHex);
+
+            // LocalVisible AutoTravel 直连 Site→Site（external 属于另一 Site footprint）：与手动
+            // exit 同规则 —— 必须建立目标 Site 正式 ingress context；无正式 destination ingress →
+            // 明确失败（不 silent 进入、不依赖上一 Site 的 LastExitDirection 猜）。
+            if (connection.DestinationKind == SurfaceExitDestinationKind.WorldSite &&
+                world.Strategic?.Sites != null &&
+                world.Strategic.Sites.TryGetAtHex(external, out var destSite) &&
+                destSite != null)
+            {
+                var siteHexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                    ? world.HexWorld.HexSize
+                    : 1f;
+                if (!WorldSiteFootprintExitConnectionResolver.TryResolveFormalIngressConnection(
+                        world,
+                        destSite,
+                        external,
+                        sourceFootprint,
+                        siteHexSize,
+                        out var destIngress))
+                {
+                    return Result.Failure(
+                        ErrorCode.InvalidOperation,
+                        "No formal destination-site ingress from " + sourceFootprint +
+                        " into " + external + " (LocalVisible Site→Site).");
+                }
+
+                motion.SurfaceEdgeGate?.SetIngressContext(destIngress);
+                var destBoundary = new WorldVec2(
+                    destIngress.BoundaryContactWorldX,
+                    destIngress.BoundaryContactWorldY);
+                motion.SetWorldPositionInternal(destBoundary, external);
+                ApplyTravelingMembersAtHex(world, external);
+                return PlayerPartyHexTravelService.EnterWorldSiteAsParty(
+                    world, party, destSite, external);
+            }
 
             if (!WildernessLocalMapFallback.TryResolve(world, external, out var mapId) ||
                 string.IsNullOrEmpty(mapId))

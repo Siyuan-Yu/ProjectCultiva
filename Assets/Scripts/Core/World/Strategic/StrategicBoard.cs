@@ -4,6 +4,15 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
+    /// <summary>BattleOffer 来源：决定决策按钮集合（Local-origin 禁 Auto）与宣战 commitment 语义。</summary>
+    public enum BattleOfferOrigin
+    {
+        /// <summary>WorldMap 战略指令（FormalArmy / PlayerParty remote attack、追击到站、残留再入）。</summary>
+        StrategicCommand = 0,
+        /// <summary>LocalMap 玩家主动 hostile action（对 FormalArmy member 的军事攻击）。</summary>
+        LocalMapHostileAction = 1
+    }
+
     /// <summary>全战式接战弹窗数据。</summary>
     public sealed class BattleOfferPending
     {
@@ -24,6 +33,12 @@ namespace XianXia.Core.World.Strategic
         public string LastAutoBattleSummary { get; set; } = string.Empty;
         /// <summary>自动战胜后是否直接击杀敌军（否则仅击溃，敌军栈可能残存）。</summary>
         public bool ExecuteOnWin { get; set; }
+        /// <summary>Offer 来源（决策态 authority；Local-origin 强制禁 Auto）。</summary>
+        public BattleOfferOrigin Origin { get; set; } = BattleOfferOrigin.StrategicCommand;
+        /// <summary>确认「手动战斗」时才 DeclareWar 的 pending 声明标记（Neutral Local 军事攻击）。</summary>
+        public bool RequiresWarDeclaration { get; set; }
+        public string PendingWarAttackerFactionId { get; set; } = string.Empty;
+        public string PendingWarDefenderFactionId { get; set; } = string.Empty;
         readonly List<ulong> _playerPartyIds = new List<ulong>(8);
 
         public IReadOnlyList<ulong> PlayerPartyIds => _playerPartyIds;
@@ -129,6 +144,10 @@ namespace XianXia.Core.World.Strategic
             BattleOffer.ArmyStackId = string.Empty;
             BattleOffer.AttackerArmyId = string.Empty;
             BattleOffer.DefenderArmyId = string.Empty;
+            BattleOffer.Origin = BattleOfferOrigin.StrategicCommand;
+            BattleOffer.RequiresWarDeclaration = false;
+            BattleOffer.PendingWarAttackerFactionId = string.Empty;
+            BattleOffer.PendingWarDefenderFactionId = string.Empty;
             BattleOffer.ClearPlayerParty();
             BattleOffer.Resolved = true;
             PendingEngagement?.Clear();

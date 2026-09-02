@@ -210,6 +210,16 @@ namespace XianXia.Data.Bootstrap
                     if (!world.Entities.TryGet(entityId, out var entity))
                         continue;
 
+                    // Authored starting placement：localLocationId 非空时是明确呈现权威
+                    // （LocationId 可先指向未激活的 WorldSite 地点表；激活后自然可见）。
+                    if (!string.IsNullOrWhiteSpace(spawn.LocalLocationId))
+                    {
+                        var authored = EnsureLocation(entity, spawn.LocalLocationId.Trim());
+                        if (authored.IsFailure)
+                            return authored;
+                        continue;
+                    }
+
                     var placeId = world.WorldRegion.StartLocationId;
                     if (!string.IsNullOrEmpty(spawn.EntityKind) &&
                         string.Equals(spawn.EntityKind, "npc", StringComparison.OrdinalIgnoreCase))

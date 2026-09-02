@@ -177,7 +177,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 | Field | Notes |
 |---|---|
-| `entries[]` | 与 openingScenario.spawns 同形：definitionId／entityKind／aiRole／factionRole／scheduleId… |
+| `entries[]` | 与 openingScenario.spawns 同形：definitionId／entityKind／aiRole／factionRole／scheduleId／…；同样支持 worldSiteId＋localLocationId（Level Tester authored remote residents；有 roster 时由 roster 决定试玩刷谁，worldSiteId 非默认站点时不会进 PlayerParty 开局旅行成员） |
 
 人物本体在 `Characters/`；本表只回答「试玩时刷谁」。Level Tester 默认读 `base:roster_level_tester`（人物编辑器「导出 Level Tester 名册」）。**不是** Unity 场景里摆好的 GameObject。
 

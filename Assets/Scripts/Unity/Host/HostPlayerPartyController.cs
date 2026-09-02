@@ -5,7 +5,9 @@ using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Input;
+using XianXia.Core.Navigation;
 using XianXia.Core.Persistence;
+using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
@@ -62,6 +64,9 @@ namespace XianXia.Unity.Host
         readonly Dictionary<ulong, float> _nextFollowRepath = new Dictionary<ulong, float>();
         readonly Dictionary<ulong, HostPartySharedActivity> _followerSharedActivity =
             new Dictionary<ulong, HostPartySharedActivity>();
+        // Host safety repair：SurfaceExit slot 命中判定复用（非每帧热路径）。
+        static readonly List<XianXia.Core.World.Strategic.SurfaceExitConnection> ExitSlotScratch =
+            new List<XianXia.Core.World.Strategic.SurfaceExitConnection>(8);
         HostPartySharedActivity _lastActiveSharedActivity = HostPartySharedActivity.FollowIdle;
         bool _wasdHeldLastFrame;
         bool _pendingSnapshotFollowRebind;
@@ -193,6 +198,284 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
+        /// Host-side Safe + Walkable fallback（保底）：materialize + Rebuild 完成后、
+        /// OnLocalMapMaterialized→RebindAllFollowers 之前调用。
+        /// Core SafeIngressLanding 只懂 geometry；只有 Host 知道 WalkGrid block。
+        /// 对 Active：4 条件（WalkGrid in-bounds walkable / SafeInterior / 不在 SurfaceExit slot）；
+        /// 非法 → nearest safe cell → 同步 PresentationOverride + transform +（AtWorldSite 时）
+        /// 立即 Local→Canonical。Followers：preferred = Active safe + stable slot offset，各自独立
+        /// 解析最近 safe cell，避免多人同 cell。只改 presentation / local placement，不重写 motion。
+        /// 无 qingshi / map-id special-case。
+        /// </summary>
+        public void ValidateAndRepairPlayerPartyMaterializedPlacement()
+        {
+            var session = bootstrap?.Session;
+            var world = session?.World;
+            if (session == null || world == null || Party == null || !Party.HasActive)
+                return;
+            if (_move == null || _spawner == null || _move.WalkGrid == null)
+                return;
+            if (world.LocalMap != null && world.LocalMap.IsInInterior)
+                return; // Interior 无 Surface exit band 语义；walkable fallback 由 SnapOntoWalkableIfNeeded 覆盖。
+
+            if (!TryResolveWildernessBounds(out var bounds))
+                return;
+            var depth = SurfaceExitZoneCalculator.ResolveDepthFromSession(world, bounds);
+
+            var active = Party.ActiveCharacterId;
+            var activeRepaired = false;
+            Vector3 activeSafe = default;
+            if (!active.IsNone && _spawner.Registry.TryGet(active, out var activeView) && activeView != null)
+            {
+                var pos = activeView.transform.position;
+                var ok = IsSafePlacementPoint(world, pos.x, pos.y, bounds, depth);
+                if (!ok && TryFindSafeRepairPoint(world, pos.x, pos.y, bounds, depth, 16, out activeSafe))
+                {
+                    ApplyRepairedPlacement(world, active, activeView, activeSafe);
+                    activeRepaired = true;
+                    if (session.World.PlayerPartyTravel != null &&
+                        session.World.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                        !string.IsNullOrEmpty(session.World.PlayerPartyTravel.SiteId))
+                        SyncCanonicalImmediatelyAfterRepair(session.World, activeSafe.x, activeSafe.y);
+                }
+            }
+            else if (!active.IsNone)
+            {
+                // Active view 缺失（materialize assert 已挡）：尝试按 Domain override 修复。
+                if (world.Entities.TryGet(active, out var ent) &&
+                    ent != null &&
+                    ent.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc) &&
+                    loc != null &&
+                    loc.HasPresentationOverride &&
+                    TryFindSafeRepairPoint(
+                        world, loc.PresentationOverrideX, loc.PresentationOverrideZ, bounds, depth, 16, out activeSafe))
+                {
+                    loc.SetPresentationOverride(activeSafe.x, activeSafe.y);
+                    activeRepaired = true;
+                }
+            }
+
+            // Followers：preferred = Active safe/anchor + stable slot offset，独立解析、避免同 cell。
+            var occupiedCells = new HashSet<long>();
+            var activeAnchor = activeRepaired ? activeSafe : default;
+            if (!activeRepaired && !active.IsNone &&
+                _spawner.Registry.TryGet(active, out var activeViewAnchor) &&
+                activeViewAnchor != null)
+                activeAnchor = activeViewAnchor.transform.position;
+            if (activeRepaired)
+                MarkCellOccupied(activeSafe.x, activeSafe.y, occupiedCells);
+            else if (!active.IsNone &&
+                     _spawner.Registry.TryGet(active, out var activeViewB) &&
+                     activeViewB != null)
+                MarkCellOccupied(activeViewB.transform.position.x, activeViewB.transform.position.y, occupiedCells);
+
+            var followerIndex = 0;
+            for (var i = 0; i < Party.Members.Count; i++)
+            {
+                var id = Party.Members[i];
+                if (Party.IsActive(id))
+                    continue;
+                var offset = FollowerOffset(followerIndex);
+                followerIndex++;
+
+                if (!_spawner.Registry.TryGet(id, out var view) || view == null)
+                    continue;
+                var from = view.transform.position;
+                var preferred = activeAnchor + offset;
+                if (IsSafePlacementPoint(world, from.x, from.y, bounds, depth) &&
+                    !IsCellOccupied(from.x, from.y, occupiedCells))
+                {
+                    MarkCellOccupied(from.x, from.y, occupiedCells);
+                    continue;
+                }
+
+                if (!TryFindSafeRepairPointAvoiding(
+                        world, preferred.x, preferred.y, bounds, depth, 16, occupiedCells, out var safe))
+                    continue;
+                ApplyRepairedPlacement(world, id, view, safe);
+                MarkCellOccupied(safe.x, safe.y, occupiedCells);
+            }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            // 修完仍非法 → Development 明确报错（不 crash release）。
+            if (!active.IsNone && _spawner.Registry.TryGet(active, out var chk) && chk != null)
+            {
+                if (!IsSafePlacementPoint(world, chk.transform.position.x, chk.transform.position.y, bounds, depth))
+                {
+                    Debug.LogError(
+                        "[PlayableHost] PlayerParty materialized placement still unsafe after repair: " +
+                        chk.transform.position, this);
+                }
+            }
+#endif
+        }
+
+        void ApplyRepairedPlacement(
+            SimulationWorld world,
+            EntityId id,
+            EntityView view,
+            Vector3 safe)
+        {
+            if (world.Entities.TryGet(id, out var ent) && ent != null &&
+                ent.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc) && loc != null)
+                loc.SetPresentationOverride(safe.x, safe.y);
+            safe.z = HostPresentationSpace.EntityZ;
+            view.transform.position = safe;
+        }
+
+        /// <summary>Active repair 后立即 Local→Canonical（不等 LateUpdate 碰运气），保持双真源一致。</summary>
+        void SyncCanonicalImmediatelyAfterRepair(SimulationWorld world, float localX, float localY)
+        {
+            var motion = world.PlayerPartyTravel;
+            if (motion == null || !motion.HasPosition)
+                return;
+            if (!TryResolveSiteSyncGeometry(world, motion, out var bounds, out var geometry))
+                return;
+            var local = new WorldVec2(localX, localY);
+            PlayerPartyWorldSiteLocalVisibleSync.TrySync(motion, geometry, bounds, local, out _);
+        }
+
+        bool IsSafePlacementPoint(
+            SimulationWorld world,
+            float x,
+            float y,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float depth)
+        {
+            var grid = _move != null ? _move.WalkGrid : null;
+            if (grid == null || !grid.TryWorldToCell(x, y, out var cx, out var cy))
+                return false;
+            if (!grid.IsWalkable(cx, cy))
+                return false;
+            if (!WildernessLocalWorldProjection.IsInSafeInterior(x, y, bounds))
+                return false;
+            return !IsPointInAnySurfaceExitSlot(world, x, y, bounds, depth);
+        }
+
+        bool TryFindSafeRepairPoint(
+            SimulationWorld world,
+            float x,
+            float y,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float depth,
+            int maxRadius,
+            out Vector3 safe)
+        {
+            var occupied = new HashSet<long>();
+            return TryFindSafeRepairPointAvoiding(world, x, y, bounds, depth, maxRadius, occupied, out safe);
+        }
+
+        bool TryFindSafeRepairPointAvoiding(
+            SimulationWorld world,
+            float x,
+            float y,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float depth,
+            int maxRadius,
+            HashSet<long> occupiedCells,
+            out Vector3 safe)
+        {
+            safe = default;
+            var grid = _move != null ? _move.WalkGrid : null;
+            if (grid == null)
+                return false;
+
+            var rawX = (int)Mathf.Floor((x - grid.OriginX) / grid.CellSize);
+            var rawY = (int)Mathf.Floor((y - grid.OriginY) / grid.CellSize);
+            var cx = Mathf.Clamp(rawX, 0, grid.Width - 1);
+            var cy = Mathf.Clamp(rawY, 0, grid.Height - 1);
+            if (grid.IsWalkable(cx, cy) &&
+                !IsCellOccupiedCell(cx, cy, occupiedCells) &&
+                IsSafeCellCenter(world, cx, cy, grid, bounds, depth, out safe))
+                return true;
+
+            for (var r = 1; r <= maxRadius; r++)
+            {
+                for (var dy = -r; dy <= r; dy++)
+                {
+                    for (var dx = -r; dx <= r; dx++)
+                    {
+                        if (Mathf.Abs(dx) != r && Mathf.Abs(dy) != r)
+                            continue;
+                        var gx = cx + dx;
+                        var gy = cy + dy;
+                        if (!grid.InBounds(gx, gy) || !grid.IsWalkable(gx, gy))
+                            continue;
+                        if (IsCellOccupiedCell(gx, gy, occupiedCells))
+                            continue;
+                        if (!IsSafeCellCenter(world, gx, gy, grid, bounds, depth, out safe))
+                            continue;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        bool IsSafeCellCenter(
+            SimulationWorld world,
+            int cx,
+            int cy,
+            WalkGrid grid,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float depth,
+            out Vector3 center)
+        {
+            center = default;
+            grid.CellToWorldCenter(cx, cy, out var wx, out var wy);
+            if (!WildernessLocalWorldProjection.IsInSafeInterior(wx, wy, bounds))
+                return false;
+            if (IsPointInAnySurfaceExitSlot(world, wx, wy, bounds, depth))
+                return false;
+            center = new Vector3(wx, wy, HostPresentationSpace.EntityZ);
+            return true;
+        }
+
+        bool IsPointInAnySurfaceExitSlot(
+            SimulationWorld world,
+            float x,
+            float y,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float depth)
+        {
+            if (world?.HexWorld == null || world.Strategic == null)
+                return false;
+            ExitSlotScratch.Clear();
+            SurfaceExitZoneCalculator.CollectConnections(world, bounds, depth, ExitSlotScratch);
+            for (var i = 0; i < ExitSlotScratch.Count; i++)
+            {
+                if (SurfaceExitZoneCalculator.PointBelongsToConnection(x, y, ExitSlotScratch[i], depth))
+                    return true;
+            }
+
+            return false;
+        }
+
+        void MarkCellOccupied(float x, float y, HashSet<long> into)
+        {
+            var grid = _move != null ? _move.WalkGrid : null;
+            if (grid == null || !grid.TryWorldToCell(x, y, out var cx, out var cy))
+                return;
+            into.Add(((long)cy << 32) | (uint)(cx & 0xFFFFFFFF));
+        }
+
+        bool IsCellOccupied(float x, float y, HashSet<long> occupiedCells)
+        {
+            var grid = _move != null ? _move.WalkGrid : null;
+            if (grid == null || !grid.TryWorldToCell(x, y, out var cx, out var cy))
+                return false;
+            return IsCellOccupiedCell(cx, cy, occupiedCells);
+        }
+
+        static bool IsCellOccupiedCell(int cx, int cy, HashSet<long> occupiedCells)
+        {
+            if (occupiedCells == null || occupiedCells.Count == 0)
+                return false;
+            return occupiedCells.Contains(((long)cy << 32) | (uint)(cx & 0xFFFFFFFF));
+        }
+
+        /// <summary>
         /// PlayerParty LocalMap materialize / transition: invalidate old-map locomotion and restore follow.
         /// </summary>
         public void OnLocalMapMaterialized(string localMapId)
@@ -261,12 +544,17 @@ namespace XianXia.Unity.Host
             if (Party == null || _spawner == null)
                 return;
 
+            // Follower slot 按 Party.Members 稳定顺序分配（与 TickFollowers 同一 convention）。
+            // 修复：旧实现把每个 follower 拉到 Active exact point（root cause 2 —— materialize 后
+            // 所有人重新叠回 Active）。goal = Active + FollowerOffset(followerIndex)。
+            var followerIndex = 0;
             for (var i = 0; i < Party.Members.Count; i++)
             {
                 var id = Party.Members[i];
                 if (Party.IsActive(id))
                     continue;
-                OrderFollowerTowardActive(id);
+                OrderFollowerTowardActive(id, followerIndex);
+                followerIndex++;
             }
         }
 
@@ -1376,6 +1664,29 @@ namespace XianXia.Unity.Host
 
         void OrderFollowerTowardActive(EntityId follower)
         {
+            OrderFollowerTowardActive(follower, ResolveFollowerSlotIndex(follower));
+        }
+
+        int ResolveFollowerSlotIndex(EntityId follower)
+        {
+            if (Party == null || follower.IsNone)
+                return 0;
+            var idx = 0;
+            for (var i = 0; i < Party.Members.Count; i++)
+            {
+                var id = Party.Members[i];
+                if (Party.IsActive(id))
+                    continue;
+                if (id == follower)
+                    return idx;
+                idx++;
+            }
+
+            return idx;
+        }
+
+        void OrderFollowerTowardActive(EntityId follower, int followerIndex)
+        {
             var active = Party.ActiveCharacterId;
             if (follower.IsNone || active.IsNone || _move == null || _spawner == null)
                 return;
@@ -1383,7 +1694,10 @@ namespace XianXia.Unity.Host
             if (!_spawner.Registry.TryGet(active, out var activeView) || activeView == null)
                 return;
 
-            var goal = activeView.transform.position;
+            // Formation goal：Active + deterministic slot offset（与 TickFollowers 同一 convention）。
+            // 修复：旧实现 goal = Active exact transform → 所有 follower 反复叠回 Active 同一点。
+            var offset = FollowerOffset(followerIndex);
+            var goal = activeView.transform.position + offset;
             goal.z = HostPresentationSpace.EntityZ;
             // Phase 5R-B6.7（P0）：普通 Follow / Rebind 是内部 presentation 追随，不是玩家 Stop 命令。
             // issueStop:true 会发 Domain Stop（StopOne → commandBridge → CancelTravel），

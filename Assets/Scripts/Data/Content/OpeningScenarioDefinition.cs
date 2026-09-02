@@ -48,6 +48,20 @@ namespace XianXia.Data.Content
         public string AiRole { get; set; }
         /// <summary>NPC Simulation: JobDefinition id (e.g. base:job_herb_farmer).</summary>
         public string JobId { get; set; }
+
+        /// <summary>
+        /// Optional authored starting macro presence: New Game 开始时该 entity
+        /// 的 WorldPresence = AtSite(worldSiteId)。远程 authored population
+        /// （不在 DefaultStartSite）靠它获得世界 authority，而不是被默认塞到荒村。
+        /// </summary>
+        public string WorldSiteId { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Optional authored LocalMap presentation location：进入该 WorldSite 的
+        /// LocalMap 后，EntityLocationComponent.LocationId = localLocationId，
+        /// 决定 LocalMap 呈现位置。只在 WorldRegion 激活该地点表时可见。
+        /// </summary>
+        public string LocalLocationId { get; set; } = string.Empty;
     }
 
     public sealed class OpeningRelationEntry

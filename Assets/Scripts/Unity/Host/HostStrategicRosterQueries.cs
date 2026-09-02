@@ -20,6 +20,8 @@ namespace XianXia.Unity.Host
         public string LifeStateLabel = string.Empty;
         public string SiteId = string.Empty;
         public string SiteLabel = string.Empty;
+        /// <summary>玩家看到的行标签（PlayerParty member：canonical party location；其余：SiteLabel）。</summary>
+        public string LocationLabel = string.Empty;
         public string ArmyId = string.Empty;
         public bool IsGrouped;
         public bool CanSelectForArmyCreation;
@@ -118,14 +120,44 @@ namespace XianXia.Unity.Host
                 FactionId = entity.TryGet<FactionMembershipComponent>(out var fm) && fm.IsAffiliated
                     ? fm.FactionId
                     : string.Empty,
-                LifeStateLabel = CombatLifeStateService.FormatLifeStateWithCountdown(world, entity) ?? "存活",
-                SiteId = ArmyService.ResolveCharacterFormationLocationId(world, id) ?? string.Empty
+                LifeStateLabel = CombatLifeStateService.FormatLifeStateWithCountdown(world, entity) ?? "存活"
             };
-            row.SiteLabel = ResolveSiteLabel(world, row.SiteId);
             if (ArmyService.TryGetArmyForCharacter(world, id, out var army) && army != null)
             {
                 row.ArmyId = army.ArmyId;
                 row.IsGrouped = true;
+            }
+
+            // CORRECTION V1（roster “?”）：PlayerParty member（非 FormalArmy）的位置不是 individual
+            // Site-only query（ArmyService.ResolveCharacterFormationLocationId 是旧 FormalArmy/individual
+            // presence query，对 canonical party 位置会返回空 → “?”）。改用 PlayerPartyWorldLocationQuery：
+            // AtWorldSite → row.SiteId = resolved Site（可 focus）；AtWorldPosition（Wilderness）→
+            // SiteId 留空 + LocationLabel = Hex 标签（正常状态，不是 Unknown）。
+            if (partyRuntime != null &&
+                partyRuntime.IsMember(id) &&
+                !row.IsGrouped &&
+                PlayerPartyWorldLocationQuery.TryResolve(world, partyRuntime, out var resolved) &&
+                resolved.HasValue)
+            {
+                if (resolved.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                    !string.IsNullOrEmpty(resolved.SiteId))
+                {
+                    row.SiteId = resolved.SiteId;
+                    row.SiteLabel = ResolveSiteLabel(world, resolved.SiteId);
+                    row.LocationLabel = row.SiteLabel;
+                }
+                else
+                {
+                    row.SiteId = string.Empty;
+                    row.SiteLabel = "?";
+                    row.LocationLabel = DescribeHexLabel(world, resolved.DerivedHex);
+                }
+            }
+            else
+            {
+                row.SiteId = ArmyService.ResolveCharacterFormationLocationId(world, id) ?? string.Empty;
+                row.SiteLabel = ResolveSiteLabel(world, row.SiteId);
+                row.LocationLabel = row.SiteLabel;
             }
 
             row.CanSelectForArmyCreation =

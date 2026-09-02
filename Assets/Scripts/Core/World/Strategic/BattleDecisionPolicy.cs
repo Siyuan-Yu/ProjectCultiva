@@ -26,7 +26,13 @@ namespace XianXia.Core.World.Strategic
             return options;
         }
 
-        public static BattleDecisionOptions ResolveDecisionOptions(SimulationWorld world) =>
-            ResolveDecisionOptions(world?.Strategic?.PendingEngagement);
+        public static BattleDecisionOptions ResolveDecisionOptions(SimulationWorld world)
+        {
+            var options = ResolveDecisionOptions(world?.Strategic?.PendingEngagement);
+            var offer = world?.Strategic?.BattleOffer;
+            if (offer != null && offer.Origin == BattleOfferOrigin.LocalMapHostileAction)
+                options.Auto = false;
+            return options;
+        }
     }
 }

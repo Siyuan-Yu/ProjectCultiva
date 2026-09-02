@@ -3,6 +3,8 @@ using UnityEngine;
 using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Npc;
+using XianXia.Core.Simulation;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
@@ -15,8 +17,7 @@ namespace XianXia.Unity.Host
         {
             Closed = 0,
             Menu = 1,
-            AttackConfirm1 = 2,
-            AttackConfirm2 = 3
+            LocalAttackConfirm = 2
         }
 
         [SerializeField] PlayableHostBootstrap bootstrap;
@@ -35,6 +36,10 @@ namespace XianXia.Unity.Host
         HostMapDestructible _targetDestructible;
         bool _leaveInteriorTarget;
         string _targetLabel = string.Empty;
+        EntityId _confirmTarget = EntityId.None;
+        System.Action _confirmCallback;
+        /// <summary>一次 LocalCharacter 攻击确认的 one-shot token：approach 后重新 classify 时不再二次确认。</summary>
+        EntityId _confirmedLocalAttackTargetId = EntityId.None;
         Vector2 _menuScreen;
         Rect _menuGuiRect;
 
@@ -73,6 +78,7 @@ namespace XianXia.Unity.Host
 
         public void ClearSessionState()
         {
+            _confirmedLocalAttackTargetId = EntityId.None;
             ReleaseInteractionNpcNow();
             CloseAll();
         }
@@ -218,21 +224,13 @@ namespace XianXia.Unity.Host
                     else
                         DrawContextMenu();
                     break;
-                case Phase.AttackConfirm1:
+                case Phase.LocalAttackConfirm:
                     DrawAttackConfirm(
-                        "当前为非敌对",
-                        "「" + _targetLabel + "」尚未与我方敌对。确定要攻击吗？",
-                        "确定",
-                        () => _phase = Phase.AttackConfirm2,
+                        "攻击确认",
+                        "是否攻击「" + ResolveDisplayName(_confirmTarget) + "」？",
+                        "攻击",
+                        ConfirmLocalAttack,
                         CloseAll);
-                    break;
-                case Phase.AttackConfirm2:
-                    DrawAttackConfirm(
-                        "再次确认",
-                        "对非敌对单位开战可能引发严重后果，且无法撤销。",
-                        "确认攻击",
-                        BeginAttack,
-                        () => _phase = Phase.AttackConfirm1);
                     break;
             }
         }
@@ -360,6 +358,7 @@ namespace XianXia.Unity.Host
             const float w = 168f;
             const float itemH = 30f;
             var hostile = HostNpcInteraction.IsHostileNpc(bootstrap?.Session, _targetNpc);
+            var canAttack = CanInitiatePlayerHostileAction(_actor, _targetNpc);
             var rows = hostile ? 1 : 2;
             var h = itemH * rows + 34f;
             var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
@@ -382,15 +381,15 @@ namespace XianXia.Unity.Host
                 y += itemH;
             }
 
-            if (GUI.Button(
+            if (canAttack && GUI.Button(
                     new Rect(guiX + 8f, y, w - 16f, itemH - 4f),
                     hostile ? "攻击" : "攻击…",
                     _button))
             {
-                if (hostile)
+                // CORRECTION V1: 点击 Attack 立即 route（不等走到面前才发现是 Army）。
+                var consumed = TryHandlePlayerHostileAction(_actor, _targetNpc, BeginAttack);
+                if (!consumed)
                     BeginAttack();
-                else
-                    _phase = Phase.AttackConfirm1;
             }
 
             TryDismissOnOutsideClick(_menuGuiRect);
@@ -609,7 +608,135 @@ namespace XianXia.Unity.Host
             ShowFallbackTalk("（" + _targetLabel + " 暂无对话内容）");
         }
 
+        /// <summary>
+        /// Host pre-damage coordinator（右键攻击 / 主动技能共用，单一路由，禁止复制两套判断）。
+        /// 返回 true = 本次输入已被消费（确认窗 / BattleOffer / reject）；
+        /// 返回 false = caller 应直接执行本地伤害动作（仅 active WORLD_COMBAT participant 直接攻击路径）。
+        /// </summary>
+        public bool TryHandlePlayerHostileAction(
+            EntityId actor,
+            EntityId target,
+            System.Action onConfirmedLocalAction)
+        {
+            var session = bootstrap?.Session;
+            if (session == null || !session.IsInitialized || actor.IsNone || target.IsNone)
+                return true;
+
+            var route = LocalHostileActionRoutingService.Route(
+                session.World, session.PlayerParty, actor, target);
+            switch (route.Route)
+            {
+                case HostileActionRoute.LocalCombat:
+                    // 已处于 active WORLD_COMBAT 的 hostile participant → 直接 tactical combat。
+                    if (IsActiveStrategicCombatTarget(session.World, target))
+                        return false;
+                    // 普通 Character（无论 faction / hostile tag）→ 一次确认。
+                    BeginLocalAttackConfirm(actor, target, onConfirmedLocalAction);
+                    return true;
+
+                case HostileActionRoute.Reject:
+                    Debug.LogWarning("[Host] Hostile action rejected: " + route.FailureReason);
+                    ReleaseInteractionNpcNow(target);
+                    CloseAll();
+                    return true;
+
+                case HostileActionRoute.StrategicMilitaryEscalation:
+                default:
+                    PrepareLocalMilitaryOffer(actor, target, route);
+                    return true;
+            }
+        }
+
+        void BeginLocalAttackConfirm(EntityId actor, EntityId target, System.Action onConfirmed)
+        {
+            _confirmTarget = target;
+            _confirmCallback = onConfirmed;
+            _phase = Phase.LocalAttackConfirm;
+            HostInputGate.BlockWorldInteraction = true;
+        }
+
+        void ConfirmLocalAttack()
+        {
+            if (!_confirmTarget.IsNone)
+                _confirmedLocalAttackTargetId = _confirmTarget;
+            var cb = _confirmCallback;
+            _confirmCallback = null;
+            cb?.Invoke();
+            CloseAll();
+        }
+
+        static bool IsActiveStrategicCombatTarget(SimulationWorld world, EntityId targetId)
+        {
+            if (world == null || targetId.IsNone ||
+                !world.Entities.TryGet(targetId, out var entity) || entity == null)
+                return false;
+            return StrategicEncounterHostilityService.IsHostileStrategicNpc(world, entity);
+        }
+
+        /// <summary>
+        /// LocalMap 军事攻击 → 建立 Local-origin BattleOffer（不 DeclareWar、不直接 Manual）。
+        /// BattleOffer presenter 自动接管展示；Diplomacy 保持不变，commit point 在 Manual 确认。
+        /// </summary>
+        void PrepareLocalMilitaryOffer(EntityId actor, EntityId target, HostileActionRouteResult route)
+        {
+            var session = bootstrap?.Session;
+            if (session == null)
+            {
+                CloseAll();
+                return;
+            }
+
+            var result = PlayerPartyStrategicCombatCommandService
+                .TryPrepareLocalPlayerPartyMilitaryAttackOffer(
+                    session.World, session.PlayerParty, route.TargetFormalArmyId);
+            if (result.IsFailure)
+            {
+                Debug.LogWarning(
+                    "[Host] Local military offer preparation failed: " + result.Error.Message);
+                CloseAll();
+                return;
+            }
+
+            ReleaseInteractionNpcNow(route.TargetEntityId);
+            CloseAll();
+        }
+
         public void OnNpcArriveAttack(EntityId actor, EntityId npc)
+        {
+            var session = bootstrap?.Session;
+            if (session == null || !session.IsInitialized || actor.IsNone)
+                return;
+
+            // race-condition safety：approach 期间目标可能加入 FormalArmy → 重新 classify。
+            var route = LocalHostileActionRoutingService.Route(
+                session.World, session.PlayerParty, actor, npc);
+            if (route.Route == HostileActionRoute.StrategicMilitaryEscalation)
+            {
+                // consume local approach：不造成第一刀 damage，改建 BattleOffer。
+                PrepareLocalMilitaryOffer(actor, npc, route);
+                return;
+            }
+            if (route.Route == HostileActionRoute.Reject)
+            {
+                Debug.LogWarning(
+                    "[Host] Hostile action rejected on arrival: " + route.FailureReason);
+                ReleaseInteractionNpcNow(npc);
+                return;
+            }
+
+            // LocalCombat：已确认过（右键确认流）或 active combat participant → 直接近战，不再问第二次。
+            if (_confirmedLocalAttackTargetId == npc || IsActiveStrategicCombatTarget(session.World, npc))
+            {
+                _confirmedLocalAttackTargetId = EntityId.None;
+                BeginMelee(actor, npc);
+                return;
+            }
+
+            // 未确认的直接攻击命令（如纯移动指令）→ 到达时弹一次确认。
+            BeginLocalAttackConfirm(actor, npc, () => BeginMelee(actor, npc));
+        }
+
+        void BeginMelee(EntityId actor, EntityId npc)
         {
             var name = ResolveDisplayName(npc);
             var melee = bootstrap != null ? bootstrap.GetComponent<HostNpcMeleeAssault>() : null;
@@ -632,6 +759,13 @@ namespace XianXia.Unity.Host
 
             ReleaseInteractionNpcNow(npc);
             ResumeTime();
+        }
+
+        bool CanInitiatePlayerHostileAction(EntityId actor, EntityId target)
+        {
+            var session = bootstrap?.Session;
+            return session != null && LocalHostileActionRoutingService.CanInitiatePlayerHostileAction(
+                session.World, session.PlayerParty, actor, target);
         }
 
         void ShowFallbackTalk(string body)
@@ -657,6 +791,8 @@ namespace XianXia.Unity.Host
             _targetDestructible = null;
             _leaveInteriorTarget = false;
             _targetLabel = string.Empty;
+            _confirmTarget = EntityId.None;
+            _confirmCallback = null;
             HostInputGate.BlockWorldInteraction = false;
             if (bootstrap?.Session != null &&
                 !bootstrap.Session.World.ContentEvents.HasActive &&

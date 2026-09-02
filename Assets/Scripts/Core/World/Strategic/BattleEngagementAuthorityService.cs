@@ -270,6 +270,10 @@ namespace XianXia.Core.World.Strategic
             offer.AttackerArmyId = engagement.AttackerFormalArmyId;
             offer.DefenderArmyId = engagement.DefenderFormalArmyId;
             offer.Title = "第三方接战";
+            offer.Origin = BattleOfferOrigin.StrategicCommand;
+            offer.RequiresWarDeclaration = false;
+            offer.PendingWarAttackerFactionId = string.Empty;
+            offer.PendingWarDefenderFactionId = string.Empty;
             BattleOfferService.RefreshOfferPowerLabels(world);
 
             var resolved = BattleOfferService.ResolveAuto(world, executeOnWin: false, out _, out _);

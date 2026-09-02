@@ -181,6 +181,65 @@ namespace XianXia.Core.World.Strategic
             string targetArmyId) =>
             AttackArmy(world, party, targetArmyId);
 
+        /// <summary>
+        /// CORRECTION V1: LocalMap 军事攻击 prepare gate（不要求已 War）。
+        /// 只验证「可以建立 Local-origin BattleOffer」；真正 DeclareWar 的 commitment point
+        /// 在玩家确认「手动战斗」时（HostStrategicInterruptPresenter → StrategicMilitaryAggressionService）。
+        /// 允许 War / Hostile / Neutral；拒绝：同阵营、Friendly、无 living member、不在 SupportArea、
+        /// 已有 modal。绝对不能调用 CanIssueAttackOrder —— 它要求 WarGate.CanAttack（WorldMap 语义）。
+        /// </summary>
+        public static Result TryPrepareLocalPlayerPartyMilitaryAttackOffer(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            string targetArmyId)
+        {
+            if (world?.Strategic == null || party == null || !party.HasActive)
+                return Result.Failure(ErrorCode.InvalidOperation, "PlayerParty 无 Active 角色。");
+
+            if (ArmyService.TryGetArmyForCharacter(world, party.ActiveCharacterId, out _))
+                return Result.Failure(ErrorCode.InvalidOperation, "Active 角色隶属军团，不能由 PlayerParty 发起攻击。");
+
+            if (world.Strategic.IsModalEncounter || world.Strategic.HasBattleOffer)
+                return Result.Failure(ErrorCode.InvalidOperation, "已有接战/战斗进行中。");
+
+            if (string.IsNullOrEmpty(targetArmyId) ||
+                !world.Strategic.FormalArmies.TryGet(targetArmyId, out var defender) ||
+                defender == null)
+                return Result.Failure(ErrorCode.NotFound, "目标军团不存在。");
+
+            if (!ArmyPostBattleSyncService.HasMacroOrderLivingMember(world, defender))
+                return Result.Failure(ErrorCode.InvalidOperation, "目标军团没有可战成员。");
+
+            if (!TryResolveLinkedStack(world, targetArmyId, out var stack) || stack == null)
+                return Result.Failure(ErrorCode.NotFound, "目标军团未链接 ArmyStack。");
+
+            var playerFaction = world.Strategic.PlayerFactionId ?? string.Empty;
+            var enemyFaction = defender.FactionId ?? string.Empty;
+            if (string.IsNullOrEmpty(playerFaction) || string.IsNullOrEmpty(enemyFaction))
+                return Result.Failure(ErrorCode.InvalidOperation, "阵营信息缺失。");
+            if (string.Equals(playerFaction, enemyFaction, System.StringComparison.Ordinal))
+                return Result.Failure(ErrorCode.InvalidOperation, "不能攻击同阵营单位。");
+
+            var stance = world.Strategic.Diplomacy?.GetStance(playerFaction, enemyFaction) ?? FactionStance.Neutral;
+            if (stance == FactionStance.Friendly)
+                return Result.Failure(ErrorCode.InvalidOperation, "不能攻击友好阵营单位。");
+
+            if (!BattleEngagementTriggerService.CanTriggerPlayerPartyEngagement(
+                    world,
+                    party,
+                    targetArmyId,
+                    out var triggerReason))
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "PlayerParty must enter the defender battle support area before attacking.",
+                    triggerReason);
+
+            return BattleOfferService.TryBuildOfferForLocalPlayerPartyMilitaryAttack(
+                    world, party, stack)
+                ? Result.Success()
+                : Result.Failure(ErrorCode.InvalidOperation, "无法建立 PlayerParty 军事接战 Offer。");
+        }
+
         static Result EngageNow(
             SimulationWorld world,
             PlayerPartyRuntime party,
