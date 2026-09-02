@@ -178,9 +178,11 @@ namespace XianXia.Core.World.Strategic
 
         /// <summary>
         /// Prototype 测试山匪 Hex（对照手操红框）：
-        /// strong = 荒村正南路廊；weak = 荒村正东横路；casualtyTest = 荒村西北。
-        /// Content 荒村 (80,52) → strong (82,56)、weak (86,52)、casualty (76,50)。
-        /// LevelTester travel_mvp 小图时 (Q-4,R-2) 可能出界，会回退到边界内西北可放置格。
+        /// strong = 荒村正南路廊；weak = 荒村东偏北（青石镇北侧横路）；casualtyTest = 荒村西北。
+        /// Content 荒村 (80,52) → strong (82,56)、weak (87,51)、casualty (76,50)。
+        /// LevelTester travel_mvp 小图荒村 (3,7) → strong (5,11)、weak (10,6)、casualty 出界回退西北。
+        /// 注：weak 从旧 (Q+6,R)=travel_mvp(9,7) 挪到 (Q+7,R-1)=travel_mvp(10,6)，
+        /// 避免与青石验收外援队 initialHex (9,7) 重叠。
         /// </summary>
         public static void ResolvePrototypeTestBanditHexesBelowHuangcun(
             SimulationWorld world,
@@ -190,7 +192,7 @@ namespace XianXia.Core.World.Strategic
         {
             var origin = ResolveHuangcunAnchorHex(world);
             strongPatrolHex = new HexCoord(origin.Q + 2, origin.R + 4);
-            weakPatrolHex = new HexCoord(origin.Q + 6, origin.R);
+            weakPatrolHex = new HexCoord(origin.Q + 7, origin.R - 1);
             casualtyTestHex = new HexCoord(origin.Q - 4, origin.R - 2);
 
             if (world?.HexWorld == null || !world.HexWorld.HasGrid)
@@ -201,7 +203,7 @@ namespace XianXia.Core.World.Strategic
                 strongPatrolHex = new HexCoord(origin.Q + 2, origin.R + 4);
             if (!TryResolveStationaryTestHex(
                     world, origin, weakPatrolHex, StationaryTestBanditDirection.East, out weakPatrolHex))
-                weakPatrolHex = new HexCoord(origin.Q + 6, origin.R);
+                weakPatrolHex = new HexCoord(origin.Q + 7, origin.R - 1);
             if (!TryResolveStationaryTestHex(
                     world, origin, casualtyTestHex, StationaryTestBanditDirection.NorthWest, out casualtyTestHex))
                 casualtyTestHex = ResolveNorthWestCasualtyFallbackHex(world, origin);

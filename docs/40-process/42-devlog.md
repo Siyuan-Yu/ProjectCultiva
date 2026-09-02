@@ -7,6 +7,15 @@
 
 ---
 
+## 2026-09-02 — FIX 试炼弱匪位置避让朔风外援队 (9,7)（未提交）
+
+- 症状：LevelTester travel_mvp 中试炼弱匪（base:formal_army_bandit_weak）与青石验收朔风外援队（initialHex (9,7)）同格重叠。
+- 原因：weak 首选 hex 旧算法 = 荒村 anchor + (6,0)；travel_mvp 荒村 anchor=(3,7) → (9,7)，正撞外援队 initialHex。
+- 修复：`Ch01HexPrototypeMapBuilder.ResolvePrototypeTestBanditHexesBelowHuangcun` weak 首选改为 (Q+7, R-1) → travel_mvp (10,6)（青石镇北侧横路，passable 且不属于任何 Site footprint）；fallback 同步。ch01 大图荒村 (80,52) → weak (87,51) 不受影响。
+- 验证：WeakHexCheck harness（PlayableDayBootstrap + ch01_reference + roster_level_tester）WEAK_HEX_CHECK_PASS：weak=(10,6)、strong=(5,11)、casualty=(0,5)、reinforcement=(9,7) 不重叠。
+
+---
+
 ## 2026-09-02 — Local Hostility→BattleOffer V1 + Qingshi Acceptance Fixtures + 系列 FIX（【暂未验收】）
 
 **背景**：在已验收的 PlayerParty Battle Initiator V1（3824178）之上，继续收口 LocalMap 主动攻击产品规则、补齐青石镇可验收 Content，并修复 Unity 人工验收暴露的 4 类问题。本组改动均未提交 commit，待人工验收后统一合并。
