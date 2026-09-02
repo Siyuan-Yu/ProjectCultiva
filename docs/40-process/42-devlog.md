@@ -7,6 +7,34 @@
 
 ---
 
+## 2026-09-02 — PlayerParty Battle Initiator V1 + Remote Attack / Pursuit Parity（已验收，3824178）
+
+**做了什么**
+- **Initiator V1**：PlayerParty 不需要组 FormalArmy，即可在 WorldMap 主动攻击 living Enemy FormalArmy。`CanTriggerPlayerPartyEngagement`（抽共享 `CanTriggerFromCommittedHex`，SupportArea 冻结集合 Contains）；`TryBeginPlayerPartyEngagement`（与 FormalArmy 共用 `CommitEngagement` 核心）；`TryGatherDirectPlayerPartyInitiator`（Active 必须成功加入否则整体拒绝；Followers 同为 DirectInitiator 不 Optional）；`TryBuildOfferForPlayerPartyAttack`（复用 Offer 创建尾巴，不复制 PlayerBattleOfferService）。字段：`InitiatorKind=PlayerParty / InitiatorFormalArmyId="" / AttackerArmyId="" / DecisionSubjectKind=PlayerParty / DirectInitiator`。
+- **`AttackerArmyId=""` 下游审计**：SyncAttackerArmyAfterBattle 遇含 PlayerParty 的 mandatory party → no-op（绝不把附近 friendly FormalArmy 写成 AttackerArmyId）；ClearAttackOrdersAfterBattle 空值跳过；CommitArmyAtExactBattleHex 跳过 PlayerParty 记录。WorldMap UI 按 selection authority 分流（FormalArmy → ExecuteAttackStack；PlayerParty → command service）。
+- **Pursuit Parity**：命令资格拆 `CanIssueAttackOrder`（菜单 gate，**不检查距离**）/ `CanEngageArmyNow`（+ SupportArea）；`AttackArmy` 立即接战 or 追击由 Core 决定。新增 `PlayerPartyHexPursuitService`（薄 movement adapter）：target 真源 = `PlayerPartyWorldMotion.AttackOrderTargetArmyId`（strategic order metadata 非 position authority），每 tick Host StepTick 驱动 `AfterTravelTick`（条件校验 → 先查 contact → 未接触 retarget，target 移动自动改道）；进入 SupportArea 即停 + 建 Offer，不要求走到 target exact Hex。普通 Move / Gateway 前 `CancelPursuit`；先 validate 后覆盖。Save→Load 后 Movement 恢复 Idle、pursuit 清空（与普通 travel 同契约）。
+- 未动：FormalArmy travel / ArmyHexPursuitService / StrategicEncounterSpawner / ResolveService / LoadedStrategicPopulation* / Content JSON。
+
+**验证**
+- Host 全链编译 0 error（2 个既有无关 warning）；`git diff --check` 通过。人工验收 Case A–I 全部通过（commit「玩家主控大地图发起战斗没问题」）。
+
+**真源**
+- 本轮 devlog + `docs/40-process/187-playerparty-battle-initiator-v1-and-remote-attack-pursuit-parity-2026-09-02.md`
+
+---
+
+## 2026-09-01 — Auto WORLD_COMBAT physical authority 修复 + Phase 5S Final Closure（已验收，1886c02）
+
+**做了什么**
+- Auto 修复：`ActivateOffer` 立刻冻结 `LocalMapResolutionKind`（不再默认 ExplicitEncounterMap 误入 legacy lifecycle）；`ResolveAuto` 在 casualty 前复用 `ManualBattleWorldCommitService.CommitWorldCombatParticipants`（同一套 commit，零复制）；`HasActualPlayerPartyParticipant` 按 snapshot records 判断（不依赖 `AttackerArmyId != ""`）；`BindEncounterAfterAutoResolve` realWorldCombat 分支禁 `RestoreParticipantsAfterBattle` / 禁写 LingeringBattlefieldRegistry（residual 走 StrategicResidualPresence + LoadedStrategicPopulation）；Confirm auto settlement 后 Auto 走 `ApplyPartyWorldSitePresentation(closeWorldMap:false)` 切 BattleHex LocalMap，Manual 保持 `RefreshLoadedStrategicPopulation()`。第三方 Army vs Army Auto 不移动 PlayerParty。
+- 修既有宏不匹配：`AssertFinalResidualAuthority` 调用包进 `#if UNITY_EDITOR || DEVELOPMENT_BUILD`（生产编译与 Unity 行为不变）。
+- **Final Closure**：新增 `docs/40-process/186-phase-5s-final-architecture-closure-2026-09-01.md`（19 条 final invariants + Character Content Authoring Convention）；6 份冲突旧文档顶部加 SUPERSEDED banner（23-combat §2、147/149/150/153/159 的 lingering 再入部分），历史内容保留不改。
+
+**验证**
+- Host 全链编译 0 error；`git diff --check` 通过；人工验收 Auto Case A–F 通过（commit「自动战斗也没问题」）。
+
+---
+
 ## 2026-08-31 — Prototype Bandit FormalArmy → Content JSON 迁移（【暂未验收】）
 
 **做了什么**
