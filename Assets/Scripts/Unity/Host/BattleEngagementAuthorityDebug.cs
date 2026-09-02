@@ -33,7 +33,10 @@ namespace XianXia.Unity.Host
             if (engagement.HasSupportArea)
             {
                 var supportArea = engagement.SupportArea;
+                sb.AppendLine("BattleSiteId=" + supportArea.BattleSiteId);
+                sb.AppendLine("BattleSiteResolutionSource=" + supportArea.BattleSiteResolutionSource);
                 AppendHexList(sb, "BattleAreaHexes", supportArea.BattleAreaHexes);
+                AppendHexList(sb, "SupportRingHexes", supportArea.SupportRingHexes);
                 AppendHexList(sb, "SupportAreaHexes", supportArea.SupportAreaHexes);
                 AppendSupportAreaConstructionTrace(world, engagement, supportArea, sb);
             }
@@ -243,34 +246,90 @@ namespace XianXia.Unity.Host
                 if (army == null || string.IsNullOrEmpty(army.ArmyId))
                     continue;
 
-                var armyName = army.ArmyId;
                 var mandatory = string.Equals(army.ArmyId, initiatorId, System.StringComparison.Ordinal) ||
                                 string.Equals(army.ArmyId, defenderId, System.StringComparison.Ordinal);
                 var belligerent = string.Equals(army.FactionId, playerFaction, System.StringComparison.Ordinal) ||
                                   string.Equals(army.FactionId, enemyFaction, System.StringComparison.Ordinal);
+                var hasLivingMember = ArmyPostBattleSyncService.HasMacroOrderLivingMember(world, army);
+                var lockedElsewhere = IsArmyLockedInAnotherBattle(world, army.ArmyId, engagement.EngagementId);
+                var hasSpatialHex = BattleEngagementSpatialQuery.TryGetCommittedArmyHex(
+                    world, army, out var armyHex);
+                var inBattleArea = hasSpatialHex && supportArea.ContainsBattleArea(armyHex);
+                var inSupportRing = hasSpatialHex && supportArea.ContainsSupportRing(armyHex);
+                var inSupportArea = hasSpatialHex && supportArea.Contains(armyHex);
+                var finalIncluded = mandatory
+                    ? hasLivingMember && belligerent
+                    : hasLivingMember && belligerent && !lockedElsewhere && inSupportArea;
+                var exclusionReason = !hasLivingMember
+                    ? "NoLivingMember"
+                    : !belligerent
+                        ? "WrongFaction"
+                        : mandatory
+                            ? "DirectCombatant"
+                            : lockedElsewhere
+                                ? "LockedInAnotherBattle"
+                                : !hasSpatialHex
+                                    ? "NoSpatialHex"
+                                    : !inSupportArea
+                                        ? "OutsideSupportArea"
+                                        : "IncludedSupportAreaArmy";
 
-                if (!BattleEngagementSpatialQuery.TryGetCommittedArmyHex(world, army, out var armyHex))
+                sb.AppendLine("ArmyId=" + army.ArmyId +
+                              " FactionId=" + army.FactionId +
+                              " Leader=" + army.LeaderCharacterId +
+                              " Living=" + hasLivingMember +
+                              " LockedElsewhere=" + lockedElsewhere +
+                              " Belligerent=" + belligerent);
+                if (army.WorldMotion != null && army.WorldMotion.HasPosition)
                 {
-                    sb.AppendLine("Army " + armyName + " hex=(none) faction=" + army.FactionId +
-                                  " belligerent=" + belligerent + " inSupport=false included=" + mandatory);
-                    continue;
+                    var motion = army.WorldMotion;
+                    sb.AppendLine("  Motion.LocationKind=" + motion.LocationKind +
+                                  " Motion.IsMoving=" + motion.IsMoving +
+                                  " Motion.WorldPosition=" + motion.WorldPosition +
+                                  " Motion.CurrentHex=" + FormatHex(motion.CurrentHex) +
+                                  " SegmentIndex=" + motion.SegmentIndex +
+                                  " SegmentProgress=" + motion.SegmentProgress);
+                    if (motion.TryGetActiveStepHexes(out var from, out var to))
+                        sb.AppendLine("  ActiveStepFrom=" + FormatHex(from) +
+                                      " ActiveStepTo=" + FormatHex(to));
                 }
-
-                var inSupport = supportArea.Contains(armyHex);
-                var included = mandatory || (belligerent && inSupport);
-                sb.AppendLine(
-                    "Army " + armyName +
-                    " hex=" + FormatHex(armyHex) +
-                    " faction=" + army.FactionId +
-                    " belligerent=" + belligerent +
-                    " inSupport=" + inSupport +
-                    " included=" + included +
-                    " reason=" + (mandatory
-                        ? BattleParticipantInclusionReason.DirectInitiator
-                        : included
-                            ? BattleParticipantInclusionReason.SupportAreaArmy
-                            : BattleParticipantInclusionReason.ExcludedNotInSupportArea));
+                sb.AppendLine("  BattleSpatialHex=" + (hasSpatialHex ? FormatHex(armyHex) : "(none)") +
+                              " InBattleArea=" + inBattleArea +
+                              " InSupportRing=" + inSupportRing +
+                              " InSupportArea=" + inSupportArea +
+                              " FinalIncluded=" + finalIncluded +
+                              " ExclusionReason=" + exclusionReason);
             }
+        }
+
+        static bool IsArmyLockedInAnotherBattle(
+            SimulationWorld world,
+            string armyId,
+            string currentEngagementId)
+        {
+            if (string.IsNullOrEmpty(armyId) || world?.Strategic == null)
+                return false;
+
+            var pending = world.Strategic.PendingEngagement;
+            if (pending != null &&
+                pending.IsActive &&
+                !string.Equals(pending.EngagementId, currentEngagementId, System.StringComparison.Ordinal) &&
+                pending.ContainsFormalArmy(armyId))
+                return true;
+
+            if (!world.Strategic.IsModalEncounter || world.Strategic.Participants == null)
+                return false;
+
+            var records = world.Strategic.Participants.Records;
+            for (var i = 0; i < records.Count; i++)
+            {
+                var record = records[i];
+                if (record != null &&
+                    string.Equals(record.FormalArmyId, armyId, System.StringComparison.Ordinal))
+                    return true;
+            }
+
+            return false;
         }
 
         static void AppendSnapshotParticipantReasons(SimulationWorld world, StringBuilder sb)

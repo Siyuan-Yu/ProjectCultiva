@@ -52,6 +52,8 @@ namespace XianXia.Core.Persistence
                 var supportArea = engagement.SupportArea;
                 CopyHexList(supportArea.BattleAreaHexes, snap.BattleAreaHexQList, snap.BattleAreaHexRList);
                 CopyHexList(supportArea.SupportAreaHexes, snap.SupportAreaHexQList, snap.SupportAreaHexRList);
+                snap.SupportBattleSiteId = supportArea.BattleSiteId ?? string.Empty;
+                snap.SupportBattleSiteResolutionSource = supportArea.BattleSiteResolutionSource ?? string.Empty;
             }
 
             CopyArmyIds(engagement.LockedPlayerFormalArmyIds, snap.PlayerFormalArmyIds);
@@ -259,7 +261,11 @@ namespace XianXia.Core.Persistence
             if (battleArea.Count > 0 || supportArea.Count > 0)
             {
                 engagement.SetSupportArea(BattleEngagementSupportArea.FromFrozenLists(
-                    battleArea, supportArea, presentation));
+                    battleArea,
+                    supportArea,
+                    presentation,
+                    src.SupportBattleSiteId,
+                    src.SupportBattleSiteResolutionSource));
                 return;
             }
 

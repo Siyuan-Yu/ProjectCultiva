@@ -1856,6 +1856,25 @@ namespace XianXia.Unity.Host
             entityViewSpawner.PruneHiddenViews(_session);
         }
 
+        /// <summary>当前真实 surface 上原地开启 WORLD_COMBAT：只增量装配参战者，绝不重载地图或重刷 PlayerParty。</summary>
+        public void ActivateRealWorldCombatOnCurrentLoadedSurface()
+        {
+            if (!_session.IsInitialized || entityViewSpawner == null)
+                return;
+
+            HostSnapshotLocalPlacementCaptureSync.SyncLoadedLocalMapOccupantsFromViews(this);
+            var world = _session.World;
+            StrategicEncounterSpawner.MaterializeFriendlyParticipantsForRealLocalMap(world, _session.PlayerParty);
+            var spawned = StrategicEncounterSpawner.ApplyPending(world);
+            if (spawned.IsFailure)
+                Debug.LogWarning("[PlayableHost] 原地世界战斗装配失败：" + spawned.Error, this);
+            ReconcileLoadedStrategicPopulation();
+            _session.RefreshViewableEntityIds();
+            entityViewSpawner.SpawnMissingVisibleViews(_session);
+            entityViewSpawner.PruneHiddenViews(_session);
+            entityViewSpawner.SyncLocations(_session);
+        }
+
         public void StepTick()
         {
             if (!_session.IsInitialized)

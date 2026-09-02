@@ -39,6 +39,38 @@ namespace XianXia.Core.World.Strategic
             if (engagement == null || !engagement.IsActive)
                 return BattleLocalMapResolution.Failed(null, "没有活动中的接战。");
 
+            // 本场 SupportArea 在 engagement creation 时已经冻结 WorldSite 身份；Manual entry
+            // 不得再用可能已推进/过期的 defender motion 覆盖它。
+            var frozenSiteId = engagement.HasSupportArea
+                ? engagement.SupportArea.BattleSiteId ?? string.Empty
+                : string.Empty;
+            if (!string.IsNullOrEmpty(frozenSiteId))
+            {
+                if (!string.IsNullOrEmpty(engagement.DefenderFormalArmyId) &&
+                    world.Strategic.FormalArmies.TryGet(engagement.DefenderFormalArmyId, out var frozenDefender) &&
+                    frozenDefender?.WorldMotion != null &&
+                    frozenDefender.WorldMotion.LocationKind == FormalArmyLocationKind.AtWorldSite &&
+                    !string.IsNullOrEmpty(frozenDefender.WorldMotion.SiteId) &&
+                    !string.Equals(frozenDefender.WorldMotion.SiteId, frozenSiteId, StringComparison.Ordinal))
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        "[BattleLocalMap] FrozenBattleSiteId=" + frozenSiteId +
+                        " FrozenSiteSource=" + engagement.SupportArea.BattleSiteResolutionSource +
+                        " DefenderMotionKind=" + frozenDefender.WorldMotion.LocationKind +
+                        " DefenderMotionSiteId=" + frozenDefender.WorldMotion.SiteId +
+                        " BattleHex=" + engagement.BattleLocation);
+                }
+                if (!engagement.HasBattleLocation)
+                    return BattleLocalMapResolution.Failed(null, "WorldSite 接战缺少冻结的战斗 Hex。");
+                return Resolve(world, new BattleLocalMapLocation
+                {
+                    Kind = BattleLocalMapResolutionKind.WorldSite,
+                    SiteId = frozenSiteId,
+                    BattleHex = engagement.BattleLocation
+                });
+            }
+
+            // 旧存档／旧 PendingEngagement 未保存 frozen BattleSiteId 时才读 defender motion。
             if (!string.IsNullOrEmpty(engagement.DefenderFormalArmyId) &&
                 world.Strategic.FormalArmies.TryGet(engagement.DefenderFormalArmyId, out var defender) &&
                 defender?.WorldMotion != null &&

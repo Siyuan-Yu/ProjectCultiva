@@ -14,8 +14,9 @@ namespace XianXia.Core.World.Strategic
     }
 
     /// <summary>
-    /// Phase 4 空间 Authority：使用已提交 Hex Step（非 ContinuousWorldPosition 派生格）。
-    /// PlayerParty 与 WorldMap Marker 共用 PlayerPartyTravel，禁止回退到 stale WorldPresence。
+    /// 战斗空间 Authority：读取 strategic motion 已提交的当前所属 Hex。
+    /// 此处的 committed 表示 motion 已维护的 containing Hex，不表示当前 path segment 的 source Hex；
+    /// PlayerParty 与 WorldMap Marker 分别共用其 motion authority，禁止回退到 stale WorldPresence。
     /// </summary>
     public static class BattleEngagementSpatialQuery
     {
@@ -31,12 +32,6 @@ namespace XianXia.Core.World.Strategic
             var motion = army.WorldMotion;
             if (motion != null && motion.HasPosition)
             {
-                if (motion.IsMoving && motion.TryGetActiveStepHexes(out var from, out _))
-                {
-                    hex = from;
-                    return true;
-                }
-
                 hex = motion.CurrentHex;
                 return true;
             }
@@ -116,12 +111,6 @@ namespace XianXia.Core.World.Strategic
             if (motion == null || !motion.HasPosition)
                 return false;
 
-            if (motion.IsMoving && motion.TryGetActiveStepHexes(out var from, out _))
-            {
-                hex = from;
-                return true;
-            }
-
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(motion.SiteId) &&
                 world?.Strategic?.Sites != null)
@@ -151,10 +140,7 @@ namespace XianXia.Core.World.Strategic
                 }
             }
 
-            var hexSize = world?.HexWorld != null && world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
-                : 1f;
-            hex = HexMath.WorldToHex(motion.WorldPosition.X, motion.WorldPosition.Y, hexSize);
+            hex = motion.CurrentHex;
             return true;
         }
 
@@ -172,12 +158,6 @@ namespace XianXia.Core.World.Strategic
                 motion.HasPosition &&
                 IsTravelingMember(motion, characterId))
             {
-                if (motion.IsMoving && motion.TryGetActiveStepHexes(out var from, out _))
-                {
-                    hex = from;
-                    return true;
-                }
-
                 hex = motion.CurrentHex;
                 return true;
             }

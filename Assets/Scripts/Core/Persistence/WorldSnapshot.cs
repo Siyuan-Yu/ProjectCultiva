@@ -108,6 +108,8 @@ namespace XianXia.Core.Persistence
         public List<int> BattleAreaHexRList { get; set; } = new List<int>(8);
         public List<int> SupportAreaHexQList { get; set; } = new List<int>(16);
         public List<int> SupportAreaHexRList { get; set; } = new List<int>(16);
+        public string SupportBattleSiteId { get; set; } = string.Empty;
+        public string SupportBattleSiteResolutionSource { get; set; } = string.Empty;
         public int InitiatorEngagementHexQ { get; set; }
         public int InitiatorEngagementHexR { get; set; }
         public string InitiatorEngagementSiteId { get; set; } = string.Empty;

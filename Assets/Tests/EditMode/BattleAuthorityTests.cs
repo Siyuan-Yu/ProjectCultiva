@@ -776,7 +776,7 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void SupportArea_AtWorldSiteOutsideFootprint_UsesCommittedDefenderHexOnly()
+        public void SupportArea_ExplicitAtWorldSite_UsesEntireSiteFootprint()
         {
             var world = CreateWorld();
             var anchor = HexA;
@@ -793,10 +793,10 @@ namespace XianXia.Tests
                 world.HexWorld.HexSize);
 
             var area = BattleEngagementSupportArea.ResolveAndFreeze(world, defender.ArmyId);
-            Assert.AreEqual(1, area.BattleAreaHexes.Count);
-            Assert.AreEqual(fieldHex, area.BattleAreaHexes[0]);
-            Assert.IsTrue(area.Contains(fieldHex));
-            Assert.IsFalse(area.Contains(anchor));
+            Assert.AreEqual(huangcun.OccupiedHexes.Count, area.BattleAreaHexes.Count);
+            Assert.IsTrue(area.ContainsBattleArea(anchor));
+            Assert.IsTrue(area.Contains(anchor));
+            Assert.AreEqual("ExplicitAtWorldSite", area.BattleSiteResolutionSource);
         }
 
         [Test]

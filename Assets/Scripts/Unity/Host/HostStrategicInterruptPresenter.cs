@@ -4,6 +4,7 @@ using UnityEngine;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
+using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
@@ -712,6 +713,40 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            // Local-origin 的可见目标与当前物理 surface 必须同一；此预检在任何 DeclareWar
+            // side effect 前执行，解析分叉必须保留 Offer 让用户看见，而不是静默切图。
+            if (offer.Origin == BattleOfferOrigin.LocalMapHostileAction)
+            {
+                if (!LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(world, out var previousLoaded))
+                {
+                    ShowToast("无法解析当前已加载的 LocalMap surface。");
+                    return;
+                }
+                var resolution = BattleLocalMapResolver.ResolvePendingEngagement(world);
+                if (!resolution.Success)
+                {
+                    ShowToast("无法解析本地发起战斗地点：" + resolution.FailureReason);
+                    return;
+                }
+                if (!ArmyHexBattleAnchorService.TryGetBattleAnchorHex(world.Strategic.Participants, out _) ||
+                    world.HexWorld == null || !world.HexWorld.Contains(resolution.BattleHex))
+                {
+                    ShowToast("本地发起战斗缺少有效的冻结战斗锚点。");
+                    return;
+                }
+                if (ManualBattleWorldCommitService.PhysicalSurfaceChanged(previousLoaded, resolution))
+                {
+                    ShowToast("本地发起战斗解析到了不同的物理场景。");
+                    return;
+                }
+                if (!string.Equals(world.LocalMap.ActiveMapLayoutId, resolution.LocalMapId, StringComparison.Ordinal))
+                {
+                    ShowToast("本地发起战斗的地图标识不一致。");
+                    return;
+                }
+                WriteManualBattleSurfaceTrace(world, offer, previousLoaded, resolution, false);
+            }
+
             if (offer.RequiresWarDeclaration)
             {
                 var engagement = world.Strategic.PendingEngagement;
@@ -765,7 +800,12 @@ namespace XianXia.Unity.Host
                 }
             }
 
-            EnterManualEncounter(session, offer.EncounterLocalMapId, offer.ArmyStackId);
+            var entered = EnterManualEncounter(session, offer.EncounterLocalMapId, offer.ArmyStackId);
+            if (entered.IsFailure)
+            {
+                ShowToast(entered.Error.Message);
+                return;
+            }
             session.World.Strategic.ClearBattleOffer();
             session.World.Strategic.PendingEngagement.Clear();
             StrategicClockFreezeService.BeginOrPromote(
@@ -775,42 +815,34 @@ namespace XianXia.Unity.Host
             _holding = false;
         }
 
-        void EnterManualEncounter(
+        Result EnterManualEncounter(
             PlayableHostSession session,
             string localMapId,
             string armyStackId)
         {
             if (session?.World == null || bootstrap == null)
-                return;
+                return Result.Failure(ErrorCode.InvalidOperation, "手动战斗 Host 尚未就绪。");
 
             var gate = BattleManualEntryPolicy.ValidateManualEntry(session.World);
             if (gate.IsFailure)
-            {
-                ShowToast(gate.Error.Message);
-                return;
-            }
+                return gate;
 
             // 普通世界接战直接消费 Phase 4 冻结的 PendingEngagement 地点；显式 Encounter
             // 才保留旧的专用地图／默认地图兼容路径。
             var pending = session.World.Strategic?.PendingEngagement;
             var worldCombat = pending != null && pending.IsActive;
             BattleLocalMapResolution worldResolution = null;
+            var samePhysicalSurface = false;
             if (worldCombat)
             {
                 worldResolution = BattleLocalMapResolver.ResolvePendingEngagement(session.World);
                 if (!worldResolution.Success)
-                {
-                    ShowToast("无法解析世界战斗地点：" + worldResolution.FailureReason);
-                    return;
-                }
+                    return Result.Failure(ErrorCode.InvalidOperation, "无法解析世界战斗地点：" + worldResolution.FailureReason);
 
                 // Phase 5S-B2-3.2：Snapshot BattleAnchorHex 是 frozen authority，缺它不能入场。
                 if (!ArmyHexBattleAnchorService.TryGetBattleAnchorHex(
                         session.World.Strategic.Participants, out _))
-                {
-                    ShowToast("手动战斗缺少冻结的 BattleAnchorHex。");
-                    return;
-                }
+                    return Result.Failure(ErrorCode.InvalidOperation, "手动战斗缺少冻结的 BattleAnchorHex。");
 
                 localMapId = worldResolution.LocalMapId;
             }
@@ -932,15 +964,14 @@ namespace XianXia.Unity.Host
                     session.World.Strategic.Participants,
                     worldResolution);
                 if (commitResult.IsFailure)
-                {
-                    ShowToast("战斗入场 commit 失败：" + commitResult.Error.Message);
-                    return;
-                }
+                    return Result.Failure(ErrorCode.InvalidOperation, "战斗入场 commit 失败：" + commitResult.Error.Message);
 
                 // physical surface 变化（S→B 即使共用同一 MapLayoutId 也按 Hex/Site 语义判定）
                 // 时重置旧 LocalMap domain session（background occupant / army presentation /
                 // residual / stale local override 清掉），再进入 Battle surface。
-                if (ManualBattleWorldCommitService.PhysicalSurfaceChanged(previousLoaded, worldResolution))
+                samePhysicalSurface = !ManualBattleWorldCommitService.PhysicalSurfaceChanged(
+                    previousLoaded, worldResolution);
+                if (!samePhysicalSurface)
                     WorldTravelService.ApplyLocalMapSessionFromFocus(session.World);
             }
             var map = string.IsNullOrWhiteSpace(localMapId)
@@ -970,7 +1001,46 @@ namespace XianXia.Unity.Host
 
             // 进战场：大地图必须关（与 Open 门禁一致）
             bootstrap.WorldMapPanel?.Close();
+            if (worldCombat &&
+                samePhysicalSurface &&
+                session.World.Strategic.BattleOffer.Origin == BattleOfferOrigin.LocalMapHostileAction)
+            {
+                bootstrap.ActivateRealWorldCombatOnCurrentLoadedSurface();
+                return Result.Success();
+            }
             bootstrap.ApplyPartyWorldSitePresentation(closeWorldMap: true);
+            return Result.Success();
+        }
+
+        static void WriteManualBattleSurfaceTrace(
+            SimulationWorld world,
+            BattleOfferPending offer,
+            LoadedLocalMapBelongingQuery.LoadedLocalMapContext previousLoaded,
+            BattleLocalMapResolution resolution,
+            bool physicalSurfaceChanged)
+        {
+            var engagement = world.Strategic.PendingEngagement;
+            var support = engagement != null && engagement.HasSupportArea ? engagement.SupportArea : null;
+            var defender = engagement != null && !string.IsNullOrEmpty(engagement.DefenderFormalArmyId) &&
+                           world.Strategic.FormalArmies.TryGet(engagement.DefenderFormalArmyId, out var army)
+                ? army : null;
+            var motion = defender?.WorldMotion;
+            Debug.Log("=== Manual Battle Surface ===\n" +
+                      "OfferOrigin=" + offer.Origin + "\n" +
+                      "CurrentActiveMap=" + (world.LocalMap?.ActiveMapLayoutId ?? string.Empty) + "\n" +
+                      "CurrentLoadedKind=" + previousLoaded.Kind + " CurrentLoadedSiteId=" + (previousLoaded.Site?.SiteId ?? string.Empty) +
+                      " CurrentLoadedWildernessHex=" + previousLoaded.WildernessHex + "\n" +
+                      "FrozenBattleSiteId=" + (support?.BattleSiteId ?? string.Empty) +
+                      " FrozenSiteSource=" + (support?.BattleSiteResolutionSource ?? string.Empty) +
+                      " BattleAreaHexes=" + (support?.BattleAreaHexes.Count ?? 0) +
+                      " BattleLocation=" + engagement.BattleLocation + "\n" +
+                      "DefenderMotionKind=" + (motion?.LocationKind.ToString() ?? string.Empty) +
+                      " DefenderMotionSiteId=" + (motion?.SiteId ?? string.Empty) +
+                      " DefenderCurrentHex=" + (motion?.CurrentHex.ToString() ?? string.Empty) + "\n" +
+                      "ResolvedKind=" + resolution.Kind + " ResolvedSiteId=" + resolution.SiteId +
+                      " ResolvedBattleHex=" + resolution.BattleHex + " ResolvedLocalMapId=" + resolution.LocalMapId + "\n" +
+                      "PhysicalSurfaceChanged=" + physicalSurfaceChanged +
+                      " EntryMode=" + (physicalSurfaceChanged ? "LoadBattleSurface" : "InPlaceCurrentSurface"));
         }
 
         static List<EntityId> ResolveEngagedPartyForManualEncounter(SimulationWorld world)
