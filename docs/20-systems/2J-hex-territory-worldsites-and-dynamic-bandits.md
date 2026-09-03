@@ -8,6 +8,21 @@
 > **PresenceHex 已由 [ADR-0027](../40-process/43-decisions/ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md) 改为 Derived（CanonicalWorldSurfacePosition → WorldToHex）；见 [2K §6](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。本页 Footprint／Anchor 占地规则不推翻。**  
 > **本阶段不写实现代码、不改 JSON、不做技术审计。**
 
+> **⚠️ 2026-09-03 · TerritoryRegion V1 已实现并封板（见 [192 TerritoryRegion V1 硬化](../40-process/192-phase2j-territory-region-v1-base-layer-2026-09-03.md)）。**
+> 上一条 2026-08-24「本阶段不写实现代码」仅指当时；本节以下设计规则已在 2026-09-03 V1 落地。
+
+## Implementation Status（2026-09-03 · TerritoryRegion V1 implemented）
+
+- **TerritoryRegion V1 implemented**：`TerritoryRegion` / `TerritoryRegionBoard`（hex→region O(1) 索引 + Register overlap 硬校验）/ `TerritoryControlService`（唯一写入口）/ `TerritoryInvariantValidator` / `WorldSiteTerritoryTransferService`（Site+Region 一次易主事务）。
+- **`HexCell.ControlFactionId` authoritative**：每 Hex 最终政治控制唯一真源；Runtime 不另建第二套 controller dictionary。
+- **Fixed WorldSite radius-1 initial regions authored**：`ch01_hex_world.json` 30 个 Region = 整个 footprint + 1 跳 ring（地图边缘裁剪），已固化进 Content。
+- **Runtime 不根据 radius 重算 Territory**：`Region.Hexes[]` 是唯一 membership 真源；没有 RecalculateAllTerritories()。
+- **Initial overlap forbidden by current producer decision**：Region 重叠 = Content validation failure（loader/validator fail；Board.Register throw）；不做 distance / tie-break 自动裁决（见 §6.12 SUPERSEDED 提示）。
+- **Dynamic WorldSite 无 Territory**：`TerritoryRegionId == ""` → 无 Region、无 Territory 色；Capture 无 Region fallback 只改 Owner。
+- **WorldMap Territory tint**：淡 faction tint（强度 0.22）每帧实时 resolve `ControlFactionId`（terrain fill 内混合，0 GameObject per Hex）；易主后自动刷新，无需 invalidate。
+- **Snapshot**：只存 `TerritoryRegionControllerSnapshotDto`（RegionId + ControlFactionId，不含 Hexes/Geometry）；Load 经 `TerritoryControlService.SetRegionController` 恢复，Development 下校验 Owner == Region Controller == 每 Hex。
+- **Future player-built rule（仅记录，不实现）**：新建 WorldSite 只能取得当前无 Territory 归属的候选 Hex（first claim wins）；已属某 Region 的 Hex 永不因后来建设被抢走；之后不动态重新分界。
+
 ---
 
 ## Supersede 声明
@@ -437,6 +452,11 @@ Prototype 推荐：小 Site radius 1、大 Site radius 2 作为初版范围。
 
 ### 6.12 不同 Faction Region 候选重叠
 
+> **⚠️ SUPERSEDED 2026-09-03（制作人决定）：** Initial authored Territory may not overlap；Overlap is content validation failure。
+> 若两个 initial Region 包含同一 Hex → Content error（loader/validator fail、Board.Register throw），
+> 由设计调整 Site 位置 / footprint；**不做**「距离最近 / SiteId tie-break / 谁先生成谁拿」自动裁决。
+> 本节与 §6.13 / §6.17 的 distance-competition / tie-break 描述仅保留为历史；Runtime 只读固化 Region.Hexes[]（§6.14 不变）。
+
 若两个不同 Faction 的 Site 初始 TerritoryRadius 覆盖同一个普通 Hex：
 
 - 该 Hex 归 **距离各自 WorldSite.Footprint 最近** 的一方（使用正式 Hex distance）
@@ -718,3 +738,4 @@ Bandit Faction **不走** 正常外交 Query；永远敌对。UI 未来 **不应
 | 日期 | 说明 |
 |---|---|
 | 2026-08-24 | 初版：制作人拍板 Hex Territory / Multi-Hex WorldSite / Dynamic Bandit Camp 全套产品规则 |
+| 2026-09-03 | **V1 落地封板**：TerritoryRegion/Board/ControlService/Validator/Transfer；ch01 30 Region = footprint+ring 固化；WorldMap 淡 tint；初始 overlap 规则改为 content error（§6.12 SUPERSEDED）；snapshot 只存 Controller |

@@ -4409,17 +4409,14 @@ namespace XianXia.Unity.Host
             if (world?.Strategic?.TerritoryRegions == null)
                 return;
 
-            foreach (var kv in world.Strategic.TerritoryRegions.Regions)
+            // O(1) hex → Region（Board 索引）；不扫全表。
+            if (world.Strategic.TerritoryRegions.TryGetAtHex(hex, out var region) && region != null)
             {
-                var region = kv.Value;
-                if (region == null || !region.Contains(hex))
-                    continue;
                 sb.Append("TerritoryRegion：").Append(region.RegionId).Append('\n');
                 if (!string.IsNullOrEmpty(region.PrimaryWorldSiteId) &&
                     world.Strategic.Sites.TryGet(region.PrimaryWorldSiteId, out var site) &&
                     site != null)
                     sb.Append("PrimaryWorldSite：").Append(site.SiteId).Append('\n');
-                return;
             }
         }
 

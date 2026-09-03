@@ -1806,6 +1806,14 @@ namespace XianXia.Data.Content
                 {
                     if (rNode.Kind != JsonValueKind.Object)
                         continue;
+                    var regionErrorsBefore = report.Errors.Count;
+                    DefinitionSchema.RejectUnknownFields(
+                        rNode,
+                        DefinitionSchema.HexWorldTerritoryRegionFields,
+                        report,
+                        id.ToString() + ".region");
+                    if (report.Errors.Count > regionErrorsBefore)
+                        continue;
                     var region = new TerritoryRegionContentDefinition
                     {
                         RegionId = rNode.GetString("regionId", string.Empty),

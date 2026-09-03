@@ -78,6 +78,7 @@ namespace XianXia.Data.Content
                 };
                 foreach (var hex in region.Hexes)
                     regionDto.Hexes.Add(new HexWorldCoordDefinition { Q = hex.Q, R = hex.R });
+                regionDto.Hexes.Sort((a, b) => a.R != b.R ? a.R.CompareTo(b.R) : a.Q.CompareTo(b.Q));
                 definition.TerritoryRegions.Add(regionDto);
             }
 

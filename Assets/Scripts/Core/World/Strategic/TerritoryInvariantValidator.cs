@@ -95,6 +95,33 @@ namespace XianXia.Core.World.Strategic
                 }
             }
 
+            // ⑤ Region 每个 Hex 的最终 ControlFactionId 必须 == Region.Controller（13.6）
+            // ⑥ Bandit 不能成为 TerritoryRegion Controller（2J §9.2 / §12）
+            foreach (var regionKv in regions.Regions)
+            {
+                var region = regionKv.Value;
+                if (region == null)
+                    continue;
+                if (!string.IsNullOrEmpty(region.ControlFactionId) &&
+                    string.Equals(region.ControlFactionId, StrategicFactionCatalog.BanditId, System.StringComparison.Ordinal))
+                {
+                    errors.Add("Bandit faction cannot control TerritoryRegion '" + region.RegionId + "'.");
+                }
+
+                var controller = region.ControlFactionId ?? string.Empty;
+                for (var i = 0; i < region.Hexes.Count; i++)
+                {
+                    var hex = region.Hexes[i];
+                    if (!world.HexWorld.TryGetCell(hex, out var cell) || cell == null)
+                        continue;
+                    var cellController = cell.ControlFactionId ?? string.Empty;
+                    if (!string.Equals(cellController, controller, System.StringComparison.Ordinal))
+                        errors.Add("Region '" + region.RegionId + "' hex " + hex +
+                                   " ControlFactionId='" + cellController +
+                                   "' != Region.ControlFactionId='" + controller + "'.");
+                }
+            }
+
             return errors;
         }
     }

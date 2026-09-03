@@ -31,7 +31,7 @@ namespace XianXia.Unity.Host
         static readonly Color SiteFootprintSelectFill = new Color(1f, 0.92f, 0.20f, 0.28f);
         static readonly Color SiteFootprintSelectBorder = new Color(1f, 0.55f, 0.05f, 1f);
         /// <summary>Territory 淡色 overlay 强度（2J §9.4：保持地形可读）。</summary>
-        const float TerritoryTintStrength = 0.26f;
+        const float TerritoryTintStrength = 0.22f;
 
         static readonly float[] CornerWx = new float[6];
         static readonly float[] CornerWy = new float[6];

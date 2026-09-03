@@ -32,6 +32,36 @@ namespace XianXia.Core.World.Strategic
             return world.Strategic.TerritoryRegions.TryGetByPrimaryWorldSite(siteId, out region);
         }
 
+        /// <summary>规格命名别名：优先 site.TerritoryRegionId，然后 Board.TryGet；不按 Owner / 距离推导。</summary>
+        public static bool TryGetRegionForSite(
+            SimulationWorld world,
+            string siteId,
+            out TerritoryRegion region)
+        {
+            region = null;
+            if (world?.Strategic?.Sites == null ||
+                world?.Strategic?.TerritoryRegions == null ||
+                string.IsNullOrEmpty(siteId))
+                return false;
+            if (!world.Strategic.Sites.TryGet(siteId, out var site) || site == null)
+                return false;
+            if (string.IsNullOrEmpty(site.TerritoryRegionId))
+                return false;
+            return world.Strategic.TerritoryRegions.TryGet(site.TerritoryRegionId, out region);
+        }
+
+        /// <summary>Hex → 所属 TerritoryRegion（Board O(1)）。无 Region = false。</summary>
+        public static bool TryGetRegionAtHex(
+            SimulationWorld world,
+            HexCoord hex,
+            out TerritoryRegion region)
+        {
+            region = null;
+            if (world?.Strategic?.TerritoryRegions == null)
+                return false;
+            return world.Strategic.TerritoryRegions.TryGetAtHex(hex, out region);
+        }
+
         /// <summary>整块设置 Region Controller（region.ControlFactionId + 全部 Hex.ControlFactionId）。</summary>
         public static void SetRegionController(
             SimulationWorld world,

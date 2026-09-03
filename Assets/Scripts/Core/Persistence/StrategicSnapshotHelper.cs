@@ -444,6 +444,50 @@ namespace XianXia.Core.Persistence
                 }
             }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            // Phase 2J invariant（Load 后校验，不静默修）：绑定 Region 的 Fixed Site，
+            // Owner == Region Controller == 全部 Hex.ControlFactionId。
+            if (world.Strategic.Sites != null && world.Strategic.TerritoryRegions != null)
+            {
+                foreach (var siteKv in world.Strategic.Sites.Sites)
+                {
+                    var site = siteKv.Value;
+                    if (site == null || string.IsNullOrEmpty(site.TerritoryRegionId))
+                        continue;
+                    if (!world.Strategic.TerritoryRegions.TryGet(site.TerritoryRegionId, out var region) || region == null)
+                    {
+                        System.Diagnostics.Debug.Fail(
+                            "[TerritoryRestore] WorldSite '" + site.SiteId +
+                            "' TerritoryRegionId '" + site.TerritoryRegionId + "' missing after restore.");
+                        continue;
+                    }
+
+                    var owner = site.OwnerFactionId ?? string.Empty;
+                    var controller = region.ControlFactionId ?? string.Empty;
+                    if (!string.Equals(owner, controller, System.StringComparison.Ordinal))
+                    {
+                        System.Diagnostics.Debug.Fail(
+                            "[TerritoryRestore] Owner/Controller mismatch after restore: WorldSite '" +
+                            site.SiteId + "' Owner='" + owner + "' Region '" + region.RegionId +
+                            "' Controller='" + controller + "'.");
+                    }
+
+                    for (var i = 0; i < region.Hexes.Count; i++)
+                    {
+                        var hex = region.Hexes[i];
+                        if (world.HexWorld != null && world.HexWorld.TryGetCell(hex, out var cell) && cell != null &&
+                            !string.Equals(cell.ControlFactionId ?? string.Empty, controller, System.StringComparison.Ordinal))
+                        {
+                            System.Diagnostics.Debug.Fail(
+                                "[TerritoryRestore] Hex " + hex + " controller '" +
+                                (cell.ControlFactionId ?? string.Empty) + "' != Region '" +
+                                region.RegionId + "' Controller '" + controller + "'.");
+                        }
+                    }
+                }
+            }
+#endif
+
             if (dto.Wars != null)
             {
                 for (var i = 0; i < dto.Wars.Count; i++)

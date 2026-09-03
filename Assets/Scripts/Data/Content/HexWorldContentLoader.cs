@@ -119,7 +119,15 @@ namespace XianXia.Data.Content
                         "' != TerritoryRegion '" + region.RegionId + "'.");
             }
 
-            world.Strategic.TerritoryRegions.Register(region);
+            try
+            {
+                world.Strategic.TerritoryRegions.Register(region);
+            }
+            catch (System.InvalidOperationException ex)
+            {
+                // Register 的跨 Region overlap 是硬错误（2J §6.6）；转 Result 使 Apply 契约不被异常击穿。
+                return Result.Failure(ErrorCode.ContentLoadFailed, ex.Message);
+            }
 
             for (var i = 0; i < region.Hexes.Count; i++)
             {

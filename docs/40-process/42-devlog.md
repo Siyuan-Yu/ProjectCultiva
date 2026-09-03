@@ -7,6 +7,35 @@
 
 ---
 
+---
+
+## 2026-09-03 — Phase 2J TerritoryRegion V1 硬化（Capture 一次易主事务 + ch01 形状修复 + overlap STOP）（待验收，192）
+
+**范围**：在 191 基础层之上补齐 2J 指令缺口；不重写 191。
+
+**Domain 硬化**
+- `TerritoryRegionBoard`：新增 `_regionIdByHex` + `TryGetAtHex`（O(1)）；`Register` 对跨 Region overlap **throw InvalidOperationException**（含 hex/两 Region），同 RegionId 覆盖幂等；不自动裁决。
+- `TerritoryControlService`：补 `TryGetRegionAtHex` / `TryGetRegionForSite`。
+- `TerritoryInvariantValidator`：新增 13.6（region 每 hex ControlFactionId == Region.Controller）+ Bandit（`base:faction_bandits`）不能控 Territory。
+- `HexWorldContentLoader`：Register try/catch → Result（不击穿 Apply）。
+
+**Capture 一致性（§36-39）**
+- 新增 `WorldSiteTerritoryTransferService.Transfer`：Site Owner + Region Controller + 每 Hex 一次易主（无 Region legacy/dynamic fallback 只改 Owner；双向绑定不一致 = failure）。
+- `CaptureObjectiveService.TryCompleteWorldSiteCapture` 由裸 `SetOwner` 改为调 Transfer —— 不再有「Owner 改、Region 未改」中间态。
+
+**Content 修复（决定性证据）**
+- 验证工具（镜像 HexMath Odd-R）发现上轮 191 固化 Region hexes ≠ footprint+1-ring：ch01 30 Region 中 17 错、mvp 8 中 7 错。
+- **ch01 权威重生成**（footprint ∪ ring ∩ bounds）：190 → 285 hexes；Regions=30 / Controlled=15 / Neutral=15 / Overlap=0 / InvariantErrors=0（ALL PASS）；diff 仅 territoryRegions 段 +212/−117。
+- **travel_mvp overlap STOP**：footprint+ring 重生成会使 `base:region_huangcun` 与 `test:region_player_camp` 重叠 5 hex `(3,6)(4,6)(4,7)(3,7)(5,6)` → 按 2J §6.12 不自动裁决，**mvp 未写盘**，等设计调整。
+
+**Host / 工具 / Snapshot / 文档**
+- WorldMap tint 强度 0.26→0.22；Hex inspect 用 Board TryGetAtHex O(1)；Exporter hex 排序 R,Q；loader territoryRegions RejectUnknownFields；Snapshot Restore 后 Development 校验 Owner==Region==每 Hex（Debug.Fail 不静默修）；2J 加 Implementation Status + §6.12 SUPERSEDED banner。
+
+**验证**
+- Host 全链编译 0 error（2 既有无关 warning）；ch01 verify ALL PASS；`git diff --check` 通过；未跑 Unity tests。人工验收见 192 Part E（Case A–I + mvp overlap 裁决）。
+
+---
+
 ## 2026-09-03 — Hex Territory + TerritoryRegion V1 基础层（领土真源 + 内容加载 + WorldMap 表现）（已封板，191）
 
 **范围**：只建领土 authority 链；无 Capture/Siege/AI/Supply/Economy（下一轮才做 TransferWorldSiteAndTerritory 事务）。真源：2J。

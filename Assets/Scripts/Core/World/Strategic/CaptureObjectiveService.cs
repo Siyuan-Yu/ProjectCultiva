@@ -79,7 +79,17 @@ namespace XianXia.Core.World.Strategic
             core.PlayerControlled = true;
 
             if (!string.IsNullOrEmpty(objective.SiteId))
-                WorldSiteOwnershipService.SetOwner(world, objective.SiteId, attackerFactionId);
+            {
+                // Phase 2J V1：正式 Fixed WorldSite Capture 走唯一 Site+Territory 事务（一次易主）；
+                // 避免只改 Site Owner、Region Controller/Hex 未改的已知不一致。
+                // legacy/dynamic 无 Region Site 由 Transfer fallback 到 WorldSiteOwnershipService.SetOwner。
+                var transfer = WorldSiteTerritoryTransferService.Transfer(
+                    world,
+                    objective.SiteId,
+                    attackerFactionId);
+                if (transfer.IsFailure)
+                    return transfer;
+            }
 
             world.SettlementAuthority.GrantAll(core.GrantsPrivileges);
             world.Flags.Set("settlement_player_controlled");
