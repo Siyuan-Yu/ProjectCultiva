@@ -7,6 +7,23 @@
 
 ---
 
+## 2026-09-03 — WorldMap Territory Overlay 图层开关（显示势力范围 toggle，纯 presentation）
+
+**规则**：Territory 是永久 World State；Territory Overlay 是可选 WorldMap Presentation Layer，两者解耦。默认 **OFF** —— WorldMap 视觉与 Territory 实现前一致。
+
+**实现（纯 Unity Host 层，未触碰 Core/Data authority）**
+- `HostHexWorldRenderer`：
+  - 新增 `ShowTerritoryOverlay` 静态开关 + `SetTerritoryOverlayVisible(bool)`，默认 false。
+  - terrain 批恢复纯 terrain 色（`ResolveTerrainColor`），**不再 bake** territory tint → ON/OFF 不需重建 terrain cache（cache 本就只存几何元数据）。
+  - 新增独立 `DrawTerritoryOverlay` 批：遍历 `TerritoryRegions.Regions[].Hexes`（稀疏，非全图扫描）→ `cell.ControlFactionId` 非空 → `StrategicFactionCatalog.MapTint` 半透明叠加（alpha=TerritoryTintStrength 0.22，等价旧 Lerp 视觉）；None 不画。绘制顺序 = Terrain → Territory overlay → footprint selection → hover/select outline → WorldSite/armies/icons；overlay 独立 flush，不污染后续 selection 批。
+  - `ResolveTerritoryTint`（bake 版本）删除。
+- `HostWorldMapPanel`：
+  - `_showTerritoryOverlay` 字段（panel 实例级 → panel hide/show 不重置；纯 UI preference，**不写 SaveGame**）。
+  - 标题行右侧、关闭按钮左侧加 `GUI.Toggle`「显示势力范围」；点击即时 `SetTerritoryOverlayVisible`；每帧 DrawGraph 前防御性同步。
+  - Inspector 的 ControlFactionId/TerritoryRegion/PrimaryWorldSite 显示不受 toggle 影响（Territory 数据常驻）。
+
+**验证**：Unity 程序集 Roslyn（dotnet csc @unitycheck.rsp -target:library）0 error（仅既有 warning）；git diff --check 干净。GL 视觉需 Unity 人工验收：OFF=原地图；ON=各 Site Territory 淡色 tint；再 OFF=颜色消失且 terrain/WorldSite/army/player/selection 不受影响；再 ON=颜色重现（Region 数据未重算）。
+
 ---
 
 ## 2026-09-03 — Phase 2J TerritoryRegion V1 硬化（Capture 一次易主事务 + ch01 形状修复 + overlap STOP）（待验收，192）

@@ -74,6 +74,8 @@ namespace XianXia.Unity.Host
         int _pathMaskW;
         int _pathMaskH;
         bool _terrainLegendExpanded;
+        /// <summary>WorldMap 图层开关：显示势力范围（Territory overlay）。纯 UI preference，不写 SaveGame；panel hide/show 不重置。</summary>
+        bool _showTerritoryOverlay;
         float _lastMapViewportWidth = 800f;
         float _lastMapViewportHeight = 600f;
         HexCoord? _selectedHex;
@@ -652,9 +654,22 @@ namespace XianXia.Unity.Host
 
             var world = bootstrap.Session.World;
 
+            var title = "大地 Hex 战略 （左键：选格/军团｜右键：军团移动或 Party Travel｜停止 Party 旅行｜M 关闭回近景";
             GUI.Label(
                 new Rect(pad, titleY, Screen.width - 220f, 28f),
-                "大地 Hex 战略 （左键：选格/军团｜右键：军团移动或 Party Travel｜停止 Party 旅行｜M 关闭回近景", _title);
+                title, _title);
+
+            // 图层开关：显示势力范围（默认 OFF）。仅控制 presentation，Territory 数据常驻。
+            var showTerritory = GUI.Toggle(
+                new Rect(Screen.width - 220f, titleY + 4f, 112f, 26f),
+                _showTerritoryOverlay,
+                "显示势力范围",
+                _body);
+            if (showTerritory != _showTerritoryOverlay)
+            {
+                _showTerritoryOverlay = showTerritory;
+                HostHexWorldRenderer.SetTerritoryOverlayVisible(showTerritory);
+            }
 
             if (GUI.Button(new Rect(Screen.width - 100f, titleY, 84f, 32f), "关闭"))
                 CloseWithLocalMapTakeover();
@@ -719,6 +734,8 @@ namespace XianXia.Unity.Host
             }
 
             RefreshHexPresentation(hexProjection, world);
+            // 与 panel toggle 保持一致的 overlay 图层状态（唯一入口；防御性同步）。
+            HostHexWorldRenderer.SetTerritoryOverlayVisible(_showTerritoryOverlay);
             DrawGraph(mapRect, hexProjection, world);
             DrawMapUnitOverlays(mapRect, hexProjection, world);
             if (ShowReinforcementRadiusDebug)

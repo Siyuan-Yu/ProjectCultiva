@@ -67,6 +67,16 @@ namespace XianXia.Unity.Host
             set => DebugStrongHexSeparation = value;
         }
 
+        /// <summary>
+        /// Territory overlay 图层开关（纯 presentation）。
+        /// TerritoryRegion / HexCell.ControlFactionId 始终存在：关闭只影响绘制，
+        /// 绝不因关闭而清空 ControlFactionId / 卸载 Region / 停 Territory gameplay query（2J §9.x）。
+        /// 默认 OFF —— WorldMap 视觉与 Territory 之前一致。
+        /// </summary>
+        public static bool ShowTerritoryOverlay { get; set; }
+
+        public static void SetTerritoryOverlayVisible(bool visible) => ShowTerritoryOverlay = visible;
+
         public static Color ResolveGutterColor()
         {
             var rgb = HexTerrainVisualInset.ResolveGutterColor(DebugStrongHexSeparation);
@@ -130,6 +140,23 @@ namespace XianXia.Unity.Host
                     terrainInsetScale,
                     ref terrainCount);
                 FlushTriangles(TerrainVx, TerrainVy, TerrainCr, TerrainCg, TerrainCb, TerrainCa, terrainCount);
+            }
+
+            // Territory 独立 overlay 批（2J §9.x）：仅 ON 时额外绘制，不 bake 进 terrain；
+            // 顺序 = Terrain → Territory overlay → selection/hover → WorldSite/armies/icons。
+            if (ShowTerritoryOverlay && world?.Strategic?.TerritoryRegions != null)
+            {
+                DrawTerritoryOverlay(
+                    world,
+                    projection,
+                    minWx,
+                    maxWx,
+                    minWy,
+                    maxWy,
+                    terrainInsetScale,
+                    ref terrainCount);
+                FlushTriangles(TerrainVx, TerrainVy, TerrainCr, TerrainCg, TerrainCb, TerrainCa, terrainCount);
+                terrainCount = 0;
             }
 
             if (selectedWorldSite != null)
@@ -291,7 +318,7 @@ namespace XianXia.Unity.Host
                     if (cx < minWx - pad || cx > maxWx + pad || cy < minWy - pad || cy > maxWy + pad)
                         continue;
 
-                    var fill = ResolveTerritoryTint(world, ResolveTerrainColor(cell), cell);
+                    var fill = ResolveTerrainColor(cell);
                     if (pathMask != null && q >= 0 && r >= 0 && q < maskW && r < maskH && pathMask[q + r * maskW])
                         fill = Color.Lerp(fill, PathPreviewFill, 0.72f);
 
@@ -330,7 +357,7 @@ namespace XianXia.Unity.Host
                     projection,
                     cell.Coord,
                     grid.HexSize,
-                    ResolveTerritoryTint(world, ResolveTerrainColor(cell), cell),
+                    ResolveTerrainColor(cell),
                     terrainInsetScale,
                     ref vertCount);
             }
@@ -594,18 +621,57 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// 淡 Territory overlay（2J §9.4）：ControlFactionId 非空 → 与正式 Faction MapColor 混合；
-        /// None 不加 tint。footprint 与普通 Territory 同色（Site 本体由 WorldSitePresentationLayer 强调）。
+        /// Territory overlay 独立批次：遍历 Region.Hexes（稀疏，非全图扫描），
+        /// ControlFactionId 非空 → 正式 Faction MapColor 半透明叠加；None 不画。
+        /// footprint 与普通 Territory 同色（Site 本体由 WorldSitePresentationLayer 强调）。
+        /// 追加到 terrain 批之后、selection 批之前 —— ON/OFF 不需重建 terrain cache。
         /// </summary>
-        static Color ResolveTerritoryTint(SimulationWorld world, Color baseColor, HexCell cell)
+        static void DrawTerritoryOverlay(
+            SimulationWorld world,
+            HexMapViewportProjection projection,
+            float minWx,
+            float maxWx,
+            float minWy,
+            float maxWy,
+            float terrainInsetScale,
+            ref int vertCount)
         {
-            var controller = cell?.ControlFactionId;
-            if (world?.Strategic == null || string.IsNullOrEmpty(controller))
-                return baseColor;
+            var grid = world?.HexWorld;
+            var board = world?.Strategic?.TerritoryRegions;
+            if (grid == null || !grid.HasGrid || board?.Regions == null)
+                return;
 
-            StrategicFactionCatalog.MapTint(controller, out var r, out var g, out var b);
-            var tint = new Color(r, g, b, 1f);
-            return Color.Lerp(baseColor, tint, TerritoryTintStrength);
+            var pad = grid.HexSize * 1.2f;
+            foreach (var kv in board.Regions)
+            {
+                var region = kv.Value;
+                if (region == null || region.Hexes == null)
+                    continue;
+                var hexes = region.Hexes;
+                for (var i = 0; i < hexes.Count; i++)
+                {
+                    var hex = hexes[i];
+                    if (!grid.TryGetCell(hex, out var cell) || cell == null)
+                        continue;
+                    var controller = cell.ControlFactionId;
+                    if (string.IsNullOrEmpty(controller))
+                        continue;
+
+                    HexMath.ToWorldPosition(hex, grid.HexSize, out var cx, out var cy);
+                    if (cx < minWx - pad || cx > maxWx + pad || cy < minWy - pad || cy > maxWy + pad)
+                        continue;
+
+                    StrategicFactionCatalog.MapTint(controller, out var r, out var g, out var b);
+                    var fill = new Color(r, g, b, TerritoryTintStrength);
+                    if (vertCount + 18 >= MaxVerts)
+                    {
+                        FlushTriangles(TerrainVx, TerrainVy, TerrainCr, TerrainCg, TerrainCb, TerrainCa, vertCount);
+                        vertCount = 0;
+                    }
+
+                    EmitTerrainFill(projection, hex, grid.HexSize, fill, terrainInsetScale, ref vertCount);
+                }
+            }
         }
 
         static void EnsureGlMaterial()
