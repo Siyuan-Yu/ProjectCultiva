@@ -106,7 +106,7 @@ public static class HexWorldContentJson
                 .ThenBy(hex => hex.Q)
                 .ToList();
         }
-        definition.StandaloneHexControls = definition.StandaloneHexControls
+        definition.StandaloneTerritoryHexes = definition.StandaloneTerritoryHexes
             .OrderBy(control => control.R).ThenBy(control => control.Q).ToList();
     }
 }

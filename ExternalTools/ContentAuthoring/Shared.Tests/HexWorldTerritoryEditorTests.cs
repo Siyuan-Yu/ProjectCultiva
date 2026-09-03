@@ -47,4 +47,35 @@ public sealed class HexWorldTerritoryEditorTests
         Assert.True(result.Success); var region = doc.GetTerritoryRegion("base:territory_a")!;
         foreach (var d in Enumerable.Range(0, 6)) Assert.Contains(HexWorldLayoutShared.Neighbor(new HexCoordDto(3, 3), d), region.Hexes);
     }
+
+    [Fact]
+    public void EraseTerritory_Clears_Control_But_Preserves_Site_Region_Geometry()
+    {
+        var doc = MakeDocument();
+        var site = doc.World.Sites.Single(s => s.SiteId == "base:site_a");
+        var region = doc.GetTerritoryForSite(site.SiteId)!;
+        Assert.True(doc.AssignFactionToSiteTerritory(site.SiteId, "base:faction_a").Success);
+        var expectedHexes = region.Hexes.ToList();
+
+        var result = doc.EraseTerritory(new HexCoordDto(3, 3));
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(TerritoryStrokeKind.SiteCleared, result.Kind);
+        Assert.Equal(string.Empty, site.OwnerFactionId);
+        Assert.Equal(string.Empty, region.ControlFactionId);
+        Assert.Equal("base:territory_a", region.RegionId);
+        Assert.Equal(site.SiteId, region.PrimaryWorldSiteId);
+        Assert.Equal(expectedHexes, region.Hexes);
+    }
+
+    [Fact]
+    public void EraseTerritory_On_Unowned_Standalone_Is_A_NoOp()
+    {
+        var doc = MakeDocument();
+        var result = doc.EraseTerritory(new HexCoordDto(15, 15));
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal(TerritoryStrokeKind.StandaloneCleared, result.Kind);
+        Assert.Empty(doc.World.StandaloneTerritoryHexes);
+    }
 }

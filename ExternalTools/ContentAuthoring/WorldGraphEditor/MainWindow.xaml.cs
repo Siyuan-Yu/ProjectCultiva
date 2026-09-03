@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
 using ContentAuthoring.Shared;
 using ContentAuthoring.Shared.HexWorld;
 using Microsoft.Win32;
@@ -22,8 +23,14 @@ public partial class MainWindow : Window
     HexCoordDto _lastStatusHex = new(-1, -1);
     readonly ObservableCollection<FactionListItem> _territoryItems = new();
     bool _territoryEditMode, _territoryErasing;
+    bool _refreshingFactionList;
     bool _sitePlacementArmed;
     string? _selectedFactionId;
+    TerritoryBrushKind _territoryBrushKind;
+    readonly List<StrategicFactionAuthoringDto> _allFactions = new();
+    readonly Dictionary<string, StrategicFactionAuthoringDto> _factionById = new(StringComparer.Ordinal);
+    string? _baseGameRoot;
+    readonly HashSet<string> _sitesPaintedThisStroke = new(StringComparer.Ordinal);
 
     public MainWindow()
     {
@@ -46,6 +53,8 @@ public partial class MainWindow : Window
     void TryLoadDefaultWorld()
     {
         var root = PackagePaths.FindDefaultBaseGame();
+        _baseGameRoot = root;
+        LoadFactions();
         if (root == null)
         {
             StatusText.Text = "未找到 Content/BaseGame；请用「打开」选择 hexWorld JSON。";
@@ -62,6 +71,41 @@ public partial class MainWindow : Window
 
         StatusText.Text = "未找到 ch01_hex_world.json，已显示空白世界。";
         RefreshChrome();
+    }
+
+    /// <summary>factions.json → 内存目录（全部 + territorySelectable 筛选列表）；失败时保留空表并提示。</summary>
+    void LoadFactions()
+    {
+        _allFactions.Clear();
+        _factionById.Clear();
+        if (string.IsNullOrEmpty(_baseGameRoot))
+        {
+            _allFactions.AddRange(StrategicFactionAuthoring.LoadStrategicFactions(DefaultFactionFilePathFallback()));
+        }
+        else
+        {
+            _allFactions.AddRange(StrategicFactionAuthoring.LoadStrategicFactions(
+                StrategicFactionAuthoring.FactionDefaultFilePath(_baseGameRoot)));
+        }
+
+        foreach (var f in _allFactions)
+            _factionById[f.Id] = f;
+        _allFactions.Sort(StrategicFactionAuthoring.Compare);
+        _mapView.SetFactionColors(_allFactions.Select(f => new KeyValuePair<string, string>(f.Id, f.MapColor)));
+        if (_territoryBrushKind == TerritoryBrushKind.Faction &&
+            (_selectedFactionId == null || !_factionById.ContainsKey(_selectedFactionId)))
+        {
+            _selectedFactionId = null;
+            _territoryBrushKind = TerritoryBrushKind.None;
+        }
+        RefreshTerritoryPanel();
+        UpdateBrushHeader();
+    }
+
+    static string DefaultFactionFilePathFallback()
+    {
+        var root = PackagePaths.FindDefaultBaseGame();
+        return root == null ? string.Empty : StrategicFactionAuthoring.FactionDefaultFilePath(root);
     }
 
     void LoadFromPath(string path)
@@ -81,7 +125,7 @@ public partial class MainWindow : Window
         _mapView.SetWorld(_document.World, _viewport, fullRebuild);
         _mapView.SetSelection(_document.SelectedHex);
         SyncSiteOverlay();
-        _mapView.SetTerritoryOverlay(null, _territoryEditMode);
+        _mapView.SetTerritoryOverlay(_selectedFactionId, _territoryEditMode);
     }
 
     void SyncSiteOverlay() =>
@@ -93,15 +137,14 @@ public partial class MainWindow : Window
         RefreshChrome();
         UpdateInspector();
         UpdateSiteFootprintPanel();
-        RefreshTerritoryPanel();
     }
 
     void OnTerritoriesMutated()
     {
         _mapView.RebuildTerritoryOverlay();
-        RefreshTerritoryPanel();
         UpdateInspector();
         UpdateValidationSummary();
+        // 不刷新 faction 列表：列表只来自 factions.json（LoadFactions），与 hexWorld 涂刷无关。
     }
 
     void OnWorldReplaced()
@@ -143,22 +186,61 @@ public partial class MainWindow : Window
         var cell = HexWorldContentGenerator.GetCell(_document.World, hex.Q, hex.R);
         if (cell == null)
         {
-            InspectorText.Text = $"Hex ({hex.Q},{hex.R}) — 无 Cell 数据";
+            InspectorText.Text = $"坐标 ({hex.Q},{hex.R}) — 无 Cell 数据";
             return;
         }
 
         var passable = cell.Passable ?? HexTerrainPalette.DefaultPassable(cell.Terrain);
         var site = _document.FindSiteAt(hex);
+        var defaultSite = _document.TryResolveDefaultSiteTerritoryAtHex(hex);
         var territory = _document.FindTerritoryAt(hex);
+        var standalone = _document.FindStandaloneAt(hex);
+
+        // 领地类型：无 / 独立势力范围 / WorldSite 辖区（本体）/ WorldSite 辖区（默认外围）/ 固化 Region 微调格
+        string terrainKind;
+        string controllerId = string.Empty;
+        if (site != null)
+        {
+            terrainKind = "WorldSite 辖区（本体）";
+            controllerId = site.OwnerFactionId ?? string.Empty;
+        }
+        else if (territory != null)
+        {
+            terrainKind = "WorldSite 辖区";
+            controllerId = territory.ControlFactionId ?? string.Empty;
+        }
+        else if (defaultSite != null)
+        {
+            terrainKind = "WorldSite 辖区（默认外围）";
+            var ds = _document.World.Sites.FirstOrDefault(s => s.SiteId == defaultSite.SiteId);
+            controllerId = ds?.OwnerFactionId ?? string.Empty;
+        }
+        else if (standalone != null)
+        {
+            terrainKind = "独立势力范围";
+            controllerId = standalone.ControlFactionId ?? string.Empty;
+        }
+        else
+        {
+            terrainKind = "无";
+        }
+
+        var controllerDisplay = string.IsNullOrEmpty(controllerId)
+            ? "无"
+            : $"{FactionDisplayName(controllerId)}\n{controllerId}";
+        var regionDisplay = territory != null
+            ? $"{territory.RegionId}\n辖区核心：{SiteDisplayName(territory.PrimaryWorldSiteId)}"
+            : "无";
+
         InspectorText.Text =
-            $"Coord: ({hex.Q},{hex.R})\n" +
-            $"Terrain: {HexTerrainPalette.ResolveLabel(cell.Terrain)} / {cell.Terrain}\n" +
-            $"Passable: {passable}\n" +
-            $"Road: {cell.IsRoad}\n" +
-            $"Site: {(site?.DisplayName ?? "-")}\n" +
-            $"TerritoryRegion: {(territory?.RegionId ?? "-")}\n" +
-            $"Controller: {(territory?.ControlFactionId ?? "-")}\n" +
-            $"PrimaryWorldSite: {(territory?.PrimaryWorldSiteId ?? "-")}";
+            $"坐标：({hex.Q},{hex.R})\n" +
+            $"地形：{HexTerrainPalette.ResolveLabel(cell.Terrain)} / {cell.Terrain}\n" +
+            $"可通行：{(passable ? "是" : "否")}\n" +
+            $"道路：{(cell.IsRoad ? "是" : "否")}\n" +
+            $"地点：{(site?.DisplayName ?? "-")}\n" +
+            $"领地类型：{terrainKind}\n" +
+            $"控制势力：{controllerDisplay}\n" +
+            $"领地区域：{regionDisplay}";
         if (site != null)
         {
             SiteIdBox.Text = site.SiteId;
@@ -169,6 +251,21 @@ public partial class MainWindow : Window
         }
 
         UpdateSiteFootprintPanel();
+    }
+
+    string FactionDisplayName(string factionId)
+    {
+        if (string.IsNullOrEmpty(factionId))
+            return "无归属";
+        return _factionById.TryGetValue(factionId, out var f) ? f.Name : factionId;
+    }
+
+    string SiteDisplayName(string siteId)
+    {
+        if (string.IsNullOrEmpty(siteId))
+            return "无";
+        var site = _document.World.Sites.FirstOrDefault(s => s.SiteId == siteId);
+        return site?.DisplayName ?? siteId;
     }
 
     void UpdateSiteFootprintPanel()
@@ -195,7 +292,10 @@ public partial class MainWindow : Window
         SiteFootprintListText.Text = "Footprint Hexes：\n" +
                                       string.Join("\n", footprint.Select(h => $"({h.Q},{h.R})"));
         var territory = _document.GetTerritoryForSite(site.SiteId);
-        SiteTerritoryText.Text = $"OwnerFactionId：{site.OwnerFactionId}\nTerritoryRegionId：{site.TerritoryRegionId}\nTerritory Hex Count：{territory?.Hexes.Count ?? 0}";
+        var ownerDisplay = string.IsNullOrWhiteSpace(site.OwnerFactionId)
+            ? "无"
+            : $"{FactionDisplayName(site.OwnerFactionId)}\n{site.OwnerFactionId}";
+        SiteTerritoryText.Text = $"所属势力：{ownerDisplay}\n领地区域 ID：{site.TerritoryRegionId}\n辖区格数：{territory?.Hexes.Count ?? 0}";
         var validation = HexWorldFootprintRules.ValidateSiteFootprint(site);
         FootprintEditStatusText.Text = validation.Success
             ? (_document.EditFootprintMode
@@ -230,11 +330,14 @@ public partial class MainWindow : Window
 
     void UpdateValidationSummary()
     {
-        var issues = HexWorldContentValidator.Validate(_document.World);
+        var issues = ValidateCurrentWorld();
         ValidationText.Text = issues.Count == 0
             ? "Validation: OK"
             : string.Join("\n", issues.Take(8).Select(i => $"[{i.Level}] {i.Message}"));
     }
+
+    List<HexWorldValidationIssue> ValidateCurrentWorld() =>
+        HexWorldContentValidator.Validate(_document.World, _allFactions);
 
     void NewWorld_Click(object sender, RoutedEventArgs e)
     {
@@ -262,7 +365,7 @@ public partial class MainWindow : Window
 
     void Save_Click(object sender, RoutedEventArgs e)
     {
-        var errors = HexWorldContentValidator.Validate(_document.World).Where(i => i.Level == "error").ToList();
+        var errors = ValidateCurrentWorld().Where(i => i.Level == "error").ToList();
         if (errors.Count > 0) { MessageBox.Show(string.Join(Environment.NewLine, errors.Take(12).Select(i => i.Message)), "Territory / HexWorld 校验失败，已禁止保存", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
         if (string.IsNullOrEmpty(_document.FilePath))
         {
@@ -276,7 +379,7 @@ public partial class MainWindow : Window
 
     void SaveAs_Click(object sender, RoutedEventArgs e)
     {
-        var errors = HexWorldContentValidator.Validate(_document.World).Where(i => i.Level == "error").ToList();
+        var errors = ValidateCurrentWorld().Where(i => i.Level == "error").ToList();
         if (errors.Count > 0) { MessageBox.Show(string.Join(Environment.NewLine, errors.Take(12).Select(i => i.Message)), "Territory / HexWorld 校验失败，已禁止保存", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
         var dlg = new SaveFileDialog
         {
@@ -292,7 +395,7 @@ public partial class MainWindow : Window
     void Validate_Click(object sender, RoutedEventArgs e)
     {
         UpdateValidationSummary();
-        var issues = HexWorldContentValidator.Validate(_document.World);
+        var issues = ValidateCurrentWorld();
         StatusText.Text = issues.Count == 0
             ? "Validation OK · " + _mapView.FormatPerfStatus()
             : $"Validation: {issues.Count(i => i.Level == "error")} errors, {issues.Count(i => i.Level == "warn")} warnings";
@@ -424,10 +527,11 @@ public partial class MainWindow : Window
             _painting = false;
             _mapView.ReleaseMouseCapture();
             _strokeUndoPushed = false;
+            _sitesPaintedThisStroke.Clear();
         }
         if (e.ChangedButton == MouseButton.Right && _territoryErasing)
         {
-            _territoryErasing = false; _mapView.ReleaseMouseCapture(); _strokeUndoPushed = false;
+            _territoryErasing = false; _mapView.ReleaseMouseCapture(); _strokeUndoPushed = false; _sitesPaintedThisStroke.Clear();
         }
     }
 
@@ -455,6 +559,8 @@ public partial class MainWindow : Window
                 ? $"Hex ({hex.Q},{hex.R}) · Tool {_document.ActiveTool} · {_mapView.FormatPerfStatus()}"
                 : _mapView.FormatPerfStatus();
         }
+        if (hoverChanged && _territoryEditMode)
+            UpdateTerritoryHoverPreview();
 
         if (_painting && e.LeftButton == MouseButtonState.Pressed && hex.Q >= 0)
         {
@@ -544,12 +650,13 @@ public partial class MainWindow : Window
     {
         if (!_painting)
         {
-            if (e.ChangedButton == MouseButton.Right && _territoryErasing) { _territoryErasing = false; _mapView.ReleaseMouseCapture(); _strokeUndoPushed = false; }
+            if (e.ChangedButton == MouseButton.Right && _territoryErasing) { _territoryErasing = false; _mapView.ReleaseMouseCapture(); _strokeUndoPushed = false; _sitesPaintedThisStroke.Clear(); }
             return;
         }
         _painting = false;
         _mapView.ReleaseMouseCapture();
         _strokeUndoPushed = false;
+        _sitesPaintedThisStroke.Clear();
     }
 
     void ApplyTool(HexCoordDto hex, bool firstStroke)
@@ -576,55 +683,239 @@ public partial class MainWindow : Window
 
     void ApplyTerritoryPaint(HexCoordDto hex)
     {
-        if (string.IsNullOrEmpty(_selectedFactionId)) { StatusText.Text = "请先选择势力。"; return; }
+        if (_territoryBrushKind == TerritoryBrushKind.Unowned)
+        {
+            ApplyTerritoryErase(hex);
+            return;
+        }
+
+        if (_territoryBrushKind != TerritoryBrushKind.Faction || string.IsNullOrEmpty(_selectedFactionId))
+        {
+            SetTerritoryHint("请先选择势力，或选择「无势力 / 无主地」。");
+            return;
+        }
+        if (!_factionById.ContainsKey(_selectedFactionId))
+        {
+            SetTerritoryHint($"势力 '{_selectedFactionId}' 未在 factions.json 中定义。");
+            return;
+        }
+
+        // §18：一次 stroke 内，同一 WorldSite 只执行一次整片 macro（不论拖过它几个 footprint/ring hex）。
+        var defaultSite = _document.TryResolveDefaultSiteTerritoryAtHex(hex);
+        if (defaultSite != null && _sitesPaintedThisStroke.Contains(defaultSite.SiteId))
+            return;
+
         if (!_strokeUndoPushed) { _document.PushUndo(); _strokeUndoPushed = true; }
-        var site = _document.TryResolveDefaultSiteTerritoryAtHex(hex);
-        if (site == null) { StatusText.Text = "该荒野 Hex 当前没有正式 standalone claim Content authority，未修改。"; return; }
-        var result = _document.AssignFactionToSiteTerritory(site.SiteId, _selectedFactionId, false);
-        if (!result.Success) StatusText.Text = result.Message; else StatusText.Text = result.Message;
+        var result = _document.PaintTerritory(hex, _selectedFactionId, singleStrokeUndo: false);
+        if (result.Success && result.SiteId != null)
+            _sitesPaintedThisStroke.Add(result.SiteId);
+        SetTerritoryHint(result.Message);
     }
 
     void ApplyTerritoryErase(HexCoordDto hex)
     {
+        var defaultSite = _document.TryResolveDefaultSiteTerritoryAtHex(hex);
+        if (defaultSite != null && _sitesPaintedThisStroke.Contains(defaultSite.SiteId))
+            return;
         if (!_strokeUndoPushed) { _document.PushUndo(); _strokeUndoPushed = true; }
-        var site = _document.TryResolveDefaultSiteTerritoryAtHex(hex);
-        if (site == null) { StatusText.Text = "该荒野 Hex 当前没有正式 standalone claim Content authority，未修改。"; return; }
-        var result = _document.AssignFactionToSiteTerritory(site.SiteId, string.Empty, false);
-        StatusText.Text = result.Message;
+        var result = _document.EraseTerritory(hex, singleStrokeUndo: false);
+        if (result.Success && result.SiteId != null)
+            _sitesPaintedThisStroke.Add(result.SiteId);
+        SetTerritoryHint(result.Message);
+    }
+
+    void SetTerritoryHint(string message)
+    {
+        StatusText.Text = message + " · " + _mapView.FormatPerfStatus();
+        if (TerritoryHintText != null)
+            TerritoryHintText.Text = message;
     }
 
     void SidebarTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (e.OriginalSource != SidebarTabs) return;
         _territoryEditMode = SidebarTabs.SelectedIndex == 1;
-        _mapView.SetTerritoryOverlay(null, _territoryEditMode);
+        _mapView.SetTerritoryOverlay(_selectedFactionId, _territoryEditMode);
         RefreshTerritoryPanel();
+        UpdateTerritoryHoverPreview();
     }
 
+    /// <summary>
+    /// 势力列表刷新：从正式 factions.json（territorySelectable）读取；不因 SelectionChanged 再刷新。
+    /// 任何 selection 变化都不会重建本列表 —— 重复 bug 根因（SelectionChanged→Refresh→重建→又触发 SelectionChanged）。
+    /// </summary>
     void RefreshTerritoryPanel()
     {
         if (TerritoryList == null) return;
         var filter = TerritorySearchBox.Text?.Trim() ?? string.Empty;
-        _territoryItems.Clear();
-        var factions = _document.World.Sites.Select(s => s.OwnerFactionId)
-            .Concat(_document.World.TerritoryRegions.Select(r => r.ControlFactionId))
-            .Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.Ordinal).OrderBy(id => id, StringComparer.Ordinal);
-        foreach (var factionId in factions)
+        _refreshingFactionList = true;
+        try
         {
-            if (!string.IsNullOrEmpty(filter) && !factionId.Contains(filter, StringComparison.OrdinalIgnoreCase)) continue;
-            _territoryItems.Add(new FactionListItem(factionId));
+            _territoryItems.Clear();
+            // 固定的编辑器工具项，不属于 factions.json，也绝不进入势力管理器。
+            _territoryItems.Add(FactionListItem.Unowned());
+            foreach (var faction in _allFactions)
+            {
+                if (!faction.TerritorySelectable)
+                    continue;
+                if (filter.Length > 0 && !MatchesFactionFilter(faction, filter))
+                    continue;
+                _territoryItems.Add(FactionListItem.FromDto(faction));
+            }
+
+            // 恢复当前选择（仅当仍可见）；不强改 _selectedFactionId 之外的状态。
+            var keep = _territoryBrushKind == TerritoryBrushKind.Unowned
+                ? _territoryItems.FirstOrDefault(x => x.IsUnowned)
+                : _territoryItems.FirstOrDefault(x => x.FactionId == _selectedFactionId);
+            TerritoryList.SelectedItem = keep;
         }
-        TerritoryList.SelectedItem = _territoryItems.FirstOrDefault(x => x.FactionId == _selectedFactionId);
-        TerritoryCurrentText.Text = string.IsNullOrEmpty(_selectedFactionId) ? "请选择一个势力。" : $"当前笔刷：{_selectedFactionId}\n左键/拖涂势力范围；右键/拖清除。\nWorldSite 本体或外围一圈会自动处理整块辖区。";
+        finally
+        {
+            _refreshingFactionList = false;
+        }
+
+        UpdateBrushHeader();
+        TerritoryHintText.Text = _allFactions.Count == 0
+            ? "未找到 factions.json（Content/BaseGame/Data/Factions/factions.json）。"
+            : string.Empty;
+    }
+
+    static bool MatchesFactionFilter(StrategicFactionAuthoringDto faction, string filter)
+    {
+        return faction.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+               faction.Id.Contains(filter, StringComparison.OrdinalIgnoreCase);
+    }
+
+    void UpdateBrushHeader()
+    {
+        if (TerritoryBrushName == null)
+            return;
+
+        if (_territoryBrushKind == TerritoryBrushKind.Unowned)
+        {
+            TerritoryBrushName.Text = "□ 无势力 / 无主地";
+            TerritoryBrushId.Text = "清除势力控制";
+            TerritoryBrushSwatch.Fill = Brushes.Transparent;
+            TerritoryBrushSwatch.Stroke = new SolidColorBrush(Color.FromRgb(0x77, 0x82, 0x91));
+            TerritoryBrushInstruction.Text = "左键 / 左拖：清除势力控制。右键 / 右拖：同样清除。涂到 WorldSite 本体或外围一圈会将整个 Site 辖区设为无主，但保留辖区结构。";
+            return;
+        }
+
+        if (_territoryBrushKind != TerritoryBrushKind.Faction || string.IsNullOrEmpty(_selectedFactionId))
+        {
+            TerritoryBrushName.Text = "未选择";
+            TerritoryBrushId.Text = "选择下方势力后点击地图涂色";
+            TerritoryBrushSwatch.Fill = new SolidColorBrush(Color.FromRgb(0xB3, 0x94, 0x5C));
+            TerritoryBrushSwatch.Stroke = Brushes.Transparent;
+            TerritoryBrushInstruction.Text = "左键 / 左拖：涂当前势力。右键 / 右拖：清除势力。涂到 WorldSite 本体或外围一圈会自动更新整个 Site 辖区。";
+            return;
+        }
+
+        var faction = _factionById.TryGetValue(_selectedFactionId, out var f) ? f : null;
+        if (faction == null)
+        {
+            TerritoryBrushName.Text = _selectedFactionId;
+            TerritoryBrushId.Text = string.Empty;
+            TerritoryBrushSwatch.Fill = new SolidColorBrush(Color.FromRgb(0xB3, 0x94, 0x5C));
+            TerritoryBrushSwatch.Stroke = Brushes.Transparent;
+            return;
+        }
+
+        TerritoryBrushName.Text = faction.Name;
+        TerritoryBrushId.Text = faction.Id;
+        TerritoryBrushSwatch.Fill = BrushFromHex(faction.MapColor);
+        TerritoryBrushSwatch.Stroke = Brushes.Transparent;
+        TerritoryBrushInstruction.Text = "左键 / 左拖：涂当前势力。右键 / 右拖：清除势力。涂到 WorldSite 本体或外围一圈会自动更新整个 Site 辖区。";
+    }
+
+    static SolidColorBrush BrushFromHex(string hex)
+    {
+        try
+        {
+            var color = (Color)ColorConverter.ConvertFromString(hex);
+            var brush = new SolidColorBrush(color);
+            brush.Freeze();
+            return brush;
+        }
+        catch
+        {
+            var brush = new SolidColorBrush(Color.FromRgb(0xB3, 0x94, 0x5C));
+            brush.Freeze();
+            return brush;
+        }
     }
 
     void TerritorySearchBox_TextChanged(object sender, TextChangedEventArgs e) => RefreshTerritoryPanel();
+
     void TerritoryList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        var item = TerritoryList.SelectedItem as FactionListItem; _selectedFactionId = item?.FactionId;
-        _mapView.SetTerritoryOverlay(null, _territoryEditMode); RefreshTerritoryPanel();
+        if (_refreshingFactionList)
+            return;
+        var item = TerritoryList.SelectedItem as FactionListItem;
+        _territoryBrushKind = item?.IsUnowned == true
+            ? TerritoryBrushKind.Unowned
+            : item == null ? TerritoryBrushKind.None : TerritoryBrushKind.Faction;
+        _selectedFactionId = _territoryBrushKind == TerritoryBrushKind.Faction ? item!.FactionId : null;
+        UpdateBrushHeader();
+        _mapView.SetTerritoryOverlay(_selectedFactionId, _territoryEditMode);
+        UpdateTerritoryHoverPreview();
     }
+
     void ValidateTerritory_Click(object sender, RoutedEventArgs e) => Validate_Click(sender, e);
+
+    void ManageFactions_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrEmpty(_baseGameRoot))
+        {
+            MessageBox.Show("未找到 Content/BaseGame，无法管理势力。", "势力管理", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var path = StrategicFactionAuthoring.FactionDefaultFilePath(_baseGameRoot);
+        var manager = new FactionManagerWindow(_document.World, _baseGameRoot, path);
+        manager.Owner = this;
+        var saved = manager.ShowDialog() == true;
+        if (saved)
+            LoadFactions();
+    }
+
+    void UpdateTerritoryHoverPreview()
+    {
+        if (!_territoryEditMode || _territoryBrushKind == TerritoryBrushKind.None || !_mapView.HoverHex.HasValue)
+        {
+            _mapView.SetBrushPreview(null, default);
+            return;
+        }
+
+        var hex = _mapView.HoverHex.Value;
+        if (hex.Q < 0)
+        {
+            _mapView.SetBrushPreview(null, default);
+            return;
+        }
+
+        var color = _territoryBrushKind == TerritoryBrushKind.Unowned
+            ? Color.FromRgb(0x9A, 0xA4, 0xB2)
+            : _selectedFactionId != null && _factionById.TryGetValue(_selectedFactionId, out var faction)
+                ? (Color)ColorConverter.ConvertFromString(faction.MapColor)
+                : default;
+        if (color == default)
+        {
+            _mapView.SetBrushPreview(null, default);
+            return;
+        }
+        var site = _document.TryResolveDefaultSiteTerritoryAtHex(hex);
+        if (site != null)
+        {
+            var hexes = _document.ComputeDefaultSiteTerritory(site).ToList();
+            _mapView.SetBrushPreview(hexes, color);
+        }
+        else
+        {
+            _mapView.SetBrushPreview(new[] { hex }, color);
+        }
+    }
+
 
     void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
@@ -666,9 +957,53 @@ public partial class MainWindow : Window
     }
 }
 
+enum TerritoryBrushKind
+{
+    None,
+    Unowned,
+    Faction,
+}
+
 sealed class FactionListItem
 {
     public string FactionId { get; }
-    public string Display => $"■ {FactionId}";
-    public FactionListItem(string factionId) => FactionId = factionId;
+    public string Name { get; }
+    public string Id => FactionId;
+    public Brush Brush { get; }
+    public bool IsUnowned { get; }
+    public string Display => Name;
+
+    FactionListItem(StrategicFactionAuthoringDto dto)
+    {
+        FactionId = dto.Id;
+        Name = dto.Name;
+        Brush = BrushFromHexSafe(dto.MapColor);
+    }
+
+    FactionListItem()
+    {
+        FactionId = string.Empty;
+        Name = "无势力 / 无主地";
+        Brush = Brushes.Transparent;
+        IsUnowned = true;
+    }
+
+    public static FactionListItem FromDto(StrategicFactionAuthoringDto dto) => new(dto);
+    public static FactionListItem Unowned() => new();
+
+    static SolidColorBrush BrushFromHexSafe(string hex)
+    {
+        try
+        {
+            var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
+            brush.Freeze();
+            return brush;
+        }
+        catch
+        {
+            var brush = new SolidColorBrush(Color.FromRgb(0xB3, 0x94, 0x5C));
+            brush.Freeze();
+            return brush;
+        }
+    }
 }

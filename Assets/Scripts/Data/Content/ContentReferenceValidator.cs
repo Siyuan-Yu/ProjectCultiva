@@ -26,6 +26,7 @@ namespace XianXia.Data.Content
 
             ValidateScenarios(registry, locations, report);
             ValidateFormalArmies(registry, report);
+            ValidateStrategicFactions(registry, report);
             ValidateWorldRegions(registry, locations, report);
             ValidateLocalPlaceSets(registry, locations, report);
             ValidateItems(registry, report);
@@ -395,6 +396,126 @@ namespace XianXia.Data.Content
         /// 每个 member.characterDefinitionId 必须存在；runtimeArmyId / runtimeStackId 全局唯一；
         /// 恰好一个 leader 已在 Load 层验证，这里再补成员数 / 引用完整性。
         /// </summary>
+        /// <summary>
+        /// Strategic Faction cross-reference：formalArmy.factionId / scenario.openingFactionId /
+        /// spawns factionId / roster entries factionId / hexWorld site.ownerFactionId /
+        /// territoryRegion.controlFactionId 引用的 faction 必须存在于 StrategicFactions。
+        /// 未知引用 = Content Validation ERROR（不得静默随机颜色）。空引用不校验。
+        /// </summary>
+        static void ValidateStrategicFactions(DefinitionRegistry registry, ValidationReport report)
+        {
+            foreach (var kv in registry.FormalArmies)
+            {
+                var def = kv.Value;
+                if (def == null)
+                    continue;
+                RequireFaction(registry, def.FactionId, def.Id + ".factionId", report);
+            }
+
+            foreach (var kv in registry.OpeningScenarios)
+            {
+                var scenario = kv.Value;
+                if (scenario == null)
+                    continue;
+                RequireFaction(registry, scenario.OpeningFactionId, scenario.Id + ".openingFactionId", report);
+                if (scenario.Spawns == null)
+                    continue;
+                for (var i = 0; i < scenario.Spawns.Count; i++)
+                {
+                    var spawn = scenario.Spawns[i];
+                    if (spawn == null)
+                        continue;
+                    RequireFaction(registry, spawn.FactionId, scenario.Id + ".spawns[" + i + "].factionId", report);
+                }
+            }
+
+            foreach (var kv in registry.CharacterRosters)
+            {
+                var roster = kv.Value;
+                if (roster?.Entries == null)
+                    continue;
+                for (var i = 0; i < roster.Entries.Count; i++)
+                {
+                    var entry = roster.Entries[i];
+                    if (entry == null)
+                        continue;
+                    RequireFaction(registry, entry.FactionId, roster.Id + ".entries[" + i + "].factionId", report);
+                }
+            }
+
+            foreach (var kv in registry.HexWorldContents)
+            {
+                var world = kv.Value;
+                if (world == null)
+                    continue;
+                var worldCtx = world.Id.ToString();
+                if (world.Sites != null)
+                {
+                    for (var i = 0; i < world.Sites.Count; i++)
+                    {
+                        var site = world.Sites[i];
+                        if (site == null)
+                            continue;
+                        RequireFaction(
+                            registry,
+                            site.OwnerFactionId,
+                            worldCtx + ".sites[" + i + "]:" + site.SiteId + ".ownerFactionId",
+                            report);
+                    }
+                }
+
+                if (world.TerritoryRegions != null)
+                {
+                    for (var i = 0; i < world.TerritoryRegions.Count; i++)
+                    {
+                        var region = world.TerritoryRegions[i];
+                        if (region == null)
+                            continue;
+                        RequireFaction(
+                            registry,
+                            region.ControlFactionId,
+                            worldCtx + ".territoryRegions[" + i + "]:" + region.RegionId + ".controlFactionId",
+                            report);
+                    }
+                }
+
+                if (world.StandaloneTerritoryHexes != null)
+                {
+                    for (var i = 0; i < world.StandaloneTerritoryHexes.Count; i++)
+                    {
+                        var control = world.StandaloneTerritoryHexes[i];
+                        if (control == null)
+                            continue;
+                        RequireFaction(
+                            registry,
+                            control.ControlFactionId,
+                            worldCtx + ".standaloneTerritoryHexes[" + i + "]:(" +
+                            control.Q + "," + control.R + ").controlFactionId",
+                            report);
+                    }
+                }
+            }
+        }
+
+        /// <summary>非空 factionId 必须能解析为 DefinitionId 且存在于 StrategicFactions。</summary>
+        static void RequireFaction(
+            DefinitionRegistry registry,
+            string factionId,
+            string ctx,
+            ValidationReport report)
+        {
+            if (string.IsNullOrEmpty(factionId))
+                return;
+            if (!DefinitionId.TryParse(factionId, out var id) ||
+                !registry.TryGetStrategicFaction(id, out _))
+            {
+                report.Add(
+                    ErrorCode.NotFound,
+                    "strategicFaction reference missing.",
+                    ctx + ":" + factionId);
+            }
+        }
+
         static void ValidateFormalArmies(DefinitionRegistry registry, ValidationReport report)
         {
             var seenArmyIds = new HashSet<string>(StringComparer.Ordinal);

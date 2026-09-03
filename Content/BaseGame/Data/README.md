@@ -22,5 +22,7 @@
 | `WorkAreas/` | workArea | `work_areas.json` |
 | `Jobs/` | job | `jobs.json` |
 | `Schedules/` | schedule | `schedules.json` |
+| `Armies/` | formalArmy（战略军团） | `ch01_test_armies.json` |
+| `Factions/` | strategicFaction（战略势力身份/名/地图色；全局唯一真源） | `factions.json` |
 
 新建内容时，各编辑器默认保存到对应子目录。字段权威见同级的 `SCHEMA.md`。

@@ -19,7 +19,8 @@ public sealed class HexWorldDefinitionDto
     public List<HexCellDto> Cells { get; set; } = new();
     public List<HexWorldSiteDto> Sites { get; set; } = new();
     public List<HexWorldTerritoryRegionDto> TerritoryRegions { get; set; } = new();
-    public List<HexWorldStandaloneHexControlDto> StandaloneHexControls { get; set; } = new();
+    /// <summary>不属于任何 WorldSite Region 的荒野 Hex 明确控制权（Runtime 键 standaloneTerritoryHexes）。</summary>
+    public List<HexWorldStandaloneHexControlDto> StandaloneTerritoryHexes { get; set; } = new();
 }
 
 public sealed class HexCellDto

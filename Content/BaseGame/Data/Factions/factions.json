@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:faction_player",
+      "type": "strategicFaction",
+      "name": "主角团",
+      "mapColor": "#59B86B",
+      "territorySelectable": true,
+      "sortOrder": 10
+    },
+    {
+      "id": "base:sect_huangcun_labor",
+      "type": "strategicFaction",
+      "name": "压迫宗门",
+      "mapColor": "#C75247",
+      "territorySelectable": true,
+      "sortOrder": 20
+    },
+    {
+      "id": "base:faction_fisher_village",
+      "type": "strategicFaction",
+      "name": "沧澜渔盟",
+      "mapColor": "#5285D1",
+      "territorySelectable": true,
+      "sortOrder": 30
+    },
+    {
+      "id": "base:faction_nan_yan",
+      "type": "strategicFaction",
+      "name": "南堰庄盟",
+      "mapColor": "#D19E47",
+      "territorySelectable": true,
+      "sortOrder": 40
+    },
+    {
+      "id": "base:faction_shuofeng",
+      "type": "strategicFaction",
+      "name": "朔风堡",
+      "mapColor": "#8CADC7",
+      "territorySelectable": true,
+      "sortOrder": 50
+    },
+    {
+      "id": "base:faction_donglin",
+      "type": "strategicFaction",
+      "name": "东林海会",
+      "mapColor": "#479E61",
+      "territorySelectable": true,
+      "sortOrder": 60
+    },
+    {
+      "id": "base:faction_xijin",
+      "type": "strategicFaction",
+      "name": "西津渡帮",
+      "mapColor": "#9473B8",
+      "territorySelectable": true,
+      "sortOrder": 70
+    },
+    {
+      "id": "base:faction_bandits",
+      "type": "strategicFaction",
+      "name": "山匪",
+      "mapColor": "#9E479E",
+      "territorySelectable": false,
+      "sortOrder": 999
+    }
+  ]
+}

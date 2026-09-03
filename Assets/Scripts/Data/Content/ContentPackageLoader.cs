@@ -82,6 +82,9 @@ namespace XianXia.Data.Content
             if (!report.IsValid)
                 return report.ToResult<LoadedContent>(null);
 
+            // Strategic Faction Content → Core presentation 单点安装。registry 无 strategicFaction
+            // 定义（如仅含 character 的临时包）→ ResetInstall 回 fallback，不残留上次状态。
+            StrategicFactionContentInstaller.Install(registry);
             return Result.Ok(new LoadedContent(manifests, registry));
         }
 
@@ -259,6 +262,9 @@ namespace XianXia.Data.Content
                         break;
                     case "formalArmy":
                         LoadFormalArmy(item, parsed.Value, registry, report);
+                        break;
+                    case "strategicFaction":
+                        LoadStrategicFaction(item, parsed.Value, registry, report);
                         break;
                     default:
                         report.Add(ErrorCode.InvalidArgument, "Unknown definition type.", type);
@@ -809,6 +815,55 @@ namespace XianXia.Data.Content
             var reg = registry.RegisterOpeningScenario(scenario);
             if (reg.IsFailure)
                 report.Add(reg.Error);
+        }
+
+        static void LoadStrategicFaction(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.StrategicFactionFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var name = item.GetString("name", string.Empty);
+            var mapColor = item.GetString("mapColor", string.Empty);
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                report.Add(ErrorCode.MissingRequiredField, "strategicFaction.name required.", id.ToString());
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(mapColor))
+            {
+                report.Add(ErrorCode.MissingRequiredField, "strategicFaction.mapColor required.", id.ToString());
+                return;
+            }
+
+            if (!XianXia.Core.World.Strategic.StrategicFactionCatalog.TryParseMapColor(
+                    mapColor, out _, out _, out _))
+            {
+                report.Add(
+                    ErrorCode.ContentLoadFailed,
+                    "strategicFaction.mapColor must be #RRGGBB.",
+                    id + ":" + mapColor);
+                return;
+            }
+
+            var def = new StrategicFactionDefinition
+            {
+                Id = id,
+                Name = name,
+                MapColor = mapColor,
+                TerritorySelectable = item.GetBool("territorySelectable", true),
+                SortOrder = (int)item.GetNumber("sortOrder", 0)
+            };
+
+            var registered = registry.RegisterStrategicFaction(def);
+            if (registered.IsFailure)
+                report.Add(registered.Error);
         }
 
         static void LoadFormalArmy(
@@ -1835,6 +1890,30 @@ namespace XianXia.Data.Content
                     }
 
                     world.TerritoryRegions.Add(region);
+                }
+            }
+
+            if (item.TryGetProperty("standaloneTerritoryHexes", out var standaloneNode) &&
+                standaloneNode.Kind == JsonValueKind.Array)
+            {
+                foreach (var hNode in standaloneNode.Array)
+                {
+                    if (hNode.Kind != JsonValueKind.Object)
+                        continue;
+                    var hexErrorsBefore = report.Errors.Count;
+                    DefinitionSchema.RejectUnknownFields(
+                        hNode,
+                        DefinitionSchema.HexWorldStandaloneHexFields,
+                        report,
+                        id.ToString() + ".standalone");
+                    if (report.Errors.Count > hexErrorsBefore)
+                        continue;
+                    world.StandaloneTerritoryHexes.Add(new HexWorldStandaloneHexControlDefinition
+                    {
+                        Q = ReadInt(hNode, "q", 0),
+                        R = ReadInt(hNode, "r", 0),
+                        ControlFactionId = hNode.GetString("controlFactionId", string.Empty),
+                    });
                 }
             }
 

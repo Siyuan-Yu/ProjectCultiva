@@ -30,6 +30,10 @@
 
 ---
 
+## 2026-09-04 — WorldGraphEditor 无势力／无主地笔刷（待人工验收）
+
+WorldGraphEditor 的「势力范围」笔刷列表最上方新增固定编辑器工具项「□ 无势力 / 无主地」。它不是 `FactionDefinition`，不写入 `factions.json`，也不会出现在「管理势力…」窗口。选择后左键／左拖与右键／右拖均走既有擦除路径：普通 standalone Hex 移除独立控制记录；WorldSite 的 Footprint 或默认外围辖区会整块清空 `OwnerFactionId` 与 `ControlFactionId`，但保留 `TerritoryRegionId`、`PrimaryWorldSiteId` 和辖区几何。无主笔刷的 hover 使用低透明灰色预览，明确表示即将清除控制权；同一 stroke 的 Undo 仍复用原子撤销逻辑。
+
 ## 2026-09-04 — Territory Authoring 从 MapEditor 纠正迁移至 WorldGraphEditor（待人工验收）
 
 **纠正**：`MapEditor` 的职责严格恢复为 LocalMap `mapLayout` 矩形编辑；上一轮误加的 HexWorld Territory 页、画布、专用状态和事件已精确撤销。`WorldGraphEditor` 才是唯一 Hex 战略大地图 authoring 工具，Territory 现在只在其现有 `HexMapViewHost` 上编辑，没有第二套画布或 Runtime 引用。

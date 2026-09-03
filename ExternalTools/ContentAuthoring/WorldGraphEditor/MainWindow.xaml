@@ -62,12 +62,48 @@
           <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="0,0,8,0">
               <TextBlock Text="势力范围" FontWeight="SemiBold" Foreground="{StaticResource Editor.Text}" Margin="0,0,0,6"/>
-              <TextBlock Text="选择势力" Foreground="{StaticResource Editor.TextMuted}" Margin="0,0,0,3"/>
-              <TextBox x:Name="TerritorySearchBox" Margin="0,0,0,6" TextChanged="TerritorySearchBox_TextChanged" ToolTip="搜索势力"/>
-              <TextBlock x:Name="TerritoryCurrentText" Foreground="{StaticResource Editor.TextMuted}" TextWrapping="Wrap" Margin="0,0,0,8"/>
-              <ListBox x:Name="TerritoryList" DisplayMemberPath="Display" Height="340" SelectionChanged="TerritoryList_SelectionChanged"/>
-              <Button Content="验证 Territory" Margin="0,5,0,0" Click="ValidateTerritory_Click"/>
-              <TextBlock Foreground="{StaticResource Editor.TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0" Text="左键 / 左拖：涂当前势力。右键 / 右拖：清除势力。涂到 Site 本体或外围一圈会自动更新整个 Site Territory。"/>
+              <TextBlock Text="搜索势力" Foreground="{StaticResource Editor.TextMuted}" Margin="0,0,0,3"/>
+              <TextBox x:Name="TerritorySearchBox" Margin="0,0,0,6" TextChanged="TerritorySearchBox_TextChanged" ToolTip="搜索势力（中文名 / FactionId）"/>
+              <Border x:Name="TerritoryBrushPanel" Background="{StaticResource Editor.Panel}" BorderBrush="{StaticResource Editor.Border}" BorderThickness="1" Padding="7" Margin="0,0,0,8">
+                <StackPanel>
+                  <TextBlock Text="当前笔刷" Foreground="{StaticResource Editor.TextMuted}" FontSize="11" Margin="0,0,0,4"/>
+                  <StackPanel x:Name="TerritoryBrushCurrent" Orientation="Horizontal">
+                    <Rectangle x:Name="TerritoryBrushSwatch" Width="16" Height="16" RadiusX="3" RadiusY="3" VerticalAlignment="Center" Fill="#FFB3945C" StrokeThickness="1"/>
+                    <StackPanel Margin="8,0,0,0">
+                      <TextBlock x:Name="TerritoryBrushName" Text="未选择" FontWeight="SemiBold" Foreground="{StaticResource Editor.Text}"/>
+                      <TextBlock x:Name="TerritoryBrushId" Text="—" FontSize="10" Foreground="{StaticResource Editor.TextMuted}"/>
+                    </StackPanel>
+                  </StackPanel>
+                  <TextBlock x:Name="TerritoryBrushInstruction" Foreground="{StaticResource Editor.TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" Text="左键 / 左拖：涂当前势力。右键 / 右拖：清除势力。涂到 WorldSite 本体或外围一圈会自动更新整个 Site 辖区。"/>
+                </StackPanel>
+              </Border>
+              <ListBox x:Name="TerritoryList" Height="240" SelectionChanged="TerritoryList_SelectionChanged">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Margin="0,2,0,2">
+                      <Grid Width="14" Height="14" VerticalAlignment="Center">
+                        <Rectangle x:Name="FactionSwatch" RadiusX="3" RadiusY="3" Fill="{Binding Brush}" Stroke="#33000000" StrokeThickness="0.5"/>
+                        <TextBlock x:Name="UnownedMarker" Text="□" FontSize="17" FontWeight="Bold" Foreground="{StaticResource Editor.TextMuted}" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+                      </Grid>
+                      <StackPanel Margin="7,0,0,0">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{StaticResource Editor.Text}"/>
+                        <TextBlock Text="{Binding Id}" FontSize="10" Foreground="{StaticResource Editor.TextMuted}"/>
+                      </StackPanel>
+                    </StackPanel>
+                    <DataTemplate.Triggers>
+                      <DataTrigger Binding="{Binding IsUnowned}" Value="True">
+                        <Setter TargetName="FactionSwatch" Property="Visibility" Value="Collapsed"/>
+                        <Setter TargetName="UnownedMarker" Property="Visibility" Value="Visible"/>
+                      </DataTrigger>
+                    </DataTemplate.Triggers>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <Button Content="管理势力…" Width="96" Click="ManageFactions_Click"/>
+                <Button Content="验证 Territory" Margin="6,0,0,0" Click="ValidateTerritory_Click"/>
+              </StackPanel>
+              <TextBlock x:Name="TerritoryHintText" Foreground="{StaticResource Editor.WarningText}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
             </StackPanel>
           </ScrollViewer>
         </TabItem>

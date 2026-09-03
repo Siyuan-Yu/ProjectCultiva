@@ -33,6 +33,11 @@ namespace XianXia.Data.Content
             "id", "type", "name", "runtimeArmyId", "runtimeStackId", "factionId", "assemblySiteId", "initialHex", "members"
         };
 
+        public static readonly HashSet<string> StrategicFactionFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "mapColor", "territorySelectable", "sortOrder"
+        };
+
         public static readonly HashSet<string> FormalArmyInitialHexFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "q", "r"
@@ -128,7 +133,7 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> HexWorldFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "width", "height", "hexSize", "defaultTerrain", "defaultPassable", "cells", "sites",
-            "territoryRegions"
+            "territoryRegions", "standaloneTerritoryHexes"
         };
 
         public static readonly HashSet<string> HexWorldCellFields = new HashSet<string>(StringComparer.Ordinal)
@@ -145,6 +150,11 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> HexWorldTerritoryRegionFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "regionId", "primaryWorldSiteId", "controlFactionId", "hexes"
+        };
+
+        public static readonly HashSet<string> HexWorldStandaloneHexFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "q", "r", "controlFactionId"
         };
 
         public static readonly HashSet<string> QuestFields = new HashSet<string>(StringComparer.Ordinal)

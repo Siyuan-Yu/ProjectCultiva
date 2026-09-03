@@ -52,6 +52,8 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, HexWorldContentDefinition>();
         readonly Dictionary<DefinitionId, FormalArmyDefinition> _formalArmies =
             new Dictionary<DefinitionId, FormalArmyDefinition>();
+        readonly Dictionary<DefinitionId, StrategicFactionDefinition> _strategicFactions =
+            new Dictionary<DefinitionId, StrategicFactionDefinition>();
 
         public IReadOnlyDictionary<DefinitionId, CharacterDefinition> Characters => _characters;
         public IReadOnlyDictionary<DefinitionId, CultivationDefinition> Cultivations => _cultivations;
@@ -76,6 +78,7 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, LocalPlaceSetDefinition> LocalPlaceSets => _localPlaceSets;
         public IReadOnlyDictionary<DefinitionId, HexWorldContentDefinition> HexWorldContents => _hexWorldContents;
         public IReadOnlyDictionary<DefinitionId, FormalArmyDefinition> FormalArmies => _formalArmies;
+        public IReadOnlyDictionary<DefinitionId, StrategicFactionDefinition> StrategicFactions => _strategicFactions;
 
         public bool ContainsId(DefinitionId id) =>
             _characters.ContainsKey(id) ||
@@ -100,7 +103,8 @@ namespace XianXia.Data.Content
             _spawnTables.ContainsKey(id) ||
             _localPlaceSets.ContainsKey(id) ||
             _hexWorldContents.ContainsKey(id) ||
-            _formalArmies.ContainsKey(id);
+            _formalArmies.ContainsKey(id) ||
+            _strategicFactions.ContainsKey(id);
 
         public Result RegisterCharacter(CharacterDefinition definition)
         {
@@ -263,6 +267,13 @@ namespace XianXia.Data.Content
             return Register(_formalArmies, definition, definition.Id);
         }
 
+        public Result RegisterStrategicFaction(StrategicFactionDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "StrategicFactionDefinition is null.");
+            return Register(_strategicFactions, definition, definition.Id);
+        }
+
         /// <summary>覆盖已有 mapLayout（Level Tester 热换地图文件）。</summary>
         public Result UpsertMapLayout(MapLayoutDefinition definition)
         {
@@ -337,6 +348,9 @@ namespace XianXia.Data.Content
 
         public bool TryGetFormalArmy(DefinitionId id, out FormalArmyDefinition definition) =>
             _formalArmies.TryGetValue(id, out definition);
+
+        public bool TryGetStrategicFaction(DefinitionId id, out StrategicFactionDefinition definition) =>
+            _strategicFactions.TryGetValue(id, out definition);
 
         /// <summary>Prefer content ladder; otherwise null.</summary>
         public bool TryGetPrimaryRealmLadder(out RealmLadderDefinition definition)

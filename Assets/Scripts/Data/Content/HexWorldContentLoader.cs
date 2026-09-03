@@ -59,6 +59,14 @@ namespace XianXia.Data.Content
                 }
             }
 
+            // §12 加载顺序：清空 ControlFactionId（grid.Clear 已保证新 cell 为 ""）
+            // → apply standaloneTerritoryHexes → apply TerritoryRegions。
+            // standalone 与 Region 同含同一 Hex = Content ERROR（不静默覆盖）。
+            var standaloneHexes = new Dictionary<HexCoord, string>();
+            var standaloneResult = ApplyStandaloneHexControls(world, definition, standaloneHexes);
+            if (standaloneResult.IsFailure)
+                return standaloneResult;
+
             if (definition.TerritoryRegions != null)
             {
                 for (var i = 0; i < definition.TerritoryRegions.Count; i++)
@@ -66,7 +74,7 @@ namespace XianXia.Data.Content
                     var src = definition.TerritoryRegions[i];
                     if (src == null || string.IsNullOrWhiteSpace(src.RegionId))
                         continue;
-                    var applied = RegisterTerritoryRegion(world, src);
+                    var applied = RegisterTerritoryRegion(world, src, standaloneHexes);
                     if (applied.IsFailure)
                         return applied;
                 }
@@ -89,9 +97,45 @@ namespace XianXia.Data.Content
             return Result.Success();
         }
 
+        /// <summary>
+        /// 荒野单格控制权（不属于任何 WorldSite Region 的 Hex）。在 TerritoryRegions 前 apply；
+        /// 与任何 Region hex 重叠 → Content ERROR。
+        /// </summary>
+        static Result ApplyStandaloneHexControls(
+            SimulationWorld world,
+            HexWorldContentDefinition definition,
+            Dictionary<HexCoord, string> standaloneHexes)
+        {
+            if (definition.StandaloneTerritoryHexes == null)
+                return Result.Success();
+
+            for (var i = 0; i < definition.StandaloneTerritoryHexes.Count; i++)
+            {
+                var src = definition.StandaloneTerritoryHexes[i];
+                if (src == null)
+                    continue;
+                var hex = new HexCoord(src.Q, src.R);
+                if (!world.HexWorld.IsInBounds(hex.Q, hex.R))
+                    return Result.Failure(ErrorCode.ContentLoadFailed,
+                        "standaloneTerritoryHexes[" + i + "] out of bounds: " + hex + ".");
+                if (standaloneHexes.ContainsKey(hex))
+                    return Result.Failure(ErrorCode.ContentLoadFailed,
+                        "standaloneTerritoryHexes duplicate hex: " + hex + ".");
+                if (!world.HexWorld.TryGetCell(hex, out var cell) || cell == null)
+                    return Result.Failure(ErrorCode.ContentLoadFailed,
+                        "standaloneTerritoryHexes hex missing in grid: " + hex + ".");
+                var controller = src.ControlFactionId ?? string.Empty;
+                standaloneHexes[hex] = controller;
+                cell.ControlFactionId = controller;
+            }
+
+            return Result.Success();
+        }
+
         static Result RegisterTerritoryRegion(
             SimulationWorld world,
-            TerritoryRegionContentDefinition src)
+            TerritoryRegionContentDefinition src,
+            Dictionary<HexCoord, string> standaloneHexes)
         {
             var region = new TerritoryRegion
             {
@@ -132,6 +176,10 @@ namespace XianXia.Data.Content
             for (var i = 0; i < region.Hexes.Count; i++)
             {
                 var hex = region.Hexes[i];
+                if (standaloneHexes.ContainsKey(hex))
+                    return Result.Failure(ErrorCode.ContentLoadFailed,
+                        "Hex " + hex + " belongs to both standaloneTerritoryHexes and TerritoryRegion '" +
+                        region.RegionId + "' (standalone controller='" + standaloneHexes[hex] + "').");
                 if (!world.HexWorld.TryGetCell(hex, out var cell) || cell == null)
                     return Result.Failure(ErrorCode.ContentLoadFailed,
                         "TerritoryRegion '" + region.RegionId + "' hex " + hex + " missing in grid.");

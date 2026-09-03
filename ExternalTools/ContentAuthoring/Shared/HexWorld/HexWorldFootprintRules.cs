@@ -12,6 +12,40 @@ public sealed class FootprintEditResult
         new() { Success = false, Message = message };
 }
 
+public enum TerritoryStrokeKind
+{
+    None,
+    SiteMacro,
+    SiteCleared,
+    Standalone,
+    StandaloneCleared,
+}
+
+/// <summary>Territory Brush 统一 stroke 结果：site macro vs 单格 standalone（供 UI / 测试判读）。</summary>
+public sealed class TerritoryStrokeResult
+{
+    public bool Success { get; init; }
+    public TerritoryStrokeKind Kind { get; init; } = TerritoryStrokeKind.None;
+    public string? SiteId { get; init; }
+    public string Message { get; init; } = string.Empty;
+
+    public static TerritoryStrokeResult SiteMacro(string siteId, string message) =>
+        new() { Success = true, Kind = TerritoryStrokeKind.SiteMacro, SiteId = siteId, Message = message };
+
+    public static TerritoryStrokeResult SiteCleared(string siteId, string message) =>
+        new() { Success = true, Kind = TerritoryStrokeKind.SiteCleared, SiteId = siteId, Message = message };
+
+    public static TerritoryStrokeResult Standalone(string message) =>
+        new() { Success = true, Kind = TerritoryStrokeKind.Standalone, Message = message };
+
+    public static TerritoryStrokeResult StandaloneCleared(string message) =>
+        new() { Success = true, Kind = TerritoryStrokeKind.StandaloneCleared, Message = message };
+
+    public static TerritoryStrokeResult Fail(string message) =>
+        new() { Success = false, Kind = TerritoryStrokeKind.None, Message = message };
+}
+
+
 /// <summary>WorldSite Footprint 编辑/校验共享规则（Editor + Content Validator）。</summary>
 public static class HexWorldFootprintRules
 {

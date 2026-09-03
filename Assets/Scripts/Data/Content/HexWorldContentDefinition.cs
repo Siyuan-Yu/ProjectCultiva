@@ -15,6 +15,22 @@ namespace XianXia.Data.Content
         public List<HexWorldCellDefinition> Cells { get; set; } = new List<HexWorldCellDefinition>();
         public List<HexWorldSiteDefinition> Sites { get; set; } = new List<HexWorldSiteDefinition>();
         public List<TerritoryRegionContentDefinition> TerritoryRegions { get; set; } = new List<TerritoryRegionContentDefinition>();
+
+        /// <summary>
+        /// 不属于任何 WorldSite TerritoryRegion 的荒野 Hex 明确政治控制权（Editor Territory Brush 单格涂）。
+        /// 加载顺序：清空 ControlFactionId → apply standalone → apply TerritoryRegions；
+        /// standalone 与 Region 同含同一 Hex = Content ERROR。
+        /// </summary>
+        public List<HexWorldStandaloneHexControlDefinition> StandaloneTerritoryHexes { get; set; }
+            = new List<HexWorldStandaloneHexControlDefinition>();
+    }
+
+    /// <summary>荒野单格控制权（不在任何 WorldSite Region 内）。</summary>
+    public sealed class HexWorldStandaloneHexControlDefinition
+    {
+        public int Q { get; set; }
+        public int R { get; set; }
+        public string ControlFactionId { get; set; } = string.Empty;
     }
 
     public sealed class HexWorldCellDefinition

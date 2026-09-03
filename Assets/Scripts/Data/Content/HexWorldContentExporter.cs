@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Hex;
@@ -83,6 +84,39 @@ namespace XianXia.Data.Content
             }
 
             definition.TerritoryRegions.Sort((a, b) => string.CompareOrdinal(a.RegionId, b.RegionId));
+
+            // standalone = 有 ControlFactionId 但不属于任何 TerritoryRegion 的荒野 Hex
+            var regionHexes = new HashSet<HexCoord>();
+            foreach (var kv in world.Strategic.TerritoryRegions.Regions)
+            {
+                var region = kv.Value;
+                if (region == null)
+                    continue;
+                foreach (var hex in region.Hexes)
+                    regionHexes.Add(hex);
+            }
+
+            for (var r = 0; r < grid.Height; r++)
+            {
+                for (var q = 0; q < grid.Width; q++)
+                {
+                    if (!grid.TryGetCell(new HexCoord(q, r), out var cell) || cell == null)
+                        continue;
+                    if (string.IsNullOrEmpty(cell.ControlFactionId))
+                        continue;
+                    var hex = new HexCoord(q, r);
+                    if (regionHexes.Contains(hex))
+                        continue;
+                    definition.StandaloneTerritoryHexes.Add(new HexWorldStandaloneHexControlDefinition
+                    {
+                        Q = q,
+                        R = r,
+                        ControlFactionId = cell.ControlFactionId,
+                    });
+                }
+            }
+
+            definition.StandaloneTerritoryHexes.Sort((a, b) => a.R != b.R ? a.R.CompareTo(b.R) : a.Q.CompareTo(b.Q));
             return definition;
         }
 

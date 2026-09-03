@@ -20,6 +20,7 @@ public sealed class HexMapViewHost : FrameworkElement
     readonly Dictionary<(int Cx, int Cy), DrawingVisual> _chunkVisuals = new();
     readonly DrawingVisual _overlayVisual = new();
     readonly DrawingVisual _territoryVisual = new();
+    readonly DrawingVisual _brushPreviewVisual = new();
     readonly DrawingVisual _labelOverlayVisual = new();
     readonly Dictionary<int, SolidColorBrush> _brushCache = new();
     readonly HexEditorRenderCache _cache = new();
@@ -31,7 +32,10 @@ public sealed class HexMapViewHost : FrameworkElement
     string? _selectedSiteId;
     bool _editFootprintMode;
     bool _territoryVisible;
-    string? _selectedTerritoryRegionId;
+    string? _territoryBrushFactionId;
+    readonly Dictionary<string, string> _factionColorById = new(StringComparer.Ordinal);
+    IReadOnlyList<HexCoordDto>? _brushPreviewHexes;
+    Color _brushPreviewColor;
     MatrixTransform? _worldToScreen;
     int _visibleAttached;
     double _lastRebuildMs;
@@ -40,7 +44,7 @@ public sealed class HexMapViewHost : FrameworkElement
 
     public HexMapViewHost()
     {
-        _visuals = new VisualCollection(this) { _territoryVisual, _overlayVisual, _labelOverlayVisual };
+        _visuals = new VisualCollection(this) { _territoryVisual, _brushPreviewVisual, _overlayVisual, _labelOverlayVisual };
         Focusable = false;
         ClipToBounds = true;
         SnapsToDevicePixels = true;
@@ -138,15 +142,33 @@ public sealed class HexMapViewHost : FrameworkElement
         RedrawOverlay();
     }
 
-    /// <summary>Authoring-only Territory 填色，独立于 hover overlay，绝不进入游戏表现。</summary>
-    public void SetTerritoryOverlay(string? selectedRegionId, bool visible)
+    /// <summary>Authoring-only Territory 填色，独立于 hover overlay，绝不进入游戏表现。factionId = 当前笔刷势力（用于预览描边）。</summary>
+    public void SetTerritoryOverlay(string? brushFactionId, bool visible)
     {
-        _selectedTerritoryRegionId = selectedRegionId;
+        _territoryBrushFactionId = brushFactionId;
         _territoryVisible = visible;
         RedrawTerritoryOverlay();
+        RedrawBrushPreview();
     }
 
     public void RebuildTerritoryOverlay() => RedrawTerritoryOverlay();
+
+    /// <summary>Editor / Game 同色：factionId → #RRGGBB（来自 factions.json，禁 hash 调色板）。</summary>
+    public void SetFactionColors(IEnumerable<KeyValuePair<string, string>> colorByFactionId)
+    {
+        _factionColorById.Clear();
+        foreach (var kv in colorByFactionId)
+            _factionColorById[kv.Key] = kv.Value;
+        RedrawTerritoryOverlay();
+    }
+
+    /// <summary>Territory Brush hover 预览：显示本次 stroke 将影响的格（单格或整片默认辖区）。hexes=null 清除。</summary>
+    public void SetBrushPreview(IReadOnlyList<HexCoordDto>? hexes, Color color)
+    {
+        _brushPreviewHexes = hexes;
+        _brushPreviewColor = color;
+        RedrawBrushPreview();
+    }
 
     /// <returns>True when hovered hex changed (caller may update status / inspector).</returns>
     public bool SetHover(HexCoordDto? hover)
@@ -272,6 +294,7 @@ public sealed class HexMapViewHost : FrameworkElement
             visual.Transform = _worldToScreen;
         _overlayVisual.Transform = _worldToScreen;
         _territoryVisual.Transform = _worldToScreen;
+        _brushPreviewVisual.Transform = _worldToScreen;
         _labelOverlayVisual.Transform = Transform.Identity;
     }
 
@@ -288,7 +311,7 @@ public sealed class HexMapViewHost : FrameworkElement
         for (var i = _visuals.Count - 1; i >= 0; i--)
         {
             var v = _visuals[i];
-            if (ReferenceEquals(v, _territoryVisual) || ReferenceEquals(v, _overlayVisual) || ReferenceEquals(v, _labelOverlayVisual))
+            if (IsDecorationVisual(v))
                 continue;
             var key = FindChunkKey(v);
             if (key == null || !visibleSet.Contains(key.Value))
@@ -314,6 +337,12 @@ public sealed class HexMapViewHost : FrameworkElement
         EnsureLabelOverlayOnTop();
     }
 
+    bool IsDecorationVisual(Visual visual) =>
+        ReferenceEquals(visual, _brushPreviewVisual) ||
+        ReferenceEquals(visual, _territoryVisual) ||
+        ReferenceEquals(visual, _overlayVisual) ||
+        ReferenceEquals(visual, _labelOverlayVisual);
+
     (int Cx, int Cy)? FindChunkKey(Visual visual)
     {
         foreach (var kv in _chunkVisuals)
@@ -329,7 +358,7 @@ public sealed class HexMapViewHost : FrameworkElement
     {
         for (var i = _visuals.Count - 1; i >= 0; i--)
         {
-            if (!ReferenceEquals(_visuals[i], _territoryVisual) && !ReferenceEquals(_visuals[i], _overlayVisual) && !ReferenceEquals(_visuals[i], _labelOverlayVisual))
+            if (!IsDecorationVisual(_visuals[i]))
                 _visuals.RemoveAt(i);
         }
     }
@@ -425,10 +454,13 @@ public sealed class HexMapViewHost : FrameworkElement
         var radius = Math.Max(.05, _world.HexSize * CellFillScale);
         foreach (var region in _world.TerritoryRegions)
         {
-            var selected = string.Equals(region.RegionId, _selectedTerritoryRegionId, StringComparison.Ordinal);
-            var color = TerritoryPreviewColor(region.ControlFactionId);
-            var fill = new SolidColorBrush(Color.FromArgb(selected ? (byte)112 : (byte)62, color.R, color.G, color.B)); fill.Freeze();
-            var pen = selected ? new Pen(new SolidColorBrush(Color.FromArgb(210, color.R, color.G, color.B)), .055) : null;
+            var controller = region.ControlFactionId ?? string.Empty;
+            if (string.IsNullOrEmpty(controller)) continue;
+            if (!FactionColor(controller, out var color)) continue;
+            var isBrush = !string.IsNullOrEmpty(_territoryBrushFactionId) &&
+                          string.Equals(_territoryBrushFactionId, controller, StringComparison.Ordinal);
+            var fill = new SolidColorBrush(Color.FromArgb(isBrush ? (byte)112 : (byte)62, color.R, color.G, color.B)); fill.Freeze();
+            var pen = isBrush ? new Pen(new SolidColorBrush(Color.FromArgb(210, color.R, color.G, color.B)), .055) : null;
             if (pen != null) pen.Freeze();
             foreach (var hex in region.Hexes)
             {
@@ -436,13 +468,54 @@ public sealed class HexMapViewHost : FrameworkElement
                 dc.DrawGeometry(fill, pen, BuildHexGeometry(x, y, radius * .9));
             }
         }
+
+        // standalone 荒野单格控制：同样用正式 faction 色。
+        foreach (var control in _world.StandaloneTerritoryHexes)
+        {
+            if (string.IsNullOrEmpty(control.ControlFactionId)) continue;
+            if (!FactionColor(control.ControlFactionId, out var color)) continue;
+            var fill = new SolidColorBrush(Color.FromArgb(62, color.R, color.G, color.B)); fill.Freeze();
+            var hex = new HexCoordDto(control.Q, control.R);
+            HexWorldLayoutShared.CoordToWorldCenter(hex, _world.HexSize, out var x, out var y);
+            dc.DrawGeometry(fill, null, BuildHexGeometry(x, y, radius * .9));
+        }
     }
 
-    static Color TerritoryPreviewColor(string factionId)
+    void RedrawBrushPreview()
     {
-        var colors = new[] { Color.FromRgb(190,84,78), Color.FromRgb(80,130,193), Color.FromRgb(108,160,92), Color.FromRgb(190,143,65), Color.FromRgb(148,103,178), Color.FromRgb(78,160,151) };
-        var hash = 17; foreach (var ch in factionId ?? string.Empty) hash = unchecked(hash * 31 + ch);
-        return colors[Math.Abs(hash) % colors.Length];
+        if (_world == null || _viewport == null) return;
+        using var dc = _brushPreviewVisual.RenderOpen();
+        if (_brushPreviewHexes == null || _brushPreviewHexes.Count == 0 || !_territoryVisible) return;
+        var radius = Math.Max(.05, _world.HexSize * CellFillScale);
+        var fill = new SolidColorBrush(Color.FromArgb(90, _brushPreviewColor.R, _brushPreviewColor.G, _brushPreviewColor.B));
+        fill.Freeze();
+        var pen = new Pen(new SolidColorBrush(Color.FromArgb(230, _brushPreviewColor.R, _brushPreviewColor.G, _brushPreviewColor.B)), .05);
+        pen.Freeze();
+        foreach (var hex in _brushPreviewHexes)
+        {
+            if (hex.Q < 0 || hex.Q >= _world.Width || hex.R < 0 || hex.R >= _world.Height) continue;
+            HexWorldLayoutShared.CoordToWorldCenter(hex, _world.HexSize, out var x, out var y);
+            dc.DrawGeometry(fill, pen, BuildHexGeometry(x, y, radius));
+        }
+    }
+
+    bool FactionColor(string factionId, out Color color)
+    {
+        if (_factionColorById.TryGetValue(factionId, out var hex))
+        {
+            try
+            {
+                color = (Color)ColorConverter.ConvertFromString(hex);
+                return true;
+            }
+            catch
+            {
+                // fallthrough to neutral
+            }
+        }
+
+        color = Color.FromRgb(0xB3, 0x94, 0x5C);
+        return false;
     }
 
     void RedrawLabelOverlay(double hexSize)

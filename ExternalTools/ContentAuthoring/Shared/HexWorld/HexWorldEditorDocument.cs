@@ -287,6 +287,7 @@ public sealed class HexWorldEditorDocument
         }
 
         HexWorldPresenceRules.SyncPresenceToAnchor(site);
+        RebuildDerivedTerritoryForSite(siteId);
 
         var touched = new List<(int Q, int R)>();
         foreach (var hex in site.Footprint)
@@ -340,6 +341,7 @@ public sealed class HexWorldEditorDocument
         }
 
         PushUndoFromSnapshot(snapshot);
+        RebuildDerivedTerritoryForSite(siteId);
         LastFootprintEditMessage = result.Message;
         RaiseSitesMutated(new[] { (hex.Q, hex.R) });
         return result;
@@ -405,12 +407,113 @@ public sealed class HexWorldEditorDocument
         _derivedSiteTerritoryOwnerByHex.TryGetValue((hex.Q, hex.R), out var id)
             ? World.Sites.FirstOrDefault(site => site.SiteId == id) : null;
 
+    /// <summary>该 Hex 是否处于某 WorldSite 的「默认辖区」（footprint ∪ 外一圈，编辑期派生）。</summary>
+    public bool IsInDefaultSiteTerritory(HexCoordDto hex) =>
+        _derivedSiteTerritoryOwnerByHex.ContainsKey((hex.Q, hex.R));
+
+    public HexWorldStandaloneHexControlDto? FindStandaloneAt(HexCoordDto hex) =>
+        World.StandaloneTerritoryHexes.FirstOrDefault(c => c.Q == hex.Q && c.R == hex.R);
+
+    /// <summary>当前 Hex 固化属于哪个 Region（若其位于某固化 Region 的 Hex 列表中）。</summary>
+    public HexWorldTerritoryRegionDto? FindFrozenRegionAt(HexCoordDto hex) =>
+        _territoryByHex.TryGetValue((hex.Q, hex.R), out var regionId)
+            ? GetTerritoryRegion(regionId) : null;
+
+    /// <summary>
+    /// 统一 Territory 涂刷入口（WorldGraphEditor Territory Brush / 测试共用）：
+    /// 命中 WorldSite 默认辖区 → 整片 footprint+ring macro；
+    /// 否则 → 单格 standalone（不属于任何固化 Region 才允许）。
+    /// 不在此处 PushUndo —— 一次 stroke 的 undo 由 UI 层控制（singleStrokeUndo 参数仍保留给直接调用方）。
+    /// </summary>
+    public TerritoryStrokeResult PaintTerritory(HexCoordDto hex, string factionId, bool singleStrokeUndo = true)
+    {
+        if (string.IsNullOrWhiteSpace(factionId))
+            return TerritoryStrokeResult.Fail("请先选择势力。");
+        if (hex.Q < 0 || hex.R < 0 || hex.Q >= World.Width || hex.R >= World.Height)
+            return TerritoryStrokeResult.Fail($"Hex ({hex.Q},{hex.R}) 越界。");
+
+        var defaultSiteId = _derivedSiteTerritoryOwnerByHex.TryGetValue((hex.Q, hex.R), out var ds) ? ds : null;
+        if (defaultSiteId != null)
+        {
+            // 冲突防护：hex 已固化属于其它 Region（非本 Site 默认辖区内容），禁止抢走。
+            var frozen = _territoryByHex.TryGetValue((hex.Q, hex.R), out var frozenRegionId) ? frozenRegionId : null;
+            var siteRegionId = World.Sites.FirstOrDefault(s => s.SiteId == defaultSiteId)?.TerritoryRegionId;
+            if (frozen != null && !string.Equals(frozen, siteRegionId, StringComparison.Ordinal))
+                return TerritoryStrokeResult.Fail(
+                    $"Hex ({hex.Q},{hex.R}) 已固化属于 Region '{frozen}'，不能并入「{defaultSiteId}」默认辖区。");
+
+            var result = AssignFactionToSiteTerritory(defaultSiteId, factionId, singleStrokeUndo);
+            if (!result.Success)
+                return TerritoryStrokeResult.Fail(result.Message);
+            return TerritoryStrokeResult.SiteMacro(defaultSiteId, result.Message);
+        }
+
+        // 普通荒野 Hex：单格涂；不得与任何固化 Region 重叠。
+        if (_territoryByHex.ContainsKey((hex.Q, hex.R)))
+            return TerritoryStrokeResult.Fail(
+                $"Hex ({hex.Q},{hex.R}) 属于固化 TerritoryRegion，不能作为独立势力范围单格覆盖。");
+        if (FindFootprintOwnerAt(hex) != null)
+            return TerritoryStrokeResult.Fail(
+                $"Hex ({hex.Q},{hex.R}) 是 WorldSite Footprint，必须整片辖区一起涂。");
+
+        if (singleStrokeUndo)
+            PushUndo();
+        var existing = FindStandaloneAt(hex);
+        if (existing != null)
+            existing.ControlFactionId = factionId ?? string.Empty;
+        else
+            World.StandaloneTerritoryHexes.Add(new HexWorldStandaloneHexControlDto
+            {
+                Q = hex.Q,
+                R = hex.R,
+                ControlFactionId = factionId ?? string.Empty,
+            });
+        RaiseTerritoriesMutated();
+        return TerritoryStrokeResult.Standalone($"Hex ({hex.Q},{hex.R}) → {factionId}");
+    }
+
+    /// <summary>统一擦除：WorldSite 默认辖区 → 整片置无主（保留 Region 结构）；荒野 standalone → 移除；固化 Region 非默认辖区 → 拒绝。</summary>
+    public TerritoryStrokeResult EraseTerritory(HexCoordDto hex, bool singleStrokeUndo = true)
+    {
+        if (hex.Q < 0 || hex.R < 0 || hex.Q >= World.Width || hex.R >= World.Height)
+            return TerritoryStrokeResult.Fail($"Hex ({hex.Q},{hex.R}) 越界。");
+
+        var defaultSiteId = _derivedSiteTerritoryOwnerByHex.TryGetValue((hex.Q, hex.R), out var ds) ? ds : null;
+        if (defaultSiteId != null)
+        {
+            var frozen = _territoryByHex.TryGetValue((hex.Q, hex.R), out var frozenRegionId) ? frozenRegionId : null;
+            var siteRegionId = World.Sites.FirstOrDefault(s => s.SiteId == defaultSiteId)?.TerritoryRegionId;
+            if (frozen != null && !string.Equals(frozen, siteRegionId, StringComparison.Ordinal))
+                return TerritoryStrokeResult.Fail(
+                    $"Hex ({hex.Q},{hex.R}) 已固化属于 Region '{frozen}'，不是「{defaultSiteId}」默认辖区，不能擦除。");
+
+            var result = AssignFactionToSiteTerritory(defaultSiteId, string.Empty, singleStrokeUndo);
+            if (!result.Success)
+                return TerritoryStrokeResult.Fail(result.Message);
+            return TerritoryStrokeResult.SiteCleared(defaultSiteId, result.Message);
+        }
+
+        if (FindStandaloneAt(hex) == null)
+            return TerritoryStrokeResult.StandaloneCleared($"Hex ({hex.Q},{hex.R}) 当前已无势力控制。");
+        if (_territoryByHex.ContainsKey((hex.Q, hex.R)))
+            return TerritoryStrokeResult.Fail(
+                $"Hex ({hex.Q},{hex.R}) 属于固化 TerritoryRegion，不能作为独立势力范围擦除。");
+        if (singleStrokeUndo)
+            PushUndo();
+        World.StandaloneTerritoryHexes.RemoveAll(c => c.Q == hex.Q && c.R == hex.R);
+        RaiseTerritoriesMutated();
+        return TerritoryStrokeResult.StandaloneCleared($"Hex ({hex.Q},{hex.R}) 已清除势力范围。");
+    }
+
     public FootprintEditResult AssignFactionToSiteTerritory(string siteId, string factionId, bool singleStrokeUndo = true)
     {
         var site = World.Sites.FirstOrDefault(s => s.SiteId == siteId);
         if (site == null) return FootprintEditResult.Fail("未找到 WorldSite。");
-        if (singleStrokeUndo) PushUndo();
         var region = GetTerritoryForSite(siteId);
+        if (region != null && !string.Equals(region.PrimaryWorldSiteId, siteId, StringComparison.Ordinal))
+            return FootprintEditResult.Fail(
+                $"Site '{siteId}' 引用的 Region '{region.RegionId}' PrimaryWorldSiteId 不是该 Site，拒绝写入（数据冲突）。");
+        if (singleStrokeUndo) PushUndo();
         if (region == null)
         {
             var suffix = siteId.Contains(':') ? siteId[(siteId.IndexOf(':') + 1)..].Replace("site_", "", StringComparison.Ordinal) : siteId;
@@ -420,13 +523,24 @@ public sealed class HexWorldEditorDocument
             region = new HexWorldTerritoryRegionDto { RegionId = regionId, PrimaryWorldSiteId = siteId };
             World.TerritoryRegions.Add(region);
         }
+
+        // Footprint 冲突防护：Site footprint 若已固化属于其它 Region（非本 site Region），拒绝抢走。
+        foreach (var hex in HexWorldFootprintRules.ResolveFootprint(site))
+        {
+            if (_territoryByHex.TryGetValue((hex.Q, hex.R), out var owner) &&
+                !string.Equals(owner, region.RegionId, StringComparison.Ordinal))
+                return FootprintEditResult.Fail(
+                    $"Site '{site.DisplayName}' footprint hex ({hex.Q},{hex.R}) 已固化属于 Region '{owner}'，不能覆盖。");
+        }
+
         site.OwnerFactionId = factionId ?? string.Empty;
         region.PrimaryWorldSiteId = siteId;
         region.ControlFactionId = factionId ?? string.Empty;
         region.Hexes = ComputeDefaultSiteTerritory(site).OrderBy(h => h.R).ThenBy(h => h.Q).ToList();
         RebuildTerritoryLookup();
         RaiseSitesMutated(); RaiseTerritoriesMutated();
-        return FootprintEditResult.Ok($"已将「{site.DisplayName}」及其默认辖区（{region.Hexes.Count} Hex）设为「{factionId}」。");
+        var controllerName = string.IsNullOrWhiteSpace(factionId) ? "无势力" : factionId;
+        return FootprintEditResult.Ok($"已将「{site.DisplayName}」及其默认辖区（{region.Hexes.Count} Hex）设为「{controllerName}」。");
     }
 
     public void RebuildDerivedTerritoryForSite(string siteId)
