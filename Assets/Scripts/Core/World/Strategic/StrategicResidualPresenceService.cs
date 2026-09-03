@@ -46,6 +46,31 @@ namespace XianXia.Core.World.Strategic
 #endif
         }
 
+        /// <summary>
+        /// AtHex Residual + 精确连续落点：ResidualHex 仍是战略归属 authority，
+        /// HasContinuousWorldPosition/WorldPosX/Y 保存该角色在当前 LocalMap surface 内
+        /// 倒下的精确物理位置（Host 在倒下瞬间从 EntityView local → surface mapping 得到）。
+        /// Mode 保持 AtHex，不改成 BackgroundCharacter AtWorldPosition。
+        /// </summary>
+        public static void PlaceCharacterAtResidualWorldPosition(
+            SimulationWorld world,
+            EntityId characterId,
+            HexCoord residualHex,
+            WorldVec2 preciseWorldPosition)
+        {
+            if (world == null || characterId.IsNone)
+                return;
+            if (!world.Entities.TryGet(characterId, out var ent) || ent == null)
+                return;
+            if (!IsResidualLifeCandidate(world, characterId))
+                return;
+
+            world.WorldPresence.SetAtResidualWorldPosition(
+                characterId,
+                residualHex,
+                preciseWorldPosition);
+        }
+
         public static void ClearResidualPresence(SimulationWorld world, EntityId characterId)
         {
             if (world == null || characterId.IsNone)

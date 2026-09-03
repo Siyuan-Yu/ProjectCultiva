@@ -107,7 +107,7 @@ namespace XianXia.Core.World.Strategic
             }
 
             if (party != null)
-                motion.CaptureTravelingMembers(party.Members);
+                PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
         }
     }
 }

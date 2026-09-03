@@ -7,6 +7,48 @@
 
 ---
 
+## 2026-09-03 — FIX：Local Combat 弥留者精确落点（ResidualHex + precise WorldPosition 双层保存）（已封板，190）
+
+**症状**：上一轮修复后弥留 Follower 离开/重进能重新出现，但出现在 Hex 中心 + EntityId formation offset 的"重新计算位置"，不是原本倒下的精确位置；且 WorldSite 的 residual hex 上一版按主控 WorldPosition 派生（把 Follower 的 hex 按主控位置决定）。
+
+**root cause**：`LocalCombatCasualtyHandoffService` 只保存 ResidualHex；`LoadedStrategicPopulationMaterializer.TryResolveResidualLocalPlacement` 重进时 ResidualHex → Hex center → WorldToLocal → ApplyFormationOffset，任何位置都丢。Save/Load 侧 `JsonSnapshotSerializer.SerializeStrategic` 根本没写 characterWorldPresences 的 worldX/worldY，读档同样丢。
+
+**修复（ResidualHex 只答"属于哪个战略格"；精确落点另存 continuous world position，重进反向映射回原位）**
+- `WorldPresenceBoard`：`WorldAgentPresence.SetAtResidualWorldPosition(residualHex, precise)` + board wrapper —— Mode 保持 AtHex（UsesHexPresence 语义不变），同时携带 HasContinuousWorldPosition/WorldPosX/Y。`SetAtHex` 维持"仅 Hex"（旧数据 / Auto Battle）。
+- `StrategicResidualPresenceService.PlaceCharacterAtResidualWorldPosition`：IsResidualLifeCandidate 后 SetAtResidualWorldPosition；原 PlaceCharacterAtResidualHex 保留（战略战斗 fallback 不动）。
+- `LocalCombatCasualtyHandoffService`：新增带 local point + bounds 的重载 —— Host 倒下瞬间从 EntityView 捕获真实 local（不读可能 stale 的 PresentationOverride）；Wilderness → context.WildernessHex + TryProjectLocalToWorld；WorldSite → 用<b>角色自己的</b> localX/localZ 经 TryLocalToWorldSurface → WorldToHex + OccupiesHex（边界歧义近邻），不再用主控位置。无 view/bounds → hex-only fallback（WorldSite 下明确失败，不猜主控 hex）。
+- `PlayableHostBootstrap`：`TryGetCurrentLocalPresentation`（从 entityViewSpawner.Registry 读真实 transform → HostPresentationSpace）+ 立即 SetPresentationOverride 对齐 Domain presentation；CombatantDefeated 时 ResolveLoadedStrategicBounds 复用缓存 bounds 传入 handoff。
+- `LoadedStrategicPopulationMaterializer.TryResolveResidualLocalPlacement`：presence.HasContinuousWorldPosition → precise WorldToLocal 回放（<b>不加 formation offset</b>，仅轻 safety clamp）；无 precise → legacy hex center + formation offset fallback 保留。
+- `WorldAgentMapPositionResolver`：UsesHexPresence 且有 precise → 用 precise（LocalMap/WorldMap 同一 physical truth）。
+- Save/Load：`CharacterWorldPresenceSnapshotDto` 加 `HasWorldPosition`（不靠 WorldX==0 判断，(0,0) 合法）；StrategicSnapshotHelper.Capture AtHex/AtWorldPosition 带字段、Restore AtHex+HasWorldPosition → SetAtResidualWorldPosition、AtHex 无 → SetAtHex；`JsonSnapshotSerializer` SerializeStrategic/ReadStrategic 补 hasWorldPosition/worldX/worldY（旧存档无字段 → false → legacy fallback）；Restore 记录 restoredCharacterWorldPresenceIds，旧 ResidualCharacterPresences 只作 legacy（已恢复者跳过，防 SetAtHex 清掉 precise）。
+
+**验证（headless）**：PreciseResidualCheck 10 项全 PASS（SetAtResidualWorldPosition 行为 / Capture 保留 HasWorldPosition+WorldX/Y / Restore 还原 precise / 旧 Residual DTO 不覆盖新 authority / legacy 无 HasWorldPosition 走 hex-only）；上一轮 LocalCombatHandoffCheck 23 项回归全 PASS。Core/Data/Unity 三程序集 0 error；git diff --check 干净。
+
+**真源**：本轮 devlog。
+
+---
+
+## 2026-09-03 — FIX：Local Combat 弥留者 residual handoff（PlayerParty/普通角色不随队消失）（已封板，190）
+
+**症状**：主控 LocalMap 中普通 Local Combat（非战略 Encounter）把 PlayerParty Follower 打成弥留 → 当下正常显示，但离开再返回该 LocalMap 后该弥留者消失（战略战斗的双方弥留者仍存在）。
+
+**root cause**：`PlayableHostBootstrap.DispatchDrainedEvents` 的 CombatantDefeated fallback 只完整覆盖 FormalArmy casualty（detach + Army residual）；PlayerParty/Follower/普通 LocalCharacter 无第三层 handoff → presence 未钉 hex，重进时：① `PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap` 遍历 party.Members 全集（含弥留 follower）把它当活人重新生成/随队；② `LoadedStrategicPopulationMaterializer` residual loop 无条件排除所有 party member，弥留者也到不了 StrategicResidual 路径。
+
+**修复（统一 ownership 规则：任何角色 Incapacitated / visible Corpse 即停止跟随原移动 owner，钉到倒下真实 hex；逻辑 membership 保留、physical traveling 分离）**
+- 新增 `Core/World/Strategic/LocalCombatCasualtyHandoffService`：非 Encounter / 非 FormalArmy 的 defeated residual 角色 → 解析当前 Loaded LocalMap 真实物理 hex（Wilderness=context.WildernessHex；WorldSite=PlayerParty canonical WorldPosition 派生 hex 且 site.OccupiesHex 校验，边界歧义近邻寻格，绝不 AnchorHex 瞎猜）→ `StrategicResidualPresenceService.PlaceCharacterAtResidualHex`（复用唯一 authority，无第二套 residual）。FormalArmy member 明确拒绝（防双 owner）。DEV 诊断输出完整字段。
+- `PlayableHostBootstrap.DispatchDrainedEvents`：fallback 链改为互斥三层 Strategic Encounter → FormalArmy casualty → LocalCombatCasualtyHandoffService；新增 `LogLocalCombatDefeatDiagnostics`（EntityId/LifeState/IsPlayerPartyMember/FormalArmyId/WorldPresence/Traveling）。
+- `PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty` 加生命 gate：`CombatLifeStateService.CanFight`（非 Alive 不随队）—— 自动辐射 capture/reconcile/materialize 过滤。绝不 TryRemoveMember。
+- `PlayerPartyHexTravelService`（6 处）/`PlayerPartyWorldLocationQuery`/`PreEngagementLegalLocation` 的 `CaptureTravelingMembers(party.Members)` 直传改为 `CaptureTravelingMembersForPartyTransition`；`ManualBattleWorldCommitService` 保留（battle 进入时刻 living participant 快照语义，注释说明）；`HexStrategicSessionBootstrap` 保留（New Game 全 living）。
+- `PlayerPartyLocalMapMaterializationService`：materialize 循环跳过非 Alive 成员（含 Active 弥留），末尾 `CaptureTravelingMembers(materializedIds)` 只含实际生成者。
+- `LoadedStrategicPopulationMaterializer` residual loop：排除条件从"无条件排除所有 party member"改为仅排除 transitionable member → 弥留/尸体 party member（AtHex residual）允许走 StrategicResidual 重生成；不 double（MaterializeResidual 查 occupant）。
+- `HostPlayerPartyController`：`TickFollowers` + `OrderFollowerTowardActive` 加 CanFight gate（Incapacitated/Dead 绝不发 follow movement）。
+
+**验证（headless）**：LocalCombatHandoffCheck 23 项全 PASS（living 跟随正常；follower 弥留→AtHex(5,11)→traveling 排除→reconcile 不拖走→返回 rematerialize→party materialize 不生成弥留者；FormalArmy member 拒绝非 army handoff、FormalArmyCasualtyService 正常 detach+AtHex）。Core/Data/Unity 三程序集 0 error；git diff --check 干净。
+
+**真源**：本轮 devlog。
+
+---
+
 ## 2026-09-03 — Phase 5S CLOSED：真实世界战略战斗与世界／近景连续性 V1（待 checkpoint）
 
 - **最终模型**：WorldMap 是战略总览，LocalMap 是当前真实 surface 的 RPG 近景；普通 `WORLD_COMBAT` 在真实 WorldSite/Wilderness LocalMap 发生并在同一世界现场结束，不再进入独立 EncounterMap。

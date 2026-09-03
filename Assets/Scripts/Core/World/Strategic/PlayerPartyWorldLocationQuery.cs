@@ -179,7 +179,7 @@ namespace XianXia.Core.World.Strategic
                 : 1f;
             motion.SetAtWorldSite(site.SiteId, site.PresenceHex, hexSize);
             if (party != null)
-                motion.CaptureTravelingMembers(party.Members);
+                PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
             PlayerPartyWorldLocationDebug.LogSnapshot(world, party, "HealStartupOnly");
             return true;
         }

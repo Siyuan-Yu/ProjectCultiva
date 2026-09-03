@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
@@ -317,11 +318,21 @@ namespace XianXia.Core.World.Strategic
                 }
             }
 
+            var materializedIds = new List<EntityId>(partyMembers.Count);
             for (var i = 0; i < partyMembers.Count; i++)
             {
                 var id = partyMembers[i];
                 if (id.IsNone)
                     continue;
+
+                // Incapacitated / Corpse（非 Alive）成员：逻辑上仍 party.IsMember，但已不属于
+                // 「正在随队旅行的人」——不由本 service 生成（由 StrategicResidual 在倒下 hex 负责，
+                // 见 LocalCombatCasualtyHandoffService / LoadedStrategicPopulationMaterializer）。
+                // entity 缺失同样无法 materialize 表现，跳过。
+                if (!world.Entities.TryGet(id, out var materializeEnt) || materializeEnt == null ||
+                    !CombatLifeStateService.CanFight(materializeEnt))
+                    continue;
+                materializedIds.Add(id);
 
                 world.LocalMap.AddOccupant(id);
 
@@ -413,9 +424,10 @@ namespace XianXia.Core.World.Strategic
             // 清空 ingress trace id（保持与下一次 ingress 隔离）。
             PlayerPartySiteIngressTrace.EndIngress();
 
-            // 保持 TravelingMembers 与当前展开队伍对齐，供可见性／后续 Close→Expand 复用。
+            // 保持 TravelingMembers 与当前展开队伍对齐（仅真正 materialized 的 living 成员；
+            // 弥留/尸体由 StrategicResidual 管，绝不写回 TravelingMembers）。
             if (world.PlayerPartyTravel != null)
-                world.PlayerPartyTravel.CaptureTravelingMembers(partyMembers);
+                world.PlayerPartyTravel.CaptureTravelingMembers(materializedIds);
 
             // Edge Gate：Materialize 完成后 Disarm（不改 WorldPosition）。
             if (useWildernessProjection &&

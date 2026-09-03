@@ -102,8 +102,18 @@ namespace XianXia.Core.World.Strategic
             foreach (var kv in world.WorldPresence.All)
             {
                 var id = new EntityId(kv.Key);
-                if (id.IsNone ||
-                    (playerParty != null && playerParty.IsMember(id)))
+                if (id.IsNone)
+                    continue;
+                // Living / transitionable PlayerParty member 由 PlayerParty materializer 管；
+                // 弥留/尸体的 party member（ShouldMemberTransitionWithParty == false）不属于随队
+                // 旅行者 → 若满足 residual candidate（WorldPresence.AtHex 倒下格）则允许走本
+                // service 重新生成（主控回到其倒下 Site/Hex 时正确显示，不 double materialize ——
+                // 活着的 party member 不在 WorldPresence.AtHex residual 扫描中冲突，因为 party
+                // materializer 生成的是 occupant，且本 loop 已排除 transitionable member）。
+                if (playerParty != null &&
+                    playerParty.IsMember(id) &&
+                    PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
+                        world, playerParty, id))
                     continue;
                 if (ArmyService.TryGetArmyForCharacter(world, id, out _))
                     continue; // Army member 不在此列（避免 IsStrategicResidualCandidate 的 assert）
@@ -235,12 +245,20 @@ namespace XianXia.Core.World.Strategic
             if (loc.HasPresentationOverride)
                 return true;
 
-            if (!StrategicResidualPresenceService.TryGetResidualHex(world, characterId, out var hex))
+            if (!world.WorldPresence.TryGet(characterId, out var presence) || presence == null)
+                return true;
+            if (!presence.UsesHexPresence)
                 return true;
             if (!TryResolveResidualLocalPlacement(
-                    context, hex, wildernessBounds, siteBounds, hexSize,
-                    (int)(characterId.Value % 17),
-                    out var lx, out var ly))
+                    world,
+                    characterId,
+                    presence,
+                    context,
+                    wildernessBounds,
+                    siteBounds,
+                    hexSize,
+                    out var lx,
+                    out var ly))
                 return true;
 
             loc.SetPresentationOverride(lx, ly);
@@ -327,20 +345,75 @@ namespace XianXia.Core.World.Strategic
             return true;
         }
 
+        /// <summary>
+        /// Residual 角色 Local placement 解析。核心规则：
+        /// 1) presence.HasContinuousWorldPosition → 该 precise world position 是倒下瞬间从
+        ///    EntityView local 经 surface mapping 得到的真实落点 —— 反向 WorldToLocal 回放，
+        ///    <b>绝不 ApplyFormationOffset</b>（真实落点不需要 spread）；仅轻微 bounds safety clamp
+        ///    （正常 roundtrip 应无改变）。
+        /// 2) 无 precise（老存档 / 旧 Strategic Battle / Auto Battle 只有 BattleHex）→ legacy
+        ///    fallback：ResidualHex → Hex center → WorldToLocal → stable formation offset。
+        /// </summary>
         static bool TryResolveResidualLocalPlacement(
+            SimulationWorld world,
+            EntityId characterId,
+            WorldAgentPresence presence,
             LoadedLocalMapBelongingQuery.LoadedLocalMapContext context,
-            HexCoord residualHex,
             WildernessLocalWorldProjection.WildernessLocalMapBounds? wildernessBounds,
             WorldSiteSpatialMapping.WorldSiteLocalMapBounds? siteBounds,
             float hexSize,
-            int seed,
             out float localX,
             out float localY)
         {
             localX = 0f;
             localY = 0f;
+            if (presence == null)
+                return false;
 
-            HexMath.ToWorldPosition(residualHex, hexSize, out var worldX, out var worldY);
+            if (presence.HasContinuousWorldPosition)
+            {
+                var precise = presence.ContinuousWorldPosition;
+                switch (context.Kind)
+                {
+                    case LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WildernessHex:
+                        if (!wildernessBounds.HasValue)
+                            return false;
+                        if (!WildernessLocalWorldProjection.TryProjectWorldToLocal(
+                                context.WildernessHex,
+                                precise,
+                                wildernessBounds.Value,
+                                hexSize,
+                                out localX,
+                                out localY))
+                            return false;
+                        break;
+
+                    case LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WorldSite:
+                        if (!siteBounds.HasValue || !siteBounds.Value.IsValid || context.Site == null)
+                            return false;
+                        if (!WorldSiteSpatialMapping.TryWorldSurfaceToLocal(
+                                context.Site,
+                                siteBounds.Value,
+                                precise,
+                                hexSize,
+                                out var local))
+                            return false;
+                        localX = local.X;
+                        localY = local.Y;
+                        break;
+
+                    default:
+                        return false;
+                }
+
+                // 真实落点：只做 safety clamp（roundtrip 正常时无改变），不加 formation offset。
+                ClampToBounds(ref localX, ref localY, context, wildernessBounds, siteBounds);
+                return true;
+            }
+
+            // ---- legacy hex-only fallback ----
+            var hex = presence.ResidualHex;
+            HexMath.ToWorldPosition(hex, hexSize, out var worldX, out var worldY);
             var worldPos = new WorldVec2(worldX, worldY);
 
             switch (context.Kind)
@@ -376,8 +449,8 @@ namespace XianXia.Core.World.Strategic
                     return false;
             }
 
-            // 尸体 offset 按 EntityId 稳定派生，无随机、不随帧变化。
-            ApplyFormationOffset(ref localX, ref localY, seed);
+            // 尸体 offset 按 EntityId 稳定派生，无随机、不随帧变化（仅 legacy hex-only fallback）。
+            ApplyFormationOffset(ref localX, ref localY, (int)(characterId.Value % 17));
             ClampToBounds(ref localX, ref localY, context, wildernessBounds, siteBounds);
             return true;
         }

@@ -1948,15 +1948,65 @@ namespace XianXia.Unity.Host
                 {
                     // 战略 Encounter participant 由其冻结 snapshot 生命周期负责；只有未被
                     // 战略层接管的 FormalArmy casualty 才立即交接为独立 StrategicResidual。
+                    var defenderId = evt.Target.Value;
                     var handledByStrategicEncounter = StrategicEncounterSpawner.OnCombatantDefeated(
                         _session.World,
-                        evt.Target.Value);
+                        defenderId);
                     if (!handledByStrategicEncounter &&
                         FormalArmyCasualtyService.TryHandleNonEncounterDefeat(
                             _session.World,
-                            evt.Target.Value))
+                            defenderId))
                     {
                         nonEncounterStrategicPopulationChanged = true;
+                    }
+                    else if (!handledByStrategicEncounter)
+                    {
+                        // 非 Encounter、非 FormalArmy 的 Local Combat 倒下（PlayerParty member /
+                        // 普通 LocalCharacter）：先捕获真实 EntityView local 位置（不能读
+                        // PresentationOverride，可能 stale），随当前 surface bounds 一并交给
+                        // handoff —— ResidualHex + precise WorldPosition 一起保存，重进 LocalMap
+                        // 回到倒下原位而非 Hex 中心。view 不可得（瞬时缺帧）→ hex-only fallback。
+                        ResolveLoadedStrategicBounds(_session.World);
+                        var gotLocal = TryGetCurrentLocalPresentation(
+                            defenderId,
+                            out var localX,
+                            out var localZ);
+                        var handledByLocalCombat = false;
+                        if (gotLocal)
+                        {
+                            // 让当前 Domain presentation 与真实 View 对齐（仅 presentation，
+                            // 长期 authority 是下方保存的 continuous world position）。
+                            if (_session.World.Entities.TryGet(defenderId, out var ent) &&
+                                ent != null &&
+                                ent.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(
+                                    out var loc) &&
+                                loc != null)
+                                loc.SetPresentationOverride(localX, localZ);
+
+                            handledByLocalCombat =
+                                LocalCombatCasualtyHandoffService.TryHandleNonArmyDefeat(
+                                    _session.World,
+                                    defenderId,
+                                    localX,
+                                    localZ,
+                                    _loadedStrategicWildernessBounds,
+                                    _loadedStrategicSiteBounds);
+                        }
+
+                        if (!handledByLocalCombat)
+                        {
+                            handledByLocalCombat =
+                                LocalCombatCasualtyHandoffService.TryHandleNonArmyDefeat(
+                                    _session.World,
+                                    defenderId);
+                        }
+
+                        if (handledByLocalCombat)
+                            nonEncounterStrategicPopulationChanged = true;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                        LogLocalCombatDefeatDiagnostics(
+                            defenderId, handledByStrategicEncounter, gotLocal, localX, localZ);
+#endif
                     }
                 }
             }
@@ -1970,6 +2020,107 @@ namespace XianXia.Unity.Host
                 questJournal.Ingest(drained);
             if (eventFeed != null)
                 eventFeed.Ingest(drained);
+        }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        /// <summary>
+        /// Development 诊断：Local Combat 倒下者分类确认（普通 Local Combat 非 Encounter 路径）。
+        /// 输出 EntityId / LifeState / 是否 PlayerParty member / FormalArmyId / WorldPresence /
+        /// 是否 Traveling member，用于确认消失者归属哪一层 owner。
+        /// </summary>
+        void LogLocalCombatDefeatDiagnostics(
+            EntityId defenderId,
+            bool handledByStrategicEncounter,
+            bool gotLocal,
+            float localX,
+            float localZ)
+        {
+            var world = _session.World;
+            var party = _session.PlayerParty;
+            var name = defenderId.ToString();
+            var lifeState = "(entity missing)";
+            var isPartyMember = false;
+            var isTraveling = false;
+            var armyId = "(none)";
+            var presenceMode = "(none)";
+            var presenceSiteId = string.Empty;
+            var presenceHex = "(none)";
+            if (world != null && world.Entities.TryGet(defenderId, out var entity) && entity != null)
+            {
+                name = string.IsNullOrEmpty(entity.DisplayName)
+                    ? defenderId.ToString()
+                    : entity.DisplayName;
+                lifeState = XianXia.Core.Combat.CombatLifeStateService.ResolveLifeStateLabel(entity);
+            }
+
+            if (party != null)
+                isPartyMember = party.IsMember(defenderId);
+            if (world?.PlayerPartyTravel != null)
+            {
+                for (var i = 0; i < world.PlayerPartyTravel.TravelingMembers.Count; i++)
+                {
+                    if (world.PlayerPartyTravel.TravelingMembers[i] == defenderId)
+                    {
+                        isTraveling = true;
+                        break;
+                    }
+                }
+            }
+
+            if (world != null &&
+                XianXia.Core.World.Strategic.ArmyService.TryGetArmyForCharacter(
+                    world, defenderId, out var army) &&
+                army != null)
+                armyId = army.ArmyId;
+            if (world?.WorldPresence != null &&
+                world.WorldPresence.TryGet(defenderId, out var wp) && wp != null)
+            {
+                presenceMode = wp.Mode.ToString();
+                presenceSiteId = wp.SiteId ?? string.Empty;
+                if (wp.UsesHexPresence)
+                    presenceHex = wp.ResidualHex.ToString();
+            }
+
+            Debug.Log(
+                "[LocalCombatDefeat]" +
+                " EntityId=" + defenderId +
+                " Name=" + name +
+                " LifeState=" + lifeState +
+                " HandledByStrategicEncounter=" + handledByStrategicEncounter +
+                " IsPlayerPartyMember=" + isPartyMember +
+                " IsTravelingPartyMember=" + isTraveling +
+                " FormalArmyId=" + armyId +
+                " WorldPresenceMode=" + presenceMode +
+                " WorldPresenceSiteId=" + presenceSiteId +
+                " WorldPresenceHex=" + presenceHex +
+                " GotViewLocal=" + gotLocal +
+                " ViewLocal=(" + localX.ToString("0.###") + "," + localZ.ToString("0.###") + ")",
+                this);
+        }
+#endif
+
+        /// <summary>
+        /// 从 EntityViewSpawner.Registry 捕获角色当前真实 Local transform 位置
+        /// （仅当该实体正有 view；无 view → false）。不能读 EntityLocationComponent
+        /// PresentationOverride —— HostMoveController.SyncLocation 仅在靠近 WorldRegion
+        /// 地点时才写 Override，远离 Zone 会漏采，可能是 stale。
+        /// </summary>
+        bool TryGetCurrentLocalPresentation(
+            EntityId id,
+            out float localX,
+            out float localZ)
+        {
+            localX = 0f;
+            localZ = 0f;
+            if (entityViewSpawner == null ||
+                !entityViewSpawner.Registry.TryGet(id, out var view) ||
+                view == null)
+                return false;
+
+            var p = HostPresentationSpace.ToPresentation(view.transform.position);
+            localX = p.x;
+            localZ = p.y;
+            return true;
         }
 
         public void Resume()

@@ -54,6 +54,10 @@ namespace XianXia.Core.World.Strategic
             var battleWorld = new WorldVec2(worldX, worldY);
 
             // 加入战斗 = 当前 PlayerParty AutoTravel 终止（正确行为）。
+            // partyMembers 是 battle 进入时刻的 living participant 快照（参战者必能战斗）；
+            // 战斗中弥留/死亡由 StrategicEncounter 生命周期负责，battle 结束后离开战场
+            // LocalMap 的 transition 会以 CaptureTravelingMembersForPartyTransition（过滤
+            // 非 Alive）重新 capture —— 这里不重复过滤，保留 participant commit 语义。
             motion.CaptureTravelingMembers(partyMembers);
 
             if (resolution.Kind == BattleLocalMapResolutionKind.WorldSite &&

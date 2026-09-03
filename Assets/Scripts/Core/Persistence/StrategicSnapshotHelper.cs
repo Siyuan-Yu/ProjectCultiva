@@ -118,7 +118,10 @@ namespace XianXia.Core.Persistence
                         CharacterId = presence.EntityId.Value,
                         Mode = (int)PartyWorldPresenceMode.AtHex,
                         HexQ = presence.HexQ,
-                        HexR = presence.HexR
+                        HexR = presence.HexR,
+                        HasWorldPosition = presence.HasContinuousWorldPosition,
+                        WorldX = presence.WorldPosX,
+                        WorldY = presence.WorldPosY
                     });
                     continue;
                 }
@@ -132,6 +135,7 @@ namespace XianXia.Core.Persistence
                         Mode = (int)PartyWorldPresenceMode.AtWorldPosition,
                         HexQ = presence.HexQ,
                         HexR = presence.HexR,
+                        HasWorldPosition = true,
                         WorldX = presence.WorldPosX,
                         WorldY = presence.WorldPosY
                     });
@@ -328,6 +332,10 @@ namespace XianXia.Core.Persistence
                 }
             }
 
+            // CharacterWorldPresences 是新版 authority（可携带 precise WorldPosition）；
+            // 恢复时记录已恢复 id —— 旧 ResidualCharacterPresences 只作 legacy fallback，
+            // 不覆盖新版（否则 SetAtHex 会把 HasContinuousWorldPosition 清掉）。
+            var restoredCharacterWorldPresenceIds = new HashSet<ulong>();
             if (dto.CharacterWorldPresences != null)
             {
                 for (var i = 0; i < dto.CharacterWorldPresences.Count; i++)
@@ -341,6 +349,8 @@ namespace XianXia.Core.Persistence
                         LogCharacterRestoreSkip(p.CharacterId, string.Empty, "character not present in restored entities");
                         continue;
                     }
+
+                    restoredCharacterWorldPresenceIds.Add(p.CharacterId);
                     if (p.Mode == (int)PartyWorldPresenceMode.AtSite &&
                         !string.IsNullOrEmpty(p.SiteId))
                     {
@@ -352,7 +362,18 @@ namespace XianXia.Core.Persistence
                         p.HexQ != int.MinValue &&
                         p.HexR != int.MinValue)
                     {
-                        world.WorldPresence.SetAtHex(id, new HexCoord(p.HexQ, p.HexR));
+                        var hex = new HexCoord(p.HexQ, p.HexR);
+                        if (p.HasWorldPosition)
+                        {
+                            // 精确连续落点（Local Combat 倒下时 EntityView local → surface mapping）
+                            world.WorldPresence.SetAtResidualWorldPosition(
+                                id, hex, new WorldVec2(p.WorldX, p.WorldY));
+                        }
+                        else
+                        {
+                            world.WorldPresence.SetAtHex(id, hex);
+                        }
+
                         continue;
                     }
 
@@ -376,6 +397,8 @@ namespace XianXia.Core.Persistence
                 {
                     var r = dto.ResidualCharacterPresences[i];
                     if (r == null || r.CharacterId == 0)
+                        continue;
+                    if (restoredCharacterWorldPresenceIds.Contains(r.CharacterId))
                         continue;
                     var id = new EntityId(r.CharacterId);
                     if (!world.Entities.TryGet(id, out _))

@@ -728,7 +728,10 @@ namespace XianXia.Data.Serialization
                         ["mode"] = JsonValue.FromNumber(p.Mode),
                         ["siteId"] = JsonValue.FromString(p.SiteId ?? string.Empty),
                         ["hexQ"] = JsonValue.FromNumber(p.HexQ),
-                        ["hexR"] = JsonValue.FromNumber(p.HexR)
+                        ["hexR"] = JsonValue.FromNumber(p.HexR),
+                        ["hasWorldPosition"] = JsonValue.FromBool(p.HasWorldPosition),
+                        ["worldX"] = JsonValue.FromNumber(p.WorldX),
+                        ["worldY"] = JsonValue.FromNumber(p.WorldY)
                     }));
                 }
             }
@@ -1005,7 +1008,17 @@ namespace XianXia.Data.Serialization
                         Mode = p.TryGetProperty("mode", out var modeNode) ? (int)modeNode.Number : 0,
                         SiteId = p.GetString("siteId", string.Empty),
                         HexQ = p.TryGetProperty("hexQ", out var hq) ? (int)hq.Number : int.MinValue,
-                        HexR = p.TryGetProperty("hexR", out var hr) ? (int)hr.Number : int.MinValue
+                        HexR = p.TryGetProperty("hexR", out var hr) ? (int)hr.Number : int.MinValue,
+                        HasWorldPosition =
+                            p.TryGetProperty("hasWorldPosition", out var hwp) &&
+                            hwp.Kind == JsonValueKind.Boolean &&
+                            hwp.Bool,
+                        WorldX = p.TryGetProperty("worldX", out var wx)
+                            ? (float)wx.Number
+                            : 0f,
+                        WorldY = p.TryGetProperty("worldY", out var wy)
+                            ? (float)wy.Number
+                            : 0f
                     });
                 }
             }

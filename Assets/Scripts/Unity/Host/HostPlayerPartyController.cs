@@ -1690,6 +1690,11 @@ namespace XianXia.Unity.Host
                 if (_farm != null && _farm.IsFarming(id))
                     continue;
 
+                // Incapacitated / Dead follower：Party ownership 层直接跳过，绝不发 follow movement。
+                // （下层 movement 即使会拒绝，也不应让弥留者被 follow 逻辑驱赶。）
+                if (!IsLivingPartyMember(id))
+                    continue;
+
                 // 已跟上 Active（距 formation goal 足够近）：不再生成新 path。
                 // 不做 stale movement 全局 Cancel —— 无法安全区分 Follow path 与
                 // schedule 等特殊行为 path，保持最小改动（仅周期性 repath）。
@@ -1715,6 +1720,15 @@ namespace XianXia.Unity.Host
                     completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand);
                 _nextFollowRepath[id.Value] = Time.unscaledTime + followRepathInterval;
             }
+        }
+
+        bool IsLivingPartyMember(EntityId id)
+        {
+            if (bootstrap?.Session?.World == null)
+                return true;
+            if (!bootstrap.Session.World.Entities.TryGet(id, out var ent) || ent == null)
+                return false;
+            return CombatLifeStateService.CanFight(ent);
         }
 
         bool ShouldRepathFollower(EntityId id)
@@ -1760,6 +1774,10 @@ namespace XianXia.Unity.Host
         {
             var active = Party.ActiveCharacterId;
             if (follower.IsNone || active.IsNone || _move == null || _spawner == null)
+                return;
+
+            // 生命状态 gate：Incapacitated / Corpse follower 绝不向 Active 聚集。
+            if (!IsLivingPartyMember(follower))
                 return;
 
             if (!_spawner.Registry.TryGet(active, out var activeView) || activeView == null)

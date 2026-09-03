@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Text;
+using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Entities;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
@@ -10,6 +12,9 @@ namespace XianXia.Core.World.Strategic
     /// <summary>
     /// PlayerParty LocalMap / Hex 边界 Transition：哪些成员随 Active 一起转移。
     /// Membership 为真源；FormalArmy 成员排除；已 Stop Follow 者不在 party.Members。
+    /// 生命状态 gate：Incapacitated / Corpse（非 Alive）不再属于「当前正随队旅行的人」——
+    /// 逻辑 membership 保留（绝不 TryRemoveMember），但 physical traveling membership 排除，
+    /// 弥留/尸体由 StrategicResidual 在倒下 hex 负责，绝不跟随主控移动。
     /// </summary>
     public static class PlayerPartyTransitionMembership
     {
@@ -25,6 +30,10 @@ namespace XianXia.Core.World.Strategic
             if (!party.IsMember(characterId))
                 return false;
             if (ArmyService.TryGetArmyForCharacter(world, characterId, out _))
+                return false;
+            if (!world.Entities.TryGet(characterId, out var entity) || entity == null)
+                return false;
+            if (!CombatLifeStateService.CanFight(entity))
                 return false;
             return true;
         }

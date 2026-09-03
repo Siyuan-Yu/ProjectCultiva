@@ -264,6 +264,8 @@ namespace XianXia.Core.Persistence
         public string SiteId { get; set; } = string.Empty;
         public int HexQ { get; set; } = int.MinValue;
         public int HexR { get; set; } = int.MinValue;
+        /// <summary>AtHex residual 精确连续落点标记（老存档无此字段 → false → legacy hex fallback）。</summary>
+        public bool HasWorldPosition { get; set; }
         public float WorldX { get; set; }
         public float WorldY { get; set; }
     }

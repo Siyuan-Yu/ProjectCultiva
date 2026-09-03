@@ -112,7 +112,7 @@ namespace XianXia.Core.World.Strategic
                 string.IsNullOrEmpty(destinationSiteId))
                 return Result.Failure(ErrorCode.InvalidArgument, "Already at destination hex.");
 
-            world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
+            PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
             var motion = world.PlayerPartyTravel;
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
 
@@ -1001,7 +1001,7 @@ namespace XianXia.Core.World.Strategic
                 string.IsNullOrEmpty(mapId))
                 return Result.Failure(ErrorCode.InvalidOperation, "No wilderness fallback LocalMap for hex.");
 
-            world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
+            PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
             EnsureMotionHasContinuousStart(world, hex);
             ApplyTravelingMembersPresence(world);
             PlayerPartyWorldLocationDebug.LogTransition(world, party, "EnterLocalView.Wilderness");
@@ -1020,7 +1020,7 @@ namespace XianXia.Core.World.Strategic
             if (motion == null || !motion.IsMoving)
                 return Result.Failure(ErrorCode.InvalidOperation, "Preserve enter requires AutoTravel.");
 
-            world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
+            PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
             // Align Presence to derived hex only; never Snap / EnsureMotionHasContinuousStart.
             ApplyTravelingMembersPresence(world);
 
@@ -1075,7 +1075,7 @@ namespace XianXia.Core.World.Strategic
                     ErrorCode.InvalidOperation,
                     "EnterWorldSiteAsParty: no canonical physical position for context-preserving ingress (5R-B3B gap).");
 
-            world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
+            PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
 
             // Phase 5R-B3B.1 Ingress Physical Continuity：
             // Physical Position 来自调用方跨边前已显式设置的 <b>Canonical WorldPosition</b>（正式
@@ -1340,7 +1340,7 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.WorldPresence == null || party == null)
                 return;
-            world.PlayerPartyTravel?.CaptureTravelingMembers(party.Members);
+            PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
             var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
                 ? world.HexWorld.HexSize
                 : 1f;
@@ -1355,7 +1355,7 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.WorldPresence == null || party == null || string.IsNullOrEmpty(siteId))
                 return;
-            world.PlayerPartyTravel?.CaptureTravelingMembers(party.Members);
+            PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
             if (world.Strategic.Sites.TryResolveSitePresenceHex(siteId, out var presence))
             {
                 var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f

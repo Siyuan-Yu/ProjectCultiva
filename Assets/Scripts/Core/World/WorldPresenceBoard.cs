@@ -76,6 +76,26 @@ namespace XianXia.Core.World
             ClearCombatPursuit();
         }
 
+        /// <summary>
+        /// AtHex Residual + 精确连续落点：residual ownership 仍由 Mode=AtHex + HexQ/R 决定
+        /// （保持 UsesHexPresence 语义不变），HasContinuousWorldPosition/WorldPosX/Y 携带
+        /// 该 residual 在当前 LocalMap surface 内的精确物理落点（由 Host 在倒下瞬间捕获
+        /// EntityView local → surface mapping 得到）。SetAtHex 继续表示「只有 Hex、无精确
+        /// 连续位置」（旧数据 / Auto Battle / 无法获得 local point 的情况）。
+        /// </summary>
+        public void SetAtResidualWorldPosition(HexCoord residualHex, WorldVec2 preciseWorldPosition)
+        {
+            Mode = PartyWorldPresenceMode.AtHex;
+            HexQ = residualHex.Q;
+            HexR = residualHex.R;
+            SiteId = string.Empty;
+            WorldPosX = preciseWorldPosition.X;
+            WorldPosY = preciseWorldPosition.Y;
+            HasContinuousWorldPosition = true;
+            ClearFollow();
+            ClearCombatPursuit();
+        }
+
         public WorldVec2 ContinuousWorldPosition =>
             HasContinuousWorldPosition ? new WorldVec2(WorldPosX, WorldPosY) : default;
 
@@ -149,6 +169,13 @@ namespace XianXia.Core.World
             var p = GetOrCreate(id);
             p.EntityId = id;
             p.SetAtWorldPosition(pos, derivedHex);
+        }
+
+        public void SetAtResidualWorldPosition(EntityId id, HexCoord residualHex, WorldVec2 preciseWorldPosition)
+        {
+            var p = GetOrCreate(id);
+            p.EntityId = id;
+            p.SetAtResidualWorldPosition(residualHex, preciseWorldPosition);
         }
 
         public void CollectAtSite(string siteId, List<EntityId> into)

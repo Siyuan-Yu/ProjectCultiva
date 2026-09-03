@@ -6,7 +6,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>WorldAgentPresence �?大地图世界坝标（Hex-only）�?/summary>
+    /// <summary>WorldAgentPresence �?大地图世界坝标（Hex-only）�?/summary>
     public static class WorldAgentMapPositionResolver
     {
         public static bool TryResolve(
@@ -22,6 +22,15 @@ namespace XianXia.Core.World.Strategic
 
             if (presence.UsesHexPresence)
             {
+                if (presence.HasContinuousWorldPosition)
+                {
+                    // precise world position（Local Combat 倒下时保存）：LocalMap 与 WorldMap
+                    // 用同一 physical truth，而非 Hex 中心。
+                    worldX = presence.WorldPosX;
+                    worldY = presence.WorldPosY;
+                    return true;
+                }
+
                 HexMath.ToWorldPosition(presence.ResidualHex, world.HexWorld.HexSize, out worldX, out worldY);
                 return true;
             }
