@@ -960,8 +960,7 @@ namespace XianXia.Core.World.Strategic
         static void WriteSharedSegAt(int segIndex, HexCoord hex, int dir, float hexSize)
         {
             HexMath.CollectCornerWorldPositions(hex, hexSize, ScratchCornerX, ScratchCornerY);
-            var i = (5 - dir) % 6;
-            var j = (i + 1) % 6;
+            HexMath.GetSharedEdgeCornerIndices(dir, out var i, out var j);
             var baseIdx = segIndex * 4;
             if (baseIdx + 4 > ScratchSharedSegs.Length)
                 return; // 防御：段表满（真实 footprint 远小于容量）

@@ -96,6 +96,7 @@ public static class HexWorldContentValidator
         }
 
         ValidateFootprintOverlap(world, issues);
+        ValidateTerritories(world, issues);
 
         for (var i = 0; i < world.Cells.Count; i++)
         {
@@ -202,6 +203,49 @@ public static class HexWorldContentValidator
         {
             issues.Add(Warn(
                 $"Road network has {components} connected components ({roadCells.Count} road cells)."));
+        }
+    }
+
+    static void ValidateTerritories(HexWorldDefinitionDto world, List<HexWorldValidationIssue> issues)
+    {
+        var sites = world.Sites.ToDictionary(site => site.SiteId, StringComparer.Ordinal);
+        var regionIds = new HashSet<string>(StringComparer.Ordinal);
+        var byHex = new Dictionary<(int Q, int R), string>();
+        var byId = new Dictionary<string, HexWorldTerritoryRegionDto>(StringComparer.Ordinal);
+        foreach (var region in world.TerritoryRegions)
+        {
+            if (string.IsNullOrWhiteSpace(region.RegionId)) { issues.Add(Error("TerritoryRegion with empty RegionId.")); continue; }
+            if (!regionIds.Add(region.RegionId)) { issues.Add(Error($"Duplicate TerritoryRegion RegionId: {region.RegionId}.")); continue; }
+            byId[region.RegionId] = region;
+            if (!sites.TryGetValue(region.PrimaryWorldSiteId, out var site))
+            {
+                issues.Add(Error($"TerritoryRegion '{region.RegionId}' PrimaryWorldSiteId missing: {region.PrimaryWorldSiteId}."));
+            }
+            else
+            {
+                if (!string.Equals(site.TerritoryRegionId, region.RegionId, StringComparison.Ordinal))
+                    issues.Add(Error($"Site '{site.SiteId}' TerritoryRegionId does not point back to '{region.RegionId}'.", site.SiteId));
+                if (!string.Equals(site.OwnerFactionId, region.ControlFactionId, StringComparison.Ordinal))
+                    issues.Add(Error($"Site '{site.SiteId}' OwnerFactionId differs from TerritoryRegion controller.", site.SiteId));
+            }
+            foreach (var hex in region.Hexes)
+            {
+                if (!IsInBounds(world, hex.Q, hex.R)) issues.Add(Error($"TerritoryRegion '{region.RegionId}' hex out of bounds ({hex.Q},{hex.R}).", q: hex.Q, r: hex.R));
+                var key = (hex.Q, hex.R);
+                if (byHex.TryGetValue(key, out var other) && other != region.RegionId)
+                    issues.Add(Error($"Territory hex overlap ({hex.Q},{hex.R}): {other} and {region.RegionId}.", q: hex.Q, r: hex.R));
+                else byHex[key] = region.RegionId;
+            }
+        }
+        foreach (var site in world.Sites)
+        {
+            if (string.IsNullOrWhiteSpace(site.TerritoryRegionId)) continue;
+            if (!byId.TryGetValue(site.TerritoryRegionId, out var region)) { issues.Add(Error($"Site '{site.SiteId}' references missing TerritoryRegion '{site.TerritoryRegionId}'.", site.SiteId)); continue; }
+            foreach (var hex in HexWorldFootprintRules.ResolveFootprint(site))
+            {
+                if (!region.Hexes.Contains(hex)) issues.Add(Error($"Site footprint not in own TerritoryRegion: {site.SiteId} ({hex.Q},{hex.R}).", site.SiteId, hex.Q, hex.R));
+                if (byHex.TryGetValue((hex.Q, hex.R), out var owner) && owner != region.RegionId) issues.Add(Error($"Site footprint belongs to another TerritoryRegion: {site.SiteId} ({hex.Q},{hex.R}).", site.SiteId, hex.Q, hex.R));
+            }
         }
     }
 

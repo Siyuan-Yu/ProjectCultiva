@@ -7,6 +7,45 @@
 
 ---
 
+## 2026-09-04 — WorldMap 历史验收追踪日志清理（仅日志）
+
+**范围**：删除已完成验收阶段遗留、会在正常交互中刷屏的 WorldMap 右键旅行／GatewayConfirm／Territory Border 追踪日志。
+
+- 移除 `[GatewayB1Trace]`、`[HEX-RIGHTCLICK]`、`[ENEMY-RESIDUAL-RIGHTCLICK]`、`[GatewayConfirmUI]` 与 `[TerritoryBorder]` 的 `Debug.Log` 路径及其仅服务于该日志的辅助状态。
+- 保留开发构建下用于报告 FormalArmy authority 损坏和 Hex 投影异常的 `Debug.LogWarning`；未修改任何命令分派、Gateway、Territory 或渲染算法。
+
+**验证**：`git diff --check` 通过；Unity Host 无独立命令行工程，本轮未运行 Unity Editor。
+
+---
+
+## 2026-09-04 — WorldMap「情报」面板中文化（仅表现层）
+
+**范围**：`HostWorldMapPanel` 的玩家可见情报文本改为中文；未改变 WorldMap 点击、Hex／WorldSite／Territory 数据、出口连接或任何运行时权威。
+
+- WorldSite 详情统一显示「地点／地点 ID／锚点格／地点占地／可用出口／占地范围／本地地图 ID／领地区域 ID／控制势力／领地范围／所属势力 ID／当前格」。
+- 普通 Hex／Territory 详情统一显示「地图格／地形／道路：是或否／可通行：是或否／控制势力／领地区域」；空值显示「无」，不再显示 `None`、`True`、`False`。
+- 势力显示优先为「DisplayName（ID）」；没有 DisplayName 时只显示 ID。WorldSite 类型展示层映射为中文，Terrain 继续复用现有中文 `HexTerrainPresentation`。
+
+**验证**：`git diff --check` 通过；当前仓库未提供 Unity Host 独立 `.csproj`，未运行 Unity Editor。本次 Shared.Tests Release 构建 0 warning／0 error（不覆盖 Unity Host 编译）。
+
+---
+
+## 2026-09-04 — Territory Authoring 从 MapEditor 纠正迁移至 WorldGraphEditor（待人工验收）
+
+**纠正**：`MapEditor` 的职责严格恢复为 LocalMap `mapLayout` 矩形编辑；上一轮误加的 HexWorld Territory 页、画布、专用状态和事件已精确撤销。`WorldGraphEditor` 才是唯一 Hex 战略大地图 authoring 工具，Territory 现在只在其现有 `HexMapViewHost` 上编辑，没有第二套画布或 Runtime 引用。
+
+**Shared 正式内容支持**
+- `HexWorldDefinitionDto.TerritoryRegions`、`HexWorldSiteDto.TerritoryRegionId` 与 `HexWorldTerritoryRegionDto` 纳入 Shared DTO/JSON round-trip；保存稳定排序（RegionId、每 Region R→Q）。
+- `HexWorldContentValidator` 新增 Region identity、Primary Site、双向绑定、Owner=Controller、bounds、跨 Region overlap、Site footprint 归属校验；有 error 时 WorldGraphEditor 禁止保存。
+- `HexWorldEditorDocument` 成为 Territory mutation authority：O(1) Hex lookup、assign/reassign、erase footprint 保护、补齐 footprint、Odd-R 外围一圈、创建 Region、删除 Site 一并删 Region、SiteId rename 同步 PrimaryWorldSiteId；Undo/Redo 使用完整 DTO snapshot。
+- 修复创建 Region 时 `Region.Hexes` 与 `Site.Footprint` 列表别名的风险，二者现在独立复制。
+
+**WorldGraphEditor**：左侧增加「地图编辑／势力范围」页签，中心继续复用 `_mapView`。Territory Tab 以 WorldSite/Region 选择为目标，左键/拖拽原子 assign/reassign，右键/拖拽擦除普通 Hex；同一 stroke 一次 Undo。`HexMapViewHost` 增加独立 Territory DrawingVisual，处在 Terrain 与 footprint/hover/site overlay 之间；hover 不重绘 Territory。
+
+**验证**：MapEditor Release 0 error（4 个既有 nullable warning）；WorldGraphEditor Release 0 error / 0 warning；`Shared.Tests` 24/24 通过（包括 Territory assign/reassign、footprint 保护、Undo、JSON round-trip、Odd-R 外围一圈）。
+
+---
+
 ## 2026-09-03 — WorldMap Territory Overlay 图层开关（显示势力范围 toggle，纯 presentation）
 
 **规则**：Territory 是永久 World State；Territory Overlay 是可选 WorldMap Presentation Layer，两者解耦。默认 **OFF** —— WorldMap 视觉与 Territory 实现前一致。
@@ -142,6 +181,31 @@
 **验证（headless）**：LocalCombatHandoffCheck 23 项全 PASS（living 跟随正常；follower 弥留→AtHex(5,11)→traveling 排除→reconcile 不拖走→返回 rematerialize→party materialize 不生成弥留者；FormalArmy member 拒绝非 army handoff、FormalArmyCasualtyService 正常 detach+AtHex）。Core/Data/Unity 三程序集 0 error；git diff --check 干净。
 
 **真源**：本轮 devlog。
+
+---
+
+## 2026-09-03 — Territory Border：双势力内侧 ribbon 表现
+
+- Territory Border 不再使用 centered line；每条 exposed shared edge 以真实拓扑边为外侧基准，向当前 owning Hex 内部铺设 halo 与 faction 主色双层 ribbon。
+- 删除异 faction 共享边的 canonical-owner suppression：A/B 接壤时双方各在自己的 Hex 内侧绘制，不重叠，保留中间原始 Hex seam；同 faction（即使 Region 不同）仍不画政治边界。
+- ribbon 宽度按 owning Hex 中心到 shared edge 的距离限制在 30% 内，避免 zoom out 时吞没整个 Hex；未改 Hex 拓扑、SurfaceExit、Territory Domain 或 shared-edge tests。
+
+---
+
+## 2026-09-03 — Territory Border：共享边 corner authority 修复
+
+- 修复 `HostHexWorldRenderer` 将 Neighbor direction 映射到错误 Hex 边的几何问题；边界无法封闭的根因不是 perimeter 算法，而是 Renderer 自行维护了错误公式。
+- `HexMath.GetSharedEdgeCornerIndices` 成为 direction→真实 shared edge corner 的唯一 authority；Territory Border 与 `SurfaceExitZoneCalculator` 统一复用，避免两处复制方向映射。
+- 增加 EditMode 几何回归：任意方向的邻格 opposite edge 端点吻合、单 Hex 6 边、相邻同 faction 两格 10 边、凹形三格 perimeter 无 dangling vertex。未运行 Test Runner。
+- Development 下 hover/选中受控 Hex 变化时输出一次 `[TerritoryBorder]`，含邻格 faction、exposed 判定与 corner pair，便于人工核对 NE/NW/SW/SE 物理边。
+
+---
+
+## 2026-09-03 — Territory V1：WorldMap 政治外边界表现
+
+- `显示势力范围` 不再给受控 Hex 叠加 faction fill；开关关闭与开启时 terrain 颜色完全一致，开启只增加独立的 Territory border pass。
+- 边界唯一 authority 为 `HexCell.ControlFactionId`：同 faction 相邻 Hex 不画内部线，即使 `TerritoryRegionId` 不同；有主→无主/地图外画外边界；异 faction 共享边按 faction id 稳定顺序只画一次。
+- 边界几何直接复用真实 Hex corners 与 `HexMath.Neighbor`，每条边使用浅色 halo + faction 主线双层 quad；不创建 GameObject，不写入 terrain cache，不改 Territory Domain、Capture 或存档。
 
 ---
 

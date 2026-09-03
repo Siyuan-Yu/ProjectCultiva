@@ -1,6 +1,8 @@
 using System.IO;
+using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using ContentAuthoring.Shared;
 using ContentAuthoring.Shared.HexWorld;
@@ -18,6 +20,10 @@ public partial class MainWindow : Window
     bool _painting;
     bool _strokeUndoPushed;
     HexCoordDto _lastStatusHex = new(-1, -1);
+    readonly ObservableCollection<FactionListItem> _territoryItems = new();
+    bool _territoryEditMode, _territoryErasing;
+    bool _sitePlacementArmed;
+    string? _selectedFactionId;
 
     public MainWindow()
     {
@@ -32,6 +38,8 @@ public partial class MainWindow : Window
         _document.CellsMutated += OnCellsMutated;
         _document.WorldReplaced += OnWorldReplaced;
         _document.SitesMutated += OnSitesMutated;
+        _document.TerritoriesMutated += OnTerritoriesMutated;
+        TerritoryList.ItemsSource = _territoryItems;
         TryLoadDefaultWorld();
     }
 
@@ -73,6 +81,7 @@ public partial class MainWindow : Window
         _mapView.SetWorld(_document.World, _viewport, fullRebuild);
         _mapView.SetSelection(_document.SelectedHex);
         SyncSiteOverlay();
+        _mapView.SetTerritoryOverlay(null, _territoryEditMode);
     }
 
     void SyncSiteOverlay() =>
@@ -84,6 +93,15 @@ public partial class MainWindow : Window
         RefreshChrome();
         UpdateInspector();
         UpdateSiteFootprintPanel();
+        RefreshTerritoryPanel();
+    }
+
+    void OnTerritoriesMutated()
+    {
+        _mapView.RebuildTerritoryOverlay();
+        RefreshTerritoryPanel();
+        UpdateInspector();
+        UpdateValidationSummary();
     }
 
     void OnWorldReplaced()
@@ -131,12 +149,16 @@ public partial class MainWindow : Window
 
         var passable = cell.Passable ?? HexTerrainPalette.DefaultPassable(cell.Terrain);
         var site = _document.FindSiteAt(hex);
+        var territory = _document.FindTerritoryAt(hex);
         InspectorText.Text =
             $"Coord: ({hex.Q},{hex.R})\n" +
             $"Terrain: {HexTerrainPalette.ResolveLabel(cell.Terrain)} / {cell.Terrain}\n" +
             $"Passable: {passable}\n" +
             $"Road: {cell.IsRoad}\n" +
-            $"Site: {(site?.DisplayName ?? "-")}";
+            $"Site: {(site?.DisplayName ?? "-")}\n" +
+            $"TerritoryRegion: {(territory?.RegionId ?? "-")}\n" +
+            $"Controller: {(territory?.ControlFactionId ?? "-")}\n" +
+            $"PrimaryWorldSite: {(territory?.PrimaryWorldSiteId ?? "-")}";
         if (site != null)
         {
             SiteIdBox.Text = site.SiteId;
@@ -172,6 +194,8 @@ public partial class MainWindow : Window
         SiteFootprintCountText.Text = $"Footprint Count：{footprint.Count}";
         SiteFootprintListText.Text = "Footprint Hexes：\n" +
                                       string.Join("\n", footprint.Select(h => $"({h.Q},{h.R})"));
+        var territory = _document.GetTerritoryForSite(site.SiteId);
+        SiteTerritoryText.Text = $"OwnerFactionId：{site.OwnerFactionId}\nTerritoryRegionId：{site.TerritoryRegionId}\nTerritory Hex Count：{territory?.Hexes.Count ?? 0}";
         var validation = HexWorldFootprintRules.ValidateSiteFootprint(site);
         FootprintEditStatusText.Text = validation.Success
             ? (_document.EditFootprintMode
@@ -238,6 +262,8 @@ public partial class MainWindow : Window
 
     void Save_Click(object sender, RoutedEventArgs e)
     {
+        var errors = HexWorldContentValidator.Validate(_document.World).Where(i => i.Level == "error").ToList();
+        if (errors.Count > 0) { MessageBox.Show(string.Join(Environment.NewLine, errors.Take(12).Select(i => i.Message)), "Territory / HexWorld 校验失败，已禁止保存", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
         if (string.IsNullOrEmpty(_document.FilePath))
         {
             SaveAs_Click(sender, e);
@@ -250,6 +276,8 @@ public partial class MainWindow : Window
 
     void SaveAs_Click(object sender, RoutedEventArgs e)
     {
+        var errors = HexWorldContentValidator.Validate(_document.World).Where(i => i.Level == "error").ToList();
+        if (errors.Count > 0) { MessageBox.Show(string.Join(Environment.NewLine, errors.Take(12).Select(i => i.Message)), "Territory / HexWorld 校验失败，已禁止保存", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
         var dlg = new SaveFileDialog
         {
             Filter = "Hex World JSON|*.json",
@@ -282,12 +310,21 @@ public partial class MainWindow : Window
 
     void ToolChanged(object sender, RoutedEventArgs e)
     {
+        if (sender is ToggleButton clicked)
+        {
+            ToolSelect.IsChecked = ReferenceEquals(clicked, ToolSelect); ToolTerrain.IsChecked = ReferenceEquals(clicked, ToolTerrain);
+            ToolRoad.IsChecked = ReferenceEquals(clicked, ToolRoad); ToolSite.IsChecked = ReferenceEquals(clicked, ToolSite); ToolErase.IsChecked = ReferenceEquals(clicked, ToolErase);
+        }
         if (ToolSelect.IsChecked == true) _document.ActiveTool = HexEditorTool.Select;
         else if (ToolTerrain.IsChecked == true) _document.ActiveTool = HexEditorTool.Terrain;
         else if (ToolRoad.IsChecked == true) _document.ActiveTool = HexEditorTool.Road;
         else if (ToolSite.IsChecked == true) _document.ActiveTool = HexEditorTool.Site;
         else if (ToolErase.IsChecked == true) _document.ActiveTool = HexEditorTool.Erase;
+        SiteToolPanel.Visibility = _document.ActiveTool == HexEditorTool.Site ? Visibility.Visible : Visibility.Collapsed;
+        _sitePlacementArmed = false;
     }
+
+    void ArmNewSite_Click(object sender, RoutedEventArgs e) { _sitePlacementArmed = true; StatusText.Text = "新建 WorldSite：请点击地图上的一个 Hex 作为 Anchor，Esc 取消。"; }
 
     void BrushRadius_Changed(object sender, SelectionChangedEventArgs e)
     {
@@ -324,7 +361,12 @@ public partial class MainWindow : Window
     {
         if (string.IsNullOrEmpty(_document.SelectedSiteId))
             return;
+        var site = _document.GetSelectedSite();
+        if (site == null) return;
+        var regionNote = string.IsNullOrEmpty(site.TerritoryRegionId) ? string.Empty : "\n该 WorldSite 对应的 TerritoryRegion 也将删除。";
+        if (MessageBox.Show($"确定删除 WorldSite？\n名称：{site.DisplayName}\nSiteId：{site.SiteId}\nFootprint：{site.Footprint.Count} Hex{regionNote}", "删除 WorldSite", MessageBoxButton.OKCancel, MessageBoxImage.Warning) != MessageBoxResult.OK) return;
         _document.DeleteSite(_document.SelectedSiteId);
+        _document.EditFootprintMode = false; FootprintModeBox.IsChecked = false;
     }
 
     void SiteFields_LostFocus(object sender, RoutedEventArgs e)
@@ -334,12 +376,7 @@ public partial class MainWindow : Window
         var site = _document.World.Sites.FirstOrDefault(s => s.SiteId == _document.SelectedSiteId);
         if (site == null)
             return;
-        _document.PushUndo();
-        site.SiteId = SiteIdBox.Text.Trim();
-        site.DisplayName = SiteNameBox.Text.Trim();
-        site.SiteType = SiteTypeBox.Text.Trim();
-        site.LocalMapId = SiteLocalMapBox.Text.Trim();
-        _document.MarkDirty(true);
+        _document.RenameSelectedSite(_document.SelectedSiteId, SiteIdBox.Text.Trim(), SiteNameBox.Text.Trim(), SiteTypeBox.Text.Trim(), SiteLocalMapBox.Text.Trim());
         _mapView.SetSelection(_document.SelectedHex);
         _mapView.SyncViewport(rebuildGeometry: false);
     }
@@ -388,6 +425,10 @@ public partial class MainWindow : Window
             _mapView.ReleaseMouseCapture();
             _strokeUndoPushed = false;
         }
+        if (e.ChangedButton == MouseButton.Right && _territoryErasing)
+        {
+            _territoryErasing = false; _mapView.ReleaseMouseCapture(); _strokeUndoPushed = false;
+        }
     }
 
     void MapHost_MouseMove(object sender, MouseEventArgs e)
@@ -416,7 +457,12 @@ public partial class MainWindow : Window
         }
 
         if (_painting && e.LeftButton == MouseButtonState.Pressed && hex.Q >= 0)
-            ApplyTool(hex, false);
+        {
+            if (_territoryEditMode) ApplyTerritoryPaint(hex);
+            else ApplyTool(hex, false);
+        }
+        if (_territoryErasing && e.RightButton == MouseButtonState.Pressed && hex.Q >= 0)
+            ApplyTerritoryErase(hex);
     }
 
     void MapHost_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -431,6 +477,11 @@ public partial class MainWindow : Window
         _document.SelectedHex = hex;
         _mapView.SetSelection(hex);
 
+        if (_territoryEditMode)
+        {
+            _painting = true; _strokeUndoPushed = false; _mapView.CaptureMouse(); ApplyTerritoryPaint(hex); return;
+        }
+
         if (_document.ActiveTool is HexEditorTool.Terrain or HexEditorTool.Road or HexEditorTool.Erase)
         {
             _painting = true;
@@ -440,9 +491,11 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (_document.ActiveTool == HexEditorTool.Site)
+        if (_document.ActiveTool == HexEditorTool.Site && _sitePlacementArmed)
         {
-            _document.CreateSite(hex);
+            var newSite = _document.CreateSite(hex); _sitePlacementArmed = false;
+            StatusText.Text = $"已创建 WorldSite「{newSite.DisplayName}」，Anchor=({hex.Q},{hex.R})。";
+            UpdateInspector();
             return;
         }
 
@@ -465,6 +518,12 @@ public partial class MainWindow : Window
 
     void MapHost_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
     {
+        if (_territoryEditMode)
+        {
+            var territoryHex = _viewport.ScreenToHex(e.GetPosition(_mapView).X, e.GetPosition(_mapView).Y, _document.World.Width, _document.World.Height);
+            if (territoryHex.Q >= 0) { _territoryErasing = true; _strokeUndoPushed = false; _mapView.CaptureMouse(); ApplyTerritoryErase(territoryHex); }
+            e.Handled = true; return;
+        }
         if (!_document.EditFootprintMode || string.IsNullOrEmpty(_document.SelectedSiteId))
             return;
         var pos = e.GetPosition(_mapView);
@@ -484,7 +543,10 @@ public partial class MainWindow : Window
     void MapHost_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (!_painting)
+        {
+            if (e.ChangedButton == MouseButton.Right && _territoryErasing) { _territoryErasing = false; _mapView.ReleaseMouseCapture(); _strokeUndoPushed = false; }
             return;
+        }
         _painting = false;
         _mapView.ReleaseMouseCapture();
         _strokeUndoPushed = false;
@@ -512,8 +574,62 @@ public partial class MainWindow : Window
         }
     }
 
+    void ApplyTerritoryPaint(HexCoordDto hex)
+    {
+        if (string.IsNullOrEmpty(_selectedFactionId)) { StatusText.Text = "请先选择势力。"; return; }
+        if (!_strokeUndoPushed) { _document.PushUndo(); _strokeUndoPushed = true; }
+        var site = _document.TryResolveDefaultSiteTerritoryAtHex(hex);
+        if (site == null) { StatusText.Text = "该荒野 Hex 当前没有正式 standalone claim Content authority，未修改。"; return; }
+        var result = _document.AssignFactionToSiteTerritory(site.SiteId, _selectedFactionId, false);
+        if (!result.Success) StatusText.Text = result.Message; else StatusText.Text = result.Message;
+    }
+
+    void ApplyTerritoryErase(HexCoordDto hex)
+    {
+        if (!_strokeUndoPushed) { _document.PushUndo(); _strokeUndoPushed = true; }
+        var site = _document.TryResolveDefaultSiteTerritoryAtHex(hex);
+        if (site == null) { StatusText.Text = "该荒野 Hex 当前没有正式 standalone claim Content authority，未修改。"; return; }
+        var result = _document.AssignFactionToSiteTerritory(site.SiteId, string.Empty, false);
+        StatusText.Text = result.Message;
+    }
+
+    void SidebarTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (e.OriginalSource != SidebarTabs) return;
+        _territoryEditMode = SidebarTabs.SelectedIndex == 1;
+        _mapView.SetTerritoryOverlay(null, _territoryEditMode);
+        RefreshTerritoryPanel();
+    }
+
+    void RefreshTerritoryPanel()
+    {
+        if (TerritoryList == null) return;
+        var filter = TerritorySearchBox.Text?.Trim() ?? string.Empty;
+        _territoryItems.Clear();
+        var factions = _document.World.Sites.Select(s => s.OwnerFactionId)
+            .Concat(_document.World.TerritoryRegions.Select(r => r.ControlFactionId))
+            .Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.Ordinal).OrderBy(id => id, StringComparer.Ordinal);
+        foreach (var factionId in factions)
+        {
+            if (!string.IsNullOrEmpty(filter) && !factionId.Contains(filter, StringComparison.OrdinalIgnoreCase)) continue;
+            _territoryItems.Add(new FactionListItem(factionId));
+        }
+        TerritoryList.SelectedItem = _territoryItems.FirstOrDefault(x => x.FactionId == _selectedFactionId);
+        TerritoryCurrentText.Text = string.IsNullOrEmpty(_selectedFactionId) ? "请选择一个势力。" : $"当前笔刷：{_selectedFactionId}\n左键/拖涂势力范围；右键/拖清除。\nWorldSite 本体或外围一圈会自动处理整块辖区。";
+    }
+
+    void TerritorySearchBox_TextChanged(object sender, TextChangedEventArgs e) => RefreshTerritoryPanel();
+    void TerritoryList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var item = TerritoryList.SelectedItem as FactionListItem; _selectedFactionId = item?.FactionId;
+        _mapView.SetTerritoryOverlay(null, _territoryEditMode); RefreshTerritoryPanel();
+    }
+    void ValidateTerritory_Click(object sender, RoutedEventArgs e) => Validate_Click(sender, e);
+
     void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Escape && _sitePlacementArmed) { _sitePlacementArmed = false; StatusText.Text = "已取消新建 WorldSite。"; e.Handled = true; return; }
+        if (e.Key == Key.Escape && _document.EditFootprintMode) { _document.EditFootprintMode = false; FootprintModeBox.IsChecked = false; StatusText.Text = "已完成 Footprint 编辑。"; e.Handled = true; return; }
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.S)
         {
             Save_Click(sender, e);
@@ -548,4 +664,11 @@ public partial class MainWindow : Window
             Save_Click(this, new RoutedEventArgs());
         return true;
     }
+}
+
+sealed class FactionListItem
+{
+    public string FactionId { get; }
+    public string Display => $"■ {FactionId}";
+    public FactionListItem(string factionId) => FactionId = factionId;
 }

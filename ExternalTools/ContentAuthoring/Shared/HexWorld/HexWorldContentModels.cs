@@ -18,6 +18,8 @@ public sealed class HexWorldDefinitionDto
     public bool DefaultPassable { get; set; }
     public List<HexCellDto> Cells { get; set; } = new();
     public List<HexWorldSiteDto> Sites { get; set; } = new();
+    public List<HexWorldTerritoryRegionDto> TerritoryRegions { get; set; } = new();
+    public List<HexWorldStandaloneHexControlDto> StandaloneHexControls { get; set; } = new();
 }
 
 public sealed class HexCellDto
@@ -41,6 +43,24 @@ public sealed class HexWorldSiteDto
     public List<HexCoordDto> Footprint { get; set; } = new();
     public string LocalMapId { get; set; } = string.Empty;
     public string OwnerFactionId { get; set; } = string.Empty;
+    public string TerritoryRegionId { get; set; } = string.Empty;
+}
+
+/// <summary>HexWorld 内容中的固化辖区；显式 Hex 列表是真源，绝不保存半径推导。</summary>
+public sealed class HexWorldTerritoryRegionDto
+{
+    public string RegionId { get; set; } = string.Empty;
+    public string PrimaryWorldSiteId { get; set; } = string.Empty;
+    public string ControlFactionId { get; set; } = string.Empty;
+    public List<HexCoordDto> Hexes { get; set; } = new();
+}
+
+/// <summary>不属于任何 WorldSite Region 的荒野 Hex 明确控制权。</summary>
+public sealed class HexWorldStandaloneHexControlDto
+{
+    public int Q { get; set; }
+    public int R { get; set; }
+    public string ControlFactionId { get; set; } = string.Empty;
 }
 
 public readonly record struct HexCoordDto(int Q, int R)

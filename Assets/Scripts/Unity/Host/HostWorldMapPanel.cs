@@ -151,8 +151,6 @@ namespace XianXia.Unity.Host
         Vector2 _lastContextMousePos;
         // Phase 5D-B1（UI 生命周期）：打开确认框的帧 —— 该帧内的 outside-click 不得关闭刚打开的框（openedThisFrame）
         int _gatewayConfirmOpenFrame = -1;
-        bool _gatewayConfirmDrawWasOpen;
-        bool _gatewayConfirmSuppressLogged;
 
         /// <summary>右侧信息面板聚焦的节点（左键点节点写入；与菜单开闭无关）/summary>
         string _inspectSiteId = string.Empty;
@@ -2367,18 +2365,7 @@ namespace XianXia.Unity.Host
             if (e.button != 1)
                 return;
 
-            UnityEngine.Debug.Log("[GatewayB1Trace] 1 HandleMapInput rightClick mouse=" + mouse +
-                " targetHex=" + (HexMapMousePick.TryResolveMouseHex(projection, world.HexWorld, mouse, out var traceHex)
-                    ? traceHex.ToString()
-                    : "none") +
-                " selectionKind=" + _worldMapSelection.DescribeKind() +
-                " selectedArmyId=" + (SelectedFormalArmyId ?? string.Empty) +
-                " activeId=" + (bootstrap?.Session?.PlayerParty != null
-                    ? bootstrap.Session.PlayerParty.ActiveCharacterId.ToString()
-                    : "none"));
-
             var hexStrategicActive = ArmyHexCommandService.IsHexStrategicActive(world);
-            UnityEngine.Debug.Log("[GatewayB1Trace] 1b IsHexStrategicActive=" + hexStrategicActive);
             if (hexStrategicActive)
             {
                 if (TryHandleHexMapCommand(projection, world, mouse, e))
@@ -2486,25 +2473,18 @@ namespace XianXia.Unity.Host
             _lastContextMousePos = mouse;
             if (!HexMapMousePick.TryResolveMouseHex(projection, world.HexWorld, mouse, out var pickedHex))
             {
-                UnityEngine.Debug.Log("[GatewayB1Trace] 2 TryHandleHexMapCommand FAIL mousePick");
                 _status = "无法解析倒下角色位置";
                 e.Use();
                 return true;
             }
 
-            UnityEngine.Debug.Log("[GatewayB1Trace] 2 TryHandleHexMapCommand pickedHex=" + pickedHex +
-                " selectionKind=" + _worldMapSelection.DescribeKind());
             _selectedHex = pickedHex;
             if (!world.HexWorld.TryGetTile(pickedHex, out var tile) || tile == null || !tile.IsPassable)
             {
-                UnityEngine.Debug.Log("[GatewayB1Trace] 2b BLOCKED tileExists=" +
-                    world.HexWorld.TryGetTile(pickedHex, out _) + " passable=false");
                 _status = "无法解析倒下角色位置";
                 e.Use();
                 return true;
             }
-
-            UnityEngine.Debug.Log("[GatewayB1Trace] 2b tileExists=true passable=true");
 
             var hasSelectedArmy = TryGetSelectedLivingPlayerArmy(world, out var selectedArmy, out _);
             var hasMovableArmy = hasSelectedArmy &&
@@ -2526,12 +2506,6 @@ namespace XianXia.Unity.Host
                 selectedArmy,
                 canPlayerPartyAttackTarget);
 
-            UnityEngine.Debug.Log("[GatewayB1Trace] 3 Resolve action=" + resolution.Action +
-                " statusHint=" + (resolution.StatusHint ?? string.Empty) +
-                " selectedArmyId=" + (SelectedFormalArmyId ?? string.Empty));
-
-            LogHexRightClickTrace(resolution, selectedArmy, pickedHex);
-
             _hexMenuOpen = false;
             CloseHexSiteEnterMenu();
             _stackMenuOpen = false;
@@ -2541,14 +2515,11 @@ namespace XianXia.Unity.Host
             switch (resolution.Action)
             {
                 case HexRightClickResolvedAction.DirectMove:
-                    UnityEngine.Debug.Log("[GatewayB1Trace] 4 Branch=DirectMove kind=" +
-                        _worldMapSelection.DescribeKind());
                     // Phase 5D-B1: PlayerParty 选中态下，即使 Resolver 因残留军团选中判成
                     // DirectMove，也必须走 PlayerParty 旅行（含 Mandatory Gateway fallback），
                     // 不能让军团移动分支抢先导致 BeginTravel 不调用（右键 B 无任何反馈）。
                     if (_worldMapSelection.Kind != HostWorldMapSelectionKind.FormalArmy)
                     {
-                        UnityEngine.Debug.Log("[GatewayB1Trace] 4b DirectMove redirected to PlayerParty travel");
                         DispatchHexRightClickTravel(world, pickedHex, resolution.StatusHint);
                         break;
                     }
@@ -2558,21 +2529,17 @@ namespace XianXia.Unity.Host
                         _status = resolution.StatusHint + " " + _status;
                     break;
                 case HexRightClickResolvedAction.ShowAttackTargetMenu:
-                    UnityEngine.Debug.Log("[GatewayB1Trace] 4 Branch=Attack");
                     OpenHexAttackTargetMenu(resolution, pickedHex, mouse);
                     break;
                 case HexRightClickResolvedAction.DirectEnterFriendlyLingering:
                     // Legacy enum 兼容：production resolver 不再返回；若旧 resolution 残留，
                     // 回落普通移动，绝不进入 Encounter。
-                    UnityEngine.Debug.Log("[GatewayB1Trace] 4 Branch=LegacyLingering→Travel");
                     DispatchHexRightClickTravel(world, pickedHex, resolution.StatusHint);
                     break;
                 case HexRightClickResolvedAction.ShowWorldSiteEnterMenu:
-                    UnityEngine.Debug.Log("[GatewayB1Trace] 4 Branch=SiteMenu");
                     OpenHexWorldSiteEnterMenu(resolution, pickedHex, mouse);
                     break;
                 default:
-                    UnityEngine.Debug.Log("[GatewayB1Trace] 4 Branch=Travel");
                     DispatchHexRightClickTravel(world, pickedHex, resolution.StatusHint);
                     break;
             }
@@ -2594,94 +2561,6 @@ namespace XianXia.Unity.Host
             _hexMenuRect = AnchorContextMenu(new Rect(mouse.x, mouse.y, 1f, 1f), 220f, 28f + rows * 24f);
             CloseGatewayConfirm();
             _hexMenuOpen = true;
-        }
-
-        void LogHexRightClickTrace(
-            HexRightClickResolution resolution,
-            FormalArmy selectedArmy,
-            HexCoord hex)
-        {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            var ctx = resolution?.Context;
-            var activeEnemyCount = ctx?.ActiveEnemyArmies?.Count ?? 0;
-            var residualCounts = StrategicResidualPresentationQuery.CountAtHex(
-                bootstrap?.Session?.World, hex);
-            var enemyResidualCount = residualCounts.EnemyTotal;
-            if (enemyResidualCount <= 0 && ctx?.Lingering != null)
-                enemyResidualCount = ctx.Lingering.EnemyDownedCount + ctx.Lingering.EnemyDeadCount;
-
-            var rt = bootstrap?.Session?.World?.Strategic?.Encounter;
-            var hasLingerLookup = LingeringBattlefieldQueryService.TryGetLingeringBattlefieldAtHex(
-                bootstrap?.Session?.World, hex, out _);
-            var anchor = "?";
-            if (StrategicEncounterResolveService.TryGetLingeringBattleAnchorHex(
-                    bootstrap?.Session?.World, out var anchorHex))
-                anchor = anchorHex.ToString();
-
-            Debug.Log(
-                "[HEX-RIGHTCLICK]\n" +
-                "SelectedArmy: " + (selectedArmy?.ArmyId ?? string.Empty) + "\n" +
-                "TargetHex: " + hex + "\n" +
-                "ActiveEnemyArmiesAtHex: " + activeEnemyCount + "\n" +
-                "EnemyLingeringBattlefieldsAtHex: " + (ctx != null && ctx.CanAttackEnemyLingering ? 1 : 0) + "\n" +
-                "FriendlyLingeringBattlefieldsAtHex: " + (ctx != null && ctx.CanEnterFriendlyLingering ? 1 : 0) + "\n" +
-                "ResolvedCommand: " + MapResolvedCommand(resolution));
-
-            if (enemyResidualCount > 0 || activeEnemyCount == 0)
-            {
-                Debug.Log(
-                    "[ENEMY-RESIDUAL-RIGHTCLICK]\n" +
-                    "TargetHex = " + hex + "\n" +
-                    "SelectedArmyId = " + (selectedArmy?.ArmyId ?? string.Empty) + "\n" +
-                    "ActiveEnemyArmyCount = " + activeEnemyCount + "\n" +
-                    "EnemyResidualCharacters = " + enemyResidualCount + "\n" +
-                    "EnemyDownedCount = " + residualCounts.EnemyDowned + "\n" +
-                    "EnemyDeadCount = " + residualCounts.EnemyDead + "\n" +
-                    "LingeringBattlefieldAtHex = " + (hasLingerLookup ? 1 : 0) + "\n" +
-                    "BattlefieldLingering = " + (rt != null && rt.BattlefieldLingering) + "\n" +
-                    "BattleAnchorHex = " + anchor + "\n" +
-                    "EnemyLingeringBattlefield = " + (ctx != null && ctx.CanAttackEnemyLingering) + "\n" +
-                    "ResolvedRightClickAction = " + MapResolvedCommand(resolution));
-            }
-#endif
-        }
-
-        static string MapResolvedCommand(HexRightClickResolution resolution)
-        {
-            if (resolution == null)
-                return "NONE";
-            if (resolution.Action == HexRightClickResolvedAction.ShowAttackTargetMenu &&
-                resolution.MenuActions != null)
-            {
-                var hasArmy = resolution.MenuActions.Contains(HexStrategicContextActionKind.AttackArmy);
-                var hasLinger = resolution.MenuActions.Contains(
-                    HexStrategicContextActionKind.AttackLingeringBattlefield);
-                if (hasArmy && hasLinger)
-                    return "ATTACK_MENU";
-                if (hasArmy)
-                    return "ATTACK_ARMY";
-                if (hasLinger)
-                    return "ATTACK_LINGERING";
-                if (resolution.MenuActions.Contains(HexStrategicContextActionKind.EnterLingeringBattlefield))
-                    return "ENTER_LINGERING";
-                return "ATTACK_MENU";
-            }
-
-            switch (resolution.Action)
-            {
-                case HexRightClickResolvedAction.DirectMove:
-                    return "MOVE";
-                case HexRightClickResolvedAction.DirectEnterFriendlyLingering:
-                    return "ENTER_LINGERING";
-                case HexRightClickResolvedAction.ShowWorldSiteEnterMenu:
-                    return "ENTER_WORLD_SITE_MENU";
-                case HexRightClickResolvedAction.DirectAttackLingeringBattlefield:
-                    return "ATTACK_LINGERING";
-                case HexRightClickResolvedAction.DirectAttackArmy:
-                    return "ATTACK_ARMY";
-                default:
-                    return resolution.Action.ToString().ToUpperInvariant();
-            }
         }
 
         string ResolveAttackerFactionForHexContext(XianXia.Core.Simulation.SimulationWorld world)
@@ -2879,20 +2758,15 @@ namespace XianXia.Unity.Host
             HexCoord hex,
             string statusHint)
         {
-            UnityEngine.Debug.Log("[GatewayB1Trace] 5 DispatchTravel=true targetHex=" + hex +
-                " selectionKind=" + _worldMapSelection.DescribeKind());
             if (_worldMapSelection.Kind == HostWorldMapSelectionKind.FormalArmy)
             {
                 if (string.IsNullOrEmpty(SelectedFormalArmyId) ||
                     !world.Strategic.FormalArmies.TryGet(SelectedFormalArmyId, out _))
                 {
-                    UnityEngine.Debug.Log("[GatewayB1Trace] 5b FormalArmy selection broken → blocked");
                     WarnBrokenFormalArmySelection("DispatchHexRightClickTravel");
                     _status = "FormalArmy 选中态损坏，已阻止移动（未 fallback PlayerParty）";
                     return;
                 }
-
-                UnityEngine.Debug.Log("[GatewayB1Trace] 5b Kind=FormalArmy → army branch (no PlayerParty travel)");
 
                 _status = string.IsNullOrEmpty(statusHint)
                     ? "当前选中军团：请右键有效目标或使用攻击菜单"
@@ -2928,11 +2802,8 @@ namespace XianXia.Unity.Host
             out string status)
         {
             status = string.Empty;
-            UnityEngine.Debug.Log("[GatewayB1Trace] 6 EnterTryExecute=true targetHex=" + hex);
             if (_worldMapSelection.Kind != HostWorldMapSelectionKind.PlayerParty)
             {
-                UnityEngine.Debug.Log("[GatewayB1Trace] 6b ReturnReason=KindNotPlayerParty kind=" +
-                    _worldMapSelection.DescribeKind());
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 UnityEngine.Debug.LogWarning(
                     "[WorldMapSelection] Blocked PlayerParty travel: authority Kind=" +
@@ -2945,20 +2816,17 @@ namespace XianXia.Unity.Host
             var party = bootstrap?.Session?.PlayerParty;
             if (party == null || !party.HasActive)
             {
-                UnityEngine.Debug.Log("[GatewayB1Trace] 6b ReturnReason=NoActiveParty");
                 return false;
             }
 
             if (!world.HexWorld.TryGetTile(hex, out var tile) || tile == null || !tile.IsPassable)
             {
-                UnityEngine.Debug.Log("[GatewayB1Trace] 6b ReturnReason=TargetNotPassable");
                 status = "目标 Hex 不可通行";
                 return true;
             }
 
             if (!WorldMapPartyTravelCommand.TryResolve(world, hex, out var cmd))
             {
-                UnityEngine.Debug.Log("[GatewayB1Trace] 6b ReturnReason=ResolveTravelTargetFailed");
                 status = "无法解析旅行目标";
                 return true;
             }
@@ -2971,7 +2839,6 @@ namespace XianXia.Unity.Host
                 world, party, cmd.DestinationHex, cmd.TargetSiteId ?? string.Empty);
             if (move.IsFailure)
             {
-                UnityEngine.Debug.Log("[GatewayB1Trace] 6b ReturnReason=BeginTravelFailed msg=" + move.Error);
                 status = FormatFail(move);
                 return true;
             }
@@ -3035,20 +2902,10 @@ namespace XianXia.Unity.Host
             _gatewayConfirmSiteId = string.Empty;
             _gatewayConfirmDisplayName = string.Empty;
             _gatewayConfirmApproachHex = default;
-            UnityEngine.Debug.Log("[GatewayConfirmUI] Close reason=" + (reason ?? "unspecified") +
-                " frame=" + Time.frameCount);
         }
 
         void DrawGatewayConfirm(XianXia.Core.Simulation.SimulationWorld world)
         {
-            var drawable = _gatewayConfirmOpen && !string.IsNullOrEmpty(_gatewayConfirmSiteId);
-            if (drawable != _gatewayConfirmDrawWasOpen)
-            {
-                UnityEngine.Debug.Log("[GatewayConfirmUI] Draw drawCalled=" + drawable +
-                    " openState=" + (_gatewayConfirmOpen ? "open" : "closed") +
-                    " frame=" + Time.frameCount);
-                _gatewayConfirmDrawWasOpen = drawable;
-            }
             if (!_gatewayConfirmOpen || string.IsNullOrEmpty(_gatewayConfirmSiteId))
                 return;
             if (bootstrap?.Session?.PlayerParty == null || !bootstrap.Session.PlayerParty.HasActive)
@@ -3078,8 +2935,6 @@ namespace XianXia.Unity.Host
             var bw = (_gatewayConfirmRect.width - 24f) * 0.5f;
             if (GUI.Button(new Rect(_gatewayConfirmRect.x + 10f, y, bw, 24f), "前往 " + _gatewayConfirmDisplayName))
             {
-                UnityEngine.Debug.Log("[GatewayConfirmUI] ConfirmClicked=true gatewaySiteId=" +
-                    _gatewayConfirmSiteId + " frame=" + Time.frameCount);
                 Event.current.Use();
                 ExecuteGatewayConfirmTravel(world);
                 CloseGatewayConfirm("confirmClicked");
@@ -3087,7 +2942,6 @@ namespace XianXia.Unity.Host
 
             if (GUI.Button(new Rect(_gatewayConfirmRect.x + 14f + bw, y, bw, 24f), "取消"))
             {
-                UnityEngine.Debug.Log("[GatewayConfirmUI] CancelClicked=true frame=" + Time.frameCount);
                 Event.current.Use();
                 CloseGatewayConfirm("cancelClicked");
             }
@@ -3827,13 +3681,6 @@ namespace XianXia.Unity.Host
             // 非 magic delay）。打开帧内跳过全部菜单关闭；下一帧起恢复正常 dismiss。
             if (_gatewayConfirmOpen && Time.frameCount == _gatewayConfirmOpenFrame)
             {
-                if (!_gatewayConfirmSuppressLogged)
-                {
-                    _gatewayConfirmSuppressLogged = true;
-                    UnityEngine.Debug.Log("[GatewayConfirmUI] DismissSkipped openingFrame=" +
-                        _gatewayConfirmOpenFrame + " currentFrame=" + Time.frameCount +
-                        " mouseOutsideRect=" + !_gatewayConfirmRect.Contains(ev.mousePosition));
-                }
                 return;
             }
 
@@ -4327,12 +4174,12 @@ namespace XianXia.Unity.Host
         {
             var sb = new StringBuilder(480);
             sb.Append('\u3010').Append(FormatResidualGroupTitle(group)).Append("\u3011\n");
-            sb.Append("Hex: ").Append(group.Hex).Append('\n');
+            sb.Append("地图格：").Append(group.Hex).Append('\n');
             var siteName = ResolveHexSiteName(world, group.Hex);
             if (!string.IsNullOrEmpty(siteName))
-                sb.Append("Location: ").Append(siteName).Append('\n');
-            sb.Append("Count: ").Append(group.Count).Append("\n\n");
-            sb.Append("Characters:\n");
+                sb.Append("地点：").Append(siteName).Append('\n');
+            sb.Append("数量：").Append(group.Count).Append("\n\n");
+            sb.Append("角色：\n");
             for (var i = 0; i < group.Characters.Count; i++)
             {
                 var row = group.Characters[i];
@@ -4381,36 +4228,71 @@ namespace XianXia.Unity.Host
             var sb = new StringBuilder(640);
             var siteName = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
             var footprintCount = WorldSiteFootprintValidator.CountFootprintHexes(site);
-            sb.Append("WorldSite：").Append(siteName).Append('\n');
-            sb.Append("WorldSiteId：").Append(site.SiteId).Append("\n\n");
-            sb.Append("AnchorHex：").Append(site.AnchorHex).Append('\n');
-            sb.Append("Footprint Count：").Append(footprintCount).Append("\n");
+            sb.Append("地点：").Append(siteName).Append('\n');
+            sb.Append("地点 ID：").Append(FormatOptional(site.SiteId)).Append("\n\n");
+            sb.Append("锚点格：").Append(site.AnchorHex).Append('\n');
+            sb.Append("地点占地：").Append(footprintCount).Append(" 格\n");
             var outsideCount = WorldSiteFootprintExitConnectionResolver.CountUniqueTraversableOutsideNeighbors(
                 world, site);
-            sb.Append("Surface Exit Connections：").Append(outsideCount).Append("\n\n");
-            sb.Append("Footprint Hexes：\n");
+            sb.Append("可用出口：").Append(outsideCount).Append("\n\n");
+            sb.Append("占地范围：\n");
             foreach (var hex in site.EnumerateFootprintHexes())
                 sb.Append(hex).Append('\n');
             sb.Append('\n');
-            if (!string.IsNullOrEmpty(site.LocalMapId))
-                sb.Append("LocalMapId：").Append(site.LocalMapId).Append('\n');
-            if (!string.IsNullOrEmpty(site.TerritoryRegionId))
+            sb.Append("本地地图 ID：").Append(FormatOptional(site.LocalMapId)).Append('\n');
+            sb.Append("领地区域 ID：").Append(FormatOptional(site.TerritoryRegionId)).Append('\n');
+            if (!string.IsNullOrEmpty(site.TerritoryRegionId) &&
+                world?.Strategic?.TerritoryRegions != null &&
+                world.Strategic.TerritoryRegions.TryGet(site.TerritoryRegionId, out var region) &&
+                region != null)
             {
-                sb.Append("TerritoryRegionId：").Append(site.TerritoryRegionId).Append('\n');
-                if (world.Strategic.TerritoryRegions.TryGet(site.TerritoryRegionId, out var region) &&
-                    region != null)
-                {
-                    sb.Append("Territory Controller：")
-                        .Append(StrategicFactionCatalog.DisplayName(region.ControlFactionId))
-                        .Append("（").Append(region.ControlFactionId).Append("）\n");
-                    sb.Append("Territory Hexes：").Append(region.HexCount).Append('\n');
-                }
+                sb.Append("控制势力：").Append(FormatFactionDisplay(region.ControlFactionId)).Append('\n');
+                sb.Append("领地范围：").Append(region.HexCount).Append(" 格\n");
+            }
+            else
+            {
+                sb.Append("控制势力：无\n");
+                sb.Append("领地范围：无\n");
             }
 
-            if (!string.IsNullOrEmpty(site.OwnerFactionId))
-                sb.Append("OwnerFactionId：").Append(site.OwnerFactionId).Append('\n');
-            sb.Append("Clicked Hex：").Append(clickedHex).Append('\n');
+            sb.Append("所属势力 ID：").Append(FormatOptional(site.OwnerFactionId)).Append('\n');
+            sb.Append("当前格：").Append(clickedHex).Append('\n');
             return sb.ToString();
+        }
+
+        static string FormatOptional(string value)
+        {
+            return string.IsNullOrEmpty(value) ? "无" : value;
+        }
+
+        static string FormatFactionDisplay(string factionId)
+        {
+            if (string.IsNullOrEmpty(factionId))
+                return "无";
+
+            var displayName = StrategicFactionCatalog.DisplayName(factionId);
+            var separator = factionId.LastIndexOf(':');
+            var fallbackName = separator >= 0 ? factionId.Substring(separator + 1) : factionId;
+            return string.IsNullOrEmpty(displayName) ||
+                   string.Equals(displayName, factionId, StringComparison.Ordinal) ||
+                   string.Equals(displayName, fallbackName, StringComparison.Ordinal)
+                ? factionId
+                : displayName + "（" + factionId + "）";
+        }
+
+        static string FormatWorldSiteType(string siteType)
+        {
+            switch (siteType)
+            {
+                case "Village": return "村落";
+                case "Town": return "城镇";
+                case "Mine": return "矿区";
+                case "Forest": return "林地";
+                case "Pass": return "关隘";
+                case "Sect": return "宗门";
+                case "Ferry": return "渡口";
+                default: return FormatOptional(siteType);
+            }
         }
 
         void AppendTerritoryInspect(
@@ -4420,27 +4302,25 @@ namespace XianXia.Unity.Host
             XianXia.Core.World.Hex.HexCell tile)
         {
             var controller = tile?.ControlFactionId ?? string.Empty;
-            sb.Append("ControlFactionId：").Append(string.IsNullOrEmpty(controller) ? "None（无主）" : controller).Append('\n');
-            if (!string.IsNullOrEmpty(controller))
-                sb.Append("领土：").Append(StrategicFactionCatalog.DisplayName(controller)).Append('\n');
+            sb.Append("控制势力：").Append(FormatFactionDisplay(controller)).Append('\n');
             if (world?.Strategic?.TerritoryRegions == null)
                 return;
 
             // O(1) hex → Region（Board 索引）；不扫全表。
             if (world.Strategic.TerritoryRegions.TryGetAtHex(hex, out var region) && region != null)
             {
-                sb.Append("TerritoryRegion：").Append(region.RegionId).Append('\n');
+                sb.Append("领地区域：").Append(FormatOptional(region.RegionId)).Append('\n');
                 if (!string.IsNullOrEmpty(region.PrimaryWorldSiteId) &&
                     world.Strategic.Sites.TryGet(region.PrimaryWorldSiteId, out var site) &&
                     site != null)
-                    sb.Append("PrimaryWorldSite：").Append(site.SiteId).Append('\n');
+                    sb.Append("领地中心地点：").Append(site.SiteId).Append('\n');
             }
         }
 
         string BuildHexInspect(XianXia.Core.Simulation.SimulationWorld world, HexCoord hex)
         {
             var sb = new StringBuilder(320);
-            sb.Append("Hex ").Append(hex).Append('\n');
+            sb.Append("地图格：").Append(hex).Append('\n');
             if (!world.HexWorld.TryGetTile(hex, out var tile) || tile == null)
             {
                     sb.Append("\n成员状态：\n");
@@ -4449,9 +4329,8 @@ namespace XianXia.Unity.Host
 
             sb.Append("地形：").Append(HexTerrainPresentation.GetDisplayName(tile)).Append('\n');
             sb.Append("移动代价：").Append(tile.ResolveMovementCost().ToString("0.##")).Append('\n');
-            if (tile.IsRoad)
-                sb.Append("道路：是\n");
-            sb.Append(tile.IsPassable ? "可通行\n" : "不可通行\n");
+            sb.Append("道路：").Append(tile.IsRoad ? "是" : "否").Append('\n');
+            sb.Append("可通行：").Append(tile.IsPassable ? "是" : "否").Append('\n');
             AppendTerritoryInspect(sb, world, hex, tile);
 
             if (world.Strategic.Sites.TryGetAtHex(hex, out var site) && site != null)
@@ -4459,11 +4338,9 @@ namespace XianXia.Unity.Host
                 sb.Append('\n');
                 sb.Append("地点：").Append(string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName).Append('\n');
                 if (!string.IsNullOrEmpty(site.SiteType))
-                    sb.Append("类型：").Append(site.SiteType).Append('\n');
-                if (!string.IsNullOrEmpty(site.OwnerFactionId))
-                    sb.Append("归属：").Append(StrategicFactionCatalog.DisplayName(site.OwnerFactionId)).Append('\n');
-                if (!string.IsNullOrEmpty(site.LocalMapId))
-                    sb.Append("LocalMap：").Append(site.LocalMapId).Append('\n');
+                    sb.Append("类型：").Append(FormatWorldSiteType(site.SiteType)).Append('\n');
+                sb.Append("所属势力：").Append(FormatFactionDisplay(site.OwnerFactionId)).Append('\n');
+                sb.Append("本地地图 ID：").Append(FormatOptional(site.LocalMapId)).Append('\n');
             }
 
             return sb.ToString();

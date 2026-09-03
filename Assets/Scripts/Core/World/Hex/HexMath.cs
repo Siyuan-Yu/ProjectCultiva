@@ -40,6 +40,24 @@ namespace XianXia.Core.World.Hex
             return AxialToOffsetOddR(aq + d.Q, ar + d.R);
         }
 
+        /// <summary>
+        /// 当前 Hex 朝 <paramref name="directionIndex"/> 的邻居所共享的真实物理边的两个 corner 索引。
+        /// corner 顺序由 <see cref="CollectCornerWorldPositions"/> 定义（30°、90°…330°），
+        /// direction 顺序由 <see cref="AxialDirections"/> 定义（E、NE、NW、W、SW、SE）。
+        /// 所有需要把 Neighbor direction 映射为 Hex 边几何的系统必须复用此 API。
+        /// </summary>
+        public static void GetSharedEdgeCornerIndices(
+            int directionIndex,
+            out int cornerA,
+            out int cornerB)
+        {
+            if (directionIndex < 0 || directionIndex >= DirectionCount)
+                throw new ArgumentOutOfRangeException(nameof(directionIndex));
+
+            cornerA = 5 - directionIndex;
+            cornerB = (cornerA + 1) % DirectionCount;
+        }
+
         public static void CollectNeighbors(HexCoord coord, List<HexCoord> neighborsOut)
         {
             neighborsOut.Clear();

@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="XianXia · WorldGraphEditor — Hex World" Height="920" Width="1440"
         WindowStartupLocation="CenterScreen"
-        Background="#16181C"
+        Background="{StaticResource Editor.Background}"
         Closing="Window_Closing"
         PreviewKeyDown="Window_PreviewKeyDown">
   <DockPanel Margin="10">
@@ -17,13 +17,13 @@
         <Button Content="适应" Width="56" Margin="0,0,6,0" Click="Fit_Click"/>
         <Button Content="撤销" Width="56" Margin="0,0,6,0" Click="Undo_Click"/>
         <Button Content="重做" Width="56" Margin="0,0,12,0" Click="Redo_Click"/>
-        <TextBlock x:Name="PathText" Foreground="#C8C4BC" VerticalAlignment="Center"/>
+        <TextBlock x:Name="PathText" Foreground="{StaticResource Editor.TextMuted}" VerticalAlignment="Center"/>
       </StackPanel>
-      <TextBlock Foreground="#8A8680" FontSize="12"
+      <TextBlock Foreground="{StaticResource Editor.TextMuted}" FontSize="12"
                  Text="Hex 战略大地图编辑器 · 中键/Alt+拖 平移 · 滚轮缩放 · 左键绘制 · Ctrl+Z/Y 撤销重做"/>
     </StackPanel>
 
-    <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0" Foreground="#A8A49C"/>
+    <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0" Foreground="{StaticResource Editor.TextMuted}"/>
 
     <Grid>
       <Grid.ColumnDefinitions>
@@ -33,41 +33,47 @@
         <ColumnDefinition Width="300"/>
       </Grid.ColumnDefinitions>
 
-      <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+      <TabControl x:Name="SidebarTabs" Grid.Column="0" SelectionChanged="SidebarTabs_SelectionChanged">
+        <TabItem Header="地图编辑">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="0,0,8,0">
-          <TextBlock Text="工具" FontWeight="SemiBold" Foreground="White" Margin="0,0,0,6"/>
-          <RadioButton x:Name="ToolSelect" Content="选择" Foreground="White" IsChecked="True" GroupName="Tools" Checked="ToolChanged"/>
-          <RadioButton x:Name="ToolTerrain" Content="地形笔刷" Foreground="White" GroupName="Tools" Checked="ToolChanged"/>
-          <RadioButton x:Name="ToolRoad" Content="道路" Foreground="White" GroupName="Tools" Checked="ToolChanged"/>
-          <RadioButton x:Name="ToolSite" Content="放置地点" Foreground="White" GroupName="Tools" Checked="ToolChanged"/>
-          <RadioButton x:Name="ToolErase" Content="擦除" Foreground="White" GroupName="Tools" Checked="ToolChanged"/>
-          <TextBlock Text="笔刷半径" Foreground="#8A8680" Margin="0,10,0,4"/>
+          <TextBlock Text="地图工具" FontWeight="SemiBold" Foreground="{StaticResource Editor.Text}" Margin="0,0,0,6"/>
+          <ToggleButton x:Name="ToolSelect" Content="选择" IsChecked="True" Click="ToolChanged"/>
+          <ToggleButton x:Name="ToolTerrain" Content="地形" Click="ToolChanged"/>
+          <ToggleButton x:Name="ToolRoad" Content="道路" Click="ToolChanged"/>
+          <ToggleButton x:Name="ToolSite" Content="地点 / WorldSite" Click="ToolChanged"/>
+          <ToggleButton x:Name="ToolErase" Content="擦除" Click="ToolChanged"/>
+          <Border x:Name="SiteToolPanel" Background="{StaticResource Editor.Panel}" BorderBrush="{StaticResource Editor.Border}" BorderThickness="1" Padding="7" Margin="0,8,0,0" Visibility="Collapsed">
+            <StackPanel><TextBlock Text="WorldSite" Foreground="{StaticResource Editor.Text}" FontWeight="SemiBold"/><Button Content="＋ 新建 WorldSite" Margin="0,6,0,0" Click="ArmNewSite_Click"/><TextBlock Text="地点类型" Foreground="{StaticResource Editor.TextMuted}" Margin="0,7,0,3"/><ComboBox x:Name="SiteTypeCombo" SelectedIndex="0" SelectionChanged="SiteType_Changed"><ComboBoxItem Content="Village"/><ComboBoxItem Content="Town"/><ComboBoxItem Content="Pass"/><ComboBoxItem Content="Mine"/><ComboBoxItem Content="Forest"/><ComboBoxItem Content="Sect"/><ComboBoxItem Content="Ferry"/></ComboBox><TextBlock Text="点击已有 WorldSite 可选中并编辑。新建需先按上方按钮。" Foreground="{StaticResource Editor.TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,7,0,0"/></StackPanel>
+          </Border>
+          <TextBlock Text="笔刷半径" Foreground="{StaticResource Editor.TextMuted}" Margin="0,10,0,4"/>
           <ComboBox x:Name="BrushRadiusCombo" SelectedIndex="0" SelectionChanged="BrushRadius_Changed">
             <ComboBoxItem Content="1 格"/>
             <ComboBoxItem Content="2 格"/>
             <ComboBoxItem Content="3 格"/>
             <ComboBoxItem Content="5 格"/>
           </ComboBox>
-          <TextBlock Text="地形" Foreground="#8A8680" Margin="0,12,0,4"/>
+          <TextBlock Text="地形" Foreground="{StaticResource Editor.TextMuted}" Margin="0,12,0,4"/>
           <ListBox x:Name="TerrainList" Height="130" SelectionChanged="TerrainList_SelectionChanged"/>
-          <TextBlock Text="地点类型" Foreground="#8A8680" Margin="0,12,0,4"/>
-          <ComboBox x:Name="SiteTypeCombo" SelectedIndex="0" SelectionChanged="SiteType_Changed">
-            <ComboBoxItem Content="Village"/>
-            <ComboBoxItem Content="Town"/>
-            <ComboBoxItem Content="Pass"/>
-            <ComboBoxItem Content="Mine"/>
-            <ComboBoxItem Content="Forest"/>
-            <ComboBoxItem Content="Sect"/>
-            <ComboBoxItem Content="Ferry"/>
-          </ComboBox>
-          <CheckBox x:Name="FootprintModeBox" Content="编辑 Footprint" Foreground="#C8C4BC" Margin="0,12,0,0"
-                    Checked="FootprintMode_Changed" Unchecked="FootprintMode_Changed"/>
-          <TextBlock Foreground="#8A8680" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"
-                     Text="Footprint 模式：左键加入 · 右键移除 · Ctrl+左键移除 · 选中 Hex 后点「设为 Anchor」"/>
         </StackPanel>
       </ScrollViewer>
+        </TabItem>
+        <TabItem Header="势力范围">
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,0,8,0">
+              <TextBlock Text="势力范围" FontWeight="SemiBold" Foreground="{StaticResource Editor.Text}" Margin="0,0,0,6"/>
+              <TextBlock Text="选择势力" Foreground="{StaticResource Editor.TextMuted}" Margin="0,0,0,3"/>
+              <TextBox x:Name="TerritorySearchBox" Margin="0,0,0,6" TextChanged="TerritorySearchBox_TextChanged" ToolTip="搜索势力"/>
+              <TextBlock x:Name="TerritoryCurrentText" Foreground="{StaticResource Editor.TextMuted}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+              <ListBox x:Name="TerritoryList" DisplayMemberPath="Display" Height="340" SelectionChanged="TerritoryList_SelectionChanged"/>
+              <Button Content="验证 Territory" Margin="0,5,0,0" Click="ValidateTerritory_Click"/>
+              <TextBlock Foreground="{StaticResource Editor.TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0" Text="左键 / 左拖：涂当前势力。右键 / 右拖：清除势力。涂到 Site 本体或外围一圈会自动更新整个 Site Territory。"/>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+      </TabControl>
 
-      <Border x:Name="MapHost" Grid.Column="1" Background="#1E2228" BorderBrush="#2A2E34" BorderThickness="1" ClipToBounds="True"
+      <Border x:Name="MapHost" Grid.Column="1" Background="{StaticResource Editor.Panel}" BorderBrush="{StaticResource Editor.Border}" BorderThickness="1" ClipToBounds="True"
               SizeChanged="MapHost_SizeChanged"
               PreviewMouseWheel="MapHost_PreviewMouseWheel"
               MouseLeftButtonDown="MapHost_MouseLeftButtonDown"
@@ -77,31 +83,33 @@
               MouseDown="MapHost_MouseDown"
               MouseUp="MapHost_MouseUp"/>
 
-      <GridSplitter Grid.Column="2" Width="8" Background="#2A2E34"/>
+      <GridSplitter Grid.Column="2" Width="8" Background="{StaticResource Editor.Border}"/>
 
       <ScrollViewer Grid.Column="3" VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="8,0,0,0">
-          <TextBlock Text="Hex Inspector" FontWeight="SemiBold" Foreground="#E8E4DC" Margin="0,0,0,8"/>
-          <TextBlock x:Name="InspectorText" Foreground="#C8C4BC" TextWrapping="Wrap" Margin="0,0,0,12"/>
-          <TextBlock Text="Site" FontWeight="SemiBold" Foreground="#E8E4DC" Margin="0,0,0,6"/>
-          <TextBlock Text="SiteId" Foreground="#8A8680"/>
+          <TextBlock Text="Hex Inspector" FontWeight="SemiBold" Foreground="{StaticResource Editor.Text}" Margin="0,0,0,8"/>
+          <TextBlock x:Name="InspectorText" Foreground="{StaticResource Editor.TextMuted}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+          <TextBlock Text="Site" FontWeight="SemiBold" Foreground="{StaticResource Editor.Text}" Margin="0,0,0,6"/>
+          <TextBlock Text="SiteId" Foreground="{StaticResource Editor.TextMuted}"/>
           <TextBox x:Name="SiteIdBox" Margin="0,0,0,6" LostFocus="SiteFields_LostFocus"/>
-          <TextBlock Text="DisplayName" Foreground="#8A8680"/>
+          <TextBlock Text="DisplayName" Foreground="{StaticResource Editor.TextMuted}"/>
           <TextBox x:Name="SiteNameBox" Margin="0,0,0,6" LostFocus="SiteFields_LostFocus"/>
-          <TextBlock Text="SiteType" Foreground="#8A8680"/>
+          <TextBlock Text="SiteType" Foreground="{StaticResource Editor.TextMuted}"/>
           <TextBox x:Name="SiteTypeBox" Margin="0,0,0,6" LostFocus="SiteFields_LostFocus"/>
-          <TextBlock Text="LocalMapId" Foreground="#8A8680"/>
+          <TextBlock Text="LocalMapId" Foreground="{StaticResource Editor.TextMuted}"/>
           <TextBox x:Name="SiteLocalMapBox" Margin="0,0,0,6" LostFocus="SiteFields_LostFocus"/>
-          <TextBlock Text="Footprint" FontWeight="SemiBold" Foreground="#E8E4DC" Margin="0,8,0,6"/>
-          <TextBlock x:Name="SiteAnchorText" Foreground="#C8C4BC" TextWrapping="Wrap" Margin="0,0,0,4"/>
-          <TextBlock x:Name="SitePresenceText" Foreground="#C8C4BC" TextWrapping="Wrap" Margin="0,0,0,4"/>
-          <TextBlock x:Name="SiteFootprintCountText" Foreground="#C8C4BC" Margin="0,0,0,4"/>
-          <TextBlock x:Name="SiteFootprintListText" Foreground="#A8A49C" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6"/>
+          <TextBlock x:Name="SiteTerritoryText" Foreground="{StaticResource Editor.TextMuted}" TextWrapping="Wrap" Margin="0,0,0,6"/>
+          <TextBlock Text="Footprint" FontWeight="SemiBold" Foreground="{StaticResource Editor.Text}" Margin="0,8,0,6"/>
+          <TextBlock x:Name="SiteAnchorText" Foreground="{StaticResource Editor.TextMuted}" TextWrapping="Wrap" Margin="0,0,0,4"/>
+          <TextBlock x:Name="SitePresenceText" Foreground="{StaticResource Editor.TextMuted}" TextWrapping="Wrap" Margin="0,0,0,4"/>
+          <TextBlock x:Name="SiteFootprintCountText" Foreground="{StaticResource Editor.TextMuted}" Margin="0,0,0,4"/>
+          <TextBlock x:Name="SiteFootprintListText" Foreground="{StaticResource Editor.TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6"/>
+          <ToggleButton x:Name="FootprintModeBox" Content="编辑 Footprint" Margin="0,0,0,6" Checked="FootprintMode_Changed" Unchecked="FootprintMode_Changed"/>
           <Button x:Name="SetAnchorButton" Content="将当前 Hex 设为 Anchor" Margin="0,0,0,6" Click="SetAnchor_Click"/>
           <Button x:Name="SetPresenceButton" Content="将当前 Hex 设为 Presence" Margin="0,0,0,6" Click="SetPresence_Click" Visibility="Collapsed"/>
-          <TextBlock x:Name="FootprintEditStatusText" Foreground="#FFAA66" TextWrapping="Wrap" Margin="0,0,0,8"/>
-          <Button Content="删除地点" Margin="0,0,0,8" Click="DeleteSite_Click"/>
-          <TextBlock x:Name="ValidationText" Foreground="#FFAA66" TextWrapping="Wrap"/>
+          <TextBlock x:Name="FootprintEditStatusText" Foreground="{StaticResource Editor.WarningText}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+          <Button Content="删除 WorldSite" Margin="0,0,0,8" Click="DeleteSite_Click" Style="{StaticResource DangerButtonStyle}"/>
+          <TextBlock x:Name="ValidationText" Foreground="{StaticResource Editor.WarningText}" TextWrapping="Wrap"/>
         </StackPanel>
       </ScrollViewer>
     </Grid>

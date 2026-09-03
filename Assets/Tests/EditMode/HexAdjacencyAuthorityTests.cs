@@ -91,6 +91,51 @@ namespace XianXia.Tests
         }
 
         [Test]
+        public void SharedEdgeCornerIndices_MatchNeighborOppositeEdge_ForBothRowParities()
+        {
+            AssertSharedEdgesMatch(new HexCoord(10, 20));
+            AssertSharedEdgesMatch(new HexCoord(10, 21));
+        }
+
+        [Test]
+        public void ExposedEdgeTopology_SingleAndAdjacentSameFactionHexes_HasExpectedCounts()
+        {
+            var single = new HashSet<HexCoord> { new HexCoord(10, 20) };
+            Assert.AreEqual(6, CollectExposedEdgeEndpoints(single).Count / 2);
+
+            var first = new HexCoord(10, 20);
+            var adjacent = HexMath.Neighbor(first, 0);
+            var pair = new HashSet<HexCoord> { first, adjacent };
+            Assert.AreEqual(10, CollectExposedEdgeEndpoints(pair).Count / 2);
+        }
+
+        [Test]
+        public void ExposedEdgeTopology_ConcaveThreeHexTerritory_HasNoDanglingVertices()
+        {
+            var center = new HexCoord(10, 20);
+            var territory = new HashSet<HexCoord>
+            {
+                center,
+                HexMath.Neighbor(center, 0),
+                HexMath.Neighbor(center, 2),
+            };
+
+            var endpoints = CollectExposedEdgeEndpoints(territory);
+            Assert.AreEqual(14, endpoints.Count / 2);
+            for (var i = 0; i < endpoints.Count; i++)
+            {
+                var degree = 0;
+                for (var j = 0; j < endpoints.Count; j++)
+                {
+                    if (SamePoint(endpoints[i], endpoints[j]))
+                        degree++;
+                }
+
+                Assert.AreEqual(2, degree, "dangling/non-manifold perimeter vertex at " + endpoints[i].X + "," + endpoints[i].Y);
+            }
+        }
+
+        [Test]
         public void SupportArea_SingleBattleHex_OnlyIncludesEdgeAdjacentRing()
         {
             AssertSupportRing(new HexCoord(8, 10));
@@ -114,6 +159,69 @@ namespace XianXia.Tests
                     HexMath.AreWorldEdgeAdjacent(center, n, HexSize),
                     "World edge adjacency failed " + center + " -> " + n);
             }
+        }
+
+        static void AssertSharedEdgesMatch(HexCoord hex)
+        {
+            const float epsilon = 0.0001f * HexSize;
+            var currentX = new float[6];
+            var currentY = new float[6];
+            var neighborX = new float[6];
+            var neighborY = new float[6];
+            HexMath.CollectCornerWorldPositions(hex, HexSize, currentX, currentY);
+
+            for (var dir = 0; dir < HexMath.DirectionCount; dir++)
+            {
+                var neighbor = HexMath.Neighbor(hex, dir);
+                HexMath.CollectCornerWorldPositions(neighbor, HexSize, neighborX, neighborY);
+                HexMath.GetSharedEdgeCornerIndices(dir, out var a0, out var a1);
+                HexMath.GetSharedEdgeCornerIndices(
+                    (dir + 3) % HexMath.DirectionCount,
+                    out var b0,
+                    out var b1);
+
+                Assert.LessOrEqual(System.Math.Abs(currentX[a0] - neighborX[b1]), epsilon, "dir=" + dir + " endpoint 0 x");
+                Assert.LessOrEqual(System.Math.Abs(currentY[a0] - neighborY[b1]), epsilon, "dir=" + dir + " endpoint 0 y");
+                Assert.LessOrEqual(System.Math.Abs(currentX[a1] - neighborX[b0]), epsilon, "dir=" + dir + " endpoint 1 x");
+                Assert.LessOrEqual(System.Math.Abs(currentY[a1] - neighborY[b0]), epsilon, "dir=" + dir + " endpoint 1 y");
+            }
+        }
+
+        static List<BoundaryPoint> CollectExposedEdgeEndpoints(HashSet<HexCoord> territory)
+        {
+            var endpoints = new List<BoundaryPoint>();
+            var x = new float[6];
+            var y = new float[6];
+            foreach (var hex in territory)
+            {
+                HexMath.CollectCornerWorldPositions(hex, HexSize, x, y);
+                for (var dir = 0; dir < HexMath.DirectionCount; dir++)
+                {
+                    if (territory.Contains(HexMath.Neighbor(hex, dir)))
+                        continue;
+                    HexMath.GetSharedEdgeCornerIndices(dir, out var a, out var b);
+                    endpoints.Add(new BoundaryPoint(x[a], y[a]));
+                    endpoints.Add(new BoundaryPoint(x[b], y[b]));
+                }
+            }
+
+            return endpoints;
+        }
+
+        static bool SamePoint(BoundaryPoint a, BoundaryPoint b) =>
+            System.Math.Abs(a.X - b.X) <= 0.0001f * HexSize &&
+            System.Math.Abs(a.Y - b.Y) <= 0.0001f * HexSize;
+
+        readonly struct BoundaryPoint
+        {
+            public BoundaryPoint(float x, float y)
+            {
+                X = x;
+                Y = y;
+            }
+
+            public float X { get; }
+            public float Y { get; }
         }
 
         static void AssertDistanceNeighborBijection(HexCoord center)

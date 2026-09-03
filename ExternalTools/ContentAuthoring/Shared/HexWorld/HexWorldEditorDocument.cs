@@ -13,6 +13,8 @@ public sealed class HexWorldEditorDocument
 {
     readonly Stack<string> _undo = new();
     readonly Stack<string> _redo = new();
+    readonly Dictionary<(int Q, int R), string> _territoryByHex = new();
+    readonly Dictionary<(int Q, int R), string> _derivedSiteTerritoryOwnerByHex = new();
 
     public HexWorldDefinitionDto World { get; private set; } = HexWorldContentGenerator.CreateBlank(
         "base:hex_world_new",
@@ -43,6 +45,7 @@ public sealed class HexWorldEditorDocument
 
     /// <summary>Site footprint / selection changed — overlay refresh only.</summary>
     public event Action? SitesMutated;
+    public event Action? TerritoriesMutated;
 
     public string? LastFootprintEditMessage { get; private set; } = string.Empty;
 
@@ -59,6 +62,7 @@ public sealed class HexWorldEditorDocument
         FilePath = null;
         MarkDirty(false);
         WorldReplaced?.Invoke();
+        RebuildTerritoryLookup();
         Notify();
     }
 
@@ -67,6 +71,7 @@ public sealed class HexWorldEditorDocument
         _undo.Clear();
         _redo.Clear();
         World = world;
+        RebuildTerritoryLookup();
         FilePath = path;
         MarkDirty(false);
         WorldReplaced?.Invoke();
@@ -107,6 +112,7 @@ public sealed class HexWorldEditorDocument
             return false;
         _redo.Push(HexWorldContentJson.Serialize(World));
         World = HexWorldContentJson.Load(_undo.Pop()).Definitions[0];
+        RebuildTerritoryLookup();
         IsDirty = true;
         WorldReplaced?.Invoke();
         Notify();
@@ -119,6 +125,7 @@ public sealed class HexWorldEditorDocument
             return false;
         _undo.Push(HexWorldContentJson.Serialize(World));
         World = HexWorldContentJson.Load(_redo.Pop()).Definitions[0];
+        RebuildTerritoryLookup();
         IsDirty = true;
         WorldReplaced?.Invoke();
         Notify();
@@ -236,6 +243,7 @@ public sealed class HexWorldEditorDocument
             Footprint = new List<HexCoordDto> { hex },
         };
         World.Sites.Add(site);
+        RebuildDerivedSiteTerritoryOwnerLookup();
         SelectedSiteId = id;
         RaiseSitesMutated();
         return site;
@@ -244,7 +252,11 @@ public sealed class HexWorldEditorDocument
     public void DeleteSite(string siteId)
     {
         PushUndo();
+        var removed = World.Sites.FirstOrDefault(s => string.Equals(s.SiteId, siteId, StringComparison.Ordinal));
         World.Sites.RemoveAll(s => string.Equals(s.SiteId, siteId, StringComparison.Ordinal));
+        if (!string.IsNullOrEmpty(removed?.TerritoryRegionId))
+            World.TerritoryRegions.RemoveAll(r => string.Equals(r.RegionId, removed.TerritoryRegionId, StringComparison.Ordinal));
+        RebuildTerritoryLookup();
         if (string.Equals(SelectedSiteId, siteId, StringComparison.Ordinal))
             SelectedSiteId = null;
         IsDirty = true;
@@ -305,6 +317,7 @@ public sealed class HexWorldEditorDocument
         }
 
         PushUndoFromSnapshot(snapshot);
+        RebuildDerivedTerritoryForSite(siteId);
         LastFootprintEditMessage = result.Message;
         RaiseSitesMutated(new[] { (hex.Q, hex.R) });
         return result;
@@ -360,6 +373,149 @@ public sealed class HexWorldEditorDocument
             return null;
         return World.Sites.FirstOrDefault(s => string.Equals(s.SiteId, SelectedSiteId, StringComparison.Ordinal));
     }
+
+    public HexWorldTerritoryRegionDto? GetTerritoryRegion(string regionId) =>
+        World.TerritoryRegions.FirstOrDefault(r => string.Equals(r.RegionId, regionId, StringComparison.Ordinal));
+
+    public HexWorldTerritoryRegionDto? GetTerritoryForSite(string siteId)
+    {
+        var site = World.Sites.FirstOrDefault(s => s.SiteId == siteId);
+        return string.IsNullOrEmpty(site?.TerritoryRegionId) ? null : GetTerritoryRegion(site.TerritoryRegionId);
+    }
+
+    public HexWorldTerritoryRegionDto? FindTerritoryAt(HexCoordDto hex) =>
+        _territoryByHex.TryGetValue((hex.Q, hex.R), out var id) ? GetTerritoryRegion(id) : null;
+
+    public HexWorldSiteDto? FindFootprintOwnerAt(HexCoordDto hex) => FindSiteAt(hex);
+
+    /// <summary>编辑期默认 Site 辖区：完整 Footprint 加其全部 Odd-R 一格邻居。</summary>
+    public IReadOnlyCollection<HexCoordDto> ComputeDefaultSiteTerritory(HexWorldSiteDto site)
+    {
+        var result = new HashSet<HexCoordDto>(HexWorldFootprintRules.ResolveFootprint(site));
+        foreach (var hex in HexWorldFootprintRules.ResolveFootprint(site))
+            for (var d = 0; d < 6; d++)
+            {
+                var n = HexWorldLayoutShared.Neighbor(hex, d);
+                if (n.Q >= 0 && n.R >= 0 && n.Q < World.Width && n.R < World.Height) result.Add(n);
+            }
+        return result;
+    }
+
+    public HexWorldSiteDto? TryResolveDefaultSiteTerritoryAtHex(HexCoordDto hex) =>
+        _derivedSiteTerritoryOwnerByHex.TryGetValue((hex.Q, hex.R), out var id)
+            ? World.Sites.FirstOrDefault(site => site.SiteId == id) : null;
+
+    public FootprintEditResult AssignFactionToSiteTerritory(string siteId, string factionId, bool singleStrokeUndo = true)
+    {
+        var site = World.Sites.FirstOrDefault(s => s.SiteId == siteId);
+        if (site == null) return FootprintEditResult.Fail("未找到 WorldSite。");
+        if (singleStrokeUndo) PushUndo();
+        var region = GetTerritoryForSite(siteId);
+        if (region == null)
+        {
+            var suffix = siteId.Contains(':') ? siteId[(siteId.IndexOf(':') + 1)..].Replace("site_", "", StringComparison.Ordinal) : siteId;
+            var regionId = "base:territory_" + suffix;
+            if (GetTerritoryRegion(regionId) != null) return FootprintEditResult.Fail("自动生成 RegionId 与现有 Region 冲突。");
+            site.TerritoryRegionId = regionId;
+            region = new HexWorldTerritoryRegionDto { RegionId = regionId, PrimaryWorldSiteId = siteId };
+            World.TerritoryRegions.Add(region);
+        }
+        site.OwnerFactionId = factionId ?? string.Empty;
+        region.PrimaryWorldSiteId = siteId;
+        region.ControlFactionId = factionId ?? string.Empty;
+        region.Hexes = ComputeDefaultSiteTerritory(site).OrderBy(h => h.R).ThenBy(h => h.Q).ToList();
+        RebuildTerritoryLookup();
+        RaiseSitesMutated(); RaiseTerritoriesMutated();
+        return FootprintEditResult.Ok($"已将「{site.DisplayName}」及其默认辖区（{region.Hexes.Count} Hex）设为「{factionId}」。");
+    }
+
+    public void RebuildDerivedTerritoryForSite(string siteId)
+    {
+        var site = World.Sites.FirstOrDefault(s => s.SiteId == siteId); var region = site == null ? null : GetTerritoryForSite(siteId);
+        if (site == null || region == null) { RebuildDerivedSiteTerritoryOwnerLookup(); return; }
+        region.Hexes = ComputeDefaultSiteTerritory(site).OrderBy(h => h.R).ThenBy(h => h.Q).ToList();
+        region.ControlFactionId = site.OwnerFactionId ?? string.Empty;
+        RebuildTerritoryLookup(); RebuildDerivedSiteTerritoryOwnerLookup(); RaiseTerritoriesMutated();
+    }
+
+    public FootprintEditResult AssignTerritoryHex(string regionId, HexCoordDto hex, bool singleStrokeUndo = true)
+    {
+        var target = GetTerritoryRegion(regionId);
+        if (target == null) return FootprintEditResult.Fail("未找到 TerritoryRegion。");
+        if (hex.Q < 0 || hex.R < 0 || hex.Q >= World.Width || hex.R >= World.Height) return FootprintEditResult.Fail("Hex 越界。");
+        var footprint = FindFootprintOwnerAt(hex);
+        if (footprint != null && !string.Equals(footprint.SiteId, target.PrimaryWorldSiteId, StringComparison.Ordinal))
+            return FootprintEditResult.Fail($"拒绝：Hex ({hex.Q},{hex.R}) 是「{footprint.DisplayName}」Footprint。");
+        if (_territoryByHex.TryGetValue((hex.Q, hex.R), out var old) && old == regionId) return FootprintEditResult.Fail("该 Hex 已属于当前 Territory。");
+        if (singleStrokeUndo) PushUndo();
+        if (!string.IsNullOrEmpty(old)) GetTerritoryRegion(old)?.Hexes.RemoveAll(h => h.Equals(hex));
+        target.Hexes.Add(hex); _territoryByHex[(hex.Q, hex.R)] = regionId;
+        RaiseTerritoriesMutated();
+        return FootprintEditResult.Ok($"Hex ({hex.Q},{hex.R}) → {regionId}");
+    }
+
+    public FootprintEditResult RemoveTerritoryHex(HexCoordDto hex, bool singleStrokeUndo = true)
+    {
+        if (!_territoryByHex.TryGetValue((hex.Q, hex.R), out var id)) return FootprintEditResult.Fail("该 Hex 没有 Territory。");
+        var region = GetTerritoryRegion(id); if (region == null) return FootprintEditResult.Fail("Territory 数据错误。");
+        var footprint = FindFootprintOwnerAt(hex);
+        if (footprint != null) return FootprintEditResult.Fail("WorldSite footprint 必须属于自己的 TerritoryRegion，不能擦除。");
+        if (singleStrokeUndo) PushUndo(); region.Hexes.RemoveAll(h => h.Equals(hex)); _territoryByHex.Remove((hex.Q, hex.R));
+        RaiseTerritoriesMutated(); return FootprintEditResult.Ok($"已擦除 Hex ({hex.Q},{hex.R}) Territory。");
+    }
+
+    public FootprintEditResult EnsureSiteFootprintInTerritory(string regionId)
+    {
+        var region = GetTerritoryRegion(regionId); var site = region == null ? null : World.Sites.FirstOrDefault(s => s.SiteId == region.PrimaryWorldSiteId);
+        if (region == null || site == null) return FootprintEditResult.Fail("未找到 Region 对应 WorldSite。");
+        var conflicts = HexWorldFootprintRules.ResolveFootprint(site).Where(h => _territoryByHex.TryGetValue((h.Q, h.R), out var owner) && owner != regionId).ToList();
+        if (conflicts.Count > 0) return FootprintEditResult.Fail("Footprint 已属于其它 Region，请手工处理冲突：" + string.Join("、", conflicts));
+        PushUndo(); foreach (var hex in HexWorldFootprintRules.ResolveFootprint(site)) { if (!region.Hexes.Contains(hex)) region.Hexes.Add(hex); _territoryByHex[(hex.Q, hex.R)] = regionId; }
+        RaiseTerritoriesMutated(); return FootprintEditResult.Ok("已补齐 Site Footprint。");
+    }
+
+    public FootprintEditResult ExpandTerritoryOneRing(string regionId)
+    {
+        var region = GetTerritoryRegion(regionId); var site = region == null ? null : World.Sites.FirstOrDefault(s => s.SiteId == region.PrimaryWorldSiteId);
+        if (region == null || site == null) return FootprintEditResult.Fail("未找到 Region 对应 WorldSite。");
+        var wanted = new HashSet<HexCoordDto>(HexWorldFootprintRules.ResolveFootprint(site));
+        foreach (var h in HexWorldFootprintRules.ResolveFootprint(site)) for (var d = 0; d < 6; d++) { var n = HexWorldLayoutShared.Neighbor(h, d); if (n.Q >= 0 && n.R >= 0 && n.Q < World.Width && n.R < World.Height) wanted.Add(n); }
+        var added = 0; var conflicts = 0; PushUndo();
+        foreach (var h in wanted) { if (FindFootprintOwnerAt(h) is { } other && other.SiteId != site.SiteId) { conflicts++; continue; } if (_territoryByHex.TryGetValue((h.Q, h.R), out var owner) && owner != regionId) { conflicts++; continue; } if (region.Hexes.Contains(h)) continue; region.Hexes.Add(h); _territoryByHex[(h.Q, h.R)] = regionId; added++; }
+        if (added == 0) { Undo(); return FootprintEditResult.Fail($"外围一圈未新增；冲突 {conflicts}。"); }
+        RaiseTerritoriesMutated(); return FootprintEditResult.Ok($"外围一圈完成：新增 {added}，冲突 {conflicts}（未修改）。");
+    }
+
+    public FootprintEditResult CreateTerritoryForSite(string siteId, string regionId)
+    {
+        var site = World.Sites.FirstOrDefault(s => s.SiteId == siteId); if (site == null) return FootprintEditResult.Fail("未找到 WorldSite。");
+        if (!string.IsNullOrEmpty(site.TerritoryRegionId) || GetTerritoryRegion(regionId) != null) return FootprintEditResult.Fail("Site 已有 Territory 或 RegionId 已存在。");
+        foreach (var h in HexWorldFootprintRules.ResolveFootprint(site)) if (_territoryByHex.ContainsKey((h.Q, h.R))) return FootprintEditResult.Fail("Footprint 已有 Territory 冲突，请先手工处理。");
+        PushUndo(); site.TerritoryRegionId = regionId; var region = new HexWorldTerritoryRegionDto { RegionId = regionId, PrimaryWorldSiteId = siteId, ControlFactionId = site.OwnerFactionId, Hexes = HexWorldFootprintRules.ResolveFootprint(site).ToList() }; World.TerritoryRegions.Add(region); RebuildTerritoryLookup(); RaiseTerritoriesMutated(); return FootprintEditResult.Ok("已创建 TerritoryRegion。");
+    }
+
+    public void RenameSelectedSite(string oldId, string newId, string displayName, string siteType, string localMapId)
+    {
+        var site = World.Sites.FirstOrDefault(s => s.SiteId == oldId); if (site == null || string.IsNullOrWhiteSpace(newId)) return;
+        PushUndo(); if (site.TerritoryRegionId is { Length: > 0 } id && GetTerritoryRegion(id) is { } region) region.PrimaryWorldSiteId = newId;
+        site.SiteId = newId; site.DisplayName = displayName; site.SiteType = siteType; site.LocalMapId = localMapId; SelectedSiteId = newId; RaiseSitesMutated(); RaiseTerritoriesMutated();
+    }
+
+    void RebuildTerritoryLookup()
+    {
+        _territoryByHex.Clear(); foreach (var region in World.TerritoryRegions) foreach (var hex in region.Hexes) if (!_territoryByHex.ContainsKey((hex.Q, hex.R))) _territoryByHex[(hex.Q, hex.R)] = region.RegionId;
+        RebuildDerivedSiteTerritoryOwnerLookup();
+    }
+
+    void RebuildDerivedSiteTerritoryOwnerLookup()
+    {
+        _derivedSiteTerritoryOwnerByHex.Clear();
+        foreach (var site in World.Sites)
+            foreach (var hex in ComputeDefaultSiteTerritory(site))
+                if (!_derivedSiteTerritoryOwnerByHex.ContainsKey((hex.Q, hex.R))) _derivedSiteTerritoryOwnerByHex[(hex.Q, hex.R)] = site.SiteId;
+    }
+
+    void RaiseTerritoriesMutated() { IsDirty = true; TerritoriesMutated?.Invoke(); Changed?.Invoke(); }
 
     void RaiseSitesMutated(IReadOnlyList<(int Q, int R)>? touched = null)
     {

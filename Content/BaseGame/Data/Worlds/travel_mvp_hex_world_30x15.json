@@ -3330,13 +3330,13 @@
           "displayName": "TEST 主角营地",
           "siteType": "Camp",
           "anchorQ": 4,
-          "anchorR": 6,
+          "anchorR": 4,
           "presenceQ": 4,
-          "presenceR": 6,
+          "presenceR": 4,
           "footprint": [
             {
               "q": 4,
-              "r": 6
+              "r": 4
             }
           ],
           "localMapId": "base:map_player_camp",
@@ -3470,6 +3470,7 @@
           "primaryWorldSiteId": "test:site_player_camp",
           "controlFactionId": "base:faction_player",
           "hexes": [
+              {"q": 4, "r": 4},
               {"q": 4, "r": 6},
               {"q": 3, "r": 5},
               {"q": 4, "r": 5}

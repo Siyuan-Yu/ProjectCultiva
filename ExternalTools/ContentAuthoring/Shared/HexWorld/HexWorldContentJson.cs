@@ -95,5 +95,18 @@ public static class HexWorldContentJson
                 .ThenBy(h => h.Q)
                 .ToList();
         }
+        definition.TerritoryRegions = definition.TerritoryRegions
+            .OrderBy(region => region.RegionId, StringComparer.Ordinal)
+            .ToList();
+        foreach (var region in definition.TerritoryRegions)
+        {
+            region.Hexes = region.Hexes
+                .Distinct()
+                .OrderBy(hex => hex.R)
+                .ThenBy(hex => hex.Q)
+                .ToList();
+        }
+        definition.StandaloneHexControls = definition.StandaloneHexControls
+            .OrderBy(control => control.R).ThenBy(control => control.Q).ToList();
     }
 }

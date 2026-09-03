@@ -30,8 +30,12 @@ namespace XianXia.Unity.Host
         static readonly Color SelectBorder = new Color(0.92f, 0.48f, 0.06f, 1f);
         static readonly Color SiteFootprintSelectFill = new Color(1f, 0.92f, 0.20f, 0.28f);
         static readonly Color SiteFootprintSelectBorder = new Color(1f, 0.55f, 0.05f, 1f);
-        /// <summary>Territory 淡色 overlay 强度（2J §9.4：保持地形可读）。</summary>
-        const float TerritoryTintStrength = 0.22f;
+        // Territory 是浮在 terrain 之上的政治边界，不对受控 Hex 填色。
+        const float TerritoryBorderHaloNearPx = 0.0f;
+        const float TerritoryBorderHaloFarPx = 10.0f;
+        const float TerritoryBorderMainNearPx = 2.0f;
+        const float TerritoryBorderMainFarPx = 7.0f;
+        static readonly Color TerritoryBorderHaloBase = new Color(1f, 1f, 0.94f, 0.62f);
 
         static readonly float[] CornerWx = new float[6];
         static readonly float[] CornerWy = new float[6];
@@ -50,6 +54,8 @@ namespace XianXia.Unity.Host
         static Material _glMaterial;
         static HexWorld _cachedWorld;
         static HexTerrainChunkCache _terrainCache;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#endif
 
         /// <summary>开发验证：CellFillScale=0.80 + 高对比 Gutter。默认 OFF。</summary>
         public static bool DebugStrongHexSeparation
@@ -126,6 +132,7 @@ namespace XianXia.Unity.Host
                     terrainInsetScale,
                     ref terrainCount);
                 FlushTriangles(TerrainVx, TerrainVy, TerrainCr, TerrainCg, TerrainCb, TerrainCa, terrainCount);
+                terrainCount = 0;
             }
             else
             {
@@ -140,23 +147,14 @@ namespace XianXia.Unity.Host
                     terrainInsetScale,
                     ref terrainCount);
                 FlushTriangles(TerrainVx, TerrainVy, TerrainCr, TerrainCg, TerrainCb, TerrainCa, terrainCount);
+                terrainCount = 0;
             }
 
-            // Territory 独立 overlay 批（2J §9.x）：仅 ON 时额外绘制，不 bake 进 terrain；
-            // 顺序 = Terrain → Territory overlay → selection/hover → WorldSite/armies/icons。
-            if (ShowTerritoryOverlay && world?.Strategic?.TerritoryRegions != null)
+            // Territory 独立边界批：Terrain → normal grid → Territory border → hover/selected。
+            // 仅 ON 时绘制，绝不写入 terrain cache 或更改 terrain 的颜色。
+            if (ShowTerritoryOverlay)
             {
-                DrawTerritoryOverlay(
-                    world,
-                    projection,
-                    minWx,
-                    maxWx,
-                    minWy,
-                    maxWy,
-                    terrainInsetScale,
-                    ref terrainCount);
-                FlushTriangles(TerrainVx, TerrainVy, TerrainCr, TerrainCg, TerrainCb, TerrainCa, terrainCount);
-                terrainCount = 0;
+                DrawTerritoryBorders(world, projection, minWx, maxWx, minWy, maxWy);
             }
 
             if (selectedWorldSite != null)
@@ -621,57 +619,145 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// Territory overlay 独立批次：遍历 Region.Hexes（稀疏，非全图扫描），
-        /// ControlFactionId 非空 → 正式 Faction MapColor 半透明叠加；None 不画。
-        /// footprint 与普通 Territory 同色（Site 本体由 WorldSitePresentationLayer 强调）。
-        /// 追加到 terrain 批之后、selection 批之前 —— ON/OFF 不需重建 terrain cache。
+        /// Territory 独立边界批：只按 HexCell.ControlFactionId 判定政治外边界。
+        /// 同 faction 相邻 Hex 不画，异 faction 的共享边按 faction id 的稳定顺序只绘制一次；
+        /// 无主 Hex 不主动绘制。此层不读取 TerritoryRegionId，也不改变 terrain cache。
         /// </summary>
-        static void DrawTerritoryOverlay(
+        static void DrawTerritoryBorders(
             SimulationWorld world,
             HexMapViewportProjection projection,
             float minWx,
             float maxWx,
             float minWy,
-            float maxWy,
-            float terrainInsetScale,
-            ref int vertCount)
+            float maxWy)
         {
             var grid = world?.HexWorld;
-            var board = world?.Strategic?.TerritoryRegions;
-            if (grid == null || !grid.HasGrid || board?.Regions == null)
+            if (grid == null || !grid.HasGrid)
                 return;
 
             var pad = grid.HexSize * 1.2f;
-            foreach (var kv in board.Regions)
+            var borderCount = 0;
+            if (grid.UsesCompactStorage)
             {
-                var region = kv.Value;
-                if (region == null || region.Hexes == null)
-                    continue;
-                var hexes = region.Hexes;
-                for (var i = 0; i < hexes.Count; i++)
+                HexWorldMapRenderBounds.ComputeVisibleCompactRange(
+                    grid,
+                    minWx,
+                    maxWx,
+                    minWy,
+                    maxWy,
+                    pad,
+                    out var qMin,
+                    out var qMax,
+                    out var rMin,
+                    out var rMax);
+                for (var r = rMin; r <= rMax; r++)
                 {
-                    var hex = hexes[i];
-                    if (!grid.TryGetCell(hex, out var cell) || cell == null)
-                        continue;
-                    var controller = cell.ControlFactionId;
-                    if (string.IsNullOrEmpty(controller))
-                        continue;
-
-                    HexMath.ToWorldPosition(hex, grid.HexSize, out var cx, out var cy);
-                    if (cx < minWx - pad || cx > maxWx + pad || cy < minWy - pad || cy > maxWy + pad)
-                        continue;
-
-                    StrategicFactionCatalog.MapTint(controller, out var r, out var g, out var b);
-                    var fill = new Color(r, g, b, TerritoryTintStrength);
-                    if (vertCount + 18 >= MaxVerts)
+                    for (var q = qMin; q <= qMax; q++)
                     {
-                        FlushTriangles(TerrainVx, TerrainVy, TerrainCr, TerrainCg, TerrainCb, TerrainCa, vertCount);
-                        vertCount = 0;
+                        var hex = new HexCoord(q, r);
+                        if (grid.TryGetCell(hex, out var cell) && cell != null)
+                            AppendTerritoryBordersForHex(grid, projection, cell, ref borderCount);
                     }
-
-                    EmitTerrainFill(projection, hex, grid.HexSize, fill, terrainInsetScale, ref vertCount);
                 }
             }
+            else
+            {
+                foreach (var kv in grid.Tiles)
+                {
+                    var cell = kv.Value;
+                    if (cell == null)
+                        continue;
+                    HexMath.ToWorldPosition(cell.Coord, grid.HexSize, out var cx, out var cy);
+                    if (cx < minWx - pad || cx > maxWx + pad || cy < minWy - pad || cy > maxWy + pad)
+                        continue;
+                    AppendTerritoryBordersForHex(grid, projection, cell, ref borderCount);
+                }
+            }
+
+            FlushTriangles(TerrainVx, TerrainVy, TerrainCr, TerrainCg, TerrainCb, TerrainCa, borderCount);
+        }
+
+        static void AppendTerritoryBordersForHex(
+            HexWorld grid,
+            HexMapViewportProjection projection,
+            HexCell cell,
+            ref int borderCount)
+        {
+            var factionId = cell.ControlFactionId ?? string.Empty;
+            if (string.IsNullOrEmpty(factionId))
+                return;
+
+            ProjectLogicalHexCorners(projection, cell.Coord, grid.HexSize, CornerScreen);
+            var owningCenter = projection.ProjectHexCenter(cell.Coord);
+            StrategicFactionCatalog.MapTint(factionId, out var r, out var g, out var b);
+            var main = new Color(r, g, b, 0.96f);
+            var halo = Color.Lerp(TerritoryBorderHaloBase, main, 0.28f);
+            halo.a = TerritoryBorderHaloBase.a;
+
+            for (var direction = 0; direction < HexMath.DirectionCount; direction++)
+            {
+                var neighborHex = HexMath.Neighbor(cell.Coord, direction);
+                if (grid.TryGetCell(neighborHex, out var neighbor) && neighbor != null)
+                {
+                    var neighborFactionId = neighbor.ControlFactionId ?? string.Empty;
+                    if (string.Equals(factionId, neighborFactionId, StringComparison.Ordinal))
+                        continue;
+                }
+
+                HexMath.GetSharedEdgeCornerIndices(direction, out var cornerA, out var cornerB);
+                if (borderCount + 12 >= MaxVerts)
+                {
+                    FlushTriangles(TerrainVx, TerrainVy, TerrainCr, TerrainCg, TerrainCb, TerrainCa, borderCount);
+                    borderCount = 0;
+                }
+
+                AppendInwardTerritoryBand(
+                    CornerScreen[cornerA],
+                    CornerScreen[cornerB],
+                    owningCenter,
+                    TerritoryBorderHaloNearPx,
+                    TerritoryBorderHaloFarPx,
+                    halo,
+                    ref borderCount);
+                AppendInwardTerritoryBand(
+                    CornerScreen[cornerA],
+                    CornerScreen[cornerB],
+                    owningCenter,
+                    TerritoryBorderMainNearPx,
+                    TerritoryBorderMainFarPx,
+                    main,
+                    ref borderCount);
+            }
+        }
+
+        /// <summary>
+        /// Territory 专用单边 ribbon：以真实 shared edge 为外侧基准，向 owning Hex 内部延展。
+        /// 不复用 centered <see cref="AppendLineQuad"/>，避免异势力接壤时两侧颜色相互覆盖。
+        /// </summary>
+        static void AppendInwardTerritoryBand(
+            Vector2 edgeA,
+            Vector2 edgeB,
+            Vector2 owningHexCenter,
+            float nearOffsetPx,
+            float farOffsetPx,
+            Color color,
+            ref int count)
+        {
+            var midpoint = (edgeA + edgeB) * 0.5f;
+            var inward = owningHexCenter - midpoint;
+            var inwardLength = inward.magnitude;
+            if (inwardLength < 0.001f)
+                return;
+
+            inward /= inwardLength;
+            var effectiveFar = Mathf.Min(farOffsetPx, inwardLength * 0.30f);
+            var effectiveNear = Mathf.Min(nearOffsetPx, effectiveFar * 0.5f);
+            var aNear = edgeA + inward * effectiveNear;
+            var bNear = edgeB + inward * effectiveNear;
+            var aFar = edgeA + inward * effectiveFar;
+            var bFar = edgeB + inward * effectiveFar;
+            AppendTriangle(aNear, aFar, bFar, color.r, color.g, color.b, color.a, ref count);
+            AppendTriangle(aNear, bFar, bNear, color.r, color.g, color.b, color.a, ref count);
         }
 
         static void EnsureGlMaterial()
