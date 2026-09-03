@@ -172,7 +172,12 @@ namespace XianXia.Data.Content
         {
             "definitionId", "entityKind", "displayName", "assignOpeningFaction", "factionId", "factionRole",
             "bindSchedule", "bindDailyTask", "recruitable", "workRole", "scheduleId", "aiRole", "jobId",
-            "worldSiteId", "localLocationId"
+            "worldSiteId", "localLocationId", "localPosition"
+        };
+
+        public static readonly HashSet<string> OpeningLocalPositionFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "x", "z"
         };
 
         public static readonly HashSet<string> ResourceFields = new HashSet<string>(StringComparer.Ordinal)

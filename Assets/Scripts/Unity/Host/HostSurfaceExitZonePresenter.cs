@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Navigation;
+using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 
@@ -33,6 +35,12 @@ namespace XianXia.Unity.Host
         public float CachedExitTriggerDepth => _cachedDepth;
         public string CachedMapLayoutId => _cachedMapId;
 
+        /// <summary>
+        /// 当前已通过战略可通行与本地连通性校验的出口集合。
+        /// Presenter、手动出口、WASD 与自动旅行都必须消费这里的同一结果。
+        /// </summary>
+        public IReadOnlyList<SurfaceExitVisibleZone> UsableZones => _zones;
+
         public void Bind(PlayableHostBootstrap host) => bootstrap = host;
 
         public void Rebuild()
@@ -60,6 +68,73 @@ namespace XianXia.Unity.Host
                 : SurfaceExitZoneCalculator.DefaultExitTriggerDepth;
 
             SurfaceExitZoneCalculator.CollectVisibleZones(world, bounds, depth, _zones);
+            var strategicExitCount = _zones.Count;
+            var structuralReadyCount = 0;
+            var exactDuplicateCount = 0;
+            var identityCounts = new Dictionary<string, int>();
+            for (var i = 0; i < _zones.Count; i++)
+            {
+                var c = _zones[i].Connection;
+                var key = c.SourceHex + ">" + c.DestinationHex + ":" + c.DirectionIndex;
+                if (!identityCounts.TryGetValue(key, out var count))
+                    count = 0;
+                identityCounts[key] = count + 1;
+            }
+            foreach (var pair in identityCounts)
+            {
+                if (pair.Value > 1)
+                    exactDuplicateCount += pair.Value - 1;
+            }
+            var grid = bootstrap.MoveController != null ? bootstrap.MoveController.WalkGrid : null;
+            var active = session.PlayerParty != null ? session.PlayerParty.ActiveCharacterId : default;
+            EntityView activeView = null;
+            var hasActive = !active.IsNone && bootstrap.ViewSpawner != null &&
+                            bootstrap.ViewSpawner.Registry.TryGet(active, out activeView) && activeView != null;
+            for (var i = _zones.Count - 1; i >= 0; i--)
+            {
+                var connection = _zones[i].Connection;
+                HexCell tile = null;
+                if (world.HexWorld != null)
+                    world.HexWorld.TryGetTile(connection.DestinationHex, out tile);
+                var structural = SurfaceExitTraversalService.TryPrepareTraversal(
+                    world, session.PlayerParty, connection, out _);
+                var destinationValid = structural.IsSuccess;
+                if (destinationValid)
+                    structuralReadyCount++;
+                var identity = connection.SourceHex + ">" + connection.DestinationHex + ":" + connection.DirectionIndex;
+                var isExactDuplicate = identityCounts[identity] > 1;
+                var px = 0f;
+                var py = 0f;
+                var reachable = hasActive && SurfaceExitWalkGridReachability.TryResolveReachablePointInsideExitSlot(
+                    grid, activeView.transform.position.x, activeView.transform.position.y, connection, out px, out py);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.Log("[SurfaceExitAudit] ContextKind=" + world.PlayerPartyTravel.LocationKind +
+                    " SiteId=" + (world.PlayerPartyTravel.SiteId ?? string.Empty) +
+                    " CurrentHex=" + world.PlayerPartyTravel.CurrentHex +
+                    " SourceHex=" + connection.SourceHex + " DestinationHex=" + connection.DestinationHex +
+                    " DirectionIndex=" + connection.DirectionIndex + " DestinationKind=" + connection.DestinationKind +
+                    " DestinationTerrain=" + (tile != null ? tile.Terrain.ToString() : "Missing") +
+                    " DestinationPassable=" + (tile != null && tile.IsPassable) +
+                    " StructuralReady=" + structural.IsSuccess +
+                    " StructuralReason=" + (structural.IsFailure ? structural.Error.ToString() : "None") +
+                    " SlotRect=" + connection.SlotRect.MinX + "," + connection.SlotRect.MinY + "," + connection.SlotRect.MaxX + "," + connection.SlotRect.MaxY +
+                    " LocallyReachable=" + reachable + " ResolvedApproachPoint=" + px + "," + py);
+                if (destinationValid && !reachable)
+                {
+                    Debug.LogWarning(
+                        "[SurfaceExitTopology] Classification=STRATEGICALLY_VALID_BUT_LOCALLY_UNREACHABLE" +
+                        " SourceHex=" + connection.SourceHex +
+                        " DestinationHex=" + connection.DestinationHex,
+                        this);
+                }
+#endif
+                if (!destinationValid)
+                    Debug.LogWarning("SurfaceExit structural preflight rejected: " + structural.Error, this);
+                if (!destinationValid || !reachable || isExactDuplicate)
+                    _zones.RemoveAt(i);
+            }
+            SurfaceExitTopologyAudit.Run(
+                this, world, strategicExitCount, structuralReadyCount, _zones.Count, exactDuplicateCount);
             if (_zones.Count == 0)
                 return;
 
@@ -76,6 +151,222 @@ namespace XianXia.Unity.Host
             }
 
             VisibleZoneCount = _zones.Count;
+        }
+
+        public bool TryGetUsableSurfaceExitAtPoint(
+            float localX,
+            float localY,
+            out SurfaceExitConnection connection,
+            out Vector3 approachPoint)
+        {
+            connection = default;
+            approachPoint = default;
+            for (var i = 0; i < _zones.Count; i++)
+            {
+                var candidate = _zones[i].Connection;
+                if (!SurfaceExitZoneCalculator.PointBelongsToConnection(
+                        localX, localY, candidate, _cachedDepth))
+                    continue;
+                if (!TryResolveCurrentApproach(candidate, out approachPoint))
+                    continue;
+                connection = candidate;
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool TryGetUsableSurfaceExit(
+            SurfaceExitConnection expected,
+            out Vector3 approachPoint)
+        {
+            approachPoint = default;
+            for (var i = 0; i < _zones.Count; i++)
+            {
+                var candidate = _zones[i].Connection;
+                if (!SameIdentity(candidate, expected))
+                    continue;
+                return TryResolveCurrentApproach(candidate, out approachPoint);
+            }
+
+            return false;
+        }
+
+        bool TryResolveCurrentApproach(
+            SurfaceExitConnection connection,
+            out Vector3 approachPoint)
+        {
+            approachPoint = default;
+            var session = bootstrap != null ? bootstrap.Session : null;
+            var active = session?.PlayerParty != null
+                ? session.PlayerParty.ActiveCharacterId
+                : EntityId.None;
+            if (active.IsNone || bootstrap?.ViewSpawner == null ||
+                !bootstrap.ViewSpawner.Registry.TryGet(active, out var activeView) ||
+                activeView == null)
+                return false;
+            var grid = bootstrap.MoveController != null ? bootstrap.MoveController.WalkGrid : null;
+            if (!SurfaceExitWalkGridReachability.TryResolveReachablePointInsideExitSlot(
+                    grid,
+                    activeView.transform.position.x,
+                    activeView.transform.position.y,
+                    connection,
+                    out var x,
+                    out var y))
+                return false;
+            approachPoint = new Vector3(x, y, HostPresentationSpace.EntityZ);
+            return true;
+        }
+
+        static bool SameIdentity(SurfaceExitConnection left, SurfaceExitConnection right) =>
+            left.SourceHex.Equals(right.SourceHex) &&
+            left.DestinationHex.Equals(right.DestinationHex) &&
+            left.DirectionIndex == right.DirectionIndex;
+
+        internal void WriteTopologyAudit(
+            XianXia.Core.Simulation.SimulationWorld world,
+            int currentStrategicExitCount,
+            int currentStructuralReadyCount,
+            int currentUsableExitCount,
+            int currentExactDuplicateCount)
+        {
+            var sites = world?.Strategic?.Sites;
+            if (sites == null || world.HexWorld == null)
+                return;
+
+            var currentSiteId = world.PlayerPartyTravel?.SiteId ?? string.Empty;
+            var hexSize = world.HexWorld.HexSize > 0.0001f ? world.HexWorld.HexSize : 1f;
+            var nominalBounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
+                0f, 0f, 1f, 16, 16);
+            var connections = new List<SurfaceExitConnection>(16);
+            var totalInvalid = 0;
+            var totalLocallyUnavailable = 0;
+            foreach (var pair in sites.Sites)
+            {
+                var site = pair.Value;
+                if (site == null)
+                    continue;
+                WorldSiteFootprintExitConnectionResolver.CollectConnections(
+                    world,
+                    site,
+                    hexSize,
+                    nominalBounds,
+                    SurfaceExitZoneCalculator.DefaultExitTriggerDepth,
+                    SurfaceExitZoneCalculator.DefaultSlotSpanFraction,
+                    connections);
+
+                var destinationSiteCounts = new Dictionary<string, int>();
+                var destinationSiteHexes = new Dictionary<string, string>();
+                var uniqueDestinationHexes = new HashSet<HexCoord>();
+                var uniqueDestinationSites = new HashSet<string>();
+                var invalidStrategic = 0;
+                for (var i = 0; i < connections.Count; i++)
+                {
+                    var c = connections[i];
+                    uniqueDestinationHexes.Add(c.DestinationHex);
+                    world.HexWorld.TryGetTile(c.DestinationHex, out var tile);
+                    var valid = tile != null && tile.IsPassable &&
+                                tile.Terrain != XianXia.Core.World.Hex.HexTerrainType.Water;
+                    if (!valid)
+                    {
+                        invalidStrategic++;
+                        totalInvalid++;
+                        Debug.LogError(
+                            "[SurfaceExitTopology] INVALID_STRATEGIC_EXIT SiteId=" + site.SiteId +
+                            " SourceHex=" + c.SourceHex +
+                            " DestinationHex=" + c.DestinationHex,
+                            this);
+                    }
+
+                    var sharedBoundaryEdgeCount = 0;
+                    foreach (var footprintHex in site.EnumerateFootprintHexes())
+                    {
+                        for (var direction = 0; direction < HexMath.DirectionCount; direction++)
+                        {
+                            if (HexMath.Neighbor(footprintHex, direction).Equals(c.DestinationHex))
+                                sharedBoundaryEdgeCount++;
+                        }
+                    }
+
+                    var destinationSiteId = string.Empty;
+                    if (sites.TryGetAtHex(c.DestinationHex, out var destinationSite) &&
+                        destinationSite != null)
+                    {
+                        destinationSiteId = destinationSite.SiteId;
+                        uniqueDestinationSites.Add(destinationSiteId);
+                        if (!destinationSiteCounts.TryGetValue(destinationSiteId, out var count))
+                            count = 0;
+                        destinationSiteCounts[destinationSiteId] = count + 1;
+                        if (!destinationSiteHexes.TryGetValue(destinationSiteId, out var hexes))
+                            hexes = string.Empty;
+                        destinationSiteHexes[destinationSiteId] =
+                            hexes + (hexes.Length > 0 ? "," : string.Empty) + c.DestinationHex;
+                    }
+
+                    Debug.Log(
+                        "[SurfaceExitTopology.Exit] SiteId=" + site.SiteId +
+                        " SourceHex=" + c.SourceHex +
+                        " DestinationHex=" + c.DestinationHex +
+                        " DestinationKind=" + c.DestinationKind +
+                        " DestinationSiteId=" + destinationSiteId +
+                        " Terrain=" + (tile != null ? tile.Terrain.ToString() : "Missing") +
+                        " Passable=" + (tile != null && tile.IsPassable) +
+                        " SharedBoundaryEdgeCount=" + sharedBoundaryEdgeCount,
+                        this);
+                }
+
+                var sameSiteMultiExit = string.Empty;
+                foreach (var destination in destinationSiteCounts)
+                {
+                    if (destination.Value <= 1)
+                        continue;
+                    if (sameSiteMultiExit.Length > 0)
+                        sameSiteMultiExit += ",";
+                    sameSiteMultiExit += destination.Key + "×" + destination.Value;
+                    Debug.Log(
+                        "[SurfaceExitTopology.Group] Classification=MULTIPLE_EXITS_TO_SAME_SITE" +
+                        " SiteId=" + site.SiteId +
+                        " DestinationSite=" + destination.Key +
+                        " ConnectionCount=" + destination.Value +
+                        " DestinationHexes=[" + destinationSiteHexes[destination.Key] + "]",
+                        this);
+                }
+
+                var isCurrent = string.Equals(
+                    currentSiteId, site.SiteId, System.StringComparison.Ordinal);
+                var locallyUnavailable = isCurrent
+                    ? System.Math.Max(0, currentStrategicExitCount - currentUsableExitCount)
+                    : -1;
+                if (locallyUnavailable > 0)
+                    totalLocallyUnavailable += locallyUnavailable;
+                var footprintHexCount = 0;
+                foreach (var _ in site.EnumerateFootprintHexes())
+                    footprintHexCount++;
+                Debug.Log(
+                    "[SurfaceExitTopology] SiteId=" + site.SiteId +
+                    " DisplayName=" + site.DisplayName +
+                    " FootprintHexCount=" + footprintHexCount +
+                    " StrategicExits=" + connections.Count +
+                    " UniqueDestinationHexCount=" + uniqueDestinationHexes.Count +
+                    " UniqueDestinationSiteCount=" + uniqueDestinationSites.Count +
+                    " InvalidStrategic=" + invalidStrategic +
+                    " SameSiteMultiExit=" +
+                    (sameSiteMultiExit.Length > 0 ? sameSiteMultiExit : "None") +
+                    " LocallyUnavailable=" +
+                    (locallyUnavailable >= 0 ? locallyUnavailable.ToString() : "NotLoaded"),
+                    this);
+            }
+            Debug.Log(
+                "[SurfaceExitTopology.Summary] InvalidStrategicExitCount=" + totalInvalid +
+                " CurrentLoadedStrategicExitCount=" + currentStrategicExitCount +
+                " CurrentLoadedStructuralReadyCount=" + currentStructuralReadyCount +
+                " CurrentLoadedStructuralTransitionUnavailableCount=" +
+                System.Math.Max(0, currentStrategicExitCount - currentStructuralReadyCount) +
+                " CurrentLoadedLocallyReachableCount=" + currentUsableExitCount +
+                " CurrentLoadedVisibleUsableCount=" + currentUsableExitCount +
+                " CurrentLoadedExactDuplicateCount=" + currentExactDuplicateCount +
+                " CurrentLoadedLocallyUnavailableCount=" + totalLocallyUnavailable,
+                this);
         }
 
         public void Clear()
@@ -241,6 +532,28 @@ namespace XianXia.Unity.Host
             };
             _quadMesh.RecalculateBounds();
             return _quadMesh;
+        }
+    }
+
+    /// <summary>仅开发环境运行的全 WorldSite 出口拓扑审计入口。</summary>
+    static class SurfaceExitTopologyAudit
+    {
+        [System.Diagnostics.Conditional("UNITY_EDITOR")]
+        [System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        public static void Run(
+            HostSurfaceExitZonePresenter presenter,
+            XianXia.Core.Simulation.SimulationWorld world,
+            int currentStrategicExitCount,
+            int currentStructuralReadyCount,
+            int currentUsableExitCount,
+            int currentExactDuplicateCount)
+        {
+            presenter?.WriteTopologyAudit(
+                world,
+                currentStrategicExitCount,
+                currentStructuralReadyCount,
+                currentUsableExitCount,
+                currentExactDuplicateCount);
         }
     }
 }

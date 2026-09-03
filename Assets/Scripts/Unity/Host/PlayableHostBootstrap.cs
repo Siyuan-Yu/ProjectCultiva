@@ -122,6 +122,8 @@ namespace XianXia.Unity.Host
 
         public HostMoveController MoveController => moveController;
 
+        public HostSurfaceExitZonePresenter SurfaceExitZonePresenter => surfaceExitZonePresenter;
+
         public HostPlayerPartyController PlayerPartyController =>
             GetComponent<HostPlayerPartyController>();
 
@@ -1257,6 +1259,7 @@ namespace XianXia.Unity.Host
 
             WildernessLocalWorldProjection.WildernessLocalMapBounds? materializeBounds = null;
             var playerPartyMaterialized = false;
+            var playerPartyMaterializationAttempted = false;
             if (!onEncounterMap &&
                 !string.IsNullOrWhiteSpace(targetMap) &&
                 _session.PlayerParty != null &&
@@ -1333,7 +1336,15 @@ namespace XianXia.Unity.Host
                 // Materialize 内部 return Failure（不静默 DefaultStart）。
                 var materializeResult = PlayerPartyLocalMapMaterializationService.MaterializePartyOnResolvedLocalMap(
                     world, _session.PlayerParty.Members, materializeBounds, siteBounds, siteMode);
-                playerPartyMaterialized = true;
+                playerPartyMaterializationAttempted = true;
+                playerPartyMaterialized = materializeResult.IsSuccess;
+                if (materializeResult.IsFailure)
+                {
+                    Debug.LogError(
+                        "[PlayableHost] PlayerParty LocalMap materialize failed; dependent presentation is skipped: " +
+                        materializeResult.Error,
+                        this);
+                }
                 if (SiteMaterializeModeResolver.ShouldConsumeBootstrap(
                         consumeBootstrapNow, materializeResult.IsSuccess))
                 {
@@ -1414,6 +1425,11 @@ namespace XianXia.Unity.Host
                 PlaceLegacyFocusCharactersOnLocalMap(world, onEncounterMap);
             }
 
+            // 物化失败时必须保留 ingress one-shot 与当前领域状态，禁止继续执行依赖新落点的
+            // participant assembly、人口 reconcile、视图重建、相机和恢复流程。
+            if (playerPartyMaterializationAttempted && !playerPartyMaterialized)
+                return;
+
             // Phase 5S-B2-3.2：Friendly battle tactical assembly 必须在正确 Battle LocalMap
             // 加载后（PlayerParty 已按 BattleHex materialize）、enemy ApplyPending 前执行。
             // participant authority 用当前 frozen BattleParticipantSnapshot（不清扫 SupportArea、
@@ -1422,7 +1438,7 @@ namespace XianXia.Unity.Host
                 StrategicEncounterSpawner.HasActiveRealLocalMapManualEncounter(world))
             {
                 StrategicEncounterSpawner.MaterializeFriendlyParticipantsForRealLocalMap(
-                    world, _session.PlayerParty);
+                    world, _session.PlayerParty, preserveExistingLoadedPlacement: false);
             }
 
             if (sameMapWorldCombat)
@@ -1548,7 +1564,7 @@ namespace XianXia.Unity.Host
                 else
                     TryFrameCameraOnParty();
             }
-            ActivateSurfaceLocalMapPresentation();
+            // ReloadLocalMapPresentation 已在 WalkGrid bind 后完成本次正式 Surface Exit rebuild。
             RestorePlayerPartyLocalMapPresentation(targetMap);
         }
 
@@ -1844,11 +1860,11 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>Phase 5S-B2-3.1：reconcile + 条件视图刷新（Changed 才 Refresh/Spawn/Prune）。</summary>
-        public void RefreshLoadedStrategicPopulation()
+        public void RefreshLoadedStrategicPopulation(bool refreshViewsWhenUnchanged = false)
         {
             if (!_session.IsInitialized || entityViewSpawner == null)
                 return;
-            if (!ReconcileLoadedStrategicPopulation())
+            if (!ReconcileLoadedStrategicPopulation() && !refreshViewsWhenUnchanged)
                 return;
 
             _session.RefreshViewableEntityIds();
@@ -1864,7 +1880,8 @@ namespace XianXia.Unity.Host
 
             HostSnapshotLocalPlacementCaptureSync.SyncLoadedLocalMapOccupantsFromViews(this);
             var world = _session.World;
-            StrategicEncounterSpawner.MaterializeFriendlyParticipantsForRealLocalMap(world, _session.PlayerParty);
+            StrategicEncounterSpawner.MaterializeFriendlyParticipantsForRealLocalMap(
+                world, _session.PlayerParty, preserveExistingLoadedPlacement: true);
             var spawned = StrategicEncounterSpawner.ApplyPending(world);
             if (spawned.IsFailure)
                 Debug.LogWarning("[PlayableHost] 原地世界战斗装配失败：" + spawned.Error, this);
@@ -1922,18 +1939,30 @@ namespace XianXia.Unity.Host
             if (_session?.World?.Events == null)
                 return;
             var drained = _session.World.Events.Drain();
+            var nonEncounterStrategicPopulationChanged = false;
             for (var i = 0; i < drained.Count; i++)
             {
                 var evt = drained[i];
                 if (evt?.Type == XianXia.Core.Events.EventType.CombatantDefeated &&
                     evt.Target.HasValue)
                 {
-                    // 只同步遭遇敌军伤亡；敌清FieldCleared（无结算弹窗、不卸图、不弹大地图
-                    StrategicEncounterSpawner.OnCombatantDefeated(
+                    // 战略 Encounter participant 由其冻结 snapshot 生命周期负责；只有未被
+                    // 战略层接管的 FormalArmy casualty 才立即交接为独立 StrategicResidual。
+                    var handledByStrategicEncounter = StrategicEncounterSpawner.OnCombatantDefeated(
                         _session.World,
                         evt.Target.Value);
+                    if (!handledByStrategicEncounter &&
+                        FormalArmyCasualtyService.TryHandleNonEncounterDefeat(
+                            _session.World,
+                            evt.Target.Value))
+                    {
+                        nonEncounterStrategicPopulationChanged = true;
+                    }
                 }
             }
+
+            if (nonEncounterStrategicPopulationChanged)
+                RefreshLoadedStrategicPopulation(refreshViewsWhenUnchanged: true);
 
             if (contentInterrupt != null)
                 contentInterrupt.Ingest(drained);

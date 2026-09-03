@@ -210,15 +210,25 @@ namespace XianXia.Data.Bootstrap
                     if (!world.Entities.TryGet(entityId, out var entity))
                         continue;
 
-                    // Authored starting placement：localLocationId 非空时是明确呈现权威
-                    // （LocationId 可先指向未激活的 WorldSite 地点表；激活后自然可见）。
+                    // Spawn instance 的逻辑地点和精确呈现坐标相互独立，允许同时给出。
+                    var hasExplicitPlacement = false;
                     if (!string.IsNullOrWhiteSpace(spawn.LocalLocationId))
                     {
                         var authored = EnsureLocation(entity, spawn.LocalLocationId.Trim());
                         if (authored.IsFailure)
                             return authored;
-                        continue;
+                        hasExplicitPlacement = true;
                     }
+                    if (spawn.LocalPosition != null)
+                    {
+                        var ensured = EnsureEntityLocation(entity, out var location);
+                        if (ensured.IsFailure)
+                            return ensured;
+                        location.SetPresentationOverride(spawn.LocalPosition.X, spawn.LocalPosition.Z);
+                        hasExplicitPlacement = true;
+                    }
+                    if (hasExplicitPlacement)
+                        continue;
 
                     var placeId = world.WorldRegion.StartLocationId;
                     if (!string.IsNullOrEmpty(spawn.EntityKind) &&
@@ -267,15 +277,27 @@ namespace XianXia.Data.Bootstrap
         {
             if (entity == null || string.IsNullOrWhiteSpace(placeId))
                 return Result.Success();
-            if (!entity.TryGet<EntityLocationComponent>(out var locComp))
+            var ensured = EnsureEntityLocation(entity, out var locComp);
+            if (ensured.IsFailure)
+                return ensured;
+            locComp.LocationId = placeId;
+            return Result.Success();
+        }
+
+        static Result EnsureEntityLocation(
+            XianXia.Core.Entities.Entity entity,
+            out EntityLocationComponent locComp)
+        {
+            locComp = null;
+            if (entity == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "Entity required for location placement.");
+            if (!entity.TryGet<EntityLocationComponent>(out locComp))
             {
                 locComp = new EntityLocationComponent();
                 var added = entity.AddComponent(locComp);
                 if (added.IsFailure)
                     return added;
             }
-
-            locComp.LocationId = placeId;
             return Result.Success();
         }
 

@@ -48,6 +48,44 @@ namespace XianXia.Core.World.Strategic
             return found;
         }
 
+        public static bool TryResolveDepartureHex(
+            SimulationWorld world,
+            WorldSite site,
+            HexCoord destinationHex,
+            IReadOnlyCollection<HexCoord> allowedOutsideHexes,
+            out HexCoord exitHex)
+        {
+            exitHex = default;
+            if (allowedOutsideHexes == null)
+                return TryResolveDepartureHex(world, site, destinationHex, out exitHex);
+            CollectTraversableOutsideNeighbors(world, site, OutsideScratch);
+            var bestDist = int.MaxValue;
+            var found = false;
+            for (var i = 0; i < OutsideScratch.Count; i++)
+            {
+                var outside = OutsideScratch[i];
+                if (!Contains(allowedOutsideHexes, outside) ||
+                    !HexPathfinder.TryFindPath(world.HexWorld, outside, destinationHex, PathScratch) ||
+                    PathScratch.Count < 1)
+                    continue;
+                var dist = PathScratch.Count;
+                if (dist < bestDist || (dist == bestDist && CompareHex(outside, exitHex) < 0))
+                {
+                    bestDist = dist;
+                    exitHex = outside;
+                    found = true;
+                }
+            }
+            return found;
+        }
+
+        static bool Contains(IReadOnlyCollection<HexCoord> set, HexCoord value)
+        {
+            foreach (var item in set)
+                if (item.Equals(value)) return true;
+            return false;
+        }
+
         public static void CollectTraversableOutsideNeighbors(
             SimulationWorld world,
             WorldSite site,

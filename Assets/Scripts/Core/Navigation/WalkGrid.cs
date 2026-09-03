@@ -30,6 +30,7 @@ namespace XianXia.Core.Navigation
         public float CellSize { get; }
         public int Width { get; }
         public int Height { get; }
+        public int Revision { get; private set; }
 
         public int BlockedCount
         {
@@ -56,7 +57,10 @@ namespace XianXia.Core.Navigation
         {
             if (!InBounds(cx, cy))
                 return;
+            if (_blocked[Index(cx, cy)] == blocked)
+                return;
             _blocked[Index(cx, cy)] = blocked;
+            Revision++;
         }
 
         public void SetBlockedRect(int minCx, int minCy, int maxCxInclusive, int maxCyInclusive, bool blocked)

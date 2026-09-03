@@ -313,10 +313,33 @@ namespace XianXia.Core.World.Strategic
             }
 
             for (var i = 0; i < detach.Count; i++)
-                DetachMemberAtBattlefieldInternal(world, army, detach[i]);
+                DetachNonLivingMemberAtCurrentArmyLocation(world, army, detach[i]);
 
             if (world.Strategic.FormalArmies.TryGet(army.ArmyId, out var stillThere) && stillThere != null)
                 RefreshLeader(world, army.ArmyId);
+        }
+
+        /// <summary>
+        /// 统一处理单个非宏观存活成员的 Army → 独立残留交接。
+        /// 用于战后同步与非 Encounter 的普通 Local Combat；不清 LocalMap occupant 或
+        /// PresentationOverride，位置收口委托给 FormalArmyMemberPresenceSync。
+        /// </summary>
+        public static bool DetachNonLivingMemberAtCurrentArmyLocation(
+            SimulationWorld world,
+            FormalArmy army,
+            EntityId memberId)
+        {
+            if (world?.Strategic?.FormalArmies == null || army == null || memberId.IsNone ||
+                !army.ContainsMember(memberId) ||
+                LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, memberId))
+                return false;
+
+            DetachMemberAtBattlefieldInternal(world, army, memberId);
+
+            if (world.Strategic.FormalArmies.TryGet(army.ArmyId, out var stillThere) && stillThere != null)
+                RefreshLeader(world, army.ArmyId);
+
+            return !TryGetArmyForCharacter(world, memberId, out _);
         }
 
         static void DetachMemberAtBattlefieldInternal(SimulationWorld world, FormalArmy army, EntityId memberId)

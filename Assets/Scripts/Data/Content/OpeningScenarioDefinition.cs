@@ -3,6 +3,13 @@ using XianXia.Core.Domain.Ids;
 
 namespace XianXia.Data.Content
 {
+    /// <summary>Spawn instance 的可选 LocalMap 初始呈现坐标；(0,0) 也是合法值。</summary>
+    public sealed class OpeningLocalPositionDefinition
+    {
+        public float X { get; set; }
+        public float Z { get; set; }
+    }
+
     /// <summary>VS0.7: Content-driven opening／playable-day assembly (no Core rules).</summary>
     public sealed class OpeningScenarioDefinition
     {
@@ -62,6 +69,12 @@ namespace XianXia.Data.Content
         /// 决定 LocalMap 呈现位置。只在 WorldRegion 激活该地点表时可见。
         /// </summary>
         public string LocalLocationId { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 可选的 spawn instance 精确初始呈现坐标；与 LocalLocationId 可同时存在。
+        /// 它不表达 WorldSite、地点语义或移动目的地。
+        /// </summary>
+        public OpeningLocalPositionDefinition LocalPosition { get; set; }
     }
 
     public sealed class OpeningRelationEntry

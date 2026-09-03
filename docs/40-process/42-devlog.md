@@ -7,6 +7,77 @@
 
 ---
 
+## 2026-09-03 — Phase 5S CLOSED：真实世界战略战斗与世界／近景连续性 V1（待 checkpoint）
+
+- **最终模型**：WorldMap 是战略总览，LocalMap 是当前真实 surface 的 RPG 近景；普通 `WORLD_COMBAT` 在真实 WorldSite/Wilderness LocalMap 发生并在同一世界现场结束，不再进入独立 EncounterMap。
+- **已收口的连续性**：PlayerParty LocalVisible/AutoTravel 不再自取消，Site/Wilderness transition 采用 prepare→commit 与 exact ingress；可见 Surface Exit 即保证右键、WASD、LocalVisible AutoTravel 均可 traversable。
+- **已收口的战斗 authority**：WorldSite 整个 footprint 决定 BattleArea/SupportArea；冻结 `BattleSiteId` 决定真实战场 LocalMap；PlayerParty 直接发起、Local hostile Character/Army 分类、Neutral 延迟 DeclareWar、精确 BattleHex commit、Auto player commit、WorldSite Army population 与 Manual participant materialization 均已接入。
+- **原地战斗与残留**：Local-origin 同 physical surface 原地增量 assembly，保留当前 tactical placement；FormalArmy 战略伤亡在 Resolve detach，普通 Local Combat 伤亡即时 Army→StrategicResidual handoff，弥留/尸体保持真实 LocalMap 现场。
+- **内容与验收 fixture**：FormalArmy 与青石 acceptance NPC 均为 Content-driven；authored NPC 使用 `localPosition`，保留青石镇 V1 regression fixture，不恢复 C# prototype bootstrap。
+- **边界**：Lingering 仅保留旧 Auto/Explicit compatibility；PendingEngagement JSON 存档、authored instance identity、Surface Exit 性能缓存与大规模 population authoring 进入非阻塞 backlog。本阶段不新增玩法，建立单个 checkpoint。
+
+---
+
+## 2026-09-03 — P0 修复：非 Encounter FormalArmy 伤亡转独立残留（未提交）
+
+- 普通 Local Combat 的 `CombatantDefeated` 原先只尝试战略 Encounter 处理；上一场战斗结束后 participant 已清空，因此倒下的 FormalArmy 成员仍挂在 Army，却又不属于 living Army population 或 StrategicResidual，视图会被裁剪。
+- 新增 `FormalArmyCasualtyService`：仅当战略层明确未接管、成员处于 residual 生命周期且仍属于 FormalArmy 时，复用 `ArmyService.DetachNonLivingMemberAtCurrentArmyLocation` 解除编制，并由既有 `FormalArmyMemberPresenceSync` 写入 Army 当前 Hex 的残留 Presence。
+- `ArmyService` 的批量战后 detach 与普通 Local Combat 单成员 detach 现共用同一逻辑，包含 Leader 刷新及最后一人 Army 解散；不会清 LocalMap occupant 或 `PresentationOverride`。
+- `DispatchDrainedEvents` 以 `StrategicEncounterSpawner.OnCombatantDefeated` 的 handled 结果分流：战略手动战斗仍延迟到 Resolve；非 Encounter 军团伤亡完成交接后仅做一次当前战略人口 reconcile 与视图刷新。
+- 新增开发期 `[NonEncounterArmyCasualty]` 诊断，记录 Army、生命状态、战场/当前 surface、表现覆盖、detach 与残留结果。未改 Participant gathering、战斗 Resolve、SupportArea、Travel 或 Exit。
+
+---
+
+## 2026-09-03 — P0 修复：友方 FormalArmy 参战快照与倒地残留生命周期（未提交）
+
+- 移除 `BattleParticipantGatheringService.AddFormalArmiesAsMandatory` 对 `EntityTag.Npc` 的错误排除：由 `FormalArmyContentBootstrap` 创建的正式军团士兵虽带 `Npc` 标签，仍须以 `MandatoryFriendly`、正确 `FormalArmyId`、`Selected=true` 进入冻结参战快照；PlayerParty 原有的 NPC 排除不变。
+- `BattleParticipantSpatialGuard` 增加开发期快照完整性审计：每个 `LockedPlayerFormalArmyIds` 中仍可进行宏观命令的成员都必须在快照中以匹配军团编号的 `MandatoryFriendly` 出现，并输出成员、标签、势力与缺失原因。
+- `StrategicEncounterSpawner.OnCombatantDefeated` 现区分冻结友军与敌军：友军倒地只检查是否进入战后阶段，不执行敌军清场、追踪刷怪清理或 ArmyStack 数量同步；战斗结束后仍按既有 `ArmyPostBattleSyncService` 时机处理军团成员脱离与残留锚定。
+- Local-origin 原地战斗保留已加载友军的 `PresentationOverride`，跨 surface 装配仍覆盖为战斗队形；技能栏不再在击败瞬间强制销毁目标视图，尸体/倒地者交由既有可见性与生命状态规则管理。
+- 新增开发期 `[BattleFriendlySnapshot]`、`[BattleCasualty]`、`[BattleResidual]` 诊断；未改 Life 规则、SupportArea、Exit、Travel 或战斗结算策略。非 Unity 编译与差异检查结果见本轮交接。
+
+---
+
+## 2026-09-03 — P0 回归修复：WorldSite 跨面准入与可见出口契约（未提交）
+
+- **根因**：上一轮 Surface Exit 的 transition PREPARE 误用了 `CanEnterWorldSiteLocalMap(..., "")`。该 API 的真实语义是“Party 已经在该地点后，是否能打开 LocalMap”，会检查 `HasPartyMemberAtSite`；从邻 Hex 正要进入目标地点时该条件必然为假，导致所有合法 Wilderness→WorldSite 透明出口被拒绝。
+- **Access 拆分**：保留旧的 already-present scene access（新增明确名 `CanOpenWorldSiteLocalMapFromPresence`，旧名兼容保留）；新增 `CanTransitionPlayerPartyIntoWorldSite`，只检查 world、modal lock、目标 Site 与 LocalMap，不要求目标地点已有 Party presence。Wilderness→Site、手动 Site→Site、LocalVisible Site→Site 均改用 transition admission。
+- **统一结构预检**：新增 `SurfaceExitTraversalService.TryPrepareTraversal`，零副作用验证当前 Context、目标格、DestinationKind/SiteId、Transition Admission、精确 ingress 或 wilderness map fallback。Presenter 仅显示“结构预检成功且本地可达”的出口；带连接的 WASD／右键执行入口在开启 Edge Gate 前复用该预检。
+- **原子 Scene 提交**：`EnterWorldSiteAsParty` 先完成 transition admission 与 LocalMap 解析，随后才提交 AtSite／成员 presence；`WorldTravelService.ActivatePreparedWorldSiteScene` 只写确定性的 PartyWorld/LocalMap，不再重新执行 presence gate。
+- **审计补全**：开发期输出当前 surface 的 Strategic、StructuralReady、LocallyReachable、VisibleUsable、ExactDuplicate 计数；结构失败的出口不会显示。不同 canonical edge 指向同一 WorldSite 仍是合法 `MULTIPLE_EXITS_TO_SAME_SITE`。
+- **验证**：Core、Data、Runtime Host 非 Unity 编译 0 error；2 个既有 warning（`HostWorldMapPanel.cs:725` CS0162，`HostPlayerPartyController.cs:49` CS0414）。未运行 Unity Test Runner／PlayMode；待 LevelTester 验收 `(2,7)→(3,7)/(3,8)` 的右键、WASD 与 AutoTravel。
+
+---
+
+## 2026-09-03 — P0 修复：出口边身份、地点间事务与手动使用出口（未提交）
+
+- **精确入口**：`WorldSiteFootprintExitConnectionResolver.TryResolveFormalIngressConnection` 不再从按 `DestinationHex` 聚合的本地离场出口中匹配 `RepresentativeSource`，而是验证目标足迹格与来源外部格确实相邻，并用该唯一共享边直接建立入口。营地 `(4,6)` 进入荒村 `(3,7)` 与 `(4,7)` 两条边现在分别保留各自的边界接触点；离场出口按目标格聚合的表现规则保持不变。
+- **先准备、后提交**：LocalVisible 自动离场和空闲手动离场均先验证来源地点、目标格、目标类型、地点访问资格、目标地图与精确入口；准备失败不再提前修改 Canonical、队员 Presence、`PartyWorld`、`LocalMap` 或路线段。正常业务失败全部前移到提交前。
+- **明确的手动出口命令**：右键点中可用出口后不再只是普通移动，而是取消当前 AutoTravel、以精确目标寻路到所选出口，抵达回调再显式提交所选 `SurfaceExitConnection`；失败只更新状态与原因，不切图。
+- **统一可用出口**：`HostSurfaceExitZonePresenter` 暴露当前战略有效且与 Active 同连通分量的出口集合；Presenter、右键、WASD、普通边缘检测、自动旅行与改道共同验证该集合。
+- **物化失败保护**：`PlayableHostBootstrap` 的 `playerPartyMaterialized` 改为真实读取 `materializeResult.IsSuccess`；失败会记录错误并停止依赖新落点的组装、人口协调、视图重建、相机和恢复流程，不把失败伪装成已物化，也不消费失败前保留的入口上下文。
+- **开发期拓扑审计**：所有 WorldSite 输出名称、足迹格数、战略出口数、唯一目标格/地点数、逐出口来源/目标/地形/可通行性/共享边数、同一目标地点多出口分组，以及当前已加载地点的本地不可达数。正式数据静态核对：主角营地 6 个战略出口、0 个无效出口，其中 `(3,7)` 与 `(4,7)` 两条均进入青石荒村；庄园右侧两个可通行道路目标为 `(18,4)` 与 `(18,5)`。
+- **验证**：使用 Unity 2022.3.6f1 随附 Roslyn 与现有响应文件完成 Core、Data、Runtime Host 非 Unity 编译，0 错误；既有警告为 `HostWorldMapPanel.cs:725` 不可达代码与 `HostPlayerPartyController.cs:49` 未使用字段。`git diff --check` 通过；未运行 Unity Test Runner、PlayMode 或 EditMode，运行时案例留给 LevelTester 人工验收。
+
+---
+
+## 2026-09-03 — FIX：LocalVisible Surface Exit 的完成语义与可达性（未提交）
+
+- `HostMoveController` 将路径完成策略拆为 `HoldStandby` 与 `PreserveCurrentCommand`：内部 LocalVisible 出口移动、终点移动与 follower 跟随不再在抵达时产生 Stop/Wait，从而不应由 Host 自己取消 PlayerParty AutoTravel。
+- 新增 `SurfaceExitWalkGridReachability`：只在 `SlotRect ∩ WalkGrid` 的可走 cell 内选点，并以零 goal-snap A* 验证；Presenter 与 LocalVisible 出口执行共用该查询。不可达出口不显示；当前计划出口不可达则明确取消旅行并保留当前位置，避免无限重试。
+- 本条尚未完成 Unity 人工验收；未改 SurfaceExit connection 几何、World topology、Battle、FormalArmy 或 NPC placement。
+
+---
+
+## 2026-09-02 — REFACTOR：NPC 初始 LocalMap 坐标归属 Spawn Instance（未提交）
+
+- **问题**：青石镇五名验收 NPC 原先各自占用一个 LocalPlace，只是为了保存呈现坐标；这些伪地点被地图正确显示为地点名称，暴露了人口实例坐标与语义地点混淆。
+- **调整**：`OpeningSpawnEntry` 新增可选 `localPosition { x, z }`；`openingScenario.spawns` 与 `characterRoster.entries` 共用同一解析/校验 schema。`WorldRegionBootstrap` 将其写入既有 `EntityLocationComponent.SetPresentationOverride`，并允许与 `localLocationId` 同时存在。
+- **内容迁移**：青石散人甲/乙、青石挑衅者、朔风镇民甲/乙在 scenario 与 Level Tester roster 中均保留 `worldSiteId=base:site_chengzhen`、迁为精确 `localPosition`；删除五个非语义 LocalPlace，保留青石镇·入口等真实地点。
+- **边界**：未改 CharacterDefinition、WorldPresence、HostMapGraybox、EntityViewSpawner、LocalMapVisibility、战斗或 FormalArmy 逻辑。`GameStartLookup` 仍以 definitionId 映射单一 EntityId（同 definition 多实例时后者覆盖），后续应单列 `AuthoredCharacterInstance / SpawnInstanceId` 改造。
+
+---
+
 ## 2026-09-02 — FIX 试炼弱匪位置避让朔风外援队 (9,7)（未提交）
 
 - 症状：LevelTester travel_mvp 中试炼弱匪（base:formal_army_bandit_weak）与青石验收朔风外援队（initialHex (9,7)）同格重叠。

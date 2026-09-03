@@ -215,7 +215,7 @@
           "bindDailyTask": false,
           "recruitable": false,
           "worldSiteId": "base:site_chengzhen",
-          "localLocationId": "base:loc_site_chengzhen_acceptance_unaffiliated_a"
+          "localPosition": { "x": -10.0, "z": -4.0 }
         },
         {
           "definitionId": "base:character_qingshi_acceptance_unaffiliated_b",
@@ -226,7 +226,7 @@
           "bindDailyTask": false,
           "recruitable": false,
           "worldSiteId": "base:site_chengzhen",
-          "localLocationId": "base:loc_site_chengzhen_acceptance_unaffiliated_b"
+          "localPosition": { "x": -6.0, "z": -4.0 }
         },
         {
           "definitionId": "base:character_qingshi_acceptance_unaffiliated_hostile",
@@ -237,7 +237,7 @@
           "bindDailyTask": false,
           "recruitable": false,
           "worldSiteId": "base:site_chengzhen",
-          "localLocationId": "base:loc_site_chengzhen_acceptance_unaffiliated_hostile"
+          "localPosition": { "x": -2.0, "z": -4.0 }
         },
         {
           "definitionId": "base:character_qingshi_acceptance_shuofeng_civilian_a",
@@ -250,7 +250,7 @@
           "bindDailyTask": false,
           "recruitable": false,
           "worldSiteId": "base:site_chengzhen",
-          "localLocationId": "base:loc_site_chengzhen_acceptance_shuofeng_civilian_a"
+          "localPosition": { "x": -8.0, "z": 4.0 }
         },
         {
           "definitionId": "base:character_qingshi_acceptance_shuofeng_civilian_b",
@@ -263,7 +263,7 @@
           "bindDailyTask": false,
           "recruitable": false,
           "worldSiteId": "base:site_chengzhen",
-          "localLocationId": "base:loc_site_chengzhen_acceptance_shuofeng_civilian_b"
+          "localPosition": { "x": -4.0, "z": 4.0 }
         }
       ]
     }

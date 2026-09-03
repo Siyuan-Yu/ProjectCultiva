@@ -327,8 +327,6 @@ namespace XianXia.Core.World.Strategic
                         continue;
                     if (!world.Entities.TryGet(id, out var ent) || ent == null)
                         continue;
-                    if ((ent.Tags & EntityTag.Npc) != 0)
-                        continue;
                     if (!world.WorldPresence.TryGet(id, out var wp) || wp == null)
                         continue;
 

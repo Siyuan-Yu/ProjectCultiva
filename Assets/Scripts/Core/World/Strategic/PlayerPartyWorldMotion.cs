@@ -214,6 +214,26 @@ namespace XianXia.Core.World.Strategic
             SiteDepartureVirtualPosition = WorldPosition;
         }
 
+        public void ReplaceSiteDeparturePlan(
+            IReadOnlyList<HexCoord> path,
+            HexCoord footprintHex,
+            HexCoord exitHex,
+            WorldVec2 boundaryEntry)
+        {
+            _hexPath.Clear();
+            if (path != null)
+                for (var i = 0; i < path.Count; i++) _hexPath.Add(path[i]);
+            SegmentIndex = 0;
+            SegmentProgress = 0f;
+            StepTotalTicks = Math.Max(4, 8);
+            StepRemainingTicks = StepTotalTicks;
+            SiteDepartureFootprintHex = footprintHex;
+            SiteDepartureExitHex = exitHex;
+            SiteDepartureBoundaryEntry = boundaryEntry;
+            DeparturePhase = PlayerPartyDeparturePhase.Planned;
+            IsSiteDeparturePending = true;
+        }
+
         public void SetTravelPresentation(WorldVec2 pos, HexCoord derivedHex)
         {
             TravelPresentationPosition = pos;

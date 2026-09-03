@@ -203,6 +203,41 @@ namespace XianXia.Core.World.Strategic
             return Result.Success();
         }
 
+        /// <summary>LocalVisible Site egress 不可达时，仅替换 departure plan，不重置旅行意图。</summary>
+        public static bool TryReplanCurrentWorldSiteDeparture(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            IReadOnlyCollection<HexCoord> locallyReachableExitHexes)
+        {
+            var motion = world?.PlayerPartyTravel;
+            if (motion == null || party == null || !motion.IsMoving ||
+                motion.LocationKind != PlayerPartyLocationKind.AtWorldSite ||
+                !motion.IsSiteDeparturePending || string.IsNullOrEmpty(motion.SiteId) ||
+                locallyReachableExitHexes == null || locallyReachableExitHexes.Count == 0 ||
+                !world.Strategic.Sites.TryGet(motion.SiteId, out var site) || site == null)
+                return false;
+            if (!BackgroundCharacterSiteDepartureResolver.TryResolveDepartureHex(
+                    world, site, motion.DestinationHex, locallyReachableExitHexes, out var exitHex) ||
+                !BackgroundCharacterSiteDepartureResolver.TryResolveDepartureFootprintHex(site, exitHex, out var footprintHex))
+                return false;
+            PathScratch.Clear();
+            if (!HexPathfinder.TryFindPath(world.HexWorld, motion.CurrentHex, footprintHex, PathScratch) ||
+                PathScratch.Count < 1)
+                return false;
+            if (!PathScratch[PathScratch.Count - 1].Equals(exitHex))
+                PathScratch.Add(exitHex);
+            var tail = new List<HexCoord>(64);
+            if (!exitHex.Equals(motion.DestinationHex) &&
+                (!HexPathfinder.TryFindPath(world.HexWorld, exitHex, motion.DestinationHex, tail) || tail.Count < 1))
+                return false;
+            for (var i = 1; i < tail.Count; i++) PathScratch.Add(tail[i]);
+            var size = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            BackgroundCharacterSiteDepartureResolver.TryResolveDepartureBoundaryEntryWorldPosition(
+                footprintHex, exitHex, size, out var boundary);
+            motion.ReplaceSiteDeparturePlan(PathScratch, footprintHex, exitHex, boundary);
+            return true;
+        }
+
         static string TryCanonicalizeFootprintHexDestination(
             SimulationWorld world,
             HexCoord destinationHex,
@@ -1017,6 +1052,11 @@ namespace XianXia.Core.World.Strategic
         {
             if (world == null || party == null || site == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid site enter args.");
+            var admission = StrategicWorldSiteAccessService.CanTransitionPlayerPartyIntoWorldSite(
+                world, site.SiteId);
+            if (admission.IsFailure)
+                return admission;
+            var preparedLocalMapId = WorldTravelService.ResolveWorldSiteLocalMapId(site);
 
             // Phase 5R-B3B：ingressHex 仅保留 routing/topology/debug 职责（确认从 footprint
             // 哪一侧/哪一格进入）；<b>不再决定 Physical Position</b>（B3B invariant：
@@ -1027,10 +1067,15 @@ namespace XianXia.Core.World.Strategic
                     : site.PresenceHex;
             _ = ingressHex; // routing/debug 用途（不参与物理位置）
 
-            world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
             var motion = world.PlayerPartyTravel;
             if (motion == null)
                 return Result.Failure(ErrorCode.InvalidOperation, "No party travel state for site enter.");
+            if (!motion.HasPosition)
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "EnterWorldSiteAsParty: no canonical physical position for context-preserving ingress (5R-B3B gap).");
+
+            world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
 
             // Phase 5R-B3B.1 Ingress Physical Continuity：
             // Physical Position 来自调用方跨边前已显式设置的 <b>Canonical WorldPosition</b>（正式
@@ -1048,15 +1093,6 @@ namespace XianXia.Core.World.Strategic
                 motion.WorldPosition,
                 motion.CurrentHex,
                 ingressHex);
-            if (!motion.HasPosition)
-            {
-                PlayerPartyWorldLocationDebug.LogTransition(
-                    world, party, "EnterWorldSiteAsParty.NoCanonicalGap");
-                return Result.Failure(
-                    ErrorCode.InvalidOperation,
-                    "EnterWorldSiteAsParty: no canonical physical position for context-preserving ingress (5R-B3B gap).");
-            }
-
             if (!motion.TrySetAtWorldSitePreservingWorldPosition(
                     site.SiteId,
                     motion.WorldPosition))
@@ -1075,7 +1111,8 @@ namespace XianXia.Core.World.Strategic
             PlayerPartyTransitionMembership.ReconcilePlayerPartyMemberWorldPresenceFromMotion(
                 world, party, "EnterWorldSiteAsParty");
             PlayerPartyWorldLocationDebug.LogTransition(world, party, "EnterWorldSiteAsParty");
-            return WorldTravelService.EnterWorldSiteScene(world, site.SiteId, string.Empty);
+            return WorldTravelService.ActivatePreparedWorldSiteScene(
+                world, site, preparedLocalMapId);
         }
 
         /// <summary>

@@ -729,6 +729,9 @@ namespace XianXia.Data.Content
                         WorldSiteId = spawnNode.GetString("worldSiteId", string.Empty),
                         LocalLocationId = spawnNode.GetString("localLocationId", string.Empty)
                     };
+                    if (!TryReadOpeningLocalPosition(spawnNode, id + ".spawn", report, out var localPosition))
+                        return;
+                    entry.LocalPosition = localPosition;
                     if (string.IsNullOrWhiteSpace(entry.DefinitionId))
                     {
                         report.Add(ErrorCode.MissingRequiredField, "spawn.definitionId required.", id.ToString());
@@ -995,6 +998,9 @@ namespace XianXia.Data.Content
                     WorldSiteId = spawnNode.GetString("worldSiteId", string.Empty),
                     LocalLocationId = spawnNode.GetString("localLocationId", string.Empty)
                 };
+                if (!TryReadOpeningLocalPosition(spawnNode, id + ".entry", report, out var localPosition))
+                    return;
+                entry.LocalPosition = localPosition;
                 if (string.IsNullOrWhiteSpace(entry.DefinitionId))
                 {
                     report.Add(ErrorCode.MissingRequiredField, "roster.entry.definitionId required.", id.ToString());
@@ -1013,6 +1019,36 @@ namespace XianXia.Data.Content
             var reg = registry.RegisterCharacterRoster(roster);
             if (reg.IsFailure)
                 report.Add(reg.Error);
+        }
+
+        static bool TryReadOpeningLocalPosition(
+            JsonValue spawnNode,
+            string context,
+            ValidationReport report,
+            out OpeningLocalPositionDefinition position)
+        {
+            position = null;
+            if (!spawnNode.TryGetProperty("localPosition", out var node))
+                return true;
+            if (node == null || node.Kind != JsonValueKind.Object)
+            {
+                report.Add(ErrorCode.ContentLoadFailed, "localPosition must be an object.", context + ".localPosition");
+                return false;
+            }
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(node, DefinitionSchema.OpeningLocalPositionFields, report, context + ".localPosition");
+            if (report.Errors.Count > errorsBefore)
+                return false;
+            if (!node.TryGetProperty("x", out var x) || x.Kind != JsonValueKind.Number ||
+                double.IsNaN(x.Number) || double.IsInfinity(x.Number) ||
+                !node.TryGetProperty("z", out var z) || z.Kind != JsonValueKind.Number ||
+                double.IsNaN(z.Number) || double.IsInfinity(z.Number))
+            {
+                report.Add(ErrorCode.ContentLoadFailed, "localPosition.x and localPosition.z must be finite numbers.", context + ".localPosition");
+                return false;
+            }
+            position = new OpeningLocalPositionDefinition { X = (float)x.Number, Z = (float)z.Number };
+            return true;
         }
 
         static void LoadResource(

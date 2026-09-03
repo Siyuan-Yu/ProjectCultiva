@@ -199,6 +199,26 @@ namespace XianXia.Core.World
             return Result.Success();
         }
 
+        /// <summary>
+        /// PlayerParty transition PREPARE verified this Site already. This method only performs
+        /// deterministic PartyWorld and LocalMap activation; it never re-checks presence access.
+        /// </summary>
+        public static Result ActivatePreparedWorldSiteScene(
+            SimulationWorld world,
+            WorldSite site,
+            string preparedLocalMapId)
+        {
+            if (world == null || site == null || string.IsNullOrWhiteSpace(preparedLocalMapId))
+                return Result.Failure(ErrorCode.InvalidArgument, "Prepared WorldSite scene args invalid.");
+            world.PartyWorld.ClearSiteFocus();
+            world.PartyWorld.SiteId = site.SiteId;
+            world.PartyWorld.FocusFormalArmyId = string.Empty;
+            world.PartyWorld.LocalMapId = preparedLocalMapId.Trim();
+            world.PartyWorld.Mode = PartyWorldPresenceMode.AtSite;
+            world.PartyWorld.EncounterId = string.Empty;
+            ApplyLocalMapSessionFromFocus(world);
+            return Result.Success();
+        }
         public static string ResolveWorldSiteLocalMapId(WorldSite site)
         {
             if (site == null || string.IsNullOrWhiteSpace(site.LocalMapId))

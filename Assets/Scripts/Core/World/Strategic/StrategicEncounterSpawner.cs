@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using XianXia.Core.Attributes;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
@@ -275,11 +276,24 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic == null || defenderId.IsNone)
                 return false;
 
-            var isSnapshotEnemy = world.Strategic.Participants != null &&
-                                  world.Strategic.Participants.IsEnemyParticipant(defenderId);
+            var snap = world.Strategic.Participants;
+            var isSnapshotEnemy = snap != null && snap.IsEnemyParticipant(defenderId);
+            var isSnapshotFriendly = snap != null && snap.IsSelectedFriendlyParticipant(defenderId);
             var isTrackedOwnedSpawn = IsTrackedSpawn(world, defenderId);
-            if (!isSnapshotEnemy && !isTrackedOwnedSpawn)
+            if (!isSnapshotEnemy && !isSnapshotFriendly && !isTrackedOwnedSpawn)
                 return false;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            LogBattleCasualty(world, defenderId, snap?.FindByEntity(defenderId));
+#endif
+
+            // 真实友军 FormalArmy participant 不属于 encounter-owned spawn。其倒地只应驱动
+            // Manual 战斗是否可进入 PostBattle；不得走敌军清场、栈计数同步或 scope 清理。
+            if (isSnapshotFriendly)
+            {
+                StrategicEncounterResolveService.TryEnterPostBattleFromManual(world);
+                return true;
+            }
 
             PruneRemovedSpawns(world);
             // 删栈前先把道路进度落到参战者身上，否则清场后路锚变�?0、无法回程／像瞬�?
@@ -294,6 +308,50 @@ namespace XianXia.Core.World.Strategic
                 StrategicEncounterResolveService.TryDestroyIfNoRemnants(world);
             return true;
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        static void LogBattleCasualty(
+            SimulationWorld world,
+            EntityId defenderId,
+            BattleParticipantRecord record)
+        {
+            var name = defenderId.ToString();
+            var tags = "(entity missing)";
+            var lifeState = "(entity missing)";
+            var npcTag = false;
+            var hasPresentationOverride = false;
+            if (world.Entities.TryGet(defenderId, out var entity) && entity != null)
+            {
+                name = string.IsNullOrEmpty(entity.DisplayName) ? defenderId.ToString() : entity.DisplayName;
+                tags = entity.Tags.ToString();
+                lifeState = CombatLifeStateService.ResolveLifeStateLabel(entity);
+                npcTag = (entity.Tags & EntityTag.Npc) != 0;
+                hasPresentationOverride = entity.TryGet<EntityLocationComponent>(out var location) &&
+                                          location != null && location.HasPresentationOverride;
+            }
+
+            var formalArmyId = record?.FormalArmyId ?? string.Empty;
+            var isArmyMember = ArmyService.TryGetArmyForCharacter(world, defenderId, out var army) && army != null;
+            if (string.IsNullOrEmpty(formalArmyId) && isArmyMember)
+                formalArmyId = army.ArmyId;
+
+            Debug.WriteLine(
+                "[BattleCasualty]" +
+                " EntityId=" + defenderId +
+                " Name=" + name +
+                " Kind=" + (record != null ? record.Kind.ToString() : "(none)") +
+                " FormalArmyId=" + formalArmyId +
+                " NpcTag=" + npcTag +
+                " Tags=" + tags +
+                " LifeState=" + lifeState +
+                " InSnapshot=" + (record != null) +
+                " InEngaged=" + (world.Strategic.Encounter != null && world.Strategic.Encounter.IsEngaged(defenderId)) +
+                " InLocalMapOccupants=" + world.LocalMap.ContainsOccupant(defenderId) +
+                " HasPresentationOverride=" + hasPresentationOverride +
+                " VisibleNow=" + StrategicEncounterHostilityService.IsVisibleOnEncounterLocalMap(world, defenderId) +
+                " IsArmyMemberBeforeResolve=" + isArmyMember);
+        }
+#endif
 
         /// <summary>敌军栈尚在时，把宏观路点进度写入所有参战者�?/summary>
         public static void SnapshotEngagedRouteFromStack(SimulationWorld world)
@@ -617,7 +675,8 @@ namespace XianXia.Core.World.Strategic
         /// </summary>
         public static void MaterializeFriendlyParticipantsForRealLocalMap(
             SimulationWorld world,
-            PlayerPartyRuntime party)
+            PlayerPartyRuntime party,
+            bool preserveExistingLoadedPlacement = false)
         {
             if (world?.Strategic == null)
                 return;
@@ -655,8 +714,17 @@ namespace XianXia.Core.World.Strategic
                 if (!world.Entities.TryGet(id, out var entity) || entity == null)
                     continue;
 
+                var alreadyLoadedWithOverride = preserveExistingLoadedPlacement &&
+                                                world.LocalMap.ContainsOccupant(id) &&
+                                                entity.TryGet<EntityLocationComponent>(out var existingLocation) &&
+                                                existingLocation != null &&
+                                                existingLocation.HasPresentationOverride;
+
                 if (!world.LocalMap.ContainsOccupant(id))
                     world.LocalMap.AddOccupant(id);
+
+                if (alreadyLoadedWithOverride)
+                    continue;
 
                 if (!entity.TryGet<EntityLocationComponent>(out var loc) || loc == null)
                 {

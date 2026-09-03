@@ -679,12 +679,12 @@ namespace XianXia.Core.World.Strategic
 
         /// <summary>
         /// Phase 5R-B3B.1：LocalVisible Wilderness→WorldSite 的正式连续入口几何。
-        /// 按 canonical connection identity（<see cref="SurfaceExitConnection.SourceHex"/>==footprint 格
-        /// 且 <see cref="SurfaceExitConnection.DestinationHex"/>==当前荒野格）匹配唯一正式
+        /// 按 destination footprint 格与来源外部格的 exact shared edge 建立唯一正式
         /// <see cref="SurfaceExitConnection"/>，返回其 <c>BoundaryContactWorldX/Y</c>（footprint 格
-        /// 中心与外部荒野格中心的中点 = 真实 Hex 共享边中点）。
+        /// 中心与外部格中心的中点 = 真实 Hex 共享边中点）。
         ///
-        /// 复用 <see cref="CollectConnections"/> 产出的正式 connection，不重算第二套 boundary。
+        /// 不消费 <see cref="CollectConnections"/> 的按 DestinationHex 聚合离场出口，因为其
+        /// RepresentativeSource 不保证等于本次实际跨越的 destination footprint 格。
         /// <paramref name="bounds"/> 仅用于 slot rect（Local 平面）几何，不影响 BoundaryContactWorld
         /// （完全由 footprint + HexMath 真实几何决定）；此处传名义 bounds，与既有
         /// <c>PlayerPartyWildernessTransitionService.TryFindSiteConnectionByDestination</c> 一致。
@@ -704,19 +704,33 @@ namespace XianXia.Core.World.Strategic
                 return false;
             if (!site.OccupiesHex(footprintHex) || site.OccupiesHex(fromWildernessHex))
                 return false;
+            var direction = -1;
+            for (var dir = 0; dir < 6; dir++)
+            {
+                if (!HexMath.Neighbor(footprintHex, dir).Equals(fromWildernessHex))
+                    continue;
+                direction = dir;
+                break;
+            }
+            if (direction < 0 ||
+                !world.HexWorld.TryGetTile(fromWildernessHex, out var outsideTile) ||
+                outsideTile == null || !outsideTile.IsPassable || outsideTile.Terrain == HexTerrainType.Water)
+                return false;
 
+            // Formal ingress 是一条 exact shared edge；不得消费按 DestinationHex 聚合的
+            // Local egress portal（其 RepresentativeSource 可能是另一个 footprint hex）。
             var bounds = WildernessLocalWorldProjection.WildernessLocalMapBounds.FromOriginSize(
                 0f, 0f, 1f, 16, 16);
-            var scratch = new List<SurfaceExitConnection>(12);
-            CollectConnections(
+            return SurfaceExitZoneCalculator.TryBuildConnectionBetweenHexes(
                 world,
-                site,
+                footprintHex,
+                fromWildernessHex,
+                direction,
                 hexSize,
                 bounds,
                 SurfaceExitZoneCalculator.DefaultExitTriggerDepth,
                 SurfaceExitZoneCalculator.DefaultSlotSpanFraction,
-                scratch);
-            return TryMatchIngressConnection(scratch, footprintHex, fromWildernessHex, out connection);
+                out connection);
         }
 
         /// <summary>
@@ -748,13 +762,14 @@ namespace XianXia.Core.World.Strategic
 
         /// <summary>
         /// Phase 5R-B6：WorldSite 正式 departure connection 解析（对称于
-        /// <see cref="TryResolveFormalIngressConnection"/>）。按 canonical identity
-        /// （SourceHex==footprintHex 且 DestinationHex==exitHex）匹配唯一正式
-        /// <see cref="SurfaceExitConnection"/>，返回其 <c>BoundaryContactWorld</c>（严格位于
+        /// <see cref="TryResolveFormalIngressConnection"/>）。这里解析的是按唯一 outside
+        /// DestinationHex 聚合的本地离场 portal；返回其 <c>BoundaryContactWorld</c>（严格位于
         /// footprint perimeter，B3C3.1 保证）/ SlotRect / LocalDirection。
         /// 由 DeparturePlan 的 <c>SiteDepartureFootprintHex</c> + <c>SiteDepartureExitHex</c>
         /// （<c>TryBuildPathLeavingSite</c> 已选出的 first outside hex）驱动，不按 Anchor/Presence/
-        /// 最近边/方向猜测出口。匹配失败 → 明确失败，不静默回退。
+        /// 最近边/方向猜测出口。<paramref name="footprintHex"/> 只验证 route 的离场边确实存在；
+        /// 返回 connection.SourceHex 可以是该聚合 portal 的 RepresentativeSource。匹配失败 →
+        /// 明确失败，不静默回退。
         ///
         /// Phase 5R-B6.2：<paramref name="bounds"/> 必须是当前 WorldSite LocalMap 的<b>真实</b>
         /// playable bounds（与 HostSurfaceExitZonePresenter 视觉方块同源）——SlotRect 由 bounds
@@ -775,6 +790,16 @@ namespace XianXia.Core.World.Strategic
                 return false;
             if (!site.OccupiesHex(footprintHex) || site.OccupiesHex(exitHex))
                 return false;
+            var routeEdgeExists = false;
+            for (var direction = 0; direction < HexMath.DirectionCount; direction++)
+            {
+                if (!HexMath.Neighbor(footprintHex, direction).Equals(exitHex))
+                    continue;
+                routeEdgeExists = true;
+                break;
+            }
+            if (!routeEdgeExists)
+                return false;
 
             var scratch = new List<SurfaceExitConnection>(12);
             CollectConnections(
@@ -785,7 +810,14 @@ namespace XianXia.Core.World.Strategic
                 SurfaceExitZoneCalculator.DefaultExitTriggerDepth,
                 SurfaceExitZoneCalculator.DefaultSlotSpanFraction,
                 scratch);
-            return TryMatchIngressConnection(scratch, footprintHex, exitHex, out connection);
+            for (var i = 0; i < scratch.Count; i++)
+            {
+                if (!scratch[i].DestinationHex.Equals(exitHex))
+                    continue;
+                connection = scratch[i];
+                return true;
+            }
+            return false;
         }
 
         public static int CollectConnections(

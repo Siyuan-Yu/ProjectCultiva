@@ -228,6 +228,11 @@ namespace XianXia.Core.World.Strategic
                 world.Strategic.Sites.TryGetAtHex(destinationHex, out var destSite) &&
                 destSite != null)
             {
+                var admission = StrategicWorldSiteAccessService.CanTransitionPlayerPartyIntoWorldSite(
+                    world, destSite.SiteId);
+                if (admission.IsFailure)
+                    return admission;
+                var destinationMapId = WorldTravelService.ResolveWorldSiteLocalMapId(destSite);
                 // Phase 5R-B3B.1/B7A: WorldSite → 正式 BoundaryContact Ingress。
                 // destinationHex 是 approach 按距 start 最近方向选取的 footprint 格（多 Hex
                 // footprint 不强制 Anchor）。目标 Site 仍完成 Travel；非目标 Site 则保持同一
@@ -310,8 +315,8 @@ namespace XianXia.Core.World.Strategic
                     "site=" + destSite.SiteId +
                     " ingress=" + destinationHex +
                     " egress=" + motion.SiteDepartureExitHex);
-                return WorldTravelService.EnterWorldSiteScene(
-                    world, destSite.SiteId, string.Empty);
+                return WorldTravelService.ActivatePreparedWorldSiteScene(
+                    world, destSite, destinationMapId);
             }
 
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
@@ -425,16 +430,16 @@ namespace XianXia.Core.World.Strategic
             if (!IsActiveLocalVisibleAutoTravel(motion))
                 return Result.Failure(ErrorCode.InvalidOperation, "LocalVisible AutoTravel required.");
 
-            var sourceFootprint = connection.SourceHex;
             var external = connection.DestinationHex;
-            if (!motion.SiteDepartureFootprintHex.Equals(sourceFootprint))
-                return Result.Failure(ErrorCode.InvalidOperation, "Exit connection source is not the departure footprint hex.");
             if (!motion.SiteDepartureExitHex.Equals(external))
                 return Result.Failure(ErrorCode.InvalidOperation, "Exit connection destination is not the departure exit hex.");
             if (!IsGroundPassable(world.HexWorld, external))
                 return Result.Failure(ErrorCode.InvalidOperation, "External hex is impassable.");
 
-            var boundary = new WorldVec2(connection.BoundaryContactWorldX, connection.BoundaryContactWorldY);
+            var prepare = SurfaceExitTraversalService.TryPrepareTraversal(
+                world, party, connection, out var prepared);
+            if (prepare.IsFailure)
+                return prepare;
 
             PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
             PlayerPartyTransitionMembership.LogPartyTransition(
@@ -448,51 +453,27 @@ namespace XianXia.Core.World.Strategic
             // Route progress truth = FormalConnection.DestinationHex（已提交的 first outside hex）。
             // 不再用 WorldToHex(BoundaryContactWorld) 猜 route hex —— BoundaryContact 恰在 Hex
             // perimeter，multi-hex Site 内部 seam / corner 时天然可能 tie 回 footprint 格或邻格。
-            motion.SetWorldPositionInternal(boundary, connection.DestinationHex);
+            var boundary = prepared.EntersWorldSite
+                ? new WorldVec2(
+                    prepared.DestinationIngress.BoundaryContactWorldX,
+                    prepared.DestinationIngress.BoundaryContactWorldY)
+                : new WorldVec2(connection.BoundaryContactWorldX, connection.BoundaryContactWorldY);
+            motion.SetWorldPositionInternal(boundary, prepared.DestinationHex);
             // Route progress 对齐到已提交 connection 的 DestinationHex（不重复推进、不跳过下一段）。
-            PlayerPartyHexTravelService.AlignRouteProgressAfterSiteEgress(motion, connection.DestinationHex);
-            ApplyTravelingMembersAtHex(world, connection.DestinationHex);
+            PlayerPartyHexTravelService.AlignRouteProgressAfterSiteEgress(motion, prepared.DestinationHex);
 
             // LocalVisible AutoTravel 直连 Site→Site（external 属于另一 Site footprint）：与手动
             // exit 同规则 —— 必须建立目标 Site 正式 ingress context；无正式 destination ingress →
             // 明确失败（不 silent 进入、不依赖上一 Site 的 LastExitDirection 猜）。
-            if (connection.DestinationKind == SurfaceExitDestinationKind.WorldSite &&
-                world.Strategic?.Sites != null &&
-                world.Strategic.Sites.TryGetAtHex(external, out var destSite) &&
-                destSite != null)
+            if (prepared.EntersWorldSite)
             {
-                var siteHexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                    ? world.HexWorld.HexSize
-                    : 1f;
-                if (!WorldSiteFootprintExitConnectionResolver.TryResolveFormalIngressConnection(
-                        world,
-                        destSite,
-                        external,
-                        sourceFootprint,
-                        siteHexSize,
-                        out var destIngress))
-                {
-                    return Result.Failure(
-                        ErrorCode.InvalidOperation,
-                        "No formal destination-site ingress from " + sourceFootprint +
-                        " into " + external + " (LocalVisible Site→Site).");
-                }
-
-                motion.SurfaceEdgeGate?.SetIngressContext(destIngress);
-                var destBoundary = new WorldVec2(
-                    destIngress.BoundaryContactWorldX,
-                    destIngress.BoundaryContactWorldY);
-                motion.SetWorldPositionInternal(destBoundary, external);
-                ApplyTravelingMembersAtHex(world, external);
+                motion.SurfaceEdgeGate?.SetIngressContext(prepared.DestinationIngress);
                 return PlayerPartyHexTravelService.EnterWorldSiteAsParty(
-                    world, party, destSite, external);
+                    world, party, prepared.DestinationSite, prepared.DestinationHex);
             }
-
-            if (!WildernessLocalMapFallback.TryResolve(world, external, out var mapId) ||
-                string.IsNullOrEmpty(mapId))
-                return Result.Failure(ErrorCode.InvalidOperation, "No wilderness fallback LocalMap for exit hex.");
-
-            return WorldTravelService.EnterWildernessLocalMap(world, external, mapId);
+            ApplyTravelingMembersAtHex(world, prepared.DestinationHex);
+            return WorldTravelService.EnterWildernessLocalMap(
+                world, prepared.DestinationHex, prepared.DestinationLocalMapId);
         }
     }
 }

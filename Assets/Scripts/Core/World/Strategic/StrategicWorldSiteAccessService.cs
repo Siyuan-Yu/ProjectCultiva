@@ -41,7 +41,11 @@ namespace XianXia.Core.World.Strategic
             return site.OccupiesHex(army.CurrentHex);
         }
 
-        public static Result CanEnterWorldSiteLocalMap(
+        /// <summary>
+        /// 已经位于地点后的 LocalMap 打开资格。此 API 依赖 Party／FormalArmy 已在 Site，
+        /// 绝不可用于跨 Surface transition 的目标地点预检。
+        /// </summary>
+        public static Result CanOpenWorldSiteLocalMapFromPresence(
             SimulationWorld world,
             string siteId,
             string formalArmyId)
@@ -86,6 +90,38 @@ namespace XianXia.Core.World.Strategic
             if (!IsFormalArmyAtSiteFootprint(army, site))
                 return Result.Failure(ErrorCode.InvalidOperation, "\u519b\u56e2\u4e0d\u5728\u8be5\u5730\u70b9\uff0c\u65e0\u6cd5\u8fdb\u5165\u3002");
 
+            return Result.Success();
+        }
+
+        /// <summary>兼容旧调用名；语义仍是 already-present scene access，不是 transition admission。</summary>
+        public static Result CanEnterWorldSiteLocalMap(
+            SimulationWorld world,
+            string siteId,
+            string formalArmyId) =>
+            CanOpenWorldSiteLocalMapFromPresence(world, siteId, formalArmyId);
+
+        /// <summary>
+        /// PlayerParty 从相邻 Surface 进入目标 WorldSite 的无副作用准入检查。
+        /// 进入动作本身才会创建 Party-at-Site presence，因此这里绝不检查该 presence。
+        /// </summary>
+        public static Result CanTransitionPlayerPartyIntoWorldSite(
+            SimulationWorld world,
+            string siteId)
+        {
+            if (world == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
+            if (StrategicClockFreezeService.IsModalEncounter(world))
+                return Result.Failure(ErrorCode.InvalidOperation, "遭遇中锁定，无法跨越地点边界。");
+            if (string.IsNullOrEmpty(siteId))
+                return Result.Failure(ErrorCode.InvalidArgument, "siteId required.");
+            if (world.Strategic?.Sites == null ||
+                !world.Strategic.Sites.TryGet(siteId, out var site) || site == null)
+                return Result.Failure(ErrorCode.NotFound, "WorldSite missing.", siteId);
+            if (string.IsNullOrWhiteSpace(WorldTravelService.ResolveWorldSiteLocalMapId(site)))
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "WorldSite 未配置 LocalMap，无法跨越进入。",
+                    siteId);
             return Result.Success();
         }
 

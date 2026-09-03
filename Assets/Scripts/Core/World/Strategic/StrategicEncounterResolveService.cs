@@ -74,6 +74,7 @@ namespace XianXia.Core.World.Strategic
                 EnsureEnemyDownedWorldPresence(world, snap);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 AssertFinalResidualAuthority(world, snap);
+                LogBattleResidualAfterResolve(world, snap);
 #endif
             }
 
@@ -732,6 +733,46 @@ namespace XianXia.Core.World.Strategic
                 System.Diagnostics.Debug.Assert(
                     wp.Mode == PartyWorldPresenceMode.AtHex && wp.ResidualHex.Equals(anchorHex),
                     "WORLD_COMBAT residual not anchored at BattleAnchorHex: " + rec.EntityId.Value);
+            }
+        }
+#endif
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        /// <summary>战后同步完成、Participants 清除前记录 FormalArmy 参战者的残留归属。</summary>
+        static void LogBattleResidualAfterResolve(
+            SimulationWorld world,
+            BattleParticipantSnapshot snap)
+        {
+            if (world?.Entities == null || snap == null)
+                return;
+
+            for (var i = 0; i < snap.Records.Count; i++)
+            {
+                var record = snap.Records[i];
+                if (record.EntityId.IsNone || string.IsNullOrEmpty(record.FormalArmyId))
+                    continue;
+                if (!world.Entities.TryGet(record.EntityId, out var entity) || entity == null)
+                    continue;
+
+                var lifeState = CombatLifeStateService.ResolveLifeStateLabel(entity);
+                var inArmy = ArmyService.TryGetArmyForCharacter(world, record.EntityId, out var army) && army != null;
+                var presenceMode = world.WorldPresence.TryGet(record.EntityId, out var wp) && wp != null
+                    ? wp.Mode.ToString()
+                    : "(none)";
+                var residualHex = wp != null ? wp.ResidualHex.ToString() : "(none)";
+                System.Diagnostics.Debug.WriteLine(
+                    "[BattleResidual]" +
+                    " EntityId=" + record.EntityId +
+                    " Name=" + (string.IsNullOrEmpty(entity.DisplayName) ? record.EntityId.ToString() : entity.DisplayName) +
+                    " Kind=" + record.Kind +
+                    " FormalArmyId=" + record.FormalArmyId +
+                    " LifeState=" + lifeState +
+                    " ArmyMembershipAfterResolve=" + inArmy +
+                    " WorldPresenceMode=" + presenceMode +
+                    " ResidualHex=" + residualHex +
+                    " InLoadedLocalMap=" + world.LocalMap.ContainsOccupant(record.EntityId) +
+                    " VisibleNow=" + StrategicEncounterHostilityService.IsVisibleOnEncounterLocalMap(world, record.EntityId) +
+                    " IsResidual=" + LingeringBattlefieldPartyService.IsLingeringDowned(world, record.EntityId));
             }
         }
 #endif

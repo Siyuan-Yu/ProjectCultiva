@@ -1,3 +1,4 @@
+using System;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
@@ -82,6 +83,13 @@ namespace XianXia.Core.World.Strategic
             bool hasConnection)
         {
             var motion = world.PlayerPartyTravel;
+            if (hasConnection)
+            {
+                var preflight = SurfaceExitTraversalService.TryPrepareTraversal(
+                    world, party, connection, out _);
+                if (preflight.IsFailure)
+                    return preflight;
+            }
             var gate = motion.SurfaceEdgeGate;
             if (gate != null && !gate.CanAttemptEdgeTransition)
                 return Result.Failure(ErrorCode.InvalidOperation, "Edge transition gated (in progress or disarmed).");
@@ -257,6 +265,10 @@ namespace XianXia.Core.World.Strategic
                 world.Strategic.Sites.TryGetAtHex(destinationHex, out var site) &&
                 site != null)
             {
+                var access = StrategicWorldSiteAccessService.CanTransitionPlayerPartyIntoWorldSite(world, site.SiteId);
+                if (access.IsFailure) return access;
+                if (string.IsNullOrEmpty(WorldTravelService.ResolveWorldSiteLocalMapId(site)))
+                    return Result.Failure(ErrorCode.InvalidOperation, "Destination WorldSite has no LocalMap.");
                 if (!WorldSiteFootprintExitConnectionResolver.TryResolveFormalIngressConnection(
                         world,
                         site,
@@ -374,6 +386,61 @@ namespace XianXia.Core.World.Strategic
                 motion.WorldPosition,
                 hexSize);
 
+            // PREPARE：所有正常业务失败必须在任何 canonical／presence／route／LocalMap
+            // mutation 之前完成。Site ingress 直接按 exact shared edge 解析；Wilderness
+            // fallback map 也先冻结。失败时不清 Gate、不改任何世界状态。
+            var destinationIsSite =
+                world.Strategic.Sites.TryGetAtHex(external, out var destSite) && destSite != null;
+            if (destinationIsSite !=
+                (connection.DestinationKind == SurfaceExitDestinationKind.WorldSite))
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "Surface exit destination kind disagrees with world topology.");
+            if (destinationIsSite &&
+                !string.IsNullOrEmpty(connection.DestinationSiteId) &&
+                !string.Equals(
+                    connection.DestinationSiteId,
+                    destSite.SiteId,
+                    StringComparison.Ordinal))
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "Surface exit destination SiteId disagrees with world topology.");
+            var destinationIngress = default(SurfaceExitConnection);
+            var destinationMapId = string.Empty;
+            if (destinationIsSite)
+            {
+                var access = StrategicWorldSiteAccessService.CanTransitionPlayerPartyIntoWorldSite(
+                    world, destSite.SiteId);
+                if (access.IsFailure)
+                    return access;
+                destinationMapId = WorldTravelService.ResolveWorldSiteLocalMapId(destSite);
+                if (string.IsNullOrEmpty(destinationMapId))
+                    return Result.Failure(
+                        ErrorCode.InvalidOperation,
+                        "Destination WorldSite has no LocalMap.");
+                if (!WorldSiteFootprintExitConnectionResolver.TryResolveFormalIngressConnection(
+                        world,
+                        destSite,
+                        external,
+                        sourceFootprint,
+                        hexSize,
+                        out destinationIngress))
+                {
+                    return Result.Failure(
+                        ErrorCode.InvalidOperation,
+                        "No formal destination-site ingress from " + sourceFootprint +
+                        " into " + external + " (Site→Site).");
+                }
+            }
+            else if (!WildernessLocalMapFallback.TryResolve(
+                         world, external, out destinationMapId) ||
+                     string.IsNullOrEmpty(destinationMapId))
+            {
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "No wilderness fallback LocalMap for exit hex.");
+            }
+
             PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
             PlayerPartyTransitionMembership.LogPartyTransition(
                 world,
@@ -382,33 +449,17 @@ namespace XianXia.Core.World.Strategic
                 external,
                 world.PartyWorld?.LocalMapId);
 
-            if (world.Strategic.Sites.TryGetAtHex(external, out var destSite) && destSite != null)
+            if (destinationIsSite)
             {
                 // Direct WorldSite → WorldSite：必须为目标 Site 建立正式 ingress context（否则会读到
                 // 上一 Site 的旧 ingress / fallback direction）。canonical physical position = 正式
                 // BoundaryContactWorld；committed ingress footprint hex = external。无正式 destination
                 // ingress → 明确失败，不 silent enter、不依赖上一 Site 的 LastExitDirection 猜。
-                if (!WorldSiteFootprintExitConnectionResolver.TryResolveFormalIngressConnection(
-                        world,
-                        destSite,
-                        external,
-                        sourceFootprint,
-                        hexSize,
-                        out var destinationIngress))
-                {
-                    motion.SurfaceEdgeGate?.ClearEdgeState();
-                    return Result.Failure(
-                        ErrorCode.InvalidOperation,
-                        "No formal destination-site ingress from " + sourceFootprint +
-                        " into " + external + " (Site→Site).");
-                }
-
                 var boundaryWorld = new WorldVec2(
                     destinationIngress.BoundaryContactWorldX,
                     destinationIngress.BoundaryContactWorldY);
                 motion.SurfaceEdgeGate?.SetIngressContext(destinationIngress);
                 motion.SetAtWorldPosition(boundaryWorld, external);
-                ApplyTravelingMembersAtHex(world, external);
                 return PlayerPartyHexTravelService.EnterWorldSiteAsParty(
                     world, party, destSite, external);
             }
@@ -419,11 +470,7 @@ namespace XianXia.Core.World.Strategic
             motion.SetAtWorldPosition(worldPos, external);
             ApplyTravelingMembersAtHex(world, external);
 
-            if (!WildernessLocalMapFallback.TryResolve(world, external, out var mapId) ||
-                string.IsNullOrEmpty(mapId))
-                return Result.Failure(ErrorCode.InvalidOperation, "No wilderness fallback LocalMap for exit hex.");
-
-            return WorldTravelService.EnterWildernessLocalMap(world, external, mapId);
+            return WorldTravelService.EnterWildernessLocalMap(world, external, destinationMapId);
         }
 
         public static bool TryEvaluateSurfaceExitLegality(

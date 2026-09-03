@@ -13,6 +13,12 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
+    public enum HostMoveCompletionPolicy
+    {
+        HoldStandby = 0,
+        PreserveCurrentCommand = 1
+    }
+
     /// <summary>
     /// RTS 移动：沿 WalkGrid A* 航点行进；交互／修炼抵达后下令。支NPC Stop 订单的走位
     /// </summary>
@@ -45,6 +51,8 @@ namespace XianXia.Unity.Host
         readonly HashSet<ulong> _movingIds = new HashSet<ulong>();
         readonly HashSet<ulong> _playerPartyPathMoveIds = new HashSet<ulong>();
         readonly Dictionary<ulong, string> _pathLocalMapIds = new Dictionary<ulong, string>();
+        readonly Dictionary<ulong, HostMoveCompletionPolicy> _completionPolicies =
+            new Dictionary<ulong, HostMoveCompletionPolicy>();
         readonly List<float> _pathScratch = new List<float>(64);
         readonly List<Vector3> _wpScratch = new List<Vector3>(32);
         readonly List<EntityView> _crowdScratch = new List<EntityView>(64);
@@ -121,6 +129,7 @@ namespace XianXia.Unity.Host
             _movingIds.Clear();
             _playerPartyPathMoveIds.Clear();
             _pathLocalMapIds.Clear();
+            _completionPolicies.Clear();
             _playerPartyPathMoveSerial = 0;
             PurgeOrphanedMoveTargets();
         }
@@ -281,7 +290,92 @@ namespace XianXia.Unity.Host
         {
             if (!HostPresentationSpace.TryRaycastPlane(worldCamera, Input.mousePosition, out var point))
                 return;
+            var exits = bootstrap != null ? bootstrap.SurfaceExitZonePresenter : null;
+            if (exits != null &&
+                exits.TryGetUsableSurfaceExitAtPoint(
+                    point.x, point.y, out var connection, out var approachPoint))
+            {
+                OrderPartyToUseSurfaceExit(connection, approachPoint);
+                return;
+            }
             OrderPartyToPoint(point, null);
+        }
+
+        bool OrderPartyToUseSurfaceExit(
+            SurfaceExitConnection connection,
+            Vector3 approachPoint)
+        {
+            CancelLocalVisibleAutoTravelIfActive();
+            var active = ResolveActiveCharacter();
+            if (active.IsNone)
+                return false;
+
+            ResumeTime();
+            if (commandBridge != null)
+                commandBridge.IssueOne(active, PlayerCommandKind.Stop, 0);
+            else
+                StopActiveViaPort(active);
+            ClearHostMove(active);
+
+            if (!OrderEntityToWorldPoint(
+                    active,
+                    approachPoint,
+                    null,
+                    issueStop: false,
+                    completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand,
+                    exactGoal: true))
+            {
+                HostPlayerPartyController.LastTransitionStatus = "ManualExitPathBlocked";
+                HostPlayerPartyController.LastTransitionFailureReason =
+                    "无法到达所选出口。";
+                return false;
+            }
+
+            _playerPartyPathMoveIds.Add(active.Value);
+            _playerPartyPathMoveSerial++;
+            _pendingArriveActions[active.Value] = () => UseSurfaceExit(connection);
+            NotifyMeleeDisengageForMove(active);
+            NotifyDestructibleDisengageForMove(active);
+            NotifyFarmLaborStopForMove(active);
+            HostPlayerPartyController.LastTransitionStatus = "ManualExitApproaching";
+            HostPlayerPartyController.LastTransitionFailureReason = string.Empty;
+            return true;
+        }
+
+        void UseSurfaceExit(SurfaceExitConnection connection)
+        {
+            var session = bootstrap?.Session;
+            var world = session?.World;
+            var party = session?.PlayerParty;
+            if (world == null || party == null)
+                return;
+
+            var usable = bootstrap.SurfaceExitZonePresenter;
+            if (usable == null || !usable.TryGetUsableSurfaceExit(connection, out _))
+            {
+                HostPlayerPartyController.LastTransitionStatus = "ManualExitNoLongerUsable";
+                HostPlayerPartyController.LastTransitionFailureReason =
+                    "所选出口已不可用，世界状态保持不变。";
+                return;
+            }
+
+            var result = world.PlayerPartyTravel != null &&
+                         world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite
+                ? PlayerPartyWildernessTransitionService.TryExitWorldSiteByConnection(
+                    world, party, connection)
+                : PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
+                    world, party, connection);
+            if (result.IsFailure)
+            {
+                HostPlayerPartyController.LastTransitionStatus = "ManualExitRejected";
+                HostPlayerPartyController.LastTransitionFailureReason = result.Error.ToString();
+                return;
+            }
+
+            HostPlayerPartyController.LastTransitionStatus =
+                "ManualExitCrossed->" + connection.DestinationHex;
+            HostPlayerPartyController.LastTransitionFailureReason = string.Empty;
+            bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
         }
 
         public bool OrderPartyToLocation(string locationId, PlayerCommandKind? arriveCommand)
@@ -428,7 +522,9 @@ namespace XianXia.Unity.Host
             Vector3 point,
             PlayerCommandKind? arriveCommand,
             bool issueStop,
-            string arriveLocationId = null)
+            string arriveLocationId = null,
+            HostMoveCompletionPolicy completionPolicy = HostMoveCompletionPolicy.HoldStandby,
+            bool exactGoal = false)
         {
             if (id.IsNone || viewSpawner == null ||
                 !viewSpawner.Registry.TryGet(id, out var view) || view == null)
@@ -444,7 +540,7 @@ namespace XianXia.Unity.Host
             }
 
             SnapOntoWalkableIfNeeded(view);
-            if (!TryBuildWorldPath(view.transform.position, point, _wpScratch))
+            if (!TryBuildWorldPath(view.transform.position, point, _wpScratch, exactGoal))
                 return false;
 
             bootstrap?.BreakthroughRitual?.NotifyMoveOrdered(id);
@@ -460,6 +556,7 @@ namespace XianXia.Unity.Host
             path.AddRange(_wpScratch);
             _paths[id.Value] = path;
             _pathIndex[id.Value] = 0;
+            _completionPolicies[id.Value] = completionPolicy;
             if (!string.IsNullOrEmpty(_boundLocalMapId))
                 _pathLocalMapIds[id.Value] = _boundLocalMapId;
             else
@@ -721,7 +818,7 @@ namespace XianXia.Unity.Host
             return click;
         }
 
-        bool TryBuildWorldPath(Vector3 from, Vector3 to, List<Vector3> waypoints)
+        bool TryBuildWorldPath(Vector3 from, Vector3 to, List<Vector3> waypoints, bool exactGoal = false)
         {
             waypoints.Clear();
             if (_walkGrid == null)
@@ -736,7 +833,7 @@ namespace XianXia.Unity.Host
 
             _pathScratch.Clear();
             if (!GridPathfinder.TryFindWorldPath(
-                    _walkGrid, from.x, from.y, to.x, to.y, _pathScratch))
+                    _walkGrid, from.x, from.y, to.x, to.y, _pathScratch, 8, exactGoal ? 0 : 4))
                 return false;
 
             for (var i = 0; i + 1 < _pathScratch.Count; i += 2)
@@ -841,6 +938,10 @@ namespace XianXia.Unity.Host
                 _movingIds.Remove(id.Value);
                 _playerPartyPathMoveIds.Remove(id.Value);
                 ClearPath(id);
+                var completionPolicy = _completionPolicies.TryGetValue(id.Value, out var policy)
+                    ? policy
+                    : HostMoveCompletionPolicy.HoldStandby;
+                _completionPolicies.Remove(id.Value);
                 SyncLocation(view);
                 if (_pendingNpcIntent.ContainsKey(id.Value))
                     ApplyPendingNpcIntent(id);
@@ -857,7 +958,8 @@ namespace XianXia.Unity.Host
                 {
                     // 田区走格：到位后不要 HoldStandby→Stop，否则会掐断农作
                 }
-                else if (selectionController != null && selectionController.IsPartyUnit(id))
+                else if (completionPolicy == HostMoveCompletionPolicy.HoldStandby &&
+                         selectionController != null && selectionController.IsPartyUnit(id))
                     HoldStandby(id);
             }
         }

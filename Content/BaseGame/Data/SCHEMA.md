@@ -177,7 +177,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 | Field | Notes |
 |---|---|
-| `entries[]` | 与 openingScenario.spawns 同形：definitionId／entityKind／aiRole／factionRole／scheduleId／…；同样支持 worldSiteId＋localLocationId（Level Tester authored remote residents；有 roster 时由 roster 决定试玩刷谁，worldSiteId 非默认站点时不会进 PlayerParty 开局旅行成员） |
+| `entries[]` | 与 openingScenario.spawns 同形：definitionId／entityKind／aiRole／factionRole／scheduleId／…；同样支持 worldSiteId／localLocationId／localPosition。名册存在时由名册决定试玩刷谁；远程常驻 NPC 可用 worldSiteId 指定所属 WorldSite。 |
 
 人物本体在 `Characters/`；本表只回答「试玩时刷谁」。Level Tester 默认读 `base:roster_level_tester`（人物编辑器「导出 Level Tester 名册」）。**不是** Unity 场景里摆好的 GameObject。
 
@@ -216,6 +216,8 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 ### spawn entry
 
 `definitionId`、`entityKind`（character＝可控制／进 CharacterIds｜npc）、`displayName`、`assignOpeningFaction`、`factionRole`、`bindSchedule`、`bindDailyTask`、`recruitable`、`workRole`（Labor｜Gather｜Cultivate）、`scheduleId`、`aiRole`。人物「可控制」与 `entityKind` 对齐。不再使用职业式 `jobId`。
+
+可选位置字段互不替代：`worldSiteId` 表示宏观 WorldSite 存在；`localLocationId` 表示逻辑/语义 LocalPlace（工作、日程、探索或移动目的地）；`localPosition` 为 spawn instance 的精确初始呈现坐标，格式为 `{ "x": 数值, "z": 数值 }`，`(0,0)` 合法。`localLocationId` 与 `localPosition` 可同时存在；没有逻辑地点的静态 NPC 也可仅使用 `worldSiteId + localPosition`。不要为单个 NPC 的站立坐标创建假的 LocalPlace。
 
 ## type = resource（VS0.8）
 

@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using System.Text;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Entities;
 using XianXia.Core.Simulation;
+using XianXia.Core.Social;
 using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
@@ -33,6 +35,7 @@ namespace XianXia.Core.World.Strategic
             RefreshPlayerPipelineTrace(world, engagement, party, snap, "AfterSnapshot");
             AssertPlayerPartySpatialInvariant(world, engagement, party, snap, "AfterSnapshot");
             AssertSnapshotPlayerRecordsInSupportArea(world, engagement, snap, "AfterSnapshot");
+            AssertLockedFriendlyFormalArmyMembersCaptured(world, engagement, snap, "AfterSnapshot");
         }
 
         public static void RefreshPlayerPipelineTrace(
@@ -135,6 +138,80 @@ namespace XianXia.Core.World.Strategic
                     engagement.PlayerInclusionReason,
                     rec.DisplayLabel);
             }
+#endif
+        }
+
+        /// <summary>
+        /// Frozen participant snapshot 的友军 FormalArmy 完整性断言。
+        /// FormalArmyContentBootstrap 创建的士兵带有 Npc 标签；该标签不能成为军团成员
+        /// 被排除在 MandatoryFriendly 之外的理由。
+        /// </summary>
+        static void AssertLockedFriendlyFormalArmyMembersCaptured(
+            SimulationWorld world,
+            PendingEngagementRuntime engagement,
+            BattleParticipantSnapshot snap,
+            string stage)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (world?.Strategic?.FormalArmies == null || snap == null ||
+                engagement?.LockedPlayerFormalArmyIds == null)
+                return;
+
+            var expected = 0;
+            var captured = 0;
+            for (var a = 0; a < engagement.LockedPlayerFormalArmyIds.Count; a++)
+            {
+                var armyId = engagement.LockedPlayerFormalArmyIds[a];
+                if (string.IsNullOrEmpty(armyId) ||
+                    !world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
+                    continue;
+
+                for (var i = 0; i < army.MemberCharacterIds.Count; i++)
+                {
+                    var memberId = new EntityId(army.MemberCharacterIds[i]);
+                    if (memberId.IsNone ||
+                        !LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, memberId))
+                        continue;
+
+                    expected++;
+                    var record = snap.FindByEntity(memberId);
+                    if (record != null &&
+                        record.Kind == BattleParticipantKind.MandatoryFriendly &&
+                        string.Equals(record.FormalArmyId, army.ArmyId, System.StringComparison.Ordinal))
+                    {
+                        captured++;
+                        continue;
+                    }
+
+                    var name = memberId.ToString();
+                    var tags = "(entity missing)";
+                    var faction = "(unknown)";
+                    if (world.Entities.TryGet(memberId, out var entity) && entity != null)
+                    {
+                        name = string.IsNullOrEmpty(entity.DisplayName) ? memberId.ToString() : entity.DisplayName;
+                        tags = entity.Tags.ToString();
+                        if (entity.TryGet<FactionMembershipComponent>(out var membership) && membership != null)
+                            faction = membership.FactionId ?? string.Empty;
+                    }
+
+                    Debug.WriteLine(
+                        "[BattleFriendlySnapshot] " + stage +
+                        " missing MandatoryFriendly record" +
+                        " ArmyId=" + army.ArmyId +
+                        " MemberId=" + memberId +
+                        " Name=" + name +
+                        " Tags=" + tags +
+                        " Faction=" + faction +
+                        " RecordKind=" + (record != null ? record.Kind.ToString() : "(none)") +
+                        " RecordArmyId=" + (record?.FormalArmyId ?? string.Empty) +
+                        " Reason=LockedPlayerFormalArmy living member is absent or mismatched in snapshot.");
+                }
+            }
+
+            Debug.WriteLine(
+                "[BattleFriendlySnapshot] " + stage +
+                " ExpectedLivingLockedMembers=" + expected +
+                " CapturedMandatoryFriendly=" + captured);
 #endif
         }
 

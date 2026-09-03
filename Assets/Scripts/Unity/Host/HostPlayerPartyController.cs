@@ -67,6 +67,7 @@ namespace XianXia.Unity.Host
         // Host safety repair：SurfaceExit slot 命中判定复用（非每帧热路径）。
         static readonly List<XianXia.Core.World.Strategic.SurfaceExitConnection> ExitSlotScratch =
             new List<XianXia.Core.World.Strategic.SurfaceExitConnection>(8);
+        static readonly HashSet<HexCoord> ReachableExitHexScratch = new HashSet<HexCoord>();
         HostPartySharedActivity _lastActiveSharedActivity = HostPartySharedActivity.FollowIdle;
         bool _wasdHeldLastFrame;
         bool _pendingSnapshotFollowRebind;
@@ -689,6 +690,9 @@ namespace XianXia.Unity.Host
                     return false;
             }
 
+            if (!IsUsableSurfaceExit(edgeConnection))
+                return false;
+
             var cross = PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
                 world, party, edgeConnection);
             if (!cross.IsSuccess)
@@ -764,7 +768,8 @@ namespace XianXia.Unity.Host
             {
                 if (hasPrev &&
                     WildernessLocalWorldProjection.TryResolveExitTriggerConnection(
-                        world, prevX, prevY, localX, localY, bounds, depth, out var siteConnection))
+                        world, prevX, prevY, localX, localY, bounds, depth, out var siteConnection) &&
+                    IsUsableSurfaceExit(siteConnection))
                 {
                     var exit = PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
                         world, party, siteConnection);
@@ -803,7 +808,8 @@ namespace XianXia.Unity.Host
 
             if (hasPrev &&
                 WildernessLocalWorldProjection.TryResolveExitTriggerConnection(
-                    world, prevX, prevY, localX, localY, bounds, depth, out var connection))
+                    world, prevX, prevY, localX, localY, bounds, depth, out var connection) &&
+                IsUsableSurfaceExit(connection))
             {
                 var cross = PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
                     world, party, connection);
@@ -828,6 +834,10 @@ namespace XianXia.Unity.Host
                 return;
             world.LocalMap.ExitTriggerDepth = depth;
         }
+
+        bool IsUsableSurfaceExit(SurfaceExitConnection connection) =>
+            bootstrap?.SurfaceExitZonePresenter != null &&
+            bootstrap.SurfaceExitZonePresenter.TryGetUsableSurfaceExit(connection, out _);
 
         void EnsureEdgeGateCompletedAfterExpand(XianXia.Core.Simulation.SimulationWorld world)
         {
@@ -1182,6 +1192,17 @@ namespace XianXia.Unity.Host
 
             var activePos = activeView.transform.position;
             var depth = SurfaceExitZoneCalculator.ResolveDepthFromSession(world, bounds);
+            if (bootstrap?.SurfaceExitZonePresenter == null ||
+                !bootstrap.SurfaceExitZonePresenter.TryGetUsableSurfaceExit(
+                    connection, out var reachablePoint))
+            {
+                LastTransitionStatus = "ExitLocallyUnreachable";
+                LastTransitionFailureReason = "当前场景没有通往该目的地的可达出口。";
+                PlayerPartyHexTravelService.CancelTravel(world);
+                return;
+            }
+            var reachableX = reachablePoint.x;
+            var reachableY = reachablePoint.y;
 
             // 到达正式 Exit = 角色位置进入该 connection 的 SlotRect（唯一权威判定，
             // 与真实 Trigger / 半透明 Debug 方块同一真源）。不再使用 ExitCenter 半径 fallback。
@@ -1204,7 +1225,8 @@ namespace XianXia.Unity.Host
                     var sameCenter = Vector3.Distance(centerTarget, _lastAutoTravelTarget) < 0.05f;
                     if (!(centerMoving && sameCenter) &&
                         (_move == null ||
-                         !_move.OrderEntityToWorldPoint(active, centerTarget, null, issueStop: false)))
+                         !_move.OrderEntityToWorldPoint(active, centerTarget, null, issueStop: false,
+                             completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand)))
                     {
                         _autoTravelRetryCooldownUntil = Time.time + 0.5f;
                         return;
@@ -1238,8 +1260,8 @@ namespace XianXia.Unity.Host
 
             // 未到达 Exit：Local A* 正常走向该 connection 的 approach 点（Exit Zone 内侧，
             // 不要求目标位于 bounds 外）。
-            PlayerPartyLocalVisibleAutoTravelService.GetExitApproachLocalPoint(
-                connection, bounds, out var localX, out var localY);
+            var localX = reachableX;
+            var localY = reachableY;
             // 权威校验：请求目标必须 ∈ 正式 SlotRect ∩ playable bounds。几何修正后 approach
             // 恒在其中；此处仅作 clamp 防御（非 magic offset），禁止 Pathfinder 把非法 Exit
             // target 静默解析到不属于 SlotRect 的墙角。
@@ -1268,7 +1290,9 @@ namespace XianXia.Unity.Host
             }
 
             if (_move == null ||
-                !_move.OrderEntityToWorldPoint(active, target, null, issueStop: false))
+                !_move.OrderEntityToWorldPoint(active, target, null, issueStop: false,
+                    completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand,
+                    exactGoal: true))
             {
                 LastTransitionStatus = "PathBlocked";
                 _autoTravelRetryCooldownUntil = Time.time + 0.5f; // A* failed => back off.
@@ -1353,6 +1377,24 @@ namespace XianXia.Unity.Host
             var depth = authoredDepth > 0.0001f
                 ? authoredDepth
                 : SurfaceExitZoneCalculator.DefaultExitTriggerDepth;
+            if (bootstrap?.SurfaceExitZonePresenter == null ||
+                !bootstrap.SurfaceExitZonePresenter.TryGetUsableSurfaceExit(
+                    connection, out var reachablePoint))
+            {
+                if (TryReplanWorldSiteDeparture(world, party, site, hexSize, wildBounds, depth, activePos, connection.DestinationHex))
+                {
+                    LastTransitionStatus = "DepartureReplanned " + connection.DestinationHex + "→" + motion.SiteDepartureExitHex;
+                    _lastAutoTravelTarget = default;
+                    _move.CancelPresentationMovementPublic(active);
+                    return;
+                }
+                LastTransitionStatus = "DepartureNoReachableExit";
+                LastTransitionFailureReason = "当前场景没有通往该目的地的可达出口。";
+                PlayerPartyHexTravelService.CancelTravel(world);
+                return;
+            }
+            var reachableX = reachablePoint.x;
+            var reachableY = reachablePoint.y;
 
             // 到达判定：角色进入该 connection 的 SlotRect（与 presenter 视觉方块同一真源：
             // 同一 connection → 同一真实 bounds 派生 SlotRect）。
@@ -1391,9 +1433,7 @@ namespace XianXia.Unity.Host
             // 未到达：正式 approach 点（起点 = connection.ExitCenterLocal（真实 bounds 周界，
             // presenter 同源）→ 沿 inward 退正式 inset → 权威 clamp 进 SlotRect 触发带内；
             // 保证 A* 终点进入触发区，到达即 crossing，不再停在带外）。
-            PlayerPartyLocalVisibleAutoTravelService.ResolveWorldSiteExitApproachLocalPoint(
-                connection, bounds, depth, out var ax, out var ay);
-            var target = new Vector3(ax, ay, HostPresentationSpace.EntityZ);
+            var target = new Vector3(reachableX, reachableY, HostPresentationSpace.EntityZ);
 
             var alreadyMoving = _move != null && _move.IsMoving(active);
             var sameTarget = Vector3.Distance(target, _lastAutoTravelTarget) < 0.05f;
@@ -1404,7 +1444,9 @@ namespace XianXia.Unity.Host
             }
 
             if (_move == null ||
-                !_move.OrderEntityToWorldPoint(active, target, null, issueStop: false))
+                !_move.OrderEntityToWorldPoint(active, target, null, issueStop: false,
+                    completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand,
+                    exactGoal: true))
             {
                 LastTransitionStatus = "DeparturePathBlocked";
                 _autoTravelRetryCooldownUntil = Time.time + 0.5f;
@@ -1413,6 +1455,33 @@ namespace XianXia.Unity.Host
 
             _lastAutoTravelTarget = target;
             SyncLocalVisibleProgress(world, motion);
+        }
+
+        bool TryReplanWorldSiteDeparture(
+            XianXia.Core.Simulation.SimulationWorld world,
+            PlayerPartyRuntime party,
+            WorldSite site,
+            float hexSize,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float depth,
+            Vector3 activePos,
+            HexCoord oldExit)
+        {
+            ExitSlotScratch.Clear();
+            WorldSiteFootprintExitConnectionResolver.CollectConnections(
+                world, site, hexSize, bounds, depth,
+                SurfaceExitZoneCalculator.DefaultSlotSpanFraction, ExitSlotScratch);
+            ReachableExitHexScratch.Clear();
+            for (var i = 0; i < ExitSlotScratch.Count; i++)
+            {
+                var candidate = ExitSlotScratch[i];
+                if (candidate.DestinationHex.Equals(oldExit))
+                    continue;
+                if (IsUsableSurfaceExit(candidate))
+                    ReachableExitHexScratch.Add(candidate.DestinationHex);
+            }
+            return PlayerPartyHexTravelService.TryReplanCurrentWorldSiteDeparture(
+                world, party, ReachableExitHexScratch);
         }
 
         void SyncLocalVisibleProgress(
@@ -1496,7 +1565,8 @@ namespace XianXia.Unity.Host
             }
 
             if (_move == null ||
-                !_move.OrderEntityToWorldPoint(active, center, null, issueStop: false))
+                !_move.OrderEntityToWorldPoint(active, center, null, issueStop: false,
+                    completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand))
                 return; // A* 失败：保持现状，下帧重试。
 
             _lastAutoTravelTarget = center;
@@ -1641,7 +1711,8 @@ namespace XianXia.Unity.Host
                 if (!ShouldRepathFollower(id))
                     continue;
 
-                _move.OrderEntityToWorldPoint(id, goal, null, issueStop: false);
+                _move.OrderEntityToWorldPoint(id, goal, null, issueStop: false,
+                    completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand);
                 _nextFollowRepath[id.Value] = Time.unscaledTime + followRepathInterval;
             }
         }
@@ -1703,7 +1774,8 @@ namespace XianXia.Unity.Host
             // issueStop:true 会发 Domain Stop（StopOne → commandBridge → CancelTravel），
             // 错误取消整队 PlayerParty LocalVisible AutoTravel。OrderEntityToWorldPoint(issueStop:false)
             // 仍会 ClearPath/ClearPending 并重建 Local A* path（见 HostMoveController:426）。
-            _move.OrderEntityToWorldPoint(follower, goal, null, issueStop: false);
+            _move.OrderEntityToWorldPoint(follower, goal, null, issueStop: false,
+                completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand);
             _nextFollowRepath[follower.Value] = Time.unscaledTime + followRepathInterval;
         }
 
