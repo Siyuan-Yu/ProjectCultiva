@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using XianXia.Core.Persistence;
 using XianXia.Core.Simulation;
+using XianXia.Core.World;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
@@ -37,6 +39,14 @@ namespace XianXia.Core.Persistence
                 DefenderFormalArmyId = engagement.DefenderFormalArmyId,
                 PlayerPartyIncluded = engagement.PlayerPartyIncluded,
                 InvolvesPlayerSide = engagement.InvolvesPlayerSide,
+                PrimaryEnemyFactionId = engagement.PrimaryEnemyFactionId ?? string.Empty,
+                PlayerInclusionReason = engagement.PlayerInclusionReason ?? string.Empty,
+                RequiresPlayerDecision = engagement.RequiresPlayerDecision,
+                PendingBattleTriggerReason = engagement.PendingBattleTriggerReason ?? string.Empty,
+                InitiatorCommittedHexQ = engagement.InitiatorCommittedHexQ,
+                InitiatorCommittedHexR = engagement.InitiatorCommittedHexR,
+                DefenderCommittedHexQ = engagement.DefenderCommittedHexQ,
+                DefenderCommittedHexR = engagement.DefenderCommittedHexR,
                 OfferId = offer.OfferId,
                 OfferTitle = offer.Title,
                 ArmyStackId = offer.ArmyStackId,
@@ -64,6 +74,7 @@ namespace XianXia.Core.Persistence
             var retreat = engagement.DecisionSubjectRetreatLocation;
             if (retreat != null)
             {
+                snap.RetreatHasValue = true;
                 snap.RetreatArmyLocationKind = (int)retreat.ArmyLocationKind;
                 snap.RetreatPartyLocationKind = (int)retreat.PartyLocationKind;
                 snap.RetreatSiteId = retreat.SiteId ?? string.Empty;
@@ -83,12 +94,15 @@ namespace XianXia.Core.Persistence
                 snap.ParticipantPrimaryEnemyStackId = participants.PrimaryEnemyStackId;
                 snap.ParticipantBattleAnchorHexQ = participants.BattleAnchorHexQ;
                 snap.ParticipantBattleAnchorHexR = participants.BattleAnchorHexR;
+                snap.ParticipantEncounterLocalMapId = participants.EncounterLocalMapId ?? string.Empty;
+                snap.ParticipantLocalMapResolutionKind = (int)participants.LocalMapResolutionKind;
+                snap.HasParticipantLocalMapResolutionKind = true;
                 for (var i = 0; i < participants.Records.Count; i++)
                 {
                     var r = participants.Records[i];
                     if (r == null)
                         continue;
-                    snap.ParticipantRecords.Add(new PendingEngagementParticipantRecordDto
+                    var rec = new PendingEngagementParticipantRecordDto
                     {
                         Kind = (int)r.Kind,
                         EntityId = r.EntityId.Value,
@@ -97,11 +111,27 @@ namespace XianXia.Core.Persistence
                         DisplayLabel = r.DisplayLabel,
                         CombatPower = r.CombatPower,
                         Selected = r.Selected,
-                    });
+                        IncludedReason = r.IncludedReason ?? string.Empty,
+                    };
+                    if (r.PreBattle != null)
+                    {
+                        rec.HasPreBattle = true;
+                        rec.PreBattleMode = (int)r.PreBattle.Mode;
+                        rec.PreBattleSiteId = r.PreBattle.SiteId ?? string.Empty;
+                        rec.PreBattleHexQ = r.PreBattle.HexQ;
+                        rec.PreBattleHexR = r.PreBattle.HexR;
+                        rec.PreBattleFollowStackId = r.PreBattle.FollowStackId ?? string.Empty;
+                        rec.PreBattleCombatPursuitStackId = r.PreBattle.CombatPursuitStackId ?? string.Empty;
+                    }
+
+                    snap.ParticipantRecords.Add(rec);
                 }
             }
 
             dto.PendingEngagement = snap;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            EmitSnapshotDump(world, snap);
+#endif
         }
 
         public static void Restore(SimulationWorld world, StrategicSnapshotDto dto)
@@ -138,8 +168,16 @@ namespace XianXia.Core.Persistence
             RestoreSupportArea(world, engagement, src);
             engagement.PlayerPartyIncluded = src.PlayerPartyIncluded;
             engagement.InvolvesPlayerSide = src.InvolvesPlayerSide;
-            engagement.RequiresPlayerDecision = src.InvolvesPlayerSide;
+            // Phase 5S Persistence：RequiresPlayerDecision 用持久化值，不再用 InvolvesPlayerSide 推导。
+            // （旧存档无该字段时 Read 层已 fallback 到 involvesPlayerSide，语义与旧推导一致。）
+            engagement.RequiresPlayerDecision = src.RequiresPlayerDecision;
             engagement.PrimaryPlayerFactionId = world.Strategic.PlayerFactionId ?? string.Empty;
+            engagement.PrimaryEnemyFactionId = src.PrimaryEnemyFactionId ?? string.Empty;
+            engagement.PendingBattleTriggerReason = src.PendingBattleTriggerReason ?? string.Empty;
+            engagement.InitiatorCommittedHexQ = src.InitiatorCommittedHexQ;
+            engagement.InitiatorCommittedHexR = src.InitiatorCommittedHexR;
+            engagement.DefenderCommittedHexQ = src.DefenderCommittedHexQ;
+            engagement.DefenderCommittedHexR = src.DefenderCommittedHexR;
 
             for (var i = 0; i < src.PlayerFormalArmyIds.Count; i++)
                 engagement.AddPlayerFormalArmy(src.PlayerFormalArmyIds[i]);
@@ -150,25 +188,36 @@ namespace XianXia.Core.Persistence
             for (var i = 0; i < src.PlayerPartyMemberIds.Count; i++)
                 partyMembers.Add(new XianXia.Core.Domain.Ids.EntityId(src.PlayerPartyMemberIds[i]));
             engagement.SetPlayerPartyMembers(partyMembers);
-            // Phase 5S-B2-3.4：PlayerParty Initiator 加载后 IncludedReason 恢复为 DirectInitiator
-            // （locked members 已持久化，无需重新 Gather；reason 从 InitiatorKind 推导，不加新 DTO 字段）。
-            if (engagement.InitiatorKind == BattleInitiatorKind.PlayerParty &&
-                engagement.PlayerPartyIncluded)
+            // Phase 5S Persistence：PlayerInclusionReason 以持久化为准；
+            // 仅旧 snapshot（无该字段）才从 InitiatorKind 推导 DirectInitiator。
+            if (!string.IsNullOrEmpty(src.PlayerInclusionReason))
+            {
+                engagement.PlayerInclusionReason = src.PlayerInclusionReason;
+            }
+            else if (engagement.InitiatorKind == BattleInitiatorKind.PlayerParty &&
+                     engagement.PlayerPartyIncluded)
             {
                 engagement.PlayerInclusionReason = BattleParticipantInclusionReason.DirectInitiator;
             }
 
-            engagement.DecisionSubjectRetreatLocation = new PreEngagementLegalLocation
+            if (src.RetreatHasValue)
             {
-                ArmyLocationKind = (FormalArmyLocationKind)src.RetreatArmyLocationKind,
-                PartyLocationKind = (PlayerPartyLocationKind)src.RetreatPartyLocationKind,
-                SiteId = src.RetreatSiteId ?? string.Empty,
-                WorldX = src.RetreatWorldX,
-                WorldY = src.RetreatWorldY,
-                HexQ = src.RetreatHexQ,
-                HexR = src.RetreatHexR,
-                IsPlayerParty = src.RetreatIsPlayerParty,
-            };
+                engagement.DecisionSubjectRetreatLocation = new PreEngagementLegalLocation
+                {
+                    ArmyLocationKind = (FormalArmyLocationKind)src.RetreatArmyLocationKind,
+                    PartyLocationKind = (PlayerPartyLocationKind)src.RetreatPartyLocationKind,
+                    SiteId = src.RetreatSiteId ?? string.Empty,
+                    WorldX = src.RetreatWorldX,
+                    WorldY = src.RetreatWorldY,
+                    HexQ = src.RetreatHexQ,
+                    HexR = src.RetreatHexR,
+                    IsPlayerParty = src.RetreatIsPlayerParty,
+                };
+            }
+            else
+            {
+                engagement.DecisionSubjectRetreatLocation = null;
+            }
 
             var offer = world.Strategic.BattleOffer;
             offer.Resolved = false;
@@ -191,6 +240,27 @@ namespace XianXia.Core.Persistence
             participants.PrimaryEnemyStackId = src.ParticipantPrimaryEnemyStackId ?? string.Empty;
             participants.BattleAnchorHexQ = src.ParticipantBattleAnchorHexQ;
             participants.BattleAnchorHexR = src.ParticipantBattleAnchorHexR;
+            // Phase 5S Persistence：frozen participant LocalMap 决议以持久化为准（Auto 不得
+            // 因缺字段回退 ExplicitEncounterMap）。ParticipantEncounterLocalMapId 优先，
+            // 旧 snapshot 缺省时回退 offer 级 EncounterLocalMapId。
+            participants.EncounterLocalMapId =
+                string.IsNullOrEmpty(src.ParticipantEncounterLocalMapId)
+                    ? src.EncounterLocalMapId ?? string.Empty
+                    : src.ParticipantEncounterLocalMapId;
+            if (src.HasParticipantLocalMapResolutionKind)
+            {
+                participants.LocalMapResolutionKind =
+                    (BattleLocalMapResolutionKind)src.ParticipantLocalMapResolutionKind;
+            }
+            else
+            {
+                // 旧 snapshot fallback：0 与缺失无法区分（WorldSite=0），必须重新 resolve。
+                var resolution = BattleLocalMapResolver.ResolvePendingEngagement(world);
+                participants.LocalMapResolutionKind = resolution.Success
+                    ? resolution.Kind
+                    : BattleLocalMapResolutionKind.ExplicitEncounterMap;
+            }
+
             for (var i = 0; i < src.ParticipantRecords.Count; i++)
             {
                 var r = src.ParticipantRecords[i];
@@ -203,12 +273,67 @@ namespace XianXia.Core.Persistence
                     DisplayLabel = r.DisplayLabel ?? string.Empty,
                     CombatPower = r.CombatPower,
                     Selected = r.Selected,
+                    IncludedReason = r.IncludedReason ?? string.Empty,
+                    PreBattle = r.HasPreBattle
+                        ? new PreBattleWorldPresence
+                        {
+                            Mode = (PartyWorldPresenceMode)r.PreBattleMode,
+                            SiteId = r.PreBattleSiteId ?? string.Empty,
+                            HexQ = r.PreBattleHexQ,
+                            HexR = r.PreBattleHexR,
+                            FollowStackId = r.PreBattleFollowStackId ?? string.Empty,
+                            CombatPursuitStackId = r.PreBattleCombatPursuitStackId ?? string.Empty
+                        }
+                        : null
                 });
             }
 
+            // Phase 5S Persistence：BattleOffer.PlayerPartyIds 不额外存一份 roster ——
+            // Participants.Selected 是 frozen selection authority，恢复后从 selected friendly 重建。
+            offer.SetPlayerParty(participants.CollectSelectedFriendly());
+
             BattleOfferService.RefreshOfferPowerLabels(world);
             StrategicClockFreezeService.BeginOrPromote(world, StrategicClockFreezeReason.BattleOffer);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            EmitSnapshotDump(world, src);
+#endif
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        /// <summary>Save 前 / Load 后 dump frozen engagement 关键事实，方便直接比较（Phase 5S Persistence）。</summary>
+        static void EmitSnapshotDump(SimulationWorld world, PendingEngagementSnapshotDto snap)
+        {
+            if (snap == null)
+                return;
+            var sb = new StringBuilder();
+            sb.Append("[PendingEngagementSnapshot] EngagementId=").Append(snap.EngagementId ?? "");
+            sb.Append(" InitiatorKind=").Append(snap.InitiatorKind);
+            sb.Append(" DecisionSubjectKind=").Append(snap.DecisionSubjectKind);
+            sb.Append(" BattleLocation=(").Append(snap.BattleLocationHexQ).Append(',').Append(snap.BattleLocationHexR).Append(')');
+            sb.Append(" BattleAreaCount=").Append(snap.BattleAreaHexQList?.Count ?? 0);
+            sb.Append(" SupportAreaCount=").Append(snap.SupportAreaHexQList?.Count ?? 0);
+            sb.Append(" BattleSiteId=").Append(snap.SupportBattleSiteId ?? "");
+            sb.Append(" AttackerArmy=").Append(snap.AttackerFormalArmyId ?? "");
+            sb.Append(" DefenderArmy=").Append(snap.DefenderFormalArmyId ?? "");
+            sb.Append(" PlayerPartyIncluded=").Append(snap.PlayerPartyIncluded);
+            sb.Append(" PlayerInclusionReason=").Append(snap.PlayerInclusionReason ?? "");
+            sb.Append(" RequiresPlayerDecision=").Append(snap.RequiresPlayerDecision);
+            sb.Append(" LockedPlayerArmies=").Append(snap.PlayerFormalArmyIds?.Count ?? 0);
+            sb.Append(" LockedEnemyArmies=").Append(snap.EnemyFormalArmyIds?.Count ?? 0);
+            sb.Append(" LockedPartyMembers=").Append(snap.PlayerPartyMemberIds?.Count ?? 0);
+            sb.Append(" BattleAnchor=(").Append(snap.ParticipantBattleAnchorHexQ).Append(',').Append(snap.ParticipantBattleAnchorHexR).Append(')');
+            sb.Append(" ParticipantCount=").Append(snap.ParticipantRecords?.Count ?? 0);
+            sb.Append(" ParticipantLocalMapResolutionKind=").Append(snap.ParticipantLocalMapResolutionKind);
+            sb.Append(" HasResolutionKind=").Append(snap.HasParticipantLocalMapResolutionKind);
+            sb.Append(" ParticipantMap=").Append(snap.ParticipantEncounterLocalMapId ?? "");
+            sb.Append(" OfferOrigin=").Append(snap.OfferOrigin);
+            sb.Append(" RequiresWarDeclaration=").Append(snap.OfferRequiresWarDeclaration);
+            sb.Append(" RetreatHasValue=").Append(snap.RetreatHasValue);
+            if (world?.Strategic != null && world.Strategic.PendingEngagement != null)
+                sb.Append(" RuntimeIsActive=").Append(world.Strategic.PendingEngagement.IsActive);
+            System.Diagnostics.Debug.WriteLine(sb.ToString());
+        }
+#endif
 
         static void CopyArmyIds(IReadOnlyList<string> from, List<string> into)
         {

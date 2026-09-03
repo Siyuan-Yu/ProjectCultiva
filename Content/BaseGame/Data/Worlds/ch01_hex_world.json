@@ -140048,7 +140048,8 @@
             }
           ],
           "localMapId": "base:map_site_a",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_a"
         },
         {
           "siteId": "base:site_b",
@@ -140085,7 +140086,8 @@
             }
           ],
           "localMapId": "base:map_site_b",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_b"
         },
         {
           "siteId": "base:site_bei",
@@ -140102,7 +140104,8 @@
             }
           ],
           "localMapId": "base:map_site_bei",
-          "ownerFactionId": "base:faction_shuofeng"
+          "ownerFactionId": "base:faction_shuofeng",
+          "territoryRegionId": "base:region_bei"
         },
         {
           "siteId": "base:site_chengzhen",
@@ -140131,7 +140134,8 @@
             }
           ],
           "localMapId": "base:map_site_chengzhen",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_chengzhen"
         },
         {
           "siteId": "base:site_daoguan",
@@ -140156,7 +140160,8 @@
             }
           ],
           "localMapId": "base:map_site_daoguan",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_daoguan"
         },
         {
           "siteId": "base:site_dong",
@@ -140173,7 +140178,8 @@
             }
           ],
           "localMapId": "base:map_site_dong",
-          "ownerFactionId": "base:faction_donglin"
+          "ownerFactionId": "base:faction_donglin",
+          "territoryRegionId": "base:region_dong"
         },
         {
           "siteId": "base:site_dukou",
@@ -140190,7 +140196,8 @@
             }
           ],
           "localMapId": "base:map_site_dukou",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_dukou"
         },
         {
           "siteId": "base:site_dukou_xi",
@@ -140207,7 +140214,8 @@
             }
           ],
           "localMapId": "base:map_site_dukou_xi",
-          "ownerFactionId": "base:faction_xijin"
+          "ownerFactionId": "base:faction_xijin",
+          "territoryRegionId": "base:region_dukou_xi"
         },
         {
           "siteId": "base:site_er",
@@ -140232,7 +140240,8 @@
             }
           ],
           "localMapId": "base:map_site_er",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_er"
         },
         {
           "siteId": "base:site_feixu",
@@ -140249,7 +140258,8 @@
             }
           ],
           "localMapId": "base:map_site_feixu",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_feixu"
         },
         {
           "siteId": "base:site_fengkou",
@@ -140266,7 +140276,8 @@
             }
           ],
           "localMapId": "base:map_site_fengkou",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_fengkou"
         },
         {
           "siteId": "base:site_guanai",
@@ -140283,7 +140294,8 @@
             }
           ],
           "localMapId": "base:map_site_guanai",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_guanai"
         },
         {
           "siteId": "base:site_gudao",
@@ -140300,7 +140312,8 @@
             }
           ],
           "localMapId": "base:map_site_gudao",
-          "ownerFactionId": "base:faction_donglin"
+          "ownerFactionId": "base:faction_donglin",
+          "territoryRegionId": "base:region_gudao"
         },
         {
           "siteId": "base:site_haijiao",
@@ -140317,7 +140330,8 @@
             }
           ],
           "localMapId": "base:map_site_haijiao",
-          "ownerFactionId": "base:faction_fisher_village"
+          "ownerFactionId": "base:faction_fisher_village",
+          "territoryRegionId": "base:region_haijiao"
         },
         {
           "siteId": "base:site_huangcun",
@@ -140346,7 +140360,8 @@
             }
           ],
           "localMapId": "base:map_ch01_reference",
-          "ownerFactionId": "base:sect_huangcun_labor"
+          "ownerFactionId": "base:sect_huangcun_labor",
+          "territoryRegionId": "base:region_huangcun"
         },
         {
           "siteId": "base:site_kuangshan",
@@ -140371,7 +140386,8 @@
             }
           ],
           "localMapId": "base:map_site_kuangshan",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_kuangshan"
         },
         {
           "siteId": "base:site_lingdi",
@@ -140388,7 +140404,8 @@
             }
           ],
           "localMapId": "base:map_site_lingdi",
-          "ownerFactionId": "base:sect_huangcun_labor"
+          "ownerFactionId": "base:sect_huangcun_labor",
+          "territoryRegionId": "base:region_lingdi"
         },
         {
           "siteId": "base:site_linjian",
@@ -140405,7 +140422,8 @@
             }
           ],
           "localMapId": "base:map_site_linjian",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_linjian"
         },
         {
           "siteId": "base:site_lu",
@@ -140422,7 +140440,8 @@
             }
           ],
           "localMapId": "base:map_site_lu",
-          "ownerFactionId": "base:sect_huangcun_labor"
+          "ownerFactionId": "base:sect_huangcun_labor",
+          "territoryRegionId": "base:region_lu"
         },
         {
           "siteId": "base:site_miao",
@@ -140439,7 +140458,8 @@
             }
           ],
           "localMapId": "base:map_site_miao",
-          "ownerFactionId": "base:faction_donglin"
+          "ownerFactionId": "base:faction_donglin",
+          "territoryRegionId": "base:region_miao"
         },
         {
           "siteId": "base:site_nan",
@@ -140456,7 +140476,8 @@
             }
           ],
           "localMapId": "base:map_site_nan",
-          "ownerFactionId": "base:faction_nan_yan"
+          "ownerFactionId": "base:faction_nan_yan",
+          "territoryRegionId": "base:region_nan"
         },
         {
           "siteId": "base:site_shankou",
@@ -140473,7 +140494,8 @@
             }
           ],
           "localMapId": "base:map_site_shankou",
-          "ownerFactionId": "base:faction_shuofeng"
+          "ownerFactionId": "base:faction_shuofeng",
+          "territoryRegionId": "base:region_shankou"
         },
         {
           "siteId": "base:site_shuizhai",
@@ -140490,7 +140512,8 @@
             }
           ],
           "localMapId": "base:map_site_shuizhai",
-          "ownerFactionId": "base:faction_fisher_village"
+          "ownerFactionId": "base:faction_fisher_village",
+          "territoryRegionId": "base:region_shuizhai"
         },
         {
           "siteId": "base:site_shulin_xi",
@@ -140507,7 +140530,8 @@
             }
           ],
           "localMapId": "base:map_site_shulin_xi",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_shulin_xi"
         },
         {
           "siteId": "base:site_tiejiangpu",
@@ -140544,7 +140568,8 @@
             }
           ],
           "localMapId": "base:map_site_tiejiangpu",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_tiejiangpu"
         },
         {
           "siteId": "base:site_wai",
@@ -140561,7 +140586,8 @@
             }
           ],
           "localMapId": "base:map_site_wai",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_wai"
         },
         {
           "siteId": "base:site_yaotian",
@@ -140578,7 +140604,8 @@
             }
           ],
           "localMapId": "base:map_site_yaotian",
-          "ownerFactionId": "base:faction_xijin"
+          "ownerFactionId": "base:faction_xijin",
+          "territoryRegionId": "base:region_yaotian"
         },
         {
           "siteId": "base:site_yingdi",
@@ -140595,7 +140622,8 @@
             }
           ],
           "localMapId": "base:map_site_yingdi",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_yingdi"
         },
         {
           "siteId": "base:site_yucun",
@@ -140612,7 +140640,8 @@
             }
           ],
           "localMapId": "base:map_site_yucun",
-          "ownerFactionId": "base:faction_fisher_village"
+          "ownerFactionId": "base:faction_fisher_village",
+          "territoryRegionId": "base:region_yucun"
         },
         {
           "siteId": "base:site_zhuangyuan",
@@ -140641,7 +140670,410 @@
             }
           ],
           "localMapId": "base:map_site_zhuangyuan",
-          "ownerFactionId": "base:faction_nan_yan"
+          "ownerFactionId": "base:faction_nan_yan",
+          "territoryRegionId": "base:region_zhuangyuan"
+        }
+      ],
+      "territoryRegions": [
+        {
+          "regionId": "base:region_a",
+          "primaryWorldSiteId": "base:site_a",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 68, "r": 39},
+              {"q": 69, "r": 39},
+              {"q": 67, "r": 40},
+              {"q": 68, "r": 40},
+              {"q": 69, "r": 40},
+              {"q": 68, "r": 41}
+            ]
+        },
+        {
+          "regionId": "base:region_b",
+          "primaryWorldSiteId": "base:site_b",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 106, "r": 25},
+              {"q": 107, "r": 25},
+              {"q": 105, "r": 26},
+              {"q": 106, "r": 26},
+              {"q": 107, "r": 26},
+              {"q": 106, "r": 27}
+            ]
+        },
+        {
+          "regionId": "base:region_bei",
+          "primaryWorldSiteId": "base:site_bei",
+          "controlFactionId": "base:faction_shuofeng",
+          "hexes": [
+              {"q": 80, "r": 78},
+              {"q": 79, "r": 77},
+              {"q": 79, "r": 78},
+              {"q": 79, "r": 79},
+              {"q": 80, "r": 77},
+              {"q": 80, "r": 79},
+              {"q": 81, "r": 78}
+            ]
+        },
+        {
+          "regionId": "base:region_chengzhen",
+          "primaryWorldSiteId": "base:site_chengzhen",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 118, "r": 45},
+              {"q": 119, "r": 45},
+              {"q": 118, "r": 46},
+              {"q": 119, "r": 46}
+            ]
+        },
+        {
+          "regionId": "base:region_daoguan",
+          "primaryWorldSiteId": "base:site_daoguan",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 54, "r": 66},
+              {"q": 55, "r": 66},
+              {"q": 56, "r": 66}
+            ]
+        },
+        {
+          "regionId": "base:region_dong",
+          "primaryWorldSiteId": "base:site_dong",
+          "controlFactionId": "base:faction_donglin",
+          "hexes": [
+              {"q": 156, "r": 66},
+              {"q": 155, "r": 65},
+              {"q": 155, "r": 66},
+              {"q": 155, "r": 67},
+              {"q": 156, "r": 65},
+              {"q": 156, "r": 67},
+              {"q": 157, "r": 66}
+            ]
+        },
+        {
+          "regionId": "base:region_dukou",
+          "primaryWorldSiteId": "base:site_dukou",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 130, "r": 32}
+            ]
+        },
+        {
+          "regionId": "base:region_dukou_xi",
+          "primaryWorldSiteId": "base:site_dukou_xi",
+          "controlFactionId": "base:faction_xijin",
+          "hexes": [
+              {"q": 28, "r": 26},
+              {"q": 27, "r": 25},
+              {"q": 27, "r": 26},
+              {"q": 27, "r": 27},
+              {"q": 28, "r": 25},
+              {"q": 28, "r": 27},
+              {"q": 29, "r": 26}
+            ]
+        },
+        {
+          "regionId": "base:region_er",
+          "primaryWorldSiteId": "base:site_er",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 144, "r": 46},
+              {"q": 145, "r": 46},
+              {"q": 146, "r": 46}
+            ]
+        },
+        {
+          "regionId": "base:region_feixu",
+          "primaryWorldSiteId": "base:site_feixu",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 130, "r": 78}
+            ]
+        },
+        {
+          "regionId": "base:region_fengkou",
+          "primaryWorldSiteId": "base:site_fengkou",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 54, "r": 78}
+            ]
+        },
+        {
+          "regionId": "base:region_guanai",
+          "primaryWorldSiteId": "base:site_guanai",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 106, "r": 58}
+            ]
+        },
+        {
+          "regionId": "base:region_gudao",
+          "primaryWorldSiteId": "base:site_gudao",
+          "controlFactionId": "base:faction_donglin",
+          "hexes": [
+              {"q": 118, "r": 66},
+              {"q": 117, "r": 65},
+              {"q": 117, "r": 66},
+              {"q": 117, "r": 67},
+              {"q": 118, "r": 65},
+              {"q": 118, "r": 67},
+              {"q": 119, "r": 66}
+            ]
+        },
+        {
+          "regionId": "base:region_haijiao",
+          "primaryWorldSiteId": "base:site_haijiao",
+          "controlFactionId": "base:faction_fisher_village",
+          "hexes": [
+              {"q": 182, "r": 20},
+              {"q": 181, "r": 19},
+              {"q": 181, "r": 20},
+              {"q": 181, "r": 21},
+              {"q": 182, "r": 19},
+              {"q": 182, "r": 21},
+              {"q": 183, "r": 20}
+            ]
+        },
+        {
+          "regionId": "base:region_huangcun",
+          "primaryWorldSiteId": "base:site_huangcun",
+          "controlFactionId": "base:sect_huangcun_labor",
+          "hexes": [
+              {"q": 80, "r": 51},
+              {"q": 81, "r": 51},
+              {"q": 80, "r": 52},
+              {"q": 81, "r": 52},
+              {"q": 78, "r": 51},
+              {"q": 78, "r": 52},
+              {"q": 78, "r": 53},
+              {"q": 79, "r": 49},
+              {"q": 79, "r": 50},
+              {"q": 79, "r": 51},
+              {"q": 79, "r": 52},
+              {"q": 79, "r": 53},
+              {"q": 79, "r": 54},
+              {"q": 80, "r": 49},
+              {"q": 80, "r": 50},
+              {"q": 80, "r": 53},
+              {"q": 80, "r": 54},
+              {"q": 81, "r": 49},
+              {"q": 81, "r": 50},
+              {"q": 81, "r": 53},
+              {"q": 81, "r": 54},
+              {"q": 82, "r": 49},
+              {"q": 82, "r": 50},
+              {"q": 82, "r": 51},
+              {"q": 82, "r": 52},
+              {"q": 82, "r": 53},
+              {"q": 82, "r": 54},
+              {"q": 83, "r": 50},
+              {"q": 83, "r": 51},
+              {"q": 83, "r": 52}
+            ]
+        },
+        {
+          "regionId": "base:region_kuangshan",
+          "primaryWorldSiteId": "base:site_kuangshan",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 130, "r": 58},
+              {"q": 131, "r": 58},
+              {"q": 132, "r": 58}
+            ]
+        },
+        {
+          "regionId": "base:region_lingdi",
+          "primaryWorldSiteId": "base:site_lingdi",
+          "controlFactionId": "base:sect_huangcun_labor",
+          "hexes": [
+              {"q": 42, "r": 52},
+              {"q": 41, "r": 51},
+              {"q": 41, "r": 52},
+              {"q": 41, "r": 53},
+              {"q": 42, "r": 51},
+              {"q": 42, "r": 53},
+              {"q": 43, "r": 52}
+            ]
+        },
+        {
+          "regionId": "base:region_linjian",
+          "primaryWorldSiteId": "base:site_linjian",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 80, "r": 32}
+            ]
+        },
+        {
+          "regionId": "base:region_lu",
+          "primaryWorldSiteId": "base:site_lu",
+          "controlFactionId": "base:sect_huangcun_labor",
+          "hexes": [
+              {"q": 68, "r": 58},
+              {"q": 67, "r": 57},
+              {"q": 67, "r": 58},
+              {"q": 67, "r": 59},
+              {"q": 68, "r": 57},
+              {"q": 68, "r": 59},
+              {"q": 69, "r": 58}
+            ]
+        },
+        {
+          "regionId": "base:region_miao",
+          "primaryWorldSiteId": "base:site_miao",
+          "controlFactionId": "base:faction_donglin",
+          "hexes": [
+              {"q": 144, "r": 72},
+              {"q": 143, "r": 71},
+              {"q": 143, "r": 72},
+              {"q": 143, "r": 73},
+              {"q": 144, "r": 71},
+              {"q": 144, "r": 73},
+              {"q": 145, "r": 72}
+            ]
+        },
+        {
+          "regionId": "base:region_nan",
+          "primaryWorldSiteId": "base:site_nan",
+          "controlFactionId": "base:faction_nan_yan",
+          "hexes": [
+              {"q": 92, "r": 20},
+              {"q": 91, "r": 19},
+              {"q": 91, "r": 20},
+              {"q": 91, "r": 21},
+              {"q": 92, "r": 19},
+              {"q": 92, "r": 21},
+              {"q": 93, "r": 20}
+            ]
+        },
+        {
+          "regionId": "base:region_shankou",
+          "primaryWorldSiteId": "base:site_shankou",
+          "controlFactionId": "base:faction_shuofeng",
+          "hexes": [
+              {"q": 92, "r": 72},
+              {"q": 91, "r": 71},
+              {"q": 91, "r": 72},
+              {"q": 91, "r": 73},
+              {"q": 92, "r": 71},
+              {"q": 92, "r": 73},
+              {"q": 93, "r": 72}
+            ]
+        },
+        {
+          "regionId": "base:region_shuizhai",
+          "primaryWorldSiteId": "base:site_shuizhai",
+          "controlFactionId": "base:faction_fisher_village",
+          "hexes": [
+              {"q": 170, "r": 40},
+              {"q": 169, "r": 39},
+              {"q": 169, "r": 40},
+              {"q": 169, "r": 41},
+              {"q": 170, "r": 39},
+              {"q": 170, "r": 41},
+              {"q": 171, "r": 40}
+            ]
+        },
+        {
+          "regionId": "base:region_shulin_xi",
+          "primaryWorldSiteId": "base:site_shulin_xi",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 16, "r": 58}
+            ]
+        },
+        {
+          "regionId": "base:region_tiejiangpu",
+          "primaryWorldSiteId": "base:site_tiejiangpu",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 146, "r": 50},
+              {"q": 144, "r": 52},
+              {"q": 146, "r": 52},
+              {"q": 144, "r": 51},
+              {"q": 145, "r": 51},
+              {"q": 145, "r": 52}
+            ]
+        },
+        {
+          "regionId": "base:region_wai",
+          "primaryWorldSiteId": "base:site_wai",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 42, "r": 72}
+            ]
+        },
+        {
+          "regionId": "base:region_yaotian",
+          "primaryWorldSiteId": "base:site_yaotian",
+          "controlFactionId": "base:faction_xijin",
+          "hexes": [
+              {"q": 28, "r": 40},
+              {"q": 27, "r": 39},
+              {"q": 27, "r": 40},
+              {"q": 27, "r": 41},
+              {"q": 28, "r": 39},
+              {"q": 28, "r": 41},
+              {"q": 29, "r": 40}
+            ]
+        },
+        {
+          "regionId": "base:region_yingdi",
+          "primaryWorldSiteId": "base:site_yingdi",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 106, "r": 52}
+            ]
+        },
+        {
+          "regionId": "base:region_yucun",
+          "primaryWorldSiteId": "base:site_yucun",
+          "controlFactionId": "base:faction_fisher_village",
+          "hexes": [
+              {"q": 156, "r": 26},
+              {"q": 155, "r": 25},
+              {"q": 155, "r": 26},
+              {"q": 155, "r": 27},
+              {"q": 156, "r": 25},
+              {"q": 156, "r": 27},
+              {"q": 157, "r": 26}
+            ]
+        },
+        {
+          "regionId": "base:region_zhuangyuan",
+          "primaryWorldSiteId": "base:site_zhuangyuan",
+          "controlFactionId": "base:faction_nan_yan",
+          "hexes": [
+              {"q": 118, "r": 31},
+              {"q": 119, "r": 31},
+              {"q": 118, "r": 32},
+              {"q": 119, "r": 32},
+              {"q": 116, "r": 31},
+              {"q": 116, "r": 32},
+              {"q": 116, "r": 33},
+              {"q": 117, "r": 29},
+              {"q": 117, "r": 30},
+              {"q": 117, "r": 31},
+              {"q": 117, "r": 32},
+              {"q": 117, "r": 33},
+              {"q": 117, "r": 34},
+              {"q": 118, "r": 29},
+              {"q": 118, "r": 30},
+              {"q": 118, "r": 33},
+              {"q": 118, "r": 34},
+              {"q": 119, "r": 29},
+              {"q": 119, "r": 30},
+              {"q": 119, "r": 33},
+              {"q": 119, "r": 34},
+              {"q": 120, "r": 29},
+              {"q": 120, "r": 30},
+              {"q": 120, "r": 31},
+              {"q": 120, "r": 32},
+              {"q": 120, "r": 33},
+              {"q": 120, "r": 34},
+              {"q": 121, "r": 30},
+              {"q": 121, "r": 31},
+              {"q": 121, "r": 32}
+            ]
         }
       ]
     }

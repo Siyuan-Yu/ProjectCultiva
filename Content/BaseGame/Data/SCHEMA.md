@@ -93,7 +93,43 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 ### type 一览
 
-`character`｜`cultivation`｜`combatArt`｜`realmLadder`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`localPlaceSet`｜`worldGraph`｜`mapLayout`｜`spawnTable`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`｜`formalArmy`
+`character`｜`cultivation`｜`combatArt`｜`realmLadder`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`localPlaceSet`｜`worldGraph`｜`mapLayout`｜`spawnTable`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`｜`formalArmy`｜`hexWorld`
+
+## type = hexWorld
+
+Hex 战略世界 JSON（`Content/BaseGame/Data/Worlds/*.json`）；由 `HexWorldContentLoader.Apply` 加载。加载顺序：cells → sites → territoryRegions（territory 最后写 cell.ControlFactionId）。
+
+| Field | Notes |
+|---|---|
+| `width`／`height`／`hexSize` | 网格尺寸与六边形外半径（存储坐标 = Odd-R offset，pointy-top；禁止把存储坐标当 axial） |
+| `defaultTerrain`／`defaultPassable` | 缺省地形与通行（cells 可覆盖） |
+| `cells[]` | `{ q, r, terrain, passable?, isRoad? }`；terrain ∈ Plain/Forest/Mountain/Water/Road |
+| `sites[]` | Fixed WorldSite（见下） |
+| `territoryRegions[]` | 政治辖区（见下）；Runtime 只读固化 Hexes，不按 radius 重算 |
+
+### hexWorld.sites[]
+
+| Field | Notes |
+|---|---|
+| `siteId` | 唯一；`base:site_*` |
+| `displayName`／`siteType` | 可读名／类型（Town/Sect/Mine/...） |
+| `anchorQ`／`anchorR` | Site 图标/镜头锚点；不是“是否位于 Site”的判断 |
+| `presenceQ`／`presenceR` | 缺省=anchor（ADR-0027 后 PresenceHex 为 Derived，兼容字段） |
+| `footprint[]` | 明确 HexCoord 列表（禁止运行时自动猜形状）；不同 Site footprint 绝不重叠 |
+| `localMapId` | 该 Site 唯一 LocalMap |
+| `ownerFactionId` | 政治 Owner（可空=无主） |
+| `territoryRegionId` | 绑定 TerritoryRegion（必须与对应 region 的 `primaryWorldSiteId` 一致；owner == region.controller 硬不变式） |
+
+### hexWorld.territoryRegions[]
+
+| Field | Notes |
+|---|---|
+| `regionId` | 唯一；`base:region_*`（无主 Site 也有 Region，controller 空） |
+| `primaryWorldSiteId` | 绑定 Fixed WorldSite（同一 Hex 只属一个 footprint 与一个 Region） |
+| `controlFactionId` | 政治 Controller（可空=无主；与 site.ownerFactionId 永远一致） |
+| `hexes[]` | 固化辖区（**必须**覆盖该 Site 全部 footprint；运行时不可按 radius 重算/竞争） |
+
+> 初始辖区生成用一次性脚本（footprint 距离 + SiteId 确定性 tie-break），生成结果固化进 JSON；Runtime 无任何 radius 逻辑。
 
 ## type = character
 

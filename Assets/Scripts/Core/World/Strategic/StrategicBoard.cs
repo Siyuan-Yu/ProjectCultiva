@@ -71,6 +71,8 @@ namespace XianXia.Core.World.Strategic
         public FormalArmyBoard FormalArmies { get; } = new FormalArmyBoard();
         /// <summary>Hex 战略重要地点（155）；替代 Node 的地点职责。</summary>
         public WorldSiteBoard Sites { get; } = new WorldSiteBoard();
+        /// <summary>政治辖区 Board（2J §6.3）；与 Sites 相互引用（Site.TerritoryRegionId ↔ Region.PrimaryWorldSiteId）。</summary>
+        public TerritoryRegionBoard TerritoryRegions { get; } = new TerritoryRegionBoard();
         public BattleOfferPending BattleOffer { get; } = new BattleOfferPending();
         public ArrivalNoticePending ArrivalNotice { get; } = new ArrivalNoticePending();
         public StrategicEncounterRuntime Encounter { get; } = new StrategicEncounterRuntime();

@@ -752,6 +752,22 @@ namespace XianXia.Data.Serialization
                 }
             }
 
+            var territoryControllers = new List<JsonValue>();
+            if (strategic.TerritoryRegionControllers != null)
+            {
+                for (var i = 0; i < strategic.TerritoryRegionControllers.Count; i++)
+                {
+                    var r = strategic.TerritoryRegionControllers[i];
+                    if (r == null)
+                        continue;
+                    territoryControllers.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["regionId"] = JsonValue.FromString(r.RegionId ?? string.Empty),
+                        ["controlFactionId"] = JsonValue.FromString(r.ControlFactionId ?? string.Empty)
+                    }));
+                }
+            }
+
             var wars = new List<JsonValue>();
             if (strategic.Wars != null)
             {
@@ -858,6 +874,7 @@ namespace XianXia.Data.Serialization
                 ["residualCharacterPresences"] = JsonValue.FromArray(residuals),
                 ["characterWorldPresences"] = JsonValue.FromArray(characterWorldPresences),
                 ["worldSiteOwners"] = JsonValue.FromArray(siteOwners),
+                ["territoryRegionControllers"] = JsonValue.FromArray(territoryControllers),
                 ["wars"] = JsonValue.FromArray(wars),
                 ["alliances"] = JsonValue.FromArray(alliances),
                 ["vassalages"] = JsonValue.FromArray(vassalages),
@@ -913,6 +930,12 @@ namespace XianXia.Data.Serialization
 
                 if (placements.Count > 0)
                     root["loadedLocalMapCharacterPlacements"] = JsonValue.FromArray(placements);
+            }
+
+            if (strategic.PendingEngagement != null &&
+                !string.IsNullOrEmpty(strategic.PendingEngagement.EngagementId))
+            {
+                root["pendingEngagement"] = SerializePendingEngagement(strategic.PendingEngagement);
             }
 
             return JsonValue.FromObject(root);
@@ -1032,6 +1055,19 @@ namespace XianXia.Data.Serialization
                     {
                         SiteId = s.GetString("siteId", string.Empty),
                         OwnerFactionId = s.GetString("ownerFactionId", string.Empty)
+                    });
+                }
+            }
+
+            if (strategic.TryGetProperty("territoryRegionControllers", out var territoryControllers) &&
+                territoryControllers.Kind == JsonValueKind.Array)
+            {
+                foreach (var r in territoryControllers.Array)
+                {
+                    dto.TerritoryRegionControllers.Add(new TerritoryRegionControllerSnapshotDto
+                    {
+                        RegionId = r.GetString("regionId", string.Empty),
+                        ControlFactionId = r.GetString("controlFactionId", string.Empty)
                     });
                 }
             }
@@ -1190,7 +1226,317 @@ namespace XianXia.Data.Serialization
                 }
             }
 
+            if (strategic.TryGetProperty("pendingEngagement", out var pendingNode) &&
+                pendingNode.Kind == JsonValueKind.Object)
+            {
+                dto.PendingEngagement = ReadPendingEngagement(pendingNode);
+            }
+
             return dto;
+        }
+
+        static JsonValue SerializePendingEngagement(PendingEngagementSnapshotDto p)
+        {
+            if (p == null)
+                return JsonValue.Null;
+
+            var battleArea = SerializeHexCoordPairs(p.BattleAreaHexQList, p.BattleAreaHexRList);
+            var supportArea = SerializeHexCoordPairs(p.SupportAreaHexQList, p.SupportAreaHexRList);
+
+            var lockedPlayer = new List<JsonValue>();
+            if (p.PlayerFormalArmyIds != null)
+            {
+                for (var i = 0; i < p.PlayerFormalArmyIds.Count; i++)
+                    lockedPlayer.Add(JsonValue.FromString(p.PlayerFormalArmyIds[i] ?? string.Empty));
+            }
+
+            var lockedEnemy = new List<JsonValue>();
+            if (p.EnemyFormalArmyIds != null)
+            {
+                for (var i = 0; i < p.EnemyFormalArmyIds.Count; i++)
+                    lockedEnemy.Add(JsonValue.FromString(p.EnemyFormalArmyIds[i] ?? string.Empty));
+            }
+
+            var lockedParty = new List<JsonValue>();
+            if (p.PlayerPartyMemberIds != null)
+            {
+                for (var i = 0; i < p.PlayerPartyMemberIds.Count; i++)
+                    lockedParty.Add(U(p.PlayerPartyMemberIds[i]));
+            }
+
+            var offer = new Dictionary<string, JsonValue>
+            {
+                ["offerId"] = JsonValue.FromString(p.OfferId ?? string.Empty),
+                ["title"] = JsonValue.FromString(p.OfferTitle ?? string.Empty),
+                ["armyStackId"] = JsonValue.FromString(p.ArmyStackId ?? string.Empty),
+                ["encounterLocalMapId"] = JsonValue.FromString(p.EncounterLocalMapId ?? string.Empty),
+                ["origin"] = JsonValue.FromNumber(p.OfferOrigin),
+                ["requiresWarDeclaration"] = JsonValue.FromBool(p.OfferRequiresWarDeclaration),
+                ["pendingWarAttackerFactionId"] = JsonValue.FromString(p.PendingWarAttackerFactionId ?? string.Empty),
+                ["pendingWarDefenderFactionId"] = JsonValue.FromString(p.PendingWarDefenderFactionId ?? string.Empty)
+            };
+
+            var retreat = new Dictionary<string, JsonValue>
+            {
+                ["hasValue"] = JsonValue.FromBool(p.RetreatHasValue),
+                ["armyLocationKind"] = JsonValue.FromNumber(p.RetreatArmyLocationKind),
+                ["partyLocationKind"] = JsonValue.FromNumber(p.RetreatPartyLocationKind),
+                ["siteId"] = JsonValue.FromString(p.RetreatSiteId ?? string.Empty),
+                ["worldX"] = JsonValue.FromNumber(p.RetreatWorldX),
+                ["worldY"] = JsonValue.FromNumber(p.RetreatWorldY),
+                ["hexQ"] = JsonValue.FromNumber(p.RetreatHexQ),
+                ["hexR"] = JsonValue.FromNumber(p.RetreatHexR),
+                ["isPlayerParty"] = JsonValue.FromBool(p.RetreatIsPlayerParty)
+            };
+
+            var records = new List<JsonValue>();
+            if (p.ParticipantRecords != null)
+            {
+                for (var i = 0; i < p.ParticipantRecords.Count; i++)
+                {
+                    var r = p.ParticipantRecords[i];
+                    if (r == null)
+                        continue;
+                    records.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["kind"] = JsonValue.FromNumber(r.Kind),
+                        ["entityId"] = U(r.EntityId),
+                        ["armyStackId"] = JsonValue.FromString(r.ArmyStackId ?? string.Empty),
+                        ["formalArmyId"] = JsonValue.FromString(r.FormalArmyId ?? string.Empty),
+                        ["displayLabel"] = JsonValue.FromString(r.DisplayLabel ?? string.Empty),
+                        ["combatPower"] = JsonValue.FromNumber(r.CombatPower),
+                        ["selected"] = JsonValue.FromBool(r.Selected),
+                        ["includedReason"] = JsonValue.FromString(r.IncludedReason ?? string.Empty),
+                        ["hasPreBattle"] = JsonValue.FromBool(r.HasPreBattle),
+                        ["preBattleMode"] = JsonValue.FromNumber(r.PreBattleMode),
+                        ["preBattleSiteId"] = JsonValue.FromString(r.PreBattleSiteId ?? string.Empty),
+                        ["preBattleHexQ"] = JsonValue.FromNumber(r.PreBattleHexQ),
+                        ["preBattleHexR"] = JsonValue.FromNumber(r.PreBattleHexR),
+                        ["preBattleFollowStackId"] = JsonValue.FromString(r.PreBattleFollowStackId ?? string.Empty),
+                        ["preBattleCombatPursuitStackId"] = JsonValue.FromString(r.PreBattleCombatPursuitStackId ?? string.Empty)
+                    }));
+                }
+            }
+
+            var participantSnapshot = new Dictionary<string, JsonValue>
+            {
+                ["offerId"] = JsonValue.FromString(p.ParticipantOfferId ?? string.Empty),
+                ["attackerArmyId"] = JsonValue.FromString(p.ParticipantAttackerArmyId ?? string.Empty),
+                ["defenderArmyId"] = JsonValue.FromString(p.ParticipantDefenderArmyId ?? string.Empty),
+                ["primaryEnemyStackId"] = JsonValue.FromString(p.ParticipantPrimaryEnemyStackId ?? string.Empty),
+                ["battleAnchorHexQ"] = JsonValue.FromNumber(p.ParticipantBattleAnchorHexQ),
+                ["battleAnchorHexR"] = JsonValue.FromNumber(p.ParticipantBattleAnchorHexR),
+                ["encounterLocalMapId"] = JsonValue.FromString(p.ParticipantEncounterLocalMapId ?? string.Empty),
+                ["localMapResolutionKind"] = JsonValue.FromNumber(p.ParticipantLocalMapResolutionKind),
+                ["hasLocalMapResolutionKind"] = JsonValue.FromBool(p.HasParticipantLocalMapResolutionKind),
+                ["records"] = JsonValue.FromArray(records)
+            };
+
+            return JsonValue.FromObject(new Dictionary<string, JsonValue>
+            {
+                ["engagementId"] = JsonValue.FromString(p.EngagementId ?? string.Empty),
+                ["initiatorKind"] = JsonValue.FromNumber(p.InitiatorKind),
+                ["initiatorFormalArmyId"] = JsonValue.FromString(p.InitiatorFormalArmyId ?? string.Empty),
+                ["initiatorIsPlayerSide"] = JsonValue.FromBool(p.InitiatorIsPlayerSide),
+                ["decisionSubjectKind"] = JsonValue.FromNumber(p.DecisionSubjectKind),
+                ["decisionSubjectFormalArmyId"] = JsonValue.FromString(p.DecisionSubjectFormalArmyId ?? string.Empty),
+                ["battleLocationHexQ"] = JsonValue.FromNumber(p.BattleLocationHexQ),
+                ["battleLocationHexR"] = JsonValue.FromNumber(p.BattleLocationHexR),
+                ["battleAreaHexes"] = JsonValue.FromArray(battleArea),
+                ["supportAreaHexes"] = JsonValue.FromArray(supportArea),
+                ["supportBattleSiteId"] = JsonValue.FromString(p.SupportBattleSiteId ?? string.Empty),
+                ["supportBattleSiteResolutionSource"] = JsonValue.FromString(p.SupportBattleSiteResolutionSource ?? string.Empty),
+                ["initiatorEngagementHexQ"] = JsonValue.FromNumber(p.InitiatorEngagementHexQ),
+                ["initiatorEngagementHexR"] = JsonValue.FromNumber(p.InitiatorEngagementHexR),
+                ["initiatorEngagementSiteId"] = JsonValue.FromString(p.InitiatorEngagementSiteId ?? string.Empty),
+                ["primaryEnemyFactionId"] = JsonValue.FromString(p.PrimaryEnemyFactionId ?? string.Empty),
+                ["attackerFormalArmyId"] = JsonValue.FromString(p.AttackerFormalArmyId ?? string.Empty),
+                ["defenderFormalArmyId"] = JsonValue.FromString(p.DefenderFormalArmyId ?? string.Empty),
+                ["playerPartyIncluded"] = JsonValue.FromBool(p.PlayerPartyIncluded),
+                ["playerInclusionReason"] = JsonValue.FromString(p.PlayerInclusionReason ?? string.Empty),
+                ["involvesPlayerSide"] = JsonValue.FromBool(p.InvolvesPlayerSide),
+                ["requiresPlayerDecision"] = JsonValue.FromBool(p.RequiresPlayerDecision),
+                ["pendingBattleTriggerReason"] = JsonValue.FromString(p.PendingBattleTriggerReason ?? string.Empty),
+                ["initiatorCommittedHexQ"] = JsonValue.FromNumber(p.InitiatorCommittedHexQ),
+                ["initiatorCommittedHexR"] = JsonValue.FromNumber(p.InitiatorCommittedHexR),
+                ["defenderCommittedHexQ"] = JsonValue.FromNumber(p.DefenderCommittedHexQ),
+                ["defenderCommittedHexR"] = JsonValue.FromNumber(p.DefenderCommittedHexR),
+                ["offer"] = JsonValue.FromObject(offer),
+                ["lockedPlayerFormalArmyIds"] = JsonValue.FromArray(lockedPlayer),
+                ["lockedEnemyFormalArmyIds"] = JsonValue.FromArray(lockedEnemy),
+                ["lockedPlayerPartyMemberIds"] = JsonValue.FromArray(lockedParty),
+                ["retreat"] = JsonValue.FromObject(retreat),
+                ["participantSnapshot"] = JsonValue.FromObject(participantSnapshot)
+            });
+        }
+
+        static List<JsonValue> SerializeHexCoordPairs(List<int> qList, List<int> rList)
+        {
+            var list = new List<JsonValue>();
+            if (qList == null || rList == null)
+                return list;
+            var count = System.Math.Min(qList.Count, rList.Count);
+            for (var i = 0; i < count; i++)
+            {
+                list.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["q"] = JsonValue.FromNumber(qList[i]),
+                    ["r"] = JsonValue.FromNumber(rList[i])
+                }));
+            }
+
+            return list;
+        }
+
+        static void ReadHexCoordPairsInto(JsonValue node, List<int> qList, List<int> rList)
+        {
+            qList.Clear();
+            rList.Clear();
+            if (node == null || node.Kind != JsonValueKind.Array)
+                return;
+            foreach (var h in node.Array)
+            {
+                if (h.Kind != JsonValueKind.Object)
+                    continue;
+                qList.Add((int)h.GetNumber("q"));
+                rList.Add((int)h.GetNumber("r"));
+            }
+        }
+
+        static void ReadStringArrayInto(JsonValue node, List<string> into)
+        {
+            into.Clear();
+            if (node == null || node.Kind != JsonValueKind.Array)
+                return;
+            foreach (var v in node.Array)
+            {
+                if (v.Kind == JsonValueKind.String)
+                    into.Add(v.String);
+            }
+        }
+
+        static PendingEngagementSnapshotDto ReadPendingEngagement(JsonValue node)
+        {
+            var p = new PendingEngagementSnapshotDto
+            {
+                EngagementId = node.GetString("engagementId", string.Empty),
+                InitiatorKind = (int)node.GetNumber("initiatorKind"),
+                InitiatorFormalArmyId = node.GetString("initiatorFormalArmyId", string.Empty),
+                InitiatorIsPlayerSide = node.GetBool("initiatorIsPlayerSide"),
+                DecisionSubjectKind = (int)node.GetNumber("decisionSubjectKind"),
+                DecisionSubjectFormalArmyId = node.GetString("decisionSubjectFormalArmyId", string.Empty),
+                BattleLocationHexQ = (int)node.GetNumber("battleLocationHexQ"),
+                BattleLocationHexR = (int)node.GetNumber("battleLocationHexR"),
+                SupportBattleSiteId = node.GetString("supportBattleSiteId", string.Empty),
+                SupportBattleSiteResolutionSource = node.GetString("supportBattleSiteResolutionSource", string.Empty),
+                InitiatorEngagementHexQ = (int)node.GetNumber("initiatorEngagementHexQ"),
+                InitiatorEngagementHexR = (int)node.GetNumber("initiatorEngagementHexR"),
+                InitiatorEngagementSiteId = node.GetString("initiatorEngagementSiteId", string.Empty),
+                PrimaryEnemyFactionId = node.GetString("primaryEnemyFactionId", string.Empty),
+                AttackerFormalArmyId = node.GetString("attackerFormalArmyId", string.Empty),
+                DefenderFormalArmyId = node.GetString("defenderFormalArmyId", string.Empty),
+                PlayerPartyIncluded = node.GetBool("playerPartyIncluded"),
+                PlayerInclusionReason = node.GetString("playerInclusionReason", string.Empty),
+                InvolvesPlayerSide = node.GetBool("involvesPlayerSide"),
+                PendingBattleTriggerReason = node.GetString("pendingBattleTriggerReason", string.Empty),
+                InitiatorCommittedHexQ = (int)node.GetNumber("initiatorCommittedHexQ", int.MinValue),
+                InitiatorCommittedHexR = (int)node.GetNumber("initiatorCommittedHexR", int.MinValue),
+                DefenderCommittedHexQ = (int)node.GetNumber("defenderCommittedHexQ", int.MinValue),
+                DefenderCommittedHexR = (int)node.GetNumber("defenderCommittedHexR", int.MinValue)
+            };
+            // 旧 snapshot 缺 requiresPlayerDecision 时回退 involvesPlayerSide（等价历史推导，Restore 不再重推）。
+            p.RequiresPlayerDecision = node.TryGetProperty("requiresPlayerDecision", out var rpd) &&
+                                       rpd.Kind == JsonValueKind.Boolean
+                ? rpd.Bool
+                : p.InvolvesPlayerSide;
+
+            if (node.TryGetProperty("battleAreaHexes", out var battleAreaNode))
+                ReadHexCoordPairsInto(battleAreaNode, p.BattleAreaHexQList, p.BattleAreaHexRList);
+            if (node.TryGetProperty("supportAreaHexes", out var supportAreaNode))
+                ReadHexCoordPairsInto(supportAreaNode, p.SupportAreaHexQList, p.SupportAreaHexRList);
+
+            if (node.TryGetProperty("lockedPlayerFormalArmyIds", out var lockedPlayerNode))
+                ReadStringArrayInto(lockedPlayerNode, p.PlayerFormalArmyIds);
+            if (node.TryGetProperty("lockedEnemyFormalArmyIds", out var lockedEnemyNode))
+                ReadStringArrayInto(lockedEnemyNode, p.EnemyFormalArmyIds);
+            if (node.TryGetProperty("lockedPlayerPartyMemberIds", out var lockedPartyNode) &&
+                lockedPartyNode.Kind == JsonValueKind.Array)
+            {
+                p.PlayerPartyMemberIds.Clear();
+                foreach (var m in lockedPartyNode.Array)
+                    p.PlayerPartyMemberIds.Add(ReadUValue(m));
+            }
+
+            if (node.TryGetProperty("offer", out var offerNode) && offerNode.Kind == JsonValueKind.Object)
+            {
+                p.OfferId = offerNode.GetString("offerId", string.Empty);
+                p.OfferTitle = offerNode.GetString("title", string.Empty);
+                p.ArmyStackId = offerNode.GetString("armyStackId", string.Empty);
+                p.EncounterLocalMapId = offerNode.GetString("encounterLocalMapId", string.Empty);
+                p.OfferOrigin = (int)offerNode.GetNumber("origin");
+                p.OfferRequiresWarDeclaration = offerNode.GetBool("requiresWarDeclaration");
+                p.PendingWarAttackerFactionId = offerNode.GetString("pendingWarAttackerFactionId", string.Empty);
+                p.PendingWarDefenderFactionId = offerNode.GetString("pendingWarDefenderFactionId", string.Empty);
+            }
+
+            if (node.TryGetProperty("retreat", out var retreatNode) && retreatNode.Kind == JsonValueKind.Object)
+            {
+                p.RetreatHasValue = retreatNode.GetBool("hasValue");
+                p.RetreatArmyLocationKind = (int)retreatNode.GetNumber("armyLocationKind");
+                p.RetreatPartyLocationKind = (int)retreatNode.GetNumber("partyLocationKind");
+                p.RetreatSiteId = retreatNode.GetString("siteId", string.Empty);
+                p.RetreatWorldX = (float)retreatNode.GetNumber("worldX");
+                p.RetreatWorldY = (float)retreatNode.GetNumber("worldY");
+                p.RetreatHexQ = (int)retreatNode.GetNumber("hexQ");
+                p.RetreatHexR = (int)retreatNode.GetNumber("hexR");
+                p.RetreatIsPlayerParty = retreatNode.GetBool("isPlayerParty");
+            }
+
+            if (node.TryGetProperty("participantSnapshot", out var snapNode) &&
+                snapNode.Kind == JsonValueKind.Object)
+            {
+                p.ParticipantOfferId = snapNode.GetString("offerId", string.Empty);
+                p.ParticipantAttackerArmyId = snapNode.GetString("attackerArmyId", string.Empty);
+                p.ParticipantDefenderArmyId = snapNode.GetString("defenderArmyId", string.Empty);
+                p.ParticipantPrimaryEnemyStackId = snapNode.GetString("primaryEnemyStackId", string.Empty);
+                p.ParticipantBattleAnchorHexQ = (int)snapNode.GetNumber("battleAnchorHexQ");
+                p.ParticipantBattleAnchorHexR = (int)snapNode.GetNumber("battleAnchorHexR");
+                p.ParticipantEncounterLocalMapId = snapNode.GetString("encounterLocalMapId", string.Empty);
+                p.ParticipantLocalMapResolutionKind = (int)snapNode.GetNumber("localMapResolutionKind");
+                p.HasParticipantLocalMapResolutionKind =
+                    snapNode.GetBool("hasLocalMapResolutionKind");
+                if (snapNode.TryGetProperty("records", out var recordsNode) &&
+                    recordsNode.Kind == JsonValueKind.Array)
+                {
+                    p.ParticipantRecords.Clear();
+                    foreach (var r in recordsNode.Array)
+                    {
+                        if (r.Kind != JsonValueKind.Object)
+                            continue;
+                        var rec = new PendingEngagementParticipantRecordDto
+                        {
+                            Kind = (int)r.GetNumber("kind"),
+                            EntityId = ReadU(r, "entityId"),
+                            ArmyStackId = r.GetString("armyStackId", string.Empty),
+                            FormalArmyId = r.GetString("formalArmyId", string.Empty),
+                            DisplayLabel = r.GetString("displayLabel", string.Empty),
+                            CombatPower = (int)r.GetNumber("combatPower"),
+                            Selected = r.GetBool("selected"),
+                            IncludedReason = r.GetString("includedReason", string.Empty),
+                            HasPreBattle = r.GetBool("hasPreBattle"),
+                            PreBattleMode = (int)r.GetNumber("preBattleMode"),
+                            PreBattleSiteId = r.GetString("preBattleSiteId", string.Empty),
+                            PreBattleHexQ = (int)r.GetNumber("preBattleHexQ", int.MinValue),
+                            PreBattleHexR = (int)r.GetNumber("preBattleHexR", int.MinValue),
+                            PreBattleFollowStackId = r.GetString("preBattleFollowStackId", string.Empty),
+                            PreBattleCombatPursuitStackId = r.GetString("preBattleCombatPursuitStackId", string.Empty)
+                        };
+                        p.ParticipantRecords.Add(rec);
+                    }
+                }
+            }
+
+            return p;
         }
     }
 }

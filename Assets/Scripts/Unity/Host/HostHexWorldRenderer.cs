@@ -30,6 +30,8 @@ namespace XianXia.Unity.Host
         static readonly Color SelectBorder = new Color(0.92f, 0.48f, 0.06f, 1f);
         static readonly Color SiteFootprintSelectFill = new Color(1f, 0.92f, 0.20f, 0.28f);
         static readonly Color SiteFootprintSelectBorder = new Color(1f, 0.55f, 0.05f, 1f);
+        /// <summary>Territory 淡色 overlay 强度（2J §9.4：保持地形可读）。</summary>
+        const float TerritoryTintStrength = 0.26f;
 
         static readonly float[] CornerWx = new float[6];
         static readonly float[] CornerWy = new float[6];
@@ -102,6 +104,7 @@ namespace XianXia.Unity.Host
             {
                 BatchDrawTerrainCompact(
                     grid,
+                    world,
                     projection,
                     minWx,
                     maxWx,
@@ -118,6 +121,7 @@ namespace XianXia.Unity.Host
             {
                 BatchDrawTerrainSparse(
                     grid,
+                    world,
                     projection,
                     minWx,
                     maxWx,
@@ -251,6 +255,7 @@ namespace XianXia.Unity.Host
 
         static void BatchDrawTerrainCompact(
             HexWorld grid,
+            SimulationWorld world,
             HexMapViewportProjection projection,
             float minWx,
             float maxWx,
@@ -286,7 +291,7 @@ namespace XianXia.Unity.Host
                     if (cx < minWx - pad || cx > maxWx + pad || cy < minWy - pad || cy > maxWy + pad)
                         continue;
 
-                    var fill = ResolveTerrainColor(cell);
+                    var fill = ResolveTerritoryTint(world, ResolveTerrainColor(cell), cell);
                     if (pathMask != null && q >= 0 && r >= 0 && q < maskW && r < maskH && pathMask[q + r * maskW])
                         fill = Color.Lerp(fill, PathPreviewFill, 0.72f);
 
@@ -303,6 +308,7 @@ namespace XianXia.Unity.Host
 
         static void BatchDrawTerrainSparse(
             HexWorld grid,
+            SimulationWorld world,
             HexMapViewportProjection projection,
             float minWx,
             float maxWx,
@@ -324,7 +330,7 @@ namespace XianXia.Unity.Host
                     projection,
                     cell.Coord,
                     grid.HexSize,
-                    ResolveTerrainColor(cell),
+                    ResolveTerritoryTint(world, ResolveTerrainColor(cell), cell),
                     terrainInsetScale,
                     ref vertCount);
             }
@@ -585,6 +591,21 @@ namespace XianXia.Unity.Host
         {
             var rgb = HexTerrainPresentation.ResolveRgb(tile);
             return ToColor(rgb);
+        }
+
+        /// <summary>
+        /// 淡 Territory overlay（2J §9.4）：ControlFactionId 非空 → 与正式 Faction MapColor 混合；
+        /// None 不加 tint。footprint 与普通 Territory 同色（Site 本体由 WorldSitePresentationLayer 强调）。
+        /// </summary>
+        static Color ResolveTerritoryTint(SimulationWorld world, Color baseColor, HexCell cell)
+        {
+            var controller = cell?.ControlFactionId;
+            if (world?.Strategic == null || string.IsNullOrEmpty(controller))
+                return baseColor;
+
+            StrategicFactionCatalog.MapTint(controller, out var r, out var g, out var b);
+            var tint = new Color(r, g, b, 1f);
+            return Color.Lerp(baseColor, tint, TerritoryTintStrength);
         }
 
         static void EnsureGlMaterial()

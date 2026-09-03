@@ -1767,6 +1767,7 @@ namespace XianXia.Data.Content
                         AnchorR = ReadInt(sNode, "anchorR", 0),
                         LocalMapId = sNode.GetString("localMapId", string.Empty),
                         OwnerFactionId = sNode.GetString("ownerFactionId", string.Empty),
+                        TerritoryRegionId = sNode.GetString("territoryRegionId", string.Empty),
                     };
                     if (sNode.TryGetProperty("presenceQ", out var pqNode) &&
                         sNode.TryGetProperty("presenceR", out var prNode) &&
@@ -1796,6 +1797,36 @@ namespace XianXia.Data.Content
                     }
 
                     world.Sites.Add(site);
+                }
+            }
+
+            if (item.TryGetProperty("territoryRegions", out var regionsNode) && regionsNode.Kind == JsonValueKind.Array)
+            {
+                foreach (var rNode in regionsNode.Array)
+                {
+                    if (rNode.Kind != JsonValueKind.Object)
+                        continue;
+                    var region = new TerritoryRegionContentDefinition
+                    {
+                        RegionId = rNode.GetString("regionId", string.Empty),
+                        PrimaryWorldSiteId = rNode.GetString("primaryWorldSiteId", string.Empty),
+                        ControlFactionId = rNode.GetString("controlFactionId", string.Empty),
+                    };
+                    if (rNode.TryGetProperty("hexes", out var hexesNode) && hexesNode.Kind == JsonValueKind.Array)
+                    {
+                        foreach (var hNode in hexesNode.Array)
+                        {
+                            if (hNode.Kind != JsonValueKind.Object)
+                                continue;
+                            region.Hexes.Add(new HexWorldCoordDefinition
+                            {
+                                Q = ReadInt(hNode, "q", 0),
+                                R = ReadInt(hNode, "r", 0),
+                            });
+                        }
+                    }
+
+                    world.TerritoryRegions.Add(region);
                 }
             }
 

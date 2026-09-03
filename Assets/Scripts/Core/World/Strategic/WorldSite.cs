@@ -18,6 +18,8 @@ namespace XianXia.Core.World.Strategic
         public string DisplayName { get; set; } = string.Empty;
         public string SiteType { get; set; } = string.Empty;
         public string OwnerFactionId { get; set; } = string.Empty;
+        /// <summary>绑定 TerritoryRegion（2J §6.4）。FootprintHexes 与 Region.Hexes 严格分离。</summary>
+        public string TerritoryRegionId { get; set; } = string.Empty;
         public string LocalMapId { get; set; } = string.Empty;
 
         public HexCoord AnchorHex { get; set; }

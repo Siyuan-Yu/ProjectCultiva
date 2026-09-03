@@ -3190,7 +3190,8 @@
             }
           ],
           "localMapId": "base:map_site_chengzhen",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_chengzhen"
         },
         {
           "siteId": "base:site_editor_8",
@@ -3207,7 +3208,8 @@
             }
           ],
           "localMapId": "",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_editor_8"
         },
         {
           "siteId": "base:site_guanai",
@@ -3224,7 +3226,8 @@
             }
           ],
           "localMapId": "base:map_site_guanai",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_guanai"
         },
         {
           "siteId": "base:site_huangcun",
@@ -3253,7 +3256,8 @@
             }
           ],
           "localMapId": "base:map_ch01_reference",
-          "ownerFactionId": "base:sect_huangcun_labor"
+          "ownerFactionId": "base:sect_huangcun_labor",
+          "territoryRegionId": "base:region_huangcun"
         },
         {
           "siteId": "base:site_lingdi",
@@ -3270,7 +3274,8 @@
             }
           ],
           "localMapId": "base:map_site_lingdi",
-          "ownerFactionId": "base:sect_huangcun_labor"
+          "ownerFactionId": "base:sect_huangcun_labor",
+          "territoryRegionId": "base:region_lingdi"
         },
         {
           "siteId": "base:site_linjian",
@@ -3287,7 +3292,8 @@
             }
           ],
           "localMapId": "base:map_site_linjian",
-          "ownerFactionId": ""
+          "ownerFactionId": "",
+          "territoryRegionId": "base:region_linjian"
         },
         {
           "siteId": "base:site_zhuangyuan",
@@ -3316,7 +3322,8 @@
             }
           ],
           "localMapId": "base:map_site_zhuangyuan",
-          "ownerFactionId": "base:faction_nan_yan"
+          "ownerFactionId": "base:faction_nan_yan",
+          "territoryRegionId": "base:region_zhuangyuan"
         },
         {
           "siteId": "test:site_player_camp",
@@ -3333,7 +3340,140 @@
             }
           ],
           "localMapId": "base:map_player_camp",
-          "ownerFactionId": "base:faction_player"
+          "ownerFactionId": "base:faction_player",
+          "territoryRegionId": "test:region_player_camp"
+        }
+      ],
+      "territoryRegions": [
+        {
+          "regionId": "base:region_chengzhen",
+          "primaryWorldSiteId": "base:site_chengzhen",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 10, "r": 7},
+              {"q": 11, "r": 7},
+              {"q": 10, "r": 8},
+              {"q": 11, "r": 8}
+            ]
+        },
+        {
+          "regionId": "base:region_editor_8",
+          "primaryWorldSiteId": "base:site_editor_8",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 28, "r": 7}
+            ]
+        },
+        {
+          "regionId": "base:region_guanai",
+          "primaryWorldSiteId": "base:site_guanai",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 12, "r": 11}
+            ]
+        },
+        {
+          "regionId": "base:region_huangcun",
+          "primaryWorldSiteId": "base:site_huangcun",
+          "controlFactionId": "base:sect_huangcun_labor",
+          "hexes": [
+              {"q": 3, "r": 7},
+              {"q": 4, "r": 7},
+              {"q": 3, "r": 8},
+              {"q": 4, "r": 8},
+              {"q": 1, "r": 7},
+              {"q": 1, "r": 8},
+              {"q": 1, "r": 9},
+              {"q": 2, "r": 5},
+              {"q": 2, "r": 6},
+              {"q": 2, "r": 7},
+              {"q": 2, "r": 8},
+              {"q": 2, "r": 9},
+              {"q": 2, "r": 10},
+              {"q": 3, "r": 6},
+              {"q": 3, "r": 9},
+              {"q": 3, "r": 10},
+              {"q": 4, "r": 9},
+              {"q": 4, "r": 10},
+              {"q": 5, "r": 5},
+              {"q": 5, "r": 6},
+              {"q": 5, "r": 7},
+              {"q": 5, "r": 8},
+              {"q": 5, "r": 9},
+              {"q": 5, "r": 10},
+              {"q": 6, "r": 6},
+              {"q": 6, "r": 7},
+              {"q": 6, "r": 8}
+            ]
+        },
+        {
+          "regionId": "base:region_lingdi",
+          "primaryWorldSiteId": "base:site_lingdi",
+          "controlFactionId": "base:sect_huangcun_labor",
+          "hexes": [
+              {"q": 22, "r": 6},
+              {"q": 21, "r": 5},
+              {"q": 21, "r": 6},
+              {"q": 21, "r": 7},
+              {"q": 22, "r": 5},
+              {"q": 22, "r": 7},
+              {"q": 23, "r": 6}
+            ]
+        },
+        {
+          "regionId": "base:region_linjian",
+          "primaryWorldSiteId": "base:site_linjian",
+          "controlFactionId": "",
+          "hexes": [
+              {"q": 7, "r": 5}
+            ]
+        },
+        {
+          "regionId": "base:region_zhuangyuan",
+          "primaryWorldSiteId": "base:site_zhuangyuan",
+          "controlFactionId": "base:faction_nan_yan",
+          "hexes": [
+              {"q": 16, "r": 4},
+              {"q": 17, "r": 4},
+              {"q": 16, "r": 5},
+              {"q": 17, "r": 5},
+              {"q": 14, "r": 3},
+              {"q": 14, "r": 4},
+              {"q": 14, "r": 5},
+              {"q": 15, "r": 2},
+              {"q": 15, "r": 3},
+              {"q": 15, "r": 4},
+              {"q": 15, "r": 5},
+              {"q": 15, "r": 6},
+              {"q": 15, "r": 7},
+              {"q": 16, "r": 2},
+              {"q": 16, "r": 3},
+              {"q": 16, "r": 6},
+              {"q": 16, "r": 7},
+              {"q": 17, "r": 2},
+              {"q": 17, "r": 3},
+              {"q": 17, "r": 6},
+              {"q": 17, "r": 7},
+              {"q": 18, "r": 2},
+              {"q": 18, "r": 3},
+              {"q": 18, "r": 4},
+              {"q": 18, "r": 5},
+              {"q": 18, "r": 6},
+              {"q": 18, "r": 7},
+              {"q": 19, "r": 4},
+              {"q": 19, "r": 5},
+              {"q": 19, "r": 6}
+            ]
+        },
+        {
+          "regionId": "test:region_player_camp",
+          "primaryWorldSiteId": "test:site_player_camp",
+          "controlFactionId": "base:faction_player",
+          "hexes": [
+              {"q": 4, "r": 6},
+              {"q": 3, "r": 5},
+              {"q": 4, "r": 5}
+            ]
         }
       ]
     }

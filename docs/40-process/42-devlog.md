@@ -7,7 +7,57 @@
 
 ---
 
-## 2026-09-03 — FIX：Local Combat 弥留者精确落点（ResidualHex + precise WorldPosition 双层保存）（已封板，190）
+## 2026-09-03 — Hex Territory + TerritoryRegion V1 基础层（领土真源 + 内容加载 + WorldMap 表现）（已封板，191）
+
+**范围**：只建领土 authority 链；无 Capture/Siege/AI/Supply/Economy（下一轮才做 TransferWorldSiteAndTerritory 事务）。真源：2J。
+
+**Domain（Core）**
+- `TerritoryRegion.cs`：RegionId/PrimaryWorldSiteId/ControlFactionId/Hexes[]（固化）；Region identity 与 Controller 分离（无主 Site 也有 Region）。
+- `TerritoryRegionBoard.cs`：Register/TryGet/TryGetByPrimaryWorldSite/Clear；禁止扫全图猜归属。
+- `WorldSite.TerritoryRegionId`（与 Region.Hexes 严格分离：footprint ≠ 辖区）。
+- `StrategicBoard.TerritoryRegions` 挂 Board。
+- `TerritoryControlService`：GetController(world,hex)/GetRegionForSite/SetRegionController（region.ControlFactionId + 全部 hex 同步；**不改** Site Owner —— 避免与 Capture 循环依赖）。
+- `TerritoryInvariantValidator`：Site↔Region 双向绑定、Owner==Controller、Region hex 在界内/无重复/无跨 Region overlap、footprint ⊆ 自身 Region。
+
+**Content（Data）**
+- `HexWorldContentDefinition` + `TerritoryRegionContentDefinition`；Site 定义加 territoryRegionId；root 加 territoryRegions。
+- `HexWorldContentLoader.Apply`：cells → sites → territoryRegions（territory 最后写 cell.ControlFactionId = region.controller）；加载后跑 invariant，error → Result.Failure（不静默猜谁覆盖谁）。
+- `HexWorldContentExporter` 补 regions 导出；`ContentPackageLoader`/`DefinitionSchema` 支持 JSON 字段。
+- `SCHEMA.md` 补 hexWorld/territoryRegions 章节。
+
+**Content（生成器一次性 + 固化）**：`TestResults/territory_generate.py`（footprint 距离最近竞争 + SiteId ordinal tie-break、footprint 保护、有主 Site radius：footprint≥4 → 2 否则 1、无主 Site = footprint-only）。写入：travel_mvp（8 region：huangcun 27 hex/压迫宗门、zhuangyuan 30/南堰、lingdi 7、player_camp 3，无主 town 仅 footprint）、ch01（30 region：15 有主，huangcun/zhuangyuan r2 30 hex，其余 7）。涂色 ≈ 15% 地图，85% 保持无主荒野。
+
+**Persistence**：`TerritoryRegionControllerSnapshotDto{RegionId,ControlFactionId}`；StrategicSnapshotHelper Capture 全 region、Restore 用 SetRegionController；JsonSnapshotSerializer 读写 territoryRegionControllers；Site Owner 先 restore（既有）后 region controller restore，二者一致性由下一轮 transfer transaction 统一。
+
+**WorldMap 表现**：`HostHexWorldRenderer` 淡色 Territory tint（ControlFactionId 非空 → StrategicFactionCatalog.MapTint Lerp 0.26，None 不加；正式 MapColor 非 hash）；`HostWorldMapPanel` Hex/WorldSite inspector 显示 ControlFactionId/TerritoryRegion/PrimaryWorldSite/Controller。
+
+**验证（headless）**：TerritoryContentCheck 16 项 PASS（8 regions、invariant 干净、region hex 全部涂 controller 色、67/450 涂色、chengzhen 无主 region 空 controller=footprint-only、footprint⊆region、改 controller→Capture→JSON→Restore 后 region+hex 恢复、SetRegionController 不动 site owner）；回归 WeakHex/Bootstrap/LocalCombatHandoff/PreciseResidual/PendingEngagement/HostSim3 全 PASS；Core/Data/Unity 0 error。
+
+**真源**：2J（规则）/ 本轮 devlog（实现）。已封板归档（191，与 Phase 5S persistence 收口同批）；Capture transfer transaction 留待下一轮。
+
+---
+
+## 2026-09-03 — Phase 5S persistence 收口：PendingEngagement / BattleOffer JSON Save-Load 完整持久化（已封板，191）
+
+**目标**：BattleOffer 弹出时 Save → Load 后恢复完全相同的 frozen engagement；不重新 Gather、不重算支援范围、不因读档改变 Manual / Auto / Retreat / Local-origin declaration 语义。
+
+**背景**：`PendingEngagementSnapshotRestore.Capture/Restore` 与 `StrategicSnapshotHelper` 已接线，缺口在 `JsonSnapshotSerializer` 未序列化 pendingEngagement；且现有 DTO 漏了若干 gameplay authority 字段（尤其 `BattleParticipantSnapshot.LocalMapResolutionKind`，读档缺失会默认 ExplicitEncounterMap，对 WORLD_COMBAT Auto 危险）。
+
+**修复**
+- DTO 扩展（WorldSnapshot.cs）：engagement 级补 `PrimaryEnemyFactionId / PlayerInclusionReason / RequiresPlayerDecision / PendingBattleTriggerReason / InitiatorCommittedHexQ·R / DefenderCommittedHexQ·R / RetreatHasValue`（committed hex 默认 int.MinValue=InvalidHexComponent）；participant 级补 `ParticipantEncounterLocalMapId / ParticipantLocalMapResolutionKind / HasParticipantLocalMapResolutionKind`；record 级补 `IncludedReason + HasPreBattle/PreBattleMode/SiteId/HexQ·R/FollowStackId/CombatPursuitStackId`（不存半份 snapshot）。
+- Capture 补全部字段（含 `HasParticipantLocalMapResolutionKind=true`、retreat 仅非空写值）；Restore：`RequiresPlayerDecision` 用持久化值不再由 InvolvesPlayerSide 推导；PlayerInclusionReason 以持久化为准、仅旧 snapshot 才从 PlayerParty initiator 推导 DirectInitiator；frozen participant resolution：有 flag 直接还原，无 flag 用 `BattleLocalMapResolver.ResolvePendingEngagement` fallback（不盲信 0=WorldSite）；record 还原 IncludedReason + PreBattle（PreBattleHexQ/R 缺省 int.MinValue）；restore 尾部 `offer.SetPlayerParty(participants.CollectSelectedFriendly())` —— Participants.Selected 是 frozen selection authority，不另存重复 roster（用户勾选 Optional 后存档回来仍一致）。
+- JsonSnapshotSerializer：新增独立 `SerializePendingEngagement/ReadPendingEngagement`（不塞进巨型 inline）+ hex pair `[{q,r}]` helpers；`SerializeStrategic` 仅在 PendingEngagement.EngagementId 非空时写 `pendingEngagement`（无 active BattleOffer 不写）；`ReadStrategic` 读到才设 dto（缺省 null = 无 pending battle）；EntityId 继续走 U/ReadUValue（不 JSON double 强转）；retreat 用 `hasValue` flag 防把 null retreat 恢复成默认对象；旧 JSON 缺 requiresPlayerDecision 时 Read 层 fallback involvesPlayerSide（等价历史推导，Restore 不重推）。未升 SchemaVersion（v6 optional 字段，旧档按无 pending battle 加载）。
+- Development dump：`PendingEngagementSnapshotRestore` 在 Capture 与 Restore 后 #if 输出 `[PendingEngagementSnapshot]`（EngagementId/Initiator/DecisionSubject/BattleLocation/BattleArea·SupportArea count/BattleSiteId/Attacker·Defender/Locked 集合/BattleAnchor/Participant count+ResolutionKind+Map/OfferOrigin/RequiresWarDeclaration/Retreat）便于 Save 前 Load 后直接比较。
+
+**验证（headless）**
+- `PendingEngagementRoundTripCheck` 52 项 PASS：A 组 Capture（含 retreat/preBattle/resolution kind/Local-origin offer metadata）；B 组 JSON round-trip（frozen support area hexes 逐对一致、Optional unselected 保留、PreBattle+IncludedReason 保留）；C 组 Restore 语义（frozen support area 不重新 resolve、offer.SetPlayerParty 从 Selected 重建=仅 Mandatory、resolution kind=Wilderness）；D 组旧格式 fallback（无 hasLocalMapResolutionKind 时 resolve 出 Wilderness 而非 ExplicitEncounterMap；无 inclusion reason 时 PlayerParty initiator 旧 fallback DirectInitiator）；E 组 no-pending（无 active offer 不写 pendingEngagement、Load 后 null）。
+- 回归：LocalCombatHandoffCheck / PreciseResidualCheck 全 PASS；Core/Data/Unity 三程序集 0 error；git diff --check 干净。
+- ⚠️ 既有失败（与本轮无关，baseline 已复现）：RosterParityCheck / ContentLoadCheck 的 `localLoc=` 空 + location mismatch —— 疑似 f123cb0 的「NPC 初始 LocalMap 坐标归属 Spawn Instance」重构后 harness 断言过时，待处理。
+
+**待人工验收（Unity）**：Case A PlayerParty Attack Army Offer → Save/Load → Manual/Auto（Auto 须按 WorldSite/Wilderness 结算，不得走 ExplicitEncounterMap）；Case B FormalArmy 发起同验；Case C LocalMap 主动攻击 Neutral（Origin=LocalMapHostileAction、Auto 不可选、RequiresWarDeclaration=true、点击 Manual 先宣战再入战）；Case D Optional friendly 勾选差异存档恢复一致；No-pending regression（Save/Load 后 PendingEngagement.IsActive=false、时钟不冻结）。
+
+---
+
 
 **症状**：上一轮修复后弥留 Follower 离开/重进能重新出现，但出现在 Hex 中心 + EntityId formation offset 的"重新计算位置"，不是原本倒下的精确位置；且 WorldSite 的 residual hex 上一版按主控 WorldPosition 派生（把 Follower 的 hex 按主控位置决定）。
 

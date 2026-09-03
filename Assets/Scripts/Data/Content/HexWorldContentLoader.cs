@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Text;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Hex;
@@ -45,6 +47,7 @@ namespace XianXia.Data.Content
             }
 
             world.Strategic.Sites.Clear();
+            world.Strategic.TerritoryRegions.Clear();
             if (definition.Sites != null)
             {
                 for (var i = 0; i < definition.Sites.Count; i++)
@@ -54,6 +57,77 @@ namespace XianXia.Data.Content
                         continue;
                     RegisterSite(world, src);
                 }
+            }
+
+            if (definition.TerritoryRegions != null)
+            {
+                for (var i = 0; i < definition.TerritoryRegions.Count; i++)
+                {
+                    var src = definition.TerritoryRegions[i];
+                    if (src == null || string.IsNullOrWhiteSpace(src.RegionId))
+                        continue;
+                    var applied = RegisterTerritoryRegion(world, src);
+                    if (applied.IsFailure)
+                        return applied;
+                }
+            }
+
+            var errors = TerritoryInvariantValidator.Validate(world);
+            if (errors.Count > 0)
+            {
+                var sb = new StringBuilder(512);
+                for (var i = 0; i < errors.Count; i++)
+                {
+                    if (i > 0)
+                        sb.Append("\n");
+                    sb.Append(errors[i]);
+                }
+
+                return Result.Failure(ErrorCode.ContentLoadFailed, "Territory content error: " + sb);
+            }
+
+            return Result.Success();
+        }
+
+        static Result RegisterTerritoryRegion(
+            SimulationWorld world,
+            TerritoryRegionContentDefinition src)
+        {
+            var region = new TerritoryRegion
+            {
+                RegionId = src.RegionId ?? string.Empty,
+                PrimaryWorldSiteId = src.PrimaryWorldSiteId ?? string.Empty,
+                ControlFactionId = src.ControlFactionId ?? string.Empty,
+            };
+            if (src.Hexes != null)
+            {
+                var coords = new HexCoord[src.Hexes.Count];
+                for (var i = 0; i < src.Hexes.Count; i++)
+                    coords[i] = new HexCoord(src.Hexes[i].Q, src.Hexes[i].R);
+                region.SetHexes(coords);
+            }
+
+            if (!string.IsNullOrEmpty(region.PrimaryWorldSiteId))
+            {
+                if (!world.Strategic.Sites.TryGet(region.PrimaryWorldSiteId, out var site) || site == null)
+                    return Result.Failure(ErrorCode.ContentLoadFailed,
+                        "TerritoryRegion '" + region.RegionId + "' PrimaryWorldSiteId '" +
+                        region.PrimaryWorldSiteId + "' missing.");
+                if (!string.Equals(site.TerritoryRegionId, region.RegionId, StringComparison.Ordinal))
+                    return Result.Failure(ErrorCode.ContentLoadFailed,
+                        "WorldSite '" + site.SiteId + "'.TerritoryRegionId '" + site.TerritoryRegionId +
+                        "' != TerritoryRegion '" + region.RegionId + "'.");
+            }
+
+            world.Strategic.TerritoryRegions.Register(region);
+
+            for (var i = 0; i < region.Hexes.Count; i++)
+            {
+                var hex = region.Hexes[i];
+                if (!world.HexWorld.TryGetCell(hex, out var cell) || cell == null)
+                    return Result.Failure(ErrorCode.ContentLoadFailed,
+                        "TerritoryRegion '" + region.RegionId + "' hex " + hex + " missing in grid.");
+                cell.ControlFactionId = region.ControlFactionId;
             }
 
             return Result.Success();
@@ -90,6 +164,7 @@ namespace XianXia.Data.Content
                 PresenceHex = anchor,
                 LocalMapId = src.LocalMapId ?? string.Empty,
                 OwnerFactionId = src.OwnerFactionId ?? string.Empty,
+                TerritoryRegionId = src.TerritoryRegionId ?? string.Empty,
             };
 
             if (src.Footprint != null && src.Footprint.Count > 0)

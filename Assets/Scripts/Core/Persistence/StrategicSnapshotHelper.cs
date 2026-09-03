@@ -154,6 +154,18 @@ namespace XianXia.Core.Persistence
                 });
             }
 
+            foreach (var regionKv in world.Strategic.TerritoryRegions.Regions)
+            {
+                var region = regionKv.Value;
+                if (region == null || string.IsNullOrEmpty(region.RegionId))
+                    continue;
+                dto.TerritoryRegionControllers.Add(new TerritoryRegionControllerSnapshotDto
+                {
+                    RegionId = region.RegionId,
+                    ControlFactionId = region.ControlFactionId ?? string.Empty
+                });
+            }
+
             foreach (var war in world.Strategic.Wars.EnumerateActive())
             {
                 var warDto = new WarSnapshotDto
@@ -415,6 +427,20 @@ namespace XianXia.Core.Persistence
                     if (s == null || string.IsNullOrEmpty(s.SiteId))
                         continue;
                     WorldSiteOwnershipService.SetOwner(world, s.SiteId, s.OwnerFactionId ?? string.Empty);
+                }
+            }
+
+            if (dto.TerritoryRegionControllers != null)
+            {
+                for (var i = 0; i < dto.TerritoryRegionControllers.Count; i++)
+                {
+                    var r = dto.TerritoryRegionControllers[i];
+                    if (r == null || string.IsNullOrEmpty(r.RegionId))
+                        continue;
+                    TerritoryControlService.SetRegionController(
+                        world,
+                        r.RegionId,
+                        r.ControlFactionId ?? string.Empty);
                 }
             }
 

@@ -14,6 +14,7 @@ namespace XianXia.Data.Content
         public bool DefaultPassable { get; set; }
         public List<HexWorldCellDefinition> Cells { get; set; } = new List<HexWorldCellDefinition>();
         public List<HexWorldSiteDefinition> Sites { get; set; } = new List<HexWorldSiteDefinition>();
+        public List<TerritoryRegionContentDefinition> TerritoryRegions { get; set; } = new List<TerritoryRegionContentDefinition>();
     }
 
     public sealed class HexWorldCellDefinition
@@ -38,6 +39,17 @@ namespace XianXia.Data.Content
         public List<HexWorldCoordDefinition> Footprint { get; set; } = new List<HexWorldCoordDefinition>();
         public string LocalMapId { get; set; } = string.Empty;
         public string OwnerFactionId { get; set; } = string.Empty;
+        /// <summary>绑定 TerritoryRegion（内容加载后由 Region 建立 Site↔Region 链接）。</summary>
+        public string TerritoryRegionId { get; set; } = string.Empty;
+    }
+
+    /// <summary>政治辖区（2J §6.3）：Hexes 固化在 Content，Runtime 不重算。</summary>
+    public sealed class TerritoryRegionContentDefinition
+    {
+        public string RegionId { get; set; } = string.Empty;
+        public string PrimaryWorldSiteId { get; set; } = string.Empty;
+        public string ControlFactionId { get; set; } = string.Empty;
+        public List<HexWorldCoordDefinition> Hexes { get; set; } = new List<HexWorldCoordDefinition>();
     }
 
     public sealed class HexWorldCoordDefinition

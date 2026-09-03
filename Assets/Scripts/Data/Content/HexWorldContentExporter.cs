@@ -56,6 +56,7 @@ namespace XianXia.Data.Content
                     PresenceR = site.AnchorHex.R,
                     LocalMapId = site.LocalMapId,
                     OwnerFactionId = site.OwnerFactionId,
+                    TerritoryRegionId = site.TerritoryRegionId,
                 };
                 foreach (var hex in site.EnumerateFootprintHexes())
                     dto.Footprint.Add(new HexWorldCoordDefinition { Q = hex.Q, R = hex.R });
@@ -63,6 +64,24 @@ namespace XianXia.Data.Content
             }
 
             definition.Sites.Sort((a, b) => string.CompareOrdinal(a.SiteId, b.SiteId));
+
+            foreach (var kv in world.Strategic.TerritoryRegions.Regions)
+            {
+                var region = kv.Value;
+                if (region == null)
+                    continue;
+                var regionDto = new TerritoryRegionContentDefinition
+                {
+                    RegionId = region.RegionId,
+                    PrimaryWorldSiteId = region.PrimaryWorldSiteId,
+                    ControlFactionId = region.ControlFactionId,
+                };
+                foreach (var hex in region.Hexes)
+                    regionDto.Hexes.Add(new HexWorldCoordDefinition { Q = hex.Q, R = hex.R });
+                definition.TerritoryRegions.Add(regionDto);
+            }
+
+            definition.TerritoryRegions.Sort((a, b) => string.CompareOrdinal(a.RegionId, b.RegionId));
             return definition;
         }
 

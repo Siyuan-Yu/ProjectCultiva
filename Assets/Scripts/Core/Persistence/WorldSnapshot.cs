@@ -66,6 +66,7 @@ namespace XianXia.Core.Persistence
         public List<CharacterWorldPresenceSnapshotDto> CharacterWorldPresences { get; set; } =
             new List<CharacterWorldPresenceSnapshotDto>();
         public List<WorldSiteOwnerSnapshotDto> WorldSiteOwners { get; set; } = new List<WorldSiteOwnerSnapshotDto>();
+        public List<TerritoryRegionControllerSnapshotDto> TerritoryRegionControllers { get; set; } = new List<TerritoryRegionControllerSnapshotDto>();
         public List<WarSnapshotDto> Wars { get; set; } = new List<WarSnapshotDto>();
         public List<AllianceSnapshotDto> Alliances { get; set; } = new List<AllianceSnapshotDto>();
         public List<VassalageSnapshotDto> Vassalages { get; set; } = new List<VassalageSnapshotDto>();
@@ -117,6 +118,15 @@ namespace XianXia.Core.Persistence
         public string DefenderFormalArmyId { get; set; } = string.Empty;
         public bool PlayerPartyIncluded { get; set; }
         public bool InvolvesPlayerSide { get; set; }
+        /// <summary>Phase 5S Persistence：frozen engagement 元数据（Load 后不重新推导）。</summary>
+        public string PrimaryEnemyFactionId { get; set; } = string.Empty;
+        public string PlayerInclusionReason { get; set; } = string.Empty;
+        public bool RequiresPlayerDecision { get; set; }
+        public string PendingBattleTriggerReason { get; set; } = string.Empty;
+        public int InitiatorCommittedHexQ { get; set; } = int.MinValue;
+        public int InitiatorCommittedHexR { get; set; } = int.MinValue;
+        public int DefenderCommittedHexQ { get; set; } = int.MinValue;
+        public int DefenderCommittedHexR { get; set; } = int.MinValue;
         public string OfferId { get; set; } = string.Empty;
         public string OfferTitle { get; set; } = string.Empty;
         public string ArmyStackId { get; set; } = string.Empty;
@@ -129,6 +139,8 @@ namespace XianXia.Core.Persistence
         public List<string> PlayerFormalArmyIds { get; set; } = new List<string>(8);
         public List<string> EnemyFormalArmyIds { get; set; } = new List<string>(8);
         public List<ulong> PlayerPartyMemberIds { get; set; } = new List<ulong>(8);
+        /// <summary>Retreat location 是否有值（避免把 null retreat 恢复成默认对象）。</summary>
+        public bool RetreatHasValue { get; set; }
         public int RetreatArmyLocationKind { get; set; }
         public int RetreatPartyLocationKind { get; set; }
         public string RetreatSiteId { get; set; } = string.Empty;
@@ -143,6 +155,11 @@ namespace XianXia.Core.Persistence
         public string ParticipantPrimaryEnemyStackId { get; set; } = string.Empty;
         public int ParticipantBattleAnchorHexQ { get; set; }
         public int ParticipantBattleAnchorHexR { get; set; }
+        /// <summary>ParticipantSnapshot 冻结的 LocalMap 决议（Auto/Manual 语义 authority）。</summary>
+        public string ParticipantEncounterLocalMapId { get; set; } = string.Empty;
+        public int ParticipantLocalMapResolutionKind { get; set; }
+        /// <summary>旧存档缺省时无法区分 0=WorldSite 与缺失字段，须用 flag 决定是否走 legacy fallback。</summary>
+        public bool HasParticipantLocalMapResolutionKind { get; set; }
         public List<PendingEngagementParticipantRecordDto> ParticipantRecords { get; set; } =
             new List<PendingEngagementParticipantRecordDto>(32);
     }
@@ -156,6 +173,15 @@ namespace XianXia.Core.Persistence
         public string DisplayLabel { get; set; } = string.Empty;
         public int CombatPower { get; set; }
         public bool Selected { get; set; }
+        /// <summary>Phase 5S Persistence：record 完整冻结（IncludedReason + PreBattle）。</summary>
+        public string IncludedReason { get; set; } = string.Empty;
+        public bool HasPreBattle { get; set; }
+        public int PreBattleMode { get; set; }
+        public string PreBattleSiteId { get; set; } = string.Empty;
+        public int PreBattleHexQ { get; set; } = int.MinValue;
+        public int PreBattleHexR { get; set; } = int.MinValue;
+        public string PreBattleFollowStackId { get; set; } = string.Empty;
+        public string PreBattleCombatPursuitStackId { get; set; } = string.Empty;
     }
 
     /// <summary>Phase 2D：Background Character 旅行快照（WorldLocation + route progress）。</summary>
@@ -274,6 +300,13 @@ namespace XianXia.Core.Persistence
     {
         public string SiteId { get; set; }
         public string OwnerFactionId { get; set; }
+    }
+
+    /// <summary>TerritoryRegion 运行时 Controller（2J §17）；Region/Hexes/PrimaryWorldSiteId 属 Content identity 不重复持久化。</summary>
+    public sealed class TerritoryRegionControllerSnapshotDto
+    {
+        public string RegionId { get; set; }
+        public string ControlFactionId { get; set; }
     }
 
     public sealed class WarSnapshotDto

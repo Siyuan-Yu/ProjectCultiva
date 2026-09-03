@@ -4377,10 +4377,50 @@ namespace XianXia.Unity.Host
             sb.Append('\n');
             if (!string.IsNullOrEmpty(site.LocalMapId))
                 sb.Append("LocalMapId：").Append(site.LocalMapId).Append('\n');
+            if (!string.IsNullOrEmpty(site.TerritoryRegionId))
+            {
+                sb.Append("TerritoryRegionId：").Append(site.TerritoryRegionId).Append('\n');
+                if (world.Strategic.TerritoryRegions.TryGet(site.TerritoryRegionId, out var region) &&
+                    region != null)
+                {
+                    sb.Append("Territory Controller：")
+                        .Append(StrategicFactionCatalog.DisplayName(region.ControlFactionId))
+                        .Append("（").Append(region.ControlFactionId).Append("）\n");
+                    sb.Append("Territory Hexes：").Append(region.HexCount).Append('\n');
+                }
+            }
+
             if (!string.IsNullOrEmpty(site.OwnerFactionId))
                 sb.Append("OwnerFactionId：").Append(site.OwnerFactionId).Append('\n');
             sb.Append("Clicked Hex：").Append(clickedHex).Append('\n');
             return sb.ToString();
+        }
+
+        void AppendTerritoryInspect(
+            System.Text.StringBuilder sb,
+            XianXia.Core.Simulation.SimulationWorld world,
+            HexCoord hex,
+            XianXia.Core.World.Hex.HexCell tile)
+        {
+            var controller = tile?.ControlFactionId ?? string.Empty;
+            sb.Append("ControlFactionId：").Append(string.IsNullOrEmpty(controller) ? "None（无主）" : controller).Append('\n');
+            if (!string.IsNullOrEmpty(controller))
+                sb.Append("领土：").Append(StrategicFactionCatalog.DisplayName(controller)).Append('\n');
+            if (world?.Strategic?.TerritoryRegions == null)
+                return;
+
+            foreach (var kv in world.Strategic.TerritoryRegions.Regions)
+            {
+                var region = kv.Value;
+                if (region == null || !region.Contains(hex))
+                    continue;
+                sb.Append("TerritoryRegion：").Append(region.RegionId).Append('\n');
+                if (!string.IsNullOrEmpty(region.PrimaryWorldSiteId) &&
+                    world.Strategic.Sites.TryGet(region.PrimaryWorldSiteId, out var site) &&
+                    site != null)
+                    sb.Append("PrimaryWorldSite：").Append(site.SiteId).Append('\n');
+                return;
+            }
         }
 
         string BuildHexInspect(XianXia.Core.Simulation.SimulationWorld world, HexCoord hex)
@@ -4398,6 +4438,7 @@ namespace XianXia.Unity.Host
             if (tile.IsRoad)
                 sb.Append("道路：是\n");
             sb.Append(tile.IsPassable ? "可通行\n" : "不可通行\n");
+            AppendTerritoryInspect(sb, world, hex, tile);
 
             if (world.Strategic.Sites.TryGetAtHex(hex, out var site) && site != null)
             {
