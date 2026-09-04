@@ -10,15 +10,31 @@ namespace XianXia.Core.World.Strategic
     /// </summary>
     public static class Ch01ScenarioStrategicSetup
     {
+        /// <summary>
+        /// 旧 Core fixture／EditMode 兼容入口。Data 正式启动路径不得调用：
+        /// 正式 Content 应分别调用 ApplyRuntimeHooks 与 StrategicOpeningContentBootstrap。
+        /// </summary>
+        [Obsolete("仅 Core fixture/旧测试兼容；Data playable path 使用 StrategicOpeningContentBootstrap。")]
         public static void Apply(SimulationWorld world)
+        {
+            ApplyRuntimeHooks(world);
+            ApplyLegacyFixtureStrategicDefaults(world);
+        }
+
+        public static void ApplyRuntimeHooks(SimulationWorld world)
         {
             if (world?.Strategic == null)
                 return;
 
             world.Strategic.Ch01FormationScenarioCompat = true;
+            Ch01ScenarioProgressionHooks.Register(world);
+        }
+
+        public static void ApplyLegacyFixtureStrategicDefaults(SimulationWorld world)
+        {
+            if (world?.Strategic == null) return;
             ApplyPlayerFactionAndVassalage(world);
             ApplyPrototypeRegressionDiplomacy(world);
-            Ch01ScenarioProgressionHooks.Register(world);
         }
 
         /// <summary>

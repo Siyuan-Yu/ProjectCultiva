@@ -226,9 +226,7 @@ namespace XianXia.Core.World.Strategic
             if (world.Strategic.ClockFreeze.Reason != StrategicClockFreezeReason.ManualEncounter)
                 return;
 
-            var fieldCleared = StrategicEncounterSpawner.IsFieldCleared(world);
-            var friendliesDown = AreAllEngagedFriendliesDown(world);
-            if (!fieldCleared && !friendliesDown)
+            if (!TryEvaluateManualBattleOutcome(world, out var terminal, out var playerWon) || !terminal)
                 return;
 
             StrategicClockFreezeService.BeginOrPromote(
@@ -236,16 +234,58 @@ namespace XianXia.Core.World.Strategic
 
             if (string.IsNullOrEmpty(world.Strategic.Participants.LastBattleSummary))
             {
-                world.Strategic.Participants.LastBattleSummary = fieldCleared
+                world.Strategic.Participants.LastBattleSummary = playerWon
                     ? "敌军已全部失去战斗能力。可查看现场；点击「结束战斗」后恢复世界时间。"
                     : "我方已全部失去战斗能力。点击「结束战斗」后结束本次战斗并恢复世界时间。";
             }
 
-            world.Strategic.Participants.PlayerWon = fieldCleared;
+            world.Strategic.Participants.PlayerWon = playerWon;
+        }
+
+        /// <summary>真实 WORLD_COMBAT 只以 frozen participant snapshot 的 CanFight 判定终局。</summary>
+        public static bool TryEvaluateManualBattleOutcome(SimulationWorld world, out bool terminal, out bool playerWon)
+        {
+            terminal = false; playerWon = false;
+            var snap = world?.Strategic?.Participants;
+            if (snap == null) return false;
+            var real = snap.LocalMapResolutionKind == BattleLocalMapResolutionKind.WorldSite ||
+                       snap.LocalMapResolutionKind == BattleLocalMapResolutionKind.Wilderness;
+            if (!real)
+            {
+                var cleared = StrategicEncounterSpawner.IsFieldCleared(world);
+                var down = AreAllEngagedFriendliesDown(world);
+                terminal = cleared || down; playerWon = cleared;
+                return true;
+            }
+            var enemyCanFight = false; var friendlyCanFight = false; var hasFriendly = false;
+            for (var i = 0; i < snap.Records.Count; i++)
+            {
+                var r = snap.Records[i];
+                if (r.EntityId.IsNone || !world.Entities.TryGet(r.EntityId, out var e) || e == null) continue;
+                var canFight = CombatLifeStateService.CanFight(e);
+                if (r.Kind == BattleParticipantKind.EnemyPrimary || r.Kind == BattleParticipantKind.EnemyReinforcement) enemyCanFight |= canFight;
+                else if (r.Kind == BattleParticipantKind.MandatoryFriendly || (r.Kind == BattleParticipantKind.OptionalFriendly && r.Selected)) { hasFriendly = true; friendlyCanFight |= canFight; }
+            }
+            if (!enemyCanFight) { terminal = true; playerWon = true; }
+            else if (hasFriendly && !friendlyCanFight) { terminal = true; playerWon = false; }
+            return true;
         }
 
         public static bool AreAllEngagedFriendliesDown(SimulationWorld world)
         {
+            var snap = world?.Strategic?.Participants;
+            if (snap != null && (snap.LocalMapResolutionKind == BattleLocalMapResolutionKind.WorldSite || snap.LocalMapResolutionKind == BattleLocalMapResolutionKind.Wilderness))
+            {
+                var anySelectedFriendly = false;
+                for (var i = 0; i < snap.Records.Count; i++)
+                {
+                    var r = snap.Records[i];
+                    if (r.Kind != BattleParticipantKind.MandatoryFriendly && !(r.Kind == BattleParticipantKind.OptionalFriendly && r.Selected)) continue;
+                    if (r.EntityId.IsNone || !world.Entities.TryGet(r.EntityId, out var e) || e == null) continue;
+                    anySelectedFriendly = true; if (CombatLifeStateService.CanFight(e)) return false;
+                }
+                return anySelectedFriendly;
+            }
             var rt = world?.Strategic?.Encounter;
             if (rt == null || !rt.HasEngagedParty)
                 return false;

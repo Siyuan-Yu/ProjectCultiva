@@ -19,6 +19,44 @@ namespace XianXia.Core.World.Strategic
             SimulationWorld world,
             EntityId characterId)
         {
+            return TryDetachNonEncounterDefeat(world, characterId, out _);
+        }
+
+        /// <summary>
+        /// 带倒下瞬间 LocalMap 坐标的版本。必须先 detach，再将这个已脱离 Army 的 residual
+        /// 写成精确连续世界位置；不能让 detach 的 hex-only 默认值覆盖 precise placement。
+        /// </summary>
+        public static bool TryHandleNonEncounterDefeat(
+            SimulationWorld world,
+            EntityId characterId,
+            float localX,
+            float localZ,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds? wildernessBounds,
+            WorldSiteSpatialMapping.WorldSiteLocalMapBounds? siteBounds)
+        {
+            if (!TryDetachNonEncounterDefeat(world, characterId, out var formerArmyId))
+                return false;
+
+            var precisePlaced = LocalCombatCasualtyHandoffService
+                .TryPlacePreciseResidualFromLoadedLocalPosition(
+                    world,
+                    characterId,
+                    localX,
+                    localZ,
+                    wildernessBounds,
+                    siteBounds);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            LogPrecision(world, characterId, formerArmyId, localX, localZ, precisePlaced);
+#endif
+            return true;
+        }
+
+        static bool TryDetachNonEncounterDefeat(
+            SimulationWorld world,
+            EntityId characterId,
+            out string formerArmyId)
+        {
+            formerArmyId = string.Empty;
             if (world?.Strategic?.FormalArmies == null || characterId.IsNone ||
                 !StrategicResidualPresenceService.IsResidualLifeCandidate(world, characterId) ||
                 !ArmyService.TryGetArmyForCharacter(world, characterId, out var army) || army == null ||
@@ -26,6 +64,7 @@ namespace XianXia.Core.World.Strategic
                 return false;
 
             var oldArmyId = army.ArmyId;
+            formerArmyId = oldArmyId;
             var oldMemberCount = army.MemberCharacterIds.Count;
             var armyMotionKind = army.WorldMotion.LocationKind;
             var armyHex = army.WorldMotion.CurrentHex;
@@ -61,6 +100,49 @@ namespace XianXia.Core.World.Strategic
 
             return detachSuccess && !stillInFormalArmy && residualCandidate;
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        static void LogPrecision(
+            SimulationWorld world,
+            EntityId characterId,
+            string formerArmyId,
+            float localX,
+            float localZ,
+            bool precisePlaced)
+        {
+            var surface = "None";
+            var siteId = string.Empty;
+            var residualHex = "(none)";
+            var hasContinuous = false;
+            var precise = "(none)";
+            if (LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(world, out var loaded))
+            {
+                surface = loaded.Kind.ToString();
+                siteId = loaded.Site?.SiteId ?? string.Empty;
+            }
+            if (StrategicResidualPresenceService.TryGetResidualHex(world, characterId, out var hex))
+                residualHex = hex.ToString();
+            if (world.WorldPresence.TryGet(characterId, out var presence) && presence != null)
+            {
+                hasContinuous = presence.HasContinuousWorldPosition;
+                if (hasContinuous)
+                    precise = presence.ContinuousWorldPosition.ToString();
+            }
+
+            Debug.WriteLine(
+                "[LocalResidualPrecision]" +
+                " Entity=" + characterId +
+                " FormerArmyId=" + formerArmyId +
+                " Surface=" + surface +
+                " SiteId=" + siteId +
+                " GotLocal=true" +
+                " Local=(" + localX.ToString("0.###") + "," + localZ.ToString("0.###") + ")" +
+                " ResidualHex=" + residualHex +
+                " HasContinuousWorldPosition=" + hasContinuous +
+                " PreciseWorld=" + precise +
+                " PrecisePlaced=" + precisePlaced);
+        }
+#endif
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         static void LogHandoff(

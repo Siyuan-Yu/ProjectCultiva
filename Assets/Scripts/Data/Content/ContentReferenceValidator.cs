@@ -449,6 +449,7 @@ namespace XianXia.Data.Content
                 if (scenario == null)
                     continue;
                 RequireFaction(registry, scenario.OpeningFactionId, scenario.Id + ".openingFactionId", report, allowEmpty: true);
+                ValidateStrategicOpening(registry, scenario, report);
                 if (scenario.Spawns == null)
                     continue;
                 for (var i = 0; i < scenario.Spawns.Count; i++)
@@ -526,6 +527,34 @@ namespace XianXia.Data.Content
                     }
                 }
             }
+        }
+
+        static void ValidateStrategicOpening(DefinitionRegistry registry, OpeningScenarioDefinition scenario, ValidationReport report)
+        {
+            var s = scenario.StrategicOpening;
+            if (s == null) return;
+            var ctx = scenario.Id + ".strategicOpening";
+            RequireFaction(registry, s.PlayerFactionId, ctx + ".playerFactionId", report, false);
+            var vassals = new Dictionary<string, string>(StringComparer.Ordinal);
+            var allianceMembers = new HashSet<string>(StringComparer.Ordinal);
+            var alliancePairs = new HashSet<string>(StringComparer.Ordinal);
+            for (var i = 0; i < s.Vassalages.Count; i++)
+            {
+                var v = s.Vassalages[i]; var p = ctx + ".vassalages[" + i + "]";
+                RequireFaction(registry, v.VassalFactionId, p + ".vassalFactionId", report, false); RequireFaction(registry, v.OverlordFactionId, p + ".overlordFactionId", report, false);
+                if (v.VassalFactionId == v.OverlordFactionId) report.Add(ErrorCode.InvalidArgument, "Opening vassal and overlord must differ.", p);
+                if (vassals.ContainsKey(v.VassalFactionId)) report.Add(ErrorCode.InvalidArgument, "Faction '" + v.VassalFactionId + "' has duplicate/conflicting authored overlord.", p);
+                else vassals[v.VassalFactionId] = v.OverlordFactionId;
+            }
+            foreach (var v in vassals) if (vassals.ContainsKey(v.Value)) report.Add(ErrorCode.InvalidArgument, "Opening vassalage nesting is not supported: " + v.Key + " -> " + v.Value, ctx + ".vassalages");
+            for (var i = 0; i < s.Alliances.Count; i++)
+            {
+                var a=s.Alliances[i]; var p=ctx+".alliances["+i+"]"; RequireFaction(registry,a.FactionAId,p+".factionAId",report,false); RequireFaction(registry,a.FactionBId,p+".factionBId",report,false);
+                var key=string.CompareOrdinal(a.FactionAId,a.FactionBId)<=0?a.FactionAId+"|"+a.FactionBId:a.FactionBId+"|"+a.FactionAId;
+                if(a.FactionAId==a.FactionBId||!alliancePairs.Add(key)||!allianceMembers.Add(a.FactionAId)||!allianceMembers.Add(a.FactionBId)||vassals.ContainsKey(a.FactionAId)||vassals.ContainsKey(a.FactionBId)) report.Add(ErrorCode.InvalidArgument,"Opening alliance is invalid or conflicts with authored membership/vassalage.",p);
+            }
+            var wars=new HashSet<string>(StringComparer.Ordinal);
+            for(var i=0;i<s.InitialWars.Count;i++){var w=s.InitialWars[i];var p=ctx+".initialWars["+i+"]";RequireFaction(registry,w.DeclarerFactionId,p+".declarerFactionId",report,false);RequireFaction(registry,w.TargetFactionId,p+".targetFactionId",report,false);var key=string.CompareOrdinal(w.DeclarerFactionId,w.TargetFactionId)<=0?w.DeclarerFactionId+"|"+w.TargetFactionId:w.TargetFactionId+"|"+w.DeclarerFactionId;if(w.DeclarerFactionId==w.TargetFactionId||!wars.Add(key)||alliancePairs.Contains(key))report.Add(ErrorCode.InvalidArgument,"Opening war declarer and target must differ and cannot duplicate/allied pair.",p);}
         }
 
         static void ValidateSpawnMembership(

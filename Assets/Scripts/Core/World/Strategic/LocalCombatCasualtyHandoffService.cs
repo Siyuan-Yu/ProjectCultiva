@@ -86,6 +86,32 @@ namespace XianXia.Core.World.Strategic
             if (ArmyService.TryGetArmyForCharacter(world, characterId, out _))
                 return false;
 
+            return TryPlacePreciseResidualFromLoadedLocalPosition(
+                world,
+                characterId,
+                localX,
+                localZ,
+                wildernessBounds,
+                siteBounds);
+        }
+
+        /// <summary>
+        /// 把已成为独立 residual 的角色当前 LocalMap 精确落点写回 WorldPresence。
+        /// FormalArmy casualty 在 detach 后也调用此入口；这里不判断 Army ownership，确保两条
+        /// casualty 链路复用同一套 Local→World 映射与 WorldSite footprint 边界修正。
+        /// </summary>
+        public static bool TryPlacePreciseResidualFromLoadedLocalPosition(
+            SimulationWorld world,
+            EntityId characterId,
+            float localX,
+            float localZ,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds? wildernessBounds,
+            WorldSiteSpatialMapping.WorldSiteLocalMapBounds? siteBounds)
+        {
+            if (world?.Strategic == null || characterId.IsNone ||
+                !StrategicResidualPresenceService.IsResidualLifeCandidate(world, characterId))
+                return false;
+
             if (!LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(world, out var context))
                 return false;
 

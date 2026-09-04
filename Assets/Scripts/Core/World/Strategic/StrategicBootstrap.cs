@@ -12,7 +12,8 @@ namespace XianXia.Core.World.Strategic
         /// <summary>Ch01 Opening 场景初始化（测试/fixture，无 Content 包）。</summary>
         public static Result ApplyCh01Defaults(SimulationWorld world)
         {
-            Ch01ScenarioStrategicSetup.Apply(world);
+            Ch01ScenarioStrategicSetup.ApplyRuntimeHooks(world);
+            Ch01ScenarioStrategicSetup.ApplyLegacyFixtureStrategicDefaults(world);
             var hex = HexStrategicMapBootstrap.TryApplyFromFixture(world);
             if (hex.IsFailure)
                 return hex;

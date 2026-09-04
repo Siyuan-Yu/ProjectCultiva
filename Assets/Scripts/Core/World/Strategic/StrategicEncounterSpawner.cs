@@ -364,9 +364,22 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic == null)
                 return false;
             var rt = world.Strategic.Encounter;
-            if (rt.FieldCleared || !rt.HasEngagedParty)
+            if (rt.FieldCleared)
                 return rt.FieldCleared;
             if (rt.SpawnOnNextMapLoad)
+                return false;
+            var kind = world.Strategic.Participants?.LocalMapResolutionKind ?? BattleLocalMapResolutionKind.ExplicitEncounterMap;
+            var realWorldCombat = kind == BattleLocalMapResolutionKind.WorldSite || kind == BattleLocalMapResolutionKind.Wilderness;
+            if (realWorldCombat)
+            {
+                if (HasCombatCapableEnemyParticipant(world)) return false;
+                rt.FieldCleared = true;
+                StrategicPursuitService.ClearPursuit(world);
+                ArmyPostBattleSyncService.RefreshAttackerArmyFromMembers(world);
+                StrategicEncounterResolveService.EnterPostBattleIfCleared(world);
+                return true;
+            }
+            if (!rt.HasEngagedParty)
                 return false;
             // Phase 5S：正式 participant authority = frozen BattleParticipantSnapshot
             // （真实 FormalArmy enemy）。legacy / fallback synthetic 仍按 tracked 判断。

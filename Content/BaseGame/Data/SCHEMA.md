@@ -232,6 +232,19 @@ Hex 战略世界 JSON（`Content/BaseGame/Data/Worlds/*.json`）；由 `HexWorld
 | `openingRelations[]` | from／to／delta／reasonTag／mutual |
 | `initialFormalArmyIds[]` | Phase 5S：开局实例化的 `formalArmy` definition id 列表（顺序即创建顺序）。缺省为空（不生成任何军团） |
 
+`strategicOpening` 只定义新游戏 Tick 0 的战略状态：`playerFactionId`、`vassalages[]`（附庸／宗主）、`alliances[]`（两势力联盟）与 `initialWars[]`（宣战者／目标）。它与 `openingRelations[]` 的人物 RelationshipLedger 完全不同；读档以保存的 Runtime Strategic Snapshot 为准，绝不重新应用此初始状态。
+
+```json
+"strategicOpening": {
+  "playerFactionId": "base:faction_player",
+  "vassalages": [],
+  "alliances": [],
+  "initialWars": []
+}
+```
+
+未声明的势力对为 Neutral／Other。本轮不支持 author `Friendly`／`Hostile` stance；`openingRelations` 是人物关系，不是势力外交。
+
 ## type = formalArmy（Phase 5S · Content 驱动的战略军团）
 
 | Field | Notes |

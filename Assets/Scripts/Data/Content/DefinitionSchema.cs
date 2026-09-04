@@ -25,7 +25,7 @@ namespace XianXia.Data.Content
         {
             "id", "type", "name", "scheduleId", "openingFactionId", "openingSettlementId",
             "openingWorldRegionId", "openingLocalPlaceSetId", "openingHexWorldId", "openingChapterId", "spawns", "openingRelations",
-            "initialFormalArmyIds"
+            "initialFormalArmyIds", "strategicOpening"
         };
 
         public static readonly HashSet<string> FormalArmyFields = new HashSet<string>(StringComparer.Ordinal)
@@ -190,6 +190,10 @@ namespace XianXia.Data.Content
             "bindSchedule", "bindDailyTask", "recruitable", "workRole", "scheduleId", "aiRole", "jobId",
             "worldSiteId", "localLocationId", "localPosition"
         };
+        public static readonly HashSet<string> OpeningStrategicFields = new HashSet<string>(StringComparer.Ordinal) { "playerFactionId", "vassalages", "alliances", "initialWars" };
+        public static readonly HashSet<string> OpeningVassalageFields = new HashSet<string>(StringComparer.Ordinal) { "vassalFactionId", "overlordFactionId" };
+        public static readonly HashSet<string> OpeningAllianceFields = new HashSet<string>(StringComparer.Ordinal) { "factionAId", "factionBId" };
+        public static readonly HashSet<string> OpeningWarFields = new HashSet<string>(StringComparer.Ordinal) { "declarerFactionId", "targetFactionId" };
 
         public static readonly HashSet<string> OpeningLocalPositionFields = new HashSet<string>(StringComparer.Ordinal)
         {

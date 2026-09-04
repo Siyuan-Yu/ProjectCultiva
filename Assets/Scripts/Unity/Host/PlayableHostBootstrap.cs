@@ -1952,50 +1952,52 @@ namespace XianXia.Unity.Host
                     var handledByStrategicEncounter = StrategicEncounterSpawner.OnCombatantDefeated(
                         _session.World,
                         defenderId);
-                    if (!handledByStrategicEncounter &&
-                        FormalArmyCasualtyService.TryHandleNonEncounterDefeat(
-                            _session.World,
-                            defenderId))
+                    if (!handledByStrategicEncounter)
                     {
-                        nonEncounterStrategicPopulationChanged = true;
-                    }
-                    else if (!handledByStrategicEncounter)
-                    {
-                        // 非 Encounter、非 FormalArmy 的 Local Combat 倒下（PlayerParty member /
-                        // 普通 LocalCharacter）：先捕获真实 EntityView local 位置（不能读
-                        // PresentationOverride，可能 stale），随当前 surface bounds 一并交给
-                        // handoff —— ResidualHex + precise WorldPosition 一起保存，重进 LocalMap
-                        // 回到倒下原位而非 Hex 中心。view 不可得（瞬时缺帧）→ hex-only fallback。
+                        // 普通 Local Combat 的所有 casualty owner 都必须先捕获倒下瞬间的
+                        // EntityView local 坐标；FormalArmy detach 会先写 hex-only residual，
+                        // 所以不能在 detach 后才取 view。Strategic Encounter 已由上方冻结
+                        // snapshot 接管，绝不进入本分支。
                         ResolveLoadedStrategicBounds(_session.World);
                         var gotLocal = TryGetCurrentLocalPresentation(
                             defenderId,
                             out var localX,
                             out var localZ);
-                        var handledByLocalCombat = false;
                         if (gotLocal)
                         {
-                            // 让当前 Domain presentation 与真实 View 对齐（仅 presentation，
-                            // 长期 authority 是下方保存的 continuous world position）。
+                            // 当前 presentation 与真实 View 对齐；长期 authority 仍是下方
+                            // 写入 WorldPresence 的 precise continuous world position。
                             if (_session.World.Entities.TryGet(defenderId, out var ent) &&
                                 ent != null &&
                                 ent.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(
                                     out var loc) &&
                                 loc != null)
                                 loc.SetPresentationOverride(localX, localZ);
+                        }
 
-                            handledByLocalCombat =
-                                LocalCombatCasualtyHandoffService.TryHandleNonArmyDefeat(
+                        var handledByArmyCasualty = gotLocal
+                            ? FormalArmyCasualtyService.TryHandleNonEncounterDefeat(
+                                _session.World,
+                                defenderId,
+                                localX,
+                                localZ,
+                                _loadedStrategicWildernessBounds,
+                                _loadedStrategicSiteBounds)
+                            : FormalArmyCasualtyService.TryHandleNonEncounterDefeat(
+                                _session.World,
+                                defenderId);
+                        var handledByLocalCombat = handledByArmyCasualty;
+                        if (!handledByLocalCombat)
+                        {
+                            handledByLocalCombat = gotLocal
+                                ? LocalCombatCasualtyHandoffService.TryHandleNonArmyDefeat(
                                     _session.World,
                                     defenderId,
                                     localX,
                                     localZ,
                                     _loadedStrategicWildernessBounds,
-                                    _loadedStrategicSiteBounds);
-                        }
-
-                        if (!handledByLocalCombat)
-                        {
-                            handledByLocalCombat =
+                                    _loadedStrategicSiteBounds)
+                                :
                                 LocalCombatCasualtyHandoffService.TryHandleNonArmyDefeat(
                                     _session.World,
                                     defenderId);

@@ -262,6 +262,14 @@ namespace XianXia.Core.World.Strategic
                 return true;
 
             loc.SetPresentationOverride(lx, ly);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            System.Diagnostics.Debug.WriteLine(
+                "[ResidualMaterialize]" +
+                " Entity=" + characterId +
+                " PlacementSource=" + (presence.HasContinuousWorldPosition
+                    ? "PreciseWorldPosition"
+                    : "HexFallback"));
+#endif
             return true;
         }
 

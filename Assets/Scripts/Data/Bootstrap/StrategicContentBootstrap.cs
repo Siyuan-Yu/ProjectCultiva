@@ -13,7 +13,10 @@ namespace XianXia.Data.Bootstrap
             DefinitionRegistry registry,
             OpeningScenarioDefinition scenario)
         {
-            Ch01ScenarioStrategicSetup.Apply(world);
+            Ch01ScenarioStrategicSetup.ApplyRuntimeHooks(world);
+            var opening = StrategicOpeningContentBootstrap.Apply(world, registry, scenario);
+            if (opening.IsFailure)
+                return opening;
             var hex = HexStrategicMapContentBootstrap.TryApplyToSession(world, registry, scenario);
             if (hex.IsFailure)
                 return hex;

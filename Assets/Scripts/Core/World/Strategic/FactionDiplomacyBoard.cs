@@ -36,5 +36,7 @@ namespace XianXia.Core.World.Strategic
             var s = GetStance(factionA, factionB);
             return s == FactionStance.Hostile || s == FactionStance.War;
         }
+
+        public void Clear() => _pairStance.Clear();
     }
 }

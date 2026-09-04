@@ -171,14 +171,11 @@ namespace XianXia.Unity.Host
             var world = session.World;
             if (world?.Strategic == null)
                 return;
-            if (world.Strategic.ClockFreeze.Reason != StrategicClockFreezeReason.PostBattle &&
-                !(world.Strategic.ClockFreeze.Reason == StrategicClockFreezeReason.ManualEncounter &&
-                  (StrategicEncounterSpawner.IsFieldCleared(world) ||
-                   StrategicEncounterResolveService.AreAllEngagedFriendliesDown(world))))
-                return;
-
             if (world.Strategic.ClockFreeze.Reason == StrategicClockFreezeReason.ManualEncounter)
                 StrategicEncounterResolveService.TryEnterPostBattleFromManual(world);
+
+            if (world.Strategic.ClockFreeze.Reason != StrategicClockFreezeReason.PostBattle)
+                return;
 
             EnsureStyles();
             var auto = world.Strategic.Participants.IsAutoSettlement;
@@ -316,6 +313,15 @@ namespace XianXia.Unity.Host
             var completeInPlace =
                 completionKind == BattleLocalMapResolutionKind.WorldSite ||
                 completionKind == BattleLocalMapResolutionKind.Wilderness;
+            var partyMembers = world.Strategic.PlayerPartyContext?.Members;
+            var playerPartyParticipated = ManualBattleWorldCommitService
+                .HasActualPlayerPartyParticipant(world.Strategic.Participants, partyMembers);
+            var battleHex = "(none)";
+            if (ArmyHexBattleAnchorService.TryGetBattleAnchorHex(
+                    world.Strategic.Participants,
+                    out var frozenBattleHex))
+                battleHex = frozenBattleHex.ToString();
+            var beforeSurface = DescribeCurrentSurface(world);
             // Phase 5S-B2-3.3：Auto settlement 必须在 Resolve 前 capture —— Auto 从未进入 Battle
             // LocalMap，确认结算后需要走正式 Apply 链切到 BattleHex surface；Manual 原地保留。
             var autoSettlement = world.Strategic.Participants.IsAutoSettlement;
@@ -339,7 +345,19 @@ namespace XianXia.Unity.Host
                                 // WorldMap 保持打开（后台准备 LocalMap）；禁止 WorldMap.Open /
                                 // ReloadLocalMap / Rebuild 整图。Auto 此前未进入 Battle LocalMap，
                                 // 因此不适用 Manual 的“原地保留”分支。
+                                // Auto 的 party relocation 不经过正常 Surface Exit；在展开 BattleHex
+                                // LocalMap 前再次防御性清理旧 physical surface 的 gate transient。
+                                // 第三方 Army vs Army 未 relocation，不触碰 PlayerParty gate。
+                                if (playerPartyParticipated)
+                                    world.PlayerPartyTravel?.SurfaceEdgeGate?.ClearEdgeState();
                                 bootstrap.ApplyPartyWorldSitePresentation(closeWorldMap: false);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                                LogAutoBattleSurfaceRelease(
+                                    world,
+                                    beforeSurface,
+                                    battleHex,
+                                    playerPartyParticipated);
+#endif
                                 ShowToast("战斗已结束，世界时间已恢复。");
                             }
                             else
@@ -377,6 +395,39 @@ namespace XianXia.Unity.Host
             else
                 ShowToast(resolved.Error.Message);
         }
+
+        static string DescribeCurrentSurface(SimulationWorld world)
+        {
+            if (!LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(world, out var loaded))
+                return "None";
+            return loaded.Kind == LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WorldSite
+                ? "WorldSite(" + (loaded.Site?.SiteId ?? string.Empty) + ")"
+                : "Wilderness(" + loaded.WildernessHex + ")";
+        }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        static void LogAutoBattleSurfaceRelease(
+            SimulationWorld world,
+            string beforeSurface,
+            string battleHex,
+            bool playerPartyParticipated)
+        {
+            var motion = world?.PlayerPartyTravel;
+            var gate = motion?.SurfaceEdgeGate;
+            Debug.Log(
+                "[AutoBattleSurfaceRelease]" +
+                " BeforeSurface=" + beforeSurface +
+                " BattleHex=" + battleHex +
+                " PlayerPartyParticipated=" + playerPartyParticipated +
+                " AfterLocation=" + (motion != null ? motion.LocationKind.ToString() : "(none)") +
+                " CurrentHex=" + (motion != null ? motion.CurrentHex.ToString() : "(none)") +
+                " Freeze=" + (world?.Strategic?.ClockFreeze != null
+                    ? world.Strategic.ClockFreeze.Reason.ToString()
+                    : "(none)") +
+                " GateTransitionInProgress=" + (gate != null && gate.TransitionInProgress) +
+                " GateEdgeArmed=" + (gate != null && gate.EdgeArmed));
+        }
+#endif
 
         void DrawArrivalNotice(PlayableHostSession session, ArrivalNoticePending notice)
         {

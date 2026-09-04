@@ -49,7 +49,7 @@ namespace XianXia.Core.World.Strategic
                     return true;
             }
 
-            return world.Strategic.Diplomacy.GetStance(factionA, factionB) == FactionStance.War;
+            return false;
         }
 
         public static bool CanAttack(SimulationWorld world, string attackerFaction, string defenderFaction)

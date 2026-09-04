@@ -1123,8 +1123,15 @@ namespace XianXia.Core.World.Strategic
             if (!resolution.Success)
                 return;
             var partyMembers = world.Strategic.PlayerPartyContext?.Members;
-            ManualBattleWorldCommitService.CommitWorldCombatParticipants(
+            var playerPartyParticipates = ManualBattleWorldCommitService
+                .HasActualPlayerPartyParticipant(snap, partyMembers);
+            var commit = ManualBattleWorldCommitService.CommitWorldCombatParticipants(
                 world, partyMembers, snap, resolution);
+            // Auto WORLD_COMBAT 的 authoritative relocation 不是正常的 surface edge crossing。
+            // 只有实际参战的 PlayerParty 被 commit 到 BattleHex 时，旧 physical surface 的
+            // edge transient 才必须丢弃；第三方 Army vs Army 不得触碰 PlayerParty gate。
+            if (commit.IsSuccess && playerPartyParticipates)
+                world.PlayerPartyTravel?.SurfaceEdgeGate?.ClearEdgeState();
         }
 
         static void BindEncounterAfterAutoResolve(

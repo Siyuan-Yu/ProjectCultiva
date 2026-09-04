@@ -43,10 +43,23 @@ namespace XianXia.Data.Content
         public string OpeningChapterId { get; set; }
         public List<OpeningSpawnEntry> Spawns { get; set; } = new List<OpeningSpawnEntry>();
         public List<OpeningRelationEntry> OpeningRelations { get; set; } = new List<OpeningRelationEntry>();
+        /// <summary>仅用于新游戏 Tick 0 的战略初始状态；读档以 Runtime Strategic Snapshot 为准。</summary>
+        public OpeningStrategicStateDefinition StrategicOpening { get; set; }
 
         /// <summary>Phase 5S：开局实例化的 FormalArmyDefinition ids（顺序即创建顺序）。</summary>
         public List<string> InitialFormalArmyIds { get; set; } = new List<string>();
     }
+
+    public sealed class OpeningStrategicStateDefinition
+    {
+        public string PlayerFactionId { get; set; } = string.Empty;
+        public List<OpeningVassalageDefinition> Vassalages { get; set; } = new List<OpeningVassalageDefinition>();
+        public List<OpeningAllianceDefinition> Alliances { get; set; } = new List<OpeningAllianceDefinition>();
+        public List<OpeningWarDefinition> InitialWars { get; set; } = new List<OpeningWarDefinition>();
+    }
+    public sealed class OpeningVassalageDefinition { public string VassalFactionId { get; set; } = string.Empty; public string OverlordFactionId { get; set; } = string.Empty; }
+    public sealed class OpeningAllianceDefinition { public string FactionAId { get; set; } = string.Empty; public string FactionBId { get; set; } = string.Empty; }
+    public sealed class OpeningWarDefinition { public string DeclarerFactionId { get; set; } = string.Empty; public string TargetFactionId { get; set; } = string.Empty; }
 
     public sealed class OpeningSpawnEntry
     {

@@ -694,6 +694,23 @@ namespace XianXia.Data.Content
                 OpeningHexWorldId = item.GetString("openingHexWorldId", string.Empty),
                 OpeningChapterId = item.GetString("openingChapterId", string.Empty)
             };
+            if (item.TryGetProperty("strategicOpening", out var strategicNode))
+            {
+                if (strategicNode.Kind != JsonValueKind.Object)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "strategicOpening must be object.", id.ToString());
+                    return;
+                }
+                DefinitionSchema.RejectUnknownFields(strategicNode, DefinitionSchema.OpeningStrategicFields, report, id + ".strategicOpening");
+                if (report.Errors.Count > errorsBefore) return;
+                var opening = new OpeningStrategicStateDefinition { PlayerFactionId = strategicNode.GetString("playerFactionId", string.Empty) };
+                if (string.IsNullOrWhiteSpace(opening.PlayerFactionId)) { report.Add(ErrorCode.MissingRequiredField, "strategicOpening.playerFactionId required.", id.ToString()); return; }
+                ReadStrategicList(strategicNode, "vassalages", DefinitionSchema.OpeningVassalageFields, id, report, (n) => opening.Vassalages.Add(new OpeningVassalageDefinition { VassalFactionId = n.GetString("vassalFactionId", ""), OverlordFactionId = n.GetString("overlordFactionId", "") }));
+                ReadStrategicList(strategicNode, "alliances", DefinitionSchema.OpeningAllianceFields, id, report, (n) => opening.Alliances.Add(new OpeningAllianceDefinition { FactionAId = n.GetString("factionAId", ""), FactionBId = n.GetString("factionBId", "") }));
+                ReadStrategicList(strategicNode, "initialWars", DefinitionSchema.OpeningWarFields, id, report, (n) => opening.InitialWars.Add(new OpeningWarDefinition { DeclarerFactionId = n.GetString("declarerFactionId", ""), TargetFactionId = n.GetString("targetFactionId", "") }));
+                if (report.Errors.Count > errorsBefore) return;
+                scenario.StrategicOpening = opening;
+            }
 
             if (item.TryGetProperty("spawns", out var spawnsNode))
             {
@@ -821,6 +838,20 @@ namespace XianXia.Data.Content
             var reg = registry.RegisterOpeningScenario(scenario);
             if (reg.IsFailure)
                 report.Add(reg.Error);
+        }
+
+        static void ReadStrategicList(
+            JsonValue root, string field, System.Collections.Generic.HashSet<string> fields,
+            DefinitionId scenarioId, ValidationReport report, System.Action<JsonValue> add)
+        {
+            if (!root.TryGetProperty(field, out var list)) return;
+            if (list.Kind != JsonValueKind.Array) { report.Add(ErrorCode.ContentLoadFailed, field + " must be array.", scenarioId.ToString()); return; }
+            foreach (var node in list.Array)
+            {
+                if (node.Kind != JsonValueKind.Object) { report.Add(ErrorCode.ContentLoadFailed, field + " entries must be objects.", scenarioId.ToString()); continue; }
+                DefinitionSchema.RejectUnknownFields(node, fields, report, scenarioId + ".strategicOpening." + field);
+                add(node);
+            }
         }
 
         static void LoadStrategicFaction(

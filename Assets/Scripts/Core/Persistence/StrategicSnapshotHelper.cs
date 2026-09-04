@@ -308,6 +308,7 @@ namespace XianXia.Core.Persistence
             world.Strategic.Ch01FormationScenarioCompat = dto.Ch01FormationScenarioCompat;
             world.Strategic.FormalArmies.Clear();
             world.Strategic.Wars.Clear();
+            world.Strategic.Diplomacy.Clear();
             world.Strategic.Alliances.Clear();
             world.Strategic.Vassalages.Clear();
             world.Strategic.RetreatingArmies.Clear();
@@ -511,6 +512,8 @@ namespace XianXia.Core.Persistence
                     world.Strategic.Wars.Register(war);
                 }
             }
+
+            StrategicDiplomacyProjection.RebuildWarStances(world);
 
             if (dto.Alliances != null)
             {
