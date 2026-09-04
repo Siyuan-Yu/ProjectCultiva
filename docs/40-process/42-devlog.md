@@ -13,8 +13,11 @@
 - 删除势力前的共享引用扫描扩展为递归检查整个 `Content/BaseGame/Data`：角色默认势力、场景／名册出场势力、FormalArmy、WorldSite／Territory 与 `strategicOpening` 的玩家／附庸／联盟／战争字段均会阻止删除。
 - WorldGraphEditor 新增「势力管理」「开局战略」入口；开局战略窗口按 PackageStore 加载全部 `openingScenario`，以中文势力名、ID 和颜色选择玩家势力、附庸、联盟、开局战争。保存只替换所选场景 Raw JSON 的 `strategicOpening` 节点，绝不重建或同步其它 Scenario，也不触碰 Unity Runtime／SaveGame。
 - 新增 Shared `OpeningStrategicAuthoring`，保存前按正式语义拒绝未知势力、自附庸、重复／套娃附庸、联盟冲突、重复／反向战争及联盟与战争同对。
+- 修复开局战略与势力管理窗口的深色主题可读性：主文字、次级文字、提示、下拉项和分隔线均使用明确的高对比色。四个页签从会自动换行重排的 `TabPanel` 改为固定单行四列，顺序恒为地图编辑、势力范围、势力管理、开局战略。
 
 **验证**：WorldGraphEditor Release 构建 0 warning／0 error；Shared.Tests 50/50 通过；`git diff --check` 无空白错误。WPF 交互与内容 roundtrip 留待用户人工验收。
+
+完整交接、内容边界、校验与人工验收清单见 [194](194-worldgrapheditor-faction-and-opening-strategic-authoring-2026-09-05.md)。
 
 ---
 
