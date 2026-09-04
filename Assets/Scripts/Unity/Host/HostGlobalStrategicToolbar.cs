@@ -5,7 +5,7 @@ namespace XianXia.Unity.Host
 {
     /// <summary>
     /// 大地图 Global Strategic Toolbar：系统级战略入口（不依赖 Node／镜头）。
-    /// 本轮：Character + Army。未来可注册 Territory / FactionDiplomacy / Trade 等模块。
+    /// 当前：Character、Army、FactionDiplomacy。未来可注册 Territory / Trade 等模块。
     /// </summary>
     public sealed class HostGlobalStrategicToolbar
     {
@@ -15,9 +15,9 @@ namespace XianXia.Unity.Host
             None = 0,
             Character = 1,
             Army = 2,
-            // Reserved — NOT IMPLEMENTED:
+            // 预留但尚未实现：
             // Territory = 3,
-            // FactionDiplomacy = 4,
+            FactionDiplomacy = 4,
             // Trade = 5,
             // Mission = 6,
         }
@@ -40,6 +40,7 @@ namespace XianXia.Unity.Host
         {
             new ModuleEntry(ModuleId.Character, "角色", 56f),
             new ModuleEntry(ModuleId.Army, "军队", 56f),
+            new ModuleEntry(ModuleId.FactionDiplomacy, "势力", 56f),
         };
 
         ModuleId _active = ModuleId.None;
@@ -52,12 +53,14 @@ namespace XianXia.Unity.Host
 
         public void CloseAll() => _active = ModuleId.None;
 
-        public void SyncFromPanels(bool characterOpen, bool armyOpen)
+        public void SyncFromPanels(bool characterOpen, bool armyOpen, bool factionDiplomacyOpen)
         {
             if (characterOpen)
                 _active = ModuleId.Character;
             else if (armyOpen)
                 _active = ModuleId.Army;
+            else if (factionDiplomacyOpen)
+                _active = ModuleId.FactionDiplomacy;
             else
                 _active = ModuleId.None;
         }

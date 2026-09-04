@@ -104,6 +104,7 @@ namespace XianXia.Unity.Host
         HostArmyFormPanel _armyFormPanel;
         HostStrategicArmyListPanel _armyListPanel;
         HostStrategicCharacterListPanel _characterListPanel;
+        HostFactionDiplomacyOverviewPanel _factionDiplomacyPanel;
         readonly HostGlobalStrategicToolbar _globalStrategicToolbar = new HostGlobalStrategicToolbar();
         string _selectedStackId = string.Empty;
         string _stackMenuStackId = string.Empty;
@@ -351,6 +352,7 @@ namespace XianXia.Unity.Host
             _armyFormPanel?.Close();
             _armyListPanel?.Close();
             _characterListPanel?.Close();
+            _factionDiplomacyPanel?.Close();
             _globalStrategicToolbar.CloseAll();
             _worldMapSelection.SelectPlayerParty();
             ClearArmyOrderPreview();
@@ -1793,6 +1795,7 @@ namespace XianXia.Unity.Host
                     else
                     {
                         _armyListPanel.Close();
+                        _factionDiplomacyPanel.Close();
                         _characterListPanel.Open();
                         _globalStrategicToolbar.SetActive(moduleId);
                     }
@@ -1808,7 +1811,24 @@ namespace XianXia.Unity.Host
                     else
                     {
                         _characterListPanel.Close();
+                        _factionDiplomacyPanel.Close();
                         _armyListPanel.Open();
+                        _globalStrategicToolbar.SetActive(moduleId);
+                    }
+
+                    break;
+                case HostGlobalStrategicToolbar.ModuleId.FactionDiplomacy:
+                    if (_factionDiplomacyPanel.IsOpen)
+                    {
+                        _factionDiplomacyPanel.Close();
+                        _globalStrategicToolbar.CloseAll();
+                    }
+                    else
+                    {
+                        _armyFormPanel?.Close();
+                        _armyListPanel.Close();
+                        _characterListPanel.Close();
+                        _factionDiplomacyPanel.Open();
                         _globalStrategicToolbar.SetActive(moduleId);
                     }
 
@@ -1831,6 +1851,7 @@ namespace XianXia.Unity.Host
                 true);
             EnsureStrategicRosterPanels();
             _characterListPanel?.Close();
+            _factionDiplomacyPanel?.Close();
             _armyListPanel?.Open();
             _armyListPanel?.SelectArmy(armyId);
             _globalStrategicToolbar.SetActive(HostGlobalStrategicToolbar.ModuleId.Army);
@@ -1862,6 +1883,8 @@ namespace XianXia.Unity.Host
                 _armyListPanel = new HostStrategicArmyListPanel(_body, _title, _armyFormPanel);
             if (_characterListPanel == null)
                 _characterListPanel = new HostStrategicCharacterListPanel(_body, _title);
+            if (_factionDiplomacyPanel == null)
+                _factionDiplomacyPanel = new HostFactionDiplomacyOverviewPanel(_body, _title);
         }
 
         void DrawStrategicRosterPanels(XianXia.Core.Simulation.SimulationWorld world)
@@ -1911,9 +1934,16 @@ namespace XianXia.Unity.Host
                 }
             }
 
+            if (_factionDiplomacyPanel.IsOpen)
+            {
+                var rect = HostStrategicRosterPanelLayout.Compute(Screen.width, Screen.height);
+                _factionDiplomacyPanel.Draw(rect, world);
+            }
+
             _globalStrategicToolbar.SyncFromPanels(
                 _characterListPanel != null && _characterListPanel.IsOpen,
-                _armyListPanel != null && _armyListPanel.IsOpen);
+                _armyListPanel != null && _armyListPanel.IsOpen,
+                _factionDiplomacyPanel != null && _factionDiplomacyPanel.IsOpen);
         }
 
         public void FocusCameraOnArmy(string armyId)
@@ -4534,6 +4564,7 @@ namespace XianXia.Unity.Host
             _armyFormPanel = new HostArmyFormPanel(_body, _title);
             _armyListPanel = new HostStrategicArmyListPanel(_body, _title, _armyFormPanel);
             _characterListPanel = new HostStrategicCharacterListPanel(_body, _title);
+            _factionDiplomacyPanel = new HostFactionDiplomacyOverviewPanel(_body, _title);
         }
     }
 }

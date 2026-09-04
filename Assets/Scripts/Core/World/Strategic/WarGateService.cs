@@ -7,7 +7,8 @@ namespace XianXia.Core.World.Strategic
     /// <summary>Phase G/I：正规 Faction 军事攻击／占点门槛。</summary>
     public static class WarGateService
     {
-        public static Result DeclareWar(SimulationWorld world, string factionA, string factionB)
+        /// <summary>无副作用的宣战资格检查，供需要先准备多步事务的 Scenario 使用。</summary>
+        public static Result CanDeclareWar(SimulationWorld world, string factionA, string factionB)
         {
             if (world?.Strategic?.Wars == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld incomplete.");
@@ -15,6 +16,14 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidArgument, "Both factions required.");
             if (string.Equals(factionA, factionB, StringComparison.Ordinal))
                 return Result.Failure(ErrorCode.InvalidOperation, "Cannot declare war on self.");
+            return Result.Success();
+        }
+
+        public static Result DeclareWar(SimulationWorld world, string factionA, string factionB)
+        {
+            var canDeclare = CanDeclareWar(world, factionA, factionB);
+            if (canDeclare.IsFailure)
+                return canDeclare;
 
             if (IsAtWar(world, factionA, factionB))
                 return Result.Success();

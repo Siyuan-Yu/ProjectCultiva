@@ -427,7 +427,17 @@ Faction 态度不应只剩一个最终数字。概念上允许记录原因，例
 
 「友好／敌视」由 Opinion 等态度表达。**能否军事占领**由是否处于 **War** 决定（§29）。
 
-### 19.1 不做系统强制的战后保护期（2026-08-22 拍板）
+### 19.1 运行时势力／外交只读总览 V0（2026-09-05）
+
+WorldMap 的「战略 → 势力」是**运行时只读可见性**，不是开局内容预览，也不是外交操作界面。
+
+- 势力列表从当前 `SimulationWorld.Strategic` 被正式引用的势力汇总：玩家势力、活动战争、联盟、附庸、FormalArmy、WorldSite 与 `TerritoryRegion`；展示名称从已安装的 faction Content 元数据读取。
+- 当前关系统一经 `FactionDiplomacyRelationQuery` 查询：`自己 → 战争 → 联盟 → 直接附庸 → 普通`。战争优先保证起事后不会继续把旧附庸显示为宗主关系。
+- 关系方向以观察者为准：A 是 B 的宗主时，`GetRelation(A, B) = 附庸`，`GetRelation(B, A) = 宗主`。
+- 页面可读取领地区域数、FormalArmy 数、宗主／附庸和任意两势力之间的当前关系；不得在 Host 拼装 War／Alliance／Vassalage 规则，也不得读 `strategicOpening` 作为当前状态。
+- 宣战、议和、结盟、解除联盟、建立／解除附庸等动态外交 mutation 属于下一阶段；本页不显示占位或禁用操作按钮。
+
+### 19.2 不做系统强制的战后保护期（2026-08-22 拍板）
 
 **明确不做**战争结束后的系统强制保护期／宣战冷却。
 
@@ -868,10 +878,10 @@ CombatPower 算法：**本轮不重新设计**；沿用／参考现有自动战�
 
 | 阶段 | 语义 | 实现边界 |
 |------|------|----------|
-| Stage 0 开局压榨 | 玩家尚未完成政治成立的独立势力；处于上级体系控制下 | **Scenario-level** provisional dependency（flag / story state）；**禁止**为描述开局强行 `CreateVassalage` |
-| Stage 1 夺取荒村 | 全部 CaptureObjectives 完成 → `Node.OwnerFactionId` 易主 → 玩家取得第一块真正领土 | Domain：`CaptureObjectiveService` + Owner 真源；Scenario Hook：`Ch01ScenarioProgressionHooks`（**不**在 Capture Domain 硬编码 DeclareWar） |
-| Stage 2 与旧宗门 War | 荒村 Capture 后玩家政治激活 → `DeclareWar(PlayerFaction, FormerOverlordSect)` | **Scenario Progression** 触发；**禁止** Generic `StrategicBootstrap` 自动剧情战争 |
-| Stage 3 附庸谈判 | 战争推进后旧宗门主动 Offer Vassalage | Hook：`OfferVassalageNegotiation` → 正式 `VassalageBoard`；谈判 UI / 时间 / AI / 数值 **DEFER** |
+| Stage 0 开局压榨 | 玩家势力是压迫宗门的正式附庸；该关系由 Scenario `strategicOpening` 提供 | `VassalageBoard` 是关系真源；不在 Generic Bootstrap 偷写剧情关系。 |
+| Stage 1 主动起事 | 玩家在荒村、满足炼气门槛后选择起事 → 解除附庸 → 与旧宗门宣战 | `Ch01RebellionService` 只封装该 Scenario 行为；解除走 `VassalageBoard` 正式 mutation，战争走 `WarGateService`。 |
+| Stage 2 夺取荒村 | 全部 CaptureObjectives 完成 → `WorldSite Owner` 易主 → 玩家取得第一块真正领土与政治成立标记 | Domain：`CaptureObjectiveService` → `WorldSiteTerritoryTransferService`；Scenario Hook：`Ch01ScenarioProgressionHooks`，不在 Capture Domain 硬编码剧情宣战。 |
+| Stage 3 后续附庸谈判 | 战争推进后旧宗门可主动 Offer Vassalage | Hook：`OfferVassalageNegotiation` → 正式 `VassalageBoard`；谈判 UI / 时间 / AI / 数值 **DEFER** |
 
 **Prototype 回归例外：** Ch01 对 Bandit 的自动 `DeclareWar` 仅允许存在于 `Ch01ScenarioStrategicSetup.ApplyPrototypeRegressionDiplomacy`（非正式剧情战争）。
 

@@ -9,6 +9,7 @@ using XianXia.Core.Exploration;
 using XianXia.Core.Results;
 using XianXia.Core.Settlement;
 using XianXia.Core.Simulation;
+using XianXia.Core.Social;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Npc
@@ -50,6 +51,15 @@ namespace XianXia.Core.Npc
                 return Result.Failure(ErrorCode.InvalidOperation, "Already player-controlled.");
             if (core.CurrentDurability <= 0)
                 return Result.Failure(ErrorCode.InvalidOperation, "Already breached; stand to occupy.");
+
+            var attackerFactionId = attacker.TryGet<FactionMembershipComponent>(out var membership) &&
+                                    membership != null && membership.IsAffiliated
+                ? membership.FactionId
+                : string.Empty;
+            var assault = CaptureObjectiveService.TryBeginMilitaryAssault(
+                world, attackerFactionId, workAreaId);
+            if (assault.IsFailure)
+                return assault;
 
             damageApplied = ComputeAssaultDamage(attacker, core);
             return ApplyDamageInternal(world, workAreaId, damageApplied, attackerId, defenseAlreadyApplied: true);

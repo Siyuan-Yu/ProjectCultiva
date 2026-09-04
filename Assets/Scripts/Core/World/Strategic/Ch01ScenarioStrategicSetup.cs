@@ -103,7 +103,8 @@ namespace XianXia.Core.World.Strategic
 
         /// <summary>
         /// Prototype 回归用 Bandit 敌对 — 非 Ch01 正式剧情战争。
-        /// 正式剧情 War（Player vs FormerOverlordSect）须在荒村 Capture 后由 Scenario Progression 触发。
+        /// 正式剧情 War（Player vs FormerOverlordSect）由玩家在荒村主动起事时触发，
+        /// Capture 后仅推进政治成立标记。
         /// </summary>
         static void ApplyPrototypeRegressionDiplomacy(SimulationWorld world)
         {

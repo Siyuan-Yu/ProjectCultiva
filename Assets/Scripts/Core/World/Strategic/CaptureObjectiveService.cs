@@ -15,9 +15,54 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic?.CaptureObjectives == null || core == null)
                 return;
 
+            var objectiveId = "capture:" + core.WorkAreaId;
+            var hasRestoredObjective = world.Strategic.CaptureObjectives.TryGet(objectiveId, out var existingObjective) &&
+                                       existingObjective != null;
+            var playerFactionId = world.Strategic.PlayerFactionId ?? string.Empty;
+            var siteAlreadyOwnedByPlayer = !string.IsNullOrEmpty(siteId) &&
+                                             !string.IsNullOrEmpty(playerFactionId) &&
+                                             string.Equals(
+                                                 WorldSiteOwnershipService.GetOwner(world, siteId),
+                                                 playerFactionId,
+                                                 StringComparison.Ordinal);
+            if ((hasRestoredObjective && existingObjective.Completed) || siteAlreadyOwnedByPlayer)
+            {
+                // ControlCore 是 LocalMap session shell；政治领地／已完成 Objective 才是长期真源。
+                // 读档后重注册不能把已经归属玩家的据点重新表现为敌方可攻目标。
+                core.PlayerControlled = true;
+                core.CurrentDurability = Math.Max(1, core.MaxDurability);
+                core.CaptureAvailable = false;
+                core.OccupyProgressSeconds = Math.Max(0.1f, core.OccupyHoldSeconds);
+                world.SettlementAuthority.GrantAll(core.GrantsPrivileges);
+                world.Flags.Set("settlement_player_controlled");
+                world.Flags.Set("control_core_owned:" + core.WorkAreaId);
+            }
+
+            if (hasRestoredObjective)
+            {
+                existingObjective.SiteId = string.IsNullOrEmpty(siteId)
+                    ? existingObjective.SiteId ?? string.Empty
+                    : siteId;
+                if (!core.PlayerControlled)
+                {
+                    // 未完成据点的耐久仍以已恢复的 CaptureObjective 为准；
+                    // ControlCore 只是重新生成的 LocalMap session 外壳。
+                    core.CurrentDurability = Math.Min(
+                        Math.Max(1, core.MaxDurability),
+                        Math.Max(0, existingObjective.CurrentHp));
+                    core.CaptureAvailable = core.CurrentDurability <= 0;
+                }
+                existingObjective.CurrentHp = core.PlayerControlled ? 0 : Math.Max(0, core.CurrentDurability);
+                existingObjective.MaxHp = Math.Max(1, core.MaxDurability);
+                existingObjective.OccupyHoldSeconds = Math.Max(0.1f, core.OccupyHoldSeconds);
+                if (core.PlayerControlled)
+                    existingObjective.Completed = true;
+                return;
+            }
+
             var objective = new CaptureObjectiveState
             {
-                ObjectiveId = "capture:" + core.WorkAreaId,
+                ObjectiveId = objectiveId,
                 WorkAreaId = core.WorkAreaId ?? string.Empty,
                 SiteId = siteId ?? string.Empty,
                 CurrentHp = Math.Max(0, core.CurrentDurability),

@@ -99,6 +99,13 @@ namespace XianXia.Unity.Host
                         if (after.CaptureAvailable)
                             Toast(attacker, "破门·站立占领", new Color(0.55f, 1f, 0.45f));
                     }
+                    else if (hit.IsFailure)
+                    {
+                        // 领域层战争门槛是最终权威。政治状态在靠近途中发生变化时，
+                        // 立即停止本次突击，避免 Host 继续无效尝试。
+                        Toast(attacker, "无法突击：" + hit.Error.Message, new Color(1f, 0.45f, 0.35f));
+                        Clear();
+                    }
                 }
 
                 return;

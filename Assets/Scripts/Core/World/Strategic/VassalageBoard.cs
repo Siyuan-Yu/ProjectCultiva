@@ -31,6 +31,23 @@ namespace XianXia.Core.World.Strategic
             return true;
         }
 
+        /// <summary>
+        /// 正式解除一条附庸关系。可选指定宗主，避免调用方误解除已经变化的关系。
+        /// 这是最小的通用 mutation；不附带宣战、联盟或其它外交副作用。
+        /// </summary>
+        public bool TryReleaseVassalage(string vassalFactionId, string expectedOverlordFactionId = null)
+        {
+            if (string.IsNullOrEmpty(vassalFactionId) ||
+                !_vassalToOverlord.TryGetValue(vassalFactionId, out var overlordFactionId))
+                return false;
+
+            if (!string.IsNullOrEmpty(expectedOverlordFactionId) &&
+                !string.Equals(overlordFactionId, expectedOverlordFactionId, StringComparison.Ordinal))
+                return false;
+
+            return _vassalToOverlord.Remove(vassalFactionId);
+        }
+
         public void Clear() => _vassalToOverlord.Clear();
     }
 }

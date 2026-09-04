@@ -17,7 +17,8 @@ namespace XianXia.Unity.Host
         {
             Closed = 0,
             Menu = 1,
-            LocalAttackConfirm = 2
+            LocalAttackConfirm = 2,
+            RebellionConfirm = 3
         }
 
         [SerializeField] PlayableHostBootstrap bootstrap;
@@ -232,6 +233,14 @@ namespace XianXia.Unity.Host
                         ConfirmLocalAttack,
                         CloseAll);
                     break;
+                case Phase.RebellionConfirm:
+                    DrawAttackConfirm(
+                        "起事／反抗宗门",
+                        "起事后将脱离压迫宗门附庸，并立即与其进入战争。是否继续？",
+                        "确认起事",
+                        ConfirmRebellion,
+                        CloseAll);
+                    break;
             }
         }
 
@@ -316,7 +325,20 @@ namespace XianXia.Unity.Host
         {
             const float w = 168f;
             const float itemH = 30f;
-            var h = itemH + 34f;
+            var session = bootstrap?.Session;
+            var world = session?.World;
+            var canShowRebellion = world?.Strategic?.Ch01FormationScenarioCompat == true &&
+                                  string.Equals(
+                                      world.PartyWorld?.SiteId,
+                                      Ch01ScenarioProgressionHooks.HuangcunSiteId,
+                                      System.StringComparison.Ordinal);
+            var rebellion = Ch01RebellionService.CanBegin(world, session?.PlayerParty);
+            var canAssault = world != null &&
+                             CaptureObjectiveService.TryBeginMilitaryAssault(
+                                 world,
+                                 world.Strategic?.PlayerFactionId ?? string.Empty,
+                                 _targetControlCoreWorkAreaId).IsSuccess;
+            var h = itemH * (canShowRebellion ? 2 : 1) + 34f;
             var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
             _menuGuiRect = new Rect(guiX, guiY, w, h);
@@ -327,8 +349,21 @@ namespace XianXia.Unity.Host
 
             GUI.Label(new Rect(guiX + 10f, guiY + 6f, w - 20f, 22f), _targetLabel, _label);
             var y = guiY + 30f;
-            if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "攻击", _button))
+            GUI.enabled = canAssault;
+            if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f),
+                    canAssault ? "攻击" : "攻击（需要先进入战争）", _button))
                 BeginControlCoreAttack();
+            GUI.enabled = true;
+            y += itemH;
+
+            if (canShowRebellion)
+            {
+                GUI.enabled = rebellion.IsSuccess;
+                if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f),
+                        rebellion.IsSuccess ? "起事／反抗宗门" : "起事条件未满足", _button))
+                    BeginRebellionConfirm();
+                GUI.enabled = true;
+            }
             TryDismissOnOutsideClick(_menuGuiRect);
         }
 
@@ -425,6 +460,15 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            var assaultPreflight = CaptureObjectiveService.TryBeginMilitaryAssault(
+                world, world.Strategic?.PlayerFactionId ?? string.Empty, coreId);
+            if (assaultPreflight.IsFailure)
+            {
+                Debug.LogWarning("[Host] 主管府突击被战争门槛拒绝：" + assaultPreflight.Error.Message);
+                CloseAll();
+                return;
+            }
+
             MapLayoutPick.TryGet(session, out var layout);
             if (HostControlCoreQuery.TryGetApproachPoint(world, layout, core, out var approach) &&
                 moveController != null)
@@ -452,6 +496,31 @@ namespace XianXia.Unity.Host
             Debug.Log(
                 "[Host] 开始突击主管府：靠近后按近战节奏／攻击力拆耐久；破门后站满 " +
                 core.OccupyHoldSeconds + " 秒占领。");
+
+            ResumeTime();
+            CloseAll();
+        }
+
+        void BeginRebellionConfirm()
+        {
+            _phase = Phase.RebellionConfirm;
+        }
+
+        void ConfirmRebellion()
+        {
+            var session = bootstrap?.Session;
+            var result = Ch01RebellionService.TryBegin(session?.World, session?.PlayerParty);
+            var text = result.IsSuccess
+                ? "起事已成：脱离附庸，已与压迫宗门开战"
+                : "起事失败：" + result.Error.Message;
+            var color = result.IsSuccess
+                ? new Color(0.95f, 0.55f, 0.28f)
+                : new Color(1f, 0.45f, 0.35f);
+            var overlay = bootstrap != null ? bootstrap.GetComponent<HostFeedbackOverlay>() : null;
+            if (overlay != null && bootstrap.ViewSpawner != null && !_actor.IsNone)
+                overlay.SpawnAtEntity(bootstrap.ViewSpawner, _actor, text, color);
+            if (result.IsFailure)
+                Debug.LogWarning("[Host] 第一章起事失败：" + result.Error.Message);
 
             ResumeTime();
             CloseAll();

@@ -29,8 +29,7 @@ namespace XianXia.Core.World.Strategic
             if (world == null || string.IsNullOrEmpty(siteId))
                 return;
 
-            // Future Ch01 story hook — NOT implemented in Final Closure:
-            // Huangcun captured → player faction politically active → DeclareWar(Player, FormerOverlordSect)
+            // 起事负责先前的独立与宣战；Capture 完成只负责第一章政治成立进度。
             if (string.Equals(siteId, HuangcunSiteId, System.StringComparison.Ordinal))
                 world.Flags.Set(FlagPlayerFactionPoliticallyActive);
         }

@@ -7,6 +7,29 @@
 
 ---
 
+## 2026-09-05 — 势力／外交只读总览 V0（待 Unity 人工验收）
+
+- WorldMap 既有「战略」工具栏正式接通「势力」入口；复用角色／军队侧栏的开闭和互斥生命周期，面板全程只读，不新增宣战、议和、联盟或附庸操作。
+- 新增 `FactionDiplomacyRelationQuery` 作为正式运行时关系查询，优先级为「自己 → 战争 → 联盟 → 直接附庸 → 普通」；附庸关系按观察者方向返回「宗主／附庸」，起事后的战争会覆盖旧附庸展示。
+- 新增 `FactionDiplomacyOverviewQuery` 汇总当前战略世界中被玩家、战争、联盟、附庸、FormalArmy、WorldSite 和 TerritoryRegion 引用的势力；展示名取已安装 faction Content，当前关系不读取 `strategicOpening`。
+- 势力详情显示势力 ID、与玩家关系、领地区域数、正式军队数、宗主／附庸，以及选中势力相对其他所有运行时势力的关系。
+
+**验证**：新增一条纯 Core 关系查询测试，覆盖附庸方向和战争优先级；待 Unity 环境执行。`git diff --check` 已通过（仅既有行尾转换提示）。完整边界见 [196](196-faction-diplomacy-overview-v0-2026-09-05.md)。
+
+---
+
+## 2026-09-05 — 第一章起事与首次领地占领纵切（待 Unity 人工验收）
+
+- 新增最小第一章起事领域服务：仅在荒村、玩家仍是压迫宗门附庸、尚未开战且至少一名 PlayerParty 成员达到炼气时可确认起事。成功顺序为正式解除附庸后宣战；宣战异常会回滚刚解除的同一条关系，避免半完成政治状态。
+- `VassalageBoard` 补充通用 `TryReleaseVassalage` mutation；`WarGateService` 补充无副作用的宣战预检。Host 不直接修改任何战略 Board 内部集合。
+- 主管府攻击改为从实际第一击开始经 `CaptureObjectiveService.TryBeginMilitaryAssault` 进行领域层战争检查；Host 菜单仅作同一规则的提前反馈，不能绕过领域兜底。
+- 读档重新注册 LocalMap ControlCore 时，已恢复的 CaptureObjective 或正式 Site Owner 已为玩家势力会回填为已占领状态，不再把已占荒村表现为敌方可重复攻占目标；未扩充 Snapshot schema。
+- 更新第一章阶段说明，明确当前闭环为「开局正式附庸 → 主动起事／战争 → Capture → 政治成立」，完整边界与人工验收见 [195](195-ch01-rebellion-first-territory-capture-vertical-slice-2026-09-05.md)。
+
+**验证**：`git diff --check` 通过。当前环境没有 Unity Editor、Unity Test Runner 或 `Assembly-CSharp.csproj`，Unity 编译与 Play 验收待用户执行；本轮未新增大规模自动测试。
+
+---
+
 ## 2026-09-05 — WorldGraphEditor 势力管理与开局战略内容编辑（待人工验收）
 
 - 保留既有 Territory Brush 与独立「管理势力」窗口；补齐已有势力 ID 永久只读、新建势力 ID／颜色／排序校验、普通排序跳过 999 等特殊排序，以及保存后对 Territory Brush 的即时刷新。
