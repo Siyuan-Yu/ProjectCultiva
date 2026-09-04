@@ -145,6 +145,8 @@ public static class StrategicFactionAuthoring
         {
             if (string.IsNullOrWhiteSpace(f.Id))
                 errors.Add("势力 Id 不能为空。");
+            else if (!IsValidDefinitionId(f.Id))
+                errors.Add($"势力 Id 必须是 namespace:name 形式，且只含小写字母、数字与下划线：{f.Id}");
             else if (!seen.Add(f.Id))
                 errors.Add($"重复的 FactionId：{f.Id}");
             if (string.IsNullOrWhiteSpace(f.Name))
@@ -163,6 +165,16 @@ public static class StrategicFactionAuthoring
         byte.TryParse(color.AsSpan(1, 2), System.Globalization.NumberStyles.HexNumber, null, out _) &&
         byte.TryParse(color.AsSpan(3, 2), System.Globalization.NumberStyles.HexNumber, null, out _) &&
         byte.TryParse(color.AsSpan(5, 2), System.Globalization.NumberStyles.HexNumber, null, out _);
+
+    public static bool IsValidDefinitionId(string? id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+            return false;
+        var parts = id.Split(':');
+        if (parts.Length != 2 || string.IsNullOrEmpty(parts[0]) || string.IsNullOrEmpty(parts[1]))
+            return false;
+        return parts.All(part => part.All(c => c is >= 'a' and <= 'z' or >= '0' and <= '9' or '_'));
+    }
 
     /// <summary>把 DTO 列表写回 factions.json（经 PackageStore.SaveFile，格式与读入一致；Type/排序由调用方决定前先 Validate）。</summary>
     public static void SaveStrategicFactions(string filePath, IReadOnlyList<StrategicFactionAuthoringDto> factions)

@@ -11,9 +11,28 @@
       "openingChapterId": "base:chapter_scaffold_01",
       "strategicOpening": {
         "playerFactionId": "base:faction_player",
-        "vassalages": [{ "vassalFactionId": "base:faction_player", "overlordFactionId": "base:sect_huangcun_labor" }],
-        "alliances": [],
-        "initialWars": [{ "declarerFactionId": "base:sect_huangcun_labor", "targetFactionId": "base:faction_bandits" }, { "declarerFactionId": "base:faction_player", "targetFactionId": "base:faction_bandits" }]
+        "vassalages": [
+          {
+            "vassalFactionId": "base:faction_player",
+            "overlordFactionId": "base:sect_huangcun_labor"
+          }
+        ],
+        "alliances": [
+          {
+            "factionAId": "base:sect_huangcun_labor",
+            "factionBId": "base:faction_fisher_village"
+          }
+        ],
+        "initialWars": [
+          {
+            "declarerFactionId": "base:sect_huangcun_labor",
+            "targetFactionId": "base:faction_bandits"
+          },
+          {
+            "declarerFactionId": "base:faction_player",
+            "targetFactionId": "base:faction_bandits"
+          }
+        ]
       },
       "spawns": [
         {
@@ -80,9 +99,23 @@
       "openingChapterId": "base:chapter_ch01_shell",
       "strategicOpening": {
         "playerFactionId": "base:faction_player",
-        "vassalages": [{ "vassalFactionId": "base:faction_player", "overlordFactionId": "base:sect_huangcun_labor" }],
+        "vassalages": [
+          {
+            "vassalFactionId": "base:faction_player",
+            "overlordFactionId": "base:sect_huangcun_labor"
+          }
+        ],
         "alliances": [],
-        "initialWars": [{ "declarerFactionId": "base:sect_huangcun_labor", "targetFactionId": "base:faction_bandits" }, { "declarerFactionId": "base:faction_player", "targetFactionId": "base:faction_bandits" }]
+        "initialWars": [
+          {
+            "declarerFactionId": "base:sect_huangcun_labor",
+            "targetFactionId": "base:faction_bandits"
+          },
+          {
+            "declarerFactionId": "base:faction_player",
+            "targetFactionId": "base:faction_bandits"
+          }
+        ]
       },
       "spawns": [
         {
@@ -158,12 +191,21 @@
       "strategicOpening": {
         "playerFactionId": "base:faction_player",
         "vassalages": [
-          { "vassalFactionId": "base:faction_player", "overlordFactionId": "base:sect_huangcun_labor" }
+          {
+            "vassalFactionId": "base:faction_player",
+            "overlordFactionId": "base:sect_huangcun_labor"
+          }
         ],
         "alliances": [],
         "initialWars": [
-          { "declarerFactionId": "base:sect_huangcun_labor", "targetFactionId": "base:faction_bandits" },
-          { "declarerFactionId": "base:faction_player", "targetFactionId": "base:faction_bandits" }
+          {
+            "declarerFactionId": "base:sect_huangcun_labor",
+            "targetFactionId": "base:faction_bandits"
+          },
+          {
+            "declarerFactionId": "base:faction_player",
+            "targetFactionId": "base:faction_bandits"
+          }
         ]
       },
       "spawns": [

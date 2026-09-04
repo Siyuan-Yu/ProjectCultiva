@@ -14,7 +14,9 @@ public static class FactionReferenceScanner
 {
     static readonly string[] ReferenceKeys =
     {
-        "ownerFactionId", "controlFactionId", "factionId",
+        "defaultFactionId", "factionId", "ownerFactionId", "controlFactionId",
+        "playerFactionId", "vassalFactionId", "overlordFactionId",
+        "factionAId", "factionBId", "declarerFactionId", "targetFactionId",
     };
 
     /// <summary>扫描单个 JSON 文件（不存在时返回空）。</summary>
@@ -51,30 +53,17 @@ public static class FactionReferenceScanner
         return hits;
     }
 
-    /// <summary>扫描 dataDir 下约定目录（hexWorld / armies / scenarios / rosters）全部 json。</summary>
+    /// <summary>递归扫描整个 Data 目录，避免 Character、Army、Scenario、World 引用漏报。</summary>
     public static List<FactionReferenceHit> ScanPackage(string dataDir, string factionId)
     {
         var hits = new List<FactionReferenceHit>();
         if (string.IsNullOrEmpty(dataDir) || !Directory.Exists(dataDir))
             return hits;
 
-        var subdirs = new[]
+        foreach (var file in Directory.EnumerateFiles(dataDir, "*.json", SearchOption.AllDirectories)
+                     .OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
         {
-            Path.Combine(dataDir, "Worlds"),
-            Path.Combine(dataDir, "Armies"),
-            Path.Combine(dataDir, "Scenarios"),
-            Path.Combine(dataDir, "Rosters"),
-        };
-
-        foreach (var dir in subdirs)
-        {
-            if (!Directory.Exists(dir))
-                continue;
-            foreach (var file in Directory.EnumerateFiles(dir, "*.json", SearchOption.TopDirectoryOnly)
-                         .OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
-            {
-                hits.AddRange(ScanFile(file, factionId));
-            }
+            hits.AddRange(ScanFile(file, factionId));
         }
 
         return hits;

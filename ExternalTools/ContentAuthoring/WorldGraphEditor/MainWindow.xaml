@@ -27,7 +27,7 @@
 
     <Grid>
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="180"/>
+        <ColumnDefinition Width="340"/>
         <ColumnDefinition Width="*"/>
         <ColumnDefinition Width="8"/>
         <ColumnDefinition Width="300"/>
@@ -104,6 +104,24 @@
                 <Button Content="验证 Territory" Margin="6,0,0,0" Click="ValidateTerritory_Click"/>
               </StackPanel>
               <TextBlock x:Name="TerritoryHintText" Foreground="{StaticResource Editor.WarningText}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+        <TabItem Header="势力管理">
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,0,8,0">
+              <TextBlock Text="势力管理" FontWeight="SemiBold" Foreground="{StaticResource Editor.Text}" Margin="0,0,0,6"/>
+              <TextBlock Text="编辑正式 factions.json。已有势力 ID 固定不变；名称、地图颜色与领土绘制资格可调整。" Foreground="{StaticResource Editor.TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8"/>
+              <Button Content="打开势力管理" Click="ManageFactions_Click"/>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+        <TabItem Header="开局战略">
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,0,8,0">
+              <TextBlock Text="开局战略" FontWeight="SemiBold" Foreground="{StaticResource Editor.Text}" Margin="0,0,0,6"/>
+              <TextBlock Text="配置新游戏开始时的玩家势力、附庸、联盟与战争。运行后的关系变化由存档保存。" Foreground="{StaticResource Editor.TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8"/>
+              <Button Content="编辑开局战略" Click="EditOpeningStrategic_Click"/>
             </StackPanel>
           </ScrollViewer>
         </TabItem>

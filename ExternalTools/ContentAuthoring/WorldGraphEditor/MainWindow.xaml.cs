@@ -879,6 +879,17 @@ public partial class MainWindow : Window
             LoadFactions();
     }
 
+    void EditOpeningStrategic_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrEmpty(_baseGameRoot))
+        {
+            MessageBox.Show("未找到 Content/BaseGame，无法编辑开局战略。", "开局战略", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        new OpeningStrategicEditorWindow(_baseGameRoot) { Owner = this }.ShowDialog();
+    }
+
     void UpdateTerritoryHoverPreview()
     {
         if (!_territoryEditMode || _territoryBrushKind == TerritoryBrushKind.None || !_mapView.HoverHex.HasValue)

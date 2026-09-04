@@ -7,6 +7,17 @@
 
 ---
 
+## 2026-09-05 — WorldGraphEditor 势力管理与开局战略内容编辑（待人工验收）
+
+- 保留既有 Territory Brush 与独立「管理势力」窗口；补齐已有势力 ID 永久只读、新建势力 ID／颜色／排序校验、普通排序跳过 999 等特殊排序，以及保存后对 Territory Brush 的即时刷新。
+- 删除势力前的共享引用扫描扩展为递归检查整个 `Content/BaseGame/Data`：角色默认势力、场景／名册出场势力、FormalArmy、WorldSite／Territory 与 `strategicOpening` 的玩家／附庸／联盟／战争字段均会阻止删除。
+- WorldGraphEditor 新增「势力管理」「开局战略」入口；开局战略窗口按 PackageStore 加载全部 `openingScenario`，以中文势力名、ID 和颜色选择玩家势力、附庸、联盟、开局战争。保存只替换所选场景 Raw JSON 的 `strategicOpening` 节点，绝不重建或同步其它 Scenario，也不触碰 Unity Runtime／SaveGame。
+- 新增 Shared `OpeningStrategicAuthoring`，保存前按正式语义拒绝未知势力、自附庸、重复／套娃附庸、联盟冲突、重复／反向战争及联盟与战争同对。
+
+**验证**：WorldGraphEditor Release 构建 0 warning／0 error；Shared.Tests 50/50 通过；`git diff --check` 无空白错误。WPF 交互与内容 roundtrip 留待用户人工验收。
+
+---
+
 ## 2026-09-04 — 人物编辑器首次设势力与底部摘要 HUD 修正（待 Unity 人工验收）
 
 - 修复原本无势力人物首次选择势力会因空身份立即清掉 `defaultFactionId`、再被 UI 重载回无势力的问题。现在选择非空势力自动设为「成员」；只有势力本身为空才清空字段与禁用身份下拉。刷新场景出场继承显示不再重载正在编辑的人物下拉框。

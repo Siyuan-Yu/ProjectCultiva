@@ -70,7 +70,7 @@
       <Setter Property="BorderThickness" Value="1"/>
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type TabControl}">
         <Grid KeyboardNavigation.TabNavigation="Local"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-          <TabPanel Grid.Row="0" IsItemsHost="True" Background="{StaticResource Editor.Panel}"/>
+          <UniformGrid Grid.Row="0" Rows="1" Columns="4" IsItemsHost="True" Background="{StaticResource Editor.Panel}"/>
           <Border Grid.Row="1" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"><ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent" Margin="6"/></Border>
         </Grid>
       </ControlTemplate></Setter.Value></Setter>

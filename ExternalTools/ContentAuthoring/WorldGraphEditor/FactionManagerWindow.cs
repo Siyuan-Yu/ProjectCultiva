@@ -14,11 +14,14 @@ namespace WorldGraphEditor;
 /// </summary>
 public sealed class FactionManagerWindow : Window
 {
+    static readonly Brush PrimaryText = new SolidColorBrush(Color.FromRgb(0xF2, 0xF4, 0xF8));
+    static readonly Brush SecondaryText = new SolidColorBrush(Color.FromRgb(0xC7, 0xD0, 0xDA));
     readonly HexWorldDefinitionDto _currentWorld;
     readonly string _baseGameRoot;
     readonly string _factionsFilePath;
     readonly ListBox _factionList = new();
     readonly List<StrategicFactionAuthoringDto> _all = new();
+    readonly HashSet<string> _persistedFactionIds = new(StringComparer.Ordinal);
     readonly Dictionary<string, string> _referenceCache = new(StringComparer.Ordinal);
     bool _loadingSelection;
     bool _modified;
@@ -27,7 +30,7 @@ public sealed class FactionManagerWindow : Window
     readonly TextBox _nameBox = new() { MinWidth = 220 };
     readonly TextBox _idBox = new() { MinWidth = 220 };
     readonly TextBox _colorBox = new() { MinWidth = 120 };
-    readonly CheckBox _selectableBox = new() { IsChecked = true, Content = "可拥有领土（territorySelectable）" };
+    readonly CheckBox _selectableBox = new() { IsChecked = true, Content = "可用于领土绘制" };
     readonly TextBox _sortBox = new() { MinWidth = 60, Text = "0" };
     readonly TextBlock _colorPreview = new() { Width = 42, Height = 18 };
     readonly TextBlock _referenceNote = new() { Foreground = Brushes.DarkOrange, TextWrapping = TextWrapping.Wrap, MaxWidth = 300 };
@@ -42,8 +45,11 @@ public sealed class FactionManagerWindow : Window
         Height = 520;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Background = (Brush)FindResource("Editor.Background");
+        Foreground = PrimaryText;
 
         _all.AddRange(StrategicFactionAuthoring.LoadStrategicFactions(factionsFilePath));
+        foreach (var faction in _all)
+            _persistedFactionIds.Add(faction.Id);
         _all.Sort(StrategicFactionAuthoring.Compare);
         BuildUi();
         ReloadList(selectId: null);
@@ -100,13 +106,13 @@ public sealed class FactionManagerWindow : Window
 
         right.Children.Add(new TextBlock
         {
-            Text = "势力身份（factions.json）",
+            Text = "势力定义",
             FontWeight = FontWeights.SemiBold,
             Margin = new Thickness(0, 0, 0, 8),
         });
         right.Children.Add(FieldLabel("名称"));
         right.Children.Add(_nameBox);
-        right.Children.Add(FieldLabel("ID（新建未保存前可改；已被 Content 引用则只读）"));
+        right.Children.Add(FieldLabel("势力 ID（已有势力不可修改）"));
         right.Children.Add(_idBox);
         right.Children.Add(FieldLabel("地图颜色 #RRGGBB"));
         var colorRow = new StackPanel { Orientation = Orientation.Horizontal };
@@ -125,16 +131,16 @@ public sealed class FactionManagerWindow : Window
         _colorBox.TextChanged += (_, _) => RefreshColorPreview();
         right.Children.Add(FieldLabel(""));
         right.Children.Add(_selectableBox);
-        right.Children.Add(FieldLabel("排序（sortOrder，小在前）"));
+        right.Children.Add(FieldLabel("排序（数值小的排在前）"));
         right.Children.Add(_sortBox);
         right.Children.Add(_referenceNote);
 
-        _nameBox.TextChanged += (_, _) => { _modified = true; _referenceNote.Text = "有未保存修改，请点「保存修改」写回 factions.json。"; };
-        _idBox.TextChanged += (_, _) => { _modified = true; _referenceNote.Text = "有未保存修改，请点「保存修改」写回 factions.json。"; };
-        _colorBox.TextChanged += (_, _) => { _modified = true; _referenceNote.Text = "有未保存修改，请点「保存修改」写回 factions.json。"; };
-        _selectableBox.Checked += (_, _) => { _modified = true; };
-        _selectableBox.Unchecked += (_, _) => { _modified = true; };
-        _sortBox.TextChanged += (_, _) => { _modified = true; };
+        _nameBox.TextChanged += (_, _) => MarkModified();
+        _idBox.TextChanged += (_, _) => MarkModified();
+        _colorBox.TextChanged += (_, _) => { RefreshColorPreview(); MarkModified(); };
+        _selectableBox.Checked += (_, _) => MarkModified();
+        _selectableBox.Unchecked += (_, _) => MarkModified();
+        _sortBox.TextChanged += (_, _) => MarkModified();
 
         Content = root;
     }
@@ -142,11 +148,19 @@ public sealed class FactionManagerWindow : Window
     static TextBlock FieldLabel(string text) => new()
     {
         Text = text,
-        Foreground = Brushes.Gray,
+        Foreground = SecondaryText,
         Margin = new Thickness(0, 8, 0, 3),
         FontSize = 11,
         TextWrapping = TextWrapping.Wrap,
     };
+
+    void MarkModified()
+    {
+        if (_loadingSelection)
+            return;
+        _modified = true;
+        _referenceNote.Text = "有未保存修改，请点「保存修改」写回 factions.json。";
+    }
 
     void ReloadList(string? selectId)
     {
@@ -191,10 +205,10 @@ public sealed class FactionManagerWindow : Window
         RefreshColorPreview();
 
         var referenced = IsReferenced(item.FactionId);
-        _idBox.IsEnabled = !referenced;
+        _idBox.IsReadOnly = _persistedFactionIds.Contains(item.FactionId);
         _referenceNote.Text = referenced
-            ? $"⚠ 「{item.Name}」仍被 Content 引用，ID 只读；如需改名请先解除引用。"
-            : string.Empty;
+            ? $"⚠ 「{item.Name}」仍被正式 Content 引用；可改名称和颜色，但不能删除。"
+            : _idBox.IsReadOnly ? "已有势力的 ID 固定不变；可改名称、颜色和领土绘制资格。" : string.Empty;
         _loadingSelection = false;
     }
 
@@ -203,6 +217,7 @@ public sealed class FactionManagerWindow : Window
         _loadingSelection = true;
         _nameBox.Text = string.Empty;
         _idBox.Text = string.Empty;
+        _idBox.IsReadOnly = false;
         _colorBox.Text = string.Empty;
         _selectableBox.IsChecked = true;
         _sortBox.Text = "0";
@@ -217,7 +232,8 @@ public sealed class FactionManagerWindow : Window
         var n = 2;
         while (_all.Any(f => string.Equals(f.Id, id, StringComparison.Ordinal)))
             id = baseId + "_" + n++;
-        var nextSort = _all.Count == 0 ? 10 : _all.Max(f => f.SortOrder) + 10;
+        var normalSorts = _all.Where(f => f.SortOrder < 900).Select(f => f.SortOrder).ToList();
+        var nextSort = normalSorts.Count == 0 ? 10 : normalSorts.Max() + 10;
         var fresh = new StrategicFactionAuthoringDto
         {
             Id = id,
@@ -273,9 +289,11 @@ public sealed class FactionManagerWindow : Window
             {
                 var current = _all[idx];
                 var idEdited = _idBox.Text.Trim();
-                if (!string.Equals(current.Id, idEdited, StringComparison.Ordinal) && IsReferenced(current.Id))
+                if (!_persistedFactionIds.Contains(current.Id) && !idEdited.Contains(':', StringComparison.Ordinal))
+                    idEdited = "base:" + idEdited;
+                if (!string.Equals(current.Id, idEdited, StringComparison.Ordinal) && _persistedFactionIds.Contains(current.Id))
                 {
-                    MessageBox.Show(this, $"「{current.Name}」仍被 Content 引用，ID 不能修改。", "势力管理",
+                    MessageBox.Show(this, $"已有势力「{current.Name}」的 ID 固定不变，不能修改。", "势力管理",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
