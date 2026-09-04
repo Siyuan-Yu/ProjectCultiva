@@ -215,7 +215,7 @@ Hex 战略世界 JSON（`Content/BaseGame/Data/Worlds/*.json`）；由 `HexWorld
 
 | Field | Notes |
 |---|---|
-| `entries[]` | 与 openingScenario.spawns 同形：definitionId／entityKind／aiRole／factionRole／scheduleId／…；同样支持 worldSiteId／localLocationId／localPosition。名册存在时由名册决定试玩刷谁；远程常驻 NPC 可用 worldSiteId 指定所属 WorldSite。 |
+| `entries[]` | 与 openingScenario.spawns 同形：definitionId／entityKind／factionId／factionRole／aiRole／scheduleId／…；同样支持 worldSiteId／localLocationId／localPosition。名册存在时由名册决定试玩刷谁；远程常驻 NPC 可用 worldSiteId 指定所属 WorldSite。 |
 
 人物本体在 `Characters/`；本表只回答「试玩时刷谁」。Level Tester 默认读 `base:roster_level_tester`（人物编辑器「导出 Level Tester 名册」）。**不是** Unity 场景里摆好的 GameObject。
 
@@ -253,7 +253,9 @@ Hex 战略世界 JSON（`Content/BaseGame/Data/Worlds/*.json`）；由 `HexWorld
 
 ### spawn entry
 
-`definitionId`、`entityKind`（character＝可控制／进 CharacterIds｜npc）、`displayName`、`assignOpeningFaction`、`factionRole`、`bindSchedule`、`bindDailyTask`、`recruitable`、`workRole`（Labor｜Gather｜Cultivate）、`scheduleId`、`aiRole`。人物「可控制」与 `entityKind` 对齐。不再使用职业式 `jobId`。
+`definitionId`、`entityKind`（character＝可控制／进 CharacterIds｜npc）、`displayName`、`factionId`、`factionRole`、`bindSchedule`、`bindDailyTask`、`recruitable`、`workRole`（Labor｜Gather｜Cultivate）、`scheduleId`、`aiRole`。人物「可控制」与 `entityKind` 对齐。不再使用职业式 `jobId`。
+
+开局成员资格只由 Spawn Entry 决定：`factionId` 非空时 `factionRole` 必须是非 None 的 `FactionRoleKind`；`factionId` 为空时 `factionRole` 必须省略/为空，表示无势力。`assignOpeningFaction` 与 scenario.`openingFactionId` 仅为 Loader 的旧 Content 兼容字段，BaseGame 正式 JSON 不得写入。CharacterDefinition 永远不保存当前 faction。
 
 可选位置字段互不替代：`worldSiteId` 表示宏观 WorldSite 存在；`localLocationId` 表示逻辑/语义 LocalPlace（工作、日程、探索或移动目的地）；`localPosition` 为 spawn instance 的精确初始呈现坐标，格式为 `{ "x": 数值, "z": 数值 }`，`(0,0)` 合法。`localLocationId` 与 `localPosition` 可同时存在；没有逻辑地点的静态 NPC 也可仅使用 `worldSiteId + localPosition`。不要为单个 NPC 的站立坐标创建假的 LocalPlace。
 
@@ -267,7 +269,7 @@ Hex 战略世界 JSON（`Content/BaseGame/Data/Worlds/*.json`）；由 `HexWorld
 | `sortOrder` | int；目录/下拉排序。`StrategicFactionCatalog.InstalledFactions` 按它升序 |
 
 只保存「这个势力是谁」：禁止保存成员／领土／WorldSite（各自 authority：Spawn/Army JSON、HexWorld JSON、TerritoryRegion）。
-所有其它 Content 的 `factionId` 引用（formalArmy / scenario.openingFactionId / spawn / roster / site.ownerFactionId / territoryRegion.controlFactionId）必须存在于本文件（cross-ref validation，未知引用 = Content error）。
+所有其它 Content 的 `factionId` 引用（formalArmy / spawn / roster / site.ownerFactionId / territoryRegion.controlFactionId / standaloneTerritory）必须存在于本文件（cross-ref validation，未知引用 = Content error）。`territorySelectable` 只限制领土控制者，不限制 Character Membership 或 FormalArmy。
 Runtime 安装链：`ContentPackageLoader.Load` 成功 → `StrategicFactionContentInstaller.Install` → `StrategicFactionCatalog.Install`（Core presentation；未装 Content 时 Catalog 回退 hardcoded 表）。
 
 ## type = resource（VS0.8）

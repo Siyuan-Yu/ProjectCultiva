@@ -16,6 +16,7 @@ public partial class MainWindow : Window
     const string LevelTesterRosterRelPath = "Rosters/level_tester_roster.json";
 
     ContentPackage? _package;
+    readonly List<FactionChoice> _spawnFactionChoices = new();
     DefRef? _character;
     DefRef? _scenario;
     ObservableCollection<SpawnRow> _spawns = new();
@@ -104,7 +105,14 @@ public partial class MainWindow : Window
         var sched = new[] { "" }.Concat(_package.OfType("schedule").Select(d => d.Id).OrderBy(x => x)).ToList();
         SpawnSchedCol.ItemsSource = sched;
         SpawnAiCol.ItemsSource = UiLabels.Labels(UiLabels.AiRoles);
-        SpawnFactionCol.ItemsSource = UiLabels.Labels(UiLabels.FactionRoles);
+        SpawnFactionRoleCol.ItemsSource = UiLabels.Labels(UiLabels.FactionRoles);
+        _spawnFactionChoices.Clear();
+        _spawnFactionChoices.Add(new FactionChoice("", "□ 无势力"));
+        _spawnFactionChoices.AddRange(StrategicFactionAuthoring.LoadStrategicFactions(_package)
+            .Select(f => new FactionChoice(f.Id, "■ " + f.Name + "  " + f.Id)));
+        SpawnFactionCol.ItemsSource = _spawnFactionChoices;
+        SpawnFactionCol.DisplayMemberPath = nameof(FactionChoice.Display);
+        SpawnFactionCol.SelectedValuePath = nameof(FactionChoice.Id);
         if (ScenarioBox.Items.Count > 0)
         {
             var prefer = _package.OfType("openingScenario")
@@ -539,8 +547,6 @@ public partial class MainWindow : Window
             ["entityKind"] = controllable ? "character" : "npc",
             ["scheduleId"] = "base:schedule_mortal_day",
             ["aiRole"] = "Mortal",
-            ["factionRole"] = "LaborDisciple",
-            ["assignOpeningFaction"] = true,
             ["bindSchedule"] = true,
             ["bindDailyTask"] = true
         });
@@ -754,6 +760,13 @@ public partial class MainWindow : Window
         public string Label { get; }
     }
 
+    sealed class FactionChoice
+    {
+        public FactionChoice(string id, string display) { Id = id; Display = display; }
+        public string Id { get; }
+        public string Display { get; }
+    }
+
     sealed class CapabilityRowUi
     {
         public string Key { get; set; } = "";
@@ -778,6 +791,7 @@ public partial class MainWindow : Window
         string _scheduleId = "";
         string _aiRole = "Mortal";
         string _factionRole = "";
+        string _factionId = "";
         bool _bindSchedule = true;
 
         public SpawnRow(JsonObject raw) => _raw = raw;
@@ -800,6 +814,20 @@ public partial class MainWindow : Window
         }
 
         public string ScheduleId { get => _scheduleId; set { _scheduleId = value; OnPropertyChanged(); } }
+        public string FactionId
+        {
+            get => _factionId;
+            set
+            {
+                _factionId = value ?? "";
+                if (string.IsNullOrWhiteSpace(_factionId))
+                {
+                    _factionRole = "";
+                    OnPropertyChanged(nameof(FactionRoleLabel));
+                }
+                OnPropertyChanged();
+            }
+        }
 
         public string AiRoleLabel
         {
@@ -838,6 +866,7 @@ public partial class MainWindow : Window
                 ScheduleId = JsonEdit.GetString(o, "scheduleId"),
                 _aiRole = JsonEdit.GetString(o, "aiRole", "Mortal"),
                 _factionRole = JsonEdit.GetString(o, "factionRole"),
+                _factionId = JsonEdit.GetString(o, "factionId"),
                 BindSchedule = o["bindSchedule"] is null || JsonEdit.GetBool(o, "bindSchedule", true)
             };
         }
@@ -866,11 +895,18 @@ public partial class MainWindow : Window
             JsonEdit.SetString(_raw, "displayName", DisplayName);
             JsonEdit.SetString(_raw, "scheduleId", ScheduleId);
             JsonEdit.SetString(_raw, "aiRole", _aiRole);
-            if (!string.IsNullOrWhiteSpace(_factionRole))
+            _raw.Remove("assignOpeningFaction");
+            if (string.IsNullOrWhiteSpace(_factionId))
             {
+                _raw.Remove("factionId");
+                _raw.Remove("factionRole");
+            }
+            else
+            {
+                _raw["factionId"] = _factionId;
+                if (string.IsNullOrWhiteSpace(_factionRole))
+                    throw new InvalidOperationException("选择所属势力后必须选择势力身份。");
                 _raw["factionRole"] = _factionRole;
-                if (_raw["assignOpeningFaction"] is null)
-                    _raw["assignOpeningFaction"] = true;
             }
         }
     }

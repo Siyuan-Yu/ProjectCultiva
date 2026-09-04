@@ -165,7 +165,8 @@
                   <DataGridCheckBoxColumn Header="可控制" Binding="{Binding Controllable, UpdateSourceTrigger=PropertyChanged}" Width="60"/>
                   <DataGridComboBoxColumn x:Name="SpawnSchedCol" Header="日程（过渡）" SelectedItemBinding="{Binding ScheduleId}" Width="170"/>
                   <DataGridComboBoxColumn x:Name="SpawnAiCol" Header="AI倾向" SelectedItemBinding="{Binding AiRoleLabel}" Width="100"/>
-                  <DataGridComboBoxColumn x:Name="SpawnFactionCol" Header="势力职务" SelectedItemBinding="{Binding FactionRoleLabel}" Width="100"/>
+                  <DataGridComboBoxColumn x:Name="SpawnFactionCol" Header="所属势力" SelectedValueBinding="{Binding FactionId, UpdateSourceTrigger=PropertyChanged}" Width="180"/>
+                  <DataGridComboBoxColumn x:Name="SpawnFactionRoleCol" Header="势力身份" SelectedItemBinding="{Binding FactionRoleLabel}" Width="100"/>
                   <DataGridCheckBoxColumn Header="绑日程" Binding="{Binding BindSchedule}" Width="55"/>
                 </DataGrid.Columns>
               </DataGrid>

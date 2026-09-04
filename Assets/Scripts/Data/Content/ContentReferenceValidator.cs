@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
+using XianXia.Core.Social;
 
 namespace XianXia.Data.Content
 {
@@ -397,7 +398,7 @@ namespace XianXia.Data.Content
         /// 恰好一个 leader 已在 Load 层验证，这里再补成员数 / 引用完整性。
         /// </summary>
         /// <summary>
-        /// Strategic Faction cross-reference：formalArmy.factionId / scenario.openingFactionId /
+        /// Strategic Faction cross-reference：formalArmy.factionId / legacy scenario.openingFactionId /
         /// spawns factionId / roster entries factionId / hexWorld site.ownerFactionId /
         /// territoryRegion.controlFactionId 引用的 faction 必须存在于 StrategicFactions。
         /// 未知引用 = Content Validation ERROR（不得静默随机颜色）。空引用不校验。
@@ -409,7 +410,7 @@ namespace XianXia.Data.Content
                 var def = kv.Value;
                 if (def == null)
                     continue;
-                RequireFaction(registry, def.FactionId, def.Id + ".factionId", report);
+                RequireFaction(registry, def.FactionId, def.Id + ".factionId", report, allowEmpty: false);
             }
 
             foreach (var kv in registry.OpeningScenarios)
@@ -417,7 +418,7 @@ namespace XianXia.Data.Content
                 var scenario = kv.Value;
                 if (scenario == null)
                     continue;
-                RequireFaction(registry, scenario.OpeningFactionId, scenario.Id + ".openingFactionId", report);
+                RequireFaction(registry, scenario.OpeningFactionId, scenario.Id + ".openingFactionId", report, allowEmpty: true);
                 if (scenario.Spawns == null)
                     continue;
                 for (var i = 0; i < scenario.Spawns.Count; i++)
@@ -425,7 +426,7 @@ namespace XianXia.Data.Content
                     var spawn = scenario.Spawns[i];
                     if (spawn == null)
                         continue;
-                    RequireFaction(registry, spawn.FactionId, scenario.Id + ".spawns[" + i + "].factionId", report);
+                    ValidateSpawnMembership(registry, spawn, scenario.Id + ".spawns[" + i + "]", report);
                 }
             }
 
@@ -439,7 +440,7 @@ namespace XianXia.Data.Content
                     var entry = roster.Entries[i];
                     if (entry == null)
                         continue;
-                    RequireFaction(registry, entry.FactionId, roster.Id + ".entries[" + i + "].factionId", report);
+                    ValidateSpawnMembership(registry, entry, roster.Id + ".entries[" + i + "]", report);
                 }
             }
 
@@ -497,15 +498,51 @@ namespace XianXia.Data.Content
             }
         }
 
-        /// <summary>非空 factionId 必须能解析为 DefinitionId 且存在于 StrategicFactions。</summary>
+        static void ValidateSpawnMembership(
+            DefinitionRegistry registry,
+            OpeningSpawnEntry entry,
+            string context,
+            ValidationReport report)
+        {
+            var hasFaction = !string.IsNullOrWhiteSpace(entry.FactionId);
+            var hasRole = !string.IsNullOrWhiteSpace(entry.FactionRole) &&
+                          Enum.TryParse(entry.FactionRole.Trim(), true, out FactionRoleKind role) &&
+                          role != FactionRoleKind.None;
+
+            if (hasFaction)
+            {
+                RequireFaction(registry, entry.FactionId, context + ".factionId", report, allowEmpty: false);
+                if (!hasRole)
+                    report.Add(ErrorCode.InvalidArgument, "Spawn factionId requires a non-None factionRole.", context + ".factionRole");
+                return;
+            }
+
+            if (entry.AssignOpeningFaction)
+            {
+                // Legacy Content compatibility：role 与 scenario.openingFactionId 的隐式继承仍被接受。
+                if (!hasRole)
+                    report.Add(ErrorCode.InvalidArgument, "Legacy assignOpeningFaction requires a non-None factionRole.", context + ".factionRole");
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(entry.FactionRole))
+                report.Add(ErrorCode.InvalidArgument, "Spawn factionRole requires factionId.", context + ".factionRole");
+        }
+
+        /// <summary>factionId 必须能解析为 DefinitionId 且存在于 StrategicFactions；成员资格不检查 territorySelectable。</summary>
         static void RequireFaction(
             DefinitionRegistry registry,
             string factionId,
             string ctx,
-            ValidationReport report)
+            ValidationReport report,
+            bool allowEmpty = true)
         {
             if (string.IsNullOrEmpty(factionId))
+            {
+                if (!allowEmpty)
+                    report.Add(ErrorCode.MissingRequiredField, "strategicFaction reference required.", ctx);
                 return;
+            }
             if (!DefinitionId.TryParse(factionId, out var id) ||
                 !registry.TryGetStrategicFaction(id, out _))
             {

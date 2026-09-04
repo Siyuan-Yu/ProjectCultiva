@@ -16,6 +16,7 @@ namespace XianXia.Data.Content
         public DefinitionId Id { get; set; }
         public string Name { get; set; }
         public string ScheduleId { get; set; }
+        /// <summary>[Legacy Content compatibility] 旧 spawn 未显式 factionId 时的回退势力。新 Content 禁止写入。</summary>
         public string OpeningFactionId { get; set; }
         /// <summary>VS0.8: optional opening settlement definition id.</summary>
         public string OpeningSettlementId { get; set; }
@@ -40,9 +41,11 @@ namespace XianXia.Data.Content
         /// <summary>character | npc</summary>
         public string EntityKind { get; set; } = "character";
         public string DisplayName { get; set; }
+        /// <summary>[Legacy Content compatibility] 新 Content 以 FactionId 非空表示要赋予 Membership。</summary>
         public bool AssignOpeningFaction { get; set; }
+        /// <summary>FactionId 非空时必须为非 None 的 FactionRoleKind；FactionId 空时必须为空。</summary>
         public string FactionRole { get; set; }
-        /// <summary>可选：覆盖 scenario.openingFactionId（如主角团 vs 压迫宗门 NPC）。</summary>
+        /// <summary>开局实例的显式势力归属；不从 CharacterDefinition 或 WorldSite 推断。</summary>
         public string FactionId { get; set; }
         public bool BindSchedule { get; set; } = true;
         public bool BindDailyTask { get; set; } = true;

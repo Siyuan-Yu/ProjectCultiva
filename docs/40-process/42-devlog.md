@@ -30,6 +30,12 @@
 
 ---
 
+## 2026-09-04 — Strategic Faction 开局成员资格数据链收口（待 Unity 验收）
+
+BaseGame 的 Scenario 与 Level Tester Roster 已移除全部 `assignOpeningFaction` 和 `openingFactionId`；此前依赖场景默认势力的 13 名主管／巡卫／劳工 Spawn 在两处内容中均显式写为 `base:sect_huangcun_labor`。正式规则改为 Spawn/Roster `factionId + factionRole` 初始化 `FactionMembershipComponent`，无 `factionId` 即无势力。旧字段仍由 Loader/Applier 兼容读取，且只在显式 `factionId` 缺失时回退，并输出 `[ContentLegacy]` 开发期警告。CharacterNpcEditor 新增来自共享 faction 目录的“所属势力”下拉（包含无势力与山匪），保存时不再写 legacy 开关；本轮未发现 FormalArmy Authoring UI，未新建。FormalArmy 保持 Army 级 faction，成员初始化为 `Member`。
+
+---
+
 ## 2026-09-04 — WorldGraphEditor 无势力／无主地笔刷（待人工验收）
 
 WorldGraphEditor 的「势力范围」笔刷列表最上方新增固定编辑器工具项「□ 无势力 / 无主地」。它不是 `FactionDefinition`，不写入 `factions.json`，也不会出现在「管理势力…」窗口。选择后左键／左拖与右键／右拖均走既有擦除路径：普通 standalone Hex 移除独立控制记录；WorldSite 的 Footprint 或默认外围辖区会整块清空 `OwnerFactionId` 与 `ControlFactionId`，但保留 `TerritoryRegionId`、`PrimaryWorldSiteId` 和辖区几何。无主笔刷的 hover 使用低透明灰色预览，明确表示即将清除控制权；同一 stroke 的 Undo 仍复用原子撤销逻辑。完整实现、数据契约、验证和人工验收项见 [193](193-strategic-faction-content-and-worldgraph-territory-authoring-2026-09-04.md)。

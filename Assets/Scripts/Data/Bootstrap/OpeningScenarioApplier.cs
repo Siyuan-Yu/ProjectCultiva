@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using XianXia.Core.Concealment;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
@@ -19,6 +21,7 @@ namespace XianXia.Data.Bootstrap
     /// </summary>
     public static class OpeningScenarioApplier
     {
+        static readonly HashSet<string> WarnedLegacyMembershipContexts = new HashSet<string>(StringComparer.Ordinal);
         public static Result Apply(
             SimulationWorld world,
             OpeningScenarioDefinition scenario,
@@ -36,10 +39,6 @@ namespace XianXia.Data.Bootstrap
             var scheduleId = string.IsNullOrWhiteSpace(scenario.ScheduleId)
                 ? PlayableDayBootstrap.DefaultScheduleId
                 : scenario.ScheduleId;
-            var factionId = string.IsNullOrWhiteSpace(scenario.OpeningFactionId)
-                ? SocialAlphaConstants.OpeningFactionId
-                : scenario.OpeningFactionId;
-
             var entries = spawnEntries ?? scenario.Spawns;
             foreach (var entry in entries)
             {
@@ -68,24 +67,9 @@ namespace XianXia.Data.Bootstrap
                 if (entry.BindDailyTask)
                     EnsurePlayableExtras(entity, dailyRequiredAmount);
 
-                if (entry.AssignOpeningFaction)
-                {
-                    if (!TryParseFactionRole(entry.FactionRole, out var role))
-                    {
-                        return Result.Failure(
-                            ErrorCode.InvalidArgument,
-                            "Unknown or empty factionRole for assignOpeningFaction spawn.",
-                            entry.DefinitionId + ":" + entry.FactionRole);
-                    }
-
-                    var spawnFactionId = !string.IsNullOrWhiteSpace(entry.FactionId)
-                        ? entry.FactionId.Trim()
-                        : factionId;
-
-                    if (!entity.TryGet<FactionMembershipComponent>(out var mem))
-                        entity.AddComponent(mem = new FactionMembershipComponent());
-                    mem.Assign(spawnFactionId, role);
-                }
+                var membership = ApplyFactionMembership(entity, scenario, entry);
+                if (membership.IsFailure)
+                    return membership;
 
                 ApplyAiRole(world, entity, entry.AiRole);
                 // Profession jobs removed: WorkArea resolve is global. Keep optional legacy jobId.
@@ -189,6 +173,67 @@ namespace XianXia.Data.Bootstrap
             }
 
             return Enum.TryParse(text.Trim(), ignoreCase: true, out role) && role != FactionRoleKind.None;
+        }
+
+        /// <summary>
+        /// 新格式只认 entry.FactionId：它存在即明确建立 Runtime Membership。
+        /// 旧 assignOpeningFaction/openingFactionId 仅为旧 Mod/fixture 兼容，且永远低于显式字段。
+        /// </summary>
+        static Result ApplyFactionMembership(
+            Entity entity,
+            OpeningScenarioDefinition scenario,
+            OpeningSpawnEntry entry)
+        {
+            if (!string.IsNullOrWhiteSpace(entry.FactionId))
+            {
+                if (!TryParseFactionRole(entry.FactionRole, out var explicitRole))
+                {
+                    return Result.Failure(
+                        ErrorCode.InvalidArgument,
+                        "Explicit spawn factionId requires a non-None factionRole.",
+                        entry.DefinitionId + ":" + entry.FactionRole);
+                }
+
+                AssignMembership(entity, entry.FactionId.Trim(), explicitRole);
+                return Result.Success();
+            }
+
+            if (!entry.AssignOpeningFaction)
+                return Result.Success();
+
+            if (!TryParseFactionRole(entry.FactionRole, out var legacyRole))
+            {
+                return Result.Failure(
+                    ErrorCode.InvalidArgument,
+                    "Unknown or empty factionRole for legacy assignOpeningFaction spawn.",
+                    entry.DefinitionId + ":" + entry.FactionRole);
+            }
+
+            var legacyFactionId = string.IsNullOrWhiteSpace(scenario.OpeningFactionId)
+                ? SocialAlphaConstants.OpeningFactionId
+                : scenario.OpeningFactionId.Trim();
+            WarnLegacyMembershipOnce(scenario, entry);
+            AssignMembership(entity, legacyFactionId, legacyRole);
+            return Result.Success();
+        }
+
+        static void AssignMembership(Entity entity, string factionId, FactionRoleKind role)
+        {
+            if (!entity.TryGet<FactionMembershipComponent>(out var membership))
+                entity.AddComponent(membership = new FactionMembershipComponent());
+            membership.Assign(factionId, role);
+        }
+
+        static void WarnLegacyMembershipOnce(OpeningScenarioDefinition scenario, OpeningSpawnEntry entry)
+        {
+#if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
+            var context = (scenario?.Id.ToString() ?? "?") + ":" + (entry?.DefinitionId ?? "?");
+            if (WarnedLegacyMembershipContexts.Add(context))
+            {
+                Trace.TraceWarning(
+                    "[ContentLegacy] assignOpeningFaction/openingFactionId is deprecated; author explicit factionId and factionRole. " + context);
+            }
+#endif
         }
 
         static void ApplyJob(SimulationWorld world, Entity entity, string jobIdText)
