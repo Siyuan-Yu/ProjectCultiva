@@ -13,8 +13,6 @@
         {
           "definitionId": "base:character_protagonist",
           "entityKind": "character",
-          "factionId": "base:faction_player",
-          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "workRole": "Labor"
@@ -22,8 +20,6 @@
         {
           "definitionId": "base:character_companion_a",
           "entityKind": "character",
-          "factionId": "base:faction_player",
-          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "workRole": "Gather"
@@ -31,8 +27,6 @@
         {
           "definitionId": "base:character_companion_b",
           "entityKind": "character",
-          "factionId": "base:faction_player",
-          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "workRole": "Cultivate"
@@ -82,8 +76,6 @@
         {
           "definitionId": "base:character_protagonist",
           "entityKind": "character",
-          "factionId": "base:faction_player",
-          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "workRole": "Labor"
@@ -91,8 +83,6 @@
         {
           "definitionId": "base:character_companion_a",
           "entityKind": "character",
-          "factionId": "base:faction_player",
-          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "workRole": "Gather"
@@ -100,8 +90,6 @@
         {
           "definitionId": "base:character_companion_b",
           "entityKind": "character",
-          "factionId": "base:faction_player",
-          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "workRole": "Cultivate"
@@ -159,8 +147,6 @@
         {
           "definitionId": "base:character_protagonist",
           "entityKind": "character",
-          "factionId": "base:faction_player",
-          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "workRole": "Labor",
@@ -170,8 +156,6 @@
         {
           "definitionId": "base:character_companion_a",
           "entityKind": "character",
-          "factionId": "base:faction_player",
-          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "workRole": "Gather",
@@ -181,8 +165,6 @@
         {
           "definitionId": "base:character_companion_b",
           "entityKind": "character",
-          "factionId": "base:faction_player",
-          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "workRole": "Labor",
@@ -193,8 +175,6 @@
           "definitionId": "base:character_ch01_ref_supervisor",
           "entityKind": "npc",
           "displayName": "杂役主管",
-          "factionId": "base:sect_huangcun_labor",
-          "factionRole": "Supervisor",
           "bindSchedule": true,
           "bindDailyTask": false,
           "scheduleId": "base:schedule_supervisor_day",
@@ -204,8 +184,6 @@
           "definitionId": "base:character_ch01_ref_guard_a",
           "entityKind": "npc",
           "displayName": "巡卫甲",
-          "factionId": "base:sect_huangcun_labor",
-          "factionRole": "Member",
           "bindSchedule": true,
           "bindDailyTask": false,
           "scheduleId": "base:schedule_supervisor_day",
@@ -215,8 +193,6 @@
           "definitionId": "base:character_ch01_ref_guard_b",
           "entityKind": "npc",
           "displayName": "巡卫乙",
-          "factionId": "base:sect_huangcun_labor",
-          "factionRole": "Member",
           "bindSchedule": true,
           "bindDailyTask": false,
           "scheduleId": "base:schedule_supervisor_day",
@@ -226,8 +202,6 @@
           "definitionId": "base:character_ch01_ref_guard_c",
           "entityKind": "npc",
           "displayName": "巡卫丙",
-          "factionId": "base:sect_huangcun_labor",
-          "factionRole": "Member",
           "bindSchedule": true,
           "bindDailyTask": false,
           "scheduleId": "base:schedule_supervisor_day",
@@ -237,8 +211,6 @@
           "definitionId": "base:character_ch01_ref_mortal_a",
           "entityKind": "npc",
           "displayName": "阿石",
-          "factionId": "base:sect_huangcun_labor",
-          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "scheduleId": "base:schedule_mortal_day",
@@ -248,8 +220,6 @@
           "definitionId": "base:character_ch01_ref_farmer_b",
           "entityKind": "npc",
           "displayName": "阿土",
-          "factionId": "base:sect_huangcun_labor",
-          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "scheduleId": "base:schedule_mortal_day",
@@ -259,8 +229,6 @@
           "definitionId": "base:character_ch01_ref_farmer_c",
           "entityKind": "npc",
           "displayName": "阿禾",
-          "factionId": "base:sect_huangcun_labor",
-          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "scheduleId": "base:schedule_mortal_day",
@@ -270,8 +238,6 @@
           "definitionId": "base:character_ch01_ref_mortal_b",
           "entityKind": "npc",
           "displayName": "阿青",
-          "factionId": "base:sect_huangcun_labor",
-          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "scheduleId": "base:schedule_mortal_day",
@@ -281,8 +247,6 @@
           "definitionId": "base:character_ch01_ref_herb_b",
           "entityKind": "npc",
           "displayName": "阿兰",
-          "factionId": "base:sect_huangcun_labor",
-          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "scheduleId": "base:schedule_mortal_day",
@@ -292,8 +256,6 @@
           "definitionId": "base:character_ch01_ref_herb_c",
           "entityKind": "npc",
           "displayName": "阿杏",
-          "factionId": "base:sect_huangcun_labor",
-          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "scheduleId": "base:schedule_mortal_day",
@@ -303,8 +265,6 @@
           "definitionId": "base:character_ch01_ref_woodcutter",
           "entityKind": "npc",
           "displayName": "阿木",
-          "factionId": "base:sect_huangcun_labor",
-          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "scheduleId": "base:schedule_mortal_day",
@@ -314,8 +274,6 @@
           "definitionId": "base:character_ch01_ref_wood_b",
           "entityKind": "npc",
           "displayName": "阿柴",
-          "factionId": "base:sect_huangcun_labor",
-          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "scheduleId": "base:schedule_mortal_day",
@@ -325,8 +283,6 @@
           "definitionId": "base:character_ch01_ref_wood_c",
           "entityKind": "npc",
           "displayName": "阿枝",
-          "factionId": "base:sect_huangcun_labor",
-          "factionRole": "LaborDisciple",
           "bindSchedule": true,
           "bindDailyTask": true,
           "scheduleId": "base:schedule_mortal_day",
@@ -359,7 +315,11 @@
           "bindDailyTask": false,
           "recruitable": false,
           "worldSiteId": "base:site_chengzhen",
-          "localPosition": { "x": -10.0, "z": -4.0 }
+          "localPosition": {
+            "x": -10.0,
+            "z": -4.0
+          },
+          "aiRole": "Mortal"
         },
         {
           "definitionId": "base:character_qingshi_acceptance_unaffiliated_b",
@@ -369,7 +329,11 @@
           "bindDailyTask": false,
           "recruitable": false,
           "worldSiteId": "base:site_chengzhen",
-          "localPosition": { "x": -6.0, "z": -4.0 }
+          "localPosition": {
+            "x": -6.0,
+            "z": -4.0
+          },
+          "aiRole": "Mortal"
         },
         {
           "definitionId": "base:character_qingshi_acceptance_unaffiliated_hostile",
@@ -379,31 +343,39 @@
           "bindDailyTask": false,
           "recruitable": false,
           "worldSiteId": "base:site_chengzhen",
-          "localPosition": { "x": -2.0, "z": -4.0 }
+          "localPosition": {
+            "x": -2.0,
+            "z": -4.0
+          },
+          "aiRole": "Mortal"
         },
         {
           "definitionId": "base:character_qingshi_acceptance_shuofeng_civilian_a",
           "entityKind": "npc",
           "displayName": "朔风镇民甲",
-          "factionId": "base:faction_shuofeng",
-          "factionRole": "Member",
           "bindSchedule": false,
           "bindDailyTask": false,
           "recruitable": false,
           "worldSiteId": "base:site_chengzhen",
-          "localPosition": { "x": -8.0, "z": 4.0 }
+          "localPosition": {
+            "x": -8.0,
+            "z": 4.0
+          },
+          "aiRole": "Mortal"
         },
         {
           "definitionId": "base:character_qingshi_acceptance_shuofeng_civilian_b",
           "entityKind": "npc",
           "displayName": "朔风镇民乙",
-          "factionId": "base:faction_shuofeng",
-          "factionRole": "Member",
           "bindSchedule": false,
           "bindDailyTask": false,
           "recruitable": false,
           "worldSiteId": "base:site_chengzhen",
-          "localPosition": { "x": -4.0, "z": 4.0 }
+          "localPosition": {
+            "x": -4.0,
+            "z": 4.0
+          },
+          "aiRole": "Mortal"
         }
       ],
       "openingRelations": [

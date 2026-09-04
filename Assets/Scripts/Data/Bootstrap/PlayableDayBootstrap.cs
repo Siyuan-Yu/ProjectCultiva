@@ -140,6 +140,7 @@ namespace XianXia.Data.Bootstrap
             var lookup = new GameStartLookup(started.Value.SpawnedByDefinitionId);
             var applied = OpeningScenarioApplier.Apply(
                 world,
+                registry,
                 scenario,
                 lookup,
                 options.DailyRequiredAmount,

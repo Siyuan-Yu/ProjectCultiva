@@ -68,6 +68,11 @@ namespace XianXia.Unity.Host
             _subject = id;
             open = true;
             _scroll = Vector2.zero;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            var name = bootstrap?.Session?.World?.Entities.TryGet(id, out var entity) == true
+                ? entity.DisplayName : "?";
+            Debug.Log("[CharacterUI] Sheet subject assigned subjectId=" + id + " subjectName=" + name);
+#endif
         }
 
         public void Close() => open = false;
@@ -117,6 +122,10 @@ namespace XianXia.Unity.Host
                 open = false;
                 return;
             }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Assert(_subject == entity.Id, "[CharacterUI] 人物面板 subject 不得回退到其它目标。");
+#endif
 
             var name = string.IsNullOrEmpty(entity.DisplayName) ? _subject.ToString() : entity.DisplayName;
             var w = Mathf.Min(640f, Screen.width - 40f);
@@ -172,6 +181,13 @@ namespace XianXia.Unity.Host
         {
             var sb = new StringBuilder(1024);
             var world = bootstrap?.Session?.World;
+            HostCharacterPresentationResolver.TryBuild(bootstrap?.Session, _subject, out var info);
+            sb.AppendLine("【身份】");
+            sb.Append("势力：").Append(info?.FactionName ?? "无").Append('\n');
+            sb.Append("身份：").Append(info?.FactionRole ?? "无").Append('\n');
+            sb.Append("当前状态：").Append(info?.Activity ?? "待命").Append('\n');
+            sb.Append("当前位置：").Append(info?.Location ?? "未知").Append('\n');
+            sb.Append("日程：").Append(info?.Schedule ?? "无").Append("\n\n");
             var life = CombatLifeStateService.FormatLifeStateWithCountdown(world, entity);
             if (!string.IsNullOrEmpty(life))
             {
@@ -200,6 +216,18 @@ namespace XianXia.Unity.Host
             else sb.AppendLine("无");
 
             sb.AppendLine();
+            sb.AppendLine("【修炼】");
+            if (entity.TryGet<CultivationComponent>(out var cultivation))
+            {
+                sb.Append("境界：").Append(RealmDisplay.Format(cultivation.Realm, cultivation.MinorStage)).Append('\n');
+                sb.Append("修为进度：").Append(cultivation.Progress).Append('/').Append(cultivation.BreakthroughProgressRequired).Append('\n');
+                sb.Append("修炼速度：").Append(cultivation.CultivationSpeed).Append('\n');
+                if (entity.TryGet<AttributesComponent>(out var cultivationAttrs))
+                    sb.Append("当前灵力：").Append(cultivationAttrs.GetFinal(AttributeId.SpiritPower)).Append('\n');
+            }
+            else sb.AppendLine("无修炼数据");
+
+            sb.AppendLine();
             sb.AppendLine("【灵根】");
             if (entity.TryGet<SpiritRootComponent>(out var roots))
             {
@@ -213,7 +241,10 @@ namespace XianXia.Unity.Host
             else sb.AppendLine("无");
 
             sb.AppendLine();
-            sb.AppendLine("【性格／履历】");
+            sb.AppendLine("【性格】");
+            AppendTags(sb, info?.PersonalityTags);
+            sb.AppendLine();
+            sb.AppendLine("【履历】");
             if (entity.TryGet<CharacterBioComponent>(out var bio))
             {
                 if (!string.IsNullOrEmpty(bio.Hometown))
@@ -224,12 +255,21 @@ namespace XianXia.Unity.Host
                 for (var i = 0; i < bio.Desires.Count; i++)
                     sb.Append("欲求 · ").Append(bio.Desires[i]).Append('\n');
             }
-
-            if (entity.TryGet<PersonalityProfileComponent>(out var profile) && profile.Count > 0)
+            else if (info?.Definition != null)
             {
-                foreach (var tag in profile.Tags)
-                    sb.Append("标签 · ").Append(tag).Append('\n');
+                if (!string.IsNullOrEmpty(info.Definition.Hometown))
+                    sb.Append("籍贯 ").Append(info.Definition.Hometown).Append('\n');
+                sb.Append("声望 ").Append(info.Definition.Reputation).Append('\n');
+                foreach (var goal in info.Definition.Goals)
+                    sb.Append("目标 · ").Append(goal).Append('\n');
+                foreach (var desire in info.Definition.Desires)
+                    sb.Append("欲求 · ").Append(desire).Append('\n');
             }
+
+            AppendTags(sb, info?.BackgroundTags);
+            sb.AppendLine();
+            sb.AppendLine("【天赋】");
+            AppendTags(sb, info?.TalentTags);
 
             sb.AppendLine();
             sb.AppendLine("【活动倾向】");
@@ -248,6 +288,17 @@ namespace XianXia.Unity.Host
             else sb.AppendLine("无");
 
             return sb.ToString();
+        }
+
+        static void AppendTags(StringBuilder sb, IReadOnlyList<string> tags)
+        {
+            if (tags == null || tags.Count == 0)
+            {
+                sb.AppendLine("无");
+                return;
+            }
+            for (var i = 0; i < tags.Count; i++)
+                sb.AppendLine(HostCharacterTagPresentation.Display(tags[i]));
         }
 
         void EnsureStyles()

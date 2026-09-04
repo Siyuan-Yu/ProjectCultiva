@@ -4,6 +4,8 @@
     {
       "id": "base:character_ch01_ref_supervisor",
       "type": "character",
+      "defaultFactionId": "base:sect_huangcun_labor",
+      "defaultFactionRole": "Supervisor",
       "name": "杂役主管",
       "baseAttributes": {
         "MaxHp": 220,
@@ -75,6 +77,8 @@
     {
       "id": "base:character_ch01_ref_guard_a",
       "type": "character",
+      "defaultFactionId": "base:sect_huangcun_labor",
+      "defaultFactionRole": "Member",
       "name": "巡卫甲",
       "baseAttributes": {
         "MaxHp": 120,
@@ -145,6 +149,8 @@
     {
       "id": "base:character_ch01_ref_guard_b",
       "type": "character",
+      "defaultFactionId": "base:sect_huangcun_labor",
+      "defaultFactionRole": "Member",
       "name": "巡卫乙",
       "baseAttributes": {
         "MaxHp": 118,
@@ -215,14 +221,15 @@
     {
       "id": "base:character_ch01_ref_guard_c",
       "type": "character",
+      "defaultFactionId": "base:sect_huangcun_labor",
+      "defaultFactionRole": "Member",
       "name": "巡卫丙",
       "baseAttributes": {
         "MaxHp": 116,
-        "Physique": 12,
+        "Stamina": 50,
         "Attack": 12,
         "Defense": 8,
         "Speed": 10,
-        "Stamina": 50,
         "SpiritSense": 5,
         "Comprehension": 5,
         "SpiritPower": 0,
@@ -248,16 +255,18 @@
         "Cultivate": false,
         "Explore": true,
         "Patrol": true,
-        "Inspect": true
+        "Inspect": true,
+        "Idle": false
       },
       "activityPriorities": {
+        "Labor": 1,
+        "Rest": 5,
+        "Eat": 6,
+        "Cultivate": 0,
+        "Explore": 3,
         "Patrol": 9,
         "Inspect": 7,
-        "Eat": 6,
-        "Rest": 5,
-        "Explore": 3,
-        "Labor": 1,
-        "Cultivate": 0
+        "Idle": 0
       },
       "preferredWorkAreaIds": [
         "base:workarea_road_hub",
@@ -275,7 +284,6 @@
         "Ice": 0,
         "Poison": 0
       },
-      "hometown": "",
       "reputation": 0,
       "goals": [],
       "desires": [],
@@ -285,6 +293,8 @@
     {
       "id": "base:character_ch01_ref_mortal_a",
       "type": "character",
+      "defaultFactionId": "base:sect_huangcun_labor",
+      "defaultFactionRole": "LaborDisciple",
       "name": "阿石",
       "baseAttributes": {
         "MaxHp": 90,
@@ -356,6 +366,8 @@
     {
       "id": "base:character_ch01_ref_farmer_b",
       "type": "character",
+      "defaultFactionId": "base:sect_huangcun_labor",
+      "defaultFactionRole": "LaborDisciple",
       "name": "阿土",
       "baseAttributes": {
         "MaxHp": 92,
@@ -427,6 +439,8 @@
     {
       "id": "base:character_ch01_ref_farmer_c",
       "type": "character",
+      "defaultFactionId": "base:sect_huangcun_labor",
+      "defaultFactionRole": "LaborDisciple",
       "name": "阿禾",
       "baseAttributes": {
         "MaxHp": 88,
@@ -498,6 +512,8 @@
     {
       "id": "base:character_ch01_ref_mortal_b",
       "type": "character",
+      "defaultFactionId": "base:sect_huangcun_labor",
+      "defaultFactionRole": "LaborDisciple",
       "name": "阿青",
       "baseAttributes": {
         "MaxHp": 95,
@@ -569,6 +585,8 @@
     {
       "id": "base:character_ch01_ref_herb_b",
       "type": "character",
+      "defaultFactionId": "base:sect_huangcun_labor",
+      "defaultFactionRole": "LaborDisciple",
       "name": "阿兰",
       "baseAttributes": {
         "MaxHp": 93,
@@ -640,6 +658,8 @@
     {
       "id": "base:character_ch01_ref_herb_c",
       "type": "character",
+      "defaultFactionId": "base:sect_huangcun_labor",
+      "defaultFactionRole": "LaborDisciple",
       "name": "阿杏",
       "baseAttributes": {
         "MaxHp": 91,
@@ -711,6 +731,8 @@
     {
       "id": "base:character_ch01_ref_woodcutter",
       "type": "character",
+      "defaultFactionId": "base:sect_huangcun_labor",
+      "defaultFactionRole": "LaborDisciple",
       "name": "阿木",
       "baseAttributes": {
         "MaxHp": 100,
@@ -782,6 +804,8 @@
     {
       "id": "base:character_ch01_ref_wood_b",
       "type": "character",
+      "defaultFactionId": "base:sect_huangcun_labor",
+      "defaultFactionRole": "LaborDisciple",
       "name": "阿柴",
       "baseAttributes": {
         "MaxHp": 98,
@@ -853,6 +877,8 @@
     {
       "id": "base:character_ch01_ref_wood_c",
       "type": "character",
+      "defaultFactionId": "base:sect_huangcun_labor",
+      "defaultFactionRole": "LaborDisciple",
       "name": "阿枝",
       "baseAttributes": {
         "MaxHp": 96,

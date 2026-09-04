@@ -21,9 +21,9 @@ namespace XianXia.Data.Bootstrap
     /// </summary>
     public static class OpeningScenarioApplier
     {
-        static readonly HashSet<string> WarnedLegacyMembershipContexts = new HashSet<string>(StringComparer.Ordinal);
         public static Result Apply(
             SimulationWorld world,
+            DefinitionRegistry registry,
             OpeningScenarioDefinition scenario,
             GameStartLookup lookup,
             int dailyRequiredAmount,
@@ -67,7 +67,7 @@ namespace XianXia.Data.Bootstrap
                 if (entry.BindDailyTask)
                     EnsurePlayableExtras(entity, dailyRequiredAmount);
 
-                var membership = ApplyFactionMembership(entity, scenario, entry);
+                var membership = ApplyFactionMembership(entity, registry, scenario, entry);
                 if (membership.IsFailure)
                     return membership;
 
@@ -166,55 +166,86 @@ namespace XianXia.Data.Bootstrap
 
         static bool TryParseFactionRole(string text, out FactionRoleKind role)
         {
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                role = FactionRoleKind.None;
-                return false;
-            }
-
-            return Enum.TryParse(text.Trim(), ignoreCase: true, out role) && role != FactionRoleKind.None;
+            return OpeningFactionAssignmentResolver.TryParseFactionRole(text, out role);
         }
 
         /// <summary>
-        /// 新格式只认 entry.FactionId：它存在即明确建立 Runtime Membership。
-        /// 旧 assignOpeningFaction/openingFactionId 仅为旧 Mod/fixture 兼容，且永远低于显式字段。
+        /// 统一走 OpeningFactionAssignmentResolver：Override / Unaffiliated / CharacterDefault / Legacy。
+        /// CharacterDefault 需要 entry.DefinitionId 对应的 CharacterDefinition 才能取人物默认。
         /// </summary>
         static Result ApplyFactionMembership(
             Entity entity,
+            DefinitionRegistry registry,
             OpeningScenarioDefinition scenario,
             OpeningSpawnEntry entry)
         {
-            if (!string.IsNullOrWhiteSpace(entry.FactionId))
-            {
-                if (!TryParseFactionRole(entry.FactionRole, out var explicitRole))
-                {
-                    return Result.Failure(
-                        ErrorCode.InvalidArgument,
-                        "Explicit spawn factionId requires a non-None factionRole.",
-                        entry.DefinitionId + ":" + entry.FactionRole);
-                }
+            var character = ResolveCharacter(registry, entry?.DefinitionId);
 
-                AssignMembership(entity, entry.FactionId.Trim(), explicitRole);
+            ResolvedFactionAssignment resolved;
+            try
+            {
+                resolved = OpeningFactionAssignmentResolver.Resolve(
+                    entry,
+                    character,
+                    scenario?.OpeningFactionId);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Result.Failure(ErrorCode.InvalidArgument, ex.Message);
+            }
+
+            if (resolved.IsAffiliated)
+            {
+                AssignMembership(entity, resolved.FactionId, resolved.Role);
+                TraceOpeningFaction(entity, entry, resolved);
                 return Result.Success();
             }
 
-            if (!entry.AssignOpeningFaction)
-                return Result.Success();
-
-            if (!TryParseFactionRole(entry.FactionRole, out var legacyRole))
+            // 明确 Unaffiliated：清掉已有 membership；CharacterDefault 且无 default → 保持无势力。
+            if (resolved.Source == FactionAssignmentSource.ExplicitUnaffiliated &&
+                entity.TryGet<FactionMembershipComponent>(out var existing))
             {
-                return Result.Failure(
-                    ErrorCode.InvalidArgument,
-                    "Unknown or empty factionRole for legacy assignOpeningFaction spawn.",
-                    entry.DefinitionId + ":" + entry.FactionRole);
+                existing.ClearMembership();
             }
 
-            var legacyFactionId = string.IsNullOrWhiteSpace(scenario.OpeningFactionId)
-                ? SocialAlphaConstants.OpeningFactionId
-                : scenario.OpeningFactionId.Trim();
-            WarnLegacyMembershipOnce(scenario, entry);
-            AssignMembership(entity, legacyFactionId, legacyRole);
+            TraceOpeningFaction(entity, entry, resolved);
+
             return Result.Success();
+        }
+
+        /// <summary>仅在开局 Spawn 时记录一次归属来源；绝不参与运行时势力判定。</summary>
+        static void TraceOpeningFaction(
+            Entity entity,
+            OpeningSpawnEntry entry,
+            ResolvedFactionAssignment resolved)
+        {
+#if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
+            var source = resolved.Source == FactionAssignmentSource.ScenarioOverride
+                ? "ScenarioOverride"
+                : resolved.Source == FactionAssignmentSource.ExplicitUnaffiliated
+                    ? "ExplicitUnaffiliated"
+                    : resolved.Source.ToString();
+            var displayName = entity == null || string.IsNullOrEmpty(entity.DisplayName)
+                ? entry?.DefinitionId ?? "?"
+                : entity.DisplayName;
+            Trace.TraceInformation(
+                "[OpeningFaction] Character=" + displayName +
+                " Definition=" + (entry?.DefinitionId ?? "?") +
+                " Source=" + source +
+                " Faction=" + (resolved.IsAffiliated ? resolved.FactionId : "无") +
+                " Role=" + (resolved.IsAffiliated ? resolved.Role.ToString() : "无") +
+                " EntityId=" + (entity == null ? "?" : entity.Id.ToString()));
+#endif
+        }
+
+        static CharacterDefinition ResolveCharacter(DefinitionRegistry registry, string definitionIdText)
+        {
+            if (registry == null || string.IsNullOrWhiteSpace(definitionIdText))
+                return null;
+            if (!DefinitionId.TryParse(definitionIdText.Trim(), out var id))
+                return null;
+            registry.TryGetCharacter(id, out var character);
+            return character;
         }
 
         static void AssignMembership(Entity entity, string factionId, FactionRoleKind role)
@@ -222,18 +253,6 @@ namespace XianXia.Data.Bootstrap
             if (!entity.TryGet<FactionMembershipComponent>(out var membership))
                 entity.AddComponent(membership = new FactionMembershipComponent());
             membership.Assign(factionId, role);
-        }
-
-        static void WarnLegacyMembershipOnce(OpeningScenarioDefinition scenario, OpeningSpawnEntry entry)
-        {
-#if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
-            var context = (scenario?.Id.ToString() ?? "?") + ":" + (entry?.DefinitionId ?? "?");
-            if (WarnedLegacyMembershipContexts.Add(context))
-            {
-                Trace.TraceWarning(
-                    "[ContentLegacy] assignOpeningFaction/openingFactionId is deprecated; author explicit factionId and factionRole. " + context);
-            }
-#endif
         }
 
         static void ApplyJob(SimulationWorld world, Entity entity, string jobIdText)

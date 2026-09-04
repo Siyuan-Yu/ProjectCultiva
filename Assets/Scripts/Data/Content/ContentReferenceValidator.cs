@@ -405,6 +405,36 @@ namespace XianXia.Data.Content
         /// </summary>
         static void ValidateStrategicFactions(DefinitionRegistry registry, ValidationReport report)
         {
+            // CharacterDefinition.defaultFaction* 一致性 + 存在性（Case A/B）。
+            foreach (var kv in registry.Characters)
+            {
+                var character = kv.Value;
+                if (character == null)
+                    continue;
+                var hasDefaultFaction = !string.IsNullOrWhiteSpace(character.DefaultFactionId);
+                var hasDefaultRole = !string.IsNullOrWhiteSpace(character.DefaultFactionRole);
+                if (hasDefaultFaction)
+                {
+                    RequireFaction(registry, character.DefaultFactionId, character.Id + ".defaultFactionId", report, allowEmpty: false);
+                    if (!hasDefaultRole ||
+                        !Enum.TryParse(character.DefaultFactionRole.Trim(), true, out FactionRoleKind role) ||
+                        role == FactionRoleKind.None)
+                    {
+                        report.Add(
+                            ErrorCode.InvalidArgument,
+                            "Character defaultFactionId requires a non-None defaultFactionRole.",
+                            character.Id + ".defaultFactionRole");
+                    }
+                }
+                else if (hasDefaultRole)
+                {
+                    report.Add(
+                        ErrorCode.InvalidArgument,
+                        "Character defaultFactionRole requires defaultFactionId.",
+                        character.Id + ".defaultFactionRole");
+                }
+            }
+
             foreach (var kv in registry.FormalArmies)
             {
                 var def = kv.Value;
@@ -508,25 +538,69 @@ namespace XianXia.Data.Content
             var hasRole = !string.IsNullOrWhiteSpace(entry.FactionRole) &&
                           Enum.TryParse(entry.FactionRole.Trim(), true, out FactionRoleKind role) &&
                           role != FactionRoleKind.None;
+            var modeExplicit = entry.FactionModeExplicit;
 
-            if (hasFaction)
+            switch (entry.FactionMode)
             {
-                RequireFaction(registry, entry.FactionId, context + ".factionId", report, allowEmpty: false);
-                if (!hasRole)
-                    report.Add(ErrorCode.InvalidArgument, "Spawn factionId requires a non-None factionRole.", context + ".factionRole");
-                return;
-            }
+                case OpeningFactionMode.Override:
+                    // Override：factionId 非空 + role 有效 + faction 存在。
+                    if (!hasFaction)
+                    {
+                        report.Add(ErrorCode.InvalidArgument,
+                            "Spawn factionMode=Override requires factionId.", context + ".factionId");
+                        return;
+                    }
+                    RequireFaction(registry, entry.FactionId, context + ".factionId", report, allowEmpty: false);
+                    if (!hasRole)
+                        report.Add(ErrorCode.InvalidArgument,
+                            "Spawn factionMode=Override requires a non-None factionRole.", context + ".factionRole");
+                    return;
 
-            if (entry.AssignOpeningFaction)
-            {
-                // Legacy Content compatibility：role 与 scenario.openingFactionId 的隐式继承仍被接受。
-                if (!hasRole)
-                    report.Add(ErrorCode.InvalidArgument, "Legacy assignOpeningFaction requires a non-None factionRole.", context + ".factionRole");
-                return;
-            }
+                case OpeningFactionMode.Unaffiliated:
+                    // Unaffiliated：禁止 factionId/factionRole。
+                    if (hasFaction || !string.IsNullOrWhiteSpace(entry.FactionRole))
+                    {
+                        report.Add(ErrorCode.InvalidArgument,
+                            "Spawn factionMode=Unaffiliated must not carry factionId/factionRole.", context + ".factionId");
+                    }
+                    return;
 
-            if (!string.IsNullOrWhiteSpace(entry.FactionRole))
-                report.Add(ErrorCode.InvalidArgument, "Spawn factionRole requires factionId.", context + ".factionRole");
+                case OpeningFactionMode.CharacterDefault:
+                default:
+                    if (modeExplicit)
+                    {
+                        // 显式 CharacterDefault：新格式 spawn 自己不得带 factionId/factionRole。
+                        if (hasFaction || !string.IsNullOrWhiteSpace(entry.FactionRole))
+                        {
+                            report.Add(ErrorCode.InvalidArgument,
+                                "Spawn factionMode=CharacterDefault must not carry factionId/factionRole (inherit CharacterDefinition).",
+                                context + ".factionId");
+                        }
+                        return;
+                    }
+
+                    // mode 缺省：区分三态。
+                    if (hasFaction)
+                    {
+                        // Legacy Explicit Override：无 mode 但显式 factionId → 按 Override 校验（deprecated）。
+                        RequireFaction(registry, entry.FactionId, context + ".factionId", report, allowEmpty: false);
+                        if (!hasRole)
+                            report.Add(ErrorCode.InvalidArgument, "Spawn factionId requires a non-None factionRole.", context + ".factionRole");
+                        return;
+                    }
+
+                    if (entry.AssignOpeningFaction)
+                    {
+                        // Legacy assignOpeningFaction：role 与 scenario.openingFactionId 的隐式继承仍被接受。
+                        if (!hasRole)
+                            report.Add(ErrorCode.InvalidArgument, "Legacy assignOpeningFaction requires a non-None factionRole.", context + ".factionRole");
+                        return;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(entry.FactionRole))
+                        report.Add(ErrorCode.InvalidArgument, "Spawn factionRole requires factionId.", context + ".factionRole");
+                    return;
+            }
         }
 
         /// <summary>factionId 必须能解析为 DefinitionId 且存在于 StrategicFactions；成员资格不检查 territorySelectable。</summary>
@@ -548,8 +622,8 @@ namespace XianXia.Data.Content
             {
                 report.Add(
                     ErrorCode.NotFound,
-                    "strategicFaction reference missing.",
-                    ctx + ":" + factionId);
+                    "strategicFaction reference missing: " + factionId,
+                    ctx);
             }
         }
 

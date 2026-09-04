@@ -5,24 +5,45 @@ using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using ContentAuthoring.Shared;
 using Microsoft.Win32;
 
 namespace CharacterNpcEditor;
+
+/// <summary>场景表：非 Override 行用 TextBlock 展示 effective（人物默认／无势力）。</summary>
+public sealed class InverseBoolToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value is true ? Visibility.Collapsed : Visibility.Visible;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
 
 public partial class MainWindow : Window
 {
     public const string LevelTesterRosterId = "base:roster_level_tester";
     const string LevelTesterRosterRelPath = "Rosters/level_tester_roster.json";
 
+    static readonly string[] FactionModeLabelsArr = { "人物默认", "场景覆盖", "无势力" };
+
     ContentPackage? _package;
     readonly List<FactionChoice> _spawnFactionChoices = new();
+    /// <summary>人物默认势力下拉（含「无势力」）。</summary>
+    readonly List<FactionChoice> _defaultFactionChoices = new();
+    readonly List<string> _factionRoleLabels = new();
+    readonly List<string> _aiRoleLabels = new();
+    readonly List<string> _scheduleChoices = new();
+    /// <summary>character definitionId → (factionId, roleKey, displayName, roleLabel)。人物默认改动后 rebuild。</summary>
+    readonly Dictionary<string, CharacterFactionDefault> _characterFactionDefaults = new(StringComparer.Ordinal);
     DefRef? _character;
     DefRef? _scenario;
     ObservableCollection<SpawnRow> _spawns = new();
     readonly List<CapabilityRowUi> _caps = new();
     readonly List<SpiritRootRowUi> _roots = new();
     bool _suppressControllableUi;
+    bool _suppressFactionDefaultUi;
 
     public MainWindow()
     {
@@ -102,17 +123,37 @@ public partial class MainWindow : Window
         _package = PackageStore.Load(root);
         RootText.Text = root;
         ScenarioBox.ItemsSource = _package.OfType("openingScenario").Select(d => d.Id).OrderBy(x => x).ToList();
-        var sched = new[] { "" }.Concat(_package.OfType("schedule").Select(d => d.Id).OrderBy(x => x)).ToList();
-        SpawnSchedCol.ItemsSource = sched;
-        SpawnAiCol.ItemsSource = UiLabels.Labels(UiLabels.AiRoles);
-        SpawnFactionRoleCol.ItemsSource = UiLabels.Labels(UiLabels.FactionRoles);
-        _spawnFactionChoices.Clear();
-        _spawnFactionChoices.Add(new FactionChoice("", "□ 无势力"));
-        _spawnFactionChoices.AddRange(StrategicFactionAuthoring.LoadStrategicFactions(_package)
+
+        _scheduleChoices.Clear();
+        _scheduleChoices.Add("");
+        _scheduleChoices.AddRange(_package.OfType("schedule").Select(d => d.Id).OrderBy(x => x));
+        _aiRoleLabels.Clear();
+        _aiRoleLabels.AddRange(UiLabels.Labels(UiLabels.AiRoles));
+        _factionRoleLabels.Clear();
+        _factionRoleLabels.Add("无");
+        _factionRoleLabels.AddRange(UiLabels.Labels(UiLabels.FactionRoles));
+
+        var factions = StrategicFactionAuthoring.LoadStrategicFactions(_package);
+        _defaultFactionChoices.Clear();
+        _defaultFactionChoices.Add(new FactionChoice("", "□ 无势力"));
+        _defaultFactionChoices.AddRange(factions
             .Select(f => new FactionChoice(f.Id, "■ " + f.Name + "  " + f.Id)));
-        SpawnFactionCol.ItemsSource = _spawnFactionChoices;
-        SpawnFactionCol.DisplayMemberPath = nameof(FactionChoice.Display);
-        SpawnFactionCol.SelectedValuePath = nameof(FactionChoice.Id);
+        DefaultFactionBox.ItemsSource = _defaultFactionChoices;
+        DefaultFactionBox.DisplayMemberPath = nameof(FactionChoice.Display);
+        DefaultFactionBox.SelectedValuePath = nameof(FactionChoice.Id);
+        DefaultFactionRoleBox.ItemsSource = _factionRoleLabels;
+
+        // Spawn 覆盖势力的下拉：全部 faction（山匪也允许；无势力走 Unaffiliated 模式）。
+        _spawnFactionChoices.Clear();
+        _spawnFactionChoices.AddRange(factions
+            .Select(f => new FactionChoice(f.Id, "■ " + f.Name + "  " + f.Id)));
+        SpawnRow.SharedFactionChoices = _spawnFactionChoices;
+        SpawnRow.SharedFactionRoleLabels = UiLabels.Labels(UiLabels.FactionRoles);
+        SpawnRow.SharedAiRoleLabels = UiLabels.Labels(UiLabels.AiRoles);
+        SpawnRow.SharedScheduleChoices = _scheduleChoices;
+
+        RebuildCharacterFactionDefaults();
+
         if (ScenarioBox.Items.Count > 0)
         {
             var prefer = _package.OfType("openingScenario")
@@ -124,6 +165,44 @@ public partial class MainWindow : Window
         RefreshCharList(keepId: CharList.SelectedItem is CharListItem cur ? cur.Id : null);
         StatusText.Text =
             $"人物 {_package.OfType("character").Count()} · 场景 {_package.OfType("openingScenario").Count()}";
+    }
+
+    /// <summary>人物 definitionId → 默认势力信息（人物页 defaultFaction* + 场景继承展示用）。</summary>
+    void RebuildCharacterFactionDefaults()
+    {
+        _characterFactionDefaults.Clear();
+        if (_package == null) return;
+        foreach (var d in _package.OfType("character"))
+        {
+            var fid = JsonEdit.GetString(d.Raw, "defaultFactionId") ?? string.Empty;
+            var roleKey = JsonEdit.GetString(d.Raw, "defaultFactionRole") ?? string.Empty;
+            var info = new CharacterFactionDefault
+            {
+                FactionId = fid,
+                RoleKey = roleKey
+            };
+            if (!string.IsNullOrEmpty(fid))
+            {
+                var hit = _defaultFactionChoices.FirstOrDefault(f => f.Id == fid);
+                info.FactionDisplay = hit?.Display ?? fid;
+            }
+            else
+            {
+                info.FactionDisplay = "□ 无势力";
+            }
+            info.RoleDisplay = string.IsNullOrEmpty(roleKey)
+                ? "无"
+                : UiLabels.ToLabel(UiLabels.FactionRoles, roleKey, roleKey);
+            _characterFactionDefaults[d.Id] = info;
+        }
+    }
+
+    sealed class CharacterFactionDefault
+    {
+        public string FactionId { get; set; } = string.Empty;
+        public string RoleKey { get; set; } = string.Empty;
+        public string FactionDisplay { get; set; } = "□ 无势力";
+        public string RoleDisplay { get; set; } = "无";
     }
 
     void RefreshCharList(string? keepId)
@@ -210,8 +289,82 @@ public partial class MainWindow : Window
         _suppressControllableUi = true;
         ControllableBox.IsChecked = ResolveControllable(_character);
         _suppressControllableUi = false;
+        LoadCharacterDefaultFactionUi();
         HighlightSpawnForCharacter(item.Id);
         RefreshTalkEventsHint(item.Id);
+    }
+
+    /// <summary>人物页：读取 defaultFactionId/defaultFactionRole 到两个下拉。无字段 = 无势力。</summary>
+    void LoadCharacterDefaultFactionUi()
+    {
+        if (_character == null) return;
+        _suppressFactionDefaultUi = true;
+        var fid = JsonEdit.GetString(_character.Raw, "defaultFactionId") ?? string.Empty;
+        DefaultFactionBox.SelectedValue = fid;
+        var roleKey = JsonEdit.GetString(_character.Raw, "defaultFactionRole") ?? string.Empty;
+        DefaultFactionRoleBox.IsEnabled = !string.IsNullOrEmpty(fid);
+        DefaultFactionRoleBox.SelectedItem = string.IsNullOrEmpty(roleKey)
+            ? "无"
+            : UiLabels.ToLabel(UiLabels.FactionRoles, roleKey, roleKey);
+        _suppressFactionDefaultUi = false;
+    }
+
+    void DefaultFactionBox_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressFactionDefaultUi || _character == null) return;
+        var fid = DefaultFactionBox.SelectedValue as string ?? "";
+        _suppressFactionDefaultUi = true;
+        try
+        {
+            if (string.IsNullOrEmpty(fid))
+            {
+                DefaultFactionRoleBox.SelectedItem = "无";
+                DefaultFactionRoleBox.IsEnabled = false;
+            }
+            else
+            {
+                DefaultFactionRoleBox.IsEnabled = true;
+                var currentRole = DefaultFactionRoleBox.SelectedItem as string;
+                if (string.IsNullOrEmpty(currentRole) || string.Equals(currentRole, "无", StringComparison.Ordinal))
+                    DefaultFactionRoleBox.SelectedItem = UiLabels.ToLabel(UiLabels.FactionRoles, "Member", "成员");
+            }
+        }
+        finally { _suppressFactionDefaultUi = false; }
+        ApplyCharacterDefaultFactionToRaw();
+        RefreshCharacterDefaultsForSpawnRows();
+    }
+
+    void DefaultFactionRoleBox_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressFactionDefaultUi || _character == null) return;
+        var fid = DefaultFactionBox.SelectedValue as string ?? "";
+        if (string.IsNullOrEmpty(fid)) return;
+        ApplyCharacterDefaultFactionToRaw();
+        RefreshCharacterDefaultsForSpawnRows();
+    }
+
+    /// <summary>人物默认势力改动后：写回 Raw（不落盘），并刷新当前场景出场中该人物的继承展示。</summary>
+    void ApplyCharacterDefaultFactionToRaw()
+    {
+        if (_character == null) return;
+        var fid = DefaultFactionBox.SelectedValue as string ?? "";
+        var roleLabel = DefaultFactionRoleBox.SelectedItem as string ?? "无";
+        var roleKey = string.Equals(roleLabel, "无", StringComparison.Ordinal)
+            ? ""
+            : UiLabels.ToKey(UiLabels.FactionRoles, roleLabel, "");
+        if (string.IsNullOrEmpty(fid))
+        {
+            _character.Raw.Remove("defaultFactionId");
+            _character.Raw.Remove("defaultFactionRole");
+        }
+        else
+        {
+            _character.Raw["defaultFactionId"] = fid;
+            if (string.IsNullOrEmpty(roleKey))
+                _character.Raw.Remove("defaultFactionRole");
+            else
+                _character.Raw["defaultFactionRole"] = roleKey;
+        }
     }
 
     void RefreshTalkEventsHint(string characterId)
@@ -382,6 +535,18 @@ public partial class MainWindow : Window
             return;
         }
 
+        var fid = DefaultFactionBox.SelectedValue as string ?? "";
+        var roleLabel = DefaultFactionRoleBox.SelectedItem as string ?? "无";
+        var roleKey = string.Equals(roleLabel, "无", StringComparison.Ordinal)
+            ? ""
+            : UiLabels.ToKey(UiLabels.FactionRoles, roleLabel, "");
+        if (!string.IsNullOrEmpty(fid) && string.IsNullOrEmpty(roleKey))
+        {
+            MessageBox.Show("选择所属势力后必须选择势力身份。", "无法保存", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        ApplyCharacterDefaultFactionToRaw();
         _character.Raw["id"] = IdBox.Text?.Trim() ?? _character.Id;
         _character.Raw["type"] = "character";
         _character.Raw["name"] = NameBox.Text ?? "";
@@ -440,7 +605,14 @@ public partial class MainWindow : Window
 
         LoadRoot(_package.Root);
         RefreshCharList(keep);
-        StatusText.Text = "已保存人物 " + keep;
+        var savedName = string.IsNullOrWhiteSpace(NameBox.Text) ? keep : NameBox.Text.Trim();
+        var factionText = string.IsNullOrEmpty(fid)
+            ? "无"
+            : (_defaultFactionChoices.FirstOrDefault(x => x.Id == fid)?.Display ?? fid) +
+              " / " + (string.IsNullOrEmpty(roleKey) ? "无" : roleLabel);
+        StatusText.Text = "已保存人物「" + savedName + "」\n文件：" + _character.FilePath +
+            "\n默认势力：" + factionText +
+            "\n该设置在下一次新建游戏会话时生效；当前运行中的游戏不会热重载。";
     }
 
     static JsonArray LinesToArray(string? text)
@@ -466,6 +638,7 @@ public partial class MainWindow : Window
                 if (node is not JsonObject o) continue;
                 var row = SpawnRow.FromJson(o);
                 row.ControllableChanged += OnSpawnControllableChanged;
+                InjectCharacterDefault(row);
                 _spawns.Add(row);
             }
         }
@@ -474,6 +647,24 @@ public partial class MainWindow : Window
         SpawnHint.Text = $"场景 {_scenario?.Id} 出场 {_spawns.Count} 条 · 可控制 {_spawns.Count(s => s.Controllable)}";
         var keep = CharList.SelectedItem is CharListItem c ? c.Id : null;
         RefreshCharList(keep);
+    }
+
+    /// <summary>行注入人物默认势力（用于「人物默认」模式展示 effective）。</summary>
+    void InjectCharacterDefault(SpawnRow row)
+    {
+        if (row == null || string.IsNullOrEmpty(row.DefinitionId)) return;
+        if (_characterFactionDefaults.TryGetValue(row.DefinitionId, out var info))
+            row.SetCharacterDefault(info.FactionDisplay, info.RoleDisplay);
+        else
+            row.SetCharacterDefault("□ 无势力", "无");
+    }
+
+    /// <summary>人物默认保存后刷新 defaults 与当前场景的继承展示（Override 行不受影响）。</summary>
+    void RefreshCharacterDefaultsForSpawnRows()
+    {
+        RebuildCharacterFactionDefaults();
+        foreach (var row in _spawns)
+            InjectCharacterDefault(row);
     }
 
     void OnSpawnControllableChanged(SpawnRow row)
@@ -551,11 +742,12 @@ public partial class MainWindow : Window
             ["bindDailyTask"] = true
         });
         row.ControllableChanged += OnSpawnControllableChanged;
+        InjectCharacterDefault(row);
         _spawns.Add(row);
         SpawnGrid.ItemsSource = null;
         SpawnGrid.ItemsSource = _spawns;
         RefreshCharList(id);
-        StatusText.Text = "已加入出场列表（记得点「保存场景出场」）";
+        StatusText.Text = "已加入出场列表（人物默认势力＝继承人物页；点「保存场景出场」落盘）";
     }
 
     void SaveSpawn_Click(object sender, RoutedEventArgs e)
@@ -760,7 +952,7 @@ public partial class MainWindow : Window
         public string Label { get; }
     }
 
-    sealed class FactionChoice
+    public sealed class FactionChoice
     {
         public FactionChoice(string id, string display) { Id = id; Display = display; }
         public string Id { get; }
@@ -784,19 +976,41 @@ public partial class MainWindow : Window
 
     public sealed class SpawnRow : INotifyPropertyChanged
     {
+        static readonly string[] FactionModeKeys =
+            { "CharacterDefault", "Override", "Unaffiliated" };
+        static readonly string[] FactionModeLabelsArr =
+            { "人物默认", "场景覆盖", "无势力" };
+
+        /// <summary>共享选项（MainWindow.LoadRoot 填充；不随行重建）。</summary>
+        public static IReadOnlyList<FactionChoice> SharedFactionChoices { get; set; } = Array.Empty<FactionChoice>();
+        public static IReadOnlyList<string> SharedFactionRoleLabels { get; set; } = Array.Empty<string>();
+        public static IReadOnlyList<string> SharedAiRoleLabels { get; set; } = Array.Empty<string>();
+        public static IReadOnlyList<string> SharedScheduleChoices { get; set; } = Array.Empty<string>();
+
         JsonObject _raw;
         string _definitionId = "";
         string _displayName = "";
         bool _controllable;
         string _scheduleId = "";
         string _aiRole = "Mortal";
-        string _factionRole = "";
-        string _factionId = "";
         bool _bindSchedule = true;
+        /// <summary>CharacterDefault | Override | Unaffiliated（FactionModeKey 之一）。</summary>
+        string _factionModeKey = "CharacterDefault";
+        string _overrideFactionId = "";
+        string _overrideFactionRoleKey = "";
+        /// <summary>继承展示：人物 default 势力/角色（由 MainWindow 注入，不落盘）。</summary>
+        string _charDefaultFactionDisplay = "□ 无势力";
+        string _charDefaultRoleDisplay = "无";
 
         public SpawnRow(JsonObject raw) => _raw = raw;
 
         public event Action<SpawnRow>? ControllableChanged;
+
+        public IReadOnlyList<string> FactionModeLabels => FactionModeLabelsArr;
+        public IReadOnlyList<FactionChoice> FactionChoices => SharedFactionChoices;
+        public IReadOnlyList<string> FactionRoleLabels => SharedFactionRoleLabels;
+        public IReadOnlyList<string> AiRoleLabels => SharedAiRoleLabels;
+        public IReadOnlyList<string> ScheduleChoices => SharedScheduleChoices;
 
         public string DefinitionId { get => _definitionId; set { _definitionId = value; OnPropertyChanged(); } }
         public string DisplayName { get => _displayName; set { _displayName = value; OnPropertyChanged(); } }
@@ -814,18 +1028,77 @@ public partial class MainWindow : Window
         }
 
         public string ScheduleId { get => _scheduleId; set { _scheduleId = value; OnPropertyChanged(); } }
-        public string FactionId
+
+        public bool BindSchedule { get => _bindSchedule; set { _bindSchedule = value; OnPropertyChanged(); } }
+
+        // ---------- 势力三模式 ----------
+
+        /// <summary>人物默认｜场景覆盖｜无势力（UI label）。</summary>
+        public string FactionModeLabel
         {
-            get => _factionId;
+            get => ModeKeyToLabel(_factionModeKey);
             set
             {
-                _factionId = value ?? "";
-                if (string.IsNullOrWhiteSpace(_factionId))
-                {
-                    _factionRole = "";
-                    OnPropertyChanged(nameof(FactionRoleLabel));
-                }
-                OnPropertyChanged();
+                var key = ModeLabelToKey(value);
+                if (string.Equals(key, _factionModeKey, StringComparison.Ordinal)) return;
+                _factionModeKey = key;
+                OnPropertyChanged(nameof(FactionModeLabel));
+                OnPropertyChanged(nameof(IsFactionOverride));
+                OnPropertyChanged(nameof(EffectiveFactionDisplay));
+                OnPropertyChanged(nameof(EffectiveFactionRoleLabel));
+            }
+        }
+
+        public bool IsFactionOverride =>
+            string.Equals(_factionModeKey, "Override", StringComparison.Ordinal);
+
+        /// <summary>场景覆盖：选择势力（仅 Override 行可编辑）。</summary>
+        public string OverrideFactionId
+        {
+            get => _overrideFactionId;
+            set
+            {
+                _overrideFactionId = value ?? "";
+                OnPropertyChanged(nameof(OverrideFactionId));
+                OnPropertyChanged(nameof(EffectiveFactionDisplay));
+            }
+        }
+
+        /// <summary>场景覆盖：势力身份 label。</summary>
+        public string OverrideFactionRoleLabel
+        {
+            get => UiLabels.ToLabel(UiLabels.FactionRoles, _overrideFactionRoleKey, "成员");
+            set
+            {
+                _overrideFactionRoleKey = UiLabels.ToKey(UiLabels.FactionRoles, value, "Member");
+                OnPropertyChanged(nameof(OverrideFactionRoleLabel));
+                OnPropertyChanged(nameof(EffectiveFactionRoleLabel));
+            }
+        }
+
+        /// <summary>展示 effective 势力（人物默认模式下显示人物 default；无势力显示无）。</summary>
+        public string EffectiveFactionDisplay
+        {
+            get
+            {
+                if (string.Equals(_factionModeKey, "Override", StringComparison.Ordinal))
+                    return OverrideFactionId;
+                if (string.Equals(_factionModeKey, "Unaffiliated", StringComparison.Ordinal))
+                    return "无势力";
+                return _charDefaultFactionDisplay;
+            }
+        }
+
+        /// <summary>展示 effective 势力身份。</summary>
+        public string EffectiveFactionRoleLabel
+        {
+            get
+            {
+                if (string.Equals(_factionModeKey, "Override", StringComparison.Ordinal))
+                    return UiLabels.ToLabel(UiLabels.FactionRoles, _overrideFactionRoleKey, "成员");
+                if (string.Equals(_factionModeKey, "Unaffiliated", StringComparison.Ordinal))
+                    return "无";
+                return _charDefaultRoleDisplay;
             }
         }
 
@@ -839,17 +1112,28 @@ public partial class MainWindow : Window
             }
         }
 
-        public string FactionRoleLabel
+        /// <summary>MainWindow 注入人物默认（人物页改动后刷新用）。</summary>
+        public void SetCharacterDefault(string factionDisplay, string roleDisplay)
         {
-            get => UiLabels.ToLabel(UiLabels.FactionRoles, _factionRole, "劳役弟子");
-            set
-            {
-                _factionRole = UiLabels.ToKey(UiLabels.FactionRoles, value, "LaborDisciple");
-                OnPropertyChanged();
-            }
+            _charDefaultFactionDisplay = string.IsNullOrEmpty(factionDisplay) ? "□ 无势力" : factionDisplay;
+            _charDefaultRoleDisplay = string.IsNullOrEmpty(roleDisplay) ? "无" : roleDisplay;
+            OnPropertyChanged(nameof(EffectiveFactionDisplay));
+            OnPropertyChanged(nameof(EffectiveFactionRoleLabel));
         }
 
-        public bool BindSchedule { get => _bindSchedule; set { _bindSchedule = value; OnPropertyChanged(); } }
+        static string ModeKeyToLabel(string key) => key switch
+        {
+            "Override" => "场景覆盖",
+            "Unaffiliated" => "无势力",
+            _ => "人物默认"
+        };
+
+        static string ModeLabelToKey(string label) => label switch
+        {
+            "场景覆盖" => "Override",
+            "无势力" => "Unaffiliated",
+            _ => "CharacterDefault"
+        };
 
         public event PropertyChangedEventHandler? PropertyChanged;
         void OnPropertyChanged([CallerMemberName] string? n = null) =>
@@ -858,17 +1142,34 @@ public partial class MainWindow : Window
         public static SpawnRow FromJson(JsonObject o)
         {
             var kind = JsonEdit.GetString(o, "entityKind", "npc");
-            return new SpawnRow(o)
+            var modeRaw = JsonEdit.GetString(o, "factionMode", string.Empty);
+            var factionId = JsonEdit.GetString(o, "factionId", string.Empty);
+
+            var row = new SpawnRow(o)
             {
                 DefinitionId = JsonEdit.GetString(o, "definitionId"),
                 DisplayName = JsonEdit.GetString(o, "displayName"),
                 _controllable = string.Equals(kind, "character", StringComparison.OrdinalIgnoreCase),
                 ScheduleId = JsonEdit.GetString(o, "scheduleId"),
                 _aiRole = JsonEdit.GetString(o, "aiRole", "Mortal"),
-                _factionRole = JsonEdit.GetString(o, "factionRole"),
-                _factionId = JsonEdit.GetString(o, "factionId"),
                 BindSchedule = o["bindSchedule"] is null || JsonEdit.GetBool(o, "bindSchedule", true)
             };
+            row._factionModeKey = NormalizeModeRaw(modeRaw, factionId);
+            row._overrideFactionId = factionId;
+            row._overrideFactionRoleKey = JsonEdit.GetString(o, "factionRole", string.Empty);
+            return row;
+        }
+
+        static string NormalizeModeRaw(string modeRaw, string factionId)
+        {
+            if (string.Equals(modeRaw, "Override", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(modeRaw, "场景覆盖", StringComparison.Ordinal))
+                return "Override";
+            if (string.Equals(modeRaw, "Unaffiliated", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(modeRaw, "无势力", StringComparison.Ordinal))
+                return "Unaffiliated";
+            // 缺省/CharacterDefault：无 factionId → 人物默认；有 factionId（legacy）→ Override。
+            return string.IsNullOrWhiteSpace(factionId) ? "CharacterDefault" : "Override";
         }
 
         public void AttachRaw(JsonObject raw) => _raw = raw;
@@ -896,17 +1197,28 @@ public partial class MainWindow : Window
             JsonEdit.SetString(_raw, "scheduleId", ScheduleId);
             JsonEdit.SetString(_raw, "aiRole", _aiRole);
             _raw.Remove("assignOpeningFaction");
-            if (string.IsNullOrWhiteSpace(_factionId))
+
+            switch (_factionModeKey)
             {
-                _raw.Remove("factionId");
-                _raw.Remove("factionRole");
-            }
-            else
-            {
-                _raw["factionId"] = _factionId;
-                if (string.IsNullOrWhiteSpace(_factionRole))
-                    throw new InvalidOperationException("选择所属势力后必须选择势力身份。");
-                _raw["factionRole"] = _factionRole;
+                case "Override":
+                    _raw["factionMode"] = "Override";
+                    if (string.IsNullOrWhiteSpace(_overrideFactionId))
+                        throw new InvalidOperationException("场景覆盖必须选择所属势力。");
+                    _raw["factionId"] = _overrideFactionId;
+                    if (string.IsNullOrWhiteSpace(_overrideFactionRoleKey))
+                        throw new InvalidOperationException("选择所属势力后必须选择势力身份。");
+                    _raw["factionRole"] = _overrideFactionRoleKey;
+                    break;
+                case "Unaffiliated":
+                    _raw["factionMode"] = "Unaffiliated";
+                    _raw.Remove("factionId");
+                    _raw.Remove("factionRole");
+                    break;
+                default: // CharacterDefault：不落盘，继承人物默认。
+                    _raw.Remove("factionMode");
+                    _raw.Remove("factionId");
+                    _raw.Remove("factionRole");
+                    break;
             }
         }
     }

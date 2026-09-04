@@ -7,6 +7,27 @@
 
 ---
 
+## 2026-09-04 — 人物编辑器首次设势力与底部摘要 HUD 修正（待 Unity 人工验收）
+
+- 修复原本无势力人物首次选择势力会因空身份立即清掉 `defaultFactionId`、再被 UI 重载回无势力的问题。现在选择非空势力自动设为「成员」；只有势力本身为空才清空字段与禁用身份下拉。刷新场景出场继承显示不再重载正在编辑的人物下拉框。
+- 底部人物 HUD 恢复为单一紧凑摘要，移除「况／属／灵／修／性／事／系」内部切换入口。高度从 210 调整为 228；地点与势力身份使用统一 Presentation Resolver，在固定的两行区域绘制，避免与心境条重叠。完整人物资料继续由右侧「人物」打开的 `HostCharacterSheetPanel` 负责。
+
+**验证**：CharacterNpcEditor Release 构建 0 warning／0 error；`git diff --check` 无空白错误。Unity Editor 编译与人工 UI 验收待执行。
+
+---
+
+## 2026-09-04 — 人物展示与默认势力开局链收口（待 Unity 人工验收）
+
+**势力链**：人物定义的 `defaultFactionId/defaultFactionRole` 仅作为新会话初始化种子；Spawn 的 `factionMode` 可选 `CharacterDefault`、`Override`、`Unaffiliated`。开局解析后，当前归属唯一读取 `FactionMembershipComponent`，存档恢复继续优先保存的 Runtime membership，不会被人物默认值回写覆盖。新增开局单次 `[OpeningFaction]` 开发追踪，并以 Level Tester Roster 的巡卫甲／乙／丙验证人物默认势力继承。
+
+**人物展示**：底部人物栏恢复接通既有「总／属／灵／修／性／事／系」七栏；势力显示改用正式中文势力名与身份，Presence 调试英文改为中文位置。新增只读 `HostCharacterPresentation` 汇总 Runtime 当前状态和人物定义的静态标签分类；详情页按身份、属性、灵根、性格、履历、天赋、活动倾向展示。人物详情打开时停止绘制世界头顶血条，避免覆盖 Modal；开发构建为打开人物详情记录实际 focus／subject。
+
+**编辑器提示**：保存人物状态栏会显示实际文件、默认势力及「下一次新建游戏会话生效，当前运行中游戏不会热重载」；顶部说明区明确保存人物、加入场景出场、导出 Level Tester 名册分别影响何处。
+
+**验证**：CharacterNpcEditor Release 构建 0 warning／0 error；Unity Editor／EditMode 尚待执行。
+
+---
+
 ## 2026-09-04 — WorldMap 历史验收追踪日志清理（仅日志）
 
 **范围**：删除已完成验收阶段遗留、会在正常交互中刷屏的 WorldMap 右键旅行／GatewayConfirm／Territory Border 追踪日志。

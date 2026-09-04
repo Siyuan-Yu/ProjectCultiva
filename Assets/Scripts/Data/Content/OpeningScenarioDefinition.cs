@@ -3,6 +3,19 @@ using XianXia.Core.Domain.Ids;
 
 namespace XianXia.Data.Content
 {
+    /// <summary>
+    /// Spawn 势力归属三模式：
+    /// CharacterDefault = 继承 CharacterDefinition.defaultFaction*（缺省即此值，不写 JSON）；
+    /// Override = 本次 Spawn 显式覆盖（必须带 factionId/factionRole）；
+    /// Unaffiliated = 本次 Spawn 明确无势力（禁止 factionId/factionRole）。
+    /// </summary>
+    public enum OpeningFactionMode
+    {
+        CharacterDefault = 0,
+        Override = 1,
+        Unaffiliated = 2
+    }
+
     /// <summary>Spawn instance 的可选 LocalMap 初始呈现坐标；(0,0) 也是合法值。</summary>
     public sealed class OpeningLocalPositionDefinition
     {
@@ -47,6 +60,16 @@ namespace XianXia.Data.Content
         public string FactionRole { get; set; }
         /// <summary>开局实例的显式势力归属；不从 CharacterDefinition 或 WorldSite 推断。</summary>
         public string FactionId { get; set; }
+
+        /// <summary>
+        /// 正式 Spawn 的势力三模式（缺省 = CharacterDefault）：
+        /// CharacterDefault（继承人物默认）/ Override（本 Spawn 覆盖）/ Unaffiliated（本次明确无势力）。
+        /// 旧 Content 缺省 + factionId 非空 = Legacy Explicit Override（兼容）。
+        /// </summary>
+        public OpeningFactionMode FactionMode { get; set; } = OpeningFactionMode.CharacterDefault;
+
+        /// <summary>JSON 是否显式写了 factionMode（用于区分「缺省 CharacterDefault」与「显式 CharacterDefault」）。</summary>
+        public bool FactionModeExplicit { get; set; }
         public bool BindSchedule { get; set; } = true;
         public bool BindDailyTask { get; set; } = true;
         public bool Recruitable { get; set; }

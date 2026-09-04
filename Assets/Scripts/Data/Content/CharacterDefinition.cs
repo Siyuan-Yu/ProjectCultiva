@@ -35,6 +35,16 @@ namespace XianXia.Data.Content
         /// <summary>击倒该角色时 setEncounterCleared 的遭遇 id。</summary>
         public string DefeatEncounterId { get; set; } = string.Empty;
 
+        /// <summary>
+        /// 人物「默认」初始势力（作者身份设定，不是 Runtime 当前势力真源）。
+        /// Scenario/Roster Spawn 缺省继承；特殊场景用 Spawn.factionMode=Override 覆盖。
+        /// 空 = 该人物默认无势力。运行后实际归属一律读 FactionMembershipComponent。
+        /// </summary>
+        public string DefaultFactionId { get; set; } = string.Empty;
+
+        /// <summary>默认势力身份（FactionRoleKind 文本）；DefaultFactionId 非空时必须有非 None 值。</summary>
+        public string DefaultFactionRole { get; set; } = string.Empty;
+
         /// <summary>Merged content tags applied to PersonalityProfile on spawn.</summary>
         public IEnumerable<string> EnumerateProfileTags()
         {

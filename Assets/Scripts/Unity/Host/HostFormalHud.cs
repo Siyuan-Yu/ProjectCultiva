@@ -33,7 +33,7 @@ namespace XianXia.Unity.Host
         const float OpsLegendH = 40f;
         /// <summary>顶栏 + 操作提示条占用高度（其它 IMGUI 面板应让位）。</summary>
         public const float HeaderReservedHeight = TopH + OpsLegendH + 4f;
-        const float BottomH = 210f;
+        const float BottomH = 228f;
         const float RailW = 260f;
         const float Pad = 8f;
         const float PanelW = 560f;
@@ -42,16 +42,6 @@ namespace XianXia.Unity.Host
         const float CombatArtRailW = 58f;
         const float CombatArtRailGap = 4f;
 
-        enum UnitTab
-        {
-            Overview = 0,
-            Attributes = 1,
-            SpiritRoots = 2,
-            Cultivation = 3,
-            Personality = 4,
-            Tendency = 5,
-            Relation = 6
-        }
 
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostSelectionController selectionController;
@@ -69,7 +59,6 @@ namespace XianXia.Unity.Host
         GUIStyle _parchmentBody;
         GUIStyle _small;
         bool _stylesReady;
-        UnitTab _unitTab = UnitTab.Overview;
         Texture2D _px;
         EntityId _unitPanelFocus = EntityId.None;
         // 左上角头像：双击左键 -> 镜头立即定位到当前 Active（不切换主控、不 Cancel Travel）。
@@ -989,27 +978,6 @@ namespace XianXia.Unity.Host
                 _parchmentTitle);
 
             var headerExtra = 0f;
-            if (CharacterWorldPresenceQuery.TryDescribe(
-                    session.World,
-                    focus,
-                    out var presenceState,
-                    out var presenceSiteId,
-                    out var presenceHex,
-                    out var localLoaded))
-            {
-                var siteLabel = string.IsNullOrEmpty(presenceSiteId)
-                    ? "—"
-                    : StrategicSiteAccessService.DescribeSite(session.World, presenceSiteId);
-                GUI.Label(
-                    new Rect(main.x + 14f, main.y + 30f + headerExtra, main.width - 24f, 18f),
-                    "Presence:" + presenceState +
-                    " · Site:" + siteLabel +
-                    " · Hex:" + presenceHex +
-                    " · Local:" + (localLoaded ? "Loaded" : "Unloaded"),
-                    _small);
-                headerExtra += 16f;
-            }
-
             if (isPartyMember && !isActive)
             {
                 GUI.Label(
@@ -1019,12 +987,12 @@ namespace XianXia.Unity.Host
                 headerExtra += 16f;
             }
 
-            var content = new Rect(
-                main.x + 12f,
-                main.y + 36f + headerExtra,
-                main.width - 24f,
-                main.height - 48f - headerExtra);
-            DrawOverviewBars(session, entity, cult, content);
+            var overviewArea = new Rect(
+                main.x + 14f,
+                main.y + 40f + headerExtra,
+                main.width - 28f,
+                main.height - 68f - headerExtra);
+            DrawOverviewBars(session, focus, entity, cult, overviewArea);
             GUI.Label(
                 new Rect(main.x + 14f, main.yMax - 22f, main.width - 28f, 18f),
                 "右侧 1–6 斗技可点放 · 详情（人物／境界／斗技／关系）· 打坐：F6",
@@ -1135,6 +1103,11 @@ namespace XianXia.Unity.Host
                 switch (i)
                 {
                     case 0:
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                        var subjectName = bootstrap?.Session?.World?.Entities.TryGet(focus, out var subject) == true
+                            ? subject.DisplayName : "?";
+                        Debug.Log("[CharacterUI] Open sheet request focusEntityId=" + focus + " focusName=" + subjectName);
+#endif
                         bootstrap?.CharacterSheetPanel?.OpenFor(focus);
                         break;
                     case 1:
@@ -1225,57 +1198,7 @@ namespace XianXia.Unity.Host
             veil.ToastToggleResult(focus, ok, msg);
         }
 
-        void DrawUnitTabs(Rect strip)
-        {
-            var names = new[] { "况", "属", "灵", "修", "性", "事", "系" };
-            var h = Mathf.Min(32f, (strip.height - 6f * (names.Length - 1)) / names.Length);
-            for (var i = 0; i < names.Length; i++)
-            {
-                var r = new Rect(strip.x, strip.y + i * (h + 6f), strip.width, h);
-                var on = (int)_unitTab == i;
-                Fill(r, on ? AccentGold : ParchmentDark);
-                if (GUI.Button(r, names[i], _small))
-                {
-                    _unitTab = (UnitTab)i;
-                    _unitPanelScroll = Vector2.zero;
-                }
-            }
-        }
-
-        void DrawUnitTabContent(
-            PlayableHostSession session,
-            EntityId focus,
-            Entity entity,
-            CultivationComponent cult,
-            Rect area)
-        {
-            switch (_unitTab)
-            {
-                case UnitTab.Overview:
-                    DrawOverviewBars(session, entity, cult, area);
-                    break;
-                case UnitTab.Attributes:
-                    DrawAttributesTab(entity, area);
-                    break;
-                case UnitTab.SpiritRoots:
-                    DrawSpiritRootsTab(entity, area);
-                    break;
-                case UnitTab.Cultivation:
-                    DrawCultivationTab(entity, cult, area);
-                    break;
-                case UnitTab.Personality:
-                    DrawPersonalityTab(entity, area);
-                    break;
-                case UnitTab.Tendency:
-                    DrawTendencyTab(entity, area);
-                    break;
-                case UnitTab.Relation:
-                    DrawScrollText(area, BuildRelationText(session, focus));
-                    break;
-            }
-        }
-
-        void DrawOverviewBars(PlayableHostSession session, Entity entity, CultivationComponent cult, Rect area)
+        void DrawOverviewBars(PlayableHostSession session, EntityId focus, Entity entity, CultivationComponent cult, Rect area)
         {
             var leftW = area.width * 0.48f;
             var rightX = area.x + area.width * 0.52f;
@@ -1376,42 +1299,17 @@ namespace XianXia.Unity.Host
                 ry += 22f;
             }
 
-            var infoY = Mathf.Max(y, ry) + 6f;
+            var factsY = area.y + 112f;
+            HostCharacterPresentationResolver.TryBuild(session, focus, out var presentation);
             GUI.Label(
-                new Rect(area.x, infoY, area.width, area.yMax - infoY),
-                BuildOverviewFacts(session, entity),
+                new Rect(area.x, factsY, area.width, 18f),
+                "地点：" + (presentation?.Location ?? "未知"),
                 _parchmentBody);
-        }
-
-        string BuildOverviewFacts(PlayableHostSession session, Entity entity)
-        {
-            var sb = new StringBuilder(256);
-            if (entity.TryGet<EntityLocationComponent>(out var loc) && loc.HasLocation &&
-                session.World.WorldRegion.TryGet(loc.LocationId, out var place))
-            {
-                var placeName = string.IsNullOrEmpty(place.Name) ? place.Id : place.Name;
-                sb.Append("地点 ").Append(placeName).Append('\n');
-            }
-
-            if (entity.TryGet<FactionMembershipComponent>(out var faction) && faction.IsAffiliated)
-                sb.Append("阵营 ").Append(ShortId(faction.FactionId))
-                    .Append(" · ").Append(FactionRoleName(faction.Role)).Append('\n');
-
-            if (entity.TryGet<PersonalConcealmentRiskComponent>(out var risk))
-                sb.Append("暴露 ").Append(risk.Value).Append("/100\n");
-
-            if (entity.TryGet<ScheduleComponent>(out var sched) &&
-                !string.IsNullOrEmpty(sched.DefinitionId))
-                sb.Append("课表 ").Append(ShortId(sched.DefinitionId)).Append('\n');
-
-            if (entity.TryGet<ActivityTendencyComponent>(out var tendency) &&
-                !string.IsNullOrEmpty(tendency.HomeWorkAreaId))
-                sb.Append("住房 ").Append(ShortId(tendency.HomeWorkAreaId)).Append('\n');
-
-            if (entity.TryGet<IdentityComponent>(out var id))
-                sb.Append("定义 ").Append(ShortId(id.DefinitionId.ToString()));
-
-            return sb.Length == 0 ? "—" : sb.ToString();
+            GUI.Label(
+                new Rect(area.x, factsY + 20f, area.width, 18f),
+                "势力：" + (presentation?.FactionName ?? "无") +
+                " · 身份：" + (presentation?.FactionRole ?? "无"),
+                _parchmentBody);
         }
 
         void DrawAttributesTab(Entity entity, Rect area)

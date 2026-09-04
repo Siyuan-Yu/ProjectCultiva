@@ -49,6 +49,8 @@
     {
       "id": "base:character_protagonist",
       "type": "character",
+      "defaultFactionId": "base:faction_player",
+      "defaultFactionRole": "LaborDisciple",
       "name": "主角",
       "playerControllable": true,
       "displayNameKey": "character.protagonist",
@@ -95,6 +97,8 @@
     {
       "id": "base:character_companion_a",
       "type": "character",
+      "defaultFactionId": "base:faction_player",
+      "defaultFactionRole": "LaborDisciple",
       "name": "同伴甲",
       "playerControllable": true,
       "displayNameKey": "character.companion_a",
@@ -141,6 +145,8 @@
     {
       "id": "base:character_companion_b",
       "type": "character",
+      "defaultFactionId": "base:faction_player",
+      "defaultFactionRole": "LaborDisciple",
       "name": "同伴乙",
       "playerControllable": true,
       "displayNameKey": "character.companion_b",

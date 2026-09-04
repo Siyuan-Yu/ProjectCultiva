@@ -141,6 +141,7 @@ Hex 战略世界 JSON（`Content/BaseGame/Data/Worlds/*.json`）；由 `HexWorld
 | `playerControllable` | 编辑器默认「可控制」；出场 `entityKind` 为准（character＝进 CharacterIds） |
 | `personalityTags`／`backgroundTags`／`talentTags` | 合并进 PersonalityProfile（顺序：personality→background→talent→tags） |
 | `spiritRootPlaceholder`／`initialRealmPlaceholder` | 占位 |
+| `defaultFactionId`／`defaultFactionRole` | 人物**默认**开局势力（作者设定，非 Runtime 当前归属）。缺省两者都不写。`defaultFactionId` 非空时必须存在且 `defaultFactionRole` 为非 None `FactionRoleKind`；`defaultFactionId` 空则 `defaultFactionRole` 必须为空。Scenario/Roster Spawn 缺省继承；运行后归属真源是 `FactionMembershipComponent`（招募／离队／投奔不回写这里） |
 
 ## type = cultivation
 
@@ -215,7 +216,7 @@ Hex 战略世界 JSON（`Content/BaseGame/Data/Worlds/*.json`）；由 `HexWorld
 
 | Field | Notes |
 |---|---|
-| `entries[]` | 与 openingScenario.spawns 同形：definitionId／entityKind／factionId／factionRole／aiRole／scheduleId／…；同样支持 worldSiteId／localLocationId／localPosition。名册存在时由名册决定试玩刷谁；远程常驻 NPC 可用 worldSiteId 指定所属 WorldSite。 |
+| `entries[]` | 与 openingScenario.spawns 同形：definitionId／entityKind／factionMode／factionId／factionRole／aiRole／scheduleId／…；同样支持 worldSiteId／localLocationId／localPosition。名册存在时由名册决定试玩刷谁；远程常驻 NPC 可用 worldSiteId 指定所属 WorldSite。factionMode 三模式同 spawn（缺省继承人物 default，正常继承行不写 factionId）。 |
 
 人物本体在 `Characters/`；本表只回答「试玩时刷谁」。Level Tester 默认读 `base:roster_level_tester`（人物编辑器「导出 Level Tester 名册」）。**不是** Unity 场景里摆好的 GameObject。
 
@@ -223,7 +224,7 @@ Hex 战略世界 JSON（`Content/BaseGame/Data/Worlds/*.json`）；由 `HexWorld
 
 | Field | Notes |
 |---|---|
-| `scheduleId`／`openingFactionId` | 开局日程／势力 |
+| `scheduleId`／`openingFactionId` | 开局日程／势力（`openingFactionId` 仅 Legacy 兼容，正式 JSON 不写；新势力规则见 spawn entry） |
 | `openingSettlementId` | VS0.8 据点定义 |
 | `openingWorldRegionId` | VS0.9 区域定义 |
 | `openingChapterId` | Chapter Production：开局激活章节 |
@@ -253,9 +254,13 @@ Hex 战略世界 JSON（`Content/BaseGame/Data/Worlds/*.json`）；由 `HexWorld
 
 ### spawn entry
 
-`definitionId`、`entityKind`（character＝可控制／进 CharacterIds｜npc）、`displayName`、`factionId`、`factionRole`、`bindSchedule`、`bindDailyTask`、`recruitable`、`workRole`（Labor｜Gather｜Cultivate）、`scheduleId`、`aiRole`。人物「可控制」与 `entityKind` 对齐。不再使用职业式 `jobId`。
+`definitionId`、`entityKind`（character＝可控制／进 CharacterIds｜npc）、`displayName`、`factionMode`、`factionId`、`factionRole`、`bindSchedule`、`bindDailyTask`、`recruitable`、`workRole`（Labor｜Gather｜Cultivate）、`scheduleId`、`aiRole`。人物「可控制」与 `entityKind` 对齐。不再使用职业式 `jobId`。
 
-开局成员资格只由 Spawn Entry 决定：`factionId` 非空时 `factionRole` 必须是非 None 的 `FactionRoleKind`；`factionId` 为空时 `factionRole` 必须省略/为空，表示无势力。`assignOpeningFaction` 与 scenario.`openingFactionId` 仅为 Loader 的旧 Content 兼容字段，BaseGame 正式 JSON 不得写入。CharacterDefinition 永远不保存当前 faction。
+势力归属三模式（`factionMode` 缺省 = CharacterDefault，正常 Spawn 不写）：
+- `CharacterDefault`（缺省）：继承人物 `defaultFaction*`；Spawn 自己不得带 `factionId`／`factionRole`。
+- `Override`：本次 Spawn 显式覆盖（人物默认之外），必须带非空 `factionId` ＋ 非 None `factionRole`，且 faction 必须存在。
+- `Unaffiliated`：本次 Spawn 明确无势力；禁止带 `factionId`／`factionRole`。
+旧 Content 兼容（Loader 按 legacy 处理并告警，BaseGame 正式 JSON 不得依赖）：无 `factionMode` 但带 `factionId`＝Legacy Explicit Override；`assignOpeningFaction` 与 scenario.`openingFactionId` 为更老一层。角色运行中招募／离队／投奔只改 `FactionMembershipComponent`。
 
 可选位置字段互不替代：`worldSiteId` 表示宏观 WorldSite 存在；`localLocationId` 表示逻辑/语义 LocalPlace（工作、日程、探索或移动目的地）；`localPosition` 为 spawn instance 的精确初始呈现坐标，格式为 `{ "x": 数值, "z": 数值 }`，`(0,0)` 合法。`localLocationId` 与 `localPosition` 可同时存在；没有逻辑地点的静态 NPC 也可仅使用 `worldSiteId + localPosition`。不要为单个 NPC 的站立坐标创建假的 LocalPlace。
 

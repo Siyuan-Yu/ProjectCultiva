@@ -39,7 +39,8 @@
       "hometown": "青石镇",
       "reputation": 0,
       "goals": [],
-      "desires": []
+      "desires": [],
+      "playerControllable": false
     },
     {
       "id": "base:character_qingshi_acceptance_unaffiliated_b",
@@ -79,7 +80,8 @@
       "hometown": "青石镇",
       "reputation": 0,
       "goals": [],
-      "desires": []
+      "desires": [],
+      "playerControllable": false
     },
     {
       "id": "base:character_qingshi_acceptance_unaffiliated_hostile",
@@ -121,11 +123,14 @@
       "hometown": "青石镇",
       "reputation": 0,
       "goals": [],
-      "desires": []
+      "desires": [],
+      "playerControllable": false
     },
     {
       "id": "base:character_qingshi_acceptance_shuofeng_civilian_a",
       "type": "character",
+      "defaultFactionId": "base:faction_shuofeng",
+      "defaultFactionRole": "Member",
       "name": "朔风镇民甲",
       "baseAttributes": {
         "MaxHp": 100,
@@ -161,11 +166,14 @@
       "hometown": "朔风堡",
       "reputation": 0,
       "goals": [],
-      "desires": []
+      "desires": [],
+      "playerControllable": false
     },
     {
       "id": "base:character_qingshi_acceptance_shuofeng_civilian_b",
       "type": "character",
+      "defaultFactionId": "base:faction_shuofeng",
+      "defaultFactionRole": "Member",
       "name": "朔风镇民乙",
       "baseAttributes": {
         "MaxHp": 100,
@@ -201,7 +209,8 @@
       "hometown": "朔风堡",
       "reputation": 0,
       "goals": [],
-      "desires": []
+      "desires": [],
+      "playerControllable": false
     },
     {
       "id": "base:character_qingshi_acceptance_shuofeng_guard",

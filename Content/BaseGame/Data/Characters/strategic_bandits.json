@@ -16,10 +16,56 @@
         "background_bandit"
       ],
       "talentTags": [],
-      "hometown": "",
       "reputation": 0,
       "goals": [],
-      "desires": []
+      "desires": [],
+      "defaultFactionId": "base:faction_bandits",
+      "defaultFactionRole": "Supervisor",
+      "playerControllable": false,
+      "preferredWorkAreaIds": [],
+      "homeWorkAreaId": "",
+      "baseAttributes": {
+        "MaxHp": 0,
+        "Stamina": 0,
+        "Attack": 0,
+        "Defense": 0,
+        "Speed": 0,
+        "SpiritSense": 0,
+        "Comprehension": 0,
+        "SpiritPower": 0,
+        "Cultivation": 0,
+        "MindState": 0
+      },
+      "spiritRoots": {
+        "Fire": 0,
+        "Metal": 0,
+        "Earth": 0,
+        "Wood": 0,
+        "Thunder": 0,
+        "Wind": 0,
+        "Ice": 0,
+        "Poison": 0
+      },
+      "activityCapabilities": {
+        "Labor": true,
+        "Rest": true,
+        "Eat": true,
+        "Cultivate": true,
+        "Explore": true,
+        "Patrol": true,
+        "Inspect": true,
+        "Idle": true
+      },
+      "activityPriorities": {
+        "Labor": 0,
+        "Rest": 0,
+        "Eat": 0,
+        "Cultivate": 0,
+        "Explore": 0,
+        "Patrol": 0,
+        "Inspect": 0,
+        "Idle": 0
+      }
     },
     {
       "id": "base:character_bandit_patrol_grunt",
@@ -39,7 +85,9 @@
       "hometown": "",
       "reputation": 0,
       "goals": [],
-      "desires": []
+      "desires": [],
+      "defaultFactionId": "base:faction_bandits",
+      "defaultFactionRole": "Member"
     },
     {
       "id": "base:character_bandit_weak_grunt",
@@ -95,7 +143,9 @@
       "hometown": "",
       "reputation": 0,
       "goals": [],
-      "desires": []
+      "desires": [],
+      "defaultFactionId": "base:faction_bandits",
+      "defaultFactionRole": "Member"
     }
   ]
 }

@@ -292,7 +292,9 @@ namespace XianXia.Data.Content
                 NameKey = item.GetString("nameKey", string.Empty),
                 SpiritRootPlaceholder = item.GetString("spiritRootPlaceholder", string.Empty),
                 InitialRealmPlaceholder = item.GetString("initialRealmPlaceholder", string.Empty),
-                PlayerControllable = item.GetBool("playerControllable", false)
+                PlayerControllable = item.GetBool("playerControllable", false),
+                DefaultFactionId = item.GetString("defaultFactionId", string.Empty),
+                DefaultFactionRole = item.GetString("defaultFactionRole", string.Empty)
             };
 
             if (item.TryGetProperty("baseAttributes", out var attrs))
@@ -723,6 +725,8 @@ namespace XianXia.Data.Content
                         EntityKind = spawnNode.GetString("entityKind", "character"),
                         DisplayName = spawnNode.GetString("displayName", string.Empty),
                         AssignOpeningFaction = spawnNode.GetBool("assignOpeningFaction", false),
+                        FactionMode = ReadFactionMode(spawnNode, id + ".spawn", report, errorsBefore, out var modeExplicit),
+                        FactionModeExplicit = modeExplicit,
                         FactionId = spawnNode.GetString("factionId", string.Empty),
                         FactionRole = spawnNode.GetString("factionRole", string.Empty),
                         BindSchedule = spawnNode.GetBool("bindSchedule", true),
@@ -735,6 +739,8 @@ namespace XianXia.Data.Content
                         WorldSiteId = spawnNode.GetString("worldSiteId", string.Empty),
                         LocalLocationId = spawnNode.GetString("localLocationId", string.Empty)
                     };
+                    if (report.Errors.Count > errorsBefore)
+                        return;
                     if (!TryReadOpeningLocalPosition(spawnNode, id + ".spawn", report, out var localPosition))
                         return;
                     entry.LocalPosition = localPosition;
@@ -1041,6 +1047,8 @@ namespace XianXia.Data.Content
                     EntityKind = spawnNode.GetString("entityKind", "character"),
                     DisplayName = spawnNode.GetString("displayName", string.Empty),
                     AssignOpeningFaction = spawnNode.GetBool("assignOpeningFaction", false),
+                    FactionMode = ReadFactionMode(spawnNode, id + ".entry", report, errorsBefore, out var rosterModeExplicit),
+                    FactionModeExplicit = rosterModeExplicit,
                     FactionId = spawnNode.GetString("factionId", string.Empty),
                     FactionRole = spawnNode.GetString("factionRole", string.Empty),
                     BindSchedule = spawnNode.GetBool("bindSchedule", true),
@@ -1053,6 +1061,8 @@ namespace XianXia.Data.Content
                     WorldSiteId = spawnNode.GetString("worldSiteId", string.Empty),
                     LocalLocationId = spawnNode.GetString("localLocationId", string.Empty)
                 };
+                if (report.Errors.Count > errorsBefore)
+                    return;
                 if (!TryReadOpeningLocalPosition(spawnNode, id + ".entry", report, out var localPosition))
                     return;
                 entry.LocalPosition = localPosition;
@@ -1104,6 +1114,35 @@ namespace XianXia.Data.Content
             }
             position = new OpeningLocalPositionDefinition { X = (float)x.Number, Z = (float)z.Number };
             return true;
+        }
+
+        /// <summary>
+        /// 读 spawn factionMode（缺省 = CharacterDefault）。非法值 = Content error。
+        /// </summary>
+        static OpeningFactionMode ReadFactionMode(
+            JsonValue node,
+            string context,
+            ValidationReport report,
+            int errorsBefore,
+            out bool modeExplicit)
+        {
+            modeExplicit = node.TryGetProperty("factionMode", out var modeNode);
+            if (!modeExplicit)
+                return OpeningFactionMode.CharacterDefault;
+            var text = modeNode.Kind == JsonValueKind.String
+                ? (string)modeNode.String
+                : string.Empty;
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                modeExplicit = false;
+                return OpeningFactionMode.CharacterDefault;
+            }
+            if (Enum.TryParse(text.Trim(), ignoreCase: true, out OpeningFactionMode mode))
+                return mode;
+            report.Add(ErrorCode.InvalidArgument,
+                "Unknown factionMode '" + text + "' (expected CharacterDefault|Override|Unaffiliated).",
+                context + ".factionMode");
+            return OpeningFactionMode.CharacterDefault;
         }
 
         static void LoadResource(

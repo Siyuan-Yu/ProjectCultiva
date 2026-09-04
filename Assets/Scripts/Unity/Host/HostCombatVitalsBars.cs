@@ -42,6 +42,9 @@ namespace XianXia.Unity.Host
         {
             if (bootstrap?.Session?.World == null || viewSpawner == null)
                 return;
+            // 人物详情是硬模态；世界头顶条不得穿透到其上层。
+            if (bootstrap.CharacterSheetPanel != null && bootstrap.CharacterSheetPanel.IsOpen)
+                return;
             if (worldCamera == null)
                 worldCamera = Camera.main;
             if (worldCamera == null)

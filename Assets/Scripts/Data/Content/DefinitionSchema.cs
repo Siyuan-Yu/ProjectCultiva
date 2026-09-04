@@ -18,7 +18,7 @@ namespace XianXia.Data.Content
             "spiritRootPlaceholder", "spiritRoots", "initialRealmPlaceholder",
             "hometown", "reputation", "goals", "desires",
             "playerControllable", "activityCapabilities", "activityPriorities", "preferredWorkAreaIds",
-            "homeWorkAreaId", "defeatEncounterId"
+            "homeWorkAreaId", "defeatEncounterId", "defaultFactionId", "defaultFactionRole"
         };
 
         public static readonly HashSet<string> OpeningScenarioFields = new HashSet<string>(StringComparer.Ordinal)
@@ -186,7 +186,7 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> OpeningSpawnFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "definitionId", "entityKind", "displayName", "assignOpeningFaction", "factionId", "factionRole",
+            "definitionId", "entityKind", "displayName", "assignOpeningFaction", "factionMode", "factionId", "factionRole",
             "bindSchedule", "bindDailyTask", "recruitable", "workRole", "scheduleId", "aiRole", "jobId",
             "worldSiteId", "localLocationId", "localPosition"
         };

@@ -1,8 +1,13 @@
 <Window x:Class="CharacterNpcEditor.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:CharacterNpcEditor"
         Title="XianXia · 人物编辑器" Height="920" Width="1320"
         WindowStartupLocation="CenterScreen">
+  <Window.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis"/>
+  </Window.Resources>
   <DockPanel Margin="10">
     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
       <Button Content="打开包…" Width="90" Margin="0,0,8,0" Click="OpenPackage_Click"/>
@@ -10,7 +15,7 @@
       <Button Content="保存场景出场" Width="110" Margin="0,0,8,0" Click="SaveSpawn_Click"/>
       <Button Content="导出 Level Tester 名册" Width="150" Margin="0,0,8,0" Click="ExportRoster_Click"/>
       <TextBlock VerticalAlignment="Center" Margin="0,0,8,0" TextWrapping="Wrap"
-                 Text="人物→Characters/；出场→Scenarios/；名册→Rosters/（试玩刷人用）。后两项会弹出另存为，默认当前文件，保存后不退出。"/>
+                 Text="保存人物＝保存人物定义；加入当前场景出场＝让人物进入该场景；导出 Level Tester 名册＝保存试玩默认出场集合。人物默认势力在下一次新建游戏会话生效，当前运行中的游戏不会热重载。"/>
       <TextBlock x:Name="RootText" VerticalAlignment="Center"/>
     </StackPanel>
     <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Margin="0,8,0,0"/>
@@ -49,6 +54,15 @@
               <DockPanel Margin="0,0,0,8">
                 <CheckBox x:Name="ControllableBox" Content="玩家可控制（进队伍／可选中下令）"
                           VerticalAlignment="Center" Checked="ControllableBox_Changed" Unchecked="ControllableBox_Changed"/>
+              </DockPanel>
+              <TextBlock FontWeight="SemiBold" Margin="0,6,0,4" Text="初始势力归属（默认开局归属；特殊场景可在「场景出场」覆盖，运行后由 Runtime 状态决定）"/>
+              <DockPanel Margin="0,0,0,6">
+                <TextBlock Text="所属势力" Width="120" VerticalAlignment="Center"/>
+                <ComboBox x:Name="DefaultFactionBox" SelectionChanged="DefaultFactionBox_Changed"/>
+              </DockPanel>
+              <DockPanel Margin="0,0,0,8">
+                <TextBlock Text="势力身份" Width="120" VerticalAlignment="Center"/>
+                <ComboBox x:Name="DefaultFactionRoleBox" IsEnabled="False" SelectionChanged="DefaultFactionRoleBox_Changed"/>
               </DockPanel>
               <TextBlock x:Name="TalkEventsHint" TextWrapping="Wrap" Margin="0,0,0,8" Foreground="#555"
                          Text="关联 onTalk 事件：选中人物后显示（对话发任务在事件编辑器配置）"/>
@@ -150,7 +164,7 @@
                 <ComboBox x:Name="ScenarioBox" SelectionChanged="ScenarioBox_SelectionChanged"/>
               </DockPanel>
               <TextBlock TextWrapping="Wrap" Foreground="#555"
-                         Text="「出场」＝把人物写进 scenarios.json 的 spawns：这一局开场谁在场上。不是改人物本体。&#x0a;可控制＝玩家能选中下令；势力职务＝开局势力里的身份；AI 倾向＝日程／意图粗分类（凡人／修士／主管），不是职业。"/>
+                         Text="「出场」＝把人物写进 scenarios.json 的 spawns：这一局开场谁在场上。不是改人物本体。&#x0a;可控制＝玩家能选中下令；AI 倾向＝日程／意图粗分类（凡人／修士／主管），不是职业。&#x0a;势力来源：人物默认＝继承人物页设置的初始势力；场景覆盖＝仅这个场景使用不同势力；无势力＝仅这个场景明确取消人物默认势力。"/>
             </StackPanel>
             <Grid>
               <Grid.RowDefinitions>
@@ -160,14 +174,56 @@
               <DataGrid x:Name="SpawnGrid" AutoGenerateColumns="False" CanUserAddRows="False"
                         SelectionChanged="SpawnGrid_SelectionChanged">
                 <DataGrid.Columns>
-                  <DataGridTextColumn Header="definitionId" Binding="{Binding DefinitionId}" Width="200" IsReadOnly="True"/>
-                  <DataGridTextColumn Header="显示名" Binding="{Binding DisplayName}" Width="90"/>
-                  <DataGridCheckBoxColumn Header="可控制" Binding="{Binding Controllable, UpdateSourceTrigger=PropertyChanged}" Width="60"/>
-                  <DataGridComboBoxColumn x:Name="SpawnSchedCol" Header="日程（过渡）" SelectedItemBinding="{Binding ScheduleId}" Width="170"/>
-                  <DataGridComboBoxColumn x:Name="SpawnAiCol" Header="AI倾向" SelectedItemBinding="{Binding AiRoleLabel}" Width="100"/>
-                  <DataGridComboBoxColumn x:Name="SpawnFactionCol" Header="所属势力" SelectedValueBinding="{Binding FactionId, UpdateSourceTrigger=PropertyChanged}" Width="180"/>
-                  <DataGridComboBoxColumn x:Name="SpawnFactionRoleCol" Header="势力身份" SelectedItemBinding="{Binding FactionRoleLabel}" Width="100"/>
-                  <DataGridCheckBoxColumn Header="绑日程" Binding="{Binding BindSchedule}" Width="55"/>
+                  <DataGridTextColumn Header="definitionId" Binding="{Binding DefinitionId}" Width="190" IsReadOnly="True"/>
+                  <DataGridTextColumn Header="显示名" Binding="{Binding DisplayName}" Width="80"/>
+                  <DataGridCheckBoxColumn Header="可控制" Binding="{Binding Controllable, UpdateSourceTrigger=PropertyChanged}" Width="55"/>
+                  <DataGridTemplateColumn Header="势力来源" Width="96">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate>
+                        <ComboBox ItemsSource="{Binding FactionModeLabels}" SelectedItem="{Binding FactionModeLabel, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch"/>
+                      </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
+                  <DataGridTemplateColumn Header="所属势力" Width="190">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate>
+                        <StackPanel>
+          <ComboBox ItemsSource="{Binding FactionChoices}" DisplayMemberPath="Display" SelectedValuePath="Id"
+                                    SelectedValue="{Binding OverrideFactionId, UpdateSourceTrigger=PropertyChanged}"
+                                    Visibility="{Binding IsFactionOverride, Converter={StaticResource BoolToVis}}"/>
+                          <TextBlock Text="{Binding EffectiveFactionDisplay}" Foreground="#666"
+                                     Visibility="{Binding IsFactionOverride, Converter={StaticResource InverseBoolToVis}}"/>
+                        </StackPanel>
+                      </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
+                  <DataGridTemplateColumn Header="势力身份" Width="100">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate>
+                        <StackPanel>
+                          <ComboBox ItemsSource="{Binding FactionRoleLabels}" SelectedItem="{Binding OverrideFactionRoleLabel, UpdateSourceTrigger=PropertyChanged}"
+                                    Visibility="{Binding IsFactionOverride, Converter={StaticResource BoolToVis}}"/>
+                          <TextBlock Text="{Binding EffectiveFactionRoleLabel}" Foreground="#666"
+                                     Visibility="{Binding IsFactionOverride, Converter={StaticResource InverseBoolToVis}}"/>
+                        </StackPanel>
+                      </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
+                  <DataGridTemplateColumn Header="日程（过渡）" Width="150">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate>
+                        <ComboBox ItemsSource="{Binding ScheduleChoices}" SelectedItem="{Binding ScheduleId, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch"/>
+                      </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
+                  <DataGridTemplateColumn Header="AI倾向" Width="92">
+                    <DataGridTemplateColumn.CellTemplate>
+                      <DataTemplate>
+                        <ComboBox ItemsSource="{Binding AiRoleLabels}" SelectedItem="{Binding AiRoleLabel, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch"/>
+                      </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                  </DataGridTemplateColumn>
+                  <DataGridCheckBoxColumn Header="绑日程" Binding="{Binding BindSchedule}" Width="50"/>
                 </DataGrid.Columns>
               </DataGrid>
               <TextBlock Grid.Row="1" x:Name="SpawnHint" Margin="0,8,0,0" TextWrapping="Wrap"/>
