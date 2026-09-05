@@ -8,7 +8,7 @@ using XianXia.Data.Content;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// 主管府突击：靠近后按正式近战节奏／属性伤害拆耐久，破门后站立占领。
+    /// 议政厅突击：靠近后按正式近战节奏／属性伤害拆耐久，破门后站立占领。
     /// </summary>
     public sealed class HostControlCoreAssault : MonoBehaviour
     {
@@ -60,7 +60,7 @@ namespace XianXia.Unity.Host
                 return;
 
             var world = bootstrap.Session.World;
-            if (!world.ControlCores.TryGet(_targetWorkAreaId, out var core) || core.PlayerControlled)
+            if (!world.ControlCores.TryGet(_targetWorkAreaId, out var core))
             {
                 Clear();
                 return;
@@ -112,10 +112,10 @@ namespace XianXia.Unity.Host
             }
 
             ControlCoreService.TickOccupy(world, _targetWorkAreaId, dt, true);
-            if (world.ControlCores.TryGet(_targetWorkAreaId, out core) && core.PlayerControlled)
+            if (world.ControlCores.TryGet(_targetWorkAreaId, out core) && !core.CaptureAvailable && core.CurrentDurability > 0)
             {
                 if (_actorScratch.Count > 0)
-                    Toast(_actorScratch[0], "已占领主管府", new Color(0.45f, 1f, 0.55f));
+                    Toast(_actorScratch[0], "已占领议政厅", new Color(0.45f, 1f, 0.55f));
                 Clear();
             }
         }

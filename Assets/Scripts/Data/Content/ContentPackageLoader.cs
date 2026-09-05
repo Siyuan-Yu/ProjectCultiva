@@ -1000,7 +1000,8 @@ namespace XianXia.Data.Content
                 {
                     CharacterDefinitionId = memberNode.GetString("characterDefinitionId", string.Empty),
                     DisplayName = memberNode.GetString("displayName", string.Empty),
-                    Leader = memberNode.GetBool("leader", false)
+                    Leader = memberNode.GetBool("leader", false),
+                    ReuseOpeningSpawn = memberNode.GetBool("reuseOpeningSpawn", false)
                 };
                 if (string.IsNullOrWhiteSpace(member.CharacterDefinitionId))
                 {

@@ -55,5 +55,8 @@ namespace XianXia.Data.Content
         public string DisplayName { get; set; } = string.Empty;
 
         public bool Leader { get; set; }
+
+        /// <summary>复用 OpeningScenario 已生成的唯一角色实体，不重复生成并保留其日程、AI、住处和身份。</summary>
+        public bool ReuseOpeningSpawn { get; set; }
     }
 }

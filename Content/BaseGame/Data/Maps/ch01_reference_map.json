@@ -21,7 +21,7 @@
           "w": 8,
           "h": 8,
           "blocksMovement": true,
-          "label": "主管府（城镇控制核心）",
+          "label": "议政厅（城镇控制核心）",
           "boundLocationId": "base:loc_ref_road_hub"
         },
         {

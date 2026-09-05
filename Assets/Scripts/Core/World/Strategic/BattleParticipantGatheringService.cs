@@ -48,7 +48,7 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 if (!ArmyPostBattleSyncService.HasMacroOrderLivingMember(world, army))
                     continue;
-                if (!IsCombatSideFaction(army.FactionId, playerFaction, enemyFaction))
+                if (!TryResolveCombatSide(world, army.FactionId, playerFaction, enemyFaction, out var isPlayerSide))
                     continue;
                 if (IsArmyLockedInAnotherBattle(world, army.ArmyId, engagement.EngagementId))
                     continue;
@@ -58,9 +58,10 @@ namespace XianXia.Core.World.Strategic
                     !supportArea.Contains(armyHex))
                     continue;
 
-                AddArmyByFaction(
-                    engagement, army, playerFaction, enemyFaction,
-                    BattleParticipantInclusionReason.SupportAreaArmy);
+                if (isPlayerSide)
+                    engagement.AddPlayerFormalArmy(army.ArmyId);
+                else
+                    engagement.AddEnemyFormalArmy(army.ArmyId);
             }
 
             if (engagement.InitiatorKind == BattleInitiatorKind.PlayerParty)
@@ -198,9 +199,32 @@ namespace XianXia.Core.World.Strategic
             string.Equals(armyId, initiatorId, StringComparison.Ordinal) ||
             string.Equals(armyId, defenderId, StringComparison.Ordinal);
 
-        static bool IsCombatSideFaction(string factionId, string playerFaction, string enemyFaction) =>
-            string.Equals(factionId, playerFaction, StringComparison.Ordinal) ||
-            string.Equals(factionId, enemyFaction, StringComparison.Ordinal);
+        static bool TryResolveCombatSide(
+            SimulationWorld world,
+            string factionId,
+            string playerFaction,
+            string enemyFaction,
+            out bool isPlayerSide)
+        {
+            isPlayerSide = false;
+            if (string.IsNullOrEmpty(factionId))
+                return false;
+            foreach (var war in world.Strategic.Wars.EnumerateActive())
+            {
+                if (war.IsAttacker(playerFaction) && war.IsDefender(enemyFaction))
+                {
+                    if (war.IsAttacker(factionId)) { isPlayerSide = true; return true; }
+                    if (war.IsDefender(factionId)) return true;
+                }
+                if (war.IsDefender(playerFaction) && war.IsAttacker(enemyFaction))
+                {
+                    if (war.IsDefender(factionId)) { isPlayerSide = true; return true; }
+                    if (war.IsAttacker(factionId)) return true;
+                }
+            }
+            if (string.Equals(factionId, playerFaction, StringComparison.Ordinal)) { isPlayerSide = true; return true; }
+            return string.Equals(factionId, enemyFaction, StringComparison.Ordinal);
+        }
 
         static bool IsArmyLockedInAnotherBattle(
             SimulationWorld world,

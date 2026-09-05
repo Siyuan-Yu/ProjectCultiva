@@ -4,6 +4,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Exploration;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 
 namespace XianXia.Data.Bootstrap
@@ -39,7 +40,10 @@ namespace XianXia.Data.Bootstrap
                 return Result.Success();
             }
 
-            return PlaceOpeningSpawns(world, scenario, lookup, spawnEntries);
+            var spawns = PlaceOpeningSpawns(world, scenario, lookup, spawnEntries);
+            if (spawns.IsSuccess)
+                CaptureObjectiveService.RebindControlCoreSites(world);
+            return spawns;
         }
 
         /// <summary>换 WorldSite 后按 mapLayout 切换村内地点表（库存／任务保留）。</summary>
@@ -67,7 +71,10 @@ namespace XianXia.Data.Bootstrap
                     continue;
                 if (!string.Equals(set.MapLayoutId, mapLayoutId, StringComparison.Ordinal))
                     continue;
-                return FillBoardFromPlaceSet(world, set);
+                var applied = FillBoardFromPlaceSet(world, set);
+                if (applied.IsSuccess)
+                    CaptureObjectiveService.RebindControlCoreSites(world);
+                return applied;
             }
 
             // 无对应 place set：清空旧地点表（禁止荒村地点残留），不阻断切图
@@ -117,6 +124,7 @@ namespace XianXia.Data.Bootstrap
             world.WorldRegion.RegionId = def.Id.ToString();
             world.WorldRegion.RegionName = def.Name ?? string.Empty;
             world.WorldRegion.StartLocationId = def.StartLocationId ?? string.Empty;
+            world.WorldRegion.ActiveMapLayoutId = string.Empty;
             RegisterEntries(world, def.Locations);
 
             if (string.IsNullOrEmpty(world.WorldRegion.StartLocationId) ||
@@ -137,6 +145,7 @@ namespace XianXia.Data.Bootstrap
             world.WorldRegion.RegionId = def.Id.ToString();
             world.WorldRegion.RegionName = def.Name ?? string.Empty;
             world.WorldRegion.StartLocationId = def.StartLocationId ?? string.Empty;
+            world.WorldRegion.ActiveMapLayoutId = def.MapLayoutId ?? string.Empty;
             RegisterEntries(world, def.Locations);
 
             if (string.IsNullOrEmpty(world.WorldRegion.StartLocationId) ||

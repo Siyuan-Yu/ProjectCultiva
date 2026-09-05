@@ -51,6 +51,13 @@ namespace XianXia.Core.World.Strategic
                 return false;
             }
 
+            var realmGate = StrategicMilitaryRules.ValidatePlayerPartyCanInitiateStrategicMilitaryAction(world, party);
+            if (realmGate.IsFailure)
+            {
+                error = realmGate.Error;
+                return false;
+            }
+
             if (ArmyService.TryGetArmyForCharacter(world, party.ActiveCharacterId, out _))
             {
                 error = new GameError(ErrorCode.InvalidOperation, "Active 角色隶属军团，不能由 PlayerParty 发起攻击。");
@@ -94,15 +101,6 @@ namespace XianXia.Core.World.Strategic
             if (string.Equals(playerFaction, enemyFaction, System.StringComparison.Ordinal))
             {
                 error = new GameError(ErrorCode.InvalidOperation, "不能攻击同阵营单位。");
-                return false;
-            }
-
-            if (!WarGateService.CanAttack(world, playerFaction, enemyFaction))
-            {
-                error = new GameError(
-                    ErrorCode.InvalidOperation,
-                    "未处于战争状态，无法攻击。",
-                    playerFaction + "->" + enemyFaction);
                 return false;
             }
 

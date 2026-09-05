@@ -47,8 +47,6 @@ namespace XianXia.Core.Npc
                 return Result.Failure(ErrorCode.EntityNotFound, "Attacker missing.");
             if (!world.ControlCores.TryGet(workAreaId, out var core))
                 return Result.Failure(ErrorCode.NotFound, "No control core for work area.");
-            if (core.PlayerControlled)
-                return Result.Failure(ErrorCode.InvalidOperation, "Already player-controlled.");
             if (core.CurrentDurability <= 0)
                 return Result.Failure(ErrorCode.InvalidOperation, "Already breached; stand to occupy.");
 
@@ -74,10 +72,13 @@ namespace XianXia.Core.Npc
                 return Result.Failure(ErrorCode.InvalidArgument, "workAreaId empty");
             if (!world.ControlCores.TryGet(workAreaId, out var core))
                 return Result.Failure(ErrorCode.NotFound, "No control core for work area.");
-            if (core.PlayerControlled)
-                return Result.Failure(ErrorCode.InvalidOperation, "Already player-controlled.");
             if (core.CurrentDurability <= 0)
                 return Result.Failure(ErrorCode.InvalidOperation, "Already breached; stand to occupy.");
+
+            var attackerFactionId = world.Strategic?.PlayerFactionId ?? string.Empty;
+            var assault = CaptureObjectiveService.TryBeginMilitaryAssault(world, attackerFactionId, workAreaId);
+            if (assault.IsFailure)
+                return assault;
 
             return ApplyDamageInternal(
                 world, workAreaId, Math.Max(1, damage), EntityId.None, defenseAlreadyApplied: false);
@@ -117,8 +118,6 @@ namespace XianXia.Core.Npc
                 return Result.Failure(ErrorCode.InvalidArgument, "world null");
             if (!world.ControlCores.TryGet(workAreaId, out var core))
                 return Result.Failure(ErrorCode.NotFound, "No control core.");
-            if (core.PlayerControlled)
-                return Result.Failure(ErrorCode.InvalidOperation, "Already player-controlled.");
             if (!core.CaptureAvailable)
                 return Result.Failure(ErrorCode.InvalidOperation, "Occupy hold not finished.");
 
@@ -126,9 +125,6 @@ namespace XianXia.Core.Npc
             var assault = CaptureObjectiveService.TryBeginMilitaryAssault(world, attackerFactionId, workAreaId);
             if (assault.IsFailure)
                 return assault;
-
-            if (!world.ControlCores.TryCapture(workAreaId, out core))
-                return Result.Failure(ErrorCode.InvalidOperation, "Occupy hold not finished.");
 
             var complete = CaptureObjectiveService.TryCompleteWorldSiteCapture(world, attackerFactionId, workAreaId);
             if (complete.IsFailure)
@@ -232,9 +228,7 @@ namespace XianXia.Core.Npc
                 return;
             }
 
-            if (!world.ControlCores.TryGet(workAreaId, out var core) ||
-                core.PlayerControlled ||
-                !core.CaptureAvailable)
+            if (!world.ControlCores.TryGet(workAreaId, out var core) || !core.CaptureAvailable)
                 return;
 
             world.ControlCores.AddOccupyProgress(workAreaId, deltaSeconds, out core);

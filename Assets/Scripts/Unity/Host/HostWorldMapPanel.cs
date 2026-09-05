@@ -368,6 +368,7 @@ namespace XianXia.Unity.Host
             var enter = PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party);
             if (enter.IsSuccess && bootstrap != null)
             {
+                bootstrap.PlayerPartyController?.OnLocalVisibleTravelTakeover();
                 bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
             }
         }
@@ -907,12 +908,11 @@ namespace XianXia.Unity.Host
 
                 var owner = site.OwnerFactionId ?? string.Empty;
                 if (_lastSiteOwners.TryGetValue(site.SiteId, out var prev) &&
-                    !string.Equals(prev, owner, StringComparison.Ordinal) &&
-                    world.Strategic?.CaptureObjectives != null &&
-                    world.Strategic.CaptureObjectives.AllCompletedForSite(site.SiteId))
+                    !string.Equals(prev, owner, StringComparison.Ordinal))
                 {
                     var siteName = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
-                    _status = "Site captured: " + siteName + "  New Owner: " +
+                    _status = "据点易主：" + siteName + "  " +
+                              StrategicAcceptanceInspector.ResolveOwnerDisplay(prev) + " → " +
                               StrategicAcceptanceInspector.ResolveOwnerDisplay(owner);
                 }
 
@@ -3133,6 +3133,18 @@ namespace XianXia.Unity.Host
                     return;
                 }
 
+                var playerFaction = world.Strategic.PlayerFactionId ?? string.Empty;
+                var defenderFaction = stack.FactionId ?? string.Empty;
+                if (!WarGateService.CanAttack(world, playerFaction, defenderFaction))
+                {
+                    var prompt = bootstrap.GetComponent<HostStrategicAggressionConfirmPrompt>() ??
+                                 bootstrap.gameObject.AddComponent<HostStrategicAggressionConfirmPrompt>();
+                    if (!prompt.Open(bootstrap, playerFaction, defenderFaction,
+                            () => ExecuteAttackEnemyArmyFromHex(world, target)))
+                        _status = "无法确认军事侵略";
+                    return;
+                }
+
                 var result = PlayerPartyStrategicCombatCommandService.AttackArmy(
                     world, party, target.FormalArmyId);
                 if (!result.IsSuccess)
@@ -3154,6 +3166,18 @@ namespace XianXia.Unity.Host
             if (!TryGetSelectedLivingPlayerArmy(world, out _, out var err))
             {
                 _status = string.IsNullOrEmpty(err) ? "请先左键选中我方军团" : err;
+                return;
+            }
+
+            if (world.Strategic.FormalArmies.TryGet(SelectedFormalArmyId, out var selectedArmy) &&
+                selectedArmy != null &&
+                !WarGateService.CanAttack(world, selectedArmy.FactionId, stack.FactionId))
+            {
+                var prompt = bootstrap.GetComponent<HostStrategicAggressionConfirmPrompt>() ??
+                             bootstrap.gameObject.AddComponent<HostStrategicAggressionConfirmPrompt>();
+                if (!prompt.Open(bootstrap, selectedArmy.FactionId, stack.FactionId,
+                        () => ExecuteAttackEnemyArmyFromHex(world, target)))
+                    _status = "无法确认军事侵略";
                 return;
             }
 

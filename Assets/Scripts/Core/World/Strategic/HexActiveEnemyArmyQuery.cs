@@ -167,11 +167,9 @@ namespace XianXia.Core.World.Strategic
                 string.Equals(friendlyFactionId, defenderFactionId, StringComparison.Ordinal))
                 return;
 
-            if (WarGateService.CanAttack(world, friendlyFactionId, defenderFactionId))
-                return;
-
-            target.CanAttack = false;
-            target.BlockReason = "\u672a\u5ba3\u6218\uff1a\u65e0\u6cd5\u519b\u4e8b\u653b\u51fb\u8be5\u52bf\u529b\u519b\u961f\u3002";
+            // 外国正规军仍可被选作攻击目标；是否需先宣战由军事侵略事务统一决定。
+            target.CanAttack = true;
+            target.BlockReason = string.Empty;
         }
 
         static string ResolveDisplayName(ArmyStack stack, string fallback)

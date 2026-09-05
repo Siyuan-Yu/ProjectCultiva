@@ -437,7 +437,27 @@ WorldMap 的「战略 → 势力」是**运行时只读可见性**，不是开�
 - 页面可读取领地区域数、FormalArmy 数、宗主／附庸和任意两势力之间的当前关系；不得在 Host 拼装 War／Alliance／Vassalage 规则，也不得读 `strategicOpening` 作为当前状态。
 - 宣战、议和、结盟、解除联盟、建立／解除附庸等动态外交 mutation 属于下一阶段；本页不显示占位或禁用操作按钮。
 
-### 19.2 不做系统强制的战后保护期（2026-08-22 拍板）
+### 19.2 ControlCore 军事占领的 WorldSite 解析与战争门槛（2026-09-05）
+
+主管府等 `ControlCore` 的 `LocationId` 是 LocalPlace 身份，不能直接与 `WorldSite.LocalMapId` 比较。唯一正式解析链为：
+
+`ControlCore.LocationId → WorldRegion.Location.LocalMapId → WorldSite.LocalMapId → WorldSite.SiteId`
+
+`CaptureObjectiveService.TryResolveControlCoreSite` 是复用入口。已存在且能验证的 `CaptureObjective.SiteId` 优先；新解析成功后回填该字段。`JobRuntimeBootstrap` 可能早于 `WorldRegionBootstrap`，所以注册时允许暂未绑定，WorldRegion 就绪后重绑，攻击开始与占领完成仍必须懒解析兜底。
+
+若解析出的 WorldSite 有 Owner，且攻方不等于 Owner，则 `TryBeginMilitaryAssault` 与 `TryCompleteWorldSiteCapture` 都必须要求 `WarGateService.CanMilitaryCapture`。无主 Site 保持既有行为。占领完成必须使用同一解析所得 `SiteId` 经 `WorldSiteTerritoryTransferService.Transfer` 变更 Site 与 Territory；Host 的两个主管府攻击入口只调用领域预检，领域伤害路径仍是最终 gate。
+
+### 19.3 可重复 WorldSite 占领 V1（2026-09-05）
+
+`WorldSite.OwnerFactionId` 是当前政治归属的唯一真源；`TerritoryRegion.ControlFactionId` 与 Hex 控制色只由 `WorldSiteTerritoryTransferService.Transfer` 同步。`ControlCore` 只表示可重复攻破的建筑物理状态，`CaptureObjective` 只表示耐久与占领读条，二者均不保存 Owner。
+
+成功事务固定为：验证战争、破门与读条 → Transfer → Core／Objective 恢复满耐久与零读条 → 重建玩家 SettlementAuthority → 发出一次 `WorldSiteCaptured`。因此 Transfer 失败不会留下局部占领。新 Owner 可立即防守，未来的残破恢复／资源维修属于 **ControlCore Recovery V2**，本轮不实现。
+
+旧 Snapshot 的 `CaptureObjective.Completed` 仅为迁移标记：Restore 时不改写 Owner，而是迁移为满耐久、零读条、Runtime false。历史 `site_captured:*` 与 Ch01 政治成立旗标可以保留；它们表示「曾发生」，绝不表示「当前拥有」。普通居民、巡卫与既有 FormalArmy 也不因 Site 易主自动改角色势力。
+
+玩家的住房／课表权限由 `SettlementAuthoritySync.Rebuild` 根据**当前**玩家拥有的 ControlCore Site 全量重建；失去最后一个权限来源必须撤销权限。`PlayerControlled` 与 `AllCompletedForSite` 仅保留旧代码兼容，禁止进入新的占领 authority。
+
+### 19.3 不做系统强制的战后保护期（2026-08-22 拍板）
 
 **明确不做**战争结束后的系统强制保护期／宣战冷却。
 
@@ -874,12 +894,16 @@ CombatPower 算法：**本轮不重新设计**；沿用／参考现有自动战�
 
 ## 44. Ch01 Opening Scenario 边界（Final Closure，2026-08-22）
 
+> **2026-09-05 修订：** 本节的独立「主动起事」按钮流程已被正式军事侵略事务取代。玩家攻击正式军事目标时，若尚未战争，先确认政治后果，再由 `StrategicMilitaryAggressionService` 完成必要的解除附庸／退出联盟与宣战。第一章仅在该事务成功攻击旧宗主时记录 `ch01:rebellion_started` 剧情标记。
+
+> **攻城补充：** Fixed WorldSite 的 `CaptureObjective` 在 V1 统一表现为「议政厅」。攻击议政厅时先按该 Site 的全部 footprint 加外围一圈冻结 SupportArea，并按当前 War 的双方收集实际可战 FormalArmy；有防守方军队才出现 BattleOffer。议政厅是敌方战略目标的表现项，不是 Character participant，不参与战斗结束条件；击败守军后不会自动继续拆除，玩家必须再次发起议政厅攻击。
+
 **原则：** Generic Domain 回答「Faction / Army / War / Vassalage **怎么工作**」；Ch01 Scenario 回答「**什么时候**发生」。
 
 | 阶段 | 语义 | 实现边界 |
 |------|------|----------|
 | Stage 0 开局压榨 | 玩家势力是压迫宗门的正式附庸；该关系由 Scenario `strategicOpening` 提供 | `VassalageBoard` 是关系真源；不在 Generic Bootstrap 偷写剧情关系。 |
-| Stage 1 主动起事 | 玩家在荒村、满足炼气门槛后选择起事 → 解除附庸 → 与旧宗门宣战 | `Ch01RebellionService` 只封装该 Scenario 行为；解除走 `VassalageBoard` 正式 mutation，战争走 `WarGateService`。 |
+| Stage 1 正式军事侵略 | 玩家攻击旧宗主的 FormalArmy 或议政厅 → 确认政治后果 → 解除附庸 → 宣战 | `StrategicMilitaryAggressionService` 为通用事务；`Ch01ScenarioProgressionHooks` 只记录剧情标记。 |
 | Stage 2 夺取荒村 | 全部 CaptureObjectives 完成 → `WorldSite Owner` 易主 → 玩家取得第一块真正领土与政治成立标记 | Domain：`CaptureObjectiveService` → `WorldSiteTerritoryTransferService`；Scenario Hook：`Ch01ScenarioProgressionHooks`，不在 Capture Domain 硬编码剧情宣战。 |
 | Stage 3 后续附庸谈判 | 战争推进后旧宗门可主动 Offer Vassalage | Hook：`OfferVassalageNegotiation` → 正式 `VassalageBoard`；谈判 UI / 时间 / AI / 数值 **DEFER** |
 

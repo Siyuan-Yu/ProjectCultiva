@@ -1,5 +1,7 @@
 using UnityEngine;
 using XianXia.Core.Persistence;
+using XianXia.Core.Entities;
+using XianXia.Core.Exploration;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
@@ -24,6 +26,14 @@ namespace XianXia.Unity.Host
             if (world == null || registry == null)
                 return;
 
+            // 先恢复 Item／功法／战技／境界／工作等静态定义壳；不重跑开局或重置存档状态。
+            var contentShell = RuntimeContentShellBootstrap.Rehydrate(world, registry);
+            if (contentShell.IsFailure)
+            {
+                Debug.LogWarning("[SnapshotRestore] Static content shell rehydrate: " + contentShell.Error);
+                return;
+            }
+
             var scenarioParsed = XianXia.Core.Domain.Ids.DefinitionId.Parse(bootstrap.OpeningScenarioId ?? string.Empty);
             var scenarioId = scenarioParsed.IsSuccess
                 ? scenarioParsed.Value
@@ -34,6 +44,13 @@ namespace XianXia.Unity.Host
                 var hex = HexStrategicMapContentBootstrap.TryApplyToSession(world, registry, scenario);
                 if (hex.IsFailure)
                     Debug.LogWarning("[SnapshotRestore] HexWorld rehydrate: " + hex.Error);
+                else
+                {
+                    var politicalSnapshot = session.ConsumePendingRestoredStrategicSnapshot();
+                    StrategicSnapshotHelper.RestoreHexPoliticalState(world, politicalSnapshot);
+                    // Political overlay 后才让 ControlCore／权限读取最终 Owner。
+                    CaptureObjectiveService.RebindControlCoreSites(world);
+                }
             }
 
             ResolvePartyWorldFromActiveControlledCharacter(world, session.PlayerParty);
@@ -46,11 +63,72 @@ namespace XianXia.Unity.Host
                 var places = WorldRegionBootstrap.ActivatePlacesForMapLayout(world, registry, mapId);
                 if (places.IsFailure)
                     Debug.LogWarning("[SnapshotRestore] WorldRegion rehydrate: " + places.Error);
+                else
+                    RestoreLegacyAuthoredEntityLocations(world, session.PlayerParty, scenario);
                 WorldTravelService.ApplyLocalMapSessionFromFocus(world);
             }
 
             StrategicSnapshotHelper.FinalizeRuntimeLinks(world);
             session.RefreshViewableEntityIds();
+        }
+
+        /// <summary>
+        /// 旧 v6 没有 EntityLocation 字段，只能对唯一 Opening spawn 恢复 authored Location。
+        /// 新格式 Snapshot 一律以自身 Location authority 为准；绝不重生实体或用 DefinitionId 猜重复实例。
+        /// </summary>
+        static void RestoreLegacyAuthoredEntityLocations(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            OpeningScenarioDefinition scenario)
+        {
+            if (world == null || scenario?.Spawns == null)
+                return;
+            foreach (var entity in world.Entities.All)
+            {
+                if (entity == null || (entity.Tags & EntityTag.Character) == 0 ||
+                    IsPartyMember(party, entity.Id) ||
+                    ArmyService.TryGetArmyForCharacter(world, entity.Id, out _) ||
+                    world.WorldPresence.TryGet(entity.Id, out _))
+                    continue;
+                if (entity.TryGet<EntityLocationSnapshotAuthorityComponent>(out var snapshotAuthority) &&
+                    snapshotAuthority.SnapshotFieldPresent)
+                    continue;
+                if (entity.TryGet<EntityLocationComponent>(out var existing) && existing.HasLocation)
+                    continue;
+
+                var matches = 0;
+                OpeningSpawnEntry unique = null;
+                var definitionId = entity.DefinitionId.ToString();
+                for (var i = 0; i < scenario.Spawns.Count; i++)
+                {
+                    var candidate = scenario.Spawns[i];
+                    if (candidate == null || !string.Equals(candidate.DefinitionId, definitionId, System.StringComparison.Ordinal))
+                        continue;
+                    matches++;
+                    unique = candidate;
+                }
+                if (matches != 1 || unique == null || string.IsNullOrEmpty(unique.LocalLocationId))
+                {
+                    if (matches > 1)
+                        Debug.LogWarning("[SnapshotRestore] 跳过旧档地点回填：Opening spawn 非唯一 " + definitionId);
+                    continue;
+                }
+
+                var location = existing ?? new EntityLocationComponent();
+                location.LocationId = unique.LocalLocationId;
+                if (existing == null)
+                    entity.AddComponent(location);
+            }
+        }
+
+        static bool IsPartyMember(PlayerPartyRuntime party, XianXia.Core.Domain.Ids.EntityId entityId)
+        {
+            if (party?.Members == null)
+                return false;
+            for (var i = 0; i < party.Members.Count; i++)
+                if (party.Members[i] == entityId)
+                    return true;
+            return false;
         }
 
         /// <summary>

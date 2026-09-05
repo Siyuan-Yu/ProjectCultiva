@@ -1132,10 +1132,14 @@ namespace XianXia.Core.World.Strategic
             if (world.PlayerPartyTravel != null && world.PlayerPartyTravel.IsMoving)
             {
                 CanonicalizeTakeoverHexToActiveSegment(world);
+                // 先完成 LocalMap 进入准备；失败时保持 World executor，绝不遗留 LocalVisible 半状态。
+                var enter = EnterLocalViewAtCurrentHex(world, party, allowWhileTraveling: true);
+                if (enter.IsFailure)
+                    return enter;
                 world.PlayerPartyTravel.SetExecutionMode(PlayerPartyTravelExecutionMode.LocalVisible);
                 PlayerPartyWorldLocationDebug.LogTransition(
                     world, party, "CloseWorldMapTakeover.PreserveAutoTravel");
-                return EnterLocalViewAtCurrentHex(world, party, allowWhileTraveling: true);
+                return Result.Success();
             }
 
             PlayerPartyWorldLocationDebug.LogTransition(world, party, "CloseWorldMapTakeover");

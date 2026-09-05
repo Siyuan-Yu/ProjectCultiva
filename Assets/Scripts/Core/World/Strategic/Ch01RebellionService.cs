@@ -10,6 +10,7 @@ namespace XianXia.Core.World.Strategic
     /// 第一章最小政治动作：玩家主动脱离荒村压迫宗门附庸，并进入战争。
     /// 不承担通用外交职责，也不直接触碰 Board 的内部集合。
     /// </summary>
+    [Obsolete("第一章正常玩法已改由 StrategicMilitaryAggressionService 处理；本类仅保留历史兼容入口。")]
     public static class Ch01RebellionService
     {
         public const string FlagRebellionStarted = "ch01:rebellion_started";

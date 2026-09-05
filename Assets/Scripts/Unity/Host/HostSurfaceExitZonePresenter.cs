@@ -181,15 +181,13 @@ namespace XianXia.Unity.Host
             out Vector3 approachPoint)
         {
             approachPoint = default;
-            for (var i = 0; i < _zones.Count; i++)
-            {
-                var candidate = _zones[i].Connection;
-                if (!SameIdentity(candidate, expected))
-                    continue;
-                return TryResolveCurrentApproach(candidate, out approachPoint);
-            }
-
-            return false;
+            // 自动旅行已有正式 connection identity；不能先依赖 Rebuild 时按旧 Active
+            // 落点过滤过的 _zones。这里直接复用结构预检 + 当前 WalkGrid 连通性，避免
+            // Snapshot materialize 末帧之前的 presentation cache 让合法出口永久不可用。
+            var session = bootstrap != null ? bootstrap.Session : null;
+            var structural = SurfaceExitTraversalService.TryPrepareTraversal(
+                session?.World, session?.PlayerParty, expected, out _);
+            return structural.IsSuccess && TryResolveCurrentApproach(expected, out approachPoint);
         }
 
         bool TryResolveCurrentApproach(

@@ -598,7 +598,7 @@ namespace XianXia.Unity.Host
                 !session.World.ControlCores.TryGet(coreId, out var core))
                 return;
 
-            DrawInspectShell(168f, "主管府 · " + core.Name, () =>
+            DrawInspectShell(168f, "议政厅 · " + core.Name, () =>
             {
                 var r = new Rect(Pad, TopH + 42f, 320f, 168f);
                 DrawInlineMeter(
@@ -607,8 +607,11 @@ namespace XianXia.Unity.Host
                     new Color(0.85f, 0.32f, 0.28f));
 
                 string status;
-                if (core.PlayerControlled)
-                    status = "状态：已占领（住房／课表可管）";
+                if (XianXia.Core.World.Strategic.CaptureObjectiveService.TryResolveCurrentOwner(
+                        session.World, core, out _, out var ownerFactionId) &&
+                    !string.IsNullOrEmpty(ownerFactionId))
+                    status = "当前控制者：" +
+                             StrategicAcceptanceInspector.ResolveOwnerDisplay(ownerFactionId);
                 else if (core.CaptureAvailable)
                     status = "状态：已破门 · 站立占领 " +
                              core.OccupyProgressSeconds.ToString("0.0") + "/" +
@@ -617,7 +620,7 @@ namespace XianXia.Unity.Host
                     status = "状态：防守中（选中己方→右键攻击拆耐久）";
 
                 GUI.Label(new Rect(r.x + 10f, r.y + 68f, r.width - 20f, 48f), status, _body);
-                if (core.PlayerControlled && core.GrantsPrivileges.Count > 0)
+                if (session.World.SettlementAuthority.CanManageHousing && core.GrantsPrivileges.Count > 0)
                 {
                     GUI.Label(
                         new Rect(r.x + 10f, r.y + 118f, r.width - 20f, 36f),

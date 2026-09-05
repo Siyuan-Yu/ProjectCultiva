@@ -685,8 +685,7 @@ namespace XianXia.Unity.Host
             moveController.BindLocalMapContext(_session.World.LocalMap.ActiveMapLayoutId);
             // Host-side Safe+Walkable fallback：materialize+Rebuild 之后、OnLocalMapMaterialized
             // （→RebindAllFollowers）之前 —— WalkGrid 已 ready、EntityView 已就位。
-            playerPartyController.ValidateAndRepairPlayerPartyMaterializedPlacement();
-            playerPartyController.OnLocalMapMaterialized(_session.World.LocalMap.ActiveMapLayoutId);
+            FinalizePlayerPartyLocalMapMaterialization(_session.World.LocalMap.ActiveMapLayoutId);
             if (npcContextMenu != null)
                 npcContextMenu.Bind(this, selectionController, moveController, dialoguePresenter, localMapEnterPrompt);
             if (localMapEnterPrompt != null)
@@ -846,6 +845,7 @@ namespace XianXia.Unity.Host
             entityViewSpawner.Clear();
             if (moveController != null)
                 moveController.ResetPresentationMovementState();
+            PlayerPartyController?.ResetTransientStateAfterSnapshotRestore();
             commandBridge.Bind(_session, selectionController);
             debugHud.Bind(this, selectionController);
             if (levelTesterCheatPanel != null)
@@ -1593,9 +1593,19 @@ namespace XianXia.Unity.Host
                 }
             }
 
-            PlayerPartyController?.ValidateAndRepairPlayerPartyMaterializedPlacement();
-            PlayerPartyController?.OnLocalMapMaterialized(localMapId.Trim());
+            FinalizePlayerPartyLocalMapMaterialization(localMapId.Trim());
             LoadedLocalMapPlacementSnapshotRestore.FinishRestorePresentation();
+        }
+
+        /// <summary>
+        /// 所有 Surface LocalMap 的最终落点屏障：视图 / Materialize / placement repair 完成后，
+        /// 才允许出口 presenter 依据 Active 的真实 cell 建立展示缓存。
+        /// </summary>
+        void FinalizePlayerPartyLocalMapMaterialization(string localMapId)
+        {
+            PlayerPartyController?.ValidateAndRepairPlayerPartyMaterializedPlacement();
+            PlayerPartyController?.OnLocalMapMaterialized(localMapId);
+            RefreshSurfaceExitZones();
         }
 
         void PlaceLegacyFocusCharactersOnLocalMap(SimulationWorld world, bool onEncounterMap)

@@ -101,15 +101,11 @@ namespace XianXia.Core.Npc
 
         public static bool CanManageHousing(SimulationWorld world) =>
             world != null &&
-            (world.SettlementAuthority.CanManageHousing ||
-             world.ControlCores.AnyPlayerControlled() ||
-             world.Flags.Has("settlement_player_controlled"));
+            world.SettlementAuthority.CanManageHousing;
 
         public static bool CanManageSchedules(SimulationWorld world) =>
             world != null &&
-            (world.SettlementAuthority.CanManageSchedules ||
-             world.ControlCores.AnyPlayerControlled() ||
-             world.Flags.Has("settlement_player_controlled"));
+            world.SettlementAuthority.CanManageSchedules;
 
         public static string ResolvePlayerFactionId(SimulationWorld world, IReadOnlyList<EntityId> partyIds)
         {

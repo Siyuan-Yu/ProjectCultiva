@@ -39,6 +39,9 @@ namespace XianXia.Core.World.Strategic
         public bool RequiresWarDeclaration { get; set; }
         public string PendingWarAttackerFactionId { get; set; } = string.Empty;
         public string PendingWarDefenderFactionId { get; set; } = string.Empty;
+        /// <summary>可选战略目标；仅用于 Offer 表现，绝不作为战斗人物或结束条件。</summary>
+        public string StrategicObjectiveKind { get; set; } = string.Empty;
+        public string StrategicObjectiveId { get; set; } = string.Empty;
         readonly List<ulong> _playerPartyIds = new List<ulong>(8);
 
         public IReadOnlyList<ulong> PlayerPartyIds => _playerPartyIds;
@@ -150,6 +153,8 @@ namespace XianXia.Core.World.Strategic
             BattleOffer.RequiresWarDeclaration = false;
             BattleOffer.PendingWarAttackerFactionId = string.Empty;
             BattleOffer.PendingWarDefenderFactionId = string.Empty;
+            BattleOffer.StrategicObjectiveKind = string.Empty;
+            BattleOffer.StrategicObjectiveId = string.Empty;
             BattleOffer.ClearPlayerParty();
             BattleOffer.Resolved = true;
             PendingEngagement?.Clear();

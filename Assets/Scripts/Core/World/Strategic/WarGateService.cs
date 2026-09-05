@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 
@@ -28,16 +29,22 @@ namespace XianXia.Core.World.Strategic
             if (IsAtWar(world, factionA, factionB))
                 return Result.Success();
 
+            if (!TryResolveWarSides(world, factionA, factionB, out var attackers, out var defenders, out var reason))
+                return Result.Failure(ErrorCode.InvalidOperation, reason);
+
             var war = new War
             {
                 WarId = world.Strategic.Wars.AllocateWarId(),
                 Active = true
             };
-            war.AddAttacker(factionA);
-            war.AddDefender(factionB);
-            ExpandAllianceWarBinding(world, war, factionA, factionB);
+            foreach (var attacker in attackers)
+                war.AddAttacker(attacker);
+            foreach (var defender in defenders)
+                war.AddDefender(defender);
             world.Strategic.Wars.Register(war);
-            world.Strategic.Diplomacy.SetStance(factionA, factionB, FactionStance.War);
+            foreach (var attacker in attackers)
+                foreach (var defender in defenders)
+                    world.Strategic.Diplomacy.SetStance(attacker, defender, FactionStance.War);
             return Result.Success();
         }
 
@@ -82,25 +89,73 @@ namespace XianXia.Core.World.Strategic
             return CanAttack(world, attackerFaction, defenderOwnerFaction);
         }
 
-        static void ExpandAllianceWarBinding(
+        /// <summary>
+        /// 战争两侧的正式闭包：联盟成员与直属附庸都会随所属一侧加入，直到没有新成员。
+        /// 冲突数据绝不允许同一势力静默落在两侧。
+        /// </summary>
+        static bool TryResolveWarSides(
             SimulationWorld world,
-            War war,
-            string declarerFaction,
-            string targetFaction)
+            string attackerSeed,
+            string defenderSeed,
+            out HashSet<string> attackers,
+            out HashSet<string> defenders,
+            out string reason)
         {
-            if (world?.Strategic?.Alliances == null)
-                return;
-
-            var declarerAllies = world.Strategic.Alliances.GetAllianceMembers(declarerFaction);
-            for (var i = 0; i < declarerAllies.Count; i++)
+            attackers = new HashSet<string>(StringComparer.Ordinal) { attackerSeed };
+            defenders = new HashSet<string>(StringComparer.Ordinal) { defenderSeed };
+            reason = string.Empty;
+            var alliances = world?.Strategic?.Alliances;
+            var vassalages = world?.Strategic?.Vassalages;
+            var changed = true;
+            while (changed)
             {
-                var ally = declarerAllies[i];
-                if (string.IsNullOrEmpty(ally) ||
-                    string.Equals(ally, declarerFaction, StringComparison.Ordinal))
-                    continue;
-                war.AddAttacker(ally);
-                world.Strategic.Diplomacy.SetStance(ally, targetFaction, FactionStance.War);
+                changed = false;
+                if (!ExpandSide(attackers, defenders, alliances, vassalages, ref changed, out reason) ||
+                    !ExpandSide(defenders, attackers, alliances, vassalages, ref changed, out reason))
+                    return false;
             }
+            return true;
+        }
+
+        static bool ExpandSide(
+            HashSet<string> side,
+            HashSet<string> otherSide,
+            AllianceBoard alliances,
+            VassalageBoard vassalages,
+            ref bool changed,
+            out string reason)
+        {
+            reason = string.Empty;
+            var additions = new List<string>();
+            foreach (var faction in side)
+            {
+                if (alliances != null)
+                    additions.AddRange(alliances.GetAllianceMembers(faction));
+
+                if (vassalages != null)
+                {
+                    if (vassalages.TryGetOverlord(faction, out var overlord))
+                        additions.Add(overlord);
+                    foreach (var relation in vassalages.All)
+                        if (string.Equals(relation.Value, faction, StringComparison.Ordinal))
+                            additions.Add(relation.Key);
+                }
+            }
+
+            for (var i = 0; i < additions.Count; i++)
+            {
+                var candidate = additions[i];
+                if (string.IsNullOrEmpty(candidate) || side.Contains(candidate))
+                    continue;
+                if (otherSide.Contains(candidate))
+                {
+                    reason = "War participant conflict: " + candidate + " belongs to both sides.";
+                    return false;
+                }
+                side.Add(candidate);
+                changed = true;
+            }
+            return true;
         }
     }
 }

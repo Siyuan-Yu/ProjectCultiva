@@ -18,7 +18,7 @@ namespace XianXia.Unity.Host
             Closed = 0,
             Menu = 1,
             LocalAttackConfirm = 2,
-            RebellionConfirm = 3
+            StrategicAggressionConfirm = 3
         }
 
         [SerializeField] PlayableHostBootstrap bootstrap;
@@ -39,6 +39,8 @@ namespace XianXia.Unity.Host
         string _targetLabel = string.Empty;
         EntityId _confirmTarget = EntityId.None;
         System.Action _confirmCallback;
+        string _aggressionAttackerFactionId = string.Empty;
+        string _aggressionDefenderFactionId = string.Empty;
         /// <summary>一次 LocalCharacter 攻击确认的 one-shot token：approach 后重新 classify 时不再二次确认。</summary>
         EntityId _confirmedLocalAttackTargetId = EntityId.None;
         Vector2 _menuScreen;
@@ -157,8 +159,7 @@ namespace XianXia.Unity.Host
 
             if (HostControlCoreQuery.TryPickAtMouse(
                     worldCamera, bootstrap.Session.World, layout, out var coreId) &&
-                bootstrap.Session.World.ControlCores.TryGet(coreId, out var core) &&
-                !core.PlayerControlled)
+                bootstrap.Session.World.ControlCores.TryGet(coreId, out var core))
             {
                 _actor = actor;
                 _targetNpc = EntityId.None;
@@ -166,7 +167,7 @@ namespace XianXia.Unity.Host
                 _leaveInteriorTarget = false;
                 _targetDestructible = null;
                 _targetControlCoreWorkAreaId = coreId;
-                _targetLabel = string.IsNullOrEmpty(core.Name) ? "主管府" : core.Name;
+                _targetLabel = string.IsNullOrEmpty(core.Name) ? "议政厅" : core.Name;
                 _menuScreen = Input.mousePosition;
                 _phase = Phase.Menu;
                 HostInputGate.BlockWorldInteraction = true;
@@ -233,12 +234,12 @@ namespace XianXia.Unity.Host
                         ConfirmLocalAttack,
                         CloseAll);
                     break;
-                case Phase.RebellionConfirm:
+                case Phase.StrategicAggressionConfirm:
                     DrawAttackConfirm(
-                        "起事／反抗宗门",
-                        "起事后将脱离压迫宗门附庸，并立即与其进入战争。是否继续？",
-                        "确认起事",
-                        ConfirmRebellion,
+                        "军事侵略确认",
+                        BuildAggressionConfirmText(),
+                        "确认攻击",
+                        ConfirmStrategicAggression,
                         CloseAll);
                     break;
             }
@@ -327,18 +328,7 @@ namespace XianXia.Unity.Host
             const float itemH = 30f;
             var session = bootstrap?.Session;
             var world = session?.World;
-            var canShowRebellion = world?.Strategic?.Ch01FormationScenarioCompat == true &&
-                                  string.Equals(
-                                      world.PartyWorld?.SiteId,
-                                      Ch01ScenarioProgressionHooks.HuangcunSiteId,
-                                      System.StringComparison.Ordinal);
-            var rebellion = Ch01RebellionService.CanBegin(world, session?.PlayerParty);
-            var canAssault = world != null &&
-                             CaptureObjectiveService.TryBeginMilitaryAssault(
-                                 world,
-                                 world.Strategic?.PlayerFactionId ?? string.Empty,
-                                 _targetControlCoreWorkAreaId).IsSuccess;
-            var h = itemH * (canShowRebellion ? 2 : 1) + 34f;
+            var h = itemH + 34f;
             var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
             _menuGuiRect = new Rect(guiX, guiY, w, h);
@@ -349,21 +339,8 @@ namespace XianXia.Unity.Host
 
             GUI.Label(new Rect(guiX + 10f, guiY + 6f, w - 20f, 22f), _targetLabel, _label);
             var y = guiY + 30f;
-            GUI.enabled = canAssault;
-            if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f),
-                    canAssault ? "攻击" : "攻击（需要先进入战争）", _button))
+            if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "攻击", _button))
                 BeginControlCoreAttack();
-            GUI.enabled = true;
-            y += itemH;
-
-            if (canShowRebellion)
-            {
-                GUI.enabled = rebellion.IsSuccess;
-                if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f),
-                        rebellion.IsSuccess ? "起事／反抗宗门" : "起事条件未满足", _button))
-                    BeginRebellionConfirm();
-                GUI.enabled = true;
-            }
             TryDismissOnOutsideClick(_menuGuiRect);
         }
 
@@ -460,11 +437,43 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            var assaultPreflight = CaptureObjectiveService.TryBeginMilitaryAssault(
-                world, world.Strategic?.PlayerFactionId ?? string.Empty, coreId);
+            var playerFaction = world.Strategic?.PlayerFactionId ?? string.Empty;
+            if (!CaptureObjectiveService.TryResolveControlCoreSite(world, core, out var siteId) ||
+                !world.Strategic.Sites.TryGet(siteId, out var site) || site == null)
+            {
+                CloseAll();
+                return;
+            }
+            BeginStrategicAggressionIfNeeded(playerFaction, site.OwnerFactionId, BeginControlCoreAttackAfterAggression);
+            return;
+        }
+
+        void BeginControlCoreAttackAfterAggression()
+        {
+            var session = bootstrap?.Session;
+            var world = session?.World;
+            var coreId = _targetControlCoreWorkAreaId;
+            if (world == null || string.IsNullOrEmpty(coreId) || !world.ControlCores.TryGet(coreId, out var core))
+            {
+                CloseAll();
+                return;
+            }
+            var siege = WorldSiteSiegeService.TryBegin(world, session.PlayerParty, coreId);
+            if (siege.IsFailure)
+            {
+                Debug.LogWarning("[Host] 议政厅攻城未开始：" + siege.Error.Message);
+                CloseAll();
+                return;
+            }
+            if (siege.Value == WorldSiteSiegeStartKind.BattleOffer)
+            {
+                CloseAll();
+                return;
+            }
+            var assaultPreflight = CaptureObjectiveService.TryBeginMilitaryAssault(world, world.Strategic?.PlayerFactionId ?? string.Empty, coreId);
             if (assaultPreflight.IsFailure)
             {
-                Debug.LogWarning("[Host] 主管府突击被战争门槛拒绝：" + assaultPreflight.Error.Message);
+                Debug.LogWarning("[Host] 议政厅突击被战争门槛拒绝：" + assaultPreflight.Error.Message);
                 CloseAll();
                 return;
             }
@@ -494,37 +503,28 @@ namespace XianXia.Unity.Host
             }
 
             Debug.Log(
-                "[Host] 开始突击主管府：靠近后按近战节奏／攻击力拆耐久；破门后站满 " +
+                "[Host] 开始突击议政厅：靠近后按近战节奏／攻击力拆耐久；破门后站满 " +
                 core.OccupyHoldSeconds + " 秒占领。");
 
             ResumeTime();
             CloseAll();
         }
 
-        void BeginRebellionConfirm()
-        {
-            _phase = Phase.RebellionConfirm;
-        }
-
-        void ConfirmRebellion()
+        /// <summary>F8 等非右键入口复用完全相同的议政厅攻城请求与政治确认链。</summary>
+        public bool TryRequestWorldSiteSiege(string controlCoreWorkAreaId)
         {
             var session = bootstrap?.Session;
-            var result = Ch01RebellionService.TryBegin(session?.World, session?.PlayerParty);
-            var text = result.IsSuccess
-                ? "起事已成：脱离附庸，已与压迫宗门开战"
-                : "起事失败：" + result.Error.Message;
-            var color = result.IsSuccess
-                ? new Color(0.95f, 0.55f, 0.28f)
-                : new Color(1f, 0.45f, 0.35f);
-            var overlay = bootstrap != null ? bootstrap.GetComponent<HostFeedbackOverlay>() : null;
-            if (overlay != null && bootstrap.ViewSpawner != null && !_actor.IsNone)
-                overlay.SpawnAtEntity(bootstrap.ViewSpawner, _actor, text, color);
-            if (result.IsFailure)
-                Debug.LogWarning("[Host] 第一章起事失败：" + result.Error.Message);
-
-            ResumeTime();
-            CloseAll();
+            var world = session?.World;
+            if (world == null || string.IsNullOrEmpty(controlCoreWorkAreaId) ||
+                !world.ControlCores.TryGet(controlCoreWorkAreaId, out var core))
+                return false;
+            _targetControlCoreWorkAreaId = controlCoreWorkAreaId;
+            _targetLabel = string.IsNullOrEmpty(core.Name) ? "议政厅" : core.Name;
+            _actor = HostNpcInteraction.ResolveActiveCommandAuthority(session);
+            BeginControlCoreAttack();
+            return true;
         }
+
 
         void BeginTalk()
         {
@@ -711,8 +711,72 @@ namespace XianXia.Unity.Host
 
                 case HostileActionRoute.StrategicMilitaryEscalation:
                 default:
-                    PrepareLocalMilitaryOffer(actor, target, route);
+                    BeginStrategicAggressionIfNeeded(
+                        session.World.Strategic.PlayerFactionId,
+                        route.TargetFactionId,
+                        () => PrepareLocalMilitaryOffer(actor, target, route));
                     return true;
+            }
+        }
+
+        bool BeginStrategicAggressionIfNeeded(string attackerFactionId, string defenderFactionId, System.Action afterCommit)
+        {
+            var world = bootstrap?.Session?.World;
+            if (!StrategicMilitaryAggressionService.TryPreview(
+                    world, attackerFactionId, defenderFactionId, out var preview, out var reason))
+            {
+                Debug.LogWarning("[Host] 军事侵略预览失败：" + reason);
+                CloseAll();
+                return false;
+            }
+            if (!preview.RequiresConfirmation)
+            {
+                afterCommit?.Invoke();
+                return true;
+            }
+
+            _aggressionAttackerFactionId = attackerFactionId;
+            _aggressionDefenderFactionId = defenderFactionId;
+            _confirmCallback = afterCommit;
+            _phase = Phase.StrategicAggressionConfirm;
+            HostInputGate.BlockWorldInteraction = true;
+            return false;
+        }
+
+        string BuildAggressionConfirmText()
+        {
+            var world = bootstrap?.Session?.World;
+            if (StrategicMilitaryAggressionService.TryPreview(
+                    world, _aggressionAttackerFactionId, _aggressionDefenderFactionId, out var preview, out _))
+                return "当前与目标势力关系：" + FormatRelation(preview.Relation) + "\n" + preview.Description;
+            return "无法确认本次军事侵略。";
+        }
+
+        void ConfirmStrategicAggression()
+        {
+            var world = bootstrap?.Session?.World;
+            if (!StrategicMilitaryAggressionService.TryCommit(
+                    world, _aggressionAttackerFactionId, _aggressionDefenderFactionId, out var reason))
+            {
+                Debug.LogWarning("[Host] 军事侵略提交失败：" + reason);
+                CloseAll();
+                return;
+            }
+            var callback = _confirmCallback;
+            _confirmCallback = null;
+            callback?.Invoke();
+        }
+
+        static string FormatRelation(FactionDiplomacyRelation relation)
+        {
+            switch (relation)
+            {
+                case FactionDiplomacyRelation.War: return "战争";
+                case FactionDiplomacyRelation.Alliance: return "联盟";
+                case FactionDiplomacyRelation.Overlord: return "宗主";
+                case FactionDiplomacyRelation.Vassal: return "附庸";
+                case FactionDiplomacyRelation.Self: return "自身";
+                default: return "普通";
             }
         }
 
@@ -743,8 +807,7 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// LocalMap 军事攻击 → 建立 Local-origin BattleOffer（不 DeclareWar、不直接 Manual）。
-        /// BattleOffer presenter 自动接管展示；Diplomacy 保持不变，commit point 在 Manual 确认。
+        /// LocalMap 军事攻击在政治确认并正式宣战后建立 Local-origin BattleOffer。
         /// </summary>
         void PrepareLocalMilitaryOffer(EntityId actor, EntityId target, HostileActionRouteResult route)
         {
@@ -862,6 +925,8 @@ namespace XianXia.Unity.Host
             _targetLabel = string.Empty;
             _confirmTarget = EntityId.None;
             _confirmCallback = null;
+            _aggressionAttackerFactionId = string.Empty;
+            _aggressionDefenderFactionId = string.Empty;
             HostInputGate.BlockWorldInteraction = false;
             if (bootstrap?.Session != null &&
                 !bootstrap.Session.World.ContentEvents.HasActive &&

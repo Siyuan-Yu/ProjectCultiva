@@ -200,7 +200,7 @@
         },
         {
           "id": "base:loc_ref_road_hub",
-          "name": "主管府",
+          "name": "议政厅",
           "kind": "Village",
           "tags": [
             "hub",

@@ -117,7 +117,7 @@
     {
       "id": "base:workarea_supervisor_mansion",
       "type": "workArea",
-      "name": "主管府",
+      "name": "议政厅",
       "locationId": "base:loc_ref_road_hub",
       "tags": [
         "controlCore",

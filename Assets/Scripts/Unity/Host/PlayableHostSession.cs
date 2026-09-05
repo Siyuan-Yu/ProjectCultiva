@@ -29,6 +29,16 @@ namespace XianXia.Unity.Host
 
         public LoadedContent LoadedContent { get; private set; }
 
+        /// <summary>仅供当前一次 Snapshot Content Shell 完成后叠加政治状态，消费后立即清除。</summary>
+        public StrategicSnapshotDto PendingRestoredStrategicSnapshot { get; private set; }
+
+        public StrategicSnapshotDto ConsumePendingRestoredStrategicSnapshot()
+        {
+            var value = PendingRestoredStrategicSnapshot;
+            PendingRestoredStrategicSnapshot = null;
+            return value;
+        }
+
         public string ScheduleDefinitionId { get; private set; }
 
         public IReadOnlyList<EntityId> CharacterIds { get; private set; } = Array.Empty<EntityId>();
@@ -240,6 +250,7 @@ namespace XianXia.Unity.Host
             }
 
             World = restored.Value.world;
+            PendingRestoredStrategicSnapshot = parsed.Value.Strategic;
             Loop = restored.Value.loop;
             Port = new PlayerInputPort(Loop);
             CharacterIds = CollectTaggedIds(World, EntityTag.Character);

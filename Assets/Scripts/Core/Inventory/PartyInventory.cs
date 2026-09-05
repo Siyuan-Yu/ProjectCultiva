@@ -35,6 +35,9 @@ namespace XianXia.Core.Inventory
         readonly Dictionary<string, InventoryItemInfo> _items =
             new Dictionary<string, InventoryItemInfo>(StringComparer.Ordinal);
 
+        /// <summary>清空静态物品定义；不影响背包内已保存的 ItemId／数量。</summary>
+        public void Clear() => _items.Clear();
+
         public void Register(
             string id,
             string name,
@@ -277,6 +280,34 @@ namespace XianXia.Core.Inventory
                     slot++;
                 }
             }
+        }
+
+        /// <summary>
+        /// 仅当按当前内容的 MaxStack 重新整理不会超出槽位时才整理，避免内容壳重建丢失存档物品数量。
+        /// </summary>
+        public bool TryOrganizeWithoutLoss()
+        {
+            var totals = new Dictionary<string, int>(StringComparer.Ordinal);
+            for (var i = 0; i < _slots.Count; i++)
+            {
+                var slot = _slots[i];
+                if (slot.IsEmpty)
+                    continue;
+                totals.TryGetValue(slot.ItemId, out var current);
+                totals[slot.ItemId] = current + slot.Count;
+            }
+
+            var requiredSlots = 0;
+            foreach (var pair in totals)
+            {
+                var maxStack = _catalog.GetMaxStack(pair.Key);
+                requiredSlots += (pair.Value + maxStack - 1) / maxStack;
+                if (requiredSlots > SlotCapacity)
+                    return false;
+            }
+
+            Organize();
+            return true;
         }
 
         int CompareItems(string a, string b)

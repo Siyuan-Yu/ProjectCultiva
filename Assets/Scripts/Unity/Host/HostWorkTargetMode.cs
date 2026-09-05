@@ -4,6 +4,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Input;
 using XianXia.Core.Npc;
+using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 
 namespace XianXia.Unity.Host
@@ -320,7 +321,7 @@ namespace XianXia.Unity.Host
                         _hoverHint = (tree.IsTree ? "砍伐·" : "拆毁·") + tree.DisplayName;
                     }
                     else
-                        _hoverHint = "点主管府／树／墙，或右键人物";
+                        _hoverHint = "点议政厅／树／墙，或右键人物";
                     break;
                 case ArmKind.Cultivate:
                     if (HostZoneQuery.TryFindCultivateSpot(point, out var cultSpot, bootstrap.Session.World))
@@ -434,6 +435,26 @@ namespace XianXia.Unity.Host
                 HostControlCoreQuery.TryPickAtWorld(world, layout, point, out coreId) &&
                 world.ControlCores.TryGet(coreId, out var core))
             {
+                var contextMenu = bootstrap != null
+                    ? bootstrap.GetComponent<HostNpcContextMenu>()
+                    : null;
+                if (contextMenu != null && contextMenu.TryRequestWorldSiteSiege(core.WorkAreaId))
+                {
+                    SetArmed(ArmKind.None);
+                    return;
+                }
+                // Combat targeting 也必须先走领域层战争门槛，不能先移动或开始突击再失败。
+                var assaultPreflight = CaptureObjectiveService.TryBeginMilitaryAssault(
+                    world,
+                    world.Strategic?.PlayerFactionId ?? string.Empty,
+                    core.WorkAreaId);
+                if (assaultPreflight.IsFailure)
+                {
+                    Debug.Log("[Host] 议政厅攻击未开始：需要先进入战争。");
+                    SetArmed(ArmKind.None);
+                    return;
+                }
+
                 Resume();
                 if (HostControlCoreQuery.TryGetApproachPoint(world, layout, core, out var target) &&
                     moveController != null)
@@ -447,15 +468,11 @@ namespace XianXia.Unity.Host
                 var assault = bootstrap != null
                     ? bootstrap.GetComponent<HostControlCoreAssault>()
                     : null;
-                if (core.PlayerControlled)
-                {
-                    Debug.Log("[Host] 主管府已占领。");
-                }
-                else if (assault != null)
+                if (assault != null)
                 {
                     assault.Begin(core.WorkAreaId);
                     Debug.Log(
-                        "[Host] 开始突击主管府：靠近后按近战节奏／攻击力拆耐久；破门后站满 " +
+                        "[Host] 开始突击议政厅：靠近后按近战节奏／攻击力拆耐久；破门后站满 " +
                         core.OccupyHoldSeconds + " 秒占领。");
                 }
                 else
@@ -492,7 +509,7 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            Debug.Log("[Host] Combat: 点主管府／树／墙；NPC 请右键→攻击。");
+            Debug.Log("[Host] Combat: 点议政厅／树／墙；NPC 请右键→攻击。");
             SetArmed(ArmKind.None);
         }
 

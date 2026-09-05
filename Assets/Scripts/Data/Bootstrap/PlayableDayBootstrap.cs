@@ -157,7 +157,7 @@ namespace XianXia.Data.Bootstrap
             if (region.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(region.Error);
 
-            var strategic = StrategicContentBootstrap.ApplyCh01Defaults(world, registry, scenario);
+            var strategic = StrategicContentBootstrap.ApplyCh01Defaults(world, registry, scenario, lookup);
             if (strategic.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(strategic.Error);
 
@@ -221,7 +221,7 @@ namespace XianXia.Data.Bootstrap
                 recruitableId));
         }
 
-        static Result RegisterManuals(SimulationWorld world, DefinitionRegistry registry)
+        internal static Result RegisterManuals(SimulationWorld world, DefinitionRegistry registry)
         {
             foreach (var kv in registry.Cultivations)
             {
@@ -234,7 +234,7 @@ namespace XianXia.Data.Bootstrap
             return Result.Success();
         }
 
-        static Result RegisterCombatArts(SimulationWorld world, DefinitionRegistry registry)
+        internal static Result RegisterCombatArts(SimulationWorld world, DefinitionRegistry registry)
         {
             if (registry?.CombatArts == null || registry.CombatArts.Count == 0)
             {
@@ -280,7 +280,7 @@ namespace XianXia.Data.Bootstrap
             });
         }
 
-        static Result RegisterRealmLadder(SimulationWorld world, DefinitionRegistry registry)
+        internal static Result RegisterRealmLadder(SimulationWorld world, DefinitionRegistry registry)
         {
             if (registry.TryGetPrimaryRealmLadder(out var def))
             {

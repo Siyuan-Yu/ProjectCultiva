@@ -217,10 +217,18 @@ namespace XianXia.Data.Serialization
                     ["hasActiveClock"] = JsonValue.FromBool(e.HasActiveClock),
                     ["hasCultivation"] = JsonValue.FromBool(e.HasCultivation),
                     ["realm"] = JsonValue.FromNumber(e.Realm),
+                    ["cultivationMinorStage"] = JsonValue.FromNumber(e.CultivationMinorStage),
                     ["cultivationProgress"] = JsonValue.FromNumber(e.CultivationProgress),
                     ["breakthroughProgressRequired"] = JsonValue.FromNumber(e.BreakthroughProgressRequired),
                     ["cultivationSpeed"] = JsonValue.FromNumber(e.CultivationSpeed),
                     ["learnedManualId"] = JsonValue.FromString(e.LearnedManualId ?? string.Empty),
+                    ["hasManualMastery"] = JsonValue.FromBool(e.HasManualMastery),
+                    ["manualMasteryTier"] = JsonValue.FromNumber(e.ManualMasteryTier),
+                    ["manualMasteryProgress"] = JsonValue.FromNumber(e.ManualMasteryProgress),
+                    ["manualMasteryProgressRequired"] = JsonValue.FromNumber(e.ManualMasteryProgressRequired),
+                    ["combatArtsLearned"] = JsonValue.FromArray(SerializeStringList(e.CombatArtsLearned)),
+                    ["combatArtsEquipped"] = JsonValue.FromArray(SerializeStringList(e.CombatArtsEquipped)),
+                    ["combatArtMastery"] = JsonValue.FromArray(SerializeArtMastery(e.CombatArtMastery)),
                     ["requiredRealmName"] = JsonValue.FromString(e.RequiredRealmName ?? string.Empty),
                     ["hasDailyTask"] = JsonValue.FromBool(e.HasDailyTask),
                     ["laborProgress"] = JsonValue.FromNumber(e.LaborProgress),
@@ -235,6 +243,11 @@ namespace XianXia.Data.Serialization
                     ["activeOrderSource"] = JsonValue.FromNumber(e.ActiveOrderSource),
                     ["knownSiteIds"] = JsonValue.FromArray(SerializeStringList(e.KnownSiteIds)),
                     ["personalConcealmentRisk"] = JsonValue.FromNumber(e.PersonalConcealmentRisk),
+                    ["hasEntityLocation"] = JsonValue.FromBool(e.HasEntityLocation),
+                    ["locationId"] = JsonValue.FromString(e.LocationId ?? string.Empty),
+                    ["hasPresentationOverride"] = JsonValue.FromBool(e.HasPresentationOverride),
+                    ["presentationOverrideX"] = JsonValue.FromNumber(e.PresentationOverrideX),
+                    ["presentationOverrideZ"] = JsonValue.FromNumber(e.PresentationOverrideZ),
                     ["factionId"] = JsonValue.FromString(e.FactionId ?? string.Empty),
                     ["factionRole"] = JsonValue.FromNumber(e.FactionRole),
                     ["hasCombatVitals"] = JsonValue.FromBool(e.HasCombatVitals),
@@ -302,6 +315,28 @@ namespace XianXia.Data.Serialization
                 return list;
             foreach (var v in values)
                 list.Add(JsonValue.FromString(v ?? string.Empty));
+            return list;
+        }
+
+        static List<JsonValue> SerializeArtMastery(List<ArtMasterySnapshotDto> values)
+        {
+            var list = new List<JsonValue>();
+            if (values == null)
+                return list;
+            for (var i = 0; i < values.Count; i++)
+            {
+                var value = values[i];
+                if (value == null || string.IsNullOrEmpty(value.ArtId))
+                    continue;
+                list.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["artId"] = JsonValue.FromString(value.ArtId),
+                    ["tier"] = JsonValue.FromNumber(value.Tier),
+                    ["progress"] = JsonValue.FromNumber(value.Progress),
+                    ["progressRequired"] = JsonValue.FromNumber(value.ProgressRequired)
+                }));
+            }
+
             return list;
         }
 
@@ -389,7 +424,9 @@ namespace XianXia.Data.Serialization
                     ["kind"] = JsonValue.FromString(a.Kind ?? "Wait"),
                     ["status"] = JsonValue.FromNumber(a.Status),
                     ["totalTicks"] = JsonValue.FromNumber(a.TotalTicks),
-                    ["remainingTicks"] = JsonValue.FromNumber(a.RemainingTicks)
+                    ["remainingTicks"] = JsonValue.FromNumber(a.RemainingTicks),
+                    ["targetRef"] = JsonValue.FromString(a.TargetRef ?? string.Empty),
+                    ["activity"] = JsonValue.FromNumber(a.Activity)
                 }));
             }
             return list;
@@ -406,7 +443,9 @@ namespace XianXia.Data.Serialization
                     ["subjectId"] = JsonValue.FromNumber(o.SubjectId),
                     ["type"] = JsonValue.FromNumber(o.Type),
                     ["source"] = JsonValue.FromNumber(o.Source),
-                    ["waitTicks"] = JsonValue.FromNumber(o.WaitTicks)
+                    ["waitTicks"] = JsonValue.FromNumber(o.WaitTicks),
+                    ["targetRef"] = JsonValue.FromString(o.TargetRef ?? string.Empty),
+                    ["activity"] = JsonValue.FromNumber(o.Activity)
                 }));
             }
             return list;
@@ -427,10 +466,16 @@ namespace XianXia.Data.Serialization
                 HasActiveClock = e.TryGetProperty("hasActiveClock", out var hac) && hac.Kind == JsonValueKind.Boolean && hac.Bool,
                 HasCultivation = e.TryGetProperty("hasCultivation", out var hc) && hc.Kind == JsonValueKind.Boolean && hc.Bool,
                 Realm = (int)e.GetNumber("realm"),
+                CultivationMinorStage = (int)e.GetNumber("cultivationMinorStage"),
                 CultivationProgress = (int)e.GetNumber("cultivationProgress"),
                 BreakthroughProgressRequired = (int)e.GetNumber("breakthroughProgressRequired"),
                 CultivationSpeed = (int)e.GetNumber("cultivationSpeed"),
                 LearnedManualId = e.GetString("learnedManualId", string.Empty),
+                HasManualMastery = e.TryGetProperty("hasManualMastery", out var hmm) &&
+                                   hmm.Kind == JsonValueKind.Boolean && hmm.Bool,
+                ManualMasteryTier = (int)e.GetNumber("manualMasteryTier"),
+                ManualMasteryProgress = (int)e.GetNumber("manualMasteryProgress"),
+                ManualMasteryProgressRequired = (int)e.GetNumber("manualMasteryProgressRequired"),
                 RequiredRealmName = e.GetString("requiredRealmName", string.Empty),
                 HasDailyTask = e.TryGetProperty("hasDailyTask", out var hdt) && hdt.Kind == JsonValueKind.Boolean && hdt.Bool,
                 LaborProgress = (int)e.GetNumber("laborProgress"),
@@ -445,6 +490,12 @@ namespace XianXia.Data.Serialization
                 ScheduleDefinitionId = e.GetString("scheduleDefinitionId", string.Empty),
                 ActiveOrderSource = (int)e.GetNumber("activeOrderSource"),
                 PersonalConcealmentRisk = (int)e.GetNumber("personalConcealmentRisk"),
+                HasEntityLocation = e.TryGetProperty("hasEntityLocation", out var hel) && hel.Kind == JsonValueKind.Boolean && hel.Bool,
+                EntityLocationSnapshotFieldPresent = e.TryGetProperty("hasEntityLocation", out _),
+                LocationId = e.GetString("locationId", string.Empty),
+                HasPresentationOverride = e.TryGetProperty("hasPresentationOverride", out var hpo) && hpo.Kind == JsonValueKind.Boolean && hpo.Bool,
+                PresentationOverrideX = (float)e.GetNumber("presentationOverrideX"),
+                PresentationOverrideZ = (float)e.GetNumber("presentationOverrideZ"),
                 FactionId = e.GetString("factionId", string.Empty),
                 FactionRole = (int)e.GetNumber("factionRole"),
                 HasCombatVitals = e.TryGetProperty("hasCombatVitals", out var hcv) &&
@@ -468,6 +519,36 @@ namespace XianXia.Data.Serialization
                 {
                     if (k.Kind == JsonValueKind.String)
                         dto.KnownSiteIds.Add(k.String);
+                }
+            }
+
+            if (e.TryGetProperty("combatArtsLearned", out var learnedArts) && learnedArts.Kind == JsonValueKind.Array)
+            {
+                foreach (var art in learnedArts.Array)
+                    if (art.Kind == JsonValueKind.String)
+                        dto.CombatArtsLearned.Add(art.String);
+            }
+
+            if (e.TryGetProperty("combatArtsEquipped", out var equippedArts) && equippedArts.Kind == JsonValueKind.Array)
+            {
+                foreach (var art in equippedArts.Array)
+                    if (art.Kind == JsonValueKind.String)
+                        dto.CombatArtsEquipped.Add(art.String);
+            }
+
+            if (e.TryGetProperty("combatArtMastery", out var artMastery) && artMastery.Kind == JsonValueKind.Array)
+            {
+                foreach (var mastery in artMastery.Array)
+                {
+                    if (mastery.Kind != JsonValueKind.Object)
+                        continue;
+                    dto.CombatArtMastery.Add(new ArtMasterySnapshotDto
+                    {
+                        ArtId = mastery.GetString("artId", string.Empty),
+                        Tier = (int)mastery.GetNumber("tier"),
+                        Progress = (int)mastery.GetNumber("progress"),
+                        ProgressRequired = (int)mastery.GetNumber("progressRequired")
+                    });
                 }
             }
 
@@ -524,7 +605,9 @@ namespace XianXia.Data.Serialization
             Kind = a.GetString("kind", "Wait"),
             Status = (int)a.GetNumber("status"),
             TotalTicks = (ulong)a.GetNumber("totalTicks"),
-            RemainingTicks = (ulong)a.GetNumber("remainingTicks")
+            RemainingTicks = (ulong)a.GetNumber("remainingTicks"),
+            TargetRef = a.GetString("targetRef", string.Empty),
+            Activity = (int)a.GetNumber("activity")
         };
 
         static JsonValue U(ulong value) => JsonValue.FromString(value.ToString(CultureInfo.InvariantCulture));
@@ -552,7 +635,9 @@ namespace XianXia.Data.Serialization
             SubjectId = (ulong)o.GetNumber("subjectId"),
             Type = (int)o.GetNumber("type"),
             Source = (int)o.GetNumber("source"),
-            WaitTicks = (ulong)o.GetNumber("waitTicks")
+            WaitTicks = (ulong)o.GetNumber("waitTicks"),
+            TargetRef = o.GetString("targetRef", string.Empty),
+            Activity = (int)o.GetNumber("activity")
         };
 
         static ScheduleDefinitionSnapshotDto ReadSchedule(JsonValue s)
@@ -860,6 +945,8 @@ namespace XianXia.Data.Serialization
                         ["workAreaId"] = JsonValue.FromString(c.WorkAreaId ?? string.Empty),
                         ["currentHp"] = JsonValue.FromNumber(c.CurrentHp),
                         ["maxHp"] = JsonValue.FromNumber(c.MaxHp),
+                        ["occupyProgressSeconds"] = JsonValue.FromNumber(c.OccupyProgressSeconds),
+                        ["occupyHoldSeconds"] = JsonValue.FromNumber(c.OccupyHoldSeconds),
                         ["completed"] = JsonValue.FromBool(c.Completed)
                     }));
                 }
@@ -1172,6 +1259,10 @@ namespace XianXia.Data.Serialization
                         WorkAreaId = objNode.GetString("workAreaId", string.Empty),
                         CurrentHp = (int)objNode.GetNumber("currentHp"),
                         MaxHp = (int)objNode.GetNumber("maxHp"),
+                        OccupyProgressSeconds = objNode.TryGetProperty("occupyProgressSeconds", out var occupyProgress)
+                            ? (float)occupyProgress.Number : 0f,
+                        OccupyHoldSeconds = objNode.TryGetProperty("occupyHoldSeconds", out var occupyHold)
+                            ? (float)occupyHold.Number : 0f,
                         Completed = objNode.TryGetProperty("completed", out var completed) &&
                                     completed.Kind == JsonValueKind.Boolean && completed.Bool
                     });

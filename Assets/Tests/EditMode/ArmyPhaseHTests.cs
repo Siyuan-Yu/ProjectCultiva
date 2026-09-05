@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using XianXia.Core.Exploration;
 using XianXia.Core.Npc;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
@@ -20,18 +21,25 @@ namespace XianXia.Tests
             world.Strategic.Sites.Register(new WorldSite
             {
                 SiteId = SiteB,
-                LocalMapId = "loc_test",
+                LocalMapId = "map:test",
                 OwnerFactionId = FactionB,
             });
+            // 模拟真实 bootstrap 顺序：工区先注册，WorldRegion 地点稍后才可用。
             world.RegisterWorkArea(new WorkAreaDefinition
             {
                 Id = "wa_test_core",
                 Name = "Core",
-                LocationId = "loc_test",
+                LocationId = "loc_work_area",
                 IsControlCore = true,
                 MaxDurability = 50,
                 OccupyHoldSeconds = 1f
             });
+            world.WorldRegion.Register(new WorldLocationState
+            {
+                Id = "loc_work_area",
+                LocalMapId = "map:test"
+            });
+            CaptureObjectiveService.RebindControlCoreSites(world);
             return world;
         }
 
@@ -60,6 +68,36 @@ namespace XianXia.Tests
             world.ControlCores.AddOccupyProgress("wa_test_core", 1f, out _);
             Assert.IsTrue(ControlCoreService.TryCapture(world, "wa_test_core", FactionA).IsSuccess);
             Assert.AreEqual(FactionA, WorldSiteOwnershipService.GetOwner(world, SiteB));
+        }
+
+        [Test]
+        public void Capture_RepeatableSite_TransfersFactionAtoBandBack()
+        {
+            var world = CreateWorld();
+            WarGateService.DeclareWar(world, FactionA, FactionB);
+
+            world.ControlCores.ApplyDamage("wa_test_core", 100, out _, false);
+            world.ControlCores.AddOccupyProgress("wa_test_core", 1f, out _);
+            Assert.IsTrue(ControlCoreService.TryCapture(world, "wa_test_core", FactionA).IsSuccess);
+            Assert.AreEqual(FactionA, WorldSiteOwnershipService.GetOwner(world, SiteB));
+            Assert.IsTrue(world.ControlCores.TryGet("wa_test_core", out var afterFirst));
+            Assert.AreEqual(afterFirst.MaxDurability, afterFirst.CurrentDurability);
+
+            Assert.IsTrue(CaptureObjectiveService.TryBeginMilitaryAssault(world, FactionB, "wa_test_core").IsSuccess);
+            world.ControlCores.ApplyDamage("wa_test_core", 100, out _, false);
+            world.ControlCores.AddOccupyProgress("wa_test_core", 1f, out _);
+            Assert.IsTrue(ControlCoreService.TryCapture(world, "wa_test_core", FactionB).IsSuccess);
+            Assert.AreEqual(FactionB, WorldSiteOwnershipService.GetOwner(world, SiteB));
+        }
+
+        [Test]
+        public void Capture_OwnerCannotAssaultOwnCore()
+        {
+            var world = CreateWorld();
+            Assert.IsTrue(CaptureObjectiveService.TryBeginMilitaryAssault(world, FactionB, "wa_test_core").IsFailure);
+            Assert.IsTrue(CaptureObjectiveService.TryBeginMilitaryAssault(world, FactionA, "wa_test_core").IsFailure);
+            WarGateService.DeclareWar(world, FactionA, FactionB);
+            Assert.IsTrue(CaptureObjectiveService.TryBeginMilitaryAssault(world, FactionA, "wa_test_core").IsSuccess);
         }
 
         [Test]

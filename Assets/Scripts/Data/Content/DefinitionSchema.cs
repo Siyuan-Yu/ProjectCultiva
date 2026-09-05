@@ -45,7 +45,7 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> FormalArmyMemberFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "characterDefinitionId", "displayName", "leader"
+            "characterDefinitionId", "displayName", "leader", "reuseOpeningSpawn"
         };
 
         public static readonly HashSet<string> CharacterRosterFields = new HashSet<string>(StringComparer.Ordinal)

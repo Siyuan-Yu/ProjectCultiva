@@ -10,6 +10,7 @@ using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
+using XianXia.Core.Exploration;
 using XianXia.Core.Inventory;
 using XianXia.Core.Labor;
 using XianXia.Core.Opportunity;
@@ -184,6 +185,16 @@ namespace XianXia.Core.Persistence
 
                 if (entity.TryGet<PersonalConcealmentRiskComponent>(out var risk))
                     dto.PersonalConcealmentRisk = risk.Value;
+
+                if (entity.TryGet<EntityLocationComponent>(out var location) && location != null)
+                {
+                    dto.HasEntityLocation = true;
+                    dto.LocationId = location.LocationId ?? string.Empty;
+                    dto.HasPresentationOverride = location.HasPresentationOverride;
+                    dto.PresentationOverrideX = location.PresentationOverrideX;
+                    dto.PresentationOverrideZ = location.PresentationOverrideZ;
+                }
+                dto.EntityLocationSnapshotFieldPresent = true;
 
                 if (entity.TryGet<FactionMembershipComponent>(out var factionMem) && factionMem != null)
                 {
@@ -642,6 +653,21 @@ namespace XianXia.Core.Persistence
                 if (e.PersonalityTags != null && e.PersonalityTags.Count > 0)
                     personality.SetTags(e.PersonalityTags);
                 entity.AddComponent(personality);
+
+                if (e.HasEntityLocation)
+                {
+                    entity.AddComponent(new EntityLocationComponent
+                    {
+                        LocationId = e.LocationId ?? string.Empty,
+                        HasPresentationOverride = e.HasPresentationOverride,
+                        PresentationOverrideX = e.PresentationOverrideX,
+                        PresentationOverrideZ = e.PresentationOverrideZ
+                    });
+                }
+                entity.AddComponent(new EntityLocationSnapshotAuthorityComponent
+                {
+                    SnapshotFieldPresent = e.EntityLocationSnapshotFieldPresent
+                });
 
                 entity.AddComponent(new RelationshipComponent());
 

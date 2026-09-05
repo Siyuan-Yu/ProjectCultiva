@@ -526,8 +526,13 @@ namespace XianXia.Unity.Host
                 new Rect(box.x + 16f, box.y + 62f, box.width - 32f, 22f),
                 offer.EnemyLabel + "  战力 " + offer.EnemyPower,
                 _body);
+            if (string.Equals(offer.StrategicObjectiveKind, "ControlCore", System.StringComparison.Ordinal))
+                GUI.Label(
+                    new Rect(box.x + 16f, box.y + 82f, box.width - 32f, 22f),
+                    "战略目标：议政厅（不计入战斗单位与结束条件）",
+                    _body);
 
-            var barY = box.y + 90f;
+            var barY = box.y + (string.IsNullOrEmpty(offer.StrategicObjectiveKind) ? 90f : 110f);
             var barW = box.width - 32f;
             var total = Mathf.Max(1, offer.PlayerPower + offer.EnemyPower);
             var pw = barW * (offer.PlayerPower / (float)total);

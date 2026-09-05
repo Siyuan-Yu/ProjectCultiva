@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using XianXia.Core.Attributes;
 using XianXia.Core.Combat;
+using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Persistence;
@@ -8,6 +9,8 @@ using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
+using XianXia.Data.Bootstrap;
+using XianXia.Data.Content;
 using XianXia.Data.Serialization;
 
 namespace XianXia.Tests
@@ -192,6 +195,84 @@ namespace XianXia.Tests
                 world2.Strategic.Armies.TryGet(ArmyStackAdapter.BanditPatrolStackId, out var stackAfter));
             Assert.AreEqual(ArmyStackAdapter.BanditPatrolFormalArmyId, stackAfter.FormalArmyId);
             Assert.IsTrue(world2.WorldPresence.TryGet(leaderId, out _));
+        }
+
+        [Test]
+        public void SNAP_COV_06_CultivationAndCombatArts_SurviveJsonRoundtrip()
+        {
+            var world = CreateWorld();
+            var id = SpawnCharacter(world, "Cultivator", FactionPlayer);
+            Assert.IsTrue(world.Entities.TryGet(id, out var entity));
+            var cultivation = entity.Get<CultivationComponent>();
+            cultivation.Realm = RealmStage.QiRefining;
+            cultivation.MinorStage = 4;
+            cultivation.Progress = 1888;
+            cultivation.BreakthroughProgressRequired = 3000;
+            cultivation.CultivationSpeed = 7;
+            cultivation.LearnedManualId = new DefinitionId("base", "cultivation_dongfu_secret");
+            cultivation.ManualMastery = new SkillMasteryState
+            {
+                Tier = SkillMasteryTier.Minor,
+                Progress = 81,
+                ProgressRequired = 120
+            };
+
+            var artId = new DefinitionId("base", "art_liezhao_claw");
+            var arts = entity.Get<CombatArtsComponent>();
+            Assert.IsTrue(arts.TryLearn(artId));
+            arts.SetMastery(artId, new SkillMasteryState
+            {
+                Tier = SkillMasteryTier.Major,
+                Progress = 17,
+                ProgressRequired = 40
+            });
+
+            var service = new SnapshotService(new JsonSnapshotSerializer());
+            var json = service.CaptureJson(world, new SimulationLoop(world));
+            Assert.IsTrue(json.IsSuccess);
+            var restored = service.RestoreJson(json.Value);
+            Assert.IsTrue(restored.IsSuccess);
+            Assert.IsTrue(restored.Value.world.Entities.TryGet(id, out var after));
+
+            var cultAfter = after.Get<CultivationComponent>();
+            Assert.AreEqual(RealmStage.QiRefining, cultAfter.Realm);
+            Assert.AreEqual(4, cultAfter.MinorStage);
+            Assert.AreEqual(1888, cultAfter.Progress);
+            Assert.AreEqual(3000, cultAfter.BreakthroughProgressRequired);
+            Assert.AreEqual(7, cultAfter.CultivationSpeed);
+            Assert.AreEqual("base:cultivation_dongfu_secret", cultAfter.LearnedManualId.Value.ToString());
+            Assert.AreEqual(SkillMasteryTier.Minor, cultAfter.ManualMastery.Tier);
+            Assert.AreEqual(81, cultAfter.ManualMastery.Progress);
+
+            var artsAfter = after.Get<CombatArtsComponent>();
+            Assert.IsTrue(artsAfter.Knows(artId));
+            Assert.AreEqual(artId, artsAfter.GetEquipped(0).Value);
+            Assert.AreEqual(SkillMasteryTier.Major, artsAfter.GetMastery(artId).Tier);
+            Assert.AreEqual(17, artsAfter.GetMastery(artId).Progress);
+        }
+
+        [Test]
+        public void SNAP_COV_07_InventoryContentShell_RehydratesMetadataWithoutChangingCount()
+        {
+            var world = CreateWorld();
+            Assert.AreEqual(5, world.Inventory.TryAdd("test:spirit_herb", 5));
+            var service = new SnapshotService(new JsonSnapshotSerializer());
+            var json = service.CaptureJson(world, new SimulationLoop(world));
+            Assert.IsTrue(json.IsSuccess);
+            var restored = service.RestoreJson(json.Value);
+            Assert.IsTrue(restored.IsSuccess);
+
+            var registry = new DefinitionRegistry();
+            Assert.IsTrue(registry.RegisterResource(new ResourceDefinition
+            {
+                Id = new DefinitionId("test", "spirit_herb"),
+                Name = "灵草"
+            }).IsSuccess);
+            var rehydrate = RuntimeContentShellBootstrap.Rehydrate(restored.Value.world, registry);
+            Assert.IsTrue(rehydrate.IsSuccess);
+            Assert.AreEqual(5, restored.Value.world.Inventory.GetCount("test:spirit_herb"));
+            Assert.AreEqual("灵草", restored.Value.world.InventoryCatalog.GetName("test:spirit_herb"));
+            Assert.IsTrue(restored.Value.world.InventoryCatalog.HasTag("test:spirit_herb", "resource"));
         }
     }
 }

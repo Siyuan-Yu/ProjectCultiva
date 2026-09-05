@@ -21,6 +21,8 @@ public sealed class OpeningStrategicEditorWindow : Window
     readonly List<FactionChoice> _factions;
     readonly ComboBox _scenarioBox = new() { MinWidth = 420 };
     readonly StackPanel _body = new();
+    readonly TextBlock _currentScenarioName = new() { Foreground = PrimaryText, FontSize = 15, FontWeight = FontWeights.SemiBold };
+    readonly TextBlock _currentScenarioId = new() { Foreground = SecondaryText, FontSize = 11, Margin = new Thickness(0, 2, 0, 0) };
     DefRef? _selectedScenario;
     OpeningStrategicAuthoringDto? _state;
     bool _loading;
@@ -66,6 +68,24 @@ public sealed class OpeningStrategicEditorWindow : Window
         top.Children.Add(new TextBlock { Text = "开局场景", Foreground = SecondaryText, Margin = new Thickness(0, 0, 0, 3) });
         _scenarioBox.SelectionChanged += ScenarioChanged;
         top.Children.Add(_scenarioBox);
+        var currentScenario = new Border
+        {
+            Background = new SolidColorBrush(Color.FromRgb(0x1D, 0x2A, 0x38)),
+            BorderBrush = DividerBrush,
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(10, 8, 10, 8),
+            Margin = new Thickness(0, 8, 0, 0),
+            Child = new StackPanel
+            {
+                Children =
+                {
+                    new TextBlock { Text = "当前编辑开局", Foreground = WarningText, FontSize = 11 },
+                    _currentScenarioName,
+                    _currentScenarioId
+                }
+            }
+        };
+        top.Children.Add(currentScenario);
         top.Children.Add(new TextBlock
         {
             Text = "这里配置新游戏开始时的战略关系。游戏运行后的战争、联盟、附庸变化由存档保存。",
@@ -109,6 +129,8 @@ public sealed class OpeningStrategicEditorWindow : Window
         _selectedScenario = scenario;
         _state = OpeningStrategicAuthoring.FromScenarioRaw(scenario.Raw);
         _dirty = false;
+        _currentScenarioName.Text = DisplayName(scenario);
+        _currentScenarioId.Text = scenario.Id;
         RebuildBody();
     }
 
@@ -209,7 +231,12 @@ public sealed class OpeningStrategicEditorWindow : Window
         OpeningStrategicAuthoring.ApplyToScenarioRaw(_selectedScenario.Raw, _state);
         PackageStore.SaveDefinition(_package, _selectedScenario);
         _dirty = false;
-        MessageBox.Show(this, "已保存当前场景的开局战略。", "开局战略", MessageBoxButton.OK, MessageBoxImage.Information);
+        MessageBox.Show(
+            this,
+            "已保存：" + _selectedScenario.Id + "\n\n仅影响该场景的新游戏开局；存档中的运行时战略状态不会被重写。",
+            "开局战略",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
         return true;
     }
 

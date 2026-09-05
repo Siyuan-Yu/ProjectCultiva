@@ -15,7 +15,7 @@ namespace XianXia.Data.Bootstrap
             if (world == null || registry == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "ContentRuntime bootstrap args null.");
 
-            ApplyInventoryCatalog(world, registry);
+            RehydrateInventoryCatalog(world, registry);
 
             foreach (var kv in registry.Quests)
             {
@@ -71,9 +71,13 @@ namespace XianXia.Data.Bootstrap
             return Result.Success();
         }
 
-        static void ApplyInventoryCatalog(SimulationWorld world, DefinitionRegistry registry)
+        /// <summary>
+        /// 从静态内容恢复物品目录。背包槽位与数量不属于此处，不会被清空或重发。
+        /// </summary>
+        internal static void RehydrateInventoryCatalog(SimulationWorld world, DefinitionRegistry registry)
         {
             var catalog = world.InventoryCatalog;
+            catalog.Clear();
             foreach (var kv in registry.Resources)
             {
                 var r = kv.Value;

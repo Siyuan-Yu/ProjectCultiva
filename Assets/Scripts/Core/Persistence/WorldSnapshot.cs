@@ -346,6 +346,11 @@ namespace XianXia.Core.Persistence
         public string WorkAreaId { get; set; }
         public int CurrentHp { get; set; }
         public int MaxHp { get; set; }
+        /// <summary>可重复争夺目标的当前占领读条；旧 v6 缺失时为 0。</summary>
+        public float OccupyProgressSeconds { get; set; }
+        /// <summary>内容定义的占领时长快照；旧 v6 缺失时由 Core shell 补全。</summary>
+        public float OccupyHoldSeconds { get; set; }
+        /// <summary>旧一次性占领标记，仅用于 Restore migration；不是 Runtime authority。</summary>
         public bool Completed { get; set; }
     }
 
@@ -421,6 +426,14 @@ namespace XianXia.Core.Persistence
         public int ActiveOrderSource { get; set; }
         public List<string> KnownSiteIds { get; set; } = new List<string>();
         public int PersonalConcealmentRisk { get; set; }
+        /// <summary>EntityLocation 是运行时地点真源；false 兼容旧存档缺失该组件。</summary>
+        public bool HasEntityLocation { get; set; }
+        /// <summary>JSON 是否含新 Location 字段；仅用于旧档兼容回填判定，不是长期地点数据。</summary>
+        public bool EntityLocationSnapshotFieldPresent { get; set; }
+        public string LocationId { get; set; } = string.Empty;
+        public bool HasPresentationOverride { get; set; }
+        public float PresentationOverrideX { get; set; }
+        public float PresentationOverrideZ { get; set; }
 
         /// <summary>Runtime FactionMembership（招募后可变；旧档缺省为空＝无归属）。</summary>
         public string FactionId { get; set; } = string.Empty;

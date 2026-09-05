@@ -71,6 +71,38 @@ namespace XianXia.Core.World.Strategic
             return true;
         }
 
+        /// <summary>
+        /// 让一方正式退出所属联盟，并返回退出前的完整成员快照，供上层军事侵略事务在宣战失败时恢复。
+        /// 剩余不足两人时联盟自动解散，所有反向索引同步清除。
+        /// </summary>
+        public bool TryLeaveAlliance(
+            string factionId,
+            out string previousAllianceId,
+            out List<string> previousMembers)
+        {
+            previousAllianceId = string.Empty;
+            previousMembers = new List<string>();
+            if (string.IsNullOrEmpty(factionId) ||
+                !_factionToAlliance.TryGetValue(factionId, out var allianceId) ||
+                string.IsNullOrEmpty(allianceId) ||
+                !_allianceMembers.TryGetValue(allianceId, out var members))
+                return false;
+
+            previousAllianceId = allianceId;
+            foreach (var member in members)
+                previousMembers.Add(member);
+
+            members.Remove(factionId);
+            _factionToAlliance.Remove(factionId);
+            if (members.Count >= 2)
+                return true;
+
+            foreach (var member in members)
+                _factionToAlliance.Remove(member);
+            _allianceMembers.Remove(allianceId);
+            return true;
+        }
+
         public IReadOnlyDictionary<string, HashSet<string>> All => _allianceMembers;
 
         public void RestoreAlliance(string allianceId, IList<string> members)

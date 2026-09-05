@@ -7,6 +7,100 @@
 
 ---
 
+## 2026-09-05 — 存档政治 Overlay 顺序与 WorldSite 可见旅行接管回归修正（待 Unity 人工验收）
+
+- 修正 Snapshot Restore 先于 Hex Content Shell 的顺序问题：`PlayableHostSession` 仅暂存本次 `StrategicSnapshotDto`，Host 完成 Hex／Site／Territory 静态壳后调用 `StrategicSnapshotHelper.RestoreHexPoliticalState` 叠加当前 Owner 与 Region Controller；随后重绑 ControlCore 并重建 SettlementAuthority。该 Overlay 不走 Capture Transfer，不发剧情／易主事件，也不重置建筑。
+- Site Owner Snapshot 现也保存空 Owner，避免新档无法用「无主」覆盖 Content 初始 Owner；Region Controller 与 Region Hex 继续通过既有正式 service 同步恢复。
+- `CloseWorldMapTakeover` 改为先成功 prepare LocalMap，再提交 `ExecutionMode=LocalVisible`，进入失败保留 World executor，避免半提交。每次 World→LocalVisible 都显式通知 Host 清理旧 Local 移动路径；WorldSite departure 分支也接入同一 rising-edge re-arm，因此可在同一已加载 Site LocalMap 中重新下达正式出口 A*。
+
+**验证**：`git diff --check` 通过（仅既有行尾转换提示）；当前无 Unity 编译工程或 Test Runner，待用户验证存读档 Owner 连续性与 WorldMap 关闭后的 Site 出口自动行走。
+
+---
+
+## 2026-09-05 — 可重复 WorldSite 占领 V1（待 Unity 人工验收）
+
+- `WorldSite.OwnerFactionId` 是唯一政治归属真源；ControlCore 只保存建筑耐久、破门和站立占领读条。旧 `PlayerControlled` 仅作旧代码兼容字段，已不参与 Domain／Host 的归属判断。
+- 占领事务改为：验证 Core／目标／战争／读条 → `WorldSiteTerritoryTransferService.Transfer` → 成功后将 Core 与 CaptureObjective 重置为满耐久、读条归零、可防守状态 → 重建 SettlementAuthority → 发出 `WorldSiteCaptured` 剧情钩子。Transfer 失败不会提前写入半占领状态。
+- CaptureObjective 的 `Completed` 保留 JSON 兼容，但退出 Runtime authority；旧存档的 `Completed=true` 在重建 Core 壳时迁移为满耐久、零读条、Runtime false，且永远不据此改写 Site Owner。
+- 新增 `SettlementAuthoritySync.Rebuild`：权限只来源于当前玩家拥有的 Site；失去最后一个提供权限的议政厅后，住房／课表权限及对应当前控制旗标同步撤销。`site_captured:*` 仍是历史事件旗标，不表示当前 Owner。
+- Ch01 改为响应真实 `WorldSiteCaptured`：荒村首次/再次被玩家获得时设置政治成立历史旗标，敌方夺回时不清除；普通居民、巡卫和既有军队不会自动变更角色势力。
+- Strategic Snapshot 为 CaptureObjective 增加占领进度与占领时长软附加字段；旧 v6 缺失时按零进度恢复。
+
+**验证**：新增 A→B→A 反复易主与 Owner 不能攻击自身 Core 的最小 Domain smoke。`git diff --check` 通过（仅既有行尾转换提示）；WorldGraphEditor Release 构建 0 warning／0 error。当前无 Unity 编译工程或 Test Runner，待用户按实际攻城／失地／读档流程验收。
+
+---
+
+## 2026-09-05 — 存读档静态内容壳与修炼／战技 JSON 完整性修复（待 Unity 人工验收）
+
+- 新增 `RuntimeContentShellBootstrap.Rehydrate`：Snapshot Restore 后、表现重建前，使用与新游戏相同的 Content mapper 恢复物品目录、完整功法定义、战技定义、境界阶梯以及 WorkArea／Job。它不会调用 OpeningScenario、不会发放初始物品，也不会改变角色境界、已学功法或世界战略状态。
+- `ManualSnapshotDto` 仍仅保留旧档兼容所需最小字段；内容壳会清除该最小运行时定义并用 Registry 的同 ID 完整功法定义覆盖，角色是否已学习仍只读 `CultivationComponent.LearnedManualId`。
+- `JsonSnapshotSerializer` 补齐原本 DTO／SnapshotService 已有但遗漏的角色字段：小境界、功法熟练度、已学／已装备战技及战技熟练度；旧 v6 缺字段继续按 0／false／空集合恢复。此前已补的 ActiveAction／Order `targetRef`、`activity` 仍保留。
+- 背包恢复继续只保存 ItemId／Count；重建目录后仅在新 MaxStack 不会超过槽位容量时安全整理，避免任何数量被截断。
+
+**验证**：新增最小 JSON 往返测试，覆盖境界、小境界、功法熟练度、战技学习／装备／熟练度。`git diff --check` 通过（仅既有行尾转换提示）；WorldGraphEditor Release 构建 0 warning／0 error。当前无 Unity 编译工程或 Test Runner，待用户实际存读档验收。
+
+---
+
+## 2026-09-05 — 战略军事侵略 V1、荒村驻军与议政厅统一表现（待 Unity 人工验收）
+
+- `LocalPlaceSetDefinition.MapLayoutId` 现会被未显式填写 `localMapId` 的地点继承；荒村控制核心由工作地点解析到 `base:map_ch01_reference`、`base:site_huangcun` 和压迫宗门 Owner，战争门槛不再被空 LocalMap 绕过。
+- `StrategicMilitaryAggressionService` 升级为 Preview／Commit 事务：已战争直接继续；普通关系宣战；攻击时自身是附庸则先脱离附庸；攻击直属附庸则先解除该关系；攻击联盟成员则先退出联盟。宣战失败会回滚本次附庸或联盟变更。
+- `WarGateService` 现在从攻击和防守两侧同时闭包联盟成员与直属附庸；同一势力被脏数据推入两侧会拒绝创建战争。所有跨侧关系统一写为战争。
+- 新增荒村驻军 FormalArmy，复用第一章已生成的主管和三名守卫，不重复生成实体、不覆盖既有日程、AI、住处或身份。ControlCore 的玩家可见名与正式内容统一为「议政厅」。
+- 新增 `StrategicMilitaryRules` 作为战略军事境界门槛唯一配置点：最低炼气；当前 `EnforceMinimumRealm = false`，保持现有凡人内容和测试兼容。荒野阵营旗与动态外交 UI 仍未实现。
+
+**验证**：`git diff --check` 通过（仅既有行尾提示）。当前环境无 Unity 编译工程；待用户在 Unity 中确认 LocalMap／WorldMap 攻击确认、联盟／附庸转变与荒村驻军分类。
+
+---
+
+## 2026-09-05 — 荒村主管单人驻军与议政厅攻城接战门槛（待 Unity 人工验收）
+
+- 荒村驻军改为只复用主管一名 Opening Spawn；三名巡卫保留压迫宗门归属、日程与 AI，但不再属于 FormalArmy，因此仍按普通 LocalCharacter 处理。
+- 新增 `WorldSiteSiegeService`：议政厅的外交确认之后，使用 `BattleEngagementSupportArea.ResolveAndFreezeForWorldSite` 的正式 Site footprint 加外圈范围筛选当前战争防守方可战军队；有守军建立 BattleOffer，无守军才允许既有建筑突击。
+- BattleOffer 可携带轻量 `ControlCore` 战略目标标记，仅供 UI 显示「议政厅」；不写入人物参战快照，也不参与 Manual／Auto 的战斗结束判定。战斗结束不保存自动续拆状态。
+- Participant gathering 从仅比较两条主派系扩展为读取当前 Active War 的攻守两侧，因此联盟与直属附庸绑定进入战争的军队会在 SupportArea 内自然作为援军加入。
+- F8 议政厅点选改为调用 `HostNpcContextMenu.TryRequestWorldSiteSiege`，与右键入口共享政治确认、攻城 Offer 与直攻判断。
+
+---
+
+## 2026-09-05 — 地点独立 LocalMap 语义与集合级 MapLayout 修正（待 Unity 人工验收）
+
+- 修正此前错误地把 `LocalPlaceSetDefinition.MapLayoutId` 继承进每个 `WorldLocationState.LocalMapId` 的回归；该字段的正式含义仍是「地点属于独立／室内 LocalMap」，空值代表当前地表。
+- `WorldRegionBoard` 新增集合级 `ActiveMapLayoutId`，由 LocalPlaceSet bootstrap 设置、清空地点表时同步清除；legacy WorldRegion 保持空值。
+- `CaptureObjectiveService.TryResolveControlCoreSite` 在地点自身没有独立 LocalMap 时改使用 `WorldRegion.ActiveMapLayoutId` 匹配 WorldSite，因此议政厅仍可解析 Owner，同时不会把普通地表地点误判为 Interior-only。
+
+---
+
+## 2026-09-05 — 普通 Local NPC Snapshot 地点连续性（待 Unity 人工验收）
+
+- `EntitySnapshotDto` 与 JSON Snapshot 新增 `EntityLocation` 的存在标记、逻辑 LocationId 与表现覆盖坐标；新存档 Restore 会恢复真正的 `EntityLocationComponent`，不把普通 NPC 写入 LocalMap Occupant。
+- JSON 同时补齐原 DTO 已有但先前漏写的 ActiveAction／Order `targetRef` 与 `activity` 字段，旧档缺失时保持空／0 的兼容默认。
+- 对旧 v6 存档，Host rehydrate 仅对「Snapshot 未含地点字段、OpeningScenario 与已恢复实体均唯一匹配、非 PlayerParty、非 FormalArmy、无 WorldPresence」的 authored Character 回填开局 `LocalLocationId`；无法恢复旧档从未保存的实时位置。
+- Snapshot rehydrate 重新注册 WorkArea／Job Content Shell，但不重新应用 OpeningScenario，不覆盖已恢复的势力、战争、Capture 或其它长期运行时状态。
+
+---
+
+## 2026-09-05 — 开局战略 Scenario 可见性与第一章参考关联盟核对
+
+- 核对 `base:scenario_ch01_reference`：它当前已包含「沧澜渔盟 ↔ 压迫宗门」开局联盟，同时保留压迫宗门对山匪的开局战争；未重复写入联盟，未改动 `scenario_playable_day` 或 `scenario_chapter1_harness`。
+- 核对正式链路无误：Content Loader → `OpeningScenarioDefinition.Alliances` → `StrategicOpeningContentBootstrap` → Runtime `AllianceBoard` → `FactionDiplomacyRelationQuery`。开局内容只用于新游戏；Snapshot Restore 恢复运行时联盟／战争，绝不重新套用开局内容。
+- WorldGraphEditor 的「开局战略」窗口新增醒目的「当前编辑开局」名称与 ID 卡片；保存反馈明确输出实际保存的 Scenario ID 和「仅影响新游戏开局」边界，不改变 ComboBox 默认选择、不会自动切换或同步场景。
+
+**验证**：WorldGraphEditor Release 构建 0 warning／0 error；用户仍需以新开游戏验证 Runtime 联盟与联盟战争绑定。完整核对见 [198](198-opening-strategic-scenario-visibility-and-ch01-alliance-2026-09-05.md)。
+
+---
+
+## 2026-09-05 — 第一章起事入口与主管府战争门槛修正（待 Unity 人工验收）
+
+- 修正主管府 `ControlCore` 的 WorldSite 解析：工作地点 ID 先经 `WorldRegion` 取得 `LocalMapId`，再匹配 `WorldSite.LocalMapId`；不再把两种不同层级的 ID 直接比较。解析成功会回填 CaptureObjective 的 SiteId。
+- 适配真实 bootstrap 顺序：ControlCore 先注册但 WorldRegion 尚未准备时可暂未绑定；WorldRegion 就绪后统一重绑，突击开始和占领完成继续保留懒解析兜底。
+- 主管府拥有者不等于攻方且没有 Active War 时，领域预检、实际第一击与占领完成都会拒绝。完成占领使用重新解析的 SiteId 经既有 Site／Territory 转移事务易主。
+- F8 战斗点选主管府补上同一领域预检：失败时不移动、不开始突击并退出 targeting。右键主管府的「起事／反抗宗门」继续可见；炼气不足时明确显示所需门槛。
+
+**验证**：更新既有 Core 捕获测试以模拟「工区先注册、WorldRegion 后就绪」；未运行 Unity。`git diff --check` 已通过（仅既有行尾转换提示）。完整说明见 [197](197-ch01-rebellion-controlcore-site-resolution-2026-09-05.md)。
+
+---
+
 ## 2026-09-05 — 势力／外交只读总览 V0（待 Unity 人工验收）
 
 - WorldMap 既有「战略」工具栏正式接通「势力」入口；复用角色／军队侧栏的开闭和互斥生命周期，面板全程只读，不新增宣战、议和、联盟或附庸操作。

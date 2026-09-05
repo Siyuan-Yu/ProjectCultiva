@@ -13,6 +13,56 @@ namespace XianXia.Core.Persistence
     /// <summary>??? Snapshot v6 ??????Pure Hex?? node/route DTO??</summary>
     public static class StrategicSnapshotHelper
     {
+        /// <summary>
+        /// 静态 Hex／Site／Territory shell 建立后覆盖当前政治状态。
+        /// Restore 本身不是新 Capture：不得发事件、重置 Core 或重套开局。
+        /// </summary>
+        public static void RestoreHexPoliticalState(SimulationWorld world, StrategicSnapshotDto dto)
+        {
+            if (world?.Strategic == null || dto == null)
+                return;
+
+            if (dto.WorldSiteOwners != null)
+            {
+                for (var i = 0; i < dto.WorldSiteOwners.Count; i++)
+                {
+                    var site = dto.WorldSiteOwners[i];
+                    if (site == null || string.IsNullOrEmpty(site.SiteId))
+                        continue;
+                    WorldSiteOwnershipService.SetOwner(world, site.SiteId, site.OwnerFactionId ?? string.Empty);
+                }
+            }
+
+            if (dto.TerritoryRegionControllers != null)
+            {
+                for (var i = 0; i < dto.TerritoryRegionControllers.Count; i++)
+                {
+                    var region = dto.TerritoryRegionControllers[i];
+                    if (region == null || string.IsNullOrEmpty(region.RegionId))
+                        continue;
+                    TerritoryControlService.SetRegionController(
+                        world, region.RegionId, region.ControlFactionId ?? string.Empty);
+                }
+            }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            foreach (var pair in world.Strategic.Sites.Sites)
+            {
+                var site = pair.Value;
+                if (site == null || string.IsNullOrEmpty(site.TerritoryRegionId) ||
+                    !world.Strategic.TerritoryRegions.TryGet(site.TerritoryRegionId, out var region) ||
+                    region == null)
+                    continue;
+                if (!string.Equals(site.OwnerFactionId ?? string.Empty,
+                        region.ControlFactionId ?? string.Empty, StringComparison.Ordinal))
+                {
+                    System.Diagnostics.Debug.Fail("[TerritoryRestore] Site/Region controller mismatch: " +
+                        site.SiteId + ".");
+                }
+            }
+#endif
+        }
+
         public static StrategicSnapshotDto Capture(SimulationWorld world, PlayerPartyRuntime party = null)
         {
             var dto = new StrategicSnapshotDto
@@ -145,12 +195,12 @@ namespace XianXia.Core.Persistence
             foreach (var kv in world.Strategic.Sites.Sites)
             {
                 var site = kv.Value;
-                if (site == null || string.IsNullOrEmpty(site.OwnerFactionId))
+                if (site == null || string.IsNullOrEmpty(site.SiteId))
                     continue;
                 dto.WorldSiteOwners.Add(new WorldSiteOwnerSnapshotDto
                 {
                     SiteId = site.SiteId,
-                    OwnerFactionId = site.OwnerFactionId
+                    OwnerFactionId = site.OwnerFactionId ?? string.Empty
                 });
             }
 
@@ -228,6 +278,8 @@ namespace XianXia.Core.Persistence
                     WorkAreaId = obj.WorkAreaId,
                     CurrentHp = obj.CurrentHp,
                     MaxHp = obj.MaxHp,
+                    OccupyProgressSeconds = obj.OccupyProgressSeconds,
+                    OccupyHoldSeconds = obj.OccupyHoldSeconds,
                     Completed = obj.Completed
                 });
             }
@@ -578,6 +630,8 @@ namespace XianXia.Core.Persistence
                         WorkAreaId = c.WorkAreaId ?? string.Empty,
                         CurrentHp = c.CurrentHp,
                         MaxHp = c.MaxHp,
+                        OccupyProgressSeconds = c.OccupyProgressSeconds,
+                        OccupyHoldSeconds = c.OccupyHoldSeconds,
                         Completed = c.Completed
                     });
                 }
@@ -751,9 +805,6 @@ namespace XianXia.Core.Persistence
             if (world?.PlayerPartyTravel == null || travel == null || !travel.HasPosition)
                 return;
 
-            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
-                ? world.HexWorld.HexSize
-                : 1f;
             var motion = world.PlayerPartyTravel;
             // Phase 5S-B2-3.5：pursuit target 与普通 PlayerParty travel 同契约 —— Save→Load 后
             // Movement 恢复 Idle，pursuit 亦清空（不单独引入更强 persistence）。
@@ -761,14 +812,19 @@ namespace XianXia.Core.Persistence
             if (travel.LocationKind == (int)PlayerPartyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(travel.SiteId))
             {
-                if (world.Strategic.Sites.TryResolveSitePresenceHex(travel.SiteId, out var presence))
-                    motion.SetAtWorldSite(travel.SiteId, presence, hexSize);
-                else
-                    motion.SetAtWorldSite(travel.SiteId, new HexCoord(travel.CurrentHexQ, travel.CurrentHexR), hexSize);
+                // Snapshot 的 AtWorldSite WorldX/Y 是 Site 内连续 Canonical 位置；不能用
+                // PresenceHex center 覆盖，否则 Load 后 LocalVisible 出口路径会以错误起点重建。
+                motion.RestoreIdleAtWorldSite(
+                    travel.SiteId,
+                    new WorldVec2(travel.WorldX, travel.WorldY),
+                    new HexCoord(travel.CurrentHexQ, travel.CurrentHexR));
                 return;
             }
 
             var pos = new WorldVec2(travel.WorldX, travel.WorldY);
+            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                ? world.HexWorld.HexSize
+                : 1f;
             var derived = HexMath.WorldToHex(pos.X, pos.Y, hexSize);
             motion.SetAtWorldPosition(pos, derived);
         }

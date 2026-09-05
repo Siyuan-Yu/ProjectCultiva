@@ -186,7 +186,8 @@
         "base:formal_army_bandit_weak",
         "base:formal_army_bandit_casualty_test",
         "base:formal_army_qingshi_acceptance_shuofeng_garrison",
-        "base:formal_army_qingshi_acceptance_shuofeng_reinforcement"
+        "base:formal_army_qingshi_acceptance_shuofeng_reinforcement",
+        "base:formal_army_huangcun_labor_garrison"
       ],
       "strategicOpening": {
         "playerFactionId": "base:faction_player",
@@ -196,7 +197,12 @@
             "overlordFactionId": "base:sect_huangcun_labor"
           }
         ],
-        "alliances": [],
+        "alliances": [
+          {
+            "factionAId": "base:faction_fisher_village",
+            "factionBId": "base:sect_huangcun_labor"
+          }
+        ],
         "initialWars": [
           {
             "declarerFactionId": "base:sect_huangcun_labor",

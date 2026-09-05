@@ -237,6 +237,9 @@ namespace XianXia.Core.Simulation
             _manuals[manual.Id.ToString()] = manual;
         }
 
+        /// <summary>清空静态功法定义；角色已学功法 ID 仍由实体运行时状态持有。</summary>
+        public void ClearManuals() => _manuals.Clear();
+
         public bool TryGetManual(DefinitionId id, out CultivationManualSpec manual)
         {
             manual = null;
@@ -251,6 +254,9 @@ namespace XianXia.Core.Simulation
                 throw new System.ArgumentNullException(nameof(art));
             _combatArts[art.Id.ToString()] = art;
         }
+
+        /// <summary>清空静态战技定义；角色已学／已装备战技仍由实体运行时状态持有。</summary>
+        public void ClearCombatArts() => _combatArts.Clear();
 
         public bool TryGetCombatArt(DefinitionId id, out CombatArtSpec art)
         {
@@ -272,35 +278,10 @@ namespace XianXia.Core.Simulation
                 ControlCores.TryGet(definition.Id, out var core) &&
                 core != null)
             {
-                var siteId = ResolveSiteIdForLocation(definition.LocationId);
-                CaptureObjectiveService.RegisterControlCore(this, core, siteId);
+                // Site 解析只由 CaptureObjectiveService 负责；此时 WorldRegion 可能尚未完成 bootstrap。
+                CaptureObjectiveService.RegisterControlCore(this, core, string.Empty);
             }
         }
-
-        static string ResolveSiteIdForLocation(SimulationWorld world, string locationId)
-        {
-            if (world?.Strategic?.Sites == null || string.IsNullOrEmpty(locationId))
-                return string.Empty;
-
-            var partySiteId = world.PartyWorld?.SiteId;
-            if (!string.IsNullOrEmpty(partySiteId) &&
-                world.Strategic.Sites.TryGet(partySiteId, out var partySite) &&
-                partySite != null &&
-                string.Equals(partySite.LocalMapId, locationId, System.StringComparison.Ordinal))
-                return partySiteId;
-
-            foreach (var kv in world.Strategic.Sites.Sites)
-            {
-                var site = kv.Value;
-                if (site != null &&
-                    string.Equals(site.LocalMapId, locationId, System.StringComparison.Ordinal))
-                    return site.SiteId;
-            }
-
-            return string.Empty;
-        }
-
-        string ResolveSiteIdForLocation(string locationId) => ResolveSiteIdForLocation(this, locationId);
 
         public bool TryGetWorkArea(string id, out WorkAreaDefinition definition)
         {

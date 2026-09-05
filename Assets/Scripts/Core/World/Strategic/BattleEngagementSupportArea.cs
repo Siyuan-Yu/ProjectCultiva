@@ -46,6 +46,28 @@ namespace XianXia.Core.World.Strategic
             return area;
         }
 
+        /// <summary>攻城使用同一正式 WorldSite footprint + 外圈 SupportArea，不从建筑 anchor 重新推导。</summary>
+        public static BattleEngagementSupportArea ResolveAndFreezeForWorldSite(
+            SimulationWorld world,
+            string siteId)
+        {
+            var area = new BattleEngagementSupportArea();
+            if (world?.Strategic?.Sites == null || string.IsNullOrEmpty(siteId) ||
+                !world.Strategic.Sites.TryGet(siteId, out var site) || site == null)
+                return area;
+            area.BattleSiteId = site.SiteId ?? string.Empty;
+            area.BattleSiteResolutionSource = "ExplicitWorldSiteSiege";
+            foreach (var hex in WorldSiteBattleSpatialPolicy.CollectBattleArea(site))
+                area._battleAreaHexes.Add(hex);
+            foreach (var hex in WorldSiteBattleSpatialPolicy.CollectSupportRing(site, world.HexWorld))
+                area._supportRingHexes.Add(hex);
+            area.PresentationAnchorHex = area._battleAreaHexes.Count > 0
+                ? area._battleAreaHexes[0]
+                : default;
+            area.BuildSupportSetFromBattleAndRing();
+            return area;
+        }
+
         public static BattleEngagementSupportArea FromFrozenLists(
             IReadOnlyList<HexCoord> battleAreaHexes,
             IReadOnlyList<HexCoord> supportAreaHexes,

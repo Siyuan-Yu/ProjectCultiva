@@ -266,6 +266,31 @@ namespace XianXia.Core.World.Strategic
             UsesTravelPresentation = false;
         }
 
+        /// <summary>
+        /// Snapshot 的静止 WorldSite 恢复入口。WorldPosition 是已经保存的 Canonical 位置，
+        /// 因而不得调用 <see cref="SetAtWorldSite"/> 再吸回 PresenceHex 中心。
+        /// 该入口只恢复静止态：不恢复路径、离场计划、攻击命令或执行器所有权。
+        /// </summary>
+        public bool RestoreIdleAtWorldSite(
+            string siteId,
+            WorldVec2 worldPosition,
+            HexCoord currentHex)
+        {
+            if (string.IsNullOrEmpty(siteId) ||
+                float.IsNaN(worldPosition.X) || float.IsNaN(worldPosition.Y))
+                return false;
+
+            LocationKind = PlayerPartyLocationKind.AtWorldSite;
+            SiteId = siteId;
+            WorldPosition = worldPosition;
+            CurrentHex = currentHex;
+            HasPosition = true;
+            ClearMovementKeepMembers();
+            ClearAttackOrder();
+            UsesTravelPresentation = false;
+            return true;
+        }
+
         public void SetAtWorldPosition(WorldVec2 worldPos, HexCoord derivedHex)
         {
             LocationKind = PlayerPartyLocationKind.AtWorldPosition;

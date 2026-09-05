@@ -11,7 +11,8 @@ namespace XianXia.Data.Bootstrap
         public static Result ApplyCh01Defaults(
             SimulationWorld world,
             DefinitionRegistry registry,
-            OpeningScenarioDefinition scenario)
+            OpeningScenarioDefinition scenario,
+            GameStartLookup openingLookup = null)
         {
             Ch01ScenarioStrategicSetup.ApplyRuntimeHooks(world);
             var opening = StrategicOpeningContentBootstrap.Apply(world, registry, scenario);
@@ -21,7 +22,7 @@ namespace XianXia.Data.Bootstrap
             if (hex.IsFailure)
                 return hex;
             Ch01ScenarioStrategicSetup.EnsureLevelTesterFixtures(world);
-            var armies = FormalArmyContentBootstrap.Apply(world, registry, scenario);
+            var armies = FormalArmyContentBootstrap.Apply(world, registry, scenario, openingLookup);
             if (armies.IsFailure)
                 return armies;
             Ch01ScenarioStrategicSetup.PositionPrototypeTestBanditArmies(world);

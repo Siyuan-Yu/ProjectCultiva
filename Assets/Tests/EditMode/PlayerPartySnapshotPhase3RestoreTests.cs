@@ -8,6 +8,7 @@ using XianXia.Core.Persistence;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Serialization;
 
@@ -165,6 +166,31 @@ namespace XianXia.Tests
                 source);
             Assert.AreEqual(23.4f, x, 0.001f);
             Assert.AreEqual(17.8f, z, 0.001f);
+        }
+
+        [Test]
+        public void SNAP_P3_05_AtWorldSiteTravelRestore_PreservesSavedCanonicalPosition()
+        {
+            var world = CreateWorld();
+            var savedPosition = new WorldVec2(12.375f, -8.625f);
+            var savedHex = new HexCoord(3, -2);
+            Assert.IsTrue(world.PlayerPartyTravel.RestoreIdleAtWorldSite(
+                "test:site_a", savedPosition, savedHex));
+
+            var service = new SnapshotService(new JsonSnapshotSerializer());
+            var json = service.CaptureJson(world, new SimulationLoop(world));
+            Assert.IsTrue(json.IsSuccess);
+
+            var restored = service.RestoreJson(json.Value);
+            Assert.IsTrue(restored.IsSuccess);
+            var motion = restored.Value.world.PlayerPartyTravel;
+            Assert.AreEqual(PlayerPartyLocationKind.AtWorldSite, motion.LocationKind);
+            Assert.AreEqual("test:site_a", motion.SiteId);
+            Assert.AreEqual(savedPosition.X, motion.WorldPosition.X, 0.0001f);
+            Assert.AreEqual(savedPosition.Y, motion.WorldPosition.Y, 0.0001f);
+            Assert.AreEqual(savedHex, motion.CurrentHex);
+            Assert.AreEqual(PlayerPartyMovementKind.Idle, motion.MovementKind);
+            Assert.AreEqual(PlayerPartyTravelExecutionMode.None, motion.ExecutionMode);
         }
     }
 }

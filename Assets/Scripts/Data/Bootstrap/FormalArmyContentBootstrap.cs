@@ -21,7 +21,8 @@ namespace XianXia.Data.Bootstrap
         public static Result Apply(
             SimulationWorld world,
             DefinitionRegistry registry,
-            OpeningScenarioDefinition scenario)
+            OpeningScenarioDefinition scenario,
+            GameStartLookup openingLookup = null)
         {
             if (world?.Strategic == null || registry == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "FormalArmy bootstrap requires world + registry.");
@@ -47,7 +48,7 @@ namespace XianXia.Data.Bootstrap
                         idText);
                 }
 
-                var applied = ApplyArmy(world, registry, def);
+                var applied = ApplyArmy(world, registry, def, openingLookup);
                 if (applied.IsFailure)
                     return applied;
             }
@@ -58,7 +59,8 @@ namespace XianXia.Data.Bootstrap
         static Result ApplyArmy(
             SimulationWorld world,
             DefinitionRegistry registry,
-            FormalArmyDefinition def)
+            FormalArmyDefinition def,
+            GameStartLookup openingLookup)
         {
             if (world.Strategic.FormalArmies.TryGet(def.RuntimeArmyId, out _))
                 return Result.Success();
@@ -71,20 +73,33 @@ namespace XianXia.Data.Bootstrap
                 if (member == null || string.IsNullOrWhiteSpace(member.CharacterDefinitionId))
                     continue;
 
-                var built = ContentGameStart.BuildSpawnFromDefinition(
-                    registry,
-                    member.CharacterDefinitionId,
-                    entityKindNpc: true,
-                    displayName: member.DisplayName);
-                if (built.IsFailure)
-                    return Result.Failure(built.Error);
-                var spawned = GameStartBootstrap.SpawnIntoWorld(world, built.Value);
-                if (spawned.IsFailure)
-                    return Result.Failure(spawned.Error);
-
-                var entity = spawned.Value;
-                entity.Get<FactionMembershipComponent>().Assign(def.FactionId, FactionRoleKind.Member);
-                world.WorldPresence.SetAtSite(entity.Id, def.AssemblySiteId);
+                XianXia.Core.Entities.Entity entity;
+                if (member.ReuseOpeningSpawn)
+                {
+                    if (openingLookup == null ||
+                        !openingLookup.TryGetEntity(member.CharacterDefinitionId, out var existingId) ||
+                        !world.Entities.TryGet(existingId, out entity) || entity == null)
+                        return Result.Failure(ErrorCode.NotFound, "FormalArmy reuseOpeningSpawn member missing from opening spawn.", member.CharacterDefinitionId);
+                    if (!entity.TryGet<FactionMembershipComponent>(out var existingMembership) ||
+                        !string.Equals(existingMembership.FactionId, def.FactionId, System.StringComparison.Ordinal))
+                        return Result.Failure(ErrorCode.InvalidOperation, "FormalArmy reused member faction does not match authored army.", member.CharacterDefinitionId);
+                }
+                else
+                {
+                    var built = ContentGameStart.BuildSpawnFromDefinition(
+                        registry,
+                        member.CharacterDefinitionId,
+                        entityKindNpc: true,
+                        displayName: member.DisplayName);
+                    if (built.IsFailure)
+                        return Result.Failure(built.Error);
+                    var spawned = GameStartBootstrap.SpawnIntoWorld(world, built.Value);
+                    if (spawned.IsFailure)
+                        return Result.Failure(spawned.Error);
+                    entity = spawned.Value;
+                    entity.Get<FactionMembershipComponent>().Assign(def.FactionId, FactionRoleKind.Member);
+                    world.WorldPresence.SetAtSite(entity.Id, def.AssemblySiteId);
+                }
                 if (member.Leader)
                     leaderId = entity.Id;
                 memberIds.Add(entity.Id);

@@ -11,6 +11,8 @@ namespace XianXia.Core.Exploration
         public string RegionId { get; set; } = string.Empty;
         public string RegionName { get; set; } = string.Empty;
         public string StartLocationId { get; set; } = string.Empty;
+        /// <summary>当前整组地点所属的外层物理 MapLayout；不改变单个地点 LocalMapId 的 Interior 语义。</summary>
+        public string ActiveMapLayoutId { get; set; } = string.Empty;
 
         public IReadOnlyDictionary<string, WorldLocationState> Locations => _locations;
 
@@ -22,7 +24,11 @@ namespace XianXia.Core.Exploration
             return _locations.TryGetValue(id, out location);
         }
 
-        public void ClearLocations() => _locations.Clear();
+        public void ClearLocations()
+        {
+            _locations.Clear();
+            ActiveMapLayoutId = string.Empty;
+        }
 
         public void Register(WorldLocationState location)
         {

@@ -41,6 +41,8 @@ namespace XianXia.Unity.Host
         Vector3 _lastAutoTravelTarget;
         // Back-off after a failed drive attempt (no Exit / A* blocked): avoid per-frame re-path.
         float _autoTravelRetryCooldownUntil;
+        string _lastSameExitReplanDiagnostic = string.Empty;
+        float _lastSameExitReplanDiagnosticTime = -10f;
         // Phase 5C-W1 (3rd pass): rising-edge of ExecutionMode -> LocalVisible marks a fresh
         // takeover; every takeover re-arms the CURRENT leg (independent of WorldMap open/close).
         bool _localVisibleTakeoverActive;
@@ -517,6 +519,48 @@ namespace XianXia.Unity.Host
                 if (isEgressCompletion)
                     SnapCameraToActiveOnce();
             }
+        }
+
+        /// <summary>
+        /// 每次 World executor → LocalVisible executor 的接管都强制失效 Host 侧旧路径缓存。
+        /// 不改 Domain TravelPlan；下一 Tick 会按现有 departure/leg 正式重发 Local A*。
+        /// </summary>
+        public void OnLocalVisibleTravelTakeover()
+        {
+            _localVisibleTakeoverActive = false;
+            ResetLocalVisibleAutoTravelTracking();
+            var active = Party != null ? Party.ActiveCharacterId : EntityId.None;
+            if (!active.IsNone)
+                _move?.CancelPresentationMovementPublic(active);
+        }
+
+        /// <summary>
+        /// Snapshot 用新 SimulationWorld 替换 Session 后清理旧 Host 会话瞬态。
+        /// 不写 Domain motion / PartyWorld / 路线；最终 LocalMap 落点仍由 materialize 流程建立。
+        /// </summary>
+        public void ResetTransientStateAfterSnapshotRestore()
+        {
+            _localVisibleTakeoverActive = false;
+            ResetLocalVisibleAutoTravelTracking();
+            _finalArrivalApproachInProgress = false;
+            _siteSyncHeld = false;
+            _siteSyncCacheSiteId = string.Empty;
+            _siteSyncCacheMapId = string.Empty;
+            _siteSyncCacheGeometry = null;
+            _siteSyncLastFailureKind = string.Empty;
+            _siteSyncLastFailureTime = -10f;
+            _pendingEgressRecenter = false;
+            _pendingEgressRecenterMapId = string.Empty;
+            _wasdHeldLastFrame = false;
+            _pendingSnapshotFollowRebind = false;
+            _cameraDetachedByPlayer = false;
+            _hasAutoTravelSession = false;
+            _cameraMode = HostActiveCameraFollowMode.Free;
+            _nextFollowRepath.Clear();
+            _followerSharedActivity.Clear();
+            _lastActiveSharedActivity = HostPartySharedActivity.FollowIdle;
+            _lastSameExitReplanDiagnostic = string.Empty;
+            _lastSameExitReplanDiagnosticTime = -10f;
         }
 
         void InvalidatePartyDerivedLocalActions()
@@ -1322,6 +1366,14 @@ namespace XianXia.Unity.Host
             PlayerPartyWorldMotion motion,
             PlayerPartyRuntime party)
         {
+            // WorldSite departure 不经过 Wilderness 的 rising-edge 分支；takeover 后同样必须
+            // 清理 stale target / movement，确保关闭 WorldMap 即重新发出正式出口路径。
+            if (!_localVisibleTakeoverActive)
+            {
+                _localVisibleTakeoverActive = true;
+                ReArmCurrentLocalLeg(motion);
+            }
+
             if (motion.DeparturePhase == PlayerPartyDeparturePhase.Planned)
                 motion.SetDeparturePhase(PlayerPartyDeparturePhase.Approaching);
 
@@ -1383,6 +1435,10 @@ namespace XianXia.Unity.Host
             {
                 if (TryReplanWorldSiteDeparture(world, party, site, hexSize, wildBounds, depth, activePos, connection.DestinationHex))
                 {
+                    LogWorldSiteDepartureReplan(
+                        connection.DestinationHex,
+                        motion.SiteDepartureExitHex,
+                        activePos);
                     LastTransitionStatus = "DepartureReplanned " + connection.DestinationHex + "→" + motion.SiteDepartureExitHex;
                     _lastAutoTravelTarget = default;
                     _move.CancelPresentationMovementPublic(active);
@@ -1455,6 +1511,29 @@ namespace XianXia.Unity.Host
 
             _lastAutoTravelTarget = target;
             SyncLocalVisibleProgress(world, motion);
+        }
+
+        void LogWorldSiteDepartureReplan(HexCoord oldExit, HexCoord newExit, Vector3 activePosition)
+        {
+            var key = oldExit + "→" + newExit;
+            if (string.Equals(_lastSameExitReplanDiagnostic, key, System.StringComparison.Ordinal) &&
+                Time.unscaledTime - _lastSameExitReplanDiagnosticTime < 2f)
+                return;
+            _lastSameExitReplanDiagnostic = key;
+            _lastSameExitReplanDiagnosticTime = Time.unscaledTime;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            var message = "[SiteDeparture] AvailabilityResult=false" +
+                " ExpectedExit=" + oldExit +
+                " CurrentActiveLocalPos=" + activePosition.x + "," + activePosition.y +
+                " ReachableExitCount=" + ReachableExitHexScratch.Count +
+                " ReplanOldExit=" + oldExit +
+                " ReplanNewExit=" + newExit +
+                " ReplanChanged=" + (!oldExit.Equals(newExit));
+            if (oldExit.Equals(newExit))
+                Debug.LogWarning("RepeatedWorldSiteDepartureReplanSameExit " + message, this);
+            else
+                Debug.Log(message, this);
+#endif
         }
 
         bool TryReplanWorldSiteDeparture(

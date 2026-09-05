@@ -18,6 +18,8 @@ namespace XianXia.Core.Npc
         public int Defense { get; set; }
         public float OccupyHoldSeconds { get; set; } = 10f;
         public float OccupyProgressSeconds { get; set; }
+        /// <summary>旧玩家单向占领标记；仅为旧代码／存档兼容保留，禁止作为政治归属 authority。</summary>
+        [System.Obsolete("政治归属必须查询 WorldSite.OwnerFactionId。")]
         public bool PlayerControlled { get; set; }
         public bool CaptureAvailable { get; set; }
         public List<string> GrantsPrivileges { get; } = new List<string>();
@@ -114,7 +116,7 @@ namespace XianXia.Core.Npc
             bool defenseAlreadyApplied = false)
         {
             state = null;
-            if (!TryGet(workAreaId, out state) || state.PlayerControlled)
+            if (!TryGet(workAreaId, out state))
                 return false;
             if (amount < 1)
                 amount = 1;
@@ -136,7 +138,7 @@ namespace XianXia.Core.Npc
         public void AddOccupyProgress(string workAreaId, float seconds, out ControlCoreState state)
         {
             state = null;
-            if (!TryGet(workAreaId, out state) || state.PlayerControlled || !state.CaptureAvailable)
+            if (!TryGet(workAreaId, out state) || !state.CaptureAvailable)
                 return;
             if (seconds <= 0f)
                 return;
@@ -156,17 +158,23 @@ namespace XianXia.Core.Npc
             state = null;
             if (!TryGet(workAreaId, out state))
                 return false;
-            if (state.PlayerControlled)
-                return true;
             if (!state.CaptureAvailable || state.CurrentDurability > 0)
                 return false;
             if (state.OccupyProgressSeconds + 0.001f < state.OccupyHoldSeconds)
                 return false;
-            state.PlayerControlled = true;
-            state.CaptureAvailable = false;
-            state.OccupyProgressSeconds = state.OccupyHoldSeconds;
-            state.CurrentDurability = state.MaxDurability;
             return true;
+        }
+
+        /// <summary>政治 Transfer 成功后恢复新 Owner 的建筑物理状态。</summary>
+        public void ResetAfterCapture(string workAreaId, bool legacyPlayerControlled, out ControlCoreState state)
+        {
+            state = null;
+            if (!TryGet(workAreaId, out state))
+                return;
+            state.CurrentDurability = System.Math.Max(1, state.MaxDurability);
+            state.CaptureAvailable = false;
+            state.OccupyProgressSeconds = 0f;
+            state.PlayerControlled = legacyPlayerControlled;
         }
 
         public bool AnyPlayerControlled()
