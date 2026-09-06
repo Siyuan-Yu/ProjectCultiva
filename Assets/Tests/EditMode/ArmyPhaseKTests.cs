@@ -43,7 +43,9 @@ namespace XianXia.Tests
             Assert.IsTrue(restored.IsSuccess);
             var rw = restored.Value.world;
             HexTestWorldBootstrap.EnsureMinimalHexMap(rw);
-            StrategicSnapshotHelper.Restore(rw, captured.Value.Strategic);
+            Assert.IsTrue(StrategicSnapshotHelper.Restore(rw, captured.Value.Strategic).IsSuccess);
+            Assert.IsTrue(StrategicSnapshotHelper.RestoreHexPoliticalState(rw, captured.Value.Strategic).IsSuccess);
+            Assert.IsTrue(StrategicSnapshotHelper.RestoreFormalArmyMotions(rw, captured.Value.Strategic).IsSuccess);
             Assert.IsTrue(rw.Strategic.FormalArmies.TryGet(army.ArmyId, out var restoredArmy));
             Assert.AreEqual(FactionA, restoredArmy.FactionId);
             Assert.IsTrue(WarGateService.IsAtWar(rw, FactionA, "test:faction_b"));

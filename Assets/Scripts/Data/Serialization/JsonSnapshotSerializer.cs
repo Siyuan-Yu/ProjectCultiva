@@ -760,6 +760,17 @@ namespace XianXia.Data.Serialization
                         ["orderTargetArmyId"] = JsonValue.FromString(a.OrderTargetArmyId ?? string.Empty),
                         ["segmentProgress"] = JsonValue.FromNumber(a.SegmentProgress),
                         ["segmentIndex"] = JsonValue.FromNumber(a.SegmentIndex),
+                        ["travelMode"] = JsonValue.FromNumber(a.TravelMode),
+                        ["hasSiteDepartureState"] = JsonValue.FromBool(a.HasSiteDepartureState),
+                        ["isSiteDeparturePending"] = JsonValue.FromBool(a.IsSiteDeparturePending),
+                        ["siteDepartureVirtualX"] = JsonValue.FromNumber(a.SiteDepartureVirtualX),
+                        ["siteDepartureVirtualY"] = JsonValue.FromNumber(a.SiteDepartureVirtualY),
+                        ["siteDepartureBoundaryX"] = JsonValue.FromNumber(a.SiteDepartureBoundaryX),
+                        ["siteDepartureBoundaryY"] = JsonValue.FromNumber(a.SiteDepartureBoundaryY),
+                        ["siteDepartureFootprintQ"] = JsonValue.FromNumber(a.SiteDepartureFootprintQ),
+                        ["siteDepartureFootprintR"] = JsonValue.FromNumber(a.SiteDepartureFootprintR),
+                        ["siteDepartureExitQ"] = JsonValue.FromNumber(a.SiteDepartureExitQ),
+                        ["siteDepartureExitR"] = JsonValue.FromNumber(a.SiteDepartureExitR),
                         ["memberCharacterIds"] = JsonValue.FromArray(members),
                         ["hexPath"] = JsonValue.FromArray(SerializeHexPath(a.HexPath))
                     }));
@@ -1076,6 +1087,19 @@ namespace XianXia.Data.Serialization
                         OrderTargetArmyId = a.GetString("orderTargetArmyId", string.Empty),
                         SegmentProgress = a.TryGetProperty("segmentProgress", out var sp2) ? (float)sp2.Number : 0f,
                         SegmentIndex = a.TryGetProperty("segmentIndex", out var si) ? (int)si.Number : 0,
+                        TravelMode = a.TryGetProperty("travelMode", out var tm) ? (int)tm.Number : 0,
+                        HasSiteDepartureState = a.TryGetProperty("hasSiteDepartureState", out var hsds) &&
+                                                hsds.Kind == JsonValueKind.Boolean && hsds.Bool,
+                        IsSiteDeparturePending = a.TryGetProperty("isSiteDeparturePending", out var isdp) &&
+                                                 isdp.Kind == JsonValueKind.Boolean && isdp.Bool,
+                        SiteDepartureVirtualX = a.TryGetProperty("siteDepartureVirtualX", out var sdvx) ? (float)sdvx.Number : 0f,
+                        SiteDepartureVirtualY = a.TryGetProperty("siteDepartureVirtualY", out var sdvy) ? (float)sdvy.Number : 0f,
+                        SiteDepartureBoundaryX = a.TryGetProperty("siteDepartureBoundaryX", out var sdbx) ? (float)sdbx.Number : 0f,
+                        SiteDepartureBoundaryY = a.TryGetProperty("siteDepartureBoundaryY", out var sdby) ? (float)sdby.Number : 0f,
+                        SiteDepartureFootprintQ = a.TryGetProperty("siteDepartureFootprintQ", out var sdfq) ? (int)sdfq.Number : 0,
+                        SiteDepartureFootprintR = a.TryGetProperty("siteDepartureFootprintR", out var sdfr) ? (int)sdfr.Number : 0,
+                        SiteDepartureExitQ = a.TryGetProperty("siteDepartureExitQ", out var sdeq) ? (int)sdeq.Number : 0,
+                        SiteDepartureExitR = a.TryGetProperty("siteDepartureExitR", out var sder) ? (int)sder.Number : 0,
                     };
                     if (a.TryGetProperty("memberCharacterIds", out var members) && members.Kind == JsonValueKind.Array)
                     {
@@ -1344,6 +1368,7 @@ namespace XianXia.Data.Serialization
                 dto.PendingEngagement = ReadPendingEngagement(pendingNode);
             }
 
+            FactionFlagSnapshotRestore.LogDtos("FlagSnapshotParsed", dto.FactionFlags);
             return dto;
         }
 

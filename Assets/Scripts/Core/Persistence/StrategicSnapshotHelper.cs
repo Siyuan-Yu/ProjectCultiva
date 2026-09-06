@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Persistence;
+using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
@@ -17,10 +18,15 @@ namespace XianXia.Core.Persistence
         /// 静态 Hex／Site／Territory shell 建立后覆盖当前政治状态。
         /// Restore 本身不是新 Capture：不得发事件、重置 Core 或重套开局。
         /// </summary>
-        public static void RestoreHexPoliticalState(SimulationWorld world, StrategicSnapshotDto dto)
+        public static Result RestoreHexPoliticalState(SimulationWorld world, StrategicSnapshotDto dto)
         {
             if (world?.Strategic == null || dto == null)
-                return;
+                return Result.Failure(ErrorCode.InvalidArgument, "Political snapshot restore requires world and dto.");
+
+            // Flag active set 先完整验证并原子提交；失败时不允许继续覆盖其它政治状态。
+            var flags = FactionFlagSnapshotRestore.TryApplyAuthoritativeSet(world, dto);
+            if (flags.IsFailure)
+                return flags;
 
             if (dto.WorldSiteOwners != null)
             {
@@ -45,28 +51,6 @@ namespace XianXia.Core.Persistence
                 }
             }
 
-            if (dto.HasFactionFlagSnapshotAuthority)
-            {
-                world.Strategic.FactionFlags.Clear();
-                if (dto.FactionFlags != null)
-                    for (var i = 0; i < dto.FactionFlags.Count; i++)
-                    {
-                        var item = dto.FactionFlags[i];
-                        if (item == null) continue;
-                        world.Strategic.FactionFlags.Register(new FactionFlagState
-                        {
-                            FlagId = item.FlagId ?? string.Empty,
-                            FactionId = item.FactionId ?? string.Empty,
-                            AnchorHex = new HexCoord(item.AnchorQ, item.AnchorR),
-                            EstablishedOrder = item.EstablishedOrder,
-                            CurrentHp = item.CurrentHp,
-                            MaxHp = item.MaxHp,
-                            HasLocalPosition = item.HasLocalPosition,
-                            LocalX = item.LocalX,
-                            LocalZ = item.LocalZ
-                        });
-                    }
-            }
             StrategicTerritoryCoverageResolver.Rebuild(world);
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -85,6 +69,7 @@ namespace XianXia.Core.Persistence
                 }
             }
 #endif
+            return Result.Success();
         }
 
         public static StrategicSnapshotDto Capture(SimulationWorld world, PlayerPartyRuntime party = null)
@@ -110,10 +95,10 @@ namespace XianXia.Core.Persistence
                     LeaderCharacterId = army.LeaderCharacterId.Value,
                     State = (int)army.State,
                     UsesHexStrategicPosition = army.UsesHexStrategicPosition,
-                    CurrentHexQ = army.CurrentHex.Q,
-                    CurrentHexR = army.CurrentHex.R,
-                    DestinationHexQ = army.DestinationHex.Q,
-                    DestinationHexR = army.DestinationHex.R,
+                    CurrentHexQ = armyMotion.CurrentHex.Q,
+                    CurrentHexR = armyMotion.CurrentHex.R,
+                    DestinationHexQ = armyMotion.DestinationHex.Q,
+                    DestinationHexR = armyMotion.DestinationHex.R,
                     StepProgress = army.StepProgress,
                     StepRemainingTicks = army.StepRemainingTicks,
                     StepTotalTicks = army.StepTotalTicks,
@@ -127,10 +112,21 @@ namespace XianXia.Core.Persistence
                     OrderTargetArmyId = armyMotion.OrderTargetArmyId ?? string.Empty,
                     SegmentProgress = armyMotion.SegmentProgress,
                     SegmentIndex = armyMotion.SegmentIndex,
+                    TravelMode = (int)armyMotion.TravelMode,
+                    HasSiteDepartureState = true,
+                    IsSiteDeparturePending = armyMotion.IsSiteDeparturePending,
+                    SiteDepartureVirtualX = armyMotion.SiteDepartureVirtualPosition.X,
+                    SiteDepartureVirtualY = armyMotion.SiteDepartureVirtualPosition.Y,
+                    SiteDepartureBoundaryX = armyMotion.SiteDepartureBoundaryEntry.X,
+                    SiteDepartureBoundaryY = armyMotion.SiteDepartureBoundaryEntry.Y,
+                    SiteDepartureFootprintQ = armyMotion.SiteDepartureFootprintHex.Q,
+                    SiteDepartureFootprintR = armyMotion.SiteDepartureFootprintHex.R,
+                    SiteDepartureExitQ = armyMotion.SiteDepartureExitHex.Q,
+                    SiteDepartureExitR = armyMotion.SiteDepartureExitHex.R,
                 };
-                for (var p = 0; p < army.HexPathCount; p++)
+                for (var p = 0; p < armyMotion.HexPathCount; p++)
                 {
-                    var coord = army.HexPath[p];
+                    var coord = armyMotion.HexPath[p];
                     armyDto.HexPath.Add(new HexCoordSnapshotDto { Q = coord.Q, R = coord.R });
                 }
                 for (var i = 0; i < army.MemberCharacterIds.Count; i++)
@@ -143,6 +139,15 @@ namespace XianXia.Core.Persistence
                 if (entity == null || !entity.TryGet<ArmyMembershipComponent>(out var mem) ||
                     string.IsNullOrEmpty(mem.ArmyId))
                     continue;
+                if (!world.Strategic.FormalArmies.TryGet(mem.ArmyId, out var membershipArmy) ||
+                    membershipArmy == null || !membershipArmy.ContainsMember(entity.Id))
+                {
+#if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
+                    System.Diagnostics.Debug.Fail("[SnapshotCapture] Orphan ArmyMembership CharacterId=" +
+                        entity.Id.Value + " ArmyId='" + mem.ArmyId + "'.");
+#endif
+                    continue;
+                }
                 dto.ArmyMemberships.Add(new ArmyMembershipSnapshotDto
                 {
                     CharacterId = entity.Id.Value,
@@ -247,6 +252,7 @@ namespace XianXia.Core.Persistence
                     AnchorQ=flag.AnchorHex.Q, AnchorR=flag.AnchorHex.R, EstablishedOrder=flag.EstablishedOrder,
                     CurrentHp=flag.CurrentHp, MaxHp=flag.MaxHp, HasLocalPosition=flag.HasLocalPosition, LocalX=flag.LocalX, LocalZ=flag.LocalZ });
             }
+            FactionFlagSnapshotRestore.LogDtos("FlagSnapshotCapture", dto.FactionFlags);
 
             foreach (var war in world.Strategic.Wars.EnumerateActive())
             {
@@ -383,10 +389,21 @@ namespace XianXia.Core.Persistence
             return dto;
         }
 
-        public static void Restore(SimulationWorld world, StrategicSnapshotDto dto)
+        public static Result Restore(SimulationWorld world, StrategicSnapshotDto dto)
         {
             if (world?.Strategic == null || dto == null)
-                return;
+                return Result.Failure(ErrorCode.InvalidArgument, "Strategic snapshot restore requires world and dto.");
+
+            var armyIds = new HashSet<string>(StringComparer.Ordinal);
+            if (dto.FormalArmies != null)
+                for (var i = 0; i < dto.FormalArmies.Count; i++)
+                {
+                    var item = dto.FormalArmies[i];
+                    if (item == null || string.IsNullOrWhiteSpace(item.ArmyId))
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "FormalArmy snapshot has empty identity.", "Index=" + i);
+                    if (!armyIds.Add(item.ArmyId))
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "FormalArmy snapshot has duplicate ArmyId.", item.ArmyId);
+                }
 
             world.Strategic.PlayerFactionId = dto.PlayerFactionId ?? string.Empty;
             world.Strategic.Ch01FormationScenarioCompat = dto.Ch01FormationScenarioCompat;
@@ -398,10 +415,8 @@ namespace XianXia.Core.Persistence
             world.Strategic.RetreatingArmies.Clear();
             world.Strategic.CaptureObjectives.Clear();
 
-            List<(FormalArmy army, FormalArmySnapshotDto dto)> restoredFormalArmies = null;
             if (dto.FormalArmies != null && dto.FormalArmies.Count > 0)
             {
-                restoredFormalArmies = new List<(FormalArmy, FormalArmySnapshotDto)>(dto.FormalArmies.Count);
                 using (FormalArmyStrategicMutationDiagnostics.Scope(
                            FormalArmyStrategicMutationDiagnostics.MutationAllowance.SnapshotLoad,
                            nameof(Restore)))
@@ -413,21 +428,13 @@ namespace XianXia.Core.Persistence
                             continue;
                         var army = BuildFormalArmyFromSnapshot(a);
                         world.Strategic.FormalArmies.Register(army);
-                        restoredFormalArmies.Add((army, a));
                     }
                 }
             }
 
-            RestoreArmyMemberships(world, dto.ArmyMemberships);
-
-            if (restoredFormalArmies != null)
-            {
-                for (var i = 0; i < restoredFormalArmies.Count; i++)
-                {
-                    var pair = restoredFormalArmies[i];
-                    FormalArmySnapshotRestore.Apply(world, pair.army, pair.dto);
-                }
-            }
+            var memberships = RestoreArmyMemberships(world, dto.ArmyMemberships);
+            if (memberships.IsFailure)
+                return memberships;
 
             // CharacterWorldPresences 是新版 authority（可携带 precise WorldPosition）；
             // 恢复时记录已恢复 id —— 旧 ResidualCharacterPresences 只作 legacy fallback，
@@ -672,8 +679,36 @@ namespace XianXia.Core.Persistence
             RestorePlayerPartyTravel(world, dto.PlayerPartyTravel);
             RestoreBackgroundCharacterTravels(world, dto.BackgroundCharacterTravels);
             LoadedLocalMapPlacementSnapshotRestore.BeginRestoreFromSnapshot(dto);
-            FinalizeRuntimeLinks(world);
             PendingEngagementSnapshotRestore.Restore(world, dto);
+            return Result.Success();
+        }
+
+        /// <summary>Stage 2：Hex/Site shell 与政治覆盖完成后，按 Snapshot 精确恢复全部军队运动。</summary>
+        public static Result RestoreFormalArmyMotions(SimulationWorld world, StrategicSnapshotDto dto)
+        {
+            if (world?.Strategic == null || dto == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "FormalArmy motion restore requires world and dto.");
+            if (dto.FormalArmies == null)
+                return Result.Success();
+
+            for (var i = 0; i < dto.FormalArmies.Count; i++)
+            {
+                var item = dto.FormalArmies[i];
+                if (item == null || !world.Strategic.FormalArmies.TryGet(item.ArmyId, out var army) || army == null)
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "FormalArmy motion target missing.", item?.ArmyId ?? "<null>");
+                var valid = FormalArmySnapshotRestore.Validate(world, item);
+                if (valid.IsFailure)
+                    return valid;
+            }
+            for (var i = 0; i < dto.FormalArmies.Count; i++)
+            {
+                var item = dto.FormalArmies[i];
+                world.Strategic.FormalArmies.TryGet(item.ArmyId, out var army);
+                var applied = FormalArmySnapshotRestore.Apply(world, army, item);
+                if (applied.IsFailure)
+                    return applied;
+            }
+            return Result.Success();
         }
 
         /// <summary>
@@ -684,13 +719,13 @@ namespace XianXia.Core.Persistence
             if (world?.Strategic == null)
                 return;
 
-            ArmyStackAdapter.EnsurePresentationStacksFromFormalArmies(world);
-
             foreach (var kv in world.Strategic.FormalArmies.Armies)
             {
                 if (kv.Value != null)
                     FormalArmyMemberPresenceSync.SyncAll(world, kv.Value);
             }
+
+            ArmyStackAdapter.EnsurePresentationStacksFromFormalArmies(world);
 
             foreach (var kv in world.Strategic.FormalArmies.Armies)
             {
@@ -741,12 +776,12 @@ namespace XianXia.Core.Persistence
             return army;
         }
 
-        static void RestoreArmyMemberships(
+        static Result RestoreArmyMemberships(
             SimulationWorld world,
             List<ArmyMembershipSnapshotDto> memberships)
         {
             if (memberships == null)
-                return;
+                return Result.Success();
 
             for (var i = 0; i < memberships.Count; i++)
             {
@@ -754,6 +789,11 @@ namespace XianXia.Core.Persistence
                 if (m == null || m.CharacterId == 0 || string.IsNullOrEmpty(m.ArmyId))
                     continue;
                 var id = new EntityId(m.CharacterId);
+                if (!world.Strategic.FormalArmies.TryGet(m.ArmyId, out var army) || army == null ||
+                    !army.ContainsMember(id))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "ArmyMembership references a missing army or mismatched roster.",
+                        "CharacterId=" + m.CharacterId + " ArmyId='" + m.ArmyId + "'.");
                 if (!world.Entities.TryGet(id, out var entity))
                 {
                     LogCharacterRestoreSkip(m.CharacterId, m.ArmyId, "army membership target missing");
@@ -763,6 +803,7 @@ namespace XianXia.Core.Persistence
                 ArmyInvariants.EnsureMembershipComponent(entity);
                 entity.Get<ArmyMembershipComponent>().SetArmyId(m.ArmyId);
             }
+            return Result.Success();
         }
 
         static void LogCharacterRestoreSkip(ulong characterId, string context, string reason)

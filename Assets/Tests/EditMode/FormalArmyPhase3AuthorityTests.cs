@@ -409,7 +409,10 @@ namespace XianXia.Tests
             var loaded = BuildWorld(out _, out _);
             var a2 = Spawn(loaded, "A");
             dto.FormalArmies[0].MemberCharacterIds[0] = a2.Value;
-            StrategicSnapshotHelper.Restore(loaded, dto);
+            dto.FormalArmies[0].LeaderCharacterId = a2.Value;
+            dto.ArmyMemberships[0].CharacterId = a2.Value;
+            Assert.IsTrue(StrategicSnapshotHelper.Restore(loaded, dto).IsSuccess);
+            Assert.IsTrue(StrategicSnapshotHelper.RestoreFormalArmyMotions(loaded, dto).IsSuccess);
 
             Assert.IsTrue(loaded.Strategic.FormalArmies.TryGet(dto.FormalArmies[0].ArmyId, out var army));
             Assert.IsTrue(army.WorldMotion.IsMoving || army.WorldMotion.HasPosition);

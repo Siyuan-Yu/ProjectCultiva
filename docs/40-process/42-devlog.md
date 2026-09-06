@@ -7,6 +7,30 @@
 
 ---
 
+## 2026-09-06 — Snapshot Continuity：FactionFlag 原子覆盖、FormalArmy Two-Stage Motion 与 Wilderness Disband
+
+- `FactionFlag` Snapshot active set 改为整表预验证与原子替换：FlagId／FactionId／Anchor／EstablishedOrder／HP／LocalPosition 任一非法即 `SnapshotInvalid`，不再忽略 `Register(false)` 后以缺旗世界继续；Development 增加 Capture／Parsed／Restored 集合诊断。
+- Hex Content loader 先在隔离 `SimulationWorld` 完整预检，失败不触碰目标 World；Host Snapshot rehydrate 的 Static Shell／Hex／Political／Army Motion／WorldRegion 任一失败均立即返回 Load Failure，不进入 LocalMap 或 Finalize。
+- FormalArmy Snapshot 分两阶段：Core Restore 只恢复 identity／roster／membership；Host 在 Hex/Site shell 与政治覆盖后恢复 motion，再统一同步成员、ArmyStack 与 pursuit。Snapshot v6 软附加 TravelMode 与完整 SiteDeparturePending 状态，不用 `(WorldX,WorldY)!=(0,0)` 判断位置存在。
+- Full Disband 在 Army 仍保有 WorldMotion 时逐员复用 `DetachMemberAtArmyLocation`，随后才删除 Board；Capture／Restore 增加 roster-membership 引用 invariant。`LoadedDestinationArrivalMaterializer` 不再按 `Npc` 标签拒绝，而以有效 WorldPresence + 已加载地图归属 + 非 Party／非 Army／living Character 为准，现有 occupant 仍防重复。
+- Wilderness LocalMap 的阵营旗动作入口始终显示；非法时 disabled 并展示原因。已有旗明确提示先移除当前控制建筑；仅新增 `FactionFlagPlacementAuthorization` seam，未接 Inventory／Crafting。
+
+**验证：** 新增 7 个定向 Snapshot continuity 测试，7/7 通过；Unity Core／Data／Host 以项目 Bee response file 离线 Roslyn 编译 0 error（Core 6 个、Host 2 个既有 warning）；`git diff --check` 通过。仍需 Unity 人工验收 Save→Load 与 UI。
+
+---
+
+## 2026-09-06 — FormalArmy Formation / Roster：Site Gate 收正为 Effective Territory Hex
+
+- 玩家运行时 `ArmyService.CreateArmy` 与 `ArmyUiCommands` 新正式入口改用 `HexCoord`；所有 selected members 必须由 `CharacterWorldPresenceQuery` 解析到同一 Hex，不自动集合、不 teleport。
+- 新增 `FormalArmyManagementTerritoryPolicy`，Create／Add／Remove／ChangeLeader／Disband 每次实时读取 `TerritoryControlService.GetController`，只接受与 Army faction 精确相等的 Effective Controller；WorldSite 与 FactionFlag 来源一视同仁，earlier-first-claim 自然生效。
+- Wilderness Army 优先继承 Leader／首成员 canonical continuous position，否则才落 Hex center；成员随后统一由 FormalArmy presence authority 接管。Wilderness Remove／Disband 保持当前 WorldPosition／Hex。
+- Garrison 继续要求 Friendly WorldSite；Mobilize、authored `CreateAuthoredArmy(assemblySiteId)`、战斗、移动、Realm gate 与封板 Territory/FactionFlag 算法均未改。
+- Host 两个组军入口改传 formation Hex；Wilderness Background Character 与 Army roster location 显示 Hex label；Add 列表按 Army 当前 Hex 过滤。
+
+**规则补丁：** [ADR-0028](43-decisions/ADR-0028-formalarmy-formation-and-roster-use-effective-territory.md)。**验证：** 新增 8 个定向 EditMode 用例并以 Unity Mono 托管 runner 执行，8/8 通过；Unity Core／Host／EditMode 离线编译 0 error（仅既有 warnings）；`git diff --check` 通过。Unity 场景人工验收待制作人执行。
+
+---
+
 ## 2026-09-06 — Control Asset Territory + Faction Flag V1 正式封板
 
 - 制作人已完成人工验收：RPG-first Control Asset Territory、FactionFlag V1 战略建筑交互、WorldGraphEditor Control Asset Authoring、WorldMap Territory / Army Checkbox 全部进入 SEALED baseline。

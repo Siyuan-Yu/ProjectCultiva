@@ -156,7 +156,7 @@ GoldenCoreCount = 1
 - **PlayerParty／Background Character** 可以在 HexWorld 旅行（后台角色走低频率模拟）。  
 - **FormalArmy** = 正式军事远征组织：公开进攻、Capture、战争参与、WorldMap 常驻 Leader 标记。  
 - **只有 PlayerParty 或 FormalArmy** 拥有 AttackWorldSite／CaptureWorldSite。  
-- 组军／解散仍仅在**己方控制 WorldSite**，成员须真实在场（§6.1 精神保留，空间真源改为 Site／Hex）。
+- 组军与编制管理允许在 Army faction 的任意 **Effective Territory Hex**；成员须真实位于同一 Hex。Garrison 仍为 WorldSite-only（见 [ADR-0028](../40-process/43-decisions/ADR-0028-formalarmy-formation-and-roster-use-effective-territory.md)）。
 
 > **Prototype 注记：** Host 大地图仍以选中 FormalArmy 为主要 RTS 操作（`139`／`152`／`154` historical）。迁移见 [163](../40-process/163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md)。
 
@@ -185,19 +185,23 @@ Army **不是**匿名兵力池。Army 保存 `MemberCharacterIDs[]`，**不是**
 | 位置互斥 | 不能同时记在 Node Resident Roster 与另一支 Army 的战略位置里 |
 | **同势力** | 一支 Army 的成员必须属于**同一个 Faction**（见 §6.2） |
 
-### 6.1 编组地点：仅能在己方 Node 调整成员（2026-08-22 拍板）
+### 6.1 编组地点：Friendly Effective Territory Hex（2026-09-06 收正）
 
-**增加成员、移出成员、更换 Leader、重新编组、解散 Army** — 全部只允许在**本 Faction 拥有的 WorldNode（己方 Node）**内进行。
+> **SUPERSEDED：** 2026-08-22 的 Friendly Node / WorldSite-only 地点限制由 [ADR-0028](../40-process/43-decisions/ADR-0028-formalarmy-formation-and-roster-use-effective-territory.md) 取代。
+
+**Create、增加成员、移出成员、更换 Leader、解散 Army** — 全部允许在 Army faction 当前有效控制的 Hex 进行。
 
 | 情况 | 能否调整成员 |
 |------|-------------|
-| Army 位于**己方 Node** | ✅ 可以 |
-| Army 位于 **Route / OnEdge** 中途 | ❌ 不可以 |
-| Army 位于**敌方 Node** | ❌ 不可以 |
-| Army 位于**中立或其他势力 Node** | ❌ 不可以 |
+| Hex Effective Controller == Army.FactionId | ✅ 可以 |
+| WorldSite 或 FactionFlag 产生的己方 Effective Territory | ✅ 一视同仁 |
+| 盟友／附庸／宗主控制 Hex | ❌ 不可以 |
+| 中立／敌方控制 Hex | ❌ 不可以 |
 
-- Character 想加入某支 Army → 必须与该 Army **实际处于同一个己方 Node**。
-- 在 Route 上、敌占区或其他势力领土上 → **不能凭空**调整成员。
+- Create 的全部 selected members、Add 的 candidate 与 Army 必须经 `CharacterWorldPresenceQuery` 解析到**同一个 World Hex**。
+- 判定只读取 Territory Resolver 的最终 Effective Controller，不读取 Control Asset 类型、Nominal Coverage 或 TerritoryRegion authored geometry。
+- 不同 Hex 直接拒绝；不自动 rally、travel 或 teleport。
+- Territory 丢失不影响 Army 已有存在、移动与战斗，但立即阻止当地后续 roster management。
 
 ### 6.2 禁止跨势力混编（2026-08-22 拍板）
 
@@ -262,13 +266,13 @@ Army 到达**己方 Node** 后可 **Garrisoned（驻扎）**：
 - 大地图仍显示 Army 头像；仍保留 Leader、Members 与战略单位身份
 - 可随时继续出征
 
-玩家也可 **Disband（解散）** Army — **仅**当玩家明确执行 Disband：
+玩家也可在所属势力 Effective Territory Hex **Disband（解散）** Army — **仅**当玩家明确执行 Disband：
 
 - Army 消失
-- 成员回到该 Node 的 Resident Character Roster
+- AtWorldSite 成员回到该 Site；Wilderness 成员保留 Army 当前 WorldPosition／Hex
 - 大地图 Army 头像消失
 
-**驻扎 ≠ 解散。** 到达己方 Node **不**触发自动解散；只有 Disband 才解除 Army 身份。
+**驻扎 ≠ 解散。** Garrison 仍要求所属势力拥有的 WorldSite；FactionFlag Territory 没有 Garrison facility。只有 Disband 才解除 Army 身份。
 
 ---
 

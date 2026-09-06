@@ -44,6 +44,22 @@ namespace XianXia.Core.World.Strategic
             FormalArmyMemberPresenceSync.SyncAll(world, army);
         }
 
+        public static void InitializeAtWorldPosition(
+            SimulationWorld world,
+            FormalArmy army,
+            WorldVec2 worldPosition,
+            HexCoord derivedHex)
+        {
+            if (world == null || army == null)
+                return;
+
+            army.UsesHexStrategicPosition = true;
+            army.WorldMotion.SetAtWorldPosition(worldPosition, derivedHex);
+            army.SyncLegacyFromWorldMotion();
+            army.State = FormalArmyState.Idle;
+            FormalArmyMemberPresenceSync.SyncAll(world, army);
+        }
+
         static Result BeginTravel(
             SimulationWorld world,
             string armyId,

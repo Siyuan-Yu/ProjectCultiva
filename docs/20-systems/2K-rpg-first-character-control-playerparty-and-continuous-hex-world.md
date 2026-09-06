@@ -495,9 +495,10 @@ Background Character 的移动**仅由**以下驱动：
 
 ### 组建／解散
 
-- **只能在我方控制 WorldSite** 内正式组建／解散  
-- 被编入者必须**真实位于该 Site**；禁止隔空组军  
-- 不默认支持荒野一键全员散人  
+- **2026-09-06 SUPERSEDED：** Site-only 地点限制由 [ADR-0028](../40-process/43-decisions/ADR-0028-formalarmy-formation-and-roster-use-effective-territory.md) 取代。
+- Create 与 Add／Remove／ChangeLeader／Disband 可在 Army faction 的任意 **Effective Territory Hex** 进行；WorldSite 与 FactionFlag 派生领地一视同仁。
+- 被编入者必须由 Domain presence query 解析到**同一个 Hex**；禁止隔空组军、自动集合或 teleport。
+- Garrison 仍只允许所属势力拥有的 WorldSite；Wilderness Territory 不提供驻扎设施。
 
 ### 战斗权限
 

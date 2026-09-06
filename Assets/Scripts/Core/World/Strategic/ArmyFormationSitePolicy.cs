@@ -5,7 +5,7 @@ using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>组军／解散／驻扎：须在己方 WorldSite 足迹内（Hex 战略真源）。</summary>
+    /// <summary>Garrison 与 legacy Site adapter 的 WorldSite owner 判定。</summary>
     public static class ArmyFormationSitePolicy
     {
         public static bool IsFriendlySiteForFaction(WorldSite site, string factionId)

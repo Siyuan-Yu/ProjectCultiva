@@ -6,6 +6,7 @@ using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -16,6 +17,105 @@ namespace XianXia.Core.World.Strategic
     /// </summary>
     public static class ArmyService
     {
+        /// <summary>
+        /// 玩家运行时组军入口。地点 authority 是成员实际所在的同一 World Hex，且该 Hex
+        /// 的 Effective Controller 必须精确等于军队势力。
+        /// </summary>
+        public static Result<FormalArmy> CreateArmy(
+            SimulationWorld world,
+            string factionId,
+            HexCoord formationHex,
+            IReadOnlyList<EntityId> memberCharacterIds,
+            EntityId? explicitLeaderId = null,
+            PlayerPartyRuntime party = null,
+            EntityId activeControlledCharacterId = default)
+        {
+            var activeId = ArmyAuthorityRules.ResolveActiveControlledCharacterId(party, activeControlledCharacterId);
+            if (world?.Strategic?.FormalArmies == null)
+                return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "SimulationWorld incomplete.");
+            if (string.IsNullOrEmpty(factionId))
+                return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "FactionId required.");
+            if (memberCharacterIds == null || memberCharacterIds.Count < 1)
+                return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "Army requires at least one member.");
+
+            if (!FormalArmyManagementTerritoryPolicy.TryValidateFactionControlsHex(
+                    world, factionId, formationHex, out var territoryError))
+            {
+                return Result.Fail<FormalArmy>(
+                    ErrorCode.InvalidOperation,
+                    "Army formation requires faction-controlled territory.",
+                    territoryError.Detail);
+            }
+
+            var resolvedMembers = new List<EntityId>(memberCharacterIds.Count);
+            for (var i = 0; i < memberCharacterIds.Count; i++)
+            {
+                var memberId = memberCharacterIds[i];
+                if (memberId.IsNone)
+                    return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "Invalid member EntityId.");
+
+                if (!ArmyAuthorityRules.TryValidateNotActive(party, memberId, out var activeErr, activeId))
+                    return Result.Fail<FormalArmy>(ErrorCode.InvalidOperation, activeErr);
+                if (!ArmyAuthorityRules.TryValidateNotPlayerPartyMember(party, memberId, out var partyErr))
+                    return Result.Fail<FormalArmy>(ErrorCode.InvalidOperation, partyErr);
+
+                BackgroundCharacterTravelService.CancelTravelIfAny(world, memberId);
+                if (!TryValidateMemberForFormationAtHex(
+                        world, memberId, factionId, formationHex, party, activeId, out var memberError))
+                    return Result.Fail<FormalArmy>(memberError);
+
+                if (!ContainsEntity(resolvedMembers, memberId))
+                    resolvedMembers.Add(memberId);
+            }
+
+            if (resolvedMembers.Count < 1)
+                return Result.Fail<FormalArmy>(ErrorCode.InvalidArgument, "Army requires at least one member.");
+            if (!TryResolveLeader(world, resolvedMembers, explicitLeaderId, out var leaderId, out var leaderError))
+                return Result.Fail<FormalArmy>(leaderError);
+
+            var memberValues = new List<ulong>(resolvedMembers.Count);
+            for (var i = 0; i < resolvedMembers.Count; i++)
+                memberValues.Add(resolvedMembers[i].Value);
+
+            var army = new FormalArmy
+            {
+                ArmyId = world.Strategic.FormalArmies.AllocateArmyId(),
+                FactionId = factionId,
+                LeaderCharacterId = leaderId,
+                State = FormalArmyState.Idle
+            };
+            army.ReplaceMembers(memberValues);
+
+            world.Strategic.FormalArmies.Register(army);
+            SyncMembershipForArmy(world, army);
+            if (TryResolveSharedFormationSite(world, resolvedMembers, formationHex, out var siteId))
+            {
+                FormalArmyContinuousTravelService.InitializeAtWorldSite(world, army, siteId);
+            }
+            else if (TryResolvePreciseFormationWorldPosition(
+                         world, leaderId, resolvedMembers, formationHex, out var worldPosition))
+            {
+                FormalArmyContinuousTravelService.InitializeAtWorldPosition(
+                    world, army, worldPosition, formationHex);
+            }
+            else
+            {
+                HexMath.ToWorldPosition(
+                    formationHex,
+                    world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f,
+                    out var x,
+                    out var y);
+                FormalArmyContinuousTravelService.InitializeAtWorldPosition(
+                    world, army, new WorldVec2(x, y), formationHex);
+            }
+
+            return Result.Ok(army);
+        }
+
+        /// <summary>
+        /// Legacy／LevelTester Site adapter。正式玩家入口使用 Hex overload；保留本 overload
+        /// 以免改写既有 authored/bootstrap 与历史测试路径。
+        /// </summary>
         public static Result<FormalArmy> CreateArmy(
             SimulationWorld world,
             string factionId,
@@ -200,8 +300,8 @@ namespace XianXia.Core.World.Strategic
             if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
                 return Result.Failure(ErrorCode.NotFound, "Army not found.", armyId);
 
-            if (!TryValidateArmyFormationLocation(world, army, out var siteError))
-                return Result.Failure(siteError);
+            if (!TryValidateArmyRosterManagementTerritory(world, army, out _, out var territoryError))
+                return Result.Failure(territoryError);
 
             return ForceRemoveArmy(world, army);
         }
@@ -213,7 +313,7 @@ namespace XianXia.Core.World.Strategic
             if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
                 return Result.Failure(ErrorCode.NotFound, "Army not found.", armyId);
 
-            if (!TryValidateArmyFormationLocation(world, army, out var siteError))
+            if (!TryValidateGarrisonSite(world, army, out var siteError))
                 return Result.Failure(siteError);
 
             if (army.State == FormalArmyState.Garrisoned)
@@ -252,14 +352,11 @@ namespace XianXia.Core.World.Strategic
             if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
                 return Result.Failure(ErrorCode.NotFound, "Army not found.", armyId);
 
-            if (!TryValidateArmyFormationLocation(world, army, out var siteError))
-                return Result.Failure(siteError);
-
-            if (!TryResolveArmySiteId(world, army, out var armySiteId))
-                return Result.Failure(ErrorCode.InvalidOperation, "Army has no formation site.");
+            if (!TryValidateArmyRosterManagementTerritory(world, army, out var armyHex, out var territoryError))
+                return Result.Failure(territoryError);
 
             var join = TryValidateMemberCanJoinFormalArmy(
-                world, army, memberId, armySiteId, army.FactionId, party, activeId);
+                world, army, memberId, armyHex, army.FactionId, party, activeId);
             if (join.IsFailure)
                 return join;
 
@@ -273,7 +370,7 @@ namespace XianXia.Core.World.Strategic
             SimulationWorld world,
             FormalArmy army,
             EntityId memberId,
-            string siteId,
+            HexCoord armyHex,
             string factionId,
             PlayerPartyRuntime party,
             EntityId activeControlledCharacterId = default)
@@ -287,8 +384,9 @@ namespace XianXia.Core.World.Strategic
 
             BackgroundCharacterTravelService.CancelTravelIfAny(world, memberId);
 
-            if (!TryValidateMemberForFormation(
-                    world, memberId, factionId, siteId, party, activeId, out var memberError))
+            if (!TryValidateMemberForFormationAtHex(
+                    world, memberId, factionId, armyHex, party, activeId, out var memberError,
+                    "Member must be at the same world hex as army."))
                 return Result.Failure(memberError);
 
             return Result.Success();
@@ -364,8 +462,8 @@ namespace XianXia.Core.World.Strategic
             if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
                 return Result.Failure(ErrorCode.NotFound, "Army not found.", armyId);
 
-            if (!TryValidateArmyFormationLocation(world, army, out var siteError))
-                return Result.Failure(siteError);
+            if (!TryValidateArmyRosterManagementTerritory(world, army, out _, out var territoryError))
+                return Result.Failure(territoryError);
 
             if (!army.ContainsMember(memberId))
                 return Result.Failure(ErrorCode.NotFound, "Member not in army.", memberId.ToString());
@@ -386,8 +484,8 @@ namespace XianXia.Core.World.Strategic
             if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
                 return Result.Failure(ErrorCode.NotFound, "Army not found.", armyId);
 
-            if (!TryValidateArmyFormationLocation(world, army, out var siteError))
-                return Result.Failure(siteError);
+            if (!TryValidateArmyRosterManagementTerritory(world, army, out _, out var territoryError))
+                return Result.Failure(territoryError);
 
             if (!army.ContainsMember(newLeaderId))
                 return Result.Failure(ErrorCode.InvalidOperation, "Leader must be a member.");
@@ -528,11 +626,24 @@ namespace XianXia.Core.World.Strategic
         {
             if (army == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "Army is null.");
-            var disbandSite = TryResolveDisbandSite(world, army);
-            ClearMembershipForArmy(world, army);
+            var formerMembers = new List<ulong>(army.MemberCharacterIds);
+            // Army 与 WorldMotion 仍在 Board 时逐员走统一 detach path，精确提交 Site/Wilderness 位置。
+            for (var i = 0; i < formerMembers.Count; i++)
+                RemoveMemberInternal(world, army, new EntityId(formerMembers[i]));
             world.Strategic.FormalArmies.Remove(army.ArmyId);
-            if (disbandSite != null)
-                PromoteFormerMembersToSite(world, army, disbandSite);
+#if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (world.Strategic.FormalArmies.TryGet(army.ArmyId, out _))
+                System.Diagnostics.Debug.Fail("[FormalArmyDisband] Army still exists: " + army.ArmyId);
+            for (var i = 0; i < formerMembers.Count; i++)
+            {
+                var id = new EntityId(formerMembers[i]);
+                if (ArmyService.TryGetArmyForCharacter(world, id, out _))
+                    System.Diagnostics.Debug.Fail("[FormalArmyDisband] Former member still resolves an army: " + id);
+                if (world.Entities.TryGet(id, out var entity) &&
+                    entity.TryGet<ArmyMembershipComponent>(out var membership) && membership.IsInArmy)
+                    System.Diagnostics.Debug.Fail("[FormalArmyDisband] Former member still has membership: " + id);
+            }
+#endif
             return Result.Success();
         }
 
@@ -543,6 +654,139 @@ namespace XianXia.Core.World.Strategic
                 mem.ClearArmyId();
             army.RemoveMember(memberId);
             FormalArmyMemberPresenceSync.DetachMemberAtArmyLocation(world, army, memberId);
+        }
+
+        static bool TryValidateMemberForFormationAtHex(
+            SimulationWorld world,
+            EntityId memberId,
+            string factionId,
+            HexCoord formationHex,
+            PlayerPartyRuntime party,
+            EntityId activeControlledCharacterId,
+            out GameError error,
+            string differentHexMessage = "All members must be at the same world hex.")
+        {
+            error = default;
+            if (!ArmyAuthorityRules.TryValidateNotActive(party, memberId, out var activeErr, activeControlledCharacterId))
+            {
+                error = new GameError(ErrorCode.InvalidOperation, activeErr);
+                return false;
+            }
+
+            if (!ArmyAuthorityRules.TryValidateNotPlayerPartyMember(party, memberId, out var partyErr))
+            {
+                error = new GameError(ErrorCode.InvalidOperation, partyErr, memberId.ToString());
+                return false;
+            }
+            if (!world.Entities.TryGet(memberId, out var entity))
+            {
+                error = new GameError(ErrorCode.EntityNotFound, "Member not found.", memberId.ToString());
+                return false;
+            }
+
+            var memberFaction = ResolveCharacterFactionId(world, memberId);
+            if (string.IsNullOrEmpty(memberFaction))
+            {
+                error = new GameError(ErrorCode.InvalidOperation, "Member has no faction.", memberId.ToString());
+                return false;
+            }
+            if (!string.Equals(memberFaction, factionId, StringComparison.Ordinal))
+            {
+                error = new GameError(
+                    ErrorCode.InvalidOperation,
+                    "Cross-faction army formation forbidden.",
+                    memberId + ";" + memberFaction + ";" + factionId);
+                return false;
+            }
+            if (world.Strategic.FormalArmies.TryGetArmyForCharacter(memberId.Value, out _) ||
+                (entity.TryGet<ArmyMembershipComponent>(out var existingMem) && existingMem.IsInArmy))
+            {
+                error = new GameError(ErrorCode.AlreadyExists, "Character already in an army.", memberId.ToString());
+                return false;
+            }
+            if (!LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, memberId))
+            {
+                error = new GameError(ErrorCode.InvalidOperation, "Member must be macro-order living.", memberId.ToString());
+                return false;
+            }
+            if (!CharacterWorldPresenceQuery.TryGetWorldHex(world, memberId, out var memberHex))
+            {
+                error = new GameError(ErrorCode.InvalidOperation, "Member has no world hex.", memberId.ToString());
+                return false;
+            }
+            if (!memberHex.Equals(formationHex))
+            {
+                error = new GameError(
+                    ErrorCode.InvalidOperation,
+                    differentHexMessage,
+                    memberId + ";memberHex=" + memberHex + ";formationHex=" + formationHex);
+                return false;
+            }
+
+            return true;
+        }
+
+        static bool TryResolveSharedFormationSite(
+            SimulationWorld world,
+            IReadOnlyList<EntityId> members,
+            HexCoord formationHex,
+            out string siteId)
+        {
+            siteId = string.Empty;
+            if (world?.WorldPresence == null || members == null || members.Count < 1)
+                return false;
+
+            for (var i = 0; i < members.Count; i++)
+            {
+                if (!world.WorldPresence.TryGet(members[i], out var presence) ||
+                    presence == null ||
+                    presence.Mode != PartyWorldPresenceMode.AtSite ||
+                    string.IsNullOrEmpty(presence.SiteId) ||
+                    !world.Strategic.Sites.TryResolveSitePresenceHex(presence.SiteId, out var siteHex) ||
+                    !siteHex.Equals(formationHex))
+                    return false;
+
+                if (i == 0)
+                    siteId = presence.SiteId;
+                else if (!string.Equals(siteId, presence.SiteId, StringComparison.Ordinal))
+                    return false;
+            }
+
+            return !string.IsNullOrEmpty(siteId);
+        }
+
+        static bool TryResolvePreciseFormationWorldPosition(
+            SimulationWorld world,
+            EntityId leaderId,
+            IReadOnlyList<EntityId> members,
+            HexCoord formationHex,
+            out WorldVec2 worldPosition)
+        {
+            if (TryResolvePreciseCharacterWorldPosition(world, leaderId, formationHex, out worldPosition))
+                return true;
+            if (members != null && members.Count > 0 && members[0] != leaderId)
+                return TryResolvePreciseCharacterWorldPosition(world, members[0], formationHex, out worldPosition);
+            worldPosition = default;
+            return false;
+        }
+
+        static bool TryResolvePreciseCharacterWorldPosition(
+            SimulationWorld world,
+            EntityId memberId,
+            HexCoord formationHex,
+            out WorldVec2 worldPosition)
+        {
+            worldPosition = default;
+            if (world?.WorldPresence == null || memberId.IsNone ||
+                !world.WorldPresence.TryGet(memberId, out var presence) ||
+                presence == null ||
+                presence.Mode != PartyWorldPresenceMode.AtWorldPosition ||
+                !presence.HasContinuousWorldPosition ||
+                !presence.DerivedHexFromWorldPosition.Equals(formationHex))
+                return false;
+
+            worldPosition = presence.ContinuousWorldPosition;
+            return true;
         }
 
         static bool TryValidateMemberForFormation(
@@ -689,68 +933,13 @@ namespace XianXia.Core.World.Strategic
             }
         }
 
-        static void ClearMembershipForArmy(SimulationWorld world, FormalArmy army)
+        static bool TryValidateArmyRosterManagementTerritory(
+            SimulationWorld world,
+            FormalArmy army,
+            out HexCoord armyHex,
+            out GameError error)
         {
-            for (var i = 0; i < army.MemberCharacterIds.Count; i++)
-            {
-                var memberId = new EntityId(army.MemberCharacterIds[i]);
-                if (!world.Entities.TryGet(memberId, out var entity))
-                    continue;
-                if (entity.TryGet<ArmyMembershipComponent>(out var mem))
-                    mem.ClearArmyId();
-                ClearAtSitePresence(world, memberId);
-            }
-        }
-
-        static void ClearAtSitePresence(SimulationWorld world, EntityId memberId)
-        {
-            if (world?.WorldPresence == null ||
-                !world.WorldPresence.TryGet(memberId, out var presence) ||
-                presence == null ||
-                presence.Mode != PartyWorldPresenceMode.AtSite)
-                return;
-            presence.SiteId = string.Empty;
-        }
-
-        static WorldSite TryResolveDisbandSite(SimulationWorld world, FormalArmy army)
-        {
-            if (world?.Strategic?.Sites == null || army == null)
-                return null;
-            if (FormalArmyWorldLocationQuery.TryResolve(
-                    world,
-                    army,
-                    out var kind,
-                    out var siteId,
-                    out _,
-                    out _) &&
-                kind == FormalArmyLocationKind.AtWorldSite &&
-                !string.IsNullOrEmpty(siteId) &&
-                world.Strategic.Sites.TryGet(siteId, out var site) &&
-                site != null)
-            {
-                return site;
-            }
-
-            if (world.Strategic.Sites.TryGetAtHex(army.CurrentHex, out var hexSite) && hexSite != null)
-                return hexSite;
-            return null;
-        }
-
-        static void PromoteFormerMembersToSite(SimulationWorld world, FormalArmy army, WorldSite site)
-        {
-            if (world?.WorldPresence == null || army == null || site == null)
-                return;
-            for (var i = 0; i < army.MemberCharacterIds.Count; i++)
-            {
-                var memberId = new EntityId(army.MemberCharacterIds[i]);
-                if (memberId.IsNone)
-                    continue;
-                world.WorldPresence.SetAtSite(memberId, site.SiteId);
-            }
-        }
-
-        static bool TryValidateArmyFormationLocation(SimulationWorld world, FormalArmy army, out GameError error)
-        {
+            armyHex = default;
             error = default;
             if (army == null)
             {
@@ -758,16 +947,35 @@ namespace XianXia.Core.World.Strategic
                 return false;
             }
 
-            if (!FormalArmyWorldLocationQuery.IsAtFriendlyWorldSite(world, army))
+            if (!FormalArmyWorldLocationQuery.TryResolveManagementHex(world, army, out armyHex))
             {
                 error = new GameError(
                     ErrorCode.InvalidOperation,
-                    "Army roster operations require player-controlled WorldSite.",
+                    "Army has no world hex.",
                     army.ArmyId);
                 return false;
             }
 
-            return true;
+            return FormalArmyManagementTerritoryPolicy.TryValidateFactionControlsHex(
+                world, army.FactionId, armyHex, out error);
+        }
+
+        static bool TryValidateGarrisonSite(SimulationWorld world, FormalArmy army, out GameError error)
+        {
+            error = default;
+            if (army == null)
+            {
+                error = new GameError(ErrorCode.InvalidArgument, "Army missing.");
+                return false;
+            }
+            if (FormalArmyWorldLocationQuery.IsAtFriendlyWorldSite(world, army))
+                return true;
+
+            error = new GameError(
+                ErrorCode.InvalidOperation,
+                "Garrison requires friendly WorldSite.",
+                army.ArmyId);
+            return false;
         }
 
         public static bool IsEligibleFormalArmyCandidate(

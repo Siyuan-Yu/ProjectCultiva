@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using XianXia.Core.World.Hex;
 
@@ -30,6 +31,36 @@ namespace XianXia.Core.World.Strategic
         {
             if (flag == null || string.IsNullOrEmpty(flag.FlagId) || _byId.ContainsKey(flag.FlagId) || _anchorIds.ContainsKey(flag.AnchorHex)) return false;
             _byId[flag.FlagId] = flag; _anchorIds[flag.AnchorHex] = flag.FlagId; return true;
+        }
+        /// <summary>用完整 active set 原子替换当前 Board；任何冲突都不会改动现有状态。</summary>
+        public bool TryReplaceAll(IReadOnlyList<FactionFlagState> flags, out FactionFlagState rejected)
+        {
+            rejected = null;
+            var byId = new Dictionary<string, FactionFlagState>(StringComparer.Ordinal);
+            var anchorIds = new Dictionary<HexCoord, string>();
+            if (flags != null)
+            {
+                for (var i = 0; i < flags.Count; i++)
+                {
+                    var flag = flags[i];
+                    if (flag == null || string.IsNullOrEmpty(flag.FlagId) ||
+                        byId.ContainsKey(flag.FlagId) || anchorIds.ContainsKey(flag.AnchorHex))
+                    {
+                        rejected = flag;
+                        return false;
+                    }
+                    byId.Add(flag.FlagId, flag);
+                    anchorIds.Add(flag.AnchorHex, flag.FlagId);
+                }
+            }
+
+            _byId.Clear();
+            _anchorIds.Clear();
+            foreach (var pair in byId)
+                _byId.Add(pair.Key, pair.Value);
+            foreach (var pair in anchorIds)
+                _anchorIds.Add(pair.Key, pair.Value);
+            return true;
         }
         public bool Remove(string flagId)
         {

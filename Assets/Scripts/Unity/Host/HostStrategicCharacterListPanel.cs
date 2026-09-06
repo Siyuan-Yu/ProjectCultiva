@@ -263,9 +263,14 @@ namespace XianXia.Unity.Host
                 return false;
             }
 
-            var nodeId = ArmyService.ResolveCharacterFormationLocationId(world, _createPartyScratch[0]) ?? string.Empty;
+            if (!CharacterWorldPresenceQuery.TryGetWorldHex(
+                    world, _createPartyScratch[0], out var formationHex))
+            {
+                _status = "无法组建军队：无法确定角色所在 World Hex";
+                return false;
+            }
             var result = ArmyUiCommands.TryCreateArmy(
-                world, nodeId, factionId, _createPartyScratch, explicitLeaderId: null, party: partyRuntime);
+                world, formationHex, factionId, _createPartyScratch, explicitLeaderId: null, party: partyRuntime);
             if (result.IsSuccess)
             {
                 _status = "已创建 " + result.Value.ArmyId;

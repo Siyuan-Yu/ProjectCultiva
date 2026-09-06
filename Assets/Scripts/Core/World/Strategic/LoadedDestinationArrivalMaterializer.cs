@@ -780,7 +780,10 @@ namespace XianXia.Core.World.Strategic
                 return false;
             if ((entity.Tags & EntityTag.Character) == 0)
                 return false;
-            if ((entity.Tags & EntityTag.Npc) != 0)
+            // Npc 是内容标签，不是世界存在 authority。只有持有有效 WorldPresence 的
+            // Background Character 才走此物化路径；纯 authored resident NPC 继续由静态路径管理。
+            if (world.WorldPresence == null ||
+                !world.WorldPresence.TryGet(characterId, out var presence) || presence == null)
                 return false;
             return true;
         }

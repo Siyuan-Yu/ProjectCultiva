@@ -248,5 +248,52 @@ namespace XianXia.Core.World.Strategic
                 ? FormalArmyMovementKind.AutoTravel
                 : FormalArmyMovementKind.Idle;
         }
+
+        /// <summary>Snapshot 专用直接恢复；不寻路、不重发命令、不推进时间。</summary>
+        internal void RestoreSnapshotMotion(
+            FormalArmyOrderKind orderKind,
+            IReadOnlyList<HexCoord> path,
+            HexCoord currentHex,
+            HexCoord destinationHex,
+            string destinationSiteId,
+            HexTravelMode travelMode,
+            int segmentIndex,
+            float segmentProgress,
+            string orderTargetArmyId,
+            bool hasSiteDepartureState,
+            bool isSiteDeparturePending,
+            WorldVec2 departureVirtualPosition,
+            WorldVec2 departureBoundaryEntry,
+            HexCoord departureFootprintHex,
+            HexCoord departureExitHex)
+        {
+            CurrentOrderKind = orderKind;
+            OrderTargetArmyId = orderKind == FormalArmyOrderKind.AttackFormalArmy
+                ? orderTargetArmyId ?? string.Empty
+                : string.Empty;
+            DestinationHex = destinationHex;
+            CurrentHex = currentHex;
+            DestinationSiteId = destinationSiteId ?? string.Empty;
+            TravelMode = travelMode;
+            _hexPath.Clear();
+            if (path != null)
+                for (var i = 0; i < path.Count; i++)
+                    _hexPath.Add(path[i]);
+            SegmentIndex = segmentIndex;
+            SegmentProgress = segmentProgress;
+            MovementKind = _hexPath.Count >= 2
+                ? FormalArmyMovementKind.AutoTravel
+                : FormalArmyMovementKind.Idle;
+
+            ClearSiteDeparturePending();
+            if (hasSiteDepartureState && isSiteDeparturePending)
+            {
+                IsSiteDeparturePending = true;
+                SiteDepartureVirtualPosition = departureVirtualPosition;
+                SiteDepartureBoundaryEntry = departureBoundaryEntry;
+                SiteDepartureFootprintHex = departureFootprintHex;
+                SiteDepartureExitHex = departureExitHex;
+            }
+        }
     }
 }

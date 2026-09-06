@@ -155,9 +155,27 @@ namespace XianXia.Unity.Host
             }
             else
             {
-                row.SiteId = ArmyService.ResolveCharacterFormationLocationId(world, id) ?? string.Empty;
-                row.SiteLabel = ResolveSiteLabel(world, row.SiteId);
-                row.LocationLabel = row.SiteLabel;
+                if (CharacterWorldPresenceQuery.TryDescribe(
+                        world, id, out var state, out var siteId, out var worldHex, out _) &&
+                    state == CharacterWorldPresenceQuery.PresenceState.AtWorldSite &&
+                    !string.IsNullOrEmpty(siteId))
+                {
+                    row.SiteId = siteId;
+                    row.SiteLabel = ResolveSiteLabel(world, siteId);
+                    row.LocationLabel = row.SiteLabel;
+                }
+                else if (CharacterWorldPresenceQuery.TryGetWorldHex(world, id, out worldHex))
+                {
+                    row.SiteId = string.Empty;
+                    row.SiteLabel = string.Empty;
+                    row.LocationLabel = DescribeHexLabel(world, worldHex);
+                }
+                else
+                {
+                    row.SiteId = string.Empty;
+                    row.SiteLabel = "?";
+                    row.LocationLabel = "?";
+                }
             }
 
             row.CanSelectForArmyCreation =
@@ -209,7 +227,9 @@ namespace XianXia.Unity.Host
                     row.LeaderLabel = row.LeaderId.IsNone ? "?" : row.LeaderId.ToString();
                 }
 
-                row.SiteLabel = ResolveSiteLabel(world, row.SiteId);
+                row.SiteLabel = !string.IsNullOrEmpty(row.SiteId)
+                    ? ResolveSiteLabel(world, row.SiteId)
+                    : DescribeHexLabel(world, army.CurrentHex);
                 row.DestHexLabel = DescribeHexLabel(world, army.DestinationHex);
                 into.Add(row);
             }

@@ -93,7 +93,10 @@ namespace XianXia.Tests
         static void BootstrapSitesAndReapplyStrategic(SimulationWorld world, StrategicSnapshotDto strategic)
         {
             HexTestWorldBootstrap.EnsureMinimalHexMap(world);
-            StrategicSnapshotHelper.Restore(world, strategic);
+            Assert.IsTrue(StrategicSnapshotHelper.Restore(world, strategic).IsSuccess);
+            Assert.IsTrue(StrategicSnapshotHelper.RestoreHexPoliticalState(world, strategic).IsSuccess);
+            Assert.IsTrue(StrategicSnapshotHelper.RestoreFormalArmyMotions(world, strategic).IsSuccess);
+            StrategicSnapshotHelper.FinalizeRuntimeLinks(world);
         }
 
         [Test]
@@ -175,6 +178,8 @@ namespace XianXia.Tests
             var json = service.CaptureJson(world, new SimulationLoop(world));
             var restored = service.RestoreJson(json.Value);
             Assert.IsTrue(restored.IsSuccess);
+            var dto = new JsonSnapshotSerializer().Deserialize(json.Value).Value.Strategic;
+            BootstrapSitesAndReapplyStrategic(restored.Value.world, dto);
             Assert.IsTrue(restored.Value.world.Strategic.FormalArmies.TryGet(army.ArmyId, out var loaded));
 
             Assert.AreEqual(FormalArmyState.Moving, loaded.State);

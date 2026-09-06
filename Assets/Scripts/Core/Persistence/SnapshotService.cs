@@ -777,7 +777,11 @@ namespace XianXia.Core.Persistence
             var loop = new SimulationLoop(world);
             loop.RestoreNextOrderId(snap.NextOrderId);
             if (snap.SchemaVersion >= WorldSnapshot.CurrentSchemaVersion && snap.Strategic != null)
-                StrategicSnapshotHelper.Restore(world, snap.Strategic);
+            {
+                var strategicRestore = StrategicSnapshotHelper.Restore(world, snap.Strategic);
+                if (strategicRestore.IsFailure)
+                    return Result.Fail<(SimulationWorld, SimulationLoop)>(strategicRestore.Error);
+            }
             else if (snap.SchemaVersion >= WorldSnapshot.CurrentSchemaVersion)
             {
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(

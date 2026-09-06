@@ -41,5 +41,23 @@ namespace XianXia.Core.World.Strategic
                 return false;
             return ArmyFormationSitePolicy.IsFriendlySiteForFaction(site, army.FactionId);
         }
+
+        /// <summary>
+        /// Formation／roster rule 使用的 canonical World Hex。AtWorldSite 与 Character
+        /// WorldPresence 一样解析到 Site.PresenceHex；Wilderness 使用 Army motion CurrentHex。
+        /// </summary>
+        public static bool TryResolveManagementHex(
+            SimulationWorld world,
+            FormalArmy army,
+            out HexCoord worldHex)
+        {
+            worldHex = default;
+            if (!TryResolve(world, army, out var kind, out var siteId, out _, out var derivedHex))
+                return false;
+            if (kind == FormalArmyLocationKind.AtWorldSite && !string.IsNullOrEmpty(siteId))
+                return world.Strategic.Sites.TryResolveSitePresenceHex(siteId, out worldHex);
+            worldHex = derivedHex;
+            return true;
+        }
     }
 }

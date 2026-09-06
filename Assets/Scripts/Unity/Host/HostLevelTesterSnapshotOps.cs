@@ -95,7 +95,13 @@ namespace XianXia.Unity.Host
             HostSnapshotSessionRehydration.LogDomainTrace(
                 bootstrap.Session,
                 "AfterRestoreJson.BeforePresentation");
-            HostSnapshotSessionRehydration.RehydrateAfterRestore(bootstrap);
+            var rehydrated = HostSnapshotSessionRehydration.RehydrateAfterRestore(bootstrap);
+            if (rehydrated.IsFailure)
+            {
+                result.Message = FormatLoadFailure(rehydrated.Error);
+                Debug.LogError("[LevelTesterSnapshot] " + result.Message);
+                return result;
+            }
             HostSnapshotSessionRehydration.LogDomainTrace(
                 bootstrap.Session,
                 "AfterRehydrate.BeforePresentation");

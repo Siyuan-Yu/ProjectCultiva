@@ -8,6 +8,7 @@ using XianXia.Core.Npc;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
@@ -185,20 +186,27 @@ namespace XianXia.Unity.Host
                 }
                 else
                 {
-                    var nodeId = ArmyService.ResolveCharacterFormationLocationId(world, _scratchParty[0]) ?? string.Empty;
-                    var result = ArmyUiCommands.TryCreateArmy(
-                        world, nodeId, factionId, _scratchParty, explicitLeaderId: null, party: partyRuntime);
-                    if (result.IsSuccess)
+                    if (!CharacterWorldPresenceQuery.TryGetWorldHex(
+                            world, _scratchParty[0], out var formationHex))
                     {
-                        _lastMessage = "已创建 " + result.Value.ArmyId;
-                        _detailArmyId = result.Value.ArmyId;
-                        _lastCreatedArmyId = result.Value.ArmyId;
-                        _createSelection.Clear();
-                        changed = true;
+                        _lastMessage = "无法组建军队：无法确定角色所在 World Hex";
                     }
                     else
                     {
-                        _lastMessage = ArmyUiCommands.DescribeError(result.Error);
+                        var result = ArmyUiCommands.TryCreateArmy(
+                            world, formationHex, factionId, _scratchParty, explicitLeaderId: null, party: partyRuntime);
+                        if (result.IsSuccess)
+                        {
+                            _lastMessage = "已创建 " + result.Value.ArmyId;
+                            _detailArmyId = result.Value.ArmyId;
+                            _lastCreatedArmyId = result.Value.ArmyId;
+                            _createSelection.Clear();
+                            changed = true;
+                        }
+                        else
+                        {
+                            _lastMessage = ArmyUiCommands.DescribeError(result.Error);
+                        }
                     }
                 }
             }
@@ -237,7 +245,9 @@ namespace XianXia.Unity.Host
                 "State：" + army.State, _body);
             y += 22f;
             ArmyService.TryResolveArmySiteId(world, army, out var armySiteId);
-            var travel = HostStrategicRosterQueries.ResolveSiteLabel(world, armySiteId);
+            var travel = !string.IsNullOrEmpty(armySiteId)
+                ? HostStrategicRosterQueries.ResolveSiteLabel(world, armySiteId)
+                : HostStrategicRosterQueries.DescribeHexLabel(world, army.CurrentHex);
             if (army.State == FormalArmyState.Moving)
                 travel += " → " + HostStrategicRosterQueries.DescribeHexLabel(world, army.DestinationHex);
             GUI.Label(new Rect(panelRect.x + 8f, y, panelRect.width - 16f, 20f),
@@ -333,9 +343,11 @@ namespace XianXia.Unity.Host
         {
             var changed = false;
             _scratchResidents.Clear();
-            ArmyService.TryResolveArmySiteId(world, army, out var formSiteId);
-            CollectUngroupedResidentsAtSite(
-                world, formSiteId, factionId, partyCharacterIds, partyRuntime, army, _scratchResidents);
+            if (FormalArmyWorldLocationQuery.TryResolveManagementHex(world, army, out var armyHex))
+            {
+                CollectUngroupedResidentsAtHex(
+                    world, armyHex, factionId, partyCharacterIds, partyRuntime, army, _scratchResidents);
+            }
 
             var available = 0;
             for (var i = 0; i < _scratchResidents.Count; i++)
@@ -394,9 +406,9 @@ namespace XianXia.Unity.Host
             return changed;
         }
 
-        static void CollectUngroupedResidentsAtSite(
+        static void CollectUngroupedResidentsAtHex(
             SimulationWorld world,
-            string nodeId,
+            HexCoord armyHex,
             string factionId,
             IReadOnlyList<EntityId> partyCharacterIds,
             PlayerPartyRuntime partyRuntime,
@@ -407,19 +419,16 @@ namespace XianXia.Unity.Host
             if (world == null || into == null || army == null)
                 return;
 
-            if (partyCharacterIds != null)
+            HostStrategicRosterQueries.CollectUngroupedPlayerCharacters(
+                world, factionId, partyCharacterIds, into, partyRuntime);
+            for (var i = into.Count - 1; i >= 0; i--)
             {
-                ArmyService.CollectResidentsAtSite(
-                    world, nodeId, factionId, partyCharacterIds, into, _scratchArmiesStatic, partyRuntime);
-                for (var i = into.Count - 1; i >= 0; i--)
-                {
-                    if (army.ContainsMember(into[i]))
-                        into.RemoveAt(i);
-                }
+                if (army.ContainsMember(into[i]) ||
+                    !CharacterWorldPresenceQuery.TryGetWorldHex(world, into[i], out var memberHex) ||
+                    !memberHex.Equals(armyHex))
+                    into.RemoveAt(i);
             }
         }
-
-        static readonly List<FormalArmy> _scratchArmiesStatic = new List<FormalArmy>(4);
 
         static string ResolvePlayerFaction(SimulationWorld world, IReadOnlyList<EntityId> partyCharacterIds)
         {

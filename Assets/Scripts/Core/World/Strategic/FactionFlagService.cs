@@ -29,7 +29,8 @@ namespace XianXia.Core.World.Strategic
             if (world.Strategic.Sites.TryGetAtHex(anchor, out var site) && site != null)
                 return Result.Failure(ErrorCode.InvalidOperation, "WorldSite 范围内不能建立阵营旗。");
             if (world.Strategic.FactionFlags.TryGetAt(anchor, out _))
-                return Result.Failure(ErrorCode.InvalidOperation, "此处已有阵营旗。");
+                return Result.Failure(ErrorCode.InvalidOperation,
+                    "此 Hex 已有阵营控制建筑，需要先移除当前控制建筑。");
 
             var anchorController = TerritoryControlService.GetController(world, anchor);
             if (!string.IsNullOrEmpty(anchorController) &&

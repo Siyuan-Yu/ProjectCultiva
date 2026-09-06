@@ -50,13 +50,11 @@ namespace XianXia.Unity.Host
             var world = _bootstrap?.Session?.World;
             if (!TryGetWildernessContext(world, out var context))
                 return;
-            if (world.Strategic.FactionFlags.TryGetAt(context.WildernessHex, out _))
-                return;
 
             var rect = new Rect(Screen.width - 190f, Screen.height - 104f, 178f, 90f);
             HostUiHitTest.Block(rect);
             GUI.Box(rect, "阵营旗");
-            var gate = FactionFlagService.ValidatePlacement(
+            var gate = FactionFlagPlacementAuthorization.CanBeginPlacement(
                 world, world.Strategic.PlayerFactionId, context.WildernessHex, out var gain);
             GUI.enabled = gate.IsSuccess;
             if (GUI.Button(new Rect(rect.x + 8f, rect.y + 25f, rect.width - 16f, 26f),
@@ -66,9 +64,9 @@ namespace XianXia.Unity.Host
             }
             GUI.enabled = true;
             GUI.Label(new Rect(rect.x + 8f, rect.y + 55f, rect.width - 16f, 30f),
-                string.IsNullOrEmpty(_status)
-                    ? (gate.IsSuccess ? "可新增无主格：" + gain : gate.Error.Message)
-                    : _status);
+                gate.IsFailure
+                    ? gate.Error.Message
+                    : (string.IsNullOrEmpty(_status) ? "可新增无主格：" + gain : _status));
         }
 
         void BeginPlacement()
@@ -116,6 +114,7 @@ namespace XianXia.Unity.Host
             _status = result.IsSuccess ? "立旗成功" : result.Error.Message;
             if (result.IsSuccess)
             {
+                _status = string.Empty;
                 CancelPlacement();
                 _bootstrap.RefreshFactionFlagWalkGrid();
             }

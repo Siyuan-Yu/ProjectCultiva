@@ -2,6 +2,7 @@ using UnityEngine;
 using XianXia.Core.Persistence;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
+using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
@@ -15,42 +16,52 @@ namespace XianXia.Unity.Host
     /// </summary>
     public static class HostSnapshotSessionRehydration
     {
-        public static void RehydrateAfterRestore(PlayableHostBootstrap bootstrap)
+        public static Result RehydrateAfterRestore(PlayableHostBootstrap bootstrap)
         {
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
-                return;
+                return Result.Failure(ErrorCode.InvalidOperation, "Snapshot session is not initialized.");
 
             var session = bootstrap.Session;
             var world = session.World;
             var registry = session.Registry;
             if (world == null || registry == null)
-                return;
+                return Result.Failure(ErrorCode.InvalidOperation, "Snapshot world or content registry is missing.");
 
             // 先恢复 Item／功法／战技／境界／工作等静态定义壳；不重跑开局或重置存档状态。
             var contentShell = RuntimeContentShellBootstrap.Rehydrate(world, registry);
             if (contentShell.IsFailure)
             {
-                Debug.LogWarning("[SnapshotRestore] Static content shell rehydrate: " + contentShell.Error);
-                return;
+                return Result.Failure(ErrorCode.ContentLoadFailed,
+                    "Static content shell rehydrate failed.", contentShell.Error.ToString());
             }
 
             var scenarioParsed = XianXia.Core.Domain.Ids.DefinitionId.Parse(bootstrap.OpeningScenarioId ?? string.Empty);
             var scenarioId = scenarioParsed.IsSuccess
                 ? scenarioParsed.Value
                 : PlayableDayBootstrap.DefaultScenarioId;
-            if (registry.TryGetOpeningScenario(scenarioId, out var scenario) &&
-                scenario != null)
+            if (!registry.TryGetOpeningScenario(scenarioId, out var scenario) || scenario == null)
+                return Result.Failure(ErrorCode.ContentLoadFailed,
+                    "Snapshot opening scenario is missing.", scenarioId.ToString());
+
+            var politicalSnapshot = session.PendingRestoredStrategicSnapshot;
+            if (politicalSnapshot == null)
+                return Result.Failure(ErrorCode.SnapshotInvalid, "Pending strategic snapshot is missing.");
+
             {
                 var hex = HexStrategicMapContentBootstrap.TryApplyToSession(world, registry, scenario);
                 if (hex.IsFailure)
-                    Debug.LogWarning("[SnapshotRestore] HexWorld rehydrate: " + hex.Error);
-                else
-                {
-                    var politicalSnapshot = session.ConsumePendingRestoredStrategicSnapshot();
-                    StrategicSnapshotHelper.RestoreHexPoliticalState(world, politicalSnapshot);
-                    // Political overlay 后才让 ControlCore／权限读取最终 Owner。
-                    CaptureObjectiveService.RebindControlCoreSites(world);
-                }
+                    return Result.Failure(ErrorCode.ContentLoadFailed,
+                        "HexWorld snapshot shell rehydrate failed.", hex.Error.ToString());
+
+                var political = StrategicSnapshotHelper.RestoreHexPoliticalState(world, politicalSnapshot);
+                if (political.IsFailure)
+                    return political;
+                // Political overlay 后才让 ControlCore／权限读取最终 Owner。
+                CaptureObjectiveService.RebindControlCoreSites(world);
+
+                var motions = StrategicSnapshotHelper.RestoreFormalArmyMotions(world, politicalSnapshot);
+                if (motions.IsFailure)
+                    return motions;
             }
 
             ResolvePartyWorldFromActiveControlledCharacter(world, session.PlayerParty);
@@ -62,14 +73,19 @@ namespace XianXia.Unity.Host
                 bootstrap.ConfigurePreferredMapLayout(mapId);
                 var places = WorldRegionBootstrap.ActivatePlacesForMapLayout(world, registry, mapId);
                 if (places.IsFailure)
-                    Debug.LogWarning("[SnapshotRestore] WorldRegion rehydrate: " + places.Error);
-                else
-                    RestoreLegacyAuthoredEntityLocations(world, session.PlayerParty, scenario);
-                WorldTravelService.ApplyLocalMapSessionFromFocus(world);
+                    return Result.Failure(ErrorCode.ContentLoadFailed,
+                        "WorldRegion snapshot shell rehydrate failed.", places.Error.ToString());
+                RestoreLegacyAuthoredEntityLocations(world, session.PlayerParty, scenario);
             }
 
+            // 全部 Content shell 与 motion overlay 均成功后，才同步成员／presentation／pursuit，
+            // 最后才允许进入 LocalMap materialization。
             StrategicSnapshotHelper.FinalizeRuntimeLinks(world);
+            if (!string.IsNullOrEmpty(mapId))
+                WorldTravelService.ApplyLocalMapSessionFromFocus(world);
+            session.ConsumePendingRestoredStrategicSnapshot();
             session.RefreshViewableEntityIds();
+            return Result.Success();
         }
 
         /// <summary>

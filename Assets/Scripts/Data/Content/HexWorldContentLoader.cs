@@ -22,6 +22,16 @@ namespace XianXia.Data.Content
             if (definition.Width < 1 || definition.Height < 1)
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid hex world size.");
 
+            // 先在隔离 World 上跑完整加载与 invariant 校验。验证失败时真实 World 完全不变；
+            // ApplyCore 是确定性的，因此通过预检后才允许提交到目标 World。
+            var preflight = ApplyCore(new SimulationWorld(), definition);
+            if (preflight.IsFailure)
+                return preflight;
+            return ApplyCore(world, definition);
+        }
+
+        static Result ApplyCore(SimulationWorld world, HexWorldContentDefinition definition)
+        {
             var grid = world.HexWorld;
             grid.Clear();
             grid.MapId = definition.Id.ToString();

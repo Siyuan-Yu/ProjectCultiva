@@ -41,8 +41,20 @@ namespace XianXia.Core.World.Strategic
             }
 
             var t = System.Math.Max(0f, System.Math.Min(0.99f, stepProgress));
-            army.StepProgress = t;
-            army.StepRemainingTicks = System.Math.Max(1, (int)((1f - t) * army.StepTotalTicks));
+            var hexSize = world?.HexWorld != null && world.HexWorld.HexSize > 0f
+                ? world.HexWorld.HexSize
+                : 1f;
+            HexMath.ToWorldPosition(from, hexSize, out var x, out var y);
+            army.WorldMotion.SetAtWorldPosition(new WorldVec2(x, y), from);
+            army.WorldMotion.RestorePath(
+                FormalArmyOrderKind.TravelToHex,
+                path,
+                to,
+                string.Empty,
+                0,
+                t);
+            army.State = FormalArmyState.Moving;
+            army.SyncLegacyFromWorldMotion();
         }
 
         public static void ScaleHexStepTicks(FormalArmy army, int divisor)

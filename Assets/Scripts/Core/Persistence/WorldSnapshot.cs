@@ -263,6 +263,18 @@ namespace XianXia.Core.Persistence
         public string OrderTargetArmyId { get; set; } = string.Empty;
         public float SegmentProgress { get; set; }
         public int SegmentIndex { get; set; }
+        public int TravelMode { get; set; }
+        /// <summary>soft-additive presence marker；旧档缺字段时为 false 并走 legacy restore。</summary>
+        public bool HasSiteDepartureState { get; set; }
+        public bool IsSiteDeparturePending { get; set; }
+        public float SiteDepartureVirtualX { get; set; }
+        public float SiteDepartureVirtualY { get; set; }
+        public float SiteDepartureBoundaryX { get; set; }
+        public float SiteDepartureBoundaryY { get; set; }
+        public int SiteDepartureFootprintQ { get; set; }
+        public int SiteDepartureFootprintR { get; set; }
+        public int SiteDepartureExitQ { get; set; }
+        public int SiteDepartureExitR { get; set; }
     }
 
     public sealed class HexCoordSnapshotDto
