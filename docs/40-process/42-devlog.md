@@ -7,6 +7,37 @@
 
 ---
 
+## 2026-09-06 — Control Asset Territory + Faction Flag V1 正式封板
+
+- 制作人已完成人工验收：RPG-first Control Asset Territory、FactionFlag V1 战略建筑交互、WorldGraphEditor Control Asset Authoring、WorldMap Territory / Army Checkbox 全部进入 SEALED baseline。
+- 静态封板审计确认：正常 Gameplay 无 Pole/Cloth、固定 `AssaultDamage=25`、GUI 直扣 HP 或脚下直接立旗路径；新政治 mutation 统一由 Control Asset + EstablishedOrder Resolver 求解，TerritoryRegion 保持 derived/compatibility；两类 SupportArea 均从原始资产 geometry 计算；权威 `flags=[]` 不回退 Content。
+- Future 明确延期：ControlCore Recovery V2、Flag Art/Structure Style、Flag Construction、Strategic AI、Territory Economy、Advanced Territory。除明确 Bug/Regression 外，后续功能不得改变本 V1 authority 与 first-claim 规则。
+
+**封板记录**：[200-control-asset-territory-and-faction-flag-v1-sealed-2026-09-06.md](200-control-asset-territory-and-faction-flag-v1-sealed-2026-09-06.md)。`git diff --check` 通过；Shared.Tests 59/59；WorldGraphEditor Release 0 warning / 0 error；Unity Core/Data/Host 离线编译 0 error（既有 warning 保留）。本轮只改文档，不改 Gameplay；无需重新人工验收。
+
+---
+
+## 2026-09-06 — FactionFlag 建筑交互收正 + WorldMap 图层开关
+
+- FactionFlag LocalMap 表现改为 `factionControlPost` 实体建筑 prefab：统一 4×4 占地负责拾取、接近、WalkGrid 阻挡与确定性 authored fallback；玩家立旗改为鼠标预览并只接受避开静态阻挡、Surface Exit 且保留接近边的合法落点。
+- WorldGraphEditor 将 LocalX/Z 明确为 4×4 控制建筑中心，并按默认 Wilderness MapLayout 的完整 footprint、静态 blocker、Surface Exit 与 approach side 阻止非法显式位置；同时保留自动唯一 FlagId 与创建前数据 gate。
+- 敌旗攻击并入右键情境菜单，保留侵略确认／守军 BattleOffer；无守军时角色按正式近战节奏与 `Attack - Defense/2` 反复攻击至摧毁，不再使用固定 `-25 HP` 或战后自动拆旗。
+- WorldMap 的“显示势力范围／显示军队”改为可见 checkbox；领土 OFF 同时隐藏边界与旗标，军队 OFF 清除 Army／stack／残留／头像及其命中、选择、菜单、路线表现，PlayerParty 标记始终保留。两项均不持久化且不改变模拟。
+
+**验证**：Unity Core 与 Host 离线 Roslyn 编译 0 error；ContentAuthoring Release 编译 0 error（4 个既有 nullable warning）；Shared.Tests 59/59；`git diff --check` 通过（仅工作树既有行尾提示）。待 Unity 人工验收鼠标落点、右键拆旗和四种图层组合。
+
+---
+
+## 2026-09-06 — Control Asset Territory Model + Faction Flag V1（待 Unity 人工验收）
+
+- 政治控制真源改为有 Owner 的 Fixed WorldSite + 存活 FactionFlag；Hex controller 与 TerritoryRegion 只是按 EstablishedOrder first claim 重建的有效投影。重叠合法，Capture 保留 Order，摧毁旗后较晚资产自然扩展。
+- 新增旗帜放置门槛、HP/摧毁、War 门槛、Anchor+一环 FormalArmy 守军 BattleOffer；Snapshot 完整往返旗状态并防止已摧毁 authored flag 复活。
+- Host LocalMap/WorldMap、WorldGraphEditor 和两份 HexWorld 正式内容已接入；旧 Territory 笔刷降为 legacy/debug。
+
+**验证**：WorldGraphEditor Release 编译 0 error；Shared.Tests 54/54；Unity Core/Data/Host/EditMode 程序集离线 C# 编译 0 error。详见 [199](199-control-asset-territory-and-faction-flag-v1-2026-09-06.md)。
+
+---
+
 ## 2026-09-05 — 存档政治 Overlay 顺序与 WorldSite 可见旅行接管回归修正（待 Unity 人工验收）
 
 - 修正 Snapshot Restore 先于 Hex Content Shell 的顺序问题：`PlayableHostSession` 仅暂存本次 `StrategicSnapshotDto`，Host 完成 Hex／Site／Territory 静态壳后调用 `StrategicSnapshotHelper.RestoreHexPoliticalState` 叠加当前 Owner 与 Region Controller；随后重绑 ControlCore 并重建 SettlementAuthority。该 Overlay 不走 Capture Transfer，不发剧情／易主事件，也不重置建筑。

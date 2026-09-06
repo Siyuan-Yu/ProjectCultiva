@@ -411,6 +411,29 @@ namespace XianXia.Core.World.Strategic
                 requiresWar);
         }
 
+        public static bool TryBuildOfferForLocalPlayerPartyObjectiveAttack(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            ArmyStack enemy,
+            BattleEngagementSupportArea supportArea,
+            string title = null)
+        {
+            if (world?.Strategic == null || enemy == null || party == null || !party.HasActive ||
+                supportArea == null || !supportArea.HasValue)
+                return false;
+            return TryBuildOfferForPlayerPartyAttackCore(
+                world,
+                party,
+                enemy,
+                title,
+                BattleOfferOrigin.LocalMapHostileAction,
+                requireExistingWar: true,
+                string.Empty,
+                string.Empty,
+                requiresWarDeclaration: false,
+                supportArea);
+        }
+
         /// <summary>
         /// PlayerParty 接战 Offer 共享 core：queue gate / defender living / (可选) WarGate /
         /// TryBeginPlayerPartyEngagement / CompleteOfferAfterEngagement。WorldMap 与 LocalMap
@@ -425,7 +448,8 @@ namespace XianXia.Core.World.Strategic
             bool requireExistingWar,
             string pendingWarAttackerFactionId,
             string pendingWarDefenderFactionId,
-            bool requiresWarDeclaration)
+            bool requiresWarDeclaration,
+            BattleEngagementSupportArea objectiveSupportArea = null)
         {
             if (world?.Strategic == null || enemy == null || party == null || !party.HasActive)
                 return false;
@@ -461,13 +485,14 @@ namespace XianXia.Core.World.Strategic
                           world.Strategic.InterruptQueue.Count;
             var partyContext = world.Strategic.PlayerPartyContext;
 
-            if (!BattleEngagementAuthorityService.TryBeginPlayerPartyEngagement(
-                    world,
-                    partyContext,
-                    defender.ArmyId,
-                    enemy,
-                    offerId,
-                    out var thirdPartyResolved))
+            bool thirdPartyResolved;
+            var began = objectiveSupportArea == null
+                ? BattleEngagementAuthorityService.TryBeginPlayerPartyEngagement(
+                    world, partyContext, defender.ArmyId, enemy, offerId, out thirdPartyResolved)
+                : BattleEngagementAuthorityService.TryBeginPlayerPartyObjectiveEngagement(
+                    world, partyContext, defender.ArmyId, enemy, offerId, objectiveSupportArea,
+                    out thirdPartyResolved);
+            if (!began)
                 return false;
 
             if (thirdPartyResolved)

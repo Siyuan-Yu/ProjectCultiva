@@ -40,7 +40,7 @@ namespace XianXia.Core.World.Strategic
             if (built.IsFailure)
                 return Result.Fail<WorldSiteSiegeStartKind>(built.Error);
 
-            world.Strategic.BattleOffer.StrategicObjectiveKind = "ControlCore";
+            world.Strategic.BattleOffer.StrategicObjectiveKind = StrategicObjectiveKind.ControlCore;
             world.Strategic.BattleOffer.StrategicObjectiveId = controlCoreWorkAreaId;
             return Result.Ok(WorldSiteSiegeStartKind.BattleOffer);
         }

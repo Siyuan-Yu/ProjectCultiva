@@ -9,6 +9,8 @@ public sealed class HexWorldValidationIssue
     public int? Q { get; init; }
     public int? R { get; init; }
     public string? SiteId { get; init; }
+    public string? ObjectKind { get; init; }
+    public string? ObjectId { get; init; }
 }
 
 public static class HexWorldContentValidator
@@ -105,6 +107,7 @@ public static class HexWorldContentValidator
         }
 
         ValidateFootprintOverlap(world, issues);
+        ValidateControlAssets(world, issues);
         ValidateTerritories(world, issues);
         ValidateStandalone(world, issues, factions);
         if (factions != null)
@@ -170,6 +173,16 @@ public static class HexWorldContentValidator
                 issues.Add(Error($"Site '{site.SiteId}' owner '{site.OwnerFactionId}' is not territorySelectable.", site.SiteId));
         }
 
+        foreach (var flag in world.FactionFlags)
+        {
+            if (string.IsNullOrWhiteSpace(flag.FactionId))
+                issues.Add(Error($"FactionFlag '{flag.FlagId}' has empty FactionId.", q: flag.AnchorQ, r: flag.AnchorR));
+            else if (Resolve(flag.FactionId) == null)
+                issues.Add(Error($"FactionFlag '{flag.FlagId}' references unknown faction '{flag.FactionId}'.", q: flag.AnchorQ, r: flag.AnchorR));
+            else if (!byId[flag.FactionId].TerritorySelectable)
+                issues.Add(Error($"FactionFlag '{flag.FlagId}' faction '{flag.FactionId}' is not territorySelectable.", q: flag.AnchorQ, r: flag.AnchorR));
+        }
+
         foreach (var region in world.TerritoryRegions)
         {
             if (string.IsNullOrWhiteSpace(region.ControlFactionId))
@@ -219,6 +232,79 @@ public static class HexWorldContentValidator
                 }
             }
         }
+    }
+
+    static void ValidateControlAssets(HexWorldDefinitionDto world, List<HexWorldValidationIssue> issues)
+    {
+        var orders = new Dictionary<long, string>();
+        void CheckOrder(long order, string id)
+        {
+            if (order <= 0) { issues.Add(Error($"Control asset '{id}' must have positive established order.")); return; }
+            if (orders.TryGetValue(order, out var other))
+                issues.Add(Error($"Control asset established order {order} is shared by '{other}' and '{id}'."));
+            else orders[order] = id;
+        }
+
+        foreach (var site in world.Sites)
+            CheckOrder(site.ControlEstablishedOrder, site.SiteId);
+
+        foreach (var group in world.FactionFlags
+                     .Where(f => !string.IsNullOrWhiteSpace(f.FlagId))
+                     .GroupBy(f => f.FlagId, StringComparer.Ordinal)
+                     .Where(g => g.Count() > 1))
+        {
+            var anchors = string.Join(", ", group.Select(f => $"({f.AnchorQ},{f.AnchorR})"));
+            issues.Add(Error($"Duplicate FactionFlag FlagId '{group.Key}': anchors {anchors}."));
+        }
+        var flagAnchors = new HashSet<(int Q, int R)>();
+        var footprints = new HashSet<(int Q, int R)>(world.Sites.SelectMany(HexWorldFootprintRules.ResolveFootprint).Select(h => (h.Q, h.R)));
+        foreach (var flag in world.FactionFlags)
+        {
+            if (string.IsNullOrWhiteSpace(flag.FlagId)) issues.Add(Error("FactionFlag with empty FlagId.", q: flag.AnchorQ, r: flag.AnchorR));
+            CheckOrder(flag.EstablishedOrder, flag.FlagId);
+            if (!IsInBounds(world, flag.AnchorQ, flag.AnchorR))
+                issues.Add(Error($"FactionFlag '{flag.FlagId}' anchor out of bounds ({flag.AnchorQ},{flag.AnchorR}).", q: flag.AnchorQ, r: flag.AnchorR));
+            if (!flagAnchors.Add((flag.AnchorQ, flag.AnchorR)))
+                issues.Add(Error($"Duplicate FactionFlag anchor ({flag.AnchorQ},{flag.AnchorR}).", q: flag.AnchorQ, r: flag.AnchorR));
+            if (footprints.Contains((flag.AnchorQ, flag.AnchorR)))
+                issues.Add(Error($"FactionFlag '{flag.FlagId}' anchor is inside a WorldSite footprint.", q: flag.AnchorQ, r: flag.AnchorR));
+            var cell = world.Cells.FirstOrDefault(c => c.Q == flag.AnchorQ && c.R == flag.AnchorR);
+            var passable = cell == null ? world.DefaultPassable : cell.Passable ?? HexTerrainPalette.DefaultPassable(cell.Terrain);
+            if (!passable)
+                issues.Add(Error(
+                    $"FactionFlag '{flag.FlagId}' anchor ({flag.AnchorQ},{flag.AnchorR}) is not passable " +
+                    $"[terrain={cell?.Terrain ?? world.DefaultTerrain}, passable=false].",
+                    q: flag.AnchorQ, r: flag.AnchorR));
+        }
+
+        var nominalAssets = new List<(string Id, string FactionId, HashSet<(int Q, int R)> Hexes)>();
+        foreach (var site in world.Sites)
+            if (!string.IsNullOrWhiteSpace(site.OwnerFactionId))
+                nominalAssets.Add((site.SiteId, site.OwnerFactionId, ComputeDefaultRegionHexes(world, site)));
+        foreach (var flag in world.FactionFlags)
+            if (!string.IsNullOrWhiteSpace(flag.FactionId))
+                nominalAssets.Add((flag.FlagId, flag.FactionId, NominalFlagRange(world, flag)));
+
+        for (var i = 0; i < nominalAssets.Count; i++)
+        for (var j = i + 1; j < nominalAssets.Count; j++)
+        {
+            var a = nominalAssets[i]; var b = nominalAssets[j];
+            if (string.Equals(a.FactionId, b.FactionId, StringComparison.Ordinal)) continue;
+            if (a.Hexes.Overlaps(b.Hexes))
+                issues.Add(Warn($"Different-faction control asset nominal ranges overlap: '{a.Id}' and '{b.Id}'. Earlier established order wins each Hex."));
+        }
+    }
+
+    static HashSet<(int Q, int R)> NominalFlagRange(HexWorldDefinitionDto world, HexWorldFactionFlagDto flag)
+    {
+        var result = new HashSet<(int Q, int R)> { (flag.AnchorQ, flag.AnchorR) };
+        var anchor = new HexCoordDto(flag.AnchorQ, flag.AnchorR);
+        for (var d = 0; d < 6; d++)
+        {
+            var n = HexWorldLayoutShared.Neighbor(anchor, d);
+            if (IsInBounds(world, n.Q, n.R)) result.Add((n.Q, n.R));
+        }
+        return result;
     }
 
     static void ValidateRoadConnectivity(HexWorldDefinitionDto world, List<HexWorldValidationIssue> issues)
@@ -320,13 +406,7 @@ public static class HexWorldContentValidator
         {
             if (string.IsNullOrWhiteSpace(site.TerritoryRegionId)) continue;
             if (!byId.TryGetValue(site.TerritoryRegionId, out var region)) { issues.Add(Error($"Site '{site.SiteId}' references missing TerritoryRegion '{site.TerritoryRegionId}'.", site.SiteId)); continue; }
-            foreach (var hex in HexWorldFootprintRules.ResolveFootprint(site))
-            {
-                if (!region.Hexes.Contains(hex)) issues.Add(Error($"Site footprint not in own TerritoryRegion: {site.SiteId} ({hex.Q},{hex.R}).", site.SiteId, hex.Q, hex.R));
-                if (byHex.TryGetValue((hex.Q, hex.R), out var owner) && owner != region.RegionId) issues.Add(Error($"Site footprint belongs to another TerritoryRegion: {site.SiteId} ({hex.Q},{hex.R}).", site.SiteId, hex.Q, hex.R));
-            }
-
-            // Region geometry warn：辖区应与「默认 footprint ∪ 外一圈」一致（footprint 页修改后未重算会产生偏差）。
+            // 旧 Region 仅作兼容几何；Runtime 由 Control Asset 重建有效覆盖。
             var expected = ComputeDefaultRegionHexes(world, site);
             var actual = new HashSet<(int Q, int R)>(region.Hexes.Select(h => (h.Q, h.R)));
             var missing = expected.Where(h => !actual.Contains((h.Q, h.R))).ToList();

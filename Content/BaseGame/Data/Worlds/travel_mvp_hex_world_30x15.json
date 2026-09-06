@@ -3191,7 +3191,8 @@
           ],
           "localMapId": "base:map_site_chengzhen",
           "ownerFactionId": "",
-          "territoryRegionId": "base:region_chengzhen"
+          "territoryRegionId": "base:region_chengzhen",
+          "controlEstablishedOrder": 1
         },
         {
           "siteId": "base:site_editor_8",
@@ -3209,7 +3210,8 @@
           ],
           "localMapId": "",
           "ownerFactionId": "base:faction_fisher_village",
-          "territoryRegionId": "base:region_editor_8"
+          "territoryRegionId": "base:region_editor_8",
+          "controlEstablishedOrder": 2
         },
         {
           "siteId": "base:site_guanai",
@@ -3227,7 +3229,8 @@
           ],
           "localMapId": "base:map_site_guanai",
           "ownerFactionId": "base:faction_xijin",
-          "territoryRegionId": "base:region_guanai"
+          "territoryRegionId": "base:region_guanai",
+          "controlEstablishedOrder": 3
         },
         {
           "siteId": "base:site_huangcun",
@@ -3257,7 +3260,8 @@
           ],
           "localMapId": "base:map_ch01_reference",
           "ownerFactionId": "base:sect_huangcun_labor",
-          "territoryRegionId": "base:region_huangcun"
+          "territoryRegionId": "base:region_huangcun",
+          "controlEstablishedOrder": 4
         },
         {
           "siteId": "base:site_lingdi",
@@ -3275,7 +3279,8 @@
           ],
           "localMapId": "base:map_site_lingdi",
           "ownerFactionId": "base:faction_shuofeng",
-          "territoryRegionId": "base:region_lingdi"
+          "territoryRegionId": "base:region_lingdi",
+          "controlEstablishedOrder": 5
         },
         {
           "siteId": "base:site_linjian",
@@ -3293,7 +3298,8 @@
           ],
           "localMapId": "base:map_site_linjian",
           "ownerFactionId": "base:sect_huangcun_labor",
-          "territoryRegionId": "base:region_linjian"
+          "territoryRegionId": "base:region_linjian",
+          "controlEstablishedOrder": 6
         },
         {
           "siteId": "base:site_zhuangyuan",
@@ -3323,7 +3329,8 @@
           ],
           "localMapId": "base:map_site_zhuangyuan",
           "ownerFactionId": "base:faction_nan_yan",
-          "territoryRegionId": "base:region_zhuangyuan"
+          "territoryRegionId": "base:region_zhuangyuan",
+          "controlEstablishedOrder": 7
         },
         {
           "siteId": "test:site_player_camp",
@@ -3341,7 +3348,120 @@
           ],
           "localMapId": "base:map_player_camp",
           "ownerFactionId": "base:faction_player",
-          "territoryRegionId": "test:region_player_camp"
+          "territoryRegionId": "test:region_player_camp",
+          "controlEstablishedOrder": 8
+        }
+      ],
+      "factionFlags": [
+        {
+          "flagId": "test:flag_fisher_east",
+          "factionId": "base:faction_fisher_village",
+          "anchorQ": 25,
+          "anchorR": 10,
+          "establishedOrder": 10,
+          "localX": 0,
+          "localZ": 0,
+          "hasLocalPosition": false
+        },
+        {
+          "flagId": "base:flag_q1_r10",
+          "factionId": "base:sect_huangcun_labor",
+          "anchorQ": 1,
+          "anchorR": 10,
+          "establishedOrder": 11,
+          "localX": 0,
+          "localZ": 0,
+          "hasLocalPosition": false
+        },
+        {
+          "flagId": "base:flag_q3_r11",
+          "factionId": "base:sect_huangcun_labor",
+          "anchorQ": 3,
+          "anchorR": 11,
+          "establishedOrder": 12,
+          "localX": 0,
+          "localZ": 0,
+          "hasLocalPosition": false
+        },
+        {
+          "flagId": "base:flag_q7_r8",
+          "factionId": "base:sect_huangcun_labor",
+          "anchorQ": 7,
+          "anchorR": 8,
+          "establishedOrder": 13,
+          "localX": 0,
+          "localZ": 0,
+          "hasLocalPosition": false
+        },
+        {
+          "flagId": "base:flag_q5_r10",
+          "factionId": "base:sect_huangcun_labor",
+          "anchorQ": 5,
+          "anchorR": 10,
+          "establishedOrder": 14,
+          "localX": 0,
+          "localZ": 0,
+          "hasLocalPosition": false
+        },
+        {
+          "flagId": "base:flag_q27_r10",
+          "factionId": "base:faction_fisher_village",
+          "anchorQ": 27,
+          "anchorR": 10,
+          "establishedOrder": 15,
+          "localX": 0,
+          "localZ": 0,
+          "hasLocalPosition": false
+        },
+        {
+          "flagId": "base:flag_q26_r8",
+          "factionId": "base:faction_fisher_village",
+          "anchorQ": 26,
+          "anchorR": 8,
+          "establishedOrder": 16,
+          "localX": 0,
+          "localZ": 0,
+          "hasLocalPosition": false
+        },
+        {
+          "flagId": "base:flag_q29_r10",
+          "factionId": "base:faction_fisher_village",
+          "anchorQ": 29,
+          "anchorR": 10,
+          "establishedOrder": 17,
+          "localX": 0,
+          "localZ": 0,
+          "hasLocalPosition": false
+        },
+        {
+          "flagId": "base:flag_q15_r12",
+          "factionId": "base:faction_xijin",
+          "anchorQ": 15,
+          "anchorR": 12,
+          "establishedOrder": 18,
+          "localX": 0,
+          "localZ": 0,
+          "hasLocalPosition": false
+        },
+        {
+          "flagId": "base:flag_q10_r13",
+          "factionId": "base:faction_xijin",
+          "anchorQ": 10,
+          "anchorR": 13,
+          "establishedOrder": 19,
+          "localX": 0,
+          "localZ": 0,
+          "hasLocalPosition": false
+        },
+        {
+          "flagId": "base:flag_q12_r13",
+          "factionId": "base:faction_xijin",
+          "anchorQ": 12,
+          "anchorR": 13,
+          "establishedOrder": 20,
+          "localX": 0,
+          "localZ": 0,
+          "hasLocalPosition": false
         }
       ],
       "territoryRegions": [
@@ -3672,114 +3792,74 @@
       ],
       "standaloneTerritoryHexes": [
         {
-          "q": 21,
-          "r": 4,
-          "controlFactionId": "base:faction_shuofeng"
-        },
-        {
-          "q": 22,
-          "r": 4,
-          "controlFactionId": "base:faction_shuofeng"
-        },
-        {
-          "q": 23,
-          "r": 4,
-          "controlFactionId": "base:faction_shuofeng"
-        },
-        {
-          "q": 24,
-          "r": 4,
-          "controlFactionId": "base:faction_shuofeng"
-        },
-        {
-          "q": 20,
-          "r": 5,
-          "controlFactionId": "base:faction_shuofeng"
-        },
-        {
-          "q": 6,
-          "r": 6,
-          "controlFactionId": "base:sect_huangcun_labor"
-        },
-        {
-          "q": 20,
-          "r": 6,
-          "controlFactionId": "base:faction_shuofeng"
-        },
-        {
-          "q": 24,
-          "r": 6,
-          "controlFactionId": "base:faction_shuofeng"
-        },
-        {
-          "q": 26,
-          "r": 6,
-          "controlFactionId": "base:faction_fisher_village"
-        },
-        {
-          "q": 27,
-          "r": 6,
-          "controlFactionId": "base:faction_fisher_village"
-        },
-        {
-          "q": 6,
-          "r": 7,
-          "controlFactionId": "base:sect_huangcun_labor"
-        },
-        {
           "q": 19,
-          "r": 7,
-          "controlFactionId": "base:faction_shuofeng"
+          "r": 3,
+          "controlFactionId": "base:faction_nan_yan"
         },
         {
           "q": 20,
-          "r": 7,
-          "controlFactionId": "base:faction_shuofeng"
+          "r": 6,
+          "controlFactionId": "base:faction_nan_yan"
         },
         {
           "q": 26,
+          "r": 6,
+          "controlFactionId": "base:faction_fisher_village"
+        },
+        {
+          "q": 14,
           "r": 7,
+          "controlFactionId": "base:faction_xijin"
+        },
+        {
+          "q": 7,
+          "r": 8,
+          "controlFactionId": "base:sect_huangcun_labor"
+        },
+        {
+          "q": 18,
+          "r": 8,
+          "controlFactionId": "base:faction_nan_yan"
+        },
+        {
+          "q": 26,
+          "r": 8,
           "controlFactionId": "base:faction_fisher_village"
         },
         {
-          "q": 21,
-          "r": 8,
-          "controlFactionId": "base:faction_shuofeng"
+          "q": 1,
+          "r": 9,
+          "controlFactionId": "base:sect_huangcun_labor"
         },
         {
-          "q": 22,
-          "r": 8,
-          "controlFactionId": "base:faction_shuofeng"
-        },
-        {
-          "q": 23,
-          "r": 8,
-          "controlFactionId": "base:faction_shuofeng"
-        },
-        {
-          "q": 24,
-          "r": 8,
-          "controlFactionId": "base:faction_shuofeng"
+          "q": 6,
+          "r": 9,
+          "controlFactionId": "base:sect_huangcun_labor"
         },
         {
           "q": 27,
-          "r": 8,
-          "controlFactionId": "base:faction_fisher_village"
-        },
-        {
-          "q": 27,
           "r": 9,
           "controlFactionId": "base:faction_fisher_village"
         },
         {
-          "q": 28,
-          "r": 9,
-          "controlFactionId": "base:faction_fisher_village"
+          "q": 0,
+          "r": 10,
+          "controlFactionId": "base:sect_huangcun_labor"
         },
         {
-          "q": 29,
-          "r": 9,
-          "controlFactionId": "base:faction_fisher_village"
+          "q": 1,
+          "r": 10,
+          "controlFactionId": "base:sect_huangcun_labor"
+        },
+        {
+          "q": 2,
+          "r": 10,
+          "controlFactionId": "base:sect_huangcun_labor"
+        },
+        {
+          "q": 5,
+          "r": 10,
+          "controlFactionId": "base:sect_huangcun_labor"
         },
         {
           "q": 27,
@@ -3795,6 +3875,36 @@
           "q": 29,
           "r": 10,
           "controlFactionId": "base:faction_fisher_village"
+        },
+        {
+          "q": 3,
+          "r": 11,
+          "controlFactionId": "base:sect_huangcun_labor"
+        },
+        {
+          "q": 27,
+          "r": 11,
+          "controlFactionId": "base:faction_fisher_village"
+        },
+        {
+          "q": 29,
+          "r": 11,
+          "controlFactionId": "base:faction_fisher_village"
+        },
+        {
+          "q": 15,
+          "r": 12,
+          "controlFactionId": "base:faction_xijin"
+        },
+        {
+          "q": 10,
+          "r": 13,
+          "controlFactionId": "base:faction_xijin"
+        },
+        {
+          "q": 12,
+          "r": 13,
+          "controlFactionId": "base:faction_xijin"
         }
       ]
     }

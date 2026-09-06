@@ -1,6 +1,6 @@
 # 势力、军队、外交与战略占领
 
-> 状态：**设计规则已拍板（2026-08-22）**｜优先级：P0｜最后更新：2026-08-25（RPG-First supersede 注记）  
+> 状态：**设计规则已拍板｜Control Asset Territory + FactionFlag V1 已实现、人工验收并封板**｜优先级：P0｜最后更新：2026-09-06
 > 上级：`docs/00-project/00-overview.md`  
 > 关联：`24`、`26`、`27`、`28`、`113`、`138`、`ADR-0024`、`2K`、`ADR-0026`  
 > 被引用：`03-glossary.md`、`34`、`41-roadmap`  
@@ -8,6 +8,8 @@
 > **玩家控制模型／PlayerParty／连续世界／「跨点是否必须 Army」以 [2K](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0026](../40-process/43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) 为准。**  
 > **本阶段不写实现代码。** 当前 Host 中的 `PartyWorldPresence`／`ArmyStack`／RTS 多选等为 **Prototype**，见各过程文档 historical 注记。  
 > **Hex Territory / Multi-Hex WorldSite / Dynamic Bandit（2026-08-24）：** 见 [2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)。Territory／Site Footprint／Bandit 专题以 **2J** 为准；本文 § 中 **Node Owner / Node Territory** 表述为 Legacy，Pure Hex 下以 **ControlFactionId + TerritoryRegion** 为准。
+> **FactionFlag V1（2026-09-06）：** 阵营旗是非 Character 战略目标，攻击必须通过正式 War 门槛。Anchor+完整一环内的真实防守 FormalArmy 会建立 BattleOffer；旗本身不是参战 Character，战后不自动续拆。几何与领地求解以 2J 为准。
+> **SEALED baseline（2026-09-06）：** Control Asset Territory、FactionFlag 战略建筑交互、Authoring、SaveLoad 与 WorldMap 图层已完成人工验收；封板边界与 Future 见 [200](../40-process/200-control-asset-territory-and-faction-flag-v1-sealed-2026-09-06.md)。除明确 Bug / Regression 外不改变 V1 first-claim、EstablishedOrder、SupportArea 与快照 authority。
 
 ---
 

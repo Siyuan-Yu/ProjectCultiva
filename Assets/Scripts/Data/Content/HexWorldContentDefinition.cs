@@ -15,6 +15,7 @@ namespace XianXia.Data.Content
         public List<HexWorldCellDefinition> Cells { get; set; } = new List<HexWorldCellDefinition>();
         public List<HexWorldSiteDefinition> Sites { get; set; } = new List<HexWorldSiteDefinition>();
         public List<TerritoryRegionContentDefinition> TerritoryRegions { get; set; } = new List<TerritoryRegionContentDefinition>();
+        public List<FactionFlagContentDefinition> FactionFlags { get; set; } = new List<FactionFlagContentDefinition>();
 
         /// <summary>
         /// 不属于任何 WorldSite TerritoryRegion 的荒野 Hex 明确政治控制权（Editor Territory Brush 单格涂）。
@@ -55,8 +56,20 @@ namespace XianXia.Data.Content
         public List<HexWorldCoordDefinition> Footprint { get; set; } = new List<HexWorldCoordDefinition>();
         public string LocalMapId { get; set; } = string.Empty;
         public string OwnerFactionId { get; set; } = string.Empty;
+        public long ControlEstablishedOrder { get; set; }
         /// <summary>绑定 TerritoryRegion（内容加载后由 Region 建立 Site↔Region 链接）。</summary>
         public string TerritoryRegionId { get; set; } = string.Empty;
+    }
+    public sealed class FactionFlagContentDefinition
+    {
+        public string FlagId { get; set; } = string.Empty;
+        public string FactionId { get; set; } = string.Empty;
+        public int AnchorQ { get; set; }
+        public int AnchorR { get; set; }
+        public long EstablishedOrder { get; set; }
+        public bool HasLocalPosition { get; set; }
+        public float LocalX { get; set; }
+        public float LocalZ { get; set; }
     }
 
     /// <summary>政治辖区（2J §6.3）：Hexes 固化在 Content，Runtime 不重算。</summary>

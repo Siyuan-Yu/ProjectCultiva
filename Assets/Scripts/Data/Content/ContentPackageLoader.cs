@@ -1893,6 +1893,7 @@ namespace XianXia.Data.Content
                         AnchorR = ReadInt(sNode, "anchorR", 0),
                         LocalMapId = sNode.GetString("localMapId", string.Empty),
                         OwnerFactionId = sNode.GetString("ownerFactionId", string.Empty),
+                        ControlEstablishedOrder = (long)sNode.GetNumber("controlEstablishedOrder", 0),
                         TerritoryRegionId = sNode.GetString("territoryRegionId", string.Empty),
                     };
                     if (sNode.TryGetProperty("presenceQ", out var pqNode) &&
@@ -1923,6 +1924,29 @@ namespace XianXia.Data.Content
                     }
 
                     world.Sites.Add(site);
+                }
+            }
+
+            if (item.TryGetProperty("factionFlags", out var flagsNode) && flagsNode.Kind == JsonValueKind.Array)
+            {
+                foreach (var fNode in flagsNode.Array)
+                {
+                    if (fNode.Kind != JsonValueKind.Object) continue;
+                    var flagErrorsBefore = report.Errors.Count;
+                    DefinitionSchema.RejectUnknownFields(
+                        fNode,
+                        DefinitionSchema.HexWorldFactionFlagFields,
+                        report,
+                        id.ToString() + ".factionFlag");
+                    if (report.Errors.Count > flagErrorsBefore)
+                        continue;
+                    world.FactionFlags.Add(new FactionFlagContentDefinition
+                    {
+                        FlagId=fNode.GetString("flagId",string.Empty), FactionId=fNode.GetString("factionId",string.Empty),
+                        AnchorQ=ReadInt(fNode,"anchorQ",0), AnchorR=ReadInt(fNode,"anchorR",0),
+                        EstablishedOrder=(long)fNode.GetNumber("establishedOrder",0),
+                        HasLocalPosition=fNode.GetBool("hasLocalPosition",false), LocalX=(float)fNode.GetNumber("localX",0), LocalZ=(float)fNode.GetNumber("localZ",0)
+                    });
                 }
             }
 

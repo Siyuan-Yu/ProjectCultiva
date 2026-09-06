@@ -45,6 +45,30 @@ namespace XianXia.Core.Persistence
                 }
             }
 
+            if (dto.HasFactionFlagSnapshotAuthority)
+            {
+                world.Strategic.FactionFlags.Clear();
+                if (dto.FactionFlags != null)
+                    for (var i = 0; i < dto.FactionFlags.Count; i++)
+                    {
+                        var item = dto.FactionFlags[i];
+                        if (item == null) continue;
+                        world.Strategic.FactionFlags.Register(new FactionFlagState
+                        {
+                            FlagId = item.FlagId ?? string.Empty,
+                            FactionId = item.FactionId ?? string.Empty,
+                            AnchorHex = new HexCoord(item.AnchorQ, item.AnchorR),
+                            EstablishedOrder = item.EstablishedOrder,
+                            CurrentHp = item.CurrentHp,
+                            MaxHp = item.MaxHp,
+                            HasLocalPosition = item.HasLocalPosition,
+                            LocalX = item.LocalX,
+                            LocalZ = item.LocalZ
+                        });
+                    }
+            }
+            StrategicTerritoryCoverageResolver.Rebuild(world);
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             foreach (var pair in world.Strategic.Sites.Sites)
             {
@@ -214,6 +238,14 @@ namespace XianXia.Core.Persistence
                     RegionId = region.RegionId,
                     ControlFactionId = region.ControlFactionId ?? string.Empty
                 });
+            }
+            dto.HasFactionFlagSnapshotAuthority = true;
+            foreach (var pair in world.Strategic.FactionFlags.Flags)
+            {
+                var flag = pair.Value; if (flag == null) continue;
+                dto.FactionFlags.Add(new FactionFlagSnapshotDto { FlagId=flag.FlagId, FactionId=flag.FactionId,
+                    AnchorQ=flag.AnchorHex.Q, AnchorR=flag.AnchorHex.R, EstablishedOrder=flag.EstablishedOrder,
+                    CurrentHp=flag.CurrentHp, MaxHp=flag.MaxHp, HasLocalPosition=flag.HasLocalPosition, LocalX=flag.LocalX, LocalZ=flag.LocalZ });
             }
 
             foreach (var war in world.Strategic.Wars.EnumerateActive())

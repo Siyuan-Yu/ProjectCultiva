@@ -18,6 +18,7 @@ public sealed class HexWorldDefinitionDto
     public bool DefaultPassable { get; set; }
     public List<HexCellDto> Cells { get; set; } = new();
     public List<HexWorldSiteDto> Sites { get; set; } = new();
+    public List<HexWorldFactionFlagDto> FactionFlags { get; set; } = new();
     public List<HexWorldTerritoryRegionDto> TerritoryRegions { get; set; } = new();
     /// <summary>不属于任何 WorldSite Region 的荒野 Hex 明确控制权（Runtime 键 standaloneTerritoryHexes）。</summary>
     public List<HexWorldStandaloneHexControlDto> StandaloneTerritoryHexes { get; set; } = new();
@@ -45,6 +46,20 @@ public sealed class HexWorldSiteDto
     public string LocalMapId { get; set; } = string.Empty;
     public string OwnerFactionId { get; set; } = string.Empty;
     public string TerritoryRegionId { get; set; } = string.Empty;
+    public long ControlEstablishedOrder { get; set; }
+}
+
+/// <summary>可攻击、非 Character 的战略控制资产；名义范围为 Anchor + 完整一环。</summary>
+public sealed class HexWorldFactionFlagDto
+{
+    public string FlagId { get; set; } = string.Empty;
+    public string FactionId { get; set; } = string.Empty;
+    public int AnchorQ { get; set; }
+    public int AnchorR { get; set; }
+    public long EstablishedOrder { get; set; }
+    public float LocalX { get; set; }
+    public float LocalZ { get; set; }
+    public bool HasLocalPosition { get; set; }
 }
 
 /// <summary>HexWorld 内容中的固化辖区；显式 Hex 列表是真源，绝不保存半径推导。</summary>

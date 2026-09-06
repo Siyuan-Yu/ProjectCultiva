@@ -515,7 +515,16 @@ namespace XianXia.Core.World.Strategic
 
                 // WorldSite 调用方曾传 materializeBounds 而实际使用 siteBounds 导致漏查；
                 // 现统一按传入的实际 bounds 同时断言 SafeInterior（Core 不查 WalkGrid）。
-                if (!WildernessLocalWorldProjection.IsInSafeInterior(x, z, b))
+                // LocalVisible 连续自动旅行（Site egress → Wilderness / wilderness 跨图）的
+                // mid-travel materialize 会把 Active 刻意落在目标图近缘带（EdgeArmed=false，
+                // 沿 route 继续驱动；TickRearm 等角色走回 SafeInterior 才重新 arm）——该状态
+                // 下 SafeInterior 子断言不适用（bounds 外等结构性断言仍保留）。
+                var motion = world.PlayerPartyTravel;
+                var isLocalVisibleContinuousTravel = motion != null &&
+                                                    motion.IsMoving &&
+                                                    motion.ExecutionMode == PlayerPartyTravelExecutionMode.LocalVisible;
+                if (!isLocalVisibleContinuousTravel &&
+                    !WildernessLocalWorldProjection.IsInSafeInterior(x, z, b))
                 {
                     error = "Active presentation outside SafeInterior (near-edge band).";
                     return false;

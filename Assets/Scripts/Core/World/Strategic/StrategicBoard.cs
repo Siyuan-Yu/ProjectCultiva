@@ -4,6 +4,12 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
+    public static class StrategicObjectiveKind
+    {
+        public const string ControlCore = "ControlCore";
+        public const string FactionFlag = "FactionFlag";
+    }
+
     /// <summary>BattleOffer 来源：决定决策按钮集合（Local-origin 禁 Auto）与宣战 commitment 语义。</summary>
     public enum BattleOfferOrigin
     {
@@ -76,6 +82,7 @@ namespace XianXia.Core.World.Strategic
         public WorldSiteBoard Sites { get; } = new WorldSiteBoard();
         /// <summary>政治辖区 Board（2J §6.3）；与 Sites 相互引用（Site.TerritoryRegionId ↔ Region.PrimaryWorldSiteId）。</summary>
         public TerritoryRegionBoard TerritoryRegions { get; } = new TerritoryRegionBoard();
+        public FactionFlagBoard FactionFlags { get; } = new FactionFlagBoard();
         public BattleOfferPending BattleOffer { get; } = new BattleOfferPending();
         public ArrivalNoticePending ArrivalNotice { get; } = new ArrivalNoticePending();
         public StrategicEncounterRuntime Encounter { get; } = new StrategicEncounterRuntime();

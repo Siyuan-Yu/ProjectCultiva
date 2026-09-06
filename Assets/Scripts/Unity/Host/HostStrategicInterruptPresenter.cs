@@ -526,10 +526,15 @@ namespace XianXia.Unity.Host
                 new Rect(box.x + 16f, box.y + 62f, box.width - 32f, 22f),
                 offer.EnemyLabel + "  战力 " + offer.EnemyPower,
                 _body);
-            if (string.Equals(offer.StrategicObjectiveKind, "ControlCore", System.StringComparison.Ordinal))
+            if (string.Equals(offer.StrategicObjectiveKind, StrategicObjectiveKind.ControlCore, System.StringComparison.Ordinal))
                 GUI.Label(
                     new Rect(box.x + 16f, box.y + 82f, box.width - 32f, 22f),
                     "战略目标：议政厅（不计入战斗单位与结束条件）",
+                    _body);
+            else if (string.Equals(offer.StrategicObjectiveKind, StrategicObjectiveKind.FactionFlag, System.StringComparison.Ordinal))
+                GUI.Label(
+                    new Rect(box.x + 16f, box.y + 82f, box.width - 32f, 22f),
+                    "战略目标：阵营旗（不计入战斗单位与结束条件）",
                     _body);
 
             var barY = box.y + (string.IsNullOrEmpty(offer.StrategicObjectiveKind) ? 90f : 110f);

@@ -76,6 +76,8 @@ namespace XianXia.Unity.Host
         bool _terrainLegendExpanded;
         /// <summary>WorldMap 图层开关：显示势力范围（Territory overlay）。纯 UI preference，不写 SaveGame；panel hide/show 不重置。</summary>
         bool _showTerritoryOverlay;
+        /// <summary>WorldMap 军队表现层；默认 ON，不写入存档。</summary>
+        bool _showArmyMarkers = true;
         float _lastMapViewportWidth = 800f;
         float _lastMapViewportHeight = 600f;
         HexCoord? _selectedHex;
@@ -177,6 +179,7 @@ namespace XianXia.Unity.Host
         GUIStyle _body;
         GUIStyle _nodeLabel;
         GUIStyle _avatarLabel;
+        GUIStyle _layerToggle;
         Texture2D _px;
 
         public bool IsOpen => open;
@@ -409,6 +412,30 @@ namespace XianXia.Unity.Host
             _orderPreviewArmyId = string.Empty;
             _orderPreviewActive = false;
             _hexPathPreview.Clear();
+        }
+
+        void SetArmyLayerVisible(bool visible)
+        {
+            _showArmyMarkers = visible;
+            if (visible)
+                return;
+
+            // 关闭图层必须同步清除所有不可见目标的命中／选择／菜单／路线表现；不改 simulation。
+            _formalArmyRects.Clear();
+            _armyStackRects.Clear();
+            _residualMarkerRects.Clear();
+            _avatarRects.Clear();
+            _selected.Clear();
+            _selectedStackId = string.Empty;
+            _selectedResidualGroup = null;
+            _stackMenuOpen = false;
+            _avatarMenuOpen = false;
+            _lastMapFormalArmyClickId = string.Empty;
+            _worldMapSelection.SelectPlayerParty();
+            ClearArmyOrderPreview();
+            var world = bootstrap?.Session?.World;
+            if (world != null)
+                RefreshPlayerPartyPathPreview(world);
         }
 
         public void Bind(PlayableHostBootstrap host) => bootstrap = host;
@@ -657,20 +684,28 @@ namespace XianXia.Unity.Host
 
             var title = "大地 Hex 战略 （左键：选格/军团｜右键：军团移动或 Party Travel｜停止 Party 旅行｜M 关闭回近景";
             GUI.Label(
-                new Rect(pad, titleY, Screen.width - 220f, 28f),
+                new Rect(pad, titleY, Screen.width - 380f, 28f),
                 title, _title);
 
             // 图层开关：显示势力范围（默认 OFF）。仅控制 presentation，Territory 数据常驻。
             var showTerritory = GUI.Toggle(
-                new Rect(Screen.width - 220f, titleY + 4f, 112f, 26f),
+                new Rect(Screen.width - 350f, titleY + 4f, 116f, 26f),
                 _showTerritoryOverlay,
                 "显示势力范围",
-                _body);
+                _layerToggle);
             if (showTerritory != _showTerritoryOverlay)
             {
                 _showTerritoryOverlay = showTerritory;
                 HostHexWorldRenderer.SetTerritoryOverlayVisible(showTerritory);
             }
+
+            var showArmies = GUI.Toggle(
+                new Rect(Screen.width - 226f, titleY + 4f, 108f, 26f),
+                _showArmyMarkers,
+                "显示军队",
+                _layerToggle);
+            if (showArmies != _showArmyMarkers)
+                SetArmyLayerVisible(showArmies);
 
             if (GUI.Button(new Rect(Screen.width - 100f, titleY, 84f, 32f), "关闭"))
                 CloseWithLocalMapTakeover();
@@ -1347,12 +1382,22 @@ namespace XianXia.Unity.Host
             var hexMode = ArmyHexCommandService.IsHexStrategicActive(world) &&
                           world?.HexWorld != null &&
                           world.HexWorld.HasGrid;
-            DrawResidualMarkers(mapRect, world, hexMode: true, hexProjection: projection);
-            DrawFormalArmyAvatars(mapRect, world);
+            if (_showArmyMarkers)
+            {
+                DrawResidualMarkers(mapRect, world, hexMode: true, hexProjection: projection);
+                DrawFormalArmyAvatars(mapRect, world);
+                DrawArmyStacks(mapRect, world);
+                DrawAvatars(mapRect, world, hexMode: true, hexProjection: projection);
+            }
+            else
+            {
+                _residualMarkerRects.Clear();
+                _formalArmyRects.Clear();
+                _armyStackRects.Clear();
+                _avatarRects.Clear();
+            }
             DrawPlayerPartyMarker(mapRect, world, projection);
             BattleEngagementWorldMapDebug.Draw(projection, world);
-            DrawArmyStacks(mapRect, world);
-            DrawAvatars(mapRect, world, hexMode: true, hexProjection: projection);
 
             GUI.depth = prevDepth;
         }
@@ -2893,7 +2938,7 @@ namespace XianXia.Unity.Host
             var party = bootstrap?.Session?.PlayerParty;
             if (party == null || !party.HasActive)
                 return;
-            if (ArmyService.TryGetArmyForCharacter(world, party.ActiveCharacterId, out _))
+            if (_showArmyMarkers && ArmyService.TryGetArmyForCharacter(world, party.ActiveCharacterId, out _))
                 return;
             if (!PlayerPartyWorldLocationQuery.TryResolve(world, party, out var resolved))
                 return;
@@ -4573,6 +4618,20 @@ namespace XianXia.Unity.Host
             _px = Texture2D.whiteTexture;
             _title = HostImguiStyles.InkLabel(17, bold: true, ink: new Color(0.94f, 0.95f, 0.97f));
             _body = HostImguiStyles.InkLabel(13, wordWrap: true, ink: new Color(0.86f, 0.88f, 0.91f));
+            _layerToggle = new GUIStyle(GUI.skin.toggle)
+            {
+                fontSize = 13,
+                alignment = TextAnchor.MiddleLeft,
+                padding = new RectOffset(18, 0, 0, 0),
+                wordWrap = false
+            };
+            var layerInk = new Color(0.90f, 0.92f, 0.95f);
+            _layerToggle.normal.textColor = layerInk;
+            _layerToggle.onNormal.textColor = layerInk;
+            _layerToggle.hover.textColor = Color.white;
+            _layerToggle.onHover.textColor = Color.white;
+            _layerToggle.active.textColor = Color.white;
+            _layerToggle.onActive.textColor = Color.white;
             _avatarLabel = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 13,

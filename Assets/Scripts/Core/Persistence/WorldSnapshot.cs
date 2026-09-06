@@ -67,6 +67,9 @@ namespace XianXia.Core.Persistence
             new List<CharacterWorldPresenceSnapshotDto>();
         public List<WorldSiteOwnerSnapshotDto> WorldSiteOwners { get; set; } = new List<WorldSiteOwnerSnapshotDto>();
         public List<TerritoryRegionControllerSnapshotDto> TerritoryRegionControllers { get; set; } = new List<TerritoryRegionControllerSnapshotDto>();
+        /// <summary>字段出现即表示 Flag active set 完整 authoritative；空数组也有意义。</summary>
+        public bool HasFactionFlagSnapshotAuthority { get; set; }
+        public List<FactionFlagSnapshotDto> FactionFlags { get; set; } = new List<FactionFlagSnapshotDto>();
         public List<WarSnapshotDto> Wars { get; set; } = new List<WarSnapshotDto>();
         public List<AllianceSnapshotDto> Alliances { get; set; } = new List<AllianceSnapshotDto>();
         public List<VassalageSnapshotDto> Vassalages { get; set; } = new List<VassalageSnapshotDto>();
@@ -307,6 +310,19 @@ namespace XianXia.Core.Persistence
     {
         public string RegionId { get; set; }
         public string ControlFactionId { get; set; }
+    }
+    public sealed class FactionFlagSnapshotDto
+    {
+        public string FlagId { get; set; }
+        public string FactionId { get; set; }
+        public int AnchorQ { get; set; }
+        public int AnchorR { get; set; }
+        public long EstablishedOrder { get; set; }
+        public int CurrentHp { get; set; }
+        public int MaxHp { get; set; }
+        public bool HasLocalPosition { get; set; }
+        public float LocalX { get; set; }
+        public float LocalZ { get; set; }
     }
 
     public sealed class WarSnapshotDto

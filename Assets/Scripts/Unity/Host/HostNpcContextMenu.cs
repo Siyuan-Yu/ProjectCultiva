@@ -9,7 +9,7 @@ using XianXia.Core.World.Strategic;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// 右键情境菜单：NPC＝对话／攻击；洞府＝进入；主管府／树／墙＝攻击。
+    /// 右键情境菜单：NPC＝对话／攻击；洞府＝进入；主管府／阵营旗／树／墙＝攻击。
     /// </summary>
     public sealed class HostNpcContextMenu : MonoBehaviour
     {
@@ -33,6 +33,7 @@ namespace XianXia.Unity.Host
         EntityId _actor = EntityId.None;
         EntityId _interactionNpc = EntityId.None;
         string _targetControlCoreWorkAreaId = string.Empty;
+        string _targetFactionFlagId = string.Empty;
         string _targetEntranceLocationId = string.Empty;
         HostMapDestructible _targetDestructible;
         bool _leaveInteriorTarget;
@@ -58,6 +59,7 @@ namespace XianXia.Unity.Host
         public bool IsOpen => _phase != Phase.Closed;
 
         bool IsControlCoreTarget => !string.IsNullOrEmpty(_targetControlCoreWorkAreaId);
+        bool IsFactionFlagTarget => !string.IsNullOrEmpty(_targetFactionFlagId);
         bool IsCaveEntranceTarget => !string.IsNullOrEmpty(_targetEntranceLocationId);
         bool IsLeaveInteriorTarget => _leaveInteriorTarget;
         bool IsDestructibleTarget =>
@@ -109,6 +111,7 @@ namespace XianXia.Unity.Host
                 _actor = actor;
                 _targetNpc = npc;
                 _targetControlCoreWorkAreaId = string.Empty;
+                _targetFactionFlagId = string.Empty;
                 _targetEntranceLocationId = string.Empty;
                 _targetDestructible = null;
                 _leaveInteriorTarget = false;
@@ -128,6 +131,7 @@ namespace XianXia.Unity.Host
                 _actor = actor;
                 _targetNpc = EntityId.None;
                 _targetControlCoreWorkAreaId = string.Empty;
+                _targetFactionFlagId = string.Empty;
                 _targetEntranceLocationId = string.Empty;
                 _targetDestructible = null;
                 _leaveInteriorTarget = true;
@@ -147,10 +151,32 @@ namespace XianXia.Unity.Host
                 _actor = actor;
                 _targetNpc = EntityId.None;
                 _targetControlCoreWorkAreaId = string.Empty;
+                _targetFactionFlagId = string.Empty;
                 _targetEntranceLocationId = entranceId;
                 _targetDestructible = null;
                 _leaveInteriorTarget = false;
                 _targetLabel = string.IsNullOrEmpty(entrance.Name) ? "洞府入口" : entrance.Name;
+                _menuScreen = Input.mousePosition;
+                _phase = Phase.Menu;
+                HostInputGate.BlockWorldInteraction = true;
+                return true;
+            }
+
+            if (LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(
+                    bootstrap.Session.World, out var localContext) &&
+                localContext.Kind == LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WildernessHex &&
+                bootstrap.Session.World.Strategic.FactionFlags.TryGetAt(localContext.WildernessHex, out var pickedFlag) &&
+                pickedFlag != null &&
+                HostFactionFlagQuery.TryPickAtMouse(worldCamera, pickedFlag, layout, out var flagId))
+            {
+                _actor = actor;
+                _targetNpc = EntityId.None;
+                _targetEntranceLocationId = string.Empty;
+                _leaveInteriorTarget = false;
+                _targetDestructible = null;
+                _targetControlCoreWorkAreaId = string.Empty;
+                _targetFactionFlagId = flagId;
+                _targetLabel = "阵营旗·" + StrategicFactionCatalog.DisplayName(pickedFlag.FactionId);
                 _menuScreen = Input.mousePosition;
                 _phase = Phase.Menu;
                 HostInputGate.BlockWorldInteraction = true;
@@ -167,6 +193,7 @@ namespace XianXia.Unity.Host
                 _leaveInteriorTarget = false;
                 _targetDestructible = null;
                 _targetControlCoreWorkAreaId = coreId;
+                _targetFactionFlagId = string.Empty;
                 _targetLabel = string.IsNullOrEmpty(core.Name) ? "议政厅" : core.Name;
                 _menuScreen = Input.mousePosition;
                 _phase = Phase.Menu;
@@ -180,6 +207,7 @@ namespace XianXia.Unity.Host
                 _actor = actor;
                 _targetNpc = EntityId.None;
                 _targetControlCoreWorkAreaId = string.Empty;
+                _targetFactionFlagId = string.Empty;
                 _targetEntranceLocationId = string.Empty;
                 _leaveInteriorTarget = false;
                 _targetDestructible = destructible;
@@ -221,6 +249,8 @@ namespace XianXia.Unity.Host
                         DrawCaveMenu();
                     else if (IsControlCoreTarget)
                         DrawControlCoreMenu();
+                    else if (IsFactionFlagTarget)
+                        DrawFactionFlagMenu();
                     else if (IsDestructibleTarget)
                         DrawDestructibleMenu();
                     else
@@ -405,6 +435,79 @@ namespace XianXia.Unity.Host
             }
 
             TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        void DrawFactionFlagMenu()
+        {
+            const float w = 188f;
+            const float itemH = 30f;
+            var world = bootstrap?.Session?.World;
+            if (world == null || !world.Strategic.FactionFlags.Flags.TryGetValue(_targetFactionFlagId, out var flag) || flag == null)
+            {
+                CloseAll();
+                return;
+            }
+            var friendly = string.Equals(flag.FactionId, world.Strategic.PlayerFactionId, System.StringComparison.Ordinal);
+            var h = friendly ? 70f : itemH + 54f;
+            var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
+            var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
+            _menuGuiRect = new Rect(guiX, guiY, w, h);
+            HostUiHitTest.Block(_menuGuiRect);
+            Fill(_menuGuiRect, Panel);
+            DrawFrame(_menuGuiRect, Border);
+            GUI.Label(new Rect(guiX + 10f, guiY + 6f, w - 20f, 22f), _targetLabel, _label);
+            GUI.Label(new Rect(guiX + 10f, guiY + 27f, w - 20f, 20f),
+                "HP " + flag.CurrentHp + "/" + flag.MaxHp + (friendly ? "（己方）" : string.Empty), _label);
+            if (!friendly && GUI.Button(new Rect(guiX + 8f, guiY + 50f, w - 16f, itemH - 4f),
+                    "攻击阵营旗", _button))
+                BeginFactionFlagAttack();
+            TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        void BeginFactionFlagAttack()
+        {
+            var world = bootstrap?.Session?.World;
+            if (world == null || !world.Strategic.FactionFlags.Flags.TryGetValue(_targetFactionFlagId, out var flag) || flag == null)
+            {
+                CloseAll();
+                return;
+            }
+            BeginStrategicAggressionIfNeeded(
+                world.Strategic.PlayerFactionId, flag.FactionId, BeginFactionFlagAttackAfterAggression);
+        }
+
+        void BeginFactionFlagAttackAfterAggression()
+        {
+            var session = bootstrap?.Session;
+            var world = session?.World;
+            var flagId = _targetFactionFlagId;
+            if (world == null || !world.Strategic.FactionFlags.Flags.TryGetValue(flagId, out var flag) || flag == null)
+            {
+                CloseAll();
+                return;
+            }
+            var siege = FactionFlagSiegeService.TryBegin(world, session.PlayerParty, flagId);
+            if (siege.IsFailure)
+            {
+                Debug.LogWarning("[Host] 阵营旗攻城未开始：" + siege.Error.Message);
+                CloseAll();
+                return;
+            }
+            if (siege.Value == FactionFlagAttackStartKind.BattleOffer)
+            {
+                CloseAll();
+                return;
+            }
+            MapLayoutPick.TryGet(session, out var layout);
+            if (HostFactionFlagQuery.TryGetApproachPoint(flag, layout, moveController?.WalkGrid, out var approach))
+                moveController?.OrderPartyToPointPublic(approach);
+            var assault = bootstrap.GetComponent<HostFactionFlagAssault>();
+            if (assault != null)
+                assault.Begin(flagId);
+            else
+                Debug.LogWarning("[Host] HostFactionFlagAssault 未挂载。");
+            ResumeTime();
+            CloseAll();
         }
 
         void DrawAttackConfirm(string title, string body, string okLabel, System.Action onOk, System.Action onCancel)
@@ -919,6 +1022,7 @@ namespace XianXia.Unity.Host
             _targetNpc = EntityId.None;
             _actor = EntityId.None;
             _targetControlCoreWorkAreaId = string.Empty;
+            _targetFactionFlagId = string.Empty;
             _targetEntranceLocationId = string.Empty;
             _targetDestructible = null;
             _leaveInteriorTarget = false;

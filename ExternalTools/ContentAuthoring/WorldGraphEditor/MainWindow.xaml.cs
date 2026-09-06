@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.Json.Nodes;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -30,6 +31,7 @@ public partial class MainWindow : Window
     readonly List<StrategicFactionAuthoringDto> _allFactions = new();
     readonly Dictionary<string, StrategicFactionAuthoringDto> _factionById = new(StringComparer.Ordinal);
     string? _baseGameRoot;
+    JsonObject? _wildernessMapLayout;
     readonly HashSet<string> _sitesPaintedThisStroke = new(StringComparer.Ordinal);
 
     public MainWindow()
@@ -55,6 +57,7 @@ public partial class MainWindow : Window
         var root = PackagePaths.FindDefaultBaseGame();
         _baseGameRoot = root;
         LoadFactions();
+        LoadWildernessMapLayout();
         if (root == null)
         {
             StatusText.Text = "未找到 Content/BaseGame；请用「打开」选择 hexWorld JSON。";
@@ -91,6 +94,7 @@ public partial class MainWindow : Window
         foreach (var f in _allFactions)
             _factionById[f.Id] = f;
         _allFactions.Sort(StrategicFactionAuthoring.Compare);
+        SiteOwnerCombo.ItemsSource = _allFactions.Where(f => f.TerritorySelectable).ToList();
         _mapView.SetFactionColors(_allFactions.Select(f => new KeyValuePair<string, string>(f.Id, f.MapColor)));
         if (_territoryBrushKind == TerritoryBrushKind.Faction &&
             (_selectedFactionId == null || !_factionById.ContainsKey(_selectedFactionId)))
@@ -177,6 +181,7 @@ public partial class MainWindow : Window
 
     void UpdateInspector()
     {
+        UpdateFlagPanel();
         if (_document.SelectedHex is not { } hex || hex.Q < 0)
         {
             InspectorText.Text = "点击 Hex 查看详情。";
@@ -247,6 +252,9 @@ public partial class MainWindow : Window
             SiteNameBox.Text = site.DisplayName;
             SiteTypeBox.Text = site.SiteType;
             SiteLocalMapBox.Text = site.LocalMapId;
+            SiteOwnerCombo.SelectedItem = _allFactions.FirstOrDefault(f =>
+                string.Equals(f.Id, site.OwnerFactionId, StringComparison.Ordinal));
+            SiteEstablishedOrderBox.Text = site.ControlEstablishedOrder.ToString();
             _document.SelectedSiteId = site.SiteId;
         }
 
@@ -336,8 +344,115 @@ public partial class MainWindow : Window
             : string.Join("\n", issues.Take(8).Select(i => $"[{i.Level}] {i.Message}"));
     }
 
-    List<HexWorldValidationIssue> ValidateCurrentWorld() =>
-        HexWorldContentValidator.Validate(_document.World, _allFactions);
+    List<HexWorldValidationIssue> ValidateCurrentWorld()
+    {
+        var issues = HexWorldContentValidator.Validate(_document.World, _allFactions);
+        foreach (var flag in _document.World.FactionFlags)
+        {
+            if (!flag.HasLocalPosition || TryValidateFlagBuildingCenter(flag.LocalX, flag.LocalZ, out var reason))
+                continue;
+            issues.Add(new HexWorldValidationIssue
+            {
+                Level = "error",
+                ObjectKind = "FactionFlag",
+                ObjectId = flag.FlagId,
+                Q = flag.AnchorQ,
+                R = flag.AnchorR,
+                Message = $"FactionFlag '{flag.FlagId}' anchor ({flag.AnchorQ},{flag.AnchorR}) " +
+                          $"LocalMap center ({flag.LocalX:0.##},{flag.LocalZ:0.##}) is illegal: {reason}",
+            });
+        }
+        return issues;
+    }
+
+    void LoadWildernessMapLayout()
+    {
+        _wildernessMapLayout = null;
+        if (string.IsNullOrEmpty(_baseGameRoot))
+            return;
+        var path = Path.Combine(_baseGameRoot, "Data", "Maps", "ch01_reference_map.json");
+        if (!File.Exists(path))
+            return;
+        var root = JsonNode.Parse(File.ReadAllText(path)) as JsonObject;
+        _wildernessMapLayout = root?["definitions"]?.AsArray()
+            .OfType<JsonObject>()
+            .FirstOrDefault(d => string.Equals(d["type"]?.GetValue<string>(), "mapLayout", StringComparison.Ordinal));
+    }
+
+    bool TryValidateFlagBuildingCenter(float centerX, float centerZ, out string reason)
+    {
+        reason = string.Empty;
+        var map = _wildernessMapLayout;
+        if (map == null)
+        {
+            reason = "无法加载默认 Wilderness MapLayout，不能验证完整 footprint。";
+            return false;
+        }
+        var originX = map["originX"]?.GetValue<float>() ?? 0f;
+        var originY = map["originY"]?.GetValue<float>() ?? 0f;
+        var cs = map["cellSize"]?.GetValue<float>() ?? 1f;
+        var width = map["width"]?.GetValue<int>() ?? 1;
+        var height = map["height"]?.GetValue<int>() ?? 1;
+        var minCx = (int)Math.Floor((centerX - originX) / cs - 2f + .001f);
+        var minCy = (int)Math.Floor((centerZ - originY) / cs - 2f + .001f);
+        var maxCx = minCx + 3;
+        var maxCy = minCy + 3;
+        if (minCx < 0 || minCy < 0 || maxCx >= width || maxCy >= height)
+        {
+            reason = "4×4 footprint 超出 WalkGrid bounds。";
+            return false;
+        }
+
+        var blocked = new HashSet<(int X, int Y)>();
+        if (map["placements"] is JsonArray placements)
+        {
+            foreach (var p in placements.OfType<JsonObject>())
+            {
+                if (p["blocksMovement"]?.GetValue<bool>() != true)
+                    continue;
+                var x = p["x"]?.GetValue<int>() ?? 0;
+                var y = p["y"]?.GetValue<int>() ?? 0;
+                var w = Math.Max(1, p["w"]?.GetValue<int>() ?? 1);
+                var h = Math.Max(1, p["h"]?.GetValue<int>() ?? 1);
+                for (var py = y; py < y + h; py++)
+                for (var px = x; px < x + w; px++)
+                    blocked.Add((px, py));
+            }
+        }
+        for (var y = minCy; y <= maxCy; y++)
+        for (var x = minCx; x <= maxCx; x++)
+            if (blocked.Contains((x, y)))
+            {
+                reason = $"4×4 footprint 与静态 blocker cell ({x},{y}) 重叠。";
+                return false;
+            }
+
+        var edgeX = Math.Max(width * cs * .5f * .08f, .55f);
+        var edgeY = Math.Max(height * cs * .5f * .08f, .55f);
+        var exitDepth = map["exitTriggerDepth"]?.GetValue<float>() ?? 1.25f;
+        var insetX = Math.Max(edgeX, exitDepth);
+        var insetY = Math.Max(edgeY, exitDepth);
+        var minX = originX + minCx * cs;
+        var minZ = originY + minCy * cs;
+        var maxX = originX + (maxCx + 1) * cs;
+        var maxZ = originY + (maxCy + 1) * cs;
+        if (minX <= originX + insetX || maxX >= originX + width * cs - insetX ||
+            minZ <= originY + insetY || maxZ >= originY + height * cs - insetY)
+        {
+            reason = "4×4 footprint 进入 SurfaceExit / SafeInterior 近缘带。";
+            return false;
+        }
+
+        bool Walkable(int x, int y) => x >= 0 && y >= 0 && x < width && y < height && !blocked.Contains((x, y));
+        for (var x = minCx; x <= maxCx; x++)
+            if (Walkable(x, minCy - 1) || Walkable(x, maxCy + 1))
+                return true;
+        for (var y = minCy; y <= maxCy; y++)
+            if (Walkable(minCx - 1, y) || Walkable(maxCx + 1, y))
+                return true;
+        reason = "4×4 footprint 四周没有合法 approach side。";
+        return false;
+    }
 
     void NewWorld_Click(object sender, RoutedEventArgs e)
     {
@@ -366,7 +481,7 @@ public partial class MainWindow : Window
     void Save_Click(object sender, RoutedEventArgs e)
     {
         var errors = ValidateCurrentWorld().Where(i => i.Level == "error").ToList();
-        if (errors.Count > 0) { MessageBox.Show(string.Join(Environment.NewLine, errors.Take(12).Select(i => i.Message)), "Territory / HexWorld 校验失败，已禁止保存", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+        if (errors.Count > 0) { ShowBlockedSaveErrors(errors); return; }
         if (string.IsNullOrEmpty(_document.FilePath))
         {
             SaveAs_Click(sender, e);
@@ -380,7 +495,7 @@ public partial class MainWindow : Window
     void SaveAs_Click(object sender, RoutedEventArgs e)
     {
         var errors = ValidateCurrentWorld().Where(i => i.Level == "error").ToList();
-        if (errors.Count > 0) { MessageBox.Show(string.Join(Environment.NewLine, errors.Take(12).Select(i => i.Message)), "Territory / HexWorld 校验失败，已禁止保存", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+        if (errors.Count > 0) { ShowBlockedSaveErrors(errors); return; }
         var dlg = new SaveFileDialog
         {
             Filter = "Hex World JSON|*.json",
@@ -390,6 +505,28 @@ public partial class MainWindow : Window
             return;
         _document.Save(dlg.FileName);
         StatusText.Text = "已保存 " + dlg.FileName;
+    }
+
+    /// <summary>保存被拒时统一展示：• [Kind] message；超过 12 条时提示用「验证 Territory」看全部。</summary>
+    void ShowBlockedSaveErrors(List<HexWorldValidationIssue> errors)
+    {
+        const int shown = 12;
+        var lines = errors.Take(shown).Select(DescribeValidationIssue).ToList();
+        if (errors.Count > shown)
+            lines.Add($"…另有 {errors.Count - shown} 个错误，请使用「验证 Territory」查看全部。");
+        MessageBox.Show(
+            string.Join(Environment.NewLine, lines),
+            "Territory / HexWorld 校验失败，已禁止保存",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
+    }
+
+    static string DescribeValidationIssue(HexWorldValidationIssue issue)
+    {
+        var kind = issue.ObjectKind;
+        if (string.IsNullOrEmpty(kind))
+            kind = string.IsNullOrEmpty(issue.SiteId) ? "HexWorld" : "WorldSite";
+        return $"• [{kind}] {issue.Message}";
     }
 
     void Validate_Click(object sender, RoutedEventArgs e)
@@ -479,7 +616,11 @@ public partial class MainWindow : Window
         var site = _document.World.Sites.FirstOrDefault(s => s.SiteId == _document.SelectedSiteId);
         if (site == null)
             return;
-        _document.RenameSelectedSite(_document.SelectedSiteId, SiteIdBox.Text.Trim(), SiteNameBox.Text.Trim(), SiteTypeBox.Text.Trim(), SiteLocalMapBox.Text.Trim());
+        long? order = long.TryParse(SiteEstablishedOrderBox.Text.Trim(), out var parsedOrder) && parsedOrder > 0
+            ? parsedOrder : null;
+        _document.RenameSelectedSite(
+            _document.SelectedSiteId, SiteIdBox.Text.Trim(), SiteNameBox.Text.Trim(), SiteTypeBox.Text.Trim(),
+            SiteLocalMapBox.Text.Trim(), (SiteOwnerCombo.SelectedItem as StrategicFactionAuthoringDto)?.Id ?? string.Empty, order);
         _mapView.SetSelection(_document.SelectedHex);
         _mapView.SyncViewport(rebuildGeometry: false);
     }
@@ -778,6 +919,7 @@ public partial class MainWindow : Window
         TerritoryHintText.Text = _allFactions.Count == 0
             ? "未找到 factions.json（Content/BaseGame/Data/Factions/factions.json）。"
             : string.Empty;
+        UpdateFlagPanel();
     }
 
     static bool MatchesFactionFilter(StrategicFactionAuthoringDto faction, string filter)
@@ -859,6 +1001,7 @@ public partial class MainWindow : Window
         UpdateBrushHeader();
         _mapView.SetTerritoryOverlay(_selectedFactionId, _territoryEditMode);
         UpdateTerritoryHoverPreview();
+        UpdateFlagPanel();
     }
 
     void ValidateTerritory_Click(object sender, RoutedEventArgs e) => Validate_Click(sender, e);
@@ -877,6 +1020,165 @@ public partial class MainWindow : Window
         var saved = manager.ShowDialog() == true;
         if (saved)
             LoadFactions();
+    }
+
+    /// <summary>
+    /// FactionFlag 面板状态：当前 Anchor 合法性（可立旗：是/否 + 原因）与自动 FlagId 预览。
+    /// 仅读取；不执行任何 mutation。任一非法原因都禁用「立旗」按钮，防止先建后报错。
+    /// </summary>
+    void UpdateFlagPanel()
+    {
+        if (FlagLegalityText == null || CreateFlagButton == null || FlagAutoIdText == null || FlagIdBox == null)
+            return; // InitializeComponent 早期事件
+        if (_document.World == null)
+            return;
+
+        var selected = _document.SelectedHex;
+        HexCoordDto? anchor = null;
+        if (selected.HasValue && selected.Value.Q >= 0)
+            anchor = selected.Value;
+
+        var reasons = new List<string>();
+        var canCreate = true;
+
+        if (!anchor.HasValue)
+        {
+            canCreate = false;
+            reasons.Add("请先在地图上选择一个 Hex 作为 Anchor。");
+        }
+        if (string.IsNullOrWhiteSpace(_selectedFactionId))
+        {
+            canCreate = false;
+            reasons.Add("请先在上方势力列表选择一个势力。");
+        }
+        else if (!_factionById.ContainsKey(_selectedFactionId))
+        {
+            canCreate = false;
+            reasons.Add($"势力 '{_selectedFactionId}' 未在 factions.json 中定义。");
+        }
+
+        if (canCreate && anchor.HasValue)
+        {
+            var hex = anchor.Value;
+            var existing = _document.World.FactionFlags.FirstOrDefault(
+                f => f.AnchorQ == hex.Q && f.AnchorR == hex.R);
+            if (existing != null)
+            {
+                canCreate = false;
+                reasons.Add($"当前 Hex ({hex.Q},{hex.R}) 已存在旗 '{existing.FlagId}'（删除或换一格）。");
+            }
+            var cell = HexWorldContentGenerator.GetCell(_document.World, hex.Q, hex.R);
+            if (cell == null)
+            {
+                canCreate = false;
+                reasons.Add($"Anchor ({hex.Q},{hex.R}) 越界或缺少 Cell 数据。");
+            }
+            else
+            {
+                var passable = cell.Passable ?? HexTerrainPalette.DefaultPassable(cell.Terrain);
+                if (!passable)
+                {
+                    canCreate = false;
+                    reasons.Add($"Anchor ({hex.Q},{hex.R}) 不可通行（Terrain={HexTerrainPalette.ResolveLabel(cell.Terrain)}/{cell.Terrain}, passable=false）。");
+                }
+                var occupant = HexWorldFootprintRules.FindOccupant(_document.World, hex);
+                if (occupant != null)
+                {
+                    canCreate = false;
+                    reasons.Add($"Anchor ({hex.Q},{hex.R}) 位于 WorldSite '{occupant.SiteId}' footprint 内。");
+                }
+            }
+        }
+
+        var location = anchor.HasValue
+            ? $"当前 Anchor：({anchor.Value.Q},{anchor.Value.R}) · "
+            : string.Empty;
+        FlagLegalityText.Text = canCreate
+            ? location + "可立旗：是"
+            : location + "可立旗：否" + (reasons.Count > 0 ? "\n" + string.Join("\n", reasons) : string.Empty);
+        CreateFlagButton.IsEnabled = canCreate;
+
+        var custom = FlagIdBox.Text.Trim();
+        if (!anchor.HasValue)
+            FlagAutoIdText.Text = string.Empty;
+        else if (custom.Length > 0)
+            FlagAutoIdText.Text = $"使用自定义 FlagId：{custom}（创建时校验唯一性）";
+        else
+            FlagAutoIdText.Text = "自动 FlagId：" + FactionFlagAuthoringIdGenerator.Generate(_document.World, anchor.Value);
+    }
+
+    void FlagLocalMode_Changed(object sender, RoutedEventArgs e)
+    {
+        if (FlagLocalPanel != null && FlagHasLocalPositionBox != null)
+            FlagLocalPanel.Visibility = FlagHasLocalPositionBox.IsChecked == true
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+    }
+
+    void FlagIdBox_TextChanged(object sender, TextChangedEventArgs e) => UpdateFlagPanel();
+
+    void CreateFlag_Click(object sender, RoutedEventArgs e)
+    {
+        if (_document.SelectedHex is not { Q: >= 0 } hex)
+        {
+            StatusText.Text = "请先在地图上选择一个 Hex 作为 Anchor。";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_selectedFactionId))
+        {
+            StatusText.Text = "请先在势力列表选择一个势力。";
+            return;
+        }
+
+        var custom = FlagIdBox.Text.Trim();
+        var flagId = custom.Length > 0
+            ? custom
+            : FactionFlagAuthoringIdGenerator.Generate(_document.World, hex);
+
+        var hasLocal = FlagHasLocalPositionBox.IsChecked == true;
+        float x = 0f, z = 0f;
+        if (hasLocal)
+        {
+            float.TryParse(FlagLocalXBox.Text, out x);
+            float.TryParse(FlagLocalZBox.Text, out z);
+            if (!TryValidateFlagBuildingCenter(x, z, out var localReason))
+            {
+                SetTerritoryHint($"无法建立阵营旗 '{flagId}'，Anchor ({hex.Q},{hex.R})，" +
+                                 $"LocalMap center ({x:0.##},{z:0.##})：{localReason}");
+                return;
+            }
+        }
+        long? order = long.TryParse(FlagEstablishedOrderBox.Text.Trim(), out var parsedOrder) && parsedOrder > 0
+            ? parsedOrder : null;
+
+        var result = _document.CreateFactionFlag(hex, flagId, _selectedFactionId, x, z, hasLocal, order);
+        if (result.Success && result.Flag != null)
+        {
+            // 成功后回到自动模式：当前 Hex 已被占位，自动 ID 预览随下一次选择的 Hex 重新生成。
+            FlagIdBox.Text = string.Empty;
+            _mapView.RebuildTerritoryOverlay();
+            UpdateValidationSummary();
+            UpdateInspector();
+        }
+        SetTerritoryHint(result.Message);
+        UpdateFlagPanel();
+    }
+
+    void DeleteFlag_Click(object sender, RoutedEventArgs e)
+    {
+        if (_document.SelectedHex is not { Q: >= 0 } hex) return;
+        var flag = _document.World.FactionFlags.FirstOrDefault(f => f.AnchorQ == hex.Q && f.AnchorR == hex.R);
+        var ok = flag != null && _document.DeleteFactionFlag(flag.FlagId);
+        StatusText.Text = ok
+            ? $"已删除 FactionFlag '{flag!.FlagId}'。"
+            : "当前 Hex 没有 FactionFlag。";
+        if (ok)
+        {
+            _mapView.RebuildTerritoryOverlay();
+            UpdateValidationSummary();
+            UpdateInspector();
+        }
+        UpdateFlagPanel();
     }
 
     void EditOpeningStrategic_Click(object sender, RoutedEventArgs e)

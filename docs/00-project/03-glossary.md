@@ -220,8 +220,13 @@
 
 | 中文 | Code | 含义 | 备注 |
 |---|---|---|---|
-| Hex 领土 | Hex Territory | 单个 Hex 当前由哪个 **正式 Territorial Faction** 政治控制 | `ControlFactionId` = Faction 或 None；见 2J §6 |
-| 辖区 | TerritoryRegion | 一组 Hex 的地图组织单元；绑定 Primary WorldSite | 不是第二套政治真源；Runtime 读固化 `Hexes[]` |
+| 控制资产 | Control Asset | 对 Hex 产生政治控制的因果真源 | 有 Owner 的 Fixed WorldSite 或存活 FactionFlag；见 2J |
+| 阵营旗 | FactionFlag | Anchor+完整一环的可攻击、非 Character Control Asset | 有 HP；需 War；不进入参战者快照 |
+| 建立顺序 | EstablishedOrder | Control Asset 的全局稳定先后序 | 数值越小越早；Capture 不变；first claim tie-break |
+| 名义控制范围 | Nominal Control Range | 某 Control Asset 未考虑早到资产时的全部候选 Hex | WorldSite=Footprint+一环；Flag=Anchor+一环 |
+| 有效控制范围 | Effective Control Range | 按 EstablishedOrder first claim 后实际获得的 Hex | 可从全部 Control Asset 确定性重建 |
+| Hex 领土 | Hex Territory | 单个 Hex 当前由哪个 **正式 Territorial Faction** 政治控制 | `ControlFactionId` 是 Control Asset Resolver 的派生投影，不是因果真源；见 2J |
+| 辖区 | TerritoryRegion | 绑定 Primary WorldSite 的兼容地图组织单元 | Runtime `Hexes[]` 由 Control Asset Resolver 重建；不是政治真源 |
 | 地点足迹 | WorldSite Footprint | WorldSite 在战略地图上占用的 Hex 集合 | `FootprintHexes[]`；与 Territory 严格分离 |
 | 锚点 Hex | AnchorHex | Multi-Hex Site 的图标／名称／编辑器参考点／默认镜头焦点 | 禁止作为 PlayerParty AtSite 的实际位置（ADR-0027）；进入用 Footprint.Contains |
 | 固定地点 | Fixed WorldSite | 来自 World Content JSON、开局位置固定的 WorldSite | Capture 改 Owner；不因战斗删除 |

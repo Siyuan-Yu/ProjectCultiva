@@ -149,6 +149,68 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
+        /// 非 Character 战略目标（如 FactionFlag）使用其冻结的 Nominal SupportArea 建立接战。
+        /// 目标本身不进入 participant snapshot；只以范围内真实 FormalArmy 作为守军。
+        /// </summary>
+        public static bool TryBeginPlayerPartyObjectiveEngagement(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            string defenderArmyId,
+            ArmyStack primaryEnemyStack,
+            string offerId,
+            BattleEngagementSupportArea supportArea,
+            out bool resolvedWithoutPlayerPrompt)
+        {
+            resolvedWithoutPlayerPrompt = false;
+            if (world?.Strategic == null || party == null || !party.HasActive ||
+                supportArea == null || !supportArea.HasValue)
+                return false;
+            if (!BattleEngagementSpatialQuery.TryGetCommittedPartyHex(
+                    world, party, out var initiatorCommittedHex) ||
+                !supportArea.Contains(initiatorCommittedHex))
+                return false;
+            if (!world.Strategic.FormalArmies.TryGet(defenderArmyId, out var defender) ||
+                defender == null || !ArmyPostBattleSyncService.HasMacroOrderLivingMember(world, defender))
+                return false;
+
+            BattleEngagementSpatialQuery.TryGetCommittedArmyHex(
+                world, defenderArmyId, out var defenderCommittedHex);
+            var playerFaction = world.Strategic.PlayerFactionId ?? string.Empty;
+            var enemyFaction = defender.FactionId ?? primaryEnemyStack?.FactionId ?? string.Empty;
+            var committed = CommitEngagement(
+                world,
+                party,
+                string.Empty,
+                defenderArmyId,
+                primaryEnemyStack,
+                party.Members,
+                offerId,
+                BattleEngagementTriggerService.ReasonAdjacentToBattleArea,
+                initiatorCommittedHex,
+                defenderCommittedHex,
+                supportArea,
+                BattleInitiatorKind.PlayerParty,
+                string.Empty,
+                true,
+                false,
+                playerFaction,
+                enemyFaction,
+                true,
+                out resolvedWithoutPlayerPrompt);
+            if (!committed)
+                return false;
+
+            var engagement = world.Strategic.PendingEngagement;
+            if (!engagement.PlayerPartyIncluded ||
+                !engagement.ContainsLockedPartyMember(party.ActiveCharacterId))
+            {
+                engagement.Clear();
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
         /// 双方共享的 Engagement 建立核心：frozen SupportArea / BattleLocation / defender hex /
         /// EngagementId / faction / initiator+decision subject / GatherAndLock / snapshot lifecycle。
         /// 两个薄入口（FormalArmy / PlayerParty）只负责各自的 trigger、空间解析与 initiator 字段。

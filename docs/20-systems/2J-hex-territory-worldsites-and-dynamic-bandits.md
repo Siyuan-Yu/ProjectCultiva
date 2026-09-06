@@ -1,6 +1,6 @@
 # Hex Territory、Multi-Hex WorldSite 与动态山贼系统
 
-> 状态：**设计规则已拍板（2026-08-24）**｜优先级：P0｜最后更新：2026-08-24  
+> 状态：**设计规则已拍板／Control Asset + FactionFlag V1 已实现、人工验收并封板**｜优先级：P0｜最后更新：2026-09-06
 > 上级：`docs/00-project/00-overview.md`  
 > 关联：`2A`、`24`、`26`、`28`、`03-glossary`、`ADR-0024`、`ADR-0025`、[`155`](../40-process/155-hex-strategic-worldmap-migration-2026-08-23.md)、[`158`](../40-process/158-hex-world-content-authoring-pipeline-2026-08-23.md)  
 > 被引用：`03-glossary.md`、`41-roadmap`  
@@ -10,6 +10,20 @@
 
 > **⚠️ 2026-09-03 · TerritoryRegion V1 已实现并封板（见 [192 TerritoryRegion V1 硬化](../40-process/192-phase2j-territory-region-v1-base-layer-2026-09-03.md)）。**
 > 上一条 2026-08-24「本阶段不写实现代码」仅指当时；本节以下设计规则已在 2026-09-03 V1 落地。
+
+> **SUPERSEDED（2026-09-06）：** 下方“`HexCell.ControlFactionId` authoritative”、“`Region.Hexes[]` membership 真源”与“重叠禁止”已被 Control Asset Territory Model 取代，仅作 2026-09-03 实现历史。
+
+## Control Asset Territory Model + Faction Flag V1（2026-09-06 正式规则）
+
+- 政治控制的因果真源只有 **Control Asset**：有 Owner 的 Fixed `WorldSite` 与存活的 `FactionFlag`。`HexCell.ControlFactionId` 和 `TerritoryRegion.Hexes[]` 都是 Resolver 可重建的有效投影。
+- WorldSite 名义范围 = 完整 Footprint + 外一环；FactionFlag 名义范围 = Anchor + 完整一环（边界外 Hex 裁剪）。
+- 名义范围允许重叠。每个 Hex 按全局稳定 `EstablishedOrder` 由早到晚 first claim；ID 仅作脏数据确定性 tie-break，正式内容不得重复 Order。
+- Capture 只改 WorldSite Owner，保留 EstablishedOrder；旗被摧毁时先移除资产再重建，原被挡住的较晚资产自然扩展。
+- `FactionFlag` 是有 HP、真实建筑 prefab/footprint/WalkGrid 阻挡的非 Character 战略目标。攻击需有效 War；Anchor+一环内有真实防守 FormalArmy 时进入 BattleOffer，无守军时角色接近建筑并按正式 melee interval、Attack 与建筑 Defense 逐击伤害；战后不自动续拆。
+- 玩家立旗：Anchor 必须可通行、不在 WorldSite Footprint、无其他旗，Anchor 不得为敌方有效控制，且候选范围至少新增 1 个无主 Hex。
+- Snapshot 保存完整活跃旗。新存档显式空列表也有权威，已摧毁 authored flag 不会复活；legacy 旧档缺字段时继续使用 Content 旗。
+
+落地历史见 [199](../40-process/199-control-asset-territory-and-faction-flag-v1-2026-09-06.md)；人工验收后的正式封板基线见 [200](../40-process/200-control-asset-territory-and-faction-flag-v1-sealed-2026-09-06.md)。
 
 ## Implementation Status（2026-09-03 · TerritoryRegion V1 implemented）
 

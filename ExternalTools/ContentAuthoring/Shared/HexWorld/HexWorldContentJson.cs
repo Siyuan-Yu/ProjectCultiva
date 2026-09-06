@@ -95,6 +95,10 @@ public static class HexWorldContentJson
                 .ThenBy(h => h.Q)
                 .ToList();
         }
+        definition.FactionFlags = definition.FactionFlags
+            .OrderBy(flag => flag.EstablishedOrder)
+            .ThenBy(flag => flag.FlagId, StringComparer.Ordinal)
+            .ToList();
         definition.TerritoryRegions = definition.TerritoryRegions
             .OrderBy(region => region.RegionId, StringComparer.Ordinal)
             .ToList();

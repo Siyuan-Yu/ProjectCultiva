@@ -24,6 +24,7 @@ namespace XianXia.Unity.Host
         public const string House = "Assets/Prefabs/Environment/Buildings/CommonHouse.prefab";
         public const string HouseFallback = "Assets/Prefabs/Environment/Buildings/CommonHouse.prefab";
         public const string Hub = "Assets/Prefabs/Environment/Buildings/SupervisorHouse.prefab";
+        public const string FactionControlPost = "Assets/Prefabs/Environment/Buildings/Warehouse.prefab";
         public const string Mine = "Assets/Prefabs/Environment/Buildings/Warehouse.prefab";
         public const string Cave = "Assets/Prefabs/Environment/Buildings/Warehouse.prefab";
         public const string TreeS = "Assets/Prefabs/Environment/Props/TreeSmall.prefab";
@@ -50,6 +51,7 @@ namespace XianXia.Unity.Host
                 case "rock":
                 case "cave":
                 case "controlCore":
+                case "factionControlPost":
                     return true;
                 default:
                     return false;
@@ -152,6 +154,8 @@ namespace XianXia.Unity.Host
                 new UnityEngine.Color(0.85f, 0.72f, 0.28f)),
             new("controlCore", Hub, StampMode.SingleCentered, 8, 8, false, null,
                 new UnityEngine.Color(0.58f, 0.50f, 0.40f)),
+            new("factionControlPost", FactionControlPost, StampMode.SingleCentered, 4, 4, false, null,
+                new UnityEngine.Color(0.62f, 0.42f, 0.24f)),
             new("rallyPoint", Cushion, StampMode.SingleCentered, 2, 2, false, null,
                 new UnityEngine.Color(0.85f, 0.55f, 0.20f)),
         };

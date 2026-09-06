@@ -41,6 +41,7 @@ namespace XianXia.Core.World.Strategic
             {
                 // legacy / dynamic Site：无 Region，仅 Owner（低层语义，不产生 Region 副作用）。
                 WorldSiteOwnershipService.SetOwner(world, siteId, faction);
+                StrategicTerritoryCoverageResolver.Rebuild(world);
                 return Result.Success();
             }
 
@@ -64,8 +65,8 @@ namespace XianXia.Core.World.Strategic
 
             // 4. Site Owner
             site.OwnerFactionId = faction;
-            // 5. Region Controller + 全部 Hex（唯一 mutation authority）
-            TerritoryControlService.SetRegionController(world, regionId, faction);
+            // Region/Hex 是 resolver 的 compatibility projection；Site Owner 才是政治 cause。
+            StrategicTerritoryCoverageResolver.Rebuild(world);
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             System.Diagnostics.Debug.Assert(

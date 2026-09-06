@@ -48,6 +48,9 @@ namespace XianXia.Data.Content
 
             world.Strategic.Sites.Clear();
             world.Strategic.TerritoryRegions.Clear();
+            world.Strategic.FactionFlags.Clear();
+            var controlOrders = new HashSet<long>();
+            long nextLegacyOrder = 1;
             if (definition.Sites != null)
             {
                 for (var i = 0; i < definition.Sites.Count; i++)
@@ -55,9 +58,40 @@ namespace XianXia.Data.Content
                     var src = definition.Sites[i];
                     if (src == null || string.IsNullOrWhiteSpace(src.SiteId))
                         continue;
+                    if (src.ControlEstablishedOrder <= 0)
+                        src.ControlEstablishedOrder = nextLegacyOrder;
+                    if (!controlOrders.Add(src.ControlEstablishedOrder))
+                        return Result.Failure(ErrorCode.ContentLoadFailed,
+                            "Duplicate ControlEstablishedOrder " + src.ControlEstablishedOrder + ".");
+                    nextLegacyOrder = Math.Max(nextLegacyOrder, src.ControlEstablishedOrder + 1);
                     RegisterSite(world, src);
                 }
             }
+
+            if (definition.FactionFlags != null)
+                for (var i=0;i<definition.FactionFlags.Count;i++)
+                {
+                    var src=definition.FactionFlags[i]; if(src==null) continue;
+                    if (src.EstablishedOrder <= 0)
+                        src.EstablishedOrder = nextLegacyOrder;
+                    if (!controlOrders.Add(src.EstablishedOrder))
+                        return Result.Failure(ErrorCode.ContentLoadFailed,
+                            "Duplicate ControlEstablishedOrder " + src.EstablishedOrder + ".");
+                    nextLegacyOrder = Math.Max(nextLegacyOrder, src.EstablishedOrder + 1);
+                    var anchor = new HexCoord(src.AnchorQ, src.AnchorR);
+                    if (string.IsNullOrWhiteSpace(src.FlagId) || string.IsNullOrWhiteSpace(src.FactionId) ||
+                        !grid.TryGetCell(anchor, out var anchorCell) || anchorCell == null || !anchorCell.IsPassable)
+                        return Result.Failure(ErrorCode.ContentLoadFailed,
+                            "FactionFlag[" + i + "] has invalid identity, faction, or anchor.");
+                    if (world.Strategic.Sites.TryGetAtHex(anchor, out var occupiedSite) && occupiedSite != null)
+                        return Result.Failure(ErrorCode.ContentLoadFailed,
+                            "FactionFlag '" + src.FlagId + "' anchor is inside WorldSite '" + occupiedSite.SiteId + "'.");
+                    if (!world.Strategic.FactionFlags.Register(new FactionFlagState
+                    { FlagId=src.FlagId, FactionId=src.FactionId, AnchorHex=anchor, EstablishedOrder=src.EstablishedOrder,
+                      CurrentHp=100, MaxHp=100, HasLocalPosition=src.HasLocalPosition, LocalX=src.LocalX, LocalZ=src.LocalZ }))
+                        return Result.Failure(ErrorCode.ContentLoadFailed,
+                            "FactionFlag '" + src.FlagId + "' duplicates a FlagId or anchor.");
+                }
 
             // §12 加载顺序：清空 ControlFactionId（grid.Clear 已保证新 cell 为 ""）
             // → apply standaloneTerritoryHexes → apply TerritoryRegions。
@@ -94,12 +128,14 @@ namespace XianXia.Data.Content
                 return Result.Failure(ErrorCode.ContentLoadFailed, "Territory content error: " + sb);
             }
 
+            StrategicTerritoryCoverageResolver.Rebuild(world);
+
             return Result.Success();
         }
 
         /// <summary>
-        /// 荒野单格控制权（不属于任何 WorldSite Region 的 Hex）。在 TerritoryRegions 前 apply；
-        /// 与任何 Region hex 重叠 → Content ERROR。
+        /// Legacy/debug 荒野单格兼容读取。只用于旧 Region 数据校验；
+        /// Apply 结尾会由 Control Asset resolver 覆盖，不是政治真源。
         /// </summary>
         static Result ApplyStandaloneHexControls(
             SimulationWorld world,
@@ -220,6 +256,7 @@ namespace XianXia.Data.Content
                 PresenceHex = anchor,
                 LocalMapId = src.LocalMapId ?? string.Empty,
                 OwnerFactionId = src.OwnerFactionId ?? string.Empty,
+                ControlEstablishedOrder = src.ControlEstablishedOrder,
                 TerritoryRegionId = src.TerritoryRegionId ?? string.Empty,
             };
 

@@ -968,6 +968,16 @@ namespace XianXia.Data.Serialization
                 ["retreatingArmies"] = JsonValue.FromArray(retreating),
                 ["captureObjectives"] = JsonValue.FromArray(captureObjectives)
             };
+            var flagValues = new List<JsonValue>();
+            foreach (var flag in strategic.FactionFlags)
+                if (flag != null) flagValues.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["flagId"]=JsonValue.FromString(flag.FlagId??string.Empty), ["factionId"]=JsonValue.FromString(flag.FactionId??string.Empty),
+                    ["anchorQ"]=JsonValue.FromNumber(flag.AnchorQ), ["anchorR"]=JsonValue.FromNumber(flag.AnchorR), ["establishedOrder"]=JsonValue.FromNumber(flag.EstablishedOrder),
+                    ["currentHp"]=JsonValue.FromNumber(flag.CurrentHp), ["maxHp"]=JsonValue.FromNumber(flag.MaxHp), ["hasLocalPosition"]=JsonValue.FromBool(flag.HasLocalPosition),
+                    ["localX"]=JsonValue.FromNumber(flag.LocalX), ["localZ"]=JsonValue.FromNumber(flag.LocalZ)
+                }));
+            if (strategic.HasFactionFlagSnapshotAuthority) root["factionFlags"] = JsonValue.FromArray(flagValues);
 
             if (strategic.PlayerPartyTravel != null && strategic.PlayerPartyTravel.HasPosition)
             {
@@ -1157,6 +1167,17 @@ namespace XianXia.Data.Serialization
                         ControlFactionId = r.GetString("controlFactionId", string.Empty)
                     });
                 }
+            }
+            if (strategic.TryGetProperty("factionFlags", out var factionFlags) && factionFlags.Kind == JsonValueKind.Array)
+            {
+                dto.HasFactionFlagSnapshotAuthority = true;
+                foreach (var flag in factionFlags.Array) dto.FactionFlags.Add(new FactionFlagSnapshotDto
+                {
+                    FlagId=flag.GetString("flagId",string.Empty), FactionId=flag.GetString("factionId",string.Empty),
+                    AnchorQ=(int)flag.GetNumber("anchorQ"), AnchorR=(int)flag.GetNumber("anchorR"), EstablishedOrder=(long)flag.GetNumber("establishedOrder"),
+                    CurrentHp=(int)flag.GetNumber("currentHp"), MaxHp=(int)flag.GetNumber("maxHp"), HasLocalPosition=flag.GetBool("hasLocalPosition"),
+                    LocalX=(float)flag.GetNumber("localX"), LocalZ=(float)flag.GetNumber("localZ")
+                });
             }
 
             if (strategic.TryGetProperty("wars", out var wars) && wars.Kind == JsonValueKind.Array)

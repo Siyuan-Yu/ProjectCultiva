@@ -241,6 +241,7 @@ public sealed class HexWorldEditorDocument
             PresenceQ = hex.Q,
             PresenceR = hex.R,
             Footprint = new List<HexCoordDto> { hex },
+            ControlEstablishedOrder = NextControlEstablishedOrder(),
         };
         World.Sites.Add(site);
         RebuildDerivedSiteTerritoryOwnerLookup();
@@ -608,11 +609,77 @@ public sealed class HexWorldEditorDocument
         PushUndo(); site.TerritoryRegionId = regionId; var region = new HexWorldTerritoryRegionDto { RegionId = regionId, PrimaryWorldSiteId = siteId, ControlFactionId = site.OwnerFactionId, Hexes = HexWorldFootprintRules.ResolveFootprint(site).ToList() }; World.TerritoryRegions.Add(region); RebuildTerritoryLookup(); RaiseTerritoriesMutated(); return FootprintEditResult.Ok("已创建 TerritoryRegion。");
     }
 
-    public void RenameSelectedSite(string oldId, string newId, string displayName, string siteType, string localMapId)
+    public void RenameSelectedSite(string oldId, string newId, string displayName, string siteType, string localMapId,
+        string? ownerFactionId = null, long? controlEstablishedOrder = null)
     {
         var site = World.Sites.FirstOrDefault(s => s.SiteId == oldId); if (site == null || string.IsNullOrWhiteSpace(newId)) return;
         PushUndo(); if (site.TerritoryRegionId is { Length: > 0 } id && GetTerritoryRegion(id) is { } region) region.PrimaryWorldSiteId = newId;
-        site.SiteId = newId; site.DisplayName = displayName; site.SiteType = siteType; site.LocalMapId = localMapId; SelectedSiteId = newId; RaiseSitesMutated(); RaiseTerritoriesMutated();
+        site.SiteId = newId; site.DisplayName = displayName; site.SiteType = siteType; site.LocalMapId = localMapId;
+        if (ownerFactionId != null) site.OwnerFactionId = ownerFactionId;
+        if (controlEstablishedOrder.HasValue && controlEstablishedOrder.Value > 0) site.ControlEstablishedOrder = controlEstablishedOrder.Value;
+        if (site.TerritoryRegionId is { Length: > 0 } regionId && GetTerritoryRegion(regionId) is { } ownedRegion)
+            ownedRegion.ControlFactionId = site.OwnerFactionId;
+        SelectedSiteId = newId; RaiseSitesMutated(); RaiseTerritoriesMutated();
+    }
+
+    public long NextControlEstablishedOrder()
+    {
+        var siteMax = World.Sites.Count == 0 ? 0 : World.Sites.Max(s => s.ControlEstablishedOrder);
+        var flagMax = World.FactionFlags.Count == 0 ? 0 : World.FactionFlags.Max(f => f.EstablishedOrder);
+        return Math.Max(siteMax, flagMax) + 1;
+    }
+
+    public FactionFlagCreateResult CreateFactionFlag(HexCoordDto anchor, string flagId, string factionId,
+        float localX = 0f, float localZ = 0f, bool hasLocalPosition = false, long? establishedOrder = null)
+    {
+        if (string.IsNullOrWhiteSpace(flagId))
+            return FactionFlagCreateResult.Fail("无法建立阵营旗：FlagId 为空。");
+        var duplicate = World.FactionFlags.FirstOrDefault(f => string.Equals(f.FlagId, flagId, StringComparison.Ordinal));
+        if (duplicate != null)
+            return FactionFlagCreateResult.Fail(
+                $"无法建立阵营旗：FlagId '{flagId}' 已存在。现有位置：({duplicate.AnchorQ},{duplicate.AnchorR})。");
+        var atAnchor = World.FactionFlags.FirstOrDefault(f => f.AnchorQ == anchor.Q && f.AnchorR == anchor.R);
+        if (atAnchor != null)
+            return FactionFlagCreateResult.Fail(
+                $"当前 Hex ({anchor.Q},{anchor.R}) 已存在 FactionFlag '{atAnchor.FlagId}'。");
+        var cell = World.Cells.FirstOrDefault(c => c.Q == anchor.Q && c.R == anchor.R);
+        if (cell == null)
+            return FactionFlagCreateResult.Fail($"无法建立阵营旗：Anchor ({anchor.Q},{anchor.R}) 越界或缺少 Cell 数据。");
+        var passable = cell.Passable ?? HexTerrainPalette.DefaultPassable(cell.Terrain);
+        if (!passable)
+            return FactionFlagCreateResult.Fail(
+                $"无法建立阵营旗：Anchor ({anchor.Q},{anchor.R}) Terrain={HexTerrainPalette.ResolveLabel(cell.Terrain)}/{cell.Terrain}, Passable=false。");
+        var occupant = HexWorldFootprintRules.FindOccupant(World, anchor);
+        if (occupant != null)
+            return FactionFlagCreateResult.Fail(
+                $"无法建立阵营旗：Anchor ({anchor.Q},{anchor.R}) 位于 WorldSite '{occupant.SiteId}' footprint 内。");
+
+        PushUndo();
+        var flag = new HexWorldFactionFlagDto
+        {
+            FlagId = flagId,
+            FactionId = factionId,
+            AnchorQ = anchor.Q,
+            AnchorR = anchor.R,
+            EstablishedOrder = establishedOrder.HasValue && establishedOrder.Value > 0
+                ? establishedOrder.Value : NextControlEstablishedOrder(),
+            LocalX = localX,
+            LocalZ = localZ,
+            HasLocalPosition = hasLocalPosition,
+        };
+        World.FactionFlags.Add(flag);
+        RaiseTerritoriesMutated();
+        return FactionFlagCreateResult.Ok(flag);
+    }
+
+    public bool DeleteFactionFlag(string flagId)
+    {
+        var flag = World.FactionFlags.FirstOrDefault(f => string.Equals(f.FlagId, flagId, StringComparison.Ordinal));
+        if (flag == null) return false;
+        PushUndo();
+        World.FactionFlags.Remove(flag);
+        RaiseTerritoriesMutated();
+        return true;
     }
 
     void RebuildTerritoryLookup()

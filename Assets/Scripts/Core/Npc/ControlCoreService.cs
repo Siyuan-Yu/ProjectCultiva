@@ -21,13 +21,7 @@ namespace XianXia.Core.Npc
 
         /// <summary>与近战普攻同式：max(1, 攻击 − 建筑防御/2)。</summary>
         public static int ComputeAssaultDamage(Entity attacker, ControlCoreState core)
-        {
-            var attack = 1;
-            if (attacker != null && attacker.TryGet<AttributesComponent>(out var attrs))
-                attack = Math.Max(1, attrs.GetFinal(AttributeId.Attack));
-            var defense = core != null ? Math.Max(0, core.Defense) : 0;
-            return Math.Max(1, attack - defense / 2);
-        }
+            => StrategicBuildingDamage.Compute(attacker, core != null ? core.Defense : 0);
 
         /// <summary>
         /// 攻方实体对主管府一击（正式近战伤害）；无攻方时失败。

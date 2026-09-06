@@ -416,6 +416,8 @@ namespace XianXia.Unity.Host
                 gameObject.AddComponent<HostHousingAreaSelection>();
             if (GetComponent<HostControlCoreAssault>() == null)
                 gameObject.AddComponent<HostControlCoreAssault>();
+            if (GetComponent<HostFactionFlagAssault>() == null)
+                gameObject.AddComponent<HostFactionFlagAssault>();
             if (GetComponent<HostDestructibleAssault>() == null)
                 gameObject.AddComponent<HostDestructibleAssault>();
             if (GetComponent<HostFarmFieldLabor>() == null)
@@ -515,6 +517,8 @@ namespace XianXia.Unity.Host
             if (npcContextMenu == null)
                 npcContextMenu = GetComponent<HostNpcContextMenu>() ??
                                 gameObject.AddComponent<HostNpcContextMenu>();
+            if (GetComponent<HostFactionFlagPresenter>() == null)
+                gameObject.AddComponent<HostFactionFlagPresenter>();
             if (GetComponent<HostPartyPathPreview>() == null)
                 gameObject.AddComponent<HostPartyPathPreview>();
 
@@ -641,6 +645,9 @@ namespace XianXia.Unity.Host
             var assault = GetComponent<HostControlCoreAssault>();
             if (assault != null)
                 assault.Bind(this);
+            var flagAssault = GetComponent<HostFactionFlagAssault>();
+            if (flagAssault != null)
+                flagAssault.Bind(this);
             var destructibleAssault = GetComponent<HostDestructibleAssault>();
             if (destructibleAssault != null)
                 destructibleAssault.Bind(this);
@@ -2249,11 +2256,25 @@ namespace XianXia.Unity.Host
             }
         }
 
+        public void RefreshFactionFlagWalkGrid()
+        {
+            if (moveController != null)
+                moveController.SetWalkGrid(ResolveWalkGrid());
+            if (surfaceExitZonePresenter != null)
+                surfaceExitZonePresenter.Rebuild();
+        }
+
         WalkGrid ResolveWalkGrid()
         {
             if (MapLayoutPick.TryGet(_session, out var preferred) && preferred != null)
             {
                 var grid = MapLayoutWalkGridBuilder.Create(preferred);
+                if (_session?.World != null &&
+                    LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(_session.World, out var context) &&
+                    context.Kind == LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WildernessHex &&
+                    _session.World.Strategic.FactionFlags.TryGetAt(context.WildernessHex, out var flag) &&
+                    flag != null)
+                    HostFactionFlagQuery.ApplyWalkGridBlock(flag, preferred, grid);
                 Debug.Log(
                     "[PlayableHost] WalkGrid from mapLayout " + preferred.Id +
                     " " + preferred.Width + "x" + preferred.Height +

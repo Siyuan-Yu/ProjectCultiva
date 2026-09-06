@@ -168,6 +168,8 @@ namespace XianXia.Unity.Host
                 DrawOverlayOutline(projection, grid, selectedHex, null, SelectBorder, SelectOutlineHalfWidthPx);
 
             WorldSitePresentationLayer.Draw(projection, world, pixel, hexScreenRadius);
+            if (ShowTerritoryOverlay)
+                FactionFlagWorldMapPresentation.Draw(projection, world, pixel, hexScreenRadius);
         }
 
         static void DrawWorldSiteFootprintSelection(

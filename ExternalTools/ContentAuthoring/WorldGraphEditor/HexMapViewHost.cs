@@ -133,6 +133,7 @@ public sealed class HexMapViewHost : FrameworkElement
     {
         _selected = selected;
         RedrawOverlay();
+        RedrawTerritoryOverlay();
     }
 
     public void SetSiteOverlay(string? selectedSiteId, bool editFootprintMode)
@@ -140,6 +141,7 @@ public sealed class HexMapViewHost : FrameworkElement
         _selectedSiteId = selectedSiteId;
         _editFootprintMode = editFootprintMode;
         RedrawOverlay();
+        RedrawTerritoryOverlay();
     }
 
     /// <summary>Authoring-only Territory 填色，独立于 hover overlay，绝不进入游戏表现。factionId = 当前笔刷势力（用于预览描边）。</summary>
@@ -452,33 +454,89 @@ public sealed class HexMapViewHost : FrameworkElement
         using var dc = _territoryVisual.RenderOpen();
         if (!_territoryVisible) return;
         var radius = Math.Max(.05, _world.HexSize * CellFillScale);
-        foreach (var region in _world.TerritoryRegions)
+        var claims = new List<(long Order, string Id, string FactionId, IEnumerable<HexCoordDto> Hexes)>();
+        foreach (var site in _world.Sites)
+            if (!string.IsNullOrEmpty(site.OwnerFactionId))
+                claims.Add((site.ControlEstablishedOrder, site.SiteId, site.OwnerFactionId, NominalSiteRange(site)));
+        foreach (var flag in _world.FactionFlags)
+            if (!string.IsNullOrEmpty(flag.FactionId))
+                claims.Add((flag.EstablishedOrder, flag.FlagId, flag.FactionId, NominalFlagRange(flag)));
+
+        var effective = new Dictionary<HexCoordDto, string>();
+        foreach (var claim in claims.OrderBy(c => c.Order).ThenBy(c => c.Id, StringComparer.Ordinal))
         {
-            var controller = region.ControlFactionId ?? string.Empty;
-            if (string.IsNullOrEmpty(controller)) continue;
-            if (!FactionColor(controller, out var color)) continue;
-            var isBrush = !string.IsNullOrEmpty(_territoryBrushFactionId) &&
-                          string.Equals(_territoryBrushFactionId, controller, StringComparison.Ordinal);
+            foreach (var hex in claim.Hexes)
+                if (!effective.ContainsKey(hex)) effective[hex] = claim.FactionId;
+        }
+        foreach (var pair in effective)
+        {
+            if (!FactionColor(pair.Value, out var color)) continue;
+            var isBrush = !string.IsNullOrEmpty(_territoryBrushFactionId) && string.Equals(_territoryBrushFactionId, pair.Value, StringComparison.Ordinal);
             var fill = new SolidColorBrush(Color.FromArgb(isBrush ? (byte)112 : (byte)62, color.R, color.G, color.B)); fill.Freeze();
             var pen = isBrush ? new Pen(new SolidColorBrush(Color.FromArgb(210, color.R, color.G, color.B)), .055) : null;
             if (pen != null) pen.Freeze();
-            foreach (var hex in region.Hexes)
-            {
-                HexWorldLayoutShared.CoordToWorldCenter(hex, _world.HexSize, out var x, out var y);
-                dc.DrawGeometry(fill, pen, BuildHexGeometry(x, y, radius * .9));
-            }
+            HexWorldLayoutShared.CoordToWorldCenter(pair.Key, _world.HexSize, out var x, out var y);
+            dc.DrawGeometry(fill, pen, BuildHexGeometry(x, y, radius * .9));
         }
 
-        // standalone 荒野单格控制：同样用正式 faction 色。
-        foreach (var control in _world.StandaloneTerritoryHexes)
+        IEnumerable<HexCoordDto>? selectedNominal = null;
+        if (!string.IsNullOrEmpty(_selectedSiteId))
         {
-            if (string.IsNullOrEmpty(control.ControlFactionId)) continue;
-            if (!FactionColor(control.ControlFactionId, out var color)) continue;
-            var fill = new SolidColorBrush(Color.FromArgb(62, color.R, color.G, color.B)); fill.Freeze();
-            var hex = new HexCoordDto(control.Q, control.R);
-            HexWorldLayoutShared.CoordToWorldCenter(hex, _world.HexSize, out var x, out var y);
-            dc.DrawGeometry(fill, null, BuildHexGeometry(x, y, radius * .9));
+            var selectedSite = _world.Sites.FirstOrDefault(s => string.Equals(s.SiteId, _selectedSiteId, StringComparison.Ordinal));
+            if (selectedSite != null) selectedNominal = NominalSiteRange(selectedSite);
         }
+        if (_selected is { Q: >= 0 } selectedHex)
+        {
+            var selectedFlag = _world.FactionFlags.FirstOrDefault(f => f.AnchorQ == selectedHex.Q && f.AnchorR == selectedHex.R);
+            if (selectedFlag != null) selectedNominal = NominalFlagRange(selectedFlag);
+        }
+        if (selectedNominal != null)
+        {
+            var nominalPen = new Pen(Brushes.White, Math.Max(.04, radius * .08)) { DashStyle = DashStyles.Dash };
+            nominalPen.Freeze();
+            foreach (var hex in selectedNominal)
+            {
+                HexWorldLayoutShared.CoordToWorldCenter(hex, _world.HexSize, out var x, out var y);
+                dc.DrawGeometry(null, nominalPen, BuildHexGeometry(x, y, radius));
+            }
+        }
+        foreach (var flag in _world.FactionFlags)
+        {
+            if (!FactionColor(flag.FactionId, out var color)) color = Colors.White;
+            HexWorldLayoutShared.CoordToWorldCenter(new HexCoordDto(flag.AnchorQ, flag.AnchorR), _world.HexSize, out var x, out var y);
+            var brush = new SolidColorBrush(Color.FromArgb(235, color.R, color.G, color.B)); brush.Freeze();
+            var pole = new Pen(brush, Math.Max(.04, radius * .09)); pole.Freeze();
+            dc.DrawLine(pole, new Point(x, y - radius * .55), new Point(x, y + radius * .55));
+            dc.DrawRectangle(brush, null, new Rect(x, y - radius * .55, radius * .55, radius * .34));
+        }
+    }
+
+    IEnumerable<HexCoordDto> NominalSiteRange(HexWorldSiteDto site)
+    {
+        var world = _world!;
+        var set = new HashSet<HexCoordDto>();
+        foreach (var hex in HexWorldFootprintRules.ResolveFootprint(site))
+        {
+            if (hex.Q >= 0 && hex.R >= 0 && hex.Q < world.Width && hex.R < world.Height) set.Add(hex);
+            for (var d = 0; d < 6; d++)
+            {
+                var n = HexWorldLayoutShared.Neighbor(hex, d);
+                if (n.Q >= 0 && n.R >= 0 && n.Q < world.Width && n.R < world.Height) set.Add(n);
+            }
+        }
+        return set;
+    }
+
+    IEnumerable<HexCoordDto> NominalFlagRange(HexWorldFactionFlagDto flag)
+    {
+        var anchor = new HexCoordDto(flag.AnchorQ, flag.AnchorR);
+        var set = new HashSet<HexCoordDto> { anchor };
+        for (var d = 0; d < 6; d++)
+        {
+            var n = HexWorldLayoutShared.Neighbor(anchor, d);
+            if (n.Q >= 0 && n.R >= 0 && n.Q < _world!.Width && n.R < _world.Height) set.Add(n);
+        }
+        return set;
     }
 
     void RedrawBrushPreview()

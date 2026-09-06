@@ -5,9 +5,8 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// Territory 加载后 invariant 校验（2J §6 / §14）：
-    /// ① Site↔Region 双向绑定；② Owner==Controller；③ Region hex 存在、无重复、无跨 Region overlap；
-    /// ④ Site 全部 footprint hex ⊆ 自身 Region。返回问题文本；不静默猜测谁覆盖谁。
+    /// Control Asset 重建后的有效领地 invariant 校验。WorldSite 名义范围可被更早建立的资产抢先，
+    /// 因此不再要求 footprint 全部落入自身有效 Region。
     /// </summary>
     public static class TerritoryInvariantValidator
     {
@@ -76,22 +75,6 @@ namespace XianXia.Core.World.Strategic
                                    "' and '" + region.RegionId + "'.");
                     else
                         hexToRegion[hex] = region.RegionId;
-                }
-            }
-
-            // ④ Footprint ⊆ 自身 Region
-            foreach (var kv in sites.Sites)
-            {
-                var site = kv.Value;
-                if (site == null || string.IsNullOrEmpty(site.TerritoryRegionId))
-                    continue;
-                if (!regions.TryGet(site.TerritoryRegionId, out var region) || region == null)
-                    continue;
-                foreach (var hex in site.EnumerateFootprintHexes())
-                {
-                    if (!region.Contains(hex))
-                        errors.Add("WorldSite '" + site.SiteId + "' footprint hex " + hex +
-                                   " not inside its TerritoryRegion '" + region.RegionId + "'.");
                 }
             }
 

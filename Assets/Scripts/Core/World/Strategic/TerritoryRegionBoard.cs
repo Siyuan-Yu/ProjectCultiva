@@ -84,5 +84,34 @@ namespace XianXia.Core.World.Strategic
                 return false;
             return TryGet(regionId, out region);
         }
+
+        /// <summary>
+        /// Control Asset resolver 更新某个 Site 的 effective projection 时使用。
+        /// 同步维护 Hex 索引，禁止直接 SetHexes 造成 Region 与 O(1) 查询分叉。
+        /// </summary>
+        public void ReplaceHexes(string regionId, IEnumerable<HexCoord> hexes)
+        {
+            if (!TryGet(regionId, out var region) || region == null)
+                return;
+
+            for (var i = 0; i < region.Hexes.Count; i++)
+            {
+                var previous = region.Hexes[i];
+                if (_regionIdByHex.TryGetValue(previous, out var indexed) &&
+                    string.Equals(indexed, regionId, StringComparison.Ordinal))
+                    _regionIdByHex.Remove(previous);
+            }
+
+            region.SetHexes(hexes);
+            for (var i = 0; i < region.Hexes.Count; i++)
+            {
+                var hex = region.Hexes[i];
+                if (_regionIdByHex.TryGetValue(hex, out var other) &&
+                    !string.Equals(other, regionId, StringComparison.Ordinal))
+                    throw new InvalidOperationException(
+                        "Resolved territory overlap at " + hex + ": " + other + " / " + regionId + ".");
+                _regionIdByHex[hex] = regionId;
+            }
+        }
     }
 }

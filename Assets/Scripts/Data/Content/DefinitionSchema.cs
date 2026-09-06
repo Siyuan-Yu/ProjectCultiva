@@ -133,7 +133,7 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> HexWorldFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "width", "height", "hexSize", "defaultTerrain", "defaultPassable", "cells", "sites",
-            "territoryRegions", "standaloneTerritoryHexes"
+            "territoryRegions", "standaloneTerritoryHexes", "factionFlags"
         };
 
         public static readonly HashSet<string> HexWorldCellFields = new HashSet<string>(StringComparer.Ordinal)
@@ -144,7 +144,7 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> HexWorldSiteFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "siteId", "displayName", "siteType", "anchorQ", "anchorR", "presenceQ", "presenceR", "footprint",
-            "localMapId", "ownerFactionId", "territoryRegionId"
+            "localMapId", "ownerFactionId", "territoryRegionId", "controlEstablishedOrder"
         };
 
         public static readonly HashSet<string> HexWorldTerritoryRegionFields = new HashSet<string>(StringComparer.Ordinal)
@@ -189,6 +189,12 @@ namespace XianXia.Data.Content
             "definitionId", "entityKind", "displayName", "assignOpeningFaction", "factionMode", "factionId", "factionRole",
             "bindSchedule", "bindDailyTask", "recruitable", "workRole", "scheduleId", "aiRole", "jobId",
             "worldSiteId", "localLocationId", "localPosition"
+        };
+
+        public static readonly HashSet<string> HexWorldFactionFlagFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "flagId", "factionId", "anchorQ", "anchorR", "establishedOrder",
+            "hasLocalPosition", "localX", "localZ"
         };
         public static readonly HashSet<string> OpeningStrategicFields = new HashSet<string>(StringComparer.Ordinal) { "playerFactionId", "vassalages", "alliances", "initialWars" };
         public static readonly HashSet<string> OpeningVassalageFields = new HashSet<string>(StringComparer.Ordinal) { "vassalFactionId", "overlordFactionId" };

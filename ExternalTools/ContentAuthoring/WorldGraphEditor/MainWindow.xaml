@@ -58,10 +58,11 @@
         </StackPanel>
       </ScrollViewer>
         </TabItem>
-        <TabItem Header="势力范围">
+        <TabItem Header="控制资产">
           <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="0,0,8,0">
-              <TextBlock Text="势力范围" FontWeight="SemiBold" Foreground="{StaticResource Editor.Text}" Margin="0,0,0,6"/>
+              <TextBlock Text="Control Asset 控制资产" FontWeight="SemiBold" Foreground="{StaticResource Editor.Text}" Margin="0,0,0,6"/>
+              <TextBlock Text="WorldSite（Footprint+一环）与 FactionFlag（Anchor+一环）是正式真源；重叠时 EstablishedOrder 较小者抢先。" Foreground="{StaticResource Editor.TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8"/>
               <TextBlock Text="搜索势力" Foreground="{StaticResource Editor.TextMuted}" Margin="0,0,0,3"/>
               <TextBox x:Name="TerritorySearchBox" Margin="0,0,0,6" TextChanged="TerritorySearchBox_TextChanged" ToolTip="搜索势力（中文名 / FactionId）"/>
               <Border x:Name="TerritoryBrushPanel" Background="{StaticResource Editor.Panel}" BorderBrush="{StaticResource Editor.Border}" BorderThickness="1" Padding="7" Margin="0,0,0,8">
@@ -99,6 +100,33 @@
                   </DataTemplate>
                 </ListBox.ItemTemplate>
               </ListBox>
+              <Border Background="{StaticResource Editor.Panel}" BorderBrush="{StaticResource Editor.Border}" BorderThickness="1" Padding="7" Margin="0,8,0,0">
+                <StackPanel>
+                  <TextBlock Text="FactionFlag 阵营旗" FontWeight="SemiBold" Foreground="{StaticResource Editor.Text}"/>
+                  <TextBlock Text="选择势力 → 点击地图 Hex → 立旗。自动生成唯一 FlagId 与顺序；无需手动维护任何 ID。" Foreground="{StaticResource Editor.TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,6"/>
+                  <TextBlock x:Name="FlagLegalityText" Foreground="{StaticResource Editor.WarningText}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                  <TextBlock x:Name="FlagAutoIdText" Foreground="{StaticResource Editor.TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                  <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <Button x:Name="CreateFlagButton" Content="在当前 Hex 立旗" IsEnabled="False" Click="CreateFlag_Click"/>
+                    <Button Content="删除当前 Hex 旗" Margin="6,0,0,0" Click="DeleteFlag_Click"/>
+                  </StackPanel>
+                  <Expander Header="高级设置（自定义 FlagId / 顺序 / LocalMap 位置）" IsExpanded="False">
+                    <StackPanel Margin="0,6,0,0">
+                      <TextBlock Text="FlagId（留空 = 自动 base:flag_q{Q}_r{R}；重复自动加 _2/_3）" Foreground="{StaticResource Editor.TextMuted}" FontSize="11" Margin="0,0,0,3"/>
+                      <TextBox x:Name="FlagIdBox" Margin="0,0,0,6" ToolTip="自定义 FlagId；留空自动生成" TextChanged="FlagIdBox_TextChanged"/>
+                      <TextBlock Text="EstablishedOrder（留空 = 自动取全局下一顺序）" Foreground="{StaticResource Editor.TextMuted}" FontSize="11" Margin="0,0,0,3"/>
+                      <TextBox x:Name="FlagEstablishedOrderBox" Margin="0,0,0,6" ToolTip="EstablishedOrder（留空=自动取全局下一顺序）"/>
+                      <CheckBox x:Name="FlagHasLocalPositionBox" Content="指定控制建筑中心位置" Foreground="{StaticResource Editor.Text}" Checked="FlagLocalMode_Changed" Unchecked="FlagLocalMode_Changed"/>
+                      <StackPanel x:Name="FlagLocalPanel" Orientation="Horizontal" Margin="0,4,0,0" Visibility="Collapsed">
+                        <TextBox x:Name="FlagLocalXBox" Text="0" Width="72" ToolTip="LocalX"/>
+                        <TextBox x:Name="FlagLocalZBox" Text="0" Width="72" Margin="5,0,0,0" ToolTip="LocalZ"/>
+                      </StackPanel>
+                      <TextBlock Text="LocalX/LocalZ 表示 4×4 控制建筑中心。默认 HasLocalPosition=false：Runtime 会避开静态阻挡与 Surface Exit，确定性寻找最近合法落点。" Foreground="{StaticResource Editor.TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                    </StackPanel>
+                  </Expander>
+                </StackPanel>
+              </Border>
+              <TextBlock Text="Legacy/debug：下方旧 Territory 笔刷仅供兼容检查，不再是政治控制真源。" Foreground="{StaticResource Editor.WarningText}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
               <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                 <Button Content="管理势力…" Width="96" Click="ManageFactions_Click"/>
                 <Button Content="验证 Territory" Margin="6,0,0,0" Click="ValidateTerritory_Click"/>
@@ -152,6 +180,10 @@
           <TextBox x:Name="SiteTypeBox" Margin="0,0,0,6" LostFocus="SiteFields_LostFocus"/>
           <TextBlock Text="LocalMapId" Foreground="{StaticResource Editor.TextMuted}"/>
           <TextBox x:Name="SiteLocalMapBox" Margin="0,0,0,6" LostFocus="SiteFields_LostFocus"/>
+          <TextBlock Text="OwnerFaction" Foreground="{StaticResource Editor.TextMuted}"/>
+          <ComboBox x:Name="SiteOwnerCombo" Margin="0,0,0,6" DisplayMemberPath="Name" LostFocus="SiteFields_LostFocus"/>
+          <TextBlock Text="ControlEstablishedOrder" Foreground="{StaticResource Editor.TextMuted}"/>
+          <TextBox x:Name="SiteEstablishedOrderBox" Margin="0,0,0,6" LostFocus="SiteFields_LostFocus"/>
           <TextBlock x:Name="SiteTerritoryText" Foreground="{StaticResource Editor.TextMuted}" TextWrapping="Wrap" Margin="0,0,0,6"/>
           <TextBlock Text="Footprint" FontWeight="SemiBold" Foreground="{StaticResource Editor.Text}" Margin="0,8,0,6"/>
           <TextBlock x:Name="SiteAnchorText" Foreground="{StaticResource Editor.TextMuted}" TextWrapping="Wrap" Margin="0,0,0,4"/>
