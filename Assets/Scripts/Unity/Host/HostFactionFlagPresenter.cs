@@ -1,10 +1,13 @@
 using UnityEngine;
+using XianXia.Core.Construction;
+using XianXia.Core.Results;
+using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 
 namespace XianXia.Unity.Host
 {
-    /// <summary>Wilderness LocalMap 阵营旗建筑表现与鼠标落点模式。</summary>
+    /// <summary>FactionFlag visual, footprint geometry and construction placement interaction.</summary>
     public sealed class HostFactionFlagPresenter : MonoBehaviour
     {
         PlayableHostBootstrap _bootstrap;
@@ -12,122 +15,148 @@ namespace XianXia.Unity.Host
         GameObject _preview;
         TextMesh _label;
         string _shownFlagId = string.Empty;
+        string _buildingId = string.Empty;
         string _status = string.Empty;
         bool _placing;
-        bool _previewLegal;
+        bool _geometryLegal;
+        bool _domainLegal;
+        bool _overallLegal;
         float _previewX;
         float _previewZ;
 
         void Awake() => _bootstrap = GetComponent<PlayableHostBootstrap>();
         void OnDestroy() { DestroyVisual(); DestroyPreview(); }
 
+        public Result BeginConstructionPlacement(string buildingId)
+        {
+            var world = _bootstrap?.Session?.World;
+            if (world == null || !world.ConstructionCatalog.TryGet(buildingId, out var spec) || spec == null)
+                return Result.Failure(ErrorCode.NotFound, "建筑定义不存在。", buildingId);
+            if (spec.PlacementKind != ConstructionPlacementKind.FactionFlag)
+                return Result.Failure(ErrorCode.InvalidOperation, "此放置器不支持该建筑。", buildingId);
+            _buildingId = buildingId;
+            _placing = true;
+            _status = "移动鼠标选择位置；左键建造，Esc／右键取消。";
+            HostInputGate.BlockWorldInteraction = true;
+            return Result.Success();
+        }
+
         void Update()
         {
             var world = _bootstrap?.Session?.World;
-            if (!TryGetWildernessContext(world, out var context))
-            {
-                CancelPlacement(); DestroyVisual(); return;
-            }
-
-            if (world.Strategic.FactionFlags.TryGetAt(context.WildernessHex, out var flag) && flag != null)
+            if (world == null || !_bootstrap.Session.IsInitialized)
             {
                 CancelPlacement();
+                DestroyVisual();
+                return;
+            }
+
+            var hasContext = LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(world, out var context);
+            var wilderness = hasContext &&
+                context.Kind == LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WildernessHex;
+            if (wilderness && world.Strategic.FactionFlags.TryGetAt(context.WildernessHex, out var flag) && flag != null)
+            {
                 EnsureVisual(flag);
                 if (_label != null)
                     _label.text = StrategicFactionCatalog.DisplayName(flag.FactionId) +
                                   "\nHP " + flag.CurrentHp + "/" + flag.MaxHp;
             }
             else
-            {
                 DestroyVisual();
-                if (_placing)
-                    UpdatePlacementPreview(context.WildernessHex);
-            }
+
+            if (_placing)
+                UpdatePlacementPreview(wilderness, wilderness ? context.WildernessHex : default);
+            else
+                DestroyPreview();
         }
 
         void OnGUI()
         {
-            var world = _bootstrap?.Session?.World;
-            if (!TryGetWildernessContext(world, out var context))
+            if (!_placing)
                 return;
-
-            var rect = new Rect(Screen.width - 190f, Screen.height - 104f, 178f, 90f);
+            var rect = new Rect(Screen.width - 286f, Screen.height - 126f, 274f, 112f);
             HostUiHitTest.Block(rect);
-            GUI.Box(rect, "阵营旗");
-            var gate = FactionFlagPlacementAuthorization.CanBeginPlacement(
-                world, world.Strategic.PlayerFactionId, context.WildernessHex, out var gain);
-            GUI.enabled = gate.IsSuccess;
-            if (GUI.Button(new Rect(rect.x + 8f, rect.y + 25f, rect.width - 16f, 26f),
-                    _placing ? "取消放置" : "选择立旗位置"))
-            {
-                if (_placing) CancelPlacement(); else BeginPlacement();
-            }
-            GUI.enabled = true;
-            GUI.Label(new Rect(rect.x + 8f, rect.y + 55f, rect.width - 16f, 30f),
-                gate.IsFailure
-                    ? gate.Error.Message
-                    : (string.IsNullOrEmpty(_status) ? "可新增无主格：" + gain : _status));
+            GUI.Box(rect, "势力控制建筑");
+            GUI.Label(new Rect(rect.x + 10f, rect.y + 25f, rect.width - 20f, 40f),
+                "移动鼠标选择位置\n左键：建造　Esc／右键：取消");
+            GUI.color = _overallLegal ? new Color(.45f, 1f, .55f) : new Color(1f, .45f, .4f);
+            GUI.Label(new Rect(rect.x + 10f, rect.y + 68f, rect.width - 20f, 38f),
+                (_overallLegal ? "✓ " : "✕ ") + _status);
+            GUI.color = Color.white;
         }
 
-        void BeginPlacement()
-        {
-            _placing = true;
-            _status = "移动鼠标预览；左键确认，Esc 取消";
-            HostInputGate.BlockWorldInteraction = true;
-        }
-
-        void CancelPlacement()
+        public void CancelPlacement()
         {
             if (_placing)
                 HostInputGate.BlockWorldInteraction = false;
             _placing = false;
+            _buildingId = string.Empty;
+            _status = string.Empty;
+            _geometryLegal = _domainLegal = _overallLegal = false;
             DestroyPreview();
         }
 
-        void UpdatePlacementPreview(XianXia.Core.World.Hex.HexCoord anchor)
+        void UpdatePlacementPreview(bool wilderness, HexCoord anchor)
         {
-            if (Input.GetKeyDown(KeyCode.Escape)) { CancelPlacement(); return; }
-            if (HostUiHitTest.ContainsScreenPoint(Input.mousePosition))
+            if (Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(1))
+            {
+                CancelPlacement();
                 return;
-            var camera = Camera.main;
-            if (camera == null || !HostPresentationSpace.TryRaycastPlane(camera, Input.mousePosition, out var wp) ||
-                !MapLayoutPick.TryGet(_bootstrap.Session, out var layout) || layout == null)
-                return;
-            var p = HostPresentationSpace.ToPresentation(wp);
-            var baseGrid = MapLayoutWalkGridBuilder.Create(layout);
-            _previewLegal = HostFactionFlagQuery.TryResolveLegalCenterAt(
-                layout, baseGrid, p.x, p.y, out _previewX, out _previewZ);
-            EnsurePreview();
-            PositionBuilding(_preview, _previewX, _previewZ, layout);
-            Tint(_preview, _previewLegal ? new Color(.35f, 1f, .45f, .55f) : new Color(1f, .25f, .2f, .55f));
-            if (Input.GetMouseButtonDown(0) && _previewLegal)
+            }
+
+            var world = _bootstrap.Session.World;
+            _domainLegal = false;
+            var domainReason = "此建筑只能建造在野外 LocalMap。";
+            if (wilderness)
+            {
+                var domain = FactionFlagService.ValidatePlacement(
+                    world, world.Strategic.PlayerFactionId, anchor, out _);
+                _domainLegal = domain.IsSuccess;
+                domainReason = domain.IsSuccess ? string.Empty : domain.Error.Message;
+            }
+
+            _geometryLegal = false;
+            if (!HostUiHitTest.ContainsScreenPoint(Input.mousePosition) &&
+                Camera.main != null &&
+                HostPresentationSpace.TryRaycastPlane(Camera.main, Input.mousePosition, out var wp) &&
+                MapLayoutPick.TryGet(_bootstrap.Session, out var layout) && layout != null)
+            {
+                var p = HostPresentationSpace.ToPresentation(wp);
+                var baseGrid = MapLayoutWalkGridBuilder.Create(layout);
+                _geometryLegal = HostFactionFlagQuery.TryResolveLegalCenterAt(
+                    layout, baseGrid, p.x, p.y, out _previewX, out _previewZ);
+                EnsurePreview();
+                PositionBuilding(_preview, _previewX, _previewZ, layout);
+                _overallLegal = _geometryLegal && _domainLegal;
+                Tint(_preview, _overallLegal
+                    ? new Color(.35f, 1f, .45f, .55f)
+                    : new Color(1f, .25f, .2f, .55f));
+            }
+            else
+            {
+                _overallLegal = false;
+                DestroyPreview();
+            }
+
+            _status = !_domainLegal
+                ? domainReason
+                : (!_geometryLegal ? "此处有障碍或会阻挡出口。" : "此处可以建造。");
+
+            if (Input.GetMouseButtonDown(0) && _overallLegal &&
+                !HostUiHitTest.ContainsScreenPoint(Input.mousePosition))
                 PlaceFlag(anchor, _previewX, _previewZ);
         }
 
-        void PlaceFlag(XianXia.Core.World.Hex.HexCoord anchor, float x, float z)
+        void PlaceFlag(HexCoord anchor, float x, float z)
         {
             var world = _bootstrap.Session.World;
-            var flagId = "flag:player:" + world.Tick.Value + ":" + anchor.Q + ":" + anchor.R;
-            var result = FactionFlagService.TryPlace(
-                world, flagId, world.Strategic.PlayerFactionId, anchor,
-                FactionFlagService.NextEstablishedOrder(world), x, z, true);
-            _status = result.IsSuccess ? "立旗成功" : result.Error.Message;
-            if (result.IsSuccess)
-            {
-                _status = string.Empty;
-                CancelPlacement();
-                _bootstrap.RefreshFactionFlagWalkGrid();
-            }
-        }
-
-        bool TryGetWildernessContext(XianXia.Core.Simulation.SimulationWorld world,
-            out LoadedLocalMapBelongingQuery.LoadedLocalMapContext context)
-        {
-            context = default;
-            return world != null && _bootstrap.Session.IsInitialized &&
-                   (_bootstrap.WorldMapPanel == null || !_bootstrap.WorldMapPanel.IsOpen) &&
-                   LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(world, out context) &&
-                   context.Kind == LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WildernessHex;
+            var result = ConstructionService.TryConstructFactionFlag(
+                world, _buildingId, world.Strategic.PlayerFactionId, anchor, x, z, out _);
+            _status = result.IsSuccess ? "建造成功。" : result.Error.Message;
+            if (!result.IsSuccess)
+                return;
+            CancelPlacement();
+            _bootstrap.RefreshFactionFlagWalkGrid();
         }
 
         void EnsureVisual(FactionFlagState flag)
@@ -214,6 +243,11 @@ namespace XianXia.Unity.Host
             if (_visual != null) Destroy(_visual);
             _visual = null; _label = null; _shownFlagId = string.Empty;
         }
-        void DestroyPreview() { if (_preview != null) Destroy(_preview); _preview = null; }
+
+        void DestroyPreview()
+        {
+            if (_preview != null) Destroy(_preview);
+            _preview = null;
+        }
     }
 }

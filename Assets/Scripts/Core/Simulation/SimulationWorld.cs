@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using XianXia.Core.Actions;
 using XianXia.Core.Combat;
+using XianXia.Core.Construction;
 using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
@@ -71,6 +72,7 @@ namespace XianXia.Core.Simulation
             SettlementAuthority = new SettlementAuthorityBoard();
             InventoryCatalog = new InventoryCatalog();
             Inventory = new PartyInventory(InventoryCatalog, PartyInventory.DefaultSlotCapacity);
+            ConstructionCatalog = new ConstructionCatalog();
             ContentCounters = new ContentCounterBoard();
             ContentDaily = new ContentDailyBoard();
             LocalMap = new LocalMapSession();
@@ -177,6 +179,9 @@ namespace XianXia.Core.Simulation
 
         /// <summary>Shared party backpack (session-only; not in Snapshot v1).</summary>
         public PartyInventory Inventory { get; }
+
+        /// <summary>Static building definitions rehydrated from content; never Snapshot authority.</summary>
+        public ConstructionCatalog ConstructionCatalog { get; }
 
         /// <summary>Realm breakthrough ladder (content/default; session-only).</summary>
         public RealmLadderBoard RealmLadder { get; set; } = RealmLadderBoard.CreateDefault();

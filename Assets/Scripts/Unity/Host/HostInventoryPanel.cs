@@ -34,11 +34,33 @@ namespace XianXia.Unity.Host
 
         public bool IsOpen => open;
 
-        public void Toggle() => open = !open;
+        public void Toggle()
+        {
+            if (open)
+                Close();
+            else
+                Open();
+        }
 
-        public void Open() => open = true;
+        public void Open()
+        {
+            bootstrap?.ConstructionPanel?.Close();
+            bootstrap?.WorldMapPanel?.Close();
+            open = true;
+            if (bootstrap?.Session != null && bootstrap.Session.IsInitialized)
+            {
+                bootstrap.Session.IsPaused = true;
+                _holdingPause = true;
+                HostInputGate.BlockWorldCamera = true;
+                HostInputGate.BlockWorldInteraction = true;
+            }
+        }
 
-        public void Close() => open = false;
+        public void Close()
+        {
+            open = false;
+            ReleasePauseOwnership();
+        }
 
         public void Bind(PlayableHostBootstrap host)
         {
@@ -58,11 +80,16 @@ namespace XianXia.Unity.Host
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
                 return;
 
+            if (Input.GetKeyDown(toggleKey))
+                Toggle();
+
             var journal = bootstrap.QuestJournal;
             var learn = bootstrap.ManualLearnPrompt;
+            var construction = bootstrap.ConstructionPanel;
             var map = bootstrap.WorldMapPanel;
             if ((journal != null && journal.IsOpen) ||
                 (learn != null && learn.IsOpen) ||
+                (construction != null && construction.IsOpen) ||
                 (map != null && map.IsOpen))
             {
                 if (open)
@@ -71,9 +98,6 @@ namespace XianXia.Unity.Host
                     _holdingPause = false;
                 return;
             }
-
-            if (Input.GetKeyDown(toggleKey))
-                open = !open;
 
             if (open)
             {
@@ -86,11 +110,15 @@ namespace XianXia.Unity.Host
                 }
             }
             else if (_holdingPause)
-            {
+                ReleasePauseOwnership();
+        }
+
+        void ReleasePauseOwnership()
+        {
+            if (_holdingPause && bootstrap?.Session != null)
                 bootstrap.Session.IsPaused = false;
-                _holdingPause = false;
-                HostInputGate.Clear();
-            }
+            _holdingPause = false;
+            HostInputGate.Clear();
         }
 
         void OnGUI()
@@ -126,7 +154,7 @@ namespace XianXia.Unity.Host
             }
 
             if (GUI.Button(new Rect(x + 110f, y, 72f, 28f), "关闭"))
-                open = false;
+                Close();
             y += 36f;
 
             var gridTop = y;
@@ -210,7 +238,7 @@ namespace XianXia.Unity.Host
                     var prompt = bootstrap.ManualLearnPrompt;
                     if (prompt != null)
                     {
-                        open = false;
+                        Close();
                         prompt.Open(selectedItemId);
                     }
                     else
@@ -224,7 +252,7 @@ namespace XianXia.Unity.Host
                     var prompt = bootstrap.CombatArtLearnPrompt;
                     if (prompt != null)
                     {
-                        open = false;
+                        Close();
                         prompt.Open(selectedItemId);
                     }
                     else

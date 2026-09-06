@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using XianXia.Core.Content;
+using XianXia.Core.Construction;
 using XianXia.Core.Inventory;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
@@ -16,6 +17,7 @@ namespace XianXia.Data.Bootstrap
                 return Result.Failure(ErrorCode.InvalidArgument, "ContentRuntime bootstrap args null.");
 
             RehydrateInventoryCatalog(world, registry);
+            RehydrateConstructionCatalog(world, registry);
 
             foreach (var kv in registry.Quests)
             {
@@ -97,6 +99,34 @@ namespace XianXia.Data.Bootstrap
             }
 
             world.Inventory.SetSlotCapacity(PartyInventory.DefaultSlotCapacity);
+        }
+
+        internal static void RehydrateConstructionCatalog(SimulationWorld world, DefinitionRegistry registry)
+        {
+            world.ConstructionCatalog.Clear();
+            foreach (var kv in registry.Buildings)
+            {
+                var definition = kv.Value;
+                if (definition == null)
+                    continue;
+                if (!string.Equals(definition.PlacementKind, "factionFlag", System.StringComparison.Ordinal))
+                    continue;
+                var spec = new BuildingConstructionSpec
+                {
+                    BuildingId = definition.Id.ToString(),
+                    DisplayName = string.IsNullOrWhiteSpace(definition.Name) ? definition.Id.ToString() : definition.Name,
+                    Description = definition.Description ?? string.Empty,
+                    UnlockedByDefault = definition.UnlockedByDefault,
+                    PlacementKind = ConstructionPlacementKind.FactionFlag,
+                    DismantleRefundRate = definition.DismantleRefundRate
+                };
+                for (var i = 0; i < definition.Costs.Count; i++)
+                {
+                    var cost = definition.Costs[i];
+                    spec.Costs.Add(new ConstructionMaterialCost { ItemId = cost.ItemId, Count = cost.Count });
+                }
+                world.ConstructionCatalog.Register(spec);
+            }
         }
 
         static void AppendHeuristicTags(string id, List<string> tags)

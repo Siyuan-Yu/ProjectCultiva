@@ -70,6 +70,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostDialoguePresenter dialoguePresenter;
         [SerializeField] HostQuestJournal questJournal;
         [SerializeField] HostInventoryPanel inventoryPanel;
+        [SerializeField] HostConstructionPanel constructionPanel;
         [SerializeField] HostWorldMapPanel worldMapPanel;
         [SerializeField] HostManualLearnPrompt manualLearnPrompt;
         [SerializeField] HostCombatArtLearnPrompt combatArtLearnPrompt;
@@ -138,6 +139,8 @@ namespace XianXia.Unity.Host
         public HostQuestJournal QuestJournal => questJournal;
 
         public HostInventoryPanel InventoryPanel => inventoryPanel;
+
+        public HostConstructionPanel ConstructionPanel => constructionPanel;
 
         public HostWorldMapPanel WorldMapPanel => worldMapPanel;
 
@@ -215,6 +218,9 @@ namespace XianXia.Unity.Host
             if (inventoryPanel == null)
                 inventoryPanel = GetComponent<HostInventoryPanel>() ??
                                 GetComponentInChildren<HostInventoryPanel>();
+            if (constructionPanel == null)
+                constructionPanel = GetComponent<HostConstructionPanel>() ??
+                                    GetComponentInChildren<HostConstructionPanel>();
             if (worldMapPanel == null)
                 worldMapPanel = GetComponent<HostWorldMapPanel>() ??
                                GetComponentInChildren<HostWorldMapPanel>();
@@ -270,6 +276,7 @@ namespace XianXia.Unity.Host
                 !_session.ModalHardPaused &&
                 (questJournal == null || !questJournal.IsOpen) &&
                 (inventoryPanel == null || !inventoryPanel.IsOpen) &&
+                (constructionPanel == null || !constructionPanel.IsOpen) &&
                 (manualLearnPrompt == null || !manualLearnPrompt.IsOpen) &&
                 (combatArtLearnPrompt == null || !combatArtLearnPrompt.IsOpen) &&
                 (combatArtsPanel == null || !combatArtsPanel.IsOpen) &&
@@ -461,6 +468,9 @@ namespace XianXia.Unity.Host
             if (inventoryPanel == null)
                 inventoryPanel = GetComponent<HostInventoryPanel>() ??
                                 gameObject.AddComponent<HostInventoryPanel>();
+            if (constructionPanel == null)
+                constructionPanel = GetComponent<HostConstructionPanel>() ??
+                                    gameObject.AddComponent<HostConstructionPanel>();
             if (worldMapPanel == null)
                 worldMapPanel = GetComponent<HostWorldMapPanel>() ??
                                gameObject.AddComponent<HostWorldMapPanel>();
@@ -517,6 +527,8 @@ namespace XianXia.Unity.Host
             if (npcContextMenu == null)
                 npcContextMenu = GetComponent<HostNpcContextMenu>() ??
                                 gameObject.AddComponent<HostNpcContextMenu>();
+            if (GetComponent<HostConstructionController>() == null)
+                gameObject.AddComponent<HostConstructionController>();
             if (GetComponent<HostFactionFlagPresenter>() == null)
                 gameObject.AddComponent<HostFactionFlagPresenter>();
             if (GetComponent<HostPartyPathPreview>() == null)
@@ -536,6 +548,8 @@ namespace XianXia.Unity.Host
                 questJournal.ClearSessionState();
             if (inventoryPanel != null)
                 inventoryPanel.ClearSessionState();
+            if (constructionPanel != null)
+                constructionPanel.ClearSessionState();
             if (worldMapPanel != null)
                 worldMapPanel.ClearSessionState();
             if (manualLearnPrompt != null)
@@ -695,6 +709,9 @@ namespace XianXia.Unity.Host
             FinalizePlayerPartyLocalMapMaterialization(_session.World.LocalMap.ActiveMapLayoutId);
             if (npcContextMenu != null)
                 npcContextMenu.Bind(this, selectionController, moveController, dialoguePresenter, localMapEnterPrompt);
+            var constructionController = GetComponent<HostConstructionController>();
+            if (constructionController != null)
+                constructionController.Bind(this);
             if (localMapEnterPrompt != null)
                 localMapEnterPrompt.Bind(this, selectionController, commandBridge, moveController);
             actionMenu.Bind(this, selectionController, commandBridge);
@@ -709,6 +726,7 @@ namespace XianXia.Unity.Host
                 strategicInterrupt.Bind(this);
             questJournal.Bind(this, commandBridge, selectionController);
             inventoryPanel.Bind(this);
+            constructionPanel.Bind(this);
             if (interactSpotPresenter != null)
                 interactSpotPresenter.Bind(this);
             if (worldMapPanel != null)
@@ -847,6 +865,10 @@ namespace XianXia.Unity.Host
                 _session.PlayerParty);
 
             selectionController.ClearSelection();
+            if (inventoryPanel != null)
+                inventoryPanel.ClearSessionState();
+            if (constructionPanel != null)
+                constructionPanel.ClearSessionState();
             if (worldMapPanel != null)
                 worldMapPanel.ClearSessionState();
             entityViewSpawner.Clear();

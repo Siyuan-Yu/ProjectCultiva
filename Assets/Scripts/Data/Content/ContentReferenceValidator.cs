@@ -31,6 +31,7 @@ namespace XianXia.Data.Content
             ValidateWorldRegions(registry, locations, report);
             ValidateLocalPlaceSets(registry, locations, report);
             ValidateItems(registry, report);
+            ValidateBuildings(registry, report);
             ValidateSpawnTables(registry, report);
             ValidateMapSpawnZones(registry, locations, report);
             ValidateQuests(registry, locations, producedFlags, consumedFlags, report);
@@ -525,6 +526,30 @@ namespace XianXia.Data.Content
                             control.Q + "," + control.R + ").controlFactionId",
                             report);
                     }
+                }
+            }
+        }
+
+        static void ValidateBuildings(DefinitionRegistry registry, ValidationReport report)
+        {
+            foreach (var kv in registry.Buildings)
+            {
+                var building = kv.Value;
+                if (building == null)
+                    continue;
+                if (!string.Equals(building.PlacementKind, "factionFlag", StringComparison.Ordinal))
+                    report.Add(ErrorCode.InvalidArgument, "Unknown building placementKind.",
+                        building.Id + ".placementKind:" + building.PlacementKind);
+                if (building.Costs == null)
+                    continue;
+                for (var i = 0; i < building.Costs.Count; i++)
+                {
+                    var cost = building.Costs[i];
+                    if (cost == null || string.IsNullOrWhiteSpace(cost.ItemId) ||
+                        !DefinitionId.TryParse(cost.ItemId, out var id) ||
+                        (!registry.Resources.ContainsKey(id) && !registry.Items.ContainsKey(id)))
+                        report.Add(ErrorCode.NotFound, "building cost must reference a resource or item.",
+                            building.Id + ".costs[" + i + "]:" + (cost?.ItemId ?? string.Empty));
                 }
             }
         }

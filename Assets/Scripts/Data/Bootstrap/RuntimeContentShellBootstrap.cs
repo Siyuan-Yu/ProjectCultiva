@@ -16,6 +16,7 @@ namespace XianXia.Data.Bootstrap
                 return Result.Failure(ErrorCode.InvalidArgument, "RuntimeContentShellBootstrap args null.");
 
             ContentRuntimeBootstrap.RehydrateInventoryCatalog(world, registry);
+            ContentRuntimeBootstrap.RehydrateConstructionCatalog(world, registry);
 
             // Snapshot 内的 ManualSnapshotDto 只是旧兼容的最小定义；内容定义必须覆盖同 ID。
             world.ClearManuals();

@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
@@ -63,6 +64,22 @@ namespace XianXia.Core.World.Strategic
                 if (pair.Value != null && pair.Value.EstablishedOrder > max)
                     max = pair.Value.EstablishedOrder;
             return max == long.MaxValue ? long.MaxValue : max + 1;
+        }
+
+        /// <summary>
+        /// Deterministic runtime id. The suffix reserves the existing Snapshot-persisted world entity
+        /// sequence, so same-tick rebuilds and Save/Load cannot reuse a prior runtime FlagId.
+        /// </summary>
+        public static string NextRuntimeFlagId(SimulationWorld world, string factionId, HexCoord anchor)
+        {
+            var owner = string.IsNullOrEmpty(factionId) ? "unknown" : factionId.Replace(':', '_');
+            var stem = "flag:runtime:" + owner + ":" + anchor.Q.ToString(CultureInfo.InvariantCulture) +
+                       ":" + anchor.R.ToString(CultureInfo.InvariantCulture) + ":";
+            var suffix = world?.Entities?.Ids.Next().Value ?? 1UL;
+            while (world?.Strategic != null &&
+                   world.Strategic.FactionFlags.Flags.ContainsKey(stem + suffix.ToString(CultureInfo.InvariantCulture)))
+                suffix = world.Entities.Ids.Next().Value;
+            return stem + suffix.ToString(CultureInfo.InvariantCulture);
         }
 
         public static Result TryPlace(

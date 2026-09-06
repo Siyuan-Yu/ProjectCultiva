@@ -245,13 +245,12 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void PlacementAuthorizationRemainsVisibleGateAndExplainsExistingBuilding()
+        public void PlacementDomainHelperExplainsExistingBuildingWithoutGrantingAFreeTool()
         {
             var world = World();
             var hex = new HexCoord(5, 5);
             AddFlag(world, "flag:enemy", "test:enemy", hex, 1);
             var result = FactionFlagPlacementAuthorization.CanBeginPlacement(world, Player, hex, out _);
-            Assert.IsTrue(FactionFlagPlacementAuthorization.AlwaysHasPlacementTool);
             Assert.IsTrue(result.IsFailure);
             StringAssert.Contains("需要先移除当前控制建筑", result.Error.Message);
         }

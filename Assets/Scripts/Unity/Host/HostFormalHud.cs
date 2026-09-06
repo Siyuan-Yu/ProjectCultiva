@@ -513,11 +513,16 @@ namespace XianXia.Unity.Host
             var used = bag.UsedSlotCount;
             var cap = bag.SlotCapacity;
             var res = "背包 " + used + "/" + cap + "   木 " + wood + "   粮 " + grain + "   药 " + herb + "   敛息草 " + grass;
-            GUI.Label(new Rect(Screen.width - RailW - 480f, 4f, 390f, 18f), res, _body);
-            if (GUI.Button(new Rect(Screen.width - RailW - 158f, 6f, 70f, 28f), "地图"))
+            GUI.Label(new Rect(Screen.width - RailW - 620f, 4f, 374f, 18f), res, _body);
+            if (GUI.Button(new Rect(Screen.width - RailW - 234f, 6f, 70f, 28f), "地图"))
             {
                 var map = bootstrap != null ? bootstrap.WorldMapPanel : null;
                 map?.Toggle();
+            }
+            if (GUI.Button(new Rect(Screen.width - RailW - 158f, 6f, 70f, 28f), "建筑"))
+            {
+                var panel = bootstrap != null ? bootstrap.ConstructionPanel : null;
+                panel?.Toggle();
             }
             if (GUI.Button(new Rect(Screen.width - RailW - 82f, 6f, 70f, 28f), "背包"))
             {

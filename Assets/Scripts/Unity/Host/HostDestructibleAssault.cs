@@ -32,6 +32,7 @@ namespace XianXia.Unity.Host
         [SerializeField] float repathInterval = 0.25f;
 
         readonly List<Session> _sessions = new List<Session>(4);
+        readonly List<Session> _updateSnapshot = new List<Session>(4);
 
         public bool IsAssaulting => _sessions.Count > 0;
         public HostMapDestructible Target => _sessions.Count > 0 ? _sessions[0].Target : null;
@@ -144,11 +145,19 @@ namespace XianXia.Unity.Host
             if (bootstrap.Session.IsPaused)
                 return;
 
-            for (var i = _sessions.Count - 1; i >= 0; i--)
+            // TickSession may destroy a target and remove every session sharing it.
+            // Iterate a stable snapshot so those removals cannot invalidate this loop's index.
+            _updateSnapshot.Clear();
+            _updateSnapshot.AddRange(_sessions);
+            for (var i = _updateSnapshot.Count - 1; i >= 0; i--)
             {
-                if (!TickSession(_sessions[i]))
-                    _sessions.RemoveAt(i);
+                var session = _updateSnapshot[i];
+                if (!_sessions.Contains(session))
+                    continue;
+                if (!TickSession(session))
+                    _sessions.Remove(session);
             }
+            _updateSnapshot.Clear();
         }
 
         bool TickSession(Session session)
@@ -230,7 +239,7 @@ namespace XianXia.Unity.Host
             if (!session.FromPartyFollow)
                 bootstrap.GetComponent<HostHousingAreaSelection>()?.Clear();
             bootstrap.DispatchDrainedEvents();
-            // 已从 _sessions 批量移除；勿 return false，否则 Update 会再次 RemoveAt(i) 越界。
+            // 当前目标的全部攻击会话在此批量移除；Update 遍历稳定快照并跳过已移除项。
             RemoveSessionsOnTarget(target, clearInspect: !session.FromPartyFollow);
             return true;
         }

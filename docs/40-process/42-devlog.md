@@ -7,6 +7,48 @@
 
 ---
 
+## 2026-09-06 — 控制资产、存档连续性与 LocalMap 建造系统 V1 阶段封板
+
+- 制作人已完成人工验收：Control Asset Territory／FactionFlag、WorldMap 图层 UI、FormalArmy Effective Territory 组军规则、Snapshot continuity 修复及 LocalMap 建造系统 V1 共同进入封板基线。
+- 建造系统正式确认为独立于 Inventory 的 RPG 系统；顶部 `[地图] [建筑] [背包]` 为同级入口。势力控制建筑消耗粗木 10，主动拆除逐项返还 50%，Combat Destroy 不返料。
+- 建造合法性继续复用 FactionFlag Domain authority；持久化继续由 PartyInventory Snapshot + FactionFlag Snapshot 表达，不增加 Construction Snapshot。
+- 项目长期文档规范更新为正文默认使用中文，技术标识保持原文。
+
+**封板记录：** [201-localmap-construction-v1-sealed-2026-09-06.md](201-localmap-construction-v1-sealed-2026-09-06.md)。**验证：** Shared.Tests 59/59；WorldGraphEditor Release 0 warning／0 error；Unity Core／Data／Host／EditMode Tests 离线编译 0 error（仅既有 warning）；Construction 定向测试沿用本阶段已通过的 10/10，封板时 Unity Editor 持有项目锁，未重复启动 batchmode；Git staged 检查在提交前执行。
+
+---
+
+## 2026-09-06 — 多攻击者摧毁目标时 Assault session 越界修复
+
+- `HostDestructibleAssault.Update` 改为遍历稳定 session 快照；当某次命中摧毁目标并批量移除所有同目标攻击者时，后续迭代会跳过已移除 session，不再用旧索引访问已缩短的 `_sessions`。
+- 不改变伤害、掉落、队伍跟随或 Construction 规则。
+
+**验证：** Unity Host 离线编译与 `git diff --check` 通过；多人同时砍同一棵树场景已随本阶段完成人工复验。
+
+---
+
+## 2026-09-06 — Construction V1 UI ownership 收正
+
+- Construction 从背包页签迁出为独立 `HostConstructionPanel`；全局 HUD 入口收正为同级 `[地图] [建筑] [背包]`，三者互斥。`HostInventoryPanel` 恢复为纯背包，B 只负责背包开关。
+- Bootstrap 统一发现／创建、绑定并在新游戏与读档重建时清理 Construction panel；所有沿用 Inventory global-modal 语义的暂停与输入 gate 纳入 Construction panel。
+- 建筑卡片、材料检查与既有 `HostConstructionController` dispatch 原样迁移；点击建造同步释放建筑 modal ownership 后进入 placement。本次只修 Host UI hierarchy，未改 `ConstructionService`、Content、事务、FactionFlag Domain 或 Snapshot。
+
+**验证：** Unity Host 以项目 Bee response file 离线 Roslyn 编译 0 error（2 个既有 warning）；`git diff --check` 通过。不重复运行上一轮已通过的 Core 测试；Unity UI 已随本阶段完成人工验收。
+
+---
+
+## 2026-09-06 — LocalMap Construction System V1
+
+- 新增独立 `type=building` Content 定义、Registry 与 Core `ConstructionCatalog`；新游戏和 Snapshot static shell 都从 Content 重建目录，不新增 Construction Snapshot。首个建筑为 `base:building_faction_control_post`，成本粗木 ×10、主动拆除返还率 50%。
+- 全局 HUD 提供同级 `[地图] [建筑] [背包]`；建筑使用独立 `HostConstructionPanel`，背包维持纯 Inventory modal，B 只切换背包。旧 FactionFlag 常驻免费按钮退出 Gameplay，`HostConstructionController` 在关闭并释放 Construction modal 后 dispatch 到既有 FactionFlag prefab／footprint placement。
+- Placement 在 WorldSite／Interior 仍保持模式和红色预览／明确非法原因；Wilderness 的 Domain gate 完整复用 `FactionFlagService.ValidatePlacement`，几何与领域合法性同时成立才允许事务提交。
+- `ConstructionService` 统一建造与主动拆除事务：成功为 Flag + 精确扣料，失败不改材料；拆除仅限己方、按定义逐项向下取整返料，并在 destroy 前做完整背包容量预检。Combat `TryDestroy` 不返料；authored 玩家 Flag 与 runtime Flag 使用相同拆除规则。
+- Runtime FlagId 后缀复用 Snapshot 已持久化的 world monotonic entity sequence（只预留序号，不创建假 Entity），并检查 active board；同 Tick／同 Anchor 拆后重建及 Save／Load 后均不复用 ID，未改 FactionFlag Snapshot schema。
+
+**架构记录：** [ADR-0029](43-decisions/ADR-0029-construction-content-runtime-and-snapshot-boundary.md)。**验证：** Construction 定向 Core／Content／SaveLoad 测试 10/10 通过；Unity Core／Data／Host／EditMode Tests 以 Bee response files 离线 Roslyn 编译 0 error（仅既有 warning）；`git diff --check` 通过；Unity UI 已随本阶段完成人工验收。
+
+---
+
 ## 2026-09-06 — Snapshot Continuity：FactionFlag 原子覆盖、FormalArmy Two-Stage Motion 与 Wilderness Disband
 
 - `FactionFlag` Snapshot active set 改为整表预验证与原子替换：FlagId／FactionId／Anchor／EstablishedOrder／HP／LocalPosition 任一非法即 `SnapshotInvalid`，不再忽略 `Register(false)` 后以缺旗世界继续；Development 增加 Capture／Parsed／Restored 集合诊断。

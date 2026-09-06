@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Construction;
 using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Npc;
@@ -18,7 +19,8 @@ namespace XianXia.Unity.Host
             Closed = 0,
             Menu = 1,
             LocalAttackConfirm = 2,
-            StrategicAggressionConfirm = 3
+            StrategicAggressionConfirm = 3,
+            DismantleConfirm = 4
         }
 
         [SerializeField] PlayableHostBootstrap bootstrap;
@@ -42,6 +44,7 @@ namespace XianXia.Unity.Host
         System.Action _confirmCallback;
         string _aggressionAttackerFactionId = string.Empty;
         string _aggressionDefenderFactionId = string.Empty;
+        string _dismantleStatus = string.Empty;
         /// <summary>一次 LocalCharacter 攻击确认的 one-shot token：approach 后重新 classify 时不再二次确认。</summary>
         EntityId _confirmedLocalAttackTargetId = EntityId.None;
         Vector2 _menuScreen;
@@ -272,6 +275,9 @@ namespace XianXia.Unity.Host
                         ConfirmStrategicAggression,
                         CloseAll);
                     break;
+                case Phase.DismantleConfirm:
+                    DrawDismantleConfirm();
+                    break;
             }
         }
 
@@ -448,20 +454,94 @@ namespace XianXia.Unity.Host
                 return;
             }
             var friendly = string.Equals(flag.FactionId, world.Strategic.PlayerFactionId, System.StringComparison.Ordinal);
-            var h = friendly ? 70f : itemH + 54f;
+            var h = itemH + 54f;
             var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
             _menuGuiRect = new Rect(guiX, guiY, w, h);
             HostUiHitTest.Block(_menuGuiRect);
             Fill(_menuGuiRect, Panel);
             DrawFrame(_menuGuiRect, Border);
-            GUI.Label(new Rect(guiX + 10f, guiY + 6f, w - 20f, 22f), _targetLabel, _label);
+            GUI.Label(new Rect(guiX + 10f, guiY + 6f, w - 20f, 22f),
+                friendly ? "阵营控制建筑" : _targetLabel, _label);
             GUI.Label(new Rect(guiX + 10f, guiY + 27f, w - 20f, 20f),
                 "HP " + flag.CurrentHp + "/" + flag.MaxHp + (friendly ? "（己方）" : string.Empty), _label);
             if (!friendly && GUI.Button(new Rect(guiX + 8f, guiY + 50f, w - 16f, itemH - 4f),
                     "攻击阵营旗", _button))
                 BeginFactionFlagAttack();
+            if (friendly && GUI.Button(new Rect(guiX + 8f, guiY + 50f, w - 16f, itemH - 4f),
+                    "拆除", _button))
+                BeginFactionFlagDismantle();
             TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        void BeginFactionFlagDismantle()
+        {
+            _dismantleStatus = string.Empty;
+            _phase = Phase.DismantleConfirm;
+            if (bootstrap?.Session != null)
+                bootstrap.Session.IsPaused = true;
+        }
+
+        void DrawDismantleConfirm()
+        {
+            var world = bootstrap?.Session?.World;
+            if (world == null ||
+                !world.Strategic.FactionFlags.Flags.TryGetValue(_targetFactionFlagId, out var flag) || flag == null ||
+                !world.ConstructionCatalog.TryGet(ConstructionService.FactionControlPostBuildingId, out var spec) || spec == null)
+            {
+                CloseAll();
+                return;
+            }
+
+            DrawDim();
+            var box = ModalBox(420f, 300f);
+            HostUiHitTest.Block(box);
+            Fill(box, Panel);
+            DrawFrame(box, Border);
+            GUI.Label(new Rect(box.x + 16f, box.y + 14f, box.width - 32f, 24f),
+                "确定拆除此势力控制建筑？", _label);
+            var y = box.y + 46f;
+            GUI.Label(new Rect(box.x + 16f, y, box.width - 32f, 20f), "建造成本：", _label);
+            y += 22f;
+            for (var i = 0; i < spec.Costs.Count; i++)
+            {
+                var cost = spec.Costs[i];
+                GUI.Label(new Rect(box.x + 28f, y, box.width - 44f, 20f),
+                    world.InventoryCatalog.GetName(cost.ItemId) + " ×" + cost.Count, _label);
+                y += 20f;
+            }
+            GUI.Label(new Rect(box.x + 16f, y + 3f, box.width - 32f, 20f), "将返还：", _label);
+            y += 25f;
+            var refunds = ConstructionService.CalculateDismantleRefunds(spec);
+            for (var i = 0; i < refunds.Count; i++)
+            {
+                var refund = refunds[i];
+                GUI.Label(new Rect(box.x + 28f, y, box.width - 44f, 20f),
+                    world.InventoryCatalog.GetName(refund.ItemId) + " ×" + refund.Count, _label);
+                y += 20f;
+            }
+            GUI.Label(new Rect(box.x + 16f, y + 4f, box.width - 32f, 42f),
+                "拆除后该控制资产会立即消失，\n势力范围将重新计算。", _label);
+            if (!string.IsNullOrEmpty(_dismantleStatus))
+                GUI.Label(new Rect(box.x + 16f, box.yMax - 82f, box.width - 32f, 22f),
+                    _dismantleStatus, _label);
+            var btnW = (box.width - 40f) * .5f;
+            var btnY = box.yMax - 44f;
+            if (GUI.Button(new Rect(box.x + 14f, btnY, btnW, 32f), "确认拆除", _button))
+            {
+                var result = ConstructionService.TryDismantleFactionFlag(
+                    world, ConstructionService.FactionControlPostBuildingId,
+                    world.Strategic.PlayerFactionId, flag.FlagId, out _);
+                if (result.IsFailure)
+                    _dismantleStatus = result.Error.Message;
+                else
+                {
+                    bootstrap.RefreshFactionFlagWalkGrid();
+                    CloseAll();
+                }
+            }
+            if (GUI.Button(new Rect(box.x + 22f + btnW, btnY, btnW, 32f), "取消", _button))
+                CloseAll();
         }
 
         void BeginFactionFlagAttack()
@@ -1031,6 +1111,7 @@ namespace XianXia.Unity.Host
             _confirmCallback = null;
             _aggressionAttackerFactionId = string.Empty;
             _aggressionDefenderFactionId = string.Empty;
+            _dismantleStatus = string.Empty;
             HostInputGate.BlockWorldInteraction = false;
             if (bootstrap?.Session != null &&
                 !bootstrap.Session.World.ContentEvents.HasActive &&

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:building_faction_control_post",
+      "type": "building",
+      "name": "势力控制建筑",
+      "description": "用于在野外建立势力控制范围。",
+      "unlockedByDefault": true,
+      "placementKind": "factionFlag",
+      "dismantleRefundRate": 0.5,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 10
+        }
+      ]
+    }
+  ]
+}

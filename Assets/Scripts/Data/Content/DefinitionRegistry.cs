@@ -14,6 +14,8 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, CombatArtDefinition>();
         readonly Dictionary<DefinitionId, ItemDefinition> _items =
             new Dictionary<DefinitionId, ItemDefinition>();
+        readonly Dictionary<DefinitionId, BuildingDefinition> _buildings =
+            new Dictionary<DefinitionId, BuildingDefinition>();
         readonly Dictionary<DefinitionId, OpportunitySiteDefinition> _opportunitySites =
             new Dictionary<DefinitionId, OpportunitySiteDefinition>();
         readonly Dictionary<DefinitionId, OpeningScenarioDefinition> _openingScenarios =
@@ -59,6 +61,7 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, CultivationDefinition> Cultivations => _cultivations;
         public IReadOnlyDictionary<DefinitionId, CombatArtDefinition> CombatArts => _combatArts;
         public IReadOnlyDictionary<DefinitionId, ItemDefinition> Items => _items;
+        public IReadOnlyDictionary<DefinitionId, BuildingDefinition> Buildings => _buildings;
         public IReadOnlyDictionary<DefinitionId, OpportunitySiteDefinition> OpportunitySites => _opportunitySites;
         public IReadOnlyDictionary<DefinitionId, OpeningScenarioDefinition> OpeningScenarios => _openingScenarios;
         public IReadOnlyDictionary<DefinitionId, CharacterRosterDefinition> CharacterRosters => _characterRosters;
@@ -85,6 +88,7 @@ namespace XianXia.Data.Content
             _cultivations.ContainsKey(id) ||
             _combatArts.ContainsKey(id) ||
             _items.ContainsKey(id) ||
+            _buildings.ContainsKey(id) ||
             _opportunitySites.ContainsKey(id) ||
             _openingScenarios.ContainsKey(id) ||
             _characterRosters.ContainsKey(id) ||
@@ -132,6 +136,13 @@ namespace XianXia.Data.Content
             if (definition == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "ItemDefinition is null.");
             return Register(_items, definition, definition.Id);
+        }
+
+        public Result RegisterBuilding(BuildingDefinition definition)
+        {
+            if (definition == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "BuildingDefinition is null.");
+            return Register(_buildings, definition, definition.Id);
         }
 
         public Result RegisterOpportunitySite(OpportunitySiteDefinition definition)
@@ -291,6 +302,9 @@ namespace XianXia.Data.Content
 
         public bool TryGetItem(DefinitionId id, out ItemDefinition definition) =>
             _items.TryGetValue(id, out definition);
+
+        public bool TryGetBuilding(DefinitionId id, out BuildingDefinition definition) =>
+            _buildings.TryGetValue(id, out definition);
 
         public bool TryGetOpportunitySite(DefinitionId id, out OpportunitySiteDefinition definition) =>
             _opportunitySites.TryGetValue(id, out definition);

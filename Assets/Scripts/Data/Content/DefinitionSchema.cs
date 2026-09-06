@@ -251,6 +251,17 @@ namespace XianXia.Data.Content
             "id", "type", "name", "displayNameKey", "nameKey", "maxStack", "teachesManualId", "teachesArtId", "tags"
         };
 
+        public static readonly HashSet<string> BuildingFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "description", "unlockedByDefault", "placementKind",
+            "dismantleRefundRate", "costs"
+        };
+
+        public static readonly HashSet<string> BuildingCostFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "itemId", "count"
+        };
+
         public static readonly HashSet<string> OpportunitySiteFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "nameKey", "description", "allowsCultivation", "offeredManualId", "tags"

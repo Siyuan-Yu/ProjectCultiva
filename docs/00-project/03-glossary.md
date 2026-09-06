@@ -1,6 +1,6 @@
 # 术语表
 
-> 状态：持续维护 | 最后更新：2026-08-26
+> 状态：持续维护 | 最后更新：2026-09-06
 >
 > 规则：**代码标识符、配置表字段、文档用词必须与本表一致。**
 > 新增概念时先来这里登记，再去写代码。这一条是长期可维护性的关键，也是交接时对方最需要的文件。
@@ -12,6 +12,12 @@
 - 配置表 ID：`小写下划线`，取本表 Code 列的 snake_case
 - UI 与文档：中文，取本表 中文 列
 - 禁止同义词混用（例如不要 Cultivation / Practice / Training 混着指同一件事）
+
+## 建造系统 V1
+
+- **Construction（建造）**：以静态 `ConstructionCatalog` 列出已解锁建筑，并把 PartyInventory 材料事务性转换为真实世界对象的 RPG 系统；建筑本身不是 Inventory Item。
+- **BuildingDefinition（建筑定义）**：Content 中 `type = building` 的静态模板，描述显示信息、PlacementKind、材料成本与主动拆除返还率；不进入 Snapshot。
+- **Dismantle（主动拆除）**：玩家主动移除己方建筑并按定义返料的 Construction 操作；与战斗摧毁严格分离。
 
 ## 核心概念
 

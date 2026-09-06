@@ -206,6 +206,9 @@ namespace XianXia.Data.Content
                     case "item":
                         LoadItem(item, parsed.Value, registry, report);
                         break;
+                    case "building":
+                        LoadBuilding(item, parsed.Value, registry, report);
+                        break;
                     case "opportunitySite":
                         LoadOpportunitySite(item, parsed.Value, registry, report);
                         break;
@@ -626,6 +629,96 @@ namespace XianXia.Data.Content
             var reg = registry.RegisterItem(itemDef);
             if (reg.IsFailure)
                 report.Add(reg.Error);
+        }
+
+        static void LoadBuilding(
+            JsonValue item,
+            DefinitionId id,
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.BuildingFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore)
+                return;
+
+            var placementKind = item.GetString("placementKind", string.Empty);
+            if (string.IsNullOrWhiteSpace(placementKind))
+                report.Add(ErrorCode.MissingRequiredField, "placementKind required.", id.ToString());
+
+            var unlocked = false;
+            if (item.TryGetProperty("unlockedByDefault", out var unlockedNode))
+            {
+                if (unlockedNode.Kind != JsonValueKind.Boolean)
+                    report.Add(ErrorCode.ContentLoadFailed, "unlockedByDefault must be boolean.", id.ToString());
+                else
+                    unlocked = unlockedNode.Bool;
+            }
+
+            float refundRate = 0f;
+            if (!item.TryGetProperty("dismantleRefundRate", out var refundNode) ||
+                refundNode.Kind != JsonValueKind.Number)
+                report.Add(ErrorCode.MissingRequiredField, "dismantleRefundRate number required.", id.ToString());
+            else
+            {
+                refundRate = (float)refundNode.Number;
+                if (refundRate < 0f || refundRate > 1f)
+                    report.Add(ErrorCode.InvalidArgument, "dismantleRefundRate must be in [0,1].", id.ToString());
+            }
+
+            var definition = new BuildingDefinition
+            {
+                Id = id,
+                Name = item.GetString("name", id.ToString()),
+                Description = item.GetString("description", string.Empty),
+                UnlockedByDefault = unlocked,
+                PlacementKind = placementKind,
+                DismantleRefundRate = refundRate
+            };
+            if (string.IsNullOrWhiteSpace(definition.Name))
+                definition.Name = id.ToString();
+
+            if (!item.TryGetProperty("costs", out var costsNode) || costsNode.Kind != JsonValueKind.Array)
+                report.Add(ErrorCode.MissingRequiredField, "costs array required.", id.ToString());
+            else
+            {
+                for (var i = 0; i < costsNode.Array.Count; i++)
+                {
+                    var costNode = costsNode.Array[i];
+                    var context = id + ".costs[" + i + "]";
+                    if (costNode.Kind != JsonValueKind.Object)
+                    {
+                        report.Add(ErrorCode.ContentLoadFailed, "building cost must be object.", context);
+                        continue;
+                    }
+                    DefinitionSchema.RejectUnknownFields(
+                        costNode, DefinitionSchema.BuildingCostFields, report, context);
+                    var itemId = costNode.GetString("itemId", string.Empty);
+                    if (string.IsNullOrWhiteSpace(itemId))
+                    {
+                        report.Add(ErrorCode.MissingRequiredField, "building cost itemId required.", context);
+                        continue;
+                    }
+                    if (!costNode.TryGetProperty("count", out var countNode) || countNode.Kind != JsonValueKind.Number)
+                    {
+                        report.Add(ErrorCode.MissingRequiredField, "building cost count number required.", context);
+                        continue;
+                    }
+                    var count = (int)countNode.Number;
+                    if (count <= 0 || Math.Abs(countNode.Number - count) > 0.00001d)
+                    {
+                        report.Add(ErrorCode.InvalidArgument, "building cost count must be a positive integer.", context);
+                        continue;
+                    }
+                    definition.Costs.Add(new BuildingMaterialCostDefinition { ItemId = itemId, Count = count });
+                }
+            }
+
+            if (report.Errors.Count > errorsBefore)
+                return;
+            var registered = registry.RegisterBuilding(definition);
+            if (registered.IsFailure)
+                report.Add(registered.Error);
         }
 
         static void LoadOpportunitySite(

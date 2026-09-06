@@ -251,6 +251,9 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            bootstrap?.InventoryPanel?.Close();
+            bootstrap?.ConstructionPanel?.Close();
+            bootstrap?.QuestJournal?.Close();
             open = true;
             _requestClose = false;
             if (bootstrap?.Session != null && bootstrap.Session.IsInitialized)
@@ -489,13 +492,6 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            if (OtherBlockingPanelOpen())
-            {
-                if (open)
-                    Close();
-                return;
-            }
-
             if (Input.GetKeyDown(toggleKey))
             {
                 if (open)
@@ -503,12 +499,16 @@ namespace XianXia.Unity.Host
                 else
                 {
                     Open();
-                    if (bootstrap.InventoryPanel != null && bootstrap.InventoryPanel.IsOpen)
-                        bootstrap.InventoryPanel.Close();
-                    if (bootstrap.QuestJournal != null && bootstrap.QuestJournal.IsOpen)
-                        bootstrap.QuestJournal.Close();
                     _viewReady = false;
                 }
+                return;
+            }
+
+            if (OtherBlockingPanelOpen())
+            {
+                if (open)
+                    Close();
+                return;
             }
 
             if (open)
@@ -567,7 +567,10 @@ namespace XianXia.Unity.Host
         {
             var j = bootstrap.QuestJournal;
             var inv = bootstrap.InventoryPanel;
-            return (j != null && j.IsOpen) || (inv != null && inv.IsOpen);
+            var construction = bootstrap.ConstructionPanel;
+            return (j != null && j.IsOpen) ||
+                   (inv != null && inv.IsOpen) ||
+                   (construction != null && construction.IsOpen);
         }
 
         void EnsureView(

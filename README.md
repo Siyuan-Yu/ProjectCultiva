@@ -67,6 +67,7 @@ docs/
 5. **文档头部三件套**：状态、优先级、最后更新日期，改内容就改日期。
 6. **提交信息带前缀**：`feat/fix/docs/refactor/data/chore`。
 7. **多 AI 会话**：遵守 `52-ai-collaboration-protocol.md`；重要结论必须落文档，禁止只在聊天里定案。
+8. **项目文档默认使用中文**：设计、开发流程、架构、验收与 Devlog 正文默认使用中文；类名、方法名、字段名、JSON key、文件路径、DefinitionId 等技术标识保持原文。
 
 ## 跨设备开发
 

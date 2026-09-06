@@ -142,15 +142,17 @@ namespace XianXia.Unity.Host
             }
 
             var invOpen = bootstrap.InventoryPanel != null && bootstrap.InventoryPanel.IsOpen;
-            HostInputGate.BlockWorldCamera = open || invOpen;
-            HostInputGate.BlockWorldInteraction = open || invOpen;
+            var constructionOpen = bootstrap.ConstructionPanel != null && bootstrap.ConstructionPanel.IsOpen;
+            var globalModalOpen = open || invOpen || constructionOpen;
+            HostInputGate.BlockWorldCamera = globalModalOpen;
+            HostInputGate.BlockWorldInteraction = globalModalOpen;
 
             if (open)
             {
                 session.IsPaused = true;
                 _holdingPause = true;
             }
-            else if (_holdingPause && !invOpen)
+            else if (_holdingPause && !invOpen && !constructionOpen)
             {
                 session.IsPaused = false;
                 _holdingPause = false;

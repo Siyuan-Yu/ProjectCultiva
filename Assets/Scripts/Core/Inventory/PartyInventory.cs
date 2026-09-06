@@ -183,6 +183,27 @@ namespace XianXia.Core.Inventory
             return total;
         }
 
+        /// <summary>无副作用查询：当前背包还能完整接纳多少个指定物品。</summary>
+        public int GetAddCapacity(string itemId)
+        {
+            if (string.IsNullOrEmpty(itemId))
+                return 0;
+            var maxStack = _catalog.GetMaxStack(itemId);
+            var capacity = 0;
+            for (var i = 0; i < _slots.Count; i++)
+            {
+                var slot = _slots[i];
+                if (slot.IsEmpty)
+                    capacity += maxStack;
+                else if (string.Equals(slot.ItemId, itemId, StringComparison.Ordinal))
+                    capacity += Math.Max(0, maxStack - slot.Count);
+            }
+            return capacity;
+        }
+
+        public bool CanAddAll(string itemId, int amount) =>
+            amount >= 0 && GetAddCapacity(itemId) >= amount;
+
         /// <summary>Returns how many were actually added (0 if full／invalid).</summary>
         public int TryAdd(string itemId, int amount)
         {

@@ -1,6 +1,6 @@
 # 架构决策记录（ADR）索引
 
-> 状态：现行 | 最后更新：2026-08-25  
+> 状态：现行 | 最后更新：2026-09-06
 > 上级：[`00-overview.md`](../../00-project/00-overview.md)、[`33` 冻结 v0.2](../../30-tech/33-architecture-core-rules-freeze-v0.2.md)  
 > 模板：[`adr-template.md`](../../90-templates/adr-template.md)  
 > **编号 0009 预留正式 UI 方案。**
@@ -41,6 +41,7 @@
 | [0024](ADR-0024-real-cultivators-and-army-strategic-model.md) | 修士真实 Character + Army | 已采纳／**部分 superseded** | 「跨点必须 Army」→ [0026](ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)；真实成员／LOD 仍有效 |
 | [0025](ADR-0025-strategic-spatial-model-hexgrid.md) | 战略空间 = HexGrid | 已采纳 | **SUPERSEDED** Route 正式移动；见 [155](../155-hex-strategic-worldmap-migration-2026-08-23.md) · [158](../158-hex-world-content-authoring-pipeline-2026-08-23.md) |
 | [0026](ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) | RPG-First：单 Active／PlayerParty／连续 Hex／Army 军事层 | 已采纳 | 真源 [2K](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)；迁移 [163](../163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md) |
+| [0029](ADR-0029-construction-content-runtime-and-snapshot-boundary.md) | Construction Content／Runtime／Snapshot 边界 | 已采纳 | BuildingDefinition 独立于 Item；Catalog 是静态壳；结果复用 Flag + Inventory Snapshot |
 
 战略接战时间纪律另见 **[ADR-0023](ADR-0023-manual-encounter-freezes-worldtick.md)**（2026-08-21）。
 

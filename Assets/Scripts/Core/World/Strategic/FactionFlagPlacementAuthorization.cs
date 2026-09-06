@@ -4,11 +4,9 @@ using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
-    /// <summary>Host 进入放置模式前的轻量授权 seam；V1 不接 Inventory/Crafting。</summary>
+    /// <summary>纯 FactionFlag domain placement 查询；不授予免费建造入口。</summary>
     public static class FactionFlagPlacementAuthorization
     {
-        public const bool AlwaysHasPlacementTool = true;
-
         public static Result CanBeginPlacement(
             SimulationWorld world,
             string factionId,
