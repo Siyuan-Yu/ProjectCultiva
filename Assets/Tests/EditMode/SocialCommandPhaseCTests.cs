@@ -24,10 +24,11 @@ namespace XianXia.Tests
 
                 world.Events.Drain();
                 Assert.IsTrue(bootstrap.CommandBridge.IssueSocial(PlayerCommandKind.Help));
-                Assert.AreEqual(SocialAlphaConstants.HelpDelta, world.Relationships.Score(actor, npc));
+                Assert.AreEqual(SocialAlphaConstants.HelpDelta, world.Relationships.Score(npc, actor));
+                Assert.AreEqual(5, world.Relationships.GetValue(npc, actor, SocialAttitudeAxis.Trust));
                 Assert.IsTrue(world.Events.Drain().Exists(e => e.Type == CoreEventType.RelationshipChanged));
 
-                // Recruit needs npc→actor score; Help was actor→npc. Warm npc→actor then Recruit.
+                // 一次帮助尚未达到招募阈值；再补足 npc→actor 好感后允许招募。
                 Assert.IsFalse(bootstrap.CommandBridge.IssueSocial(PlayerCommandKind.Recruit));
                 Assert.IsTrue(bootstrap.CommandBridge.LastStatus.Contains("FAIL"));
 

@@ -92,6 +92,7 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 | 2G | [第一章流程](../20-systems/2G-first-chapter-flow.md) | P0 | 开局 Membership 已冻 |
 | 2H | [功法规则](../20-systems/2H-manual-system-rules.md) | P0 | |
 | 2I | [荒村杂役阶段叙事（v0.1）](../20-systems/2I-huangcun-labor-phase-narrative-v0.1.md) | P0 | Draft；状态／触发／反馈 |
+| 2M | [角色社会关系 V1](../20-systems/2M-character-social-relations-v1.md) | P0 | **已实现／已人工验收／已封板**（[记录 202](../40-process/202-character-social-relations-and-profile-ui-v1-sealed-2026-09-07.md)） |
 
 **项目与过程：**
 

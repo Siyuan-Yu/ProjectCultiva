@@ -48,6 +48,10 @@ namespace XianXia.Core.Persistence
         /// <summary>RelationshipLedger 事件流（v6 optional；旧档缺省＝空）。</summary>
         public List<RelationshipEventSnapshotDto> RelationshipEvents { get; set; } =
             new List<RelationshipEventSnapshotDto>();
+
+        /// <summary>Social Bond Runtime Board（v6 optional；旧档缺省＝空）。</summary>
+        public List<SocialBondSnapshotDto> SocialBonds { get; set; } =
+            new List<SocialBondSnapshotDto>();
     }
 
     public sealed class StrategicSnapshotDto
@@ -481,6 +485,10 @@ namespace XianXia.Core.Persistence
         public bool HasCorpse { get; set; }
         public ulong CorpseRemoveAfterTick { get; set; }
 
+        /// <summary>弥留死亡责任者；optional，旧档缺省＝未知。</summary>
+        public bool HasResponsibleAttacker { get; set; }
+        public ulong ResponsibleAttackerEntityId { get; set; }
+
         /// <summary>PersonalityProfile tags（若运行中可变）。旧档缺省＝空。</summary>
         public List<string> PersonalityTags { get; set; } = new List<string>();
     }
@@ -500,6 +508,17 @@ namespace XianXia.Core.Persistence
         public string ReasonTag { get; set; } = string.Empty;
         public ulong CauseEventId { get; set; }
         public bool HasCauseEventId { get; set; }
+        public int Axis { get; set; }
+        public bool HasAxis { get; set; }
+        public ulong ContextEntityId { get; set; }
+        public bool HasContextEntityId { get; set; }
+    }
+
+    public sealed class SocialBondSnapshotDto
+    {
+        public int Kind { get; set; }
+        public ulong FromEntityId { get; set; }
+        public ulong ToEntityId { get; set; }
     }
 
     public sealed class AttrBaseDto

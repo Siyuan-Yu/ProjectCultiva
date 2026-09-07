@@ -5,6 +5,7 @@ using XianXia.Core.Content;
 using XianXia.Core.Domain;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
+using XianXia.Core.Social;
 using XianXia.Data.Serialization;
 
 namespace XianXia.Data.Content
@@ -902,6 +903,42 @@ namespace XianXia.Data.Content
                 }
             }
 
+            if (item.TryGetProperty("openingBonds", out var bondNode))
+            {
+                if (bondNode.Kind != JsonValueKind.Array)
+                {
+                    report.Add(ErrorCode.ContentLoadFailed, "openingBonds must be array.", id.ToString());
+                    return;
+                }
+
+                foreach (var edge in bondNode.Array)
+                {
+                    if (edge.Kind != JsonValueKind.Object)
+                    {
+                        report.Add(ErrorCode.ContentLoadFailed, "openingBonds entries must be objects.", id.ToString());
+                        continue;
+                    }
+                    DefinitionSchema.RejectUnknownFields(
+                        edge, DefinitionSchema.OpeningBondFields, report, id + ".bond");
+                    if (report.Errors.Count > errorsBefore)
+                        return;
+                    var kindText = edge.GetString("kind", string.Empty);
+                    if (!System.Enum.TryParse(kindText, false, out SocialBondKind kind) ||
+                        !System.Enum.IsDefined(typeof(SocialBondKind), kind) ||
+                        !string.Equals(kind.ToString(), kindText, StringComparison.Ordinal))
+                    {
+                        report.Add(ErrorCode.ContentLoadFailed, "openingBond.kind invalid.", id + ":" + kindText);
+                        return;
+                    }
+                    scenario.OpeningBonds.Add(new OpeningBondEntry
+                    {
+                        Kind = kind,
+                        FromDefinitionId = edge.GetString("fromDefinitionId", string.Empty),
+                        ToDefinitionId = edge.GetString("toDefinitionId", string.Empty)
+                    });
+                }
+            }
+
             if (scenario.Spawns.Count == 0)
             {
                 report.Add(ErrorCode.MissingRequiredField, "openingScenario.spawns required.", id.ToString());
@@ -945,6 +982,7 @@ namespace XianXia.Data.Content
                 DefinitionSchema.RejectUnknownFields(node, fields, report, scenarioId + ".strategicOpening." + field);
                 add(node);
             }
+
         }
 
         static void LoadStrategicFaction(

@@ -42,6 +42,7 @@
 | [0025](ADR-0025-strategic-spatial-model-hexgrid.md) | 战略空间 = HexGrid | 已采纳 | **SUPERSEDED** Route 正式移动；见 [155](../155-hex-strategic-worldmap-migration-2026-08-23.md) · [158](../158-hex-world-content-authoring-pipeline-2026-08-23.md) |
 | [0026](ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) | RPG-First：单 Active／PlayerParty／连续 Hex／Army 军事层 | 已采纳 | 真源 [2K](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)；迁移 [163](../163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md) |
 | [0029](ADR-0029-construction-content-runtime-and-snapshot-boundary.md) | Construction Content／Runtime／Snapshot 边界 | 已采纳 | BuildingDefinition 独立于 Item；Catalog 是静态壳；结果复用 Flag + Inventory Snapshot |
+| [0030](ADR-0030-social-bond-attitude-and-snapshot-boundary.md) | Social Bond、五维态度与 Snapshot 边界 | 已采纳 | Bond 与主观态度分离；Ledger 仍是态度真源；v6 软兼容 |
 
 战略接战时间纪律另见 **[ADR-0023](ADR-0023-manual-encounter-freezes-worldtick.md)**（2026-08-21）。
 

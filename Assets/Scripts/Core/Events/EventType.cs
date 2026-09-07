@@ -69,7 +69,13 @@ namespace XianXia.Core.Events
         /// <summary>战斗 Alpha：单位被击倒（NPC Dead／己方重伤）。</summary>
         CombatantDefeated = 36,
         /// <summary>Phase 2D：Background Character DerivedHex 进入新 World Hex。</summary>
-        BackgroundCharacterEnteredWorldHex = 37
+        BackgroundCharacterEnteredWorldHex = 37,
+        SocialCharacterAttacked = 38,
+        SocialCharacterKilled = 39,
+        SocialCharacterHelped = 40,
+        SocialCharacterRescued = 41,
+        SocialReaction = 42,
+        SocialBondChanged = 43
     }
 }
 

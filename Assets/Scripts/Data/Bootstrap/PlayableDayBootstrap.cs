@@ -203,7 +203,7 @@ namespace XianXia.Data.Bootstrap
                 world.ObservationDiscoverChancePercent = chance;
             }
 
-            var loop = new SimulationLoop(world, enableSocialTick: true);
+            var loop = new SimulationLoop(world, enableSocialTick: false);
             loop.AddDayBoundaryHandler(new ChapterDayHandler());
             loop.AddDayBoundaryHandler(new QuestDeadlineDayHandler());
             loop.AddDayBoundaryHandler(new SupervisorPressureHandler());

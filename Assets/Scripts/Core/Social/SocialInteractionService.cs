@@ -17,12 +17,8 @@ namespace XianXia.Core.Social
         }
 
         public Result Help(SimulationWorld world, EntityId actor, EntityId target) =>
-            _relationships.Record(
-                world,
-                actor,
-                target,
-                SocialAlphaConstants.HelpDelta,
-                SocialAlphaConstants.ReasonHelp);
+            new SocialEventService(new SocialConsequenceService(_relationships))
+                .RecordCharacterHelped(world, actor, target);
 
         public Result Slight(SimulationWorld world, EntityId actor, EntityId target) =>
             _relationships.Record(

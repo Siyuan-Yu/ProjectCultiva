@@ -79,6 +79,10 @@ namespace XianXia.Data.Bootstrap
                     entity.AddComponent(new JobComponent());
             }
 
+            var bonds = SeedOpeningBonds(world, scenario, lookup);
+            if (bonds.IsFailure)
+                return bonds;
+
             var relations = SeedOpeningRelations(world, scenario, lookup);
             if (relations.IsFailure)
                 return relations;
@@ -210,6 +214,28 @@ namespace XianXia.Data.Bootstrap
 
             TraceOpeningFaction(entity, entry, resolved);
 
+            return Result.Success();
+        }
+
+        static Result SeedOpeningBonds(
+            SimulationWorld world,
+            OpeningScenarioDefinition scenario,
+            GameStartLookup lookup)
+        {
+            if (scenario.OpeningBonds == null || scenario.OpeningBonds.Count == 0)
+                return Result.Success();
+            var service = new SocialBondService();
+            foreach (var edge in scenario.OpeningBonds)
+            {
+                if (edge == null)
+                    continue;
+                if (!lookup.TryGetEntity(edge.FromDefinitionId, out var from) ||
+                    !lookup.TryGetEntity(edge.ToDefinitionId, out var to))
+                    return Result.Failure(ErrorCode.NotFound, "Opening bond endpoint missing.");
+                var added = service.TryAddBond(world, edge.Kind, from, to);
+                if (added.IsFailure)
+                    return added;
+            }
             return Result.Success();
         }
 

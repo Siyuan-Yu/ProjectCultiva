@@ -3,6 +3,7 @@ using UnityEngine;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
+using XianXia.Core.Social;
 
 namespace XianXia.Unity.Host
 {
@@ -83,6 +84,12 @@ namespace XianXia.Unity.Host
                 _attackers.Add(attacker);
                 _cooldownByAttacker[attacker.Value] = 0f;
                 _nextRepathByAttacker[attacker.Value] = 0f;
+                var world = bootstrap?.Session?.World;
+                if (world != null)
+                {
+                    new SocialEventService().RecordCharacterAttacked(world, attacker, defender);
+                    bootstrap.DispatchDrainedEvents();
+                }
             }
 
             SetFightActivity(attacker, true);
@@ -211,7 +218,7 @@ namespace XianXia.Unity.Host
                 CombatDamageRules.EnsureVitals(atkEnt);
                 if (atkEnt.TryGet<CombatVitalsComponent>(out var atkHp) && atkHp.CurrentHp <= 0)
                 {
-                    CombatLifeStateService.TryEnterIncapacitated(world, atkEnt);
+                    CombatLifeStateService.TryEnterIncapacitated(world, atkEnt, _defender);
                     ApplyDownPresentation(atkId, atkEnt);
                     Toast(atkId, "弥留，脱离战斗", new Color(1f, 0.4f, 0.35f));
                     RemoveAttacker(atkId, null);

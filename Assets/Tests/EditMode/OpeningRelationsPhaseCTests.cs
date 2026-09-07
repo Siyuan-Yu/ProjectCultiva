@@ -38,15 +38,12 @@ namespace XianXia.Tests
             var social = new SocialInteractionService();
 
             Assert.IsTrue(social.Help(world, a.Id, b.Id).IsSuccess);
-            Assert.AreEqual(SocialAlphaConstants.HelpDelta, world.Relationships.Score(a.Id, b.Id));
+            Assert.AreEqual(SocialAlphaConstants.HelpDelta, world.Relationships.Score(b.Id, a.Id));
+            Assert.AreEqual(5, world.Relationships.GetValue(b.Id, a.Id, SocialAttitudeAxis.Trust));
 
             Assert.IsTrue(social.Slight(world, a.Id, b.Id).IsSuccess);
-            Assert.AreEqual(
-                SocialAlphaConstants.HelpDelta + SocialAlphaConstants.SlightDelta,
-                world.Relationships.Score(a.Id, b.Id));
-            Assert.AreEqual(
-                SocialAlphaConstants.HelpDelta + SocialAlphaConstants.SlightDelta,
-                a.Get<RelationshipComponent>().GetCachedToward(b.Id));
+            Assert.AreEqual(SocialAlphaConstants.SlightDelta, world.Relationships.Score(a.Id, b.Id));
+            Assert.AreEqual(SocialAlphaConstants.SlightDelta, a.Get<RelationshipComponent>().GetCachedToward(b.Id));
         }
 
         [Test]

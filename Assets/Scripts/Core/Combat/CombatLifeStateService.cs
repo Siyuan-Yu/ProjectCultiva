@@ -8,6 +8,7 @@ using XianXia.Core.Exploration;
 using XianXia.Core.World.Strategic;
 using XianXia.Core.Events;
 using XianXia.Core.Simulation;
+using XianXia.Core.Social;
 using XianXia.Core.World;
 
 namespace XianXia.Core.Combat
@@ -147,7 +148,13 @@ namespace XianXia.Core.Combat
         public static ulong ResolveCorpseLifetimeTicks(Entity entity) =>
             CorpseLifetimeTicks;
 
-        public static bool TryEnterIncapacitated(SimulationWorld world, Entity entity)
+        public static bool TryEnterIncapacitated(SimulationWorld world, Entity entity) =>
+            TryEnterIncapacitated(world, entity, EntityId.None);
+
+        public static bool TryEnterIncapacitated(
+            SimulationWorld world,
+            Entity entity,
+            EntityId responsibleAttackerId)
         {
             if (world == null || entity == null || !entity.TryGet<LifecycleComponent>(out var life))
                 return false;
@@ -160,6 +167,15 @@ namespace XianXia.Core.Combat
 
             life.State = LifecycleState.Incapacitated;
             life.BleedOutAfterTick = world.Tick.Value + BleedOutDurationTicks;
+            if (!responsibleAttackerId.IsNone)
+            {
+                if (!entity.TryGet<CombatDeathAttributionComponent>(out var attribution))
+                {
+                    attribution = new CombatDeathAttributionComponent();
+                    entity.AddComponent(attribution);
+                }
+                attribution.Set(responsibleAttackerId);
+            }
             return true;
         }
 
@@ -176,12 +192,20 @@ namespace XianXia.Core.Combat
 
             life.State = LifecycleState.Captured;
             life.ClearBleedOut();
+            ClearDeathAttribution(entity);
             return true;
         }
 
         /// <summary>治疗／救回：清弥留计时并回到 Alive（后续正式治疗入口可复用）。</summary>
         public static bool TryRecoverFromIncapacitated(
             SimulationWorld world,
+            Entity entity,
+            int restoreHp = 1) =>
+            TryRecoverFromIncapacitated(world, EntityId.None, entity, restoreHp);
+
+        public static bool TryRecoverFromIncapacitated(
+            SimulationWorld world,
+            EntityId rescuerId,
             Entity entity,
             int restoreHp = 1)
         {
@@ -195,6 +219,9 @@ namespace XianXia.Core.Combat
             CombatDamageRules.EnsureVitals(entity);
             if (entity.TryGet<CombatVitalsComponent>(out var vitals))
                 vitals.CurrentHp = Math.Max(1, restoreHp);
+            ClearDeathAttribution(entity);
+            if (!rescuerId.IsNone && rescuerId != entity.Id)
+                new SocialEventService().RecordCharacterRescued(world, rescuerId, entity.Id);
             return true;
         }
 
@@ -220,6 +247,11 @@ namespace XianXia.Core.Combat
                     return false;
             }
 
+            var responsibleAttackerId = attackerId;
+            if (responsibleAttackerId.IsNone &&
+                target.TryGet<CombatDeathAttributionComponent>(out var attribution))
+                responsibleAttackerId = attribution.ResponsibleAttackerId;
+
             life.State = LifecycleState.Dead;
             life.ClearBleedOut();
             EnsureCorpse(world, target);
@@ -231,18 +263,27 @@ namespace XianXia.Core.Combat
                 StoryFlagService.Set(
                     world,
                     ContentConditionEvaluator.EncounterFlag(link.EncounterId),
-                    attackerId);
+                    responsibleAttackerId);
             }
 
             confirmed = true;
             world.Events.Publish(
                 EventType.CombatantDefeated,
                 world.Tick,
-                actor: attackerId,
+                actor: responsibleAttackerId,
                 target: target.Id,
                 payload: "lethal");
-            QuestProgressRefresh.AfterWorldChange(world, attackerId);
+            QuestProgressRefresh.AfterWorldChange(world, responsibleAttackerId);
+            if (!responsibleAttackerId.IsNone)
+                new SocialEventService().RecordCharacterKilled(world, responsibleAttackerId, target.Id);
+            ClearDeathAttribution(target);
             return true;
+        }
+
+        static void ClearDeathAttribution(Entity entity)
+        {
+            if (entity != null && entity.TryGet<CombatDeathAttributionComponent>(out var attribution))
+                attribution.Clear();
         }
 
         static void EnsureCorpse(SimulationWorld world, Entity entity)

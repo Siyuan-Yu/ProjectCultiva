@@ -1116,7 +1116,7 @@ namespace XianXia.Unity.Host
                             ? subject.DisplayName : "?";
                         Debug.Log("[CharacterUI] Open sheet request focusEntityId=" + focus + " focusName=" + subjectName);
 #endif
-                        bootstrap?.CharacterSheetPanel?.OpenFor(focus);
+                        bootstrap?.CharacterSheetPanel?.OpenFor(focus, CharacterProfilePage.Attributes);
                         break;
                     case 1:
                         bootstrap?.CultivationPanel?.OpenFor(focus);
@@ -1125,7 +1125,7 @@ namespace XianXia.Unity.Host
                         bootstrap?.CombatArtsPanel?.OpenFor(focus);
                         break;
                     case 3:
-                        bootstrap?.RelationPanel?.OpenFor(focus);
+                        bootstrap?.CharacterSheetPanel?.OpenFor(focus, CharacterProfilePage.Social);
                         break;
                 }
             }

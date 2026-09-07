@@ -68,6 +68,10 @@
 | 世界账本 | WorldLedger | 分册长期世界记忆 | 非万能字典 |
 | 关系账本 | RelationshipLedger | **关系唯一真源**；事件历史累积算最终值 | Component 仅缓存；ADR-0017 |
 | 关系事件 | RelationshipEvent | Ledger 中一条关系变化记录 | 含 Tick／来源／对象／数值／原因 |
+| 社会关系事实 | Social Bond | 角色间客观、可查询的亲子／手足／配偶／师徒／结义事实 | 与主观态度分离；`SocialBondBoard` 为 Runtime authority；见 2M |
+| 角色态度 | Social Attitude | Character A→B 的五维单向主观态度 | Affection／Trust／Respect／Fear／Grudge；Ledger 为真源 |
+| 依恋强度 | Attachment | 击杀反应使用的临时派生值 | 最强 Bond 基值 + 好感/2 - 仇恨/2；不落盘 |
+| 社会反应 | SocialReaction | 社会后果结算后供表现消费的汇总事件 | 每名 reactor 一条，记录实际好感变化与上下文人物 |
 | 人格档案 | PersonalityProfile | 角色性格／特质标签集合（Component） | VS0.5-A；Content tags 写入；尚未进 Snapshot |
 | 领域事件 | DomainEvent | 刚刚发生的事实 | 见 `2E` |
 | 计划事件 | ScheduledEvent | 未来某 Tick 要执行的事 | 禁止系统私有逻辑倒计时 |

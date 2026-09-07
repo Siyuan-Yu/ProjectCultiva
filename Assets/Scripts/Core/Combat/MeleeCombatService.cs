@@ -167,7 +167,7 @@ namespace XianXia.Core.Combat
                 return Result.Success();
 
             defenderDefeated = true;
-            CombatLifeStateService.TryEnterIncapacitated(world, defender);
+            CombatLifeStateService.TryEnterIncapacitated(world, defender, attackerId);
 
             world.Events.Publish(
                 EventType.CombatantDefeated,

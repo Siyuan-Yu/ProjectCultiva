@@ -1,6 +1,6 @@
 # 系统设计索引
 
-> 最后更新：2026-09-06（新增 [2L](2L-local-map-construction-v1.md) 建造系统 V1）
+> 最后更新：2026-09-07（[2M](2M-character-social-relations-v1.md) 角色社会关系与人物档案 V1 已封板）
 > 上级：`docs/00-project/00-overview.md`（最高层大纲）
 > 通读顺序见 [`../00-project/04-reading-guide.md`](../00-project/04-reading-guide.md)。
 > 新增系统请复制 `docs/90-templates/system-design-template.md`。
@@ -42,6 +42,7 @@
 | 2J | [Hex Territory、Multi-Hex WorldSite 与动态山贼](2J-hex-territory-worldsites-and-dynamic-bandits.md) | P0 | **设计已拍板／尚未实现** | Pure Hex 领土／Site Footprint／Bandit |
 | 2K | [RPG-First：Active／PlayerParty／连续 Hex／FormalArmy](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) | P0 | **设计已拍板／未实现** | ADR-0026；控制与世界存在真源 |
 | 2L | [LocalMap 建造系统 V1](2L-local-map-construction-v1.md) | P0 | **已实现／已人工验收／已封板** | 建筑目录、材料事务与主动拆除 |
+| 2M | [角色社会关系 V1](2M-character-social-relations-v1.md) | P0 | **已实现／已人工验收／已封板** | Social Bond、五维态度、社会事件、击杀后果与统一人物档案 |
 
 ## 架构文档（`30-tech`）
 

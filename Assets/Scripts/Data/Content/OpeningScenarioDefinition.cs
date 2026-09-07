@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Social;
 
 namespace XianXia.Data.Content
 {
@@ -43,6 +44,7 @@ namespace XianXia.Data.Content
         public string OpeningChapterId { get; set; }
         public List<OpeningSpawnEntry> Spawns { get; set; } = new List<OpeningSpawnEntry>();
         public List<OpeningRelationEntry> OpeningRelations { get; set; } = new List<OpeningRelationEntry>();
+        public List<OpeningBondEntry> OpeningBonds { get; set; } = new List<OpeningBondEntry>();
         /// <summary>仅用于新游戏 Tick 0 的战略初始状态；读档以 Runtime Strategic Snapshot 为准。</summary>
         public OpeningStrategicStateDefinition StrategicOpening { get; set; }
 
@@ -123,5 +125,12 @@ namespace XianXia.Data.Content
         public int Delta { get; set; }
         public string ReasonTag { get; set; }
         public bool Mutual { get; set; } = true;
+    }
+
+    public sealed class OpeningBondEntry
+    {
+        public SocialBondKind Kind { get; set; }
+        public string FromDefinitionId { get; set; }
+        public string ToDefinitionId { get; set; }
     }
 }

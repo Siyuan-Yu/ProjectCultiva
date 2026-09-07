@@ -1,6 +1,6 @@
 # 江湖关系
 
-> 状态：草稿；归属／关系／控制权分离已对齐 `33`／`34`；**2026-08-22 势力外交见 [2A](2A-factions-armies-diplomacy-and-capture.md)** | 优先级：P0 | 最后更新：2026-08-22
+> 状态：长期设计草稿；Social Relations／Character Profile V1 已人工验收并封板，见 [2M](2M-character-social-relations-v1.md) 与 [封板记录 202](../40-process/202-character-social-relations-and-profile-ui-v1-sealed-2026-09-07.md)；**2026-08-22 势力外交见 [2A](2A-factions-armies-diplomacy-and-capture.md)** | 优先级：P0 | 最后更新：2026-09-07
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`27`、`2E`、`../30-tech/34-entity-and-component-model.md`
 > **本阶段不写实现代码。**
@@ -11,6 +11,8 @@
 - 离开势力后关系不清零（Ledger 保留历史事件）。  
 - 角色死亡可使强绑定内容永久结束。  
 - 延迟报复用 ScheduledEvent。  
+
+V1 已实现边界：客观 `Social Bond` 与五维单向态度分离；Attack／Help／Rescue／Kill 的即时社会后果、死亡责任归因、Snapshot 软兼容及基础 Host 展示以 [2M](2M-character-social-relations-v1.md) 和 [ADR-0030](../40-process/43-decisions/ADR-0030-social-bond-attitude-and-snapshot-boundary.md) 为准。本页其余关系经营、情报与报复玩法仍属 Future。
 
 ## 1. 这个系统解决什么问题
 

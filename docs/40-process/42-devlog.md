@@ -7,6 +7,50 @@
 
 ---
 
+## 2026-09-07 — Character Social Relations V1／Character Profile UI V1 正式封板
+
+- 制作人已完成人工验收：Social Bond／五维 Attitude、Attack／Help／Rescue／Kill 社会后果、全局击杀传播、Death Attribution、非模态箭头通知、统一人物档案四页及阿石／阿兰→阿土亲子配置共同进入 SEALED baseline。
+- SaveLoad authority 固定为 SocialBond Snapshot、RelationshipLedger 五维事件与 ResponsibleAttacker；Restore 只恢复状态，不重演 Reaction、Kill consequence 或 Opening Bonds。
+- 正常 Gameplay 无随机 SocialTick、无第二套 Relationship authority、无 Friend／Enemy Bond、无 Knowledge／Witness／Rumor；场上点击仍只 Selection，`[人物]／[关系]` 进入统一档案，玩家文案统一“仇恨”。
+- 清理本阶段 `.codex-*` runner、`.utmp` 临时编译目录与 scratch TestResults 日志；所有 V2 项继续 Deferred。
+
+**封板记录：** [202-character-social-relations-and-profile-ui-v1-sealed-2026-09-07.md](202-character-social-relations-and-profile-ui-v1-sealed-2026-09-07.md)。**验证：** Core／Data／Host 离线编译、Social／Snapshot 定向测试与 `git diff --check` 在提交前执行；除明确 Bug／Regression 外不主动修改 V1。
+
+---
+
+## 2026-09-07 — 第一章阿土亲子 Bond 验收配置
+
+- 在正式启动的 `base:scenario_ch01_reference` 中追加阿石→阿土、阿兰→阿土两条 `ParentChild` opening Bond，方向均为 Parent→Child。
+- 未推导 Spouse／Sibling，未追加 Affection／Trust 等开局态度；New Game 由 openingBonds 初始化，后续 SaveLoad 继续由 SocialBond Snapshot 承担。
+
+**验证：** 严格 BaseGame Content pipeline 通过；Core／Data／EditMode Tests 程序集离线编译 0 error（仅既有 warning）；`git diff --check` 通过。
+
+---
+
+## 2026-09-07 — 人物档案统一 Shell 与关系信息架构
+
+- `HostCharacterSheetPanel` 从居中小文本窗重构为宽屏深色人物档案：左侧身份栏在四页中固定，顶部提供人物属性、人物故事、亲族关系、人际关系四个正式页签；切页保持 Subject，切换人物时重置各页滚动与关系选择。
+- 人物属性改为概况、对当前主控态度、个人属性、战斗属性、修炼资质、性格／背景／天赋／活动倾向等卡片分区；没有正式画像 authority 时使用姓名首字边框占位，并保留未来画像解析接缝。
+- 人物故事页只读人物小传与 `RelationshipLedger` 真实事件，按 `DayClock` 绘制横向时间线，支持“与当前主控相关”过滤；内部 reasonTag 与数值变化通过中文 Presentation 转换后隐藏，不新增 Story Domain。
+- 亲族页只按显式 ParentChild／Sibling／Spouse Bond 绘图；人际页按好友、仇视、师徒、结义、其他展示人物卡，并明确以 Subject → SelectedPeer 查询五维态度。关系卡的“查看详情”在同一档案中切换 Subject。
+- FormalHud 的 `[人物]` 与 `[关系]` 分别直达统一档案的属性页与人际页；旧 `HostRelationPanel` 降为无窗口、无暂停状态的兼容转发器。场上 Selection 链路未修改。
+
+**验证：** Core／Data 未改签名；Host 离线 Roslyn 编译 0 error（仅既有 warning）；`git diff --check` 通过。待 Unity 人工验收布局、关系卡交互和 Modal 恢复。
+
+---
+
+## 2026-09-06 — Character Social Relations V1
+
+- 新增 `SocialBondBoard`，保存亲子、手足、配偶、师徒与结义等客观关系事实；定向与对称关系分别处理，普通 Gameplay 禁止解除亲子／手足。Bond 与 `RelationshipLedger` 五维主观态度严格分离。
+- `RelationshipLedger` 扩为 Affection／Trust／Respect／Fear／Grudge 五轴，旧 `Score`、旧 API 和 `openingRelations` 继续表示 Affection；所有写入记录裁剪后的实际变化量，生产 Social Tick 已关闭。
+- Attack／Help／Rescue／Kill 改走 Core 社会事件与后果服务。击杀反应按 Bond 与态度派生 Attachment；弥留死亡责任者随 Entity Snapshot 保存，恢复／被俘时清除，未知凶手不触发反应。
+- Content 新增可选 `openingBonds` 严格读取与引用／重复校验；验收 fixture 仅复用 acceptance 角色。Snapshot v6 软附加五轴、上下文、Bond 与死亡归因，旧档缺 axis 时按 Affection，不提升版本。
+- Host 人物页与关系页增加五轴／Bond 展示；右侧非模态队列只显示影响 PlayerParty 的 `SocialReaction`，隐藏精确变化数字。
+
+**系统真源：** [2M](../20-systems/2M-character-social-relations-v1.md)。**架构记录：** [ADR-0030](43-decisions/ADR-0030-social-bond-attitude-and-snapshot-boundary.md)。**验证：** Unity Core／Data／Host／EditMode Tests 以 Bee response files 离线 Roslyn 编译 0 error（仅既有 warning）；本轮 9 项 Social 定向测试与 4 项旧关系／显式 SocialTick 回归共 13/13 通过；`scenarios.json` 解析与完整 BaseGame Content pipeline 均通过。待 Unity 人工验收人物／关系页与右侧通知。
+
+---
+
 ## 2026-09-06 — 控制资产、存档连续性与 LocalMap 建造系统 V1 阶段封板
 
 - 制作人已完成人工验收：Control Asset Territory／FactionFlag、WorldMap 图层 UI、FormalArmy Effective Territory 组军规则、Snapshot continuity 修复及 LocalMap 建造系统 V1 共同进入封板基线。

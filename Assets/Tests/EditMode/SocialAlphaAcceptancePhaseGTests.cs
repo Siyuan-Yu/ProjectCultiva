@@ -50,7 +50,7 @@ namespace XianXia.Tests
             var social = new SocialInteractionService();
             Assert.IsTrue(social.Help(world, ids[0], ids[1]).IsSuccess);
             Assert.Greater(
-                world.Relationships.Score(ids[0], ids[1]),
+                world.Relationships.Score(ids[1], ids[0]),
                 SocialAlphaConstants.OpeningCompanionFavor);
 
             // E — bold vs cautious schedule duration bias (isolated micro-world)
@@ -60,8 +60,8 @@ namespace XianXia.Tests
             var npcId = started.Value.RecruitableNpcId;
             var recruit = new RecruitService();
             Assert.IsTrue(recruit.TryRecruit(world, ids[0], npcId).IsFailure);
-            Assert.IsTrue(social.Help(world, npcId, ids[0]).IsSuccess);
-            Assert.IsTrue(social.Help(world, npcId, ids[0]).IsSuccess);
+            Assert.IsTrue(social.Help(world, ids[0], npcId).IsSuccess);
+            Assert.IsTrue(social.Help(world, ids[0], npcId).IsSuccess);
             Assert.GreaterOrEqual(
                 world.Relationships.Score(npcId, ids[0]),
                 SocialAlphaConstants.RecruitMinScore);
@@ -70,14 +70,14 @@ namespace XianXia.Tests
             Assert.AreEqual(EntityTag.Npc, npc.Tags);
             Assert.IsTrue(npc.Get<FactionMembershipComponent>().IsAffiliated);
 
-            // F — social tick drift emits relationship events (PlayableDay loop enables it)
+            // F — 正式 PlayableDay 禁用 SocialTick，不应自行漂移关系。
             world.Events.Drain();
             for (var i = 0; i < SocialAlphaConstants.SocialTickIntervalTicks * 6; i++)
                 Assert.IsTrue(loop.TickOnce().IsSuccess);
             var drifted = world.Events.Drain().Exists(e =>
                 e.Type == CoreEventType.RelationshipChanged &&
                 (e.Payload.Contains("reason=help") || e.Payload.Contains("reason=slight")));
-            Assert.IsTrue(drifted, "Expected social-tick Help/Slight events over several intervals.");
+            Assert.IsFalse(drifted, "Production PlayableDay must keep SocialTick disabled.");
 
             // Player override still wins over schedule
             Assert.IsTrue(world.Entities.TryGet(ids[0], out var controllable));
@@ -87,11 +87,12 @@ namespace XianXia.Tests
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(ids[0], PlayerCommandKind.Rest, 2)).IsSuccess);
             Assert.AreEqual(OrderSource.Player, controllable.Get<ActionStateComponent>().ActiveOrderSource);
 
-            // Snapshot schema unchanged; social state intentionally not persisted yet
-            Assert.AreEqual(5, WorldSnapshot.CurrentSchemaVersion);
+            // Snapshot 不升版；v6 可选字段保存 Ledger 与 Bond。
+            Assert.AreEqual(6, WorldSnapshot.CurrentSchemaVersion);
             var snap = new SnapshotService(new JsonSnapshotSerializer()).Capture(world, loop);
-            Assert.AreEqual(2, snap.SchemaVersion);
-            Assert.IsNull(snap.GetType().GetProperty("Relationships"));
+            Assert.AreEqual(WorldSnapshot.CurrentSchemaVersion, snap.SchemaVersion);
+            Assert.IsNotNull(snap.RelationshipEvents);
+            Assert.IsNotNull(snap.SocialBonds);
         }
 
         static void AssertBoldLongerThanCautious()

@@ -69,8 +69,8 @@ namespace XianXia.Tests
             // If drift alone is shy of threshold, one Help stands in for player social push.
             if (world.Relationships.Score(npc, recruiter) < SocialAlphaConstants.RecruitMinScore)
             {
-                Assert.IsTrue(new SocialInteractionService().Help(world, npc, recruiter).IsSuccess);
-                Assert.IsTrue(new SocialInteractionService().Help(world, npc, recruiter).IsSuccess);
+                Assert.IsTrue(new SocialInteractionService().Help(world, recruiter, npc).IsSuccess);
+                Assert.IsTrue(new SocialInteractionService().Help(world, recruiter, npc).IsSuccess);
             }
 
             Assert.GreaterOrEqual(

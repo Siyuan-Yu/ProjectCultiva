@@ -447,6 +447,20 @@
             "z": 4.0
           },
           "aiRole": "Mortal"
+        },
+        {
+          "definitionId": "base:character_qingshi_acceptance_shuofeng_guard",
+          "entityKind": "npc",
+          "displayName": "朔风验收巡卫",
+          "bindSchedule": false,
+          "bindDailyTask": false,
+          "recruitable": false,
+          "worldSiteId": "base:site_chengzhen",
+          "localPosition": {
+            "x": 0.0,
+            "z": 4.0
+          },
+          "aiRole": "Mortal"
         }
       ],
       "openingRelations": [
@@ -484,6 +498,42 @@
           "delta": -5,
           "reasonTag": "supervisor_watch",
           "mutual": false
+        },
+        {
+          "fromDefinitionId": "base:character_qingshi_acceptance_shuofeng_civilian_a",
+          "toDefinitionId": "base:character_qingshi_acceptance_unaffiliated_a",
+          "delta": 80,
+          "reasonTag": "acceptance_fixture_positive",
+          "mutual": false
+        },
+        {
+          "fromDefinitionId": "base:character_qingshi_acceptance_shuofeng_civilian_b",
+          "toDefinitionId": "base:character_qingshi_acceptance_unaffiliated_a",
+          "delta": -80,
+          "reasonTag": "acceptance_fixture_negative",
+          "mutual": false
+        }
+      ],
+      "openingBonds": [
+        {
+          "kind": "ParentChild",
+          "fromDefinitionId": "base:character_qingshi_acceptance_unaffiliated_b",
+          "toDefinitionId": "base:character_qingshi_acceptance_unaffiliated_a"
+        },
+        {
+          "kind": "Sibling",
+          "fromDefinitionId": "base:character_qingshi_acceptance_unaffiliated_a",
+          "toDefinitionId": "base:character_qingshi_acceptance_unaffiliated_hostile"
+        },
+        {
+          "kind": "ParentChild",
+          "fromDefinitionId": "base:character_ch01_ref_mortal_a",
+          "toDefinitionId": "base:character_ch01_ref_farmer_b"
+        },
+        {
+          "kind": "ParentChild",
+          "fromDefinitionId": "base:character_ch01_ref_herb_b",
+          "toDefinitionId": "base:character_ch01_ref_farmer_b"
         }
       ]
     }

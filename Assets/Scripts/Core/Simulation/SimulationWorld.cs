@@ -55,6 +55,7 @@ namespace XianXia.Core.Simulation
             OrderQueues = new Dictionary<EntityId, OrderQueue>();
             ActiveActions = new Dictionary<ActionId, IAction>();
             Relationships = new RelationshipLedger();
+            SocialBonds = new SocialBondBoard();
             Settlements = new SettlementBoard();
             WorldRegion = new WorldRegionBoard();
             HexWorld = new HexWorld();
@@ -104,8 +105,11 @@ namespace XianXia.Core.Simulation
 
         public Dictionary<ActionId, IAction> ActiveActions { get; }
 
-        /// <summary>VS0.5 RelationshipLedger unique source of truth (not in Snapshot yet).</summary>
+        /// <summary>角色定向态度的唯一 Runtime authority；事件流已由 Snapshot 持久化。</summary>
         public RelationshipLedger Relationships { get; }
+
+        /// <summary>角色关系事实的 Runtime authority；与五维态度严格分离。</summary>
+        public SocialBondBoard SocialBonds { get; }
 
         /// <summary>VS0.8 settlement board (session-only; not in Snapshot v1).</summary>
         public SettlementBoard Settlements { get; }

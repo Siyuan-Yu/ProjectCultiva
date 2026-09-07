@@ -17,7 +17,22 @@ namespace XianXia.Core.Social
             int delta,
             string reasonTag,
             EventId? causeEventId = null)
+            => RecordAttitudeDelta(
+                world, from, to, SocialAttitudeAxis.Affection, delta, reasonTag,
+                out _, causeEventId, null);
+
+        public Result RecordAttitudeDelta(
+            SimulationWorld world,
+            EntityId from,
+            EntityId to,
+            SocialAttitudeAxis axis,
+            int requestedDelta,
+            string reasonTag,
+            out int actualDelta,
+            EventId? causeEventId = null,
+            EntityId? contextEntityId = null)
         {
+            actualDelta = 0;
             if (world == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
             if (from.IsNone || to.IsNone)
@@ -26,6 +41,8 @@ namespace XianXia.Core.Social
                 return Result.Failure(ErrorCode.InvalidArgument, "Cannot record relationship to self.");
             if (string.IsNullOrWhiteSpace(reasonTag))
                 return Result.Failure(ErrorCode.InvalidArgument, "ReasonTag required.");
+            if (!System.Enum.IsDefined(typeof(SocialAttitudeAxis), axis))
+                return Result.Failure(ErrorCode.InvalidArgument, "Unknown SocialAttitudeAxis.");
             if (!world.Entities.TryGet(from, out var fromEntity))
                 return Result.Failure(ErrorCode.EntityNotFound, "From entity missing.", from.ToString());
             if (!world.Entities.TryGet(to, out var toEntity))
@@ -34,7 +51,14 @@ namespace XianXia.Core.Social
             EnsureRelationshipComponent(fromEntity);
             EnsureRelationshipComponent(toEntity);
 
-            var evt = new RelationshipEvent(world.Tick, from, to, delta, reasonTag.Trim(), causeEventId);
+            var current = world.Relationships.GetValue(from, to, axis);
+            var next = SocialAttitudeRules.Clamp(axis, current + requestedDelta);
+            actualDelta = next - current;
+            if (actualDelta == 0)
+                return Result.Success();
+
+            var evt = new RelationshipEvent(
+                world.Tick, from, to, axis, actualDelta, reasonTag.Trim(), causeEventId, contextEntityId);
             world.Relationships.Append(evt);
 
             RefreshPairCaches(world, from, to);
@@ -44,7 +68,8 @@ namespace XianXia.Core.Social
                 world.Tick,
                 actor: from,
                 target: to,
-                payload: "delta=" + delta + ";reason=" + evt.ReasonTag + ";score=" + world.Relationships.Score(from, to));
+                payload: "axis=" + axis + ";delta=" + actualDelta + ";reason=" + evt.ReasonTag +
+                         ";value=" + world.Relationships.GetValue(from, to, axis));
 
             return Result.Success();
         }
@@ -64,14 +89,26 @@ namespace XianXia.Core.Social
             if (world.Entities.TryGet(a, out var ea) &&
                 ea.TryGet<RelationshipComponent>(out var ca))
             {
-                ca.ReplaceCachedToward(b, world.Relationships.Score(a, b));
+                ca.ReplaceCachedAttitude(b, world.Relationships.GetAttitude(a, b));
             }
 
             if (world.Entities.TryGet(b, out var eb) &&
                 eb.TryGet<RelationshipComponent>(out var cb))
             {
-                cb.ReplaceCachedToward(a, world.Relationships.Score(b, a));
+                cb.ReplaceCachedAttitude(a, world.Relationships.GetAttitude(b, a));
             }
+        }
+
+        public static void RebuildAllCaches(SimulationWorld world)
+        {
+            if (world == null)
+                return;
+            foreach (var entity in world.Entities.All)
+                if (entity.TryGet<RelationshipComponent>(out var cache))
+                    cache.ClearCache();
+            var events = world.Relationships.Events;
+            for (var i = 0; i < events.Count; i++)
+                RefreshPairCaches(world, events[i].From, events[i].To);
         }
 
         static void EnsureRelationshipComponent(XianXia.Core.Entities.Entity entity)

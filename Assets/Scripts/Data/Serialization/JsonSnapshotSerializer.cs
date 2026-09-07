@@ -39,6 +39,7 @@ namespace XianXia.Data.Serialization
                 ["observationDiscoverChancePercent"] = JsonValue.FromNumber(snapshot.ObservationDiscoverChancePercent),
                 ["partyInventorySlots"] = JsonValue.FromArray(SerializePartyInventorySlots(snapshot.PartyInventorySlots)),
                 ["relationshipEvents"] = JsonValue.FromArray(SerializeRelationshipEvents(snapshot.RelationshipEvents)),
+                ["socialBonds"] = JsonValue.FromArray(SerializeSocialBonds(snapshot.SocialBonds)),
                 ["strategic"] = SerializeStrategic(snapshot.Strategic)
             };
 
@@ -140,17 +141,40 @@ namespace XianXia.Data.Serialization
                     {
                         if (ev.Kind != JsonValueKind.Object)
                             continue;
+                        var hasAxis = ev.TryGetProperty("axis", out var axisNode) &&
+                                      axisNode.Kind == JsonValueKind.Number;
                         snapshot.RelationshipEvents.Add(new RelationshipEventSnapshotDto
                         {
                             Tick = ReadU(ev, "tick"),
                             FromEntityId = ReadU(ev, "fromEntityId"),
                             ToEntityId = ReadU(ev, "toEntityId"),
+                            Axis = hasAxis ? (int)axisNode.Number : (int)XianXia.Core.Social.SocialAttitudeAxis.Affection,
+                            HasAxis = hasAxis,
                             Delta = (int)ev.GetNumber("delta"),
                             ReasonTag = ev.GetString("reasonTag", string.Empty),
                             CauseEventId = ReadU(ev, "causeEventId"),
                             HasCauseEventId = ev.TryGetProperty("hasCauseEventId", out var hce) &&
                                               hce.Kind == JsonValueKind.Boolean &&
-                                              hce.Bool
+                                              hce.Bool,
+                            ContextEntityId = ReadU(ev, "contextEntityId"),
+                            HasContextEntityId = ev.TryGetProperty("hasContextEntityId", out var hcx) &&
+                                                 hcx.Kind == JsonValueKind.Boolean && hcx.Bool
+                        });
+                    }
+                }
+
+                if (root.TryGetProperty("socialBonds", out var socialBonds) &&
+                    socialBonds.Kind == JsonValueKind.Array)
+                {
+                    foreach (var bond in socialBonds.Array)
+                    {
+                        if (bond.Kind != JsonValueKind.Object)
+                            continue;
+                        snapshot.SocialBonds.Add(new SocialBondSnapshotDto
+                        {
+                            Kind = (int)bond.GetNumber("kind"),
+                            FromEntityId = ReadU(bond, "fromEntityId"),
+                            ToEntityId = ReadU(bond, "toEntityId")
                         });
                     }
                 }
@@ -257,6 +281,8 @@ namespace XianXia.Data.Serialization
                     ["bleedOutAfterTick"] = U(e.BleedOutAfterTick),
                     ["hasCorpse"] = JsonValue.FromBool(e.HasCorpse),
                     ["corpseRemoveAfterTick"] = U(e.CorpseRemoveAfterTick),
+                    ["hasResponsibleAttacker"] = JsonValue.FromBool(e.HasResponsibleAttacker),
+                    ["responsibleAttackerEntityId"] = U(e.ResponsibleAttackerEntityId),
                     ["personalityTags"] = JsonValue.FromArray(SerializeStringList(e.PersonalityTags))
                 }));
             }
@@ -298,13 +324,36 @@ namespace XianXia.Data.Serialization
                     ["tick"] = U(ev.Tick),
                     ["fromEntityId"] = U(ev.FromEntityId),
                     ["toEntityId"] = U(ev.ToEntityId),
+                    ["axis"] = JsonValue.FromNumber(ev.Axis),
                     ["delta"] = JsonValue.FromNumber(ev.Delta),
                     ["reasonTag"] = JsonValue.FromString(ev.ReasonTag ?? string.Empty),
                     ["causeEventId"] = U(ev.CauseEventId),
-                    ["hasCauseEventId"] = JsonValue.FromBool(ev.HasCauseEventId)
+                    ["hasCauseEventId"] = JsonValue.FromBool(ev.HasCauseEventId),
+                    ["contextEntityId"] = U(ev.ContextEntityId),
+                    ["hasContextEntityId"] = JsonValue.FromBool(ev.HasContextEntityId)
                 }));
             }
 
+            return list;
+        }
+
+        static List<JsonValue> SerializeSocialBonds(List<SocialBondSnapshotDto> bonds)
+        {
+            var list = new List<JsonValue>();
+            if (bonds == null)
+                return list;
+            for (var i = 0; i < bonds.Count; i++)
+            {
+                var bond = bonds[i];
+                if (bond == null)
+                    continue;
+                list.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["kind"] = JsonValue.FromNumber(bond.Kind),
+                    ["fromEntityId"] = U(bond.FromEntityId),
+                    ["toEntityId"] = U(bond.ToEntityId)
+                }));
+            }
             return list;
         }
 
@@ -510,7 +559,10 @@ namespace XianXia.Data.Serialization
                 HasCorpse = e.TryGetProperty("hasCorpse", out var hco) &&
                             hco.Kind == JsonValueKind.Boolean &&
                             hco.Bool,
-                CorpseRemoveAfterTick = ReadU(e, "corpseRemoveAfterTick")
+                CorpseRemoveAfterTick = ReadU(e, "corpseRemoveAfterTick"),
+                HasResponsibleAttacker = e.TryGetProperty("hasResponsibleAttacker", out var hra) &&
+                                         hra.Kind == JsonValueKind.Boolean && hra.Bool,
+                ResponsibleAttackerEntityId = ReadU(e, "responsibleAttackerEntityId")
             };
 
             if (e.TryGetProperty("knownSiteIds", out var known) && known.Kind == JsonValueKind.Array)

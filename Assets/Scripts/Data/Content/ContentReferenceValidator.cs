@@ -260,22 +260,56 @@ namespace XianXia.Data.Content
                     }
                 }
 
-                if (s.OpeningRelations == null)
-                    continue;
-                for (var i = 0; i < s.OpeningRelations.Count; i++)
+                if (s.OpeningRelations != null)
                 {
-                    var e = s.OpeningRelations[i];
-                    RequireDef(registry, e.FromDefinitionId, "character", ctx + ".relation.from", report);
-                    RequireDef(registry, e.ToDefinitionId, "character", ctx + ".relation.to", report);
+                    for (var i = 0; i < s.OpeningRelations.Count; i++)
+                    {
+                        var e = s.OpeningRelations[i];
+                        RequireDef(registry, e.FromDefinitionId, "character", ctx + ".relation.from", report);
+                        RequireDef(registry, e.ToDefinitionId, "character", ctx + ".relation.to", report);
+                    }
                 }
 
-                if (s.InitialFormalArmyIds == null)
-                    continue;
-                for (var i = 0; i < s.InitialFormalArmyIds.Count; i++)
+                if (s.OpeningBonds != null)
                 {
-                    var armyId = s.InitialFormalArmyIds[i];
-                    RequireDef(registry, armyId, "formalArmy", ctx + ".initialFormalArmyIds[" + i + "]", report);
-                    ValidateInitialFormalArmyHex(registry, armyId, hexWorld, ctx + ".initialFormalArmyIds[" + i + "]", report);
+                    var uniqueBonds = new HashSet<string>(StringComparer.Ordinal);
+                    for (var i = 0; i < s.OpeningBonds.Count; i++)
+                    {
+                        var bond = s.OpeningBonds[i];
+                        if (bond == null)
+                            continue;
+                        var bondCtx = ctx + ".openingBonds[" + i + "]";
+                        RequireDef(registry, bond.FromDefinitionId, "character", bondCtx + ".from", report);
+                        RequireDef(registry, bond.ToDefinitionId, "character", bondCtx + ".to", report);
+                        if (string.IsNullOrWhiteSpace(bond.FromDefinitionId) ||
+                            string.IsNullOrWhiteSpace(bond.ToDefinitionId) ||
+                            string.Equals(bond.FromDefinitionId, bond.ToDefinitionId, StringComparison.Ordinal))
+                        {
+                            report.Add(ErrorCode.InvalidArgument, "openingBond endpoints must be distinct.", bondCtx);
+                            continue;
+                        }
+                        var from = bond.FromDefinitionId;
+                        var to = bond.ToDefinitionId;
+                        if (SocialBond.IsSymmetric(bond.Kind) && string.CompareOrdinal(from, to) > 0)
+                        {
+                            var swap = from;
+                            from = to;
+                            to = swap;
+                        }
+                        var key = ((int)bond.Kind) + "|" + from + "|" + to;
+                        if (!uniqueBonds.Add(key))
+                            report.Add(ErrorCode.DuplicateDefinitionId, "openingBond duplicate.", bondCtx);
+                    }
+                }
+
+                if (s.InitialFormalArmyIds != null)
+                {
+                    for (var i = 0; i < s.InitialFormalArmyIds.Count; i++)
+                    {
+                        var armyId = s.InitialFormalArmyIds[i];
+                        RequireDef(registry, armyId, "formalArmy", ctx + ".initialFormalArmyIds[" + i + "]", report);
+                        ValidateInitialFormalArmyHex(registry, armyId, hexWorld, ctx + ".initialFormalArmyIds[" + i + "]", report);
+                    }
                 }
             }
         }

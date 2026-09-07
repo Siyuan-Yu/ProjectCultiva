@@ -216,6 +216,13 @@ namespace XianXia.Core.Persistence
                     dto.CorpseRemoveAfterTick = corpse.RemoveAfterTick;
                 }
 
+                if (entity.TryGet<CombatDeathAttributionComponent>(out var attribution) &&
+                    attribution != null && !attribution.ResponsibleAttackerId.IsNone)
+                {
+                    dto.HasResponsibleAttacker = true;
+                    dto.ResponsibleAttackerEntityId = attribution.ResponsibleAttackerId.Value;
+                }
+
                 if (entity.TryGet<PersonalityProfileComponent>(out var personality) &&
                     personality != null &&
                     personality.Count > 0)
@@ -326,6 +333,7 @@ namespace XianXia.Core.Persistence
 
             snap.Strategic = StrategicSnapshotHelper.Capture(world, playerParty);
             CapturePartyInventory(world, snap);
+            CaptureSocialBonds(world, snap);
             CaptureRelationshipLedger(world, snap);
             return snap;
         }
@@ -365,6 +373,8 @@ namespace XianXia.Core.Persistence
                     Tick = e.Tick.Value,
                     FromEntityId = e.From.Value,
                     ToEntityId = e.To.Value,
+                    Axis = (int)e.Axis,
+                    HasAxis = true,
                     Delta = e.Delta,
                     ReasonTag = e.ReasonTag ?? string.Empty
                 };
@@ -373,8 +383,30 @@ namespace XianXia.Core.Persistence
                     dto.HasCauseEventId = true;
                     dto.CauseEventId = e.CauseEventId.Value.Value;
                 }
+                if (e.ContextEntityId.HasValue && !e.ContextEntityId.Value.IsNone)
+                {
+                    dto.HasContextEntityId = true;
+                    dto.ContextEntityId = e.ContextEntityId.Value.Value;
+                }
 
                 snap.RelationshipEvents.Add(dto);
+            }
+        }
+
+        static void CaptureSocialBonds(SimulationWorld world, WorldSnapshot snap)
+        {
+            if (world?.SocialBonds == null || snap == null)
+                return;
+            var bonds = world.SocialBonds.All;
+            for (var i = 0; i < bonds.Count; i++)
+            {
+                var bond = bonds[i];
+                snap.SocialBonds.Add(new SocialBondSnapshotDto
+                {
+                    Kind = (int)bond.Kind,
+                    FromEntityId = bond.From.Value,
+                    ToEntityId = bond.To.Value
+                });
             }
         }
 
@@ -649,6 +681,13 @@ namespace XianXia.Core.Persistence
                     });
                 }
 
+                if (e.HasResponsibleAttacker && e.ResponsibleAttackerEntityId != 0)
+                {
+                    var attribution = new CombatDeathAttributionComponent();
+                    attribution.Set(new EntityId(e.ResponsibleAttackerEntityId));
+                    entity.AddComponent(attribution);
+                }
+
                 var personality = new PersonalityProfileComponent();
                 if (e.PersonalityTags != null && e.PersonalityTags.Count > 0)
                     personality.SetTags(e.PersonalityTags);
@@ -791,7 +830,12 @@ namespace XianXia.Core.Persistence
             }
 
             RestorePartyInventory(world, snap);
-            RestoreRelationshipLedger(world, snap);
+            var bondRestore = RestoreSocialBonds(world, snap);
+            if (bondRestore.IsFailure)
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(bondRestore.Error);
+            var relationshipRestore = RestoreRelationshipLedger(world, snap);
+            if (relationshipRestore.IsFailure)
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(relationshipRestore.Error);
             return Result.Ok((world, loop));
         }
 
@@ -813,10 +857,10 @@ namespace XianXia.Core.Persistence
             }
         }
 
-        static void RestoreRelationshipLedger(SimulationWorld world, WorldSnapshot snap)
+        static Result RestoreRelationshipLedger(SimulationWorld world, WorldSnapshot snap)
         {
             if (world?.Relationships == null || snap?.RelationshipEvents == null)
-                return;
+                return Result.Success();
 
             world.Relationships.Clear();
             for (var i = 0; i < snap.RelationshipEvents.Count; i++)
@@ -827,31 +871,47 @@ namespace XianXia.Core.Persistence
                 EventId? cause = null;
                 if (d.HasCauseEventId && d.CauseEventId != 0)
                     cause = new EventId(d.CauseEventId);
+                EntityId? context = null;
+                if (d.HasContextEntityId && d.ContextEntityId != 0)
+                    context = new EntityId(d.ContextEntityId);
+                if (d.HasAxis && !Enum.IsDefined(typeof(SocialAttitudeAxis), d.Axis))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Relationship axis 无效。", i.ToString());
+                var axis = d.HasAxis ? (SocialAttitudeAxis)d.Axis : SocialAttitudeAxis.Affection;
                 world.Relationships.Append(new RelationshipEvent(
                     new WorldTick(d.Tick),
                     new EntityId(d.FromEntityId),
                     new EntityId(d.ToEntityId),
+                    axis,
                     d.Delta,
                     d.ReasonTag ?? string.Empty,
-                    cause));
+                    cause,
+                    context));
             }
 
-            RebuildRelationshipCaches(world);
+            RelationshipService.RebuildAllCaches(world);
+            return Result.Success();
         }
 
-        static void RebuildRelationshipCaches(SimulationWorld world)
+        static Result RestoreSocialBonds(SimulationWorld world, WorldSnapshot snap)
         {
-            if (world?.Relationships == null)
-                return;
-
-            var events = world.Relationships.Events;
-            for (var i = 0; i < events.Count; i++)
+            if (world?.SocialBonds == null || snap?.SocialBonds == null)
+                return Result.Success();
+            world.SocialBonds.Clear();
+            var service = new SocialBondService();
+            for (var i = 0; i < snap.SocialBonds.Count; i++)
             {
-                var e = events[i];
-                if (e == null)
-                    continue;
-                RelationshipService.RefreshPairCaches(world, e.From, e.To);
+                var dto = snap.SocialBonds[i];
+                if (dto == null || !Enum.IsDefined(typeof(SocialBondKind), dto.Kind))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Social Bond kind 无效。", i.ToString());
+                var restored = service.RestoreBond(
+                    world,
+                    (SocialBondKind)dto.Kind,
+                    new EntityId(dto.FromEntityId),
+                    new EntityId(dto.ToEntityId));
+                if (restored.IsFailure)
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Social Bond 恢复失败。", restored.Error.Message);
             }
+            return Result.Success();
         }
 
         static bool IsLikelyPlayerRosterCharacter(WorldSnapshot snap, ulong entityId)

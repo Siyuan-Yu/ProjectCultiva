@@ -64,6 +64,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostActivityPresenter activityPresenter;
         [SerializeField] HostCrowdPresenter crowdPresenter;
         [SerializeField] HostFeedbackOverlay feedbackOverlay;
+        [SerializeField] HostSocialNotificationOverlay socialNotificationOverlay;
         [SerializeField] HostWorkTargetMode workTargetMode;
         [SerializeField] HostContentInterruptPresenter contentInterrupt;
         [SerializeField] HostStrategicInterruptPresenter strategicInterrupt;
@@ -411,6 +412,9 @@ namespace XianXia.Unity.Host
             EnsureLevelTesterCheatPanel();
             if (eventFeed == null)
                 eventFeed = GetComponent<HostEventFeed>() ?? gameObject.AddComponent<HostEventFeed>();
+            if (socialNotificationOverlay == null)
+                socialNotificationOverlay = GetComponent<HostSocialNotificationOverlay>() ??
+                                            gameObject.AddComponent<HostSocialNotificationOverlay>();
             if (mapGraybox == null)
                 mapGraybox = GetComponent<HostMapGraybox>() ?? gameObject.AddComponent<HostMapGraybox>();
             if (moveController == null)
@@ -448,6 +452,9 @@ namespace XianXia.Unity.Host
             if (feedbackOverlay == null)
                 feedbackOverlay = GetComponent<HostFeedbackOverlay>() ??
                                   gameObject.AddComponent<HostFeedbackOverlay>();
+            if (socialNotificationOverlay == null)
+                socialNotificationOverlay = GetComponent<HostSocialNotificationOverlay>() ??
+                                            gameObject.AddComponent<HostSocialNotificationOverlay>();
             if (workTargetMode == null)
                 workTargetMode = GetComponent<HostWorkTargetMode>() ??
                                  gameObject.AddComponent<HostWorkTargetMode>();
@@ -537,6 +544,9 @@ namespace XianXia.Unity.Host
             selectionController.ClearSelection();
             entityViewSpawner.Clear();
             eventFeed.Clear();
+            socialNotificationOverlay.Clear();
+            socialNotificationOverlay.Bind(this);
+            socialNotificationOverlay?.Clear();
             contentInterrupt.ClearSessionState();
             if (strategicInterrupt != null)
                 strategicInterrupt.ClearSessionState();
@@ -687,6 +697,7 @@ namespace XianXia.Unity.Host
                 selectionController.SelectEntity(_session.PlayerParty.ActiveCharacterId, false);
             }
             feedbackOverlay.Bind(cam);
+            socialNotificationOverlay?.Bind(this);
             commandBridge.Bind(_session, selectionController, feedbackOverlay);
             var workLoop = GetComponent<HostWorkLoop>();
             if (workLoop != null)
@@ -2061,6 +2072,7 @@ namespace XianXia.Unity.Host
                 questJournal.Ingest(drained);
             if (eventFeed != null)
                 eventFeed.Ingest(drained);
+            socialNotificationOverlay?.Ingest(drained);
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
