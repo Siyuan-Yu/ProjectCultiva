@@ -1,9 +1,10 @@
 # 路线图
 
-> 状态：**RPG-First Phase 0–4 Accepted / Sealed；Phase 5A Cleanup + Phase 5B View Takeover Accepted / Sealed**｜最后更新：2026-08-29
+> 状态：**RPG-First Phase 0–4 Accepted / Sealed；Phase 5A Cleanup + Phase 5B View Takeover Accepted / Sealed**｜最后更新：2026-09-09
 
 ## 当前阶段说明
 
+- **2026-09-09：** 新增 [203 连续 2D 开放世界架构方向讨论](203-continuous-2d-open-world-world-surface-direction-2026-09-09.md)：长期目标为尽可能连续的 Outdoor World Surface；这只是 **DISCUSSION / NOT IMPLEMENTED**，不改变当前“Wilderness 1 Hex = 1 logical LocalMap”、SurfaceExit、WorldSite LocalMap 或 Travel 实现。城市连续／独立／Hybrid、Streaming、生成与 Flight 均未决定，未开启 Runtime 迁移。
 - **2026-08-29：** Phase 5B **WorldMap↔LocalMap Travel View Takeover — Accepted / Sealed**：基线 dev_1 @ 47b3f89；AutoTravel 关图 **不再 Cancel**；LocalVisible 时 World Advance 停止；再开 WorldMap 从同一 Continuous Position 继续；多次开关无漂移 / Route / Destination 异常；人工验收 Assets/Scenes/LevelTester.unity；真源 [173](173-phase-5b-worldmap-localmap-travel-view-takeover-2026-08-29.md)。**未开始 Phase 5C。**  
 - **2026-08-29：** Phase 5A **Travel 代码清理 / Authority 收口**：行为基线 `dev_1 @ 47b3f89`；真源 [172](172-phase-5a-travel-cleanup-authority-consolidation-2026-08-29.md)。  
 - **2026-08-28：** Phase 3 **Accepted / Sealed**（用户正式确认）：FormalArmy 军事层收敛；PlayerParty 独立旅行 Authority；Continuous WorldPosition／Travel／Presence／Save-Load；已在 LevelTester 持续使用及 Phase 4 验收中实际验证；真源 [166](166-phase-3-formal-army-continuous-world-2026-08-27.md)／[167](167-phase-3-closure-playerparty-and-casualty-fixtures-2026-08-27.md)。  

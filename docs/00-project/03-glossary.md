@@ -1,6 +1,6 @@
 # 术语表
 
-> 状态：持续维护 | 最后更新：2026-09-06
+> 状态：持续维护 | 最后更新：2026-09-09
 >
 > 规则：**代码标识符、配置表字段、文档用词必须与本表一致。**
 > 新增概念时先来这里登记，再去写代码。这一条是长期可维护性的关键，也是交接时对方最需要的文件。
@@ -127,6 +127,8 @@
 | 派生位置格 | DerivedPresenceHex | `CanonicalWorldSurfacePosition → WorldToHex` 的**派生查询结果**（不落盘为真源；Site 内经 WorldSiteSpatialMapping） | Site Context 内 ∈ Footprint；ADR-0027 |
 | 连续 Hex 世界 | Continuous Hex World | HexWorld=唯一世界拓扑；LocalMap=近景；逻辑连续旅行 | 非必须 Unity 无缝开放世界 |
 | 连续世界坐标 | CanonicalWorldSurfacePosition | PlayerParty 在连续世界表面的**唯一物理位置真源**（Wilderness 与 WorldSite 内统一） | `DerivedPresenceHex` 为**派生**；`CurrentHex` 为混合语义（PhysicalDerivedHex／RouteCommittedHex／CurrentWildernessHex，5R-C 分类）；LocalPosition 非持久真源；见 2K §5.8／ADR-0027 |
+| 世界表面（讨论概念） | World Surface | 长期可能承载 Ground／Flight 连续室外移动的统一二维 Outdoor World Space | **DISCUSSION / NOT IMPLEMENTED**；不是当前 Runtime 类型，不等于已实现 Streaming；见 203 |
+| 表面区块（讨论概念） | Surface Patch / Streaming Chunk | 连续世界中可独立制作、生成、保存或加载的区域块 | 与 Hex Partition 不预设一一对应；大小、技术与迁移方式未决定；见 203 |
 | 地表出口触发深度 | ExitTriggerDepth | Surface LocalMap 自边界向内的 Exit Trigger 深度（Gameplay） | MapLayout 可配；见 2K §5.8.7／164 |
 | 地表出口触发区 | Surface Exit Trigger Zone | 可触发 Hex／Site 边缘过渡的固定几何 ∩ 运行时合法性 | Geometry 固定；Availability 可变；见 2K §5.8.7 |
 | 世界定位 | WorldLocation | `AtWorldSite{SiteId}` \| `AtWorldPosition{ContinuousPosition}` | 与 MovementState 分离；Party 共用一个 |

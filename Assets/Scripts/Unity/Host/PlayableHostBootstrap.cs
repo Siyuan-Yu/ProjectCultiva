@@ -231,6 +231,7 @@ namespace XianXia.Unity.Host
             if (combatArtLearnPrompt == null)
                 combatArtLearnPrompt = GetComponent<HostCombatArtLearnPrompt>() ??
                                       GetComponentInChildren<HostCombatArtLearnPrompt>();
+            EnsureSocialNotificationOverlay();
 
             secondsPerAutoTickAt1x = SimulationTickPacing.SecondsPerTickAt1x;
         }
@@ -362,6 +363,18 @@ namespace XianXia.Unity.Host
             debugHud.Bind(this, selectionController);
         }
 
+        void EnsureSocialNotificationOverlay()
+        {
+            if (socialNotificationOverlay == null)
+            {
+                socialNotificationOverlay = GetComponent<HostSocialNotificationOverlay>() ??
+                                            GetComponentInChildren<HostSocialNotificationOverlay>();
+                if (socialNotificationOverlay == null)
+                    socialNotificationOverlay = gameObject.AddComponent<HostSocialNotificationOverlay>();
+            }
+            socialNotificationOverlay.Bind(this);
+        }
+
         void EnsureLevelTesterCheatPanel()
         {
             if (!IsLevelTesterContext())
@@ -412,9 +425,7 @@ namespace XianXia.Unity.Host
             EnsureLevelTesterCheatPanel();
             if (eventFeed == null)
                 eventFeed = GetComponent<HostEventFeed>() ?? gameObject.AddComponent<HostEventFeed>();
-            if (socialNotificationOverlay == null)
-                socialNotificationOverlay = GetComponent<HostSocialNotificationOverlay>() ??
-                                            gameObject.AddComponent<HostSocialNotificationOverlay>();
+            EnsureSocialNotificationOverlay();
             if (mapGraybox == null)
                 mapGraybox = GetComponent<HostMapGraybox>() ?? gameObject.AddComponent<HostMapGraybox>();
             if (moveController == null)
@@ -452,9 +463,6 @@ namespace XianXia.Unity.Host
             if (feedbackOverlay == null)
                 feedbackOverlay = GetComponent<HostFeedbackOverlay>() ??
                                   gameObject.AddComponent<HostFeedbackOverlay>();
-            if (socialNotificationOverlay == null)
-                socialNotificationOverlay = GetComponent<HostSocialNotificationOverlay>() ??
-                                            gameObject.AddComponent<HostSocialNotificationOverlay>();
             if (workTargetMode == null)
                 workTargetMode = GetComponent<HostWorkTargetMode>() ??
                                  gameObject.AddComponent<HostWorkTargetMode>();
@@ -545,8 +553,6 @@ namespace XianXia.Unity.Host
             entityViewSpawner.Clear();
             eventFeed.Clear();
             socialNotificationOverlay.Clear();
-            socialNotificationOverlay.Bind(this);
-            socialNotificationOverlay?.Clear();
             contentInterrupt.ClearSessionState();
             if (strategicInterrupt != null)
                 strategicInterrupt.ClearSessionState();
@@ -697,7 +703,6 @@ namespace XianXia.Unity.Host
                 selectionController.SelectEntity(_session.PlayerParty.ActiveCharacterId, false);
             }
             feedbackOverlay.Bind(cam);
-            socialNotificationOverlay?.Bind(this);
             commandBridge.Bind(_session, selectionController, feedbackOverlay);
             var workLoop = GetComponent<HostWorkLoop>();
             if (workLoop != null)
@@ -870,6 +875,8 @@ namespace XianXia.Unity.Host
             EnsureLevelTesterCheatPanel();
             if (eventFeed == null)
                 eventFeed = GetComponent<HostEventFeed>() ?? gameObject.AddComponent<HostEventFeed>();
+            EnsureSocialNotificationOverlay();
+            socialNotificationOverlay.Clear();
 
             HostSnapshotSessionRehydration.ResolvePartyWorldFromActiveControlledCharacter(
                 _session.World,

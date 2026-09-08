@@ -7,6 +7,26 @@
 
 ---
 
+## 2026-09-09 — 连续 2D 开放世界 / World Surface 架构方向讨论
+
+- 新增 [203](203-continuous-2d-open-world-world-surface-direction-2026-09-09.md)，以 **DISCUSSION / NOT IMPLEMENTED** 明确记录长期 North Star：普通 Outdoor Traversal 尽可能连续，Ground 与 Future Flight 共享同一 Outdoor World Space；这不等于一张巨型地图文件，也不等于全世界 Full Simulation。
+- 文档明确区分当前已实现的 HexWorld／CanonicalWorldSurfacePosition／Wilderness LocalMap／WorldSite LocalMap／SurfaceExit／分层后台模拟，与未来的 Streaming World Surface；当前 Runtime、Travel、Content、Schema、SurfaceExit 与 WorldSite LocalMap 均未修改。
+- 保留城市连续、城市独立、Hybrid 三种选项；记录 Procedural Base + Authored Override、现有 LocalMap 向 Surface Patch 的潜在复用、远处多城后台 Siege/事件无需加载 City Map，以及 15 项尚未决定的问题。World Event、Flight、程序生成与地图迁移均未开工。
+
+**最优先后续讨论：** Q1 城市／城镇／宗门室外采用 Continuous Outdoor Surface、独立 City Map 还是 Hybrid；在该选择前不开始 Outdoor Runtime 大迁移。
+
+---
+
+## 2026-09-07 — Social Reaction 即时跳字可见性修复
+
+- 社会关系即时反馈从右侧 Rail 重叠区移至顶栏下方的屏幕水平中央，改为 19～20 号文字、方向色箭头、轻微阴影、淡入／停留／淡出与 14 像素上浮；继续保持最多三条可见及其余排队，不显示精确数值。
+- Overlay 显式使用高于普通 HUD 的 IMGUI depth，不再依赖组件或 Inspector 顺序；`Awake`、新游戏初始化与 Snapshot 表现重建统一通过单一 Ensure helper 创建并绑定，New Game／Load 清空旧队列。
+- `DispatchDrainedEvents` 仍是唯一事件 Drain；只显示 Target 为 PlayerParty member 的既有 `SocialReaction`。Development Build 在合法反应入队时输出一次 `[SocialReactionUI]` 诊断。本次未修改 Core Social、关系公式、击杀传播、死亡归因或 SaveLoad。
+
+**验证：** Host 与 EditMode Tests 程序集离线编译及 `git diff --check` 在提交前执行；Unity 人工验收即时位置、层级、队列与读档后继续显示。
+
+---
+
 ## 2026-09-07 — Character Social Relations V1／Character Profile UI V1 正式封板
 
 - 制作人已完成人工验收：Social Bond／五维 Attitude、Attack／Help／Rescue／Kill 社会后果、全局击杀传播、Death Attribution、非模态箭头通知、统一人物档案四页及阿石／阿兰→阿土亲子配置共同进入 SEALED baseline。

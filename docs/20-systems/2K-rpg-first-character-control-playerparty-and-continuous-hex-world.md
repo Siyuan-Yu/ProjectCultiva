@@ -1,11 +1,12 @@
 # RPG-First：Active Character、PlayerParty、连续 Hex 世界与 FormalArmy 军事层
 
-> 状态：**Phase 2B／2C 已封板**｜**Phase 2C Continuous World Movement 已人工验收封板（2026-08-26）**｜优先级：P0｜最后更新：2026-08-26  
+> 状态：**Phase 2B／2C 已封板**｜**Phase 2C Continuous World Movement 已人工验收封板（2026-08-26）**｜优先级：P0｜最后更新：2026-09-09
 > 上级：`docs/00-project/00-overview.md`  
 > 关联：`2A`、`2J`、`24`、`27`、`23`、`ADR-0020`、`ADR-0024`、`ADR-0025`、`ADR-0026`  
 > 被引用：`03-glossary.md`、`04-reading-guide.md`、`41-roadmap`、`AGENTS.md`  
 > **本页是玩家控制模型、PlayerParty、世界存在状态、连续 Hex 世界与 FormalArmy 职责边界的正式产品真源。**  
 > **本文件只锁契约与产品规则；不写 Runtime C#。** 当前 Host 的 RTS 多选、Army-required World Travel、远距离切换控制等视为 **Prototype / Legacy 待迁移**。
+> **未来方向注记（不改变本页当前契约）：** [203](../40-process/203-continuous-2d-open-world-world-surface-direction-2026-09-09.md) 记录了连续 Outdoor World Surface 的讨论；它不是实施授权，当前 Wilderness LocalMap、SurfaceExit、WorldSite LocalMap 与 Travel 行为仍保持本页所述实现。
 
 ---
 
