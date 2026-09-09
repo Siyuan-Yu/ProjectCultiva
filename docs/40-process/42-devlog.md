@@ -7,7 +7,27 @@
 
 ---
 
-## 2026-09-09 — 连续 2D 开放世界 / World Surface 架构方向讨论
+## 2026-09-09 — Continuous World W1A / Multi-Surface Presentation Foundation
+
+- W1A 已在不改变 Gameplay 的前提下拆开 Host 的 single-map presentation 生命周期：`SurfacePresentationInstance` 仅持 transient instance owner、source layout、普通 2D placement 和 root；`HostDemoTileMap` 增加 incremental build / remove，旧 `Rebuild()` 仍先清空后只构建当前 Active LocalMap。
+- `HostInteractSpots`、`HostMapObjectRegistry`、`HostFarmFieldRegistry` 改为 owner-scoped incremental registry，并保留 legacy `BeginRebuild()` wrapper；新增纯 Core `WalkGridComposer`，但 `HostMoveController` 仍使用当前单 LocalMap `WalkGrid`。
+- 新增 W1A 记录 [204](204-continuous-world-w1a-presentation-foundation-2026-09-09.md)。Unity batch compile 无 CS error；W1A 定向 EditMode 7/7 通过。全量 EditMode 存在 352 个 Army / Battle 等跨领域失败，未将其作为本阶段通过声明；是否为既有基线须在 W1B 前单独归因。
+
+**未做：** 不加载第二张正式 Outdoor LocalMap；不改 LocalMapSession、SurfaceExit、WorldPosition authority、travel、combat、save、schema 或地图 Content。W1B 需人工 review 后另行授权。
+
+---
+
+## 2026-09-09 — Continuous Outdoor World Surface 架构方向正式收束（未实现）
+
+- 新增 [ADR-0031](43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md)，将一个大陆内普通 Outdoor Geography 统一为 Future **Continuous Outdoor World Surface**；固定 Baked Base World 与 Save-specific Dynamic State 分层，Surface Chunk 与 Strategic Hex 分离，`WorldSpaceId + WorldPosition` 为长期物理位置方向。
+- ADR-0031 部分 supersede ADR-0021 的“普通 Outdoor 跨 Region 必须 Route / 不做整大陆连续”规则；不删除 Region 概念，不改写 ADR-0021 历史正文。ADR-0025（Hex 战略权威）、ADR-0026（RPG-First / PlayerParty / FormalArmy）与 ADR-0027（当前 Canonical Position / mapping bridge）均保留并已加关系说明。
+- [203](203-continuous-2d-open-world-world-surface-direction-2026-09-09.md) 改为 **ARCHITECTURE DIRECTION DECIDED / NOT IMPLEMENTED**：明确 Current Runtime 仍使用 Wilderness LocalMap、WorldSite LocalMap、SurfaceExit、SpatialMapping 与现有 Travel authority；本轮没有改 C#、Content、Schema、Scene、Prefab、地图、Save 或 Gameplay。World Event 仅保留 Future North Star。
+
+**后续门槛：** Runtime Migration 尚未开始；需单独 architecture / system design / migration plan 与制作人 Phase 授权后才可实施。
+
+---
+
+## 2026-09-09 — 连续 2D 开放世界 / World Surface 架构方向讨论（历史）
 
 - 新增 [203](203-continuous-2d-open-world-world-surface-direction-2026-09-09.md)，以 **DISCUSSION / NOT IMPLEMENTED** 明确记录长期 North Star：普通 Outdoor Traversal 尽可能连续，Ground 与 Future Flight 共享同一 Outdoor World Space；这不等于一张巨型地图文件，也不等于全世界 Full Simulation。
 - 文档明确区分当前已实现的 HexWorld／CanonicalWorldSurfacePosition／Wilderness LocalMap／WorldSite LocalMap／SurfaceExit／分层后台模拟，与未来的 Streaming World Surface；当前 Runtime、Travel、Content、Schema、SurfaceExit 与 WorldSite LocalMap 均未修改。

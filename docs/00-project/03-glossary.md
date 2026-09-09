@@ -128,7 +128,9 @@
 | 连续 Hex 世界 | Continuous Hex World | HexWorld=唯一世界拓扑；LocalMap=近景；逻辑连续旅行 | 非必须 Unity 无缝开放世界 |
 | 连续世界坐标 | CanonicalWorldSurfacePosition | PlayerParty 在连续世界表面的**唯一物理位置真源**（Wilderness 与 WorldSite 内统一） | `DerivedPresenceHex` 为**派生**；`CurrentHex` 为混合语义（PhysicalDerivedHex／RouteCommittedHex／CurrentWildernessHex，5R-C 分类）；LocalPosition 非持久真源；见 2K §5.8／ADR-0027 |
 | 世界表面（讨论概念） | World Surface | 长期可能承载 Ground／Flight 连续室外移动的统一二维 Outdoor World Space | **DISCUSSION / NOT IMPLEMENTED**；不是当前 Runtime 类型，不等于已实现 Streaming；见 203 |
-| 表面区块（讨论概念） | Surface Patch / Streaming Chunk | 连续世界中可独立制作、生成、保存或加载的区域块 | 与 Hex Partition 不预设一一对应；大小、技术与迁移方式未决定；见 203 |
+| 连续室外世界表面 | Continuous Outdoor World Surface | 一个大陆内普通 Outdoor Geography 的真实连续物理世界 | **Future Architecture / NOT IMPLEMENTED**；Indoor / Cave 等独立 Space 不在其中；见 ADR-0031 |
+| 世界空间标识 | WorldSpaceId | 标识一个独立 Physical World Space（例如一块大陆或特殊独立世界） | 长期 Outdoor Physical Position = `WorldSpaceId + WorldPosition`；Future 架构 |
+| 表面区块 | Surface Chunk | 连续世界中制作、存储与 Runtime Streaming 的基本单位 | **不是 Gameplay Boundary**；不等于 Strategic Hex；大小、技术与迁移方式 Deferred；见 ADR-0031 |
 | 地表出口触发深度 | ExitTriggerDepth | Surface LocalMap 自边界向内的 Exit Trigger 深度（Gameplay） | MapLayout 可配；见 2K §5.8.7／164 |
 | 地表出口触发区 | Surface Exit Trigger Zone | 可触发 Hex／Site 边缘过渡的固定几何 ∩ 运行时合法性 | Geometry 固定；Availability 可变；见 2K §5.8.7 |
 | 世界定位 | WorldLocation | `AtWorldSite{SiteId}` \| `AtWorldPosition{ContinuousPosition}` | 与 MovementState 分离；Party 共用一个 |
@@ -239,7 +241,7 @@
 | 有效控制范围 | Effective Control Range | 按 EstablishedOrder first claim 后实际获得的 Hex | 可从全部 Control Asset 确定性重建 |
 | Hex 领土 | Hex Territory | 单个 Hex 当前由哪个 **正式 Territorial Faction** 政治控制 | `ControlFactionId` 是 Control Asset Resolver 的派生投影，不是因果真源；见 2J |
 | 辖区 | TerritoryRegion | 绑定 Primary WorldSite 的兼容地图组织单元 | Runtime `Hexes[]` 由 Control Asset Resolver 重建；不是政治真源 |
-| 地点足迹 | WorldSite Footprint | WorldSite 在战略地图上占用的 Hex 集合 | `FootprintHexes[]`；与 Territory 严格分离 |
+| 地点足迹 | WorldSite Strategic Footprint | WorldSite 在战略地图上占用的 Hex 集合 | `FootprintHexes[]`；与 Territory 严格分离，且不等于 Exact Physical Boundary；见 ADR-0031 |
 | 锚点 Hex | AnchorHex | Multi-Hex Site 的图标／名称／编辑器参考点／默认镜头焦点 | 禁止作为 PlayerParty AtSite 的实际位置（ADR-0027）；进入用 Footprint.Contains |
 | 固定地点 | Fixed WorldSite | 来自 World Content JSON、开局位置固定的 WorldSite | Capture 改 Owner；不因战斗删除 |
 | 动态地点 | Dynamic WorldSite | Runtime 生成、可永久摧毁的 WorldSite Instance | 第一版主要用于山贼寨 |

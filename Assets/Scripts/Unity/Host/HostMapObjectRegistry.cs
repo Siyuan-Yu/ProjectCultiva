@@ -8,32 +8,80 @@ namespace XianXia.Unity.Host
     {
         static readonly List<HostMapPlotCell> Plots = new List<HostMapPlotCell>(256);
         static readonly List<HostMapDestructible> Destructibles = new List<HostMapDestructible>(128);
+        static readonly Dictionary<Object, string> OwnerByObject = new Dictionary<Object, string>();
+        static string _currentOwner = string.Empty;
 
         public static IReadOnlyList<HostMapPlotCell> AllPlots => Plots;
         public static IReadOnlyList<HostMapDestructible> AllDestructibles => Destructibles;
 
+        /// <summary>Legacy single-map wrapper. New incremental users must use owner APIs.</summary>
         public static void BeginRebuild()
+        {
+            ClearAll();
+        }
+
+        public static void ClearAll()
         {
             Plots.Clear();
             Destructibles.Clear();
+            OwnerByObject.Clear();
+            _currentOwner = string.Empty;
+        }
+
+        public static void BeginOwnerBuild(string ownerKey)
+        {
+            _currentOwner = ownerKey ?? string.Empty;
+            RemoveOwner(_currentOwner);
+        }
+
+        public static void RemoveOwner(string ownerKey)
+        {
+            ownerKey = ownerKey ?? string.Empty;
+            for (var i = Plots.Count - 1; i >= 0; i--)
+                if (Plots[i] == null || IsOwnedBy(Plots[i], ownerKey))
+                {
+                    OwnerByObject.Remove(Plots[i]);
+                    Plots.RemoveAt(i);
+                }
+            for (var i = Destructibles.Count - 1; i >= 0; i--)
+                if (Destructibles[i] == null || IsOwnedBy(Destructibles[i], ownerKey))
+                {
+                    OwnerByObject.Remove(Destructibles[i]);
+                    Destructibles.RemoveAt(i);
+                }
         }
 
         public static void Register(HostMapPlotCell plot)
+            => Register(_currentOwner, plot);
+
+        public static void Register(string ownerKey, HostMapPlotCell plot)
         {
             if (plot != null && !Plots.Contains(plot))
+            {
                 Plots.Add(plot);
+                OwnerByObject[plot] = ownerKey ?? string.Empty;
+            }
         }
 
         public static void Register(HostMapDestructible d)
+            => Register(_currentOwner, d);
+
+        public static void Register(string ownerKey, HostMapDestructible d)
         {
             if (d != null && !Destructibles.Contains(d))
+            {
                 Destructibles.Add(d);
+                OwnerByObject[d] = ownerKey ?? string.Empty;
+            }
         }
 
         public static void Unregister(HostMapDestructible d)
         {
             if (d != null)
+            {
                 Destructibles.Remove(d);
+                OwnerByObject.Remove(d);
+            }
         }
 
         public static bool TryPickPlot(Vector3 worldPoint, float radius, out HostMapPlotCell plot)
@@ -46,6 +94,7 @@ namespace XianXia.Unity.Host
                 if (p == null)
                 {
                     Plots.RemoveAt(i);
+                    OwnerByObject.Remove(p);
                     continue;
                 }
 
@@ -81,6 +130,7 @@ namespace XianXia.Unity.Host
                 if (d == null || d.IsDestroyed)
                 {
                     Destructibles.RemoveAt(i);
+                    OwnerByObject.Remove(d);
                     continue;
                 }
 
@@ -98,5 +148,9 @@ namespace XianXia.Unity.Host
 
             return target != null;
         }
+
+        static bool IsOwnedBy(Object item, string ownerKey) =>
+            item != null && OwnerByObject.TryGetValue(item, out var owner) &&
+            string.Equals(owner, ownerKey, System.StringComparison.Ordinal);
     }
 }

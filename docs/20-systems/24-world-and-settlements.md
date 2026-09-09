@@ -6,6 +6,7 @@
 > **世界结构新真源：[113 World Graph + Local Map](../40-process/113-world-graph-local-map-architecture-revision-v0.1.md)**  
 > 下文 §2「Region = 较大连续区域」已被 113 取代：宏观为 WorldNode＋WorldRoute，实体玩法只在按需 LocalMap。历史 Freeze 段落保留备查，**不要按连续大区实现新内容**。  
 > **⚠️ 2026-08-24 Pure Hex supersede：** 战略空间真源 = **HexWorld + WorldSite.FootprintHexes**（ADR-0025、155）。Multi-Hex Site、TerritoryRegion、Fixed/Dynamic WorldSite 规则见 **[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**；Node／Route 不再作 Territory／Site 空间真源。
+> **⚠️ 2026-09-09 Future Direction：** [ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md) 已锁定普通 Outdoor 每大陆一个 Continuous Outdoor World Surface，并部分 supersede 本文／ADR-0021 的“跨 Region Route、非整大陆连续”目标规则。下文仍描述当前／历史 LocalMap 实现，**不构成已开始迁移或删除 LocalMap / SurfaceExit 的授权。**
 
 ## 1. 这个系统解决什么问题
 

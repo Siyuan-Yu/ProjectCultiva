@@ -1,260 +1,98 @@
-# 连续 2D 开放世界架构方向与待决问题
+# 连续 2D 开放世界 / World Surface 架构方向
 
-> 状态：**DISCUSSION / NOT IMPLEMENTED（架构方向讨论，未实现）**｜优先级：Future Direction｜最后更新：2026-09-09
-> 参考基线：`Scripts(20260908-141108)` 与本次讨论时的最新文档／代码
+> 状态：**ARCHITECTURE DIRECTION DECIDED / NOT IMPLEMENTED**｜优先级：Future Architecture｜最后更新：2026-09-09
+> 正式决策：[ADR-0031 Continuous Outdoor World Surface Architecture](43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md)
 > 关联：`2K`、`2J`、`24`、`41-roadmap`、ADR-0021、ADR-0025、ADR-0026、ADR-0027
-> **本页不是 ADR，不取代已采纳的 Freeze、2K 或 ADR；不授权 Runtime、Content、Schema、Travel 或地图迁移实现。**
+> **本页锁定目标架构方向，但不授权 Runtime、Content、Schema、Scene、Prefab、地图、Travel 或存档迁移。**
 
 ---
 
-## 0. 记录目的与边界
+## 0. 结论与边界
 
-本记录整理长期产品方向：最终希望普通室外地理呈现为尽可能连续的二维开放世界，而不是由技术分区直接表现为一格一房间的反复换图体验。
+本轮已经拍板：普通 Outdoor Geography 的长期目标是 **Continuous Outdoor World Surface**。一个大陆内的荒野、村镇、城市街道与城墙外侧、宗门山门／庭院、道路、农田、森林、山脉、河流等，属于同一个连续的 Outdoor Physical World；城市不因“是城市”而默认切入独立 City Map。
 
-这里的“连续”首先是玩家体验与长期架构方向，不等于本轮已经决定 Unity 具体 Streaming 技术，也不等于把整个世界一次性载入内存。本文不改变下列既有事实：
+这不是“已经实现”。本页必须与当前 Runtime 严格分开理解：现有 LocalMap、SurfaceExit、WorldSite LocalMap、SpatialMapping、当前 transition / mapping / Travel authority 都继续正常使用；本次更新本身不允许删除、迁移或改写它们。
 
-- 当前 `HexWorld` 仍是唯一世界拓扑；
-- 当前 Wilderness 仍是 **1 Hex = 1 logical LocalMap instance**；
-- 当前 `WorldSite` 仍是 **1 SiteId / 1 LocalMapId**，可拥有多个 Hex 的 footprint；
-- 当前 `Surface Exit Trigger Zone`、WorldSite LocalMap、Wilderness/WorldSite transition、Auto Travel 与现有 Travel authority 均继续有效；
-- 当前已实现的是逻辑连续位置、投影与过渡，不是完整的无缝 Outdoor Streaming 世界。
+真正离开当前 Physical World Space 才允许 Space Transition：Interior、Cave、Underground、Dungeon、Secret Realm、Pocket World、洞天、小世界及其他特殊异空间仍可长期使用独立 Space / Portal / LocalMap。不同大陆也是不同的 Continuous Outdoor World Surface；现阶段跨大陆是 `WorldSpace A → transition / teleport → WorldSpace B`，不设计航海或跨海连续飞行。
 
-任何后续实现必须先另行完成架构决策、系统设计、迁移计划与授权；不得把本页当作实施需求。
+## 1. Current Implementation（仍是现行实现契约）
 
-## 1. 当前实现：已存在的地图与位置架构
+- `HexWorld` 是当前唯一世界拓扑；Wilderness 仍为 **1 Hex = 1 logical LocalMap**。
+- `WorldSite` 仍是一个 Site identity、一个 LocalMap identity，可拥有 Strategic Hex footprint。
+- `CanonicalWorldSurfacePosition`、`WildernessLocalWorldProjection`、`HexFootprintSpatialMapping`、`WorldSiteSpatialMapping`、SurfaceExit 与现有 transition / Travel authority 继续工作。
+- Outdoor → Outdoor 仍会经现有 LocalMap／SurfaceExit transition；这不是新架构已经落地的证据。
+- `WorldSite LocalMap normalized projection → footprint domain` 仍是当前有效的 mapping；ADR-0027 继续是 Canonical WorldPosition、Context 与 Physical Position 分离的正式基础。
 
-### 1.1 已采纳的空间真源
+## 2. Target Architecture（已决定、尚未实现）
 
-当前正式模型由 `2K` 与 ADR-0027 约束：
+### 2.1 世界位置与核心空间概念
 
-- `HexWorld` 是唯一世界地理拓扑，负责邻接、路径、footprint、战略地形与大尺度空间查询；
-- `WorldMap` 是 HexWorld 的总览与 Auto Travel UI，不是第二套位置真源；
-- `LocalMap` 是当前位置的 RPG 近景展开；
-- `CanonicalWorldSurfacePosition` 是 PlayerParty 在 Wilderness 与 WorldSite 内统一的物理位置真源；
-- `AtWorldSite(SiteId)` 是战略 Context，不覆盖物理位置；
-- `DerivedPresenceHex = WorldToHex(CanonicalWorldSurfacePosition)` 是派生查询，不是独立 authority。
+长期 Outdoor Physical Position 的最高权威为 **`WorldSpaceId + WorldPosition`**：从物理位置查询所属 Strategic Hex、Surface Chunk、WorldSite Physical Region 与 Presentation Context，绝不从“当前哪张 LocalMap”反推世界位置。
 
-这里已有的 “surface” 是 Canonical Position 的语义，不表示项目已经存在名为 `WorldSurface` 的完整 Runtime、Chunk 系统或无限室外地图。
-
-### 1.2 当前 Wilderness / WorldSite / LocalMap 行为
-
-| 当前对象 | 当前实现事实 |
+| 概念 | 长期职责 |
 |---|---|
-| Wilderness | 一个普通 Wilderness Hex 对应一个逻辑 LocalMap 实例，可共享模板、Terrain 或生成规则。 |
-| WorldSite | 一个 Site 可占多个 Hex，但仍只有一个 Site identity、一个 LocalMapId 与一张 LocalMap。 |
-| 位置映射 | `WildernessLocalWorldProjection`、`HexFootprintSpatialMapping` 与 `WorldSiteSpatialMapping` 把 Local playable bounds 归一化并映射到 Hex／footprint 的连续 world-surface domain。 |
-| 跨边界 | `SurfaceExit` 以固定几何触发区和运行时合法性控制从当前 LocalMap 到相邻 Hex／Site 的 transition；允许 Loading/Fade，但禁止跨格 snap 到邻格中心。 |
-| WorldSite 进出 | 进入／离开改变 Site Context，不应 snap Anchor、PresenceHex 或 Site center；实际边界连接复用 `SurfaceExitConnection` 与 footprint authority。 |
-| 远处角色 | Background Character 与 FormalArmy 已有分层的战略／数据模拟，不要求加载每张 LocalMap。 |
+| **World Surface** | 一个大陆真实连续的 Outdoor Physical World。 |
+| **Surface Chunk** | 制作、存储与 Runtime Streaming 的基本单位；不是 Gameplay Boundary。 |
+| **Strategic Hex** | WorldMap、Territory、Faction Control、FormalArmy、WorldSite Strategic Footprint、Background Travel / simulation、战略路径与地形摘要。 |
 
-这些资产均是未来方向的候选复用基础，不是要在本轮删除或替换的旧系统。
+`Surface Chunk ≠ Strategic Hex`；两套 Grid 不要求对齐，绝不恢复 `1 Hex = 1 LocalMap` 或建立 `1 Hex = 1 Streaming Chunk` 的长期绑定。当前 `CanonicalWorldSurfacePosition` 是迁移基础，未来升格为 Outdoor Physical Authority。
 
-### 1.3 当前实现与长期方向不能混写
+### 2.2 Fixed Baked Base World + Dynamic Save State
 
-当前实现的“逻辑连续”意味着：世界位置在跨 Hex 与进出 WorldSite 时保持连续语义，WorldMap 与 LocalMap 不应形成割裂的第二套位置空间。它**不等于**当前室外移动已没有 LocalMap context、地图加载或 SurfaceExit。
-
-长期方向的“连续 Outdoor World Surface”则追求：玩家在普通室外步行或未来飞行时，技术分区不应被体验成连续的房间切换。两者存在继承关系，但后者尚未实现，也没有在本页决定迁移路径。
-
-## 2. 产品 North Star：连续 Outdoor World Surface
-
-最终希望玩家在普通室外世界中，从森林走到山谷、从荒野走进村庄并继续走出、穿越城镇与多个战略 Hex 时，尽可能感觉自己始终在同一个二维世界中移动。
-
-未来飞行（斗气化翼）是这一目标的重要验收情境：玩家可在荒野起飞，连续越过山川、道路、城镇与多个战略 Hex，最终抵达远处；不应因为高速跨越而形成“一格一个房间”或反复进出 LocalMap 的感受。Flight 仍是 Future，当前不实现。
-
-### 2.1 Ground 与 Flight 使用同一个世界
-
-未来 Ground Movement 与 Flight Movement 应共享同一个连续 Outdoor World Space，只在 movement rules 上不同：
-
-- Ground 受墙、河流、悬崖、地形、道路等限制；
-- Flight 可跨越部分地面障碍，未来可另有高度、禁飞阵法或特殊空域规则；
-- 二者不得分别依赖“LocalMap Portal Travel”与另一套“Flight Travel”架构。
-
-### 2.2 一个大世界不是一张巨大地图文件
-
-目标是统一的 Global Coordinate Space 加上可独立制作、生成、保存与 Streaming 的区域块（Chunk、Cell、Surface Patch 或 Region），而不是把全部 Tile、Collider、NPC GameObject 一次性加载。
-
-逻辑上它是一张连续 Outdoor World；开发和运行时可以是模块化的。玩家附近加载高精度地图内容，远处保留必要 Domain State 与后台模拟。这使 Modular Authoring 与 Continuous Open World 可以共存。
-
-## 3. 长期空间分工方向
-
-### 3.1 World Surface（讨论概念）
-
-`World Surface` 是本文的概念名：指玩家真正步行／飞行的连续室外二维空间。它当前不是 Runtime 类型、JSON schema 或现有类名。
-
-长期可将稳定的全局连续位置语义继续建立在 `WorldPosition`／`CanonicalWorldSurfacePosition` 的方向上：
+最终世界是开发者制作并 Bake 的固定世界，不是玩家开档随机生成的大陆。流程为：
 
 ```text
-PhysicalHex = WorldToHex(WorldPosition)
+Procedural Initial Draft → Global Macro Geography → Manual Editing / Override
+→ Bake → Surface Chunks → Runtime Streaming
 ```
 
-当前 PlayerParty 的 Canonical Position 已是重要基础，但不能因此声称所有角色、所有 Surface data 或 Streaming 均已完成。
+程序生成服务开发工具和规模，人工负责最终质量；Runtime 不重新随机生成基础 Geography。Base World Surface 是 Runtime immutable，包含 terrain、elevation、road、river、water、mountain、cliff、静态建筑／墙／装饰／碰撞等。Save 只保存 Character、Army、Faction、WorldSite owner、Territory、旗帜、门／箱／机关／特殊结构、Quest / Event 等动态 Domain state；不保存地形 tile delta，也不支持挖填、地形形变、改河、修山、runtime 画路或 Minecraft 式世界编辑。
 
-### 3.2 Hex 的长期角色
+Road、River、Biome macro shape、Mountain range / terrain field 必须先以全局连续定义生成和人工修改，再 Bake 到各 Chunk 的局部表现；开发者不应手工逐 Chunk 对接河流或道路端点。
 
-Hex 不应废弃。长期更适合担当 Strategic / Simulation Spatial Partition：
+### 2.3 连续 Gameplay 与分层模拟
 
-- WorldMap、战略地形与战略路径；
-- Territory、Faction Control、WorldSite footprint、FormalArmy 与 SupportArea；
-- Background Travel、World Event 空间查询、移动成本与大尺度位置索引；
-- 远方 simulation 分区。
+Chunk 是 loading / storage / authoring boundary，**不是 Gameplay Boundary**。Player / NPC movement、follow、chase、combat、aggro、projectile、skill、road、river、wall 与 future flight 均可自然跨 Chunk；near-player combat / chase 有保护范围，不能因过边界 dematerialize 或结束。远离后才可降级。
 
-因此 Hex Partition 与 Surface Streaming Chunk 不应预设为同一概念；尤其不得预设 `1 Hex = 1 Streaming Chunk`。具体 chunk 大小、形状、生成和加载策略尚未决定。
+Near Player 使用 Full Simulation（presentation、collider、realtime AI、combat、interaction、surface navigation）；Far 使用 Domain / Background Simulation（Character state、schedule / travel、FormalArmy、WorldSite、strategic battle / siege）。`Dematerialize` 只销毁 presentation / realtime simulation，绝不销毁 Entity；再次靠近必须从 Domain State materialize 正确结果，不补演玩家未见的逐帧历史。
 
-### 3.3 连续空间不等于全量模拟
+长期对象分三层：**Fixed Surface Content**（无独立持久 identity 的 terrain、road、river、普通树石／装饰、普通静态建筑／墙／collision）随 Chunk streaming；**Stateful Gameplay Object**（door、gate、chest、mechanism、flag、destructible bridge、special structure、ControlCore-like object）有稳定 ID，Base 定义“是什么／在哪里”，Save 定义当前状态；**Domain Entity**（Character、PlayerParty、FormalArmy、Faction、WorldSite、Background Character、future significant World Event）独立于 Chunk 持续存在。原则：**Chunk owns presentation; Domain owns identity and state**；Stable ID 不得以 Chunk ID 为长期 identity 组成部分。
 
-Physical Continuity、Presentation Loading 与 Simulation Granularity 是三个不同问题。
+Outdoor Character 的空间真相始终在同一 Continuous World：近处用 precise `WorldPosition`，远处可用 route、progress、origin、destination、start / arrival time、schedule phase，但必须确定性恢复合理 WorldPosition，禁止只存 `CurrentHex` 后随机生成在 Hex 中心。Schedule anchor 同理。FormalArmy 远处可 Strategic / Hex-first；玩家靠近时必须由 Hex route / progress 确定性映射到 Surface。
 
-| 距离／职责 | 长期方向 |
-|---|---|
-| 玩家附近 | Tile、Sprite、建筑、Collider、NPC GameObject、实时 AI、战斗与近景导航可 Full Detail materialize。 |
-| 远处区域 | 不加载近景 Tile/Collider/NPC GameObject；只保留世界状态、计划行动、后台旅行、战略结算或未来 World Event state。 |
-| 跨区域移动 | 前方区域可提前加载，身后区域可卸载；玩家的 WorldPosition、移动与 Camera continuity 应保持连续。 |
+Navigation 是双层：Near 是连续 Realtime Surface Navigation，理解真实 walkability、barrier、水、elevation connection、cost 与 collision；Far 是 Strategic / Background Travel，使用 Hex、global road、mountain pass、river crossing、terrain cost、WorldSite / route。算法可不同，但必须描述同一个世界。
 
-例如玩家位于青石镇时，千里之外 A 城与 B 城可以同时发生 Siege：双方都可由 `FormalArmy`、`WorldSite`、战略 Encounter、Siege State 与 Domain resolution 在后台推进，无需加载两张 City Tile Map 或运行两批实时 Combat AI。玩家接近时，再将其权威世界状态 materialize 为一致的近景表现。
+### 2.4 地形、地点、战略摘要
 
-## 4. 现有资产的潜在复用
+采用 **Continuous 2D Surface + Discrete Elevation Level + Barrier Edge + Connection + Water Region**，不做连续 3D heightmap / 2.5D physics height。Cliff / Wall 是 barrier；Slope / Stair / MountainPath / Bridge 是 connection；Mountain 不天然等于不可走，Ground Traversal 由实际 barrier 决定。
 
-未来 Continuous World 不等于推倒现有项目。下列现有资产仍有长期价值：
+Continuous Surface 是真实地理权威；Strategic Hex Terrain 是战略摘要。Surface / Macro Geography 可 auto-derive Hex summary，开发者可 override 为最终 strategic metadata（movement cost、road bonus、river crossing、chokepoint 等）。Terrain Tag 不反向强迫整块 Hex 的真实表面只有一种地形。
 
-- `WorldPosition` / `CanonicalWorldSurfacePosition`、`WorldToHex`、HexWorld、HexGraph 与战略 pathfinding；
-- WorldMap、WorldSite Definition、WorldSite footprint、Territory、Faction/Diplomacy、FormalArmy；
-- Background Character / Background Travel、Character Runtime、Social Relations、Combat、Building/Construction 与 SaveGame Domain State；
-- `WildernessLocalWorldProjection`、`HexFootprintSpatialMapping`、`WorldSiteSpatialMapping`、SurfaceExit 的连续映射和边界语义；
-- WorldGraph authoring 概念，以及现有 WorldSite/Wilderness authored 内容。
+Territory 仍严格 Hex-based。WorldSite 不再等于“一张地图”，而是有 identity、Strategic Footprint、Physical Region、Gameplay State 的重要地点；footprint 是 Hex 集合的战略范围，不等于 Exact Physical Boundary，不要求城墙沿 Hex、城区填满 footprint 或两者同形。
 
-当前 LocalMap 未来可能被复用为 `Surface Patch / Authored Patch`：旧 Wilderness LocalMap 可成为一块 authored wilderness patch；旧 WorldSite LocalMap 可成为较大的 town、sect 或 settlement patch。其 terrain、decoration、building、WorkArea、spawn 与 LocalPosition 数据可尽量变成 patch-relative data，再放置到 Global WorldPosition。
+### 2.5 Flight 与 Future World Event
 
-是否迁移、如何转换、哪些边缘数据可直接复用，均未决定；本页不授权迁移。
+Flight 是尚未实现的独立 Traversal Mode，仍在同一个 World Surface。Flight 可连续跨 Chunk、Hex、荒野、城市、宗门、山河；普通地面障碍不作为其 navigation barrier。未来禁飞阵法、天幕等可另设 `AerialBarrier`，不预设另一世界空间或复杂 Aerial NavMesh。
 
-## 5. Wilderness 生产：Procedural Base + Authored Override
+World Event 本轮只记录 North Star，**不进入实现**：它是能拥有 WorldSpace + WorldPosition / Region 的真实 Domain Event，可 Near materialize、Far background resolve，后果进入 Character / Faction / WorldSite / Social 等 Domain。倾向由真实世界 state / eligibility 经受控概率创建，生命周期可为 `Planned → Active → Resolved → Aftermath → Expired`，Importance 可分 Major / Standard / Ambient；不围绕玩家随机刷事件。
 
-当前倾向是：大部分普通荒野由程序生成承担规模，重要区域保留人工制作，并且程序结果必须允许人工编辑／覆盖。
+## 3. 已关闭的讨论问题
 
-理想的未来 World Editor 可先生成 biome、forest、mountain、river、road、grassland、POI、vegetation，再允许开发者修改地形、道路、桥梁、森林、湖泊、建筑、spawn，或覆盖一片区域、放入完整手工 POI / WorldSite。
+以下原讨论问题已由 ADR-0031 关闭：城市／村镇／宗门室外归属；世界为固定 Bake 还是 runtime 随机地形；Base World 与 Save 的边界；World Surface / Chunk / Hex 分工；Chunk 是否 Gameplay Boundary；战略地形与真实地理关系；Territory / WorldSite footprint / physical region 的关系；Outdoor Position 权威；普通 Outdoor SurfaceExit 的长期命运；2D elevation 语义；Flight 单一世界空间约束；分层 materialize / dematerialize 与 Character / Army 的位置连续性；World Event 的长期定位。
 
-青石镇、宗门、重要村庄、大型遗迹外部、特殊山谷等可作为 Authored Surface Patch 嵌入程序世界。程序生成负责 Scale，人工 Authoring 负责重要内容与质量。
+## 4. Migration Direction（不授权实施）
 
-Authored Patch 与程序世界的道路、河流、Biome Edge、Terrain Edge、城墙等接缝仍是未解问题。可能需要 Road Connector、River Connector、Authored Boundary Hint 或 Seam Generation，但不在此决定具体方案。
+`WorldPosition`、`HexFootprintSpatialMapping` 的 World↔Strategic Hex query 思想、WorldSite Physical Region / Strategic Footprint 都长期保留。当前 Wilderness / WorldSite LocalMap 可逐步成为 Surface authored source；迁移可调整边界、真实尺度、道路／河流连接、外围、少量建筑与 city edge，不要求像素级保留。普通 Outdoor 的 SurfaceExit 最终退出主链；Portal / SpaceTransition 长期保留给真正独立的 Space。
 
-## 6. 城市／城镇／宗门室外的三种保留选项
+## 5. Implementation-time Decisions（仍 Deferred）
 
-本记录明确保留三种可能，不替制作人选定其一。
+- Surface Chunk size / tile dimensions / file format / serialization schema / streaming radius；Unity unit、Hex 精确米数、角色速度、Mount / Flight 倍率。
+- Realtime navigation 最终算法、Tilemap / Renderer streaming、collider bake、Addressables、具体 Surface editor 与 multi-chunk UX。
+- road / river bake、irregular terrain connector、save 具体字段、dematerialize distance、simulation tick rate。
+- 大陆间玩法、Flight gameplay、World Event implementation。
 
-### 方案 A：城市属于 Continuous Outdoor Surface
+体验尺度方向已经决定但不是米制规格：普通 Hex 步行横穿约 3–5 分钟；主要城市间约 30–35 分钟；每大陆约 6–8 个主要城市；端到端步行目标不超过约 3 小时。Mount / Flight 明显更快，具体倍率 Deferred。
 
-森林 → 农田 → 城门 → 城市 → 城外荒野都处于同一 WorldPosition 空间；进入城市只改变 Region / WorldSite Context，不切换普通室外地图。其连续感最强，Ground/Flight 自然统一，也允许追逐或飞越城墙。代价是 authored city patch、外围程序地形、城墙道路河流接缝、城市 streaming、NPC materialization、Siege presentation 与编辑器需求更复杂。
+## 6. 非目标
 
-### 方案 B：城市作为独立 City / WorldSite Map
-
-Continuous Wilderness Surface 通过某种进入方式转入独立 City Local Space。它较易保留现有 WorldSite LocalMap 与复杂城市设计自由，但 Wilderness → City 更可能产生空间断层，飞行、追逐与穿城体验更难自然处理。
-
-### 方案 C：Hybrid
-
-城镇室外属于 Continuous Surface，而房屋 Interior、地下洞穴、地牢、秘境、洞天、小世界、空间裂缝及特殊异空间仍可为独立 Local Space。这看起来是自然的候选方向之一，但尚未决定。
-
-目标并非“游戏绝不能加载另一张地图”，而是普通 Outdoor Geography 不应因为技术分区而表现为房间切换。
-
-## 7. World Event 与 Flight 的未来约束
-
-下一大 Gameplay 候选仍是 World Event / 江湖事件：秘境、拍卖、护送／劫杀、炼药师大会、比武、宗门大会、商队、奇遇、道侣情感事件、渡劫、遗迹、洞府、争宝与世界冲突等。但在世界空间方向继续讨论期间，**不立即实现 World Event**。
-
-无论最终地图形态如何，未来 World Event 不应把 `LocalMapId` 作为世界位置根 authority；应优先使用 `WorldPosition`、`WorldSiteId` 或未来正式 World Location abstraction，以避免未来 Surface 迁移时整体重写。
-
-Flight 同样暂不实现。其未来验收不应只是翅膀 Sprite 或加速，而应包括在不打开 WorldMap 时连续飞越多个战略 Hex、道路、山脉、村镇和 WorldSite 的室外体验。
-
-本轮不继续 Succession；PlayerParty / ActiveCharacter architecture 保持现状。
-
-## 8. 已基本确定
-
-仅记录已有明确共识，未定项不放入本节：
-
-1. 最终目标是尽可能连续的 2D Outdoor Open World；
-2. Ground 与未来 Flight 使用同一个 Outdoor 世界；
-3. Continuous World 不等于一张巨大文件；
-4. 世界应由可 Streaming 的区域块组成；
-5. WorldPosition 应继续承担长期重要的世界位置语义；
-6. Hex 应长期保留，但更偏战略 / Simulation Partition；
-7. Hex 不必等于 Streaming Chunk；
-8. 大量 Wilderness 应主要程序生成；
-9. 程序地图必须允许人工 override；
-10. 重要 WorldSite / POI 应允许手工制作；
-11. 现有 LocalMap Content 应尽可能复用，而不是默认全部废弃；
-12. 远处世界不需要加载近景 Presentation；
-13. 连续世界与远处后台事件可以同时成立；
-14. Flight 暂时不做；
-15. 当前不进行地图 Runtime 大迁移；
-16. 当前首先记录架构方向，继续讨论。
-
-## 9. OPEN QUESTIONS / 尚未决定
-
-### Q1. 城市／城镇／宗门室外属于哪里？
-
-它们是否属于同一个 Continuous Outdoor Surface、作为独立 City Map，或采用 Hybrid？这是下一次讨论的首要问题。
-
-### Q2. 若城市连续，如何接缝与 materialize？
-
-如何处理 authored city patch、外围程序地形、road connector、river connector、city wall、siege presentation、NPC materialization 与 city streaming？
-
-### Q3. 若城市独立，如何避免割裂？
-
-如何避免 Wilderness → City 割裂、Flight 被城门 Portal 阻断、追逐／战斗中断，以及世界被体验为房间集合？
-
-### Q4. 世界生成策略是什么？
-
-开局一次生成整个 Macro World + Surface Data、先生成 Macro World 再按接近时生成 Surface Detail，还是 Hybrid？
-
-### Q5. Global World Scale 如何稳定？
-
-Hex 与连续 WorldPosition 之间最终采用何种全局一致游戏尺度？不要求现实米制，但必须稳定。
-
-### Q6. Surface Streaming Chunk 如何划分？
-
-Chunk 的大小、形状、加载边界是什么？与 Hex 是否完全解耦？预计会解耦，但尚未定案。
-
-### Q7. 程序 Wilderness 如何跨 Chunk 保持自然连续？
-
-road、river、biome、mountain、cliff 如何连续，且可被人工 override？
-
-### Q8. 现有 Wilderness LocalMap 如何转换？
-
-哪些数据能直接成为 Surface Patch，哪些 LocalMap 边缘、Exit 与 placement 需要迁移？
-
-### Q9. 现有 WorldSite LocalMap 如何转换？
-
-青石镇等完整手工地图应整体成为大型 Patch，还是未来拆分？
-
-### Q10. WorldSite footprint 与 Surface playable region 是否严格一致？
-
-战略 footprint 与连续 Surface 上的 town playable region 是必须严格同形，还是 Macro abstraction？
-
-### Q11. 跨 Chunk Navigation 如何连续？
-
-玩家／NPC 在跨 Streaming Chunk 时如何保持连续寻路？
-
-### Q12. 跨 Chunk Combat 如何连续？
-
-Projectile、追击 AI、范围技能、军队战斗跨 Chunk 时如何保持一致？
-
-### Q13. SaveGame 如何保存程序地图与人工覆盖？
-
-是否采用 Seed + Delta、哪些状态必须显式保存、如何与 authored override 合并？均未决定。
-
-### Q14. 远处城市事件需要何种 simulation 粒度？
-
-Siege、Auction、Tournament、World Event 在无人接近时应模拟到何种 Domain 粒度？
-
-### Q15. 连续城市与战略事件如何 materialize 一致？
-
-Continuous City 与 Background Strategic Siege 在玩家接近时如何还原为一致的近景状态？
-
-## 10. 本轮明确不做
-
-- 不修改 Runtime 代码、Gameplay、地图 Content、JSON Schema、Travel、SurfaceExit 或 WorldSite LocalMap；
-- 不实现 Streaming、World Event、Flight、程序地图生成、LocalMap 迁移或 World Editor；
-- 不决定城市连续／独立／Hybrid，不指定 Unity Tilemap Streaming、Addressables、Chunk 大小、世界起始尺寸、生成算法或 Seed + Delta；
-- 不改变 Player identity、PlayerParty 或 Succession 架构；
-- 不将本讨论标记为 SEALED、IMPLEMENTED 或已批准实施。
-
-## 11. 下一次讨论建议
-
-优先回答 Q1：城市／城镇／宗门室外到底选 Continuous、独立 City Map 还是 Hybrid。该选择将影响 authored patch、WorldSite、Flight、Streaming、Siege materialization 与迁移边界；在它之前不应开始 World Event 或 Outdoor Runtime 大迁移。
+本轮不改 Runtime / C# / JSON Content / Schema / Scene / Prefab / 地图资源 / Save；不新增 WorldSurface、SurfaceChunk、Streaming、Navigation、Flight 或 World Event Runtime；不删除 LocalMap / SurfaceExit；不迁移地图，也不改变任何 Gameplay behavior。

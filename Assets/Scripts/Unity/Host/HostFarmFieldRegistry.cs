@@ -10,10 +10,41 @@ namespace XianXia.Unity.Host
     {
         static readonly Dictionary<string, List<HostMapPlotCell>> ByLocation =
             new Dictionary<string, List<HostMapPlotCell>>(System.StringComparer.Ordinal);
+        static readonly Dictionary<HostMapPlotCell, string> OwnerByPlot =
+            new Dictionary<HostMapPlotCell, string>();
+        static string _currentOwner = string.Empty;
 
-        public static void BeginRebuild() => ByLocation.Clear();
+        /// <summary>Legacy single-map wrapper. New incremental users must use owner APIs.</summary>
+        public static void BeginRebuild() => ClearAll();
+
+        public static void ClearAll()
+        {
+            ByLocation.Clear();
+            OwnerByPlot.Clear();
+            _currentOwner = string.Empty;
+        }
+
+        public static void BeginOwnerBuild(string ownerKey)
+        {
+            _currentOwner = ownerKey ?? string.Empty;
+            RemoveOwner(_currentOwner);
+        }
+
+        public static void RemoveOwner(string ownerKey)
+        {
+            ownerKey = ownerKey ?? string.Empty;
+            var removals = new List<HostMapPlotCell>();
+            foreach (var kv in OwnerByPlot)
+                if (kv.Key == null || string.Equals(kv.Value, ownerKey, System.StringComparison.Ordinal))
+                    removals.Add(kv.Key);
+            for (var i = 0; i < removals.Count; i++)
+                RemovePlot(removals[i]);
+        }
 
         public static void Register(HostMapPlotCell plot)
+            => Register(_currentOwner, plot);
+
+        public static void Register(string ownerKey, HostMapPlotCell plot)
         {
             if (plot == null || !plot.IsPlantableField)
                 return;
@@ -28,6 +59,7 @@ namespace XianXia.Unity.Host
 
             if (!list.Contains(plot))
                 list.Add(plot);
+            OwnerByPlot[plot] = ownerKey ?? string.Empty;
         }
 
         public static bool HasField(string locationId) =>
@@ -46,7 +78,10 @@ namespace XianXia.Unity.Host
             for (var i = list.Count - 1; i >= 0; i--)
             {
                 if (list[i] == null)
+                {
+                    OwnerByPlot.Remove(list[i]);
                     list.RemoveAt(i);
+                }
             }
 
             if (list.Count == 0)
@@ -87,6 +122,19 @@ namespace XianXia.Unity.Host
             }
 
             return best != null && !string.IsNullOrEmpty(locationId);
+        }
+
+        static void RemovePlot(HostMapPlotCell plot)
+        {
+            OwnerByPlot.Remove(plot);
+            foreach (var kv in ByLocation)
+                kv.Value?.Remove(plot);
+            var empty = new List<string>();
+            foreach (var kv in ByLocation)
+                if (kv.Value == null || kv.Value.Count == 0)
+                    empty.Add(kv.Key);
+            for (var i = 0; i < empty.Count; i++)
+                ByLocation.Remove(empty[i]);
         }
 
         /// <summary>点击是否命中可耕作格（药田／农田同一套）。</summary>

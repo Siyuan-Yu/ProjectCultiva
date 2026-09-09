@@ -4,6 +4,8 @@
 - 日期：2026-07-31
 - 决策者：项目负责人（Freeze v0.2）
 
+> **⚠️ 2026-09-09 · [ADR-0031](ADR-0031-continuous-outdoor-world-surface-architecture.md) 部分 SUPERSEDE：** 本 ADR 历史正文中“普通 Outdoor 跨 Region 用 Route、且不做整大陆连续”的规则已被 Continuous Outdoor World Surface 目标架构取代。Region 概念本身未被删除；当前 Runtime 仍按本 ADR 的 LocalMap / transition 契约运行，直到另行获批迁移。
+
 ## 背景
 
 `24`「三级结构／10 屏」与冻结「四类地图」表述冲突，需统一。

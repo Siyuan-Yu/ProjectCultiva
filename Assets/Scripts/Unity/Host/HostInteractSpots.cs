@@ -50,8 +50,11 @@ namespace XianXia.Unity.Host
     public static class HostInteractSpots
     {
         static readonly List<HostInteractSpot> Dynamic = new List<HostInteractSpot>(256);
+        static readonly Dictionary<string, List<HostInteractSpot>> DynamicByOwner =
+            new Dictionary<string, List<HostInteractSpot>>(System.StringComparer.Ordinal);
         static readonly HostInteractSpot[] Empty = System.Array.Empty<HostInteractSpot>();
         static bool _layoutRebuilt;
+        static string _currentOwner = string.Empty;
 
         // 农田／药田已改成 map 上的 grainField／herbField 格，勿再放旧大片绿区上的麦垄／药畦热点。
         static readonly HostInteractSpot[] LegacyFallback =
@@ -93,11 +96,52 @@ namespace XianXia.Unity.Host
 
         public static void BeginLayoutRebuild()
         {
-            Dynamic.Clear();
-            _layoutRebuilt = true;
+            ClearAll();
         }
 
-        public static void RegisterPlot(HostInteractSpot spot) => Dynamic.Add(spot);
+        public static void ClearAll()
+        {
+            Dynamic.Clear();
+            DynamicByOwner.Clear();
+            _layoutRebuilt = true;
+            _currentOwner = string.Empty;
+        }
+
+        public static void BeginOwnerBuild(string ownerKey)
+        {
+            _currentOwner = ownerKey ?? string.Empty;
+            RemoveOwner(_currentOwner);
+        }
+
+        public static void RemoveOwner(string ownerKey)
+        {
+            ownerKey = ownerKey ?? string.Empty;
+            if (!DynamicByOwner.Remove(ownerKey))
+                return;
+            RebuildDynamicFlattened();
+        }
+
+        public static void RegisterPlot(HostInteractSpot spot) => RegisterPlot(_currentOwner, spot);
+
+        public static void RegisterPlot(string ownerKey, HostInteractSpot spot)
+        {
+            ownerKey = ownerKey ?? string.Empty;
+            if (!DynamicByOwner.TryGetValue(ownerKey, out var list))
+            {
+                list = new List<HostInteractSpot>();
+                DynamicByOwner[ownerKey] = list;
+            }
+            if (!list.Contains(spot))
+                list.Add(spot);
+            RebuildDynamicFlattened();
+        }
+
+        static void RebuildDynamicFlattened()
+        {
+            Dynamic.Clear();
+            foreach (var owner in DynamicByOwner)
+                Dynamic.AddRange(owner.Value);
+        }
 
         public static bool TryFindNearest(
             Vector3 worldPoint,

@@ -62,6 +62,8 @@ v0.2 修补要点：RelationshipLedger 权威；WorldTick／ActionClock；Dead�
 
 ## 五、世界结构
 
+> **Current / Future 分层（2026-09-09）：** 下列 World／Region／LocalMap 是当前 Freeze／Runtime 的实现描述。Future 普通 Outdoor Physical World 已由 [ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md) 锁定为每大陆一个 Continuous Outdoor World Surface；该方向部分 supersede ADR-0021 的跨 Region Route 物理连续性规则，但**未实现、未授权迁移，也不删除当前 LocalMap / SurfaceExit。**
+
 **World → Region → LocalMap**（Freeze v0.2／ADR-0021）。
 
 - Region：连续城市区域体验（荒村／矿／林／田／城心等）；尺寸可变。  

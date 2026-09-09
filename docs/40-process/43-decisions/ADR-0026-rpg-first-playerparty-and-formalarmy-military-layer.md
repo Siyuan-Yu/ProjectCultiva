@@ -2,6 +2,7 @@
 
 > **⚠️ 2026-08-30 · 部分被 [ADR-0027](ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md) SUPERSEDED：** Decision #6「PresenceHex 固定世界位置代理」与 #12 中「全体 WorldSite Aggregated；WorldMap 投影 = PresenceHex」由 ADR-0027 取代为 **CanonicalWorldSurfacePosition 唯一真源 + WorldSiteSpatialMapping + DerivedPresenceHex**（AtSite 仍是战略 Context，不覆盖物理位置）。其余 Decision（RPG-First 控制模型、命令精度锁、Army 边界）保持。
 > **⚠️ 2026-09-06 · Decision #4 的 Site-only 组军／解散地点限制被 [ADR-0028](ADR-0028-formalarmy-formation-and-roster-use-effective-territory.md) SUPERSEDED：** 玩家运行时 Create 与 roster management 改为同一 Friendly Effective Territory Hex；Garrison 仍为 WorldSite-only。
+> **2026-09-09 · [ADR-0031](ADR-0031-continuous-outdoor-world-surface-architecture.md) 补充 Future 方向：** 本 ADR 的 RPG-First／PlayerParty／FormalArmy 边界保持；普通 Outdoor 的长期 Physical World 采用 Continuous Outdoor World Surface。当前连续 Hex / LocalMap / SurfaceExit 实现仍有效，未授权迁移。
 
 - 状态：**已采纳**
 - 日期：2026-08-25（Decision #12 补钉：2026-08-26）

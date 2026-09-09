@@ -1,6 +1,8 @@
 # ADR-0025：战略空间模型 = HexGrid
 
 > **2026-08-30 · [ADR-0027](ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md) 扩展（PlayerParty 连续位置真源 + WorldSite LocalMap↔footprint 映射），不推翻 HexGrid 拓扑。**
+>
+> **2026-09-09 · [ADR-0031](ADR-0031-continuous-outdoor-world-surface-architecture.md) 关系澄清：** Hex 继续是 Strategic / Simulation authority；Continuous `WorldSpaceId + WorldPosition` 是 Future Outdoor Physical authority。Strategic Hex 不等于 Surface Chunk，两套 grid 不要求对齐。
 
 - **状态：** 已采纳（取代 ADR-0006 中 Route 作为战略移动拓扑的部分）
 - **日期：** 2026-08-23

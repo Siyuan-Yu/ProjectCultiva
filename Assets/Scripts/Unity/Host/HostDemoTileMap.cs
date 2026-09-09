@@ -23,10 +23,27 @@ namespace XianXia.Unity.Host
         [SerializeField] bool stampGrassGround = true;
         [SerializeField] int grassStride = 2;
 
-        readonly List<GameObject> _built = new List<GameObject>();
+        readonly Dictionary<string, SurfacePresentationInstance> _instances =
+            new Dictionary<string, SurfacePresentationInstance>(System.StringComparer.Ordinal);
+        readonly Dictionary<string, List<GameObject>> _builtByInstance =
+            new Dictionary<string, List<GameObject>>(System.StringComparer.Ordinal);
+        Transform _buildRoot;
+        Vector2 _buildPlacementOffset;
+        string _buildingInstanceKey = string.Empty;
         PlayableHostSession _session;
 
-        public int TileCount => _built.Count;
+        public int TileCount
+        {
+            get
+            {
+                var count = 0;
+                foreach (var built in _builtByInstance)
+                    count += built.Value.Count;
+                return count;
+            }
+        }
+
+        public IReadOnlyDictionary<string, SurfacePresentationInstance> LoadedInstances => _instances;
 
         public int MissingPrefabCount => MapLayoutPrefabResolver.MissingCount;
 
@@ -37,16 +54,12 @@ namespace XianXia.Unity.Host
             Clear();
             _session = session;
             MapLayoutPrefabResolver.BeginBatch();
-            HostInteractSpots.BeginLayoutRebuild();
-            HostMapObjectRegistry.BeginRebuild();
-            HostFarmFieldRegistry.BeginRebuild();
             if (!buildOnRebuild)
                 return;
-            EnsureRoot();
 
             if (TryPickLayout(session, out var layout))
             {
-                BuildFromLayout(layout);
+                BuildLayoutInstance("legacy:active-localmap", layout, Vector2.zero);
                 return;
             }
 
@@ -60,7 +73,9 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            BeginInstanceBuild("legacy:active-localmap", null, Vector2.zero);
             BuildLegacyDemoTiles();
+            EndInstanceBuild();
         }
 
         /// <summary>
@@ -71,23 +86,88 @@ namespace XianXia.Unity.Host
             Clear();
             _session = null;
             MapLayoutPrefabResolver.BeginBatch();
-            HostInteractSpots.BeginLayoutRebuild();
-            HostMapObjectRegistry.BeginRebuild();
-            HostFarmFieldRegistry.BeginRebuild();
             if (!buildOnRebuild || layout == null)
                 return;
-            EnsureRoot();
+            BuildLayoutInstance("legacy:editor-preview", layout, Vector2.zero);
+        }
+
+        /// <summary>
+        /// Incrementally builds one transient presentation instance. The key is loading ownership
+        /// only: it is not a LocalMap, Domain, or Save identifier.
+        /// </summary>
+        public SurfacePresentationInstance BuildLayoutInstance(
+            string instanceKey,
+            MapLayoutDefinition layout,
+            Vector2 placementOffset)
+        {
+            if (string.IsNullOrWhiteSpace(instanceKey))
+                throw new System.ArgumentException("A surface presentation instance key is required.", nameof(instanceKey));
+            if (layout == null)
+                throw new System.ArgumentNullException(nameof(layout));
+
+            RemoveLayoutInstance(instanceKey);
+            BeginInstanceBuild(instanceKey, layout, placementOffset);
             BuildFromLayout(layout);
+            return EndInstanceBuild();
+        }
+
+        public bool RemoveLayoutInstance(string instanceKey)
+        {
+            if (string.IsNullOrWhiteSpace(instanceKey) || !_instances.TryGetValue(instanceKey, out var instance))
+                return false;
+            HostInteractSpots.RemoveOwner(instanceKey);
+            HostMapObjectRegistry.RemoveOwner(instanceKey);
+            HostFarmFieldRegistry.RemoveOwner(instanceKey);
+            if (instance.Root != null)
+                DestroyBuilt(instance.Root.gameObject);
+            _instances.Remove(instanceKey);
+            _builtByInstance.Remove(instanceKey);
+            instance.IsLoaded = false;
+            return true;
         }
 
         static bool TryPickLayout(PlayableHostSession session, out MapLayoutDefinition layout) =>
             MapLayoutPick.TryGet(session, out layout);
 
+        void BeginInstanceBuild(string instanceKey, MapLayoutDefinition layout, Vector2 placementOffset)
+        {
+            EnsureRoot();
+            var root = new GameObject("SurfaceInstance_" + instanceKey).transform;
+            root.SetParent(mapRoot, false);
+            _buildRoot = root;
+            _buildPlacementOffset = placementOffset;
+            _buildingInstanceKey = instanceKey;
+            _builtByInstance[instanceKey] = new List<GameObject>();
+            _instances[instanceKey] = new SurfacePresentationInstance(instanceKey, layout, placementOffset, root);
+            HostInteractSpots.BeginOwnerBuild(instanceKey);
+            HostMapObjectRegistry.BeginOwnerBuild(instanceKey);
+            HostFarmFieldRegistry.BeginOwnerBuild(instanceKey);
+        }
+
+        SurfacePresentationInstance EndInstanceBuild()
+        {
+            var key = _buildingInstanceKey;
+            _buildRoot = null;
+            _buildPlacementOffset = Vector2.zero;
+            _buildingInstanceKey = string.Empty;
+            return _instances.TryGetValue(key, out var instance) ? instance : null;
+        }
+
+        float PlaceX(float x) => x + _buildPlacementOffset.x;
+        float PlaceY(float y) => y + _buildPlacementOffset.y;
+
+        void TrackBuilt(GameObject go)
+        {
+            if (go == null || string.IsNullOrEmpty(_buildingInstanceKey))
+                return;
+            _builtByInstance[_buildingInstanceKey].Add(go);
+        }
+
         void BuildFromLayout(MapLayoutDefinition layout)
         {
             var cs = layout.CellSize > 0f ? layout.CellSize : 1f;
-            var ox = layout.OriginX;
-            var oy = layout.OriginY;
+            var ox = PlaceX(layout.OriginX);
+            var oy = PlaceY(layout.OriginY);
             var w = layout.Width;
             var h = layout.Height;
             if (w < 1 || h < 1)
@@ -121,8 +201,8 @@ namespace XianXia.Unity.Host
         void StampPlacement(MapLayoutDefinition layout, MapPlacement p, int index)
         {
             var cs = layout.CellSize > 0f ? layout.CellSize : 1f;
-            var ox = layout.OriginX;
-            var oy = layout.OriginY;
+            var ox = PlaceX(layout.OriginX);
+            var oy = PlaceY(layout.OriginY);
             var pw = p.W < 1 ? 1 : p.W;
             var ph = p.H < 1 ? 1 : p.H;
             var kind = p.Kind ?? string.Empty;
@@ -242,12 +322,12 @@ namespace XianXia.Unity.Host
                 c.a = 0.32f;
             sr.color = c;
             sr.sortingOrder = -20;
-            go.transform.SetParent(mapRoot, false);
+            go.transform.SetParent(_buildRoot != null ? _buildRoot : mapRoot, false);
             var intended = HostPresentationSpace.FromPresentation(x, y, HostPresentationSpace.GroundZ);
             go.transform.position = intended;
             FitToWorldSize(go, Mathf.Max(0.01f, worldW), Mathf.Max(0.01f, worldH));
             AlignBoundsCenter(go, intended);
-            _built.Add(go);
+            TrackBuilt(go);
             return go;
         }
 
@@ -312,8 +392,8 @@ namespace XianXia.Unity.Host
                 "[MapLayout] Unknown map kind '" + (kind ?? string.Empty) +
                 "' in placement '" + (p?.Id ?? index.ToString()) + "'. Using MissingPrefab placeholder.");
             var cs = layout.CellSize > 0f ? layout.CellSize : 1f;
-            var ox = layout.OriginX;
-            var oy = layout.OriginY;
+            var ox = PlaceX(layout.OriginX);
+            var oy = PlaceY(layout.OriginY);
             var pw = p.W < 1 ? 1 : p.W;
             var ph = p.H < 1 ? 1 : p.H;
             var id = string.IsNullOrEmpty(p.Id) ? "missing_" + index : p.Id;
@@ -352,7 +432,7 @@ namespace XianXia.Unity.Host
                     fallback = new Color(0.30f, 0.42f, 0.26f);
                 }
 
-                PlacePrefab(KindForLegacyPath(path), path, x + 0.5f, y + 0.5f, "Tile_" + x + "_" + y, 1f, 1f, fallback);
+                PlacePrefab(KindForLegacyPath(path), path, PlaceX(x + 0.5f), PlaceY(y + 0.5f), "Tile_" + x + "_" + y, 1f, 1f, fallback);
             }
         }
 
@@ -368,11 +448,14 @@ namespace XianXia.Unity.Host
 
         public void Clear()
         {
-            for (var i = 0; i < _built.Count; i++)
-                DestroyBuilt(_built[i]);
-            _built.Clear();
+            var keys = new List<string>(_instances.Keys);
+            for (var i = 0; i < keys.Count; i++)
+                RemoveLayoutInstance(keys[i]);
+            HostInteractSpots.ClearAll();
+            HostMapObjectRegistry.ClearAll();
+            HostFarmFieldRegistry.ClearAll();
 
-            // _built is not serialized: after domain reload／场景重载，子物体仍在但列表为空。
+            // Instance dictionary is not serialized: after domain reload／场景重载，children may remain.
             // Always wipe mapRoot children so Import 不会叠出旧位置＋新位置。
             if (mapRoot != null)
             {
@@ -442,7 +525,7 @@ namespace XianXia.Unity.Host
             }
 
             go.name = usedMissingPlaceholder ? name + "_MissingPrefab" : name;
-            go.transform.SetParent(mapRoot, false);
+            go.transform.SetParent(_buildRoot != null ? _buildRoot : mapRoot, false);
             go.transform.localScale = Vector3.one;
             var intended = HostPresentationSpace.FromPresentation(x, y, HostPresentationSpace.GroundZ);
             go.transform.position = intended;
@@ -452,7 +535,7 @@ namespace XianXia.Unity.Host
             if (!usedMissingPlaceholder && prefabPath == MapKindCatalog.Wall)
                 TintRenderers(go, new Color(0.32f, 0.32f, 0.36f, 1f));
             StripNonHostBehaviours(go);
-            _built.Add(go);
+            TrackBuilt(go);
             return go;
         }
 

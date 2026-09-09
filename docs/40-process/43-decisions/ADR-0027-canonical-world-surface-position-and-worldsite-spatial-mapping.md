@@ -5,6 +5,8 @@
 - **决策者：** 项目负责人（底层空间模型大版本调整；Phase 5R）
 - **关联：** [2K 系统真源](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、[2J](../../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)、[03-glossary](../../00-project/03-glossary.md)、[ADR-0025](ADR-0025-strategic-spatial-model-hexgrid.md)、[ADR-0026](ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)、[163](../../40-process/163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md)
 
+> **2026-09-09 · [ADR-0031](ADR-0031-continuous-outdoor-world-surface-architecture.md) 关系说明：** 本 ADR 仍是当前 Canonical WorldPosition / LocalMap Mapping 的正式基础，也是未来 Continuous Outdoor Surface 的 migration bridge。其 Context-vs-Physical separation 长期保留；WorldSite LocalMap normalized projection 将在 Future Surface 完整落地时逐步退出普通 Outdoor 主链，当前绝不删除或标记为错误。
+
 ## 背景
 
 在 Phase 2C（Continuous WorldPosition 真源）与 Phase 5D（PlayerParty 连续旅行、WorldSite Ingress、Dynamic Mandatory Transit）落地后，位置模型出现多个可独立漂移的字段（`WorldPosition` / `CurrentHex` / `PresenceHex` / `AnchorHex` / `SiteDepartureFootprintHex`）共同争夺"玩家到底在哪"的真源地位：

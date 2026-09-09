@@ -2,10 +2,11 @@
 
 > 状态：**设计规则已拍板／Control Asset + FactionFlag V1 已实现、人工验收并封板**｜优先级：P0｜最后更新：2026-09-06
 > 上级：`docs/00-project/00-overview.md`  
-> 关联：`2A`、`24`、`26`、`28`、`03-glossary`、`ADR-0024`、`ADR-0025`、[`155`](../40-process/155-hex-strategic-worldmap-migration-2026-08-23.md)、[`158`](../40-process/158-hex-world-content-authoring-pipeline-2026-08-23.md)  
+> 关联：`2A`、`24`、`26`、`28`、`03-glossary`、`ADR-0024`、`ADR-0025`、`ADR-0031`、[`155`](../40-process/155-hex-strategic-worldmap-migration-2026-08-23.md)、[`158`](../40-process/158-hex-world-content-authoring-pipeline-2026-08-23.md)
 > 被引用：`03-glossary.md`、`41-roadmap`  
 > **本页是 Pure Hex 战略空间下 Territory / WorldSite Footprint / Dynamic Site 的正式设计真源。**  
 > **PresenceHex 已由 [ADR-0027](../40-process/43-decisions/ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md) 改为 Derived（CanonicalWorldSurfacePosition → WorldToHex）；见 [2K §6](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。本页 Footprint／Anchor 占地规则不推翻。**  
+> **Future Surface 注记：** [ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md) 保留 Hex 作为 Territory / Strategic Simulation authority；WorldSite Footprint 是战略范围，未来不等于其 exact physical geometry / physical region，且 Hex 不等于 Surface Chunk。当前 LocalMap 规则不受本注记影响。
 > **本阶段不写实现代码、不改 JSON、不做技术审计。**
 
 > **⚠️ 2026-09-03 · TerritoryRegion V1 已实现并封板（见 [192 TerritoryRegion V1 硬化](../40-process/192-phase2j-territory-region-v1-base-layer-2026-09-03.md)）。**

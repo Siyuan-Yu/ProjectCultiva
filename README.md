@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-**Architecture Freeze v0.2（待人工审核）。** Demo 已停扩；正式 Core 编码前须确认 Freeze 与 [Core M1 实施计划](docs/40-process/51-core-milestone-1-implementation-plan-v0.1.md)。  
+**Architecture Freeze v0.2（待人工审核）。** 已拍板的 Future Continuous Outdoor World Surface 见 [ADR-0031](docs/40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md)，**尚未实现且不授权迁移**；Demo 已停扩。正式 Core 编码前须确认 Freeze 与 [Core M1 实施计划](docs/40-process/51-core-milestone-1-implementation-plan-v0.1.md)。
 Unity 版本锁定 **2022.3.6f1 Built-in**（ADR-0001）。
 
 远端：https://github.com/Siyuan-Yu/ProjectCultiva
