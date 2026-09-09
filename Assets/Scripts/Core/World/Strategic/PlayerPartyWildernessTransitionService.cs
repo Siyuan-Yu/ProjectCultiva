@@ -331,6 +331,50 @@ namespace XianXia.Core.World.Strategic
             return WorldTravelService.EnterWildernessLocalMap(world, destinationHex, mapId);
         }
 
+        /// <summary>
+        /// W1B continuous-presentation handoff for an already-loaded wilderness neighbour.
+        /// This deliberately commits the formal shared boundary contact, rather than using the
+        /// legacy inward destination spawn used by <see cref="TryCrossWildernessEdge"/>.
+        /// Presentation ownership and movement-context lifetime remain Host concerns.
+        /// </summary>
+        public static Result TryCommitSeamlessWildernessCrossing(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            SurfaceExitConnection connection)
+        {
+            if (world == null || party == null || !party.HasActive)
+                return Result.Failure(ErrorCode.InvalidArgument, "Invalid seamless wilderness crossing args.");
+            var motion = world.PlayerPartyTravel;
+            if (motion == null || !motion.HasPosition ||
+                motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
+                return Result.Failure(ErrorCode.InvalidOperation, "Party is not in wilderness position context.");
+            if (connection.DestinationKind != SurfaceExitDestinationKind.WildernessHex ||
+                !connection.SourceHex.Equals(motion.CurrentHex) ||
+                !IsNeighborHex(connection.SourceHex, connection.DestinationHex))
+                return Result.Failure(ErrorCode.InvalidOperation, "Connection is not the current wilderness shared edge.");
+            if (!IsGroundPassable(world.HexWorld, connection.DestinationHex))
+                return Result.Failure(ErrorCode.InvalidOperation, "Neighbor hex is impassable.");
+            if (world.Strategic?.Sites != null &&
+                world.Strategic.Sites.TryGetAtHex(connection.DestinationHex, out var site) && site != null)
+                return Result.Failure(ErrorCode.InvalidOperation, "Seamless crossing is wilderness-only.");
+            if (!WildernessLocalMapFallback.TryResolve(world, connection.DestinationHex, out var mapId) ||
+                string.IsNullOrWhiteSpace(mapId))
+                return Result.Failure(ErrorCode.InvalidOperation, "No wilderness fallback LocalMap for neighbor.");
+
+            // Do not call ComputeCrossEdgeWorldPosition: that legacy path intentionally moves
+            // inward for Exit -> destination spawn. W1B preserves the formal common boundary.
+            var boundary = new WorldVec2(
+                connection.BoundaryContactWorldX,
+                connection.BoundaryContactWorldY);
+            PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
+            PlayerPartyTransitionMembership.LogPartyTransition(
+                world, party, "SeamlessWildernessCrossing", connection.DestinationHex,
+                world.PartyWorld?.LocalMapId);
+            motion.SetAtWorldPosition(boundary, connection.DestinationHex);
+            ApplyTravelingMembersAtHex(world, connection.DestinationHex);
+            return WorldTravelService.EnterWildernessLocalMap(world, connection.DestinationHex, mapId);
+        }
+
         public static Result TryExitWorldSiteByDirection(
             SimulationWorld world,
             PlayerPartyRuntime party,

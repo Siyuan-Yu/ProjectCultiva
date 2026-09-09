@@ -475,6 +475,28 @@ namespace XianXia.Tests
         }
 
         [Test]
+        public void CONTINUOUS_W1B_SeamlessCrossing_CommitsFormalBoundaryWithoutInwardTeleport()
+        {
+            var world = BuildTinyTravelWorld(out var siteA, out _, out var source);
+            var actor = Spawn(world, "W1BSeamActor");
+            var party = BuildParty(world, siteA, actor);
+            var destination = HexMath.Neighbor(source, 0);
+            world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(3.25f, 4.5f), source);
+            world.PlayerPartyTravel.CaptureTravelingMembers(party.Members);
+            var connection = new SurfaceExitConnection(
+                source, destination, 0, SurfaceExitDestinationKind.WildernessHex, string.Empty,
+                1f, 0f, 0f, 0f, default, 3.75f, 4.5f);
+
+            Assert.IsTrue(PlayerPartyWildernessTransitionService
+                .TryCommitSeamlessWildernessCrossing(world, party, connection).IsSuccess);
+            Assert.AreEqual(destination, world.PlayerPartyTravel.CurrentHex);
+            Assert.AreEqual(3.75f, world.PlayerPartyTravel.WorldPosition.X, 0.0001f);
+            Assert.AreEqual(4.5f, world.PlayerPartyTravel.WorldPosition.Y, 0.0001f);
+            Assert.AreEqual(WildernessLocalMapFallback.PlainsWildernessLocalMapId,
+                world.PartyWorld.LocalMapId);
+        }
+
+        [Test]
         public void CONTINUOUS_16_TravelToWorldSite_ArrivalSetsAtWorldSite()
         {
             var world = BuildTinyTravelWorld(out var siteA, out var siteB, out _);

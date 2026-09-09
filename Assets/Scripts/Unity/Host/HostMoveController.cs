@@ -350,6 +350,20 @@ namespace XianXia.Unity.Host
             if (world == null || party == null)
                 return;
 
+            // W1B: a selected cardinal Wilderness pair is promoted to one transient movement
+            // context before committing the shared boundary. No Exit->spawn/rebuild branch runs.
+            var loadedSet = bootstrap.ContinuousWildernessLoadedSet;
+            if (loadedSet != null &&
+                (loadedSet.IsInternal(connection) || loadedSet.TryActivate(connection)) &&
+                loadedSet.TryCommitInternalCrossing(connection))
+            {
+                HostPlayerPartyController.LastTransitionStatus =
+                    "SeamlessWildernessCrossed->" + connection.DestinationHex;
+                HostPlayerPartyController.LastTransitionFailureReason = string.Empty;
+                bootstrap.SurfaceExitZonePresenter.Rebuild();
+                return;
+            }
+
             var usable = bootstrap.SurfaceExitZonePresenter;
             if (usable == null || !usable.TryGetUsableSurfaceExit(connection, out _))
             {
@@ -910,6 +924,9 @@ namespace XianXia.Unity.Host
                 next.z = HostPresentationSpace.EntityZ;
                 next = ClampToWalkable(pos, next);
                 view.transform.position = next;
+                if (bootstrap?.Session?.PlayerParty != null &&
+                    view.EntityId.Equals(bootstrap.Session.PlayerParty.ActiveCharacterId))
+                    bootstrap.ContinuousWildernessLoadedSet?.TryCommitNormalWalk(next);
 
                 if ((next - target).sqrMagnitude > arriveEpsilon * arriveEpsilon)
                     continue;

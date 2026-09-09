@@ -99,6 +99,7 @@ namespace XianXia.Unity.Host
         [SerializeField] KeyCode togglePauseKey = KeyCode.Space;
 
         PlayableHostSession _session = new PlayableHostSession();
+        ContinuousWildernessLoadedSet _continuousWildernessLoadedSet;
         float _autoTickAccumulator;
         string _resolvedContentPath = string.Empty;
         string _status = "Idle";
@@ -125,6 +126,8 @@ namespace XianXia.Unity.Host
         public HostMoveController MoveController => moveController;
 
         public HostSurfaceExitZonePresenter SurfaceExitZonePresenter => surfaceExitZonePresenter;
+
+        public ContinuousWildernessLoadedSet ContinuousWildernessLoadedSet => _continuousWildernessLoadedSet;
 
         public HostPlayerPartyController PlayerPartyController =>
             GetComponent<HostPlayerPartyController>();
@@ -712,6 +715,9 @@ namespace XianXia.Unity.Host
             if (levelTesterCheatPanel != null)
                 levelTesterCheatPanel.Bind(this, selectionController);
             moveController.Bind(this, selectionController, entityViewSpawner, commandBridge, npcContextMenu);
+            _continuousWildernessLoadedSet = GetComponent<ContinuousWildernessLoadedSet>() ??
+                                              gameObject.AddComponent<ContinuousWildernessLoadedSet>();
+            _continuousWildernessLoadedSet.Bind(this);
             var pathPreview = GetComponent<HostPartyPathPreview>();
             if (pathPreview != null)
                 pathPreview.Bind(this, moveController, selectionController, cam);
@@ -1833,6 +1839,14 @@ namespace XianXia.Unity.Host
             SyncExitTriggerDepthFromActiveMap();
             surfaceExitZonePresenter.Bind(this);
             surfaceExitZonePresenter.Rebuild();
+            if (_continuousWildernessLoadedSet != null &&
+                !_continuousWildernessLoadedSet.IsActive &&
+                _continuousWildernessLoadedSet.TryActivateFirstUsableWildernessPair(
+                    surfaceExitZonePresenter.UsableZones))
+            {
+                // The internal edge is now ordinary walk space; all remaining edges stay legacy exits.
+                surfaceExitZonePresenter.Rebuild();
+            }
         }
 
         /// <summary>Surface Exit Zone 与 WalkGrid 对齐后强制刷新（Expand 末尾保险）。</summary>

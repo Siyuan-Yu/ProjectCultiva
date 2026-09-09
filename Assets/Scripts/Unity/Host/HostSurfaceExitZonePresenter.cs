@@ -68,6 +68,13 @@ namespace XianXia.Unity.Host
                 : SurfaceExitZoneCalculator.DefaultExitTriggerDepth;
 
             SurfaceExitZoneCalculator.CollectVisibleZones(world, bounds, depth, _zones);
+            var loadedSet = bootstrap != null ? bootstrap.ContinuousWildernessLoadedSet : null;
+            if (loadedSet != null && loadedSet.IsActive)
+            {
+                for (var i = _zones.Count - 1; i >= 0; i--)
+                    if (loadedSet.IsInternal(_zones[i].Connection))
+                        _zones.RemoveAt(i);
+            }
             var strategicExitCount = _zones.Count;
             var structuralReadyCount = 0;
             var exactDuplicateCount = 0;

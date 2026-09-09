@@ -1,6 +1,6 @@
 # Continuous World W1A — Multi-Surface Presentation Foundation
 
-> 状态：**Implemented / targeted tests passed / manual review pending**｜日期：2026-09-09  
+> 状态：**ACCEPTED / SEALED**｜日期：2026-09-09
 > 上级：[ADR-0031](43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md)、[203](203-continuous-2d-open-world-world-surface-direction-2026-09-09.md)  
 > 范围：**Zero Gameplay Behavior Change**；不是 W1B，不代表 Continuous Outdoor World 已实现。
 
@@ -29,6 +29,12 @@ W1A 只解除 Host Presentation 对“同一时刻一张 Active LocalMap”的�
 - 定向 EditMode：`WalkGridComposerTests` + `SurfacePresentationRegistryTests`，**7 / 7 passed**。
 - 全量 EditMode：1184 total、812 passed、352 failed；失败覆盖 Army / Battle 等非 W1A 领域，未作为 W1A 通过声明。是否为既有基线问题仍需在独立回归任务中归因。
 - `git diff --check` 通过。
+
+## 封板记录
+
+- 制作人 Unity 人工 sanity acceptance：**通过**。
+- Regression Attribution Gate：**PASS**。W1A 前 Full EditMode 为 `1177 total / 805 pass / 352 fail`，W1A 后为 `1184 total / 812 pass / 352 fail`；新增 7 项 W1A 定向测试全部通过，352 个失败均确认为既有基线，Confirmed W1A regression 为 0。
+- 除非 W1B 暴露可明确归因的 blocker，W1A 基础设施不再修改。
 
 ## W1B 风险
 

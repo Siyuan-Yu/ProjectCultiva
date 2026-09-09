@@ -7,6 +7,21 @@
 
 ---
 
+## 2026-09-09 — Continuous World W1B / First Seamless Wilderness Pair
+
+- 新增 transient `ContinuousWildernessLoadedSet`：对一条正式、cardinal、相邻 Wilderness edge 同时 owner-build 两张 fallback Surface，并以 `WalkGridComposer` 组合为一个 movement context；没有把 loaded set 写入 Domain 或 Save。
+- 新增 Core `TryCommitSeamlessWildernessCrossing`：从正式 shared boundary contact 提交 `CurrentHex`、WorldPosition、PartyWorld/LocalMap primary context 与成员 presence，明确不走 legacy inward spawn。internal seam 从 SurfaceExit presentation 移除；其他边继续 legacy。
+- W1B 记录：[205](205-continuous-world-w1b-first-seamless-wilderness-pair-2026-09-09.md)。普通 Background NPC 的邻接预 materialization 与所有多 chunk/WorldSite/Save 范围均 deferred；制作人 Unity 人工验收待进行。
+
+---
+
+## 2026-09-09 — Continuous World W1A sealed
+
+- 制作人 Unity 人工 sanity acceptance 通过；Regression Attribution Gate 通过：W1A 前 `1177 / 805 / 352`，W1A 后 `1184 / 812 / 352`，新增 W1A 定向测试 7/7 通过，352 项失败均为既有基线，Confirmed W1A regression 为 0。
+- [204](204-continuous-world-w1a-presentation-foundation-2026-09-09.md) 标记为 **ACCEPTED / SEALED**。除 W1B 暴露明确 blocker 外，不再修改 W1A 基础设施。
+
+---
+
 ## 2026-09-09 — Continuous World W1A / Multi-Surface Presentation Foundation
 
 - W1A 已在不改变 Gameplay 的前提下拆开 Host 的 single-map presentation 生命周期：`SurfacePresentationInstance` 仅持 transient instance owner、source layout、普通 2D placement 和 root；`HostDemoTileMap` 增加 incremental build / remove，旧 `Rebuild()` 仍先清空后只构建当前 Active LocalMap。
