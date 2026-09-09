@@ -14,7 +14,8 @@ namespace XianXia.Core.World.Hex
         public const int DirectionCount = 6;
 
         /// <summary>
-        /// Axial 方向表（E, NE, NW, W, SW, SE）。
+        /// Axial 方向表（E, SE, SW, W, NW, NE；World +Y = visual North）。
+        /// DirectionIndex 保持历史顺序兼容，不能因修正语义而重排。
         /// 仅可作用于 axial 坐标；对存储的 Odd-R <see cref="HexCoord"/> 必须经
         /// <see cref="Neighbor"/> / <see cref="CollectNeighbors"/>。
         /// </summary>
@@ -126,7 +127,7 @@ namespace XianXia.Core.World.Hex
             return new HexCoord(col, axialR);
         }
 
-        static void CubeRound(float q, float r, float s, out int roundQ, out int roundR)
+        internal static void CubeRound(float q, float r, float s, out int roundQ, out int roundR)
         {
             var rq = Math.Round(q);
             var rr = Math.Round(r);

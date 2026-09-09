@@ -3,6 +3,7 @@ using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
+using XianXia.Core.World.Surface;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -214,6 +215,44 @@ namespace XianXia.Core.World.Strategic
             return Result.Success();
         }
 
+        /// <summary>W1C: presentation is already in uniform WorldPosition space. No LocalMap
+        /// projection or SurfaceExit participates; prototype legality precedes all mutation.</summary>
+        public static Result TrySyncContinuousSurfaceWorldPosition(
+            SimulationWorld world, float worldX, float worldY)
+        {
+            if (world?.PlayerPartyTravel == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "No party travel state.");
+            var motion = world.PlayerPartyTravel;
+            if (!motion.HasPosition || motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
+                return Result.Success();
+            var size = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var position = new WorldVec2(worldX, worldY);
+            var committed = ContinuousSurfaceHexCommitResolver.Resolve(
+                motion.CurrentHex, position, size);
+            if (!ContinuousSurfacePrototypeGroundLegality.CanMoveTo(world.HexWorld, motion.CurrentHex, position, size))
+                return Result.Failure(ErrorCode.InvalidOperation, ContinuousSurfacePrototypeGroundLegality.BlockedDiagnostic);
+            motion.SetWorldPositionInternal(position, committed);
+            ApplyTravelingMembersAtHex(world, committed);
+            return Result.Success();
+        }
+
+        /// <summary>W1C outer-boundary handoff commits the already-resolved just-outside physical
+        /// point before presentation changes. The caller owns legacy materialization.</summary>
+        public static Result TryCommitContinuousSurfaceBoundaryEgress(
+            SimulationWorld world, WorldVec2 justOutsidePosition, HexCoord destinationHex)
+        {
+            if (world?.PlayerPartyTravel == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "No party travel state.");
+            var motion = world.PlayerPartyTravel;
+            if (!motion.HasPosition || motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
+                return Result.Failure(ErrorCode.InvalidOperation, "Continuous surface egress requires wilderness position.");
+            if (!ContinuousSurfacePrototypeGroundLegality.CanCross(world.HexWorld, motion.CurrentHex, destinationHex))
+                return Result.Failure(ErrorCode.InvalidOperation, "BoundaryBlockedByStrategicGround");
+            motion.SetWorldPositionInternal(justOutsidePosition, destinationHex);
+            ApplyTravelingMembersAtHex(world, destinationHex);
+            return Result.Success();
+        }
+
         public static Result TryCrossWildernessEdge(
             SimulationWorld world,
             PlayerPartyRuntime party,
@@ -372,7 +411,56 @@ namespace XianXia.Core.World.Strategic
                 world.PartyWorld?.LocalMapId);
             motion.SetAtWorldPosition(boundary, connection.DestinationHex);
             ApplyTravelingMembersAtHex(world, connection.DestinationHex);
-            return WorldTravelService.EnterWildernessLocalMap(world, connection.DestinationHex, mapId);
+            return WorldTravelService.ApplyWildernessPrimaryContextWithoutUnload(
+                world, connection.DestinationHex, mapId);
+        }
+
+        /// <summary>
+        /// W1B internal seam commit while LocalVisible AutoTravel is active.
+        /// Preserves HexPath / Destination / ExecutionMode and advances the current leg.
+        /// </summary>
+        public static Result TryCommitSeamlessWildernessCrossingPreservingLocalVisibleAutoTravel(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            SurfaceExitConnection connection)
+        {
+            if (world == null || party == null || !party.HasActive)
+                return Result.Failure(ErrorCode.InvalidArgument, "Invalid seamless wilderness crossing args.");
+            var motion = world.PlayerPartyTravel;
+            if (motion == null || !motion.HasPosition ||
+                motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
+                return Result.Failure(ErrorCode.InvalidOperation, "Party is not in wilderness position context.");
+            if (!PlayerPartyLocalVisibleAutoTravelService.IsActiveLocalVisibleAutoTravel(motion))
+                return Result.Failure(ErrorCode.InvalidOperation, "LocalVisible AutoTravel is not active.");
+            if (connection.DestinationKind != SurfaceExitDestinationKind.WildernessHex ||
+                !connection.SourceHex.Equals(motion.CurrentHex) ||
+                !IsNeighborHex(connection.SourceHex, connection.DestinationHex))
+                return Result.Failure(ErrorCode.InvalidOperation, "Connection is not the current wilderness shared edge.");
+            if (!IsGroundPassable(world.HexWorld, connection.DestinationHex))
+                return Result.Failure(ErrorCode.InvalidOperation, "Neighbor hex is impassable.");
+            if (world.Strategic?.Sites != null &&
+                world.Strategic.Sites.TryGetAtHex(connection.DestinationHex, out var site) && site != null)
+                return Result.Failure(ErrorCode.InvalidOperation, "Seamless crossing is wilderness-only.");
+            if (!WildernessLocalMapFallback.TryResolve(world, connection.DestinationHex, out var mapId) ||
+                string.IsNullOrWhiteSpace(mapId))
+                return Result.Failure(ErrorCode.InvalidOperation, "No wilderness fallback LocalMap for neighbor.");
+
+            var boundary = new WorldVec2(
+                connection.BoundaryContactWorldX,
+                connection.BoundaryContactWorldY);
+            PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
+            PlayerPartyTransitionMembership.LogPartyTransition(
+                world,
+                party,
+                "SeamlessWildernessCrossing.LocalVisiblePreserve",
+                connection.DestinationHex,
+                world.PartyWorld?.LocalMapId);
+            motion.SetWorldPositionInternal(boundary, connection.DestinationHex);
+            ApplyTravelingMembersAtHex(world, connection.DestinationHex);
+            if (motion.SegmentIndex + 1 < motion.HexPathCount)
+                motion.SetSegment(motion.SegmentIndex + 1, 0f);
+            return WorldTravelService.ApplyWildernessPrimaryContextWithoutUnload(
+                world, connection.DestinationHex, mapId);
         }
 
         public static Result TryExitWorldSiteByDirection(

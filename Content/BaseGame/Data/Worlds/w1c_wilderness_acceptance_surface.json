@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": "base:surface_w1c_wilderness_acceptance",
+      "type": "outdoorSurface",
+      "name": "W1C Wilderness Acceptance Surface",
+      "originWorldX": 0.1660254,
+      "originWorldY": 0.8,
+      "cellSize": 0.028,
+      "chunkWidth": 1.4,
+      "chunkHeight": 1.4,
+      "chunks": [
+        { "id": "w1c_-2_2", "x": -2, "y": 2, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_-1_2", "x": -1, "y": 2, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_0_2", "x": 0, "y": 2, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_1_2", "x": 1, "y": 2, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_2_2", "x": 2, "y": 2, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_-2_1", "x": -2, "y": 1, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_-1_1", "x": -1, "y": 1, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_0_1", "x": 0, "y": 1, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_1_1", "x": 1, "y": 1, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_2_1", "x": 2, "y": 1, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_-2_0", "x": -2, "y": 0, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_-1_0", "x": -1, "y": 0, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_0_0", "x": 0, "y": 0, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_1_0", "x": 1, "y": 0, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_2_0", "x": 2, "y": 0, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_-2_-1", "x": -2, "y": -1, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_-1_-1", "x": -1, "y": -1, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_0_-1", "x": 0, "y": -1, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_1_-1", "x": 1, "y": -1, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_2_-1", "x": 2, "y": -1, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_-2_-2", "x": -2, "y": -2, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_-1_-2", "x": -1, "y": -2, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_0_-2", "x": 0, "y": -2, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_1_-2", "x": 1, "y": -2, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
+        { "id": "w1c_2_-2", "x": 2, "y": -2, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" }
+      ]
+    }
+  ]
+}

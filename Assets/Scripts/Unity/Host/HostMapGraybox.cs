@@ -18,16 +18,30 @@ namespace XianXia.Unity.Host
 
         public int ZoneCount => _built.Count;
 
-        public void Rebuild(PlayableHostSession session)
+        public void Rebuild(PlayableHostSession session) =>
+            Rebuild(session, includeSurfacePresentation: true);
+
+        /// <summary>
+        /// Rebuild labels/markers only. Safe while W1B continuous loaded set owns surface tiles.
+        /// </summary>
+        public void RebuildOverlaysOnly(PlayableHostSession session)
         {
-            Clear();
+            Rebuild(session, includeSurfacePresentation: false);
+        }
+
+        public void Rebuild(PlayableHostSession session, bool includeSurfacePresentation)
+        {
+            ClearOverlaysOnly();
             if (session == null || !session.IsInitialized || session.World == null)
                 return;
 
             EnsureRoot();
 
-            var demoMap = GetComponent<HostDemoTileMap>() ?? gameObject.AddComponent<HostDemoTileMap>();
-            demoMap.Rebuild(session);
+            if (includeSurfacePresentation)
+            {
+                var demoMap = GetComponent<HostDemoTileMap>() ?? gameObject.AddComponent<HostDemoTileMap>();
+                demoMap.Rebuild(session);
+            }
 
             var locations = session.World.WorldRegion.Locations;
             foreach (var kv in locations)
@@ -49,7 +63,9 @@ namespace XianXia.Unity.Host
             }
         }
 
-        public void Clear()
+        public void Clear() => ClearOverlaysOnly();
+
+        void ClearOverlaysOnly()
         {
             for (var i = 0; i < _built.Count; i++)
                 DestroyBuilt(_built[i]);

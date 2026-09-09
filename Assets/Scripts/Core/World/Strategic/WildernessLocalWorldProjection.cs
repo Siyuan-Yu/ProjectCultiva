@@ -69,7 +69,7 @@ namespace XianXia.Core.World.Strategic
         /// Phase 5R-B3B.2：正式 Wilderness Context 解析（Hex 边界中点歧义防护）。
         /// B3A 起 LocalMap 边缘映射到真实 Hex polygon 边界<b>中点</b>（East/West = ±0.866·hexSize、
         /// North/South = ±1.0·hexSize），而这些点正是 <see cref="HexWorldLayout.WorldToCoord"/> 的
-        /// <c>Math.Round</c>（banker's rounding）平局点（q+0.5 / r+0.5）——WorldToHex 会按列/行奇偶与
+        /// cube rounding 在共享边上的平局点——WorldToHex 可能因舍入与
         /// 浮点噪声翻到邻格。正式 Wilderness Context（已加载 LocalMap 所代表的 hex）必须由
         /// Context/Transition authority 提交（正式跨格 / TravelPlan leg 起点），<b>不能</b>由连续位置在
         /// 边界反推。规则：派生格是 committed 的邻格（即共享边中点歧义区）→ 保持 committed；

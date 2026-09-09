@@ -49,6 +49,8 @@ namespace XianXia.Unity.Host
             var session = bootstrap != null ? bootstrap.Session : null;
             if (session == null || !session.IsInitialized)
                 return;
+            if (bootstrap?.ContinuousOutdoorSurfaceRuntime?.IsActive == true)
+                return; // W1C has no Outdoor SurfaceExit anywhere inside its coverage.
 
             var world = session.World;
             if (!SurfaceExitZoneCalculator.ShouldPresent(world))
@@ -112,8 +114,10 @@ namespace XianXia.Unity.Host
                 var isExactDuplicate = identityCounts[identity] > 1;
                 var px = 0f;
                 var py = 0f;
+                var presentationConnection = ToReachabilityConnection(connection);
                 var reachable = hasActive && SurfaceExitWalkGridReachability.TryResolveReachablePointInsideExitSlot(
-                    grid, activeView.transform.position.x, activeView.transform.position.y, connection, out px, out py);
+                    grid, activeView.transform.position.x, activeView.transform.position.y,
+                    presentationConnection, out px, out py);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 Debug.Log("[SurfaceExitAudit] ContextKind=" + world.PlayerPartyTravel.LocationKind +
                     " SiteId=" + (world.PlayerPartyTravel.SiteId ?? string.Empty) +
@@ -154,7 +158,7 @@ namespace XianXia.Unity.Host
                 _rects.Clear();
                 SurfaceExitZoneCalculator.AppendConnectionCoverageRects(z.Connection, _rects);
                 for (var r = 0; r < _rects.Count; r++)
-                    SpawnRect(_rects[r], z.DirectionIndex, r, fillMat, filled: true);
+                    SpawnRect(_rects[r], z.Connection, z.DirectionIndex, r, fillMat, filled: true);
             }
 
             VisibleZoneCount = _zones.Count;
@@ -171,8 +175,7 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < _zones.Count; i++)
             {
                 var candidate = _zones[i].Connection;
-                if (!SurfaceExitZoneCalculator.PointBelongsToConnection(
-                        localX, localY, candidate, _cachedDepth))
+                if (!TryPresentationPointBelongsToConnection(localX, localY, candidate))
                     continue;
                 if (!TryResolveCurrentApproach(candidate, out approachPoint))
                     continue;
@@ -211,16 +214,48 @@ namespace XianXia.Unity.Host
                 activeView == null)
                 return false;
             var grid = bootstrap.MoveController != null ? bootstrap.MoveController.WalkGrid : null;
+            var presentationConnection = ToReachabilityConnection(connection);
             if (!SurfaceExitWalkGridReachability.TryResolveReachablePointInsideExitSlot(
                     grid,
                     activeView.transform.position.x,
                     activeView.transform.position.y,
-                    connection,
+                    presentationConnection,
                     out var x,
                     out var y))
                 return false;
             approachPoint = new Vector3(x, y, HostPresentationSpace.EntityZ);
             return true;
+        }
+
+        SurfaceExitConnection ToReachabilityConnection(SurfaceExitConnection connection)
+        {
+            var loadedSet = bootstrap != null ? bootstrap.ContinuousWildernessLoadedSet : null;
+            return loadedSet != null && loadedSet.IsActive
+                ? loadedSet.ToPresentationConnection(connection)
+                : connection;
+        }
+
+        bool TryPresentationPointBelongsToConnection(
+            float presentationX,
+            float presentationY,
+            SurfaceExitConnection connection)
+        {
+            var loadedSet = bootstrap != null ? bootstrap.ContinuousWildernessLoadedSet : null;
+            if (loadedSet == null || !loadedSet.IsActive)
+            {
+                return SurfaceExitZoneCalculator.PointBelongsToConnection(
+                    presentationX, presentationY, connection, _cachedDepth);
+            }
+
+            if (!loadedSet.PresentationToSurfaceLocal(
+                    connection.SourceHex,
+                    presentationX,
+                    presentationY,
+                    out var localX,
+                    out var localY))
+                return false;
+            return SurfaceExitZoneCalculator.PointBelongsToConnection(
+                localX, localY, connection, _cachedDepth);
         }
 
         static bool SameIdentity(SurfaceExitConnection left, SurfaceExitConnection right) =>
@@ -397,6 +432,7 @@ namespace XianXia.Unity.Host
 
         void SpawnRect(
             SurfaceExitCoverageRect rect,
+            SurfaceExitConnection connection,
             int directionIndex,
             int rectIndex,
             Material mat,
@@ -414,6 +450,9 @@ namespace XianXia.Unity.Host
             go.transform.SetParent(_root, false);
             var cx = (rect.MinX + rect.MaxX) * 0.5f;
             var cy = (rect.MinY + rect.MaxY) * 0.5f;
+            var loadedSet = bootstrap != null ? bootstrap.ContinuousWildernessLoadedSet : null;
+            if (loadedSet != null && loadedSet.IsActive)
+                loadedSet.SurfaceLocalToPresentation(connection.SourceHex, cx, cy, out cx, out cy);
             go.transform.position = HostPresentationSpace.FromPresentation(cx, cy, overlayZ);
             go.transform.localScale = new Vector3(w, h, 1f);
 

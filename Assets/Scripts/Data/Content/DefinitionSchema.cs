@@ -114,6 +114,15 @@ namespace XianXia.Data.Content
             "originX", "originY", "cellSize", "width", "height", "exitTriggerDepth", "placements"
         };
 
+        public static readonly HashSet<string> OutdoorSurfaceFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "originWorldX", "originWorldY", "cellSize", "chunkWidth", "chunkHeight", "chunks"
+        };
+        public static readonly HashSet<string> OutdoorSurfaceChunkFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "x", "y", "sourceMapLayoutId"
+        };
+
         public static readonly HashSet<string> MapPlacementFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "kind", "x", "y", "w", "h", "blocksMovement", "boundLocationId", "label", "lootItemId",

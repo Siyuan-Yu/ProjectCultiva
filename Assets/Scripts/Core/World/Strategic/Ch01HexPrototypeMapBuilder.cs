@@ -199,7 +199,7 @@ namespace XianXia.Core.World.Strategic
                 return;
 
             if (!TryResolveStationaryTestHex(
-                    world, origin, strongPatrolHex, StationaryTestBanditDirection.South, out strongPatrolHex))
+                    world, origin, strongPatrolHex, StationaryTestBanditDirection.North, out strongPatrolHex))
                 strongPatrolHex = new HexCoord(origin.Q + 2, origin.R + 4);
             if (!TryResolveStationaryTestHex(
                     world, origin, weakPatrolHex, StationaryTestBanditDirection.East, out weakPatrolHex))
@@ -211,7 +211,7 @@ namespace XianXia.Core.World.Strategic
 
         enum StationaryTestBanditDirection
         {
-            South,
+            North,
             East,
             NorthWest,
         }
@@ -299,12 +299,12 @@ namespace XianXia.Core.World.Strategic
         {
             switch (direction)
             {
-                case StationaryTestBanditDirection.South:
+                case StationaryTestBanditDirection.North:
                     return hex.R > origin.R;
                 case StationaryTestBanditDirection.East:
                     return hex.Q > origin.Q;
                 case StationaryTestBanditDirection.NorthWest:
-                    return hex.Q < origin.Q && hex.R < origin.R;
+                    return hex.Q < origin.Q && hex.R > origin.R;
                 default:
                     return true;
             }

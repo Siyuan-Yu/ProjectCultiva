@@ -24,9 +24,11 @@ namespace XianXia.Core.World.Hex
             if (hexSize <= 0.0001f)
                 return default;
 
-            var row = (int)Math.Round(worldY / (1.5 * hexSize));
-            var col = (int)Math.Round(worldX / ((float)Math.Sqrt(3) * hexSize) - 0.5 * (row & 1));
-            return new HexCoord(col, row);
+            // Exact inverse of the pointy-top forward geometry, before Odd-R conversion.
+            var q = ((float)Math.Sqrt(3) / 3f * worldX - worldY / 3f) / hexSize;
+            var r = (2f / 3f * worldY) / hexSize;
+            HexMath.CubeRound(q, r, -q - r, out var roundedQ, out var roundedR);
+            return HexMath.AxialToOffsetOddR(roundedQ, roundedR);
         }
 
         public static void ComputeWorldBounds(HexWorld grid, out float minX, out float maxX, out float minY, out float maxY)

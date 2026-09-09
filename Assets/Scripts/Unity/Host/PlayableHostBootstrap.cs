@@ -100,6 +100,7 @@ namespace XianXia.Unity.Host
 
         PlayableHostSession _session = new PlayableHostSession();
         ContinuousWildernessLoadedSet _continuousWildernessLoadedSet;
+        ContinuousOutdoorSurfaceRuntime _continuousOutdoorSurfaceRuntime;
         float _autoTickAccumulator;
         string _resolvedContentPath = string.Empty;
         string _status = "Idle";
@@ -128,6 +129,8 @@ namespace XianXia.Unity.Host
         public HostSurfaceExitZonePresenter SurfaceExitZonePresenter => surfaceExitZonePresenter;
 
         public ContinuousWildernessLoadedSet ContinuousWildernessLoadedSet => _continuousWildernessLoadedSet;
+
+        public ContinuousOutdoorSurfaceRuntime ContinuousOutdoorSurfaceRuntime => _continuousOutdoorSurfaceRuntime;
 
         public HostPlayerPartyController PlayerPartyController =>
             GetComponent<HostPlayerPartyController>();
@@ -718,6 +721,9 @@ namespace XianXia.Unity.Host
             _continuousWildernessLoadedSet = GetComponent<ContinuousWildernessLoadedSet>() ??
                                               gameObject.AddComponent<ContinuousWildernessLoadedSet>();
             _continuousWildernessLoadedSet.Bind(this);
+            _continuousOutdoorSurfaceRuntime = GetComponent<ContinuousOutdoorSurfaceRuntime>() ??
+                                               gameObject.AddComponent<ContinuousOutdoorSurfaceRuntime>();
+            _continuousOutdoorSurfaceRuntime.Bind(this);
             var pathPreview = GetComponent<HostPartyPathPreview>();
             if (pathPreview != null)
                 pathPreview.Bind(this, moveController, selectionController, cam);
@@ -1069,6 +1075,28 @@ namespace XianXia.Unity.Host
             if (!_session.IsInitialized)
                 return;
 
+            var handoffMotion = _session.World?.PlayerPartyTravel;
+            if (_continuousOutdoorSurfaceRuntime != null && _continuousOutdoorSurfaceRuntime.IsActive &&
+                (handoffMotion == null || handoffMotion.LocationKind != PlayerPartyLocationKind.AtWorldPosition))
+                _continuousOutdoorSurfaceRuntime.DeactivatePresentationOnly();
+            if (_continuousOutdoorSurfaceRuntime != null && _continuousOutdoorSurfaceRuntime.IsActive)
+            {
+                ReloadContinuousSurfaceOverlaysOnly(frameCamera);
+                return;
+            }
+
+            var world = _session.World;
+            if (_continuousWildernessLoadedSet != null &&
+                _continuousWildernessLoadedSet.IsActive &&
+                _continuousWildernessLoadedSet.ContainsHex(world.PlayerPartyTravel?.CurrentHex ?? default))
+            {
+                ReloadContinuousWildernessOverlaysOnly(frameCamera);
+                return;
+            }
+
+            if (_continuousWildernessLoadedSet != null && _continuousWildernessLoadedSet.IsActive)
+                DeactivateContinuousWildernessIfActive();
+
             var active = _session.World.LocalMap.ActiveMapLayoutId;
             if (!string.IsNullOrWhiteSpace(active))
                 _session.PreferredMapLayoutId = active.Trim();
@@ -1164,6 +1192,8 @@ namespace XianXia.Unity.Host
                 world.Strategic.Encounter.ClearEngagedParty();
             }
 
+            DeactivateContinuousWildernessIfActive();
+
             LoadedDestinationArrivalMaterializer.ReleaseEligibleOccupantsOnLocalMapUnload(
                 world,
                 _session.PlayerParty);
@@ -1211,6 +1241,11 @@ namespace XianXia.Unity.Host
                 return;
 
             var world = _session.World;
+            var travelHex = world.PlayerPartyTravel?.CurrentHex ?? default;
+            if (_continuousWildernessLoadedSet != null &&
+                _continuousWildernessLoadedSet.IsActive &&
+                !_continuousWildernessLoadedSet.ContainsHex(travelHex))
+                DeactivateContinuousWildernessIfActive();
             // World Combat 复用已加载的真实 LocalMap 时，不会有另一条隐藏的装图入口。
             // 记录正式 ApplyPending 调用点的前后状态，用于区分「未消费 pending」与
             // 「已准备实体但未落表现／未重建视图」。PendingEngagement 会在调用方返回后清理，
@@ -1836,17 +1871,95 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            // W1C is selected from actual WorldPosition coverage before W1B is ever considered.
+            if (_continuousOutdoorSurfaceRuntime != null && _continuousOutdoorSurfaceRuntime.TryActivateAtCurrentWorldPosition())
+            {
+                surfaceExitZonePresenter.Clear();
+                moveController?.SetWalkGrid(ResolveWalkGrid());
+                return;
+            }
+
             SyncExitTriggerDepthFromActiveMap();
             surfaceExitZonePresenter.Bind(this);
             surfaceExitZonePresenter.Rebuild();
-            if (_continuousWildernessLoadedSet != null &&
-                !_continuousWildernessLoadedSet.IsActive &&
-                _continuousWildernessLoadedSet.TryActivateFirstUsableWildernessPair(
-                    surfaceExitZonePresenter.UsableZones))
+            var world = _session.World;
+            var partyHex = world.PlayerPartyTravel?.CurrentHex ?? default;
+            if (_continuousWildernessLoadedSet != null)
             {
-                // The internal edge is now ordinary walk space; all remaining edges stay legacy exits.
+                if (_continuousWildernessLoadedSet.IsActive)
+                {
+                    moveController?.SetWalkGrid(ResolveWalkGrid());
+                    surfaceExitZonePresenter.Rebuild();
+                    return;
+                }
+
+                if (_continuousWildernessLoadedSet.TryActivateAcceptancePair(
+                        world,
+                        surfaceExitZonePresenter.UsableZones,
+                        partyHex,
+                        out var diagnostic))
+                {
+                    Debug.Log("[W1B] Activated acceptance pair: " + diagnostic, this);
+                    moveController?.SetWalkGrid(ResolveWalkGrid());
+                    surfaceExitZonePresenter.Rebuild();
+                }
+                else
+                {
+                    Debug.LogWarning("[W1B] Continuous pair inactive: " + diagnostic, this);
+                }
+            }
+        }
+
+        void ReloadContinuousWildernessOverlaysOnly(bool frameCamera)
+        {
+            MapLayoutPresentationSync.Apply(_session);
+            SyncExitTriggerDepthFromActiveMap();
+            if (mapGraybox != null)
+                mapGraybox.RebuildOverlaysOnly(_session);
+            if (interactSpotPresenter != null)
+                interactSpotPresenter.Rebuild();
+            if (moveController != null)
+            {
+                moveController.SetWalkGrid(ResolveWalkGrid());
+                moveController.BindLocalMapContext(_continuousWildernessLoadedSet?.Key ?? string.Empty);
+            }
+            if (surfaceExitZonePresenter != null)
+            {
+                surfaceExitZonePresenter.Bind(this);
                 surfaceExitZonePresenter.Rebuild();
             }
+            if (frameCamera)
+                FrameCameraOnSlots();
+            RefreshStatus();
+        }
+
+        /// <summary>Acceptance tooling hook; reuses the normal party framing path.</summary>
+        public void FrameCameraOnActiveCharacter() => FrameCameraOnSlots();
+
+        void ReloadContinuousSurfaceOverlaysOnly(bool frameCamera)
+        {
+            MapLayoutPresentationSync.Apply(_session);
+            if (mapGraybox != null)
+                mapGraybox.RebuildOverlaysOnly(_session);
+            if (interactSpotPresenter != null)
+                interactSpotPresenter.Rebuild();
+            if (moveController != null)
+            {
+                moveController.SetWalkGrid(ResolveWalkGrid());
+                moveController.BindLocalMapContext("ContinuousSurface:" + _continuousOutdoorSurfaceRuntime.ActiveSurfaceId);
+            }
+            surfaceExitZonePresenter?.Clear();
+            if (frameCamera) FrameCameraOnSlots();
+            RefreshStatus();
+        }
+
+        public void DeactivateContinuousWildernessIfActive()
+        {
+            if (_continuousWildernessLoadedSet == null || !_continuousWildernessLoadedSet.IsActive)
+                return;
+            _continuousWildernessLoadedSet.DeactivateToLegacy();
+            if (moveController != null)
+                moveController.SetWalkGrid(ResolveWalkGrid());
         }
 
         /// <summary>Surface Exit Zone 与 WalkGrid 对齐后强制刷新（Expand 末尾保险）。</summary>
@@ -2321,6 +2434,13 @@ namespace XianXia.Unity.Host
 
         WalkGrid ResolveWalkGrid()
         {
+            if (_continuousOutdoorSurfaceRuntime != null &&
+                _continuousOutdoorSurfaceRuntime.TryGetCompositeWalkGrid(out var continuousComposite))
+                return continuousComposite;
+            if (_continuousWildernessLoadedSet != null &&
+                _continuousWildernessLoadedSet.TryGetCompositeWalkGrid(out var composite))
+                return composite;
+
             if (MapLayoutPick.TryGet(_session, out var preferred) && preferred != null)
             {
                 var grid = MapLayoutWalkGridBuilder.Create(preferred);

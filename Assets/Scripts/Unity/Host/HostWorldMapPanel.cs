@@ -19,6 +19,7 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostWorldMapPanel : MonoBehaviour
     {
+        public static bool DebugShowW1CCoverage { get; set; }
         const float AvatarSize = 40f;
         const float NodeHitW = 128f;
         const float NodeHitH = 44f;
@@ -777,6 +778,8 @@ namespace XianXia.Unity.Host
             HostHexWorldRenderer.SetTerritoryOverlayVisible(_showTerritoryOverlay);
             DrawGraph(mapRect, hexProjection, world);
             DrawMapUnitOverlays(mapRect, hexProjection, world);
+            if (DebugShowW1CCoverage && world?.HexWorld?.HasGrid == true)
+                DrawW1CCoverageOutline(mapRect, hexProjection);
             if (ShowReinforcementRadiusDebug)
                 DrawReinforcementRadiusOverlay(mapRect, world);
 
@@ -4114,6 +4117,39 @@ namespace XianXia.Unity.Host
             Close();
             if (bootstrap != null && bootstrap.WorldMapPanel != null && bootstrap.WorldMapPanel != this)
                 bootstrap.WorldMapPanel.Close();
+        }
+
+        void DrawW1CCoverageOutline(Rect mapRect, HexMapViewportProjection projection)
+        {
+            var registry = bootstrap?.Session?.Registry;
+            if (registry == null) return;
+            GUI.BeginGroup(mapRect); // Clip the overlay to the actual WorldMap viewport.
+            foreach (var entry in registry.OutdoorSurfaces)
+            {
+                var surface = entry.Value;
+                var coords = new HashSet<XianXia.Core.World.Surface.SurfaceChunkCoord>();
+                foreach (var chunk in surface.Chunks) coords.Add(chunk.Coord);
+                foreach (var c in coords)
+                {
+                    var x = surface.OriginWorldX + c.X * surface.ChunkWidth;
+                    var y = surface.OriginWorldY + c.Y * surface.ChunkHeight;
+                    var right = x + surface.ChunkWidth;
+                    var top = y + surface.ChunkHeight;
+                    // Suppress internal shared rect edges: outline the authored union, not Hexes.
+                    if (!coords.Contains(new XianXia.Core.World.Surface.SurfaceChunkCoord(c.X - 1, c.Y))) Edge(x, y, x, top);
+                    if (!coords.Contains(new XianXia.Core.World.Surface.SurfaceChunkCoord(c.X + 1, c.Y))) Edge(right, y, right, top);
+                    if (!coords.Contains(new XianXia.Core.World.Surface.SurfaceChunkCoord(c.X, c.Y - 1))) Edge(x, y, right, y);
+                    if (!coords.Contains(new XianXia.Core.World.Surface.SurfaceChunkCoord(c.X, c.Y + 1))) Edge(x, top, right, top);
+                }
+            }
+            GUI.Label(new Rect(8f, 8f, 440f, 24f), "Cyan outline: W1C authored Surface coverage (not roads)");
+            GUI.EndGroup();
+
+            void Edge(float ax, float ay, float bx, float by)
+            {
+                DrawLine(projection.ProjectWorld(ax, ay) - mapRect.position,
+                    projection.ProjectWorld(bx, by) - mapRect.position, Color.cyan);
+            }
         }
 
         static void DrawLine(Vector2 a, Vector2 b, Color color)

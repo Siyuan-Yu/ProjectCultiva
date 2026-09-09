@@ -1,5 +1,7 @@
 using UnityEngine;
 using XianXia.Core.World.Strategic;
+using XianXia.Core.World.Hex;
+using XianXia.Core.World;
 
 namespace XianXia.Unity.Host
 {
@@ -166,7 +168,7 @@ namespace XianXia.Unity.Host
                 case CheatTab.Battle:
                     return 80f;
                 case CheatTab.Diagnostics:
-                    return 80f;
+                    return 500f;
                 default:
                     return 400f;
             }
@@ -339,6 +341,40 @@ namespace XianXia.Unity.Host
                 "调试：强化 Hex 分离（仅渲染）");
             if (nextSep != strongSep)
                 HostHexWorldRenderer.DebugStrongHexSeparation = nextSep;
+            y += 30f;
+            HostWorldMapPanel.DebugShowW1CCoverage = GUI.Toggle(new Rect(x, y, width, 22f),
+                HostWorldMapPanel.DebugShowW1CCoverage, "调试：WorldMap 显示 W1C authored coverage 外框");
+            y += 30f;
+            var surface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
+            var motion = bootstrap?.Session?.World?.PlayerPartyTravel;
+            var wildernessOnly = motion != null && motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
+                                 bootstrap?.Session?.World?.LocalMap?.IsInInterior != true;
+            GUI.enabled = wildernessOnly;
+            if (GUI.Button(new Rect(x, y, width, 26f), "Continuous World W1C Acceptance") && wildernessOnly)
+            {
+                var world = bootstrap?.Session?.World;
+                if (surface != null && world?.PlayerPartyTravel != null && surface.TryGetAcceptanceStartWorldPosition(out var wx, out var wy))
+                {
+                    var size = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+                    world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(wx, wy), HexMath.WorldToHex(wx, wy, size));
+                    surface.TryActivateAtCurrentWorldPosition();
+                    bootstrap.ActivateSurfaceLocalMapPresentation();
+                    bootstrap.FrameCameraOnActiveCharacter();
+                }
+            }
+            GUI.enabled = true;
+            y += 32f;
+            if (!wildernessOnly)
+            {
+                GUI.Label(new Rect(x, y, width, 20f), "W1C Acceptance is wilderness-only; exit WorldSite/Interior first.", _body);
+                y += 20f;
+            }
+            GUI.Label(new Rect(x, y, width, 350f),
+                "Authority=" + (surface != null && surface.IsActive ? "W1CContinuousSurface" :
+                    (bootstrap?.ContinuousWildernessLoadedSet?.IsActive == true ? "W1BPair" : "LegacyLocalMap")) + "\n" +
+                "W1CActive=" + (surface != null && surface.IsActive) +
+                " W1BActive=" + (bootstrap?.ContinuousWildernessLoadedSet?.IsActive == true) + "\n" +
+                (surface != null ? surface.DescribeDiagnostics() : string.Empty), _body);
         }
 
         public const float TopBarEntryY = 8f;

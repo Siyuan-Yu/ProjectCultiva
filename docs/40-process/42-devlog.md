@@ -7,6 +7,35 @@
 
 ---
 
+## 2026-09-09 — W1C Outer Boundary Handoff Repair
+
+- 修正“CompositeWalkGrid 卡在 authored 外边，canonical 永远无法 outside”的 egress 死锁。新增 Data 纯 `OutdoorSurfaceBoundaryEgressResolver`：从 authored chunk rect union（不看 loaded radius）判定 Inside/Crossing/Outside，并以 movement ray 计算真实 boundary contact + metric-relative just-outside epsilon。
+- `ContinuousOutdoorSurfaceRuntime.TryHandoffContinuousSurfaceToLegacy` 成为 WASD 与 LocalVisible AutoTravel 的唯一交接链：先提交 outside canonical position、精确 destination hex 和 travelling-member presence，经 Water/passable/missing prototype guard 后，才 cleanup W1C 并 materialize legacy Wilderness。AutoTravel 的 3×3 外仍走原 streaming frontier；仅整个 authored Surface 外才靠近边缘交接，TravelPlan 不取消。
+- Diagnostics 添加 `SurfaceEgressStatus`、`NextOutsideHex/Terrain/Passable`。定向 pure tests 新增 authored boundary ray、合法/Water handoff gate、以及 loaded neighborhood 外但 authored coverage 内的 AutoTravel 区分；Unity 人工复验待进行。
+
+## 2026-09-09 — W1C Repair：精确 Hex inverse、原型合法性与 coverage 可观察性
+
+- `HexWorldLayout.WorldToCoord` 改为 pointy-top fractional axial → 复用 `HexMath.CubeRound` → Odd-R；`HexMath`、`HexMetrics`、WorldMap picking 与 W1C commit 共用几何。forward、Neighbor、Distance 与 DirectionIndex 顺序未改，也未翻转 mapper Y。修正方向表注释及 NW 原型 fixture 的 R 方向；Legacy wilderness resolver 保留原逻辑。
+- 新增纯 Core `ContinuousSurfacePrototypeGroundLegality`，只作 W1C migration/prototype safety guard，不是未来 Surface physics authority。缺失格、Water、不可通行格在 canonical mutation 前拒绝；Road 不参与 gate。额外检查 DerivedHex，避免 hysteresis 带内 WorldPosition 偷入非法地面。
+- Host 最终表现同步覆盖 manual/click/AutoTravel，拒绝时退回最近已接受 canonical 位置（非 Hex center）、停止整队 realtime paths、逐个约束 follower 并同步 presentation override。AutoTravel 保留 route/destination，失败路径等待路线/位置/地形变化再试，显示 `ContinuousStrategicLegalityBlocked`；最终到达也不再使用 Legacy LocalMap center/projection。
+- 真正跨出 authored coverage 才走 legacy Wilderness handoff：准备当前位置 fallback、清除 Surface owners/grid/context/path，再展开对应地图。WASD 与 AutoTravel 补齐末端 sub-cell 跨界，内部 seam 不触发 SurfaceExit；frontier approach 不再用 dot product 选择远端角落。
+- LevelTester → Diagnostics 增加默认关闭的 WorldMap coverage 开关，青色轮廓按 authored rect union 外边经正式 world→screen projection 绘制；显示 Derived/Committed、Exists/Terrain/Passable/IsRoad、Chunk 与 coverage contains。保留 5×5 authored、radius-1 最多 3×3，不跟道路生成。
+- 验证：Core/Data/Unity Host/EditMode 测试程序集离线 compile sanity；仅运行 `ContinuousSurfaceSpatialRepairTests` 与 `OutdoorSurfaceW1CTests` 的定向 pure tests；后续 Outer Boundary repair 扩展后为 17 passed / 0 failed；`git diff --check`。未启动 Unity、未做 Full EditMode/PlayMode 或人工测试。
+
+**状态：W1C Repair，等待制作人重新验收，未进入 W1D。** 原 foundation 记录中的旧比例与 Legacy resolver 描述为历史，当前 metric / commit 以 `206` 及本条为准。
+
+## 2026-09-09 — W1B sealed / W1C surface-grid foundation
+
+- W1B 已由制作人 Unity 人工验收通过，`205` 标记 **ACCEPTED / SEALED**：双 Wilderness simultaneous presentation、A↔B continuous crossing、AutoTravel preservation、offset 修复与 deterministic cleanup 均确认；不再扩展 W1B pair architecture。
+- W1C 新增独立 `SurfaceChunkCoord`、统一 `OutdoorSurfaceCoordinateMapper`、deterministic neighborhood diff/owner key 与最小 surface/chunk definitions；记录见 `206`。这些基础类型不以 Hex 或 LocalMap 作为 chunk identity。首个 acceptance surface 为 `5×5` source chunks、运行时 radius-1 `3×3` sliding neighborhood；`50×50` legacy source 通过统一 `0.02 WorldPosition units/cell` bridge 填满 `1×1` chunk，避免把 Unity layout coordinate 误作 WorldPosition。
+- W1C Host 路径把 chunk/Hex crossing 设为普通 movement，WorldPosition 反向同步以 `ResolveAuthoritativeWildernessHex` 保持边界防抖；LocalVisible AutoTravel 直接向 next Hex 的 WorldPosition target 行进，不解析 SurfaceExit。离开 surface coverage 时才清 chunk owners 并回到 legacy presentation。Unity 人工验收仍待进行。
+
+## 2026-09-09 — Continuous World W1B Repair
+
+- W1B 修复：确定性 acceptance pair selector、`Presentation↔SurfaceLocal` 转换、internal seam primary commit 改走 `ApplyWildernessPrimaryContextWithoutUnload`（不 ClearOccupants）、AutoTravel preserving seamless commit、LoadedSet 生命周期（`DeactivateToLegacy` 真实调用点）、Graybox overlay-only rebuild、WorldMap LocalVisible 跨 internal seam 与误 CancelTravel 修复。
+- 定向 EditMode：`ContinuousWildernessW1BTests`（roundtrip / no-unload commit / AutoTravel preserve / deactivate）。`git diff --check` 通过。
+- 记录：[205](205-continuous-world-w1b-first-seamless-wilderness-pair-2026-09-09.md)。制作人 Unity 人工验收待进行；未进入 W1C。
+
 ## 2026-09-09 — Continuous World W1B / First Seamless Wilderness Pair
 
 - 新增 transient `ContinuousWildernessLoadedSet`：对一条正式、cardinal、相邻 Wilderness edge 同时 owner-build 两张 fallback Surface，并以 `WalkGridComposer` 组合为一个 movement context；没有把 loaded set 写入 Domain 或 Save。

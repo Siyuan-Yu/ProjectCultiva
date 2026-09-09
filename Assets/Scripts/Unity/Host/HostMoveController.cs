@@ -364,6 +364,9 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            if (loadedSet != null && loadedSet.IsActive && !loadedSet.IsInternal(connection))
+                bootstrap.DeactivateContinuousWildernessIfActive();
+
             var usable = bootstrap.SurfaceExitZonePresenter;
             if (usable == null || !usable.TryGetUsableSurfaceExit(connection, out _))
             {

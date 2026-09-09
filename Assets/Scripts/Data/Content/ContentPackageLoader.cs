@@ -255,6 +255,9 @@ namespace XianXia.Data.Content
                     case "mapLayout":
                         LoadMapLayout(item, parsed.Value, registry, report);
                         break;
+                    case "outdoorSurface":
+                        LoadOutdoorSurface(item, parsed.Value, registry, report);
+                        break;
                     case "spawnTable":
                         LoadSpawnTable(item, parsed.Value, registry, report);
                         break;
@@ -1958,6 +1961,57 @@ namespace XianXia.Data.Content
             var reg = registry.RegisterSpawnTable(table);
             if (reg.IsFailure)
                 report.Add(reg.Error);
+        }
+
+        static void LoadOutdoorSurface(
+            JsonValue item, DefinitionId id, DefinitionRegistry registry, ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.OutdoorSurfaceFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore) return;
+            var surface = new OutdoorWorldSurfaceDefinition
+            {
+                SurfaceId = id.ToString(),
+                OriginWorldX = ReadFloat(item, "originWorldX", 0f),
+                OriginWorldY = ReadFloat(item, "originWorldY", 0f),
+                CellSize = ReadFloat(item, "cellSize", 1f),
+                ChunkWidth = ReadFloat(item, "chunkWidth", 50f),
+                ChunkHeight = ReadFloat(item, "chunkHeight", 50f)
+            };
+            if (surface.CellSize <= 0f || surface.ChunkWidth <= 0f || surface.ChunkHeight <= 0f)
+            { report.Add(ErrorCode.InvalidArgument, "outdoorSurface metric must be positive.", id.ToString()); return; }
+            if (!item.TryGetProperty("chunks", out var chunks) || chunks.Kind != JsonValueKind.Array)
+            { report.Add(ErrorCode.MissingRequiredField, "outdoorSurface.chunks required.", id.ToString()); return; }
+            var usedCoords = new HashSet<XianXia.Core.World.Surface.SurfaceChunkCoord>();
+            var usedChunkIds = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var node in chunks.Array)
+            {
+                if (node.Kind != JsonValueKind.Object) continue;
+                DefinitionSchema.RejectUnknownFields(node, DefinitionSchema.OutdoorSurfaceChunkFields, report, id + ".chunk");
+                var stableChunkId = node.GetString("id", string.Empty);
+                var coord = new XianXia.Core.World.Surface.SurfaceChunkCoord(ReadInt(node, "x", 0), ReadInt(node, "y", 0));
+                var sourceMapLayoutId = node.GetString("sourceMapLayoutId", string.Empty);
+                if (string.IsNullOrWhiteSpace(stableChunkId) || string.IsNullOrWhiteSpace(sourceMapLayoutId))
+                {
+                    report.Add(ErrorCode.MissingRequiredField, "outdoorSurface chunk id and sourceMapLayoutId required.", id + ".chunk");
+                    continue;
+                }
+                if (!usedChunkIds.Add(stableChunkId) || !usedCoords.Add(coord))
+                {
+                    report.Add(ErrorCode.InvalidArgument, "outdoorSurface chunk ids and physical rectangle coordinates must be unique.", id + ".chunk");
+                    continue;
+                }
+                surface.Chunks.Add(new OutdoorSurfaceChunkDefinition
+                {
+                    StableChunkId = stableChunkId,
+                    Coord = coord,
+                    SourceMapLayoutId = sourceMapLayoutId,
+                    Width = surface.ChunkWidth, Height = surface.ChunkHeight
+                });
+            }
+            if (surface.Chunks.Count == 0) { report.Add(ErrorCode.MissingRequiredField, "outdoorSurface requires chunks.", id.ToString()); return; }
+            var result = registry.RegisterOutdoorSurface(surface);
+            if (result.IsFailure) report.Add(result.Error);
         }
 
         static void LoadHexWorldContent(
