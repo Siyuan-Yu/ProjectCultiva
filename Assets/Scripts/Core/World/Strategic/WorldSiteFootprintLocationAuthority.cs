@@ -42,4 +42,42 @@ namespace XianXia.Core.World.Strategic
             return true;
         }
     }
+
+    /// <summary>V1 Outdoor WorldSite physical-region query. The current baked region is the
+    /// authored strategic footprint; it provides context only and never changes location authority.</summary>
+    public static class WorldSitePhysicalRegionQuery
+    {
+        public static bool TryResolve(
+            SimulationWorld world,
+            WorldVec2 worldPosition,
+            out WorldSite site)
+        {
+            site = null;
+            if (world?.HexWorld == null || world.Strategic?.Sites == null)
+                return false;
+            var size = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var hex = HexMath.WorldToHex(worldPosition.X, worldPosition.Y, size);
+            if (!world.Strategic.Sites.TryGetAtHex(hex, out site) || site == null ||
+                !WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site))
+            {
+                site = null;
+                return false;
+            }
+            return true;
+        }
+
+        public static string ResolveSiteIdOrEmpty(
+            SimulationWorld world,
+            WorldVec2 worldPosition) =>
+            TryResolve(world, worldPosition, out var site) ? site.SiteId : string.Empty;
+    }
+
+    /// <summary>Single compatibility gate for the Outdoor WorldSite migration.  It deliberately
+    /// lives beside WorldSite rather than presentation code: callers must not infer the physical
+    /// mode from LocalMapId, because that id remains a legacy authoring source.</summary>
+    public static class WorldSiteOutdoorMigrationPolicy
+    {
+        public static bool UsesContinuousOutdoorSurface(WorldSite site) =>
+            site != null && site.UsesContinuousOutdoorSurface;
+    }
 }

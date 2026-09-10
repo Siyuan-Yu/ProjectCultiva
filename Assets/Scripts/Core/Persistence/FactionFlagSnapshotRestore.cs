@@ -42,6 +42,8 @@ namespace XianXia.Core.Persistence
                     return Invalid(i, item, "HP must satisfy 0 < CurrentHp <= MaxHp");
                 if (item.HasLocalPosition && (!IsFinite(item.LocalX) || !IsFinite(item.LocalZ)))
                     return Invalid(i, item, "local position is not finite");
+                if (item.HasWorldPosition && (!IsFinite(item.WorldX) || !IsFinite(item.WorldY)))
+                    return Invalid(i, item, "world position is not finite");
 
                 validated.Add(new FactionFlagState
                 {
@@ -53,7 +55,10 @@ namespace XianXia.Core.Persistence
                     MaxHp = item.MaxHp,
                     HasLocalPosition = item.HasLocalPosition,
                     LocalX = item.LocalX,
-                    LocalZ = item.LocalZ
+                    LocalZ = item.LocalZ,
+                    HasWorldPosition = item.HasWorldPosition,
+                    WorldX = item.WorldX,
+                    WorldY = item.WorldY
                 });
             }
 

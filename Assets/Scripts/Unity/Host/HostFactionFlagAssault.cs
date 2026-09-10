@@ -47,9 +47,16 @@ namespace XianXia.Unity.Host
                 _bootstrap?.RefreshFactionFlagWalkGrid();
                 return;
             }
-            MapLayoutPick.TryGet(session, out var layout);
+            MapLayoutDefinition layout = null;
+            if (_bootstrap.ContinuousOutdoorSurfaceRuntime == null ||
+                !_bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive)
+                MapLayoutPick.TryGet(session, out layout);
             CollectPoints();
-            if (!HostFactionFlagQuery.IsAnyPointNear(flag, layout, _points))
+            var continuous = _bootstrap.ContinuousOutdoorSurfaceRuntime;
+            var near = continuous != null && continuous.IsActive
+                ? HostFactionFlagQuery.IsAnyPointNear(flag, continuous, _points)
+                : HostFactionFlagQuery.IsAnyPointNear(flag, layout, _points);
+            if (!near)
                 return;
             _cooldown -= _bootstrap.PresentationDeltaTime;
             if (_cooldown > 0f || _actors.Count == 0)
@@ -64,9 +71,14 @@ namespace XianXia.Unity.Host
                 Clear();
                 return;
             }
-            if (_bootstrap.ViewSpawner.Registry.TryGet(attacker, out var view) && view != null &&
-                HostFactionFlagQuery.TryGetCenter(flag, layout, out var center))
-                _vfx?.Play(view.transform.position, center);
+            if (_bootstrap.ViewSpawner.Registry.TryGet(attacker, out var view) && view != null)
+            {
+                Vector3 center;
+                var hasCenter = continuous != null && continuous.IsActive
+                    ? HostFactionFlagQuery.TryGetCenter(flag, continuous, out center)
+                    : HostFactionFlagQuery.TryGetCenter(flag, layout, out center);
+                if (hasCenter) _vfx?.Play(view.transform.position, center);
+            }
             Toast(attacker, "-" + damage, new Color(1f, .45f, .3f));
             if (!world.Strategic.FactionFlags.Flags.ContainsKey(_flagId))
             {

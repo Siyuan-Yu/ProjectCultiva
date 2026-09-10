@@ -1,6 +1,6 @@
 # Continuous World W1C — First Real Surface Chunk Neighborhood
 
-> 状态：IMPLEMENTING｜优先级：P0｜最后更新：2026-09-09
+> 状态：**ACCEPTED / SEALED**｜优先级：P0｜最后更新：2026-09-10
 > 前置：[W1B](205-continuous-world-w1b-first-seamless-wilderness-pair-2026-09-09.md)（ACCEPTED / SEALED）、[ADR-0031](43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md)
 
 ## 决定与边界
@@ -48,3 +48,11 @@ LevelTester / Cheat Tools → Diagnostics：勾选「WorldMap 显示 W1C authore
 `OutdoorSurfaceBoundaryEgressResolver` 以 authored chunk world-rect union 查询 `Inside / CrossingOuterBoundary / Outside`，并沿当前 canonical→desired ray 求 first boundary contact 与集中配置的 just-outside epsilon。它不读取 loaded set 或 WalkGrid，因此“3×3 外但 5×5 内”继续 streaming，“5×5 外”才交接。
 
 WASD 在 CompositeWalkGrid 拒绝前调用统一 `TryHandoffContinuousSurfaceToLegacy`；LocalVisible AutoTravel 先走向同一 boundary contact，近到可达阈值后调用它，保留 Domain travel plan。交接先用精确 WorldToHex 和 prototype ground guard 提交 just-outside canonical/presence，再清 W1C owner/grid/context/path、展开 destination legacy Wilderness；Water、不可通行或缺失 destination 显示 `BlockedByStrategicGround`，允许留在边缘。Diagnostics 增加 `SurfaceEgressStatus` 及 `NextOutsideHex/Terrain/Passable`。
+
+## W1C 制作人验收与封板（2026-09-10）
+
+制作人 Unity 最终验收通过：W1C authority 可激活且 W1B 不会抢占；radius-1/3×3 neighborhood 可随玩家滑动，owner-scoped diff 不会 Clear/Rebuild；可连续跨多个 Chunk 与 Strategic Hex；coverage debug overlay、outer-boundary WASD→Legacy handoff、lifecycle cleanup 与 WorldSite debug-action 拒绝均已实际验证。
+
+已验证并冻结的结论：`SurfaceChunkCoord != HexCoord`，两种边界可独立跨越，禁止恢复一 Hex 一 Chunk；Outdoor 权威链为 `Presentation → canonical WorldPosition → Strategic Hex query`；World `+X` 为 visual right/East、`+Y` 为 visual up/North，Continuous mapper 禁止 Y sign flip；Continuous Hex commit / shared-edge hysteresis 与 legacy `ResolveAuthoritativeWildernessHex` 分离；`Road=false` 不等于不可通行，prototype safety guard 只拒绝 missing/Water/`IsPassable=false`；所有 transient chunk/surface 必须显式 owner、deterministic cleanup，不能依赖 LocalMap transition 或 Scene reload。
+
+**Deferred：** mouse click 到 surface 外触发 egress 为 movement UX affordance，不是 W1C blocker。`base:surface_w1c_wilderness_acceptance` 是有限 acceptance Surface，使用 legacy fallback bridge 与 radius-1 streaming，不宣称整大陆已 continuous。

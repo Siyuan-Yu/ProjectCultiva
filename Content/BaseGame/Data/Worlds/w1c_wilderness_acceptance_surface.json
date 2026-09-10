@@ -10,6 +10,7 @@
       "cellSize": 0.028,
       "chunkWidth": 1.4,
       "chunkHeight": 1.4,
+      "acceptanceOnly": true,
       "chunks": [
         { "id": "w1c_-2_2", "x": -2, "y": 2, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },
         { "id": "w1c_-1_2", "x": -1, "y": 2, "sourceMapLayoutId": "base:map_wilderness_plain_fallback" },

@@ -52,7 +52,16 @@ namespace XianXia.Core.Persistence
         /// <summary>Social Bond Runtime Board（v6 optional；旧档缺省＝空）。</summary>
         public List<SocialBondSnapshotDto> SocialBonds { get; set; } =
             new List<SocialBondSnapshotDto>();
+        public List<OutdoorDestructibleSnapshotDto> OutdoorDestructibles { get; set; } =
+            new List<OutdoorDestructibleSnapshotDto>();
+        public List<OutdoorFarmPlotSnapshotDto> OutdoorFarmPlots { get; set; } =
+            new List<OutdoorFarmPlotSnapshotDto>();
     }
+
+    public sealed class OutdoorDestructibleSnapshotDto
+    { public string StableId { get; set; } = string.Empty; public int CurrentHp { get; set; } public bool Destroyed { get; set; } }
+    public sealed class OutdoorFarmPlotSnapshotDto
+    { public string StableCellId { get; set; } = string.Empty; public string CropId { get; set; } = string.Empty; public int CropStage { get; set; } public float Growth { get; set; } }
 
     public sealed class StrategicSnapshotDto
     {
@@ -339,6 +348,9 @@ namespace XianXia.Core.Persistence
         public bool HasLocalPosition { get; set; }
         public float LocalX { get; set; }
         public float LocalZ { get; set; }
+        public bool HasWorldPosition { get; set; }
+        public float WorldX { get; set; }
+        public float WorldY { get; set; }
     }
 
     public sealed class WarSnapshotDto

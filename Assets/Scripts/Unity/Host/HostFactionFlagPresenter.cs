@@ -52,9 +52,14 @@ namespace XianXia.Unity.Host
             }
 
             var hasContext = LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(world, out var context);
-            var wilderness = hasContext &&
-                context.Kind == LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WildernessHex;
-            if (wilderness && world.Strategic.FactionFlags.TryGetAt(context.WildernessHex, out var flag) && flag != null)
+            var continuous = _bootstrap.ContinuousOutdoorSurfaceRuntime != null &&
+                             _bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive &&
+                             world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition;
+            var wilderness = continuous || (hasContext &&
+                context.Kind == LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WildernessHex);
+            var anchor = continuous ? world.PlayerPartyTravel.CurrentHex :
+                (hasContext ? context.WildernessHex : default);
+            if (wilderness && world.Strategic.FactionFlags.TryGetAt(anchor, out var flag) && flag != null)
             {
                 EnsureVisual(flag);
                 if (_label != null)
@@ -65,7 +70,7 @@ namespace XianXia.Unity.Host
                 DestroyVisual();
 
             if (_placing)
-                UpdatePlacementPreview(wilderness, wilderness ? context.WildernessHex : default);
+                UpdatePlacementPreview(wilderness, continuous, wilderness ? anchor : default);
             else
                 DestroyPreview();
         }
@@ -96,7 +101,7 @@ namespace XianXia.Unity.Host
             DestroyPreview();
         }
 
-        void UpdatePlacementPreview(bool wilderness, HexCoord anchor)
+        void UpdatePlacementPreview(bool wilderness, bool continuous, HexCoord anchor)
         {
             if (Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(1))
             {
@@ -118,15 +123,22 @@ namespace XianXia.Unity.Host
             _geometryLegal = false;
             if (!HostUiHitTest.ContainsScreenPoint(Input.mousePosition) &&
                 Camera.main != null &&
-                HostPresentationSpace.TryRaycastPlane(Camera.main, Input.mousePosition, out var wp) &&
-                MapLayoutPick.TryGet(_bootstrap.Session, out var layout) && layout != null)
+                HostPresentationSpace.TryRaycastPlane(Camera.main, Input.mousePosition, out var wp))
             {
                 var p = HostPresentationSpace.ToPresentation(wp);
-                var baseGrid = MapLayoutWalkGridBuilder.Create(layout);
-                _geometryLegal = HostFactionFlagQuery.TryResolveLegalCenterAt(
-                    layout, baseGrid, p.x, p.y, out _previewX, out _previewZ);
+                MapLayoutDefinition layout = null;
+                if (continuous && _bootstrap.ContinuousOutdoorSurfaceRuntime.TryGetCompositeWalkGrid(out var composite))
+                    _geometryLegal = HostFactionFlagQuery.TryResolveLegalCenterAtContinuous(
+                        composite, p.x, p.y, out _previewX, out _previewZ);
+                else if (MapLayoutPick.TryGet(_bootstrap.Session, out layout) && layout != null)
+                {
+                    var baseGrid = MapLayoutWalkGridBuilder.Create(layout);
+                    _geometryLegal = HostFactionFlagQuery.TryResolveLegalCenterAt(
+                        layout, baseGrid, p.x, p.y, out _previewX, out _previewZ);
+                }
                 EnsurePreview();
-                PositionBuilding(_preview, _previewX, _previewZ, layout);
+                PositionBuilding(_preview, _previewX, _previewZ, continuous ? 1f :
+                    (layout != null && layout.CellSize > 0f ? layout.CellSize : 1f));
                 _overallLegal = _geometryLegal && _domainLegal;
                 Tint(_preview, _overallLegal
                     ? new Color(.35f, 1f, .45f, .55f)
@@ -155,6 +167,15 @@ namespace XianXia.Unity.Host
             _status = result.IsSuccess ? "建造成功。" : result.Error.Message;
             if (!result.IsSuccess)
                 return;
+            if (_bootstrap.ContinuousOutdoorSurfaceRuntime != null &&
+                _bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive &&
+                world.Strategic.FactionFlags.TryGetAt(anchor, out var placed) && placed != null &&
+                _bootstrap.ContinuousOutdoorSurfaceRuntime.PresentationToWorld(x, z, out var wx, out var wy))
+            {
+                placed.HasWorldPosition = true;
+                placed.WorldX = wx;
+                placed.WorldY = wy;
+            }
             CancelPlacement();
             _bootstrap.RefreshFactionFlagWalkGrid();
         }
@@ -178,11 +199,20 @@ namespace XianXia.Unity.Host
                 var mr = labelObject.GetComponent<MeshRenderer>();
                 if (mr != null) mr.sortingOrder = 722;
             }
-            if (!MapLayoutPick.TryGet(_bootstrap.Session, out var layout) || layout == null)
+            var continuous = _bootstrap.ContinuousOutdoorSurfaceRuntime;
+            if (continuous != null && continuous.IsActive &&
+                HostFactionFlagQuery.TryGetCenter(flag, continuous, out var center))
+            {
+                var p = HostPresentationSpace.ToPresentation(center);
+                PositionBuilding(_visual, p.x, p.y, 1f);
                 return;
-            var baseGrid = MapLayoutWalkGridBuilder.Create(layout);
-            if (HostFactionFlagQuery.TryResolvePosition(flag, layout, baseGrid, out var x, out var z))
-                PositionBuilding(_visual, x, z, layout);
+            }
+            if (MapLayoutPick.TryGet(_bootstrap.Session, out var layout) && layout != null)
+            {
+                var baseGrid = MapLayoutWalkGridBuilder.Create(layout);
+                if (HostFactionFlagQuery.TryResolvePosition(flag, layout, baseGrid, out var x, out var z))
+                    PositionBuilding(_visual, x, z, layout.CellSize > 0f ? layout.CellSize : 1f);
+            }
         }
 
         void EnsurePreview()
@@ -206,10 +236,10 @@ namespace XianXia.Unity.Host
             return go;
         }
 
-        static void PositionBuilding(GameObject go, float x, float z, MapLayoutDefinition layout)
+        static void PositionBuilding(GameObject go, float x, float z, float cellSize)
         {
             if (go == null) return;
-            var cs = layout != null && layout.CellSize > 0f ? layout.CellSize : 1f;
+            var cs = cellSize > 0f ? cellSize : 1f;
             var intended = HostPresentationSpace.FromPresentation(x, z, HostPresentationSpace.BuildingZ);
             go.transform.localScale = Vector3.one;
             var renderers = go.GetComponentsInChildren<SpriteRenderer>(true);

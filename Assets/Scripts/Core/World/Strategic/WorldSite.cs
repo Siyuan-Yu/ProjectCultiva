@@ -23,6 +23,12 @@ namespace XianXia.Core.World.Strategic
         /// <summary>绑定 TerritoryRegion（2J §6.4）。FootprintHexes 与 Region.Hexes 严格分离。</summary>
         public string TerritoryRegionId { get; set; } = string.Empty;
         public string LocalMapId { get; set; } = string.Empty;
+        /// <summary>
+        /// Outdoor physical migration marker. When true this Site remains a strategic/domain
+        /// entity, but normal player movement stays in the main continuous WorldPosition space.
+        /// LocalMapId is then authoring/save-migration compatibility only.
+        /// </summary>
+        public bool UsesContinuousOutdoorSurface { get; set; }
 
         public HexCoord AnchorHex { get; set; }
 

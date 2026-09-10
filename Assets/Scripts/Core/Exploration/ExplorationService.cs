@@ -171,7 +171,8 @@ namespace XianXia.Core.Exploration
                 return Result.Failure(ErrorCode.InvalidOperation, "Subject has no current location.");
 
             var entranceId = string.IsNullOrWhiteSpace(entranceLocationId) ? loc.LocationId : entranceLocationId.Trim();
-            if (!world.WorldRegion.TryGet(entranceId, out var entrance))
+            var fromContinuousOutdoor = world.ContinuousOutdoorMaterialization.TryGetAnyPlace(entranceId, out var entrance);
+            if (!fromContinuousOutdoor && !world.WorldRegion.TryGet(entranceId, out entrance))
                 return Result.Failure(ErrorCode.NotFound, "Entrance location missing.", entranceId);
             if (string.IsNullOrEmpty(entrance.EnterLocalMapId) || string.IsNullOrEmpty(entrance.EnterSpawnLocationId))
                 return Result.Failure(ErrorCode.InvalidOperation, "Location is not a LocalMap entrance.", entranceId);
@@ -194,10 +195,22 @@ namespace XianXia.Core.Exploration
                 }
             }
 
-            if (!world.WorldRegion.TryGet(entrance.EnterSpawnLocationId, out _))
+            if (fromContinuousOutdoor)
+                world.ContinuousOutdoorMaterialization.CopyPlacesTo(world.WorldRegion);
+            if (!world.WorldRegion.TryGet(entrance.EnterSpawnLocationId, out _) &&
+                !world.ContinuousOutdoorMaterialization.TryGetAnyPlace(entrance.EnterSpawnLocationId, out _))
                 return Result.Failure(ErrorCode.NotFound, "Spawn location missing.", entrance.EnterSpawnLocationId);
 
             var session = world.LocalMap;
+            var outdoorMotion = world.PlayerPartyTravel;
+            if (outdoorMotion != null && outdoorMotion.HasPosition &&
+                outdoorMotion.LocationKind == XianXia.Core.World.Strategic.PlayerPartyLocationKind.AtWorldPosition &&
+                !string.IsNullOrEmpty(outdoorMotion.CurrentOutdoorWorldSiteId))
+            {
+                session.HasContinuousOutdoorReturn = true;
+                session.ContinuousOutdoorReturnX = outdoorMotion.WorldPosition.X;
+                session.ContinuousOutdoorReturnY = outdoorMotion.WorldPosition.Y;
+            }
             if (string.IsNullOrEmpty(session.OverworldMapLayoutId))
                 session.OverworldMapLayoutId = session.ActiveMapLayoutId;
             session.ReturnLocationId = entranceId;
@@ -227,7 +240,7 @@ namespace XianXia.Core.Exploration
             var session = world.LocalMap;
             if (!session.IsInInterior)
                 return Result.Failure(ErrorCode.InvalidOperation, "Not inside a LocalMap interior.");
-            if (string.IsNullOrEmpty(session.OverworldMapLayoutId))
+            if (string.IsNullOrEmpty(session.OverworldMapLayoutId) && !session.HasContinuousOutdoorReturn)
                 return Result.Failure(ErrorCode.InvalidOperation, "Overworld map missing.");
             if (string.IsNullOrEmpty(session.ReturnLocationId) ||
                 !world.WorldRegion.TryGet(session.ReturnLocationId, out _))
@@ -237,8 +250,25 @@ namespace XianXia.Core.Exploration
             var interiorMap = session.ActiveMapLayoutId;
             // 默认全员撤离：登记名单 ∪ 仍挂在内室地点的己方。
             EvacuateInteriorParty(world, session, interiorMap, returnId);
-            session.ActiveMapLayoutId = session.OverworldMapLayoutId;
+            session.ActiveMapLayoutId = session.HasContinuousOutdoorReturn ? string.Empty : session.OverworldMapLayoutId;
             session.ClearOccupants();
+            if (session.HasContinuousOutdoorReturn && world.PlayerPartyTravel != null)
+            {
+                var position = new XianXia.Core.World.Hex.WorldVec2(
+                    session.ContinuousOutdoorReturnX, session.ContinuousOutdoorReturnY);
+                var size = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+                var hex = XianXia.Core.World.Hex.HexMath.WorldToHex(position.X, position.Y, size);
+                world.PlayerPartyTravel.SetAtWorldPosition(position, hex);
+                world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(
+                    XianXia.Core.World.Strategic.WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(world, position));
+                foreach (var id in world.PlayerPartyTravel.TravelingMembers)
+                    world.WorldPresence.SetAtWorldPosition(id, position, hex);
+                world.PartyWorld.LocalMapId = string.Empty;
+                world.PartyWorld.SiteId = string.Empty;
+                world.PartyWorld.Mode = XianXia.Core.World.PartyWorldPresenceMode.AtWorldPosition;
+                session.OverworldMapLayoutId = string.Empty;
+                session.HasContinuousOutdoorReturn = false;
+            }
 
             world.Events.Publish(
                 EventType.LocalMapChanged,

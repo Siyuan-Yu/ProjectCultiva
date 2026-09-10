@@ -61,6 +61,17 @@ namespace XianXia.Unity.Host
                 marker.transform.SetParent(mapRoot, false);
                 _built.Add(marker);
             }
+
+            foreach (var kv in session.World.ContinuousOutdoorMaterialization.PlacesByLocationId)
+            {
+                var loc = kv.Value;
+                if (loc == null || (OpportunityEntranceRules.IsHiddenEntrance(loc) &&
+                    !OpportunityEntranceRules.IsRevealed(session.World, loc))) continue;
+                BuildZoneLabel(loc);
+                var marker = new GameObject("ContinuousSiteMarker_" + kv.Key);
+                marker.transform.SetParent(mapRoot, false);
+                _built.Add(marker);
+            }
         }
 
         public void Clear() => ClearOverlaysOnly();
@@ -71,10 +82,9 @@ namespace XianXia.Unity.Host
                 DestroyBuilt(_built[i]);
 
             _built.Clear();
-            if (mapRoot == null)
-                return;
-            for (var i = mapRoot.childCount - 1; i >= 0; i--)
-                DestroyBuilt(mapRoot.GetChild(i).gameObject);
+            // This presenter owns only objects it created and recorded in _built. mapRoot is a
+            // shared presentation parent in existing scenes; deleting every child here used to
+            // remove SurfaceInstance_*, EntityView_* and gateway objects during a handoff.
         }
 
         static void DestroyBuilt(GameObject go)

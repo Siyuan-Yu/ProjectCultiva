@@ -56,7 +56,7 @@ namespace XianXia.Unity.Host
             if (session == null || !session.IsInitialized || leader.IsNone ||
                 string.IsNullOrWhiteSpace(entranceLocationId))
                 return;
-            if (!session.World.WorldRegion.TryGet(entranceLocationId, out var entrance))
+            if (!TryGetPlace(session, entranceLocationId, out var entrance))
                 return;
             if (!OpportunityEntranceRules.IsRevealed(session.World, entrance))
                 return;
@@ -200,7 +200,7 @@ namespace XianXia.Unity.Host
                 !entity.TryGet<EntityLocationComponent>(out var loc) ||
                 !loc.HasLocation)
                 return false;
-            if (!session.World.WorldRegion.TryGet(loc.LocationId, out var place))
+            if (!TryGetPlace(session, loc.LocationId, out var place))
                 return false;
             return !string.IsNullOrEmpty(place.LocalMapId) &&
                    string.Equals(place.LocalMapId, interiorMapLayoutId, System.StringComparison.Ordinal);
@@ -241,7 +241,7 @@ namespace XianXia.Unity.Host
             else if (session.World.Entities.TryGet(id, out var entity) &&
                      entity.TryGet<EntityLocationComponent>(out var loc) &&
                      loc.HasLocation &&
-                     session.World.WorldRegion.TryGet(loc.LocationId, out var place))
+                     TryGetPlace(session, loc.LocationId, out var place))
             {
                 px = place.PresentationX;
                 pz = place.PresentationZ;
@@ -331,7 +331,7 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            if (!session.World.WorldRegion.TryGet(_entranceLocationId, out var entrance))
+            if (!TryGetPlace(session, _entranceLocationId, out var entrance))
             {
                 Close();
                 return;
@@ -395,7 +395,7 @@ namespace XianXia.Unity.Host
             else if (session.World.Entities.TryGet(_leader, out var entity) &&
                      entity.TryGet<EntityLocationComponent>(out var loc) &&
                      loc.HasLocation &&
-                     session.World.WorldRegion.TryGet(loc.LocationId, out var place))
+                     TryGetPlace(session, loc.LocationId, out var place))
             {
                 px = place.PresentationX;
                 pz = place.PresentationZ;
@@ -411,6 +411,14 @@ namespace XianXia.Unity.Host
             if (commandBridge == null || party == null || party.Length == 0)
                 return;
             commandBridge.IssueEnterLocalMapWithParty(leader, entranceId, party);
+        }
+
+        static bool TryGetPlace(PlayableHostSession session, string locationId, out WorldLocationState place)
+        {
+            place = null;
+            return session?.World != null &&
+                   (session.World.ContinuousOutdoorMaterialization.TryGetAnyPlace(locationId, out place) ||
+                    session.World.WorldRegion.TryGet(locationId, out place));
         }
 
         string ResolveName(EntityId id)

@@ -10,6 +10,7 @@ using XianXia.Core.Input;
 using XianXia.Core.Navigation;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
+using XianXia.Data.Content;
 
 namespace XianXia.Unity.Host
 {
@@ -376,10 +377,21 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            var exitsToContinuous = world.PlayerPartyTravel != null &&
+                                    world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                                    bootstrap.ContinuousOutdoorSurfaceRuntime != null &&
+                                    OutdoorSurfaceCoverageResolver.TryResolveAtWorldPosition(
+                                        session.Registry,
+                                        connection.BoundaryContactWorldX,
+                                        connection.BoundaryContactWorldY,
+                                        out _);
             var result = world.PlayerPartyTravel != null &&
                          world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite
-                ? PlayerPartyWildernessTransitionService.TryExitWorldSiteByConnection(
-                    world, party, connection)
+                ? (exitsToContinuous
+                    ? PlayerPartyWildernessTransitionService.TryCommitWorldSiteEgressToContinuousWilderness(
+                        world, party, connection)
+                    : PlayerPartyWildernessTransitionService.TryExitWorldSiteByConnection(
+                        world, party, connection))
                 : PlayerPartyWildernessTransitionService.TryAttemptSurfaceEdgeTransition(
                     world, party, connection);
             if (result.IsFailure)
@@ -392,6 +404,21 @@ namespace XianXia.Unity.Host
             HostPlayerPartyController.LastTransitionStatus =
                 "ManualExitCrossed->" + connection.DestinationHex;
             HostPlayerPartyController.LastTransitionFailureReason = string.Empty;
+
+            // W1D normal cutover: after Core has committed the wilderness boundary position,
+            // coverage claims presentation before the legacy LocalMap materialize/repair chain.
+            // This is intentionally after the formal transition (WorldPosition is authoritative),
+            // but before ExpandLocalMapForCurrentPartyWorld (which would rebuild a one-Hex room).
+            if (world.PlayerPartyTravel != null &&
+                world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
+                bootstrap.ContinuousOutdoorSurfaceRuntime != null &&
+                bootstrap.ContinuousOutdoorSurfaceRuntime.TryActivateAtCurrentWorldPosition())
+            {
+                HostPlayerPartyController.LastTransitionStatus =
+                    "ManualExitCrossed->MainContinuousSurface:" + connection.DestinationHex;
+                bootstrap.SurfaceExitZonePresenter?.Clear();
+                return;
+            }
             bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
         }
 

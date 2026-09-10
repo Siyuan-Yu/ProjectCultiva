@@ -4,6 +4,8 @@
 
 ## 当前阶段说明
 
+- **2026-09-10：** W1C **Accepted / Sealed**；当前阶段为 **W1D — Default Wilderness Continuous Surface Cutover**。W1C acceptance Surface 保留为诊断，不参与 normal runtime authority。
+
 - **2026-09-09：** [ADR-0031](43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md) 已完成 **Continuous Outdoor World Architecture** 产品／架构方向收束：一个大陆的普通 Outdoor Geography 长期属于同一 Continuous Outdoor World Surface；Surface Chunk 与 Strategic Hex 分离；Fixed Baked Base World + Dynamic Save State；WorldPosition 为长期物理权威。**Runtime Migration 尚未开始**，当前“Wilderness 1 Hex = 1 logical LocalMap”、SurfaceExit、WorldSite LocalMap 与 Travel 实现不变。World Event 仅保留下一阶段候选 / North Star，本轮不启动。
 - **2026-08-29：** Phase 5B **WorldMap↔LocalMap Travel View Takeover — Accepted / Sealed**：基线 dev_1 @ 47b3f89；AutoTravel 关图 **不再 Cancel**；LocalVisible 时 World Advance 停止；再开 WorldMap 从同一 Continuous Position 继续；多次开关无漂移 / Route / Destination 异常；人工验收 Assets/Scenes/LevelTester.unity；真源 [173](173-phase-5b-worldmap-localmap-travel-view-takeover-2026-08-29.md)。**未开始 Phase 5C。**  
 - **2026-08-29：** Phase 5A **Travel 代码清理 / Authority 收口**：行为基线 `dev_1 @ 47b3f89`；真源 [172](172-phase-5a-travel-cleanup-authority-consolidation-2026-08-29.md)。  

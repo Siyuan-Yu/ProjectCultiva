@@ -19,6 +19,9 @@ namespace XianXia.Core.Exploration
 
         /// <summary>离开时把队伍送回的地点（通常是洞口）。</summary>
         public string ReturnLocationId { get; set; } = string.Empty;
+        public bool HasContinuousOutdoorReturn { get; set; }
+        public float ContinuousOutdoorReturnX { get; set; }
+        public float ContinuousOutdoorReturnY { get; set; }
 
         /// <summary>
         /// Surface Exit Trigger Depth（Gameplay）。由当前 MapLayout 写入；≤0 表示使用默认值。
@@ -146,9 +149,57 @@ namespace XianXia.Core.Exploration
             ActiveMapLayoutId = string.Empty;
             OverworldMapLayoutId = string.Empty;
             ReturnLocationId = string.Empty;
+            HasContinuousOutdoorReturn = false;
+            ContinuousOutdoorReturnX = ContinuousOutdoorReturnY = 0f;
             ExitTriggerDepth = 0f;
             ClearPlayableBounds();
             _occupantIds.Clear();
         }
+    }
+
+    public sealed class OutdoorStatefulObjectBoard
+    {
+        readonly Dictionary<string, OutdoorDestructibleState> _destructibles =
+            new Dictionary<string, OutdoorDestructibleState>(System.StringComparer.Ordinal);
+        readonly Dictionary<string, OutdoorFarmPlotState> _farmPlots =
+            new Dictionary<string, OutdoorFarmPlotState>(System.StringComparer.Ordinal);
+
+        public IReadOnlyDictionary<string, OutdoorDestructibleState> Destructibles => _destructibles;
+        public IReadOnlyDictionary<string, OutdoorFarmPlotState> FarmPlots => _farmPlots;
+        public bool TryGetDestructible(string id, out OutdoorDestructibleState state)
+        {
+            state = default;
+            return !string.IsNullOrEmpty(id) && _destructibles.TryGetValue(id, out state);
+        }
+        public bool TryGetFarmPlot(string id, out OutdoorFarmPlotState state)
+        {
+            state = default;
+            return !string.IsNullOrEmpty(id) && _farmPlots.TryGetValue(id, out state);
+        }
+        public void SetDestructible(string id, int hp, bool destroyed)
+        {
+            if (!string.IsNullOrEmpty(id)) _destructibles[id] = new OutdoorDestructibleState(hp, destroyed);
+        }
+        public void SetFarmPlot(string id, string cropId, int cropStage, float growth)
+        {
+            if (!string.IsNullOrEmpty(id)) _farmPlots[id] = new OutdoorFarmPlotState(cropId, cropStage, growth);
+        }
+        public void Clear() { _destructibles.Clear(); _farmPlots.Clear(); }
+    }
+
+    public readonly struct OutdoorDestructibleState
+    {
+        public OutdoorDestructibleState(int hp, bool destroyed) { Hp = hp; Destroyed = destroyed; }
+        public int Hp { get; }
+        public bool Destroyed { get; }
+    }
+
+    public readonly struct OutdoorFarmPlotState
+    {
+        public OutdoorFarmPlotState(string cropId, int cropStage, float growth)
+        { CropId = cropId ?? string.Empty; CropStage = cropStage; Growth = growth; }
+        public string CropId { get; }
+        public int CropStage { get; }
+        public float Growth { get; }
     }
 }

@@ -376,6 +376,17 @@ namespace XianXia.Unity.Host
             if (enter.IsSuccess && bootstrap != null)
             {
                 bootstrap.PlayerPartyController?.OnLocalVisibleTravelTakeover();
+                // W1D: WorldMap close is a normal Wilderness entry. Once Core has restored
+                // the canonical outdoor position, coverage owns presentation before legacy
+                // LocalMap materialization can run.
+                if (world.PlayerPartyTravel != null &&
+                    world.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
+                    bootstrap.ContinuousOutdoorSurfaceRuntime != null &&
+                    bootstrap.ContinuousOutdoorSurfaceRuntime.TryActivateAtCurrentWorldPosition())
+                {
+                    bootstrap.SurfaceExitZonePresenter?.Clear();
+                    return;
+                }
                 bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
             }
         }

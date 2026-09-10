@@ -6,12 +6,21 @@ namespace XianXia.Data.Content
     /// <summary>Pure W1C coverage query. Overlapping authored surfaces are an explicit error.</summary>
     public static class OutdoorSurfaceCoverageResolver
     {
-        public static bool TryResolveAtWorldPosition(DefinitionRegistry registry, float worldX, float worldY, out OutdoorWorldSurfaceDefinition surface)
+        public static bool TryResolveAtWorldPosition(DefinitionRegistry registry, float worldX, float worldY, out OutdoorWorldSurfaceDefinition surface) =>
+            TryResolveAtWorldPosition(registry, worldX, worldY, includeAcceptanceOnly: false, out surface);
+
+        public static bool TryResolveAtWorldPosition(
+            DefinitionRegistry registry,
+            float worldX,
+            float worldY,
+            bool includeAcceptanceOnly,
+            out OutdoorWorldSurfaceDefinition surface)
         {
             surface = null;
             if (registry == null) return false;
             foreach (var entry in registry.OutdoorSurfaces)
             {
+                if (!includeAcceptanceOnly && entry.Value.AcceptanceOnly) continue;
                 if (!ContainsWorldPosition(entry.Value, worldX, worldY)) continue;
                 if (surface != null) { surface = null; return false; }
                 surface = entry.Value;

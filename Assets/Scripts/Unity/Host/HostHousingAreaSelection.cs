@@ -1,6 +1,7 @@
 using UnityEngine;
 using XianXia.Core.Npc;
 using XianXia.Core.Simulation;
+using XianXia.Data.Content;
 
 namespace XianXia.Unity.Host
 {
@@ -108,8 +109,12 @@ namespace XianXia.Unity.Host
             }
 
             var world = bootstrap.Session.World;
-            MapLayoutPick.TryGet(bootstrap.Session, out var layout);
-            if (HostControlCoreQuery.TryPickAtWorld(world, layout, worldPoint, out var coreId))
+            MapLayoutDefinition layout = null;
+            if (bootstrap.ContinuousOutdoorSurfaceRuntime == null ||
+                !bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive)
+                MapLayoutPick.TryGet(bootstrap.Session, out layout);
+            if (HostControlCoreQuery.TryPickAtWorld(
+                    world, layout, bootstrap.ContinuousOutdoorSurfaceRuntime, worldPoint, out var coreId))
             {
                 _inspect.SetControlCore(coreId);
                 return;
@@ -165,7 +170,8 @@ namespace XianXia.Unity.Host
                 if (!HousingAssignmentService.IsHousingArea(area))
                     continue;
                 if (string.IsNullOrEmpty(area.LocationId) ||
-                    !world.WorldRegion.TryGet(area.LocationId, out var loc))
+                    (!world.ContinuousOutdoorMaterialization.TryGetAnyPlace(area.LocationId, out var loc) &&
+                     !world.WorldRegion.TryGet(area.LocationId, out loc)))
                     continue;
 
                 var cx = loc.PresentationX + area.OffsetX;
@@ -205,7 +211,8 @@ namespace XianXia.Unity.Host
                 if (area == null || area.IsControlCore || HousingAssignmentService.IsHousingArea(area))
                     continue;
                 if (string.IsNullOrEmpty(area.LocationId) ||
-                    !world.WorldRegion.TryGet(area.LocationId, out var loc))
+                    (!world.ContinuousOutdoorMaterialization.TryGetAnyPlace(area.LocationId, out var loc) &&
+                     !world.WorldRegion.TryGet(area.LocationId, out loc)))
                     continue;
 
                 float dist;
@@ -249,9 +256,12 @@ namespace XianXia.Unity.Host
             if (_inspect.Kind == WorldObjectInspectKind.ControlCore &&
                 bootstrap.Session.World.ControlCores.TryGet(_inspect.WorkAreaId, out var core))
             {
-                MapLayoutPick.TryGet(bootstrap.Session, out var layout);
+                MapLayoutDefinition layout = null;
+                if (bootstrap.ContinuousOutdoorSurfaceRuntime == null ||
+                    !bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive)
+                    MapLayoutPick.TryGet(bootstrap.Session, out layout);
                 if (HostControlCoreQuery.TryGetCenter(
-                        bootstrap.Session.World, layout, core, out var center))
+                        bootstrap.Session.World, layout, bootstrap.ContinuousOutdoorSurfaceRuntime, core, out var center))
                 {
                     Gizmos.color = new Color(0.95f, 0.35f, 0.3f, 0.9f);
                     Gizmos.DrawWireSphere(center, 2.4f);
@@ -277,7 +287,8 @@ namespace XianXia.Unity.Host
             if ((_inspect.Kind == WorldObjectInspectKind.Housing ||
                  _inspect.Kind == WorldObjectInspectKind.WorkArea) &&
                 bootstrap.Session.World.TryGetWorkArea(_inspect.WorkAreaId, out var area) &&
-                bootstrap.Session.World.WorldRegion.TryGet(area.LocationId, out var loc))
+                (bootstrap.Session.World.ContinuousOutdoorMaterialization.TryGetAnyPlace(area.LocationId, out var loc) ||
+                 bootstrap.Session.World.WorldRegion.TryGet(area.LocationId, out loc)))
             {
                 var houseCenter = HostPresentationSpace.FromPresentation(
                     loc.PresentationX + area.OffsetX,

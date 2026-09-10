@@ -12,6 +12,7 @@ using XianXia.Core.World;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Core.World.Surface;
+using XianXia.Data.Content;
 
 namespace XianXia.Unity.Host
 {
@@ -1712,8 +1713,17 @@ namespace XianXia.Unity.Host
             {
                 // 正式 egress：先置 TransitionCommit（B4 停止），随后 egress 保留原 route。
                 motion.SetDeparturePhase(PlayerPartyDeparturePhase.TransitionCommit);
-                var cross = PlayerPartyLocalVisibleAutoTravelService
-                    .TryCrossWorldSiteEdgePreservingLocalVisibleAutoTravel(world, party, connection);
+                var exitsToContinuous = bootstrap?.Session?.Registry != null &&
+                                        OutdoorSurfaceCoverageResolver.TryResolveAtWorldPosition(
+                                            bootstrap.Session.Registry,
+                                            connection.BoundaryContactWorldX,
+                                            connection.BoundaryContactWorldY,
+                                            out _);
+                var cross = exitsToContinuous
+                    ? PlayerPartyWildernessTransitionService.TryCommitWorldSiteEgressToContinuousWilderness(
+                        world, party, connection)
+                    : PlayerPartyLocalVisibleAutoTravelService
+                        .TryCrossWorldSiteEdgePreservingLocalVisibleAutoTravel(world, party, connection);
                 if (cross.IsSuccess)
                 {
                     LastTransitionStatus = "SiteExit->" + connection.DestinationHex;

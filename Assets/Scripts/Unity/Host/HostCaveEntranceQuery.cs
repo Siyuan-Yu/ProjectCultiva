@@ -15,22 +15,34 @@ namespace XianXia.Unity.Host
             Camera camera,
             SimulationWorld world,
             MapLayoutDefinition layout,
+            ContinuousOutdoorSurfaceRuntime continuous,
             out string entranceLocationId)
         {
             entranceLocationId = string.Empty;
             if (camera == null ||
                 !HostPresentationSpace.TryRaycastPlane(camera, Input.mousePosition, out var worldPoint))
                 return false;
-            return TryPickAtWorld(world, layout, worldPoint, out entranceLocationId);
+            return TryPickAtWorld(world, layout, continuous, worldPoint, out entranceLocationId);
         }
 
         public static bool TryPickAtWorld(
             SimulationWorld world,
             MapLayoutDefinition layout,
+            ContinuousOutdoorSurfaceRuntime continuous,
             Vector3 worldPoint,
             out string entranceLocationId)
         {
             entranceLocationId = string.Empty;
+            if (continuous != null && continuous.IsActive)
+            {
+                var point = HostPresentationSpace.ToPresentation(worldPoint);
+                if (!continuous.TryPickBakedPlacement("cave", point.x, point.y, out var id) ||
+                    !world.ContinuousOutdoorMaterialization.TryGetAnyPlace(id, out var outdoorEntrance) ||
+                    !OpportunityEntranceRules.IsHiddenEntrance(outdoorEntrance) ||
+                    !OpportunityEntranceRules.IsRevealed(world, outdoorEntrance)) return false;
+                entranceLocationId = id;
+                return true;
+            }
             if (world?.WorldRegion?.Locations == null || layout?.Placements == null)
                 return false;
 
@@ -134,7 +146,8 @@ namespace XianXia.Unity.Host
             worldCenter = default;
             if (world == null ||
                 string.IsNullOrWhiteSpace(entranceLocationId) ||
-                !world.WorldRegion.TryGet(entranceLocationId, out var loc))
+                (!world.ContinuousOutdoorMaterialization.TryGetAnyPlace(entranceLocationId, out var loc) &&
+                 !world.WorldRegion.TryGet(entranceLocationId, out loc)))
                 return false;
             worldCenter = HostPresentationSpace.FromPresentation(loc.PresentationX, loc.PresentationZ);
             return true;

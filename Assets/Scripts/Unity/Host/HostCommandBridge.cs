@@ -143,7 +143,8 @@ namespace XianXia.Unity.Host
             }
 
             entranceLocationId = entranceLocationId.Trim();
-            if (!_session.World.WorldRegion.TryGet(entranceLocationId, out _))
+            if (!_session.World.ContinuousOutdoorMaterialization.TryGetAnyPlace(entranceLocationId, out _) &&
+                !_session.World.WorldRegion.TryGet(entranceLocationId, out _))
             {
                 _lastStatus = "Entrance missing";
                 return 0;
@@ -163,7 +164,8 @@ namespace XianXia.Unity.Host
                 // 已在目标洞府内室的人不必先拽到洞口（再进救人时保留洞内站位）。
                 if (_session.World.WorldRegion.TryGet(plc.LocationId, out var cur) &&
                     !string.IsNullOrEmpty(cur.LocalMapId) &&
-                    _session.World.WorldRegion.TryGet(entranceLocationId, out var entLoc) &&
+                    (_session.World.ContinuousOutdoorMaterialization.TryGetAnyPlace(entranceLocationId, out var entLoc) ||
+                     _session.World.WorldRegion.TryGet(entranceLocationId, out entLoc)) &&
                     string.Equals(cur.LocalMapId, entLoc.EnterLocalMapId, System.StringComparison.Ordinal))
                     continue;
 

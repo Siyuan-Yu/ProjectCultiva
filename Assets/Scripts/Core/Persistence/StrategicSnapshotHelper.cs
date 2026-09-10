@@ -250,7 +250,8 @@ namespace XianXia.Core.Persistence
                 var flag = pair.Value; if (flag == null) continue;
                 dto.FactionFlags.Add(new FactionFlagSnapshotDto { FlagId=flag.FlagId, FactionId=flag.FactionId,
                     AnchorQ=flag.AnchorHex.Q, AnchorR=flag.AnchorHex.R, EstablishedOrder=flag.EstablishedOrder,
-                    CurrentHp=flag.CurrentHp, MaxHp=flag.MaxHp, HasLocalPosition=flag.HasLocalPosition, LocalX=flag.LocalX, LocalZ=flag.LocalZ });
+                    CurrentHp=flag.CurrentHp, MaxHp=flag.MaxHp, HasLocalPosition=flag.HasLocalPosition, LocalX=flag.LocalX, LocalZ=flag.LocalZ,
+                    HasWorldPosition=flag.HasWorldPosition, WorldX=flag.WorldX, WorldY=flag.WorldY });
             }
             FactionFlagSnapshotRestore.LogDtos("FlagSnapshotCapture", dto.FactionFlags);
 

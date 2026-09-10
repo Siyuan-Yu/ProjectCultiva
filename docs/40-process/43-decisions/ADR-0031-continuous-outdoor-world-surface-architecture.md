@@ -1,6 +1,6 @@
 # ADR-0031：Continuous Outdoor World Surface Architecture
 
-> 状态：**已采纳 / NOT IMPLEMENTED**｜日期：2026-09-09｜最后更新：2026-09-09  
+> 状态：**已采纳 / migration in progress**｜日期：2026-09-09｜最后更新：2026-09-10
 > 决策者：制作人  
 > 关联：[203](../203-continuous-2d-open-world-world-surface-direction-2026-09-09.md)、[2K](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、[2J](../../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)、[ADR-0021](ADR-0021-world-region-localmap.md)、[ADR-0025](ADR-0025-strategic-spatial-model-hexgrid.md)、[ADR-0026](ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)、[ADR-0027](ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md)
 
@@ -75,6 +75,10 @@ World Event 不在本轮实现。长期它是有 WorldSpace + WorldPosition / Re
 ## Deferred Implementation Parameters
 
 Surface Chunk 尺寸／tile dimensions／file format／serialization、streaming radius、Unity unit、Hex 精确尺度、角色／Mount／Flight 速度、Realtime Navigation 算法、renderer / Tilemap streaming、collider bake、Addressables、Surface editor 与 multi-chunk UX、road / river bake、irregular connector、Save 字段、dematerialize distance、tick rate、跨大陆玩法、Flight 与 World Event 实现，均在 prototype / implementation-time 决定。
+
+## W1C 验证注记（2026-09-10）
+
+W1C 已人工验收 `SurfaceChunkCoord != HexCoord`、`WorldPosition` 为 Outdoor physical authority、世界坐标 `+X=East/right`、`+Y=North/up`，以及显式 presentation lifetime。Legacy LocalMap 的 `ResolveAuthoritativeWildernessHex` 只服务 legacy migration bridge；Continuous Surface 使用专门的 Hex commit/hysteresis，禁止把 legacy “adjacent derived Hex 永远保持 committed”规则带回主路径。Road 是战略收益，不是 Ground passability；placeholder migration guard 暂拒绝 missing/Water/`IsPassable=false`，未来由真正 Physical Surface Walkability 取代。
 
 ## Non-goals
 

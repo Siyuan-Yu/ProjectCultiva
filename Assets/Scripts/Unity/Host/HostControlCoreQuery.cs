@@ -19,18 +19,20 @@ namespace XianXia.Unity.Host
             Camera camera,
             SimulationWorld world,
             MapLayoutDefinition layout,
+            ContinuousOutdoorSurfaceRuntime continuous,
             out string workAreaId)
         {
             workAreaId = string.Empty;
             if (camera == null ||
                 !HostPresentationSpace.TryRaycastPlane(camera, Input.mousePosition, out var worldPoint))
                 return false;
-            return TryPickAtWorld(world, layout, worldPoint, out workAreaId);
+            return TryPickAtWorld(world, layout, continuous, worldPoint, out workAreaId);
         }
 
         public static bool TryPickAtWorld(
             SimulationWorld world,
             MapLayoutDefinition layout,
+            ContinuousOutdoorSurfaceRuntime continuous,
             Vector3 worldPoint,
             out string workAreaId)
         {
@@ -47,7 +49,7 @@ namespace XianXia.Unity.Host
                 var core = kv.Value;
                 if (core == null)
                     continue;
-                if (!TryGetFootprint(world, layout, core, out var minX, out var maxX, out var minZ, out var maxZ,
+                if (!TryGetFootprint(world, layout, continuous, core, out var minX, out var maxX, out var minZ, out var maxZ,
                         out _, out _))
                     continue;
 
@@ -71,13 +73,14 @@ namespace XianXia.Unity.Host
         public static bool IsAnyPointNear(
             SimulationWorld world,
             MapLayoutDefinition layout,
+            ContinuousOutdoorSurfaceRuntime continuous,
             ControlCoreState core,
             IReadOnlyList<(float X, float Z)> presentationPoints,
             float margin = MeleeMargin)
         {
             if (world == null || core == null || presentationPoints == null || presentationPoints.Count == 0)
                 return false;
-            if (!TryGetFootprint(world, layout, core, out var minX, out var maxX, out var minZ, out var maxZ,
+            if (!TryGetFootprint(world, layout, continuous, core, out var minX, out var maxX, out var minZ, out var maxZ,
                     out _, out _))
                 return false;
 
@@ -100,11 +103,12 @@ namespace XianXia.Unity.Host
         public static bool TryGetCenter(
             SimulationWorld world,
             MapLayoutDefinition layout,
+            ContinuousOutdoorSurfaceRuntime continuous,
             ControlCoreState core,
             out Vector3 worldCenter)
         {
             worldCenter = default;
-            if (!TryGetFootprint(world, layout, core, out _, out _, out _, out _, out var cx, out var cz))
+            if (!TryGetFootprint(world, layout, continuous, core, out _, out _, out _, out _, out var cx, out var cz))
                 return false;
             worldCenter = HostPresentationSpace.FromPresentation(cx, cz);
             return true;
@@ -116,11 +120,12 @@ namespace XianXia.Unity.Host
         public static bool TryGetApproachPoint(
             SimulationWorld world,
             MapLayoutDefinition layout,
+            ContinuousOutdoorSurfaceRuntime continuous,
             ControlCoreState core,
             out Vector3 worldPoint)
         {
             worldPoint = default;
-            if (!TryGetFootprint(world, layout, core, out var minX, out var maxX, out var minZ, out _,
+            if (!TryGetFootprint(world, layout, continuous, core, out var minX, out var maxX, out var minZ, out _,
                     out _, out _))
                 return false;
             var ax = (minX + maxX) * 0.5f;
@@ -132,6 +137,7 @@ namespace XianXia.Unity.Host
         public static bool TryGetFootprint(
             SimulationWorld world,
             MapLayoutDefinition layout,
+            ContinuousOutdoorSurfaceRuntime continuous,
             ControlCoreState core,
             out float minX,
             out float maxX,
@@ -143,6 +149,14 @@ namespace XianXia.Unity.Host
             minX = maxX = minZ = maxZ = centerX = centerZ = 0f;
             if (world == null || core == null || string.IsNullOrEmpty(core.LocationId))
                 return false;
+
+            if (continuous != null && continuous.TryGetBakedPlacementFootprint(
+                    "controlCore", core.LocationId, out minX, out maxX, out minZ, out maxZ))
+            {
+                centerX = (minX + maxX) * .5f;
+                centerZ = (minZ + maxZ) * .5f;
+                return true;
+            }
 
             if (layout?.Placements != null)
             {

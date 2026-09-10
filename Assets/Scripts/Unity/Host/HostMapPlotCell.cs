@@ -1,4 +1,5 @@
 using UnityEngine;
+using XianXia.Core.Simulation;
 
 namespace XianXia.Unity.Host
 {
@@ -18,6 +19,8 @@ namespace XianXia.Unity.Host
         [SerializeField] float growth01;
         [SerializeField] string lootSpotId;
         [SerializeField] string lootItemId;
+        [SerializeField] string stableCellId;
+        SimulationWorld _world;
 
         public string LocationId => locationId;
         public HostInteractSpotKind InteractKind => interactKind;
@@ -30,6 +33,7 @@ namespace XianXia.Unity.Host
         public float Growth01 => growth01;
         public string LootSpotId => lootSpotId;
         public string LootItemId => lootItemId;
+        public string StableCellId => stableCellId;
         public bool IsPlanted =>
             !string.IsNullOrEmpty(plantedCropId) && cropStage != PlotCropStage.Empty;
 
@@ -38,6 +42,8 @@ namespace XianXia.Unity.Host
             string.Equals(kind, "grainField", System.StringComparison.OrdinalIgnoreCase);
 
         public void Configure(
+            SimulationWorld world,
+            string stableId,
             string locationIdValue,
             HostInteractSpotKind interact,
             string labelValue,
@@ -47,6 +53,8 @@ namespace XianXia.Unity.Host
             string lootSpotIdValue = null,
             string lootItemIdValue = null)
         {
+            _world = world;
+            stableCellId = stableId ?? string.Empty;
             locationId = locationIdValue ?? string.Empty;
             interactKind = interact;
             label = labelValue ?? string.Empty;
@@ -55,6 +63,13 @@ namespace XianXia.Unity.Host
             kind = kindValue ?? string.Empty;
             lootSpotId = lootSpotIdValue ?? string.Empty;
             lootItemId = lootItemIdValue ?? string.Empty;
+            if (IsPlantableField && _world?.OutdoorStatefulObjects != null &&
+                _world.OutdoorStatefulObjects.TryGetFarmPlot(stableCellId, out var saved))
+            {
+                plantedCropId = saved.CropId;
+                cropStage = (PlotCropStage)saved.CropStage;
+                growth01 = Mathf.Clamp01(saved.Growth);
+            }
             HostMapObjectRegistry.Register(this);
             HostFarmFieldRegistry.Register(this);
             RefreshCropVisual();
@@ -68,12 +83,14 @@ namespace XianXia.Unity.Host
                 cropStage = PlotCropStage.Empty;
                 growth01 = 0f;
                 RefreshCropVisual();
+                PersistFarmState();
                 return;
             }
 
             cropStage = PlotCropStage.Growing;
             growth01 = 0f;
             RefreshCropVisual();
+            PersistFarmState();
         }
 
         public void SetCropStage(PlotCropStage stage, float growth = -1f)
@@ -84,6 +101,7 @@ namespace XianXia.Unity.Host
                 plantedCropId = string.Empty;
                 growth01 = 0f;
                 RefreshCropVisual();
+                PersistFarmState();
                 return;
             }
 
@@ -99,6 +117,14 @@ namespace XianXia.Unity.Host
             }
 
             RefreshCropVisual();
+            PersistFarmState();
+        }
+
+        void PersistFarmState()
+        {
+            if (IsPlantableField && !string.IsNullOrEmpty(stableCellId))
+                _world?.OutdoorStatefulObjects.SetFarmPlot(
+                    stableCellId, plantedCropId, (int)cropStage, growth01);
         }
 
         public void RefreshCropVisual()

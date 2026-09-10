@@ -67,10 +67,13 @@ namespace XianXia.Unity.Host
             }
 
             MapLayoutDefinition layout = null;
-            MapLayoutPick.TryGet(bootstrap.Session, out layout);
+            if (bootstrap.ContinuousOutdoorSurfaceRuntime == null ||
+                !bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive)
+                MapLayoutPick.TryGet(bootstrap.Session, out layout);
 
             CollectAssaultPresentationPoints();
-            var near = HostControlCoreQuery.IsAnyPointNear(world, layout, core, _partyPoints);
+            var near = HostControlCoreQuery.IsAnyPointNear(
+                world, layout, bootstrap.ContinuousOutdoorSurfaceRuntime, core, _partyPoints);
 
             if (!near)
             {
@@ -138,7 +141,8 @@ namespace XianXia.Unity.Host
 
             var from = aView.transform.position;
             var to = from;
-            if (HostControlCoreQuery.TryGetCenter(bootstrap.Session.World, layout, core, out var center))
+            if (HostControlCoreQuery.TryGetCenter(bootstrap.Session.World, layout,
+                    bootstrap.ContinuousOutdoorSurfaceRuntime, core, out var center))
                 to = center;
 
             strikeVfx.Play(from, to);

@@ -3190,6 +3190,7 @@
             }
           ],
           "localMapId": "base:map_site_chengzhen",
+          "continuousOutdoor": true,
           "ownerFactionId": "",
           "territoryRegionId": "base:region_chengzhen",
           "controlEstablishedOrder": 1
@@ -3228,6 +3229,7 @@
             }
           ],
           "localMapId": "base:map_site_guanai",
+          "continuousOutdoor": true,
           "ownerFactionId": "base:faction_xijin",
           "territoryRegionId": "base:region_guanai",
           "controlEstablishedOrder": 3
@@ -3259,6 +3261,7 @@
             }
           ],
           "localMapId": "base:map_ch01_reference",
+          "continuousOutdoor": true,
           "ownerFactionId": "base:sect_huangcun_labor",
           "territoryRegionId": "base:region_huangcun",
           "controlEstablishedOrder": 4
@@ -3278,6 +3281,7 @@
             }
           ],
           "localMapId": "base:map_site_lingdi",
+          "continuousOutdoor": true,
           "ownerFactionId": "base:faction_shuofeng",
           "territoryRegionId": "base:region_lingdi",
           "controlEstablishedOrder": 5
@@ -3297,6 +3301,7 @@
             }
           ],
           "localMapId": "base:map_site_linjian",
+          "continuousOutdoor": true,
           "ownerFactionId": "base:sect_huangcun_labor",
           "territoryRegionId": "base:region_linjian",
           "controlEstablishedOrder": 6
@@ -3328,6 +3333,7 @@
             }
           ],
           "localMapId": "base:map_site_zhuangyuan",
+          "continuousOutdoor": true,
           "ownerFactionId": "base:faction_nan_yan",
           "territoryRegionId": "base:region_zhuangyuan",
           "controlEstablishedOrder": 7
@@ -3347,6 +3353,7 @@
             }
           ],
           "localMapId": "base:map_player_camp",
+          "continuousOutdoor": true,
           "ownerFactionId": "base:faction_player",
           "territoryRegionId": "test:region_player_camp",
           "controlEstablishedOrder": 8

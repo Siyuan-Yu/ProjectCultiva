@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Exploration;
+using XianXia.Core.World.Surface;
 using XianXia.Data.Content;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -109,6 +110,150 @@ namespace XianXia.Unity.Host
             BeginInstanceBuild(instanceKey, layout, placementOffset);
             BuildFromLayout(layout);
             return EndInstanceBuild();
+        }
+
+        /// <summary>
+        /// Builds baked outdoor placements directly from physical rectangles plus authored-cell
+        /// semantics. This path never converts physical precision into a fake MapPlacement grid.
+        /// </summary>
+        public SurfacePresentationInstance BuildOutdoorPlacementInstance(
+            string instanceKey,
+            IReadOnlyList<OutdoorSurfacePlacementDefinition> placements,
+            OutdoorSurfaceCoordinateMapper mapper,
+            SurfaceChunkCoord ownerChunk)
+        {
+            if (string.IsNullOrWhiteSpace(instanceKey))
+                throw new System.ArgumentException("A surface presentation instance key is required.", nameof(instanceKey));
+            if (mapper == null)
+                throw new System.ArgumentNullException(nameof(mapper));
+            RemoveLayoutInstance(instanceKey);
+            BeginInstanceBuild(instanceKey, null, Vector2.zero);
+            if (placements != null)
+                for (var i = 0; i < placements.Count; i++)
+                    if (placements[i] != null)
+                        StampOutdoorPlacement(placements[i], mapper, ownerChunk);
+            return EndInstanceBuild();
+        }
+
+        public static bool TryEstimateOutdoorRenderedObjectCount(
+            OutdoorSurfacePlacementDefinition placement,
+            out int count)
+        {
+            count = 0;
+            if (placement == null || placement.SourceCellsW <= 0 || placement.SourceCellsH <= 0 ||
+                !MapKindCatalog.TryGet(placement.Kind ?? string.Empty, out var info))
+                return false;
+            if (info.Mode != MapKindCatalog.StampMode.PerCell)
+            {
+                count = 1;
+                return true;
+            }
+            try { count = checked(placement.SourceCellsW * placement.SourceCellsH); }
+            catch (System.OverflowException) { return false; }
+            return count > 0;
+        }
+
+        void StampOutdoorPlacement(
+            OutdoorSurfacePlacementDefinition source,
+            OutdoorSurfaceCoordinateMapper mapper,
+            SurfaceChunkCoord ownerChunk)
+        {
+            if (!TryEstimateOutdoorRenderedObjectCount(source, out _) ||
+                !MapKindCatalog.TryGet(source.Kind ?? string.Empty, out var info))
+            {
+                LogOutdoorSemanticMismatch(source, 0, 0);
+                return;
+            }
+
+            var metadata = new MapPlacement
+            {
+                Id = source.StableId, Kind = source.Kind, BlocksMovement = source.BlocksMovement,
+                BoundLocationId = source.BoundLocationId, Label = source.Label,
+                LootItemId = source.LootItemId, SpawnTableId = source.SpawnTableId,
+                SpawnCount = source.SpawnCount
+            };
+            if (ShouldHideHiddenEntrance(metadata) || ShouldHideTakenLoot(metadata))
+                return;
+
+            mapper.WorldToPresentation(source.WorldX, source.WorldY, out var left, out var bottom);
+            mapper.WorldToPresentation(source.WorldX + source.WorldWidth, source.WorldY + source.WorldHeight,
+                out var right, out var top);
+            var minX = Mathf.Min(left, right); var minY = Mathf.Min(bottom, top);
+            var width = Mathf.Abs(right - left); var height = Mathf.Abs(top - bottom);
+            var id = source.StableId ?? string.Empty;
+            var actual = 0; var expectedForOwner = 0;
+
+            if (info.Mode == MapKindCatalog.StampMode.ZoneOverlay)
+            {
+                mapper.ChunkLocalToWorld(ownerChunk, 0f, 0f, out var chunkWorldX, out var chunkWorldY);
+                var ix0 = Mathf.Max(source.WorldX, chunkWorldX);
+                var iy0 = Mathf.Max(source.WorldY, chunkWorldY);
+                var ix1 = Mathf.Min(source.WorldX + source.WorldWidth, chunkWorldX + mapper.ChunkWidth);
+                var iy1 = Mathf.Min(source.WorldY + source.WorldHeight, chunkWorldY + mapper.ChunkHeight);
+                if (ix1 > ix0 && iy1 > iy0)
+                {
+                    mapper.WorldToPresentation(ix0, iy0, out var clipLeft, out var clipBottom);
+                    mapper.WorldToPresentation(ix1, iy1, out var clipRight, out var clipTop);
+                    PlaceZoneOverlay((clipLeft + clipRight) * .5f, (clipBottom + clipTop) * .5f,
+                        id + "_zone_" + ownerChunk.X + "_" + ownerChunk.Y,
+                        Mathf.Abs(clipRight - clipLeft), Mathf.Abs(clipTop - clipBottom), info.FallbackColor);
+                    actual = expectedForOwner = 1;
+                }
+            }
+            else if (info.Mode == MapKindCatalog.StampMode.SingleCentered)
+            {
+                var cx = minX + width * .5f; var cy = minY + height * .5f;
+                mapper.PresentationToWorld(cx, cy, out var centerWorldX, out var centerWorldY);
+                if (mapper.WorldToChunk(centerWorldX, centerWorldY) == ownerChunk)
+                {
+                    var go = PlacePrefab(info.Kind, info.PrefabPath, cx, cy, id, width, height,
+                        info.FallbackColor, sortingOrder: info.Kind == "controlCore" || info.Kind == "roadHub" ? -8 : -12);
+                    if (info.InteractKind.HasValue)
+                        AttachPlot(go, metadata, info, source.SourceGridX, source.SourceGridY, cx, cy, id);
+                    AttachDestructibleIfNeeded(go, metadata, info.Kind, id);
+                    actual = expectedForOwner = 1;
+                }
+            }
+            else
+            {
+                var cellW = width / source.SourceCellsW;
+                var cellH = height / source.SourceCellsH;
+                var cellOrder = info.Kind == "wall" ? -5 : -25;
+                for (var gy = 0; gy < source.SourceCellsH; gy++)
+                for (var gx = 0; gx < source.SourceCellsW; gx++)
+                {
+                    var cx = minX + (gx + .5f) * cellW;
+                    var cy = minY + (gy + .5f) * cellH;
+                    mapper.PresentationToWorld(cx, cy, out var cellWorldX, out var cellWorldY);
+                    if (mapper.WorldToChunk(cellWorldX, cellWorldY) != ownerChunk) continue;
+                    expectedForOwner++;
+                    var cellId = id + ":" + gx + ":" + gy;
+                    var cellMetadata = metadata;
+                    cellMetadata.Id = cellId;
+                    var go = PlacePrefab(info.Kind, info.PrefabPath, cx, cy, cellId, cellW, cellH,
+                        info.FallbackColor, sortingOrder: cellOrder);
+                    if (info.InteractKind.HasValue || info.Plantable)
+                        AttachPlot(go, cellMetadata, info, source.SourceGridX + gx, source.SourceGridY + gy, cx, cy, cellId);
+                    if (string.Equals(info.Kind, "wall", System.StringComparison.OrdinalIgnoreCase))
+                        AttachDestructibleIfNeeded(go, cellMetadata, info.Kind, cellId);
+                    actual++;
+                }
+            }
+
+            if (actual != expectedForOwner)
+                LogOutdoorSemanticMismatch(source, expectedForOwner, actual);
+        }
+
+        static void LogOutdoorSemanticMismatch(OutdoorSurfacePlacementDefinition p, int expected, int actual)
+        {
+            Debug.LogError("OutdoorPlacementSemanticMismatch" +
+                           " Chunk=" + (p != null ? p.ChunkX + "," + p.ChunkY : "?") +
+                           " Site=" + (p?.SiteId ?? string.Empty) +
+                           " Placement=" + (p?.StableId ?? string.Empty) +
+                           " Kind=" + (p?.Kind ?? string.Empty) +
+                           " CellsW/H=" + (p != null ? p.SourceCellsW + "/" + p.SourceCellsH : "0/0") +
+                           " EstimatedPrefabCount=" + expected +
+                           " ActualPrefabCount=" + actual);
         }
 
         public bool RemoveLayoutInstance(string instanceKey)
@@ -237,7 +382,7 @@ namespace XianXia.Unity.Host
                 var go = PlacePrefab(kind, path, cx, cy, id, pw * cs, ph * cs, info.FallbackColor,
                     sortingOrder: kind == "controlCore" || kind == "roadHub" ? -8 : -12);
                 if (info.InteractKind.HasValue)
-                    AttachPlot(go, p, info, p.X, p.Y, cx, cy);
+                    AttachPlot(go, p, info, p.X, p.Y, cx, cy, id);
                 AttachDestructibleIfNeeded(go, p, info.Kind, id);
                 return;
             }
@@ -255,13 +400,13 @@ namespace XianXia.Unity.Host
                 var go = PlacePrefab(kind, info.PrefabPath, wx, wy, cellName, cs, cs, info.FallbackColor,
                     sortingOrder: cellOrder);
                 if (info.InteractKind.HasValue || info.Plantable)
-                    AttachPlot(go, p, info, cellX, cellY, wx, wy);
+                    AttachPlot(go, p, info, cellX, cellY, wx, wy, id + ":" + gx + ":" + gy);
                 if (string.Equals(info.Kind, "wall", System.StringComparison.OrdinalIgnoreCase))
                     AttachDestructibleIfNeeded(go, p, info.Kind, cellName);
             }
         }
 
-        static void AttachDestructibleIfNeeded(
+        void AttachDestructibleIfNeeded(
             GameObject go,
             MapPlacement p,
             string kind,
@@ -280,6 +425,7 @@ namespace XianXia.Unity.Host
             var d = go.GetComponent<HostMapDestructible>() ?? go.AddComponent<HostMapDestructible>();
             var yield = isTree ? HostMapDestructible.DefaultWoodYield(kind) : 0;
             d.Configure(
+                _session?.World,
                 instanceId,
                 kind,
                 p?.Label,
@@ -305,7 +451,8 @@ namespace XianXia.Unity.Host
                 return false;
             if (_session?.World?.WorldRegion == null)
                 return false;
-            if (!_session.World.WorldRegion.TryGet(p.BoundLocationId, out var loc))
+            if (!_session.World.ContinuousOutdoorMaterialization.TryGetAnyPlace(p.BoundLocationId, out var loc) &&
+                !_session.World.WorldRegion.TryGet(p.BoundLocationId, out loc))
                 return false;
             if (!OpportunityEntranceRules.IsHiddenEntrance(loc))
                 return false;
@@ -343,7 +490,8 @@ namespace XianXia.Unity.Host
             int cellX,
             int cellY,
             float wx,
-            float wy)
+            float wy,
+            string stableCellId)
         {
             if (go == null || !info.InteractKind.HasValue)
                 return;
@@ -355,6 +503,8 @@ namespace XianXia.Unity.Host
             var lootSpotId = string.IsNullOrWhiteSpace(p.Id) ? string.Empty : p.Id;
             var lootItemId = p.LootItemId ?? string.Empty;
             plot.Configure(
+                _session?.World,
+                stableCellId,
                 p.BoundLocationId ?? string.Empty,
                 info.InteractKind.Value,
                 label,

@@ -55,6 +55,7 @@ namespace XianXia.Data.Content
         public int? PresenceR { get; set; }
         public List<HexWorldCoordDefinition> Footprint { get; set; } = new List<HexWorldCoordDefinition>();
         public string LocalMapId { get; set; } = string.Empty;
+        public bool UsesContinuousOutdoorSurface { get; set; }
         public string OwnerFactionId { get; set; } = string.Empty;
         public long ControlEstablishedOrder { get; set; }
         /// <summary>绑定 TerritoryRegion（内容加载后由 Region 建立 Site↔Region 链接）。</summary>

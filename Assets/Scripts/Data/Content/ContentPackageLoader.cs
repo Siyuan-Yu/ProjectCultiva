@@ -1976,7 +1976,8 @@ namespace XianXia.Data.Content
                 OriginWorldY = ReadFloat(item, "originWorldY", 0f),
                 CellSize = ReadFloat(item, "cellSize", 1f),
                 ChunkWidth = ReadFloat(item, "chunkWidth", 50f),
-                ChunkHeight = ReadFloat(item, "chunkHeight", 50f)
+                ChunkHeight = ReadFloat(item, "chunkHeight", 50f),
+                AcceptanceOnly = item.GetBool("acceptanceOnly", false)
             };
             if (surface.CellSize <= 0f || surface.ChunkWidth <= 0f || surface.ChunkHeight <= 0f)
             { report.Add(ErrorCode.InvalidArgument, "outdoorSurface metric must be positive.", id.ToString()); return; }
@@ -2010,6 +2011,63 @@ namespace XianXia.Data.Content
                 });
             }
             if (surface.Chunks.Count == 0) { report.Add(ErrorCode.MissingRequiredField, "outdoorSurface requires chunks.", id.ToString()); return; }
+            if (item.TryGetProperty("siteRegions", out var regions) && regions.Kind == JsonValueKind.Array)
+                foreach (var node in regions.Array)
+                {
+                    DefinitionSchema.RejectUnknownFields(node, DefinitionSchema.WorldSitePhysicalRegionFields, report, id + ".siteRegion");
+                    surface.SiteRegions.Add(new WorldSitePhysicalRegionDefinition
+                    {
+                        SiteId = node.GetString("siteId", string.Empty), SurfaceId = node.GetString("surfaceId", id.ToString()),
+                        SourceLocalMapId = node.GetString("sourceLocalMapId", string.Empty),
+                        ArrivalWorldX = ReadFloat(node, "arrivalWorldX", 0f), ArrivalWorldY = ReadFloat(node, "arrivalWorldY", 0f)
+                    });
+                }
+            if (item.TryGetProperty("sitePlacements", out var placements) && placements.Kind == JsonValueKind.Array)
+                foreach (var node in placements.Array)
+                {
+                    DefinitionSchema.RejectUnknownFields(node, DefinitionSchema.OutdoorSurfacePlacementFields, report, id + ".sitePlacement");
+                    surface.SitePlacements.Add(new OutdoorSurfacePlacementDefinition
+                    {
+                        StableId = node.GetString("stableId", string.Empty), SiteId = node.GetString("siteId", string.Empty),
+                        ChunkX = ReadInt(node, "chunkX", 0), ChunkY = ReadInt(node, "chunkY", 0),
+                        WorldX = ReadFloat(node, "worldX", 0f), WorldY = ReadFloat(node, "worldY", 0f),
+                        WorldWidth = ReadFloat(node, "worldWidth", 0f), WorldHeight = ReadFloat(node, "worldHeight", 0f),
+                        SourceGridX = ReadInt(node, "sourceGridX", 0), SourceGridY = ReadInt(node, "sourceGridY", 0),
+                        SourceCellsW = ReadInt(node, "sourceCellsW", 0), SourceCellsH = ReadInt(node, "sourceCellsH", 0),
+                        Kind = node.GetString("kind", string.Empty), BlocksMovement = node.GetBool("blocksMovement", false),
+                        BoundLocationId = node.GetString("boundLocationId", string.Empty), Label = node.GetString("label", string.Empty),
+                        LootItemId = node.GetString("lootItemId", string.Empty), SpawnTableId = node.GetString("spawnTableId", string.Empty),
+                        SpawnCount = ReadInt(node, "spawnCount", 0)
+                    });
+                }
+            if (item.TryGetProperty("sitePlaces", out var sitePlaces) && sitePlaces.Kind == JsonValueKind.Array)
+                foreach (var node in sitePlaces.Array)
+                {
+                    DefinitionSchema.RejectUnknownFields(node, DefinitionSchema.WorldSitePlaceFields, report, id + ".sitePlace");
+                    surface.SitePlaces.Add(new WorldSitePlaceDefinition
+                    {
+                        SiteId = node.GetString("siteId", string.Empty), LocationId = node.GetString("locationId", string.Empty),
+                        Name = node.GetString("name", string.Empty), WorldX = ReadFloat(node, "worldX", 0f), WorldY = ReadFloat(node, "worldY", 0f),
+                        LocalMapId = node.GetString("localMapId", string.Empty), EnterLocalMapId = node.GetString("enterLocalMapId", string.Empty),
+                        EnterSpawnLocationId = node.GetString("enterSpawnLocationId", string.Empty)
+                    });
+                }
+            var regionIds = new HashSet<string>(StringComparer.Ordinal);
+            var placementIds = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var region in surface.SiteRegions)
+                if (string.IsNullOrWhiteSpace(region.SiteId) || string.IsNullOrWhiteSpace(region.SourceLocalMapId) ||
+                    !string.Equals(region.SurfaceId, surface.SurfaceId, StringComparison.Ordinal) || !regionIds.Add(region.SiteId))
+                    report.Add(ErrorCode.InvalidArgument, "Invalid or duplicate Outdoor WorldSite physical region.", id + ".siteRegions");
+            foreach (var placement in surface.SitePlacements)
+            {
+                if (string.IsNullOrWhiteSpace(placement.StableId) || string.IsNullOrWhiteSpace(placement.SiteId) ||
+                    !placementIds.Add(placement.StableId) || placement.WorldWidth <= 0f || placement.WorldHeight <= 0f ||
+                    placement.SourceCellsW <= 0 || placement.SourceCellsH <= 0 ||
+                    !usedCoords.Contains(new XianXia.Core.World.Surface.SurfaceChunkCoord(placement.ChunkX, placement.ChunkY)))
+                    report.Add(ErrorCode.InvalidArgument, "Invalid/duplicate Outdoor Site placement or missing target chunk.", id + ".sitePlacements");
+                if (!regionIds.Contains(placement.SiteId))
+                    report.Add(ErrorCode.InvalidArgument, "Outdoor Site placement has no physical region.", placement.StableId);
+            }
             var result = registry.RegisterOutdoorSurface(surface);
             if (result.IsFailure) report.Add(result.Error);
         }
@@ -2077,6 +2135,7 @@ namespace XianXia.Data.Content
                         AnchorQ = ReadInt(sNode, "anchorQ", 0),
                         AnchorR = ReadInt(sNode, "anchorR", 0),
                         LocalMapId = sNode.GetString("localMapId", string.Empty),
+                        UsesContinuousOutdoorSurface = sNode.GetBool("continuousOutdoor", false),
                         OwnerFactionId = sNode.GetString("ownerFactionId", string.Empty),
                         ControlEstablishedOrder = (long)sNode.GetNumber("controlEstablishedOrder", 0),
                         TerritoryRegionId = sNode.GetString("territoryRegionId", string.Empty),

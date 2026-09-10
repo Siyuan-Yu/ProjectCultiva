@@ -265,6 +265,7 @@ namespace XianXia.Data.Content
                 AnchorHex = anchor,
                 PresenceHex = anchor,
                 LocalMapId = src.LocalMapId ?? string.Empty,
+                UsesContinuousOutdoorSurface = src.UsesContinuousOutdoorSurface,
                 OwnerFactionId = src.OwnerFactionId ?? string.Empty,
                 ControlEstablishedOrder = src.ControlEstablishedOrder,
                 TerritoryRegionId = src.TerritoryRegionId ?? string.Empty,

@@ -11,6 +11,7 @@ namespace XianXia.Unity.Host
     public sealed class HostMapDestructible : MonoBehaviour
     {
         public const string RoughWoodItemId = "base:resource_rough_wood";
+        SimulationWorld _world;
 
         [SerializeField] string placementId;
         [SerializeField] string kind;
@@ -36,12 +37,14 @@ namespace XianXia.Unity.Host
             string.Equals(kind, "wall", System.StringComparison.OrdinalIgnoreCase);
 
         public void Configure(
+            SimulationWorld world,
             string placementIdValue,
             string kindValue,
             string label,
             int maxHpValue,
             int woodYieldValue)
         {
+            _world = world;
             placementId = placementIdValue ?? string.Empty;
             kind = kindValue ?? string.Empty;
             displayName = string.IsNullOrEmpty(label) ? ResolveDefaultName(kind) : label;
@@ -49,6 +52,13 @@ namespace XianXia.Unity.Host
             currentHp = maxHp;
             woodYield = woodYieldValue < 0 ? 0 : woodYieldValue;
             destroyed = false;
+            if (!string.IsNullOrEmpty(placementId) && _world?.OutdoorStatefulObjects != null &&
+                _world.OutdoorStatefulObjects.TryGetDestructible(placementId, out var saved))
+            {
+                currentHp = Mathf.Clamp(saved.Hp, 0, maxHp);
+                destroyed = saved.Destroyed || currentHp <= 0;
+                if (destroyed) { Destroy(gameObject); return; }
+            }
             HostMapObjectRegistry.Register(this);
         }
 
@@ -119,6 +129,9 @@ namespace XianXia.Unity.Host
             var dmg = rawDamage < 1 ? 1 : rawDamage;
             var before = currentHp;
             currentHp -= dmg;
+            if (!string.IsNullOrEmpty(placementId))
+                _world?.OutdoorStatefulObjects.SetDestructible(
+                    placementId, Mathf.Max(0, currentHp), currentHp <= 0);
             if (currentHp > 0)
                 return before - currentHp;
 

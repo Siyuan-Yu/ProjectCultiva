@@ -332,6 +332,8 @@ namespace XianXia.Unity.Host
                     // 遭遇图上：非本场 scoped spawn Hex residual 不得LocationId 漏进
                     if (onEncounterMap)
                         return false;
+                    if (world.ContinuousOutdoorMaterialization.IsMaterialized(id))
+                        return true;
                     // Phase 2B：Wilderness Fallback LocalMap — PlayerParty AtHex 必须可见
                     return PlayerPartyLocalMapMaterializationService.IsWildernessPartyMemberVisibleOnActiveLocalMap(
                         world, id, wp);
@@ -341,6 +343,8 @@ namespace XianXia.Unity.Host
                 {
                     if (onEncounterMap)
                         return false;
+                    if (world.ContinuousOutdoorMaterialization.IsMaterialized(id))
+                        return true;
                     return LoadedDestinationArrivalMaterializer.IsBackgroundCharacterVisibleOnLoadedWildernessLocalMap(
                         world, id);
                 }
@@ -369,6 +373,10 @@ namespace XianXia.Unity.Host
                     : null;
                 if (wp.Mode == PartyWorldPresenceMode.AtSite)
                 {
+                    if (world.Strategic.Sites.TryGet(wp.SiteId, out var continuousSite) &&
+                        WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(continuousSite) &&
+                        world.ContinuousOutdoorMaterialization.IsMaterialized(id))
+                        return true;
                     if (!string.IsNullOrEmpty(focusSite) &&
                         string.Equals(wp.SiteId, focusSite, System.StringComparison.Ordinal))
                         return !onEncounterMap ||

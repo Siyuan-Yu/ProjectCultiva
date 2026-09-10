@@ -125,6 +125,13 @@ namespace XianXia.Core.World.Strategic
         /// <summary>Surface LocalMap 边界跨格防抖（不改 WorldPosition）。</summary>
         public PlayerPartySurfaceEdgeGate SurfaceEdgeGate { get; } = new PlayerPartySurfaceEdgeGate();
 
+        /// <summary>Outdoor physical-region context only. It is derived from canonical
+        /// WorldPosition and is never a second location authority.</summary>
+        public string CurrentOutdoorWorldSiteId { get; private set; } = string.Empty;
+
+        public void SetCurrentOutdoorWorldSiteContext(string siteId) =>
+            CurrentOutdoorWorldSiteId = siteId ?? string.Empty;
+
         // ---- Phase 2B compat aliases ----
         public int CurrentPathIndex => SegmentIndex;
         public float StepProgress => SegmentProgress;
@@ -297,6 +304,7 @@ namespace XianXia.Core.World.Strategic
             SiteId = string.Empty;
             WorldPosition = worldPos;
             CurrentHex = derivedHex;
+            CurrentOutdoorWorldSiteId = string.Empty;
             HasPosition = true;
             ClearMovementKeepMembers();
             ClearSiteDeparturePending();

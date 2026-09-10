@@ -304,6 +304,18 @@ namespace XianXia.Core.World.Strategic
                 world.Strategic.Sites.TryGetAtHex(destinationHex, out var site) &&
                 site != null)
             {
+                // Outdoor WorldSites that have been baked into the main surface are ordinary
+                // continuous ground.  Do not create a Site ingress context or select a LocalMap.
+                if (WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site))
+                {
+                    var continuousPosition = WildernessLocalWorldProjection.ComputeCrossEdgeWorldPosition(
+                        currentHex, destinationHex, motion.WorldPosition, hexSize);
+                    PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
+                    motion.SetAtWorldPosition(continuousPosition, destinationHex);
+                    motion.SetCurrentOutdoorWorldSiteContext(site.SiteId);
+                    ApplyTravelingMembersAtHex(world, destinationHex);
+                    return Result.Success();
+                }
                 var access = StrategicWorldSiteAccessService.CanTransitionPlayerPartyIntoWorldSite(world, site.SiteId);
                 if (access.IsFailure) return access;
                 if (string.IsNullOrEmpty(WorldTravelService.ResolveWorldSiteLocalMapId(site)))
@@ -603,6 +615,47 @@ namespace XianXia.Core.World.Strategic
             ApplyTravelingMembersAtHex(world, external);
 
             return WorldTravelService.EnterWildernessLocalMap(world, external, destinationMapId);
+        }
+
+        /// <summary>W1D temporary migration commit for WorldSite → covered continuous
+        /// Wilderness. It deliberately performs no LocalMap selection/materialization; Host
+        /// chooses the already-authored continuous presentation after this canonical commit.</summary>
+        public static Result TryCommitWorldSiteEgressToContinuousWilderness(
+            SimulationWorld world,
+            PlayerPartyRuntime party,
+            SurfaceExitConnection connection)
+        {
+            if (world == null || party == null || !party.HasActive)
+                return Result.Failure(ErrorCode.InvalidArgument, "Invalid continuous site egress args.");
+            var motion = world.PlayerPartyTravel;
+            if (motion == null || motion.LocationKind != PlayerPartyLocationKind.AtWorldSite ||
+                string.IsNullOrEmpty(motion.SiteId))
+                return Result.Failure(ErrorCode.InvalidOperation, "Party is not at a WorldSite.");
+            if (!world.Strategic.Sites.TryGet(motion.SiteId, out var site) || site == null ||
+                !site.OccupiesHex(connection.SourceHex) || site.OccupiesHex(connection.DestinationHex))
+                return Result.Failure(ErrorCode.InvalidOperation, "Invalid WorldSite egress topology.");
+            if (!IsGroundPassable(world.HexWorld, connection.DestinationHex))
+                return Result.Failure(ErrorCode.InvalidOperation, "External hex is impassable.");
+            var preflight = SurfaceExitTraversalService.TryPrepareTraversal(world, party, connection, out var prepared);
+            if (preflight.IsFailure || prepared.EntersWorldSite)
+                return preflight.IsFailure
+                    ? preflight
+                    : Result.Failure(ErrorCode.InvalidOperation, "Continuous egress requires wilderness destination.");
+
+            PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, party);
+            var boundary = new WorldVec2(connection.BoundaryContactWorldX, connection.BoundaryContactWorldY);
+            motion.SetAtWorldPosition(boundary, connection.DestinationHex);
+            ApplyTravelingMembersAtHex(world, connection.DestinationHex);
+            world.PartyWorld.ClearSiteFocus();
+            world.PartyWorld.SiteId = string.Empty;
+            world.PartyWorld.FocusFormalArmyId = string.Empty;
+            world.PartyWorld.LocalMapId = string.Empty;
+            world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
+            world.PartyWorld.EncounterId = string.Empty;
+            world.LocalMap.ActiveMapLayoutId = string.Empty;
+            world.LocalMap.OverworldMapLayoutId = string.Empty;
+            world.LocalMap.ReturnLocationId = string.Empty;
+            return Result.Success();
         }
 
         public static bool TryEvaluateSurfaceExitLegality(

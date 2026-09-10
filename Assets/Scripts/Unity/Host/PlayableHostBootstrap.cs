@@ -350,6 +350,119 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
+        /// NewGame migration stage for an Outdoor WorldSite. It reads the legacy layout only as
+        /// authored coordinates, commits canonical WorldPosition, and clears LocalMap authority
+        /// before any legacy presentation can be materialized.
+        /// </summary>
+        bool TryBootstrapInitialContinuousOutdoorSite()
+        {
+            if (!_session.InitialBootstrapPending || !_session.PlayerParty.HasActive)
+                return false;
+            var world = _session.World;
+            var motion = world?.PlayerPartyTravel;
+            var siteId = _session.InitialBootstrapSiteId;
+            if (motion == null || string.IsNullOrEmpty(siteId) ||
+                !world.Strategic.Sites.TryGet(siteId, out var site) ||
+                !WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site))
+                return false;
+
+            var mapId = WorldTravelService.ResolveWorldSiteLocalMapId(site);
+            var parsed = DefinitionId.Parse(mapId);
+            if (!parsed.IsSuccess || !_session.Registry.TryGetMapLayout(parsed.Value, out var layout) || layout == null)
+            {
+                Debug.LogError("[PlayableHost] Continuous startup source MapLayout missing: " + mapId, this);
+                return false;
+            }
+
+            var px = layout.OriginX + layout.Width * layout.CellSize * .5f;
+            var py = layout.OriginY + layout.Height * layout.CellSize * .5f;
+            var hasAuthoredStart = false;
+            if (world.Entities.TryGet(_session.PlayerParty.ActiveCharacterId, out var active) &&
+                active.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc))
+            {
+                if (loc.HasPresentationOverride)
+                {
+                    px = loc.PresentationOverrideX;
+                    py = loc.PresentationOverrideZ;
+                    hasAuthoredStart = true;
+                }
+                else if (loc.HasLocation &&
+                         TryResolveAuthoredLocationCenter(layout, loc.LocationId, out px, out py))
+                    hasAuthoredStart = true;
+                else if (loc.HasLocation && world.WorldRegion.TryGet(loc.LocationId, out var authored))
+                {
+                    px = authored.PresentationX;
+                    py = authored.PresentationZ;
+                    hasAuthoredStart = true;
+                }
+            }
+            if (!hasAuthoredStart && !string.IsNullOrEmpty(world.WorldRegion.StartLocationId) &&
+                TryResolveAuthoredLocationCenter(layout, world.WorldRegion.StartLocationId, out px, out py))
+                hasAuthoredStart = true;
+            if (!hasAuthoredStart && !string.IsNullOrEmpty(world.WorldRegion.StartLocationId) &&
+                world.WorldRegion.TryGet(world.WorldRegion.StartLocationId, out var start))
+            {
+                px = start.PresentationX;
+                py = start.PresentationZ;
+            }
+
+            var bounds = WorldSiteSpatialMapping.WorldSiteLocalMapBounds.FromOriginSize(
+                layout.OriginX, layout.OriginY, layout.CellSize, layout.Width, layout.Height);
+            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            if (!WorldSiteSpatialMapping.TryLocalToWorldSurface(
+                    site, bounds, new WorldVec2(px, py), hexSize, out var canonical))
+            {
+                Debug.LogError("[PlayableHost] Continuous startup authored Local->World failed: " + siteId, this);
+                return false;
+            }
+
+            var derived = HexMath.WorldToHex(canonical.X, canonical.Y, hexSize);
+            motion.SetAtWorldPosition(canonical, derived);
+            motion.SetCurrentOutdoorWorldSiteContext(siteId);
+            for (var i = 0; i < _session.PlayerParty.Members.Count; i++)
+                world.WorldPresence.SetAtWorldPosition(_session.PlayerParty.Members[i], canonical, derived);
+            world.PartyWorld.ClearSiteFocus();
+            world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
+            world.PartyWorld.LocalMapId = string.Empty;
+            world.PartyWorld.EncounterId = string.Empty;
+            world.LocalMap.ActiveMapLayoutId = string.Empty;
+            world.LocalMap.OverworldMapLayoutId = string.Empty;
+            _session.PreferredMapLayoutId = string.Empty;
+            _session.ConsumeInitialBootstrap();
+            PlayerPartySiteIngressTrace.Log("ContinuousStartupBootstrapCommitted",
+                "site=" + siteId + " local=" + px + "," + py + " world=" + canonical);
+            return true;
+        }
+
+        static bool TryResolveAuthoredLocationCenter(
+            MapLayoutDefinition layout, string locationId, out float x, out float y)
+        {
+            x = y = 0f;
+            if (layout?.Placements == null || string.IsNullOrEmpty(locationId))
+                return false;
+            var count = 0;
+            var sumX = 0f;
+            var sumY = 0f;
+            var cellSize = layout.CellSize > 0f ? layout.CellSize : 1f;
+            for (var i = 0; i < layout.Placements.Count; i++)
+            {
+                var placement = layout.Placements[i];
+                if (placement == null || !string.Equals(
+                        placement.BoundLocationId, locationId, System.StringComparison.Ordinal))
+                    continue;
+                var cellsW = placement.W < 1 ? 1 : placement.W;
+                var cellsH = placement.H < 1 ? 1 : placement.H;
+                sumX += layout.OriginX + (placement.X + cellsW * .5f) * cellSize;
+                sumY += layout.OriginY + (placement.Y + cellsH * .5f) * cellSize;
+                count++;
+            }
+            if (count <= 0) return false;
+            x = sumX / count;
+            y = sumY / count;
+            return true;
+        }
+
+        /// <summary>
         /// 顶栏 1xxx0x：统一Host 倍速
         /// Tick 驱动的工作／休息／吃饭／修炼／作息与表现层移动共用此倍率
         /// </summary>
@@ -647,26 +760,30 @@ namespace XianXia.Unity.Host
             _session.PreferredMapLayoutId = string.IsNullOrWhiteSpace(preferredMapLayoutId)
                 ? _session.PreferredMapLayoutId
                 : preferredMapLayoutId.Trim();
-            if (!string.IsNullOrWhiteSpace(_session.PreferredMapLayoutId))
+            if (_session.CharacterIds.Count > 0 && !_session.PlayerParty.HasActive)
+                _session.PlayerParty.TryInitialize(_session.CharacterIds[0], out _);
+            // A migrated Outdoor Site reads its exact source layout as authored migration input
+            // and commits canonical WorldPosition before any LocalMap presentation is built.
+            var continuousOutdoorStartup = TryBootstrapInitialContinuousOutdoorSite();
+            if (!continuousOutdoorStartup && !string.IsNullOrWhiteSpace(_session.PreferredMapLayoutId))
                 _session.World.LocalMap.EnsureOverworld(_session.PreferredMapLayoutId);
-            else if (MapLayoutPick.TryGet(_session, out var picked) && picked != null)
+            else if (!continuousOutdoorStartup && MapLayoutPick.TryGet(_session, out var picked) && picked != null)
             {
                 _session.PreferredMapLayoutId = picked.Id.ToString();
                 _session.World.LocalMap.EnsureOverworld(_session.PreferredMapLayoutId);
             }
 
-            var synced = MapLayoutPresentationSync.Apply(_session);
+            var synced = continuousOutdoorStartup ? 0 : MapLayoutPresentationSync.Apply(_session);
             if (synced > 0)
                 Debug.Log("[PlayableHost] Synced " + synced + " location presentation(s) from mapLayout", this);
             entityViewSpawner.Rebuild(_session);
-            mapGraybox.Rebuild(_session);
-            if (interactSpotPresenter != null)
+            if (!continuousOutdoorStartup)
+                mapGraybox.Rebuild(_session);
+            if (!continuousOutdoorStartup && interactSpotPresenter != null)
                 interactSpotPresenter.Rebuild();
             var cam = Camera.main;
             selectionController.Bind(entityViewSpawner, cam);
             selectionController.SetPartyFilter(_session.CharacterIds);
-            if (_session.CharacterIds.Count > 0 && !_session.PlayerParty.HasActive)
-                _session.PlayerParty.TryInitialize(_session.CharacterIds[0], out _);
             // 开局权威位置愈合：禁止 AtWorldPosition 漂移冒充 Site。
             PlayerPartyWorldLocationQuery.TryResolve(
                 _session.World, _session.PlayerParty, out _, healDrift: true);
@@ -730,11 +847,15 @@ namespace XianXia.Unity.Host
             moveController.SetWalkGrid(ResolveWalkGrid());
             // Phase 5R-B3C1：NewGame 初始 Site 的第一次 Bootstrap 必须在【初始 LocalMap 第一次真正建立】
             // 时发生（TryInitialize 启动链内），不能等玩家离开 Site 再回来才第一次执行。
-            TryRunInitialSiteBootstrap();
+            if (!continuousOutdoorStartup)
+                TryRunInitialSiteBootstrap();
             moveController.BindLocalMapContext(_session.World.LocalMap.ActiveMapLayoutId);
             // Host-side Safe+Walkable fallback：materialize+Rebuild 之后、OnLocalMapMaterialized
             // （→RebindAllFollowers）之前 —— WalkGrid 已 ready、EntityView 已就位。
-            FinalizePlayerPartyLocalMapMaterialization(_session.World.LocalMap.ActiveMapLayoutId);
+            if (continuousOutdoorStartup)
+                RefreshSurfaceExitZones();
+            else
+                FinalizePlayerPartyLocalMapMaterialization(_session.World.LocalMap.ActiveMapLayoutId);
             if (npcContextMenu != null)
                 npcContextMenu.Bind(this, selectionController, moveController, dialoguePresenter, localMapEnterPrompt);
             var constructionController = GetComponent<HostConstructionController>();
@@ -1225,8 +1346,22 @@ namespace XianXia.Unity.Host
         /// 正式展开链路：当前 PartyWorld 已 Resolve 的 LocalMap → Materialize PlayerParty → 重建表现。
         /// WorldSite 与 Wilderness 共用；未来 Close WorldMap 也应调用此入口。
         /// </summary>
-        public void ExpandLocalMapForCurrentPartyWorld(bool closeWorldMap = false) =>
+        public void ExpandLocalMapForCurrentPartyWorld(bool closeWorldMap = false)
+        {
+            // W1D single authority gate: every legacy caller (manual exit, WorldMap close,
+            // save/materialize recovery, AutoTravel) must give supported Wilderness coverage a
+            // chance before it can recreate a one-Hex LocalMap presentation.
+            var motion = _session?.World?.PlayerPartyTravel;
+            if (_session != null && _session.IsInitialized &&
+                motion != null && motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
+                _continuousOutdoorSurfaceRuntime != null &&
+                _continuousOutdoorSurfaceRuntime.TryActivateAtCurrentWorldPosition())
+            {
+                surfaceExitZonePresenter?.Clear();
+                return;
+            }
             ApplyPartyWorldSitePresentation(closeWorldMap);
+        }
 
         /// <summary>
         /// WorldSite／Wilderness 到站后：PartyWorld.LocalMapId 卸／装实体图；Materialize PlayerParty。
@@ -1865,17 +2000,23 @@ namespace XianXia.Unity.Host
                 surfaceExitZonePresenter = GetComponent<HostSurfaceExitZonePresenter>() ??
                                           gameObject.AddComponent<HostSurfaceExitZonePresenter>();
 
-            if (!SurfaceExitZoneCalculator.ShouldPresent(_session.World))
-            {
-                surfaceExitZonePresenter.Clear();
-                return;
-            }
-
             // W1C is selected from actual WorldPosition coverage before W1B is ever considered.
+            var continuousWasActive = _continuousOutdoorSurfaceRuntime != null &&
+                                      _continuousOutdoorSurfaceRuntime.IsActive;
             if (_continuousOutdoorSurfaceRuntime != null && _continuousOutdoorSurfaceRuntime.TryActivateAtCurrentWorldPosition())
             {
                 surfaceExitZonePresenter.Clear();
                 moveController?.SetWalkGrid(ResolveWalkGrid());
+                // Startup can activate the neighborhood before the remaining overlay presenters
+                // have been bound. Rebuild once after binding has completed on the later call.
+                if (continuousWasActive)
+                    RefreshContinuousOutdoorOverlaysOnce();
+                return;
+            }
+
+            if (!SurfaceExitZoneCalculator.ShouldPresent(_session.World))
+            {
+                surfaceExitZonePresenter.Clear();
                 return;
             }
 
@@ -1938,7 +2079,6 @@ namespace XianXia.Unity.Host
 
         void ReloadContinuousSurfaceOverlaysOnly(bool frameCamera)
         {
-            MapLayoutPresentationSync.Apply(_session);
             if (mapGraybox != null)
                 mapGraybox.RebuildOverlaysOnly(_session);
             if (interactSpotPresenter != null)
@@ -1952,6 +2092,24 @@ namespace XianXia.Unity.Host
             if (frameCamera) FrameCameraOnSlots();
             RefreshStatus();
         }
+
+        /// <summary>W1D authority handoff. A continuous outdoor surface has no Active LocalMap:
+        /// clear legacy site-only context without selecting a chunk source as a replacement map.</summary>
+        public void FinalizeContinuousWildernessPresentationHandoff()
+        {
+            if (!_session.IsInitialized)
+                return;
+            WorldRegionBootstrap.ActivatePlacesForMapLayout(_session.World, _session.Registry, string.Empty);
+            mapGraybox?.Clear();
+            interactSpotPresenter?.Clear();
+            surfaceExitZonePresenter?.Clear();
+            _session.RefreshViewableEntityIds();
+            entityViewSpawner?.SpawnMissingVisibleViews(_session);
+            entityViewSpawner?.PruneHiddenViews(_session);
+        }
+
+        public void RefreshContinuousOutdoorOverlaysOnce() =>
+            ReloadContinuousSurfaceOverlaysOnly(frameCamera: false);
 
         public void DeactivateContinuousWildernessIfActive()
         {
@@ -2426,6 +2584,7 @@ namespace XianXia.Unity.Host
 
         public void RefreshFactionFlagWalkGrid()
         {
+            _continuousOutdoorSurfaceRuntime?.RefreshCompositeWalkGrid();
             if (moveController != null)
                 moveController.SetWalkGrid(ResolveWalkGrid());
             if (surfaceExitZonePresenter != null)

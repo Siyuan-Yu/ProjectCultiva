@@ -58,6 +58,7 @@ namespace XianXia.Core.Simulation
             SocialBonds = new SocialBondBoard();
             Settlements = new SettlementBoard();
             WorldRegion = new WorldRegionBoard();
+            ContinuousOutdoorMaterialization = new ContinuousOutdoorMaterializationBoard();
             HexWorld = new HexWorld();
             WorldPresence = new WorldPresenceBoard();
             PartyWorld = new PartyWorldPresence();
@@ -77,6 +78,7 @@ namespace XianXia.Core.Simulation
             ContentCounters = new ContentCounterBoard();
             ContentDaily = new ContentDailyBoard();
             LocalMap = new LocalMapSession();
+            OutdoorStatefulObjects = new OutdoorStatefulObjectBoard();
             Tick = WorldTick.Zero;
             EnabledPackageId = "base";
             EnabledPackageVersion = "0.0.1-m1";
@@ -116,6 +118,9 @@ namespace XianXia.Core.Simulation
 
         /// <summary>村内地点表（历史名 worldRegion；非正式大世界）。</summary>
         public WorldRegionBoard WorldRegion { get; }
+
+        /// <summary>Loaded continuous outdoor sites, places and entity presentation membership.</summary>
+        public ContinuousOutdoorMaterializationBoard ContinuousOutdoorMaterialization { get; }
 
         /// <summary>Hex 战略世界真源（155+）。</summary>
         public HexWorld HexWorld { get; }
@@ -177,6 +182,9 @@ namespace XianXia.Core.Simulation
 
         /// <summary>当前 LocalMap 进出状态；session-only; not in Snapshot v1.</summary>
         public LocalMapSession LocalMap { get; }
+
+        /// <summary>Stable-id authority for streamed Outdoor destructibles and farm cells.</summary>
+        public OutdoorStatefulObjectBoard OutdoorStatefulObjects { get; }
 
         /// <summary>Item display／stack rules for the shared party bag.</summary>
         public InventoryCatalog InventoryCatalog { get; }

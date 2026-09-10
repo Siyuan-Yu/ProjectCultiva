@@ -6,6 +6,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Npc;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Strategic;
+using XianXia.Data.Content;
 
 namespace XianXia.Unity.Host
 {
@@ -125,7 +126,10 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
-            MapLayoutPick.TryGet(bootstrap.Session, out var layout);
+            MapLayoutDefinition layout = null;
+            if (bootstrap.ContinuousOutdoorSurfaceRuntime == null ||
+                !bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive)
+                MapLayoutPick.TryGet(bootstrap.Session, out layout);
 
             // 洞内出口 → 离开
             if (bootstrap.Session.World.LocalMap.IsInInterior &&
@@ -148,8 +152,10 @@ namespace XianXia.Unity.Host
             // 地表已显形洞府 → 进入
             if (!bootstrap.Session.World.LocalMap.IsInInterior &&
                 HostCaveEntranceQuery.TryPickAtMouse(
-                    worldCamera, bootstrap.Session.World, layout, out var entranceId) &&
-                bootstrap.Session.World.WorldRegion.TryGet(entranceId, out var entrance))
+                    worldCamera, bootstrap.Session.World, layout,
+                    bootstrap.ContinuousOutdoorSurfaceRuntime, out var entranceId) &&
+                (bootstrap.Session.World.ContinuousOutdoorMaterialization.TryGetAnyPlace(entranceId, out var entrance) ||
+                 bootstrap.Session.World.WorldRegion.TryGet(entranceId, out entrance)))
             {
                 _actor = actor;
                 _targetNpc = EntityId.None;
@@ -165,12 +171,22 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
-            if (LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(
+            FactionFlagState pickedFlag = null;
+            var flagId = string.Empty;
+            var continuous = bootstrap.ContinuousOutdoorSurfaceRuntime;
+            var pickedContinuousFlag = continuous != null && continuous.IsActive &&
+                bootstrap.Session.World.Strategic.FactionFlags.TryGetAt(
+                    bootstrap.Session.World.PlayerPartyTravel.CurrentHex, out pickedFlag) &&
+                pickedFlag != null &&
+                HostPresentationSpace.TryRaycastPlane(worldCamera, Input.mousePosition, out var flagWorldPoint) &&
+                HostFactionFlagQuery.TryPickAtWorld(pickedFlag, continuous, flagWorldPoint, out flagId);
+            var pickedLegacyFlag = !pickedContinuousFlag &&
+                LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(
                     bootstrap.Session.World, out var localContext) &&
                 localContext.Kind == LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WildernessHex &&
-                bootstrap.Session.World.Strategic.FactionFlags.TryGetAt(localContext.WildernessHex, out var pickedFlag) &&
-                pickedFlag != null &&
-                HostFactionFlagQuery.TryPickAtMouse(worldCamera, pickedFlag, layout, out var flagId))
+                bootstrap.Session.World.Strategic.FactionFlags.TryGetAt(localContext.WildernessHex, out pickedFlag) &&
+                pickedFlag != null && HostFactionFlagQuery.TryPickAtMouse(worldCamera, pickedFlag, layout, out flagId);
+            if (pickedContinuousFlag || pickedLegacyFlag)
             {
                 _actor = actor;
                 _targetNpc = EntityId.None;
@@ -187,7 +203,8 @@ namespace XianXia.Unity.Host
             }
 
             if (HostControlCoreQuery.TryPickAtMouse(
-                    worldCamera, bootstrap.Session.World, layout, out var coreId) &&
+                    worldCamera, bootstrap.Session.World, layout,
+                    bootstrap.ContinuousOutdoorSurfaceRuntime, out var coreId) &&
                 bootstrap.Session.World.ControlCores.TryGet(coreId, out var core))
             {
                 _actor = actor;
@@ -578,8 +595,15 @@ namespace XianXia.Unity.Host
                 CloseAll();
                 return;
             }
-            MapLayoutPick.TryGet(session, out var layout);
-            if (HostFactionFlagQuery.TryGetApproachPoint(flag, layout, moveController?.WalkGrid, out var approach))
+            MapLayoutDefinition layout = null;
+            if (bootstrap.ContinuousOutdoorSurfaceRuntime == null ||
+                !bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive)
+                MapLayoutPick.TryGet(session, out layout);
+            var continuous = bootstrap.ContinuousOutdoorSurfaceRuntime;
+            var hasApproach = continuous != null && continuous.IsActive
+                ? HostFactionFlagQuery.TryGetApproachPoint(flag, continuous, moveController?.WalkGrid, out var approach)
+                : HostFactionFlagQuery.TryGetApproachPoint(flag, layout, moveController?.WalkGrid, out approach);
+            if (hasApproach)
                 moveController?.OrderPartyToPointPublic(approach);
             var assault = bootstrap.GetComponent<HostFactionFlagAssault>();
             if (assault != null)
@@ -661,8 +685,12 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            MapLayoutPick.TryGet(session, out var layout);
-            if (HostControlCoreQuery.TryGetApproachPoint(world, layout, core, out var approach) &&
+            MapLayoutDefinition layout = null;
+            if (bootstrap.ContinuousOutdoorSurfaceRuntime == null ||
+                !bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive)
+                MapLayoutPick.TryGet(session, out layout);
+            if (HostControlCoreQuery.TryGetApproachPoint(
+                    world, layout, bootstrap.ContinuousOutdoorSurfaceRuntime, core, out var approach) &&
                 moveController != null)
                 moveController.OrderPartyToPointPublic(approach);
 

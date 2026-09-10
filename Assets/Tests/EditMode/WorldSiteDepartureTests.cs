@@ -307,6 +307,29 @@ namespace XianXia.Tests
             Assert.AreEqual(1, m.SegmentIndex, "segment advanced to exit->goal");
         }
 
+        [Test]
+        public void W1D_ContinuousEgressCommit_DoesNotSelectLegacyLocalMap()
+        {
+            var (world, site, party) = BuildWorld();
+            var footprint = new HexCoord(80, 51);
+            var outside = new HexCoord(79, 51);
+            SetAtSite(world, site, party, footprint, new WorldVec2(138.2f, 76.5f));
+            Assert.IsTrue(WorldSiteFootprintExitConnectionResolver.TryResolveFormalExitConnection(
+                world, site, footprint, outside, HexSize, TestBounds, out var connection));
+
+            var result = PlayerPartyWildernessTransitionService
+                .TryCommitWorldSiteEgressToContinuousWilderness(world, party, connection);
+
+            Assert.IsTrue(result.IsSuccess, result.IsSuccess ? string.Empty : result.Error.ToString());
+            var motion = world.PlayerPartyTravel;
+            Assert.AreEqual(PlayerPartyLocationKind.AtWorldPosition, motion.LocationKind);
+            Assert.AreEqual(outside, motion.CurrentHex);
+            Assert.AreEqual(connection.BoundaryContactWorldX, motion.WorldPosition.X, 1e-4f);
+            Assert.AreEqual(connection.BoundaryContactWorldY, motion.WorldPosition.Y, 1e-4f);
+            Assert.IsEmpty(world.PartyWorld.SiteId);
+            Assert.IsEmpty(world.PartyWorld.LocalMapId, "continuous egress must not select a fallback LocalMap");
+        }
+
         // ============================ [5] override / Stop ============================
 
         [Test]

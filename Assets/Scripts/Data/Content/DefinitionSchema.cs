@@ -116,7 +116,8 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> OutdoorSurfaceFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "originWorldX", "originWorldY", "cellSize", "chunkWidth", "chunkHeight", "chunks"
+            "id", "type", "name", "originWorldX", "originWorldY", "cellSize", "chunkWidth", "chunkHeight", "acceptanceOnly", "chunks",
+            "siteRegions", "sitePlacements", "sitePlaces"
         };
         public static readonly HashSet<string> OutdoorSurfaceChunkFields = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -153,8 +154,14 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> HexWorldSiteFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "siteId", "displayName", "siteType", "anchorQ", "anchorR", "presenceQ", "presenceR", "footprint",
-            "localMapId", "ownerFactionId", "territoryRegionId", "controlEstablishedOrder"
+            "localMapId", "ownerFactionId", "territoryRegionId", "controlEstablishedOrder", "continuousOutdoor"
         };
+        public static readonly HashSet<string> WorldSitePhysicalRegionFields = new HashSet<string>(StringComparer.Ordinal)
+        { "siteId", "surfaceId", "sourceLocalMapId", "arrivalWorldX", "arrivalWorldY" };
+        public static readonly HashSet<string> OutdoorSurfacePlacementFields = new HashSet<string>(StringComparer.Ordinal)
+        { "stableId", "siteId", "chunkX", "chunkY", "worldX", "worldY", "worldWidth", "worldHeight", "sourceGridX", "sourceGridY", "sourceCellsW", "sourceCellsH", "kind", "blocksMovement", "boundLocationId", "label", "lootItemId", "spawnTableId", "spawnCount" };
+        public static readonly HashSet<string> WorldSitePlaceFields = new HashSet<string>(StringComparer.Ordinal)
+        { "siteId", "locationId", "name", "worldX", "worldY", "localMapId", "enterLocalMapId", "enterSpawnLocationId" };
 
         public static readonly HashSet<string> HexWorldTerritoryRegionFields = new HashSet<string>(StringComparer.Ordinal)
         {

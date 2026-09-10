@@ -7,6 +7,41 @@
 
 ---
 
+## 2026-09-10 — Outdoor WorldSite Continuous Migration runtime correction / pending producer acceptance
+
+- 制作人运行验收确认旧实现以 `0.01` 伪 CellSize 展开数百万 prefab，造成 Play 黑屏 / Editor 近似卡死；已删除该路径，改为 physical rect + authored source-cell semantics 的 direct renderer，并增加数量契约 fail-fast 诊断。
+- 当前 playable `7/7` Outdoor Site bake 为 `7 PhysicalRegions / 75 logical source placements / 405 rendered semantic objects / 18 Site places`；跨 chunk 采用唯一归属或 Zone 裁切，stable id 不含 chunk index。
+- NewGame 在 legacy LocalMap materialization 前提交 canonical WorldPosition；loaded-neighborhood population/place registry、统一 overlay rebuild、continuous ControlCore/FactionFlag、Domain+Snapshot destructible/farm state、Interior exact return 与 migrated-site physical query 已接通，normal continuous 分支不依赖 Site ActiveMapLayout。
+- 验证：Core/Data/Host/EditMode Tests 使用 Unity Bee Roslyn response files 离线编译 0 error（仅既有 warning）；编译后 `ContentPackageLoader` 实际加载 BaseGame 成功；content 计数、stable-id、semantic assignment、cross-chunk 与 `git diff --check` 均通过。未运行 Unity Test Runner 或人工 Play 验收。状态：**OUTDOOR WORLDSITE CONTINUOUS MIGRATION RUNTIME-CORRECT / PENDING PRODUCER ACCEPTANCE**。
+
+---
+
+## 2026-09-10 — W1D Gateway route superseded; Outdoor WorldSite Surface Migration V1 approved
+
+- 制作人两次 Unity 验收后明确停止 `Continuous Wilderness ↔ Legacy WorldSite Gateway` 路线；其双向 lifecycle 已证明增加而非降低迁移复杂度。W1C 保持 **ACCEPTED / SEALED**，W1D Gateway 标为 **NOT ACCEPTED / SUPERSEDED**。
+- 新的已批准目标是当前 playable world 全部 Outdoor WorldSite 直接迁入 Main Continuous Surface：Outdoor player position 一律是 `AtWorldPosition`，WorldSite 只保留 identity/footprint/ownership/Capture/Siege/ControlCore domain authority；`LocalMapId` 转为 migration source 与旧存档兼容。
+- 新建 [208](208-continuous-world-outdoor-worldsite-surface-migration-v1-2026-09-10.md) 记录 PhysicalRegion、deterministic bake、stable identity、Site context、Outdoor resident materialization、Portal-only Interior 与 normal-path retirement 边界。实现中，未进入下一阶段。
+
+---
+
+## 2026-09-10 — W1D WorldSite ↔ Continuous Wilderness migration-boundary repair
+
+- 制作人验收发现 W1D 只完成 ordinary Wilderness cutover，WorldSite 仍是 Legacy LocalMap，却缺少其与 Main Continuous Surface 的双向临时边界；因此出现 Site label/context 残留、主控视图丢失及无法从连续地表回到 Site。
+- 新增 `ContinuousWorldSiteGatewayPresenter`：只以 `WorldSiteFootprintExitConnectionResolver.TryResolveFormalIngressConnection` 的 `BoundaryContactWorld` 经 surface mapper 显示“进入 Site”标记；不恢复普通 Wilderness SurfaceExit，也不把 SlotRect 当作连续世界几何。
+- Continuous movement 首次命中 WorldSite footprint 时停止普通 commit，复用正式 ingress connection、access service、`SetIngressContext` 与 `EnterWorldSiteAsParty` 后移交 Legacy Site LocalMap；LocalVisible through-site 保留原 route-preserving Site ingress。
+- 新增 Core `TryCommitWorldSiteEgressToContinuousWilderness`，供手动与 LocalVisible Site 出口在 Main coverage 内直接提交 canonical boundary/成员 presence、清 Site focus，绝不 intermediate `EnterWildernessLocalMap`；覆盖外仍保持旧路径。
+- Continuous handoff 显式清空 local places/graybox/interactions、补齐缺失 party view、刷新 overlay 并 frame camera；`HostMapGraybox` 改为只销毁自身 `_built`，不再删除 shared root 的 chunk/entity/gateway child。
+- 验证：使用 Unity 2022.3.6f1 Roslyn response files 的 Core 与 Unity Host compile sanity 均 0 error（仅既有 warning）；`git diff --check` 通过。未跑 Full EditMode/PlayMode，待制作人按双向 gateway 验收。
+
+---
+
+## 2026-09-10 — Continuous World W1C sealed / W1D started
+
+- 制作人已完成 W1C Unity 最终验收；[206](206-continuous-world-w1c-surface-chunk-grid-2026-09-09.md) 标记 **ACCEPTED / SEALED**。确认 Chunk 与 Strategic Hex 解耦、WorldPosition physical authority、方向约定、continuous-specific Hex commit、Road/passability 分离、outer handoff 与显式 presentation lifetime。
+- 启动 W1D Default Wilderness Continuous Surface Cutover：新增 `base:surface_main_wilderness_v1`，以已验证 metric 覆盖 `base:hex_world_travel_mvp_30x15` 的完整 ordinary Wilderness 范围；W1C acceptance content 改为 `acceptanceOnly`，normal resolver 不再参与其 overlap。
+
+---
+
 ## 2026-09-09 — W1C Outer Boundary Handoff Repair
 
 - 修正“CompositeWalkGrid 卡在 authored 外边，canonical 永远无法 outside”的 egress 死锁。新增 Data 纯 `OutdoorSurfaceBoundaryEgressResolver`：从 authored chunk rect union（不看 loaded radius）判定 Inside/Crossing/Outside，并以 movement ray 计算真实 boundary contact + metric-relative just-outside epsilon。

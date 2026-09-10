@@ -357,7 +357,7 @@ namespace XianXia.Unity.Host
                 {
                     var size = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
                     world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(wx, wy), HexMath.WorldToHex(wx, wy, size));
-                    surface.TryActivateAtCurrentWorldPosition();
+                    surface.TryActivateAcceptanceAtCurrentWorldPosition();
                     bootstrap.ActivateSurfaceLocalMapPresentation();
                     bootstrap.FrameCameraOnActiveCharacter();
                 }

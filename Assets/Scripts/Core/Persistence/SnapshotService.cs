@@ -335,6 +335,7 @@ namespace XianXia.Core.Persistence
             CapturePartyInventory(world, snap);
             CaptureSocialBonds(world, snap);
             CaptureRelationshipLedger(world, snap);
+            CaptureOutdoorStatefulObjects(world, snap);
             return snap;
         }
 
@@ -391,6 +392,17 @@ namespace XianXia.Core.Persistence
 
                 snap.RelationshipEvents.Add(dto);
             }
+
+        }
+
+        static void CaptureOutdoorStatefulObjects(SimulationWorld world, WorldSnapshot snap)
+        {
+            foreach (var kv in world.OutdoorStatefulObjects.Destructibles)
+                snap.OutdoorDestructibles.Add(new OutdoorDestructibleSnapshotDto
+                { StableId = kv.Key, CurrentHp = kv.Value.Hp, Destroyed = kv.Value.Destroyed });
+            foreach (var kv in world.OutdoorStatefulObjects.FarmPlots)
+                snap.OutdoorFarmPlots.Add(new OutdoorFarmPlotSnapshotDto
+                { StableCellId = kv.Key, CropId = kv.Value.CropId, CropStage = kv.Value.CropStage, Growth = kv.Value.Growth });
         }
 
         static void CaptureSocialBonds(SimulationWorld world, WorldSnapshot snap)
@@ -830,6 +842,7 @@ namespace XianXia.Core.Persistence
             }
 
             RestorePartyInventory(world, snap);
+            RestoreOutdoorStatefulObjects(world, snap);
             var bondRestore = RestoreSocialBonds(world, snap);
             if (bondRestore.IsFailure)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(bondRestore.Error);
@@ -890,6 +903,25 @@ namespace XianXia.Core.Persistence
 
             RelationshipService.RebuildAllCaches(world);
             return Result.Success();
+        }
+
+        static void RestoreOutdoorStatefulObjects(SimulationWorld world, WorldSnapshot snap)
+        {
+            world.OutdoorStatefulObjects.Clear();
+            if (snap.OutdoorDestructibles != null)
+                for (var i = 0; i < snap.OutdoorDestructibles.Count; i++)
+                {
+                    var state = snap.OutdoorDestructibles[i];
+                    if (state != null) world.OutdoorStatefulObjects.SetDestructible(
+                        state.StableId, state.CurrentHp, state.Destroyed);
+                }
+            if (snap.OutdoorFarmPlots != null)
+                for (var i = 0; i < snap.OutdoorFarmPlots.Count; i++)
+                {
+                    var state = snap.OutdoorFarmPlots[i];
+                    if (state != null) world.OutdoorStatefulObjects.SetFarmPlot(
+                        state.StableCellId, state.CropId, state.CropStage, state.Growth);
+                }
         }
 
         static Result RestoreSocialBonds(SimulationWorld world, WorldSnapshot snap)

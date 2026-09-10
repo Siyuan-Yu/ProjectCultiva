@@ -427,12 +427,14 @@ namespace XianXia.Unity.Host
             var session = bootstrap != null ? bootstrap.Session : null;
             var world = session?.World;
             MapLayoutDefinition layout = null;
-            if (session != null)
+            if (session != null && (bootstrap.ContinuousOutdoorSurfaceRuntime == null ||
+                                    !bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive))
                 MapLayoutPick.TryGet(session, out layout);
 
             string coreId = null;
             if (world != null &&
-                HostControlCoreQuery.TryPickAtWorld(world, layout, point, out coreId) &&
+                HostControlCoreQuery.TryPickAtWorld(
+                    world, layout, bootstrap.ContinuousOutdoorSurfaceRuntime, point, out coreId) &&
                 world.ControlCores.TryGet(coreId, out var core))
             {
                 var contextMenu = bootstrap != null
@@ -456,7 +458,8 @@ namespace XianXia.Unity.Host
                 }
 
                 Resume();
-                if (HostControlCoreQuery.TryGetApproachPoint(world, layout, core, out var target) &&
+                if (HostControlCoreQuery.TryGetApproachPoint(
+                        world, layout, bootstrap.ContinuousOutdoorSurfaceRuntime, core, out var target) &&
                     moveController != null)
                     moveController.OrderPartyToPointPublic(target);
 

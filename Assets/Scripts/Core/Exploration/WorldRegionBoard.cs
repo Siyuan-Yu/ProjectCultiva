@@ -50,4 +50,74 @@ namespace XianXia.Core.Exploration
             return false;
         }
     }
+
+    /// <summary>
+    /// Transient presentation scope for the loaded continuous outdoor neighborhood. It is
+    /// independent from the single Active LocalMap/WorldRegion compatibility boards.
+    /// </summary>
+    public sealed class ContinuousOutdoorMaterializationBoard
+    {
+        readonly HashSet<XianXia.Core.Domain.Ids.EntityId> _entities =
+            new HashSet<XianXia.Core.Domain.Ids.EntityId>();
+        readonly HashSet<string> _loadedSites = new HashSet<string>(StringComparer.Ordinal);
+        readonly Dictionary<string, WorldLocationState> _places =
+            new Dictionary<string, WorldLocationState>(StringComparer.Ordinal);
+        readonly Dictionary<string, WorldLocationState> _placesByLocationId =
+            new Dictionary<string, WorldLocationState>(StringComparer.Ordinal);
+
+        public IReadOnlyCollection<XianXia.Core.Domain.Ids.EntityId> Entities => _entities;
+        public IReadOnlyCollection<string> LoadedSiteIds => _loadedSites;
+        public int PlaceCount => _places.Count;
+        public IReadOnlyDictionary<string, WorldLocationState> PlacesByLocationId => _placesByLocationId;
+
+        public void Clear()
+        {
+            _entities.Clear();
+            _loadedSites.Clear();
+            _places.Clear();
+            _placesByLocationId.Clear();
+        }
+
+        public void RegisterLoadedSite(string siteId)
+        {
+            if (!string.IsNullOrEmpty(siteId)) _loadedSites.Add(siteId);
+        }
+
+        public bool IsSiteLoaded(string siteId) =>
+            !string.IsNullOrEmpty(siteId) && _loadedSites.Contains(siteId);
+
+        public void Materialize(XianXia.Core.Domain.Ids.EntityId id)
+        {
+            if (!id.IsNone) _entities.Add(id);
+        }
+
+        public bool IsMaterialized(XianXia.Core.Domain.Ids.EntityId id) =>
+            !id.IsNone && _entities.Contains(id);
+
+        public void RegisterPlace(string siteId, WorldLocationState place)
+        {
+            if (string.IsNullOrEmpty(siteId) || place == null || string.IsNullOrEmpty(place.Id)) return;
+            _places[siteId + "\n" + place.Id] = place;
+            _placesByLocationId[place.Id] = place;
+        }
+
+        public bool TryGetPlace(string siteId, string locationId, out WorldLocationState place)
+        {
+            place = null;
+            return !string.IsNullOrEmpty(siteId) && !string.IsNullOrEmpty(locationId) &&
+                   _places.TryGetValue(siteId + "\n" + locationId, out place);
+        }
+
+        public bool TryGetAnyPlace(string locationId, out WorldLocationState place)
+        {
+            place = null;
+            return !string.IsNullOrEmpty(locationId) && _placesByLocationId.TryGetValue(locationId, out place);
+        }
+
+        public void CopyPlacesTo(WorldRegionBoard target)
+        {
+            if (target == null) return;
+            foreach (var pair in _placesByLocationId) target.Register(pair.Value);
+        }
+    }
 }

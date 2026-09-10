@@ -15,6 +15,9 @@ namespace XianXia.Core.World.Strategic
         public bool HasLocalPosition { get; set; }
         public float LocalX { get; set; }
         public float LocalZ { get; set; }
+        public bool HasWorldPosition { get; set; }
+        public float WorldX { get; set; }
+        public float WorldY { get; set; }
     }
 
     public sealed class FactionFlagBoard
