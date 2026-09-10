@@ -9,6 +9,19 @@
 
 ---
 
+## 2026-09-11 — Continuous Outdoor World：Formal Recovery Checkpoint / Handoff（仅文档 + Git checkpoint，无新 Gameplay）
+
+- 本轮**不是实现任务**：只做真实 Repository 的代码 + Content + Git 状态审计，并把「下一 GPT / 下一 DeepSeek 可直接恢复工程」的自包含交接文档写出来。**未进入下一阶段，未顺手修任何新 bug。**
+- **Git 审计**：分支 `dev_openworld`，远端 `https://github.com/Siyuan-Yu/ProjectCultiva.git`，implementation checkpoint = `d34efc0`（已包含 A/B 修复、Content 重烘、离线编译/headless 测试工具与 process docs）；working tree 除一个**与本工作无关**的未跟踪文件 `Assets/Scripts.zip` 外干净。**没有** reset/checkout/clean/force push/rebase，未丢弃任何制作人或其他会话的修改。
+- **静态审计（不依赖上一轮报告，重新从代码核对）**：确认 `WorldSiteOutdoorBakeTransform` 已是 SitePlacements / SitePlaces / OpeningEntityAnchors 共同的唯一 authored bake truth（`WorldSiteSpatialMapping` 仅剩 legacy LocalMap / casualty handoff / PlayableHostBootstrap 的 C 兜底；`HexFootprintSpatialMapping` 仅剩 Wilderness 单 hex 投影）；Hybrid (c) 政策与「阿木→树林／阿柴→矿洞／阿青→药田 不被 `homeWorkAreaId` 覆盖」一致；`SpawnStableKey ≠ DefinitionId`（`OpeningSpawnIdentityBoard`）；`PlayerPartyLocalCoPresenceQuery` 已存在且 `ValidateJoin` 已改用它；`TryFollowActive`/`TryStopFollow` 的 Continuous 分支不写 LocalMap occupant、同步 WorldPresence + traveling members、不 teleport、StopFollow 保留 precise 位置；W1C 传送按钮确在默认收起的「Regression / Legacy Acceptance」区且 normal resolver 默认 `includeAcceptanceOnly=false`。
+- **确认一项已知缺口**：`WorldSnapshot.OutdoorDestructibles/OutdoorFarmPlots` + `SnapshotService.Capture/RestoreOutdoorStatefulObjects` 均存在，但 `JsonSnapshotSerializer` 里 `grep -i outdoor` = **0** → 正式 JSON save 会丢 Outdoor destructible / farm state。记为 **NOT DONE / KNOWN PERSISTENCE GAP**，本轮**不修**。
+- **确认「8 Outdoor Sites → 7/7」差异来源**：`travel_mvp_hex_world_30x15` 的 `sites[]` 共 **8** 条，其中 `continuousOutdoor=true` 正好 **7** 条；第 8 条是 MapEditor 遗留占位 `base:site_editor_8`（`displayName="新地点"`、`localMapId=""`、1 hex footprint、7-hex region，无 surface siteRegion / placement / place / anchor，无任何 scenario/roster/army 引用）。大图 `base:hex_world_ch01`（30 sites）`continuousOutdoor` 数为 0（未迁移）。结论：**不存在漏迁的 Outdoor WorldSite**。
+- **产出**：`docs/40-process/213-continuous-outdoor-world-handoff-2026-09-11.md`（Canonical Handoff，20 节：Repository checkpoint / 一分钟状态 / 不可回退架构不变量 / Stage seal 表 / runtime flow / Content & bake 实表 / opening 与 party 规则 / 逐项 Gameplay 状态 / persistence / 故意保留的 legacy / 诊断与 W1C 正确用法 / Known Issues / producer acceptance history / NEXT SESSION FIRST ACTION / 未授权下一议题 / 协作与 Validation Budget / Recovery Checklist / 可复制给新模型的上下文）。同步最小更新 208（补 `Current Status: IMPLEMENTED / PENDING PRODUCER ACCEPTANCE` + 链接 213）与 212（状态改为 IMPLEMENTED / PENDING PRODUCER ACCEPTANCE、标注 awaiting producer Play acceptance、链接 213）；ADR-0031 已完整描述该架构且本轮未改架构，故**不动**（不把 implementation detail 塞进 ADR）。
+- **本轮验证预算**：只做静态审计 + `git diff --check`；**未重新编译、未跑测试、未跑 Play**（改动仅为文档），因此文档中所有测试数字均标注为 **Last reported validation**，不代表本次重新执行。
+- **下一会话第一动作**：制作人对最新 212 A/B 做 Unity Play 验收（New Game 荒村 authored placement 观感 + Schedule + 同伴 Continuous 加入跟随 / 跨 Site·Hex·Chunk 跟随 / StopFollow 保位 / Interior 仍拒同图外成员）。**PASS 后**才可把 208 + 212 标为 ACCEPTED / SEALED，然后才讨论下一阶段（大概率 Surface Geography，**尚未授权**）。
+
+---
+
 ## 2026-09-11 — Opening NPC Authored Placement Fidelity + PlayerParty Follow 移除 LocalMap gate
 
 - 制作人复验：Outdoor WorldSite Continuous Migration 基本完成（NewGame 直进 Main Continuous Outdoor、Wilderness/WorldSite 连续移动、荒村 NPC 全部 materialize 且能 Schedule/Work、青石镇 population 正常、不再依赖 W1C Acceptance）。**只修两项明确 regression，不进下一阶段**。

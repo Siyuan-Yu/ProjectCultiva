@@ -1,6 +1,7 @@
 # Continuous World — Outdoor WorldSite Surface Migration V1
 
 > 状态：**OUTDOOR WORLDSITE CONTINUOUS MIGRATION RUNTIME-CORRECT / PENDING PRODUCER ACCEPTANCE**｜优先级：P0｜最后更新：2026-09-10
+> **Current Status: IMPLEMENTED / PENDING PRODUCER ACCEPTANCE**（尚未被制作人宣布 ACCEPTED / SEALED；最新 A/B 修复见 [212](212-continuous-outdoor-opening-placement-and-party-copresence-2026-09-11.md)，恢复工程请先读 **Canonical Handoff [213](213-continuous-outdoor-world-handoff-2026-09-11.md)**）
 > 前置：[W1C](206-continuous-world-w1c-surface-chunk-grid-2026-09-09.md)（ACCEPTED / SEALED）｜替代：[W1D Gateway route](207-continuous-world-w1d-default-wilderness-cutover-2026-09-10.md)（NOT ACCEPTED / SUPERSEDED）
 
 ## 决定
