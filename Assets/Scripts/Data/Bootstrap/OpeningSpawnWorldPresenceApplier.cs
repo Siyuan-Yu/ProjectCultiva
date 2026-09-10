@@ -53,6 +53,9 @@ namespace XianXia.Data.Bootstrap
 
             var defaultSiteId = HexStrategicSessionBootstrap.DefaultStartSiteId;
             Dictionary<string, string> siteIdByPlaceId = null;
+            // §4：SpawnStableKey ≠ DefinitionId。按 authored spawn 顺序建立稳定 key，并允许
+            // 从 spawned Entity 反查（同一 Definition 多次 spawn 时不再共享 first-match anchor）。
+            var authoredIndexByDefinition = new Dictionary<string, int>(StringComparer.Ordinal);
 
             for (var i = 0; i < entries.Count; i++)
             {
@@ -61,6 +64,13 @@ namespace XianXia.Data.Bootstrap
                     continue;
                 if (lookup == null || !lookup.TryGetEntity(spawn.DefinitionId, out var entityId) || entityId.IsNone)
                     continue;
+
+                var definitionId = spawn.DefinitionId.Trim();
+                authoredIndexByDefinition.TryGetValue(definitionId, out var authoredIndex);
+                authoredIndexByDefinition[definitionId] = authoredIndex + 1;
+                world.OpeningSpawnIdentities.Register(
+                    entityId,
+                    OpeningSpawnIdentityBoard.BuildStableKey(definitionId, authoredIndex));
 
                 var entityKind = string.IsNullOrEmpty(spawn.EntityKind)
                     ? "character"
@@ -116,6 +126,17 @@ namespace XianXia.Data.Bootstrap
             OpeningSpawnEntry spawn,
             EntityId entityId)
         {
+            // §4/§5/§8/§10：Normal Continuous NewGame 的 presence 只表达 Site membership。
+            // Opening precise position 由 checked-in baked opening entity anchor 在第一次 materialize
+            // 时解析（ContinuousOutdoorOpeningAnchorResolver）。
+            // legacy LocalMap LocalPosition → WorldSiteSpatialMapping 不再作为 Normal NewGame 的
+            // 位置权威（它保留给 old save / legacy LocalMap / migration tooling）。
+            if (site != null && WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site))
+            {
+                world.WorldPresence.SetAtSite(entityId, site.SiteId);
+                return;
+            }
+
             if (TryResolveAuthoredAnchor(world, registry, site, spawn, out var anchor))
                 world.WorldPresence.SetAtSiteWithAnchor(entityId, site.SiteId, anchor);
             else
@@ -253,9 +274,9 @@ namespace XianXia.Data.Bootstrap
         }
 
         /// <summary>
-        /// §5/§6/§7：authored LocalPosition（legacy Site LocalMap presentation 坐标）
-        /// → source LocalMap bounds ＋ <see cref="WorldSiteSpatialMapping"/> V2 → canonical WorldPosition。
-        /// 无 LocalPosition／无 source layout／映射失败 → false（退回 Site-only presence，不伪造锚点）。
+        /// §5：legacy LocalMap LocalPosition → canonical WorldPosition。
+        /// <b>仅供非 Continuous Outdoor Site</b>（legacy LocalMap／old save compatibility／
+        /// migration tooling）。Continuous Outdoor Site 不得再走这条路 —— 见 <see cref="ApplyPresence"/>。
         /// </summary>
         static bool TryResolveAuthoredAnchor(
             SimulationWorld world,
@@ -286,11 +307,11 @@ namespace XianXia.Data.Bootstrap
                 ? world.HexWorld.HexSize
                 : HexWorldScale.DefaultHexOuterRadius;
 
-            return WorldSiteSpatialMapping.TryLocalToWorldSurface(
+            return WorldSiteOutdoorBakeTransform.TryBake(
                 site,
+                hexSize,
                 bounds,
                 new WorldVec2(spawn.LocalPosition.X, spawn.LocalPosition.Z),
-                hexSize,
                 out anchor);
         }
     }

@@ -17,7 +17,9 @@ namespace XianXia.Data.Bootstrap
             LoadedContent loadedContent,
             IReadOnlyList<EntityId> characterIds,
             string scheduleDefinitionId,
-            EntityId recruitableNpcId = default)
+            EntityId recruitableNpcId = default,
+            ContinuousOutdoorOpeningCensus openingCensus = default,
+            IReadOnlyList<string> openingPopulationDiagnostics = null)
         {
             World = world ?? throw new ArgumentNullException(nameof(world));
             Loop = loop ?? throw new ArgumentNullException(nameof(loop));
@@ -27,6 +29,8 @@ namespace XianXia.Data.Bootstrap
             CharacterIds = characterIds ?? Array.Empty<EntityId>();
             ScheduleDefinitionId = scheduleDefinitionId ?? string.Empty;
             RecruitableNpcId = recruitableNpcId;
+            OpeningCensus = openingCensus;
+            OpeningPopulationDiagnostics = openingPopulationDiagnostics ?? Array.Empty<string>();
         }
 
         public SimulationWorld World { get; }
@@ -45,5 +49,11 @@ namespace XianXia.Data.Bootstrap
 
         /// <summary>VS0.5-D: single unaffiliated recruit candidate (not DirectControl).</summary>
         public EntityId RecruitableNpcId { get; }
+
+        /// <summary>NewGame opening population census（Domain 计数，不含 EntityView）。</summary>
+        public ContinuousOutdoorOpeningCensus OpeningCensus { get; }
+
+        /// <summary>opening population normalize 诊断（含 ambiguity → Content validation error）。</summary>
+        public IReadOnlyList<string> OpeningPopulationDiagnostics { get; }
     }
 }

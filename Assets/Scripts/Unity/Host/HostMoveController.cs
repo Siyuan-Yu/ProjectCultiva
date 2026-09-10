@@ -38,6 +38,8 @@ namespace XianXia.Unity.Host
         [SerializeField] float separationStrength = 3.2f;
         [Tooltip("站定／工作中也轻轻推开，避免多人叠在同一点；仍可穿过彼此：")]
         [SerializeField] float idleSeparationStrength = 4.5f;
+        [Tooltip("站定软斥力频率（Hz）：5~10Hz 足够，不必每帧。")]
+        [SerializeField] float idleSeparationHz = 8f;
         [SerializeField] float hardOverlapRadius = 0.4f;
         [SerializeField] float maxSeparationSpeed = 5.5f;
 
@@ -57,6 +59,14 @@ namespace XianXia.Unity.Host
         readonly List<float> _pathScratch = new List<float>(64);
         readonly List<Vector3> _wpScratch = new List<Vector3>(32);
         readonly List<EntityView> _crowdScratch = new List<EntityView>(64);
+        // TickMoves 每帧不再 new List；改用 field 级 scratch。
+        readonly List<EntityView> _tickViews = new List<EntityView>(64);
+        readonly List<EntityView> _tickDone = new List<EntityView>(32);
+        // Crowd separation：空间分桶（cell = separationRadius），只扫 3x3 邻桶；否则是每帧 O(N²)。
+        readonly Dictionary<long, List<EntityView>> _separationBuckets = new Dictionary<long, List<EntityView>>();
+        readonly List<EntityView> _separationCandidates = new List<EntityView>(32);
+        int _separationBucketFrame = -1;
+        float _idleSeparationNextAt;
 
         WalkGrid _walkGrid;
         string _boundLocalMapId = string.Empty;
@@ -925,8 +935,12 @@ namespace XianXia.Unity.Host
                 return;
 
             // 不能foreach Dictionary 时改 _targets（切下一航点会写入）
-            var views = new List<EntityView>(_targets.Keys);
-            var done = new List<EntityView>();
+            _tickViews.Clear();
+            foreach (var key in _targets.Keys)
+                _tickViews.Add(key);
+            _tickDone.Clear();
+            var views = _tickViews;
+            var done = _tickDone;
             for (var vi = 0; vi < views.Count; vi++)
             {
                 var view = views[vi];
@@ -1138,6 +1152,15 @@ namespace XianXia.Unity.Host
             var dt = bootstrap != null ? bootstrap.PresentationDeltaTime : Time.unscaledDeltaTime;
             if (dt <= 0f)
                 return;
+            // 站定软斥力降到 5~10Hz（real-time）：每帧对全 population 做斥力是纯 presentation
+            // 开销，没有每帧必要；行为（推开／可穿过）不变。
+            var now = Time.unscaledTime;
+            var interval = 1f / Mathf.Clamp(idleSeparationHz, 1f, 60f);
+            if (now < _idleSeparationNextAt)
+                return;
+            _idleSeparationNextAt = now + interval;
+            // 让降频后的位移量与时长相匹配（保持相同推开速率，而非变慢）。
+            dt = Mathf.Max(dt, interval);
 
             _crowdScratch.Clear();
             // Phase 5R-B3B.5：PlayerParty Active Character 的位置 authority 在 Materialization /
@@ -1191,8 +1214,26 @@ namespace XianXia.Unity.Host
             var r2 = r * r;
             var hard = Mathf.Clamp(hardOverlapRadius, 0.05f, r);
             var selfId = self != null ? self.EntityId.Value : 0UL;
-            foreach (var other in viewSpawner.Registry.All)
+
+            // 只考虑 pos 所在桶及 3x3 邻桶（cell = separationRadius）；语义不变（仍按距离过滤），
+            // 但不再每帧对 Registry.All 做 O(N²) 扫描。
+            RebuildSeparationBuckets();
+            _separationCandidates.Clear();
+            var cell = SeparationBucketSize();
+            var bcx = (int)Mathf.Floor(pos.x / cell);
+            var bcy = (int)Mathf.Floor(pos.y / cell);
+            for (var ox = -1; ox <= 1; ox++)
+            for (var oy = -1; oy <= 1; oy++)
             {
+                if (!_separationBuckets.TryGetValue(BucketKey(bcx + ox, bcy + oy), out var bucket))
+                    continue;
+                for (var i = 0; i < bucket.Count; i++)
+                    _separationCandidates.Add(bucket[i]);
+            }
+
+            for (var i = 0; i < _separationCandidates.Count; i++)
+            {
+                var other = _separationCandidates[i];
                 if (other == null || other == self || !other.IsBound)
                     continue;
                 var d = pos - other.transform.position;
@@ -1220,6 +1261,36 @@ namespace XianXia.Unity.Host
             }
 
             return push;
+        }
+
+        float SeparationBucketSize() => Mathf.Max(0.5f, separationRadius);
+
+        static long BucketKey(int cellX, int cellY) => ((long)cellX << 32) ^ (uint)cellY;
+
+        /// <summary>每帧最多重建一次；桶 cell = separationRadius，3x3 邻桶即覆盖完整影响半径。</summary>
+        void RebuildSeparationBuckets()
+        {
+            var frame = Time.frameCount;
+            if (_separationBucketFrame == frame)
+                return;
+            _separationBucketFrame = frame;
+            foreach (var bucket in _separationBuckets.Values)
+                bucket.Clear();
+            var cell = SeparationBucketSize();
+            foreach (var view in viewSpawner.Registry.All)
+            {
+                if (view == null || !view.IsBound)
+                    continue;
+                var p = view.transform.position;
+                var key = BucketKey((int)Mathf.Floor(p.x / cell), (int)Mathf.Floor(p.y / cell));
+                if (!_separationBuckets.TryGetValue(key, out var bucket))
+                {
+                    bucket = new List<EntityView>(8);
+                    _separationBuckets[key] = bucket;
+                }
+
+                bucket.Add(view);
+            }
         }
 
         void ApplyPendingArriveAction(EntityId id)
@@ -1299,10 +1370,15 @@ namespace XianXia.Unity.Host
             var p = HostPresentationSpace.ToPresentation(view.transform.position);
             string best = null;
             var bestDist = HostZoneQuery.DefaultCenterRadius;
-            foreach (var kv in session.World.WorldRegion.Locations)
+            var continuous = bootstrap.ContinuousOutdoorSurfaceRuntime != null &&
+                             bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive;
+            IReadOnlyDictionary<string, WorldLocationState> locations = continuous
+                ? session.World.ContinuousOutdoorMaterialization.PlacesByLocationId
+                : session.World.WorldRegion.Locations;
+            foreach (var kv in locations)
             {
                 // 洞内／地表切换后禁止吸附到另一张图的地点，否则离开时带不走人
-                if (!LocalMapVisibility.IsLocationOnActiveMap(session.World, kv.Value))
+                if (!continuous && !LocalMapVisibility.IsLocationOnActiveMap(session.World, kv.Value))
                     continue;
                 var dx = kv.Value.PresentationX - p.x;
                 var dy = kv.Value.PresentationZ - p.y;
@@ -1322,6 +1398,12 @@ namespace XianXia.Unity.Host
                     loc.LocationId = best;
                 // 记下当前表现坐标，进出图 Rebuild 时不再弹回地点中
                 loc.SetPresentationOverride(p.x, p.y);
+            }
+            if (continuous)
+            {
+                loc.SetPresentationOverride(p.x, p.y);
+                bootstrap.ContinuousOutdoorSurfaceRuntime.TryCaptureAtSiteAnchor(
+                    view.EntityId, view.transform.position);
             }
         }
 

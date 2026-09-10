@@ -79,7 +79,7 @@ namespace XianXia.Core.Npc
                 string.IsNullOrEmpty(area.LocationId))
                 return false;
 
-            if (world.WorldRegion.TryGet(area.LocationId, out var loc) &&
+            if (WorldLocationQuery.TryGet(world, area.LocationId, out var loc) &&
                 loc.AllowedActivities.Count > 0 &&
                 !ContainsActivity(loc.AllowedActivities, activity))
                 return false;

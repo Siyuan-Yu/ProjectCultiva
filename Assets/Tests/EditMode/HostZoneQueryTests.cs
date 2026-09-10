@@ -3,6 +3,8 @@ using UnityEngine;
 using XianXia.Data.Bootstrap;
 using XianXia.Unity.Host;
 using System.IO;
+using XianXia.Core.Exploration;
+using XianXia.Core.Simulation;
 
 namespace XianXia.Tests
 {
@@ -85,6 +87,26 @@ namespace XianXia.Tests
             var edge = HostPresentationSpace.FromPresentation(30f, -6f);
             Assert.IsTrue(string.IsNullOrEmpty(HostZoneQuery.FindWorkLocation(world, edge)));
             Assert.IsTrue(string.IsNullOrEmpty(HostZoneQuery.FindWorkHotspot(world, edge)));
+        }
+
+        [Test]
+        public void ContinuousPlace_ResolvesScheduleTargetCenterWithoutWorldRegion()
+        {
+            var world = new SimulationWorld();
+            world.ContinuousOutdoorMaterialization.RegisterPlace("base:site_test", new WorldLocationState
+            {
+                Id = "base:loc_continuous_work",
+                Name = "连续工区",
+                PresentationX = 31.5f,
+                PresentationZ = -12.25f
+            });
+
+            Assert.IsFalse(world.WorldRegion.TryGet("base:loc_continuous_work", out _));
+            Assert.IsTrue(HostZoneQuery.TryGetLocationCenter(
+                world, "base:loc_continuous_work", out var center));
+            var presentation = HostPresentationSpace.ToPresentation(center);
+            Assert.AreEqual(31.5f, presentation.x, .0001f);
+            Assert.AreEqual(-12.25f, presentation.y, .0001f);
         }
     }
 }

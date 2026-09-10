@@ -12,6 +12,9 @@ namespace XianXia.Unity.Host
             new Dictionary<string, List<HostMapPlotCell>>(System.StringComparer.Ordinal);
         static readonly Dictionary<HostMapPlotCell, string> OwnerByPlot =
             new Dictionary<HostMapPlotCell, string>();
+        // 每 location 的 instance-id 集合：逐格注册 O(1) 查重（旧 List.Contains 是 O(N²)）。
+        static readonly Dictionary<string, HashSet<int>> IdsByLocation =
+            new Dictionary<string, HashSet<int>>(System.StringComparer.Ordinal);
         static string _currentOwner = string.Empty;
 
         /// <summary>Legacy single-map wrapper. New incremental users must use owner APIs.</summary>
@@ -21,6 +24,7 @@ namespace XianXia.Unity.Host
         {
             ByLocation.Clear();
             OwnerByPlot.Clear();
+            IdsByLocation.Clear();
             _currentOwner = string.Empty;
         }
 
@@ -28,6 +32,11 @@ namespace XianXia.Unity.Host
         {
             _currentOwner = ownerKey ?? string.Empty;
             RemoveOwner(_currentOwner);
+        }
+
+        /// <summary>对称 API（供 chunk build 收尾）；register 已无逐格 rebuild。</summary>
+        public static void EndOwnerBuild()
+        {
         }
 
         public static void RemoveOwner(string ownerKey)
@@ -56,9 +65,15 @@ namespace XianXia.Unity.Host
                 list = new List<HostMapPlotCell>(64);
                 ByLocation[loc] = list;
             }
+            if (!IdsByLocation.TryGetValue(loc, out var ids))
+            {
+                ids = new HashSet<int>();
+                IdsByLocation[loc] = ids;
+            }
 
-            if (!list.Contains(plot))
-                list.Add(plot);
+            if (!ids.Add(plot.GetInstanceID()))
+                return;
+            list.Add(plot);
             OwnerByPlot[plot] = ownerKey ?? string.Empty;
         }
 
@@ -87,6 +102,7 @@ namespace XianXia.Unity.Host
             if (list.Count == 0)
             {
                 ByLocation.Remove(locationId);
+                IdsByLocation.Remove(locationId);
                 return false;
             }
 
@@ -134,7 +150,10 @@ namespace XianXia.Unity.Host
                 if (kv.Value == null || kv.Value.Count == 0)
                     empty.Add(kv.Key);
             for (var i = 0; i < empty.Count; i++)
+            {
                 ByLocation.Remove(empty[i]);
+                IdsByLocation.Remove(empty[i]);
+            }
         }
 
         /// <summary>点击是否命中可耕作格（药田／农田同一套）。</summary>

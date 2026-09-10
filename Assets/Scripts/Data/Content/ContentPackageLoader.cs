@@ -2048,12 +2048,41 @@ namespace XianXia.Data.Content
                     {
                         SiteId = node.GetString("siteId", string.Empty), LocationId = node.GetString("locationId", string.Empty),
                         Name = node.GetString("name", string.Empty), WorldX = ReadFloat(node, "worldX", 0f), WorldY = ReadFloat(node, "worldY", 0f),
+                        Kind = node.GetString("kind", string.Empty),
+                        ResourceOnExploreId = node.GetString("resourceOnExploreId", string.Empty),
+                        ResourceOnExploreAmount = ReadInt(node, "resourceOnExploreAmount", 0),
+                        OpportunitySiteId = node.GetString("opportunitySiteId", string.Empty),
+                        ResidentNpcDefinitionId = node.GetString("residentNpcDefinitionId", string.Empty),
                         LocalMapId = node.GetString("localMapId", string.Empty), EnterLocalMapId = node.GetString("enterLocalMapId", string.Empty),
-                        EnterSpawnLocationId = node.GetString("enterSpawnLocationId", string.Empty)
+                        EnterSpawnLocationId = node.GetString("enterSpawnLocationId", string.Empty),
+                        SurveySenseRequired = ReadInt(node, "surveySenseRequired", 0)
+                    });
+                    var loadedPlace = surface.SitePlaces[surface.SitePlaces.Count - 1];
+                    ReadStringList(node, "adjacentIds", loadedPlace.AdjacentIds, report, id + "." + loadedPlace.LocationId);
+                    ReadConditions(node, "enterConditions", loadedPlace.EnterConditions, report, id + "." + loadedPlace.LocationId);
+                    ReadStringList(node, "questOfferIds", loadedPlace.QuestOfferIds, report, id + "." + loadedPlace.LocationId);
+                    ReadTags(node, loadedPlace.Tags, report, id + "." + loadedPlace.LocationId);
+                    ReadStringList(node, "allowedActivities", loadedPlace.AllowedActivities, report, id + "." + loadedPlace.LocationId);
+                }
+            if (item.TryGetProperty("openingEntityAnchors", out var openingAnchors) &&
+                openingAnchors.Kind == JsonValueKind.Array)
+                foreach (var node in openingAnchors.Array)
+                {
+                    DefinitionSchema.RejectUnknownFields(
+                        node, DefinitionSchema.OpeningEntityAnchorFields, report, id + ".openingEntityAnchor");
+                    surface.OpeningEntityAnchors.Add(new WorldSiteOpeningEntityAnchorDefinition
+                    {
+                        SiteId = node.GetString("siteId", string.Empty),
+                        SpawnKey = node.GetString("spawnKey", string.Empty),
+                        DefinitionId = node.GetString("definitionId", string.Empty),
+                        SourceLocationId = node.GetString("sourceLocationId", string.Empty),
+                        WorldX = ReadFloat(node, "worldX", 0f),
+                        WorldY = ReadFloat(node, "worldY", 0f)
                     });
                 }
             var regionIds = new HashSet<string>(StringComparer.Ordinal);
             var placementIds = new HashSet<string>(StringComparer.Ordinal);
+            var placeIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (var region in surface.SiteRegions)
                 if (string.IsNullOrWhiteSpace(region.SiteId) || string.IsNullOrWhiteSpace(region.SourceLocalMapId) ||
                     !string.Equals(region.SurfaceId, surface.SurfaceId, StringComparison.Ordinal) || !regionIds.Add(region.SiteId))
@@ -2067,6 +2096,26 @@ namespace XianXia.Data.Content
                     report.Add(ErrorCode.InvalidArgument, "Invalid/duplicate Outdoor Site placement or missing target chunk.", id + ".sitePlacements");
                 if (!regionIds.Contains(placement.SiteId))
                     report.Add(ErrorCode.InvalidArgument, "Outdoor Site placement has no physical region.", placement.StableId);
+            }
+            foreach (var place in surface.SitePlaces)
+                if (string.IsNullOrWhiteSpace(place.SiteId) || string.IsNullOrWhiteSpace(place.LocationId) ||
+                    string.IsNullOrWhiteSpace(place.Kind) || !placeIds.Add(place.LocationId) ||
+                    !regionIds.Contains(place.SiteId))
+                    report.Add(ErrorCode.InvalidArgument,
+                        "Outdoor SitePlace requires unique locationId, valid siteId and baked kind metadata.",
+                        id + ".sitePlaces");
+            var anchorKeys = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var anchor in surface.OpeningEntityAnchors)
+            {
+                if (string.IsNullOrWhiteSpace(anchor.SiteId) || string.IsNullOrWhiteSpace(anchor.SpawnKey) ||
+                    string.IsNullOrWhiteSpace(anchor.DefinitionId) || !regionIds.Contains(anchor.SiteId))
+                    report.Add(ErrorCode.InvalidArgument,
+                        "Outdoor opening entity anchor requires siteId/spawnKey/definitionId and a valid siteId.",
+                        id + ".openingEntityAnchors");
+                else if (!anchorKeys.Add(anchor.SiteId + "\n" + anchor.SpawnKey))
+                    report.Add(ErrorCode.DuplicateDefinitionId,
+                        "Duplicate Outdoor opening entity anchor spawnKey within the same Site.",
+                        id + ".openingEntityAnchors." + anchor.SpawnKey);
             }
             var result = registry.RegisterOutdoorSurface(surface);
             if (result.IsFailure) report.Add(result.Error);

@@ -144,8 +144,25 @@ namespace XianXia.Unity.Host
             if (!Party.TryAddMember(session.World, session.CharacterIds, candidate, out error))
                 return false;
 
-            BackgroundCharacterTravelService.CancelTravelIfAny(session.World, candidate);
-            session.World.LocalMap.AddOccupant(candidate);
+            var world = session.World;
+            BackgroundCharacterTravelService.CancelTravelIfAny(world, candidate);
+            if (PlayerPartyLocalCoPresenceQuery.IsContinuousOutdoorPresentationScope(world))
+            {
+                // §10：Continuous Outdoor 不是 LocalMap —— 不写 LocalMap occupant。
+                // §11：立刻把新 follower 的 Domain presence 同步为当前 Party continuous travel
+                // authority（否则 Party.Members 有他、presence 还是 AtSite(荒村) = split authority），
+                // 并把新 follower 纳入 traveling members。
+                // 不 teleport：view 保持当前 presentation 位置，随后 OrderFollowerTowardActive
+                // 走 formation slot → realtime follow。
+                PlayerPartyTransitionMembership.SyncMemberPresenceFromMotion(world, candidate);
+                PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, Party);
+            }
+            else
+            {
+                // Legacy／Interior／Cave：保留原 LocalMap occupant 语义。
+                world.LocalMap.AddOccupant(candidate);
+            }
+
             _nextFollowRepath.Remove(candidate.Value);
             OrderFollowerTowardActive(candidate);
             return true;
@@ -161,6 +178,48 @@ namespace XianXia.Unity.Host
             _followerSharedActivity.Remove(id.Value);
             StopFollowerPartyDerivedWork(id);
             StopFollowerDirectControl(id);
+
+            var world = bootstrap?.Session?.World;
+            if (world != null &&
+                PlayerPartyLocalCoPresenceQuery.IsContinuousOutdoorPresentationScope(world))
+            {
+                // §12：Continuous 没有 LocalMap occupant 语义，也不得因为解除 membership 丢位置。
+                // 保留 follower 当前 precise Continuous WorldPosition（优先取实际 view 的落点，
+                // 其次取已有 precise anchor），恢复为普通独立角色 world presence。
+                var captured = false;
+                if (_spawner != null && _spawner.Registry.TryGet(id, out var view) && view != null)
+                {
+                    var surface = bootstrap.ContinuousOutdoorSurfaceRuntime;
+                    if (surface != null &&
+                        surface.PresentationToWorld(
+                            view.transform.position.x, view.transform.position.y, out var wx, out var wy))
+                    {
+                        PlayerPartyTransitionMembership.SyncIndependentCharacterPresenceFromPosition(
+                            world, id, new WorldVec2(wx, wy));
+                        // 让 Domain presentation 与实际 view 一致：否则下一次 materialize reconcile 的
+                        // RealignMaterializedViewPlacements 会把 view 拉回 follow 之前的过期 override
+                        // （= 位置被回退）。这里写的就是当前 view 位置，因此是 no-op 对齐。
+                        if (world.Entities.TryGet(id, out var stoppedEntity) && stoppedEntity != null &&
+                            stoppedEntity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var stoppedLoc) &&
+                            stoppedLoc != null)
+                            stoppedLoc.SetPresentationOverride(
+                                view.transform.position.x, view.transform.position.y);
+                        captured = true;
+                    }
+                }
+
+                if (!captured &&
+                    world.WorldPresence.TryGet(id, out var presence) && presence != null &&
+                    presence.HasContinuousWorldPosition)
+                {
+                    PlayerPartyTransitionMembership.SyncIndependentCharacterPresenceFromPosition(
+                        world, id, presence.ContinuousWorldPosition);
+                }
+
+                world.LocalMap.RemoveOccupant(id);
+                PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(world, Party);
+            }
+
             return true;
         }
 

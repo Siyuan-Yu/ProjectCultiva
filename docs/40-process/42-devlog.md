@@ -7,6 +7,65 @@
 
 ---
 
+---
+
+## 2026-09-11 — Opening NPC Authored Placement Fidelity + PlayerParty Follow 移除 LocalMap gate
+
+- 制作人复验：Outdoor WorldSite Continuous Migration 基本完成（NewGame 直进 Main Continuous Outdoor、Wilderness/WorldSite 连续移动、荒村 NPC 全部 materialize 且能 Schedule/Work、青石镇 population 正常、不再依赖 W1C Acceptance）。**只修两项明确 regression，不进下一阶段**。
+- **A 定位（实测，非推断）**：18 名荒村 opening population 里 **12 人的 `EntityLocationComponent.LocationId` 退化成 `StartLocationId = loc_ref_labor_yard`**（农田），而人物 Content 的 `homeWorkAreaId`（原来安排的住房）在迁移后完全丢失 → 阿土/阿禾/阿兰/阿杏/阿枝 出生在农田而不是凡人住房、巡卫乙/丙 出生在农田而不是巡卫住房。同时上次烘的 `openingEntityAnchors` 用的是**另一套规则**（LocationId 绑定 placement 中心包围盒网格），18 条里 15 条通不过「source local point → 共享 transform」校验。
+- **A 根因之二**：对 12 个 `sitePlaces` + 68 个 huangcun `sitePlacements` 逐个比对三种候选公式 → **纯 AABB 线性归一化 12/12 + 68/68 命中**；`HexFootprintSpatialMapping`（带 footprint 内含性投影）只有 9/12 + 29/68；`WorldSiteSpatialMapping`（V2 radial）0/12。即项目里同时存在三套 Site→Continuous 公式，正是「建筑物与 NPC 不在同一坐标空间」的来源。
+- **A 修复**：新增 Core 纯函数 `WorldSiteOutdoorBakeTransform`（唯一 authored bake truth：source MapLayout bounds + Site footprint + hexSize + source local point → canonical WorldPosition），SitePlacements/SitePlaces/OpeningEntityAnchors/legacy LocalPosition→canonical 全部只走它；新增 `ContinuousOutdoorOpeningPlacementResolver`（authored place 权威顺序：assigned resident place → 退化者用 `homeWorkAreaId` → StartLocation；制作人确认的 (c) 混合）＋ `WorldSiteOutdoorOpeningAnchorBake`（slot 0 恒为 authored presentation 点、只有放在自身 bound placement 矩形之外才改用矩形中心；其余 slot 3 格环展开并 clamp 进房间/地图 bounds）；按此重烘 18 条 checked-in `openingEntityAnchors`（阿石/阿土/阿禾/阿兰/阿杏/阿枝→凡人住房、三巡卫→巡卫住房、主管→主管住房、阿木→树林、阿柴→矿洞、阿青→药田、将老→灵泉、主角/同伴/可招者→农田）。
+- **A spawn identity（§4）**：新增 `OpeningSpawnIdentityBoard`（`SimulationWorld.OpeningSpawnIdentities`，session-only）：GameStart 按 authored 顺序建立 `definitionId` / `definitionId#n` 稳定 key 且可从 Entity 反查；`TryGetBakedEntityAnchor` 删掉 `DefinitionId == input` 兜底（只按 SpawnKey），同一 Definition 多次 spawn 不再吃 first-match anchor。
+- **A bake validation（§5/§6）**：`ValidateBakedAnchors`（唯一 anchor + `shared bake ≈ checked-in`，epsilon 1e-3）接进 startup invariant 与诊断（`AnchorBake=Validated|Skipped|Failed`）；测试同时断言 housing anchor 落在对应住房矩形内、不在 source `BlocksMovement` placement／`sitePlacements` blocker rect 上 → **不需要修 blocker bake，也没有把 NPC 吸到建筑外**。
+- **制作人 Play 实测发现并修掉的两处误报**：① 首版 §5 校验把运行时 `WorldRegion` 当 authored 真源，而 Continuous Outdoor 正常运行时**不会加载** legacy WorldRegion place set → 启动即误报 `authored place '…' missing from WorldRegion`，且 `StartLocationId` 为空会让退化哨兵失效。真源改为 checked-in Content（新增 `TryResolveSiteSourcePlaceSet`／`TryResolvePlaceLocalPosition`／`TryResolveContentHexSize`），无真源或该 Site 无 anchor → `Skipped`（只在诊断显示，不打断启动）。② 第二版 slot index 按「**当前在场** population」排序，而 invariant 运行时 Party 成员已是 `AtWorldPosition`（不属于 site population）→ 主角缺席、后面的人 slot 全部前移，报出 `village_recruit slot=2 == 主角 anchor`。修复：新增 `BuildAuthoredSlotRegistry`（slot 真源 = checked-in anchors 的 authored 顺序，与在场者无关，缺席者仍占自己的槽），§5 校验主体改为 Content 侧 `TryValidateAuthoredAnchors`（逐 anchor 复算 shared bake，完全不读实体／population），实体侧只保留「identity board 登记过的 opening spawn 必须能查到 anchor」。新增回归测试 `A2`（清空 WorldRegion）、`A3`（无 anchor 的 Site 不误判）、`A4`（主角改 AtWorldPosition 使 population 减少后 slot／落点逐条不变）。注：NPC 实际落点一直是对的（materialize 只按 spawnKey 查 checked-in anchor），错的只是这层校验。
+- **B 修复**：新增 Core `PlayerPartyLocalCoPresenceQuery`（Continuous Outdoor = 同一个 active Continuous Surface presentation scope；不要求 same SiteId/Hex/LocalMap；候选需 materialized/living/非 FormalArmy/不同独立空间）；`PlayerPartyRuntime.ValidateJoin` 改用它，错误提示改空间中性「需要与主控处于同一可交互空间。」，`IsOnSameLocalMap` 保留为 Legacy/Interior compatibility；`HostPlayerPartyController.TryFollowActive` Continuous 分支不再 `AddOccupant`，改为 `SyncMemberPresenceFromMotion` + `CaptureTravelingMembersForPartyTransition`（不 teleport，仍走 formation slot 实时走位）；`TryStopFollow` 用实际 view 落点恢复普通独立角色 presence（AtSite+precise anchor 或 AtWorldPosition），不丢位置。
+- **验证**：Unity Test Runner 在本环境不可用（工程被交互式 Editor 持有 + batchmode licensing IPC 失败 199），改用新增的 `tools/offline-compile.ps1`（复用 Unity Bee `.rsp` + Unity 自带 Roslyn 离线编译）与 `tools/run-headless-tests.ps1` + `tools/headless-tests/Program.cs`（Unity Mono `mcs`+`mono` 反射执行 EditMode `[Test]`）。结果：Core/Data/Host/Tests 编译 **0 error**；targeted A/A2/A3/A4/B/C/D（opening placement bake）7/7、E/F/G/H/J（co-presence）6/6，回归 `ContinuousOutdoorOpeningSpatialTests` 7/7、`ContinuousOutdoorOpeningPopulationTests` 7/7、`ContinuousMaterializePlacementSyncTests` 7/7、`ContinuousOutdoorStartupTransactionTests` 9/9、`ContinuousRuntimePerformanceTests` 11/11、`PlayerPartyRuntimeTests` 12/12、`MainWildernessSurfaceW1DTests` 10/11 → **78 个 case 77 PASSED / 1 FAILED**；`git diff --check` exit 0。
+- **既有问题（本轮未修，超出「只修两项」范围）**：`MainWildernessSurfaceW1DTests.OutdoorStatefulObjects_AreIncludedInSnapshotJson` 失败 —— `JsonSnapshotSerializer` 完全没有 outdoor 字段处理（该文件 `grep -i outdoor` 0 命中），JSON roundtrip 会丢 `WorldSnapshot.OutdoorDestructibles/FarmPlots`；该测试不加载 Content、与本轮改动无交集，208 也记明这些 case 当时只编译未执行。另有 56 项相邻历史 suite 失败（`FormalArmyPhase3AuthorityTests`／`PlayerPartyContinuousWorldPhase2CTests`／`PlayerPartyWorldTravelPhase2BTests`／`PlayerPartyFollowerLocalMapTransitionTests`／`SnapshotActiveControlledLocalMapResolverTests`／`BackgroundWildernessLocalMapMaterializationTests` 等）：已做 baseline 对照（把 `ValidateJoin` 临时改回旧 gate 重编译重跑），**改动前后逐条相同** → 起因是 Phase 5R-B3B「ingress 前必须有 canonical physical position」不变量与 Phase 2B/2C 陈旧 fixture + `Application.dataPath` ECall，非本轮回归；同时 baseline 下本轮新增的 E/F/H/J 全部失败、换回新实现全部通过（鉴别力成立）。
+- **真源**：[212](212-continuous-outdoor-opening-placement-and-party-copresence-2026-09-11.md)。
+- **待制作人验收**：荒村住房内 NPC 位置、`AnchorBake=ok`、同伴甲乙可直接 Follow（不再出现 `Must be on the same LocalMap as the active character.`）、跨 boundary 持续跟随、Interior 仍拒绝不同 LocalMap。
+
+---
+
+## 2026-09-11 — Continuous Outdoor View Placement Realign（materialize 权威落点 → 已存在 view 的对齐）
+
+- 制作人复验：`Expected=17 Materialized=17 Views=17 SpatialValid=1`，可见的只有 1 人（其余 opening NPC／同伴甲乙在镜头外）。上一轮新增的 spatial invariant 把问题**正确**暴露成 `[ContinuousStartupInvariantFailure] Opening Site population spatially invalid`：14 个 view 的 `ViewWorld` 全在 presentation 原点附近（`ViewChunk=(0,0)/(1,0)`、`InLoaded=False`）。
+- 决定性证据（三项互相印证，非推断）：日志里同伴甲 `ViewWorld=-0.0098,-0.1680` ×（1/0.028）= `(-0.35,-6.0)`；而 `base:loc_ref_labor_yard` 在 legacy `WorldRegion` 的 presentation 是 `(0.5,-6.0)`，外加 `EntityViewSpawner.ResolvePresentationPosition` 的 stack 偏移 `ox=(stack%3)*0.85-0.85` → stack0 = `(-0.35,-6.0)`（同伴甲）、stack1 = `(0.5,-6.0)`（同伴乙）、stack3 = `(-0.35,-5.15)`（巡卫乙）—— 与日志逐一吻合。真实运行测试同时给出：legacy `(-0.35,-6.0)` vs 权威 baked anchor presentation `(185.96,363.04)`，距离 **413.4 presentation 单位**。
+- 根因：view 在 Continuous activation **之前** 就由 `EntityViewSpawner.Rebuild` 创建（那时还没 materialize，只能退回 legacy WorldRegion 地点 presentation + stack 偏移）；materialize 随后写入权威 `PresentationOverride`，但 `SpawnMissingVisibleViews` 只补「缺失」view、**绝不搬动已存在的 view**，且 continuous 路径从不调用 `SyncLocations` → 全部滞留原点附近。主管正常是因为它（Hex FormalArmy 成员）pre-activation 不可见、view 是在 materialize 之后才创建的。
+- 修复：materialize pass 收尾新增 `RealignMaterializedViewPlacements()` —— 同一 pass 内把已存在 view 对齐到 `PresentationOverride`（唯一权威落点）。策略抽成纯函数 `ContinuousMaterializePlacementSync.ShouldRealign`：PlayerParty 成员跳过（由 `AlignPartyPresentationToWorld` 负责）、正在移动的实体跳过（不得被 authored anchor 重置）、无权威落点不猜、容差 0.01 内不写。只在 reconcile（startup barrier／chunk 邻域变化／scope change）执行，**不进入 per-tick 路径**（普通 tick 不增长 reconcile）。诊断新增 `RealignedViews=n`。
+- 验证：新增 `ContinuousMaterializePlacementSyncTests` H1–H7（7 项，真实内容 + 策略纯函数）**全部通过**；既有 opening spatial／population／performance／startup transaction 测试一并重跑 **42/42 通过**；Host 全链编译 0 error；鉴别力验证（把容差中和掉）H1 立即失败 → 测试确实咬住行为。未跑 Unity Test Runner（环境不可用），Play 路径需制作人确认。
+
+---
+
+## 2026-09-11 — Continuous Outdoor Opening Entity Spatial Placement（Opening Anchor Authority V1）
+
+- 制作人复验：诊断全部成立（`Expected=17 Materialized=17 Views=17 Missing=[]`），但画面上只有主角 + 荒村主管；其余 opening NPC／同伴甲乙看不到；青石镇 NPC 到当地反而正常。→ 不是 presence／population／View 数量问题，而是 opening entity 的 Continuous spatial placement 错误。
+- 无头探针（真实 BaseGame + 真实 bootstrap）给出决定性证据：**12 名 opening entity 落点完全相同**（world `(5.20698,10.165)`）。机制：`PlaceOpeningSpawns` 找不到 resident place 就全部退回 `StartLocationId`（`base:loc_ref_labor_yard`）→ 同一 `sitePlaces` 中心；且 materialize 写入**相同** `PresentationOverride`，绕过 `EntityViewSpawner` 的 stack 分散 → 12 个精灵精确重叠。NPC 同点互塞 → 寻路失败 → `Move retry budget exhausted`。
+- 正式增加 checked-in `openingEntityAnchors`（`{siteId, spawnKey, definitionId, sourceLocationId, worldX, worldY}`，真实 BaseGame 18 条），生成方式与 `sitePlaces` 同一坐标空间／同一 bake 来源（该 LocationId 绑定 `sitePlacements` 中心包围盒内的确定性网格），纯函数无随机。
+- 新增 `ContinuousOutdoorOpeningAnchorResolver`：落点优先级 = RuntimePreciseAnchor（须落在该 Site baked physical envelope 内，否则 `[ContinuousResidentAnchorRejected]` 并退回）→ BakedOpeningEntityAnchor → BakedSitePlace → SiteArrivalFallback；并提供 baked envelope（sitePlacements ∪ sitePlaces ∪ arrival）与确定性 place slot 布局。
+- §5：`OpeningSpawnWorldPresenceApplier` 对 Continuous Outdoor Site **只写 `SetAtSite`**，不再把 `spawn.LocalPosition` 经 legacy 映射写进 `HasContinuousWorldPosition`（legacy 映射仅留给 old save／legacy LocalMap／migration）。
+- 安全网：同一 materialize pass 内按 EntityId 确定性去重叠（`SeparateMaterializePoint`）；落点不在 `CompositeWalkGrid` 时先确定性同心环重定位，仍失败则 `[ContinuousMaterializationInvalidSpawn]` + `HostNpcScheduleMover` 对该实体跳过日程寻路（不无限 retry A*）。
+- Startup invariant 加 spatial validity：`TryCheckPopulationSpatiallyValid`（View 存在 + loaded chunks + CompositeWalkGrid + 解析回本 Site 或落在 baked envelope），失败报 `SpatialValid=/SpatialInvalid=[…]`；诊断显示 `OpeningPopulation: Expected/Materialized/Views/SpatialValid/SpatialInvalid/InvalidSpawn`，非空时才展开逐实体行。
+- 验证：无头探针 18 落点零重合；新增 A–G 测试 7/7 PASS；既有 opening population A–G 7/7 PASS；**鉴别力验证**（拿掉 anchors 重跑）B/C/E 立即失败；Host/Core/Data 编译 0 error；整个 EditMode 测试程序集 0 error；未提交。
+
+## 2026-09-10 — Continuous Outdoor Opening Population Bootstrap + 退休 W1C 正常入口
+
+- 制作人复验：Normal NewGame 已直进 Main Continuous Outdoor（Surface／buildings／places／movement 正常），但开局荒村没有其它 NPC，同伴甲乙也未出现 → 定位于 NewGame opening population bootstrap，而非 Surface migration。
+- 确定 ordering bug：`SpawnZoneApplier` 在 `OpeningSpawnWorldPresenceApplier` 之后跑，且只写 `EntityLocation`、从不写 `WorldPresence`；Continuous Outdoor 人口真源是 `WorldPresence.AtSite`，因此这些 NPC 永远 materialize 不了（旧 LocalMap 时代被 Active WorldRegion 掩盖）。新增 `ContinuousOutdoorSpawnPresenceResolver`（source map → 唯一 Continuous Site；legacy LocalMap 坐标 → canonical anchor），`SpawnZoneApplier` 在 spawn 后立即建立 `AtSite`（+ 锚点）；只对 continuousOutdoor source map 生效，Cave／Interior／Encounter 保持旧语义。
+- 新增 `ContinuousOutdoorOpeningPopulationBootstrap`：在所有 spawn-producing opening bootstrap 之后跑一次 presence 归一化，只补「完全没有 presence」的实体，绝不覆盖已有 authority／FormalArmy 战略位置；location → Site 解析禁止 first-wins（`ContinuousOutdoorSitePlaceIndex`），歧义无法用 source LocalMap 消解 → `ContentReferenceValidator` 新规则直接报 Content error。
+- Host 新增 FINAL OPENING POPULATION BARRIER（`FinalizeContinuousOutdoorOpeningPopulation`）：全部 binding 完成后唯一一次 reconcile + RefreshViewableEntityIds + Prune + SpawnMissingVisibleViews；不恢复 per-tick reconcile。
+- startup population invariant 变严格：不再「至少一个 visibleNpc」放行，改为 expected 逐个 materialized + EntityView；失败时逐实体打印 presence／Site／materialized／view 原因；诊断面板显示 `ExpectedOpeningPopulation/Materialized/Views/Missing`。
+- 退休 W1C Acceptance teleport 作为制作人入口：诊断页只读显示 `Authority=ContinuousOutdoorSurface SurfaceId=… AcceptanceOnly=…`，传送按钮移入默认收起的 Regression／Legacy Acceptance 折叠区。
+- 验证：Host 全链（Core+Data+Unity）编译 0 error／0 warning；EditMode 测试程序集 0 error；新增 A–F 测试经 headless NUnit 实际执行 6/6 PASS（同伴 AtSite + 不随队、spawnZone 立即 presence+anchor、normalize 补 presence、cave 不被拉进 Outdoor、4/5 population 必须 FAIL、60 tick 无 reconcile）；real BaseGame 在新 sitePlace 歧义校验下仍加载成功。未提交。
+
+## 2026-09-10 — Continuous Outdoor Site NPC Schedule authority regression repaired
+
+- 制作人复验确认 Opening NPC 恢复后，发现 Labor 时段 NPC 原地抖动；根因是 continuous population 每个 WorldTick 全量清空、重写 authored anchor 并调用 `SyncLocations`，与 Host realtime movement 争抢位置。
+- Population 改为 Add/Keep/Remove membership diff：仅 Add 初始化锚点，Keep 保留 transform，Remove 在 prune 前捕获 canonical position；NPC 到达也提交 `AtSite + precise WorldPosition`，并补齐该 anchor 的 Snapshot roundtrip。
+- Core/Host 地点解析统一为 Continuous SitePlace 优先、WorldRegion fallback；MoveAction timeout 与 Host pathfinding failure 均不再伪造 arrival，只有进入 arrive radius 才完成移动并提交 LocationId。
+- 验证：Core/Data/Host/EditMode Tests 离线编译 0 error；Unity Mono 定向执行 5 个新增 Schedule regression case和 2 个既有 ActivityResolver / Move→Work case，合计 `7/7 PASS`；`git diff --check` 通过。未运行 Full EditMode/PlayMode，等待制作人按 Labor → Work → Rest/Eat 链路复验。
+
+---
+
 ## 2026-09-10 — FIX：New Game 开局荒村 NPC 消失（Opening spawn 初始 macro presence 统一解析 + authored 落点 canonical 化）
 
 **症状**：Continuous Outdoor WorldSite 迁移后，New Game 开局时 OpeningScenario／roster 安排在荒村的 NPC 全部不存在（黑屏／卡死已修，此为残余一项）。

@@ -60,6 +60,59 @@ namespace XianXia.Core.World.Strategic
             world.PlayerPartyTravel.CaptureTravelingMembers(Scratch);
         }
 
+        /// <summary>
+        /// §11：单个成员（含刚加入的 follower）的 WorldPresence 同步为<b>当前 PlayerParty
+        /// continuous travel authority</b>。motion 是战略真源，成员 presence 只是兼容／查询状态；
+        /// 绝不允许「Party.Members 里已经有同伴，但 presence 还是 AtSite(旧 Site)」的 split authority。
+        /// 只在 Continuous Outdoor presentation scope 调用（Legacy／Interior 由 LocalMap occupant 表达）。
+        /// </summary>
+        public static void SyncMemberPresenceFromMotion(SimulationWorld world, EntityId id)
+        {
+            if (world?.PlayerPartyTravel == null || world.WorldPresence == null || id.IsNone)
+                return;
+            var motion = world.PlayerPartyTravel;
+            if (!motion.HasPosition)
+                return;
+
+            if (motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition)
+            {
+                world.WorldPresence.SetAtWorldPosition(id, motion.WorldPosition, motion.CurrentHex);
+                return;
+            }
+
+            if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
+                !string.IsNullOrEmpty(motion.SiteId))
+                world.WorldPresence.SetAtSite(id, motion.SiteId);
+        }
+
+        /// <summary>
+        /// §12：把解散（Stop Follow）后的成员恢复为<b>普通独立角色</b> world presence，并保留其当前
+        /// precise Continuous 位置。落在 Continuous Outdoor Site 内 → AtSite + 精确 anchor
+        /// （与普通居民同一形态）；荒野 → AtWorldPosition。
+        /// 绝不丢位置、绝不回 Site arrival、绝不由 LocalMap occupant 决定位置。
+        /// </summary>
+        public static void SyncIndependentCharacterPresenceFromPosition(
+            SimulationWorld world,
+            EntityId id,
+            WorldVec2 preciseWorldPosition)
+        {
+            if (world == null || world.WorldPresence == null || id.IsNone)
+                return;
+
+            var siteId = WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(world, preciseWorldPosition);
+            if (!string.IsNullOrEmpty(siteId))
+            {
+                world.WorldPresence.SetAtSiteWithAnchor(id, siteId, preciseWorldPosition);
+                return;
+            }
+
+            var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
+                ? world.HexWorld.HexSize
+                : HexWorldScale.DefaultHexOuterRadius;
+            world.WorldPresence.SetAtWorldPosition(
+                id, preciseWorldPosition, HexMath.WorldToHex(preciseWorldPosition.X, preciseWorldPosition.Y, hexSize));
+        }
+
         public static void LogPartyTransition(
             SimulationWorld world,
             PlayerPartyRuntime party,

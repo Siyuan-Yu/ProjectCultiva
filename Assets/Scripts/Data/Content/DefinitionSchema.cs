@@ -117,7 +117,11 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> OutdoorSurfaceFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "originWorldX", "originWorldY", "cellSize", "chunkWidth", "chunkHeight", "acceptanceOnly", "chunks",
-            "siteRegions", "sitePlacements", "sitePlaces"
+            "siteRegions", "sitePlacements", "sitePlaces", "openingEntityAnchors"
+        };
+        public static readonly HashSet<string> OpeningEntityAnchorFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "siteId", "spawnKey", "definitionId", "sourceLocationId", "worldX", "worldY"
         };
         public static readonly HashSet<string> OutdoorSurfaceChunkFields = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -161,7 +165,13 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> OutdoorSurfacePlacementFields = new HashSet<string>(StringComparer.Ordinal)
         { "stableId", "siteId", "chunkX", "chunkY", "worldX", "worldY", "worldWidth", "worldHeight", "sourceGridX", "sourceGridY", "sourceCellsW", "sourceCellsH", "kind", "blocksMovement", "boundLocationId", "label", "lootItemId", "spawnTableId", "spawnCount" };
         public static readonly HashSet<string> WorldSitePlaceFields = new HashSet<string>(StringComparer.Ordinal)
-        { "siteId", "locationId", "name", "worldX", "worldY", "localMapId", "enterLocalMapId", "enterSpawnLocationId" };
+        {
+            "siteId", "locationId", "name", "worldX", "worldY", "kind", "adjacentIds",
+            "resourceOnExploreId", "resourceOnExploreAmount", "opportunitySiteId",
+            "residentNpcDefinitionId", "enterConditions", "questOfferIds", "tags",
+            "allowedActivities", "localMapId", "enterLocalMapId", "enterSpawnLocationId",
+            "surveySenseRequired"
+        };
 
         public static readonly HashSet<string> HexWorldTerritoryRegionFields = new HashSet<string>(StringComparer.Ordinal)
         {

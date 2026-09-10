@@ -4,6 +4,7 @@ using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
 using XianXia.Core.Social;
+using XianXia.Data.Bootstrap;
 
 namespace XianXia.Data.Content
 {
@@ -34,6 +35,7 @@ namespace XianXia.Data.Content
             ValidateBuildings(registry, report);
             ValidateSpawnTables(registry, report);
             ValidateMapSpawnZones(registry, locations, report);
+            ValidateOutdoorSurfaceSitePlaceIdentities(registry, report);
             ValidateQuests(registry, locations, producedFlags, consumedFlags, report);
             ValidateContentEvents(registry, locations, producedFlags, consumedFlags, report);
             ValidateChapters(registry, locations, producedFlags, consumedFlags, report);
@@ -112,6 +114,21 @@ namespace XianXia.Data.Content
                         report);
                 }
             }
+        }
+
+        /// <summary>
+        /// §8：opening population 的 LocationId → Site 解析必须**唯一可消解**。同名 locationId 被多个 Site
+        /// 复用却缺少 source localMapId 时，解析无法确定归属 —— 必须报 Content validation error，
+        /// 绝不允许运行期静默选第一个 Site。
+        /// </summary>
+        static void ValidateOutdoorSurfaceSitePlaceIdentities(
+            DefinitionRegistry registry,
+            ValidationReport report)
+        {
+            var index = ContinuousOutdoorSitePlaceIndex.Build(registry);
+            var issues = index.ValidateAmbiguities();
+            for (var i = 0; i < issues.Count; i++)
+                report.Add(ErrorCode.DuplicateDefinitionId, issues[i], "outdoorSurface.sitePlaces");
         }
 
         static void ValidateMapSpawnZones(

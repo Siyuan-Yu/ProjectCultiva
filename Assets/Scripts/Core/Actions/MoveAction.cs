@@ -11,7 +11,8 @@ namespace XianXia.Core.Actions
 {
     /// <summary>
     /// Unified NPC／schedule travel: sets MovementIntent for Host pathfinding;
-    /// completes on HostArrived or duration timeout, then commits EntityLocation.
+    /// completes only on HostArrived, then commits EntityLocation. A temporarily unavailable Host
+    /// path may retry until the clock budget expires; exhaustion fails without fabricating arrival.
     /// </summary>
     public sealed class MoveAction : IAction
     {
@@ -53,7 +54,7 @@ namespace XianXia.Core.Actions
                 !world.TryGetWorkArea(TargetWorkAreaId, out var area) ||
                 string.IsNullOrEmpty(area.LocationId))
                 return Result.Failure(ErrorCode.InvalidArgument, "Move target WorkArea missing.");
-            if (!world.WorldRegion.TryGet(area.LocationId, out _))
+            if (!WorldLocationQuery.TryGet(world, area.LocationId, out _))
                 return Result.Failure(ErrorCode.NotFound, "Move target Location missing.", area.LocationId);
             return Result.Success();
         }
@@ -108,10 +109,22 @@ namespace XianXia.Core.Actions
                 arrived = intent.HostArrived;
             }
 
-            if (arrived || Clock.IsComplete)
+            if (arrived)
             {
                 CommitArrival(world);
                 Status = ActionStatus.Completed;
+            }
+            else if (Clock.IsComplete)
+            {
+                if (world.Entities.TryGet(Subject, out var failedEntity) &&
+                    failedEntity.TryGet<MovementIntentComponent>(out var failedIntent))
+                    failedIntent.MarkPermanentFailure();
+                world.WorkAreaOccupancy.Release(Subject);
+                Status = ActionStatus.Failed;
+                return Result.Failure(
+                    ErrorCode.ActionFailed,
+                    "Move retry budget exhausted before Host arrival.",
+                    TargetLocationId);
             }
 
             return Result.Success();

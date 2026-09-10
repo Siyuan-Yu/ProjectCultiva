@@ -23,13 +23,18 @@ namespace XianXia.Core.Exploration
             PresentationOverrideZ = z;
         }
 
+        public void ClearPresentationOverride()
+        {
+            HasPresentationOverride = false;
+            PresentationOverrideX = 0f;
+            PresentationOverrideZ = 0f;
+        }
+
         /// <summary>尸体腐烂／离场：清掉本地图占位与表现坐标。</summary>
         public void ClearPresence()
         {
             LocationId = string.Empty;
-            HasPresentationOverride = false;
-            PresentationOverrideX = 0f;
-            PresentationOverrideZ = 0f;
+            ClearPresentationOverride();
         }
     }
 }

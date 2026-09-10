@@ -101,9 +101,7 @@ namespace XianXia.Unity.Host
         public static bool TryGetLocationCenter(SimulationWorld world, string locationId, out Vector3 worldCenter)
         {
             worldCenter = default;
-            if (world?.WorldRegion == null || string.IsNullOrEmpty(locationId))
-                return false;
-            if (!world.WorldRegion.TryGet(locationId, out var loc))
+            if (!WorldLocationQuery.TryGet(world, locationId, out var loc))
                 return false;
             worldCenter = HostPresentationSpace.FromPresentation(loc.PresentationX, loc.PresentationZ);
             return true;
@@ -111,15 +109,13 @@ namespace XianXia.Unity.Host
 
         public static bool LocationHasWork(SimulationWorld world, string locationId)
         {
-            return world?.WorldRegion != null &&
-                   world.WorldRegion.TryGet(locationId, out var loc) &&
+            return WorldLocationQuery.TryGet(world, locationId, out var loc) &&
                    HasWorkResource(loc);
         }
 
         public static bool LocationIsCultivate(SimulationWorld world, string locationId)
         {
-            return world?.WorldRegion != null &&
-                   world.WorldRegion.TryGet(locationId, out var loc) &&
+            return WorldLocationQuery.TryGet(world, locationId, out var loc) &&
                    loc.Kind == LocationKind.Opportunity;
         }
 
@@ -172,9 +168,25 @@ namespace XianXia.Unity.Host
         {
             string best = null;
             var bestDist = radius;
+            foreach (var kv in world.ContinuousOutdoorMaterialization.PlacesByLocationId)
+            {
+                var loc = kv.Value;
+                if (!pred(loc))
+                    continue;
+                var dx = loc.PresentationX - p.x;
+                var dy = loc.PresentationZ - p.y;
+                var d = Mathf.Sqrt(dx * dx + dy * dy);
+                if (d <= bestDist)
+                {
+                    bestDist = d;
+                    best = loc.Id;
+                }
+            }
             foreach (var kv in world.WorldRegion.Locations)
             {
                 var loc = kv.Value;
+                if (world.ContinuousOutdoorMaterialization.PlacesByLocationId.ContainsKey(kv.Key))
+                    continue;
                 if (!pred(loc))
                     continue;
                 var dx = loc.PresentationX - p.x;

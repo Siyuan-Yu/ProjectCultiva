@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using XianXia.Core.Bootstrap;
 using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
@@ -28,6 +29,10 @@ namespace XianXia.Data.Bootstrap
 
         readonly ContentPackageLoader _loader;
         readonly ContentGameStart _contentGameStart;
+        readonly System.Collections.Generic.List<string> _openingPopulationDiagnostics =
+            new System.Collections.Generic.List<string>();
+        /// <summary>NewGame opening population normalize 的一次性诊断（§11：只在启动/诊断请求时消费）。</summary>
+        public IReadOnlyList<string> OpeningPopulationDiagnostics => _openingPopulationDiagnostics;
 
         public PlayableDayBootstrap(ContentPackageLoader loader = null, ContentGameStart contentGameStart = null)
         {
@@ -174,6 +179,21 @@ namespace XianXia.Data.Bootstrap
             if (content.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(content.Error);
 
+            // §5：所有会 spawn entity 的 opening bootstrap 结束之后，统一补一次 presence 归一化。
+            // 只补「完全没有 WorldPresence」的实体，不覆盖任何已有 authority（含 FormalArmy）。
+            _openingPopulationDiagnostics.Clear();
+            var openingCensus = ContinuousOutdoorOpeningPopulationBootstrap.BuildCensus(
+                world, HexStrategicSessionBootstrap.DefaultStartSiteId);
+            var openingPopulation = ContinuousOutdoorOpeningPopulationBootstrap.Apply(
+                world,
+                registry,
+                HexStrategicSessionBootstrap.DefaultStartSiteId,
+                _openingPopulationDiagnostics);
+            if (openingPopulation.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(openingPopulation.Error);
+            openingCensus = ContinuousOutdoorOpeningPopulationBootstrap.BuildCensus(
+                world, HexStrategicSessionBootstrap.DefaultStartSiteId);
+
             var chapter = ChapterRuntimeBootstrap.ApplyOpening(world, registry, scenario, lookup);
             if (chapter.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(chapter.Error);
@@ -218,7 +238,9 @@ namespace XianXia.Data.Bootstrap
                 loaded,
                 started.Value.CharacterIds,
                 scheduleId,
-                recruitableId));
+                recruitableId,
+                openingCensus,
+                _openingPopulationDiagnostics));
         }
 
         internal static Result RegisterManuals(SimulationWorld world, DefinitionRegistry registry)

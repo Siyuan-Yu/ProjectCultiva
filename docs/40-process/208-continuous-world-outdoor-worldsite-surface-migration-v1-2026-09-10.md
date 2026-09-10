@@ -46,10 +46,22 @@ Wilderness ↔ Village/Town/Sect outdoor ↔ Wilderness
 - 旧 `AtWorldSite` restore 在 Host 激活前迁为 `AtWorldPosition`；新 Outdoor 运行时清空 Site LocalMap focus，并由 canonical position 重建 context。
 - `ContinuousWorldSiteGatewayPresenter` 已删除；normal continuous Site 分支的 ControlCore、FactionFlag、住房、工作目标、NPC/入口查询先走 baked placement 与 site place registry，不用 `MapLayoutPick`。保留的 `EnterWorldSiteAsParty` 与 Site SurfaceExit 分支只服务未迁 legacy compatibility。
 
+## NPC Schedule runtime correction
+
+制作人复验确认 New Game Opening NPC 与 Continuous Outdoor 基本恢复后，发现 Site NPC 到工作时段会被每个 WorldTick 拉回 opening anchor。根因是 population refresh 每 tick执行 `Clear -> authored anchor rewrite -> SyncLocations`，与 `HostNpcScheduleMover` 的实时移动争抢表现位置。
+
+- Continuous population refresh 已改为 `Desired / Current` membership diff：Add 仅初始化一次位置，Keep 不写 `PresentationOverride`，Remove 在 prune 前捕获当前 EntityView 坐标。
+- authored opening position 只作为首次 materialize 的 initial condition；之后优先使用 `WorldAgentPresence` 的 precise continuous anchor。
+- NPC 到达或 dematerialize 前把 presentation position 映射回 canonical WorldPosition，并以 `AtSite + SiteId + HasContinuousWorldPosition` 保存；Site membership 不因村内移动改成 `AtWorldPosition`。该 AtSite precise anchor 同时进入战略 Snapshot capture/restore。
+- population membership refresh 不再调用全局 `EntityViewSpawner.SyncLocations`；现有 view 保留 realtime transform，新增 view 仍从首次 `PresentationOverride` 出生。
+- 新增 Core `WorldLocationQuery`，按 Continuous SitePlace、WorldRegion 顺序解析；`MoveAction.CanStart`、`HostZoneQuery` 与 `HostMoveController.SyncLocation` 已使用 continuous place 分支。
+- Host 寻路失败保持 MovementIntent active 并按 repath interval 重试；只有实际距离进入 arrive radius 才能设置 `HostArrived`。MoveAction 的 duration 用尽不再伪造位置抵达。
+
 ## 验证
 
 - Core / Data / Host / EditMode Tests：现有 Unity Bee Roslyn response files 离线编译 `0 error`（仅既有 warning）。
 - 使用编译后的 Core/Data 程序集实际执行 `ContentPackageLoader.Load(Content/BaseGame)` 成功，读取 `2` 个 surface。
 - BaseGame checked-in bake：`7 regions / 75 unique logical placements / 405 rendered semantic objects / 18 places`；duplicate stable id、invalid chunk/semantic assignment、unresolved placement 均为 `0`，`16` 个跨 chunk placement 均有明确归属/裁切策略。
 - EditMode 覆盖 direct renderer 数量契约（road `1x1=1`、wall `6x1=6`、herb `12x12=144`、controlCore `8x8=1`、zoneHousing `12x12=1`）与 destructible/farm Snapshot 字段；本轮只完成离线编译，未在 Unity Test Runner 执行这些 case。
+- NPC Schedule targeted regression 使用 Unity Mono 独立执行 `7/7 PASS`：membership Keep 不重置位置、Add 初始化一次、Continuous-only place 的 MoveAction、AtSite precise anchor Snapshot roundtrip、schedule target center、arrival-radius gate，以及既有 ActivityResolver / Move→Work 链路。
 - `git diff --check` 通过；未运行 Full EditMode / Full PlayMode / Unity 人工验收。

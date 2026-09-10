@@ -6,6 +6,7 @@ using XianXia.Core.Exploration;
 using XianXia.Core.Random;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 
 namespace XianXia.Data.Bootstrap
@@ -95,6 +96,16 @@ namespace XianXia.Data.Bootstrap
                     zone.Id);
             }
 
+            // §2：spawnZone 属于已迁移的 Continuous Outdoor WorldSite source map 时，新建 NPC
+            // 必须**立即**得到 macro presence（AtSite）。否则它只有 EntityLocation，在 Continuous
+            // Outdoor population 中永远进不了 StrategicWorldSitePopulationService（旧 LocalMap 时代
+            // 靠 Active WorldRegion 掩盖了这个缺口）。解析歧义 → 不建立 presence（不猜）。
+            var continuousSite = ContinuousOutdoorSpawnPresenceResolver
+                .TryResolveContinuousOutdoorSiteForSourceMap(
+                    world, layout.Id.ToString(), out var resolvedSite, out _)
+                ? resolvedSite
+                : null;
+
             var rolls = BuildRolls(table, zone.SpawnCount, random);
             for (var r = 0; r < rolls.Count; r++)
             {
@@ -118,6 +129,7 @@ namespace XianXia.Data.Bootstrap
 
                 loc.LocationId = locationId;
                 PlaceInZone(layout, zone, loc, random);
+                BindContinuousOutdoorPresence(world, registry, layout, continuousSite, entity, loc);
             }
 
             return Result.Success();
@@ -182,6 +194,33 @@ namespace XianXia.Data.Bootstrap
             }
 
             return table.Entries[table.Entries.Count - 1].DefinitionId?.Trim();
+        }
+
+        /// <summary>
+        /// §3：spawnZone NPC 的 legacy LocalMap presentation 坐标 → canonical Outdoor WorldPosition，
+        /// 并写成 AtSite（+ 精确锚点）。非 Continuous ／独立空间（Interior／Cave／Dungeon／
+        /// Encounter／legacy-only map）完全不进入这里。
+        /// </summary>
+        static void BindContinuousOutdoorPresence(
+            SimulationWorld world,
+            DefinitionRegistry registry,
+            MapLayoutDefinition layout,
+            WorldSite site,
+            XianXia.Core.Entities.Entity entity,
+            EntityLocationComponent loc)
+        {
+            if (site == null || entity == null || world == null)
+                return;
+            if (loc != null && loc.HasPresentationOverride &&
+                ContinuousOutdoorSpawnPresenceResolver.TryResolveCanonicalAnchor(
+                    world, site, layout, loc.PresentationOverrideX, loc.PresentationOverrideZ,
+                    out var anchor))
+            {
+                world.WorldPresence.SetAtSiteWithAnchor(entity.Id, site.SiteId, anchor);
+                return;
+            }
+
+            world.WorldPresence.SetAtSite(entity.Id, site.SiteId);
         }
 
         static void PlaceInZone(

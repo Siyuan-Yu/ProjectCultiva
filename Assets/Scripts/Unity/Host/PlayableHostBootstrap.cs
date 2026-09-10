@@ -114,6 +114,9 @@ namespace XianXia.Unity.Host
 
         public EntityViewSpawner ViewSpawner => entityViewSpawner;
 
+        /// <summary>NPC 日程寻路驱动（诊断面板读性能计数用）。</summary>
+        public HostNpcScheduleMover NpcScheduleMover => npcScheduleMover;
+
         public HostSelectionController SelectionController => selectionController;
 
         public HostCommandBridge CommandBridge => commandBridge;
@@ -261,6 +264,71 @@ namespace XianXia.Unity.Host
                 gameObject.AddComponent<HostLevelTesterCheatPanel>();
         }
 
+        // Continuous Outdoor startup 恢复：preflight／activation 失败时 InitialBootstrap token 不消费，
+        // 逐帧 retry；禁止留下「Legacy 已销毁 + Continuous 未建立」的不可恢复半初始化状态。
+        const int ContinuousStartupRecoveryMaxAttempts = 5;
+        bool _continuousStartupRecoveryPending;
+        int _continuousStartupRecoveryAttempts;
+        float _continuousStartupRetryAt;
+
+        /// <summary>最近一次 Continuous startup postcondition 诊断（空 = 无问题）。</summary>
+        public string ContinuousStartupPostconditionDiagnostic { get; private set; } = string.Empty;
+
+        /// <summary>Continuous startup 失败可恢复：留下 token + 完整日志 + 下一帧 retry。</summary>
+        void ScheduleContinuousStartupRecovery(string reason)
+        {
+            _continuousStartupRecoveryPending = true;
+            _continuousStartupRetryAt = Time.unscaledTime + 0.25f;
+            _status = "CONTINUOUS STARTUP PENDING: " + reason;
+            Debug.LogError(
+                reason + " — legacy/startup authority 保持完整，InitialBootstrap token 未消费，将重试。", this);
+        }
+
+        void TickContinuousStartupRecovery()
+        {
+            if (!_continuousStartupRecoveryPending)
+                return;
+            if (Time.unscaledTime < _continuousStartupRetryAt)
+                return;
+            if (_continuousStartupRecoveryAttempts >= ContinuousStartupRecoveryMaxAttempts)
+            {
+                _continuousStartupRecoveryPending = false;
+                Debug.LogError(
+                    "[ContinuousStartupRecoveryGaveUp] attempts=" + _continuousStartupRecoveryAttempts +
+                    " InitialBootstrapPending=" + _session.InitialBootstrapPending, this);
+                return;
+            }
+
+            _continuousStartupRecoveryAttempts++;
+            _continuousStartupRetryAt = Time.unscaledTime + 1f;
+
+            // token 仍 pending（preflight 从未通过）→ 重跑 prepare + preflight 再 commit。
+            if (_session.InitialBootstrapPending &&
+                TryPrepareInitialContinuousOutdoorStartup(out var plan, out _) &&
+                _continuousOutdoorSurfaceRuntime != null &&
+                _continuousOutdoorSurfaceRuntime.TryPreflightStartupActivation(
+                    plan.Surface, plan.Chunk, out _))
+                CommitInitialContinuousOutdoorStartup(plan);
+
+            ActivateSurfaceLocalMapPresentation();
+            if (_continuousOutdoorSurfaceRuntime == null || !_continuousOutdoorSurfaceRuntime.IsActive)
+                return;
+
+            _continuousStartupRecoveryPending = false;
+            ConsumeInitialBootstrapAfterContinuousActivation(
+                startupCommitted: true, surfaceActivated: true);
+            moveController?.SetWalkGrid(ResolveWalkGrid());
+            // 与 normal startup 同一条 FINAL OPENING POPULATION BARRIER（但不重复绑定收尾）。
+            FinalizeContinuousOutdoorOpeningPopulation();
+            FrameCameraOnActiveCharacter();
+            if (!_continuousOutdoorSurfaceRuntime.TryValidateStartupPostconditions(out var postFailure))
+            {
+                ContinuousStartupPostconditionDiagnostic = postFailure;
+                Debug.LogError("[ContinuousStartupInvariantFailure] " + postFailure, this);
+            }
+            Debug.Log("[ContinuousStartupRecovered] attempts=" + _continuousStartupRecoveryAttempts, this);
+        }
+
         public bool IsLevelTesterContext() =>
             GetComponent<LevelTesterHud>() != null ||
             !string.IsNullOrWhiteSpace(mapLayoutFilePath) ||
@@ -274,6 +342,9 @@ namespace XianXia.Unity.Host
 
             if (_session.World?.Strategic != null)
                 _session.World.Strategic.PlayerPartyContext = _session.PlayerParty;
+
+            // Continuous startup 未完成（preflight／activation 失败）：token 仍 pending，逐帧重试。
+            TickContinuousStartupRecovery();
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             FormalArmyStrategicMutationDiagnosticsHost.TickFrame();
@@ -350,12 +421,20 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// NewGame migration stage for an Outdoor WorldSite. It reads the legacy layout only as
-        /// authored coordinates, commits canonical WorldPosition, and clears LocalMap authority
-        /// before any legacy presentation can be materialized.
+        /// 正常 NewGame 的 Continuous Outdoor 启动事务：Prepare → Preflight → Commit → Activate。
+        ///
+        /// Prepare 只解析 candidate Site／Surface／Chunk／canonical anchor，**一个 Runtime 字段都不写**；
+        /// Preflight 确认 neighborhood 可加载；Commit 才提交 canonical position 并清掉 legacy LocalMap
+        /// authority；InitialBootstrap token 只在 Continuous Surface 真正激活之后才消费。
+        ///
+        /// 这样 activation 失败不会留下「Legacy 已销毁 + Continuous 未建立 + token 已消费」的不可恢复
+        /// half-state（那正是 producer 看到的绿色空地）。
         /// </summary>
-        bool TryBootstrapInitialContinuousOutdoorSite()
+        bool TryPrepareInitialContinuousOutdoorStartup(
+            out ContinuousOutdoorStartupPlanner.StartupPlan plan, out string failure)
         {
+            plan = default;
+            failure = string.Empty;
             if (!_session.InitialBootstrapPending || !_session.PlayerParty.HasActive)
                 return false;
             var world = _session.World;
@@ -366,11 +445,69 @@ namespace XianXia.Unity.Host
                 !WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site))
                 return false;
 
+            if (!ContinuousOutdoorStartupPlanner.TryResolveSurfaceForSite(
+                    _session.Registry, siteId, out var surface, out _))
+            {
+                failure = "SiteId=" + siteId + " ContinuousSurface=unresolved";
+                return false;
+            }
+            if (surface.AcceptanceOnly)
+            {
+                failure = "SiteId=" + siteId + " SurfaceId=" + surface.SurfaceId + " AcceptanceOnly=true";
+                return false;
+            }
+
+            // A／B：优先使用 checked-in Continuous truth（baked SitePlace → SiteRegion arrival）。
+            // Normal NewGame 不再每次重算一套可能与 bake 不一致的 geometry。
+            var openingLocationId = ResolveOpeningStartLocationId(world);
+            if (ContinuousOutdoorStartupPlanner.TryResolveBakedAnchor(
+                    surface, siteId, openingLocationId,
+                    out var bakedX, out var bakedY, out var anchorSource))
+            {
+                plan = new ContinuousOutdoorStartupPlanner.StartupPlan(
+                    siteId, surface,
+                    ContinuousOutdoorStartupPlanner.WorldToChunk(surface, bakedX, bakedY),
+                    bakedX, bakedY, anchorSource);
+                return true;
+            }
+
+            // C：旧 content／compatibility —— LocalMap geometry → WorldSiteSpatialMapping。
+            if (!TryResolveLegacyContinuousStartupAnchor(
+                    world, site, siteId, out var worldX, out var worldY, out failure))
+                return false;
+            plan = new ContinuousOutdoorStartupPlanner.StartupPlan(
+                siteId, surface,
+                ContinuousOutdoorStartupPlanner.WorldToChunk(surface, worldX, worldY),
+                worldX, worldY, ContinuousOutdoorAnchorSource.LegacyMapping);
+            return true;
+        }
+
+        /// <summary>开局 canonical position 的 LocationId 来源（人物 LocationId → WorldRegion StartLocationId）。</summary>
+        string ResolveOpeningStartLocationId(SimulationWorld world)
+        {
+            if (world == null)
+                return string.Empty;
+            if (_session.PlayerParty.HasActive &&
+                world.Entities.TryGet(_session.PlayerParty.ActiveCharacterId, out var active) &&
+                active.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc) &&
+                loc.HasLocation && !string.IsNullOrEmpty(loc.LocationId))
+                return loc.LocationId;
+            return world.WorldRegion.StartLocationId ?? string.Empty;
+        }
+
+        /// <summary>Legacy／compatibility anchor：读旧 layout 的 authored 坐标再映射成 canonical WorldPosition。</summary>
+        bool TryResolveLegacyContinuousStartupAnchor(
+            SimulationWorld world, WorldSite site, string siteId,
+            out float worldX, out float worldY, out string failure)
+        {
+            worldX = 0f;
+            worldY = 0f;
+            failure = string.Empty;
             var mapId = WorldTravelService.ResolveWorldSiteLocalMapId(site);
             var parsed = DefinitionId.Parse(mapId);
             if (!parsed.IsSuccess || !_session.Registry.TryGetMapLayout(parsed.Value, out var layout) || layout == null)
             {
-                Debug.LogError("[PlayableHost] Continuous startup source MapLayout missing: " + mapId, this);
+                failure = "SiteId=" + siteId + " SourceMapLayoutMissing=" + mapId;
                 return false;
             }
 
@@ -412,13 +549,30 @@ namespace XianXia.Unity.Host
             if (!WorldSiteSpatialMapping.TryLocalToWorldSurface(
                     site, bounds, new WorldVec2(px, py), hexSize, out var canonical))
             {
-                Debug.LogError("[PlayableHost] Continuous startup authored Local->World failed: " + siteId, this);
+                failure = "SiteId=" + siteId + " AuthoredLocalToWorld=failed local=" + px + "," + py;
                 return false;
             }
 
+            worldX = canonical.X;
+            worldY = canonical.Y;
+            return true;
+        }
+
+        /// <summary>
+        /// 提交 canonical WorldPosition 并清掉 legacy Site／LocalMap authority。
+        /// 这是 startup 事务里唯一 destructive 的一步，只能在 preflight 成功之后调用。
+        /// </summary>
+        void CommitInitialContinuousOutdoorStartup(in ContinuousOutdoorStartupPlanner.StartupPlan plan)
+        {
+            var world = _session.World;
+            var motion = world?.PlayerPartyTravel;
+            if (motion == null)
+                return;
+            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var canonical = new WorldVec2(plan.CanonicalWorldX, plan.CanonicalWorldY);
             var derived = HexMath.WorldToHex(canonical.X, canonical.Y, hexSize);
             motion.SetAtWorldPosition(canonical, derived);
-            motion.SetCurrentOutdoorWorldSiteContext(siteId);
+            motion.SetCurrentOutdoorWorldSiteContext(plan.SiteId);
             for (var i = 0; i < _session.PlayerParty.Members.Count; i++)
                 world.WorldPresence.SetAtWorldPosition(_session.PlayerParty.Members[i], canonical, derived);
             world.PartyWorld.ClearSiteFocus();
@@ -428,10 +582,24 @@ namespace XianXia.Unity.Host
             world.LocalMap.ActiveMapLayoutId = string.Empty;
             world.LocalMap.OverworldMapLayoutId = string.Empty;
             _session.PreferredMapLayoutId = string.Empty;
-            _session.ConsumeInitialBootstrap();
             PlayerPartySiteIngressTrace.Log("ContinuousStartupBootstrapCommitted",
-                "site=" + siteId + " local=" + px + "," + py + " world=" + canonical);
-            return true;
+                "site=" + plan.SiteId + " anchor=" + plan.AnchorSource +
+                " surface=" + plan.SurfaceId + " chunk=" + plan.Chunk +
+                " world=" + canonical);
+        }
+
+        /// <summary>
+        /// InitialBootstrap token 只在 Continuous Surface 真正激活成功后消费（predicate 与
+        /// ContinuousOutdoorStartupPlanner 同源）；preflight／activation 失败时 token 保留。
+        /// </summary>
+        void ConsumeInitialBootstrapAfterContinuousActivation(bool startupCommitted, bool surfaceActivated)
+        {
+            if (!ContinuousOutdoorStartupPlanner.ShouldConsumeInitialBootstrap(
+                    startupCommitted, surfaceActivated))
+                return;
+            if (!_session.InitialBootstrapPending)
+                return;
+            _session.ConsumeInitialBootstrap();
         }
 
         static bool TryResolveAuthoredLocationCenter(
@@ -524,6 +692,8 @@ namespace XianXia.Unity.Host
         public string OpeningScenarioId => openingScenarioId ?? "";
 
         public string CharacterRosterId => characterRosterId ?? "";
+
+        bool _openingPopulationBarrierApplied;
 
         public string MapLayoutFilePath => mapLayoutFilePath ?? "";
 
@@ -718,6 +888,7 @@ namespace XianXia.Unity.Host
             if (surfaceExitZonePresenter != null)
                 surfaceExitZonePresenter.Clear();
 
+            _openingPopulationBarrierApplied = false;
             if (!TryResolveContentPackageDirectory(out _resolvedContentPath, out var pathError))
             {
                 _status = "INIT FAILED: " + pathError;
@@ -762,9 +933,40 @@ namespace XianXia.Unity.Host
                 : preferredMapLayoutId.Trim();
             if (_session.CharacterIds.Count > 0 && !_session.PlayerParty.HasActive)
                 _session.PlayerParty.TryInitialize(_session.CharacterIds[0], out _);
-            // A migrated Outdoor Site reads its exact source layout as authored migration input
-            // and commits canonical WorldPosition before any LocalMap presentation is built.
-            var continuousOutdoorStartup = TryBootstrapInitialContinuousOutdoorSite();
+            // A migrated Outdoor Site runs a startup **transaction**: Prepare（只读解析 candidate）
+            // → Preflight（neighborhood 可加载）→ Commit（提 canonical + 清 legacy authority）。
+            // token 直到 Continuous Surface 真正激活后才消费。
+            _continuousOutdoorSurfaceRuntime = GetComponent<ContinuousOutdoorSurfaceRuntime>() ??
+                                               gameObject.AddComponent<ContinuousOutdoorSurfaceRuntime>();
+            _continuousOutdoorSurfaceRuntime.Bind(this);
+            var continuousOutdoorStartup = false;
+            var continuousStartupPlan = default(ContinuousOutdoorStartupPlanner.StartupPlan);
+            if (TryPrepareInitialContinuousOutdoorStartup(out var preparedStartup, out var prepareFailure))
+            {
+                var preflightFailure = string.Empty;
+                var preflightPassed = _continuousOutdoorSurfaceRuntime.TryPreflightStartupActivation(
+                    preparedStartup.Surface, preparedStartup.Chunk, out preflightFailure);
+                // Commit 决策与 ContinuousOutdoorStartupPlanner 同源（可无头测试）：
+                // preflight 未过 → 一个 Runtime authority 字段都不改。
+                if (ContinuousOutdoorStartupPlanner.ShouldCommitStartupAuthority(
+                        prepareSucceeded: true, preflightPassed: preflightPassed))
+                {
+                    CommitInitialContinuousOutdoorStartup(preparedStartup);
+                    continuousStartupPlan = preparedStartup;
+                    continuousOutdoorStartup = true;
+                }
+                else
+                {
+                    ScheduleContinuousStartupRecovery(
+                        "[ContinuousStartupPreflightFailure] SiteId=" + preparedStartup.SiteId +
+                        " SurfaceId=" + preparedStartup.SurfaceId + " Chunk=" + preparedStartup.Chunk +
+                        " Failure=" + preflightFailure);
+                }
+            }
+            else if (!string.IsNullOrEmpty(prepareFailure))
+            {
+                ScheduleContinuousStartupRecovery("[ContinuousStartupPrepareFailure] " + prepareFailure);
+            }
             if (!continuousOutdoorStartup && !string.IsNullOrWhiteSpace(_session.PreferredMapLayoutId))
                 _session.World.LocalMap.EnsureOverworld(_session.PreferredMapLayoutId);
             else if (!continuousOutdoorStartup && MapLayoutPick.TryGet(_session, out var picked) && picked != null)
@@ -838,9 +1040,6 @@ namespace XianXia.Unity.Host
             _continuousWildernessLoadedSet = GetComponent<ContinuousWildernessLoadedSet>() ??
                                               gameObject.AddComponent<ContinuousWildernessLoadedSet>();
             _continuousWildernessLoadedSet.Bind(this);
-            _continuousOutdoorSurfaceRuntime = GetComponent<ContinuousOutdoorSurfaceRuntime>() ??
-                                               gameObject.AddComponent<ContinuousOutdoorSurfaceRuntime>();
-            _continuousOutdoorSurfaceRuntime.Bind(this);
             var pathPreview = GetComponent<HostPartyPathPreview>();
             if (pathPreview != null)
                 pathPreview.Bind(this, moveController, selectionController, cam);
@@ -907,9 +1106,44 @@ namespace XianXia.Unity.Host
                 cam);
             npcScheduleMover.Bind(this, moveController, entityViewSpawner);
             ActivateSurfaceLocalMapPresentation();
+            if (continuousOutdoorStartup)
+            {
+                if (_continuousOutdoorSurfaceRuntime != null && _continuousOutdoorSurfaceRuntime.IsActive)
+                {
+                    // 真正激活成功才消费 InitialBootstrap token。
+                    ConsumeInitialBootstrapAfterContinuousActivation(
+                        startupCommitted: true, surfaceActivated: true);
+                }
+                else
+                {
+                    // 真正 activation 失败（不是诊断 postcondition）：不回退成半初始化 session，
+                    // 保留 token 并在下一帧 retry。
+                    ScheduleContinuousStartupRecovery(
+                        "[ContinuousStartupActivationFailure] SurfaceId=" + continuousStartupPlan.SurfaceId +
+                        " Chunk=" + continuousStartupPlan.Chunk + " ActiveSurface=" +
+                        (_continuousOutdoorSurfaceRuntime?.ActiveSurfaceId ?? string.Empty));
+                }
+            }
             // Bootstrap already published WorldInitialized／EntityCreated capture once.
+            // §12 FINAL OPENING POPULATION BARRIER：所有 Host binding 完成后，对 opening
+            // population 做唯一一次显式 reconcile + 视图补齐（绝不回到 per-tick reconcile）。
+            if (continuousOutdoorStartup)
+                FinalizeContinuousOutdoorOpeningPopulation();
             DispatchDrainedEvents();
             FrameCameraOnSlots();
+            if (continuousOutdoorStartup)
+            {
+                // Normal continuous startup 不依赖 legacy LocalMap 取景 fallback：明确对准主控。
+                FrameCameraOnActiveCharacter();
+                // postcondition 诊断放在 Host finalize + Camera 之后：只报告，不中途 abort
+                // （避免留下「IsInitialized 一半 / Camera 未定位 / Legacy 已清」的 poisoned session）。
+                if (_continuousOutdoorSurfaceRuntime != null &&
+                    !_continuousOutdoorSurfaceRuntime.TryValidateStartupPostconditions(out var postFailure))
+                {
+                    ContinuousStartupPostconditionDiagnostic = postFailure;
+                    Debug.LogError("[ContinuousStartupInvariantFailure] " + postFailure, this);
+                }
+            }
 
             _session.IsPaused = true;
             _autoTickAccumulator = 0f;
@@ -924,6 +1158,88 @@ namespace XianXia.Unity.Host
 #endif
             return true;
         }
+
+        /// <summary>
+        /// §12：NewGame Continuous Outdoor 的 FINAL OPENING POPULATION BARRIER。
+        /// 在全部 Host binding 完成后显式 reconcile 一次（loaded neighborhood → intersecting Site →
+        /// nearby population），然后 RefreshViewableEntityIds / PruneHiddenViews / SpawnMissingVisibleViews。
+        /// 只做一次：不恢复「every world tick → full population reconcile」（会重新引入 NPC 拖动与性能问题）。
+        /// </summary>
+        public void FinalizeContinuousOutdoorOpeningPopulation()
+        {
+            if (_session == null || !_session.IsInitialized)
+                return;
+            _continuousOutdoorSurfaceRuntime?.ReconcileOutdoorEntityMaterializationForScopeChange();
+            if (entityViewSpawner == null)
+            {
+                _openingPopulationBarrierApplied = true;
+                return;
+            }
+
+            _session.RefreshViewableEntityIds();
+            entityViewSpawner.PruneHiddenViews(_session);
+            entityViewSpawner.SpawnMissingVisibleViews(_session);
+            _openingPopulationBarrierApplied = true;
+        }
+
+        /// <summary>
+        /// Producer 诊断：opening population census。
+        /// §18：摘要行不含 17|18 人全文；SpatialInvalid 非空时才在下一行展开。
+        /// </summary>
+        public string OpeningPopulationDiagnostic
+        {
+            get
+            {
+                if (_continuousOutdoorSurfaceRuntime == null)
+                    return "Barrier=" + (_openingPopulationBarrierApplied ? "applied" : "pending");
+                var runtime = _continuousOutdoorSurfaceRuntime;
+                var text = runtime.OpeningSpatialCensusSummary +
+                           " Barrier=" + (_openingPopulationBarrierApplied ? "applied" : "pending") +
+                           " InvalidSpawn=" + runtime.InvalidSpawnEntityCount +
+                           " RealignedViews=" + runtime.RealignedViewCount +
+                           " AnchorBake=" + runtime.OpeningAnchorBakeStatus;
+                if (!string.IsNullOrEmpty(runtime.OpeningPopulationSpatialInvalid))
+                    text += "\n[OpeningSpatialInvalid] " + runtime.OpeningPopulationSpatialInvalid;
+                if (!string.IsNullOrEmpty(runtime.OpeningAnchorBakeFailure))
+                    text += "\n[OpeningAnchorBakeInvalid] " + runtime.OpeningAnchorBakeFailure;
+                return text;
+            }
+        }
+
+        /// <summary>§12 barrier 是否已在本次启动中执行过（诊断用）。</summary>
+        public bool OpeningPopulationBarrierApplied => _openingPopulationBarrierApplied;
+
+        /// <summary>Producer 诊断：真实 presentation authority（Main Surface 不再被叫作 W1C）。</summary>
+        public string OutdoorAuthorityDiagnostic
+        {
+            get
+            {
+                var surface = _continuousOutdoorSurfaceRuntime;
+                if (surface != null && surface.IsActive)
+                {
+                    var acceptanceOnly = false;
+                    var parsed = XianXia.Core.Domain.Ids.DefinitionId.Parse(surface.ActiveSurfaceId);
+                    if (parsed.IsSuccess && _session?.Registry != null &&
+                        _session.Registry.TryGetOutdoorSurface(parsed.Value, out var definition) &&
+                        definition != null)
+                        acceptanceOnly = definition.AcceptanceOnly;
+                    return "Authority=" + (acceptanceOnly ? "W1CAcceptanceSurface" : "ContinuousOutdoorSurface") +
+                           " SurfaceId=" + surface.ActiveSurfaceId +
+                           " AcceptanceOnly=" + acceptanceOnly +
+                           " CurrentChunk=" + surface.CurrentChunk +
+                           " LoadedChunks=" + surface.LoadedChunkCount +
+                           " CurrentOutdoorWorldSiteId=" +
+                           (_session?.World?.PlayerPartyTravel?.CurrentOutdoorWorldSiteId ?? string.Empty);
+                }
+
+                if (_continuousWildernessLoadedSet != null && _continuousWildernessLoadedSet.IsActive)
+                    return "Authority=ContinuousWildernessPair";
+                return "Authority=LegacyLocalMap";
+            }
+        }
+
+        /// <summary>Acceptance surface 传送属于 legacy regression 工具；默认不在主诊断面板暴露。</summary>
+        public bool ShowLegacyAcceptanceTools { get; set; }
 
         /// <summary>After Snapshot restore: rebuild views and rebind Host adapters.</summary>
         public void RebindHostControlAfterSnapshotRestore()
@@ -2074,8 +2390,25 @@ namespace XianXia.Unity.Host
             RefreshStatus();
         }
 
-        /// <summary>Acceptance tooling hook; reuses the normal party framing path.</summary>
-        public void FrameCameraOnActiveCharacter() => FrameCameraOnSlots();
+        /// <summary>Acceptance tooling hook；Startup 也用它明确对准主控。</summary>
+        public void FrameCameraOnActiveCharacter()
+        {
+            if (cameraRig == null)
+                return;
+            var active = _session.PlayerParty != null
+                ? _session.PlayerParty.ActiveCharacterId
+                : EntityId.None;
+            if (!active.IsNone && entityViewSpawner != null &&
+                entityViewSpawner.Registry.TryGet(active, out var view) && view != null)
+            {
+                cameraRig.FrameSlots(view.transform.position);
+                return;
+            }
+            Debug.LogWarning(
+                "[ContinuousStartup] ActiveCharacter EntityView missing when framing camera; " +
+                "falling back to party／slots framing.", this);
+            FrameCameraOnSlots();
+        }
 
         void ReloadContinuousSurfaceOverlaysOnly(bool frameCamera)
         {
@@ -2103,9 +2436,6 @@ namespace XianXia.Unity.Host
             mapGraybox?.Clear();
             interactSpotPresenter?.Clear();
             surfaceExitZonePresenter?.Clear();
-            _session.RefreshViewableEntityIds();
-            entityViewSpawner?.SpawnMissingVisibleViews(_session);
-            entityViewSpawner?.PruneHiddenViews(_session);
         }
 
         public void RefreshContinuousOutdoorOverlaysOnce() =>
@@ -2142,6 +2472,7 @@ namespace XianXia.Unity.Host
             if (pending == null || pending.Count == 0)
                 return;
 
+            _continuousOutdoorSurfaceRuntime?.ReconcileOutdoorEntityMaterializationForScopeChange();
             _session.RefreshViewableEntityIds();
             entityViewSpawner.SpawnMissingVisibleViews(_session);
             LoadedDestinationArrivalMaterializer.ClearPendingPresentationFlush();

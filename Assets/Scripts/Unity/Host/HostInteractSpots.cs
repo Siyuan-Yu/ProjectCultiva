@@ -54,7 +54,14 @@ namespace XianXia.Unity.Host
             new Dictionary<string, List<HostInteractSpot>>(System.StringComparer.Ordinal);
         static readonly HostInteractSpot[] Empty = System.Array.Empty<HostInteractSpot>();
         static bool _layoutRebuilt;
+        static bool _flattenDirty;
         static string _currentOwner = string.Empty;
+
+        /// <summary>
+        /// flatten／index 的代数。每次真正重建 Dynamic 时递增；NPC 日程用它判断缓存的目标几何
+        /// 是否过期（而不是每帧重算 interact spot）。
+        /// </summary>
+        public static int LayoutGeneration { get; private set; }
 
         // 农田／药田已改成 map 上的 grainField／herbField 格，勿再放旧大片绿区上的麦垄／药畦热点。
         static readonly HostInteractSpot[] LegacyFallback =
@@ -70,7 +77,13 @@ namespace XianXia.Unity.Host
             new HostInteractSpot("base:loc_ref_cave", HostInteractSpotKind.Explore, 26f, -15f, "洞口石径"),
         };
 
-        public static bool HasDynamicPlots => Dynamic.Count > 0;
+        public static bool HasDynamicPlots
+        {
+            get { EnsureFlattened(); return Dynamic.Count > 0; }
+        }
+
+        /// <summary>当前已 flatten 的互动格数量（性能诊断）。</summary>
+        public static int LoadedSpotCount => Dynamic.Count;
 
         /// <summary>
         /// 有动态地块用动态；地图已 Rebuild 但无软热点则空（勿回落 Legacy 麦垄，否则田区周围又变可交互）。
@@ -78,6 +91,7 @@ namespace XianXia.Unity.Host
         /// </summary>
         public static IReadOnlyList<HostInteractSpot> GetSpots(SimulationWorld world)
         {
+            EnsureFlattened();
             if (Dynamic.Count > 0)
                 return Dynamic;
             if (_layoutRebuilt)
@@ -104,7 +118,9 @@ namespace XianXia.Unity.Host
             Dynamic.Clear();
             DynamicByOwner.Clear();
             _layoutRebuilt = true;
+            _flattenDirty = false;
             _currentOwner = string.Empty;
+            LayoutGeneration++;
         }
 
         public static void BeginOwnerBuild(string ownerKey)
@@ -113,12 +129,19 @@ namespace XianXia.Unity.Host
             RemoveOwner(_currentOwner);
         }
 
+        /// <summary>
+        /// 批量 owner build 结束：flatten/index 只重建一次。
+        /// Continuous chunk build 会一次注册几十／上百个互动格；逐格 rebuild 是 O(N²)，
+        /// 会在 chunk 边界 streaming 时形成明显卡顿尖峰。
+        /// </summary>
+        public static void EndOwnerBuild() => _flattenDirty = true;
+
         public static void RemoveOwner(string ownerKey)
         {
             ownerKey = ownerKey ?? string.Empty;
             if (!DynamicByOwner.Remove(ownerKey))
                 return;
-            RebuildDynamicFlattened();
+            _flattenDirty = true;
         }
 
         public static void RegisterPlot(HostInteractSpot spot) => RegisterPlot(_currentOwner, spot);
@@ -133,6 +156,16 @@ namespace XianXia.Unity.Host
             }
             if (!list.Contains(spot))
                 list.Add(spot);
+            // 只标脏；真正的 flatten 在 EndOwnerBuild／下次 query 时做一次。
+            _flattenDirty = true;
+        }
+
+        static void EnsureFlattened()
+        {
+            if (!_flattenDirty)
+                return;
+            _flattenDirty = false;
+            LayoutGeneration++;
             RebuildDynamicFlattened();
         }
 
@@ -177,6 +210,10 @@ namespace XianXia.Unity.Host
             return true;
         }
 
+        /// <summary>
+        /// 第 slotIndex 个匹配 spot。**零分配**：先数匹配数，再用一次遍历取第 n 个
+        /// （旧实现每次调用 new List + Add，NPC 日程每帧 query 都会产生 GC）。
+        /// </summary>
         public static bool TryGetSlotSpot(
             string locationId,
             HostInteractSpotKind kind,
@@ -187,8 +224,8 @@ namespace XianXia.Unity.Host
             spot = default;
             if (string.IsNullOrEmpty(locationId))
                 return false;
-            var matches = new List<HostInteractSpot>(8);
             var list = GetSpots(world);
+            var count = 0;
             for (var i = 0; i < list.Count; i++)
             {
                 var s = list[i];
@@ -196,16 +233,29 @@ namespace XianXia.Unity.Host
                     continue;
                 if (!string.Equals(s.LocationId, locationId, System.StringComparison.Ordinal))
                     continue;
-                matches.Add(s);
+                count++;
             }
 
-            if (matches.Count == 0)
+            if (count == 0)
                 return false;
-            var idx = slotIndex % matches.Count;
+            var idx = slotIndex % count;
             if (idx < 0)
-                idx += matches.Count;
-            spot = matches[idx];
-            return true;
+                idx += count;
+            var seen = 0;
+            for (var i = 0; i < list.Count; i++)
+            {
+                var s = list[i];
+                if (s.Kind != kind)
+                    continue;
+                if (!string.Equals(s.LocationId, locationId, System.StringComparison.Ordinal))
+                    continue;
+                if (seen++ != idx)
+                    continue;
+                spot = s;
+                return true;
+            }
+
+            return false;
         }
 
         public static Vector3 RingOffset(int slotIndex)

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using XianXia.Core.Content;
 using XianXia.Core.World.Surface;
 
 namespace XianXia.Data.Content
@@ -19,6 +20,14 @@ namespace XianXia.Data.Content
         public List<WorldSitePhysicalRegionDefinition> SiteRegions { get; set; } = new List<WorldSitePhysicalRegionDefinition>();
         public List<OutdoorSurfacePlacementDefinition> SitePlacements { get; set; } = new List<OutdoorSurfacePlacementDefinition>();
         public List<WorldSitePlaceDefinition> SitePlaces { get; set; } = new List<WorldSitePlaceDefinition>();
+        /// <summary>
+        /// Opening entity baked anchors（§6/§7）：NewGame 时每个 opening spawn 的 canonical
+        /// WorldPosition。它与 <see cref="SitePlacements"/>／<see cref="SitePlaces"/> 出自同一套
+        /// authoring transform（同一坐标空间），因此 Normal NewGame 不需要在运行时用 legacy
+        /// LocalMap 坐标重新计算一遍位置。
+        /// </summary>
+        public List<WorldSiteOpeningEntityAnchorDefinition> OpeningEntityAnchors { get; set; } =
+            new List<WorldSiteOpeningEntityAnchorDefinition>();
     }
     public sealed class OutdoorSurfaceChunkDefinition
     {
@@ -63,6 +72,21 @@ namespace XianXia.Data.Content
         public int SpawnCount { get; set; }
     }
 
+    /// <summary>
+    /// Checked-in opening entity anchor（§6）：NewGame 时该 spawn 的 canonical 初始位置。
+    /// <c>SpawnKey</c> 是稳定的 authored key（同一 definitionId 在同 Site 多次 spawn 时用
+    /// <c>definitionId#n</c> 区分），不用随机数／时间戳。
+    /// </summary>
+    public sealed class WorldSiteOpeningEntityAnchorDefinition
+    {
+        public string SiteId { get; set; }
+        public string SpawnKey { get; set; }
+        public string DefinitionId { get; set; }
+        public string SourceLocationId { get; set; }
+        public float WorldX { get; set; }
+        public float WorldY { get; set; }
+    }
+
     public sealed class WorldSitePlaceDefinition
     {
         public string SiteId { get; set; }
@@ -70,8 +94,19 @@ namespace XianXia.Data.Content
         public string Name { get; set; }
         public float WorldX { get; set; }
         public float WorldY { get; set; }
+        public string Kind { get; set; }
+        public List<string> AdjacentIds { get; set; } = new List<string>();
+        public string ResourceOnExploreId { get; set; }
+        public int ResourceOnExploreAmount { get; set; }
+        public string OpportunitySiteId { get; set; }
+        public string ResidentNpcDefinitionId { get; set; }
+        public List<ContentCondition> EnterConditions { get; set; } = new List<ContentCondition>();
+        public List<string> QuestOfferIds { get; set; } = new List<string>();
+        public List<string> Tags { get; set; } = new List<string>();
+        public List<string> AllowedActivities { get; set; } = new List<string>();
         public string LocalMapId { get; set; }
         public string EnterLocalMapId { get; set; }
         public string EnterSpawnLocationId { get; set; }
+        public int SurveySenseRequired { get; set; }
     }
 }

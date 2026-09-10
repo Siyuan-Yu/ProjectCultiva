@@ -9,6 +9,9 @@ namespace XianXia.Unity.Host
         static readonly List<HostMapPlotCell> Plots = new List<HostMapPlotCell>(256);
         static readonly List<HostMapDestructible> Destructibles = new List<HostMapDestructible>(128);
         static readonly Dictionary<Object, string> OwnerByObject = new Dictionary<Object, string>();
+        // 逐格注册时用 instance-id 集合做 O(1) 重复检查（旧 List.Contains 会把 chunk build 拉成 O(N²)）。
+        static readonly HashSet<int> PlotIds = new HashSet<int>();
+        static readonly HashSet<int> DestructibleIds = new HashSet<int>();
         static string _currentOwner = string.Empty;
 
         public static IReadOnlyList<HostMapPlotCell> AllPlots => Plots;
@@ -25,6 +28,8 @@ namespace XianXia.Unity.Host
             Plots.Clear();
             Destructibles.Clear();
             OwnerByObject.Clear();
+            PlotIds.Clear();
+            DestructibleIds.Clear();
             _currentOwner = string.Empty;
         }
 
@@ -34,19 +39,32 @@ namespace XianXia.Unity.Host
             RemoveOwner(_currentOwner);
         }
 
+        /// <summary>对称 API（供 chunk build 收尾）；register 已无逐格 rebuild，这里无事可做。</summary>
+        public static void EndOwnerBuild()
+        {
+        }
+
         public static void RemoveOwner(string ownerKey)
         {
             ownerKey = ownerKey ?? string.Empty;
             for (var i = Plots.Count - 1; i >= 0; i--)
                 if (Plots[i] == null || IsOwnedBy(Plots[i], ownerKey))
                 {
-                    OwnerByObject.Remove(Plots[i]);
+                    if (Plots[i] != null)
+                    {
+                        PlotIds.Remove(Plots[i].GetInstanceID());
+                        OwnerByObject.Remove(Plots[i]);
+                    }
                     Plots.RemoveAt(i);
                 }
             for (var i = Destructibles.Count - 1; i >= 0; i--)
                 if (Destructibles[i] == null || IsOwnedBy(Destructibles[i], ownerKey))
                 {
-                    OwnerByObject.Remove(Destructibles[i]);
+                    if (Destructibles[i] != null)
+                    {
+                        DestructibleIds.Remove(Destructibles[i].GetInstanceID());
+                        OwnerByObject.Remove(Destructibles[i]);
+                    }
                     Destructibles.RemoveAt(i);
                 }
         }
@@ -56,11 +74,12 @@ namespace XianXia.Unity.Host
 
         public static void Register(string ownerKey, HostMapPlotCell plot)
         {
-            if (plot != null && !Plots.Contains(plot))
-            {
-                Plots.Add(plot);
-                OwnerByObject[plot] = ownerKey ?? string.Empty;
-            }
+            if (plot == null)
+                return;
+            if (!PlotIds.Add(plot.GetInstanceID()))
+                return;
+            Plots.Add(plot);
+            OwnerByObject[plot] = ownerKey ?? string.Empty;
         }
 
         public static void Register(HostMapDestructible d)
@@ -68,20 +87,21 @@ namespace XianXia.Unity.Host
 
         public static void Register(string ownerKey, HostMapDestructible d)
         {
-            if (d != null && !Destructibles.Contains(d))
-            {
-                Destructibles.Add(d);
-                OwnerByObject[d] = ownerKey ?? string.Empty;
-            }
+            if (d == null)
+                return;
+            if (!DestructibleIds.Add(d.GetInstanceID()))
+                return;
+            Destructibles.Add(d);
+            OwnerByObject[d] = ownerKey ?? string.Empty;
         }
 
         public static void Unregister(HostMapDestructible d)
         {
-            if (d != null)
-            {
-                Destructibles.Remove(d);
-                OwnerByObject.Remove(d);
-            }
+            if (d == null)
+                return;
+            DestructibleIds.Remove(d.GetInstanceID());
+            Destructibles.Remove(d);
+            OwnerByObject.Remove(d);
         }
 
         public static bool TryPickPlot(Vector3 worldPoint, float radius, out HostMapPlotCell plot)
@@ -129,8 +149,9 @@ namespace XianXia.Unity.Host
                 var d = Destructibles[i];
                 if (d == null || d.IsDestroyed)
                 {
+                    if (d != null)
+                        DestructibleIds.Remove(d.GetInstanceID());
                     Destructibles.RemoveAt(i);
-                    OwnerByObject.Remove(d);
                     continue;
                 }
 

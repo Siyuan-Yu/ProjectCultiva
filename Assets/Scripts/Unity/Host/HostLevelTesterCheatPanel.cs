@@ -168,7 +168,7 @@ namespace XianXia.Unity.Host
                 case CheatTab.Battle:
                     return 80f;
                 case CheatTab.Diagnostics:
-                    return 500f;
+                    return 620f;
                 default:
                     return 400f;
             }
@@ -347,34 +347,85 @@ namespace XianXia.Unity.Host
             y += 30f;
             var surface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
             var motion = bootstrap?.Session?.World?.PlayerPartyTravel;
-            var wildernessOnly = motion != null && motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
+            var wildernessOnly = motion != null &&
+                                 motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
                                  bootstrap?.Session?.World?.LocalMap?.IsInInterior != true;
+
+            // §18：只读显示真实 presentation authority —— Main Continuous Surface 不再是 W1C。
+            GUI.Label(new Rect(x, y, width, 22f),
+                bootstrap != null ? bootstrap.OutdoorAuthorityDiagnostic : "Authority=Uninitialized", _body);
+            y += 24f;
+            GUI.Label(new Rect(x, y, width, 56f),
+                bootstrap != null ? bootstrap.OpeningPopulationDiagnostic : string.Empty, _body);
+            y += 60f;
+
+            var mover = bootstrap != null ? bootstrap.NpcScheduleMover : null;
+            var perfText =
+                // 性能诊断（判断卡顿是否 A* storm／registry rebuild spike）：
+                "[Perf] VisibleEntity=" + (bootstrap?.ViewSpawner != null ? bootstrap.ViewSpawner.SpawnedCount : 0) +
+                " OutdoorMaterialized=" + (surface != null ? surface.MaterializedOutdoorEntityCount : 0) +
+                " MovingNpc=" + (mover != null ? mover.MovingNpcCount : 0) + "\n" +
+                "[Perf] NpcPathReq frame=" + (mover != null ? mover.NpcPathRequestsThisFrame : 0) +
+                " /sec=" + (mover != null ? mover.NpcPathRequestsLastSecond : 0) +
+                " repath/sec=" + (mover != null ? mover.NpcRepathRequestsLastSecond : 0) + "\n" +
+                "[Perf] PathBuildMs last=" + (mover != null ? mover.LastNpcPathBuildMs.ToString("0.0") : "0") +
+                " max/sec=" + (mover != null ? mover.MaxNpcPathBuildMsLastSecond.ToString("0.0") : "0") + "\n" +
+                "[Perf] InteractSpots=" + HostInteractSpots.LoadedSpotCount +
+                " Plots=" + HostMapObjectRegistry.AllPlots.Count +
+                " PlaceGen=" + (surface != null ? surface.PlaceRefreshGeneration : 0) +
+                " EntityGen=" + (surface != null ? surface.EntityReconcileGeneration : 0) +
+                " LoadedChunks=" + (surface != null ? surface.LoadedChunkCount : 0) + "\n" +
+                "[Startup] Postcondition=" +
+                (bootstrap != null && !string.IsNullOrEmpty(bootstrap.ContinuousStartupPostconditionDiagnostic)
+                    ? bootstrap.ContinuousStartupPostconditionDiagnostic
+                    : "ok") + "\n" +
+                (surface != null ? surface.DescribeDiagnostics() : string.Empty);
+            GUI.Label(new Rect(x, y, width, 350f), perfText, _body);
+            y += 356f;
+
+            // §16/§17：Normal NewGame 已直进 Main Continuous Surface；W1C Acceptance teleport 不再是
+            // 制作人入口，只保留为 legacy regression 工具（默认收起）。
+            var showLegacy = bootstrap != null && bootstrap.ShowLegacyAcceptanceTools;
+            var nextLegacy = GUI.Toggle(new Rect(x, y, width, 22f), showLegacy,
+                "Regression / Legacy Acceptance（非正常入口，默认收起）");
+            if (bootstrap != null)
+                bootstrap.ShowLegacyAcceptanceTools = nextLegacy;
+            y += 26f;
+            if (!nextLegacy)
+                return;
+
             GUI.enabled = wildernessOnly;
-            if (GUI.Button(new Rect(x, y, width, 26f), "Continuous World W1C Acceptance") && wildernessOnly)
+            if (GUI.Button(new Rect(x, y, width, 26f),
+                    "传送：Continuous World W1C Acceptance（legacy regression）") && wildernessOnly)
             {
                 var world = bootstrap?.Session?.World;
-                if (surface != null && world?.PlayerPartyTravel != null && surface.TryGetAcceptanceStartWorldPosition(out var wx, out var wy))
+                if (surface != null && world?.PlayerPartyTravel != null &&
+                    surface.TryGetAcceptanceStartWorldPosition(out var wx, out var wy))
                 {
                     var size = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-                    world.PlayerPartyTravel.SetAtWorldPosition(new WorldVec2(wx, wy), HexMath.WorldToHex(wx, wy, size));
+                    var position = new WorldVec2(wx, wy);
+                    var hex = HexMath.WorldToHex(wx, wy, size);
+                    world.PlayerPartyTravel.SetAtWorldPosition(position, hex);
+                    world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(
+                        WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(world, position));
+                    var party = bootstrap.Session.PlayerParty;
+                    if (party != null)
+                        for (var i = 0; i < party.Members.Count; i++)
+                            world.WorldPresence.SetAtWorldPosition(party.Members[i], position, hex);
+                    world.PartyWorld.ClearSiteFocus();
+                    world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
+                    world.PartyWorld.SiteId = string.Empty;
+                    world.PartyWorld.LocalMapId = string.Empty;
                     surface.TryActivateAcceptanceAtCurrentWorldPosition();
                     bootstrap.ActivateSurfaceLocalMapPresentation();
                     bootstrap.FrameCameraOnActiveCharacter();
                 }
             }
             GUI.enabled = true;
-            y += 32f;
+            y += 30f;
             if (!wildernessOnly)
-            {
-                GUI.Label(new Rect(x, y, width, 20f), "W1C Acceptance is wilderness-only; exit WorldSite/Interior first.", _body);
-                y += 20f;
-            }
-            GUI.Label(new Rect(x, y, width, 350f),
-                "Authority=" + (surface != null && surface.IsActive ? "W1CContinuousSurface" :
-                    (bootstrap?.ContinuousWildernessLoadedSet?.IsActive == true ? "W1BPair" : "LegacyLocalMap")) + "\n" +
-                "W1CActive=" + (surface != null && surface.IsActive) +
-                " W1BActive=" + (bootstrap?.ContinuousWildernessLoadedSet?.IsActive == true) + "\n" +
-                (surface != null ? surface.DescribeDiagnostics() : string.Empty), _body);
+                GUI.Label(new Rect(x, y, width, 20f),
+                    "W1C Acceptance is wilderness-only; exit WorldSite/Interior first.", _body);
         }
 
         public const float TopBarEntryY = 8f;

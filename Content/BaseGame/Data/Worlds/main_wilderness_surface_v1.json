@@ -5265,62 +5265,344 @@
           "sourceCellsH": 1
         }
       ],
+      "openingEntityAnchors": [
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_ch01_ref_farmer_b",
+          "definitionId": "base:character_ch01_ref_farmer_b",
+          "sourceLocationId": "base:loc_ref_houses",
+          "worldX": 4.96882,
+          "worldY": 11.04
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_ch01_ref_farmer_c",
+          "definitionId": "base:character_ch01_ref_farmer_c",
+          "sourceLocationId": "base:loc_ref_houses",
+          "worldX": 5.03377,
+          "worldY": 11.04
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_ch01_ref_guard_a",
+          "definitionId": "base:character_ch01_ref_guard_a",
+          "sourceLocationId": "base:loc_ref_guard_housing",
+          "worldX": 5.51009,
+          "worldY": 11.18
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_ch01_ref_guard_b",
+          "definitionId": "base:character_ch01_ref_guard_b",
+          "sourceLocationId": "base:loc_ref_guard_housing",
+          "worldX": 5.57504,
+          "worldY": 11.18
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_ch01_ref_guard_c",
+          "definitionId": "base:character_ch01_ref_guard_c",
+          "sourceLocationId": "base:loc_ref_guard_housing",
+          "worldX": 5.55601,
+          "worldY": 11.25425
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_ch01_ref_herb_b",
+          "definitionId": "base:character_ch01_ref_herb_b",
+          "sourceLocationId": "base:loc_ref_houses",
+          "worldX": 5.01475,
+          "worldY": 11.11425
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_ch01_ref_herb_c",
+          "definitionId": "base:character_ch01_ref_herb_c",
+          "sourceLocationId": "base:loc_ref_houses",
+          "worldX": 4.96882,
+          "worldY": 11.145
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_ch01_ref_mortal_a",
+          "definitionId": "base:character_ch01_ref_mortal_a",
+          "sourceLocationId": "base:loc_ref_houses",
+          "worldX": 4.92289,
+          "worldY": 11.11425
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_ch01_ref_mortal_b",
+          "definitionId": "base:character_ch01_ref_mortal_b",
+          "sourceLocationId": "base:loc_ref_herb_field",
+          "worldX": 5.80237,
+          "worldY": 10.13
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_ch01_ref_supervisor",
+          "definitionId": "base:character_ch01_ref_supervisor",
+          "sourceLocationId": "base:loc_ref_supervisor_housing",
+          "worldX": 5.91062,
+          "worldY": 11.1975
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_ch01_ref_wood_b",
+          "definitionId": "base:character_ch01_ref_wood_b",
+          "sourceLocationId": "base:loc_ref_mine",
+          "worldX": 4.52498,
+          "worldY": 10.8825
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_ch01_ref_wood_c",
+          "definitionId": "base:character_ch01_ref_wood_c",
+          "sourceLocationId": "base:loc_ref_houses",
+          "worldX": 4.90387,
+          "worldY": 11.04
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_ch01_ref_woodcutter",
+          "definitionId": "base:character_ch01_ref_woodcutter",
+          "sourceLocationId": "base:loc_ref_forest",
+          "worldX": 4.60076,
+          "worldY": 10.1825
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_companion_a",
+          "definitionId": "base:character_companion_a",
+          "sourceLocationId": "base:loc_ref_labor_yard",
+          "worldX": 5.20698,
+          "worldY": 10.165
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_companion_b",
+          "definitionId": "base:character_companion_b",
+          "sourceLocationId": "base:loc_ref_labor_yard",
+          "worldX": 5.27193,
+          "worldY": 10.165
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_jiang_lao",
+          "definitionId": "base:character_jiang_lao",
+          "sourceLocationId": "base:loc_ref_spring",
+          "worldX": 6.14878,
+          "worldY": 10.62
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_protagonist",
+          "definitionId": "base:character_protagonist",
+          "sourceLocationId": "base:loc_ref_labor_yard",
+          "worldX": 5.25291,
+          "worldY": 10.23925
+        },
+        {
+          "siteId": "base:site_huangcun",
+          "spawnKey": "base:character_village_recruit",
+          "definitionId": "base:character_village_recruit",
+          "sourceLocationId": "base:loc_ref_labor_yard",
+          "worldX": 5.20698,
+          "worldY": 10.27
+        }
+      ],
       "sitePlaces": [
         {
           "siteId": "base:site_chengzhen",
           "locationId": "base:loc_site_chengzhen_start",
           "worldX": 17.32051,
           "worldY": 10.375,
-          "name": "青石镇·入口"
+          "name": "青石镇·入口",
+          "kind": "Settlement",
+          "adjacentIds": [],
+          "tags": [
+            "prototype",
+            "site",
+            "chengzhen"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ]
         },
         {
           "siteId": "base:site_guanai",
           "locationId": "base:loc_site_guanai_start",
           "worldX": 21.13102,
           "worldY": 16.0,
-          "name": "青石关·入口"
+          "name": "青石关·入口",
+          "kind": "Settlement",
+          "adjacentIds": [],
+          "tags": [
+            "prototype",
+            "site",
+            "guanai"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ]
         },
         {
           "siteId": "base:site_huangcun",
           "locationId": "base:loc_ref_labor_yard",
           "worldX": 5.20698,
           "worldY": 10.165,
-          "name": "农田杂役区"
+          "name": "农田杂役区",
+          "kind": "Settlement",
+          "adjacentIds": [
+            "base:loc_ref_guard_housing",
+            "base:loc_ref_herb_field",
+            "base:loc_ref_houses",
+            "base:loc_ref_party_rally",
+            "base:loc_ref_road_hub",
+            "base:loc_ref_spring",
+            "base:loc_ref_supervisor_housing"
+          ],
+          "resourceOnExploreId": "base:resource_grain",
+          "resourceOnExploreAmount": 1,
+          "tags": [
+            "farm",
+            "grain",
+            "work"
+          ],
+          "allowedActivities": [
+            "Labor",
+            "Inspect",
+            "Patrol"
+          ]
         },
         {
           "siteId": "base:site_huangcun",
           "locationId": "base:loc_ref_houses",
           "worldX": 4.96882,
           "worldY": 11.04,
-          "name": "凡人住房区"
+          "name": "凡人住房区",
+          "kind": "Village",
+          "adjacentIds": [
+            "base:loc_ref_guard_housing",
+            "base:loc_ref_labor_yard",
+            "base:loc_ref_party_rally",
+            "base:loc_ref_road_hub",
+            "base:loc_ref_supervisor_housing"
+          ],
+          "residentNpcDefinitionId": "base:character_ch01_ref_mortal_a",
+          "tags": [
+            "home",
+            "rest",
+            "mortal"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Eat",
+            "Patrol"
+          ]
         },
         {
           "siteId": "base:site_huangcun",
           "locationId": "base:loc_ref_forest",
           "worldX": 4.60076,
           "worldY": 10.1825,
-          "name": "树林"
+          "name": "树林",
+          "kind": "Wild",
+          "adjacentIds": [
+            "base:loc_ref_road_hub",
+            "base:loc_ref_mine",
+            "base:loc_ref_party_rally"
+          ],
+          "resourceOnExploreId": "base:resource_rough_wood",
+          "resourceOnExploreAmount": 1,
+          "residentNpcDefinitionId": "base:character_ch01_ref_woodcutter",
+          "tags": [
+            "wild",
+            "patrol",
+            "work"
+          ],
+          "allowedActivities": [
+            "Patrol",
+            "Explore",
+            "Labor"
+          ]
         },
         {
           "siteId": "base:site_huangcun",
           "locationId": "base:loc_ref_mine",
           "worldX": 4.52498,
           "worldY": 10.8825,
-          "name": "矿洞"
+          "name": "矿洞",
+          "kind": "Wild",
+          "adjacentIds": [
+            "base:loc_ref_forest",
+            "base:loc_ref_road_hub"
+          ],
+          "resourceOnExploreId": "base:resource_rough_wood",
+          "resourceOnExploreAmount": 1,
+          "residentNpcDefinitionId": "base:character_ch01_ref_wood_b",
+          "tags": [
+            "mine",
+            "work"
+          ],
+          "allowedActivities": [
+            "Labor",
+            "Inspect",
+            "Explore"
+          ]
         },
         {
           "siteId": "base:site_huangcun",
           "locationId": "base:loc_ref_herb_field",
           "worldX": 5.80237,
           "worldY": 10.13,
-          "name": "药田"
+          "name": "药田",
+          "kind": "Wild",
+          "adjacentIds": [
+            "base:loc_ref_labor_yard",
+            "base:loc_ref_spring",
+            "base:loc_ref_road_hub",
+            "base:loc_ref_party_rally"
+          ],
+          "resourceOnExploreId": "base:resource_spirit_herb",
+          "resourceOnExploreAmount": 1,
+          "residentNpcDefinitionId": "base:character_ch01_ref_mortal_b",
+          "tags": [
+            "herb",
+            "farm",
+            "work"
+          ],
+          "allowedActivities": [
+            "Labor",
+            "Inspect"
+          ]
         },
         {
           "siteId": "base:site_huangcun",
           "locationId": "base:loc_ref_spring",
           "worldX": 5.62917,
           "worldY": 10.165,
-          "name": "灵泉"
+          "name": "灵泉",
+          "kind": "Opportunity",
+          "adjacentIds": [
+            "base:loc_ref_herb_field",
+            "base:loc_ref_cave",
+            "base:loc_ref_labor_yard",
+            "base:loc_ref_road_hub"
+          ],
+          "tags": [
+            "spirit",
+            "inspect"
+          ],
+          "allowedActivities": [
+            "Cultivate",
+            "Inspect",
+            "Patrol"
+          ]
         },
         {
           "siteId": "base:site_huangcun",
@@ -5329,7 +5611,22 @@
           "worldY": 9.99,
           "name": "废弃洞府",
           "enterLocalMapId": "base:map_ch01_cave",
-          "enterSpawnLocationId": "base:loc_cave_chamber"
+          "enterSpawnLocationId": "base:loc_cave_chamber",
+          "kind": "Opportunity",
+          "adjacentIds": [
+            "base:loc_ref_spring",
+            "base:loc_ref_road_hub"
+          ],
+          "opportunitySiteId": "base:site_abandoned_cave",
+          "tags": [
+            "cave",
+            "opportunity",
+            "entrance"
+          ],
+          "allowedActivities": [
+            "Explore",
+            "Cultivate"
+          ]
         },
         {
           "siteId": "base:site_huangcun",
@@ -5337,63 +5634,204 @@
           "worldX": 5.19615,
           "worldY": 10.375,
           "name": "洞府内室",
-          "localMapId": "base:map_ch01_cave"
+          "localMapId": "base:map_ch01_cave",
+          "kind": "Opportunity",
+          "adjacentIds": [],
+          "tags": [
+            "cave",
+            "interior",
+            "spirit"
+          ],
+          "allowedActivities": [
+            "Cultivate",
+            "Explore",
+            "Rest"
+          ]
         },
         {
           "siteId": "base:site_huangcun",
           "locationId": "base:loc_ref_road_hub",
           "worldX": 5.47761,
           "worldY": 10.48,
-          "name": "议政厅"
+          "name": "议政厅",
+          "kind": "Village",
+          "adjacentIds": [
+            "base:loc_ref_cave",
+            "base:loc_ref_forest",
+            "base:loc_ref_guard_housing",
+            "base:loc_ref_herb_field",
+            "base:loc_ref_houses",
+            "base:loc_ref_labor_yard",
+            "base:loc_ref_mine",
+            "base:loc_ref_party_rally",
+            "base:loc_ref_spring",
+            "base:loc_ref_supervisor_housing"
+          ],
+          "residentNpcDefinitionId": "base:character_ch01_ref_supervisor",
+          "tags": [
+            "hub",
+            "patrol",
+            "controlCore",
+            "defense"
+          ],
+          "allowedActivities": [
+            "Patrol",
+            "Inspect",
+            "Explore"
+          ]
         },
         {
           "siteId": "base:site_huangcun",
           "locationId": "base:loc_ref_party_rally",
           "worldX": 5.2611,
           "worldY": 10.725,
-          "name": "集合点"
+          "name": "集合点",
+          "kind": "Village",
+          "adjacentIds": [
+            "base:loc_ref_forest",
+            "base:loc_ref_guard_housing",
+            "base:loc_ref_herb_field",
+            "base:loc_ref_houses",
+            "base:loc_ref_labor_yard",
+            "base:loc_ref_road_hub",
+            "base:loc_ref_supervisor_housing"
+          ],
+          "tags": [
+            "rally",
+            "hub"
+          ],
+          "allowedActivities": [
+            "Patrol",
+            "Inspect"
+          ]
         },
         {
           "siteId": "base:site_huangcun",
           "locationId": "base:loc_ref_guard_housing",
           "worldX": 5.51009,
           "worldY": 11.18,
-          "name": "巡卫住房区"
+          "name": "巡卫住房区",
+          "kind": "Village",
+          "adjacentIds": [
+            "base:loc_ref_houses",
+            "base:loc_ref_supervisor_housing",
+            "base:loc_ref_road_hub",
+            "base:loc_ref_labor_yard",
+            "base:loc_ref_party_rally"
+          ],
+          "residentNpcDefinitionId": "base:character_ch01_ref_guard_a",
+          "tags": [
+            "home",
+            "rest",
+            "guard"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Eat",
+            "Patrol"
+          ]
         },
         {
           "siteId": "base:site_huangcun",
           "locationId": "base:loc_ref_supervisor_housing",
           "worldX": 5.91062,
           "worldY": 11.1975,
-          "name": "主管住房区"
+          "name": "主管住房区",
+          "kind": "Village",
+          "adjacentIds": [
+            "base:loc_ref_houses",
+            "base:loc_ref_guard_housing",
+            "base:loc_ref_road_hub",
+            "base:loc_ref_labor_yard",
+            "base:loc_ref_party_rally"
+          ],
+          "residentNpcDefinitionId": "base:character_ch01_ref_supervisor",
+          "tags": [
+            "home",
+            "rest",
+            "supervisor"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Eat",
+            "Patrol"
+          ]
         },
         {
           "siteId": "base:site_lingdi",
           "locationId": "base:loc_site_lingdi_start",
           "worldX": 37.5855,
           "worldY": 8.5,
-          "name": "灵地·入口"
+          "name": "灵地·入口",
+          "kind": "Settlement",
+          "adjacentIds": [],
+          "tags": [
+            "prototype",
+            "site",
+            "lingdi"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ]
         },
         {
           "siteId": "base:site_linjian",
           "locationId": "base:loc_site_linjian_start",
           "worldX": 12.47077,
           "worldY": 7.0,
-          "name": "林间·入口"
+          "name": "林间·入口",
+          "kind": "Settlement",
+          "adjacentIds": [],
+          "tags": [
+            "prototype",
+            "site",
+            "linjian"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ]
         },
         {
           "siteId": "base:site_zhuangyuan",
           "locationId": "base:loc_site_zhuangyuan_start",
           "worldX": 27.71281,
           "worldY": 5.875,
-          "name": "庄院·入口"
+          "name": "庄院·入口",
+          "kind": "Settlement",
+          "adjacentIds": [],
+          "tags": [
+            "prototype",
+            "site",
+            "zhuangyuan"
+          ],
+          "allowedActivities": [
+            "Rest",
+            "Patrol",
+            "Idle"
+          ]
         },
         {
           "siteId": "test:site_player_camp",
           "locationId": "base:loc_player_camp_start",
           "worldX": 6.9282,
           "worldY": 6.0,
-          "name": "主角临时营地"
+          "name": "主角临时营地",
+          "kind": "Wilderness",
+          "adjacentIds": [],
+          "tags": [
+            "wilderness",
+            "plain",
+            "camp",
+            "test"
+          ],
+          "allowedActivities": [
+            "Idle",
+            "Patrol"
+          ]
         }
       ]
     }

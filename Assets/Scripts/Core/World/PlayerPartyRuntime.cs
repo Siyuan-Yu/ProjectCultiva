@@ -223,9 +223,13 @@ namespace XianXia.Core.World
 
             if (world != null)
             {
-                if (!IsOnSameLocalMap(world, candidate, _activeId))
+                // §B：统一 co-presence 判定。Continuous Outdoor 已经没有 Outdoor LocalMap，
+                // 继续用 IsOnSameLocalMap 会把物理相邻的两人判成不可加入（legacy gate）。
+                // Legacy／Interior／Cave 仍由 PlayerPartyLocalCoPresenceQuery 走同一 LocalMap 规则。
+                var coPresence = PlayerPartyLocalCoPresenceQuery.Evaluate(world, this, candidate);
+                if (!coPresence.IsCoPresent)
                 {
-                    error = "Must be on the same LocalMap as the active character.";
+                    error = coPresence.PlayerMessage;
                     return false;
                 }
 
@@ -275,6 +279,11 @@ namespace XianXia.Core.World
             return true;
         }
 
+        /// <summary>
+        /// Legacy compatibility query（同一 LocalMap occupant）。保留给 Interior／Cave／old save 与既有
+        /// 调用方；<b>Normal Continuous Outdoor join 不得使用</b> —— 那条路径走
+        /// <see cref="PlayerPartyLocalCoPresenceQuery"/>。
+        /// </summary>
         public static bool IsOnSameLocalMap(SimulationWorld world, EntityId a, EntityId b)
         {
             if (world?.LocalMap == null || a.IsNone || b.IsNone)

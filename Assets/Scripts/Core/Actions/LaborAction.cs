@@ -87,7 +87,7 @@ namespace XianXia.Core.Actions
         {
             if (!entity.TryGet<EntityLocationComponent>(out var loc) || !loc.HasLocation)
                 return;
-            if (!world.WorldRegion.TryGet(loc.LocationId, out var location))
+            if (!WorldLocationQuery.TryGet(world, loc.LocationId, out var location))
                 return;
             if (string.IsNullOrEmpty(location.ResourceOnExploreId))
                 return;

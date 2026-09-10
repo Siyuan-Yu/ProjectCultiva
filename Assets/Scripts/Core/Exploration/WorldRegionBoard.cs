@@ -51,6 +51,22 @@ namespace XianXia.Core.Exploration
         }
     }
 
+    /// <summary>Unified location lookup for active continuous places and legacy WorldRegion.</summary>
+    public static class WorldLocationQuery
+    {
+        public static bool TryGet(
+            XianXia.Core.Simulation.SimulationWorld world,
+            string locationId,
+            out WorldLocationState location)
+        {
+            location = null;
+            if (world == null || string.IsNullOrEmpty(locationId))
+                return false;
+            return world.ContinuousOutdoorMaterialization.TryGetAnyPlace(locationId, out location) ||
+                   world.WorldRegion.TryGet(locationId, out location);
+        }
+    }
+
     /// <summary>
     /// Transient presentation scope for the loaded continuous outdoor neighborhood. It is
     /// independent from the single Active LocalMap/WorldRegion compatibility boards.
@@ -64,6 +80,10 @@ namespace XianXia.Core.Exploration
             new Dictionary<string, WorldLocationState>(StringComparer.Ordinal);
         readonly Dictionary<string, WorldLocationState> _placesByLocationId =
             new Dictionary<string, WorldLocationState>(StringComparer.Ordinal);
+        readonly List<XianXia.Core.Domain.Ids.EntityId> _entityScratch =
+            new List<XianXia.Core.Domain.Ids.EntityId>();
+        public int PlaceRevision { get; private set; }
+        public int EntityReconcileRevision { get; private set; }
 
         public IReadOnlyCollection<XianXia.Core.Domain.Ids.EntityId> Entities => _entities;
         public IReadOnlyCollection<string> LoadedSiteIds => _loadedSites;
@@ -73,6 +93,12 @@ namespace XianXia.Core.Exploration
         public void Clear()
         {
             _entities.Clear();
+            ClearPlaces();
+        }
+
+        public void ClearPlaces()
+        {
+            PlaceRevision++;
             _loadedSites.Clear();
             _places.Clear();
             _placesByLocationId.Clear();
@@ -93,6 +119,32 @@ namespace XianXia.Core.Exploration
 
         public bool IsMaterialized(XianXia.Core.Domain.Ids.EntityId id) =>
             !id.IsNone && _entities.Contains(id);
+
+        public void ReconcileEntities(
+            IEnumerable<XianXia.Core.Domain.Ids.EntityId> desired,
+            Action<XianXia.Core.Domain.Ids.EntityId> onAdd,
+            Action<XianXia.Core.Domain.Ids.EntityId> onRemove)
+        {
+            EntityReconcileRevision++;
+            var desiredSet = desired as HashSet<XianXia.Core.Domain.Ids.EntityId> ??
+                             new HashSet<XianXia.Core.Domain.Ids.EntityId>(desired ??
+                                 Array.Empty<XianXia.Core.Domain.Ids.EntityId>());
+            _entityScratch.Clear();
+            foreach (var id in _entities)
+                if (!desiredSet.Contains(id)) _entityScratch.Add(id);
+            for (var i = 0; i < _entityScratch.Count; i++)
+            {
+                var id = _entityScratch[i];
+                onRemove?.Invoke(id);
+                _entities.Remove(id);
+            }
+            foreach (var id in desiredSet)
+            {
+                if (id.IsNone || !_entities.Add(id)) continue;
+                onAdd?.Invoke(id);
+            }
+            _entityScratch.Clear();
+        }
 
         public void RegisterPlace(string siteId, WorldLocationState place)
         {

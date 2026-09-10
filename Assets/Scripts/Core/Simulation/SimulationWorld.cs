@@ -61,6 +61,7 @@ namespace XianXia.Core.Simulation
             ContinuousOutdoorMaterialization = new ContinuousOutdoorMaterializationBoard();
             HexWorld = new HexWorld();
             WorldPresence = new WorldPresenceBoard();
+            OpeningSpawnIdentities = new OpeningSpawnIdentityBoard();
             PartyWorld = new PartyWorldPresence();
             Flags = new WorldFlagBoard();
             Quests = new QuestBoard();
@@ -130,6 +131,9 @@ namespace XianXia.Core.Simulation
 
         /// <summary>各角色宏观位置。</summary>
         public WorldPresenceBoard WorldPresence { get; }
+
+        /// <summary>OpeningScenario spawn 的稳定 authored key（EntityId → SpawnStableKey；session-only）。</summary>
+        public OpeningSpawnIdentityBoard OpeningSpawnIdentities { get; }
 
         /// <summary>当前镜头／焦点 Node 摘要。</summary>
         public PartyWorldPresence PartyWorld { get; }

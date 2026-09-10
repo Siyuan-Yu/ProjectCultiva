@@ -364,6 +364,21 @@ namespace XianXia.Unity.Host
                     return false;
                 }
 
+                // Continuous Outdoor：runtime 的 materialize 集合就是「物理在当前 loaded scope」的权威，
+                // 与 legacy map 的 Phase 5S-B2-3.1 同义（FormalArmy living member 已作为正常人口
+                // materialize）。其中包含驻守该 Site 的 Hex FormalArmy 成员
+                // （StrategicWorldSitePopulationService.CollectArmyMemberIdsAtSite 显式收编）。
+                // 必须在下方「残留 AtSite presence」守卫之前放行，否则会出现
+                // 「Expected=N Materialized=N Views=N-1」——materialized 却永远没有 EntityView。
+                if (!onEncounterMap &&
+                    wp.Mode == PartyWorldPresenceMode.AtSite &&
+                    world.Strategic?.Sites != null &&
+                    world.Strategic.Sites.TryGet(wp.SiteId, out var materializedSite) &&
+                    materializedSite != null &&
+                    WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(materializedSite) &&
+                    world.ContinuousOutdoorMaterialization.IsMaterialized(id))
+                    return true;
+
                 // Hex FormalArmy 成员若仍残留 AtSite Presence，不得凭 SiteId 误进任意 LocalMap
                 if (!onEncounterMap && IsHexStrategicArmyMember(world, id))
                     return false;
