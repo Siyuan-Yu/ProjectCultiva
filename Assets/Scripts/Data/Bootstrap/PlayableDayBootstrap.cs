@@ -162,7 +162,7 @@ namespace XianXia.Data.Bootstrap
                 return Result.Fail<PlayableDayBootstrapResult>(strategic.Error);
 
             var hexSession = HexStrategicSessionBootstrap.ApplyOpening(
-                world, scenario, lookup, spawnEntries);
+                world, scenario, lookup, spawnEntries, registry);
             if (hexSession.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(hexSession.Error);
 

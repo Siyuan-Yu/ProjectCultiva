@@ -96,6 +96,26 @@ namespace XianXia.Core.World
             ClearCombatPursuit();
         }
 
+        /// <summary>
+        /// AtSite（战略归属）＋ 精确连续世界锚点：<see cref="SiteId"/> 仍是 background domain
+        /// membership（<c>StrategicWorldSitePopulationService.IsUngroupedResidentAtSite</c> 只看
+        /// Mode／SiteId），<c>HasContinuousWorldPosition</c>/<c>WorldPosX/Y</c> 携带该 resident 在
+        /// 所属 Outdoor surface 内的 authored／baked 精确世界落点（Opening LocalPosition → canonical
+        /// ，或 Continuous Site materializer 使用的锚点）。<see cref="SetAtSite"/> 继续表示
+        /// 「只有 Site、无精确锚点」（普通 Background／Army／旧存档）。
+        /// </summary>
+        public void SetAtSiteWithAnchor(string siteId, WorldVec2 anchorWorldPosition)
+        {
+            Mode = PartyWorldPresenceMode.AtSite;
+            SiteId = siteId ?? string.Empty;
+            ClearHexPresence();
+            WorldPosX = anchorWorldPosition.X;
+            WorldPosY = anchorWorldPosition.Y;
+            HasContinuousWorldPosition = true;
+            ClearFollow();
+            ClearCombatPursuit();
+        }
+
         public WorldVec2 ContinuousWorldPosition =>
             HasContinuousWorldPosition ? new WorldVec2(WorldPosX, WorldPosY) : default;
 
@@ -155,6 +175,14 @@ namespace XianXia.Core.World
             p.HasContinuousWorldPosition = false;
             p.ClearFollow();
             p.ClearCombatPursuit();
+        }
+
+        /// <summary>AtSite ＋ 精确连续世界锚点（见 <see cref="WorldAgentPresence.SetAtSiteWithAnchor"/>）。</summary>
+        public void SetAtSiteWithAnchor(EntityId id, string siteId, WorldVec2 anchorWorldPosition)
+        {
+            var p = GetOrCreate(id);
+            p.EntityId = id;
+            p.SetAtSiteWithAnchor(siteId, anchorWorldPosition);
         }
 
         public void SetAtHex(EntityId id, HexCoord hex)

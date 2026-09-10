@@ -7,6 +7,29 @@
 
 ---
 
+## 2026-09-10 — FIX：New Game 开局荒村 NPC 消失（Opening spawn 初始 macro presence 统一解析 + authored 落点 canonical 化）
+
+**症状**：Continuous Outdoor WorldSite 迁移后，New Game 开局时 OpeningScenario／roster 安排在荒村的 NPC 全部不存在（黑屏／卡死已修，此为残余一项）。
+
+**root cause**：`HexStrategicSessionBootstrap.CollectOpeningCharacterEntityIds` 只收 `entityKind == character`，随后只对他们 `SetAtSite(DefaultStartSiteId)`；authored remote 分支只在 `spawn.WorldSiteId != ""` 才生效。`entityKind=npc` 且未写 worldSiteId 的 15 个荒村 NPC（supervisor/守卫/农人/药农/樵夫/village_recruit/jiang_lao）因此**完全没有 WorldPresence**。旧 LocalMap 时代它们靠 `EntityLocation + active WorldRegion` 显示（`WorldRegionBootstrap.PlaceOpeningSpawns` 仍正确写了 `EntityLocationComponent.LocationId`），而 Continuous Outdoor 不再依赖 Active LocalMap，所以这批 NPC 彻底不可 materialize（`StrategicWorldSitePopulationService.CollectCharacterIdsPresentAtWorldSite` 与 `LocalMapVisibility` 均以 WorldPresence 为前提）。
+
+**修复**
+- 新增 `Data/Bootstrap/OpeningSpawnWorldPresenceApplier.cs`（**不**把 NPC 塞进 `openingCharacters`，travel sync 名单不变）：A. `spawn.WorldSiteId` 非空仍为最高 authority（character/npc 同等）；B. character 未写 → DefaultStartSiteId（既有语义不变）；C. npc 未写 → 从 authored／placed LocalPlace 反查 Outdoor WorldSite（Outdoor surface `sitePlaces[locationId].siteId` → `WorldRegion.ActiveMapLayoutId`／`WorldSite.LocalMapId` 绑定，且目标 Site 必须 `UsesContinuousOutdoorSurface`），无法正向解析则不臆造 presence。
+- **独立空间防护**：place 的 `LocalMapId` 指向另一张 LocalMap（洞府／内景）或既有 `PersonalityProfile` tag `cave` → 不入 Outdoor。
+- **authored 精确落点**：`spawn.LocalPosition` 是 legacy Site LocalMap presentation 坐标，经 source LocalMap bounds ＋ `WorldSiteSpatialMapping.TryLocalToWorldSurface` 转为 canonical WorldPosition 后存入 `WorldAgentPresence.SetAtSiteWithAnchor`（AtSite ＋ `HasContinuousWorldPosition`／`WorldPosX/Y`；`SetAtSite` 保持“只有 Site”语义）。绝不把 legacy 坐标直接当 Continuous 坐标。
+- `ContinuousOutdoorSurfaceRuntime.RefreshContinuousSitePopulation` 落点优先级改为 precise authored anchor → 该 `LocationId` 对应的 baked `SitePlace.WorldPosition` → deterministic fallback（旧 LocalMap 时代手工站位不再丢失）。
+- **Save/Load**：`StrategicSnapshotHelper` 的 AtSite 分支现在也写／读 `HasWorldPosition`＋`WorldX/Y`（JSON 链已支援，无 schema 变更）。
+- 未改：direct Outdoor renderer、SourceCellsW/H、loaded-neighborhood population、`ContinuousOutdoorMaterialization`、Site-scoped place registry、ControlCore／FactionFlag continuous 分支、OutdoorStatefulObject Snapshot、W1C SEALED、Gateway 无 normal runtime。
+
+**验证（headless）**：`OpeningNpcPresenceCheck` 23 项 PASS（15 NPC 全 AtSite(huangcun) 且不入 `PlayerPartyTravel.TravelingMembers`；荒村 resident 解析 4→18；青石 5 NPC 带 canonical 锚点且落在 footprint domain 内并与 `WorldSiteSpatialMapping` 直算一致；洞府内部／无 place 探针 NPC 不被放入 Outdoor；显式 worldSiteId 仍最高 authority；3 character 回归；Snapshot capture→Restore 保留 AtSite＋锚点）。Core/Data/Unity 三程序集 0 error；`git diff --check` 干净。
+- 回归对照（含 `git stash` 基线）：`WeakHexCheck`／`BootstrapCheck`／`LocalCombatHandoffCheck`／`PreciseResidualCheck`／`PendingEngagementRoundTripCheck`／`HostSimCheck3` 全 PASS；`TerritoryContentCheck` A8/A9、`RosterParityCheck`、`ContentLoadCheck`、`HostSimCheck` 在**基线（无本改动）下同样 FAIL**，非本轮回归（`TerritoryContentCheck` A8/A9 为针对用户新 first-claim Control Asset 模型的过时断言，未修改）。
+
+**待制作人验收（只验这一项）**：New Game → 荒村 NPC 全部重新出现；仍是 NPC（不进 PlayerParty）；`LocalLocationId` 语义正常；有 `LocalPosition` 的 NPC 基本保持 authored 站位；Cave／Interior NPC 不错误出现在 Outdoor；NPC 随 loaded Site neighborhood materialize／dematerialize 正常。
+
+**真源**：本 devlog 条目。
+
+---
+
 ## 2026-09-10 — Outdoor WorldSite Continuous Migration runtime correction / pending producer acceptance
 
 - 制作人运行验收确认旧实现以 `0.01` 伪 CellSize 展开数百万 prefab，造成 Play 黑屏 / Editor 近似卡死；已删除该路径，改为 physical rect + authored source-cell semantics 的 direct renderer，并增加数量契约 fail-fast 诊断。

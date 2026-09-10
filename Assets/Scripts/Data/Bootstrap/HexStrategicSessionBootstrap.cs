@@ -17,7 +17,8 @@ namespace XianXia.Data.Bootstrap
             SimulationWorld world,
             OpeningScenarioDefinition scenario,
             GameStartLookup lookup = null,
-            IList<OpeningSpawnEntry> spawnEntries = null)
+            IList<OpeningSpawnEntry> spawnEntries = null,
+            DefinitionRegistry registry = null)
         {
             if (world == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "HexStrategic session bootstrap args null.");
@@ -37,38 +38,14 @@ namespace XianXia.Data.Bootstrap
             }
 
             var openingCharacters = CollectOpeningCharacterEntityIds(scenario, lookup, spawnEntries);
-            for (var i = 0; i < openingCharacters.Count; i++)
-            {
-                if (openingCharacters[i].IsNone)
-                    continue;
-                world.WorldPresence.SetAtSite(openingCharacters[i], startSiteId);
-            }
 
-            // Authored remote presence：spawn.worldSiteId 非空时是明确世界 authority。
-            // 无论 entityKind（character / npc）都按声明 Site 放置，而不是默认塞回荒村。
-            var entries = spawnEntries ?? scenario?.Spawns;
-            if (entries != null)
-            {
-                for (var i = 0; i < entries.Count; i++)
-                {
-                    var spawn = entries[i];
-                    if (spawn == null || string.IsNullOrWhiteSpace(spawn.DefinitionId))
-                        continue;
-                    if (string.IsNullOrWhiteSpace(spawn.WorldSiteId))
-                        continue;
-                    if (lookup == null || !lookup.TryGetEntity(spawn.DefinitionId, out var remoteId) || remoteId.IsNone)
-                        continue;
-                    if (!world.Strategic.Sites.TryGet(spawn.WorldSiteId.Trim(), out var remoteSite) || remoteSite == null)
-                    {
-                        return Result.Failure(
-                            ErrorCode.NotFound,
-                            "Authored spawn worldSiteId missing.",
-                            spawn.WorldSiteId);
-                    }
-
-                    world.WorldPresence.SetAtSite(remoteId, remoteSite.SiteId);
-                }
-            }
+            // 初始 macro presence：统一由 OpeningSpawnWorldPresenceApplier 解析
+            // （character／npc；显式 worldSiteId ／ DefaultStartSite ／ 荒村 authored residence）。
+            // openingCharacters 只肩负责 PlayerParty travel sync 名单，NPC 不得进入。
+            var presenceApplied = OpeningSpawnWorldPresenceApplier.Apply(
+                world, registry, scenario, lookup, spawnEntries);
+            if (presenceApplied.IsFailure)
+                return presenceApplied;
 
             if (world.Strategic.Sites.TryResolveSitePresenceHex(startSiteId, out var presenceHex))
             {

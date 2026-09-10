@@ -185,7 +185,12 @@ namespace XianXia.Core.Persistence
                     {
                         CharacterId = presence.EntityId.Value,
                         Mode = (int)PartyWorldPresenceMode.AtSite,
-                        SiteId = presence.SiteId
+                        SiteId = presence.SiteId,
+                        // AtSite 也可携带 authored／baked 精确锤点（Opening LocalPosition → canonical）；
+                        // 无锚点时 HasWorldPosition=false，保持纯 Site 语义（旧存档一致）。
+                        HasWorldPosition = presence.HasContinuousWorldPosition,
+                        WorldX = presence.WorldPosX,
+                        WorldY = presence.WorldPosY
                     });
                     continue;
                 }
@@ -459,7 +464,11 @@ namespace XianXia.Core.Persistence
                     if (p.Mode == (int)PartyWorldPresenceMode.AtSite &&
                         !string.IsNullOrEmpty(p.SiteId))
                     {
-                        world.WorldPresence.SetAtSite(id, p.SiteId);
+                        if (p.HasWorldPosition)
+                            world.WorldPresence.SetAtSiteWithAnchor(
+                                id, p.SiteId, new WorldVec2(p.WorldX, p.WorldY));
+                        else
+                            world.WorldPresence.SetAtSite(id, p.SiteId);
                         continue;
                     }
 

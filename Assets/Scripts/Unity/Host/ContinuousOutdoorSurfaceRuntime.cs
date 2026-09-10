@@ -697,20 +697,41 @@ namespace XianXia.Unity.Host
                 {
                     var id = _sitePopulationScratch[i];
                     if (_bootstrap.Session.PlayerParty.IsMember(id) || !world.Entities.TryGet(id, out var entity)) continue;
+                    // 落点优先级（§9）：precise Continuous authored anchor
+                    //　→ EntityLocation.LocationId 对应的 baked SitePlace
+                    //　→ deterministic fallback。
                     var wx = region.ArrivalWorldX; var wy = region.ArrivalWorldY;
-                    if (entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc))
+                    var hasPlacement = false;
+                    if (world.WorldPresence.TryGet(id, out var sitePresence) &&
+                        sitePresence != null &&
+                        sitePresence.Mode == XianXia.Core.World.PartyWorldPresenceMode.AtSite &&
+                        sitePresence.HasContinuousWorldPosition)
+                    {
+                        wx = sitePresence.WorldPosX;
+                        wy = sitePresence.WorldPosY;
+                        hasPlacement = true;
+                    }
+
+                    if (!entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc))
+                    {
+                        loc = new XianXia.Core.Exploration.EntityLocationComponent();
+                        entity.AddComponent(loc);
+                    }
+
+                    if (!hasPlacement)
                     {
                         var place = surface.SitePlaces.Find(p => string.Equals(p.SiteId, region.SiteId, StringComparison.Ordinal) &&
                                                                  string.Equals(p.LocationId, loc.LocationId, StringComparison.Ordinal));
-                        if (place != null) { wx = place.WorldX; wy = place.WorldY; }
-                        else AddDeterministicFallbackOffset(id, ref wx, ref wy, surface.CellSize);
+                        if (place != null)
+                        {
+                            wx = place.WorldX; wy = place.WorldY;
+                        }
+                        else
+                        {
+                            AddDeterministicFallbackOffset(id, ref wx, ref wy, surface.CellSize);
+                        }
                     }
-                    else
-                    {
-                        entity.AddComponent(new XianXia.Core.Exploration.EntityLocationComponent());
-                        entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out loc);
-                        AddDeterministicFallbackOffset(id, ref wx, ref wy, surface.CellSize);
-                    }
+
                     _mapper.WorldToPresentation(wx, wy, out var px, out var py);
                     loc.SetPresentationOverride(px, py);
                     world.ContinuousOutdoorMaterialization.Materialize(id);
