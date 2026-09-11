@@ -20,4 +20,13 @@ namespace XianXia.Core.World.Strategic
         TravelToWorldSite = 2,
         AttackFormalArmy = 3,
     }
+
+    public enum FormalArmyRouteKind
+    {
+        None = 0,
+        LegacyHex = 1,
+        SurfaceGround = 2,
+        SurfacePending = 3,
+        SurfaceFailed = 4,
+    }
 }

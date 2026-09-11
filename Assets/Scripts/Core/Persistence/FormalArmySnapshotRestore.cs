@@ -50,6 +50,25 @@ namespace XianXia.Core.Persistence
             if (!Enum.IsDefined(typeof(HexTravelMode), dto.TravelMode))
                 return Invalid(dto, "unknown TravelMode");
 
+            if (!Enum.IsDefined(typeof(FormalArmyRouteKind), dto.RouteKind))
+                return Invalid(dto, "unknown RouteKind");
+            if (dto.RouteKind == (int)FormalArmyRouteKind.SurfaceGround ||
+                dto.RouteKind == (int)FormalArmyRouteKind.SurfacePending ||
+                dto.RouteKind == (int)FormalArmyRouteKind.SurfaceFailed)
+            {
+                if (string.IsNullOrWhiteSpace(dto.SurfaceId) ||
+                    !IsFinite(dto.PhysicalDestinationX) || !IsFinite(dto.PhysicalDestinationY))
+                    return Invalid(dto, "surface route identity or destination is invalid");
+                var surfaceCount = dto.SurfacePath?.Count ?? 0;
+                if (surfaceCount < 2 || dto.SurfaceWaypointIndex < 1 ||
+                    dto.SurfaceWaypointIndex > surfaceCount)
+                    return Invalid(dto, "surface waypoint index is outside the saved route");
+                for (var i = 0; i < surfaceCount; i++)
+                    if (dto.SurfacePath[i] == null || !IsFinite(dto.SurfacePath[i].X) ||
+                        !IsFinite(dto.SurfacePath[i].Y))
+                        return Invalid(dto, "surface path contains a non-finite point");
+            }
+
             if (dto.HasSiteDepartureState && dto.IsSiteDeparturePending)
             {
                 if (dto.LocationKind != (int)FormalArmyLocationKind.AtWorldSite)
@@ -106,6 +125,31 @@ namespace XianXia.Core.Persistence
             var orderKind = dto.CurrentOrderKind > 0
                 ? (FormalArmyOrderKind)dto.CurrentOrderKind
                 : path.Count >= 2 ? FormalArmyOrderKind.TravelToHex : FormalArmyOrderKind.None;
+
+            if (dto.RouteKind == (int)FormalArmyRouteKind.SurfaceGround ||
+                dto.RouteKind == (int)FormalArmyRouteKind.SurfacePending ||
+                dto.RouteKind == (int)FormalArmyRouteKind.SurfaceFailed)
+            {
+                var surfacePath = new List<WorldVec2>(dto.SurfacePath.Count);
+                for (var i = 0; i < dto.SurfacePath.Count; i++)
+                    surfacePath.Add(new WorldVec2(dto.SurfacePath[i].X, dto.SurfacePath[i].Y));
+                motion.RestoreSurfaceSnapshotMotion(
+                    orderKind, surfacePath,
+                    new WorldVec2(dto.PhysicalDestinationX, dto.PhysicalDestinationY),
+                    new HexCoord(dto.DestinationHexQ, dto.DestinationHexR),
+                    dto.DestinationSiteId, dto.SurfaceId,
+                    dto.SurfaceSourceRevision, dto.SurfaceSourceHash,
+                    dto.SurfaceWaypointIndex, dto.SegmentProgress,
+                    dto.RouteKind == (int)FormalArmyRouteKind.SurfaceGround
+                        ? FormalArmyRouteKind.SurfacePending
+                        : (FormalArmyRouteKind)dto.RouteKind,
+                    dto.RouteKind == (int)FormalArmyRouteKind.SurfaceGround
+                        ? "AwaitingNavigationBind"
+                        : dto.RouteDiagnostic);
+                army.SyncLegacyFromWorldMotion();
+                FormalArmyMemberPresenceSync.SyncAll(world, army);
+                return Result.Success();
+            }
             var hasMotionAuthority = dto.LocationKind > 0;
             var segmentIndex = hasMotionAuthority ? dto.SegmentIndex : dto.CurrentPathIndex;
             var segmentProgress = hasMotionAuthority ? dto.SegmentProgress : dto.StepProgress;

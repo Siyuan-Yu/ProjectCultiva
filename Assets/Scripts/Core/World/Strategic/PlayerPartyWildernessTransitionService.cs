@@ -229,7 +229,15 @@ namespace XianXia.Core.World.Strategic
             var position = new WorldVec2(worldX, worldY);
             var committed = ContinuousSurfaceHexCommitResolver.Resolve(
                 motion.CurrentHex, position, size);
-            if (!ContinuousSurfacePrototypeGroundLegality.CanMoveTo(world.HexWorld, motion.CurrentHex, position, size))
+            var legacyLegal = ContinuousSurfacePrototypeGroundLegality.CanMoveTo(
+                world.HexWorld, motion.CurrentHex, position, size);
+            var surface = world.SurfaceGround?.Active;
+            var oldCovered = surface != null && surface.Contains(motion.WorldPosition.X, motion.WorldPosition.Y);
+            var newCovered = surface != null && surface.Contains(position.X, position.Y);
+            var legal = oldCovered && newCovered
+                ? surface.IsSegmentWalkable(motion.WorldPosition.X, motion.WorldPosition.Y, position.X, position.Y)
+                : legacyLegal && (!newCovered || surface.IsWalkable(position.X, position.Y));
+            if (!legal)
                 return Result.Failure(ErrorCode.InvalidOperation, ContinuousSurfacePrototypeGroundLegality.BlockedDiagnostic);
             motion.SetWorldPositionInternal(position, committed);
             ApplyTravelingMembersAtHex(world, committed);

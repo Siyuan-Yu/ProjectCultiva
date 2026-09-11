@@ -21,6 +21,7 @@ using XianXia.Core.Social;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
+using XianXia.Core.World.Surface;
 
 namespace XianXia.Core.Simulation
 {
@@ -59,6 +60,7 @@ namespace XianXia.Core.Simulation
             Settlements = new SettlementBoard();
             WorldRegion = new WorldRegionBoard();
             ContinuousOutdoorMaterialization = new ContinuousOutdoorMaterializationBoard();
+            SurfaceGround = new SurfaceGroundAuthority();
             HexWorld = new HexWorld();
             WorldPresence = new WorldPresenceBoard();
             OpeningSpawnIdentities = new OpeningSpawnIdentityBoard();
@@ -122,6 +124,9 @@ namespace XianXia.Core.Simulation
 
         /// <summary>Loaded continuous outdoor sites, places and entity presentation membership.</summary>
         public ContinuousOutdoorMaterializationBoard ContinuousOutdoorMaterialization { get; }
+
+        /// <summary>Region-limited checked-in Surface ground/nav authority; outside its cells Hex compatibility remains active.</summary>
+        public SurfaceGroundAuthority SurfaceGround { get; }
 
         /// <summary>Hex 战略世界真源（155+）。</summary>
         public HexWorld HexWorld { get; }

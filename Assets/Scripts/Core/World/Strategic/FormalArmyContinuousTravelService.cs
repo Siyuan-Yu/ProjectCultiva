@@ -4,6 +4,7 @@ using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
+using XianXia.Core.World.Surface;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -15,6 +16,7 @@ namespace XianXia.Core.World.Strategic
         static readonly List<HexCoord> PathScratch = new List<HexCoord>(64);
         static readonly List<HexCoord> FullPathScratch = new List<HexCoord>(64);
         static readonly List<string> AdvanceArmyScratch = new List<string>(32);
+        static readonly List<WorldVec2> SurfacePathScratch = new List<WorldVec2>(256);
 
         public static Result MoveArmyToHex(SimulationWorld world, string armyId, HexCoord destination) =>
             BeginTravel(world, armyId, destination, string.Empty, FormalArmyOrderKind.TravelToHex);
@@ -77,15 +79,11 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidOperation, "Army is garrisoned.");
 
             if (!FormalArmyWorldLocationQuery.TryResolve(
-                    world, army, out var startKind, out var startSiteId, out _, out var startHex))
+                    world, army, out var startKind, out var startSiteId, out var startWorld, out var startHex))
                 return Result.Failure(ErrorCode.InvalidOperation, "Army has no world location.");
 
             var motion = army.WorldMotion;
             var isReplace = army.State == FormalArmyState.Moving || motion.IsMoving;
-            if (orderKind == FormalArmyOrderKind.TravelToHex ||
-                orderKind == FormalArmyOrderKind.TravelToWorldSite)
-                motion.ClearOrderTarget();
-
             FormalArmyOrderReplaceTrace.Capture replaceTrace = default;
             if (isReplace)
                 replaceTrace = FormalArmyOrderReplaceTrace.CaptureBeforeReplace(motion);
@@ -98,6 +96,40 @@ namespace XianXia.Core.World.Strategic
                 world.Strategic.Sites.TryGet(destinationSiteId, out var targetSite) &&
                 targetSite != null)
                 goalHex = ResolveDeterministicSiteApproachHex(world, startHex, targetSite);
+
+            var goalWorld = HexCenter(goalHex,
+                world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f);
+            if (!string.IsNullOrEmpty(destinationSiteId) &&
+                world.SurfaceGround.TryResolveSiteArrival(
+                    destinationSiteId, out _, out var authoredArrival))
+                goalWorld = authoredArrival;
+            if (world.SurfaceGround.TryResolveShared(startWorld, goalWorld, out var surfaceNavigation))
+            {
+                SurfacePathScratch.Clear();
+                var routeStatus = surfaceNavigation.TryFindRoute(startWorld, goalWorld, SurfacePathScratch);
+                if (routeStatus != SurfaceGroundRouteStatus.Found)
+                    return Result.Failure(ErrorCode.InvalidOperation,
+                        "Surface army route unavailable: " + routeStatus + ".",
+                        surfaceNavigation.SurfaceId);
+
+                motion.BeginSurfaceTravel(orderKind, SurfacePathScratch, goalWorld, goalHex,
+                    destinationSiteId, surfaceNavigation.SurfaceId,
+                    surfaceNavigation.SourceRevision, surfaceNavigation.SourceHash);
+                if (orderKind == FormalArmyOrderKind.TravelToHex ||
+                    orderKind == FormalArmyOrderKind.TravelToWorldSite)
+                    motion.ClearOrderTarget();
+                motion.LastProcessedWorldTick = world.Tick.Value;
+                army.State = FormalArmyState.Moving;
+                army.SyncLegacyFromWorldMotion();
+                FormalArmyMemberPresenceSync.SyncAll(world, army);
+                return Result.Success();
+            }
+
+            var startInKnownSurface = world.SurfaceGround.TryResolveContaining(startWorld, out _);
+            var goalInKnownSurface = world.SurfaceGround.TryResolveContaining(goalWorld, out _);
+            if (startInKnownSurface || goalInKnownSurface)
+                return Result.Failure(ErrorCode.InvalidOperation,
+                    "Cross-region surface route is not available; legacy travel was not used.");
 
             if (!world.HexWorld.TryGetTile(goalHex, out var destTile) ||
                 destTile == null ||
@@ -126,6 +158,11 @@ namespace XianXia.Core.World.Strategic
                         out var exitHex,
                         out var departureFootprintHex))
                     return Result.Failure(ErrorCode.InvalidOperation, "No path leaving WorldSite.");
+
+                if (!IsLegacyPathCompatibleWithRegisteredSurfaces(
+                        world, startWorld, FullPathScratch))
+                    return Result.Failure(ErrorCode.InvalidOperation,
+                        "Cross-region terrain route is incomplete; legacy path intersects blocked Surface ground.");
 
                 var hexSizeForDeparture = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
                 if (!BackgroundCharacterSiteDepartureResolver.TryResolveDepartureBoundaryEntryWorldPosition(
@@ -180,6 +217,10 @@ namespace XianXia.Core.World.Strategic
                 FullPathScratch.Count < 1)
                 return Result.Failure(ErrorCode.InvalidOperation, "No hex path to destination.");
 
+            if (!IsLegacyPathCompatibleWithRegisteredSurfaces(world, startWorld, FullPathScratch))
+                return Result.Failure(ErrorCode.InvalidOperation,
+                    "Cross-region terrain route is incomplete; legacy path intersects blocked Surface ground.");
+
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             if (startKind == FormalArmyLocationKind.AtWorldSite &&
                 !isReplace &&
@@ -190,6 +231,9 @@ namespace XianXia.Core.World.Strategic
             }
 
             motion.BeginAutoTravel(orderKind, FullPathScratch, goalHex, destinationSiteId, HexTravelMode.Ground);
+            if (orderKind == FormalArmyOrderKind.TravelToHex ||
+                orderKind == FormalArmyOrderKind.TravelToWorldSite)
+                motion.ClearOrderTarget();
             motion.LastProcessedWorldTick = world.Tick.Value;
             army.SyncLegacyFromWorldMotion();
             FormalArmyMemberPresenceSync.SyncAll(world, army);
@@ -219,6 +263,8 @@ namespace XianXia.Core.World.Strategic
                 var army = kv.Value;
                 if (army == null || !army.WorldMotion.IsMoving)
                     continue;
+                if (FormalArmyMemberPresenceSync.IsArmyEngaged(world, army))
+                    continue;
                 AdvanceArmyScratch.Add(kv.Key);
             }
 
@@ -242,6 +288,12 @@ namespace XianXia.Core.World.Strategic
             var motion = army.WorldMotion;
             if (!motion.IsMoving)
                 return;
+
+            if (motion.RouteKind == FormalArmyRouteKind.SurfaceGround)
+            {
+                AdvanceSurfaceDistanceBudget(world, army, distanceBudget);
+                return;
+            }
 
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             var pos = motion.IsSiteDeparturePending &&
@@ -372,6 +424,142 @@ namespace XianXia.Core.World.Strategic
                 var progress = 1f - WorldVec2.Distance(pos, toPos) / segmentLen;
                 motion.SetSegment(motion.SegmentIndex, progress);
                 remainingBudget = 0f;
+            }
+
+            army.SyncLegacyFromWorldMotion();
+            FormalArmyMemberPresenceSync.SyncAll(world, army);
+        }
+
+        /// <summary>
+        /// Called once after static content/navigation has been rebound following load. Pending
+        /// routes resume only when their exact baked identity is available; changed content is
+        /// replanned from the saved precise position to the saved physical goal.
+        /// </summary>
+        public static void RebindPendingSurfaceRoutes(SimulationWorld world)
+        {
+            if (world?.Strategic?.FormalArmies == null) return;
+            foreach (var pair in world.Strategic.FormalArmies.Armies)
+            {
+                var army = pair.Value;
+                var motion = army?.WorldMotion;
+                if (motion == null || motion.RouteKind != FormalArmyRouteKind.SurfacePending)
+                    continue;
+                if (!world.SurfaceGround.TryGet(motion.SurfaceId, out var navigation))
+                    continue;
+                if (string.Equals(navigation.SourceHash, motion.SurfaceSourceHash,
+                        StringComparison.Ordinal))
+                {
+                    motion.SetSurfaceRouteState(FormalArmyRouteKind.SurfaceGround, string.Empty);
+                    army.SyncLegacyFromWorldMotion();
+                    continue;
+                }
+
+                SurfacePathScratch.Clear();
+                var status = navigation.TryFindRoute(
+                    motion.WorldPosition, motion.PhysicalDestination, SurfacePathScratch);
+                if (status == SurfaceGroundRouteStatus.Found)
+                {
+                    motion.BeginSurfaceTravel(motion.CurrentOrderKind, SurfacePathScratch,
+                        motion.PhysicalDestination, motion.DestinationHex,
+                        motion.DestinationSiteId, navigation.SurfaceId,
+                        navigation.SourceRevision, navigation.SourceHash);
+                    army.SyncLegacyFromWorldMotion();
+                }
+                else
+                {
+                    motion.SetSurfaceRouteState(FormalArmyRouteKind.SurfaceFailed,
+                        "RestoreReplanFailed:" + status);
+                }
+            }
+        }
+
+        static void AdvanceSurfaceDistanceBudget(
+            SimulationWorld world,
+            FormalArmy army,
+            float distanceBudget)
+        {
+            var motion = army.WorldMotion;
+            if (!world.SurfaceGround.TryGet(motion.SurfaceId, out var navigation))
+            {
+                motion.SetSurfaceRouteState(FormalArmyRouteKind.SurfacePending, "NavigationNotReady");
+                return;
+            }
+            if (!string.Equals(navigation.SourceHash, motion.SurfaceSourceHash, StringComparison.Ordinal))
+            {
+                SurfacePathScratch.Clear();
+                var status = navigation.TryFindRoute(
+                    motion.WorldPosition, motion.PhysicalDestination, SurfacePathScratch);
+                if (status != SurfaceGroundRouteStatus.Found)
+                {
+                    motion.SetSurfaceRouteState(FormalArmyRouteKind.SurfaceFailed,
+                        "NavigationRevisionMismatch:" + status);
+                    return;
+                }
+                motion.BeginSurfaceTravel(motion.CurrentOrderKind, SurfacePathScratch,
+                    motion.PhysicalDestination, motion.DestinationHex,
+                    motion.DestinationSiteId, navigation.SurfaceId,
+                    navigation.SourceRevision, navigation.SourceHash);
+            }
+
+            var path = motion.SurfacePath;
+            var index = motion.SurfaceWaypointIndex;
+            var position = motion.WorldPosition;
+            var remaining = distanceBudget;
+            // Each iteration consumes a waypoint or all remaining distance, so this bound scales
+            // with the actual owned route and never discards a high-speed tick at an arbitrary 64.
+            var guard = Math.Max(2, path.Count + 1);
+            while (remaining > 0.0001f && index < path.Count && guard-- > 0)
+            {
+                var target = path[index];
+                var segmentRemaining = WorldVec2.Distance(position, target);
+                if (segmentRemaining <= 0.0001f)
+                {
+                    position = target;
+                    index++;
+                    continue;
+                }
+
+                if (segmentRemaining <= remaining + 0.0001f)
+                {
+                    position = target;
+                    remaining -= segmentRemaining;
+                    index++;
+                }
+                else
+                {
+                    var ratio = remaining / segmentRemaining;
+                    position = new WorldVec2(
+                        position.X + (target.X - position.X) * ratio,
+                        position.Y + (target.Y - position.Y) * ratio);
+                    remaining = 0f;
+                }
+
+                var derived = HexMath.WorldToHex(position.X, position.Y,
+                    world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f);
+                motion.SetWorldPositionInternal(position, derived);
+                motion.SetSurfaceWaypoint(index,
+                    index < path.Count && segmentRemaining > 0.0001f
+                        ? 1f - WorldVec2.Distance(position, path[index]) / segmentRemaining
+                        : 0f);
+            }
+
+            if (index >= path.Count)
+            {
+                var destination = motion.PhysicalDestination;
+                var destinationHex = HexMath.WorldToHex(destination.X, destination.Y,
+                    world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f);
+                var destinationSiteId = motion.DestinationSiteId;
+                if (!string.IsNullOrEmpty(destinationSiteId))
+                    motion.SetAtWorldSitePreservingWorldPosition(
+                        destinationSiteId, destination, destinationHex);
+                else
+                    motion.SetWorldPositionInternal(destination, destinationHex);
+                motion.ClearTravel();
+                army.State = FormalArmyState.Idle;
+            }
+            else
+            {
+                army.State = FormalArmyState.Moving;
             }
 
             army.SyncLegacyFromWorldMotion();
@@ -553,6 +741,38 @@ namespace XianXia.Core.World.Strategic
         {
             HexMath.ToWorldPosition(hex, hexSize, out var x, out var y);
             return new WorldVec2(x, y);
+        }
+
+        static bool IsLegacyPathCompatibleWithRegisteredSurfaces(
+            SimulationWorld world,
+            WorldVec2 preciseStart,
+            IReadOnlyList<HexCoord> path)
+        {
+            if (path == null || path.Count == 0 || world.SurfaceGround.Registered.Count == 0)
+                return true;
+            var size = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var from = preciseStart;
+            for (var i = 1; i < path.Count; i++)
+            {
+                var to = HexCenter(path[i], size);
+                foreach (var pair in world.SurfaceGround.Registered)
+                {
+                    var nav = pair.Value;
+                    if (nav == null) continue;
+                    var length = WorldVec2.Distance(from, to);
+                    var steps = Math.Max(1, (int)Math.Ceiling(length / Math.Max(.01f, nav.CellSize * .5f)));
+                    for (var step = 0; step <= steps; step++)
+                    {
+                        var t = step / (float)steps;
+                        var x = from.X + (to.X - from.X) * t;
+                        var y = from.Y + (to.Y - from.Y) * t;
+                        if (nav.Contains(x, y) && !nav.IsWalkable(x, y))
+                            return false;
+                    }
+                }
+                from = to;
+            }
+            return true;
         }
     }
 }

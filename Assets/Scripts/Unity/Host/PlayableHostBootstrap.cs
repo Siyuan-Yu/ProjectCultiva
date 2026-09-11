@@ -89,6 +89,7 @@ namespace XianXia.Unity.Host
         [SerializeField] HostInteractSpotPresenter interactSpotPresenter;
         [SerializeField] HostSurfaceExitZonePresenter surfaceExitZonePresenter;
         [SerializeField] HostNpcScheduleMover npcScheduleMover;
+        [SerializeField] HostFormalArmyContinuousPresenter formalArmyContinuousPresenter;
         [SerializeField] HostNpcContextMenu npcContextMenu;
 
         [Header("Tick debug")]
@@ -240,6 +241,9 @@ namespace XianXia.Unity.Host
             if (combatArtLearnPrompt == null)
                 combatArtLearnPrompt = GetComponent<HostCombatArtLearnPrompt>() ??
                                       GetComponentInChildren<HostCombatArtLearnPrompt>();
+            if (formalArmyContinuousPresenter == null)
+                formalArmyContinuousPresenter = GetComponent<HostFormalArmyContinuousPresenter>() ??
+                    gameObject.AddComponent<HostFormalArmyContinuousPresenter>();
             EnsureSocialNotificationOverlay();
 
             secondsPerAutoTickAt1x = SimulationTickPacing.SecondsPerTickAt1x;
@@ -1105,6 +1109,7 @@ namespace XianXia.Unity.Host
                 relationPanel,
                 cam);
             npcScheduleMover.Bind(this, moveController, entityViewSpawner);
+            formalArmyContinuousPresenter.Bind(this);
             ActivateSurfaceLocalMapPresentation();
             if (continuousOutdoorStartup)
             {

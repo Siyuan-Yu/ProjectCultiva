@@ -7,10 +7,13 @@ using XianXia.Core.Combat;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
+using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
+using XianXia.Core.World.Surface;
+using XianXia.Data.Content;
 
 namespace XianXia.Unity.Host
 {
@@ -71,12 +74,26 @@ namespace XianXia.Unity.Host
         [SerializeField] bool open;
 
         readonly List<HexCoord> _hexPathPreview = new List<HexCoord>(32);
+        enum RoutePreviewKind
+        {
+            None,
+            SurfaceRoute,
+            ContinuousGoalOnly,
+            ArmySurfaceRoute,
+            ArmyHexRoute,
+            LegacyPlayerHexRoute
+        }
+        RoutePreviewKind _routePreviewKind;
+        readonly List<Rect> _surfaceRoadWorldRects = new List<Rect>(256);
+        string _surfaceRoadCacheIdentity = string.Empty;
+        string _lastRoutePreviewDiagnostic = string.Empty;
         bool[] _pathMask;
         int _pathMaskW;
         int _pathMaskH;
         bool _terrainLegendExpanded;
         /// <summary>WorldMap 图层开关：显示势力范围（Territory overlay）。纯 UI preference，不写 SaveGame；panel hide/show 不重置。</summary>
         bool _showTerritoryOverlay;
+        bool _showSurfaceGeography = true;
         /// <summary>WorldMap 军队表现层；默认 ON，不写入存档。</summary>
         bool _showArmyMarkers = true;
         float _lastMapViewportWidth = 800f;
@@ -260,8 +277,11 @@ namespace XianXia.Unity.Host
             if (bootstrap?.Session != null && bootstrap.Session.IsInitialized)
             {
                 var world = bootstrap.Session.World;
-                // Phase 5B: LocalVisible -> World; Path/Progress/WorldPosition unchanged.
-                PlayerPartyHexTravelService.ResumeWorldTravelExecutionIfNeeded(world);
+                // WorldMap is a planning overlay for PlayerParty. Preserve the route and exact
+                // canonical position, keep physical execution LocalVisible, and stop any active
+                // presentation path while the input gate is held.
+                PlayerPartyHexTravelService.HoldForLocalVisibleExecution(world);
+                bootstrap.PlayerPartyController?.FreezeLocalVisibleTravelForPlanning();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 FormalArmyStrategicMutationDiagnostics.BindPresentationWorld(world);
 #endif
@@ -367,6 +387,19 @@ namespace XianXia.Unity.Host
             ForceClearInputBlock();
             ReleaseMapPause();
 
+            // Continuous Outdoor already owns the live presentation and canonical sync. Closing
+            // its planning overlay only rearms the existing LocalVisible route; it must not enter
+            // the legacy World -> Local takeover/materialize path.
+            if (bootstrap?.ContinuousOutdoorSurfaceRuntime != null &&
+                bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive)
+            {
+                if (world?.PlayerPartyTravel != null &&
+                    world.PlayerPartyTravel.IsMoving &&
+                    world.PlayerPartyTravel.ExecutionMode == PlayerPartyTravelExecutionMode.LocalVisible)
+                    bootstrap.PlayerPartyController?.ResumeLocalVisibleTravelAfterPlanning();
+                return;
+            }
+
             if (!needExpand)
                 return;
 
@@ -375,7 +408,7 @@ namespace XianXia.Unity.Host
             var enter = PlayerPartyHexTravelService.CloseWorldMapTakeover(world, party);
             if (enter.IsSuccess && bootstrap != null)
             {
-                bootstrap.PlayerPartyController?.OnLocalVisibleTravelTakeover();
+                bootstrap.PlayerPartyController?.OnLegacyLocalVisibleTravelTakeover();
                 // W1D: WorldMap close is a normal Wilderness entry. Once Core has restored
                 // the canonical outdoor position, coverage owns presentation before legacy
                 // LocalMap materialization can run.
@@ -412,7 +445,7 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// 兼容旧调用点：Hex 路线 overlay 仅由 RefreshSelectedArmyPathPreview 驱动
+        /// 兼容旧调用点：路线 overlay 由统一 RefreshRoutePreview 按当前 owner 驱动。
         /// </summary>
         public void SetArmyHexPathPreview(string armyId, HexCoord destination)
         {
@@ -713,6 +746,12 @@ namespace XianXia.Unity.Host
                 _showTerritoryOverlay = showTerritory;
                 HostHexWorldRenderer.SetTerritoryOverlayVisible(showTerritory);
             }
+
+            _showSurfaceGeography = GUI.Toggle(
+                new Rect(Screen.width - 480f, titleY + 4f, 122f, 26f),
+                _showSurfaceGeography,
+                "显示地理层",
+                _layerToggle);
 
             var showArmies = GUI.Toggle(
                 new Rect(Screen.width - 226f, titleY + 4f, 108f, 26f),
@@ -1239,19 +1278,68 @@ namespace XianXia.Unity.Host
             if (_hoverHex != _lastHoverHex)
                 _lastHoverHex = _hoverHex;
 
-            RefreshSelectedArmyPathPreview(world);
-            RefreshPlayerPartyPathPreview(world);
+            RefreshRoutePreview(world);
         }
 
         void RefreshPlayerPartyPathPreview(SimulationWorld world)
         {
-            if (!string.IsNullOrEmpty(SelectedFormalArmyId))
-                return;
-            if (world?.PlayerPartyTravel == null || !world.PlayerPartyTravel.IsMoving)
-                return;
+            RefreshRoutePreview(world);
+        }
 
+        void RefreshRoutePreview(SimulationWorld world)
+        {
             _hexPathPreview.Clear();
+            _routePreviewKind = RoutePreviewKind.None;
+            if (world == null)
+            {
+                ReportRoutePreviewSource(world);
+                return;
+            }
+
+            if (_worldMapSelection.Kind == HostWorldMapSelectionKind.FormalArmy)
+            {
+                if (TryGetSelectedPlayerArmyForPathPreview(world, out var selectedArmy))
+                {
+                    if (selectedArmy.WorldMotion.RouteKind == FormalArmyRouteKind.SurfaceGround &&
+                        selectedArmy.WorldMotion.SurfaceWaypointIndex < selectedArmy.WorldMotion.SurfacePathCount)
+                    {
+                        _routePreviewKind = RoutePreviewKind.ArmySurfaceRoute;
+                        ReportRoutePreviewSource(world);
+                        return;
+                    }
+                    _routePreviewKind = RoutePreviewKind.ArmyHexRoute;
+                    _hexPathPreview.Add(selectedArmy.CurrentHex);
+                    var armyPath = selectedArmy.HexPath;
+                    for (var i = selectedArmy.CurrentPathIndex; i < selectedArmy.HexPathCount; i++)
+                        _hexPathPreview.Add(armyPath[i]);
+                    if (_hexPathPreview.Count == 1 && selectedArmy.DestinationHex != selectedArmy.CurrentHex)
+                        _hexPathPreview.Add(selectedArmy.DestinationHex);
+                }
+                ReportRoutePreviewSource(world);
+                return;
+            }
+
             var motion = world.PlayerPartyTravel;
+            if (motion == null || !motion.IsMoving)
+            {
+                ReportRoutePreviewSource(world);
+                return;
+            }
+
+            if (motion.HasContinuousPhysicalDestination)
+            {
+                _routePreviewKind = motion.HasContinuousSurfaceRoute &&
+                                    motion.ContinuousSurfaceRouteIndex < motion.ContinuousSurfaceRoute.Count
+                    ? RoutePreviewKind.SurfaceRoute
+                    : RoutePreviewKind.ContinuousGoalOnly;
+                // Continuous plans retain a coarse HexPath for strategic context. Neither an
+                // incomplete cross-coverage plan nor an old restored plan may present that path
+                // as verified physical navigation.
+                ReportRoutePreviewSource(world);
+                return;
+            }
+
+            _routePreviewKind = RoutePreviewKind.LegacyPlayerHexRoute;
             var path = motion.HexPath;
 
             // Phase 5R-B6.3A：route 起点 authority 统一走 Query。AtWorldSite + departure 时
@@ -1265,23 +1353,42 @@ namespace XianXia.Unity.Host
                 _hexPathPreview.Add(path[i]);
             if (_hexPathPreview.Count == 1 && motion.DestinationHex != startHex)
                 _hexPathPreview.Add(motion.DestinationHex);
+            ReportRoutePreviewSource(world);
         }
 
-        /// <summary>
-        /// 仅当前选中的我方军团且有有效移动计划时，填Hex 路线 overlay（线 + 格高亮共用）
-        /// </summary>
-        void RefreshSelectedArmyPathPreview(SimulationWorld world)
+        [System.Diagnostics.Conditional("UNITY_EDITOR"),
+         System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        void ReportRoutePreviewSource(SimulationWorld world)
         {
-            _hexPathPreview.Clear();
-            if (!TryGetSelectedPlayerArmyForPathPreview(world, out var army))
-                return;
-
-            _hexPathPreview.Add(army.CurrentHex);
-            var path = army.HexPath;
-            for (var i = army.CurrentPathIndex; i < army.HexPathCount; i++)
-                _hexPathPreview.Add(path[i]);
-            if (_hexPathPreview.Count == 1 && army.DestinationHex != army.CurrentHex)
-                _hexPathPreview.Add(army.DestinationHex);
+            var motion = world?.PlayerPartyTravel;
+            var geography = bootstrap?.ContinuousOutdoorSurfaceRuntime?.ActiveGeography;
+            var nav = geography?.Navigation;
+            var owner = _routePreviewKind == RoutePreviewKind.ArmyHexRoute ||
+                        _routePreviewKind == RoutePreviewKind.ArmySurfaceRoute
+                ? "Army"
+                : _routePreviewKind == RoutePreviewKind.SurfaceRoute ||
+                  _routePreviewKind == RoutePreviewKind.ContinuousGoalOnly ||
+                  _routePreviewKind == RoutePreviewKind.LegacyPlayerHexRoute
+                    ? "PlayerParty"
+                    : "None";
+            var startCovered = motion != null && nav != null && motion.HasPosition &&
+                               nav.Contains(motion.WorldPosition.X, motion.WorldPosition.Y);
+            var goalCovered = motion != null && nav != null && motion.HasContinuousPhysicalDestination &&
+                              nav.Contains(motion.ContinuousPhysicalDestination.X,
+                                  motion.ContinuousPhysicalDestination.Y);
+            var text = "Owner=" + owner +
+                       " Kind=" + _routePreviewKind +
+                       " TravelPlanVersion=" + (motion?.TravelPlanVersion ?? -1) +
+                       " SurfaceId=" + (geography?.SurfaceId ?? string.Empty) +
+                       " StartInCoverage=" + startCovered +
+                       " GoalInCoverage=" + goalCovered +
+                       " RoutePointCount=" + (motion?.ContinuousSurfaceRoute.Count ?? 0) +
+                       " RouteIndex=" + (motion?.ContinuousSurfaceRouteIndex ?? 0) +
+                       " SourceRevision=" + (geography?.SourceRevision ?? string.Empty) +
+                       " SourceHash=" + (geography?.SourceHash ?? string.Empty);
+            if (string.Equals(text, _lastRoutePreviewDiagnostic, StringComparison.Ordinal)) return;
+            _lastRoutePreviewDiagnostic = text;
+            Debug.Log("[WorldMapRoutePreview] " + text, this);
         }
 
         /// <summary>路线预览：SELF + 有效 Hex TravelPlan（剩余路径）才显示/summary>
@@ -1385,8 +1492,155 @@ namespace XianXia.Unity.Host
                     _pathMask,
                     _pathMaskW,
                     _pathMaskH);
+                if (_showSurfaceGeography)
+                    DrawSurfaceGeography(mapRect, world);
+                DrawContinuousSurfaceRoutePreview(mapRect, world);
                 return;
             }
+        }
+
+        void DrawSurfaceGeography(Rect mapRect, SimulationWorld world)
+        {
+            var geography = bootstrap?.ContinuousOutdoorSurfaceRuntime?.ActiveGeography;
+            if (geography == null) return;
+            EnsureSurfaceRoadDisplayCache(geography);
+            var old = GUI.color;
+            GUI.color = new Color(.78f, .59f, .30f, .88f);
+            for (var i = 0; i < _surfaceRoadWorldRects.Count; i++)
+            {
+                var road = _surfaceRoadWorldRects[i];
+                var a = ProjectHex(mapRect, world, road.xMin, road.yMin);
+                var b = ProjectHex(mapRect, world, road.xMax, road.yMax);
+                var rect = Rect.MinMaxRect(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y),
+                    Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y));
+                if (rect.Overlaps(mapRect)) GUI.DrawTexture(rect, _px);
+            }
+            for (var i = 0; i < geography.MapPrimitives.Count; i++)
+            {
+                var p = geography.MapPrimitives[i];
+                if (p.Kind == "roadPolyline")
+                    continue;
+                var a = ProjectHex(mapRect, world, p.WorldX, p.WorldY);
+                var b = ProjectHex(mapRect, world, p.WorldX + p.WorldWidth, p.WorldY + p.WorldHeight);
+                var rect = Rect.MinMaxRect(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y), Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y));
+                if (!rect.Overlaps(mapRect)) continue;
+                GUI.color = p.Kind == "waterRegion" ? new Color(.10f, .38f, .72f, .76f) :
+                    p.Kind == "bridge" ? new Color(.64f, .40f, .16f, .95f) : new Color(.25f, .27f, .29f, .92f);
+                GUI.DrawTexture(rect, _px);
+            }
+            GUI.color = Color.white;
+            for (var i = 0; i < geography.Landmarks.Count; i++)
+            {
+                var l = geography.Landmarks[i];
+                var point = ProjectHex(mapRect, world, l.WorldX, l.WorldY);
+                if (mapRect.Contains(point))
+                    GUI.Label(new Rect(point.x - 70f, point.y - 18f, 140f, 20f), l.Label, _avatarLabel);
+            }
+            GUI.color = old;
+        }
+
+        void EnsureSurfaceRoadDisplayCache(OutdoorSurfaceGeographyDefinition geography)
+        {
+            var nav = geography?.Navigation;
+            var identity = nav == null
+                ? string.Empty
+                : geography.SurfaceId + "|" + geography.SourceRevision + "|" + geography.SourceHash +
+                  "|" + nav.OriginX + "|" + nav.OriginY + "|" + nav.Width + "|" + nav.Height;
+            if (string.Equals(identity, _surfaceRoadCacheIdentity, StringComparison.Ordinal)) return;
+            _surfaceRoadCacheIdentity = identity;
+            _surfaceRoadWorldRects.Clear();
+            if (nav == null) return;
+
+            // Build once per checked-in bake identity. Only final dry Road cells become road
+            // display; water/solid cells crossed by the authoring polyline are deliberately absent.
+            // Bridge has its own distinct primitive and remains visibly above the river.
+            for (var y = 0; y < nav.Height; y++)
+            {
+                var runStart = -1;
+                for (var x = 0; x <= nav.Width; x++)
+                {
+                    var road = false;
+                    if (x < nav.Width)
+                    {
+                        nav.WalkGrid.CellToWorldCenter(x, y, out var wx, out var wy);
+                        if (nav.TryGetCell(wx, wy, out var kind))
+                            road = (kind & SurfaceGroundCellKind.Road) != 0 &&
+                                   (kind & (SurfaceGroundCellKind.Water |
+                                            SurfaceGroundCellKind.Bridge |
+                                            SurfaceGroundCellKind.Solid)) == 0;
+                    }
+                    if (road && runStart < 0) runStart = x;
+                    if (road || runStart < 0) continue;
+                    _surfaceRoadWorldRects.Add(new Rect(
+                        nav.OriginX + runStart * nav.CellSize,
+                        nav.OriginY + y * nav.CellSize,
+                        (x - runStart) * nav.CellSize,
+                        nav.CellSize));
+                    runStart = -1;
+                }
+            }
+        }
+
+        void DrawContinuousSurfaceRoutePreview(Rect mapRect, SimulationWorld world)
+        {
+            if (_routePreviewKind == RoutePreviewKind.ArmySurfaceRoute &&
+                TryGetSelectedPlayerArmyForPathPreview(world, out var selectedArmy))
+            {
+                var armyMotion = selectedArmy.WorldMotion;
+                var armyOld = GUI.color;
+                GUI.color = new Color(.98f, .60f, .18f, .96f);
+                var armyPrevious = ProjectHex(mapRect, world,
+                    armyMotion.WorldPosition.X, armyMotion.WorldPosition.Y);
+                for (var i = armyMotion.SurfaceWaypointIndex; i < armyMotion.SurfacePathCount; i++)
+                {
+                    var point = armyMotion.SurfacePath[i];
+                    var next = ProjectHex(mapRect, world, point.X, point.Y);
+                    DrawClippedSegment(armyPrevious, next, mapRect);
+                    armyPrevious = next;
+                }
+                GUI.color = armyOld;
+                return;
+            }
+
+            var motion = world?.PlayerPartyTravel;
+            if (_worldMapSelection.Kind != HostWorldMapSelectionKind.PlayerParty ||
+                motion == null || !motion.IsMoving || !motion.HasContinuousPhysicalDestination)
+                return;
+            if (_routePreviewKind == RoutePreviewKind.ContinuousGoalOnly)
+            {
+                DrawContinuousGoalMarker(mapRect, world, motion, showUnavailableLabel: true);
+                return;
+            }
+            if (_routePreviewKind != RoutePreviewKind.SurfaceRoute || !motion.HasContinuousSurfaceRoute)
+                return;
+            var old = GUI.color;
+            GUI.color = new Color(.25f, .95f, .82f, .95f);
+            var previous = ProjectHex(mapRect, world, motion.WorldPosition.X, motion.WorldPosition.Y);
+            for (var i = motion.ContinuousSurfaceRouteIndex; i < motion.ContinuousSurfaceRoute.Count; i++)
+            {
+                var point = motion.ContinuousSurfaceRoute[i];
+                var next = ProjectHex(mapRect, world, point.X, point.Y);
+                DrawClippedSegment(previous, next, mapRect);
+                previous = next;
+            }
+            GUI.color = old;
+            DrawContinuousGoalMarker(mapRect, world, motion, showUnavailableLabel: false);
+        }
+
+        void DrawContinuousGoalMarker(
+            Rect mapRect, SimulationWorld world, PlayerPartyWorldMotion motion, bool showUnavailableLabel)
+        {
+            var goal = motion.ContinuousPhysicalDestination;
+            var screen = ProjectHex(mapRect, world, goal.X, goal.Y);
+            if (!mapRect.Contains(screen)) return;
+            var old = GUI.color;
+            GUI.color = new Color(.98f, .76f, .20f, .96f);
+            GUI.DrawTexture(new Rect(screen.x - 5f, screen.y - 5f, 10f, 10f), _px);
+            GUI.color = Color.white;
+            if (showUnavailableLabel)
+                GUI.Label(new Rect(screen.x + 8f, screen.y - 11f, 230f, 22f),
+                    "目的地已设定｜暂无完整地形路线预览", _body);
+            GUI.color = old;
         }
 
         void DrawMapUnitOverlays(
@@ -2460,6 +2714,8 @@ namespace XianXia.Unity.Host
             var hexStrategicActive = ArmyHexCommandService.IsHexStrategicActive(world);
             if (hexStrategicActive)
             {
+                if (TryHandleSurfaceGroundCommand(projection, world, mouse, e))
+                    return;
                 if (TryHandleHexMapCommand(projection, world, mouse, e))
                     return;
             }
@@ -2482,6 +2738,47 @@ namespace XianXia.Unity.Host
 
                 _status = "无法解析倒下角色位置";
             e.Use();
+        }
+
+        bool TryHandleSurfaceGroundCommand(
+            HexMapViewportProjection projection,
+            SimulationWorld world,
+            Vector2 mouse,
+            Event e)
+        {
+            if (_worldMapSelection.Kind != HostWorldMapSelectionKind.PlayerParty) return false;
+            var nav = world?.SurfaceGround?.Active;
+            if (nav == null) return false;
+            var point = projection.ScreenToWorld(mouse);
+            if (!nav.Contains(point.x, point.y)) return false;
+            var goal = new WorldVec2(point.x, point.y);
+            var size = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var hex = HexMath.WorldToHex(goal.X, goal.Y, size);
+            if (world.Strategic.Sites.TryGetAtHex(hex, out var authoredSite) && authoredSite != null)
+                return false; // Site marker/footprint retains authored arrival semantics.
+            if (!nav.IsWalkable(goal.X, goal.Y))
+            {
+                _status = "不可步行到达的地面目标";
+                e.Use();
+                return true;
+            }
+            var party = bootstrap?.Session?.PlayerParty;
+            if (party == null || !party.HasActive) return false;
+            PlayerPartyHexPursuitService.CancelPursuit(world, party);
+            var move = PlayerPartyHexTravelService.BeginContinuousSurfaceTravel(
+                world, party, hex, string.Empty, goal, nav.CellSize * .75f);
+            if (move.IsFailure)
+            {
+                _status = FormatFail(move);
+                e.Use();
+                return true;
+            }
+            PlayerPartyHexTravelService.HoldForLocalVisibleExecution(world);
+            RefreshPlayerPartyPathPreview(world);
+            _status = "已规划前往精确地面点 (" + goal.X.ToString("0.00") + "," +
+                      goal.Y.ToString("0.00") + ")｜关闭大地图后出发";
+            e.Use();
+            return true;
         }
 
         bool TryHandleHexLeftClick(
@@ -2927,14 +3224,33 @@ namespace XianXia.Unity.Host
             // 否则 pursuit tick 下一帧会把路线抢回 Enemy。
             PlayerPartyHexPursuitService.CancelPursuit(world, party);
 
-            var move = PlayerPartyHexTravelService.BeginTravel(
-                world, party, cmd.DestinationHex, cmd.TargetSiteId ?? string.Empty);
+            Result move;
+            var continuous = bootstrap?.ContinuousOutdoorSurfaceRuntime;
+            if (continuous != null && continuous.IsActive)
+            {
+                if (!continuous.TryResolveContinuousAutoTravelGoal(
+                        cmd.DestinationHex, cmd.TargetSiteId ?? string.Empty,
+                        out var physicalGoal, out var arrivalRadius, out var goalFailure))
+                {
+                    status = goalFailure;
+                    return true;
+                }
+                move = PlayerPartyHexTravelService.BeginContinuousSurfaceTravel(
+                    world, party, cmd.DestinationHex, cmd.TargetSiteId ?? string.Empty,
+                    physicalGoal, arrivalRadius);
+            }
+            else
+            {
+                move = PlayerPartyHexTravelService.BeginTravel(
+                    world, party, cmd.DestinationHex, cmd.TargetSiteId ?? string.Empty);
+            }
             if (move.IsFailure)
             {
                 status = FormatFail(move);
                 return true;
             }
 
+            PlayerPartyHexTravelService.HoldForLocalVisibleExecution(world);
             _worldMapSelection.SelectPlayerParty();
             RefreshPlayerPartyPathPreview(world);
             var destLabel = cmd.TargetHex.ToString();
@@ -2942,7 +3258,7 @@ namespace XianXia.Unity.Host
                 world.Strategic.Sites.TryGet(cmd.TargetSiteId, out var site) &&
                 site != null)
                 destLabel = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
-            status = "PlayerParty Travel → " + destLabel;
+            status = "已规划前往 " + destLabel + "｜关闭大地图后出发";
 
             return true;
         }
@@ -3051,13 +3367,32 @@ namespace XianXia.Unity.Host
             //（到达 Gateway = AtSite + Travel Complete；不保留 B continuation，不自动出关）。
             // Phase 5S-B2-3.5：新的 Gateway 旅行也是新 Move order → 取消既有 Attack pursuit。
             PlayerPartyHexPursuitService.CancelPursuit(world, party);
-            var move = PlayerPartyHexTravelService.BeginTravel(
-                world, party, _gatewayConfirmApproachHex, _gatewayConfirmSiteId);
+            Result move;
+            var continuous = bootstrap?.ContinuousOutdoorSurfaceRuntime;
+            if (continuous != null && continuous.IsActive)
+            {
+                if (!continuous.TryResolveContinuousAutoTravelGoal(
+                        _gatewayConfirmApproachHex, _gatewayConfirmSiteId,
+                        out var physicalGoal, out var arrivalRadius, out var goalFailure))
+                {
+                    _status = goalFailure;
+                    return;
+                }
+                move = PlayerPartyHexTravelService.BeginContinuousSurfaceTravel(
+                    world, party, _gatewayConfirmApproachHex, _gatewayConfirmSiteId,
+                    physicalGoal, arrivalRadius);
+            }
+            else
+            {
+                move = PlayerPartyHexTravelService.BeginTravel(
+                    world, party, _gatewayConfirmApproachHex, _gatewayConfirmSiteId);
+            }
             if (move.IsSuccess)
             {
+                PlayerPartyHexTravelService.HoldForLocalVisibleExecution(world);
                 _worldMapSelection.SelectPlayerParty();
                 RefreshPlayerPartyPathPreview(world);
-                _status = "PlayerParty Travel → " + _gatewayConfirmDisplayName;
+                _status = "已规划前往 " + _gatewayConfirmDisplayName + "｜关闭大地图后出发";
             }
             else
             {
@@ -3219,7 +3554,11 @@ namespace XianXia.Unity.Host
                 if (world.Strategic.HasBattleOffer)
                     _status = "接战弹窗已打开";
                 else if (PlayerPartyHexPursuitService.HasPursuit(world))
-                    _status = "PlayerParty 开始追击 " + (target.DisplayName ?? "目标军团");
+                {
+                    PlayerPartyHexTravelService.HoldForLocalVisibleExecution(world);
+                    _status = "已规划追击 " + (target.DisplayName ?? "目标军团") +
+                              "｜关闭大地图后出发";
+                }
                 else
                     _status = "PlayerParty 已发起攻击";
                 return;

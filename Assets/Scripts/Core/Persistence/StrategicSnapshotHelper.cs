@@ -123,11 +123,24 @@ namespace XianXia.Core.Persistence
                     SiteDepartureFootprintR = armyMotion.SiteDepartureFootprintHex.R,
                     SiteDepartureExitQ = armyMotion.SiteDepartureExitHex.Q,
                     SiteDepartureExitR = armyMotion.SiteDepartureExitHex.R,
+                    RouteKind = (int)armyMotion.RouteKind,
+                    SurfaceId = armyMotion.SurfaceId ?? string.Empty,
+                    SurfaceSourceRevision = armyMotion.SurfaceSourceRevision ?? string.Empty,
+                    SurfaceSourceHash = armyMotion.SurfaceSourceHash ?? string.Empty,
+                    PhysicalDestinationX = armyMotion.PhysicalDestination.X,
+                    PhysicalDestinationY = armyMotion.PhysicalDestination.Y,
+                    SurfaceWaypointIndex = armyMotion.SurfaceWaypointIndex,
+                    RouteDiagnostic = armyMotion.RouteDiagnostic ?? string.Empty,
                 };
                 for (var p = 0; p < armyMotion.HexPathCount; p++)
                 {
                     var coord = armyMotion.HexPath[p];
                     armyDto.HexPath.Add(new HexCoordSnapshotDto { Q = coord.Q, R = coord.R });
+                }
+                for (var p = 0; p < armyMotion.SurfacePathCount; p++)
+                {
+                    var point = armyMotion.SurfacePath[p];
+                    armyDto.SurfacePath.Add(new WorldPointSnapshotDto { X = point.X, Y = point.Y });
                 }
                 for (var i = 0; i < army.MemberCharacterIds.Count; i++)
                     armyDto.MemberCharacterIds.Add(army.MemberCharacterIds[i]);

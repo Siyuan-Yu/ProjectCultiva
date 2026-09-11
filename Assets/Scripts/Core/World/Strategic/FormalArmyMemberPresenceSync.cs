@@ -8,6 +8,29 @@ namespace XianXia.Core.World.Strategic
     /// <summary>FormalArmy 成员 World Presence 从 Army Location 派生（单一 Authority）。</summary>
     public static class FormalArmyMemberPresenceSync
     {
+        public static bool IsArmyEngaged(SimulationWorld world, FormalArmy army)
+        {
+            if (world?.Strategic?.Participants == null || army == null)
+                return false;
+            var participants = world.Strategic.Participants;
+            if (string.Equals(participants.AttackerArmyId, army.ArmyId, System.StringComparison.Ordinal) ||
+                string.Equals(participants.DefenderArmyId, army.ArmyId, System.StringComparison.Ordinal))
+                return true;
+            for (var i = 0; i < army.MemberCharacterIds.Count; i++)
+                if (participants.FindByEntity(new EntityId(army.MemberCharacterIds[i])) != null)
+                    return true;
+            return false;
+        }
+
+        public static bool IsArmyControlledMember(SimulationWorld world, EntityId memberId)
+        {
+            if (world == null || memberId.IsNone ||
+                !ArmyService.TryGetArmyForCharacter(world, memberId, out var army) || army == null)
+                return false;
+            return army.State != FormalArmyState.Garrisoned &&
+                   !IsArmyEngaged(world, army);
+        }
+
         public static void SyncAll(SimulationWorld world, FormalArmy army)
         {
             if (world?.WorldPresence == null || army == null)
@@ -39,7 +62,7 @@ namespace XianXia.Core.World.Strategic
             if (motion.LocationKind == FormalArmyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(motion.SiteId))
             {
-                world.WorldPresence.SetAtSite(memberId, motion.SiteId);
+                world.WorldPresence.SetAtSiteWithAnchor(memberId, motion.SiteId, motion.WorldPosition);
                 return;
             }
 

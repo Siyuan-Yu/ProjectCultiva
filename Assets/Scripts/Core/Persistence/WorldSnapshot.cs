@@ -288,6 +288,23 @@ namespace XianXia.Core.Persistence
         public int SiteDepartureFootprintR { get; set; }
         public int SiteDepartureExitQ { get; set; }
         public int SiteDepartureExitR { get; set; }
+
+        /// <summary>Optional FormalArmy continuous Surface route state.</summary>
+        public int RouteKind { get; set; }
+        public string SurfaceId { get; set; } = string.Empty;
+        public string SurfaceSourceRevision { get; set; } = string.Empty;
+        public string SurfaceSourceHash { get; set; } = string.Empty;
+        public float PhysicalDestinationX { get; set; }
+        public float PhysicalDestinationY { get; set; }
+        public int SurfaceWaypointIndex { get; set; }
+        public string RouteDiagnostic { get; set; } = string.Empty;
+        public List<WorldPointSnapshotDto> SurfacePath { get; set; } = new List<WorldPointSnapshotDto>();
+    }
+
+    public sealed class WorldPointSnapshotDto
+    {
+        public float X { get; set; }
+        public float Y { get; set; }
     }
 
     public sealed class HexCoordSnapshotDto

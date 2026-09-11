@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Stopwatch = System.Diagnostics.Stopwatch;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Navigation;
@@ -19,14 +20,22 @@ namespace XianXia.Unity.Host
     {
         string _surfaceId = string.Empty;
         readonly HashSet<SurfaceChunkCoord> _loaded = new HashSet<SurfaceChunkCoord>();
+        // Presentation may temporarily contain the old logical neighborhood plus staged incoming
+        // chunks. Gameplay scope remains exactly _loaded (radius-1 / 3x3).
+        readonly HashSet<SurfaceChunkCoord> _presentedChunks = new HashSet<SurfaceChunkCoord>();
         readonly HashSet<SurfaceChunkCoord> _desired = new HashSet<SurfaceChunkCoord>();
         readonly HashSet<SurfaceChunkCoord> _add = new HashSet<SurfaceChunkCoord>();
         readonly HashSet<SurfaceChunkCoord> _remove = new HashSet<SurfaceChunkCoord>();
+        readonly List<SurfaceChunkCoord> _pendingAdds = new List<SurfaceChunkCoord>(3);
+        readonly List<SurfaceChunkCoord> _pendingRemoves = new List<SurfaceChunkCoord>(3);
         readonly List<WalkGridComposer.Input> _grids = new List<WalkGridComposer.Input>(9);
         WalkGrid _compositeWalkGrid;
+        SimulationWorld _legacyOutdoorRestoreMigrationWorld;
         PlayableHostBootstrap _bootstrap;
         HostDemoTileMap _tileMap;
         OutdoorSurfaceCoordinateMapper _mapper;
+        OutdoorSurfaceGeographyDefinition _geography;
+        ulong _lastStrategicMaterializationTick = ulong.MaxValue;
         readonly Dictionary<EntityId, Vector3> _lastLegalMembers = new Dictionary<EntityId, Vector3>();
         readonly HashSet<EntityId> _continuousSitePopulation = new HashSet<EntityId>();
         readonly HashSet<EntityId> _desiredMaterializedEntities = new HashSet<EntityId>();
@@ -44,6 +53,19 @@ namespace XianXia.Unity.Host
         const float surfaceCellSpacingPresentation = 3f;
         /// <summary>§16：已落入 grid 但格子 blocked 时，优先吸附到附近可走格。</summary>
         const int MaterializeNearestWalkableRadiusCells = 8;
+        enum StreamTransitionPhase
+        {
+            None,
+            BuildIncoming,
+            CommitLogicalNeighborhood,
+            RefreshGameplayScope,
+            RefreshOverlay,
+            RetireTrailing
+        }
+        StreamTransitionPhase _streamTransitionPhase;
+        SurfaceChunkCoord _pendingCenter;
+        int _pendingAddIndex;
+        int _pendingRemoveIndex;
         HexCoord _diagnosticDerived, _diagnosticCommitted;
         bool _autoTravelPathBlocked;
         HexCoord _blockedNextHex, _blockedDestination;
@@ -59,6 +81,8 @@ namespace XianXia.Unity.Host
         public int LoadedChunkCount => _loaded.Count;
         public int PlaceRefreshGeneration { get; private set; }
         public int EntityReconcileGeneration { get; private set; }
+        public int NavigationGeneration { get; private set; }
+        public OutdoorSurfaceGeographyDefinition ActiveGeography => IsActive ? _geography : null;
 
         /// <summary>Opening population census（startup invariant 一次计算，仅供诊断显示）。</summary>
         public int OpeningPopulationExpected { get; private set; }
@@ -270,7 +294,15 @@ namespace XianXia.Unity.Host
         void Update()
         {
             var motion = _bootstrap?.Session?.World?.PlayerPartyTravel;
-            TryMigrateLegacyOutdoorSiteRestore();
+            // Restore compatibility is an activation boundary, never a per-frame repair that can
+            // erase an already established travel plan.
+            if (!IsActive &&
+                (motion == null || !motion.IsMoving) &&
+                !ReferenceEquals(_legacyOutdoorRestoreMigrationWorld, _bootstrap?.Session?.World))
+            {
+                TryMigrateLegacyOutdoorSiteRestore();
+                motion = _bootstrap?.Session?.World?.PlayerPartyTravel;
+            }
             if (motion == null || !motion.HasPosition || motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition ||
                 _bootstrap.Session.World.LocalMap.IsInInterior || BattleOfferService.HasActiveManualEncounter(_bootstrap.Session.World))
             {
@@ -281,12 +313,83 @@ namespace XianXia.Unity.Host
             { if (IsActive) HandoffToLegacy(); return; }
             var mapper = new OutdoorSurfaceCoordinateMapper(surface.ChunkWidth, surface.ChunkHeight, surface.CellSize, presentationUnitsPerWorldUnit: 1f / surface.CellSize, originWorldX: surface.OriginWorldX, originWorldY: surface.OriginWorldY);
             var chunk = mapper.WorldToChunk(motion.WorldPosition.X, motion.WorldPosition.Y);
-            if (!IsActive || !string.Equals(_surfaceId, surface.SurfaceId, StringComparison.Ordinal)) ActivateSurface(surface, chunk);
-            else if (chunk != CurrentChunk) UpdateNeighborhood(chunk);
+            if (!IsActive || !string.Equals(_surfaceId, surface.SurfaceId, StringComparison.Ordinal))
+            {
+                ActivateSurface(surface, chunk);
+                return;
+            }
+
+            if (chunk != CurrentChunk)
+            {
+                RequestNeighborhoodTransition(chunk);
+                // Boundary-detection frame only records/coalesces state. Heavy work starts on a
+                // later Update, so crossing itself never shares a frame with chunk construction.
+                return;
+            }
+            TickNeighborhoodTransition();
+            var worldTick = _bootstrap.Session.World.Tick.Value;
+            if (_streamTransitionPhase == StreamTransitionPhase.None &&
+                worldTick != _lastStrategicMaterializationTick)
+            {
+                _lastStrategicMaterializationTick = worldTick;
+                ReconcileOutdoorEntityMaterialization();
+            }
         }
 
         public bool PresentationToWorld(float x, float y, out float worldX, out float worldY)
         { _mapper.PresentationToWorld(x, y, out worldX, out worldY); return IsActive; }
+
+        public bool TryWorldToPresentation(WorldVec2 worldPosition, out Vector3 presentation)
+        {
+            presentation = default;
+            if (!IsActive || _mapper == null ||
+                !_loaded.Contains(_mapper.WorldToChunk(worldPosition.X, worldPosition.Y)))
+                return false;
+            _mapper.WorldToPresentation(worldPosition.X, worldPosition.Y, out var x, out var y);
+            presentation = HostPresentationSpace.FromPresentation(x, y);
+            return true;
+        }
+
+        /// <summary>Resolves the formal physical endpoint without requiring its chunk to be loaded.</summary>
+        public bool TryResolveContinuousAutoTravelGoal(
+            HexCoord requestedHex,
+            string destinationSiteId,
+            out WorldVec2 goal,
+            out float arrivalRadius,
+            out string failureReason)
+        {
+            goal = default;
+            arrivalRadius = 0f;
+            failureReason = string.Empty;
+            if (!IsActive || !TryResolveSurface(out var surface))
+            {
+                failureReason = "ContinuousSurfaceInactive";
+                return false;
+            }
+
+            if (!string.IsNullOrEmpty(destinationSiteId))
+            {
+                var region = surface.SiteRegions?.Find(r =>
+                    r != null && string.Equals(r.SiteId, destinationSiteId, StringComparison.Ordinal));
+                if (region == null)
+                {
+                    failureReason = "OutdoorSiteArrivalMissing:" + destinationSiteId;
+                    return false;
+                }
+                goal = new WorldVec2(region.ArrivalWorldX, region.ArrivalWorldY);
+            }
+            else
+            {
+                var size = _bootstrap.Session.World.HexWorld.HexSize > 0f
+                    ? _bootstrap.Session.World.HexWorld.HexSize
+                    : 1f;
+                HexMath.ToWorldPosition(requestedHex, size, out var x, out var y);
+                goal = new WorldVec2(x, y);
+            }
+
+            arrivalRadius = Math.Max(0.001f, surface.CellSize * 0.75f);
+            return true;
+        }
 
         /// <summary>Called after all realtime writers. Canonical is the last accepted safe point;
         /// rejected transforms never become position authority. No Stop command / CancelTravel.</summary>
@@ -333,8 +436,7 @@ namespace XianXia.Unity.Host
                 _mapper.PresentationToWorld(previous.x, previous.y, out var oldX, out var oldY);
                 var oldHex = HexMath.WorldToHex(oldX, oldY, world.HexWorld.HexSize);
                 if (!id.Equals(party.ActiveCharacterId) &&
-                    !ContinuousSurfacePrototypeGroundLegality.CanMoveTo(world.HexWorld, oldHex,
-                        new WorldVec2(wx, wy), world.HexWorld.HexSize))
+                    !IsContinuousMoveLegal(world, new WorldVec2(oldX, oldY), oldHex, new WorldVec2(wx, wy)))
                 {
                     _bootstrap.MoveController.CancelPresentationMovementPublic(id);
                     RestoreMember(id, previous);
@@ -365,10 +467,22 @@ namespace XianXia.Unity.Host
             // Do not continually reissue the same failed realtime path, or cancel its TravelPlan.
             if (!motion.WorldPosition.Equals(_blockedFrom) || !nextHex.Equals(_blockedNextHex) ||
                 !motion.DestinationHex.Equals(_blockedDestination) ||
-                ContinuousSurfacePrototypeGroundLegality.CanMoveTo(world.HexWorld, motion.CurrentHex,
-                    _blockedCandidate, world.HexWorld.HexSize))
+                IsContinuousMoveLegal(world, motion.WorldPosition, motion.CurrentHex, _blockedCandidate))
                 _autoTravelPathBlocked = false;
             return _autoTravelPathBlocked;
+        }
+
+        static bool IsContinuousMoveLegal(
+            SimulationWorld world, WorldVec2 from, HexCoord committedHex, WorldVec2 to)
+        {
+            var nav = world?.SurfaceGround?.Active;
+            var oldCovered = nav != null && nav.Contains(from.X, from.Y);
+            var newCovered = nav != null && nav.Contains(to.X, to.Y);
+            if (oldCovered && newCovered)
+                return nav.IsSegmentWalkable(from.X, from.Y, to.X, to.Y);
+            var size = world?.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            return ContinuousSurfacePrototypeGroundLegality.CanMoveTo(world?.HexWorld, committedHex, to, size) &&
+                   (!newCovered || nav.IsWalkable(to.X, to.Y));
         }
 
         void RestoreMember(EntityId id, Vector3 position)
@@ -502,12 +616,16 @@ namespace XianXia.Unity.Host
         void TryMigrateLegacyOutdoorSiteRestore()
         {
             var world = _bootstrap?.Session?.World;
+            if (world == null || ReferenceEquals(_legacyOutdoorRestoreMigrationWorld, world))
+                return;
+            _legacyOutdoorRestoreMigrationWorld = world;
             var motion = world?.PlayerPartyTravel;
             if (world?.HexWorld == null || motion == null ||
                 motion.LocationKind != PlayerPartyLocationKind.AtWorldSite ||
                 string.IsNullOrEmpty(motion.SiteId) ||
                 !world.Strategic.Sites.TryGet(motion.SiteId, out var site) ||
-                !WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site))
+                !WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site) ||
+                motion.IsMoving)
                 return;
             var size = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             var position = motion.WorldPosition;
@@ -568,19 +686,23 @@ namespace XianXia.Unity.Host
             }
             var previousSurfaceId = _surfaceId;
             var previousMapper = _mapper;
+            var previousGeography = _geography;
             _surfaceId = surface.SurfaceId;
+            _bootstrap.Session.Registry.TryGetOutdoorSurfaceGeography(surface.SurfaceId, out _geography);
             _mapper = new OutdoorSurfaceCoordinateMapper(surface.ChunkWidth, surface.ChunkHeight, surface.CellSize, presentationUnitsPerWorldUnit: 1f / surface.CellSize, originWorldX: surface.OriginWorldX, originWorldY: surface.OriginWorldY);
             if (!TryPreflightNeighborhood(surface, center, out var activationFailure))
             {
                 LogActivationFailure(surface, center, activationFailure);
                 _surfaceId = previousSurfaceId;
                 _mapper = previousMapper;
+                _geography = previousGeography;
                 return;
             }
             if (_bootstrap?.ContinuousWildernessLoadedSet?.IsActive == true)
                 _bootstrap.DeactivateContinuousWildernessIfActive();
             _tileMap.RemoveLayoutInstance("legacy:active-localmap");
             IsActive = true;
+            _bootstrap.Session.World.SurfaceGround.Activate(_geography?.Navigation);
             var activeMotion = _bootstrap.Session.World.PlayerPartyTravel;
             activeMotion.SetCurrentOutdoorWorldSiteContext(
                 WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(
@@ -596,7 +718,7 @@ namespace XianXia.Unity.Host
             // labels/interactions only after every source needed by the initial neighborhood has
             // passed preflight. From this point activation cannot silently leave an empty view.
             _bootstrap.FinalizeContinuousWildernessPresentationHandoff();
-            UpdateNeighborhood(center);
+            InitializeNeighborhood(center);
             AlignPartyPresentationToWorld();
             _bootstrap.SurfaceExitZonePresenter?.Clear();
             _bootstrap.MoveController.BindLocalMapContext("ContinuousSurface:" + _surfaceId);
@@ -605,23 +727,182 @@ namespace XianXia.Unity.Host
             Debug.Log("[W1C] Activated " + DescribeDiagnostics(), this);
         }
 
-        void UpdateNeighborhood(SurfaceChunkCoord center)
+        /// <summary>Surface activation/hard handoff only. Ordinary adjacent crossings are staged.</summary>
+        void InitializeNeighborhood(SurfaceChunkCoord center)
         {
+            CancelNeighborhoodTransition();
             SurfaceChunkNeighborhood.CollectSquare(center, 1, _desired);
             _desired.RemoveWhere(coord => !HasChunk(coord));
             SurfaceChunkNeighborhood.Diff(_loaded, _desired, _add, _remove);
             foreach (var coord in _remove)
             {
                 _tileMap.RemoveLayoutInstance(SurfaceChunkNeighborhood.OwnerKey(_surfaceId, coord));
+                _tileMap.RemoveLayoutInstance(GeographyOwnerKey(coord));
                 RemoveSitePlacementInstances(coord);
+                _presentedChunks.Remove(coord);
             }
-            foreach (var coord in _add) BuildChunk(coord);
+            foreach (var coord in _add)
+            {
+                BuildChunk(coord);
+                _presentedChunks.Add(coord);
+            }
             _loaded.ExceptWith(_remove); _loaded.UnionWith(_add); CurrentChunk = center;
             RecomposeWalkGrid();
             RefreshLoadedOutdoorPlaces();
             ReconcileOutdoorEntityMaterialization();
             _bootstrap.RefreshContinuousOutdoorOverlaysOnce();
             Debug.Log("[W1C] Neighborhood add=" + _add.Count + " remove=" + _remove.Count + " " + DescribeDiagnostics(), this);
+        }
+
+        /// <summary>
+        /// Coalesces an ordinary rectangular chunk crossing to the latest center. Existing incoming
+        /// presentation that is still desired is retained; no player/camera/movement authority is touched.
+        /// </summary>
+        void RequestNeighborhoodTransition(SurfaceChunkCoord center)
+        {
+            if (_streamTransitionPhase != StreamTransitionPhase.None && center == _pendingCenter)
+                return;
+
+            CurrentChunk = center;
+            _pendingCenter = center;
+            SurfaceChunkNeighborhood.CollectSquare(center, 1, _desired);
+            _desired.RemoveWhere(coord => !HasChunk(coord));
+
+            _pendingAdds.Clear();
+            foreach (var coord in _desired)
+                if (!_presentedChunks.Contains(coord))
+                    _pendingAdds.Add(coord);
+            _pendingAdds.Sort((a, b) =>
+            {
+                // If rapid movement outruns a previous transition, build the current center first.
+                var aCenter = a == center;
+                var bCenter = b == center;
+                if (aCenter != bCenter) return aCenter ? -1 : 1;
+                return a.CompareTo(b);
+            });
+
+            _pendingRemoves.Clear();
+            foreach (var coord in _presentedChunks)
+                if (!_desired.Contains(coord))
+                    _pendingRemoves.Add(coord);
+            _pendingRemoves.Sort();
+            _pendingAddIndex = 0;
+            _pendingRemoveIndex = 0;
+            if (_loaded.SetEquals(_desired))
+            {
+                // Common boundary jitter/coalesce case: gameplay scope is already the requested
+                // one. Only retire presentation built for an abandoned pending transition.
+                _streamTransitionPhase = _pendingRemoves.Count > 0
+                    ? StreamTransitionPhase.RetireTrailing
+                    : StreamTransitionPhase.None;
+                return;
+            }
+            _streamTransitionPhase = _pendingAdds.Count > 0
+                ? StreamTransitionPhase.BuildIncoming
+                : StreamTransitionPhase.CommitLogicalNeighborhood;
+        }
+
+        /// <summary>Consumes at most one staged phase action per Update.</summary>
+        void TickNeighborhoodTransition()
+        {
+            switch (_streamTransitionPhase)
+            {
+                case StreamTransitionPhase.None:
+                    return;
+                case StreamTransitionPhase.BuildIncoming:
+                {
+                    if (_pendingAddIndex >= _pendingAdds.Count)
+                    {
+                        _streamTransitionPhase = StreamTransitionPhase.CommitLogicalNeighborhood;
+                        return;
+                    }
+                    var chunk = _pendingAdds[_pendingAddIndex++];
+                    if (!_presentedChunks.Contains(chunk))
+                    {
+                        var started = Stopwatch.GetTimestamp();
+                        BuildChunk(chunk);
+                        _presentedChunks.Add(chunk);
+                        LogStreamTiming("BuildIncoming", chunk, started);
+                    }
+                    if (_pendingAddIndex >= _pendingAdds.Count)
+                        _streamTransitionPhase = StreamTransitionPhase.CommitLogicalNeighborhood;
+                    return;
+                }
+                case StreamTransitionPhase.CommitLogicalNeighborhood:
+                {
+                    var started = Stopwatch.GetTimestamp();
+                    _loaded.Clear();
+                    _loaded.UnionWith(_desired);
+                    RecomposeWalkGrid();
+                    LogStreamTiming("ComposeWalkGrid", null, started);
+                    _streamTransitionPhase = StreamTransitionPhase.RefreshGameplayScope;
+                    return;
+                }
+                case StreamTransitionPhase.RefreshGameplayScope:
+                {
+                    var started = Stopwatch.GetTimestamp();
+                    RefreshLoadedOutdoorPlaces();
+                    ReconcileOutdoorEntityMaterialization();
+                    LogStreamTiming("Materialization", null, started);
+                    _streamTransitionPhase = StreamTransitionPhase.RefreshOverlay;
+                    return;
+                }
+                case StreamTransitionPhase.RefreshOverlay:
+                {
+                    var started = Stopwatch.GetTimestamp();
+                    _bootstrap.RefreshContinuousOutdoorOverlaysOnce();
+                    LogStreamTiming("Overlay", null, started);
+                    _streamTransitionPhase = StreamTransitionPhase.RetireTrailing;
+                    return;
+                }
+                case StreamTransitionPhase.RetireTrailing:
+                {
+                    if (_pendingRemoveIndex >= _pendingRemoves.Count)
+                    {
+                        CompleteNeighborhoodTransition();
+                        return;
+                    }
+                    var chunk = _pendingRemoves[_pendingRemoveIndex++];
+                    if (!_desired.Contains(chunk) && _presentedChunks.Remove(chunk))
+                    {
+                        var started = Stopwatch.GetTimestamp();
+                        _tileMap.RemoveLayoutInstance(SurfaceChunkNeighborhood.OwnerKey(_surfaceId, chunk));
+                        _tileMap.RemoveLayoutInstance(GeographyOwnerKey(chunk));
+                        RemoveSitePlacementInstances(chunk);
+                        LogStreamTiming("RetireTrailing", chunk, started);
+                    }
+                    if (_pendingRemoveIndex >= _pendingRemoves.Count)
+                        CompleteNeighborhoodTransition();
+                    return;
+                }
+            }
+        }
+
+        void CompleteNeighborhoodTransition()
+        {
+            _streamTransitionPhase = StreamTransitionPhase.None;
+            _pendingAdds.Clear();
+            _pendingRemoves.Clear();
+            _pendingAddIndex = 0;
+            _pendingRemoveIndex = 0;
+        }
+
+        void CancelNeighborhoodTransition()
+        {
+            CompleteNeighborhoodTransition();
+            _desired.Clear();
+        }
+
+        [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        void LogStreamTiming(string phase, SurfaceChunkCoord? chunk, long started)
+        {
+            var elapsedMs = (Stopwatch.GetTimestamp() - started) * 1000.0 / Stopwatch.Frequency;
+            Debug.Log(
+                "[ContinuousStream] center=" + _pendingCenter +
+                " phase=" + phase +
+                (chunk.HasValue ? " chunk=" + chunk.Value : string.Empty) +
+                " ms=" + elapsedMs.ToString("F3"),
+                this);
         }
 
         void BuildChunk(SurfaceChunkCoord coord)
@@ -631,8 +912,13 @@ namespace XianXia.Unity.Host
             _mapper.WorldToPresentation(worldX, worldY, out var presentationX, out var presentationY);
             var placement = new Vector2(presentationX - layout.OriginX, presentationY - layout.OriginY);
             _tileMap.BuildLayoutInstance(SurfaceChunkNeighborhood.OwnerKey(_surfaceId, coord), layout, placement);
+            if (_geography != null && _geography.CoverageChunks.Contains(coord))
+                _tileMap.BuildOutdoorGeographyInstance(GeographyOwnerKey(coord), _geography, _mapper, coord);
             BuildBakedOutdoorSitePlacements(coord);
         }
+
+        string GeographyOwnerKey(SurfaceChunkCoord coord) =>
+            SurfaceChunkNeighborhood.OwnerKey(_surfaceId, coord) + ":geography";
 
         void RemoveSitePlacementInstances(SurfaceChunkCoord coord)
         {
@@ -697,6 +983,8 @@ namespace XianXia.Unity.Host
                 _grids.Add(new WalkGridComposer.Input(MapLayoutWalkGridBuilder.Create(layout), px - layout.OriginX, py - layout.OriginY));
                 var blockers = BuildSiteBlockerGrid(coord, px, py, layout);
                 if (blockers != null) _grids.Add(new WalkGridComposer.Input(blockers, 0f, 0f));
+                var geographyBlockers = BuildGeographyBlockerGrid(coord, px, py, layout);
+                if (geographyBlockers != null) _grids.Add(new WalkGridComposer.Input(geographyBlockers, 0f, 0f));
             }
             if (_grids.Count > 0)
             {
@@ -706,7 +994,32 @@ namespace XianXia.Unity.Host
                     HostFactionFlagQuery.ApplyWalkGridBlock(pair.Value, this, composite);
                 _compositeWalkGrid = composite;
                 _bootstrap.MoveController.SetWalkGrid(composite);
+                NavigationGeneration++;
             }
+        }
+
+        WalkGrid BuildGeographyBlockerGrid(
+            SurfaceChunkCoord coord, float originX, float originY, MapLayoutDefinition sourceLayout)
+        {
+            if (_geography?.Navigation == null || !_geography.CoverageChunks.Contains(coord)) return null;
+            var cell = sourceLayout.CellSize > 0f ? sourceLayout.CellSize : 1f;
+            var grid = new WalkGrid(originX, originY, cell, sourceLayout.Width, sourceLayout.Height);
+            _mapper.ChunkLocalToWorld(coord, 0f, 0f, out var chunkX, out var chunkY);
+            var any = false;
+            for (var y = 0; y < sourceLayout.Height; y++)
+            for (var x = 0; x < sourceLayout.Width; x++)
+            {
+                var wx = chunkX + (x + .5f) * _geography.Navigation.CellSize;
+                var wy = chunkY + (y + .5f) * _geography.Navigation.CellSize;
+                if (!_geography.Navigation.TryGetCell(wx, wy, out var kind)) continue;
+                var blocked = (kind & SurfaceGroundCellKind.Solid) != 0 ||
+                              ((kind & SurfaceGroundCellKind.Water) != 0 &&
+                               (kind & SurfaceGroundCellKind.Bridge) == 0);
+                if (!blocked) continue;
+                grid.SetBlocked(x, y, true);
+                any = true;
+            }
+            return any ? grid : null;
         }
 
         WalkGrid BuildSiteBlockerGrid(SurfaceChunkCoord coord, float originX, float originY, MapLayoutDefinition sourceLayout)
@@ -756,15 +1069,21 @@ namespace XianXia.Unity.Host
         /// <summary>Only the surface presentation owner may clear its chunk state. It never chooses a destination authority.</summary>
         public void DeactivatePresentationOnly()
         {
-            foreach (var coord in _loaded)
+            foreach (var coord in _presentedChunks)
             {
                 _tileMap?.RemoveLayoutInstance(SurfaceChunkNeighborhood.OwnerKey(_surfaceId, coord));
+                _tileMap?.RemoveLayoutInstance(GeographyOwnerKey(coord));
                 RemoveSitePlacementInstances(coord);
             }
+            CancelNeighborhoodTransition();
+            _presentedChunks.Clear();
             _loaded.Clear(); _desired.Clear(); _add.Clear(); _remove.Clear(); IsActive = false;
             _materializedSitePlacementOwners.Clear();
             _grids.Clear();
             _compositeWalkGrid = null;
+            if (_bootstrap?.Session?.World?.SurfaceGround?.Active == _geography?.Navigation)
+                _bootstrap.Session.World.SurfaceGround.Clear();
+            _geography = null;
             _lastLegalMembers.Clear();
             ReleaseContinuousSitePopulation();
             _bootstrap?.MoveController?.InvalidatePartyLocalMovement(_bootstrap.Session.PlayerParty.Members);
@@ -1271,7 +1590,7 @@ namespace XianXia.Unity.Host
         bool TryPreflightNeighborhood(
             OutdoorWorldSurfaceDefinition surface, SurfaceChunkCoord center, out string failure)
         {
-            // neighborhood 由 UpdateNeighborhood 按同一规则重算，因此这里不需要预写 _desired。
+            // neighborhood 由 activation/staged transition 按同一规则重算，因此这里不需要预写 _desired。
             return ContinuousOutdoorStartupPlanner.TryPreflightNeighborhood(
                 _bootstrap?.Session?.Registry, surface, center, out failure);
         }

@@ -135,6 +135,73 @@ namespace XianXia.Unity.Host
             return EndInstanceBuild();
         }
 
+        /// <summary>Materializes only one loaded chunk from the complete checked-in geography grid.</summary>
+        public SurfacePresentationInstance BuildOutdoorGeographyInstance(
+            string instanceKey,
+            OutdoorSurfaceGeographyDefinition geography,
+            OutdoorSurfaceCoordinateMapper mapper,
+            SurfaceChunkCoord ownerChunk)
+        {
+            if (geography?.Navigation == null) return null;
+            RemoveLayoutInstance(instanceKey);
+            BeginInstanceBuild(instanceKey, null, Vector2.zero);
+            mapper.ChunkLocalToWorld(ownerChunk, 0f, 0f, out var chunkX, out var chunkY);
+            var cellsX = Mathf.RoundToInt(mapper.ChunkWidth / geography.Navigation.CellSize);
+            var cellsY = Mathf.RoundToInt(mapper.ChunkHeight / geography.Navigation.CellSize);
+            for (var y = 0; y < cellsY; y++)
+            {
+                var runKind = SurfaceGroundCellKind.Ground;
+                var runStart = 0;
+                for (var x = 0; x <= cellsX; x++)
+                {
+                    var kind = SurfaceGroundCellKind.Ground;
+                    if (x < cellsX)
+                    {
+                        var wx = chunkX + (x + .5f) * geography.Navigation.CellSize;
+                        var wy = chunkY + (y + .5f) * geography.Navigation.CellSize;
+                        geography.Navigation.TryGetCell(wx, wy, out kind);
+                    }
+                    if (x == 0) { runKind = kind; runStart = 0; continue; }
+                    if (kind == runKind && x < cellsX) continue;
+                    if (TryGetGeographyColor(runKind, out var color))
+                    {
+                        var left = chunkX + runStart * geography.Navigation.CellSize;
+                        var right = chunkX + x * geography.Navigation.CellSize;
+                        var bottom = chunkY + y * geography.Navigation.CellSize;
+                        var top = bottom + geography.Navigation.CellSize;
+                        mapper.WorldToPresentation((left + right) * .5f, (bottom + top) * .5f, out var px, out var py);
+                        PlaceZoneOverlay(px, py, "geo_" + ownerChunk + "_" + y + "_" + runStart,
+                            (right - left) * mapper.PresentationUnitsPerWorldUnit,
+                            (top - bottom) * mapper.PresentationUnitsPerWorldUnit, color);
+                    }
+                    runKind = kind; runStart = x;
+                }
+            }
+            for (var i = 0; i < geography.Landmarks.Count; i++)
+            {
+                var landmark = geography.Landmarks[i];
+                if (mapper.WorldToChunk(landmark.WorldX, landmark.WorldY) != ownerChunk) continue;
+                mapper.WorldToPresentation(landmark.WorldX, landmark.WorldY, out var px, out var py);
+                var go = new GameObject(landmark.StableId ?? "W2A_Landmark");
+                go.transform.SetParent(_buildRoot != null ? _buildRoot : mapRoot, false);
+                go.transform.position = HostPresentationSpace.FromPresentation(px, py, HostPresentationSpace.EntityZ);
+                var label = go.AddComponent<TextMesh>();
+                label.text = landmark.Label ?? string.Empty; label.characterSize = .35f; label.fontSize = 32;
+                label.color = new Color(.95f, .85f, .35f, 1f); label.anchor = TextAnchor.LowerCenter;
+                TrackBuilt(go);
+            }
+            return EndInstanceBuild();
+        }
+
+        static bool TryGetGeographyColor(SurfaceGroundCellKind kind, out Color color)
+        {
+            if ((kind & SurfaceGroundCellKind.Solid) != 0) { color = new Color(.27f, .29f, .31f, .92f); return true; }
+            if ((kind & SurfaceGroundCellKind.Bridge) != 0) { color = new Color(.55f, .36f, .16f, .94f); return true; }
+            if ((kind & SurfaceGroundCellKind.Water) != 0) { color = new Color(.12f, .42f, .72f, .86f); return true; }
+            if ((kind & SurfaceGroundCellKind.Road) != 0) { color = new Color(.62f, .50f, .31f, .72f); return true; }
+            color = default; return false;
+        }
+
         public static bool TryEstimateOutdoorRenderedObjectCount(
             OutdoorSurfacePlacementDefinition placement,
             out int count)

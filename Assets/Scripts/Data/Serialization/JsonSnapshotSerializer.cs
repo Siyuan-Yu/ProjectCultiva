@@ -40,6 +40,10 @@ namespace XianXia.Data.Serialization
                 ["partyInventorySlots"] = JsonValue.FromArray(SerializePartyInventorySlots(snapshot.PartyInventorySlots)),
                 ["relationshipEvents"] = JsonValue.FromArray(SerializeRelationshipEvents(snapshot.RelationshipEvents)),
                 ["socialBonds"] = JsonValue.FromArray(SerializeSocialBonds(snapshot.SocialBonds)),
+                ["outdoorDestructibles"] = JsonValue.FromArray(
+                    SerializeOutdoorDestructibles(snapshot.OutdoorDestructibles)),
+                ["outdoorFarmPlots"] = JsonValue.FromArray(
+                    SerializeOutdoorFarmPlots(snapshot.OutdoorFarmPlots)),
                 ["strategic"] = SerializeStrategic(snapshot.Strategic)
             };
 
@@ -179,6 +183,41 @@ namespace XianXia.Data.Serialization
                     }
                 }
 
+                // Additive v6 optional fields: older saves omit both arrays and therefore retain
+                // the WorldSnapshot defaults (empty collections).
+                if (root.TryGetProperty("outdoorDestructibles", out var outdoorDestructibles) &&
+                    outdoorDestructibles.Kind == JsonValueKind.Array)
+                {
+                    foreach (var node in outdoorDestructibles.Array)
+                    {
+                        if (node.Kind != JsonValueKind.Object)
+                            continue;
+                        snapshot.OutdoorDestructibles.Add(new OutdoorDestructibleSnapshotDto
+                        {
+                            StableId = node.GetString("stableId", string.Empty),
+                            CurrentHp = (int)node.GetNumber("currentHp"),
+                            Destroyed = node.GetBool("destroyed")
+                        });
+                    }
+                }
+
+                if (root.TryGetProperty("outdoorFarmPlots", out var outdoorFarmPlots) &&
+                    outdoorFarmPlots.Kind == JsonValueKind.Array)
+                {
+                    foreach (var node in outdoorFarmPlots.Array)
+                    {
+                        if (node.Kind != JsonValueKind.Object)
+                            continue;
+                        snapshot.OutdoorFarmPlots.Add(new OutdoorFarmPlotSnapshotDto
+                        {
+                            StableCellId = node.GetString("stableCellId", string.Empty),
+                            CropId = node.GetString("cropId", string.Empty),
+                            CropStage = (int)node.GetNumber("cropStage"),
+                            Growth = (float)node.GetNumber("growth")
+                        });
+                    }
+                }
+
                 if (root.TryGetProperty("strategic", out var strategic) &&
                     strategic.Kind == JsonValueKind.Object)
                 {
@@ -306,6 +345,48 @@ namespace XianXia.Data.Serialization
                 }));
             }
 
+            return list;
+        }
+
+        static List<JsonValue> SerializeOutdoorDestructibles(
+            List<OutdoorDestructibleSnapshotDto> destructibles)
+        {
+            var list = new List<JsonValue>();
+            if (destructibles == null)
+                return list;
+            for (var i = 0; i < destructibles.Count; i++)
+            {
+                var state = destructibles[i];
+                if (state == null)
+                    continue;
+                list.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["stableId"] = JsonValue.FromString(state.StableId ?? string.Empty),
+                    ["currentHp"] = JsonValue.FromNumber(state.CurrentHp),
+                    ["destroyed"] = JsonValue.FromBool(state.Destroyed)
+                }));
+            }
+            return list;
+        }
+
+        static List<JsonValue> SerializeOutdoorFarmPlots(List<OutdoorFarmPlotSnapshotDto> plots)
+        {
+            var list = new List<JsonValue>();
+            if (plots == null)
+                return list;
+            for (var i = 0; i < plots.Count; i++)
+            {
+                var state = plots[i];
+                if (state == null)
+                    continue;
+                list.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["stableCellId"] = JsonValue.FromString(state.StableCellId ?? string.Empty),
+                    ["cropId"] = JsonValue.FromString(state.CropId ?? string.Empty),
+                    ["cropStage"] = JsonValue.FromNumber(state.CropStage),
+                    ["growth"] = JsonValue.FromNumber(state.Growth)
+                }));
+            }
             return list;
         }
 
@@ -770,6 +851,23 @@ namespace XianXia.Data.Serialization
             return list;
         }
 
+        static List<JsonValue> SerializeWorldPath(List<WorldPointSnapshotDto> path)
+        {
+            var list = new List<JsonValue>();
+            if (path == null) return list;
+            for (var i = 0; i < path.Count; i++)
+            {
+                var point = path[i];
+                if (point == null) continue;
+                list.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["x"] = JsonValue.FromNumber(point.X),
+                    ["y"] = JsonValue.FromNumber(point.Y)
+                }));
+            }
+            return list;
+        }
+
         static JsonValue SerializeStrategic(StrategicSnapshotDto strategic)
         {
             strategic ??= new StrategicSnapshotDto();
@@ -823,6 +921,15 @@ namespace XianXia.Data.Serialization
                         ["siteDepartureFootprintR"] = JsonValue.FromNumber(a.SiteDepartureFootprintR),
                         ["siteDepartureExitQ"] = JsonValue.FromNumber(a.SiteDepartureExitQ),
                         ["siteDepartureExitR"] = JsonValue.FromNumber(a.SiteDepartureExitR),
+                        ["routeKind"] = JsonValue.FromNumber(a.RouteKind),
+                        ["surfaceId"] = JsonValue.FromString(a.SurfaceId ?? string.Empty),
+                        ["surfaceSourceRevision"] = JsonValue.FromString(a.SurfaceSourceRevision ?? string.Empty),
+                        ["surfaceSourceHash"] = JsonValue.FromString(a.SurfaceSourceHash ?? string.Empty),
+                        ["physicalDestinationX"] = JsonValue.FromNumber(a.PhysicalDestinationX),
+                        ["physicalDestinationY"] = JsonValue.FromNumber(a.PhysicalDestinationY),
+                        ["surfaceWaypointIndex"] = JsonValue.FromNumber(a.SurfaceWaypointIndex),
+                        ["routeDiagnostic"] = JsonValue.FromString(a.RouteDiagnostic ?? string.Empty),
+                        ["surfacePath"] = JsonValue.FromArray(SerializeWorldPath(a.SurfacePath)),
                         ["memberCharacterIds"] = JsonValue.FromArray(members),
                         ["hexPath"] = JsonValue.FromArray(SerializeHexPath(a.HexPath))
                     }));
@@ -1152,6 +1259,14 @@ namespace XianXia.Data.Serialization
                         SiteDepartureFootprintR = a.TryGetProperty("siteDepartureFootprintR", out var sdfr) ? (int)sdfr.Number : 0,
                         SiteDepartureExitQ = a.TryGetProperty("siteDepartureExitQ", out var sdeq) ? (int)sdeq.Number : 0,
                         SiteDepartureExitR = a.TryGetProperty("siteDepartureExitR", out var sder) ? (int)sder.Number : 0,
+                        RouteKind = a.TryGetProperty("routeKind", out var rk) ? (int)rk.Number : 0,
+                        SurfaceId = a.GetString("surfaceId", string.Empty),
+                        SurfaceSourceRevision = a.GetString("surfaceSourceRevision", string.Empty),
+                        SurfaceSourceHash = a.GetString("surfaceSourceHash", string.Empty),
+                        PhysicalDestinationX = a.TryGetProperty("physicalDestinationX", out var pdx) ? (float)pdx.Number : 0f,
+                        PhysicalDestinationY = a.TryGetProperty("physicalDestinationY", out var pdy) ? (float)pdy.Number : 0f,
+                        SurfaceWaypointIndex = a.TryGetProperty("surfaceWaypointIndex", out var swi) ? (int)swi.Number : 0,
+                        RouteDiagnostic = a.GetString("routeDiagnostic", string.Empty),
                     };
                     if (a.TryGetProperty("memberCharacterIds", out var members) && members.Kind == JsonValueKind.Array)
                     {
@@ -1161,6 +1276,16 @@ namespace XianXia.Data.Serialization
 
                     if (a.TryGetProperty("hexPath", out var hexPath))
                         army.HexPath = ReadHexPath(hexPath);
+                    if (a.TryGetProperty("surfacePath", out var surfacePath) &&
+                        surfacePath.Kind == JsonValueKind.Array)
+                    {
+                        foreach (var point in surfacePath.Array)
+                            army.SurfacePath.Add(new WorldPointSnapshotDto
+                            {
+                                X = point.TryGetProperty("x", out var x) ? (float)x.Number : 0f,
+                                Y = point.TryGetProperty("y", out var y) ? (float)y.Number : 0f
+                            });
+                    }
 
                     dto.FormalArmies.Add(army);
                 }

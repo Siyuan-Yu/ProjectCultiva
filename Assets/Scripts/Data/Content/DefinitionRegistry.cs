@@ -58,6 +58,8 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, StrategicFactionDefinition>();
         readonly Dictionary<DefinitionId, OutdoorWorldSurfaceDefinition> _outdoorSurfaces =
             new Dictionary<DefinitionId, OutdoorWorldSurfaceDefinition>();
+        readonly Dictionary<DefinitionId, OutdoorSurfaceGeographyDefinition> _outdoorSurfaceGeographies =
+            new Dictionary<DefinitionId, OutdoorSurfaceGeographyDefinition>();
 
         public IReadOnlyDictionary<DefinitionId, CharacterDefinition> Characters => _characters;
         public IReadOnlyDictionary<DefinitionId, CultivationDefinition> Cultivations => _cultivations;
@@ -85,6 +87,7 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, FormalArmyDefinition> FormalArmies => _formalArmies;
         public IReadOnlyDictionary<DefinitionId, StrategicFactionDefinition> StrategicFactions => _strategicFactions;
         public IReadOnlyDictionary<DefinitionId, OutdoorWorldSurfaceDefinition> OutdoorSurfaces => _outdoorSurfaces;
+        public IReadOnlyDictionary<DefinitionId, OutdoorSurfaceGeographyDefinition> OutdoorSurfaceGeographies => _outdoorSurfaceGeographies;
 
         public bool ContainsId(DefinitionId id) =>
             _characters.ContainsKey(id) ||
@@ -112,7 +115,8 @@ namespace XianXia.Data.Content
             _hexWorldContents.ContainsKey(id) ||
             _formalArmies.ContainsKey(id) ||
             _strategicFactions.ContainsKey(id) ||
-            _outdoorSurfaces.ContainsKey(id);
+            _outdoorSurfaces.ContainsKey(id) ||
+            _outdoorSurfaceGeographies.ContainsKey(id);
 
         public Result RegisterCharacter(CharacterDefinition definition)
         {
@@ -296,6 +300,13 @@ namespace XianXia.Data.Content
             return Register(_outdoorSurfaces, definition, DefinitionId.Parse(definition.SurfaceId).Value);
         }
 
+        public Result RegisterOutdoorSurfaceGeography(OutdoorSurfaceGeographyDefinition definition)
+        {
+            if (definition == null || definition.Id.Equals(default(DefinitionId)) || definition.Navigation == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "OutdoorSurfaceGeographyDefinition is invalid.");
+            return Register(_outdoorSurfaceGeographies, definition, definition.Id);
+        }
+
         /// <summary>覆盖已有 mapLayout（Level Tester 热换地图文件）。</summary>
         public Result UpsertMapLayout(MapLayoutDefinition definition)
         {
@@ -379,6 +390,20 @@ namespace XianXia.Data.Content
 
         public bool TryGetOutdoorSurface(DefinitionId id, out OutdoorWorldSurfaceDefinition definition) =>
             _outdoorSurfaces.TryGetValue(id, out definition);
+
+        public bool TryGetOutdoorSurfaceGeography(string surfaceId, out OutdoorSurfaceGeographyDefinition definition)
+        {
+            foreach (var entry in _outdoorSurfaceGeographies)
+            {
+                if (string.Equals(entry.Value.SurfaceId, surfaceId, System.StringComparison.Ordinal))
+                {
+                    definition = entry.Value;
+                    return true;
+                }
+            }
+            definition = null;
+            return false;
+        }
 
         /// <summary>Prefer content ladder; otherwise null.</summary>
         public bool TryGetPrimaryRealmLadder(out RealmLadderDefinition definition)

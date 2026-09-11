@@ -7,6 +7,17 @@
 
 ---
 
+## 2026-09-11 — Continuous Outdoor Streaming Seam V1
+
+- 制作人 Play 验收：Opening NPC authored spawn、NPC Schedule realtime movement、Continuous Outdoor Follow 全部 PASS；本轮只处理主控跨 rectangular Surface Chunk 边界的瞬时 hitch。
+- 根因是旧 `UpdateNeighborhood()` 在 crossing 同帧同步 remove3 + build3 + WalkGrid compose + places/materialization + overlay。普通 crossing 现改为 staged state machine：每帧 build 1 incoming → 独立帧提交 radius-1 `_loaded` 并 compose → 后续帧 places/materialization → 后续帧 overlay → 每帧 retire 1 outgoing。
+- 新增 `_presentedChunks` 分离 transient presentation cache 与 logical gameplay `_loaded`；快速连续跨块会 coalesce 到最新 center，复用仍需要的已建 chunk，不重新 ActivateSurface、不清空 Surface、不重复 owner。initial activation / hard handoff 保持同步首屏初始化。
+- 普通 transition 不调用 AlignParty／FrameCamera／InvalidatePartyLocalMovement／Cancel path，不写主控 transform，不修改 WorldPosition、Follow、Schedule 或 Hex strategic architecture。
+- Editor/Development Build 新增一次一 action 的 `[ContinuousStream] center/phase/chunk/ms` 诊断；验证只做 Core/Data/Host offline compile + `git diff --check`，不跑 Unity/Test Runner/大规模 suite。真源：[214](214-continuous-outdoor-streaming-seam-v1-2026-09-11.md)。
+- 制作人首次跨块复验在 `ComposeWalkGrid` 抛出 alignment exception。复算确认远端 chunk 的 float extent 会从理论 150 cells 漂为 `150.00012`／`149.99988`，旧阈值错误按 presentation 绝对值比较。`WalkGridComposer` 改用统一 `0.001 cell` lattice tolerance；仅接纳浮点噪声，真实非整数格错位仍拒绝。
+
+---
+
 ## 2026-09-11 — Continuous Outdoor NPC Schedule Physical-Authority Closure
 
 - 制作人 Play 复验确认 opening authored 出生位置与 PlayerParty Follow 正确；本轮只修 Schedule 到点不走、持续显示“移动中”，没有改 Follow／co-presence／StopFollow 或 opening bake transform。

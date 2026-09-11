@@ -91,13 +91,15 @@ Normal NewGame
       → TryPrepareInitialContinuousOutdoorStartup   (只读：Site → Surface → Chunk → canonical anchor)
       → Preflight（neighborhood 可加载）→ Commit（提交 canonical WorldPosition，清 legacy LocalMap authority）
       → ContinuousOutdoorSurfaceRuntime.ActivateSurface
-          → UpdateNeighborhood(center) : radius-1 chunk（正常 3×3）add/remove
+          → InitializeNeighborhood(center) : activation 时同步建立首个 radius-1（正常 3×3）
           → RecomposeWalkGrid()        : Wilderness grid + Site blocker grid → Composite WalkGrid
           → RefreshLoadedOutdoorPlaces(): Site-scoped place registry（SiteId+LocationId → WorldPosition）
           → ReconcileOutdoorEntityMaterialization()
           → RealignMaterializedViewPlacements()
       → FinalizeContinuousOutdoorOpeningPopulation()（Host 侧唯一一次 population barrier）
 ```
+
+普通相邻 rectangular chunk crossing 已由 [214](214-continuous-outdoor-streaming-seam-v1-2026-09-11.md) 改为 staged transition；上述同步链只属于 activation / hard handoff。
 
 Outdoor 连续区（全部 Continuous，无 transition）：
 

@@ -12,7 +12,9 @@ namespace XianXia.Core.World.Strategic
     public sealed class FormalArmyWorldMotion
     {
         readonly List<HexCoord> _hexPath = new List<HexCoord>(32);
+        readonly List<WorldVec2> _surfacePath = new List<WorldVec2>(64);
         ReadOnlyCollection<HexCoord> _hexPathView;
+        ReadOnlyCollection<WorldVec2> _surfacePathView;
 
         public FormalArmyLocationKind LocationKind { get; private set; } = FormalArmyLocationKind.Unknown;
         public FormalArmyMovementKind MovementKind { get; private set; } = FormalArmyMovementKind.Idle;
@@ -27,6 +29,13 @@ namespace XianXia.Core.World.Strategic
         public int SegmentIndex { get; private set; }
         public float SegmentProgress { get; private set; }
         public bool HasPosition { get; private set; }
+        public FormalArmyRouteKind RouteKind { get; private set; }
+        public string SurfaceId { get; private set; } = string.Empty;
+        public string SurfaceSourceRevision { get; private set; } = string.Empty;
+        public string SurfaceSourceHash { get; private set; } = string.Empty;
+        public WorldVec2 PhysicalDestination { get; private set; }
+        public int SurfaceWaypointIndex { get; private set; }
+        public string RouteDiagnostic { get; private set; } = string.Empty;
         public ulong LastProcessedWorldTick { get; set; }
 
         public bool IsMoving => MovementKind == FormalArmyMovementKind.AutoTravel;
@@ -41,10 +50,14 @@ namespace XianXia.Core.World.Strategic
 
         public IReadOnlyList<HexCoord> HexPath =>
             _hexPathView ?? (_hexPathView = _hexPath.AsReadOnly());
+        public IReadOnlyList<WorldVec2> SurfacePath =>
+            _surfacePathView ?? (_surfacePathView = _surfacePath.AsReadOnly());
+        public int SurfacePathCount => _surfacePath.Count;
 
         public void ClearTravel()
         {
             _hexPath.Clear();
+            _surfacePath.Clear();
             SegmentIndex = 0;
             SegmentProgress = 0f;
             MovementKind = FormalArmyMovementKind.Idle;
@@ -52,6 +65,13 @@ namespace XianXia.Core.World.Strategic
             OrderTargetArmyId = string.Empty;
             DestinationHex = CurrentHex;
             DestinationSiteId = string.Empty;
+            RouteKind = FormalArmyRouteKind.None;
+            SurfaceId = string.Empty;
+            SurfaceSourceRevision = string.Empty;
+            SurfaceSourceHash = string.Empty;
+            PhysicalDestination = WorldPosition;
+            SurfaceWaypointIndex = 0;
+            RouteDiagnostic = string.Empty;
             ClearSiteDeparturePending();
         }
 
@@ -85,6 +105,18 @@ namespace XianXia.Core.World.Strategic
             ClearTravel();
         }
 
+        public void SetAtWorldSitePreservingWorldPosition(
+            string siteId,
+            WorldVec2 worldPosition,
+            HexCoord derivedHex)
+        {
+            LocationKind = FormalArmyLocationKind.AtWorldSite;
+            SiteId = siteId ?? string.Empty;
+            WorldPosition = worldPosition;
+            CurrentHex = derivedHex;
+            HasPosition = true;
+        }
+
         public void SetAtWorldPosition(WorldVec2 worldPos, HexCoord derivedHex)
         {
             LocationKind = FormalArmyLocationKind.AtWorldPosition;
@@ -103,6 +135,8 @@ namespace XianXia.Core.World.Strategic
             HexTravelMode mode)
         {
             TravelMode = mode;
+            RouteKind = FormalArmyRouteKind.LegacyHex;
+            _surfacePath.Clear();
             CurrentOrderKind = orderKind;
             DestinationHex = destinationHex;
             DestinationSiteId = destinationSiteId ?? string.Empty;
@@ -122,6 +156,57 @@ namespace XianXia.Core.World.Strategic
             }
 
             MovementKind = FormalArmyMovementKind.AutoTravel;
+        }
+
+        public void BeginSurfaceTravel(
+            FormalArmyOrderKind orderKind,
+            IReadOnlyList<WorldVec2> path,
+            WorldVec2 destination,
+            HexCoord destinationHex,
+            string destinationSiteId,
+            string surfaceId,
+            string sourceRevision,
+            string sourceHash,
+            int waypointIndex = 1)
+        {
+            CurrentOrderKind = orderKind;
+            DestinationHex = destinationHex;
+            DestinationSiteId = destinationSiteId ?? string.Empty;
+            PhysicalDestination = destination;
+            SurfaceId = surfaceId ?? string.Empty;
+            SurfaceSourceRevision = sourceRevision ?? string.Empty;
+            SurfaceSourceHash = sourceHash ?? string.Empty;
+            RouteDiagnostic = string.Empty;
+            RouteKind = FormalArmyRouteKind.SurfaceGround;
+            TravelMode = HexTravelMode.Ground;
+            _hexPath.Clear();
+            _surfacePath.Clear();
+            if (path != null)
+                for (var i = 0; i < path.Count; i++)
+                    _surfacePath.Add(path[i]);
+            SurfaceWaypointIndex = Math.Max(1, waypointIndex);
+            SegmentIndex = 0;
+            SegmentProgress = 0f;
+            MovementKind = _surfacePath.Count >= 2 && SurfaceWaypointIndex < _surfacePath.Count
+                ? FormalArmyMovementKind.AutoTravel
+                : FormalArmyMovementKind.Idle;
+        }
+
+        public void SetSurfaceWaypoint(int index, float progress)
+        {
+            SurfaceWaypointIndex = index;
+            SegmentProgress = Math.Max(0f, Math.Min(1f, progress));
+        }
+
+        public void SetSurfaceRouteState(FormalArmyRouteKind kind, string diagnostic)
+        {
+            RouteKind = kind;
+            RouteDiagnostic = diagnostic ?? string.Empty;
+            if (kind == FormalArmyRouteKind.SurfacePending || kind == FormalArmyRouteKind.SurfaceFailed)
+                MovementKind = FormalArmyMovementKind.Idle;
+            else if (kind == FormalArmyRouteKind.SurfaceGround &&
+                     _surfacePath.Count >= 2 && SurfaceWaypointIndex < _surfacePath.Count)
+                MovementKind = FormalArmyMovementKind.AutoTravel;
         }
 
         public void BeginSiteDepartureTravel(
@@ -294,6 +379,29 @@ namespace XianXia.Core.World.Strategic
                 SiteDepartureFootprintHex = departureFootprintHex;
                 SiteDepartureExitHex = departureExitHex;
             }
+        }
+
+        internal void RestoreSurfaceSnapshotMotion(
+            FormalArmyOrderKind orderKind,
+            IReadOnlyList<WorldVec2> path,
+            WorldVec2 destination,
+            HexCoord destinationHex,
+            string destinationSiteId,
+            string surfaceId,
+            string sourceRevision,
+            string sourceHash,
+            int waypointIndex,
+            float segmentProgress,
+            FormalArmyRouteKind routeKind,
+            string diagnostic)
+        {
+            BeginSurfaceTravel(orderKind, path, destination, destinationHex, destinationSiteId,
+                surfaceId, sourceRevision, sourceHash, waypointIndex);
+            SegmentProgress = Math.Max(0f, Math.Min(1f, segmentProgress));
+            RouteKind = routeKind;
+            RouteDiagnostic = diagnostic ?? string.Empty;
+            if (routeKind != FormalArmyRouteKind.SurfaceGround)
+                MovementKind = FormalArmyMovementKind.Idle;
         }
     }
 }

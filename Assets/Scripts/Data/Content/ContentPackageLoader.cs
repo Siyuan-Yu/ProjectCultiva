@@ -6,6 +6,7 @@ using XianXia.Core.Domain;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
 using XianXia.Core.Social;
+using XianXia.Core.World.Surface;
 using XianXia.Data.Serialization;
 
 namespace XianXia.Data.Content
@@ -257,6 +258,9 @@ namespace XianXia.Data.Content
                         break;
                     case "outdoorSurface":
                         LoadOutdoorSurface(item, parsed.Value, registry, report);
+                        break;
+                    case "outdoorSurfaceGeography":
+                        LoadOutdoorSurfaceGeography(item, parsed.Value, registry, report);
                         break;
                     case "spawnTable":
                         LoadSpawnTable(item, parsed.Value, registry, report);
@@ -1961,6 +1965,169 @@ namespace XianXia.Data.Content
             var reg = registry.RegisterSpawnTable(table);
             if (reg.IsFailure)
                 report.Add(reg.Error);
+        }
+
+        static void LoadOutdoorSurfaceGeography(
+            JsonValue item, DefinitionId id, DefinitionRegistry registry, ValidationReport report)
+        {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(item, DefinitionSchema.OutdoorSurfaceGeographyFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore) return;
+            var surfaceId = item.GetString("surfaceId", string.Empty);
+            var schema = ReadInt(item, "sourceSchemaVersion", 0);
+            var revision = item.GetString("sourceRevision", string.Empty);
+            var hash = item.GetString("sourceHash", string.Empty);
+            var originX = ReadFloat(item, "originWorldX", 0f);
+            var originY = ReadFloat(item, "originWorldY", 0f);
+            var cellSize = ReadFloat(item, "cellSize", 0f);
+            var width = ReadInt(item, "width", 0);
+            var height = ReadInt(item, "height", 0);
+            if (string.IsNullOrWhiteSpace(surfaceId) || schema <= 0 || string.IsNullOrWhiteSpace(revision) ||
+                string.IsNullOrWhiteSpace(hash) || cellSize <= 0f || width <= 0 || height <= 0)
+            {
+                report.Add(ErrorCode.InvalidArgument, "Invalid outdoorSurfaceGeography metadata.", id.ToString());
+                return;
+            }
+            if (!item.TryGetProperty("rows", out var rows) || rows.Kind != JsonValueKind.Array || rows.Array.Count != height)
+            {
+                report.Add(ErrorCode.InvalidArgument, "outdoorSurfaceGeography rows/height mismatch.", id.ToString());
+                return;
+            }
+            var cells = new List<SurfaceGroundCellKind>(width * height);
+            for (var y = 0; y < rows.Array.Count; y++)
+            {
+                var row = rows.Array[y];
+                if (row.Kind != JsonValueKind.String || row.String.Length != width)
+                {
+                    report.Add(ErrorCode.InvalidArgument, "outdoorSurfaceGeography row width mismatch.", id + ".rows[" + y + "]");
+                    return;
+                }
+                for (var x = 0; x < row.String.Length; x++)
+                {
+                    switch (row.String[x])
+                    {
+                        case '.': cells.Add(SurfaceGroundCellKind.Ground); break;
+                        case '~': cells.Add(SurfaceGroundCellKind.Water); break;
+                        case '=': cells.Add(SurfaceGroundCellKind.Road); break;
+                        case 'B': cells.Add(SurfaceGroundCellKind.Water | SurfaceGroundCellKind.Bridge | SurfaceGroundCellKind.Road); break;
+                        case '#': cells.Add(SurfaceGroundCellKind.Solid); break;
+                        default:
+                            report.Add(ErrorCode.InvalidArgument, "Unknown outdoor geography cell code.", id + ".rows[" + y + "][" + x + "]");
+                            return;
+                    }
+                }
+            }
+            var definition = new OutdoorSurfaceGeographyDefinition
+            {
+                Id = id, SurfaceId = surfaceId, SourceSchemaVersion = schema,
+                SourceRevision = revision, SourceHash = hash,
+                Navigation = new SurfaceGroundNavigation(surfaceId, revision, hash, originX, originY, cellSize, width, height, cells)
+            };
+            if (!item.TryGetProperty("coverageChunks", out var coverage) || coverage.Kind != JsonValueKind.Array)
+            {
+                report.Add(ErrorCode.MissingRequiredField, "outdoorSurfaceGeography.coverageChunks required.", id.ToString());
+                return;
+            }
+            var uniqueChunks = new HashSet<SurfaceChunkCoord>();
+            foreach (var node in coverage.Array)
+            {
+                DefinitionSchema.RejectUnknownFields(node, DefinitionSchema.OutdoorGeographyChunkFields, report, id + ".coverageChunk");
+                var coord = new SurfaceChunkCoord(ReadInt(node, "x", 0), ReadInt(node, "y", 0));
+                if (!uniqueChunks.Add(coord))
+                    report.Add(ErrorCode.InvalidArgument, "Duplicate geography coverage chunk.", id + ".coverageChunks");
+                else definition.CoverageChunks.Add(coord);
+            }
+            if (!item.TryGetProperty("chunkRows", out var chunkRows) || chunkRows.Kind != JsonValueKind.Array ||
+                chunkRows.Array.Count != definition.CoverageChunks.Count)
+            {
+                report.Add(ErrorCode.InvalidArgument, "outdoorSurfaceGeography chunkRows/coverage mismatch.", id.ToString());
+                return;
+            }
+            var minChunkX = int.MaxValue; var minChunkY = int.MaxValue;
+            var maxChunkX = int.MinValue; var maxChunkY = int.MinValue;
+            foreach (var coord in definition.CoverageChunks)
+            {
+                minChunkX = Math.Min(minChunkX, coord.X); minChunkY = Math.Min(minChunkY, coord.Y);
+                maxChunkX = Math.Max(maxChunkX, coord.X); maxChunkY = Math.Max(maxChunkY, coord.Y);
+            }
+            var chunkCountX = maxChunkX - minChunkX + 1; var chunkCountY = maxChunkY - minChunkY + 1;
+            if (chunkCountX <= 0 || chunkCountY <= 0 || width % chunkCountX != 0 || height % chunkCountY != 0)
+            {
+                report.Add(ErrorCode.InvalidArgument, "outdoorSurfaceGeography grid cannot be split by coverage.", id.ToString());
+                return;
+            }
+            var chunkWidthCells = width / chunkCountX; var chunkHeightCells = height / chunkCountY;
+            var seenChunkRows = new HashSet<SurfaceChunkCoord>();
+            foreach (var node in chunkRows.Array)
+            {
+                DefinitionSchema.RejectUnknownFields(node, DefinitionSchema.OutdoorGeographyChunkRowsFields, report, id + ".chunkRows");
+                var coord = new SurfaceChunkCoord(ReadInt(node, "x", 0), ReadInt(node, "y", 0));
+                if (!uniqueChunks.Contains(coord) || !seenChunkRows.Add(coord) ||
+                    !node.TryGetProperty("rows", out var localRows) || localRows.Kind != JsonValueKind.Array ||
+                    localRows.Array.Count != chunkHeightCells)
+                {
+                    report.Add(ErrorCode.InvalidArgument, "Invalid outdoorSurfaceGeography chunkRows entry.", id + ".chunkRows");
+                    return;
+                }
+                for (var localY = 0; localY < chunkHeightCells; localY++)
+                {
+                    var text = localRows.Array[localY];
+                    if (text.Kind != JsonValueKind.String || text.String.Length != chunkWidthCells)
+                    {
+                        report.Add(ErrorCode.InvalidArgument, "Invalid outdoorSurfaceGeography chunk row width.", id + ".chunkRows");
+                        return;
+                    }
+                    var globalY = (coord.Y - minChunkY) * chunkHeightCells + localY;
+                    var globalX = (coord.X - minChunkX) * chunkWidthCells;
+                    for (var localX = 0; localX < chunkWidthCells; localX++)
+                        if (text.String[localX] != rows.Array[globalY].String[globalX + localX])
+                        {
+                            report.Add(ErrorCode.InvalidArgument, "Chunk/global geography bake mismatch.", id + ".chunkRows");
+                            return;
+                        }
+                }
+            }
+            if (item.TryGetProperty("mapPrimitives", out var primitives) && primitives.Kind == JsonValueKind.Array)
+                foreach (var node in primitives.Array)
+                {
+                    DefinitionSchema.RejectUnknownFields(node, DefinitionSchema.OutdoorGeographyPrimitiveFields, report, id + ".mapPrimitive");
+                    var primitive = new OutdoorGeographyPrimitive
+                    {
+                        StableId = node.GetString("stableId", string.Empty), Kind = node.GetString("kind", string.Empty),
+                        WorldX = ReadFloat(node, "worldX", 0f), WorldY = ReadFloat(node, "worldY", 0f),
+                        WorldWidth = ReadFloat(node, "worldWidth", 0f), WorldHeight = ReadFloat(node, "worldHeight", 0f),
+                        StrokeWidth = ReadFloat(node, "strokeWidth", 0f)
+                    };
+                    if (node.TryGetProperty("points", out var points) && points.Kind == JsonValueKind.Array)
+                        foreach (var value in points.Array)
+                            if (value.Kind == JsonValueKind.Number) primitive.Points.Add((float)value.Number);
+                    definition.MapPrimitives.Add(primitive);
+                }
+            if (item.TryGetProperty("landmarks", out var landmarks) && landmarks.Kind == JsonValueKind.Array)
+                foreach (var node in landmarks.Array)
+                {
+                    DefinitionSchema.RejectUnknownFields(node, DefinitionSchema.OutdoorGeographyLandmarkFields, report, id + ".landmark");
+                    definition.Landmarks.Add(new OutdoorGeographyLandmark
+                    {
+                        StableId = node.GetString("stableId", string.Empty), Label = node.GetString("label", string.Empty),
+                        WorldX = ReadFloat(node, "worldX", 0f), WorldY = ReadFloat(node, "worldY", 0f)
+                    });
+                }
+            if (item.TryGetProperty("hexSummary", out var summaries) && summaries.Kind == JsonValueKind.Array)
+                foreach (var node in summaries.Array)
+                {
+                    DefinitionSchema.RejectUnknownFields(node, DefinitionSchema.OutdoorGeographyHexSummaryFields, report, id + ".hexSummary");
+                    definition.HexSummary.Add(new OutdoorGeographyHexSummary
+                    {
+                        Q = ReadInt(node, "q", 0), R = ReadInt(node, "r", 0),
+                        CoveredFraction = ReadFloat(node, "coveredFraction", 0f), WaterFraction = ReadFloat(node, "waterFraction", 0f),
+                        RoadFraction = ReadFloat(node, "roadFraction", 0f), HasRiver = node.GetBool("hasRiver", false),
+                        HasBridge = node.GetBool("hasBridge", false)
+                    });
+                }
+            if (report.Errors.Count > errorsBefore) return;
+            var registration = registry.RegisterOutdoorSurfaceGeography(definition);
+            if (registration.IsFailure) report.Add(registration.Error);
         }
 
         static void LoadOutdoorSurface(

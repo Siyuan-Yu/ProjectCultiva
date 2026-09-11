@@ -19,11 +19,15 @@ if ([string]::IsNullOrWhiteSpace($Project)) {
 }
 
 $csc = "D:\UnityEditor\2022.3.6f1\Editor\Data\DotNetSdkRoslyn\csc.dll"
-$bee = Join-Path $Project "Library\Bee\artifacts\1900b0aEDbg.dag"
+$beeCandidates = @(
+  (Join-Path $Project "Library\Bee\artifacts\1900b0aEDbg.dag"),
+  (Join-Path $Project "Library\Bee\artifacts\1900b0aE.dag")
+)
+$bee = $beeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 $outDir = Join-Path $Project "Library\ScriptAssemblies"
 
 if (-not (Test-Path $csc)) { Write-Output "CSC_NOT_FOUND=$csc"; exit 1 }
-if (-not (Test-Path $bee)) { Write-Output "BEE_RSP_DIR_NOT_FOUND=$bee"; exit 1 }
+if ([string]::IsNullOrWhiteSpace($bee) -or -not (Test-Path $bee)) { Write-Output "BEE_RSP_DIR_NOT_FOUND=$($beeCandidates -join ',')"; exit 1 }
 
 # assembly -> source folders (relative to the project root)
 $sourceMap = [ordered]@{

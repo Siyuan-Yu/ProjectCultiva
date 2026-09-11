@@ -18,6 +18,7 @@ namespace XianXia.Data.Bootstrap
 
             RehydrateInventoryCatalog(world, registry);
             RehydrateConstructionCatalog(world, registry);
+            RehydrateSurfaceGround(world, registry);
 
             foreach (var kv in registry.Quests)
             {
@@ -127,6 +128,31 @@ namespace XianXia.Data.Bootstrap
                 }
                 world.ConstructionCatalog.Register(spec);
             }
+        }
+
+        internal static void RehydrateSurfaceGround(SimulationWorld world, DefinitionRegistry registry)
+        {
+            world.SurfaceGround.ClearRegistered();
+            foreach (var pair in registry.OutdoorSurfaceGeographies)
+                world.SurfaceGround.Register(pair.Value?.Navigation);
+            foreach (var pair in registry.OutdoorSurfaces)
+            {
+                var surface = pair.Value;
+                if (surface?.SiteRegions == null) continue;
+                for (var i = 0; i < surface.SiteRegions.Count; i++)
+                {
+                    var region = surface.SiteRegions[i];
+                    if (region == null) continue;
+                    world.SurfaceGround.RegisterSiteArrival(
+                        string.IsNullOrWhiteSpace(region.SurfaceId)
+                            ? surface.SurfaceId : region.SurfaceId,
+                        region.SiteId,
+                        new XianXia.Core.World.Hex.WorldVec2(
+                            region.ArrivalWorldX, region.ArrivalWorldY));
+                }
+            }
+            XianXia.Core.World.Strategic.FormalArmyContinuousTravelService
+                .RebindPendingSurfaceRoutes(world);
         }
 
         static void AppendHeuristicTags(string id, List<string> tags)

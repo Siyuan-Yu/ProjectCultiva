@@ -188,6 +188,37 @@ namespace XianXia.Unity.Host
             return into.Count >= 2;
         }
 
+        public bool TryGetPathProgress(EntityId id, out int index, out int count)
+        {
+            index = 0;
+            count = 0;
+            if (id.IsNone || !_paths.TryGetValue(id.Value, out var path) || path == null)
+                return false;
+            _pathIndex.TryGetValue(id.Value, out index);
+            count = path.Count;
+            return index >= 0 && index < count;
+        }
+
+        /// <summary>Checks the issued remainder against the current composite grid without rebuilding it.</summary>
+        public bool IsRemainingPathValid(EntityId id)
+        {
+            if (_walkGrid == null || id.IsNone || viewSpawner == null ||
+                !viewSpawner.Registry.TryGet(id, out var view) || view == null ||
+                !_paths.TryGetValue(id.Value, out var path) || path == null || path.Count == 0 ||
+                !_pathIndex.TryGetValue(id.Value, out var index) || index < 0 || index >= path.Count)
+                return false;
+
+            var from = view.transform.position;
+            for (var i = index; i < path.Count; i++)
+            {
+                var to = path[i];
+                if (!GridPathfinder.IsWorldSegmentWalkable(_walkGrid, from.x, from.y, to.x, to.y))
+                    return false;
+                from = to;
+            }
+            return true;
+        }
+
         /// <summary>Build an A* world polyline without issuing a move order.</summary>
         public bool TryBuildPathPreview(Vector3 from, Vector3 to, List<Vector3> into) =>
             TryBuildWorldPath(from, to, into);

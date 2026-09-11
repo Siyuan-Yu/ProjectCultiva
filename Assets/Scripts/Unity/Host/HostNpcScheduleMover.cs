@@ -5,6 +5,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Npc;
 using XianXia.Core.Navigation;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
@@ -130,6 +131,11 @@ namespace XianXia.Unity.Host
                     continue;
                 // 弥留／尸体不跑日程寻路
                 if (!CombatLifeStateService.CanFight(entity))
+                    continue;
+                // Field-army members are driven by the army's world-tick motion/presenter. During
+                // battle the participant materializer owns them instead; Schedule owns neither.
+                if (FormalArmyMemberPresenceSync.IsArmyControlledMember(session.World, entity.Id) ||
+                    session.World.Strategic.Participants.FindByEntity(entity.Id) != null)
                     continue;
                 if (!entity.TryGet<MovementIntentComponent>(out var intent) || !intent.Active)
                     continue;

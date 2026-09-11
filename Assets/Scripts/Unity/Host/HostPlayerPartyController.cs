@@ -48,6 +48,27 @@ namespace XianXia.Unity.Host
         // Phase 5C-W1 (3rd pass): rising-edge of ExecutionMode -> LocalVisible marks a fresh
         // takeover; every takeover re-arms the CURRENT leg (independent of WorldMap open/close).
         bool _localVisibleTakeoverActive;
+        bool _resumeLocalVisibleTravelRequested;
+        bool _continuousAutoTravelStallReported;
+        const int MaxContinuousCrossedSegmentsPerTick = 8;
+        int _continuousSubgoalRouteVersion = -1;
+        int _continuousSubgoalNavigationGeneration = -1;
+        int _continuousSubgoalGridRevision = -1;
+        Vector3 _continuousSubgoalDesired;
+        Vector3 _continuousResolvedSubgoal;
+        bool _hasContinuousSubgoalResolution;
+        bool _continuousSubgoalResolutionSucceeded;
+        ContinuousWalkGridSubgoalKind _continuousSubgoalKind;
+        string _continuousWaitingReason = string.Empty;
+        int _continuousIssuedRouteVersion = -1;
+        Vector3 _continuousIssuedSubgoal;
+        bool _hasContinuousIssuedSubgoal;
+        int _continuousSubgoalIssueCount;
+        string _continuousLastIssueReason = string.Empty;
+        Vector3 _continuousProgressAnchor;
+        float _continuousProgressWindowStartedAt = -1f;
+        int _continuousProgressRouteVersion = -1;
+        Vector3 _continuousProgressSubgoal;
         // Phase 5C-W2: driving toward the final Wilderness LocalMap safe interior before
         // FinishArrival (no instant arrival at the hex edge).
         bool _finalArrivalApproachInProgress;
@@ -583,10 +604,35 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// 每次 World executor → LocalVisible executor 的接管都强制失效 Host 侧旧路径缓存。
-        /// 不改 Domain TravelPlan；下一 Tick 会按现有 departure/leg 正式重发 Local A*。
+        /// WorldMap 打开时冻结当前 Presentation A*，但不改 Domain TravelPlan、Segment、
+        /// Destination 或 canonical WorldPosition。
         /// </summary>
-        public void OnLocalVisibleTravelTakeover()
+        public void FreezeLocalVisibleTravelForPlanning()
+        {
+            _resumeLocalVisibleTravelRequested = false;
+            _localVisibleTakeoverActive = false;
+            ResetLocalVisibleAutoTravelTracking();
+            var active = Party != null ? Party.ActiveCharacterId : EntityId.None;
+            if (!active.IsNone)
+                _move?.CancelPresentationMovementPublic(active);
+        }
+
+        /// <summary>
+        /// WorldMap 关闭后显式请求重发当前 LocalVisible leg。只清 Host target/retry 状态，
+        /// 不再次 Cancel Presentation movement，也不改 Domain TravelPlan。
+        /// </summary>
+        public void ResumeLocalVisibleTravelAfterPlanning()
+        {
+            var motion = bootstrap?.Session?.World?.PlayerPartyTravel;
+            _resumeLocalVisibleTravelRequested = true;
+            _autoTravelLegSegmentIndex = motion != null ? motion.SegmentIndex : -1;
+            _lastAutoTravelTarget = default;
+            _autoTravelRetryCooldownUntil = 0f;
+            _continuousAutoTravelStallReported = false;
+        }
+
+        /// <summary>Legacy LocalMap materialization still requires dropping the old map path.</summary>
+        public void OnLegacyLocalVisibleTravelTakeover()
         {
             _localVisibleTakeoverActive = false;
             ResetLocalVisibleAutoTravelTracking();
@@ -1263,10 +1309,14 @@ namespace XianXia.Unity.Host
                 return;
 
             var motion = world.PlayerPartyTravel;
+            var continuousPhysicalScope =
+                bootstrap?.ContinuousOutdoorSurfaceRuntime != null &&
+                bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive;
             // Phase 5R-B6：WorldSite departure approach —— 角色在 Site LocalMap 内自动走向正式出口。
             // 条件：AtWorldSite + AutoTravel + ExecutionMode=LocalVisible + departure pending
             // （BeginTravel 已生成 DeparturePlan；CloseWorldMapTakeover 已把 ExecutionMode 切 LocalVisible）。
-            if (motion != null &&
+            if (!continuousPhysicalScope &&
+                motion != null &&
                 motion.IsMoving &&
                 motion.ExecutionMode == PlayerPartyTravelExecutionMode.LocalVisible &&
                 motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
@@ -1294,6 +1344,8 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            var resumeRequested = ConsumeLocalVisibleResumeRequest(motion);
+
             // Rising edge: ExecutionMode entered LocalVisible (1st / 2nd / 3rd Close behave
             // identically). Every takeover re-arms the CURRENT leg unconditionally, regardless of
             // a previously issued Order, a different SegmentIndex, a stale paused flag or an
@@ -1301,7 +1353,7 @@ namespace XianXia.Unity.Host
             if (!_localVisibleTakeoverActive)
             {
                 _localVisibleTakeoverActive = true;
-                ReArmCurrentLocalLeg(motion);
+                ReArmCurrentLocalLeg(motion, cancelPresentationMovement: true);
             }
 
             // Crossed into the next hex DURING this LocalVisible session: the new Wilderness
@@ -1327,6 +1379,66 @@ namespace XianXia.Unity.Host
             if (!_spawner.Registry.TryGet(active, out var activeView) || activeView == null)
                 return;
 
+            var continuousSurface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
+            if (continuousSurface != null && continuousSurface.IsActive)
+            {
+                if (motion.TryGetContinuousSurfaceWaypoint(out _))
+                {
+                    var positionBeforeRouteDrive = activeView.transform.position;
+                    TickContinuousSurfaceLocalVisibleAutoTravel(
+                        world, motion, active, activeView, motion.DestinationHex, continuousSurface);
+                    if (!motion.TryGetContinuousSurfaceWaypoint(out _))
+                        TryDriveFinalWildernessArrival(world, motion);
+                    ReportContinuousAutoTravelStalled(
+                        motion, active, motion.DestinationHex, resumeRequested, continuousSurface,
+                        (activeView.transform.position - positionBeforeRouteDrive).sqrMagnitude > 0.000001f);
+                    return;
+                }
+                HexCoord continuousNextHex = default;
+                var consumed = 0;
+                while (PlayerPartyLocalVisibleAutoTravelService.TryResolveActiveLeg(
+                           motion, out _, out continuousNextHex, out _) &&
+                       motion.CurrentHex.Equals(continuousNextHex) &&
+                       consumed < MaxContinuousCrossedSegmentsPerTick)
+                {
+                    motion.SetSegment(motion.SegmentIndex + 1, 0f);
+                    _autoTravelLegSegmentIndex = motion.SegmentIndex;
+                    _lastAutoTravelTarget = default;
+                    consumed++;
+                }
+
+                if (!PlayerPartyLocalVisibleAutoTravelService.TryResolveActiveLeg(
+                        motion, out _, out continuousNextHex, out _))
+                {
+                    LastTransitionStatus = "FinalLeg";
+                    var positionBefore = activeView.transform.position;
+                    TryDriveFinalWildernessArrival(world, motion);
+                    ReportContinuousAutoTravelStalled(
+                        motion, party.ActiveCharacterId, motion.DestinationHex, resumeRequested,
+                        continuousSurface,
+                        (activeView.transform.position - positionBefore).sqrMagnitude > 0.000001f);
+                    return;
+                }
+
+                if (consumed >= MaxContinuousCrossedSegmentsPerTick &&
+                    motion.CurrentHex.Equals(continuousNextHex))
+                {
+                    LastTransitionStatus = "ContinuousSegmentCatchUpBounded";
+                    ReportContinuousAutoTravelStalled(
+                        motion, party.ActiveCharacterId, continuousNextHex, resumeRequested, continuousSurface,
+                        physicalMovedThisTick: false);
+                    return;
+                }
+
+                var positionBeforeDrive = activeView.transform.position;
+                TickContinuousSurfaceLocalVisibleAutoTravel(
+                    world, motion, active, activeView, continuousNextHex, continuousSurface);
+                ReportContinuousAutoTravelStalled(
+                    motion, active, continuousNextHex, resumeRequested, continuousSurface,
+                    (activeView.transform.position - positionBeforeDrive).sqrMagnitude > 0.000001f);
+                return;
+            }
+
             if (!PlayerPartyLocalVisibleAutoTravelService.TryResolveActiveLeg(
                     motion, out var currentHex, out var nextHex, out var directionIndex))
             {
@@ -1334,13 +1446,6 @@ namespace XianXia.Unity.Host
                 // (walk to its LocalMap center, then FinishArrival) or the plan is exhausted.
                 LastTransitionStatus = "FinalLeg";
                 TryDriveFinalWildernessArrival(world, motion);
-                return;
-            }
-
-            var continuousSurface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
-            if (continuousSurface != null && continuousSurface.IsActive)
-            {
-                TickContinuousSurfaceLocalVisibleAutoTravel(world, motion, active, activeView, nextHex, continuousSurface);
                 return;
             }
 
@@ -1499,107 +1604,191 @@ namespace XianXia.Unity.Host
             EntityId active,
             EntityView activeView,
             HexCoord nextHex,
-            ContinuousOutdoorSurfaceRuntime surface,
-            bool finalApproach = false)
+            ContinuousOutdoorSurfaceRuntime surface)
         {
-            if (surface.IsAutoTravelPathBlocked(nextHex) ||
-                !ContinuousSurfacePrototypeGroundLegality.CanCross(world.HexWorld, motion.CurrentHex, nextHex))
+            WorldVec2 routeWaypoint;
+            var hasSurfaceWaypoint = motion.TryGetContinuousSurfaceWaypoint(out routeWaypoint);
+            if (hasSurfaceWaypoint)
             {
-                _move.InvalidatePartyLocalMovement(Party.Members);
+                var arrive = Mathf.Max(0.001f, world.SurfaceGround?.Active?.CellSize ?? 0.028f) * 0.8f;
+                while (motion.TryGetContinuousSurfaceWaypoint(out routeWaypoint) &&
+                       DistanceWorld(motion.WorldPosition, routeWaypoint) <= arrive)
+                    motion.AdvanceContinuousSurfaceWaypoint();
+                hasSurfaceWaypoint = motion.TryGetContinuousSurfaceWaypoint(out routeWaypoint);
+                if (!hasSurfaceWaypoint) return;
+            }
+
+            var bakedAuthority = false;
+            var bakedLegal = false;
+            if (hasSurfaceWaypoint && world.SurfaceGround != null)
+                bakedAuthority = world.SurfaceGround.TryOverrideHexCompatibility(
+                    motion.WorldPosition, routeWaypoint, out bakedLegal);
+            if (surface.IsAutoTravelPathBlocked(nextHex) ||
+                (bakedAuthority ? !bakedLegal :
+                    !ContinuousSurfacePrototypeGroundLegality.CanCross(world.HexWorld, motion.CurrentHex, nextHex)))
+            {
                 surface.ReportLegalityBlocked();
                 LastTransitionStatus = ContinuousSurfacePrototypeGroundLegality.BlockedDiagnostic;
+                _continuousWaitingReason = "BlockedByStrategicGroundCompatibility";
                 _autoTravelRetryCooldownUntil = Time.time + 0.5f;
-                return; // Keep route/destination; retry the gate if terrain changes or player replans.
+                return; // Keep route/destination and existing Host path; compatibility may recover.
             }
-            if (!finalApproach && motion.CurrentHex.Equals(nextHex))
+            float wx;
+            float wy;
+            if (hasSurfaceWaypoint)
             {
-                motion.SetSegment(motion.SegmentIndex + 1, 0f);
-                _lastAutoTravelTarget = default;
-                return;
+                wx = routeWaypoint.X;
+                wy = routeWaypoint.Y;
             }
-            var size = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-            HexMath.ToWorldPosition(nextHex, size, out var wx, out var wy);
+            else
+            {
+                var size = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+                HexMath.ToWorldPosition(nextHex, size, out wx, out wy);
+            }
             surface.Mapper.WorldToPresentation(wx, wy, out var px, out var py);
-            var target = new Vector3(px, py, HostPresentationSpace.EntityZ);
+            var desired = new Vector3(px, py, HostPresentationSpace.EntityZ);
             var grid = _move != null ? _move.WalkGrid : null;
-            if (surface.TryGetOuterBoundaryApproach(target, out var boundaryTarget))
+            if (surface.TryGetOuterBoundaryApproach(desired, out var boundaryTarget))
             {
                 // This is authored-surface egress, not a radius-1 streaming frontier. Walk as
                 // close as the current composite can reach, then use the same handoff as WASD.
                 var handoffDistance = (grid != null ? grid.CellSize : 1f) * 1.5f;
                 if (Vector3.Distance(activeView.transform.position, boundaryTarget) <= handoffDistance)
                 {
-                    if (surface.TryHandoffContinuousSurfaceToLegacy(target)) return;
+                    if (surface.TryHandoffContinuousSurfaceToLegacy(desired)) return;
                     LastTransitionStatus = surface.SurfaceEgressStatus == "BlockedByStrategicGround"
                         ? "BoundaryBlockedByStrategicGround" : "ContinuousBoundaryPending";
+                    _continuousWaitingReason = LastTransitionStatus;
                     _autoTravelRetryCooldownUntil = Time.time + 0.5f;
                     return;
                 }
-                if (grid != null && TryResolveContinuousLoadedFrontier(grid, activeView.transform.position, boundaryTarget, out var egressFrontier) &&
-                    Vector3.Distance(activeView.transform.position, egressFrontier) > 0.01f &&
-                    _move.OrderEntityToWorldPoint(active, egressFrontier, null, issueStop: false,
-                        completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand))
-                {
-                    _lastAutoTravelTarget = egressFrontier;
-                    LastTransitionStatus = "ContinuousSurfaceEgressApproach";
-                    return;
-                }
-                LastTransitionStatus = "ContinuousSurfaceEgressApproachPending";
-                _autoTravelRetryCooldownUntil = Time.time + 0.25f;
-                return;
+                desired = boundaryTarget;
             }
-            if (grid == null || !grid.TryWorldToCell(px, py, out var cellX, out var cellY) || !grid.IsWalkable(cellX, cellY))
+
+            if (!TryResolveContinuousSubgoal(
+                    motion, activeView.transform.position, desired, surface,
+                    out var subgoal, out var subgoalKind, out var failureReason))
             {
-                if (grid != null && TryResolveContinuousLoadedFrontier(grid, activeView.transform.position, target, out var nearFrontier) &&
-                    Vector3.Distance(activeView.transform.position, nearFrontier) <= grid.CellSize)
-                {
-                    // A* ends at a cell center; finish the last sub-cell step to the real outer edge.
-                    _move.TickDirectWasdMove(active, ((Vector2)(target - activeView.transform.position)).normalized, wasdMoveSpeed);
-                    surface.SyncPartyPresentation();
-                    return;
-                }
-                if (grid != null && TryResolveContinuousLoadedFrontier(grid, activeView.transform.position, target, out var frontier) &&
-                    _move.OrderEntityToWorldPoint(active, frontier, null, issueStop: false,
-                        completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand))
-                {
-                    _lastAutoTravelTarget = frontier;
-                    LastTransitionStatus = "ContinuousFrontier";
-                    return;
-                }
+                _continuousWaitingReason = failureReason;
                 _autoTravelRetryCooldownUntil = Time.time + 0.25f;
-                LastTransitionStatus = "ContinuousTargetPending";
+                LastTransitionStatus = failureReason;
                 return;
             }
-            if (_move.IsMoving(active) && Vector3.Distance(target, _lastAutoTravelTarget) < 0.05f)
-                return;
-            if (_move.OrderEntityToWorldPoint(active, target, null, issueStop: false,
-                    completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand))
-            {
-                _lastAutoTravelTarget = target;
-                LastTransitionStatus = "Continuous->" + nextHex;
-            }
+
+            _continuousWaitingReason = string.Empty;
+            DriveContinuousSubgoal(
+                motion, active, activeView, subgoal, subgoalKind, surface.NavigationGeneration);
+            LastTransitionStatus = "Continuous" + subgoalKind + "->" + nextHex;
         }
 
-        static bool TryResolveContinuousLoadedFrontier(WalkGrid grid, Vector3 current, Vector3 desired, out Vector3 frontier)
+        static float DistanceWorld(WorldVec2 a, WorldVec2 b)
         {
-            frontier = default;
-            var dx = desired.x - current.x;
-            var dy = desired.y - current.y;
-            if (dx * dx + dy * dy < 0.0001f) return false;
-            // Stay on the intended segment, not the farthest corner by dot product.
-            var distance = Mathf.Sqrt(dx * dx + dy * dy);
-            var steps = Mathf.CeilToInt(distance / (grid.CellSize * 0.25f));
-            frontier = current;
-            var found = grid.TryWorldToCell(current.x, current.y, out var currentX, out var currentY) &&
-                        grid.IsWalkable(currentX, currentY);
-            for (var i = 1; i <= steps; i++)
+            var dx = a.X - b.X;
+            var dy = a.Y - b.Y;
+            return Mathf.Sqrt(dx * dx + dy * dy);
+        }
+
+        bool TryResolveContinuousSubgoal(
+            PlayerPartyWorldMotion motion,
+            Vector3 current,
+            Vector3 desired,
+            ContinuousOutdoorSurfaceRuntime surface,
+            out Vector3 subgoal,
+            out ContinuousWalkGridSubgoalKind kind,
+            out string failureReason)
+        {
+            subgoal = default;
+            kind = ContinuousWalkGridSubgoalKind.ReachableFrontier;
+            failureReason = string.Empty;
+            var grid = _move != null ? _move.WalkGrid : null;
+            var sameIdentity =
+                _hasContinuousSubgoalResolution &&
+                _continuousSubgoalRouteVersion == motion.TravelPlanVersion &&
+                _continuousSubgoalNavigationGeneration == surface.NavigationGeneration &&
+                _continuousSubgoalGridRevision == (grid != null ? grid.Revision : -1) &&
+                Vector3.Distance(_continuousSubgoalDesired, desired) < 0.05f;
+            if (!sameIdentity)
             {
-                var p = Vector3.Lerp(current, desired, (float)i / steps);
-                if (!grid.TryWorldToCell(p.x, p.y, out var x, out var y) || !grid.IsWalkable(x, y)) break;
-                frontier = p;
-                found = true;
+                _hasContinuousSubgoalResolution = true;
+                _continuousSubgoalRouteVersion = motion.TravelPlanVersion;
+                _continuousSubgoalNavigationGeneration = surface.NavigationGeneration;
+                _continuousSubgoalGridRevision = grid != null ? grid.Revision : -1;
+                _continuousSubgoalDesired = desired;
+                _continuousSubgoalResolutionSucceeded =
+                    ContinuousWalkGridSubgoalResolver.TryResolve(
+                        grid, current.x, current.y, desired.x, desired.y,
+                        out var x, out var y, out _continuousSubgoalKind,
+                        out _continuousWaitingReason);
+                _continuousResolvedSubgoal = new Vector3(x, y, HostPresentationSpace.EntityZ);
             }
-            return found;
+
+            if (!_continuousSubgoalResolutionSucceeded)
+            {
+                failureReason = string.IsNullOrEmpty(_continuousWaitingReason)
+                    ? "ContinuousRouteUnavailable"
+                    : _continuousWaitingReason;
+                return false;
+            }
+
+            subgoal = _continuousResolvedSubgoal;
+            kind = _continuousSubgoalKind;
+            return true;
+        }
+
+        void DriveContinuousSubgoal(
+            PlayerPartyWorldMotion motion,
+            EntityId active,
+            EntityView activeView,
+            Vector3 subgoal,
+            ContinuousWalkGridSubgoalKind kind,
+            int navigationGeneration)
+        {
+            if (_move == null)
+                return;
+            var arrivalDistance = (_move.WalkGrid?.CellSize ?? 1f) * 0.35f;
+            if (Vector3.Distance(activeView.transform.position, subgoal) <= arrivalDistance)
+            {
+                _continuousWaitingReason = kind == ContinuousWalkGridSubgoalKind.ReachableFrontier
+                    ? "NeedsRouteData"
+                    : "SubgoalReachedAwaitingCanonicalCommit";
+                return;
+            }
+
+            var sameIssuedGoal =
+                _hasContinuousIssuedSubgoal &&
+                _continuousIssuedRouteVersion == motion.TravelPlanVersion &&
+                Vector3.Distance(_continuousIssuedSubgoal, subgoal) < 0.05f;
+            if (sameIssuedGoal &&
+                _move.HasMovementPath(active) &&
+                _move.IsRemainingPathValid(active))
+            {
+                _lastAutoTravelTarget = subgoal;
+                _continuousLastIssueReason = "KeepValidPath/NavGen=" + navigationGeneration;
+                return;
+            }
+
+            var reason = !sameIssuedGoal
+                ? "RouteOrSubgoalChanged"
+                : _move.HasMovementPath(active)
+                    ? "RemainingPathInvalid"
+                    : "NoActivePath";
+            if (!_move.OrderEntityToWorldPoint(
+                    active, subgoal, null, issueStop: false,
+                    completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand,
+                    exactGoal: true))
+            {
+                _continuousWaitingReason = "SubgoalUnreachable";
+                _autoTravelRetryCooldownUntil = Time.time + 0.5f;
+                _continuousLastIssueReason = reason + ":Rejected";
+                return;
+            }
+
+            _hasContinuousIssuedSubgoal = true;
+            _continuousIssuedRouteVersion = motion.TravelPlanVersion;
+            _continuousIssuedSubgoal = subgoal;
+            _continuousSubgoalIssueCount++;
+            _continuousLastIssueReason = reason;
+            _lastAutoTravelTarget = subgoal;
         }
 
         void TickInternalSeamLocalVisibleAutoTravel(
@@ -1679,10 +1868,11 @@ namespace XianXia.Unity.Host
         {
             // WorldSite departure 不经过 Wilderness 的 rising-edge 分支；takeover 后同样必须
             // 清理 stale target / movement，确保关闭 WorldMap 即重新发出正式出口路径。
+            ConsumeLocalVisibleResumeRequest(motion);
             if (!_localVisibleTakeoverActive)
             {
                 _localVisibleTakeoverActive = true;
-                ReArmCurrentLocalLeg(motion);
+                ReArmCurrentLocalLeg(motion, cancelPresentationMovement: true);
             }
 
             if (motion.DeparturePhase == PlayerPartyDeparturePhase.Planned)
@@ -1908,8 +2098,6 @@ namespace XianXia.Unity.Host
                 return;
             if (motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
                 return; // WorldSite：不在此范围。
-            if (!string.IsNullOrEmpty(motion.DestinationSiteId))
-                return; // WorldSite 目标：保留 TravelPlan，不做 Site Arrival。
             if (!motion.CurrentHex.Equals(motion.DestinationHex))
                 return; // 尚未跨入目标 Hex。
 
@@ -1921,19 +2109,52 @@ namespace XianXia.Unity.Host
             var continuous = bootstrap.ContinuousOutdoorSurfaceRuntime;
             if (continuous != null && continuous.IsActive)
             {
-                HexMath.ToWorldPosition(motion.DestinationHex, world.HexWorld.HexSize, out var wx, out var wy);
+                float wx;
+                float wy;
+                if (motion.HasContinuousPhysicalDestination)
+                {
+                    wx = motion.ContinuousPhysicalDestination.X;
+                    wy = motion.ContinuousPhysicalDestination.Y;
+                }
+                else
+                {
+                    HexMath.ToWorldPosition(
+                        motion.DestinationHex, world.HexWorld.HexSize, out wx, out wy);
+                }
                 continuous.Mapper.WorldToPresentation(wx, wy, out var px, out var py);
-                var target = new Vector3(px, py, HostPresentationSpace.EntityZ);
-                var arrivalRadius = (_move.WalkGrid?.CellSize ?? 1f) * 0.75f;
-                if (Vector3.Distance(activeView.transform.position, target) <= arrivalRadius)
+                var desired = new Vector3(px, py, HostPresentationSpace.EntityZ);
+                if (!TryResolveContinuousSubgoal(
+                        motion, activeView.transform.position, desired, continuous,
+                        out var resolvedGoal, out var goalKind, out var failureReason))
+                {
+                    _continuousWaitingReason = failureReason;
+                    LastTransitionStatus = failureReason;
+                    return;
+                }
+
+                var authoredRadius = motion.HasContinuousPhysicalDestination
+                    ? motion.ContinuousPhysicalArrivalRadius * continuous.Mapper.PresentationUnitsPerWorldUnit
+                    : 0f;
+                var arrivalRadius = Mathf.Max(
+                    (_move.WalkGrid?.CellSize ?? 1f) * 0.35f,
+                    authoredRadius);
+                var physicallyArrived =
+                    goalKind != ContinuousWalkGridSubgoalKind.ReachableFrontier &&
+                    Vector3.Distance(activeView.transform.position, resolvedGoal) <= arrivalRadius;
+                if (physicallyArrived)
                 {
                     continuous.SyncPartyPresentation();
                     var finish = PlayerPartyHexTravelService.CompleteWildernessFinalArrival(world);
                     if (finish.IsSuccess) _move.CancelPresentationMovementPublic(active);
                     LastTransitionStatus = finish.IsSuccess ? "Arrived" : "FinalArrivalRejected";
                 }
-                else TickContinuousSurfaceLocalVisibleAutoTravel(world, motion, active, activeView,
-                    motion.DestinationHex, continuous, finalApproach: true);
+                else
+                {
+                    DriveContinuousSubgoal(
+                        motion, active, activeView, resolvedGoal, goalKind,
+                        continuous.NavigationGeneration);
+                    LastTransitionStatus = "ContinuousFinal" + goalKind;
+                }
                 return;
             }
             if (!TryResolveWildernessBounds(out var bounds))
@@ -2007,10 +2228,35 @@ namespace XianXia.Unity.Host
 
         void ResetLocalVisibleAutoTravelTracking()
         {
+            _resumeLocalVisibleTravelRequested = false;
             _autoTravelLegSegmentIndex = -1;
             _lastAutoTravelTarget = default;
             _autoTravelRetryCooldownUntil = 0f;
             _finalArrivalApproachInProgress = false;
+            _continuousAutoTravelStallReported = false;
+            _continuousSubgoalRouteVersion = -1;
+            _continuousSubgoalNavigationGeneration = -1;
+            _continuousSubgoalGridRevision = -1;
+            _hasContinuousSubgoalResolution = false;
+            _continuousSubgoalResolutionSucceeded = false;
+            _continuousWaitingReason = string.Empty;
+            _continuousIssuedRouteVersion = -1;
+            _hasContinuousIssuedSubgoal = false;
+            _continuousSubgoalIssueCount = 0;
+            _continuousLastIssueReason = string.Empty;
+            _continuousProgressWindowStartedAt = -1f;
+            _continuousProgressRouteVersion = -1;
+        }
+
+        bool ConsumeLocalVisibleResumeRequest(PlayerPartyWorldMotion motion)
+        {
+            if (!_resumeLocalVisibleTravelRequested)
+                return false;
+
+            _resumeLocalVisibleTravelRequested = false;
+            _localVisibleTakeoverActive = true;
+            ReArmCurrentLocalLeg(motion, cancelPresentationMovement: false);
+            return true;
         }
 
         /// <summary>
@@ -2019,20 +2265,109 @@ namespace XianXia.Unity.Host
         /// - anchors the leg to the CURRENT SegmentIndex
         /// - clears last target / any issued Local Move so the A* re-issues for the current Exit
         /// </summary>
-        void ReArmCurrentLocalLeg(PlayerPartyWorldMotion motion)
+        void ReArmCurrentLocalLeg(
+            PlayerPartyWorldMotion motion,
+            bool cancelPresentationMovement)
         {
             _autoTravelLegSegmentIndex = motion != null ? motion.SegmentIndex : -1;
             _lastAutoTravelTarget = default;
             _autoTravelRetryCooldownUntil = 0f;
 
             var active = Party != null ? Party.ActiveCharacterId : EntityId.None;
-            if (!active.IsNone && _move != null)
+            if (cancelPresentationMovement && !active.IsNone && _move != null)
                 _move.CancelPresentationMovementPublic(active);
 
             // 新一趟 AutoTravel 开始时：若角色当前已处于正式 Safe Interior，立即通过现有
             // Gate re-arm 逻辑恢复（TickRearm 本身要求 Safe Interior 且不强制）。
             // 若不在 Safe Interior，保持现有规则，不绕过 Gate。
             TryRearmEdgeGateIfInSafeInterior(motion);
+        }
+
+        [System.Diagnostics.Conditional("UNITY_EDITOR"),
+         System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        void ReportContinuousAutoTravelStalled(
+            PlayerPartyWorldMotion motion,
+            EntityId active,
+            HexCoord nextHex,
+            bool resumeRequested,
+            ContinuousOutdoorSurfaceRuntime surface,
+            bool physicalMovedThisTick)
+        {
+            if (motion == null ||
+                !motion.IsMoving ||
+                motion.ExecutionMode != PlayerPartyTravelExecutionMode.LocalVisible ||
+                surface == null ||
+                !surface.IsActive)
+                return;
+
+            if (_spawner == null ||
+                !_spawner.Registry.TryGet(active, out var activeView) ||
+                activeView == null)
+                return;
+
+            var position = activeView.transform.position;
+            var hostMoving = _move != null && _move.IsMoving(active);
+            var subgoalChanged =
+                _continuousProgressRouteVersion != motion.TravelPlanVersion ||
+                Vector3.Distance(_continuousProgressSubgoal, _continuousResolvedSubgoal) >= 0.05f;
+            if (_continuousProgressWindowStartedAt < 0f || subgoalChanged)
+            {
+                _continuousProgressRouteVersion = motion.TravelPlanVersion;
+                _continuousProgressSubgoal = _continuousResolvedSubgoal;
+                _continuousProgressAnchor = position;
+                _continuousProgressWindowStartedAt = Time.unscaledTime;
+                _continuousAutoTravelStallReported = false;
+                return;
+            }
+
+            var progressThreshold = (_move?.WalkGrid?.CellSize ?? 1f) * 0.25f;
+            var actualDelta = Vector3.Distance(position, _continuousProgressAnchor);
+            if (physicalMovedThisTick || actualDelta >= progressThreshold)
+            {
+                _continuousProgressAnchor = position;
+                _continuousProgressWindowStartedAt = Time.unscaledTime;
+                _continuousAutoTravelStallReported = false;
+                return;
+            }
+            if (Time.unscaledTime - _continuousProgressWindowStartedAt < 1.5f)
+                return;
+            if (_continuousAutoTravelStallReported)
+                return;
+
+            _continuousAutoTravelStallReported = true;
+            var pathIndex = -1;
+            var pathCount = 0;
+            if (_move != null)
+                _move.TryGetPathProgress(active, out pathIndex, out pathCount);
+            var finalGoal = motion.HasContinuousPhysicalDestination
+                ? motion.ContinuousPhysicalDestination.ToString()
+                : motion.DestinationHex.ToString();
+            Debug.LogWarning(
+                "[ContinuousAutoTravelStalled]" +
+                " ExecutionMode=" + motion.ExecutionMode +
+                " MovementKind=" + motion.MovementKind +
+                " LocationKind=" + motion.LocationKind +
+                " OutdoorSite=" + (motion.CurrentOutdoorWorldSiteId ?? string.Empty) +
+                " CurrentHex=" + motion.CurrentHex +
+                " SegmentIndex=" + motion.SegmentIndex +
+                " HexPathCount=" + motion.HexPath.Count +
+                " NextHex=" + nextHex +
+                " DestinationHex=" + motion.DestinationHex +
+                " WorldPosition=" + motion.WorldPosition +
+                " FinalResolvedGoal=" + finalGoal +
+                " Subgoal=" + _continuousResolvedSubgoal +
+                " CurrentChunk=" + surface.CurrentChunk +
+                " NavigationGeneration=" + surface.NavigationGeneration +
+                " PathIndex=" + pathIndex +
+                " PathCount=" + pathCount +
+                " SubgoalIssueCount=" + _continuousSubgoalIssueCount +
+                " LastIssueReason=" + (_continuousLastIssueReason ?? string.Empty) +
+                " ActualPositionDelta=" + actualDelta.ToString("0.###") +
+                " WaitingReason=" + (_continuousWaitingReason ?? string.Empty) +
+                " HostMove.IsMoving=" + hostMoving +
+                " ContinuousSurface.IsActive=" + surface.IsActive +
+                " resumeRequested=" + resumeRequested,
+                this);
         }
 
         /// <summary>

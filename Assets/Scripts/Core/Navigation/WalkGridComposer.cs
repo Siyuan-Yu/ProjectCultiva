@@ -9,6 +9,11 @@ namespace XianXia.Core.Navigation
     /// </summary>
     public static class WalkGridComposer
     {
+        // Placement coordinates are floats. Farther SurfaceChunk coordinates can accumulate about
+        // 0.00012 cell of error while still representing the same authored integer lattice.
+        // Keep this cell-relative and far below any meaningful placement offset.
+        const double CellAlignmentTolerance = 0.001;
+
         public readonly struct Input
         {
             public Input(WalkGrid grid, float placementX, float placementY)
@@ -88,16 +93,18 @@ namespace XianXia.Core.Navigation
 
         static int ToCellCount(float extent, float cellSize)
         {
-            var count = (int)Math.Round(extent / cellSize, MidpointRounding.AwayFromZero);
-            if (count < 1 || Math.Abs(count * cellSize - extent) > 0.0001f)
+            var cells = (double)extent / cellSize;
+            var count = (int)Math.Round(cells, MidpointRounding.AwayFromZero);
+            if (count < 1 || Math.Abs(cells - count) > CellAlignmentTolerance)
                 throw new InvalidOperationException("WalkGrid placement must align to cell boundaries.");
             return count;
         }
 
         static void RequireAligned(float offset, float cellSize)
         {
-            var cells = offset / cellSize;
-            if (Math.Abs(cells - Math.Round(cells, MidpointRounding.AwayFromZero)) > 0.0001f)
+            var cells = (double)offset / cellSize;
+            if (Math.Abs(cells - Math.Round(cells, MidpointRounding.AwayFromZero)) >
+                CellAlignmentTolerance)
                 throw new InvalidOperationException("WalkGrid placement must align to the shared cell lattice.");
         }
     }

@@ -38,6 +38,8 @@ namespace XianXia.Core.World.Strategic
     {
         readonly List<HexCoord> _hexPath = new List<HexCoord>(32);
         readonly List<EntityId> _travelingMembers = new List<EntityId>(6);
+        readonly List<WorldVec2> _continuousSurfaceRoute = new List<WorldVec2>(128);
+        ReadOnlyCollection<WorldVec2> _continuousSurfaceRouteView;
         ReadOnlyCollection<HexCoord> _hexPathView;
 
         public PlayerPartyLocationKind LocationKind { get; private set; } = PlayerPartyLocationKind.AtWorldSite;
@@ -61,6 +63,16 @@ namespace XianXia.Core.World.Strategic
         /// </summary>
         public HexCoord FinalDestinationHex { get; private set; }
         public string FinalDestinationSiteId { get; private set; } = string.Empty;
+        /// <summary>Continuous Outdoor 的正式物理目标；HexPath 仅作为粗粒度 waypoint。</summary>
+        public bool HasContinuousPhysicalDestination { get; private set; }
+        public WorldVec2 ContinuousPhysicalDestination { get; private set; }
+        public float ContinuousPhysicalArrivalRadius { get; private set; }
+        /// <summary>Host 用于区分正式路线替换；不作为存档 identity。</summary>
+        public int TravelPlanVersion { get; private set; }
+        public int ContinuousSurfaceRouteIndex { get; private set; }
+        public IReadOnlyList<WorldVec2> ContinuousSurfaceRoute =>
+            _continuousSurfaceRouteView ?? (_continuousSurfaceRouteView = _continuousSurfaceRoute.AsReadOnly());
+        public bool HasContinuousSurfaceRoute => _continuousSurfaceRoute.Count > 1;
 
         /// <summary>
         /// Phase 5S-B2-3.5：PlayerParty 追击目标 FormalArmy 的 strategic order metadata。
@@ -140,8 +152,11 @@ namespace XianXia.Core.World.Strategic
 
         public void Clear()
         {
+            TravelPlanVersion++;
             _hexPath.Clear();
             _travelingMembers.Clear();
+            _continuousSurfaceRoute.Clear();
+            ContinuousSurfaceRouteIndex = 0;
             AttackOrderTargetArmyId = string.Empty;
             SegmentIndex = 0;
             SegmentProgress = 0f;
@@ -153,6 +168,9 @@ namespace XianXia.Core.World.Strategic
             DestinationSiteId = string.Empty;
             FinalDestinationHex = CurrentHex;
             FinalDestinationSiteId = string.Empty;
+            HasContinuousPhysicalDestination = false;
+            ContinuousPhysicalDestination = default;
+            ContinuousPhysicalArrivalRadius = 0f;
             TravelMode = HexTravelMode.Ground;
             ClearSiteDeparturePending();
             UsesTravelPresentation = false;
@@ -337,21 +355,7 @@ namespace XianXia.Core.World.Strategic
             HexTravelMode mode,
             float hexSize)
         {
-            TravelMode = mode;
-            DestinationHex = destinationHex;
-            DestinationSiteId = destinationSiteId ?? string.Empty;
-            // 默认 FinalDestination == 当前 Leg 目标（普通旅行）；Gateway fallback 会随后覆盖。
-            FinalDestinationHex = destinationHex;
-            FinalDestinationSiteId = destinationSiteId ?? string.Empty;
-            _hexPath.Clear();
-            if (path != null)
-            {
-                for (var i = 0; i < path.Count; i++)
-                    _hexPath.Add(path[i]);
-            }
-
-            SegmentIndex = 0;
-            SegmentProgress = 0f;
+            LoadAutoTravelPlan(path, destinationHex, destinationSiteId, mode);
             if (_hexPath.Count < 1)
             {
                 CompleteMove();
@@ -370,8 +374,95 @@ namespace XianXia.Core.World.Strategic
 
             // Phase 2C：path[0]==CurrentHex 且 off-center 时，段 0 从 live WorldPosition 出发（TryGetActiveSegmentWorld），不在此 snap。
 
+            StartAutoTravel(PlayerPartyTravelExecutionMode.World);
+        }
+
+        /// <summary>
+        /// Continuous-only start: a one-Hex path still represents a real physical journey.
+        /// Never snaps or completes merely because the coarse Hex route has zero segments.
+        /// </summary>
+        public void BeginContinuousAutoTravel(
+            IReadOnlyList<HexCoord> path,
+            HexCoord destinationHex,
+            string destinationSiteId,
+            HexTravelMode mode,
+            WorldVec2 physicalDestination,
+            float physicalArrivalRadius)
+        {
+            BeginContinuousAutoTravel(path, destinationHex, destinationSiteId, mode,
+                physicalDestination, physicalArrivalRadius, null);
+        }
+
+        public void BeginContinuousAutoTravel(
+            IReadOnlyList<HexCoord> path,
+            HexCoord destinationHex,
+            string destinationSiteId,
+            HexTravelMode mode,
+            WorldVec2 physicalDestination,
+            float physicalArrivalRadius,
+            IReadOnlyList<WorldVec2> surfaceRoute)
+        {
+            LoadAutoTravelPlan(path, destinationHex, destinationSiteId, mode);
+            if (_hexPath.Count < 1)
+            {
+                CompleteMove();
+                return;
+            }
+
+            HasContinuousPhysicalDestination = true;
+            ContinuousPhysicalDestination = physicalDestination;
+            ContinuousPhysicalArrivalRadius = Math.Max(0.001f, physicalArrivalRadius);
+            _continuousSurfaceRoute.Clear();
+            if (surfaceRoute != null)
+                for (var i = 0; i < surfaceRoute.Count; i++) _continuousSurfaceRoute.Add(surfaceRoute[i]);
+            ContinuousSurfaceRouteIndex = _continuousSurfaceRoute.Count > 1 ? 1 : 0;
+            StartAutoTravel(PlayerPartyTravelExecutionMode.LocalVisible);
+        }
+
+        public bool TryGetContinuousSurfaceWaypoint(out WorldVec2 waypoint)
+        {
+            waypoint = default;
+            if (ContinuousSurfaceRouteIndex < 0 || ContinuousSurfaceRouteIndex >= _continuousSurfaceRoute.Count)
+                return false;
+            waypoint = _continuousSurfaceRoute[ContinuousSurfaceRouteIndex];
+            return true;
+        }
+
+        public void AdvanceContinuousSurfaceWaypoint()
+        {
+            if (ContinuousSurfaceRouteIndex < _continuousSurfaceRoute.Count)
+                ContinuousSurfaceRouteIndex++;
+        }
+
+        void LoadAutoTravelPlan(
+            IReadOnlyList<HexCoord> path,
+            HexCoord destinationHex,
+            string destinationSiteId,
+            HexTravelMode mode)
+        {
+            TravelPlanVersion++;
+            TravelMode = mode;
+            DestinationHex = destinationHex;
+            DestinationSiteId = destinationSiteId ?? string.Empty;
+            FinalDestinationHex = destinationHex;
+            FinalDestinationSiteId = destinationSiteId ?? string.Empty;
+            HasContinuousPhysicalDestination = false;
+            ContinuousPhysicalDestination = default;
+            ContinuousPhysicalArrivalRadius = 0f;
+            _continuousSurfaceRoute.Clear();
+            ContinuousSurfaceRouteIndex = 0;
+            _hexPath.Clear();
+            if (path != null)
+                for (var i = 0; i < path.Count; i++)
+                    _hexPath.Add(path[i]);
+            SegmentIndex = 0;
+            SegmentProgress = 0f;
+        }
+
+        void StartAutoTravel(PlayerPartyTravelExecutionMode executionMode)
+        {
             MovementKind = PlayerPartyMovementKind.AutoTravel;
-            ExecutionMode = PlayerPartyTravelExecutionMode.World;
+            ExecutionMode = executionMode;
             StepTotalTicks = Math.Max(4, 8);
             StepRemainingTicks = StepTotalTicks;
         }
@@ -406,6 +497,7 @@ namespace XianXia.Core.World.Strategic
 
         internal void CompleteMove()
         {
+            TravelPlanVersion++;
             _hexPath.Clear();
             SegmentIndex = 0;
             SegmentProgress = 0f;
@@ -415,6 +507,11 @@ namespace XianXia.Core.World.Strategic
             DestinationSiteId = string.Empty;
             FinalDestinationHex = CurrentHex;
             FinalDestinationSiteId = string.Empty;
+            HasContinuousPhysicalDestination = false;
+            ContinuousPhysicalDestination = default;
+            ContinuousPhysicalArrivalRadius = 0f;
+            _continuousSurfaceRoute.Clear();
+            ContinuousSurfaceRouteIndex = 0;
             MovementKind = PlayerPartyMovementKind.Idle;
             ExecutionMode = PlayerPartyTravelExecutionMode.None;
             ClearSiteDeparturePending();
@@ -569,6 +666,7 @@ namespace XianXia.Core.World.Strategic
 
         void ClearMovementKeepMembers()
         {
+            TravelPlanVersion++;
             _hexPath.Clear();
             SegmentIndex = 0;
             SegmentProgress = 0f;
@@ -580,6 +678,11 @@ namespace XianXia.Core.World.Strategic
             DestinationSiteId = string.Empty;
             FinalDestinationHex = CurrentHex;
             FinalDestinationSiteId = string.Empty;
+            HasContinuousPhysicalDestination = false;
+            ContinuousPhysicalDestination = default;
+            ContinuousPhysicalArrivalRadius = 0f;
+            _continuousSurfaceRoute.Clear();
+            ContinuousSurfaceRouteIndex = 0;
             ClearSiteDeparturePending();
             UsesTravelPresentation = false;
         }

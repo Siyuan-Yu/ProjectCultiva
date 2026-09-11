@@ -7,6 +7,8 @@ using XianXia.Core.Entities;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
+using XianXia.Core.World.Hex;
+using XianXia.Core.World.Surface;
 
 namespace XianXia.Unity.Host
 {
@@ -18,6 +20,7 @@ namespace XianXia.Unity.Host
         readonly List<string> _armyIds = new List<string>(16);
         readonly List<EntityId> _createMembers = new List<EntityId>(16);
         readonly HashSet<ulong> _createMemberSet = new HashSet<ulong>();
+        readonly List<WorldVec2> _surfaceRouteScratch = new List<WorldVec2>(256);
 
         string _selectedArmyId = string.Empty;
         int _selectedSiteIndex;
@@ -140,6 +143,10 @@ namespace XianXia.Unity.Host
                 TravelToHex(world);
             if (GUI.Button(new Rect(x + width * 0.52f, y, width * 0.48f, 24f), "前往地点"))
                 TravelToSite(world);
+            y += 28f;
+
+            if (GUI.Button(new Rect(x, y, width, 24f), "准备 Surface 过桥行军验收"))
+                PrepareSurfaceBridgeMarch(world);
             y += 28f;
 
             if (!string.IsNullOrEmpty(_selectedArmyId) &&
@@ -407,6 +414,103 @@ namespace XianXia.Unity.Host
             _sectionStatus = result.IsSuccess
                 ? "成功：前往地点 -> " + siteId
                 : "失败：" + result.Error;
+        }
+
+        void PrepareSurfaceBridgeMarch(SimulationWorld world)
+        {
+            if (string.IsNullOrEmpty(_selectedArmyId) ||
+                !world.Strategic.FormalArmies.TryGet(_selectedArmyId, out var army) || army == null)
+            {
+                _sectionStatus = "失败：请先选择一支真实 FormalArmy。";
+                return;
+            }
+            if (army.MemberCharacterIds.Count < 2)
+            {
+                _sectionStatus = "失败：验收军队至少需要 2 名真实成员（建议 4–6 名）。";
+                return;
+            }
+
+            foreach (var pair in world.SurfaceGround.Registered)
+            {
+                var nav = pair.Value;
+                if (!TryFindBridgeCrossingHexes(world, nav, out var startHex, out var goalHex,
+                        out var startWorld))
+                    continue;
+                FormalArmyContinuousTravelService.InitializeAtWorldPosition(
+                    world, army, startWorld, startHex);
+                var move = FormalArmyContinuousTravelService.MoveArmyToHex(
+                    world, army.ArmyId, goalHex);
+                _sectionStatus = move.IsSuccess
+                    ? "成功：" + nav.SurfaceId + "，" + startHex + " → " + goalHex +
+                      "；关闭 Cheat，站在桥附近观察，世界时间需解除暂停。"
+                    : "失败：" + move.Error;
+                return;
+            }
+            _sectionStatus = "失败：已注册 Surface 中未找到可验证的跨桥 Hex 路线。";
+        }
+
+        bool TryFindBridgeCrossingHexes(
+            SimulationWorld world,
+            SurfaceGroundNavigation nav,
+            out HexCoord startHex,
+            out HexCoord goalHex,
+            out WorldVec2 startWorld)
+        {
+            startHex = default;
+            goalHex = default;
+            startWorld = default;
+            if (nav == null) return false;
+            var bridgeX = 0f;
+            var bridgeCount = 0;
+            for (var y = 0; y < nav.Height; y++)
+                for (var x = 0; x < nav.Width; x++)
+                {
+                    nav.WalkGrid.CellToWorldCenter(x, y, out var wx, out var wy);
+                    if (nav.TryGetCell(wx, wy, out var kind) &&
+                        (kind & SurfaceGroundCellKind.Bridge) != 0)
+                    {
+                        bridgeX += wx;
+                        bridgeCount++;
+                    }
+                }
+            if (bridgeCount == 0) return false;
+            bridgeX /= bridgeCount;
+
+            var candidates = new List<(HexCoord hex, WorldVec2 world)>(32);
+            var size = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            for (var r = 0; r < world.HexWorld.Height; r++)
+                for (var q = 0; q < world.HexWorld.Width; q++)
+                {
+                    var hex = new HexCoord(q, r);
+                    if (!world.HexWorld.TryGetTile(hex, out var tile) || tile == null || !tile.IsPassable)
+                        continue;
+                    HexMath.ToWorldPosition(hex, size, out var wx, out var wy);
+                    if (nav.IsWalkable(wx, wy)) candidates.Add((hex, new WorldVec2(wx, wy)));
+                }
+
+            var bestSpan = 0f;
+            for (var a = 0; a < candidates.Count; a++)
+                for (var b = 0; b < candidates.Count; b++)
+                {
+                    if (candidates[a].world.X >= bridgeX || candidates[b].world.X <= bridgeX)
+                        continue;
+                    _surfaceRouteScratch.Clear();
+                    if (nav.TryFindRoute(candidates[a].world, candidates[b].world,
+                            _surfaceRouteScratch) != SurfaceGroundRouteStatus.Found)
+                        continue;
+                    var crossesBridge = false;
+                    for (var p = 0; p < _surfaceRouteScratch.Count; p++)
+                        if (nav.TryGetCell(_surfaceRouteScratch[p].X, _surfaceRouteScratch[p].Y,
+                                out var kind) && (kind & SurfaceGroundCellKind.Bridge) != 0)
+                        { crossesBridge = true; break; }
+                    var span = candidates[b].world.X - candidates[a].world.X;
+                    if (!crossesBridge || span <= bestSpan) continue;
+                    bestSpan = span;
+                    startHex = candidates[a].hex;
+                    goalHex = candidates[b].hex;
+                    startWorld = candidates[a].world;
+                }
+            return bestSpan > 0f;
         }
 
         void IncapacitateSelected(SimulationWorld world, FormalArmy army)

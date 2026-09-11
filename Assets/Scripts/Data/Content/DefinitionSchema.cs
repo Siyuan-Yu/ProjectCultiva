@@ -128,6 +128,23 @@ namespace XianXia.Data.Content
             "id", "x", "y", "sourceMapLayoutId"
         };
 
+        public static readonly HashSet<string> OutdoorSurfaceGeographyFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "name", "surfaceId", "sourceSchemaVersion", "sourceRevision", "sourceHash",
+            "originWorldX", "originWorldY", "cellSize", "width", "height", "coverageChunks", "chunkRows", "rows",
+            "mapPrimitives", "landmarks", "hexSummary"
+        };
+        public static readonly HashSet<string> OutdoorGeographyChunkFields = new HashSet<string>(StringComparer.Ordinal)
+        { "x", "y" };
+        public static readonly HashSet<string> OutdoorGeographyChunkRowsFields = new HashSet<string>(StringComparer.Ordinal)
+        { "x", "y", "rows" };
+        public static readonly HashSet<string> OutdoorGeographyPrimitiveFields = new HashSet<string>(StringComparer.Ordinal)
+        { "stableId", "kind", "worldX", "worldY", "worldWidth", "worldHeight", "strokeWidth", "points" };
+        public static readonly HashSet<string> OutdoorGeographyLandmarkFields = new HashSet<string>(StringComparer.Ordinal)
+        { "stableId", "label", "worldX", "worldY" };
+        public static readonly HashSet<string> OutdoorGeographyHexSummaryFields = new HashSet<string>(StringComparer.Ordinal)
+        { "q", "r", "coveredFraction", "waterFraction", "roadFraction", "hasRiver", "hasBridge" };
+
         public static readonly HashSet<string> MapPlacementFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "kind", "x", "y", "w", "h", "blocksMovement", "boundLocationId", "label", "lootItemId",
