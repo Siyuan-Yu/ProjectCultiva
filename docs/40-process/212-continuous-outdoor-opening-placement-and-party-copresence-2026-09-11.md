@@ -218,6 +218,22 @@ Continuous：优先用 follower 实际 view 落点（`ContinuousOutdoorSurfaceRu
 
 ---
 
+## 3A. Continuous Outdoor NPC Schedule physical-authority closure
+
+制作人确认 opening authored 位置与 PlayerParty Follow 均已正确后，Schedule 时 NPC 原地显示“移动中”的剩余 authority split 已收口：
+
+- `EnforceWalkableMaterializePoint` 不再把 `TryWorldToCell` 成功等同于可走：grid 内 blocked 起点用 `TryFindNearestWalkable` 吸附到格心；grid 外确定性候选也必须同时满足 in-grid + `IsWalkable`；失败继续进入 `ContinuousMaterializationInvalidSpawn`，Schedule mover 不对该实体反复 A*。
+- opening spatial census 明确分开 `InWalkGrid` 与 `Walkable`，`Valid` 同时要求 loaded、in-grid、walkable、非 invalid spawn 与 Site spatial validity。
+- `ContinuousOutdoorOpeningAnchorResolver.TryGetBakedEntityAnchorDefinition` 按 `siteId + SpawnStableKey` 返回完整 authored anchor。仅第一次采用 `BakedOpeningEntityAnchor` 时把 `EntityLocation.LocationId` 同步为 `SourceLocationId`；已有 runtime precise anchor 时绝不恢复出生地点，后续到达仍只由 `MoveAction.CommitArrival` 提交。
+- `ActivityResolver.CollectCandidates` 只对「AtSite + 已 materialize + 当前 Site 已加载」的 Continuous NPC 启用 physical scope gate：WorkArea 的 `LocationId` 必须由该 Site 的 `ContinuousOutdoorMaterialization.TryGetPlace` 注册；候选排序、home/preferred/route 与所有 legacy/background 路径不变。
+- `HostNpcScheduleMover` 在 A* 拒绝时保留 retryable 状态，并按 `entity + targetKey` 只记录一次 `[NpcSchedulePathUnavailable]`，包含 source/target presentation 的 InGrid/Walkable；成功路径不打印，也不伪造 arrival。
+
+制作人复验时全部 Schedule NPC 均出现该日志，且 source/target 都是 `InGrid=True, Walkable=True`。对荒村实际 blocker 栅格做连通分量复算后确认：旧 `BuildSiteBlockerGrid` 用 any-overlap（`floor(min)` / `ceil(max)-1`）阻塞 cell，使本来在 authored source 中相隔一格的两段墙同时侵占门口格；主导航区与凡人住房、巡卫住房、主管住房因此被切成 **4 个 walkable 连通分量**。修复为“cell center 落在 blocker rect 内才阻塞”，仅在超薄 blocker 没覆盖任何 cell center 时保留 midpoint 一格。相同内容静态复算恢复为 **1 个连通分量**；不移动 opening anchor、不删墙、不放宽 A* 穿墙。
+
+本闭环没有修改 Follow、`PlayerPartyLocalCoPresenceQuery`、StopFollow、opening bake transform、Surface streaming、AutoTravel、Combat、Save、Interior/Cave 或 pathfinder。
+
+---
+
 ## 4. 验证（本环境实际执行）
 
 Unity Test Runner 在本环境不可用（工程正被交互式 Editor 持有；Unity batchmode 无法连上 licensing IPC，返回码 199）。因此：

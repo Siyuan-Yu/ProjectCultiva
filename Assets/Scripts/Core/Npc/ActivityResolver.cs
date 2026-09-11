@@ -4,6 +4,7 @@ using XianXia.Core.Exploration;
 using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
+using XianXia.Core.World;
 
 namespace XianXia.Core.Npc
 {
@@ -184,6 +185,7 @@ namespace XianXia.Core.Npc
             if (world == null)
                 return;
 
+            var continuousSiteScoped = TryGetContinuousSiteScope(world, entity, out var continuousSiteId);
             var allowed = new List<string>();
             foreach (var kv in world.WorkAreas)
             {
@@ -195,6 +197,12 @@ namespace XianXia.Core.Npc
                 if (!EntityMayUseArea(entity, area, activity))
                     continue;
                 if (!WorkAreaAvailability.IsAvailable(world, area, activity, entity))
+                    continue;
+                // Continuous Outdoor 中，已 materialize 的 AtSite NPC 只能选择同一已加载
+                // Site 真正注册的地点。Legacy／未 materialize／非 AtSite 路径保持原候选语义。
+                if (continuousSiteScoped &&
+                    !world.ContinuousOutdoorMaterialization.TryGetPlace(
+                        continuousSiteId, area.LocationId, out _))
                     continue;
                 allowed.Add(area.Id);
             }
@@ -230,6 +238,23 @@ namespace XianXia.Core.Npc
                 if (!into.Contains(allowed[i]))
                     into.Add(allowed[i]);
             }
+        }
+
+        static bool TryGetContinuousSiteScope(
+            SimulationWorld world,
+            Entity entity,
+            out string siteId)
+        {
+            siteId = string.Empty;
+            if (world == null || entity == null ||
+                !world.WorldPresence.TryGet(entity.Id, out var presence) || presence == null ||
+                presence.Mode != PartyWorldPresenceMode.AtSite ||
+                string.IsNullOrWhiteSpace(presence.SiteId) ||
+                !world.ContinuousOutdoorMaterialization.IsMaterialized(entity.Id) ||
+                !world.ContinuousOutdoorMaterialization.IsSiteLoaded(presence.SiteId))
+                return false;
+            siteId = presence.SiteId;
+            return true;
         }
 
         public static IReadOnlyList<string> RouteCandidates(

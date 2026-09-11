@@ -58,6 +58,24 @@ namespace XianXia.Data.Content
             out WorldVec2 anchor)
         {
             anchor = default;
+            if (!TryGetBakedEntityAnchorDefinition(surface, siteId, spawnKey, out var definition))
+                return false;
+            anchor = new WorldVec2(definition.WorldX, definition.WorldY);
+            return true;
+        }
+
+        /// <summary>
+        /// 返回 spawn 专属 opening anchor 的完整 authored definition。调用方可同时取得
+        /// canonical 坐标与 <see cref="WorldSiteOpeningEntityAnchorDefinition.SourceLocationId"/>，
+        /// 避免首帧物理出生点与逻辑 LocationId 分裂。
+        /// </summary>
+        public static bool TryGetBakedEntityAnchorDefinition(
+            OutdoorWorldSurfaceDefinition surface,
+            string siteId,
+            string spawnKey,
+            out WorldSiteOpeningEntityAnchorDefinition definition)
+        {
+            definition = null;
             if (surface?.OpeningEntityAnchors == null || string.IsNullOrEmpty(siteId) ||
                 string.IsNullOrEmpty(spawnKey))
                 return false;
@@ -68,7 +86,7 @@ namespace XianXia.Data.Content
                     continue;
                 if (!string.Equals(a.SpawnKey, spawnKey, StringComparison.Ordinal))
                     continue;
-                anchor = new WorldVec2(a.WorldX, a.WorldY);
+                definition = a;
                 return true;
             }
 

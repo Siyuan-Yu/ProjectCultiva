@@ -42,6 +42,7 @@ namespace XianXia.Unity.Host
         readonly List<PathRequest> _pathRequests = new List<PathRequest>(64);
         readonly List<PathRequest> _orderedPathRequests = new List<PathRequest>(64);
         readonly HashSet<ulong> _deferredPathRequestIds = new HashSet<ulong>();
+        readonly HashSet<string> _pathUnavailableReported = new HashSet<string>(System.StringComparer.Ordinal);
 
         /// <summary>本帧真正执行的 NPC A* 请求数（性能诊断）。</summary>
         public int NpcPathRequestsThisFrame { get; private set; }
@@ -257,12 +258,61 @@ namespace XianXia.Unity.Host
             if (!accepted)
             {
                 intent.MarkRetryablePathUnavailable();
+                ReportPathUnavailableOnce(entity, intent, request.TargetKey, view.transform.position, center);
                 return;
             }
 
             intent.MarkPathRequested();
             _lastProgressAt[id] = now;
             _lastPos[id] = view.transform.position;
+        }
+
+        void ReportPathUnavailableOnce(
+            Entity entity,
+            MovementIntentComponent intent,
+            string targetKey,
+            Vector3 current,
+            Vector3 target)
+        {
+            var reportKey = entity.Id.Value + "|" + (targetKey ?? string.Empty);
+            if (!_pathUnavailableReported.Add(reportKey))
+                return;
+
+            var displayName = entity.DefinitionId.ToString();
+            if (entity.TryGet<IdentityComponent>(out var identity) && identity != null &&
+                !string.IsNullOrWhiteSpace(identity.DisplayName))
+                displayName = identity.DisplayName;
+            DescribeGridPoint(moveController != null ? moveController.WalkGrid : null, current,
+                out var sourceInGrid, out var sourceWalkable);
+            DescribeGridPoint(moveController != null ? moveController.WalkGrid : null, target,
+                out var targetInGrid, out var targetWalkable);
+            Debug.LogWarning(
+                "[NpcSchedulePathUnavailable] EntityId=" + entity.Id.Value +
+                " DisplayName=" + displayName +
+                " TargetWorkAreaId=" + (intent.TargetWorkAreaId ?? string.Empty) +
+                " TargetLocationId=" + (intent.TargetLocationId ?? string.Empty) +
+                " SlotIndex=" + intent.SlotIndex +
+                " CurrentPresentation=(" + current.x.ToString("0.###") + "," +
+                current.y.ToString("0.###") + ") SourceInGrid=" + sourceInGrid +
+                " SourceWalkable=" + sourceWalkable +
+                " TargetPresentation=(" + target.x.ToString("0.###") + "," +
+                target.y.ToString("0.###") + ") TargetInGrid=" + targetInGrid +
+                " TargetWalkable=" + targetWalkable,
+                this);
+        }
+
+        static void DescribeGridPoint(
+            WalkGrid grid,
+            Vector3 point,
+            out bool inGrid,
+            out bool walkable)
+        {
+            inGrid = false;
+            walkable = false;
+            if (grid == null || !grid.TryWorldToCell(point.x, point.y, out var cellX, out var cellY))
+                return;
+            inGrid = true;
+            walkable = grid.IsWalkable(cellX, cellY);
         }
 
         void TickCounterWindow(float now)

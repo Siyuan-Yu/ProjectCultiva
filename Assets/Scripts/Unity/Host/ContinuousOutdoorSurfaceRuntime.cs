@@ -42,6 +42,8 @@ namespace XianXia.Unity.Host
         const float MaterializeSeparationPresentation = 2.6f;
         /// <summary>§16 重定位候选点的同心环步长（presentation 单位）。</summary>
         const float surfaceCellSpacingPresentation = 3f;
+        /// <summary>§16：已落入 grid 但格子 blocked 时，优先吸附到附近可走格。</summary>
+        const int MaterializeNearestWalkableRadiusCells = 8;
         HexCoord _diagnosticDerived, _diagnosticCommitted;
         bool _autoTravelPathBlocked;
         HexCoord _blockedNextHex, _blockedDestination;
@@ -719,13 +721,36 @@ namespace XianXia.Unity.Host
                 if (p == null || !p.BlocksMovement || !PlacementTouchesChunk(p, coord)) continue;
                 _mapper.WorldToPresentation(p.WorldX, p.WorldY, out var left, out var bottom);
                 _mapper.WorldToPresentation(p.WorldX + p.WorldWidth, p.WorldY + p.WorldHeight, out var right, out var top);
-                var minX = Mathf.FloorToInt((Mathf.Min(left, right) - originX) / cell);
-                var minY = Mathf.FloorToInt((Mathf.Min(bottom, top) - originY) / cell);
-                var maxX = Mathf.CeilToInt((Mathf.Max(left, right) - originX) / cell) - 1;
-                var maxY = Mathf.CeilToInt((Mathf.Max(bottom, top) - originY) / cell) - 1;
+                // Block a cell when its center lies inside the authored blocker. The former
+                // any-overlap rasterization expanded both sides of every wall; two wall segments
+                // separated by one authored source cell then both claimed that doorway cell and
+                // turned each housing yard into an isolated walkable island. Keep sub-cell-thin
+                // blockers represented by at least one cell without inflating their long axis.
+                ResolveCenterCoveredCellRange(left, right, originX, cell, out var minX, out var maxX);
+                ResolveCenterCoveredCellRange(bottom, top, originY, cell, out var minY, out var maxY);
                 grid.SetBlockedRect(minX, minY, maxX, maxY, true); any = true;
             }
             return any ? grid : null;
+        }
+
+        static void ResolveCenterCoveredCellRange(
+            float edgeA,
+            float edgeB,
+            float gridOrigin,
+            float cellSize,
+            out int minCell,
+            out int maxCell)
+        {
+            var min = (Mathf.Min(edgeA, edgeB) - gridOrigin) / cellSize;
+            var max = (Mathf.Max(edgeA, edgeB) - gridOrigin) / cellSize;
+            minCell = Mathf.CeilToInt(min - 0.5f);
+            maxCell = Mathf.CeilToInt(max - 0.5f) - 1;
+            if (minCell <= maxCell)
+                return;
+
+            // A blocker thinner than one cell may contain no cell center. Preserve it at the
+            // cell containing its midpoint instead of silently deleting collision altogether.
+            minCell = maxCell = Mathf.FloorToInt((min + max) * 0.5f);
         }
 
         /// <summary>Only the surface presentation owner may clear its chunk state. It never chooses a destination authority.</summary>
@@ -896,6 +921,14 @@ namespace XianXia.Unity.Host
                         out var resolvedAnchor,
                         out var rejectedReason,
                         out var rejectedAnchor);
+                    // 仅首次采用 authored opening anchor 时同步逻辑出生地点。Runtime precise
+                    // anchor（NPC 已移动／dematerialize capture）绝不把 LocationId 重置回出生地。
+                    if (!hasRuntimeAnchor &&
+                        anchorSource == OpeningInitialPlacementSource.BakedOpeningEntityAnchor &&
+                        ContinuousOutdoorOpeningAnchorResolver.TryGetBakedEntityAnchorDefinition(
+                            surface, region.SiteId, spawnKey, out var bakedAnchorDefinition) &&
+                        !string.IsNullOrWhiteSpace(bakedAnchorDefinition.SourceLocationId))
+                        loc.LocationId = bakedAnchorDefinition.SourceLocationId;
                     if (rejectedAnchor && _rejectedAnchorReported.Add(id.Value))
                         Debug.LogWarning(
                             "[ContinuousResidentAnchorRejected] Entity=" + id.Value +
@@ -1117,8 +1150,8 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// §16：非法起点不得直接启动 AI 寻路。若落点不在 CompositeWalkGrid，先按确定性同心环
-        /// 在本 Site 的 baked 位置上找一个可行格；仍然找不到则记录
+        /// §16：非法起点不得直接启动 AI 寻路。落点必须既在 CompositeWalkGrid 内又处于可走格；
+        /// blocked 格先就近吸附，grid 外再按确定性同心环寻找可走候选。仍然找不到则记录
         /// <c>ContinuousMaterializationInvalidSpawn</c> 并把这个实体加入 invalid 集合，
         /// 由 <see cref="HostNpcScheduleMover"/> 跳过寻路（不再无限 retry A*）。
         /// </summary>
@@ -1129,21 +1162,33 @@ namespace XianXia.Unity.Host
             ref float px,
             ref float py)
         {
-            if (_compositeWalkGrid == null)
-                return;
-            if (_compositeWalkGrid.TryWorldToCell(px, py, out _, out _))
+            if (_compositeWalkGrid != null &&
+                _compositeWalkGrid.TryWorldToCell(px, py, out var cellX, out var cellY))
             {
-                _invalidSpawnEntityIds.Remove(id.Value);
-                return;
+                if (_compositeWalkGrid.IsWalkable(cellX, cellY))
+                {
+                    _invalidSpawnEntityIds.Remove(id.Value);
+                    return;
+                }
+
+                if (_compositeWalkGrid.TryFindNearestWalkable(
+                        cellX, cellY, MaterializeNearestWalkableRadiusCells, out var walkX, out var walkY))
+                {
+                    _compositeWalkGrid.CellToWorldCenter(walkX, walkY, out px, out py);
+                    _invalidSpawnEntityIds.Remove(id.Value);
+                    return;
+                }
             }
 
             var spacing = Math.Max(1.5f, surfaceCellSpacingPresentation);
-            if (ContinuousOutdoorOpeningAnchorResolver.TryFindWalkableCandidate(
+            if (_compositeWalkGrid != null &&
+                ContinuousOutdoorOpeningAnchorResolver.TryFindWalkableCandidate(
                     px,
                     py,
                     spacing,
                     64,
-                    (cx, cy) => _compositeWalkGrid.TryWorldToCell(cx, cy, out _, out _),
+                    (cx, cy) => _compositeWalkGrid.TryWorldToCell(cx, cy, out var gx, out var gy) &&
+                                _compositeWalkGrid.IsWalkable(gx, gy),
                     out var candidate))
             {
                 px = candidate.X;
@@ -1157,7 +1202,7 @@ namespace XianXia.Unity.Host
                     "[ContinuousMaterializationInvalidSpawn] Entity=" + id.Value +
                     " " + definitionId + " Site=" + siteId +
                     " presentation=(" + px.ToString("0.###") + "," + py.ToString("0.###") +
-                    ") outside CompositeWalkGrid; schedule pathing disabled for this entity until relocated.",
+                    ") outside or blocked in CompositeWalkGrid; schedule pathing disabled for this entity until relocated.",
                     this);
         }
 
@@ -1424,6 +1469,7 @@ namespace XianXia.Unity.Host
             public bool HasView;
             public bool InLoaded;
             public bool InWalkGrid;
+            public bool Walkable;
             public bool InsideEnvelope;
             public string ResolvedSite;
             public bool Valid;
@@ -1503,12 +1549,18 @@ namespace XianXia.Unity.Host
             var chunk = _mapper.WorldToChunk(wx, wy);
             row.ViewChunk = "(" + chunk.X + "," + chunk.Y + ")";
             row.InLoaded = _loaded.Contains(chunk);
-            row.InWalkGrid = _compositeWalkGrid != null && _compositeWalkGrid.TryWorldToCell(pxv, pyv, out _, out _);
+            if (_compositeWalkGrid != null &&
+                _compositeWalkGrid.TryWorldToCell(pxv, pyv, out var gridX, out var gridY))
+            {
+                row.InWalkGrid = true;
+                row.Walkable = _compositeWalkGrid.IsWalkable(gridX, gridY);
+            }
             if (world != null)
                 row.ResolvedSite = WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(world, new WorldVec2(wx, wy));
             row.InsideEnvelope = ContinuousOutdoorOpeningAnchorResolver
                 .IsInsideSiteBakedEnvelope(surface, expectedSiteId, wx, wy);
-            row.Valid = row.InLoaded && row.InWalkGrid && !IsEntitySpawnPositionInvalid(id) &&
+            row.Valid = row.InLoaded && row.InWalkGrid && row.Walkable &&
+                        !IsEntitySpawnPositionInvalid(id) &&
                         (string.Equals(row.ResolvedSite, expectedSiteId, StringComparison.Ordinal) ||
                          row.InsideEnvelope);
             return row;
@@ -1526,7 +1578,8 @@ namespace XianXia.Unity.Host
             return "Entity=" + row.Id.Value + " " + row.Name + " AnchorSource=" + row.AnchorSource +
                    " PresenceWorld=" + row.PresenceWorld + " ViewWorld=" + row.ViewWorld +
                    " ViewChunk=" + row.ViewChunk + " InLoaded=" + row.InLoaded +
-                   " InWalkGrid=" + row.InWalkGrid + " ResolvedSite=" + row.ResolvedSite +
+                   " InWalkGrid=" + row.InWalkGrid + " Walkable=" + row.Walkable +
+                   " ResolvedSite=" + row.ResolvedSite +
                    " Presence=" + row.Presence + " ExpectedSite=" + expectedSiteId;
         }
 

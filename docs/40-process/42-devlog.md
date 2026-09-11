@@ -7,6 +7,16 @@
 
 ---
 
+## 2026-09-11 — Continuous Outdoor NPC Schedule Physical-Authority Closure
+
+- 制作人 Play 复验确认 opening authored 出生位置与 PlayerParty Follow 正确；本轮只修 Schedule 到点不走、持续显示“移动中”，没有改 Follow／co-presence／StopFollow 或 opening bake transform。
+- 制作人后续日志显示全部失败请求的 source/target 均 `InGrid=True, Walkable=True`。对真实荒村 blocker 栅格复算得到决定性根因：旧 any-overlap 栅格化把 authored 一格宽门缝吞掉，主区域／凡人住房／巡卫住房／主管住房被切成 4 个 walkable 连通分量。`BuildSiteBlockerGrid` 改按 cell center 覆盖 blocker，超薄 blocker 才回退 midpoint 一格；同内容复算恢复 1 个连通分量，未移动 opening NPC、未删墙、未改 pathfinder。
+- materialize 起点合法性由“在 CompositeWalkGrid 范围内”收紧为“在 grid 内且 `IsWalkable`”：blocked 格先吸附附近可走格，grid 外确定性候选也要求 walkable；失败保持 `[ContinuousMaterializationInvalidSpawn]` 并禁止该 NPC 反复 A*。opening spatial invariant 同步增加独立 `Walkable` 条件。
+- 新增按 `siteId + SpawnStableKey` 返回完整 opening anchor definition 的查询；第一次使用 `BakedOpeningEntityAnchor` 时同步 `EntityLocation.LocationId = SourceLocationId`，已有 RuntimePreciseAnchor 时不回写出生地点，MoveAction arrival 仍是后续地点提交权威。
+- `ActivityResolver` 对已 materialize、AtSite 且 Site 已加载的 Continuous NPC 增加同 Site `TryGetPlace` 候选 gate，防止全局 WorkArea fallback 跨 Site；既有 home/preferred/route 排序与 legacy/background 路径不变。
+- Host A* 拒绝新增 per entity + targetKey 一次性 `[NpcSchedulePathUnavailable]`，打印 entity/target 与 source/target InGrid/Walkable，保留 retryable 且不伪造 arrival。
+- 验证预算遵照制作人要求：仅 Core/Data/Host offline compile 与 `git diff --check`，不跑 Unity/Test Runner/Play/大规模 suite。
+
 ---
 
 ## 2026-09-11 — Continuous Outdoor World：Formal Recovery Checkpoint / Handoff（仅文档 + Git checkpoint，无新 Gameplay）
