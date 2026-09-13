@@ -13,7 +13,7 @@
 | C1/U2A | 普通人物 HostNpcContextMenu→HostCharacterEncounter.Request/BeginConfirmed→CharacterEncounterService；独立场地使用场次 owner 实例、完整正式 source chunks 和独立导航；实际 Character/个人原锚点、战术坐标、时间、HP基线、名单版本和状态进入 characterEncounter JSON；稳定 Active/ReadyToEnd 恢复重建场地；CommitAndReturn 唯一提交并逐人回位、报告继续释放 | Core459/Data78/Host145 离线编译通过；静态核对，不代表人工验收 | `ccdadeb` |
 | C2/U2B | 人物分类/到达/近战/最终伤害门禁→HostCharacterEncounter；WorldMap 菜单与执行及 PlayerParty 命令退役，玩家 Army 旧档攻击回调取消；战中名单沿用 C1 JSON，报告后释放 | Core459/Data78/Host145 离线编译通过 | `a8b322a` |
 | C3/U3 | Prepare 固定候选→Advance/DecideCandidate→资格与场地预检→名单/报告事务→PresentJoinedParticipants；JSON 恢复固定池/roll/期限/版本；最终关闭余下候选 | Core459/Data78/Host145 离线编译与静态检查 | `2f48380` |
-| C4/U4 | 普通首战→唯一报告→逐人返回→继续→分流保存→正式恢复/场地重建→新场次入口已接线；旧回调隔离、重复接触抑制、核心元数据、技能冷却和普通跟随 ownership 收口 | Core459/Data78/Host145 离线编译及少量静态检查通过；Unity 运行待人工验收 | 本段 C4 本地提交 |
+| C4/U4 | 普通首战→唯一报告→逐人返回→继续→分流保存→正式恢复/场地重建→新场次入口已接线；旧回调隔离、重复接触抑制、核心元数据、技能冷却和普通跟随 ownership 收口 | Core459/Data78/Host145 离线编译及少量静态检查通过；Unity 运行待人工验收 | `5afa318` |
 
 C1 Content：worldSpatialRules→loader校验→registry→SpatialRules→CoreLevelControlRange→预设核心/ConstructionCatalog/WorldSiteCoreCoverageResolver/遭遇冻结范围；同等级共用规则。新 runtime Site 存 CoreLevelFormat=1、等级、身份与位置，范围由 Content 派生；旧缺等级只在 format=0 迁一级。500 世界单位保持逻辑边界，定义大陆之外是无 Surface 的不可行走空间，不生成随机地形补齐。建筑占地/碰撞继续原数据。
 
