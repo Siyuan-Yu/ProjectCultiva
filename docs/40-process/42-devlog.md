@@ -1,5 +1,13 @@
 # 开发日志
 
+## 2026-09-14 — 人物遭遇构建界面停留修复（Scripts.zip 对照）
+
+- 制作人截图停在“构建独立战场”；只读 ZIP 对照确认 HostCharacterEncounter、ContinuousOutdoorEncounterField、HostDemoTileMap 与修复前工作区一致。LevelTester 场景明确 stampGrassGround=1、grassStride=2；50×50 layout 的双循环每 chunk 创建 625 个草 prefab，646 chunks 合计 403750 个草对象（尚不计 prefab 子物体）。此前“背景已合并”的说明只覆盖 geography，遗漏普通草地，现予更正。
+- 所有 Continuous outdoor source chunk 改用一个精确矩形背景 renderer，草地背景从每块625个降为1个；交互 placements、墙/门/物件和导航不走背景合并。500×500 世界单位与 Content 比例不变。
+- 构建从固定每帧一块改为约4ms后让出（chunk仍是最小构建单位）；导航和裁剪从每8192格强制一帧改为约4ms预算。UI显示真实已完成chunk/总数；记录构建开始、完成耗时、Active暂停/输入与取消。日志来自运行时钟，不预报运行耗时。
+- Presenter 原先连 Active 都继续画 offer，现成功入场后停止画确认窗口。请求统一持有嵌套迭代器；取消会停止全部子任务再清理 staging，异常进入带阶段与完整异常的可重试失败状态。部分chunk构建前即登记回滚，layout build异常仍收尾registry owner。
+- 现有 Editor.log 无本场 build/commit完成记录；只能确认以上源码缺陷，未声称在Unity复现或证明唯一运行时原因。现成非Unity编译通过，git diff --check通过；未启动Unity、未运行任何测试/Bake。待制作人用普通NPC攻击→手动战斗确认计数推进、窗口关闭和战术行动，并核对取消后无迟到入场。
+
 ## 2026-09-14 — C4/U4：整合、兼容与合并人工验收交付
 
 - 连续完成 C1 ccdadeb → C2 a8b322a → C3 2f48380 后收口 C4 `5afa318`：旧 Offer 的激活/队列/清场/结算回调不得覆盖 CharacterEncounter；旧档玩家远程攻击 intent 取消，正式建筑攻击授权保留。

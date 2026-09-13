@@ -20,6 +20,7 @@ namespace XianXia.Unity.Host
         string _stagingIndependentFieldId = string.Empty;
         readonly List<SurfaceChunkCoord> _stagingIndependentChunks = new List<SurfaceChunkCoord>();
         Coroutine _independentNavigationRefresh;
+        public string IndependentPreparationProgress { get; private set; } = string.Empty;
         public string IndependentFieldId => _independentFieldId;
         public bool IsIndependentFieldPreparing => !string.IsNullOrEmpty(_stagingIndependentFieldId);
 
@@ -91,7 +92,9 @@ namespace XianXia.Unity.Host
             }
             while (!job.IsComplete)
             {
-                job.Step(8192);
+                var slice = Time.realtimeSinceStartup;
+                do { job.Step(8192); }
+                while (!job.IsComplete && Time.realtimeSinceStartup - slice < .004f);
                 yield return null;
             }
             plan.Grid = job.Result;
@@ -100,7 +103,7 @@ namespace XianXia.Unity.Host
             foreach (var pair in world.Strategic.FactionFlags.Flags)
                 if (pair.Value != null && pair.Value.SurfaceId == state.SourceSurfaceId)
                     HostFactionFlagQuery.ApplyWalkGridBlock(pair.Value, this, plan.Grid);
-            yield return StartCoroutine(ClipPreparedEncounterGrid(plan.Grid, state));
+            yield return ClipPreparedEncounterGrid(plan.Grid, state);
             foreach (var p in state.Participants)
             {
                 _mapper.WorldToPresentation(p.TacticalX, p.TacticalY, out var px, out var py);
@@ -126,9 +129,23 @@ namespace XianXia.Unity.Host
             }
             _stagingIndependentFieldId = plan.State.EncounterId;
             _stagingIndependentChunks.Clear();
+            IndependentPreparationProgress = "构建独立战场 0/" + plan.Chunks.Count;
+            var started = Time.realtimeSinceStartup;
+            var sliceStarted = started;
+            Debug.Log("[IndependentEncounter] build start Id=" + plan.State.EncounterId +
+                " chunks=" + plan.Chunks.Count + " cells=" + plan.OutputGridCells);
             for (var i = 0; i < plan.Chunks.Count; i++)
             {
+                if (!ReferenceEquals(plan.World, _bootstrap?.Session?.World) ||
+                    plan.TopologyRevision != (plan.World.OutdoorStatefulObjects?.DestructibleTopologyRevision ?? 0))
+                {
+                    CancelPreparedIndependentField();
+                    completed?.Invoke(Result.Failure(ErrorCode.InvalidOperation, "Prepared field changed during build."));
+                    yield break;
+                }
                 Exception failure = null;
+                // Include a partially built chunk in rollback, even if BuildChunk throws.
+                _stagingIndependentChunks.Add(plan.Chunks[i]);
                 try
                 {
                     BuildChunk(plan.Chunks[i]);
@@ -140,12 +157,18 @@ namespace XianXia.Unity.Host
                 if (failure != null)
                 {
                     CancelPreparedIndependentField();
-                    completed?.Invoke(Result.Failure(ErrorCode.InvalidOperation, "Independent field build failed: " + failure.Message));
+                    completed?.Invoke(Result.Failure(ErrorCode.InvalidOperation, "Independent field build failed: " + failure));
                     yield break;
                 }
-                _stagingIndependentChunks.Add(plan.Chunks[i]);
-                yield return null;
+                IndependentPreparationProgress = "构建独立战场 " + (i + 1) + "/" + plan.Chunks.Count;
+                if (Time.realtimeSinceStartup - sliceStarted >= .004f)
+                {
+                    yield return null;
+                    sliceStarted = Time.realtimeSinceStartup;
+                }
             }
+            Debug.Log("[IndependentEncounter] build complete Id=" + plan.State.EncounterId +
+                " elapsedSeconds=" + (Time.realtimeSinceStartup - started));
             completed?.Invoke(CompletePreparedTakeover(plan, domainAlreadyBound));
         }
 
@@ -321,13 +344,19 @@ namespace XianXia.Unity.Host
         {
             if (grid == null || state == null) yield break;
             var budget = 0;
+            var slice = Time.realtimeSinceStartup;
             for (var y = 0; y < grid.Height; y++)
             for (var x = 0; x < grid.Width; x++)
             {
                 grid.CellToWorldCenter(x, y, out var px, out var py);
                 _mapper.PresentationToWorld(px, py, out var wx, out var wy);
                 if (!state.Contains(wx, wy)) grid.SetBlocked(x, y, true);
-                if (++budget == 8192) { budget = 0; yield return null; }
+                if (++budget == 8192)
+                {
+                    budget = 0;
+                    if (Time.realtimeSinceStartup - slice >= .004f)
+                    { yield return null; slice = Time.realtimeSinceStartup; }
+                }
             }
         }
 

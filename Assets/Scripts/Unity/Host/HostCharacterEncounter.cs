@@ -28,10 +28,12 @@ namespace XianXia.Unity.Host
         string _progress = string.Empty;
         public PresentationPhase Phase { get; private set; }
         public string Failure => _failure;
-        public string Progress => _progress;
+        public string Progress => Phase == PresentationPhase.ReadyToCommit &&
+            !string.IsNullOrEmpty(_host?.ContinuousOutdoorSurfaceRuntime?.IndependentPreparationProgress)
+                ? _host.ContinuousOutdoorSurfaceRuntime.IndependentPreparationProgress : _progress;
         public EntityId PendingAttacker => _pendingAttacker;
         public EntityId PendingTarget => _pendingTarget;
-        public bool CanCancel => HasPending && !_automaticRequest && Phase != PresentationPhase.Preparing;
+        public bool CanCancel => HasPending && !_automaticRequest;
         public void Bind(PlayableHostBootstrap host) { _host = host; _world = host.Session.World; }
         public bool HasPending => !_pendingTarget.IsNone;
 
@@ -55,7 +57,36 @@ namespace XianXia.Unity.Host
         public void BeginConfirmed()
         {
             if (!HasPending || Phase == PresentationPhase.Preparing || _entryRoutine != null) return;
-            _entryRoutine = StartCoroutine(PrepareAndEnter(_pendingAttacker, _pendingTarget));
+            _entryRoutine = StartCoroutine(RunEntry(PrepareAndEnter(_pendingAttacker, _pendingTarget)));
+        }
+
+        // Own all nested iterators in one coroutine: stopping the request stops its children,
+        // and an exception anywhere reaches the same retryable failure UI.
+        IEnumerator RunEntry(IEnumerator entry)
+        {
+            yield return null; // Allow StartCoroutine to assign its handle before completion.
+            var stack = new Stack<IEnumerator>();
+            stack.Push(entry);
+            try
+            {
+                while (stack.Count > 0)
+                {
+                    object current = null;
+                    bool moved = false;
+                    Exception error = null;
+                    try { moved = stack.Peek().MoveNext(); if (moved) current = stack.Peek().Current; }
+                    catch (Exception ex) { error = ex; }
+                    if (error != null) { Fail("阶段 " + Phase + ": " + error); yield break; }
+                    if (!moved) { (stack.Pop() as IDisposable)?.Dispose(); continue; }
+                    if (current is IEnumerator nested) stack.Push(nested);
+                    else yield return current;
+                }
+            }
+            finally
+            {
+                while (stack.Count > 0) (stack.Pop() as IDisposable)?.Dispose();
+                _entryRoutine = null;
+            }
         }
 
         IEnumerator PrepareAndEnter(EntityId attacker, EntityId target)
@@ -69,13 +100,13 @@ namespace XianXia.Unity.Host
             var prepared = CharacterEncounterService.Prepare(world, attacker, target, surface.ActiveSurfaceId, out var state);
             if (prepared.IsFailure) { Fail(prepared.Error.Message); yield break; }
             Result prepResult = default;
-            yield return StartCoroutine(surface.PrepareIndependentField(state, (result, field) => { prepResult = result; _preparedField = field; }));
+            yield return surface.PrepareIndependentField(state, (result, field) => { prepResult = result; _preparedField = field; });
             if (prepResult.IsFailure || _preparedField == null) { Fail(prepResult.Error.Message); yield break; }
             Phase = PresentationPhase.ReadyToCommit;
             _progress = "构建独立战场";
             _host.GetComponent<HostCombatSkillBar>()?.CaptureEncounterCooldowns(state);
             Result commitResult = default;
-            yield return StartCoroutine(surface.CommitPreparedIndependentField(_preparedField, result => commitResult = result));
+            yield return surface.CommitPreparedIndependentField(_preparedField, result => commitResult = result);
             if (commitResult.IsFailure)
             {
                 Fail(commitResult.Error.Message);
@@ -88,6 +119,9 @@ namespace XianXia.Unity.Host
             _preparedField = null; _entryRoutine = null; Phase = PresentationPhase.Active; _progress = "战术接管完成";
             HostInputGate.EncounterModalLock = false;
             _host.Session.ReleaseModalPause(PauseOwner);
+            Debug.Log("[CharacterEncounter] Active Id=" + state.EncounterId +
+                " manualPaused=" + _host.Session.ManualPaused + " paused=" + _host.Session.IsPaused +
+                " inputBlocked=" + HostInputGate.BlockWorldInteraction);
             var action = _onEntered; _onEntered = null;
             action?.Invoke();
         }
@@ -104,6 +138,10 @@ namespace XianXia.Unity.Host
         public void CancelPending()
         {
             if (!CanCancel) return;
+            Debug.Log("[CharacterEncounter] cancel phase=" + Phase);
+            if (_entryRoutine != null) StopCoroutine(_entryRoutine);
+            _entryRoutine = null;
+            _host.ContinuousOutdoorSurfaceRuntime.CancelPreparedIndependentField();
             _host.Session.World.Strategic.SuppressedCharacterContacts.Add(CharacterEncounterService.ContactKey(_pendingAttacker, _pendingTarget));
             _pendingAttacker = _pendingTarget = EntityId.None; _onEntered = null; _automaticRequest = false;
             _preparedField = null; _failure = ""; _progress = string.Empty; Phase = PresentationPhase.None;

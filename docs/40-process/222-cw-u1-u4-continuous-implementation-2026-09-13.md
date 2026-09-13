@@ -8,6 +8,8 @@
 
 ### U2–U4 联合验收修复（2026-09-14）
 
+后续制作人截图反馈仍停在构建界面。对照 Scripts.zip 确认普通草地仍每 chunk 创建625个prefab，此前的合并说明只适用于 geography；本次改为Continuous每chunk一个背景renderer，并增加真实构建计数、约4ms预算、嵌套协程取消/异常收口及Active隐藏确认窗口。具体证据与检查见42-devlog最新“人物遭遇构建界面停留修复”；运行验收仍未通过声明。
+
 - 展示入口统一为 `HostStrategicInterruptPresenter`：人物遭遇复用羊皮纸接战、结束条和正式战报；`HostCharacterEncounter.OnGUI` 的重复确认／结束／简表报告已移除。请求预览只读，不在 Layout/Repaint 分配 EncounterId 或写 Participants。
 - 单次入场只产生一个 `PreparedIndependentField`。它保存绑定 World、来源 Surface、冻结状态、相交 chunks、输入数、合成 grid 与拓扑修订。`Prepare` 与 grid/边界裁剪均以协程预算推进；表现也先在 staging owner 下逐 chunk 构建。所有 staging 成功后，才调用 `CharacterEncounterService.Begin` 并短暂原子接管；失败会清 staging，接管期异常还会 AbortEntry 和恢复普通 surface。
 - `WalkGridComposer.Job` 保留全部输入、格点对齐和保守 overlap 语义，复杂度从 output×inputs 改为 output + sum(inputs)。独立场动态破坏不再因 `_independentFieldId` 直接跳过：会合并为一次同样的分帧纯数据刷新，旧 grid 在结果有效前继续使用。

@@ -1673,7 +1673,7 @@ namespace XianXia.Unity.Host
             _mapper.ChunkLocalToWorld(coord, 0f, 0f, out var worldX, out var worldY);
             _mapper.WorldToPresentation(worldX, worldY, out var presentationX, out var presentationY);
             var placement = new Vector2(presentationX - layout.OriginX, presentationY - layout.OriginY);
-            _tileMap.BuildLayoutInstance(SurfaceOwnerKey(coord), layout, placement);
+            _tileMap.BuildLayoutInstance(SurfaceOwnerKey(coord), layout, placement, compactGround: true);
             if (_geography != null && _geography.CoverageChunks.Contains(coord))
                 _tileMap.BuildOutdoorGeographyInstance(GeographyOwnerKey(coord), _geography, _mapper, coord);
             BuildBakedOutdoorSitePlacements(coord);

@@ -99,7 +99,7 @@ namespace XianXia.Unity.Host
         public SurfacePresentationInstance BuildLayoutInstance(
             string instanceKey,
             MapLayoutDefinition layout,
-            Vector2 placementOffset)
+            Vector2 placementOffset, bool compactGround = false)
         {
             if (string.IsNullOrWhiteSpace(instanceKey))
                 throw new System.ArgumentException("A surface presentation instance key is required.", nameof(instanceKey));
@@ -108,8 +108,9 @@ namespace XianXia.Unity.Host
 
             RemoveLayoutInstance(instanceKey);
             BeginInstanceBuild(instanceKey, layout, placementOffset);
-            BuildFromLayout(layout);
-            return EndInstanceBuild();
+            try { BuildFromLayout(layout, compactGround); }
+            finally { EndInstanceBuild(); }
+            return _instances[instanceKey];
         }
 
         /// <summary>
@@ -388,7 +389,7 @@ namespace XianXia.Unity.Host
             _builtByInstance[_buildingInstanceKey].Add(go);
         }
 
-        void BuildFromLayout(MapLayoutDefinition layout)
+        void BuildFromLayout(MapLayoutDefinition layout, bool compactGround = false)
         {
             var cs = layout.CellSize > 0f ? layout.CellSize : 1f;
             var ox = PlaceX(layout.OriginX);
@@ -398,7 +399,17 @@ namespace XianXia.Unity.Host
             if (w < 1 || h < 1)
                 return;
 
-            if (stampGrassGround)
+            if (stampGrassGround && compactGround)
+            {
+                // Decorative background has no cell identity or collision. One exact chunk
+                // rectangle avoids 625 prefab hierarchies for every 50x50 outdoor chunk.
+                var ground = PlaceZoneOverlay(ox + w * cs * .5f, oy + h * cs * .5f,
+                    "ChunkGround", w * cs, h * cs, new Color(.30f, .42f, .26f, .98f));
+                var renderer = ground.GetComponent<SpriteRenderer>();
+                renderer.color = new Color(.30f, .42f, .26f, 1f);
+                renderer.sortingOrder = -100;
+            }
+            else if (stampGrassGround)
             {
                 var step = Mathf.Max(1, grassStride);
                 for (var gy = 0; gy < h; gy += step)

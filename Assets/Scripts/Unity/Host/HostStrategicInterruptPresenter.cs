@@ -173,7 +173,7 @@ namespace XianXia.Unity.Host
                 if (_manualBattleReport != null) { DrawManualBattleReport(session); return; }
                 if (characterState != null && characterState.Phase == CharacterEncounterPhase.ReadyToEnd)
                     DrawCharacterPostBattleBar(session, character);
-                else if (character != null)
+                else if (character != null && character.Phase != HostCharacterEncounter.PresentationPhase.Active)
                     DrawCharacterEncounterOffer(session, character);
                 return;
             }
