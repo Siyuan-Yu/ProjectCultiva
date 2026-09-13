@@ -484,7 +484,7 @@ namespace XianXia.Unity.Host
                     _button))
             {
                 // CORRECTION V1: 点击 Attack 立即 route（不等走到面前才发现是 Army）。
-                var consumed = TryHandlePlayerHostileAction(_actor, _targetNpc, BeginAttack);
+                var consumed = TryHandlePlayerHostileAction(_actor, _targetNpc, null);
                 if (!consumed)
                     BeginAttack();
             }
@@ -955,7 +955,9 @@ namespace XianXia.Unity.Host
                     if (IsActiveStrategicCombatTarget(session.World, target))
                         return false;
                     // 普通 Character（无论 faction / hostile tag）→ 一次确认。
-                    bootstrap.GetComponent<HostCharacterEncounter>().Request(actor, target);
+                    ReleaseInteractionNpcNow(target);
+                    CloseAll();
+                    bootstrap.GetComponent<HostCharacterEncounter>().Request(actor, target, onEntered: onConfirmedLocalAction);
                     return true;
 
                 case HostileActionRoute.Reject:
@@ -1092,8 +1094,7 @@ namespace XianXia.Unity.Host
         {
             if (bootstrap?.Session?.World == null || actor.IsNone || npc.IsNone) return;
             ReleaseInteractionNpcNow(npc);
-            ResumeTime();
-            bootstrap.GetComponent<HostCharacterEncounter>()?.Request(actor, npc);
+            bootstrap.GetComponent<HostCharacterEncounter>()?.Request(actor, npc, automatic: true);
         }
 
         void BeginMelee(EntityId actor, EntityId npc)

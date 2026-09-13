@@ -23,6 +23,7 @@ namespace XianXia.Core.World.Strategic
         public float TacticalX, TacticalY;
         public ulong TargetId;
         public float Cooldown;
+        public float[] ArtCooldowns = new float[CombatArtsComponent.MaxEquippedSlots];
         public float JoinedAt;
         public ManualBattleReportCondition EntryCondition;
         public bool EntryHpAvailable;
@@ -74,10 +75,45 @@ namespace XianXia.Core.World.Strategic
             if (state != null) return state.Phase != CharacterEncounterPhase.Active || !state.Opposing(attacker.Value, target.Value);
             var party = board.PlayerPartyContext;
             if (party == null || (!party.IsMember(attacker) && !party.IsMember(target))) return false;
-            if (board.ContinuousManualCombat.IsActive) return false; // Explicit legacy encounter compatibility only.
+            if (board.ContinuousManualCombat.IsActive) return false; // Explicit objective encounter compatibility only.
+            if (IsContactSuppressed(world, attacker, target)) return true;
+            if (!world.WorldPresence.TryGet(attacker, out var a) || !world.WorldPresence.TryGet(target, out var b) ||
+                string.IsNullOrEmpty(a.PersonalSurfaceId) || a.PersonalSurfaceId != b.PersonalSurfaceId ||
+                !a.HasContinuousWorldPosition || !b.HasContinuousWorldPosition) return true;
+            var dx = a.WorldPosX - b.WorldPosX; var dy = a.WorldPosY - b.WorldPosY;
+            if (dx * dx + dy * dy > MeleeCombatService.DefaultMeleeRange * MeleeCombatService.DefaultMeleeRange) return true;
             board.PendingCharacterAttacker = attacker;
             board.PendingCharacterTarget = target;
             return true;
+        }
+
+        public static string ContactKey(EntityId a, EntityId b) => a.Value < b.Value
+            ? a.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + b.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : b.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + a.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        public static bool IsContactSuppressed(SimulationWorld world, EntityId a, EntityId b)
+        {
+            var key = ContactKey(a, b);
+            if (!world.Strategic.SuppressedCharacterContacts.Contains(key)) return false;
+            if (world.WorldPresence.TryGet(a, out var pa) && world.WorldPresence.TryGet(b, out var pb))
+            {
+                var dx = pa.WorldPosX - pb.WorldPosX; var dy = pa.WorldPosY - pb.WorldPosY;
+                if (pa.PersonalSurfaceId != pb.PersonalSurfaceId || dx * dx + dy * dy >
+                    4f * MeleeCombatService.DefaultMeleeRange * MeleeCombatService.DefaultMeleeRange)
+                { world.Strategic.SuppressedCharacterContacts.Remove(key); return false; }
+            }
+            return true;
+        }
+
+        public static void AbortEntry(SimulationWorld world)
+        {
+            var state = world.Strategic.CharacterEncounter;
+            if (state == null || state.ElapsedSeconds != 0 || state.Phase != CharacterEncounterPhase.Active) return;
+            RestoreAnchors(world, state);
+            world.Strategic.ManualBattleSettlement.ClearOwned(state.EncounterId);
+            world.Strategic.ContinuousManualCombat.ClearOwned(state.EncounterId);
+            world.Strategic.Participants.Clear(); world.Strategic.ClockFreeze.Clear();
+            world.Strategic.CharacterEncounter = null;
         }
 
         public static Result Prepare(SimulationWorld world, EntityId attacker, EntityId target,
@@ -173,8 +209,7 @@ namespace XianXia.Core.World.Strategic
                 string.IsNullOrWhiteSpace(state.SourceSurfaceId) || !Finite(state.CenterX) || !Finite(state.CenterY) ||
                 !Finite(state.Width) || !Finite(state.Height) || state.Width <= 0f || state.Height <= 0f ||
                 !Finite(state.ElapsedSeconds) || state.ElapsedSeconds < 0f ||
-                (state.Phase != CharacterEncounterPhase.Active && state.Phase != CharacterEncounterPhase.ReadyToEnd &&
-                 state.Phase != CharacterEncounterPhase.Committed)) return Fail("Invalid independent encounter snapshot.");
+                (state.Phase != CharacterEncounterPhase.Active && state.Phase != CharacterEncounterPhase.ReadyToEnd)) return Fail("Invalid independent encounter snapshot.");
             if (!Finite(state.DecisionAt) || state.DecisionAt < 0 || !Finite(state.ArrivalDelay) || state.ArrivalDelay < 0 ||
                 state.RelationThreshold < 1 || state.RelationThreshold > 100 || state.ChanceBasisPoints < 0 || state.ChanceBasisPoints > 10000 ||
                 !Finite(state.DecayAccumulator) || state.DecayAccumulator < 0 || state.DecayAccumulator >= 1 || state.RosterVersion < 1)
@@ -186,7 +221,15 @@ namespace XianXia.Core.World.Strategic
                     !world.Entities.TryGet(new EntityId(p.CharacterId), out _) ||
                     !Finite(p.OriginX) || !Finite(p.OriginY) || !Finite(p.TacticalX) || !Finite(p.TacticalY) ||
                     !state.Contains(p.OriginX, p.OriginY) || !state.Contains(p.TacticalX, p.TacticalY) ||
-                    !Finite(p.Cooldown) || p.Cooldown < 0f) return Fail("Invalid encounter participant snapshot.");
+                    !Finite(p.Cooldown) || p.Cooldown < 0f || !Finite(p.JoinedAt) || p.JoinedAt < 0 ||
+                    p.JoinedAt > state.ElapsedSeconds || string.IsNullOrEmpty(p.SquadId) ||
+                    !Enum.IsDefined(typeof(PartyWorldPresenceMode), p.SourceMode) || p.SourceMode == (int)PartyWorldPresenceMode.InEncounter ||
+                    !Enum.IsDefined(typeof(ManualBattleReportCondition), p.EntryCondition) ||
+                    (p.EntryHpAvailable && (p.EntryHp < 0 || p.EntryMaxHp <= 0 || p.EntryHp > p.EntryMaxHp))) return Fail("Invalid encounter participant snapshot.");
+                if (p.ArtCooldowns == null || p.ArtCooldowns.Length != CombatArtsComponent.MaxEquippedSlots)
+                    return Fail("Invalid encounter skill cooldown slots.");
+                foreach (var cooldown in p.ArtCooldowns)
+                    if (!Finite(cooldown) || cooldown < 0) return Fail("Invalid skill cooldown.");
                 if (p.Enemy) enemy++; else friendly++;
             }
             var candidateIds = new HashSet<ulong>(); var squadIds = new HashSet<string>(); var joined = 0;
@@ -231,11 +274,15 @@ namespace XianXia.Core.World.Strategic
             foreach (var p in state.Participants)
             {
                 var id = new EntityId(p.CharacterId);
-                var presence = world.WorldPresence.GetOrCreate(id);
-                presence.Mode = PartyWorldPresenceMode.InEncounter;
-                presence.PersonalSurfaceId = state.SourceSurfaceId;
-                presence.WorldPosX = p.TacticalX; presence.WorldPosY = p.TacticalY;
-                presence.HasContinuousWorldPosition = true;
+                world.Entities.TryGet(id, out var participantEntity);
+                if (!participantEntity.TryGet<LifecycleComponent>(out var life) || !life.IsRemoved)
+                {
+                    var presence = world.WorldPresence.GetOrCreate(id);
+                    presence.Mode = PartyWorldPresenceMode.InEncounter;
+                    presence.PersonalSurfaceId = state.SourceSurfaceId;
+                    presence.WorldPosX = p.TacticalX; presence.WorldPosY = p.TacticalY;
+                    presence.HasContinuousWorldPosition = true;
+                }
                 snapshot.Add(new BattleParticipantRecord { EntityId = id, Selected = true,
                     Kind = p.Enemy ? BattleParticipantKind.EnemyPrimary : BattleParticipantKind.MandatoryFriendly,
                     IncludedReason = p.JoinedAt > 0f ? "FrozenRangeIntervention" : "InitiatingSquads" });
@@ -256,6 +303,8 @@ namespace XianXia.Core.World.Strategic
             var state = world.Strategic.CharacterEncounter;
             if (state == null || state.Phase != CharacterEncounterPhase.Active || !Finite(seconds) || seconds <= 0f) return;
             state.ElapsedSeconds += seconds; state.DecayAccumulator += seconds;
+            foreach (var p in state.Participants)
+                for (var i = 0; i < p.ArtCooldowns.Length; i++) p.ArtCooldowns[i] = Math.Max(0, p.ArtCooldowns[i] - seconds);
             while (state.DecayAccumulator >= 1f)
             {
                 state.DecayAccumulator -= 1f;
@@ -290,6 +339,23 @@ namespace XianXia.Core.World.Strategic
             if (settlement.IsCommitted || !settlement.Matches(world.Strategic.Participants)) return Fail("Encounter settlement identity mismatch.");
             var report = ManualBattleReportBuilder.CaptureFinal(world, settlement.Draft, state.PlayerWon, "");
             if (!settlement.Commit(report)) return Fail("Encounter report was already committed.");
+            RestoreAnchors(world, state);
+            foreach (var a in state.Participants)
+                foreach (var b in state.Participants)
+                    if (a.Enemy != b.Enemy)
+                        world.Strategic.SuppressedCharacterContacts.Add(ContactKey(new EntityId(a.CharacterId), new EntityId(b.CharacterId)));
+            world.Strategic.PendingCharacterAttacker = world.Strategic.PendingCharacterTarget = EntityId.None;
+            foreach (var c in state.Candidates)
+                if (c.Phase != EncounterCandidatePhase.Joined) c.Phase = EncounterCandidatePhase.Closed;
+            state.Phase = CharacterEncounterPhase.Committed;
+            world.Strategic.ContinuousManualCombat.ClearOwned(state.EncounterId);
+            world.Strategic.Participants.Clear();
+            world.Strategic.Encounter.ClearCompletedWorldCombatSession();
+            world.Strategic.ClockFreeze.Clear();
+            return Result.Success();
+        }
+        static void RestoreAnchors(SimulationWorld world, CharacterEncounterState state)
+        {
             foreach (var p in state.Participants)
             {
                 var id = new EntityId(p.CharacterId);
@@ -302,14 +368,6 @@ namespace XianXia.Core.World.Strategic
                 presence.HexQ = hex.Q; presence.HexR = hex.R;
                 presence.ClearCombatPursuit();
             }
-            foreach (var c in state.Candidates)
-                if (c.Phase != EncounterCandidatePhase.Joined) c.Phase = EncounterCandidatePhase.Closed;
-            state.Phase = CharacterEncounterPhase.Committed;
-            world.Strategic.ContinuousManualCombat.ClearOwned(state.EncounterId);
-            world.Strategic.Participants.Clear();
-            world.Strategic.Encounter.ClearCompletedWorldCombatSession();
-            world.Strategic.ClockFreeze.Clear();
-            return Result.Success();
         }
         public static void CloseReport(SimulationWorld world)
         {

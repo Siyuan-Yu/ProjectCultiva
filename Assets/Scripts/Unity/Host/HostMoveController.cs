@@ -1397,6 +1397,12 @@ namespace XianXia.Unity.Host
             if (!entity.TryGet<EntityLocationComponent>(out var loc))
                 return;
 
+            if (session.World.Strategic.CharacterEncounter != null)
+            {
+                var tactical = HostPresentationSpace.ToPresentation(view.transform.position);
+                loc.SetPresentationOverride(tactical.x, tactical.y);
+                return;
+            }
             var previous = loc.LocationId;
             var p = HostPresentationSpace.ToPresentation(view.transform.position);
             string best = null;

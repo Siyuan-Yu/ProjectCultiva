@@ -53,6 +53,9 @@ namespace XianXia.Data.Serialization
         }
         public static CharacterEncounterState Read(JsonValue value)
         {
+            RequireFields(value, "version", "id", "sourceSurfaceId", "sourceSiteId", "centerX", "centerY", "width", "height",
+                "elapsedSeconds", "decayAccumulator", "phase", "playerWon", "rosterVersion", "continuationUsed",
+                "decisionAt", "arrivalDelay", "relationThreshold", "chanceBasisPoints", "participants", "candidates");
             if (!value.TryGetProperty("version", out _)) throw new FormatException("Independent encounter version missing.");
             var state = new CharacterEncounterState
             {
@@ -83,6 +86,7 @@ namespace XianXia.Data.Serialization
                 throw new FormatException("Encounter candidates missing.");
             foreach (var row in candidates.Array)
             {
+                RequireFields(row, "squadId", "phase", "enemy", "roll", "affinityDifference", "arriveAt", "members");
                 var c = new EncounterCandidate {
                     SquadId = row.GetString("squadId", ""), Phase = (EncounterCandidatePhase)row.GetNumber("phase", -1),
                     Enemy = row.GetBool("enemy", false), Roll = (int)row.GetNumber("roll", -2),
@@ -108,13 +112,18 @@ namespace XianXia.Data.Serialization
                 ["tacticalY"] = JsonValue.FromNumber(p.TacticalY),
                 ["targetId"] = JsonValue.FromString(p.TargetId.ToString(System.Globalization.CultureInfo.InvariantCulture)),
                 ["cooldown"] = JsonValue.FromNumber(p.Cooldown),
+                ["artCooldowns"] = WriteCooldowns(p.ArtCooldowns),
                 ["joinedAt"] = JsonValue.FromNumber(p.JoinedAt),
                 ["entryCondition"] = JsonValue.FromNumber((int)p.EntryCondition),
                 ["entryHpAvailable"] = JsonValue.FromBool(p.EntryHpAvailable),
                 ["entryHp"] = JsonValue.FromNumber(p.EntryHp),
                 ["entryMaxHp"] = JsonValue.FromNumber(p.EntryMaxHp),
                 });
-        static EncounterCharacter ReadPerson(JsonValue row) => new EncounterCharacter
+        static EncounterCharacter ReadPerson(JsonValue row)
+        {
+            RequireFields(row, "characterId", "squadId", "enemy", "sourceSiteId", "sourceMode", "originX", "originY",
+                "tacticalX", "tacticalY", "targetId", "cooldown", "artCooldowns", "joinedAt", "entryCondition", "entryHpAvailable", "entryHp", "entryMaxHp");
+            return new EncounterCharacter
                 {
                 CharacterId = ulong.Parse(row.GetString("characterId", "0"), System.Globalization.CultureInfo.InvariantCulture),
                 SquadId = row.GetString("squadId", ""),
@@ -127,11 +136,55 @@ namespace XianXia.Data.Serialization
                 TacticalY = (float)row.GetNumber("tacticalY", 0),
                 TargetId = ulong.Parse(row.GetString("targetId", "0"), System.Globalization.CultureInfo.InvariantCulture),
                 Cooldown = (float)row.GetNumber("cooldown", 0),
+                ArtCooldowns = ReadCooldowns(row),
                 JoinedAt = (float)row.GetNumber("joinedAt", 0),
                 EntryCondition = (ManualBattleReportCondition)row.GetNumber("entryCondition", 0),
                 EntryHpAvailable = row.GetBool("entryHpAvailable", false),
                 EntryHp = (int)row.GetNumber("entryHp", 0),
                 EntryMaxHp = (int)row.GetNumber("entryMaxHp", 0),
                 };
+        }
+        static JsonValue WriteCooldowns(float[] cooldowns)
+        {
+            var result = new List<JsonValue>();
+            foreach (var cooldown in cooldowns) result.Add(JsonValue.FromNumber(cooldown));
+            return JsonValue.FromArray(result);
+        }
+        static float[] ReadCooldowns(JsonValue row)
+        {
+            if (!row.TryGetProperty("artCooldowns", out var values) || values.Kind != JsonValueKind.Array ||
+                values.Array.Count != XianXia.Core.Combat.CombatArtsComponent.MaxEquippedSlots)
+                throw new FormatException("Invalid skill cooldown slots.");
+            var result = new float[values.Array.Count];
+            for (var i = 0; i < result.Length; i++)
+            {
+                var value = values.Array[i];
+                if (value.Kind != JsonValueKind.Number || double.IsNaN(value.Number) || double.IsInfinity(value.Number) || value.Number < 0)
+                    throw new FormatException("Invalid skill cooldown.");
+                result[i] = (float)value.Number;
+            }
+            return result;
+        }
+        static void RequireFields(JsonValue row, params string[] fields)
+        {
+            if (row.Kind != JsonValueKind.Object) throw new FormatException("Encounter object required.");
+            foreach (var field in fields)
+            {
+                if (!row.TryGetProperty(field, out var value)) throw new FormatException("Encounter field missing: " + field);
+                var expected = JsonValueKind.Number;
+                switch (field)
+                {
+                    case "id": case "characterId": case "targetId": case "squadId": case "sourceSurfaceId": case "sourceSiteId":
+                        expected = JsonValueKind.String; break;
+                    case "enemy": case "playerWon": case "continuationUsed": case "entryHpAvailable":
+                        expected = JsonValueKind.Boolean; break;
+                    case "participants": case "candidates": case "members": case "artCooldowns":
+                        expected = JsonValueKind.Array; break;
+                }
+                if (value.Kind != expected || (expected == JsonValueKind.Number &&
+                    (double.IsNaN(value.Number) || double.IsInfinity(value.Number))))
+                    throw new FormatException("Invalid encounter field type/value: " + field);
+            }
+        }
     }
 }

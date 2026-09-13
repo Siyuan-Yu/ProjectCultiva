@@ -1,5 +1,14 @@
 # 开发日志
 
+## 2026-09-14 — C4/U4：整合、兼容与合并人工验收交付
+
+- 连续完成 C1 ccdadeb → C2 a8b322a → C3 2f48380 后收口 C4：旧 Offer 的激活/队列/清场/结算回调不得覆盖 CharacterEncounter；旧档玩家远程攻击 intent 取消，正式建筑攻击授权保留。
+- 补齐预设核心 identity/关联/level/真实位置/有效性存档，旧格式从正式预设一级派生，新格式缺失/非法等级失败。控制 resolver 与建设/管理及遭遇共用 CoreLevel Content，独立导航每次重建重施本场边界，旗小占地仍独立。
+- 修正普通跟随、移动地点到达与场内战术位置争用；报告独占暂停，无 Active 仍可结束。入场失败回滚；恢复失败不退回普通地图。同次接触抑制进入存档，新的明确攻击可解除，分离后自动解除。
+- 主动技能确认后的实际动作在入场后执行，技能冷却随场内状态保存/恢复，报告继续后移交普通冷却。候选判定/到达/名单版本与 HP 基线保持正式 JSON 校验；不接受与旧 pending engagement 并存。
+- 完成现成非 Unity 编译（Core459/Data78/Host145）、少量静态核对及 git diff --check；只读保存槽 SHA256 保持 6D60DA9B5851740D29CF7C47162D5B0889E65AE4D5D73875988797A85B835122。Content 只新增空间配置及移除旧控制尺寸字段，未删改驻镇/巡逻人物部署，未覆盖保存槽或修改两个 ZIP。
+- 状态：Implementation Completed / Combined Producer Acceptance Pending。未运行 Unity、EditMode、PlayMode、Test Runner、batchmode、Bake 或自动测试，运行效果由制作人统一人工验收。验收路线及限制见 222。
+
 ## 2026-09-13 — C3/U3：固定候选与同场介入事务
 
 - 开场按同源真实个人坐标固定候选，按 Squad 分组，仅包含范围内成员。默认本场3秒判定、3秒预告后到达、关系差阈值30、整队一次50%抽取由集中 Content 消费；候选关系仅查询初始双方 RelationshipLedger，不递归。

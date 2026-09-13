@@ -18,6 +18,8 @@ namespace XianXia.Core.World.Strategic
     {
         public static Result ResolveAndEnd(SimulationWorld world)
         {
+            if (world?.Strategic?.CharacterEncounter != null)
+                return Result.Failure(ErrorCode.InvalidOperation, "CharacterEncounter owns settlement.");
             if (world?.Strategic == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
 
@@ -238,6 +240,7 @@ namespace XianXia.Core.World.Strategic
         /// <summary>敌军清空或我方全�?�?PostBattle（仍冻结，可点结束战斗）�?/summary>
         public static void TryEnterPostBattleFromManual(SimulationWorld world)
         {
+            if (world?.Strategic?.CharacterEncounter != null) return;
             if (world?.Strategic == null)
                 return;
             if (world.Strategic.ClockFreeze.Reason != StrategicClockFreezeReason.ManualEncounter)

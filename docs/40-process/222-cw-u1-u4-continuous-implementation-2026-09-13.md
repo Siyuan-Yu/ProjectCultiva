@@ -2,7 +2,9 @@
 
 日期：2026-09-13。基线：`4277654e85f9854ad03800d1d36e88e8750e733f`，开始时工作区与暂存区均干净。
 
-## 当前连续实施（制作人补充范围输入之后）
+## 当前连续实施（制作人补充范围输入之后，2026-09-14 收口）
+
+**Implementation Completed / Combined Producer Acceptance Pending**。这里的完成指默认调用链实现与非 Unity 编译/静态核查完成，不代表 Unity 运行或制作人人工验收通过。
 
 此前范围 ACR 已解除：一级议政厅/势力旗统一 500×500 世界单位，中心为核心真实位置；野外独立配置同为 500×500。旧 4.2×2.8 不再作为控制范围来源。下方早期未完成矩阵保留为历史检查点，不代表本段之后的新实现状态。
 
@@ -10,12 +12,34 @@
 |---|---|---|---|
 | C1/U2A | 普通人物 HostNpcContextMenu→HostCharacterEncounter.Request/BeginConfirmed→CharacterEncounterService；独立场地使用场次 owner 实例、完整正式 source chunks 和独立导航；实际 Character/个人原锚点、战术坐标、时间、HP基线、名单版本和状态进入 characterEncounter JSON；稳定 Active/ReadyToEnd 恢复重建场地；CommitAndReturn 唯一提交并逐人回位、报告继续释放 | Core459/Data78/Host145 离线编译通过；静态核对，不代表人工验收 | `ccdadeb` |
 | C2/U2B | 人物分类/到达/近战/最终伤害门禁→HostCharacterEncounter；WorldMap 菜单与执行及 PlayerParty 命令退役，玩家 Army 旧档攻击回调取消；战中名单沿用 C1 JSON，报告后释放 | Core459/Data78/Host145 离线编译通过 | `a8b322a` |
-| C3/U3 | Prepare 固定候选→Advance/DecideCandidate→资格与场地预检→名单/报告事务→PresentJoinedParticipants；JSON 恢复固定池/roll/期限/版本；最终关闭余下候选 | Core459/Data78/Host145 离线编译与静态检查 | 本段 C3 提交 |
-| C4/U4 | 待整合兼容核查 | 待本阶段检查 | 待提交 |
+| C3/U3 | Prepare 固定候选→Advance/DecideCandidate→资格与场地预检→名单/报告事务→PresentJoinedParticipants；JSON 恢复固定池/roll/期限/版本；最终关闭余下候选 | Core459/Data78/Host145 离线编译与静态检查 | `2f48380` |
+| C4/U4 | 普通首战→唯一报告→逐人返回→继续→分流保存→正式恢复/场地重建→新场次入口已接线；旧回调隔离、重复接触抑制、核心元数据、技能冷却和普通跟随 ownership 收口 | Core459/Data78/Host145 离线编译及少量静态检查通过；Unity 运行待人工验收 | 本段 C4 本地提交 |
 
 C1 Content：worldSpatialRules→loader校验→registry→SpatialRules→CoreLevelControlRange→预设核心/ConstructionCatalog/WorldSiteCoreCoverageResolver/遭遇冻结范围；同等级共用规则。新 runtime Site 存 CoreLevelFormat=1、等级、身份与位置，范围由 Content 派生；旧缺等级只在 format=0 迁一级。500 世界单位保持逻辑边界，定义大陆之外是无 Surface 的不可行走空间，不生成随机地形补齐。建筑占地/碰撞继续原数据。
 
 C1 生命周期：旧 Continuous marker 仅作为现有显示/伤害权限 API 的派生投影，新场地身份、导航和保存由 CharacterEncounter 权威持有；不调用旧 Army 场地预检/共同 BattleHex 提交。WorldTick 冻结期间仅参战者的弥留/尸体期限消费本场秒数，普通世界不推进。所有真实伤害继续经过现有 MeleeCombatService。
+
+## C4 交付核对与制作人人工验收路线
+
+- 核心配置：`Content/BaseGame/Data/Worlds/world_spatial_rules.json` 唯一 Level 1 500×500；野外另设500×500。loader/validation/registry→RuntimeContentShell→ConstructionCatalog/WorldSiteCoreCoverageResolver/管理查询/CharacterEncounter。预设核心元数据随 WorldSiteOwners 保存，玩家旗随 RuntimeWorldSites 保存；二者从等级配置派生尺寸。
+- 新入口：HostNpcContextMenu、HostCombatSkillBar、到达攻击、HostNpcMeleeAssault 和最终 MeleeCombatService gate；真实两 Squad 初始参战。旧 AI Hex 触发若涉及实际玩家，只能经个人接触请求新入口，不创建旧远程 Offer；远处非玩家 AI 继续原服务。
+- 实际运行权威：CharacterEncounterState + 独立 owner 场地/独立合成导航，HostCharacterEncounter 驱动各人物目标、普通攻击和本场时间；普通跟随、旅行、日程不能改写本场位置。技能冷却同属本场存档。
+- 保存与恢复：HostSnapshotLocalPlacementCaptureSync 分流；SnapshotService/CharacterEncounterJson 校验边界、身份、原锚点、战术位置、目标/冷却、HP 基线、候选池/roll/时点/状态及 rosterVersion。HostSnapshotSessionRehydration 校验来源，RebuildAfterWorldRestore 重建同源场地；不重扫候选或重抽。准备/报告提交阶段明确拒绝保存，稳定 Active/ReadyToEnd 可存。
+- 清理：CommitAndReturn 校验 settlement identity，唯一报告提交，保留损耗并逐人返回；优先原点，阻挡时只尝试相邻最近合法格，找不到则明确失败，不改为出生点。报告继续释放自己暂停，抑制同次接触但允许新明确攻击。旧正常地面重建后下一次攻击生成新场次。
+
+制作人统一验收（本轮未执行）：
+
+1. 普通连续世界攻击巡逻卫甲/乙：初始仅双方当前小队；驻镇卫甲/乙只能进入固定候选，未加入时不显示/不受伤/不计战报。观察实体 ID 与真实原锚点不被共用 Army 锚点覆盖。
+2. 一级议政厅与新一级势力旗分别核对中心 ±250，建筑本体碰撞仍原尺寸；Site 失效后野外范围以实际接战点为中心。既有破墙、桥门与旗状态随正式来源呈现。
+3. 普攻换目标、主动技能、同伴自动行动、单 Active 接替、全队失能后的结束按钮；改变 ManualPaused 后确认报告开关不覆盖该值。
+4. 战中保存/恢复一次；候选预告期再保存/恢复，确认 roll/期限不重置、加入不重行、原参战 HP 基线不重采。可结束状态保存/恢复后唯一结束/战报。
+5. 结束→继续→普通保存/读档→第二次明确攻击：确认来源、范围、名单正确，无旧场地/View/攻击回调残留，不恢复旧远程攻击订单。候选开发观察/受限决定入口位于现有开发工具“战斗”页。
+
+检查记录：保存槽始终只读，SHA256 `6D60DA9B5851740D29CF7C47162D5B0889E65AE4D5D73875988797A85B835122` 未变。Content 相对 2883cd8 仅改 buildings 两个旧控制尺寸字段并新增 world_spatial_rules；驻镇/巡逻 roster 与部署原样保留。未改 Freeze、ProjectSettings、Packages，未 push，未运行 Unity 或任何自动测试。
+
+边界：逻辑范围不因已定义大陆/Chunk不足而缩小；无正式 Surface 的位置保持不可走的空域，不生成随机补齐地形。旧档没有可信个人来源时仅沿已有明确旧格式迁移，不将 View 缺失或 Army 组织身份作为新存档空间权威。以上需人工检查的视觉/运行行为尚未宣称通过。
+
+## 以下为先前检查点原始记录（历史，不代表当前状态）
 
 制作人确认 CW-U1 当前正常玩法人工验收通过。本轮明确授权连续执行 C0→C4，中间不等待逐轮人工验收；覆盖 ADR-0035 的旧逐阶段等待要求。新增行为仍待合并人工验收，不扩大 U1 已验收范围。
 

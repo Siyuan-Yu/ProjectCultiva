@@ -41,6 +41,21 @@ namespace XianXia.Core.Persistence
                     var site = dto.WorldSiteOwners[i];
                     if (site == null || string.IsNullOrEmpty(site.SiteId))
                         continue;
+                    if (site.CoreMetadataFormat != 0)
+                    {
+                        if (site.CoreMetadataFormat != 1 || site.CoreLevel < 1 ||
+                            !IsFinite(site.CoreWorldX) || !IsFinite(site.CoreWorldY) ||
+                            !world.Strategic.Sites.TryGet(site.SiteId, out var coreSite) ||
+                            string.IsNullOrEmpty(site.CoreAssetId) || site.CoreAssetId != coreSite.CoreAssetId ||
+                            string.IsNullOrEmpty(site.CoreSurfaceId) || site.CoreSurfaceId != coreSite.CoreSurfaceId)
+                            return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid Site core metadata: " + site.SiteId);
+                        try { world.Strategic.SpatialRules.RequireLevel(site.CoreLevel); }
+                        catch (InvalidOperationException e) { return Result.Failure(ErrorCode.SnapshotInvalid, e.Message); }
+                        coreSite.CoreLevel = site.CoreLevel;
+                        coreSite.CoreWorldX = site.CoreWorldX; coreSite.CoreWorldY = site.CoreWorldY;
+                        coreSite.HasCoreWorldPosition = true; coreSite.IsCoreActive = site.CoreActive;
+                        world.Strategic.SpatialRules.Bind(coreSite);
+                    }
                     WorldSiteOwnershipService.SetOwner(world, site.SiteId, site.OwnerFactionId ?? string.Empty);
                 }
             }
@@ -275,7 +290,11 @@ namespace XianXia.Core.Persistence
                 dto.WorldSiteOwners.Add(new WorldSiteOwnerSnapshotDto
                 {
                     SiteId = site.SiteId,
-                    OwnerFactionId = site.OwnerFactionId ?? string.Empty
+                    OwnerFactionId = site.OwnerFactionId ?? string.Empty,
+                    CoreMetadataFormat = site.HasContinuousCore ? 1 : 0,
+                    CoreAssetId = site.CoreAssetId, CoreSurfaceId = site.CoreSurfaceId,
+                    CoreLevel = site.CoreLevel, CoreWorldX = site.CoreWorldX, CoreWorldY = site.CoreWorldY,
+                    CoreActive = site.IsCoreActive
                 });
             }
 

@@ -2174,7 +2174,9 @@ namespace XianXia.Data.Content
                 !(rules.WildernessEncounterHeightWorld > 0f) || float.IsInfinity(rules.WildernessEncounterWidthWorld) ||
                 float.IsInfinity(rules.WildernessEncounterHeightWorld) || !(rules.InterventionDecisionSeconds >= 0f) ||
                 !(rules.InterventionArrivalSeconds >= 0f) || rules.InterventionChanceBasisPoints < 0 ||
-                rules.InterventionChanceBasisPoints > 10000)
+                rules.InterventionChanceBasisPoints > 10000 || rules.InterventionRelationThreshold < 1 ||
+                rules.InterventionRelationThreshold > 100 || float.IsInfinity(rules.InterventionDecisionSeconds) ||
+                float.IsInfinity(rules.InterventionArrivalSeconds))
             { report.Add(ErrorCode.InvalidArgument, "Invalid world spatial/encounter configuration.", id.ToString()); return; }
             var result = registry.RegisterSpatialRules(rules);
             if (result.IsFailure) report.Add(result.Error);

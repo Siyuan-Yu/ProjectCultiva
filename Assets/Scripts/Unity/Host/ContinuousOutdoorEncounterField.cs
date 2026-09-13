@@ -41,6 +41,9 @@ namespace XianXia.Unity.Host
             }
             if (inputs.Count == 0) return Result.Failure(ErrorCode.ContentLoadFailed, "No authored surface in frozen field.");
             var grid = WalkGridComposer.Compose(inputs);
+            foreach (var pair in _bootstrap.Session.World.Strategic.FactionFlags.Flags)
+                if (pair.Value != null && pair.Value.SurfaceId == state.SourceSurfaceId)
+                    HostFactionFlagQuery.ApplyWalkGridBlock(pair.Value, this, grid);
             foreach (var p in state.Participants)
             {
                 _mapper.WorldToPresentation(p.TacticalX, p.TacticalY, out var px, out var py);
@@ -85,13 +88,6 @@ namespace XianXia.Unity.Host
                     _loaded.Add(chunk.Coord); _presentedChunks.Add(chunk.Coord);
                 }
             RecomposeWalkGrid();
-            for (var y = 0; y < _compositeWalkGrid.Height; y++)
-            for (var x = 0; x < _compositeWalkGrid.Width; x++)
-            {
-                _compositeWalkGrid.CellToWorldCenter(x, y, out var px, out var py);
-                _mapper.PresentationToWorld(px, py, out var wx, out var wy);
-                if (!state.Contains(wx, wy)) _compositeWalkGrid.SetBlocked(x, y, true);
-            }
             var world = _bootstrap.Session.World;
             _bootstrap.MoveController.InvalidatePartyLocalMovement(_bootstrap.Session.PlayerParty.Members);
             foreach (var p in state.Participants)
@@ -110,6 +106,43 @@ namespace XianXia.Unity.Host
             Debug.Log("[IndependentEncounter] Id=" + state.EncounterId + " Source=" + state.SourceSurfaceId +
                 " Center=" + state.CenterX + "," + state.CenterY + " Size=" + state.Width + "x" + state.Height +
                 " SourceChunks=" + _loaded.Count + " Participants=" + state.Participants.Count);
+            return Result.Success();
+        }
+
+        void ClipEncounterGrid(WalkGrid grid)
+        {
+            var state = _bootstrap?.Session?.World?.Strategic?.CharacterEncounter;
+            if (grid == null || state == null || state.EncounterId != _independentFieldId) return;
+            for (var y = 0; y < grid.Height; y++)
+            for (var x = 0; x < grid.Width; x++)
+            {
+                grid.CellToWorldCenter(x, y, out var px, out var py);
+                _mapper.PresentationToWorld(px, py, out var wx, out var wy);
+                if (!state.Contains(wx, wy)) grid.SetBlocked(x, y, true);
+            }
+        }
+
+        public Result PrepareEncounterReturn(CharacterEncounterState state)
+        {
+            // Same source and live blockers; retain exact anchors whenever still walkable.
+            RecomposeWalkGrid();
+            var points = new List<Vector2>();
+            foreach (var p in state.Participants)
+            {
+                _mapper.WorldToPresentation(p.OriginX, p.OriginY, out var px, out var py);
+                if (!_compositeWalkGrid.TryWorldToCell(px, py, out var x, out var y))
+                    return Result.Failure(ErrorCode.InvalidOperation, "Return anchor outside source: " + p.CharacterId);
+                if (!_compositeWalkGrid.IsWalkable(x, y))
+                {
+                    if (!_compositeWalkGrid.TryFindNearestWalkable(x, y, 1, out x, out y))
+                        return Result.Failure(ErrorCode.InvalidOperation, "No adjacent legal return anchor: " + p.CharacterId);
+                    _compositeWalkGrid.CellToWorldCenter(x, y, out px, out py);
+                }
+                _mapper.PresentationToWorld(px, py, out var wx, out var wy);
+                points.Add(new Vector2(wx, wy));
+            }
+            for (var i = 0; i < points.Count; i++)
+            { state.Participants[i].OriginX = points[i].x; state.Participants[i].OriginY = points[i].y; }
             return Result.Success();
         }
 

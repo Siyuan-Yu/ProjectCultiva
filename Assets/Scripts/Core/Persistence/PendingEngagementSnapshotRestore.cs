@@ -140,6 +140,12 @@ namespace XianXia.Core.Persistence
                 return;
 
             var src = dto.PendingEngagement;
+            if (world.Strategic.CharacterEncounter != null ||
+                (src.InitiatorIsPlayerSide && src.OfferOrigin == (int)BattleOfferOrigin.StrategicCommand))
+            {
+                dto.PendingEngagement = null; // Retired saved player attack intent cannot recreate an offer.
+                return;
+            }
             if (string.IsNullOrEmpty(src.EngagementId))
                 return;
 

@@ -242,6 +242,8 @@ namespace XianXia.Unity.Host
 
         float[] GetCooldownArray(EntityId caster)
         {
+            var member = bootstrap?.Session?.World?.Strategic?.CharacterEncounter?.Find(caster.Value);
+            if (member != null) return member.ArtCooldowns;
             if (!_cooldownsByCaster.TryGetValue(caster.Value, out var arr) || arr == null ||
                 arr.Length != CombatArtsComponent.MaxEquippedSlots)
             {
@@ -252,8 +254,18 @@ namespace XianXia.Unity.Host
             return arr;
         }
 
+        public void CaptureEncounterCooldowns(XianXia.Core.World.Strategic.CharacterEncounterState state)
+        {
+            foreach (var p in state.Participants)
+                System.Array.Copy(GetCooldownArray(new EntityId(p.CharacterId)), p.ArtCooldowns, p.ArtCooldowns.Length);
+        }
+        public void RestoreEncounterCooldowns(XianXia.Core.World.Strategic.CharacterEncounterState state)
+        {
+            foreach (var p in state.Participants) _cooldownsByCaster[p.CharacterId] = (float[])p.ArtCooldowns.Clone();
+        }
         void TickCooldowns(float dt)
         {
+            if (bootstrap?.Session?.World?.Strategic?.CharacterEncounter != null) return;
             foreach (var kv in _cooldownsByCaster)
             {
                 var arr = kv.Value;

@@ -89,6 +89,25 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic == null || enemy == null || playerParty == null || playerParty.Count == 0)
                 return false;
 
+            if (world.Strategic.CharacterEncounter != null) return false;
+            var activeParty = world.Strategic.PlayerPartyContext;
+            var physicallyPlayerOwned = false;
+            if (activeParty != null)
+                foreach (var id in playerParty) if (activeParty.IsMember(id)) physicallyPlayerOwned = true;
+            if (physicallyPlayerOwned)
+            {
+                // Hex proximity never creates a player battle. Only a real personal contact may request entry.
+                if (ArmyStackAdapter.TryGetFormalArmy(world, enemy, out var enemyArmy) && enemyArmy != null)
+                    foreach (var raw in enemyArmy.MemberCharacterIds)
+                        foreach (var id in playerParty)
+                            if (activeParty.IsMember(id) && CharacterEncounterService.IsLiving(world, raw))
+                            {
+                                CharacterEncounterService.RequiresEntry(world, new EntityId(raw), id);
+                                if (!world.Strategic.PendingCharacterTarget.IsNone) return true;
+                            }
+                return false;
+            }
+
             // 已有 Offer／Modal／Queue 头正在展�?�?入队，不�?
             if (world.Strategic.HasBattleOffer ||
                 world.Strategic.IsModalEncounter ||
@@ -363,18 +382,7 @@ namespace XianXia.Core.World.Strategic
             ArmyStack enemy,
             string title = null)
         {
-            if (world?.Strategic == null || enemy == null || party == null || !party.HasActive)
-                return false;
-            return TryBuildOfferForPlayerPartyAttackCore(
-                world,
-                party,
-                enemy,
-                title,
-                BattleOfferOrigin.StrategicCommand,
-                requireExistingWar: true,
-                string.Empty,
-                string.Empty,
-                requiresWarDeclaration: false);
+            return false; // Retired WorldMap player attack, including old callbacks.
         }
 
         /// <summary>
@@ -390,25 +398,7 @@ namespace XianXia.Core.World.Strategic
             ArmyStack enemy,
             string title = null)
         {
-            if (world?.Strategic == null || enemy == null || party == null || !party.HasActive)
-                return false;
-
-            var playerFaction = world.Strategic.PlayerFactionId ?? string.Empty;
-            var enemyFaction = enemy.FactionId ?? string.Empty;
-            var requiresWar = !string.IsNullOrEmpty(playerFaction) &&
-                              !string.IsNullOrEmpty(enemyFaction) &&
-                              !string.Equals(playerFaction, enemyFaction, StringComparison.Ordinal) &&
-                              !WarGateService.CanAttack(world, playerFaction, enemyFaction);
-            return TryBuildOfferForPlayerPartyAttackCore(
-                world,
-                party,
-                enemy,
-                title,
-                BattleOfferOrigin.LocalMapHostileAction,
-                requireExistingWar: false,
-                playerFaction,
-                enemyFaction,
-                requiresWar);
+            return false; // Characters now use CharacterEncounter; building objectives retain their own gate.
         }
 
         public static bool TryBuildOfferForLocalPlayerPartyObjectiveAttack(
@@ -518,6 +508,7 @@ namespace XianXia.Core.World.Strategic
             string title,
             string attackerArmyId = null)
         {
+            if (world?.Strategic?.CharacterEncounter != null) return false;
             world.Strategic.Encounter.ClearActiveEncounterSession();
             if (string.IsNullOrEmpty(attackerArmyId))
                 ArmyStackAdapter.TryResolveAttackerArmyId(world, playerParty, out attackerArmyId);
@@ -1372,6 +1363,7 @@ namespace XianXia.Core.World.Strategic
         }
         public static bool TryPromoteNextQueuedOffer(SimulationWorld world)
         {
+            if (world?.Strategic?.CharacterEncounter != null) return false;
             if (world?.Strategic == null)
                 return false;
             if (world.Strategic.IsModalEncounter)
@@ -1397,7 +1389,7 @@ namespace XianXia.Core.World.Strategic
 
             StrategicClockFreezeService.BeginOrPromote(
                 world, StrategicClockFreezeReason.BattleOffer);
-            return ActivateOffer(world, ready, enemy, queued.Title);
+            return TryBuildOfferInternal(world, ready, enemy, queued.Title);
         }
     }
 }

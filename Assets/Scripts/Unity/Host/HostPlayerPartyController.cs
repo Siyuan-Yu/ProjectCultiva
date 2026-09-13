@@ -302,6 +302,7 @@ namespace XianXia.Unity.Host
         /// </summary>
         public void ValidateAndRepairPlayerPartyMaterializedPlacement()
         {
+            if (bootstrap?.Session?.World?.Strategic?.CharacterEncounter != null) return;
             var session = bootstrap?.Session;
             var world = session?.World;
             if (session == null || world == null || Party == null || !Party.HasActive)
@@ -754,6 +755,7 @@ namespace XianXia.Unity.Host
 
         void RebindAllFollowers()
         {
+            if (bootstrap?.Session?.World?.Strategic?.CharacterEncounter != null) return;
             if (Party == null || _spawner == null)
                 return;
 
@@ -790,6 +792,13 @@ namespace XianXia.Unity.Host
                 return;
 
             RefreshActiveControlAfterLifeStateChange();
+            var encounter = bootstrap.Session.World.Strategic.CharacterEncounter;
+            if (encounter != null)
+            {
+                _pendingSnapshotFollowRebind = false;
+                if (encounter.Phase == CharacterEncounterPhase.Active && Party.HasActive) TickWasdForActive();
+                return; // Encounter owns followers and position; no ordinary travel/anchor synchronization.
+            }
             SquadCommandService.SetExecution(bootstrap.Session.World, Party.ControlledSquadId,
                 Party.ActiveCharacterId.IsNone ? SquadCommandKind.None : SquadCommandKind.FollowLeader,
                 Party.ActiveCharacterId);

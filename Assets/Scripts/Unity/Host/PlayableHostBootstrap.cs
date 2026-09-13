@@ -1359,8 +1359,14 @@ namespace XianXia.Unity.Host
                                             _continuousOutdoorSurfaceRuntime.RebuildAfterWorldRestore();
             if (continuousOutdoorRestored)
                 RefreshContinuousOutdoorOverlaysOnce();
-            else
-                ApplyPartyWorldSitePresentation(closeWorldMap: false);
+            else if (_session.World.Strategic.CharacterEncounter != null)
+            {
+                _session.AcquireModalPause("EncounterRestoreFailure");
+                Debug.LogError("Independent encounter source restore failed; ordinary-map fallback is prohibited.");
+                return;
+            }
+            else ApplyPartyWorldSitePresentation(closeWorldMap: false);
+            _session.ReleaseModalPause("EncounterRestoreFailure");
 
             RebindHostControlAfterSnapshotRestore();
 

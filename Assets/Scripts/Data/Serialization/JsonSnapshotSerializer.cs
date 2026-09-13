@@ -47,6 +47,9 @@ namespace XianXia.Data.Serialization
                 ["strategic"] = SerializeStrategic(snapshot.Strategic)
             };
 
+            var suppressedContacts = new List<JsonValue>();
+            foreach (var key in snapshot.SuppressedCharacterContacts) suppressedContacts.Add(JsonValue.FromString(key));
+            root["suppressedCharacterContacts"] = JsonValue.FromArray(suppressedContacts);
             if (snapshot.CharacterEncounter != null)
                 root["characterEncounter"] = CharacterEncounterJson.Write(snapshot.CharacterEncounter);
             return Result.Ok(SimpleJson.Stringify(JsonValue.FromObject(root)));
@@ -226,6 +229,15 @@ namespace XianXia.Data.Serialization
                     snapshot.Strategic = ReadStrategic(strategic);
                 }
 
+                if (root.TryGetProperty("suppressedCharacterContacts", out var contacts))
+                {
+                    if (contacts.Kind != JsonValueKind.Array) throw new System.FormatException("Invalid contact suppression list.");
+                    foreach (var contact in contacts.Array)
+                    {
+                        if (contact.Kind != JsonValueKind.String) throw new System.FormatException("Invalid suppressed contact key.");
+                        snapshot.SuppressedCharacterContacts.Add(contact.String);
+                    }
+                }
                 if (root.TryGetProperty("characterEncounter", out var characterEncounter))
                     snapshot.CharacterEncounter = CharacterEncounterJson.Read(characterEncounter);
                 return Result.Ok(snapshot);
@@ -1026,6 +1038,13 @@ namespace XianXia.Data.Serialization
                     siteOwners.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
                     {
                         ["siteId"] = JsonValue.FromString(s.SiteId ?? string.Empty),
+                        ["coreMetadataFormat"] = JsonValue.FromNumber(s.CoreMetadataFormat),
+                        ["coreAssetId"] = JsonValue.FromString(s.CoreAssetId ?? ""),
+                        ["coreSurfaceId"] = JsonValue.FromString(s.CoreSurfaceId ?? ""),
+                        ["coreLevel"] = JsonValue.FromNumber(s.CoreLevel),
+                        ["coreWorldX"] = JsonValue.FromNumber(s.CoreWorldX),
+                        ["coreWorldY"] = JsonValue.FromNumber(s.CoreWorldY),
+                        ["coreActive"] = JsonValue.FromBool(s.CoreActive),
                         ["ownerFactionId"] = JsonValue.FromString(s.OwnerFactionId ?? string.Empty)
                     }));
                 }
@@ -1441,6 +1460,12 @@ namespace XianXia.Data.Serialization
                 {
                     dto.WorldSiteOwners.Add(new WorldSiteOwnerSnapshotDto
                     {
+                        CoreMetadataFormat = (int)s.GetNumber("coreMetadataFormat", 0),
+                        CoreAssetId = s.GetString("coreAssetId", ""), CoreSurfaceId = s.GetString("coreSurfaceId", ""),
+                        CoreLevel = (int)s.GetNumber("coreLevel", 0),
+                        CoreWorldX = (float)s.GetNumber("coreWorldX", double.NaN),
+                        CoreWorldY = (float)s.GetNumber("coreWorldY", double.NaN),
+                        CoreActive = s.GetBool("coreActive", false),
                         SiteId = s.GetString("siteId", string.Empty),
                         OwnerFactionId = s.GetString("ownerFactionId", string.Empty)
                     });

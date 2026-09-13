@@ -18,6 +18,7 @@ namespace XianXia.Core.Persistence
         public const int LegacySchemaVersionV5 = 5;
 
         public int SchemaVersion { get; set; } = CurrentSchemaVersion;
+        public List<string> SuppressedCharacterContacts { get; set; } = new List<string>();
         public XianXia.Core.World.Strategic.CharacterEncounterState CharacterEncounter { get; set; }
         public ulong SnapshotId { get; set; }
         public ulong WorldTick { get; set; }
@@ -354,6 +355,13 @@ namespace XianXia.Core.Persistence
     {
         public string SiteId { get; set; }
         public string OwnerFactionId { get; set; }
+        public int CoreMetadataFormat { get; set; }
+        public string CoreAssetId { get; set; }
+        public string CoreSurfaceId { get; set; }
+        public int CoreLevel { get; set; }
+        public float CoreWorldX { get; set; }
+        public float CoreWorldY { get; set; }
+        public bool CoreActive { get; set; }
     }
 
     public sealed class SquadSnapshotDto

@@ -361,6 +361,7 @@ namespace XianXia.Core.World.Strategic
         /// <summary>场上已无存活遭遇敌军且仍有参战�?�?解锁宏观移动，不弹结算�?/summary>
         public static bool TryMarkFieldCleared(SimulationWorld world)
         {
+            if (world?.Strategic?.CharacterEncounter != null) return false;
             if (world?.Strategic == null)
                 return false;
             var rt = world.Strategic.Encounter;

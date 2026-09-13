@@ -1747,6 +1747,7 @@ namespace XianXia.Unity.Host
                         (!pair.Value.HasWorldPosition ||
                          IsWorldPositionLoaded(ActiveSurfaceId, pair.Value.WorldX, pair.Value.WorldY)))
                         HostFactionFlagQuery.ApplyWalkGridBlock(pair.Value, this, composite);
+                ClipEncounterGrid(composite);
                 _compositeWalkGrid = composite;
                 _bootstrap.MoveController.SetWalkGrid(composite);
                 NavigationGeneration++;

@@ -47,6 +47,22 @@ namespace XianXia.Unity.Host
             if (politicalSnapshot == null)
                 return Result.Failure(ErrorCode.SnapshotInvalid, "Pending strategic snapshot is missing.");
 
+            var encounter = world.Strategic.CharacterEncounter;
+            if (encounter != null)
+            {
+                OutdoorWorldSurfaceDefinition encounterSource = null;
+                foreach (var pair in registry.OutdoorSurfaces)
+                    if (pair.Value?.SurfaceId == encounter.SourceSurfaceId) encounterSource = pair.Value;
+                if (encounterSource == null || encounterSource.AcceptanceOnly)
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Encounter source is unavailable.");
+                var members = new System.Collections.Generic.List<EncounterCharacter>(encounter.Participants);
+                foreach (var candidate in encounter.Candidates) members.AddRange(candidate.Members);
+                foreach (var member in members)
+                    if (!OutdoorSurfaceCoverageResolver.ContainsWorldPosition(encounterSource, member.OriginX, member.OriginY) ||
+                        !OutdoorSurfaceCoverageResolver.ContainsWorldPosition(encounterSource, member.TacticalX, member.TacticalY))
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "Encounter personal position outside source: " + member.CharacterId);
+            }
+
             foreach (var pair in world.WorldPresence.All)
             {
                 var personal = pair.Value;

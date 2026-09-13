@@ -40,6 +40,8 @@ namespace XianXia.Core.Persistence
             SimulationLoop loop,
             PlayerPartyRuntime playerParty = null)
         {
+            if (world?.Strategic?.CharacterEncounter?.Phase == CharacterEncounterPhase.Committed)
+                return Result.Fail<string>(ErrorCode.InvalidOperation, "Close encounter report before saving.");
             if (world?.Strategic?.CharacterEncounter?.Phase == CharacterEncounterPhase.Preparing)
                 return Result.Fail<string>(ErrorCode.InvalidOperation, "Encounter is preparing; save after entry completes.");
             var snap = Capture(world, loop, playerParty);
@@ -334,6 +336,8 @@ namespace XianXia.Core.Persistence
             }
 
             snap.Strategic = StrategicSnapshotHelper.Capture(world, playerParty);
+            snap.SuppressedCharacterContacts.AddRange(world.Strategic.SuppressedCharacterContacts);
+            snap.SuppressedCharacterContacts.Sort(System.StringComparer.Ordinal);
             snap.CharacterEncounter = world.Strategic.CharacterEncounter;
             CapturePartyInventory(world, snap);
             CaptureSocialBonds(world, snap);
@@ -438,6 +442,8 @@ namespace XianXia.Core.Persistence
         {
             if (snap == null)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Snapshot null.");
+            if (snap.CharacterEncounter != null && snap.Strategic?.PendingEngagement != null)
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(ErrorCode.SnapshotInvalid, "Conflicting encounter identities.");
             if (snap.SchemaVersion == WorldSnapshot.LegacySchemaVersionV2 ||
                 snap.SchemaVersion == WorldSnapshot.LegacySchemaVersionV3 ||
                 snap.SchemaVersion == WorldSnapshot.LegacySchemaVersionV4 ||
@@ -855,6 +861,7 @@ namespace XianXia.Core.Persistence
             var encounterRestore = CharacterEncounterService.ValidateRestored(world, snap.CharacterEncounter);
             if (encounterRestore.IsFailure)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(encounterRestore.Error);
+            foreach (var key in snap.SuppressedCharacterContacts) world.Strategic.SuppressedCharacterContacts.Add(key);
             world.Strategic.CharacterEncounter = snap.CharacterEncounter;
             CharacterEncounterService.BindRuntime(world);
             return Result.Ok((world, loop));

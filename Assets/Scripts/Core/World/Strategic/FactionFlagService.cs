@@ -40,6 +40,7 @@ namespace XianXia.Core.World.Strategic
             foreach (var pair in world.Strategic.Sites.Sites)
             {
                 var candidate = pair.Value;
+                if (candidate != null && candidate.HasContinuousCore) world.Strategic.SpatialRules.Bind(candidate);
                 if (!Contains(candidate, surfaceId, worldX, worldY)) continue;
                 if (site == null || candidate.ControlEstablishedOrder < site.ControlEstablishedOrder ||
                     (candidate.ControlEstablishedOrder == site.ControlEstablishedOrder &&
@@ -54,6 +55,7 @@ namespace XianXia.Core.World.Strategic
             var result = new List<HexCoord>();
             if (world?.HexWorld == null || site == null || !site.IsCoreActive)
                 return result;
+            if (site.HasContinuousCore) world.Strategic.SpatialRules.Bind(site);
             if (!site.HasContinuousCore)
                 return new List<HexCoord>(StrategicTerritoryCoverageResolver.ExpandOneRing(site.EnumerateFootprintHexes()));
             for (var r = 0; r < world.HexWorld.Height; r++)

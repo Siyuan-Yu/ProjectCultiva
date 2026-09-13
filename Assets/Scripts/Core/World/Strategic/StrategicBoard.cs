@@ -150,6 +150,7 @@ namespace XianXia.Core.World.Strategic
     public sealed class StrategicBoard
     {
         public WorldSpatialRules SpatialRules { get; set; }
+        public readonly System.Collections.Generic.HashSet<string> SuppressedCharacterContacts = new System.Collections.Generic.HashSet<string>();
         public XianXia.Core.Domain.Ids.EntityId PendingCharacterAttacker, PendingCharacterTarget;
         public CharacterEncounterState CharacterEncounter { get; set; }
         public FactionDiplomacyBoard Diplomacy { get; } = new FactionDiplomacyBoard();
