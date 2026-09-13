@@ -79,6 +79,8 @@ namespace XianXia.Unity.Host
             for (var slot = 0; slot < _members.Count; slot++)
             {
                 var id = new EntityId(_members[slot]);
+                if (!LingeringBattlefieldPartyService.IsLivingForMacroOrder(_bootstrap.Session.World, id))
+                    continue;
                 if (ActualBattleParticipantQuery.TryFind(
                         _bootstrap.Session.World.Strategic.Participants, id, out _))
                     continue;

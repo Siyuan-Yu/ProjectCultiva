@@ -5,6 +5,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -26,6 +27,7 @@ namespace XianXia.Core.World.Strategic
         public string LegacyArmyId { get; internal set; } = string.Empty;
         public SquadCommandKind CommandKind { get; internal set; }
         public ulong CommandRevision { get; internal set; }
+        public EntityId CommandTargetCharacterId { get; internal set; }
         public IReadOnlyList<ulong> MemberCharacterIds => _view ?? (_view = _members.AsReadOnly());
         public bool IsOverCapacity => _members.Count > PlayerPartyRuntime.MaxMembers;
 
@@ -58,6 +60,14 @@ namespace XianXia.Core.World.Strategic
         {
             if (squad == null || string.IsNullOrWhiteSpace(squad.SquadId) || _squads.ContainsKey(squad.SquadId))
                 throw new InvalidOperationException("Duplicate or invalid SquadId: " + (squad?.SquadId ?? "<null>"));
+            // Validate the entire reverse index before publishing either dictionary.
+            var seen = new HashSet<ulong>();
+            for (var i = 0; i < squad.MemberCharacterIds.Count; i++)
+            {
+                var id = squad.MemberCharacterIds[i];
+                if (id == 0 || !seen.Add(id) || _byCharacter.ContainsKey(id))
+                    throw new InvalidOperationException("Character belongs to multiple squads: " + id);
+            }
             _squads.Add(squad.SquadId, squad);
             for (var i = 0; i < squad.MemberCharacterIds.Count; i++)
             {
@@ -80,12 +90,15 @@ namespace XianXia.Core.World.Strategic
 
         public static Result<SquadState> Create(
             SimulationWorld world, string squadId, IReadOnlyList<EntityId> members,
-            EntityId leader, string legacyArmyId = "", SquadCommandKind command = SquadCommandKind.None)
+            EntityId leader, string legacyArmyId = "", SquadCommandKind command = SquadCommandKind.None,
+            bool importingSnapshot = false)
         {
             if (world?.Strategic?.Squads == null || string.IsNullOrWhiteSpace(squadId) || members == null || members.Count == 0)
                 return Result.Fail<SquadState>(ErrorCode.InvalidArgument, "Squad requires world, identity and members.");
             if (world.Strategic.Squads.TryGet(squadId, out _))
                 return Result.Fail<SquadState>(ErrorCode.AlreadyExists, "Squad already exists.", squadId);
+            if (!importingSnapshot && members.Count > PlayerPartyRuntime.MaxMembers)
+                return Result.Fail<SquadState>(ErrorCode.InvalidArgument, "Squad exceeds six members.");
             var values = new List<ulong>(members.Count);
             for (var i = 0; i < members.Count; i++)
             {
@@ -96,20 +109,32 @@ namespace XianXia.Core.World.Strategic
                 if (world.Strategic.Squads.TryGetForCharacter(id, out var existing) &&
                     !(existing.SquadId == SingletonSquadId(id) && existing.MemberCharacterIds.Count == 1))
                     return Result.Fail<SquadState>(ErrorCode.AlreadyExists, "Character already belongs to a non-singleton squad.", id + ";" + existing.SquadId);
-                if (!values.Contains(id.Value)) values.Add(id.Value);
+                if (IsBattleLocked(world, existing))
+                    return Result.Fail<SquadState>(ErrorCode.InvalidOperation, "Battle participant cannot change squad.", id.ToString());
+                if (values.Contains(id.Value))
+                    return Result.Fail<SquadState>(ErrorCode.InvalidArgument, "Duplicate squad member.", id.ToString());
+                values.Add(id.Value);
             }
             if (leader.IsNone || !values.Contains(leader.Value)) leader = new EntityId(values[0]);
             var squad = new SquadState { SquadId = squadId, LeaderCharacterId = leader, LegacyArmyId = legacyArmyId ?? string.Empty, CommandKind = command };
             squad.Replace(values);
+            var replaced = new List<SquadState>();
             for (var i = 0; i < members.Count; i++)
             {
                 if (!world.Strategic.Squads.TryGetForCharacter(members[i], out var singleton)) continue;
-                singleton.Remove(members[i]);
+                replaced.Add(singleton);
                 world.Strategic.Squads.RemoveReverse(members[i]);
                 world.Strategic.Squads.Remove(singleton.SquadId);
             }
             try { world.Strategic.Squads.Register(squad); }
-            catch (Exception ex) { return Result.Fail<SquadState>(ErrorCode.InvalidOperation, "Squad registration failed.", ex.Message); }
+            catch (InvalidOperationException ex)
+            {
+                for (var i = 0; i < replaced.Count; i++) world.Strategic.Squads.Register(replaced[i]);
+                return Result.Fail<SquadState>(ErrorCode.InvalidOperation, "Squad registration failed.", ex.Message);
+            }
+            if (!importingSnapshot && command != SquadCommandKind.None)
+                for (var i = 0; i < members.Count; i++)
+                    BackgroundCharacterTravelService.CancelTravelIfAny(world, members[i]);
             return Result.Ok(squad);
         }
 
@@ -118,6 +143,9 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic?.Squads == null || member.IsNone || !world.Strategic.Squads.TryGet(targetSquadId, out var target))
                 return Result.Failure(ErrorCode.InvalidArgument, "Squad transfer target is invalid.");
             if (target.Contains(member)) return Result.Success();
+            if (!world.Entities.TryGet(member, out var realMember) ||
+                (realMember.Tags & (EntityTag.Character | EntityTag.Npc)) == 0)
+                return Result.Failure(ErrorCode.InvalidArgument, "Squad member must be a real Character.");
             if (target.MemberCharacterIds.Count >= PlayerPartyRuntime.MaxMembers)
                 return Result.Failure(ErrorCode.InvalidOperation, target.IsOverCapacity ? "Legacy over-capacity squad is closed to additions." : "Squad is full.");
             world.Strategic.Squads.TryGetForCharacter(member, out var source);
@@ -146,11 +174,18 @@ namespace XianXia.Core.World.Strategic
             {
                 world.Strategic.FormalArmies.Remove(sourceArmyId);
                 world.Strategic.Squads.Remove(source.SquadId);
+                var obsoleteStacks = new List<string>();
+                foreach (var pair in world.Strategic.Armies.Stacks)
+                    if (string.Equals(pair.Value.FormalArmyId, sourceArmyId, StringComparison.Ordinal))
+                        obsoleteStacks.Add(pair.Key);
+                for (var i = 0; i < obsoleteStacks.Count; i++) world.Strategic.Armies.Remove(obsoleteStacks[i]);
             }
+            if (target.CommandKind != SquadCommandKind.None)
+                BackgroundCharacterTravelService.CancelTravelIfAny(world, member);
             return Result.Success();
         }
 
-        static bool IsBattleLocked(SimulationWorld world, SquadState squad)
+        internal static bool IsBattleLocked(SimulationWorld world, SquadState squad)
         {
             if (world?.Strategic?.Participants == null || squad == null) return false;
             for (var i = 0; i < squad.MemberCharacterIds.Count; i++)
@@ -169,12 +204,13 @@ namespace XianXia.Core.World.Strategic
             if (source.SquadId == singletonId && source.MemberCharacterIds.Count == 1) return Result.Success();
             if (!world.Strategic.Squads.TryGet(singletonId, out _))
             {
-                // Register after removing from source so the one-membership invariant stays exact.
-                source.Remove(member); world.Strategic.Squads.RemoveReverse(member);
-                var created = Create(world, singletonId, new[] { member }, member);
-                if (created.IsFailure) { source.Add(member); world.Strategic.Squads.SetReverse(member, source.SquadId); return Result.Failure(created.Error); }
-                if (source.MemberCharacterIds.Count == 0 && string.IsNullOrEmpty(source.LegacyArmyId)) world.Strategic.Squads.Remove(source.SquadId);
-                return Result.Success();
+                // Empty destination is private to this synchronous transaction. Transfer owns
+                // leader, reverse membership and legacy cleanup for both leave paths.
+                var target = new SquadState { SquadId = singletonId, LeaderCharacterId = member };
+                world.Strategic.Squads.Register(target);
+                var result = Transfer(world, member, singletonId);
+                if (result.IsFailure) world.Strategic.Squads.Remove(singletonId);
+                return result;
             }
             return Transfer(world, member, singletonId);
         }
@@ -184,10 +220,62 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic?.Squads == null) return;
             foreach (var entity in world.Entities.All)
             {
-                if (entity == null || (entity.Tags & (EntityTag.Character | EntityTag.Npc)) == 0 ||
-                    world.Strategic.Squads.TryGetForCharacter(entity.Id, out _)) continue;
-                Create(world, SingletonSquadId(entity.Id), new[] { entity.Id }, entity.Id);
+                EnsureSingletonForCharacter(world, entity);
             }
+        }
+
+        public static void EnsureSingletonForCharacter(SimulationWorld world, Entity entity)
+        {
+            if (world?.Strategic?.Squads == null || entity == null ||
+                (entity.Tags & (EntityTag.Character | EntityTag.Npc)) == 0 ||
+                world.Strategic.Squads.TryGetForCharacter(entity.Id, out _)) return;
+            var result = Create(world, SingletonSquadId(entity.Id), new[] { entity.Id }, entity.Id);
+            if (result.IsFailure) throw new InvalidOperationException(result.Error.ToString());
+        }
+    }
+
+    /// <summary>Common command ownership; existing leader and WorldMotion executors retain navigation.</summary>
+    public static class SquadCommandService
+    {
+        public static bool SetExecution(SimulationWorld world, string squadId, SquadCommandKind kind, EntityId target)
+        {
+            if (world?.Strategic?.Squads == null || !world.Strategic.Squads.TryGet(squadId, out var squad)) return false;
+            if (kind == SquadCommandKind.FollowLeader && !squad.Contains(target)) return false;
+            if (squad.CommandKind == kind && squad.CommandTargetCharacterId == target) return true;
+            squad.CommandTargetCharacterId = target;
+            squad.SetCommand(kind);
+            return true;
+        }
+
+        public static bool OwnsIndividualSchedule(SimulationWorld world, EntityId id)
+        {
+            if (world?.Strategic?.Squads == null || !world.Strategic.Squads.TryGetForCharacter(id, out var squad) ||
+                !LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id)) return false;
+            if (squad.CommandKind == SquadCommandKind.FormalArmyWorldMotion)
+                return FormalArmyMemberPresenceSync.IsArmyControlledMember(world, id);
+            return squad.MemberCharacterIds.Count > 1 && squad.CommandKind == SquadCommandKind.FollowLeader &&
+                   id != (squad.CommandTargetCharacterId.IsNone ? squad.LeaderCharacterId : squad.CommandTargetCharacterId);
+        }
+
+        public static bool TryResolveWorldTarget(SimulationWorld world, SquadState squad, out WorldVec2 position)
+        {
+            position = default;
+            if (world == null || squad == null) return false;
+            if (squad.CommandKind == SquadCommandKind.FormalArmyWorldMotion &&
+                world.Strategic.FormalArmies.TryGet(squad.LegacyArmyId, out var army) && army.WorldMotion.IsMoving)
+            {
+                // Command references the existing plan; never copies or replaces its route.
+                position = army.WorldMotion.PhysicalDestination;
+                return true;
+            }
+            var target = squad.CommandTargetCharacterId.IsNone ? squad.LeaderCharacterId : squad.CommandTargetCharacterId;
+            if (squad.CommandKind == SquadCommandKind.FollowLeader &&
+                world.WorldPresence.TryGet(target, out var presence) && presence.HasContinuousWorldPosition)
+            {
+                position = presence.ContinuousWorldPosition;
+                return true;
+            }
+            return false;
         }
     }
 }

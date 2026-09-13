@@ -49,6 +49,8 @@ namespace XianXia.Core.Simulation
             DefaultOrderTranslator translator = null)
         {
             Entities = entities ?? new EntityStore();
+            Entities.CharacterCreated = entity =>
+                SquadMembershipService.EnsureSingletonForCharacter(this, entity);
             Events = events ?? new DomainEventQueue();
             Random = random ?? new DeterministicRandom(1);
             RegionId = regionId ?? new RegionId(1);

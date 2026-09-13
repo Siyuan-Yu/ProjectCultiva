@@ -221,8 +221,7 @@ namespace XianXia.Core.World.Strategic
             if (squad != null)
             {
                 squad.LegacyArmyId = ArmyId;
-                if (!_leaderCharacterId.IsNone) squad.LeaderCharacterId = _leaderCharacterId;
-                else _leaderCharacterId = squad.LeaderCharacterId;
+                _leaderCharacterId = squad.LeaderCharacterId;
             }
         }
 

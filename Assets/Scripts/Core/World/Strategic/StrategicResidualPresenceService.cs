@@ -158,16 +158,7 @@ namespace XianXia.Core.World.Strategic
         {
             if (!IsResidualLifeCandidate(world, characterId))
                 return false;
-            if (ArmyService.TryGetArmyForCharacter(world, characterId, out _))
-            {
-                System.Diagnostics.Debug.Assert(
-                    false,
-                    "Residual candidate still in FormalArmy: " + characterId.Value);
-                return false;
-            }
-
-            if (IsRetreatingArmyMember(world, characterId))
-                return false;
+            // Squad/legacy Army identity does not authorize moving an incapacitated body.
             if (!TryGetResidualHex(world, characterId, out _))
                 return false;
             return true;

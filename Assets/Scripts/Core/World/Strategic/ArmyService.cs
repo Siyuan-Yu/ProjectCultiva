@@ -57,7 +57,6 @@ namespace XianXia.Core.World.Strategic
                 if (!ArmyAuthorityRules.TryValidateNotPlayerPartyMember(party, memberId, out var partyErr))
                     return Result.Fail<FormalArmy>(ErrorCode.InvalidOperation, partyErr);
 
-                BackgroundCharacterTravelService.CancelTravelIfAny(world, memberId);
                 if (!TryValidateMemberForFormationAtHex(
                         world, memberId, factionId, formationHex, party, activeId, out var memberError))
                     return Result.Fail<FormalArmy>(memberError);
@@ -146,8 +145,6 @@ namespace XianXia.Core.World.Strategic
 
                 if (!ArmyAuthorityRules.TryValidateNotPlayerPartyMember(party, memberId, out var partyErr))
                     return Result.Fail<FormalArmy>(ErrorCode.InvalidOperation, partyErr);
-
-                BackgroundCharacterTravelService.CancelTravelIfAny(world, memberId);
 
                 if (!TryValidateMemberForFormation(
                         world, memberId, factionId, siteId, party, activeId, out var memberError))
@@ -374,7 +371,6 @@ namespace XianXia.Core.World.Strategic
             if (!ArmyAuthorityRules.TryValidateNotPlayerPartyMember(party, memberId, out var partyErr))
                 return Result.Failure(ErrorCode.InvalidOperation, partyErr);
 
-            BackgroundCharacterTravelService.CancelTravelIfAny(world, memberId);
 
             if (!TryValidateMemberForFormationAtHex(
                     world, memberId, factionId, armyHex, party, activeId, out var memberError,
@@ -439,7 +435,8 @@ namespace XianXia.Core.World.Strategic
             if (army.MemberCharacterIds.Count <= 1)
                 return Result.Failure(ErrorCode.InvalidOperation, "Cannot remove last member; disband army instead.");
 
-            RemoveMemberInternal(world, army, memberId);
+            var removal = RemoveMemberInternal(world, army, memberId);
+            if (removal.IsFailure) return removal;
             if (!IsValidLeaderCandidate(world, army.LeaderCharacterId, army))
                 return RefreshLeader(world, armyId);
             return Result.Success();
@@ -535,7 +532,8 @@ namespace XianXia.Core.World.Strategic
                 }
             }
 
-            return ForceRemoveArmy(world, army);
+            // Incapacitation does not dissolve persistent squad membership.
+            return Result.Success();
         }
 
         public static bool TryGetArmyForCharacter(SimulationWorld world, EntityId characterId, out FormalArmy army)
@@ -595,9 +593,24 @@ namespace XianXia.Core.World.Strategic
             if (army == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "Army is null.");
             var formerMembers = new List<ulong>(army.MemberCharacterIds);
+            if (!world.Strategic.Squads.TryGet(army.SquadId, out var source) ||
+                SquadMembershipService.IsBattleLocked(world, source))
+                return Result.Failure(ErrorCode.InvalidOperation, "Army squad is missing or battle locked.");
+            // Preflight every member before the first detach mutates identity or position.
+            for (var i = 0; i < formerMembers.Count; i++)
+            {
+                var id = new EntityId(formerMembers[i]);
+                if (!world.Entities.TryGet(id, out _) ||
+                    !world.Strategic.Squads.TryGetForCharacter(id, out var bound) || bound != source ||
+                    world.Strategic.Squads.TryGet(SquadMembershipService.SingletonSquadId(id), out _))
+                    return Result.Failure(ErrorCode.InvalidOperation, "Invalid disband membership.", id.ToString());
+            }
             // Army 与 WorldMotion 仍在 Board 时逐员走统一 detach path，精确提交 Site/Wilderness 位置。
             for (var i = 0; i < formerMembers.Count; i++)
-                RemoveMemberInternal(world, army, new EntityId(formerMembers[i]));
+            {
+                var removed = RemoveMemberInternal(world, army, new EntityId(formerMembers[i]));
+                if (removed.IsFailure) return removed;
+            }
             world.Strategic.FormalArmies.Remove(army.ArmyId);
             world.Strategic.Squads.Remove(army.SquadId);
 #if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -616,13 +629,12 @@ namespace XianXia.Core.World.Strategic
             return Result.Success();
         }
 
-        static void RemoveMemberInternal(SimulationWorld world, FormalArmy army, EntityId memberId)
+        static Result RemoveMemberInternal(SimulationWorld world, FormalArmy army, EntityId memberId)
         {
-            if (world.Entities.TryGet(memberId, out var entity) &&
-                entity.TryGet<ArmyMembershipComponent>(out var mem))
-                mem.ClearArmyId();
-            SquadMembershipService.LeaveToSingleton(world, memberId);
+            var result = SquadMembershipService.LeaveToSingleton(world, memberId);
+            if (result.IsFailure) return result;
             FormalArmyMemberPresenceSync.DetachMemberAtArmyLocation(world, army, memberId);
+            return Result.Success();
         }
 
         static Result BindNewArmySquad(

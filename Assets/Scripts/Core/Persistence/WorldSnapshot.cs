@@ -361,6 +361,7 @@ namespace XianXia.Core.Persistence
         public string LegacyArmyId { get; set; } = string.Empty;
         public int CommandKind { get; set; }
         public ulong CommandRevision { get; set; }
+        public ulong CommandTargetCharacterId { get; set; }
         public List<ulong> MemberCharacterIds { get; set; } = new List<ulong>();
     }
 

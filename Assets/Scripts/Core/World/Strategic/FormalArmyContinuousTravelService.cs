@@ -122,6 +122,8 @@ namespace XianXia.Core.World.Strategic
                 army.State = FormalArmyState.Moving;
                 army.SyncLegacyFromWorldMotion();
                 FormalArmyMemberPresenceSync.SyncAll(world, army);
+                if (isReplace && world.Strategic.Squads.TryGet(army.SquadId, out var replacedCommand))
+                    replacedCommand.SetCommand(SquadCommandKind.FormalArmyWorldMotion);
                 return Result.Success();
             }
 
@@ -239,6 +241,8 @@ namespace XianXia.Core.World.Strategic
             FormalArmyMemberPresenceSync.SyncAll(world, army);
             if (isReplace)
             {
+                if (world.Strategic.Squads.TryGet(army.SquadId, out var replacedCommand))
+                    replacedCommand.SetCommand(SquadCommandKind.FormalArmyWorldMotion);
                 FormalArmyOrderReplaceTrace.Emit(
                     army,
                     replaceTrace,
@@ -288,6 +292,20 @@ namespace XianXia.Core.World.Strategic
             var motion = army.WorldMotion;
             if (!motion.IsMoving)
                 return;
+
+            var hasMover = false;
+            for (var i = 0; i < army.MemberCharacterIds.Count; i++)
+                if (LingeringBattlefieldPartyService.IsLivingForMacroOrder(world,
+                        new Domain.Ids.EntityId(army.MemberCharacterIds[i]))) { hasMover = true; break; }
+            if (!hasMover)
+            {
+                motion.ClearTravel();
+                army.SyncLegacyFromWorldMotion();
+                FormalArmyMemberPresenceSync.SyncAll(world, army);
+                return;
+            }
+            if (!world.Strategic.Squads.TryGet(army.SquadId, out var command) ||
+                command.CommandKind != SquadCommandKind.FormalArmyWorldMotion) return;
 
             if (motion.RouteKind == FormalArmyRouteKind.SurfaceGround)
             {

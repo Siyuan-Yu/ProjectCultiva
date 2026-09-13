@@ -38,6 +38,10 @@ namespace XianXia.Core.World.Strategic
             if (world?.WorldPresence == null || army == null)
                 return;
 
+            SquadCommandService.SetExecution(world, army.SquadId,
+                army.WorldMotion.IsMoving ? SquadCommandKind.FormalArmyWorldMotion : SquadCommandKind.None,
+                army.WorldMotion.IsMoving ? army.LeaderCharacterId : EntityId.None);
+
             for (var i = 0; i < army.MemberCharacterIds.Count; i++)
             {
                 var memberId = new EntityId(army.MemberCharacterIds[i]);
@@ -56,6 +60,10 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.WorldPresence == null || army == null || memberId.IsNone)
                 return;
+
+            // Membership survives incapacity; movement authority does not.
+            if (!LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, memberId) ||
+                IsArmyEngaged(world, army)) return;
 
             var motion = army.WorldMotion;
             if (!motion.HasPosition)
@@ -90,6 +98,16 @@ namespace XianXia.Core.World.Strategic
 
             if (StrategicResidualPresenceService.IsResidualLifeCandidate(world, memberId))
             {
+                if (world.WorldPresence.TryGet(memberId, out var existing))
+                {
+                    if (existing.UsesHexPresence) return;
+                    if (existing.HasContinuousWorldPosition)
+                    {
+                        StrategicResidualPresenceService.PlaceCharacterAtResidualWorldPosition(
+                            world, memberId, motion.CurrentHex, existing.ContinuousWorldPosition);
+                        return;
+                    }
+                }
                 // Residual member：以 army 当前 Hex 为 ResidualHex；无 position 时保留已有合法
                 // AtHex presence（不拿 default (0,0) 覆盖），缺失由 Resolve final assert 暴露。
                 if (motion.HasPosition)

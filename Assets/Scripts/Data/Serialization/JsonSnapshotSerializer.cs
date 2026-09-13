@@ -886,6 +886,7 @@ namespace XianXia.Data.Serialization
                         ["legacyArmyId"] = JsonValue.FromString(s.LegacyArmyId ?? string.Empty),
                         ["commandKind"] = JsonValue.FromNumber(s.CommandKind),
                         ["commandRevision"] = U(s.CommandRevision),
+                        ["commandTargetCharacterId"] = U(s.CommandTargetCharacterId),
                         ["memberCharacterIds"] = JsonValue.FromArray(members)
                     }));
                 }
@@ -1276,7 +1277,10 @@ namespace XianXia.Data.Serialization
 
             if (strategic.TryGetProperty("squads", out var squads) && squads.Kind == JsonValueKind.Array)
             {
-                dto.HasSquadSnapshotAuthority = true;
+                // An explicitly legacy DTO may serialize an empty squads array. Only infer
+                // authority for the transitional format which has no explicit flag.
+                if (squads.Array.Count > 0 || !strategic.TryGetProperty("hasSquadSnapshotAuthority", out _))
+                    dto.HasSquadSnapshotAuthority = true;
                 foreach (var node in squads.Array)
                 {
                     var item = new SquadSnapshotDto
@@ -1285,7 +1289,8 @@ namespace XianXia.Data.Serialization
                         LeaderCharacterId = ReadU(node, "leaderCharacterId"),
                         LegacyArmyId = node.GetString("legacyArmyId", string.Empty),
                         CommandKind = node.TryGetProperty("commandKind", out var ck) ? (int)ck.Number : 0,
-                        CommandRevision = ReadU(node, "commandRevision")
+                        CommandRevision = ReadU(node, "commandRevision"),
+                        CommandTargetCharacterId = ReadU(node, "commandTargetCharacterId")
                     };
                     if (node.TryGetProperty("memberCharacterIds", out var members) && members.Kind == JsonValueKind.Array)
                         foreach (var member in members.Array) item.MemberCharacterIds.Add(ReadUValue(member));

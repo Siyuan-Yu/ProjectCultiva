@@ -188,9 +188,6 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            // Dynamic character bootstrap paths call this after registration; establish singleton
-            // squads here once, never from rendering/visibility queries or per-frame simulation.
-            SquadMembershipService.EnsureSingletonsForUnassignedCharacters(World);
             ViewableEntityIds = BuildViewableEntityIds(World, CharacterIds, RecruitableNpcId);
         }
 
@@ -271,6 +268,18 @@ namespace XianXia.Unity.Host
                 return Result.Failure(restored.Error);
             }
 
+            // Validate the control projection on the candidate world before publishing it.
+            var candidateParty = new PlayerPartyRuntime();
+            if (parsed.Value.Strategic?.HasSquadSnapshotAuthority == true)
+            {
+                candidateParty.BindWorld(restored.Value.world);
+                if (!candidateParty.TryBindControlledSquad(parsed.Value.Strategic.ControlledSquadId,
+                        new EntityId(parsed.Value.Strategic.PlayerParty?.ActiveCharacterId ?? 0), out var bindingError))
+                {
+                    LastError = bindingError;
+                    return Result.Failure(ErrorCode.SnapshotInvalid, bindingError);
+                }
+            }
             World = restored.Value.world;
             PlayerParty.BindWorld(World);
             PendingRestoredStrategicSnapshot = parsed.Value.Strategic;

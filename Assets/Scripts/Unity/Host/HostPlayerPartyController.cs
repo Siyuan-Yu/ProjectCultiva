@@ -790,6 +790,9 @@ namespace XianXia.Unity.Host
                 return;
 
             RefreshActiveControlAfterLifeStateChange();
+            SquadCommandService.SetExecution(bootstrap.Session.World, Party.ControlledSquadId,
+                Party.ActiveCharacterId.IsNone ? SquadCommandKind.None : SquadCommandKind.FollowLeader,
+                Party.ActiveCharacterId);
             if (Party.IsAwaitingSuccession || Party.ActiveCharacterId.IsNone)
                 return;
 
@@ -2609,7 +2612,9 @@ namespace XianXia.Unity.Host
 
         void OrderFollowerTowardActive(EntityId follower, int followerIndex)
         {
-            var active = Party.ActiveCharacterId;
+            if (!bootstrap.Session.World.Strategic.Squads.TryGet(Party.ControlledSquadId, out var command) ||
+                command.CommandKind != SquadCommandKind.FollowLeader) return;
+            var active = command.CommandTargetCharacterId.IsNone ? Party.ActiveCharacterId : command.CommandTargetCharacterId;
             if (follower.IsNone || active.IsNone || _move == null || _spawner == null)
                 return;
 

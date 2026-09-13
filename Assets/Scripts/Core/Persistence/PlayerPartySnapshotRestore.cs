@@ -38,6 +38,8 @@ namespace XianXia.Core.Persistence
                 party.RefreshActiveAfterLifeState(world);
                 return;
             }
+            if (!string.IsNullOrEmpty(controlledSquadId))
+                throw new System.InvalidOperationException("Authoritative controlled squad cannot be rebound: " + controlledSquadId);
             if (dto != null && dto.MemberCharacterIds != null && dto.MemberCharacterIds.Count > 0)
             {
                 if (TryApplyExplicit(world, party, dto))

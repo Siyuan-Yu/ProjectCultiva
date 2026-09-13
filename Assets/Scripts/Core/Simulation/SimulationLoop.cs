@@ -91,6 +91,18 @@ namespace XianXia.Core.Simulation
         /// <summary>
         /// Demo Stop semantics [49]/[32]: cancel active action and clear pending orders.
         /// </summary>
+        public void CancelOrdersFromSource(EntityId subject, OrderSource source)
+        {
+            _world.GetOrCreateOrderQueue(subject).RemoveWhere(order => order.Source == source);
+            if (_world.Entities.TryGet(subject, out var entity) &&
+                entity.TryGet<ActionStateComponent>(out var state) && state.HasActiveAction &&
+                state.ActiveOrderSource == source && _world.ActiveActions.TryGetValue(state.ActiveActionId, out var action))
+            {
+                action.Cancel();
+                ClearActive(action);
+            }
+        }
+
         public Result StopSubject(EntityId subject)
         {
             if (!_world.Entities.TryGet(subject, out var entity))

@@ -23,6 +23,7 @@ namespace XianXia.Core.Entities
         public EntityIdFactory Ids => _ids;
 
         public int Count => _entities.Count;
+        internal System.Action<Entity> CharacterCreated;
 
         public Result<Entity> CreateCharacter(DefinitionId definitionId, string displayName = null) =>
             CreateWithTag(definitionId, displayName, EntityTag.Character);
@@ -48,6 +49,7 @@ namespace XianXia.Core.Entities
             entity.AddComponent(new RelationshipComponent());
             entity.AddComponent(new FactionMembershipComponent());
             _entities.Add(entity.Id, entity);
+            CharacterCreated?.Invoke(entity);
             return Result.Ok(entity);
         }
 

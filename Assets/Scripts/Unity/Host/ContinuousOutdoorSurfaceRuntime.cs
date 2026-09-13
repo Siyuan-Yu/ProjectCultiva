@@ -682,8 +682,12 @@ namespace XianXia.Unity.Host
                         _bootstrap.ViewSpawner.Registry.TryGet(id, out var view) && view != null)
                         views++;
                 }
+                world.Strategic.Squads.TryGet(army.SquadId, out var squadCommand);
+                var hasCommandTarget = SquadCommandService.TryResolveWorldTarget(world, squadCommand, out var commandTarget);
                 rows.Add(
                     "ArmyId=" + army.ArmyId +
+                    " SquadCommand=" + squadCommand?.CommandKind + " Revision=" + squadCommand?.CommandRevision +
+                    " CommandTarget=" + (hasCommandTarget ? commandTarget.ToString() : "None") +
                     " WorldPosition=" + position +
                     " SurfaceCoverage=" + OutdoorSurfaceCoverageResolver.ContainsWorldPosition(
                         surface, position.X, position.Y) +

@@ -154,7 +154,7 @@ namespace XianXia.Core.World
             if (_world.Strategic.Squads.TryGet(SquadMembershipService.PlayerSquadId, out var restoredSquad))
                 return TryBindControlledSquad(restoredSquad.SquadId, activeId, out error);
             var created = SquadMembershipService.Create(_world, SquadMembershipService.PlayerSquadId,
-                restoredMembers, activeId, command: SquadCommandKind.FollowLeader);
+                restoredMembers, activeId, command: SquadCommandKind.FollowLeader, importingSnapshot: true);
             if (created.IsFailure) { error = created.Error.ToString(); return false; }
             _controlledSquadId = created.Value.SquadId;
             if (activeId.IsNone || !created.Value.Contains(activeId))

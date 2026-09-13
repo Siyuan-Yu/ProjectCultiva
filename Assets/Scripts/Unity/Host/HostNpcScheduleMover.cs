@@ -138,8 +138,7 @@ namespace XianXia.Unity.Host
                     ActualBattleParticipantQuery.TryFind(
                         session.World.Strategic.Participants, entity.Id, out _))
                     continue;
-                if (session.World.Strategic.Squads.TryGetForCharacter(entity.Id, out var squad) &&
-                    squad.MemberCharacterIds.Count > 1 && squad.CommandKind != SquadCommandKind.None)
+                if (SquadCommandService.OwnsIndividualSchedule(session.World, entity.Id))
                     continue;
                 if (!entity.TryGet<MovementIntentComponent>(out var intent) || !intent.Active)
                     continue;

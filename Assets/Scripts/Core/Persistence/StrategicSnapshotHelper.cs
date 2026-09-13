@@ -100,7 +100,8 @@ namespace XianXia.Core.Persistence
                     LeaderCharacterId = squad.LeaderCharacterId.Value,
                     LegacyArmyId = squad.LegacyArmyId,
                     CommandKind = (int)squad.CommandKind,
-                    CommandRevision = squad.CommandRevision
+                    CommandRevision = squad.CommandRevision,
+                    CommandTargetCharacterId = squad.CommandTargetCharacterId.Value
                 };
                 for (var i = 0; i < squad.MemberCharacterIds.Count; i++) squadDto.MemberCharacterIds.Add(squad.MemberCharacterIds[i]);
                 dto.Squads.Add(squadDto);
@@ -465,6 +466,9 @@ namespace XianXia.Core.Persistence
             if (world?.Strategic == null || dto == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "Strategic snapshot restore requires world and dto.");
 
+            var squadValidation = ValidateSquadAuthority(world, dto);
+            if (squadValidation.IsFailure) return squadValidation;
+
             var armyIds = new HashSet<string>(StringComparer.Ordinal);
             if (dto.FormalArmies != null)
                 for (var i = 0; i < dto.FormalArmies.Count; i++)
@@ -497,9 +501,11 @@ namespace XianXia.Core.Persistence
                     var members = new List<EntityId>();
                     for (var m = 0; m < item.MemberCharacterIds.Count; m++) members.Add(new EntityId(item.MemberCharacterIds[m]));
                     var created = SquadMembershipService.Create(world, item.SquadId, members,
-                        new EntityId(item.LeaderCharacterId), item.LegacyArmyId, (SquadCommandKind)item.CommandKind);
+                        new EntityId(item.LeaderCharacterId), item.LegacyArmyId, (SquadCommandKind)item.CommandKind,
+                        importingSnapshot: true);
                     if (created.IsFailure) return Result.Failure(created.Error);
                     created.Value.CommandRevision = item.CommandRevision;
+                    created.Value.CommandTargetCharacterId = new EntityId(item.CommandTargetCharacterId);
                 }
             }
 
@@ -514,13 +520,15 @@ namespace XianXia.Core.Persistence
                         var a = dto.FormalArmies[i];
                         if (a == null || string.IsNullOrEmpty(a.ArmyId))
                             continue;
-                        var army = BuildFormalArmyFromSnapshot(world, a);
+                        var army = BuildFormalArmyFromSnapshot(world, a, dto.HasSquadSnapshotAuthority);
                         world.Strategic.FormalArmies.Register(army);
                     }
                 }
             }
 
-            var memberships = RestoreArmyMemberships(world, dto.ArmyMemberships);
+            var memberships = dto.HasSquadSnapshotAuthority
+                ? RestoreDerivedArmyMemberships(world)
+                : RestoreArmyMemberships(world, dto.ArmyMemberships);
             if (memberships.IsFailure)
                 return memberships;
 
@@ -965,7 +973,7 @@ namespace XianXia.Core.Persistence
             }
         }
 
-        static FormalArmy BuildFormalArmyFromSnapshot(SimulationWorld world, FormalArmySnapshotDto a)
+        static FormalArmy BuildFormalArmyFromSnapshot(SimulationWorld world, FormalArmySnapshotDto a, bool squadAuthority)
         {
             var army = new FormalArmy
             {
@@ -977,10 +985,12 @@ namespace XianXia.Core.Persistence
             var squadId = SquadMembershipService.ArmySquadId(a.ArmyId);
             if (!world.Strategic.Squads.TryGet(squadId, out var squad))
             {
+                if (squadAuthority) throw new InvalidOperationException("Authoritative army squad missing: " + squadId);
                 var members = new List<EntityId>();
                 for (var i = 0; i < a.MemberCharacterIds.Count; i++) members.Add(new EntityId(a.MemberCharacterIds[i]));
                 var created = SquadMembershipService.Create(world, squadId, members,
-                    new EntityId(a.LeaderCharacterId), a.ArmyId, SquadCommandKind.FormalArmyWorldMotion);
+                    new EntityId(a.LeaderCharacterId), a.ArmyId, SquadCommandKind.FormalArmyWorldMotion,
+                    importingSnapshot: true);
                 if (created.IsFailure) throw new InvalidOperationException(created.Error.ToString());
                 squad = created.Value;
             }
@@ -1015,6 +1025,60 @@ namespace XianXia.Core.Persistence
             }
 
             return army;
+        }
+
+        static Result ValidateSquadAuthority(SimulationWorld world, StrategicSnapshotDto dto)
+        {
+            if (!dto.HasSquadSnapshotAuthority) return Result.Success();
+            var byId = new Dictionary<string, SquadSnapshotDto>(StringComparer.Ordinal);
+            var members = new HashSet<ulong>();
+            if (dto.Squads == null) return Result.Failure(ErrorCode.SnapshotInvalid, "Squad authority is missing.");
+            foreach (var squad in dto.Squads)
+            {
+                if (squad == null || string.IsNullOrWhiteSpace(squad.SquadId) || byId.ContainsKey(squad.SquadId) ||
+                    squad.MemberCharacterIds == null || squad.MemberCharacterIds.Count == 0 ||
+                    !squad.MemberCharacterIds.Contains(squad.LeaderCharacterId) ||
+                    (squad.CommandTargetCharacterId != 0 && !squad.MemberCharacterIds.Contains(squad.CommandTargetCharacterId)) ||
+                    !Enum.IsDefined(typeof(SquadCommandKind), squad.CommandKind))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid authoritative squad identity, leader or command.");
+                byId.Add(squad.SquadId, squad);
+                foreach (var id in squad.MemberCharacterIds)
+                    if (id == 0 || !members.Add(id) || !world.Entities.TryGet(new EntityId(id), out var entity) ||
+                        (entity.Tags & (EntityTag.Character | EntityTag.Npc)) == 0)
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid or duplicate authoritative squad member.", id.ToString());
+            }
+            foreach (var entity in world.Entities.All)
+                if ((entity.Tags & (EntityTag.Character | EntityTag.Npc)) != 0 && !members.Contains(entity.Id.Value))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Character is missing authoritative squad.", entity.Id.ToString());
+            if (string.IsNullOrEmpty(dto.ControlledSquadId) || !byId.ContainsKey(dto.ControlledSquadId))
+                return Result.Failure(ErrorCode.SnapshotInvalid, "Controlled squad is missing.", dto.ControlledSquadId);
+            var armies = new HashSet<string>(StringComparer.Ordinal);
+            if (dto.FormalArmies != null)
+                foreach (var army in dto.FormalArmies)
+                {
+                    if (army == null || string.IsNullOrEmpty(army.ArmyId) || !armies.Add(army.ArmyId) ||
+                        !byId.TryGetValue(SquadMembershipService.ArmySquadId(army.ArmyId), out var squad) ||
+                        !string.Equals(squad.LegacyArmyId, army.ArmyId, StringComparison.Ordinal))
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "Army has no authoritative squad mapping.");
+                }
+            foreach (var squad in byId.Values)
+                if (!string.IsNullOrEmpty(squad.LegacyArmyId) && !armies.Contains(squad.LegacyArmyId))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Squad references missing legacy army.", squad.SquadId);
+            return Result.Success();
+        }
+
+        static Result RestoreDerivedArmyMemberships(SimulationWorld world)
+        {
+            foreach (var entity in world.Entities.All)
+            {
+                if ((entity.Tags & (EntityTag.Character | EntityTag.Npc)) == 0) continue;
+                ArmyInvariants.EnsureMembershipComponent(entity);
+                var membership = entity.Get<ArmyMembershipComponent>();
+                membership.ClearArmyId();
+                if (world.Strategic.Squads.TryGetForCharacter(entity.Id, out var squad) &&
+                    !string.IsNullOrEmpty(squad.LegacyArmyId)) membership.SetArmyId(squad.LegacyArmyId);
+            }
+            return Result.Success();
         }
 
         static Result RestoreArmyMemberships(

@@ -27,6 +27,11 @@ namespace XianXia.Core.Npc
             {
                 if ((entity.Tags & EntityTag.Character) != 0)
                     continue;
+                if (World.Strategic.SquadCommandService.OwnsIndividualSchedule(world, entity.Id))
+                {
+                    loop.CancelOrdersFromSource(entity.Id, OrderSource.Schedule);
+                    continue;
+                }
                 if (!entity.TryGet<ScheduleComponent>(out var binding) ||
                     string.IsNullOrEmpty(binding.DefinitionId))
                     continue;
