@@ -1,5 +1,13 @@
 # 开发日志
 
+## 2026-09-13 — C1 续接：个人位置来源与 Snapshot 重绑定检查点（C1—C4 未完成）
+
+- 核对当前 `dev_openworld` HEAD `5e4e446`，没有发现后续 C1—C4 分支实现。保留 C0，不更改阶段完成状态。
+- 只读核查现有保存槽：32/33 与 34/35 分别共用旧 Army 锚点；保存前后 SHA-256 相同。不能将其冒称历史个人精确位置，也未运行 Unity 复现场景。
+- Continuous 正常保存/移动/materialization 接入既有个人 WorldPresence 坐标和 Surface 来源；JSON、恢复引用校验、无 View 查询、Army Finalize 保位及旧 World 表现清理接线修复。独立 Encounter、战中存档、两队路由、介入仍未实现。
+- 发现预设议政厅 bootstrap 只绑定真实中心，没有 CoreRangeWidth/Height；已提出范围配置输入问题，未擅自套用新旗站尺寸或用 Hex/野外代替预设 Site。
+- Core 457 / Data 77 / Host 143 现成离线编译通过，未启动 Unity、测试或 Bake。具体证据、限制与 C1—C4 实际矩阵见 [222](222-cw-u1-u4-continuous-implementation-2026-09-13.md)。
+
 ## 2026-09-13 — CW-U1→U4 连续实施：C0 接线检查点
 
 - 制作人确认 CW-U1 当前正常玩法人工验收通过，并授权连续推进 C0→C4；新增行为最终合并验收。状态与后续未完成项见 [222](222-cw-u1-u4-continuous-implementation-2026-09-13.md)。

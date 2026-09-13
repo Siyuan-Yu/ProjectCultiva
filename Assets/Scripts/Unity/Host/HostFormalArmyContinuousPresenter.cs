@@ -89,6 +89,7 @@ namespace XianXia.Unity.Host
                     !_bootstrap.ViewSpawner.Registry.TryGet(id, out var view) || view == null)
                     continue;
                 view.transform.position = presentation;
+                runtime.CommitContinuousNpcPosition(id, presentation);
                 if (_bootstrap.Session.World.Entities.TryGet(id, out var entity))
                 {
                     if (!entity.TryGet<EntityLocationComponent>(out var location))

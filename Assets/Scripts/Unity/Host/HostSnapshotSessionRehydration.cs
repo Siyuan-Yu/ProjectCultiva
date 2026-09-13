@@ -47,6 +47,21 @@ namespace XianXia.Unity.Host
             if (politicalSnapshot == null)
                 return Result.Failure(ErrorCode.SnapshotInvalid, "Pending strategic snapshot is missing.");
 
+            foreach (var pair in world.WorldPresence.All)
+            {
+                var personal = pair.Value;
+                if (personal == null || string.IsNullOrEmpty(personal.PersonalSurfaceId)) continue;
+                OutdoorWorldSurfaceDefinition source = null;
+                foreach (var candidate in registry.OutdoorSurfaces)
+                    if (string.Equals(candidate.Value?.SurfaceId, personal.PersonalSurfaceId,
+                            System.StringComparison.Ordinal))
+                        source = candidate.Value;
+                if (source == null || source.AcceptanceOnly ||
+                    !OutdoorSurfaceCoverageResolver.ContainsWorldPosition(source, personal.WorldPosX, personal.WorldPosY))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Personal spatial authority references an unavailable surface/position: CharacterId=" + personal.EntityId.Value);
+            }
+
             {
                 var hex = HexStrategicMapContentBootstrap.TryApplyToSession(world, registry, scenario);
                 if (hex.IsFailure)
@@ -232,6 +247,26 @@ namespace XianXia.Unity.Host
             sb.Append(" PartyWorld.Site=").Append(world.PartyWorld?.SiteId ?? string.Empty);
             sb.Append(" PartyWorld.Map=").Append(world.PartyWorld?.LocalMapId ?? string.Empty);
             sb.Append(" ActiveLocalMap=").Append(world.LocalMap?.ActiveMapLayoutId ?? string.Empty);
+
+            foreach (var entity in world.Entities.All)
+            {
+                if (entity == null || (entity.Tags & EntityTag.Character) == 0) continue;
+                world.Strategic.Squads.TryGetForCharacter(entity.Id, out var squad);
+                world.WorldPresence.TryGet(entity.Id, out var personal);
+                entity.TryGet<EntityLocationComponent>(out var location);
+                var participant = world.Strategic.Participants.FindByEntity(entity.Id);
+                sb.Append("\nCharacterId=").Append(entity.Id.Value)
+                    .Append(" SquadId=").Append(squad?.SquadId ?? "")
+                    .Append(" LegacyArmy=").Append(squad?.LegacyArmyId ?? "")
+                    .Append(" Source=").Append(string.IsNullOrEmpty(personal?.PersonalSurfaceId)
+                        ? "LegacyUnqualified" : "PersonalWorldPresence")
+                    .Append(" Space/SurfaceId=").Append(personal?.PersonalSurfaceId ?? "")
+                    .Append(" HasPosition=").Append(personal?.HasContinuousWorldPosition ?? false)
+                    .Append(" World=(").Append(personal?.WorldPosX).Append(',').Append(personal?.WorldPosY).Append(')')
+                    .Append(" Materialized=").Append(world.ContinuousOutdoorMaterialization.IsMaterialized(entity.Id))
+                    .Append(" Override=").Append(location?.HasPresentationOverride ?? false)
+                    .Append(" IncludedReason=").Append(participant?.IncludedReason ?? "NotIncluded");
+            }
 
             Debug.Log(sb.ToString());
         }

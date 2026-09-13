@@ -34,6 +34,8 @@ namespace XianXia.Core.World
         public float WorldPosX { get; set; }
         public float WorldPosY { get; set; }
         public bool HasContinuousWorldPosition { get; set; }
+        /// <summary>Explicit personal spatial provenance; empty means legacy/derived, not a precise history.</summary>
+        public string PersonalSurfaceId { get; set; } = string.Empty;
 
         public bool UsesHexPresence =>
             Mode == PartyWorldPresenceMode.AtHex &&
@@ -54,6 +56,7 @@ namespace XianXia.Core.World
 
         public void SetAtHex(HexCoord hex)
         {
+            PersonalSurfaceId = string.Empty;
             Mode = PartyWorldPresenceMode.AtHex;
             HexQ = hex.Q;
             HexR = hex.R;
@@ -65,6 +68,7 @@ namespace XianXia.Core.World
 
         public void SetAtWorldPosition(WorldVec2 pos, HexCoord derivedHex)
         {
+            PersonalSurfaceId = string.Empty;
             Mode = PartyWorldPresenceMode.AtWorldPosition;
             SiteId = string.Empty;
             HasContinuousWorldPosition = true;
@@ -85,6 +89,7 @@ namespace XianXia.Core.World
         /// </summary>
         public void SetAtResidualWorldPosition(HexCoord residualHex, WorldVec2 preciseWorldPosition)
         {
+            PersonalSurfaceId = string.Empty;
             Mode = PartyWorldPresenceMode.AtHex;
             HexQ = residualHex.Q;
             HexR = residualHex.R;
@@ -106,6 +111,7 @@ namespace XianXia.Core.World
         /// </summary>
         public void SetAtSiteWithAnchor(string siteId, WorldVec2 anchorWorldPosition)
         {
+            PersonalSurfaceId = string.Empty;
             Mode = PartyWorldPresenceMode.AtSite;
             SiteId = siteId ?? string.Empty;
             ClearHexPresence();
@@ -169,6 +175,7 @@ namespace XianXia.Core.World
         public void SetAtSite(EntityId id, string siteId)
         {
             var p = GetOrCreate(id);
+            p.PersonalSurfaceId = string.Empty;
             p.SiteId = siteId ?? string.Empty;
             p.Mode = PartyWorldPresenceMode.AtSite;
             p.ClearHexPresence();

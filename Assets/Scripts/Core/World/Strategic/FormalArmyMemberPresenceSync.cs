@@ -33,7 +33,7 @@ namespace XianXia.Core.World.Strategic
                    !IsArmyEngaged(world, army);
         }
 
-        public static void SyncAll(SimulationWorld world, FormalArmy army)
+        public static void SyncAll(SimulationWorld world, FormalArmy army, bool preservePersonalPositions = false)
         {
             if (world?.WorldPresence == null || army == null)
                 return;
@@ -52,6 +52,9 @@ namespace XianXia.Core.World.Strategic
                     !string.Equals(bound.ArmyId, army.ArmyId, System.StringComparison.Ordinal))
                     continue;
 
+                if (preservePersonalPositions && world.WorldPresence.TryGet(memberId, out var personal) &&
+                    personal.HasContinuousWorldPosition)
+                    continue;
                 SyncMember(world, army, memberId);
             }
         }
@@ -67,6 +70,13 @@ namespace XianXia.Core.World.Strategic
 
             var motion = army.WorldMotion;
             if (!motion.HasPosition)
+                return;
+
+            // Near-field movement owns precise personal positions. The legacy group projection
+            // must not overwrite them on idle ticks, finalization or during an encounter.
+            if (world.WorldPresence.TryGet(memberId, out var personal) &&
+                !string.IsNullOrEmpty(personal.PersonalSurfaceId) &&
+                (!motion.IsMoving || world.ContinuousOutdoorMaterialization.IsMaterialized(memberId)))
                 return;
 
             if (motion.LocationKind == FormalArmyLocationKind.AtWorldSite &&

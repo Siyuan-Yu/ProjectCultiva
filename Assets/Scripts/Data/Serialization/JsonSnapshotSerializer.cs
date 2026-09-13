@@ -1004,6 +1004,7 @@ namespace XianXia.Data.Serialization
                         ["hexQ"] = JsonValue.FromNumber(p.HexQ),
                         ["hexR"] = JsonValue.FromNumber(p.HexR),
                         ["hasWorldPosition"] = JsonValue.FromBool(p.HasWorldPosition),
+                        ["personalSurfaceId"] = JsonValue.FromString(p.PersonalSurfaceId ?? string.Empty),
                         ["worldX"] = JsonValue.FromNumber(p.WorldX),
                         ["worldY"] = JsonValue.FromNumber(p.WorldY)
                     }));
@@ -1404,9 +1405,14 @@ namespace XianXia.Data.Serialization
             {
                 foreach (var p in charPresences.Array)
                 {
+                    if (!string.IsNullOrEmpty(p.GetString("personalSurfaceId", string.Empty)) &&
+                        (!p.TryGetProperty("worldX", out var personalX) || personalX.Kind != JsonValueKind.Number ||
+                         !p.TryGetProperty("worldY", out var personalY) || personalY.Kind != JsonValueKind.Number))
+                        throw new System.FormatException("Personal spatial authority requires explicit numeric worldX/worldY.");
                     dto.CharacterWorldPresences.Add(new CharacterWorldPresenceSnapshotDto
                     {
                         CharacterId = ReadU(p, "characterId"),
+                        PersonalSurfaceId = p.GetString("personalSurfaceId", string.Empty),
                         Mode = p.TryGetProperty("mode", out var modeNode) ? (int)modeNode.Number : 0,
                         SiteId = p.GetString("siteId", string.Empty),
                         HexQ = p.TryGetProperty("hexQ", out var hq) ? (int)hq.Number : int.MinValue,

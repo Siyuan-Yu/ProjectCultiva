@@ -18,6 +18,9 @@ namespace XianXia.Unity.Host
             var spawner = bootstrap.ViewSpawner;
             if (world?.LocalMap == null || spawner == null)
                 return 0;
+            var continuous = bootstrap.ContinuousOutdoorSurfaceRuntime;
+            if (continuous != null && continuous.IsActive && !world.LocalMap.IsInInterior)
+                return continuous.CaptureCurrentPersonalPlacements();
 
             var mapId = world.LocalMap.ActiveMapLayoutId?.Trim() ?? string.Empty;
             if (string.IsNullOrEmpty(mapId))

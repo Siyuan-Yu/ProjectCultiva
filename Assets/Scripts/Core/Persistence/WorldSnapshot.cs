@@ -337,6 +337,7 @@ namespace XianXia.Core.Persistence
     /// <summary>Phase 2A：持久化 Background／Party Character 的世界存在（SiteId 真源，不另存可漂移 Site Hex）。</summary>
     public sealed class CharacterWorldPresenceSnapshotDto
     {
+        public string PersonalSurfaceId { get; set; } = string.Empty;
         public ulong CharacterId { get; set; }
         public int Mode { get; set; }
         public string SiteId { get; set; } = string.Empty;

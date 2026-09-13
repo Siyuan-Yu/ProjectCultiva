@@ -37,6 +37,7 @@ namespace XianXia.Unity.Host
             }
 
             HostSnapshotLocalPlacementCaptureSync.SyncLoadedLocalMapOccupantsFromViews(bootstrap);
+            HostSnapshotSessionRehydration.LogDomainTrace(bootstrap.Session, "BeforeSave");
             var captured = bootstrap.Session.CaptureSnapshotJson();
             if (captured.IsFailure)
             {
@@ -122,6 +123,7 @@ namespace XianXia.Unity.Host
                 HostLevelTesterSnapshotSummary.RecordRuntime(bootstrap.Session.World, bootstrap.Session);
 
                 bootstrap.RebuildPresentationAfterLoad();
+                HostSnapshotSessionRehydration.LogDomainTrace(bootstrap.Session, "AfterPresentationRebuild");
                 WorldMapArmyMarkerDiagnostics.LogWorldMapArmyMarkers(bootstrap.Session);
                 HostLevelTesterSnapshotSummary.RecordRuntime(bootstrap.Session.World, bootstrap.Session);
                 result.Success = true;

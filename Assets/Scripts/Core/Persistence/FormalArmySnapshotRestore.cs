@@ -100,7 +100,8 @@ namespace XianXia.Core.Persistence
             {
                 world.Strategic.Sites.TryGet(dto.SiteId, out var site);
                 site.EnsurePresenceHexValid();
-                motion.SetAtWorldSite(dto.SiteId, site.AnchorHex, hexSize);
+                motion.SetAtWorldSitePreservingWorldPosition(dto.SiteId,
+                    new WorldVec2(dto.WorldX, dto.WorldY), currentHex);
             }
             else if (dto.LocationKind == (int)FormalArmyLocationKind.AtWorldPosition)
             {
@@ -147,7 +148,7 @@ namespace XianXia.Core.Persistence
                         ? "AwaitingNavigationBind"
                         : dto.RouteDiagnostic);
                 army.SyncLegacyFromWorldMotion();
-                FormalArmyMemberPresenceSync.SyncAll(world, army);
+                FormalArmyMemberPresenceSync.SyncAll(world, army, preservePersonalPositions: true);
                 return Result.Success();
             }
             var hasMotionAuthority = dto.LocationKind > 0;

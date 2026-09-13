@@ -223,6 +223,7 @@ namespace XianXia.Core.Persistence
                     {
                         CharacterId = presence.EntityId.Value,
                         Mode = (int)PartyWorldPresenceMode.AtSite,
+                        PersonalSurfaceId = presence.PersonalSurfaceId,
                         SiteId = presence.SiteId,
                         // AtSite 也可携带 authored／baked 精确锤点（Opening LocalPosition → canonical）；
                         // 无锚点时 HasWorldPosition=false，保持纯 Site 语义（旧存档一致）。
@@ -239,6 +240,7 @@ namespace XianXia.Core.Persistence
                     {
                         CharacterId = presence.EntityId.Value,
                         Mode = (int)PartyWorldPresenceMode.AtHex,
+                        PersonalSurfaceId = presence.PersonalSurfaceId,
                         HexQ = presence.HexQ,
                         HexR = presence.HexR,
                         HasWorldPosition = presence.HasContinuousWorldPosition,
@@ -255,6 +257,7 @@ namespace XianXia.Core.Persistence
                     {
                         CharacterId = presence.EntityId.Value,
                         Mode = (int)PartyWorldPresenceMode.AtWorldPosition,
+                        PersonalSurfaceId = presence.PersonalSurfaceId,
                         HexQ = presence.HexQ,
                         HexR = presence.HexR,
                         HasWorldPosition = true,
@@ -551,6 +554,14 @@ namespace XianXia.Core.Persistence
                     }
 
                     restoredCharacterWorldPresenceIds.Add(p.CharacterId);
+                    if (!string.IsNullOrEmpty(p.PersonalSurfaceId) &&
+                        ((p.Mode != (int)PartyWorldPresenceMode.AtSite &&
+                          p.Mode != (int)PartyWorldPresenceMode.AtHex &&
+                          p.Mode != (int)PartyWorldPresenceMode.AtWorldPosition) ||
+                         !p.HasWorldPosition || float.IsNaN(p.WorldX) || float.IsInfinity(p.WorldX) ||
+                         float.IsNaN(p.WorldY) || float.IsInfinity(p.WorldY)))
+                        return Result.Failure(ErrorCode.SnapshotInvalid,
+                            "Personal spatial authority is invalid: CharacterId=" + p.CharacterId);
                     if (p.Mode == (int)PartyWorldPresenceMode.AtSite &&
                         !string.IsNullOrEmpty(p.SiteId))
                     {
@@ -559,6 +570,7 @@ namespace XianXia.Core.Persistence
                                 id, p.SiteId, new WorldVec2(p.WorldX, p.WorldY));
                         else
                             world.WorldPresence.SetAtSite(id, p.SiteId);
+                        world.WorldPresence.GetOrCreate(id).PersonalSurfaceId = p.PersonalSurfaceId ?? string.Empty;
                         continue;
                     }
 
@@ -577,7 +589,7 @@ namespace XianXia.Core.Persistence
                         {
                             world.WorldPresence.SetAtHex(id, hex);
                         }
-
+                        world.WorldPresence.GetOrCreate(id).PersonalSurfaceId = p.PersonalSurfaceId ?? string.Empty;
                         continue;
                     }
 
@@ -591,6 +603,7 @@ namespace XianXia.Core.Persistence
                             ? new HexCoord(p.HexQ, p.HexR)
                             : HexMath.WorldToHex(pos.X, pos.Y, hexSize);
                         world.WorldPresence.SetAtWorldPosition(id, pos, derived);
+                        world.WorldPresence.GetOrCreate(id).PersonalSurfaceId = p.PersonalSurfaceId ?? string.Empty;
                     }
                 }
             }
@@ -961,7 +974,7 @@ namespace XianXia.Core.Persistence
             foreach (var kv in world.Strategic.FormalArmies.Armies)
             {
                 if (kv.Value != null)
-                    FormalArmyMemberPresenceSync.SyncAll(world, kv.Value);
+                    FormalArmyMemberPresenceSync.SyncAll(world, kv.Value, preservePersonalPositions: true);
             }
 
             ArmyStackAdapter.EnsurePresentationStacksFromFormalArmies(world);

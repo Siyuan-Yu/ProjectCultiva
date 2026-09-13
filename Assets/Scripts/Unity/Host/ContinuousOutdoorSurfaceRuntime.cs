@@ -231,13 +231,24 @@ namespace XianXia.Unity.Host
         public bool CommitContinuousNpcPosition(EntityId id, Vector3 presentationPosition)
         {
             var world = _bootstrap?.Session?.World;
-            if (world == null || _mapper == null ||
+            if (!IsActive || world == null || _mapper == null ||
+                !ReferenceEquals(_navigationStateWorld, world) ||
                 !world.WorldPresence.TryGet(id, out var presence) || presence == null ||
-                presence.Mode != PartyWorldPresenceMode.AtSite || string.IsNullOrEmpty(presence.SiteId))
+                presence.Mode == PartyWorldPresenceMode.InEncounter || world.LocalMap.IsInInterior)
                 return false;
             _mapper.PresentationToWorld(
                 presentationPosition.x, presentationPosition.y, out var worldX, out var worldY);
-            world.WorldPresence.SetAtSiteWithAnchor(id, presence.SiteId, new WorldVec2(worldX, worldY));
+            if (float.IsNaN(worldX) || float.IsInfinity(worldX) ||
+                float.IsNaN(worldY) || float.IsInfinity(worldY) ||
+                !TryResolveSurface(out var surface) ||
+                !OutdoorSurfaceCoverageResolver.ContainsWorldPosition(surface, worldX, worldY))
+                return false;
+            // Update the existing personal coordinate without changing site/residual ownership,
+            // pursuit or movement state. Presentation coordinates always pass through the mapper.
+            presence.WorldPosX = worldX;
+            presence.WorldPosY = worldY;
+            presence.HasContinuousWorldPosition = true;
+            presence.PersonalSurfaceId = _surfaceId;
             if (world.Entities.TryGet(id, out var entity) &&
                 entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var location))
                 location.SetPresentationOverride(presentationPosition.x, presentationPosition.y);
@@ -413,6 +424,20 @@ namespace XianXia.Unity.Host
         {
             placement = default;
             placementWorld = default;
+            if (CharacterPersonalSpaceQuery.TryResolveContinuous(world, id, _surfaceId,
+                    out var personalPosition, out _))
+            {
+                _mapper.WorldToPresentation(personalPosition.X, personalPosition.Y, out var personalX, out var personalY);
+                return TryPreparePersonalPoint(HostPresentationSpace.FromPresentation(personalX, personalY),
+                    "PersonalWorldPresence", used, out placement, out placementWorld, out failure);
+            }
+            if (world.WorldPresence.TryGet(id, out var explicitPersonal) &&
+                !string.IsNullOrEmpty(explicitPersonal.PersonalSurfaceId))
+            {
+                failure = "Stage=PersonalSpace Source=PersonalWorldPresence Surface=" +
+                    explicitPersonal.PersonalSurfaceId + " Reason=正式个人空间不匹配或损坏，禁止旧View回退";
+                return false;
+            }
             failure = "Stage=PositionSource Reason=位置缺失或未由当前World物化 Surface=" +
                 _surfaceId + " World=<unknown> Loaded=false Raw=<unknown> Reference=<none>";
             FormalArmy participantArmy = null;
@@ -497,6 +522,22 @@ namespace XianXia.Unity.Host
             worldPoint = new WorldVec2(wx, wy);
             failure = string.Empty;
             return true;
+        }
+
+        public int CaptureCurrentPersonalPlacements()
+        {
+            var world = _bootstrap?.Session?.World;
+            if (!IsActive || !ReferenceEquals(_navigationStateWorld, world) ||
+                world == null || world.LocalMap.IsInInterior ||
+                world.Strategic.ContinuousManualCombat.IsActive)
+                return 0;
+            var count = 0;
+            foreach (var entity in world.Entities.All)
+                if (world.ContinuousOutdoorMaterialization.IsMaterialized(entity.Id) &&
+                    _bootstrap.ViewSpawner.Registry.TryGet(entity.Id, out var view) && view != null &&
+                    CommitContinuousNpcPosition(entity.Id, view.transform.position))
+                    count++;
+            return count;
         }
 
         bool TryAcceptPreparedPoint(Vector3 candidate, Vector3 reference,
@@ -965,6 +1006,16 @@ namespace XianXia.Unity.Host
             out Vector3 presentation)
         {
             presentation = default;
+            var currentWorld = _bootstrap?.Session?.World;
+            if (army != null && !army.WorldMotion.IsMoving && stableSlot >= 0)
+            {
+                var members = new List<ulong>(army.MemberCharacterIds);
+                members.Sort();
+                if (stableSlot < members.Count &&
+                    CharacterPersonalSpaceQuery.TryResolveContinuous(currentWorld,
+                        new EntityId(members[stableSlot]), _surfaceId, out var personal, out _))
+                    return TryWorldToPresentation(personal, out presentation);
+            }
             if (!IsFieldFormalArmyInLoadedNeighborhood(army) ||
                 !TryResolveSurface(out var surface) || _compositeWalkGrid == null ||
                 !TryWorldToPresentation(army.WorldMotion.WorldPosition, out var rawAnchor) ||
@@ -1134,6 +1185,7 @@ namespace XianXia.Unity.Host
                     RestoreMember(id, previous);
                 }
                 _lastLegalMembers[id] = view.transform.position;
+                CommitContinuousNpcPosition(id, view.transform.position);
             }
             var derived = HexMath.WorldToHex(motion.WorldPosition.X, motion.WorldPosition.Y, world.HexWorld.HexSize);
             if (!derived.Equals(_diagnosticDerived) || !motion.CurrentHex.Equals(_diagnosticCommitted))
@@ -1812,7 +1864,8 @@ namespace XianXia.Unity.Host
 
         void DeactivatePresentationOnly(bool captureEntityPositions)
         {
-            var world = _bootstrap?.Session?.World;
+            if (captureEntityPositions) CaptureCurrentPersonalPlacements();
+            var world = _navigationStateWorld;
             var combat = world?.Strategic?.ContinuousManualCombat;
             if (combat != null && combat.IsActive &&
                 string.Equals(combat.SurfaceId, _surfaceId, StringComparison.Ordinal))
@@ -1829,14 +1882,14 @@ namespace XianXia.Unity.Host
             _materializedSitePlacementOwners.Clear();
             _grids.Clear();
             _compositeWalkGrid = null;
-            if (_bootstrap?.Session?.World?.SurfaceGround?.Active == _geography?.Navigation)
-                _bootstrap.Session.World.SurfaceGround.Clear();
+            if (world != null && world.SurfaceGround.Active == _geography?.Navigation)
+                world.SurfaceGround.Clear();
             _geography = null;
-            _navigationStateWorld = null;
             _observedDestructibleTopologyRevision = 0;
             _dynamicNavigationDirty = false;
             _lastLegalMembers.Clear();
             ReleaseContinuousSitePopulation(capturePositions: captureEntityPositions);
+            _navigationStateWorld = null;
             _bootstrap?.MoveController?.InvalidatePartyLocalMovement(_bootstrap.Session.PlayerParty.Members);
             _bootstrap?.MoveController?.SetWalkGrid(null);
             _bootstrap?.MoveController?.BindLocalMapContext(string.Empty);
@@ -1965,7 +2018,15 @@ namespace XianXia.Unity.Host
                     if (!world.ContinuousOutdoorMaterialization.IsMaterialized(memberId) &&
                         world.Entities.TryGet(memberId, out var member) &&
                         member.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var memberLoc))
-                        memberLoc.SetPresentationOverride(partyX + (i % 3) * .8f, partyY + (i / 3) * .8f);
+                    {
+                        if (CharacterPersonalSpaceQuery.TryResolveContinuous(world, memberId, _surfaceId,
+                                out var personal, out _))
+                        {
+                            _mapper.WorldToPresentation(personal.X, personal.Y, out var px, out var py);
+                            memberLoc.SetPresentationOverride(px, py);
+                        }
+                        else memberLoc.SetPresentationOverride(partyX + (i % 3) * .8f, partyY + (i / 3) * .8f);
+                    }
                 }
             }
 
@@ -2049,6 +2110,24 @@ namespace XianXia.Unity.Host
                     // supervisor whose army remains Idle rather than Garrisoned.
                     if (_continuousFormalArmyPopulation.Contains(id))
                         continue;
+                    if (CharacterPersonalSpaceQuery.TryResolveContinuous(world, id, _surfaceId,
+                            out var savedPersonal, out _))
+                    {
+                        if (!_loaded.Contains(_mapper.WorldToChunk(savedPersonal.X, savedPersonal.Y))) continue;
+                        _desiredMaterializedEntities.Add(id);
+                        _continuousSitePopulation.Add(id);
+                        if (!world.ContinuousOutdoorMaterialization.IsMaterialized(id))
+                        {
+                            if (!entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var restoredLocation))
+                            {
+                                restoredLocation = new XianXia.Core.Exploration.EntityLocationComponent();
+                                entity.AddComponent(restoredLocation);
+                            }
+                            _mapper.WorldToPresentation(savedPersonal.X, savedPersonal.Y, out var savedX, out var savedY);
+                            restoredLocation.SetPresentationOverride(savedX, savedY);
+                        }
+                        continue;
+                    }
                     // 落点优先级（§9）：precise Continuous authored anchor
                     //　→ EntityLocation.LocationId 对应的 baked SitePlace
                     //　→ deterministic fallback。
@@ -2189,10 +2268,8 @@ namespace XianXia.Unity.Host
                 onAdd: null,
                 onRemove: id =>
                 {
-                    var formalArmyOwned = _continuousFormalArmyPopulation.Contains(id) ||
-                        ArmyService.TryGetArmyForCharacter(world, id, out _);
                     var hasView = _bootstrap.ViewSpawner.Registry.TryGet(id, out var view) && view != null;
-                    if (!formalArmyOwned && hasView)
+                    if (!preserveHiddenPlacement && hasView)
                         TryCaptureAtSiteAnchor(id, view.transform.position);
                     if (world.Entities.TryGet(id, out var entity) &&
                         entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc))
@@ -2214,6 +2291,7 @@ namespace XianXia.Unity.Host
             _bootstrap.ViewSpawner.PruneHiddenViews(_bootstrap.Session);
             _bootstrap.ViewSpawner.SpawnMissingVisibleViews(_bootstrap.Session);
             RealignMaterializedViewPlacements();
+            CaptureCurrentPersonalPlacements();
         }
 
         /// <summary>
@@ -2415,7 +2493,8 @@ namespace XianXia.Unity.Host
 
         void ReleaseContinuousSitePopulation(bool pruneViews = true, bool capturePositions = true)
         {
-            var world = _bootstrap?.Session?.World;
+            // Release the world that created these views, never the replacement snapshot world.
+            var world = _navigationStateWorld;
             if (world != null)
             {
                 foreach (var id in _continuousSitePopulation)
