@@ -6,7 +6,7 @@
 
 | 检查点 | 当前状态 | 改动／检查 | 本地提交 | 剩余边界 |
 |---|---|---|---|---|
-| C0／U1 连接补齐 | 检查点准备中 | 成员事务、创建边界、派生位置、存档严格校验、共享命令接线；Core 456／Data 77／Host 143 编译通过 | 提交后记录 | 旧档无 Squad 字段仅做迁移；独立遭遇尚未实现 |
+| C0／U1 连接补齐 | 已形成检查点，继续复核接线 | 成员事务、创建边界、派生位置、存档严格校验、共享命令接线；Core 456／Data 77／Host 143 编译通过 | `9db54f1ade253424ed98a34d847c0586f44fac7e` | 旧档无 Squad 字段仅做迁移；独立遭遇尚未实现 |
 | C1／U2A | 未完成 | 同源独立战场、个人锚点、战术时钟与稳定态存读档 | 无 | 待实现 |
 | C2／U2B | 未完成 | 统一两队入口、多目标战斗与地图攻击退役 | 无 | 待实现 |
 | C3／U3 | 未完成 | 有限关系介入及同场名单追加事务 | 无 | 待实现 |
@@ -19,7 +19,7 @@
 
 ## 下一动作
 
-C0 最后定向 diff 后提交，再接 C1。同源独立场地尚未替换当前 Continuous 入场，不能把 C0 或已有 helper 宣称为 C1～C4 完成。
+C1 定向核查已开始，尚未修改独立遭遇运行流程。当前 `ContinuousOutdoorSurfaceRuntime.TryPrepareManualCombatEntry/CommitPreparedManualCombat` 仍消费 loaded neighborhood；`ContinuousManualCombatPresentationState` 仍仅运行时 marker；`PendingEngagementSnapshotRestore.Capture` 在 offer resolved 后退出；`StrategicEncounterResolveService.ResolveAndEnd` 的真实世界战仍按旧共享 BattleHex 收口。下一步必须一起替换场地、战前精确锚点、战术时钟、恢复与结算接线，不能只加 DTO 或把现有 marker 改名宣称完成。
 
 ## C0 接线
 
@@ -28,3 +28,8 @@ C0 最后定向 diff 后提交，再接 C1。同源独立场地尚未替换当�
 - 共同命令持有 executor kind、目标人物、revision；玩家跟随消费目标，Army 消费既有 WorldMotion 路线并在启动／停止／替换时更新命令。Core／Host 的个人日程使用同一 ownership predicate，取消仅限 Schedule source，释放占位；普通旅行只在编组成功后取消。
 - 弥留／尸体保持成员关系；SyncMember、近场 Army presenter、residual predicate 不再让组织身份拖走残留者。全部失能时停止 Army 行程，不解散队伍。已有 precise residual 不重复锚定。
 - 开发诊断原 FormalArmyNearField 输出补充 command、revision、共同目标；未新增面板、测试或 Unity 调用。
+- 后续静态复核修正：闲置 field Army 的日程 ownership 不能因路线停止而退给 Core；已有精确 residual 的战略 Hex 从角色自身坐标推导；LegacyHex 命令目标从既有 DestinationHex 推导，不能读取仅 Surface route 设置的 PhysicalDestination。修改后 Core 456／Data 77／Host 143 再次编译通过。
+
+## 尚未完成的交付边界
+
+当前只形成 C0 检查点。C1～C4 没有实现完成，不能标整项 `Implementation Completed`，也不能把旧 Continuous 手动战斗视为新的独立遭遇。没有运行制作人人工验收，没有新的 Producer Accepted 声明。

@@ -104,7 +104,10 @@ namespace XianXia.Core.World.Strategic
                     if (existing.HasContinuousWorldPosition)
                     {
                         StrategicResidualPresenceService.PlaceCharacterAtResidualWorldPosition(
-                            world, memberId, motion.CurrentHex, existing.ContinuousWorldPosition);
+                            world, memberId,
+                            HexMath.WorldToHex(existing.WorldPosX, existing.WorldPosY,
+                                world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f),
+                            existing.ContinuousWorldPosition);
                         return;
                     }
                 }

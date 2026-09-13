@@ -251,8 +251,10 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.Strategic?.Squads == null || !world.Strategic.Squads.TryGetForCharacter(id, out var squad) ||
                 !LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id)) return false;
-            if (squad.CommandKind == SquadCommandKind.FormalArmyWorldMotion)
-                return FormalArmyMemberPresenceSync.IsArmyControlledMember(world, id);
+            // An idle field formation still owns its members; stopping its route must not
+            // let Core start work while the Host continues to hold formation. Garrisoned
+            // members are excluded by the same authority predicate used by the Host.
+            if (FormalArmyMemberPresenceSync.IsArmyControlledMember(world, id)) return true;
             return squad.MemberCharacterIds.Count > 1 && squad.CommandKind == SquadCommandKind.FollowLeader &&
                    id != (squad.CommandTargetCharacterId.IsNone ? squad.LeaderCharacterId : squad.CommandTargetCharacterId);
         }
@@ -265,7 +267,14 @@ namespace XianXia.Core.World.Strategic
                 world.Strategic.FormalArmies.TryGet(squad.LegacyArmyId, out var army) && army.WorldMotion.IsMoving)
             {
                 // Command references the existing plan; never copies or replaces its route.
-                position = army.WorldMotion.PhysicalDestination;
+                if (army.WorldMotion.RouteKind == FormalArmyRouteKind.SurfaceGround)
+                    position = army.WorldMotion.PhysicalDestination;
+                else
+                {
+                    HexMath.ToWorldPosition(army.WorldMotion.DestinationHex,
+                        world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f, out var x, out var y);
+                    position = new WorldVec2(x, y);
+                }
                 return true;
             }
             var target = squad.CommandTargetCharacterId.IsNone ? squad.LeaderCharacterId : squad.CommandTargetCharacterId;
