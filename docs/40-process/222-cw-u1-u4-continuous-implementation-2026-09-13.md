@@ -48,6 +48,8 @@ C1 定向核查已开始，尚未修改独立遭遇运行流程。当前 `Contin
 
 ### 本检查点实现及限制
 
+代码及本次核查本地提交：`e4c59ba12c9dda22aa0e847679f8999ce0bd9556`（个人位置修复检查点，非 C1 完成提交）。
+
 - 复用 WorldPresence 的 WorldPosX/Y，增加 `PersonalSurfaceId` 来源元数据；正式 JSON 的 `characterWorldPresences.personalSurfaceId` 读写、坐标显式性校验、Domain 恢复和 Content Surface 引用校验均接线。缺标记仍为旧未限定来源，不能据此宣称历史精确位置；显式但无坐标、无效坐标或不存在 Surface 拒绝恢复。
 - `CharacterPersonalSpaceQuery` 以当前 World 实体和同 Surface 的正式个人位置查询，不依赖 View 或 Army 身份。当前过渡入口优先消费它；不同/损坏的显式来源不能用残留 View 回退。**过渡入口仍有旧名单和 loaded 范围限制，不是 U2A 独立空间。**
 - 正常 Continuous 保存不再因 ActiveMapLayoutId 为空退出；materialization 收尾、Party 移动同步、NPC 日程及 Army 近场 presenter 同步当前个人位置，全部通过 mapper。Interior 仍走原 occupant 采集；旧 Continuous 战斗不会被作为普通户外覆盖采集。
