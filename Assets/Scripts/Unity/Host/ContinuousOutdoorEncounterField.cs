@@ -165,8 +165,6 @@ namespace XianXia.Unity.Host
                 RemoveNormalPresentedField();
                 normalRemoved = true;
                 _independentFieldId = _stagingIndependentFieldId;
-                _stagingIndependentFieldId = string.Empty;
-                _stagingIndependentChunks.Clear();
                 _loaded.Clear(); _presentedChunks.Clear();
                 for (var i = 0; i < plan.Chunks.Count; i++) { _loaded.Add(plan.Chunks[i]); _presentedChunks.Add(plan.Chunks[i]); }
                 _compositeWalkGrid = plan.Grid;
@@ -183,6 +181,10 @@ namespace XianXia.Unity.Host
                     _bootstrap.MoveController.CancelPresentationMovementPublic(id);
                 }
                 ReconcileOutdoorEntityMaterialization();
+                // Keep the staging owner until every takeover step has completed, so a later
+                // exception can still remove the exact roots it created.
+                _stagingIndependentFieldId = string.Empty;
+                _stagingIndependentChunks.Clear();
                 Debug.Log("[IndependentEncounter] commit Id=" + plan.State.EncounterId + " chunks=" + plan.Chunks.Count +
                     " inputs=" + plan.InputGridCount + " cells=" + plan.OutputGridCells);
                 return Result.Success();
