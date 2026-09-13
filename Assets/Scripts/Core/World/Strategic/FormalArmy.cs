@@ -8,14 +8,14 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// Formal Army 领域真源（Phase A）。成员正向真源为 <see cref="MemberCharacterIds"/>；
-    /// Character 侧 <see cref="ArmyMembershipComponent"/> 仅为反向索引。
+    /// Formal Army compatibility identity／motion. Member queries project the unified Squad;
+    /// Character-side ArmyMembershipComponent remains a legacy reverse adapter.
     /// 战略位置真源：<see cref="CurrentHex"/>（Pure Hex）。
     /// </summary>
     public sealed class FormalArmy
     {
-        readonly List<ulong> _memberCharacterIds = new List<ulong>(8);
-        ReadOnlyCollection<ulong> _memberCharacterIdsView;
+        SquadState _squad;
+        EntityId _leaderCharacterId;
 
         FormalArmyState _state = FormalArmyState.Idle;
 
@@ -29,8 +29,13 @@ namespace XianXia.Core.World.Strategic
         bool _usesHexStrategicPosition;
 
         public string ArmyId { get; internal set; } = string.Empty;
+        public string SquadId { get; internal set; } = string.Empty;
         public string FactionId { get; internal set; } = string.Empty;
-        public EntityId LeaderCharacterId { get; internal set; }
+        public EntityId LeaderCharacterId
+        {
+            get => _squad != null ? _squad.LeaderCharacterId : _leaderCharacterId;
+            internal set { _leaderCharacterId = value; if (_squad != null) _squad.LeaderCharacterId = value; }
+        }
 
         /// <summary>Phase 3：连续世界位置 + 旅行状态真源。</summary>
         public FormalArmyWorldMotion WorldMotion { get; } = new FormalArmyWorldMotion();
@@ -207,36 +212,25 @@ namespace XianXia.Core.World.Strategic
         }
 
         public IReadOnlyList<ulong> MemberCharacterIds =>
-            _memberCharacterIdsView ?? (_memberCharacterIdsView = _memberCharacterIds.AsReadOnly());
+            _squad != null ? _squad.MemberCharacterIds : Array.Empty<ulong>();
 
-        internal void ReplaceMembers(IReadOnlyList<ulong> memberIds)
+        internal void BindSquad(SquadState squad)
         {
-            _memberCharacterIds.Clear();
-            if (memberIds == null)
-                return;
-            for (var i = 0; i < memberIds.Count; i++)
-                _memberCharacterIds.Add(memberIds[i]);
-        }
-
-        internal void AddMember(EntityId memberId)
-        {
-            if (memberId.IsNone || _memberCharacterIds.Contains(memberId.Value))
-                return;
-            _memberCharacterIds.Add(memberId.Value);
-        }
-
-        internal void RemoveMember(EntityId memberId)
-        {
-            if (memberId.IsNone)
-                return;
-            _memberCharacterIds.Remove(memberId.Value);
+            _squad = squad;
+            SquadId = squad?.SquadId ?? string.Empty;
+            if (squad != null)
+            {
+                squad.LegacyArmyId = ArmyId;
+                if (!_leaderCharacterId.IsNone) squad.LeaderCharacterId = _leaderCharacterId;
+                else _leaderCharacterId = squad.LeaderCharacterId;
+            }
         }
 
         public bool ContainsMember(EntityId characterId)
         {
             if (characterId.IsNone)
                 return false;
-            return _memberCharacterIds.Contains(characterId.Value);
+            return _squad != null && _squad.Contains(characterId);
         }
     }
 }

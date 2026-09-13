@@ -1,5 +1,7 @@
 # ADR-0025：战略空间模型 = HexGrid
 
+> **2026-09-12 边界：** HexGrid 保留战略叠加／摘要；不得反推 Continuous Surface 的河桥通行、人物精确位置、SiteCore 实际边界或 Encounter 裁切。见 [ADR-0032](ADR-0032-sitecore-administrative-and-construction-range.md)。
+
 > **2026-08-30 · [ADR-0027](ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md) 扩展（PlayerParty 连续位置真源 + WorldSite LocalMap↔footprint 映射），不推翻 HexGrid 拓扑。**
 >
 > **2026-09-09 · [ADR-0031](ADR-0031-continuous-outdoor-world-surface-architecture.md) 关系澄清：** Hex 继续是 Strategic / Simulation authority；Continuous `WorldSpaceId + WorldPosition` 是 Future Outdoor Physical authority。Strategic Hex 不等于 Surface Chunk，两套 grid 不要求对齐。
@@ -61,5 +63,5 @@ Fog of War、领土染色、AI 战争节奏、贸易、外交 UI、最终地形�
 4. **Editor WYSIWYG：** `HexWorldLayoutShared` 必须镜像 Runtime `HexWorldLayout`（Odd-R, Pointy-Top）。
 5. Content JSON **≠** Snapshot；Editor 不编辑 SaveGame 动态状态。
 
-详见 [158](158-hex-world-content-authoring-pipeline-2026-08-23.md)。
+详见 [158](../158-hex-world-content-authoring-pipeline-2026-08-23.md)。
 

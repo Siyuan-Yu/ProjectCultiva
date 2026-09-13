@@ -1,8 +1,8 @@
 # 实体与能力模块模型
 
-> 状态：**已冻结（对齐 Architecture Freeze v0.2）**；**2026-08-22 修士 Army 见 ADR-0024** | 优先级：P0 | 最后更新：2026-08-22  
-> 依赖：`33-architecture-core-rules-freeze-v0.2.md`、`03-glossary.md`、`27`、`28`、`36`  
-> 被引用：`35`、`2C`、`2E`、`32`、PlayerAgency、Core M1  
+> 状态：**已冻结并按 ADR-0032～0034 定向补充**；新生命周期实现待迁移／核查 | 优先级：P0 | 最后更新：2026-09-12
+> 依赖：`33-architecture-core-rules-freeze-v0.2.md`、`03-glossary.md`、`27`、`28`、`36`
+> 被引用：`35`、`2C`、`2E`、`32`、PlayerAgency、Core M1
 > **本阶段不写实现代码。**
 
 ## 1. 目标
@@ -18,6 +18,13 @@
 
 ## 3. 顶层领域对象
 
+### 3.0 2026-09-12 身份与空间边界
+
+- `WorldSite` 拥有稳定身份和一个 `SiteCore`；Owner／覆盖变化不替换 Site 或实体建筑。理论范围与每点唯一的实际行政控制分离。
+- Character 的连续世界位置是物理真源；CurrentSite 由位置和当前有效控制解析。HomeSite、Faction、Party 和 CurrentSite 不互相覆盖。
+- 临时 Encounter 持有参与者自己的战前世界锚点与本场战术坐标。离场只恢复锚点坐标，Character／Building 的当前生命、库存、关系、Owner 和损伤继续沿原实体身份保存。
+- 飞舟运输同一批真实 Character，不复制乘员实体；WorldMap 和战术场景只提供观察／执行上下文。
+
 | 类型 | 职责 |
 |---|---|
 | `Character` | 可行动的个体（玩家修士、关键 NPC、已实体化的关注者） |
@@ -31,7 +38,7 @@
 |---|---|
 | `MortalPopulation` / `SettlementPopulation` | 第四层：凡人／据点人口统计 |
 | `ArmyGroup` | **仅**凡人／大规模非修士军队的群体数据（ADR-0008 收窄）；**不是**修士战略 Army |
-| `Party` | 队伍编组（可跨区域；Legacy／待与正式 Army 模型对齐） |
+| `Party` | 最多六人的真实同行编组；一个 Active，其余 AI；不同于 FormalArmy |
 
 > **2026-08-22（ADR-0024）：** `CultivatorPopulation` **不再**作为正式修士数量或战争真源。所有修士 = 持久 `Character` + LOD 模拟。修士战略 Army = `MemberCharacterIDs[]` 载体，见 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)。`LocalMap Actor` 只是 Hot 层表现，≠ Character 生命周期。
 
@@ -111,9 +118,9 @@ Removed  // 独立，≠ Dead
 
 ### 5.5 死亡与 TemporaryProtection
 
-- 默认 `DeathProtectionMode = None`。  
-- `IsStoryImportant` **不**推导 `CannotDie`。  
-- `TemporaryProtection` 须含：原因、剧情阶段、解除条件、致命替代后果。  
+- 默认 `DeathProtectionMode = None`。
+- `IsStoryImportant` **不**推导 `CannotDie`。
+- `TemporaryProtection` 须含：原因、剧情阶段、解除条件、致命替代后果。
 - 详见 `33` v0.2 §13、ADR-0010／0019。
 
 ### 5.6 开局 Membership（v0.2）
@@ -158,8 +165,8 @@ PlayerAgency
 
 **分离：** DirectControl ≠ FocusCharacter ≠ FactionLeader ≠ PlayerIdentity。
 
-Focus 不可用（重伤／被俘／失踪／暂不可行动）→ 置 `FocusCharacterUnavailable`，**不立即改变玩家身份**。  
-有同行／代理／合法继承 → 继续；否则早期 GameOver，后期继承流程（ADR-0020）。
+Focus 不可用（重伤／被俘／失踪／暂不可行动）→ 置 `FocusCharacterUnavailable`，**不立即改变玩家身份**。
+当前 Active 失能时按 PlayerParty 固定顺序自动切换到下一名可控成员。只有 Party 全员真正死亡后，才从玩家势力中选择存活、可主控且按既有战力口径最强者，并在其自己的位置继续。全员弥留但仍有生者不得触发势力继承；其败退／待恢复安全出口的现有实现需定向核查。玩家势力无人时的终局延期，不在此处补 GameOver 或复活。
 
 失去势力领导权：去掉势力管理，保留人物控制；旧势力 AI 继续。
 
@@ -171,12 +178,14 @@ Focus 不可用（重伤／被俘／失踪／暂不可行动）→ 置 `FocusCha
 
 | 层 | 对象 | 模拟 |
 |---|---|---|
-| 1 | 玩家直接控制约 30～50 名修士 | 完整 Character；Hot LOD |
+| 1 | 当前 PlayerParty 与镜头内关键修士 | 完整 Character；Hot LOD；玩家同一时刻只直接控制一个 Active |
 | 2 | 主管、商人、宗门人物、重要敌人等 | 完整 Character；Hot / Strategic LOD |
 | 3 | **所有其他修士** | **持久 Character**；Cold / Strategic LOD（**不是** `CultivatorPopulation` 匿名计数） |
 | 4 | 凡人群体 | `MortalPopulation` / `SettlementPopulation` 统计 |
 
 > **superseded：** 旧「第三层 = `CultivatorPopulation` 聚合、不模拟每人位置」见 ADR-0024。
+
+“约 30～50 名核心修士”表示可被玩家长期管理、培养和纳入 LOD 的角色规模方向，不表示可同时直接控制 30～50 人。
 
 ### 6.1 禁止
 
@@ -243,7 +252,8 @@ Unity 层可维护 `EntityId → GameObject` 的表现映射表，**单向**，�
 - [ ] 实体化时从群体抽样属性的算法
 - [ ] ArmyGroup 与视觉代理数量上限的具体数
 - [ ] TemporaryProtection 替代后果的第一批事件模板
-- [ ] 后期继承流程的具体 UI／候选人规则（形状已冻：有继承则继续）
+- [x] 继承原则：Active 按 Party 固定顺序自动接替；仅 Party 全员真正死亡后自动选择玩家势力最强合格角色，并在继承者原位置继续
+- [ ] 全员弥留但未死亡时，现有败退／待恢复安全出口如何接线；空势力终局明确延期
 - [ ] Party 与 ControlledEntityIds 字段表
 
 ## 10. 验证方式（实现期）

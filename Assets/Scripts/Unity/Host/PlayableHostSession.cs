@@ -8,6 +8,7 @@ using XianXia.Core.Persistence;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
+using XianXia.Core.World.Strategic;
 using XianXia.Data.Bootstrap;
 using XianXia.Data.Content;
 using XianXia.Data.Serialization;
@@ -61,25 +62,38 @@ namespace XianXia.Unity.Host
 
         /// <summary>
         /// Phase 5R-B6.5-B：ManualPaused = 用户 Space／Pause-UI 可自由切换的层。
-        /// Travel Order（PlayerParty／FormalArmy）绝不修改它；WorldMap open（false→true）强制置 true；
-        /// WorldMap→LocalMap 不修改；reopen 再次强制 true。
+        /// Travel Order（PlayerParty／FormalArmy）与 WorldMap／普通面板开关绝不修改它；
+        /// 临时窗口使用具名 Modal ownership，关闭时只释放自己的 ownership。
         /// </summary>
         public bool ManualPaused { get; set; } = true;
 
-        int _modalHardPauseDepth;
+        readonly HashSet<string> _modalPauseOwners = new HashSet<string>(StringComparer.Ordinal);
+        int _legacyModalPauseDepth;
 
         /// <summary>
         /// Modal／Popup 强制暂停层：与 ManualPaused 独立分层。Modal 打开期间 EffectivePaused 恒 true，
         /// Space／Pause-UI 不能解除；Modal 关闭（PopModalPause）后恢复到底层 ManualPaused 状态。
         /// </summary>
-        public bool ModalHardPaused => _modalHardPauseDepth > 0;
+        public bool ModalHardPaused => _legacyModalPauseDepth > 0 || _modalPauseOwners.Count > 0;
 
-        public void PushModalPause() => _modalHardPauseDepth++;
+        public void PushModalPause() => _legacyModalPauseDepth++;
 
         public void PopModalPause()
         {
-            if (_modalHardPauseDepth > 0)
-                _modalHardPauseDepth--;
+            if (_legacyModalPauseDepth > 0)
+                _legacyModalPauseDepth--;
+        }
+
+        public void AcquireModalPause(string owner)
+        {
+            if (!string.IsNullOrWhiteSpace(owner))
+                _modalPauseOwners.Add(owner);
+        }
+
+        public void ReleaseModalPause(string owner)
+        {
+            if (!string.IsNullOrWhiteSpace(owner))
+                _modalPauseOwners.Remove(owner);
         }
 
         public string LastError { get; private set; } = string.Empty;
@@ -138,12 +152,16 @@ namespace XianXia.Unity.Host
             }
 
             World = started.Value.World;
+            PlayerParty.BindWorld(World);
             Loop = started.Value.Loop;
             Port = started.Value.Port;
             Registry = started.Value.Registry;
             LoadedContent = started.Value.LoadedContent;
             ScheduleDefinitionId = started.Value.ScheduleDefinitionId;
             CharacterIds = started.Value.CharacterIds;
+            if (CharacterIds.Count > 0)
+                PlayerParty.TryInitialize(CharacterIds[0], out _);
+            SquadMembershipService.EnsureSingletonsForUnassignedCharacters(World);
             RecruitableNpcId = started.Value.RecruitableNpcId;
             ViewableEntityIds = BuildViewableEntityIds(World, CharacterIds, RecruitableNpcId);
             // Phase 5R-B3B.3：记录本次启动的初始 Context。若初始 Context 在 WorldSite（ApplyOpening
@@ -170,6 +188,9 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            // Dynamic character bootstrap paths call this after registration; establish singleton
+            // squads here once, never from rendering/visibility queries or per-frame simulation.
+            SquadMembershipService.EnsureSingletonsForUnassignedCharacters(World);
             ViewableEntityIds = BuildViewableEntityIds(World, CharacterIds, RecruitableNpcId);
         }
 
@@ -189,7 +210,8 @@ namespace XianXia.Unity.Host
             InitialBootstrapSiteId = string.Empty;
             InitialBootstrapPending = false;
             ManualPaused = true;
-            _modalHardPauseDepth = 0;
+            _legacyModalPauseDepth = 0;
+            _modalPauseOwners.Clear();
         }
 
         public Result TickOnce()
@@ -250,6 +272,7 @@ namespace XianXia.Unity.Host
             }
 
             World = restored.Value.world;
+            PlayerParty.BindWorld(World);
             PendingRestoredStrategicSnapshot = parsed.Value.Strategic;
             Loop = restored.Value.loop;
             Port = new PlayerInputPort(Loop);
@@ -259,14 +282,14 @@ namespace XianXia.Unity.Host
             PlayerPartySnapshotRestore.Apply(
                 World,
                 PlayerParty,
-                parsed.Value.Strategic?.PlayerParty);
+                parsed.Value.Strategic?.PlayerParty,
+                parsed.Value.Strategic?.ControlledSquadId);
             ScheduleDefinitionId = CharacterIds.Count > 0 &&
                                    World.Entities.TryGet(CharacterIds[0], out var first) &&
                                    first.TryGet<XianXia.Core.Schedule.ScheduleComponent>(out var schedule)
                 ? schedule.DefinitionId
                 : ScheduleDefinitionId;
             LastError = string.Empty;
-            IsPaused = true;
             return Result.Success();
         }
 

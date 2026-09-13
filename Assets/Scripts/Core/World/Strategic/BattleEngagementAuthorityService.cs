@@ -301,17 +301,20 @@ namespace XianXia.Core.World.Strategic
             string offerId)
         {
             var snap = world.Strategic.Participants;
-            snap.OfferId = offerId ?? string.Empty;
-            snap.AttackerArmyId = engagement.AttackerFormalArmyId;
-            snap.DefenderArmyId = engagement.DefenderFormalArmyId;
-            snap.PrimaryEnemyStackId = primaryEnemyStack?.Id ?? string.Empty;
-
             BattleParticipantGatheringService.ApplyLockedParticipantsToSnapshot(
                 world,
                 engagement,
                 snap,
                 primaryEnemyStack,
                 seedMandatoryAttackers);
+
+            // ApplyLockedParticipantsToSnapshot starts with snap.Clear(). Bind lifecycle
+            // identity only after that reset, otherwise records survive while OfferId/ArmyIds
+            // are silently erased and PostBattle cannot settle the same encounter.
+            snap.OfferId = offerId ?? string.Empty;
+            snap.AttackerArmyId = engagement.AttackerFormalArmyId;
+            snap.DefenderArmyId = engagement.DefenderFormalArmyId;
+            snap.PrimaryEnemyStackId = primaryEnemyStack?.Id ?? string.Empty;
 
             BattleOfferService.PromoteInRangeIncapacitatedToMandatory(world, snap);
         }

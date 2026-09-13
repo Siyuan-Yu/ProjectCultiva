@@ -30,6 +30,21 @@ namespace XianXia.Core.World.Strategic
         /// </summary>
         public bool UsesContinuousOutdoorSurface { get; set; }
 
+        /// <summary>True only for a Site created during play and therefore persisted as identity.</summary>
+        public bool IsRuntimeCreated { get; set; }
+        /// <summary>The one control asset that serves as this Site's core.</summary>
+        public string CoreAssetId { get; set; } = string.Empty;
+        public string CoreSurfaceId { get; set; } = string.Empty;
+        public bool HasCoreWorldPosition { get; set; }
+        public float CoreWorldX { get; set; }
+        public float CoreWorldY { get; set; }
+        public int CoreLevel { get; set; }
+        public float CoreRangeWidth { get; set; }
+        public float CoreRangeHeight { get; set; }
+        /// <summary>Inactive retains historical identity but provides no management/control.</summary>
+        public bool IsCoreActive { get; set; } = true;
+        public bool CoreIsRemovable { get; set; }
+
         public HexCoord AnchorHex { get; set; }
 
         /// <summary>
@@ -133,5 +148,9 @@ namespace XianXia.Core.World.Strategic
 
             return AnchorHex == coord;
         }
+
+        public bool HasContinuousCore =>
+            !string.IsNullOrWhiteSpace(CoreSurfaceId) && HasCoreWorldPosition &&
+            CoreRangeWidth > 0f && CoreRangeHeight > 0f;
     }
 }

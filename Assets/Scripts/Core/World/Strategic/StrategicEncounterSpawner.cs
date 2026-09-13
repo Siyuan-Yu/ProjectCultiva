@@ -580,6 +580,50 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
+        /// Consumes a fresh WORLD_COMBAT plan whose physical presentation is the active
+        /// Continuous Outdoor surface. Every combatant is an existing frozen Character;
+        /// this path deliberately performs no LocalMap placement and never creates fallback NPCs.
+        /// </summary>
+        public static Result ApplyPendingContinuousWorldCombat(
+            SimulationWorld world,
+            ContinuousManualCombatPresentationState preparedParticipants)
+        {
+            if (world?.Strategic == null || preparedParticipants == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "Continuous battle assembly args required.");
+            var rt = world.Strategic.Encounter;
+            if (rt == null || !rt.SpawnOnNextMapLoad)
+                return Result.Failure(ErrorCode.InvalidOperation, "Continuous battle spawn plan is not pending.");
+
+            var expected = 0;
+            var enemies = 0;
+            var snap = world.Strategic.Participants;
+            var actual = ActualBattleParticipantQuery.Collect(snap);
+            for (var i = 0; i < actual.Count; i++)
+            {
+                var participant = actual[i];
+                var rec = participant.Record;
+                expected++;
+                if (!preparedParticipants.Contains(rec.EntityId) ||
+                    !world.Entities.TryGet(rec.EntityId, out var entity) || entity == null ||
+                    CombatLifeStateService.ShouldHideFromSpawn(entity))
+                    return Result.Failure(
+                        ErrorCode.NotFound,
+                        "Frozen Continuous participant is missing: " + rec.EntityId.Value);
+                if (participant.IsEnemy)
+                    enemies++;
+            }
+            if (expected == 0 || enemies == 0 || preparedParticipants.ParticipantIds.Count != expected)
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "Continuous participant set is incomplete (expected=" + expected +
+                    ", prepared=" + preparedParticipants.ParticipantIds.Count + ", enemies=" + enemies + ").");
+
+            rt.SpawnOnNextMapLoad = false;
+            SyncArmyStackMemberCount(world);
+            return Result.Success();
+        }
+
+        /// <summary>
         /// 自动战未�?LocalMap：在接战点立刻刷弥留／尸体实体并�?WorldPresence�?
         /// 大地图个体头像与进图再出来一致�?
         /// </summary>

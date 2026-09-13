@@ -103,11 +103,13 @@ namespace XianXia.Core.World.Strategic
         {
             if (snap == null || partyMembers == null || partyMembers.Count == 0)
                 return false;
-            for (var i = 0; i < snap.Records.Count; i++)
+            var actual = ActualBattleParticipantQuery.Collect(snap);
+            for (var i = 0; i < actual.Count; i++)
             {
-                var id = snap.Records[i].EntityId;
-                if (id.IsNone)
+                var participant = actual[i];
+                if (!participant.IsFriendly)
                     continue;
+                var id = participant.EntityId;
                 for (var j = 0; j < partyMembers.Count; j++)
                 {
                     if (id == partyMembers[j])

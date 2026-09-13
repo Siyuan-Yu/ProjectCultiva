@@ -1,5 +1,7 @@
 # 术语表
 
+> **CW-U0 术语：行动小队（Squad）** 是正常活动人物唯一成员组织，单人也是小队；成员各有真实位置。PlayerParty 最终是玩家小队／Active 控制投影；FormalArmy 是旧迁移适配。Encounter 固定范围、初始双方与未参战候选分离，定义见 [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md)。设计确认，运行待迁移。
+
 > 状态：持续维护 | 最后更新：2026-09-09
 >
 > 规则：**代码标识符、配置表字段、文档用词必须与本表一致。**
@@ -111,7 +113,9 @@
 | 区域地图（旧称） | RegionMap | 同 Region | 兼容旧文档 |
 | 实例地图（旧称） | InstanceMap | 同 LocalMap | 兼容旧文档 |
 | 路线 | Route | 跨 Region 旅行路径 | 非瞬移 |
-| 遭遇地图 | EncounterMap | 途中临时地图 | 可视为临时 LocalMap |
+| 同源独立遭遇 | Encounter | 玩家实际参与的新战斗所用临时独立空间；取接战地点当前关键地形／建筑 | 首击前统一确认；主世界停表；见 23／ADR-0033 |
+| 战术临时坐标 | EncounterLocalPosition | 只在本场独立遭遇中使用的战术位置 | 不提交为主世界旅行；结束后释放 |
+| 战前世界锚点 | PreEncounterWorldAnchor | 参与者为本场行动前的 `WorldSpaceId +` 精确世界位置 | 结束时各自回归；只恢复坐标，不回滚战果 |
 | 城市区域 | CityRegion | Region 的玩法称呼 | 对齐 Region |
 | 格子 | Tile | 最小逻辑空间单位 | |
 | 区域出口 | RegionExit | Region 边缘／Route 端点 | |
@@ -122,9 +126,9 @@
 | 玩家冒险队 | PlayerParty | 当前玩家本人所在少人数 RPG 队：1 Active + Followers；上限 6 | **≠ FormalArmy**；见 [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) |
 | 当前主控角色 | ActiveControlledCharacter | 任意时刻玩家唯一可直接即时控制的 Character | 对齐 DirectControl；切换仅限 Party 成员（Succession 例外） |
 | 跟随者 | Follower | PlayerParty 内非 Active 成员；AI 控制 | Follow ≡ 加入 PlayerParty |
-| 后台角色 | Background Character | 非 Party、非 FormalArmy 的我方角色 | 可后台旅行／战斗；WorldMap 不常驻头像；无 Capture 权 |
+| 后台角色 | Background Character | 非 Party、非 FormalArmy 的真实角色 | 可后台旅行／战斗；WorldMap 不常驻可手操头像；组织类型本身不决定政治接管资格 |
 | 角色方针 | Character Policy | 非 Active 的长期权限／行为倾向（非即时命令） | 如 AllowLeaveFactionTerritory；见 2K |
-| 派生位置格 | DerivedPresenceHex | `CanonicalWorldSurfacePosition → WorldToHex` 的**派生查询结果**（不落盘为真源；Site 内经 WorldSiteSpatialMapping） | Site Context 内 ∈ Footprint；ADR-0027 |
+| 派生位置格 | DerivedPresenceHex | `CanonicalWorldSurfacePosition → WorldToHex` 的**派生战略查询结果**，不落盘为位置真源 | 普通户外不经 Site LocalMap mapping，也不 clamp 到 Site Footprint；见 2K／ADR-0031 |
 | 连续 Hex 世界 | Continuous Hex World | HexWorld=唯一世界拓扑；LocalMap=近景；逻辑连续旅行 | 非必须 Unity 无缝开放世界 |
 | 连续世界坐标 | CanonicalWorldSurfacePosition | PlayerParty 在连续世界表面的**唯一物理位置真源**（Wilderness 与 WorldSite 内统一） | `DerivedPresenceHex` 为**派生**；`CurrentHex` 为混合语义（PhysicalDerivedHex／RouteCommittedHex／CurrentWildernessHex，5R-C 分类）；LocalPosition 非持久真源；见 2K §5.8／ADR-0027 |
 | 世界表面（讨论概念） | World Surface | 长期可能承载 Ground／Flight 连续室外移动的统一二维 Outdoor World Space | **DISCUSSION / NOT IMPLEMENTED**；不是当前 Runtime 类型，不等于已实现 Streaming；见 203 |
@@ -136,19 +140,23 @@
 | 世界定位 | WorldLocation | `AtWorldSite{SiteId}` \| `AtWorldPosition{ContinuousPosition}` | 与 MovementState 分离；Party 共用一个 |
 | 移动状态 | MovementState | `Idle` \| `AutoTravel` | 与 WorldLocation 正交；见 2K §5.8 |
 | 地点定位 | WorldSite Location Context | 全体 WorldSite（1-Hex／Multi）站内 = `AtSite(SiteId)`；WorldMap 投影 = **CanonicalWorldSurfacePosition**（SiteSpatialMapping 派生，不跳 Anchor） | ADR-0027 取代旧 Aggregated 固定 PresenceHex 投影 |
-| 精确世界目的地 | PreciseWorldDestination | ~~WorldMap 点击像素／精确连续坐标作命令目标~~ | **FORBIDDEN（永久）**；WorldMap 命令精度仅 Hex／WorldSite |
+| 连续世界目标 | PreciseWorldDestination / Continuous Destination | 有效地面点击经统一 WorldMap→Surface 投影得到的 `WorldPosition` 目标 | 复用既有位置真源；同 Hex 不同点击可为不同目标；不是第二套坐标 |
 | 世界存在 | World Presence | Character／Party／Army 在 HexWorld 上的存在状态 | Party／Background／Army 分层 |
 | 自动旅行 | Auto Travel | WorldMap 选 **Hex／WorldSite** 后进入 `MovementState.AutoTravel`；以 Continuous WorldPosition 真实移动（非传送） | Phase 2C 契约（Party）；见 2K §5.8 |
-| 手动介入 | Manual Intervention | Party 距 BattleHex ≤1 时亲自参战；不接管 Army | 仅控 Active；见 2K |
-| 继承控制 | Succession | Party 全灭后从己方 Site 合格角色重建 Party／Active | 非默认 Game Over；细则见 2K §4 |
+| 手动介入 | Manual Intervention | 玩家实际参与现场遭遇或按有限关系／守备规则介入 | 不由 `HexDistance ≤1` 或 FormalArmy 类型授予；见 23 |
+| 队内自动接替 | Active Replacement | 当前 Active 失能时按 Party 固定顺序切换到下一名可控成员 | 不按战力排序，不等同势力继承 |
+| 势力继承控制 | Faction Succession | 仅 Party 全员真正死亡后，自动选择玩家势力存活可控且战力最高者 | 在继承者原位置继续；空势力终局延期；见 2K §4 |
 | 自动结算 | AutoResolve | 战力悬殊或玩家选择跳过时进行的战斗结果计算 | 战略层瞬时；**不**额外推进 WorldTick；ADR-0023 |
 | 暂停即时 | RealTimeWithPause | 战术层时间可暂停下令 | 简称 RTwP；战略冻结时战术暂停仍可用 |
-| 接战弹窗 | BattleOffer | 战略相遇后的自动／手动选择 | 产生即冻结 WorldTick |
-| 模态遭遇 | ModalEncounter | 手动战略战：锁 Encounter LocalMap | 禁切图／禁战略派参战者 |
+| 遭遇准备窗口 | Encounter Preparation / BattleOffer | 新玩家实战在首击／首发弹道前的强制暂停确认；可合并适用建筑战争后果 | 不等于普通可关闭 AutoPause；敌方袭击成立后不能靠关闭免战 |
+| 模态遭遇 | Modal Encounter | 同源独立遭遇从准备、战斗、有限收尾到唯一结算的生命周期 | 主世界冻结；结束各回战前锚点并保留战果 |
 | 战略时钟冻结 | StrategicClockFreeze | Offer／Manual／PostBattle 期间不推进 WorldTick | ADR-0023；≠ 第二套世界时间 |
-| 战后阶段 | PostBattle | 清场后至点「结束战斗」前；可继续场景操作，WorldTick 仍冻结 | ADR-0023 |
-| 参战快照 | BattleParticipantSnapshot | Offer 时强制／可选／敌军与 PreBattle 位置 | ADR-0023 |
-| 支援距离 | ReinforcementRange | 大地图世界坐标半径（默认 **0.25**；可调滑块） | ADR-0023／[147](../40-process/147-battlefield-linger-no-teleport-2026-08-21.md) |
+| 胜利可结束 | Victory Available | 正式接管完成或本次有效敌人被打倒后取得的结束资格 | 不是最终结算；可继续场内实际接管 |
+| 一次收尾 | One Tail Phase | 最终结算前最多一次、先暂停告知的有限续战 | 不满血重开、不递归拉人；状态须可保存 |
+| 最终结算 | Final Encounter Settlement | 唯一提交奖励和战果并准备回归的阶段 | 暂停局部时间；不得重复奖励或长期经营 |
+| 战后阶段 | PostBattle（Legacy） | ADR-0023 旧称；当前应区分胜利可结束、一次收尾、最终结算 | 不能再用一个状态混合三种职责 |
+| 参战状态快照 | Encounter Participation State | 初始同行／正式守备／有限关系候选的判定、在途、到场与各自战前锚点 | 保存事实，不恢复整份战前状态；读档不得重抽 |
+| 援军候选范围 | Reinforcement Candidate Range | 开战时有限真实周边候选的内容／调参范围 | 不用固定 0.25 当永久规则；需状态、职责、风险和可达性判断 |
 | 接战队列 | BattleInterruptQueue | 同 Tick 多接战确定性串行 | |
 | 业力／业障 | Karma | 不当行为积累的长期因果负担 | 按情境判定，**不是单纯杀人罪恶值**；影响道心、气运、突破与渡劫 |
 | 功德 | Merit | 护民、正当护持等行为积累的正面因果 | 与业障如何对冲**待确定**；本阶段只记方向 |
@@ -207,7 +215,7 @@
 | 贡赋 | Tribute | VassalObligation 中的资源贡品 | 使用 Faction Resource Wallet |
 | 独立倾向 | IndependenceDesire | 附庸的独立意愿 | 公式未定 |
 | 战争（实体） | War | 独立战争对象，多参与方 | 军事占点前提；非仅 stance |
-| 占领目标 | CaptureObjective | 可占领 Node 的核心建筑／要点 | 全部完成才 Capture；generalize 自 ControlCore |
+| 占领目标 | CaptureObjective | **Legacy API 名称**；当前指围绕唯一 SiteCore 的攻破与正式接管交互 | V1 不表示同城多个核心，也不要求“全部目标完成”才获得结束资格；只有实际接管改变 Owner |
 | 占领区 | CaptureZone | 核心 HP=0 后需持续站立占领的区域 | 可被打断 |
 | 无地势力 | LandlessFaction | 失去全部 Node 但未灭亡的 Faction | 仍可活动、战斗、夺地 |
 | 势力定义 | FactionDefinition | 势力静态定义（ID、名、类型、视觉） | 不含运行时状态 |
@@ -232,13 +240,24 @@
 
 ## Pure Hex 战略空间（2026-08-24 · 真源 [2J](../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)）
 
+> 2026-09-12：本节 Hex 术语只表示战略叠加／摘要；普通户外物理空间与 SiteCore 行政范围分别以 ADR-0031／0032 为准。
+
+| 中文 | English / Code | 定义 | 边界 |
+|---|---|---|---|
+| 连续户外世界表面 | Continuous Outdoor World Surface | 一块大陆普通户外共享的连续物理空间 | Site／Hex／Chunk 边界不切探索场景 |
+| 世界地点 | WorldSite | 连续表面上的稳定行政地点身份 | V1 一个 SiteCore；不是人物位置真源或一张户外 LocalMap |
+| 地点核心 | SiteCore | WorldSite 唯一行政核心；预设议政厅或玩家建立的势力旗 | 议政厅不可拆但可接管；另立旗产生新 Site |
+| 行政／建设范围 | Site Administrative and Build Range | SiteCore 等级产生的同一理论管辖与建设许可区域 | 可重叠；建筑再按自身地形／占地规则判断 |
+| 实际行政控制 | Effective Site Administration | 每个位置／建筑唯一解析出的当前管理 Site／Faction | 扩张不得追溯夺取他方既有控制 |
+| 飞舟 | Airship | 运输真实人物的空中载具 | 不沿地面过桥；无宣战、占领或地图移动特权 |
+
 | 中文 | Code | 含义 | 备注 |
 |---|---|---|---|
 | 控制资产 | Control Asset | 对 Hex 产生政治控制的因果真源 | 有 Owner 的 Fixed WorldSite 或存活 FactionFlag；见 2J |
 | 阵营旗 | FactionFlag | Anchor+完整一环的可攻击、非 Character Control Asset | 有 HP；需 War；不进入参战者快照 |
-| 建立顺序 | EstablishedOrder | Control Asset 的全局稳定先后序 | 数值越小越早；Capture 不变；first claim tie-break |
-| 名义控制范围 | Nominal Control Range | 某 Control Asset 未考虑早到资产时的全部候选 Hex | WorldSite=Footprint+一环；Flag=Anchor+一环 |
-| 有效控制范围 | Effective Control Range | 按 EstablishedOrder first claim 后实际获得的 Hex | 可从全部 Control Asset 确定性重建 |
+| 建立顺序 | EstablishedOrder | 2026-09-06 Control Asset V1 的历史全局顺序字段 | 可用于旧档迁移；不得让旧核心升级按创建顺序追溯抢占既得控制 |
+| 理论核心范围 | Nominal SiteCore Range | SiteCore 当前等级产生、尚未解析重叠的行政／建设候选区域 | Footprint+一环只是旧 V1 实现；最终等级范围为后续内容参数 |
+| 有效控制范围 | Effective Control Range | 应用既得控制和稳定交接后，实际归某 Site／Faction 管理的区域 | 每个位置／建筑唯一；同势力 Union 不重复计数 |
 | Hex 领土 | Hex Territory | 单个 Hex 当前由哪个 **正式 Territorial Faction** 政治控制 | `ControlFactionId` 是 Control Asset Resolver 的派生投影，不是因果真源；见 2J |
 | 辖区 | TerritoryRegion | 绑定 Primary WorldSite 的兼容地图组织单元 | Runtime `Hexes[]` 由 Control Asset Resolver 重建；不是政治真源 |
 | 地点足迹 | WorldSite Strategic Footprint | WorldSite 在战略地图上占用的 Hex 集合 | `FootprintHexes[]`；与 Territory 严格分离，且不等于 Exact Physical Boundary；见 ADR-0031 |
@@ -267,7 +286,8 @@
 | 私藏物 | Contraband | 未上报的私有物资 | 被搜出则没收 |
 | 藏匿点 | Stash | 存放私藏物的地点 | 属性为容量与隐蔽度 |
 | 敛息／敛息草 | BreathConcealment | 短时间隐藏修为气息的资源或手段 | 非永久；需持续采集；炼气后隐藏身份的核心工具 |
-| 控制核心 | ControlCore | LocalMap 层据点控制权所系的核心建筑（Prototype） | 如主管府；**正式占点** generalize 为 CaptureObjective |
+| 地点核心／控制核心 | SiteCore / ControlCore | 一个 WorldSite 唯一的行政核心；预设议政厅或创建新 Site 的旗 | 议政厅不可拆、可升级／接管；防御击破不等于删除 |
+| 接管目标 | CaptureObjective（Legacy API name） | 围绕唯一 SiteCore 的攻破与正式接管交互 | V1 不表示同城多个核心全做完；只有实际接管改变 Owner |
 | 斩首夺权 | DecapitationCapture | 直接攻击控制核心的占领方式 | 快，危险 |
 | 学校／学塾 | Academy | 定期刷新人才候选的领地建筑 | 约每 2～3 游戏月；可收弟子或任命管事 |
 | 管事 | Steward | 负责凡人治理的任命角色 | 不要求修炼天赋；与开局“管事弟子”不同，此处指玩家任命的治理职 |

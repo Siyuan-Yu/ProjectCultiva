@@ -17,6 +17,12 @@ namespace XianXia.Data.Content
         public string Description { get; set; } = string.Empty;
         public bool UnlockedByDefault { get; set; }
         public string PlacementKind { get; set; } = string.Empty;
+        public bool CreatesWorldSite { get; set; }
+        public string CreatedSiteName { get; set; } = string.Empty;
+        public string CreatedSiteType { get; set; } = string.Empty;
+        public int InitialSiteLevel { get; set; }
+        public float SiteRangeWidth { get; set; }
+        public float SiteRangeHeight { get; set; }
         public List<BuildingMaterialCostDefinition> Costs { get; set; } =
             new List<BuildingMaterialCostDefinition>();
         public float DismantleRefundRate { get; set; }

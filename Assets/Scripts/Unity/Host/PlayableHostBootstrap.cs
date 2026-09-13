@@ -1253,7 +1253,6 @@ namespace XianXia.Unity.Host
                 return;
 
             HostInputGate.Clear();
-            _session.IsPaused = false;
 
             var cam = Camera.main != null ? Camera.main : Object.FindObjectOfType<Camera>();
             if (selectionController != null && entityViewSpawner != null)
@@ -1343,6 +1342,8 @@ namespace XianXia.Unity.Host
                 constructionPanel.ClearSessionState();
             if (worldMapPanel != null)
                 worldMapPanel.ClearSessionState();
+            if (strategicInterrupt != null)
+                strategicInterrupt.ClearSessionState();
             entityViewSpawner.Clear();
             if (moveController != null)
                 moveController.ResetPresentationMovementState();
@@ -1353,7 +1354,12 @@ namespace XianXia.Unity.Host
                 levelTesterCheatPanel.Bind(this, selectionController);
             eventFeed.Clear();
 
-            ApplyPartyWorldSitePresentation(closeWorldMap: false);
+            var continuousOutdoorRestored = _continuousOutdoorSurfaceRuntime != null &&
+                                            _continuousOutdoorSurfaceRuntime.RebuildAfterWorldRestore();
+            if (continuousOutdoorRestored)
+                RefreshContinuousOutdoorOverlaysOnce();
+            else
+                ApplyPartyWorldSitePresentation(closeWorldMap: false);
 
             RebindHostControlAfterSnapshotRestore();
 
@@ -2290,7 +2296,6 @@ namespace XianXia.Unity.Host
             _session.PreferredMapLayoutId = mapId;
             StrategicClockFreezeService.BeginOrPromote(
                 world, StrategicClockFreezeReason.ManualEncounter);
-            _session.IsPaused = false;
             if (worldMapPanel != null)
                 worldMapPanel.Close();
             ApplyPartyWorldSitePresentation(closeWorldMap: true);
@@ -2568,6 +2573,24 @@ namespace XianXia.Unity.Host
             entityViewSpawner.SpawnMissingVisibleViews(_session);
             entityViewSpawner.PruneHiddenViews(_session);
             entityViewSpawner.SyncLocations(_session);
+        }
+
+        /// <summary>
+        /// Continuous Outdoor WORLD_COMBAT assembly consumes the exact read-only preparation
+        /// produced before declaration. It never invokes the legacy LocalMap spawner.
+        /// </summary>
+        public Result ActivateRealWorldCombatOnCurrentLoadedSurface(
+            ContinuousOutdoorSurfaceRuntime.ManualCombatPreparation preparation)
+        {
+            if (!_session.IsInitialized || entityViewSpawner == null ||
+                _continuousOutdoorSurfaceRuntime == null)
+                return Result.Failure(ErrorCode.InvalidOperation, "Continuous 战斗 Host 尚未就绪。");
+            return _continuousOutdoorSurfaceRuntime.CommitPreparedManualCombat(preparation);
+        }
+
+        public void CompleteContinuousManualCombat(string offerId)
+        {
+            _continuousOutdoorSurfaceRuntime?.CompleteContinuousManualCombat(offerId);
         }
 
         public void StepTick()

@@ -5,6 +5,7 @@ using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Npc;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 
@@ -15,6 +16,7 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostNpcContextMenu : MonoBehaviour
     {
+        const string DismantlePauseOwner = "NpcContext.DismantleConfirm";
         enum Phase
         {
             Closed = 0,
@@ -46,6 +48,7 @@ namespace XianXia.Unity.Host
         string _aggressionAttackerFactionId = string.Empty;
         string _aggressionDefenderFactionId = string.Empty;
         string _dismantleStatus = string.Empty;
+        bool _holdingDismantlePause;
         /// <summary>一次 LocalCharacter 攻击确认的 one-shot token：approach 后重新 classify 时不再二次确认。</summary>
         EntityId _confirmedLocalAttackTargetId = EntityId.None;
         Vector2 _menuScreen;
@@ -174,12 +177,27 @@ namespace XianXia.Unity.Host
             FactionFlagState pickedFlag = null;
             var flagId = string.Empty;
             var continuous = bootstrap.ContinuousOutdoorSurfaceRuntime;
-            var pickedContinuousFlag = continuous != null && continuous.IsActive &&
-                bootstrap.Session.World.Strategic.FactionFlags.TryGetAt(
-                    bootstrap.Session.World.PlayerPartyTravel.CurrentHex, out pickedFlag) &&
-                pickedFlag != null &&
-                HostPresentationSpace.TryRaycastPlane(worldCamera, Input.mousePosition, out var flagWorldPoint) &&
-                HostFactionFlagQuery.TryPickAtWorld(pickedFlag, continuous, flagWorldPoint, out flagId);
+            var pickedContinuousFlag = false;
+            if (continuous != null && continuous.IsActive &&
+                HostPresentationSpace.TryRaycastPlane(
+                    worldCamera, Input.mousePosition, out var flagWorldPoint))
+            {
+                foreach (var pair in bootstrap.Session.World.Strategic.FactionFlags.Flags)
+                {
+                    var candidate = pair.Value;
+                    if (candidate == null ||
+                        (!string.IsNullOrEmpty(candidate.SurfaceId) &&
+                         !string.Equals(candidate.SurfaceId, continuous.ActiveSurfaceId,
+                             System.StringComparison.Ordinal)) ||
+                        !IsContinuousFlagLoaded(candidate, continuous) ||
+                        !HostFactionFlagQuery.TryPickAtWorld(
+                            candidate, continuous, flagWorldPoint, out flagId))
+                        continue;
+                    pickedFlag = candidate;
+                    pickedContinuousFlag = true;
+                    break;
+                }
+            }
             var pickedLegacyFlag = !pickedContinuousFlag &&
                 LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(
                     bootstrap.Session.World, out var localContext) &&
@@ -397,6 +415,20 @@ namespace XianXia.Unity.Host
             TryDismissOnOutsideClick(_menuGuiRect);
         }
 
+        static bool IsContinuousFlagLoaded(
+            FactionFlagState flag, ContinuousOutdoorSurfaceRuntime continuous)
+        {
+            if (flag == null || continuous == null || !continuous.IsActive) return false;
+            var worldX = flag.WorldX;
+            var worldY = flag.WorldY;
+            if (!flag.HasWorldPosition)
+            {
+                if (flag.IsSiteCore) return false;
+                HexMath.ToWorldPosition(flag.AnchorHex, continuous.ActiveHexSize, out worldX, out worldY);
+            }
+            return continuous.IsWorldPositionLoaded(continuous.ActiveSurfaceId, worldX, worldY);
+        }
+
         void DrawDestructibleMenu()
         {
             const float w = 168f;
@@ -471,7 +503,9 @@ namespace XianXia.Unity.Host
                 return;
             }
             var friendly = string.Equals(flag.FactionId, world.Strategic.PlayerFactionId, System.StringComparison.Ordinal);
-            var h = itemH + 54f;
+            var linkedSite = !string.IsNullOrEmpty(flag.SiteId) &&
+                             world.Strategic.Sites.TryGet(flag.SiteId, out var site) ? site : null;
+            var h = itemH + (linkedSite != null ? 100f : 54f);
             var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
             _menuGuiRect = new Rect(guiX, guiY, w, h);
@@ -482,10 +516,20 @@ namespace XianXia.Unity.Host
                 friendly ? "阵营控制建筑" : _targetLabel, _label);
             GUI.Label(new Rect(guiX + 10f, guiY + 27f, w - 20f, 20f),
                 "HP " + flag.CurrentHp + "/" + flag.MaxHp + (friendly ? "（己方）" : string.Empty), _label);
-            if (!friendly && GUI.Button(new Rect(guiX + 8f, guiY + 50f, w - 16f, itemH - 4f),
+            var actionY = guiY + 50f;
+            if (linkedSite != null)
+            {
+                GUI.Label(new Rect(guiX + 10f, actionY, w - 20f, 42f),
+                    linkedSite.DisplayName + " · Lv." + linkedSite.CoreLevel + "\n" +
+                    "范围 " + linkedSite.CoreRangeWidth.ToString("0.#") + "×" +
+                    linkedSite.CoreRangeHeight.ToString("0.#") + " · " +
+                    (linkedSite.IsCoreActive ? "核心有效" : "核心失效"), _label);
+                actionY += 46f;
+            }
+            if (!friendly && GUI.Button(new Rect(guiX + 8f, actionY, w - 16f, itemH - 4f),
                     "攻击阵营旗", _button))
                 BeginFactionFlagAttack();
-            if (friendly && GUI.Button(new Rect(guiX + 8f, guiY + 50f, w - 16f, itemH - 4f),
+            if (friendly && GUI.Button(new Rect(guiX + 8f, actionY, w - 16f, itemH - 4f),
                     "拆除", _button))
                 BeginFactionFlagDismantle();
             TryDismissOnOutsideClick(_menuGuiRect);
@@ -495,8 +539,11 @@ namespace XianXia.Unity.Host
         {
             _dismantleStatus = string.Empty;
             _phase = Phase.DismantleConfirm;
-            if (bootstrap?.Session != null)
-                bootstrap.Session.IsPaused = true;
+            if (!_holdingDismantlePause && bootstrap?.Session != null)
+            {
+                bootstrap.Session.AcquireModalPause(DismantlePauseOwner);
+                _holdingDismantlePause = true;
+            }
         }
 
         void DrawDismantleConfirm()
@@ -880,10 +927,7 @@ namespace XianXia.Unity.Host
                 return;
 
             if (session.World.ContentEvents.HasActive)
-            {
-                session.IsPaused = true;
                 return;
-            }
 
             ShowFallbackTalk("（" + _targetLabel + " 暂无对话内容）");
         }
@@ -1141,11 +1185,16 @@ namespace XianXia.Unity.Host
             _aggressionDefenderFactionId = string.Empty;
             _dismantleStatus = string.Empty;
             HostInputGate.BlockWorldInteraction = false;
-            if (bootstrap?.Session != null &&
-                !bootstrap.Session.World.ContentEvents.HasActive &&
-                (dialoguePresenter == null || !dialoguePresenter.IsActive) &&
-                (localMapEnterPrompt == null || !localMapEnterPrompt.IsOpen))
-                bootstrap.Session.IsPaused = false;
+            if (_holdingDismantlePause && bootstrap?.Session != null)
+                bootstrap.Session.ReleaseModalPause(DismantlePauseOwner);
+            _holdingDismantlePause = false;
+        }
+
+        void OnDisable()
+        {
+            if (_holdingDismantlePause && bootstrap?.Session != null)
+                bootstrap.Session.ReleaseModalPause(DismantlePauseOwner);
+            _holdingDismantlePause = false;
         }
 
         void TryReleaseInteractionNpc()

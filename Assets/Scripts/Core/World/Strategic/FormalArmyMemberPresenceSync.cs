@@ -27,6 +27,8 @@ namespace XianXia.Core.World.Strategic
             if (world == null || memberId.IsNone ||
                 !ArmyService.TryGetArmyForCharacter(world, memberId, out var army) || army == null)
                 return false;
+            if (!LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, memberId))
+                return false;
             return army.State != FormalArmyState.Garrisoned &&
                    !IsArmyEngaged(world, army);
         }

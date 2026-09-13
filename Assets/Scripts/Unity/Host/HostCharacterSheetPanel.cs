@@ -17,6 +17,7 @@ namespace XianXia.Unity.Host
     /// <summary>统一人物档案：固定身份栏 + 属性／故事／亲族／人际四页。打开时暂停。</summary>
     public sealed class HostCharacterSheetPanel : MonoBehaviour
     {
+        const string PauseOwner = "CharacterSheet";
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] bool open;
@@ -78,10 +79,10 @@ namespace XianXia.Unity.Host
 
         public void ClearSessionState()
         {
+            ReleasePause();
             open = false;
             _subject = EntityId.None;
             _relatedSelection = EntityId.None;
-            _holdingPause = false;
             HostInputGate.Clear();
         }
 
@@ -99,13 +100,22 @@ namespace XianXia.Unity.Host
             }
             _page = page;
             open = true;
+            if (!_holdingPause && bootstrap?.Session != null)
+            {
+                bootstrap.Session.AcquireModalPause(PauseOwner);
+                _holdingPause = true;
+            }
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             var name = bootstrap?.Session?.World?.Entities.TryGet(id, out var entity) == true ? entity.DisplayName : "?";
             Debug.Log("[CharacterUI] Profile subject=" + id + " name=" + name + " page=" + page);
 #endif
         }
 
-        public void Close() => open = false;
+        public void Close()
+        {
+            open = false;
+            ReleasePause();
+        }
 
         void CloseCompetingPanels()
         {
@@ -132,18 +142,22 @@ namespace XianXia.Unity.Host
             {
                 HostInputGate.BlockWorldCamera = true;
                 HostInputGate.BlockWorldInteraction = true;
-                // 竞争 Modal 可能在同帧稍后释放自己的暂停；档案打开期间每帧重申 ownership。
-                bootstrap.Session.IsPaused = true;
-                _holdingPause = true;
+                if (!_holdingPause)
+                {
+                    bootstrap.Session.AcquireModalPause(PauseOwner);
+                    _holdingPause = true;
+                }
             }
             else ReleasePause();
         }
+
+        void OnDisable() => ReleasePause();
 
         void ReleasePause()
         {
             if (!_holdingPause) return;
             _holdingPause = false;
-            if (bootstrap?.Session != null) bootstrap.Session.IsPaused = false;
+            if (bootstrap?.Session != null) bootstrap.Session.ReleaseModalPause(PauseOwner);
             HostInputGate.Clear();
         }
 

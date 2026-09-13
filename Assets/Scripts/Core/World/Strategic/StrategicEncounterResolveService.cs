@@ -22,6 +22,25 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidArgument, "SimulationWorld is null.");
 
             var snap = world.Strategic.Participants;
+            if (world.Strategic.ClockFreeze == null ||
+                world.Strategic.ClockFreeze.Reason != StrategicClockFreezeReason.PostBattle)
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "Battle settlement requires the owned PostBattle lifecycle stage.");
+            if (snap == null || string.IsNullOrWhiteSpace(snap.OfferId))
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "Battle settlement has no frozen participant identity.");
+            if (!snap.IsAutoSettlement)
+            {
+                var settlement = world.Strategic.ManualBattleSettlement;
+                if (settlement == null || !settlement.IsInitialized || settlement.IsCommitted ||
+                    !string.Equals(settlement.OfferId, snap.OfferId, StringComparison.Ordinal) ||
+                    !settlement.Matches(snap))
+                    return Result.Failure(
+                        ErrorCode.InvalidOperation,
+                        "Manual battle settlement identity does not match the frozen participants.");
+            }
             // Phase 5S-B2-3.1：区分真实世界战（WorldSite / Wilderness）与 Explicit EncounterMap。
             var realWorldCombat = snap != null &&
                                   (snap.LocalMapResolutionKind == BattleLocalMapResolutionKind.WorldSite ||
@@ -78,8 +97,7 @@ namespace XianXia.Core.World.Strategic
 #endif
             }
 
-            BattleOfferService.FinishOfferResolution(world);
-            return Result.Success();
+            return BattleOfferService.FinishOfferResolution(world);
         }
 
         /// <summary>
@@ -145,12 +163,11 @@ namespace XianXia.Core.World.Strategic
             var snap = world.Strategic.Participants;
             if (snap != null)
             {
-                for (var i = 0; i < snap.Records.Count; i++)
+                var actual = ActualBattleParticipantQuery.Collect(snap);
+                for (var i = 0; i < actual.Count; i++)
                 {
-                    var rec = snap.Records[i];
-                    if (rec.EntityId.IsNone)
-                        continue;
-                    if (LingeringBattlefieldPartyService.IsLingeringDowned(world, rec.EntityId))
+                    if (LingeringBattlefieldPartyService.IsLingeringDowned(
+                            world, actual[i].EntityId))
                         return true;
                 }
             }
@@ -258,13 +275,14 @@ namespace XianXia.Core.World.Strategic
                 return true;
             }
             var enemyCanFight = false; var friendlyCanFight = false; var hasFriendly = false;
-            for (var i = 0; i < snap.Records.Count; i++)
+            var actual = ActualBattleParticipantQuery.Collect(snap);
+            for (var i = 0; i < actual.Count; i++)
             {
-                var r = snap.Records[i];
-                if (r.EntityId.IsNone || !world.Entities.TryGet(r.EntityId, out var e) || e == null) continue;
+                var participant = actual[i];
+                if (!world.Entities.TryGet(participant.EntityId, out var e) || e == null) continue;
                 var canFight = CombatLifeStateService.CanFight(e);
-                if (r.Kind == BattleParticipantKind.EnemyPrimary || r.Kind == BattleParticipantKind.EnemyReinforcement) enemyCanFight |= canFight;
-                else if (r.Kind == BattleParticipantKind.MandatoryFriendly || (r.Kind == BattleParticipantKind.OptionalFriendly && r.Selected)) { hasFriendly = true; friendlyCanFight |= canFight; }
+                if (participant.IsEnemy) enemyCanFight |= canFight;
+                else { hasFriendly = true; friendlyCanFight |= canFight; }
             }
             if (!enemyCanFight) { terminal = true; playerWon = true; }
             else if (hasFriendly && !friendlyCanFight) { terminal = true; playerWon = false; }
@@ -277,11 +295,11 @@ namespace XianXia.Core.World.Strategic
             if (snap != null && (snap.LocalMapResolutionKind == BattleLocalMapResolutionKind.WorldSite || snap.LocalMapResolutionKind == BattleLocalMapResolutionKind.Wilderness))
             {
                 var anySelectedFriendly = false;
-                for (var i = 0; i < snap.Records.Count; i++)
+                var actual = ActualBattleParticipantQuery.Collect(snap);
+                for (var i = 0; i < actual.Count; i++)
                 {
-                    var r = snap.Records[i];
-                    if (r.Kind != BattleParticipantKind.MandatoryFriendly && !(r.Kind == BattleParticipantKind.OptionalFriendly && r.Selected)) continue;
-                    if (r.EntityId.IsNone || !world.Entities.TryGet(r.EntityId, out var e) || e == null) continue;
+                    var participant = actual[i];
+                    if (!participant.IsFriendly || !world.Entities.TryGet(participant.EntityId, out var e) || e == null) continue;
                     anySelectedFriendly = true; if (CombatLifeStateService.CanFight(e)) return false;
                 }
                 return anySelectedFriendly;

@@ -67,6 +67,95 @@ namespace XianXia.Core.World.Strategic
         public string IncludedReason { get; set; } = string.Empty;
     }
 
+    public enum ActualBattleParticipantSide
+    {
+        Friendly = 0,
+        Enemy = 1
+    }
+
+    /// <summary>
+    /// One deduplicated combatant that actually entered the battle. This is derived from the
+    /// frozen offer snapshot in record order; optional friendlies only enter when selected.
+    /// </summary>
+    public readonly struct ActualBattleParticipant
+    {
+        public ActualBattleParticipant(BattleParticipantRecord record, ActualBattleParticipantSide side)
+        {
+            Record = record;
+            EntityId = record != null ? record.EntityId : XianXia.Core.Domain.Ids.EntityId.None;
+            Side = side;
+        }
+
+        public BattleParticipantRecord Record { get; }
+        public EntityId EntityId { get; }
+        public ActualBattleParticipantSide Side { get; }
+        public bool IsFriendly => Side == ActualBattleParticipantSide.Friendly;
+        public bool IsEnemy => Side == ActualBattleParticipantSide.Enemy;
+    }
+
+    /// <summary>Single membership predicate for presentation, targeting, victory and reports.</summary>
+    public static class ActualBattleParticipantQuery
+    {
+        public static bool IsActual(BattleParticipantRecord record)
+        {
+            if (record == null || record.EntityId.IsNone)
+                return false;
+            return record.Kind == BattleParticipantKind.MandatoryFriendly ||
+                   (record.Kind == BattleParticipantKind.OptionalFriendly && record.Selected) ||
+                   record.Kind == BattleParticipantKind.EnemyPrimary ||
+                   record.Kind == BattleParticipantKind.EnemyReinforcement;
+        }
+
+        public static bool TryGetSide(BattleParticipantRecord record, out ActualBattleParticipantSide side)
+        {
+            side = ActualBattleParticipantSide.Friendly;
+            if (!IsActual(record))
+                return false;
+            if (record.Kind == BattleParticipantKind.EnemyPrimary ||
+                record.Kind == BattleParticipantKind.EnemyReinforcement)
+                side = ActualBattleParticipantSide.Enemy;
+            return true;
+        }
+
+        public static List<ActualBattleParticipant> Collect(BattleParticipantSnapshot snapshot)
+        {
+            var result = new List<ActualBattleParticipant>(snapshot?.Records.Count ?? 0);
+            if (snapshot == null)
+                return result;
+            var seen = new HashSet<ulong>();
+            for (var i = 0; i < snapshot.Records.Count; i++)
+            {
+                var record = snapshot.Records[i];
+                if (!TryGetSide(record, out var side) || !seen.Add(record.EntityId.Value))
+                    continue;
+                result.Add(new ActualBattleParticipant(record, side));
+            }
+            return result;
+        }
+
+        public static bool TryFind(
+            BattleParticipantSnapshot snapshot,
+            EntityId id,
+            out ActualBattleParticipant participant)
+        {
+            participant = default;
+            if (snapshot == null || id.IsNone)
+                return false;
+            var seen = new HashSet<ulong>();
+            for (var i = 0; i < snapshot.Records.Count; i++)
+            {
+                var record = snapshot.Records[i];
+                if (!TryGetSide(record, out var side) || !seen.Add(record.EntityId.Value))
+                    continue;
+                if (record.EntityId != id)
+                    continue;
+                participant = new ActualBattleParticipant(record, side);
+                return true;
+            }
+            return false;
+        }
+    }
+
     /// <summary>BattleOffer ?????????ADR-0023 Phase B?Pure Hex??</summary>
     public sealed class BattleParticipantSnapshot
     {
@@ -117,16 +206,11 @@ namespace XianXia.Core.World.Strategic
 
         public List<EntityId> CollectSelectedFriendly()
         {
-            var list = new List<EntityId>(_records.Count);
-            for (var i = 0; i < _records.Count; i++)
-            {
-                var r = _records[i];
-                if (r.EntityId.IsNone)
-                    continue;
-                if (r.Kind == BattleParticipantKind.MandatoryFriendly ||
-                    (r.Kind == BattleParticipantKind.OptionalFriendly && r.Selected))
-                    list.Add(r.EntityId);
-            }
+            var actual = ActualBattleParticipantQuery.Collect(this);
+            var list = new List<EntityId>(actual.Count);
+            for (var i = 0; i < actual.Count; i++)
+                if (actual[i].IsFriendly)
+                    list.Add(actual[i].EntityId);
 
             return list;
         }
@@ -154,27 +238,10 @@ namespace XianXia.Core.World.Strategic
             into?.Clear();
             if (into == null)
                 return;
-            for (var i = 0; i < _records.Count; i++)
-            {
-                var rec = _records[i];
-                if (rec.EntityId.IsNone)
-                    continue;
-                if (rec.Kind != BattleParticipantKind.EnemyPrimary &&
-                    rec.Kind != BattleParticipantKind.EnemyReinforcement)
-                    continue;
-                var exists = false;
-                for (var j = 0; j < into.Count; j++)
-                {
-                    if (into[j] == rec.EntityId)
-                    {
-                        exists = true;
-                        break;
-                    }
-                }
-
-                if (!exists)
-                    into.Add(rec.EntityId);
-            }
+            var actual = ActualBattleParticipantQuery.Collect(this);
+            for (var i = 0; i < actual.Count; i++)
+                if (actual[i].IsEnemy)
+                    into.Add(actual[i].EntityId);
         }
 
         public void RemoveFriendlyRecords()
@@ -207,19 +274,8 @@ namespace XianXia.Core.World.Strategic
         /// </summary>
         public bool IsEnemyParticipant(EntityId id)
         {
-            if (id.IsNone)
-                return false;
-            for (var i = 0; i < _records.Count; i++)
-            {
-                var r = _records[i];
-                if (r.EntityId != id)
-                    continue;
-                if (r.Kind == BattleParticipantKind.EnemyPrimary ||
-                    r.Kind == BattleParticipantKind.EnemyReinforcement)
-                    return true;
-            }
-
-            return false;
+            return ActualBattleParticipantQuery.TryFind(this, id, out var participant) &&
+                   participant.IsEnemy;
         }
 
         /// <summary>
@@ -228,19 +284,8 @@ namespace XianXia.Core.World.Strategic
         /// </summary>
         public bool IsSelectedFriendlyParticipant(EntityId id)
         {
-            if (id.IsNone)
-                return false;
-            for (var i = 0; i < _records.Count; i++)
-            {
-                var r = _records[i];
-                if (r.EntityId != id)
-                    continue;
-                if (r.Kind == BattleParticipantKind.MandatoryFriendly ||
-                    (r.Kind == BattleParticipantKind.OptionalFriendly && r.Selected))
-                    return true;
-            }
-
-            return false;
+            return ActualBattleParticipantQuery.TryFind(this, id, out var participant) &&
+                   participant.IsFriendly;
         }
 
         public void CopyFrom(BattleParticipantSnapshot src)

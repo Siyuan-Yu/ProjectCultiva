@@ -257,7 +257,27 @@ namespace XianXia.Unity.Host
             if (CombatLifeStateService.ShouldHideFromSpawn(entity))
                 return false;
 
+            // A bound Continuous manual battle is an isolated character scope. This deny must
+            // precede every legacy Site/Location/occupant exception so hidden bystanders cannot
+            // leak back through another presentation rule.
+            var continuousCombat = world.Strategic?.ContinuousManualCombat;
+            if (continuousCombat != null && continuousCombat.IsActive &&
+                (entity.Tags & (EntityTag.Character | EntityTag.Npc)) != 0 &&
+                !string.IsNullOrEmpty(continuousCombat.SurfaceId) &&
+                PlayerPartyLocalCoPresenceQuery.IsContinuousOutdoorPresentationScope(world) &&
+                (world.LocalMap == null || !world.LocalMap.IsInInterior) &&
+                !IsActiveStrategicEncounterMap(world))
+                return EvaluateContinuousMaterializedVisibility(world, id, out _);
+
             var onEncounterMap = IsActiveStrategicEncounterMap(world);
+
+            // Continuous materialization is the current loaded physical scope. It must be
+            // evaluated before WorldPresence/LocationId legacy gates: FormalArmy presence is
+            // derived and may be absent during a repair boundary, while the runtime already has
+            // a legal placement. The shared predicate also prevents stale materialization from
+            // leaking into Interior or Encounter-owned presentation.
+            if (EvaluateContinuousMaterializedVisibility(world, id, out _))
+                return true;
 
             // 真实 LocalMap 上的世界战斗：参战者（当前 battle participant + 有效 LocalMap 落点）
             // 不能先被 WorldSite 常驻人口门禁挡掉。participant 语义复用
@@ -483,6 +503,69 @@ namespace XianXia.Unity.Host
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Exact Continuous Outdoor visibility gate shared by gameplay and the one-shot Army
+        /// diagnostic. A true result still flows through EntityViewSpawner, never a second spawner.
+        /// </summary>
+        public static bool EvaluateContinuousMaterializedVisibility(
+            SimulationWorld world,
+            EntityId id,
+            out string reason)
+        {
+            if (world == null || id.IsNone || !world.Entities.TryGet(id, out var entity))
+            {
+                reason = "EntityMissing";
+                return false;
+            }
+            if (CombatLifeStateService.ShouldHideFromSpawn(entity))
+            {
+                reason = "Removed";
+                return false;
+            }
+            var continuousCombat = world.Strategic?.ContinuousManualCombat;
+            var boundContinuousCombatParticipant = continuousCombat != null &&
+                                                   continuousCombat.IsActive &&
+                                                   continuousCombat.Contains(id);
+            if (IsActiveStrategicEncounterMap(world))
+            {
+                reason = "EncounterMapOwnsPresentation";
+                return false;
+            }
+            if (IsCurrentRealLocalMapBattle(world) && !boundContinuousCombatParticipant)
+            {
+                reason = "RealLocalMapBattleOwnsPresentation";
+                return false;
+            }
+            if (!PlayerPartyLocalCoPresenceQuery.IsContinuousOutdoorPresentationScope(world))
+            {
+                reason = world.LocalMap != null && world.LocalMap.IsInInterior
+                    ? "InteriorOwnsPresentation"
+                    : "ContinuousOutdoorScopeInactive";
+                return false;
+            }
+            if (PlayerPartyLocalCoPresenceQuery.IsIndependentSpacePresence(world, id))
+            {
+                reason = "IndependentSpacePresence";
+                return false;
+            }
+            if (!world.ContinuousOutdoorMaterialization.IsMaterialized(id))
+            {
+                reason = "NotContinuousMaterialized";
+                return false;
+            }
+            if (!entity.TryGet<EntityLocationComponent>(out var loc) ||
+                loc == null || !loc.HasPresentationOverride)
+            {
+                reason = "PresentationOverrideMissing";
+                return false;
+            }
+
+            reason = boundContinuousCombatParticipant
+                ? "ContinuousCombatParticipantWithLegalPresentation"
+                : "ContinuousMaterializedWithLegalPresentation";
+            return true;
         }
 
         /// <summary>

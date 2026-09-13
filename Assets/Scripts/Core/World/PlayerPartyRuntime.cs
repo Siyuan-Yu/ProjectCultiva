@@ -9,6 +9,13 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.World
 {
+    public enum PlayerPartyControlState
+    {
+        Active = 0,
+        TemporarilyUnavailable = 1,
+        AllMembersDead = 2
+    }
+
     /// <summary>
     /// RPG-First LocalMap party: one Active + up to five Followers. Single runtime truth (Phase 1).
     /// </summary>
@@ -16,21 +23,41 @@ namespace XianXia.Core.World
     {
         public const int MaxMembers = 6;
 
-        readonly List<EntityId> _members = new List<EntityId>(MaxMembers);
+        readonly List<EntityId> _memberProjection = new List<EntityId>(MaxMembers);
+        SimulationWorld _world;
+        string _controlledSquadId = string.Empty;
         EntityId _activeId = EntityId.None;
-        bool _awaitingSuccession;
+        PlayerPartyControlState _controlState = PlayerPartyControlState.Active;
 
-        public IReadOnlyList<EntityId> Members => _members;
+        public IReadOnlyList<EntityId> Members
+        {
+            get
+            {
+                _memberProjection.Clear();
+                if (TryGetControlledSquad(out var squad))
+                    for (var i = 0; i < squad.MemberCharacterIds.Count; i++)
+                        _memberProjection.Add(new EntityId(squad.MemberCharacterIds[i]));
+                return _memberProjection;
+            }
+        }
+
+        public string ControlledSquadId => _controlledSquadId;
 
         public EntityId ActiveCharacterId => _activeId;
 
-        public bool IsAwaitingSuccession => _awaitingSuccession;
+        public PlayerPartyControlState ControlState => _controlState;
 
-        public int Count => _members.Count;
+        /// <summary>Only true when every current member is genuinely Dead/Removed.</summary>
+        public bool IsAwaitingSuccession => _controlState == PlayerPartyControlState.AllMembersDead;
 
-        public bool HasActive => !_activeId.IsNone && _members.Contains(_activeId);
+        public bool IsTemporarilyUnavailable =>
+            _controlState == PlayerPartyControlState.TemporarilyUnavailable;
 
-        public bool IsMember(EntityId id) => !id.IsNone && _members.Contains(id);
+        public int Count => TryGetControlledSquad(out var squad) ? squad.MemberCharacterIds.Count : 0;
+
+        public bool HasActive => !_activeId.IsNone && IsMember(_activeId);
+
+        public bool IsMember(EntityId id) => TryGetControlledSquad(out var squad) && squad.Contains(id);
 
         public bool IsActive(EntityId id) => !id.IsNone && id == _activeId;
 
@@ -38,23 +65,58 @@ namespace XianXia.Core.World
 
         public void Reset()
         {
-            _members.Clear();
+            _world = null;
+            _controlledSquadId = string.Empty;
+            _memberProjection.Clear();
             _activeId = EntityId.None;
-            _awaitingSuccession = false;
+            _controlState = PlayerPartyControlState.Active;
+        }
+
+        public void BindWorld(SimulationWorld world)
+        {
+            _world = world;
+            if (world?.Strategic != null) world.Strategic.PlayerPartyContext = this;
+        }
+
+        public bool TryBindControlledSquad(string squadId, EntityId activeId, out string error)
+        {
+            error = null;
+            if (_world?.Strategic?.Squads == null || !_world.Strategic.Squads.TryGet(squadId, out var squad) || squad.MemberCharacterIds.Count == 0)
+            { error = "Controlled squad not found."; return false; }
+            _controlledSquadId = squad.SquadId;
+            _activeId = activeId.IsNone || !squad.Contains(activeId) ? new EntityId(squad.MemberCharacterIds[0]) : activeId;
+            _controlState = PlayerPartyControlState.Active;
+            return true;
+        }
+
+        bool TryGetControlledSquad(out SquadState squad)
+        {
+            squad = null;
+            return _world?.Strategic?.Squads != null && !string.IsNullOrEmpty(_controlledSquadId) &&
+                   _world.Strategic.Squads.TryGet(_controlledSquadId, out squad);
         }
 
         public bool TryInitialize(EntityId firstActive, out string error)
         {
             error = null;
-            Reset();
             if (firstActive.IsNone)
             {
                 error = "No active character.";
                 return false;
             }
 
-            _members.Add(firstActive);
-            _activeId = firstActive;
+            if (_world == null) { error = "PlayerParty is not bound to a world."; return false; }
+            if (!_world.Strategic.Squads.TryGet(SquadMembershipService.PlayerSquadId, out var squad))
+            {
+                var created = SquadMembershipService.Create(_world, SquadMembershipService.PlayerSquadId,
+                    new[] { firstActive }, firstActive, command: SquadCommandKind.FollowLeader);
+                if (created.IsFailure) { error = created.Error.ToString(); return false; }
+                squad = created.Value;
+            }
+            _controlledSquadId = squad.SquadId;
+            _activeId = squad.Contains(firstActive) ? firstActive : new EntityId(squad.MemberCharacterIds[0]);
+            _controlState = PlayerPartyControlState.Active;
+            RefreshActiveAfterLifeState(_world);
             return true;
         }
 
@@ -67,32 +129,39 @@ namespace XianXia.Core.World
             out string error)
         {
             error = null;
-            Reset();
+            if (_world == null) { error = "PlayerParty is not bound to a world."; return false; }
             if (orderedMembers == null || orderedMembers.Count == 0)
             {
                 error = "No members.";
                 return false;
             }
 
-            for (var i = 0; i < orderedMembers.Count && _members.Count < MaxMembers; i++)
+            var restoredMembers = new List<EntityId>(orderedMembers.Count);
+            for (var i = 0; i < orderedMembers.Count; i++)
             {
                 var id = orderedMembers[i];
-                if (id.IsNone || _members.Contains(id))
+                if (id.IsNone || restoredMembers.Contains(id))
                     continue;
-                _members.Add(id);
+                restoredMembers.Add(id);
             }
 
-            if (_members.Count == 0)
+            if (restoredMembers.Count == 0)
             {
                 error = "No valid members.";
                 return false;
             }
 
-            if (activeId.IsNone || !_members.Contains(activeId))
-                activeId = _members[0];
+            if (_world.Strategic.Squads.TryGet(SquadMembershipService.PlayerSquadId, out var restoredSquad))
+                return TryBindControlledSquad(restoredSquad.SquadId, activeId, out error);
+            var created = SquadMembershipService.Create(_world, SquadMembershipService.PlayerSquadId,
+                restoredMembers, activeId, command: SquadCommandKind.FollowLeader);
+            if (created.IsFailure) { error = created.Error.ToString(); return false; }
+            _controlledSquadId = created.Value.SquadId;
+            if (activeId.IsNone || !created.Value.Contains(activeId))
+                activeId = new EntityId(created.Value.MemberCharacterIds[0]);
 
             _activeId = activeId;
-            _awaitingSuccession = false;
+            _controlState = PlayerPartyControlState.Active;
             return true;
         }
 
@@ -106,8 +175,9 @@ namespace XianXia.Core.World
             if (!ValidateJoin(world, roster, candidate, out error))
                 return false;
 
-            _members.Add(candidate);
-            _awaitingSuccession = false;
+            var moved = SquadMembershipService.Transfer(world, candidate, _controlledSquadId);
+            if (moved.IsFailure) { error = moved.Error.ToString(); return false; }
+            RefreshActiveAfterLifeState(world);
             return true;
         }
 
@@ -126,14 +196,15 @@ namespace XianXia.Core.World
                 return false;
             }
 
-            _members.Remove(id);
+            var left = SquadMembershipService.LeaveToSingleton(_world, id);
+            if (left.IsFailure) { error = left.Error.ToString(); return false; }
             return true;
         }
 
         public bool TrySetActive(SimulationWorld world, EntityId id, out string error)
         {
             error = null;
-            if (_awaitingSuccession)
+            if (IsAwaitingSuccession)
             {
                 error = "Party wiped; awaiting succession.";
                 return false;
@@ -149,39 +220,68 @@ namespace XianXia.Core.World
                 return false;
 
             _activeId = id;
+            _controlState = PlayerPartyControlState.Active;
             return true;
         }
 
-        /// <summary>When Active enters Dying/Dead, pick another living member or wipe.</summary>
+        /// <summary>
+        /// Keeps the current valid Active. Otherwise selects the first eligible member in the
+        /// stable Party order. No eligible member is classified separately from an actual wipe.
+        /// </summary>
         public void RefreshActiveAfterLifeState(SimulationWorld world)
         {
-            if (world == null || _members.Count == 0)
+            var members = Members;
+            if (world == null || members.Count == 0)
             {
                 _activeId = EntityId.None;
-                _awaitingSuccession = false;
+                _controlState = PlayerPartyControlState.TemporarilyUnavailable;
                 return;
             }
 
+            var continuousCombat = world.Strategic?.ContinuousManualCombat;
+            var restrictToBattleParticipants = continuousCombat != null && continuousCombat.IsActive;
             if (!_activeId.IsNone &&
-                world.Entities.TryGet(_activeId, out var activeEnt) &&
-                CombatLifeStateService.CanFight(activeEnt))
-                return;
-
-            for (var i = 0; i < _members.Count; i++)
+                (!restrictToBattleParticipants || continuousCombat.IsFriendly(_activeId)) &&
+                CanActAsActive(world, _activeId, out _))
             {
-                var m = _members[i];
+                _controlState = PlayerPartyControlState.Active;
+                return;
+            }
+
+            for (var i = 0; i < members.Count; i++)
+            {
+                var m = members[i];
                 if (m == _activeId)
                     continue;
-                if (world.Entities.TryGet(m, out var ent) && CombatLifeStateService.CanFight(ent))
+                if (restrictToBattleParticipants && !continuousCombat.IsFriendly(m))
+                    continue;
+                if (CanActAsActive(world, m, out _))
                 {
                     _activeId = m;
-                    _awaitingSuccession = false;
+                    _controlState = PlayerPartyControlState.Active;
                     return;
                 }
             }
 
             _activeId = EntityId.None;
-            _awaitingSuccession = true;
+            _controlState = AreAllMembersTrulyDead(world)
+                ? PlayerPartyControlState.AllMembersDead
+                : PlayerPartyControlState.TemporarilyUnavailable;
+        }
+
+        bool AreAllMembersTrulyDead(SimulationWorld world)
+        {
+            var members = Members;
+            if (world == null || members.Count == 0)
+                return false;
+            for (var i = 0; i < members.Count; i++)
+            {
+                if (!world.Entities.TryGet(members[i], out var entity) || entity == null ||
+                    !entity.TryGet<LifecycleComponent>(out var life) || life == null ||
+                    (!life.IsDead && !life.IsRemoved))
+                    return false;
+            }
+            return true;
         }
 
         public bool ValidateJoin(
@@ -209,7 +309,7 @@ namespace XianXia.Core.World
                 return false;
             }
 
-            if (_members.Count >= MaxMembers)
+            if (Count >= MaxMembers)
             {
                 error = "Party is full (max " + MaxMembers + ").";
                 return false;
@@ -236,11 +336,8 @@ namespace XianXia.Core.World
                 if (!CanActAsActive(world, candidate, out error))
                     return false;
 
-                if (ArmyService.TryGetArmyForCharacter(world, candidate, out _))
-                {
-                    error = "Character is in a formal army.";
-                    return false;
-                }
+                if (ActualBattleParticipantQuery.TryFind(world.Strategic.Participants, candidate, out _))
+                { error = "Character is locked by the current battle."; return false; }
             }
 
             return true;
@@ -267,12 +364,6 @@ namespace XianXia.Core.World
             if (!CombatLifeStateService.CanFight(entity))
             {
                 error = "Character cannot act (dying/dead).";
-                return false;
-            }
-
-            if (ArmyService.TryGetArmyForCharacter(world, id, out _))
-            {
-                error = "Character is in a formal army.";
                 return false;
             }
 

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using XianXia.Core.Content;
+using XianXia.Core.Exploration;
 using XianXia.Core.World.Surface;
 
 namespace XianXia.Data.Content
@@ -70,6 +71,41 @@ namespace XianXia.Data.Content
         public string LootItemId { get; set; }
         public string SpawnTableId { get; set; }
         public int SpawnCount { get; set; }
+    }
+
+    /// <summary>
+    /// Effective authored Outdoor object state. Missing board entries retain authored defaults;
+    /// destroyed entries are tombstones and never fall back to the authored blocker/presentation.
+    /// </summary>
+    public static class OutdoorStatefulPlacementResolver
+    {
+        public static bool IsPerCellDestructible(OutdoorSurfacePlacementDefinition placement) =>
+            placement != null &&
+            string.Equals(placement.Kind, "wall", System.StringComparison.OrdinalIgnoreCase);
+
+        public static bool IsDestructibleKind(string kind) =>
+            string.Equals(kind, "wall", System.StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(kind, "treeS", System.StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(kind, "treeM", System.StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(kind, "treeL", System.StringComparison.OrdinalIgnoreCase);
+
+        public static string ResolveObjectId(
+            OutdoorSurfacePlacementDefinition placement, int localX = 0, int localY = 0) =>
+            IsPerCellDestructible(placement)
+                ? OutdoorStatefulObjectId.ForCell(placement?.StableId, localX, localY)
+                : placement?.StableId ?? string.Empty;
+
+        public static bool IsDestroyed(
+            OutdoorStatefulObjectBoard board, string stableObjectId) =>
+            board != null && board.IsDestructibleDestroyed(stableObjectId);
+
+        public static bool IsBlockerActive(
+            OutdoorStatefulObjectBoard board,
+            OutdoorSurfacePlacementDefinition placement,
+            int localX = 0,
+            int localY = 0) =>
+            placement != null && placement.BlocksMovement &&
+            !IsDestroyed(board, ResolveObjectId(placement, localX, localY));
     }
 
     /// <summary>

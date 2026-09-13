@@ -1,14 +1,16 @@
 # 架构决策记录（ADR）索引
 
-> 状态：现行 | 最后更新：2026-09-09
-> 上级：[`00-overview.md`](../../00-project/00-overview.md)、[`33` 冻结 v0.2](../../30-tech/33-architecture-core-rules-freeze-v0.2.md)  
-> 模板：[`adr-template.md`](../../90-templates/adr-template.md)  
+> 最新：[ADR-0035](ADR-0035-unified-squads-and-encounter-scope.md) — 统一小队、固定范围独立遭遇及 CW-U0～U4 主线；设计确认、实现待迁移。
+
+> 状态：现行 | 最后更新：2026-09-12
+> 上级：[`00-overview.md`](../../00-project/00-overview.md)、[`33` 冻结 v0.2](../../30-tech/33-architecture-core-rules-freeze-v0.2.md)
+> 模板：[`adr-template.md`](../../90-templates/adr-template.md)
 > **编号 0009 预留正式 UI 方案。**
 
 ## 怎么用
 
-- 每条 ADR 只记录**一次已拍板决策**及其背景／影响。  
-- 日常通读：先扫本表，再点开相关条目。  
+- 每条 ADR 只记录**一次已拍板决策**及其背景／影响。
+- 日常通读：先扫本表，再点开相关条目。
 - 与 `33` 冲突时：以较新的冻结版＋对应 ADR 为准，并回头修订旧文。
 
 ## 决策一览
@@ -45,7 +47,10 @@
 | [0028](ADR-0028-formalarmy-formation-and-roster-use-effective-territory.md) | FormalArmy Formation 与 Roster 的 Effective Territory | 已采纳 | 组军／roster 的地点限制修订 |
 | [0029](ADR-0029-construction-content-runtime-and-snapshot-boundary.md) | Construction Content／Runtime／Snapshot 边界 | 已采纳 | BuildingDefinition 独立于 Item；Catalog 是静态壳；结果复用 Flag + Inventory Snapshot |
 | [0030](ADR-0030-social-bond-attitude-and-snapshot-boundary.md) | Social Bond、五维态度与 Snapshot 边界 | 已采纳 | Bond 与主观态度分离；Ledger 仍是态度真源；v6 软兼容 |
-| [0031](ADR-0031-continuous-outdoor-world-surface-architecture.md) | Continuous Outdoor World Surface Architecture | 已采纳／未实现 | 普通 Outdoor 长期物理连续；部分 supersede ADR-0021 的跨 Region Route 规则 |
+| [0031](ADR-0031-continuous-outdoor-world-surface-architecture.md) | Continuous Outdoor World Surface Architecture | 已采纳／迁移中 | 普通 Outdoor 物理连续；部分能力存在，完整目标仍待验收 |
+| [0032](ADR-0032-sitecore-administrative-and-construction-range.md) | SiteCore、实际行政控制与建设范围 | 已采纳／待迁移 | 一个 Site 一个核心；允许重叠；既有控制保留；拆旗不删资产 |
+| [0033](ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) | 同源独立遭遇、停表与战前锚点回归 | 已采纳／待迁移 | 当前地形建筑；各回战前位置；真实战果保留；部分替代 0023 |
+| [0034](ADR-0034-conflict-control-succession-and-airship-role.md) | 冲突、控制继承与飞舟职责 | 已采纳／待迁移 | 人物攻击≠宣战；建筑战争确认；顺序接替／最强继承；飞舟只运输 |
 
 战略接战时间纪律另见 **[ADR-0023](ADR-0023-manual-encounter-freezes-worldtick.md)**（2026-08-21）。
 

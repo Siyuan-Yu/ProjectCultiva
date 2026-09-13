@@ -1,8 +1,12 @@
 # ADR-0026：RPG-First — 单 Active Character、PlayerParty、连续 Hex 世界与 FormalArmy 军事层
 
+> **2026-09-13 部分替代：** [ADR-0035](ADR-0035-unified-squads-and-encounter-scope.md) §6 明确替代旧组织分层、自由战场裁切、第三队初始和范围外援军建议；本文保留历史决定及未冲突的单 Active、停表、政治／控制、真实战果与原锚点回归契约。
+
+> **⚠️ 2026-09-12 · 部分被 [ADR-0031](ADR-0031-continuous-outdoor-world-surface-architecture.md)／[ADR-0034](ADR-0034-conflict-control-succession-and-airship-role.md) SUPERSEDED：** Decision #3 的“无政治 Capture 权”、#4 的 `HexDistance ≤ 1` 手动介入、#7 的“己方 Site／未出征”继承资格、#9 的 PlayerParty Capture 类型特权，以及 #12 的 WorldMap 永久 Hex／Site 精度锁、普通户外 LocalMap／SurfaceExit 主链均不再是目标。有效地面点击可解析连续世界目标；开关 WorldMap 不取消或重建移动。单 Active、Party 最多六人、真实 Character、远方自动处理与 RPG-First 原则保留；当前正文见 [2K §5.8](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。
+
 > **⚠️ 2026-08-30 · 部分被 [ADR-0027](ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md) SUPERSEDED：** Decision #6「PresenceHex 固定世界位置代理」与 #12 中「全体 WorldSite Aggregated；WorldMap 投影 = PresenceHex」由 ADR-0027 取代为 **CanonicalWorldSurfacePosition 唯一真源 + WorldSiteSpatialMapping + DerivedPresenceHex**（AtSite 仍是战略 Context，不覆盖物理位置）。其余 Decision（RPG-First 控制模型、命令精度锁、Army 边界）保持。
 > **⚠️ 2026-09-06 · Decision #4 的 Site-only 组军／解散地点限制被 [ADR-0028](ADR-0028-formalarmy-formation-and-roster-use-effective-territory.md) SUPERSEDED：** 玩家运行时 Create 与 roster management 改为同一 Friendly Effective Territory Hex；Garrison 仍为 WorldSite-only。
-> **2026-09-09 · [ADR-0031](ADR-0031-continuous-outdoor-world-surface-architecture.md) 补充 Future 方向：** 本 ADR 的 RPG-First／PlayerParty／FormalArmy 边界保持；普通 Outdoor 的长期 Physical World 采用 Continuous Outdoor World Surface。当前连续 Hex / LocalMap / SurfaceExit 实现仍有效，未授权迁移。
+> **2026-09-09 历史说明，2026-09-12 已更新：** LocalMap／SurfaceExit 曾是有效迁移阶段实现；普通 Outdoor 的当前正式目标已经转为 Continuous Outdoor World Surface。旧实现记录可以保留，但不得反向覆盖 ADR-0031／0034 与 2K 当前正文。
 
 - 状态：**已采纳**
 - 日期：2026-08-25（Decision #12 补钉：2026-08-26）
@@ -13,10 +17,10 @@
 
 在 Pure Hex、FormalArmy 真实成员、Multi-Hex WorldSite 落地后，产品体验逐渐偏向：
 
-- 多单位 WorldMap **RTS／4X** 操作感过强  
-- Character 可替换、上帝附身远距离切换，**修仙 RPG 身份变弱**  
-- 「跨 Hex 必须 Army」把个人旅行绑死在军事组织上  
-- WorldMap／LocalMap 关卡式进出，**连续世界与未来飞行**难以获得真正空间意义  
+- 多单位 WorldMap **RTS／4X** 操作感过强
+- Character 可替换、上帝附身远距离切换，**修仙 RPG 身份变弱**
+- 「跨 Hex 必须 Army」把个人旅行绑死在军事组织上
+- WorldMap／LocalMap 关卡式进出，**连续世界与未来飞行**难以获得真正空间意义
 - 远方 Army 可手操切入，进一步强化「玩家=势力意志」而非「玩家=修仙者」
 
 制作人明确：**游戏本质首先是修仙 RPG，不是 4X／Total War。**
@@ -25,18 +29,18 @@
 
 采用 **RPG-First** 控制与世界存在模型（细则见 [2K](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)）：
 
-1. **Single ActiveControlledCharacter** — 任意时刻最多直接即时控制 1 名角色。  
-2. **PlayerParty max 6** — 1 Active + Followers AI；Follow ≡ 入队。  
-3. **Background Character Simulation** — 非 Party、非 Army 角色可后台旅行／战斗，WorldMap 不常驻头像，无政治 Capture 权；**可 World Travel 但不可被玩家远程指定 Hex／路径**（移动由 AI／Policy／剧情／系统目标驱动，非隐藏 RTS）。  
-4. **FormalArmy = 军事远征层** — 不再是世界移动资格；我方 Site 组／解散；默认 Auto Battle；Party 距离 ≤1 可介入但不接管 Army；接受**战略军事命令**（与 PlayerParty 世界旅行命令分离）。  
-5. **Continuous HexWorld topology** — HexWorld=世界本身；LocalMap=近景；WorldMap=总览／旅行视图。  
-6. **PresenceHex** — Multi-Hex Site 上 Character 的固定世界位置代理（与 AnchorHex 职责分离）。  
-7. **Succession V1** — Party 全灭进入继承流程，不默认 Game Over；合格角色：同 Faction、Alive、可行动、未 Captured、不在出征 Army、位于己方 Site；**无境界门槛**。  
-8. **Character Policy** — 非 Active 以长期权限／倾向控制，不做远程逐步 RTS 命令。  
-9. **PlayerParty Capture** — 攻占据点须完整 **War + CaptureObjective + Capture**（2A）；特权仅为不必转 FormalArmy 且可 LocalMap 手动战。  
-10. **宗门公共资源** — Sect/Faction Storage 默认仅玩家分配；NPC 不得自主领取（未来开放须玩家授权）。  
-11. **LocalMap Camera（2026-08-25 补钉）** — **仅 WASD Direct Movement** 触发 Snap＋Hard Follow；**RTS／右键寻路完全不控制镜头**；中键仅自由 Pan。细则见 [2K §1.1](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。  
-12. **Continuous WorldPosition + WorldMap 命令精度锁（2026-08-26 · Phase 2C）** — Runtime 位置真源为 **Continuous WorldPosition**；`CurrentHex = WorldToHex(...)` 为派生。**WorldMap 命令精度永久仅限 Hex／WorldSite**；**PreciseWorldDestination／点击像素作目的地 FOREVER FORBIDDEN**。`WorldLocation`（`AtWorldSite`｜`AtWorldPosition`）与 `MovementState`（`Idle`｜`AutoTravel`）分离。全体 WorldSite 为 Aggregated（LocalMap 只改 LocalPosition；WorldMap 投影=PresenceHex）。Surface LocalMap 边缘过渡使用 **Canonical Exit Trigger Zone**（`ExitTriggerDepth`；Geometry 固定、Availability 可变；Detection＝Presentation）。Phase **2C 实现 PlayerParty 连续旅行**（非 FormalArmy；无 Fake Army）；Background Continuous Travel／FormalArmy continuous **Deferred**。细则见 [2K §5.8](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)；实现索引 [164](../164-phase-2c-surface-exit-zone-and-edge-transition-2026-08-26.md)。
+1. **Single ActiveControlledCharacter** — 任意时刻最多直接即时控制 1 名角色。
+2. **PlayerParty max 6** — 1 Active + Followers AI；Follow ≡ 入队。
+3. **Background Character Simulation** — 非 Party、非 Army 角色可后台旅行／战斗，WorldMap 不常驻头像；移动由 AI／Policy／剧情／系统目标驱动，不能被玩家逐步远程 RTS 操作。是否产生政治结果取决于真人、战争与正式接管条件，不取决于对象类型。
+4. **FormalArmy = 军事组织／远征任务层** — 不再是世界移动、宣战、参战或占领资格；默认可自动处理远方战斗。玩家实际参与只按真实遭遇、可达性和参战规则，不按 `HexDistance ≤ 1` 或 Army 类型授予。
+5. **Continuous HexWorld topology** — HexWorld=世界本身；LocalMap=近景；WorldMap=总览／旅行视图。
+6. **PresenceHex** — Multi-Hex Site 上 Character 的固定世界位置代理（与 AnchorHex 职责分离）。
+7. **Succession V1（已由 ADR-0034 修订）** — Active 失能先按 Party 固定顺序接替；只有当前 Party 全员真正死亡才触发势力继承，并自动选择玩家势力中存活、可操控且按既有战力口径最强者。不得用“己方 Site／未出征”排除最强合格者；空势力终局延期。
+8. **Character Policy** — 非 Active 以长期权限／倾向控制，不做远程逐步 RTS 命令。
+9. **真人接管** — 攻击势力有效拥有的建筑须先处理战争授权；议政厅在同源独立战场内可由主控或己方派出修士正式接管。PlayerParty、FormalArmy 与飞舟类型本身均不授予接管特权。
+10. **宗门公共资源** — Sect/Faction Storage 默认仅玩家分配；NPC 不得自主领取（未来开放须玩家授权）。
+11. **LocalMap Camera（2026-08-25 补钉）** — **仅 WASD Direct Movement** 触发 Snap＋Hard Follow；**RTS／右键寻路完全不控制镜头**；中键仅自由 Pan。细则见 [2K §1.1](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。
+12. **Continuous WorldPosition + WorldMap 同一移动权威（2026-09-12 修订）** — Runtime 位置真源为 **Continuous WorldPosition**；`CurrentHex = WorldToHex(...)` 为派生。有效 WorldMap 地面点击可经统一投影解析连续目标，同一 Hex 内不同点击可代表不同目标；Site 标记解析为真实合法到达点。开关地图只改变视图，不取消、重建或吸附移动。旧 Phase 2C 的永久 Hex／Site 精度锁、Aggregated Outdoor LocalMap 与 SurfaceExit 主链只作历史实现记录。
 
 ### 对既有 ADR 的关系
 
@@ -50,12 +54,12 @@
 
 ## Consequences
 
-- Host **RTS 多选／右键多单位下令**需迁移为 Legacy（Phase 1）。  
-- **Army 职责边界**变更：组军 UX、WorldMap 选中、旅行入口需改（Phase 3）。  
-- **World Presence** 需区分 Party／Background／Army（Phase 2）。  
-- **Manual Battle 权限**收紧：远方 Army 不可手操切入（Phase 4）。  
-- **Continuous LocalMap↔Hex** 与 Party AutoTravel：契约见 2K §5.8（Phase 2C）；Background／Army 连续移动、Flight／Policy／Sect Mission 分阶段 Future。  
-- Snapshot／Save 可能需增加 Party／Policy／PresenceHex 字段（实现阶段再定 schema）。  
+- Host **RTS 多选／右键多单位下令**需迁移为 Legacy（Phase 1）。
+- **Army 职责边界**变更：组军 UX、WorldMap 选中、旅行入口需改（Phase 3）。
+- **World Presence** 需区分 Party／Background／Army（Phase 2）。
+- **Manual Battle 权限**收紧：远方 Army 不可手操切入（Phase 4）。
+- **Continuous LocalMap↔Hex** 与 Party AutoTravel：契约见 2K §5.8（Phase 2C）；Background／Army 连续移动、Flight／Policy／Sect Mission 分阶段 Future。
+- Snapshot／Save 可能需增加 Party／Policy／PresenceHex 字段（实现阶段再定 schema）。
 - **不**删除 FormalArmy 系统；是重新定义职责，不是推倒。
 
 ## 非目标（本 ADR 不授权实现）

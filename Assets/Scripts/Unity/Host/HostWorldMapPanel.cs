@@ -119,6 +119,7 @@ namespace XianXia.Unity.Host
         const float FormalArmyMarkerHitPad = 8f;
 
         string SelectedFormalArmyId => _worldMapSelection.FormalArmyId;
+        public string SelectedFormalArmyIdForDiagnostics => SelectedFormalArmyId;
         string _lastMapFormalArmyClickId = string.Empty;
         double _lastMapFormalArmyClickTime;
         HostArmyFormPanel _armyFormPanel;
@@ -191,7 +192,6 @@ namespace XianXia.Unity.Host
         bool _viewReady;
         bool _panning;
         Vector2 _panLastGui;
-        bool _holdingPauseForMap;
 
         GUIStyle _title;
         GUIStyle _body;
@@ -289,12 +289,8 @@ namespace XianXia.Unity.Host
                 PruneRemovedFromSelection(world);
             }
 
-            // Phase 5R-B6.5-B：打开 WorldMap 强制 ManualPaused=true（一次性 false→true edge）。
-            // WorldMap 已打开期间用户 Space／Pause-UI 自由决定状态；关闭不改 ManualPaused；
-            // reopen 再次强制暂停。
-            if (bootstrap?.Session != null && bootstrap.Session.IsInitialized)
-                bootstrap.Session.ManualPaused = true;
-            _holdingPauseForMap = false;
+            // WorldMap is an input/planning overlay. Opening or closing it does not own the
+            // player's ManualPaused intent and does not replace the movement authority.
         }
 
         /// <summary>大地图当前主选（活人优先）；FormalHud 在开图时不要误显 LocalMap 旧选中的弥留/summary>
@@ -385,7 +381,6 @@ namespace XianXia.Unity.Host
             ClearArmyOrderPreview();
             _panning = false;
             ForceClearInputBlock();
-            ReleaseMapPause();
 
             // Continuous Outdoor already owns the live presentation and canonical sync. Closing
             // its planning overlay only rearms the existing LocalVisible route; it must not enter
@@ -422,18 +417,6 @@ namespace XianXia.Unity.Host
                 }
                 bootstrap.ExpandLocalMapForCurrentPartyWorld(closeWorldMap: false);
             }
-        }
-
-        void ReleaseMapPause()
-        {
-            if (!_holdingPauseForMap || bootstrap?.Session == null || !bootstrap.Session.IsInitialized)
-            {
-                _holdingPauseForMap = false;
-                return;
-            }
-
-            _holdingPauseForMap = false;
-            bootstrap.Resume();
         }
 
         public void SetArmyOrderPreview(string armyId, WorldTravelTarget target)
@@ -490,7 +473,6 @@ namespace XianXia.Unity.Host
 
         public void ClearSessionState()
         {
-            _holdingPauseForMap = false;
             Close();
             _status = string.Empty;
             _selected.Clear();
@@ -2799,6 +2781,7 @@ namespace XianXia.Unity.Host
             _selectedHex = pickedHex;
             _hoverHex = pickedHex;
             ClearResidualSelection();
+            var previousSelectedSiteId = _selectedWorldSiteId;
 
             if (e.control)
             {
@@ -2825,10 +2808,19 @@ namespace XianXia.Unity.Host
                 _selectedWorldSiteId = string.Empty;
             }
 
-            if (world.Strategic.Sites.TryGetAtHex(pickedHex, out var selectedSite) && selectedSite != null)
-                _selectedWorldSiteId = selectedSite.SiteId;
-            else
-                _selectedWorldSiteId = string.Empty;
+            var siteIdsAtHex = world.Strategic.Sites.GetSiteIdsAtHex(pickedHex);
+            if (siteIdsAtHex.Count > 0)
+            {
+                var selectedIndex = 0;
+                for (var i = 0; i < siteIdsAtHex.Count; i++)
+                    if (string.Equals(siteIdsAtHex[i], previousSelectedSiteId, StringComparison.Ordinal))
+                    {
+                        selectedIndex = (i + 1) % siteIdsAtHex.Count;
+                        break;
+                    }
+                _selectedWorldSiteId = siteIdsAtHex[selectedIndex];
+            }
+            else _selectedWorldSiteId = string.Empty;
 
             if (!world.HexWorld.TryGetTile(pickedHex, out var inspectTile) || inspectTile == null)
             {
@@ -2838,7 +2830,8 @@ namespace XianXia.Unity.Host
             }
 
             var label = pickedHex.ToString();
-            if (world.Strategic.Sites.TryGetAtHex(pickedHex, out var site) && site != null)
+            if (!string.IsNullOrEmpty(_selectedWorldSiteId) &&
+                world.Strategic.Sites.TryGet(_selectedWorldSiteId, out var site) && site != null)
                 label = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
 
             _status = "Hex " + pickedHex + "｜" + label + "｜" + HexTerrainPresentation.GetDisplayName(inspectTile) +
@@ -4744,6 +4737,18 @@ namespace XianXia.Unity.Host
             }
 
             sb.Append("所属势力 ID：").Append(FormatOptional(site.OwnerFactionId)).Append('\n');
+            if (!string.IsNullOrEmpty(site.CoreAssetId))
+            {
+                sb.Append("核心 ID：").Append(site.CoreAssetId).Append('\n');
+                sb.Append("核心状态：").Append(site.IsCoreActive ? "有效" : "失效").Append('\n');
+                sb.Append("等级：").Append(site.CoreLevel).Append('\n');
+                sb.Append("Surface：").Append(FormatOptional(site.CoreSurfaceId)).Append('\n');
+                if (site.HasCoreWorldPosition)
+                    sb.Append("核心世界坐标：(").Append(site.CoreWorldX.ToString("0.###"))
+                        .Append(", ").Append(site.CoreWorldY.ToString("0.###")).Append(")\n");
+                sb.Append("基础管理范围：").Append(site.CoreRangeWidth.ToString("0.#"))
+                    .Append(" × ").Append(site.CoreRangeHeight.ToString("0.#")).Append(" 世界单位\n");
+            }
             sb.Append("当前格：").Append(clickedHex).Append('\n');
             return sb.ToString();
         }

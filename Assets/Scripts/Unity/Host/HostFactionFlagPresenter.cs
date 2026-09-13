@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Construction;
 using XianXia.Core.Results;
@@ -11,10 +13,14 @@ namespace XianXia.Unity.Host
     public sealed class HostFactionFlagPresenter : MonoBehaviour
     {
         PlayableHostBootstrap _bootstrap;
-        GameObject _visual;
+        sealed class FlagVisual
+        {
+            public GameObject Root;
+            public TextMesh Label;
+        }
+        readonly Dictionary<string, FlagVisual> _visuals =
+            new Dictionary<string, FlagVisual>(StringComparer.Ordinal);
         GameObject _preview;
-        TextMesh _label;
-        string _shownFlagId = string.Empty;
         string _buildingId = string.Empty;
         string _status = string.Empty;
         bool _placing;
@@ -25,7 +31,7 @@ namespace XianXia.Unity.Host
         float _previewZ;
 
         void Awake() => _bootstrap = GetComponent<PlayableHostBootstrap>();
-        void OnDestroy() { DestroyVisual(); DestroyPreview(); }
+        void OnDestroy() { DestroyAllVisuals(); DestroyPreview(); }
 
         public Result BeginConstructionPlacement(string buildingId)
         {
@@ -47,7 +53,7 @@ namespace XianXia.Unity.Host
             if (world == null || !_bootstrap.Session.IsInitialized)
             {
                 CancelPlacement();
-                DestroyVisual();
+                DestroyAllVisuals();
                 return;
             }
 
@@ -59,18 +65,10 @@ namespace XianXia.Unity.Host
                 context.Kind == LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WildernessHex);
             var anchor = continuous ? world.PlayerPartyTravel.CurrentHex :
                 (hasContext ? context.WildernessHex : default);
-            if (wilderness && world.Strategic.FactionFlags.TryGetAt(anchor, out var flag) && flag != null)
-            {
-                EnsureVisual(flag);
-                if (_label != null)
-                    _label.text = StrategicFactionCatalog.DisplayName(flag.FactionId) +
-                                  "\nHP " + flag.CurrentHp + "/" + flag.MaxHp;
-            }
-            else
-                DestroyVisual();
+            SyncVisuals(world, wilderness, continuous, wilderness ? anchor : default);
 
             if (_placing)
-                UpdatePlacementPreview(wilderness, continuous, wilderness ? anchor : default);
+                UpdatePlacementPreview(wilderness, continuous);
             else
                 DestroyPreview();
         }
@@ -101,7 +99,7 @@ namespace XianXia.Unity.Host
             DestroyPreview();
         }
 
-        void UpdatePlacementPreview(bool wilderness, bool continuous, HexCoord anchor)
+        void UpdatePlacementPreview(bool wilderness, bool continuous)
         {
             if (Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(1))
             {
@@ -111,14 +109,9 @@ namespace XianXia.Unity.Host
 
             var world = _bootstrap.Session.World;
             _domainLegal = false;
-            var domainReason = "此建筑只能建造在野外 LocalMap。";
-            if (wilderness)
-            {
-                var domain = FactionFlagService.ValidatePlacement(
-                    world, world.Strategic.PlayerFactionId, anchor, out _);
-                _domainLegal = domain.IsSuccess;
-                domainReason = domain.IsSuccess ? string.Empty : domain.Error.Message;
-            }
+            var domainReason = continuous
+                ? "请选择合法的 Continuous Outdoor 落点。"
+                : "新据点核心只能建造在 Continuous Outdoor。";
 
             _geometryLegal = false;
             if (!HostUiHitTest.ContainsScreenPoint(Input.mousePosition) &&
@@ -139,6 +132,20 @@ namespace XianXia.Unity.Host
                 EnsurePreview();
                 PositionBuilding(_preview, _previewX, _previewZ, continuous ? 1f :
                     (layout != null && layout.CellSize > 0f ? layout.CellSize : 1f));
+                FactionFlagSitePlacementRequest request = null;
+                var requestFailure = string.Empty;
+                if (_geometryLegal && continuous && TryBuildPlacementRequest(
+                        _previewX, _previewZ, out request, out requestFailure) &&
+                    world.ConstructionCatalog.TryGet(_buildingId, out var spec) && spec != null)
+                {
+                    var domain = FactionFlagService.ValidateSiteCorePlacement(
+                        world, world.Strategic.PlayerFactionId, request,
+                        spec.SiteRangeWidth, spec.SiteRangeHeight, out _);
+                    _domainLegal = domain.IsSuccess;
+                    domainReason = domain.IsSuccess ? string.Empty : domain.Error.Message;
+                }
+                else if (_geometryLegal && continuous)
+                    domainReason = requestFailure;
                 _overallLegal = _geometryLegal && _domainLegal;
                 Tint(_preview, _overallLegal
                     ? new Color(.35f, 1f, .45f, .55f)
@@ -156,63 +163,179 @@ namespace XianXia.Unity.Host
 
             if (Input.GetMouseButtonDown(0) && _overallLegal &&
                 !HostUiHitTest.ContainsScreenPoint(Input.mousePosition))
-                PlaceFlag(anchor, _previewX, _previewZ);
+                PlaceFlag(_previewX, _previewZ);
         }
 
-        void PlaceFlag(HexCoord anchor, float x, float z)
+        void PlaceFlag(float x, float z)
         {
             var world = _bootstrap.Session.World;
-            var result = ConstructionService.TryConstructFactionFlag(
-                world, _buildingId, world.Strategic.PlayerFactionId, anchor, x, z, out _);
+            if (!TryBuildPlacementRequest(x, z, out var request, out var failure))
+            {
+                _status = failure;
+                return;
+            }
+            var result = ConstructionService.TryConstructFactionFlagSite(
+                world, _buildingId, world.Strategic.PlayerFactionId, request,
+                out _, out var siteId);
             _status = result.IsSuccess ? "建造成功。" : result.Error.Message;
             if (!result.IsSuccess)
                 return;
-            if (_bootstrap.ContinuousOutdoorSurfaceRuntime != null &&
-                _bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive &&
-                world.Strategic.FactionFlags.TryGetAt(anchor, out var placed) && placed != null &&
-                _bootstrap.ContinuousOutdoorSurfaceRuntime.PresentationToWorld(x, z, out var wx, out var wy))
-            {
-                placed.HasWorldPosition = true;
-                placed.WorldX = wx;
-                placed.WorldY = wy;
-            }
             CancelPlacement();
             _bootstrap.RefreshFactionFlagWalkGrid();
+            Debug.Log("[CW03SiteCreated] SiteId=" + siteId + " Surface=" + request.SurfaceId +
+                      " World=(" + request.WorldPosition.X.ToString("0.###") + "," +
+                      request.WorldPosition.Y.ToString("0.###") + ")", this);
+        }
+
+        bool TryBuildPlacementRequest(
+            float presentationX, float presentationZ,
+            out FactionFlagSitePlacementRequest request, out string failure)
+        {
+            request = null;
+            failure = string.Empty;
+            var session = _bootstrap?.Session;
+            var world = session?.World;
+            var continuous = _bootstrap?.ContinuousOutdoorSurfaceRuntime;
+            if (world == null || continuous == null || !continuous.IsActive ||
+                world.LocalMap.IsInInterior ||
+                world.Strategic.ClockFreeze.Reason != StrategicClockFreezeReason.None)
+            {
+                failure = "当前空间或战斗阶段不允许建站。";
+                return false;
+            }
+            if (!continuous.PresentationToWorld(
+                    presentationX, presentationZ, out var worldX, out var worldY) ||
+                !continuous.IsWorldPositionLoaded(continuous.ActiveSurfaceId, worldX, worldY))
+            {
+                failure = "落点不在当前已加载的有效 Surface 区域。";
+                return false;
+            }
+            if (session.PlayerParty == null || !session.PlayerParty.HasActive ||
+                _bootstrap.ViewSpawner?.Registry == null ||
+                !_bootstrap.ViewSpawner.Registry.TryGet(session.PlayerParty.ActiveCharacterId, out var active) ||
+                active == null)
+            {
+                failure = "当前没有可执行建造的主控角色。";
+                return false;
+            }
+            var activePoint = HostPresentationSpace.ToPresentation(active.transform.position);
+            var dx = activePoint.x - presentationX;
+            var dz = activePoint.y - presentationZ;
+            const float maxPlacementDistance = 12f;
+            if (dx * dx + dz * dz > maxPlacementDistance * maxPlacementDistance)
+            {
+                failure = "落点距离主控过远。";
+                return false;
+            }
+            var anchor = HexMath.WorldToHex(worldX, worldY,
+                world.HexWorld?.HexSize > 0f ? world.HexWorld.HexSize : 1f);
+            request = new FactionFlagSitePlacementRequest
+            {
+                SurfaceId = continuous.ActiveSurfaceId,
+                WorldPosition = new WorldVec2(worldX, worldY),
+                StrategicAnchor = anchor,
+                PresentationX = presentationX,
+                PresentationZ = presentationZ
+            };
+            return true;
+        }
+
+        void SyncVisuals(
+            XianXia.Core.Simulation.SimulationWorld world,
+            bool wilderness,
+            bool continuous,
+            HexCoord legacyAnchor)
+        {
+            var keep = new HashSet<string>(StringComparer.Ordinal);
+            if (wilderness)
+            {
+                foreach (var pair in world.Strategic.FactionFlags.Flags)
+                {
+                    var flag = pair.Value;
+                    if (flag == null) continue;
+                    var visible = continuous
+                        ? IsContinuousFlagLoaded(flag)
+                        : flag.AnchorHex == legacyAnchor;
+                    if (!visible) continue;
+                    EnsureVisual(flag);
+                    keep.Add(flag.FlagId);
+                }
+            }
+            var remove = new List<string>();
+            foreach (var pair in _visuals)
+                if (!keep.Contains(pair.Key)) remove.Add(pair.Key);
+            for (var i = 0; i < remove.Count; i++) DestroyVisual(remove[i]);
+        }
+
+        bool IsContinuousFlagLoaded(FactionFlagState flag)
+        {
+            var continuous = _bootstrap.ContinuousOutdoorSurfaceRuntime;
+            if (flag == null || continuous == null || !continuous.IsActive) return false;
+            var worldX = flag.WorldX;
+            var worldY = flag.WorldY;
+            if (flag.HasWorldPosition)
+            {
+                if (!string.IsNullOrEmpty(flag.SurfaceId) &&
+                    !string.Equals(flag.SurfaceId, continuous.ActiveSurfaceId, StringComparison.Ordinal))
+                    return false;
+            }
+            else
+            {
+                if (flag.IsSiteCore) return false;
+                HexMath.ToWorldPosition(flag.AnchorHex, continuous.ActiveHexSize, out worldX, out worldY);
+            }
+            return continuous.IsWorldPositionLoaded(continuous.ActiveSurfaceId, worldX, worldY);
         }
 
         void EnsureVisual(FactionFlagState flag)
         {
-            if (_visual == null || _shownFlagId != flag.FlagId)
+            if (!_visuals.TryGetValue(flag.FlagId, out var visual) || visual?.Root == null)
             {
-                DestroyVisual();
-                _shownFlagId = flag.FlagId;
-                _visual = InstantiateBuilding("FactionControlPost_" + flag.FlagId);
-                _visual.transform.SetParent(transform, false);
-                _visual.AddComponent<HostFactionFlagView>().Bind(flag.FlagId);
+                var root = InstantiateBuilding("FactionControlPost_" + flag.FlagId);
+                root.transform.SetParent(transform, false);
+                root.AddComponent<HostFactionFlagView>().Bind(flag.FlagId);
                 var labelObject = new GameObject("FlagStatus");
-                labelObject.transform.SetParent(_visual.transform, false);
+                labelObject.transform.SetParent(root.transform, false);
                 labelObject.transform.localPosition = new Vector3(0f, 2.4f, -.1f);
-                _label = labelObject.AddComponent<TextMesh>();
-                _label.characterSize = .1f; _label.fontSize = 25;
-                _label.anchor = TextAnchor.LowerCenter; _label.alignment = TextAlignment.Center;
-                _label.color = Color.white;
+                var label = labelObject.AddComponent<TextMesh>();
+                label.characterSize = .1f; label.fontSize = 25;
+                label.anchor = TextAnchor.LowerCenter; label.alignment = TextAlignment.Center;
+                label.color = Color.white;
                 var mr = labelObject.GetComponent<MeshRenderer>();
                 if (mr != null) mr.sortingOrder = 722;
+                visual = new FlagVisual { Root = root, Label = label };
+                _visuals[flag.FlagId] = visual;
             }
+            visual.Label.text = BuildLabel(flag);
             var continuous = _bootstrap.ContinuousOutdoorSurfaceRuntime;
             if (continuous != null && continuous.IsActive &&
                 HostFactionFlagQuery.TryGetCenter(flag, continuous, out var center))
             {
                 var p = HostPresentationSpace.ToPresentation(center);
-                PositionBuilding(_visual, p.x, p.y, 1f);
+                PositionBuilding(visual.Root, p.x, p.y, 1f);
                 return;
             }
             if (MapLayoutPick.TryGet(_bootstrap.Session, out var layout) && layout != null)
             {
                 var baseGrid = MapLayoutWalkGridBuilder.Create(layout);
                 if (HostFactionFlagQuery.TryResolvePosition(flag, layout, baseGrid, out var x, out var z))
-                    PositionBuilding(_visual, x, z, layout.CellSize > 0f ? layout.CellSize : 1f);
+                    PositionBuilding(visual.Root, x, z, layout.CellSize > 0f ? layout.CellSize : 1f);
             }
+        }
+
+        string BuildLabel(FactionFlagState flag)
+        {
+            var world = _bootstrap?.Session?.World;
+            if (!string.IsNullOrEmpty(flag.SiteId) && world?.Strategic?.Sites != null &&
+                world.Strategic.Sites.TryGet(flag.SiteId, out var site) && site != null)
+                return site.DisplayName + " · Lv." + site.CoreLevel +
+                       "\n" + StrategicFactionCatalog.DisplayName(site.OwnerFactionId) +
+                       " · " + (site.IsCoreActive ? "核心有效" : "核心失效") +
+                       " · " + site.CoreRangeWidth.ToString("0.#") + "×" +
+                       site.CoreRangeHeight.ToString("0.#") +
+                       "\nHP " + flag.CurrentHp + "/" + flag.MaxHp;
+            return StrategicFactionCatalog.DisplayName(flag.FactionId) +
+                   "\nHP " + flag.CurrentHp + "/" + flag.MaxHp;
         }
 
         void EnsurePreview()
@@ -268,10 +391,17 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < rs.Length; i++) rs[i].color = color;
         }
 
-        void DestroyVisual()
+        void DestroyVisual(string flagId)
         {
-            if (_visual != null) Destroy(_visual);
-            _visual = null; _label = null; _shownFlagId = string.Empty;
+            if (!_visuals.TryGetValue(flagId ?? string.Empty, out var visual)) return;
+            if (visual?.Root != null) Destroy(visual.Root);
+            _visuals.Remove(flagId);
+        }
+
+        void DestroyAllVisuals()
+        {
+            var ids = new List<string>(_visuals.Keys);
+            for (var i = 0; i < ids.Count; i++) DestroyVisual(ids[i]);
         }
 
         void DestroyPreview()

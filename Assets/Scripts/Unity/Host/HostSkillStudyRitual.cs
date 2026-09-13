@@ -23,6 +23,7 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostSkillStudyRitual : MonoBehaviour
     {
+        const string PauseOwner = "SkillStudyRitual";
         public const float DefaultDurationSeconds = 8f;
 
         [SerializeField] PlayableHostBootstrap bootstrap;
@@ -438,7 +439,7 @@ namespace XianXia.Unity.Host
                 return;
             if (!_holdingPause)
             {
-                bootstrap.Session.IsPaused = true;
+                bootstrap.Session.AcquireModalPause(PauseOwner);
                 _holdingPause = true;
             }
 
@@ -446,11 +447,13 @@ namespace XianXia.Unity.Host
             HostInputGate.BlockWorldInteraction = true;
         }
 
+        void OnDisable() => ReleasePause();
+
         void ReleasePause()
         {
             if (_holdingPause && bootstrap?.Session != null)
             {
-                bootstrap.Session.IsPaused = false;
+                bootstrap.Session.ReleaseModalPause(PauseOwner);
                 _holdingPause = false;
             }
         }

@@ -1,6 +1,6 @@
 # 领地经营
 
-> 状态：夺取控制权、时间表权限与成长循环已定方向；**2026-08-22 战略占点见 [2A](2A-factions-armies-diplomacy-and-capture.md)** | 优先级：P0 | 最后更新：2026-08-24
+> 状态：SiteCore 行政管理最终设计已确认；旧 Control Asset 能力部分已验收，新范围／接续待迁移与验收 | 优先级：P0 | 最后更新：2026-09-12
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`25-cultivation-and-breakthrough.md`、`24-world-and-settlements.md`、`27-characters-and-population.md`、`22-realms-and-abilities.md`、**[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**
 > **Hex Territory / TerritoryRegion / Capture 后整块易主：** 正式规则见 **[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**（2026-08-24）。本文 §2「Strategic Node」术语在 Pure Hex 下对应 **Fixed WorldSite + TerritoryRegion**。
@@ -19,31 +19,42 @@
 
 **取得第一个据点后才解锁**，之前不显示任何经营界面。
 
-## 2. 战略 Node 占领（2026-08-22 修订）
+<a id="sitecore-administration"></a>
+## 2. SiteCore 覆盖、重叠与管理接续（2026-09-12）
+
+- 核心理论范围允许重叠，不禁止邻近建旗、升级或相邻发展。同势力范围以并集显示和统计；每个位置／建筑的实际行政管理必须唯一。
+- 不同势力保留先取得的有效控制。核心升级新增范围不能抢走他方既有土地；同势力多个 Site 也使用稳定的有效先占／交接规则。实现前核对控制历史数据和平局算法。
+- 接管议政厅整体移交该 Site 现有实际行政控制，保留 Site 身份、名称、等级、核心位置和实体资产；不吞并其他 Site 的土地，也不自动改变居民／守卫的关系、势力成员资格或忠诚。
+- 拆旗只移除控制声明并重算覆盖，不删除建筑、不清库存、不恢复生命／损伤。有其他 Site 接续时转交管理；无接续时暂停依赖行政管理的生产／功能，建筑独立交互继续按自身规则。
+- 行政管辖和允许建设使用同一范围；水面／岸边等由建筑本身判定。所有权／范围变化不移动人物或重置日程、出生点和移动命令。
+
+完整决策见 [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)。现有 first-claim／EstablishedOrder 是已验收旧实现基础，不足以证明升级历史和 SiteCore 新生命周期已实现。
+
+## 20. 历史战略 Node 占领（2026-08-22）
 
 战略层占点规则以 [2A 势力、军队、外交与战略占领](2A-factions-armies-diplomacy-and-capture.md) 为准。本节保留 LocalMap 层「夺取控制权」体验方向，并 generalize 术语。
 
-### 2.1 CaptureObjective（占领目标）
+### 20.1 CaptureObjective（占领目标）
 
-每个**可军事占领**的 Strategic Node 必须配置至少一个 **CaptureObjective**（占领目标）。重要 Node 可有多个；**全部完成**才易主。
+`CaptureObjective` 是既有 API／内容名称；当前 V1 每个 WorldSite 只有一个 SiteCore。预设 Site 的议政厅／主管府等核心固定存在、不可拆除，可被攻破防御并由真人通过正式交互接管；玩家另立势力旗会创建新的 Site，而不是给同一 Site 增加第二核心。
 
 | 据点类型 | CaptureObjective 示例 |
 |---|---|
 | 荒村／资源点 | 主管府（Prototype 已实现为 `ControlCore`） |
-| 城市 | 城主府、东侧核心、西侧核心等 |
-| 宗门 | 宗门大殿、阵枢 |
+| 城市 | 城主府／议政厅（该 Site 的唯一核心） |
+| 宗门 | 宗门大殿／阵枢（该 Site 的唯一核心） |
 
-玩家攻击 CaptureObjective → **耐久（HP）归零** → 进入可占领状态 → 进攻方进入 **Capture Zone** 持续一段时间 → 占领完成。敌方 Character 可攻击占领者、打断占领。
+玩家攻击 SiteCore 防御 → **耐久（HP）归零** → 进入可占领状态 → 进攻方角色进入正式接管区域并持续交互 → 接管完成。敌方 Character 可攻击占领者、打断接管。只有接管完成才改变 Owner；“接管完成 OR 打倒本次有效对手”只是战斗结束资格，不表示打倒人物会自动送地。
 
 **无需杀光**地图上所有敌人才能夺取节点。
 
-### 2.2 军事占领前提与 Owner 规则
+### 20.2 军事占领前提与 Owner 规则
 
 - **必须处于 War** 才能军事夺取 Node（见 [2A](2A-factions-armies-diplomacy-and-capture.md) §29）
 - 成功后 **Owner 直接易主**；**不做** Owner／Controller 双层、不做 Occupied Territory 中间态
 - 未来可通过**交易／外交转让**改变 Owner —— **本阶段不做**
 
-### 2.3 Node Defense（节点防御）
+### 20.3 Node Defense（节点防御）
 
 防御力量来自真实世界状态：
 
@@ -54,15 +65,15 @@
 
 **禁止**按 Node 等级临时凭空生成匿名修士守军。
 
-Resident Character **不能**主动跨 Node 支援；须先组成 Army 才能主动出击（[2A](2A-factions-armies-diplomacy-and-capture.md) §9）。
+Resident Character 是否响应或跨区行动取决于职责、动机、发现、可达性、AI／Policy 与真实移动计划；不要求先组成 Army。远方角色仍不开放逐人 RTS 指挥。
 
-### 2.4 手动攻点收尾（2026-08-22 · 2A）
+### 20.4 手动攻点收尾（2026-08-22 · 2A）
 
-全部 CaptureObjective 完成后：Owner 直接易主 → 玩家可点「结束战斗」→ 战斗结算；**无需**杀光残余守军。逃脱守军可成 RetreatingArmy；见 [2A](2A-factions-armies-diplomacy-and-capture.md) §37.1～§37.2。
+议政厅可在同源战场内按正式交互接管。正式接管完成或打倒本次有效对手任一成立即可获得结束资格；只有实际完成接管才改变 Owner。残存守军不被自动删除或收编；见 [2A](2A-factions-armies-diplomacy-and-capture.md) §37、[23](23-combat.md) §12.2。
 
 | 方式 | 做法 | 状态 |
 |---|---|---|
-| **军事攻点** | War 状态下完成全部 CaptureObjective | **第一版占点真源** |
+| **军事接管** | 具备有效 War 授权并在战场内按正式条件接管议政厅 | 接管改变 Owner；仅打倒对手不送土地 |
 | **逐步瓦解** | 清理威胁、争取支持、再夺核心 | 与军事攻点可组合 |
 | ~~**外交接管**~~ | 利用关系、谈判和平获得控制 | **superseded** → 未来「交易／外交转让」方向；**不作为本阶段占点实现** |
 
@@ -193,7 +204,7 @@ Resident Character **不能**主动跨 Node 支援；须先组成 Army 才能主
 ## 12. 未决问题
 
 - [x] 占领地盘的核心动机是获得修炼优势，不是单纯扩图。
-- [x] 据点占领是完成全部 CaptureObjective，不是必须杀光所有敌人；军事占点须 War（~~外交接管~~ → 未来交易／外交转让）
+- [x] 战场结束资格为正式接管 OR 打倒本次有效对手；只有实际接管才改变土地 Owner，建筑军事攻击须先处理 War 后果
 - [x] 占领后第一项重要权限是修改时间表。
 - [x] 据点是可发展区域，可建设洞府、生产、灵气、防御等建筑。
 - [x] 灵气来源：地形天然 + 建筑 + 灵物 + 多据点汇聚。

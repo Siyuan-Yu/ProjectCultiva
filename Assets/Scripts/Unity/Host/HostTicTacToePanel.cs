@@ -10,6 +10,7 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostTicTacToePanel : MonoBehaviour
     {
+        const string PauseOwner = "TicTacToe";
         public enum ResultKind
         {
             None = 0,
@@ -61,6 +62,11 @@ namespace XianXia.Unity.Host
             _result = ResultKind.None;
             _status = "你执先手（X）。连成三子即胜。";
             _open = true;
+            if (!_holdingPause && bootstrap?.Session != null)
+            {
+                bootstrap.Session.AcquireModalPause(PauseOwner);
+                _holdingPause = true;
+            }
         }
 
         void Update()
@@ -75,7 +81,7 @@ namespace XianXia.Unity.Host
             HostInputGate.BlockWorldInteraction = true;
             if (!_holdingPause && bootstrap?.Session != null)
             {
-                bootstrap.Session.IsPaused = true;
+                bootstrap.Session.AcquireModalPause(PauseOwner);
                 _holdingPause = true;
             }
         }
@@ -245,13 +251,15 @@ namespace XianXia.Unity.Host
             cb?.Invoke(r);
         }
 
+        void OnDisable() => ReleasePause();
+
         void ReleasePause()
         {
             if (!_holdingPause)
                 return;
             _holdingPause = false;
             if (bootstrap?.Session != null)
-                bootstrap.Session.IsPaused = false;
+                bootstrap.Session.ReleaseModalPause(PauseOwner);
             HostInputGate.Clear();
         }
 

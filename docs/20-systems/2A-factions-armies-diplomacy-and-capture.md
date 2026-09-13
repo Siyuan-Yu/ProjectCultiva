@@ -1,15 +1,18 @@
 # 势力、军队、外交与战略占领
 
-> 状态：**设计规则已拍板｜Control Asset Territory + FactionFlag V1 已实现、人工验收并封板**｜优先级：P0｜最后更新：2026-09-06
-> 上级：`docs/00-project/00-overview.md`  
-> 关联：`24`、`26`、`27`、`28`、`113`、`138`、`ADR-0024`、`2K`、`ADR-0026`  
-> 被引用：`03-glossary.md`、`34`、`41-roadmap`  
-> **本页是战略势力层（Faction／外交／War／Capture／Army 军事规则）的产品真源。**  
-> **玩家控制模型／PlayerParty／连续世界／「跨点是否必须 Army」以 [2K](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0026](../40-process/43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) 为准。**  
-> **本阶段不写实现代码。** 当前 Host 中的 `PartyWorldPresence`／`ArmyStack`／RTS 多选等为 **Prototype**，见各过程文档 historical 注记。  
+> **CW-U0 现行组织／参战规则：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 与 [23](23-combat.md) §2～3 替代本页旧 FormalArmy 专属产品入口及守备／同势力自动进入初始名单。唯一通用小队、初始仅冲突两队，第三方仅从开战范围内有限候选介入；政治、建筑宣战及真实战果不变。旧军队服务只作当前兼容，CW-U2B 迁移。
+
+> 状态：最终冲突／接管规则已确认；旧 Control Asset + FactionFlag V1 基线已验收，新行为待迁移／核查与制作人验收｜优先级：P0｜最后更新：2026-09-12
+> 上级：`docs/00-project/00-overview.md`
+> 关联：`24`、`26`、`27`、`28`、`113`、`138`、`ADR-0024`、`2K`、`ADR-0026`
+> 被引用：`03-glossary.md`、`34`、`41-roadmap`
+> **本页是战略势力层（Faction／外交／War／Capture／Army 军事规则）的产品真源。**
+> **玩家控制模型／PlayerParty／连续世界／「跨点是否必须 Army」以 [2K](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0026](../40-process/43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) 为准。**
+> **本阶段不写实现代码。** 当前 Host 中的 `PartyWorldPresence`／`ArmyStack`／RTS 多选等为 **Prototype**，见各过程文档 historical 注记。
 > **Hex Territory / Multi-Hex WorldSite / Dynamic Bandit（2026-08-24）：** 见 [2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)。Territory／Site Footprint／Bandit 专题以 **2J** 为准；本文 § 中 **Node Owner / Node Territory** 表述为 Legacy，Pure Hex 下以 **ControlFactionId + TerritoryRegion** 为准。
 > **FactionFlag V1（2026-09-06）：** 阵营旗是非 Character 战略目标，攻击必须通过正式 War 门槛。Anchor+完整一环内的真实防守 FormalArmy 会建立 BattleOffer；旗本身不是参战 Character，战后不自动续拆。几何与领地求解以 2J 为准。
-> **SEALED baseline（2026-09-06）：** Control Asset Territory、FactionFlag 战略建筑交互、Authoring、SaveLoad 与 WorldMap 图层已完成人工验收；封板边界与 Future 见 [200](../40-process/200-control-asset-territory-and-faction-flag-v1-sealed-2026-09-06.md)。除明确 Bug / Regression 外不改变 V1 first-claim、EstablishedOrder、SupportArea 与快照 authority。
+> **SEALED historical baseline（2026-09-06）：** Control Asset Territory、FactionFlag 战略建筑交互、Authoring、SaveLoad 与 WorldMap 图层在当时版本已人工验收，见 [200](../40-process/200-control-asset-territory-and-faction-flag-v1-sealed-2026-09-06.md)。该记录继续证明旧能力，不再冻结 `EstablishedOrder` 对 SiteCore 新增范围的全局追溯优先、footprint 精确行政范围或 Army 类型特权；这些冲突点由 ADR-0032／0034 替代。
+> **2026-09-12 当前补丁：** 人物／建筑冲突、战内升级与接管、OR 胜利及飞舟／Army 职责以 [ADR-0033](../40-process/43-decisions/ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md)／[ADR-0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) 为准；旧 V1 验收不等于这些目标已实现。
 
 ---
 
@@ -148,14 +151,14 @@ GoldenCoreCount = 1
 
 ## 4. Army：正式军事远征组织（不再是唯一世界移动载体）
 
-> **SUPERSEDED（2026-08-25）：** 旧文「任何 Character 都不能脱离 Army 单独跨点移动／1 人也必须 Army」已废除。  
+> **SUPERSEDED（2026-08-25）：** 旧文「任何 Character 都不能脱离 Army 单独跨点移动／1 人也必须 Army」已废除。
 > **新真源：** [2K §7–§8](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、[ADR-0026](../40-process/43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)。
 
 **现行产品规则：**
 
-- **PlayerParty／Background Character** 可以在 HexWorld 旅行（后台角色走低频率模拟）。  
-- **FormalArmy** = 正式军事远征组织：公开进攻、Capture、战争参与、WorldMap 常驻 Leader 标记。  
-- **只有 PlayerParty 或 FormalArmy** 拥有 AttackWorldSite／CaptureWorldSite。  
+- **PlayerParty／Background Character** 可以在 HexWorld 旅行（后台角色走低频率模拟）。
+- **FormalArmy** = 组织真实成员执行军事任务、远方自动战斗与驻扎的编组；不因类型获得宣战、Capture 或 WorldMap 移动特权。
+- ~~只有 PlayerParty 或 FormalArmy 拥有 AttackWorldSite／CaptureWorldSite。~~ **SUPERSEDED（2026-09-12）：** 政治结果由真人按正式战争与接管条件完成，不由 Party／Army／飞舟类型授予；见 §19.4、§37 与 ADR-0034。
 - 组军与编制管理允许在 Army faction 的任意 **Effective Territory Hex**；成员须真实位于同一 Hex。Garrison 仍为 WorldSite-only（见 [ADR-0028](../40-process/43-decisions/ADR-0028-formalarmy-formation-and-roster-use-effective-territory.md)）。
 
 > **Prototype 注记：** Host 大地图仍以选中 FormalArmy 为主要 RTS 操作（`139`／`152`／`154` historical）。迁移见 [163](../40-process/163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md)。
@@ -167,7 +170,7 @@ GoldenCoreCount = 1
 | 对象 | 职责 |
 |------|------|
 | **Character** | 人物：境界、关系、行为、伤势、生死 |
-| **Army** | 让一组真实 Character 获得 WorldGraph 战略移动、攻击、追击、驻扎能力的**组织载体** |
+| **Army** | 一组真实 Character 的军事任务与编制载体；不创造成员本来没有的政治或地图移动类型特权 |
 
 Army **不是**匿名兵力池。Army 保存 `MemberCharacterIDs[]`，**不是** `QiRefining=10, Foundation=2`。
 
@@ -224,18 +227,20 @@ Army **不是**匿名兵力池。Army 保存 `MemberCharacterIDs[]`，**不是**
 
 **第一版明确不做：** Leader 战略 Buff、指挥值、统帅能力。
 
-Leader 战死／离队／失效 → 按既定成员排序选择下一名合法成员为 Leader。  
+Leader 战死／离队／失效 → 按既定成员排序选择下一名合法成员为 Leader。
 若没有任何成员 → Army 无存在意义，应视为不存在。
 
 ---
 
 ## 8. Node Resident 与 Army：两种战略状态
 
-Character **未**加入 Army 时 → 驻留于某一 WorldNode（Resident Character）。
+> **历史迁移范围（2026-08-22 旧模型）：** 本节旧“Resident 离开必须组 Army”已被 2K／ADR-0034 替代。Resident、Party 和 Army 仍是不同组织／模拟上下文，但普通角色可依 AI、Policy、任务或自身合法移动计划离开；不可远程逐人 RTS 控制仍有效。
+
+Character **未**加入 Army 时可作为 Resident Character 保持 HomeSite／日常职责，但其当前物理位置由统一 WorldPosition 表示。
 
 Resident 可在该 Node 的 LocalMap：工作、修炼、闭关、社交、执行任务、生活。
 
-**Resident 不能**主动离开 Node 进行战略行动。想离开必须先组成 Army。
+Resident 不需要为离开而强制组 Army。是否出行由角色目标、职责、Policy、任务和合法路径决定。
 
 ---
 
@@ -248,13 +253,11 @@ Resident 可在该 Node 的 LocalMap：工作、修炼、闭关、社交、执�
 - Node 的 **Formation**／阵法
 - 未来其他真实防御设施
 
-**限制：** 仅是 Resident、未组成 Army 的 Character：
+Resident 与正式守备按职责响应；未编 Army 不等于永远不能离开 Site：
 
-- **不能**主动到 Node 之外支援
-- 即使敌军 Army 已在附近 Route 上，也**不能**跑出去打
-- 只能等敌方真正攻击 Node 后参与 **Node Defense**
-
-想主动出击 → 必须先组成 Army。
+- 日常 NPC 不因战争敌对自动冲锋；是否接近、追击或外援由职责、动机、发现、状态和可达性决定。
+- 初始名单仅冲突两队；本地守备身份不自动赋予第三队初始资格。第三方按开战范围内有限候选规则介入，不把全 Site 人口拉入。
+- 远方行动保持自动处理，玩家不能逐个附身下令；FormalArmy 可承载组织任务，但不是唯一合法出行形式。
 
 ---
 
@@ -342,13 +345,15 @@ Army 可以：
 
 ## 13.1 Hex Battlefield Residual Presentation（战后弥留／阵亡）
 
+> **2026-09-12 SUPERSEDED：** 下述 `Encounter Hex` 残留是旧大地图自动战呈现契约。玩家参与的同源独立 Encounter 结束后，弥留者与尸体都回到各自战前世界锚点，且保持唯一实例；不得统一落在 BattleHex。自动战若继续使用战略 Hex 汇总，也不能覆盖真实角色已有的精确锚点。
+
 战后 **Downed（Incapacitated）** 与 **Visible Corpse（Dead）** 必须脱离 FormalArmy（见 `ArmyService.DetachNonLivingMembersAtBattlefield`）。
 
 - **不是 FormalArmy**：无 Leader、不可 Move／Attack／Pursuit、不进 Army List、不占 Army Capacity。
 - **真实单位仍是 Character**（保留 CharacterId／Faction／LifeState／Corpse）；禁止只存匿名 Count。
-- **战略位置**：`WorldAgentPresence.Mode = AtHex` + `HexCoord`（Encounter Hex）。Residual 运行时路径禁止再读 Legacy Node／Route。
-- **WorldMap 聚合（PURE DERIVED）**：Presentation Query 按  
-  `HexCoord × DynamicRelation(SELF/ALLY/OTHER/ENEMY) × ResidualState(DEAD/DOWNED)`  
+- **旧阶段战略位置**：`WorldAgentPresence.Mode = AtHex` + `HexCoord`（Encounter Hex）。仅适用于无法提供更精确原世界锚点的旧自动战汇总。
+- **WorldMap 聚合（PURE DERIVED）**：Presentation Query 按
+  `HexCoord × DynamicRelation(SELF/ALLY/OTHER/ENEMY) × ResidualState(DEAD/DOWNED)`
   派生 Marker；**不**创建 BattleResidualGroup Domain，**不** Snapshot 保存 Relation／Group／Count。
 - Relation 每次相对 `PlayerFactionId` 动态计算（War／Alliance）；和平后原 ENEMY 尸体自动显示为 OTHER。
 - Marker：统一 Dead／Downed 图标 + 人数角标；Hex 边缘偏移；Active Army 绘制与命中优先于 Residual；右键穿透 Residual。
@@ -463,7 +468,20 @@ WorldMap 的「战略 → 势力」是**运行时只读可见性**，不是开�
 
 玩家的住房／课表权限由 `SettlementAuthoritySync.Rebuild` 根据**当前**玩家拥有的 ControlCore Site 全量重建；失去最后一个权限来源必须撤销权限。`PlayerControlled` 与 `AllCompletedForSite` 仅保留旧代码兼容，禁止进入新的占领 authority。
 
-### 19.3 不做系统强制的战后保护期（2026-08-22 拍板）
+<a id="conflict-and-building-war"></a>
+### 19.4 人物冲突、建筑攻击与战内扩大战争（2026-09-12）
+
+- 攻击人物或其实际同行小队只建立本场人物冲突，不自动替双方势力宣战。私人敌对、势力态度与 War 分开；散修不是共享政治势力。
+- 最新建筑规则适用于某势力**有效拥有的所有建筑**。从主世界首次攻击非战争势力建筑时，同一个遭遇窗口同时说明开战和对有效 Owner 宣战；确认后才提交 War 并允许伤害，不连续弹三个窗口。
+- 已在人物战中转攻未交战势力建筑时，暂停当前战场并说明新增后果。确认后在同一地图扩大冲突、允许攻击并触发守备；不重开地图、不重置伤势或消耗。取消只取消本次扩大行为。
+- Owner 按建筑当前有效归属解析，不按地面颜色猜测。自身／无政治归属对象不得对空 Faction 或自己宣战；中立产权沿用适用规则。
+- 已处于 War 时不重复外交确认，但从主世界发起新遭遇仍经过战斗窗口。V1 未授权 AOE 默认不损伤非交战势力建筑；主动指定建筑则走相应确认。
+- 确认内容必须揭示该 Owner 当前联盟、附庸或宗主关系所产生的既有连锁后果；本规则不静默解除这些关系，也不把未受攻击的势力误宣战。具体 Ch01 主体映射见 §44 的待核查边界。
+- 人物私斗可在同一战场升级战争，升级后正式守备响应。议政厅可按正式条件在场内实际接管，不要求先返回世界。
+
+胜利资格为**本次正式接管完成 OR 本次有效敌方战斗人员被打倒**。未接管不会因打倒人物自动得地；获得结束资格后可留场完成接管。详见 [23 §12.2](23-combat.md)。
+
+### 19.5 不做系统强制的战后保护期（2026-08-22 拍板）
 
 **明确不做**战争结束后的系统强制保护期／宣战冷却。
 
@@ -545,7 +563,7 @@ Overlord ↔ Vassal + Obligations
 
 外部外交战略由 **Overlord** 决定。
 
-附庸仍拥有自己对其他 Faction 的 Opinion / Trust / Threat。  
+附庸仍拥有自己对其他 Faction 的 Opinion / Trust / Threat。
 例：玩家是玄天宗附庸，对白家 Opinion +70，但玄天宗决定对白家开战 → 玩家政治上仍须跟随宗主。
 
 ---
@@ -659,7 +677,7 @@ Controller = B
 
 ## 31. CaptureObjective
 
-所有可军事占领的 Strategic Node **必须配置至少一个 CaptureObjective**。
+`CaptureObjective` 是既有实现/API 名称；当前 V1 语义收敛到 WorldSite 的唯一 `SiteCore`。预设 Site 的核心表现为固定议政厅／主管府等，可被攻破防御并通过正式交互接管，但不可拆除。玩家另立势力旗会创建新的 Site，而不是给同一 Site 添加第二个 CaptureObjective。
 
 | Node 类型 | 示例 |
 |-----------|------|
@@ -668,21 +686,17 @@ Controller = B
 | 城市 | 城主府／核心建筑 |
 | 宗门 | 宗门大殿／阵枢 |
 
-具体内容由地图配置；占领系统**不应硬编码**「主管府」。
+具体表现名称可由内容配置；占领系统不应把所有 Site 的显示名硬编码为“主管府”，但运行语义始终指向该 Site 的唯一核心。
 
-> **与 Prototype 关系：** 当前 LocalMap 已实现 `ControlCore`（主管府）流程（`121`）；正式占点 generalize 为 `CaptureObjective`，语义沿用 HP→0→Capture Zone→持续占领。
+> **与旧实现关系：** LocalMap 阶段已实现 `ControlCore`／`CaptureObjective` 流程（`121`）；这些名字可作为迁移入口。普通户外的正式目标是在同源独立 Encounter 中对实际 SiteCore 完成攻破与接管，不能恢复一 Site 多目标的旧提案。
 
 ---
 
 ## 32. 多个 CaptureObjective
 
-重要 Node 可有多个核心（如东侧核心、西侧核心、城主府）。
+> **SUPERSEDED（2026-09-12）：** V1 一个 WorldSite 只有一个 SiteCore，不做同城多核心。预设议政厅不可拆，可攻破防御并实际接管；新旗创建另一个 Site。旧“多个核心必须全部完成”只保留为未来多目标扩展的历史提案，不约束 V1。
 
-**已确认：** 有几个就必须**全部完成**。不做占 2/3、任选一个、Primary Objective 单独胜利。
-
-```text
-All CaptureObjectives Completed → Node Captured
-```
+同一 SiteCore 可以有门、墙、阵法等多个防御结构；破坏这些结构不等于完成接管。战斗结束资格与土地易主分别按 §37：接管完成 OR 打倒本次有效敌人可结束，只有实际接管改变 Owner。
 
 ---
 
@@ -745,15 +759,13 @@ CombatPower 算法：**本轮不重新设计**；沿用／参考现有自动战�
 
 ## 37. 手动攻点
 
-手动攻城进入对应 LocalMap／Encounter。
+> **2026-09-12 SUPERSEDED：** 下方 2026-08-22 的“全部 CaptureObjectives 才成立胜利”只作历史记录。当前玩家实战进入同源独立 Encounter；场内真人可实际接管议政厅，且**正式接管完成 OR 打倒本次有效敌方战斗人员**任一成立即可获得结束资格。打倒人物但未接管不自动得地；接管成立也不因仍有活守卫而扣留。见 [23 §12.2](23-combat.md)／ADR-0033。
 
-- **进攻方：** 完成**全部** CaptureObjectives
-- **守方：** 保护核心；受阵法等 Node Defense 影响
-- **胜利条件：** All CaptureObjectives Completed = Node Capture Success（**不是** Kill All Enemies = Win）
+手动攻城使用接战地点当前地形、建筑和核心状态的同源独立 Encounter。
 
 ### 37.1 Capture 成功后的手动战收尾（2026-08-22 拍板）
 
-当**全部 CaptureObjective 完成**后：
+当正式议政厅接管完成后：
 
 1. **Node Capture Success** 已成立
 2. **Node Owner** 直接切换为进攻方 Faction（`OwnerFactionId`／`ownerId`）
@@ -764,26 +776,9 @@ CombatPower 算法：**本轮不重新设计**；沿用／参考现有自动战�
 
 ### 37.2 残余守军：真实 Character 结算（2026-08-22 拍板）
 
-手动攻城**结束战斗**时，仍存活的敌方守军**不能凭空消失**。
+手动攻城**结束战斗**时，仍存活的敌方守军**不能凭空消失、自动收编或清除仇恨**；本次防御结束后回其战前世界锚点并可在主世界后续退却。
 
-结算时，每个真实 Character 根据后续规则／概率进入不同结果，例如：
-
-- **Captured（被俘）**
-- **Escaped（成功逃脱）**
-
-**具体概率公式：本轮不做。**
-
-**Escaped 的 Character：**
-
-- 仍保持真实 Character 身份
-- 可组成一支或多支 **RetreatingArmy**（撤退军团）／**Exile Army**
-- 尝试向其 Faction **仍控制的 Node／区域**撤退
-
-若该 Faction 已失去全部领土（**Landless Faction**，§38）：
-
-- **不删除**这些 Character
-- 他们仍可作为 **Landless Faction 的 Army** 存在
-- 无地势力具体撤退目标／求生 AI — **以后再设计**
+当前 V1 不附带完整俘虏／赎金制度，也不在结算时随机把守军改成 Captured。每名参与者先按 [23 §12.1](23-combat.md) 回到自己的战前世界锚点并保留当前生命、伤势、死亡、消耗、关系和势力身份；残存守备可随后在主世界按真实 AI／任务退却。旧 `Captured／Escaped → RetreatingArmy` 概率提案只作历史扩展，不是本轮目标。
 
 ---
 
@@ -902,15 +897,17 @@ CombatPower 算法：**本轮不重新设计**；沿用／参考现有自动战�
 
 > **2026-09-05 修订：** 本节的独立「主动起事」按钮流程已被正式军事侵略事务取代。玩家攻击正式军事目标时，若尚未战争，先确认政治后果，再由 `StrategicMilitaryAggressionService` 完成必要的解除附庸／退出联盟与宣战。第一章仅在该事务成功攻击旧宗主时记录 `ch01:rebellion_started` 剧情标记。
 
-> **攻城补充：** Fixed WorldSite 的 `CaptureObjective` 在 V1 统一表现为「议政厅」。攻击议政厅时先按该 Site 的全部 footprint 加外围一圈冻结 SupportArea，并按当前 War 的双方收集实际可战 FormalArmy；有防守方军队才出现 BattleOffer。议政厅是敌方战略目标的表现项，不是 Character participant，不参与战斗结束条件；击败守军后不会自动继续拆除，玩家必须再次发起议政厅攻击。
+> **2026-09-12 攻城流程：** Fixed WorldSite 的 V1 SiteCore 表现为议政厅。任何新的玩家实战都在首击前出现 Encounter 确认，不以“存在防守 FormalArmy”为前提。战场从接战地点当前地形、门墙桥和议政厅状态构建；正式守备、实际同行和有限关系候选分别进入。议政厅可在同一战场内被实际接管；接管完成或打倒本次有效敌人任一成立即可获得结束资格，不要求返回世界后再次攻击。议政厅不可拆，防御被攻破不等于删除实体。
 
 **原则：** Generic Domain 回答「Faction / Army / War / Vassalage **怎么工作**」；Ch01 Scenario 回答「**什么时候**发生」。
+
+必须分开核对四个主体：角色 `FactionMembership` 表示人物当前成员身份；`PlayerAgency.ManagedFactionId` 表示玩家可管理的政治主体；建筑 Effective Owner 决定本次建筑攻击归责对象；外交／War 由具备政治身份的 Faction 发起。四者不得凭“玩家控制了这个角色”相互推导。当前文档能确认 `strategicOpening`、VassalageBoard、军事侵略事务与剧情标记各自存在过，但新规则下 Ch01 开局各阶段的具体 ID 映射和无有效政治主体时的安全失败仍需实现前定向核查；不得为补空缺新造 Faction 或把普通人物攻击硬接 DeclareWar。
 
 | 阶段 | 语义 | 实现边界 |
 |------|------|----------|
 | Stage 0 开局压榨 | 玩家势力是压迫宗门的正式附庸；该关系由 Scenario `strategicOpening` 提供 | `VassalageBoard` 是关系真源；不在 Generic Bootstrap 偷写剧情关系。 |
-| Stage 1 正式军事侵略 | 玩家攻击旧宗主的 FormalArmy 或议政厅 → 确认政治后果 → 解除附庸 → 宣战 | `StrategicMilitaryAggressionService` 为通用事务；`Ch01ScenarioProgressionHooks` 只记录剧情标记。 |
-| Stage 2 夺取荒村 | 全部 CaptureObjectives 完成 → `WorldSite Owner` 易主 → 玩家取得第一块真正领土与政治成立标记 | Domain：`CaptureObjectiveService` → `WorldSiteTerritoryTransferService`；Scenario Hook：`Ch01ScenarioProgressionHooks`，不在 Capture Domain 硬编码剧情宣战。 |
+| Stage 1 正式军事侵略 | 玩家明确攻击旧宗主有效拥有的建筑等政治军事目标 → 确认适用后果 → 按既有联盟／附庸链处理政治脱离与宣战 | 现有通用事务与 Scenario Hook 是待核查接线；人物私斗不得误触发，既有联盟／附庸连锁后果不得静默跳过。 |
+| Stage 2 夺取荒村 | 战场内正式接管议政厅 → `WorldSite Owner` 易主 → 玩家取得第一块真正领土与政治成立标记；仅打倒本次对手不自动得地 | 现有 Domain 名称是实现历史；新生命周期待迁移。不在 Capture Domain 硬编码剧情宣战。 |
 | Stage 3 后续附庸谈判 | 战争推进后旧宗门可主动 Offer Vassalage | Hook：`OfferVassalageNegotiation` → 正式 `VassalageBoard`；谈判 UI / 时间 / AI / 数值 **DEFER** |
 
 **Prototype 回归例外：** Ch01 对 Bandit 的自动 `DeclareWar` 仅允许存在于 `Ch01ScenarioStrategicSetup.ApplyPrototypeRegressionDiplomacy`（非正式剧情战争）。

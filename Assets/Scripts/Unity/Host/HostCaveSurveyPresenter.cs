@@ -13,6 +13,7 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostCaveSurveyPresenter : MonoBehaviour
     {
+        const string PauseOwner = "CaveSurvey";
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] HostCommandBridge commandBridge;
@@ -42,13 +43,10 @@ namespace XianXia.Unity.Host
 
         public void ClearSessionState()
         {
+            CloseModal();
             _hintToast = string.Empty;
             _flashToast = string.Empty;
             _lastFoundCount = -1;
-            _modalOpen = false;
-            _modalTitle = string.Empty;
-            _modalBody = string.Empty;
-            _heldPauseForModal = false;
         }
 
         void Update()
@@ -205,12 +203,14 @@ namespace XianXia.Unity.Host
             _modalOpen = true;
             _modalTitle = title ?? string.Empty;
             _modalBody = body ?? string.Empty;
-            if (bootstrap?.Session != null && !bootstrap.Session.IsPaused)
+            if (bootstrap?.Session != null && !_heldPauseForModal)
             {
-                bootstrap.Session.IsPaused = true;
+                bootstrap.Session.AcquireModalPause(PauseOwner);
                 _heldPauseForModal = true;
             }
         }
+
+        void OnDisable() => CloseModal();
 
         void CloseModal()
         {
@@ -219,7 +219,7 @@ namespace XianXia.Unity.Host
             _modalBody = string.Empty;
             if (_heldPauseForModal && bootstrap?.Session != null)
             {
-                bootstrap.Session.IsPaused = false;
+                bootstrap.Session.ReleaseModalPause(PauseOwner);
                 _heldPauseForModal = false;
             }
         }

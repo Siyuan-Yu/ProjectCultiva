@@ -9,6 +9,7 @@ namespace XianXia.Unity.Host
     /// <summary>背包秘籍：选择炼气期队员学习功法（秘籍不消耗；换功法需确认覆盖）。</summary>
     public sealed class HostManualLearnPrompt : MonoBehaviour
     {
+        const string PauseOwner = "ManualLearnPrompt";
         [SerializeField] PlayableHostBootstrap bootstrap;
 
         bool _open;
@@ -48,6 +49,11 @@ namespace XianXia.Unity.Host
             _pendingLearner = EntityId.None;
             _pendingOldManualName = string.Empty;
             _open = true;
+            if (!_holdingPause && bootstrap?.Session != null)
+            {
+                bootstrap.Session.AcquireModalPause(PauseOwner);
+                _holdingPause = true;
+            }
         }
 
         public void Close()
@@ -71,7 +77,7 @@ namespace XianXia.Unity.Host
             HostInputGate.BlockWorldInteraction = true;
             if (!_holdingPause && bootstrap?.Session != null)
             {
-                bootstrap.Session.IsPaused = true;
+                bootstrap.Session.AcquireModalPause(PauseOwner);
                 _holdingPause = true;
             }
 
@@ -312,13 +318,15 @@ namespace XianXia.Unity.Host
             return System.Enum.TryParse(text, true, out realm);
         }
 
+        void OnDisable() => ReleasePause();
+
         void ReleasePause()
         {
             if (!_holdingPause)
                 return;
             _holdingPause = false;
             if (bootstrap?.Session != null)
-                bootstrap.Session.IsPaused = false;
+                bootstrap.Session.ReleaseModalPause(PauseOwner);
             HostInputGate.Clear();
         }
 

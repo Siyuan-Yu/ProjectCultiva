@@ -11,6 +11,7 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostLocalMapEnterPrompt : MonoBehaviour
     {
+        const string PauseOwner = "LocalMapEnterPrompt";
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] HostCommandBridge commandBridge;
@@ -67,6 +68,11 @@ namespace XianXia.Unity.Host
             RebuildCandidates(session, entrance);
             _scroll = Vector2.zero;
             _open = true;
+            if (!_holdingPause)
+            {
+                session.AcquireModalPause(PauseOwner);
+                _holdingPause = true;
+            }
         }
 
         public void Close()
@@ -94,7 +100,7 @@ namespace XianXia.Unity.Host
             HostInputGate.BlockWorldInteraction = true;
             if (!_holdingPause)
             {
-                bootstrap.Session.IsPaused = true;
+                bootstrap.Session.AcquireModalPause(PauseOwner);
                 _holdingPause = true;
             }
 
@@ -102,13 +108,15 @@ namespace XianXia.Unity.Host
                 Close();
         }
 
+        void OnDisable() => ReleasePause();
+
         void ReleasePause()
         {
             if (!_holdingPause)
                 return;
             _holdingPause = false;
             if (bootstrap?.Session != null)
-                bootstrap.Session.IsPaused = false;
+                bootstrap.Session.ReleaseModalPause(PauseOwner);
             HostInputGate.Clear();
         }
 

@@ -90,11 +90,12 @@ namespace XianXia.Unity.Host
         static string BuildRuntimePlayerPartyDetail(PlayableHostSession session)
         {
             var party = session?.PlayerParty;
-            if (party == null || !party.HasActive)
+            if (party == null || party.Count == 0)
                 return "Restored PlayerParty: (none)";
 
             var sb = new StringBuilder();
-            sb.Append("Restored PlayerParty Active=").Append(party.ActiveCharacterId.Value);
+            sb.Append("Restored PlayerParty Active=").Append(party.ActiveCharacterId.Value)
+                .Append(" ControlState=").Append(party.ControlState);
             sb.Append(" Members=");
             for (var i = 0; i < party.Members.Count; i++)
             {

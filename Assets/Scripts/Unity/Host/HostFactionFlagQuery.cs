@@ -21,6 +21,9 @@ namespace XianXia.Unity.Host
             minX = maxX = minZ = maxZ = 0f;
             if (flag == null || continuous == null || !continuous.IsActive || continuous.Mapper == null)
                 return false;
+            if (!string.IsNullOrEmpty(flag.SurfaceId) &&
+                !string.Equals(flag.SurfaceId, continuous.ActiveSurfaceId, StringComparison.Ordinal))
+                return false;
             var wx = flag.WorldX; var wy = flag.WorldY;
             if (!flag.HasWorldPosition)
                 HexMath.ToWorldPosition(flag.AnchorHex, continuous.ActiveHexSize, out wx, out wy);

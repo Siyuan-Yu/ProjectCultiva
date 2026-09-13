@@ -1,8 +1,11 @@
 # 技术架构
 
-> 主契约：[`33-architecture-core-rules-freeze-v0.2.md`](33-architecture-core-rules-freeze-v0.2.md)  
-> 桥接：[`32-prototype-to-product-bridge.md`](32-prototype-to-product-bridge.md)  
+> **2026-09-13 定向契约补丁：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 为统一行动小队／PlayerParty 控制投影、固定范围独立遭遇和实际名单追加的现行目标；不建立第二套可写 membership 或 Character 副本。旧 FormalArmy 分层和原地手动战保持过渡兼容，尚未迁移；其他 Freeze 契约保持。
+
+> 主契约：[`33-architecture-core-rules-freeze-v0.2.md`](33-architecture-core-rules-freeze-v0.2.md)
+> 桥接：[`32-prototype-to-product-bridge.md`](32-prototype-to-product-bridge.md)
 > **Architecture Freeze v0.2。本阶段不写实现代码。**
+> **2026-09-12 补丁：** Freeze 的定向修订由 ADR-0032～0034 管理。Continuous Surface 保存世界空间身份与连续位置；临时 Encounter 使用独立战术坐标，并在一次结算中恢复各自战前世界锚点、保留当前领域结果。SiteCore 行政覆盖、Encounter 实例和 WorldMap UI 都不得成为第二份位置真源。
 
 ## 0. 文档分工
 

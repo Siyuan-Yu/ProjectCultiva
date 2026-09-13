@@ -28,6 +28,12 @@ namespace XianXia.Core.Persistence
             if (flags.IsFailure)
                 return flags;
 
+            var runtimeSites = RestoreRuntimeWorldSites(world, dto);
+            if (runtimeSites.IsFailure)
+                return runtimeSites;
+            if (!dto.HasRuntimeWorldSiteSnapshotAuthority)
+                MigrateLegacyPreciselyPositionedFlags(world);
+
             if (dto.WorldSiteOwners != null)
             {
                 for (var i = 0; i < dto.WorldSiteOwners.Count; i++)
@@ -81,6 +87,24 @@ namespace XianXia.Core.Persistence
             };
             if (world?.Strategic == null)
                 return dto;
+
+            dto.HasSquadSnapshotAuthority = true;
+            dto.ControlledSquadId = party?.ControlledSquadId ?? string.Empty;
+            foreach (var pair in world.Strategic.Squads.Squads)
+            {
+                var squad = pair.Value;
+                if (squad == null) continue;
+                var squadDto = new SquadSnapshotDto
+                {
+                    SquadId = squad.SquadId,
+                    LeaderCharacterId = squad.LeaderCharacterId.Value,
+                    LegacyArmyId = squad.LegacyArmyId,
+                    CommandKind = (int)squad.CommandKind,
+                    CommandRevision = squad.CommandRevision
+                };
+                for (var i = 0; i < squad.MemberCharacterIds.Count; i++) squadDto.MemberCharacterIds.Add(squad.MemberCharacterIds[i]);
+                dto.Squads.Add(squadDto);
+            }
 
             foreach (var kv in world.Strategic.FormalArmies.Armies)
             {
@@ -251,6 +275,33 @@ namespace XianXia.Core.Persistence
                 });
             }
 
+            dto.HasRuntimeWorldSiteSnapshotAuthority = true;
+            foreach (var kv in world.Strategic.Sites.Sites)
+            {
+                var site = kv.Value;
+                if (site == null || !site.IsRuntimeCreated) continue;
+                dto.RuntimeWorldSites.Add(new RuntimeWorldSiteSnapshotDto
+                {
+                    SiteId = site.SiteId,
+                    DisplayName = site.DisplayName,
+                    SiteType = site.SiteType,
+                    OwnerFactionId = site.OwnerFactionId,
+                    ControlEstablishedOrder = site.ControlEstablishedOrder,
+                    AnchorQ = site.AnchorHex.Q,
+                    AnchorR = site.AnchorHex.R,
+                    CoreAssetId = site.CoreAssetId,
+                    SurfaceId = site.CoreSurfaceId,
+                    HasWorldPosition = site.HasCoreWorldPosition,
+                    WorldX = site.CoreWorldX,
+                    WorldY = site.CoreWorldY,
+                    CoreLevel = site.CoreLevel,
+                    RangeWidth = site.CoreRangeWidth,
+                    RangeHeight = site.CoreRangeHeight,
+                    IsCoreActive = site.IsCoreActive,
+                    CoreIsRemovable = site.CoreIsRemovable
+                });
+            }
+
             foreach (var regionKv in world.Strategic.TerritoryRegions.Regions)
             {
                 var region = regionKv.Value;
@@ -269,7 +320,8 @@ namespace XianXia.Core.Persistence
                 dto.FactionFlags.Add(new FactionFlagSnapshotDto { FlagId=flag.FlagId, FactionId=flag.FactionId,
                     AnchorQ=flag.AnchorHex.Q, AnchorR=flag.AnchorHex.R, EstablishedOrder=flag.EstablishedOrder,
                     CurrentHp=flag.CurrentHp, MaxHp=flag.MaxHp, HasLocalPosition=flag.HasLocalPosition, LocalX=flag.LocalX, LocalZ=flag.LocalZ,
-                    HasWorldPosition=flag.HasWorldPosition, WorldX=flag.WorldX, WorldY=flag.WorldY });
+                    HasWorldPosition=flag.HasWorldPosition, WorldX=flag.WorldX, WorldY=flag.WorldY,
+                    SiteId=flag.SiteId, SurfaceId=flag.SurfaceId, IsSiteCore=flag.IsSiteCore });
             }
             FactionFlagSnapshotRestore.LogDtos("FlagSnapshotCapture", dto.FactionFlags);
 
@@ -427,12 +479,29 @@ namespace XianXia.Core.Persistence
             world.Strategic.PlayerFactionId = dto.PlayerFactionId ?? string.Empty;
             world.Strategic.Ch01FormationScenarioCompat = dto.Ch01FormationScenarioCompat;
             world.Strategic.FormalArmies.Clear();
+            world.Strategic.Squads.Clear();
             world.Strategic.Wars.Clear();
             world.Strategic.Diplomacy.Clear();
             world.Strategic.Alliances.Clear();
             world.Strategic.Vassalages.Clear();
             world.Strategic.RetreatingArmies.Clear();
             world.Strategic.CaptureObjectives.Clear();
+
+            if (dto.HasSquadSnapshotAuthority && dto.Squads != null)
+            {
+                for (var i = 0; i < dto.Squads.Count; i++)
+                {
+                    var item = dto.Squads[i];
+                    if (item == null || string.IsNullOrWhiteSpace(item.SquadId))
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "Squad snapshot has empty identity.");
+                    var members = new List<EntityId>();
+                    for (var m = 0; m < item.MemberCharacterIds.Count; m++) members.Add(new EntityId(item.MemberCharacterIds[m]));
+                    var created = SquadMembershipService.Create(world, item.SquadId, members,
+                        new EntityId(item.LeaderCharacterId), item.LegacyArmyId, (SquadCommandKind)item.CommandKind);
+                    if (created.IsFailure) return Result.Failure(created.Error);
+                    created.Value.CommandRevision = item.CommandRevision;
+                }
+            }
 
             if (dto.FormalArmies != null && dto.FormalArmies.Count > 0)
             {
@@ -445,7 +514,7 @@ namespace XianXia.Core.Persistence
                         var a = dto.FormalArmies[i];
                         if (a == null || string.IsNullOrEmpty(a.ArmyId))
                             continue;
-                        var army = BuildFormalArmyFromSnapshot(a);
+                        var army = BuildFormalArmyFromSnapshot(world, a);
                         world.Strategic.FormalArmies.Register(army);
                     }
                 }
@@ -706,6 +775,143 @@ namespace XianXia.Core.Persistence
             return Result.Success();
         }
 
+        static Result RestoreRuntimeWorldSites(SimulationWorld world, StrategicSnapshotDto dto)
+        {
+            if (!dto.HasRuntimeWorldSiteSnapshotAuthority)
+                return Result.Success();
+            var source = dto.RuntimeWorldSites ?? new List<RuntimeWorldSiteSnapshotDto>();
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            var coreIds = new HashSet<string>(StringComparer.Ordinal);
+            for (var i = 0; i < source.Count; i++)
+            {
+                var item = source[i];
+                if (item == null || string.IsNullOrWhiteSpace(item.SiteId) ||
+                    string.IsNullOrWhiteSpace(item.CoreAssetId) ||
+                    string.IsNullOrWhiteSpace(item.SurfaceId) || !item.HasWorldPosition ||
+                    !IsFinite(item.WorldX) || !IsFinite(item.WorldY) || item.CoreLevel < 1 ||
+                    item.RangeWidth <= 0f || item.RangeHeight <= 0f ||
+                    item.ControlEstablishedOrder <= 0 ||
+                    world.HexWorld == null || !world.HexWorld.IsInBounds(item.AnchorQ, item.AnchorR) ||
+                    !ids.Add(item.SiteId) || !coreIds.Add(item.CoreAssetId))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Invalid runtime WorldSite snapshot entry.", "Index=" + i);
+                if (item.IsCoreActive &&
+                    (!world.Strategic.FactionFlags.Flags.TryGetValue(item.CoreAssetId, out var flag) ||
+                     flag == null || !flag.IsSiteCore || !flag.HasWorldPosition ||
+                     !string.Equals(flag.SiteId, item.SiteId, StringComparison.Ordinal) ||
+                     !string.Equals(flag.SurfaceId, item.SurfaceId, StringComparison.Ordinal) ||
+                     Math.Abs(flag.WorldX - item.WorldX) > .001f ||
+                     Math.Abs(flag.WorldY - item.WorldY) > .001f))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Active runtime WorldSite core flag is missing or mismatched.", item.SiteId);
+                if (world.Strategic.Sites.TryGet(item.SiteId, out var existing) &&
+                    existing != null && !existing.IsRuntimeCreated)
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Runtime WorldSite collides with authored Site identity.", item.SiteId);
+            }
+
+            world.Strategic.Sites.RemoveAllRuntimeSites();
+            for (var i = 0; i < source.Count; i++)
+            {
+                var item = source[i];
+                var anchor = new HexCoord(item.AnchorQ, item.AnchorR);
+                var site = new WorldSite
+                {
+                    SiteId = item.SiteId,
+                    DisplayName = item.DisplayName ?? item.SiteId,
+                    SiteType = item.SiteType ?? "Outpost",
+                    OwnerFactionId = item.OwnerFactionId ?? string.Empty,
+                    ControlEstablishedOrder = item.ControlEstablishedOrder,
+                    UsesContinuousOutdoorSurface = true,
+                    IsRuntimeCreated = true,
+                    CoreAssetId = item.CoreAssetId,
+                    CoreSurfaceId = item.SurfaceId,
+                    HasCoreWorldPosition = true,
+                    CoreWorldX = item.WorldX,
+                    CoreWorldY = item.WorldY,
+                    CoreLevel = item.CoreLevel,
+                    CoreRangeWidth = item.RangeWidth,
+                    CoreRangeHeight = item.RangeHeight,
+                    IsCoreActive = item.IsCoreActive,
+                    CoreIsRemovable = item.CoreIsRemovable,
+                    AnchorHex = anchor,
+                    PresenceHex = anchor,
+                    LocalMapId = string.Empty
+                };
+                site.SetFootprint(new[] { anchor });
+                try { world.Strategic.Sites.Register(site); }
+                catch (Exception ex)
+                {
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Runtime WorldSite restore commit failed.", ex.Message);
+                }
+                if (world.Strategic.FactionFlags.Flags.TryGetValue(item.CoreAssetId, out var flag) && flag != null)
+                {
+                    flag.SiteId = item.SiteId;
+                    flag.SurfaceId = item.SurfaceId;
+                    flag.IsSiteCore = true;
+                    flag.FactionId = site.OwnerFactionId;
+                }
+            }
+            return Result.Success();
+        }
+
+        static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+
+        static void MigrateLegacyPreciselyPositionedFlags(SimulationWorld world)
+        {
+            if (world?.Strategic == null ||
+                !world.ConstructionCatalog.TryGet(
+                    XianXia.Core.Construction.ConstructionService.FactionControlPostBuildingId,
+                    out var spec) || spec == null || !spec.CreatesWorldSite)
+                return;
+            foreach (var pair in world.Strategic.FactionFlags.Flags)
+            {
+                var flag = pair.Value;
+                if (flag == null || flag.IsSiteCore || !flag.HasWorldPosition ||
+                    string.IsNullOrWhiteSpace(flag.SurfaceId))
+                {
+#if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
+                    if (flag != null && !flag.IsSiteCore)
+                        System.Diagnostics.Debug.WriteLine(
+                            "[CW03LegacyFlagMigrationSkipped] FlagId=" + flag.FlagId +
+                            " Reason=MissingReliableSurfaceWorldPosition");
+#endif
+                    continue;
+                }
+                var siteId = FactionFlagService.SiteIdForCoreFlag(flag.FlagId);
+                if (world.Strategic.Sites.TryGet(siteId, out _)) continue;
+                var site = new WorldSite
+                {
+                    SiteId = siteId,
+                    DisplayName = string.IsNullOrWhiteSpace(spec.CreatedSiteName)
+                        ? "迁移据点" : spec.CreatedSiteName,
+                    SiteType = spec.CreatedSiteType,
+                    OwnerFactionId = flag.FactionId,
+                    ControlEstablishedOrder = flag.EstablishedOrder,
+                    UsesContinuousOutdoorSurface = true,
+                    IsRuntimeCreated = true,
+                    CoreAssetId = flag.FlagId,
+                    CoreSurfaceId = flag.SurfaceId,
+                    HasCoreWorldPosition = true,
+                    CoreWorldX = flag.WorldX,
+                    CoreWorldY = flag.WorldY,
+                    CoreLevel = spec.InitialSiteLevel,
+                    CoreRangeWidth = spec.SiteRangeWidth,
+                    CoreRangeHeight = spec.SiteRangeHeight,
+                    IsCoreActive = true,
+                    CoreIsRemovable = true,
+                    AnchorHex = flag.AnchorHex,
+                    PresenceHex = flag.AnchorHex
+                };
+                site.SetFootprint(new[] { flag.AnchorHex });
+                try { world.Strategic.Sites.Register(site); }
+                catch (Exception) { continue; }
+                flag.SiteId = siteId;
+                flag.IsSiteCore = true;
+            }
+        }
+
         /// <summary>Stage 2：Hex/Site shell 与政治覆盖完成后，按 Snapshot 精确恢复全部军队运动。</summary>
         public static Result RestoreFormalArmyMotions(SimulationWorld world, StrategicSnapshotDto dto)
         {
@@ -742,6 +948,8 @@ namespace XianXia.Core.Persistence
             if (world?.Strategic == null)
                 return;
 
+            SquadMembershipService.EnsureSingletonsForUnassignedCharacters(world);
+
             foreach (var kv in world.Strategic.FormalArmies.Armies)
             {
                 if (kv.Value != null)
@@ -757,7 +965,7 @@ namespace XianXia.Core.Persistence
             }
         }
 
-        static FormalArmy BuildFormalArmyFromSnapshot(FormalArmySnapshotDto a)
+        static FormalArmy BuildFormalArmyFromSnapshot(SimulationWorld world, FormalArmySnapshotDto a)
         {
             var army = new FormalArmy
             {
@@ -766,7 +974,17 @@ namespace XianXia.Core.Persistence
                 LeaderCharacterId = new EntityId(a.LeaderCharacterId),
                 State = (FormalArmyState)a.State
             };
-            army.ReplaceMembers(a.MemberCharacterIds);
+            var squadId = SquadMembershipService.ArmySquadId(a.ArmyId);
+            if (!world.Strategic.Squads.TryGet(squadId, out var squad))
+            {
+                var members = new List<EntityId>();
+                for (var i = 0; i < a.MemberCharacterIds.Count; i++) members.Add(new EntityId(a.MemberCharacterIds[i]));
+                var created = SquadMembershipService.Create(world, squadId, members,
+                    new EntityId(a.LeaderCharacterId), a.ArmyId, SquadCommandKind.FormalArmyWorldMotion);
+                if (created.IsFailure) throw new InvalidOperationException(created.Error.ToString());
+                squad = created.Value;
+            }
+            army.BindSquad(squad);
             army.UsesHexStrategicPosition = true;
             army.CurrentHex = new HexCoord(a.CurrentHexQ, a.CurrentHexR);
             army.DestinationHex = new HexCoord(a.DestinationHexQ, a.DestinationHexR);

@@ -4,6 +4,7 @@ using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Social;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
@@ -69,6 +70,10 @@ namespace XianXia.Unity.Host
         public void Begin(EntityId attacker, EntityId defender)
         {
             if (attacker.IsNone || defender.IsNone || attacker == defender)
+                return;
+            var continuousCombat = bootstrap?.Session?.World?.Strategic?.ContinuousManualCombat;
+            if (continuousCombat != null && continuousCombat.IsActive &&
+                !continuousCombat.AreOpposing(attacker, defender))
                 return;
 
             // 换目标：结束旧战，改打新敌人
@@ -164,6 +169,13 @@ namespace XianXia.Unity.Host
                 return;
 
             var world = bootstrap.Session.World;
+            var continuousCombat = world.Strategic?.ContinuousManualCombat;
+            if (continuousCombat != null && continuousCombat.IsActive &&
+                !continuousCombat.AreOpposing(AttackerId, _defender))
+            {
+                ClearInternal(null);
+                return;
+            }
             if (!world.Entities.TryGet(_defender, out var defEnt) ||
                 !defEnt.TryGet<LifecycleComponent>(out var defLife) ||
                 defLife.IsRemoved ||

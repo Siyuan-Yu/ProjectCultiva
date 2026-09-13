@@ -16,7 +16,7 @@ namespace XianXia.Unity.Host
             foreach (var pair in world.Strategic.FactionFlags.Flags)
             {
                 var flag = pair.Value;
-                if (flag == null) continue;
+                if (flag == null || flag.IsSiteCore) continue;
                 var center = projection.ProjectHexCenter(flag.AnchorHex);
                 StrategicFactionCatalog.MapTint(flag.FactionId, out var r, out var g, out var b);
                 Fill(new Rect(center.x - 1f, center.y - size * .6f, 2f, size * 1.4f), new Color(.25f,.2f,.12f,1f), pixel);

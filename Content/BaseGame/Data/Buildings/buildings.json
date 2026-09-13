@@ -5,9 +5,15 @@
       "id": "base:building_faction_control_post",
       "type": "building",
       "name": "势力控制建筑",
-      "description": "用于在野外建立势力控制范围。",
+      "description": "在 Continuous Outdoor 的合法空地建立新据点及其唯一势力旗核心。",
       "unlockedByDefault": true,
       "placementKind": "factionFlag",
+      "createsWorldSite": true,
+      "createdSiteName": "新建据点",
+      "createdSiteType": "Outpost",
+      "initialSiteLevel": 1,
+      "siteRangeWidth": 4.2,
+      "siteRangeHeight": 2.8,
       "dismantleRefundRate": 0.5,
       "costs": [
         {

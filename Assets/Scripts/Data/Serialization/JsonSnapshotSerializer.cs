@@ -871,6 +871,24 @@ namespace XianXia.Data.Serialization
         static JsonValue SerializeStrategic(StrategicSnapshotDto strategic)
         {
             strategic ??= new StrategicSnapshotDto();
+            var squads = new List<JsonValue>();
+            if (strategic.Squads != null)
+                for (var i = 0; i < strategic.Squads.Count; i++)
+                {
+                    var s = strategic.Squads[i];
+                    if (s == null) continue;
+                    var members = new List<JsonValue>();
+                    for (var m = 0; m < s.MemberCharacterIds.Count; m++) members.Add(U(s.MemberCharacterIds[m]));
+                    squads.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["squadId"] = JsonValue.FromString(s.SquadId ?? string.Empty),
+                        ["leaderCharacterId"] = U(s.LeaderCharacterId),
+                        ["legacyArmyId"] = JsonValue.FromString(s.LegacyArmyId ?? string.Empty),
+                        ["commandKind"] = JsonValue.FromNumber(s.CommandKind),
+                        ["commandRevision"] = U(s.CommandRevision),
+                        ["memberCharacterIds"] = JsonValue.FromArray(members)
+                    }));
+                }
             var armies = new List<JsonValue>();
             if (strategic.FormalArmies != null)
             {
@@ -1023,6 +1041,34 @@ namespace XianXia.Data.Serialization
                 }
             }
 
+            var runtimeWorldSites = new List<JsonValue>();
+            if (strategic.RuntimeWorldSites != null)
+                for (var i = 0; i < strategic.RuntimeWorldSites.Count; i++)
+                {
+                    var s = strategic.RuntimeWorldSites[i];
+                    if (s == null) continue;
+                    runtimeWorldSites.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["siteId"] = JsonValue.FromString(s.SiteId ?? string.Empty),
+                        ["displayName"] = JsonValue.FromString(s.DisplayName ?? string.Empty),
+                        ["siteType"] = JsonValue.FromString(s.SiteType ?? string.Empty),
+                        ["ownerFactionId"] = JsonValue.FromString(s.OwnerFactionId ?? string.Empty),
+                        ["controlEstablishedOrder"] = JsonValue.FromNumber(s.ControlEstablishedOrder),
+                        ["anchorQ"] = JsonValue.FromNumber(s.AnchorQ),
+                        ["anchorR"] = JsonValue.FromNumber(s.AnchorR),
+                        ["coreAssetId"] = JsonValue.FromString(s.CoreAssetId ?? string.Empty),
+                        ["surfaceId"] = JsonValue.FromString(s.SurfaceId ?? string.Empty),
+                        ["hasWorldPosition"] = JsonValue.FromBool(s.HasWorldPosition),
+                        ["worldX"] = JsonValue.FromNumber(s.WorldX),
+                        ["worldY"] = JsonValue.FromNumber(s.WorldY),
+                        ["coreLevel"] = JsonValue.FromNumber(s.CoreLevel),
+                        ["rangeWidth"] = JsonValue.FromNumber(s.RangeWidth),
+                        ["rangeHeight"] = JsonValue.FromNumber(s.RangeHeight),
+                        ["isCoreActive"] = JsonValue.FromBool(s.IsCoreActive),
+                        ["coreIsRemovable"] = JsonValue.FromBool(s.CoreIsRemovable)
+                    }));
+                }
+
             var wars = new List<JsonValue>();
             if (strategic.Wars != null)
             {
@@ -1126,11 +1172,15 @@ namespace XianXia.Data.Serialization
             {
                 ["playerFactionId"] = JsonValue.FromString(strategic.PlayerFactionId ?? string.Empty),
                 ["ch01FormationScenarioCompat"] = JsonValue.FromBool(strategic.Ch01FormationScenarioCompat),
+                ["hasSquadSnapshotAuthority"] = JsonValue.FromBool(strategic.HasSquadSnapshotAuthority),
+                ["controlledSquadId"] = JsonValue.FromString(strategic.ControlledSquadId ?? string.Empty),
+                ["squads"] = JsonValue.FromArray(squads),
                 ["formalArmies"] = JsonValue.FromArray(armies),
                 ["armyMemberships"] = JsonValue.FromArray(memberships),
                 ["residualCharacterPresences"] = JsonValue.FromArray(residuals),
                 ["characterWorldPresences"] = JsonValue.FromArray(characterWorldPresences),
                 ["worldSiteOwners"] = JsonValue.FromArray(siteOwners),
+                ["runtimeWorldSites"] = JsonValue.FromArray(runtimeWorldSites),
                 ["territoryRegionControllers"] = JsonValue.FromArray(territoryControllers),
                 ["wars"] = JsonValue.FromArray(wars),
                 ["alliances"] = JsonValue.FromArray(alliances),
@@ -1145,7 +1195,12 @@ namespace XianXia.Data.Serialization
                     ["flagId"]=JsonValue.FromString(flag.FlagId??string.Empty), ["factionId"]=JsonValue.FromString(flag.FactionId??string.Empty),
                     ["anchorQ"]=JsonValue.FromNumber(flag.AnchorQ), ["anchorR"]=JsonValue.FromNumber(flag.AnchorR), ["establishedOrder"]=JsonValue.FromNumber(flag.EstablishedOrder),
                     ["currentHp"]=JsonValue.FromNumber(flag.CurrentHp), ["maxHp"]=JsonValue.FromNumber(flag.MaxHp), ["hasLocalPosition"]=JsonValue.FromBool(flag.HasLocalPosition),
-                    ["localX"]=JsonValue.FromNumber(flag.LocalX), ["localZ"]=JsonValue.FromNumber(flag.LocalZ)
+                    ["localX"]=JsonValue.FromNumber(flag.LocalX), ["localZ"]=JsonValue.FromNumber(flag.LocalZ),
+                    ["hasWorldPosition"]=JsonValue.FromBool(flag.HasWorldPosition),
+                    ["worldX"]=JsonValue.FromNumber(flag.WorldX), ["worldY"]=JsonValue.FromNumber(flag.WorldY),
+                    ["siteId"]=JsonValue.FromString(flag.SiteId??string.Empty),
+                    ["surfaceId"]=JsonValue.FromString(flag.SurfaceId??string.Empty),
+                    ["isSiteCore"]=JsonValue.FromBool(flag.IsSiteCore)
                 }));
             if (strategic.HasFactionFlagSnapshotAuthority) root["factionFlags"] = JsonValue.FromArray(flagValues);
 
@@ -1214,8 +1269,29 @@ namespace XianXia.Data.Serialization
             {
                 PlayerFactionId = strategic.GetString("playerFactionId", string.Empty),
                 Ch01FormationScenarioCompat = strategic.TryGetProperty("ch01FormationScenarioCompat", out var c) &&
-                                              c.Kind == JsonValueKind.Boolean && c.Bool
+                                              c.Kind == JsonValueKind.Boolean && c.Bool,
+                HasSquadSnapshotAuthority = strategic.GetBool("hasSquadSnapshotAuthority", false),
+                ControlledSquadId = strategic.GetString("controlledSquadId", string.Empty)
             };
+
+            if (strategic.TryGetProperty("squads", out var squads) && squads.Kind == JsonValueKind.Array)
+            {
+                dto.HasSquadSnapshotAuthority = true;
+                foreach (var node in squads.Array)
+                {
+                    var item = new SquadSnapshotDto
+                    {
+                        SquadId = node.GetString("squadId", string.Empty),
+                        LeaderCharacterId = ReadU(node, "leaderCharacterId"),
+                        LegacyArmyId = node.GetString("legacyArmyId", string.Empty),
+                        CommandKind = node.TryGetProperty("commandKind", out var ck) ? (int)ck.Number : 0,
+                        CommandRevision = ReadU(node, "commandRevision")
+                    };
+                    if (node.TryGetProperty("memberCharacterIds", out var members) && members.Kind == JsonValueKind.Array)
+                        foreach (var member in members.Array) item.MemberCharacterIds.Add(ReadUValue(member));
+                    dto.Squads.Add(item);
+                }
+            }
 
             if (strategic.TryGetProperty("formalArmies", out var armies) && armies.Kind == JsonValueKind.Array)
             {
@@ -1369,6 +1445,32 @@ namespace XianXia.Data.Serialization
                     });
                 }
             }
+            if (strategic.TryGetProperty("runtimeWorldSites", out var runtimeSites) &&
+                runtimeSites.Kind == JsonValueKind.Array)
+            {
+                dto.HasRuntimeWorldSiteSnapshotAuthority = true;
+                foreach (var site in runtimeSites.Array)
+                    dto.RuntimeWorldSites.Add(new RuntimeWorldSiteSnapshotDto
+                    {
+                        SiteId = site.GetString("siteId", string.Empty),
+                        DisplayName = site.GetString("displayName", string.Empty),
+                        SiteType = site.GetString("siteType", string.Empty),
+                        OwnerFactionId = site.GetString("ownerFactionId", string.Empty),
+                        ControlEstablishedOrder = (long)site.GetNumber("controlEstablishedOrder"),
+                        AnchorQ = (int)site.GetNumber("anchorQ"),
+                        AnchorR = (int)site.GetNumber("anchorR"),
+                        CoreAssetId = site.GetString("coreAssetId", string.Empty),
+                        SurfaceId = site.GetString("surfaceId", string.Empty),
+                        HasWorldPosition = site.GetBool("hasWorldPosition", false),
+                        WorldX = (float)site.GetNumber("worldX"),
+                        WorldY = (float)site.GetNumber("worldY"),
+                        CoreLevel = (int)site.GetNumber("coreLevel"),
+                        RangeWidth = (float)site.GetNumber("rangeWidth"),
+                        RangeHeight = (float)site.GetNumber("rangeHeight"),
+                        IsCoreActive = site.GetBool("isCoreActive", false),
+                        CoreIsRemovable = site.GetBool("coreIsRemovable", false)
+                    });
+            }
             if (strategic.TryGetProperty("factionFlags", out var factionFlags) && factionFlags.Kind == JsonValueKind.Array)
             {
                 dto.HasFactionFlagSnapshotAuthority = true;
@@ -1377,7 +1479,12 @@ namespace XianXia.Data.Serialization
                     FlagId=flag.GetString("flagId",string.Empty), FactionId=flag.GetString("factionId",string.Empty),
                     AnchorQ=(int)flag.GetNumber("anchorQ"), AnchorR=(int)flag.GetNumber("anchorR"), EstablishedOrder=(long)flag.GetNumber("establishedOrder"),
                     CurrentHp=(int)flag.GetNumber("currentHp"), MaxHp=(int)flag.GetNumber("maxHp"), HasLocalPosition=flag.GetBool("hasLocalPosition"),
-                    LocalX=(float)flag.GetNumber("localX"), LocalZ=(float)flag.GetNumber("localZ")
+                    LocalX=(float)flag.GetNumber("localX"), LocalZ=(float)flag.GetNumber("localZ"),
+                    HasWorldPosition=flag.GetBool("hasWorldPosition", false),
+                    WorldX=(float)flag.GetNumber("worldX"), WorldY=(float)flag.GetNumber("worldY"),
+                    SiteId=flag.GetString("siteId", string.Empty),
+                    SurfaceId=flag.GetString("surfaceId", string.Empty),
+                    IsSiteCore=flag.GetBool("isSiteCore", false)
                 });
             }
 

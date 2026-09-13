@@ -46,12 +46,12 @@ namespace XianXia.Core.World.Strategic
             var assets = new List<AssetProjection>();
             foreach (var pair in world.Strategic.Sites.Sites)
             {
-                var site=pair.Value; if (site==null || string.IsNullOrEmpty(site.OwnerFactionId)) continue;
-                assets.Add(new AssetProjection { Order=site.ControlEstablishedOrder, Id=site.SiteId, Faction=site.OwnerFactionId, Kind=StrategicControlSourceKind.WorldSite, Nominal=ExpandOneRing(site.EnumerateFootprintHexes()) });
+                var site=pair.Value; if (site==null || !site.IsCoreActive || string.IsNullOrEmpty(site.OwnerFactionId)) continue;
+                assets.Add(new AssetProjection { Order=site.ControlEstablishedOrder, Id=site.SiteId, Faction=site.OwnerFactionId, Kind=StrategicControlSourceKind.WorldSite, Nominal=WorldSiteCoreCoverageResolver.BuildStrategicSummary(world, site) });
             }
             foreach (var pair in world.Strategic.FactionFlags.Flags)
             {
-                var flag=pair.Value; if (flag==null || string.IsNullOrEmpty(flag.FactionId)) continue;
+                var flag=pair.Value; if (flag==null || flag.IsSiteCore || string.IsNullOrEmpty(flag.FactionId)) continue;
                 assets.Add(new AssetProjection { Order=flag.EstablishedOrder, Id=flag.FlagId, Faction=flag.FactionId, Kind=StrategicControlSourceKind.FactionFlag, Nominal=ExpandOneRing(new[]{flag.AnchorHex}) });
             }
             assets.Sort((a,b)=> { var c=a.Order.CompareTo(b.Order); return c!=0?c:string.CompareOrdinal(a.Id,b.Id); });

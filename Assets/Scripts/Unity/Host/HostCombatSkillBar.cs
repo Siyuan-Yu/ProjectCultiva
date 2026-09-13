@@ -172,9 +172,14 @@ namespace XianXia.Unity.Host
         bool TryResolveTarget(EntityId caster, out EntityId target)
         {
             target = EntityId.None;
+            var world = bootstrap.Session.World;
+            var continuousCombat = world.Strategic?.ContinuousManualCombat;
             if (meleeAssault != null && meleeAssault.IsFighting &&
                 meleeAssault.IsAttacker(caster) && !meleeAssault.DefenderId.IsNone)
             {
+                if (continuousCombat != null && continuousCombat.IsActive &&
+                    !continuousCombat.AreOpposing(caster, meleeAssault.DefenderId))
+                    return false;
                 target = meleeAssault.DefenderId;
                 return true;
             }
@@ -182,13 +187,18 @@ namespace XianXia.Unity.Host
             if (!TryGetPresentation(caster, out var cx, out var cy))
                 return false;
 
-            var world = bootstrap.Session.World;
+            if (continuousCombat != null && continuousCombat.IsActive &&
+                !continuousCombat.IsFriendly(caster))
+                return false;
             var best = EntityId.None;
             var bestD = castRange * castRange;
             var bestHostile = false;
             foreach (var e in world.Entities.All)
             {
                 if (e == null || (e.Tags & EntityTag.Npc) == 0)
+                    continue;
+                if (continuousCombat != null && continuousCombat.IsActive &&
+                    !continuousCombat.IsEnemy(e.Id))
                     continue;
                 if (!e.TryGet<LifecycleComponent>(out var life) || life.IsDead || life.IsRemoved)
                     continue;

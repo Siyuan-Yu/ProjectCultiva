@@ -1297,13 +1297,19 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>Offer???????????????????????</summary>
-        public static Result FinishOfferResolution(SimulationWorld world)
+        public static Result FinishOfferResolution(
+            SimulationWorld world,
+            StrategicClockFreezeReason ownedReason = StrategicClockFreezeReason.PostBattle)
         {
             if (world?.Strategic == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "null world");
 
-            // 必须先结�?Modal，否�?TryPromote 会被 IsModalEncounter 挡住
-            StrategicClockFreezeService.EndFreeze(world);
+            // Release only this completed lifecycle stage. A duplicate/stale close must not clear
+            // a newly promoted offer or another owner's freeze.
+            if (!StrategicClockFreezeService.EndFreeze(world, ownedReason))
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "Cannot release strategic freeze owned by another lifecycle stage.");
             if (world.Strategic.Participants != null)
                 world.Strategic.Participants.IsAutoSettlement = false;
 

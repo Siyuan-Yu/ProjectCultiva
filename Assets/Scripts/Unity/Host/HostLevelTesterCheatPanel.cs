@@ -1,4 +1,5 @@
 using UnityEngine;
+using XianXia.Core.Combat;
 using XianXia.Core.World.Strategic;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World;
@@ -56,6 +57,8 @@ namespace XianXia.Unity.Host
         bool _resetConfirmPending;
         string _sessionStatus = string.Empty;
         string _snapshotStatus = string.Empty;
+        string _battleStatus = string.Empty;
+        string _diagnosticStatus = string.Empty;
         Vector2 _tabScroll;
         Rect _panelRect;
         bool _panelRectInitialized;
@@ -166,9 +169,9 @@ namespace XianXia.Unity.Host
                 case CheatTab.Snapshot:
                     return 260f;
                 case CheatTab.Battle:
-                    return 80f;
+                    return 260f;
                 case CheatTab.Diagnostics:
-                    return 620f;
+                    return 760f;
                 default:
                     return 400f;
             }
@@ -329,6 +332,56 @@ namespace XianXia.Unity.Host
             var world = bootstrap?.Session?.World;
             if (world != null)
             {
+                var party = bootstrap.Session.PlayerParty;
+                if (GUI.Button(new Rect(x, y, width, 24f), "CW-02：当前主控进入弥留") &&
+                    party != null && party.HasActive &&
+                    world.Entities.TryGet(party.ActiveCharacterId, out var active))
+                {
+                    var id = party.ActiveCharacterId;
+                    var changed = CombatLifeStateService.TryEnterIncapacitated(world, active);
+                    bootstrap.PlayerPartyController?.RefreshActiveControlAfterLifeStateChange();
+                    _battleStatus = changed
+                        ? "已使 " + id.Value + " 进入弥留；应按 Party 固定顺序接替。"
+                        : "当前主控无法进入弥留。";
+                }
+                y += 28f;
+
+                if (GUI.Button(new Rect(x, y, width, 24f), "CW-02：全队进入弥留") && party != null)
+                {
+                    var changed = 0;
+                    for (var i = 0; i < party.Members.Count; i++)
+                        if (world.Entities.TryGet(party.Members[i], out var member) &&
+                            CombatLifeStateService.TryEnterIncapacitated(world, member))
+                            changed++;
+                    bootstrap.PlayerPartyController?.RefreshActiveControlAfterLifeStateChange();
+                    _battleStatus = "已使 " + changed + " 名队员进入弥留；ControlState=" + party.ControlState;
+                }
+                y += 28f;
+
+                if (GUI.Button(new Rect(x, y, width, 24f), "CW-02：恢复首位弥留队员") && party != null)
+                {
+                    var recovered = XianXia.Core.Domain.Ids.EntityId.None;
+                    for (var i = 0; i < party.Members.Count; i++)
+                    {
+                        if (!world.Entities.TryGet(party.Members[i], out var member) ||
+                            !CombatLifeStateService.TryRecoverFromIncapacitated(world, member))
+                            continue;
+                        recovered = party.Members[i];
+                        break;
+                    }
+                    bootstrap.PlayerPartyController?.RefreshActiveControlAfterLifeStateChange();
+                    _battleStatus = recovered.IsNone
+                        ? "没有可恢复的弥留队员。"
+                        : "已恢复 " + recovered.Value + "；Active=" + party.ActiveCharacterId.Value;
+                }
+                y += 30f;
+
+                if (!string.IsNullOrEmpty(_battleStatus))
+                {
+                    GUI.Label(new Rect(x, y, width, 42f), _battleStatus, _body);
+                    y += 46f;
+                }
+
                 var summary = BattleEngagementAuthorityDebug.BuildSummary(world);
                 GUI.Label(new Rect(x, y, width, 360f), summary, _body);
             }
@@ -358,6 +411,27 @@ namespace XianXia.Unity.Host
             GUI.Label(new Rect(x, y, width, 56f),
                 bootstrap != null ? bootstrap.OpeningPopulationDiagnostic : string.Empty, _body);
             y += 60f;
+
+            var selectedArmyId = bootstrap?.WorldMapPanel?.SelectedFormalArmyIdForDiagnostics;
+            var diagnosticTarget = string.IsNullOrEmpty(selectedArmyId)
+                ? ArmyStackAdapter.BanditWeakPatrolFormalArmyId + "（默认）"
+                : selectedArmyId + "（大地图当前选中）";
+            GUI.Label(new Rect(x, y, width, 22f), "军队显示诊断目标：" + diagnosticTarget, _body);
+            y += 24f;
+            GUI.enabled = surface != null && bootstrap?.Session?.IsInitialized == true;
+            if (GUI.Button(new Rect(x, y, width, 26f), "复制军队显示诊断（只读）"))
+            {
+                var report = surface.DescribeFormalArmyDisplayDiagnostics(selectedArmyId);
+                GUIUtility.systemCopyBuffer = report;
+                _diagnosticStatus = "已复制完整诊断到剪贴板（" + diagnosticTarget + "）。";
+            }
+            GUI.enabled = true;
+            y += 30f;
+            if (!string.IsNullOrEmpty(_diagnosticStatus))
+            {
+                GUI.Label(new Rect(x, y, width, 38f), _diagnosticStatus, _body);
+                y += 42f;
+            }
 
             var mover = bootstrap != null ? bootstrap.NpcScheduleMover : null;
             var perfText =

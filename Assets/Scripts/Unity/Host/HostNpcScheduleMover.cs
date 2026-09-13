@@ -135,7 +135,11 @@ namespace XianXia.Unity.Host
                 // Field-army members are driven by the army's world-tick motion/presenter. During
                 // battle the participant materializer owns them instead; Schedule owns neither.
                 if (FormalArmyMemberPresenceSync.IsArmyControlledMember(session.World, entity.Id) ||
-                    session.World.Strategic.Participants.FindByEntity(entity.Id) != null)
+                    ActualBattleParticipantQuery.TryFind(
+                        session.World.Strategic.Participants, entity.Id, out _))
+                    continue;
+                if (session.World.Strategic.Squads.TryGetForCharacter(entity.Id, out var squad) &&
+                    squad.MemberCharacterIds.Count > 1 && squad.CommandKind != SquadCommandKind.None)
                     continue;
                 if (!entity.TryGet<MovementIntentComponent>(out var intent) || !intent.Active)
                     continue;

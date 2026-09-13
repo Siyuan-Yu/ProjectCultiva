@@ -1,5 +1,7 @@
 # ADR-0028：FormalArmy 组建与编制管理使用 Friendly Effective Territory Hex
 
+> **2026-09-12 边界：** 本 ADR 继续约束 FormalArmy 的组建与 roster 操作地点，但不得作为 Active 继承资格、WorldMap 移动、宣战或占领的类型特权。后者以 [ADR-0034](ADR-0034-conflict-control-succession-and-airship-role.md) 为准。
+
 - 状态：**已采纳并实现**
 - 日期：2026-09-06
 - 决策者：项目负责人

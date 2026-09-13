@@ -80,6 +80,58 @@ namespace XianXia.Core.Construction
             return Result.Success();
         }
 
+        public static Result TryConstructFactionFlagSite(
+            SimulationWorld world,
+            string buildingId,
+            string playerFactionId,
+            FactionFlagSitePlacementRequest request,
+            out string flagId,
+            out string siteId)
+        {
+            flagId = siteId = string.Empty;
+            var resolved = ResolveFactionFlagSpec(world, buildingId, out var spec);
+            if (resolved.IsFailure)
+                return resolved;
+            if (!spec.UnlockedByDefault || !spec.CreatesWorldSite)
+                return Result.Failure(ErrorCode.InvalidOperation, "此建筑未配置为新据点核心。");
+            if (!HasRequiredMaterials(world, spec, out var missing))
+                return Result.Failure(ErrorCode.InvalidOperation, "建造材料不足。", missing?.ItemId);
+
+            var valid = FactionFlagService.ValidateSiteCorePlacement(
+                world, playerFactionId, request, spec.SiteRangeWidth, spec.SiteRangeHeight, out _);
+            if (valid.IsFailure)
+                return valid;
+
+            flagId = FactionFlagService.NextRuntimeFlagId(world, playerFactionId, request.StrategicAnchor);
+            var totals = SumCosts(spec.Costs);
+            var removed = new List<ConstructionMaterialCost>();
+            for (var i = 0; i < totals.Count; i++)
+            {
+                var cost = totals[i];
+                if (!world.Inventory.TryRemoveAll(cost.ItemId, cost.Count))
+                {
+                    RestoreRemoved(world, removed);
+                    flagId = string.Empty;
+                    return Result.Failure(ErrorCode.InvalidOperation,
+                        "建造材料扣除失败，事务已回滚。", cost.ItemId);
+                }
+                removed.Add(cost);
+            }
+
+            var placed = FactionFlagService.TryPlaceSiteCore(
+                world, flagId, playerFactionId, request,
+                FactionFlagService.NextEstablishedOrder(world), spec.CreatedSiteName,
+                spec.CreatedSiteType, spec.InitialSiteLevel, spec.SiteRangeWidth,
+                spec.SiteRangeHeight, out siteId);
+            if (placed.IsFailure)
+            {
+                RestoreRemoved(world, removed);
+                flagId = siteId = string.Empty;
+                return placed;
+            }
+            return Result.Success();
+        }
+
         public static List<ConstructionMaterialCost> CalculateDismantleRefunds(BuildingConstructionSpec spec)
         {
             var refunds = new List<ConstructionMaterialCost>();
@@ -134,8 +186,7 @@ namespace XianXia.Core.Construction
                     if (delta > 0)
                         world.Inventory.TryRemoveAll(pair.Key, delta);
                 }
-                world.Strategic.FactionFlags.Register(flag);
-                StrategicTerritoryCoverageResolver.Rebuild(world);
+                FactionFlagService.TryRestoreRemovedCore(world, flag);
                 refunds.Clear();
                 return Result.Failure(ErrorCode.InvalidOperation, "拆除返料失败，事务已回滚。", refund.ItemId);
             }

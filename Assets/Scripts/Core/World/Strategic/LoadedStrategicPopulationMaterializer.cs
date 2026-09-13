@@ -12,7 +12,7 @@ namespace XianXia.Core.World.Strategic
     /// Phase 5S-B2-3.1：World → LocalMap 正常人口桥。
     /// 只负责「当前已 Loaded 的 surface LocalMap」中两类战略人口的 materialize / dematerialize：
     ///   1) FormalArmy living members（位置真源 = FormalArmy.WorldMotion，绝不用 member.WorldPresence 猜）；
-    ///   2) Strategic Residual（Incapacitated / visible Corpse，非 FormalArmy；位置真源 = ResidualHex）。
+    ///   2) Strategic Residual（Incapacitated / visible Corpse，含仍保留 Squad 的 Army member；位置真源 = ResidualHex）。
     /// 不创建 clone、不加入 PlayerParty、不修改 WorldMotion / WorldPresence world authority、
     /// 不触碰 PlayerParty 与正常 authored NPC / Background Character 归属。
     /// Battle Encounter / ParticipantSnapshot / BattlefieldSpawnScope 不参与本 service 判定——
@@ -115,10 +115,8 @@ namespace XianXia.Core.World.Strategic
                     PlayerPartyTransitionMembership.ShouldMemberTransitionWithParty(
                         world, playerParty, id))
                     continue;
-                if (ArmyService.TryGetArmyForCharacter(world, id, out _))
-                    continue; // Army member 不在此列（避免 IsStrategicResidualCandidate 的 assert）
-
-                if (!StrategicResidualPresenceService.IsStrategicResidualCandidate(world, id))
+                if (!StrategicResidualPresenceService.IsResidualLifeCandidate(world, id) ||
+                    kv.Value == null || !kv.Value.UsesHexPresence)
                     continue;
 
                 if (BelongsResidualToLoadedMap(world, context, id))

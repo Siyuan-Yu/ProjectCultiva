@@ -1,18 +1,37 @@
 # 世界与据点
 
-> 状态：**结构已修订（2026-08-11）**；**2026-08-22 战略层见 [2A](2A-factions-armies-diplomacy-and-capture.md)** | 优先级：P0 | 最后更新：2026-08-24  
-> 上级：`docs/00-project/00-overview.md`  
-> 关联：`33` v0.2 §8、ADR-0021、`26`、`27`、`25`、`22`、**[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**  
-> **世界结构新真源：[113 World Graph + Local Map](../40-process/113-world-graph-local-map-architecture-revision-v0.1.md)**  
-> 下文 §2「Region = 较大连续区域」已被 113 取代：宏观为 WorldNode＋WorldRoute，实体玩法只在按需 LocalMap。历史 Freeze 段落保留备查，**不要按连续大区实现新内容**。  
+> 状态：Continuous Outdoor 与 SiteCore 最终设计已确认；实现部分存在、迁移／核查及制作人验收待完成 | 优先级：P0 | 最后更新：2026-09-12
+> 上级：`docs/00-project/00-overview.md`
+> 关联：`33` v0.2 §8、ADR-0021、`26`、`27`、`25`、`22`、**[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**
+> **世界结构新真源：[113 World Graph + Local Map](../40-process/113-world-graph-local-map-architecture-revision-v0.1.md)**
+> 下文 §2「Region = 较大连续区域」已被 113 取代：宏观为 WorldNode＋WorldRoute，实体玩法只在按需 LocalMap。历史 Freeze 段落保留备查，**不要按连续大区实现新内容**。
 > **⚠️ 2026-08-24 Pure Hex supersede：** 战略空间真源 = **HexWorld + WorldSite.FootprintHexes**（ADR-0025、155）。Multi-Hex Site、TerritoryRegion、Fixed/Dynamic WorldSite 规则见 **[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**；Node／Route 不再作 Territory／Site 空间真源。
-> **⚠️ 2026-09-09 Future Direction：** [ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md) 已锁定普通 Outdoor 每大陆一个 Continuous Outdoor World Surface，并部分 supersede 本文／ADR-0021 的“跨 Region Route、非整大陆连续”目标规则。下文仍描述当前／历史 LocalMap 实现，**不构成已开始迁移或删除 LocalMap / SurfaceExit 的授权。**
+> **⚠️ 2026-09-12 当前目标：** [ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md) 的 Continuous Outdoor 已从 Future 入口提升为正式目标；SiteCore 与范围见 [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)。下方旧 World／Region／LocalMap 内容仅作历史实现说明。
 
 ## 1. 这个系统解决什么问题
 
 世界是所有内容的容器，也是扩张玩法的棋盘。要能承载从荒村到多城尺度跃迁，又避免 3D 开放世界成本。
 
-## 2. 地图结构：World → Region → LocalMap（已冻结）
+<a id="continuous-outdoor"></a>
+## 2. 当前世界结构：Continuous Outdoor + 独立空间
+
+- 普通探索、旅行和建设发生在每大陆的 Continuous Outdoor World Surface；村、镇、城、宗门的室外区域不因 Site、Hex 或 Chunk 边界切探索场景。
+- 真实户外位置由世界空间身份与连续坐标表示。Streaming Chunk、制作 Patch、Strategic Hex 各司其职，不要求一对一或边界对齐。
+- Hex 保留战略叠加和摘要；不得用 Hex terrain、footprint 或格心反推河桥通行、人物位置、Site 精确边界或战场裁切。
+- 基础大陆采用“程序初稿 → 人工调整 → Bake → 按 Chunk 加载”；存档保存动态游戏状态，不为每个存档重新随机生成基础大陆。
+- 不同大陆、真正 Interior／洞府／地下／独立空间仍可切换；临时独立战场不恢复“每 Hex 一小图”或户外城市房间化。
+- 扩大 3×3 显示窗口不等于全局导航覆盖；完整路线与地图生产仍需单独验证。
+
+<a id="worldsite-sitecore"></a>
+## 2.1 WorldSite 与 SiteCore
+
+- V1 一个 WorldSite 只有一个 SiteCore。预设议政厅固定存在、不可拆除，可升级和正式接管；玩家势力旗可成为一个可拆／可毁的新 Site 核心。
+- 核心等级决定理论行政／建设覆盖；示例尺寸不是硬常量。建筑再按自身地形、占地、碰撞与许可判断能否放置，河流仍可属于辖区。
+- 当前 Site 是由真实位置与有效控制解析的上下文。HomeSite、Faction 和当前物理 Site 分离；所有权／范围改变不移动人物，也不重置日程、出生点或命令。
+
+## 20. 历史结构：World → Region → LocalMap（已被当前目标替代）
+
+> 本节保留 Architecture Freeze v0.2／ADR-0021 的历史背景；普通户外目标已由 ADR-0031／0032 替代。Interior 等真正独立空间仍保留。
 
 ```text
 World
@@ -20,26 +39,26 @@ World
       └── LocalMap （独立加载：山洞／秘境／洞府／遗迹等）
 ```
 
-### 2.1 World
+### 20.1 World
 
-整个修仙世界。承载 Region 间关系、战略观察、跨 Region 路线（Route）。  
+整个修仙世界。承载 Region 间关系、战略观察、跨 Region 路线（Route）。
 **不做**整片大陆完全连续无缝大地图。
 
 规模方向（体验目标，非硬编码屏数）：暂定约 3 块大陆级分区、合计约 30 个城市级 Region。
 
-### 2.2 Region
+### 20.2 Region
 
 一个较大的**连续区域**（如「青石城区域」），内部优先保持连续地图体验，可包含：
 
 - 城镇中心、荒村、矿山、森林、农田、妖兽区、灵地、周边道路等
 
-支持：行走、战斗、飞行、路途中遭遇。  
-尺寸**可变**；荒村及周边可约 3～4 个当前视野；完整城市区域可以更大。  
+支持：行走、战斗、飞行、路途中遭遇。
+尺寸**可变**；荒村及周边可约 3～4 个当前视野；完整城市区域可以更大。
 技术上允许 Chunk／流式；体验上连续。
 
 跨 Region 旅行使用 **Route**（进度、危险、遭遇池）；队伍非瞬移。
 
-### 2.3 LocalMap
+### 20.3 LocalMap
 
 独立加载地图，由 Region 内入口进入。用于：
 
@@ -47,12 +66,12 @@ World
 
 实例状态（已拿宝物、已清敌人、机关、所有权等）**永久保存**。
 
-### 2.4 废弃表述
+### 20.4 废弃表述
 
 以下与 v0.2 冲突的描述**作废**：
 
-- 「大陆 → 城市区域 → 格子」作为与四类地图混用的旧主叙事  
-- 「统一约 10 屏／1.5 屏」作为硬规格  
+- 「大陆 → 城市区域 → 格子」作为与四类地图混用的旧主叙事
+- 「统一约 10 屏／1.5 屏」作为硬规格
 
 格子仍是 Region／LocalMap 内的最小空间单位（见下节）。
 
@@ -134,19 +153,21 @@ World
 
 ## 5. WorldGraph 战略层补充（2026-08-22）
 
+> **历史实现范围：** 下表描述旧 WorldGraph／Node／Army 版本，不是当前产品门槛。当前普通角色可按自身 AI／Policy／任务或玩家 Active 移动；FormalArmy 无地图移动、宣战或占领类型特权；Site 接管按唯一 SiteCore 和同源 Encounter。远方角色仍不开放逐人 RTS 控制。
+
 宏观 WorldGraph 战略规则以 [113](../40-process/113-world-graph-local-map-architecture-revision-v0.1.md) 与 [2A 势力、军队、外交与战略占领](2A-factions-armies-diplomacy-and-capture.md) 为准：
 
 | 概念 | 说明 |
 |------|------|
 | **WorldNode.ownerId** | 节点直接 Owner（语义名 **OwnerFactionId**）；**无** Controller 双层；战争占点成功后直接易主 |
-| **Resident Characters** | 驻留 Node、未编入 Army 的真实 Character；不能跨 Node 战略移动 |
+| **Resident Characters** | 旧 Node 驻留状态；“不能跨 Node”已被统一 WorldPosition／移动计划替代 |
 | **Garrison Armies** | 驻扎于己方 Node 的 Army；**不**自动解散；仅 Disband 解除 |
 | **Army 编组** | 增减成员／换 Leader／解散**仅**能在己方 Node；禁止跨 Faction 混编 |
-| **CaptureObjectives[]** | 可占领 Node 的占领目标；全部完成才 Capture |
+| **CaptureObjectives[]** | 旧多目标模型；V1 当前只有一个 SiteCore，实际接管才改 Owner |
 | **Formation** | 阵法；计入 Node Defense |
-| **Army 位置** | AtNode 或 OnEdge + Progress；**跨 Node 移动必须经 Army** |
+| **Army 位置** | 旧 AtNode／OnEdge 模型；跨点必须 Army 已替代 |
 
-> **Prototype：** 当前 Host 仍允许 Character 直接 `PartyWorldPresence` 上路；正式目标见 ADR-0024。
+> 当前目标见 2K／ADR-0034；旧表仅用于迁移核查。
 
 ## 6. 结构：连续区域 + 可占领区块
 
@@ -155,7 +176,7 @@ World
 - 山脉、河流、危险区域与出口影响通行与行军。
 - 飞行等境界能力会改变通行规则（见 `22-realms-and-abilities.md`）。
 
-## 6. 势力生态
+## 6.1 势力生态
 
 - 宗门、家族、城镇政权、妖族与散修势力争夺人口、资源与灵地。
 - 每个可占领区块都有归属、守护力量、产出、人口、灵气浓度与关系网络。

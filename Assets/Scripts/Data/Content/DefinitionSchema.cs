@@ -302,7 +302,8 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> BuildingFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "id", "type", "name", "description", "unlockedByDefault", "placementKind",
-            "dismantleRefundRate", "costs"
+            "createsWorldSite", "createdSiteName", "createdSiteType", "initialSiteLevel",
+            "siteRangeWidth", "siteRangeHeight", "dismantleRefundRate", "costs"
         };
 
         public static readonly HashSet<string> BuildingCostFields = new HashSet<string>(StringComparer.Ordinal)

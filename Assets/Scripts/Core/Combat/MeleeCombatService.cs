@@ -7,6 +7,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Events;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Combat
 {
@@ -138,6 +139,12 @@ namespace XianXia.Core.Combat
             defenderDefeated = false;
             if (world == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "World null.");
+            var continuousCombat = world.Strategic?.ContinuousManualCombat;
+            if (continuousCombat != null && continuousCombat.IsActive &&
+                !continuousCombat.AreOpposing(attackerId, defenderId))
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "Target is not an opposing participant in the active manual battle.");
             if (!world.Entities.TryGet(attackerId, out var attacker))
                 return Result.Failure(ErrorCode.EntityNotFound, "Attacker missing.");
             if (!world.Entities.TryGet(defenderId, out var defender))

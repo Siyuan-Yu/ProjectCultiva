@@ -10,6 +10,8 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostInventoryPanel : MonoBehaviour
     {
+        const string PauseOwner = "InventoryPanel";
+
         enum Filter
         {
             All = 0,
@@ -49,7 +51,7 @@ namespace XianXia.Unity.Host
             open = true;
             if (bootstrap?.Session != null && bootstrap.Session.IsInitialized)
             {
-                bootstrap.Session.IsPaused = true;
+                bootstrap.Session.AcquireModalPause(PauseOwner);
                 _holdingPause = true;
                 HostInputGate.BlockWorldCamera = true;
                 HostInputGate.BlockWorldInteraction = true;
@@ -69,10 +71,10 @@ namespace XianXia.Unity.Host
 
         public void ClearSessionState()
         {
+            ReleasePauseOwnership();
             open = false;
             _selectedSlot = -1;
             _status = string.Empty;
-            _holdingPause = false;
         }
 
         void Update()
@@ -95,7 +97,7 @@ namespace XianXia.Unity.Host
                 if (open)
                     open = false;
                 if (_holdingPause)
-                    _holdingPause = false;
+                    ReleasePauseOwnership();
                 return;
             }
 
@@ -105,7 +107,7 @@ namespace XianXia.Unity.Host
                 HostInputGate.BlockWorldInteraction = true;
                 if (!_holdingPause)
                 {
-                    bootstrap.Session.IsPaused = true;
+                    bootstrap.Session.AcquireModalPause(PauseOwner);
                     _holdingPause = true;
                 }
             }
@@ -113,10 +115,12 @@ namespace XianXia.Unity.Host
                 ReleasePauseOwnership();
         }
 
+        void OnDisable() => ReleasePauseOwnership();
+
         void ReleasePauseOwnership()
         {
             if (_holdingPause && bootstrap?.Session != null)
-                bootstrap.Session.IsPaused = false;
+                bootstrap.Session.ReleaseModalPause(PauseOwner);
             _holdingPause = false;
             HostInputGate.Clear();
         }

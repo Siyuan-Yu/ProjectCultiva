@@ -1,55 +1,64 @@
 # 路线图
 
-> 状态：**RPG-First Phase 0–4 Accepted / Sealed；Phase 5A Cleanup + Phase 5B View Takeover Accepted / Sealed**｜最后更新：2026-09-09
+> **当前唯一主线（2026-09-13）：** [ADR-0035 §5](43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 的 CW-U0 → U1 → U2A → U2B → U3 → U4，逐轮制作人验收后再回 CW-04。下文此前 CW-04／CW-06／远援与地图入口排序为历史计划，不并列执行。
+
+> 状态：CW-U0 Producer Accepted / Sealed；CW-U1 Implementation Completed / Producer Acceptance Pending；未进入 CW-U2A｜最后更新：2026-09-13
 
 ## 当前阶段说明
 
+- **2026-09-13：** CW-U0 的设计收口与多人落点修复已由制作人验收并封板；范围见 [220](220-cw-u0-design-and-manual-entry-placement-2026-09-13.md)。CW-U1 已完成统一 Squad 成员权威、正常加入／离队、现有共同移动适配、近场观察与正式存读档接线，等待制作人按 [221](221-cw-u1-unified-squad-runtime-and-persistence-2026-09-13.md) 人工验收。未开始 CW-U2A。
+
+- **2026-09-13：** CW-02 为 **Producer Accepted — 当前交付范围**，范围及明确延期见 [218](218-cw-02-pause-ownership-and-party-incapacitation-safety-exit-2026-09-12.md)。CW-03 新 Site／唯一旗核心闭环为 **Implementation Completed / Producer Acceptance Pending**，交接与正常玩法验收路线见 [219](219-cw-03-new-worldsite-and-flag-core-closure-2026-09-13.md)。未进入 CW-04。
+- **2026-09-12 Documentation only：** Continuous World 最终设计已由 [ADR-0032](43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)～[0034](43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) 确认并同步系统正文、Freeze 补丁、术语和索引；文档对齐见 [216](216-continuous-world-final-design-documentation-alignment-2026-09-12.md)。**Design: Confirmed；Documentation: Updated；Implementation: Not migrated / Partially present / Needs verification；Producer Acceptance: Pending。**
+- 后续依赖顺序：稳定身份／动态资产存档／战前锚点／暂停与控制生命周期核查 → SiteCore 范围与建筑归属 → 同源遭遇与人物战 → 战内建筑战争、接管、OR 胜利和收尾 → 有限援军、顺序接替／全队死亡继承、预警 → 飞舟运输与统一 WorldMap 观察／下令。此顺序不是一次性编码授权。
+- 玩家势力无人终局、舰战／甲板战、完整俘虏／赎金、无限远援和同城多核心明确延期。Outdoor 动态破坏物存档失败仍是未通过技术债，是后续战场往返依赖。
+
 - **2026-09-10：** W1C **Accepted / Sealed**；当前阶段为 **W1D — Default Wilderness Continuous Surface Cutover**。W1C acceptance Surface 保留为诊断，不参与 normal runtime authority。
 
-- **2026-09-09：** [ADR-0031](43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md) 已完成 **Continuous Outdoor World Architecture** 产品／架构方向收束：一个大陆的普通 Outdoor Geography 长期属于同一 Continuous Outdoor World Surface；Surface Chunk 与 Strategic Hex 分离；Fixed Baked Base World + Dynamic Save State；WorldPosition 为长期物理权威。**Runtime Migration 尚未开始**，当前“Wilderness 1 Hex = 1 logical LocalMap”、SurfaceExit、WorldSite LocalMap 与 Travel 实现不变。World Event 仅保留下一阶段候选 / North Star，本轮不启动。
-- **2026-08-29：** Phase 5B **WorldMap↔LocalMap Travel View Takeover — Accepted / Sealed**：基线 dev_1 @ 47b3f89；AutoTravel 关图 **不再 Cancel**；LocalVisible 时 World Advance 停止；再开 WorldMap 从同一 Continuous Position 继续；多次开关无漂移 / Route / Destination 异常；人工验收 Assets/Scenes/LevelTester.unity；真源 [173](173-phase-5b-worldmap-localmap-travel-view-takeover-2026-08-29.md)。**未开始 Phase 5C。**  
-- **2026-08-29：** Phase 5A **Travel 代码清理 / Authority 收口**：行为基线 `dev_1 @ 47b3f89`；真源 [172](172-phase-5a-travel-cleanup-authority-consolidation-2026-08-29.md)。  
-- **2026-08-28：** Phase 3 **Accepted / Sealed**（用户正式确认）：FormalArmy 军事层收敛；PlayerParty 独立旅行 Authority；Continuous WorldPosition／Travel／Presence／Save-Load；已在 LevelTester 持续使用及 Phase 4 验收中实际验证；真源 [166](166-phase-3-formal-army-continuous-world-2026-08-27.md)／[167](167-phase-3-closure-playerparty-and-casualty-fixtures-2026-08-27.md)。  
-- **2026-08-28：** Phase 4 **Accepted / Sealed**：Battle Authority；真源 [171](171-phase-4-battle-authority-2026-08-28.md)。**未开始 Phase 5。**  
-- **2026-08-27：** LevelTester **Cheat Tools 统一整理入仓**：`HostLevelTesterCheatPanel` 替代 F3/F4/F8/F11/F12 等分散 Debug Panel；实现索引 [168](168-level-tester-cheat-tools-consolidation-2026-08-27.md)；操作真源 [114](114-level-tester.md)。  
-- **2026-08-27：** Phase 3 **收口入仓**：A2 Authority 第二轮；PP-Follower 跨图；主角营地独立 LocalMap；三支试炼山匪 + 伤亡夹具；实现索引 [167](167-phase-3-closure-playerparty-and-casualty-fixtures-2026-08-27.md)。  
-- **2026-08-27：** Phase 3 **主体入仓**：FormalArmy Continuous World + RPG-First Authority；F11 Debug；EditMode `FormalArmyPhase3AuthorityTests`；`PresenceHex==AnchorHex` 兼容收口；实现索引 [166](166-phase-3-formal-army-continuous-world-2026-08-27.md)。  
-- **2026-08-27：** Phase 2D **人工验收通过并封板**：Background Character World Travel Core；Loaded LocalMap Materialization；Site Departure 真实 Travel；Destination Canonicalization；F12 Debug + BGTRAVEL Trace；实现索引 [165](165-phase-2d-background-character-world-travel-2026-08-26.md)。  
-- **2026-08-26：** Phase 2C **人工验收通过并封板**：Continuous Player World Movement；Ordinary Hex Actual Connections；WorldSite Full-Footprint Boundary Connections；Surface Exit Trigger／Edge Transition／Overlap Resolution；实现索引 [164](164-phase-2c-surface-exit-zone-and-edge-transition-2026-08-26.md)。  
-- **2026-08-26：** Phase 2B **人工验收通过并封板**（`c895d3d`）：PlayerParty Hex Travel／30×15 测试世界／Wilderness Fallback／Materialize；下一目标 Phase 2C。  
-- **2026-08-25：** Phase 2B 落地：PlayerParty Hex Travel（非 Fake Army）＋30×15 测试世界＋Wilderness Fallback＋LocalMap Materialize 闭环；「进入近景」为 Prototype／Debug UX。  
-- **2026-08-25：** Phase 2A **人工验收通过并封板**（`18600af`／`8d49bf4`／`61bca9a`）：PresenceHex／Character World Presence；**不含** Travel。  
-- **2026-08-25：** LocalMap Camera **最终规则**：仅 WASD Hard Follow；RTS／右键寻路不控镜头（[2K §1.1](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)）。  
-- **2026-08-25：** Phase 2A 代码落地：`WorldSite.PresenceHex`、Character World Presence 查询、Editor／Validation／Snapshot 最小扩展；青石荒村 Content 改为 4-Hex 且 Anchor≠Presence（验收用）。**不含** Background Travel／Combat。  
-- **2026-08-25：** Phase 1 人工验收通过并封板（`aa1ebb9`／`e683aab`／`8770fb0`／`961d0d2`）：Single Active／PlayerParty≤6／Follow／Switch／View≠Command。  
-- **2026-08-25：** [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0026](43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) + [163 迁移计划](163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md) — RPG-First 文档真源。  
-- Architecture Freeze **v0.2**＋**ADR-0023**＋**ADR-0024（部分 superseded）**＋**ADR-0025**＋**ADR-0026**。  
-- **2026-08-24：** Multi-Hex footprint Runtime／Editor／Ch01（`0a40a86`）；Snapshot v6 JSON（`ff112cd`）；Purge 审计（162）。  
-- **2026-08-23：** [158](158-hex-world-content-authoring-pipeline-2026-08-23.md) HexWorld Pipeline；[155](155-hex-strategic-worldmap-migration-2026-08-23.md) Hex 迁移。  
+- **2026-09-09 历史记录：** [ADR-0031](43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md) 当时将 Continuous Outdoor 记录为 Future；该“仅 Future／未授权迁移”的状态已由 2026-09-12 制作人最终设计决定替代。历史实现边界仍保留用于迁移核对。
+- **2026-08-29：** Phase 5B **WorldMap↔LocalMap Travel View Takeover — Accepted / Sealed**：基线 dev_1 @ 47b3f89；AutoTravel 关图 **不再 Cancel**；LocalVisible 时 World Advance 停止；再开 WorldMap 从同一 Continuous Position 继续；多次开关无漂移 / Route / Destination 异常；人工验收 Assets/Scenes/LevelTester.unity；真源 [173](173-phase-5b-worldmap-localmap-travel-view-takeover-2026-08-29.md)。**未开始 Phase 5C。**
+- **2026-08-29：** Phase 5A **Travel 代码清理 / Authority 收口**：行为基线 `dev_1 @ 47b3f89`；真源 [172](172-phase-5a-travel-cleanup-authority-consolidation-2026-08-29.md)。
+- **2026-08-28：** Phase 3 **Accepted / Sealed**（用户正式确认）：FormalArmy 军事层收敛；PlayerParty 独立旅行 Authority；Continuous WorldPosition／Travel／Presence／Save-Load；已在 LevelTester 持续使用及 Phase 4 验收中实际验证；真源 [166](166-phase-3-formal-army-continuous-world-2026-08-27.md)／[167](167-phase-3-closure-playerparty-and-casualty-fixtures-2026-08-27.md)。
+- **2026-08-28：** Phase 4 **Accepted / Sealed**：Battle Authority；真源 [171](171-phase-4-battle-authority-2026-08-28.md)。**未开始 Phase 5。**
+- **2026-08-27：** LevelTester **Cheat Tools 统一整理入仓**：`HostLevelTesterCheatPanel` 替代 F3/F4/F8/F11/F12 等分散 Debug Panel；实现索引 [168](168-level-tester-cheat-tools-consolidation-2026-08-27.md)；操作真源 [114](114-level-tester.md)。
+- **2026-08-27：** Phase 3 **收口入仓**：A2 Authority 第二轮；PP-Follower 跨图；主角营地独立 LocalMap；三支试炼山匪 + 伤亡夹具；实现索引 [167](167-phase-3-closure-playerparty-and-casualty-fixtures-2026-08-27.md)。
+- **2026-08-27：** Phase 3 **主体入仓**：FormalArmy Continuous World + RPG-First Authority；F11 Debug；EditMode `FormalArmyPhase3AuthorityTests`；`PresenceHex==AnchorHex` 兼容收口；实现索引 [166](166-phase-3-formal-army-continuous-world-2026-08-27.md)。
+- **2026-08-27：** Phase 2D **人工验收通过并封板**：Background Character World Travel Core；Loaded LocalMap Materialization；Site Departure 真实 Travel；Destination Canonicalization；F12 Debug + BGTRAVEL Trace；实现索引 [165](165-phase-2d-background-character-world-travel-2026-08-26.md)。
+- **2026-08-26：** Phase 2C **人工验收通过并封板**：Continuous Player World Movement；Ordinary Hex Actual Connections；WorldSite Full-Footprint Boundary Connections；Surface Exit Trigger／Edge Transition／Overlap Resolution；实现索引 [164](164-phase-2c-surface-exit-zone-and-edge-transition-2026-08-26.md)。
+- **2026-08-26：** Phase 2B **人工验收通过并封板**（`c895d3d`）：PlayerParty Hex Travel／30×15 测试世界／Wilderness Fallback／Materialize；下一目标 Phase 2C。
+- **2026-08-25：** Phase 2B 落地：PlayerParty Hex Travel（非 Fake Army）＋30×15 测试世界＋Wilderness Fallback＋LocalMap Materialize 闭环；「进入近景」为 Prototype／Debug UX。
+- **2026-08-25：** Phase 2A **人工验收通过并封板**（`18600af`／`8d49bf4`／`61bca9a`）：PresenceHex／Character World Presence；**不含** Travel。
+- **2026-08-25：** LocalMap Camera **最终规则**：仅 WASD Hard Follow；RTS／右键寻路不控镜头（[2K §1.1](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)）。
+- **2026-08-25：** Phase 2A 代码落地：`WorldSite.PresenceHex`、Character World Presence 查询、Editor／Validation／Snapshot 最小扩展；青石荒村 Content 改为 4-Hex 且 Anchor≠Presence（验收用）。**不含** Background Travel／Combat。
+- **2026-08-25：** Phase 1 人工验收通过并封板（`aa1ebb9`／`e683aab`／`8770fb0`／`961d0d2`）：Single Active／PlayerParty≤6／Follow／Switch／View≠Command。
+- **2026-08-25：** [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0026](43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) + [163 迁移计划](163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md) — RPG-First 文档真源。
+- Architecture Freeze **v0.2**＋**ADR-0023**＋**ADR-0024（部分 superseded）**＋**ADR-0025**＋**ADR-0026**。
+- **2026-08-24：** Multi-Hex footprint Runtime／Editor／Ch01（`0a40a86`）；Snapshot v6 JSON（`ff112cd`）；Purge 审计（162）。
+- **2026-08-23：** [158](158-hex-world-content-authoring-pipeline-2026-08-23.md) HexWorld Pipeline；[155](155-hex-strategic-worldmap-migration-2026-08-23.md) Hex 迁移。
 - Demo Runtime 继续冻结。旧 WorldMap **纯 RTS** 路径（139／152／154）视为 **Legacy Prototype**，迁移见 163。
 
 ### RPG-First 迁移分期
 
 - [x] **Phase 0** 文档 + 架构审计 + Supersede — ✅
 - [x] **Phase 1** Single Active Character／PlayerParty 控制模型 — **Accepted / Sealed**（2026-08-25）
-- [x] **Phase 2** Background Character World Presence／Simulation + PresenceHex — **Accepted / Sealed**  
-  - **2A（已封板）：** PresenceHex Content／Runtime／Editor；`GetCharacterWorldHex`；AtSite 存 SiteId；Stop Follow 保 Presence；Snapshot `characterWorldPresences`；Background 不画 WorldMap 头像  
-  - **2B（已封板）：** PlayerParty World Travel MVP＋30×15 测试世界＋Minimal Wilderness Fallback＋LocalMap Materialize；**非** Background Travel  
-  - **2C（已封板）：** Continuous WorldPosition；Actual Surface Exit Connections（Ordinary Hex + WorldSite Full-Footprint）；WorldMap↔Wilderness 双向投影；LocalMap Edge→Neighbor；Canonical Exit Trigger Zone + Overlap Resolution；Close WorldMap = Cancel＋Expand；**无** PreciseWorldDestination；见 [164](164-phase-2c-surface-exit-zone-and-edge-transition-2026-08-26.md)  
-  - **2D（已封板）：** Background Character Travel Core；Scheduler；Loaded LocalMap Materialization；Site Departure；Destination Canonicalization；Save/Load；F12 Debug；见 [165](165-phase-2d-background-character-world-travel-2026-08-26.md)  
+- [x] **Phase 2** Background Character World Presence／Simulation + PresenceHex — **Accepted / Sealed**
+  - **2A（已封板）：** PresenceHex Content／Runtime／Editor；`GetCharacterWorldHex`；AtSite 存 SiteId；Stop Follow 保 Presence；Snapshot `characterWorldPresences`；Background 不画 WorldMap 头像
+  - **2B（已封板）：** PlayerParty World Travel MVP＋30×15 测试世界＋Minimal Wilderness Fallback＋LocalMap Materialize；**非** Background Travel
+  - **2C（已封板）：** Continuous WorldPosition；Actual Surface Exit Connections（Ordinary Hex + WorldSite Full-Footprint）；WorldMap↔Wilderness 双向投影；LocalMap Edge→Neighbor；Canonical Exit Trigger Zone + Overlap Resolution；Close WorldMap = Cancel＋Expand；**无** PreciseWorldDestination；见 [164](164-phase-2c-surface-exit-zone-and-edge-transition-2026-08-26.md)
+  - **2D（已封板）：** Background Character Travel Core；Scheduler；Loaded LocalMap Materialization；Site Departure；Destination Canonicalization；Save/Load；F12 Debug；见 [165](165-phase-2d-background-character-world-travel-2026-08-26.md)
   - **后续 Backlog：** Background Combat／Autonomous AI Travel／Policy；Directional Site Entry 等
-- [x] **Phase 3** FormalArmy 职责迁移 — **Accepted / Sealed（2026-08-28）**  
-  - 真源：[166](166-phase-3-formal-army-continuous-world-2026-08-27.md) + [167](167-phase-3-closure-playerparty-and-casualty-fixtures-2026-08-27.md)  
-  - FormalArmy 军事层；PlayerParty 独立旅行；Continuous WorldPosition／Travel／Presence／Save-Load／Authority 边界  
-  - 验证：LevelTester 持续使用 + Phase 4 实际依赖；用户 2026-08-28 正式确认封板  
+- [x] **Phase 3** FormalArmy 职责迁移 — **Accepted / Sealed（2026-08-28）**
+  - 真源：[166](166-phase-3-formal-army-continuous-world-2026-08-27.md) + [167](167-phase-3-closure-playerparty-and-casualty-fixtures-2026-08-27.md)
+  - FormalArmy 军事层；PlayerParty 独立旅行；Continuous WorldPosition／Travel／Presence／Save-Load／Authority 边界
+  - 验证：LevelTester 持续使用 + Phase 4 实际依赖；用户 2026-08-28 正式确认封板
   - **Backlog / Deferred：** FormalArmy WorldMap Marker 连续表现、Autonomous AI Order、更复杂 Army AI／主动战争／Army Capacity 等
-- [x] **Phase 4** Manual Battle Permission — **Accepted / Sealed（2026-08-28）**  
-  - 正式真源：[171](171-phase-4-battle-authority-2026-08-28.md) §1  
-  - Battle Trigger＝Initiator/Defender **共边相邻**；BattleArea／SupportArea／Participants／Manual  
-  - Hex topology Authority（Odd-R↔axial；含 CollectHexLine）已修  
-  - **Deferred / Future Regression：** 敌军主动攻击 Retreat 人工验收；AI vs AI 主动接战人工验收（缺战略 AI）  
-  - **Deferred（原）：** Legacy 战斗入口删除、PlayerParty 作 Initiator  
-  - 附带验收：WorldMap 列表滚动收紧、Zoom In 扩大、Cheat Tools 与 F10 解耦  
+- [x] **Phase 4** Manual Battle Permission — **Accepted / Sealed（2026-08-28）**
+  - 正式真源：[171](171-phase-4-battle-authority-2026-08-28.md) §1
+  - Battle Trigger＝Initiator/Defender **共边相邻**；BattleArea／SupportArea／Participants／Manual
+  - Hex topology Authority（Odd-R↔axial；含 CollectHexLine）已修
+  - **Deferred / Future Regression：** 敌军主动攻击 Retreat 人工验收；AI vs AI 主动接战人工验收（缺战略 AI）
+  - **Deferred（原）：** Legacy 战斗入口删除、PlayerParty 作 Initiator
+  - 附带验收：WorldMap 列表滚动收紧、Zoom In 扩大、Cheat Tools 与 F10 解耦
 - [x] **Phase 5** Continuous LocalMap ↔ HexWorld Transition — **In Progress**（5A/5B Accepted / Sealed；5C 未开始）
 - [ ] **Phase 6** WorldMap Auto Travel — **Not Started**
 - [ ] **Phase 7** Wilderness LocalMap — **Not Started**
@@ -198,7 +207,7 @@
 
 ### Core Milestone 1（ADR-0022，审核后另开实现任务）
 
-**做：** Id、WorldTick、IRandomSource、ContentPackage 基础、Entity 基础、AttributeModifier、DomainEvent、Order／Action、Snapshot、单 Region 验证。  
+**做：** Id、WorldTick、IRandomSource、ContentPackage 基础、Entity 基础、AttributeModifier、DomainEvent、Order／Action、Snapshot、单 Region 验证。
 
 **不做：** 跨 Region 离屏、完整势力领导、真战斗、完整 NPC AI、Mods/ 加载、大地图战争。
 

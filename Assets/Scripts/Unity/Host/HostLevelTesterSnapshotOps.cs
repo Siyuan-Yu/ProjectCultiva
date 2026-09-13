@@ -7,6 +7,7 @@ namespace XianXia.Unity.Host
     public static class HostLevelTesterSnapshotOps
     {
         public const string DefaultFileName = "vs04_slot0.json";
+        const string SnapshotRestorePauseOwner = "SnapshotRestore";
 
         public static int SchemaVersion => XianXia.Core.Persistence.WorldSnapshot.CurrentSchemaVersion;
 
@@ -25,6 +26,13 @@ namespace XianXia.Unity.Host
             if (bootstrap == null || !bootstrap.Session.IsInitialized)
             {
                 result.Message = "Save failed: not initialized";
+                return result;
+            }
+            if (bootstrap.StrategicInterrupt != null &&
+                bootstrap.StrategicInterrupt.HasManualBattleReport)
+            {
+                result.Message = "Save unavailable while the battle report is open; close the report first.";
+                Debug.LogWarning("[LevelTesterSnapshot] " + result.Message);
                 return result;
             }
 
@@ -84,39 +92,47 @@ namespace XianXia.Unity.Host
                 return result;
             }
 
-            var restored = bootstrap.Session.RestoreSnapshotJson(json);
-            if (restored.IsFailure)
+            bootstrap.Session.AcquireModalPause(SnapshotRestorePauseOwner);
+            try
             {
-                result.Message = FormatLoadFailure(restored.Error);
-                Debug.LogError("[LevelTesterSnapshot] " + result.Message);
+                var restored = bootstrap.Session.RestoreSnapshotJson(json);
+                if (restored.IsFailure)
+                {
+                    result.Message = FormatLoadFailure(restored.Error);
+                    Debug.LogError("[LevelTesterSnapshot] " + result.Message);
+                    return result;
+                }
+
+                HostSnapshotSessionRehydration.LogDomainTrace(
+                    bootstrap.Session,
+                    "AfterRestoreJson.BeforePresentation");
+                var rehydrated = HostSnapshotSessionRehydration.RehydrateAfterRestore(bootstrap);
+                if (rehydrated.IsFailure)
+                {
+                    result.Message = FormatLoadFailure(rehydrated.Error);
+                    Debug.LogError("[LevelTesterSnapshot] " + result.Message);
+                    return result;
+                }
+                HostSnapshotSessionRehydration.LogDomainTrace(
+                    bootstrap.Session,
+                    "AfterRehydrate.BeforePresentation");
+                WorldMapArmyMarkerDiagnostics.LogFormalArmyDomainAfterLoad(
+                    bootstrap.Session,
+                    "AfterRehydrate");
+                HostLevelTesterSnapshotSummary.RecordRuntime(bootstrap.Session.World, bootstrap.Session);
+
+                bootstrap.RebuildPresentationAfterLoad();
+                WorldMapArmyMarkerDiagnostics.LogWorldMapArmyMarkers(bootstrap.Session);
+                HostLevelTesterSnapshotSummary.RecordRuntime(bootstrap.Session.World, bootstrap.Session);
+                result.Success = true;
+                result.Message = "Loaded tick=" + bootstrap.Session.World.Tick.Value;
+                Debug.Log("[LevelTesterSnapshot] " + result.Message);
                 return result;
             }
-
-            HostSnapshotSessionRehydration.LogDomainTrace(
-                bootstrap.Session,
-                "AfterRestoreJson.BeforePresentation");
-            var rehydrated = HostSnapshotSessionRehydration.RehydrateAfterRestore(bootstrap);
-            if (rehydrated.IsFailure)
+            finally
             {
-                result.Message = FormatLoadFailure(rehydrated.Error);
-                Debug.LogError("[LevelTesterSnapshot] " + result.Message);
-                return result;
+                bootstrap.Session.ReleaseModalPause(SnapshotRestorePauseOwner);
             }
-            HostSnapshotSessionRehydration.LogDomainTrace(
-                bootstrap.Session,
-                "AfterRehydrate.BeforePresentation");
-            WorldMapArmyMarkerDiagnostics.LogFormalArmyDomainAfterLoad(
-                bootstrap.Session,
-                "AfterRehydrate");
-            HostLevelTesterSnapshotSummary.RecordRuntime(bootstrap.Session.World, bootstrap.Session);
-
-            bootstrap.RebuildPresentationAfterLoad();
-            WorldMapArmyMarkerDiagnostics.LogWorldMapArmyMarkers(bootstrap.Session);
-            HostLevelTesterSnapshotSummary.RecordRuntime(bootstrap.Session.World, bootstrap.Session);
-            result.Success = true;
-            result.Message = "Loaded tick=" + bootstrap.Session.World.Tick.Value;
-            Debug.Log("[LevelTesterSnapshot] " + result.Message);
-            return result;
         }
 
         static string FormatLoadFailure(XianXia.Core.Results.GameError error)

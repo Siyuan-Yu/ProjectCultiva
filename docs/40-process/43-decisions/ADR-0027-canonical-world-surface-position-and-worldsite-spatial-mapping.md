@@ -1,11 +1,13 @@
 # ADR-0027：Canonical World Surface Position 与 WorldSite Spatial Mapping
 
+> **2026-09-12 部分 SUPERSEDED：** 普通户外 WorldSite 已成为 Continuous Surface 上的 SiteCore 行政 Context，不再以一张 Outdoor LocalMap 投影定义物理范围。下文 Decision #4 的 normalized LocalMap→footprint 映射、#6～#8 的 footprint/ring 战斗与 MandatoryTransit，以及 #9／#11 的 SurfaceExit 主链只保留旧阶段实现背景。当前普通户外直接使用 Canonical WorldPosition；当前 Site 由真实位置与有效行政控制解析；Hex 仅作战略摘要。Canonical WorldPosition 与 Context／Physical 分离仍保留；见 [ADR-0031](ADR-0031-continuous-outdoor-world-surface-architecture.md)、[ADR-0032](ADR-0032-sitecore-administrative-and-construction-range.md) 与 [2K](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。
+
 - **状态：** 已采纳
 - **日期：** 2026-08-30
 - **决策者：** 项目负责人（底层空间模型大版本调整；Phase 5R）
 - **关联：** [2K 系统真源](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、[2J](../../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)、[03-glossary](../../00-project/03-glossary.md)、[ADR-0025](ADR-0025-strategic-spatial-model-hexgrid.md)、[ADR-0026](ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)、[163](../../40-process/163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md)
 
-> **2026-09-09 · [ADR-0031](ADR-0031-continuous-outdoor-world-surface-architecture.md) 关系说明：** 本 ADR 仍是当前 Canonical WorldPosition / LocalMap Mapping 的正式基础，也是未来 Continuous Outdoor Surface 的 migration bridge。其 Context-vs-Physical separation 长期保留；WorldSite LocalMap normalized projection 将在 Future Surface 完整落地时逐步退出普通 Outdoor 主链，当前绝不删除或标记为错误。
+> **2026-09-09 历史关系说明，2026-09-12 更新：** LocalMap Mapping 是已发生迁移阶段的桥接契约。它可继续服务旧内容和真正 Interior，但已退出普通 Outdoor 的目标主链；不得用 footprint clamp、旧 Site LocalMap 或 SurfaceExit 修正连续户外位置。
 
 ## 背景
 

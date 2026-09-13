@@ -681,10 +681,23 @@ namespace XianXia.Data.Content
                 Description = item.GetString("description", string.Empty),
                 UnlockedByDefault = unlocked,
                 PlacementKind = placementKind,
+                CreatesWorldSite = item.GetBool("createsWorldSite", false),
+                CreatedSiteName = item.GetString("createdSiteName", string.Empty),
+                CreatedSiteType = item.GetString("createdSiteType", string.Empty),
+                InitialSiteLevel = (int)item.GetNumber("initialSiteLevel", 0),
+                SiteRangeWidth = (float)item.GetNumber("siteRangeWidth", 0),
+                SiteRangeHeight = (float)item.GetNumber("siteRangeHeight", 0),
                 DismantleRefundRate = refundRate
             };
             if (string.IsNullOrWhiteSpace(definition.Name))
                 definition.Name = id.ToString();
+            if (definition.CreatesWorldSite &&
+                (definition.InitialSiteLevel < 1 || definition.SiteRangeWidth <= 0f ||
+                 definition.SiteRangeHeight <= 0f || string.IsNullOrWhiteSpace(definition.CreatedSiteType)))
+            {
+                report.Add(ErrorCode.InvalidArgument,
+                    "WorldSite core building requires positive level/range and createdSiteType.", id.ToString());
+            }
 
             if (!item.TryGetProperty("costs", out var costsNode) || costsNode.Kind != JsonValueKind.Array)
                 report.Add(ErrorCode.MissingRequiredField, "costs array required.", id.ToString());

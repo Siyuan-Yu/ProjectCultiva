@@ -1,5 +1,7 @@
 # ADR-0024：修士真实角色与 Army 战略载体模型
 
+> **2026-09-12 补充边界：** [ADR-0034](ADR-0034-conflict-control-succession-and-airship-role.md) 进一步移除 FormalArmy／飞舟的宣战、占领和 WorldMap 移动类型特权；[ADR-0033](ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) 替代“全部 CaptureObjective 才能结束”的手动作战目标。所有修士为真实 Character、LOD、真实成员和伤亡／消耗回写继续有效。
+
 - 状态：**已采纳**（2026-08-25：**部分 superseded** — 「跨点必须 Army」见 [ADR-0026](ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)／[2K](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)）
 - 日期：2026-08-22（第二轮补充：编组／FactionId／联盟／占点收尾）
 - 决策者：项目负责人（战略势力层设计拍板）
@@ -18,8 +20,8 @@ Architecture Freeze v0.2 与 `27`／`34` 曾将「第三层普通修士」表述
 
 ## 选项
 
-**A. 维持 CultivatorPopulation + ArmyGroup 聚合修士战争** — 与「每个修士有故事、关系、生死」冲突；势力统计不可审计。  
-**B. 全员真实 Character + LOD 模拟 + Army 作为战略载体** — 数据真实、表现分级；配置与模拟成本更高，但符合产品方向。  
+**A. 维持 CultivatorPopulation + ArmyGroup 聚合修士战争** — 与「每个修士有故事、关系、生死」冲突；势力统计不可审计。
+**B. 全员真实 Character + LOD 模拟 + Army 作为战略载体** — 数据真实、表现分级；配置与模拟成本更高，但符合产品方向。
 **C. 混合：玩家侧真实、AI 侧匿名** — 双轨语义，Ledger／关系／复仇无法统一。
 
 ## 决策
@@ -28,22 +30,22 @@ Architecture Freeze v0.2 与 `27`／`34` 曾将「第三层普通修士」表述
 
 ### 核心条文
 
-1. **所有进入修仙体系的修士都是持久 `Character`**，各自拥有 CharacterID、FactionMembership、Realm、Lifecycle、关系与历史等。  
-2. **禁止**用 `QiRefiningCount`／`FoundationCount` 等匿名计数代表不存在的修士（势力展示数字 = Roster 统计）。  
-3. **真实存在 ≠ 始终实例化。** 离屏修士按 LOD 模拟：  
-   - **Cold / Data：** 低频／事件驱动 CharacterState  
-   - **Strategic：** 在 Army 中，记录 MemberCharacterIDs，无 LocalMap Actor  
-   - **Hot：** 进入 LocalMap／手动 Encounter 等才实例化 Actor；离开后写回 CharacterState  
-4. ~~**Army 是 WorldGraph 跨 Node 移动的唯合法载体。** 即使 1 人出征，也必须是 1 人 Army。~~ → **SUPERSEDED by ADR-0026（2026-08-25）**。FormalArmy 改为正式军事远征组织；PlayerParty／普通 Character 可独立世界旅行。  
-5. **Army 保存 `MemberCharacterIDs[]` 与 `LeaderCharacterID`**，CombatPower 从成员计算，不是独立匿名池。（**仍有效**）  
-6. **Node Defense** 来自 Resident Characters + Garrison Armies + Formation 等真实状态；禁止按 Node 等级临时刷匿名守军。  
+1. **所有进入修仙体系的修士都是持久 `Character`**，各自拥有 CharacterID、FactionMembership、Realm、Lifecycle、关系与历史等。
+2. **禁止**用 `QiRefiningCount`／`FoundationCount` 等匿名计数代表不存在的修士（势力展示数字 = Roster 统计）。
+3. **真实存在 ≠ 始终实例化。** 离屏修士按 LOD 模拟：
+   - **Cold / Data：** 低频／事件驱动 CharacterState
+   - **Strategic：** 在 Army 中，记录 MemberCharacterIDs，无 LocalMap Actor
+   - **Hot：** 进入 LocalMap／手动 Encounter 等才实例化 Actor；离开后写回 CharacterState
+4. ~~**Army 是 WorldGraph 跨 Node 移动的唯合法载体。** 即使 1 人出征，也必须是 1 人 Army。~~ → **SUPERSEDED by ADR-0026（2026-08-25）**。FormalArmy 改为正式军事远征组织；PlayerParty／普通 Character 可独立世界旅行。
+5. **Army 保存 `MemberCharacterIDs[]` 与 `LeaderCharacterID`**，CombatPower 从成员计算，不是独立匿名池。（**仍有效**）
+6. **Node Defense** 来自 Resident Characters + Garrison Armies + Formation 等真实状态；禁止按 Node 等级临时刷匿名守军。
 7. **战略战斗结果**（死亡、伤势、Army 损失、Owner 变更、资源）必须回写真实世界状态。
 
 ### 2026-08-22 第二轮补充（见 [2A](../../20-systems/2A-factions-armies-diplomacy-and-capture.md)）
 
-8. **统一 FactionId** — Character／Army／Node Owner／Alliance／Vassalage／War 共用同一套 ID；`FactionMembership` 是成员关系，不是另一套 Faction 实体。  
-9. **Army 编组** — 增减成员／换 Leader／解散仅能在己方 Node；禁止跨 Faction 混编；同势力成员；驻扎不自动解散。  
-10. **外交／战争** — 无系统强制战后保护期；独立 Faction 最多一个 Alliance；第一版 Alliance 成员战争绑定。  
+8. **统一 FactionId** — Character／Army／Node Owner／Alliance／Vassalage／War 共用同一套 ID；`FactionMembership` 是成员关系，不是另一套 Faction 实体。
+9. **Army 编组** — 增减成员／换 Leader／解散仅能在己方 Node；禁止跨 Faction 混编；同势力成员；驻扎不自动解散。
+10. **外交／战争** — 无系统强制战后保护期；独立 Faction 最多一个 Alliance；第一版 Alliance 成员战争绑定。
 11. **手动占点收尾** — 全部 CaptureObjective 完成后 Owner 易主，可「结束战斗」进结算；残余守军 Captured／Escaped，可成 RetreatingArmy；Landless Faction 仍保留真实 Character。
 
 ### 与 ADR-0008 的关系
@@ -66,16 +68,16 @@ Architecture Freeze v0.2 与 `27`／`34` 曾将「第三层普通修士」表述
 
 ## 影响
 
-- `27`：第三层改为「修士真实个体 + LOD」；凡人仍 Population 聚合  
-- `34`：`CultivatorPopulation` 不再代表修士战争真源；`ArmyGroup` 收窄至凡人／群体军事  
-- `2A`：战略势力层产品设计真源  
-- `26`：`ControlCore` generalize 为 `CaptureObjective`；War 为军事占点前提  
-- `28`：个人 RelationshipLedger 与 Faction Diplomacy 分层  
-- `33` v0.2：§4／§10 增加 2026-08-22 后续决策注记，指向本 ADR（**不升级 Freeze v0.3**）  
-- `138`～`140`：增加 target-model 注记，保留 historical Prototype 描述  
+- `27`：第三层改为「修士真实个体 + LOD」；凡人仍 Population 聚合
+- `34`：`CultivatorPopulation` 不再代表修士战争真源；`ArmyGroup` 收窄至凡人／群体军事
+- `2A`：战略势力层产品设计真源
+- `26`：`ControlCore` generalize 为 `CaptureObjective`；War 为军事占点前提
+- `28`：个人 RelationshipLedger 与 Faction Diplomacy 分层
+- `33` v0.2：§4／§10 增加 2026-08-22 后续决策注记，指向本 ADR（**不升级 Freeze v0.3**）
+- `138`～`140`：增加 target-model 注记，保留 historical Prototype 描述
 
 ## 未决
 
-- `PartyWorldPresence` → `Army` 的代码迁移策略  
-- Snapshot schema 是否纳入 FactionState / Army / War  
-- 单支 Army 人数上限、ArmyCapacity 公式  
+- `PartyWorldPresence` → `Army` 的代码迁移策略
+- Snapshot schema 是否纳入 FactionState / Army / War
+- 单支 Army 人数上限、ArmyCapacity 公式

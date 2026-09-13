@@ -26,6 +26,10 @@ namespace XianXia.Core.World.Strategic
             if (world == null || npcId.IsNone)
                 return false;
 
+            var continuous = world.Strategic?.ContinuousManualCombat;
+            if (continuous != null && continuous.IsActive)
+                return continuous.Contains(npcId);
+
             if (BattlefieldSpawnScope.IsTrackedInCurrentLocalMapScope(world, npcId))
                 return true;
 
@@ -41,6 +45,10 @@ namespace XianXia.Core.World.Strategic
         {
             if (world == null || id.IsNone)
                 return false;
+
+            var continuous = world.Strategic?.ContinuousManualCombat;
+            if (continuous != null && continuous.IsActive)
+                return continuous.Contains(id);
 
             if (BattlefieldSpawnScope.IsTrackedInCurrentLocalMapScope(world, id))
                 return true;
@@ -65,6 +73,10 @@ namespace XianXia.Core.World.Strategic
         {
             if (world == null || entity == null)
                 return false;
+
+            var continuous = world.Strategic?.ContinuousManualCombat;
+            if (continuous != null && continuous.IsActive)
+                return continuous.IsEnemy(entity.Id);
 
             if (!IsInStrategicEncounterLocalMap(world))
                 return false;

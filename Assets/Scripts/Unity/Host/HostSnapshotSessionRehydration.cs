@@ -53,6 +53,8 @@ namespace XianXia.Unity.Host
                     return Result.Failure(ErrorCode.ContentLoadFailed,
                         "HexWorld snapshot shell rehydrate failed.", hex.Error.ToString());
 
+                ContentRuntimeBootstrap.RebindPresetWorldSiteCoreMetadata(world, registry);
+
                 var political = StrategicSnapshotHelper.RestoreHexPoliticalState(world, politicalSnapshot);
                 if (political.IsFailure)
                     return political;

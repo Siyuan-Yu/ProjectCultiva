@@ -65,6 +65,8 @@ namespace XianXia.Unity.Host
 
         void PresentArmy(ContinuousOutdoorSurfaceRuntime runtime, FormalArmy army)
         {
+            if (!runtime.IsFieldFormalArmyInLoadedNeighborhood(army))
+                return;
             if (!_trails.TryGetValue(army.ArmyId, out var trail))
                 _trails[army.ArmyId] = trail = new Trail();
             AppendTrail(trail.Points, army.WorldMotion.WorldPosition);
@@ -74,21 +76,14 @@ namespace XianXia.Unity.Host
                 _members.Add(army.MemberCharacterIds[i]);
             _members.Sort();
 
-            var nav = _bootstrap.Session.World.SurfaceGround.TryGet(
-                army.WorldMotion.SurfaceId, out var surface) ? surface :
-                _bootstrap.Session.World.SurfaceGround.Active;
-            var spacing = nav != null ? Mathf.Max(.05f, nav.CellSize * 1.5f) : .35f;
             for (var slot = 0; slot < _members.Count; slot++)
             {
                 var id = new EntityId(_members[slot]);
-                if (_bootstrap.Session.World.Strategic.Participants.FindByEntity(id) != null)
+                if (ActualBattleParticipantQuery.TryFind(
+                        _bootstrap.Session.World.Strategic.Participants, id, out _))
                     continue;
-                var position = SampleBehind(army.WorldMotion, trail.Points, slot * spacing);
-                if (slot > 0 && nav != null &&
-                    WorldVec2.Distance(position, army.WorldMotion.WorldPosition) < .01f)
-                    position = ResolveLocalConnectedSlot(
-                        nav, army.WorldMotion.WorldPosition, slot, spacing);
-                if (!runtime.TryWorldToPresentation(position, out var presentation) ||
+                if (!runtime.TryResolveFormalArmyMemberPresentationPosition(
+                        army, slot, trail.Points, out var presentation) ||
                     !_bootstrap.ViewSpawner.Registry.TryGet(id, out var view) || view == null)
                     continue;
                 view.transform.position = presentation;
@@ -113,22 +108,40 @@ namespace XianXia.Unity.Host
                 trail.RemoveRange(0, trail.Count - maxTrailPoints);
         }
 
-        static WorldVec2 SampleBehind(
+    }
+
+    /// <summary>
+    /// FormalArmy 在 Continuous Outdoor 中的稳定表现编队。世界位置权威始终是
+    /// <see cref="FormalArmyWorldMotion"/>；该 helper 只为同一军队的单一实体 view 选择
+    /// 可达的近场表现点，供首次 materialize 与后续旅行表现共用。
+    /// </summary>
+    static class HostFormalArmyContinuousFormation
+    {
+        public static bool TryResolveMemberWorldPosition(
             FormalArmyWorldMotion motion,
-            List<WorldVec2> trail,
-            float distance)
+            IReadOnlyList<WorldVec2> trail,
+            XianXia.Core.World.Surface.SurfaceGroundNavigation navigation,
+            int stableSlot,
+            float spacing,
+            out WorldVec2 position)
         {
+            var distance = stableSlot * spacing;
             var current = motion.WorldPosition;
-            if (distance <= 0f) return current;
-            for (var i = trail.Count - 2; i >= 0; i--)
+            if (distance <= 0f)
+            {
+                position = current;
+                return true;
+            }
+            for (var i = (trail?.Count ?? 0) - 2; i >= 0; i--)
             {
                 var previous = trail[i];
                 var length = WorldVec2.Distance(current, previous);
                 if (length >= distance && length > .0001f)
                 {
                     var t = distance / length;
-                    return new WorldVec2(current.X + (previous.X - current.X) * t,
+                    position = new WorldVec2(current.X + (previous.X - current.X) * t,
                         current.Y + (previous.Y - current.Y) * t);
+                    return true;
                 }
                 distance -= length;
                 current = previous;
@@ -144,13 +157,22 @@ namespace XianXia.Unity.Host
                 if (length >= distance && length > .0001f)
                 {
                     var t = distance / length;
-                    return new WorldVec2(current.X + (previous.X - current.X) * t,
+                    position = new WorldVec2(current.X + (previous.X - current.X) * t,
                         current.Y + (previous.Y - current.Y) * t);
+                    return true;
                 }
                 distance -= length;
                 current = previous;
             }
-            return current;
+            if (navigation != null &&
+                WorldVec2.Distance(current, motion.WorldPosition) < .01f)
+            {
+                position = ResolveLocalConnectedSlot(
+                    navigation, motion.WorldPosition, stableSlot, spacing);
+                return WorldVec2.Distance(position, motion.WorldPosition) >= .01f;
+            }
+            position = motion.WorldPosition;
+            return false;
         }
 
         static WorldVec2 ResolveLocalConnectedSlot(

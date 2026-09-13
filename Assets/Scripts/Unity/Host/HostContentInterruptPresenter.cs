@@ -13,6 +13,7 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostContentInterruptPresenter : MonoBehaviour
     {
+        const string PauseOwner = "ContentInterrupt";
         enum QuestNotifyKind
         {
             Started,
@@ -88,6 +89,8 @@ namespace XianXia.Unity.Host
 
         public void ClearSessionState()
         {
+            if (_holdingPause && bootstrap?.Session != null)
+                bootstrap.Session.ReleaseModalPause(PauseOwner);
             _questQueue.Clear();
             _seenQuestStarted.Clear();
             _seenQuestCompleted.Clear();
@@ -193,19 +196,33 @@ namespace XianXia.Unity.Host
             }
         }
 
+        void OnDisable()
+        {
+            if (_holdingPause && bootstrap?.Session != null)
+                bootstrap.Session.ReleaseModalPause(PauseOwner);
+            _holdingPause = false;
+        }
+
         void SyncPause(PlayableHostSession session)
         {
             if (!holdPause)
+            {
+                if (_holdingPause)
+                {
+                    session.ReleaseModalPause(PauseOwner);
+                    _holdingPause = false;
+                }
                 return;
+            }
 
             if (HasBlockingInterrupt)
             {
-                session.IsPaused = true;
+                session.AcquireModalPause(PauseOwner);
                 _holdingPause = true;
             }
             else if (_holdingPause)
             {
-                session.IsPaused = false;
+                session.ReleaseModalPause(PauseOwner);
                 _holdingPause = false;
             }
         }

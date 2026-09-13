@@ -1,10 +1,12 @@
 # 系统设计索引
 
-> 最后更新：2026-09-07（[2M](2M-character-social-relations-v1.md) 角色社会关系与人物档案 V1 已封板）
+> **CW-U0：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 统一小队与独立遭遇设计已确认；运行待迁移／现有兼容，制作人验收待完成。正文归属 2K（组织控制）、23（战场范围／参战／候选）、2A（政治后果）；当前算法修复见 220。
+
+> 最后更新：2026-09-12（Continuous World 最终设计文档已对齐；实现与制作人验收仍待完成）
 > 上级：`docs/00-project/00-overview.md`（最高层大纲）
 > 通读顺序见 [`../00-project/04-reading-guide.md`](../00-project/04-reading-guide.md)。
 > 新增系统请复制 `docs/90-templates/system-design-template.md`。
-> **当前阶段：Architecture Freeze v0.2 + RPG-First 方向（ADR-0026）；实现迁移见 [163](../40-process/163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md)。** 主契约见 `../30-tech/33-architecture-core-rules-freeze-v0.2.md`。
+> **当前阶段：2026-09-12 最终设计已确认并完成文档对齐；实现部分存在、其余待迁移／核查，制作人验收待完成。** 当前状态与依赖见 [216](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md)，主契约见 `../30-tech/33-architecture-core-rules-freeze-v0.2.md`；[163](../40-process/163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md) 仅为旧阶段路线。
 
 ## 规则
 
@@ -14,23 +16,23 @@
 4. 每份文档头部必须有：状态、优先级、最后更新日期、依赖、被引用
 5. 所有字段命名以 `docs/00-project/03-glossary.md` 为准
 6. 各系统自己的未决问题写在自己文档末尾；跨系统的写在总览第九节
-7. 与 `33` 冲突时，以 `33` 冻结条文为准，并回头修订本目录文档
+7. 与 `33` 冲突时，以 `33` 顶部列出的较新 ADR 定向补丁为准；旧冲突段必须保留准确 supersession 指向
 
 ## 系统清单
 
 | 编号 | 系统 | 优先级 | 状态 | 说明 |
 |---|---|---|---|---|
 | 20 | [开局体验](20-opening-experience.md) | P0 | 40分～1小时入炼气；隐藏修士 | |
-| 21 | [核心循环与统一时间](21-core-loop-and-time.md) | P0 | 双层时间已冻结于 `33` | |
+| 21 | [核心循环与统一时间](21-core-loop-and-time.md) | P0 | 设计确认／文档更新；Encounter 时间实施待核查 | |
 | 22 | [境界与机制能力](22-realms-and-abilities.md) | P0 | 炼气四能力方向已冻结 | |
-| 23 | [战斗](23-combat.md) | P0 | RTS+暂停；正文待对齐 `33` §9 | |
-| 24 | [世界与据点](24-world-and-settlements.md) | P0 | **World／Region／LocalMap（v0.2）** | |
+| 23 | [战斗](23-combat.md) | P0 | 同源独立遭遇设计确认；实施／验收待完成 | ADR-0033 |
+| 24 | [世界与据点](24-world-and-settlements.md) | P0 | Continuous Outdoor + SiteCore 设计确认；部分实施 | ADR-0031/0032 |
 | 25 | [修炼与突破](25-cultivation-and-breakthrough.md) | P0 | 突破=事件已冻结方向 | |
-| 26 | [领地经营](26-territory-management.md) | P0 | 夺取控制权 + 时间表 | |
-| 27 | [角色、修士与凡人人口](27-characters-and-population.md) | P0 | 四层+组合见 `34` | |
-| 28 | [江湖关系](28-jianghu-relations.md) | P0 | Ledger 唯一真源 | |
+| 26 | [领地经营](26-territory-management.md) | P0 | SiteCore 管理设计确认；新范围待迁移 | ADR-0032 |
+| 27 | [角色、修士与凡人人口](27-characters-and-population.md) | P0 | 四层已存在；接替／继承待迁移 | ADR-0034 |
+| 28 | [江湖关系](28-jianghu-relations.md) | P0 | Ledger V1 已验收；预警／敌情待实现 | |
 | 29 | [世界观哲学](29-karma-and-consequence.md) | P1 | 设计方向已定 | |
-| 2A | [势力、军队、外交与战略占领](2A-factions-armies-diplomacy-and-capture.md) | P0 | **设计已拍板／尚未实现** | ADR-0024；Army 真源 |
+| 2A | [势力、军队、外交与战略占领](2A-factions-armies-diplomacy-and-capture.md) | P0 | 旧 Control Asset 已验收；新冲突／接管待迁移 | ADR-0033/0034 |
 | 2B | [角色属性与修仙成长](2B-attributes-and-affinity.md) | P0 | 底层规则已定方向 | |
 | 2C | [属性与 Modifier 管道](2C-attributes-and-modifier-pipeline.md) | P0 | **公式与字段已冻结** | |
 | 2D | [功法、斗技与装备](2D-manuals-arts-and-equipment.md) | P0 | 设计方向已定 | |
@@ -39,8 +41,8 @@
 | 2G | [第一章流程](2G-first-chapter-flow.md) | P0 | 开局 Membership 已冻 | |
 | 2H | [功法系统规则](2H-manual-system-rules.md) | P0 | 核心规则已定方向 | |
 | 2I | [荒村杂役阶段叙事](2I-huangcun-labor-phase-narrative-v0.1.md) | P0 | **Draft v0.1／待审核**；非线性阶段框架 | |
-| 2J | [Hex Territory、Multi-Hex WorldSite 与动态山贼](2J-hex-territory-worldsites-and-dynamic-bandits.md) | P0 | **设计已拍板／尚未实现** | Pure Hex 领土／Site Footprint／Bandit |
-| 2K | [RPG-First：Active／PlayerParty／连续 Hex／FormalArmy](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) | P0 | **设计已拍板／未实现** | ADR-0026；控制与世界存在真源 |
+| 2J | [Hex Territory、Multi-Hex WorldSite 与动态山贼](2J-hex-territory-worldsites-and-dynamic-bandits.md) | P0 | Hex 战略摘要保留；旧 Footprint 精确范围已被 SiteCore 实际范围替代 | ADR-0032 |
+| 2K | [RPG-First：Active／PlayerParty／连续 Hex／FormalArmy](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) | P0 | 旧阶段已验收；继承／飞舟／统一移动待迁移 | ADR-0034 |
 | 2L | [LocalMap 建造系统 V1](2L-local-map-construction-v1.md) | P0 | **已实现／已人工验收／已封板** | 建筑目录、材料事务与主动拆除 |
 | 2M | [角色社会关系 V1](2M-character-social-relations-v1.md) | P0 | **已实现／已人工验收／已封板** | Social Bond、五维态度、社会事件、击杀后果与统一人物档案 |
 

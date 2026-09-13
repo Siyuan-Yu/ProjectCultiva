@@ -13,6 +13,7 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostQuestJournal : MonoBehaviour
     {
+        const string PauseOwner = "QuestJournal";
         enum Tab
         {
             Offer = 0,
@@ -55,7 +56,11 @@ namespace XianXia.Unity.Host
 
         public string TrackedQuestId => _trackedQuestId ?? string.Empty;
 
-        public void Close() => open = false;
+        public void Close()
+        {
+            open = false;
+            ReleasePauseOwnership();
+        }
 
         public void Bind(PlayableHostBootstrap host, HostCommandBridge bridge, HostSelectionController selection)
         {
@@ -66,6 +71,7 @@ namespace XianXia.Unity.Host
 
         public void ClearSessionState()
         {
+            ReleasePauseOwnership();
             open = false;
             _trackedQuestId = string.Empty;
             _suppressAutoTrack = false;
@@ -120,6 +126,11 @@ namespace XianXia.Unity.Host
         {
             open = true;
             _tab = Tab.Active;
+            if (!_holdingPause && bootstrap?.Session != null)
+            {
+                bootstrap.Session.AcquireModalPause(PauseOwner);
+                _holdingPause = true;
+            }
         }
 
         void Update()
@@ -149,14 +160,25 @@ namespace XianXia.Unity.Host
 
             if (open)
             {
-                session.IsPaused = true;
-                _holdingPause = true;
+                if (!_holdingPause)
+                {
+                    session.AcquireModalPause(PauseOwner);
+                    _holdingPause = true;
+                }
             }
-            else if (_holdingPause && !invOpen && !constructionOpen)
+            else if (_holdingPause)
             {
-                session.IsPaused = false;
-                _holdingPause = false;
+                ReleasePauseOwnership();
             }
+        }
+
+        void OnDisable() => ReleasePauseOwnership();
+
+        void ReleasePauseOwnership()
+        {
+            if (_holdingPause && bootstrap?.Session != null)
+                bootstrap.Session.ReleaseModalPause(PauseOwner);
+            _holdingPause = false;
         }
 
         void ValidateTrackedQuest()

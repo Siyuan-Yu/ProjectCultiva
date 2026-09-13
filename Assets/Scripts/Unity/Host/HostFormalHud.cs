@@ -202,7 +202,7 @@ namespace XianXia.Unity.Host
         void DrawPlayerPartyBar(PlayableHostSession session)
         {
             var party = session.PlayerParty;
-            if (party == null || party.Count == 0 || party.IsAwaitingSuccession)
+            if (party == null || party.Count == 0)
                 return;
 
             const float size = 46f;
@@ -210,6 +210,15 @@ namespace XianXia.Unity.Host
             var x = 12f;
             var y = HeaderReservedHeight + 6f;
             var controller = bootstrap != null ? bootstrap.PlayerPartyController : null;
+
+            if (party.IsTemporarilyUnavailable || party.IsAwaitingSuccession)
+            {
+                var message = party.IsAwaitingSuccession
+                    ? "当前小队全员真正死亡；势力继承待后续实现。"
+                    : "全队暂时无法操作，但仍有生者；可完成战斗收尾、读档或等待合法恢复。";
+                GUI.Label(new Rect(x, y, 620f, 24f), message, _small);
+                y += 26f;
+            }
 
             for (var i = 0; i < party.Members.Count; i++)
             {
@@ -297,14 +306,6 @@ namespace XianXia.Unity.Host
 
             if (!selectionController.IsPartyUnit(focus))
                 return;
-
-            if (ArmyService.TryGetArmyForCharacter(session.World, focus, out _))
-            {
-                GUI.enabled = false;
-                GUI.Button(row, "该角色当前属于军队，无法加入同行队伍");
-                GUI.enabled = true;
-                return;
-            }
 
             if (!party.ValidateJoin(session.World, session.CharacterIds, focus, out var deny))
             {
@@ -484,8 +485,8 @@ namespace XianXia.Unity.Host
                 var blocking = bootstrap != null &&
                                bootstrap.ContentInterrupt != null &&
                                bootstrap.ContentInterrupt.HasBlockingInterrupt;
-                if (!blocking && !session.World.ContentEvents.HasActive)
-                    session.IsPaused = !session.IsPaused;
+                if (!blocking && !session.ModalHardPaused && !session.World.ContentEvents.HasActive)
+                    session.ManualPaused = !session.ManualPaused;
             }
 
             x += 60f;
@@ -960,6 +961,18 @@ namespace XianXia.Unity.Host
             entity.TryGet<CultivationComponent>(out var cult);
             var realm = cult != null ? RealmName(cult.Realm, cult.MinorStage) : "—";
             var subtitle = isActive ? "主控 · 上方可下令" : isPartyMember ? "同行 · 跟随主控" : isRoster ? "己方 · 可邀请同行" : "查看 · 非己方不可下令";
+            if (session.World.Strategic.Squads.TryGetForCharacter(focus, out var squad))
+            {
+                var order = -1;
+                for (var si = 0; si < squad.MemberCharacterIds.Count; si++)
+                    if (squad.MemberCharacterIds[si] == focus.Value) { order = si + 1; break; }
+                subtitle += " · 小队" + order + "/" + squad.MemberCharacterIds.Count;
+                if (squad.LeaderCharacterId == focus) subtitle += " · 队长";
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                subtitle += " · " + squad.SquadId;
+                if (!string.IsNullOrEmpty(squad.LegacyArmyId)) subtitle += " · " + squad.LegacyArmyId;
+#endif
+            }
             var lifeLabel = CombatLifeStateService.ResolveLifeStateLabel(entity);
             var lifeBadge = CombatLifeStateService.FormatLifeStateWithCountdown(
                 bootstrap?.Session?.World,

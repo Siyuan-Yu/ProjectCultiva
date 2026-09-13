@@ -4,6 +4,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
+using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 
 namespace XianXia.Data.Bootstrap
@@ -24,6 +25,8 @@ namespace XianXia.Data.Bootstrap
                 return Result.Failure(ErrorCode.InvalidArgument, "HexStrategic session bootstrap args null.");
 
             world.WorldPresence.Clear();
+            world.Strategic.ContinuousManualCombat.Clear();
+            world.Strategic.ManualBattleSettlement.Clear();
             world.PartyWorld.ClearSiteFocus();
             world.PartyWorld.SiteId = string.Empty;
             world.PartyWorld.LocalMapId = string.Empty;
@@ -46,6 +49,12 @@ namespace XianXia.Data.Bootstrap
                 world, registry, scenario, lookup, spawnEntries);
             if (presenceApplied.IsFailure)
                 return presenceApplied;
+
+            // StrategicContentBootstrap creates FormalArmy before this opening boundary. The
+            // intentional WorldPresence.Clear above therefore removes the members' derived
+            // records as well. Restore only missing, still army-owned living members after
+            // authored opening spawns have had first claim; WorldMotion remains the authority.
+            RestoreMissingFormalArmyMemberPresence(world);
 
             if (world.Strategic.Sites.TryResolveSitePresenceHex(startSiteId, out var presenceHex))
             {
@@ -76,6 +85,35 @@ namespace XianXia.Data.Bootstrap
             }
 
             return Result.Success();
+        }
+
+        static void RestoreMissingFormalArmyMemberPresence(SimulationWorld world)
+        {
+            if (world?.Strategic?.FormalArmies == null || world.WorldPresence == null)
+                return;
+
+            foreach (var pair in world.Strategic.FormalArmies.Armies)
+            {
+                var army = pair.Value;
+                if (army == null || !army.WorldMotion.HasPosition ||
+                    FormalArmyMemberPresenceSync.IsArmyEngaged(world, army))
+                    continue;
+
+                for (var i = 0; i < army.MemberCharacterIds.Count; i++)
+                {
+                    var memberId = new EntityId(army.MemberCharacterIds[i]);
+                    if (memberId.IsNone ||
+                        (world.WorldPresence.TryGet(memberId, out var existing) && existing != null) ||
+                        !world.Entities.TryGet(memberId, out _) ||
+                        !LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, memberId) ||
+                        !ArmyService.TryGetArmyForCharacter(world, memberId, out var bound) ||
+                        bound == null ||
+                        !string.Equals(bound.ArmyId, army.ArmyId, StringComparison.Ordinal))
+                        continue;
+
+                    FormalArmyMemberPresenceSync.SyncMember(world, army, memberId);
+                }
+            }
         }
 
         static List<EntityId> CollectOpeningCharacterEntityIds(

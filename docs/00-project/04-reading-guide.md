@@ -1,7 +1,9 @@
 # 文档通读指南
 
-> 状态：现行 | 最后更新：2026-08-25  
-> 上级：[`00-overview.md`](00-overview.md)  
+> **当前主线入口：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) → 2K 统一小队 → 23 独立遭遇 → [220](../40-process/220-cw-u0-design-and-manual-entry-placement-2026-09-13.md) 当前修复与人工路线。CW-U0～U4 替代此前直接进入 CW-04／CW-06 的排序。
+
+> 状态：现行 | 最后更新：2026-09-12
+> 上级：[`00-overview.md`](00-overview.md)
 > **本页说明怎么读整套策划／架构文档。** 正文仍以各专题页为准；本地 Markdown 与飞书同步页一一对应。
 
 ## 1. 文档怎么排布（与常见大型立项案对齐）
@@ -18,17 +20,21 @@
 
 阅读原则：
 
-1. **总览只放大纲**；细节进专题页，避免一篇万字墙。  
-2. **冲突时以 `33` 冻结条文为准**，再回头改系统页。  
-3. **ADR 只记已拍板决策**；未决问题留在各页末尾或总览第九节。  
+1. **总览只放大纲**；细节进专题页，避免一篇万字墙。
+2. **冲突时以 `33` 及其明确列出的更新 ADR 为准**；2026-09-12 的定向补丁优先于旧 Freeze 冲突段。
+3. **ADR 只记已拍板决策**；未决问题留在各页末尾或总览第九节。
 4. **飞书 = 阅读层**；本地 `.md` = 唯一真源（见 `37-feishu-sync.md`）。
 
 当前结构已经适合「仔细通读 + 交叉跳转」。本轮整理重点是：补齐飞书映射、加强入口导航，**不重写已冻结规则正文**。
 
-## 1.1 当前制作人入口（2026-08-25）
+## 1.1 当前制作人入口（2026-09-12）
 
 | 目的 | 读什么 |
 |------|--------|
+| **本轮最终规则、状态、替代矩阵与迁移依赖** | [216 文档对齐](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md) |
+| **SiteCore／实际行政与建设范围** | [24](../20-systems/24-world-and-settlements.md) + [26](../20-systems/26-territory-management.md) + [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md) |
+| **同源独立遭遇／回位保战果** | [23](../20-systems/23-combat.md) + [ADR-0033](../40-process/43-decisions/ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) |
+| **冲突／继承／飞舟与地图移动** | [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md) + [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) |
 | **RPG-First 控制／Party／连续世界／Army 边界（最新真源）** | [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) + [ADR-0026](../40-process/43-decisions/ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md) |
 | **迁移计划／代码冲突审计** | [163](../40-process/163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md) |
 | **战略势力层（外交／Capture／Army 军事仍有效部分）** | [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)（跨点必须 Army 已 supersede） |
@@ -56,7 +62,7 @@
 | 手操 Demo 0.1 | [105](../40-process/105-demo-0.1-producer-playbook-30min.md) |
 | 编辑器总计划 | [106](../40-process/106-content-authoring-editors-plan-v0.1.md) |
 
-## 2. 建议通读顺序（审核 Freeze v0.2）
+## 2. 建议通读顺序（当前正式设计）
 
 按顺序读，约可建立完整心智模型：
 
@@ -64,11 +70,11 @@
 |---|---|---|
 | 1 | [策划案总览](00-overview.md) | 阶段、定位、支柱、索引 |
 | 2 | [术语表](03-glossary.md) | 统一用词（Focus／Ledger／Region 等） |
-| 3 | [架构冻结 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) | **主契约**；先读冻结清单速查 |
-| 4 | [ADR 决策索引](../40-process/43-decisions/README.md) | 扫一眼已采纳决策；细节按需点开 |
+| 3 | [架构冻结 v0.2](../30-tech/33-architecture-core-rules-freeze-v0.2.md) | **主契约**；先读顶部 2026-09-12 定向补丁 |
+| 4 | [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md) → [0033](../40-process/43-decisions/ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) → [0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) | 本轮跨系统决策与旧条款替代 |
 | 5 | [实体模型](../30-tech/34-entity-and-component-model.md) → [Order/Action](../30-tech/35-order-and-action-system.md) | 世界对象与指令语义 |
 | 6 | [Modifier](../20-systems/2C-attributes-and-modifier-pipeline.md) → [事件与账本](../20-systems/2E-events-and-world-state.md) | 数值与因果记账 |
-| 7 | [时间](../20-systems/21-core-loop-and-time.md) → [地图](../20-systems/24-world-and-settlements.md) → [关系](../20-systems/28-jianghu-relations.md) | 双时间、三层地图、关系真源 |
+| 7 | [世界](../20-systems/24-world-and-settlements.md) → [领地](../20-systems/26-territory-management.md) → [战斗](../20-systems/23-combat.md) → [势力](../20-systems/2A-factions-armies-diplomacy-and-capture.md) → [控制](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) | 当前规则的五个权威正文 |
 | 8 | [第一章](../20-systems/2G-first-chapter-flow.md) → [开局](../20-systems/20-opening-experience.md) → [义务隐匿](../20-systems/2F-obligation-and-concealment.md) | 开局 Membership 与体验弧 |
 | 9 | [路线图](../40-process/41-roadmap.md) → [VS 0.1 验收](../40-process/54-vertical-slice-0.1-acceptance-report.md) → [VS 0.2 计划](../40-process/55-vertical-slice-0.2-plan-v0.1.md) | 已完成边界与下一步（确认前不编码） |
 | 10 | [Core M1（已完成）](../40-process/51-core-milestone-1-implementation-plan-v0.2.md)／[Data Pipeline（已实现）](../40-process/53-data-pipeline-milestone-1-plan-v0.2.md) | 骨架与数据管线 |
@@ -87,13 +93,13 @@
 
 文档头常见标记：
 
-- **已冻结**：实现不得擅自改语义；要改就升版 + ADR + Devlog。  
-- **形状／方向**：边界已定，细则可后补。  
+- **已冻结**：实现不得擅自改语义；要改就升版 + ADR + Devlog。
+- **形状／方向**：边界已定，细则可后补。
 - **草稿／待定**：未冻；不要当实现依据。
 
 ## 5. 本地与飞书一致规则
 
-1. 改文档只改本地 `.md`。  
-2. 新文档必须写入 `tools/feishu-map.json`，再 `--provision`／同步。  
-3. 飞书页底部「文档导航」由同步脚本根据映射生成，保证交叉链接在飞书可点。  
+1. 改文档只改本地 `.md`。
+2. 新文档必须写入 `tools/feishu-map.json`，再 `--provision`／同步。
+3. 飞书页底部「文档导航」由同步脚本根据映射生成，保证交叉链接在飞书可点。
 4. 不要在飞书正文里直接改字（下次同步会覆盖）。

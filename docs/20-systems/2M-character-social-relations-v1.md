@@ -1,9 +1,13 @@
 # 角色社会关系 V1
 
+> **CW-U0 战斗接入边界：** [23 §3.1](23-combat.md)／[ADR-0035 §4](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 替代旧“周边／范围外关系远援”建议：初始只两队；关系第三方只从开战时固定范围内的有限候选加入，范围外本场不追加候选。既有 RelationshipLedger、Bond／Attitude 与已验收社交不改；介入运行待 CW-U3。
+
 > 状态：**已实现／已人工验收／已封板**｜优先级：P0｜最后更新：2026-09-07
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`28-jianghu-relations.md`、`2E-events-and-world-state.md`、`ADR-0017`、`ADR-0030`
 > 封板记录：[202](../40-process/202-character-social-relations-and-profile-ui-v1-sealed-2026-09-07.md)
+
+> **2026-09-12 扩展边界：** 本文 V1 已验收的 Bond／Attitude／Ledger 规则保持。私人敌对预警、附近敌情、关系介入与人物冲突不自动升级 War 的新目标见 [28 §3.1](28-jianghu-relations.md) 与 [ADR-0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md)；这些扩展尚未实现或验收。
 
 ## 1. 系统边界
 
@@ -105,6 +109,8 @@ Host 使用统一“人物档案”大面板：左侧身份栏固定，顶部为
 
 右侧通知只呈现目标为 PlayerParty 成员的 `SocialReaction`，隐藏具体数值、使用箭头强度，最多同时三条且不阻断输入。
 
-## 8. V1 非目标
+## 8. V1 非目标与后续接入
 
 不实现自动关系衰减、目击与消息传播、关系图谱编辑器、程序化家谱、恋爱／结拜／拜师完整玩法、势力外交联动、复仇任务或报复 AI。
+
+后续附近敌情应复用本页真实 Bond／Attitude／Ledger 事实，但不得把态度直接写成 War，或给仇敌跨大陆永久精确追踪。战争敌对和私人敌对可统一提示，原因必须保留；具体阈值、天数、距离、合并和滞回参数待调。

@@ -1,16 +1,18 @@
 # 江湖关系
 
-> 状态：长期设计草稿；Social Relations／Character Profile V1 已人工验收并封板，见 [2M](2M-character-social-relations-v1.md) 与 [封板记录 202](../40-process/202-character-social-relations-and-profile-ui-v1-sealed-2026-09-07.md)；**2026-08-22 势力外交见 [2A](2A-factions-armies-diplomacy-and-capture.md)** | 优先级：P0 | 最后更新：2026-09-07
+> **CW-U0 战斗接入边界：** [23 §3.1](23-combat.md)／[ADR-0035 §4](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 替代旧“周边／范围外关系远援”建议：初始只两队；关系第三方只从开战时固定范围内的有限候选加入，范围外本场不追加候选。既有 RelationshipLedger、Bond／Attitude 与已验收社交不改；介入运行待 CW-U3。
+
+> 状态：Social Relations V1 历史基线已封板；私人敌对／附近敌情设计已确认，实施与新验收待完成 | 优先级：P0 | 最后更新：2026-09-12
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`27`、`2E`、`../30-tech/34-entity-and-component-model.md`
 > **本阶段不写实现代码。**
 
 ## 0. 与架构冻结的对齐
 
-- `RelationshipLedger` 为关系**唯一真源**（ADR-0017）；Component 仅缓存。  
-- 离开势力后关系不清零（Ledger 保留历史事件）。  
-- 角色死亡可使强绑定内容永久结束。  
-- 延迟报复用 ScheduledEvent。  
+- `RelationshipLedger` 为关系**唯一真源**（ADR-0017）；Component 仅缓存。
+- 离开势力后关系不清零（Ledger 保留历史事件）。
+- 角色死亡可使强绑定内容永久结束。
+- 延迟报复用 ScheduledEvent。
 
 V1 已实现边界：客观 `Social Bond` 与五维单向态度分离；Attack／Help／Rescue／Kill 的即时社会后果、死亡责任归因、Snapshot 软兼容及基础 Host 展示以 [2M](2M-character-social-relations-v1.md) 和 [ADR-0030](../40-process/43-decisions/ADR-0030-social-bond-attitude-and-snapshot-boundary.md) 为准。本页其余关系经营、情报与报复玩法仍属 Future。
 
@@ -25,6 +27,17 @@ V1 已实现边界：客观 `Social Bond` 与五维单向态度分离；Attack�
 - 开战或处决前明确提示潜在后果，例如："此人的师父是金丹修士，杀死他可能招致报复。"
 
 ## 3. 关系驱动什么
+
+<a id="private-hostility-warning"></a>
+### 3.1 私人冲突、预警与势力战争边界（2026-09-12）
+
+- 私人关系、私人敌对、本场交战、势力态度和正式 War 分别表达。攻击人物／小队不自动让双方宗门宣战；主动侵害与还击按既有事件／归责体系记录，不逐刀重复记外交挑衅。
+- 极高仇恨先产生预警，条件持续若干世界日后转为私人敌对；倒计时只限制日常主动寻仇，不阻止其在已经发生的冲突中因关系助战，也不自动替宗门宣战。
+- 战争敌对与私人敌对进入同一个附近敌情提示，但保留原因。预警、发现、接近、追击、实际参战分别表达；玩家收到提示不赋予 NPC 精确追踪坐标。
+- 候选范围、阈值、持续天数、距离（包括讨论过的 500 格）、UI 和滞回都属于后续调参。V1 不默认跨大陆专程寻仇，不把多级自动暂停选项扩成必做。
+- 同队预警需要合并并避免范围边缘反复刷屏；具体缓和参数不在本轮写死。
+
+建筑攻击和 War 授权见 [2A §19.4](2A-factions-armies-diplomacy-and-capture.md)；统一遭遇窗口见 [23 §2.1](23-combat.md)。
 
 关系不是查看用的资料，而是影响：招募成功率、外交态度、复仇事件、战争借口、事件触发条件、据点归顺意愿。
 

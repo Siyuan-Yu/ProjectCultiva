@@ -273,6 +273,10 @@ namespace XianXia.Unity.Host
                 mapper.PresentationToWorld(cx, cy, out var centerWorldX, out var centerWorldY);
                 if (mapper.WorldToChunk(centerWorldX, centerWorldY) == ownerChunk)
                 {
+                    if (OutdoorStatefulPlacementResolver.IsDestructibleKind(info.Kind) &&
+                        OutdoorStatefulPlacementResolver.IsDestroyed(
+                            _session?.World?.OutdoorStatefulObjects, id))
+                        return;
                     var go = PlacePrefab(info.Kind, info.PrefabPath, cx, cy, id, width, height,
                         info.FallbackColor, sortingOrder: info.Kind == "controlCore" || info.Kind == "roadHub" ? -8 : -12);
                     if (info.InteractKind.HasValue)
@@ -293,8 +297,12 @@ namespace XianXia.Unity.Host
                     var cy = minY + (gy + .5f) * cellH;
                     mapper.PresentationToWorld(cx, cy, out var cellWorldX, out var cellWorldY);
                     if (mapper.WorldToChunk(cellWorldX, cellWorldY) != ownerChunk) continue;
+                    var cellId = OutdoorStatefulObjectId.ForCell(id, gx, gy);
+                    if (OutdoorStatefulPlacementResolver.IsDestructibleKind(info.Kind) &&
+                        OutdoorStatefulPlacementResolver.IsDestroyed(
+                            _session?.World?.OutdoorStatefulObjects, cellId))
+                        continue;
                     expectedForOwner++;
-                    var cellId = id + ":" + gx + ":" + gy;
                     var cellMetadata = metadata;
                     cellMetadata.Id = cellId;
                     var go = PlacePrefab(info.Kind, info.PrefabPath, cx, cy, cellId, cellW, cellH,

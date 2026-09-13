@@ -161,11 +161,6 @@ namespace XianXia.Core.World
                     false, PlayerPartyCoPresenceScope.ContinuousOutdoorPresentation,
                     "candidate cannot act (dying/dead/missing)", DeniedPlayerMessage);
 
-            if (ArmyService.TryGetArmyForCharacter(world, candidate, out _))
-                return new PlayerPartyCoPresenceResult(
-                    false, PlayerPartyCoPresenceScope.ContinuousOutdoorPresentation,
-                    "candidate is in a formal army", DeniedPlayerMessage);
-
             return new PlayerPartyCoPresenceResult(
                 true, PlayerPartyCoPresenceScope.ContinuousOutdoorPresentation,
                 "same continuous outdoor presentation scope", string.Empty);

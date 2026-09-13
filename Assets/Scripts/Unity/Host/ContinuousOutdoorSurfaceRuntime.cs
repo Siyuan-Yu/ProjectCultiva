@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using Stopwatch = System.Diagnostics.Stopwatch;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Navigation;
+using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World.Surface;
@@ -18,6 +20,28 @@ namespace XianXia.Unity.Host
     /// <summary>W1C presentation owner for the acceptance surface. Chunk ownership is transient only.</summary>
     public sealed class ContinuousOutdoorSurfaceRuntime : MonoBehaviour
     {
+        public sealed class ManualCombatPreparation
+        {
+            internal readonly Dictionary<EntityId, Vector3> Placements = new Dictionary<EntityId, Vector3>();
+            internal readonly Dictionary<EntityId, SavedPlacement> Previous = new Dictionary<EntityId, SavedPlacement>();
+            internal readonly List<ActualBattleParticipant> Participants = new List<ActualBattleParticipant>();
+            internal SimulationWorld World;
+            internal SurfaceChunkCoord AnchorChunk;
+            public string OfferId { get; internal set; } = string.Empty;
+            public string SurfaceId { get; internal set; } = string.Empty;
+            public WorldVec2 BattleWorldAnchor { get; internal set; }
+            public int ExpectedCount => Placements.Count;
+        }
+
+        internal readonly struct SavedPlacement
+        {
+            public SavedPlacement(bool hadLocation, bool hadOverride, float x, float y)
+            { HadLocation = hadLocation; HadOverride = hadOverride; X = x; Y = y; }
+            public bool HadLocation { get; }
+            public bool HadOverride { get; }
+            public float X { get; }
+            public float Y { get; }
+        }
         string _surfaceId = string.Empty;
         readonly HashSet<SurfaceChunkCoord> _loaded = new HashSet<SurfaceChunkCoord>();
         // Presentation may temporarily contain the old logical neighborhood plus staged incoming
@@ -30,6 +54,9 @@ namespace XianXia.Unity.Host
         readonly List<SurfaceChunkCoord> _pendingRemoves = new List<SurfaceChunkCoord>(3);
         readonly List<WalkGridComposer.Input> _grids = new List<WalkGridComposer.Input>(9);
         WalkGrid _compositeWalkGrid;
+        SimulationWorld _navigationStateWorld;
+        ulong _observedDestructibleTopologyRevision;
+        bool _dynamicNavigationDirty;
         SimulationWorld _legacyOutdoorRestoreMigrationWorld;
         PlayableHostBootstrap _bootstrap;
         HostDemoTileMap _tileMap;
@@ -38,6 +65,9 @@ namespace XianXia.Unity.Host
         ulong _lastStrategicMaterializationTick = ulong.MaxValue;
         readonly Dictionary<EntityId, Vector3> _lastLegalMembers = new Dictionary<EntityId, Vector3>();
         readonly HashSet<EntityId> _continuousSitePopulation = new HashSet<EntityId>();
+        // Field FormalArmy members share the Continuous materialization board, but their
+        // canonical position remains FormalArmy.WorldMotion. Never capture them as AtSite.
+        readonly HashSet<EntityId> _continuousFormalArmyPopulation = new HashSet<EntityId>();
         readonly HashSet<EntityId> _desiredMaterializedEntities = new HashSet<EntityId>();
         /// <summary>§16：起点不在 CompositeWalkGrid 的 NPC（不得启动日程寻路）。</summary>
         readonly HashSet<ulong> _invalidSpawnEntityIds = new HashSet<ulong>();
@@ -46,6 +76,7 @@ namespace XianXia.Unity.Host
         /// <summary>同一次 materialize pass 内已占用的 presentation 点（防多人重合）。</summary>
         readonly Dictionary<long, ulong> _materializePointUses = new Dictionary<long, ulong>();
         readonly List<EntityId> _sitePopulationScratch = new List<EntityId>();
+        readonly List<ulong> _formalArmyMemberScratch = new List<ulong>(16);
         readonly HashSet<string> _materializedSitePlacementOwners = new HashSet<string>(StringComparer.Ordinal);
         /// <summary>同一 materialize pass 内两人最小 presentation 间距（≈2.5 个精灵）。</summary>
         const float MaterializeSeparationPresentation = 2.6f;
@@ -271,7 +302,526 @@ namespace XianXia.Unity.Host
                    "\nCurrentWorldSiteGateway=DisabledForOutdoorMigration" +
                    " WorldSiteIngressStatus=" + LastMovementDiagnostic +
                    " LocalPlacesContext=" + (string.IsNullOrEmpty(_bootstrap?.Session?.World?.WorldRegion?.ActiveMapLayoutId) ? "ContinuousEmpty" : _bootstrap.Session.World.WorldRegion.ActiveMapLayoutId) +
+                   "\nFormalArmyNearField=" + DescribeFormalArmyNearField(definition) +
                    "\nLastMovementDiagnostic=" + LastMovementDiagnostic;
+        }
+
+        public bool IsWorldPositionLoaded(string surfaceId, float worldX, float worldY)
+        {
+            if (!IsActive || _mapper == null ||
+                !string.Equals(_surfaceId, surfaceId ?? string.Empty, StringComparison.Ordinal) ||
+                !TryResolveSurface(out var surface) ||
+                !OutdoorSurfaceCoverageResolver.ContainsWorldPosition(surface, worldX, worldY))
+                return false;
+            return _loaded.Contains(_mapper.WorldToChunk(worldX, worldY));
+        }
+
+        public bool IsBoundContinuousManualCombat(SimulationWorld world)
+        {
+            var state = world?.Strategic?.ContinuousManualCombat;
+            return IsActive && state != null && state.IsActive &&
+                   string.Equals(state.SurfaceId, _surfaceId, StringComparison.Ordinal);
+        }
+
+        /// <summary>Read-only preparation performed before declaration or world-position commit.</summary>
+        public Result TryPrepareManualCombatEntry(
+            SimulationWorld world,
+            BattleOfferPending offer,
+            out ManualCombatPreparation preparation)
+        {
+            preparation = null;
+            if (world == null || offer == null || !IsActive ||
+                !ReferenceEquals(world, _bootstrap?.Session?.World))
+                return Result.Failure(ErrorCode.InvalidOperation, "Continuous Outdoor runtime 未绑定当前 World。");
+            if (world.LocalMap == null || world.LocalMap.IsInInterior ||
+                string.IsNullOrEmpty(_surfaceId) || _mapper == null || _compositeWalkGrid == null ||
+                !TryResolveSurface(out var surface))
+                return Result.Failure(ErrorCode.InvalidOperation, "Continuous Outdoor 战斗物理空间未就绪。");
+            if (string.IsNullOrEmpty(offer.OfferId) || offer.Origin != BattleOfferOrigin.LocalMapHostileAction)
+                return Result.Failure(ErrorCode.InvalidArgument, "该 BattleOffer 不是当前地面攻击入口。");
+            if (!ArmyHexBattleAnchorService.TryGetBattleAnchorHex(world.Strategic.Participants, out var battleHex) ||
+                world.HexWorld == null || !world.HexWorld.Contains(battleHex))
+                return Result.Failure(ErrorCode.InvalidOperation, "Continuous 战斗缺少有效冻结锚点。");
+
+            var plan = new ManualCombatPreparation
+            {
+                World = world,
+                OfferId = offer.OfferId,
+                SurfaceId = _surfaceId
+            };
+            var used = new HashSet<long>();
+            var enemyCount = 0;
+            var anchorResolved = false;
+            var actualParticipants = ActualBattleParticipantQuery.Collect(world.Strategic.Participants);
+            for (var i = 0; i < actualParticipants.Count; i++)
+            {
+                var actualParticipant = actualParticipants[i];
+                var rec = actualParticipant.Record;
+                if (!world.Entities.TryGet(rec.EntityId, out var entity) || entity == null ||
+                    XianXia.Core.Combat.CombatLifeStateService.ShouldHideFromSpawn(entity))
+                    return Result.Failure(ErrorCode.NotFound,
+                        "Continuous 参战实体不存在或已移除：" + rec.EntityId.Value);
+
+                var isEnemy = actualParticipant.IsEnemy;
+                if (isEnemy) enemyCount++;
+                if (!TryResolvePreparedParticipantPlacement(
+                        world, rec.EntityId, rec.FormalArmyId, used,
+                        out var placement, out var placementWorld, out var placementFailure))
+                    return Result.Failure(ErrorCode.InvalidOperation,
+                        "参战准备失败：" + entity.DisplayName + "（" + rec.EntityId.Value + "） " +
+                        placementFailure + " OfferId=" + offer.OfferId + " Army=" + rec.FormalArmyId +
+                        " PlayerPartyMember=" + (_bootstrap.Session.PlayerParty != null &&
+                            _bootstrap.Session.PlayerParty.IsMember(rec.EntityId)));
+                plan.Placements.Add(rec.EntityId, placement);
+                plan.Participants.Add(actualParticipant);
+                if (isEnemy && !anchorResolved)
+                {
+                    var authoritativeAnchor = placementWorld;
+                    plan.BattleWorldAnchor = authoritativeAnchor;
+                    plan.AnchorChunk = _mapper.WorldToChunk(authoritativeAnchor.X, authoritativeAnchor.Y);
+                    anchorResolved = true;
+                }
+            }
+
+            if (plan.Placements.Count == 0 || enemyCount == 0 || !anchorResolved)
+                return Result.Failure(ErrorCode.InvalidOperation, "Continuous 战斗没有完整的冻结参战者。");
+            if (!OutdoorSurfaceCoverageResolver.ContainsWorldPosition(
+                    surface, plan.BattleWorldAnchor.X, plan.BattleWorldAnchor.Y) ||
+                !_loaded.Contains(plan.AnchorChunk))
+                return Result.Failure(ErrorCode.InvalidOperation, "地面目标不在当前已加载 Continuous neighborhood。");
+            var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var targetHex = HexMath.WorldToHex(
+                plan.BattleWorldAnchor.X, plan.BattleWorldAnchor.Y, hexSize);
+            if (!targetHex.Equals(battleHex))
+                return Result.Failure(
+                    ErrorCode.InvalidOperation,
+                    "地面目标与冻结 BattleAnchorHex 不一致：target=" + targetHex +
+                    ", frozen=" + battleHex);
+
+            preparation = plan;
+            return Result.Success();
+        }
+
+        bool TryResolvePreparedParticipantPlacement(
+            SimulationWorld world,
+            EntityId id,
+            string formalArmyId,
+            HashSet<long> used,
+            out Vector3 placement,
+            out WorldVec2 placementWorld,
+            out string failure)
+        {
+            placement = default;
+            placementWorld = default;
+            failure = "Stage=PositionSource Reason=位置缺失或未由当前World物化 Surface=" +
+                _surfaceId + " World=<unknown> Loaded=false Raw=<unknown> Reference=<none>";
+            FormalArmy participantArmy = null;
+            var resolvedArmyId = formalArmyId ?? string.Empty;
+            if (string.IsNullOrEmpty(resolvedArmyId) &&
+                ArmyService.TryGetArmyForCharacter(world, id, out var boundArmy) && boundArmy != null)
+            {
+                participantArmy = boundArmy;
+                resolvedArmyId = boundArmy.ArmyId;
+            }
+            if (participantArmy == null && !string.IsNullOrEmpty(resolvedArmyId))
+            {
+                world.Strategic.FormalArmies.TryGet(resolvedArmyId, out participantArmy);
+            }
+            // Only this live World/Surface's materialization can vouch for a personal presentation.
+            // An old override alone is not a spatial identity, and the group anchor is not a veto.
+            if (ReferenceEquals(_navigationStateWorld, world) &&
+                world.ContinuousOutdoorMaterialization.IsMaterialized(id) &&
+                (participantArmy == null || string.IsNullOrEmpty(participantArmy.WorldMotion.SurfaceId) ||
+                 string.Equals(participantArmy.WorldMotion.SurfaceId, _surfaceId, StringComparison.Ordinal)) &&
+                world.Entities.TryGet(id, out var entity) &&
+                entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var existing) &&
+                existing != null && existing.HasPresentationOverride)
+            {
+                var current = HostPresentationSpace.FromPresentation(
+                    existing.PresentationOverrideX, existing.PresentationOverrideZ);
+                if (_bootstrap.ViewSpawner?.Registry != null &&
+                    _bootstrap.ViewSpawner.Registry.TryGet(id, out var view) && view != null)
+                    current = view.transform.position;
+                return TryPreparePersonalPoint(current, "CurrentMaterializedCharacter", used,
+                    out placement, out placementWorld, out failure);
+            }
+
+            // A precise personal presence takes priority over any legacy group position.
+            if (world.WorldPresence.TryGet(id, out var personal) && personal != null &&
+                personal.HasContinuousWorldPosition && participantArmy == null)
+            {
+                _mapper.WorldToPresentation(personal.WorldPosX, personal.WorldPosY, out var px, out var py);
+                return TryPreparePersonalPoint(HostPresentationSpace.FromPresentation(px, py),
+                    "PersonalWorldPresence", used, out placement, out placementWorld, out failure);
+            }
+
+            if (participantArmy != null)
+            {
+                failure = "Stage=LegacyArmyScope Source=ArmyWorldMotion Surface=" +
+                    participantArmy.WorldMotion.SurfaceId + " World=" + participantArmy.WorldMotion.WorldPosition +
+                    " HasPosition=" + participantArmy.WorldMotion.HasPosition + " Army=" + resolvedArmyId +
+                    " Loaded=" + IsWorldPointInLoadedSurface(participantArmy.WorldMotion.WorldPosition) +
+                    " Raw=<no-personal-point> Reference=<none>" +
+                    " Reason=旧名单成员缺少可信个人近场位置或群体锚点范围外；旧支援资格待CW-U2B迁移";
+                // Missing personal data must not turn a remote member into an anchor-spawned clone.
+                return false;
+            }
+            return false;
+        }
+
+        bool IsWorldPointInLoadedSurface(WorldVec2 point) =>
+            TryResolveSurface(out var surface) &&
+            OutdoorSurfaceCoverageResolver.ContainsWorldPosition(surface, point.X, point.Y) &&
+            _loaded.Contains(_mapper.WorldToChunk(point.X, point.Y));
+
+        bool TryPreparePersonalPoint(Vector3 raw, string source, HashSet<long> used,
+            out Vector3 placement, out WorldVec2 worldPoint, out string failure)
+        {
+            placement = default;
+            _mapper.PresentationToWorld(raw.x, raw.y, out var wx, out var wy);
+            worldPoint = new WorldVec2(wx, wy);
+            var loaded = IsWorldPointInLoadedSurface(worldPoint);
+            var prefix = "Stage=Placement Source=" + source + " Surface=" + _surfaceId +
+                " World=" + worldPoint + " Loaded=" + loaded + " Raw=" + raw;
+            if (!loaded)
+            {
+                failure = prefix + " Reference=<none> Reason=范围外（旧支援资格待CW-U2B迁移）";
+                return false;
+            }
+            if (!TryResolvePreparedPointNear(raw, used, out placement, out var reference, out var reason))
+            {
+                failure = prefix + " Reference=" + reference + " Reason=" + reason;
+                return false;
+            }
+            _mapper.PresentationToWorld(placement.x, placement.y, out wx, out wy);
+            worldPoint = new WorldVec2(wx, wy);
+            failure = string.Empty;
+            return true;
+        }
+
+        bool TryAcceptPreparedPoint(Vector3 candidate, Vector3 reference,
+            HashSet<long> used, out Vector3 accepted, out string reason)
+        {
+            accepted = default;
+            reason = "无可走点";
+            _mapper.PresentationToWorld(candidate.x, candidate.y, out var wx, out var wy);
+            if (!IsWorldPointInLoadedSurface(new WorldVec2(wx, wy)) ||
+                !_compositeWalkGrid.TryWorldToCell(candidate.x, candidate.y, out var x, out var y) ||
+                !_compositeWalkGrid.IsWalkable(x, y)) return false;
+            var key = QuantizeMaterializePoint(candidate.x, candidate.y);
+            if (used.Contains(key)) { reason = "重复占用"; return false; }
+            if (!GridPathfinder.IsWorldSegmentWalkable(
+                    _compositeWalkGrid, reference.x, reference.y, candidate.x, candidate.y))
+            { reason = "不连通"; return false; }
+            // Occupancy is committed only after every check succeeds.
+            used.Add(key);
+            accepted = candidate;
+            reason = string.Empty;
+            return true;
+        }
+
+        bool TryResolvePreparedPointNear(Vector3 raw, HashSet<long> used,
+            out Vector3 placement, out Vector3 reference, out string reason)
+        {
+            placement = default;
+            reference = raw;
+            reason = "无可走参考点";
+            if (!_compositeWalkGrid.TryWorldToCell(raw.x, raw.y, out var cx, out var cy)) return false;
+            if (!_compositeWalkGrid.IsWalkable(cx, cy))
+            {
+                // Only a one-cell correction with an unambiguous connected side is allowed.
+                // Disconnected neighbours of a wall/river do not authorize choosing either bank.
+                var neighbours = new List<Vector3>();
+                for (var d = 0; d < 4; d++)
+                {
+                    var x = cx + (d == 0 ? 1 : d == 1 ? -1 : 0);
+                    var y = cy + (d == 2 ? 1 : d == 3 ? -1 : 0);
+                    if (!_compositeWalkGrid.IsWalkable(x, y)) continue;
+                    _compositeWalkGrid.CellToWorldCenter(x, y, out var px, out var py);
+                    _mapper.PresentationToWorld(px, py, out var wx, out var wy);
+                    if (IsWorldPointInLoadedSurface(new WorldVec2(wx, wy)))
+                        neighbours.Add(HostPresentationSpace.FromPresentation(px, py));
+                }
+                if (neighbours.Count == 0) return false;
+                reference = neighbours[0];
+                for (var i = 1; i < neighbours.Count; i++)
+                    if (!GridPathfinder.IsWorldSegmentWalkable(_compositeWalkGrid,
+                            reference.x, reference.y, neighbours[i].x, neighbours[i].y))
+                    { reason = "blocked原点两侧不连通，无法确定合法修正侧"; return false; }
+            }
+            if (TryAcceptPreparedPoint(reference, reference, used, out placement, out reason)) return true;
+            var spacing = Mathf.Max(.05f, _compositeWalkGrid.CellSize * 1.5f);
+            var failures = new HashSet<string>();
+            failures.Add(reason);
+            for (var ring = 1; ring <= 6; ring++)
+            for (var direction = 0; direction < 8; direction++)
+            {
+                var angle = direction * Mathf.PI * .25f;
+                var candidate = HostPresentationSpace.FromPresentation(
+                    reference.x + Mathf.Cos(angle) * spacing * ring,
+                    reference.y + Mathf.Sin(angle) * spacing * ring);
+                if (TryAcceptPreparedPoint(candidate, reference, used, out placement, out reason)) return true;
+                failures.Add(reason);
+            }
+            placement = default;
+            reason = string.Join("/", failures);
+            return false;
+        }
+
+        public Result CommitPreparedManualCombat(ManualCombatPreparation preparation)
+        {
+            var world = _bootstrap?.Session?.World;
+            if (preparation == null || world == null || !ReferenceEquals(preparation.World, world) ||
+                !IsActive || !string.Equals(preparation.SurfaceId, _surfaceId, StringComparison.Ordinal) ||
+                !string.Equals(preparation.OfferId, world.Strategic.BattleOffer.OfferId, StringComparison.Ordinal) ||
+                !_loaded.Contains(preparation.AnchorChunk))
+                return Result.Failure(ErrorCode.InvalidOperation, "Continuous 战斗准备结果已失效。");
+
+            var ids = new List<EntityId>(preparation.Participants.Count);
+            for (var i = 0; i < preparation.Participants.Count; i++)
+            {
+                var id = preparation.Participants[i].EntityId;
+                if (!preparation.Placements.TryGetValue(id, out var placement) ||
+                    !world.Entities.TryGet(id, out var entity) || entity == null)
+                    return RollbackPreparedManualCombat(preparation, "装配时参战实体已失效。");
+                var hadLocation = entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc) && loc != null;
+                preparation.Previous[id] = new SavedPlacement(
+                    hadLocation, hadLocation && loc.HasPresentationOverride,
+                    hadLocation ? loc.PresentationOverrideX : 0f,
+                    hadLocation ? loc.PresentationOverrideZ : 0f);
+                if (!hadLocation)
+                {
+                    loc = new XianXia.Core.Exploration.EntityLocationComponent();
+                    entity.AddComponent(loc);
+                }
+                loc.SetPresentationOverride(placement.x, placement.y);
+                ids.Add(id);
+            }
+
+            world.Strategic.ContinuousManualCombat.Begin(
+                preparation.OfferId, preparation.SurfaceId, preparation.BattleWorldAnchor,
+                preparation.Participants);
+            var applied = StrategicEncounterSpawner.ApplyPendingContinuousWorldCombat(
+                world, world.Strategic.ContinuousManualCombat);
+            if (applied.IsFailure)
+                return RollbackPreparedManualCombat(preparation, applied.Error.Message);
+
+            ReconcileOutdoorEntityMaterialization();
+            var actual = 0;
+            foreach (var id in ids)
+                if (world.ContinuousOutdoorMaterialization.IsMaterialized(id) &&
+                    _bootstrap.ViewSpawner.Registry.TryGet(id, out var view) && view != null)
+                    actual++;
+            if (actual != ids.Count)
+                return RollbackPreparedManualCombat(
+                    preparation, "Continuous 战斗 View 装配不完整：expected=" + ids.Count + ", actual=" + actual);
+            return Result.Success();
+        }
+
+        Result RollbackPreparedManualCombat(ManualCombatPreparation preparation, string reason)
+        {
+            var world = _bootstrap?.Session?.World;
+            if (world != null)
+            {
+                world.Strategic.ContinuousManualCombat.ClearOwned(preparation?.OfferId);
+                if (preparation != null)
+                    foreach (var pair in preparation.Previous)
+                        if (world.Entities.TryGet(pair.Key, out var entity) &&
+                            entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc) && loc != null)
+                        {
+                            if (pair.Value.HadOverride) loc.SetPresentationOverride(pair.Value.X, pair.Value.Y);
+                            else loc.ClearPresentationOverride();
+                        }
+                world.Strategic.Encounter?.ClearActiveEncounterSession();
+                ReconcileOutdoorEntityMaterialization();
+            }
+            return Result.Failure(ErrorCode.InvalidOperation, reason ?? "Continuous 战斗装配失败。");
+        }
+
+        public void AbortPreparedManualCombat(ManualCombatPreparation preparation, string reason)
+        {
+            RollbackPreparedManualCombat(preparation, reason);
+        }
+
+        public void CompleteContinuousManualCombat(string offerId)
+        {
+            var world = _bootstrap?.Session?.World;
+            if (world == null || !world.Strategic.ContinuousManualCombat.ClearOwned(offerId)) return;
+            SyncPartyPresentation();
+            ReconcileOutdoorEntityMaterialization();
+        }
+
+        string DescribeFormalArmyNearField(OutdoorWorldSurfaceDefinition surface)
+        {
+            var world = _bootstrap?.Session?.World;
+            if (world?.Strategic?.FormalArmies == null || surface == null || _mapper == null)
+                return "Unavailable";
+            var rows = new List<string>();
+            var geography = world.SurfaceGround.TryGet(_surfaceId, out var activeGeography)
+                ? activeGeography
+                : null;
+            foreach (var pair in world.Strategic.FormalArmies.Armies)
+            {
+                var army = pair.Value;
+                if (army == null || !army.WorldMotion.HasPosition)
+                    continue;
+                var position = army.WorldMotion.WorldPosition;
+                var chunk = _mapper.WorldToChunk(position.X, position.Y);
+                var living = 0;
+                var materialized = 0;
+                var views = 0;
+                for (var i = 0; i < army.MemberCharacterIds.Count; i++)
+                {
+                    var id = new EntityId(army.MemberCharacterIds[i]);
+                    if (!LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id))
+                        continue;
+                    living++;
+                    if (world.ContinuousOutdoorMaterialization.IsMaterialized(id))
+                        materialized++;
+                    if (_bootstrap.ViewSpawner?.Registry != null &&
+                        _bootstrap.ViewSpawner.Registry.TryGet(id, out var view) && view != null)
+                        views++;
+                }
+                rows.Add(
+                    "ArmyId=" + army.ArmyId +
+                    " WorldPosition=" + position +
+                    " SurfaceCoverage=" + OutdoorSurfaceCoverageResolver.ContainsWorldPosition(
+                        surface, position.X, position.Y) +
+                    " Chunk=" + chunk +
+                    " ChunkLoaded=" + _loaded.Contains(chunk) +
+                    " GeographyCovered=" + (geography != null && geography.Contains(position.X, position.Y)) +
+                    " LivingMembers=" + living +
+                    " MaterializedMembers=" + materialized +
+                    " Views=" + views);
+            }
+            return rows.Count > 0 ? string.Join("; ", rows) : "None";
+        }
+
+        /// <summary>One-shot, read-only report used by the LevelTester copy button.</summary>
+        public string DescribeFormalArmyDisplayDiagnostics(string preferredArmyId)
+        {
+            var world = _bootstrap?.Session?.World;
+            if (world?.Strategic?.FormalArmies == null)
+                return "[FormalArmyDisplayDiagnostic] SessionUnavailable";
+
+            var armyId = preferredArmyId ?? string.Empty;
+            FormalArmy army = null;
+            if (string.IsNullOrEmpty(armyId) ||
+                !world.Strategic.FormalArmies.TryGet(armyId, out army) || army == null)
+            {
+                armyId = ArmyStackAdapter.BanditWeakPatrolFormalArmyId;
+                if (!world.Strategic.FormalArmies.TryGet(armyId, out army) || army == null)
+                {
+                    foreach (var pair in world.Strategic.FormalArmies.Armies)
+                    {
+                        army = pair.Value;
+                        if (army == null)
+                            continue;
+                        armyId = army.ArmyId;
+                        break;
+                    }
+                }
+            }
+            if (army == null)
+                return "[FormalArmyDisplayDiagnostic] NoFormalArmy";
+
+            var position = army.WorldMotion.WorldPosition;
+            var hasSurface = TryResolveSurface(out var surface);
+            var coverage = hasSurface && army.WorldMotion.HasPosition &&
+                           OutdoorSurfaceCoverageResolver.ContainsWorldPosition(
+                               surface, position.X, position.Y);
+            var chunk = _mapper != null && army.WorldMotion.HasPosition
+                ? _mapper.WorldToChunk(position.X, position.Y)
+                : default;
+            var chunkLoaded = _mapper != null && army.WorldMotion.HasPosition && _loaded.Contains(chunk);
+            var mapMode = IsActive
+                ? "ContinuousOutdoor"
+                : world.LocalMap != null && world.LocalMap.IsInInterior
+                    ? "Interior"
+                    : BattleOfferService.HasActiveManualEncounter(world)
+                        ? "Encounter"
+                        : "LegacyOrInactive";
+
+            var sb = new StringBuilder(1024);
+            sb.AppendLine("[FormalArmyDisplayDiagnostic]");
+            sb.Append("ArmyId=").Append(armyId)
+              .Append(" CurrentSurface=").Append(_surfaceId)
+              .Append(" MapMode=").Append(mapMode)
+              .Append(" ActiveMap=").Append(world.LocalMap?.ActiveMapLayoutId ?? string.Empty)
+              .Append(" ArmyState=").Append(army.State)
+              .Append(" MotionSurface=").Append(army.WorldMotion.SurfaceId ?? string.Empty)
+              .Append(" HasPosition=").Append(army.WorldMotion.HasPosition)
+              .Append(" WorldPosition=").Append(position)
+              .Append(" SurfaceCoverage=").Append(coverage)
+              .Append(" Chunk=").Append(chunk)
+              .Append(" ChunkLoaded=").Append(chunkLoaded)
+              .AppendLine();
+
+            for (var i = 0; i < army.MemberCharacterIds.Count; i++)
+            {
+                var id = new EntityId(army.MemberCharacterIds[i]);
+                var hasEntity = world.Entities.TryGet(id, out var entity) && entity != null;
+                var hasPresence = world.WorldPresence.TryGet(id, out var presence) && presence != null;
+                XianXia.Core.Exploration.EntityLocationComponent loc = null;
+                var hasLoc = hasEntity &&
+                             entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out loc) &&
+                             loc != null;
+                var materialized = world.ContinuousOutdoorMaterialization.IsMaterialized(id);
+                var continuousVisible = LocalMapVisibility.EvaluateContinuousMaterializedVisibility(
+                    world, id, out var continuousReason);
+                var visible = LocalMapVisibility.IsEntityVisible(world, id);
+                EntityView view = null;
+                var registryHasView = _bootstrap.ViewSpawner?.Registry != null &&
+                                      _bootstrap.ViewSpawner.Registry.TryGet(id, out view) && view != null;
+
+                sb.Append("EntityId=").Append(id.Value)
+                  .Append(" Name=").Append(hasEntity ? entity.DisplayName : "<missing>")
+                  .Append(" HasWorldPresence=").Append(hasPresence)
+                  .Append(" PresenceMode=").Append(hasPresence ? presence.Mode.ToString() : "None")
+                  .Append(" HasLocationId=").Append(hasLoc && loc.HasLocation)
+                  .Append(" LocationId=").Append(hasLoc ? loc.LocationId ?? string.Empty : string.Empty)
+                  .Append(" HasPresentationOverride=").Append(hasLoc && loc.HasPresentationOverride);
+                if (hasLoc && loc.HasPresentationOverride)
+                    sb.Append(" Presentation=(")
+                      .Append(loc.PresentationOverrideX.ToString("0.00"))
+                      .Append(',')
+                      .Append(loc.PresentationOverrideZ.ToString("0.00"))
+                      .Append(')');
+                sb.Append(" Materialized=").Append(materialized)
+                  .Append(" Visibility=").Append(visible)
+                  .Append(" ContinuousPredicate=").Append(continuousVisible)
+                  .Append(" VisibilityReason=").Append(
+                      visible && !continuousVisible ? "VisibleByNonContinuousAuthority;" + continuousReason : continuousReason)
+                  .Append(" RegistryHasView=").Append(registryHasView);
+
+                if (registryHasView)
+                {
+                    var renderer = view.GetComponent<SpriteRenderer>();
+                    var camera = Camera.main != null ? Camera.main : FindObjectOfType<Camera>();
+                    sb.Append(" ViewTransform=").Append(view.transform.position)
+                      .Append(" ActiveInHierarchy=").Append(view.gameObject.activeInHierarchy)
+                      .Append(" RendererEnabled=").Append(renderer != null && renderer.enabled)
+                      .Append(" SpritePresent=").Append(renderer != null && renderer.sprite != null)
+                      .Append(" SortingLayer=").Append(renderer != null ? renderer.sortingLayerName : "<none>")
+                      .Append(" SortingOrder=").Append(renderer != null ? renderer.sortingOrder : 0);
+                    if (camera != null)
+                    {
+                        var viewport = camera.WorldToViewportPoint(view.transform.position);
+                        var layerMaskMatches =
+                            (camera.cullingMask & (1 << view.gameObject.layer)) != 0;
+                        sb.Append(" Camera=").Append(camera.name)
+                          .Append(" Viewport=").Append(viewport)
+                          .Append(" CullingMaskMatches=").Append(layerMaskMatches);
+                    }
+                    else
+                    {
+                        sb.Append(" Camera=<none> Viewport=<unavailable> CullingMaskMatches=false");
+                    }
+                }
+                sb.AppendLine();
+            }
+
+            return sb.ToString();
         }
 
         public void Bind(PlayableHostBootstrap bootstrap)
@@ -293,6 +843,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            RefreshDynamicNavigationIfDirty();
             var motion = _bootstrap?.Session?.World?.PlayerPartyTravel;
             // Restore compatibility is an activation boundary, never a per-frame repair that can
             // erase an already established travel plan.
@@ -303,8 +854,11 @@ namespace XianXia.Unity.Host
                 TryMigrateLegacyOutdoorSiteRestore();
                 motion = _bootstrap?.Session?.World?.PlayerPartyTravel;
             }
+            var currentWorld = _bootstrap?.Session?.World;
+            var continuousCombat = IsBoundContinuousManualCombat(currentWorld);
             if (motion == null || !motion.HasPosition || motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition ||
-                _bootstrap.Session.World.LocalMap.IsInInterior || BattleOfferService.HasActiveManualEncounter(_bootstrap.Session.World))
+                currentWorld.LocalMap.IsInInterior ||
+                (BattleOfferService.HasActiveManualEncounter(currentWorld) && !continuousCombat))
             {
                 if (IsActive) DeactivatePresentationOnly();
                 return;
@@ -336,6 +890,32 @@ namespace XianXia.Unity.Host
             }
         }
 
+        /// <summary>Coalesces authored destructible topology changes until the next runtime update.</summary>
+        public void NotifyOutdoorDestructibleStateChanged(string stableObjectId)
+        {
+            if (IsActive && !string.IsNullOrEmpty(stableObjectId))
+                _dynamicNavigationDirty = true;
+        }
+
+        void RefreshDynamicNavigationIfDirty()
+        {
+            if (!IsActive)
+                return;
+            var world = _bootstrap?.Session?.World;
+            var board = world?.OutdoorStatefulObjects;
+            if (world == null || board == null)
+                return;
+            if (!ReferenceEquals(_navigationStateWorld, world) ||
+                _observedDestructibleTopologyRevision != board.DestructibleTopologyRevision)
+                _dynamicNavigationDirty = true;
+            if (!_dynamicNavigationDirty || _streamTransitionPhase != StreamTransitionPhase.None)
+                return;
+            RecomposeWalkGrid();
+            _navigationStateWorld = world;
+            _observedDestructibleTopologyRevision = board.DestructibleTopologyRevision;
+            _dynamicNavigationDirty = false;
+        }
+
         public bool PresentationToWorld(float x, float y, out float worldX, out float worldY)
         { _mapper.PresentationToWorld(x, y, out worldX, out worldY); return IsActive; }
 
@@ -349,6 +929,114 @@ namespace XianXia.Unity.Host
             presentation = HostPresentationSpace.FromPresentation(x, y);
             return true;
         }
+
+        /// <summary>Surface membership comes from the authored Outdoor Surface, never from the
+        /// optional regional SurfaceGround geography.</summary>
+        public bool IsFieldFormalArmyInLoadedNeighborhood(FormalArmy army)
+        {
+            if (!IsActive || army == null || !army.WorldMotion.HasPosition ||
+                army.State == FormalArmyState.Garrisoned ||
+                army.WorldMotion.LocationKind == FormalArmyLocationKind.AtWorldSite ||
+                _bootstrap?.Session?.World == null || !TryResolveSurface(out var surface) ||
+                FormalArmyMemberPresenceSync.IsArmyEngaged(_bootstrap.Session.World, army))
+                return false;
+            var motionSurfaceId = army.WorldMotion.SurfaceId ?? string.Empty;
+            if (!string.IsNullOrEmpty(motionSurfaceId) &&
+                !string.Equals(motionSurfaceId, _surfaceId, StringComparison.Ordinal))
+                return false;
+            var position = army.WorldMotion.WorldPosition;
+            return OutdoorSurfaceCoverageResolver.ContainsWorldPosition(
+                       surface, position.X, position.Y) &&
+                   _loaded.Contains(_mapper.WorldToChunk(position.X, position.Y));
+        }
+
+        /// <summary>
+        /// Resolves a transient member formation point on the current loaded presentation grid.
+        /// FormalArmy.WorldMotion remains the canonical position for every member.
+        /// </summary>
+        public bool TryResolveFormalArmyMemberPresentationPosition(
+            FormalArmy army,
+            int stableSlot,
+            IReadOnlyList<WorldVec2> trail,
+            out Vector3 presentation)
+        {
+            presentation = default;
+            if (!IsFieldFormalArmyInLoadedNeighborhood(army) ||
+                !TryResolveSurface(out var surface) || _compositeWalkGrid == null ||
+                !TryWorldToPresentation(army.WorldMotion.WorldPosition, out var rawAnchor) ||
+                !TryResolveCompositeWalkableAnchor(rawAnchor, out var anchor))
+                return false;
+
+            if (stableSlot <= 0)
+            {
+                presentation = anchor;
+                return true;
+            }
+
+            var world = _bootstrap.Session.World;
+            var geography = world.SurfaceGround.TryGet(_surfaceId, out var candidateNavigation) &&
+                            candidateNavigation.Contains(
+                                army.WorldMotion.WorldPosition.X,
+                                army.WorldMotion.WorldPosition.Y)
+                ? candidateNavigation
+                : null;
+            var worldSpacing = Mathf.Max(.001f, surface.CellSize * 1.5f);
+            if (HostFormalArmyContinuousFormation.TryResolveMemberWorldPosition(
+                    army.WorldMotion, trail, geography, stableSlot, worldSpacing,
+                    out var worldCandidate) &&
+                TryWorldToPresentation(worldCandidate, out var candidate) &&
+                IsCompositeFormationSegmentWalkable(anchor, candidate))
+            {
+                presentation = candidate;
+                return true;
+            }
+
+            var spacing = Mathf.Max(.05f, _compositeWalkGrid.CellSize * 1.5f);
+            var validSlot = 0;
+            var requestedValidSlot = stableSlot - 1;
+            for (var ring = 1; ring <= 4; ring++)
+            for (var direction = 0; direction < 8; direction++)
+            {
+                var angle = direction * Mathf.PI * .25f;
+                var radius = spacing * ring;
+                candidate = HostPresentationSpace.FromPresentation(
+                    anchor.x + Mathf.Cos(angle) * radius,
+                    anchor.y + Mathf.Sin(angle) * radius);
+                if (!IsCompositeFormationSegmentWalkable(anchor, candidate))
+                    continue;
+                if (validSlot++ < requestedValidSlot)
+                    continue;
+                presentation = candidate;
+                return true;
+            }
+
+            // No distinct connected slot exists in the bounded loaded area. Keeping the
+            // corrected anchor is safer than crossing a wall or inventing a world position.
+            presentation = anchor;
+            return true;
+        }
+
+        bool TryResolveCompositeWalkableAnchor(Vector3 rawAnchor, out Vector3 anchor)
+        {
+            anchor = rawAnchor;
+            if (_compositeWalkGrid == null ||
+                !_compositeWalkGrid.TryWorldToCell(rawAnchor.x, rawAnchor.y, out var x, out var y))
+                return false;
+            if (!_compositeWalkGrid.IsWalkable(x, y))
+            {
+                if (!_compositeWalkGrid.TryFindNearestWalkable(
+                        x, y, MaterializeNearestWalkableRadiusCells, out x, out y))
+                    return false;
+                _compositeWalkGrid.CellToWorldCenter(x, y, out var px, out var py);
+                anchor = HostPresentationSpace.FromPresentation(px, py);
+            }
+            return true;
+        }
+
+        bool IsCompositeFormationSegmentWalkable(Vector3 anchor, Vector3 candidate) =>
+            _compositeWalkGrid != null &&
+            GridPathfinder.IsWorldSegmentWalkable(
+                _compositeWalkGrid, anchor.x, anchor.y, candidate.x, candidate.y);
 
         /// <summary>Resolves the formal physical endpoint without requiring its chunk to be loaded.</summary>
         public bool TryResolveContinuousAutoTravelGoal(
@@ -410,7 +1098,7 @@ namespace XianXia.Unity.Host
             var result = PlayerPartyWildernessTransitionService.TrySyncContinuousSurfaceWorldPosition(world, wx, wy);
             if (result.IsSuccess)
                 motion.SetCurrentOutdoorWorldSiteContext(
-                    WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(world, motion.WorldPosition));
+                    ResolveCurrentOutdoorSiteId(world, motion.WorldPosition));
             if (result.IsFailure)
             {
                 ReportLegalityBlocked();
@@ -593,9 +1281,10 @@ namespace XianXia.Unity.Host
         {
             TryMigrateLegacyOutdoorSiteRestore();
             var motion = _bootstrap?.Session?.World?.PlayerPartyTravel;
+            var world = _bootstrap?.Session?.World;
             if (motion == null || !motion.HasPosition || motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition ||
-                _bootstrap.Session.World.LocalMap.IsInInterior ||
-                BattleOfferService.HasActiveManualEncounter(_bootstrap.Session.World)) return false;
+                world.LocalMap.IsInInterior ||
+                (BattleOfferService.HasActiveManualEncounter(world) && !IsBoundContinuousManualCombat(world))) return false;
             // Explicit W1C diagnostic activation remains authoritative until its owner is
             // deactivated; normal resolver never selects acceptance-only content on its own.
             if (IsActive && TryResolveSurface(out var active) && active.AcceptanceOnly) return true;
@@ -703,9 +1392,13 @@ namespace XianXia.Unity.Host
             _tileMap.RemoveLayoutInstance("legacy:active-localmap");
             IsActive = true;
             _bootstrap.Session.World.SurfaceGround.Activate(_geography?.Navigation);
+            _navigationStateWorld = _bootstrap.Session.World;
+            _observedDestructibleTopologyRevision =
+                _bootstrap.Session.World.OutdoorStatefulObjects.DestructibleTopologyRevision;
+            _dynamicNavigationDirty = false;
             var activeMotion = _bootstrap.Session.World.PlayerPartyTravel;
             activeMotion.SetCurrentOutdoorWorldSiteContext(
-                WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(
+                ResolveCurrentOutdoorSiteId(
                     _bootstrap.Session.World, activeMotion.WorldPosition));
             _lastLegalMembers.Clear();
             LastMovementDiagnostic = string.Empty;
@@ -991,7 +1684,12 @@ namespace XianXia.Unity.Host
                 var composite = WalkGridComposer.Compose(_grids);
                 var flags = _bootstrap.Session.World.Strategic.FactionFlags.Flags;
                 foreach (var pair in flags)
-                    HostFactionFlagQuery.ApplyWalkGridBlock(pair.Value, this, composite);
+                    if (pair.Value != null &&
+                        (string.IsNullOrEmpty(pair.Value.SurfaceId) ||
+                         string.Equals(pair.Value.SurfaceId, ActiveSurfaceId, StringComparison.Ordinal)) &&
+                        (!pair.Value.HasWorldPosition ||
+                         IsWorldPositionLoaded(ActiveSurfaceId, pair.Value.WorldX, pair.Value.WorldY)))
+                        HostFactionFlagQuery.ApplyWalkGridBlock(pair.Value, this, composite);
                 _compositeWalkGrid = composite;
                 _bootstrap.MoveController.SetWalkGrid(composite);
                 NavigationGeneration++;
@@ -1032,18 +1730,57 @@ namespace XianXia.Unity.Host
             {
                 var p = surface.SitePlacements[i];
                 if (p == null || !p.BlocksMovement || !PlacementTouchesChunk(p, coord)) continue;
-                _mapper.WorldToPresentation(p.WorldX, p.WorldY, out var left, out var bottom);
-                _mapper.WorldToPresentation(p.WorldX + p.WorldWidth, p.WorldY + p.WorldHeight, out var right, out var top);
-                // Block a cell when its center lies inside the authored blocker. The former
-                // any-overlap rasterization expanded both sides of every wall; two wall segments
-                // separated by one authored source cell then both claimed that doorway cell and
-                // turned each housing yard into an isolated walkable island. Keep sub-cell-thin
-                // blockers represented by at least one cell without inflating their long axis.
-                ResolveCenterCoveredCellRange(left, right, originX, cell, out var minX, out var maxX);
-                ResolveCenterCoveredCellRange(bottom, top, originY, cell, out var minY, out var maxY);
-                grid.SetBlockedRect(minX, minY, maxX, maxY, true); any = true;
+                if (OutdoorStatefulPlacementResolver.IsPerCellDestructible(p))
+                {
+                    var cellsW = Mathf.Max(1, p.SourceCellsW);
+                    var cellsH = Mathf.Max(1, p.SourceCellsH);
+                    var worldCellW = p.WorldWidth / cellsW;
+                    var worldCellH = p.WorldHeight / cellsH;
+                    for (var gy = 0; gy < cellsH; gy++)
+                    for (var gx = 0; gx < cellsW; gx++)
+                    {
+                        if (!OutdoorStatefulPlacementResolver.IsBlockerActive(
+                                _bootstrap.Session.World.OutdoorStatefulObjects, p, gx, gy))
+                            continue;
+                        RasterBlocker(
+                            grid, originX, originY, cell,
+                            p.WorldX + gx * worldCellW,
+                            p.WorldY + gy * worldCellH,
+                            worldCellW,
+                            worldCellH);
+                        any = true;
+                    }
+                    continue;
+                }
+                if (!OutdoorStatefulPlacementResolver.IsBlockerActive(
+                        _bootstrap.Session.World.OutdoorStatefulObjects, p))
+                    continue;
+                RasterBlocker(grid, originX, originY, cell, p.WorldX, p.WorldY, p.WorldWidth, p.WorldHeight);
+                any = true;
             }
+
             return any ? grid : null;
+        }
+
+        string ResolveCurrentOutdoorSiteId(SimulationWorld world, WorldVec2 position)
+        {
+            if (WorldSiteCoreCoverageResolver.TryResolve(
+                    world, _surfaceId, position.X, position.Y, out var dynamicSite))
+                return dynamicSite.SiteId;
+            return WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(world, position);
+        }
+
+        void RasterBlocker(
+            WalkGrid grid, float originX, float originY, float cell,
+            float worldX, float worldY, float worldWidth, float worldHeight)
+        {
+            _mapper.WorldToPresentation(worldX, worldY, out var left, out var bottom);
+            _mapper.WorldToPresentation(worldX + worldWidth, worldY + worldHeight, out var right, out var top);
+            // Cell-center rasterization preserves authored doorways. A sub-cell-thin blocker still
+            // occupies its midpoint cell, without expanding along the long axis.
+            ResolveCenterCoveredCellRange(left, right, originX, cell, out var minX, out var maxX);
+            ResolveCenterCoveredCellRange(bottom, top, originY, cell, out var minY, out var maxY);
+            grid.SetBlockedRect(minX, minY, maxX, maxY, true);
         }
 
         static void ResolveCenterCoveredCellRange(
@@ -1067,8 +1804,15 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>Only the surface presentation owner may clear its chunk state. It never chooses a destination authority.</summary>
-        public void DeactivatePresentationOnly()
+        public void DeactivatePresentationOnly() => DeactivatePresentationOnly(captureEntityPositions: true);
+
+        void DeactivatePresentationOnly(bool captureEntityPositions)
         {
+            var world = _bootstrap?.Session?.World;
+            var combat = world?.Strategic?.ContinuousManualCombat;
+            if (combat != null && combat.IsActive &&
+                string.Equals(combat.SurfaceId, _surfaceId, StringComparison.Ordinal))
+                combat.ClearOwned(combat.OfferId);
             foreach (var coord in _presentedChunks)
             {
                 _tileMap?.RemoveLayoutInstance(SurfaceChunkNeighborhood.OwnerKey(_surfaceId, coord));
@@ -1084,13 +1828,29 @@ namespace XianXia.Unity.Host
             if (_bootstrap?.Session?.World?.SurfaceGround?.Active == _geography?.Navigation)
                 _bootstrap.Session.World.SurfaceGround.Clear();
             _geography = null;
+            _navigationStateWorld = null;
+            _observedDestructibleTopologyRevision = 0;
+            _dynamicNavigationDirty = false;
             _lastLegalMembers.Clear();
-            ReleaseContinuousSitePopulation();
+            ReleaseContinuousSitePopulation(capturePositions: captureEntityPositions);
             _bootstrap?.MoveController?.InvalidatePartyLocalMovement(_bootstrap.Session.PlayerParty.Members);
             _bootstrap?.MoveController?.SetWalkGrid(null);
             _bootstrap?.MoveController?.BindLocalMapContext(string.Empty);
             Debug.Log("[W1C] Deactivated surface=" + _surfaceId + " Loaded=0", this);
             _surfaceId = string.Empty;
+        }
+
+        /// <summary>
+        /// Snapshot restore replaces SimulationWorld. Rebuild the active Surface once so every
+        /// retained presentation, registry, SurfaceGround and navigation input binds the new world.
+        /// Ordinary chunk streaming never calls this hard boundary.
+        /// </summary>
+        public bool RebuildAfterWorldRestore()
+        {
+            if (IsActive)
+                DeactivatePresentationOnly(captureEntityPositions: false);
+            _legacyOutdoorRestoreMigrationWorld = null;
+            return TryActivateAtCurrentWorldPosition();
         }
 
         /// <summary>Rebuilds the transient place registry from baked continuous content. Called
@@ -1164,7 +1924,31 @@ namespace XianXia.Unity.Host
                 return;
             EntityReconcileGeneration++;
             _desiredMaterializedEntities.Clear();
+            _continuousFormalArmyPopulation.Clear();
             _materializePointUses.Clear();
+
+            // ManualEncounter/PostBattle owns an isolated character scope on this Surface.
+            // Keep only the frozen actual participants; ordinary Party, Army, Site and residual
+            // population passes resume after the offer-owned context is cleared.
+            var combat = world.Strategic?.ContinuousManualCombat;
+            if (combat != null && combat.IsActive &&
+                string.Equals(combat.SurfaceId, _surfaceId, StringComparison.Ordinal))
+            {
+                foreach (var rawId in combat.ParticipantIds)
+                {
+                    var id = new EntityId(rawId);
+                    if (id.IsNone || !world.Entities.TryGet(id, out var entity) || entity == null ||
+                        XianXia.Core.Combat.CombatLifeStateService.ShouldHideFromSpawn(entity) ||
+                        !entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var location) ||
+                        location == null || !location.HasPresentationOverride)
+                        continue;
+                    _desiredMaterializedEntities.Add(id);
+                    if (ArmyService.TryGetArmyForCharacter(world, id, out _))
+                        _continuousFormalArmyPopulation.Add(id);
+                }
+                ApplyOutdoorEntityMaterializationReconcile(world);
+                return;
+            }
 
             var party = _bootstrap.Session.PlayerParty;
             if (party != null)
@@ -1181,6 +1965,65 @@ namespace XianXia.Unity.Host
                 }
             }
 
+            // An engaged FormalArmy is intentionally absent from the ordinary field-army pass.
+            // The bound Continuous combat context owns exactly these frozen participants for the
+            // lifetime of ManualEncounter and PostBattle, so reconcile must retain their Views.
+            // Field FormalArmy members are ordinary near-field population on the active
+            // Continuous Surface. Membership and placement derive only from WorldMotion;
+            // stale per-character WorldPresence must never override or capture this authority.
+            foreach (var pair in world.Strategic.FormalArmies.Armies)
+            {
+                var army = pair.Value;
+                if (army == null || !army.WorldMotion.HasPosition ||
+                    army.State == FormalArmyState.Garrisoned ||
+                    army.WorldMotion.LocationKind == FormalArmyLocationKind.AtWorldSite ||
+                    FormalArmyMemberPresenceSync.IsArmyEngaged(world, army))
+                    continue;
+                var inLoadedNeighborhood = IsFieldFormalArmyInLoadedNeighborhood(army);
+
+                _formalArmyMemberScratch.Clear();
+                for (var i = 0; i < army.MemberCharacterIds.Count; i++)
+                    _formalArmyMemberScratch.Add(army.MemberCharacterIds[i]);
+                _formalArmyMemberScratch.Sort();
+                for (var slot = 0; slot < _formalArmyMemberScratch.Count; slot++)
+                {
+                    var id = new EntityId(_formalArmyMemberScratch[slot]);
+                    if (id.IsNone || (party != null && party.IsMember(id)) ||
+                        !LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id) ||
+                        !world.Entities.TryGet(id, out var entity) ||
+                        !ArmyService.TryGetArmyForCharacter(world, id, out var boundArmy) ||
+                        boundArmy == null ||
+                        !string.Equals(boundArmy.ArmyId, army.ArmyId, StringComparison.Ordinal))
+                        continue;
+
+                    // Mark every valid field-army member as Army-owned even when its Surface,
+                    // chunk or placement is currently rejected. The generic WorldPresence pass
+                    // must not rematerialize it through a stale derived record.
+                    _continuousFormalArmyPopulation.Add(id);
+                    if (!inLoadedNeighborhood)
+                        continue;
+
+                    if (!TryResolveFormalArmyMemberPresentationPosition(
+                            army, slot, null, out var presentation))
+                        continue;
+                    if (!entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc))
+                    {
+                        loc = new XianXia.Core.Exploration.EntityLocationComponent();
+                        entity.AddComponent(loc);
+                    }
+                    loc.SetPresentationOverride(presentation.x, presentation.y);
+                    if (!_materializePointUses.ContainsKey(
+                            QuantizeMaterializePoint(presentation.x, presentation.y)))
+                        _materializePointUses[
+                            QuantizeMaterializePoint(presentation.x, presentation.y)] = id.Value;
+
+                    // Commit membership only after a valid presentation point exists. View
+                    // creation remains the later EntityViewSpawner step and is not a prerequisite.
+                    _desiredMaterializedEntities.Add(id);
+                    _continuousSitePopulation.Add(id);
+                }
+            }
+
             for (var regionIndex = 0; regionIndex < surface.SiteRegions.Count; regionIndex++)
             {
                 var region = surface.SiteRegions[regionIndex];
@@ -1193,7 +2036,15 @@ namespace XianXia.Unity.Host
                 for (var i = 0; i < _sitePopulationScratch.Count; i++)
                 {
                     var id = _sitePopulationScratch[i];
-                    if (_bootstrap.Session.PlayerParty.IsMember(id) || !world.Entities.TryGet(id, out var entity)) continue;
+                    if (_bootstrap.Session.PlayerParty.IsMember(id) ||
+                        (combat != null && combat.Contains(id)) ||
+                        !world.Entities.TryGet(id, out var entity)) continue;
+                    // Only members actually claimed by the field-army pass above are skipped
+                    // here. StrategicWorldSitePopulationService is the authority for every
+                    // army member it resolves at this loaded Site, including the opening
+                    // supervisor whose army remains Idle rather than Garrisoned.
+                    if (_continuousFormalArmyPopulation.Contains(id))
+                        continue;
                     // 落点优先级（§9）：precise Continuous authored anchor
                     //　→ EntityLocation.LocationId 对应的 baked SitePlace
                     //　→ deterministic fallback。
@@ -1279,6 +2130,8 @@ namespace XianXia.Unity.Host
                 if (id.IsNone || _desiredMaterializedEntities.Contains(id) ||
                     !world.Entities.TryGet(id, out var entity) ||
                     XianXia.Core.Combat.CombatLifeStateService.ShouldHideFromSpawn(entity)) continue;
+                if (FormalArmyMemberPresenceSync.IsArmyControlledMember(world, id))
+                    continue;
                 WorldVec2 position;
                 var hasPrecisePosition = false;
                 if (presence.Mode == PartyWorldPresenceMode.AtWorldPosition && presence.HasContinuousWorldPosition)
@@ -1316,17 +2169,42 @@ namespace XianXia.Unity.Host
                     _materializePointUses[QuantizeMaterializePoint(px, py)] = id.Value;
             }
 
+            ApplyOutdoorEntityMaterializationReconcile(world);
+        }
+
+        void ApplyOutdoorEntityMaterializationReconcile(SimulationWorld world)
+        {
+            var preserveHiddenPlacement = world.Strategic?.ContinuousManualCombat != null &&
+                                          world.Strategic.ContinuousManualCombat.IsActive &&
+                                          string.Equals(
+                                              world.Strategic.ContinuousManualCombat.SurfaceId,
+                                              _surfaceId,
+                                              StringComparison.Ordinal);
             world.ContinuousOutdoorMaterialization.ReconcileEntities(
                 _desiredMaterializedEntities,
                 onAdd: null,
                 onRemove: id =>
                 {
-                    if (_bootstrap.ViewSpawner.Registry.TryGet(id, out var view) && view != null)
+                    var formalArmyOwned = _continuousFormalArmyPopulation.Contains(id) ||
+                        ArmyService.TryGetArmyForCharacter(world, id, out _);
+                    var hasView = _bootstrap.ViewSpawner.Registry.TryGet(id, out var view) && view != null;
+                    if (!formalArmyOwned && hasView)
                         TryCaptureAtSiteAnchor(id, view.transform.position);
                     if (world.Entities.TryGet(id, out var entity) &&
                         entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc))
-                        loc.ClearPresentationOverride();
+                    {
+                        // Isolation only destroys the View. Keep the last presentation anchor so
+                        // normal population reconciliation can restore the same person in place.
+                        if (preserveHiddenPlacement)
+                        {
+                            if (hasView)
+                                loc.SetPresentationOverride(view.transform.position.x, view.transform.position.y);
+                        }
+                        else
+                            loc.ClearPresentationOverride();
+                    }
                     _continuousSitePopulation.Remove(id);
+                    _continuousFormalArmyPopulation.Remove(id);
                 });
             _bootstrap.Session.RefreshViewableEntityIds();
             _bootstrap.ViewSpawner.PruneHiddenViews(_bootstrap.Session);
@@ -1531,14 +2409,16 @@ namespace XianXia.Unity.Host
 
         public int InvalidSpawnEntityCount => _invalidSpawnEntityIds.Count;
 
-        void ReleaseContinuousSitePopulation(bool pruneViews = true)
+        void ReleaseContinuousSitePopulation(bool pruneViews = true, bool capturePositions = true)
         {
             var world = _bootstrap?.Session?.World;
             if (world != null)
             {
                 foreach (var id in _continuousSitePopulation)
                 {
-                    if (_bootstrap.ViewSpawner.Registry.TryGet(id, out var view) && view != null)
+                    if (capturePositions && !_continuousFormalArmyPopulation.Contains(id) &&
+                        !ArmyService.TryGetArmyForCharacter(world, id, out _) &&
+                        _bootstrap.ViewSpawner.Registry.TryGet(id, out var view) && view != null)
                         TryCaptureAtSiteAnchor(id, view.transform.position);
                     if (world.Entities.TryGet(id, out var entity) &&
                         entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc))
@@ -1547,6 +2427,7 @@ namespace XianXia.Unity.Host
                 world.ContinuousOutdoorMaterialization.Clear();
             }
             _continuousSitePopulation.Clear();
+            _continuousFormalArmyPopulation.Clear();
             _desiredMaterializedEntities.Clear();
             _sitePopulationScratch.Clear();
             if (pruneViews && _bootstrap?.Session?.IsInitialized == true)

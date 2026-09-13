@@ -258,6 +258,14 @@ namespace XianXia.Unity.Host
             if (oldActive == newActive)
                 return true;
 
+            var continuousCombat = session.World.Strategic?.ContinuousManualCombat;
+            if (continuousCombat != null && continuousCombat.IsActive &&
+                !continuousCombat.IsFriendly(newActive))
+            {
+                error = "该角色未参加当前战斗。";
+                return false;
+            }
+
             if (!Party.TrySetActive(session.World, newActive, out error))
                 return false;
 
@@ -314,13 +322,15 @@ namespace XianXia.Unity.Host
             {
                 var pos = activeView.transform.position;
                 var ok = IsSafePlacementPoint(world, pos.x, pos.y, bounds, depth);
-                if (!ok && TryFindSafeRepairPoint(world, pos.x, pos.y, bounds, depth, 16, out activeSafe))
+                if (!ok && TryResolveMaterializedSafePlacement(
+                        world, active, pos.x, pos.y, bounds, depth, out activeSafe))
                 {
                     ApplyRepairedPlacement(world, active, activeView, activeSafe);
                     activeRepaired = true;
                     if (session.World.PlayerPartyTravel != null &&
                         session.World.PlayerPartyTravel.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
-                        !string.IsNullOrEmpty(session.World.PlayerPartyTravel.SiteId))
+                        !string.IsNullOrEmpty(session.World.PlayerPartyTravel.SiteId) &&
+                        !BattleOfferService.HasActiveManualEncounter(world))
                         SyncCanonicalImmediatelyAfterRepair(session.World, activeSafe.x, activeSafe.y);
                 }
             }
@@ -332,8 +342,9 @@ namespace XianXia.Unity.Host
                     ent.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc) &&
                     loc != null &&
                     loc.HasPresentationOverride &&
-                    TryFindSafeRepairPoint(
-                        world, loc.PresentationOverrideX, loc.PresentationOverrideZ, bounds, depth, 16, out activeSafe))
+                    TryResolveMaterializedSafePlacement(
+                        world, active, loc.PresentationOverrideX, loc.PresentationOverrideZ,
+                        bounds, depth, out activeSafe))
                 {
                     loc.SetPresentationOverride(activeSafe.x, activeSafe.y);
                     activeRepaired = true;
@@ -374,8 +385,8 @@ namespace XianXia.Unity.Host
                     continue;
                 }
 
-                if (!TryFindSafeRepairPointAvoiding(
-                        world, preferred.x, preferred.y, bounds, depth, 16, occupiedCells, out var safe))
+                if (!TryResolveMaterializedSafePlacementAvoiding(
+                        world, id, preferred.x, preferred.y, bounds, depth, occupiedCells, out var safe))
                     continue;
                 ApplyRepairedPlacement(world, id, view, safe);
                 MarkCellOccupied(safe.x, safe.y, occupiedCells);
@@ -408,6 +419,69 @@ namespace XianXia.Unity.Host
             view.transform.position = safe;
         }
 
+        /// <summary>
+        /// The materializer has already written the target LocalMap position to EntityLocation.
+        /// A retained Continuous view can still carry its old canonical presentation coordinate
+        /// until the LocalMap rebuild completes, so prefer the domain placement before repairing
+        /// around that stale transform. The full-grid radius is a one-shot last resort for a
+        /// blocked authored point; it cannot become a per-frame scan.
+        /// </summary>
+        bool TryResolveMaterializedSafePlacement(
+            SimulationWorld world,
+            EntityId id,
+            float fallbackX,
+            float fallbackY,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float depth,
+            out Vector3 safe)
+        {
+            var occupied = new HashSet<long>();
+            return TryResolveMaterializedSafePlacementAvoiding(
+                world, id, fallbackX, fallbackY, bounds, depth, occupied, out safe);
+        }
+
+        bool TryResolveMaterializedSafePlacementAvoiding(
+            SimulationWorld world,
+            EntityId id,
+            float fallbackX,
+            float fallbackY,
+            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
+            float depth,
+            HashSet<long> occupiedCells,
+            out Vector3 safe)
+        {
+            safe = default;
+            var preferredX = fallbackX;
+            var preferredY = fallbackY;
+            if (world.Entities.TryGet(id, out var entity) && entity != null &&
+                entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc) &&
+                loc != null && loc.HasPresentationOverride)
+            {
+                preferredX = loc.PresentationOverrideX;
+                preferredY = loc.PresentationOverrideZ;
+                if (IsSafePlacementPoint(world, preferredX, preferredY, bounds, depth) &&
+                    !IsCellOccupied(preferredX, preferredY, occupiedCells))
+                {
+                    safe = new Vector3(preferredX, preferredY, HostPresentationSpace.EntityZ);
+                    return true;
+                }
+            }
+
+            var grid = _move != null ? _move.WalkGrid : null;
+            if (grid == null)
+                return false;
+            var fullGridRadius = Mathf.Max(grid.Width, grid.Height);
+            return TryFindSafeRepairPointAvoiding(
+                world,
+                preferredX,
+                preferredY,
+                bounds,
+                depth,
+                fullGridRadius,
+                occupiedCells,
+                out safe);
+        }
+
         /// <summary>Active repair 后立即 Local→Canonical（不等 LateUpdate 碰运气），保持双真源一致。</summary>
         void SyncCanonicalImmediatelyAfterRepair(SimulationWorld world, float localX, float localY)
         {
@@ -435,19 +509,6 @@ namespace XianXia.Unity.Host
             if (!WildernessLocalWorldProjection.IsInSafeInterior(x, y, bounds))
                 return false;
             return !IsPointInAnySurfaceExitSlot(world, x, y, bounds, depth);
-        }
-
-        bool TryFindSafeRepairPoint(
-            SimulationWorld world,
-            float x,
-            float y,
-            WildernessLocalWorldProjection.WildernessLocalMapBounds bounds,
-            float depth,
-            int maxRadius,
-            out Vector3 safe)
-        {
-            var occupied = new HashSet<long>();
-            return TryFindSafeRepairPointAvoiding(world, x, y, bounds, depth, maxRadius, occupied, out safe);
         }
 
         bool TryFindSafeRepairPointAvoiding(
@@ -727,10 +788,8 @@ namespace XianXia.Unity.Host
         {
             if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized || Party == null)
                 return;
-            if (Party.IsAwaitingSuccession)
-                return;
 
-            Party.RefreshActiveAfterLifeState(bootstrap.Session.World);
+            RefreshActiveControlAfterLifeStateChange();
             if (Party.IsAwaitingSuccession || Party.ActiveCharacterId.IsNone)
                 return;
 
@@ -746,6 +805,32 @@ namespace XianXia.Unity.Host
             TickCombatFollow();
             TickWildernessWorldSyncAndEdge();
             TickLocalVisibleAutoTravelMovement();
+        }
+
+        public void RefreshActiveControlAfterLifeStateChange()
+        {
+            if (bootstrap?.Session == null || !bootstrap.Session.IsInitialized || Party == null)
+                return;
+            var previousActive = Party.ActiveCharacterId;
+            Party.RefreshActiveAfterLifeState(bootstrap.Session.World);
+            var currentActive = Party.ActiveCharacterId;
+            if (previousActive != currentActive)
+                ApplyAutomaticActiveChange(previousActive, currentActive);
+        }
+
+        void ApplyAutomaticActiveChange(EntityId previousActive, EntityId currentActive)
+        {
+            if (!previousActive.IsNone)
+                ClearDirectControlFor(previousActive);
+            _cameraMode = HostActiveCameraFollowMode.Free;
+            _wasdHeldLastFrame = false;
+
+            if (currentActive.IsNone)
+                return;
+
+            _pendingSnapshotFollowRebind = true;
+            FrameCameraOn(currentActive);
+            bootstrap?.SelectionController?.SelectEntity(currentActive, false);
         }
 
         void TickWasdForActive()

@@ -16,6 +16,7 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostBreakthroughRitual : MonoBehaviour
     {
+        const string PauseOwner = "BreakthroughRitual";
         public const float DefaultDurationSeconds = 10f;
 
         [SerializeField] PlayableHostBootstrap bootstrap;
@@ -190,7 +191,7 @@ namespace XianXia.Unity.Host
             _resultOpen = true;
             if (bootstrap?.Session != null)
             {
-                bootstrap.Session.IsPaused = true;
+                bootstrap.Session.AcquireModalPause(PauseOwner);
                 _holdingPause = true;
             }
         }
@@ -234,7 +235,7 @@ namespace XianXia.Unity.Host
                 HostInputGate.BlockWorldInteraction = true;
                 if (!_holdingPause)
                 {
-                    bootstrap.Session.IsPaused = true;
+                    bootstrap.Session.AcquireModalPause(PauseOwner);
                     _holdingPause = true;
                 }
 
@@ -297,7 +298,7 @@ namespace XianXia.Unity.Host
                 _report = resolved.Value;
 
             _resultOpen = true;
-            bootstrap.Session.IsPaused = true;
+            bootstrap.Session.AcquireModalPause(PauseOwner);
             _holdingPause = true;
         }
 
@@ -473,13 +474,15 @@ namespace XianXia.Unity.Host
             ReleasePause();
         }
 
+        void OnDisable() => ReleasePause();
+
         void ReleasePause()
         {
             if (!_holdingPause)
                 return;
             _holdingPause = false;
             if (bootstrap?.Session != null)
-                bootstrap.Session.IsPaused = false;
+                bootstrap.Session.ReleaseModalPause(PauseOwner);
             HostInputGate.Clear();
         }
 

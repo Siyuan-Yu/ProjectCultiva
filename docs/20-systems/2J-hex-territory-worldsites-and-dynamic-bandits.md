@@ -1,12 +1,12 @@
 # Hex Territory、Multi-Hex WorldSite 与动态山贼系统
 
-> 状态：**设计规则已拍板／Control Asset + FactionFlag V1 已实现、人工验收并封板**｜优先级：P0｜最后更新：2026-09-06
-> 上级：`docs/00-project/00-overview.md`  
+> 状态：Hex 战略叠加保留；旧 Control Asset V1 已验收，SiteCore 实际范围目标待迁移／核查｜优先级：P0｜最后更新：2026-09-12
+> 上级：`docs/00-project/00-overview.md`
 > 关联：`2A`、`24`、`26`、`28`、`03-glossary`、`ADR-0024`、`ADR-0025`、`ADR-0031`、[`155`](../40-process/155-hex-strategic-worldmap-migration-2026-08-23.md)、[`158`](../40-process/158-hex-world-content-authoring-pipeline-2026-08-23.md)
-> 被引用：`03-glossary.md`、`41-roadmap`  
-> **本页是 Pure Hex 战略空间下 Territory / WorldSite Footprint / Dynamic Site 的正式设计真源。**  
-> **PresenceHex 已由 [ADR-0027](../40-process/43-decisions/ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md) 改为 Derived（CanonicalWorldSurfacePosition → WorldToHex）；见 [2K §6](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。本页 Footprint／Anchor 占地规则不推翻。**  
-> **Future Surface 注记：** [ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md) 保留 Hex 作为 Territory / Strategic Simulation authority；WorldSite Footprint 是战略范围，未来不等于其 exact physical geometry / physical region，且 Hex 不等于 Surface Chunk。当前 LocalMap 规则不受本注记影响。
+> 被引用：`03-glossary.md`、`41-roadmap`
+> **本页只继续作为 Hex 战略叠加／摘要与 Dynamic Site 历史入口。SiteCore 的真实行政／建设范围以 [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md) 和 [26](26-territory-management.md) 为准。**
+> **PresenceHex 仅为 `WorldToHex(CanonicalWorldSurfacePosition)` 的战略派生；不得 clamp 到 Footprint，也不决定 CurrentSite 或建筑归属。**
+> **Continuous Surface 当前规则：** [ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md) 保留 Hex 为战略摘要；WorldSite Footprint、Anchor 与 Surface Chunk 都不等于实际物理／行政边界，普通 Outdoor 不使用一 Site 一 LocalMap。
 > **本阶段不写实现代码、不改 JSON、不做技术审计。**
 
 > **⚠️ 2026-09-03 · TerritoryRegion V1 已实现并封板（见 [192 TerritoryRegion V1 硬化](../40-process/192-phase2j-territory-region-v1-base-layer-2026-09-03.md)）。**
@@ -14,19 +14,30 @@
 
 > **SUPERSEDED（2026-09-06）：** 下方“`HexCell.ControlFactionId` authoritative”、“`Region.Hexes[]` membership 真源”与“重叠禁止”已被 Control Asset Territory Model 取代，仅作 2026-09-03 实现历史。
 
-## Control Asset Territory Model + Faction Flag V1（2026-09-06 正式规则）
+> **PARTIALLY SUPERSEDED（2026-09-12）：** 下文把 `FootprintHexes` 当作 WorldSite 真实物理／精确行政范围、一个 Site 一张 Outdoor LocalMap、按核心既有顺序重新裁决全部升级范围，以及 Army／船独占政治资格的描述，不再是目标。Hex 只保留未冲突的战略叠加／摘要；实际位置、河桥、SiteCore 范围和战场裁切分别由 Continuous Surface、行政控制历史和同源遭遇决定。
 
-- 政治控制的因果真源只有 **Control Asset**：有 Owner 的 Fixed `WorldSite` 与存活的 `FactionFlag`。`HexCell.ControlFactionId` 和 `TerritoryRegion.Hexes[]` 都是 Resolver 可重建的有效投影。
-- WorldSite 名义范围 = 完整 Footprint + 外一环；FactionFlag 名义范围 = Anchor + 完整一环（边界外 Hex 裁剪）。
-- 名义范围允许重叠。每个 Hex 按全局稳定 `EstablishedOrder` 由早到晚 first claim；ID 仅作脏数据确定性 tie-break，正式内容不得重复 Order。
-- Capture 只改 WorldSite Owner，保留 EstablishedOrder；旗被摧毁时先移除资产再重建，原被挡住的较晚资产自然扩展。
-- `FactionFlag` 是有 HP、真实建筑 prefab/footprint/WalkGrid 阻挡的非 Character 战略目标。攻击需有效 War；Anchor+一环内有真实防守 FormalArmy 时进入 BattleOffer，无守军时角色接近建筑并按正式 melee interval、Attack 与建筑 Defense 逐击伤害；战后不自动续拆。
-- 玩家立旗：Anchor 必须可通行、不在 WorldSite Footprint、无其他旗，Anchor 不得为敌方有效控制，且候选范围至少新增 1 个无主 Hex。
+## Control Asset Territory Model + Faction Flag V1（历史已验收基线）
+
+### 2026-09-12 SiteCore 目标补丁
+
+- V1 一个 Site 一个核心；预设议政厅不可拆但可升级／接管，玩家旗产生可拆／可毁的新 Site。
+- 理论覆盖可重叠；扩张只争取新增且未被有效取得的控制，不追溯吞并既有控制。同势力实际管理也必须稳定且唯一。
+- 拆旗保留建筑、库存、生命和损伤；有其他覆盖则接续管理，无覆盖只暂停行政依赖功能。
+- `FootprintHexes` 不得反推真实物理边界。具体控制历史和平局数据结构在实现前核查；现有 `EstablishedOrder` 验收只代表旧 V1 基线。
+
+- **当前控制因果：** 一个 WorldSite 的 SiteCore 或存活的新 Site 势力旗产生理论覆盖；每个位置／建筑解析唯一、稳定的实际行政管理。Hex 控制色只作战略投影。
+- **历史范围公式：** “WorldSite Footprint+一环／Flag Anchor+一环”只描述 2026-09-06 V1 已验收实现，不是当前所有核心等级的永久范围公式。
+- **当前重叠规则：** 理论范围可重叠；同势力按 Union 显示／统计且不重复计数。不同势力既得有效控制保留，旧核心升级新增范围不能按全局 `EstablishedOrder` 追溯抢地。
+- **当前移除／接管：** 旗毁后建筑、物品和损伤保留，有其他有效 Site 则行政接续，无则停止行政依赖功能；议政厅接管保留 Site 身份且不自动改变居民／守军忠诚。
+- **当前建筑战：** 攻击任意他势力有效拥有的建筑都先处理战争后果；新玩家实战必经统一 Encounter 窗口，不以存在防守 FormalArmy 为前提。战内可升级战争并实际接管议政厅。
+- **新旗初创例外：** 普通建筑必须位于候选占地已有合法行政／建设范围内；创建新 Site 的旗不循环要求该位置先属于新 Site。它仍须满足成本、占地／碰撞、地形、非敌方有效控制、不得覆盖其他核心实体并能产生合法新增 claim 等既有前置。
 - Snapshot 保存完整活跃旗。新存档显式空列表也有权威，已摧毁 authored flag 不会复活；legacy 旧档缺字段时继续使用 Content 旗。
 
 落地历史见 [199](../40-process/199-control-asset-territory-and-faction-flag-v1-2026-09-06.md)；人工验收后的正式封板基线见 [200](../40-process/200-control-asset-territory-and-faction-flag-v1-sealed-2026-09-06.md)。
 
-## Implementation Status（2026-09-03 · TerritoryRegion V1 implemented）
+## Implementation Status（2026-09-03 历史已验收实现）
+
+> 本节从此处至 “Supersede 声明” 仅描述 2026-09-03／09-06 运行时基线。它不覆盖上方 2026-09-12 目标；尤其 overlap validation、固定 Region geometry、EstablishedOrder first-claim 和 footprint+一环都须迁移／核查。
 
 - **TerritoryRegion V1 implemented**：`TerritoryRegion` / `TerritoryRegionBoard`（hex→region O(1) 索引 + Register overlap 硬校验）/ `TerritoryControlService`（唯一写入口）/ `TerritoryInvariantValidator` / `WorldSiteTerritoryTransferService`（Site+Region 一次易主事务）。
 - **`HexCell.ControlFactionId` authoritative**：每 Hex 最终政治控制唯一真源；Runtime 不另建第二套 controller dictionary。
@@ -52,7 +63,7 @@
 | Owner / Controller 双层主权 | **Site Owner = Region Controller**；每 Hex 仅 **0 或 1** 个 `ControlFactionId` |
 | `TerritoryRadius` Runtime 动态重算 | **TerritoryRadius** 仅用于 **初始内容生成**；Runtime 读固化 `Region.Hexes[]` |
 
-> **Node / Route** 在战略空间层已被 Pure Hex supersede（见 ADR-0025、155）。本文 **不** 重建 Node Territory 或 Route ownership 语义。  
+> **Node / Route** 在战略空间层已被 Pure Hex supersede（见 ADR-0025、155）。本文 **不** 重建 Node Territory 或 Route ownership 语义。
 > 与 [2A](2A-factions-armies-diplomacy-and-capture.md) 冲突时，**Territory / WorldSite / Bandit 专题以本文为准**；外交 / Army / Capture 流程仍见 2A，本文补充 Hex-native 空间语义。
 
 ---
@@ -175,6 +186,8 @@
 
 ### 4.1 Footprint：永远只占 1 Hex
 
+> **历史战略摘要边界：** “1 Hex”只描述 Bandit Camp 的战略 footprint，不是其精确物理／行政范围，也不能裁切 Encounter。
+
 **硬规则：** Bandit Camp **Footprint = exactly 1 Hex**。
 
 - 不考虑 2 / 4 / 6 Hex 大型山贼城市
@@ -200,12 +213,12 @@
 
 若 `Hex.ControlFactionId != None` → **不能** 成为新的 Bandit Camp Spawn Candidate。
 
-第一版 **不做** 正式势力境内随机刷匪窝。正式 Territory 当前被视为已有基础政治秩序。  
+第一版 **不做** 正式势力境内随机刷匪窝。正式 Territory 当前被视为已有基础政治秩序。
 （以后「治安崩溃 / 境内匪患」另做高级系统。）
 
 ### 4.4 边境外无主地允许生成
 
-某 Hex 本身是无主地，**即使紧邻** 正式 Faction Territory，仍然允许作为山贼寨候选。  
+某 Hex 本身是无主地，**即使紧邻** 正式 Faction Territory，仍然允许作为山贼寨候选。
 第一版 **不要求** 必须距离势力边境 N 格。
 
 ### 4.5 已有山贼寨后来被领土覆盖
@@ -258,7 +271,7 @@ Bandit Camp 被摧毁 **≠** 立刻删除 Bandit Faction。
 | **SpawnAttemptInterval / RespawnCooldown** | 按周期 / 延迟尝试生成；**不** 采用「拆一个立刻补一个」 |
 | **MinBanditCampDistance** | 新山贼寨与已有山贼寨至少保持 Hex distance ≥ N |
 
-**Prototype 推荐：** `MinBanditCampDistance = 8`（Data / Config driven，**不要硬编码**）。  
+**Prototype 推荐：** `MinBanditCampDistance = 8`（Data / Config driven，**不要硬编码**）。
 具体边界包含方式实现时按项目统一 Hex distance 语义。
 
 ### 4.11 LocalMap Template
@@ -271,7 +284,7 @@ Bandit Camp 被摧毁 **≠** 立刻删除 Bandit Faction。
 
 ---
 
-## 5. Multi-Hex WorldSite
+## 5. WorldSite 的 Strategic Hex 摘要（旧 Multi-Hex 模型已收窄）
 
 ### 5.1 Fixed WorldSite 可占多个 Hex
 
@@ -285,29 +298,24 @@ Bandit Camp 被摧毁 **≠** 立刻删除 Bandit Faction。
 
 例如：一座城占 4 Hex → **绝对不代表 4 个 WorldSite**。
 
-正式：**1 WorldSiteId、1 OwnerFactionId、1 LocalMapId、1 Capture state、1 TerritoryRegion、1 地点身份**。  
-`FootprintHexes` 只是该 Site 在 WorldMap 的战略占地。
+当前正式：**1 WorldSiteId、1 SiteCore、1 当前 Owner、1 地点身份**。`FootprintHexes` 只可作为 WorldMap 战略显示／索引摘要，不强制一个 Outdoor LocalMap、Capture state 或固定 TerritoryRegion。
 
-### 5.3 永远只对应一张 LocalMap
+### 5.3 一张 Outdoor LocalMap（历史实现）
 
-例如：青云城 Footprint = H1, H2, H3, H4 → 仍 **WorldSiteId = QingyunCity、LocalMapId = QingyunCityLocalMap**。  
-四个 Hex **全部进入同一张 LocalMap**。**禁止** 一个 Footprint Hex 对应一张 LocalMap。
+2026-08-24 模型曾令一个 Multi-Hex Site 对应一张 Outdoor LocalMap。该约束已由 Continuous Outdoor Surface 替代：普通户外 Site 不切探索图；真正 Interior／洞府／地下可以有独立 LocalMap。
 
 ### 5.4 进入规则
 
-若 `Army.CurrentHex ∈ WorldSite.FootprintHexes` → Army 被视为 **physically at this WorldSite**。
+`Army.CurrentHex ∈ WorldSite.FootprintHexes` 只可用于旧战略摘要，不能断言人物／Army 物理上位于该 Site。
 
-- 我方 Army 位于 Footprint 中 **任意一个 Hex** 都可以：RightClick →【进入 XXX】→ 进入 **同一张 LocalMap**
-- 判断必须是：**Site.Footprint.Contains(Army.CurrentHex)**
-- **禁止** 写成 `Army.CurrentHex == Site.AnchorHex`
+- 当前 Site Context 由真实 WorldPosition 与有效行政控制解析。
+- Site 标记下令解析真实合法抵达点，不吸附 AnchorHex 或按 footprint 进入一张 Outdoor LocalMap。
 
-### 5.5 不同 Footprint Hex 进入第一版完全一样
+### 5.5 不同 Footprint Hex 入口（历史实现）
 
-从 H1 进入与从 H4 进入第一版 **完全相同**（同一 LocalMap、Population、Site State、Capture State）。  
-第一版 **不做** 东门 / 西门不同 SpawnPoint。  
-以后若 EntryHex 只影响 LocalMap 出生点，仍然 **不会** 产生不同 LocalMap。
+旧版本从各 footprint Hex 进入同一 LocalMap；当前普通 Outdoor 没有该入口切图。真实门、桥、道路和抵达点由 Continuous Surface 决定。
 
-> **ADR-0027 supersede：** 5D-B2a 起，进入**目标 Site** 时按真实来向选择 footprint 入口 Hex（ingress 位置随方向，不再无条件 Anchor）。仍不产生不同 LocalMap 实例；EntryHex 影响 ingress 落点与出生位置。
+> **历史迁移补丁：** ADR-0027／5D-B2a 曾令进入目标 Site 时按来向选择 footprint 入口 Hex。该规则只解释旧 LocalMap ingress；当前普通 Outdoor 直接在 Continuous Surface 上移动，真实门、桥、道路和物理位置决定到达，不经过 footprint 入口切图。
 
 ### 5.6 AnchorHex 的正式职责
 
@@ -316,15 +324,15 @@ Multi-Hex WorldSite 仍可有 **AnchorHex**，主要用于：
 - Site 图标中心、DisplayName 放置
 - 编辑器定位、摄像机 Focus、默认视觉中心
 
-**AnchorHex 不是**「Army／Character 是否在这个 Site」的唯一判断条件。  
+**AnchorHex 不是**「Army／Character 是否在这个 Site」的唯一判断条件。
 **禁止** 用 AnchorHex 作为 PlayerParty AtSite 时的 World Position（ADR-0027 #5）；仅保留 Site 图标／标签／编辑器参考点／默认镜头焦点职责。
 
-### 5.6.1 PresenceHex（2026-08-25，见 2K）
+### 5.6.1 PresenceHex（2026-08-25 历史实现，见 2K）
 
-Character 位于该 Site 的 **LocalMap** 时，HexWorld 层统一视为位于固定 **PresenceHex**（必须 ∈ Footprint；可与 Anchor 相同或不同）。  
+Character 位于该 Site 的 **LocalMap** 时，HexWorld 层统一视为位于固定 **PresenceHex**（必须 ∈ Footprint；可与 Anchor 相同或不同）。
 Runtime **不**根据 LocalMap 内坐标动态归属 A/B/C/D。Authoring／Editor 编辑 Deferred。产品真源：[2K §6](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。
 
-> **ADR-0027 SUPERSEDED：** PresenceHex 不再是固定 Authoring 值；改为 **DerivedPresenceHex**（`LocalPosition → WorldSiteSpatialMapping → CanonicalWorldSurfacePosition → WorldToHex`），仅查询/cache。本条保留历史描述。
+> **当前替代：** `DerivedPresenceHex = WorldToHex(CanonicalWorldPosition)`，仅作战略查询/cache，不落盘、不经普通户外 LocalMap mapping，也不 clamp 到 footprint。本条上方固定 PresenceHex 只保留历史描述。
 
 ### 5.7 Footprint 必须显式保存
 
@@ -336,13 +344,12 @@ Runtime **不**根据 LocalMap 内坐标动态归属 A/B/C/D。Authoring／Edito
 
 ### 5.8 Footprint 必须连通
 
-Fixed Multi-Hex Site 的 `FootprintHexes` **必须** 是一片连续 Hex。  
+Fixed Multi-Hex Site 的 `FootprintHexes` **必须** 是一片连续 Hex。
 不允许同一城市由几块互不相连 Hex 组成。Editor / validation 未来应对此提供 Warning / Error。
 
-### 5.9 不同 WorldSite Footprint 绝对禁止重叠
+### 5.9 WorldSite 战略摘要允许几何重叠
 
-**永久硬规则：** 一个 Hex **最多属于一个** WorldSite Footprint。  
-不允许青云城与青石关共享同一 Hex，否则 Site identity、LocalMap entry、Population、Capture 全部产生歧义。
+旧“一个 Hex 最多属于一个 WorldSite Footprint”永久禁令已经替代。理论 SiteCore 范围和战略摘要都可合法重叠；每个真实位置／建筑的实际行政管理必须唯一、稳定，并保留既得控制。若 WorldMap 需要选择主 Site 图标，只能作为显示／索引选择，不能拒绝合法重叠、决定人物 CurrentSite 或建筑实际归属。
 
 ### 5.10 Footprint 不阻挡普通移动
 
@@ -354,11 +361,9 @@ Fixed Multi-Hex Site 的 `FootprintHexes` **必须** 是一片连续 Hex。
 
 ### 5.11 同一 Multi-Hex Site 内的 Army
 
-只要 `Army.CurrentHex ∈ Site.Footprint` → 战略语义上 Army 就属于「当前位于这个 WorldSite」。
+旧 `Army.CurrentHex ∈ Site.Footprint` 仅提供战略摘要候选；实际是否位于 Site 必须由 WorldPosition 与有效控制解析。
 
-例：青云城 6 Hex，Army A 在 H1、Army B 在 H5、Army C 在 H6 → 三支 Army 都属于「当前驻于青云城」。  
-进入 LocalMap 时都属于该 Site 的真实 Population 候选；攻击 / 防守 Site 时也都属于该地点的战略守军来源。  
-具体战斗一次如何进场以后由 Encounter / Reinforcement 规则决定。
+仅凭青云城战略摘要覆盖 H1/H5/H6，不能断定对应 Army 都在该 Site。各实体按真实 WorldPosition 与有效 Site 上下文解析；位于 Site 的真实角色可作为 Population／守备候选，实际参战仍由 Encounter／职责／有限援军规则决定。
 
 ### 5.12 多 Hex Site 名称 / 图标只显示一次
 
@@ -367,6 +372,8 @@ WorldMap **不要** 在 6 格每格都显示「青云城」。只在 **AnchorHex
 ---
 
 ## 6. Hex Territory 与 TerritoryRegion
+
+当前正式规则：Hex Territory 是实际 SiteCore 行政控制的战略投影，不是行政真源。理论覆盖允许重叠；同势力 Union 不重复统计，每个位置／建筑只解析一个实际管理 Site。不同势力保留既得有效控制，升级新增范围不得用核心创建时间追溯重排。具体控制历史和平局数据表达待实现前核查。
 
 ### 6.1 唯一政治控制状态
 
@@ -386,7 +393,7 @@ WorldMap **不要** 在 6 格每格都显示「青云城」。只在 **AnchorHex
 | **WorldSite Footprint** | 这个地点本体在战略地图上有多大？ |
 | **Territory（TerritoryRegion）** | 这个 Faction 当前政治上控制哪些 Hex？ |
 
-例：青云城 WorldSite Footprint = 6 Hex，但青云城辖区 TerritoryRegion 可能 = 50～100 Hex。  
+例：青云城 WorldSite Footprint = 6 Hex，但青云城辖区 TerritoryRegion 可能 = 50～100 Hex。
 **绝对不要** `WorldSite.Footprint == Faction Territory`。
 
 ### 6.3 TerritoryRegion 正式存在
@@ -401,20 +408,22 @@ WorldMap **不要** 在 6 格每格都显示「青云城」。只在 **AnchorHex
 
 ### 6.4 固定 WorldSite 对应自己的辖区 Region
 
+> **历史实现范围（§6.4～§6.20）：** 以下 TerritoryRegion、radius、footprint+一环、PrimarySite 和固化 Hex membership 描述只适用于 2026-09-03／09-06 已验收版本。当前 SiteCore 等级范围、重叠、既得控制与旗毁管理接续以本页 §6 开头及 ADR-0032 为准。战略摘要可选择一个主 Site 标记用于显示／索引，但不能据此判 CurrentSite、建筑归属或拒绝合法重叠。
+
 第一版初始 Fixed WorldSite **原则上都拥有自己的 TerritoryRegion**（青石荒村、青云路、矿山、城池、宗门等分别拥有自己的 Region）。
 
 即使 Region 初始 Owner = None 也可以存在（无主废村、无人矿山等）。
 
 ### 6.5 无主 Fixed WorldSite
 
-Fixed WorldSite 可以 **OwnerFactionId = None**；对应 TerritoryRegion **ControlFactionId = None**。  
+Fixed WorldSite 可以 **OwnerFactionId = None**；对应 TerritoryRegion **ControlFactionId = None**。
 以后玩家第一次合法占领 Site → Site Owner → Player，Region Controller → Player。
 
 ### 6.6 没有 WorldSite 支撑的地方不产生正式势力领土
 
 **制作人明确决定：** 第一版 Territory **主要来自** Fixed WorldSite 对应的 TerritoryRegion。
 
-没有绑定 Fixed WorldSite 的普通荒野 → **ControlFactionId = None**。Army 走过去 **不会自动 Claim**。  
+没有绑定 Fixed WorldSite 的普通荒野 → **ControlFactionId = None**。Army 走过去 **不会自动 Claim**。
 （以后建城、建立据点、开拓、殖民另做扩张系统。）
 
 ### 6.7 TerritoryRadius（仅内容生成参数）
@@ -444,7 +453,7 @@ WorldSite.FootprintHexes + TerritoryRadius
   → 固化到 World Content / JSON
 ```
 
-游戏 Runtime **只读取** 最终 `Region.Hexes[]`。**Runtime 不根据 radius 动态重算辖区。**  
+游戏 Runtime **只读取** 最终 `Region.Hexes[]`。**Runtime 不根据 radius 动态重算辖区。**
 城市升级、战争 **不会** 重新跑 Radius 算法。
 
 ### 6.10 初始 Territory 自动生成
@@ -456,7 +465,7 @@ WorldSite.FootprintHexes + TerritoryRadius
 - WorldSite Footprint
 - TerritoryRadius
 
-**自动生成** 一版初始 TerritoryRegion，生成结果再固化为明确 `Region.Hexes[]`。  
+**自动生成** 一版初始 TerritoryRegion，生成结果再固化为明确 `Region.Hexes[]`。
 以后编辑器可提供手工调整 / Brush，但第一版初始版图 **优先自动生成**。
 
 ### 6.11 初始势力领土不要太大
@@ -479,7 +488,7 @@ Prototype 推荐：小 Site radius 1、大 Site radius 2 作为初版范围。
 
 ### 6.13 距离相同：确定性 Tie-break
 
-若一个 Hex 到两个竞争 Site Footprint 距离完全一致 → 使用 **确定性 Tie-break rule**（SiteId 排序、Priority 或其他确定性方式，实现时决定）。  
+若一个 Hex 到两个竞争 Site Footprint 距离完全一致 → 使用 **确定性 Tie-break rule**（SiteId 排序、Priority 或其他确定性方式，实现时决定）。
 要求：同一份世界数据每次生成结果一致；**不能 Random**。
 
 ### 6.14 生成以后固化
@@ -508,7 +517,7 @@ Prototype 推荐：小 Site radius 1、大 Site radius 2 作为初版范围。
 
 ### 6.19 没有核心 Site 的 Region 第一版不可 Capture
 
-若未来存在纯地图组织 Region 但没有 Primary WorldSite → 第一版 **不提供** 直接 Capture Region（当前 Capture 媒介是 WorldSite）。  
+若未来存在纯地图组织 Region 但没有 Primary WorldSite → 第一版 **不提供** 直接 Capture Region（当前 Capture 媒介是 WorldSite）。
 未来建城、建据点、特殊战略目标可让这种区域获得新的 PrimarySite。
 
 ### 6.20 不做 Army 走过无主地自动 Claim
@@ -523,7 +532,7 @@ Prototype 推荐：小 Site radius 1、大 Site radius 2 作为初版范围。
 
 Fixed WorldSite 是 **整个地点一次 Capture**；Multi-Hex Site **不是** 逐 Hex 攻占。
 
-例：青云城占 6 Hex → 攻击其中任意 Footprint Hex，目标仍是 **同一个 WorldSite** → 进入 **同一 LocalMap** → 完成 **同一套 CaptureObjective**。
+> **历史实现示例（已被 ADR-0031～0033 替代）：** 旧模型曾把“青云城占 6 Hex”解析为同一 LocalMap 与同一套 CaptureObjective。当前模型按真实连续位置进入同源独立 Encounter，并围绕该 WorldSite 的唯一 SiteCore 处理正式接管；Footprint 只作战略摘要。
 
 ### 7.2 Capture Success 后 Region 整块易主
 
@@ -708,28 +717,19 @@ Bandit Faction **不走** 正常外交 Query；永远敌对。UI 未来 **不应
 
 ---
 
-## 14. Hard Invariants
+## 14. 当前不变量与历史基线边界
 
-1. 一个 Hex **最多属于一个** WorldSite Footprint。
-2. Fixed WorldSite Footprint **必须连通**。
-3. Multi-Hex WorldSite **永远只有一个** SiteId。
-4. Multi-Hex WorldSite **永远只有一个** LocalMap identity。
-5. Army 位于 **任意 Footprint Hex**，都算位于该 Site。
-6. WorldSite Owner 与绑定 TerritoryRegion Controller **永远一致**。
-7. 每个 Hex **最多一个** ControlFactionId。
-8. Bandit Camp **永远 1 Hex**。
-9. 新 Bandit Camp **不能** 生成在正式 Territory（`ControlFactionId != None`）。
-10. 新 Bandit Camp **不能** 生成在任何已有 WorldSite Footprint。
-11. Bandit **不拥有** 正式 Territory。
-12. Bandit **不参与** 外交。
-13. Bandit 对 **所有其他 Faction 永远敌对**。
-14. **不同 Bandit Camp Faction 彼此也敌对**。
-15. 同 Faction 不同 Region **不自动 Merge**。
-16. Capture Multi-Hex Site 是 **一次 Capture**，不逐 Hex Capture。
-17. Capture Site 时，绑定 Region **整块一起转移**。
-18. TerritoryRadius **不作为** Runtime Territory 真源。
-19. Runtime Territory 读取 **固化后的** Region.Hexes / Hex control。
-20. **Node / Route 不再作为** 正式 Territory / Site spatial truth。
+1. 普通 Outdoor 的物理真源是 WorldSpaceId + Continuous WorldPosition；Hex、Chunk、Patch、Site 行政范围互不替代。
+2. V1 一个 WorldSite 只有一个 SiteCore；预设议政厅不可拆但可升级／接管，新旗创建新 Site。
+3. SiteCore 理论覆盖允许重叠；同势力按 Union 统计且不重复，每个位置／建筑的实际行政管理唯一、稳定。
+4. 既得有效控制不因旧核心升级或全局 EstablishedOrder 重排而被追溯夺取。
+5. 旗毁后建筑、物品、库存和损伤保留；有覆盖则管理接续，无覆盖则暂停行政依赖功能。
+6. Footprint／AnchorHex 只作战略摘要、图标或索引；不规定真实 CurrentSite、建筑归属、河桥通行、战场裁切或 Outdoor LocalMap。
+7. 攻击任意他势力有效拥有的建筑须先处理适用战争后果；是否出现玩家 Encounter 不以防守 FormalArmy 存在为条件。
+8. 人物和飞舟都使用统一世界位置与暂停政策；FormalArmy／飞舟无宣战、占领或大地图移动类型特权。
+9. Bandit 使用真实 FactionId 与既有敌对语义；其生成间距、战略 footprint 等未被本轮直接推翻的旧内容规则继续适用，但不能覆盖以上空间／行政不变量。
+
+> **历史 Hard Invariants（2026-08-24～09-06）：** “Footprint 永不重叠”“一个 Site 永远一张 Outdoor LocalMap”“Region.Hexes 为运行时行政真源”“Capture 绑定 Region 整块转移”等只描述旧实现基线，已由 ADR-0032／0034 部分替代。
 
 ---
 

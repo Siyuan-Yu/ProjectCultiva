@@ -1,7 +1,7 @@
 # Order 与 Action 系统
 
-> 状态：**已冻结（对齐 Freeze v0.2）** | 优先级：P0 | 最后更新：2026-07-31  
-> 依赖：`33` v0.2、`34`、`21`、ADR-0018  
+> 状态：**已冻结并按 ADR-0033／0034 补充授权边界** | 优先级：P0 | 最后更新：2026-09-12
+> 依赖：`33` v0.2、`34`、`21`、ADR-0018
 > **本阶段不写实现代码。** 公开概念只保留 Order／Action。
 
 ## 1. 目标
@@ -35,6 +35,12 @@ GatherWoodOrder
 - 紧急反应
 - 事件脚本
 
+### 3.1 战斗意图与政治授权
+
+- 右键攻击生成攻击意图；远距离接近仍是普通移动／准备。第一击前由 Encounter 授权门统一暂停确认，确认前不得先造成伤害。
+- 攻击人物不隐式生成 `DeclareWar`。攻击势力有效拥有的建筑，或战中扩大到第三方建筑，必须先获得相应战争授权；取消扩大战争只取消该新增行为。
+- WorldMap、PlayerParty、FormalArmy 和飞舟只产生各自合法的移动／任务意图，不能通过切换 UI 更换位置权威或凭类型绕过战争／接管条件。
+
 ## 4. 每实体执行容量（第一版）
 
 每个完整模拟 `Character` 拥有：
@@ -53,13 +59,13 @@ GatherWoodOrder
 
 数值越小越优先（示意）：
 
-1. 玩家紧急命令  
-2. 生存／战斗紧急反应  
-3. 普通玩家队列  
-4. 强制社会义务  
-5. 时间表  
-6. 自主需求  
-7. 待机  
+1. 玩家紧急命令
+2. 生存／战斗紧急反应
+3. 普通玩家队列
+4. 强制社会义务
+5. 时间表
+6. 自主需求
+7. 待机
 
 **优先级 ≠ 可执行性。** 高优先级 Order 仍必须通过 `CanStart`／Preconditions；失败必须返回明确原因。
 
@@ -132,12 +138,13 @@ Action **必须可序列化**。存档后必须能继续：
 
 ## 9. 与时间模型的关系（v0.2）
 
-- **WorldTick**：世界唯一时间轴（日期／昼夜／世界事件／ScheduledEvent）。  
-- **ActionClock**：当前 ActiveAction 的 **Duration**（剩余／已耗执行时间）。  
-- WorldTick 推进 → 扣减 ActionClock → Duration 归零则 Action 完成。  
-- **禁止** ActionClock 改变世界时间；**禁止**两套独立世界时间。  
-- 暂停／倍速只作用于 WorldTick（从而影响 Duration 消耗）。  
-- **Core M1**：单 Region；不做跨 Region 离屏 Action（ADR-0022）。  
+- **WorldTick**：世界唯一时间轴（日期／昼夜／世界事件／ScheduledEvent）。
+- **ActionClock**：某一时钟域内当前 ActiveAction 的 **Duration**（剩余／已耗执行时间），不自行改变世界日历。
+- **日常世界 Action**：由 WorldTick 推进并扣减 ActionClock；主世界暂停时停止。
+- **当前 Encounter 战斗 Action**：只由本场战斗时间推进；主世界 WorldTick 冻结不等于本场 ActionClock 停止。遭遇窗口、战术暂停和结算窗口由本场暂停所有者停止其推进。
+- **禁止** ActionClock 改变世界时间；**禁止**两套独立世界时间。
+- Action 在日常世界域与 Encounter 域之间切换时只接续一次剩余 Duration、资源和状态，不重置、不重复扣减。Encounter 结束不补算世界 Action 收益。
+- **Core M1**：单 Region；不做跨 Region 离屏 Action（ADR-0022）。
 
 细则见 `33` v0.2 §3、ADR-0018。
 
@@ -145,8 +152,8 @@ Action **必须可序列化**。存档后必须能继续：
 
 采用：**时间表 + 效用评分 + 简单行动计划**。
 
-- 不做完整 GOAP。  
-- 不为每类 NPC 建完全独立的大型行为树。  
+- 不做完整 GOAP。
+- 不为每类 NPC 建完全独立的大型行为树。
 
 流程：
 

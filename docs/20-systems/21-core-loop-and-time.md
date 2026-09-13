@@ -1,8 +1,10 @@
 # 核心循环与统一时间
 
-> 状态：Tick／ActionClock 已冻结于 `33` v0.2；时间表权限待正式验证 | 优先级：P0 | 最后更新：2026-07-31
+> 状态：Tick／ActionClock 已冻结；同源独立遭遇时间规则已确认，实施／验收待完成 | 优先级：P0 | 最后更新：2026-09-12
 > 关联：`../30-tech/33-architecture-core-rules-freeze-v0.2.md`、ADR-0018、`35`
 > **WorldTick = 世界唯一时间轴；ActionClock = 行动 Duration。** 禁止两套世界时间。
+
+> **2026-09-12 补丁：** 新玩家实战使用同源独立遭遇；主世界停表、战斗局部时间及回位结算以 [ADR-0033](../40-process/43-decisions/ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) 为准，部分替代 ADR-0023 的战后 `BattleAnchor` 位置规则。
 
 ## 1. 这个系统解决什么问题
 
@@ -177,9 +179,9 @@
 
 ## 9. 自动暂停
 
-**必须自动暂停：**
+**普通敌情自动暂停（可配置）：**
 
-- 遭遇敌对单位，或战斗即将开始
+- 附近发现敌情、追击风险或普通警报
 - 主管愤怒跨越阈值，或角色即将被撞见／被发现
 - 修炼完成、突破的关键节点
 - 角色重伤、濒死、中毒等严重状态
@@ -192,36 +194,44 @@
 - 每日产出结算
 - 普通 NPC 对话请求
 
-两类归属应当可由玩家在设置里调整。
+上述日常警报与通知可由玩家在设置里调整。它们不同于新遭遇的强制授权窗口：任何新的玩家实战都必须在第一击／第一发攻击弹道前暂停确认，关闭普通 AutoPause 也不能绕过；已成立的敌方袭击不能靠关闭窗口免战。
 
 ## 10. 战斗与世界时间的关系
 
+### 10.1 同源独立遭遇的时间权威（2026-09-12）
+
+- 从实际接战准备到最终结算，主世界 `WorldTick` 及人物日常、旅行、飞舟、日期、生产、修炼收益和战略 AI 全部暂停。
+- 仅本场战斗、合法援军到场及必要收尾使用局部战斗时间；它是遭遇执行时间，不是第二条世界时间轴，不写回主世界旅行，也不补发停表收益。
+- 遭遇窗口、阶段通知和最终结算均暂停相关推进；不得挂窗继续受伤、治疗、生产或长期修炼。
+- 弥留、技能、治疗、消耗等只接续一次剩余状态，不能因换时钟重复扣时或恢复。
+- 结束时仅释放本场持有的暂停原因，保留玩家原有手动暂停等其他原因。
+
 > **2026-08-21 冻结修订**（[ADR-0023](../40-process/43-decisions/ADR-0023-manual-encounter-freezes-worldtick.md)）。旧「战斗期间世界时间照常流逝／甲交战乙可别处劳作」已废弃。
 
-战略遭遇采用全战式 Modal：
+玩家实战采用同源独立 Encounter：
 
 ```text
-Strategic World → BattleOffer → 冻结 WorldTick
-  → AutoResolve 或 Manual Encounter → PostBattle → Resolve
+Main World → Encounter Preparation → 冻结 WorldTick
+  → Battle / VictoryAvailable / One Tail → Final Settlement → Return
   → 恢复开战前 pause／time scale
 ```
 
-- 全世界仍只有一个 **WorldTick**（ADR-0018）。  
-- `BattleOffer` 产生后立即冻结 WorldTick；Manual／PostBattle 期间不推进。  
-- 手动战现实时长 **不**映射为战略 Tick 消耗；AutoResolve 亦不额外推进 Tick。  
-- 手动战期间 ActiveMap 锁定遭遇图；禁止切其他 LocalMap、禁止战略派兵离开；大地图可只读。  
-- **战术层**仍可 RTS＋暂停下令（只影响遭遇表现，不推动 WorldTick）。  
-- 同 Tick 多个接战入队串行 Resolve，不得并行两个 Manual。  
+- 全世界仍只有一个 **WorldTick**（ADR-0018）。
+- `BattleOffer` 产生后立即冻结 WorldTick；Manual／PostBattle 期间不推进。
+- 手动战现实时长 **不**映射为战略 Tick 消耗；AutoResolve 亦不额外推进 Tick。
+- 手动战期间 ActiveMap 锁定遭遇图；禁止切其他 LocalMap、禁止战略派兵离开；大地图可只读。
+- 战术层只允许玩家直接控制当前 Active；Followers／援军由 AI 或 Policy 行动。局部暂停不推动 WorldTick。
+- 同 Tick 多个接战入队串行 Resolve，不得并行两个 Manual。
 
-节点／据点内的日常冲突若未走战略 BattleOffer，仍可按 LocalMap 即时战斗处理；一旦升级为战略 `BattleOffer`，适用本条。
-
-**待确定：** 大规模战争／攻城是否另开 Persistent 战场规则（不在 ADR-0023 范围）。
+普通户外、WorldSite 和已有战争都没有“原地即时开战”例外；玩家实际参与的新战斗统一经过准备窗口并进入同源独立 Encounter。远方非主控战斗仍可自动处理。
 
 ## 11. 无人照看时世界如何运转
 
 - 角色不在据点时，已分配的岗位、时间表与政策**持续自动执行**，产出照常按日结算。
 - 修士的长期任务（闭关、外出探索、驻守）按 Tick 推进，完成或遇阻时通知玩家。
 - 玩家只处理异常（遇袭、饥荒、叛离、任务受阻），不需要每天回来点一遍收获。
+
+这些日常队列由 AI、Schedule 与 Policy 生成和执行，不因此给予玩家对所有角色的远程 RTS 控制权。
 
 ## 12. 一天的完整推演（前期劳役阶段）
 

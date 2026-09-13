@@ -12,7 +12,7 @@ namespace XianXia.Core.Persistence
     {
         public static void Capture(PlayerPartyRuntime party, StrategicSnapshotDto dto)
         {
-            if (party == null || dto == null || !party.HasActive)
+            if (party == null || dto == null || party.Count == 0)
                 return;
 
             var snap = new PlayerPartyRuntimeSnapshotDto
@@ -24,19 +24,31 @@ namespace XianXia.Core.Persistence
             dto.PlayerParty = snap;
         }
 
-        public static void Apply(SimulationWorld world, PlayerPartyRuntime party, PlayerPartyRuntimeSnapshotDto dto)
+        public static void Apply(SimulationWorld world, PlayerPartyRuntime party, PlayerPartyRuntimeSnapshotDto dto,
+            string controlledSquadId = null)
         {
             if (world == null || party == null)
                 return;
 
-            party.Reset();
+            party.BindWorld(world);
+            if (!string.IsNullOrEmpty(controlledSquadId) &&
+                party.TryBindControlledSquad(controlledSquadId,
+                    new EntityId(dto?.ActiveCharacterId ?? 0), out _))
+            {
+                party.RefreshActiveAfterLifeState(world);
+                return;
+            }
             if (dto != null && dto.MemberCharacterIds != null && dto.MemberCharacterIds.Count > 0)
             {
                 if (TryApplyExplicit(world, party, dto))
+                {
+                    party.RefreshActiveAfterLifeState(world);
                     return;
+                }
             }
 
-            TryInferFromWorldPresence(world, party);
+            if (TryInferFromWorldPresence(world, party))
+                party.RefreshActiveAfterLifeState(world);
         }
 
         static bool TryApplyExplicit(

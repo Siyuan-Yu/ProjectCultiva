@@ -1,5 +1,16 @@
 # 架构核心规则冻结 v0.2
 
+> **2026-09-12 定向补丁（不改 Freeze 正文）：** 本文件未被整体废弃；以下冲突条款已由后续已采纳 ADR 精确替代。设计已确认，运行时迁移／核查与制作人验收仍未完成。
+>
+> | Freeze／旧补丁范围 | 当前权威 |
+> |---|---|
+> | 普通 Outdoor 的 World→Region→LocalMap 切换与 Hex 物理权威 | [ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md) + [24](../20-systems/24-world-and-settlements.md)：Continuous Surface 是物理真源；Hex 仅保留战略摘要 |
+> | WorldSite footprint、重叠、建设范围与拆旗结果 | [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md) + [26](../20-systems/26-territory-management.md)：唯一 SiteCore、实际行政范围、既得控制与资产保留 |
+> | ADR-0023 的统一 `BattleAnchor` 战后位置 | [ADR-0033](../40-process/43-decisions/ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) + [23](../20-systems/23-combat.md)：同源独立 Encounter；各回自己的战前世界锚点并保留真实战果 |
+> | 新战斗确认、人物／建筑冲突、战内接管和胜利资格 | [ADR-0033](../40-process/43-decisions/ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md)／[ADR-0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) + [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md) |
+> | Focus 不可用后的早期 GameOver／继承待定 | [ADR-0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) + [2K §4](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md#control-succession)：队内顺序接替；全队真正死亡后自动选择势力最强合格者；空势力终局延期 |
+> | PlayerParty／FormalArmy 的移动、宣战、参战或 Capture 类型特权 | [ADR-0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) + [2K](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)：真人按条件行动；飞舟只运输；WorldMap 不切换移动权威 |
+
 > 状态：**已冻结（v0.2）** + **2026-08-21 补丁：ADR-0023** + **2026-08-22 补丁引用：ADR-0024** | 优先级：P0 | 最后更新：2026-08-22  
 > 上级：`docs/00-project/00-overview.md`  
 > 依赖／展开：`31`、`32`、`34`、`35`、`36`、`2B`、`2C`、`2E`、`21`～`28`、`2F`、`2G`、`24`、**[2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md)**  

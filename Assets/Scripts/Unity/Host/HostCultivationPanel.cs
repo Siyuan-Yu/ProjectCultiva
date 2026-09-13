@@ -13,6 +13,7 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostCultivationPanel : MonoBehaviour
     {
+        const string PauseOwner = "CultivationPanel";
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] KeyCode toggleKey = KeyCode.C;
@@ -45,12 +46,12 @@ namespace XianXia.Unity.Host
 
         public void ClearSessionState()
         {
+            ReleasePause();
             open = false;
             _manualDetailOpen = false;
             _breakConfirmOpen = false;
             _subject = EntityId.None;
             _status = string.Empty;
-            _holdingPause = false;
             HostInputGate.Clear();
         }
 
@@ -64,6 +65,11 @@ namespace XianXia.Unity.Host
             _breakConfirmOpen = false;
             _status = string.Empty;
             _scrollManualDetail = Vector2.zero;
+            if (!_holdingPause && bootstrap?.Session != null)
+            {
+                bootstrap.Session.AcquireModalPause(PauseOwner);
+                _holdingPause = true;
+            }
         }
 
         public void Close()
@@ -118,7 +124,7 @@ namespace XianXia.Unity.Host
                 HostInputGate.BlockWorldInteraction = true;
                 if (!_holdingPause)
                 {
-                    bootstrap.Session.IsPaused = true;
+                    bootstrap.Session.AcquireModalPause(PauseOwner);
                     _holdingPause = true;
                 }
             }
@@ -130,11 +136,13 @@ namespace XianXia.Unity.Host
             }
         }
 
+        void OnDisable() => ReleasePause();
+
         void ReleasePause()
         {
             if (!_holdingPause)
                 return;
-            bootstrap.Session.IsPaused = false;
+            bootstrap.Session.ReleaseModalPause(PauseOwner);
             _holdingPause = false;
             HostInputGate.Clear();
         }

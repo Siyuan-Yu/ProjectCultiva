@@ -13,6 +13,7 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostCultivateConfirmPrompt : MonoBehaviour
     {
+        const string PauseOwner = "CultivateConfirmPrompt";
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] HostCommandBridge commandBridge;
@@ -52,6 +53,11 @@ namespace XianXia.Unity.Host
                 return;
             _subject = id;
             _open = true;
+            if (!_holdingPause && bootstrap?.Session != null)
+            {
+                bootstrap.Session.AcquireModalPause(PauseOwner);
+                _holdingPause = true;
+            }
         }
 
         public void Close()
@@ -74,10 +80,12 @@ namespace XianXia.Unity.Host
             HostInputGate.BlockWorldInteraction = true;
             if (!_holdingPause)
             {
-                bootstrap.Session.IsPaused = true;
+                bootstrap.Session.AcquireModalPause(PauseOwner);
                 _holdingPause = true;
             }
         }
+
+        void OnDisable() => ReleasePause();
 
         void ReleasePause()
         {
@@ -85,7 +93,7 @@ namespace XianXia.Unity.Host
                 return;
             _holdingPause = false;
             if (bootstrap?.Session != null)
-                bootstrap.Session.IsPaused = false;
+                bootstrap.Session.ReleaseModalPause(PauseOwner);
             HostInputGate.Clear();
         }
 

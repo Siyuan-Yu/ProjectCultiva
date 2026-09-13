@@ -63,8 +63,8 @@ namespace XianXia.Core.World.Strategic
                     region.PrimaryWorldSiteId + "' != WorldSite '" + siteId + "'.");
             }
 
-            // 4. Site Owner
-            site.OwnerFactionId = faction;
+            // 4. Site Owner（同时同步可能存在的唯一关联核心缓存）
+            WorldSiteOwnershipService.SetOwner(world, siteId, faction);
             // Region/Hex 是 resolver 的 compatibility projection；Site Owner 才是政治 cause。
             StrategicTerritoryCoverageResolver.Rebuild(world);
 

@@ -11,9 +11,7 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// Formal Army Domain ??????Phase A?Pure Hex??
-    /// ???????<see cref="FormalArmy.MemberCharacterIds"/>?
-    /// <see cref="ArmyMembershipComponent"/> ???????
+    /// Formal Army compatibility commands. All roster writes are forwarded to the unified Squad.
     /// </summary>
     public static class ArmyService
     {
@@ -73,18 +71,16 @@ namespace XianXia.Core.World.Strategic
             if (!TryResolveLeader(world, resolvedMembers, explicitLeaderId, out var leaderId, out var leaderError))
                 return Result.Fail<FormalArmy>(leaderError);
 
-            var memberValues = new List<ulong>(resolvedMembers.Count);
-            for (var i = 0; i < resolvedMembers.Count; i++)
-                memberValues.Add(resolvedMembers[i].Value);
-
+            var armyId = world.Strategic.FormalArmies.AllocateArmyId();
             var army = new FormalArmy
             {
-                ArmyId = world.Strategic.FormalArmies.AllocateArmyId(),
+                ArmyId = armyId,
                 FactionId = factionId,
                 LeaderCharacterId = leaderId,
                 State = FormalArmyState.Idle
             };
-            army.ReplaceMembers(memberValues);
+            var squadCreated = BindNewArmySquad(world, army, resolvedMembers);
+            if (squadCreated.IsFailure) return Result.Fail<FormalArmy>(squadCreated.Error);
 
             world.Strategic.FormalArmies.Register(army);
             SyncMembershipForArmy(world, army);
@@ -168,10 +164,6 @@ namespace XianXia.Core.World.Strategic
             if (!TryResolveLeader(world, resolvedMembers, explicitLeaderId, out var leaderId, out var leaderError))
                 return Result.Fail<FormalArmy>(leaderError);
 
-            var memberValues = new List<ulong>(resolvedMembers.Count);
-            for (var i = 0; i < resolvedMembers.Count; i++)
-                memberValues.Add(resolvedMembers[i].Value);
-
             var armyId = world.Strategic.FormalArmies.AllocateArmyId();
             var army = new FormalArmy
             {
@@ -180,7 +172,8 @@ namespace XianXia.Core.World.Strategic
                 LeaderCharacterId = leaderId,
                 State = FormalArmyState.Idle
             };
-            army.ReplaceMembers(memberValues);
+            var squadCreated = BindNewArmySquad(world, army, resolvedMembers);
+            if (squadCreated.IsFailure) return Result.Fail<FormalArmy>(squadCreated.Error);
 
             world.Strategic.FormalArmies.Register(army);
             SyncMembershipForArmy(world, army);
@@ -273,10 +266,6 @@ namespace XianXia.Core.World.Strategic
             if (!IsValidLeaderAtFormation(world, leaderId))
                 return Result.Fail<FormalArmy>(ErrorCode.InvalidOperation, "Leader must be macro-order living.");
 
-            var memberValues = new List<ulong>(resolvedMembers.Count);
-            for (var i = 0; i < resolvedMembers.Count; i++)
-                memberValues.Add(resolvedMembers[i].Value);
-
             var army = new FormalArmy
             {
                 ArmyId = stableArmyId,
@@ -284,7 +273,8 @@ namespace XianXia.Core.World.Strategic
                 LeaderCharacterId = leaderId,
                 State = FormalArmyState.Idle
             };
-            army.ReplaceMembers(memberValues);
+            var squadCreated = BindNewArmySquad(world, army, resolvedMembers);
+            if (squadCreated.IsFailure) return Result.Fail<FormalArmy>(squadCreated.Error);
 
             world.Strategic.FormalArmies.Register(army);
             SyncMembershipForArmy(world, army);
@@ -360,7 +350,9 @@ namespace XianXia.Core.World.Strategic
             if (join.IsFailure)
                 return join;
 
-            army.AddMember(memberId);
+            var transferred = SquadMembershipService.Transfer(world, memberId, army.SquadId);
+            if (transferred.IsFailure)
+                return transferred;
             SyncMembershipForArmy(world, army);
             FormalArmyMemberPresenceSync.SyncAll(world, army);
             return Result.Success();
@@ -401,20 +393,15 @@ namespace XianXia.Core.World.Strategic
             if (world == null || army == null)
                 return;
 
-            var detach = new List<EntityId>(army.MemberCharacterIds.Count);
             for (var i = 0; i < army.MemberCharacterIds.Count; i++)
             {
                 var id = new EntityId(army.MemberCharacterIds[i]);
                 if (LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id))
                     continue;
-                detach.Add(id);
+                // Incapacitation changes execution eligibility, not persistent Squad membership.
+                // Commit the residual position while preserving the ordered action group.
+                FormalArmyMemberPresenceSync.DetachMemberAtArmyLocation(world, army, id);
             }
-
-            for (var i = 0; i < detach.Count; i++)
-                DetachNonLivingMemberAtCurrentArmyLocation(world, army, detach[i]);
-
-            if (world.Strategic.FormalArmies.TryGet(army.ArmyId, out var stillThere) && stillThere != null)
-                RefreshLeader(world, army.ArmyId);
         }
 
         /// <summary>
@@ -432,27 +419,8 @@ namespace XianXia.Core.World.Strategic
                 LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, memberId))
                 return false;
 
-            DetachMemberAtBattlefieldInternal(world, army, memberId);
-
-            if (world.Strategic.FormalArmies.TryGet(army.ArmyId, out var stillThere) && stillThere != null)
-                RefreshLeader(world, army.ArmyId);
-
-            return !TryGetArmyForCharacter(world, memberId, out _);
-        }
-
-        static void DetachMemberAtBattlefieldInternal(SimulationWorld world, FormalArmy army, EntityId memberId)
-        {
-            if (army == null || memberId.IsNone || !army.ContainsMember(memberId))
-                return;
-
-            if (army.MemberCharacterIds.Count <= 1)
-            {
-                RemoveMemberInternal(world, army, memberId);
-                ForceRemoveArmy(world, army);
-                return;
-            }
-
-            RemoveMemberInternal(world, army, memberId);
+            FormalArmyMemberPresenceSync.DetachMemberAtArmyLocation(world, army, memberId);
+            return true;
         }
 
         public static Result RemoveMember(SimulationWorld world, string armyId, EntityId memberId)
@@ -631,6 +599,7 @@ namespace XianXia.Core.World.Strategic
             for (var i = 0; i < formerMembers.Count; i++)
                 RemoveMemberInternal(world, army, new EntityId(formerMembers[i]));
             world.Strategic.FormalArmies.Remove(army.ArmyId);
+            world.Strategic.Squads.Remove(army.SquadId);
 #if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
             if (world.Strategic.FormalArmies.TryGet(army.ArmyId, out _))
                 System.Diagnostics.Debug.Fail("[FormalArmyDisband] Army still exists: " + army.ArmyId);
@@ -652,8 +621,25 @@ namespace XianXia.Core.World.Strategic
             if (world.Entities.TryGet(memberId, out var entity) &&
                 entity.TryGet<ArmyMembershipComponent>(out var mem))
                 mem.ClearArmyId();
-            army.RemoveMember(memberId);
+            SquadMembershipService.LeaveToSingleton(world, memberId);
             FormalArmyMemberPresenceSync.DetachMemberAtArmyLocation(world, army, memberId);
+        }
+
+        static Result BindNewArmySquad(
+            SimulationWorld world,
+            FormalArmy army,
+            IReadOnlyList<EntityId> members)
+        {
+            var created = SquadMembershipService.Create(
+                world,
+                SquadMembershipService.ArmySquadId(army.ArmyId),
+                members,
+                army.LeaderCharacterId,
+                army.ArmyId,
+                SquadCommandKind.FormalArmyWorldMotion);
+            if (created.IsFailure) return Result.Failure(created.Error);
+            army.BindSquad(created.Value);
+            return Result.Success();
         }
 
         static bool TryValidateMemberForFormationAtHex(

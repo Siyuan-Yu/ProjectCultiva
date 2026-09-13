@@ -22,7 +22,6 @@ namespace XianXia.Core.Persistence
             var source = dto.FactionFlags ?? new List<FactionFlagSnapshotDto>();
             var validated = new List<FactionFlagState>(source.Count);
             var ids = new HashSet<string>(StringComparer.Ordinal);
-            var anchors = new HashSet<HexCoord>();
             var orders = new HashSet<long>();
             for (var i = 0; i < source.Count; i++)
             {
@@ -35,7 +34,6 @@ namespace XianXia.Core.Persistence
                 if (world.HexWorld == null || !world.HexWorld.IsInBounds(anchor.Q, anchor.R))
                     return Invalid(i, item, "anchor is out of bounds");
                 if (!ids.Add(item.FlagId)) return Invalid(i, item, "duplicate FlagId");
-                if (!anchors.Add(anchor)) return Invalid(i, item, "duplicate anchor");
                 if (item.EstablishedOrder <= 0) return Invalid(i, item, "EstablishedOrder must be positive");
                 if (!orders.Add(item.EstablishedOrder)) return Invalid(i, item, "duplicate EstablishedOrder");
                 if (item.MaxHp <= 0 || item.CurrentHp <= 0 || item.CurrentHp > item.MaxHp)
@@ -58,7 +56,10 @@ namespace XianXia.Core.Persistence
                     LocalZ = item.LocalZ,
                     HasWorldPosition = item.HasWorldPosition,
                     WorldX = item.WorldX,
-                    WorldY = item.WorldY
+                    WorldY = item.WorldY,
+                    SiteId = item.SiteId ?? string.Empty,
+                    SurfaceId = item.SurfaceId ?? string.Empty,
+                    IsSiteCore = item.IsSiteCore
                 });
             }
 

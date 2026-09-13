@@ -19,6 +19,7 @@ namespace XianXia.Data.Bootstrap
             RehydrateInventoryCatalog(world, registry);
             RehydrateConstructionCatalog(world, registry);
             RehydrateSurfaceGround(world, registry);
+            RebindPresetWorldSiteCoreMetadata(world, registry);
 
             foreach (var kv in registry.Quests)
             {
@@ -119,6 +120,12 @@ namespace XianXia.Data.Bootstrap
                     Description = definition.Description ?? string.Empty,
                     UnlockedByDefault = definition.UnlockedByDefault,
                     PlacementKind = ConstructionPlacementKind.FactionFlag,
+                    CreatesWorldSite = definition.CreatesWorldSite,
+                    CreatedSiteName = definition.CreatedSiteName ?? string.Empty,
+                    CreatedSiteType = definition.CreatedSiteType ?? string.Empty,
+                    InitialSiteLevel = definition.InitialSiteLevel,
+                    SiteRangeWidth = definition.SiteRangeWidth,
+                    SiteRangeHeight = definition.SiteRangeHeight,
                     DismantleRefundRate = definition.DismantleRefundRate
                 };
                 for (var i = 0; i < definition.Costs.Count; i++)
@@ -153,6 +160,35 @@ namespace XianXia.Data.Bootstrap
             }
             XianXia.Core.World.Strategic.FormalArmyContinuousTravelService
                 .RebindPendingSurfaceRoutes(world);
+        }
+
+        public static void RebindPresetWorldSiteCoreMetadata(
+            SimulationWorld world, DefinitionRegistry registry)
+        {
+            if (world?.Strategic?.Sites == null || registry == null) return;
+            foreach (var pair in registry.OutdoorSurfaces)
+            {
+                var surface = pair.Value;
+                if (surface?.SitePlacements == null) continue;
+                for (var i = 0; i < surface.SitePlacements.Count; i++)
+                {
+                    var placement = surface.SitePlacements[i];
+                    if (placement == null ||
+                        !string.Equals(placement.Kind, "controlCore", System.StringComparison.OrdinalIgnoreCase) ||
+                        string.IsNullOrWhiteSpace(placement.SiteId) ||
+                        !world.Strategic.Sites.TryGet(placement.SiteId, out var site) || site == null ||
+                        site.IsRuntimeCreated || !string.IsNullOrEmpty(site.CoreAssetId))
+                        continue;
+                    site.CoreAssetId = placement.StableId ?? string.Empty;
+                    site.CoreSurfaceId = surface.SurfaceId ?? string.Empty;
+                    site.HasCoreWorldPosition = true;
+                    site.CoreWorldX = placement.WorldX + placement.WorldWidth * .5f;
+                    site.CoreWorldY = placement.WorldY + placement.WorldHeight * .5f;
+                    site.CoreLevel = 1;
+                    site.IsCoreActive = true;
+                    site.CoreIsRemovable = false;
+                }
+            }
         }
 
         static void AppendHeuristicTags(string id, List<string> tags)

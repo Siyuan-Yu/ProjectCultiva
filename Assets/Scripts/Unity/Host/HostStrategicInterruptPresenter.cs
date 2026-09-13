@@ -15,10 +15,11 @@ namespace XianXia.Unity.Host
     /// <summary>战略打断：接战 BattleOffer + 到站 ArrivalNotice。</summary>
     public sealed class HostStrategicInterruptPresenter : MonoBehaviour
     {
+        const string InterruptPauseOwner = "StrategicInterrupt";
+        const string ManualBattleReportPauseOwner = "ManualBattleReport";
         [SerializeField] PlayableHostBootstrap bootstrap;
 
         bool _holding;
-        bool _pausedBefore;
         bool _executeOnWin;
         string _toast = string.Empty;
         double _toastUntil;
@@ -26,6 +27,14 @@ namespace XianXia.Unity.Host
         GUIStyle _title;
         GUIStyle _body;
         bool _stylesReady;
+        bool _reportHolding;
+        PlayableHostSession _reportOwnerSession;
+        bool _settlementInProgress;
+        Vector2 _reportScroll;
+        ManualBattleReport _manualBattleReport;
+        string _lastSettlementFailureKey = string.Empty;
+
+        public bool HasManualBattleReport => _manualBattleReport != null;
 
         static readonly Color Parchment = new Color(0.90f, 0.84f, 0.72f, 0.96f);
         static readonly Color ParchmentDark = new Color(0.72f, 0.62f, 0.48f, 1f);
@@ -45,9 +54,16 @@ namespace XianXia.Unity.Host
 
         public void ClearSessionState()
         {
+            ReleaseInterruptPause();
+            ReleaseManualBattleReportPause();
             _holding = false;
-            _pausedBefore = false;
             _executeOnWin = false;
+            _settlementInProgress = false;
+            _manualBattleReport = null;
+            var world = bootstrap != null ? bootstrap.Session?.World : null;
+            world?.Strategic?.ManualBattleSettlement?.Clear();
+            _lastSettlementFailureKey = string.Empty;
+            _reportScroll = Vector2.zero;
             _toast = string.Empty;
             _toastUntil = 0;
         }
@@ -70,25 +86,13 @@ namespace XianXia.Unity.Host
             {
                 if (!_holding)
                 {
-                    _pausedBefore = session.IsPaused;
+                    session.AcquireModalPause(InterruptPauseOwner);
                     _holding = true;
                 }
-
-                // Offer／到站／自动战结算弹窗：强制 UI 暂停
-                // 手动 PostBattle（非 AutoSettlement）不挡场景操作
-                var autoSettle = world?.Strategic?.Participants != null &&
-                                 world.Strategic.Participants.IsAutoSettlement;
-                if (world?.Strategic == null ||
-                    !world.Strategic.IsModalEncounter ||
-                    autoSettle)
-                    session.IsPaused = true;
             }
             else if (_holding)
             {
-                // 进入手动战后 Offer 已清，但仍在 ClockFreeze → 不得恢复战略时间
-                if (world?.Strategic == null || !world.Strategic.IsWorldTickFrozen)
-                    session.IsPaused = _pausedBefore;
-                _holding = false;
+                ReleaseInterruptPause();
             }
 
             // 清场或我方全倒 → PostBattle（事件漏同步时每帧兜底）
@@ -113,27 +117,31 @@ namespace XianXia.Unity.Host
             var speed = bootstrap != null ? bootstrap.EffectiveSpeedMultiplier() : 1;
             StrategicClockFreezeService.CaptureHostPresentationIfNeeded(
                 world,
-                session.IsPaused,
+                session.ManualPaused,
                 speed);
-
-            if (freeze.Reason == StrategicClockFreezeReason.BattleOffer)
-                session.IsPaused = true;
         }
 
-        /// <summary>解除战略冻结并恢复开战前 pause／倍速。</summary>
-        void RestoreHostPresentationAfterFreeze(PlayableHostSession session)
+        void ReleaseInterruptPause()
         {
-            if (session?.World?.Strategic == null)
-                return;
-            var freeze = session.World.Strategic.ClockFreeze;
-            if (freeze.HasSavedHostPresentation)
-            {
-                session.IsPaused = freeze.SavedHostPaused;
-                if (bootstrap != null)
-                    bootstrap.ApplySavedSpeedMultiplier(freeze.SavedSpeedMultiplier);
-            }
+            var session = bootstrap != null ? bootstrap.Session : null;
+            session?.ReleaseModalPause(InterruptPauseOwner);
+            _holding = false;
+        }
 
-            StrategicClockFreezeService.EndFreeze(session.World);
+        void AcquireManualBattleReportPause(PlayableHostSession session)
+        {
+            if (_reportHolding || session == null)
+                return;
+            session.AcquireModalPause(ManualBattleReportPauseOwner);
+            _reportHolding = true;
+            _reportOwnerSession = session;
+        }
+
+        void ReleaseManualBattleReportPause()
+        {
+            _reportOwnerSession?.ReleaseModalPause(ManualBattleReportPauseOwner);
+            _reportHolding = false;
+            _reportOwnerSession = null;
         }
 
         void OnGUI()
@@ -144,6 +152,12 @@ namespace XianXia.Unity.Host
 
             EnsureStyles();
             DrawToast();
+
+            if (_manualBattleReport != null)
+            {
+                DrawManualBattleReport(session);
+                return;
+            }
 
             // Offer／到站优先；战后只画非强制「结束战斗」条（可继续在场景里玩）
             if (HasBlockingInterrupt)
@@ -220,7 +234,7 @@ namespace XianXia.Unity.Host
             var world = session.World;
             GUI.depth = -40;
             var barW = 420f;
-            var barH = 210f;
+            var barH = 116f;
             var box = new Rect(Screen.width - barW - 16f, Screen.height - barH - 72f, barW, barH);
             Fill(box, Parchment);
             DrawFrame(box, ParchmentDark);
@@ -228,9 +242,95 @@ namespace XianXia.Unity.Host
             if (string.IsNullOrEmpty(summary))
                 summary = "敌军已清空。可补刀／交互；点结束才结算。";
             GUI.Label(new Rect(box.x + 10f, box.y + 6f, box.width - 140f, 52f), summary, _body);
-            DrawBattleAftermathSection(world, new Rect(box.x + 10f, box.y + 58f, box.width - 20f, 110f));
             if (GUI.Button(new Rect(box.xMax - 128f, box.y + box.height - 40f, 116f, 32f), "结束战斗"))
                 ConfirmEndBattle(session);
+        }
+
+        void DrawManualBattleReport(PlayableHostSession session)
+        {
+            var report = _manualBattleReport;
+            if (report == null)
+                return;
+            GUI.depth = -100;
+            DrawDim();
+            var width = Mathf.Min(680f, Screen.width - 40f);
+            var height = Mathf.Min(560f, Screen.height - 40f);
+            var box = new Rect((Screen.width - width) * .5f, (Screen.height - height) * .5f, width, height);
+            Fill(box, Parchment);
+            DrawFrame(box, ParchmentDark);
+            GUI.Label(new Rect(box.x + 18f, box.y + 14f, box.width - 36f, 30f),
+                report.PlayerWon ? "战斗胜利" : "战斗失败", _title);
+            var reason = string.IsNullOrWhiteSpace(report.ResultReason)
+                ? (report.PlayerWon ? "本次有效敌方已失去战斗能力。" : "我方参战者已失去战斗能力。")
+                : report.ResultReason;
+            GUI.Label(new Rect(box.x + 18f, box.y + 48f, box.width - 36f, 42f), reason, _body);
+            GUI.Label(new Rect(box.x + 18f, box.y + 92f, box.width - 36f, 46f),
+                BuildReportSummary(report), _body);
+
+            var viewport = new Rect(box.x + 18f, box.y + 142f, box.width - 36f, box.height - 202f);
+            var content = new Rect(0f, 0f, viewport.width - 20f,
+                Mathf.Max(viewport.height, report.Participants.Count * 54f + 8f));
+            _reportScroll = GUI.BeginScrollView(viewport, _reportScroll, content);
+            var y = 4f;
+            for (var i = 0; i < report.Participants.Count; i++)
+            {
+                var row = report.Participants[i];
+                var side = row.Side == ActualBattleParticipantSide.Friendly ? "我方" : "敌方";
+                GUI.Label(new Rect(4f, y, content.width - 8f, 22f),
+                    side + " · " + row.Name, _body);
+                GUI.Label(new Rect(18f, y + 23f, content.width - 22f, 24f),
+                    FormatReportState(row.EntryCondition, row.EntryHpAvailable, row.EntryHp, row.EntryMaxHp) +
+                    "  →  " +
+                    FormatReportState(row.FinalCondition, row.FinalHpAvailable, row.FinalHp, row.FinalMaxHp) +
+                    (row.ChangedDuringBattle ? "（本场发生变化）" : "（进场状态未变）"), _body);
+                y += 54f;
+            }
+            GUI.EndScrollView();
+            if (GUI.Button(new Rect(box.x + 18f, box.yMax - 46f, box.width - 36f, 32f), "继续"))
+            {
+                session.World?.Strategic?.ManualBattleSettlement?.ClearOwned(report.OfferId);
+                _manualBattleReport = null;
+                _reportScroll = Vector2.zero;
+                ReleaseManualBattleReportPause();
+            }
+        }
+
+        static string BuildReportSummary(ManualBattleReport report)
+        {
+            return BuildSideReportSummary(report, ActualBattleParticipantSide.Friendly, "我方") + "\n" +
+                   BuildSideReportSummary(report, ActualBattleParticipantSide.Enemy, "敌方");
+        }
+
+        static string BuildSideReportSummary(
+            ManualBattleReport report, ActualBattleParticipantSide side, string label)
+        {
+            var unavailable = report.Count(side, ManualBattleReportCondition.Removed) +
+                              report.Count(side, ManualBattleReportCondition.MissingOrUnavailable);
+            return label + " " + report.CountSide(side) + " 人：完整 " +
+                   report.Count(side, ManualBattleReportCondition.Intact) + " / 负伤 " +
+                   report.Count(side, ManualBattleReportCondition.Injured) + " / 重伤 " +
+                   report.Count(side, ManualBattleReportCondition.SeriouslyInjured) + " / 弥留 " +
+                   report.Count(side, ManualBattleReportCondition.Incapacitated) + " / 阵亡 " +
+                   report.Count(side, ManualBattleReportCondition.Dead) + " / 被俘 " +
+                   report.Count(side, ManualBattleReportCondition.Captured) + " / 不可用 " + unavailable;
+        }
+
+        static string FormatReportState(
+            ManualBattleReportCondition condition, bool hpAvailable, int hp, int maxHp)
+        {
+            string label;
+            switch (condition)
+            {
+                case ManualBattleReportCondition.Intact: label = "完好"; break;
+                case ManualBattleReportCondition.Injured: label = "负伤"; break;
+                case ManualBattleReportCondition.SeriouslyInjured: label = "重伤"; break;
+                case ManualBattleReportCondition.Incapacitated: label = "弥留"; break;
+                case ManualBattleReportCondition.Dead: label = "阵亡"; break;
+                case ManualBattleReportCondition.Captured: label = "被俘"; break;
+                case ManualBattleReportCondition.Removed: label = "已移除"; break;
+                default: label = "状态不可用"; break;
+            }
+            return hpAvailable ? label + " HP " + hp + "/" + maxHp : label;
         }
 
         void DrawBattleAftermathSection(SimulationWorld world, Rect rect)
@@ -300,11 +400,23 @@ namespace XianXia.Unity.Host
         void ConfirmEndBattle(PlayableHostSession session)
         {
             var world = session.World;
-            if (world?.Strategic == null)
+            if (world?.Strategic == null || _settlementInProgress || _manualBattleReport != null)
                 return;
+            var settlement = world.Strategic.ManualBattleSettlement;
+            if (settlement != null && settlement.IsCommitted)
+            {
+                _manualBattleReport = settlement.CommittedReport;
+                AcquireManualBattleReportPause(session);
+                return;
+            }
+            if (!TryEnsureManualSettlementIdentity(world, out var identityFailure))
+            {
+                LogManualSettlementFailureOnce(world, "Preflight", identityFailure);
+                ShowToast("无法结束战斗：本场结算身份不完整，请保留现场并查看诊断日志。");
+                return;
+            }
+            _settlementInProgress = true;
             var freeze = world.Strategic.ClockFreeze;
-            // 有开战前快照则恢复；否则默认走时（勿把结算弹窗造成的暂停当成用户本意）
-            var savedPaused = freeze.HasSavedHostPresentation && freeze.SavedHostPaused;
             var savedSpeed = freeze.HasSavedHostPresentation
                 ? freeze.SavedSpeedMultiplier
                 : (bootstrap != null ? bootstrap.EffectiveSpeedMultiplier() : 1);
@@ -325,75 +437,218 @@ namespace XianXia.Unity.Host
             // Phase 5S-B2-3.3：Auto settlement 必须在 Resolve 前 capture —— Auto 从未进入 Battle
             // LocalMap，确认结算后需要走正式 Apply 链切到 BattleHex surface；Manual 原地保留。
             var autoSettlement = world.Strategic.Participants.IsAutoSettlement;
+            var continuousCombatOfferId = world.Strategic.ContinuousManualCombat.IsActive
+                ? world.Strategic.ContinuousManualCombat.OfferId
+                : string.Empty;
+            ManualBattleReport pendingReport = null;
+            if (!autoSettlement)
+            {
+                pendingReport = ManualBattleReportBuilder.CaptureFinal(
+                    world,
+                    world.Strategic.ManualBattleSettlement.Draft,
+                    world.Strategic.Participants.PlayerWon,
+                    world.Strategic.Participants.LastBattleSummary);
+                if (pendingReport != null)
+                    AcquireManualBattleReportPause(session);
+            }
             var resolved = StrategicEncounterResolveService.ResolveAndEnd(world);
-                if (resolved.IsSuccess)
+            if (resolved.IsSuccess)
+            {
+                // The completed offer owns this presentation isolation. Clear it even when
+                // FinishOfferResolution has already promoted and frozen a queued offer.
+                if (!string.IsNullOrEmpty(continuousCombatOfferId))
+                    bootstrap?.CompleteContinuousManualCombat(continuousCombatOfferId);
+                else if (!autoSettlement && completeInPlace)
+                    bootstrap?.RefreshLoadedStrategicPopulation();
+                if (!autoSettlement)
                 {
-                    _holding = false;
-                    if (!world.Strategic.IsWorldTickFrozen)
+                    if (world.Strategic.ManualBattleSettlement.Commit(pendingReport))
+                        _manualBattleReport = world.Strategic.ManualBattleSettlement.CommittedReport;
+                    if (_manualBattleReport == null)
+                        ReleaseManualBattleReportPause();
+                }
+                ReleaseInterruptPause();
+                if (!world.Strategic.IsWorldTickFrozen)
+                {
+                    if (bootstrap != null)
+                        bootstrap.ApplySavedSpeedMultiplier(savedSpeed);
+                    bootstrap.WorldMapPanel?.NotifyAfterBattleResolved(world);
+                    if (completeInPlace)
                     {
-                        // 恢复开战前 pause；开大地图不再二次强制暂停
-                        session.IsPaused = savedPaused;
-                        if (bootstrap != null)
-                            bootstrap.ApplySavedSpeedMultiplier(savedSpeed);
-                        bootstrap.WorldMapPanel?.NotifyAfterBattleResolved(world);
-                        if (completeInPlace)
+                        if (autoSettlement)
                         {
-                            if (autoSettlement)
-                            {
-                                // Phase 5S-B2-3.3：real WORLD_COMBAT + Auto —— 结算确认后把 LocalMap
-                                // 从 canonical PartyWorld 展开/切到 BattleHex authoritative surface。
-                                // WorldMap 保持打开（后台准备 LocalMap）；禁止 WorldMap.Open /
-                                // ReloadLocalMap / Rebuild 整图。Auto 此前未进入 Battle LocalMap，
-                                // 因此不适用 Manual 的“原地保留”分支。
-                                // Auto 的 party relocation 不经过正常 Surface Exit；在展开 BattleHex
-                                // LocalMap 前再次防御性清理旧 physical surface 的 gate transient。
-                                // 第三方 Army vs Army 未 relocation，不触碰 PlayerParty gate。
-                                if (playerPartyParticipated)
-                                    world.PlayerPartyTravel?.SurfaceEdgeGate?.ClearEdgeState();
-                                bootstrap.ApplyPartyWorldSitePresentation(closeWorldMap: false);
+                            if (playerPartyParticipated)
+                                world.PlayerPartyTravel?.SurfaceEdgeGate?.ClearEdgeState();
+                            bootstrap.ApplyPartyWorldSitePresentation(closeWorldMap: false);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-                                LogAutoBattleSurfaceRelease(
-                                    world,
-                                    beforeSurface,
-                                    battleHex,
-                                    playerPartyParticipated);
+                            LogAutoBattleSurfaceRelease(world, beforeSurface, battleHex, playerPartyParticipated);
 #endif
-                                ShowToast("战斗已结束，世界时间已恢复。");
-                            }
-                            else
-                            {
-                                // Phase 5S：普通真实 LocalMap 手动战 —— 原地结束：清除
-                                // Combat/PostBattle 状态、EndFreeze、恢复 pause/speed、
-                                // 保留当前 LocalMap session 与现场位置。禁止 Open WorldMap /
-                                // ApplyPartyWorldSitePresentation / ReloadLocalMap / Rebuild。
-                                // Phase 5S-B2-3.1：battle context 已释放 → 立即把参战
-                                // FormalArmy / Residual 转成普通 LocalMap population
-                                // （保留战斗落点、不 teleport），并轻量刷新视图。
-                                bootstrap?.RefreshLoadedStrategicPopulation();
-                                ShowToast("战斗结束，世界时间已恢复。");
-                            }
+                            ShowToast("战斗已结束，世界时间已恢复。");
                         }
                         else
-                        {
-                            bootstrap.WorldMapPanel?.Open();
-                            bootstrap.WorldMapPanel?.RefreshStrategicPresentation(world);
-                            if (BattleOfferService.HasLingeringBattlefield(world))
-                            {
-                                bootstrap.ApplyPartyWorldSitePresentation(closeWorldMap: false);
-                                ShowToast("已退出战斗。弥留者仍在接战点，战场未消失。");
-                            }
-                            else
-                                ShowToast("遭遇已结束，返回战略层。");
-                        }
+                            ShowToast("战斗结束，世界时间已恢复。");
                     }
                     else
                     {
-                        session.IsPaused = true;
-                        ShowToast("下一场接战已就绪。");
+                        bootstrap.WorldMapPanel?.Open();
+                        bootstrap.WorldMapPanel?.RefreshStrategicPresentation(world);
+                        if (BattleOfferService.HasLingeringBattlefield(world))
+                        {
+                            bootstrap.ApplyPartyWorldSitePresentation(closeWorldMap: false);
+                            ShowToast("已退出战斗。弥留者仍在接战点，战场未消失。");
+                        }
+                        else
+                            ShowToast("遭遇已结束，返回战略层。");
                     }
                 }
+                else
+                    ShowToast(_manualBattleReport != null ? "战报已生成；继续后处理下一场接战。" : "下一场接战已就绪。");
+            }
             else
-                ShowToast(resolved.Error.Message);
+            {
+                if (!autoSettlement)
+                {
+                    ReleaseManualBattleReportPause();
+                    LogManualSettlementFailureOnce(world, "Resolve", resolved.Error.Message);
+                    ShowToast("结束战斗失败，本场状态已保留；请查看诊断日志后重试。");
+                }
+                else
+                    ShowToast(resolved.Error.Message);
+            }
+            _settlementInProgress = false;
+        }
+
+        bool TryEnsureManualSettlementIdentity(SimulationWorld world, out string failure)
+        {
+            failure = string.Empty;
+            if (world?.Strategic == null)
+            {
+                failure = "WorldOrStrategicMissing";
+                return false;
+            }
+            var snapshot = world.Strategic.Participants;
+            if (snapshot == null)
+            {
+                failure = "ParticipantsMissing";
+                return false;
+            }
+            if (snapshot.IsAutoSettlement)
+                return true;
+
+            var actual = ActualBattleParticipantQuery.Collect(snapshot);
+            if (actual.Count == 0)
+            {
+                failure = "ActualParticipantCount=0";
+                return false;
+            }
+
+            var settlement = world.Strategic.ManualBattleSettlement;
+            var continuous = world.Strategic.ContinuousManualCombat;
+            if (settlement != null && settlement.IsInitialized)
+            {
+                if (!settlement.Matches(snapshot))
+                {
+                    failure = "SettlementParticipantCopyMismatch";
+                    return false;
+                }
+                if (!string.IsNullOrEmpty(snapshot.OfferId) &&
+                    !string.Equals(snapshot.OfferId, settlement.OfferId, StringComparison.Ordinal))
+                {
+                    failure = "ParticipantsOfferIdMismatch";
+                    return false;
+                }
+                if (continuous != null && continuous.IsActive &&
+                    !string.Equals(continuous.OfferId, settlement.OfferId, StringComparison.Ordinal))
+                {
+                    failure = "ContinuousOfferIdMismatch";
+                    return false;
+                }
+                // Limited repair for a session created while BuildSnapshotFromEngagement still
+                // erased snapshot identity. The independent settlement copy is authoritative.
+                if (string.IsNullOrEmpty(snapshot.OfferId))
+                    snapshot.OfferId = settlement.OfferId;
+                return true;
+            }
+
+            // Compatibility for an already-running battle created before settlement state was
+            // introduced. Use only a reliable frozen id plus the existing actual participant
+            // records; entry HP/state stays Unknown and is never reconstructed from final HP.
+            var reliableId = snapshot.OfferId ?? string.Empty;
+            if (continuous != null && continuous.IsActive)
+            {
+                if (!string.IsNullOrEmpty(reliableId) &&
+                    !string.Equals(reliableId, continuous.OfferId, StringComparison.Ordinal))
+                {
+                    failure = "LegacyContinuousOfferIdMismatch";
+                    return false;
+                }
+                reliableId = continuous.OfferId;
+                if (string.IsNullOrEmpty(reliableId) ||
+                    continuous.ParticipantIds.Count != actual.Count)
+                {
+                    failure = "LegacyContinuousIdentityOrCountMissing";
+                    return false;
+                }
+                for (var i = 0; i < actual.Count; i++)
+                {
+                    var participant = actual[i];
+                    if (!continuous.Contains(participant.EntityId) ||
+                        (participant.IsFriendly && !continuous.IsFriendly(participant.EntityId)) ||
+                        (participant.IsEnemy && !continuous.IsEnemy(participant.EntityId)))
+                    {
+                        failure = "LegacyContinuousParticipantMismatch";
+                        return false;
+                    }
+                }
+            }
+            if (string.IsNullOrWhiteSpace(reliableId))
+            {
+                failure = "NoReliableBattleId";
+                return false;
+            }
+            if (settlement == null || !settlement.Begin(
+                    world, snapshot, reliableId, entryStateKnown: false))
+            {
+                failure = "LegacySettlementCopyFailed";
+                return false;
+            }
+            snapshot.OfferId = reliableId;
+            return true;
+        }
+
+        void LogManualSettlementFailureOnce(SimulationWorld world, string stage, string condition)
+        {
+            var snapshot = world?.Strategic?.Participants;
+            var continuous = world?.Strategic?.ContinuousManualCombat;
+            var settlement = world?.Strategic?.ManualBattleSettlement;
+            var actual = ActualBattleParticipantQuery.Collect(snapshot);
+            var friendly = 0;
+            var enemy = 0;
+            for (var i = 0; i < actual.Count; i++)
+                if (actual[i].IsFriendly) friendly++; else enemy++;
+            var key = stage + "|" + condition + "|" + (snapshot?.OfferId ?? string.Empty) + "|" +
+                      (continuous?.OfferId ?? string.Empty) + "|" + (settlement?.OfferId ?? string.Empty);
+            if (string.Equals(key, _lastSettlementFailureKey, StringComparison.Ordinal))
+                return;
+            _lastSettlementFailureKey = key;
+            Debug.LogError(
+                "[ManualBattleSettlementFailure] Stage=" + stage +
+                " Condition=" + condition +
+                " WorldSessionMatch=" + ReferenceEquals(world, bootstrap?.Session?.World) +
+                " Freeze=" + (world?.Strategic?.ClockFreeze?.Reason.ToString() ?? "Missing") +
+                " PendingEngagementId=" + (world?.Strategic?.PendingEngagement?.EngagementId ?? string.Empty) +
+                " EncounterLinkId=" + (world?.Strategic?.Encounter?.EncounterLinkId ?? string.Empty) +
+                " ActiveBattlefieldId=" + (world?.Strategic?.Encounter?.ActiveBattlefieldId ?? string.Empty) +
+                " ParticipantsOfferId=" + (snapshot?.OfferId ?? string.Empty) +
+                " ContinuousOfferId=" + (continuous?.OfferId ?? string.Empty) +
+                " SettlementOfferId=" + (settlement?.OfferId ?? string.Empty) +
+                " ReportOfferId=" + (_manualBattleReport?.OfferId ?? string.Empty) +
+                " SettlementInitialized=" + (settlement != null && settlement.IsInitialized) +
+                " ActualParticipants=" + actual.Count +
+                " Friendly=" + friendly +
+                " Enemy=" + enemy +
+                " SettlementCommitted=" + (settlement != null && settlement.IsCommitted),
+                this);
         }
 
         static string DescribeCurrentSurface(SimulationWorld world)
@@ -452,11 +707,7 @@ namespace XianXia.Unity.Host
                     arrivedCopy.Add(notice.ArrivedIds[i]);
 
                 session.World.Strategic.ClearArrivalNotice();
-                if (_holding)
-                {
-                    session.IsPaused = _pausedBefore;
-                    _holding = false;
-                }
+                ReleaseInterruptPause();
 
                 if (bootstrap.WorldMapPanel != null)
                 {
@@ -468,6 +719,7 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(box.x + 24f + half, y, half, 32f), "暂不查看"))
             {
                 session.World.Strategic.ClearArrivalNotice();
+                ReleaseInterruptPause();
             }
         }
 
@@ -691,8 +943,6 @@ namespace XianXia.Unity.Host
                     if (resolved.IsSuccess)
                     {
                         session.World.Strategic.PendingEngagement.Clear();
-                        _holding = true;
-                        session.IsPaused = true;
                         bootstrap.WorldMapPanel?.Open();
                         bootstrap.WorldMapPanel?.RefreshStrategicPresentation(session.World);
                     }
@@ -704,30 +954,23 @@ namespace XianXia.Unity.Host
             if (decision.Retreat)
                 specs.Add(new ButtonSpec("撤退", () =>
                 {
+                    var freeze = session.World.Strategic.ClockFreeze;
+                    var savedSpeed = freeze.HasSavedHostPresentation
+                        ? freeze.SavedSpeedMultiplier
+                        : (bootstrap != null ? bootstrap.EffectiveSpeedMultiplier() : 1);
                     var retreat = BattleRetreatService.ExecuteRetreat(session.World, session.PlayerParty);
-                    _holding = false;
                     if (retreat.IsFailure)
                     {
                         ShowToast(retreat.Error.Message);
                     }
                     else
                     {
-                        var freeze = session.World.Strategic.ClockFreeze;
-                        var savedPaused = freeze.HasSavedHostPresentation
-                            ? freeze.SavedHostPaused
-                            : session.IsPaused;
-                        var savedSpeed = freeze.HasSavedHostPresentation
-                            ? freeze.SavedSpeedMultiplier
-                            : (bootstrap != null ? bootstrap.EffectiveSpeedMultiplier() : 1);
-                        BattleOfferService.FinishOfferResolution(session.World);
+                        ReleaseInterruptPause();
                         if (!session.World.Strategic.IsWorldTickFrozen)
                         {
-                            session.IsPaused = savedPaused;
                             if (bootstrap != null)
                                 bootstrap.ApplySavedSpeedMultiplier(savedSpeed);
                         }
-                        else
-                            session.IsPaused = true;
                     }
                 }));
 
@@ -767,6 +1010,10 @@ namespace XianXia.Unity.Host
         void CommitManualWithWarDeclarationIfNeeded(PlayableHostSession session, BattleOfferPending offer)
         {
             var world = session.World;
+            var freeze = world.Strategic.ClockFreeze;
+            var manualPausedAfterEntry = freeze.HasSavedHostPresentation
+                ? freeze.SavedHostPaused
+                : session.ManualPaused;
             var gate = BattleManualEntryPolicy.ValidateManualEntry(world);
             if (gate.IsFailure)
             {
@@ -774,112 +1021,179 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            BattleOfferService.RefreshOfferPowerLabels(world);
+            BattleOfferService.PromoteInRangeIncapacitatedToMandatory(
+                world, world.Strategic.Participants);
+            var entryReportDraft = ManualBattleReportBuilder.CaptureEntry(
+                world, world.Strategic.Participants, offer.OfferId);
+            if (entryReportDraft == null)
+            {
+                LogManualSettlementFailureOnce(world, "EntryPreflight", "OfferIdOrActualParticipantsMissing");
+                ShowToast("无法进入战斗：本场参战身份不完整。");
+                return;
+            }
+            ContinuousOutdoorSurfaceRuntime.ManualCombatPreparation continuousPreparation = null;
+
             // Local-origin 的可见目标与当前物理 surface 必须同一；此预检在任何 DeclareWar
             // side effect 前执行，解析分叉必须保留 Offer 让用户看见，而不是静默切图。
             if (offer.Origin == BattleOfferOrigin.LocalMapHostileAction)
             {
-                if (!LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(world, out var previousLoaded))
+                var continuous = bootstrap.ContinuousOutdoorSurfaceRuntime;
+                if (continuous != null && continuous.IsActive &&
+                    !world.LocalMap.IsInInterior)
+                {
+                    var prepared = continuous.TryPrepareManualCombatEntry(
+                        world, offer, out continuousPreparation);
+                    if (prepared.IsFailure)
+                    {
+                        WriteContinuousManualEntrySummary(
+                            world, offer, continuousPreparation, "Preflight", prepared.Error.Message, 0);
+                        ShowToast(prepared.Error.Message);
+                        return;
+                    }
+                }
+                else if (!LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(world, out var previousLoaded))
                 {
                     ShowToast("无法解析当前已加载的 LocalMap surface。");
                     return;
                 }
-                var resolution = BattleLocalMapResolver.ResolvePendingEngagement(world);
-                if (!resolution.Success)
+                else
                 {
-                    ShowToast("无法解析本地发起战斗地点：" + resolution.FailureReason);
-                    return;
+                    var resolution = BattleLocalMapResolver.ResolvePendingEngagement(world);
+                    if (!resolution.Success)
+                    {
+                        ShowToast("无法解析本地发起战斗地点：" + resolution.FailureReason);
+                        return;
+                    }
+                    if (!ArmyHexBattleAnchorService.TryGetBattleAnchorHex(world.Strategic.Participants, out _) ||
+                        world.HexWorld == null || !world.HexWorld.Contains(resolution.BattleHex))
+                    {
+                        ShowToast("本地发起战斗缺少有效的冻结战斗锚点。");
+                        return;
+                    }
+                    if (ManualBattleWorldCommitService.PhysicalSurfaceChanged(previousLoaded, resolution))
+                    {
+                        ShowToast("本地发起战斗解析到了不同的物理场景。");
+                        return;
+                    }
+                    if (!string.Equals(world.LocalMap.ActiveMapLayoutId, resolution.LocalMapId, StringComparison.Ordinal))
+                    {
+                        ShowToast("本地发起战斗的地图标识不一致。");
+                        return;
+                    }
+                    WriteManualBattleSurfaceTrace(world, offer, previousLoaded, resolution, false);
                 }
-                if (!ArmyHexBattleAnchorService.TryGetBattleAnchorHex(world.Strategic.Participants, out _) ||
-                    world.HexWorld == null || !world.HexWorld.Contains(resolution.BattleHex))
-                {
-                    ShowToast("本地发起战斗缺少有效的冻结战斗锚点。");
-                    return;
-                }
-                if (ManualBattleWorldCommitService.PhysicalSurfaceChanged(previousLoaded, resolution))
-                {
-                    ShowToast("本地发起战斗解析到了不同的物理场景。");
-                    return;
-                }
-                if (!string.Equals(world.LocalMap.ActiveMapLayoutId, resolution.LocalMapId, StringComparison.Ordinal))
-                {
-                    ShowToast("本地发起战斗的地图标识不一致。");
-                    return;
-                }
-                WriteManualBattleSurfaceTrace(world, offer, previousLoaded, resolution, false);
             }
 
-            if (offer.RequiresWarDeclaration)
+            // Legacy LocalMap keeps its established declaration point. Continuous first
+            // completes reversible presentation assembly, then commits diplomacy synchronously;
+            // a failed declaration rolls that local assembly back and leaves the Offer intact.
+            if (offer.RequiresWarDeclaration && continuousPreparation == null &&
+                !TryCommitManualWarDeclaration(world, offer, out var preEntryWarFailure))
             {
-                var engagement = world.Strategic.PendingEngagement;
-                if (engagement == null || !engagement.IsActive)
-                {
-                    ShowToast("接战状态已失效，无法宣战。");
-                    return;
-                }
-                if (!world.Strategic.FormalArmies.TryGet(offer.DefenderArmyId, out var defender) ||
-                    defender == null)
-                {
-                    ShowToast("目标军团已不存在，无法宣战。");
-                    return;
-                }
-
-                var currentPlayerFaction = world.Strategic.PlayerFactionId ?? string.Empty;
-                var defenderFaction = defender.FactionId ?? string.Empty;
-                if (!string.Equals(
-                        currentPlayerFaction,
-                        offer.PendingWarAttackerFactionId,
-                        StringComparison.Ordinal) ||
-                    !string.Equals(
-                        defenderFaction,
-                        offer.PendingWarDefenderFactionId,
-                        StringComparison.Ordinal))
-                {
-                    ShowToast("宣战方/目标阵营已变化，请重新发起。");
-                    return;
-                }
-                if (string.Equals(currentPlayerFaction, defenderFaction, StringComparison.Ordinal))
-                {
-                    ShowToast("不能攻击同阵营单位。");
-                    return;
-                }
-                var stance = world.Strategic.Diplomacy?.GetStance(currentPlayerFaction, defenderFaction) ??
-                             FactionStance.Neutral;
-                if (stance == FactionStance.Friendly)
-                {
-                    ShowToast("该阵营为友好关系，不能宣战。");
-                    return;
-                }
-
-                if (!StrategicMilitaryAggressionService.TryEscalateToWar(
-                        world,
-                        currentPlayerFaction,
-                        defenderFaction,
-                        out var warReason))
-                {
-                    ShowToast("宣战失败：" + warReason);
-                    return;
-                }
+                ShowToast(preEntryWarFailure);
+                return;
             }
 
-            var entered = EnterManualEncounter(session, offer.EncounterLocalMapId, offer.ArmyStackId);
+            var entered = EnterManualEncounter(
+                session, offer.EncounterLocalMapId, offer.ArmyStackId, continuousPreparation);
             if (entered.IsFailure)
             {
+                if (continuousPreparation != null)
+                    WriteContinuousManualEntrySummary(
+                        world, offer, continuousPreparation, "Assembly", entered.Error.Message, 0);
                 ShowToast(entered.Error.Message);
+                return;
+            }
+            if (offer.RequiresWarDeclaration && continuousPreparation != null &&
+                !TryCommitManualWarDeclaration(world, offer, out var postAssemblyWarFailure))
+            {
+                bootstrap.ContinuousOutdoorSurfaceRuntime.AbortPreparedManualCombat(
+                    continuousPreparation, postAssemblyWarFailure);
+                WriteContinuousManualEntrySummary(
+                    world, offer, continuousPreparation, "WarCommit", postAssemblyWarFailure, 0);
+                ShowToast(postAssemblyWarFailure);
+                return;
+            }
+            if (continuousPreparation != null)
+                StrategicPursuitService.ClearPursuitForEngagedKeepEnRoute(
+                    world, world.Strategic.Participants.CollectSelectedFriendly());
+            if (continuousPreparation != null)
+                WriteContinuousManualEntrySummary(
+                    world, offer, continuousPreparation, "Completed", string.Empty,
+                    continuousPreparation.ExpectedCount);
+            if (!session.World.Strategic.ManualBattleSettlement.Begin(entryReportDraft))
+            {
+                if (continuousPreparation != null)
+                    bootstrap.ContinuousOutdoorSurfaceRuntime.AbortPreparedManualCombat(
+                        continuousPreparation, "本场结算身份初始化失败。");
+                ShowToast("无法进入战斗：本场结算身份初始化失败。");
                 return;
             }
             session.World.Strategic.ClearBattleOffer();
             session.World.Strategic.PendingEngagement.Clear();
+            _manualBattleReport = null;
+            _lastSettlementFailureKey = string.Empty;
             StrategicClockFreezeService.BeginOrPromote(
                 session.World,
                 StrategicClockFreezeReason.ManualEncounter);
-            session.IsPaused = false;
-            _holding = false;
+            session.ManualPaused = manualPausedAfterEntry;
+            ReleaseInterruptPause();
+        }
+
+        static bool TryCommitManualWarDeclaration(
+            SimulationWorld world,
+            BattleOfferPending offer,
+            out string failure)
+        {
+            failure = string.Empty;
+            var engagement = world?.Strategic?.PendingEngagement;
+            if (engagement == null || !engagement.IsActive)
+            {
+                failure = "接战状态已失效，无法宣战。";
+                return false;
+            }
+            if (!world.Strategic.FormalArmies.TryGet(offer.DefenderArmyId, out var defender) ||
+                defender == null)
+            {
+                failure = "目标军团已不存在，无法宣战。";
+                return false;
+            }
+
+            var currentPlayerFaction = world.Strategic.PlayerFactionId ?? string.Empty;
+            var defenderFaction = defender.FactionId ?? string.Empty;
+            if (!string.Equals(currentPlayerFaction, offer.PendingWarAttackerFactionId, StringComparison.Ordinal) ||
+                !string.Equals(defenderFaction, offer.PendingWarDefenderFactionId, StringComparison.Ordinal))
+            {
+                failure = "宣战方/目标阵营已变化，请重新发起。";
+                return false;
+            }
+            if (string.Equals(currentPlayerFaction, defenderFaction, StringComparison.Ordinal))
+            {
+                failure = "不能攻击同阵营单位。";
+                return false;
+            }
+            var stance = world.Strategic.Diplomacy?.GetStance(currentPlayerFaction, defenderFaction) ??
+                         FactionStance.Neutral;
+            if (stance == FactionStance.Friendly)
+            {
+                failure = "该阵营为友好关系，不能宣战。";
+                return false;
+            }
+            if (!StrategicMilitaryAggressionService.TryEscalateToWar(
+                    world, currentPlayerFaction, defenderFaction, out var warReason))
+            {
+                failure = "宣战失败：" + warReason;
+                return false;
+            }
+            return true;
         }
 
         Result EnterManualEncounter(
             PlayableHostSession session,
             string localMapId,
-            string armyStackId)
+            string armyStackId,
+            ContinuousOutdoorSurfaceRuntime.ManualCombatPreparation continuousPreparation = null)
         {
             if (session?.World == null || bootstrap == null)
                 return Result.Failure(ErrorCode.InvalidOperation, "手动战斗 Host 尚未就绪。");
@@ -894,7 +1208,8 @@ namespace XianXia.Unity.Host
             var worldCombat = pending != null && pending.IsActive;
             BattleLocalMapResolution worldResolution = null;
             var samePhysicalSurface = false;
-            if (worldCombat)
+            var continuousWorldCombat = worldCombat && continuousPreparation != null;
+            if (worldCombat && !continuousWorldCombat)
             {
                 worldResolution = BattleLocalMapResolver.ResolvePendingEngagement(session.World);
                 if (!worldResolution.Success)
@@ -911,10 +1226,6 @@ namespace XianXia.Unity.Host
             if (!worldCombat && string.IsNullOrWhiteSpace(localMapId))
                 localMapId = StrategicEncounterCatalog.DefaultEncounterLocalMapId;
 
-            BattleOfferService.RefreshOfferPowerLabels(session.World);
-            // 进场前再钉一次：追击接战窗也可能漏掉半径内已倒下的同伴
-            BattleOfferService.PromoteInRangeIncapacitatedToMandatory(
-                session.World, session.World.Strategic.Participants);
             var engaged = session.World.Strategic.Participants.CollectSelectedFriendly();
             if (engaged.Count == 0)
                 engaged = ResolveEngagedPartyForManualEncounter(session.World);
@@ -998,12 +1309,15 @@ namespace XianXia.Unity.Host
                     Math.Max(1, power / Math.Max(1, memberCount)),
                     markPartyInEncounter: true);
             }
-            StrategicPursuitService.ClearPursuitForEngagedKeepEnRoute(session.World, engaged);
+            if (!continuousWorldCombat)
+                StrategicPursuitService.ClearPursuitForEngagedKeepEnRoute(session.World, engaged);
             // Phase 5S：冻结本场 Manual Battle 的地点解析类别（真实 LocalMap 或 ExplicitEncounterMap）。
             session.World.Strategic.Participants.LocalMapResolutionKind = worldCombat
-                ? worldResolution.Kind
+                ? continuousWorldCombat
+                    ? ResolveContinuousStrategicLocationKind(session.World)
+                    : worldResolution.Kind
                 : BattleLocalMapResolutionKind.ExplicitEncounterMap;
-            if (worldCombat)
+            if (worldCombat && !continuousWorldCombat)
                 session.World.Strategic.Participants.EncounterLocalMapId = worldResolution.LocalMapId;
             // Phase 5S-B2-3.2：Manual Battle 入场 = 所有实际参战战略单位（PlayerParty + 全部
             // 参战 FormalArmy）正式 commit 到 BattleAnchorHex。这是正式改变旧的
@@ -1012,7 +1326,7 @@ namespace XianXia.Unity.Host
             // Friendly battle presentation 不再在此处提前执行，移入 map-loaded assembly 阶段
             // （PlayableHostBootstrap.ApplyPartyWorldSitePresentation 的 PlayerParty materialize
             // 之后、enemy ApplyPending 之前）。
-            if (worldCombat)
+            if (worldCombat && !continuousWorldCombat)
             {
                 // 必须在 commit 前 capture 旧 physical loaded surface（Wilderness context 读
                 // PlayerPartyTravel.CurrentHex，commit 后已指向 BattleHex）。
@@ -1040,8 +1354,9 @@ namespace XianXia.Unity.Host
                 : localMapId.Trim();
             if (!worldCombat)
                 session.World.PartyWorld.ClearSiteFocus();
-            session.World.PartyWorld.LocalMapId = map;
-            if (worldCombat)
+            if (!continuousWorldCombat)
+                session.World.PartyWorld.LocalMapId = map;
+            if (worldCombat && !continuousWorldCombat)
             {
                 // Bootstrap 现有 active-encounter targetMap authority 读取此字段；这里只记录
                 // 已解析的真实地图，不创建第二套位置状态。
@@ -1057,11 +1372,13 @@ namespace XianXia.Unity.Host
                     " PlayerPartyIncluded=" + pending.PlayerPartyIncluded +
                     " ParticipantCount=" + engaged.Count);
             }
-            if (session != null)
+            if (session != null && !continuousWorldCombat)
                 session.PreferredMapLayoutId = map;
 
             // 进战场：大地图必须关（与 Open 门禁一致）
             bootstrap.WorldMapPanel?.Close();
+            if (continuousWorldCombat)
+                return bootstrap.ActivateRealWorldCombatOnCurrentLoadedSurface(continuousPreparation);
             if (worldCombat &&
                 samePhysicalSurface &&
                 session.World.Strategic.BattleOffer.Origin == BattleOfferOrigin.LocalMapHostileAction)
@@ -1071,6 +1388,40 @@ namespace XianXia.Unity.Host
             }
             bootstrap.ApplyPartyWorldSitePresentation(closeWorldMap: true);
             return Result.Success();
+        }
+
+        static BattleLocalMapResolutionKind ResolveContinuousStrategicLocationKind(SimulationWorld world)
+        {
+            var pending = world?.Strategic?.PendingEngagement;
+            return pending != null && pending.HasSupportArea &&
+                   !string.IsNullOrEmpty(pending.SupportArea.BattleSiteId)
+                ? BattleLocalMapResolutionKind.WorldSite
+                : BattleLocalMapResolutionKind.Wilderness;
+        }
+
+        void WriteContinuousManualEntrySummary(
+            SimulationWorld world,
+            BattleOfferPending offer,
+            ContinuousOutdoorSurfaceRuntime.ManualCombatPreparation preparation,
+            string stage,
+            string failure,
+            int actual)
+        {
+            var anchorHex = ArmyHexBattleAnchorService.TryGetBattleAnchorHex(
+                world?.Strategic?.Participants, out var hex) ? hex.ToString() : "<missing>";
+            Debug.Log("[ContinuousManualBattleEntry] OfferId=" + (offer?.OfferId ?? string.Empty) +
+                      " Origin=" + (offer != null ? offer.Origin.ToString() : string.Empty) +
+                      " PresentationSpace=ContinuousOutdoor" +
+                      " SourceSurfaceId=" + (preparation?.SurfaceId ??
+                          bootstrap?.ContinuousOutdoorSurfaceRuntime?.ActiveSurfaceId ?? string.Empty) +
+                      " ActiveMapLayoutId=" + (world?.LocalMap?.ActiveMapLayoutId ?? string.Empty) +
+                      " BattleAnchorHex=" + anchorHex +
+                      " ContinuousAnchor=" + (preparation != null ? preparation.BattleWorldAnchor.ToString() : "<unresolved>") +
+                      " RequiredChunkReady=" + (preparation != null) +
+                      " Expected=" + (preparation?.ExpectedCount ?? 0) +
+                      " Actual=" + actual +
+                      " Stage=" + stage +
+                      " Failure=" + (failure ?? string.Empty));
         }
 
         static void WriteManualBattleSurfaceTrace(

@@ -32,8 +32,8 @@ namespace XianXia.Core.World.Strategic
             StrategicPursuitService.ClearPursuit(world);
             world.Strategic.PendingEngagement.Clear();
             world.Strategic.ClearBattleOffer();
-            StrategicClockFreezeService.EndFreeze(world);
-            return Result.Success();
+            return BattleOfferService.FinishOfferResolution(
+                world, StrategicClockFreezeReason.BattleOffer);
         }
 
         static void RetreatFormalArmySubject(SimulationWorld world, PendingEngagementRuntime engagement)

@@ -1,11 +1,97 @@
 # 开发日志
 
+## 2026-09-13 — CW-U1 统一小队运行时与正式存读档
+
+- 制作人确认 CW-U0 “验收了，没问题”；仅将其设计收口与多人落点修复标为 **Producer Accepted / Sealed**，没有扩大到统一小队或独立遭遇。
+- 新增统一 `SquadState`／`SquadBoard`／`SquadMembershipService`。每个真实人物在明确初始化／动态注册刷新时进入唯一 Squad；普通人物使用稳定 singleton ID，玩家与既有 FormalArmy 使用稳定专用 Squad。PlayerParty 不再持有 `_members`，FormalArmy 不再持有可写成员列表，两者只投影同一权威。
+- 正常跟随／离队入口改为原队至目标队的一次性转移；保持六人上限、旧超限存量、成员顺序、单 Active、原地离队位置与战斗锁。旧 Army 身份不再是可管理人物加入玩家队的永久类型门禁；Faction、HomeSite、关系和库存不由 Squad 服务修改。
+- 玩家地面跟随与 FormalArmy WorldMotion 继续作为执行适配；统一 Squad 记录共享命令来源，NPC 日程不再与多人 Follow／Army 命令争夺位置。弥留／死亡只取消执行资格并保存 residual 位置，不再自动删除统一小队关系。
+- Strategic JSON 正式保存 SquadId、顺序、队长、共享命令、LegacyArmyId、ControlledSquadId 与 Active；旧档缺 Squad 时按 Army → PlayerParty → 其余 singleton 顺序迁移一次，正式恢复仍复用 `FinalizeRuntimeLinks`。人物面板显示队内顺序、人数、队长；开发版附内部 ID。
+- Core 456／Data 77／Host 143 源文件通过现成离线编译；未启动 Unity、未运行自动测试或 Bake。状态：**CW-U1 Implementation Completed / Producer Acceptance Pending**；交接与人工路线见 [221](221-cw-u1-unified-squad-runtime-and-persistence-2026-09-13.md)。未开始 CW-U2A。
+
+## 2026-09-13 — CW-U0 设计收口与多人入场落点修复
+
+- 制作人确认的新主线归入 ADR-0035；同步 2K、23、2A、术语、架构入口和路线。CW-01／02 既有验收范围保留；CW-03 主体“差不多验收完成”仅按反馈范围记录。统一小队、Site 核心／野外固定范围独立遭遇、两队初始及范围内候选均为设计确认／待迁移，不冒称本轮实现。
+- 修复候选在连通失败前写 used、blocked raw 被用作连通起点、Army 锚点先于可靠个人近场信息的 gate。当前 scope 的个人位置优先；一格最小参考修正须确认同一连通侧，最后才提交占用；失败返回具体身份、来源、坐标与阶段，原子保留 Offer。
+- 本轮不改旧 Hex 支援资格。缺可靠个人位置／范围外的必要成员明确报兼容失败，待 CW-U2B；不漏人或扩大加载绕过。
+- 纠正旧离线调用逗号参数跳过所有程序集的验证误报；本次用真实数组参数实际编译 Core 455／Data 77／Host 143 源文件通过。未启动 Unity、测试或 Bake。制作人随后确认“验收了，没问题”，CW-U0 的设计收口与多人落点修复现为 **Producer Accepted / Sealed**；交接见 [220](220-cw-u0-design-and-manual-entry-placement-2026-09-13.md)。统一小队实现另见 CW-U1，不扩大封板范围。
+
 > **倒序追加：最新的记录写在最上面。**
 > 这是项目的历史记录，用于跨设备/跨时间恢复上下文，以及交接给他人时说明"为什么代码长这样"。
 >
 > 每次有实质进展就追加一条。宁可短，不可漏。
 
 ---
+
+## 2026-09-13 — CW-02 当前范围验收收口 + CW-03 新 Site／旗核心闭环
+
+- 按制作人反馈，将 CW-02 标记为 **Producer Accepted — 当前交付范围**：Continuous 过渡版原地手动战斗、实际参战隔离、暂停 ownership、队内失能接替、结束结算与战报闭环。最终独立同源战场、真实战场裁切初始资格、有限远援、完整势力继承和 WorldMap 攻击入口退役仍明确延期，不伪造逐项验收日志。
+- CW-03 接通正式 `[建筑]` 路径：鼠标 Continuous 世界落点与战略摘要组成同一请求，校验后一次扣料并原子建立 runtime Site 与唯一旗核心；Content 配置初始等级及 `4.2 × 2.8` 世界单位调参范围。Site Owner 为政治权威，关联旗不重复投影控制。
+- WorldSite／FactionFlag 索引支持同 Hex 多身份；动态范围、loaded-neighborhood 多核心表现、WorldMap 单 Site marker、核心详情、CompositeWalkGrid blocker、拆除失活与无幽灵控制已接线。未创建 LocalMap、人口或第二套建造／领地系统。
+- Strategic Snapshot 保存 runtime Site 与核心关联；建站前／后档能替换权威集合，旧档精确孤立旗有限迁移，预设 Site 只重绑既有 ControlCore。正式恢复复用 CW-01 hard rebind。
+- 状态：**CW-03 Implementation Completed / Producer Acceptance Pending**。未进入 CW-04。离线编译与最终静态检查见 [219](219-cw-03-new-worldsite-and-flag-core-closure-2026-09-13.md)；未启动 Unity、未运行自动测试或 Bake。
+
+## 2026-09-13 — CW-02 Fixup：手动战斗结算身份与战报结束链
+
+- 修复 `BattleEngagementAuthorityService.BuildSnapshotFromEngagement` 的顺序错误：`ApplyLockedParticipantsToSnapshot` 会先清空快照，旧代码却在调用前写入 Offer／Army 身份，导致参战记录仍在而 `Participants.OfferId` 丢失，PostBattle 点击“结束战斗”被结算身份校验拒绝。
+- 手动战斗现在于正式入场、首次战术伤害前建立独立的本场结算副本，保存可靠 OfferId、实际参战 EntityId／阵营和战报进场状态；倒下、脱队、关闭 Offer UI 或最终清空 `Participants` 都不会改写该副本。结算前一次性校验场次与名单，结算成功后保存独立已提交战报，“继续”只关闭报告及释放报告自己的 modal owner。
+- 旧运行中会话仅在仍有同场可靠 ID 且 Continuous 上下文与实际参战名单完全一致时兼容补齐；未知的战前 HP／状态保持未知，不扫描附近人口、不伪造场次。失败点只输出一条 `[ManualBattleSettlementFailure]` 汇总并保留现场。
+- 验证：现成 Core／Data／Unity Host offline compile 与 `git diff --check` 在交付前执行；未启动 Unity，未运行 EditMode／PlayMode／Test Runner／batchmode、自动测试或 Bake。状态：**Implementation Completed / Producer Acceptance Pending**；人工路线见 [218](218-cw-02-pause-ownership-and-party-incapacitation-safety-exit-2026-09-12.md)。
+
+## 2026-09-13 — CW-02 战场参战范围收口 + 手动战报 V1
+
+- 新增稳定去重的实际参战者查询，并在 Continuous 手动战成功入场时冻结敌我名单。战中角色 materialization／visibility 只保留这份名单；普通 Party、field Army、Site 与 residual population 暂停，退出后按 Offer owner 恢复且不删除实体或军队权威位置。
+- 敌对判断、右键路由、斗技选靶、NPC melee 与最终 `MeleeCombatService` 伤害入口统一拒绝非参战第三方；胜负和 Active 固定顺序接替同样按实际名单判定。
+- 新增只读结构化手动战报：正式入场捕获基线，点击结束捕获最终状态，区分旧伤与本场变化。结算成功后由独立 modal owner 展示；排队 Offer 延迟显示到“继续”之后，Continuous 隔离仍立即清理，且不会重复结算。
+- 验证：现成 Core／Data／Unity Host offline compile 通过；定向静态核对与 `git diff --check` 在交付前执行。未启动 Unity，未运行 EditMode／PlayMode／Test Runner／batchmode、自动测试或 Bake。状态：**Implementation Completed / Producer Acceptance Pending**；人工路线见 [218](218-cw-02-pause-ownership-and-party-incapacitation-safety-exit-2026-09-12.md)。
+
+## 2026-09-13 — CW-02 Fixup：Continuous Outdoor 手动战斗入场闭环
+
+- 修复 Local-origin FormalArmy BattleOffer 的手动入场：当前由 Continuous Outdoor 主导时，宣战前直接核对 Surface coverage、loaded Chunk、CompositeWalkGrid、冻结参战实体及合法落点，不再要求 Legacy `ActiveMapLayoutId`／`LocalMapId`，也不加载 Wilderness fallback。
+- 新增 World／Offer／Surface scoped 的短生命周期 Continuous manual-combat presentation state。装配只复用冻结的真实 Character 与现有 EntityView；战中 Continuous runtime、materialization 和 visibility 共同保留参战者与当前 Surface，失败返回 `Result` 并保留 Offer，战后按 Offer ownership 清理 context 并恢复普通 Continuous reconcile。
+- `StrategicEncounterSpawner` 增加 Continuous 消费分支，只验证并消费真实 frozen participant，不执行 `WorldRegion.StartLocationId` 布置或 synthetic enemy fallback。入场诊断为每次尝试一条 `[ContinuousManualBattleEntry]` 汇总。
+- 验证：现成 `tools/offline-compile.ps1` 全部程序集通过，0 error（仅既有 warning）；相关调用链静态核对与 `git diff --check` 通过。未启动 Unity，未运行 EditMode／PlayMode／Test Runner／batchmode、自动测试或 Bake。状态：**CW-02 Fixup Implementation Completed / Producer Acceptance Pending**；人工路线见 [218](218-cw-02-pause-ownership-and-party-incapacitation-safety-exit-2026-09-12.md)。
+
+## 2026-09-13 — CW-02 Fixup #2：field Army Surface coverage 修正
+
+- Follow-up 对照 `Scripts(20260913-052515)` 修复 NewGame `WorldPresence.Clear` 后 Army member 派生 Presence 未恢复、Continuous visibility 仍嵌在 Presence 分支、以及落点失败仍先加入 desired 的三段断链。开局只补缺失且仍由对应 Army 管理的 living member；authored Presence、AtWorldSite／驻军、交战与 residual authority 保持原边界。
+- `LocalMapVisibility.EvaluateContinuousMaterializedVisibility` 成为 gameplay 与诊断共用的 Continuous scope predicate；field Army 先取得/修复 composite-grid 合法 override 再提交 materialization，通用 Presence fallback 不再绕过 Army 拒绝。
+- LevelTester 开发工具 `诊断` 页新增一次点击的“复制军队显示诊断（只读）”，优先当前选中 Army、否则试炼弱匪，只读输出成员级 presence/location/materialized/visibility/view/renderer/camera 证据。
+- 制作人复验确认试炼弱匪在 WorldMap 存在、靠近后 Continuous 地面仍无人。根因是 materialization eligibility 错用仅覆盖 W2A 5×5 Chunk 的 `SurfaceGroundNavigation.Contains` 判断整个 Main Surface；弱匪 `(10,6)`／约 `(17.32,9.0)` 属于 646-Chunk Main Surface但在 W2A 外。
+- eligibility 改由 `OutdoorSurfaceCoverageResolver.ContainsWorldPosition(activeSurface)` + loaded Chunk 决定。W2A geography 只在覆盖 Army anchor 时辅助编队；覆盖外由现有 composite WalkGrid 修正 blocked anchor并分配确定性、walkable、直线连通的 presentation slot。Presenter 继续移动同一 View，不接管 materialization，不改 WorldMotion／Content／marker。
+- 定向确认 `LocalMapVisibility` 已放行 `AtWorldPosition + ContinuousMaterialized`，无 legacy LocalMap occupant gate，未修改。`DescribeDiagnostics` 增加每支 Army 的 coverage/chunk/geography/living/materialized/views 行。
+- 现成 offline compile 与静态检查通过，未启动 Unity、未运行任何测试或 Bake。状态：**CW-02 Fixup #2 Implementation Completed / Producer Acceptance Pending**。人工路线见 [218](218-cw-02-pause-ownership-and-party-incapacitation-safety-exit-2026-09-12.md)。
+
+## 2026-09-13 — CW-02 Fixup：Continuous field FormalArmy + Modal pause ownership
+
+- 修复 Continuous Outdoor 的确定接线缺口：`ContinuousOutdoorSurfaceRuntime` 现按当前 Surface、loaded Chunk 与 `FormalArmy.WorldMotion` 纳入 field FormalArmy living members；首次生成和 `HostFormalArmyContinuousPresenter` 共用稳定编队 helper，后续继续移动同一 EntityView。驻军仍走 Site population；field army 卸载／hard rebind 不 capture 为 `WorldPresence.AtSite`，不改 Army authority 或大地图图标。
+- 制作人首次 Fixup 复验出现荒村 Expected 17 / Materialized 16，缺 `杂役主管`。根因是分流误把 `FormalArmyState.Garrisoned` 当作 Site population 资格，而正式服务按 Army 当前 Hex 是否属于 Site 判定，主管所属军队保持 `Idle`。现仅跳过本轮已由 field pass 实际认领的成员；未被 field pass 接管的主管继续走 Site population 与 baked anchor。
+- 收口剩余临时窗口的暂停 ownership：洞府、LocalMap 进入、人物／斗技／修炼／学习面板、突破结果、Content interrupt、Dialogue、Quest、井字棋及拆旗确认均改用具名 modal owner，Close／Cancel／session clear／disable 只释放自身；NPC 菜单普通 Close 不再无条件恢复时间。明确玩家 Pause/Resume 与已确认行动 Resume 保留 ManualPaused 语义。
+- 修正 `ManualPaused` 旧注释，不再声称开 WorldMap 强制暂停。保留 CW-02 已有 Active／TemporarilyUnavailable／AllMembersDead、安全收尾和读档重绑实现，未进入 CW-03。
+- 验证：现有离线编译入口全部程序集 0 error；静态 writer 审计与 `git diff --check`。未启动 Unity，未运行 EditMode／PlayMode／Test Runner／batchmode 或 Bake。状态：**CW-02 Fixup Implementation Completed / Producer Acceptance Pending**。交接与具体人工路线见 [218](218-cw-02-pause-ownership-and-party-incapacitation-safety-exit-2026-09-12.md)。
+
+
+## 2026-09-12 — CW-02 暂停归属与小队失能安全出口
+
+- 制作人首轮进入手动战时出现 `PlayerParty materialized placement still unsafe after repair: (625,375)`：Continuous 退出后 View 暂留 canonical presentation，而旧 repair 只围绕远端 View 搜索 16 格。最终屏障现优先采用 materializer 的 `EntityLocation` 局部落点，必要时一次性搜索当前完整 WalkGrid；手动遭遇 repair 禁止反写 canonical 世界坐标。
+- `ManualPaused` 现只表达玩家意图；战略弹窗、Snapshot restore、背包与建造面板改用具名 modal owner，大地图开关不再改写手动暂停。BattleOffer→Manual→PostBattle 保持连续 WorldTick 冻结，结束／撤退只释放本阶段 owner，移除撤退的二次 Finish。
+- `PlayerPartyRuntime` 区分 Active、全员暂时不可控但仍有生者、全员真正死亡；失能按原 Party 顺序接替。Controller 不再在刷新生命状态前永久 return，恢复后会重绑唯一 Active、输入、选择和相机。HUD 保留全失能提示与小队栏，战斗结束入口不依赖 Active。
+- Active=None 的 Party 仍保存有序 membership；读档后按实体真实生命状态重建控制状态。正式读取以 `SnapshotRestore` owner 临时保护，并复用 CW-01 hard rebind，只释放自己的保护，不覆盖玩家暂停。
+- 新增 LevelTester“战斗”页三个 CW-02 人工触发按钮及读档控制状态诊断。Core／Data／Unity Host 离线编译通过，0 error；未启动 Unity、未运行自动测试或 Bake。状态：**Implementation Completed / Producer Acceptance Pending**。交接与人工路线见 [218](218-cw-02-pause-ownership-and-party-incapacitation-safety-exit-2026-09-12.md)。
+
+## 2026-09-12 — CW-01 Outdoor 动态物件状态闭环
+
+- 已有 `OutdoorStatefulObjectBoard` 现成为 Continuous Outdoor 物件表现与 Site blocker 合成的共同有效状态：Destroyed 墙／树不再实例化；墙按 authored cell stable ID 只解除对应单元，其他墙段及地理 blocker 保持不变。
+- destructible board 增加碰撞拓扑 revision；HP-only 变化不触发导航重组，实际销毁在下一 Update 合并重组一次 Composite WalkGrid，不改变普通 staged chunk streaming。
+- Snapshot restore 替换 `Session.World` 后对 active Continuous Surface 执行一次 hard rebind，重新建立 chunks、plots、动态物件、SurfaceGround 与 WalkGrid；清理旧表现时禁止把旧 View 坐标反写进新 World。现有 Outdoor JSON 字段与 schema 保持不变，旧 JSON 缺字段继续按空 override 兼容。
+- 定向验证：Core／Data／Unity Host／Tests 离线编译 0 error；`OutdoorStatefulObjectClosureTests` 4/4 通过；Main Surface 75 个 placement／展开后 405 个逻辑 ID 均无重复；本地文档链接及 `git diff --check` 通过。未启动 Unity，Producer Play Acceptance Pending。交接与正常游戏路线见 [217](217-cw-01-outdoor-stateful-object-closure-2026-09-12.md)。
+
+## 2026-09-12 — Continuous World 最终设计文档落库（仅文档）
+
+- 制作人确认 Continuous Outdoor、SiteCore 实际行政／建设范围、同源独立遭遇、人物／建筑战争授权、战内接管与 OR 胜利、各回战前锚点且保留战果、队内顺序接替／全队死亡最强继承及飞舟纯运输。
+- 新增 ADR-0032～0034，并同步系统正文、Freeze v0.2 定向补丁、技术展开、术语、索引、阅读指南和路线；旧 `BattleAnchor`、Footprint 精确范围、继承地点限制和 Army 类型特权均有明确 partial supersession。
+- 状态严格分离：Design Confirmed；Documentation Updated；Implementation Not migrated / Partially present / Needs verification；Producer Acceptance Pending。完整映射与迁移依赖见 [216](216-continuous-world-final-design-documentation-alignment-2026-09-12.md)。
+- 本轮未改 C#、运行时 JSON、存档、场景、Prefab、地图资源或项目设置；未启动 Unity、未编译、未运行测试或 Bake。
 
 ## 2026-09-11 — Continuous Outdoor Streaming Seam V1
 
@@ -1515,55 +1601,55 @@ WorldGraphEditor 的「势力范围」笔刷列表最上方新增固定编辑器
 ## 2026-08-22 — Phase E–K 战略层 E–K（Unity 验证 延期）
 
 **做了什么**
-- **E** BattleOffer AttackerArmyId/DefenderArmyId；Army vs Army 追击 Adapter；BattleParticipantSnapshot 成员 ID  
-- **F** AutoBattle 真实 Character 伤亡；ArmyStackAdapter 派生 downed 统计  
-- **G** WarBoard/WarGateService DeclareWar/IsAtWar/CanAttack；Host/BattleOffer 军事门槛  
-- **H** CaptureObjective + Node Owner 易主；ControlCore 接入；ArmyFormationNodePolicy 移除 presence 通用路径 → Ch01ScenarioArmyFormationPolicy  
-- **I** Alliance/Vassalage/Tribute 占位  
-- **J** Captured/Escaped/RetreatingArmy/Landless hook  
-- **K** WorldSnapshot Schema v2 + StrategicSnapshotHelper + JsonSnapshotSerializer 战略字段  
+- **E** BattleOffer AttackerArmyId/DefenderArmyId；Army vs Army 追击 Adapter；BattleParticipantSnapshot 成员 ID
+- **F** AutoBattle 真实 Character 伤亡；ArmyStackAdapter 派生 downed 统计
+- **G** WarBoard/WarGateService DeclareWar/IsAtWar/CanAttack；Host/BattleOffer 军事门槛
+- **H** CaptureObjective + Node Owner 易主；ControlCore 接入；ArmyFormationNodePolicy 移除 presence 通用路径 → Ch01ScenarioArmyFormationPolicy
+- **I** Alliance/Vassalage/Tribute 占位
+- **J** Captured/Escaped/RetreatingArmy/Landless hook
+- **K** WorldSnapshot Schema v2 + StrategicSnapshotHelper + JsonSnapshotSerializer 战略字段
 
 **验证**
-- EditMode：ArmyPhaseE–KTests 已编写 — **PENDING — UNITY VERIFICATION 延期**  
+- EditMode：ArmyPhaseE–KTests 已编写 — **PENDING — UNITY VERIFICATION 延期**
 
 **下一步**
-- Unity Test Runner 全量回归（含 StrategicPhaseTests + 153 链）  
+- Unity Test Runner 全量回归（含 StrategicPhaseTests + 153 链）
 
 ---
 
 ## 2026-08-22 — Phase B 最小组军 UI + WorldMap Army 投影（Unity 验证 延期）
 
 **做了什么**
-- HostArmyFormPanel + 节点菜单「军团管理」；ArmyUiCommands 薄层  
-- ArmyWorldMapPresentation：FormalArmy @ NodeId + Leader 派生头像；AtNode 角色不重复正式显示  
-- ArmyFormationNodePolicy：Ch01 无 Owner 时 presence-based 己方 Node  
-- ArmyService：AddMember / RemoveMember / ChangeLeader / CollectResidentsAtNode  
-- ArmyPhaseBTests（8 条）+ 152/roadmap 状态更新  
+- HostArmyFormPanel + 节点菜单「军团管理」；ArmyUiCommands 薄层
+- ArmyWorldMapPresentation：FormalArmy @ NodeId + Leader 派生头像；AtNode 角色不重复正式显示
+- ArmyFormationNodePolicy：Ch01 无 Owner 时 presence-based 己方 Node
+- ArmyService：AddMember / RemoveMember / ChangeLeader / CollectResidentsAtNode
+- ArmyPhaseBTests（8 条）+ 152/roadmap 状态更新
 
 **验证**
-- Unity Test Runner / Host：**延期**（制作人暂缓）  
+- Unity Test Runner / Host：**延期**（制作人暂缓）
 
 **下一步**
-- 恢复 Unity 后补跑 ArmyDomainTests + ArmyPhaseBTests + StrategicPhaseTests + Host 手操  
-- 等待 **Phase C** 批准  
+- 恢复 Unity 后补跑 ArmyDomainTests + ArmyPhaseBTests + StrategicPhaseTests + Host 手操
+- 等待 **Phase C** 批准
 
 ---
 
 ## 2026-08-22 — Phase A Formal Army Domain（Unity 验证 延期）
 
 **做了什么**
-- FormalArmy / ArmyService / ArmyMembership / ArmyDomainTests（11 条）  
-- StrategicBootstrap Owner 保护；静态复核修复（单真源 / ForceDisband / AtNode-only）  
+- FormalArmy / ArmyService / ArmyMembership / ArmyDomainTests（11 条）
+- StrategicBootstrap Owner 保护；静态复核修复（单真源 / ForceDisband / AtNode-only）
 
 **验证**
-- Unity：**延期**  
+- Unity：**延期**
 
 ---
 
 ## 2026-08-22 — 152 审核后小修（仅文档，未编码）
 
 **做了什么**
-- 152 rev.2：War(G) 先于 Capture(H)；Legacy Character Travel B–D 过渡 + Phase D 正式退出；Phase A 收紧（自动化为主、Host 仅回归、禁 Army Debug UI）  
+- 152 rev.2：War(G) 先于 Capture(H)；Legacy Character Travel B–D 过渡 + Phase D 正式退出；Phase A 收紧（自动化为主、Host 仅回归、禁 Army Debug UI）
 - roadmap／overview 状态同步：**Phase A 编码仍未批准**
 
 **未做**
@@ -1577,8 +1663,8 @@ WorldGraphEditor 的「势力范围」笔刷列表最上方新增固定编辑器
 ## 2026-08-22 — 152 战略 Faction / Formal Army / Capture 实现分期计划（仅文档）
 
 **做了什么**
-- 只读代码审计结论 + 制作人拍板迁移方向 → 正式实现分期 [152](152-strategic-faction-army-capture-implementation-plan-2026-08-22.md)  
-- 路线：Formal Army Domain + Compatibility Adapter（非 WorldPresence 大爆炸）；A–K 可停点；双真源退出表；第一刀推荐 **Phase A**（Domain + Membership，无移动／无战斗改动）  
+- 只读代码审计结论 + 制作人拍板迁移方向 → 正式实现分期 [152](152-strategic-faction-army-capture-implementation-plan-2026-08-22.md)
+- 路线：Formal Army Domain + Compatibility Adapter（非 WorldPresence 大爆炸）；A–K 可停点；双真源退出表；第一刀推荐 **Phase A**（Domain + Membership，无移动／无战斗改动）
 - 最小更新 roadmap／overview 索引
 
 **未做**
@@ -1592,19 +1678,19 @@ WorldGraphEditor 的「势力范围」笔刷列表最上方新增固定编辑器
 ## 2026-08-22 — 153 弥留残留收束 + 自动战宏观头像 + 接战／追击修复（已编码）
 
 **做了什么**
-- 自动战胜后 `EnsureMacroRemnantSpawns`：宏观立刻刷弥留／尸体个体 + `WorldPresence`；隐藏聚合 `ArmyStack` 标记  
-- 战损语义：`IncapacitatedMemberCount`／`CorpseMemberCount`；处决留尸体不 `Armies.Remove`  
-- 接战强制名单：`CollectViewParty(mandatoryLiving)` 仅行动决定人 + 半径内弥留／尸体；探望记录派出名单  
-- 接战窗撤退：`ClearPursuitForAgents`；自动战胜 `ClearPursuitForEngagedKeepEnRoute`  
-- 再进 LocalMap 倒计时 preservation；`EstimateAutoWinPercent` 调整；EditMode 回归测例  
+- 自动战胜后 `EnsureMacroRemnantSpawns`：宏观立刻刷弥留／尸体个体 + `WorldPresence`；隐藏聚合 `ArmyStack` 标记
+- 战损语义：`IncapacitatedMemberCount`／`CorpseMemberCount`；处决留尸体不 `Armies.Remove`
+- 接战强制名单：`CollectViewParty(mandatoryLiving)` 仅行动决定人 + 半径内弥留／尸体；探望记录派出名单
+- 接战窗撤退：`ClearPursuitForAgents`；自动战胜 `ClearPursuitForEngagedKeepEnRoute`
+- 再进 LocalMap 倒计时 preservation；`EstimateAutoWinPercent` 调整；EditMode 回归测例
 - 过程文档 [153](153-lingering-remnant-macro-presentation-2026-08-22.md)；GitHub／飞书同步
 
 **未做**
-- 2A 正式 Faction／Diplomacy／War／Capture 代码（仍为 Prototype `ArmyStack`）  
+- 2A 正式 Faction／Diplomacy／War／Capture 代码（仍为 Prototype `ArmyStack`）
 - 手操签收 153 清单
 
 **下一步**
-- 手操验 153 → 制作人批准 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md) 实现分期  
+- 手操验 153 → 制作人批准 [2A](../20-systems/2A-factions-armies-diplomacy-and-capture.md) 实现分期
 - 见 153 §6 与 devlog 外交条目
 
 ---
@@ -1647,7 +1733,7 @@ WorldGraphEditor 的「势力范围」笔刷列表最上方新增固定编辑器
 ---
 
 **做了什么**
-- `base:map_world_node_stub` 扩为 150×80 空场；去掉歇脚树装饰  
+- `base:map_world_node_stub` 扩为 150×80 空场；去掉歇脚树装饰
 - [151](151-encounter-stub-map-150x80-2026-08-21.md)
 
 ---
@@ -1655,10 +1741,10 @@ WorldGraphEditor 的「势力范围」笔刷列表最上方新增固定编辑器
 ## 2026-08-21 — 150 批 3：残留再进走接战 Offer
 
 **做了什么**
-- `TryBuildOfferForLingeringBattlefield`；弥留菜单／残留栈再攻统一弹 Offer  
-- 残留 Offer 使用 `LingeringLocalMapId`；补 `LingeringBattlefieldPartyService.cs.meta`  
-- EditMode 测例；[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)  
-- 手操验收跳过（Unity 占用／环境未就绪）  
+- `TryBuildOfferForLingeringBattlefield`；弥留菜单／残留栈再攻统一弹 Offer
+- 残留 Offer 使用 `LingeringLocalMapId`；补 `LingeringBattlefieldPartyService.cs.meta`
+- EditMode 测例；[150](150-lingering-battlefield-batch3-offer-2026-08-21.md)
+- 手操验收跳过（Unity 占用／环境未就绪）
 - 飞书／GitHub 同步
 
 ---
@@ -1666,8 +1752,8 @@ WorldGraphEditor 的「势力范围」笔刷列表最上方新增固定编辑器
 ## 2026-08-21 — 149 批 2：Core 下沉 + 探望到站
 
 **做了什么**
-- 新增 `LingeringBattlefieldPartyService`；`EnterLingeringBattlefield` Core 校验  
-- `PendingLingeringVisitIncapId` + 到站自动开进入菜单  
+- 新增 `LingeringBattlefieldPartyService`；`EnterLingeringBattlefield` Core 校验
+- `PendingLingeringVisitIncapId` + 到站自动开进入菜单
 - [149](149-lingering-battlefield-batch2-2026-08-21.md)
 
 ---
@@ -1675,10 +1761,10 @@ WorldGraphEditor 的「势力范围」笔刷列表最上方新增固定编辑器
 ## 2026-08-21 — 148 收束：批 1 + 接战一致性 + 删 JoinOngoing
 
 **做了什么**
-- `HostWorldMapPanel` 批 1；`ExecuteAttackStack` 仅 Pursuit 到站弹接战  
-- `BattleOfferService.TryPromoteNextQueuedOffer` 人未到只追击  
-- 删除 `JoinEngagedMembers`／JoinOngoing UI；测例更新  
-- 收束 [148](148-worldmap-linger-incap-ux-2026-08-21.md)；飞书同步；提交（手操跳过）  
+- `HostWorldMapPanel` 批 1；`ExecuteAttackStack` 仅 Pursuit 到站弹接战
+- `BattleOfferService.TryPromoteNextQueuedOffer` 人未到只追击
+- 删除 `JoinEngagedMembers`／JoinOngoing UI；测例更新
+- 收束 [148](148-worldmap-linger-incap-ux-2026-08-21.md)；飞书同步；提交（手操跳过）
 - 下一步：[149 批 2](149-lingering-battlefield-batch2-2026-08-21.md)
 
 ---
@@ -1686,26 +1772,26 @@ WorldGraphEditor 的「势力范围」笔刷列表最上方新增固定编辑器
 ## 2026-08-21 — 148 大地图弥留交互与点击修补（待手操验）
 
 **做了什么**
-- `HostWorldMapPanel`：弥留左／右键分工、`CollectLingeringViewParty`、敌军吸附与命中优先级  
-- 新建 [148](148-worldmap-linger-incap-ux-2026-08-21.md)；飞书 provision＋同步  
+- `HostWorldMapPanel`：弥留左／右键分工、`CollectLingeringViewParty`、敌军吸附与命中优先级
+- 新建 [148](148-worldmap-linger-incap-ux-2026-08-21.md)；飞书 provision＋同步
 
 ---
 
 ## 2026-08-21 — 收束 147＋飞书／GitHub（接战点／弥留残留）
 
 **做了什么**
-- 扩写 [147](147-battlefield-linger-no-teleport-2026-08-21.md) 收束全文（对齐 `eece220`）  
-- 更新总览／通读／62／路线图／feishu-map；飞书 provision＋同步；推 GitHub  
+- 扩写 [147](147-battlefield-linger-no-teleport-2026-08-21.md) 收束全文（对齐 `eece220`）
+- 更新总览／通读／62／路线图／feishu-map；飞书 provision＋同步；推 GitHub
 
 ---
 
 ## 2026-08-21 — 接战点无瞬移＋弥留残留战场
 
 **做了什么**
-- 战后参战者一律落 BattleAnchor，禁止瞬移回家  
-- 有弥留则保留 Encounter；大地图可再攻击／查看进入  
-- 未处决自动战＝全员弥留；再进刷弥留怪；修换路瞬移／再进跳荒村  
-- 大地图支援半径滑块（默认 0.25）；ADR-0023 补丁：结束战斗≠销毁战场  
+- 战后参战者一律落 BattleAnchor，禁止瞬移回家
+- 有弥留则保留 Encounter；大地图可再攻击／查看进入
+- 未处决自动战＝全员弥留；再进刷弥留怪；修换路瞬移／再进跳荒村
+- 大地图支援半径滑块（默认 0.25）；ADR-0023 补丁：结束战斗≠销毁战场
 - 提交推送 `eece220`
 
 ---
@@ -1713,7 +1799,7 @@ WorldGraphEditor 的「势力范围」笔刷列表最上方新增固定编辑器
 ## 2026-08-21 — ADR-0023／146 手操签收
 
 **做了什么**
-- 制作人手操确认 145／146 清单通过；文档状态改为已签收  
+- 制作人手操确认 145／146 清单通过；文档状态改为已签收
 - 下一刀待选：占点／外交，或 Snapshot 纳入 Strategic／冻结态
 
 ---
@@ -1730,12 +1816,12 @@ WorldGraphEditor 的「势力范围」笔刷列表最上方新增固定编辑器
 ## 2026-08-21 — ADR-0023 Phase A～F 连续落地
 
 **做了什么**
-- Phase A：ClockFreeze／Modal／禁 Tick  
-- Phase B：ParticipantSnapshot＋ReinforcementRange  
-- Phase C：Offer 可选支援勾选 UI  
-- Phase D：PostBattle＋PreBattle 还原（防瞬移）  
-- Phase E：BattleInterruptQueue 串行  
-- Phase F：`Adr0023BattlePhasesTests`＋验收文档 [145](145-adr0023-phases-af-acceptance-2026-08-21.md)  
+- Phase A：ClockFreeze／Modal／禁 Tick
+- Phase B：ParticipantSnapshot＋ReinforcementRange
+- Phase C：Offer 可选支援勾选 UI
+- Phase D：PostBattle＋PreBattle 还原（防瞬移）
+- Phase E：BattleInterruptQueue 串行
+- Phase F：`Adr0023BattlePhasesTests`＋验收文档 [145](145-adr0023-phases-af-acceptance-2026-08-21.md)
 - 战中 JoinOngoing 改为排队（旧测已改期望）
 
 ---
@@ -3140,10 +3226,10 @@ WorldGraphEditor 的「势力范围」笔刷列表最上方新增固定编辑器
 **目标：** BaseGame JSON → ContentPackageLoader → Registry 可查询（无玩法结算）。
 
 **做了什么**
-- `CharacterDefinition`／`CultivationDefinition`／`ItemDefinition` + Registry 扩展  
-- 严格未知字段／重复 ID／非法 DefinitionId  
-- `characters.json`／`cultivation.json`／`items.json` + SCHEMA.md  
-- EditMode：`ContentPackageTests` 覆盖加载与阻断路径  
+- `CharacterDefinition`／`CultivationDefinition`／`ItemDefinition` + Registry 扩展
+- 严格未知字段／重复 ID／非法 DefinitionId
+- `characters.json`／`cultivation.json`／`items.json` + SCHEMA.md
+- EditMode：`ContentPackageTests` 覆盖加载与阻断路径
 - Commit：`3ee16e1` `feat(data): complete data pipeline m1-a definitions`
 
 **说明：** 实现文件名为 `cultivation.json`／`CultivationDefinition`（与计划草案中的 Manual／manuals 用词并存；以代码与 SCHEMA 为准，待 ADR 统一术语）。
@@ -3307,7 +3393,7 @@ WorldGraphEditor 的「势力范围」笔刷列表最上方新增固定编辑器
 **判断：** Implementation Plan 人工确认 5 项（Domain 不拆 asmdef、Snapshot＝JSON、Random＝完整状态、AttributeId＝小枚举、EditMode 为完成标准）。
 
 **做了什么**
-- 发布 Plan **v0.2**；修订 ADR-0022 实施确认节  
+- 发布 Plan **v0.2**；修订 ADR-0022 实施确认节
 - 开始阶段 1：正式 asmdef 工程结构（不扩 Demo）
 
 **下一步**
@@ -3323,22 +3409,22 @@ WorldGraphEditor 的「势力范围」笔刷列表最上方新增固定编辑器
 
 ## 2026-08-01 — 文档可读性整理与飞书一一对应
 
-1. 新增 [通读指南](../00-project/04-reading-guide.md)、[ADR 决策索引](43-decisions/README.md)  
-2. 总览入口改为可点链接；飞书 map 补齐 `34`／`35`／`36`／`2E`／审计／全部 ADR  
-3. 同步脚本导航分组改为 00／10／20／30／43／40  
-4. 原则：**本地 MD 真源 ↔ 飞书阅读层结构与链接一致**；不重写已冻结规则正文  
+1. 新增 [通读指南](../00-project/04-reading-guide.md)、[ADR 决策索引](43-decisions/README.md)
+2. 总览入口改为可点链接；飞书 map 补齐 `34`／`35`／`36`／`2E`／审计／全部 ADR
+3. 同步脚本导航分组改为 00／10／20／30／43／40
+4. 原则：**本地 MD 真源 ↔ 飞书阅读层结构与链接一致**；不重写已冻结规则正文
 
 ## 2026-07-31 — Architecture Freeze v0.2 修补
 
 根据审计报告与人工确认，写入 v0.2（仍不编码）：
 
-1. **RelationshipLedger** 唯一真源；Component 只缓存（ADR-0017）  
-2. **WorldTick** 唯一世界时间轴；**ActionClock** = Action Duration（ADR-0018）  
-3. **Dead ≠ Removed**；Incapacitated 非死；Recovered→Alive（ADR-0019）  
-4. **FocusCharacterUnavailable**；DirectControl≠Focus≠Leader≠Identity（ADR-0020）  
-5. 开局三人隶属压迫宗门劳役；主管同宗管理者（`2G`／`34`）  
-6. 地图 **World／Region／LocalMap**；修订 `24`（ADR-0021）  
-7. **Core M1** 范围冻结（ADR-0022）  
+1. **RelationshipLedger** 唯一真源；Component 只缓存（ADR-0017）
+2. **WorldTick** 唯一世界时间轴；**ActionClock** = Action Duration（ADR-0018）
+3. **Dead ≠ Removed**；Incapacitated 非死；Recovered→Alive（ADR-0019）
+4. **FocusCharacterUnavailable**；DirectControl≠Focus≠Leader≠Identity（ADR-0020）
+5. 开局三人隶属压迫宗门劳役；主管同宗管理者（`2G`／`34`）
+6. 地图 **World／Region／LocalMap**；修订 `24`（ADR-0021）
+7. **Core M1** 范围冻结（ADR-0022）
 主契约文件：`33-architecture-core-rules-freeze-v0.2.md`；v0.1 改为指向 stub。
 
 ---
@@ -3355,8 +3441,8 @@ WorldGraphEditor 的「势力范围」笔刷列表最上方新增固定编辑器
 
 **为什么补：**
 
-1. **永久死亡默认 + TemporaryProtection**：若默认“剧情重要=不死”，选择与因果差异化会被架空；保护必须显式、阶段性。  
-2. **Membership／Role／Relationship／ControlAuthority + PlayerAgency**：单一 IsPlayer／FactionId 无法表达失势领袖、客卿、离开后再敌对；势力领导权必须随职位动态得失，旧势力转 AI 继续。  
+1. **永久死亡默认 + TemporaryProtection**：若默认“剧情重要=不死”，选择与因果差异化会被架空；保护必须显式、阶段性。
+2. **Membership／Role／Relationship／ControlAuthority + PlayerAgency**：单一 IsPlayer／FactionId 无法表达失势领袖、客卿、离开后再敌对；势力领导权必须随职位动态得失，旧势力转 AI 继续。
 3. **Mod Ready／ContentPackage**：把“暂不承诺 Mod”改为正式长期目标但分阶段；官方必须与社区同管线，否则日后拆硬编码极贵。当前只冻结构，不写加载器。
 
 **本轮：** `33` §19～21、`34` 生命周期与势力控制、`36` ContentPackage、`2E` 存档／事件扩展、`27`／`28` 对齐、术语表、路线图阶段 A～E、ADR-0010～0016；飞书说明改号 `37`。
@@ -3443,11 +3529,11 @@ WorldGraphEditor 的「势力范围」笔刷列表最上方新增固定编辑器
 
 试玩驱动的一揽子 RTS／经营可读性改动，方便验收压迫感与分工偷修循环。
 
-**操控**：框选／点查；中键拖地图；底部常驻状态栏；点 UI 不丢选中；S 停止  
-**查看**：可控三人数值栏；NPC 只读身份栏；主管红三角／守卫黄三角  
-**工作**：黄色多工位；`工作(W)`→点工位才开工；右键只移动  
-**劳役表**：全村一张村规（右侧竖栏）；村民按表走动；被发现才涨愤怒  
-**氛围**：主管／守卫巡逻；村民按表干活  
+**操控**：框选／点查；中键拖地图；底部常驻状态栏；点 UI 不丢选中；S 停止
+**查看**：可控三人数值栏；NPC 只读身份栏；主管红三角／守卫黄三角
+**工作**：黄色多工位；`工作(W)`→点工位才开工；右键只移动
+**劳役表**：全村一张村规（右侧竖栏）；村民按表走动；被发现才涨愤怒
+**氛围**：主管／守卫巡逻；村民按表干活
 
 明细见本文件下方各条与 `44-session-handoff-2026-07-31.md`「本轮改动汇总」。
 

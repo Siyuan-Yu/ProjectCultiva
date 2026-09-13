@@ -1,5 +1,7 @@
 # ADR-0029：Construction Content、Runtime 与 Snapshot 边界
 
+> **PARTIALLY SUPERSEDED / EXTENDED（2026-09-12）：** [ADR-0032](ADR-0032-sitecore-administrative-and-construction-range.md) 替代旧阶段的范围限制：行政与建设使用同一 SiteCore 覆盖，建筑再执行自身放置规则；旗产生新 Site，拆旗不删除其他实体建筑。本文 BuildingDefinition、材料事务及 Snapshot 边界继续有效。
+
 > 状态：已采纳
 > 日期：2026-09-06
 > 决策者：制作人

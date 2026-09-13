@@ -66,9 +66,23 @@ namespace XianXia.Core.World.Strategic
                 freeze.Reason = reason;
         }
 
-        public static void EndFreeze(SimulationWorld world)
+        /// <summary>
+        /// Releases only the lifecycle stage owned by the caller. A stale/double callback cannot
+        /// clear a newer encounter stage or another freeze reason.
+        /// </summary>
+        public static bool EndFreeze(
+            SimulationWorld world,
+            StrategicClockFreezeReason expectedReason)
         {
-            world?.Strategic?.ClockFreeze?.Clear();
+            var freeze = world?.Strategic?.ClockFreeze;
+            if (freeze == null || expectedReason == StrategicClockFreezeReason.None)
+                return false;
+            if (freeze.Reason == StrategicClockFreezeReason.None)
+                return true;
+            if (freeze.Reason != expectedReason)
+                return false;
+            freeze.Clear();
+            return true;
         }
 
         public static void CaptureHostPresentationIfNeeded(

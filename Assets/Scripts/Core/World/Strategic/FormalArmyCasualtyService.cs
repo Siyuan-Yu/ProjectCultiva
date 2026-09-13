@@ -98,7 +98,8 @@ namespace XianXia.Core.World.Strategic
                 residualCandidate);
 #endif
 
-            return detachSuccess && !stillInFormalArmy && residualCandidate;
+            return detachSuccess &&
+                   StrategicResidualPresenceService.IsResidualLifeCandidate(world, characterId);
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD

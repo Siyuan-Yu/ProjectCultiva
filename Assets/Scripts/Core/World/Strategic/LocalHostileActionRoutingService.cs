@@ -38,6 +38,16 @@ namespace XianXia.Core.World.Strategic
             if (!world.Entities.TryGet(targetId, out var target) || target == null)
                 return new HostileActionRouteResult(HostileActionRoute.Reject, empty, false, "Target entity not found.");
 
+            var continuousCombat = world.Strategic?.ContinuousManualCombat;
+            if (continuousCombat != null && continuousCombat.IsActive)
+            {
+                if (continuousCombat.IsFriendly(attackerId) && continuousCombat.IsEnemy(targetId))
+                    return new HostileActionRouteResult(HostileActionRoute.LocalCombat, empty, false, string.Empty);
+                return new HostileActionRouteResult(
+                    HostileActionRoute.Reject, empty, false,
+                    "Target is outside the active manual battle participant scope.");
+            }
+
             // Active WORLD_COMBAT owns its participant set; never create another engagement from a tactical strike.
             if (StrategicEncounterHostilityService.IsHostileStrategicNpc(world, target))
                 return new HostileActionRouteResult(HostileActionRoute.LocalCombat, empty, false, string.Empty);

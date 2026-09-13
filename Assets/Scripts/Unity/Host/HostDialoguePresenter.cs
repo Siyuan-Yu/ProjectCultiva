@@ -9,6 +9,7 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostDialoguePresenter : MonoBehaviour
     {
+        const string PauseOwner = "Dialogue";
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostCommandBridge commandBridge;
         [SerializeField] HostSelectionController selectionController;
@@ -46,6 +47,8 @@ namespace XianXia.Unity.Host
 
         public void ClearSessionState()
         {
+            if (_holdingPause && bootstrap?.Session != null)
+                bootstrap.Session.ReleaseModalPause(PauseOwner);
             _controller.Clear();
             _holdingPause = false;
             if (uguiView != null)
@@ -62,7 +65,8 @@ namespace XianXia.Unity.Host
             if (!_controller.TryBuildFromActiveOnTalk(session, subject, speakerNpc))
                 return false;
 
-            session.IsPaused = true;
+            session.AcquireModalPause(PauseOwner);
+            _holdingPause = true;
             HostInputGate.BlockWorldInteraction = true;
             return true;
         }
@@ -72,7 +76,10 @@ namespace XianXia.Unity.Host
             _controller.ShowFallback(speakerName, body);
             var session = bootstrap?.Session;
             if (session != null && session.IsInitialized)
-                session.IsPaused = true;
+            {
+                session.AcquireModalPause(PauseOwner);
+                _holdingPause = true;
+            }
             HostInputGate.BlockWorldInteraction = true;
         }
 
@@ -118,6 +125,11 @@ namespace XianXia.Unity.Host
             _controller.TrySelectChoice(index, session, commandBridge, bootstrap);
             if (wasActive && !IsActive)
             {
+                if (_holdingPause)
+                {
+                    session.ReleaseModalPause(PauseOwner);
+                    _holdingPause = false;
+                }
                 var ttt = bootstrap != null ? bootstrap.TicTacToePanel : null;
                 if (ttt == null || !ttt.IsOpen)
                     HostInputGate.BlockWorldInteraction = false;
@@ -133,10 +145,18 @@ namespace XianXia.Unity.Host
             if (uguiView != null)
                 uguiView.Hide();
             var session = bootstrap?.Session;
-            if (session != null &&
-                session.IsInitialized &&
-                !session.World.ContentEvents.HasActive)
-                session.IsPaused = false;
+            if (session != null && session.IsInitialized && _holdingPause)
+            {
+                session.ReleaseModalPause(PauseOwner);
+                _holdingPause = false;
+            }
+        }
+
+        void OnDisable()
+        {
+            if (_holdingPause && bootstrap?.Session != null)
+                bootstrap.Session.ReleaseModalPause(PauseOwner);
+            _holdingPause = false;
         }
 
         void SyncPause()
@@ -150,22 +170,16 @@ namespace XianXia.Unity.Host
 
             if (IsActive)
             {
-                session.IsPaused = true;
-                _holdingPause = true;
+                if (!_holdingPause)
+                {
+                    session.AcquireModalPause(PauseOwner);
+                    _holdingPause = true;
+                }
             }
-            else if (_holdingPause &&
-                     !session.World.ContentEvents.HasActive)
+            else if (_holdingPause)
             {
-                var ttt = bootstrap != null ? bootstrap.TicTacToePanel : null;
-                if (ttt != null && ttt.IsOpen)
-                {
-                    _holdingPause = false;
-                }
-                else
-                {
-                    session.IsPaused = false;
-                    _holdingPause = false;
-                }
+                session.ReleaseModalPause(PauseOwner);
+                _holdingPause = false;
             }
         }
 

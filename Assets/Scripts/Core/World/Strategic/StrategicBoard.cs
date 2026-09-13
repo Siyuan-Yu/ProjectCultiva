@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.World;
+using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -67,6 +68,85 @@ namespace XianXia.Core.World.Strategic
         public void ClearPlayerParty() => _playerPartyIds.Clear();
     }
 
+    /// <summary>
+    /// Host-facing lifetime marker for a manual battle presented on the already active
+    /// Continuous Outdoor surface. Strategic battle location remains in Participants;
+    /// this state only identifies which physical presentation owns the active session.
+    /// It is intentionally runtime-only and is rebuilt, never serialized.
+    /// </summary>
+    public sealed class ContinuousManualCombatPresentationState
+    {
+        readonly HashSet<ulong> _participantIds = new HashSet<ulong>();
+        readonly HashSet<ulong> _friendlyIds = new HashSet<ulong>();
+        readonly HashSet<ulong> _enemyIds = new HashSet<ulong>();
+
+        public bool IsActive { get; private set; }
+        public string OfferId { get; private set; } = string.Empty;
+        public string SurfaceId { get; private set; } = string.Empty;
+        public WorldVec2 BattleWorldAnchor { get; private set; }
+        public IReadOnlyCollection<ulong> ParticipantIds => _participantIds;
+
+        public bool Contains(EntityId id) =>
+            IsActive && !id.IsNone && _participantIds.Contains(id.Value);
+
+        public bool IsFriendly(EntityId id) =>
+            IsActive && !id.IsNone && _friendlyIds.Contains(id.Value);
+
+        public bool IsEnemy(EntityId id) =>
+            IsActive && !id.IsNone && _enemyIds.Contains(id.Value);
+
+        public bool AreOpposing(EntityId first, EntityId second) =>
+            IsActive && ((IsFriendly(first) && IsEnemy(second)) ||
+                         (IsEnemy(first) && IsFriendly(second)));
+
+        public void Begin(
+            string offerId,
+            string surfaceId,
+            WorldVec2 battleWorldAnchor,
+            IReadOnlyList<ActualBattleParticipant> participants)
+        {
+            Clear();
+            if (string.IsNullOrWhiteSpace(offerId) || string.IsNullOrWhiteSpace(surfaceId))
+                return;
+            OfferId = offerId.Trim();
+            SurfaceId = surfaceId.Trim();
+            BattleWorldAnchor = battleWorldAnchor;
+            if (participants != null)
+                for (var i = 0; i < participants.Count; i++)
+                {
+                    var participant = participants[i];
+                    if (participant.EntityId.IsNone || !_participantIds.Add(participant.EntityId.Value))
+                        continue;
+                    if (participant.IsFriendly)
+                        _friendlyIds.Add(participant.EntityId.Value);
+                    else
+                        _enemyIds.Add(participant.EntityId.Value);
+                }
+            IsActive = _participantIds.Count > 0;
+            if (!IsActive)
+                Clear();
+        }
+
+        public bool ClearOwned(string offerId)
+        {
+            if (!IsActive || !string.Equals(OfferId, offerId ?? string.Empty, System.StringComparison.Ordinal))
+                return false;
+            Clear();
+            return true;
+        }
+
+        public void Clear()
+        {
+            IsActive = false;
+            OfferId = string.Empty;
+            SurfaceId = string.Empty;
+            BattleWorldAnchor = default;
+            _participantIds.Clear();
+            _friendlyIds.Clear();
+            _enemyIds.Clear();
+        }
+    }
+
     public sealed class StrategicBoard
     {
         public FactionDiplomacyBoard Diplomacy { get; } = new FactionDiplomacyBoard();
@@ -78,6 +158,8 @@ namespace XianXia.Core.World.Strategic
         public ArmyStackBoard Armies { get; } = new ArmyStackBoard();
         /// <summary>Formal Army 领域真源（Phase A）；与 Prototype <see cref="Armies"/> 并存。</summary>
         public FormalArmyBoard FormalArmies { get; } = new FormalArmyBoard();
+        /// <summary>Unified persistent action-group membership authority.</summary>
+        public SquadBoard Squads { get; } = new SquadBoard();
         /// <summary>Hex 战略重要地点（155）；替代 Node 的地点职责。</summary>
         public WorldSiteBoard Sites { get; } = new WorldSiteBoard();
         /// <summary>政治辖区 Board（2J §6.3）；与 Sites 相互引用（Site.TerritoryRegionId ↔ Region.PrimaryWorldSiteId）。</summary>
@@ -89,6 +171,10 @@ namespace XianXia.Core.World.Strategic
         public LingeringBattlefieldRegistry LingeringBattlefields { get; } = new LingeringBattlefieldRegistry();
         public StrategicClockFreezeState ClockFreeze { get; } = new StrategicClockFreezeState();
         public BattleParticipantSnapshot Participants { get; } = new BattleParticipantSnapshot();
+        public ContinuousManualCombatPresentationState ContinuousManualCombat { get; } =
+            new ContinuousManualCombatPresentationState();
+        public ManualBattleSettlementState ManualBattleSettlement { get; } =
+            new ManualBattleSettlementState();
         public PendingEngagementRuntime PendingEngagement { get; } = new PendingEngagementRuntime();
         public BattleInterruptQueue InterruptQueue { get; } = new BattleInterruptQueue();
 

@@ -67,6 +67,9 @@ namespace XianXia.Core.Persistence
     {
         public string PlayerFactionId { get; set; } = string.Empty;
         public bool Ch01FormationScenarioCompat { get; set; }
+        public bool HasSquadSnapshotAuthority { get; set; }
+        public List<SquadSnapshotDto> Squads { get; set; } = new List<SquadSnapshotDto>();
+        public string ControlledSquadId { get; set; } = string.Empty;
         public List<FormalArmySnapshotDto> FormalArmies { get; set; } = new List<FormalArmySnapshotDto>();
         public List<ArmyMembershipSnapshotDto> ArmyMemberships { get; set; } = new List<ArmyMembershipSnapshotDto>();
         /// <summary>Detached Residual Character Hex Presence（非 Group Domain）。</summary>
@@ -79,6 +82,10 @@ namespace XianXia.Core.Persistence
         public List<CharacterWorldPresenceSnapshotDto> CharacterWorldPresences { get; set; } =
             new List<CharacterWorldPresenceSnapshotDto>();
         public List<WorldSiteOwnerSnapshotDto> WorldSiteOwners { get; set; } = new List<WorldSiteOwnerSnapshotDto>();
+        /// <summary>Field presence means the runtime-created Site set is authoritative.</summary>
+        public bool HasRuntimeWorldSiteSnapshotAuthority { get; set; }
+        public List<RuntimeWorldSiteSnapshotDto> RuntimeWorldSites { get; set; } =
+            new List<RuntimeWorldSiteSnapshotDto>();
         public List<TerritoryRegionControllerSnapshotDto> TerritoryRegionControllers { get; set; } = new List<TerritoryRegionControllerSnapshotDto>();
         /// <summary>字段出现即表示 Flag active set 完整 authoritative；空数组也有意义。</summary>
         public bool HasFactionFlagSnapshotAuthority { get; set; }
@@ -347,6 +354,37 @@ namespace XianXia.Core.Persistence
         public string OwnerFactionId { get; set; }
     }
 
+    public sealed class SquadSnapshotDto
+    {
+        public string SquadId { get; set; } = string.Empty;
+        public ulong LeaderCharacterId { get; set; }
+        public string LegacyArmyId { get; set; } = string.Empty;
+        public int CommandKind { get; set; }
+        public ulong CommandRevision { get; set; }
+        public List<ulong> MemberCharacterIds { get; set; } = new List<ulong>();
+    }
+
+    public sealed class RuntimeWorldSiteSnapshotDto
+    {
+        public string SiteId { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string SiteType { get; set; } = string.Empty;
+        public string OwnerFactionId { get; set; } = string.Empty;
+        public long ControlEstablishedOrder { get; set; }
+        public int AnchorQ { get; set; }
+        public int AnchorR { get; set; }
+        public string CoreAssetId { get; set; } = string.Empty;
+        public string SurfaceId { get; set; } = string.Empty;
+        public bool HasWorldPosition { get; set; }
+        public float WorldX { get; set; }
+        public float WorldY { get; set; }
+        public int CoreLevel { get; set; }
+        public float RangeWidth { get; set; }
+        public float RangeHeight { get; set; }
+        public bool IsCoreActive { get; set; }
+        public bool CoreIsRemovable { get; set; }
+    }
+
     /// <summary>TerritoryRegion 运行时 Controller（2J §17）；Region/Hexes/PrimaryWorldSiteId 属 Content identity 不重复持久化。</summary>
     public sealed class TerritoryRegionControllerSnapshotDto
     {
@@ -368,6 +406,9 @@ namespace XianXia.Core.Persistence
         public bool HasWorldPosition { get; set; }
         public float WorldX { get; set; }
         public float WorldY { get; set; }
+        public string SiteId { get; set; }
+        public string SurfaceId { get; set; }
+        public bool IsSiteCore { get; set; }
     }
 
     public sealed class WarSnapshotDto

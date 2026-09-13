@@ -1,7 +1,9 @@
 # ADR-0031：Continuous Outdoor World Surface Architecture
 
-> 状态：**已采纳 / migration in progress**｜日期：2026-09-09｜最后更新：2026-09-10
-> 决策者：制作人  
+> **2026-09-12 状态更新：** Continuous Outdoor 已成为正式目标，不再仅是未授权 Future 讨论。SiteCore 的行政／建设范围和临时同源战场分别由 [ADR-0032](ADR-0032-sitecore-administrative-and-construction-range.md)、[ADR-0033](ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) 补充；实现仍需分阶段迁移和制作人验收。
+
+> 状态：**已采纳 / migration in progress**｜日期：2026-09-09｜最后更新：2026-09-12
+> 决策者：制作人
 > 关联：[203](../203-continuous-2d-open-world-world-surface-direction-2026-09-09.md)、[2K](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、[2J](../../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)、[ADR-0021](ADR-0021-world-region-localmap.md)、[ADR-0025](ADR-0025-strategic-spatial-model-hexgrid.md)、[ADR-0026](ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)、[ADR-0027](ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md)
 
 ## Context
@@ -34,7 +36,7 @@ Surface Chunk 是 authoring、storage、streaming 的基本单位，**不是 Gam
 
 ### 3. 战略、地点与地形
 
-Strategic Hex 继续是 WorldMap、Territory、Faction Control、FormalArmy、WorldSite Strategic Footprint、Background Travel / path、Strategic Terrain Summary 和背景模拟的权威。Territory 严格 Hex-based。
+Strategic Hex 继续承担 WorldMap 战略摘要、未冲突的战略叠加、背景模拟与远程规划职责。真实行政控制与 Site 精确范围由 SiteCore 的连续空间覆盖及稳定历史优先解析；Hex Territory／Footprint 不得反推人物精确位置、河桥通行、Site 精确边界或建筑归属。
 
 Continuous Surface 是真实地理权威；Hex Terrain 是可从 Surface / Macro Geography derive 并允许人工 override 的战略摘要，不能反向规定整块 Hex 真实地形。WorldSite 是有 identity、Strategic Footprint、Physical Region、Gameplay State 的重要 Domain Entity；footprint 是战略范围，**不等于** Exact Physical Boundary，也不等于 Territory。
 
@@ -56,7 +58,7 @@ World Event 不在本轮实现。长期它是有 WorldSpace + WorldPosition / Re
 
 ## Current Implementation Boundary
 
-本 ADR **不改变当前已实现契约**：Wilderness 仍为 `1 Hex = 1 logical LocalMap`；WorldSite LocalMap、SurfaceExit、WildernessLocalWorldProjection、HexFootprintSpatialMapping、WorldSiteSpatialMapping、现有 transition / mapping / Travel authority 均继续有效。Outdoor → Outdoor 的 SurfaceExit 仅在未来迁移完成后退出普通 Outdoor 主链；Portal / SpaceTransition 长期保留给真正独立 Space。LocalMap 不直接删除：现有 Wilderness / WorldSite LocalMap 可逐步迁移为 authored Surface source，Interior 等独立 LocalMap 可长期存在。
+本 ADR 不追认尚未迁移的运行时行为。`1 Hex = 1 logical LocalMap`、WorldSite LocalMap、Outdoor SurfaceExit、WildernessLocalWorldProjection、HexFootprintSpatialMapping 与 WorldSiteSpatialMapping 是旧迁移阶段实现或 authoring bridge，已不属于普通 Outdoor 的正式目标主链；它们仍可能存在于代码或旧内容中，具体移除／兼容范围待迁移核查。Portal／SpaceTransition 长期保留给真正独立空间，Interior 等独立 LocalMap 也可长期存在。
 
 ## Consequences
 

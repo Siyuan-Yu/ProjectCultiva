@@ -15,8 +15,18 @@ namespace XianXia.Unity.Host
             var session = bootstrap.Session;
             var world = session.World;
             var party = session.PlayerParty;
-            if (party == null || !party.HasActive)
+            if (party == null || party.Count == 0)
                 return;
+
+            if (!party.HasActive)
+            {
+                Debug.Log(
+                    "[SnapshotRestore.Active] ActiveCharacterId=0 ControlState=" + party.ControlState +
+                    " PartyCount=" + party.Count +
+                    " SessionPaused=" + session.IsPaused +
+                    " InputGateBlock=" + HostInputGate.BlockWorldInteraction);
+                return;
+            }
 
             var activeId = party.ActiveCharacterId;
             SnapshotActiveControlledLocalMapResolver.TryResolveRequiredLocalMap(

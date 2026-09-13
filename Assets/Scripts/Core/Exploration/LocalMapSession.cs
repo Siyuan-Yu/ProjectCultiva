@@ -166,6 +166,11 @@ namespace XianXia.Core.Exploration
 
         public IReadOnlyDictionary<string, OutdoorDestructibleState> Destructibles => _destructibles;
         public IReadOnlyDictionary<string, OutdoorFarmPlotState> FarmPlots => _farmPlots;
+        /// <summary>
+        /// Changes only when a destructible starts or stops contributing authored collision.
+        /// HP-only changes do not force a navigation rebuild.
+        /// </summary>
+        public ulong DestructibleTopologyRevision { get; private set; }
         public bool TryGetDestructible(string id, out OutdoorDestructibleState state)
         {
             state = default;
@@ -176,15 +181,38 @@ namespace XianXia.Core.Exploration
             state = default;
             return !string.IsNullOrEmpty(id) && _farmPlots.TryGetValue(id, out state);
         }
+        public bool IsDestructibleDestroyed(string id) =>
+            TryGetDestructible(id, out var state) && (state.Destroyed || state.Hp <= 0);
         public void SetDestructible(string id, int hp, bool destroyed)
         {
-            if (!string.IsNullOrEmpty(id)) _destructibles[id] = new OutdoorDestructibleState(hp, destroyed);
+            if (string.IsNullOrEmpty(id))
+                return;
+            var effectiveDestroyed = destroyed || hp <= 0;
+            var topologyChanged = !_destructibles.TryGetValue(id, out var previous)
+                ? effectiveDestroyed
+                : (previous.Destroyed || previous.Hp <= 0) != effectiveDestroyed;
+            _destructibles[id] = new OutdoorDestructibleState(hp, effectiveDestroyed);
+            if (topologyChanged)
+                DestructibleTopologyRevision++;
         }
         public void SetFarmPlot(string id, string cropId, int cropStage, float growth)
         {
             if (!string.IsNullOrEmpty(id)) _farmPlots[id] = new OutdoorFarmPlotState(cropId, cropStage, growth);
         }
-        public void Clear() { _destructibles.Clear(); _farmPlots.Clear(); }
+        public void Clear()
+        {
+            if (_destructibles.Count > 0)
+                DestructibleTopologyRevision++;
+            _destructibles.Clear();
+            _farmPlots.Clear();
+        }
+    }
+
+    /// <summary>Stable authored identity shared by Outdoor presentation, state and navigation.</summary>
+    public static class OutdoorStatefulObjectId
+    {
+        public static string ForCell(string placementId, int localX, int localY) =>
+            (placementId ?? string.Empty) + ":" + localX + ":" + localY;
     }
 
     public readonly struct OutdoorDestructibleState

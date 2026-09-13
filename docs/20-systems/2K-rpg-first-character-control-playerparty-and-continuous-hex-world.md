@@ -1,12 +1,14 @@
 # RPG-First：Active Character、PlayerParty、连续 Hex 世界与 FormalArmy 军事层
 
-> 状态：**Phase 2B／2C 已封板**｜**Phase 2C Continuous World Movement 已人工验收封板（2026-08-26）**｜优先级：P0｜最后更新：2026-09-09
-> 上级：`docs/00-project/00-overview.md`  
+> **2026-09-13 组织／遭遇补丁：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) §1、2、5 为现行目标。§5.8.9、§7～9 的群体位置和 PlayerParty／Background／FormalArmy 分层保留为旧实现兼容，不能覆盖唯一行动小队与统一玩家遭遇。CW-U1 已将成员关系迁移到统一 Squad；PlayerParty 为控制门面，FormalArmy 为身份／任务／移动适配。统一独立遭遇及地图攻击退役仍属 CW-U2。
+
+> 状态：旧 Phase 2B／2C 验收保留；最终控制／移动／飞舟设计已确认，新行为待迁移／核查与制作人验收｜优先级：P0｜最后更新：2026-09-12
+> 上级：`docs/00-project/00-overview.md`
 > 关联：`2A`、`2J`、`24`、`27`、`23`、`ADR-0020`、`ADR-0024`、`ADR-0025`、`ADR-0026`、`ADR-0027`、`ADR-0031`
-> 被引用：`03-glossary.md`、`04-reading-guide.md`、`41-roadmap`、`AGENTS.md`  
-> **本页是玩家控制模型、PlayerParty、世界存在状态、连续 Hex 世界与 FormalArmy 职责边界的正式产品真源。**  
+> 被引用：`03-glossary.md`、`04-reading-guide.md`、`41-roadmap`、`AGENTS.md`
+> **本页是玩家控制模型、PlayerParty、世界存在状态、连续 Hex 世界与 FormalArmy 职责边界的正式产品真源。**
 > **本文件只锁契约与产品规则；不写 Runtime C#。** 当前 Host 的 RTS 多选、Army-required World Travel、远距离切换控制等视为 **Prototype / Legacy 待迁移**。
-> **Future Direction（不改变本页 Current Implemented Contract）：** [ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md) 已锁定 Continuous Outdoor World Surface 的长期目标，且仍 **NOT IMPLEMENTED**。当前 Wilderness `1 Hex = 1 logical LocalMap`、SurfaceExit、WorldSite LocalMap、SpatialMapping、transition 与 Travel 行为继续按本页运行；新 ADR 不授权迁移或删除现有系统。普通 Outdoor 的 future 方向 supersede 旧 Route / Region physical continuity，Freeze 正文与当前实现不因此被改写。
+> **2026-09-12 当前目标：** [ADR-0031](../40-process/43-decisions/ADR-0031-continuous-outdoor-world-surface-architecture.md) 已是 Continuous Outdoor 正式目标；旧 `1 Hex = 1 LocalMap`、关图才出发和切换 Executor 只作历史实现记录。控制继承、冲突与飞舟职责以 [ADR-0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) 为准。
 
 ---
 
@@ -66,6 +68,8 @@ ActiveControlledCharacter
 
 ## 2. PlayerParty
 
+小队实际同行、共享行动目标，但成员各自移动、受伤、持物和保持真实位置。落后、绕路、弥留不自动离队或免费传送。保留单 Active、固定顺序接替和六人上限；组织变化不改 Faction、HomeSite、家庭、私人关系。飞舟不替代小队，本轮运输延期；目的地倾向建筑只记后续方向。
+
 正式概念：
 
 ```text
@@ -88,7 +92,7 @@ PlayerParty
 | **PP03** | 同 LocalMap 对我方角色选 **Follow / 跟随** ≡ **加入 PlayerParty**；禁止平行「Follow Group」 |
 | **PP04** | Follower：自动跟随 Active；跨 LocalMap；参与世界旅行；战斗中 AI 控制；**禁止**玩家 RTS 操作 |
 
-**PlayerParty ≠ FormalArmy。** 二者都可在 HexWorld 移动、战斗、进攻 WorldSite，但组织语义不同（见 §7）。
+**当前目标：唯一行动小队。** 每个正常活动人物属于唯一小队，单人也是小队；玩家、NPC、旧巡逻／守备共用组织模型。PlayerParty 最终仅为玩家所控小队及 Active 的控制投影，不再单独维护可写成员名单。旧 FormalArmy 仅迁移适配，不是特殊战斗入口。
 
 ---
 
@@ -98,53 +102,34 @@ PlayerParty
 
 > **只能在当前 PlayerParty 成员之间切换 Active Character。**
 
-不允许把同 LocalMap、同势力、但未加入 Party 的角色直接设为 Active。  
+不允许把同 LocalMap、同势力、但未加入 Party 的角色直接设为 Active。
 **禁止**远距离点击头像 → 加载远方角色 → 接管控制（废除上帝附身模型）。
 
 正常 RPG 视角：**切换 Active 时一次性聚焦新主控**；日常探索镜头规则见 [§1.1](#11-localmap-camera最终规则2026-08-25)（仅 WASD Hard Follow；RTS 不控镜头）。
 
 ---
 
-## 4. Succession（主控死亡 / 继承）
+<a id="control-succession"></a>
+## 4. Active 自动接替与势力继承（2026-09-12）
 
-### 情况 A：Active 死亡，Party 有幸存者
+### 情况 A：当前 Active 失能，Party 仍有可控成员
 
-从当前 PlayerParty 幸存者中选择新 Active；游戏继续。
+按 Party 固定顺序从第二位开始依次选择下一名可控成员并自动切换。这里不按战力排序，也不弹继承选择窗口。每个成员保留自己的位置和状态。
 
-### 情况 B：PlayerParty 全灭
+### 情况 B：Party 全员真正死亡
 
-**不要**默认 Game Over。进入特殊 **Succession / 继承控制**：
+只有当前 Party **全部真正死亡**后才触发势力继承。全员弥留、倒地或暂时不可操作但仍有生者，不等于全灭，应进入已有战败／等待恢复出口；该出口完整性在实现前核查。
 
-- 从**合格角色**中选择一人成为新 ActiveControlledCharacter
-- 建立新的 PlayerParty
-- 游戏继续
-
-这是普通切换规则的**特殊例外**。
-
-### Succession V1 合格角色（已拍板）
-
-PlayerParty 全灭后，候选角色**必须同时满足**：
-
-| 条件 | 说明 |
-|------|------|
-| 属于玩家当前 Faction | `Character.FactionId == PlayerFactionId` |
-| **Alive** | 存活 |
-| **可以正常行动** | 非 Dying／Incap 等不可主控状态 |
-| **未被 Captured** | 排除被俘角色 |
-| **不在正在执行任务的 FormalArmy 中** | 已编入出征 Army 者不可 Succession 接管 |
-| **当前位于玩家控制的 WorldSite** | 物理位于 `OwnerFactionId == PlayerFactionId` 的 Site |
-
-**V1 不设置境界最低要求。**
-
-流程：
+继承者必须属于玩家势力、存活且当前可担任主控，并按项目现有战力口径自动选择最高者；并列使用稳定结果。旧“必须位于己方 Site／不得在出征 FormalArmy”限制由 ADR-0034 替代，不得据此排除实际最强合格者。
 
 ```text
-PlayerParty 全灭
-→ 从合格角色列表选择一人
-→ 新 ActiveControlledCharacter
-→ 建立新 PlayerParty
-→ 游戏继续
+先提交旧 Party 的真实伤亡、消耗与遭遇结果
+→ 选择玩家势力最强合格者
+→ 在继承者自己的实际世界位置取得控制
+→ 建立以其为 Active 的新 PlayerParty
 ```
+
+不得把继承者传送到旧战场、复活旧队或自动补齐六人。玩家势力无人时的终局明确延期：本阶段不定义 GameOver、强制重开、免费复活或凭空继承者。
 
 ---
 
@@ -155,6 +140,8 @@ PlayerParty 全灭
 Pure Hex **保留**。正式定义：
 
 > **HexWorld 是整个游戏唯一的世界地理拓扑。**
+
+2026-09-12 修订：此处“拓扑”指 Hex 的战略叠加／摘要职责。普通户外物理世界以 Continuous Outdoor World Surface 和连续 `WorldPosition` 为准；Hex 不规定真实河桥、Site 精确边界或战场裁切。
 
 不再仅理解为 FormalArmy 战略棋盘。
 
@@ -176,7 +163,7 @@ Pure Hex **保留**。正式定义：
 
 > Character 走出 LocalMap = 真正离开当前位置并进入相邻世界空间。
 
-**正式不可逆契约见 [§5.8](#58-continuous-world-movementphase-2c-正式契约)。**  
+**正式不可逆契约见 [§5.8](#58-continuous-world-movementphase-2c-正式契约)。**
 V1 允许 Fade／Loading；**不要求** Unity 无缝开放世界；**要求**逻辑连续，且邻格过渡**不** snap 到邻格中心。
 
 ### 5.4 普通 Hex 也是世界
@@ -185,31 +172,31 @@ V1 允许 Fade／Loading；**不要求** Unity 无缝开放世界；**要求**�
 
 ### 5.5 Wilderness LocalMap
 
-普通／荒野 Hex → **1 Hex = 1 逻辑 LocalMap 实例**（可共享模板／Terrain／Seed）。架构**不得阻止**任意普通 Hex 展开为 Wilderness。细则见 §5.8。
+~~普通／荒野 Hex → 1 Hex = 1 逻辑 LocalMap 实例。~~ **SUPERSEDED（2026-09-12）：** 普通户外属于 Continuous Outdoor World Surface；Hex 只作战略叠加。旧 LocalMap 展开仅为历史实现。
 
 ### 5.6 WorldMap 长期职责
 
-1. 观察世界  
-2. 查看当前位置  
-3. 选择远距离目的地（**仅 Hex／WorldSite 级精度**，见 §5.8）  
-4. Auto Travel（`MovementState.AutoTravel`；Phase 2C 契约）  
-5. 查看 FormalArmy  
-6. 查看 WorldSite  
+1. 观察世界
+2. 查看当前位置
+3. 选择远距离目的地：有效地面点击经统一投影解析为连续目标；Site 标记解析到该 Site 的真实合法抵达点
+4. Auto Travel（`MovementState.AutoTravel`；Phase 2C 契约）
+5. 查看 FormalArmy
+6. 查看 WorldSite
 
-**不是**「所有角色必须进入战略单位模式才能移动」。  
-**永远不是**「在 WorldMap 上点像素／PreciseWorldDestination 下精确世界坐标命令」。
+**不是**「所有角色必须进入战略单位模式才能移动」。
+WorldMap 不保存第二套坐标真源；但这不禁止把有效地面点击通过统一投影解析为既有 `WorldPosition`。导航覆盖不足时可只承诺目标提交，不得假称全大陆精确路线已经可用。
 
 ### 5.7 Auto Travel / TravelMode
 
-PlayerParty 选 **Hex 或 WorldSite** 目标 → 进入 `MovementState.AutoTravel` → 沿路径以 **Continuous WorldPosition** 真实移动 → 世界时间流逝；途中可遭遇／取消／展开 LocalMap。  
+PlayerParty 选 **Hex 或 WorldSite** 目标 → 进入 `MovementState.AutoTravel` → 沿路径以 **Continuous WorldPosition** 真实移动 → 世界时间流逝；途中可遭遇／取消／展开 LocalMap。
 预留 **TravelMode**（地面／未来飞行等）；**本轮不实现飞行**。完整契约见 §5.8。
 
 ---
 
 ## 5.8 Continuous World Movement（Phase 2C 正式契约）
 
-> **本小节 = Continuous World Movement 的正式产品真源。**  
-> Phase **2B 已封板**；Phase **2C 契约锁定于 2026-08-26**；Phase **5R 契约锁定于 2026-08-30（[ADR-0027](../40-process/43-decisions/ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md)）**。  
+> **本小节 = Continuous World Movement 的正式产品真源。**
+> Phase **2B 已封板**；Phase **2C 契约锁定于 2026-08-26**；Phase **5R 契约锁定于 2026-08-30（[ADR-0027](../40-process/43-decisions/ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md)）**。
 > **只锁规则；不写 Runtime C#。** §5.8.3／§5.8.5／§6 由 **ADR-0027** 扩展：Canonical World Surface Position 统一真源（Wilderness 与 WorldSite 内）、WorldSiteSpatialMapping、PresenceHex 改 derived。§7 PlayerParty／Background／Army 边界继续有效。
 
 ### 5.8.1 三层职责（不可逆）
@@ -222,20 +209,16 @@ PlayerParty 选 **Hex 或 WorldSite** 目标 → 进入 `MovementState.AutoTrave
 
 禁止把 WorldMap 或 LocalMap 当成第二套世界坐标真源。
 
-### 5.8.2 WorldMap 命令精度锁（FOREVER）
+<a id="worldmap-target-resolution"></a>
+### 5.8.2 WorldMap 目标解析（2026-09-12）
 
-WorldMap 上玩家可下达的目的地精度 **永远且仅限**：
+| 输入 | 当前正式语义 |
+|---|---|
+| 有效地面点击 | 通过 WorldMap 与 Continuous Surface 的统一投影解析为连续 `WorldPosition` 目标；点击结果是对既有位置真源的命令，不建立第二套坐标 |
+| Site 标记 | 解析为该 Site 内真实、合法、可达的抵达点，不吸附 AnchorHex／格心 |
+| Hex 摘要 | 可作为粗粒度观察、筛选或 goal-only 入口；不能覆盖点击得到的真实物理目标 |
 
-```text
-Hex  |  WorldSite
-```
-
-| 禁止 | 说明 |
-|------|------|
-| **PreciseWorldDestination** | **FORBIDDEN** — 永久禁止 |
-| 点击像素／屏幕点反推的连续世界坐标作命令目标 | **FORBIDDEN** |
-
-WorldMap 选格／选 Site → 系统换算为合法 `WorldLocation` 目标；**不得**把点击位置当作 Runtime 目的地真源。
+旧“WorldMap 永久只允许 Hex／Site，`PreciseWorldDestination` 永久禁止”由本节替代。同一 Hex 内两个不同合法点击点必须保持不同物理目标。路线能力尚未覆盖时应明确 goal-only，不把扩大 Streaming 窗口或格心路径冒充全局精确导航。
 
 ### 5.8.3 Runtime 真源：Canonical World Surface Position（ADR-0027）
 
@@ -244,9 +227,9 @@ WorldMap 选格／选 Site → 系统换算为合法 `WorldLocation` 目标；**
 | 概念 | 规则 |
 |------|------|
 | **CanonicalWorldSurfacePosition** | PlayerParty 在整个连续世界表面（Wilderness 与 WorldSite 内）的**唯一物理位置真源** |
-| **LocalPosition** | **非持久真源（5R-0.1 修正 #1）**：LocalMap execution/presentation coordinate，由 `EntityView.transform.position`／`EntityLocationComponent.PresentationOverrideX/Z`／`LoadedLocalMapPlacementSnapshotRestore` 承担；LocalMap 可见时经 `WorldSiteSpatialMapping.LocalToWorld` 更新 `motion.WorldPosition`，不在 motion 持久化 |
+| **LocalPosition** | 真正 Interior／洞府／地下及临时 Encounter 的局部执行坐标；普通 Outdoor 直接使用 Continuous Surface 世界位置，不再依赖 Site LocalMap 投影 |
 | **CurrentHex** | **混合语义，禁止立即删除/全局替换（5R-0.1 修正 #3）**：① `PhysicalDerivedHex = WorldToHex(WorldPosition)`；② `RouteCommittedHex = HexPath[SegmentIndex]`（Travel 正式提交格）；③ `CurrentWildernessHex = 当前 Wilderness LocalMap/Surface Context`。Hex 边界附近 ①② 可暂时不同（Phase 5C takeover 分叉即证据）；先审计调用点分类（5R-C），再逐步退役 |
-| **DerivedPresenceHex** | **派生量（staged deprecation，5R-0.1 修正 #4）**：Site 内 = `LocalPosition → WorldSiteSpatialMapping → CanonicalWorldSurfacePosition → WorldToHex`；Site 外 = DerivedSurfaceHex。只作查询/cache，不落盘为真源；字段级 PresenceHex 保留为 Legacy Compatibility Representative Hex（等价 AnchorHex），逐系统迁移后删除 |
+| **DerivedPresenceHex** | `WorldToHex(CanonicalWorldSurfacePosition)` 的战略派生／缓存；不得 clamp 到 Site footprint，也不得决定 CurrentSite 或建筑归属 |
 | 禁止 | 以离散 CurrentHex 为唯一真源再「猜」连续位置；多个可独立漂移的位置字段并存争夺真源；AtSite 时跳 Anchor／PresenceHex／ingress center（修正 #5） |
 
 ### 5.8.4 WorldLocation vs MovementState（分离）
@@ -263,36 +246,40 @@ MovementState =
   | AutoTravel
 ```
 
-- `AtWorldSite`：位于某 WorldSite（聚合态；见下）  
-- `AtWorldPosition`：位于普通／荒野连续世界坐标  
-- `Idle`：未在 AutoTravel  
-- `AutoTravel`：正沿 WorldMap 下达的 Hex／Site 目标自动移动  
+- `AtWorldSite`：位于某 WorldSite（聚合态；见下）
+- `AtWorldPosition`：位于普通／荒野连续世界坐标
+- `Idle`：未在 AutoTravel
+- `AutoTravel`：正沿 WorldMap 下达的 Hex／Site 目标自动移动
 
 二者正交：例如 `AtWorldPosition + AutoTravel`、`AtWorldSite + Idle`。
 
-### 5.8.5 WorldSite：AtSite Context + Spatial Mapping（ADR-0027 取代旧 Aggregated 固定投影）
+### 5.8.5 WorldSite：由真实位置解析的行政 Context
 
 > **旧「Aggregated：LocalMap 只改 LocalPosition；WorldMap 投影恒 = PresenceHex；禁止按 Local 坐标投影」由 [ADR-0027](../40-process/43-decisions/ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md) SUPERSEDED。**
 
 | 规则 | 说明 |
 |------|------|
-| 战略 Context | Site 内一律 `AtSite(SiteId)`（Strategic Place，**不覆盖物理位置**） |
-| Site 内 LocalMap 移动 | 改变 **Local transform**（execution/presentation，非持久真源）；经 **WorldSiteSpatialMapping.LocalToWorld** 实时更新 **CanonicalWorldSurfacePosition**（5R-0.1 修正 #1） |
-| WorldMap 投影 | = **CanonicalWorldSurfacePosition**（mapping 后连续位置）；**不跳 Anchor、不固定 PresenceHex**（修正 #7：`DrawPlayerPartyMarker` 只消费 `PlayerPartyWorldLocationQuery.WorldPosition`） |
-| 进入 Site | 连续位置从 Wilderness 映射进入 Site LocalMap，无坐标跳变（Context change 不改变 Physical Position，修正 #5） |
-| 离开 Site | 从当前 Site Local transform 经 mapping 自然确定外部 Hex；不跳 Anchor、不重猜 FootprintHex |
+| Site Context | 由 Continuous `WorldPosition` 与当前唯一有效行政控制解析；不覆盖物理位置 |
+| Site 内 Outdoor 移动 | 直接改变同一 Continuous Surface 上的世界位置，不切 Outdoor LocalMap |
+| WorldMap 投影 | 使用同一个 Canonical WorldPosition；不跳 Anchor、不固定 PresenceHex |
+| 进入／离开 Site 范围 | 只是行政 Context 变化，不造成切图、传送或坐标重写 |
+| Legacy / Interior | `WorldSiteSpatialMapping` 只服务仍待迁移的旧 Outdoor LocalMap 或真正独立 Interior；不得作为新普通 Outdoor 的范围真源 |
 
-进入 Site 后：`WorldLocation = AtWorldSite{SiteId}`；`CanonicalWorldSurfacePosition` 仍指向 footprint 内对应区域。离站后改为 `AtWorldPosition`（连续）。
+`AtWorldSite{SiteId}` 仅可作为兼容 Context；当前 Site 应随实际位置和有效控制重算。Site 易主或范围改变不得移动人物。
 
 ### 5.8.6 普通／荒野 Hex
+
+> **历史实现，已由 ADR-0031 和 2026-09-12 当前目标替代。** 普通户外不再以 1 Hex 一张探索图为最终规则。
 
 | 规则 | 说明 |
 |------|------|
 | 位置模型 | 使用 **Continuous WorldPosition**（非 Site 聚合） |
-| LocalMap | **1 Hex = 1 逻辑 LocalMap 实例**；可共享模板／生成规则 |
+| Legacy LocalMap | 旧实现曾按 1 Hex 展开一张图；仅用于迁移核查，不是当前普通 Outdoor 契约 |
 | 世界投影 | 由 ContinuousPosition 经 `WorldToHex` 派生 |
 
-### 5.8.7 LocalMap 边缘 → 邻格连续过渡
+### 5.8.7 Legacy SurfaceExit（仅旧 Outdoor 实现／真正 Interior）
+
+> 普通 Continuous Outdoor 跨 Chunk／Hex／Site 边界不切图，也不使用 SurfaceExit。下述 Exit Trigger 仅说明尚未退役的 Legacy Outdoor LocalMap；真正 Interior 仍使用其明确入口／出口，不以 Hex 边缘强制过渡。
 
 ```text
 走到当前 LocalMap 边缘
@@ -335,20 +322,9 @@ Visible Overlay
 
 实现索引见 [164](../40-process/164-phase-2c-surface-exit-zone-and-edge-transition-2026-08-26.md)。
 
-### 5.8.8 关闭 WorldMap（AutoTravel 中）
+### 5.8.8 打开／关闭 WorldMap
 
-关闭 WorldMap **≠** 永久 UX「进入近景」模式切换。
-
-正式行为：
-
-```text
-AutoTravel 中关闭 WorldMap
-→ Cancel AutoTravel（MovementState → Idle）
-→ 保留当前 Continuous WorldPosition / WorldLocation
-→ Expand LocalMap（展开当前位置近景）
-```
-
-**不**引入永久「进入近景」正式产品状态机；Expand 是表现／加载，不是与 WorldLocation 并列的第三套存在态。
+开关 WorldMap 只改变观察视图，默认不改变既有暂停状态，也不取消、重建或改写移动计划。AutoTravel 保持同一目标、路径进度、Continuous WorldPosition 与物理执行器；不得关图改 Idle、展开另一套 LocalMap、吸附 Hex 中心或丢失路线。
 
 ### 5.8.9 PlayerParty 与延期项
 
@@ -364,8 +340,9 @@ AutoTravel 中关闭 WorldMap
 
 | WorldMap 目标 | V1 到达语义 |
 |---------------|-------------|
-| **TargetHex** | 目的地 = 该 **Hex.Center**（连续坐标）；到达后 `WorldLocation = AtWorldPosition{Center}` |
-| **WorldSite** | 进入后 `WorldLocation = AtWorldSite{SiteId}`；WorldMap 投影 = **CanonicalWorldSurfacePosition（WorldSiteSpatialMapping 派生，非固定 PresenceHex）**；见 ADR-0027 |
+| **有效地面点击** | 统一投影得到的连续世界目标；同 Hex 内不同点击点保持不同目标 |
+| **TargetHex 摘要** | 若入口只给 Hex，则解析一个明确合法目标；格心只能是显式粗粒度 fallback，不能覆盖地面点击 |
+| **WorldSite** | 解析该 Site 的真实合法抵达点；WorldMap 投影继续使用 Canonical WorldPosition，不固定 Anchor／PresenceHex |
 
 路径行进过程中位置真源始终是 **CanonicalWorldSurfacePosition**（Site 目标在**完成进入**前可走连续路径；**入站完成**后切 **AtSite Context**，物理位置继续由 Spatial Mapping 保持 Canonical，不跳 Anchor；ADR-0027）。
 
@@ -373,20 +350,20 @@ AutoTravel 中关闭 WorldMap
 
 | 条款 | 关系 |
 |------|------|
-| §5.1–5.2 HexWorld／三层 | **保持**；本小节锁定命令精度与连续真源 |
-| §6 PresenceHex | **ADR-0027 SUPERSEDED 为 derived**（不再是独立真源；WorldMap 投影 = Canonical 位置） |
+| §5.1–5.2 HexWorld／三层 | Hex 保留战略摘要；普通 Outdoor 物理真源为 Continuous Surface |
+| §6 PresenceHex | 仅作为 `WorldToHex(WorldPosition)` 派生摘要；不得 clamp 或决定 Site |
 | §7 PlayerParty／Background／Army | **保持**；2C 只做 Party 连续旅行 |
-| OLD-06 | **加强**：WorldMap 永不接受像素级世界目的地 |
+| OLD-06 | **修订**：WorldMap 可把有效地面点击投影为连续目标，但不能建立第二套位置真源 |
 
 ---
 
-## 6. Multi-Hex WorldSite、AnchorHex 与 Derived PresenceHex（ADR-0027）
+## 6. Strategic Hex 摘要、AnchorHex 与 Legacy SpatialMapping
 
 > **旧 §6「固定 PresenceHex 作 WorldMap 投影真源」由 [ADR-0027](../40-process/43-decisions/ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md) SUPERSEDED。** 多 Hex Footprint 本身不推翻（见 [2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)）：
 
 ```text
-1 WorldSiteId · 1 LocalMapId · 1 OwnerFactionId · 1 LocalMap
-Footprint = 世界尺度占地，≠ LocalMap 数量
+1 WorldSiteId · 1 SiteCore · 1 当前 Owner
+Footprint / AnchorHex = 战略显示与索引摘要，≠ 物理或行政精确范围
 ```
 
 ### AnchorHex（职责保留）
@@ -401,20 +378,20 @@ Footprint = 世界尺度占地，≠ LocalMap 数量
 
 | 概念 | 规则 |
 |------|------|
-| **CanonicalWorldSurfacePosition** | PlayerParty 唯一物理位置真源（Site 内 = LocalPosition 经 WorldSiteSpatialMapping 映射） |
-| **DerivedPresenceHex** | 派生量：`LocalPosition → WorldSiteSpatialMapping(normalized u,v → footprint domain) → CanonicalWorldSurfacePosition → WorldToHex`；仅查询返回，不落盘为独立字段 |
+| **CanonicalWorldSurfacePosition** | PlayerParty 唯一物理位置真源；普通 Outdoor 无 Site 内外两套坐标 |
+| **DerivedPresenceHex** | `WorldToHex(CanonicalWorldSurfacePosition)` 的派生摘要；不要求位于 Site footprint |
 | 缓存 | 若为性能缓存 DerivedPresenceHex，须明确为 cache、可重建，**不能成为 authority** |
 
 规则：
 
 | ID | 规则 |
 |----|------|
-| **PH01（新）** | Site Context 内 `DerivedPresenceHex ∈ Site.FootprintHexes` |
-| **PH02（新）** | Runtime 由 `LocalPosition → WorldSiteSpatialMapping → CanonicalWorldSurfacePosition → WorldToHex` 实时派生（映射数学见 ADR-0027 技术附录：normalized (u,v) → footprint WorldSurface domain，irregular footprint project/clamp），**不**固定为 Authoring 值；不新增 `PlayerPartyWorldMotion.LocalPosition` 持久字段（修正 #1） |
+| **PH01（当前）** | Runtime 直接由 Canonical WorldPosition 派生 Hex；禁止为了满足旧 footprint 做 project／clamp |
+| **PH02（Legacy）** | LocalMap → WorldSiteSpatialMapping → footprint 的旧投影仅适用于尚未迁移的 Outdoor LocalMap 或明确独立空间适配，不约束新 Continuous Outdoor |
 | **PH03（新）** | Anchor 与 Derived 可同可不同（由派生结果决定，不强制） |
 | **PH04（旧，保留）** | WorldGraphEditor 可查看 AnchorHex（实现 Deferred） |
 
-> **Phase 5R：** WorldSite LocalMap 与 footprint 建立稳定连续映射（**WorldSiteSpatialMapping**，设计见 ADR-0027 技术附录）：LocalMap 左上/右下/东/西 分别对应 footprint 左上/右下/东/西区域；多 Hex Site 不强制 Anchor；不使用 fake bounds。
+> **Phase 5R 历史实现：** WorldSite LocalMap 与 footprint 的 normalized mapping 仅作迁移记录；当前普通 Outdoor 不再以此建立 Site 物理空间。
 
 > **Phase 2C 历史：** 旧 Aggregated 规则（站内只改 LocalPosition、WorldMap 投影恒为 PresenceHex）已由 ADR-0027 取代；1-Hex Site 的 DerivedPresenceHex = 其唯一 Footprint Hex。
 
@@ -424,17 +401,21 @@ Footprint = 世界尺度占地，≠ LocalMap 数量
 
 ### A. PlayerParty（玩家本人）
 
-- 最多 6 人；1 Active + Followers AI  
-- WorldMap：**Active Character Avatar** 作为 Party Marker  
-- 具备完整世界旅行、LocalMap／Wilderness、手动战斗、**Attack／Capture WorldSite**、亲自参战  
+- 最多 6 人；1 Active + Followers AI
+- WorldMap：**Active Character Avatar** 作为 Party Marker
+- 具备世界旅行与亲自参战；建筑攻击和接管仍须满足同一战争授权与实际交互条件
+
+### 大地图攻击入口退役（后续迁移）
+
+CW-U2B 统一地面遭遇上线时，移除玩家通过 WorldMap 右键敌军头像直接发起攻击、宣战接战或“追击到达后自动攻击”的入口与对应旧回调。WorldMap 保留查看、选点和普通前往；玩家实际冲突从地面接触入口开始。该迁移只退役玩家地图入口，不删除地面战斗、战争／外交状态或 AI 的合法战斗服务；CW-03 不修改当前运行逻辑。
 
 ### B. Background Character（普通后台角色）
 
 不属于当前 PlayerParty，也未编入 FormalArmy。
 
-- 可世界旅行、遭遇、**Simulation Battle**、受伤／死亡  
-- WorldMap **不常驻**个人头像  
-- **无** AttackWorldSite / CaptureWorldSite 政治征服权限  
+- 可世界旅行、遭遇、**Simulation Battle**、受伤／死亡
+- WorldMap **不常驻**个人头像
+- 组织类型本身不赋予或剥夺政治权；远方后台角色没有玩家隔空手操权限
 - 远方走 **Low Frequency / Data Simulation**（不必实时加载每张 LocalMap）
 
 #### 世界旅行 ≠ 远程 RTS 控制（硬规则）
@@ -443,17 +424,17 @@ Background Character **可以**在 HexWorld 中进行 World Travel，**不代表
 
 | 实体 | 玩家可下达的世界层命令 |
 |------|------------------------|
-| **PlayerParty** | 直接世界旅行（WorldMap 选 Hex／Site、AutoTravel、LocalMap 连续移动等；**禁止** PreciseWorldDestination） |
+| **PlayerParty** | 直接世界旅行（有效地面连续目标、Hex 摘要或 Site 真实抵达点） |
 | **FormalArmy** | 战略军事命令（移动、Attack Army／Site、驻扎等） |
 | **Background Character** | **无**远程逐步移动命令 |
 
 Background Character 的移动**仅由**以下驱动：
 
-- 自身 AI 目标  
-- Character Policy（§10）  
-- 未来 Sect Mission（Deferred）  
-- 剧情  
-- 返回／工作／修炼等明确系统原因  
+- 自身 AI 目标
+- Character Policy（§10）
+- 未来 Sect Mission（Deferred）
+- 剧情
+- 返回／工作／修炼等明确系统原因
 
 **禁止**让「普通 Character 可以 World Travel」重新演变成隐藏版 RTS 单位移动。
 
@@ -461,18 +442,18 @@ Background Character 的移动**仅由**以下驱动：
 
 **已明确（架构）：**
 
-- 后台战斗**真实发生**  
-- 战损**真实回写**（HP、灵气、Injury、Dying、Death 等）  
-- Character 可以受伤／重伤／死亡  
+- 后台战斗**真实发生**
+- 战损**真实回写**（HP、灵气、Injury、Dying、Death 等）
+- Character 可以受伤／重伤／死亡
 
 **Deferred（UX）：** 具体哪些事件通知玩家、是否暂停、是否弹窗——属于后续叙事 UX 设计；**不阻塞** Background Simulation 架构。
 
 ### C. FormalArmy（正式军事组织）
 
-- WorldMap：**Leader Avatar / Army Marker** 常驻  
-- 战略移动、公开远征、Attack Enemy Army／WorldSite、Capture、驻扎、战争  
-- 默认 **AI 战略 + Auto Battle**  
-- 成员仍是真实 Character；战损必须回写  
+- WorldMap：**Leader Avatar / Army Marker** 常驻
+- 组织军事任务、远方自动战斗与驻扎；不因类型获得宣战、占领或地图移动特权
+- 默认 **AI 战略 + Auto Battle**
+- 成员仍是真实 Character；战损必须回写
 
 ---
 
@@ -488,11 +469,11 @@ Background Character 的移动**仅由**以下驱动：
 
 ### 仍有效（勿推倒）
 
-- 成员 = 真实 Character；禁止匿名修士兵力  
-- 一名 Character 同时最多属于一支 FormalArmy  
-- 不跨 Faction 混编  
-- Leader／替补／全灭消失  
-- CaptureObjective、War、Ownership、Faction、Pure Hex、Multi-Hex Site、Hex pathing、Army Capacity、驻扎、Auto Battle、Snapshot  
+- 成员 = 真实 Character；禁止匿名修士兵力
+- 一名 Character 同时最多属于一支 FormalArmy
+- 不跨 Faction 混编
+- Leader／替补／全灭消失
+- CaptureObjective、War、Ownership、Faction、Pure Hex、Multi-Hex Site、Hex pathing、Army Capacity、驻扎、Auto Battle、Snapshot
 
 ### 组建／解散
 
@@ -507,50 +488,33 @@ Background Character 的移动**仅由**以下驱动：
 |------|------|
 | FormalArmy 接战且 PlayerParty **不在**附近 | **仅 Auto Battle**；禁止点击远方 Army 切入手动 |
 | PlayerParty 自己遭遇 | 手动战斗：仅控制 Active；Followers AI；禁止 RTS 框选多人下令 |
-| FormalArmy 接战且 `HexDistance(PlayerParty, BattleHex) ≤ 1` | 允许**手动介入**；玩家只控制 Active；Followers AI；**Army 全体仍 AI**（玩家赶到战场，不是接管 Army） |
-| V1 判断时机 | Engagement **正式生成时**判断距离；中途动态加入 Deferred |
+| PlayerParty 现场遭遇或有限介入 | 按真实位置、同行、守备、关系候选、状态与可达性处理；不使用 `HexDistance ≤ 1` 或 FormalArmy 类型授予资格 |
 
-进攻与防守对称：敌攻我方 Site 时同样用距离 ≤1 决定是否可亲自防守。
+<a id="airship-worldmap-movement"></a>
+### 8.1 飞舟与统一 WorldMap 移动（2026-09-12）
+
+- 飞舟只运输真实人物，不是另一套 FormalArmy 战斗实体，也没有宣战、占领或独占移动资格。运抵后由真实修士战斗、交互和接管。
+- 主控可乘或不乘。登船后人物物理位置随舟，下船从合法部署点恢复地面移动；禁止人物船地两份、船开走人留原地或乘船继续原工作区生产。
+- 飞舟不依赖地面过桥路线。V1 不做途中拦截、敌船、舰炮、空战、甲板／登船战或船内自由行走。
+- WorldMap 只是同一世界的观察与下令视图。开关地图不切换位置或移动 Executor，不吸附格心、不丢路径；所有合法人物／飞舟计划按自身方式推进并统一服从世界暂停。
+- 默认开关 WorldMap 不改变已有暂停状态。未来可加统一的可选开图暂停设置，不按玩家、船或 Army 分别造例外。
+- 旧“PlayerParty 关图才出发”是已验收的阶段实现记录，不再是最终目标。载员、速度、数量、费用、设施名、停靠／上下客／返航 UI 均后置调参。
 
 ---
 
 ## 9. 政治控制 vs 个人战斗
 
-**铁则：**
+### 9.0 当前边界（2026-09-12）
 
-> 个人战斗 ≠ 政治战争。
+- 人物攻击不自动宣战；实际同行小队按遭遇纳入。私人敌对、本场交战、势力态度和 War 分开。
+- 攻击任何势力有效拥有的建筑都必须先处理战争后果；已在人物战中也要暂停确认，确认后在同一战场升级，不重置战斗。
+- 政治结果来自真人按正式条件完成的接管。Background Character、PlayerParty、FormalArmy 或飞舟的**类型本身**不提供 Capture 特权；远方日常角色仍不得被玩家隔空手操。
 
-普通 Background Character 即使杀敌，**不**自动 Capture／改 Owner／改 Territory。
+细则以 [2A §19.4](2A-factions-armies-diplomacy-and-capture.md)、[23 §12.2](23-combat.md) 与 ADR-0034 为准。下文旧“仅 PlayerParty／FormalArmy 拥有 Attack/Capture”只作历史迁移背景。
 
-只有：
+**铁则：个人战斗 ≠ 政治战争。** 普通 Character 的人物冲突不会自动 Capture／改 Owner；攻击势力有效拥有的建筑必须先完成适用战争授权，之后由实际修士在战场内完成正式接管。PlayerParty 不必改组为 FormalArmy，FormalArmy 也不因组织类型自动拥有接管权；飞舟只负责运送人物。
 
-```text
-PlayerParty  或  FormalArmy
-```
-
-拥有 **AttackWorldSite / CaptureWorldSite**。
-
-### PlayerParty 攻占据点（与 FormalArmy 对称门槛）
-
-PlayerParty **不必**转换成 FormalArmy 即可亲自攻占据点（RPG 亲自夺点）。  
-远程派兵夺点 → 必须 FormalArmy。
-
-PlayerParty 的**特殊权限仅限**：
-
-- **不需要**转换成 FormalArmy  
-- 玩家本人可以**亲自进入 LocalMap 手动战斗**  
-
-**不能绕过**现有 [2A](2A-factions-armies-diplomacy-and-capture.md) 正式流程：
-
-```text
-PlayerParty Attack Enemy WorldSite
-→ Valid War State（合法战争状态）
-→ Battle
-→ CaptureObjective
-→ Capture
-```
-
-即：PlayerParty 享有 Capture **资格**与**亲自参战**体验，**不**享有跳过 War／CaptureObjective 的特权。
+> **历史适用范围（2026-08-25～2026-09-11）：** 旧版本曾只给 PlayerParty／FormalArmy `AttackWorldSite`／`CaptureWorldSite`，并用 FormalArmy 承担远程派兵。该实现记录不再是产品门槛；迁移时保留“远方非主控战斗自动处理”和“不可隔空逐人 RTS 控制”。
 
 ---
 
@@ -583,9 +547,9 @@ PlayerParty Attack Enemy WorldSite
 
 ### 宗门资源
 
-**Faction / Sect Storage 由玩家掌控**；Character **默认无自主领取权**（如筑基丹须玩家分配）。  
-NPC **不得**自主领取或使用宗门公共资源。  
-未来若开放某类资源允许弟子自行领取，**必须**来自玩家建立的明确授权规则——**不是** NPC 默认权限。  
+**Faction / Sect Storage 由玩家掌控**；Character **默认无自主领取权**（如筑基丹须玩家分配）。
+NPC **不得**自主领取或使用宗门公共资源。
+未来若开放某类资源允许弟子自行领取，**必须**来自玩家建立的明确授权规则——**不是** NPC 默认权限。
 Personal Inventory AI 使用 Deferred。
 
 ### 势力范围判断
@@ -618,7 +582,7 @@ Territory 未来是 AI 合法边界，不只是涂色；本轮**不做** Territo
 | **OLD-02** | 单人移动也必须 1 人 Army | 废除 |
 | **OLD-03** | 玩家可直接控制／框选多名我方角色（长期模型） | 仅 1 Active；多选 RTS 为 Legacy Prototype |
 | **OLD-04** | WorldMap 上战略移动角色都必须 Army Avatar | 仅 Party Active Avatar + Army Leader Avatar 常驻 |
-| **OLD-05** | 远方 FormalArmy 可直接切入手动战 | 默认 Auto；仅 Party 距离 ≤1 可介入且不接管 Army |
+| **OLD-05** | 远方 FormalArmy 可直接切入手动战 | 远方非主控战斗默认 Auto；玩家介入按真实现场与有限关系／守备条件，不按固定 Hex 距离授权 |
 | **OLD-06** | LocalMap 与 WorldMap 是两套割裂位置空间 | HexWorld 唯一拓扑；LocalMap=近景；WorldMap=总览 |
 | **OLD-07** | 普通 Character 战斗胜利可改 Site Owner | 仅 Party／FormalArmy 可 Capture |
 
@@ -638,12 +602,12 @@ Sect Mission Board 完整玩法、高级 Personality AI、Policy 紧急破例、
 
 见过程文档 [163](../40-process/163-rpg-first-architecture-audit-and-migration-plan-2026-08-25.md) §Open Questions。
 
-**Succession V1 合格条件**与 **PlayerParty Capture 须走 War + CaptureObjective** 已于 2026-08-25 拍板（见 §4、§9）。  
+队内顺序接替、全队真正死亡后的势力最强合格继承，以及真人按战争授权在场内接管已由 2026-09-12 规则替代旧 Succession／Capture 类型资格（见 §4、§9）。
 **Background Battle 通知粒度** 仍为 Deferred，不阻塞架构。
 
 ```text
-No hard product-level blockers for starting Phase 1 implementation planning.
-Architecture is ready for implementation planning.
+Design confirmed; implementation migration requires separately authorized phases.
+Producer acceptance remains pending for the 2026-09-12 behavior.
 ```
 
 ---
@@ -659,24 +623,24 @@ PlayerParty (≤6)
 
 Background Characters
  ↓ Low Frequency / Data Simulation
- （可战斗／可死亡；无 Capture；WorldMap 不常驻头像）
+ （可战斗／可死亡；不可远程逐个附身；WorldMap 不常驻可操控头像）
 
 FormalArmy
  ↓ Strategic Hex Simulation
- （军事远征；默认 Auto Battle；我方 Site 组／解散）
+ （军事组织；默认远方 Auto Battle；无地图移动／宣战／占领类型特权）
 
-HexWorld = 唯一世界拓扑
- ├─ WorldSite（AtSite Context + WorldSiteSpatialMapping；ADR-0027）
- ├─ Wilderness Hex（1 Hex = 1 逻辑 LocalMap；CanonicalWorldSurfacePosition）
+Continuous Outdoor World Surface = 普通户外物理世界
+ ├─ WorldSite（由 SiteCore 实际行政范围解析的 Context）
+ ├─ Strategic Hex（摘要／索引，不决定物理边界）
  ├─ PlayerParty：共用 WorldLocation + MovementState（Phase 2C）
  ├─ Background Presence（连续旅行 Deferred）
  └─ FormalArmy Presence（连续位姿 Deferred）
 
 位置真源 = CanonicalWorldSurfacePosition（Wilderness 与 WorldSite 内统一）
          | AtSite(SiteId) = 战略 Context（不覆盖物理位置）
-DerivedPresenceHex = WorldToHex(...)（派生；Site 内经 SpatialMapping）
+DerivedPresenceHex = WorldToHex(...)（纯战略派生，不 clamp 到 Site footprint）
 CurrentHex = 混合语义（PhysicalDerivedHex / RouteCommittedHex / CurrentWildernessHex），5R-C 分类后退役
 
-LocalMap  = RPG 近景
-WorldMap  = 总览 / AutoTravel UI（命令精度永久=Hex|WorldSite）
+LocalMap  = Interior／洞府／地下或 Legacy Outdoor 展开；普通 Outdoor 不因边界切图
+WorldMap  = 同一位置权威的总览／下令 UI（有效地面点击可解析连续目标）
 ```

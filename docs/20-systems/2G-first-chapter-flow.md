@@ -3,6 +3,7 @@
 > 状态：体验流程草案；开局 Membership 已冻结于 v0.2 | 优先级：P0 | 最后更新：2026-08-01
 > 关联：`2F`、`22`、`25`、`29`、`../30-tech/33-architecture-core-rules-freeze-v0.2.md`、`34`
 > **荒村杂役阶段叙事框架（非线性）：** 见 [`2I-huangcun-labor-phase-narrative-v0.1.md`](2I-huangcun-labor-phase-narrative-v0.1.md)（Draft）。本页若用语含「第一章」，仅作内部体验弧参考；**游戏内无章节 UI**。
+> **2026-09-12 冲突边界：** 普通人物攻击只建立人物遭遇，不自动向其宗门宣战；这不抹掉明确军事侵略触发的起事、附庸脱离或其他既有政治后果。攻击势力有效拥有的建筑，或在战中扩大到该建筑，按 [2A §19.4／§44](2A-factions-armies-diplomacy-and-capture.md) 确认适用战争与联盟／附庸后果。角色 Membership、玩家 ManagedFaction、建筑 Owner 和外交发起主体须分开核查；缺少有效政治主体时不得把普通人物攻击硬接 DeclareWar。
 
 ## 1. 第一章核心目标
 
@@ -33,7 +34,7 @@
 
 | 对象 | FactionMembership | FactionRole | ControlAuthority |
 |---|---|---|---|
-| 三名初始角色 | **当前压迫他们的宗门** | 杂役弟子／劳役弟子 | 玩家**直接控制** |
+| 三名初始角色 | **当前压迫他们的宗门** | 杂役弟子／劳役弟子 | 都是可轮换的 PlayerParty 成员；同一时刻只直接控制 1 名 Active |
 | 主管 | **同一宗门** | 管理者 | 监督与处罚（非玩家 DirectControl） |
 
 目的：支撑荒村生活 → 秘密修炼 → 隐藏 → 击败主管 → 夺取据点。详见 `33` v0.2 §15、`34`。

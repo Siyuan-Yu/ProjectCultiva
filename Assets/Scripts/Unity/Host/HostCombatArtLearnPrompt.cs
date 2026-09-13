@@ -10,6 +10,7 @@ namespace XianXia.Unity.Host
     /// <summary>背包斗技秘本：选人学习（不消耗；可学多门）。</summary>
     public sealed class HostCombatArtLearnPrompt : MonoBehaviour
     {
+        const string PauseOwner = "CombatArtLearnPrompt";
         [SerializeField] PlayableHostBootstrap bootstrap;
 
         bool _open;
@@ -43,6 +44,11 @@ namespace XianXia.Unity.Host
             _itemId = itemId;
             _status = string.Empty;
             _open = true;
+            if (!_holdingPause && bootstrap?.Session != null)
+            {
+                bootstrap.Session.AcquireModalPause(PauseOwner);
+                _holdingPause = true;
+            }
         }
 
         public void Close()
@@ -64,7 +70,7 @@ namespace XianXia.Unity.Host
             HostInputGate.BlockWorldInteraction = true;
             if (!_holdingPause && bootstrap?.Session != null)
             {
-                bootstrap.Session.IsPaused = true;
+                bootstrap.Session.AcquireModalPause(PauseOwner);
                 _holdingPause = true;
             }
 
@@ -152,13 +158,15 @@ namespace XianXia.Unity.Host
                 Close();
         }
 
+        void OnDisable() => ReleasePause();
+
         void ReleasePause()
         {
             if (!_holdingPause)
                 return;
             _holdingPause = false;
             if (bootstrap?.Session != null)
-                bootstrap.Session.IsPaused = false;
+                bootstrap.Session.ReleaseModalPause(PauseOwner);
             HostInputGate.Clear();
         }
 

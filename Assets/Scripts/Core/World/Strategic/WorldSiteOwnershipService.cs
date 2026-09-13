@@ -22,6 +22,9 @@ namespace XianXia.Core.World.Strategic
             if (!world.Strategic.Sites.TryGet(siteId, out var site) || site == null)
                 return;
             site.OwnerFactionId = factionId ?? string.Empty;
+            if (!string.IsNullOrEmpty(site.CoreAssetId) &&
+                world.Strategic.FactionFlags.Flags.TryGetValue(site.CoreAssetId, out var flag) && flag != null)
+                flag.FactionId = site.OwnerFactionId;
         }
 
         public static bool TryResolveSiteForLocalMapSession(

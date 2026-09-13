@@ -28,7 +28,7 @@ namespace XianXia.Unity.Host
             foreach (var kv in world.Strategic.Sites.Sites)
             {
                 var site = kv.Value;
-                if (site == null)
+                if (site == null || (site.IsRuntimeCreated && !site.IsCoreActive))
                     continue;
 
                 foreach (var hex in site.EnumerateFootprintHexes())

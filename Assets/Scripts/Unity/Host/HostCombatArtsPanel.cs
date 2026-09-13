@@ -14,6 +14,7 @@ namespace XianXia.Unity.Host
     /// </summary>
     public sealed class HostCombatArtsPanel : MonoBehaviour
     {
+        const string PauseOwner = "CombatArtsPanel";
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] bool open;
@@ -51,13 +52,13 @@ namespace XianXia.Unity.Host
 
         public void ClearSessionState()
         {
+            ReleasePause();
             open = false;
             _detailOpen = false;
             _breakConfirmOpen = false;
             _subject = EntityId.None;
             _selectedArt = null;
             _status = string.Empty;
-            _holdingPause = false;
             HostInputGate.Clear();
         }
 
@@ -74,6 +75,11 @@ namespace XianXia.Unity.Host
             _scrollList = Vector2.zero;
             _scrollDetail = Vector2.zero;
             _scrollBag = Vector2.zero;
+            if (!_holdingPause && bootstrap?.Session != null)
+            {
+                bootstrap.Session.AcquireModalPause(PauseOwner);
+                _holdingPause = true;
+            }
         }
 
         public void Close()
@@ -104,7 +110,7 @@ namespace XianXia.Unity.Host
                 HostInputGate.BlockWorldInteraction = true;
                 if (!_holdingPause)
                 {
-                    bootstrap.Session.IsPaused = true;
+                    bootstrap.Session.AcquireModalPause(PauseOwner);
                     _holdingPause = true;
                 }
 
@@ -125,12 +131,14 @@ namespace XianXia.Unity.Host
                 ReleasePause();
         }
 
+        void OnDisable() => ReleasePause();
+
         void ReleasePause()
         {
             if (!_holdingPause)
                 return;
             if (bootstrap?.Session != null)
-                bootstrap.Session.IsPaused = false;
+                bootstrap.Session.ReleaseModalPause(PauseOwner);
             _holdingPause = false;
             HostInputGate.Clear();
         }

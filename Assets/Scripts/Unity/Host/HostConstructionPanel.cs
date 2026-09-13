@@ -8,6 +8,8 @@ namespace XianXia.Unity.Host
     /// <summary>Global Construction modal; sibling of WorldMap and Inventory panels.</summary>
     public sealed class HostConstructionPanel : MonoBehaviour
     {
+        const string PauseOwner = "ConstructionPanel";
+
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] bool open;
 
@@ -37,7 +39,7 @@ namespace XianXia.Unity.Host
             bootstrap.WorldMapPanel?.Close();
             bootstrap.QuestJournal?.Close();
             open = true;
-            bootstrap.Session.IsPaused = true;
+            bootstrap.Session.AcquireModalPause(PauseOwner);
             _holdingPause = true;
             HostInputGate.BlockWorldCamera = true;
             HostInputGate.BlockWorldInteraction = true;
@@ -51,10 +53,10 @@ namespace XianXia.Unity.Host
 
         public void ClearSessionState()
         {
+            ReleasePauseOwnership();
             open = false;
             _scroll = Vector2.zero;
             _status = string.Empty;
-            _holdingPause = false;
         }
 
         /// <summary>Synchronously release this modal before placement takes world-input ownership.</summary>
@@ -72,7 +74,7 @@ namespace XianXia.Unity.Host
             if (OtherBlockingModalOpen())
             {
                 open = false;
-                _holdingPause = false;
+                ReleasePauseOwnership();
                 return;
             }
 
@@ -82,7 +84,7 @@ namespace XianXia.Unity.Host
                 HostInputGate.BlockWorldInteraction = true;
                 if (!_holdingPause)
                 {
-                    bootstrap.Session.IsPaused = true;
+                    bootstrap.Session.AcquireModalPause(PauseOwner);
                     _holdingPause = true;
                 }
             }
@@ -90,10 +92,12 @@ namespace XianXia.Unity.Host
                 ReleasePauseOwnership();
         }
 
+        void OnDisable() => ReleasePauseOwnership();
+
         void ReleasePauseOwnership()
         {
             if (_holdingPause && bootstrap?.Session != null)
-                bootstrap.Session.IsPaused = false;
+                bootstrap.Session.ReleaseModalPause(PauseOwner);
             _holdingPause = false;
             HostInputGate.Clear();
         }

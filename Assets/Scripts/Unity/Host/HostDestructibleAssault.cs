@@ -211,6 +211,9 @@ namespace XianXia.Unity.Host
             if (!destroyed)
                 return true;
 
+            bootstrap.ContinuousOutdoorSurfaceRuntime?
+                .NotifyOutdoorDestructibleStateChanged(target.PlacementId);
+
             var wood = 0;
             if (isTree && expectedYield > 0)
                 wood = GrantRoughWood(world, expectedYield);
