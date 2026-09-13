@@ -32,79 +32,8 @@ namespace XianXia.Core.World.Strategic
             string targetArmyId,
             out GameError error)
         {
-            error = default;
-            if (world?.Strategic == null)
-            {
-                error = new GameError(ErrorCode.InvalidOperation, "战略层未激活。");
-                return false;
-            }
-
-            if (!ArmyHexCommandService.IsHexStrategicActive(world))
-            {
-                error = new GameError(ErrorCode.InvalidOperation, "Hex 战略地图未激活。");
-                return false;
-            }
-
-            if (party == null || !party.HasActive)
-            {
-                error = new GameError(ErrorCode.InvalidOperation, "PlayerParty 无 Active 角色。");
-                return false;
-            }
-
-            var realmGate = StrategicMilitaryRules.ValidatePlayerPartyCanInitiateStrategicMilitaryAction(world, party);
-            if (realmGate.IsFailure)
-            {
-                error = realmGate.Error;
-                return false;
-            }
-
-            if (ArmyService.TryGetArmyForCharacter(world, party.ActiveCharacterId, out _))
-            {
-                error = new GameError(ErrorCode.InvalidOperation, "Active 角色隶属军团，不能由 PlayerParty 发起攻击。");
-                return false;
-            }
-
-            if (world.Strategic.IsModalEncounter || world.Strategic.HasBattleOffer)
-            {
-                error = new GameError(ErrorCode.InvalidOperation, "已有接战/战斗进行中。");
-                return false;
-            }
-
-            if (string.IsNullOrEmpty(targetArmyId) ||
-                !world.Strategic.FormalArmies.TryGet(targetArmyId, out var defender) ||
-                defender == null)
-            {
-                error = new GameError(ErrorCode.NotFound, "目标军团不存在。");
-                return false;
-            }
-
-            if (!ArmyPostBattleSyncService.HasMacroOrderLivingMember(world, defender))
-            {
-                error = new GameError(ErrorCode.InvalidOperation, "目标军团没有可战成员。");
-                return false;
-            }
-
-            if (!TryResolveLinkedStack(world, targetArmyId, out var stack) || stack == null)
-            {
-                error = new GameError(ErrorCode.InvalidOperation, "目标军团未链接 ArmyStack。");
-                return false;
-            }
-
-            var playerFaction = world.Strategic.PlayerFactionId ?? string.Empty;
-            var enemyFaction = defender.FactionId ?? string.Empty;
-            if (string.IsNullOrEmpty(playerFaction) || string.IsNullOrEmpty(enemyFaction))
-            {
-                error = new GameError(ErrorCode.InvalidOperation, "阵营信息缺失。");
-                return false;
-            }
-
-            if (string.Equals(playerFaction, enemyFaction, System.StringComparison.Ordinal))
-            {
-                error = new GameError(ErrorCode.InvalidOperation, "不能攻击同阵营单位。");
-                return false;
-            }
-
-            return true;
+            error = new GameError(ErrorCode.InvalidOperation, "玩家大地图攻击已退役；请在连续世界与实际人物接战。");
+            return false;
         }
 
         /// <summary>

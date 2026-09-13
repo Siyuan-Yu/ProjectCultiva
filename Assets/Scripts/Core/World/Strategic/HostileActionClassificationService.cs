@@ -14,7 +14,7 @@ namespace XianXia.Core.World.Strategic
 
     /// <summary>
     /// Current target identity for hostile-action routing. FormalArmy membership, not faction membership,
-    /// is the sole authority for StrategicMilitary.
+    /// is retained as metadata; personal hostility never declares war.
     /// </summary>
     public readonly struct HostileActionClassification
     {
@@ -61,7 +61,7 @@ namespace XianXia.Core.World.Strategic
                     return false;
                 }
 
-                classification = new HostileActionClassification(targetId, HostileActionScope.StrategicMilitary, formalArmy.FactionId, formalArmy.ArmyId);
+                classification = new HostileActionClassification(targetId, HostileActionScope.LocalCharacter, formalArmy.FactionId, formalArmy.ArmyId);
                 return true;
             }
 

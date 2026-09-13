@@ -77,6 +77,14 @@ namespace XianXia.Unity.Host
             {
                 _world = world; _pendingAttacker = _pendingTarget = EntityId.None;
                 _host.Session.ReleaseModalPause(PauseOwner);
+                HostInputGate.BlockWorldInteraction = false;
+            }
+            if (!world.Strategic.PendingCharacterTarget.IsNone)
+            {
+                var attacker = world.Strategic.PendingCharacterAttacker;
+                var target = world.Strategic.PendingCharacterTarget;
+                world.Strategic.PendingCharacterAttacker = world.Strategic.PendingCharacterTarget = EntityId.None;
+                Request(attacker, target);
             }
             var state = world.Strategic.CharacterEncounter;
             if (state == null || state.Phase == CharacterEncounterPhase.Committed || _host.Session.IsPaused) return;

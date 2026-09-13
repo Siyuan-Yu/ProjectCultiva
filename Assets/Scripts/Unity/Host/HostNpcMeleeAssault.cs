@@ -71,6 +71,10 @@ namespace XianXia.Unity.Host
         {
             if (bootstrap?.Session?.World?.Strategic?.CharacterEncounter != null)
             { bootstrap.GetComponent<HostCharacterEncounter>().SetTarget(attacker, defender); return; }
+            var encounterWorld = bootstrap?.Session?.World;
+            var party = encounterWorld?.Strategic?.PlayerPartyContext;
+            if (party != null && (party.IsMember(attacker) || party.IsMember(defender)))
+            { bootstrap.GetComponent<HostCharacterEncounter>()?.Request(attacker, defender); return; }
             if (attacker.IsNone || defender.IsNone || attacker == defender)
                 return;
             var continuousCombat = bootstrap?.Session?.World?.Strategic?.ContinuousManualCombat;

@@ -1090,37 +1090,10 @@ namespace XianXia.Unity.Host
 
         public void OnNpcArriveAttack(EntityId actor, EntityId npc)
         {
-            var session = bootstrap?.Session;
-            if (session == null || !session.IsInitialized || actor.IsNone)
-                return;
-
-            // race-condition safety：approach 期间目标可能加入 FormalArmy → 重新 classify。
-            var route = LocalHostileActionRoutingService.Route(
-                session.World, session.PlayerParty, actor, npc);
-            if (route.Route == HostileActionRoute.StrategicMilitaryEscalation)
-            {
-                // consume local approach：不造成第一刀 damage，改建 BattleOffer。
-                PrepareLocalMilitaryOffer(actor, npc, route);
-                return;
-            }
-            if (route.Route == HostileActionRoute.Reject)
-            {
-                Debug.LogWarning(
-                    "[Host] Hostile action rejected on arrival: " + route.FailureReason);
-                ReleaseInteractionNpcNow(npc);
-                return;
-            }
-
-            // LocalCombat：已确认过（右键确认流）或 active combat participant → 直接近战，不再问第二次。
-            if (_confirmedLocalAttackTargetId == npc || IsActiveStrategicCombatTarget(session.World, npc))
-            {
-                _confirmedLocalAttackTargetId = EntityId.None;
-                BeginMelee(actor, npc);
-                return;
-            }
-
-            // 未确认的直接攻击命令（如纯移动指令）→ 到达时弹一次确认。
-            BeginLocalAttackConfirm(actor, npc, () => BeginMelee(actor, npc));
+            if (bootstrap?.Session?.World == null || actor.IsNone || npc.IsNone) return;
+            ReleaseInteractionNpcNow(npc);
+            ResumeTime();
+            bootstrap.GetComponent<HostCharacterEncounter>()?.Request(actor, npc);
         }
 
         void BeginMelee(EntityId actor, EntityId npc)

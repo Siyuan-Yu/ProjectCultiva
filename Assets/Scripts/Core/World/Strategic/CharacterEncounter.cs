@@ -51,6 +51,20 @@ namespace XianXia.Core.World.Strategic
     /// <summary>One real Character per participant. Only space is restored on return.</summary>
     public static class CharacterEncounterService
     {
+        public static bool RequiresEntry(SimulationWorld world, EntityId attacker, EntityId target)
+        {
+            var board = world?.Strategic;
+            if (board == null) return false;
+            var state = board.CharacterEncounter;
+            if (state != null) return state.Phase != CharacterEncounterPhase.Active || !state.Opposing(attacker.Value, target.Value);
+            var party = board.PlayerPartyContext;
+            if (party == null || (!party.IsMember(attacker) && !party.IsMember(target))) return false;
+            if (board.ContinuousManualCombat.IsActive) return false; // Explicit legacy encounter compatibility only.
+            board.PendingCharacterAttacker = attacker;
+            board.PendingCharacterTarget = target;
+            return true;
+        }
+
         public static Result Prepare(SimulationWorld world, EntityId attacker, EntityId target,
             string surfaceId, out CharacterEncounterState prepared)
         {

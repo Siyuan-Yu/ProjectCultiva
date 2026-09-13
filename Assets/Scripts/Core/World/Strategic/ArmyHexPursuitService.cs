@@ -25,6 +25,8 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.NotFound, "Attacker army not found.", attackerArmyId);
             if (!world.Strategic.FormalArmies.TryGet(targetArmyId, out var target) || target == null)
                 return Result.Failure(ErrorCode.NotFound, "Target army not found.", targetArmyId);
+            if (attacker.FactionId == world.Strategic.PlayerFactionId)
+                return Result.Failure(ErrorCode.InvalidOperation, "Player WorldMap attack orders are retired.");
             if (attacker.State == FormalArmyState.Garrisoned)
                 return Result.Failure(ErrorCode.InvalidOperation, "Garrisoned army cannot attack.");
 
@@ -118,6 +120,12 @@ namespace XianXia.Core.World.Strategic
             if (motion.CurrentOrderKind != FormalArmyOrderKind.AttackFormalArmy)
                 return;
 
+            if (army.FactionId == world.Strategic.PlayerFactionId)
+            {
+                CancelPursuitForAttacker(world, army.ArmyId);
+                CancelAttackOrderToIdle(world, army);
+                return;
+            }
             var targetArmyId = motion.OrderTargetArmyId;
             if (string.IsNullOrEmpty(targetArmyId))
             {
@@ -176,6 +184,8 @@ namespace XianXia.Core.World.Strategic
                 return;
             }
 
+            if (pursuer.FactionId == world.Strategic.PlayerFactionId)
+            { CancelPursuitForAttacker(world, pursuer.ArmyId); return; }
             ArmyHexCommandService.EnsureArmyOnHex(world, pursuer);
             ArmyHexCommandService.EnsureArmyOnHex(world, target);
 

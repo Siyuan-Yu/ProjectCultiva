@@ -2624,7 +2624,7 @@ namespace XianXia.Unity.Host
                         memberArmy != null)
                     {
                         SyncFormalArmySelection(memberArmy.ArmyId);
-                        _status = "已选军团 " + memberArmy.ArmyId + "｜右键节点移动或右键敌军攻击";
+                        _status = "已选军团 " + memberArmy.ArmyId + "｜右键节点移动或连续世界人物接战";
                     }
                     else
                     {
@@ -2911,7 +2911,9 @@ namespace XianXia.Unity.Host
                         _status = resolution.StatusHint + " " + _status;
                     break;
                 case HexRightClickResolvedAction.ShowAttackTargetMenu:
-                    OpenHexAttackTargetMenu(resolution, pickedHex, mouse);
+                    if (_worldMapSelection.Kind == HostWorldMapSelectionKind.FormalArmy)
+                        ExecuteDirectMoveArmyToHex(world, pickedHex);
+                    else DispatchHexRightClickTravel(world, pickedHex, "");
                     break;
                 case HexRightClickResolvedAction.DirectEnterFriendlyLingering:
                     // Legacy enum 兼容：production resolver 不再返回；若旧 resolution 残留，
@@ -3500,82 +3502,7 @@ namespace XianXia.Unity.Host
             XianXia.Core.Simulation.SimulationWorld world,
             HexActiveEnemyArmyTarget target)
         {
-            if (target == null || string.IsNullOrEmpty(target.StackId))
-            {
-                _status = "无法解析倒下角色位置";
-                return;
-            }
-
-            if (!world.Strategic.Armies.TryGet(target.StackId, out var stack) || stack == null)
-            {
-                _status = "无法解析倒下角色位置";
-                return;
-            }
-
-            // Phase 5S-B2-3.4：按 selection authority 分流 —— PlayerParty 攻击走新命令 service，
-            // 不在此处拼 PendingEngagement / Gather / freeze；FormalArmy 保持既有 ArmyHexCommandService。
-            if (_worldMapSelection.Kind == HostWorldMapSelectionKind.PlayerParty)
-            {
-                var party = bootstrap?.Session?.PlayerParty;
-                if (party == null || !party.HasActive || string.IsNullOrEmpty(target.FormalArmyId))
-                {
-                    _status = "PlayerParty 无法发起攻击（缺少目标军团）。";
-                    return;
-                }
-
-                var playerFaction = world.Strategic.PlayerFactionId ?? string.Empty;
-                var defenderFaction = stack.FactionId ?? string.Empty;
-                if (!WarGateService.CanAttack(world, playerFaction, defenderFaction))
-                {
-                    var prompt = bootstrap.GetComponent<HostStrategicAggressionConfirmPrompt>() ??
-                                 bootstrap.gameObject.AddComponent<HostStrategicAggressionConfirmPrompt>();
-                    if (!prompt.Open(bootstrap, playerFaction, defenderFaction,
-                            () => ExecuteAttackEnemyArmyFromHex(world, target)))
-                        _status = "无法确认军事侵略";
-                    return;
-                }
-
-                var result = PlayerPartyStrategicCombatCommandService.AttackArmy(
-                    world, party, target.FormalArmyId);
-                if (!result.IsSuccess)
-                {
-                    _status = FormatFail(result);
-                    return;
-                }
-
-                // Phase 5S-B2-3.5：Host 只发 Attack Enemy Army —— 立即接战或先追击由 Core 决定。
-                if (world.Strategic.HasBattleOffer)
-                    _status = "接战弹窗已打开";
-                else if (PlayerPartyHexPursuitService.HasPursuit(world))
-                {
-                    PlayerPartyHexTravelService.HoldForLocalVisibleExecution(world);
-                    _status = "已规划追击 " + (target.DisplayName ?? "目标军团") +
-                              "｜关闭大地图后出发";
-                }
-                else
-                    _status = "PlayerParty 已发起攻击";
-                return;
-            }
-
-            if (!TryGetSelectedLivingPlayerArmy(world, out _, out var err))
-            {
-                _status = string.IsNullOrEmpty(err) ? "请先左键选中我方军团" : err;
-                return;
-            }
-
-            if (world.Strategic.FormalArmies.TryGet(SelectedFormalArmyId, out var selectedArmy) &&
-                selectedArmy != null &&
-                !WarGateService.CanAttack(world, selectedArmy.FactionId, stack.FactionId))
-            {
-                var prompt = bootstrap.GetComponent<HostStrategicAggressionConfirmPrompt>() ??
-                             bootstrap.gameObject.AddComponent<HostStrategicAggressionConfirmPrompt>();
-                if (!prompt.Open(bootstrap, selectedArmy.FactionId, stack.FactionId,
-                        () => ExecuteAttackEnemyArmyFromHex(world, target)))
-                    _status = "无法确认军事侵略";
-                return;
-            }
-
-            ExecuteAttackStack(world, _attackPartyScratch, stack);
+            _status = "请在连续世界与实际人物接战。";
         }
 
         /// <summary>
@@ -3863,49 +3790,7 @@ namespace XianXia.Unity.Host
             string stackId,
             Vector2 mouse)
         {
-            if (string.IsNullOrEmpty(stackId))
-                return false;
-            if (!world.Strategic.Armies.TryGet(stackId, out var stack) || stack == null)
-                return false;
-
-            // Residual-only stack（无 living FormalArmy member，仅剩弥留／尸体）不再是攻击目标；
-            // 它只是 legacy bookkeeping / residual metadata。living 敌军走正常 Hex AttackArmy 路径。
-            if (stack.HasDownedRemnant || stack.IsBattlefieldRemnant)
-            {
-                if (!TryResolveLivingLinkedArmy(world, stack, out _))
-                    return false;
-            }
-
-            var playerFaction = ResolvePlayerFactionId(world);
-            if (!string.IsNullOrEmpty(playerFaction) &&
-                string.Equals(stack.FactionId, playerFaction, StringComparison.Ordinal))
-                return false;
-
-            if (string.IsNullOrEmpty(SelectedFormalArmyId))
-                return false;
-
-            if (!TryGetSelectedLivingPlayerArmy(world, out var attackerArmy, out var selectionError))
-            {
-                if (!string.IsNullOrEmpty(selectionError))
-                {
-                    _status = selectionError;
-                    return true;
-                }
-
-                return false;
-            }
-
-            if (attackerArmy.State == FormalArmyState.Garrisoned)
-            {
-                _status = "无法解析倒下角色位置";
-                return true;
-            }
-
-            _stackMenuStackId = stackId;
-            _stackMenuOpen = true;
-            _stackMenuRect = new Rect(mouse.x + 4f, mouse.y + 4f, 196f, 56f);
-            _status = "下令攻击｜" + DescribeStack(world, stack);
-            return true;
+            return false;
         }
 
         /// <summary>linked FormalArmy 是否仍有 living macro-order member（能否作为 Active Enemy Army）。</summary>
@@ -4083,37 +3968,7 @@ namespace XianXia.Unity.Host
             List<EntityId> party,
             ArmyStack stack)
         {
-            var attackerArmyId = SelectedFormalArmyId;
-            if (string.IsNullOrEmpty(attackerArmyId) ||
-                !world.Strategic.FormalArmies.TryGet(attackerArmyId, out var attackerArmy) ||
-                attackerArmy == null ||
-                !ArmyPostBattleSyncService.HasMacroOrderLivingMember(world, attackerArmy))
-            {
-                _status = "无法解析倒下角色位置";
-                return;
-            }
-
-            var attackerFaction = attackerArmy.FactionId;
-
-            if (!string.IsNullOrEmpty(attackerFaction) &&
-                !string.IsNullOrEmpty(stack.FactionId) &&
-                !string.Equals(attackerFaction, stack.FactionId, System.StringComparison.Ordinal) &&
-                !WarGateService.CanAttack(world, attackerFaction, stack.FactionId))
-            {
-                _status = "无法解析倒下角色位置";
-                return;
-            }
-
-            var attack = ArmyHexCommandService.AttackStack(world, attackerArmyId, stack);
-            if (!attack.IsSuccess)
-                _status = FormatFail(attack);
-            else if (world.Strategic.HasBattleOffer)
-                _status = "接战弹窗已打开";
-            else
-            {
-                var name = string.IsNullOrEmpty(stack.DisplayName) ? stack.Id : stack.DisplayName;
-                _status = "军团出发攻击「" + name + "」（抵达后弹接战）";
-            }
+            _status = "请在连续世界与实际人物接战。";
         }
 
         void TryDismissContextMenusOnOutsideClick()

@@ -8,8 +8,8 @@
 
 | 阶段 | 当前实施证据 | 验证 | 提交 |
 |---|---|---|---|
-| C1/U2A | 普通人物 HostNpcContextMenu→HostCharacterEncounter.Request/BeginConfirmed→CharacterEncounterService；独立场地使用场次 owner 实例、完整正式 source chunks 和独立导航；实际 Character/个人原锚点、战术坐标、时间、HP基线、名单版本和状态进入 characterEncounter JSON；稳定 Active/ReadyToEnd 恢复重建场地；CommitAndReturn 唯一提交并逐人回位、报告继续释放 | Core459/Data78/Host145 离线编译通过；静态核对，不代表人工验收 | 本段对应 C1 本地提交 |
-| C2/U2B | 正在切换全部人物入口与旧 WorldMap 攻击命令 | 待本阶段检查 | 待提交 |
+| C1/U2A | 普通人物 HostNpcContextMenu→HostCharacterEncounter.Request/BeginConfirmed→CharacterEncounterService；独立场地使用场次 owner 实例、完整正式 source chunks 和独立导航；实际 Character/个人原锚点、战术坐标、时间、HP基线、名单版本和状态进入 characterEncounter JSON；稳定 Active/ReadyToEnd 恢复重建场地；CommitAndReturn 唯一提交并逐人回位、报告继续释放 | Core459/Data78/Host145 离线编译通过；静态核对，不代表人工验收 | `ccdadeb` |
+| C2/U2B | 人物分类/到达/近战/最终伤害门禁→HostCharacterEncounter；WorldMap 菜单与执行及 PlayerParty 命令退役，玩家 Army 旧档攻击回调取消；战中名单沿用 C1 JSON，报告后释放 | Core459/Data78/Host145 离线编译通过 | 本段 C2 提交 |
 | C3/U3 | 待接固定候选和加入事务 | 待本阶段检查 | 待提交 |
 | C4/U4 | 待整合兼容核查 | 待本阶段检查 | 待提交 |
 

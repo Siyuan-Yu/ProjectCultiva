@@ -139,6 +139,8 @@ namespace XianXia.Core.Combat
             defenderDefeated = false;
             if (world == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "World null.");
+            if (CharacterEncounterService.RequiresEntry(world, attackerId, defenderId))
+                return Result.Failure(ErrorCode.InvalidOperation, "Independent encounter confirmation required before damage.");
             var continuousCombat = world.Strategic?.ContinuousManualCombat;
             if (continuousCombat != null && continuousCombat.IsActive &&
                 !continuousCombat.AreOpposing(attackerId, defenderId))
