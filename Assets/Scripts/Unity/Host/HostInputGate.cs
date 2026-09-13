@@ -5,14 +5,29 @@ namespace XianXia.Unity.Host
     /// </summary>
     public static class HostInputGate
     {
-        public static bool BlockWorldCamera { get; set; }
+        static bool _blockWorldCamera;
+        static bool _blockWorldInteraction;
 
-        public static bool BlockWorldInteraction { get; set; }
+        /// <summary>Encounter owns this independently of other panels' per-frame bool writes.</summary>
+        public static bool EncounterModalLock { get; set; }
+
+        public static bool BlockWorldCamera
+        {
+            get => _blockWorldCamera || EncounterModalLock;
+            set => _blockWorldCamera = value;
+        }
+
+        public static bool BlockWorldInteraction
+        {
+            get => _blockWorldInteraction || EncounterModalLock;
+            set => _blockWorldInteraction = value;
+        }
 
         public static void Clear()
         {
-            BlockWorldCamera = false;
-            BlockWorldInteraction = false;
+            _blockWorldCamera = false;
+            _blockWorldInteraction = false;
+            EncounterModalLock = false;
         }
     }
 }

@@ -4431,3 +4431,13 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 - 发现现有 `BattleEngagementSupportArea` 已提供 FormalArmy 接战的 footprint/support 构造，但 SupportArea 当前包含 BattleArea 且不做 world-boundary 过滤。
 - PlayerParty→WorldSite 正式攻击入口未发现；Character Combat 与 FormalArmy 接战能力为 partial/implemented 混合状态。
 - `WorldSiteBattleSpatialPolicy` 暂作为 provisional candidate，未接线、未修改 Runtime。
+## 2026-09-14 — CW-U2–U4 联合验收修复
+
+- 统一人物遭遇的确认、结束与正式战报展示到 `HostStrategicInterruptPresenter`；`HostCharacterEncounter` 不再拥有重复的 OnGUI 窗口。普通主动攻击保留“手动战斗”，只有尚未实施的玩家主动请求可取消。
+- 独立场地改为一次 `PreparedIndependentField` 事务：导航数据分帧准备、临时 owner 下分帧构建、全部完成后才开始领域并接管原表现；失败、换 World 与 disable 清理本次 staging。返回复用当前导航，不重新同步合成。
+- `WalkGridComposer` 改为输入格写入 covered/blocked 后单次输出扫描，复杂度为输出格数加输入格数；独立战场边界裁剪和动态拓扑刷新也按预算让出帧。
+- 输入门禁增加遭遇独立锁，避免任务日志等逐帧写入覆盖确认／准备／报告期间的世界交互禁用；成功入场释放本请求 modal，不改写玩家手动暂停或 WorldTick 遭遇冻结。
+- 当前 Main Wilderness Content 读取为 646 个 1.4×1.4 世界单位 chunk、cellSize 0.028、50×50 格 source layout、35.714 presentation units/world unit，完整 Surface 为 53.2×23.8 世界单位。因此 Level 1 500×500 逻辑范围会覆盖全部已定义 Surface；大陆外仍是不可走空域。
+- 已运行现成离线编译与 `git diff --check`；未启动 Unity，未运行自动测试、Bake 或 batchmode。运行时响应性、视觉与完整交互仍待制作人人工验收。
+
+---

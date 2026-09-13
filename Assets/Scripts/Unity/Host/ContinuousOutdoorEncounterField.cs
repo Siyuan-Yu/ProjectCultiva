@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using XianXia.Core.Domain.Ids;
@@ -6,6 +7,7 @@ using XianXia.Data.Content;
 using XianXia.Core.Exploration;
 using XianXia.Core.Navigation;
 using XianXia.Core.Results;
+using XianXia.Core.Simulation;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World.Surface;
 using XianXia.Core.World.Strategic;
@@ -15,22 +17,56 @@ namespace XianXia.Unity.Host
     public sealed partial class ContinuousOutdoorSurfaceRuntime
     {
         string _independentFieldId = string.Empty;
+        string _stagingIndependentFieldId = string.Empty;
+        readonly List<SurfaceChunkCoord> _stagingIndependentChunks = new List<SurfaceChunkCoord>();
+        Coroutine _independentNavigationRefresh;
         public string IndependentFieldId => _independentFieldId;
+        public bool IsIndependentFieldPreparing => !string.IsNullOrEmpty(_stagingIndependentFieldId);
+
+        public sealed class PreparedIndependentField
+        {
+            internal SimulationWorld World;
+            internal CharacterEncounterState State;
+            internal readonly List<SurfaceChunkCoord> Chunks = new List<SurfaceChunkCoord>();
+            internal WalkGrid Grid;
+            internal int InputGridCount;
+            internal int OutputGridCells;
+            internal ulong TopologyRevision;
+            internal string SurfaceId = string.Empty;
+        }
+
         string SurfaceOwnerKey(SurfaceChunkCoord coord) =>
-            (string.IsNullOrEmpty(_independentFieldId) ? "" : _independentFieldId + ":") +
+            ((string.IsNullOrEmpty(_independentFieldId) ? _stagingIndependentFieldId : _independentFieldId) +
+             (string.IsNullOrEmpty(_independentFieldId) && string.IsNullOrEmpty(_stagingIndependentFieldId) ? "" : ":")) +
             SurfaceChunkNeighborhood.OwnerKey(_surfaceId, coord);
 
-        public Result PreflightIndependentField(CharacterEncounterState state)
+        /// <summary>Builds only pure source/navigation data in slices; it does not mutate encounter state.</summary>
+        public IEnumerator PrepareIndependentField(
+            CharacterEncounterState state, Action<Result, PreparedIndependentField> completed)
         {
+            var world = _bootstrap?.Session?.World;
             if (state == null || !IsActive || state.SourceSurfaceId != _surfaceId ||
-                !TryResolveSurface(out var surface) || !ReferenceEquals(_navigationStateWorld, _bootstrap.Session.World))
-                return Result.Failure(ErrorCode.InvalidOperation, "Independent field source is unavailable.");
-            var inputs = new List<WalkGridComposer.Input>();
-            foreach (var chunk in surface.Chunks)
+                !TryResolveSurface(out var surface) || !ReferenceEquals(_navigationStateWorld, world))
             {
+                completed?.Invoke(Result.Failure(ErrorCode.InvalidOperation, "Independent field source is unavailable."), null);
+                yield break;
+            }
+            var plan = new PreparedIndependentField
+            {
+                World = world, State = state, SurfaceId = _surfaceId,
+                TopologyRevision = world.OutdoorStatefulObjects?.DestructibleTopologyRevision ?? 0
+            };
+            var inputs = new List<WalkGridComposer.Input>();
+            var started = Time.realtimeSinceStartup;
+            for (var i = 0; i < surface.Chunks.Count; i++)
+            {
+                var chunk = surface.Chunks[i];
                 if (!EncounterTouchesChunk(state, chunk.Coord)) continue;
                 if (!TryResolveSource(chunk.Coord, out var layout))
-                    return Result.Failure(ErrorCode.ContentLoadFailed, "Missing real source chunk: " + chunk.StableChunkId);
+                {
+                    completed?.Invoke(Result.Failure(ErrorCode.ContentLoadFailed, "Missing real source chunk: " + chunk.StableChunkId), null);
+                    yield break;
+                }
                 _mapper.ChunkLocalToWorld(chunk.Coord, 0f, 0f, out var wx, out var wy);
                 _mapper.WorldToPresentation(wx, wy, out var px, out var py);
                 inputs.Add(new WalkGridComposer.Input(MapLayoutWalkGridBuilder.Create(layout), px - layout.OriginX, py - layout.OriginY));
@@ -38,19 +74,196 @@ namespace XianXia.Unity.Host
                 if (blockers != null) inputs.Add(new WalkGridComposer.Input(blockers, 0f, 0f));
                 var geography = BuildGeographyBlockerGrid(chunk.Coord, px, py, layout);
                 if (geography != null) inputs.Add(new WalkGridComposer.Input(geography, 0f, 0f));
+                plan.Chunks.Add(chunk.Coord);
+                if (Time.realtimeSinceStartup - started >= .004f) { started = Time.realtimeSinceStartup; yield return null; }
             }
-            if (inputs.Count == 0) return Result.Failure(ErrorCode.ContentLoadFailed, "No authored surface in frozen field.");
-            var grid = WalkGridComposer.Compose(inputs);
-            foreach (var pair in _bootstrap.Session.World.Strategic.FactionFlags.Flags)
+            if (inputs.Count == 0)
+            {
+                completed?.Invoke(Result.Failure(ErrorCode.ContentLoadFailed, "No authored surface in frozen field."), null);
+                yield break;
+            }
+            WalkGridComposer.Job job;
+            try { job = new WalkGridComposer.Job(inputs); }
+            catch (Exception ex)
+            {
+                completed?.Invoke(Result.Failure(ErrorCode.InvalidOperation, "Navigation preparation failed: " + ex.Message), null);
+                yield break;
+            }
+            while (!job.IsComplete)
+            {
+                job.Step(8192);
+                yield return null;
+            }
+            plan.Grid = job.Result;
+            plan.InputGridCount = job.InputCount;
+            plan.OutputGridCells = job.Width * job.Height;
+            foreach (var pair in world.Strategic.FactionFlags.Flags)
                 if (pair.Value != null && pair.Value.SurfaceId == state.SourceSurfaceId)
-                    HostFactionFlagQuery.ApplyWalkGridBlock(pair.Value, this, grid);
+                    HostFactionFlagQuery.ApplyWalkGridBlock(pair.Value, this, plan.Grid);
+            yield return StartCoroutine(ClipPreparedEncounterGrid(plan.Grid, state));
             foreach (var p in state.Participants)
             {
                 _mapper.WorldToPresentation(p.TacticalX, p.TacticalY, out var px, out var py);
-                if (!grid.TryWorldToCell(px, py, out var x, out var y) || !grid.IsWalkable(x, y))
-                    return Result.Failure(ErrorCode.InvalidOperation, "Personal field position is not walkable: CharacterId=" + p.CharacterId);
+                if (!plan.Grid.TryWorldToCell(px, py, out var x, out var y) || !plan.Grid.IsWalkable(x, y))
+                {
+                    completed?.Invoke(Result.Failure(ErrorCode.InvalidOperation, "Personal field position is not walkable: CharacterId=" + p.CharacterId), null);
+                    yield break;
+                }
             }
-            return Result.Success();
+            completed?.Invoke(Result.Success(), plan);
+        }
+
+        /// <summary>Stages source presentation under a private owner, then performs one bounded takeover.</summary>
+        public IEnumerator CommitPreparedIndependentField(
+            PreparedIndependentField plan, Action<Result> completed, bool domainAlreadyBound = false)
+        {
+            if (plan == null || plan.World == null || plan.State == null ||
+                !ReferenceEquals(plan.World, _bootstrap?.Session?.World) || plan.SurfaceId != _surfaceId ||
+                plan.TopologyRevision != (plan.World.OutdoorStatefulObjects?.DestructibleTopologyRevision ?? 0))
+            {
+                completed?.Invoke(Result.Failure(ErrorCode.InvalidOperation, "Prepared independent field expired."));
+                yield break;
+            }
+            _stagingIndependentFieldId = plan.State.EncounterId;
+            _stagingIndependentChunks.Clear();
+            for (var i = 0; i < plan.Chunks.Count; i++)
+            {
+                Exception failure = null;
+                try
+                {
+                    BuildChunk(plan.Chunks[i]);
+                }
+                catch (Exception ex)
+                {
+                    failure = ex;
+                }
+                if (failure != null)
+                {
+                    CancelPreparedIndependentField();
+                    completed?.Invoke(Result.Failure(ErrorCode.InvalidOperation, "Independent field build failed: " + failure.Message));
+                    yield break;
+                }
+                _stagingIndependentChunks.Add(plan.Chunks[i]);
+                yield return null;
+            }
+            completed?.Invoke(CompletePreparedTakeover(plan, domainAlreadyBound));
+        }
+
+        Result CompletePreparedTakeover(PreparedIndependentField plan, bool domainAlreadyBound)
+        {
+            var beganHere = false;
+            var normalRemoved = false;
+            try
+            {
+                // Nothing in the domain changes until every staged chunk and the prepared grid exist.
+                if (!domainAlreadyBound)
+                {
+                    var begun = CharacterEncounterService.Begin(plan.World, plan.State);
+                    if (begun.IsFailure) { CancelPreparedIndependentField(); return begun; }
+                    beganHere = true;
+                }
+                RemoveNormalPresentedField();
+                normalRemoved = true;
+                _independentFieldId = _stagingIndependentFieldId;
+                _stagingIndependentFieldId = string.Empty;
+                _stagingIndependentChunks.Clear();
+                _loaded.Clear(); _presentedChunks.Clear();
+                for (var i = 0; i < plan.Chunks.Count; i++) { _loaded.Add(plan.Chunks[i]); _presentedChunks.Add(plan.Chunks[i]); }
+                _compositeWalkGrid = plan.Grid;
+                _bootstrap.MoveController.SetWalkGrid(_compositeWalkGrid);
+                NavigationGeneration++;
+                _bootstrap.MoveController.InvalidatePartyLocalMovement(_bootstrap.Session.PlayerParty.Members);
+                foreach (var p in plan.State.Participants)
+                {
+                    var id = new EntityId(p.CharacterId);
+                    plan.World.Entities.TryGet(id, out var entity);
+                    if (!entity.TryGet<EntityLocationComponent>(out var location)) { location = new EntityLocationComponent(); entity.AddComponent(location); }
+                    _mapper.WorldToPresentation(p.TacticalX, p.TacticalY, out var px, out var py);
+                    location.SetPresentationOverride(px, py);
+                    _bootstrap.MoveController.CancelPresentationMovementPublic(id);
+                }
+                ReconcileOutdoorEntityMaterialization();
+                Debug.Log("[IndependentEncounter] commit Id=" + plan.State.EncounterId + " chunks=" + plan.Chunks.Count +
+                    " inputs=" + plan.InputGridCount + " cells=" + plan.OutputGridCells);
+                return Result.Success();
+            }
+            catch (Exception ex)
+            {
+                if (beganHere) CharacterEncounterService.AbortEntry(plan.World);
+                CancelPreparedIndependentField();
+                _independentFieldId = string.Empty;
+                if (normalRemoved) { IsActive = false; TryActivateAtCurrentWorldPosition(); }
+                return Result.Failure(ErrorCode.InvalidOperation, "Independent field takeover failed: " + ex.Message);
+            }
+        }
+
+        public bool BeginIndependentFieldRestore(CharacterEncounterState state)
+        {
+            if (state == null || IsIndependentFieldPreparing || !string.IsNullOrEmpty(_independentFieldId)) return false;
+            StartCoroutine(RestorePreparedIndependentField(state));
+            return true;
+        }
+
+        IEnumerator RestorePreparedIndependentField(CharacterEncounterState state)
+        {
+            const string restoreOwner = "CharacterEncounterRestore";
+            _bootstrap.Session.AcquireModalPause(restoreOwner);
+            Result prepared = default;
+            PreparedIndependentField field = null;
+            yield return StartCoroutine(PrepareIndependentField(state, (result, plan) => { prepared = result; field = plan; }));
+            if (prepared.IsSuccess && field != null)
+            {
+                Result committed = default;
+                yield return StartCoroutine(CommitPreparedIndependentField(field, result => committed = result, domainAlreadyBound: true));
+                if (committed.IsFailure) Debug.LogError("[EncounterRestore] " + committed.Error.Message);
+            }
+            else Debug.LogError("[EncounterRestore] " + prepared.Error.Message);
+            _bootstrap.Session.ReleaseModalPause(restoreOwner);
+        }
+
+        public void CancelPreparedIndependentField()
+        {
+            if (string.IsNullOrEmpty(_stagingIndependentFieldId)) return;
+            var staged = _stagingIndependentFieldId;
+            foreach (var coord in _stagingIndependentChunks)
+            {
+                _tileMap.RemoveLayoutInstance(staged + ":" + SurfaceChunkNeighborhood.OwnerKey(_surfaceId, coord));
+                _tileMap.RemoveLayoutInstance(staged + ":" + SurfaceChunkNeighborhood.OwnerKey(_surfaceId, coord) + ":geography");
+                RemoveSitePlacementInstances(coord, staged);
+            }
+            _stagingIndependentChunks.Clear();
+            _stagingIndependentFieldId = string.Empty;
+        }
+
+        public bool BeginIndependentNavigationRefresh(ulong requestedTopologyRevision)
+        {
+            if (_independentNavigationRefresh != null || string.IsNullOrEmpty(_independentFieldId)) return false;
+            var state = _bootstrap?.Session?.World?.Strategic?.CharacterEncounter;
+            if (state == null || state.EncounterId != _independentFieldId) return false;
+            _independentNavigationRefresh = StartCoroutine(RefreshIndependentNavigation(state, requestedTopologyRevision));
+            return true;
+        }
+
+        IEnumerator RefreshIndependentNavigation(CharacterEncounterState state, ulong requestedTopologyRevision)
+        {
+            Result prepared = default;
+            PreparedIndependentField field = null;
+            yield return StartCoroutine(PrepareIndependentField(state, (result, plan) => { prepared = result; field = plan; }));
+            var board = _bootstrap?.Session?.World?.OutdoorStatefulObjects;
+            if (prepared.IsSuccess && field != null && board != null &&
+                requestedTopologyRevision == board.DestructibleTopologyRevision &&
+                state.EncounterId == _independentFieldId)
+            {
+                _compositeWalkGrid = field.Grid;
+                _bootstrap.MoveController.SetWalkGrid(_compositeWalkGrid);
+                NavigationGeneration++;
+                _navigationStateWorld = field.World;
+                _observedDestructibleTopologyRevision = requestedTopologyRevision;
+                _dynamicNavigationDirty = false;
+            }
+            else if (prepared.IsFailure)
+                Debug.LogError("[IndependentEncounter] dynamic navigation refresh failed: " + prepared.Error.Message);
+            _independentNavigationRefresh = null;
         }
 
         bool EncounterTouchesChunk(CharacterEncounterState state, SurfaceChunkCoord chunk)
@@ -72,47 +285,27 @@ namespace XianXia.Unity.Host
             _presentedChunks.Clear(); _loaded.Clear(); _materializedSitePlacementOwners.Clear();
         }
 
-        public Result EnterIndependentField(CharacterEncounterState state)
+        void RemoveNormalPresentedField()
         {
-            var valid = PreflightIndependentField(state);
-            if (valid.IsFailure) return valid;
-            RemovePresentedField();
-            _independentFieldId = state.EncounterId;
-            TryResolveSurface(out var surface);
-            // Build dedicated owner roots from formal sources, including chunks outside streaming.
-            // The frozen rectangle remains full-sized; areas outside the defined continent are void.
-            foreach (var chunk in surface.Chunks)
-                if (EncounterTouchesChunk(state, chunk.Coord))
-                {
-                    BuildChunk(chunk.Coord);
-                    _loaded.Add(chunk.Coord); _presentedChunks.Add(chunk.Coord);
-                }
-            RecomposeWalkGrid();
-            var world = _bootstrap.Session.World;
-            _bootstrap.MoveController.InvalidatePartyLocalMovement(_bootstrap.Session.PlayerParty.Members);
-            foreach (var p in state.Participants)
+            foreach (var coord in _presentedChunks)
             {
-                var id = new EntityId(p.CharacterId);
-                world.Entities.TryGet(id, out var entity);
-                if (!entity.TryGet<EntityLocationComponent>(out var location))
-                { location = new EntityLocationComponent(); entity.AddComponent(location); }
-                _mapper.WorldToPresentation(p.TacticalX, p.TacticalY, out var px, out var py);
-                location.SetPresentationOverride(px, py);
-                _bootstrap.MoveController.CancelPresentationMovementPublic(id);
-                if (_bootstrap.ViewSpawner.Registry.TryGet(id, out var view) && view != null)
-                    view.transform.position = HostPresentationSpace.FromPresentation(px, py);
+                _tileMap.RemoveLayoutInstance(SurfaceChunkNeighborhood.OwnerKey(_surfaceId, coord));
+                _tileMap.RemoveLayoutInstance(SurfaceChunkNeighborhood.OwnerKey(_surfaceId, coord) + ":geography");
+                RemoveSitePlacementInstances(coord, string.Empty);
             }
-            ReconcileOutdoorEntityMaterialization();
-            Debug.Log("[IndependentEncounter] Id=" + state.EncounterId + " Source=" + state.SourceSurfaceId +
-                " Center=" + state.CenterX + "," + state.CenterY + " Size=" + state.Width + "x" + state.Height +
-                " SourceChunks=" + _loaded.Count + " Participants=" + state.Participants.Count);
-            return Result.Success();
+            _presentedChunks.Clear(); _loaded.Clear();
         }
 
         void ClipEncounterGrid(WalkGrid grid)
         {
             var state = _bootstrap?.Session?.World?.Strategic?.CharacterEncounter;
-            if (grid == null || state == null || state.EncounterId != _independentFieldId) return;
+            if (state == null || state.EncounterId != _independentFieldId) return;
+            ClipEncounterGrid(grid, state);
+        }
+
+        void ClipEncounterGrid(WalkGrid grid, CharacterEncounterState state)
+        {
+            if (grid == null || state == null) return;
             for (var y = 0; y < grid.Height; y++)
             for (var x = 0; x < grid.Width; x++)
             {
@@ -122,10 +315,26 @@ namespace XianXia.Unity.Host
             }
         }
 
+        IEnumerator ClipPreparedEncounterGrid(WalkGrid grid, CharacterEncounterState state)
+        {
+            if (grid == null || state == null) yield break;
+            var budget = 0;
+            for (var y = 0; y < grid.Height; y++)
+            for (var x = 0; x < grid.Width; x++)
+            {
+                grid.CellToWorldCenter(x, y, out var px, out var py);
+                _mapper.PresentationToWorld(px, py, out var wx, out var wy);
+                if (!state.Contains(wx, wy)) grid.SetBlocked(x, y, true);
+                if (++budget == 8192) { budget = 0; yield return null; }
+            }
+        }
+
         public Result PrepareEncounterReturn(CharacterEncounterState state)
         {
-            // Same source and live blockers; retain exact anchors whenever still walkable.
-            RecomposeWalkGrid();
+            // The field owns its current clipped grid; do not synchronously compose the whole
+            // source again while closing a battle.
+            if (_compositeWalkGrid == null)
+                return Result.Failure(ErrorCode.InvalidOperation, "Encounter navigation is unavailable for return.");
             var points = new List<Vector2>();
             foreach (var p in state.Participants)
             {
@@ -211,6 +420,8 @@ namespace XianXia.Unity.Host
                         view.transform.position = HostPresentationSpace.FromPresentation(x, y);
                 }
             }
+            if (_independentNavigationRefresh != null) StopCoroutine(_independentNavigationRefresh);
+            _independentNavigationRefresh = null;
             RemovePresentedField(); _independentFieldId = string.Empty;
             // Ordinary activation reads the unchanged original party motion and individual presence.
             IsActive = false;

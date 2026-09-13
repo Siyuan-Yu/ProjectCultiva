@@ -6,6 +6,15 @@
 
 **Implementation Completed / Combined Producer Acceptance Pending**。这里的完成指默认调用链实现与非 Unity 编译/静态核查完成，不代表 Unity 运行或制作人人工验收通过。
 
+### U2–U4 联合验收修复（2026-09-14）
+
+- 展示入口统一为 `HostStrategicInterruptPresenter`：人物遭遇复用羊皮纸接战、结束条和正式战报；`HostCharacterEncounter.OnGUI` 的重复确认／结束／简表报告已移除。请求预览只读，不在 Layout/Repaint 分配 EncounterId 或写 Participants。
+- 单次入场只产生一个 `PreparedIndependentField`。它保存绑定 World、来源 Surface、冻结状态、相交 chunks、输入数、合成 grid 与拓扑修订。`Prepare` 与 grid/边界裁剪均以协程预算推进；表现也先在 staging owner 下逐 chunk 构建。所有 staging 成功后，才调用 `CharacterEncounterService.Begin` 并短暂原子接管；失败会清 staging，接管期异常还会 AbortEntry 和恢复普通 surface。
+- `WalkGridComposer.Job` 保留全部输入、格点对齐和保守 overlap 语义，复杂度从 output×inputs 改为 output + sum(inputs)。独立场动态破坏不再因 `_independentFieldId` 直接跳过：会合并为一次同样的分帧纯数据刷新，旧 grid 在结果有效前继续使用。
+- 返回不重复 Compose；Restore 走同一分帧 Prepare/Commit 机制。入场确认／准备／报告由 `EncounterModalLock` 合成输入禁用，避免 `HostQuestJournal` 的普通 bool 写入解除；成功入场仅释放本请求 modal，保留领域 WorldTick 冻结，并不强制修改 `ManualPaused`。
+- 实际 Content 复核：`base:surface_main_wilderness_v1` 有 646 chunks，chunk 1.4×1.4 world units，cellSize 0.028，source layout 50×50，mapper 为 35.714 presentation units/world unit，完整内容边界约 53.2×23.8 world units。故 500×500 逻辑范围覆盖当前完整 Main Surface；无正式 Surface 的大陆外仍为不可走空域。地理背景构建沿用每 chunk 同色 run 合并，未改写为逐 cell 独立对象。
+- 静态核查：现成 `tools/offline-compile.ps1` 成功（Core459/Data78/Unity145，保留既有 warning），`git diff --check` 成功。未运行 Unity、EditMode/PlayMode/Test Runner、Bake 或 batchmode。
+
 此前范围 ACR 已解除：一级议政厅/势力旗统一 500×500 世界单位，中心为核心真实位置；野外独立配置同为 500×500。旧 4.2×2.8 不再作为控制范围来源。下方早期未完成矩阵保留为历史检查点，不代表本段之后的新实现状态。
 
 | 阶段 | 当前实施证据 | 验证 | 提交 |

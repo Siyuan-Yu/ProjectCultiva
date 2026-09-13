@@ -34,61 +34,109 @@ namespace XianXia.Core.Navigation
         /// </summary>
         public static WalkGrid Compose(IReadOnlyList<Input> inputs)
         {
-            if (inputs == null || inputs.Count == 0)
-                throw new ArgumentException("At least one WalkGrid input is required.", nameof(inputs));
+            var job = new Job(inputs);
+            while (!job.IsComplete)
+                job.Step(int.MaxValue);
+            return job.Result;
+        }
 
-            var first = inputs[0].Grid ?? throw new ArgumentException("WalkGrid input is null.", nameof(inputs));
-            var cellSize = first.CellSize;
-            var minX = float.PositiveInfinity;
-            var minY = float.PositiveInfinity;
-            var maxX = float.NegativeInfinity;
-            var maxY = float.NegativeInfinity;
+        /// <summary>
+        /// Incremental pure-data composer.  Hosts may time-slice <see cref="Step"/> without
+        /// touching Unity APIs; the synchronous API above simply consumes the same job at once.
+        /// </summary>
+        public sealed class Job
+        {
+            readonly IReadOnlyList<Input> _inputs;
+            readonly bool[] _covered;
+            readonly bool[] _blocked;
+            readonly int[] _offsetX;
+            readonly int[] _offsetY;
+            readonly float _minX;
+            readonly float _minY;
+            readonly float _cellSize;
+            readonly int _width;
+            readonly int _height;
+            int _inputIndex;
+            int _cellIndex;
+            int _outputIndex;
 
-            for (var i = 0; i < inputs.Count; i++)
+            public Job(IReadOnlyList<Input> inputs)
             {
-                var input = inputs[i];
-                var grid = input.Grid ?? throw new ArgumentException("WalkGrid input is null.", nameof(inputs));
-                if (Math.Abs(grid.CellSize - cellSize) > 0.0001f)
-                    throw new InvalidOperationException("WalkGrid cell sizes must be compatible.");
-
-                minX = Math.Min(minX, grid.OriginX + input.PlacementX);
-                minY = Math.Min(minY, grid.OriginY + input.PlacementY);
-                maxX = Math.Max(maxX, grid.OriginX + input.PlacementX + grid.Width * cellSize);
-                maxY = Math.Max(maxY, grid.OriginY + input.PlacementY + grid.Height * cellSize);
-            }
-
-            var width = ToCellCount(maxX - minX, cellSize);
-            var height = ToCellCount(maxY - minY, cellSize);
-            for (var i = 0; i < inputs.Count; i++)
-            {
-                var grid = inputs[i].Grid;
-                RequireAligned(grid.OriginX + inputs[i].PlacementX - minX, cellSize);
-                RequireAligned(grid.OriginY + inputs[i].PlacementY - minY, cellSize);
-            }
-            var result = new WalkGrid(minX, minY, cellSize, width, height);
-            for (var y = 0; y < height; y++)
-            for (var x = 0; x < width; x++)
-            {
-                result.CellToWorldCenter(x, y, out var worldX, out var worldY);
-                var covered = false;
-                var anyBlocker = false;
+                if (inputs == null || inputs.Count == 0)
+                    throw new ArgumentException("At least one WalkGrid input is required.", nameof(inputs));
+                _inputs = inputs;
+                var first = inputs[0].Grid ?? throw new ArgumentException("WalkGrid input is null.", nameof(inputs));
+                _cellSize = first.CellSize;
+                var minX = float.PositiveInfinity;
+                var minY = float.PositiveInfinity;
+                var maxX = float.NegativeInfinity;
+                var maxY = float.NegativeInfinity;
                 for (var i = 0; i < inputs.Count; i++)
                 {
                     var input = inputs[i];
-                    if (!input.Grid.TryWorldToCell(
-                            worldX - input.PlacementX,
-                            worldY - input.PlacementY,
-                            out var sourceX,
-                            out var sourceY))
-                        continue;
-                    covered = true;
-                    if (!input.Grid.IsWalkable(sourceX, sourceY))
-                        anyBlocker = true;
+                    var grid = input.Grid ?? throw new ArgumentException("WalkGrid input is null.", nameof(inputs));
+                    if (Math.Abs(grid.CellSize - _cellSize) > 0.0001f)
+                        throw new InvalidOperationException("WalkGrid cell sizes must be compatible.");
+                    minX = Math.Min(minX, grid.OriginX + input.PlacementX);
+                    minY = Math.Min(minY, grid.OriginY + input.PlacementY);
+                    maxX = Math.Max(maxX, grid.OriginX + input.PlacementX + grid.Width * _cellSize);
+                    maxY = Math.Max(maxY, grid.OriginY + input.PlacementY + grid.Height * _cellSize);
                 }
-
-                result.SetBlocked(x, y, !covered || anyBlocker);
+                _minX = minX; _minY = minY;
+                _width = ToCellCount(maxX - minX, _cellSize);
+                _height = ToCellCount(maxY - minY, _cellSize);
+                _offsetX = new int[inputs.Count]; _offsetY = new int[inputs.Count];
+                for (var i = 0; i < inputs.Count; i++)
+                {
+                    _offsetX[i] = ToAlignedCellOffset(inputs[i].Grid.OriginX + inputs[i].PlacementX - minX, _cellSize);
+                    _offsetY[i] = ToAlignedCellOffset(inputs[i].Grid.OriginY + inputs[i].PlacementY - minY, _cellSize);
+                }
+                _covered = new bool[_width * _height];
+                _blocked = new bool[_width * _height];
+                Result = new WalkGrid(_minX, _minY, _cellSize, _width, _height);
             }
-            return result;
+
+            public WalkGrid Result { get; }
+            public int Width => _width;
+            public int Height => _height;
+            public int InputCount => _inputs.Count;
+            public bool IsComplete { get; private set; }
+
+            public bool Step(int cellBudget)
+            {
+                if (IsComplete) return true;
+                var remaining = Math.Max(1, cellBudget);
+                while (remaining > 0 && _inputIndex < _inputs.Count)
+                {
+                    var input = _inputs[_inputIndex];
+                    var grid = input.Grid;
+                    var count = grid.Width * grid.Height;
+                    while (remaining > 0 && _cellIndex < count)
+                    {
+                        var x = _cellIndex % grid.Width;
+                        var y = _cellIndex / grid.Width;
+                        var index = (_offsetY[_inputIndex] + y) * _width + _offsetX[_inputIndex] + x;
+                        _covered[index] = true;
+                        if (!grid.IsWalkable(x, y)) _blocked[index] = true;
+                        _cellIndex++; remaining--;
+                    }
+                    if (_cellIndex == count) { _inputIndex++; _cellIndex = 0; }
+                }
+                while (remaining > 0 && _inputIndex == _inputs.Count && _outputIndex < _covered.Length)
+                {
+                    if (!_covered[_outputIndex] || _blocked[_outputIndex])
+                        Result.SetBlocked(_outputIndex % _width, _outputIndex / _width, true);
+                    _outputIndex++; remaining--;
+                }
+                IsComplete = _inputIndex == _inputs.Count && _outputIndex == _covered.Length;
+                return IsComplete;
+            }
+        }
+
+        static int ToAlignedCellOffset(float offset, float cellSize)
+        {
+            RequireAligned(offset, cellSize);
+            return (int)Math.Round((double)offset / cellSize, MidpointRounding.AwayFromZero);
         }
 
         static int ToCellCount(float extent, float cellSize)

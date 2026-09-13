@@ -80,7 +80,14 @@ namespace XianXia.Unity.Host
             }
 
             var world = session.World;
-            if (world.Strategic.CharacterEncounter != null) { ReleaseInterruptPause(); return; }
+            // CharacterEncounter uses the same presenter and parchment workflow. Its own
+            // coordinator owns only the request/build modal while this presenter owns drawing.
+            if (world.Strategic.CharacterEncounter != null)
+            {
+                ReleaseInterruptPause();
+                SyncClockFreezePresentation(session);
+                return;
+            }
             SyncClockFreezePresentation(session);
 
             if (HasBlockingInterrupt)
@@ -147,13 +154,29 @@ namespace XianXia.Unity.Host
 
         void OnGUI()
         {
-            if (bootstrap?.Session?.World?.Strategic?.CharacterEncounter != null) return;
             var session = bootstrap != null ? bootstrap.Session : null;
             if (session == null || !session.IsInitialized || session.World?.Strategic == null)
                 return;
 
             EnsureStyles();
             DrawToast();
+
+            var character = bootstrap.GetComponent<HostCharacterEncounter>();
+            var characterState = session.World.Strategic.CharacterEncounter;
+            if ((character != null && character.Phase != HostCharacterEncounter.PresentationPhase.None) || characterState != null)
+            {
+                if (characterState != null && characterState.Phase == CharacterEncounterPhase.Committed && _manualBattleReport == null)
+                {
+                    _manualBattleReport = session.World.Strategic.ManualBattleSettlement.CommittedReport;
+                    if (_manualBattleReport != null) AcquireManualBattleReportPause(session);
+                }
+                if (_manualBattleReport != null) { DrawManualBattleReport(session); return; }
+                if (characterState != null && characterState.Phase == CharacterEncounterPhase.ReadyToEnd)
+                    DrawCharacterPostBattleBar(session, character);
+                else if (character != null)
+                    DrawCharacterEncounterOffer(session, character);
+                return;
+            }
 
             if (_manualBattleReport != null)
             {
@@ -290,7 +313,11 @@ namespace XianXia.Unity.Host
             GUI.EndScrollView();
             if (GUI.Button(new Rect(box.x + 18f, box.yMax - 46f, box.width - 36f, 32f), "继续"))
             {
-                session.World?.Strategic?.ManualBattleSettlement?.ClearOwned(report.OfferId);
+                var character = bootstrap != null ? bootstrap.GetComponent<HostCharacterEncounter>() : null;
+                if (session.World?.Strategic?.CharacterEncounter?.Phase == CharacterEncounterPhase.Committed)
+                    character?.CloseReport();
+                else
+                    session.World?.Strategic?.ManualBattleSettlement?.ClearOwned(report.OfferId);
                 _manualBattleReport = null;
                 _reportScroll = Vector2.zero;
                 ReleaseManualBattleReportPause();
@@ -743,6 +770,92 @@ namespace XianXia.Unity.Host
         {
             _toast = message ?? string.Empty;
             _toastUntil = Time.unscaledTime + 4f;
+        }
+
+        void DrawCharacterEncounterOffer(PlayableHostSession session, HostCharacterEncounter coordinator)
+        {
+            var world = session.World;
+            var box = new Rect(Screen.width * .5f - 260f, Screen.height * .5f - 235f, 520f, 470f);
+            DrawDim(); Fill(box, Parchment); DrawFrame(box, ParchmentDark);
+            GUI.Label(new Rect(box.x + 16f, box.y + 12f, box.width - 32f, 26f), "人物遭遇", _title);
+            var phase = coordinator.Phase;
+            GUI.Label(new Rect(box.x + 16f, box.y + 42f, box.width - 32f, 22f),
+                phase == HostCharacterEncounter.PresentationPhase.Preparing || phase == HostCharacterEncounter.PresentationPhase.ReadyToCommit
+                    ? coordinator.Progress : "初始双方仅为当前两支小队。", _body);
+            var friendlies = new List<EntityId>(); var enemies = new List<EntityId>();
+            CollectCharacterEncounterPreview(world, coordinator, friendlies, enemies);
+            var friendlyPower = SumCharacterPower(world, friendlies);
+            var enemyPower = SumCharacterPower(world, enemies);
+            GUI.Label(new Rect(box.x + 16f, box.y + 68f, box.width - 32f, 22f),
+                "我方小队 " + friendlies.Count + " 人 · 战力 " + friendlyPower, _body);
+            GUI.Label(new Rect(box.x + 16f, box.y + 90f, box.width - 32f, 22f),
+                "敌方小队 " + enemies.Count + " 人 · 战力 " + enemyPower, _body);
+            var total = Mathf.Max(1, friendlyPower + enemyPower);
+            var barW = box.width - 32f; var pw = barW * friendlyPower / total;
+            GUI.color = new Color(.35f, .72f, .42f, .9f); GUI.DrawTexture(new Rect(box.x + 16f, box.y + 118f, pw, 14f), _px);
+            GUI.color = new Color(.78f, .32f, .28f, .9f); GUI.DrawTexture(new Rect(box.x + 16f + pw, box.y + 118f, barW - pw, 14f), _px); GUI.color = Color.white;
+            var y = box.y + 142f;
+            GUI.Label(new Rect(box.x + 16f, y, box.width - 32f, 20f), "参战人物", _body); y += 20f;
+            DrawCharacterPreviewRows(world, friendlies, "我方", box.x + 24f, ref y, box.width - 40f);
+            DrawCharacterPreviewRows(world, enemies, "敌方", box.x + 24f, ref y, box.width - 40f);
+            if (!string.IsNullOrEmpty(coordinator.Failure))
+                GUI.Label(new Rect(box.x + 16f, box.yMax - 104f, box.width - 32f, 38f), coordinator.Failure, _body);
+            else if (phase == HostCharacterEncounter.PresentationPhase.Preparing || phase == HostCharacterEncounter.PresentationPhase.ReadyToCommit)
+                GUI.Label(new Rect(box.x + 16f, box.yMax - 104f, box.width - 32f, 38f),
+                    "正在按冻结范围准备真实地形与导航；WorldTick 保持冻结。", _body);
+            var action = new Rect(box.x + 16f, box.yMax - 48f, box.width - 32f, 32f);
+            GUI.enabled = phase == HostCharacterEncounter.PresentationPhase.Pending || phase == HostCharacterEncounter.PresentationPhase.Failed;
+            if (GUI.Button(action, "手动战斗")) coordinator.BeginConfirmed();
+            GUI.enabled = true;
+            if (coordinator.CanCancel && GUI.Button(new Rect(box.x + 16f, box.yMax - 82f, box.width - 32f, 24f), "取消主动攻击"))
+                coordinator.CancelPending();
+        }
+
+        static int SumCharacterPower(SimulationWorld world, List<EntityId> ids)
+        {
+            var sum = 0;
+            for (var i = 0; i < ids.Count; i++) sum += CombatPowerCalculator.ForEntity(world, ids[i]);
+            return sum;
+        }
+
+        static void DrawCharacterPreviewRows(SimulationWorld world, List<EntityId> ids, string side, float x, ref float y, float width)
+        {
+            for (var i = 0; i < ids.Count; i++)
+            {
+                GUI.Label(new Rect(x, y, width, 18f), side + " · " + ResolveCharacterLabel(world, ids[i]) +
+                    "  战力 " + CombatPowerCalculator.ForEntity(world, ids[i]), GUI.skin.label);
+                y += 18f;
+            }
+        }
+
+        static void CollectCharacterEncounterPreview(SimulationWorld world, HostCharacterEncounter coordinator,
+            List<EntityId> friendlies, List<EntityId> enemies)
+        {
+            var state = world.Strategic.CharacterEncounter;
+            if (state != null)
+            {
+                foreach (var row in state.Participants)
+                    (row.Enemy ? enemies : friendlies).Add(new EntityId(row.CharacterId));
+                return;
+            }
+            if (!world.Strategic.Squads.TryGetForCharacter(coordinator.PendingAttacker, out var attacker) ||
+                !world.Strategic.Squads.TryGetForCharacter(coordinator.PendingTarget, out var target)) return;
+            var player = world.Strategic.PlayerPartyContext;
+            var attackerFriendly = player != null && player.IsMember(coordinator.PendingAttacker);
+            foreach (var id in attacker.MemberCharacterIds) (attackerFriendly ? friendlies : enemies).Add(new EntityId(id));
+            foreach (var id in target.MemberCharacterIds) (attackerFriendly ? enemies : friendlies).Add(new EntityId(id));
+        }
+
+        void DrawCharacterPostBattleBar(PlayableHostSession session, HostCharacterEncounter coordinator)
+        {
+            var box = new Rect(Screen.width - 436f, Screen.height - 188f, 420f, 116f);
+            Fill(box, Parchment); DrawFrame(box, ParchmentDark);
+            GUI.Label(new Rect(box.x + 10f, box.y + 8f, box.width - 20f, 46f),
+                "本场人物已失去战斗能力。结束后生成正式战报并返回各自原锚点。", _body);
+            if (GUI.Button(new Rect(box.xMax - 128f, box.yMax - 40f, 116f, 32f), "结束战斗"))
+            {
+                if (!coordinator.TryFinishBattle()) ShowToast("无法结束战斗：" + coordinator.Failure);
+            }
         }
 
         void DrawBattleOffer(PlayableHostSession session, BattleOfferPending offer)

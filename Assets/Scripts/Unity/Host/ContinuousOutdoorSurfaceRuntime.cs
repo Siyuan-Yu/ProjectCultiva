@@ -888,7 +888,14 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
-            if (!string.IsNullOrEmpty(_independentFieldId)) return;
+            if (!string.IsNullOrEmpty(_independentFieldId))
+            {
+                // Independent fields still consume real destructible topology changes.  The
+                // active field's clipped grid is rebuilt through the existing owner only.
+                RefreshDynamicNavigationIfDirty();
+                return;
+            }
+            if (!string.IsNullOrEmpty(_stagingIndependentFieldId)) return;
             RefreshDynamicNavigationIfDirty();
             var motion = _bootstrap?.Session?.World?.PlayerPartyTravel;
             // Restore compatibility is an activation boundary, never a per-frame repair that can
@@ -956,6 +963,11 @@ namespace XianXia.Unity.Host
                 _dynamicNavigationDirty = true;
             if (!_dynamicNavigationDirty || _streamTransitionPhase != StreamTransitionPhase.None)
                 return;
+            if (!string.IsNullOrEmpty(_independentFieldId))
+            {
+                BeginIndependentNavigationRefresh(board.DestructibleTopologyRevision);
+                return;
+            }
             RecomposeWalkGrid();
             _navigationStateWorld = world;
             _observedDestructibleTopologyRevision = board.DestructibleTopologyRevision;
@@ -1670,20 +1682,24 @@ namespace XianXia.Unity.Host
         string GeographyOwnerKey(SurfaceChunkCoord coord) =>
             SurfaceOwnerKey(coord) + ":geography";
 
-        void RemoveSitePlacementInstances(SurfaceChunkCoord coord)
+        void RemoveSitePlacementInstances(SurfaceChunkCoord coord, string fieldId = null)
         {
             var sites = _bootstrap?.Session?.World?.Strategic?.Sites?.Sites;
             if (sites == null) return;
             foreach (var entry in sites)
             {
-                var owner = SitePlacementOwnerKey(coord, entry.Key);
+                var owner = SitePlacementOwnerKey(coord, entry.Key, fieldId);
                 _tileMap.RemoveLayoutInstance(owner);
                 _materializedSitePlacementOwners.Remove(owner);
             }
         }
 
-        string SitePlacementOwnerKey(SurfaceChunkCoord coord, string siteId) =>
-            (_independentFieldId + ":surface:") + coord.X + ":" + coord.Y + ":site:" + (siteId ?? string.Empty);
+        string SitePlacementOwnerKey(SurfaceChunkCoord coord, string siteId, string fieldId = null)
+        {
+            if (fieldId == null)
+                fieldId = string.IsNullOrEmpty(_independentFieldId) ? _stagingIndependentFieldId : _independentFieldId;
+            return (fieldId + ":surface:") + coord.X + ":" + coord.Y + ":site:" + (siteId ?? string.Empty);
+        }
 
         /// <summary>
         /// Renders checked-in baked placements directly into the active continuous chunk.
@@ -1915,9 +1931,9 @@ namespace XianXia.Unity.Host
             if (activated && state != null && state.Phase != CharacterEncounterPhase.Committed)
             {
                 CharacterEncounterService.BindRuntime(_bootstrap.Session.World);
-                var result = EnterIndependentField(state);
-                if (result.IsFailure) Debug.LogError("[EncounterRestore] " + result.Error.Message);
-                return result.IsSuccess;
+                // Restore uses the same time-sliced prepared-field transaction as entry.  The
+                // restore modal prevents one frame of tactical execution on the ordinary field.
+                return BeginIndependentFieldRestore(state);
             }
             return activated;
         }
