@@ -29,6 +29,18 @@ namespace XianXia.Core.World.Strategic
         public int EntryHp, EntryMaxHp;
     }
 
+    public enum EncounterCandidatePhase { Undecided, Declined, Announced, Joined, Closed }
+    public sealed class EncounterCandidate
+    {
+        public string SquadId = "";
+        public EncounterCandidatePhase Phase;
+        public bool Enemy;
+        public int Roll = -1;
+        public int AffinityDifference;
+        public float ArriveAt;
+        public readonly List<EncounterCharacter> Members = new List<EncounterCharacter>();
+    }
+
     public sealed class CharacterEncounterState
     {
         public const int Format = 1;
@@ -42,6 +54,9 @@ namespace XianXia.Core.World.Strategic
         public bool PlayerWon;
         public int RosterVersion = 1;
         public bool ContinuationUsed;
+        public float DecisionAt, ArrivalDelay;
+        public int RelationThreshold, ChanceBasisPoints;
+        public readonly List<EncounterCandidate> Candidates = new List<EncounterCandidate>();
         public readonly List<EncounterCharacter> Participants = new List<EncounterCharacter>();
         public bool Contains(float x, float y) => Math.Abs(x - CenterX) <= Width * .5f && Math.Abs(y - CenterY) <= Height * .5f;
         public EncounterCharacter Find(ulong id) => Participants.Find(p => p.CharacterId == id);
@@ -116,6 +131,11 @@ namespace XianXia.Core.World.Strategic
                 }
             // Reserve identity only after full read-only qualification. Character allocation is not used.
             state.EncounterId = "encounter:" + world.Entities.Ids.Next().Value;
+            state.DecisionAt = world.Strategic.SpatialRules.InterventionDecisionSeconds;
+            state.ArrivalDelay = world.Strategic.SpatialRules.InterventionArrivalSeconds;
+            state.RelationThreshold = world.Strategic.SpatialRules.InterventionRelationThreshold;
+            state.ChanceBasisPoints = world.Strategic.SpatialRules.InterventionChanceBasisPoints;
+            FreezeCandidates(world, state);
             prepared = state;
             return Result.Success();
         }
@@ -155,6 +175,10 @@ namespace XianXia.Core.World.Strategic
                 !Finite(state.ElapsedSeconds) || state.ElapsedSeconds < 0f ||
                 (state.Phase != CharacterEncounterPhase.Active && state.Phase != CharacterEncounterPhase.ReadyToEnd &&
                  state.Phase != CharacterEncounterPhase.Committed)) return Fail("Invalid independent encounter snapshot.");
+            if (!Finite(state.DecisionAt) || state.DecisionAt < 0 || !Finite(state.ArrivalDelay) || state.ArrivalDelay < 0 ||
+                state.RelationThreshold < 1 || state.RelationThreshold > 100 || state.ChanceBasisPoints < 0 || state.ChanceBasisPoints > 10000 ||
+                !Finite(state.DecayAccumulator) || state.DecayAccumulator < 0 || state.DecayAccumulator >= 1 || state.RosterVersion < 1)
+                return Fail("Invalid encounter timing or intervention rules.");
             var seen = new HashSet<ulong>(); var friendly = 0; var enemy = 0;
             foreach (var p in state.Participants)
             {
@@ -165,6 +189,34 @@ namespace XianXia.Core.World.Strategic
                     !Finite(p.Cooldown) || p.Cooldown < 0f) return Fail("Invalid encounter participant snapshot.");
                 if (p.Enemy) enemy++; else friendly++;
             }
+            var candidateIds = new HashSet<ulong>(); var squadIds = new HashSet<string>(); var joined = 0;
+            foreach (var c in state.Candidates)
+            {
+                if (c == null || string.IsNullOrEmpty(c.SquadId) || !squadIds.Add(c.SquadId) || c.Members.Count == 0 ||
+                    !Enum.IsDefined(typeof(EncounterCandidatePhase), c.Phase) || c.Roll < -1 || c.Roll >= 10000 ||
+                    !Finite(c.ArriveAt) || c.ArriveAt < 0 ||
+                    (c.Phase == EncounterCandidatePhase.Undecided && c.Roll != -1) ||
+                    ((c.Phase == EncounterCandidatePhase.Announced || c.Phase == EncounterCandidatePhase.Joined) && c.Roll < 0))
+                    return Fail("Invalid frozen candidate state.");
+                if (c.Phase == EncounterCandidatePhase.Joined) joined++;
+                foreach (var m in c.Members)
+                {
+                    if (m == null || m.CharacterId == 0 || !candidateIds.Add(m.CharacterId) || m.SquadId != c.SquadId ||
+                        !world.Entities.TryGet(new EntityId(m.CharacterId), out _) ||
+                        !Finite(m.OriginX) || !Finite(m.OriginY) || !Finite(m.TacticalX) || !Finite(m.TacticalY) ||
+                        !state.Contains(m.OriginX, m.OriginY) || !state.Contains(m.TacticalX, m.TacticalY))
+                        return Fail("Invalid candidate personal anchor.");
+                    var actual = state.Find(m.CharacterId);
+                    if (c.Phase == EncounterCandidatePhase.Joined)
+                    {
+                        if (actual == null || actual.SquadId != c.SquadId || actual.Enemy != c.Enemy ||
+                            actual.OriginX != m.OriginX || actual.OriginY != m.OriginY || actual.JoinedAt <= 0)
+                            return Fail("Joined candidate/roster mismatch.");
+                    }
+                    else if (actual != null) return Fail("Unjoined candidate in actual roster.");
+                }
+            }
+            if (state.RosterVersion != 1 + joined) return Fail("Encounter roster version mismatch.");
             return friendly > 0 && enemy > 0 ? Result.Success() : Fail("Encounter lacks two sides.");
         }
 
@@ -199,7 +251,7 @@ namespace XianXia.Core.World.Strategic
                 ? StrategicClockFreezeReason.ManualEncounter : StrategicClockFreezeReason.PostBattle;
         }
 
-        public static void Advance(SimulationWorld world, float seconds)
+        public static void Advance(SimulationWorld world, float seconds, Func<EncounterCandidate, bool> preparePlacement = null)
         {
             var state = world.Strategic.CharacterEncounter;
             if (state == null || state.Phase != CharacterEncounterPhase.Active || !Finite(seconds) || seconds <= 0f) return;
@@ -209,11 +261,21 @@ namespace XianXia.Core.World.Strategic
                 state.DecayAccumulator -= 1f;
                 CombatLifeStateService.TickEncounterLifeDecay(world, state.Participants);
             }
+            AdvanceCandidates(world, state, preparePlacement);
             var friendly = false; var enemy = false;
             foreach (var p in state.Participants)
                 if (IsLiving(world, p.CharacterId)) { if (p.Enemy) enemy = true; else friendly = true; }
             if (!friendly || !enemy)
             {
+                var pendingArrival = state.Candidates.Exists(c => c.Phase == EncounterCandidatePhase.Announced);
+                if (pendingArrival)
+                {
+                    // One bounded continuation; announced arrivals all expire at their saved deadline.
+                    state.ContinuationUsed = true;
+                    return;
+                }
+                foreach (var c in state.Candidates)
+                    if (c.Phase == EncounterCandidatePhase.Undecided) c.Phase = EncounterCandidatePhase.Closed;
                 state.PlayerWon = friendly;
                 state.Phase = CharacterEncounterPhase.ReadyToEnd;
                 world.Strategic.ClockFreeze.Reason = StrategicClockFreezeReason.PostBattle;
@@ -240,6 +302,8 @@ namespace XianXia.Core.World.Strategic
                 presence.HexQ = hex.Q; presence.HexR = hex.R;
                 presence.ClearCombatPursuit();
             }
+            foreach (var c in state.Candidates)
+                if (c.Phase != EncounterCandidatePhase.Joined) c.Phase = EncounterCandidatePhase.Closed;
             state.Phase = CharacterEncounterPhase.Committed;
             world.Strategic.ContinuousManualCombat.ClearOwned(state.EncounterId);
             world.Strategic.Participants.Clear();
@@ -254,6 +318,94 @@ namespace XianXia.Core.World.Strategic
             world.Strategic.ManualBattleSettlement.ClearOwned(state.EncounterId);
             world.Strategic.CharacterEncounter = null;
         }
+        static void FreezeCandidates(SimulationWorld world, CharacterEncounterState state)
+        {
+            var squads = new List<SquadState>(world.Strategic.Squads.Squads.Values);
+            squads.Sort((a, b) => string.CompareOrdinal(a.SquadId, b.SquadId));
+            foreach (var squad in squads)
+            {
+                if (state.Participants.Exists(p => p.SquadId == squad.SquadId)) continue;
+                var candidate = new EncounterCandidate { SquadId = squad.SquadId };
+                foreach (var raw in squad.MemberCharacterIds)
+                {
+                    var id = new EntityId(raw);
+                    if (!IsLiving(world, raw) || world.Strategic.Participants.FindByEntity(id) != null ||
+                        !CharacterPersonalSpaceQuery.TryResolveContinuous(world, id, state.SourceSurfaceId, out var point, out _) ||
+                        !state.Contains(point.X, point.Y)) continue;
+                    world.WorldPresence.TryGet(id, out var presence);
+                    candidate.Members.Add(new EncounterCharacter { CharacterId = raw, SquadId = squad.SquadId,
+                        SourceMode = (int)presence.Mode, SourceSiteId = presence.SiteId,
+                        OriginX = point.X, OriginY = point.Y, TacticalX = point.X, TacticalY = point.Y });
+                }
+                if (candidate.Members.Count > 0) state.Candidates.Add(candidate);
+            }
+        }
+
+        static bool QualifyCandidate(SimulationWorld world, CharacterEncounterState state, EncounterCandidate candidate)
+        {
+            if (candidate.Members.Count == 0) return false;
+            foreach (var member in candidate.Members)
+                if (state.Find(member.CharacterId) != null || !IsLiving(world, member.CharacterId) ||
+                    !world.Strategic.Squads.TryGetForCharacter(new EntityId(member.CharacterId), out var squad) ||
+                    squad.SquadId != candidate.SquadId || !state.Contains(member.OriginX, member.OriginY)) return false;
+            return true;
+        }
+
+        public static bool DecideCandidate(SimulationWorld world, EncounterCandidate candidate, bool manualAccept = false)
+        {
+            var state = world?.Strategic?.CharacterEncounter;
+            if (state == null || state.Phase != CharacterEncounterPhase.Active || state.ContinuationUsed ||
+                !state.Candidates.Contains(candidate) || candidate.Phase != EncounterCandidatePhase.Undecided) return false;
+            if (!QualifyCandidate(world, state, candidate)) { candidate.Phase = EncounterCandidatePhase.Closed; return false; }
+            long difference = 0;
+            foreach (var member in candidate.Members)
+            {
+                var friendly = 0; var enemy = 0;
+                foreach (var initial in state.Participants)
+                {
+                    if (initial.JoinedAt > 0f) continue; // No recursive relationship cascade.
+                    var affinity = world.Relationships.Score(new EntityId(member.CharacterId), new EntityId(initial.CharacterId));
+                    if (initial.Enemy) enemy = Math.Max(enemy, affinity); else friendly = Math.Max(friendly, affinity);
+                }
+                difference += friendly - enemy;
+            }
+            candidate.AffinityDifference = (int)(difference / candidate.Members.Count);
+            candidate.Enemy = candidate.AffinityDifference < 0;
+            candidate.Roll = world.Random.NextInt(0, 10000); // One group draw, persisted even when declining.
+            if (Math.Abs(candidate.AffinityDifference) < state.RelationThreshold ||
+                (!manualAccept && candidate.Roll >= state.ChanceBasisPoints))
+            { candidate.Phase = EncounterCandidatePhase.Declined; return false; }
+            candidate.Phase = EncounterCandidatePhase.Announced;
+            candidate.ArriveAt = state.ElapsedSeconds + state.ArrivalDelay;
+            return true;
+        }
+
+        static void AdvanceCandidates(SimulationWorld world, CharacterEncounterState state, Func<EncounterCandidate, bool> preparePlacement)
+        {
+            foreach (var candidate in state.Candidates)
+            {
+                if (candidate.Phase == EncounterCandidatePhase.Undecided && state.ElapsedSeconds >= state.DecisionAt)
+                    DecideCandidate(world, candidate);
+                if (candidate.Phase != EncounterCandidatePhase.Announced || state.ElapsedSeconds < candidate.ArriveAt) continue;
+                if (!QualifyCandidate(world, state, candidate) || preparePlacement == null || !preparePlacement(candidate))
+                { candidate.Phase = EncounterCandidatePhase.Closed; continue; }
+                // All qualification and placement checks precede the single roster/report transaction.
+                foreach (var member in candidate.Members)
+                {
+                    member.Enemy = candidate.Enemy;
+                    member.JoinedAt = Math.Max(float.Epsilon, state.ElapsedSeconds);
+                    world.Entities.TryGet(new EntityId(member.CharacterId), out var entity);
+                    CombatDamageRules.EnsureVitals(entity);
+                    ManualBattleReportBuilder.CaptureState(world, new EntityId(member.CharacterId), out member.EntryCondition,
+                        out member.EntryHpAvailable, out member.EntryHp, out member.EntryMaxHp);
+                }
+                state.Participants.AddRange(candidate.Members);
+                candidate.Phase = EncounterCandidatePhase.Joined;
+                state.RosterVersion++;
+                BindRuntime(world); // Rebuild projections from preserved entry baselines, never current HP of earlier members.
+            }
+        }
+
         static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
         static Result Fail(string message) => Result.Failure(ErrorCode.InvalidOperation, message);
     }

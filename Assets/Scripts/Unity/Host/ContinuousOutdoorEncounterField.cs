@@ -113,6 +113,42 @@ namespace XianXia.Unity.Host
             return Result.Success();
         }
 
+        public bool PrepareInterventionPlacement(EncounterCandidate candidate)
+        {
+            var state = _bootstrap?.Session?.World?.Strategic?.CharacterEncounter;
+            if (state == null || state.EncounterId != _independentFieldId || _compositeWalkGrid == null) return false;
+            foreach (var member in candidate.Members)
+            {
+                _mapper.WorldToPresentation(member.OriginX, member.OriginY, out var px, out var py);
+                if (!_compositeWalkGrid.TryWorldToCell(px, py, out var x, out var y)) return false;
+                if (!_compositeWalkGrid.IsWalkable(x, y))
+                {
+                    if (!_compositeWalkGrid.TryFindNearestWalkable(x, y, 1, out x, out y)) return false;
+                    _compositeWalkGrid.CellToWorldCenter(x, y, out px, out py);
+                }
+                _mapper.PresentationToWorld(px, py, out member.TacticalX, out member.TacticalY);
+                if (!state.Contains(member.TacticalX, member.TacticalY)) return false;
+            }
+            return true;
+        }
+
+        public void PresentJoinedParticipants(int previousCount)
+        {
+            var world = _bootstrap.Session.World;
+            var state = world.Strategic.CharacterEncounter;
+            for (var i = previousCount; i < state.Participants.Count; i++)
+            {
+                var p = state.Participants[i];
+                world.Entities.TryGet(new EntityId(p.CharacterId), out var entity);
+                if (!entity.TryGet<EntityLocationComponent>(out var location))
+                { location = new EntityLocationComponent(); entity.AddComponent(location); }
+                _mapper.WorldToPresentation(p.TacticalX, p.TacticalY, out var x, out var y);
+                location.SetPresentationOverride(x, y);
+                _bootstrap.MoveController.CancelPresentationMovementPublic(new EntityId(p.CharacterId));
+            }
+            ReconcileOutdoorEntityMaterialization();
+        }
+
         public void CaptureIndependentField()
         {
             var state = _bootstrap?.Session?.World?.Strategic?.CharacterEncounter;

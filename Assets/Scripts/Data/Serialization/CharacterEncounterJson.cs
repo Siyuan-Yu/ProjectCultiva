@@ -10,25 +10,23 @@ namespace XianXia.Data.Serialization
             if (state == null) return JsonValue.FromObject(new Dictionary<string, JsonValue>());
             var participants = new List<JsonValue>();
             foreach (var p in state.Participants)
-                participants.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                participants.Add(WritePerson(p));
+            var candidates = new List<JsonValue>();
+            foreach (var c in state.Candidates)
+            {
+                var members = new List<JsonValue>();
+                foreach (var p in c.Members) members.Add(WritePerson(p));
+                candidates.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
                 {
-                ["characterId"] = JsonValue.FromString(p.CharacterId.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                ["squadId"] = JsonValue.FromString(p.SquadId),
-                ["enemy"] = JsonValue.FromBool(p.Enemy),
-                ["sourceSiteId"] = JsonValue.FromString(p.SourceSiteId),
-                ["sourceMode"] = JsonValue.FromNumber(p.SourceMode),
-                ["originX"] = JsonValue.FromNumber(p.OriginX),
-                ["originY"] = JsonValue.FromNumber(p.OriginY),
-                ["tacticalX"] = JsonValue.FromNumber(p.TacticalX),
-                ["tacticalY"] = JsonValue.FromNumber(p.TacticalY),
-                ["targetId"] = JsonValue.FromString(p.TargetId.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                ["cooldown"] = JsonValue.FromNumber(p.Cooldown),
-                ["joinedAt"] = JsonValue.FromNumber(p.JoinedAt),
-                ["entryCondition"] = JsonValue.FromNumber((int)p.EntryCondition),
-                ["entryHpAvailable"] = JsonValue.FromBool(p.EntryHpAvailable),
-                ["entryHp"] = JsonValue.FromNumber(p.EntryHp),
-                ["entryMaxHp"] = JsonValue.FromNumber(p.EntryMaxHp),
+                    ["squadId"] = JsonValue.FromString(c.SquadId),
+                    ["phase"] = JsonValue.FromNumber((int)c.Phase),
+                    ["enemy"] = JsonValue.FromBool(c.Enemy),
+                    ["roll"] = JsonValue.FromNumber(c.Roll),
+                    ["affinityDifference"] = JsonValue.FromNumber(c.AffinityDifference),
+                    ["arriveAt"] = JsonValue.FromNumber(c.ArriveAt),
+                    ["members"] = JsonValue.FromArray(members)
                 }));
+            }
             return JsonValue.FromObject(new Dictionary<string, JsonValue>
             {
                 ["version"] = JsonValue.FromNumber(state.Version),
@@ -45,6 +43,11 @@ namespace XianXia.Data.Serialization
                 ["playerWon"] = JsonValue.FromBool(state.PlayerWon),
                 ["rosterVersion"] = JsonValue.FromNumber(state.RosterVersion),
                 ["continuationUsed"] = JsonValue.FromBool(state.ContinuationUsed),
+                ["decisionAt"] = JsonValue.FromNumber(state.DecisionAt),
+                ["arrivalDelay"] = JsonValue.FromNumber(state.ArrivalDelay),
+                ["relationThreshold"] = JsonValue.FromNumber(state.RelationThreshold),
+                ["chanceBasisPoints"] = JsonValue.FromNumber(state.ChanceBasisPoints),
+                ["candidates"] = JsonValue.FromArray(candidates),
                 ["participants"] = JsonValue.FromArray(participants)
             });
         }
@@ -53,6 +56,10 @@ namespace XianXia.Data.Serialization
             if (!value.TryGetProperty("version", out _)) throw new FormatException("Independent encounter version missing.");
             var state = new CharacterEncounterState
             {
+                DecisionAt = (float)value.GetNumber("decisionAt", -1),
+                ArrivalDelay = (float)value.GetNumber("arrivalDelay", -1),
+                RelationThreshold = (int)value.GetNumber("relationThreshold", -1),
+                ChanceBasisPoints = (int)value.GetNumber("chanceBasisPoints", -1),
                 Version = (int)value.GetNumber("version", 0),
                 EncounterId = value.GetString("id", ""),
                 SourceSurfaceId = value.GetString("sourceSurfaceId", ""),
@@ -71,7 +78,43 @@ namespace XianXia.Data.Serialization
             if (!value.TryGetProperty("participants", out var rows) || rows.Kind != JsonValueKind.Array)
                 throw new FormatException("Independent encounter participant list missing.");
             foreach (var row in rows.Array)
-                state.Participants.Add(new EncounterCharacter
+                state.Participants.Add(ReadPerson(row));
+            if (!value.TryGetProperty("candidates", out var candidates) || candidates.Kind != JsonValueKind.Array)
+                throw new FormatException("Encounter candidates missing.");
+            foreach (var row in candidates.Array)
+            {
+                var c = new EncounterCandidate {
+                    SquadId = row.GetString("squadId", ""), Phase = (EncounterCandidatePhase)row.GetNumber("phase", -1),
+                    Enemy = row.GetBool("enemy", false), Roll = (int)row.GetNumber("roll", -2),
+                    AffinityDifference = (int)row.GetNumber("affinityDifference", 0), ArriveAt = (float)row.GetNumber("arriveAt", -1)
+                };
+                if (!row.TryGetProperty("members", out var members) || members.Kind != JsonValueKind.Array)
+                    throw new FormatException("Candidate members missing.");
+                foreach (var member in members.Array) c.Members.Add(ReadPerson(member));
+                state.Candidates.Add(c);
+            }
+            return state;
+        }
+        static JsonValue WritePerson(EncounterCharacter p) => JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                ["characterId"] = JsonValue.FromString(p.CharacterId.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                ["squadId"] = JsonValue.FromString(p.SquadId),
+                ["enemy"] = JsonValue.FromBool(p.Enemy),
+                ["sourceSiteId"] = JsonValue.FromString(p.SourceSiteId),
+                ["sourceMode"] = JsonValue.FromNumber(p.SourceMode),
+                ["originX"] = JsonValue.FromNumber(p.OriginX),
+                ["originY"] = JsonValue.FromNumber(p.OriginY),
+                ["tacticalX"] = JsonValue.FromNumber(p.TacticalX),
+                ["tacticalY"] = JsonValue.FromNumber(p.TacticalY),
+                ["targetId"] = JsonValue.FromString(p.TargetId.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                ["cooldown"] = JsonValue.FromNumber(p.Cooldown),
+                ["joinedAt"] = JsonValue.FromNumber(p.JoinedAt),
+                ["entryCondition"] = JsonValue.FromNumber((int)p.EntryCondition),
+                ["entryHpAvailable"] = JsonValue.FromBool(p.EntryHpAvailable),
+                ["entryHp"] = JsonValue.FromNumber(p.EntryHp),
+                ["entryMaxHp"] = JsonValue.FromNumber(p.EntryMaxHp),
+                });
+        static EncounterCharacter ReadPerson(JsonValue row) => new EncounterCharacter
                 {
                 CharacterId = ulong.Parse(row.GetString("characterId", "0"), System.Globalization.CultureInfo.InvariantCulture),
                 SquadId = row.GetString("squadId", ""),
@@ -89,8 +132,6 @@ namespace XianXia.Data.Serialization
                 EntryHpAvailable = row.GetBool("entryHpAvailable", false),
                 EntryHp = (int)row.GetNumber("entryHp", 0),
                 EntryMaxHp = (int)row.GetNumber("entryMaxHp", 0),
-                });
-            return state;
-        }
+                };
     }
 }

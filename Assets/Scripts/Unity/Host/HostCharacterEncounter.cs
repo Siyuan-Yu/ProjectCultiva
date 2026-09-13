@@ -125,7 +125,10 @@ namespace XianXia.Unity.Host
                     p.Cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
                     _melee.ApplyStrike(world, id, target, out _, out _);
                 }
-                CharacterEncounterService.Advance(world, dt);
+                var previousCount = state.Participants.Count;
+                CharacterEncounterService.Advance(world, dt, _host.ContinuousOutdoorSurfaceRuntime.PrepareInterventionPlacement);
+                if (state.Participants.Count != previousCount)
+                    _host.ContinuousOutdoorSurfaceRuntime.PresentJoinedParticipants(previousCount);
                 var party = _host.Session.PlayerParty;
                 if (!party.HasActive || !CharacterEncounterService.IsLiving(world, party.ActiveCharacterId.Value))
                     foreach (var id in party.Members)
@@ -151,6 +154,13 @@ namespace XianXia.Unity.Host
             var world = _host.Session.World;
             var state = world.Strategic.CharacterEncounter;
             if (state == null) return;
+            var noticeY = 105f;
+            foreach (var candidate in state.Candidates)
+                if (candidate.Phase == EncounterCandidatePhase.Announced)
+                {
+                    GUI.Label(new Rect(20, noticeY, 600, 24), (candidate.Enemy ? "敌方" : "友方") + "小队即将介入：" + candidate.SquadId);
+                    noticeY += 26;
+                }
             if (state.Phase == CharacterEncounterPhase.ReadyToEnd)
             {
                 if (GUI.Button(new Rect(Screen.width * .5f - 90, 65, 180, 36), "结束战斗"))

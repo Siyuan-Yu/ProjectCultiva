@@ -332,6 +332,20 @@ namespace XianXia.Unity.Host
             var world = bootstrap?.Session?.World;
             if (world != null)
             {
+                var encounter = world.Strategic.CharacterEncounter;
+                if (encounter != null)
+                {
+                    GUI.Label(new Rect(x, y, width, 22), "遭遇 " + encounter.EncounterId + " 名单版本 " + encounter.RosterVersion);
+                    y += 26;
+                    foreach (var candidate in encounter.Candidates)
+                    {
+                        GUI.Label(new Rect(x, y, width - 130, 22), candidate.SquadId + " " + candidate.Phase + " roll=" + candidate.Roll);
+                        if (candidate.Phase == EncounterCandidatePhase.Undecided &&
+                            GUI.Button(new Rect(x + width - 125, y, 125, 22), "关系合格则介入"))
+                            CharacterEncounterService.DecideCandidate(world, candidate, manualAccept: true);
+                        y += 26;
+                    }
+                }
                 var party = bootstrap.Session.PlayerParty;
                 if (GUI.Button(new Rect(x, y, width, 24f), "CW-02：当前主控进入弥留") &&
                     party != null && party.HasActive &&
