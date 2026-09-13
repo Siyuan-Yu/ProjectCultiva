@@ -222,6 +222,13 @@ namespace XianXia.Core.World.Strategic
             out string siteId)
         {
             siteId = SiteIdForCoreFlag(flagId);
+            if (world?.Strategic?.SpatialRules == null)
+                return Result.Failure(ErrorCode.InvalidOperation, "Core control range catalog missing.");
+            CoreLevelControlRange controlRange;
+            try { controlRange = world.Strategic.SpatialRules.RequireLevel(initialLevel); }
+            catch (InvalidOperationException ex) { return Result.Failure(ErrorCode.InvalidArgument, ex.Message); }
+            rangeWidth = controlRange.WidthWorld;
+            rangeHeight = controlRange.HeightWorld;
             var valid = ValidateSiteCorePlacement(
                 world, factionId, request, rangeWidth, rangeHeight, out _);
             if (valid.IsFailure) return valid;

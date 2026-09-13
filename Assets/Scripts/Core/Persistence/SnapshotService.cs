@@ -40,6 +40,8 @@ namespace XianXia.Core.Persistence
             SimulationLoop loop,
             PlayerPartyRuntime playerParty = null)
         {
+            if (world?.Strategic?.CharacterEncounter?.Phase == CharacterEncounterPhase.Preparing)
+                return Result.Fail<string>(ErrorCode.InvalidOperation, "Encounter is preparing; save after entry completes.");
             var snap = Capture(world, loop, playerParty);
             return _serializer.Serialize(snap);
         }
@@ -332,6 +334,7 @@ namespace XianXia.Core.Persistence
             }
 
             snap.Strategic = StrategicSnapshotHelper.Capture(world, playerParty);
+            snap.CharacterEncounter = world.Strategic.CharacterEncounter;
             CapturePartyInventory(world, snap);
             CaptureSocialBonds(world, snap);
             CaptureRelationshipLedger(world, snap);
@@ -849,6 +852,11 @@ namespace XianXia.Core.Persistence
             var relationshipRestore = RestoreRelationshipLedger(world, snap);
             if (relationshipRestore.IsFailure)
                 return Result.Fail<(SimulationWorld, SimulationLoop)>(relationshipRestore.Error);
+            var encounterRestore = CharacterEncounterService.ValidateRestored(world, snap.CharacterEncounter);
+            if (encounterRestore.IsFailure)
+                return Result.Fail<(SimulationWorld, SimulationLoop)>(encounterRestore.Error);
+            world.Strategic.CharacterEncounter = snap.CharacterEncounter;
+            CharacterEncounterService.BindRuntime(world);
             return Result.Ok((world, loop));
         }
 

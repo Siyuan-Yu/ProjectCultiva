@@ -12,8 +12,6 @@
       "createdSiteName": "新建据点",
       "createdSiteType": "Outpost",
       "initialSiteLevel": 1,
-      "siteRangeWidth": 4.2,
-      "siteRangeHeight": 2.8,
       "dismantleRefundRate": 0.5,
       "costs": [
         {

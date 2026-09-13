@@ -149,6 +149,8 @@ namespace XianXia.Core.World.Strategic
 
     public sealed class StrategicBoard
     {
+        public WorldSpatialRules SpatialRules { get; set; }
+        public CharacterEncounterState CharacterEncounter { get; set; }
         public FactionDiplomacyBoard Diplomacy { get; } = new FactionDiplomacyBoard();
         public WarBoard Wars { get; } = new WarBoard();
         public AllianceBoard Alliances { get; } = new AllianceBoard();

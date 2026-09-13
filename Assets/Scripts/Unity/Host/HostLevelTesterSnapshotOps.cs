@@ -36,6 +36,10 @@ namespace XianXia.Unity.Host
                 return result;
             }
 
+            if (bootstrap.Session.World.Strategic.CharacterEncounter?.Phase ==
+                XianXia.Core.World.Strategic.CharacterEncounterPhase.Committed)
+            { result.Message = "请先关闭本场战报再保存。"; return result; }
+
             HostSnapshotLocalPlacementCaptureSync.SyncLoadedLocalMapOccupantsFromViews(bootstrap);
             HostSnapshotSessionRehydration.LogDomainTrace(bootstrap.Session, "BeforeSave");
             var captured = bootstrap.Session.CaptureSnapshotJson();

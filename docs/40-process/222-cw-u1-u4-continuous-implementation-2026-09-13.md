@@ -2,6 +2,21 @@
 
 日期：2026-09-13。基线：`4277654e85f9854ad03800d1d36e88e8750e733f`，开始时工作区与暂存区均干净。
 
+## 当前连续实施（制作人补充范围输入之后）
+
+此前范围 ACR 已解除：一级议政厅/势力旗统一 500×500 世界单位，中心为核心真实位置；野外独立配置同为 500×500。旧 4.2×2.8 不再作为控制范围来源。下方早期未完成矩阵保留为历史检查点，不代表本段之后的新实现状态。
+
+| 阶段 | 当前实施证据 | 验证 | 提交 |
+|---|---|---|---|
+| C1/U2A | 普通人物 HostNpcContextMenu→HostCharacterEncounter.Request/BeginConfirmed→CharacterEncounterService；独立场地使用场次 owner 实例、完整正式 source chunks 和独立导航；实际 Character/个人原锚点、战术坐标、时间、HP基线、名单版本和状态进入 characterEncounter JSON；稳定 Active/ReadyToEnd 恢复重建场地；CommitAndReturn 唯一提交并逐人回位、报告继续释放 | Core459/Data78/Host145 离线编译通过；静态核对，不代表人工验收 | 本段对应 C1 本地提交 |
+| C2/U2B | 正在切换全部人物入口与旧 WorldMap 攻击命令 | 待本阶段检查 | 待提交 |
+| C3/U3 | 待接固定候选和加入事务 | 待本阶段检查 | 待提交 |
+| C4/U4 | 待整合兼容核查 | 待本阶段检查 | 待提交 |
+
+C1 Content：worldSpatialRules→loader校验→registry→SpatialRules→CoreLevelControlRange→预设核心/ConstructionCatalog/WorldSiteCoreCoverageResolver/遭遇冻结范围；同等级共用规则。新 runtime Site 存 CoreLevelFormat=1、等级、身份与位置，范围由 Content 派生；旧缺等级只在 format=0 迁一级。500 世界单位保持逻辑边界，定义大陆之外是无 Surface 的不可行走空间，不生成随机地形补齐。建筑占地/碰撞继续原数据。
+
+C1 生命周期：旧 Continuous marker 仅作为现有显示/伤害权限 API 的派生投影，新场地身份、导航和保存由 CharacterEncounter 权威持有；不调用旧 Army 场地预检/共同 BattleHex 提交。WorldTick 冻结期间仅参战者的弥留/尸体期限消费本场秒数，普通世界不推进。所有真实伤害继续经过现有 MeleeCombatService。
+
 制作人确认 CW-U1 当前正常玩法人工验收通过。本轮明确授权连续执行 C0→C4，中间不等待逐轮人工验收；覆盖 ADR-0035 的旧逐阶段等待要求。新增行为仍待合并人工验收，不扩大 U1 已验收范围。
 
 | 检查点 | 当前状态 | 改动／检查 | 本地提交 | 剩余边界 |

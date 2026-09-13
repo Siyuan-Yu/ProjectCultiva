@@ -69,6 +69,8 @@ namespace XianXia.Unity.Host
 
         public void Begin(EntityId attacker, EntityId defender)
         {
+            if (bootstrap?.Session?.World?.Strategic?.CharacterEncounter != null)
+            { bootstrap.GetComponent<HostCharacterEncounter>().SetTarget(attacker, defender); return; }
             if (attacker.IsNone || defender.IsNone || attacker == defender)
                 return;
             var continuousCombat = bootstrap?.Session?.World?.Strategic?.ContinuousManualCombat;
@@ -119,6 +121,8 @@ namespace XianXia.Unity.Host
         /// <summary>玩家下令移动／Stop：若该单位是攻方则仅他脱离；无人攻则整场结束。</summary>
         public void DisengageIfAttacker(EntityId id)
         {
+            if (bootstrap?.Session?.World?.Strategic?.CharacterEncounter != null)
+            { bootstrap.GetComponent<HostCharacterEncounter>().Stop(id); return; }
             if (!IsFighting || id.IsNone || !IsAttacker(id))
                 return;
             RemoveAttacker(id, "脱离战斗");
@@ -163,6 +167,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            if (bootstrap?.Session?.World?.Strategic?.CharacterEncounter != null) return;
             if (!IsFighting || bootstrap?.Session?.World == null)
                 return;
             if (bootstrap.Session.IsPaused)

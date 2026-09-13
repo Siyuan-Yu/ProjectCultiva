@@ -80,6 +80,7 @@ namespace XianXia.Unity.Host
             }
 
             var world = session.World;
+            if (world.Strategic.CharacterEncounter != null) { ReleaseInterruptPause(); return; }
             SyncClockFreezePresentation(session);
 
             if (HasBlockingInterrupt)
@@ -146,6 +147,7 @@ namespace XianXia.Unity.Host
 
         void OnGUI()
         {
+            if (bootstrap?.Session?.World?.Strategic?.CharacterEncounter != null) return;
             var session = bootstrap != null ? bootstrap.Session : null;
             if (session == null || !session.IsInitialized || session.World?.Strategic == null)
                 return;

@@ -342,6 +342,27 @@ namespace XianXia.Core.Combat
         }
 
         /// <summary>尸体腐烂：标记 Removed，从宏观图抹掉，之后不再演算该角色位置。</summary>
+        public static void TickEncounterLifeDecay(SimulationWorld world,
+            System.Collections.Generic.IReadOnlyList<XianXia.Core.World.Strategic.EncounterCharacter> participants)
+        {
+            foreach (var p in participants)
+            {
+                if (!world.Entities.TryGet(new EntityId(p.CharacterId), out var entity) ||
+                    !entity.TryGet<LifecycleComponent>(out var life)) continue;
+                if (life.IsIncapacitated && life.BleedOutAfterTick > 0)
+                {
+                    if (life.BleedOutAfterTick <= world.Tick.Value + 1)
+                        TryConfirmDeath(world, EntityId.None, entity, out _);
+                    else life.BleedOutAfterTick--;
+                }
+                else if (life.IsDead && entity.TryGet<CorpseComponent>(out var corpse))
+                {
+                    if (corpse.RemoveAfterTick <= world.Tick.Value + 1) FinalizeRemoval(world, entity);
+                    else corpse.RemoveAfterTick--;
+                }
+            }
+        }
+
         public static void FinalizeRemoval(SimulationWorld world, Entity entity)
         {
             if (world == null || entity == null)

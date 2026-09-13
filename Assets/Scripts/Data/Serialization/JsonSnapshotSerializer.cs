@@ -47,6 +47,8 @@ namespace XianXia.Data.Serialization
                 ["strategic"] = SerializeStrategic(snapshot.Strategic)
             };
 
+            if (snapshot.CharacterEncounter != null)
+                root["characterEncounter"] = CharacterEncounterJson.Write(snapshot.CharacterEncounter);
             return Result.Ok(SimpleJson.Stringify(JsonValue.FromObject(root)));
         }
 
@@ -224,6 +226,8 @@ namespace XianXia.Data.Serialization
                     snapshot.Strategic = ReadStrategic(strategic);
                 }
 
+                if (root.TryGetProperty("characterEncounter", out var characterEncounter))
+                    snapshot.CharacterEncounter = CharacterEncounterJson.Read(characterEncounter);
                 return Result.Ok(snapshot);
             }
             catch (System.Exception ex)
@@ -1064,8 +1068,7 @@ namespace XianXia.Data.Serialization
                         ["worldX"] = JsonValue.FromNumber(s.WorldX),
                         ["worldY"] = JsonValue.FromNumber(s.WorldY),
                         ["coreLevel"] = JsonValue.FromNumber(s.CoreLevel),
-                        ["rangeWidth"] = JsonValue.FromNumber(s.RangeWidth),
-                        ["rangeHeight"] = JsonValue.FromNumber(s.RangeHeight),
+                        ["coreLevelFormat"] = JsonValue.FromNumber(s.CoreLevelFormat),
                         ["isCoreActive"] = JsonValue.FromBool(s.IsCoreActive),
                         ["coreIsRemovable"] = JsonValue.FromBool(s.CoreIsRemovable)
                     }));
@@ -1476,6 +1479,7 @@ namespace XianXia.Data.Serialization
                         WorldX = (float)site.GetNumber("worldX"),
                         WorldY = (float)site.GetNumber("worldY"),
                         CoreLevel = (int)site.GetNumber("coreLevel"),
+                        CoreLevelFormat = (int)site.GetNumber("coreLevelFormat", 0),
                         RangeWidth = (float)site.GetNumber("rangeWidth"),
                         RangeHeight = (float)site.GetNumber("rangeHeight"),
                         IsCoreActive = site.GetBool("isCoreActive", false),

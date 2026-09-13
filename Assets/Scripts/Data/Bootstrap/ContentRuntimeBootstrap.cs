@@ -105,6 +105,7 @@ namespace XianXia.Data.Bootstrap
 
         internal static void RehydrateConstructionCatalog(SimulationWorld world, DefinitionRegistry registry)
         {
+            world.Strategic.SpatialRules = registry.SpatialRules;
             world.ConstructionCatalog.Clear();
             foreach (var kv in registry.Buildings)
             {
@@ -124,8 +125,8 @@ namespace XianXia.Data.Bootstrap
                     CreatedSiteName = definition.CreatedSiteName ?? string.Empty,
                     CreatedSiteType = definition.CreatedSiteType ?? string.Empty,
                     InitialSiteLevel = definition.InitialSiteLevel,
-                    SiteRangeWidth = definition.SiteRangeWidth,
-                    SiteRangeHeight = definition.SiteRangeHeight,
+                    SiteRangeWidth = definition.CreatesWorldSite ? registry.SpatialRules.RequireLevel(definition.InitialSiteLevel).WidthWorld : 0f,
+                    SiteRangeHeight = definition.CreatesWorldSite ? registry.SpatialRules.RequireLevel(definition.InitialSiteLevel).HeightWorld : 0f,
                     DismantleRefundRate = definition.DismantleRefundRate
                 };
                 for (var i = 0; i < definition.Costs.Count; i++)
@@ -185,6 +186,7 @@ namespace XianXia.Data.Bootstrap
                     site.CoreWorldX = placement.WorldX + placement.WorldWidth * .5f;
                     site.CoreWorldY = placement.WorldY + placement.WorldHeight * .5f;
                     site.CoreLevel = 1;
+                    registry.SpatialRules.Bind(site);
                     site.IsCoreActive = true;
                     site.CoreIsRemovable = false;
                 }

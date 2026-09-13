@@ -19,6 +19,8 @@ namespace XianXia.Unity.Host
             if (world?.LocalMap == null || spawner == null)
                 return 0;
             var continuous = bootstrap.ContinuousOutdoorSurfaceRuntime;
+            if (world.Strategic.CharacterEncounter != null)
+            { continuous?.CaptureIndependentField(); return 0; }
             if (continuous != null && continuous.IsActive && !world.LocalMap.IsInInterior)
                 return continuous.CaptureCurrentPersonalPlacements();
 

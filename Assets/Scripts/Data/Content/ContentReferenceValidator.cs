@@ -23,6 +23,13 @@ namespace XianXia.Data.Content
             }
 
             var locations = CollectLocationIds(registry);
+            if (registry.OutdoorSurfaces.Count > 0 && registry.SpatialRules == null)
+                report.Add(ErrorCode.MissingRequiredField, "Continuous world requires worldSpatialRules.");
+            if (registry.SpatialRules != null)
+                foreach (var pair in registry.Buildings)
+                    if (pair.Value.CreatesWorldSite)
+                        try { registry.SpatialRules.RequireLevel(pair.Value.InitialSiteLevel); }
+                        catch (InvalidOperationException ex) { report.Add(ErrorCode.InvalidArgument, ex.Message, pair.Key.ToString()); }
             var producedFlags = new HashSet<string>(StringComparer.Ordinal);
             var consumedFlags = new HashSet<string>(StringComparer.Ordinal);
 

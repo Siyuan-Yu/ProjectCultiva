@@ -955,7 +955,7 @@ namespace XianXia.Unity.Host
                     if (IsActiveStrategicCombatTarget(session.World, target))
                         return false;
                     // 普通 Character（无论 faction / hostile tag）→ 一次确认。
-                    BeginLocalAttackConfirm(actor, target, onConfirmedLocalAction);
+                    bootstrap.GetComponent<HostCharacterEncounter>().Request(actor, target);
                     return true;
 
                 case HostileActionRoute.Reject:

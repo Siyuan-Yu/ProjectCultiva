@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "definitions": [{
+    "id": "base:world_spatial_rules_v1",
+    "type": "worldSpatialRules",
+    "coreLevels": [{ "level": 1, "controlWidthWorld": 500, "controlHeightWorld": 500 }],
+    "wildernessEncounterWidthWorld": 500,
+    "wildernessEncounterHeightWorld": 500,
+    "interventionDecisionSeconds": 3,
+    "interventionArrivalSeconds": 3,
+    "interventionRelationThreshold": 30,
+    "interventionChanceBasisPoints": 5000
+  }]
+}

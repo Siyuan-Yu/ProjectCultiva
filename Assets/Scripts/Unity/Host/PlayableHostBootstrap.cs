@@ -943,6 +943,7 @@ namespace XianXia.Unity.Host
             _continuousOutdoorSurfaceRuntime = GetComponent<ContinuousOutdoorSurfaceRuntime>() ??
                                                gameObject.AddComponent<ContinuousOutdoorSurfaceRuntime>();
             _continuousOutdoorSurfaceRuntime.Bind(this);
+            (GetComponent<HostCharacterEncounter>() ?? gameObject.AddComponent<HostCharacterEncounter>()).Bind(this);
             var continuousOutdoorStartup = false;
             var continuousStartupPlan = default(ContinuousOutdoorStartupPlanner.StartupPlan);
             if (TryPrepareInitialContinuousOutdoorStartup(out var preparedStartup, out var prepareFailure))

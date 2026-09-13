@@ -259,6 +259,9 @@ namespace XianXia.Data.Content
                     case "outdoorSurface":
                         LoadOutdoorSurface(item, parsed.Value, registry, report);
                         break;
+                    case "worldSpatialRules":
+                        LoadWorldSpatialRules(item, parsed.Value, registry, report);
+                        break;
                     case "outdoorSurfaceGeography":
                         LoadOutdoorSurfaceGeography(item, parsed.Value, registry, report);
                         break;
@@ -692,8 +695,7 @@ namespace XianXia.Data.Content
             if (string.IsNullOrWhiteSpace(definition.Name))
                 definition.Name = id.ToString();
             if (definition.CreatesWorldSite &&
-                (definition.InitialSiteLevel < 1 || definition.SiteRangeWidth <= 0f ||
-                 definition.SiteRangeHeight <= 0f || string.IsNullOrWhiteSpace(definition.CreatedSiteType)))
+                (definition.InitialSiteLevel < 1 || string.IsNullOrWhiteSpace(definition.CreatedSiteType)))
             {
                 report.Add(ErrorCode.InvalidArgument,
                     "WorldSite core building requires positive level/range and createdSiteType.", id.ToString());
@@ -2141,6 +2143,41 @@ namespace XianXia.Data.Content
             if (report.Errors.Count > errorsBefore) return;
             var registration = registry.RegisterOutdoorSurfaceGeography(definition);
             if (registration.IsFailure) report.Add(registration.Error);
+        }
+
+        static void LoadWorldSpatialRules(JsonValue item, DefinitionId id, DefinitionRegistry registry, ValidationReport report)
+        {
+            var rules = new XianXia.Core.World.Strategic.WorldSpatialRules
+            {
+                Id = id.ToString(),
+                WildernessEncounterWidthWorld = ReadFloat(item, "wildernessEncounterWidthWorld", 0f),
+                WildernessEncounterHeightWorld = ReadFloat(item, "wildernessEncounterHeightWorld", 0f),
+                InterventionDecisionSeconds = ReadFloat(item, "interventionDecisionSeconds", -1f),
+                InterventionArrivalSeconds = ReadFloat(item, "interventionArrivalSeconds", -1f),
+                InterventionRelationThreshold = (int)item.GetNumber("interventionRelationThreshold", 0),
+                InterventionChanceBasisPoints = (int)item.GetNumber("interventionChanceBasisPoints", -1)
+            };
+            var levels = new HashSet<int>();
+            if (item.TryGetProperty("coreLevels", out var rows) && rows.Kind == JsonValueKind.Array)
+                foreach (var row in rows.Array)
+                {
+                    var level = (int)row.GetNumber("level", 0);
+                    var width = ReadFloat(row, "controlWidthWorld", 0f);
+                    var height = ReadFloat(row, "controlHeightWorld", 0f);
+                    if (level < 1 || !levels.Add(level) || !(width > 0f) || !(height > 0f) ||
+                        float.IsInfinity(width) || float.IsInfinity(height))
+                    { report.Add(ErrorCode.InvalidArgument, "Invalid/duplicate core level control range.", id.ToString()); return; }
+                    rules.CoreLevels.Add(new XianXia.Core.World.Strategic.CoreLevelControlRange
+                        { Level = level, WidthWorld = width, HeightWorld = height });
+                }
+            if (!levels.Contains(1) || !(rules.WildernessEncounterWidthWorld > 0f) ||
+                !(rules.WildernessEncounterHeightWorld > 0f) || float.IsInfinity(rules.WildernessEncounterWidthWorld) ||
+                float.IsInfinity(rules.WildernessEncounterHeightWorld) || !(rules.InterventionDecisionSeconds >= 0f) ||
+                !(rules.InterventionArrivalSeconds >= 0f) || rules.InterventionChanceBasisPoints < 0 ||
+                rules.InterventionChanceBasisPoints > 10000)
+            { report.Add(ErrorCode.InvalidArgument, "Invalid world spatial/encounter configuration.", id.ToString()); return; }
+            var result = registry.RegisterSpatialRules(rules);
+            if (result.IsFailure) report.Add(result.Error);
         }
 
         static void LoadOutdoorSurface(

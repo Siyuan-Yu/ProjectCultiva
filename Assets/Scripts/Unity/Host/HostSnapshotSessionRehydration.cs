@@ -50,7 +50,8 @@ namespace XianXia.Unity.Host
             foreach (var pair in world.WorldPresence.All)
             {
                 var personal = pair.Value;
-                if (personal == null || string.IsNullOrEmpty(personal.PersonalSurfaceId)) continue;
+                if (personal == null || string.IsNullOrEmpty(personal.PersonalSurfaceId) ||
+                    world.Strategic.CharacterEncounter?.Find(personal.EntityId.Value) != null) continue;
                 OutdoorWorldSurfaceDefinition source = null;
                 foreach (var candidate in registry.OutdoorSurfaces)
                     if (string.Equals(candidate.Value?.SurfaceId, personal.PersonalSurfaceId,
@@ -98,6 +99,7 @@ namespace XianXia.Unity.Host
             // 全部 Content shell 与 motion overlay 均成功后，才同步成员／presentation／pursuit，
             // 最后才允许进入 LocalMap materialization。
             StrategicSnapshotHelper.FinalizeRuntimeLinks(world);
+            CharacterEncounterService.BindRuntime(world);
             if (!string.IsNullOrEmpty(mapId))
                 WorldTravelService.ApplyLocalMapSessionFromFocus(world);
             session.ConsumePendingRestoredStrategicSnapshot();

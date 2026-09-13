@@ -6,6 +6,14 @@ namespace XianXia.Data.Content
 {
     public sealed class DefinitionRegistry
     {
+        public XianXia.Core.World.Strategic.WorldSpatialRules SpatialRules { get; private set; }
+        public Result RegisterSpatialRules(XianXia.Core.World.Strategic.WorldSpatialRules rules)
+        {
+            if (rules == null || SpatialRules != null || ContainsId(DefinitionId.Parse(rules.Id).Value))
+                return Result.Failure(ErrorCode.DuplicateDefinitionId, "Exactly one worldSpatialRules definition is supported.");
+            SpatialRules = rules;
+            return Result.Success();
+        }
         readonly Dictionary<DefinitionId, CharacterDefinition> _characters =
             new Dictionary<DefinitionId, CharacterDefinition>();
         readonly Dictionary<DefinitionId, CultivationDefinition> _cultivations =
@@ -90,6 +98,7 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, OutdoorSurfaceGeographyDefinition> OutdoorSurfaceGeographies => _outdoorSurfaceGeographies;
 
         public bool ContainsId(DefinitionId id) =>
+            (SpatialRules != null && SpatialRules.Id == id.ToString()) ||
             _characters.ContainsKey(id) ||
             _cultivations.ContainsKey(id) ||
             _combatArts.ContainsKey(id) ||

@@ -286,6 +286,7 @@ namespace XianXia.Core.Persistence
                 if (site == null || !site.IsRuntimeCreated) continue;
                 dto.RuntimeWorldSites.Add(new RuntimeWorldSiteSnapshotDto
                 {
+                    CoreLevelFormat = 1,
                     SiteId = site.SiteId,
                     DisplayName = site.DisplayName,
                     SiteType = site.SiteType,
@@ -299,8 +300,6 @@ namespace XianXia.Core.Persistence
                     WorldX = site.CoreWorldX,
                     WorldY = site.CoreWorldY,
                     CoreLevel = site.CoreLevel,
-                    RangeWidth = site.CoreRangeWidth,
-                    RangeHeight = site.CoreRangeHeight,
                     IsCoreActive = site.IsCoreActive,
                     CoreIsRemovable = site.CoreIsRemovable
                 });
@@ -806,11 +805,13 @@ namespace XianXia.Core.Persistence
             for (var i = 0; i < source.Count; i++)
             {
                 var item = source[i];
+                if (item != null && item.CoreLevelFormat == 0 && item.CoreLevel == 0) item.CoreLevel = 1;
+                if (item != null && item.CoreLevelFormat != 0 && item.CoreLevelFormat != 1)
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Unknown Site core level format.");
                 if (item == null || string.IsNullOrWhiteSpace(item.SiteId) ||
                     string.IsNullOrWhiteSpace(item.CoreAssetId) ||
                     string.IsNullOrWhiteSpace(item.SurfaceId) || !item.HasWorldPosition ||
                     !IsFinite(item.WorldX) || !IsFinite(item.WorldY) || item.CoreLevel < 1 ||
-                    item.RangeWidth <= 0f || item.RangeHeight <= 0f ||
                     item.ControlEstablishedOrder <= 0 ||
                     world.HexWorld == null || !world.HexWorld.IsInBounds(item.AnchorQ, item.AnchorR) ||
                     !ids.Add(item.SiteId) || !coreIds.Add(item.CoreAssetId))
@@ -836,6 +837,9 @@ namespace XianXia.Core.Persistence
             {
                 var item = source[i];
                 var anchor = new HexCoord(item.AnchorQ, item.AnchorR);
+                CoreLevelControlRange controlRange;
+                try { controlRange = world.Strategic.SpatialRules.RequireLevel(item.CoreLevel); }
+                catch (Exception ex) { return Result.Failure(ErrorCode.SnapshotInvalid, "Site core level missing from Content.", ex.Message); }
                 var site = new WorldSite
                 {
                     SiteId = item.SiteId,
@@ -851,8 +855,8 @@ namespace XianXia.Core.Persistence
                     CoreWorldX = item.WorldX,
                     CoreWorldY = item.WorldY,
                     CoreLevel = item.CoreLevel,
-                    CoreRangeWidth = item.RangeWidth,
-                    CoreRangeHeight = item.RangeHeight,
+                    CoreRangeWidth = controlRange.WidthWorld,
+                    CoreRangeHeight = controlRange.HeightWorld,
                     IsCoreActive = item.IsCoreActive,
                     CoreIsRemovable = item.CoreIsRemovable,
                     AnchorHex = anchor,

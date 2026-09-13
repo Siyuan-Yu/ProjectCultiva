@@ -18,7 +18,7 @@ using XianXia.Data.Content;
 namespace XianXia.Unity.Host
 {
     /// <summary>W1C presentation owner for the acceptance surface. Chunk ownership is transient only.</summary>
-    public sealed class ContinuousOutdoorSurfaceRuntime : MonoBehaviour
+    public sealed partial class ContinuousOutdoorSurfaceRuntime : MonoBehaviour
     {
         public sealed class ManualCombatPreparation
         {
@@ -888,6 +888,7 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            if (!string.IsNullOrEmpty(_independentFieldId)) return;
             RefreshDynamicNavigationIfDirty();
             var motion = _bootstrap?.Session?.World?.PlayerPartyTravel;
             // Restore compatibility is an activation boundary, never a per-frame repair that can
@@ -1485,7 +1486,7 @@ namespace XianXia.Unity.Host
             SurfaceChunkNeighborhood.Diff(_loaded, _desired, _add, _remove);
             foreach (var coord in _remove)
             {
-                _tileMap.RemoveLayoutInstance(SurfaceChunkNeighborhood.OwnerKey(_surfaceId, coord));
+                _tileMap.RemoveLayoutInstance(SurfaceOwnerKey(coord));
                 _tileMap.RemoveLayoutInstance(GeographyOwnerKey(coord));
                 RemoveSitePlacementInstances(coord);
                 _presentedChunks.Remove(coord);
@@ -1615,7 +1616,7 @@ namespace XianXia.Unity.Host
                     if (!_desired.Contains(chunk) && _presentedChunks.Remove(chunk))
                     {
                         var started = Stopwatch.GetTimestamp();
-                        _tileMap.RemoveLayoutInstance(SurfaceChunkNeighborhood.OwnerKey(_surfaceId, chunk));
+                        _tileMap.RemoveLayoutInstance(SurfaceOwnerKey(chunk));
                         _tileMap.RemoveLayoutInstance(GeographyOwnerKey(chunk));
                         RemoveSitePlacementInstances(chunk);
                         LogStreamTiming("RetireTrailing", chunk, started);
@@ -1660,14 +1661,14 @@ namespace XianXia.Unity.Host
             _mapper.ChunkLocalToWorld(coord, 0f, 0f, out var worldX, out var worldY);
             _mapper.WorldToPresentation(worldX, worldY, out var presentationX, out var presentationY);
             var placement = new Vector2(presentationX - layout.OriginX, presentationY - layout.OriginY);
-            _tileMap.BuildLayoutInstance(SurfaceChunkNeighborhood.OwnerKey(_surfaceId, coord), layout, placement);
+            _tileMap.BuildLayoutInstance(SurfaceOwnerKey(coord), layout, placement);
             if (_geography != null && _geography.CoverageChunks.Contains(coord))
                 _tileMap.BuildOutdoorGeographyInstance(GeographyOwnerKey(coord), _geography, _mapper, coord);
             BuildBakedOutdoorSitePlacements(coord);
         }
 
         string GeographyOwnerKey(SurfaceChunkCoord coord) =>
-            SurfaceChunkNeighborhood.OwnerKey(_surfaceId, coord) + ":geography";
+            SurfaceOwnerKey(coord) + ":geography";
 
         void RemoveSitePlacementInstances(SurfaceChunkCoord coord)
         {
@@ -1681,8 +1682,8 @@ namespace XianXia.Unity.Host
             }
         }
 
-        static string SitePlacementOwnerKey(SurfaceChunkCoord coord, string siteId) =>
-            "surface:" + coord.X + ":" + coord.Y + ":site:" + (siteId ?? string.Empty);
+        string SitePlacementOwnerKey(SurfaceChunkCoord coord, string siteId) =>
+            (_independentFieldId + ":surface:") + coord.X + ":" + coord.Y + ":site:" + (siteId ?? string.Empty);
 
         /// <summary>
         /// Renders checked-in baked placements directly into the active continuous chunk.
@@ -1872,7 +1873,7 @@ namespace XianXia.Unity.Host
                 combat.ClearOwned(combat.OfferId);
             foreach (var coord in _presentedChunks)
             {
-                _tileMap?.RemoveLayoutInstance(SurfaceChunkNeighborhood.OwnerKey(_surfaceId, coord));
+                _tileMap?.RemoveLayoutInstance(SurfaceOwnerKey(coord));
                 _tileMap?.RemoveLayoutInstance(GeographyOwnerKey(coord));
                 RemoveSitePlacementInstances(coord);
             }
@@ -1906,8 +1907,18 @@ namespace XianXia.Unity.Host
         {
             if (IsActive)
                 DeactivatePresentationOnly(captureEntityPositions: false);
+            _independentFieldId = string.Empty;
             _legacyOutdoorRestoreMigrationWorld = null;
-            return TryActivateAtCurrentWorldPosition();
+            var activated = TryActivateAtCurrentWorldPosition();
+            var state = _bootstrap?.Session?.World?.Strategic?.CharacterEncounter;
+            if (activated && state != null && state.Phase != CharacterEncounterPhase.Committed)
+            {
+                CharacterEncounterService.BindRuntime(_bootstrap.Session.World);
+                var result = EnterIndependentField(state);
+                if (result.IsFailure) Debug.LogError("[EncounterRestore] " + result.Error.Message);
+                return result.IsSuccess;
+            }
+            return activated;
         }
 
         /// <summary>Rebuilds the transient place registry from baked continuous content. Called

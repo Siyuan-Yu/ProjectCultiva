@@ -18,6 +18,7 @@ namespace XianXia.Core.Persistence
         public const int LegacySchemaVersionV5 = 5;
 
         public int SchemaVersion { get; set; } = CurrentSchemaVersion;
+        public XianXia.Core.World.Strategic.CharacterEncounterState CharacterEncounter { get; set; }
         public ulong SnapshotId { get; set; }
         public ulong WorldTick { get; set; }
         public ulong RegionId { get; set; }
@@ -368,6 +369,7 @@ namespace XianXia.Core.Persistence
 
     public sealed class RuntimeWorldSiteSnapshotDto
     {
+        public int CoreLevelFormat { get; set; }
         public string SiteId { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
         public string SiteType { get; set; } = string.Empty;

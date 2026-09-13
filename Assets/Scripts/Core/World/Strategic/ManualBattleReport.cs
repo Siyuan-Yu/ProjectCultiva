@@ -263,7 +263,7 @@ namespace XianXia.Core.World.Strategic
             return report;
         }
 
-        static void CaptureState(
+        internal static void CaptureState(
             SimulationWorld world,
             EntityId id,
             out ManualBattleReportCondition condition,
