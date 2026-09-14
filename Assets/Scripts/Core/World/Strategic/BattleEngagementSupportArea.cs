@@ -6,6 +6,8 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
+    /// Legacy strategic auto-battle / old-session support adapter only.
+    /// New CharacterEncounter initial participants must come from attacker Squad + target Squad and must not call this type.
     /// Phase 4 接战支援范围：BattleAreaHexes + 与其直接共边相邻的全部 Hex。
     /// 空间资格判断为 SupportAreaHexes.Contains(UnitHex)，禁止中心距离 / 圆形半径。
     /// </summary>

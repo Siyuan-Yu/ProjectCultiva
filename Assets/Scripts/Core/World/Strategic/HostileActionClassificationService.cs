@@ -13,8 +13,8 @@ namespace XianXia.Core.World.Strategic
     }
 
     /// <summary>
-    /// Current target identity for hostile-action routing. FormalArmy membership, not faction membership,
-    /// is retained as metadata; personal hostility never declares war.
+    /// Current Character target identity for hostile-action routing. FormalArmy membership is legacy
+    /// diagnostics metadata only: every Character remains LocalCharacter and personal hostility never declares war.
     /// </summary>
     public readonly struct HostileActionClassification
     {
@@ -50,7 +50,8 @@ namespace XianXia.Core.World.Strategic
                 return false;
             }
 
-            // This API validates FormalArmy reverse membership and the character's live membership component.
+            // Legacy membership is validated as metadata only. It must never change a Character into
+            // StrategicMilitary or select a different battle/participant path.
             if (ArmyService.TryGetArmyForCharacter(world, targetId, out var formalArmy))
             {
                 if (target.TryGet<FactionMembershipComponent>(out var membership) &&

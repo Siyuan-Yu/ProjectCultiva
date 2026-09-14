@@ -1220,8 +1220,8 @@ namespace XianXia.Core.Persistence
                 return;
 
             var motion = world.PlayerPartyTravel;
-            // Phase 5S-B2-3.5：pursuit target 与普通 PlayerParty travel 同契约 —— Save→Load 后
-            // Movement 恢复 Idle，pursuit 亦清空（不单独引入更强 persistence）。
+            // CW-U4.1: old PlayerParty AttackArmy/attack-chase orders are retired on load.
+            // Preserve the canonical position, restore Idle, and never auto-declare war/create an encounter.
             motion.ClearAttackOrder();
             if (travel.LocationKind == (int)PlayerPartyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(travel.SiteId))

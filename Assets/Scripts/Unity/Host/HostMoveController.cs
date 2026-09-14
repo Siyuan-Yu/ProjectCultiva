@@ -289,6 +289,11 @@ namespace XianXia.Unity.Host
                 return;
             if (HostInputGate.BlockWorldInteraction)
                 return;
+            var characterEncounter = bootstrap.Session.World.Strategic.CharacterEncounter;
+            if (characterEncounter != null &&
+                characterEncounter.Phase != CharacterEncounterPhase.Active &&
+                characterEncounter.Phase != CharacterEncounterPhase.ReadyToEnd)
+                return;
             if (bootstrap.Session.World.ContentEvents.HasActive)
                 return;
             if (bootstrap.ContentInterrupt != null && bootstrap.ContentInterrupt.HasBlockingInterrupt)
@@ -347,6 +352,11 @@ namespace XianXia.Unity.Host
             SurfaceExitConnection connection,
             Vector3 approachPoint)
         {
+            var encounter = bootstrap?.Session?.World?.Strategic?.CharacterEncounter;
+            if (encounter != null &&
+                (encounter.Phase == CharacterEncounterPhase.Active ||
+                 encounter.Phase == CharacterEncounterPhase.ReadyToEnd))
+                return false;
             CancelLocalVisibleAutoTravelIfActive();
             var active = ResolveActiveCharacter();
             if (active.IsNone)
@@ -786,6 +796,7 @@ namespace XianXia.Unity.Host
 
             pos.z = HostPresentationSpace.EntityZ;
             view.transform.position = pos;
+            CaptureIndependentTacticalPosition(view);
         }
 
         void TryAxisStep(EntityView view, ref Vector3 pos, float dx, float dy)
@@ -999,6 +1010,7 @@ namespace XianXia.Unity.Host
                 next.z = HostPresentationSpace.EntityZ;
                 next = ClampToWalkable(pos, next);
                 view.transform.position = next;
+                CaptureIndependentTacticalPosition(view);
                 if (bootstrap?.Session?.PlayerParty != null &&
                     view.EntityId.Equals(bootstrap.Session.PlayerParty.ActiveCharacterId))
                     bootstrap.ContinuousWildernessLoadedSet?.TryCommitNormalWalk(next);
@@ -1103,6 +1115,7 @@ namespace XianXia.Unity.Host
                 if (!TryResolveNearestWalkableWorldPoint(pos.x, pos.y, 12, out var recovered))
                     return;
                 view.transform.position = new Vector3(recovered.x, recovered.y, HostPresentationSpace.EntityZ);
+                CaptureIndependentTacticalPosition(view);
                 return;
             }
 
@@ -1112,6 +1125,7 @@ namespace XianXia.Unity.Host
                 return;
             _walkGrid.CellToWorldCenter(nx, ny, out var wx, out var wy);
             view.transform.position = new Vector3(wx, wy, HostPresentationSpace.EntityZ);
+            CaptureIndependentTacticalPosition(view);
         }
 
         /// <summary>
@@ -1200,6 +1214,7 @@ namespace XianXia.Unity.Host
             // new=(-4.34,0.96,0)，kind=AtWorldSite moving=False）。排除 Active Character；
             // 普通 NPC / crowd presentation 原行为保持。
             var activeChar = bootstrap?.Session?.PlayerParty?.ActiveCharacterId ?? EntityId.None;
+            var world = bootstrap?.Session?.World;
             foreach (var view in viewSpawner.Registry.All)
             {
                 if (view == null || !view.IsBound)
@@ -1207,6 +1222,9 @@ namespace XianXia.Unity.Host
                 if (_movingIds.Contains(view.EntityId.Value))
                     continue;
                 if (!activeChar.IsNone && view.EntityId.Equals(activeChar))
+                    continue;
+                if (world != null && world.Entities.TryGet(view.EntityId, out var entity) &&
+                    !CombatLifeStateService.CanFight(entity))
                     continue;
                 _crowdScratch.Add(view);
             }
@@ -1225,7 +1243,16 @@ namespace XianXia.Unity.Host
                 next.z = HostPresentationSpace.EntityZ;
                 next = ClampToWalkable(pos, next);
                 view.transform.position = next;
+                CaptureIndependentTacticalPosition(view);
             }
+        }
+
+        void CaptureIndependentTacticalPosition(EntityView view)
+        {
+            if (view == null || bootstrap?.ContinuousOutdoorSurfaceRuntime == null)
+                return;
+            bootstrap.ContinuousOutdoorSurfaceRuntime.TryCaptureIndependentParticipantPosition(
+                view.EntityId, view.transform.position);
         }
 
         Vector3 ClampSeparationDelta(Vector3 delta, float dt)
@@ -1401,6 +1428,7 @@ namespace XianXia.Unity.Host
             {
                 var tactical = HostPresentationSpace.ToPresentation(view.transform.position);
                 loc.SetPresentationOverride(tactical.x, tactical.y);
+                CaptureIndependentTacticalPosition(view);
                 return;
             }
             var previous = loc.LocationId;

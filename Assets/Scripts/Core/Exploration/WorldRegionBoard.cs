@@ -84,6 +84,9 @@ namespace XianXia.Core.Exploration
             new List<XianXia.Core.Domain.Ids.EntityId>();
         public int PlaceRevision { get; private set; }
         public int EntityReconcileRevision { get; private set; }
+        public string IndependentEncounterId { get; private set; } = string.Empty;
+        public string IndependentEncounterSurfaceId { get; private set; } = string.Empty;
+        public bool HasIndependentEncounterBinding => !string.IsNullOrEmpty(IndependentEncounterId);
 
         public IReadOnlyCollection<XianXia.Core.Domain.Ids.EntityId> Entities => _entities;
         public IReadOnlyCollection<string> LoadedSiteIds => _loadedSites;
@@ -93,7 +96,23 @@ namespace XianXia.Core.Exploration
         public void Clear()
         {
             _entities.Clear();
+            ClearIndependentEncounter();
             ClearPlaces();
+        }
+
+        public void BindIndependentEncounter(string encounterId, string surfaceId)
+        {
+            IndependentEncounterId = encounterId ?? string.Empty;
+            IndependentEncounterSurfaceId = surfaceId ?? string.Empty;
+        }
+
+        public void ClearIndependentEncounter(string expectedEncounterId = null)
+        {
+            if (!string.IsNullOrEmpty(expectedEncounterId) &&
+                !string.Equals(expectedEncounterId, IndependentEncounterId, StringComparison.Ordinal))
+                return;
+            IndependentEncounterId = string.Empty;
+            IndependentEncounterSurfaceId = string.Empty;
         }
 
         public void ClearPlaces()

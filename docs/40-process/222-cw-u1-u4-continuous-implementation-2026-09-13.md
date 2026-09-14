@@ -4,7 +4,9 @@
 
 ## 当前连续实施（制作人补充范围输入之后，2026-09-14 收口）
 
-**Implementation Completed / Combined Producer Acceptance Pending**。这里的完成指默认调用链实现与非 Unity 编译/静态核查完成，不代表 Unity 运行或制作人人工验收通过。
+**CW-U2A～U4 core normal route Producer Accepted (current observed scope)；CW-U4.1 Implementation Completed / Producer Acceptance Pending**。不把当前验收扩大为全部关系概率、旧档组合和边界穷尽通过。
+
+CW-U4.1 产品层收口：WorldMap 命令权威固定为 PlayerParty，Army 工具栏／组建面板／FormalArmy 移动与 AttackArmy 退役；旧 marker 仅作 NPC 小队只读投影。旧玩家 attack-chase 在下一 tick 清攻击意图，合法物理目的地降级为普通旅行，否则安全取消。旧 Content／Save／NPC 任务与 `FormalArmyWorldMotion` 继续作 adapter。下一步仅是 U4.1 人工验收，不自动进入 CW-04。
 
 ### U2–U4 联合验收修复（2026-09-14）
 

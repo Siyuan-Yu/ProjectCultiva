@@ -4,7 +4,7 @@ using XianXia.Core.Simulation;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// Phase 5S-B2-3.5：PlayerParty 追击 Enemy FormalArmy 的薄 Hex pursuit adapter。
+    /// Legacy PlayerParty AttackArmy pursuit compatibility adapter。
     /// 不是第二套 Battle 系统 —— 它只是 PlayerPartyWorldMotion ↔ target FormalArmy 的
     /// movement adapter；Battle trigger / Offer / participant gathering / Manual / Auto
     /// 全部继续共享既有 WORLD_COMBAT 主链（PlayerParty Strategic Combat Command V1）。
@@ -106,71 +106,20 @@ namespace XianXia.Core.World.Strategic
             if (motion == null || string.IsNullOrEmpty(motion.AttackOrderTargetArmyId))
                 return;
 
-            // LocalVisible：Local 层不推进 World pursuit（路线继续走；关图回 World 后继续追击）。
-            if (motion.ExecutionMode == PlayerPartyTravelExecutionMode.LocalVisible)
-                return;
-
-            var targetArmyId = motion.AttackOrderTargetArmyId;
-
-            // 任一条件失效 → 取消 pursuit，不创建 BattleOffer（用户十）。
-            if (!PlayerPartyStrategicCombatCommandService.CanIssueAttackOrder(
-                    world, party, targetArmyId, out _))
-            {
-                CancelPursuit(world, party);
-                return;
-            }
-
-            if (!world.Strategic.FormalArmies.TryGet(targetArmyId, out var target) || target == null)
-            {
-                CancelPursuit(world, party);
-                return;
-            }
-
-            // 首先检查 contact：进入 Defender SupportArea 即接战（不要求走到 target exact Hex）。
-            if (BattleEngagementTriggerService.CanTriggerPlayerPartyEngagement(
-                    world, party, targetArmyId, out _))
-            {
-                // 立即停止 travel（保留 canonical position）；CompleteMove 不清 pursuit target。
-                if (motion.IsMoving)
-                    PlayerPartyHexTravelService.CancelTravel(world, party);
-
-                if (!PlayerPartyStrategicCombatCommandService.TryResolveLinkedStack(
-                        world, targetArmyId, out var stack) ||
-                    stack == null)
-                {
-                    CancelPursuit(world, party);
-                    return;
-                }
-
-                var ok = BattleOfferService.TryBuildOfferForPlayerPartyAttack(world, party, stack);
-                if (ok)
-                {
-                    // Offer 接管；pursuit 完成。
-                    motion.ClearAttackOrder();
-                    return;
-                }
-
-                // 无法建立 Offer：保留位置，清除 pursuit（不留半状态）。
-                CancelPursuit(world, party);
-                return;
-            }
-
-            // 未接触：target 当前 committed Hex 改变或 Player 已停下 → retarget。
-            if (!BattleEngagementSpatialQuery.TryGetCommittedArmyHex(world, target, out var targetHex))
-            {
-                CancelPursuit(world, party);
-                return;
-            }
-
-            if (!motion.IsMoving || !motion.DestinationHex.Equals(targetHex))
-            {
-                var move = BeginPursuitTravelLeg(world, party, target);
-                if (move.IsFailure)
-                {
-                    // 目标移动后无路：保留当前 canonical position，清除 pursuit order（用户十五）。
-                    CancelPursuit(world, party);
-                }
-            }
+            // CW-U4.1 one-shot compatibility migration. Preserve a legal physical destination as
+            // ordinary travel; otherwise stop safely. Never retarget, declare war or create an encounter.
+            var legacyTarget = motion.AttackOrderTargetArmyId;
+            motion.ClearAttackOrder();
+            var hasLegalDestination = motion.IsMoving &&
+                                      world.HexWorld != null &&
+                                      world.HexWorld.TryGetTile(motion.DestinationHex, out var destinationTile) &&
+                                      destinationTile != null &&
+                                      destinationTile.IsPassable;
+            if (!hasLegalDestination && motion.IsMoving)
+                PlayerPartyHexTravelService.CancelTravel(world, party);
+            System.Diagnostics.Debug.WriteLine(
+                "[CW-U4.1] Retired legacy PlayerParty AttackArmy order " + legacyTarget +
+                (hasLegalDestination ? "; downgraded to ordinary travel." : "; cancelled safely."));
         }
 
         /// <summary>

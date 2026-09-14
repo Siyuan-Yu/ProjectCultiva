@@ -14,9 +14,8 @@ namespace XianXia.Core.World.Strategic
     /// 职责窄：CombatantDefeated 未被 <see cref="StrategicEncounterSpawner.OnCombatantDefeated"/>
     /// 接管、也非 <see cref="FormalArmyCasualtyService.TryHandleNonEncounterDefeat"/> 的 FormalArmy
     /// casualty 时，若该角色已进入 residual life state（Incapacitated / visible Corpse），
-    /// 就把它的 WorldPresence 固定到「倒下发生的当前真实 world hex」——复用统一 authority
-    /// <see cref="StrategicResidualPresenceService.PlaceCharacterAtResidualHex"/>，绝不另建第二套
-    /// residual 数据。移动 owner 处理链（互斥，仅一个 owner）：
+    /// 就把它自己的 WorldPresence 固定到倒下位置，保留 AtSite / AtWorldPosition / AtHex
+    /// 空间语义，绝不另建第二套 residual 数据。移动 owner 处理链（互斥，仅一个 owner）：
     ///   Strategic Encounter → FormalArmy casualty → 本 service（PlayerParty / 普通 LocalCharacter）。
     /// 规则：任何角色一旦 Incapacitated / visible Corpse，即停止跟随其原移动 owner，并在倒下的
     /// 真实 hex 获得稳定 WorldPresence；LocalMap 离开/重进只按该 authority 重建。
@@ -42,9 +41,21 @@ namespace XianXia.Core.World.Strategic
             if (ArmyService.TryGetArmyForCharacter(world, characterId, out _))
                 return false;
 
+            // Idempotent delayed/repeated event: an existing personal authority is already a
+            // successful spatial result. Never replace it with the player's loaded-map context.
+            if (ResidualSpatialAuthorityService.TryResolveStableResidualSpatialAuthority(
+                    world, characterId, out _))
+                return true;
+
             // 只有当前 Host 正停留某个 Surface LocalMap 时才有 Local Combat 语义；
             // 纯 WorldMap 战略态（无 loaded surface）由其它路径负责，这里不猜。
             if (!LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(world, out var context))
+                return false;
+
+            // A loaded Wilderness hex is a player/Host fact, not this character's position.
+            // Legacy fallback is legal only when the character's own presence proves membership.
+            if (!LoadedLocalMapBelongingQuery.DoesWorldLocationBelongToLoadedLocalMap(
+                    world, characterId, out context))
                 return false;
 
             // Hex-only fallback（无 EntityView local point）：仅 Wilderness 可用（Context Hex 即权威）；
@@ -96,9 +107,8 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 把已成为独立 residual 的角色当前 LocalMap 精确落点写回 WorldPresence。
-        /// FormalArmy casualty 在 detach 后也调用此入口；这里不判断 Army ownership，确保两条
-        /// casualty 链路复用同一套 Local→World 映射与 WorldSite footprint 边界修正。
+        /// 把 residual 角色自己的当前 LocalMap 精确落点写回 WorldPresence。
+        /// 这里不修改 Squad/LegacyArmy membership，并保留角色原有 presence mode。
         /// </summary>
         public static bool TryPlacePreciseResidualFromLoadedLocalPosition(
             SimulationWorld world,
@@ -114,6 +124,13 @@ namespace XianXia.Core.World.Strategic
 
             if (!LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(world, out var context))
                 return false;
+
+            if (!LoadedLocalMapBelongingQuery.DoesWorldLocationBelongToLoadedLocalMap(
+                    world, characterId, out context))
+                return false;
+
+            world.WorldPresence.TryGet(characterId, out var priorPresence);
+            var surfaceId = priorPresence?.PersonalSurfaceId ?? string.Empty;
 
             var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
                 ? world.HexWorld.HexSize
@@ -146,8 +163,9 @@ namespace XianXia.Core.World.Strategic
                         return true;
                     }
 
-                    StrategicResidualPresenceService.PlaceCharacterAtResidualWorldPosition(
-                        world, characterId, hex, precise);
+                    if (!ResidualSpatialAuthorityService.TryFreezeAtPreciseWorldPosition(
+                            world, characterId, precise, surfaceId))
+                        return false;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                     LogHandoff(world, characterId, context, hex, true, precise);
 #endif
@@ -176,8 +194,9 @@ namespace XianXia.Core.World.Strategic
                             return false;
                     }
 
-                    StrategicResidualPresenceService.PlaceCharacterAtResidualWorldPosition(
-                        world, characterId, derived, precise);
+                    if (!ResidualSpatialAuthorityService.TryFreezeAtPreciseWorldPosition(
+                            world, characterId, precise, surfaceId))
+                        return false;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                     LogHandoff(world, characterId, context, derived, true, precise);
 #endif

@@ -18,6 +18,9 @@ namespace XianXia.Unity.Host
     {
         string _independentFieldId = string.Empty;
         string _stagingIndependentFieldId = string.Empty;
+        float _nextIndependentViewHealthCheck;
+        string _lastIndependentViewFailure = string.Empty;
+        bool _independentViewsHealthy = true;
         readonly List<SurfaceChunkCoord> _stagingIndependentChunks = new List<SurfaceChunkCoord>();
         Coroutine _independentNavigationRefresh;
         HashSet<string> _navigationDestroyed = new HashSet<string>(StringComparer.Ordinal);
@@ -244,6 +247,8 @@ namespace XianXia.Unity.Host
                 RemoveNormalPresentedField();
                 normalRemoved = true;
                 _independentFieldId = _stagingIndependentFieldId;
+                plan.World.ContinuousOutdoorMaterialization.BindIndependentEncounter(
+                    plan.State.EncounterId, plan.State.SourceSurfaceId);
                 _loaded.Clear(); _presentedChunks.Clear();
                 for (var i = 0; i < plan.Chunks.Count; i++) { _loaded.Add(plan.Chunks[i]); _presentedChunks.Add(plan.Chunks[i]); }
                 _compositeWalkGrid = plan.Grid;
@@ -265,6 +270,20 @@ namespace XianXia.Unity.Host
                 }
                 ReconcileOutdoorEntityMaterialization();
                 _tileMap.ActivateInstanceOwner(plan.State.EncounterId + ":");
+                AlignIndependentEncounterViews(plan.State);
+                var ready = ValidateIndependentEncounterViews(plan.State, out var displaySummary);
+                Debug.Log(displaySummary, this);
+                if (ready.IsFailure)
+                    throw new InvalidOperationException(ready.Error.ToString());
+                _independentViewsHealthy = true;
+                _nextIndependentViewHealthCheck = Time.unscaledTime + 1f;
+                _lastIndependentViewFailure = string.Empty;
+                var focus = _bootstrap.Session.PlayerParty.ActiveCharacterId;
+                if (focus.IsNone || plan.State.Find(focus.Value) == null)
+                    focus = plan.State.Participants.Count > 0
+                        ? new EntityId(plan.State.Participants[0].CharacterId)
+                        : EntityId.None;
+                _bootstrap.GetComponent<HostPlayerPartyController>()?.SnapCameraToEntityOnce(focus);
                 // Keep the staging owner until every takeover step has completed, so a later
                 // exception can still remove the exact roots it created.
                 _stagingIndependentFieldId = string.Empty;
@@ -275,6 +294,8 @@ namespace XianXia.Unity.Host
             }
             catch (Exception ex)
             {
+                plan?.World?.ContinuousOutdoorMaterialization.ClearIndependentEncounter(
+                    plan?.State?.EncounterId);
                 if (beganHere) CharacterEncounterService.AbortEntry(plan.World);
                 CancelPreparedIndependentField();
                 _independentFieldId = string.Empty;
@@ -302,6 +323,262 @@ namespace XianXia.Unity.Host
             }
             _stagingIndependentChunks.Clear();
             _stagingIndependentFieldId = string.Empty;
+        }
+
+        void AlignIndependentEncounterViews(CharacterEncounterState state)
+        {
+            if (state == null) return;
+            for (var i = 0; i < state.Participants.Count; i++)
+            {
+                var participant = state.Participants[i];
+                var id = new EntityId(participant.CharacterId);
+                if (!_bootstrap.ViewSpawner.Registry.TryGet(id, out var view) || view == null)
+                    continue;
+                _mapper.WorldToPresentation(participant.TacticalX, participant.TacticalY,
+                    out var x, out var y);
+                view.transform.position = HostPresentationSpace.FromPresentation(x, y);
+            }
+        }
+
+        /// <summary>Commits one legal presentation movement into the current encounter's
+        /// tactical position authority. OriginX/Y and ordinary-world travel remain untouched.</summary>
+        public bool TryCaptureIndependentParticipantPosition(
+            EntityId id,
+            Vector3 presentationPosition)
+        {
+            var world = _bootstrap?.Session?.World;
+            var state = world?.Strategic?.CharacterEncounter;
+            var binding = world?.ContinuousOutdoorMaterialization;
+            if (!IsActive || world == null || !ReferenceEquals(world, _navigationStateWorld) ||
+                state == null || binding == null || !binding.HasIndependentEncounterBinding ||
+                !string.Equals(binding.IndependentEncounterId, state.EncounterId,
+                    StringComparison.Ordinal) ||
+                !string.Equals(binding.IndependentEncounterSurfaceId, state.SourceSurfaceId,
+                    StringComparison.Ordinal) ||
+                state.EncounterId != _independentFieldId ||
+                (state.Phase != CharacterEncounterPhase.Active &&
+                 state.Phase != CharacterEncounterPhase.ReadyToEnd) ||
+                _mapper == null || _compositeWalkGrid == null)
+                return false;
+            var participant = state.Find(id.Value);
+            if (participant == null ||
+                !_compositeWalkGrid.TryWorldToCell(
+                    presentationPosition.x, presentationPosition.y, out var cellX, out var cellY) ||
+                !_compositeWalkGrid.IsWalkable(cellX, cellY))
+                return false;
+            _mapper.PresentationToWorld(
+                presentationPosition.x, presentationPosition.y, out var worldX, out var worldY);
+            if (!state.Contains(worldX, worldY))
+                return false;
+            participant.TacticalX = worldX;
+            participant.TacticalY = worldY;
+            if (world.Entities.TryGet(id, out var entity) && entity != null &&
+                entity.TryGet<EntityLocationComponent>(out var location) && location != null)
+                location.SetPresentationOverride(presentationPosition.x, presentationPosition.y);
+            if (world.WorldPresence.TryGet(id, out var presence) && presence != null &&
+                presence.Mode == XianXia.Core.World.PartyWorldPresenceMode.InEncounter &&
+                string.Equals(presence.PersonalSurfaceId, state.SourceSurfaceId,
+                    StringComparison.Ordinal))
+            {
+                presence.WorldPosX = worldX;
+                presence.WorldPosY = worldY;
+                presence.HasContinuousWorldPosition = true;
+            }
+            return true;
+        }
+
+        Result ValidateIndependentEncounterViews(
+            CharacterEncounterState state,
+            out string summary)
+        {
+            var world = _bootstrap?.Session?.World;
+            var historical = state?.Participants?.Count ?? 0;
+            var expected = 0;
+            var materialized = 0;
+            var validViews = 0;
+            var failures = new System.Text.StringBuilder();
+            if (world == null || state == null ||
+                !ReferenceEquals(world.Strategic.CharacterEncounter, state))
+            {
+                summary = "[IndependentEncounterDisplay] World/state binding missing.";
+                return Result.Failure(ErrorCode.InvalidOperation,
+                    "Independent encounter display world binding is invalid.");
+            }
+
+            for (var i = 0; i < state.Participants.Count; i++)
+            {
+                var participant = state.Participants[i];
+                var id = new EntityId(participant.CharacterId);
+                var hasEntity = world.Entities.TryGet(id, out var entity) && entity != null;
+                if (hasEntity && XianXia.Core.Combat.CombatLifeStateService.ShouldHideFromSpawn(entity))
+                    continue;
+                expected++;
+                var isMaterialized = world.ContinuousOutdoorMaterialization.IsMaterialized(id);
+                if (isMaterialized) materialized++;
+                var visible = LocalMapVisibility.EvaluateIndependentEncounterVisibility(
+                    world, id, out var visibilityReason);
+                var hasLocation = hasEntity &&
+                    entity.TryGet<EntityLocationComponent>(out var location) && location != null &&
+                    location.HasPresentationOverride;
+                var hasView = _bootstrap.ViewSpawner.Registry.TryGet(id, out var view) && view != null;
+                var hasSquad = world.Strategic.Squads.TryGetForCharacter(id, out var squad) &&
+                               squad != null && squad.SquadId == participant.SquadId;
+                _mapper.WorldToPresentation(participant.TacticalX, participant.TacticalY,
+                    out var expectedX, out var expectedY);
+                var aligned = hasView &&
+                    Mathf.Abs(view.transform.position.x - expectedX) <= .02f &&
+                    Mathf.Abs(view.transform.position.y - expectedY) <= .02f;
+                var renderers = hasView ? view.GetComponentsInChildren<SpriteRenderer>(true) : null;
+                var bodyVisible = false;
+                if (renderers != null)
+                    for (var r = 0; r < renderers.Length; r++)
+                        if (renderers[r] != null && renderers[r].enabled &&
+                            renderers[r].sprite != null && renderers[r].gameObject.activeInHierarchy)
+                        { bodyVisible = true; break; }
+                var valid = hasEntity && hasSquad && isMaterialized && visible && hasLocation && hasView &&
+                            view.IsBoundTo(world, id) && view.gameObject.activeInHierarchy &&
+                            bodyVisible && aligned;
+                if (valid) { validViews++; continue; }
+                if (failures.Length > 0) failures.Append(" | ");
+                world.WorldPresence.TryGet(id, out var presence);
+                failures.Append("EntityId=").Append(id.Value)
+                    .Append(" Name=").Append(hasEntity ? entity.DisplayName : "<missing>")
+                    .Append(" Life=").Append(hasEntity
+                        ? XianXia.Core.Combat.CombatLifeStateService.FormatLifeStateWithCountdown(world, entity)
+                        : "Missing")
+                    .Append(" Presence=").Append(presence?.Mode.ToString() ?? "None")
+                    .Append(" Participant=").Append(state.Find(id.Value) != null)
+                    .Append(" Squad=").Append(hasSquad)
+                    .Append(" Visibility=").Append(visibilityReason)
+                    .Append(" Override=").Append(hasLocation)
+                    .Append(" View=").Append(hasView)
+                    .Append(" Bound=").Append(hasView && view.IsBoundTo(world, id))
+                    .Append(" Active=").Append(hasView && view.gameObject.activeInHierarchy)
+                    .Append(" Renderer=").Append(bodyVisible)
+                    .Append(" ViewPosition=").Append(hasView
+                        ? "(" + view.transform.position.x.ToString("0.###") + "," +
+                          view.transform.position.y.ToString("0.###") + ")"
+                        : "None")
+                    .Append(" ExpectedPosition=(").Append(expectedX.ToString("0.###"))
+                    .Append(",").Append(expectedY.ToString("0.###")).Append(")")
+                    .Append(" Aligned=").Append(aligned);
+                if (hasView && !bodyVisible)
+                {
+                    var diagnosticRenderer = renderers != null && renderers.Length > 0
+                        ? renderers[0]
+                        : null;
+                    var camera = Camera.main != null ? Camera.main : FindObjectOfType<Camera>();
+                    failures.Append(" RendererEnabled=").Append(
+                            diagnosticRenderer != null && diagnosticRenderer.enabled)
+                        .Append(" Sprite=").Append(
+                            diagnosticRenderer != null && diagnosticRenderer.sprite != null)
+                        .Append(" SortingLayer=").Append(
+                            diagnosticRenderer != null ? diagnosticRenderer.sortingLayerName : "None")
+                        .Append(" SortingOrder=").Append(
+                            diagnosticRenderer != null ? diagnosticRenderer.sortingOrder : 0)
+                        .Append(" Camera=").Append(camera != null ? camera.name : "None")
+                        .Append(" CameraCulling=").Append(camera != null &&
+                            (camera.cullingMask & (1 << view.gameObject.layer)) != 0);
+                    if (camera != null)
+                    {
+                        var viewport = camera.WorldToViewportPoint(view.transform.position);
+                        failures.Append(" Viewport=(").Append(viewport.x.ToString("0.###"))
+                            .Append(",").Append(viewport.y.ToString("0.###"))
+                            .Append(",").Append(viewport.z.ToString("0.###")).Append(")");
+                    }
+                }
+            }
+
+            summary = "[IndependentEncounterDisplay] EncounterId=" + state.EncounterId +
+                      " World=" + System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(world) +
+                      " Surface=" + state.SourceSurfaceId +
+                      " Binding=" + world.ContinuousOutdoorMaterialization.IndependentEncounterId +
+                      " Phase=" + state.Phase +
+                      " Historical=" + historical +
+                      " Expected=" + expected +
+                      " Materialized=" + materialized +
+                      " ValidViews=" + validViews +
+                      (failures.Length > 0 ? " Failures=" + failures : string.Empty);
+            return validViews == expected
+                ? Result.Success()
+                : Result.Failure(ErrorCode.InvalidOperation,
+                    "Independent encounter views are not ready.", failures.ToString());
+        }
+
+        /// <summary>Low-frequency guard for an Active field. A missing/stale view is repaired
+        /// through the same reconcile path; tactical simulation pauses for that frame if the
+        /// authoritative participant set still cannot be presented.</summary>
+        public bool MaintainIndependentEncounterViews()
+        {
+            var state = _bootstrap?.Session?.World?.Strategic?.CharacterEncounter;
+            if (state == null || state.EncounterId != _independentFieldId)
+                return false;
+            if (Time.unscaledTime < _nextIndependentViewHealthCheck)
+                return _independentViewsHealthy;
+            _nextIndependentViewHealthCheck = Time.unscaledTime + 1f;
+            var repairedPresence = CharacterEncounterService.ReconcileRuntimePresence(
+                _bootstrap.Session.World);
+            var ready = ValidateIndependentEncounterViews(state, out var initialSummary);
+            if (ready.IsSuccess)
+            {
+                if (repairedPresence > 0)
+                    Debug.Log("[IndependentEncounterDisplay] RepairedPresence EncounterId=" +
+                              state.EncounterId + " Count=" + repairedPresence, this);
+                _lastIndependentViewFailure = string.Empty;
+                _independentViewsHealthy = true;
+                return true;
+            }
+
+            ReconcileOutdoorEntityMaterialization();
+            AlignIndependentEncounterViews(state);
+            ready = ValidateIndependentEncounterViews(state, out var summary);
+            if (ready.IsSuccess)
+            {
+                Debug.Log("[IndependentEncounterDisplay] Repaired EncounterId=" + state.EncounterId +
+                          " Cause=" + initialSummary, this);
+                _lastIndependentViewFailure = string.Empty;
+                _independentViewsHealthy = true;
+                return true;
+            }
+            _independentViewsHealthy = false;
+            if (!string.Equals(_lastIndependentViewFailure, summary, StringComparison.Ordinal))
+            {
+                _lastIndependentViewFailure = summary;
+                Debug.LogError(summary, this);
+            }
+            return false;
+        }
+
+        public string DescribeReadyToEndDiagnostics(CharacterEncounterState state)
+        {
+            var world = _bootstrap?.Session?.World;
+            if (world == null || state == null)
+                return "[IndependentEncounterReadyToEnd] unavailable";
+            var controlledSquad = _bootstrap.Session.PlayerParty.ControlledSquadId;
+            var rows = new System.Text.StringBuilder();
+            for (var i = 0; i < state.Participants.Count; i++)
+            {
+                var participant = state.Participants[i];
+                if (rows.Length > 0) rows.Append(" | ");
+                var id = new EntityId(participant.CharacterId);
+                var hasView = _bootstrap.ViewSpawner.Registry.TryGet(id, out var view) && view != null;
+                rows.Append("Id=").Append(id.Value)
+                    .Append(" Origin=(").Append(participant.OriginX.ToString("0.###"))
+                    .Append(",").Append(participant.OriginY.ToString("0.###"))
+                    .Append(") Tactical=(").Append(participant.TacticalX.ToString("0.###"))
+                    .Append(",").Append(participant.TacticalY.ToString("0.###"))
+                    .Append(") View=").Append(hasView
+                        ? "(" + view.transform.position.x.ToString("0.###") + "," +
+                          view.transform.position.y.ToString("0.###") + ")"
+                        : "None")
+                    .Append(" ControlledParticipant=").Append(
+                        string.Equals(participant.SquadId, controlledSquad, StringComparison.Ordinal));
+            }
+            return "[IndependentEncounterReadyToEnd] EncounterId=" + state.EncounterId +
+                   " ClockFreeze=" + world.Strategic.ClockFreeze.Reason +
+                   " ManualPaused=" + _bootstrap.Session.ManualPaused +
+                   " ControlledSquad=" + controlledSquad +
+                   " Participants=" + rows;
         }
 
         public bool BeginIndependentNavigationRefresh(ulong requestedTopologyRevision)
@@ -552,6 +829,11 @@ namespace XianXia.Unity.Host
                 _bootstrap.MoveController.CancelPresentationMovementPublic(new EntityId(p.CharacterId));
             }
             ReconcileOutdoorEntityMaterialization();
+            AlignIndependentEncounterViews(state);
+            var ready = ValidateIndependentEncounterViews(state, out var summary);
+            Debug.Log(summary, this);
+            if (ready.IsFailure)
+                Debug.LogError(ready.Error, this);
         }
 
         public void CaptureIndependentField()
@@ -561,16 +843,18 @@ namespace XianXia.Unity.Host
                 !ReferenceEquals(_navigationStateWorld, _bootstrap.Session.World)) return;
             foreach (var p in state.Participants)
                 if (_bootstrap.ViewSpawner.Registry.TryGet(new EntityId(p.CharacterId), out var view) && view != null)
-                {
-                    _mapper.PresentationToWorld(view.transform.position.x, view.transform.position.y, out var x, out var y);
-                    if (state.Contains(x, y)) { p.TacticalX = x; p.TacticalY = y; }
-                }
+                    TryCaptureIndependentParticipantPosition(
+                        new EntityId(p.CharacterId), view.transform.position);
         }
 
         public void LeaveIndependentField(CharacterEncounterState completed)
         {
             if (completed == null || completed.EncounterId != _independentFieldId) return;
             var world = _bootstrap.Session.World;
+            world.ContinuousOutdoorMaterialization.ClearIndependentEncounter(completed.EncounterId);
+            _independentViewsHealthy = true;
+            _nextIndependentViewHealthCheck = 0f;
+            _lastIndependentViewFailure = string.Empty;
             foreach (var p in completed.Participants)
             {
                 var id = new EntityId(p.CharacterId);
@@ -589,6 +873,72 @@ namespace XianXia.Unity.Host
             // Ordinary activation reads the unchanged original party motion and individual presence.
             IsActive = false;
             TryActivateAtCurrentWorldPosition();
+            LogReturnedSiteResidualDiagnostics(completed);
+        }
+
+        /// <summary>One-shot producer diagnostic after Encounter return and ordinary population reconcile.</summary>
+        void LogReturnedSiteResidualDiagnostics(CharacterEncounterState completed)
+        {
+            var world = _bootstrap?.Session?.World;
+            if (world == null || completed == null)
+                return;
+
+            foreach (var participant in completed.Participants)
+            {
+                var id = new EntityId(participant.CharacterId);
+                if (!StrategicResidualPresenceService.IsResidualLifeCandidate(world, id))
+                    continue;
+
+                world.Entities.TryGet(id, out var entity);
+                world.WorldPresence.TryGet(id, out var presence);
+                var returnedMode = presence != null ? presence.Mode.ToString() : "Missing";
+                var returnedSiteId = presence?.SiteId ?? string.Empty;
+                var hasPosition = presence != null && presence.HasContinuousWorldPosition;
+                var worldPosition = hasPosition
+                    ? "(" + presence.WorldPosX.ToString("0.###") + "," + presence.WorldPosY.ToString("0.###") + ")"
+                    : "None";
+                var legacyArmyId = ArmyService.TryGetArmyForCharacter(world, id, out var legacyArmy) && legacyArmy != null
+                    ? legacyArmy.ArmyId
+                    : string.Empty;
+                var squadId = world.Strategic.Squads.TryGetForCharacter(id, out var squad) && squad != null
+                    ? squad.SquadId
+                    : participant.SquadId;
+                WorldSite returnedSite = null;
+                if (!string.IsNullOrEmpty(returnedSiteId))
+                    world.Strategic.Sites.TryGet(returnedSiteId, out returnedSite);
+                var rejectionReason = string.Empty;
+                var personalResidualAtSite = returnedSite != null &&
+                    StrategicWorldSitePopulationService.TryResolvePersonalResidualAtSite(
+                        world, id, returnedSite, out rejectionReason);
+                if (returnedSite == null)
+                    rejectionReason = string.IsNullOrEmpty(returnedSiteId) ? "ReturnedSiteMissing" : "SiteDefinitionMissing";
+                var included = returnedSite != null &&
+                               StrategicWorldSitePopulationService.IsCharacterPresentAtWorldSite(world, id, returnedSite);
+                var materialized = world.ContinuousOutdoorMaterialization.IsMaterialized(id);
+                var hasView = _bootstrap.ViewSpawner.Registry.TryGet(id, out var view) && view != null;
+                var lifeState = entity != null
+                    ? (XianXia.Core.Combat.CombatLifeStateService.ResolveLifeStateLabel(entity) ?? "Living")
+                    : "EntityMissing";
+                var message = "[SiteResidualReturn] EntityId=" + id.Value +
+                              " Name=" + (entity?.DisplayName ?? string.Empty) +
+                              " LifeState=" + lifeState +
+                              " SquadId=" + (squadId ?? string.Empty) +
+                              " LegacyArmyId=" + legacyArmyId +
+                              " SourceMode=" + (XianXia.Core.World.PartyWorldPresenceMode)participant.SourceMode +
+                              " ReturnedMode=" + returnedMode +
+                              " SiteId=" + returnedSiteId +
+                              " HasContinuousWorldPosition=" + hasPosition +
+                              " WorldPosition=" + worldPosition +
+                              " PersonalResidualAtSite=" + personalResidualAtSite +
+                              " IncludedBySitePopulation=" + included +
+                              " Materialized=" + materialized +
+                              " View=" + hasView +
+                              (included ? string.Empty : " Rejection=" + rejectionReason);
+                if (included)
+                    Debug.Log(message, this);
+                else
+                    Debug.LogWarning(message, this);
+            }
         }
     }
 }

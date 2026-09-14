@@ -290,6 +290,13 @@ namespace XianXia.Unity.Host
             SnapCameraTo(Party.ActiveCharacterId);
         }
 
+        /// <summary>One-shot tactical framing; does not enable persistent follow.</summary>
+        public void SnapCameraToEntityOnce(EntityId id)
+        {
+            _cameraMode = HostActiveCameraFollowMode.Free;
+            SnapCameraTo(id);
+        }
+
         /// <summary>
         /// Host-side Safe + Walkable fallback（保底）：materialize + Rebuild 完成后、
         /// OnLocalMapMaterialized→RebindAllFollowers 之前调用。
@@ -796,7 +803,11 @@ namespace XianXia.Unity.Host
             if (encounter != null)
             {
                 _pendingSnapshotFollowRebind = false;
-                if (encounter.Phase == CharacterEncounterPhase.Active && Party.HasActive) TickWasdForActive();
+                if ((encounter.Phase == CharacterEncounterPhase.Active ||
+                     encounter.Phase == CharacterEncounterPhase.ReadyToEnd) && Party.HasActive)
+                    TickWasdForActive();
+                if (encounter.Phase == CharacterEncounterPhase.ReadyToEnd)
+                    TickReadyToEndEncounterFollowers(encounter);
                 return; // Encounter owns followers and position; no ordinary travel/anchor synchronization.
             }
             SquadCommandService.SetExecution(bootstrap.Session.World, Party.ControlledSquadId,
@@ -2565,6 +2576,45 @@ namespace XianXia.Unity.Host
                 if (!ShouldRepathFollower(id))
                     continue;
 
+                _move.OrderEntityToWorldPoint(id, goal, null, issueStop: false,
+                    completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand);
+                _nextFollowRepath[id.Value] = Time.unscaledTime + followRepathInterval;
+            }
+        }
+
+        void TickReadyToEndEncounterFollowers(CharacterEncounterState encounter)
+        {
+            var active = Party.ActiveCharacterId;
+            if (encounter == null || active.IsNone || _move == null || _spawner == null ||
+                !_spawner.Registry.TryGet(active, out var activeView) || activeView == null)
+                return;
+            var activeParticipant = encounter.Find(active.Value);
+            if (activeParticipant == null ||
+                !string.Equals(activeParticipant.SquadId, Party.ControlledSquadId,
+                    System.StringComparison.Ordinal))
+                return;
+
+            var activePosition = activeView.transform.position;
+            var followerIndex = 0;
+            for (var i = 0; i < Party.Members.Count; i++)
+            {
+                var id = Party.Members[i];
+                if (id == active)
+                    continue;
+                var participant = encounter.Find(id.Value);
+                if (participant == null ||
+                    !string.Equals(participant.SquadId, Party.ControlledSquadId,
+                        System.StringComparison.Ordinal) ||
+                    !IsLivingPartyMember(id))
+                    continue;
+                var offset = FollowerOffset(followerIndex++);
+                if (!_spawner.Registry.TryGet(id, out var view) || view == null)
+                    continue;
+                var goal = activePosition + offset;
+                goal.z = HostPresentationSpace.EntityZ;
+                if (Vector2.Distance(view.transform.position, goal) <= followStopDistance ||
+                    !ShouldRepathFollower(id))
+                    continue;
                 _move.OrderEntityToWorldPoint(id, goal, null, issueStop: false,
                     completionPolicy: HostMoveCompletionPolicy.PreserveCurrentCommand);
                 _nextFollowRepath[id.Value] = Time.unscaledTime + followRepathInterval;

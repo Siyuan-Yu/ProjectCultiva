@@ -9,6 +9,8 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
+    /// Legacy strategic auto-battle / old-session participant adapter only.
+    /// New CharacterEncounter must never call GatherAndLock; its initial sides are the two Squads only.
     /// 以冻结的 SupportAreaHexes 为唯一空间 Authority、单次扫描锁定 Participants。
     /// Initiator 与 Defender 无条件加入；禁止援军连锁。
     /// </summary>

@@ -9,9 +9,9 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// 非战略 Encounter 的 FormalArmy 成员伤亡交接。
-    /// 战略 Encounter participant 必须由调用方先交给 StrategicEncounterSpawner；仅当其
-    /// 返回未处理时，才允许在这里立即解除 Army membership 并转为独立 StrategicResidual。
+    /// 非战略 Encounter 的 Legacy FormalArmy adapter 成员伤亡空间交接。
+    /// 不改变 Squad/LegacyArmy membership；已有个人空间时严格保留，缺失时才从该 Army
+    /// 自己的 motion 做一次兼容修复。
     /// </summary>
     public static class FormalArmyCasualtyService
     {
@@ -19,12 +19,15 @@ namespace XianXia.Core.World.Strategic
             SimulationWorld world,
             EntityId characterId)
         {
+            if (ResidualSpatialAuthorityService.TryResolveStableResidualSpatialAuthority(
+                    world, characterId, out _))
+                return true;
             return TryDetachNonEncounterDefeat(world, characterId, out _);
         }
 
         /// <summary>
-        /// 带倒下瞬间 LocalMap 坐标的版本。必须先 detach，再将这个已脱离 Army 的 residual
-        /// 写成精确连续世界位置；不能让 detach 的 hex-only 默认值覆盖 precise placement。
+        /// 带倒下瞬间 LocalMap 坐标的版本。先冻结角色自己的精确点；不得让 legacy Army
+        /// anchor 覆盖 personal placement。
         /// </summary>
         public static bool TryHandleNonEncounterDefeat(
             SimulationWorld world,
@@ -34,9 +37,12 @@ namespace XianXia.Core.World.Strategic
             WildernessLocalWorldProjection.WildernessLocalMapBounds? wildernessBounds,
             WorldSiteSpatialMapping.WorldSiteLocalMapBounds? siteBounds)
         {
-            if (!TryDetachNonEncounterDefeat(world, characterId, out var formerArmyId))
-                return false;
-
+            var formerArmyId = ArmyService.TryGetArmyForCharacter(world, characterId, out var priorArmy) &&
+                                priorArmy != null
+                ? priorArmy.ArmyId
+                : string.Empty;
+            // Freeze the character's own mapped point before consulting the legacy army anchor.
+            // This does not detach Squad/LegacyArmy membership.
             var precisePlaced = LocalCombatCasualtyHandoffService
                 .TryPlacePreciseResidualFromLoadedLocalPosition(
                     world,
@@ -45,10 +51,14 @@ namespace XianXia.Core.World.Strategic
                     localZ,
                     wildernessBounds,
                     siteBounds);
+            var handled = precisePlaced ||
+                          ResidualSpatialAuthorityService.TryResolveStableResidualSpatialAuthority(
+                              world, characterId, out _) ||
+                          TryDetachNonEncounterDefeat(world, characterId, out formerArmyId);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             LogPrecision(world, characterId, formerArmyId, localX, localZ, precisePlaced);
 #endif
-            return true;
+            return handled;
         }
 
         static bool TryDetachNonEncounterDefeat(

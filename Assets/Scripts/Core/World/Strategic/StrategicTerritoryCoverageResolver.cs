@@ -62,11 +62,18 @@ namespace XianXia.Core.World.Strategic
                 sources[hex]=new StrategicControlSource(asset.Faction,asset.Kind,asset.Id);
                 if(world.HexWorld.TryGetCell(hex,out var cell)&&cell!=null) cell.ControlFactionId=asset.Faction;
             }
+            var effectiveByRegion =
+                new Dictionary<string, IReadOnlyList<HexCoord>>(StringComparer.Ordinal);
             foreach(var pair in world.Strategic.TerritoryRegions.Regions)
             {
                 var region=pair.Value; if(region==null||!world.Strategic.Sites.TryGet(region.PrimaryWorldSiteId,out var site)||site==null) continue;
                 var effective=new List<HexCoord>(); foreach(var item in sources) if(item.Value.Kind==StrategicControlSourceKind.WorldSite&&item.Value.SourceId==site.SiteId) effective.Add(item.Key);
-                world.Strategic.TerritoryRegions.ReplaceHexes(region.RegionId, effective);
+                effectiveByRegion[region.RegionId]=effective;
+            }
+            world.Strategic.TerritoryRegions.ReplaceHexesAtomically(effectiveByRegion);
+            foreach(var pair in world.Strategic.TerritoryRegions.Regions)
+            {
+                var region=pair.Value; if(region==null||!world.Strategic.Sites.TryGet(region.PrimaryWorldSiteId,out var site)||site==null) continue;
                 region.ControlFactionId=site.OwnerFactionId??string.Empty;
             }
         }

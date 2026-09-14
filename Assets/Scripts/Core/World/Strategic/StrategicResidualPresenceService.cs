@@ -58,6 +58,18 @@ namespace XianXia.Core.World.Strategic
             HexCoord residualHex,
             WorldVec2 preciseWorldPosition)
         {
+            PlaceCharacterAtResidualWorldPosition(
+                world, characterId, residualHex, preciseWorldPosition, string.Empty);
+        }
+
+        /// <summary>Continuous precise residual placement which retains explicit Surface provenance.</summary>
+        public static void PlaceCharacterAtResidualWorldPosition(
+            SimulationWorld world,
+            EntityId characterId,
+            HexCoord residualHex,
+            WorldVec2 preciseWorldPosition,
+            string surfaceId)
+        {
             if (world == null || characterId.IsNone)
                 return;
             if (!world.Entities.TryGet(characterId, out var ent) || ent == null)
@@ -68,7 +80,8 @@ namespace XianXia.Core.World.Strategic
             world.WorldPresence.SetAtResidualWorldPosition(
                 characterId,
                 residualHex,
-                preciseWorldPosition);
+                preciseWorldPosition,
+                surfaceId);
         }
 
         public static void ClearResidualPresence(SimulationWorld world, EntityId characterId)

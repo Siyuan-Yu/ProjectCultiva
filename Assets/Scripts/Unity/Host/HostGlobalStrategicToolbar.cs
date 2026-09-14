@@ -5,7 +5,7 @@ namespace XianXia.Unity.Host
 {
     /// <summary>
     /// 大地图 Global Strategic Toolbar：系统级战略入口（不依赖 Node／镜头）。
-    /// 当前：Character、Army、FactionDiplomacy。未来可注册 Territory / Trade 等模块。
+    /// 当前：Character、FactionDiplomacy。Army 仅保留为 legacy enum，不再注册到产品工具栏。
     /// </summary>
     public sealed class HostGlobalStrategicToolbar
     {
@@ -39,7 +39,6 @@ namespace XianXia.Unity.Host
         static readonly ModuleEntry[] ImplementedEntries =
         {
             new ModuleEntry(ModuleId.Character, "角色", 56f),
-            new ModuleEntry(ModuleId.Army, "军队", 56f),
             new ModuleEntry(ModuleId.FactionDiplomacy, "势力", 56f),
         };
 
@@ -57,8 +56,6 @@ namespace XianXia.Unity.Host
         {
             if (characterOpen)
                 _active = ModuleId.Character;
-            else if (armyOpen)
-                _active = ModuleId.Army;
             else if (factionDiplomacyOpen)
                 _active = ModuleId.FactionDiplomacy;
             else

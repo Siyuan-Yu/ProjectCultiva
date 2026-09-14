@@ -13,7 +13,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
-    /// <summary>Army Detail / Army Creation UI（仅嵌入军队列表；只调用 ArmyUiCommands / ArmyService）。</summary>
+    /// <summary>CW-U4.1 legacy/development-only FormalArmy authoring panel; not opened by product UI.</summary>
     public sealed class HostArmyFormPanel
     {
         readonly HashSet<ulong> _createSelection = new HashSet<ulong>();

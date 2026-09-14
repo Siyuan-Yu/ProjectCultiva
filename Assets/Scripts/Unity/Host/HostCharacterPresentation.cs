@@ -97,6 +97,18 @@ namespace XianXia.Unity.Host
 
         static string ResolveLocation(PlayableHostSession session, EntityId id, Entity entity)
         {
+            var encounter = session.World.Strategic.CharacterEncounter;
+            var materialization = session.World.ContinuousOutdoorMaterialization;
+            if (encounter != null && materialization.HasIndependentEncounterBinding &&
+                string.Equals(materialization.IndependentEncounterId, encounter.EncounterId,
+                    StringComparison.Ordinal) &&
+                encounter.Find(id.Value) != null)
+            {
+                return string.IsNullOrEmpty(encounter.SourceSiteId)
+                    ? "独立战场"
+                    : "独立战场 · " + StrategicSiteAccessService.DescribeSite(
+                        session.World, encounter.SourceSiteId);
+            }
             if (CharacterWorldPresenceQuery.TryDescribe(session.World, id, out _, out var siteId, out var hex, out var loaded))
             {
                 if (!string.IsNullOrEmpty(siteId))

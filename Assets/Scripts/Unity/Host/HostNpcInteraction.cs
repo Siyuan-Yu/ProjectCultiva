@@ -109,16 +109,9 @@ namespace XianXia.Unity.Host
                 return true;
 
             if (!HostileActionClassificationService.TryClassifyTarget(
-                    session.World, npcId, out var classification, out _))
+                    session.World, npcId, out _, out _))
                 return false;
-            if (classification.Scope == HostileActionScope.StrategicMilitary)
-            {
-                var playerFaction = session.World.Strategic?.PlayerFactionId;
-                if (string.IsNullOrEmpty(playerFaction))
-                    playerFaction = StrategicFactionCatalog.PlayerFactionId;
-                return WarGateService.CanAttack(session.World, playerFaction, classification.TargetFactionId);
-            }
-
+            // Character hostility is personal/local even when legacy FormalArmy metadata exists.
             return IsHostileEntity(entity);
         }
 

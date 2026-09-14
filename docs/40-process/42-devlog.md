@@ -1,5 +1,29 @@
 # 开发日志
 
+## 2026-09-14 — Final residual spatial authority：延迟死亡不再重锚
+
+- `CombatantDefeated` 的空间语义集中区分为 InitialIncapacitation／DeathConfirmation／LegacyRepair：首次弥留可冻结人物自己的当前位置；弥留转尸体只改变 Lifecycle，已有 AtSite／AtWorldPosition／AtHex／CharacterEncounter authority 视为处理成功并严格保留，不再掉入 casualty fallback。
+- 新增 stable residual authority 查询与 precise freeze：保留原 presence mode、SiteId、坐标、ResidualHex、Squad／LegacyArmy membership；Continuous 精确残留同时保留 `PersonalSurfaceId`。LegacyArmy adapter 已有个人 authority 时不再转 AtHex，只在确实缺失时从该 Army 自身 motion 修复。
+- 旧 LocalMap fallback 现在必须证明目标人物自己的 WorldPresence 属于当前 loaded map；不再仅凭 PlayerParty CurrentHex／focus 推导尸体位置。Continuous 首次倒地只使用目标 View + 当前 Surface mapper；无 View 但已有稳定个人位置时原样保留。
+- `EntityViewSpawner` 在 authored location／默认 slot 前从带 Surface provenance 的个人精确位置恢复 PresentationOverride；真正缺失 authority 的 residual fallback 才输出 `[ResidualViewFallback]`。生命周期空间诊断覆盖首次弥留、死亡确认及最终 Removed；死亡确认若改动空间字段会明确 warning。
+- 现有非 Unity 编译 Core460／Data78／Unity145 通过（0 error、8 个既有 warning）；只做静态核对与 `git diff --check`，未启动 Unity、测试、batchmode 或 Bake。状态：**Implementation Completed / Producer Acceptance Pending**；修改未提交，未进入 CW-04。
+
+## 2026-09-14 — WorldSite LegacyArmy/Squad residual 显示收口
+
+- 定点修复独立人物遭遇返回后 `AtSite` residual 的人口解析空隙：LegacyArmy pass 只在成员真实符合输出条件后写入 `seen`，弥留／可见尸体不再被提前去重；personal Site pass 允许 residual 以自己的 `WorldPresence` 作为空间权威，不受仍保留的 Squad／LegacyArmy membership 否定。
+- Site population、LocalMap visibility 与 Continuous materialization 继续共用同一判断。Continuous 仍优先读取 `PersonalSurfaceId + precise WorldPosition`，没有改 Arrival／Army anchor／Hex fallback，也未恢复 casualty detach；Removed 仍由 `ShouldHideFromSpawn` 排除。
+- Encounter 返回后新增一次性 `[SiteResidualReturn]` 诊断，报告组织身份、返回 presence、精确位置、population、materialization 与 View 结果及拒绝原因。存档现有 CharacterWorldPresence 与 Squad/LegacyArmy JSON 路径经静态核对保持 Entity、Site、精确位置和 membership。
+- 现有非 Unity 编译 Core459／Data78／Unity145 全部通过：0 error、8 个既有 warning；少量静态检查与 `git diff --check` 通过。未启动 Unity、测试、batchmode 或 Bake。状态：**Implementation Completed / Producer Acceptance Pending**；修改未提交，未进入 CW-04。
+
+## 2026-09-14 — CW-U4.1 Legacy Army Player Surface Retirement
+
+- 制作人确认上一轮 ReadyToEnd 生命周期修复在当前验收范围通过；CW-U2A～U4 核心正常路线已经多轮人工验收，不声称穷尽所有概率、旧档和边界。
+- WorldMap 命令选中固定为 PlayerParty；正常右键只调用 PlayerParty travel resolver。Army toolbar、Army list/form 产品入口、人物面板组军、FormalArmy 移动和 AttackArmy 菜单／回调不再由正常玩家操作产生。
+- 旧战略组 marker 保留为“NPC 小队”只读投影，只可查看／定位，不显示 ArmyId、不抢命令权。旧 Content／Save／NPC 任务和 `FormalArmyWorldMotion` 后台移动适配保留，Squad 仍是成员权威。
+- Character 地面攻击的分类始终是 LocalCharacter；LegacyArmyId 仅诊断元数据，不选另一套 Offer、Hex support 或战场。旧 Hex support／GatherAndLock 明确标注仅供旧战略自动战／旧会话兼容。
+- 旧 PlayerParty attack-chase 一次性迁移：先清攻击目标；已有合法物理目的地则保留为普通旅行，否则安全停止，绝不自动宣战、建 Encounter 或产生第一击。
+- 现成非 Unity 编译 Core459／Data78／Unity145／EditMode sources194 全部 0 error（仅编译，未运行测试）；未启动 Unity、Test Runner、batchmode 或 Bake。状态：**Implementation Completed / Producer Acceptance Pending**；修改未提交。验收后才按 CW-04 → CW-05 继续。
+
 ## 2026-09-14 — U2–U4 联合 Fix 重接与剩余生命周期收口
 
 - 本轮实际开始于干净的 e6fbdc2（不是聊天中上轮末尾状态）；已授权修复对象仍在本地，依次应用为28fe489、1e67880、2a62612，无reset/push或覆盖无关改动。沿用线性WalkGridComposer、分帧计划/构建及每chunk一个背景renderer。

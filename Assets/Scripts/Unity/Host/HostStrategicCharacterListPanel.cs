@@ -8,7 +8,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
-    /// <summary>战略层角色列表（全战Host 一级入口；只读 + 组军薄命令）/summary>
+    /// <summary>战略层角色列表。CW-U4.1 后产品界面只读，不再创建 FormalArmy。</summary>
     public sealed class HostStrategicCharacterListPanel
     {
         const float DoubleClickWindowSec = 0.35f;
@@ -83,7 +83,7 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(panelRect.xMax - 88f, panelRect.y + 6f, 76f, 24f), "关闭"))
                 Close();
 
-            const float footerH = 36f;
+            const float footerH = 28f;
             const float footerPad = 8f;
             var contentTop = panelRect.y + 36f;
             var contentBottom = panelRect.yMax - footerPad - footerH;
@@ -99,14 +99,9 @@ namespace XianXia.Unity.Host
 
             DrawCharacterDetail(detailRect, world, labelFn);
 
-            if (GUI.Button(new Rect(panelRect.x + 8f, panelRect.yMax - 36f, 120f, 28f), "组建军队"))
-            {
-                changed |= TryCreateArmyFromSelection(world, factionId, partyRuntime, onArmyCreated, onChanged);
-            }
-
             if (!string.IsNullOrEmpty(_status))
             {
-                GUI.Label(new Rect(panelRect.x + 136f, panelRect.yMax - 32f, panelRect.width - 144f, 22f), _status, _body);
+                GUI.Label(new Rect(panelRect.x + 8f, panelRect.yMax - 28f, panelRect.width - 16f, 22f), _status, _body);
             }
 
             return changed;
@@ -133,35 +128,15 @@ namespace XianXia.Unity.Host
                     GUI.color = Color.white;
                 }
 
-                var indent = 0f;
-                if (!row.IsGrouped && row.CanSelectForArmyCreation)
-                {
-                    var toggle = _createSelection.Contains(row.CharacterId.Value);
-                    var next = GUI.Toggle(new Rect(4f, y + 14f, 18f, 18f), toggle, GUIContent.none);
-                    if (next != toggle)
-                    {
-                        if (next)
-                            _createSelection.Add(row.CharacterId.Value);
-                        else
-                            _createSelection.Remove(row.CharacterId.Value);
-                    }
-
-                    indent = 24f;
-                }
-                else if (!row.IsGrouped)
-                {
-                    indent = 24f;
-                }
+                const float indent = 0f;
 
                 var armyLabel = row.IsGrouped
-                    ? "Army: " + row.ArmyId
-                    : row.SiteLabel + "  \u00b7  \u672a\u7f16\u7ec4";
+                    ? "NPC 小队成员"
+                    : row.SiteLabel;
                 var label = row.DisplayName + "  ·  " + row.LifeStateLabel + "\n" +
                             StrategicFactionCatalog.DisplayName(row.FactionId) + "  ·  " + armyLabel;
                 var labelRect = new Rect(indent, y, itemRect.width - indent, 48f);
                 var prevColor = GUI.color;
-                if (!row.CanSelectForArmyCreation && !row.IsGrouped)
-                    GUI.color = new Color(0.72f, 0.72f, 0.75f, 1f);
                 if (GUI.Button(labelRect, label, _body))
                     HandleCharacterClick(row, onFocusArmy, onFocusNode);
                 GUI.color = prevColor;
@@ -210,12 +185,12 @@ namespace XianXia.Unity.Host
                 entity == null)
             {
                 GUI.Label(new Rect(detailRect.x, y, detailRect.width, 56f),
-                    "单击列表中的角色查看详情。\n存活且未编组角色可勾选，再点底部「组建军队」。", _body);
+                    "单击列表中的角色查看详情。", _body);
                 return;
             }
 
             var row = FindRow(new EntityId(idVal));
-            var membership = row?.IsGrouped == true ? row.ArmyId : "\u2014";
+            var membership = row?.IsGrouped == true ? "NPC 小队成员" : "\u2014";
             GUI.Label(new Rect(detailRect.x, y, detailRect.width, 120f),
                 labelFn(world, entity.Id) + "\n" +
                 "\u52bf\u529b\uff1a" + StrategicFactionCatalog.DisplayName(row?.FactionId) + "\n" +

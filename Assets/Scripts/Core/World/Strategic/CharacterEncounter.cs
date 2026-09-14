@@ -72,7 +72,10 @@ namespace XianXia.Core.World.Strategic
             var board = world?.Strategic;
             if (board == null) return false;
             var state = board.CharacterEncounter;
-            if (state != null) return state.Phase != CharacterEncounterPhase.Active || !state.Opposing(attacker.Value, target.Value);
+            if (state != null)
+                return (state.Phase != CharacterEncounterPhase.Active &&
+                        state.Phase != CharacterEncounterPhase.ReadyToEnd) ||
+                       !state.Opposing(attacker.Value, target.Value);
             var party = board.PlayerPartyContext;
             if (party == null || (!party.IsMember(attacker) && !party.IsMember(target))) return false;
             if (board.ContinuousManualCombat.IsActive) return false; // Explicit objective encounter compatibility only.
@@ -267,6 +270,7 @@ namespace XianXia.Core.World.Strategic
         {
             var state = world.Strategic.CharacterEncounter;
             if (state == null || state.Phase == CharacterEncounterPhase.Committed) return;
+            ReconcileRuntimePresence(world);
             var snapshot = world.Strategic.Participants;
             snapshot.Clear(); snapshot.OfferId = state.EncounterId;
             snapshot.EncounterLocalMapId = state.EncounterId;
@@ -274,15 +278,6 @@ namespace XianXia.Core.World.Strategic
             foreach (var p in state.Participants)
             {
                 var id = new EntityId(p.CharacterId);
-                world.Entities.TryGet(id, out var participantEntity);
-                if (!participantEntity.TryGet<LifecycleComponent>(out var life) || !life.IsRemoved)
-                {
-                    var presence = world.WorldPresence.GetOrCreate(id);
-                    presence.Mode = PartyWorldPresenceMode.InEncounter;
-                    presence.PersonalSurfaceId = state.SourceSurfaceId;
-                    presence.WorldPosX = p.TacticalX; presence.WorldPosY = p.TacticalY;
-                    presence.HasContinuousWorldPosition = true;
-                }
                 snapshot.Add(new BattleParticipantRecord { EntityId = id, Selected = true,
                     Kind = p.Enemy ? BattleParticipantKind.EnemyPrimary : BattleParticipantKind.MandatoryFriendly,
                     IncludedReason = p.JoinedAt > 0f ? "FrozenRangeIntervention" : "InitiatingSquads" });
@@ -298,18 +293,44 @@ namespace XianXia.Core.World.Strategic
                 ? StrategicClockFreezeReason.ManualEncounter : StrategicClockFreezeReason.PostBattle;
         }
 
+        /// <summary>Reasserts only the spatial runtime projection of the authoritative encounter
+        /// roster. It does not rebuild participants, settlement, reports, or combat events.</summary>
+        public static int ReconcileRuntimePresence(SimulationWorld world)
+        {
+            var state = world?.Strategic?.CharacterEncounter;
+            if (state == null ||
+                (state.Phase != CharacterEncounterPhase.Active &&
+                 state.Phase != CharacterEncounterPhase.ReadyToEnd))
+                return 0;
+            var repaired = 0;
+            foreach (var participant in state.Participants)
+            {
+                var id = new EntityId(participant.CharacterId);
+                if (!world.Entities.TryGet(id, out var entity) || entity == null ||
+                    entity.TryGet<LifecycleComponent>(out var life) && life.IsRemoved)
+                    continue;
+                var presence = world.WorldPresence.GetOrCreate(id);
+                if (presence.Mode != PartyWorldPresenceMode.InEncounter ||
+                    !string.Equals(presence.PersonalSurfaceId, state.SourceSurfaceId,
+                        StringComparison.Ordinal) ||
+                    !presence.HasContinuousWorldPosition ||
+                    presence.WorldPosX != participant.TacticalX ||
+                    presence.WorldPosY != participant.TacticalY)
+                    repaired++;
+                presence.Mode = PartyWorldPresenceMode.InEncounter;
+                presence.PersonalSurfaceId = state.SourceSurfaceId;
+                presence.WorldPosX = participant.TacticalX;
+                presence.WorldPosY = participant.TacticalY;
+                presence.HasContinuousWorldPosition = true;
+            }
+            return repaired;
+        }
+
         public static void Advance(SimulationWorld world, float seconds, Func<EncounterCandidate, bool> preparePlacement = null)
         {
             var state = world.Strategic.CharacterEncounter;
             if (state == null || state.Phase != CharacterEncounterPhase.Active || !Finite(seconds) || seconds <= 0f) return;
-            state.ElapsedSeconds += seconds; state.DecayAccumulator += seconds;
-            foreach (var p in state.Participants)
-                for (var i = 0; i < p.ArtCooldowns.Length; i++) p.ArtCooldowns[i] = Math.Max(0, p.ArtCooldowns[i] - seconds);
-            while (state.DecayAccumulator >= 1f)
-            {
-                state.DecayAccumulator -= 1f;
-                CombatLifeStateService.TickEncounterLifeDecay(world, state.Participants);
-            }
+            AdvanceTacticalTime(world, state, seconds);
             AdvanceCandidates(world, state, preparePlacement);
             var friendly = false; var enemy = false;
             foreach (var p in state.Participants)
@@ -328,6 +349,36 @@ namespace XianXia.Core.World.Strategic
                 state.PlayerWon = friendly;
                 state.Phase = CharacterEncounterPhase.ReadyToEnd;
                 world.Strategic.ClockFreeze.Reason = StrategicClockFreezeReason.PostBattle;
+            }
+        }
+
+        /// <summary>Post-battle tactical time while the player remains on the frozen field.
+        /// Strategic ticks, candidates, schedules, travel and production are intentionally absent.</summary>
+        public static void AdvanceReadyToEnd(SimulationWorld world, float seconds)
+        {
+            var state = world?.Strategic?.CharacterEncounter;
+            if (state == null || state.Phase != CharacterEncounterPhase.ReadyToEnd ||
+                !Finite(seconds) || seconds <= 0f)
+                return;
+            AdvanceTacticalTime(world, state, seconds);
+            foreach (var participant in state.Participants)
+                participant.Cooldown = Math.Max(0, participant.Cooldown - seconds);
+        }
+
+        static void AdvanceTacticalTime(
+            SimulationWorld world,
+            CharacterEncounterState state,
+            float seconds)
+        {
+            state.ElapsedSeconds += seconds;
+            state.DecayAccumulator += seconds;
+            foreach (var participant in state.Participants)
+                for (var i = 0; i < participant.ArtCooldowns.Length; i++)
+                    participant.ArtCooldowns[i] = Math.Max(0, participant.ArtCooldowns[i] - seconds);
+            while (state.DecayAccumulator >= 1f)
+            {
+                state.DecayAccumulator -= 1f;
+                CombatLifeStateService.TickEncounterLifeDecay(world, state.Participants);
             }
         }
 

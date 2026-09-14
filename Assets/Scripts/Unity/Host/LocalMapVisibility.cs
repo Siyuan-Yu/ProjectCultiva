@@ -257,6 +257,13 @@ namespace XianXia.Unity.Host
             if (CombatLifeStateService.ShouldHideFromSpawn(entity))
                 return false;
 
+            // Independent Encounter presentation is an explicit takeover scope. It must be
+            // resolved before ordinary Continuous/LocalMap rules: InEncounter correctly hides a
+            // person from the normal world, while this exact bound encounter must show it.
+            if (world.ContinuousOutdoorMaterialization.HasIndependentEncounterBinding &&
+                (entity.Tags & (EntityTag.Character | EntityTag.Npc)) != 0)
+                return EvaluateIndependentEncounterVisibility(world, id, out _);
+
             // A bound Continuous manual battle is an isolated character scope. This deny must
             // precede every legacy Site/Location/occupant exception so hidden bystanders cannot
             // leak back through another presentation rule.
@@ -565,6 +572,73 @@ namespace XianXia.Unity.Host
             reason = boundContinuousCombatParticipant
                 ? "ContinuousCombatParticipantWithLegalPresentation"
                 : "ContinuousMaterializedWithLegalPresentation";
+            return true;
+        }
+
+        public static bool EvaluateIndependentEncounterVisibility(
+            SimulationWorld world,
+            EntityId id,
+            out string reason)
+        {
+            reason = "IndependentEncounterUnavailable";
+            if (world == null || id.IsNone || !world.Entities.TryGet(id, out var entity))
+            {
+                reason = "EntityMissing";
+                return false;
+            }
+            if (CombatLifeStateService.ShouldHideFromSpawn(entity))
+            {
+                reason = "Removed";
+                return false;
+            }
+            var binding = world.ContinuousOutdoorMaterialization;
+            var state = world.Strategic?.CharacterEncounter;
+            if (!binding.HasIndependentEncounterBinding || state == null ||
+                !string.Equals(binding.IndependentEncounterId, state.EncounterId,
+                    System.StringComparison.Ordinal) ||
+                !string.Equals(binding.IndependentEncounterSurfaceId, state.SourceSurfaceId,
+                    System.StringComparison.Ordinal) ||
+                (state.Phase != CharacterEncounterPhase.Active &&
+                 state.Phase != CharacterEncounterPhase.ReadyToEnd))
+            {
+                reason = "IndependentEncounterBindingMismatch";
+                return false;
+            }
+            if (world.LocalMap != null && world.LocalMap.IsInInterior)
+            {
+                reason = "InteriorOwnsPresentation";
+                return false;
+            }
+            var participant = state.Find(id.Value);
+            if (participant == null)
+            {
+                reason = "NotCurrentEncounterParticipant";
+                return false;
+            }
+            if (!world.WorldPresence.TryGet(id, out var presence) || presence == null)
+            {
+                reason = "EncounterPresenceMismatch";
+                return false;
+            }
+            if (presence.Mode != PartyWorldPresenceMode.InEncounter ||
+                !string.Equals(presence.PersonalSurfaceId, state.SourceSurfaceId,
+                    System.StringComparison.Ordinal))
+            {
+                reason = "EncounterPresenceMismatch";
+                return false;
+            }
+            if (!world.ContinuousOutdoorMaterialization.IsMaterialized(id))
+            {
+                reason = "NotEncounterMaterialized";
+                return false;
+            }
+            if (!entity.TryGet<EntityLocationComponent>(out var location) || location == null ||
+                !location.HasPresentationOverride)
+            {
+                reason = "PresentationOverrideMissing";
+                return false;
+            }
+            reason = "CurrentIndependentEncounterParticipant";
             return true;
         }
 

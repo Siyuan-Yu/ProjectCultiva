@@ -28,6 +28,9 @@ namespace XianXia.Unity.Host
 
         public bool IsBound => _bound && !_failed;
 
+        public bool IsBoundTo(SimulationWorld world, EntityId entityId) =>
+            IsBound && ReferenceEquals(_world, world) && _entityId == entityId;
+
         public bool IsHighlightRequested => _highlight;
 
         public string ActivityText => activityText;

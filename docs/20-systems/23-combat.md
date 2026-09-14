@@ -1,6 +1,6 @@
 # 战斗
 
-> **CW-U0 现行补丁：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 统一小队、固定战场范围、两队初始及范围内有限关系介入。Design Confirmed；Implementation Pending / Existing Compatibility；Producer Acceptance Pending。CW-02 过渡原地战已验收范围保留。
+> **2026-09-14 现行补丁：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 的 CW-U2A～U4 核心正常路线已经制作人多轮验收；ReadyToEnd 当前修复范围 Producer Accepted。CW-U4.1 已退役玩家 WorldMap Army／AttackArmy 产品入口，状态为 Implementation Completed / Producer Acceptance Pending。
 
 > **⚠️ 2026-09-12 · 当前设计替代：** [ADR-0033](../40-process/43-decisions/ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) 已替代 186 的普通户外“原地战斗”目标。所有新的玩家实战进入取自接战地点当前状态的临时独立战场；186 只保留为当时实现记录。
 

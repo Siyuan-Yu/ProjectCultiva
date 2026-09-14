@@ -32,6 +32,30 @@ namespace XianXia.Core.World.Strategic
     /// </summary>
     public static class HexRightClickResolver
     {
+        /// <summary>
+        /// CW-U4.1 产品玩家右键路由：只产生 PlayerParty 普通旅行，
+        /// 旧 FormalArmy/AttackArmy 上下文仅作可见信息，绝不转换为命令。
+        /// </summary>
+        public static HexRightClickResolution ResolvePlayerTravel(
+            SimulationWorld world,
+            HexCoord hex,
+            string playerFactionId,
+            bool passableHex)
+        {
+            var resolution = new HexRightClickResolution
+            {
+                Context = HexResidualContextQuery.Build(world, hex, playerFactionId),
+                Action = passableHex
+                    ? HexRightClickResolvedAction.DirectMove
+                    : HexRightClickResolvedAction.None,
+                StatusHint = passableHex ? string.Empty : "目标 Hex 不可通行"
+            };
+            resolution.HasEnemyResidualPresentation =
+                !string.IsNullOrEmpty(resolution.Context?.EnemyResidualSummary);
+            return resolution;
+        }
+
+        /// <summary>Legacy/auto strategic compatibility. Product player input uses ResolvePlayerTravel.</summary>
         public static HexRightClickResolution Resolve(
             SimulationWorld world,
             HexCoord hex,

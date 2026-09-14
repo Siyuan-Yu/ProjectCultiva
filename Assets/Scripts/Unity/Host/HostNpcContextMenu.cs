@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Combat;
 using XianXia.Core.Construction;
 using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
@@ -850,7 +851,18 @@ namespace XianXia.Unity.Host
 
             var npc = _targetNpc;
             CollectSelectedPartyAttackers(_scratchAttackers);
-            if (_scratchAttackers.Count == 0 && !_actor.IsNone)
+            var characterEncounter = bootstrap?.Session?.World?.Strategic?.CharacterEncounter;
+            if (characterEncounter != null &&
+                characterEncounter.Phase == CharacterEncounterPhase.ReadyToEnd)
+            {
+                _scratchAttackers.Clear();
+                var active = bootstrap.Session.PlayerParty.ActiveCharacterId;
+                if (!active.IsNone && characterEncounter.Find(active.Value) != null)
+                    _scratchAttackers.Add(active);
+            }
+            if (_scratchAttackers.Count == 0 && !_actor.IsNone &&
+                (characterEncounter == null ||
+                 characterEncounter.Phase != CharacterEncounterPhase.ReadyToEnd))
                 _scratchAttackers.Add(_actor);
             if (_scratchAttackers.Count == 0)
             {
@@ -945,6 +957,30 @@ namespace XianXia.Unity.Host
             var session = bootstrap?.Session;
             if (session == null || !session.IsInitialized || actor.IsNone || target.IsNone)
                 return true;
+
+            var characterEncounter = session.World.Strategic.CharacterEncounter;
+            if (characterEncounter != null &&
+                characterEncounter.Phase == CharacterEncounterPhase.ReadyToEnd)
+            {
+                var active = session.PlayerParty.ActiveCharacterId;
+                if (active.IsNone || !characterEncounter.Opposing(active.Value, target.Value) ||
+                    !session.World.Entities.TryGet(active, out var activeEntity) ||
+                    !CombatLifeStateService.CanFight(activeEntity) ||
+                    !session.World.Entities.TryGet(target, out var targetEntity) ||
+                    !CombatLifeStateService.CanBeAttacked(targetEntity))
+                {
+                    Debug.LogWarning("[Host] ReadyToEnd hostile action rejected outside the active participant scope.");
+                    ReleaseInteractionNpcNow(target);
+                    CloseAll();
+                    return true;
+                }
+
+                ReleaseInteractionNpcNow(target);
+                bootstrap.GetComponent<HostCharacterEncounter>()?.SetTarget(active, target);
+                ResumeTime();
+                CloseAll();
+                return true;
+            }
 
             var route = LocalHostileActionRoutingService.Route(
                 session.World, session.PlayerParty, actor, target);
@@ -1125,6 +1161,16 @@ namespace XianXia.Unity.Host
         bool CanInitiatePlayerHostileAction(EntityId actor, EntityId target)
         {
             var session = bootstrap?.Session;
+            var encounter = session?.World?.Strategic?.CharacterEncounter;
+            if (encounter != null && encounter.Phase == CharacterEncounterPhase.ReadyToEnd)
+            {
+                var active = session.PlayerParty.ActiveCharacterId;
+                return !active.IsNone && encounter.Opposing(active.Value, target.Value) &&
+                       session.World.Entities.TryGet(active, out var activeEntity) &&
+                       CombatLifeStateService.CanFight(activeEntity) &&
+                       session.World.Entities.TryGet(target, out var targetEntity) &&
+                       CombatLifeStateService.CanBeAttacked(targetEntity);
+            }
             return session != null && LocalHostileActionRoutingService.CanInitiatePlayerHostileAction(
                 session.World, session.PlayerParty, actor, target);
         }

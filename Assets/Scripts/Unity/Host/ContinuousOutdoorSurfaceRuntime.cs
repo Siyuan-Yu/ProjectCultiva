@@ -1159,6 +1159,11 @@ namespace XianXia.Unity.Host
             if (!IsActive) return;
             var session = _bootstrap.Session;
             var world = session.World;
+            // Independent CharacterEncounter owns participant tactical coordinates and presence.
+            // The ordinary Continuous WorldPosition synchronizer must not project PartyTravel
+            // back onto those members from LateUpdate.
+            if (world.Strategic.CharacterEncounter != null)
+                return;
             var motion = world.PlayerPartyTravel;
             var party = session.PlayerParty;
             if (motion == null || party == null || motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition ||
@@ -1316,8 +1321,24 @@ namespace XianXia.Unity.Host
             return true;
         }
 
-        // Compatibility name retained for existing direct-input call sites.
-        public bool TryStepAcrossCoverageBoundary(Vector3 proposed) => TryHandoffContinuousSurfaceToLegacy(proposed);
+        // Compatibility name retained for existing direct-input call sites.  An independent
+        // encounter is a closed tactical space: its composite grid owns the boundary and must
+        // never fall through to the ordinary Surface -> Legacy handoff.
+        public bool TryStepAcrossCoverageBoundary(Vector3 proposed)
+        {
+            var board = _bootstrap?.Session?.World?.ContinuousOutdoorMaterialization;
+            if (board != null && board.HasIndependentEncounterBinding &&
+                string.Equals(board.IndependentEncounterId, _independentFieldId,
+                    StringComparison.Ordinal))
+            {
+                if (_compositeWalkGrid != null &&
+                    _compositeWalkGrid.TryWorldToCell(proposed.x, proposed.y, out _, out _))
+                    return false;
+                LastMovementDiagnostic = "IndependentEncounterBoundary";
+                return true;
+            }
+            return TryHandoffContinuousSurfaceToLegacy(proposed);
+        }
 
         void CacheEgressDestination(HexWorld hexWorld, HexCoord hex)
         {
@@ -1891,6 +1912,7 @@ namespace XianXia.Unity.Host
             CancelIndependentNavigation();
             if (captureEntityPositions) CaptureCurrentPersonalPlacements();
             var world = _navigationStateWorld;
+            world?.ContinuousOutdoorMaterialization.ClearIndependentEncounter(_independentFieldId);
             var combat = world?.Strategic?.ContinuousManualCombat;
             if (combat != null && combat.IsActive &&
                 string.Equals(combat.SurfaceId, _surfaceId, StringComparison.Ordinal))
@@ -2397,6 +2419,25 @@ namespace XianXia.Unity.Host
             return region != null && _loaded.Contains(_mapper.WorldToChunk(region.ArrivalWorldX, region.ArrivalWorldY));
         }
 
+        bool HasSitePlacementInLoadedNeighborhood(
+            OutdoorWorldSurfaceDefinition surface,
+            string siteId)
+        {
+            if (surface?.SitePlacements == null || string.IsNullOrEmpty(siteId))
+                return false;
+            for (var i = 0; i < surface.SitePlacements.Count; i++)
+            {
+                var placement = surface.SitePlacements[i];
+                if (placement == null ||
+                    !string.Equals(placement.SiteId, siteId, StringComparison.Ordinal))
+                    continue;
+                foreach (var chunk in _loaded)
+                    if (PlacementTouchesChunk(placement, chunk))
+                        return true;
+            }
+            return false;
+        }
+
         /// <summary>
         /// §4：该 entity 的 SpawnStableKey。GameStart（<c>OpeningSpawnWorldPresenceApplier</c>）已把
         /// authored key 写入 <c>World.OpeningSpawnIdentities</c>，因此可从 spawned Entity 反查。
@@ -2667,11 +2708,19 @@ namespace XianXia.Unity.Host
                     failures.Add("Opening Site PhysicalRegion not loaded: " + openingSiteId);
                 else
                 {
-                    var placementLoaded = false;
-                    foreach (var chunkCoord in _loaded)
-                        if (_materializedSitePlacementOwners.Contains(SitePlacementOwnerKey(chunkCoord, openingSiteId)))
-                        { placementLoaded = true; break; }
-                    if (!placementLoaded) failures.Add("Opening Site baked placements missing: " + openingSiteId);
+                    // A multi-hex PhysicalRegion can be in the current neighborhood while all of
+                    // its sparse authored placements are outside it. Only require a materialized
+                    // owner when placement geometry actually intersects a loaded chunk.
+                    if (HasSitePlacementInLoadedNeighborhood(surface, openingSiteId))
+                    {
+                        var placementLoaded = false;
+                        foreach (var chunkCoord in _loaded)
+                            if (_materializedSitePlacementOwners.Contains(
+                                    SitePlacementOwnerKey(chunkCoord, openingSiteId)))
+                            { placementLoaded = true; break; }
+                        if (!placementLoaded)
+                            failures.Add("Opening Site baked placements missing: " + openingSiteId);
+                    }
 
                     if (world != null && world.Strategic.Sites.TryGet(openingSiteId, out var site))
                     {

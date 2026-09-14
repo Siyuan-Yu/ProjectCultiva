@@ -5,6 +5,8 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Strategic;
+using XianXia.Core.World.Surface;
 
 namespace XianXia.Unity.Host
 {
@@ -164,6 +166,29 @@ namespace XianXia.Unity.Host
                         loc.PresentationOverrideZ);
                 }
 
+                // A normal Continuous residual rebuild must recover the character's own precise
+                // authority before considering authored-location/default slots.
+                if (session.World.WorldPresence.TryGet(id, out var personal) && personal != null &&
+                    !string.IsNullOrEmpty(personal.PersonalSurfaceId) &&
+                    CharacterPersonalSpaceQuery.TryResolveContinuous(
+                        session.World, id, personal.PersonalSurfaceId, out var worldPosition, out _) &&
+                    DefinitionId.TryParse(personal.PersonalSurfaceId, out var surfaceDefinitionId) &&
+                    session.Registry.TryGetOutdoorSurface(surfaceDefinitionId, out var surface) &&
+                    surface != null)
+                {
+                    var mapper = new OutdoorSurfaceCoordinateMapper(
+                        surface.ChunkWidth,
+                        surface.ChunkHeight,
+                        surface.CellSize,
+                        presentationUnitsPerWorldUnit: 1f / surface.CellSize,
+                        originWorldX: surface.OriginWorldX,
+                        originWorldY: surface.OriginWorldY);
+                    mapper.WorldToPresentation(
+                        worldPosition.X, worldPosition.Y, out var presentationX, out var presentationY);
+                    loc.SetPresentationOverride(presentationX, presentationY);
+                    return HostPresentationSpace.FromPresentation(presentationX, presentationY);
+                }
+
                 if (loc.HasLocation &&
                     session.World.WorldRegion.TryGet(loc.LocationId, out var location))
                 {
@@ -176,6 +201,14 @@ namespace XianXia.Unity.Host
                         location.PresentationZ + oy);
                 }
             }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (StrategicResidualPresenceService.IsResidualLifeCandidate(session.World, id))
+                Debug.LogWarning(
+                    "[ResidualViewFallback] EntityId=" + id.Value +
+                    " Reason=NoResolvablePersonalPresentationAuthority" +
+                    " FallbackIndex=" + fallbackIndex);
+#endif
 
             if (slots != null && fallbackIndex < slots.Length)
                 return slots[fallbackIndex];

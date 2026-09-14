@@ -1,6 +1,6 @@
-# RPG-First：Active Character、PlayerParty、连续 Hex 世界与 FormalArmy 军事层
+# RPG-First：Active Character、PlayerParty、连续 Hex 世界与 Legacy FormalArmy Adapter
 
-> **2026-09-13 组织／遭遇补丁：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) §1、2、5 为现行目标。§5.8.9、§7～9 的群体位置和 PlayerParty／Background／FormalArmy 分层保留为旧实现兼容，不能覆盖唯一行动小队与统一玩家遭遇。CW-U1 已将成员关系迁移到统一 Squad；PlayerParty 为控制门面，FormalArmy 为身份／任务／移动适配。统一独立遭遇及地图攻击退役仍属 CW-U2。
+> **2026-09-14 现行补丁：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) §1、2、5 为现行规则。CW-U1～U4 已将成员与人物遭遇迁移到统一 Squad；CW-U4.1 退役玩家 FormalArmy 产品层入口。FormalArmy 仅作旧 Content／Save／NPC 任务与移动 adapter，不是玩家可选、可编组、可攻击或可下令的单位。
 
 > 状态：旧 Phase 2B／2C 验收保留；最终控制／移动／飞舟设计已确认，新行为待迁移／核查与制作人验收｜优先级：P0｜最后更新：2026-09-12
 > 上级：`docs/00-project/00-overview.md`
@@ -397,7 +397,7 @@ Footprint / AnchorHex = 战略显示与索引摘要，≠ 物理或行政精确�
 
 ---
 
-## 7. 三种主要世界存在状态
+## 7. 世界存在与旧适配投影
 
 ### A. PlayerParty（玩家本人）
 
@@ -405,13 +405,13 @@ Footprint / AnchorHex = 战略显示与索引摘要，≠ 物理或行政精确�
 - WorldMap：**Active Character Avatar** 作为 Party Marker
 - 具备世界旅行与亲自参战；建筑攻击和接管仍须满足同一战争授权与实际交互条件
 
-### 大地图攻击入口退役（后续迁移）
+### 大地图攻击入口退役（CW-U4.1 实施完成／待验收）
 
-CW-U2B 统一地面遭遇上线时，移除玩家通过 WorldMap 右键敌军头像直接发起攻击、宣战接战或“追击到达后自动攻击”的入口与对应旧回调。WorldMap 保留查看、选点和普通前往；玩家实际冲突从地面接触入口开始。该迁移只退役玩家地图入口，不删除地面战斗、战争／外交状态或 AI 的合法战斗服务；CW-03 不修改当前运行逻辑。
+WorldMap 保留查看、选点和 PlayerParty 普通前往；不产生 AttackArmy、追击后自动攻击、宣战接战或 FormalArmy 移动命令。旧多人战略标记只作“NPC 小队”只读投影，不显示 ArmyId，不抢占 PlayerParty 命令权。玩家实际冲突从地面 Character/Squad hostile action 开始。
 
 ### B. Background Character（普通后台角色）
 
-不属于当前 PlayerParty，也未编入 FormalArmy。
+不属于当前 PlayerParty 的真实角色；可属于普通 NPC Squad，不以 FormalArmy 区分人物类型。
 
 - 可世界旅行、遭遇、**Simulation Battle**、受伤／死亡
 - WorldMap **不常驻**个人头像
@@ -425,7 +425,7 @@ Background Character **可以**在 HexWorld 中进行 World Travel，**不代表
 | 实体 | 玩家可下达的世界层命令 |
 |------|------------------------|
 | **PlayerParty** | 直接世界旅行（有效地面连续目标、Hex 摘要或 Site 真实抵达点） |
-| **FormalArmy** | 战略军事命令（移动、Attack Army／Site、驻扎等） |
+| **Legacy FormalArmy adapter** | 无玩家即时命令；仅承载未迁移的 NPC 任务／移动计划 |
 | **Background Character** | **无**远程逐步移动命令 |
 
 Background Character 的移动**仅由**以下驱动：
@@ -448,37 +448,36 @@ Background Character 的移动**仅由**以下驱动：
 
 **Deferred（UX）：** 具体哪些事件通知玩家、是否暂停、是否弹窗——属于后续叙事 UX 设计；**不阻塞** Background Simulation 架构。
 
-### C. FormalArmy（正式军事组织）
+### C. FormalArmy（Legacy adapter）
 
-- WorldMap：**Leader Avatar / Army Marker** 常驻
-- 组织军事任务、远方自动战斗与驻扎；不因类型获得宣战、占领或地图移动特权
-- 默认 **AI 战略 + Auto Battle**
-- 成员仍是真实 Character；战损必须回写
+- WorldMap 若复用旧数据源，只显示为 **NPC 小队**只读标记
+- 旧 NPC 任务、后台移动与自动战可继续使用 `FormalArmyWorldMotion` adapter
+- 成员唯一权威是 Squad；FormalArmy 不可重新获得成员或玩家命令权
 
 ---
 
-## 8. FormalArmy 职责边界（Supersede 旧「移动资格」）
+## 8. Legacy FormalArmy Adapter 边界
 
 ### 废除
 
 旧规则「Character 跨 Hex 必须先组成至少 1 人 Army」→ **正式废除**。
 
-普通 Character **可以**在世界中移动。FormalArmy **不再是**世界移动资格，而是：
+普通 Character **可以**在世界中移动。FormalArmy **不再是**世界移动资格或玩家正式组织，而是：
 
-> **正式军事远征组织。**
+> **旧 Content／Save／NPC 任务与移动的兼容 adapter。**
 
 ### 仍有效（勿推倒）
 
-- 成员 = 真实 Character；禁止匿名修士兵力
-- 一名 Character 同时最多属于一支 FormalArmy
-- 不跨 Faction 混编
-- Leader／替补／全灭消失
-- CaptureObjective、War、Ownership、Faction、Pure Hex、Multi-Hex Site、Hex pathing、Army Capacity、驻扎、Auto Battle、Snapshot
+- 投影成员必须是真实 Character；禁止匿名修士兵力
+- Squad 是成员权威；FormalArmy 只能映射，不能反向成为第二份成员真源
+- 旧 NPC `FormalArmyWorldMotion`、Hex pathing、后台 Auto Battle 和 Snapshot 兼容可继续存在
+- 玩家 UI 不可创建、选中、直接移动或攻击 FormalArmy
 
-### 组建／解散
+### 组建／解散（历史规则／仅兼容工具）
 
 - **2026-09-06 SUPERSEDED：** Site-only 地点限制由 [ADR-0028](../40-process/43-decisions/ADR-0028-formalarmy-formation-and-roster-use-effective-territory.md) 取代。
-- Create 与 Add／Remove／ChangeLeader／Disband 可在 Army faction 的任意 **Effective Territory Hex** 进行；WorldSite 与 FactionFlag 派生领地一视同仁。
+- 下列 Create／Add／Remove／ChangeLeader／Disband 是旧内容与开发工具兼容规则，正常玩家 UI 不暴露这些命令。
+- 旧工具的操作仍限于 Army faction 的 **Effective Territory Hex**；WorldSite 与 FactionFlag 派生领地一视同仁。
 - 被编入者必须由 Domain presence query 解析到**同一个 Hex**；禁止隔空组军、自动集合或 teleport。
 - Garrison 仍只允许所属势力拥有的 WorldSite；Wilderness Territory 不提供驻扎设施。
 

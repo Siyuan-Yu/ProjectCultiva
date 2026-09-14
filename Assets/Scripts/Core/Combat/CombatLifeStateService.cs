@@ -369,11 +369,13 @@ namespace XianXia.Core.Combat
                 return;
             if (!entity.TryGet<LifecycleComponent>(out var life))
                 return;
-            if (!life.IsRemoved)
-            {
-                life.State = LifecycleState.Removed;
-                life.ClearBleedOut();
-            }
+            if (life.IsRemoved)
+                return;
+#if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
+            var removalSpatialBefore = FormatRemovalSpatial(world, entity.Id);
+#endif
+            life.State = LifecycleState.Removed;
+            life.ClearBleedOut();
 
             // 大地图
             world.WorldPresence?.Remove(entity.Id);
@@ -382,6 +384,46 @@ namespace XianXia.Core.Combat
                 loc.ClearPresence();
             // 遭遇刷怪追踪／敌军栈人数（无存活／弥留／可见尸体时从大地图抹栈）
             StrategicEncounterSpawner.ReconcileAfterLifeDecay(world, entity.Id);
+#if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
+            var squadId = world.Strategic?.Squads != null &&
+                          world.Strategic.Squads.TryGetForCharacter(entity.Id, out var squad) && squad != null
+                ? squad.SquadId
+                : string.Empty;
+            var armyId = ArmyService.TryGetArmyForCharacter(world, entity.Id, out var army) && army != null
+                ? army.ArmyId
+                : string.Empty;
+            System.Diagnostics.Debug.WriteLine(
+                "[ResidualLifecycleSpatial] CharacterId=" + entity.Id.Value +
+                " Name=" + (entity.DisplayName ?? string.Empty) +
+                " Transition=DeadToRemoved" +
+                " SquadId=" + squadId +
+                " LegacyArmyId=" + armyId +
+                " EncounterId=" + (world.Strategic?.CharacterEncounter?.EncounterId ?? string.Empty) +
+                " Before=" + removalSpatialBefore +
+                " After=Mode:Missing,SiteId:,PersonalSurfaceId:,HasPrecise:false,WorldPosition:None,ResidualHex:None" +
+                " ViewPosition=None" +
+                " SpatialOwner=Removed" +
+                " HandoffAction=Remove");
+#endif
         }
+
+#if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
+        static string FormatRemovalSpatial(SimulationWorld world, EntityId id)
+        {
+            if (world?.WorldPresence == null ||
+                !world.WorldPresence.TryGet(id, out var presence) || presence == null)
+                return "Mode:Missing,SiteId:,PersonalSurfaceId:,HasPrecise:false,WorldPosition:None,ResidualHex:None";
+            var worldPosition = presence.HasContinuousWorldPosition
+                ? "(" + presence.WorldPosX.ToString("0.###") + "," + presence.WorldPosY.ToString("0.###") + ")"
+                : "None";
+            var residualHex = presence.UsesHexPresence ? presence.ResidualHex.ToString() : "None";
+            return "Mode:" + presence.Mode +
+                   ",SiteId:" + (presence.SiteId ?? string.Empty) +
+                   ",PersonalSurfaceId:" + (presence.PersonalSurfaceId ?? string.Empty) +
+                   ",HasPrecise:" + presence.HasContinuousWorldPosition +
+                   ",WorldPosition:" + worldPosition +
+                   ",ResidualHex:" + residualHex;
+        }
+#endif
     }
 }

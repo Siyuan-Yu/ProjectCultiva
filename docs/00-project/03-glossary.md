@@ -2,7 +2,7 @@
 
 > **CW-U0 术语：行动小队（Squad）** 是正常活动人物唯一成员组织，单人也是小队；成员各有真实位置。PlayerParty 最终是玩家小队／Active 控制投影；FormalArmy 是旧迁移适配。Encounter 固定范围、初始双方与未参战候选分离，定义见 [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md)。设计确认，运行待迁移。
 
-> 状态：持续维护 | 最后更新：2026-09-09
+> 状态：持续维护 | 最后更新：2026-09-14
 >
 > 规则：**代码标识符、配置表字段、文档用词必须与本表一致。**
 > 新增概念时先来这里登记，再去写代码。这一条是长期可维护性的关键，也是交接时对方最需要的文件。
@@ -192,7 +192,7 @@
 | 随机源 | IRandomSource | 可注入、可保存状态的随机接口 | 世界保存 WorldSeed；分系统可有独立流 |
 | 军队编组 | ArmyGroup | **仅**凡人／大规模非修士军队的聚合数据对象 | ADR-0008 收窄；**不是**修士战略 Army；修士 Army 见 ADR-0024 |
 | 修士群体（Legacy） | CultivatorPopulation | ~~第三层普通修士聚合~~ | **ADR-0024 superseded**；修士 = 真实 Character + LOD |
-| 战略军队 | Army / FormalArmy | **正式军事远征组织**；`MemberCharacterIDs[]`；`Army.FactionId` | **不再是**世界移动资格（ADR-0026／2K）；Prototype 见 ArmyStack |
+| 旧战略军队适配 | Army / FormalArmy | 旧 Content／Save／NPC 任务与移动的兼容投影 | **不是玩家产品单位**；不可选为命令主体、组建、直接移动或 AttackArmy；成员权威属于 Squad |
 | 军队成员归属 | ArmyMembership | Character 当前所属的 Army（若有） | 同时最多 1 支 |
 | 势力 ID | FactionId | **全系统统一**的势力身份 ID | Character／Army／Site Owner／Alliance／Vassalage／War 共用；禁止多套平行 ID |
 | 节点归属势力 | OwnerFactionId | WorldSite（历史称 WorldNode）占有点归属 Faction | Pure Hex 下 Site Owner；见 2J |

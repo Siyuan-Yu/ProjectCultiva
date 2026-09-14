@@ -9,7 +9,7 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// WorldSite LocalMap 人口：按地点物理在场解析 CharacterId（与 EnteringArmy / Focus 分离）�?
+    /// WorldSite LocalMap 人口：按地点物理在场解析 CharacterId（与 EnteringArmy / Focus 分离）。
     /// </summary>
     public static class StrategicWorldSitePopulationService
     {
@@ -30,10 +30,72 @@ namespace XianXia.Core.World.Strategic
             if (world == null || site == null || characterId.IsNone)
                 return false;
 
+            // Residual physical authority is personal presence, regardless of legacy organization.
+            if (IsPersonalResidualPresentAtSite(world, characterId, site))
+                return true;
+
             if (IsArmyMemberPhysicallyAtSite(world, characterId, site))
                 return true;
 
-            return IsUngroupedResidentAtSite(world, characterId, site);
+            return IsPersonalResidentAtSite(world, characterId, site);
+        }
+
+        /// <summary>
+        /// Incapacitated / visible corpse at a Site is represented by its own AtSite presence.
+        /// Squad and LegacyArmy membership remain intact but cannot deny this spatial authority.
+        /// </summary>
+        public static bool IsPersonalResidualPresentAtSite(
+            SimulationWorld world,
+            EntityId characterId,
+            WorldSite site) =>
+            TryResolvePersonalResidualAtSite(world, characterId, site, out _);
+
+        public static bool TryResolvePersonalResidualAtSite(
+            SimulationWorld world,
+            EntityId characterId,
+            WorldSite site,
+            out string rejectionReason)
+        {
+            rejectionReason = string.Empty;
+            if (world == null || site == null || characterId.IsNone)
+            {
+                rejectionReason = "MissingWorldCharacterOrSite";
+                return false;
+            }
+            if (!world.Entities.TryGet(characterId, out var entity) || entity == null)
+            {
+                rejectionReason = "EntityMissing";
+                return false;
+            }
+            if (CombatLifeStateService.ShouldHideFromSpawn(entity))
+            {
+                rejectionReason = "RemovedOrHidden";
+                return false;
+            }
+            if (!StrategicResidualPresenceService.IsResidualLifeCandidate(world, characterId))
+            {
+                rejectionReason = "NotResidualLifeCandidate";
+                return false;
+            }
+            if (world.WorldPresence == null ||
+                !world.WorldPresence.TryGet(characterId, out var presence) ||
+                presence == null)
+            {
+                rejectionReason = "WorldPresenceMissing";
+                return false;
+            }
+            if (presence.Mode != PartyWorldPresenceMode.AtSite)
+            {
+                rejectionReason = "ReturnedMode=" + presence.Mode;
+                return false;
+            }
+            if (!string.Equals(presence.SiteId, site.SiteId, StringComparison.Ordinal))
+            {
+                rejectionReason = "DifferentSite=" + (presence.SiteId ?? string.Empty);
+                return false;
+            }
+
+            return true;
         }
 
         public static bool HasFriendlyCharacterPresentAtWorldSite(
@@ -66,7 +128,8 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 解析应在 WorldSite LocalMap 出现的可�?Character（Resident + 足迹�?FormalArmy 成员，按 CharacterId 去重）�?
+        /// 解析应在 WorldSite LocalMap 出现的 Character
+        /// （personal resident / residual + physically present FormalArmy member，按 CharacterId 去重）。
         /// </summary>
         public static void CollectCharacterIdsPresentAtWorldSite(
             SimulationWorld world,
@@ -86,9 +149,9 @@ namespace XianXia.Core.World.Strategic
                 for (var i = 0; i < candidateCharacterIds.Count; i++)
                 {
                     var id = candidateCharacterIds[i];
-                    if (id.IsNone || !seen.Add(id.Value))
+                    if (id.IsNone || seen.Contains(id.Value))
                         continue;
-                    if (IsUngroupedResidentAtSite(world, id, site))
+                    if (IsPersonalResidentAtSite(world, id, site) && seen.Add(id.Value))
                         into.Add(id);
                 }
             }
@@ -100,9 +163,9 @@ namespace XianXia.Core.World.Strategic
                     if (presence == null || presence.EntityId.IsNone)
                         continue;
                     var id = presence.EntityId;
-                    if (!seen.Add(id.Value))
+                    if (seen.Contains(id.Value))
                         continue;
-                    if (IsUngroupedResidentAtSite(world, id, site))
+                    if (IsPersonalResidentAtSite(world, id, site) && seen.Add(id.Value))
                         into.Add(id);
                 }
             }
@@ -126,14 +189,16 @@ namespace XianXia.Core.World.Strategic
                 for (var i = 0; i < army.MemberCharacterIds.Count; i++)
                 {
                     var memberId = new EntityId(army.MemberCharacterIds[i]);
-                    if (memberId.IsNone || !seen.Add(memberId.Value))
+                    if (memberId.IsNone || seen.Contains(memberId.Value))
                         continue;
                     if (!LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, memberId))
                         continue;
-                    if (world.Entities.TryGet(memberId, out var entity) &&
+                    if (!world.Entities.TryGet(memberId, out var entity) || entity == null ||
                         CombatLifeStateService.ShouldHideFromSpawn(entity))
                         continue;
-                    into.Add(memberId);
+                    // Claim deduplication only after this pass has accepted the character.
+                    if (seen.Add(memberId.Value))
+                        into.Add(memberId);
                 }
             }
         }
@@ -163,15 +228,17 @@ namespace XianXia.Core.World.Strategic
             return false;
         }
 
-        static bool IsUngroupedResidentAtSite(
+        static bool IsPersonalResidentAtSite(
             SimulationWorld world,
             EntityId characterId,
             WorldSite site)
         {
-            if (ArmyService.TryGetArmyForCharacter(world, characterId, out _))
+            if (world == null || site == null || characterId.IsNone ||
+                !world.Entities.TryGet(characterId, out var entity) || entity == null ||
+                CombatLifeStateService.ShouldHideFromSpawn(entity))
                 return false;
 
-            if (world?.WorldPresence == null ||
+            if (world.WorldPresence == null ||
                 !world.WorldPresence.TryGet(characterId, out var presence) ||
                 presence == null)
                 return false;
@@ -183,7 +250,15 @@ namespace XianXia.Core.World.Strategic
             if (presence.Mode != PartyWorldPresenceMode.AtSite)
                 return false;
 
-            return string.Equals(presence.SiteId, site.SiteId, StringComparison.Ordinal);
+            if (!string.Equals(presence.SiteId, site.SiteId, StringComparison.Ordinal))
+                return false;
+
+            // A residual uses personal AtSite presence even while legacy membership remains.
+            if (StrategicResidualPresenceService.IsResidualLifeCandidate(world, characterId))
+                return true;
+
+            // Living legacy members remain owned by the group compatibility pass.
+            return !ArmyService.TryGetArmyForCharacter(world, characterId, out _);
         }
     }
 }

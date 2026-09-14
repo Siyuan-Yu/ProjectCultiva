@@ -8,7 +8,10 @@ namespace XianXia.Unity.Host
         FormalArmy = 1,
     }
 
-    /// <summary>WorldMap 命令选中真源：Marker 视觉与右键 Dispatcher 均读取此对象。</summary>
+    /// <summary>
+    /// WorldMap 玩家命令选中真源。CW-U4.1 后产品命令权威永远是 PlayerParty；
+    /// FormalArmy 枚举和 API 仅保留给旧 Host/诊断源码兼容，不能获得命令权。
+    /// </summary>
     public sealed class HostWorldMapSelectionAuthority
     {
         HostWorldMapSelectionKind _kind = HostWorldMapSelectionKind.PlayerParty;
@@ -28,8 +31,8 @@ namespace XianXia.Unity.Host
 
         public void SelectFormalArmy(string armyId)
         {
-            _kind = HostWorldMapSelectionKind.FormalArmy;
-            _formalArmyId = armyId ?? string.Empty;
+            _ = armyId;
+            SelectPlayerParty();
         }
 
         public void SelectPlayerParty()

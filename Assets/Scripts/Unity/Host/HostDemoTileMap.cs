@@ -3,6 +3,7 @@ using UnityEngine;
 using XianXia.Core.Exploration;
 using XianXia.Core.World.Surface;
 using XianXia.Data.Content;
+using UnityEngine.Sprites;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -28,10 +29,25 @@ namespace XianXia.Unity.Host
             new Dictionary<string, SurfacePresentationInstance>(System.StringComparer.Ordinal);
         readonly Dictionary<string, List<GameObject>> _builtByInstance =
             new Dictionary<string, List<GameObject>>(System.StringComparer.Ordinal);
+        readonly Dictionary<string, List<Mesh>> _meshesByInstance =
+            new Dictionary<string, List<Mesh>>(System.StringComparer.Ordinal);
+        readonly List<CompactGrassLayer> _compactGrassLayers = new List<CompactGrassLayer>();
+        bool _compactGrassTemplateResolved;
         Transform _buildRoot;
         Vector2 _buildPlacementOffset;
         string _buildingInstanceKey = string.Empty;
         PlayableHostSession _session;
+
+        sealed class CompactGrassLayer
+        {
+            public Material Material;
+            public Texture Texture;
+            public Color Color;
+            public int SortingLayerId;
+            public int SortingOrder;
+            public readonly Vector2[] Corners = new Vector2[4];
+            public readonly Vector2[] Uvs = new Vector2[4];
+        }
 
         public int TileCount
         {
@@ -341,8 +357,12 @@ namespace XianXia.Unity.Host
             HostFarmFieldRegistry.RemoveOwner(instanceKey);
             if (instance.Root != null)
                 DestroyBuilt(instance.Root.gameObject);
+            if (_meshesByInstance.TryGetValue(instanceKey, out var meshes))
+                for (var i = 0; i < meshes.Count; i++)
+                    DestroyBuilt(meshes[i]);
             _instances.Remove(instanceKey);
             _builtByInstance.Remove(instanceKey);
+            _meshesByInstance.Remove(instanceKey);
             instance.IsLoaded = false;
             return true;
         }
@@ -369,6 +389,7 @@ namespace XianXia.Unity.Host
             _buildPlacementOffset = placementOffset;
             _buildingInstanceKey = instanceKey;
             _builtByInstance[instanceKey] = new List<GameObject>();
+            _meshesByInstance[instanceKey] = new List<Mesh>();
             _instances[instanceKey] = new SurfacePresentationInstance(instanceKey, layout, placementOffset, root);
             HostInteractSpots.BeginOwnerBuild(instanceKey);
             HostMapObjectRegistry.BeginOwnerBuild(instanceKey);
@@ -411,13 +432,7 @@ namespace XianXia.Unity.Host
 
             if (stampGrassGround && compactGround)
             {
-                // Decorative background has no cell identity or collision. One exact chunk
-                // rectangle avoids 625 prefab hierarchies for every 50x50 outdoor chunk.
-                var ground = PlaceZoneOverlay(ox + w * cs * .5f, oy + h * cs * .5f,
-                    "ChunkGround", w * cs, h * cs, new Color(.30f, .42f, .26f, .98f));
-                var renderer = ground.GetComponent<SpriteRenderer>();
-                renderer.color = new Color(.30f, .42f, .26f, 1f);
-                renderer.sortingOrder = -100;
+                BuildCompactGrassGround(ox, oy, w, h, cs);
             }
             else if (stampGrassGround)
             {
@@ -442,6 +457,170 @@ namespace XianXia.Unity.Host
                     continue;
                 StampPlacement(layout, p, i);
             }
+        }
+
+        void BuildCompactGrassGround(float originX, float originY, int width, int height, float cellSize)
+        {
+            if (!TryResolveCompactGrassTemplate())
+            {
+                BuildPrefabGrassGround(originX, originY, width, height, cellSize);
+                return;
+            }
+
+            var step = Mathf.Max(1, grassStride);
+            var tileWidth = cellSize * step;
+            var tileHeight = cellSize * step;
+            for (var layerIndex = 0; layerIndex < _compactGrassLayers.Count; layerIndex++)
+            {
+                var layer = _compactGrassLayers[layerIndex];
+                var vertices = new List<Vector3>();
+                var colors = new List<Color>();
+                var uvs = new List<Vector2>();
+                var triangles = new List<int>();
+                for (var gy = 0; gy < height; gy += step)
+                for (var gx = 0; gx < width; gx += step)
+                {
+                    var centerX = originX + (gx + .5f) * cellSize;
+                    var centerY = originY + (gy + .5f) * cellSize;
+                    var vertexStart = vertices.Count;
+                    for (var corner = 0; corner < 4; corner++)
+                    {
+                        vertices.Add(new Vector3(
+                            centerX + layer.Corners[corner].x * tileWidth,
+                            centerY + layer.Corners[corner].y * tileHeight,
+                            0f));
+                        colors.Add(layer.Color);
+                        uvs.Add(layer.Uvs[corner]);
+                    }
+                    triangles.Add(vertexStart); triangles.Add(vertexStart + 1); triangles.Add(vertexStart + 2);
+                    triangles.Add(vertexStart); triangles.Add(vertexStart + 2); triangles.Add(vertexStart + 3);
+                }
+
+                var go = new GameObject("ChunkGrassLayer_" + layerIndex);
+                go.transform.SetParent(_buildRoot != null ? _buildRoot : mapRoot, false);
+                go.transform.position = new Vector3(0f, 0f, HostPresentationSpace.GroundZ);
+                var filter = go.AddComponent<MeshFilter>();
+                var renderer = go.AddComponent<MeshRenderer>();
+                var mesh = new Mesh { name = "RuntimeChunkGrass_" + layerIndex };
+                mesh.SetVertices(vertices);
+                mesh.SetColors(colors);
+                mesh.SetUVs(0, uvs);
+                mesh.SetTriangles(triangles, 0);
+                mesh.RecalculateBounds();
+                filter.sharedMesh = mesh;
+                renderer.sharedMaterial = layer.Material;
+                renderer.sortingLayerID = layer.SortingLayerId;
+                renderer.sortingOrder = layer.SortingOrder;
+                if (layer.Texture != null)
+                {
+                    var properties = new MaterialPropertyBlock();
+                    properties.SetTexture("_MainTex", layer.Texture);
+                    renderer.SetPropertyBlock(properties);
+                }
+                _meshesByInstance[_buildingInstanceKey].Add(mesh);
+                TrackBuilt(go);
+            }
+        }
+
+        void BuildPrefabGrassGround(float originX, float originY, int width, int height, float cellSize)
+        {
+            var step = Mathf.Max(1, grassStride);
+            for (var gy = 0; gy < height; gy += step)
+            for (var gx = 0; gx < width; gx += step)
+                PlacePrefab("grass", MapKindCatalog.Grass,
+                    originX + (gx + .5f) * cellSize,
+                    originY + (gy + .5f) * cellSize,
+                    "Grass_" + gx + "_" + gy, cellSize * step, cellSize * step,
+                    new Color(.30f, .42f, .26f));
+        }
+
+        bool TryResolveCompactGrassTemplate()
+        {
+            if (_compactGrassTemplateResolved)
+                return _compactGrassLayers.Count > 0;
+            _compactGrassTemplateResolved = true;
+            if (!MapLayoutPrefabResolver.TryInstantiate(
+                    "grass", MapKindCatalog.Grass, out var source, warnOnMissing: false) ||
+                source == null)
+                return false;
+
+            try
+            {
+                var renderers = source.GetComponentsInChildren<SpriteRenderer>(true);
+                var totalBounds = default(Bounds);
+                var hasBounds = false;
+                for (var i = 0; i < renderers.Length; i++)
+                {
+                    var candidate = renderers[i];
+                    if (candidate == null || !candidate.enabled || candidate.sprite == null ||
+                        !candidate.gameObject.activeInHierarchy)
+                        continue;
+                    if (!hasBounds) { totalBounds = candidate.bounds; hasBounds = true; }
+                    else totalBounds.Encapsulate(candidate.bounds);
+                }
+                if (!hasBounds || totalBounds.size.x < .0001f || totalBounds.size.y < .0001f)
+                    return false;
+                for (var i = 0; i < renderers.Length; i++)
+                {
+                    var spriteRenderer = renderers[i];
+                    if (spriteRenderer == null || !spriteRenderer.enabled ||
+                        spriteRenderer.sprite == null || !spriteRenderer.gameObject.activeInHierarchy)
+                        continue;
+                    var sprite = spriteRenderer.sprite;
+                    var spriteBounds = sprite.bounds;
+                    var localCorners = new[]
+                    {
+                        new Vector3(spriteBounds.min.x, spriteBounds.min.y),
+                        new Vector3(spriteBounds.min.x, spriteBounds.max.y),
+                        new Vector3(spriteBounds.max.x, spriteBounds.max.y),
+                        new Vector3(spriteBounds.max.x, spriteBounds.min.y)
+                    };
+                    var layer = new CompactGrassLayer
+                    {
+                        Material = spriteRenderer.sharedMaterial,
+                        Texture = sprite.texture,
+                        Color = spriteRenderer.color,
+                        SortingLayerId = spriteRenderer.sortingLayerID,
+                        SortingOrder = spriteRenderer.sortingOrder
+                    };
+                    for (var corner = 0; corner < 4; corner++)
+                    {
+                        var point = spriteRenderer.transform.TransformPoint(localCorners[corner]);
+                        layer.Corners[corner] = new Vector2(
+                            (point.x - totalBounds.center.x) / totalBounds.size.x,
+                            (point.y - totalBounds.center.y) / totalBounds.size.y);
+                    }
+                    var outer = DataUtility.GetOuterUV(sprite);
+                    layer.Uvs[0] = new Vector2(outer.x, outer.y);
+                    layer.Uvs[1] = new Vector2(outer.x, outer.w);
+                    layer.Uvs[2] = new Vector2(outer.z, outer.w);
+                    layer.Uvs[3] = new Vector2(outer.z, outer.y);
+                    if (spriteRenderer.flipX)
+                    {
+                        Swap(layer.Uvs, 0, 3);
+                        Swap(layer.Uvs, 1, 2);
+                    }
+                    if (spriteRenderer.flipY)
+                    {
+                        Swap(layer.Uvs, 0, 1);
+                        Swap(layer.Uvs, 3, 2);
+                    }
+                    _compactGrassLayers.Add(layer);
+                }
+                return _compactGrassLayers.Count > 0;
+            }
+            finally
+            {
+                source.SetActive(false);
+                DestroyBuilt(source);
+            }
+        }
+
+        static void Swap(Vector2[] values, int a, int b)
+        {
+            var value = values[a];
+            values[a] = values[b];
+            values[b] = value;
         }
 
         void StampPlacement(MapLayoutDefinition layout, MapPlacement p, int index)
@@ -733,6 +912,16 @@ namespace XianXia.Unity.Host
                 Destroy(go);
             else
                 DestroyImmediate(go);
+        }
+
+        static void DestroyBuilt(Object value)
+        {
+            if (value == null)
+                return;
+            if (Application.isPlaying)
+                Destroy(value);
+            else
+                DestroyImmediate(value);
         }
 
         void EnsureRoot()

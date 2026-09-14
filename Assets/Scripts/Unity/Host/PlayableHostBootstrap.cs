@@ -2656,75 +2656,114 @@ namespace XianXia.Unity.Host
                 if (evt?.Type == XianXia.Core.Events.EventType.CombatantDefeated &&
                     evt.Target.HasValue)
                 {
-                    // 战略 Encounter participant 由其冻结 snapshot 生命周期负责；只有未被
-                    // 战略层接管的 FormalArmy casualty 才立即交接为独立 StrategicResidual。
                     var defenderId = evt.Target.Value;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    var spatialBefore = CaptureLifecycleSpatialDiagnostic(defenderId);
+#endif
+                    _session.World.Entities.TryGet(defenderId, out var defeatedEntity);
+                    var transition = DefeatSpatialTransitionResolver.Resolve(evt, defeatedEntity);
                     var handledByStrategicEncounter = StrategicEncounterSpawner.OnCombatantDefeated(
                         _session.World,
                         defenderId);
+                    var handoffAction = handledByStrategicEncounter ? "Preserve" : string.Empty;
+                    var spatialHandled = handledByStrategicEncounter;
                     if (!handledByStrategicEncounter)
                     {
-                        // 普通 Local Combat 的所有 casualty owner 都必须先捕获倒下瞬间的
-                        // EntityView local 坐标；FormalArmy detach 会先写 hex-only residual，
-                        // 所以不能在 detach 后才取 view。Strategic Encounter 已由上方冻结
-                        // snapshot 接管，绝不进入本分支。
-                        ResolveLoadedStrategicBounds(_session.World);
-                        var gotLocal = TryGetCurrentLocalPresentation(
-                            defenderId,
-                            out var localX,
-                            out var localZ);
-                        if (gotLocal)
+                        // Death confirmation is a lifecycle-only change. Existing personal or
+                        // encounter authority is a successful spatial result and must not fall
+                        // through to legacy casualty placement.
+                        if (transition == DefeatSpatialTransitionKind.DeathConfirmation &&
+                            ResidualSpatialAuthorityService.TryResolveStableResidualSpatialAuthority(
+                                _session.World, defenderId, out _))
                         {
-                            // 当前 presentation 与真实 View 对齐；长期 authority 仍是下方
-                            // 写入 WorldPresence 的 precise continuous world position。
-                            if (_session.World.Entities.TryGet(defenderId, out var ent) &&
-                                ent != null &&
-                                ent.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(
-                                    out var loc) &&
-                                loc != null)
-                                loc.SetPresentationOverride(localX, localZ);
+                            spatialHandled = true;
+                            handoffAction = "Preserve";
                         }
-
-                        var handledByArmyCasualty = gotLocal
-                            ? FormalArmyCasualtyService.TryHandleNonEncounterDefeat(
-                                _session.World,
-                                defenderId,
-                                localX,
-                                localZ,
-                                _loadedStrategicWildernessBounds,
-                                _loadedStrategicSiteBounds)
-                            : FormalArmyCasualtyService.TryHandleNonEncounterDefeat(
-                                _session.World,
-                                defenderId);
-                        var handledByLocalCombat = handledByArmyCasualty;
-                        if (!handledByLocalCombat)
+                        else
                         {
-                            handledByLocalCombat = gotLocal
-                                ? LocalCombatCasualtyHandoffService.TryHandleNonArmyDefeat(
+                            ResolveLoadedStrategicBounds(_session.World);
+                            var gotLocal = TryGetCurrentLocalPresentation(
+                                defenderId,
+                                out var localX,
+                                out var localZ);
+
+                            // New Continuous path: the defeated character's own View and active
+                            // mapper establish the exact point. Keep its original presence mode.
+                            if (transition == DefeatSpatialTransitionKind.InitialIncapacitation &&
+                                gotLocal && _continuousOutdoorSurfaceRuntime?.IsActive == true &&
+                                _session.World.ContinuousOutdoorMaterialization.IsMaterialized(defenderId) &&
+                                _continuousOutdoorSurfaceRuntime.PresentationToWorld(
+                                    localX, localZ, out var worldX, out var worldY) &&
+                                ResidualSpatialAuthorityService.TryFreezeAtPreciseWorldPosition(
                                     _session.World,
                                     defenderId,
-                                    localX,
-                                    localZ,
-                                    _loadedStrategicWildernessBounds,
-                                    _loadedStrategicSiteBounds)
-                                :
-                                LocalCombatCasualtyHandoffService.TryHandleNonArmyDefeat(
-                                    _session.World,
-                                    defenderId);
+                                    new WorldVec2(worldX, worldY),
+                                    _continuousOutdoorSurfaceRuntime.ActiveSurfaceId))
+                            {
+                                spatialHandled = true;
+                                handoffAction = "FreezeCurrent";
+                                if (defeatedEntity != null &&
+                                    defeatedEntity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(
+                                        out var currentLocation) && currentLocation != null)
+                                    currentLocation.SetPresentationOverride(localX, localZ);
+                            }
+
+                            // No View is not a reason to relocate: an existing stable personal
+                            // authority is already the correct result.
+                            if (!spatialHandled &&
+                                ResidualSpatialAuthorityService.TryResolveStableResidualSpatialAuthority(
+                                    _session.World, defenderId, out _))
+                            {
+                                if (transition == DefeatSpatialTransitionKind.InitialIncapacitation)
+                                    ResidualSpatialAuthorityService.StopResidualMovementAuthority(
+                                        _session.World, defenderId);
+                                spatialHandled = true;
+                                handoffAction = "Preserve";
+                            }
+
+                            if (!spatialHandled)
+                            {
+                                // Compatibility only. Both services now require the character's
+                                // own presence to belong to the loaded legacy LocalMap; they cannot
+                                // infer a corpse location from PlayerParty.CurrentHex/focus.
+                                var handledByArmyCasualty = gotLocal
+                                    ? FormalArmyCasualtyService.TryHandleNonEncounterDefeat(
+                                        _session.World, defenderId, localX, localZ,
+                                        _loadedStrategicWildernessBounds, _loadedStrategicSiteBounds)
+                                    : FormalArmyCasualtyService.TryHandleNonEncounterDefeat(
+                                        _session.World, defenderId);
+                                spatialHandled = handledByArmyCasualty || (gotLocal
+                                    ? LocalCombatCasualtyHandoffService.TryHandleNonArmyDefeat(
+                                        _session.World, defenderId, localX, localZ,
+                                        _loadedStrategicWildernessBounds, _loadedStrategicSiteBounds)
+                                    : LocalCombatCasualtyHandoffService.TryHandleNonArmyDefeat(
+                                        _session.World, defenderId));
+                                handoffAction = spatialHandled ? "LegacyRepair" : "LegacyRepairRejected";
+                            }
+
+                            if (spatialHandled)
+                                nonEncounterStrategicPopulationChanged = true;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                            LogLocalCombatDefeatDiagnostics(
+                                defenderId, handledByStrategicEncounter, gotLocal, localX, localZ);
+#endif
                         }
 
-                        if (handledByLocalCombat)
+                        if (transition == DefeatSpatialTransitionKind.DeathConfirmation)
                             nonEncounterStrategicPopulationChanged = true;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                        LogLocalCombatDefeatDiagnostics(
-                            defenderId, handledByStrategicEncounter, gotLocal, localX, localZ);
-#endif
                     }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    LogLifecycleSpatialDiagnostic(
+                        defenderId, transition, handoffAction, spatialBefore);
+#endif
                 }
             }
 
             if (nonEncounterStrategicPopulationChanged)
+            {
+                _continuousOutdoorSurfaceRuntime?.ReconcileOutdoorEntityMaterializationForScopeChange();
                 RefreshLoadedStrategicPopulation(refreshViewsWhenUnchanged: true);
+            }
 
             if (contentInterrupt != null)
                 contentInterrupt.Ingest(drained);
@@ -2736,6 +2775,101 @@ namespace XianXia.Unity.Host
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
+        readonly struct LifecycleSpatialDiagnosticSnapshot
+        {
+            public LifecycleSpatialDiagnosticSnapshot(
+                string mode, string siteId, string surfaceId, bool hasPrecise,
+                string worldPosition, string residualHex, string viewPosition, string owner)
+            {
+                Mode = mode; SiteId = siteId; SurfaceId = surfaceId; HasPrecise = hasPrecise;
+                WorldPosition = worldPosition; ResidualHex = residualHex;
+                ViewPosition = viewPosition; Owner = owner;
+            }
+            public string Mode { get; }
+            public string SiteId { get; }
+            public string SurfaceId { get; }
+            public bool HasPrecise { get; }
+            public string WorldPosition { get; }
+            public string ResidualHex { get; }
+            public string ViewPosition { get; }
+            public string Owner { get; }
+        }
+
+        LifecycleSpatialDiagnosticSnapshot CaptureLifecycleSpatialDiagnostic(EntityId id)
+        {
+            var world = _session?.World;
+            var mode = "Missing";
+            var siteId = string.Empty;
+            var surfaceId = string.Empty;
+            var hasPrecise = false;
+            var worldPosition = "None";
+            var residualHex = "None";
+            if (world?.WorldPresence != null && world.WorldPresence.TryGet(id, out var presence) &&
+                presence != null)
+            {
+                mode = presence.Mode.ToString();
+                siteId = presence.SiteId ?? string.Empty;
+                surfaceId = presence.PersonalSurfaceId ?? string.Empty;
+                hasPrecise = presence.HasContinuousWorldPosition;
+                if (hasPrecise)
+                    worldPosition = "(" + presence.WorldPosX.ToString("0.###") + "," +
+                                    presence.WorldPosY.ToString("0.###") + ")";
+                if (presence.UsesHexPresence)
+                    residualHex = presence.ResidualHex.ToString();
+            }
+            var viewPosition = "None";
+            if (entityViewSpawner?.Registry.TryGet(id, out var view) == true && view != null)
+                viewPosition = "(" + view.transform.position.x.ToString("0.###") + "," +
+                               view.transform.position.y.ToString("0.###") + ")";
+            var owner = ResidualSpatialAuthorityService.TryResolveStableResidualSpatialAuthority(
+                world, id, out var authority)
+                ? authority.Owner
+                : "MissingOrLegacyRepair";
+            return new LifecycleSpatialDiagnosticSnapshot(
+                mode, siteId, surfaceId, hasPrecise, worldPosition, residualHex, viewPosition, owner);
+        }
+
+        void LogLifecycleSpatialDiagnostic(
+            EntityId id,
+            DefeatSpatialTransitionKind transition,
+            string handoffAction,
+            LifecycleSpatialDiagnosticSnapshot before)
+        {
+            var world = _session.World;
+            var after = CaptureLifecycleSpatialDiagnostic(id);
+            world.Entities.TryGet(id, out var entity);
+            var squadId = world.Strategic.Squads.TryGetForCharacter(id, out var squad) && squad != null
+                ? squad.SquadId
+                : string.Empty;
+            var legacyArmyId = ArmyService.TryGetArmyForCharacter(world, id, out var army) && army != null
+                ? army.ArmyId
+                : string.Empty;
+            var encounterId = world.Strategic.CharacterEncounter?.EncounterId ?? string.Empty;
+            var changed = before.Mode != after.Mode || before.SiteId != after.SiteId ||
+                          before.SurfaceId != after.SurfaceId || before.HasPrecise != after.HasPrecise ||
+                          before.WorldPosition != after.WorldPosition || before.ResidualHex != after.ResidualHex;
+            var message = "[ResidualLifecycleSpatial]" +
+                          " CharacterId=" + id.Value +
+                          " Name=" + (entity?.DisplayName ?? string.Empty) +
+                          " Transition=" + transition +
+                          " SquadId=" + squadId +
+                          " LegacyArmyId=" + legacyArmyId +
+                          " EncounterId=" + encounterId +
+                          " Mode=" + before.Mode + "->" + after.Mode +
+                          " SiteId=" + before.SiteId + "->" + after.SiteId +
+                          " PersonalSurfaceId=" + before.SurfaceId + "->" + after.SurfaceId +
+                          " HasPrecise=" + before.HasPrecise + "->" + after.HasPrecise +
+                          " WorldPosition=" + before.WorldPosition + "->" + after.WorldPosition +
+                          " ResidualHex=" + before.ResidualHex + "->" + after.ResidualHex +
+                          " ViewPosition=" + before.ViewPosition + "->" + after.ViewPosition +
+                          " SpatialOwner=" + before.Owner + "->" + after.Owner +
+                          " HandoffAction=" + (handoffAction ?? string.Empty);
+            if (transition == DefeatSpatialTransitionKind.DeathConfirmation && changed)
+                Debug.LogWarning(message + " UnexpectedDeathConfirmationSpatialMutation=true", this);
+            else
+                Debug.Log(message, this);
+        }
+
         /// <summary>
         /// Development 诊断：Local Combat 倒下者分类确认（普通 Local Combat 非 Encounter 路径）。
         /// 输出 EntityId / LifeState / 是否 PlayerParty member / FormalArmyId / WorldPresence /

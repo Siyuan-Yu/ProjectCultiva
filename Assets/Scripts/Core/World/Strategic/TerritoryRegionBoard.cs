@@ -94,24 +94,56 @@ namespace XianXia.Core.World.Strategic
             if (!TryGet(regionId, out var region) || region == null)
                 return;
 
-            for (var i = 0; i < region.Hexes.Count; i++)
+            var replacement = new List<HexCoord>();
+            if (hexes != null)
+                foreach (var hex in hexes)
+                    if (!replacement.Contains(hex))
+                        replacement.Add(hex);
+            ReplaceHexesAtomically(
+                new Dictionary<string, IReadOnlyList<HexCoord>>(StringComparer.Ordinal)
+                {
+                    [regionId] = replacement
+                });
+        }
+
+        /// <summary>Commits a resolved coverage set as one transaction. Validation is performed
+        /// against the complete final state, so regions exchanging hexes never collide with each
+        /// other's stale pre-rebuild indexes.</summary>
+        public void ReplaceHexesAtomically(
+            IReadOnlyDictionary<string, IReadOnlyList<HexCoord>> replacements)
+        {
+            if (replacements == null || replacements.Count == 0)
+                return;
+
+            var finalIndex = new Dictionary<HexCoord, string>();
+            foreach (var pair in _byRegionId)
             {
-                var previous = region.Hexes[i];
-                if (_regionIdByHex.TryGetValue(previous, out var indexed) &&
-                    string.Equals(indexed, regionId, StringComparison.Ordinal))
-                    _regionIdByHex.Remove(previous);
+                var regionId = pair.Key;
+                var region = pair.Value;
+                if (region == null)
+                    continue;
+                IReadOnlyList<HexCoord> finalHexes = region.Hexes;
+                if (replacements.TryGetValue(regionId, out var replacement) && replacement != null)
+                    finalHexes = replacement;
+                for (var i = 0; i < finalHexes.Count; i++)
+                {
+                    var hex = finalHexes[i];
+                    if (finalIndex.TryGetValue(hex, out var other) &&
+                        !string.Equals(other, regionId, StringComparison.Ordinal))
+                        throw new InvalidOperationException(
+                            "Resolved territory overlap at " + hex + ": " + other + " / " + regionId + ".");
+                    finalIndex[hex] = regionId;
+                }
             }
 
-            region.SetHexes(hexes);
-            for (var i = 0; i < region.Hexes.Count; i++)
+            foreach (var replacement in replacements)
             {
-                var hex = region.Hexes[i];
-                if (_regionIdByHex.TryGetValue(hex, out var other) &&
-                    !string.Equals(other, regionId, StringComparison.Ordinal))
-                    throw new InvalidOperationException(
-                        "Resolved territory overlap at " + hex + ": " + other + " / " + regionId + ".");
-                _regionIdByHex[hex] = regionId;
+                if (_byRegionId.TryGetValue(replacement.Key, out var region) && region != null)
+                    region.SetHexes(replacement.Value);
             }
+            _regionIdByHex.Clear();
+            foreach (var resolved in finalIndex)
+                _regionIdByHex[resolved.Key] = resolved.Value;
         }
     }
 }

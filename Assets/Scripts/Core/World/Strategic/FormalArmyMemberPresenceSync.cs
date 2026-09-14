@@ -1,7 +1,6 @@
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -108,26 +107,25 @@ namespace XianXia.Core.World.Strategic
 
             if (StrategicResidualPresenceService.IsResidualLifeCandidate(world, memberId))
             {
-                if (world.WorldPresence.TryGet(memberId, out var existing))
+                // A personal residual position outranks the compatibility adapter. In particular,
+                // AtSite + precise must remain AtSite; converting it to AtHex loses Site semantics
+                // and used to make delayed death relocate the corpse.
+                if (ResidualSpatialAuthorityService.TryResolveStableResidualSpatialAuthority(
+                        world, memberId, out _))
+                    return;
+
+                // Genuine legacy repair has no trustworthy personal point. Use only this army's
+                // own motion (never PlayerParty/focus position) and preserve Surface provenance.
+                if (!motion.HasPosition)
+                    return;
+                if (motion.LocationKind == FormalArmyLocationKind.AtWorldSite &&
+                    !string.IsNullOrEmpty(motion.SiteId))
                 {
-                    if (existing.UsesHexPresence) return;
-                    if (existing.HasContinuousWorldPosition)
-                    {
-                        StrategicResidualPresenceService.PlaceCharacterAtResidualWorldPosition(
-                            world, memberId,
-                            HexMath.WorldToHex(existing.WorldPosX, existing.WorldPosY,
-                                world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f),
-                            existing.ContinuousWorldPosition);
-                        return;
-                    }
+                    world.WorldPresence.SetAtSite(memberId, motion.SiteId);
+                    return;
                 }
-                // Residual member：以 army 当前 Hex 为 ResidualHex；无 position 时保留已有合法
-                // AtHex presence（不拿 default (0,0) 覆盖），缺失由 Resolve final assert 暴露。
-                if (motion.HasPosition)
-                    StrategicResidualPresenceService.PlaceCharacterAtResidualHex(
-                        world,
-                        memberId,
-                        motion.CurrentHex);
+                world.WorldPresence.SetAtWorldPosition(
+                    memberId, motion.WorldPosition, motion.CurrentHex, motion.SurfaceId);
                 return;
             }
 

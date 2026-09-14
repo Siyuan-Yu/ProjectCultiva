@@ -1,6 +1,7 @@
 # ADR-0026：RPG-First — 单 Active Character、PlayerParty、连续 Hex 世界与 FormalArmy 军事层
 
 > **2026-09-13 部分替代：** [ADR-0035](ADR-0035-unified-squads-and-encounter-scope.md) §6 明确替代旧组织分层、自由战场裁切、第三队初始和范围外援军建议；本文保留历史决定及未冲突的单 Active、停表、政治／控制、真实战果与原锚点回归契约。
+> **2026-09-14 CW-U4.1 补丁：** FormalArmy 已从正常玩家工具栏、选中、组建、移动与 AttackArmy 中退役。类型仅作旧 Content／Save／NPC 任务与移动适配；现行玩家组织是 Character → Squad → Encounter。
 
 > **⚠️ 2026-09-12 · 部分被 [ADR-0031](ADR-0031-continuous-outdoor-world-surface-architecture.md)／[ADR-0034](ADR-0034-conflict-control-succession-and-airship-role.md) SUPERSEDED：** Decision #3 的“无政治 Capture 权”、#4 的 `HexDistance ≤ 1` 手动介入、#7 的“己方 Site／未出征”继承资格、#9 的 PlayerParty Capture 类型特权，以及 #12 的 WorldMap 永久 Hex／Site 精度锁、普通户外 LocalMap／SurfaceExit 主链均不再是目标。有效地面点击可解析连续世界目标；开关 WorldMap 不取消或重建移动。单 Active、Party 最多六人、真实 Character、远方自动处理与 RPG-First 原则保留；当前正文见 [2K §5.8](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。
 

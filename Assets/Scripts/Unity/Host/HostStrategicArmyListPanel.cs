@@ -8,7 +8,7 @@ using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
-    /// <summary>战略层军队列表（全战式 Host 入口；只读 + ArmyUiCommands）。</summary>
+    /// <summary>CW-U4.1 legacy/development-only FormalArmy compatibility panel; not opened by product UI.</summary>
     public sealed class HostStrategicArmyListPanel
     {
         const float DoubleClickWindowSec = 0.35f;

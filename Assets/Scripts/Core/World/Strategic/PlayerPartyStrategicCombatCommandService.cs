@@ -5,26 +5,13 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// Phase 5S-B2-3.4/3.5：PlayerParty 作为独立战略军事主体，在 WorldMap 上主动攻击一支
-    /// living Enemy FormalArmy 的命令 gate（BattleInitiator V1 + Remote Attack / Pursuit Parity）。
-    /// PlayerParty 不需要组 FormalArmy；成立后完整复用既有主链：
-    /// PendingEngagement → Participant Gathering → Manual / Auto → BattleHex commit → PostBattle
-    /// → survivor / residual。
-    ///
-    /// 命令资格拆成两个概念：
-    ///  <see cref="CanIssueAttackOrder"/> —— 目标/派系/战争 gate（<b>不检查距离</b>）；
-    ///  <see cref="CanEngageArmyNow"/> —— 在 CanIssueAttackOrder 基础上要求 PlayerParty
-    ///    committed Hex 已进入 Defender SupportArea（CanTriggerPlayerPartyEngagement 单一空间权威）。
-    /// <see cref="AttackArmy"/> 执行：已进入 SupportArea → 立即 PendingEngagement；
-    /// 尚未进入 → PlayerPartyHexPursuitService 追击（自动 retarget，进入 SupportArea 后仍由
-    /// 同一 TryBuildOfferForPlayerPartyAttack 建 Offer，不复制第二套 Battle 系统）。
+    /// CW-U4.1 保留的 Legacy PlayerParty AttackArmy API。产品 WorldMap 不再调用，
+    /// gate 恒拒绝；真实人物冲突由 Character/Squad hostile action 创建 CharacterEncounter。
     /// </summary>
     public static class PlayerPartyStrategicCombatCommandService
     {
         /// <summary>
-        /// 是否可下达 Attack 命令（菜单 gate，与距离解耦）。只验证目标/派系/战争/阻塞状态，
-        /// 绝对不检查 SupportArea distance —— 远距离右键同样出现「攻击军队」菜单（与 FormalArmy 一致），
-        /// 由 <see cref="AttackArmy"/> 决定立即接战还是先追击。
+        /// Legacy gate：恒拒绝，防止旧回调恢复玩家大地图攻击。
         /// </summary>
         public static bool CanIssueAttackOrder(
             SimulationWorld world,

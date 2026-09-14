@@ -1,7 +1,7 @@
 # ADR-0035：统一行动小队与固定范围独立遭遇
 
 > 日期：2026-09-13
-> 状态：Design Confirmed；CW-U0 Producer Accepted / Sealed；CW-U1 Implementation Completed / Producer Acceptance Pending；独立遭遇与关系介入仍待后续。
+> 状态：Design Confirmed；CW-U0 Producer Accepted / Sealed；CW-U2A～U4 核心正常路线已经制作人多轮人工验收（不代表穷尽全部关系概率、旧档组合与边界）；CW-U4.1 Implementation Completed / Producer Acceptance Pending。
 > 制作人 CW-U0 最新决定。实施与验收入口：[220](../220-cw-u0-design-and-manual-entry-placement-2026-09-13.md)。
 
 ## 1. 唯一行动小队
@@ -50,8 +50,9 @@ PlayerParty 最终只表达玩家所控小队与单 Active，不维护第二份�
 | CW-U2B | 双方多人、普通人物／旧 Army／敌方发起入口；初始名单移除 Hex 支援；退役 WorldMap 直接攻击 |
 | CW-U3 | 初始范围内有限关系候选、名单追加、续战边界及持久化 |
 | CW-U4 | 已替代路径定向退役、旧档兼容、正常玩法整合，不全仓清洗 |
+| CW-U4.1 | Legacy Army Player Surface Retirement；FormalArmy 只留旧 Content／Save／NPC movement adapter |
 
-2026-09-13 制作人已确认 CW-U1 当前正常玩法验收，并明确授权连续实施 U1 连接补齐→U2A→U2B→U3→U4，中间以必要非 Unity 编译及本地提交为检查点，最后合并人工验收；本次授权替代旧“每轮等待制作人验收”流程。进度见 [222](../222-cw-u1-u4-continuous-implementation-2026-09-13.md)。之后才回 CW-04 等领地任务。原 CW-06／援军及“进入新遭遇前先退役地图攻击”的排序被本表替代。完整继承、飞舟不借此提前实现。
+2026-09-14 当前顺序：U4.1 制作人验收 → CW-04 实际控制历史、扩张与重叠 → CW-05 资产管理接续。不因本次实现自动进入 CW-04。
 
 ## 6. 局部替代与保留
 
