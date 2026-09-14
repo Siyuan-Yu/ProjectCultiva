@@ -2702,7 +2702,7 @@ namespace XianXia.Unity.Host
             // treating that as a failure produced a false [ContinuousStartupInvariantFailure] on
             // every mid-game surface activation away from a site.
             var openingSiteId = world != null && motion != null
-                ? ResolveCurrentOutdoorSiteId(world, motion.WorldPosition)
+                ? WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(world, motion.WorldPosition)
                 : string.Empty;
             if (!string.IsNullOrEmpty(openingSiteId))
             {

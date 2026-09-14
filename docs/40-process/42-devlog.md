@@ -1,5 +1,11 @@
 # 开发日志
 
+## 2026-09-14 — Snapshot Restore Dynamic Flag Site / PhysicalRegion Invariant Fix
+
+- 修复动态势力旗 Site 存档恢复后触发 `[ContinuousStartupInvariantFailure] Opening Site PhysicalRegion not loaded`：启动不变量恢复只查询 authored Outdoor WorldSite physical region，不再把 500×500 SiteCore 行政管理范围当成烘焙 `surface.SiteRegions`。
+- `WorldSitePhysicalRegionQuery` 明确排除 runtime-created Site，使实现与“baked physical region”契约一致；正常 Continuous 移动、Site membership、建设与 encounter 仍使用 `WorldSiteAdministrativeControlResolver`，未改变 TerritoryClaim、控制范围或旗建筑占地。
+- 验证仅执行现成非 Unity offline compile、定向静态检查与 `git diff --check`；未启动 Unity、Test Runner、EditMode、PlayMode、batchmode 或 Bake。
+
 ## 2026-09-14 — CW-04 封板与 CW-04.5 Faction Territory Visual Union
 
 - 制作人确认 TerritoryClaim history、唯一 Actual Managing Site、Level 1 150×150 cells、议政厅／势力旗 SiteCore、玩家／authored 旗建 Site、WorldMap actual-control geometry、Player Camp 退役及 Core/flag marker 已人工验收；CW-04 正式标记 **Producer Accepted / Sealed**。

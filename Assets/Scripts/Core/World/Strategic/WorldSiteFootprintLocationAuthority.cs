@@ -57,13 +57,17 @@ namespace XianXia.Core.World.Strategic
                 return false;
             var size = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             var hex = HexMath.WorldToHex(worldPosition.X, worldPosition.Y, size);
-            if (!world.Strategic.Sites.TryGetAtHex(hex, out site) || site == null ||
-                !WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site))
+            var siteIds = world.Strategic.Sites.GetSiteIdsAtHex(hex);
+            for (var i = 0; i < siteIds.Count; i++)
             {
-                site = null;
-                return false;
+                if (!world.Strategic.Sites.TryGet(siteIds[i], out var candidate) || candidate == null ||
+                    candidate.IsRuntimeCreated ||
+                    !WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(candidate))
+                    continue;
+                site = candidate;
+                return true;
             }
-            return true;
+            return false;
         }
 
         public static string ResolveSiteIdOrEmpty(
