@@ -30,7 +30,7 @@ namespace XianXia.Unity.Host
         static readonly Color SelectBorder = new Color(0.92f, 0.48f, 0.06f, 1f);
         static readonly Color SiteFootprintSelectFill = new Color(1f, 0.92f, 0.20f, 0.28f);
         static readonly Color SiteFootprintSelectBorder = new Color(1f, 0.55f, 0.05f, 1f);
-        // Territory 是浮在 terrain 之上的政治边界，不对受控 Hex 填色。
+        // Product territory overlay is exact world-space Actual Administrative Control geometry.
         const float TerritoryBorderHaloNearPx = 0.0f;
         const float TerritoryBorderHaloFarPx = 10.0f;
         const float TerritoryBorderMainNearPx = 2.0f;
@@ -77,9 +77,12 @@ namespace XianXia.Unity.Host
         /// Territory overlay 图层开关（纯 presentation）。
         /// TerritoryRegion / HexCell.ControlFactionId 始终存在：关闭只影响绘制，
         /// 绝不因关闭而清空 ControlFactionId / 卸载 Region / 停 Territory gameplay query（2J §9.x）。
-        /// 默认 OFF —— WorldMap 视觉与 Territory 之前一致。
+        /// Product panel enables this by default; legacy Hex summary remains separately disabled.
         /// </summary>
         public static bool ShowTerritoryOverlay { get; set; }
+
+        /// <summary>Legacy/debug-only Hex political summary; never enabled by the product toggle.</summary>
+        public static bool DebugShowHexTerritorySummary { get; set; }
 
         public static void SetTerritoryOverlayVisible(bool visible) => ShowTerritoryOverlay = visible;
 
@@ -154,8 +157,10 @@ namespace XianXia.Unity.Host
             // 仅 ON 时绘制，绝不写入 terrain cache 或更改 terrain 的颜色。
             if (ShowTerritoryOverlay)
             {
-                DrawTerritoryBorders(world, projection, minWx, maxWx, minWy, maxWy);
+                DrawActualControlOverlay(world, projection, minWx, maxWx, minWy, maxWy);
             }
+            if (DebugShowHexTerritorySummary)
+                DrawHexTerritorySummaryBorders(world, projection, minWx, maxWx, minWy, maxWy);
 
             if (selectedWorldSite != null)
                 DrawWorldSiteFootprintSelection(projection, grid, selectedWorldSite, ref terrainCount);
@@ -621,11 +626,88 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>
-        /// Territory 独立边界批：只按 HexCell.ControlFactionId 判定政治外边界。
+        /// Product overlay: exact world-space rectangles and boundary segments produced from
+        /// Actual Administrative Control authority. Rendering only projects and clips geometry.
+        /// </summary>
+        static void DrawActualControlOverlay(
+            SimulationWorld world,
+            HexMapViewportProjection projection,
+            float minWx,
+            float maxWx,
+            float minWy,
+            float maxWy)
+        {
+            var overlays = WorldSiteActualControlOverlayBuilder.Build(world);
+            var count = 0;
+            for (var i = 0; i < overlays.Count; i++)
+            {
+                var overlay = overlays[i];
+                StrategicFactionCatalog.MapTint(overlay.FactionId, out var r, out var g, out var b);
+                var fill = new Color(r, g, b, .16f);
+                for (var p = 0; p < overlay.Pieces.Count; p++)
+                {
+                    var piece = overlay.Pieces[p];
+                    var x0 = Mathf.Max(piece.MinX, minWx);
+                    var x1 = Mathf.Min(piece.MaxX, maxWx);
+                    var y0 = Mathf.Max(piece.MinY, minWy);
+                    var y1 = Mathf.Min(piece.MaxY, maxWy);
+                    if (x1 <= x0 || y1 <= y0) continue;
+                    if (count + 6 >= MaxVerts)
+                    {
+                        FlushTriangles(TerrainVx, TerrainVy, TerrainCr, TerrainCg, TerrainCb, TerrainCa, count);
+                        count = 0;
+                    }
+                    var a = projection.ProjectWorld(x0, y0);
+                    var b0 = projection.ProjectWorld(x1, y0);
+                    var c = projection.ProjectWorld(x1, y1);
+                    var d = projection.ProjectWorld(x0, y1);
+                    AppendTriangle(a, b0, c, fill.r, fill.g, fill.b, fill.a, ref count);
+                    AppendTriangle(a, c, d, fill.r, fill.g, fill.b, fill.a, ref count);
+                }
+            }
+            FlushTriangles(TerrainVx, TerrainVy, TerrainCr, TerrainCg, TerrainCb, TerrainCa, count);
+
+            count = 0;
+            for (var i = 0; i < overlays.Count; i++)
+            {
+                var overlay = overlays[i];
+                StrategicFactionCatalog.MapTint(overlay.FactionId, out var r, out var g, out var b);
+                var main = new Color(r, g, b, .96f);
+                var halo = Color.Lerp(TerritoryBorderHaloBase, main, .28f);
+                halo.a = TerritoryBorderHaloBase.a;
+                for (var s = 0; s < overlay.BoundarySegments.Count; s++)
+                {
+                    var edge = overlay.BoundarySegments[s];
+                    var x0 = Mathf.Clamp(edge.X0, minWx, maxWx);
+                    var x1 = Mathf.Clamp(edge.X1, minWx, maxWx);
+                    var y0 = Mathf.Clamp(edge.Y0, minWy, maxWy);
+                    var y1 = Mathf.Clamp(edge.Y1, minWy, maxWy);
+                    if ((Mathf.Abs(x1 - x0) < .000001f && Mathf.Abs(y1 - y0) < .000001f) ||
+                        Mathf.Max(edge.X0, edge.X1) < minWx || Mathf.Min(edge.X0, edge.X1) > maxWx ||
+                        Mathf.Max(edge.Y0, edge.Y1) < minWy || Mathf.Min(edge.Y0, edge.Y1) > maxWy)
+                        continue;
+                    if (count + 12 >= MaxVerts)
+                    {
+                        FlushTriangles(TerrainVx, TerrainVy, TerrainCr, TerrainCg, TerrainCb, TerrainCa, count);
+                        count = 0;
+                    }
+                    var a = projection.ProjectWorld(x0, y0);
+                    var b0 = projection.ProjectWorld(x1, y1);
+                    AppendLineQuad(a, b0, TerritoryBorderHaloFarPx * .5f,
+                        halo.r, halo.g, halo.b, halo.a, ref count);
+                    AppendLineQuad(a, b0, TerritoryBorderMainFarPx * .5f,
+                        main.r, main.g, main.b, main.a, ref count);
+                }
+            }
+            FlushTriangles(TerrainVx, TerrainVy, TerrainCr, TerrainCg, TerrainCb, TerrainCa, count);
+        }
+
+        /// <summary>
+        /// Legacy/debug summary only: reads HexCell.ControlFactionId and follows Hex edges.
         /// 同 faction 相邻 Hex 不画，异 faction 的共享边按 faction id 的稳定顺序只绘制一次；
         /// 无主 Hex 不主动绘制。此层不读取 TerritoryRegionId，也不改变 terrain cache。
         /// </summary>
-        static void DrawTerritoryBorders(
+        static void DrawHexTerritorySummaryBorders(
             SimulationWorld world,
             HexMapViewportProjection projection,
             float minWx,

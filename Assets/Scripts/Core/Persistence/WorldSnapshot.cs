@@ -88,7 +88,12 @@ namespace XianXia.Core.Persistence
         public bool HasRuntimeWorldSiteSnapshotAuthority { get; set; }
         public List<RuntimeWorldSiteSnapshotDto> RuntimeWorldSites { get; set; } =
             new List<RuntimeWorldSiteSnapshotDto>();
+        /// <summary>Legacy read-only compatibility; new saves derive Region/Hex projection.</summary>
         public List<TerritoryRegionControllerSnapshotDto> TerritoryRegionControllers { get; set; } = new List<TerritoryRegionControllerSnapshotDto>();
+        /// <summary>True means TerritoryClaims is the complete immutable acquisition history.</summary>
+        public bool HasTerritoryClaimSnapshotAuthority { get; set; }
+        public List<TerritoryClaimSnapshotDto> TerritoryClaims { get; set; } =
+            new List<TerritoryClaimSnapshotDto>();
         /// <summary>字段出现即表示 Flag active set 完整 authoritative；空数组也有意义。</summary>
         public bool HasFactionFlagSnapshotAuthority { get; set; }
         public List<FactionFlagSnapshotDto> FactionFlags { get; set; } = new List<FactionFlagSnapshotDto>();
@@ -403,8 +408,22 @@ namespace XianXia.Core.Persistence
         public string RegionId { get; set; }
         public string ControlFactionId { get; set; }
     }
+
+    public sealed class TerritoryClaimSnapshotDto
+    {
+        public int FormatVersion { get; set; }
+        public string ClaimId { get; set; } = string.Empty;
+        public string SiteId { get; set; } = string.Empty;
+        public string SurfaceId { get; set; } = string.Empty;
+        public long AcquiredOrder { get; set; }
+        public float CenterX { get; set; }
+        public float CenterY { get; set; }
+        public float Width { get; set; }
+        public float Height { get; set; }
+    }
     public sealed class FactionFlagSnapshotDto
     {
+        public int SiteCoreFormat { get; set; }
         public string FlagId { get; set; }
         public string FactionId { get; set; }
         public int AnchorQ { get; set; }

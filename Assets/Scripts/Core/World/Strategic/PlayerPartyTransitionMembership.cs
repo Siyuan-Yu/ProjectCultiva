@@ -94,12 +94,23 @@ namespace XianXia.Core.World.Strategic
         public static void SyncIndependentCharacterPresenceFromPosition(
             SimulationWorld world,
             EntityId id,
-            WorldVec2 preciseWorldPosition)
+            WorldVec2 preciseWorldPosition,
+            string surfaceId = "")
         {
             if (world == null || world.WorldPresence == null || id.IsNone)
                 return;
 
-            var siteId = WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(world, preciseWorldPosition);
+            WorldSite site;
+            var resolved = !string.IsNullOrEmpty(surfaceId)
+                ? WorldSiteAdministrativeControlResolver.TryResolve(
+                    world, surfaceId, preciseWorldPosition.X, preciseWorldPosition.Y, out site, out _)
+                : WorldSiteAdministrativeControlResolver.TryResolveOnRegisteredSurface(
+                    world, preciseWorldPosition.X, preciseWorldPosition.Y, out _, out site, out _);
+            var siteId = resolved
+                ? site.SiteId
+                : (world.Strategic.TerritoryClaims.HasAuthority
+                    ? string.Empty
+                    : WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(world, preciseWorldPosition));
             if (!string.IsNullOrEmpty(siteId))
             {
                 world.WorldPresence.SetAtSiteWithAnchor(id, siteId, preciseWorldPosition);

@@ -3337,35 +3337,32 @@
           "ownerFactionId": "base:faction_nan_yan",
           "territoryRegionId": "base:region_zhuangyuan",
           "controlEstablishedOrder": 7
-        },
-        {
-          "siteId": "test:site_player_camp",
-          "displayName": "TEST 主角营地",
-          "siteType": "Camp",
-          "anchorQ": 4,
-          "anchorR": 4,
-          "presenceQ": 4,
-          "presenceR": 4,
-          "footprint": [
-            {
-              "q": 4,
-              "r": 4
-            }
-          ],
-          "localMapId": "base:map_player_camp",
-          "continuousOutdoor": true,
-          "ownerFactionId": "base:faction_player",
-          "territoryRegionId": "test:region_player_camp",
-          "controlEstablishedOrder": 8
         }
       ],
       "factionFlags": [
+        {
+          "flagId": "base:flag_player_origin",
+          "factionId": "base:faction_player",
+          "anchorQ": 4,
+          "anchorR": 4,
+          "establishedOrder": 8,
+          "surfaceId": "base:surface_main_wilderness_v1",
+          "worldX": 6.9282,
+          "worldY": 6.0,
+          "createsWorldSite": true,
+          "siteDisplayName": "主角据点",
+          "siteType": "Outpost",
+          "coreLevel": 1,
+          "legacyDebugOnly": false,
+          "hasLocalPosition": false
+        },
         {
           "flagId": "test:flag_fisher_east",
           "factionId": "base:faction_fisher_village",
           "anchorQ": 25,
           "anchorR": 10,
           "establishedOrder": 10,
+          "legacyDebugOnly": true,
           "localX": 0,
           "localZ": 0,
           "hasLocalPosition": false
@@ -3376,6 +3373,11 @@
           "anchorQ": 1,
           "anchorR": 10,
           "establishedOrder": 11,
+          "surfaceId": "base:surface_main_wilderness_v1",
+          "worldX": 1.732051,
+          "worldY": 15.0,
+          "createsWorldSite": true,
+          "coreLevel": 1,
           "localX": 0,
           "localZ": 0,
           "hasLocalPosition": false
@@ -3386,6 +3388,11 @@
           "anchorQ": 3,
           "anchorR": 11,
           "establishedOrder": 12,
+          "surfaceId": "base:surface_main_wilderness_v1",
+          "worldX": 6.062178,
+          "worldY": 16.5,
+          "createsWorldSite": true,
+          "coreLevel": 1,
           "localX": 0,
           "localZ": 0,
           "hasLocalPosition": false
@@ -3396,6 +3403,11 @@
           "anchorQ": 7,
           "anchorR": 8,
           "establishedOrder": 13,
+          "surfaceId": "base:surface_main_wilderness_v1",
+          "worldX": 12.124356,
+          "worldY": 12.0,
+          "createsWorldSite": true,
+          "coreLevel": 1,
           "localX": 0,
           "localZ": 0,
           "hasLocalPosition": false
@@ -3406,6 +3418,11 @@
           "anchorQ": 5,
           "anchorR": 10,
           "establishedOrder": 14,
+          "surfaceId": "base:surface_main_wilderness_v1",
+          "worldX": 8.660254,
+          "worldY": 15.0,
+          "createsWorldSite": true,
+          "coreLevel": 1,
           "localX": 0,
           "localZ": 0,
           "hasLocalPosition": false
@@ -3416,6 +3433,11 @@
           "anchorQ": 27,
           "anchorR": 10,
           "establishedOrder": 15,
+          "surfaceId": "base:surface_main_wilderness_v1",
+          "worldX": 46.765373,
+          "worldY": 15.0,
+          "createsWorldSite": true,
+          "coreLevel": 1,
           "localX": 0,
           "localZ": 0,
           "hasLocalPosition": false
@@ -3426,6 +3448,11 @@
           "anchorQ": 26,
           "anchorR": 8,
           "establishedOrder": 16,
+          "surfaceId": "base:surface_main_wilderness_v1",
+          "worldX": 45.033321,
+          "worldY": 12.0,
+          "createsWorldSite": true,
+          "coreLevel": 1,
           "localX": 0,
           "localZ": 0,
           "hasLocalPosition": false
@@ -3436,6 +3463,11 @@
           "anchorQ": 29,
           "anchorR": 10,
           "establishedOrder": 17,
+          "surfaceId": "base:surface_main_wilderness_v1",
+          "worldX": 50.229473,
+          "worldY": 15.0,
+          "createsWorldSite": true,
+          "coreLevel": 1,
           "localX": 0,
           "localZ": 0,
           "hasLocalPosition": false
@@ -3446,6 +3478,11 @@
           "anchorQ": 15,
           "anchorR": 12,
           "establishedOrder": 18,
+          "surfaceId": "base:surface_main_wilderness_v1",
+          "worldX": 25.980762,
+          "worldY": 18.0,
+          "createsWorldSite": true,
+          "coreLevel": 1,
           "localX": 0,
           "localZ": 0,
           "hasLocalPosition": false
@@ -3456,6 +3493,11 @@
           "anchorQ": 10,
           "anchorR": 13,
           "establishedOrder": 19,
+          "surfaceId": "base:surface_main_wilderness_v1",
+          "worldX": 18.186533,
+          "worldY": 19.5,
+          "createsWorldSite": true,
+          "coreLevel": 1,
           "localX": 0,
           "localZ": 0,
           "hasLocalPosition": false
@@ -3466,6 +3508,11 @@
           "anchorQ": 12,
           "anchorR": 13,
           "establishedOrder": 20,
+          "surfaceId": "base:surface_main_wilderness_v1",
+          "worldX": 21.650635,
+          "worldY": 19.5,
+          "createsWorldSite": true,
+          "coreLevel": 1,
           "localX": 0,
           "localZ": 0,
           "hasLocalPosition": false
@@ -3758,41 +3805,6 @@
             {
               "q": 18,
               "r": 6
-            }
-          ]
-        },
-        {
-          "regionId": "test:region_player_camp",
-          "primaryWorldSiteId": "test:site_player_camp",
-          "controlFactionId": "base:faction_player",
-          "hexes": [
-            {
-              "q": 3,
-              "r": 3
-            },
-            {
-              "q": 4,
-              "r": 3
-            },
-            {
-              "q": 3,
-              "r": 4
-            },
-            {
-              "q": 4,
-              "r": 4
-            },
-            {
-              "q": 5,
-              "r": 4
-            },
-            {
-              "q": 3,
-              "r": 5
-            },
-            {
-              "q": 4,
-              "r": 5
             }
           ]
         }

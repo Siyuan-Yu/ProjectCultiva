@@ -140710,21 +140710,24 @@
           "factionId": "base:faction_xijin",
           "anchorQ": 55,
           "anchorR": 30,
-          "establishedOrder": 31
+          "establishedOrder": 31,
+          "legacyDebugOnly": true
         },
         {
           "flagId": "base:flag_nan_yan_centralroad",
           "factionId": "base:faction_nan_yan",
           "anchorQ": 130,
           "anchorR": 35,
-          "establishedOrder": 32
+          "establishedOrder": 32,
+          "legacyDebugOnly": true
         },
         {
           "flagId": "base:flag_fisher_eastroad",
           "factionId": "base:faction_fisher_village",
           "anchorQ": 160,
           "anchorR": 30,
-          "establishedOrder": 33
+          "establishedOrder": 33,
+          "legacyDebugOnly": true
         }
       ],
       "territoryRegions": [

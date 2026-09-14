@@ -120,9 +120,27 @@ namespace XianXia.Unity.Host
             {
                 var p = HostPresentationSpace.ToPresentation(wp);
                 MapLayoutDefinition layout = null;
-                if (continuous && _bootstrap.ContinuousOutdoorSurfaceRuntime.TryGetCompositeWalkGrid(out var composite))
-                    _geometryLegal = HostFactionFlagQuery.TryResolveLegalCenterAtContinuous(
-                        composite, p.x, p.y, out _previewX, out _previewZ);
+                FactionFlagSitePlacementRequest request = null;
+                var requestFailure = string.Empty;
+                _previewX = p.x;
+                _previewZ = p.y;
+                if (continuous)
+                {
+                    var prepared = TryPrepareFactionFlagSitePlacement(
+                        p.x, p.y, out request, out _previewX, out _previewZ,
+                        out _geometryLegal, out requestFailure);
+                    if (prepared &&
+                        world.ConstructionCatalog.TryGet(_buildingId, out var spec) && spec != null)
+                    {
+                        var domain = FactionFlagService.ValidateSiteCorePlacement(
+                            world, world.Strategic.PlayerFactionId, request,
+                            spec.InitialSiteLevel, out _);
+                        _domainLegal = domain.IsSuccess;
+                        domainReason = domain.IsSuccess ? string.Empty : domain.Error.Message;
+                    }
+                    else
+                        domainReason = requestFailure;
+                }
                 else if (MapLayoutPick.TryGet(_bootstrap.Session, out layout) && layout != null)
                 {
                     var baseGrid = MapLayoutWalkGridBuilder.Create(layout);
@@ -132,20 +150,6 @@ namespace XianXia.Unity.Host
                 EnsurePreview();
                 PositionBuilding(_preview, _previewX, _previewZ, continuous ? 1f :
                     (layout != null && layout.CellSize > 0f ? layout.CellSize : 1f));
-                FactionFlagSitePlacementRequest request = null;
-                var requestFailure = string.Empty;
-                if (_geometryLegal && continuous && TryBuildPlacementRequest(
-                        _previewX, _previewZ, out request, out requestFailure) &&
-                    world.ConstructionCatalog.TryGet(_buildingId, out var spec) && spec != null)
-                {
-                    var domain = FactionFlagService.ValidateSiteCorePlacement(
-                        world, world.Strategic.PlayerFactionId, request,
-                        spec.SiteRangeWidth, spec.SiteRangeHeight, out _);
-                    _domainLegal = domain.IsSuccess;
-                    domainReason = domain.IsSuccess ? string.Empty : domain.Error.Message;
-                }
-                else if (_geometryLegal && continuous)
-                    domainReason = requestFailure;
                 _overallLegal = _geometryLegal && _domainLegal;
                 Tint(_preview, _overallLegal
                     ? new Color(.35f, 1f, .45f, .55f)
@@ -169,7 +173,8 @@ namespace XianXia.Unity.Host
         void PlaceFlag(float x, float z)
         {
             var world = _bootstrap.Session.World;
-            if (!TryBuildPlacementRequest(x, z, out var request, out var failure))
+            if (!TryPrepareFactionFlagSitePlacement(
+                    x, z, out var request, out _, out _, out _, out var failure))
             {
                 _status = failure;
                 return;
@@ -187,11 +192,19 @@ namespace XianXia.Unity.Host
                       request.WorldPosition.Y.ToString("0.###") + ")", this);
         }
 
-        bool TryBuildPlacementRequest(
-            float presentationX, float presentationZ,
-            out FactionFlagSitePlacementRequest request, out string failure)
+        bool TryPrepareFactionFlagSitePlacement(
+            float targetPresentationX,
+            float targetPresentationZ,
+            out FactionFlagSitePlacementRequest request,
+            out float presentationX,
+            out float presentationZ,
+            out bool geometryLegal,
+            out string failure)
         {
             request = null;
+            presentationX = targetPresentationX;
+            presentationZ = targetPresentationZ;
+            geometryLegal = false;
             failure = string.Empty;
             var session = _bootstrap?.Session;
             var world = session?.World;
@@ -203,11 +216,36 @@ namespace XianXia.Unity.Host
                 failure = "当前空间或战斗阶段不允许建站。";
                 return false;
             }
+
+            if (!continuous.TryGetCompositeWalkGrid(out var composite) || composite == null)
+            {
+                failure = "超出当前loaded buildable area。";
+                return false;
+            }
+            if (!HostFactionFlagQuery.TryResolveLegalCenterAtContinuous(
+                    composite, targetPresentationX, targetPresentationZ,
+                    out var resolvedX, out var resolvedZ))
+            {
+                failure = composite.TryWorldToCell(targetPresentationX, targetPresentationZ, out _, out _)
+                    ? "此处建筑占地不可通行/有障碍。"
+                    : "超出当前loaded buildable area。";
+                return false;
+            }
+            geometryLegal = true;
+            presentationX = resolvedX;
+            presentationZ = resolvedZ;
             if (!continuous.PresentationToWorld(
                     presentationX, presentationZ, out var worldX, out var worldY) ||
-                !continuous.IsWorldPositionLoaded(continuous.ActiveSurfaceId, worldX, worldY))
+                world.SurfaceSpatial == null ||
+                !world.SurfaceSpatial.TryGet(continuous.ActiveSurfaceId, out var surface) ||
+                surface == null || !surface.ContainsWorldPosition(worldX, worldY))
             {
-                failure = "落点不在当前已加载的有效 Surface 区域。";
+                failure = "当前位置不属于有效Continuous Surface。";
+                return false;
+            }
+            if (!continuous.IsWorldPositionLoaded(continuous.ActiveSurfaceId, worldX, worldY))
+            {
+                failure = "超出当前loaded buildable area。";
                 return false;
             }
             if (session.PlayerParty == null || !session.PlayerParty.HasActive ||

@@ -3930,13 +3930,6 @@
           "sourceLocalMapId": "base:map_site_zhuangyuan",
           "arrivalWorldX": 29.01185,
           "arrivalWorldY": 6.75
-        },
-        {
-          "siteId": "test:site_player_camp",
-          "surfaceId": "base:surface_main_wilderness_v1",
-          "sourceLocalMapId": "base:map_player_camp",
-          "arrivalWorldX": 6.9282,
-          "arrivalWorldY": 6.0
         }
       ],
       "sitePlacements": [
@@ -5229,40 +5222,6 @@
           "sourceGridY": 8,
           "sourceCellsW": 2,
           "sourceCellsH": 2
-        },
-        {
-          "stableId": "test:site_player_camp:player_camp_center_mark",
-          "siteId": "test:site_player_camp",
-          "chunkX": 5,
-          "chunkY": 5,
-          "worldX": 6.89356,
-          "worldY": 5.96,
-          "worldWidth": 0.03464,
-          "worldHeight": 0.04,
-          "kind": "rock",
-          "blocksMovement": false,
-          "label": "营地中心",
-          "sourceGridX": 24,
-          "sourceGridY": 24,
-          "sourceCellsW": 1,
-          "sourceCellsH": 1
-        },
-        {
-          "stableId": "test:site_player_camp:player_camp_edge_e",
-          "siteId": "test:site_player_camp",
-          "chunkX": 6,
-          "chunkY": 5,
-          "worldX": 7.65566,
-          "worldY": 5.96,
-          "worldWidth": 0.03464,
-          "worldHeight": 0.04,
-          "kind": "treeM",
-          "blocksMovement": false,
-          "label": "E Edge",
-          "sourceGridX": 46,
-          "sourceGridY": 24,
-          "sourceCellsW": 1,
-          "sourceCellsH": 1
         }
       ],
       "openingEntityAnchors": [
@@ -5812,25 +5771,6 @@
             "Rest",
             "Patrol",
             "Idle"
-          ]
-        },
-        {
-          "siteId": "test:site_player_camp",
-          "locationId": "base:loc_player_camp_start",
-          "worldX": 6.9282,
-          "worldY": 6.0,
-          "name": "主角临时营地",
-          "kind": "Wilderness",
-          "adjacentIds": [],
-          "tags": [
-            "wilderness",
-            "plain",
-            "camp",
-            "test"
-          ],
-          "allowedActivities": [
-            "Idle",
-            "Patrol"
           ]
         }
       ]

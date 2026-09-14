@@ -245,16 +245,18 @@
 | 中文 | English / Code | 定义 | 边界 |
 |---|---|---|---|
 | 连续户外世界表面 | Continuous Outdoor World Surface | 一块大陆普通户外共享的连续物理空间 | Site／Hex／Chunk 边界不切探索场景 |
+| 户外表面空间元数据 | Outdoor Surface Spatial Metric/Coverage | Core 持有的完整 SurfaceId、origin、cell/chunk metric 与 authored chunk coverage | 只回答 Surface 存在、尺度与 membership；不包含河桥、地形或 walkability |
 | 世界地点 | WorldSite | 连续表面上的稳定行政地点身份 | V1 一个 SiteCore；不是人物位置真源或一张户外 LocalMap |
 | 地点核心 | SiteCore | WorldSite 唯一行政核心；预设议政厅或玩家建立的势力旗 | 议政厅不可拆但可接管；另立旗产生新 Site |
-| 行政／建设范围 | Site Administrative and Build Range | SiteCore 等级产生的同一理论管辖与建设许可区域 | 可重叠；建筑再按自身地形／占地规则判断 |
-| 实际行政控制 | Effective Site Administration | 每个位置／建筑唯一解析出的当前管理 Site／Faction | 扩张不得追溯夺取他方既有控制 |
+| 行政／建设范围 | Site Administrative and Build Range | SiteCore 等级以 Surface cells 配置、按目标 Surface 的实际 cellSize 解析出的 world-space 理论管辖与建设许可区域 | 可重叠；建筑再按自身地形／占地规则判断；不得把 cell 数直接当 world 单位 |
+| 实际行政控制 | WorldSiteAdministrativeControl | 由 Surface 精确位置、当前理论范围与领土取得历史唯一解析出的管理 Site；政治 Owner 从该 Site 读取 | 扩张不得追溯夺取他方或同势力其他 Site 的既有控制；Hex/Region 只是投影 |
+| 领土取得记录 | TerritoryClaim | 某 Site 在某 Surface 上一次不可改写的矩形范围取得历史，按 AcquiredOrder 决定重叠位置优先级 | 不保存 Faction Owner；核心失效时保留但不参与解析，恢复后沿用原优先级 |
 | 飞舟 | Airship | 运输真实人物的空中载具 | 不沿地面过桥；无宣战、占领或地图移动特权 |
 
 | 中文 | Code | 含义 | 备注 |
 |---|---|---|---|
 | 控制资产 | Control Asset | 对 Hex 产生政治控制的因果真源 | 有 Owner 的 Fixed WorldSite 或存活 FactionFlag；见 2J |
-| 阵营旗 | FactionFlag | Anchor+完整一环的可攻击、非 Character Control Asset | 有 HP；需 War；不进入参战者快照 |
+| 阵营旗 | FactionFlag | 可攻击、非 Character 的控制核心资产；正式 Continuous 旗以 authored Surface 世界位置创建唯一 WorldSite/SiteCore，Legacy/debug-only 旗仅保留兼容数据且不进入正常产品 WorldMap | 有 HP；需 War；旗 Core marker 使用精确 CoreWorldPosition；实际行政控制只来自 SiteCore→TerritoryClaim |
 | 建立顺序 | EstablishedOrder | 2026-09-06 Control Asset V1 的历史全局顺序字段 | 可用于旧档迁移；不得让旧核心升级按创建顺序追溯抢占既得控制 |
 | 理论核心范围 | Nominal SiteCore Range | SiteCore 当前等级产生、尚未解析重叠的行政／建设候选区域 | Footprint+一环只是旧 V1 实现；最终等级范围为后续内容参数 |
 | 有效控制范围 | Effective Control Range | 应用既得控制和稳定交接后，实际归某 Site／Faction 管理的区域 | 每个位置／建筑唯一；同势力 Union 不重复计数 |

@@ -71,6 +71,17 @@ namespace XianXia.Data.Content
         public bool HasLocalPosition { get; set; }
         public float LocalX { get; set; }
         public float LocalZ { get; set; }
+        /// <summary>True only when SurfaceId + WorldX + WorldY were all explicitly authored.</summary>
+        public bool HasWorldPosition { get; set; }
+        public string SurfaceId { get; set; } = string.Empty;
+        public float WorldX { get; set; }
+        public float WorldY { get; set; }
+        public bool CreatesWorldSite { get; set; }
+        public string SiteDisplayName { get; set; } = string.Empty;
+        public string SiteType { get; set; } = string.Empty;
+        public int CoreLevel { get; set; } = 1;
+        /// <summary>Explicit compatibility/fixture content; never shown on the normal product WorldMap.</summary>
+        public bool LegacyDebugOnly { get; set; }
     }
 
     /// <summary>政治辖区（2J §6.3）：Hexes 固化在 Content，Runtime 不重算。</summary>

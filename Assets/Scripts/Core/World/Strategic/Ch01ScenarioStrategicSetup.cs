@@ -38,8 +38,8 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// LevelTester / Ch01FormationScenarioCompat：历史兼容 — 仅当 Content 未声明 Site 时补注册。
-        /// LevelTester 真源：<c>travel_mvp_hex_world_30x15.json</c> 内 <c>test:site_player_camp</c>。
+        /// Explicit legacy Core fixture only. Normal Data/playable bootstrap must never call this;
+        /// LevelTester no longer requires or recreates a PlayerCamp WorldSite.
         /// </summary>
         public static void EnsureLevelTesterFixtures(SimulationWorld world)
         {

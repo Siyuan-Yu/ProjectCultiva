@@ -216,7 +216,7 @@ namespace XianXia.Unity.Host
                             view.transform.position.x, view.transform.position.y, out var wx, out var wy))
                     {
                         PlayerPartyTransitionMembership.SyncIndependentCharacterPresenceFromPosition(
-                            world, id, new WorldVec2(wx, wy));
+                            world, id, new WorldVec2(wx, wy), surface.ActiveSurfaceId);
                         // 让 Domain presentation 与实际 view 一致：否则下一次 materialize reconcile 的
                         // RealignMaterializedViewPlacements 会把 view 拉回 follow 之前的过期 override
                         // （= 位置被回退）。这里写的就是当前 view 位置，因此是 no-op 对齐。
@@ -234,7 +234,7 @@ namespace XianXia.Unity.Host
                     presence.HasContinuousWorldPosition)
                 {
                     PlayerPartyTransitionMembership.SyncIndependentCharacterPresenceFromPosition(
-                        world, id, presence.ContinuousWorldPosition);
+                        world, id, presence.ContinuousWorldPosition, presence.PersonalSurfaceId);
                 }
 
                 world.LocalMap.RemoveOccupant(id);

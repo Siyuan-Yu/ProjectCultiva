@@ -1,10 +1,18 @@
 using UnityEngine;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
-    /// <summary>WorldSite Footprint 地图标记：每格相同小房子；名称仅 AnchorHex 显示一次。</summary>
+    public enum WorldSiteMarkerKind
+    {
+        CouncilHall,
+        FactionFlag,
+        OtherSite
+    }
+
+    /// <summary>WorldSite marker presentation selected from formal Core identity.</summary>
     public static class WorldSitePresentationLayer
     {
         public static void Draw(
@@ -31,16 +39,32 @@ namespace XianXia.Unity.Host
                 if (site == null || (site.IsRuntimeCreated && !site.IsCoreActive))
                     continue;
 
-                foreach (var hex in site.EnumerateFootprintHexes())
+                var markerKind = ResolveMarkerKind(world, site);
+                var labelCenter = projection.ProjectHexCenter(site.AnchorHex);
+                var labelMarkerSize = houseSize;
+                if (markerKind == WorldSiteMarkerKind.FactionFlag &&
+                    FactionFlagSiteCoreQuery.TryResolveFlagForSite(world, site, out var flag))
                 {
-                    var center = projection.ProjectHexCenter(hex);
-                    DrawFootprintHouse(center, houseSize, pixel);
+                    labelCenter = projection.ProjectWorld(site.CoreWorldX, site.CoreWorldY);
+                    labelMarkerSize = Mathf.Clamp(hexScreenRadius * 1.1f, 7f, 15f);
+                    FactionFlagWorldMapPresentation.DrawFlagMarker(
+                        labelCenter,
+                        labelMarkerSize,
+                        string.IsNullOrWhiteSpace(site.OwnerFactionId) ? flag.FactionId : site.OwnerFactionId,
+                        pixel);
+                }
+                else
+                {
+                    foreach (var hex in site.EnumerateFootprintHexes())
+                    {
+                        var center = projection.ProjectHexCenter(hex);
+                        DrawFootprintHouse(center, houseSize, pixel);
+                    }
                 }
 
                 if (hexScreenRadius < minZoomForLabel)
                     continue;
 
-                var anchorCenter = projection.ProjectHexCenter(site.AnchorHex);
                 var label = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
                 var labelStyle = HostImguiStyles.InkLabel(labelFontSize, bold: true, ink: new Color(0.22f, 0.18f, 0.12f));
                 labelStyle.alignment = TextAnchor.MiddleCenter;
@@ -48,14 +72,41 @@ namespace XianXia.Unity.Host
                 var textSize = labelStyle.CalcSize(content);
                 var labelWidth = Mathf.Clamp(textSize.x + 8f, 48f, 220f);
                 var labelHeight = Mathf.Max(textSize.y + 2f, labelFontSize + 4f);
-                var houseTopY = anchorCenter.y - houseSize * 0.55f;
+                var markerTopY = labelCenter.y - labelMarkerSize * 0.55f;
                 var labelRect = new Rect(
-                    anchorCenter.x - labelWidth * 0.5f,
-                    houseTopY - labelGapPx - labelHeight,
+                    labelCenter.x - labelWidth * 0.5f,
+                    markerTopY - labelGapPx - labelHeight,
                     labelWidth,
                     labelHeight);
                 GUI.Label(labelRect, content, labelStyle);
             }
+        }
+
+        public static WorldSiteMarkerKind ResolveMarkerKind(SimulationWorld world, WorldSite site)
+        {
+            if (FactionFlagSiteCoreQuery.TryResolveFlagForSite(world, site, out _))
+                return WorldSiteMarkerKind.FactionFlag;
+            return site != null && site.HasContinuousCore
+                ? WorldSiteMarkerKind.CouncilHall
+                : WorldSiteMarkerKind.OtherSite;
+        }
+
+        public static bool TryResolveMarkerWorldPosition(
+            SimulationWorld world, WorldSite site, out float worldX, out float worldY)
+        {
+            worldX = worldY = 0f;
+            if (site == null || world?.HexWorld == null)
+                return false;
+            if (ResolveMarkerKind(world, site) == WorldSiteMarkerKind.FactionFlag)
+            {
+                if (!site.HasCoreWorldPosition)
+                    return false;
+                worldX = site.CoreWorldX;
+                worldY = site.CoreWorldY;
+                return true;
+            }
+            HexMetrics.HexCoordToWorldCenter(site.AnchorHex, world.HexWorld.HexSize, out worldX, out worldY);
+            return true;
         }
 
         static void DrawFootprintHouse(Vector2 center, float size, Texture2D pixel)

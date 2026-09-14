@@ -4,6 +4,7 @@ using XianXia.Core.Construction;
 using XianXia.Core.Inventory;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Surface;
 using XianXia.Data.Content;
 
 namespace XianXia.Data.Bootstrap
@@ -17,9 +18,17 @@ namespace XianXia.Data.Bootstrap
                 return Result.Failure(ErrorCode.InvalidArgument, "ContentRuntime bootstrap args null.");
 
             RehydrateInventoryCatalog(world, registry);
-            RehydrateConstructionCatalog(world, registry);
             RehydrateSurfaceGround(world, registry);
+            RehydrateConstructionCatalog(world, registry);
             RebindPresetWorldSiteCoreMetadata(world, registry);
+            var flagSites = XianXia.Core.World.Strategic.FactionFlagSiteCoreBootstrap
+                .EnsureAuthoredSiteCores(world, true, ErrorCode.ContentLoadFailed);
+            if (flagSites.IsFailure)
+                return flagSites;
+            var claims = XianXia.Core.World.Strategic.TerritoryClaimService
+                .EstablishBaselineFromLegacy(world);
+            if (claims.IsFailure)
+                return claims;
 
             foreach (var kv in registry.Quests)
             {
@@ -125,8 +134,6 @@ namespace XianXia.Data.Bootstrap
                     CreatedSiteName = definition.CreatedSiteName ?? string.Empty,
                     CreatedSiteType = definition.CreatedSiteType ?? string.Empty,
                     InitialSiteLevel = definition.InitialSiteLevel,
-                    SiteRangeWidth = definition.CreatesWorldSite ? registry.SpatialRules.RequireLevel(definition.InitialSiteLevel).WidthWorld : 0f,
-                    SiteRangeHeight = definition.CreatesWorldSite ? registry.SpatialRules.RequireLevel(definition.InitialSiteLevel).HeightWorld : 0f,
                     DismantleRefundRate = definition.DismantleRefundRate
                 };
                 for (var i = 0; i < definition.Costs.Count; i++)
@@ -140,6 +147,24 @@ namespace XianXia.Data.Bootstrap
 
         internal static void RehydrateSurfaceGround(SimulationWorld world, DefinitionRegistry registry)
         {
+            world.SurfaceSpatial.Clear();
+            foreach (var pair in registry.OutdoorSurfaces)
+            {
+                var surface = pair.Value;
+                if (surface == null || surface.AcceptanceOnly) continue;
+                var chunks = new List<SurfaceChunkCoord>();
+                if (surface.Chunks != null)
+                    for (var i = 0; i < surface.Chunks.Count; i++)
+                        if (surface.Chunks[i] != null) chunks.Add(surface.Chunks[i].Coord);
+                world.SurfaceSpatial.Register(new OutdoorSurfaceSpatialMetric(
+                    surface.SurfaceId,
+                    surface.OriginWorldX,
+                    surface.OriginWorldY,
+                    surface.CellSize,
+                    surface.ChunkWidth,
+                    surface.ChunkHeight,
+                    chunks));
+            }
             world.SurfaceGround.ClearRegistered();
             foreach (var pair in registry.OutdoorSurfaceGeographies)
                 world.SurfaceGround.Register(pair.Value?.Navigation);
@@ -186,7 +211,7 @@ namespace XianXia.Data.Bootstrap
                     site.CoreWorldX = placement.WorldX + placement.WorldWidth * .5f;
                     site.CoreWorldY = placement.WorldY + placement.WorldHeight * .5f;
                     site.CoreLevel = 1;
-                    registry.SpatialRules.Bind(site);
+                    registry.SpatialRules.Bind(world, site);
                     site.IsCoreActive = true;
                     site.CoreIsRemovable = false;
                 }

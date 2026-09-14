@@ -260,7 +260,11 @@ namespace XianXia.Core.Exploration
                 var hex = XianXia.Core.World.Hex.HexMath.WorldToHex(position.X, position.Y, size);
                 world.PlayerPartyTravel.SetAtWorldPosition(position, hex);
                 world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(
-                    XianXia.Core.World.Strategic.WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(world, position));
+                    XianXia.Core.World.Strategic.WorldSiteAdministrativeControlResolver
+                        .TryResolveOnRegisteredSurface(
+                            world, position.X, position.Y, out _, out var returnSite, out _)
+                        ? returnSite.SiteId
+                        : string.Empty);
                 foreach (var id in world.PlayerPartyTravel.TravelingMembers)
                     world.WorldPresence.SetAtWorldPosition(id, position, hex);
                 world.PartyWorld.LocalMapId = string.Empty;

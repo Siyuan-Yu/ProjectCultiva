@@ -168,6 +168,8 @@ namespace XianXia.Core.World.Strategic
         public WorldSiteBoard Sites { get; } = new WorldSiteBoard();
         /// <summary>政治辖区 Board（2J §6.3）；与 Sites 相互引用（Site.TerritoryRegionId ↔ Region.PrimaryWorldSiteId）。</summary>
         public TerritoryRegionBoard TerritoryRegions { get; } = new TerritoryRegionBoard();
+        /// <summary>Site 行政范围的不可改写取得历史；Owner 仍由 WorldSite 提供。</summary>
+        public TerritoryClaimBoard TerritoryClaims { get; } = new TerritoryClaimBoard();
         public FactionFlagBoard FactionFlags { get; } = new FactionFlagBoard();
         public BattleOfferPending BattleOffer { get; } = new BattleOfferPending();
         public ArrivalNoticePending ArrivalNotice { get; } = new ArrivalNoticePending();

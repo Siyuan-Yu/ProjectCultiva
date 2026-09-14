@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using XianXia.Core.Simulation;
 using XianXia.Core.World.Hex;
 
 namespace XianXia.Core.World.Strategic
@@ -22,6 +23,15 @@ namespace XianXia.Core.World.Strategic
         public string SiteId { get; set; } = string.Empty;
         public string SurfaceId { get; set; } = string.Empty;
         public bool IsSiteCore { get; set; }
+        /// <summary>Runtime-only Content template metadata; never inferred from AnchorHex.</summary>
+        public bool IsAuthoredSiteCore { get; set; }
+        /// <summary>Explicit Content compatibility/fixture marker; hidden from the normal product WorldMap.</summary>
+        public bool IsWorldMapDebugOnly { get; set; }
+        public string AuthoredSiteDisplayName { get; set; } = string.Empty;
+        public string AuthoredSiteType { get; set; } = string.Empty;
+        public int AuthoredCoreLevel { get; set; } = 1;
+        /// <summary>Restore-only marker used to append a missing baseline claim to an old snapshot.</summary>
+        public bool NeedsAuthoredBaselineClaimMigration { get; set; }
     }
 
     public sealed class FactionFlagBoard
@@ -101,5 +111,25 @@ namespace XianXia.Core.World.Strategic
             return true;
         }
         public void Clear() { _byId.Clear(); _anchorIds.Clear(); }
+    }
+
+    /// <summary>Formal Core identity query shared by presentation and invariants.</summary>
+    public static class FactionFlagSiteCoreQuery
+    {
+        public static bool TryResolveFlagForSite(
+            SimulationWorld world, WorldSite site, out FactionFlagState flag)
+        {
+            flag = null;
+            if (world?.Strategic?.FactionFlags != null && site != null &&
+                !string.IsNullOrWhiteSpace(site.CoreAssetId) &&
+                world.Strategic.FactionFlags.Flags.TryGetValue(site.CoreAssetId, out var candidate) &&
+                candidate != null && candidate.IsSiteCore &&
+                string.Equals(candidate.SiteId, site.SiteId, StringComparison.Ordinal))
+            {
+                flag = candidate;
+                return true;
+            }
+            return false;
+        }
     }
 }

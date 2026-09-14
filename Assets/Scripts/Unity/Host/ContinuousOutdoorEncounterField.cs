@@ -85,7 +85,9 @@ namespace XianXia.Unity.Host
                 maxWX = Mathf.Max(maxWX, x + surface.ChunkWidth); maxWY = Mathf.Max(maxWY, y + surface.ChunkHeight);
             }
             Debug.Log("[IndependentEncounter] prepare Id=" + state.EncounterId + " surface=" + surface.SurfaceId +
+                " fieldCells=" + (state.Width / surface.CellSize) + "x" + (state.Height / surface.CellSize) +
                 " frozenWorldRect=" + state.CenterX + "," + state.CenterY + ";" + state.Width + "x" + state.Height +
+                " approxChunks=" + (state.Width / surface.ChunkWidth) + "x" + (state.Height / surface.ChunkHeight) +
                 " sourceWorldBounds=" + minWX + "," + minWY + ".." + maxWX + "," + maxWY +
                 " cellSizeWorld=" + surface.CellSize + " presentationUnitsPerWorldUnit=" + _mapper.PresentationUnitsPerWorldUnit);
             for (var i = 0; i < surface.Chunks.Count; i++)

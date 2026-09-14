@@ -21,7 +21,6 @@ namespace XianXia.Data.Bootstrap
             var hex = HexStrategicMapContentBootstrap.TryApplyToSession(world, registry, scenario);
             if (hex.IsFailure)
                 return hex;
-            Ch01ScenarioStrategicSetup.EnsureLevelTesterFixtures(world);
             var armies = FormalArmyContentBootstrap.Apply(world, registry, scenario, openingLookup);
             if (armies.IsFailure)
                 return armies;

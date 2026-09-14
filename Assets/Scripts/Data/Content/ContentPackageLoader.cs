@@ -688,8 +688,6 @@ namespace XianXia.Data.Content
                 CreatedSiteName = item.GetString("createdSiteName", string.Empty),
                 CreatedSiteType = item.GetString("createdSiteType", string.Empty),
                 InitialSiteLevel = (int)item.GetNumber("initialSiteLevel", 0),
-                SiteRangeWidth = (float)item.GetNumber("siteRangeWidth", 0),
-                SiteRangeHeight = (float)item.GetNumber("siteRangeHeight", 0),
                 DismantleRefundRate = refundRate
             };
             if (string.IsNullOrWhiteSpace(definition.Name))
@@ -2147,11 +2145,28 @@ namespace XianXia.Data.Content
 
         static void LoadWorldSpatialRules(JsonValue item, DefinitionId id, DefinitionRegistry registry, ValidationReport report)
         {
+            var errorsBefore = report.Errors.Count;
+            DefinitionSchema.RejectUnknownFields(
+                item, DefinitionSchema.WorldSpatialRulesFields, report, id.ToString());
+            if (report.Errors.Count > errorsBefore) return;
+            var hasEncounterCells = item.TryGetProperty("wildernessEncounterWidthCells", out _) ||
+                                    item.TryGetProperty("wildernessEncounterHeightCells", out _);
+            var hasEncounterLegacy = item.TryGetProperty("wildernessEncounterWidthWorld", out _) ||
+                                     item.TryGetProperty("wildernessEncounterHeightWorld", out _);
+            if (hasEncounterCells == hasEncounterLegacy)
+            {
+                report.Add(ErrorCode.InvalidArgument,
+                    "Specify exactly one complete wilderness encounter size: *Cells or legacy *World.", id.ToString());
+                return;
+            }
             var rules = new XianXia.Core.World.Strategic.WorldSpatialRules
             {
                 Id = id.ToString(),
-                WildernessEncounterWidthWorld = ReadFloat(item, "wildernessEncounterWidthWorld", 0f),
-                WildernessEncounterHeightWorld = ReadFloat(item, "wildernessEncounterHeightWorld", 0f),
+                // Legacy *World names carried cell counts. Accept them only as an old Content alias.
+                WildernessEncounterWidthCells = ReadFloat(item,
+                    hasEncounterCells ? "wildernessEncounterWidthCells" : "wildernessEncounterWidthWorld", 0f),
+                WildernessEncounterHeightCells = ReadFloat(item,
+                    hasEncounterCells ? "wildernessEncounterHeightCells" : "wildernessEncounterHeightWorld", 0f),
                 InterventionDecisionSeconds = ReadFloat(item, "interventionDecisionSeconds", -1f),
                 InterventionArrivalSeconds = ReadFloat(item, "interventionArrivalSeconds", -1f),
                 InterventionRelationThreshold = (int)item.GetNumber("interventionRelationThreshold", 0),
@@ -2161,18 +2176,32 @@ namespace XianXia.Data.Content
             if (item.TryGetProperty("coreLevels", out var rows) && rows.Kind == JsonValueKind.Array)
                 foreach (var row in rows.Array)
                 {
+                    errorsBefore = report.Errors.Count;
+                    DefinitionSchema.RejectUnknownFields(
+                        row, DefinitionSchema.CoreLevelControlRangeFields, report, id + ".coreLevels");
+                    if (report.Errors.Count > errorsBefore) return;
                     var level = (int)row.GetNumber("level", 0);
-                    var width = ReadFloat(row, "controlWidthWorld", 0f);
-                    var height = ReadFloat(row, "controlHeightWorld", 0f);
+                    var hasCells = row.TryGetProperty("controlWidthCells", out _) ||
+                                   row.TryGetProperty("controlHeightCells", out _);
+                    var hasLegacy = row.TryGetProperty("controlWidthWorld", out _) ||
+                                    row.TryGetProperty("controlHeightWorld", out _);
+                    if (hasCells == hasLegacy)
+                    {
+                        report.Add(ErrorCode.InvalidArgument,
+                            "Specify exactly one complete core control size: *Cells or legacy *World.", id.ToString());
+                        return;
+                    }
+                    var width = ReadFloat(row, hasCells ? "controlWidthCells" : "controlWidthWorld", 0f);
+                    var height = ReadFloat(row, hasCells ? "controlHeightCells" : "controlHeightWorld", 0f);
                     if (level < 1 || !levels.Add(level) || !(width > 0f) || !(height > 0f) ||
                         float.IsInfinity(width) || float.IsInfinity(height))
                     { report.Add(ErrorCode.InvalidArgument, "Invalid/duplicate core level control range.", id.ToString()); return; }
                     rules.CoreLevels.Add(new XianXia.Core.World.Strategic.CoreLevelControlRange
-                        { Level = level, WidthWorld = width, HeightWorld = height });
+                        { Level = level, WidthCells = width, HeightCells = height });
                 }
-            if (!levels.Contains(1) || !(rules.WildernessEncounterWidthWorld > 0f) ||
-                !(rules.WildernessEncounterHeightWorld > 0f) || float.IsInfinity(rules.WildernessEncounterWidthWorld) ||
-                float.IsInfinity(rules.WildernessEncounterHeightWorld) || !(rules.InterventionDecisionSeconds >= 0f) ||
+            if (!levels.Contains(1) || !(rules.WildernessEncounterWidthCells > 0f) ||
+                !(rules.WildernessEncounterHeightCells > 0f) || float.IsInfinity(rules.WildernessEncounterWidthCells) ||
+                float.IsInfinity(rules.WildernessEncounterHeightCells) || !(rules.InterventionDecisionSeconds >= 0f) ||
                 !(rules.InterventionArrivalSeconds >= 0f) || rules.InterventionChanceBasisPoints < 0 ||
                 rules.InterventionChanceBasisPoints > 10000 || rules.InterventionRelationThreshold < 1 ||
                 rules.InterventionRelationThreshold > 100 || float.IsInfinity(rules.InterventionDecisionSeconds) ||
@@ -2452,12 +2481,34 @@ namespace XianXia.Data.Content
                         id.ToString() + ".factionFlag");
                     if (report.Errors.Count > flagErrorsBefore)
                         continue;
+                    var hasSurface = fNode.TryGetProperty("surfaceId", out var surfaceNode) &&
+                                     surfaceNode.Kind == JsonValueKind.String;
+                    var hasWorldX = fNode.TryGetProperty("worldX", out var worldXNode) &&
+                                    worldXNode.Kind == JsonValueKind.Number;
+                    var hasWorldY = fNode.TryGetProperty("worldY", out var worldYNode) &&
+                                    worldYNode.Kind == JsonValueKind.Number;
+                    var hasAnyPreciseField = fNode.TryGetProperty("surfaceId", out _) ||
+                                             fNode.TryGetProperty("worldX", out _) ||
+                                             fNode.TryGetProperty("worldY", out _);
+                    if (hasAnyPreciseField && !(hasSurface && hasWorldX && hasWorldY))
+                        report.Add(ErrorCode.MissingRequiredField,
+                            "FactionFlag precise position requires surfaceId + worldX + worldY.",
+                            id + ".factionFlag");
                     world.FactionFlags.Add(new FactionFlagContentDefinition
                     {
                         FlagId=fNode.GetString("flagId",string.Empty), FactionId=fNode.GetString("factionId",string.Empty),
                         AnchorQ=ReadInt(fNode,"anchorQ",0), AnchorR=ReadInt(fNode,"anchorR",0),
                         EstablishedOrder=(long)fNode.GetNumber("establishedOrder",0),
-                        HasLocalPosition=fNode.GetBool("hasLocalPosition",false), LocalX=(float)fNode.GetNumber("localX",0), LocalZ=(float)fNode.GetNumber("localZ",0)
+                        HasLocalPosition=fNode.GetBool("hasLocalPosition",false), LocalX=(float)fNode.GetNumber("localX",0), LocalZ=(float)fNode.GetNumber("localZ",0),
+                        HasWorldPosition=hasSurface && hasWorldX && hasWorldY,
+                        SurfaceId=hasSurface ? surfaceNode.String : string.Empty,
+                        WorldX=hasWorldX ? (float)worldXNode.Number : 0f,
+                        WorldY=hasWorldY ? (float)worldYNode.Number : 0f,
+                        CreatesWorldSite=fNode.GetBool("createsWorldSite",false),
+                        SiteDisplayName=fNode.GetString("siteDisplayName",string.Empty),
+                        SiteType=fNode.GetString("siteType",string.Empty),
+                        CoreLevel=ReadInt(fNode,"coreLevel",1),
+                        LegacyDebugOnly=fNode.GetBool("legacyDebugOnly",false)
                     });
                 }
             }

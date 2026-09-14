@@ -135,19 +135,22 @@ namespace XianXia.Core.World.Strategic
                 return Fail("Encounter attacker is unavailable: " + attacker.Value);
             if (!IsLiving(world, target.Value))
                 return Fail("Encounter target is unavailable: " + target.Value);
+            ResolvedWorldSpatialRange wildernessRange;
+            try { wildernessRange = world.Strategic.SpatialRules.ResolveWildernessEncounter(world, surfaceId); }
+            catch (InvalidOperationException ex) { return Fail(ex.Message); }
             var state = new CharacterEncounterState
             {
                 SourceSurfaceId = surfaceId, CenterX = contact.X, CenterY = contact.Y,
-                Width = world.Strategic.SpatialRules.WildernessEncounterWidthWorld,
-                Height = world.Strategic.SpatialRules.WildernessEncounterHeightWorld,
+                Width = wildernessRange.WidthWorld,
+                Height = wildernessRange.HeightWorld,
                 Phase = CharacterEncounterPhase.Preparing
             };
-            if (WorldSiteCoreCoverageResolver.TryResolve(world, surfaceId, contact.X, contact.Y, out var site))
+            if (WorldSiteAdministrativeControlResolver.TryResolve(
+                    world, surfaceId, contact.X, contact.Y, out var site, out _))
             {
-                var range = world.Strategic.SpatialRules.RequireLevel(site.CoreLevel);
                 state.SourceSiteId = site.SiteId;
                 state.CenterX = site.CoreWorldX; state.CenterY = site.CoreWorldY;
-                state.Width = range.WidthWorld; state.Height = range.HeightWorld;
+                state.Width = site.CoreRangeWidth; state.Height = site.CoreRangeHeight;
             }
             var player = world.Strategic.PlayerPartyContext;
             var attackerFriendly = player != null && player.IsMember(attacker);

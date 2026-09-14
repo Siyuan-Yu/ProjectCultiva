@@ -1,5 +1,33 @@
 # 开发日志
 
+## 2026-09-14 — CW-04 Flag Placement + Player Camp Retirement
+
+- 新增 Core `OutdoorSurfaceSpatialAuthority`，从完整 Outdoor Surface Content 注册 SurfaceId、origin、cell/chunk metric 与 authored chunk coverage。`WorldSpatialRules`、行政位置 membership 和 FactionFlag Core validation 不再把局部 `SurfaceGroundNavigation` coverage 当完整 Surface；河桥及精细路径调用保留导航 authority。
+- Continuous 建旗 Preview／点击提交共用 Host preflight：当前 CompositeWalkGrid 校验4×4占地、loaded area、完整 Surface membership 与主控距离，点击时重算。Core 删除 Strategic Hex passability、局部 SurfaceGround walkability 和错误4-world排斥半径，只拒绝 metric epsilon 同点 Core 与其它势力 actual manager；同势力旧 Site 可继续管理新 Core 中心。
+- 正式 Content 删除 `test:site_player_camp`、`test:region_player_camp`、Main Surface Camp envelope／测试摆件／place，并在 canonical `(6.9282,6.0)` author `base:flag_player_origin` Level-1 SiteCore。正常 `StrategicContentBootstrap` 不再调用自动补 Camp fixture；旧 map/place 文件仅留旧档／显式测试兼容。
+- 旧 Snapshot 若明确含退役 Camp identity、缺少起始旗且没有其它玩家 SiteCore flag，则一次迁移为当前 authored 玩家旗；不迁移 Camp 建筑/marker，不改人物 snapshot 位置。状态：**CW-04 Flag Placement + Player Camp Retirement Implementation Completed / Producer Acceptance Pending**；验证见 [229](229-cw-04-flag-placement-player-camp-retirement-2026-09-14.md)，修改未提交。
+
+## 2026-09-14 — CW-04 WorldMap Core Marker Consistency
+
+- 修复 SiteCore 旗在 WorldMap 被通用 WorldSite footprint 路径画成房屋：现在用 `CoreAssetId → FactionFlagSiteCoreQuery` 判定正式 Core identity，旗站只在精确 `CoreWorldPosition` 画一面复用旗 marker 并锚定 Site label；议政厅／普通 Site 保留房屋表现。
+- 孤立无范围旗确认为 `test:flag_fisher_east`。新增显式 `legacyDebugOnly` Content 语义并隔离正常产品 marker；另外三面非开局、Surface 外旧旗也明确标记。所有非 Site-Core Content flag 若未显式 debug-only，reference validation 失败。
+- Player-built flag 走同一 Site identity marker 路径；Claim／Actual Overlay／Level1 150×150 cells 未改。同势力相邻 Site 的产品 border union 明确延期，只允许未来做 presentation union，不合并 Site／Claim／管理权。
+- 验证仅限 Core／Data／Unity Host offline compile、Content/reference 与轻量启动链、`git diff --check`；未启动 Unity、未运行测试或 Bake。状态：**CW-04 Core Marker Consistency Implementation Completed / Producer Acceptance Pending**；修改未提交。详见 [228](228-cw-04-worldmap-core-marker-consistency-2026-09-14.md)。
+
+## 2026-09-14 — CW-04 Existing Flag Core Content Migration
+
+- 荒村已有正式 authored 议政厅 Core，因此能建立 Claim／Actual Overlay；开局 World 的旧势力旗只有 Hex Anchor，不能进入新的实际行政控制链。本轮为10面正式 `base:` 旗一次性 author 当前既有 Hex 显示中心对应的 Main Surface 精确坐标；`test:flag_fisher_east` 保持 legacy-only。
+- `FactionFlagSiteCoreBootstrap` 在 SpatialRules、Surface、Flag 与 Site shell 就绪后，把明确 `createsWorldSite` 的旗提升为稳定 Runtime Site Core，再与议政厅按原 `EstablishedOrder` 一起建立统一 baseline。玩家新建旗继续走原 `TryPlaceSiteCore→CreateInitialClaim`，新增成功后核心中心必须由新 Site 自己实际管理。
+- Content schema/reference validation 覆盖字段完整性、有限坐标、Surface/Level、全局 FlagId、唯一 Surface coverage 与禁止 legacy local 双权威。旧 Snapshot 旗条目缺少 `siteCoreFormat=1` 时，可按当前明确 Content 补齐精确位置并幂等追加缺失 baseline；新格式严格恢复，不回退 Hex。
+- 只读正式启动链检查：11面运行中旗＝10 AuthoredFlagCore＋1 LegacyOnly；11 Claims；11 Actual overlays／15 pieces。荒村劳役宗门1议政厅＋4旗＝5 actual Sites，渔村3旗＝3，西津3旗＝3。Core/Data/Host 离线编译与最终 diff 检查见 [227](227-cw-04-existing-flag-core-content-migration-2026-09-14.md)；未运行 Unity／测试，修改未提交。状态：**CW-04 Existing Flag Core Migration Implementation Completed / Producer Acceptance Pending**。
+
+## 2026-09-14 — CW-04 TerritoryClaim 实际行政控制历史
+
+- CW-U4.2 已由制作人人工验收；本轮新增持久化 `TerritoryClaim` 取得历史，理论 SiteCore 范围允许重叠，精确 Surface 位置按最早仍有效 Claim 唯一解析实际 Site，Owner 继续来自 WorldSite。
+- 新建 Site 事务性建立初始 Claim；Content 已配置的升级只追加较晚扩张 Claim，不抢已有控制。核心失效保留历史、恢复沿用优先级；Site 易主不改 Claim。当前 Content 仅有 Level 1，未虚构 Level 2。
+- Hex/Region 改为实际行政控制的可重建投影；旧非 Site 旗只在无 Site 管理者时 fallback。遭遇、Continuous 当前 Site、脱队/Interior 返回等精确位置入口和 WorldMap inspect 已切到同一 resolver。
+- Snapshot 新增严格的 Claim authority 与全量历史；旧 v6 只在显式 bootstrap/restore 阶段按 `ControlEstablishedOrder` 一次迁移，查询/UI 不生成 Claim。现成非 Unity 编译 Core461／Data78／Unity145 为 0 error、8 个既有 warning；未运行 Unity 或测试。验证结果见 [223](223-cw-04-territory-claim-administrative-control-2026-09-14.md)。状态：**CW-04 Implementation Completed / Producer Acceptance Pending**；修改未提交，人工验收前不开始 CW-05。
+
 ## 2026-09-14 — CharacterEncounter 非存活 Squad 成员入场修复
 
 - 修复 `Necessary squad member unavailable`：Squad 身份按既有规则在弥留／死亡后继续保留，但新遭遇 roster 现在只采集两支当前 Squad 的存活成员；非存活成员不再令整场准备失败，也不会被移动或重锚。
@@ -53,7 +81,7 @@
 ## 2026-09-14 — 人物遭遇构建界面停留修复（Scripts.zip 对照）
 
 - 制作人截图停在“构建独立战场”；只读 ZIP 对照确认 HostCharacterEncounter、ContinuousOutdoorEncounterField、HostDemoTileMap 与修复前工作区一致。LevelTester 场景明确 stampGrassGround=1、grassStride=2；50×50 layout 的双循环每 chunk 创建 625 个草 prefab，646 chunks 合计 403750 个草对象（尚不计 prefab 子物体）。此前“背景已合并”的说明只覆盖 geography，遗漏普通草地，现予更正。
-- 所有 Continuous outdoor source chunk 改用一个精确矩形背景 renderer，草地背景从每块625个降为1个；交互 placements、墙/门/物件和导航不走背景合并。500×500 世界单位与 Content 比例不变。
+- 所有 Continuous outdoor source chunk 改用一个精确矩形背景 renderer，草地背景从每块625个降为1个；交互 placements、墙/门/物件和导航不走背景合并。后续已确认 500×500 指 Surface cells，非 world 单位。
 - 构建从固定每帧一块改为约4ms后让出（chunk仍是最小构建单位）；导航和裁剪从每8192格强制一帧改为约4ms预算。UI显示真实已完成chunk/总数；记录构建开始、完成耗时、Active暂停/输入与取消。日志来自运行时钟，不预报运行耗时。
 - Presenter 原先连 Active 都继续画 offer，现成功入场后停止画确认窗口。请求统一持有嵌套迭代器；取消会停止全部子任务再清理 staging，异常进入带阶段与完整异常的可重试失败状态。部分chunk构建前即登记回滚，layout build异常仍收尾registry owner。
 - 现有 Editor.log 无本场 build/commit完成记录；只能确认以上源码缺陷，未声称在Unity复现或证明唯一运行时原因。现成非Unity编译通过，git diff --check通过；未启动Unity、未运行任何测试/Bake。待制作人用普通NPC攻击→手动战斗确认计数推进、窗口关闭和战术行动，并核对取消后无迟到入场。
@@ -82,7 +110,7 @@
 
 ## 2026-09-13 — C1/U2A：统一核心范围与独立人物遭遇首条默认入口
 
-- 制作人解除范围缺失：一级议政厅/势力旗控制范围统一 500×500 世界单位，建筑物理占地独立；规则已写入 ADR-0035。新增集中 worldSpatialRules Content，正式 loader/registry/校验/建设/控制/遭遇消费者接线。
+- 当时把制作人所述500×500错记为world单位；2026-09-14最终锁定Site Level 1为150×150 Surface cells（Main Surface为4.2×4.2 world／3×3 chunks），Wilderness Encounter独立保留500×500 cells。
 - 普通人物右键默认进入 CharacterEncounter 确认与独立场地实例，沿用真实 Character 伤害和战报；范围从真实核心或野外配置冻结，个人原锚点与战术状态进入正式 JSON，稳定战中/可结束恢复时重建场地。
 - 本场时间只消费参战者生命期限；主世界不推进。返回只恢复空间，保留伤亡与消耗，报告单独持有暂停。
 - Core459/Data78/Host145 现成离线编译通过；继续 C2→C4，不逐阶段等待人工确认。实现细节及后续状态见 222；未运行 Unity、测试或 Bake。
@@ -4495,7 +4523,7 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 - 独立场地改为一次 `PreparedIndependentField` 事务：导航数据分帧准备、临时 owner 下分帧构建、全部完成后才开始领域并接管原表现；失败、换 World 与 disable 清理本次 staging。返回复用当前导航，不重新同步合成。
 - `WalkGridComposer` 改为输入格写入 covered/blocked 后单次输出扫描，复杂度为输出格数加输入格数；独立战场边界裁剪和动态拓扑刷新也按预算让出帧。
 - 输入门禁增加遭遇独立锁，避免任务日志等逐帧写入覆盖确认／准备／报告期间的世界交互禁用；成功入场释放本请求 modal，不改写玩家手动暂停或 WorldTick 遭遇冻结。
-- 当前 Main Wilderness Content 读取为 646 个 1.4×1.4 世界单位 chunk、cellSize 0.028、50×50 格 source layout、35.714 presentation units/world unit，完整 Surface 为 53.2×23.8 世界单位。因此 Level 1 500×500 逻辑范围会覆盖全部已定义 Surface；大陆外仍是不可走空域。
+- 当前 Main Wilderness 为646个1.4×1.4 world chunk、cellSize .028、50×50 cells/chunk、完整Surface约53.2×23.8 world。Site L1 150 cells为4.2 world；Wilderness Encounter 500 cells为14 world。
 - 已运行现成离线编译与 `git diff --check`；未启动 Unity，未运行自动测试、Bake 或 batchmode。运行时响应性、视觉与完整交互仍待制作人人工验收。
 
 ---

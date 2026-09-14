@@ -1864,9 +1864,11 @@ namespace XianXia.Unity.Host
 
         string ResolveCurrentOutdoorSiteId(SimulationWorld world, WorldVec2 position)
         {
-            if (WorldSiteCoreCoverageResolver.TryResolve(
-                    world, _surfaceId, position.X, position.Y, out var dynamicSite))
+            if (WorldSiteAdministrativeControlResolver.TryResolve(
+                    world, _surfaceId, position.X, position.Y, out var dynamicSite, out _))
                 return dynamicSite.SiteId;
+            if (world?.Strategic?.TerritoryClaims?.HasAuthority == true)
+                return string.Empty;
             return WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(world, position);
         }
 
@@ -2700,7 +2702,7 @@ namespace XianXia.Unity.Host
             // treating that as a failure produced a false [ContinuousStartupInvariantFailure] on
             // every mid-game surface activation away from a site.
             var openingSiteId = world != null && motion != null
-                ? WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(world, motion.WorldPosition)
+                ? ResolveCurrentOutdoorSiteId(world, motion.WorldPosition)
                 : string.Empty;
             if (!string.IsNullOrEmpty(openingSiteId))
             {
@@ -2924,7 +2926,7 @@ namespace XianXia.Unity.Host
                 row.Walkable = _compositeWalkGrid.IsWalkable(gridX, gridY);
             }
             if (world != null)
-                row.ResolvedSite = WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(world, new WorldVec2(wx, wy));
+                row.ResolvedSite = ResolveCurrentOutdoorSiteId(world, new WorldVec2(wx, wy));
             row.InsideEnvelope = ContinuousOutdoorOpeningAnchorResolver
                 .IsInsideSiteBakedEnvelope(surface, expectedSiteId, wx, wy);
             row.Valid = row.InLoaded && row.InWalkGrid && row.Walkable &&

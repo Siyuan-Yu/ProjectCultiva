@@ -18,7 +18,7 @@ namespace XianXia.Core.World.Strategic
         public string DisplayName { get; set; } = string.Empty;
         public string SiteType { get; set; } = string.Empty;
         public string OwnerFactionId { get; set; } = string.Empty;
-        /// <summary>控制资产建立顺序；易主不改变。</summary>
+        /// <summary>Legacy bootstrap/migration order；实际行政优先级由 TerritoryClaim.AcquiredOrder 决定。</summary>
         public long ControlEstablishedOrder { get; set; }
         /// <summary>绑定 TerritoryRegion（2J §6.4）。FootprintHexes 与 Region.Hexes 严格分离。</summary>
         public string TerritoryRegionId { get; set; } = string.Empty;

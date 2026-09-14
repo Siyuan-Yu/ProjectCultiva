@@ -28,11 +28,23 @@ namespace XianXia.Core.Persistence
             if (flags.IsFailure)
                 return flags;
 
+            // Snapshots predating both flag and runtime-Site authority inherit the current
+            // authored flag set. Mark those flags so their baseline claims may be added to
+            // an otherwise authoritative legacy claim history below.
+            if (!dto.HasFactionFlagSnapshotAuthority && !dto.HasRuntimeWorldSiteSnapshotAuthority)
+                MarkAuthoredFlagsForLegacyBaselineMigration(world);
+
             var runtimeSites = RestoreRuntimeWorldSites(world, dto);
             if (runtimeSites.IsFailure)
                 return runtimeSites;
             if (!dto.HasRuntimeWorldSiteSnapshotAuthority)
-                MigrateLegacyPreciselyPositionedFlags(world);
+                world.Strategic.Sites.RemoveAllRuntimeSites();
+            var allowLegacySiteCreation = HasAuthoredFlagLegacyMigration(world) ||
+                (!dto.HasRuntimeWorldSiteSnapshotAuthority && !dto.HasFactionFlagSnapshotAuthority);
+            var authoredFlagSites = FactionFlagSiteCoreBootstrap.EnsureAuthoredSiteCores(
+                world, allowLegacySiteCreation, ErrorCode.SnapshotInvalid);
+            if (authoredFlagSites.IsFailure)
+                return authoredFlagSites;
 
             if (dto.WorldSiteOwners != null)
             {
@@ -49,29 +61,23 @@ namespace XianXia.Core.Persistence
                             string.IsNullOrEmpty(site.CoreAssetId) || site.CoreAssetId != coreSite.CoreAssetId ||
                             string.IsNullOrEmpty(site.CoreSurfaceId) || site.CoreSurfaceId != coreSite.CoreSurfaceId)
                             return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid Site core metadata: " + site.SiteId);
-                        try { world.Strategic.SpatialRules.RequireLevel(site.CoreLevel); }
+                        try { world.Strategic.SpatialRules.ResolveLevel(world, site.CoreLevel, site.CoreSurfaceId); }
                         catch (InvalidOperationException e) { return Result.Failure(ErrorCode.SnapshotInvalid, e.Message); }
                         coreSite.CoreLevel = site.CoreLevel;
                         coreSite.CoreWorldX = site.CoreWorldX; coreSite.CoreWorldY = site.CoreWorldY;
                         coreSite.HasCoreWorldPosition = true; coreSite.IsCoreActive = site.CoreActive;
-                        world.Strategic.SpatialRules.Bind(coreSite);
+                        world.Strategic.SpatialRules.Bind(world, coreSite);
                     }
                     WorldSiteOwnershipService.SetOwner(world, site.SiteId, site.OwnerFactionId ?? string.Empty);
                 }
             }
 
-            if (dto.TerritoryRegionControllers != null)
-            {
-                for (var i = 0; i < dto.TerritoryRegionControllers.Count; i++)
-                {
-                    var region = dto.TerritoryRegionControllers[i];
-                    if (region == null || string.IsNullOrEmpty(region.RegionId))
-                        continue;
-                    TerritoryControlService.SetRegionController(
-                        world, region.RegionId, region.ControlFactionId ?? string.Empty);
-                }
-            }
+            var claims = RestoreTerritoryClaims(world, dto);
+            if (claims.IsFailure)
+                return claims;
 
+            // Legacy TerritoryRegionControllers are intentionally ignored. Region/Hex control is
+            // a pure projection rebuilt from Site Owner + exact administrative Claim authority.
             StrategicTerritoryCoverageResolver.Rebuild(world);
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -324,22 +330,29 @@ namespace XianXia.Core.Persistence
                 });
             }
 
-            foreach (var regionKv in world.Strategic.TerritoryRegions.Regions)
+            dto.HasTerritoryClaimSnapshotAuthority = world.Strategic.TerritoryClaims.HasAuthority;
+            foreach (var claim in world.Strategic.TerritoryClaims.Claims)
             {
-                var region = regionKv.Value;
-                if (region == null || string.IsNullOrEmpty(region.RegionId))
-                    continue;
-                dto.TerritoryRegionControllers.Add(new TerritoryRegionControllerSnapshotDto
+                dto.TerritoryClaims.Add(new TerritoryClaimSnapshotDto
                 {
-                    RegionId = region.RegionId,
-                    ControlFactionId = region.ControlFactionId ?? string.Empty
+                    FormatVersion = 3,
+                    ClaimId = claim.ClaimId,
+                    SiteId = claim.SiteId,
+                    SurfaceId = claim.SurfaceId,
+                    AcquiredOrder = claim.AcquiredOrder,
+                    CenterX = claim.CenterX,
+                    CenterY = claim.CenterY,
+                    Width = claim.Width,
+                    Height = claim.Height
                 });
             }
+
             dto.HasFactionFlagSnapshotAuthority = true;
             foreach (var pair in world.Strategic.FactionFlags.Flags)
             {
                 var flag = pair.Value; if (flag == null) continue;
-                dto.FactionFlags.Add(new FactionFlagSnapshotDto { FlagId=flag.FlagId, FactionId=flag.FactionId,
+                dto.FactionFlags.Add(new FactionFlagSnapshotDto { SiteCoreFormat=1,
+                    FlagId=flag.FlagId, FactionId=flag.FactionId,
                     AnchorQ=flag.AnchorHex.Q, AnchorR=flag.AnchorHex.R, EstablishedOrder=flag.EstablishedOrder,
                     CurrentHp=flag.CurrentHp, MaxHp=flag.MaxHp, HasLocalPosition=flag.HasLocalPosition, LocalX=flag.LocalX, LocalZ=flag.LocalZ,
                     HasWorldPosition=flag.HasWorldPosition, WorldX=flag.WorldX, WorldY=flag.WorldY,
@@ -856,8 +869,8 @@ namespace XianXia.Core.Persistence
             {
                 var item = source[i];
                 var anchor = new HexCoord(item.AnchorQ, item.AnchorR);
-                CoreLevelControlRange controlRange;
-                try { controlRange = world.Strategic.SpatialRules.RequireLevel(item.CoreLevel); }
+                ResolvedWorldSpatialRange controlRange;
+                try { controlRange = world.Strategic.SpatialRules.ResolveLevel(world, item.CoreLevel, item.SurfaceId); }
                 catch (Exception ex) { return Result.Failure(ErrorCode.SnapshotInvalid, "Site core level missing from Content.", ex.Message); }
                 var site = new WorldSite
                 {
@@ -900,61 +913,135 @@ namespace XianXia.Core.Persistence
             return Result.Success();
         }
 
-        static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
-
-        static void MigrateLegacyPreciselyPositionedFlags(SimulationWorld world)
+        static Result RestoreTerritoryClaims(SimulationWorld world, StrategicSnapshotDto dto)
         {
-            if (world?.Strategic == null ||
-                !world.ConstructionCatalog.TryGet(
-                    XianXia.Core.Construction.ConstructionService.FactionControlPostBuildingId,
-                    out var spec) || spec == null || !spec.CreatesWorldSite)
-                return;
+            if (!dto.HasTerritoryClaimSnapshotAuthority)
+                return TerritoryClaimService.EstablishBaselineFromLegacy(world);
+            if (dto.TerritoryClaims == null)
+                return Result.Failure(ErrorCode.SnapshotInvalid,
+                    "Territory claim authority is present but its history is missing.");
+            var claims = new List<TerritoryClaimState>(dto.TerritoryClaims.Count);
+            var claimedSites = new HashSet<string>(StringComparer.Ordinal);
+            var usedOrders = new HashSet<long>();
+            for (var i = 0; i < dto.TerritoryClaims.Count; i++)
+            {
+                var item = dto.TerritoryClaims[i];
+                if (item == null || item.FormatVersion < 1 || item.FormatVersion > 3)
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Unknown territory claim snapshot format.", "Index=" + i);
+                var width = item.Width;
+                var height = item.Height;
+                if (item.FormatVersion < 3)
+                {
+                    var migrated = TryMigrateLegacyTerritoryClaim(world, item, out width, out height);
+                    if (migrated.IsFailure) return migrated;
+                }
+                var restored = new TerritoryClaimState
+                {
+                    ClaimId = item.ClaimId,
+                    SiteId = item.SiteId,
+                    SurfaceId = item.SurfaceId,
+                    AcquiredOrder = item.AcquiredOrder,
+                    CenterX = item.CenterX,
+                    CenterY = item.CenterY,
+                    Width = width,
+                    Height = height
+                };
+                claims.Add(restored);
+                claimedSites.Add(restored.SiteId ?? string.Empty);
+                usedOrders.Add(restored.AcquiredOrder);
+            }
             foreach (var pair in world.Strategic.FactionFlags.Flags)
             {
                 var flag = pair.Value;
-                if (flag == null || flag.IsSiteCore || !flag.HasWorldPosition ||
-                    string.IsNullOrWhiteSpace(flag.SurfaceId))
-                {
-#if DEBUG || UNITY_EDITOR || DEVELOPMENT_BUILD
-                    if (flag != null && !flag.IsSiteCore)
-                        System.Diagnostics.Debug.WriteLine(
-                            "[CW03LegacyFlagMigrationSkipped] FlagId=" + flag.FlagId +
-                            " Reason=MissingReliableSurfaceWorldPosition");
-#endif
+                if (flag == null || !flag.NeedsAuthoredBaselineClaimMigration ||
+                    string.IsNullOrWhiteSpace(flag.SiteId) || claimedSites.Contains(flag.SiteId) ||
+                    !world.Strategic.Sites.TryGet(flag.SiteId, out var site) || site == null)
                     continue;
-                }
-                var siteId = FactionFlagService.SiteIdForCoreFlag(flag.FlagId);
-                if (world.Strategic.Sites.TryGet(siteId, out _)) continue;
-                var site = new WorldSite
+                if (flag.EstablishedOrder <= 0 || usedOrders.Contains(flag.EstablishedOrder))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Authored FactionFlag baseline order collides with snapshot claim history.", flag.FlagId);
+                claims.Add(new TerritoryClaimState
                 {
-                    SiteId = siteId,
-                    DisplayName = string.IsNullOrWhiteSpace(spec.CreatedSiteName)
-                        ? "迁移据点" : spec.CreatedSiteName,
-                    SiteType = spec.CreatedSiteType,
-                    OwnerFactionId = flag.FactionId,
-                    ControlEstablishedOrder = flag.EstablishedOrder,
-                    UsesContinuousOutdoorSurface = true,
-                    IsRuntimeCreated = true,
-                    CoreAssetId = flag.FlagId,
-                    CoreSurfaceId = flag.SurfaceId,
-                    HasCoreWorldPosition = true,
-                    CoreWorldX = flag.WorldX,
-                    CoreWorldY = flag.WorldY,
-                    CoreLevel = spec.InitialSiteLevel,
-                    CoreRangeWidth = spec.SiteRangeWidth,
-                    CoreRangeHeight = spec.SiteRangeHeight,
-                    IsCoreActive = true,
-                    CoreIsRemovable = true,
-                    AnchorHex = flag.AnchorHex,
-                    PresenceHex = flag.AnchorHex
-                };
-                site.SetFootprint(new[] { flag.AnchorHex });
-                try { world.Strategic.Sites.Register(site); }
-                catch (Exception) { continue; }
-                flag.SiteId = siteId;
-                flag.IsSiteCore = true;
+                    ClaimId = "claim:baseline:" + site.SiteId,
+                    SiteId = site.SiteId,
+                    SurfaceId = site.CoreSurfaceId,
+                    AcquiredOrder = flag.EstablishedOrder,
+                    CenterX = site.CoreWorldX,
+                    CenterY = site.CoreWorldY,
+                    Width = site.CoreRangeWidth,
+                    Height = site.CoreRangeHeight
+                });
+                claimedSites.Add(site.SiteId);
+                usedOrders.Add(flag.EstablishedOrder);
+            }
+            return TerritoryClaimService.RestoreAuthoritative(world, claims);
+        }
+
+        static void MarkAuthoredFlagsForLegacyBaselineMigration(SimulationWorld world)
+        {
+            foreach (var pair in world.Strategic.FactionFlags.Flags)
+            {
+                var flag = pair.Value;
+                if (flag != null && flag.IsAuthoredSiteCore)
+                    flag.NeedsAuthoredBaselineClaimMigration = true;
             }
         }
+
+        static bool HasAuthoredFlagLegacyMigration(SimulationWorld world)
+        {
+            foreach (var pair in world.Strategic.FactionFlags.Flags)
+            {
+                var flag = pair.Value;
+                if (flag != null && flag.IsAuthoredSiteCore &&
+                    flag.NeedsAuthoredBaselineClaimMigration)
+                    return true;
+            }
+            return false;
+        }
+
+        static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+
+        static Result TryMigrateLegacyTerritoryClaim(
+            SimulationWorld world, TerritoryClaimSnapshotDto item, out float width, out float height)
+        {
+            width = height = 0f;
+            if (world?.Strategic?.SpatialRules == null || item == null ||
+                !world.Strategic.Sites.TryGet(item.SiteId ?? string.Empty, out var site) || site == null ||
+                !string.Equals(site.CoreSurfaceId, item.SurfaceId, StringComparison.Ordinal))
+                return Result.Failure(ErrorCode.SnapshotInvalid,
+                    "Legacy territory claim source Site/Surface cannot be inferred reliably.", item?.SiteId);
+            var initialOrBaseline = item.ClaimId != null &&
+                (item.ClaimId.StartsWith("claim:baseline:", StringComparison.Ordinal) ||
+                 item.ClaimId.StartsWith("claim:initial:", StringComparison.Ordinal));
+            if (!initialOrBaseline || site.CoreLevel != 1 ||
+                !IsKnownObsoleteLevelOneSize(item.FormatVersion, item.Width, item.Height))
+                return Result.Failure(ErrorCode.SnapshotInvalid,
+                    "Legacy territory claim level/kind cannot be migrated reliably.", item.SiteId);
+            ResolvedWorldSpatialRange resolved;
+            try { resolved = world.Strategic.SpatialRules.ResolveLevel(world, 1, item.SurfaceId); }
+            catch (Exception ex)
+            {
+                return Result.Failure(ErrorCode.SnapshotInvalid,
+                    "Legacy territory claim Surface metric unavailable.", ex.Message);
+            }
+            width = resolved.WidthWorld;
+            height = resolved.HeightWorld;
+            return Result.Success();
+        }
+
+        static bool IsKnownObsoleteLevelOneSize(int formatVersion, float width, float height)
+        {
+            // V1 wrote the mislabeled Content cell counts; V2 wrote their resolved Main-Surface
+            // world sizes. These are the only controlled development migrations.
+            if (formatVersion == 1)
+                return IsSquare(width, height, 500f) || IsSquare(width, height, 250f);
+            return formatVersion == 2 &&
+                   (IsSquare(width, height, 14f) || IsSquare(width, height, 7f));
+        }
+
+        static bool IsSquare(float width, float height, float expected) =>
+            Math.Abs(width - expected) <= .001f && Math.Abs(height - expected) <= .001f;
 
         /// <summary>Stage 2：Hex/Site shell 与政治覆盖完成后，按 Snapshot 精确恢复全部军队运动。</summary>
         public static Result RestoreFormalArmyMotions(SimulationWorld world, StrategicSnapshotDto dto)

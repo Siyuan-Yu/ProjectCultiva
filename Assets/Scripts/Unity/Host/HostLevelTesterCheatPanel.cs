@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using XianXia.Core.Combat;
 using XianXia.Core.World.Strategic;
@@ -426,6 +429,15 @@ namespace XianXia.Unity.Host
                 bootstrap != null ? bootstrap.OpeningPopulationDiagnostic : string.Empty, _body);
             y += 60f;
 
+            GUI.enabled = bootstrap?.Session?.IsInitialized == true;
+            if (GUI.Button(new Rect(x, y, width, 26f), "复制 CW-04 Preset Site/Core/Claim 诊断（只读）"))
+            {
+                GUIUtility.systemCopyBuffer = BuildPresetSiteControlDiagnostic();
+                _diagnosticStatus = "已复制全部 Main Surface preset Site/Core/Claim/Overlay 诊断。";
+            }
+            GUI.enabled = true;
+            y += 30f;
+
             var selectedArmyId = bootstrap?.WorldMapPanel?.SelectedFormalArmyIdForDiagnostics;
             var diagnosticTarget = string.IsNullOrEmpty(selectedArmyId)
                 ? ArmyStackAdapter.BanditWeakPatrolFormalArmyId + "（默认）"
@@ -495,7 +507,10 @@ namespace XianXia.Unity.Host
                     var hex = HexMath.WorldToHex(wx, wy, size);
                     world.PlayerPartyTravel.SetAtWorldPosition(position, hex);
                     world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(
-                        WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(world, position));
+                        WorldSiteAdministrativeControlResolver.TryResolveOnRegisteredSurface(
+                            world, position.X, position.Y, out _, out var site, out _)
+                            ? site.SiteId
+                            : string.Empty);
                     var party = bootstrap.Session.PlayerParty;
                     if (party != null)
                         for (var i = 0; i < party.Members.Count; i++)
@@ -514,6 +529,186 @@ namespace XianXia.Unity.Host
             if (!wildernessOnly)
                 GUI.Label(new Rect(x, y, width, 20f),
                     "W1C Acceptance is wilderness-only; exit WorldSite/Interior first.", _body);
+        }
+
+        string BuildPresetSiteControlDiagnostic()
+        {
+            var world = bootstrap?.Session?.World;
+            var registry = bootstrap?.Session?.Registry;
+            var sb = new StringBuilder(2048);
+            sb.AppendLine("[CW04PresetSiteControlDiagnostic]");
+            if (world?.Strategic?.Sites == null || registry == null)
+                return sb.Append("Unavailable").ToString();
+            var overlays = WorldSiteActualControlOverlayBuilder.Build(world);
+            foreach (var pair in registry.OutdoorSurfaces)
+            {
+                var surface = pair.Value;
+                if (surface == null || surface.AcceptanceOnly || surface.SiteRegions == null) continue;
+                for (var i = 0; i < surface.SiteRegions.Count; i++)
+                {
+                    var region = surface.SiteRegions[i];
+                    if (region == null || !world.Strategic.Sites.TryGet(region.SiteId, out var site) || site == null)
+                    {
+                        sb.AppendLine("SiteId=" + (region?.SiteId ?? "missing") + " RuntimeSite=Missing");
+                        continue;
+                    }
+                    var claimCount = 0;
+                    foreach (var ignored in world.Strategic.TerritoryClaims.EnumerateForSite(site.SiteId)) claimCount++;
+                    WorldSiteActualControlOverlay overlay = null;
+                    for (var o = 0; o < overlays.Count; o++)
+                        if (string.Equals(overlays[o].SiteId, site.SiteId, StringComparison.Ordinal) &&
+                            string.Equals(overlays[o].SurfaceId, surface.SurfaceId, StringComparison.Ordinal))
+                        { overlay = overlays[o]; break; }
+                    CoreLevelControlRange configured = null;
+                    if (site.HasContinuousCore)
+                        try { configured = world.Strategic.SpatialRules?.RequireLevel(site.CoreLevel); }
+                        catch (InvalidOperationException) { }
+                    var strategicCount = 0;
+                    foreach (var territory in world.Strategic.TerritoryRegions.Regions)
+                        if (territory.Value != null &&
+                            string.Equals(territory.Value.PrimaryWorldSiteId, site.SiteId, StringComparison.Ordinal))
+                            strategicCount += territory.Value.HexCount;
+                    sb.Append("SiteId=").Append(site.SiteId)
+                        .Append(" Name=").Append(site.DisplayName)
+                        .Append(" Owner=").Append(string.IsNullOrEmpty(site.OwnerFactionId) ? "none" : site.OwnerFactionId)
+                        .Append(" Type=").Append(site.SiteType)
+                        .Append(" HasContinuousCore=").Append(site.HasContinuousCore)
+                        .Append(" CoreAsset=").Append(string.IsNullOrEmpty(site.CoreAssetId) ? "none" : site.CoreAssetId)
+                        .Append(" CoreWorld=").Append(site.HasCoreWorldPosition
+                            ? "(" + site.CoreWorldX.ToString("0.###") + "," + site.CoreWorldY.ToString("0.###") + ")"
+                            : "none")
+                        .Append(" Level=").Append(site.CoreLevel)
+                        .Append(" Configured=").Append(configured?.WidthCells.ToString("0.#") ?? "none")
+                        .Append('x').Append(configured?.HeightCells.ToString("0.#") ?? "none").Append("cells")
+                        .Append(" Resolved=").Append(site.CoreRangeWidth.ToString("0.###"))
+                        .Append('x').Append(site.CoreRangeHeight.ToString("0.###")).Append("world")
+                        .Append(" Claims=").Append(claimCount)
+                        .Append(" ActualOverlayPieces=").Append(overlay?.Pieces.Count ?? 0)
+                        .Append(" ActualBounds=").Append(overlay == null ? "none" :
+                            "(" + overlay.MinX.ToString("0.###") + "," + overlay.MinY.ToString("0.###") + ")..(" +
+                            overlay.MaxX.ToString("0.###") + "," + overlay.MaxY.ToString("0.###") + ")")
+                        .Append(" StrategicHexSummaryCount=").Append(strategicCount)
+                        .Append(" MigrationSource=").Append(site.HasContinuousCore
+                            ? (world.Strategic.FactionFlags.Flags.ContainsKey(site.CoreAssetId)
+                                ? "AuthoredFlagCore/PlayerBuilt" : "PresetCouncilHall")
+                            : "None")
+                        .AppendLine();
+                }
+            }
+
+            sb.AppendLine("[WorldMapCoreMarkers]");
+            foreach (var pair in world.Strategic.Sites.Sites)
+            {
+                var site = pair.Value;
+                if (site == null || !site.UsesContinuousOutdoorSurface || !site.IsCoreActive)
+                    continue;
+                var kind = WorldSitePresentationLayer.ResolveMarkerKind(world, site);
+                var hasMarkerPosition = WorldSitePresentationLayer.TryResolveMarkerWorldPosition(
+                    world, site, out var markerX, out var markerY);
+                var pieces = 0;
+                for (var i = 0; i < overlays.Count; i++)
+                    if (string.Equals(overlays[i].SiteId, site.SiteId, StringComparison.Ordinal))
+                        pieces += overlays[i].Pieces.Count;
+                sb.Append("SiteId=").Append(site.SiteId)
+                    .Append(" MarkerKind=").Append(kind)
+                    .Append(" MarkerWorldPosition=").Append(hasMarkerPosition
+                        ? "(" + markerX.ToString("0.###") + "," + markerY.ToString("0.###") + ")"
+                        : "none")
+                    .Append(" ActualOverlayPieces=").Append(pieces)
+                    .Append(" LegacyFlagMarkerAlsoVisible=False")
+                    .AppendLine();
+            }
+
+            sb.AppendLine("[FactionFlags]");
+            foreach (var pair in world.Strategic.FactionFlags.Flags)
+            {
+                var flag = pair.Value;
+                if (flag == null) continue;
+                var claimCount = 0;
+                var overlayPieces = 0;
+                var manager = "none";
+                if (!string.IsNullOrWhiteSpace(flag.SiteId))
+                {
+                    foreach (var ignored in world.Strategic.TerritoryClaims.EnumerateForSite(flag.SiteId))
+                        claimCount++;
+                    for (var i = 0; i < overlays.Count; i++)
+                        if (string.Equals(overlays[i].SiteId, flag.SiteId, StringComparison.Ordinal))
+                            overlayPieces += overlays[i].Pieces.Count;
+                    if (world.Strategic.Sites.TryGet(flag.SiteId, out var coreSite) && coreSite != null &&
+                        WorldSiteAdministrativeControlResolver.TryResolve(
+                            world, coreSite.CoreSurfaceId, coreSite.CoreWorldX, coreSite.CoreWorldY,
+                            out var managedBy, out _))
+                        manager = managedBy?.SiteId ?? "none";
+                }
+                var source = flag.IsAuthoredSiteCore ? "AuthoredFlagCore" :
+                    flag.IsSiteCore ? "PlayerBuilt" : "LegacyOnly";
+                var productMarkerVisible = false;
+                if (flag.IsSiteCore && !string.IsNullOrWhiteSpace(flag.SiteId) &&
+                    world.Strategic.Sites.TryGet(flag.SiteId, out var markerSite) &&
+                    markerSite != null && markerSite.IsCoreActive)
+                    productMarkerVisible = FactionFlagSiteCoreQuery.TryResolveFlagForSite(
+                        world, markerSite, out var markerFlag) && ReferenceEquals(markerFlag, flag);
+                sb.Append("FlagId=").Append(flag.FlagId)
+                    .Append(" Faction=").Append(flag.FactionId)
+                    .Append(" ContentKind=").Append(flag.IsAuthoredSiteCore ? "AuthoredSiteCore" : "Legacy")
+                    .Append(" IsAuthoredSiteCore=").Append(flag.IsAuthoredSiteCore)
+                    .Append(" LegacyDebugOnly=").Append(flag.IsWorldMapDebugOnly)
+                    .Append(" AnchorHex=(").Append(flag.AnchorHex.Q).Append(',').Append(flag.AnchorHex.R).Append(')')
+                    .Append(" HasWorldPosition=").Append(flag.HasWorldPosition)
+                    .Append(" SurfaceId=").Append(string.IsNullOrWhiteSpace(flag.SurfaceId) ? "none" : flag.SurfaceId)
+                    .Append(" WorldPosition=").Append(flag.HasWorldPosition
+                        ? "(" + flag.WorldX.ToString("0.###") + "," + flag.WorldY.ToString("0.###") + ")"
+                        : "none")
+                    .Append(" SiteId=").Append(string.IsNullOrWhiteSpace(flag.SiteId) ? "none" : flag.SiteId)
+                    .Append(" IsSiteCore=").Append(flag.IsSiteCore)
+                    .Append(" ClaimCount=").Append(claimCount)
+                    .Append(" ActualOverlayPieces=").Append(overlayPieces)
+                    .Append(" CoreCenterActualManager=").Append(manager)
+                    .Append(" MigrationSource=").Append(source)
+                    .Append(" WorldMapProductMarkerVisible=").Append(productMarkerVisible)
+                    .AppendLine();
+            }
+
+            var factions = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var pair in world.Strategic.Sites.Sites)
+                if (pair.Value != null && !string.IsNullOrWhiteSpace(pair.Value.OwnerFactionId))
+                    factions.Add(pair.Value.OwnerFactionId);
+            foreach (var pair in world.Strategic.FactionFlags.Flags)
+                if (pair.Value != null && !string.IsNullOrWhiteSpace(pair.Value.FactionId))
+                    factions.Add(pair.Value.FactionId);
+            var orderedFactions = new List<string>(factions);
+            orderedFactions.Sort(StringComparer.Ordinal);
+            sb.AppendLine("[FactionControlSummary]");
+            for (var f = 0; f < orderedFactions.Count; f++)
+            {
+                var factionId = orderedFactions[f];
+                var councilCores = 0;
+                var flagCores = 0;
+                foreach (var pair in world.Strategic.Sites.Sites)
+                {
+                    var site = pair.Value;
+                    if (site == null || !site.HasContinuousCore ||
+                        !string.Equals(site.OwnerFactionId, factionId, StringComparison.Ordinal)) continue;
+                    if (world.Strategic.FactionFlags.Flags.ContainsKey(site.CoreAssetId)) flagCores++;
+                    else councilCores++;
+                }
+                var actualSites = 0;
+                var actualPieces = 0;
+                for (var i = 0; i < overlays.Count; i++)
+                    if (string.Equals(overlays[i].FactionId, factionId, StringComparison.Ordinal))
+                    {
+                        actualSites++;
+                        actualPieces += overlays[i].Pieces.Count;
+                    }
+                sb.Append("FactionId=").Append(factionId)
+                    .Append(" CouncilHallCoreSites=").Append(councilCores)
+                    .Append(" FlagCoreSites=").Append(flagCores)
+                    .Append(" ActualControlSites=").Append(actualSites)
+                    .Append(" ActualOverlayCount=").Append(actualSites)
+                    .Append(" ActualOverlayPieces=").Append(actualPieces)
+                    .AppendLine();
+            }
+            return sb.ToString();
         }
 
         public const float TopBarEntryY = 8f;

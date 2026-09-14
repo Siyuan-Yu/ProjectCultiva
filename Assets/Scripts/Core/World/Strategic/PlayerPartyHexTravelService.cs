@@ -1109,7 +1109,9 @@ namespace XianXia.Core.World.Strategic
                 return EnterWorldSiteAsParty(world, party, focusSite);
             }
 
-            if (world.Strategic.Sites.TryGetAtHex(resolved.DerivedHex, out var continuousSite) &&
+            if (WorldSiteAdministrativeControlResolver.TryResolveOnRegisteredSurface(
+                    world, resolved.WorldPosition.X, resolved.WorldPosition.Y,
+                    out _, out var continuousSite, out _) &&
                 WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(continuousSite))
             {
                 world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(continuousSite.SiteId);

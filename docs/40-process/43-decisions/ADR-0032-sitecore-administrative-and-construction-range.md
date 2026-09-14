@@ -1,6 +1,6 @@
 # ADR-0032：SiteCore、实际行政控制与建设范围
 
-> 状态：已采纳（设计已确认；实现待迁移／核查；制作人验收待完成）
+> 状态：已采纳（CW-04 已实现；制作人验收待完成）
 > 日期：2026-09-12
 > 关联：[24](../../20-systems/24-world-and-settlements.md)、[26](../../20-systems/26-territory-management.md)、[2J](../../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)、[2L](../../20-systems/2L-local-map-construction-v1.md)、[ADR-0029](ADR-0029-construction-content-runtime-and-snapshot-boundary.md)、[ADR-0031](ADR-0031-continuous-outdoor-world-surface-architecture.md)
 
@@ -29,5 +29,11 @@ Continuous Outdoor World Surface 已确定为普通户外的物理世界，但�
 
 ## 状态边界
 
-本 ADR 只确认设计。现有 Control Asset／FactionFlag／Construction 的历史验收仍适用于当时版本；实际控制历史、动态资产存档、重叠稳定解析和新 Site 生命周期均须迁移或核查，制作人尚未验收本 ADR 的目标行为。
+本 ADR 的原始采纳只确认设计。现有 Control Asset／FactionFlag／Construction 的历史验收仍仅适用于当时版本；CW-04 已完成实际控制历史、重叠稳定解析、扩张接续和持久化实现，但制作人尚未验收目标行为。
+
+> **2026-09-14 CW-04 实现注记：** `TerritoryClaim` 现保存每次初始／升级取得范围与稳定顺序；精确位置的实际行政控制从 Claim 历史与当前理论范围解析，Hex／TerritoryRegion 由该结果重建。旧存档在显式恢复阶段一次性由 `ControlEstablishedOrder` 建立基线；新格式严格保存完整 Claim authority。实现完成，制作人验收待进行。
+
+> **2026-09-14 final scale：** 核心等级范围的 Content 单位为 Surface cells，运行时按目标 Surface 的实际 `cellSize` 解析；Claim 保存解析后的 world-space 历史。Main Surface Level 1 最终为 150×150 cells = 4.2×4.2 world = 3×3 chunks。Wilderness Encounter 使用独立的 500×500 cells 配置。
+
+> **2026-09-14 FactionFlag Content migration：** 正式预设旗不再只是 Hex marker。一次性把既有兼容显示中心写成明确 Surface 世界坐标；运行时与玩家新旗共用唯一 SiteCore→TerritoryClaim 路径，SiteId 由 FlagId 稳定生成，baseline 使用旧 `EstablishedOrder`。无法对应唯一 Continuous Surface 的旗保持 legacy-only，禁止运行时从 Hex、最近 Surface 或 Site arrival 猜测。
 

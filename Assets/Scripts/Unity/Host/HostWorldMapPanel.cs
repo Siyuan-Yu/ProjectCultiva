@@ -84,7 +84,7 @@ namespace XianXia.Unity.Host
         int _pathMaskH;
         bool _terrainLegendExpanded;
         /// <summary>WorldMap 图层开关：显示势力范围（Territory overlay）。纯 UI preference，不写 SaveGame；panel hide/show 不重置。</summary>
-        bool _showTerritoryOverlay;
+        bool _showTerritoryOverlay = true;
         bool _showSurfaceGeography = true;
         /// <summary>WorldMap 军队表现层；默认 ON，不写入存档。</summary>
         bool _showArmyMarkers = true;
@@ -641,7 +641,7 @@ namespace XianXia.Unity.Host
                 new Rect(pad, titleY, Screen.width - 380f, 28f),
                 title, _title);
 
-            // 图层开关：显示势力范围（默认 OFF）。仅控制 presentation，Territory 数据常驻。
+            // 产品默认显示 actual-control world geometry；关闭仅影响 presentation。
             var showTerritory = GUI.Toggle(
                 new Rect(Screen.width - 350f, titleY + 4f, 116f, 26f),
                 _showTerritoryOverlay,
@@ -3421,10 +3421,89 @@ namespace XianXia.Unity.Host
                 if (site.HasCoreWorldPosition)
                     sb.Append("核心世界坐标：(").Append(site.CoreWorldX.ToString("0.###"))
                         .Append(", ").Append(site.CoreWorldY.ToString("0.###")).Append(")\n");
-                sb.Append("基础管理范围：").Append(site.CoreRangeWidth.ToString("0.#"))
-                    .Append(" × ").Append(site.CoreRangeHeight.ToString("0.#")).Append(" 世界单位\n");
+                CoreLevelControlRange configuredRange = null;
+                try { configuredRange = world.Strategic.SpatialRules?.RequireLevel(site.CoreLevel); }
+                catch (InvalidOperationException) { }
+                if (configuredRange != null)
+                    sb.Append("理论范围：").Append(configuredRange.WidthCells.ToString("0.#"))
+                        .Append(" × ").Append(configuredRange.HeightCells.ToString("0.#")).Append(" cells\n");
+                sb.Append("理论范围 Surface 解析：").Append(site.CoreRangeWidth.ToString("0.###"))
+                    .Append(" × ").Append(site.CoreRangeHeight.ToString("0.###")).Append(" world");
+                var surfaces = bootstrap?.Session?.Registry?.OutdoorSurfaces;
+                if (surfaces != null)
+                    foreach (var pair in surfaces)
+                    {
+                        var surface = pair.Value;
+                        if (surface == null || !string.Equals(surface.SurfaceId, site.CoreSurfaceId, StringComparison.Ordinal) ||
+                            !(surface.ChunkWidth > 0f) || !(surface.ChunkHeight > 0f)) continue;
+                        sb.Append(" ≈ ").Append((site.CoreRangeWidth / surface.ChunkWidth).ToString("0.#"))
+                            .Append(" × ").Append((site.CoreRangeHeight / surface.ChunkHeight).ToString("0.#"))
+                            .Append(" chunks");
+                        break;
+                    }
+                sb.Append('\n');
+                var actualOverlays = WorldSiteActualControlOverlayBuilder.Build(world);
+                WorldSiteActualControlOverlay actualOverlay = null;
+                for (var i = 0; i < actualOverlays.Count; i++)
+                    if (string.Equals(actualOverlays[i].SiteId, site.SiteId, StringComparison.Ordinal) &&
+                        string.Equals(actualOverlays[i].SurfaceId, site.CoreSurfaceId, StringComparison.Ordinal))
+                    {
+                        actualOverlay = actualOverlays[i];
+                        break;
+                    }
+                if (actualOverlay == null)
+                    sb.Append("实际控制几何：0 pieces\n");
+                else
+                    sb.Append("实际控制几何：").Append(actualOverlay.Pieces.Count).Append(" pieces，bounds=(")
+                        .Append(actualOverlay.MinX.ToString("0.###")).Append(", ")
+                        .Append(actualOverlay.MinY.ToString("0.###")).Append(")..(")
+                        .Append(actualOverlay.MaxX.ToString("0.###")).Append(", ")
+                        .Append(actualOverlay.MaxY.ToString("0.###")).Append(") world\n");
+                var claimCount = 0;
+                foreach (var claim in world.Strategic.TerritoryClaims.EnumerateForSite(site.SiteId))
+                {
+                    if (claimCount++ == 0) sb.Append("取得历史：\n");
+                    sb.Append("  #").Append(claim.AcquiredOrder).Append(' ')
+                        .Append(claim.ClaimId).Append(" @(")
+                        .Append(claim.CenterX.ToString("0.###")).Append(", ")
+                        .Append(claim.CenterY.ToString("0.###")).Append(") ")
+                        .Append(claim.Width.ToString("0.#")).Append(" × ")
+                        .Append(claim.Height.ToString("0.#")).Append(" world\n");
+                }
+                sb.Append("Claim 数：").Append(claimCount).Append('\n');
+                var effectiveHexCount = 0;
+                foreach (var source in world.Strategic.TerritoryRegions.Regions)
+                    if (source.Value != null &&
+                        string.Equals(source.Value.PrimaryWorldSiteId, site.SiteId, StringComparison.Ordinal))
+                        effectiveHexCount += source.Value.HexCount;
+                sb.Append("有效战略投影：").Append(effectiveHexCount).Append(" 格\n");
             }
             sb.Append("当前格：").Append(clickedHex).Append('\n');
+            HexMath.ToWorldPosition(clickedHex, world.HexWorld.HexSize, out var inspectX, out var inspectY);
+            sb.Append("检查位置：Surface=").Append(FormatOptional(site.CoreSurfaceId))
+                .Append(" World=(").Append(inspectX.ToString("0.###")).Append(", ")
+                .Append(inspectY.ToString("0.###")).Append(")\n");
+            sb.Append("理论覆盖 Site：");
+            var theoreticalCount = 0;
+            foreach (var pair in world.Strategic.Sites.Sites)
+                if (WorldSiteCoreCoverageResolver.Contains(
+                        pair.Value, site.CoreSurfaceId, inspectX, inspectY))
+                {
+                    if (theoreticalCount++ > 0) sb.Append(", ");
+                    sb.Append(pair.Value.SiteId);
+                }
+            if (theoreticalCount == 0) sb.Append("无");
+            sb.Append('\n');
+            if (WorldSiteAdministrativeControlResolver.TryResolve(
+                    world, site.CoreSurfaceId, inspectX, inspectY,
+                    out var actualSite, out var actualClaim))
+                sb.Append("实际管理：Site=").Append(actualSite.SiteId)
+                    .Append(" Owner=").Append(FormatOptional(actualSite.OwnerFactionId))
+                    .Append(" Claim=").Append(actualClaim.ClaimId)
+                    .Append(" Order=").Append(actualClaim.AcquiredOrder)
+                    .Append(" Core=").Append(actualSite.IsCoreActive ? "Active" : "Inactive")
+                    .Append(" L").Append(actualSite.CoreLevel).Append('\n');
+            else sb.Append("实际管理：无\n");
             return sb.ToString();
         }
 

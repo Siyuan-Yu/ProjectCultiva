@@ -1,6 +1,6 @@
 # 领地经营
 
-> 状态：SiteCore 行政管理最终设计已确认；旧 Control Asset 能力部分已验收，新范围／接续待迁移与验收 | 优先级：P0 | 最后更新：2026-09-12
+> 状态：SiteCore 行政管理最终设计已确认；CW-04 实现完成、制作人验收待进行 | 优先级：P0 | 最后更新：2026-09-14
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`25-cultivation-and-breakthrough.md`、`24-world-and-settlements.md`、`27-characters-and-population.md`、`22-realms-and-abilities.md`、**[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**
 > **Hex Territory / TerritoryRegion / Capture 后整块易主：** 正式规则见 **[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**（2026-08-24）。本文 §2「Strategic Node」术语在 Pure Hex 下对应 **Fixed WorldSite + TerritoryRegion**。
@@ -28,7 +28,9 @@
 - 拆旗只移除控制声明并重算覆盖，不删除建筑、不清库存、不恢复生命／损伤。有其他 Site 接续时转交管理；无接续时暂停依赖行政管理的生产／功能，建筑独立交互继续按自身规则。
 - 行政管辖和允许建设使用同一范围；水面／岸边等由建筑本身判定。所有权／范围变化不移动人物或重置日程、出生点和移动命令。
 
-完整决策见 [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)。现有 first-claim／EstablishedOrder 是已验收旧实现基础，不足以证明升级历史和 SiteCore 新生命周期已实现。
+完整决策见 [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)。CW-04 已以持久化 `TerritoryClaim` 取得历史取代 Site `EstablishedOrder` 的实际控制职责：理论范围允许重叠，实际位置按最早有效 Claim 唯一解析；核心升级只新增较晚 Claim，不能抢走已有管理。实现完成，制作人验收待进行。
+
+WorldMap 正常产品势力范围直接绘制 Actual Administrative Control 的 world-space 矩形片段及真实边界，不再从 `HexCell.ControlFactionId`／`TerritoryRegion.Hexes` 反推轮廓。Strategic Hex Projection 仅保留作旧系统兼容、摘要统计和显式 debug。
 
 ## 20. 历史战略 Node 占领（2026-08-22）
 
@@ -37,6 +39,12 @@
 ### 20.1 CaptureObjective（占领目标）
 
 `CaptureObjective` 是既有 API／内容名称；当前 V1 每个 WorldSite 只有一个 SiteCore。预设 Site 的议政厅／主管府等核心固定存在、不可拆除，可被攻破防御并由真人通过正式交互接管；玩家另立势力旗会创建新的 Site，而不是给同一 Site 增加第二核心。
+
+2026-09-14 Content migration：正式预设势力旗与玩家新建旗共用同一语义。Content 明确保存 `SurfaceId + WorldPosition + createsWorldSite + CoreLevel`；加载后用稳定 `SiteIdForCoreFlag(flagId)` 创建唯一 WorldSite，按既有 `EstablishedOrder` 与预设议政厅共同建立 baseline Claim。未明确 authored 精确位置的兼容旗必须显式 `legacyDebugOnly=true`，不从 Hex 猜测行政范围，也不进入正常产品 WorldMap marker。
+
+WorldMap 的 Core marker 按 `Site.CoreAssetId → FactionFlag` 正式身份区分：旗 Core 在 `Site.CoreWorldPosition` 只画一面旗，议政厅及普通 Site 继续使用房屋表现。同势力相邻 Site 的产品边界 union 延期到后续纯表现阶段；届时只隐藏同势力内部 border，不合并 Site、Claim 或实际管理权。
+
+Continuous 势力旗放置由两层共同完成：Host CompositeWalkGrid 校验当前加载状态下真实4×4建筑占地与动态 blocker；Core `OutdoorSurfaceSpatialAuthority` 只校验完整 Surface identity/coverage/metric，再执行政治规则。Strategic Hex passability 与局部 `SurfaceGroundNavigation` coverage 均不得否决精确 Continuous 建造。同势力 actual territory 内可建立新 Site；不同势力 actual manager 拒绝。理论范围继续允许任意重叠，AcquiredOrder 不变。
 
 | 据点类型 | CaptureObjective 示例 |
 |---|---|

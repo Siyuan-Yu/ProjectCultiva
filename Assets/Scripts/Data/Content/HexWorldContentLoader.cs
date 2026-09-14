@@ -59,6 +59,7 @@ namespace XianXia.Data.Content
             world.Strategic.Sites.Clear();
             world.Strategic.TerritoryRegions.Clear();
             world.Strategic.FactionFlags.Clear();
+            TerritoryClaimService.ResetForContentBootstrap(world);
             var controlOrders = new HashSet<long>();
             long nextLegacyOrder = 1;
             if (definition.Sites != null)
@@ -98,7 +99,14 @@ namespace XianXia.Data.Content
                             "FactionFlag '" + src.FlagId + "' anchor is inside WorldSite '" + occupiedSite.SiteId + "'.");
                     if (!world.Strategic.FactionFlags.Register(new FactionFlagState
                     { FlagId=src.FlagId, FactionId=src.FactionId, AnchorHex=anchor, EstablishedOrder=src.EstablishedOrder,
-                      CurrentHp=100, MaxHp=100, HasLocalPosition=src.HasLocalPosition, LocalX=src.LocalX, LocalZ=src.LocalZ }))
+                      CurrentHp=100, MaxHp=100, HasLocalPosition=src.HasLocalPosition, LocalX=src.LocalX, LocalZ=src.LocalZ,
+                      HasWorldPosition=src.HasWorldPosition, SurfaceId=src.SurfaceId ?? string.Empty,
+                      WorldX=src.WorldX, WorldY=src.WorldY,
+                      IsAuthoredSiteCore=src.CreatesWorldSite,
+                      IsWorldMapDebugOnly=src.LegacyDebugOnly,
+                      AuthoredSiteDisplayName=src.SiteDisplayName ?? string.Empty,
+                      AuthoredSiteType=src.SiteType ?? string.Empty,
+                      AuthoredCoreLevel=src.CoreLevel }))
                         return Result.Failure(ErrorCode.ContentLoadFailed,
                             "FactionFlag '" + src.FlagId + "' duplicates a FlagId or anchor.");
                 }

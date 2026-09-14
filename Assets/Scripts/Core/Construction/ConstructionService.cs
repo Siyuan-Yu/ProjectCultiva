@@ -98,7 +98,7 @@ namespace XianXia.Core.Construction
                 return Result.Failure(ErrorCode.InvalidOperation, "建造材料不足。", missing?.ItemId);
 
             var valid = FactionFlagService.ValidateSiteCorePlacement(
-                world, playerFactionId, request, spec.SiteRangeWidth, spec.SiteRangeHeight, out _);
+                world, playerFactionId, request, spec.InitialSiteLevel, out _);
             if (valid.IsFailure)
                 return valid;
 
@@ -121,8 +121,7 @@ namespace XianXia.Core.Construction
             var placed = FactionFlagService.TryPlaceSiteCore(
                 world, flagId, playerFactionId, request,
                 FactionFlagService.NextEstablishedOrder(world), spec.CreatedSiteName,
-                spec.CreatedSiteType, spec.InitialSiteLevel, spec.SiteRangeWidth,
-                spec.SiteRangeHeight, out siteId);
+                spec.CreatedSiteType, spec.InitialSiteLevel, out siteId);
             if (placed.IsFailure)
             {
                 RestoreRemoved(world, removed);

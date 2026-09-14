@@ -63,6 +63,7 @@ namespace XianXia.Core.Simulation
             WorldRegion = new WorldRegionBoard();
             ContinuousOutdoorMaterialization = new ContinuousOutdoorMaterializationBoard();
             SurfaceGround = new SurfaceGroundAuthority();
+            SurfaceSpatial = new OutdoorSurfaceSpatialAuthority();
             HexWorld = new HexWorld();
             WorldPresence = new WorldPresenceBoard();
             OpeningSpawnIdentities = new OpeningSpawnIdentityBoard();
@@ -129,6 +130,9 @@ namespace XianXia.Core.Simulation
 
         /// <summary>Region-limited checked-in Surface ground/nav authority; outside its cells Hex compatibility remains active.</summary>
         public SurfaceGroundAuthority SurfaceGround { get; }
+
+        /// <summary>Complete Outdoor Surface identity/metric/chunk coverage; never a walkability authority.</summary>
+        public OutdoorSurfaceSpatialAuthority SurfaceSpatial { get; }
 
         /// <summary>Hex 战略世界真源（155+）。</summary>
         public HexWorld HexWorld { get; }

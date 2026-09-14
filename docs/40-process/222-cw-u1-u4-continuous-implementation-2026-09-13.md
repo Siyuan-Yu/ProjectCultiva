@@ -22,7 +22,7 @@ CW-U4.2 产品隔离：WorldMap 已删除不可达的玩家 Army 命令调用树
 
 本轮重接（起始HEAD e6fbdc2）：应用既有修复后继续收口共享绘制、报告输入owner、恢复重试/取消、未激活staging、准备期间位置/小队修订校验及按受影响chunk更新破坏导航。后续增补覆盖下方早期“动态刷新重新准备全场”的描述：现在破墙仅定位并修补相关chunk，完整独立导航仅入场/恢复各构建一次；返回普通邻域另有一次小范围合成，不会第三次合成全场。
 
-最短人工路径（未运行）：普通人物右键攻击→统一接战预览→手动战斗→读取/合成/构建计数→窗口关闭→按正常继续按钮解除原ManualPaused后移动/攻击→破墙通行→结束条→完整战报→继续→普通世界第二场。补查构建取消后无迟到入场、战中读档恢复及恢复失败重试、报告期间其他面板不能解除输入锁。500×500保持世界单位；当前Main Surface仍为646个1.4×1.4 chunks，source50×50、cellSize=.028，输出矩形1900×850=1615000格，每chunk一个草地背景renderer（646个，不含有身份物件）。运行时日志记录实际内容来源，不把这些静态量级当作帧率或耗时验证。
+最短人工路径（未运行）：普通人物右键攻击→统一接战预览→手动战斗→读取/合成/构建计数→窗口关闭→按正常继续按钮解除原ManualPaused后移动/攻击→破墙通行→结束条→完整战报→继续→普通世界第二场。补查构建取消后无迟到入场、战中读档恢复及恢复失败重试、报告期间其他面板不能解除输入锁。2026-09-14 最终参数：Site Level 1 为150×150 cells＝4.2×4.2 world／3×3 chunks；Wilderness Encounter 仍为500×500 cells＝14×14 world／约10×10 chunks。
 
 后续制作人截图反馈仍停在构建界面。对照 Scripts.zip 确认普通草地仍每 chunk 创建625个prefab，此前的合并说明只适用于 geography；本次改为Continuous每chunk一个背景renderer，并增加真实构建计数、约4ms预算、嵌套协程取消/异常收口及Active隐藏确认窗口。具体证据与检查见42-devlog最新“人物遭遇构建界面停留修复”；运行验收仍未通过声明。
 
@@ -30,10 +30,10 @@ CW-U4.2 产品隔离：WorldMap 已删除不可达的玩家 Army 命令调用树
 - 单次入场只产生一个 `PreparedIndependentField`。它保存绑定 World、来源 Surface、冻结状态、相交 chunks、输入数、合成 grid 与拓扑修订。`Prepare` 与 grid/边界裁剪均以协程预算推进；表现也先在 staging owner 下逐 chunk 构建。所有 staging 成功后，才调用 `CharacterEncounterService.Begin` 并短暂原子接管；失败会清 staging，接管期异常还会 AbortEntry 和恢复普通 surface。
 - `WalkGridComposer.Job` 保留全部输入、格点对齐和保守 overlap 语义，复杂度从 output×inputs 改为 output + sum(inputs)。独立场动态破坏不再因 `_independentFieldId` 直接跳过：会合并为一次同样的分帧纯数据刷新，旧 grid 在结果有效前继续使用。
 - 返回不重复 Compose；Restore 走同一分帧 Prepare/Commit 机制。入场确认／准备／报告由 `EncounterModalLock` 合成输入禁用，避免 `HostQuestJournal` 的普通 bool 写入解除；成功入场仅释放本请求 modal，保留领域 WorldTick 冻结，并不强制修改 `ManualPaused`。
-- 实际 Content 复核：`base:surface_main_wilderness_v1` 有 646 chunks，chunk 1.4×1.4 world units，cellSize 0.028，source layout 50×50，mapper 为 35.714 presentation units/world unit，完整内容边界约 53.2×23.8 world units。故 500×500 逻辑范围覆盖当前完整 Main Surface；无正式 Surface 的大陆外仍为不可走空域。地理背景构建沿用每 chunk 同色 run 合并，未改写为逐 cell 独立对象。
+- 实际 Content 复核：`base:surface_main_wilderness_v1` 有646 chunks，chunk 1.4×1.4 world、cellSize .028、50×50 cells/chunk，完整边界约53.2×23.8 world。Site L1 150 cells解析为4.2 world；Wilderness Encounter 500 cells解析为14 world。
 - 静态核查：现成 `tools/offline-compile.ps1` 成功（Core459/Data78/Unity145，保留既有 warning），`git diff --check` 成功。未运行 Unity、EditMode/PlayMode/Test Runner、Bake 或 batchmode。
 
-此前范围 ACR 已解除：一级议政厅/势力旗统一 500×500 世界单位，中心为核心真实位置；野外独立配置同为 500×500。旧 4.2×2.8 不再作为控制范围来源。下方早期未完成矩阵保留为历史检查点，不代表本段之后的新实现状态。
+2026-09-14 最终范围：一级议政厅/势力旗为150×150 Surface cells；野外独立配置为500×500 Surface cells。二者均由实际 Surface metric 解析，不再共享数值。
 
 | 阶段 | 当前实施证据 | 验证 | 提交 |
 |---|---|---|---|
@@ -42,13 +42,13 @@ CW-U4.2 产品隔离：WorldMap 已删除不可达的玩家 Army 命令调用树
 | C3/U3 | Prepare 固定候选→Advance/DecideCandidate→资格与场地预检→名单/报告事务→PresentJoinedParticipants；JSON 恢复固定池/roll/期限/版本；最终关闭余下候选 | Core459/Data78/Host145 离线编译与静态检查 | `2f48380` |
 | C4/U4 | 普通首战→唯一报告→逐人返回→继续→分流保存→正式恢复/场地重建→新场次入口已接线；旧回调隔离、重复接触抑制、核心元数据、技能冷却和普通跟随 ownership 收口 | Core459/Data78/Host145 离线编译及少量静态检查通过；Unity 运行待人工验收 | `5afa318` |
 
-C1 Content：worldSpatialRules→loader校验→registry→SpatialRules→CoreLevelControlRange→预设核心/ConstructionCatalog/WorldSiteCoreCoverageResolver/遭遇冻结范围；同等级共用规则。新 runtime Site 存 CoreLevelFormat=1、等级、身份与位置，范围由 Content 派生；旧缺等级只在 format=0 迁一级。500 世界单位保持逻辑边界，定义大陆之外是无 Surface 的不可行走空间，不生成随机地形补齐。建筑占地/碰撞继续原数据。
+C1 Content：worldSpatialRules→loader校验→registry→SpatialRules→CoreLevelControlRange→预设核心/ConstructionCatalog/WorldSiteCoreCoverageResolver/遭遇冻结范围；同等级共用规则。新runtime Site存等级、身份与位置，范围由Content和Surface metric派生；Site L1最终为150 cells，Wilderness Encounter独立为500 cells。建筑占地/碰撞继续原数据。
 
 C1 生命周期：旧 Continuous marker 仅作为现有显示/伤害权限 API 的派生投影，新场地身份、导航和保存由 CharacterEncounter 权威持有；不调用旧 Army 场地预检/共同 BattleHex 提交。WorldTick 冻结期间仅参战者的弥留/尸体期限消费本场秒数，普通世界不推进。所有真实伤害继续经过现有 MeleeCombatService。
 
 ## C4 交付核对与制作人人工验收路线
 
-- 核心配置：`Content/BaseGame/Data/Worlds/world_spatial_rules.json` 唯一 Level 1 500×500；野外另设500×500。loader/validation/registry→RuntimeContentShell→ConstructionCatalog/WorldSiteCoreCoverageResolver/管理查询/CharacterEncounter。预设核心元数据随 WorldSiteOwners 保存，玩家旗随 RuntimeWorldSites 保存；二者从等级配置派生尺寸。
+- 核心配置：`world_spatial_rules.json` 唯一 Level 1 为150×150 cells；野外另设500×500 cells。loader/validation/registry→Surface metric resolver→WorldSiteCoreCoverageResolver/管理查询/CharacterEncounter。
 - 新入口：HostNpcContextMenu、HostCombatSkillBar、到达攻击、HostNpcMeleeAssault 和最终 MeleeCombatService gate；真实两 Squad 初始参战。旧 AI Hex 触发若涉及实际玩家，只能经个人接触请求新入口，不创建旧远程 Offer；远处非玩家 AI 继续原服务。
 - 实际运行权威：CharacterEncounterState + 独立 owner 场地/独立合成导航，HostCharacterEncounter 驱动各人物目标、普通攻击和本场时间；普通跟随、旅行、日程不能改写本场位置。技能冷却同属本场存档。
 - 保存与恢复：HostSnapshotLocalPlacementCaptureSync 分流；SnapshotService/CharacterEncounterJson 校验边界、身份、原锚点、战术位置、目标/冷却、HP 基线、候选池/roll/时点/状态及 rosterVersion。HostSnapshotSessionRehydration 校验来源，RebuildAfterWorldRestore 重建同源场地；不重扫候选或重抽。准备/报告提交阶段明确拒绝保存，稳定 Active/ReadyToEnd 可存。

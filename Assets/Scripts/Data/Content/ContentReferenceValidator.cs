@@ -25,6 +25,7 @@ namespace XianXia.Data.Content
             var locations = CollectLocationIds(registry);
             if (registry.OutdoorSurfaces.Count > 0 && registry.SpatialRules == null)
                 report.Add(ErrorCode.MissingRequiredField, "Continuous world requires worldSpatialRules.");
+            ValidateOutdoorSurfaceMetrics(registry, report);
             if (registry.SpatialRules != null)
                 foreach (var pair in registry.Buildings)
                     if (pair.Value.CreatesWorldSite)
@@ -43,6 +44,8 @@ namespace XianXia.Data.Content
             ValidateSpawnTables(registry, report);
             ValidateMapSpawnZones(registry, locations, report);
             ValidateOutdoorSurfaceSitePlaceIdentities(registry, report);
+            ValidateOutdoorControlCores(registry, report);
+            ValidateFactionFlagSiteCores(registry, report);
             ValidateQuests(registry, locations, producedFlags, consumedFlags, report);
             ValidateContentEvents(registry, locations, producedFlags, consumedFlags, report);
             ValidateChapters(registry, locations, producedFlags, consumedFlags, report);
@@ -50,6 +53,165 @@ namespace XianXia.Data.Content
 
             return report;
         }
+
+        static void ValidateOutdoorSurfaceMetrics(DefinitionRegistry registry, ValidationReport report)
+        {
+            foreach (var pair in registry.OutdoorSurfaces)
+            {
+                var surface = pair.Value;
+                if (surface == null || string.IsNullOrWhiteSpace(surface.SurfaceId) ||
+                    !IsFinite(surface.OriginWorldX) || !IsFinite(surface.OriginWorldY) ||
+                    !(surface.CellSize > 0f) || !IsFinite(surface.CellSize) ||
+                    !(surface.ChunkWidth > 0f) || !IsFinite(surface.ChunkWidth) ||
+                    !(surface.ChunkHeight > 0f) || !IsFinite(surface.ChunkHeight) ||
+                    surface.Chunks == null || surface.Chunks.Count == 0)
+                {
+                    report.Add(ErrorCode.InvalidArgument,
+                        "Outdoor Surface requires identity, finite metric, and authored chunk coverage.",
+                        pair.Key.ToString());
+                    continue;
+                }
+                if (registry.TryGetOutdoorSurfaceGeography(surface.SurfaceId, out var geography) &&
+                    geography?.Navigation != null &&
+                    Math.Abs(geography.Navigation.CellSize - surface.CellSize) > .000001f)
+                    report.Add(ErrorCode.InvalidArgument,
+                        "Outdoor Surface and geography cellSize must match.", surface.SurfaceId);
+            }
+        }
+
+        static void ValidateOutdoorControlCores(DefinitionRegistry registry, ValidationReport report)
+        {
+            var knownSites = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var pair in registry.HexWorldContents)
+                if (pair.Value?.Sites != null)
+                    for (var i = 0; i < pair.Value.Sites.Count; i++)
+                        if (!string.IsNullOrWhiteSpace(pair.Value.Sites[i]?.SiteId))
+                            knownSites.Add(pair.Value.Sites[i].SiteId);
+
+            foreach (var pair in registry.OutdoorSurfaces)
+            {
+                var surface = pair.Value;
+                if (surface?.SitePlacements == null) continue;
+                var coreSites = new HashSet<string>(StringComparer.Ordinal);
+                var chunks = new HashSet<XianXia.Core.World.Surface.SurfaceChunkCoord>();
+                if (surface.Chunks != null)
+                    for (var c = 0; c < surface.Chunks.Count; c++)
+                        if (surface.Chunks[c] != null) chunks.Add(surface.Chunks[c].Coord);
+                for (var i = 0; i < surface.SitePlacements.Count; i++)
+                {
+                    var placement = surface.SitePlacements[i];
+                    if (placement == null ||
+                        !string.Equals(placement.Kind, "controlCore", StringComparison.OrdinalIgnoreCase)) continue;
+                    var context = surface.SurfaceId + ".controlCore[" + i + "]";
+                    if (!coreSites.Add(placement.SiteId ?? string.Empty))
+                        report.Add(ErrorCode.DuplicateDefinitionId,
+                            "Outdoor WorldSite has more than one authored controlCore.", context);
+                    if (!knownSites.Contains(placement.SiteId ?? string.Empty))
+                        report.Add(ErrorCode.NotFound,
+                            "Outdoor controlCore references an unknown WorldSite.", context);
+                    if (registry.SpatialRules == null)
+                        report.Add(ErrorCode.MissingRequiredField,
+                            "Outdoor controlCore requires worldSpatialRules.", context);
+                    else
+                        try { registry.SpatialRules.RequireLevel(1); }
+                        catch (InvalidOperationException ex)
+                        { report.Add(ErrorCode.InvalidArgument, ex.Message, context); }
+                    var centerX = placement.WorldX + placement.WorldWidth * .5f;
+                    var centerY = placement.WorldY + placement.WorldHeight * .5f;
+                    var centerIsAuthored = false;
+                    if (surface.ChunkWidth > 0f && surface.ChunkHeight > 0f)
+                    {
+                        var centerChunk = new XianXia.Core.World.Surface.SurfaceChunkCoord(
+                            (int)Math.Floor((centerX - surface.OriginWorldX) / surface.ChunkWidth),
+                            (int)Math.Floor((centerY - surface.OriginWorldY) / surface.ChunkHeight));
+                        centerIsAuthored = chunks.Contains(centerChunk);
+                    }
+                    if (!centerIsAuthored)
+                        report.Add(ErrorCode.InvalidArgument,
+                            "Outdoor controlCore center is outside authored Surface chunks.", context);
+                }
+            }
+        }
+
+        static void ValidateFactionFlagSiteCores(DefinitionRegistry registry, ValidationReport report)
+        {
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var worldPair in registry.HexWorldContents)
+            {
+                var definition = worldPair.Value;
+                if (definition?.FactionFlags == null) continue;
+                for (var i = 0; i < definition.FactionFlags.Count; i++)
+                {
+                    var flag = definition.FactionFlags[i];
+                    if (flag == null) continue;
+                    var context = definition.Id + ".factionFlags[" + i + "]";
+                    if (!ids.Add(flag.FlagId ?? string.Empty))
+                        report.Add(ErrorCode.DuplicateDefinitionId,
+                            "FactionFlag flagId must be globally unique.", context);
+
+                    if (!flag.CreatesWorldSite)
+                    {
+                        if (flag.HasWorldPosition || !string.IsNullOrWhiteSpace(flag.SurfaceId))
+                            report.Add(ErrorCode.InvalidArgument,
+                                "Precise FactionFlag position requires createsWorldSite=true.", context);
+                        if (!flag.LegacyDebugOnly)
+                            report.Add(ErrorCode.MissingRequiredField,
+                                "Product FactionFlag requires Site-Core metadata; legacy-only flags must explicitly declare legacyDebugOnly=true.",
+                                context);
+                        continue;
+                    }
+
+                    if (flag.LegacyDebugOnly)
+                        report.Add(ErrorCode.InvalidArgument,
+                            "Site-Core FactionFlag cannot also be legacyDebugOnly.", context);
+
+                    if (!flag.HasWorldPosition || string.IsNullOrWhiteSpace(flag.SurfaceId))
+                    {
+                        report.Add(ErrorCode.MissingRequiredField,
+                            "Site-Core FactionFlag requires an explicit precise Surface position.", context);
+                        continue;
+                    }
+                    if (flag.HasLocalPosition)
+                        report.Add(ErrorCode.InvalidArgument,
+                            "Site-Core FactionFlag cannot declare legacy local position authority.", context);
+                    if (!IsFinite(flag.WorldX) || !IsFinite(flag.WorldY))
+                        report.Add(ErrorCode.InvalidArgument,
+                            "Site-Core FactionFlag world position must be finite.", context);
+                    if (flag.CoreLevel < 1)
+                        report.Add(ErrorCode.InvalidArgument,
+                            "Site-Core FactionFlag coreLevel must be positive.", context);
+                    else if (registry.SpatialRules == null)
+                        report.Add(ErrorCode.MissingRequiredField,
+                            "Site-Core FactionFlag requires worldSpatialRules.", context);
+                    else
+                        try { registry.SpatialRules.RequireLevel(flag.CoreLevel); }
+                        catch (InvalidOperationException ex)
+                        { report.Add(ErrorCode.InvalidArgument, ex.Message, context); }
+
+                    OutdoorWorldSurfaceDefinition authoredSurface = null;
+                    foreach (var surfacePair in registry.OutdoorSurfaces)
+                        if (string.Equals(surfacePair.Value?.SurfaceId, flag.SurfaceId, StringComparison.Ordinal))
+                        {
+                            authoredSurface = surfacePair.Value;
+                            break;
+                        }
+                    if (authoredSurface == null)
+                    {
+                        report.Add(ErrorCode.NotFound,
+                            "Site-Core FactionFlag references an unknown Surface.", context);
+                        continue;
+                    }
+                    if (!OutdoorSurfaceCoverageResolver.TryResolveAtWorldPosition(
+                            registry, flag.WorldX, flag.WorldY, out var resolved) ||
+                        resolved == null ||
+                        !string.Equals(resolved.SurfaceId, flag.SurfaceId, StringComparison.Ordinal))
+                        report.Add(ErrorCode.InvalidArgument,
+                            "Site-Core FactionFlag precise point is outside its unique authored Surface.", context);
+                }
+            }
+        }
+
+        static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 
         static HashSet<string> CollectLocationIds(DefinitionRegistry registry)
         {

@@ -12,6 +12,9 @@ namespace XianXia.Core.Persistence
     /// <summary>FactionFlag Snapshot active-set 的验证、诊断与原子提交入口。</summary>
     public static class FactionFlagSnapshotRestore
     {
+        const string RetiredPlayerCampSiteId = "test:site_player_camp";
+        const string PlayerOriginFlagId = "base:flag_player_origin";
+
         public static Result TryApplyAuthoritativeSet(SimulationWorld world, StrategicSnapshotDto dto)
         {
             if (world?.Strategic?.FactionFlags == null || dto == null)
@@ -19,15 +22,24 @@ namespace XianXia.Core.Persistence
             if (!dto.HasFactionFlagSnapshotAuthority)
                 return Result.Success();
 
-            var source = dto.FactionFlags ?? new List<FactionFlagSnapshotDto>();
+            var source = dto.FactionFlags == null
+                ? new List<FactionFlagSnapshotDto>()
+                : new List<FactionFlagSnapshotDto>(dto.FactionFlags);
             var validated = new List<FactionFlagState>(source.Count);
             var ids = new HashSet<string>(StringComparer.Ordinal);
             var orders = new HashSet<long>();
+            var contentTemplates = new Dictionary<string, FactionFlagState>(StringComparer.Ordinal);
+            foreach (var pair in world.Strategic.FactionFlags.Flags)
+                if (pair.Value != null)
+                    contentTemplates[pair.Key] = pair.Value;
+            AppendRetiredPlayerCampMigration(dto, source, contentTemplates);
             for (var i = 0; i < source.Count; i++)
             {
                 var item = source[i];
                 if (item == null)
                     return Invalid(i, null, "entry is null");
+                if (item.SiteCoreFormat < 0 || item.SiteCoreFormat > 1)
+                    return Invalid(i, item, "unknown Site-Core snapshot format");
                 var anchor = new HexCoord(item.AnchorQ, item.AnchorR);
                 if (string.IsNullOrWhiteSpace(item.FlagId)) return Invalid(i, item, "FlagId is empty");
                 if (string.IsNullOrWhiteSpace(item.FactionId)) return Invalid(i, item, "FactionId is empty");
@@ -43,6 +55,33 @@ namespace XianXia.Core.Persistence
                 if (item.HasWorldPosition && (!IsFinite(item.WorldX) || !IsFinite(item.WorldY)))
                     return Invalid(i, item, "world position is not finite");
 
+                contentTemplates.TryGetValue(item.FlagId, out var contentTemplate);
+                var authored = contentTemplate != null && contentTemplate.IsAuthoredSiteCore
+                    ? contentTemplate : null;
+                var hasWorldPosition = item.HasWorldPosition;
+                var worldX = item.WorldX;
+                var worldY = item.WorldY;
+                var siteId = item.SiteId ?? string.Empty;
+                var surfaceId = item.SurfaceId ?? string.Empty;
+                var isSiteCore = item.IsSiteCore;
+                var migratedFromContent = false;
+                if (authored != null && item.SiteCoreFormat == 0)
+                {
+                    hasWorldPosition = authored.HasWorldPosition;
+                    worldX = authored.WorldX;
+                    worldY = authored.WorldY;
+                    siteId = FactionFlagService.SiteIdForCoreFlag(item.FlagId);
+                    surfaceId = authored.SurfaceId;
+                    isSiteCore = true;
+                    migratedFromContent = true;
+                }
+                if (isSiteCore && (!hasWorldPosition || string.IsNullOrWhiteSpace(surfaceId) ||
+                                   !string.Equals(siteId, FactionFlagService.SiteIdForCoreFlag(item.FlagId),
+                                       StringComparison.Ordinal)))
+                    return Invalid(i, item, "Site-Core identity requires precise position, Surface, and stable SiteId");
+                if (item.SiteCoreFormat == 1 && authored != null && !isSiteCore)
+                    return Invalid(i, item, "authored Site-Core flag is disabled by an authoritative snapshot entry");
+
                 validated.Add(new FactionFlagState
                 {
                     FlagId = item.FlagId,
@@ -54,12 +93,18 @@ namespace XianXia.Core.Persistence
                     HasLocalPosition = item.HasLocalPosition,
                     LocalX = item.LocalX,
                     LocalZ = item.LocalZ,
-                    HasWorldPosition = item.HasWorldPosition,
-                    WorldX = item.WorldX,
-                    WorldY = item.WorldY,
-                    SiteId = item.SiteId ?? string.Empty,
-                    SurfaceId = item.SurfaceId ?? string.Empty,
-                    IsSiteCore = item.IsSiteCore
+                    HasWorldPosition = hasWorldPosition,
+                    WorldX = worldX,
+                    WorldY = worldY,
+                    SiteId = siteId,
+                    SurfaceId = surfaceId,
+                    IsSiteCore = isSiteCore,
+                    IsAuthoredSiteCore = authored != null,
+                    IsWorldMapDebugOnly = contentTemplate?.IsWorldMapDebugOnly ?? false,
+                    AuthoredSiteDisplayName = authored?.AuthoredSiteDisplayName ?? string.Empty,
+                    AuthoredSiteType = authored?.AuthoredSiteType ?? string.Empty,
+                    AuthoredCoreLevel = authored?.AuthoredCoreLevel ?? 1,
+                    NeedsAuthoredBaselineClaimMigration = migratedFromContent
                 });
             }
 
@@ -83,6 +128,47 @@ namespace XianXia.Core.Persistence
                     string.Join(",", missing) + " Extra=" + string.Join(",", extra));
 #endif
             return Result.Success();
+        }
+
+        static void AppendRetiredPlayerCampMigration(
+            StrategicSnapshotDto dto,
+            List<FactionFlagSnapshotDto> source,
+            IReadOnlyDictionary<string, FactionFlagState> contentTemplates)
+        {
+            var hasRetiredCamp = false;
+            if (dto.WorldSiteOwners != null)
+                for (var i = 0; i < dto.WorldSiteOwners.Count; i++)
+                    if (string.Equals(dto.WorldSiteOwners[i]?.SiteId,
+                            RetiredPlayerCampSiteId, StringComparison.Ordinal))
+                    { hasRetiredCamp = true; break; }
+            if (!hasRetiredCamp || !contentTemplates.TryGetValue(PlayerOriginFlagId, out var template) ||
+                template == null || !template.IsAuthoredSiteCore)
+                return;
+
+            for (var i = 0; i < source.Count; i++)
+            {
+                var item = source[i];
+                if (item == null) continue;
+                if (string.Equals(item.FlagId, PlayerOriginFlagId, StringComparison.Ordinal) ||
+                    (item.IsSiteCore && string.Equals(item.FactionId,
+                        StrategicFactionCatalog.PlayerFactionId, StringComparison.Ordinal)))
+                    return;
+            }
+
+            // Old Camp identity is only a migration signal. Character position, Camp buildings
+            // and markers are deliberately not copied to the new authored flag Site.
+            source.Add(new FactionFlagSnapshotDto
+            {
+                SiteCoreFormat = 0,
+                FlagId = template.FlagId,
+                FactionId = StrategicFactionCatalog.PlayerFactionId,
+                AnchorQ = template.AnchorHex.Q,
+                AnchorR = template.AnchorHex.R,
+                EstablishedOrder = template.EstablishedOrder,
+                CurrentHp = 100,
+                MaxHp = 100,
+                HasLocalPosition = false
+            });
         }
 
         public static void LogDtos(string stage, IReadOnlyList<FactionFlagSnapshotDto> flags)

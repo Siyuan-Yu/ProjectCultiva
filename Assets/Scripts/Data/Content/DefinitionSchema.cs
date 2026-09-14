@@ -119,6 +119,18 @@ namespace XianXia.Data.Content
             "id", "type", "name", "originWorldX", "originWorldY", "cellSize", "chunkWidth", "chunkHeight", "acceptanceOnly", "chunks",
             "siteRegions", "sitePlacements", "sitePlaces", "openingEntityAnchors"
         };
+        public static readonly HashSet<string> WorldSpatialRulesFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "id", "type", "coreLevels",
+            "wildernessEncounterWidthCells", "wildernessEncounterHeightCells",
+            "wildernessEncounterWidthWorld", "wildernessEncounterHeightWorld",
+            "interventionDecisionSeconds", "interventionArrivalSeconds",
+            "interventionRelationThreshold", "interventionChanceBasisPoints"
+        };
+        public static readonly HashSet<string> CoreLevelControlRangeFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "level", "controlWidthCells", "controlHeightCells", "controlWidthWorld", "controlHeightWorld"
+        };
         public static readonly HashSet<string> OpeningEntityAnchorFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "siteId", "spawnKey", "definitionId", "sourceLocationId", "worldX", "worldY"
@@ -237,7 +249,9 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> HexWorldFactionFlagFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "flagId", "factionId", "anchorQ", "anchorR", "establishedOrder",
-            "hasLocalPosition", "localX", "localZ"
+            "hasLocalPosition", "localX", "localZ",
+            "surfaceId", "worldX", "worldY", "createsWorldSite",
+            "siteDisplayName", "siteType", "coreLevel", "legacyDebugOnly"
         };
         public static readonly HashSet<string> OpeningStrategicFields = new HashSet<string>(StringComparer.Ordinal) { "playerFactionId", "vassalages", "alliances", "initialWars" };
         public static readonly HashSet<string> OpeningVassalageFields = new HashSet<string>(StringComparer.Ordinal) { "vassalFactionId", "overlordFactionId" };
@@ -303,7 +317,7 @@ namespace XianXia.Data.Content
         {
             "id", "type", "name", "description", "unlockedByDefault", "placementKind",
             "createsWorldSite", "createdSiteName", "createdSiteType", "initialSiteLevel",
-            "siteRangeWidth", "siteRangeHeight", "dismantleRefundRate", "costs"
+            "dismantleRefundRate", "costs"
         };
 
         public static readonly HashSet<string> BuildingCostFields = new HashSet<string>(StringComparer.Ordinal)

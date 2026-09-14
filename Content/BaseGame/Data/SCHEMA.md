@@ -108,6 +108,7 @@ Hex 战略世界 JSON（`Content/BaseGame/Data/Worlds/*.json`）；由 `HexWorld
 | `cells[]` | `{ q, r, terrain, passable?, isRoad? }`；terrain ∈ Plain/Forest/Mountain/Water/Road |
 | `sites[]` | Fixed WorldSite（见下） |
 | `territoryRegions[]` | 政治辖区（见下）；Runtime 只读固化 Hexes，不按 radius 重算 |
+| `factionFlags[]` | 势力旗；legacy 旗只含战略锚点，正式 Continuous Site-Core 旗须明确 author 精确 Surface 位置（见下） |
 
 ### hexWorld.sites[]
 
@@ -132,6 +133,21 @@ Hex 战略世界 JSON（`Content/BaseGame/Data/Worlds/*.json`）；由 `HexWorld
 | `hexes[]` | 固化辖区（**必须**覆盖该 Site 全部 footprint；运行时不可按 radius 重算/竞争） |
 
 > 初始辖区生成用一次性脚本（footprint 距离 + SiteId 确定性 tie-break），生成结果固化进 JSON；Runtime 无任何 radius 逻辑。
+
+### hexWorld.factionFlags[]
+
+| Field | Notes |
+|---|---|
+| `flagId`／`factionId` | 稳定旗身份与唯一政治 Owner；`flagId` 在全部 HexWorld Content 中唯一 |
+| `anchorQ`／`anchorR`／`establishedOrder` | Legacy 战略锚点与稳定历史顺序；正式精确位置不得在 Runtime 重新从 Anchor 推导 |
+| `surfaceId`／`worldX`／`worldY` | 可选但必须成组出现；正式 Continuous 旗的精确 authored 位置，点必须唯一落在该 Surface |
+| `createsWorldSite` | `true` 表示此旗创建唯一稳定 Runtime WorldSite，并成为其 SiteCore；必须同时提供精确位置 |
+| `siteDisplayName`／`siteType` | 可选 Site 表现元数据；缺省统一使用势力旗据点／Outpost |
+| `coreLevel` | SiteCore 等级；当前正式值为 1，范围统一由 `worldSpatialRules` 解析为150×150 Surface cells |
+| `legacyDebugOnly` | 仅旧兼容／fixture flag 可显式设为 `true`；不进入正常产品 WorldMap marker／territory |
+| `hasLocalPosition`／`localX`／`localZ` | Legacy 局部表现字段；正式 Site-Core authoring 禁止同时声明该位置权威 |
+
+Runtime SiteId 必须由 `FactionFlagService.SiteIdForCoreFlag(flagId)` 确定性生成；Content 不保存 Runtime SiteId 或 ClaimId。正常产品旗必须完整声明 Site-Core metadata；缺少精确字段的兼容旗必须显式声明 `legacyDebugOnly=true`，否则 Content validation 失败。
 
 ## type = character
 
