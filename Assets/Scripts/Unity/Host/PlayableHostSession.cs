@@ -75,6 +75,7 @@ namespace XianXia.Unity.Host
         /// Space／Pause-UI 不能解除；Modal 关闭（PopModalPause）后恢复到底层 ManualPaused 状态。
         /// </summary>
         public bool ModalHardPaused => _legacyModalPauseDepth > 0 || _modalPauseOwners.Count > 0;
+        public string ModalPauseDiagnostics => string.Join(",", _modalPauseOwners) + ";legacyDepth=" + _legacyModalPauseDepth;
 
         public void PushModalPause() => _legacyModalPauseDepth++;
 

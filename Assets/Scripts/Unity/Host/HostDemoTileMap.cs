@@ -350,11 +350,21 @@ namespace XianXia.Unity.Host
         static bool TryPickLayout(PlayableHostSession session, out MapLayoutDefinition layout) =>
             MapLayoutPick.TryGet(session, out layout);
 
+        internal bool DeferInstanceActivation { get; set; }
+
+        internal void ActivateInstanceOwner(string ownerPrefix)
+        {
+            foreach (var pair in _instances)
+                if (pair.Key.StartsWith(ownerPrefix, System.StringComparison.Ordinal) && pair.Value.Root != null)
+                    pair.Value.Root.gameObject.SetActive(true);
+        }
+
         void BeginInstanceBuild(string instanceKey, MapLayoutDefinition layout, Vector2 placementOffset)
         {
             EnsureRoot();
             var root = new GameObject("SurfaceInstance_" + instanceKey).transform;
             root.SetParent(mapRoot, false);
+            root.gameObject.SetActive(!DeferInstanceActivation);
             _buildRoot = root;
             _buildPlacementOffset = placementOffset;
             _buildingInstanceKey = instanceKey;

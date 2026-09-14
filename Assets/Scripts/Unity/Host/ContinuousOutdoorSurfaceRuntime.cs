@@ -224,6 +224,11 @@ namespace XianXia.Unity.Host
 
         public void RefreshCompositeWalkGrid()
         {
+            if (!string.IsNullOrEmpty(_independentFieldId))
+            {
+                MarkIndependentFlagNavigationDirty();
+                return;
+            }
             if (IsActive)
                 RecomposeWalkGrid();
         }
@@ -1882,6 +1887,8 @@ namespace XianXia.Unity.Host
 
         void DeactivatePresentationOnly(bool captureEntityPositions)
         {
+            _bootstrap?.GetComponent<HostCharacterEncounter>()?.CancelPreparation();
+            CancelIndependentNavigation();
             if (captureEntityPositions) CaptureCurrentPersonalPlacements();
             var world = _navigationStateWorld;
             var combat = world?.Strategic?.ContinuousManualCombat;
@@ -1913,6 +1920,7 @@ namespace XianXia.Unity.Host
             _bootstrap?.MoveController?.BindLocalMapContext(string.Empty);
             Debug.Log("[W1C] Deactivated surface=" + _surfaceId + " Loaded=0", this);
             _surfaceId = string.Empty;
+            _independentFieldId = string.Empty;
         }
 
         /// <summary>

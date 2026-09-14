@@ -1,5 +1,16 @@
 # 开发日志
 
+## 2026-09-14 — U2–U4 联合 Fix 重接与剩余生命周期收口
+
+- 本轮实际开始于干净的 e6fbdc2（不是聊天中上轮末尾状态）；已授权修复对象仍在本地，依次应用为28fe489、1e67880、2a62612，无reset/push或覆盖无关改动。沿用线性WalkGridComposer、分帧计划/构建及每chunk一个背景renderer。
+- 进一步抽取原Presenter战力条、动作列表绘制供旧目标适配与人物请求共用；结束战斗使用同一个DrawManualPostBattleBar，报告仍为DrawManualBattleReport。人物预览从请求/准备结果只读复制，滚动显示全部双方人物，不写Participants或分配领域ID。Active不显示确认窗口。
+- 报告独立取得输入owner，确认/恢复使用协调器owner，普通面板bool不能覆盖它们；disable分别释放自己owner。恢复并入入场协调器及其受保护嵌套迭代器，失败保留已有领域战果并允许重试，不释放恢复锁让空场地执行战术。显式换World/退出Surface取消旧准备和旧callback。
+- 进一步检查到旧面板Close会调用HostInputGate.Clear：现Clear仅清旧bool，具名owner只由自身释放；正式读档在启动新场恢复前ResetSession，后续Rebind不再清新锁。旗阻挡刷新也使用旧/新旗占地涉及chunk的合并更新，独立场公共RefreshCompositeWalkGrid入口不再同步合成全场。
+- staging根构建时不激活；来源、World、拓扑、小队命令修订/人数、每人原位置在构建过程中及最终提交再次核对。全部准备完成后才Begin并接管/激活。普通入场失败仅回滚尚无战果的场次；恢复失败不Abort既有伤亡。
+- 战中破坏导航改为比较已毁物件集合、定位实际受影响placement/chunk，逐chunk重写原grid对应区域；保留全部source/site/geography/旗阻挡与冻结边界，不再因每次破墙重建整个独立场导航。普通小范围返回仍执行原邻域激活，未重复合成完整战场。
+- 诊断增加请求/场次ID、World绑定、实际来源边界/世界单位比例、输入数/输出格数、预计背景renderer数、阶段/完成chunk、未缩放阶段耗时、modal owners、手动暂停、WorldTick冻结、输入锁和首个实际战术DeltaTime。未宣称运行耗时或帧率。
+- 验证仅现成非Unity编译（Core459/Data78/Host145及既有程序集）与少量静态核查、diff检查；未新增/运行自动测试、Unity、batchmode或Bake。状态仍为Implementation Completed / Producer Acceptance Pending，人工路线详见222增补。
+
 ## 2026-09-14 — 人物遭遇构建界面停留修复（Scripts.zip 对照）
 
 - 制作人截图停在“构建独立战场”；只读 ZIP 对照确认 HostCharacterEncounter、ContinuousOutdoorEncounterField、HostDemoTileMap 与修复前工作区一致。LevelTester 场景明确 stampGrassGround=1、grassStride=2；50×50 layout 的双循环每 chunk 创建 625 个草 prefab，646 chunks 合计 403750 个草对象（尚不计 prefab 子物体）。此前“背景已合并”的说明只覆盖 geography，遗漏普通草地，现予更正。

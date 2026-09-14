@@ -1355,6 +1355,8 @@ namespace XianXia.Unity.Host
                 levelTesterCheatPanel.Bind(this, selectionController);
             eventFeed.Clear();
 
+            // Reset old owners before the new restored field acquires its preparation lock.
+            HostInputGate.ResetSession();
             var continuousOutdoorRestored = _continuousOutdoorSurfaceRuntime != null &&
                                             _continuousOutdoorSurfaceRuntime.RebuildAfterWorldRestore();
             if (continuousOutdoorRestored)

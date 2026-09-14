@@ -9,17 +9,24 @@ namespace XianXia.Unity.Host
         static bool _blockWorldInteraction;
 
         /// <summary>Encounter owns this independently of other panels' per-frame bool writes.</summary>
-        public static bool EncounterModalLock { get; set; }
+        static readonly System.Collections.Generic.HashSet<string> _owners = new System.Collections.Generic.HashSet<string>();
+        public static void Acquire(string owner) { if (!string.IsNullOrEmpty(owner)) _owners.Add(owner); }
+        public static void Release(string owner) { if (!string.IsNullOrEmpty(owner)) _owners.Remove(owner); }
+        public static bool EncounterModalLock
+        {
+            get => _owners.Contains("CharacterEncounterUI");
+            set { if (value) Acquire("CharacterEncounterUI"); else Release("CharacterEncounterUI"); }
+        }
 
         public static bool BlockWorldCamera
         {
-            get => _blockWorldCamera || EncounterModalLock;
+            get => _blockWorldCamera || _owners.Count > 0;
             set => _blockWorldCamera = value;
         }
 
         public static bool BlockWorldInteraction
         {
-            get => _blockWorldInteraction || EncounterModalLock;
+            get => _blockWorldInteraction || _owners.Count > 0;
             set => _blockWorldInteraction = value;
         }
 
@@ -27,7 +34,14 @@ namespace XianXia.Unity.Host
         {
             _blockWorldCamera = false;
             _blockWorldInteraction = false;
-            EncounterModalLock = false;
+        }
+
+        // Only the explicit session boundary may clear other owners. Ordinary panel Close
+        // still calls Clear(), which clears its legacy aggregate without touching named locks.
+        public static void ResetSession()
+        {
+            Clear();
+            _owners.Clear();
         }
     }
 }
