@@ -54,10 +54,27 @@ namespace XianXia.Core.Persistence
         /// <summary>Social Bond Runtime Board（v6 optional；旧档缺省＝空）。</summary>
         public List<SocialBondSnapshotDto> SocialBonds { get; set; } =
             new List<SocialBondSnapshotDto>();
+        public long NextOutdoorConstructedAssetSequence { get; set; } = 1;
+        public List<OutdoorConstructedAssetSnapshotDto> OutdoorConstructedAssets { get; set; } = new List<OutdoorConstructedAssetSnapshotDto>();
         public List<OutdoorDestructibleSnapshotDto> OutdoorDestructibles { get; set; } =
             new List<OutdoorDestructibleSnapshotDto>();
         public List<OutdoorFarmPlotSnapshotDto> OutdoorFarmPlots { get; set; } =
             new List<OutdoorFarmPlotSnapshotDto>();
+    }
+
+    public sealed class OutdoorConstructedAssetSnapshotDto
+    {
+        public string StableAssetId { get; set; } = string.Empty;
+        public string BuildingId { get; set; } = string.Empty;
+        public string Kind { get; set; } = string.Empty;
+        public string SurfaceId { get; set; } = string.Empty;
+        public float WorldX { get; set; }
+        public float WorldY { get; set; }
+        public float WorldWidth { get; set; }
+        public float WorldHeight { get; set; }
+        public int CellsW { get; set; }
+        public int CellsH { get; set; }
+        public string BoundLocationId { get; set; } = string.Empty;
     }
 
     public sealed class OutdoorDestructibleSnapshotDto

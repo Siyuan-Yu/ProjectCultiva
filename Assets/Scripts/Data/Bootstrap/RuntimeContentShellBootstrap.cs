@@ -17,6 +17,9 @@ namespace XianXia.Data.Bootstrap
 
             ContentRuntimeBootstrap.RehydrateInventoryCatalog(world, registry);
             ContentRuntimeBootstrap.RehydrateSurfaceGround(world, registry);
+            var assetAnchors = OutdoorAdministrativeAssetAnchorBootstrap.Rehydrate(world, registry);
+            if (assetAnchors.IsFailure)
+                return assetAnchors;
             ContentRuntimeBootstrap.RehydrateConstructionCatalog(world, registry);
 
             // Snapshot 内的 ManualSnapshotDto 只是旧兼容的最小定义；内容定义必须覆盖同 ID。

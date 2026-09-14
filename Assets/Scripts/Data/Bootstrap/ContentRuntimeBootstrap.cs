@@ -12,13 +12,18 @@ namespace XianXia.Data.Bootstrap
     /// <summary>Maps quest／content-event definitions onto session boards.</summary>
     public static class ContentRuntimeBootstrap
     {
-        public static Result Apply(SimulationWorld world, DefinitionRegistry registry)
+        public static Result Apply(SimulationWorld world, DefinitionRegistry registry, OpeningScenarioDefinition openingScenario = null)
         {
             if (world == null || registry == null)
                 return Result.Failure(ErrorCode.InvalidArgument, "ContentRuntime bootstrap args null.");
 
             RehydrateInventoryCatalog(world, registry);
+            var inventory = OpeningInventoryBootstrap.Apply(world, openingScenario);
+            if (inventory.IsFailure) return inventory;
             RehydrateSurfaceGround(world, registry);
+            var assetAnchors = OutdoorAdministrativeAssetAnchorBootstrap.Rehydrate(world, registry);
+            if (assetAnchors.IsFailure)
+                return assetAnchors;
             RehydrateConstructionCatalog(world, registry);
             RebindPresetWorldSiteCoreMetadata(world, registry);
             var flagSites = XianXia.Core.World.Strategic.FactionFlagSiteCoreBootstrap
@@ -121,15 +126,19 @@ namespace XianXia.Data.Bootstrap
                 var definition = kv.Value;
                 if (definition == null)
                     continue;
-                if (!string.Equals(definition.PlacementKind, "factionFlag", System.StringComparison.Ordinal))
-                    continue;
+                var placementKind = definition.PlacementKind == "factionFlag" ? ConstructionPlacementKind.FactionFlag :
+                    definition.PlacementKind == "farmField" ? ConstructionPlacementKind.FarmField :
+                    throw new System.InvalidOperationException("Unknown construction placementKind: " + definition.PlacementKind);
                 var spec = new BuildingConstructionSpec
                 {
                     BuildingId = definition.Id.ToString(),
                     DisplayName = string.IsNullOrWhiteSpace(definition.Name) ? definition.Id.ToString() : definition.Name,
                     Description = definition.Description ?? string.Empty,
                     UnlockedByDefault = definition.UnlockedByDefault,
-                    PlacementKind = ConstructionPlacementKind.FactionFlag,
+                    PlacementKind = placementKind,
+                    OutdoorKind = definition.OutdoorKind,
+                    FootprintCellsW = definition.FootprintCellsW,
+                    FootprintCellsH = definition.FootprintCellsH,
                     CreatesWorldSite = definition.CreatesWorldSite,
                     CreatedSiteName = definition.CreatedSiteName ?? string.Empty,
                     CreatedSiteType = definition.CreatedSiteType ?? string.Empty,

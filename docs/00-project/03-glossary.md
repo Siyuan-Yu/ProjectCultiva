@@ -21,6 +21,10 @@
 - **BuildingDefinition（建筑定义）**：Content 中 `type = building` 的静态模板，描述显示信息、PlacementKind、材料成本与主动拆除返还率；不进入 Snapshot。
 - **Dismantle（主动拆除）**：玩家主动移除己方建筑并按定义返料的 Construction 操作；与战斗摧毁严格分离。
 
+- **Runtime Constructed Outdoor Asset（运行时建造户外资产）**：玩家建造后进入 `OutdoorConstructedAssetBoard` 的持久物理资产；当前仅 FarmField，记录稳定身份和 Surface 矩形，不保存行政管理者或产权。
+- **FarmField（可建造农田）**：普通建筑放置类型，以 Surface cell grid 定尺寸；全 footprint 必须处于发起势力的 Actual Administrative Control。
+- **StartingInventory（开局背包内容）**：OpeningScenario 静态初始物资，仅 NewGame 发放；Snapshot restore 以已保存背包槽位为准。
+
 ## 核心概念
 
 | 中文 | Code | 含义 | 备注 |

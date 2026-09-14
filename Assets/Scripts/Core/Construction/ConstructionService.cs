@@ -131,6 +131,66 @@ namespace XianXia.Core.Construction
             return Result.Success();
         }
 
+        public static Result TryConstructFarmField(
+            SimulationWorld world, string buildingId, string actingFactionId,
+            string surfaceId, float worldX, float worldY, out string assetId)
+        {
+            assetId = string.Empty;
+            if (world == null || !world.ConstructionCatalog.TryGet(buildingId, out var spec) ||
+                spec.PlacementKind != ConstructionPlacementKind.FarmField || !spec.UnlockedByDefault || spec.CreatesWorldSite)
+                return Result.Failure(ErrorCode.InvalidArgument, "农田建筑定义无效或未解锁。");
+            if (world.LocalMap.IsInInterior || world.Strategic.ClockFreeze.Reason != StrategicClockFreezeReason.None)
+                return Result.Failure(ErrorCode.InvalidOperation, "当前空间或战斗阶段不允许建造农田。");
+            if (!HasRequiredMaterials(world, spec, out _))
+                return Result.Failure(ErrorCode.InvalidOperation, "建造材料不足。");
+            if (!world.SurfaceSpatial.TryGet(surfaceId, out var metric) || world.OutdoorConstructedAssets.NextSequence >= long.MaxValue - 1)
+                return Result.Failure(ErrorCode.InvalidArgument, "Surface 或资产序列无效。");
+            var asset = new OutdoorConstructedAssetState {
+                StableAssetId = world.OutdoorConstructedAssets.NextId, BuildingId = buildingId,
+                Kind = spec.OutdoorKind, SurfaceId = surfaceId, WorldX = worldX, WorldY = worldY,
+                WorldWidth = spec.FootprintCellsW * metric.CellSize, WorldHeight = spec.FootprintCellsH * metric.CellSize,
+                CellsW = spec.FootprintCellsW, CellsH = spec.FootprintCellsH,
+                BoundLocationId = "location:runtime:farm:" + world.OutdoorConstructedAssets.NextId
+            };
+            var allowed = OutdoorAdministrativeConstructionAuthorizationService.Validate(world, actingFactionId, asset);
+            if (allowed.IsFailure) return allowed;
+            foreach (var existing in world.OutdoorConstructedAssets.Assets.Values)
+                if (OutdoorConstructedAssetBoard.Overlaps(existing, asset))
+                    return Result.Failure(ErrorCode.InvalidOperation, "此处已有农田。");
+            foreach (var anchor in world.OutdoorAdministrativeAssetAnchors.Anchors.Values)
+                if (anchor.SurfaceId == surfaceId && anchor.WorldX > worldX && anchor.WorldX < worldX + asset.WorldWidth &&
+                    anchor.WorldY > worldY && anchor.WorldY < worldY + asset.WorldHeight)
+                    return Result.Failure(ErrorCode.InvalidOperation, "此处已有农田。");
+            var anchors = new List<XianXia.Core.Exploration.OutdoorAdministrativeAssetAnchor>(asset.CellAnchors());
+            foreach (var anchor in anchors)
+                if (world.OutdoorAdministrativeAssetAnchors.TryGet(anchor.StableAssetId, out _))
+                    return Result.Failure(ErrorCode.InvalidOperation, "农田身份已存在。");
+            var removed = new List<ConstructionMaterialCost>();
+            foreach (var cost in SumCosts(spec.Costs))
+            {
+                if (!world.Inventory.TryRemoveAll(cost.ItemId, cost.Count))
+                { RestoreRemoved(world, removed); return Result.Failure(ErrorCode.InvalidOperation, "材料扣除失败，已回滚。"); }
+                removed.Add(cost);
+            }
+            if (!world.OutdoorConstructedAssets.TryRegister(asset))
+            { RestoreRemoved(world, removed); return Result.Failure(ErrorCode.InvalidOperation, "农田注册失败，已回滚。"); }
+            var registered = new List<string>();
+            foreach (var anchor in anchors)
+            {
+                if (!world.OutdoorAdministrativeAssetAnchors.TryRegister(anchor))
+                {
+                    foreach (var id in registered) world.OutdoorAdministrativeAssetAnchors.Remove(id);
+                    world.OutdoorConstructedAssets.Remove(asset.StableAssetId);
+                    RestoreRemoved(world, removed);
+                    return Result.Failure(ErrorCode.InvalidOperation, "农田锚点注册失败，已回滚。");
+                }
+                registered.Add(anchor.StableAssetId);
+            }
+            world.OutdoorConstructedAssets.AdvanceSequence();
+            assetId = asset.StableAssetId;
+            return Result.Success();
+        }
+
         public static List<ConstructionMaterialCost> CalculateDismantleRefunds(BuildingConstructionSpec spec)
         {
             var refunds = new List<ConstructionMaterialCost>();

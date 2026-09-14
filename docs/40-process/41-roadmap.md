@@ -1,13 +1,15 @@
 # 路线图
 
-> **当前唯一主线（2026-09-14）：** CW-U0～U4 当前正式主线已推进完成，玩家 FormalArmy 产品层退役的当前验收范围已通过；CW-04 已 **Producer Accepted / Sealed**。当前阶段为 [CW-04.5 Faction Territory Visual Union](231-cw-04-5-faction-territory-visual-union-2026-09-14.md)，验收通过后进入 CW-05 Asset Administrative Succession。
 
-> 状态：CW-04.5 Implementation Completed / Producer Acceptance Pending；CW-05 未开始｜最后更新：2026-09-14
+> **当前唯一主线（2026-09-14）：** CW-U0～U4、CW-04、CW-04.5 已封板；CW-05A/B 已实现，验收统一并入 [CW-05 Closing](234-cw-05c-constructible-farm-administrative-lifecycle-2026-09-14.md)。
+
+> 状态：CW-05 Closing Implementation Completed / Producer Acceptance Pending；CW-05A/B acceptance folded into closing product slice。
 
 ## 当前阶段说明
 
-- **2026-09-14 当前：** CW-04 TerritoryClaim／Actual Managing Site／SiteCore 与 WorldMap actual-control 产品链已经制作人人工验收并封板。CW-04.5 只把同 Faction 相邻实际控制投影为连续产品 fill／外边界；不合并 Site、Claim 或 manager。完成记录与验收路线见 [231](231-cw-04-5-faction-territory-visual-union-2026-09-14.md)。
-- **下一阶段：** CW-04.5 验收通过后进入 CW-05 Asset Administrative Succession。已确认原则是“无人管理不等于世界时间停止”；具体资产 manager、管理行为暂停和自然过程时间权威留给 CW-05 实现。
+- **当前产品：** 建筑页农田5木、reference NewGame20木、全 footprint Actual Control 授权、独立运行时物理资产、Streaming、存读档与正常农作闭环已实现。拆旗保留农田/自然生长，新己方旗接管后恢复组织劳动。
+- **下一步：** 制作人按 [234](234-cw-05c-constructible-farm-administrative-lifecycle-2026-09-14.md) 五步正常玩法统一验收；通过后才能将 CW-05A/B/Closing 一起封板。Economy / Automated Settlement Production migration 尚未开始。
+
 - **不阻塞 CW-05 的 backlog：** FormalArmy／BattleOffer／Hex support 深层清理；NPC Squad macro movement 去 FormalArmyWorldMotion；Level 2／3；Encounter 介入参数调优；飞舟；建筑战争／Site takeover（排在 CW-05 后）。
 
 - **2026-09-13 历史状态：** CW-U0 的设计收口与多人落点修复已由制作人验收并封板；范围见 [220](220-cw-u0-design-and-manual-entry-placement-2026-09-13.md)。CW-U1 当时已完成统一 Squad 成员权威、正常加入／离队、现有共同移动适配、近场观察与正式存读档接线。

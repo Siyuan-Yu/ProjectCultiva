@@ -1,6 +1,6 @@
 # ADR-0032：SiteCore、实际行政控制与建设范围
 
-> 状态：已采纳（CW-04 已实现；制作人验收待完成）
+> 状态：已采纳（CW-04／CW-04.5 已封板；CW-05A/B/Closing 已实现、统一待制作人验收）
 > 日期：2026-09-12
 > 关联：[24](../../20-systems/24-world-and-settlements.md)、[26](../../20-systems/26-territory-management.md)、[2J](../../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)、[2L](../../20-systems/2L-local-map-construction-v1.md)、[ADR-0029](ADR-0029-construction-content-runtime-and-snapshot-boundary.md)、[ADR-0031](ADR-0031-continuous-outdoor-world-surface-architecture.md)
 
@@ -29,11 +29,20 @@ Continuous Outdoor World Surface 已确定为普通户外的物理世界，但�
 
 ## 状态边界
 
-本 ADR 的原始采纳只确认设计。现有 Control Asset／FactionFlag／Construction 的历史验收仍仅适用于当时版本；CW-04 已完成实际控制历史、重叠稳定解析、扩张接续和持久化实现，但制作人尚未验收目标行为。
+本 ADR 的原始采纳只确认设计。CW-04 已完成实际控制历史、重叠稳定解析、扩张接续和持久化并由制作人封板；CW-04.5 的同势力产品视觉 union 也已封板。CW-05A 已进入资产层：自然状态与当前行政执行上下文分离。
 
-> **2026-09-14 CW-04 实现注记：** `TerritoryClaim` 现保存每次初始／升级取得范围与稳定顺序；精确位置的实际行政控制从 Claim 历史与当前理论范围解析，Hex／TerritoryRegion 由该结果重建。旧存档在显式恢复阶段一次性由 `ControlEstablishedOrder` 建立基线；新格式严格保存完整 Claim authority。实现完成，制作人验收待进行。
+> **2026-09-14 CW-05A／CW-05B 实现注记：** `TerritoryClaim` 与 CW-04.5 已封板。Stateful World Object 不等于 Administrative Asset：当前只有 Farm Plot 显式登记 Content-derived administrative anchor，并从精确位置动态派生 managing WorldSite；tree/wall 虽保留持久 HP/damage state，但没有 Administrative Manager。Physical Asset Identity、Property Ownership、Administrative Manager 相互独立，本轮不实现产权。“无人管理 != 时间停止”，crop state 与自然生长不依赖 manager 或 Host materialization。CW-05B 只让玩家发起的 Organized Farm Labor 按每格 StableCellId 消费当前 manager faction；NPC schedule、Settlement production 与 generic construction 延后 Economy / Automated Settlement Production migration。CW-05A/B 的验收并入 CW-05 Closing 正常建田闭环。
 
 > **2026-09-14 final scale：** 核心等级范围的 Content 单位为 Surface cells，运行时按目标 Surface 的实际 `cellSize` 解析；Claim 保存解析后的 world-space 历史。Main Surface Level 1 最终为 150×150 cells = 4.2×4.2 world = 3×3 chunks。Wilderness Encounter 使用独立的 500×500 cells 配置。
 
 > **2026-09-14 FactionFlag Content migration：** 正式预设旗不再只是 Hex marker。一次性把既有兼容显示中心写成明确 Surface 世界坐标；运行时与玩家新旗共用唯一 SiteCore→TerritoryClaim 路径，SiteId 由 FlagId 稳定生成，baseline 使用旧 `EstablishedOrder`。无法对应唯一 Continuous Surface 的旗保持 legacy-only，禁止运行时从 Hex、最近 Surface 或 Site arrival 猜测。
 
+
+
+## 2026-09-14 CW-05 Closing：可建造农田
+
+制作人已授权并实现 `farmField`：正常建筑入口创建5×4 Surface cells的农田，成本粗木5；reference scenario 新游戏通过 `startingInventory` 发粗木20。Core 逐格查询 Actual Administrative Control，只要各格当前 managing Site 同属玩家势力即可，允许跨同势力 Site 边界。Host 校验加载范围、几何、距离并提供预览；Core 在扣料前重验并事务注册。
+
+`OutdoorConstructedAssetBoard` 保存稳定 root ID、建筑/kind、SurfaceId、精确左下角矩形、格数和独立 BoundLocationId；每格复用 `OutdoorStatefulObjectId.ForCell`。Snapshot v6 optional additive `outdoorConstructedAssets`＋`nextOutdoorConstructedAssetSequence` 保存物理资产和序列，crop state 继续走原 FarmPlots；旧档缺字段为空，新格式损坏报错。当前 manager 不进资产或 Snapshot，由 authored＋runtime anchors 动态派生；拆旗不删除田和作物，新 Site 接管立即恢复组织权限。读档内容壳绝不执行 OpeningInventoryBootstrap。
+
+Streaming 复用现有农田 stamping；建造立即局部补齐，卸载只销毁表现，重载恢复相同 cell IDs/crop。CW-05A Probe UI 已移除。CW-05A/B 与 Closing 全部 Implementation Completed、Producer Acceptance Pending；NPC schedule economy、SettlementProduction、generic house/workshop、产权、建筑战争和农田拆除继续延期。

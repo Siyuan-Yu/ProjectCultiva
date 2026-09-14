@@ -40,6 +40,7 @@ namespace XianXia.Unity.Host
                 return Result.Failure(ErrorCode.NotFound, "建筑定义不存在。", buildingId);
             if (spec.PlacementKind != ConstructionPlacementKind.FactionFlag)
                 return Result.Failure(ErrorCode.InvalidOperation, "此放置器不支持该建筑。", buildingId);
+            _bootstrap.GetComponent<HostFarmFieldConstructionPresenter>()?.CancelPlacement();
             _buildingId = buildingId;
             _placing = true;
             _status = "移动鼠标选择位置；左键建造，Esc／右键取消。";

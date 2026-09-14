@@ -1,11 +1,8 @@
-using System;
-using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using XianXia.Core.Combat;
+using XianXia.Core.Exploration;
 using XianXia.Core.World.Strategic;
-using XianXia.Core.World.Hex;
-using XianXia.Core.World;
 
 namespace XianXia.Unity.Host
 {
@@ -19,19 +16,17 @@ namespace XianXia.Unity.Host
         {
             Time = 0,
             Background = 1,
-            FormalArmy = 2,
-            Content = 3,
-            Diplomacy = 4,
-            Snapshot = 5,
-            Battle = 6,
-            Diagnostics = 7,
+            Content = 2,
+            Diplomacy = 3,
+            Snapshot = 4,
+            Battle = 5,
+            Diagnostics = 6,
         }
 
         static readonly string[] TabLabels =
         {
             "时间",
             "后台角色",
-            "正规军",
             "内容",
             "外交",
             "存档",
@@ -52,7 +47,6 @@ namespace XianXia.Unity.Host
 
         readonly LevelTesterCheatTimeSection _time = new LevelTesterCheatTimeSection();
         readonly LevelTesterCheatBackgroundSection _background = new LevelTesterCheatBackgroundSection();
-        readonly LevelTesterCheatFormalArmySection _formalArmy = new LevelTesterCheatFormalArmySection();
         readonly LevelTesterCheatContentSection _content = new LevelTesterCheatContentSection();
         readonly LevelTesterCheatDiplomacySection _diplomacy = new LevelTesterCheatDiplomacySection();
 
@@ -60,8 +54,6 @@ namespace XianXia.Unity.Host
         bool _resetConfirmPending;
         string _sessionStatus = string.Empty;
         string _snapshotStatus = string.Empty;
-        string _battleStatus = string.Empty;
-        string _diagnosticStatus = string.Empty;
         Vector2 _tabScroll;
         Rect _panelRect;
         bool _panelRectInitialized;
@@ -163,8 +155,6 @@ namespace XianXia.Unity.Host
                     return 280f;
                 case CheatTab.Background:
                     return 520f;
-                case CheatTab.FormalArmy:
-                    return 960f;
                 case CheatTab.Content:
                     return 480f;
                 case CheatTab.Diplomacy:
@@ -172,7 +162,7 @@ namespace XianXia.Unity.Host
                 case CheatTab.Snapshot:
                     return 260f;
                 case CheatTab.Battle:
-                    return 260f;
+                    return 520f;
                 case CheatTab.Diagnostics:
                     return 760f;
                 default:
@@ -189,9 +179,6 @@ namespace XianXia.Unity.Host
                     break;
                 case CheatTab.Background:
                     _background.Draw(bootstrap, x, 0f, width, _body);
-                    break;
-                case CheatTab.FormalArmy:
-                    _formalArmy.Draw(bootstrap, x, 0f, width, _body);
                     break;
                 case CheatTab.Content:
                     _content.Draw(bootstrap, selectionController, x, 0f, width, _body);
@@ -349,56 +336,6 @@ namespace XianXia.Unity.Host
                         y += 26;
                     }
                 }
-                var party = bootstrap.Session.PlayerParty;
-                if (GUI.Button(new Rect(x, y, width, 24f), "CW-02：当前主控进入弥留") &&
-                    party != null && party.HasActive &&
-                    world.Entities.TryGet(party.ActiveCharacterId, out var active))
-                {
-                    var id = party.ActiveCharacterId;
-                    var changed = CombatLifeStateService.TryEnterIncapacitated(world, active);
-                    bootstrap.PlayerPartyController?.RefreshActiveControlAfterLifeStateChange();
-                    _battleStatus = changed
-                        ? "已使 " + id.Value + " 进入弥留；应按 Party 固定顺序接替。"
-                        : "当前主控无法进入弥留。";
-                }
-                y += 28f;
-
-                if (GUI.Button(new Rect(x, y, width, 24f), "CW-02：全队进入弥留") && party != null)
-                {
-                    var changed = 0;
-                    for (var i = 0; i < party.Members.Count; i++)
-                        if (world.Entities.TryGet(party.Members[i], out var member) &&
-                            CombatLifeStateService.TryEnterIncapacitated(world, member))
-                            changed++;
-                    bootstrap.PlayerPartyController?.RefreshActiveControlAfterLifeStateChange();
-                    _battleStatus = "已使 " + changed + " 名队员进入弥留；ControlState=" + party.ControlState;
-                }
-                y += 28f;
-
-                if (GUI.Button(new Rect(x, y, width, 24f), "CW-02：恢复首位弥留队员") && party != null)
-                {
-                    var recovered = XianXia.Core.Domain.Ids.EntityId.None;
-                    for (var i = 0; i < party.Members.Count; i++)
-                    {
-                        if (!world.Entities.TryGet(party.Members[i], out var member) ||
-                            !CombatLifeStateService.TryRecoverFromIncapacitated(world, member))
-                            continue;
-                        recovered = party.Members[i];
-                        break;
-                    }
-                    bootstrap.PlayerPartyController?.RefreshActiveControlAfterLifeStateChange();
-                    _battleStatus = recovered.IsNone
-                        ? "没有可恢复的弥留队员。"
-                        : "已恢复 " + recovered.Value + "；Active=" + party.ActiveCharacterId.Value;
-                }
-                y += 30f;
-
-                if (!string.IsNullOrEmpty(_battleStatus))
-                {
-                    GUI.Label(new Rect(x, y, width, 42f), _battleStatus, _body);
-                    y += 46f;
-                }
-
                 var summary = BattleEngagementAuthorityDebug.BuildSummary(world);
                 GUI.Label(new Rect(x, y, width, 360f), summary, _body);
             }
@@ -406,58 +343,15 @@ namespace XianXia.Unity.Host
 
         void DrawDiagnosticsTab(float x, float y, float width)
         {
-            var strongSep = HostHexWorldRenderer.DebugStrongHexSeparation;
-            var nextSep = GUI.Toggle(new Rect(x, y, width, 22f), strongSep,
-                "调试：强化 Hex 分离（仅渲染）");
-            if (nextSep != strongSep)
-                HostHexWorldRenderer.DebugStrongHexSeparation = nextSep;
-            y += 30f;
-            HostWorldMapPanel.DebugShowW1CCoverage = GUI.Toggle(new Rect(x, y, width, 22f),
-                HostWorldMapPanel.DebugShowW1CCoverage, "调试：WorldMap 显示 W1C authored coverage 外框");
-            y += 30f;
             var surface = bootstrap?.ContinuousOutdoorSurfaceRuntime;
-            var motion = bootstrap?.Session?.World?.PlayerPartyTravel;
-            var wildernessOnly = motion != null &&
-                                 motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition &&
-                                 bootstrap?.Session?.World?.LocalMap?.IsInInterior != true;
-
-            // §18：只读显示真实 presentation authority —— Main Continuous Surface 不再是 W1C。
+            GUI.Label(new Rect(x, y, width, 24f), "通用运行诊断", _title);
+            y += 30f;
             GUI.Label(new Rect(x, y, width, 22f),
                 bootstrap != null ? bootstrap.OutdoorAuthorityDiagnostic : "Authority=Uninitialized", _body);
             y += 24f;
             GUI.Label(new Rect(x, y, width, 56f),
                 bootstrap != null ? bootstrap.OpeningPopulationDiagnostic : string.Empty, _body);
             y += 60f;
-
-            GUI.enabled = bootstrap?.Session?.IsInitialized == true;
-            if (GUI.Button(new Rect(x, y, width, 26f), "复制 CW-04 Preset Site/Core/Claim 诊断（只读）"))
-            {
-                GUIUtility.systemCopyBuffer = BuildPresetSiteControlDiagnostic();
-                _diagnosticStatus = "已复制全部 Main Surface preset Site/Core/Claim/Overlay 诊断。";
-            }
-            GUI.enabled = true;
-            y += 30f;
-
-            var selectedArmyId = bootstrap?.WorldMapPanel?.SelectedFormalArmyIdForDiagnostics;
-            var diagnosticTarget = string.IsNullOrEmpty(selectedArmyId)
-                ? ArmyStackAdapter.BanditWeakPatrolFormalArmyId + "（默认）"
-                : selectedArmyId + "（大地图当前选中）";
-            GUI.Label(new Rect(x, y, width, 22f), "军队显示诊断目标：" + diagnosticTarget, _body);
-            y += 24f;
-            GUI.enabled = surface != null && bootstrap?.Session?.IsInitialized == true;
-            if (GUI.Button(new Rect(x, y, width, 26f), "复制军队显示诊断（只读）"))
-            {
-                var report = surface.DescribeFormalArmyDisplayDiagnostics(selectedArmyId);
-                GUIUtility.systemCopyBuffer = report;
-                _diagnosticStatus = "已复制完整诊断到剪贴板（" + diagnosticTarget + "）。";
-            }
-            GUI.enabled = true;
-            y += 30f;
-            if (!string.IsNullOrEmpty(_diagnosticStatus))
-            {
-                GUI.Label(new Rect(x, y, width, 38f), _diagnosticStatus, _body);
-                y += 42f;
-            }
 
             var mover = bootstrap != null ? bootstrap.NpcScheduleMover : null;
             var perfText =
@@ -481,234 +375,6 @@ namespace XianXia.Unity.Host
                     : "ok") + "\n" +
                 (surface != null ? surface.DescribeDiagnostics() : string.Empty);
             GUI.Label(new Rect(x, y, width, 350f), perfText, _body);
-            y += 356f;
-
-            // §16/§17：Normal NewGame 已直进 Main Continuous Surface；W1C Acceptance teleport 不再是
-            // 制作人入口，只保留为 legacy regression 工具（默认收起）。
-            var showLegacy = bootstrap != null && bootstrap.ShowLegacyAcceptanceTools;
-            var nextLegacy = GUI.Toggle(new Rect(x, y, width, 22f), showLegacy,
-                "Regression / Legacy Acceptance（非正常入口，默认收起）");
-            if (bootstrap != null)
-                bootstrap.ShowLegacyAcceptanceTools = nextLegacy;
-            y += 26f;
-            if (!nextLegacy)
-                return;
-
-            GUI.enabled = wildernessOnly;
-            if (GUI.Button(new Rect(x, y, width, 26f),
-                    "传送：Continuous World W1C Acceptance（legacy regression）") && wildernessOnly)
-            {
-                var world = bootstrap?.Session?.World;
-                if (surface != null && world?.PlayerPartyTravel != null &&
-                    surface.TryGetAcceptanceStartWorldPosition(out var wx, out var wy))
-                {
-                    var size = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-                    var position = new WorldVec2(wx, wy);
-                    var hex = HexMath.WorldToHex(wx, wy, size);
-                    world.PlayerPartyTravel.SetAtWorldPosition(position, hex);
-                    world.PlayerPartyTravel.SetCurrentOutdoorWorldSiteContext(
-                        WorldSiteAdministrativeControlResolver.TryResolveOnRegisteredSurface(
-                            world, position.X, position.Y, out _, out var site, out _)
-                            ? site.SiteId
-                            : string.Empty);
-                    var party = bootstrap.Session.PlayerParty;
-                    if (party != null)
-                        for (var i = 0; i < party.Members.Count; i++)
-                            world.WorldPresence.SetAtWorldPosition(party.Members[i], position, hex);
-                    world.PartyWorld.ClearSiteFocus();
-                    world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
-                    world.PartyWorld.SiteId = string.Empty;
-                    world.PartyWorld.LocalMapId = string.Empty;
-                    surface.TryActivateAcceptanceAtCurrentWorldPosition();
-                    bootstrap.ActivateSurfaceLocalMapPresentation();
-                    bootstrap.FrameCameraOnActiveCharacter();
-                }
-            }
-            GUI.enabled = true;
-            y += 30f;
-            if (!wildernessOnly)
-                GUI.Label(new Rect(x, y, width, 20f),
-                    "W1C Acceptance is wilderness-only; exit WorldSite/Interior first.", _body);
-        }
-
-        string BuildPresetSiteControlDiagnostic()
-        {
-            var world = bootstrap?.Session?.World;
-            var registry = bootstrap?.Session?.Registry;
-            var sb = new StringBuilder(2048);
-            sb.AppendLine("[CW04PresetSiteControlDiagnostic]");
-            if (world?.Strategic?.Sites == null || registry == null)
-                return sb.Append("Unavailable").ToString();
-            var overlays = WorldSiteActualControlOverlayBuilder.Build(world);
-            foreach (var pair in registry.OutdoorSurfaces)
-            {
-                var surface = pair.Value;
-                if (surface == null || surface.AcceptanceOnly || surface.SiteRegions == null) continue;
-                for (var i = 0; i < surface.SiteRegions.Count; i++)
-                {
-                    var region = surface.SiteRegions[i];
-                    if (region == null || !world.Strategic.Sites.TryGet(region.SiteId, out var site) || site == null)
-                    {
-                        sb.AppendLine("SiteId=" + (region?.SiteId ?? "missing") + " RuntimeSite=Missing");
-                        continue;
-                    }
-                    var claimCount = 0;
-                    foreach (var ignored in world.Strategic.TerritoryClaims.EnumerateForSite(site.SiteId)) claimCount++;
-                    WorldSiteActualControlOverlay overlay = null;
-                    for (var o = 0; o < overlays.Count; o++)
-                        if (string.Equals(overlays[o].SiteId, site.SiteId, StringComparison.Ordinal) &&
-                            string.Equals(overlays[o].SurfaceId, surface.SurfaceId, StringComparison.Ordinal))
-                        { overlay = overlays[o]; break; }
-                    CoreLevelControlRange configured = null;
-                    if (site.HasContinuousCore)
-                        try { configured = world.Strategic.SpatialRules?.RequireLevel(site.CoreLevel); }
-                        catch (InvalidOperationException) { }
-                    var strategicCount = 0;
-                    foreach (var territory in world.Strategic.TerritoryRegions.Regions)
-                        if (territory.Value != null &&
-                            string.Equals(territory.Value.PrimaryWorldSiteId, site.SiteId, StringComparison.Ordinal))
-                            strategicCount += territory.Value.HexCount;
-                    sb.Append("SiteId=").Append(site.SiteId)
-                        .Append(" Name=").Append(site.DisplayName)
-                        .Append(" Owner=").Append(string.IsNullOrEmpty(site.OwnerFactionId) ? "none" : site.OwnerFactionId)
-                        .Append(" Type=").Append(site.SiteType)
-                        .Append(" HasContinuousCore=").Append(site.HasContinuousCore)
-                        .Append(" CoreAsset=").Append(string.IsNullOrEmpty(site.CoreAssetId) ? "none" : site.CoreAssetId)
-                        .Append(" CoreWorld=").Append(site.HasCoreWorldPosition
-                            ? "(" + site.CoreWorldX.ToString("0.###") + "," + site.CoreWorldY.ToString("0.###") + ")"
-                            : "none")
-                        .Append(" Level=").Append(site.CoreLevel)
-                        .Append(" Configured=").Append(configured?.WidthCells.ToString("0.#") ?? "none")
-                        .Append('x').Append(configured?.HeightCells.ToString("0.#") ?? "none").Append("cells")
-                        .Append(" Resolved=").Append(site.CoreRangeWidth.ToString("0.###"))
-                        .Append('x').Append(site.CoreRangeHeight.ToString("0.###")).Append("world")
-                        .Append(" Claims=").Append(claimCount)
-                        .Append(" ActualOverlayPieces=").Append(overlay?.Pieces.Count ?? 0)
-                        .Append(" ActualBounds=").Append(overlay == null ? "none" :
-                            "(" + overlay.MinX.ToString("0.###") + "," + overlay.MinY.ToString("0.###") + ")..(" +
-                            overlay.MaxX.ToString("0.###") + "," + overlay.MaxY.ToString("0.###") + ")")
-                        .Append(" StrategicHexSummaryCount=").Append(strategicCount)
-                        .Append(" MigrationSource=").Append(site.HasContinuousCore
-                            ? (world.Strategic.FactionFlags.Flags.ContainsKey(site.CoreAssetId)
-                                ? "AuthoredFlagCore/PlayerBuilt" : "PresetCouncilHall")
-                            : "None")
-                        .AppendLine();
-                }
-            }
-
-            sb.AppendLine("[WorldMapCoreMarkers]");
-            foreach (var pair in world.Strategic.Sites.Sites)
-            {
-                var site = pair.Value;
-                if (site == null || !site.UsesContinuousOutdoorSurface || !site.IsCoreActive)
-                    continue;
-                var kind = WorldSitePresentationLayer.ResolveMarkerKind(world, site);
-                var hasMarkerPosition = WorldSitePresentationLayer.TryResolveMarkerWorldPosition(
-                    world, site, out var markerX, out var markerY);
-                var pieces = 0;
-                for (var i = 0; i < overlays.Count; i++)
-                    if (string.Equals(overlays[i].SiteId, site.SiteId, StringComparison.Ordinal))
-                        pieces += overlays[i].Pieces.Count;
-                sb.Append("SiteId=").Append(site.SiteId)
-                    .Append(" MarkerKind=").Append(kind)
-                    .Append(" MarkerWorldPosition=").Append(hasMarkerPosition
-                        ? "(" + markerX.ToString("0.###") + "," + markerY.ToString("0.###") + ")"
-                        : "none")
-                    .Append(" ActualOverlayPieces=").Append(pieces)
-                    .Append(" LegacyFlagMarkerAlsoVisible=False")
-                    .AppendLine();
-            }
-
-            sb.AppendLine("[FactionFlags]");
-            foreach (var pair in world.Strategic.FactionFlags.Flags)
-            {
-                var flag = pair.Value;
-                if (flag == null) continue;
-                var claimCount = 0;
-                var overlayPieces = 0;
-                var manager = "none";
-                if (!string.IsNullOrWhiteSpace(flag.SiteId))
-                {
-                    foreach (var ignored in world.Strategic.TerritoryClaims.EnumerateForSite(flag.SiteId))
-                        claimCount++;
-                    for (var i = 0; i < overlays.Count; i++)
-                        if (string.Equals(overlays[i].SiteId, flag.SiteId, StringComparison.Ordinal))
-                            overlayPieces += overlays[i].Pieces.Count;
-                    if (world.Strategic.Sites.TryGet(flag.SiteId, out var coreSite) && coreSite != null &&
-                        WorldSiteAdministrativeControlResolver.TryResolve(
-                            world, coreSite.CoreSurfaceId, coreSite.CoreWorldX, coreSite.CoreWorldY,
-                            out var managedBy, out _))
-                        manager = managedBy?.SiteId ?? "none";
-                }
-                var source = flag.IsAuthoredSiteCore ? "AuthoredFlagCore" :
-                    flag.IsSiteCore ? "PlayerBuilt" : "LegacyOnly";
-                var productMarkerVisible = false;
-                if (flag.IsSiteCore && !string.IsNullOrWhiteSpace(flag.SiteId) &&
-                    world.Strategic.Sites.TryGet(flag.SiteId, out var markerSite) &&
-                    markerSite != null && markerSite.IsCoreActive)
-                    productMarkerVisible = FactionFlagSiteCoreQuery.TryResolveFlagForSite(
-                        world, markerSite, out var markerFlag) && ReferenceEquals(markerFlag, flag);
-                sb.Append("FlagId=").Append(flag.FlagId)
-                    .Append(" Faction=").Append(flag.FactionId)
-                    .Append(" ContentKind=").Append(flag.IsAuthoredSiteCore ? "AuthoredSiteCore" : "Legacy")
-                    .Append(" IsAuthoredSiteCore=").Append(flag.IsAuthoredSiteCore)
-                    .Append(" LegacyDebugOnly=").Append(flag.IsWorldMapDebugOnly)
-                    .Append(" AnchorHex=(").Append(flag.AnchorHex.Q).Append(',').Append(flag.AnchorHex.R).Append(')')
-                    .Append(" HasWorldPosition=").Append(flag.HasWorldPosition)
-                    .Append(" SurfaceId=").Append(string.IsNullOrWhiteSpace(flag.SurfaceId) ? "none" : flag.SurfaceId)
-                    .Append(" WorldPosition=").Append(flag.HasWorldPosition
-                        ? "(" + flag.WorldX.ToString("0.###") + "," + flag.WorldY.ToString("0.###") + ")"
-                        : "none")
-                    .Append(" SiteId=").Append(string.IsNullOrWhiteSpace(flag.SiteId) ? "none" : flag.SiteId)
-                    .Append(" IsSiteCore=").Append(flag.IsSiteCore)
-                    .Append(" ClaimCount=").Append(claimCount)
-                    .Append(" ActualOverlayPieces=").Append(overlayPieces)
-                    .Append(" CoreCenterActualManager=").Append(manager)
-                    .Append(" MigrationSource=").Append(source)
-                    .Append(" WorldMapProductMarkerVisible=").Append(productMarkerVisible)
-                    .AppendLine();
-            }
-
-            var factions = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var pair in world.Strategic.Sites.Sites)
-                if (pair.Value != null && !string.IsNullOrWhiteSpace(pair.Value.OwnerFactionId))
-                    factions.Add(pair.Value.OwnerFactionId);
-            foreach (var pair in world.Strategic.FactionFlags.Flags)
-                if (pair.Value != null && !string.IsNullOrWhiteSpace(pair.Value.FactionId))
-                    factions.Add(pair.Value.FactionId);
-            var orderedFactions = new List<string>(factions);
-            orderedFactions.Sort(StringComparer.Ordinal);
-            sb.AppendLine("[FactionControlSummary]");
-            for (var f = 0; f < orderedFactions.Count; f++)
-            {
-                var factionId = orderedFactions[f];
-                var councilCores = 0;
-                var flagCores = 0;
-                foreach (var pair in world.Strategic.Sites.Sites)
-                {
-                    var site = pair.Value;
-                    if (site == null || !site.HasContinuousCore ||
-                        !string.Equals(site.OwnerFactionId, factionId, StringComparison.Ordinal)) continue;
-                    if (world.Strategic.FactionFlags.Flags.ContainsKey(site.CoreAssetId)) flagCores++;
-                    else councilCores++;
-                }
-                var actualSites = 0;
-                var actualPieces = 0;
-                for (var i = 0; i < overlays.Count; i++)
-                    if (string.Equals(overlays[i].FactionId, factionId, StringComparison.Ordinal))
-                    {
-                        actualSites++;
-                        actualPieces += overlays[i].Pieces.Count;
-                    }
-                sb.Append("FactionId=").Append(factionId)
-                    .Append(" CouncilHallCoreSites=").Append(councilCores)
-                    .Append(" FlagCoreSites=").Append(flagCores)
-                    .Append(" ActualControlSites=").Append(actualSites)
-                    .Append(" ActualOverlayCount=").Append(actualSites)
-                    .Append(" ActualOverlayPieces=").Append(actualPieces)
-                    .AppendLine();
-            }
-            return sb.ToString();
         }
 
         public const float TopBarEntryY = 8f;

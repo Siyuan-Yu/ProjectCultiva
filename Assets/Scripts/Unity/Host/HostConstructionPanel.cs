@@ -163,7 +163,8 @@ namespace XianXia.Unity.Host
                         (have >= cost.Count ? "  ✓" : "  ✕"), _small);
                     materialY += 20f;
                 }
-                GUI.Label(new Rect(card.x + 12f, card.yMax - 42f, card.width - 140f, 22f),
+                if (spec.PlacementKind == ConstructionPlacementKind.FactionFlag)
+                    GUI.Label(new Rect(card.x + 12f, card.yMax - 42f, card.width - 140f, 22f),
                     "拆除返还：" + Mathf.FloorToInt(spec.DismantleRefundRate * 100f) + "%", _small);
 
                 var canBuild = ConstructionService.HasRequiredMaterials(world, spec, out _);

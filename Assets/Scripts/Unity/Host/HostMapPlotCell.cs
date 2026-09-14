@@ -1,4 +1,5 @@
 using UnityEngine;
+using XianXia.Core.Exploration;
 using XianXia.Core.Simulation;
 
 namespace XianXia.Unity.Host
@@ -15,7 +16,7 @@ namespace XianXia.Unity.Host
         [SerializeField] int gridY;
         [SerializeField] string kind;
         [SerializeField] string plantedCropId;
-        [SerializeField] PlotCropStage cropStage = PlotCropStage.Empty;
+        [SerializeField] OutdoorFarmCropStage cropStage = OutdoorFarmCropStage.Empty;
         [SerializeField] float growth01;
         [SerializeField] string lootSpotId;
         [SerializeField] string lootItemId;
@@ -29,13 +30,13 @@ namespace XianXia.Unity.Host
         public int GridY => gridY;
         public string Kind => kind;
         public string PlantedCropId => plantedCropId;
-        public PlotCropStage CropStage => cropStage;
+        public OutdoorFarmCropStage CropStage => cropStage;
         public float Growth01 => growth01;
         public string LootSpotId => lootSpotId;
         public string LootItemId => lootItemId;
         public string StableCellId => stableCellId;
         public bool IsPlanted =>
-            !string.IsNullOrEmpty(plantedCropId) && cropStage != PlotCropStage.Empty;
+            !string.IsNullOrEmpty(plantedCropId) && cropStage != OutdoorFarmCropStage.Empty;
 
         public bool IsPlantableField =>
             string.Equals(kind, "herbField", System.StringComparison.OrdinalIgnoreCase) ||
@@ -63,13 +64,7 @@ namespace XianXia.Unity.Host
             kind = kindValue ?? string.Empty;
             lootSpotId = lootSpotIdValue ?? string.Empty;
             lootItemId = lootItemIdValue ?? string.Empty;
-            if (IsPlantableField && _world?.OutdoorStatefulObjects != null &&
-                _world.OutdoorStatefulObjects.TryGetFarmPlot(stableCellId, out var saved))
-            {
-                plantedCropId = saved.CropId;
-                cropStage = (PlotCropStage)saved.CropStage;
-                growth01 = Mathf.Clamp01(saved.Growth);
-            }
+            RefreshFromWorldState();
             HostMapObjectRegistry.Register(this);
             HostFarmFieldRegistry.Register(this);
             RefreshCropVisual();
@@ -80,23 +75,23 @@ namespace XianXia.Unity.Host
             plantedCropId = cropId ?? string.Empty;
             if (string.IsNullOrEmpty(plantedCropId))
             {
-                cropStage = PlotCropStage.Empty;
+                cropStage = OutdoorFarmCropStage.Empty;
                 growth01 = 0f;
                 RefreshCropVisual();
                 PersistFarmState();
                 return;
             }
 
-            cropStage = PlotCropStage.Growing;
+            cropStage = OutdoorFarmCropStage.Growing;
             growth01 = 0f;
             RefreshCropVisual();
             PersistFarmState();
         }
 
-        public void SetCropStage(PlotCropStage stage, float growth = -1f)
+        public void SetCropStage(OutdoorFarmCropStage stage, float growth = -1f)
         {
             cropStage = stage;
-            if (stage == PlotCropStage.Empty)
+            if (stage == OutdoorFarmCropStage.Empty)
             {
                 plantedCropId = string.Empty;
                 growth01 = 0f;
@@ -107,12 +102,12 @@ namespace XianXia.Unity.Host
 
             if (growth >= 0f)
                 growth01 = Mathf.Clamp01(growth);
-            else if (stage == PlotCropStage.Mature)
+            else if (stage == OutdoorFarmCropStage.Mature)
                 growth01 = 1f;
 
-            if (stage == PlotCropStage.Growing && growth01 >= 0.999f)
+            if (stage == OutdoorFarmCropStage.Growing && growth01 >= 0.999f)
             {
-                cropStage = PlotCropStage.Mature;
+                cropStage = OutdoorFarmCropStage.Mature;
                 growth01 = 1f;
             }
 
@@ -124,7 +119,28 @@ namespace XianXia.Unity.Host
         {
             if (IsPlantableField && !string.IsNullOrEmpty(stableCellId))
                 _world?.OutdoorStatefulObjects.SetFarmPlot(
-                    stableCellId, plantedCropId, (int)cropStage, growth01);
+                    stableCellId, plantedCropId, cropStage, growth01);
+        }
+
+        /// <summary>Presentation-only pull from the Core board after WorldTick advances.</summary>
+        public void RefreshFromWorldState()
+        {
+            if (!IsPlantableField || string.IsNullOrEmpty(stableCellId) ||
+                _world?.OutdoorStatefulObjects == null)
+                return;
+            if (_world.OutdoorStatefulObjects.TryGetFarmPlot(stableCellId, out var saved))
+            {
+                plantedCropId = saved.CropId;
+                cropStage = saved.Stage;
+                growth01 = Mathf.Clamp01(saved.Growth);
+            }
+            else
+            {
+                plantedCropId = string.Empty;
+                cropStage = OutdoorFarmCropStage.Empty;
+                growth01 = 0f;
+            }
+            RefreshCropVisual();
         }
 
         public void RefreshCropVisual()
@@ -135,13 +151,13 @@ namespace XianXia.Unity.Host
             Color c;
             switch (cropStage)
             {
-                case PlotCropStage.Empty:
+                case OutdoorFarmCropStage.Empty:
                     // 空闲：农田偏土黄；药田偏灰绿土（与成长绿明显分开）
                     c = string.Equals(kind, "herbField", System.StringComparison.OrdinalIgnoreCase)
                         ? new Color(0.88f, 0.97f, 0.88f, 1f) // 空闲：非常浅绿
                         : new Color(0.62f, 0.56f, 0.28f, 1f);
                     break;
-                case PlotCropStage.Growing:
+                case OutdoorFarmCropStage.Growing:
                     if (string.Equals(kind, "herbField", System.StringComparison.OrdinalIgnoreCase))
                     {
                         // 药田成长：从暗土 → 鲜明翠绿
@@ -159,12 +175,12 @@ namespace XianXia.Unity.Host
                     }
 
                     break;
-                case PlotCropStage.Mature:
+                case OutdoorFarmCropStage.Mature:
                     c = string.Equals(kind, "herbField", System.StringComparison.OrdinalIgnoreCase)
                         ? new Color(0.55f, 0.95f, 0.70f, 1f) // 药田成熟偏青白
                         : new Color(0.85f, 0.78f, 0.28f, 1f);
                     break;
-                case PlotCropStage.Ruined:
+                case OutdoorFarmCropStage.Ruined:
                     c = new Color(0.42f, 0.35f, 0.28f, 1f);
                     break;
                 default:
@@ -181,14 +197,14 @@ namespace XianXia.Unity.Host
 
             switch (cropStage)
             {
-                case PlotCropStage.Empty:
+                case OutdoorFarmCropStage.Empty:
                     return "空闲（未种植）";
-                case PlotCropStage.Growing:
+                case OutdoorFarmCropStage.Growing:
                     return "成长中 · " + CropName() + " · " +
                            Mathf.RoundToInt(growth01 * 100f) + "%";
-                case PlotCropStage.Mature:
+                case OutdoorFarmCropStage.Mature:
                     return "已成熟 · " + CropName() + " · 可收获";
-                case PlotCropStage.Ruined:
+                case OutdoorFarmCropStage.Ruined:
                     return "已损坏 · " + CropName();
                 default:
                     return "—";

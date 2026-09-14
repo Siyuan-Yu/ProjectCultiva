@@ -54,25 +54,6 @@ namespace XianXia.Unity.Host
         static Material _glMaterial;
         static HexWorld _cachedWorld;
         static HexTerrainChunkCache _terrainCache;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-#endif
-
-        /// <summary>开发验证：CellFillScale=0.80 + 高对比 Gutter。默认 OFF。</summary>
-        public static bool DebugStrongHexSeparation
-        {
-            get => _debugStrongHexSeparation;
-            set => _debugStrongHexSeparation = value;
-        }
-
-        static bool _debugStrongHexSeparation;
-
-        /// <summary>兼容旧名。</summary>
-        public static bool DebugStrongHexGrid
-        {
-            get => DebugStrongHexSeparation;
-            set => DebugStrongHexSeparation = value;
-        }
-
         /// <summary>
         /// Territory overlay 图层开关（纯 presentation）。
         /// TerritoryRegion / HexCell.ControlFactionId 始终存在：关闭只影响绘制，
@@ -88,7 +69,7 @@ namespace XianXia.Unity.Host
 
         public static Color ResolveGutterColor()
         {
-            var rgb = HexTerrainVisualInset.ResolveGutterColor(DebugStrongHexSeparation);
+            var rgb = HexTerrainVisualInset.ResolveGutterColor(debugStrongSeparation: false);
             return ToColor(rgb);
         }
 
@@ -116,7 +97,7 @@ namespace XianXia.Unity.Host
 
             ComputeViewBounds(projection, out var minWx, out var maxWx, out var minWy, out var maxWy);
             var hexScreenRadius = grid.HexSize * projection.Scale;
-            var terrainInsetScale = HexTerrainVisualInset.ResolveInsetScale(DebugStrongHexSeparation);
+            var terrainInsetScale = HexTerrainVisualInset.ResolveInsetScale(debugStrongSeparation: false);
 
             var terrainCount = 0;
             if (grid.UsesCompactStorage)

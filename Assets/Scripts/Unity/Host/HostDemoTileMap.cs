@@ -227,7 +227,7 @@ namespace XianXia.Unity.Host
             if (placement == null || placement.SourceCellsW <= 0 || placement.SourceCellsH <= 0 ||
                 !MapKindCatalog.TryGet(placement.Kind ?? string.Empty, out var info))
                 return false;
-            if (info.Mode != MapKindCatalog.StampMode.PerCell)
+            if (!UsesPerCellIdentity(placement, info))
             {
                 count = 1;
                 return true;
@@ -267,7 +267,9 @@ namespace XianXia.Unity.Host
             var id = source.StableId ?? string.Empty;
             var actual = 0; var expectedForOwner = 0;
 
-            if (info.Mode == MapKindCatalog.StampMode.ZoneOverlay)
+            var stateful = OutdoorStatefulObjectSemantics.IsStatefulKind(source.Kind);
+            var perCell = UsesPerCellIdentity(source, info);
+            if (!stateful && info.Mode == MapKindCatalog.StampMode.ZoneOverlay)
             {
                 mapper.ChunkLocalToWorld(ownerChunk, 0f, 0f, out var chunkWorldX, out var chunkWorldY);
                 var ix0 = Mathf.Max(source.WorldX, chunkWorldX);
@@ -284,7 +286,7 @@ namespace XianXia.Unity.Host
                     actual = expectedForOwner = 1;
                 }
             }
-            else if (info.Mode == MapKindCatalog.StampMode.SingleCentered)
+            else if (!perCell)
             {
                 var cx = minX + width * .5f; var cy = minY + height * .5f;
                 mapper.PresentationToWorld(cx, cy, out var centerWorldX, out var centerWorldY);
@@ -335,6 +337,13 @@ namespace XianXia.Unity.Host
             if (actual != expectedForOwner)
                 LogOutdoorSemanticMismatch(source, expectedForOwner, actual);
         }
+
+        static bool UsesPerCellIdentity(
+            OutdoorSurfacePlacementDefinition placement,
+            MapKindCatalog.KindInfo info) =>
+            OutdoorStatefulObjectSemantics.IsStatefulKind(placement?.Kind)
+                ? OutdoorStatefulObjectSemantics.UsesPerCellIdentity(placement.Kind)
+                : info.Mode == MapKindCatalog.StampMode.PerCell;
 
         static void LogOutdoorSemanticMismatch(OutdoorSurfacePlacementDefinition p, int expected, int actual)
         {

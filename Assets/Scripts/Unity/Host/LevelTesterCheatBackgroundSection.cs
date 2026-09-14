@@ -4,7 +4,6 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
-using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
 using XianXia.Core.Exploration;
@@ -33,8 +32,6 @@ namespace XianXia.Unity.Host
         int _selectedCharacterIndex;
         bool _characterMenuOpen;
         bool _siteMenuOpen;
-        string _hexQText = "10";
-        string _hexRText = "4";
         string _sectionStatus = string.Empty;
         string _eligibilityReason = string.Empty;
 
@@ -94,19 +91,11 @@ namespace XianXia.Unity.Host
             }
 
             y += 26f;
-            GUI.Label(new Rect(x, y, 24f, lineH), "Q");
-            _hexQText = GUI.TextField(new Rect(x + 26f, y, 48f, 22f), _hexQText);
-            GUI.Label(new Rect(x + 80f, y, 24f, lineH), "R");
-            _hexRText = GUI.TextField(new Rect(x + 106f, y, 48f, 22f), _hexRText);
-
-            y += 26f;
             GUI.enabled = travelEligible;
-            if (GUI.Button(new Rect(x, y, 140f, 24f), "前往世界地点"))
+            if (GUI.Button(new Rect(x, y, width * .68f, 24f), "前往世界地点"))
                 TravelToSite(bootstrap);
-            if (GUI.Button(new Rect(x + 148f, y, 120f, 24f), "前往 Hex"))
-                TravelToHex(bootstrap);
             GUI.enabled = true;
-            if (GUI.Button(new Rect(x + 276f, y, 80f, 24f), "取消"))
+            if (GUI.Button(new Rect(x + width * .70f, y, width * .30f, 24f), "取消"))
                 CancelTravel(bootstrap);
 
             y += 30f;
@@ -411,34 +400,6 @@ namespace XianXia.Unity.Host
                 debugOverrideLocalOccupant: true);
             _sectionStatus = result.IsSuccess
                 ? "成功：前往地点 -> " + ResolveSiteDisplayName(session.World, siteId)
-                : "失败：" + result.Error;
-            if (result.IsSuccess)
-                bootstrap.FlushLoadedDestinationArrivals();
-        }
-
-        void TravelToHex(PlayableHostBootstrap bootstrap)
-        {
-            var session = bootstrap?.Session;
-            if (session == null || _selectedCharacterId.IsNone)
-            {
-                _sectionStatus = "请选择角色。";
-                return;
-            }
-
-            if (!int.TryParse(_hexQText, out var q) || !int.TryParse(_hexRText, out var r))
-            {
-                _sectionStatus = "Hex Q/R 无效。";
-                return;
-            }
-
-            var result = BackgroundCharacterTravelService.BeginTravelToHex(
-                session.World,
-                _selectedCharacterId,
-                new HexCoord(q, r),
-                session.PlayerParty,
-                debugOverrideLocalOccupant: true);
-            _sectionStatus = result.IsSuccess
-                ? "成功：前往 Hex (" + q + "," + r + ")"
                 : "失败：" + result.Error;
             if (result.IsSuccess)
                 bootstrap.FlushLoadedDestinationArrivals();

@@ -5,7 +5,8 @@ namespace XianXia.Core.Construction
 {
     public enum ConstructionPlacementKind
     {
-        FactionFlag = 0
+        FactionFlag = 0,
+        FarmField = 1
     }
 
     public sealed class ConstructionMaterialCost
@@ -21,6 +22,9 @@ namespace XianXia.Core.Construction
         public string Description { get; set; } = string.Empty;
         public bool UnlockedByDefault { get; set; }
         public ConstructionPlacementKind PlacementKind { get; set; }
+        public string OutdoorKind { get; set; } = string.Empty;
+        public int FootprintCellsW { get; set; }
+        public int FootprintCellsH { get; set; }
         public bool CreatesWorldSite { get; set; }
         public string CreatedSiteName { get; set; } = string.Empty;
         public string CreatedSiteType { get; set; } = string.Empty;

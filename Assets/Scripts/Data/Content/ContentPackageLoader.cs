@@ -684,6 +684,9 @@ namespace XianXia.Data.Content
                 Description = item.GetString("description", string.Empty),
                 UnlockedByDefault = unlocked,
                 PlacementKind = placementKind,
+                OutdoorKind = item.GetString("outdoorKind", string.Empty),
+                FootprintCellsW = ReadPositiveInt(item, "footprintCellsW", report, id.ToString(), placementKind == "farmField"),
+                FootprintCellsH = ReadPositiveInt(item, "footprintCellsH", report, id.ToString(), placementKind == "farmField"),
                 CreatesWorldSite = item.GetBool("createsWorldSite", false),
                 CreatedSiteName = item.GetString("createdSiteName", string.Empty),
                 CreatedSiteType = item.GetString("createdSiteType", string.Empty),
@@ -808,6 +811,21 @@ namespace XianXia.Data.Content
                 OpeningHexWorldId = item.GetString("openingHexWorldId", string.Empty),
                 OpeningChapterId = item.GetString("openingChapterId", string.Empty)
             };
+            if (item.TryGetProperty("startingInventory", out var inventoryNode))
+            {
+                if (inventoryNode.Kind != JsonValueKind.Array)
+                    report.Add(ErrorCode.InvalidArgument, "startingInventory must be array.", id.ToString());
+                else foreach (var entry in inventoryNode.Array)
+                {
+                    if (entry.Kind != JsonValueKind.Object)
+                    { report.Add(ErrorCode.InvalidArgument, "startingInventory entry must be object.", id.ToString()); continue; }
+                    DefinitionSchema.RejectUnknownFields(entry, DefinitionSchema.BuildingCostFields, report, id.ToString());
+                    scenario.StartingInventory.Add(new OpeningStartingInventoryEntry {
+                        ItemId = entry.GetString("itemId", string.Empty),
+                        Count = ReadPositiveInt(entry, "count", report, id.ToString(), true)
+                    });
+                }
+            }
             if (item.TryGetProperty("strategicOpening", out var strategicNode))
             {
                 if (strategicNode.Kind != JsonValueKind.Object)
@@ -2881,6 +2899,19 @@ namespace XianXia.Data.Content
 
                 map[kv.Key] = kv.Value.Bool;
             }
+        }
+
+        static int ReadPositiveInt(JsonValue node, string key, ValidationReport report, string context, bool required)
+        {
+            if (!node.TryGetProperty(key, out var value))
+            {
+                if (required) report.Add(ErrorCode.MissingRequiredField, key + " required.", context);
+                return 0;
+            }
+            if (value.Kind != JsonValueKind.Number || value.Number <= 0 || value.Number > int.MaxValue ||
+                double.IsNaN(value.Number) || double.IsInfinity(value.Number) || value.Number != System.Math.Floor(value.Number))
+            { report.Add(ErrorCode.InvalidArgument, key + " must be a positive integer.", context); return 0; }
+            return (int)value.Number;
         }
 
         static void ReadIntMap(

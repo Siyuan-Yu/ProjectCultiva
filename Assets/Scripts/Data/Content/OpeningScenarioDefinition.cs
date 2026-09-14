@@ -24,7 +24,14 @@ namespace XianXia.Data.Content
         public float Z { get; set; }
     }
 
-    /// <summary>VS0.7: Content-driven opening／playable-day assembly (no Core rules).</summary>
+    /// <summary>NewGame-only party inventory entry.</summary>
+    public sealed class OpeningStartingInventoryEntry
+    {
+        public string ItemId { get; set; } = string.Empty;
+        public int Count { get; set; }
+    }
+
+    /// <summary>Content-driven opening／playable-day assembly (no Core rules).</summary>
     public sealed class OpeningScenarioDefinition
     {
         public DefinitionId Id { get; set; }
@@ -42,6 +49,7 @@ namespace XianXia.Data.Content
         public string OpeningHexWorldId { get; set; }
         /// <summary>Chapter Production: optional opening chapter definition id.</summary>
         public string OpeningChapterId { get; set; }
+        public List<OpeningStartingInventoryEntry> StartingInventory { get; set; } = new List<OpeningStartingInventoryEntry>();
         public List<OpeningSpawnEntry> Spawns { get; set; } = new List<OpeningSpawnEntry>();
         public List<OpeningRelationEntry> OpeningRelations { get; set; } = new List<OpeningRelationEntry>();
         public List<OpeningBondEntry> OpeningBonds { get; set; } = new List<OpeningBondEntry>();

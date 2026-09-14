@@ -40,6 +40,8 @@ namespace XianXia.Data.Serialization
                 ["partyInventorySlots"] = JsonValue.FromArray(SerializePartyInventorySlots(snapshot.PartyInventorySlots)),
                 ["relationshipEvents"] = JsonValue.FromArray(SerializeRelationshipEvents(snapshot.RelationshipEvents)),
                 ["socialBonds"] = JsonValue.FromArray(SerializeSocialBonds(snapshot.SocialBonds)),
+                ["nextOutdoorConstructedAssetSequence"] = JsonValue.FromString(snapshot.NextOutdoorConstructedAssetSequence.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                ["outdoorConstructedAssets"] = JsonValue.FromArray(SerializeConstructedAssets(snapshot.OutdoorConstructedAssets)),
                 ["outdoorDestructibles"] = JsonValue.FromArray(
                     SerializeOutdoorDestructibles(snapshot.OutdoorDestructibles)),
                 ["outdoorFarmPlots"] = JsonValue.FromArray(
@@ -187,6 +189,47 @@ namespace XianXia.Data.Serialization
                         });
                     }
                 }
+
+                if (root.TryGetProperty("outdoorConstructedAssets", out var constructed))
+                {
+                    if (constructed.Kind != JsonValueKind.Array ||
+                        !root.TryGetProperty("nextOutdoorConstructedAssetSequence", out var sequence) ||
+                        sequence.Kind != JsonValueKind.String || !long.TryParse(sequence.String, System.Globalization.NumberStyles.None,
+                            System.Globalization.CultureInfo.InvariantCulture, out var next) || next < 1)
+                        throw new System.FormatException("Invalid runtime constructed asset list/sequence.");
+                    snapshot.NextOutdoorConstructedAssetSequence = next;
+                    foreach (var node in constructed.Array)
+                    {
+                        if (node.Kind != JsonValueKind.Object) throw new System.FormatException("Invalid runtime farm object.");
+                        if (!node.TryGetProperty("stableAssetId", out var stableAssetIdValue) || stableAssetIdValue.Kind != JsonValueKind.String) throw new System.FormatException("Invalid farm stableAssetId.");
+                        if (!node.TryGetProperty("buildingId", out var buildingIdValue) || buildingIdValue.Kind != JsonValueKind.String) throw new System.FormatException("Invalid farm buildingId.");
+                        if (!node.TryGetProperty("kind", out var kindValue) || kindValue.Kind != JsonValueKind.String) throw new System.FormatException("Invalid farm kind.");
+                        if (!node.TryGetProperty("surfaceId", out var surfaceIdValue) || surfaceIdValue.Kind != JsonValueKind.String) throw new System.FormatException("Invalid farm surfaceId.");
+                        if (!node.TryGetProperty("worldX", out var worldXValue) || worldXValue.Kind != JsonValueKind.Number) throw new System.FormatException("Invalid farm worldX.");
+                        if (!node.TryGetProperty("worldY", out var worldYValue) || worldYValue.Kind != JsonValueKind.Number) throw new System.FormatException("Invalid farm worldY.");
+                        if (!node.TryGetProperty("worldWidth", out var worldWidthValue) || worldWidthValue.Kind != JsonValueKind.Number) throw new System.FormatException("Invalid farm worldWidth.");
+                        if (!node.TryGetProperty("worldHeight", out var worldHeightValue) || worldHeightValue.Kind != JsonValueKind.Number) throw new System.FormatException("Invalid farm worldHeight.");
+                        if (!node.TryGetProperty("cellsW", out var cellsWValue) || cellsWValue.Kind != JsonValueKind.Number) throw new System.FormatException("Invalid farm cellsW.");
+                        if (cellsWValue.Number < 1 || cellsWValue.Number > int.MaxValue || cellsWValue.Number != System.Math.Floor(cellsWValue.Number)) throw new System.FormatException("Invalid farm cellsW integer.");
+                        if (!node.TryGetProperty("cellsH", out var cellsHValue) || cellsHValue.Kind != JsonValueKind.Number) throw new System.FormatException("Invalid farm cellsH.");
+                        if (cellsHValue.Number < 1 || cellsHValue.Number > int.MaxValue || cellsHValue.Number != System.Math.Floor(cellsHValue.Number)) throw new System.FormatException("Invalid farm cellsH integer.");
+                        if (!node.TryGetProperty("boundLocationId", out var boundLocationIdValue) || boundLocationIdValue.Kind != JsonValueKind.String) throw new System.FormatException("Invalid farm boundLocationId.");
+                        snapshot.OutdoorConstructedAssets.Add(new OutdoorConstructedAssetSnapshotDto {
+                            StableAssetId = stableAssetIdValue.String,
+                            BuildingId = buildingIdValue.String,
+                            Kind = kindValue.String,
+                            SurfaceId = surfaceIdValue.String,
+                            WorldX = (float)worldXValue.Number,
+                            WorldY = (float)worldYValue.Number,
+                            WorldWidth = (float)worldWidthValue.Number,
+                            WorldHeight = (float)worldHeightValue.Number,
+                            CellsW = (int)cellsWValue.Number,
+                            CellsH = (int)cellsHValue.Number,
+                            BoundLocationId = boundLocationIdValue.String });
+                    }
+                }
+                else if (root.TryGetProperty("nextOutdoorConstructedAssetSequence", out _))
+                    throw new System.FormatException("Constructed asset sequence without list.");
 
                 // Additive v6 optional fields: older saves omit both arrays and therefore retain
                 // the WorldSnapshot defaults (empty collections).
@@ -382,6 +425,25 @@ namespace XianXia.Data.Serialization
                     ["destroyed"] = JsonValue.FromBool(state.Destroyed)
                 }));
             }
+            return list;
+        }
+
+        static List<JsonValue> SerializeConstructedAssets(List<OutdoorConstructedAssetSnapshotDto> assets)
+        {
+            var list = new List<JsonValue>();
+            foreach (var a in assets)
+                list.Add(JsonValue.FromObject(new Dictionary<string, JsonValue> {
+                    ["stableAssetId"] = JsonValue.FromString(a.StableAssetId),
+                    ["buildingId"] = JsonValue.FromString(a.BuildingId),
+                    ["kind"] = JsonValue.FromString(a.Kind),
+                    ["surfaceId"] = JsonValue.FromString(a.SurfaceId),
+                    ["worldX"] = JsonValue.FromNumber(a.WorldX),
+                    ["worldY"] = JsonValue.FromNumber(a.WorldY),
+                    ["worldWidth"] = JsonValue.FromNumber(a.WorldWidth),
+                    ["worldHeight"] = JsonValue.FromNumber(a.WorldHeight),
+                    ["cellsW"] = JsonValue.FromNumber(a.CellsW),
+                    ["cellsH"] = JsonValue.FromNumber(a.CellsH),
+                    ["boundLocationId"] = JsonValue.FromString(a.BoundLocationId) }));
             return list;
         }
 

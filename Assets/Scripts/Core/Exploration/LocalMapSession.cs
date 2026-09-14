@@ -195,7 +195,9 @@ namespace XianXia.Core.Exploration
             if (topologyChanged)
                 DestructibleTopologyRevision++;
         }
-        public void SetFarmPlot(string id, string cropId, int cropStage, float growth)
+        public void SetFarmPlot(string id, string cropId, int cropStage, float growth) =>
+            SetFarmPlot(id, cropId, (OutdoorFarmCropStage)cropStage, growth);
+        public void SetFarmPlot(string id, string cropId, OutdoorFarmCropStage cropStage, float growth)
         {
             if (!string.IsNullOrEmpty(id)) _farmPlots[id] = new OutdoorFarmPlotState(cropId, cropStage, growth);
         }
@@ -224,10 +226,11 @@ namespace XianXia.Core.Exploration
 
     public readonly struct OutdoorFarmPlotState
     {
-        public OutdoorFarmPlotState(string cropId, int cropStage, float growth)
-        { CropId = cropId ?? string.Empty; CropStage = cropStage; Growth = growth; }
+        public OutdoorFarmPlotState(string cropId, OutdoorFarmCropStage cropStage, float growth)
+        { CropId = cropId ?? string.Empty; Stage = cropStage; Growth = growth; }
         public string CropId { get; }
-        public int CropStage { get; }
+        public OutdoorFarmCropStage Stage { get; }
+        public int CropStage => (int)Stage;
         public float Growth { get; }
     }
 }

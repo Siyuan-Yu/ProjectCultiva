@@ -85,6 +85,7 @@ namespace XianXia.Core.Simulation
             ContentDaily = new ContentDailyBoard();
             LocalMap = new LocalMapSession();
             OutdoorStatefulObjects = new OutdoorStatefulObjectBoard();
+            OutdoorAdministrativeAssetAnchors = new OutdoorAdministrativeAssetAnchorBoard();
             Tick = WorldTick.Zero;
             EnabledPackageId = "base";
             EnabledPackageVersion = "0.0.1-m1";
@@ -133,6 +134,9 @@ namespace XianXia.Core.Simulation
 
         /// <summary>Complete Outdoor Surface identity/metric/chunk coverage; never a walkability authority.</summary>
         public OutdoorSurfaceSpatialAuthority SurfaceSpatial { get; }
+
+        /// <summary>Explicit administrative asset identity to canonical management position.</summary>
+        public OutdoorAdministrativeAssetAnchorBoard OutdoorAdministrativeAssetAnchors { get; }
 
         /// <summary>Hex 战略世界真源（155+）。</summary>
         public HexWorld HexWorld { get; }
@@ -199,6 +203,7 @@ namespace XianXia.Core.Simulation
         public LocalMapSession LocalMap { get; }
 
         /// <summary>Stable-id authority for streamed Outdoor destructibles and farm cells.</summary>
+        public XianXia.Core.Construction.OutdoorConstructedAssetBoard OutdoorConstructedAssets { get; } = new XianXia.Core.Construction.OutdoorConstructedAssetBoard();
         public OutdoorStatefulObjectBoard OutdoorStatefulObjects { get; }
 
         /// <summary>Item display／stack rules for the shared party bag.</summary>

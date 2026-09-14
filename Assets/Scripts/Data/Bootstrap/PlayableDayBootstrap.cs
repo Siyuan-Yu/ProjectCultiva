@@ -175,7 +175,7 @@ namespace XianXia.Data.Bootstrap
             if (spawnZones.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(spawnZones.Error);
 
-            var content = ContentRuntimeBootstrap.Apply(world, registry);
+            var content = ContentRuntimeBootstrap.Apply(world, registry, scenario);
             if (content.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(content.Error);
 

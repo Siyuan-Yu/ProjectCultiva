@@ -4,6 +4,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
 using XianXia.Core.Events;
+using XianXia.Core.Exploration;
 using XianXia.Core.Labor;
 using XianXia.Core.Npc;
 using XianXia.Core.Orders;
@@ -144,6 +145,7 @@ namespace XianXia.Core.Simulation
 
             var previous = _world.Tick;
             _world.Tick = _world.Tick.Add(1);
+            OutdoorFarmGrowthService.Advance(_world);
             ProcessDayBoundary(previous, _world.Tick);
             _npcActivityDriver.Drive(_world, this);
             _scheduleDriver.Drive(_world, this);

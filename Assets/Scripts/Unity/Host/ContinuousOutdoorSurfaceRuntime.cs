@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 using Stopwatch = System.Diagnostics.Stopwatch;
 using XianXia.Core.Domain.Ids;
@@ -196,24 +195,6 @@ namespace XianXia.Unity.Host
                 bestArea = area; boundLocationId = p.BoundLocationId;
             }
             return !string.IsNullOrEmpty(boundLocationId);
-        }
-        public bool TryGetAcceptanceStartWorldPosition(out float x, out float y)
-        {
-            x = y = 0f;
-            OutdoorWorldSurfaceDefinition surface = null;
-            var registry = _bootstrap?.Session?.Registry;
-            if (registry == null) return false;
-            foreach (var entry in registry.OutdoorSurfaces)
-            {
-                if (entry.Value == null || !entry.Value.AcceptanceOnly) continue;
-                for (var i = 0; i < entry.Value.Chunks.Count; i++)
-                    if (entry.Value.Chunks[i].Coord == new SurfaceChunkCoord(0, 0)) { surface = entry.Value; break; }
-                if (surface != null) break;
-            }
-            if (surface == null) return false;
-            var mapper = new OutdoorSurfaceCoordinateMapper(surface.ChunkWidth, surface.ChunkHeight, surface.CellSize, originWorldX: surface.OriginWorldX, originWorldY: surface.OriginWorldY);
-            mapper.ChunkLocalToWorld(new SurfaceChunkCoord(0, 0), surface.ChunkWidth * 0.5f, surface.ChunkHeight * 0.5f, out x, out y);
-            return true;
         }
         public bool TryGetCompositeWalkGrid(out WalkGrid grid)
         {
@@ -745,133 +726,6 @@ namespace XianXia.Unity.Host
                     " Views=" + views);
             }
             return rows.Count > 0 ? string.Join("; ", rows) : "None";
-        }
-
-        /// <summary>One-shot, read-only report used by the LevelTester copy button.</summary>
-        public string DescribeFormalArmyDisplayDiagnostics(string preferredArmyId)
-        {
-            var world = _bootstrap?.Session?.World;
-            if (world?.Strategic?.FormalArmies == null)
-                return "[FormalArmyDisplayDiagnostic] SessionUnavailable";
-
-            var armyId = preferredArmyId ?? string.Empty;
-            FormalArmy army = null;
-            if (string.IsNullOrEmpty(armyId) ||
-                !world.Strategic.FormalArmies.TryGet(armyId, out army) || army == null)
-            {
-                armyId = ArmyStackAdapter.BanditWeakPatrolFormalArmyId;
-                if (!world.Strategic.FormalArmies.TryGet(armyId, out army) || army == null)
-                {
-                    foreach (var pair in world.Strategic.FormalArmies.Armies)
-                    {
-                        army = pair.Value;
-                        if (army == null)
-                            continue;
-                        armyId = army.ArmyId;
-                        break;
-                    }
-                }
-            }
-            if (army == null)
-                return "[FormalArmyDisplayDiagnostic] NoFormalArmy";
-
-            var position = army.WorldMotion.WorldPosition;
-            var hasSurface = TryResolveSurface(out var surface);
-            var coverage = hasSurface && army.WorldMotion.HasPosition &&
-                           OutdoorSurfaceCoverageResolver.ContainsWorldPosition(
-                               surface, position.X, position.Y);
-            var chunk = _mapper != null && army.WorldMotion.HasPosition
-                ? _mapper.WorldToChunk(position.X, position.Y)
-                : default;
-            var chunkLoaded = _mapper != null && army.WorldMotion.HasPosition && _loaded.Contains(chunk);
-            var mapMode = IsActive
-                ? "ContinuousOutdoor"
-                : world.LocalMap != null && world.LocalMap.IsInInterior
-                    ? "Interior"
-                    : BattleOfferService.HasActiveManualEncounter(world)
-                        ? "Encounter"
-                        : "LegacyOrInactive";
-
-            var sb = new StringBuilder(1024);
-            sb.AppendLine("[FormalArmyDisplayDiagnostic]");
-            sb.Append("ArmyId=").Append(armyId)
-              .Append(" CurrentSurface=").Append(_surfaceId)
-              .Append(" MapMode=").Append(mapMode)
-              .Append(" ActiveMap=").Append(world.LocalMap?.ActiveMapLayoutId ?? string.Empty)
-              .Append(" ArmyState=").Append(army.State)
-              .Append(" MotionSurface=").Append(army.WorldMotion.SurfaceId ?? string.Empty)
-              .Append(" HasPosition=").Append(army.WorldMotion.HasPosition)
-              .Append(" WorldPosition=").Append(position)
-              .Append(" SurfaceCoverage=").Append(coverage)
-              .Append(" Chunk=").Append(chunk)
-              .Append(" ChunkLoaded=").Append(chunkLoaded)
-              .AppendLine();
-
-            for (var i = 0; i < army.MemberCharacterIds.Count; i++)
-            {
-                var id = new EntityId(army.MemberCharacterIds[i]);
-                var hasEntity = world.Entities.TryGet(id, out var entity) && entity != null;
-                var hasPresence = world.WorldPresence.TryGet(id, out var presence) && presence != null;
-                XianXia.Core.Exploration.EntityLocationComponent loc = null;
-                var hasLoc = hasEntity &&
-                             entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out loc) &&
-                             loc != null;
-                var materialized = world.ContinuousOutdoorMaterialization.IsMaterialized(id);
-                var continuousVisible = LocalMapVisibility.EvaluateContinuousMaterializedVisibility(
-                    world, id, out var continuousReason);
-                var visible = LocalMapVisibility.IsEntityVisible(world, id);
-                EntityView view = null;
-                var registryHasView = _bootstrap.ViewSpawner?.Registry != null &&
-                                      _bootstrap.ViewSpawner.Registry.TryGet(id, out view) && view != null;
-
-                sb.Append("EntityId=").Append(id.Value)
-                  .Append(" Name=").Append(hasEntity ? entity.DisplayName : "<missing>")
-                  .Append(" HasWorldPresence=").Append(hasPresence)
-                  .Append(" PresenceMode=").Append(hasPresence ? presence.Mode.ToString() : "None")
-                  .Append(" HasLocationId=").Append(hasLoc && loc.HasLocation)
-                  .Append(" LocationId=").Append(hasLoc ? loc.LocationId ?? string.Empty : string.Empty)
-                  .Append(" HasPresentationOverride=").Append(hasLoc && loc.HasPresentationOverride);
-                if (hasLoc && loc.HasPresentationOverride)
-                    sb.Append(" Presentation=(")
-                      .Append(loc.PresentationOverrideX.ToString("0.00"))
-                      .Append(',')
-                      .Append(loc.PresentationOverrideZ.ToString("0.00"))
-                      .Append(')');
-                sb.Append(" Materialized=").Append(materialized)
-                  .Append(" Visibility=").Append(visible)
-                  .Append(" ContinuousPredicate=").Append(continuousVisible)
-                  .Append(" VisibilityReason=").Append(
-                      visible && !continuousVisible ? "VisibleByNonContinuousAuthority;" + continuousReason : continuousReason)
-                  .Append(" RegistryHasView=").Append(registryHasView);
-
-                if (registryHasView)
-                {
-                    var renderer = view.GetComponent<SpriteRenderer>();
-                    var camera = Camera.main != null ? Camera.main : FindObjectOfType<Camera>();
-                    sb.Append(" ViewTransform=").Append(view.transform.position)
-                      .Append(" ActiveInHierarchy=").Append(view.gameObject.activeInHierarchy)
-                      .Append(" RendererEnabled=").Append(renderer != null && renderer.enabled)
-                      .Append(" SpritePresent=").Append(renderer != null && renderer.sprite != null)
-                      .Append(" SortingLayer=").Append(renderer != null ? renderer.sortingLayerName : "<none>")
-                      .Append(" SortingOrder=").Append(renderer != null ? renderer.sortingOrder : 0);
-                    if (camera != null)
-                    {
-                        var viewport = camera.WorldToViewportPoint(view.transform.position);
-                        var layerMaskMatches =
-                            (camera.cullingMask & (1 << view.gameObject.layer)) != 0;
-                        sb.Append(" Camera=").Append(camera.name)
-                          .Append(" Viewport=").Append(viewport)
-                          .Append(" CullingMaskMatches=").Append(layerMaskMatches);
-                    }
-                    else
-                    {
-                        sb.Append(" Camera=<none> Viewport=<unavailable> CullingMaskMatches=false");
-                    }
-                }
-                sb.AppendLine();
-            }
-
-            return sb.ToString();
         }
 
         public void Bind(PlayableHostBootstrap bootstrap)
@@ -1433,34 +1287,6 @@ namespace XianXia.Unity.Host
             world.LocalMap.OverworldMapLayoutId = string.Empty;
         }
 
-        /// <summary>Diagnostic-only explicit W1C entry. Normal gameplay must use
-        /// <see cref="TryActivateAtCurrentWorldPosition"/>, which excludes AcceptanceOnly surfaces.</summary>
-        public bool TryActivateAcceptanceAtCurrentWorldPosition()
-        {
-            var motion = _bootstrap?.Session?.World?.PlayerPartyTravel;
-            var registry = _bootstrap?.Session?.Registry;
-            if (motion == null || registry == null || !motion.HasPosition ||
-                motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
-                return false;
-            OutdoorWorldSurfaceDefinition acceptance = null;
-            foreach (var entry in registry.OutdoorSurfaces)
-            {
-                if (!entry.Value.AcceptanceOnly ||
-                    !OutdoorSurfaceCoverageResolver.ContainsWorldPosition(
-                        entry.Value, motion.WorldPosition.X, motion.WorldPosition.Y))
-                    continue;
-                if (acceptance != null) return false;
-                acceptance = entry.Value;
-            }
-            if (acceptance == null) return false;
-            var mapper = new OutdoorSurfaceCoordinateMapper(
-                acceptance.ChunkWidth, acceptance.ChunkHeight, acceptance.CellSize,
-                presentationUnitsPerWorldUnit: 1f / acceptance.CellSize,
-                originWorldX: acceptance.OriginWorldX, originWorldY: acceptance.OriginWorldY);
-            ActivateSurface(acceptance, mapper.WorldToChunk(motion.WorldPosition.X, motion.WorldPosition.Y));
-            return IsActive;
-        }
-
         void ActivateSurface(OutdoorWorldSurfaceDefinition surface, SurfaceChunkCoord center)
         {
             if (surface == null)
@@ -1703,6 +1529,7 @@ namespace XianXia.Unity.Host
             if (_geography != null && _geography.CoverageChunks.Contains(coord))
                 _tileMap.BuildOutdoorGeographyInstance(GeographyOwnerKey(coord), _geography, _mapper, coord);
             BuildBakedOutdoorSitePlacements(coord);
+            BuildRuntimeConstructedOutdoorPlacements(coord);
         }
 
         string GeographyOwnerKey(SurfaceChunkCoord coord) =>
@@ -1710,6 +1537,14 @@ namespace XianXia.Unity.Host
 
         void RemoveSitePlacementInstances(SurfaceChunkCoord coord, string fieldId = null)
         {
+            // Remove by presentation ownership, even when snapshot restore has already replaced the World board.
+            var runtimePrefix = SitePlacementOwnerKey(coord, "runtime:", fieldId);
+            foreach (var owner in new List<string>(_materializedSitePlacementOwners))
+                if (owner.StartsWith(runtimePrefix, StringComparison.Ordinal))
+                {
+                    _tileMap.RemoveLayoutInstance(owner);
+                    _materializedSitePlacementOwners.Remove(owner);
+                }
             var sites = _bootstrap?.Session?.World?.Strategic?.Sites?.Sites;
             if (sites == null) return;
             foreach (var entry in sites)
@@ -1753,6 +1588,36 @@ namespace XianXia.Unity.Host
                 _tileMap.BuildOutdoorPlacementInstance(
                     SitePlacementOwnerKey(chunk, entry.Key), entry.Value, _mapper, chunk);
                 _materializedSitePlacementOwners.Add(SitePlacementOwnerKey(chunk, entry.Key));
+            }
+        }
+
+        /// <summary>Materialize only missing per-asset chunk owners; preserve active farm workers.</summary>
+        public void RefreshRuntimeConstructedPlacementsForLoadedChunks()
+        {
+            if (!IsActive || _tileMap == null) return;
+            foreach (var chunk in _loaded) BuildRuntimeConstructedOutdoorPlacements(chunk);
+        }
+
+        void BuildRuntimeConstructedOutdoorPlacements(SurfaceChunkCoord chunk)
+        {
+            var assets = _bootstrap?.Session?.World?.OutdoorConstructedAssets;
+            if (assets == null) return;
+            foreach (var asset in assets.Assets.Values)
+            {
+                if (asset.SurfaceId != _surfaceId) continue;
+                var placement = new OutdoorSurfacePlacementDefinition {
+                    StableId = asset.StableAssetId, SiteId = string.Empty, Kind = asset.Kind,
+                    WorldX = asset.WorldX, WorldY = asset.WorldY,
+                    WorldWidth = asset.WorldWidth, WorldHeight = asset.WorldHeight,
+                    SourceCellsW = asset.CellsW, SourceCellsH = asset.CellsH,
+                    BoundLocationId = asset.BoundLocationId, BlocksMovement = false, Label = "农田"
+                };
+                if (!PlacementTouchesChunk(placement, chunk)) continue;
+                var owner = SitePlacementOwnerKey(chunk, "runtime:" + asset.StableAssetId);
+                if (_materializedSitePlacementOwners.Contains(owner)) continue;
+                _tileMap.BuildOutdoorPlacementInstance(owner,
+                    new List<OutdoorSurfacePlacementDefinition> { placement }, _mapper, chunk);
+                _materializedSitePlacementOwners.Add(owner);
             }
         }
 

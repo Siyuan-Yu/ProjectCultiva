@@ -1,6 +1,6 @@
 # CW-04.5：Faction Territory Visual Union
 
-> 状态：Implementation Completed / Producer Acceptance Pending
+> 状态：Producer Accepted / Sealed
 > 日期：2026-09-14
 > 前置：CW-04 Producer Accepted / Sealed
 > 范围：WorldMap 正常产品领土表现与文档状态收口；不进入 CW-05
@@ -36,7 +36,7 @@ CW-04 已建立按 `TerritoryClaim` 取得历史解析的唯一 Actual Managing 
 - 现成非 Unity offline compile：Core、Data、Unity Host 与其余既有程序集编译通过。
 - 定向静态搜索确认产品 renderer 消费 `BuildFactionUnion`；Site inspector 与 LevelTester diagnostics 继续消费 `Build(world)`；union 构建器只使用 Claim partition、Actual Administrative resolver 与 Site Owner。
 - `git diff --check`。
-- 未启动 Unity，未运行 EditMode、PlayMode、Test Runner、batchmode 或 Bake；产品视觉仍待制作人人工验收。
+- 制作人已在 Unity 中确认同 Faction 相邻 Actual Control 产品视觉正确合并，Site／Claim／Actual Manager 继续保持独立。CW-04.5 于 2026-09-14 **Producer Accepted / Sealed**。
 
 ## 明确延期，不阻塞 CW-05
 

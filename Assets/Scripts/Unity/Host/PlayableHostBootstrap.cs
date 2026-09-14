@@ -837,6 +837,8 @@ namespace XianXia.Unity.Host
                                 gameObject.AddComponent<HostNpcContextMenu>();
             if (GetComponent<HostConstructionController>() == null)
                 gameObject.AddComponent<HostConstructionController>();
+            if (GetComponent<HostFarmFieldConstructionPresenter>() == null)
+                gameObject.AddComponent<HostFarmFieldConstructionPresenter>();
             if (GetComponent<HostFactionFlagPresenter>() == null)
                 gameObject.AddComponent<HostFactionFlagPresenter>();
             if (GetComponent<HostPartyPathPreview>() == null)
@@ -1243,9 +1245,6 @@ namespace XianXia.Unity.Host
                 return "Authority=LegacyLocalMap";
             }
         }
-
-        /// <summary>Acceptance surface 传送属于 legacy regression 工具；默认不在主诊断面板暴露。</summary>
-        public bool ShowLegacyAcceptanceTools { get; set; }
 
         /// <summary>After Snapshot restore: rebuild views and rebind Host adapters.</summary>
         public void RebindHostControlAfterSnapshotRestore()

@@ -1,5 +1,29 @@
 # 开发日志
 
+## 2026-09-14 — CW-05 Closing：Constructible Farm + Administrative Asset Lifecycle
+
+- 正常建筑页新增农田（grainField，5×4 Surface cells，粗木5），仅 reference scenario 的 NewGame startingInventory 配粗木20；schema/loader/reference validator 严格校验，开局容量失败回滚含部分入包，读档不重发。
+- 新增 Core OutdoorConstructedAssetBoard 和持久序列，保存物理矩形/独立 LocationId，20格复用 ForCell。全 footprint 逐格调用 Actual Control resolver，允许同势力跨 Site，Core 扣料和资产/anchor 注册事务化。
+- 独立 FarmField presenter 提供网格吸附、绿红预览、明确原因、几何/距离/loaded-area检查与输入交接；建造后立即复用既有 chunk stamping，卸载只删表现。旧表现按 owner key 清理，不依赖读档后的新资产集合。
+- Snapshot v6 增加可选物理资产列表和序列；恢复后重建 authored/runtime anchors，不保存 manager。现有农作授权自然覆盖新田；失去权限停止劳动及剩余走位，作物仍按 Core WorldTick 生长。
+- 删除 CW-05A Probe/ID UI 和无消费者 helper；A/B 验收并入 Closing。NPC/Settlement economy、generic buildings、产权、建筑战争、农田拆除等延期。验证和五步验收见 [234](234-cw-05c-constructible-farm-administrative-lifecycle-2026-09-14.md)。状态：**Implementation Completed / Producer Acceptance Pending**；修改未提交。
+
+## 2026-09-14 — CW-05B Farm Administrative Labor Authorization
+
+- CW-05A implementation complete；因 Probe／StableId／Claim 路线过于技术化，制作人验收并入 CW-05B 正常农田产品纵切，不标记 Producer Accepted。
+- Core 新增 `WorldAdministrativeAssetAuthorizationService`，以 farm `StableCellId` 调用现有 administrative resolver，区分 Allowed／Unmanaged／ManagedByOtherFaction／NotAdministrativeAsset／Invalid；manager 仍为动态 WorldSite，未缓存或写入 Snapshot。
+- 正常 farm hover 显示己方／无人／他方管理；右键拒绝会显示原因并消费输入。玩家 Worker 记录 `PlayerFactionId`，在选下一格、抵达开工和完成前逐格重新授权；同势力 Site succession 继续，none／foreign 时改选合法格或停止。Passive growth 未加 manager gate。
+- NPC schedule、Settlement production、generic construction 与 Property Ownership 未迁移，延后 CW-05C。详见 [233](233-cw-05b-farm-administrative-labor-authorization-2026-09-14.md)。状态：**Implementation Completed / Producer Acceptance Pending**；修改保持未提交。
+
+## 2026-09-14 — CW-04.5 封板与 CW-05A Outdoor Asset Administration
+
+- 制作人已在 Unity 中验收同 Faction 相邻 Actual Control 产品视觉，CW-04.5 正式 **Producer Accepted / Sealed**。
+- 制作人验收前的架构复核修正早期“全部 stateful kinds 都是 administrative assets”的临时语义：`OutdoorStatefulObjectSemantics` 继续覆盖 farm／tree／wall 的持久 identity 与物理状态，独立 `OutdoorAdministrativeAssetSemantics` 当前只准入 herbField／grainField。Content-derived `OutdoorAdministrativeAssetAnchorBoard` 因此只登记 farm cells；tree/wall persistence 完整保留但不拥有 Administrative Manager。
+- 新增 `WorldAdministrativeAssetControlResolver`，唯一通过 farm anchor 的 SurfaceId＋exact WorldPosition 调用 `WorldSiteAdministrativeControlResolver`；managed、接续后的新 manager 与 unmanaged 都不改 farm identity/state，也不缓存 ManagerSite/Faction。普通 tree/wall ID 返回 NotAdministrativeAsset。
+- `OutdoorFarmCropStage` 与每 tick 0.012 的 passive growth 迁入 Core `SimulationLoop`；直接推进完整 `OutdoorStatefulObjectBoard.FarmPlots`，不依赖 manager、chunk 或 Host View。Host 只在 WorldTick 变化后同步已加载田格视觉。
+- LevelTester 诊断页改为 Administrative Asset 查询，删除 tree/HP administrative probe，只保留 Development-only Growing Farm Probe；A/B 仍走正式旗与 Claim lifecycle。Physical Asset Identity、Property Ownership、Administrative Manager 明确分离。现成 `PlayableDayBootstrapPhaseATests` headless filter 因本机 Mono 无法解析 Unity 2022.3.6f1 `Application.dataPath` 在产品 bootstrap 前中止（1 pass／6 环境失败），不计作功能通过或失败。详见 [232](232-cw-05a-asset-administrative-context-outdoor-stateful-succession-2026-09-14.md)。状态：**Implementation Complete / Acceptance Deferred Into CW-05B Product Slice**；本轮按制作人要求保持未提交。
+- 制作人要求 CW-05A 验收前清理 LevelTester Development Tools：退役 W1C／CW-02／CW-04／FormalArmy 阶段专用 UI 和无其它消费者的 acceptance-only helpers，保留当前 CW-05A、时间、后台角色世界地点移动、内容、外交、存档、通用战斗与 runtime diagnostics；未改 Gameplay runtime，未开始 CW-05B。
+
 ## 2026-09-14 — Snapshot Restore Dynamic Flag Site / PhysicalRegion Invariant Fix
 
 - 修复动态势力旗 Site 存档恢复后触发 `[ContinuousStartupInvariantFailure] Opening Site PhysicalRegion not loaded`：启动不变量恢复只查询 authored Outdoor WorldSite physical region，不再把 500×500 SiteCore 行政管理范围当成烘焙 `surface.SiteRegions`。

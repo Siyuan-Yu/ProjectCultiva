@@ -404,6 +404,20 @@ namespace XianXia.Core.Persistence
 
         static void CaptureOutdoorStatefulObjects(SimulationWorld world, WorldSnapshot snap)
         {
+            snap.NextOutdoorConstructedAssetSequence = world.OutdoorConstructedAssets.NextSequence;
+            foreach (var asset in world.OutdoorConstructedAssets.Assets.Values)
+                snap.OutdoorConstructedAssets.Add(new OutdoorConstructedAssetSnapshotDto {
+                    StableAssetId = asset.StableAssetId,
+                    BuildingId = asset.BuildingId,
+                    Kind = asset.Kind,
+                    SurfaceId = asset.SurfaceId,
+                    WorldX = asset.WorldX,
+                    WorldY = asset.WorldY,
+                    WorldWidth = asset.WorldWidth,
+                    WorldHeight = asset.WorldHeight,
+                    CellsW = asset.CellsW,
+                    CellsH = asset.CellsH,
+                    BoundLocationId = asset.BoundLocationId });
             foreach (var kv in world.OutdoorStatefulObjects.Destructibles)
                 snap.OutdoorDestructibles.Add(new OutdoorDestructibleSnapshotDto
                 { StableId = kv.Key, CurrentHp = kv.Value.Hp, Destroyed = kv.Value.Destroyed });
@@ -851,6 +865,8 @@ namespace XianXia.Core.Persistence
             }
 
             RestorePartyInventory(world, snap);
+            var farmRestore = RestoreConstructedAssets(world, snap);
+            if (farmRestore.IsFailure) return Result.Fail<(SimulationWorld, SimulationLoop)>(farmRestore.Error);
             RestoreOutdoorStatefulObjects(world, snap);
             var bondRestore = RestoreSocialBonds(world, snap);
             if (bondRestore.IsFailure)
@@ -918,6 +934,33 @@ namespace XianXia.Core.Persistence
 
             RelationshipService.RebuildAllCaches(world);
             return Result.Success();
+        }
+
+        static Result RestoreConstructedAssets(SimulationWorld world, WorldSnapshot snap)
+        {
+            world.OutdoorConstructedAssets.Clear();
+            if (snap.OutdoorConstructedAssets == null)
+                return Result.Failure(ErrorCode.SnapshotInvalid, "Runtime farm list is null.");
+            foreach (var dto in snap.OutdoorConstructedAssets)
+            {
+                if (dto == null) return Result.Failure(ErrorCode.SnapshotInvalid, "Runtime farm is null.");
+                var asset = new XianXia.Core.Construction.OutdoorConstructedAssetState {
+                    StableAssetId = dto.StableAssetId,
+                    BuildingId = dto.BuildingId,
+                    Kind = dto.Kind,
+                    SurfaceId = dto.SurfaceId,
+                    WorldX = dto.WorldX,
+                    WorldY = dto.WorldY,
+                    WorldWidth = dto.WorldWidth,
+                    WorldHeight = dto.WorldHeight,
+                    CellsW = dto.CellsW,
+                    CellsH = dto.CellsH,
+                    BoundLocationId = dto.BoundLocationId };
+                if (!world.OutdoorConstructedAssets.TryRegister(asset))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid or duplicate runtime farm.", dto.StableAssetId);
+            }
+            return world.OutdoorConstructedAssets.RestoreSequence(snap.NextOutdoorConstructedAssetSequence)
+                ? Result.Success() : Result.Failure(ErrorCode.SnapshotInvalid, "Invalid runtime farm sequence.");
         }
 
         static void RestoreOutdoorStatefulObjects(SimulationWorld world, WorldSnapshot snap)

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Exploration;
 
 namespace XianXia.Unity.Host
 {
@@ -195,7 +196,6 @@ namespace XianXia.Unity.Host
     {
         public const float WorkSeconds = 2.4f;
         public const float TendGrowthGain = 0.34f;
-        public const float PassiveGrowthPerSecond = 0.012f;
         public const float ArriveEpsilon = 0.55f;
 
         public const string HerbCropId = "crop_spirit_herb";
@@ -253,26 +253,26 @@ namespace XianXia.Unity.Host
             return false;
         }
 
-        public static int JobPriority(PlotCropStage stage)
+        public static int JobPriority(OutdoorFarmCropStage stage)
         {
             switch (stage)
             {
-                case PlotCropStage.Mature: return 40;
-                case PlotCropStage.Ruined: return 30;
-                case PlotCropStage.Empty: return 20;
-                case PlotCropStage.Growing: return 10;
+                case OutdoorFarmCropStage.Mature: return 40;
+                case OutdoorFarmCropStage.Ruined: return 30;
+                case OutdoorFarmCropStage.Empty: return 20;
+                case OutdoorFarmCropStage.Growing: return 10;
                 default: return 0;
             }
         }
 
-        public static string JobVerb(PlotCropStage stage)
+        public static string JobVerb(OutdoorFarmCropStage stage)
         {
             switch (stage)
             {
-                case PlotCropStage.Mature: return "收获";
-                case PlotCropStage.Ruined: return "清理";
-                case PlotCropStage.Empty: return "播种";
-                case PlotCropStage.Growing: return "照料";
+                case OutdoorFarmCropStage.Mature: return "收获";
+                case OutdoorFarmCropStage.Ruined: return "清理";
+                case OutdoorFarmCropStage.Empty: return "播种";
+                case OutdoorFarmCropStage.Growing: return "照料";
                 default: return "农作";
             }
         }
@@ -282,7 +282,8 @@ namespace XianXia.Unity.Host
             IReadOnlyList<HostMapPlotCell> plots,
             Vector3 fromWorld,
             HashSet<int> reservedInstanceIds,
-            out HostMapPlotCell cell)
+            out HostMapPlotCell cell,
+            System.Func<HostMapPlotCell, bool> authorization = null)
         {
             cell = null;
             if (plots == null || plots.Count == 0)
@@ -294,6 +295,8 @@ namespace XianXia.Unity.Host
             {
                 var p = plots[i];
                 if (p == null || !p.IsPlantableField)
+                    continue;
+                if (authorization != null && !authorization(p))
                     continue;
                 var iid = p.GetInstanceID();
                 if (reservedInstanceIds != null && reservedInstanceIds.Contains(iid))

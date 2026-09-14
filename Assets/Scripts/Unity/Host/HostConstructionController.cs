@@ -27,6 +27,10 @@ namespace XianXia.Unity.Host
                     if (presenter == null)
                         return Result.Failure(ErrorCode.InvalidOperation, "势力控制建筑放置器未就绪。");
                     return presenter.BeginConstructionPlacement(buildingId);
+                case ConstructionPlacementKind.FarmField:
+                    var farmPresenter = _bootstrap.GetComponent<HostFarmFieldConstructionPresenter>();
+                    return farmPresenter != null ? farmPresenter.BeginConstructionPlacement(buildingId) :
+                        Result.Failure(ErrorCode.InvalidOperation, "农田放置器未就绪。");
                 default:
                     return Result.Failure(ErrorCode.InvalidOperation, "未知建筑放置类型。", buildingId);
             }

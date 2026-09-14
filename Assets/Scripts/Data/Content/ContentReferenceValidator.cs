@@ -387,6 +387,11 @@ namespace XianXia.Data.Content
             {
                 var s = kv.Value;
                 var ctx = s.Id.ToString();
+                foreach (var entry in s.StartingInventory)
+                    if (entry == null || entry.Count <= 0 || !DefinitionId.TryParse(entry.ItemId, out var itemId) ||
+                        (!registry.Resources.ContainsKey(itemId) && !registry.Items.ContainsKey(itemId)))
+                        report.Add(ErrorCode.InvalidArgument, "Invalid startingInventory item/count.", ctx);
+
                 RequireDef(registry, s.OpeningSettlementId, "settlement", ctx + ".openingSettlementId", report);
                 RequireDef(registry, s.OpeningWorldRegionId, "worldRegion", ctx + ".openingWorldRegionId", report);
                 RequireDef(registry, s.OpeningLocalPlaceSetId, "localPlaceSet", ctx + ".openingLocalPlaceSetId", report);
@@ -757,9 +762,13 @@ namespace XianXia.Data.Content
                 var building = kv.Value;
                 if (building == null)
                     continue;
-                if (!string.Equals(building.PlacementKind, "factionFlag", StringComparison.Ordinal))
+                if (building.PlacementKind != "factionFlag" && building.PlacementKind != "farmField")
                     report.Add(ErrorCode.InvalidArgument, "Unknown building placementKind.",
                         building.Id + ".placementKind:" + building.PlacementKind);
+                if (building.PlacementKind == "farmField" && (building.CreatesWorldSite ||
+                    !XianXia.Core.Exploration.OutdoorAdministrativeAssetSemantics.IsAdministrativeAssetKind(building.OutdoorKind) ||
+                    building.FootprintCellsW <= 0 || building.FootprintCellsH <= 0))
+                    report.Add(ErrorCode.InvalidArgument, "Invalid farmField kind, dimensions or createsWorldSite.", building.Id.ToString());
                 if (building.Costs == null)
                     continue;
                 for (var i = 0; i < building.Costs.Count; i++)

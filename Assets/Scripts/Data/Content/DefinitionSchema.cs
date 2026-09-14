@@ -25,7 +25,7 @@ namespace XianXia.Data.Content
         {
             "id", "type", "name", "scheduleId", "openingFactionId", "openingSettlementId",
             "openingWorldRegionId", "openingLocalPlaceSetId", "openingHexWorldId", "openingChapterId", "spawns", "openingRelations", "openingBonds",
-            "initialFormalArmyIds", "strategicOpening"
+            "initialFormalArmyIds", "strategicOpening", "startingInventory"
         };
 
         public static readonly HashSet<string> FormalArmyFields = new HashSet<string>(StringComparer.Ordinal)
@@ -317,7 +317,7 @@ namespace XianXia.Data.Content
         {
             "id", "type", "name", "description", "unlockedByDefault", "placementKind",
             "createsWorldSite", "createdSiteName", "createdSiteType", "initialSiteLevel",
-            "dismantleRefundRate", "costs"
+            "dismantleRefundRate", "costs", "outdoorKind", "footprintCellsW", "footprintCellsH"
         };
 
         public static readonly HashSet<string> BuildingCostFields = new HashSet<string>(StringComparer.Ordinal)

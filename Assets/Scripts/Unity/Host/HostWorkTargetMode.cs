@@ -84,12 +84,13 @@ namespace XianXia.Unity.Host
                 return false;
 
             var world = bootstrap.Session.World;
-            // 右键直接点在田格上（不依赖热点半径）
-            if (HostFarmFieldRegistry.TryFindLocationNear(point, out var farmLoc))
+            // Farm hit always consumes the context click, including authorization denial.
+            if (HostFarmFieldRegistry.TryFindPlotAt(point, out var farmPlot))
             {
                 var farm = bootstrap.GetComponent<HostFarmFieldLabor>();
-                if (farm != null && farm.BeginForSelection(farmLoc) > 0)
-                    return true;
+                if (farm != null && farm.BeginForSelection(farmPlot) > 0)
+                    Resume();
+                return true;
             }
 
             if (TryFindWorkInteractAt(point, world, out var work))
@@ -206,6 +207,15 @@ namespace XianXia.Unity.Host
             }
 
             var world = bootstrap.Session.World;
+            if (HostFarmFieldRegistry.TryFindPlotAt(point, out var farmPlot))
+            {
+                var authorization = ResolveFarmAuthorization(farmPlot);
+                _idleHoverInteractable = true;
+                _hoverHint = DescribeFarmHover(authorization, contextClick: true);
+                ApplyCursor(authorization.IsAllowed);
+                return;
+            }
+
             if (HostMapObjectRegistry.TryPickDestructible(point, 2.2f, out var treeHover))
             {
                 _idleHoverInteractable = true;
@@ -280,7 +290,13 @@ namespace XianXia.Unity.Host
                 case ArmKind.Interact:
                 {
                     var world = bootstrap.Session.World;
-                    if (HostMapObjectRegistry.TryPickDestructible(point, 2.2f, out var dHover))
+                    if (HostFarmFieldRegistry.TryFindPlotAt(point, out var farmPlot))
+                    {
+                        var authorization = ResolveFarmAuthorization(farmPlot);
+                        _canTargetUnderMouse = authorization.IsAllowed;
+                        _hoverHint = DescribeFarmHover(authorization, contextClick: false);
+                    }
+                    else if (HostMapObjectRegistry.TryPickDestructible(point, 2.2f, out var dHover))
                     {
                         _canTargetUnderMouse = true;
                         _hoverHint = (dHover.IsTree ? "砍伐·" : "拆毁·") + dHover.DisplayName;
@@ -350,14 +366,13 @@ namespace XianXia.Unity.Host
                 return;
 
             var world = bootstrap.Session.World;
-            if (HostFarmFieldRegistry.TryFindLocationNear(point, out var farmLoc))
+            if (HostFarmFieldRegistry.TryFindPlotAt(point, out var farmPlot))
             {
                 var farm = bootstrap.GetComponent<HostFarmFieldLabor>();
-                if (farm != null && farm.BeginForSelection(farmLoc) > 0)
-                {
-                    SetArmed(ArmKind.None);
-                    return;
-                }
+                if (farm != null && farm.BeginForSelection(farmPlot) > 0)
+                    Resume();
+                SetArmed(ArmKind.None);
+                return;
             }
 
             if (HostMapObjectRegistry.TryPickDestructible(point, 2.2f, out var chopTarget))
@@ -526,6 +541,35 @@ namespace XianXia.Unity.Host
             SetArmed(ArmKind.None);
         }
 
+        /// <summary>Resolve the clicked farm cell through the Core administrative authority.</summary>
+        AdministrativeAssetAuthorization ResolveFarmAuthorization(HostMapPlotCell plot)
+        {
+            var world = bootstrap?.Session?.World;
+            return WorldAdministrativeAssetAuthorizationService.ResolveForFaction(
+                world,
+                plot?.StableCellId ?? string.Empty,
+                world?.Strategic?.PlayerFactionId ?? string.Empty);
+        }
+
+        static string DescribeFarmHover(
+            AdministrativeAssetAuthorization authorization,
+            bool contextClick)
+        {
+            switch (authorization?.Status ?? AdministrativeAssetAuthorizationStatus.Invalid)
+            {
+                case AdministrativeAssetAuthorizationStatus.Allowed:
+                    return (contextClick ? "右键农作" : "农作") + " · 己方管理";
+                case AdministrativeAssetAuthorizationStatus.Unmanaged:
+                    return "农田 · 无人管理，无法组织农作";
+                case AdministrativeAssetAuthorizationStatus.ManagedByOtherFaction:
+                    return "农田 · 他方管理，无法组织农作";
+                case AdministrativeAssetAuthorizationStatus.NotAdministrativeAsset:
+                    return "农田 · 非行政资产，无法组织农作";
+                default:
+                    return "农田 · 无法确认行政管理";
+            }
+        }
+
         /// <summary>
         /// 可交互 Work 命中：田／药田必须点在格上；其它工区仍用原热点半径。
         /// 悬停光标与右键／武装交互共用，保证「能点」与「绿光标」一致。
@@ -564,14 +608,15 @@ namespace XianXia.Unity.Host
 
             var farm = bootstrap != null ? bootstrap.GetComponent<HostFarmFieldLabor>() : null;
             if (farm != null &&
-                HostFarmFieldRegistry.TryFindLocationNear(clickWorld, out var farmLoc))
+                HostFarmFieldRegistry.TryFindPlotAt(clickWorld, out var farmPlot))
             {
-                var n = farm.BeginForSelection(farmLoc);
+                var n = farm.BeginForSelection(farmPlot);
                 if (n > 0)
                 {
-                    Debug.Log("[Host] 田区农作开始：" + farmLoc + " ×" + n);
+                    Debug.Log("[Host] 田区农作开始：" + farmPlot.LocationId + " ×" + n);
                     return;
                 }
+                return;
             }
 
             // 点在有田的 location 附近但未点中田格：不当农作；也不误触发整区劳动

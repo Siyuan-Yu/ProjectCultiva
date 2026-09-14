@@ -3,7 +3,9 @@ using UnityEngine;
 using XianXia.Core.Actions;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
+using XianXia.Core.Exploration;
 using XianXia.Core.Schedule;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Unity.Host
 {
@@ -30,6 +32,8 @@ namespace XianXia.Unity.Host
             public int ReservedCellId;
             public bool FromNpcSchedule;
             public bool FromPartyFollow;
+            public bool RequiresAdministrativeAuthorization;
+            public string ActingFactionId;
         }
 
         [SerializeField] PlayableHostBootstrap bootstrap;
@@ -41,6 +45,7 @@ namespace XianXia.Unity.Host
         readonly List<Worker> _workers = new List<Worker>(8);
         readonly HashSet<int> _reserved = new HashSet<int>();
         readonly Dictionary<ulong, float> _npcRetryAt = new Dictionary<ulong, float>();
+        ulong _lastPresentedFarmTick = ulong.MaxValue;
 
         public void Bind(PlayableHostBootstrap host)
         {
@@ -51,6 +56,7 @@ namespace XianXia.Unity.Host
             viewSpawner = host.ViewSpawner;
             selectionController = host.GetComponent<HostSelectionController>();
             workLoop = host.GetComponent<HostWorkLoop>();
+            _lastPresentedFarmTick = ulong.MaxValue;
         }
 
         public bool IsPartyDerivedFarming(EntityId id)
@@ -126,12 +132,22 @@ namespace XianXia.Unity.Host
         }
 
         /// <summary>对当前选中己方：在该地点田区开始自动农作。</summary>
-        public int BeginForSelection(string locationId)
+        public int BeginForSelection(HostMapPlotCell clickedPlot)
         {
-            if (string.IsNullOrEmpty(locationId) ||
-                !HostFarmFieldRegistry.HasField(locationId) ||
-                selectionController == null)
+            var world = bootstrap?.Session?.World;
+            if (world == null || clickedPlot == null || !clickedPlot.IsPlantableField ||
+                string.IsNullOrEmpty(clickedPlot.LocationId) ||
+                string.IsNullOrEmpty(clickedPlot.StableCellId) || selectionController == null)
                 return 0;
+
+            var actingFactionId = world.Strategic?.PlayerFactionId ?? string.Empty;
+            var authorization = WorldAdministrativeAssetAuthorizationService.ResolveForFaction(
+                world, clickedPlot.StableCellId, actingFactionId);
+            if (!authorization.IsAllowed)
+            {
+                ToastSelection(DescribeAuthorizationDenial(authorization));
+                return 0;
+            }
 
             var n = 0;
             for (var i = 0; i < selectionController.State.Count; i++)
@@ -139,7 +155,7 @@ namespace XianXia.Unity.Host
                 var id = selectionController.State.SelectedIds[i];
                 if (!selectionController.IsPartyUnit(id))
                     continue;
-                if (Begin(id, locationId, fromNpcSchedule: false))
+                if (Begin(id, clickedPlot.LocationId, fromNpcSchedule: false))
                     n++;
             }
 
@@ -161,6 +177,12 @@ namespace XianXia.Unity.Host
                         fromNpcSchedule || _workers[i].FromNpcSchedule;
                     _workers[i].FromPartyFollow =
                         fromPartyFollow || _workers[i].FromPartyFollow;
+                    if (!fromNpcSchedule)
+                    {
+                        _workers[i].RequiresAdministrativeAuthorization = true;
+                        _workers[i].ActingFactionId =
+                            bootstrap.Session.World.Strategic?.PlayerFactionId ?? string.Empty;
+                    }
                     return true;
                 }
             }
@@ -175,7 +197,11 @@ namespace XianXia.Unity.Host
                 LocationId = locationId,
                 Phase = Phase.Idle,
                 FromNpcSchedule = fromNpcSchedule,
-                FromPartyFollow = fromPartyFollow
+                FromPartyFollow = fromPartyFollow,
+                RequiresAdministrativeAuthorization = !fromNpcSchedule,
+                ActingFactionId = !fromNpcSchedule
+                    ? bootstrap.Session.World.Strategic?.PlayerFactionId ?? string.Empty
+                    : string.Empty
             };
             _workers.Add(w);
             if (!AssignNextCell(w))
@@ -193,10 +219,10 @@ namespace XianXia.Unity.Host
         {
             if (bootstrap?.Session?.World == null)
                 return;
+            SyncFarmPresentationFromCore();
             if (bootstrap.Session.IsPaused)
                 return;
 
-            TickPassiveGrowth(bootstrap.PresentationDeltaTime);
             SyncNpcScheduleFarmers();
 
             if (_workers.Count == 0)
@@ -302,6 +328,12 @@ namespace XianXia.Unity.Host
                 return;
             }
 
+            if (!IsCellAuthorized(w, w.Cell))
+            {
+                HandleAuthorizationLoss(w);
+                return;
+            }
+
             if (w.Phase == Phase.Move)
             {
                 if (!TryGetWorldPos(w.Id, out var pos))
@@ -340,7 +372,9 @@ namespace XianXia.Unity.Host
             if (!TryGetWorldPos(w.Id, out var from))
                 from = Vector3.zero;
 
-            if (!HostFarmFieldRules.TryPickJobCell(plots, from, _reserved, out var cell))
+            if (!HostFarmFieldRules.TryPickJobCell(
+                    plots, from, _reserved, out var cell,
+                    candidate => IsCellAuthorized(w, candidate)))
                 return false;
 
             w.Cell = cell;
@@ -361,6 +395,30 @@ namespace XianXia.Unity.Host
             return true;
         }
 
+        bool IsCellAuthorized(Worker worker, HostMapPlotCell cell)
+        {
+            if (worker == null || !worker.RequiresAdministrativeAuthorization)
+                return true;
+            if (cell == null || string.IsNullOrEmpty(cell.StableCellId))
+                return false;
+            var authorization = WorldAdministrativeAssetAuthorizationService.ResolveForFaction(
+                bootstrap?.Session?.World, cell.StableCellId, worker.ActingFactionId);
+            return authorization.IsAllowed;
+        }
+
+        void HandleAuthorizationLoss(Worker worker)
+        {
+            ReleaseReserve(worker);
+            worker.Cell = null;
+            worker.WorkLeft = 0f;
+            if (AssignNextCell(worker))
+                return;
+            moveController?.CancelPresentationMovementPublic(worker.Id);
+            if (!worker.FromNpcSchedule)
+                Toast(worker.Id, "农田已失去己方管理，自动农作停止", new Color(1f, .45f, .35f));
+            worker.Phase = Phase.Idle;
+        }
+
         void ApplyJob(Worker w)
         {
             var cell = w.Cell;
@@ -372,28 +430,28 @@ namespace XianXia.Unity.Host
             var verb = HostFarmFieldRules.JobVerb(cell.CropStage);
             switch (cell.CropStage)
             {
-                case PlotCropStage.Empty:
+                case OutdoorFarmCropStage.Empty:
                     cell.SetPlanted(HostFarmFieldRules.CropIdForPlot(cell));
                     cell.RefreshCropVisual();
                     if (!isNpc)
                         Toast(w.Id, verb + " · " + cell.CropName(), new Color(0.65f, 0.95f, 0.55f));
                     break;
-                case PlotCropStage.Growing:
-                    cell.SetCropStage(PlotCropStage.Growing,
+                case OutdoorFarmCropStage.Growing:
+                    cell.SetCropStage(OutdoorFarmCropStage.Growing,
                         cell.Growth01 + HostFarmFieldRules.TendGrowthGain);
                     if (cell.Growth01 >= 0.999f)
-                        cell.SetCropStage(PlotCropStage.Mature, 1f);
+                        cell.SetCropStage(OutdoorFarmCropStage.Mature, 1f);
                     cell.RefreshCropVisual();
                     if (!isNpc)
                         Toast(w.Id,
                             verb + " · " + Mathf.RoundToInt(cell.Growth01 * 100f) + "%",
                             new Color(0.7f, 0.9f, 0.5f));
                     break;
-                case PlotCropStage.Mature:
+                case OutdoorFarmCropStage.Mature:
                 {
                     var itemId = HostFarmFieldRules.HarvestItemId(cell);
                     var added = GrantHarvest(world, entity, itemId);
-                    cell.SetCropStage(PlotCropStage.Empty);
+                    cell.SetCropStage(OutdoorFarmCropStage.Empty);
                     cell.RefreshCropVisual();
                     Toast(w.Id,
                         added > 0 ? ("收获 · " + ShortItem(itemId)) : "收获失败",
@@ -401,8 +459,8 @@ namespace XianXia.Unity.Host
                     bootstrap.DispatchDrainedEvents();
                     break;
                 }
-                case PlotCropStage.Ruined:
-                    cell.SetCropStage(PlotCropStage.Empty);
+                case OutdoorFarmCropStage.Ruined:
+                    cell.SetCropStage(OutdoorFarmCropStage.Empty);
                     cell.RefreshCropVisual();
                     if (!isNpc)
                         Toast(w.Id, "清理完毕", new Color(0.8f, 0.8f, 0.75f));
@@ -438,21 +496,18 @@ namespace XianXia.Unity.Host
             return world.Inventory != null ? world.Inventory.TryAdd(itemId, 1) : 0;
         }
 
-        void TickPassiveGrowth(float dt)
+        void SyncFarmPresentationFromCore()
         {
+            var tick = bootstrap.Session.World.Tick.Value;
+            if (tick == _lastPresentedFarmTick)
+                return;
+            _lastPresentedFarmTick = tick;
             var plots = HostMapObjectRegistry.AllPlots;
             for (var i = 0; i < plots.Count; i++)
             {
                 var p = plots[i];
-                if (p == null || !p.IsPlantableField || p.CropStage != PlotCropStage.Growing)
-                    continue;
-                var g = p.Growth01 + HostFarmFieldRules.PassiveGrowthPerSecond * dt;
-                if (g >= 1f)
-                    p.SetCropStage(PlotCropStage.Mature, 1f);
-                else
-                    p.SetCropStage(PlotCropStage.Growing, g);
-                if ((Time.frameCount + i) % 30 == 0)
-                    p.RefreshCropVisual();
+                if (p != null && p.IsPlantableField)
+                    p.RefreshFromWorldState();
             }
         }
 
@@ -510,6 +565,33 @@ namespace XianXia.Unity.Host
                 return "粮食";
             var i = itemId.LastIndexOf(':');
             return i >= 0 && i + 1 < itemId.Length ? itemId.Substring(i + 1) : itemId;
+        }
+
+        public static string DescribeAuthorizationDenial(AdministrativeAssetAuthorization authorization)
+        {
+            switch (authorization?.Status ?? AdministrativeAssetAuthorizationStatus.Invalid)
+            {
+                case AdministrativeAssetAuthorizationStatus.Unmanaged:
+                    return "该农田暂无行政管理，无法组织农作";
+                case AdministrativeAssetAuthorizationStatus.ManagedByOtherFaction:
+                    return "该农田由其他势力管理，无法组织农作";
+                case AdministrativeAssetAuthorizationStatus.NotAdministrativeAsset:
+                    return "该地块不是可组织管理的农田";
+                default:
+                    return "无法确认该农田的行政管理";
+            }
+        }
+
+        void ToastSelection(string text)
+        {
+            if (selectionController == null)
+                return;
+            for (var i = 0; i < selectionController.State.Count; i++)
+            {
+                var id = selectionController.State.SelectedIds[i];
+                if (selectionController.IsPartyUnit(id))
+                    Toast(id, text, new Color(1f, .45f, .35f));
+            }
         }
 
         void Toast(EntityId id, string text, Color color)

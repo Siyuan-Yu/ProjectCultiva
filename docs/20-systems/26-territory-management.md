@@ -1,6 +1,6 @@
 # 领地经营
 
-> 状态：SiteCore 行政管理最终设计已确认；CW-04 Producer Accepted / Sealed；CW-04.5 已实现、待制作人验收 | 优先级：P0 | 最后更新：2026-09-14
+> 状态：SiteCore 行政管理最终设计已确认；CW-04／CW-04.5 Producer Accepted / Sealed；CW-05A/B/Closing 已实现、统一待制作人验收 | 优先级：P0 | 最后更新：2026-09-14
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`25-cultivation-and-breakthrough.md`、`24-world-and-settlements.md`、`27-characters-and-population.md`、`22-realms-and-abilities.md`、**[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**
 > **Hex Territory / TerritoryRegion / Capture 后整块易主：** 正式规则见 **[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**（2026-08-24）。本文 §2「Strategic Node」术语在 Pure Hex 下对应 **Fixed WorldSite + TerritoryRegion**。
@@ -30,7 +30,9 @@
 
 完整决策见 [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)。CW-04 已以持久化 `TerritoryClaim` 取得历史取代 Site `EstablishedOrder` 的实际控制职责：理论范围允许重叠，实际位置按最早有效 Claim 唯一解析；核心升级只新增较晚 Claim，不能抢走已有管理。CW-04 已于 2026-09-14 经制作人人工验收并封板。
 
-WorldMap 正常产品势力范围直接绘制 Actual Administrative Control 的 world-space 矩形片段及真实边界，不再从 `HexCell.ControlFactionId`／`TerritoryRegion.Hexes` 反推轮廓。CW-04.5 已实现按 Faction 的只读视觉 union：同势力相邻 Site 不画内部政治边界，断开的领土仍是独立 pieces；Site identity、Claim 与唯一 Actual Manager 保持独立，内部 Site 边界继续由 per-Site builder 和 diagnostics 查询。Strategic Hex Projection 仅保留作旧系统兼容、摘要统计和显式 debug。
+WorldMap 正常产品势力范围直接绘制 Actual Administrative Control 的 world-space 矩形片段及真实边界，不再从 `HexCell.ControlFactionId`／`TerritoryRegion.Hexes` 反推轮廓。CW-04.5 已实现并封板按 Faction 的只读视觉 union：同势力相邻 Site 不画内部政治边界，断开的领土仍是独立 pieces；Site identity、Claim 与唯一 Actual Manager 保持独立，内部 Site 边界继续由 per-Site builder 和 diagnostics 查询。Strategic Hex Projection 仅保留作旧系统兼容、摘要统计和显式 debug。
+
+CW-05A 明确 **Stateful World Object != Administrative Asset**。tree／wall／farm 都可有持久 identity 与 physical-natural state，但当前只有 Farm Plot 显式进入 Administrative Asset semantics。Farm 管理锚点从 checked-in Continuous Surface placement 的 StableId、SurfaceId 和 cell center 派生；当前 managing `WorldSite` 每次经 `WorldSiteAdministrativeControlResolver` 查询，不保存 Site/Faction owner。核心失效只改变 manager 查询结果，CropStage、Growth 与 StableId 不变；无 manager 是合法状态。树墙仍保存 HP/Destroyed，但附近 Site 只能提供 Territorial Context，不是 Tree/Wall Administrative Manager。Physical Asset Identity、Property Ownership、Administrative Manager 相互独立，本轮未实现产权。无人管理不等于时间停止：Growing 作物由 Core WorldTick 推进，即使 chunk 未加载仍生长。CW-05B 已让玩家下达的整片农作按真实 farm cell `StableCellId` 消费该动态行政管理结果，并在逐格选工、开工与完成前复核；NPC schedule、Settlement production 与 generic construction 延后 Economy / Automated Settlement Production migration。CW-05A/B 的验收并入 CW-05 Closing 正常建田闭环，两者均未标记 Producer Accepted。
 
 ## 20. 历史战略 Node 占领（2026-08-22）
 
@@ -226,3 +228,12 @@ Resident Character 是否响应或跨区行动取决于职责、动机、发现�
 - [ ] 幸福度／民心的具体表现，反抗与逃亡如何触发。
 - [ ] 岗位与时间表调整是否有过渡期，还是即时生效？
 - [ ] 多据点时是否需要"总览面板"，避免逐个据点点进去管理？
+
+
+## 2026-09-14 CW-05 Closing：可建造农田
+
+制作人已授权并实现 `farmField`：正常建筑入口创建5×4 Surface cells的农田，成本粗木5；reference scenario 新游戏通过 `startingInventory` 发粗木20。Core 逐格查询 Actual Administrative Control，只要各格当前 managing Site 同属玩家势力即可，允许跨同势力 Site 边界。Host 校验加载范围、几何、距离并提供预览；Core 在扣料前重验并事务注册。
+
+`OutdoorConstructedAssetBoard` 保存稳定 root ID、建筑/kind、SurfaceId、精确左下角矩形、格数和独立 BoundLocationId；每格复用 `OutdoorStatefulObjectId.ForCell`。Snapshot v6 optional additive `outdoorConstructedAssets`＋`nextOutdoorConstructedAssetSequence` 保存物理资产和序列，crop state 继续走原 FarmPlots；旧档缺字段为空，新格式损坏报错。当前 manager 不进资产或 Snapshot，由 authored＋runtime anchors 动态派生；拆旗不删除田和作物，新 Site 接管立即恢复组织权限。读档内容壳绝不执行 OpeningInventoryBootstrap。
+
+Streaming 复用现有农田 stamping；建造立即局部补齐，卸载只销毁表现，重载恢复相同 cell IDs/crop。CW-05A Probe UI 已移除。CW-05A/B 与 Closing 全部 Implementation Completed、Producer Acceptance Pending；NPC schedule economy、SettlementProduction、generic house/workshop、产权、建筑战争和农田拆除继续延期。

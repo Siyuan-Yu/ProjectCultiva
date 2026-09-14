@@ -17,6 +17,9 @@ namespace XianXia.Data.Content
         public string Description { get; set; } = string.Empty;
         public bool UnlockedByDefault { get; set; }
         public string PlacementKind { get; set; } = string.Empty;
+        public string OutdoorKind { get; set; } = string.Empty;
+        public int FootprintCellsW { get; set; }
+        public int FootprintCellsH { get; set; }
         public bool CreatesWorldSite { get; set; }
         public string CreatedSiteName { get; set; } = string.Empty;
         public string CreatedSiteType { get; set; } = string.Empty;

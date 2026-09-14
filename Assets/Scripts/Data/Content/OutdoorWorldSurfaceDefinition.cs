@@ -80,14 +80,10 @@ namespace XianXia.Data.Content
     public static class OutdoorStatefulPlacementResolver
     {
         public static bool IsPerCellDestructible(OutdoorSurfacePlacementDefinition placement) =>
-            placement != null &&
-            string.Equals(placement.Kind, "wall", System.StringComparison.OrdinalIgnoreCase);
+            placement != null && OutdoorStatefulObjectSemantics.IsPerCellDestructibleKind(placement.Kind);
 
         public static bool IsDestructibleKind(string kind) =>
-            string.Equals(kind, "wall", System.StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(kind, "treeS", System.StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(kind, "treeM", System.StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(kind, "treeL", System.StringComparison.OrdinalIgnoreCase);
+            OutdoorStatefulObjectSemantics.IsDestructibleKind(kind);
 
         public static string ResolveObjectId(
             OutdoorSurfacePlacementDefinition placement, int localX = 0, int localY = 0) =>

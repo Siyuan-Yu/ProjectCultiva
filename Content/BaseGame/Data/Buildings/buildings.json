@@ -19,6 +19,25 @@
           "count": 10
         }
       ]
+    },
+    {
+      "id": "base:building_grain_field",
+      "type": "building",
+      "name": "农田",
+      "description": "在己方实际行政控制范围内开垦一片农田。",
+      "unlockedByDefault": true,
+      "placementKind": "farmField",
+      "createsWorldSite": false,
+      "outdoorKind": "grainField",
+      "footprintCellsW": 5,
+      "footprintCellsH": 4,
+      "dismantleRefundRate": 0.0,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 5
+        }
+      ]
     }
   ]
 }
