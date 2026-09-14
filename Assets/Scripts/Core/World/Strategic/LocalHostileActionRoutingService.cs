@@ -6,7 +6,7 @@ using XianXia.Core.World;
 
 namespace XianXia.Core.World.Strategic
 {
-    public enum HostileActionRoute { LocalCombat, StrategicMilitaryEscalation, Reject }
+    public enum HostileActionRoute { LocalCombat, Reject }
 
     public readonly struct HostileActionRouteResult
     {
@@ -54,20 +54,11 @@ namespace XianXia.Core.World.Strategic
 
             if (!HostileActionClassificationService.TryClassifyTarget(world, targetId, out var classification, out var reason))
                 return new HostileActionRouteResult(HostileActionRoute.Reject, empty, false, reason);
-            if (classification.Scope == HostileActionScope.LocalCharacter)
-                return new HostileActionRouteResult(HostileActionRoute.LocalCombat, classification, false, string.Empty);
-
-            var attackerFaction = world.Strategic?.PlayerFactionId;
-            if (string.IsNullOrEmpty(attackerFaction))
-                attackerFaction = StrategicFactionCatalog.PlayerFactionId;
-            if (string.Equals(attackerFaction, classification.TargetFactionId, StringComparison.Ordinal))
-                return new HostileActionRouteResult(HostileActionRoute.Reject, classification, false, "Cannot initiate strategic military aggression against own faction.");
-
+            // Character targets always enter the unified local CharacterEncounter flow.
+            // StrategicMilitaryAggressionService remains a separate building/site/siege policy;
+            // a character's legacy FormalArmy adapter must never redirect this route.
             return new HostileActionRouteResult(
-                HostileActionRoute.StrategicMilitaryEscalation,
-                classification,
-                !WarGateService.CanAttack(world, attackerFaction, classification.TargetFactionId),
-                string.Empty);
+                HostileActionRoute.LocalCombat, classification, false, string.Empty);
         }
 
         public static bool CanInitiatePlayerHostileAction(SimulationWorld world, PlayerPartyRuntime party, EntityId attackerId, EntityId targetId) =>

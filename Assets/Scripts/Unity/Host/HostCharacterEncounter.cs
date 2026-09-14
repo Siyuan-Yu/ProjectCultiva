@@ -64,8 +64,12 @@ namespace XianXia.Unity.Host
                 requestWorld.Strategic.Squads.TryGetForCharacter(target, out var b))
             {
                 var friendly = requestWorld.Strategic.PlayerPartyContext?.IsMember(attacker) == true;
-                foreach (var id in a.MemberCharacterIds) (friendly ? _previewFriendly : _previewEnemy).Add(new EntityId(id));
-                foreach (var id in b.MemberCharacterIds) (friendly ? _previewEnemy : _previewFriendly).Add(new EntityId(id));
+                foreach (var id in a.MemberCharacterIds)
+                    if (CharacterEncounterService.IsLiving(requestWorld, id))
+                        (friendly ? _previewFriendly : _previewEnemy).Add(new EntityId(id));
+                foreach (var id in b.MemberCharacterIds)
+                    if (CharacterEncounterService.IsLiving(requestWorld, id))
+                        (friendly ? _previewEnemy : _previewFriendly).Add(new EntityId(id));
             }
             Phase = PresentationPhase.Pending;
             HostInputGate.EncounterModalLock = true;

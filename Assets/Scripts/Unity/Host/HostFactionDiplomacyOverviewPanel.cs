@@ -149,8 +149,7 @@ namespace XianXia.Unity.Host
             y = DrawLine(viewport.width, y, "势力 ID：" + _selectedFactionId, _body, 20f);
             y = DrawLine(viewport.width, y, "与你的关系：" + DescribeRelation(playerRelation), _body, 20f);
             y = DrawLine(viewport.width, y,
-                "领地区域：" + FactionDiplomacyOverviewQuery.CountControlledTerritoryRegions(world, _selectedFactionId) +
-                "    正式军队：" + FactionDiplomacyOverviewQuery.CountFormalArmies(world, _selectedFactionId),
+                "领地区域：" + FactionDiplomacyOverviewQuery.CountControlledTerritoryRegions(world, _selectedFactionId),
                 _body,
                 20f);
 

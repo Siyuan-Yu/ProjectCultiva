@@ -6,8 +6,7 @@ namespace XianXia.Core.World.Strategic
     /// <summary>
     /// Legacy PlayerParty AttackArmy pursuit compatibility adapter。
     /// 不是第二套 Battle 系统 —— 它只是 PlayerPartyWorldMotion ↔ target FormalArmy 的
-    /// movement adapter；Battle trigger / Offer / participant gathering / Manual / Auto
-    /// 全部继续共享既有 WORLD_COMBAT 主链（PlayerParty Strategic Combat Command V1）。
+    /// old-save migration adapter；正常产品入口不会再创建这类 pursuit。
     ///
     /// 真源模型（与 FormalArmy ArmyHexPursuitService 一致）：
     ///  - targetArmyId 是 pursuit intent authority（PlayerPartyWorldMotion.AttackOrderTargetArmyId，

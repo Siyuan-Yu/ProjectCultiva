@@ -14,8 +14,6 @@ namespace XianXia.Unity.Host
         const float DoubleClickWindowSec = 0.35f;
 
         readonly List<StrategicCharacterRosterRow> _rows = new List<StrategicCharacterRosterRow>(32);
-        readonly HashSet<ulong> _createSelection = new HashSet<ulong>();
-        readonly List<EntityId> _createPartyScratch = new List<EntityId>(8);
         readonly GUIStyle _body;
         readonly GUIStyle _title;
 
@@ -40,7 +38,6 @@ namespace XianXia.Unity.Host
         {
             _open = false;
             _selectedCharacterValue = string.Empty;
-            _createSelection.Clear();
             _status = string.Empty;
         }
 
@@ -52,21 +49,18 @@ namespace XianXia.Unity.Host
                 Open();
         }
 
-        public bool Draw(
+        public void Draw(
             Rect panelRect,
             SimulationWorld world,
             IReadOnlyList<EntityId> partyCharacterIds,
             PlayerPartyRuntime partyRuntime,
             Func<SimulationWorld, EntityId, string> labelFn,
-            Action<string> onFocusArmy,
-            Action<string> onFocusNode,
-            Action<string> onArmyCreated,
-            Action onChanged)
+            Action<string> onFocusNpcSquad,
+            Action<string> onFocusNode)
         {
             if (!_open || world == null)
-                return false;
+                return;
 
-            var changed = false;
             var factionId = HostStrategicRosterQueries.ResolvePlayerFactionId(world, partyCharacterIds);
             HostStrategicRosterQueries.CollectPlayerCharacters(
                 world, factionId, partyCharacterIds, _rows, partyRuntime);
@@ -95,7 +89,7 @@ namespace XianXia.Unity.Host
                 panelRect.width - listW - 24f,
                 contentBottom - contentTop);
 
-            DrawCharacterList(listRect, onFocusArmy, onFocusNode);
+            DrawCharacterList(listRect, onFocusNpcSquad, onFocusNode);
 
             DrawCharacterDetail(detailRect, world, labelFn);
 
@@ -104,10 +98,9 @@ namespace XianXia.Unity.Host
                 GUI.Label(new Rect(panelRect.x + 8f, panelRect.yMax - 28f, panelRect.width - 16f, 22f), _status, _body);
             }
 
-            return changed;
         }
 
-        void DrawCharacterList(Rect listRect, Action<string> onFocusArmy, Action<string> onFocusNode)
+        void DrawCharacterList(Rect listRect, Action<string> onFocusNpcSquad, Action<string> onFocusNode)
         {
             var viewH = Mathf.Max(listRect.height, _rows.Count * 52f + 8f);
             _listScroll = GUI.BeginScrollView(
@@ -138,7 +131,7 @@ namespace XianXia.Unity.Host
                 var labelRect = new Rect(indent, y, itemRect.width - indent, 48f);
                 var prevColor = GUI.color;
                 if (GUI.Button(labelRect, label, _body))
-                    HandleCharacterClick(row, onFocusArmy, onFocusNode);
+                    HandleCharacterClick(row, onFocusNpcSquad, onFocusNode);
                 GUI.color = prevColor;
 
                 y += 52f;
@@ -149,7 +142,7 @@ namespace XianXia.Unity.Host
 
         void HandleCharacterClick(
             StrategicCharacterRosterRow row,
-            Action<string> onFocusArmy,
+            Action<string> onFocusNpcSquad,
             Action<string> onFocusNode)
         {
             var idKey = row.CharacterId.Value.ToString();
@@ -160,7 +153,7 @@ namespace XianXia.Unity.Host
                 _lastClickCharacterId = string.Empty;
                 _selectedCharacterValue = idKey;
                 if (row.IsGrouped && !string.IsNullOrEmpty(row.ArmyId))
-                    onFocusArmy?.Invoke(row.ArmyId);
+                    onFocusNpcSquad?.Invoke(row.ArmyId);
                 else if (!string.IsNullOrEmpty(row.SiteId))
                     onFocusNode?.Invoke(row.SiteId);
                 return;
@@ -215,48 +208,6 @@ namespace XianXia.Unity.Host
                    "\nWorldSite：" + site +
                    "\nWorldHex：" + hex +
                    "\nLocalMap：" + (localLoaded ? "Loaded" : "Unloaded");
-        }
-
-        bool TryCreateArmyFromSelection(
-            SimulationWorld world,
-            string factionId,
-            PlayerPartyRuntime partyRuntime,
-            Action<string> onArmyCreated,
-            Action onChanged)
-        {
-            _createPartyScratch.Clear();
-            foreach (var sel in _createSelection)
-            {
-                var id = new EntityId(sel);
-                if (!LingeringBattlefieldPartyService.IsLivingForMacroOrder(world, id))
-                    continue;
-                _createPartyScratch.Add(id);
-            }
-            if (_createPartyScratch.Count < 1)
-            {
-                _status = "请至少勾选一名未编组角色";
-                return false;
-            }
-
-            if (!CharacterWorldPresenceQuery.TryGetWorldHex(
-                    world, _createPartyScratch[0], out var formationHex))
-            {
-                _status = "无法组建军队：无法确定角色所在 World Hex";
-                return false;
-            }
-            var result = ArmyUiCommands.TryCreateArmy(
-                world, formationHex, factionId, _createPartyScratch, explicitLeaderId: null, party: partyRuntime);
-            if (result.IsSuccess)
-            {
-                _status = "已创建 " + result.Value.ArmyId;
-                _createSelection.Clear();
-                onArmyCreated?.Invoke(result.Value.ArmyId);
-                onChanged?.Invoke();
-                return true;
-            }
-
-            _status = ArmyUiCommands.DescribeError(result.Error);
-            return false;
         }
 
         StrategicCharacterRosterRow FindRow(EntityId id)

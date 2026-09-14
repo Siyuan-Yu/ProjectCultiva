@@ -8,8 +8,7 @@ namespace XianXia.Core.World.Strategic
     /// <summary>Identity scope for a newly initiated hostile action; this does not decide relations or diplomacy.</summary>
     public enum HostileActionScope
     {
-        LocalCharacter = 0,
-        StrategicMilitary = 1
+        LocalCharacter = 0
     }
 
     /// <summary>

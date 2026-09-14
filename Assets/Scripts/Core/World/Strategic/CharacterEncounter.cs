@@ -131,6 +131,10 @@ namespace XianXia.Core.World.Strategic
             if (!world.Strategic.Squads.TryGetForCharacter(attacker, out var attackers) ||
                 !world.Strategic.Squads.TryGetForCharacter(target, out var targets) || attackers == targets)
                 return Fail("Encounter requires two different current squads.");
+            if (!IsLiving(world, attacker.Value))
+                return Fail("Encounter attacker is unavailable: " + attacker.Value);
+            if (!IsLiving(world, target.Value))
+                return Fail("Encounter target is unavailable: " + target.Value);
             var state = new CharacterEncounterState
             {
                 SourceSurfaceId = surfaceId, CenterX = contact.X, CenterY = contact.Y,
@@ -153,8 +157,11 @@ namespace XianXia.Core.World.Strategic
                 foreach (var raw in squad.MemberCharacterIds)
                 {
                     var id = new EntityId(raw);
-                    if (!world.Entities.TryGet(id, out var entity) || !IsLiving(world, raw))
-                        return Fail("Necessary squad member unavailable: " + raw);
+                    // Squad identity survives incapacitation/death, but execution eligibility does not.
+                    // Only living members join a new encounter; downed/corpse/removed members remain
+                    // in their authoritative Squad and retain their existing residual position.
+                    if (!IsLiving(world, raw))
+                        continue;
                     if (!CharacterPersonalSpaceQuery.TryResolveContinuous(world, id, surfaceId, out var point, out failure))
                         return Fail("Necessary squad member personal space: " + raw + " " + failure);
                     if (!state.Contains(point.X, point.Y)) return Fail("Necessary squad member outside frozen range: " + raw);

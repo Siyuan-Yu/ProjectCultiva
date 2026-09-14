@@ -4,9 +4,19 @@
 
 ## 当前连续实施（制作人补充范围输入之后，2026-09-14 收口）
 
-**CW-U2A～U4 core normal route Producer Accepted (current observed scope)；CW-U4.1 Implementation Completed / Producer Acceptance Pending**。不把当前验收扩大为全部关系概率、旧档组合和边界穷尽通过。
+**统一 Squad／CharacterEncounter 主线及最后的 residual spatial authority 修复已获 Producer Accepted（current observed scope）；CW-U4.2 Legacy Runtime Isolation Implementation Completed / Producer Acceptance Pending**。不把当前验收扩大为全部关系概率、旧档组合和边界穷尽通过。
 
-CW-U4.1 产品层收口：WorldMap 命令权威固定为 PlayerParty，Army 工具栏／组建面板／FormalArmy 移动与 AttackArmy 退役；旧 marker 仅作 NPC 小队只读投影。旧玩家 attack-chase 在下一 tick 清攻击意图，合法物理目的地降级为普通旅行，否则安全取消。旧 Content／Save／NPC 任务与 `FormalArmyWorldMotion` 继续作 adapter。下一步仅是 U4.1 人工验收，不自动进入 CW-04。
+CW-U4.2 产品隔离：WorldMap 已删除不可达的玩家 Army 命令调用树，不再实例化 Army 管理面板；角色列表不再含组军实现，人物 hostile route 仅进入统一 CharacterEncounter／Reject。旧玩家 attack-chase 只作一次性旧状态迁移。下一步仅是 U4.2 人工验收；通过后才进入 CW-04，当前不自动开始。
+
+| 残留类型 | 本轮保留原因 | 后续移除阶段 |
+|---|---|---|
+| FormalArmy domain | 旧 Content／Save、NPC Squad 宏观移动与只读地图投影适配 | NPC Squad movement 与旧档迁移完成后 |
+| ArmyStack | NPC 自动战略战、Site／Flag siege、旧会话绑定 | CW-08／CW-09 建筑战争迁移后 |
+| Army world motion | authored NPC Squad 现有离屏移动执行器 | NPC Squad 宏观 movement 专项迁移 |
+| old BattleOffer／Hex support | NPC auto battle、siege 和旧进行中会话仍消费 | CW-08／CW-09 及旧会话退役后 |
+| legacy LocalCombat handoff | WorldSiteSiegeService 等旧建筑战兼容入口仍消费 | 建筑／Site 战争切到新模型后 |
+| Content `type=formalArmy` | 当前仍是 Legacy NPC Squad authored input | 独立 Content schema migration |
+| development Army panels | 保留源码供显式 legacy／development 诊断，不由产品 WorldMap 创建 | 兼容消费者归零后 |
 
 ### U2–U4 联合验收修复（2026-09-14）
 

@@ -797,7 +797,7 @@ namespace XianXia.Unity.Host
             var phase = coordinator.Phase;
             GUI.Label(new Rect(box.x + 16f, box.y + 42f, box.width - 32f, 22f),
                 phase == HostCharacterEncounter.PresentationPhase.Preparing || phase == HostCharacterEncounter.PresentationPhase.ReadyToCommit
-                    ? coordinator.Progress : "初始双方仅为当前两支小队。", _body);
+                    ? coordinator.Progress : "初始双方仅为当前两支小队中的存活成员。", _body);
             var friendlies = new List<EntityId>(); var enemies = new List<EntityId>();
             coordinator.CopyPreviewTo(friendlies, enemies);
             var friendlyPower = SumCharacterPower(world, friendlies);

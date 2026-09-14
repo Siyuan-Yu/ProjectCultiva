@@ -63,7 +63,7 @@ namespace XianXia.Core.World.Strategic
             CanEngageArmyNow(world, party, targetArmyId, out error);
 
         /// <summary>
-        /// 执行 PlayerParty 主动攻击（Host 只发 Attack Enemy Army，不区分立即接战或先追击）。
+        /// Compatibility-only old PlayerParty AttackArmy command. No product Host/UI caller may use it.
         /// 流程：CanIssueAttackOrder（先 validate，后覆盖命令）→ 已进入 SupportArea 则立即
         /// 建立 BattleOffer；否则由 PlayerPartyHexPursuitService 开始追击 target 当前战略位置。
         /// 正在普通旅行时若立即接战，先 CancelTravel 终止（此时其它合法条件已成立）；
@@ -96,7 +96,7 @@ namespace XianXia.Core.World.Strategic
             AttackArmy(world, party, targetArmyId);
 
         /// <summary>
-        /// CORRECTION V1: LocalMap 军事攻击 prepare gate（不要求已 War）。
+        /// Legacy site/flag siege and old-session LocalCombat handoff compatibility gate（不要求已 War）。
         /// 只验证「可以建立 Local-origin BattleOffer」；真正 DeclareWar 的 commitment point
         /// 在玩家确认「手动战斗」时（HostStrategicInterruptPresenter → StrategicMilitaryAggressionService）。
         /// 允许 War / Hostile / Neutral；拒绝：同阵营、Friendly、无 living member、不在 SupportArea、

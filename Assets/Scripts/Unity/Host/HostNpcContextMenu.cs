@@ -484,7 +484,7 @@ namespace XianXia.Unity.Host
                     hostile ? "攻击" : "攻击…",
                     _button))
             {
-                // CORRECTION V1: 点击 Attack 立即 route（不等走到面前才发现是 Army）。
+                // 点击 Attack 立即按 Character 目标分类，不等移动完成后再决定 Encounter。
                 var consumed = TryHandlePlayerHostileAction(_actor, _targetNpc, null);
                 if (!consumed)
                     BeginAttack();
@@ -1002,12 +1002,10 @@ namespace XianXia.Unity.Host
                     CloseAll();
                     return true;
 
-                case HostileActionRoute.StrategicMilitaryEscalation:
                 default:
-                    BeginStrategicAggressionIfNeeded(
-                        session.World.Strategic.PlayerFactionId,
-                        route.TargetFactionId,
-                        () => PrepareLocalMilitaryOffer(actor, target, route));
+                    Debug.LogWarning("[Host] Unsupported character hostile-action route: " + route.Route);
+                    ReleaseInteractionNpcNow(target);
+                    CloseAll();
                     return true;
             }
         }
@@ -1097,33 +1095,6 @@ namespace XianXia.Unity.Host
                 !world.Entities.TryGet(targetId, out var entity) || entity == null)
                 return false;
             return StrategicEncounterHostilityService.IsHostileStrategicNpc(world, entity);
-        }
-
-        /// <summary>
-        /// LocalMap 军事攻击在政治确认并正式宣战后建立 Local-origin BattleOffer。
-        /// </summary>
-        void PrepareLocalMilitaryOffer(EntityId actor, EntityId target, HostileActionRouteResult route)
-        {
-            var session = bootstrap?.Session;
-            if (session == null)
-            {
-                CloseAll();
-                return;
-            }
-
-            var result = PlayerPartyStrategicCombatCommandService
-                .TryPrepareLocalPlayerPartyMilitaryAttackOffer(
-                    session.World, session.PlayerParty, route.TargetFormalArmyId);
-            if (result.IsFailure)
-            {
-                Debug.LogWarning(
-                    "[Host] Local military offer preparation failed: " + result.Error.Message);
-                CloseAll();
-                return;
-            }
-
-            ReleaseInteractionNpcNow(route.TargetEntityId);
-            CloseAll();
         }
 
         public void OnNpcArriveAttack(EntityId actor, EntityId npc)

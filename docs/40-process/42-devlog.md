@@ -1,5 +1,20 @@
 # 开发日志
 
+## 2026-09-14 — CharacterEncounter 非存活 Squad 成员入场修复
+
+- 修复 `Necessary squad member unavailable`：Squad 身份按既有规则在弥留／死亡后继续保留，但新遭遇 roster 现在只采集两支当前 Squad 的存活成员；非存活成员不再令整场准备失败，也不会被移动或重锚。
+- 发起者与目标自身仍必须存活，避免产生缺少直接双方的空遭遇；确认界面预览使用同一存活过滤，人数与实际准备 roster 一致。
+- 仅做现有非 Unity 编译、静态检查与 `git diff --check`；未启动 Unity 或测试。修改未提交，等待制作人复验。
+
+## 2026-09-14 — CW-U4.2 Legacy Runtime Isolation
+
+- 制作人已人工验收统一 Squad／CharacterEncounter 主线及最后的 residual spatial authority 修复；本轮仅收口玩家层 Legacy Army 死入口，不开始 CW-04。
+- `HostWorldMapPanel` 删除不可达的玩家 FormalArmy 路线预览、Hex AttackArmy 菜单、直接军团移动、军团 Site 进入、ArmyStack 攻击及 residual 派军私有调用树。正常输入只保留查看／选点、PlayerParty 规划旅行与既有非 Army 地点交互；NPC 小队 marker 仅只读查看和定位。
+- 正常 WorldMap 不再创建或同步 `HostArmyFormPanel`／`HostStrategicArmyListPanel`。角色列表删除组军 scratch、`ArmyUiCommands.TryCreateArmy` 和无用回调；多人组织成员显示“NPC 小队成员”。势力详情不再用 FormalArmy 数量充当正式产品统计。
+- Character hostile route 仅剩统一 Local CharacterEncounter 或 Reject；旧人物 `StrategicMilitaryEscalation → PrepareLocalMilitaryOffer` Host 分支已删除。建筑／Site／Flag 的 `StrategicMilitaryAggressionService` 未改。
+- FormalArmy／ArmyStack、NPC world motion、旧 BattleOffer／Hex support、旧 Content `type=formalArmy`、siege 与旧会话恢复继续作为兼容层；新 CharacterEncounter 的双方仍只取真实 Squad，不调用 `GatherAndLock`／`ResolveAndFreeze`。
+- 现有非 Unity 编译 Core460／Data78／Unity145 通过（0 error、8 个既有 warning）；未运行 Unity、测试、batchmode 或 Bake。状态：**CW-U4.2 Implementation Completed / Producer Acceptance Pending**；修改未提交，人工验收前不自动开始 CW-04。
+
 ## 2026-09-14 — Final residual spatial authority：延迟死亡不再重锚
 
 - `CombatantDefeated` 的空间语义集中区分为 InitialIncapacitation／DeathConfirmation／LegacyRepair：首次弥留可冻结人物自己的当前位置；弥留转尸体只改变 Lifecycle，已有 AtSite／AtWorldPosition／AtHex／CharacterEncounter authority 视为处理成功并严格保留，不再掉入 casualty fallback。
