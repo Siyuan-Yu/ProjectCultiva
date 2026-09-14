@@ -42,6 +42,28 @@ namespace XianXia.Core.World.Strategic
     }
 
     /// <summary>
+    /// Read-only product projection of exact administrative control grouped by current faction.
+    /// It never merges Site, Claim, or manager identity and is never persisted.
+    /// </summary>
+    public sealed class FactionActualControlOverlay
+    {
+        readonly List<ActualControlRect> _pieces = new List<ActualControlRect>();
+        readonly List<ActualControlBoundarySegment> _boundarySegments =
+            new List<ActualControlBoundarySegment>();
+
+        public string SurfaceId { get; internal set; } = string.Empty;
+        public string FactionId { get; internal set; } = string.Empty;
+        public IReadOnlyList<ActualControlRect> Pieces => _pieces;
+        public IReadOnlyList<ActualControlBoundarySegment> BoundarySegments => _boundarySegments;
+        internal List<ActualControlRect> MutablePieces => _pieces;
+        internal List<ActualControlBoundarySegment> MutableBoundarySegments => _boundarySegments;
+        public float MinX { get; internal set; }
+        public float MinY { get; internal set; }
+        public float MaxX { get; internal set; }
+        public float MaxY { get; internal set; }
+    }
+
+    /// <summary>
     /// Converts Claim authority into exact axis-aligned drawing pieces. Claim edges define the
     /// finite partition; ownership of every partition cell is queried exclusively through
     /// WorldSiteAdministrativeControlResolver. This is geometry conversion, not another
@@ -73,14 +95,99 @@ namespace XianXia.Core.World.Strategic
             return result;
         }
 
-        static void BuildSurface(
+        /// <summary>
+        /// Product-only faction union. Partition ownership still comes exclusively from the
+        /// actual administrative resolver; equal-faction neighbors omit their shared border.
+        /// </summary>
+        public static List<FactionActualControlOverlay> BuildFactionUnion(SimulationWorld world)
+        {
+            var result = new List<FactionActualControlOverlay>();
+            var claims = world?.Strategic?.TerritoryClaims?.Claims;
+            if (claims == null || !world.Strategic.TerritoryClaims.HasAuthority)
+                return result;
+            var surfaces = new HashSet<string>(StringComparer.Ordinal);
+            for (var i = 0; i < claims.Count; i++)
+                if (IsEligible(world, claims[i])) surfaces.Add(claims[i].SurfaceId);
+            var ordered = new List<string>(surfaces);
+            ordered.Sort(StringComparer.Ordinal);
+            for (var i = 0; i < ordered.Count; i++)
+                BuildFactionSurface(world, claims, ordered[i], result);
+            result.Sort((a, b) =>
+            {
+                var surface = string.CompareOrdinal(a.SurfaceId, b.SurfaceId);
+                return surface != 0 ? surface : string.CompareOrdinal(a.FactionId, b.FactionId);
+            });
+            return result;
+        }
+
+        static void BuildFactionSurface(
             SimulationWorld world,
             IReadOnlyList<TerritoryClaimState> claims,
             string surfaceId,
-            List<WorldSiteActualControlOverlay> output)
+            List<FactionActualControlOverlay> output)
         {
             var xs = new List<float>();
             var ys = new List<float>();
+            CollectPartitionEdges(world, claims, surfaceId, xs, ys);
+            if (xs.Count < 2 || ys.Count < 2) return;
+
+            var owners = new string[xs.Count - 1, ys.Count - 1];
+            for (var yi = 0; yi + 1 < ys.Count; yi++)
+            for (var xi = 0; xi + 1 < xs.Count; xi++)
+                if (WorldSiteAdministrativeControlResolver.TryResolve(
+                        world, surfaceId, (xs[xi] + xs[xi + 1]) * .5f,
+                        (ys[yi] + ys[yi + 1]) * .5f, out var site, out _))
+                    owners[xi, yi] = site.OwnerFactionId ?? string.Empty;
+
+            var byFaction = new Dictionary<string, FactionActualControlOverlay>(StringComparer.Ordinal);
+            for (var yi = 0; yi + 1 < ys.Count; yi++)
+            {
+                string runFaction = null;
+                var runMinX = 0f;
+                for (var xi = 0; xi + 1 < xs.Count; xi++)
+                {
+                    var faction = owners[xi, yi];
+                    if (!string.Equals(runFaction, faction, StringComparison.Ordinal))
+                    {
+                        if (runFaction != null)
+                            AddOrMergeFaction(byFaction, surfaceId, runFaction,
+                                runMinX, xs[xi], ys[yi], ys[yi + 1]);
+                        runFaction = faction;
+                        runMinX = xs[xi];
+                    }
+                    if (xi + 2 == xs.Count && runFaction != null)
+                        AddOrMergeFaction(byFaction, surfaceId, runFaction,
+                            runMinX, xs[xi + 1], ys[yi], ys[yi + 1]);
+                }
+            }
+
+            for (var yi = 0; yi + 1 < ys.Count; yi++)
+            for (var xi = 0; xi + 1 < xs.Count; xi++)
+            {
+                var faction = owners[xi, yi];
+                if (faction == null) continue;
+                var overlay = EnsureFactionOverlay(byFaction, surfaceId, faction);
+                if (xi == 0 || !string.Equals(owners[xi - 1, yi], faction, StringComparison.Ordinal))
+                    AddBoundary(overlay, xs[xi], ys[yi], xs[xi], ys[yi + 1]);
+                if (xi + 1 == xs.Count - 1 || !string.Equals(owners[xi + 1, yi], faction, StringComparison.Ordinal))
+                    AddBoundary(overlay, xs[xi + 1], ys[yi], xs[xi + 1], ys[yi + 1]);
+                if (yi == 0 || !string.Equals(owners[xi, yi - 1], faction, StringComparison.Ordinal))
+                    AddBoundary(overlay, xs[xi], ys[yi], xs[xi + 1], ys[yi]);
+                if (yi + 1 == ys.Count - 1 || !string.Equals(owners[xi, yi + 1], faction, StringComparison.Ordinal))
+                    AddBoundary(overlay, xs[xi], ys[yi + 1], xs[xi + 1], ys[yi + 1]);
+            }
+
+            foreach (var pair in byFaction)
+            {
+                ComputeBounds(pair.Value);
+                output.Add(pair.Value);
+            }
+        }
+
+        static void CollectPartitionEdges(
+            SimulationWorld world, IReadOnlyList<TerritoryClaimState> claims, string surfaceId,
+            List<float> xs, List<float> ys)
+        {
             for (var i = 0; i < claims.Count; i++)
             {
                 var claim = claims[i];
@@ -100,6 +207,63 @@ namespace XianXia.Core.World.Strategic
             }
             SortAndDeduplicate(xs);
             SortAndDeduplicate(ys);
+        }
+
+        static void AddOrMergeFaction(
+            Dictionary<string, FactionActualControlOverlay> byFaction, string surfaceId,
+            string factionId, float minX, float maxX, float minY, float maxY)
+        {
+            if (maxX - minX <= Epsilon || maxY - minY <= Epsilon) return;
+            var overlay = EnsureFactionOverlay(byFaction, surfaceId, factionId);
+            for (var i = overlay.MutablePieces.Count - 1; i >= 0; i--)
+            {
+                var prior = overlay.MutablePieces[i];
+                if (prior.MaxY < minY - Epsilon) break;
+                if (Nearly(prior.MinX, minX) && Nearly(prior.MaxX, maxX) && Nearly(prior.MaxY, minY))
+                { prior.MaxY = maxY; return; }
+            }
+            overlay.MutablePieces.Add(new ActualControlRect
+                { MinX = minX, MinY = minY, MaxX = maxX, MaxY = maxY });
+        }
+
+        static FactionActualControlOverlay EnsureFactionOverlay(
+            Dictionary<string, FactionActualControlOverlay> byFaction,
+            string surfaceId, string factionId)
+        {
+            if (byFaction.TryGetValue(factionId, out var overlay)) return overlay;
+            overlay = new FactionActualControlOverlay { SurfaceId = surfaceId, FactionId = factionId };
+            byFaction.Add(factionId, overlay);
+            return overlay;
+        }
+
+        static void AddBoundary(
+            FactionActualControlOverlay overlay, float x0, float y0, float x1, float y1) =>
+            overlay.MutableBoundarySegments.Add(new ActualControlBoundarySegment
+                { X0 = x0, Y0 = y0, X1 = x1, Y1 = y1 });
+
+        static void ComputeBounds(FactionActualControlOverlay overlay)
+        {
+            overlay.MinX = overlay.MinY = float.MaxValue;
+            overlay.MaxX = overlay.MaxY = float.MinValue;
+            for (var i = 0; i < overlay.Pieces.Count; i++)
+            {
+                var piece = overlay.Pieces[i];
+                overlay.MinX = Math.Min(overlay.MinX, piece.MinX);
+                overlay.MinY = Math.Min(overlay.MinY, piece.MinY);
+                overlay.MaxX = Math.Max(overlay.MaxX, piece.MaxX);
+                overlay.MaxY = Math.Max(overlay.MaxY, piece.MaxY);
+            }
+        }
+
+        static void BuildSurface(
+            SimulationWorld world,
+            IReadOnlyList<TerritoryClaimState> claims,
+            string surfaceId,
+            List<WorldSiteActualControlOverlay> output)
+        {
+            var xs = new List<float>();
+            var ys = new List<float>();
+            CollectPartitionEdges(world, claims, surfaceId, xs, ys);
             if (xs.Count < 2 || ys.Count < 2) return;
 
             var bySite = new Dictionary<string, WorldSiteActualControlOverlay>(StringComparer.Ordinal);

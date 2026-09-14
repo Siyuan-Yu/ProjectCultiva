@@ -11,4 +11,4 @@
 - `WorldSite.CoreRangeWidth/Height`、Encounter 冻结尺寸与 `TerritoryClaim.Width/Height` 都是解析后的 Domain world 值。理论范围、精确行政解析、建设许可与 Encounter 共用该结果。
 - Claim Snapshot 正式格式为 V3。已知开发期 V1 raw-cell 500/250 与 V2 world-size 14/7，仅在可确认是 Level 1 baseline/initial 且 Site/Surface 匹配时迁移到当前 4.2 world；Expansion 或来源不明则 `SnapshotInvalid`。
 
-本轮不修改 Surface cellSize/chunk、坐标、建筑 footprint、W2A geography、控制算法或 CW-05。状态：CW-04 Metric Correction Implementation Completed / Producer Acceptance Pending。
+本轮不修改 Surface cellSize/chunk、坐标、建筑 footprint、W2A geography、控制算法或 CW-05。制作人随后于 2026-09-14 完成人工验收；状态：**CW-04 Producer Accepted / Sealed**。

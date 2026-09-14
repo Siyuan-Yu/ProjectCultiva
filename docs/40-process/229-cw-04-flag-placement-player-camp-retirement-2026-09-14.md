@@ -1,6 +1,6 @@
 # CW-04 Flag Placement + Player Camp Retirement
 
-> 状态：Implementation Completed / Producer Acceptance Pending  
+> 状态：CW-04 Producer Accepted / Sealed
 > 日期：2026-09-14  
 > 范围：Continuous FactionFlag placement closure；退役 TEST Player Camp；不进入 CW-05
 

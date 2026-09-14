@@ -1,15 +1,15 @@
 ﻿# 修仙游戏策划案总览
 
-> 状态：概念框架 v0.9｜Architecture Freeze v0.2＋2026-09-12 定向补丁｜Continuous World 分阶段实现／验收中 | 最后更新：2026-09-14
+> 状态：概念框架 v0.9｜Architecture Freeze v0.2＋2026-09-12 定向补丁｜当前阶段 CW-04.5 | 最后更新：2026-09-14
 > **本页只放最高层大纲。** 细节进专题页；**怎么读整套文档**见 [通读指南](04-reading-guide.md)。
 > 本地 Markdown 与飞书文档一一对应（真源在本地，飞书为阅读层）。
 
 ## 〇、当前项目阶段
 
-**Design: Confirmed｜Documentation: Updated｜Implementation: Continuous Outdoor／统一 Squad／CharacterEncounter 主线已迁移，CW-04 已实现｜Producer Acceptance: 分阶段通过，CW-04 Pending。**
+**Design: Confirmed｜Documentation: Updated｜Implementation: Continuous Outdoor 主体、统一 Squad／CharacterEncounter 正式主线已落地；CW-04 Producer Accepted / Sealed；CW-04.5 已实现并待验收。**
 Continuous Outdoor、SiteCore、同源独立遭遇、人物／建筑冲突、控制继承和飞舟运输由 [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)～[0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) 定向修订 Freeze v0.2。旧阶段人工验收继续有效，但不证明新目标已经实现或验收。
 当前文档落地与后续依赖见 [216](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md)。该记录不是代码开工授权。
-当前代码、Content、存档、兼容层与制作人反馈的统一状态见 [230](../40-process/230-recent-development-alignment-and-handoff-2026-09-14.md)。
+当前代码、Content、存档、兼容层与制作人反馈的统一状态见 [230](../40-process/230-recent-development-alignment-and-handoff-2026-09-14.md)；Faction 领土视觉 union 见 [231](../40-process/231-cw-04-5-faction-territory-visual-union-2026-09-14.md)。下一大阶段是 CW-05 Asset Administrative Succession。飞舟、建筑战争／Site takeover 等仍属 future，未冒称完成。
 
 **建议先读：** [通读指南](04-reading-guide.md) → [33 定向补丁](../30-tech/33-architecture-core-rules-freeze-v0.2.md) → [ADR-0032～0034](../40-process/43-decisions/README.md) → [24 世界](../20-systems/24-world-and-settlements.md)／[23 战斗](../20-systems/23-combat.md)／[2K 控制](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。
 

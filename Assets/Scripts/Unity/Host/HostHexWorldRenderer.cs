@@ -637,7 +637,7 @@ namespace XianXia.Unity.Host
             float minWy,
             float maxWy)
         {
-            var overlays = WorldSiteActualControlOverlayBuilder.Build(world);
+            var overlays = WorldSiteActualControlOverlayBuilder.BuildFactionUnion(world);
             var count = 0;
             for (var i = 0; i < overlays.Count; i++)
             {

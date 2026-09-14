@@ -1,6 +1,6 @@
 # CW-04：实际行政控制历史与非抢占扩张
 
-> 状态：Implementation Completed / Producer Acceptance Pending  
+> 状态：CW-04 Producer Accepted / Sealed
 > 日期：2026-09-14  
 > 决策真源：[ADR-0032](43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)
 
@@ -29,4 +29,4 @@ CW-U4.2 已由制作人人工验收通过。CW-04 只收口 SiteCore 行政控�
 
 ## 验证边界
 
-仅运行现成非 Unity offline compile（Core 461 / Data 78 / Unity Host 145 sources）：0 error、8 个既有 warning；定向静态查询与 `git diff --check` 通过。未运行 Unity、Test Runner、EditMode、PlayMode、batchmode、Bake 或新增自动测试。修改保持未提交。制作人验收 CW-04 后才进入 CW-05。
+当轮仅运行现成非 Unity offline compile（Core 461 / Data 78 / Unity Host 145 sources）：0 error、8 个既有 warning；定向静态查询与 `git diff --check` 通过。当时未运行 Unity、Test Runner、EditMode、PlayMode、batchmode、Bake 或新增自动测试。制作人随后于 2026-09-14 完成人工验收，CW-04 现为 **Producer Accepted / Sealed**。

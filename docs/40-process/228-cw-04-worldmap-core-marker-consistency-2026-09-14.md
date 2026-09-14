@@ -1,6 +1,6 @@
 # CW-04 WorldMap Core Marker Consistency
 
-> 状态：Implementation Completed / Producer Acceptance Pending  
+> 状态：CW-04 Producer Accepted / Sealed
 > 日期：2026-09-14  
 > 范围：WorldMap Core marker 与 Legacy/debug-only flag 隔离；不修改 Actual Control
 
@@ -32,7 +32,7 @@ LevelTester CW-04 输出增加：
 - 每个 active Continuous Site 的 `MarkerKind`、`MarkerWorldPosition`、`ActualOverlayPieces`、legacy marker 是否重复；
 - 每面 flag 的 authored/debug-only 状态与正常产品 marker 可见性。
 
-同 Faction 相邻 Actual Control 区域的视觉 union 延期：未来 fill 仍来自各 Site actual data，正常产品 border 可按 Faction union 隐藏同势力内部边界，diagnostics 仍可显示 Site management boundary。不得因此合并 Site identity、Claim 或 Administrative resolver。
+同 Faction 相邻 Actual Control 区域的视觉 union 由后续 CW-04.5 纯表现阶段实现；CW-04 的 marker 与行政控制链已于 2026-09-14 经制作人人工验收并封板。不得因此合并 Site identity、Claim 或 Administrative resolver。
 
 ## Validation boundary
 

@@ -27,4 +27,4 @@ Claim Snapshot正式格式升至V3。仅对可确认是Level 1 baseline/initial�
 
 Content校验现检查controlCore StableId/placement既有合法性，并新增：Site引用存在、同一Site只有一个controlCore、Level 1存在、placement位于所属Surface geography。baseline后及Snapshot restore后还验证每个active Core中心由自身Site实际管理。
 
-Actual overlay继续直接消费world-space Actual Administrative Control geometry，不经过Hex摘要。状态：CW-04 Scale + Preset Core Coverage Implementation Completed / Producer Acceptance Pending。
+Actual overlay继续直接消费world-space Actual Administrative Control geometry，不经过Hex摘要。制作人随后于 2026-09-14 完成人工验收；状态：**CW-04 Producer Accepted / Sealed**。

@@ -1,14 +1,18 @@
 # 路线图
 
-> **当前唯一主线（2026-09-13）：** [ADR-0035 §5](43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 的 CW-U0 → U1 → U2A → U2B → U3 → U4，逐轮制作人验收后再回 CW-04。下文此前 CW-04／CW-06／远援与地图入口排序为历史计划，不并列执行。
+> **当前唯一主线（2026-09-14）：** CW-U0～U4 当前正式主线已推进完成，玩家 FormalArmy 产品层退役的当前验收范围已通过；CW-04 已 **Producer Accepted / Sealed**。当前阶段为 [CW-04.5 Faction Territory Visual Union](231-cw-04-5-faction-territory-visual-union-2026-09-14.md)，验收通过后进入 CW-05 Asset Administrative Succession。
 
-> 状态：CW-U0 Producer Accepted / Sealed；CW-U1 Implementation Completed / Producer Acceptance Pending；未进入 CW-U2A｜最后更新：2026-09-13
+> 状态：CW-04.5 Implementation Completed / Producer Acceptance Pending；CW-05 未开始｜最后更新：2026-09-14
 
 ## 当前阶段说明
 
-- **2026-09-13：** CW-U0 的设计收口与多人落点修复已由制作人验收并封板；范围见 [220](220-cw-u0-design-and-manual-entry-placement-2026-09-13.md)。CW-U1 已完成统一 Squad 成员权威、正常加入／离队、现有共同移动适配、近场观察与正式存读档接线，等待制作人按 [221](221-cw-u1-unified-squad-runtime-and-persistence-2026-09-13.md) 人工验收。未开始 CW-U2A。
+- **2026-09-14 当前：** CW-04 TerritoryClaim／Actual Managing Site／SiteCore 与 WorldMap actual-control 产品链已经制作人人工验收并封板。CW-04.5 只把同 Faction 相邻实际控制投影为连续产品 fill／外边界；不合并 Site、Claim 或 manager。完成记录与验收路线见 [231](231-cw-04-5-faction-territory-visual-union-2026-09-14.md)。
+- **下一阶段：** CW-04.5 验收通过后进入 CW-05 Asset Administrative Succession。已确认原则是“无人管理不等于世界时间停止”；具体资产 manager、管理行为暂停和自然过程时间权威留给 CW-05 实现。
+- **不阻塞 CW-05 的 backlog：** FormalArmy／BattleOffer／Hex support 深层清理；NPC Squad macro movement 去 FormalArmyWorldMotion；Level 2／3；Encounter 介入参数调优；飞舟；建筑战争／Site takeover（排在 CW-05 后）。
 
-- **2026-09-13：** CW-02 为 **Producer Accepted — 当前交付范围**，范围及明确延期见 [218](218-cw-02-pause-ownership-and-party-incapacitation-safety-exit-2026-09-12.md)。CW-03 新 Site／唯一旗核心闭环为 **Implementation Completed / Producer Acceptance Pending**，交接与正常玩法验收路线见 [219](219-cw-03-new-worldsite-and-flag-core-closure-2026-09-13.md)。未进入 CW-04。
+- **2026-09-13 历史状态：** CW-U0 的设计收口与多人落点修复已由制作人验收并封板；范围见 [220](220-cw-u0-design-and-manual-entry-placement-2026-09-13.md)。CW-U1 当时已完成统一 Squad 成员权威、正常加入／离队、现有共同移动适配、近场观察与正式存读档接线。
+
+- **2026-09-13 历史状态：** CW-02 为 **Producer Accepted — 当前交付范围**，范围及明确延期见 [218](218-cw-02-pause-ownership-and-party-incapacitation-safety-exit-2026-09-12.md)。CW-03 新 Site／唯一旗核心闭环当时为 **Implementation Completed / Producer Acceptance Pending**；交接与正常玩法验收路线见 [219](219-cw-03-new-worldsite-and-flag-core-closure-2026-09-13.md)。
 - **2026-09-12 Documentation only：** Continuous World 最终设计已由 [ADR-0032](43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)～[0034](43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) 确认并同步系统正文、Freeze 补丁、术语和索引；文档对齐见 [216](216-continuous-world-final-design-documentation-alignment-2026-09-12.md)。**Design: Confirmed；Documentation: Updated；Implementation: Not migrated / Partially present / Needs verification；Producer Acceptance: Pending。**
 - 后续依赖顺序：稳定身份／动态资产存档／战前锚点／暂停与控制生命周期核查 → SiteCore 范围与建筑归属 → 同源遭遇与人物战 → 战内建筑战争、接管、OR 胜利和收尾 → 有限援军、顺序接替／全队死亡继承、预警 → 飞舟运输与统一 WorldMap 观察／下令。此顺序不是一次性编码授权。
 - 玩家势力无人终局、舰战／甲板战、完整俘虏／赎金、无限远援和同城多核心明确延期。Outdoor 动态破坏物存档失败仍是未通过技术债，是后续战场往返依赖。

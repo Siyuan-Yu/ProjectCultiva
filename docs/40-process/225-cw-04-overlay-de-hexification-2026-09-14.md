@@ -14,4 +14,4 @@ Host 将片段顶点直接经 `HexMapViewportProjection.ProjectWorld` 投影，�
 
 Site diagnostics 同时报告 theoretical cells/world、actual piece count/bounds 和 strategic effective hex count。本轮未修改控制算法、Claim、Encounter 或 CW-05 系统。
 
-状态：CW-04 Overlay De-hexification Implementation Completed / Producer Acceptance Pending。
+当轮未运行 Unity 的历史验证记录保持不变；制作人随后于 2026-09-14 完成人工验收。状态：**CW-04 Producer Accepted / Sealed**。

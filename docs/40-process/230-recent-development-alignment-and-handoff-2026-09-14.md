@@ -3,7 +3,7 @@
 > 状态：当前仓库事实对照完成｜最后更新：2026-09-14
 > 对照基线：`dev_openworld` / `1e48464`
 > 性质：实现、Content、存档、表现层与制作人反馈的汇总索引；不替代系统正文、ADR 或各阶段详细交接
-> 当前结论：Continuous Outdoor／统一 Squad／CharacterEncounter 已在制作人确认范围内通过；CW-04 已实现并进入制作人验收，CW-05 尚未开始
+> 当前结论：Continuous Outdoor／统一 Squad／CharacterEncounter 已在制作人确认范围内通过；CW-04 Producer Accepted / Sealed；当前为 CW-04.5，CW-05 尚未开始
 
 ## 1. 为什么需要本页
 
@@ -115,7 +115,7 @@ WorldSite + CoreAsset
 - `FormalArmy`／`ArmyStack`、旧 BattleOffer、旧 Hex support、旧 `type=formalArmy` Content、siege 和旧会话恢复仍是兼容／后台路径；它们不是当前玩家人物移动与攻击产品入口。
 - `base:map_player_camp`／`base:places_player_camp` 只保留给旧档或显式 fixture；正常 HexWorld、Surface 与 scenario 不再引用 TEST Player Camp。
 - W2A checked-in geography 只覆盖其 authored 范围；完整 Surface 内没有路线数据时，WorldMap 必须显示“不具备完整地形路线预览”，不能生成假路线。
-- CW-04 当前是 **Implementation Completed / Producer Acceptance Pending**。不能因为离线编译和静态探针通过就写成制作人验收通过。
+- CW-04 已由制作人于 2026-09-14 人工验收，当前为 **Producer Accepted / Sealed**。后续 CW-04.5 的 Faction visual union 单独保持待验收状态，见 [231](231-cw-04-5-faction-territory-visual-union-2026-09-14.md)。
 - CW-05 未开始；本次文档整理没有新增任何 CW-05 代码或规则。
 - 当前仓库根下的 `Assets/Scripts.zip` 是未跟踪本地审查包，不属于当前产品源码，也不纳入提交。
 

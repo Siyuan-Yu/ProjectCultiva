@@ -1,8 +1,8 @@
 # 文档通读指南
 
-> **当前主线入口：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) → 2K 统一小队 → 23 独立遭遇 → [220](../40-process/220-cw-u0-design-and-manual-entry-placement-2026-09-13.md) 当前修复与人工路线。CW-U0～U4 替代此前直接进入 CW-04／CW-06 的排序。
+> **当前主线入口：** [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md) → [26 Territory Management](../20-systems/26-territory-management.md) → [223～229 CW-04](../40-process/223-cw-04-territory-claim-administrative-control-2026-09-14.md) → [231 CW-04.5](../40-process/231-cw-04-5-faction-territory-visual-union-2026-09-14.md) → 下一阶段 CW-05。统一 Squad／CharacterEncounter 仍是已实现的重要架构入口，不再是当前待开工阶段。
 
-> 状态：现行 | 最后更新：2026-09-12
+> 状态：现行 | 最后更新：2026-09-14
 > 上级：[`00-overview.md`](00-overview.md)
 > **本页说明怎么读整套策划／架构文档。** 正文仍以各专题页为准；本地 Markdown 与飞书同步页一一对应。
 
@@ -31,6 +31,8 @@
 
 | 目的 | 读什么 |
 |------|--------|
+| **当前阶段与下一阶段** | [231 CW-04.5](../40-process/231-cw-04-5-faction-territory-visual-union-2026-09-14.md) → CW-05 Asset Administrative Succession |
+| **CW-04 已封板范围** | [223](../40-process/223-cw-04-territory-claim-administrative-control-2026-09-14.md)～[229](../40-process/229-cw-04-flag-placement-player-camp-retirement-2026-09-14.md)（Producer Accepted / Sealed） |
 | **本轮最终规则、状态、替代矩阵与迁移依赖** | [216 文档对齐](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md) |
 | **SiteCore／实际行政与建设范围** | [24](../20-systems/24-world-and-settlements.md) + [26](../20-systems/26-territory-management.md) + [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md) |
 | **同源独立遭遇／回位保战果** | [23](../20-systems/23-combat.md) + [ADR-0033](../40-process/43-decisions/ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) |

@@ -1,6 +1,6 @@
 # CW-04 Existing Flag Core Content Migration
 
-> 状态：Implementation Completed / Producer Acceptance Pending  
+> 状态：CW-04 Producer Accepted / Sealed
 > 日期：2026-09-14  
 > 范围：已有正式势力旗 → 精确 WorldSite SiteCore → baseline Claim → Actual Overlay；不进入 CW-05
 

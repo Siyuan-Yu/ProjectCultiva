@@ -1,5 +1,13 @@
 # 开发日志
 
+## 2026-09-14 — CW-04 封板与 CW-04.5 Faction Territory Visual Union
+
+- 制作人确认 TerritoryClaim history、唯一 Actual Managing Site、Level 1 150×150 cells、议政厅／势力旗 SiteCore、玩家／authored 旗建 Site、WorldMap actual-control geometry、Player Camp 退役及 Core/flag marker 已人工验收；CW-04 正式标记 **Producer Accepted / Sealed**。
+- 保留 `WorldSiteActualControlOverlayBuilder.Build(world)` 的 per-Site Pieces／BoundarySegments，新增只读 `BuildFactionUnion(world)`。新投影仍以 Claim edges 建 exact partition，每格只调用 `WorldSiteAdministrativeControlResolver`，再从 Actual Managing Site 读取 OwnerFactionId；不读取 Hex territory、理论范围或旗半径。
+- WorldMap 正常“显示势力范围”改读 faction union：同势力相邻 Site 的 fill 连续且内部政治边界消失；异势力和无 Actual Manager 的边界保留；断开的同势力领土仍是独立 pieces，不用 bounding box 补空地。LevelTester 与 Site inspect 继续使用 per-Site geometry 检查真实行政分界。
+- 未修改 TerritoryClaim、AcquiredOrder、Site/Core/Flag identity、Site Owner、行政 resolver、Snapshot schema、Content 等级或 FormalArmy 兼容路径；未开始 CW-05。新增 [231](231-cw-04-5-faction-territory-visual-union-2026-09-14.md)，同步 roadmap、总览、阅读指南、26 与 223～230 状态。
+- 验证为现成 offline compile（Core 464／Data 78／Unity Host 145 及既有程序集）和定向静态检查、`git diff --check`；未启动 Unity、运行 Test Runner、EditMode、PlayMode、batchmode 或 Bake。状态：**CW-04.5 Implementation Completed / Producer Acceptance Pending**。
+
 ## 2026-09-14 — 近期开发状态统一对照与交接
 
 - 对照 `dev_openworld` 当前代码、Content、2026-09-10～09-14 Git 历史、`208`～`229` 过程记录及制作人后续 Play 反馈，新增统一交接 [230](230-recent-development-alignment-and-handoff-2026-09-14.md)。
