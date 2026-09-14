@@ -1,6 +1,6 @@
 # Continuous Outdoor Streaming Seam V1（2026-09-11）
 
-状态：IMPLEMENTED / PENDING PRODUCER PLAY ACCEPTANCE
+状态：PRODUCER ACCEPTED（当前表现可接受；制作人决定不继续优化）
 
 ## 目标与边界
 

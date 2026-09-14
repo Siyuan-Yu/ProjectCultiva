@@ -1,5 +1,7 @@
 # Continuous World 最终设计文档对齐（2026-09-12）
 
+> **2026-09-14 实现后续：** 本页记录的是设计落库时点，文中的 `Not migrated / Partially present` 不再代表当前仓库整体状态。Continuous Outdoor、统一 Squad／CharacterEncounter 主线已迁移并在制作人当前观察范围通过；CW-04 已实现、待验收。统一状态入口见 [230](230-recent-development-alignment-and-handoff-2026-09-14.md)。
+
 > **CW-U0 局部替代：** 本文旧自由战场裁切、范围外关系远援和 CW-06 排序由 [ADR-0035](43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 替代。CW-01／02 原验收范围保留，CW-03 主体制作人反馈基本完成；统一小队与最终独立遭遇仍待实现和验收。
 
 > 性质：Documentation only

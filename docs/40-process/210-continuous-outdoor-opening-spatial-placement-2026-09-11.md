@@ -1,7 +1,7 @@
 # 210 — Continuous Outdoor Opening Entity Spatial Placement（Opening Anchor Authority V1）
 
 日期：2026-09-11
-状态：已实现，等待制作人验收（未提交）
+状态：历史修复记录；后续 authored placement 链已由制作人验收通过，当前状态见 [230](230-recent-development-alignment-and-handoff-2026-09-14.md)
 
 ## 症状（制作人复验）
 

@@ -1,7 +1,7 @@
 # 209 — Continuous Outdoor Opening Population Bootstrap（NewGame 荒村人口 + 退休 W1C 入口）
 
 日期：2026-09-10
-状态：待制作人验收（未提交）
+状态：历史实现记录；后续 Opening authored spawn 已由制作人验收通过，当前状态见 [230](230-recent-development-alignment-and-handoff-2026-09-14.md)
 
 ## 制作人复验发现的 blocker
 

@@ -1,5 +1,7 @@
 # Continuous Outdoor World — Current Handoff / Recovery Checkpoint
 
+> **2026-09-14 后续状态：** 本页是 2026-09-11 的历史恢复 checkpoint，不再是最新全局入口。其“Outdoor stateful object JSON 尚未闭环”等当日 Known Issue 已在后续实现中关闭；Opening／Schedule／Follow 已通过制作人验收，streaming seam 当前表现可接受。请先读 [230 近期开发对照与统一交接](230-recent-development-alignment-and-handoff-2026-09-14.md)，再按需回读本页的迁移细节。
+
 > 本文档是 Continuous Outdoor / Outdoor WorldSite migration 的 **Canonical Handoff**。
 > **下一 GPT / DeepSeek 会话请先完整读本文件，再读 §19 列出的文档。**
 > 本文档自包含：不依赖 ChatGPT Memory、不依赖任何聊天记录、不依赖上一会话上下文。

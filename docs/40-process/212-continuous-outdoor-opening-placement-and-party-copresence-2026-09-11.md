@@ -1,7 +1,7 @@
 # 212 — Opening NPC Authored Placement Fidelity + PlayerParty Follow 移除 LocalMap gate
 
 日期：2026-09-11
-状态：**IMPLEMENTED / PENDING PRODUCER ACCEPTANCE** —— 代码与 Content 已提交（implementation checkpoint `d34efc0`），**awaiting producer Play acceptance**；制作人尚未对本版 A/B 做最终 Unity 人工验证，**不得标为 SEALED**。
+状态：**PRODUCER ACCEPTED（当前观察范围）** —— 后续制作人已确认 Opening authored spawn、NPC Schedule realtime movement 与 Continuous Follow 均 PASS；完整当前状态见 [230](230-recent-development-alignment-and-handoff-2026-09-14.md)。
 范围：**只修制作人点名的两项 migration regression**（A opening placement fidelity／B 同伴 Follow 的 LocalMap gate）。不进入下一阶段。
 恢复工程请先读 Canonical Handoff：[213](213-continuous-outdoor-world-handoff-2026-09-11.md)
 前置：[208](208-continuous-world-outdoor-worldsite-surface-migration-v1-2026-09-10.md)（site/placement 迁移）、[209](209-continuous-outdoor-opening-population-bootstrap-2026-09-10.md)（opening population）、[210](210-continuous-outdoor-opening-spatial-placement-2026-09-11.md)（anchor V1）、[211](211-continuous-outdoor-view-placement-realign-2026-09-11.md)（view realign）

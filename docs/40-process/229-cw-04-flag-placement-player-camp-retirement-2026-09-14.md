@@ -67,4 +67,4 @@ Host exact CompositeWalkGrid preflight
 - BaseGame JSON、schema/reference、正式启动及少量内存调用链检查；
 - `git diff --check`；
 - 未运行 Unity、EditMode、PlayMode、TestRunner、batchmode、Bake 或新增测试；
-- 工作区保持未提交，等待制作人人工验收。
+- 实现与本页已纳入 checkpoint `1e48464`，等待制作人人工验收。

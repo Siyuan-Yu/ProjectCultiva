@@ -4,9 +4,9 @@
 
 ## 当前连续实施（制作人补充范围输入之后，2026-09-14 收口）
 
-**统一 Squad／CharacterEncounter 主线及最后的 residual spatial authority 修复已获 Producer Accepted（current observed scope）；CW-U4.2 Legacy Runtime Isolation Implementation Completed / Producer Acceptance Pending**。不把当前验收扩大为全部关系概率、旧档组合和边界穷尽通过。
+**统一 Squad／CharacterEncounter 主线、最后的 residual spatial authority 修复及 CW-U4.2 Legacy Runtime Isolation 已获 Producer Accepted（current observed scope）**。不把当前验收扩大为全部关系概率、旧档组合和边界穷尽通过。
 
-CW-U4.2 产品隔离：WorldMap 已删除不可达的玩家 Army 命令调用树，不再实例化 Army 管理面板；角色列表不再含组军实现，人物 hostile route 仅进入统一 CharacterEncounter／Reject。旧玩家 attack-chase 只作一次性旧状态迁移。下一步仅是 U4.2 人工验收；通过后才进入 CW-04，当前不自动开始。
+CW-U4.2 产品隔离：WorldMap 已删除不可达的玩家 Army 命令调用树，不再实例化 Army 管理面板；角色列表不再含组军实现，人物 hostile route 仅进入统一 CharacterEncounter／Reject。旧玩家 attack-chase 只作一次性旧状态迁移。该范围后续已由制作人验收，并已进入 CW-04；CW-04 当前实现完成、制作人验收待进行，见 [230](230-recent-development-alignment-and-handoff-2026-09-14.md)。
 
 | 残留类型 | 本轮保留原因 | 后续移除阶段 |
 |---|---|---|

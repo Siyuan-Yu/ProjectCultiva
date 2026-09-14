@@ -1,7 +1,7 @@
 # 211 — Continuous Outdoor View Placement Realign（materialize 权威落点 → 已存在 view 的对齐）
 
 日期：2026-09-11
-状态：已实现（等待制作人复验；未提交）
+状态：历史修复记录；后续 authored spawn／View 对齐结果已由制作人验收通过，当前状态见 [230](230-recent-development-alignment-and-handoff-2026-09-14.md)
 
 ## 症状（制作人复验）
 
