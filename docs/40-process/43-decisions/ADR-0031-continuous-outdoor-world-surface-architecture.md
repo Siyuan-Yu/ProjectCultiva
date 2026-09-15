@@ -2,6 +2,8 @@
 
 > **2026-09-12 状态更新：** Continuous Outdoor 已成为正式目标，不再仅是未授权 Future 讨论。SiteCore 的行政／建设范围和临时同源战场分别由 [ADR-0032](ADR-0032-sitecore-administrative-and-construction-range.md)、[ADR-0033](ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) 补充；实现仍需分阶段迁移和制作人验收。
 
+> **2026-09-15 定向补充：** [ADR-0036](ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) 已进一步锁定 future authoring 与 WorldMap product direction。其将本 ADR 中“Surface Chunk 是 authoring/storage 基本单位”的旧表述标为 superseded：Runtime Chunk 只保留技术分区职责；该补充**尚未实现**，不回写本 ADR 的历史迁移记录。
+
 > 状态：**已采纳 / migration in progress**｜日期：2026-09-09｜最后更新：2026-09-12
 > 决策者：制作人
 > 关联：[203](../203-continuous-2d-open-world-world-surface-direction-2026-09-09.md)、[2K](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)、[2J](../../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)、[ADR-0021](ADR-0021-world-region-localmap.md)、[ADR-0025](ADR-0025-strategic-spatial-model-hexgrid.md)、[ADR-0026](ADR-0026-rpg-first-playerparty-and-formalarmy-military-layer.md)、[ADR-0027](ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md)

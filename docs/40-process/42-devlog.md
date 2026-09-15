@@ -1,5 +1,12 @@
 # 开发日志
 
+## 2026-09-15 — 连续世界制作与去 Hex 产品方向文档收口（仅文档）
+
+- 新增 [ADR-0036](43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) 与 [2N](../20-systems/2N-continuous-surface-world-authoring-and-composition.md)，分别记录已采纳但未实现的 Continuous Surface World Authoring、Final Surface、WorldMap LOD、World Composer/Fine Editor 与 de-Hex 方向。
+- 明确三种格的边界：Surface Cell 是最终游戏地形单元，当前 50×50 Runtime Chunk 仅为技术分区，World Editor Cell 固定为 10×10 Surface Cells 的 future authoring 网格；150×150 只表示一级 SiteCore 理论行政范围。
+- 更新总览、通读指南、路线图、术语、系统与旧空间页面的交叉引用；旧 Hex、LocalMap、Chunk-as-authoring 等正文保留为历史／兼容记录，不删除历史 ADR 或开发日志。
+- 本轮未启动 MAP-01，未修改任何 Assets/Scripts、Scene、Prefab、Content JSON、Snapshot、Editor 或运行时行为；未运行编译、测试或 Unity 验收。
+
 ## 2026-09-15 — StorageRoom Snapshot Shell Rehydrate 顺序修正
 
 - LevelTester 读档报 `Static content shell rehydrate failed`。根因是 Snapshot 的 `RuntimeContentShellBootstrap` 在 Hex/WorldSite 静态壳重建前执行 `WorldSiteStorageRoomBootstrap`，而该派生 registry 必须验证真实 Site identity；空壳阶段因此把合法 authored StorageRoom 误判为绑定失败。

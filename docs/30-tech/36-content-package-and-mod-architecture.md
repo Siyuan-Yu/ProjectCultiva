@@ -1,5 +1,7 @@
 # ContentPackage 与 Mod Ready 架构
 
+> **2026-09-15 Future Direction / Not Implemented：** [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) 规定 future World Composer / Fine Editor 的 authoring input 经 deterministic composition bake 为 Final Continuous Surface，再作为 ContentPackage 的运行时地理输入。本页不据此定义或实现 schema、loader、Mod patch、编辑器或迁移；现有 Content JSON 与 LocalMap/Hex compatibility 保持现状。
+
 > 状态：**已冻结（v0.1 形状；对齐 Freeze v0.2）** | 优先级：P0 | 最后更新：2026-07-31  
 > **Core M1 只建基础结构，不做 Mods/ 文件夹加载（ADR-0022）。**
 

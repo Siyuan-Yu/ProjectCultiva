@@ -1,8 +1,8 @@
 # 架构决策记录（ADR）索引
 
-> 最新：[ADR-0035](ADR-0035-unified-squads-and-encounter-scope.md) — 统一小队、固定范围独立遭遇及 CW-U0～U4 主线；设计确认、实现待迁移。
+> 最新：[ADR-0036](ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) — 连续世界制作、Final Surface、WorldMap LOD 与去 Hex 产品方向；**Accepted Design Direction / Not Implemented**。
 
-> 状态：现行 | 最后更新：2026-09-12
+> 状态：现行 | 最后更新：2026-09-15
 > 上级：[`00-overview.md`](../../00-project/00-overview.md)、[`33` 冻结 v0.2](../../30-tech/33-architecture-core-rules-freeze-v0.2.md)
 > 模板：[`adr-template.md`](../../90-templates/adr-template.md)
 > **编号 0009 预留正式 UI 方案。**
@@ -51,6 +51,8 @@
 | [0032](ADR-0032-sitecore-administrative-and-construction-range.md) | SiteCore、实际行政控制与建设范围 | 已采纳／待迁移 | 一个 Site 一个核心；允许重叠；既有控制保留；拆旗不删资产 |
 | [0033](ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) | 同源独立遭遇、停表与战前锚点回归 | 已采纳／待迁移 | 当前地形建筑；各回战前位置；真实战果保留；部分替代 0023 |
 | [0034](ADR-0034-conflict-control-succession-and-airship-role.md) | 冲突、控制继承与飞舟职责 | 已采纳／待迁移 | 人物攻击≠宣战；建筑战争确认；顺序接替／最强继承；飞舟只运输 |
+| [0035](ADR-0035-unified-squads-and-encounter-scope.md) | 统一小队与固定范围独立遭遇 | 已采纳／迁移中 | 小队唯一组织；独立遭遇范围与入场规则 |
+| [0036](ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) | 连续世界制作与去 Hex 产品方向 | **已采纳设计方向／未实现** | Final Surface、Composer/Fine Editor、WorldMap LOD、逐步迁出 Hex authority |
 
 战略接战时间纪律另见 **[ADR-0023](ADR-0023-manual-encounter-freezes-worldtick.md)**（2026-08-21）。
 

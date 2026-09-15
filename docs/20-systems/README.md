@@ -1,6 +1,6 @@
 # 系统设计索引
 
-> **CW-U0：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) 统一小队与独立遭遇设计已确认；运行待迁移／现有兼容，制作人验收待完成。正文归属 2K（组织控制）、23（战场范围／参战／候选）、2A（政治后果）；当前算法修复见 220。
+> **MAP Direction（2026-09-15）：** [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) 与 [2N](2N-continuous-surface-world-authoring-and-composition.md) 已锁定 Continuous Surface World Composer / Fine Editor / WorldMap LOD / de-Hex 产品方向；**MAP-01 尚未开始，未改运行时。**
 
 > 最后更新：2026-09-12（Continuous World 最终设计文档已对齐；实现与制作人验收仍待完成）
 > 上级：`docs/00-project/00-overview.md`（最高层大纲）
@@ -45,6 +45,7 @@
 | 2K | [RPG-First：Active／PlayerParty／连续 Hex／FormalArmy](2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md) | P0 | 旧阶段已验收；继承／飞舟／统一移动待迁移 | ADR-0034 |
 | 2L | [LocalMap 建造系统 V1](2L-local-map-construction-v1.md) | P0 | **已实现／已人工验收／已封板** | 建筑目录、材料事务与主动拆除 |
 | 2M | [角色社会关系 V1](2M-character-social-relations-v1.md) | P0 | **已实现／已人工验收／已封板** | Social Bond、五维态度、社会事件、击杀后果与统一人物档案 |
+| 2N | [连续世界制作、合成与去 Hex 产品方向](2N-continuous-surface-world-authoring-and-composition.md) | P0 | **已锁定未来方向／未实现** | Composer、Fine Editor、Final Surface、WorldMap LOD |
 
 ## 架构文档（`30-tech`）
 

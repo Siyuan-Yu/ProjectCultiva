@@ -1,5 +1,7 @@
 # Hex Territory、Multi-Hex WorldSite 与动态山贼系统
 
+> **2026-09-15 Future Direction / Not Implemented：** [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) 规定 future architecture 不再新增 Hex travel、行政、战斗范围、Site footprint、玩家 WorldMap 或新 Q/R Content authority。下文 Pure Hex、Footprint 与 WorldMap 表述保留为当前 compatibility／历史基线，须逐 consumer 迁出；**不代表 Hex 已在本轮删除。**
+
 > 状态：Hex 战略叠加保留；旧 Control Asset V1 已验收，SiteCore 实际范围目标待迁移／核查｜优先级：P0｜最后更新：2026-09-12
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`2A`、`24`、`26`、`28`、`03-glossary`、`ADR-0024`、`ADR-0025`、`ADR-0031`、[`155`](../40-process/155-hex-strategic-worldmap-migration-2026-08-23.md)、[`158`](../40-process/158-hex-world-content-authoring-pipeline-2026-08-23.md)

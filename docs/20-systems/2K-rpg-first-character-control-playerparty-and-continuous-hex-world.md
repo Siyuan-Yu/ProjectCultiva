@@ -1,5 +1,7 @@
 # RPG-First：Active Character、PlayerParty、连续 Hex 世界与 Legacy FormalArmy Adapter
 
+> **2026-09-15 Future Direction / Not Implemented：** PlayerParty 的世界旅行和 WorldMap 当前仍含 Hex compatibility。未来它们将随 [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) 分阶段迁往同一 Final Continuous Surface / exact WorldPosition；本页现有连续 Hex 内容是 current compatibility 或历史迁移语境，**MAP-01 未开始**。
+
 > **2026-09-14 现行补丁：** [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md) §1、2、5 为现行规则。CW-U1～U4 已将成员与人物遭遇迁移到统一 Squad；CW-U4.1 退役玩家 FormalArmy 产品层入口。FormalArmy 仅作旧 Content／Save／NPC 任务与移动 adapter，不是玩家可选、可编组、可攻击或可下令的单位。
 
 > 状态：旧 Phase 2B／2C 验收保留；最终控制／移动／飞舟设计已确认，新行为待迁移／核查与制作人验收｜优先级：P0｜最后更新：2026-09-12

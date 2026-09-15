@@ -1,5 +1,7 @@
 # 路线图
 
+> **2026-09-15 未来地图方向（文档已锁定，未开工）：** [ADR-0036](43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)／[2N](../20-systems/2N-continuous-surface-world-authoring-and-composition.md) 将未来 MAP-01 定义为 Composer 10×10 macro paint、Blueprint、Detail Patch、真实 composite preview 与 Final Continuous Surface bake 的最小 proof。**MAP-01 尚未开始**；不意味着 WorldMap、PlayerTravel、WorldSite 或 Hex 已迁移。
+
 
 > **当前唯一主线（2026-09-15）：** CW-U0～U4、CW-04、CW-04.5、CW-05A/B/Closing、[CW-08 / CW-09](235-sitecore-warfare-worldsite-takeover-2026-09-15.md) 与 [CW-09.5](236-world-object-interaction-fixed-core-capture-closure-2026-09-15.md) 均 Producer Accepted / Sealed；当前实施 [CW-10 Site Economy / Automated Administration Migration](237-cw-10-site-economy-automated-administration-migration-2026-09-15.md)。
 

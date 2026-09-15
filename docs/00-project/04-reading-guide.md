@@ -32,6 +32,7 @@
 | 目的 | 读什么 |
 |------|--------|
 | **当前阶段与下一阶段** | [235 SiteCore Warfare](../40-process/235-sitecore-warfare-worldsite-takeover-2026-09-15.md) 与 [236 CW-09.5](../40-process/236-world-object-interaction-fixed-core-capture-closure-2026-09-15.md) 已封板；[237 CW-10](../40-process/237-cw-10-site-economy-automated-administration-migration-2026-09-15.md) 为当前 Site Economy 实施与验收记录 |
+| **未来地图制作方向（非当前实现）** | [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) → [2N](../20-systems/2N-continuous-surface-world-authoring-and-composition.md)。已锁定方向；**MAP-01 未开始**，不得当作当前 runtime 状态 |
 | **CW-04 已封板范围** | [223](../40-process/223-cw-04-territory-claim-administrative-control-2026-09-14.md)～[229](../40-process/229-cw-04-flag-placement-player-camp-retirement-2026-09-14.md)（Producer Accepted / Sealed） |
 | **本轮最终规则、状态、替代矩阵与迁移依赖** | [216 文档对齐](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md) |
 | **SiteCore／实际行政与建设范围** | [24](../20-systems/24-world-and-settlements.md) + [26](../20-systems/26-territory-management.md) + [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md) |

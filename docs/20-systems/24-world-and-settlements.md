@@ -1,5 +1,7 @@
 # 世界与据点
 
+> **2026-09-15 Future Direction / Not Implemented：** [ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) 已锁定 Final Continuous Surface、World Composer/Fine Editor、WorldMap LOD 与逐步去 Hex 的产品方向。下文现有 Region／LocalMap／格子与旧 WorldGraph 规则须按其历史或 Legacy Compatibility 语境阅读；**MAP-01 未开始，当前 runtime 不因本注记改变。**
+
 > 状态：Continuous Outdoor 与 SiteCore 最终设计已确认；实现部分存在、迁移／核查及制作人验收待完成 | 优先级：P0 | 最后更新：2026-09-12
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`33` v0.2 §8、ADR-0021、`26`、`27`、`25`、`22`、**[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**

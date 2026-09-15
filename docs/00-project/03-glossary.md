@@ -2,7 +2,7 @@
 
 > **CW-U0 术语：行动小队（Squad）** 是正常活动人物唯一成员组织，单人也是小队；成员各有真实位置。PlayerParty 最终是玩家小队／Active 控制投影；FormalArmy 是旧迁移适配。Encounter 固定范围、初始双方与未参战候选分离，定义见 [ADR-0035](../40-process/43-decisions/ADR-0035-unified-squads-and-encounter-scope.md)。设计确认，运行待迁移。
 
-> 状态：持续维护 | 最后更新：2026-09-14
+> 状态：持续维护 | 最后更新：2026-09-15
 >
 > 规则：**代码标识符、配置表字段、文档用词必须与本表一致。**
 > 新增概念时先来这里登记，再去写代码。这一条是长期可维护性的关键，也是交接时对方最需要的文件。
@@ -14,6 +14,22 @@
 - 配置表 ID：`小写下划线`，取本表 Code 列的 snake_case
 - UI 与文档：中文，取本表 中文 列
 - 禁止同义词混用（例如不要 Cultivation / Practice / Training 混着指同一件事）
+
+## 连续世界制作方向（已锁定／未实现）
+
+> 真源：[ADR-0036](../40-process/43-decisions/ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md)／[2N](../20-systems/2N-continuous-surface-world-authoring-and-composition.md)。这些术语锁定 future 方向，**不表示 MAP-01 或去 Hex 迁移已实施**。
+
+| 中文 | Code | 含义 | 备注 |
+|---|---|---|---|
+| 连续世界格 | SurfaceCell | 最小最终户外 terrain、walkability、footprint、水、道路与精修单位 | 1×1；早期 local tile 的正式后继 |
+| 运行块 | RuntimeChunk | 户外 streaming、materialization 与 navigation cache 技术分区 | 当前 50×50 Surface Cells；不是 authoring / Site / 行政单位 |
+| 大地图编辑格 | WorldEditorCell | World Composer 的宏观地理制作格 | 固定 10×10 Surface Cells；runtime 不读取 |
+| 据点蓝图 | WorldSiteBlueprint | 固定 WorldSite 的细粒度布局 authoring 输入 | 可跨 Chunk；一 SiteId／一 WorldSite／一 SiteCore |
+| 精修块 | DetailPatch | 任意尺寸的 Surface Cell 级局部地形／环境覆盖 | 覆盖 Terrain Expansion 输出；不是 runtime map piece |
+| 世界合成器 | WorldComposer | 未来大陆尺度 macro terrain、overlay、Blueprint 与预览工具 | 未实现 |
+| 精细编辑器 | FineEditor | 未来 Surface Cell 精度的 Blueprint / Detail Patch 编辑工具 | 未实现 |
+| 最终连续世界面 | FinalContinuousSurface | composition bake 后供 runtime 唯一读取的普通户外地理 | 一大陆一张；不保留 authoring pieces |
+| 地形／细节确定性展开 | TerrainDetailDeterministicExpansion | 将制作人宏观意图稳定展开成局部地形与环境细节 | 不是 runtime Procedural World Generation |
 
 ## 建造系统 V1
 
