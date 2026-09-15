@@ -34,6 +34,9 @@ namespace XianXia.Unity.Host
         public Result BeginRecoveryPlacement(string buildingId)
             => BeginOutdoorPlacement(buildingId, ConstructionPlacementKind.RecoverySpot, "恢复处");
 
+        public Result BeginStoragePlacement(string buildingId)
+            => BeginOutdoorPlacement(buildingId, ConstructionPlacementKind.StorageRoom, "储藏室");
+
         Result BeginOutdoorPlacement(string buildingId, ConstructionPlacementKind placementKind, string displayName)
         {
             var world = _bootstrap?.Session?.World;
@@ -92,10 +95,15 @@ namespace XianXia.Unity.Host
             if (Time.frameCount <= _beganFrame || !Input.GetMouseButtonDown(0) || !_legal) return;
             // Recompute both geometry and authority at confirmation time.
             if (!Prepare(point, out _candidate, out _status)) { _legal = false; return; }
-            var result = _placementKind == ConstructionPlacementKind.RecoverySpot
-                ? ConstructionService.TryConstructRecoverySpot(_world, _spec.BuildingId,
-                    _world.Strategic.PlayerFactionId, _candidate.SurfaceId, _candidate.WorldX, _candidate.WorldY, out _)
-                : ConstructionService.TryConstructFarmField(_world, _spec.BuildingId,
+            Result result;
+            if (_placementKind == ConstructionPlacementKind.RecoverySpot)
+                result = ConstructionService.TryConstructRecoverySpot(_world, _spec.BuildingId,
+                    _world.Strategic.PlayerFactionId, _candidate.SurfaceId, _candidate.WorldX, _candidate.WorldY, out _);
+            else if (_placementKind == ConstructionPlacementKind.StorageRoom)
+                result = ConstructionService.TryConstructStorageRoom(_world, _spec.BuildingId,
+                    _world.Strategic.PlayerFactionId, _candidate.SurfaceId, _candidate.WorldX, _candidate.WorldY, out _);
+            else
+                result = ConstructionService.TryConstructFarmField(_world, _spec.BuildingId,
                     _world.Strategic.PlayerFactionId, _candidate.SurfaceId, _candidate.WorldX, _candidate.WorldY, out _);
             if (result.IsFailure) { _status = result.Error.Message; _legal = false; return; }
             _bootstrap.ContinuousOutdoorSurfaceRuntime.RefreshRuntimeConstructedPlacementsForLoadedChunks();
@@ -121,9 +129,21 @@ namespace XianXia.Unity.Host
                 WorldHeight = _spec.FootprintCellsH * metric.CellSize,
                 CellsW = _spec.FootprintCellsW, CellsH = _spec.FootprintCellsH,
                 BoundLocationId = "location:runtime:" +
-                    (_placementKind == ConstructionPlacementKind.RecoverySpot ? "recovery:" : "farm:") +
-                    _world.OutdoorConstructedAssets.NextIdForKind(_spec.OutdoorKind)
+                    (_placementKind == ConstructionPlacementKind.RecoverySpot ? "recovery:" :
+                     _placementKind == ConstructionPlacementKind.StorageRoom ? "storage:" : "farm:") +
+                    _world.OutdoorConstructedAssets.NextIdForKind(_spec.OutdoorKind),
+                // Preview candidates may remain unbound while displaying an invalid red footprint.
+                // Persisted StorageRoom assets are still required by Core to have a real Site binding.
+                BoundWorldSiteId = string.Empty
             };
+            if (_placementKind == ConstructionPlacementKind.StorageRoom)
+            {
+                var storageSite = WorldSiteStorageRoomPlacementService.ResolveSiteForFootprint(
+                    _world, _world.Strategic.PlayerFactionId, candidate.SurfaceId, candidate.WorldX, candidate.WorldY,
+                    candidate.CellsW, candidate.CellsH, metric.CellSize, out var boundSiteId);
+                if (storageSite.IsFailure) { reason = storageSite.Error.Message; return false; }
+                candidate.BoundWorldSiteId = boundSiteId;
+            }
             var permission = OutdoorFactionConstructionAuthorizationService.Validate(
                 _world, _world.Strategic.PlayerFactionId, candidate);
             if (permission.IsFailure) { reason = permission.Error.Message; return false; }
@@ -156,7 +176,7 @@ namespace XianXia.Unity.Host
                 { reason = "此处有树木、墙或控制核心。"; return false; }
             foreach (var existing in _world.OutdoorConstructedAssets.Assets.Values)
                 if (OutdoorConstructedAssetBoard.Overlaps(existing, candidate))
-                { reason = "此处已有农田。"; return false; }
+                { reason = "此处已有室外建筑或世界对象。"; return false; }
             // Flag footprints also contribute to the composite grid above.
             reason = "此处可以建造" + _displayName + "。";
             return true;

@@ -25,6 +25,7 @@ namespace XianXia.Unity.Host
         public const string HouseFallback = "Assets/Prefabs/Environment/Buildings/CommonHouse.prefab";
         public const string Hub = "Assets/Prefabs/Environment/Buildings/SupervisorHouse.prefab";
         public const string FactionControlPost = "Assets/Prefabs/Environment/Buildings/Warehouse.prefab";
+        public const string StorageRoom = "Assets/Prefabs/Environment/Buildings/Warehouse.prefab";
         public const string Mine = "Assets/Prefabs/Environment/Buildings/Warehouse.prefab";
         public const string Cave = "Assets/Prefabs/Environment/Buildings/Warehouse.prefab";
         public const string TreeS = "Assets/Prefabs/Environment/Props/TreeSmall.prefab";
@@ -52,6 +53,7 @@ namespace XianXia.Unity.Host
                 case "cave":
                 case "controlCore":
                 case "factionControlPost":
+                case "storageRoom":
                     return true;
                 default:
                     return false;
@@ -132,6 +134,8 @@ namespace XianXia.Unity.Host
                 new UnityEngine.Color(0.72f, 0.66f, 0.28f)),
             new("recoverySpot", Cushion, StampMode.SingleCentered, 2, 2, false, HostInteractSpotKind.Recovery,
                 new UnityEngine.Color(0.18f, 0.78f, 0.78f)),
+            new("storageRoom", StorageRoom, StampMode.SingleCentered, 3, 3, false, HostInteractSpotKind.Storage,
+                new UnityEngine.Color(0.62f, 0.48f, 0.28f)),
             new("road", Road, StampMode.PerCell, RoadFootprint, RoadFootprint, false, null,
                 new UnityEngine.Color(0.55f, 0.45f, 0.32f)),
             new("wall", Wall, StampMode.PerCell, DefaultWallLen, DefaultWallThickness, false, null,

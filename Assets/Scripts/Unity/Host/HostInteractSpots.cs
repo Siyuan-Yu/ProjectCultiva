@@ -12,7 +12,8 @@ namespace XianXia.Unity.Host
         Explore = 2,
         /// <summary>地表／洞内可拾取物。</summary>
         Loot = 3,
-        Recovery = 4
+        Recovery = 4,
+        Storage = 5
     }
 
     /// <summary>表现层可交互点（多点／同地点）；不进 Core Freeze。</summary>

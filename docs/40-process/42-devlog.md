@@ -1,5 +1,22 @@
 # 开发日志
 
+## 2026-09-15 — StorageRoom Snapshot Shell Rehydrate 顺序修正
+
+- LevelTester 读档报 `Static content shell rehydrate failed`。根因是 Snapshot 的 `RuntimeContentShellBootstrap` 在 Hex/WorldSite 静态壳重建前执行 `WorldSiteStorageRoomBootstrap`，而该派生 registry 必须验证真实 Site identity；空壳阶段因此把合法 authored StorageRoom 误判为绑定失败。
+- Runtime content shell 现只恢复不依赖 Site 的静态定义；在 `HexStrategicMapContentBootstrap`、固定 Core metadata 与政治状态恢复完成后，才重建 StorageRoom registry。PublicStock、StorageRoom identity、Snapshot shape 与资源访问规则均未改变；外层错误消息也保留具体失败原因。
+
+## 2026-09-15 — World Object Pick Bounds Fix
+
+- 制作人确认荒村储藏室已在议政厅右侧正常 materialize，但 root pivot 与最终 sprite bounds 不同，旧 `HostMapObjectRegistry` 又用固定半径围绕 root 拾取，导致建筑、树和墙的可点区域偏离视觉。新增 `HostWorldObjectPickGeometry`：在 prefab 完成 Fit/Align 后合并全部 enabled `SpriteRenderer` bounds，缺 renderer 时退回 `Collider2D`，最后才用 `.25` 的小 fallback，并统一加 `.08` 操作 padding。
+- Plot 与 Destructible 保存仅 Host runtime 的 interaction bounds；registry normal pick 改为 bounds contains，重叠时小面积优先、同面积保留稳定注册顺序。StorageRoom、runtime StorageRoom、恢复处、单格 Farm、矿/拾取物、树和墙均经同一 Attach 流程获得最终 visual bounds；ControlCore/FactionFlag 继续使用既有正式 footprint，WorkArea/Housing 的抽象 radius 本轮未动。
+- 左右键继续共用 `HostWorldObjectPicker` target geometry；正常路径删除 Plot `1.35`、Destructible `2.2` magic radius，未修改 WalkGrid、Collider、阻挡或寻路。
+
+## 2026-09-15 — CW-10.5 荒村 authored 储藏室 materialization 与预览接线修正
+
+- 制作人发现 checked-in JSON 已有“荒村储藏室”但现场未见。根因不仅是 metadata owner 不一致，更是旧 3×3 rectangle 横跨 chunk 8/9 seam；现移动同一 stable placement 到 source grid `(87,45)`、world rect `(6.21373,11.075) + (0.06495,0.105)`，完整位于 chunk `(5,8)` 的议政厅右侧空地，不新增第二座设施。
+- `storageRoom` 的 Loader、MapKind、Warehouse prefab、Picker/Inspect 与 `WorldSiteStorageRoomBoard` 均继续走正式链路。严格 Content validation 现要求 3×3/阻挡、center owner、完整 Surface coverage、known/unique Site；定向断言还检查 whole rect 不跨 chunk、无 authored overlap。
+- Host placement presenter 先无条件建立 footprint preview，再调用与 Core commit 共用的 `WorldSiteStorageRoomPlacementService` 做 same-site/owned/active/one-per-site 校验；失败仍保留红色 preview，只有无法取得 Surface footprint 才隐藏。`WorldSiteStorageRoomBootstrap` 已从 Farm administrative anchor bootstrap 分离，仅重建物理 facility registry，不触碰 PublicStock。
+
 ## 2026-09-15 — CW-10 Site Economy / Automated Administration Migration
 
 - CW-08／CW-09 与 CW-09.5 已经制作人正常玩法验收，235／236 正式 **Producer Accepted / Sealed**；保留早期仅离线验证和当时 Pending 的历史记录。Subsequently Producer Accepted after normal gameplay validation.
@@ -4618,5 +4635,14 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 - 左键沿用统一 Inspect Shell，右键沿用统一 Context Menu；authored 与 runtime 恢复处共用 MapKind、Picker、移动和 Action 路径。
 - LevelTester 战斗页增加只遍历 `PlayerParty.Members` 的攻击 +10、最大生命 +50 并回满、生命/灵力回满按钮，死亡成员跳过且不复活，敌人不在目标集合。
 - 添加小型离线定向测试，覆盖恢复、取消、生命周期拒绝、上限变化、建造权限、持久化、严格 Content 与作弊目标隔离；未运行 Unity Test Runner、PlayMode、batchmode 或 Bake。
+
+## 2026-09-15 — CW-10.5 战略物资访问与储藏室
+
+- 将上一轮恢复处与玩家队伍战斗数值作弊标记为 Producer Accepted / Sealed。
+- 保留有限 `PartyInventory` 与按 SiteId 持久化的 `WorldSitePublicStock` 两份 authority；新增不持久化的 `PlayerStrategicResourceService`，只聚合 resource tag，并按当前 Site→其他 SiteId→背包事务扣除和回滚。
+- 新增 3×3、粗木10的 `storageRoom`：荒村 authored 一座，玩家可在单一己方 Actual Managing Site 内建造且每 Site 最多一座；runtime placement 以 optional `BoundWorldSiteId` 持久绑定 Site，共用既有 outdoor asset sequence。
+- `WorldSiteStorageRoomBoard` 从 Content 与 runtime assets 重建，不保存库存；占领/失去/inactive 通过实时 Site Owner/Core 状态自动让同一 Public Stock 加入或退出网络。
+- 顶部 HUD 分别显示“战略物资/随身物资”，背包容量与 Inventory Panel 仍只反映真实背包；建筑、技能突破、敛息草及对应 have/need 已统一资源访问规则，任务和非 resource item 保持 bag-only。
+- 严格 Content 与定向离线测试 4/4 通过；离线编译 0 error、18 条既有 warning，`git diff --check` 通过；未运行 Unity、PlayMode、batchmode 或 Bake。
 
 ---

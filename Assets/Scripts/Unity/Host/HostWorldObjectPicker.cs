@@ -10,7 +10,7 @@ namespace XianXia.Unity.Host
     public enum WorldObjectTargetKind
     {
         None = 0, ControlCore = 1, FactionFlag = 2, FarmPlot = 3,
-        Destructible = 4, Housing = 5, WorkArea = 6, RecoverySpot = 7
+        Destructible = 4, Housing = 5, WorkArea = 6, RecoverySpot = 7, StorageRoom = 8
     }
 
     /// <summary>一次拾取得到的 persistent world-object identity；左键检视与右键行为共用。</summary>
@@ -68,9 +68,16 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
-            if (HostMapObjectRegistry.TryPickPlot(point, 1.35f, out var plot) && plot.IsRecoverySpot)
+            if (HostMapObjectRegistry.TryPickPlot(point, out var plot) && plot.IsRecoverySpot)
             {
                 target = new WorldObjectInteractionTarget(WorldObjectTargetKind.RecoverySpot, plot: plot,
+                    displayLabel: plot.KindDisplayName());
+                return true;
+            }
+
+            if (plot != null && plot.IsStorageRoom)
+            {
+                target = new WorldObjectInteractionTarget(WorldObjectTargetKind.StorageRoom, plot: plot,
                     displayLabel: plot.KindDisplayName());
                 return true;
             }
@@ -82,7 +89,7 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
-            if (HostMapObjectRegistry.TryPickDestructible(point, 2.2f, out var destructible))
+            if (HostMapObjectRegistry.TryPickDestructible(point, out var destructible))
             {
                 target = new WorldObjectInteractionTarget(WorldObjectTargetKind.Destructible,
                     destructible: destructible, displayLabel: destructible.DisplayName);

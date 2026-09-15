@@ -26,6 +26,9 @@ namespace XianXia.Data.Bootstrap
             var assetAnchors = OutdoorAdministrativeAssetAnchorBootstrap.Rehydrate(world, registry);
             if (assetAnchors.IsFailure)
                 return assetAnchors;
+            var storageRooms = WorldSiteStorageRoomBootstrap.Rehydrate(world, registry);
+            if (storageRooms.IsFailure)
+                return storageRooms;
             RehydrateConstructionCatalog(world, registry);
             var fixedCores = RebindPresetWorldSiteCoreMetadata(world, registry);
             if (fixedCores.IsFailure)
@@ -133,6 +136,7 @@ namespace XianXia.Data.Bootstrap
                 var placementKind = definition.PlacementKind == "factionFlag" ? ConstructionPlacementKind.FactionFlag :
                     definition.PlacementKind == "farmField" ? ConstructionPlacementKind.FarmField :
                     definition.PlacementKind == "recoverySpot" ? ConstructionPlacementKind.RecoverySpot :
+                    definition.PlacementKind == "storageRoom" ? ConstructionPlacementKind.StorageRoom :
                     throw new System.InvalidOperationException("Unknown construction placementKind: " + definition.PlacementKind);
                 var spec = new BuildingConstructionSpec
                 {

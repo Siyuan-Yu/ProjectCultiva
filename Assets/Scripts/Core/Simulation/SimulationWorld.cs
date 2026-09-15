@@ -202,6 +202,8 @@ namespace XianXia.Core.Simulation
 
         /// <summary>Stable-id authority for streamed Outdoor destructibles and farm cells.</summary>
         public XianXia.Core.Construction.OutdoorConstructedAssetBoard OutdoorConstructedAssets { get; } = new XianXia.Core.Construction.OutdoorConstructedAssetBoard();
+        /// <summary>Derived physical facilities that connect Site public stock to strategic access.</summary>
+        public WorldSiteStorageRoomBoard SiteStorageRooms { get; } = new WorldSiteStorageRoomBoard();
         public OutdoorStatefulObjectBoard OutdoorStatefulObjects { get; }
 
         /// <summary>Item display／stack rules for the shared party bag.</summary>

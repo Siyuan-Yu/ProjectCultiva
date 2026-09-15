@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.Inventory;
 using XianXia.Core.World.Hex;
 using XianXia.Core.World.Strategic;
 
@@ -21,7 +22,7 @@ namespace XianXia.Core.Construction
                 return false;
             foreach (var total in SumCosts(spec.Costs))
             {
-                var have = world.Inventory.GetCount(total.ItemId);
+                var have = GetAvailableMaterialCount(world, total.ItemId);
                 if (have < total.Count)
                 {
                     missing = new ConstructionMaterialCost
@@ -31,6 +32,11 @@ namespace XianXia.Core.Construction
             }
             return true;
         }
+
+        public static int GetAvailableMaterialCount(SimulationWorld world, string itemId) =>
+            world?.InventoryCatalog?.HasTag(itemId, "resource") == true
+                ? PlayerStrategicResourceService.GetAvailableCount(world, itemId)
+                : world?.Inventory?.GetCount(itemId) ?? 0;
 
         public static Result TryConstructFactionFlag(
             SimulationWorld world,
@@ -54,18 +60,8 @@ namespace XianXia.Core.Construction
             if (placement.IsFailure)
                 return placement;
 
-            var totals = SumCosts(spec.Costs);
-            var removed = new List<ConstructionMaterialCost>();
-            for (var i = 0; i < totals.Count; i++)
-            {
-                var cost = totals[i];
-                if (!world.Inventory.TryRemoveAll(cost.ItemId, cost.Count))
-                {
-                    RestoreRemoved(world, removed);
-                    return Result.Failure(ErrorCode.InvalidOperation, "建造材料扣除失败，事务已回滚。", cost.ItemId);
-                }
-                removed.Add(cost);
-            }
+            if (!TrySpendMaterials(world, spec, out var removed))
+                return Result.Failure(ErrorCode.InvalidOperation, "建造材料扣除失败，事务已回滚。");
 
             flagId = FactionFlagService.NextRuntimeFlagId(world, playerFactionId, anchor);
             var placed = FactionFlagService.TryPlace(
@@ -103,19 +99,10 @@ namespace XianXia.Core.Construction
                 return valid;
 
             flagId = FactionFlagService.NextRuntimeFlagId(world, playerFactionId, request.StrategicAnchor);
-            var totals = SumCosts(spec.Costs);
-            var removed = new List<ConstructionMaterialCost>();
-            for (var i = 0; i < totals.Count; i++)
+            if (!TrySpendMaterials(world, spec, out var removed))
             {
-                var cost = totals[i];
-                if (!world.Inventory.TryRemoveAll(cost.ItemId, cost.Count))
-                {
-                    RestoreRemoved(world, removed);
-                    flagId = string.Empty;
-                    return Result.Failure(ErrorCode.InvalidOperation,
-                        "建造材料扣除失败，事务已回滚。", cost.ItemId);
-                }
-                removed.Add(cost);
+                flagId = string.Empty;
+                return Result.Failure(ErrorCode.InvalidOperation, "建造材料扣除失败，事务已回滚。");
             }
 
             var placed = FactionFlagService.TryPlaceSiteCore(
@@ -143,6 +130,12 @@ namespace XianXia.Core.Construction
             => TryConstructOutdoorAsset(world, buildingId, actingFactionId, surfaceId, worldX, worldY,
                 ConstructionPlacementKind.RecoverySpot, "恢复处", "recovery", false, out assetId);
 
+        public static Result TryConstructStorageRoom(
+            SimulationWorld world, string buildingId, string actingFactionId,
+            string surfaceId, float worldX, float worldY, out string assetId)
+            => TryConstructOutdoorAsset(world, buildingId, actingFactionId, surfaceId, worldX, worldY,
+                ConstructionPlacementKind.StorageRoom, "储藏室", "storage", false, out assetId);
+
         static Result TryConstructOutdoorAsset(
             SimulationWorld world, string buildingId, string actingFactionId,
             string surfaceId, float worldX, float worldY, ConstructionPlacementKind placementKind,
@@ -153,7 +146,10 @@ namespace XianXia.Core.Construction
                 spec.PlacementKind != placementKind || !spec.UnlockedByDefault || spec.CreatesWorldSite ||
                 (placementKind == ConstructionPlacementKind.RecoverySpot &&
                  (spec.FootprintCellsW != 2 || spec.FootprintCellsH != 2 ||
-                  !string.Equals(spec.OutdoorKind, OutdoorConstructedAssetSemantics.RecoverySpotKind, StringComparison.Ordinal))))
+                  !string.Equals(spec.OutdoorKind, OutdoorConstructedAssetSemantics.RecoverySpotKind, StringComparison.Ordinal))) ||
+                (placementKind == ConstructionPlacementKind.StorageRoom &&
+                 (spec.FootprintCellsW != 3 || spec.FootprintCellsH != 3 ||
+                  !string.Equals(spec.OutdoorKind, OutdoorConstructedAssetSemantics.StorageRoomKind, StringComparison.Ordinal))))
                 return Result.Failure(ErrorCode.InvalidArgument, displayName + "建筑定义无效或未解锁。");
             if (world.LocalMap.IsInInterior || world.Strategic.ClockFreeze.Reason != StrategicClockFreezeReason.None)
                 return Result.Failure(ErrorCode.InvalidOperation, "当前空间或战斗阶段不允许建造" + displayName + "。");
@@ -161,19 +157,27 @@ namespace XianXia.Core.Construction
                 return Result.Failure(ErrorCode.InvalidOperation, "建造材料不足。");
             if (!world.SurfaceSpatial.TryGet(surfaceId, out var metric) || world.OutdoorConstructedAssets.NextSequence >= long.MaxValue - 1)
                 return Result.Failure(ErrorCode.InvalidArgument, "Surface 或资产序列无效。");
+            var boundSiteId = string.Empty;
+            if (placementKind == ConstructionPlacementKind.StorageRoom)
+            {
+                var storageSite = WorldSiteStorageRoomPlacementService.ResolveSiteForFootprint(world, actingFactionId, surfaceId,
+                    worldX, worldY, spec.FootprintCellsW, spec.FootprintCellsH, metric.CellSize, out boundSiteId);
+                if (storageSite.IsFailure) return storageSite;
+            }
             var nextId = world.OutdoorConstructedAssets.NextIdForKind(spec.OutdoorKind);
             var asset = new OutdoorConstructedAssetState {
                 StableAssetId = nextId, BuildingId = buildingId,
                 Kind = spec.OutdoorKind, SurfaceId = surfaceId, WorldX = worldX, WorldY = worldY,
                 WorldWidth = spec.FootprintCellsW * metric.CellSize, WorldHeight = spec.FootprintCellsH * metric.CellSize,
                 CellsW = spec.FootprintCellsW, CellsH = spec.FootprintCellsH,
-                BoundLocationId = "location:runtime:" + idKind + ":" + nextId
+                BoundLocationId = "location:runtime:" + idKind + ":" + nextId,
+                BoundWorldSiteId = boundSiteId
             };
             var allowed = OutdoorFactionConstructionAuthorizationService.Validate(world, actingFactionId, asset);
             if (allowed.IsFailure) return allowed;
             foreach (var existing in world.OutdoorConstructedAssets.Assets.Values)
                 if (OutdoorConstructedAssetBoard.Overlaps(existing, asset))
-                    return Result.Failure(ErrorCode.InvalidOperation, "此处已有室外建筑。");
+                    return Result.Failure(ErrorCode.InvalidOperation, "此处已有室外建筑或世界对象。");
             if (createsAdministrativeAnchors)
                 foreach (var anchor in world.OutdoorAdministrativeAssetAnchors.Anchors.Values)
                     if (anchor.SurfaceId == surfaceId && anchor.WorldX > worldX && anchor.WorldX < worldX + asset.WorldWidth &&
@@ -185,21 +189,31 @@ namespace XianXia.Core.Construction
             foreach (var anchor in anchors)
                 if (world.OutdoorAdministrativeAssetAnchors.TryGet(anchor.StableAssetId, out _))
                     return Result.Failure(ErrorCode.InvalidOperation, "室外建筑身份已存在。");
-            var removed = new List<ConstructionMaterialCost>();
-            foreach (var cost in SumCosts(spec.Costs))
-            {
-                if (!world.Inventory.TryRemoveAll(cost.ItemId, cost.Count))
-                { RestoreRemoved(world, removed); return Result.Failure(ErrorCode.InvalidOperation, "材料扣除失败，已回滚。"); }
-                removed.Add(cost);
-            }
+            if (!TrySpendMaterials(world, spec, out var removed))
+                return Result.Failure(ErrorCode.InvalidOperation, "材料扣除失败，已回滚。");
             if (!world.OutdoorConstructedAssets.TryRegister(asset))
             { RestoreRemoved(world, removed); return Result.Failure(ErrorCode.InvalidOperation, displayName + "注册失败，已回滚。"); }
+            if (placementKind == ConstructionPlacementKind.StorageRoom &&
+                !world.SiteStorageRooms.TryRegister(new WorldSiteStorageRoomState {
+                    StorageRoomId = asset.StableAssetId,
+                    SiteId = asset.BoundWorldSiteId,
+                    SurfaceId = asset.SurfaceId,
+                    DisplayName = displayName,
+                    WorldX = asset.WorldX + asset.WorldWidth * .5f,
+                    WorldY = asset.WorldY + asset.WorldHeight * .5f
+                }))
+            {
+                world.OutdoorConstructedAssets.Remove(asset.StableAssetId);
+                RestoreRemoved(world, removed);
+                return Result.Failure(ErrorCode.InvalidOperation, "该据点已有储藏室，材料已回滚。");
+            }
             var registered = new List<string>();
             foreach (var anchor in anchors)
             {
                 if (!world.OutdoorAdministrativeAssetAnchors.TryRegister(anchor))
                 {
                     foreach (var id in registered) world.OutdoorAdministrativeAssetAnchors.Remove(id);
+                    world.SiteStorageRooms.Remove(asset.StableAssetId);
                     world.OutdoorConstructedAssets.Remove(asset.StableAssetId);
                     RestoreRemoved(world, removed);
                     return Result.Failure(ErrorCode.InvalidOperation, "室外建筑锚点注册失败，已回滚。");
@@ -326,10 +340,40 @@ namespace XianXia.Core.Construction
             return requiredEmptySlots <= emptySlots;
         }
 
-        static void RestoreRemoved(SimulationWorld world, IReadOnlyList<ConstructionMaterialCost> removed)
+        sealed class MaterialWithdrawal
         {
-            for (var i = 0; i < removed.Count; i++)
-                world.Inventory.TryAddAll(removed[i].ItemId, removed[i].Count);
+            public ConstructionMaterialCost Cost;
+            public StrategicResourceWithdrawalReceipt StrategicReceipt;
+        }
+
+        static bool TrySpendMaterials(SimulationWorld world, BuildingConstructionSpec spec,
+            out List<MaterialWithdrawal> removed)
+        {
+            removed = new List<MaterialWithdrawal>();
+            if (!HasRequiredMaterials(world, spec, out _)) return false;
+            foreach (var cost in SumCosts(spec.Costs))
+            {
+                var row = new MaterialWithdrawal { Cost = cost };
+                var success = world.InventoryCatalog.HasTag(cost.ItemId, "resource")
+                    ? PlayerStrategicResourceService.TryConsume(
+                        world, cost.ItemId, cost.Count, out row.StrategicReceipt).IsSuccess
+                    : world.Inventory.TryRemoveAll(cost.ItemId, cost.Count);
+                if (!success) { RestoreRemoved(world, removed); return false; }
+                removed.Add(row);
+            }
+            return true;
+        }
+
+        static void RestoreRemoved(SimulationWorld world, IReadOnlyList<MaterialWithdrawal> removed)
+        {
+            for (var i = removed.Count - 1; i >= 0; i--)
+            {
+                var row = removed[i];
+                if (row.StrategicReceipt != null)
+                    PlayerStrategicResourceService.Rollback(world, row.StrategicReceipt);
+                else
+                    world.Inventory.TryAddAll(row.Cost.ItemId, row.Cost.Count);
+            }
         }
     }
 }

@@ -299,7 +299,7 @@ namespace XianXia.Unity.Host
                         _canTargetUnderMouse = authorization.IsAllowed;
                         _hoverHint = DescribeFarmHover(authorization, contextClick: false);
                     }
-                    else if (HostMapObjectRegistry.TryPickDestructible(point, 2.2f, out var dHover))
+                    else if (HostMapObjectRegistry.TryPickDestructible(point, out var dHover))
                     {
                         _canTargetUnderMouse = true;
                         _hoverHint = (dHover.IsTree ? "砍伐·" : "拆毁·") + dHover.DisplayName;
@@ -334,7 +334,7 @@ namespace XianXia.Unity.Host
                         _canTargetUnderMouse = true;
                         _hoverHint = "战斗·人物";
                     }
-                    else if (HostMapObjectRegistry.TryPickDestructible(point, 2.2f, out var tree))
+                    else if (HostMapObjectRegistry.TryPickDestructible(point, out var tree))
                     {
                         _canTargetUnderMouse = true;
                         _hoverHint = (tree.IsTree ? "砍伐·" : "拆毁·") + tree.DisplayName;
@@ -378,7 +378,7 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            if (HostMapObjectRegistry.TryPickDestructible(point, 2.2f, out var chopTarget))
+            if (HostMapObjectRegistry.TryPickDestructible(point, out var chopTarget))
             {
                 Resume();
                 var actor = HostNpcInteraction.ResolvePartyActor(selectionController, bootstrap?.Session);
@@ -505,7 +505,7 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            if (HostMapObjectRegistry.TryPickDestructible(point, 2.2f, out var destructible))
+            if (HostMapObjectRegistry.TryPickDestructible(point, out var destructible))
             {
                 Resume();
                 var actor = HostNpcInteraction.ResolvePartyActor(selectionController, bootstrap?.Session);

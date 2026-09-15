@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Stopwatch = System.Diagnostics.Stopwatch;
 using XianXia.Core.Combat;
+using XianXia.Core.Construction;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Navigation;
@@ -1597,6 +1598,7 @@ namespace XianXia.Unity.Host
         {
             if (!IsActive || _tileMap == null) return;
             foreach (var chunk in _loaded) BuildRuntimeConstructedOutdoorPlacements(chunk);
+            RecomposeWalkGrid();
         }
 
         void BuildRuntimeConstructedOutdoorPlacements(SurfaceChunkCoord chunk)
@@ -1608,14 +1610,18 @@ namespace XianXia.Unity.Host
             {
                 if (asset.SurfaceId != _surfaceId) continue;
                 var placement = new OutdoorSurfacePlacementDefinition {
-                    StableId = asset.StableAssetId, SiteId = string.Empty, Kind = asset.Kind,
+                    StableId = asset.StableAssetId, SiteId = asset.BoundWorldSiteId, Kind = asset.Kind,
                     WorldX = asset.WorldX, WorldY = asset.WorldY,
                     WorldWidth = asset.WorldWidth, WorldHeight = asset.WorldHeight,
                     SourceCellsW = asset.CellsW, SourceCellsH = asset.CellsH,
-                    BoundLocationId = asset.BoundLocationId, BlocksMovement = false,
+                    BoundLocationId = asset.BoundLocationId,
+                    BlocksMovement = string.Equals(asset.Kind,
+                        OutdoorConstructedAssetSemantics.StorageRoomKind, StringComparison.Ordinal),
                     Label = world.ConstructionCatalog.TryGet(asset.BuildingId, out var spec)
                         ? spec.DisplayName
-                        : string.Equals(asset.Kind, "recoverySpot", StringComparison.Ordinal) ? "恢复处" : "农田"
+                        : string.Equals(asset.Kind, "recoverySpot", StringComparison.Ordinal) ? "恢复处" :
+                          string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.StorageRoomKind,
+                              StringComparison.Ordinal) ? "储藏室" : "农田"
                 };
                 if (!PlacementTouchesChunk(placement, chunk)) continue;
                 var owner = SitePlacementOwnerKey(chunk, "runtime:" + asset.StableAssetId);
@@ -1726,6 +1732,22 @@ namespace XianXia.Unity.Host
                         _bootstrap.Session.World.OutdoorStatefulObjects, p))
                     continue;
                 RasterBlocker(grid, originX, originY, cell, p.WorldX, p.WorldY, p.WorldWidth, p.WorldHeight);
+                any = true;
+            }
+
+            var runtimeAssets = _bootstrap.Session.World.OutdoorConstructedAssets;
+            foreach (var asset in runtimeAssets.Assets.Values)
+            {
+                if (!string.Equals(asset.Kind, OutdoorConstructedAssetSemantics.StorageRoomKind,
+                        StringComparison.Ordinal) || !string.Equals(asset.SurfaceId, _surfaceId, StringComparison.Ordinal))
+                    continue;
+                var placement = new OutdoorSurfacePlacementDefinition {
+                    WorldX = asset.WorldX, WorldY = asset.WorldY,
+                    WorldWidth = asset.WorldWidth, WorldHeight = asset.WorldHeight
+                };
+                if (!PlacementTouchesChunk(placement, coord)) continue;
+                RasterBlocker(grid, originX, originY, cell,
+                    asset.WorldX, asset.WorldY, asset.WorldWidth, asset.WorldHeight);
                 any = true;
             }
 

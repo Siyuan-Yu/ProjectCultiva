@@ -20,6 +20,8 @@ namespace XianXia.Unity.Host
         [SerializeField] int currentHp = 40;
         [SerializeField] int woodYield;
         [SerializeField] bool destroyed;
+        Rect _interactionBounds;
+        bool _hasInteractionBounds;
 
         public string PlacementId => placementId;
         public string Kind => kind;
@@ -29,6 +31,8 @@ namespace XianXia.Unity.Host
         public int CurrentHp => currentHp;
         public int WoodYield => woodYield;
         public bool IsDestroyed => destroyed;
+        public bool HasInteractionBounds => _hasInteractionBounds;
+        public float InteractionBoundsArea => _hasInteractionBounds ? _interactionBounds.width * _interactionBounds.height : float.MaxValue;
         public bool IsTree =>
             string.Equals(kind, "treeS", System.StringComparison.OrdinalIgnoreCase) ||
             string.Equals(kind, "treeM", System.StringComparison.OrdinalIgnoreCase) ||
@@ -61,6 +65,16 @@ namespace XianXia.Unity.Host
             }
             HostMapObjectRegistry.Register(this);
         }
+
+        /// <summary>Runtime-only final presentation geometry; rebuilt with every materialization.</summary>
+        public void ConfigureInteractionBounds(Rect bounds)
+        {
+            _interactionBounds = bounds;
+            _hasInteractionBounds = bounds.width > 0f && bounds.height > 0f;
+        }
+
+        public bool ContainsInteractionPoint(Vector3 point) =>
+            _hasInteractionBounds && _interactionBounds.Contains(new Vector2(point.x, point.y));
 
         /// <summary>砍伐结算用：即使序列化产量为 0，也按 kind 回落默认产量。</summary>
         public int ResolveWoodYield()

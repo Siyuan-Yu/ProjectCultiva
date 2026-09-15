@@ -25,10 +25,12 @@ namespace XianXia.Core.Construction
     public static class OutdoorConstructedAssetSemantics
     {
         public const string RecoverySpotKind = "recoverySpot";
+        public const string StorageRoomKind = "storageRoom";
 
         public static bool IsSupportedRuntimeKind(string kind) =>
             string.Equals(kind, "grainField", StringComparison.Ordinal) ||
-            string.Equals(kind, RecoverySpotKind, StringComparison.Ordinal);
+            string.Equals(kind, RecoverySpotKind, StringComparison.Ordinal) ||
+            string.Equals(kind, StorageRoomKind, StringComparison.Ordinal);
     }
 
     /// <summary>Persistent physical placement. WorldX/Y are the lower-left corner; no manager is stored.</summary>
@@ -45,6 +47,8 @@ namespace XianXia.Core.Construction
         public int CellsW { get; set; }
         public int CellsH { get; set; }
         public string BoundLocationId { get; set; } = string.Empty;
+        /// <summary>Stable Site identity for facilities whose meaning belongs to one WorldSite.</summary>
+        public string BoundWorldSiteId { get; set; } = string.Empty;
 
         public IEnumerable<OutdoorConstructedAssetCell> EnumerateGridCells()
         {
@@ -75,7 +79,9 @@ namespace XianXia.Core.Construction
 
         public bool IsValid => !string.IsNullOrWhiteSpace(StableAssetId) && !string.IsNullOrWhiteSpace(BuildingId) &&
             !string.IsNullOrWhiteSpace(SurfaceId) && !string.IsNullOrWhiteSpace(BoundLocationId) &&
-            OutdoorConstructedAssetSemantics.IsSupportedRuntimeKind(Kind) && CellsW > 0 && CellsH > 0 &&
+            OutdoorConstructedAssetSemantics.IsSupportedRuntimeKind(Kind) &&
+            (!string.Equals(Kind, OutdoorConstructedAssetSemantics.StorageRoomKind, StringComparison.Ordinal) ||
+             !string.IsNullOrWhiteSpace(BoundWorldSiteId)) && CellsW > 0 && CellsH > 0 &&
             (long)CellsW * CellsH <= int.MaxValue && Finite(WorldX) && Finite(WorldY) &&
             Finite(WorldWidth) && Finite(WorldHeight) && WorldWidth > 0 && WorldHeight > 0 &&
             Finite(WorldX + WorldWidth) && Finite(WorldY + WorldHeight);
@@ -94,7 +100,9 @@ namespace XianXia.Core.Construction
         {
             var prefix = string.Equals(kind, OutdoorConstructedAssetSemantics.RecoverySpotKind, StringComparison.Ordinal)
                 ? "asset:runtime:recovery:"
-                : "asset:runtime:farm:";
+                : string.Equals(kind, OutdoorConstructedAssetSemantics.StorageRoomKind, StringComparison.Ordinal)
+                    ? "asset:runtime:storage:"
+                    : "asset:runtime:farm:";
             return prefix + NextSequence.ToString(CultureInfo.InvariantCulture);
         }
         public void Clear() { _assets.Clear(); NextSequence = 1; }
@@ -115,8 +123,10 @@ namespace XianXia.Core.Construction
             {
                 const string farmPrefix = "asset:runtime:farm:";
                 const string recoveryPrefix = "asset:runtime:recovery:";
+                const string storagePrefix = "asset:runtime:storage:";
                 var prefix = id.StartsWith(farmPrefix, StringComparison.Ordinal) ? farmPrefix :
-                    id.StartsWith(recoveryPrefix, StringComparison.Ordinal) ? recoveryPrefix : string.Empty;
+                    id.StartsWith(recoveryPrefix, StringComparison.Ordinal) ? recoveryPrefix :
+                    id.StartsWith(storagePrefix, StringComparison.Ordinal) ? storagePrefix : string.Empty;
                 if (prefix.Length == 0 ||
                     !long.TryParse(id.Substring(prefix.Length), NumberStyles.None, CultureInfo.InvariantCulture, out var n) ||
                     n < 1 || n >= sequence) return false;

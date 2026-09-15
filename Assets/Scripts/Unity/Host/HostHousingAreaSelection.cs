@@ -76,7 +76,8 @@ namespace XianXia.Unity.Host
             {
                 if (_inspect.Kind == WorldObjectInspectKind.Housing ||
                     _inspect.Kind == WorldObjectInspectKind.WorkArea ||
-                    _inspect.Kind == WorldObjectInspectKind.Plot)
+                    _inspect.Kind == WorldObjectInspectKind.Plot ||
+                    _inspect.Kind == WorldObjectInspectKind.RecoverySpot)
                     _inspect.Clear();
             }
 
@@ -84,7 +85,9 @@ namespace XianXia.Unity.Host
                 (_inspect.Destructible == null || _inspect.Destructible.IsDestroyed))
                 _inspect.Clear();
 
-            if (_inspect.Kind == WorldObjectInspectKind.Plot && _inspect.Plot == null)
+            if ((_inspect.Kind == WorldObjectInspectKind.Plot ||
+                 _inspect.Kind == WorldObjectInspectKind.RecoverySpot ||
+                 _inspect.Kind == WorldObjectInspectKind.StorageRoom) && _inspect.Plot == null)
                 _inspect.Clear();
         }
 

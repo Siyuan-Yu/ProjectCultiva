@@ -186,7 +186,9 @@ namespace XianXia.Unity.Host
                     continue;
                 sb.Append('\n');
                 var name = ShortItemName(world, c.ItemId);
-                var have = world?.Inventory != null ? world.Inventory.GetCount(c.ItemId) : 0;
+                var have = world?.InventoryCatalog?.HasTag(c.ItemId, "resource") == true
+                    ? XianXia.Core.Inventory.PlayerStrategicResourceService.GetAvailableCount(world, c.ItemId)
+                    : world?.Inventory != null ? world.Inventory.GetCount(c.ItemId) : 0;
                 sb.Append(name).Append(' ').Append(have).Append('/').Append(c.Count);
             }
 

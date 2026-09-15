@@ -720,6 +720,8 @@ namespace XianXia.Unity.Host
                 p?.Label,
                 HostMapDestructible.DefaultMaxHp(kind),
                 yield);
+            if (HostWorldObjectPickGeometry.TryGetInteractionBounds(go, out var interactionBounds))
+                d.ConfigureInteractionBounds(interactionBounds);
             if (isTree && d.ResolveWoodYield() <= 0)
                 Debug.LogWarning("[MapLayout] 树产量为 0：kind=" + kind + " id=" + instanceId);
         }
@@ -802,6 +804,8 @@ namespace XianXia.Unity.Host
                 info.Kind,
                 lootSpotId,
                 lootItemId);
+            if (HostWorldObjectPickGeometry.TryGetInteractionBounds(go, out var interactionBounds))
+                plot.ConfigureInteractionBounds(interactionBounds);
 
             // 药田／农田：只进 HostFarmFieldRegistry，点中格才交互。
             // 树：只走可破坏物砍伐，勿注册 Work 热点（否则右键会当成林区劳动、不掉树产木材）。

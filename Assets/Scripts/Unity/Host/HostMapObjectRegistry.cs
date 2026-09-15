@@ -104,10 +104,10 @@ namespace XianXia.Unity.Host
             OwnerByObject.Remove(d);
         }
 
-        public static bool TryPickPlot(Vector3 worldPoint, float radius, out HostMapPlotCell plot)
+        public static bool TryPickPlot(Vector3 worldPoint, out HostMapPlotCell plot)
         {
             plot = null;
-            var best = radius * radius;
+            var bestArea = float.MaxValue;
             for (var i = Plots.Count - 1; i >= 0; i--)
             {
                 var p = Plots[i];
@@ -118,19 +118,37 @@ namespace XianXia.Unity.Host
                     continue;
                 }
 
-                var d2 = (p.transform.position - worldPoint).sqrMagnitude;
-                if (d2 > best)
+                if (!p.ContainsInteractionPoint(worldPoint))
                     continue;
-                best = d2;
+                var area = p.InteractionBoundsArea;
+                if (area >= bestArea)
+                    continue;
+                bestArea = area;
                 plot = p;
             }
 
             return plot != null;
         }
 
-        public static bool TryPickDestructible(Vector3 worldPoint, float radius, out HostMapDestructible target)
+        public static bool TryPickDestructible(Vector3 worldPoint, out HostMapDestructible target)
         {
-            return TryFindNearestDestructible(worldPoint, radius, out target);
+            target = null;
+            var bestArea = float.MaxValue;
+            for (var i = Destructibles.Count - 1; i >= 0; i--)
+            {
+                var item = Destructibles[i];
+                if (item == null || item.IsDestroyed)
+                {
+                    if (item != null) DestructibleIds.Remove(item.GetInstanceID());
+                    Destructibles.RemoveAt(i);
+                    continue;
+                }
+                if (!item.ContainsInteractionPoint(worldPoint) || item.InteractionBoundsArea >= bestArea)
+                    continue;
+                bestArea = item.InteractionBoundsArea;
+                target = item;
+            }
+            return target != null;
         }
 
         /// <summary>Nearest destructible within radius; optional tree-only filter.</summary>

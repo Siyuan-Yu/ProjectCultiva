@@ -3985,6 +3985,23 @@
           "sourceCellsH": 2
         },
         {
+          "stableId": "base:site_huangcun:storage_room",
+          "siteId": "base:site_huangcun",
+          "chunkX": 5,
+          "chunkY": 8,
+          "worldX": 6.21373,
+          "worldY": 11.075,
+          "worldWidth": 0.06495,
+          "worldHeight": 0.105,
+          "kind": "storageRoom",
+          "blocksMovement": true,
+          "label": "荒村储藏室",
+          "sourceGridX": 87,
+          "sourceGridY": 45,
+          "sourceCellsW": 3,
+          "sourceCellsH": 3
+        },
+        {
           "stableId": "base:site_chengzhen:marker_chengzhen",
           "siteId": "base:site_chengzhen",
           "chunkX": 15,

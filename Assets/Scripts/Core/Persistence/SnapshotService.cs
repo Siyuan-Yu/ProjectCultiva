@@ -422,7 +422,8 @@ namespace XianXia.Core.Persistence
                     WorldHeight = asset.WorldHeight,
                     CellsW = asset.CellsW,
                     CellsH = asset.CellsH,
-                    BoundLocationId = asset.BoundLocationId });
+                    BoundLocationId = asset.BoundLocationId,
+                    BoundWorldSiteId = asset.BoundWorldSiteId });
             foreach (var kv in world.OutdoorStatefulObjects.Destructibles)
                 snap.OutdoorDestructibles.Add(new OutdoorDestructibleSnapshotDto
                 { StableId = kv.Key, CurrentHp = kv.Value.Hp, Destroyed = kv.Value.Destroyed });
@@ -971,7 +972,15 @@ namespace XianXia.Core.Persistence
                     WorldHeight = dto.WorldHeight,
                     CellsW = dto.CellsW,
                     CellsH = dto.CellsH,
-                    BoundLocationId = dto.BoundLocationId };
+                    BoundLocationId = dto.BoundLocationId,
+                    BoundWorldSiteId = dto.BoundWorldSiteId };
+                if (string.Equals(asset.Kind,
+                        XianXia.Core.Construction.OutdoorConstructedAssetSemantics.StorageRoomKind,
+                        StringComparison.Ordinal) &&
+                    (string.IsNullOrWhiteSpace(asset.BoundWorldSiteId) ||
+                     !world.Strategic.Sites.TryGet(asset.BoundWorldSiteId, out _)))
+                    return Result.Failure(ErrorCode.SnapshotInvalid,
+                        "Runtime storage room references a missing WorldSite.", dto.StableAssetId);
                 if (!world.OutdoorConstructedAssets.TryRegister(asset))
                     return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid or duplicate runtime constructed asset.", dto.StableAssetId);
             }

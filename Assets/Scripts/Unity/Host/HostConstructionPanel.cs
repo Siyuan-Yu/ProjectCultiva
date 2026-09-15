@@ -157,7 +157,7 @@ namespace XianXia.Unity.Host
                 for (var c = 0; c < spec.Costs.Count; c++)
                 {
                     var cost = spec.Costs[c];
-                    var have = world.Inventory.GetCount(cost.ItemId);
+                    var have = ConstructionService.GetAvailableMaterialCount(world, cost.ItemId);
                     GUI.Label(new Rect(card.x + 12f, materialY, card.width - 150f, 20f),
                         world.InventoryCatalog.GetName(cost.ItemId) + "  " + have + " / " + cost.Count +
                         (have >= cost.Count ? "  ✓" : "  ✕"), _small);

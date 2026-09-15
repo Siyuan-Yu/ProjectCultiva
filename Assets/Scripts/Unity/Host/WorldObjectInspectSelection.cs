@@ -9,7 +9,8 @@ namespace XianXia.Unity.Host
         Plot = 4,
         Destructible = 5,
         FactionFlag = 6,
-        RecoverySpot = 7
+        RecoverySpot = 7,
+        StorageRoom = 8
     }
 
     /// <summary>左键点空后的世界物检视目标（只读况栏；无指令球）。</summary>
@@ -70,6 +71,14 @@ namespace XianXia.Unity.Host
             Plot = plot;
         }
 
+        public void SetStorageRoom(HostMapPlotCell plot)
+        {
+            Clear();
+            if (plot == null) return;
+            Kind = WorldObjectInspectKind.StorageRoom;
+            Plot = plot;
+        }
+
         public void SetDestructible(HostMapDestructible d)
         {
             Clear();
@@ -95,6 +104,7 @@ namespace XianXia.Unity.Host
                 case WorldObjectTargetKind.FactionFlag: SetFactionFlag(target.FactionFlagId); break;
                 case WorldObjectTargetKind.FarmPlot: SetPlot(target.Plot); break;
                 case WorldObjectTargetKind.RecoverySpot: SetRecoverySpot(target.Plot); break;
+                case WorldObjectTargetKind.StorageRoom: SetStorageRoom(target.Plot); break;
                 case WorldObjectTargetKind.Destructible: SetDestructible(target.Destructible); break;
                 case WorldObjectTargetKind.Housing: SetHousing(target.WorkAreaId); break;
                 case WorldObjectTargetKind.WorkArea: SetWorkArea(target.WorkAreaId); break;

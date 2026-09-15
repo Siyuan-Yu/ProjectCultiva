@@ -57,6 +57,25 @@
           "count": 5
         }
       ]
+    },
+    {
+      "id": "base:building_storage_room",
+      "type": "building",
+      "name": "储藏室",
+      "description": "储存据点公共物资，并使该据点物资接入己方战略物资网络。",
+      "unlockedByDefault": true,
+      "placementKind": "storageRoom",
+      "createsWorldSite": false,
+      "outdoorKind": "storageRoom",
+      "footprintCellsW": 3,
+      "footprintCellsH": 3,
+      "dismantleRefundRate": 0.0,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 10
+        }
+      ]
     }
   ]
 }

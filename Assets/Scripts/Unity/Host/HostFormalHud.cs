@@ -12,6 +12,7 @@ using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Input;
+using XianXia.Core.Inventory;
 using XianXia.Core.Labor;
 using XianXia.Core.Npc;
 using XianXia.Core.Schedule;
@@ -504,17 +505,19 @@ namespace XianXia.Unity.Host
             x += 44f;
             HostLevelTesterCheatPanel.DrawTopBarEntryButton(bootstrap, x + 4f);
             var bag = session.World.Inventory;
-            var wood = bag.GetCount("base:resource_rough_wood");
-            var herb = bag.GetCount("base:resource_spirit_herb");
-            var grain = bag.GetCount("base:resource_grain");
-            var grass = bag.GetCount("base:resource_conceal_grass");
+            var network = PlayerStrategicResourceService.CanAccessSiteStorageNetwork(session.World);
+            var wood = PlayerStrategicResourceService.GetAvailableCount(session.World, "base:resource_rough_wood");
+            var herb = PlayerStrategicResourceService.GetAvailableCount(session.World, "base:resource_spirit_herb");
+            var grain = PlayerStrategicResourceService.GetAvailableCount(session.World, "base:resource_grain");
+            var grass = PlayerStrategicResourceService.GetAvailableCount(session.World, "base:resource_conceal_grass");
 
             var anger = session.World.SupervisorAnger != null ? session.World.SupervisorAnger.Value : 0;
             var exposure = ResolvePartyExposure(session);
             var used = bag.UsedSlotCount;
             var cap = bag.SlotCapacity;
-            var res = "背包 " + used + "/" + cap + "   木 " + wood + "   粮 " + grain + "   药 " + herb + "   敛息草 " + grass;
-            GUI.Label(new Rect(Screen.width - RailW - 620f, 4f, 374f, 18f), res, _body);
+            var res = "背包 " + used + "/" + cap + "   " + (network ? "战略物资" : "随身物资") +
+                      "  木 " + wood + "  粮 " + grain + "  药 " + herb + "  敛息草 " + grass;
+            GUI.Label(new Rect(Screen.width - RailW - 850f, 4f, 604f, 18f), res, _body);
             if (GUI.Button(new Rect(Screen.width - RailW - 234f, 6f, 70f, 28f), "地图"))
             {
                 var map = bootstrap != null ? bootstrap.WorldMapPanel : null;
@@ -558,7 +561,8 @@ namespace XianXia.Unity.Host
                              selectionController.IsPartyUnit(selectionController.State.SelectedIds[0]);
             if (partyFocus &&
                 inspect.Kind != WorldObjectInspectKind.ControlCore &&
-                inspect.Kind != WorldObjectInspectKind.Destructible)
+                inspect.Kind != WorldObjectInspectKind.Destructible &&
+                inspect.Kind != WorldObjectInspectKind.StorageRoom)
                 return;
 
             switch (inspect.Kind)
@@ -577,6 +581,9 @@ namespace XianXia.Unity.Host
                     break;
                 case WorldObjectInspectKind.RecoverySpot:
                     DrawInspectRecoverySpot(session, inspect.Plot);
+                    break;
+                case WorldObjectInspectKind.StorageRoom:
+                    DrawInspectStorageRoom(session, inspect.Plot);
                     break;
                 case WorldObjectInspectKind.Destructible:
                     DrawInspectDestructible(inspect.Destructible);
@@ -688,16 +695,52 @@ namespace XianXia.Unity.Host
         static string FormatSitePublicStock(PlayableHostSession session, WorldSite site)
         {
             if (session?.World == null || site == null)
-                return "据点公库：—";
+                return "储藏设施：未建设\n公共库存：—";
+            var hasStorage = session.World.SiteStorageRooms.TryGetBySite(site.SiteId, out var storage);
             if (!session.World.Strategic.SitePublicStocks.TryGet(site.SiteId, out var stock) ||
                 stock.Resources.Count == 0)
-                return "据点公库：空";
+                return "储藏设施：" + (hasStorage ? storage.DisplayName : "未建设") +
+                       "\n公共库存：" + (!site.IsCoreActive ? "已封存" : hasStorage ? "空" : "封存 · 未接入战略物资网络");
+            return "储藏设施：" + (hasStorage ? storage.DisplayName : "未建设") +
+                   "\n公共库存：" + (!site.IsCoreActive ? "已封存" :
+                       hasStorage ? stock.Resources.Count + " 类物资" : "封存 · 未接入战略物资网络");
+        }
+
+        void DrawInspectStorageRoom(PlayableHostSession session, HostMapPlotCell plot)
+        {
+            if (plot == null || session?.World == null ||
+                !session.World.SiteStorageRooms.TryGet(plot.StableCellId, out var room) ||
+                !session.World.Strategic.Sites.TryGet(room.SiteId, out var site) || site == null) return;
+            var playerOwned = string.Equals(site.OwnerFactionId, session.World.Strategic.PlayerFactionId,
+                System.StringComparison.Ordinal);
+            var status = !site.IsCoreActive ? "据点失效 · 库存封存" :
+                playerOwned ? "战略物资网络已接入" : "他方储藏设施";
+            DrawInspectShell(250f, "储藏室 · " +
+                (string.IsNullOrWhiteSpace(plot.Label) ? "储藏室" : plot.Label), () =>
+            {
+                var r = new Rect(Pad, TopH + 42f, 320f, 250f);
+                GUI.Label(new Rect(r.x + 10f, r.y + 36f, r.width - 20f, 22f),
+                    "所属据点：" + site.DisplayName, _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 60f, r.width - 20f, 22f),
+                    "当前控制：" + StrategicFactionCatalog.DisplayName(site.OwnerFactionId), _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 84f, r.width - 20f, 22f),
+                    "状态：" + status, _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 112f, r.width - 20f, 126f),
+                    FormatDetailedPublicStock(session, site), _body);
+            });
+        }
+
+        static string FormatDetailedPublicStock(PlayableHostSession session, WorldSite site)
+        {
+            if (!session.World.Strategic.SitePublicStocks.TryGet(site.SiteId, out var stock) ||
+                stock.Resources.Count == 0) return "公共库存：空";
             var ids = new List<string>(stock.Resources.Keys);
             ids.Sort(System.StringComparer.Ordinal);
-            var parts = new List<string>(ids.Count);
+            var text = new StringBuilder("公共库存：");
             for (var i = 0; i < ids.Count; i++)
-                parts.Add(session.World.InventoryCatalog.GetName(ids[i]) + " " + stock.Resources[ids[i]]);
-            return "据点公库：" + string.Join(" · ", parts);
+                text.Append('\n').Append(session.World.InventoryCatalog.GetName(ids[i]))
+                    .Append(' ').Append(stock.Resources[ids[i]]);
+            return text.ToString();
         }
 
         void DrawInspectHousing(PlayableHostSession session, string areaId)

@@ -78,7 +78,8 @@ namespace XianXia.Unity.Host
                                      _worldObjectTarget.Plot != null;
         bool IsReadOnlyWorldObjectTarget =>
             _worldObjectTarget.Kind == WorldObjectTargetKind.Housing ||
-            _worldObjectTarget.Kind == WorldObjectTargetKind.WorkArea;
+            _worldObjectTarget.Kind == WorldObjectTargetKind.WorkArea ||
+            _worldObjectTarget.Kind == WorldObjectTargetKind.StorageRoom;
 
         public void Bind(
             PlayableHostBootstrap host,

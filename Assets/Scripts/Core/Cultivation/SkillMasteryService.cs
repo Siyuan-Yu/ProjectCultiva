@@ -7,6 +7,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Events;
 using XianXia.Core.Results;
+using XianXia.Core.Inventory;
 using XianXia.Core.Simulation;
 
 namespace XianXia.Core.Cultivation
@@ -459,7 +460,10 @@ namespace XianXia.Core.Cultivation
                 var c = costs[i];
                 if (c == null || string.IsNullOrEmpty(c.ItemId) || c.Count <= 0)
                     continue;
-                if (world.Inventory.GetCount(c.ItemId) < c.Count)
+                var have = world.InventoryCatalog.HasTag(c.ItemId, "resource")
+                    ? PlayerStrategicResourceService.GetAvailableCount(world, c.ItemId)
+                    : world.Inventory.GetCount(c.ItemId);
+                if (have < c.Count)
                 {
                     if (parts.Length > 0)
                         parts.Append("、");
@@ -484,12 +488,28 @@ namespace XianXia.Core.Cultivation
 
             if (costs == null)
                 return true;
+            var spentResources = new List<StrategicResourceWithdrawalReceipt>();
+            var spentBagItems = new List<SkillMasteryCostSpec>();
             for (var i = 0; i < costs.Count; i++)
             {
                 var c = costs[i];
                 if (c == null || string.IsNullOrEmpty(c.ItemId) || c.Count <= 0)
                     continue;
-                world.Inventory.TryRemoveAll(c.ItemId, c.Count);
+                if (world.InventoryCatalog.HasTag(c.ItemId, "resource"))
+                {
+                    if (PlayerStrategicResourceService.TryConsume(
+                            world, c.ItemId, c.Count, out var receipt).IsSuccess)
+                    { spentResources.Add(receipt); continue; }
+                }
+                else if (world.Inventory.TryRemoveAll(c.ItemId, c.Count))
+                { spentBagItems.Add(c); continue; }
+
+                for (var r = spentResources.Count - 1; r >= 0; r--)
+                    PlayerStrategicResourceService.Rollback(world, spentResources[r]);
+                for (var b = spentBagItems.Count - 1; b >= 0; b--)
+                    world.Inventory.TryAddAll(spentBagItems[b].ItemId, spentBagItems[b].Count);
+                fail = "材料扣除失败，已回滚";
+                return false;
             }
 
             return true;

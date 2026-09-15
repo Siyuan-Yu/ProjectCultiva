@@ -3,6 +3,7 @@ using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Exploration;
 using XianXia.Core.Results;
+using XianXia.Core.Inventory;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 
@@ -88,13 +89,13 @@ namespace XianXia.Core.Input
             const string grassId = "base:resource_conceal_grass";
             const int riskDrop = 15;
             var world = _loop.World;
-            if (world.Inventory.GetCount(grassId) < 1)
-                return Result.Failure(ErrorCode.InvalidOperation, "No conceal grass in bag.");
+            if (PlayerStrategicResourceService.GetAvailableCount(world, grassId) < 1)
+                return Result.Failure(ErrorCode.InvalidOperation, "No available conceal grass.");
             if (!world.Entities.TryGet(subject, out var entity) ||
                 !entity.TryGet<PersonalConcealmentRiskComponent>(out var risk))
                 return Result.Failure(ErrorCode.ComponentMissing, "Concealment risk missing.");
 
-            if (!world.Inventory.TryRemoveAll(grassId, 1))
+            if (PlayerStrategicResourceService.TryConsume(world, grassId, 1, out _).IsFailure)
                 return Result.Failure(ErrorCode.InvalidOperation, "Failed to spend conceal grass.");
             risk.Add(-riskDrop);
             return Result.Success();

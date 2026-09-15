@@ -7,7 +7,8 @@ namespace XianXia.Core.Construction
     {
         FactionFlag = 0,
         FarmField = 1,
-        RecoverySpot = 2
+        RecoverySpot = 2,
+        StorageRoom = 3
     }
 
     public sealed class ConstructionMaterialCost

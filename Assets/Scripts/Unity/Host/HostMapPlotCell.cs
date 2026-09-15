@@ -22,6 +22,8 @@ namespace XianXia.Unity.Host
         [SerializeField] string lootItemId;
         [SerializeField] string stableCellId;
         SimulationWorld _world;
+        Rect _interactionBounds;
+        bool _hasInteractionBounds;
 
         public string LocationId => locationId;
         public HostInteractSpotKind InteractKind => interactKind;
@@ -35,6 +37,9 @@ namespace XianXia.Unity.Host
         public string LootSpotId => lootSpotId;
         public string LootItemId => lootItemId;
         public string StableCellId => stableCellId;
+        public bool HasInteractionBounds => _hasInteractionBounds;
+        public Rect InteractionBounds => _interactionBounds;
+        public float InteractionBoundsArea => _hasInteractionBounds ? _interactionBounds.width * _interactionBounds.height : float.MaxValue;
         public bool IsPlanted =>
             !string.IsNullOrEmpty(plantedCropId) && cropStage != OutdoorFarmCropStage.Empty;
 
@@ -45,6 +50,10 @@ namespace XianXia.Unity.Host
         public bool IsRecoverySpot =>
             interactKind == HostInteractSpotKind.Recovery ||
             string.Equals(kind, "recoverySpot", System.StringComparison.OrdinalIgnoreCase);
+
+        public bool IsStorageRoom =>
+            interactKind == HostInteractSpotKind.Storage ||
+            string.Equals(kind, "storageRoom", System.StringComparison.OrdinalIgnoreCase);
 
         public void Configure(
             SimulationWorld world,
@@ -73,6 +82,16 @@ namespace XianXia.Unity.Host
             HostFarmFieldRegistry.Register(this);
             RefreshCropVisual();
         }
+
+        /// <summary>Runtime-only final presentation geometry; never part of content or snapshot state.</summary>
+        public void ConfigureInteractionBounds(Rect bounds)
+        {
+            _interactionBounds = bounds;
+            _hasInteractionBounds = bounds.width > 0f && bounds.height > 0f;
+        }
+
+        public bool ContainsInteractionPoint(Vector3 point) =>
+            _hasInteractionBounds && _interactionBounds.Contains(new Vector2(point.x, point.y));
 
         public void SetPlanted(string cropId)
         {
@@ -237,6 +256,7 @@ namespace XianXia.Unity.Host
                 case "herbField": return "药田格";
                 case "grainField": return "农田格";
                 case "recoveryspot": return "恢复处";
+                case "storageroom": return "储藏室";
                 case "loot": return "地上物";
                 case "cushion": return "蒲团";
                 case "ore":

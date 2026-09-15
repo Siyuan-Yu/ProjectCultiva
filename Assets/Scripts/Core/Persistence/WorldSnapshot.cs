@@ -75,6 +75,7 @@ namespace XianXia.Core.Persistence
         public int CellsW { get; set; }
         public int CellsH { get; set; }
         public string BoundLocationId { get; set; } = string.Empty;
+        public string BoundWorldSiteId { get; set; } = string.Empty;
     }
 
     public sealed class OutdoorDestructibleSnapshotDto

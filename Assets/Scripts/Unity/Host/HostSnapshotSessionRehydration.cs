@@ -33,7 +33,8 @@ namespace XianXia.Unity.Host
             if (contentShell.IsFailure)
             {
                 return Result.Failure(ErrorCode.ContentLoadFailed,
-                    "Static content shell rehydrate failed.", contentShell.Error.ToString());
+                    "Static content shell rehydrate failed: " + contentShell.Error.Message,
+                    contentShell.Error.ToString());
             }
 
             var scenarioParsed = XianXia.Core.Domain.Ids.DefinitionId.Parse(bootstrap.OpeningScenarioId ?? string.Empty);
@@ -94,6 +95,14 @@ namespace XianXia.Unity.Host
                 var political = StrategicSnapshotHelper.RestoreHexPoliticalState(world, politicalSnapshot);
                 if (political.IsFailure)
                     return political;
+                // StorageRoom registry is derived presentation/economy wiring, but it needs the
+                // complete authored/runtime WorldSite shell restored above. It must not run in
+                // RuntimeContentShellBootstrap, where a snapshot world has no Site identities yet.
+                var storageRooms = WorldSiteStorageRoomBootstrap.Rehydrate(world, registry);
+                if (storageRooms.IsFailure)
+                    return Result.Failure(ErrorCode.ContentLoadFailed,
+                        "Storage room registry rehydrate failed: " + storageRooms.Error.Message,
+                        storageRooms.Error.ToString());
                 var economy = WorldSiteEconomyBootstrap.ApplyLegacySaveFallback(world, registry);
                 if (economy.IsFailure)
                     return economy;

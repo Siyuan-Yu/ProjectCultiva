@@ -1,5 +1,7 @@
 # 238｜恢复处与玩家队伍战斗数值作弊（2026-09-15）
 
+> 状态：**Producer Accepted / Sealed**。制作人已确认恢复处与队伍战斗数值作弊通过；后续工作不得回退本轮行为。
+
 ## 目标与范围
 
 本轮关闭两个制作验收缺口：提供可建造且可持久化的 Continuous Outdoor 恢复处；在 LevelTester 战斗页提供只作用于当前 PlayerParty 的数值按钮。没有扩展医疗、受伤、床位、收费、NPC 恢复 AI、Site Economy 或普通建筑拆除。

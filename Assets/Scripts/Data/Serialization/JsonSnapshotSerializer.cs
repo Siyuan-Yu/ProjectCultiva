@@ -214,6 +214,7 @@ namespace XianXia.Data.Serialization
                         if (!node.TryGetProperty("cellsH", out var cellsHValue) || cellsHValue.Kind != JsonValueKind.Number) throw new System.FormatException("Invalid farm cellsH.");
                         if (cellsHValue.Number < 1 || cellsHValue.Number > int.MaxValue || cellsHValue.Number != System.Math.Floor(cellsHValue.Number)) throw new System.FormatException("Invalid farm cellsH integer.");
                         if (!node.TryGetProperty("boundLocationId", out var boundLocationIdValue) || boundLocationIdValue.Kind != JsonValueKind.String) throw new System.FormatException("Invalid farm boundLocationId.");
+                        var boundWorldSiteId = node.GetString("boundWorldSiteId", string.Empty);
                         snapshot.OutdoorConstructedAssets.Add(new OutdoorConstructedAssetSnapshotDto {
                             StableAssetId = stableAssetIdValue.String,
                             BuildingId = buildingIdValue.String,
@@ -225,7 +226,8 @@ namespace XianXia.Data.Serialization
                             WorldHeight = (float)worldHeightValue.Number,
                             CellsW = (int)cellsWValue.Number,
                             CellsH = (int)cellsHValue.Number,
-                            BoundLocationId = boundLocationIdValue.String });
+                            BoundLocationId = boundLocationIdValue.String,
+                            BoundWorldSiteId = boundWorldSiteId });
                     }
                 }
                 else if (root.TryGetProperty("nextOutdoorConstructedAssetSequence", out _))
@@ -443,7 +445,8 @@ namespace XianXia.Data.Serialization
                     ["worldHeight"] = JsonValue.FromNumber(a.WorldHeight),
                     ["cellsW"] = JsonValue.FromNumber(a.CellsW),
                     ["cellsH"] = JsonValue.FromNumber(a.CellsH),
-                    ["boundLocationId"] = JsonValue.FromString(a.BoundLocationId) }));
+                    ["boundLocationId"] = JsonValue.FromString(a.BoundLocationId),
+                    ["boundWorldSiteId"] = JsonValue.FromString(a.BoundWorldSiteId ?? string.Empty) }));
             return list;
         }
 

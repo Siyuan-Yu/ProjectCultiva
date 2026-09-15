@@ -1,11 +1,13 @@
 using XianXia.Core.Exploration;
+using XianXia.Core.Construction;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 
 namespace XianXia.Data.Bootstrap
 {
-    /// <summary>Builds farm administrative anchors directly from checked-in Surface content.</summary>
+    /// <summary>Rebuilds authored/runtime administrative asset anchors (currently farm only).</summary>
     public static class OutdoorAdministrativeAssetAnchorBootstrap
     {
         public static Result Rehydrate(SimulationWorld world, DefinitionRegistry registry)
@@ -22,8 +24,7 @@ namespace XianXia.Data.Bootstrap
                 for (var i = 0; i < surface.SitePlacements.Count; i++)
                 {
                     var placement = surface.SitePlacements[i];
-                    if (placement == null ||
-                        !OutdoorAdministrativeAssetSemantics.IsAdministrativeAssetKind(placement.Kind))
+                    if (placement == null || !OutdoorAdministrativeAssetSemantics.IsAdministrativeAssetKind(placement.Kind))
                         continue;
                     if (string.IsNullOrWhiteSpace(placement.StableId) ||
                         placement.WorldWidth <= 0f || placement.WorldHeight <= 0f)

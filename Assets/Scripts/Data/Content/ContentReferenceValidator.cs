@@ -46,6 +46,7 @@ namespace XianXia.Data.Content
             ValidateMapSpawnZones(registry, locations, report);
             ValidateOutdoorSurfaceSitePlaceIdentities(registry, report);
             ValidateOutdoorControlCores(registry, report);
+            ValidateOutdoorStorageRooms(registry, report);
             ValidateFactionFlagSiteCores(registry, report);
             ValidateWorldSiteEconomies(registry, report);
             ValidateQuests(registry, locations, producedFlags, consumedFlags, report);
@@ -153,6 +154,62 @@ namespace XianXia.Data.Content
                     if (!centerIsAuthored)
                         report.Add(ErrorCode.InvalidArgument,
                             "Outdoor controlCore center is outside authored Surface chunks.", context);
+                }
+            }
+        }
+
+        static void ValidateOutdoorStorageRooms(DefinitionRegistry registry, ValidationReport report)
+        {
+            var knownSites = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var pair in registry.HexWorldContents)
+                if (pair.Value?.Sites != null)
+                    for (var i = 0; i < pair.Value.Sites.Count; i++)
+                        if (!string.IsNullOrWhiteSpace(pair.Value.Sites[i]?.SiteId))
+                            knownSites.Add(pair.Value.Sites[i].SiteId);
+            var storageSites = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var pair in registry.OutdoorSurfaces)
+            {
+                var surface = pair.Value;
+                if (surface?.SitePlacements == null || surface.AcceptanceOnly) continue;
+                for (var i = 0; i < surface.SitePlacements.Count; i++)
+                {
+                    var placement = surface.SitePlacements[i];
+                    if (placement == null || !string.Equals(placement.Kind, "storageRoom", StringComparison.Ordinal))
+                        continue;
+                    var context = surface.SurfaceId + ".storageRoom[" + i + "]";
+                    if (string.IsNullOrWhiteSpace(placement.SiteId) || !knownSites.Contains(placement.SiteId))
+                        report.Add(ErrorCode.NotFound, "Outdoor storageRoom references an unknown WorldSite.", context);
+                    else if (!storageSites.Add(placement.SiteId))
+                        report.Add(ErrorCode.DuplicateDefinitionId,
+                            "Outdoor WorldSite has more than one authored storageRoom.", context);
+                    if (placement.SourceCellsW != 3 || placement.SourceCellsH != 3 || !placement.BlocksMovement)
+                        report.Add(ErrorCode.InvalidArgument,
+                            "Outdoor storageRoom must be 3x3 and block movement.", context);
+                    if (placement.WorldWidth <= 0f || placement.WorldHeight <= 0f ||
+                        surface.CellSize <= 0f || surface.ChunkWidth <= 0f || surface.ChunkHeight <= 0f)
+                    {
+                        report.Add(ErrorCode.InvalidArgument,
+                            "Outdoor storageRoom requires positive Surface metric and physical bounds.", context);
+                        continue;
+                    }
+                    var centerX = placement.WorldX + placement.WorldWidth * .5f;
+                    var centerY = placement.WorldY + placement.WorldHeight * .5f;
+                    var materializationChunk = new XianXia.Core.World.Surface.SurfaceChunkCoord(
+                        (int)Math.Floor((centerX - surface.OriginWorldX) / surface.ChunkWidth),
+                        (int)Math.Floor((centerY - surface.OriginWorldY) / surface.ChunkHeight));
+                    if (placement.ChunkX != materializationChunk.X || placement.ChunkY != materializationChunk.Y)
+                        report.Add(ErrorCode.InvalidArgument,
+                            "Outdoor storageRoom declared chunk must own its physical center for SingleCentered materialization.",
+                            context);
+                    if (!OutdoorSurfaceCoverageResolver.ContainsWorldPosition(surface, centerX, centerY) ||
+                        !OutdoorSurfaceCoverageResolver.ContainsWorldPosition(surface,
+                            placement.WorldX + placement.WorldWidth - surface.CellSize * .001f,
+                            placement.WorldY + placement.WorldHeight - surface.CellSize * .001f) ||
+                        !OutdoorSurfaceCoverageResolver.ContainsWorldPosition(surface,
+                            placement.WorldX + surface.CellSize * .001f,
+                            placement.WorldY + surface.CellSize * .001f))
+                        report.Add(ErrorCode.InvalidArgument,
+                            "Outdoor storageRoom physical footprint must remain within authored Surface coverage.", context);
                 }
             }
         }
@@ -786,7 +843,7 @@ namespace XianXia.Data.Content
                 if (building == null)
                     continue;
                 if (building.PlacementKind != "factionFlag" && building.PlacementKind != "farmField" &&
-                    building.PlacementKind != "recoverySpot")
+                    building.PlacementKind != "recoverySpot" && building.PlacementKind != "storageRoom")
                     report.Add(ErrorCode.InvalidArgument, "Unknown building placementKind.",
                         building.Id + ".placementKind:" + building.PlacementKind);
                 if (building.PlacementKind == "farmField" && (building.CreatesWorldSite ||
@@ -797,6 +854,12 @@ namespace XianXia.Data.Content
                     !string.Equals(building.OutdoorKind, "recoverySpot", StringComparison.Ordinal) ||
                     building.FootprintCellsW != 2 || building.FootprintCellsH != 2))
                     report.Add(ErrorCode.InvalidArgument, "Invalid recoverySpot kind, 2x2 dimensions or createsWorldSite.", building.Id.ToString());
+                if (building.PlacementKind == "storageRoom" && (building.CreatesWorldSite ||
+                    !string.Equals(building.OutdoorKind, "storageRoom", StringComparison.Ordinal) ||
+                    building.FootprintCellsW != 3 || building.FootprintCellsH != 3 ||
+                    building.DismantleRefundRate != 0f))
+                    report.Add(ErrorCode.InvalidArgument,
+                        "Invalid storageRoom kind, 3x3 dimensions, createsWorldSite or dismantle refund.", building.Id.ToString());
                 if (building.Costs == null)
                     continue;
                 for (var i = 0; i < building.Costs.Count; i++)
