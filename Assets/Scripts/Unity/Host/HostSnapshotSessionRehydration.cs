@@ -4,6 +4,7 @@ using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.Settlement;
 using XianXia.Core.World;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Bootstrap;
@@ -94,7 +95,7 @@ namespace XianXia.Unity.Host
                 if (political.IsFailure)
                     return political;
                 // Political overlay does not replace the canonical static placement binding.
-                CaptureObjectiveService.RebindControlCoreSites(world);
+                SettlementAuthoritySync.Rebuild(world);
 
                 var motions = StrategicSnapshotHelper.RestoreFormalArmyMotions(world, politicalSnapshot);
                 if (motions.IsFailure)

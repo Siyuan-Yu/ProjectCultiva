@@ -4,6 +4,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Exploration;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
+using XianXia.Core.Settlement;
 using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 
@@ -42,7 +43,7 @@ namespace XianXia.Data.Bootstrap
 
             var spawns = PlaceOpeningSpawns(world, scenario, lookup, spawnEntries);
             if (spawns.IsSuccess)
-                CaptureObjectiveService.RebindControlCoreSites(world);
+                SettlementAuthoritySync.Rebuild(world);
             return spawns;
         }
 
@@ -73,7 +74,7 @@ namespace XianXia.Data.Bootstrap
                     continue;
                 var applied = FillBoardFromPlaceSet(world, set);
                 if (applied.IsSuccess)
-                    CaptureObjectiveService.RebindControlCoreSites(world);
+                    SettlementAuthoritySync.Rebuild(world);
                 return applied;
             }
 

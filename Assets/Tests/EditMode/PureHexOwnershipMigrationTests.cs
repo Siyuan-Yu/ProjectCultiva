@@ -8,7 +8,7 @@ using XianXia.Data.Content;
 
 namespace XianXia.Tests
 {
-    /// <summary>Pure Hex Ownership + Character Strategic Presence migration (decisions 1â€?0).</summary>
+    /// <summary>Pure Hex Ownership + Character Strategic Presence migration (decisions 1ï¿½?0).</summary>
     public sealed class PureHexOwnershipMigrationTests
     {
         const string FactionA = "test:faction_a";
@@ -37,18 +37,12 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void PHOM_02_CaptureObjectiveBoard_IndexesBySiteId()
+        public void PHOM_02_ControlCoreBoard_IndexesBySiteId()
         {
-            var board = new CaptureObjectiveBoard();
-            board.Register(new CaptureObjectiveState { ObjectiveId = "capture:wa1", SiteId = SiteB });
-            board.Register(new CaptureObjectiveState { ObjectiveId = "capture:wa2", SiteId = SiteB, Completed = true });
-
-            Assert.AreEqual(2, board.GetObjectiveIdsForSite(SiteB).Count);
-            Assert.IsFalse(board.AllCompletedForSite(SiteB));
-            board.Register(new CaptureObjectiveState { ObjectiveId = "capture:wa1", SiteId = SiteB, Completed = true });
-            Assert.IsTrue(board.AllCompletedForSite(SiteB));
+            var world = CreateCaptureWorld();
+            Assert.IsTrue(world.ControlCores.TryGetByWorldSite(SiteB, out var core));
+            Assert.AreEqual("wa_test_core", core.WorkAreaId);
         }
-
         [Test]
         public void PHOM_03_TryCompleteWorldSiteCapture_SetsSiteOwner()
         {
@@ -59,7 +53,7 @@ namespace XianXia.Tests
             Assert.IsTrue(ControlCoreService.TryCapture(world, "wa_test_core", FactionA).IsSuccess);
             Assert.AreEqual(FactionA, WorldSiteOwnershipService.GetOwner(world, SiteB));
             Assert.IsTrue(world.Strategic.Sites.TryGet(SiteB, out var site));
-            Assert.IsTrue(string.IsNullOrEmpty(site.OwnerFactionId));
+            Assert.AreEqual(FactionA, site.OwnerFactionId);
         }
 
         [Test]
@@ -67,50 +61,27 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             var fired = false;
-            ScenarioProgressionHooks.OnAllCaptureObjectivesCompletedForSite = (w, siteId) =>
-            {
-                fired = true;
-                Assert.AreEqual(SiteB, siteId);
-            };
-            ScenarioProgressionHooks.NotifyAllCaptureObjectivesCompletedForSite(world, SiteB);
+            ScenarioProgressionHooks.OnWorldSiteCaptured = (w, siteId, oldOwner, newOwner, workAreaId) =>
+            { fired = true; Assert.AreEqual(SiteB, siteId); };
+            ScenarioProgressionHooks.NotifyWorldSiteCaptured(world, SiteB, FactionB, FactionA, "wa_test_core");
             Assert.IsTrue(fired);
         }
-
         [Test]
         public void PHOM_05_Ch01ScenarioProgressionHooks_HuangcunSiteId()
         {
             var world = new SimulationWorld();
             Ch01ScenarioProgressionHooks.Register(world);
-            ScenarioProgressionHooks.NotifyAllCaptureObjectivesCompletedForSite(
-                world,
-                Ch01ScenarioProgressionHooks.HuangcunSiteId);
+            ScenarioProgressionHooks.NotifyWorldSiteCaptured(world, Ch01ScenarioProgressionHooks.HuangcunSiteId, FactionB, StrategicFactionCatalog.PlayerFactionId, "wa_test_core");
             Assert.IsTrue(world.Flags.Has(Ch01ScenarioProgressionHooks.FlagPlayerFactionPoliticallyActive));
         }
 
         [Test]
-        public void PHOM_06_RegisterWorkArea_ResolvesSiteIdFromLocalMap()
+        public void PHOM_06_ControlCoreBindingDoesNotGuessFromLocalMap()
         {
-            var world = new SimulationWorld();
-            world.Strategic.Sites.Register(new WorldSite
-            {
-                SiteId = SiteB,
-                LocalMapId = "loc_test",
-                OwnerFactionId = FactionB
-            });
-            world.PartyWorld.SiteId = SiteB;
-            world.RegisterWorkArea(new WorkAreaDefinition
-            {
-                Id = "wa_test_core",
-                Name = "Core",
-                LocationId = "loc_test",
-                IsControlCore = true,
-                MaxDurability = 50,
-                OccupyHoldSeconds = 1f
-            });
-            Assert.IsTrue(world.Strategic.CaptureObjectives.TryGet("capture:wa_test_core", out var objective));
-            Assert.AreEqual(SiteB, objective.SiteId);
+            var world = CreateCaptureWorld();
+            Assert.IsTrue(world.ControlCores.TryGetBoundSiteId("wa_test_core", out var siteId));
+            Assert.AreEqual(SiteB, siteId);
         }
-
         [Test]
         public void PHOM_07_Ch01ScenarioSetup_DoesNotAssignSiteOwners()
         {
@@ -170,8 +141,6 @@ namespace XianXia.Tests
             Assert.AreEqual(FactionB, WorldSiteOwnershipService.GetOwner(world, SiteB));
             WorldSiteOwnershipService.SetOwner(world, SiteB, FactionA);
             Assert.AreEqual(FactionA, WorldSiteOwnershipService.GetOwner(world, SiteB));
-            Assert.IsTrue(WorldSiteOwnershipService.TryResolveSiteForLocalMapSession(world, "loc_test", out var site));
-            Assert.AreEqual(SiteB, site.SiteId);
         }
 
         static SimulationWorld CreateCaptureWorld()
@@ -192,6 +161,7 @@ namespace XianXia.Tests
                 MaxDurability = 50,
                 OccupyHoldSeconds = 1f
             });
+            Assert.IsTrue(WorldSiteCoreWarfareService.BindFixedCore(world, "wa_test_core", SiteB).IsSuccess);
             return world;
         }
 

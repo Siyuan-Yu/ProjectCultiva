@@ -454,19 +454,19 @@ WorldMap 的「战略 → 势力」是**运行时只读可见性**，不是开�
 
 `ControlCore.LocationId → WorldRegion.Location.LocalMapId → WorldSite.LocalMapId → WorldSite.SiteId`
 
-`CaptureObjectiveService.TryResolveControlCoreSite` 是复用入口。已存在且能验证的 `CaptureObjective.SiteId` 优先；新解析成功后回填该字段。`JobRuntimeBootstrap` 可能早于 `WorldRegionBootstrap`，所以注册时允许暂未绑定，WorldRegion 就绪后重绑，攻击开始与占领完成仍必须懒解析兜底。
+> **2026-09-15 SUPERSEDED：** Fixed Core 不再从 LocalMap／WorldRegion 猜 Site，也不再建立 Runtime CaptureObjective。Content 的 outdoor `controlCore` placement 通过 `SiteId + StableId + BoundLocationId` 将 `ControlCoreState.BoundWorldSiteId` 绑定到唯一 WorldSite，`ControlCoreBoard` 维护双向索引。
 
 若解析出的 WorldSite 有 Owner，且攻方不等于 Owner，则 `TryBeginMilitaryAssault` 与 `TryCompleteWorldSiteCapture` 都必须要求 `WarGateService.CanMilitaryCapture`。无主 Site 保持既有行为。占领完成必须使用同一解析所得 `SiteId` 经 `WorldSiteTerritoryTransferService.Transfer` 变更 Site 与 Territory；Host 的两个主管府攻击入口只调用领域预检，领域伤害路径仍是最终 gate。
 
 ### 19.3 可重复 WorldSite 占领 V1（2026-09-05）
 
-`WorldSite.OwnerFactionId` 是当前政治归属的唯一真源；`TerritoryRegion.ControlFactionId` 与 Hex 控制色只由 `WorldSiteTerritoryTransferService.Transfer` 同步。`ControlCore` 只表示可重复攻破的建筑物理状态，`CaptureObjective` 只表示耐久与占领读条，二者均不保存 Owner。
+`WorldSite.OwnerFactionId` 是当前政治归属的唯一真源；TerritoryClaim 是历史空间 authority；TerritoryRegion 与 Hex 控制色是重建得到的 compatibility projection。`ControlCoreState` 保存可重复攻破的建筑物理状态及稳定 Site identity binding，不保存 Owner。
 
 成功事务固定为：验证战争、破门与读条 → Transfer → Core／Objective 恢复满耐久与零读条 → 重建玩家 SettlementAuthority → 发出一次 `WorldSiteCaptured`。因此 Transfer 失败不会留下局部占领。新 Owner 可立即防守，未来的残破恢复／资源维修属于 **ControlCore Recovery V2**，本轮不实现。
 
-旧 Snapshot 的 `CaptureObjective.Completed` 仅为迁移标记：Restore 时不改写 Owner，而是迁移为满耐久、零读条、Runtime false。历史 `site_captured:*` 与 Ch01 政治成立旗标可以保留；它们表示「曾发生」，绝不表示「当前拥有」。普通居民、巡卫与既有 FormalArmy 也不因 Site 易主自动改角色势力。
+旧 v6 Snapshot 的 `captureObjectives` 仅为读取迁移输入：`Completed=true` 恢复满耐久、零读条；否则只迁移 HP 与占领进度。新 Save 仅写 `controlCores`，不写旧目标、SiteId、MaxHp 或 HoldSeconds。普通居民、巡卫与既有 FormalArmy 不因 Site 易主自动改角色势力。
 
-玩家的住房／课表权限由 `SettlementAuthoritySync.Rebuild` 根据**当前**玩家拥有的 ControlCore Site 全量重建；失去最后一个权限来源必须撤销权限。`PlayerControlled` 与 `AllCompletedForSite` 仅保留旧代码兼容，禁止进入新的占领 authority。
+玩家的住房／课表权限由 `SettlementAuthoritySync.Rebuild` 根据**当前**玩家拥有的 ControlCore Site 全量重建；失去最后一个权限来源必须撤销权限。`PlayerControlled`、`AllCompletedForSite` 与运行时 CaptureObjective 已删除。
 
 <a id="conflict-and-building-war"></a>
 ### 19.4 人物冲突、建筑攻击与战内扩大战争（2026-09-12）
@@ -917,7 +917,7 @@ CombatPower 算法：**本轮不重新设计**；沿用／参考现有自动战�
 
 ## 2026-09-15 CW-08 / CW-09：玩家 SiteCore 战争
 
-制作人授权规则见 [235](../40-process/235-sitecore-warfare-worldsite-takeover-2026-09-15.md)。固定核心由 `CoreIsRemovable=false` 判定，攻破后建筑仍存在，在原建筑交互范围持续占领；己方存活人物在场且没有存活敌方参战者争夺才计时，离开或争夺归零。占领仅经 `CaptureObjectiveService` → `WorldSiteTerritoryTransferService` 改同一 Site 的 Owner 并恢复核心满耐久。ClaimId、AcquiredOrder、农田 identity/crop、人物 faction/home/squad 均不改。
+制作人授权规则见 [235](../40-process/235-sitecore-warfare-worldsite-takeover-2026-09-15.md)／[236](../40-process/236-world-object-interaction-fixed-core-capture-closure-2026-09-15.md)。固定核心由 `CoreIsRemovable=false` 判定，攻破后建筑仍存在，在原建筑交互范围持续占领；己方存活人物在场且没有存活敌方参战者争夺才计时，离开或争夺归零。占领经 `WorldSiteCoreWarfareService` → `WorldSiteTerritoryTransferService` 改同一 Site 的 Owner 并恢复核心满耐久。ClaimId、AcquiredOrder、农田 identity/crop、人物 faction/home/squad 均不改。
 
 `CoreIsRemovable=true` 的势力旗被击毁即移除物理旗、令原 Site inactive；保留原 Owner 与 Claim 历史，不占领、不自动变成己方旗。攻方通过正常建造建立新旗、新 Site 和新 Claim。资产继续存在，行政管理者由原 CW-05 查询动态接续。
 

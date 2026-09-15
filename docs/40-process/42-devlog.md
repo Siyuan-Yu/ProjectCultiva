@@ -1,5 +1,11 @@
 # 开发日志
 
+## 2026-09-15 — CW-09.5 世界物件交互统一与 Fixed Capture authority 收口
+
+- 制作人已通过固定／可拆 SiteCore 和 CharacterEncounter 主链，后续发现占领后的议政厅菜单仍无条件显示攻击；根因是 Presentation 未实时消费绑定 Site Owner，且左／右键重复维护对象拾取。新增统一 `HostWorldObjectPicker`／`WorldObjectInteractionTarget`：左键写入同一个 Inspect，右键按同一 identity 提供 Core／Flag／Farm／Tree 等正式行为。议政厅菜单实时按 Owner 区分敌我；Flag、Farm 与 territorial destructible 详情补齐。
+- Fixed Core canonical binding 与物理状态归入 `ControlCoreBoard`；首击与 Capture transaction 归入 `WorldSiteCoreWarfareService`。WorldSite Owner、TerritoryClaim、Administrative Manager 和 Core physical state 各自保持单一职责；TerritoryRegion／Hex 只作 rebuild projection，不再阻塞 Capture。
+- 删除运行时 CaptureObjective board/state/service、PlayerControlled、旧完成 hooks／LocalMap guessing／dead spatial helpers／无消费者 flags。Snapshot v6 新 Save 只写 `controlCores`；旧 `captureObjectives` 仅由 legacy DTO 迁移物理状态。状态为 **Implementation Completed / Producer Acceptance Pending**；下一阶段 Site Economy／Automated Administration 只记录，未实现，未创建提交。详见 [236](236-world-object-interaction-fixed-core-capture-closure-2026-09-15.md)。
+
 ## 2026-09-15 — CharacterEncounter 统一 ReadyToStart 入场门
 
 - 制作人验收确认：Site assault 的守军入口在 `Request` 后同栈 `BeginConfirmed`，导致手动战斗窗闪退；普通 CharacterEncounter 场地 commit 后立即设置目标、释放 pause 并执行 callback，导致加载完成即开打。

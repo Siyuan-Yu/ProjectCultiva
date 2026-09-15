@@ -7,7 +7,8 @@ namespace XianXia.Unity.Host
         Housing = 2,
         WorkArea = 3,
         Plot = 4,
-        Destructible = 5
+        Destructible = 5,
+        FactionFlag = 6
     }
 
     /// <summary>左键点空后的世界物检视目标（只读况栏；无指令球）。</summary>
@@ -15,6 +16,7 @@ namespace XianXia.Unity.Host
     {
         public WorldObjectInspectKind Kind { get; private set; }
         public string WorkAreaId { get; private set; } = string.Empty;
+        public string FactionFlagId { get; private set; } = string.Empty;
         public HostMapPlotCell Plot { get; private set; }
         public HostMapDestructible Destructible { get; private set; }
 
@@ -24,6 +26,7 @@ namespace XianXia.Unity.Host
         {
             Kind = WorldObjectInspectKind.None;
             WorkAreaId = string.Empty;
+            FactionFlagId = string.Empty;
             Plot = null;
             Destructible = null;
         }
@@ -65,6 +68,28 @@ namespace XianXia.Unity.Host
                 return;
             Kind = WorldObjectInspectKind.Destructible;
             Destructible = d;
+        }
+
+        public void SetFactionFlag(string flagId)
+        {
+            Clear();
+            if (string.IsNullOrEmpty(flagId)) return;
+            Kind = WorldObjectInspectKind.FactionFlag;
+            FactionFlagId = flagId;
+        }
+
+        public void Set(WorldObjectInteractionTarget target)
+        {
+            switch (target.Kind)
+            {
+                case WorldObjectTargetKind.ControlCore: SetControlCore(target.WorkAreaId); break;
+                case WorldObjectTargetKind.FactionFlag: SetFactionFlag(target.FactionFlagId); break;
+                case WorldObjectTargetKind.FarmPlot: SetPlot(target.Plot); break;
+                case WorldObjectTargetKind.Destructible: SetDestructible(target.Destructible); break;
+                case WorldObjectTargetKind.Housing: SetHousing(target.WorkAreaId); break;
+                case WorldObjectTargetKind.WorkArea: SetWorkArea(target.WorkAreaId); break;
+                default: Clear(); break;
+            }
         }
     }
 }

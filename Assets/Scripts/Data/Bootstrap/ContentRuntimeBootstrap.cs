@@ -249,7 +249,7 @@ namespace XianXia.Data.Bootstrap
                          !string.Equals(site.CoreSurfaceId, surface.SurfaceId, StringComparison.Ordinal)))
                         return Result.Failure(ErrorCode.ContentLoadFailed,
                             "Authored WorldSite core metadata conflicts with its controlCore placement.", context);
-                    var binding = CaptureObjectiveService.ValidateControlCoreWorldSiteBinding(
+                    var binding = WorldSiteCoreWarfareService.ValidateFixedCoreBinding(
                         world, core.WorkAreaId, site.SiteId);
                     if (binding.IsFailure)
                         return Result.Failure(ErrorCode.ContentLoadFailed,
@@ -272,7 +272,7 @@ namespace XianXia.Data.Bootstrap
             for (var i = 0; i < rows.Count; i++)
             {
                 var row = rows[i];
-                var bound = CaptureObjectiveService.BindControlCoreToWorldSite(
+                var bound = WorldSiteCoreWarfareService.BindFixedCore(
                     world, row.WorkAreaId, row.Site.SiteId);
                 if (bound.IsFailure)
                     return Result.Failure(ErrorCode.ContentLoadFailed,

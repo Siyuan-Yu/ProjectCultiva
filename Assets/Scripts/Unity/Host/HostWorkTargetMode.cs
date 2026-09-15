@@ -84,14 +84,8 @@ namespace XianXia.Unity.Host
                 return false;
 
             var world = bootstrap.Session.World;
-            // Farm hit always consumes the context click, including authorization denial.
-            if (HostFarmFieldRegistry.TryFindPlotAt(point, out var farmPlot))
-            {
-                var farm = bootstrap.GetComponent<HostFarmFieldLabor>();
-                if (farm != null && farm.BeginForSelection(farmPlot) > 0)
-                    Resume();
-                return true;
-            }
+            if (HostWorldObjectPicker.TryPickAtWorldPoint(bootstrap, point, out var target) &&
+                TryHandleContextTarget(target)) return true;
 
             if (TryFindWorkInteractAt(point, world, out var work))
             {
@@ -118,6 +112,14 @@ namespace XianXia.Unity.Host
             }
 
             return false;
+        }
+
+        public bool TryHandleContextTarget(WorldObjectInteractionTarget target)
+        {
+            if (target.Kind != WorldObjectTargetKind.FarmPlot || target.Plot == null) return false;
+            var farm = bootstrap.GetComponent<HostFarmFieldLabor>();
+            if (farm != null && farm.BeginForSelection(target.Plot) > 0) Resume();
+            return true;
         }
 
         void SetArmed(ArmKind kind)
@@ -207,19 +209,20 @@ namespace XianXia.Unity.Host
             }
 
             var world = bootstrap.Session.World;
-            if (HostFarmFieldRegistry.TryFindPlotAt(point, out var farmPlot))
+            if (HostWorldObjectPicker.TryPickAtWorldPoint(bootstrap, point, out var target) &&
+                target.Kind == WorldObjectTargetKind.FarmPlot)
             {
-                var authorization = ResolveFarmAuthorization(farmPlot);
+                var authorization = ResolveFarmAuthorization(target.Plot);
                 _idleHoverInteractable = true;
                 _hoverHint = DescribeFarmHover(authorization, contextClick: true);
                 ApplyCursor(authorization.IsAllowed);
                 return;
             }
 
-            if (HostMapObjectRegistry.TryPickDestructible(point, 2.2f, out var treeHover))
+            if (target.Kind == WorldObjectTargetKind.Destructible && target.Destructible != null)
             {
                 _idleHoverInteractable = true;
-                _hoverHint = "右键" + (treeHover.IsTree ? "砍伐·" : "拆毁·") + treeHover.DisplayName;
+                _hoverHint = "右键" + (target.Destructible.IsTree ? "砍伐·" : "拆毁·") + target.Destructible.DisplayName;
                 ApplyCursor(true);
                 return;
             }
@@ -461,7 +464,7 @@ namespace XianXia.Unity.Host
                     return;
                 }
                 // Combat targeting 也必须先走领域层战争门槛，不能先移动或开始突击再失败。
-                var assaultPreflight = CaptureObjectiveService.TryBeginMilitaryAssault(
+                var assaultPreflight = WorldSiteCoreWarfareService.ValidateFixedCoreAssault(
                     world,
                     world.Strategic?.PlayerFactionId ?? string.Empty,
                     core.WorkAreaId);

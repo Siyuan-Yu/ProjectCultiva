@@ -46,7 +46,8 @@ namespace XianXia.Core.World.Strategic
                 return string.Empty;
             var sb = new StringBuilder(DescribeSite(site));
             sb.Append('\n').Append(StrategicAcceptanceInspector.BuildSiteOwnerLine(world, site));
-            StrategicAcceptanceInspector.AppendCaptureObjectivesForSite(world, site, sb);
+            sb.Append("\nCore: ").Append(site.IsCoreActive ? "Active" : "Inactive")
+                .Append(" · Lv.").Append(site.CoreLevel);
             var here = CountPartyMembersAtSite(world, site.SiteId);
             sb.Append("\n我方在场：").Append(here > 0 ? here + " 人" : "无");
             if (!string.IsNullOrEmpty(site.LocalMapId))

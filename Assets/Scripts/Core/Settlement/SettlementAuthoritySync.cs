@@ -20,9 +20,9 @@ namespace XianXia.Core.Settlement
                 foreach (var pair in world.ControlCores.All)
                 {
                     var core = pair.Value;
-                    if (core == null || !CaptureObjectiveService.TryResolveCurrentOwner(
-                            world, core, out _, out var ownerFactionId) ||
-                        !string.Equals(ownerFactionId, playerFactionId, StringComparison.Ordinal))
+                    if (core == null || !world.ControlCores.TryGetBoundSiteId(core.WorkAreaId, out var siteId) ||
+                        !world.Strategic.Sites.TryGet(siteId, out var site) || site == null ||
+                        !string.Equals(site.OwnerFactionId, playerFactionId, StringComparison.Ordinal))
                         continue;
                     world.SettlementAuthority.GrantAll(core.GrantsPrivileges);
                     hasPlayerOwnedCore = true;
@@ -41,9 +41,9 @@ namespace XianXia.Core.Settlement
                 if (!world.Flags.Has(key))
                     continue;
                 var core = pair.Value;
-                if (core == null || !CaptureObjectiveService.TryResolveCurrentOwner(
-                        world, core, out _, out var ownerFactionId) ||
-                    !string.Equals(ownerFactionId, playerFactionId, StringComparison.Ordinal))
+                if (core == null || !world.ControlCores.TryGetBoundSiteId(core.WorkAreaId, out var siteId) ||
+                    !world.Strategic.Sites.TryGet(siteId, out var site) || site == null ||
+                    !string.Equals(site.OwnerFactionId, playerFactionId, StringComparison.Ordinal))
                     world.Flags.Clear(key);
             }
         }

@@ -299,7 +299,7 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void CannotCreateArmyAtNonPlayerControlledSite()
+        public void CannotCreateArmyAtForeignSite()
         {
             var world = BuildWorld(out _, out _);
             var hostileSite = new WorldSite

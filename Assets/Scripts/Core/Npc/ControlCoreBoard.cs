@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using XianXia.Core.Domain.Ids;
+using XianXia.Core.Results;
 using XianXia.Core.Settlement;
 
 namespace XianXia.Core.Npc
@@ -18,9 +19,8 @@ namespace XianXia.Core.Npc
         public int Defense { get; set; }
         public float OccupyHoldSeconds { get; set; } = 10f;
         public float OccupyProgressSeconds { get; set; }
-        /// <summary>旧玩家单向占领标记；仅为旧代码／存档兼容保留，禁止作为政治归属 authority。</summary>
-        [System.Obsolete("政治归属必须查询 WorldSite.OwnerFactionId。")]
-        public bool PlayerControlled { get; set; }
+        /// <summary>由 authored controlCore placement 派生的固定 Site identity binding。</summary>
+        public string BoundWorldSiteId { get; internal set; } = string.Empty;
         public bool CaptureAvailable { get; set; }
         public List<string> GrantsPrivileges { get; } = new List<string>();
     }
@@ -32,6 +32,10 @@ namespace XianXia.Core.Npc
             new Dictionary<string, ControlCoreState>(System.StringComparer.Ordinal);
         readonly Dictionary<string, string> _workAreaByLocation =
             new Dictionary<string, string>(System.StringComparer.Ordinal);
+        readonly Dictionary<string, string> _workAreaByWorldSite =
+            new Dictionary<string, string>(System.StringComparer.Ordinal);
+        readonly Dictionary<string, PendingRuntimeState> _pendingRuntimeState =
+            new Dictionary<string, PendingRuntimeState>(System.StringComparer.Ordinal);
 
         public IReadOnlyDictionary<string, ControlCoreState> All => _byWorkArea;
 
@@ -39,6 +43,8 @@ namespace XianXia.Core.Npc
         {
             _byWorkArea.Clear();
             _workAreaByLocation.Clear();
+            _workAreaByWorldSite.Clear();
+            _pendingRuntimeState.Clear();
         }
 
         public void RegisterOrRefresh(WorkAreaDefinition area)
@@ -62,6 +68,7 @@ namespace XianXia.Core.Npc
                     existing.CurrentDurability = max;
                 if (!string.IsNullOrEmpty(existing.LocationId))
                     _workAreaByLocation[existing.LocationId] = area.Id;
+                ApplyPendingRuntimeState(existing);
                 return;
             }
 
@@ -74,7 +81,6 @@ namespace XianXia.Core.Npc
                 CurrentDurability = max,
                 Defense = area.Defense > 0 ? area.Defense : 0,
                 OccupyHoldSeconds = hold,
-                PlayerControlled = false,
                 CaptureAvailable = false
             };
             if (area.GrantsPrivileges != null)
@@ -83,6 +89,7 @@ namespace XianXia.Core.Npc
             _byWorkArea[area.Id] = state;
             if (!string.IsNullOrEmpty(state.LocationId))
                 _workAreaByLocation[state.LocationId] = area.Id;
+            ApplyPendingRuntimeState(state);
         }
 
         static void EnsureDefaultPrivileges(ControlCoreState state)
@@ -165,8 +172,100 @@ namespace XianXia.Core.Npc
             return true;
         }
 
+        public Result BindWorldSite(string workAreaId, string siteId)
+        {
+            if (string.IsNullOrWhiteSpace(workAreaId) || string.IsNullOrWhiteSpace(siteId) ||
+                !TryGet(workAreaId, out var core) || core == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "ControlCore binding requires an existing core and SiteId.");
+            if (!string.IsNullOrEmpty(core.BoundWorldSiteId) &&
+                !string.Equals(core.BoundWorldSiteId, siteId, System.StringComparison.Ordinal))
+                return Result.Failure(ErrorCode.InvalidOperation, "ControlCore is already bound to another WorldSite.", workAreaId);
+            if (_workAreaByWorldSite.TryGetValue(siteId, out var existingWorkAreaId) &&
+                !string.Equals(existingWorkAreaId, workAreaId, System.StringComparison.Ordinal))
+                return Result.Failure(ErrorCode.InvalidOperation, "Fixed WorldSite already has another ControlCore.", siteId);
+            core.BoundWorldSiteId = siteId;
+            _workAreaByWorldSite[siteId] = workAreaId;
+            return Result.Success();
+        }
+
+        public bool TryGetBoundSiteId(string workAreaId, out string siteId)
+        {
+            siteId = string.Empty;
+            if (!TryGet(workAreaId, out var core) || core == null || string.IsNullOrEmpty(core.BoundWorldSiteId))
+                return false;
+            siteId = core.BoundWorldSiteId;
+            return true;
+        }
+
+        public bool TryGetByWorldSite(string siteId, out ControlCoreState state)
+        {
+            state = null;
+            return !string.IsNullOrEmpty(siteId) &&
+                   _workAreaByWorldSite.TryGetValue(siteId, out var workAreaId) &&
+                   TryGet(workAreaId, out state);
+        }
+
+        public Result RestoreRuntimeState(string workAreaId, int currentDurability,
+            float occupyProgressSeconds, bool legacyCompleted = false)
+        {
+            if (string.IsNullOrWhiteSpace(workAreaId) || currentDurability < 0 ||
+                float.IsNaN(occupyProgressSeconds) || float.IsInfinity(occupyProgressSeconds) || occupyProgressSeconds < 0f)
+                return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid ControlCore runtime snapshot.", workAreaId ?? string.Empty);
+            var pending = new PendingRuntimeState(currentDurability, occupyProgressSeconds, legacyCompleted);
+            if (TryGet(workAreaId, out var core) && core != null)
+                ApplyRuntimeState(core, pending);
+            else
+                _pendingRuntimeState[workAreaId] = pending;
+            return Result.Success();
+        }
+
+        public void PrepareRuntimeRestore()
+        {
+            _pendingRuntimeState.Clear();
+            foreach (var pair in _byWorkArea)
+            {
+                var core = pair.Value;
+                if (core == null) continue;
+                core.CurrentDurability = System.Math.Max(1, core.MaxDurability);
+                core.OccupyProgressSeconds = 0f;
+                core.CaptureAvailable = false;
+            }
+        }
+
+        void ApplyPendingRuntimeState(ControlCoreState core)
+        {
+            if (core == null || !_pendingRuntimeState.TryGetValue(core.WorkAreaId, out var pending))
+                return;
+            _pendingRuntimeState.Remove(core.WorkAreaId);
+            ApplyRuntimeState(core, pending);
+        }
+
+        static void ApplyRuntimeState(ControlCoreState core, PendingRuntimeState pending)
+        {
+            if (pending.LegacyCompleted)
+            {
+                core.CurrentDurability = System.Math.Max(1, core.MaxDurability);
+                core.OccupyProgressSeconds = 0f;
+                core.CaptureAvailable = false;
+                return;
+            }
+            core.CurrentDurability = System.Math.Min(System.Math.Max(1, core.MaxDurability), pending.CurrentDurability);
+            core.OccupyProgressSeconds = System.Math.Min(
+                pending.OccupyProgressSeconds, System.Math.Max(.1f, core.OccupyHoldSeconds));
+            core.CaptureAvailable = core.CurrentDurability <= 0;
+        }
+
+        readonly struct PendingRuntimeState
+        {
+            public PendingRuntimeState(int currentDurability, float occupyProgressSeconds, bool legacyCompleted)
+            { CurrentDurability = currentDurability; OccupyProgressSeconds = occupyProgressSeconds; LegacyCompleted = legacyCompleted; }
+            public int CurrentDurability { get; }
+            public float OccupyProgressSeconds { get; }
+            public bool LegacyCompleted { get; }
+        }
+
         /// <summary>政治 Transfer 成功后恢复新 Owner 的建筑物理状态。</summary>
-        public void ResetAfterCapture(string workAreaId, bool legacyPlayerControlled, out ControlCoreState state)
+        public void ResetAfterCapture(string workAreaId, out ControlCoreState state)
         {
             state = null;
             if (!TryGet(workAreaId, out state))
@@ -174,18 +273,6 @@ namespace XianXia.Core.Npc
             state.CurrentDurability = System.Math.Max(1, state.MaxDurability);
             state.CaptureAvailable = false;
             state.OccupyProgressSeconds = 0f;
-            state.PlayerControlled = legacyPlayerControlled;
-        }
-
-        public bool AnyPlayerControlled()
-        {
-            foreach (var kv in _byWorkArea)
-            {
-                if (kv.Value.PlayerControlled)
-                    return true;
-            }
-
-            return false;
         }
     }
 }

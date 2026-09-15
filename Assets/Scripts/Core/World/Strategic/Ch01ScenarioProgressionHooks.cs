@@ -32,7 +32,6 @@ namespace XianXia.Core.World.Strategic
         public static void Register(SimulationWorld world)
         {
             ScenarioProgressionHooks.OnWorldSiteCaptured = HandleWorldSiteCaptured;
-            ScenarioProgressionHooks.OnAllCaptureObjectivesCompletedForSite = HandleLegacyCompletedSite;
         }
 
         public static void Unregister()
@@ -40,9 +39,6 @@ namespace XianXia.Core.World.Strategic
             if (ScenarioProgressionHooks.OnWorldSiteCaptured ==
                 (Action<SimulationWorld, string, string, string, string>)HandleWorldSiteCaptured)
                 ScenarioProgressionHooks.OnWorldSiteCaptured = null;
-            if (ScenarioProgressionHooks.OnAllCaptureObjectivesCompletedForSite ==
-                (Action<SimulationWorld, string>)HandleLegacyCompletedSite)
-                ScenarioProgressionHooks.OnAllCaptureObjectivesCompletedForSite = null;
         }
 
         static void HandleWorldSiteCaptured(
@@ -55,13 +51,6 @@ namespace XianXia.Core.World.Strategic
             if (string.Equals(siteId, HuangcunSiteId, System.StringComparison.Ordinal) &&
                 string.Equals(newOwnerFactionId, StrategicFactionCatalog.PlayerFactionId, StringComparison.Ordinal))
                 world.Flags.Set(FlagPlayerFactionPoliticallyActive);
-        }
-
-        // 仅供旧测试／旧外部调用兼容；正式路径只响应 WorldSiteCaptured。
-        static void HandleLegacyCompletedSite(SimulationWorld world, string siteId)
-        {
-            if (string.Equals(siteId, HuangcunSiteId, StringComparison.Ordinal))
-                world?.Flags.Set(FlagPlayerFactionPoliticallyActive);
         }
 
         /// <summary>Future: FormerOverlordSect offers vassalage after war progression. DEFER — hook only.</summary>

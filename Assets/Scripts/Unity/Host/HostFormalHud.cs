@@ -573,10 +573,13 @@ namespace XianXia.Unity.Host
                     DrawInspectWorkArea(session, inspect.WorkAreaId);
                     break;
                 case WorldObjectInspectKind.Plot:
-                    DrawInspectPlot(inspect.Plot);
+                    DrawInspectPlot(session, inspect.Plot);
                     break;
                 case WorldObjectInspectKind.Destructible:
                     DrawInspectDestructible(inspect.Destructible);
+                    break;
+                case WorldObjectInspectKind.FactionFlag:
+                    DrawInspectFactionFlag(session, inspect.FactionFlagId);
                     break;
             }
         }
@@ -603,35 +606,75 @@ namespace XianXia.Unity.Host
             if (string.IsNullOrEmpty(coreId) ||
                 !session.World.ControlCores.TryGet(coreId, out var core))
                 return;
-
-            DrawInspectShell(168f, "议政厅 · " + core.Name, () =>
+            WorldSiteCoreWarfareService.TryGetBoundSiteForFixedCore(session.World, coreId, out var site);
+            var owner = site?.OwnerFactionId ?? string.Empty;
+            var friendly = !string.IsNullOrEmpty(owner) &&
+                           string.Equals(owner, session.World.Strategic.PlayerFactionId, System.StringComparison.Ordinal);
+            DrawInspectShell(206f, "议政厅 · " + core.Name, () =>
             {
-                var r = new Rect(Pad, TopH + 42f, 320f, 168f);
+                var r = new Rect(Pad, TopH + 42f, 320f, 206f);
+                GUI.Label(new Rect(r.x + 10f, r.y + 34f, r.width - 20f, 20f),
+                    "所属据点：" + (site?.DisplayName ?? "未绑定") + " · Lv." + (site?.CoreLevel ?? 1), _body);
                 DrawInlineMeter(
-                    r.x + 10f, r.y + 40f, r.width - 20f,
+                    r.x + 10f, r.y + 58f, r.width - 20f,
                     "耐久", core.CurrentDurability, core.MaxDurability,
                     new Color(0.85f, 0.32f, 0.28f));
 
                 string status;
                 if (core.CaptureAvailable)
-                    status = "已攻破 · 占领 " + core.OccupyProgressSeconds.ToString("0.0") + " / " +
+                    status = "当前控制：" + (string.IsNullOrEmpty(owner) ? "无人" : StrategicFactionCatalog.DisplayName(owner)) +
+                             "\n已攻破 · 占领 " + core.OccupyProgressSeconds.ToString("0.0") + " / " +
                              core.OccupyHoldSeconds.ToString("0.0") + " 秒";
-                else if (XianXia.Core.World.Strategic.CaptureObjectiveService.TryResolveCurrentOwner(
-                        session.World, core, out _, out var ownerFactionId) &&
-                    !string.IsNullOrEmpty(ownerFactionId))
-                    status = "当前控制者：" +
-                             StrategicAcceptanceInspector.ResolveOwnerDisplay(ownerFactionId);
+                else if (!string.IsNullOrEmpty(owner))
+                    status = "当前控制：" + StrategicFactionCatalog.DisplayName(owner) + "\n状态：" +
+                             (friendly ? "己方据点核心" : "他方据点核心");
                 else
-                    status = "状态：防守中（选中己方→右键攻击拆耐久）";
+                    status = "当前控制：无人\n状态：无主据点核心";
 
-                GUI.Label(new Rect(r.x + 10f, r.y + 68f, r.width - 20f, 48f), status, _body);
-                if (session.World.SettlementAuthority.CanManageHousing && core.GrantsPrivileges.Count > 0)
+                GUI.Label(new Rect(r.x + 10f, r.y + 86f, r.width - 20f, 48f), status, _body);
+                if (friendly && core.GrantsPrivileges.Count > 0)
                 {
+                    var privileges = new List<string>(core.GrantsPrivileges.Count);
+                    for (var i = 0; i < core.GrantsPrivileges.Count; i++)
+                        privileges.Add(PrivilegeDisplayName(core.GrantsPrivileges[i]));
                     GUI.Label(
-                        new Rect(r.x + 10f, r.y + 118f, r.width - 20f, 36f),
-                        "权限：" + string.Join("、", core.GrantsPrivileges),
+                        new Rect(r.x + 10f, r.y + 142f, r.width - 20f, 36f),
+                        "权限：" + string.Join("、", privileges),
                         _body);
                 }
+            });
+        }
+
+        static string PrivilegeDisplayName(string privilegeId)
+        {
+            if (privilegeId == SettlementPrivilegeIds.ManageHousing) return "住房管理";
+            if (privilegeId == SettlementPrivilegeIds.ManageSchedules) return "课表管理";
+            return privilegeId ?? string.Empty;
+        }
+
+        void DrawInspectFactionFlag(PlayableHostSession session, string flagId)
+        {
+            if (string.IsNullOrEmpty(flagId) ||
+                !session.World.Strategic.FactionFlags.Flags.TryGetValue(flagId, out var flag) || flag == null) return;
+            var site = !string.IsNullOrEmpty(flag.SiteId) && session.World.Strategic.Sites.TryGet(flag.SiteId, out var linked)
+                ? linked : null;
+            var friendly = string.Equals(flag.FactionId, session.World.Strategic.PlayerFactionId,
+                System.StringComparison.Ordinal);
+            DrawInspectShell(190f, "势力控制建筑", () =>
+            {
+                var r = new Rect(Pad, TopH + 42f, 320f, 190f);
+                DrawInlineMeter(r.x + 10f, r.y + 38f, r.width - 20f, "耐久",
+                    flag.CurrentHp, flag.MaxHp, new Color(.85f, .32f, .28f));
+                GUI.Label(new Rect(r.x + 10f, r.y + 66f, r.width - 20f, 20f),
+                    "所属势力：" + StrategicFactionCatalog.DisplayName(flag.FactionId), _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 88f, r.width - 20f, 20f),
+                    "所属据点：" + (site?.DisplayName ?? "未关联"), _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 110f, r.width - 20f, 42f),
+                    "核心等级：Lv." + (site?.CoreLevel ?? 1) + " · 理论范围：" +
+                    (site != null ? site.CoreRangeWidth.ToString("0.#") + "×" + site.CoreRangeHeight.ToString("0.#") : "—") +
+                    "\n核心：" + (site?.IsCoreActive == true ? "有效" : "失效"), _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 154f, r.width - 20f, 22f),
+                    "状态：" + (friendly ? "己方前哨" : "他方前哨"), _body);
             });
         }
 
@@ -687,14 +730,14 @@ namespace XianXia.Unity.Host
             });
         }
 
-        void DrawInspectPlot(HostMapPlotCell plot)
+        void DrawInspectPlot(PlayableHostSession session, HostMapPlotCell plot)
         {
             if (plot == null)
                 return;
 
-            DrawInspectShell(128f, plot.KindDisplayName(), () =>
+            DrawInspectShell(180f, plot.KindDisplayName(), () =>
             {
-                var r = new Rect(Pad, TopH + 42f, 320f, 128f);
+                var r = new Rect(Pad, TopH + 42f, 320f, 180f);
                 GUI.Label(
                     new Rect(r.x + 10f, r.y + 36f, r.width - 20f, 20f),
                     "格 (" + plot.GridX + "," + plot.GridY + ")",
@@ -706,9 +749,10 @@ namespace XianXia.Unity.Host
                         plot.DescribeCropStatus(),
                         _body);
                     GUI.Label(
-                        new Rect(r.x + 10f, r.y + 100f, r.width - 20f, 20f),
-                        "交互→田区自动播种／照料／收获",
+                        new Rect(r.x + 10f, r.y + 100f, r.width - 20f, 42f),
+                        DescribeFarmAdministration(session.World, plot),
                         _body);
+                    GUI.Label(new Rect(r.x + 10f, r.y + 144f, r.width - 20f, 20f), "右键农作", _body);
                 }
                 else
                 {
@@ -721,15 +765,26 @@ namespace XianXia.Unity.Host
             });
         }
 
+        static string DescribeFarmAdministration(SimulationWorld world, HostMapPlotCell plot)
+        {
+            if (!WorldAdministrativeAssetControlResolver.TryResolve(world, plot?.StableCellId ?? string.Empty,
+                    out _, out var site, out _)) return "当前管理：无法确认\n无人管理";
+            if (site == null) return "当前管理：无人\n无人管理";
+            var status = string.Equals(site.OwnerFactionId, world.Strategic.PlayerFactionId,
+                System.StringComparison.Ordinal) ? "己方管理" : "他方管理";
+            return "当前管理：" + site.DisplayName + " · " +
+                   StrategicFactionCatalog.DisplayName(site.OwnerFactionId) + "\n" + status;
+        }
+
         void DrawInspectDestructible(HostMapDestructible d)
         {
             if (d == null || d.IsDestroyed)
                 return;
 
             var kindLabel = d.IsTree ? "树木" : d.IsWall ? "墙体" : "可破坏物";
-            DrawInspectShell(132f, kindLabel + " · " + d.DisplayName, () =>
+            DrawInspectShell(156f, kindLabel + " · " + d.DisplayName, () =>
             {
-                var r = new Rect(Pad, TopH + 42f, 320f, 132f);
+                var r = new Rect(Pad, TopH + 42f, 320f, 156f);
                 DrawInlineMeter(
                     r.x + 10f, r.y + 40f, r.width - 20f,
                     "耐久", d.CurrentHp, d.MaxHp,
@@ -738,10 +793,17 @@ namespace XianXia.Unity.Host
                     ? ("伐倒后获粗木 ×" + d.ResolveWoodYield())
                     : "耐久归零后摧毁";
                 GUI.Label(new Rect(r.x + 10f, r.y + 68f, r.width - 20f, 28f), yield, _body);
-                GUI.Label(
-                    new Rect(r.x + 10f, r.y + 98f, r.width - 20f, 24f),
-                    "选中己方 → 右键／F8 战斗点选可砍拆",
-                    _body);
+                var territory = "无主区域";
+                var continuous = bootstrap?.ContinuousOutdoorSurfaceRuntime;
+                if (continuous != null && continuous.IsActive &&
+                    continuous.PresentationToWorld(d.transform.position.x, d.transform.position.y, out var wx, out var wy) &&
+                    WorldSiteAdministrativeControlResolver.TryResolve(bootstrap.Session.World,
+                        continuous.ActiveSurfaceId, wx, wy, out var site, out _))
+                    territory = site.DisplayName + " · " + StrategicFactionCatalog.DisplayName(site.OwnerFactionId);
+                GUI.Label(new Rect(r.x + 10f, r.y + 98f, r.width - 20f, 24f),
+                    "所在行政区：" + territory, _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 122f, r.width - 20f, 20f),
+                    "右键" + (d.IsTree ? "砍伐" : "拆毁"), _body);
             });
         }
 

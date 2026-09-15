@@ -4,6 +4,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Npc;
 using XianXia.Core.Results;
+using XianXia.Core.Settlement;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 
@@ -112,7 +113,79 @@ namespace XianXia.Core.World.Strategic
 
         public static bool TryGetFixedCore(SimulationWorld world, string siteId, out ControlCoreState core)
         {
-            return CaptureObjectiveService.TryGetBoundControlCoreForSite(world, siteId, out core);
+            core = null;
+            return world?.ControlCores != null && world.ControlCores.TryGetByWorldSite(siteId, out core) && core != null;
+        }
+
+        public static Result ValidateFixedCoreBinding(SimulationWorld world, string workAreaId, string siteId)
+        {
+            if (world?.Strategic?.Sites == null || string.IsNullOrWhiteSpace(workAreaId) || string.IsNullOrWhiteSpace(siteId))
+                return Result.Failure(ErrorCode.InvalidArgument, "ControlCore binding requires WorkAreaId and SiteId.");
+            if (!world.ControlCores.TryGet(workAreaId, out var core) || core == null)
+                return Result.Failure(ErrorCode.NotFound, "ControlCore binding target is missing.", workAreaId);
+            if (!world.Strategic.Sites.TryGet(siteId, out var site) || site == null)
+                return Result.Failure(ErrorCode.NotFound, "ControlCore binding WorldSite is missing.", siteId);
+            if (site.CoreIsRemovable)
+                return Result.Failure(ErrorCode.InvalidOperation, "Removable WorldSite cannot bind a fixed ControlCore.", siteId);
+            if (!string.IsNullOrEmpty(core.BoundWorldSiteId) && core.BoundWorldSiteId != siteId)
+                return Result.Failure(ErrorCode.InvalidOperation, "ControlCore is already bound to another WorldSite.", workAreaId);
+            if (world.ControlCores.TryGetByWorldSite(siteId, out var existing) && existing.WorkAreaId != workAreaId)
+                return Result.Failure(ErrorCode.InvalidOperation, "Fixed WorldSite already has another ControlCore.", siteId);
+            return Result.Success();
+        }
+
+        public static Result BindFixedCore(SimulationWorld world, string workAreaId, string siteId)
+        {
+            var valid = ValidateFixedCoreBinding(world, workAreaId, siteId);
+            if (valid.IsFailure) return valid;
+            var bound = world.ControlCores.BindWorldSite(workAreaId, siteId);
+            if (bound.IsSuccess) SettlementAuthoritySync.Rebuild(world);
+            return bound;
+        }
+
+        public static bool TryGetBoundSiteForFixedCore(SimulationWorld world, string workAreaId, out WorldSite site)
+        {
+            site = null;
+            return world?.Strategic?.Sites != null &&
+                   world.ControlCores.TryGetBoundSiteId(workAreaId, out var siteId) &&
+                   world.Strategic.Sites.TryGet(siteId, out site) && site != null && !site.CoreIsRemovable;
+        }
+
+        public static Result ValidateFixedCoreAssault(SimulationWorld world, string attackerFactionId, string workAreaId)
+        {
+            if (world == null || string.IsNullOrEmpty(workAreaId))
+                return Result.Failure(ErrorCode.InvalidArgument, "Invalid assault request.");
+            if (!world.ControlCores.TryGet(workAreaId, out _))
+                return Result.Failure(ErrorCode.NotFound, "Control core not found.", workAreaId);
+            if (!TryGetBoundSiteForFixedCore(world, workAreaId, out var site))
+                return Result.Failure(ErrorCode.NotFound, "Control core canonical WorldSite binding missing.", workAreaId);
+            var owner = site.OwnerFactionId ?? string.Empty;
+            if (!string.IsNullOrEmpty(owner) && string.Equals(attackerFactionId, owner, StringComparison.Ordinal))
+                return Result.Failure(ErrorCode.InvalidOperation, "Already controlled by attacker faction.");
+            if (!string.IsNullOrEmpty(owner) && !WarGateService.CanMilitaryCapture(world, attackerFactionId, owner))
+                return Result.Failure(ErrorCode.InvalidOperation, "Military capture requires active war.", attackerFactionId + "->" + owner);
+            return Result.Success();
+        }
+
+        public static Result TryCompleteFixedSiteCapture(SimulationWorld world, string attackerFactionId, string workAreaId)
+        {
+            var assault = ValidateFixedCoreAssault(world, attackerFactionId, workAreaId);
+            if (assault.IsFailure) return assault;
+            if (!TryGetBoundSiteForFixedCore(world, workAreaId, out var site))
+                return Result.Failure(ErrorCode.NotFound, "Control core canonical WorldSite binding missing.", workAreaId);
+            if (site.CoreIsRemovable)
+                return Result.Failure(ErrorCode.InvalidOperation, "可拆核心只能摧毁，不能占领。");
+            if (!world.ControlCores.TryCapture(workAreaId, out _))
+                return Result.Failure(ErrorCode.InvalidOperation, "Occupy hold not finished.");
+
+            var oldOwner = site.OwnerFactionId ?? string.Empty;
+            var transfer = WorldSiteTerritoryTransferService.Transfer(world, site.SiteId, attackerFactionId);
+            if (transfer.IsFailure) return transfer;
+            world.ControlCores.ResetAfterCapture(workAreaId, out _);
+            SettlementAuthoritySync.Rebuild(world);
+            ScenarioProgressionHooks.NotifyWorldSiteCaptured(world, site.SiteId, oldOwner, attackerFactionId, workAreaId);
+            CharacterEncounterService.NotifyStrategicObjectiveResolved(world, site.SiteId, site.CoreAssetId);
+            return Result.Success();
         }
 
         public static Result Validate(SimulationWorld world, EntityId attacker, WorldSiteCoreTarget target, bool requireWar = true)
@@ -162,7 +235,7 @@ namespace XianXia.Core.World.Strategic
         {
             contested = false;
             if (!world.ControlCores.TryGet(workAreaId, out var core) || !core.CaptureAvailable ||
-                !CaptureObjectiveService.TryGetBoundSiteForControlCore(world, workAreaId, out var site) ||
+                !TryGetBoundSiteForFixedCore(world, workAreaId, out var site) ||
                 Resolve(world, site.SiteId, out var target).IsFailure || target.CoreIsRemovable) return false;
             var state = world.Strategic.CharacterEncounter;
             if (state != null && (state.SourceSurfaceId != target.SurfaceId || state.Objective == null ||

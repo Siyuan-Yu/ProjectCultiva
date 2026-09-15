@@ -14,9 +14,6 @@ namespace XianXia.Unity.Host
         [SerializeField] PlayableHostBootstrap bootstrap;
         [SerializeField] HostSelectionController selectionController;
         [SerializeField] Camera worldCamera;
-        [SerializeField] float pickRadius = 6.5f;
-        [SerializeField] float plotPickRadius = 1.35f;
-        [SerializeField] float destructiblePickRadius = 2.2f;
 
         readonly WorldObjectInspectSelection _inspect = new WorldObjectInspectSelection();
 
@@ -108,144 +105,9 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            var world = bootstrap.Session.World;
-            MapLayoutDefinition layout = null;
-            if (bootstrap.ContinuousOutdoorSurfaceRuntime == null ||
-                !bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive)
-                MapLayoutPick.TryGet(bootstrap.Session, out layout);
-            if (HostControlCoreQuery.TryPickAtWorld(
-                    world, layout, bootstrap.ContinuousOutdoorSurfaceRuntime, worldPoint, out var coreId))
-            {
-                _inspect.SetControlCore(coreId);
-                return;
-            }
-
-            if (HostMapObjectRegistry.TryPickDestructible(worldPoint, destructiblePickRadius, out var d))
-            {
-                _inspect.SetDestructible(d);
-                return;
-            }
-
-            if (HostMapObjectRegistry.TryPickPlot(worldPoint, plotPickRadius, out var plot) &&
-                (plot.IsPlantableField || plot.InteractKind == HostInteractSpotKind.Work ||
-                 plot.InteractKind == HostInteractSpotKind.Loot ||
-                 plot.InteractKind == HostInteractSpotKind.Cultivate))
-            {
-                _inspect.SetPlot(plot);
-                return;
-            }
-
-            if (TryPickHousing(world, worldPoint, pickRadius, out var houseId))
-            {
-                _inspect.SetHousing(houseId);
-                return;
-            }
-
-            if (TryPickWorkArea(world, worldPoint, pickRadius, out var areaId))
-            {
-                _inspect.SetWorkArea(areaId);
-                return;
-            }
-
-            Clear();
-        }
-
-        public static bool TryPickHousing(
-            SimulationWorld world,
-            Vector3 worldPoint,
-            float radius,
-            out string workAreaId)
-        {
-            workAreaId = string.Empty;
-            if (world == null)
-                return false;
-
-            var p = HostPresentationSpace.ToPresentation(worldPoint);
-            var best = float.MaxValue;
-            string bestId = null;
-
-            foreach (var kv in world.WorkAreas)
-            {
-                var area = kv.Value;
-                if (!HousingAssignmentService.IsHousingArea(area))
-                    continue;
-                if (string.IsNullOrEmpty(area.LocationId) ||
-                    (!world.ContinuousOutdoorMaterialization.TryGetAnyPlace(area.LocationId, out var loc) &&
-                     !world.WorldRegion.TryGet(area.LocationId, out loc)))
-                    continue;
-
-                var cx = loc.PresentationX + area.OffsetX;
-                var cz = loc.PresentationZ + area.OffsetZ;
-                var dx = cx - p.x;
-                var dy = cz - p.y;
-                var dist = Mathf.Sqrt(dx * dx + dy * dy);
-                if (dist > radius || dist >= best)
-                    continue;
-                best = dist;
-                bestId = area.Id;
-            }
-
-            if (string.IsNullOrEmpty(bestId))
-                return false;
-            workAreaId = bestId;
-            return true;
-        }
-
-        public static bool TryPickWorkArea(
-            SimulationWorld world,
-            Vector3 worldPoint,
-            float radius,
-            out string workAreaId)
-        {
-            workAreaId = string.Empty;
-            if (world == null)
-                return false;
-
-            var p = HostPresentationSpace.ToPresentation(worldPoint);
-            var best = float.MaxValue;
-            string bestId = null;
-
-            foreach (var kv in world.WorkAreas)
-            {
-                var area = kv.Value;
-                if (area == null || area.IsControlCore || HousingAssignmentService.IsHousingArea(area))
-                    continue;
-                if (string.IsNullOrEmpty(area.LocationId) ||
-                    (!world.ContinuousOutdoorMaterialization.TryGetAnyPlace(area.LocationId, out var loc) &&
-                     !world.WorldRegion.TryGet(area.LocationId, out loc)))
-                    continue;
-
-                float dist;
-                if (HostFarmFieldRules.IsFarmTaggedWorkArea(area))
-                {
-                    // 农田／药田：只点在耕种格上才检视，勿用地点圆心大半径扫绿草。
-                    if (!HostFarmFieldRegistry.TryFindPlotAt(worldPoint, out var plot) ||
-                        plot == null ||
-                        !string.Equals(plot.LocationId, area.LocationId, System.StringComparison.Ordinal))
-                        continue;
-                    dist = HostFarmFieldRules.XyDistance(plot.transform.position, worldPoint);
-                }
-                else
-                {
-                    var cx = loc.PresentationX + area.OffsetX;
-                    var cz = loc.PresentationZ + area.OffsetZ;
-                    var dx = cx - p.x;
-                    var dy = cz - p.y;
-                    dist = Mathf.Sqrt(dx * dx + dy * dy);
-                    if (dist > radius)
-                        continue;
-                }
-
-                if (dist >= best)
-                    continue;
-                best = dist;
-                bestId = area.Id;
-            }
-
-            if (string.IsNullOrEmpty(bestId))
-                return false;
-            workAreaId = bestId;
-            return true;
+            if (HostWorldObjectPicker.TryPickAtWorldPoint(bootstrap, worldPoint, out var target))
+                _inspect.Set(target);
+            else Clear();
         }
 
         void OnDrawGizmos()

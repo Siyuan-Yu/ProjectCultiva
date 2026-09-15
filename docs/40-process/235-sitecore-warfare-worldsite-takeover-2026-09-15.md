@@ -10,7 +10,7 @@
 - `WorldSite.CoreIsRemovable` 是唯一类型判据。固定核心 HP=0 保留建筑、Site 与 Claim，攻破后可持续占领；可拆核心 HP=0 摧毁旗并令原 Site inactive，Owner 与 Claim 历史保留，绝不 Capture。攻方须正常新建自己的旗。
 - 正常玩家攻城通过统一领域服务查询真实 Character/Squad，精确 Surface/WorldPosition 与战争侧确定守军，距离核心最近、EntityId 升序确定代表。复用 CharacterEncounter 的完整入场链，明确冻结目标 Site 范围；政治后果确认只出现一次，入场继续建筑攻击意图。
 - 现有 Active / ReadyToEnd 遭遇可绑定范围内的一个战略目标；范围外或第二个未完成目标拒绝。同场新守军按当前精确位置加入，保留旧参战者 HP、冷却、时间与关系候选。
-- 固定核心沿用原 HP、伤害与 OccupyHoldSeconds。活着的己方在占领圈内且无活着的敌方参战者争夺才推进；离开或争夺归零。占领完成只经 CaptureObjectiveService → WorldSiteTerritoryTransferService 改 Owner，复原耐久，不重写 Claim、不改人物身份、不重建农田。
+- 固定核心沿用原 HP、伤害与 OccupyHoldSeconds。活着的己方在占领圈内且无活着的敌方参战者争夺才推进；离开或争夺归零。占领完成由 `WorldSiteCoreWarfareService` 经 `WorldSiteTerritoryTransferService` 改 Owner，复原耐久，不重写 Claim、不改人物身份、不重建农田。
 - Capture / destruction 完成让同场目标 resolved 并 ReadyToEnd，存活敌人仍保留。击倒守军仅赋予结束资格，不自动占地；ReadyToEnd 仍能处理目标。
 - Encounter 持久化新增目标身份、种类、攻守势力与完成事实；HP/Owner/Claim 仍读各自权威。旧格式明确迁移，新格式缺字段拒绝。
 - 仅删除失去消费者的两条旧玩家 Siege 编排服务；保留其它 BattleOffer、自动战斗、NPC 战略移动与旧档兼容。NPC 自动攻城、普通建筑战争、产权与人物政治后果延期。
@@ -23,7 +23,7 @@
 
 `HostControlCoreAssault` 将现有建筑 footprint + MeleeMargin 换算后的空间判定交给领域占领服务；政治、存活、阵营和争夺均在 Core 决定。没有把旧 presentation 半径误当 Continuous 世界单位。Breached 目标即使玩家改打守军，也继续按真实站位判定占领。场内建筑攻击共用该 Character 已有 melee cooldown；ReadyToEnd 仍可执行当前目标。HUD 优先显示已攻破与占领进度，战内新增宣战 modal 持有独立暂停 owner。
 
-固定占领只调用原 CaptureObjective → Transfer → ResetAfterCapture；旗只调用原 ApplyStrike → TryDestroy。两者通过 NotifyStrategicObjectiveResolved 校验物理/政治完成事实后提供 ReadyToEnd。未对农田、人物身份、Claim 取得顺序增加写入。
+固定占领调用 Warfare → Transfer → ResetAfterCapture；旗只调用原 ApplyStrike → TryDestroy。两者通过 NotifyStrategicObjectiveResolved 校验物理/政治完成事实后提供 ReadyToEnd。未对农田、人物身份、Claim 取得顺序增加写入。
 
 ### Persistence
 
@@ -33,7 +33,11 @@ WorldSnapshot 仍为 v6；CharacterEncounter 子格式升为 2，包含完整 ob
 
 第一次制作人验收发现青石荒村议政厅能显示菜单但点击攻击没有后续。定位结果是正常入口仍通过 `ControlCore.LocationId → 当前 WorldRegion Location → LocalMapId → WorldSite.LocalMapId` 猜 Site；Continuous Outdoor 下当前 WorldRegion 并不承担固定核心身份权威，因此解析失败后 Host 静默关闭菜单。
 
-固定核心现改为静态 Content 启动时建立正式链：outdoor `controlCore` placement 的 `SiteId` / `StableId` / `BoundLocationId` 分别对应同一 `WorldSite`、`WorldSite.CoreAssetId` 与 `ControlCoreBoard.TryGetByLocation` 得到的 `WorkAreaId`。`CaptureObjectiveBoard.BindSite` 同步维护 Objective 正向字段和 Site 反向索引；Content runtime 在任何写入前校验缺字段、未知 Site、未知 Core WorkArea、一对多冲突、removable 类型冲突、既有 metadata/binding 冲突和 Level 1 空间配置。新游戏和读档壳均处理失败结果，损坏 Content 不再带半套 metadata 继续启动。
+固定核心现改为静态 Content 启动时建立正式链：outdoor `controlCore` placement 的 `SiteId` / `StableId` / `BoundLocationId` 分别对应同一 `WorldSite`、`WorldSite.CoreAssetId` 与 `ControlCoreBoard.TryGetByLocation` 得到的 `WorkAreaId`。`ControlCoreBoard.BindWorldSite` 同步维护 Core 正向字段和 Site 反向索引；Content runtime 在任何写入前校验缺字段、未知 Site、未知 Core WorkArea、一对多冲突、removable 类型冲突、既有 metadata/binding 冲突和 Level 1 空间配置。新游戏和读档壳均处理失败结果，损坏 Content 不再带半套 metadata 继续启动。
+
+### Producer acceptance follow-up：CW-09.5
+
+固定据点战斗、攻破、占领、Actual Control／农田管理、可拆旗摧毁及 CharacterEncounter 入场已通过本轮正常玩法检查。后续发现占领后右键菜单仍无条件展示攻击，以及 Fixed Core 仍借用旧 `CaptureObjective` runtime 保存绑定和物理状态；两项由 [236](236-world-object-interaction-fixed-core-capture-closure-2026-09-15.md) 收口。CW-08／CW-09 仍为 **Implementation Completed / Producer Acceptance Pending**，待 236 联合人工验收后再封板。
 
 正常攻城、首击 Owner 检查、占领完成和 `WorldSiteCoreWarfareService.TryGetFixedCore` 只使用 canonical 双向查询，不枚举 Core，也不读取当前 WorldRegion、ActiveMapLayout、Hex、最近 Site 或 `LocalMapId`。旧 LocalMap 推断方法保留为明确命名的 legacy compatibility helper，但没有正常玩家攻城消费者。Host 对绑定缺失、目标验证、战争预览/提交、遭遇准备和建筑接近点失败均显示玩家可见反馈，不再只 `CloseAll()`。
 

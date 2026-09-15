@@ -157,7 +157,6 @@ namespace XianXia.Core.World.Strategic
         public WarBoard Wars { get; } = new WarBoard();
         public AllianceBoard Alliances { get; } = new AllianceBoard();
         public VassalageBoard Vassalages { get; } = new VassalageBoard();
-        public CaptureObjectiveBoard CaptureObjectives { get; } = new CaptureObjectiveBoard();
         public RetreatingArmyBoard RetreatingArmies { get; } = new RetreatingArmyBoard();
         public ArmyStackBoard Armies { get; } = new ArmyStackBoard();
         /// <summary>Formal Army 领域真源（Phase A）；与 Prototype <see cref="Armies"/> 并存。</summary>

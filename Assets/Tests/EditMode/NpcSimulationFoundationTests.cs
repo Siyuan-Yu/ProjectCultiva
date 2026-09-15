@@ -314,6 +314,7 @@ namespace XianXia.Tests
                 MaxDurability = 100,
                 AllowedActivities = { "Inspect", "Patrol" }
             });
+            BindTestControlCore(world, "wa_mansion");
             world.TryGetWorkArea("wa_home", out var mortalHome);
             mortalHome.ResidentTags.Add("mortal");
 
@@ -359,7 +360,7 @@ namespace XianXia.Tests
 
             world.ControlCores.AddOccupyProgress("wa_mansion", core.OccupyHoldSeconds, out _);
             Assert.IsTrue(ControlCoreService.TryCapture(world, "wa_mansion").IsSuccess);
-            Assert.IsTrue(core.PlayerControlled);
+            Assert.IsFalse(core.CaptureAvailable);
             Assert.IsTrue(world.Flags.Has("settlement_player_controlled"));
             Assert.IsTrue(world.SettlementAuthority.CanManageHousing);
             Assert.IsTrue(world.SettlementAuthority.CanManageSchedules);
@@ -379,6 +380,7 @@ namespace XianXia.Tests
                 Defense = 10,
                 AllowedActivities = { "Inspect" }
             });
+            BindTestControlCore(world, "wa_mansion");
 
             var atk = world.Entities.CreateCharacter(
                 new DefinitionId("base", "character_atk"), "攻").Value;
@@ -405,6 +407,7 @@ namespace XianXia.Tests
                 OccupyHoldSeconds = 10f,
                 AllowedActivities = { "Inspect" }
             });
+            BindTestControlCore(world, "wa_mansion");
             world.TryGetWorkArea("wa_mansion", out var area);
             area.GrantsPrivileges.Add("manageHousing");
             area.GrantsPrivileges.Add("manageSchedules");
@@ -415,11 +418,24 @@ namespace XianXia.Tests
             Assert.IsTrue(core.CaptureAvailable);
 
             ControlCoreService.TickOccupy(world, "wa_mansion", 9.5f, true);
-            Assert.IsFalse(core.PlayerControlled);
+            Assert.IsTrue(core.CaptureAvailable);
             ControlCoreService.TickOccupy(world, "wa_mansion", 0.6f, true);
-            Assert.IsTrue(core.PlayerControlled);
+            Assert.IsFalse(core.CaptureAvailable);
             Assert.IsTrue(HousingAssignmentService.CanManageHousing(world));
             Assert.IsTrue(HousingAssignmentService.CanManageSchedules(world));
+        }
+
+        static void BindTestControlCore(SimulationWorld world, string workAreaId)
+        {
+            const string player = "test:player";
+            const string enemy = "test:enemy";
+            var siteId = "test:site:" + workAreaId;
+            world.Strategic.PlayerFactionId = player;
+            world.Strategic.Sites.Register(new XianXia.Core.World.Strategic.WorldSite
+                { SiteId = siteId, OwnerFactionId = enemy, CoreIsRemovable = false });
+            Assert.IsTrue(XianXia.Core.World.Strategic.WorldSiteCoreWarfareService
+                .BindFixedCore(world, workAreaId, siteId).IsSuccess);
+            XianXia.Core.World.Strategic.WarGateService.DeclareWar(world, player, enemy);
         }
 
         [Test]

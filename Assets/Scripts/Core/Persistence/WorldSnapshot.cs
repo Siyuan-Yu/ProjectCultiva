@@ -118,7 +118,11 @@ namespace XianXia.Core.Persistence
         public List<AllianceSnapshotDto> Alliances { get; set; } = new List<AllianceSnapshotDto>();
         public List<VassalageSnapshotDto> Vassalages { get; set; } = new List<VassalageSnapshotDto>();
         public List<RetreatingArmySnapshotDto> RetreatingArmies { get; set; } = new List<RetreatingArmySnapshotDto>();
-        public List<CaptureObjectiveSnapshotDto> CaptureObjectives { get; set; } = new List<CaptureObjectiveSnapshotDto>();
+        /// <summary>字段出现即表示 fixed ControlCore physical runtime state 完整 authoritative。</summary>
+        public bool HasControlCoreSnapshotAuthority { get; set; }
+        public List<ControlCoreRuntimeSnapshotDto> ControlCores { get; set; } = new List<ControlCoreRuntimeSnapshotDto>();
+        /// <summary>旧 v6 migration input；新存档不写。</summary>
+        public List<LegacyCaptureObjectiveSnapshotDto> LegacyCaptureObjectives { get; set; } = new List<LegacyCaptureObjectiveSnapshotDto>();
         /// <summary>
         /// Phase 2C：PlayerParty 连续世界位置（可选；旧存档缺省时不恢复 motion）。
         /// </summary>
@@ -489,7 +493,14 @@ namespace XianXia.Core.Persistence
         public List<ulong> MemberCharacterIds { get; set; } = new List<ulong>();
     }
 
-    public sealed class CaptureObjectiveSnapshotDto
+    public sealed class ControlCoreRuntimeSnapshotDto
+    {
+        public string WorkAreaId { get; set; }
+        public int CurrentDurability { get; set; }
+        public float OccupyProgressSeconds { get; set; }
+    }
+
+    public sealed class LegacyCaptureObjectiveSnapshotDto
     {
         public string ObjectiveId { get; set; }
         public string SiteId { get; set; }

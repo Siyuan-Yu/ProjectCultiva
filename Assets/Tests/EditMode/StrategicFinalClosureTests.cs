@@ -157,9 +157,9 @@ namespace XianXia.Tests
         {
             var world = new SimulationWorld();
             Ch01ScenarioProgressionHooks.Register(world);
-            ScenarioProgressionHooks.NotifyAllCaptureObjectivesCompletedForSite(
-                world,
-                Ch01ScenarioProgressionHooks.HuangcunSiteId);
+            ScenarioProgressionHooks.NotifyWorldSiteCaptured(
+                world, Ch01ScenarioProgressionHooks.HuangcunSiteId,
+                "test:faction_b", StrategicFactionCatalog.PlayerFactionId, "wa_test_core");
             Assert.IsTrue(world.Flags.Has(Ch01ScenarioProgressionHooks.FlagPlayerFactionPoliticallyActive));
         }
 

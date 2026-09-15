@@ -39,7 +39,7 @@ namespace XianXia.Tests
                 Id = "loc_work_area",
                 LocalMapId = "map:test"
             });
-            CaptureObjectiveService.RebindControlCoreSites(world);
+            Assert.IsTrue(WorldSiteCoreWarfareService.BindFixedCore(world, "wa_test_core", SiteB).IsSuccess);
             return world;
         }
 
@@ -47,7 +47,7 @@ namespace XianXia.Tests
         public void Capture_BlockedWithoutWar()
         {
             var world = CreateWorld();
-            var assault = CaptureObjectiveService.TryBeginMilitaryAssault(world, FactionA, "wa_test_core");
+            var assault = WorldSiteCoreWarfareService.ValidateFixedCoreAssault(world, FactionA, "wa_test_core");
             Assert.IsTrue(assault.IsFailure);
         }
 
@@ -56,7 +56,7 @@ namespace XianXia.Tests
         {
             var world = CreateWorld();
             WarGateService.DeclareWar(world, FactionA, FactionB);
-            Assert.IsTrue(CaptureObjectiveService.TryBeginMilitaryAssault(world, FactionA, "wa_test_core").IsSuccess);
+            Assert.IsTrue(WorldSiteCoreWarfareService.ValidateFixedCoreAssault(world, FactionA, "wa_test_core").IsSuccess);
         }
 
         [Test]
@@ -83,7 +83,7 @@ namespace XianXia.Tests
             Assert.IsTrue(world.ControlCores.TryGet("wa_test_core", out var afterFirst));
             Assert.AreEqual(afterFirst.MaxDurability, afterFirst.CurrentDurability);
 
-            Assert.IsTrue(CaptureObjectiveService.TryBeginMilitaryAssault(world, FactionB, "wa_test_core").IsSuccess);
+            Assert.IsTrue(WorldSiteCoreWarfareService.ValidateFixedCoreAssault(world, FactionB, "wa_test_core").IsSuccess);
             world.ControlCores.ApplyDamage("wa_test_core", 100, out _, false);
             world.ControlCores.AddOccupyProgress("wa_test_core", 1f, out _);
             Assert.IsTrue(ControlCoreService.TryCapture(world, "wa_test_core", FactionB).IsSuccess);
@@ -94,10 +94,10 @@ namespace XianXia.Tests
         public void Capture_OwnerCannotAssaultOwnCore()
         {
             var world = CreateWorld();
-            Assert.IsTrue(CaptureObjectiveService.TryBeginMilitaryAssault(world, FactionB, "wa_test_core").IsFailure);
-            Assert.IsTrue(CaptureObjectiveService.TryBeginMilitaryAssault(world, FactionA, "wa_test_core").IsFailure);
+            Assert.IsTrue(WorldSiteCoreWarfareService.ValidateFixedCoreAssault(world, FactionB, "wa_test_core").IsFailure);
+            Assert.IsTrue(WorldSiteCoreWarfareService.ValidateFixedCoreAssault(world, FactionA, "wa_test_core").IsFailure);
             WarGateService.DeclareWar(world, FactionA, FactionB);
-            Assert.IsTrue(CaptureObjectiveService.TryBeginMilitaryAssault(world, FactionA, "wa_test_core").IsSuccess);
+            Assert.IsTrue(WorldSiteCoreWarfareService.ValidateFixedCoreAssault(world, FactionA, "wa_test_core").IsSuccess);
         }
 
         [Test]

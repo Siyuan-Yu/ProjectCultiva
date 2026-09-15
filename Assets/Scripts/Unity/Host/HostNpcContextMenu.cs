@@ -42,6 +42,7 @@ namespace XianXia.Unity.Host
         string _targetFactionFlagId = string.Empty;
         string _targetEntranceLocationId = string.Empty;
         HostMapDestructible _targetDestructible;
+        WorldObjectInteractionTarget _worldObjectTarget;
         bool _leaveInteriorTarget;
         string _targetLabel = string.Empty;
         EntityId _confirmTarget = EntityId.None;
@@ -73,6 +74,9 @@ namespace XianXia.Unity.Host
         bool IsLeaveInteriorTarget => _leaveInteriorTarget;
         bool IsDestructibleTarget =>
             _targetDestructible != null && !_targetDestructible.IsDestroyed;
+        bool IsReadOnlyWorldObjectTarget =>
+            _worldObjectTarget.Kind == WorldObjectTargetKind.Housing ||
+            _worldObjectTarget.Kind == WorldObjectTargetKind.WorkArea;
 
         public void Bind(
             PlayableHostBootstrap host,
@@ -176,82 +180,17 @@ namespace XianXia.Unity.Host
                 return true;
             }
 
-            FactionFlagState pickedFlag = null;
-            var flagId = string.Empty;
-            var continuous = bootstrap.ContinuousOutdoorSurfaceRuntime;
-            var pickedContinuousFlag = false;
-            if (continuous != null && continuous.IsActive &&
-                HostPresentationSpace.TryRaycastPlane(
-                    worldCamera, Input.mousePosition, out var flagWorldPoint))
+            if (HostWorldObjectPicker.TryPickAtScreenPoint(
+                    bootstrap, worldCamera, Input.mousePosition, out var objectTarget))
             {
-                foreach (var pair in bootstrap.Session.World.Strategic.FactionFlags.Flags)
-                {
-                    var candidate = pair.Value;
-                    if (candidate == null ||
-                        (!string.IsNullOrEmpty(candidate.SurfaceId) &&
-                         !string.Equals(candidate.SurfaceId, continuous.ActiveSurfaceId,
-                             System.StringComparison.Ordinal)) ||
-                        !IsContinuousFlagLoaded(candidate, continuous) ||
-                        !HostFactionFlagQuery.TryPickAtWorld(
-                            candidate, continuous, flagWorldPoint, out flagId))
-                        continue;
-                    pickedFlag = candidate;
-                    pickedContinuousFlag = true;
-                    break;
-                }
-            }
-            var pickedLegacyFlag = !pickedContinuousFlag &&
-                LoadedLocalMapBelongingQuery.TryResolveLoadedLocalMap(
-                    bootstrap.Session.World, out var localContext) &&
-                localContext.Kind == LoadedLocalMapBelongingQuery.LoadedLocalMapKind.WildernessHex &&
-                bootstrap.Session.World.Strategic.FactionFlags.TryGetAt(localContext.WildernessHex, out pickedFlag) &&
-                pickedFlag != null && HostFactionFlagQuery.TryPickAtMouse(worldCamera, pickedFlag, layout, out flagId);
-            if (pickedContinuousFlag || pickedLegacyFlag)
-            {
+                if (objectTarget.Kind == WorldObjectTargetKind.FarmPlot)
+                    return bootstrap.WorkTargetMode != null &&
+                           bootstrap.WorkTargetMode.TryHandleContextTarget(objectTarget);
                 _actor = actor;
                 _targetNpc = EntityId.None;
                 _targetEntranceLocationId = string.Empty;
                 _leaveInteriorTarget = false;
-                _targetDestructible = null;
-                _targetControlCoreWorkAreaId = string.Empty;
-                _targetFactionFlagId = flagId;
-                _targetLabel = "阵营旗·" + StrategicFactionCatalog.DisplayName(pickedFlag.FactionId);
-                _menuScreen = Input.mousePosition;
-                _phase = Phase.Menu;
-                HostInputGate.BlockWorldInteraction = true;
-                return true;
-            }
-
-            if (HostControlCoreQuery.TryPickAtMouse(
-                    worldCamera, bootstrap.Session.World, layout,
-                    bootstrap.ContinuousOutdoorSurfaceRuntime, out var coreId) &&
-                bootstrap.Session.World.ControlCores.TryGet(coreId, out var core))
-            {
-                _actor = actor;
-                _targetNpc = EntityId.None;
-                _targetEntranceLocationId = string.Empty;
-                _leaveInteriorTarget = false;
-                _targetDestructible = null;
-                _targetControlCoreWorkAreaId = coreId;
-                _targetFactionFlagId = string.Empty;
-                _targetLabel = string.IsNullOrEmpty(core.Name) ? "议政厅" : core.Name;
-                _menuScreen = Input.mousePosition;
-                _phase = Phase.Menu;
-                HostInputGate.BlockWorldInteraction = true;
-                return true;
-            }
-
-            if (HostPresentationSpace.TryRaycastPlane(worldCamera, Input.mousePosition, out var worldPoint) &&
-                HostMapObjectRegistry.TryPickDestructible(worldPoint, 2.2f, out var destructible))
-            {
-                _actor = actor;
-                _targetNpc = EntityId.None;
-                _targetControlCoreWorkAreaId = string.Empty;
-                _targetFactionFlagId = string.Empty;
-                _targetEntranceLocationId = string.Empty;
-                _leaveInteriorTarget = false;
-                _targetDestructible = destructible;
-                _targetLabel = destructible.DisplayName;
+                SetWorldObjectTarget(objectTarget);
                 _menuScreen = Input.mousePosition;
                 _phase = Phase.Menu;
                 HostInputGate.BlockWorldInteraction = true;
@@ -259,6 +198,21 @@ namespace XianXia.Unity.Host
             }
 
             return false;
+        }
+
+        void SetWorldObjectTarget(WorldObjectInteractionTarget target)
+        {
+            _worldObjectTarget = target;
+            _targetControlCoreWorkAreaId = target.Kind == WorldObjectTargetKind.ControlCore ? target.WorkAreaId : string.Empty;
+            _targetFactionFlagId = target.Kind == WorldObjectTargetKind.FactionFlag ? target.FactionFlagId : string.Empty;
+            _targetDestructible = target.Kind == WorldObjectTargetKind.Destructible ? target.Destructible : null;
+            _targetLabel = target.DisplayLabel;
+        }
+
+        void ShowWorldObjectDetails()
+        {
+            bootstrap?.GetComponent<HostHousingAreaSelection>()?.Inspect.Set(_worldObjectTarget);
+            CloseAll();
         }
 
         void Update()
@@ -293,6 +247,8 @@ namespace XianXia.Unity.Host
                         DrawFactionFlagMenu();
                     else if (IsDestructibleTarget)
                         DrawDestructibleMenu();
+                    else if (IsReadOnlyWorldObjectTarget)
+                        DrawReadOnlyWorldObjectMenu();
                     else
                         DrawContextMenu();
                     break;
@@ -401,7 +357,14 @@ namespace XianXia.Unity.Host
             const float itemH = 30f;
             var session = bootstrap?.Session;
             var world = session?.World;
-            var h = itemH + 58f;
+            WorldSite site = null;
+            var hasSite = world != null &&
+                WorldSiteCoreWarfareService.TryGetBoundSiteForFixedCore(
+                    world, _targetControlCoreWorkAreaId, out site);
+            var friendly = hasSite &&
+                string.Equals(site.OwnerFactionId, world.Strategic.PlayerFactionId, System.StringComparison.Ordinal);
+            var canAttack = hasSite && !friendly;
+            var h = canAttack ? itemH * 2f + 58f : itemH + 34f;
             var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
             _menuGuiRect = new Rect(guiX, guiY, w, h);
@@ -412,31 +375,21 @@ namespace XianXia.Unity.Host
 
             GUI.Label(new Rect(guiX + 10f, guiY + 6f, w - 20f, 22f), _targetLabel, _label);
             var y = guiY + 30f;
-            if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "攻击据点核心", _button))
+            if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "查看详情", _button))
+                ShowWorldObjectDetails();
+            y += itemH;
+            if (canAttack && GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "攻击据点核心", _button))
                 BeginControlCoreAttack();
-            GUI.Label(new Rect(guiX + 10f, y + itemH, w - 20f, 22f), "攻破后可占领该据点。", _label);
+            if (canAttack)
+                GUI.Label(new Rect(guiX + 10f, y + itemH, w - 20f, 22f), "攻破后可占领该据点。", _label);
             TryDismissOnOutsideClick(_menuGuiRect);
-        }
-
-        static bool IsContinuousFlagLoaded(
-            FactionFlagState flag, ContinuousOutdoorSurfaceRuntime continuous)
-        {
-            if (flag == null || continuous == null || !continuous.IsActive) return false;
-            var worldX = flag.WorldX;
-            var worldY = flag.WorldY;
-            if (!flag.HasWorldPosition)
-            {
-                if (flag.IsSiteCore) return false;
-                HexMath.ToWorldPosition(flag.AnchorHex, continuous.ActiveHexSize, out worldX, out worldY);
-            }
-            return continuous.IsWorldPositionLoaded(continuous.ActiveSurfaceId, worldX, worldY);
         }
 
         void DrawDestructibleMenu()
         {
             const float w = 168f;
             const float itemH = 30f;
-            var h = itemH + 34f;
+            var h = itemH * 2f + 34f;
             var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
             _menuGuiRect = new Rect(guiX, guiY, w, h);
@@ -447,6 +400,9 @@ namespace XianXia.Unity.Host
 
             GUI.Label(new Rect(guiX + 10f, guiY + 6f, w - 20f, 22f), _targetLabel, _label);
             var y = guiY + 30f;
+            if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "查看详情", _button))
+                ShowWorldObjectDetails();
+            y += itemH;
             var verb = _targetDestructible != null && _targetDestructible.IsTree ? "砍伐" : "拆毁";
             if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), verb, _button))
                 BeginDestructibleAttack();
@@ -506,9 +462,7 @@ namespace XianXia.Unity.Host
                 return;
             }
             var friendly = string.Equals(flag.FactionId, world.Strategic.PlayerFactionId, System.StringComparison.Ordinal);
-            var linkedSite = !string.IsNullOrEmpty(flag.SiteId) &&
-                             world.Strategic.Sites.TryGet(flag.SiteId, out var site) ? site : null;
-            var h = itemH + (linkedSite != null ? 144f : 98f);
+            var h = itemH * 2f + 34f;
             var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
             _menuGuiRect = new Rect(guiX, guiY, w, h);
@@ -517,26 +471,30 @@ namespace XianXia.Unity.Host
             DrawFrame(_menuGuiRect, Border);
             GUI.Label(new Rect(guiX + 10f, guiY + 6f, w - 20f, 22f),
                 friendly ? "阵营控制建筑" : _targetLabel, _label);
-            GUI.Label(new Rect(guiX + 10f, guiY + 27f, w - 20f, 20f),
-                "HP " + flag.CurrentHp + "/" + flag.MaxHp + (friendly ? "（己方）" : string.Empty), _label);
-            var actionY = guiY + 50f;
-            if (linkedSite != null)
-            {
-                GUI.Label(new Rect(guiX + 10f, actionY, w - 20f, 42f),
-                    linkedSite.DisplayName + " · Lv." + linkedSite.CoreLevel + "\n" +
-                    "范围 " + linkedSite.CoreRangeWidth.ToString("0.#") + "×" +
-                    linkedSite.CoreRangeHeight.ToString("0.#") + " · " +
-                    (linkedSite.IsCoreActive ? "核心有效" : "核心失效"), _label);
-                actionY += 46f;
-            }
+            var actionY = guiY + 30f;
+            if (GUI.Button(new Rect(guiX + 8f, actionY, w - 16f, itemH - 4f), "查看详情", _button))
+                ShowWorldObjectDetails();
+            actionY += itemH;
             if (!friendly && GUI.Button(new Rect(guiX + 8f, actionY, w - 16f, itemH - 4f),
                     "攻击势力旗", _button))
                 BeginFactionFlagAttack();
             if (friendly && GUI.Button(new Rect(guiX + 8f, actionY, w - 16f, itemH - 4f),
                     "拆除", _button))
                 BeginFactionFlagDismantle();
-            if (!friendly) GUI.Label(new Rect(guiX + 10f, actionY + itemH, w - 20f, 42f),
-                "摧毁后前哨失去控制；\n不会自动成为己方据点。", _label);
+            TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        void DrawReadOnlyWorldObjectMenu()
+        {
+            const float w = 168f; const float itemH = 30f;
+            var h = itemH + 34f;
+            var x = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
+            var y = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
+            _menuGuiRect = new Rect(x, y, w, h); HostUiHitTest.Block(_menuGuiRect);
+            Fill(_menuGuiRect, Panel); DrawFrame(_menuGuiRect, Border);
+            GUI.Label(new Rect(x + 10f, y + 6f, w - 20f, 22f), _targetLabel, _label);
+            if (GUI.Button(new Rect(x + 8f, y + 30f, w - 16f, itemH - 4f), "查看详情", _button))
+                ShowWorldObjectDetails();
             TryDismissOnOutsideClick(_menuGuiRect);
         }
 
@@ -668,7 +626,7 @@ namespace XianXia.Unity.Host
             }
 
             var playerFaction = world.Strategic?.PlayerFactionId ?? string.Empty;
-            if (!CaptureObjectiveService.TryGetBoundSiteForControlCore(world, core.WorkAreaId, out var site))
+            if (!WorldSiteCoreWarfareService.TryGetBoundSiteForFixedCore(world, core.WorkAreaId, out var site))
             {
                 HostWorldSiteCoreWarfare.Feedback(bootstrap, "议政厅缺少正式据点绑定，无法发起攻击。");
                 CloseAll();
@@ -684,7 +642,7 @@ namespace XianXia.Unity.Host
         {
             var world = bootstrap?.Session?.World;
             if (world == null || !world.ControlCores.TryGet(_targetControlCoreWorkAreaId, out var core) ||
-                !CaptureObjectiveService.TryGetBoundSiteForControlCore(world, core.WorkAreaId, out var site))
+                !WorldSiteCoreWarfareService.TryGetBoundSiteForFixedCore(world, core.WorkAreaId, out var site))
             {
                 HostWorldSiteCoreWarfare.Feedback(bootstrap, "议政厅的正式据点绑定已失效，攻击已取消。");
                 CloseAll(); return;
@@ -1099,6 +1057,7 @@ namespace XianXia.Unity.Host
             _targetFactionFlagId = string.Empty;
             _targetEntranceLocationId = string.Empty;
             _targetDestructible = null;
+            _worldObjectTarget = default;
             _leaveInteriorTarget = false;
             _targetLabel = string.Empty;
             _confirmTarget = EntityId.None;

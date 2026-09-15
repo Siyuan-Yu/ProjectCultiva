@@ -1,7 +1,7 @@
 # 路线图
 
 
-> **当前唯一主线（2026-09-15）：** CW-U0～U4、CW-04、CW-04.5、CW-05A/B/Closing 均 Producer Accepted / Sealed；当前实施 [CW-08 / CW-09 SiteCore Warfare & WorldSite Takeover](235-sitecore-warfare-worldsite-takeover-2026-09-15.md)。
+> **当前唯一主线（2026-09-15）：** CW-U0～U4、CW-04、CW-04.5、CW-05A/B/Closing 均 Producer Accepted / Sealed；当前实施 [CW-08 / CW-09 SiteCore Warfare & WorldSite Takeover](235-sitecore-warfare-worldsite-takeover-2026-09-15.md) 及 [CW-09.5 World Object Interaction + Fixed Capture Closure](236-world-object-interaction-fixed-core-capture-closure-2026-09-15.md)。
 
 > 状态：CW-08 / CW-09 Implementation Completed / Producer Acceptance Pending。保持既有编号，不重排 CW-06 / CW-07。
 

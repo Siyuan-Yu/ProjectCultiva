@@ -315,8 +315,6 @@ namespace XianXia.Core.Simulation
                 ControlCores.TryGet(definition.Id, out var core) &&
                 core != null)
             {
-                // Site 解析只由 CaptureObjectiveService 负责；此时 WorldRegion 可能尚未完成 bootstrap。
-                CaptureObjectiveService.RegisterControlCore(this, core, string.Empty);
             }
         }
 

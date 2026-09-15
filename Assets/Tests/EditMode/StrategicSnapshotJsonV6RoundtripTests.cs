@@ -77,15 +77,10 @@ namespace XianXia.Tests
             retreat.SetMembers(new[] { retreatMember });
             world.Strategic.RetreatingArmies.Register(retreat);
 
-            world.Strategic.CaptureObjectives.Register(new CaptureObjectiveState
-            {
-                ObjectiveId = "capture:test_core",
-                SiteId = SiteA,
-                WorkAreaId = "work:test_core",
-                CurrentHp = 3,
-                MaxHp = 10,
-                Completed = false
-            });
+            world.RegisterWorkArea(new XianXia.Core.Npc.WorkAreaDefinition
+                { Id = "work:test_core", Name = "Core", LocationId = "loc:test_core", IsControlCore = true, MaxDurability = 10 });
+            Assert.IsTrue(WorldSiteCoreWarfareService.BindFixedCore(world, "work:test_core", SiteA).IsSuccess);
+            Assert.IsTrue(world.ControlCores.RestoreRuntimeState("work:test_core", 3, 0f).IsSuccess);
 
             return world;
         }
@@ -94,6 +89,10 @@ namespace XianXia.Tests
         {
             HexTestWorldBootstrap.EnsureMinimalHexMap(world);
             Assert.IsTrue(StrategicSnapshotHelper.Restore(world, strategic).IsSuccess);
+            world.RegisterWorkArea(new XianXia.Core.Npc.WorkAreaDefinition
+                { Id = "work:test_core", Name = "Core", LocationId = "loc:test_core", IsControlCore = true, MaxDurability = 10 });
+            if (world.Strategic.Sites.TryGet(SiteA, out _))
+                Assert.IsTrue(WorldSiteCoreWarfareService.BindFixedCore(world, "work:test_core", SiteA).IsSuccess);
             Assert.IsTrue(StrategicSnapshotHelper.RestoreHexPoliticalState(world, strategic).IsSuccess);
             Assert.IsTrue(StrategicSnapshotHelper.RestoreFormalArmyMotions(world, strategic).IsSuccess);
             StrategicSnapshotHelper.FinalizeRuntimeLinks(world);
@@ -117,6 +116,8 @@ namespace XianXia.Tests
             StringAssert.Contains("\"hexPath\"", json.Value);
             StringAssert.Contains("\"residualCharacterPresences\"", json.Value);
             StringAssert.Contains("\"characterWorldPresences\"", json.Value);
+            StringAssert.Contains("\"controlCores\"", json.Value);
+            StringAssert.DoesNotContain("\"captureObjectives\"", json.Value);
         }
 
         [Test]
@@ -227,10 +228,8 @@ namespace XianXia.Tests
             Assert.IsTrue(world2.Strategic.Alliances.TryGetAllianceId(FactionA, out _));
             Assert.IsTrue(world2.Strategic.Vassalages.TryGetOverlord(FactionC, out var overlord));
             Assert.AreEqual(FactionA, overlord);
-            Assert.IsTrue(world2.Strategic.CaptureObjectives.TryGet("capture:test_core", out var objective));
-            Assert.AreEqual(SiteA, objective.SiteId);
-            Assert.AreEqual(3, objective.CurrentHp);
-            Assert.IsFalse(objective.Completed);
+            Assert.IsTrue(world2.ControlCores.TryGet("work:test_core", out var core));
+            Assert.AreEqual(3, core.CurrentDurability);
             Assert.IsTrue(world2.Strategic.RetreatingArmies.TryGet("retreat:test_01", out var retreat));
             Assert.AreEqual(HexA.Q, retreat.HexQ);
         }
@@ -249,7 +248,7 @@ namespace XianXia.Tests
             Assert.AreEqual(expected.Alliances.Count, actual.Alliances.Count);
             Assert.AreEqual(expected.Vassalages.Count, actual.Vassalages.Count);
             Assert.AreEqual(expected.RetreatingArmies.Count, actual.RetreatingArmies.Count);
-            Assert.AreEqual(expected.CaptureObjectives.Count, actual.CaptureObjectives.Count);
+            Assert.AreEqual(expected.ControlCores.Count, actual.ControlCores.Count);
 
             for (var i = 0; i < expected.FormalArmies.Count; i++)
             {

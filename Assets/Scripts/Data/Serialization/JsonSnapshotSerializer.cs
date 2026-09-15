@@ -1236,24 +1236,19 @@ namespace XianXia.Data.Serialization
                 }
             }
 
-            var captureObjectives = new List<JsonValue>();
-            if (strategic.CaptureObjectives != null)
+            var controlCores = new List<JsonValue>();
+            if (strategic.ControlCores != null)
             {
-                for (var i = 0; i < strategic.CaptureObjectives.Count; i++)
+                for (var i = 0; i < strategic.ControlCores.Count; i++)
                 {
-                    var c = strategic.CaptureObjectives[i];
+                    var c = strategic.ControlCores[i];
                     if (c == null)
                         continue;
-                    captureObjectives.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    controlCores.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
                     {
-                        ["objectiveId"] = JsonValue.FromString(c.ObjectiveId ?? string.Empty),
-                        ["siteId"] = JsonValue.FromString(c.SiteId ?? string.Empty),
                         ["workAreaId"] = JsonValue.FromString(c.WorkAreaId ?? string.Empty),
-                        ["currentHp"] = JsonValue.FromNumber(c.CurrentHp),
-                        ["maxHp"] = JsonValue.FromNumber(c.MaxHp),
-                        ["occupyProgressSeconds"] = JsonValue.FromNumber(c.OccupyProgressSeconds),
-                        ["occupyHoldSeconds"] = JsonValue.FromNumber(c.OccupyHoldSeconds),
-                        ["completed"] = JsonValue.FromBool(c.Completed)
+                        ["currentDurability"] = JsonValue.FromNumber(c.CurrentDurability),
+                        ["occupyProgressSeconds"] = JsonValue.FromNumber(c.OccupyProgressSeconds)
                     }));
                 }
             }
@@ -1277,7 +1272,7 @@ namespace XianXia.Data.Serialization
                 ["alliances"] = JsonValue.FromArray(alliances),
                 ["vassalages"] = JsonValue.FromArray(vassalages),
                 ["retreatingArmies"] = JsonValue.FromArray(retreating),
-                ["captureObjectives"] = JsonValue.FromArray(captureObjectives)
+                ["controlCores"] = JsonValue.FromArray(controlCores)
             };
             if (strategic.HasTerritoryClaimSnapshotAuthority)
                 root["territoryClaims"] = JsonValue.FromArray(territoryClaims);
@@ -1717,12 +1712,33 @@ namespace XianXia.Data.Serialization
                 }
             }
 
+            if (strategic.TryGetProperty("controlCores", out var controlCores))
+            {
+                if (controlCores.Kind != JsonValueKind.Array)
+                    throw new System.FormatException("strategic.controlCores must be an array.");
+                dto.HasControlCoreSnapshotAuthority = true;
+                foreach (var coreNode in controlCores.Array)
+                {
+                    if (coreNode.Kind != JsonValueKind.Object ||
+                        !coreNode.TryGetProperty("workAreaId", out var workAreaId) || workAreaId.Kind != JsonValueKind.String ||
+                        !coreNode.TryGetProperty("currentDurability", out var durability) || durability.Kind != JsonValueKind.Number ||
+                        !coreNode.TryGetProperty("occupyProgressSeconds", out var occupyProgress) || occupyProgress.Kind != JsonValueKind.Number)
+                        throw new System.FormatException("Invalid controlCores entry.");
+                    dto.ControlCores.Add(new ControlCoreRuntimeSnapshotDto
+                    {
+                        WorkAreaId = workAreaId.String,
+                        CurrentDurability = (int)durability.Number,
+                        OccupyProgressSeconds = (float)occupyProgress.Number
+                    });
+                }
+            }
+
             if (strategic.TryGetProperty("captureObjectives", out var captureObjectives) &&
                 captureObjectives.Kind == JsonValueKind.Array)
             {
                 foreach (var objNode in captureObjectives.Array)
                 {
-                    dto.CaptureObjectives.Add(new CaptureObjectiveSnapshotDto
+                    dto.LegacyCaptureObjectives.Add(new LegacyCaptureObjectiveSnapshotDto
                     {
                         ObjectiveId = objNode.GetString("objectiveId", string.Empty),
                         SiteId = objNode.GetString("siteId", string.Empty),

@@ -48,7 +48,7 @@ namespace XianXia.Core.Npc
                                     membership != null && membership.IsAffiliated
                 ? membership.FactionId
                 : string.Empty;
-            var assault = CaptureObjectiveService.TryBeginMilitaryAssault(
+            var assault = WorldSiteCoreWarfareService.ValidateFixedCoreAssault(
                 world, attackerFactionId, workAreaId);
             if (assault.IsFailure)
                 return assault;
@@ -70,7 +70,7 @@ namespace XianXia.Core.Npc
                 return Result.Failure(ErrorCode.InvalidOperation, "Already breached; stand to occupy.");
 
             var attackerFactionId = world.Strategic?.PlayerFactionId ?? string.Empty;
-            var assault = CaptureObjectiveService.TryBeginMilitaryAssault(world, attackerFactionId, workAreaId);
+            var assault = WorldSiteCoreWarfareService.ValidateFixedCoreAssault(world, attackerFactionId, workAreaId);
             if (assault.IsFailure)
                 return assault;
 
@@ -93,12 +93,6 @@ namespace XianXia.Core.Npc
                 actor: attackerId,
                 payload: workAreaId + ":" + core.CurrentDurability + "/" + core.MaxDurability +
                          ";dmg=" + damage);
-            if (breached)
-            {
-                world.Flags.Set("control_core_breach:" + workAreaId);
-                world.Flags.Set("control_core_capture_available");
-            }
-
             return Result.Success();
         }
 
@@ -116,11 +110,11 @@ namespace XianXia.Core.Npc
                 return Result.Failure(ErrorCode.InvalidOperation, "Occupy hold not finished.");
 
             attackerFactionId ??= world.Strategic?.PlayerFactionId ?? StrategicFactionCatalog.PlayerFactionId;
-            var assault = CaptureObjectiveService.TryBeginMilitaryAssault(world, attackerFactionId, workAreaId);
+            var assault = WorldSiteCoreWarfareService.ValidateFixedCoreAssault(world, attackerFactionId, workAreaId);
             if (assault.IsFailure)
                 return assault;
 
-            var complete = CaptureObjectiveService.TryCompleteWorldSiteCapture(world, attackerFactionId, workAreaId);
+            var complete = WorldSiteCoreWarfareService.TryCompleteFixedSiteCapture(world, attackerFactionId, workAreaId);
             if (complete.IsFailure)
                 return complete;
 
@@ -129,84 +123,6 @@ namespace XianXia.Core.Npc
                 world.Tick,
                 payload: workAreaId);
             return Result.Success();
-        }
-
-        public static bool TryFindNearest(
-            SimulationWorld world,
-            float worldX,
-            float worldZ,
-            float maxDistSq,
-            out ControlCoreState core,
-            out float distSq)
-        {
-            core = null;
-            distSq = float.MaxValue;
-            if (world == null)
-                return false;
-
-            foreach (var kv in world.ControlCores.All)
-            {
-                var c = kv.Value;
-                if (c == null || string.IsNullOrEmpty(c.LocationId))
-                    continue;
-                if (!world.WorldRegion.TryGet(c.LocationId, out var loc))
-                    continue;
-                var dx = loc.PresentationX - worldX;
-                var dz = loc.PresentationZ - worldZ;
-                var d = dx * dx + dz * dz;
-                if (d > maxDistSq || d >= distSq)
-                    continue;
-                distSq = d;
-                core = c;
-            }
-
-            return core != null;
-        }
-
-        public static bool IsPartyNearCore(
-            SimulationWorld world,
-            IReadOnlyList<EntityId> partyIds,
-            ControlCoreState core,
-            float radius = DefaultStandRadius)
-        {
-            if (world == null || core == null || partyIds == null || partyIds.Count == 0)
-                return false;
-            if (!world.WorldRegion.TryGet(core.LocationId, out _))
-                return false;
-            for (var i = 0; i < partyIds.Count; i++)
-            {
-                if (!world.Entities.TryGet(partyIds[i], out var e))
-                    continue;
-                if (e.TryGet<EntityLocationComponent>(out var el) &&
-                    el.HasLocation &&
-                    string.Equals(el.LocationId, core.LocationId, StringComparison.Ordinal))
-                    return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>Host supplies world-space party positions for stand／melee range.</summary>
-        public static bool IsAnyPointNearCore(
-            SimulationWorld world,
-            ControlCoreState core,
-            IReadOnlyList<(float X, float Z)> worldPoints,
-            float radius = DefaultStandRadius)
-        {
-            if (world == null || core == null || worldPoints == null || worldPoints.Count == 0)
-                return false;
-            if (!world.WorldRegion.TryGet(core.LocationId, out var loc))
-                return false;
-            var r2 = radius * radius;
-            for (var i = 0; i < worldPoints.Count; i++)
-            {
-                var dx = worldPoints[i].X - loc.PresentationX;
-                var dz = worldPoints[i].Z - loc.PresentationZ;
-                if (dx * dx + dz * dz <= r2)
-                    return true;
-            }
-
-            return false;
         }
 
         public static void TickOccupy(

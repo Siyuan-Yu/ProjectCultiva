@@ -142,30 +142,6 @@ namespace XianXia.Core.World.Strategic
             return "Owner: " + ResolveOwnerDisplay(site.OwnerFactionId);
         }
 
-        public static void AppendCaptureObjectivesForSite(
-            SimulationWorld world,
-            WorldSite site,
-            System.Text.StringBuilder sb)
-        {
-            if (world?.Strategic?.CaptureObjectives == null || site == null || sb == null)
-                return;
-            var ids = world.Strategic.CaptureObjectives.GetObjectiveIdsForSite(site.SiteId);
-            if (ids == null || ids.Count == 0)
-                return;
-
-            sb.Append("\nCapture Objectives:");
-            for (var i = 0; i < ids.Count; i++)
-            {
-                if (!world.Strategic.CaptureObjectives.TryGet(ids[i], out var obj) || obj == null)
-                    continue;
-                var label = obj.ObjectiveId;
-                if (label.StartsWith("capture:", StringComparison.Ordinal))
-                    label = label.Substring("capture:".Length);
-                sb.Append('\n').Append(label).Append("    ");
-                sb.Append(obj.Completed ? "Captured" : "Not Captured");
-            }
-        }
-
         public static StrategicAftermathReport BuildAftermathReport(SimulationWorld world)
         {
             var report = new StrategicAftermathReport();

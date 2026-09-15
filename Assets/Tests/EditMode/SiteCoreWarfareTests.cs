@@ -73,18 +73,17 @@ namespace XianXia.Tests
         }
 
         [Test]
-        public void CaptureObjectiveBindSiteUpdatesBothIndexesTransactionally()
+        public void ControlCoreBindSiteUpdatesBothIndexesTransactionally()
         {
-            var board = new CaptureObjectiveBoard();
-            var objective = new CaptureObjectiveState
-                { ObjectiveId = "capture:test", WorkAreaId = "test", SiteId = "site:old" };
-            board.Register(objective);
-            Assert.IsTrue(board.BindSite(objective.ObjectiveId, "site:new"));
-            Assert.AreEqual("site:new", objective.SiteId);
-            Assert.IsEmpty(board.GetObjectiveIdsForSite("site:old"));
-            CollectionAssert.AreEqual(new[] { objective.ObjectiveId }, board.GetObjectiveIdsForSite("site:new"));
-            Assert.IsTrue(board.BindSite(objective.ObjectiveId, "site:new"));
-            Assert.AreEqual(1, board.GetObjectiveIdsForSite("site:new").Count);
+            var world = new XianXia.Core.Simulation.SimulationWorld();
+            world.RegisterWorkArea(new WorkAreaDefinition
+                { Id = "test", Name = "Core", LocationId = "loc", IsControlCore = true });
+            Assert.IsTrue(world.ControlCores.BindWorldSite("test", "site:new").IsSuccess);
+            Assert.IsTrue(world.ControlCores.BindWorldSite("test", "site:new").IsSuccess);
+            Assert.IsTrue(world.ControlCores.TryGetBoundSiteId("test", out var siteId));
+            Assert.AreEqual("site:new", siteId);
+            Assert.IsTrue(world.ControlCores.TryGetByWorldSite("site:new", out var core));
+            Assert.AreEqual("test", core.WorkAreaId);
         }
 
         [Test]
@@ -99,10 +98,10 @@ namespace XianXia.Tests
             Assert.AreEqual(FixedSite, placement.SiteId);
             Assert.AreEqual("base:loc_ref_road_hub", placement.BoundLocationId);
             Assert.IsTrue(world.ControlCores.TryGetByLocation(placement.BoundLocationId, out var core));
-            Assert.IsTrue(CaptureObjectiveService.TryGetBoundSiteForControlCore(world, core.WorkAreaId, out var site));
+            Assert.IsTrue(WorldSiteCoreWarfareService.TryGetBoundSiteForFixedCore(world, core.WorkAreaId, out var site));
             Assert.AreEqual(FixedSite, site.SiteId);
             Assert.AreEqual(placement.StableId, site.CoreAssetId);
-            Assert.IsTrue(CaptureObjectiveService.TryGetBoundControlCoreForSite(world, FixedSite, out var reverse));
+            Assert.IsTrue(WorldSiteCoreWarfareService.TryGetFixedCore(world, FixedSite, out var reverse));
             Assert.AreSame(core, reverse);
 
             world.WorldRegion.ClearLocations();
@@ -119,9 +118,93 @@ namespace XianXia.Tests
 
             var restored = RoundTrip(b);
             restored.WorldRegion.ClearLocations();
-            Assert.IsTrue(CaptureObjectiveService.TryGetBoundControlCoreForSite(restored, FixedSite, out var restoredCore));
+            Assert.IsTrue(WorldSiteCoreWarfareService.TryGetFixedCore(restored, FixedSite, out var restoredCore));
             Assert.AreEqual(core.WorkAreaId, restoredCore.WorkAreaId);
             Assert.IsTrue(WorldSiteCoreWarfareService.Resolve(restored, FixedSite, out _).IsSuccess);
+        }
+
+        [Test]
+        public void FixedCaptureDoesNotRequireTerritoryRegionProjection()
+        {
+            var world = new XianXia.Core.Simulation.SimulationWorld();
+            world.Strategic.PlayerFactionId = "test:player";
+            world.Strategic.Sites.Register(new WorldSite
+            {
+                SiteId = "test:fixed", OwnerFactionId = "test:enemy", CoreIsRemovable = false,
+                TerritoryRegionId = "test:missing_projection"
+            });
+            world.RegisterWorkArea(new WorkAreaDefinition
+            {
+                Id = "test:core", Name = "Core", LocationId = "test:loc", IsControlCore = true,
+                MaxDurability = 10, OccupyHoldSeconds = 1f
+            });
+            Assert.IsTrue(WorldSiteCoreWarfareService.BindFixedCore(world, "test:core", "test:fixed").IsSuccess);
+            WarGateService.DeclareWar(world, "test:player", "test:enemy");
+            world.ControlCores.ApplyDamage("test:core", 20, out _, false);
+            world.ControlCores.AddOccupyProgress("test:core", 1f, out _);
+            var captured = ControlCoreService.TryCapture(world, "test:core", "test:player");
+            Assert.IsTrue(captured.IsSuccess, captured.IsFailure ? captured.Error.ToString() : "");
+            Assert.AreEqual("test:player", world.Strategic.Sites.Sites["test:fixed"].OwnerFactionId);
+        }
+
+        [Test]
+        public void LegacyCaptureObjectiveSnapshotMigratesOnlyPhysicalCoreState()
+        {
+            var world = new XianXia.Core.Simulation.SimulationWorld();
+            var dto = new StrategicSnapshotDto();
+            dto.LegacyCaptureObjectives.Add(new LegacyCaptureObjectiveSnapshotDto
+            {
+                ObjectiveId = "capture:test:core", SiteId = "ignored:site", WorkAreaId = "test:core",
+                CurrentHp = 0, MaxHp = 999, OccupyProgressSeconds = 4f, OccupyHoldSeconds = 99f,
+                Completed = false
+            });
+            Assert.IsTrue(StrategicSnapshotHelper.Restore(world, dto).IsSuccess);
+            world.RegisterWorkArea(new WorkAreaDefinition
+            {
+                Id = "test:core", Name = "Core", LocationId = "test:loc", IsControlCore = true,
+                MaxDurability = 10, OccupyHoldSeconds = 5f
+            });
+            Assert.IsTrue(world.ControlCores.TryGet("test:core", out var core));
+            Assert.AreEqual(0, core.CurrentDurability);
+            Assert.AreEqual(4f, core.OccupyProgressSeconds);
+            Assert.IsTrue(core.CaptureAvailable);
+            Assert.AreEqual(10, core.MaxDurability, "Content shell remains physical configuration authority.");
+            Assert.IsFalse(world.ControlCores.TryGetBoundSiteId("test:core", out _),
+                "Legacy SiteId must not become canonical binding authority.");
+
+            var completedWorld = new XianXia.Core.Simulation.SimulationWorld();
+            var completed = new StrategicSnapshotDto();
+            completed.LegacyCaptureObjectives.Add(new LegacyCaptureObjectiveSnapshotDto
+            {
+                ObjectiveId = "capture:test:completed", SiteId = "ignored:site",
+                WorkAreaId = "test:completed", CurrentHp = 0, OccupyProgressSeconds = 5f, Completed = true
+            });
+            Assert.IsTrue(StrategicSnapshotHelper.Restore(completedWorld, completed).IsSuccess);
+            completedWorld.RegisterWorkArea(new WorkAreaDefinition
+            {
+                Id = "test:completed", Name = "Core", LocationId = "test:loc2",
+                IsControlCore = true, MaxDurability = 12, OccupyHoldSeconds = 5f
+            });
+            Assert.IsTrue(completedWorld.ControlCores.TryGet("test:completed", out var completedCore));
+            Assert.AreEqual(12, completedCore.CurrentDurability);
+            Assert.AreEqual(0f, completedCore.OccupyProgressSeconds);
+            Assert.IsFalse(completedCore.CaptureAvailable);
+
+            var corruptNew = new StrategicSnapshotDto { HasControlCoreSnapshotAuthority = true };
+            corruptNew.ControlCores.Add(new ControlCoreRuntimeSnapshotDto
+            {
+                WorkAreaId = string.Empty,
+                CurrentDurability = 1,
+                OccupyProgressSeconds = 0f
+            });
+            corruptNew.LegacyCaptureObjectives.Add(new LegacyCaptureObjectiveSnapshotDto
+            {
+                WorkAreaId = "test:legacy_fallback",
+                CurrentHp = 1
+            });
+            Assert.IsTrue(StrategicSnapshotHelper.Restore(
+                    new XianXia.Core.Simulation.SimulationWorld(), corruptNew).IsFailure,
+                "Corrupt new controlCores authority must fail instead of falling back to legacy data.");
         }
 
         [Test]
@@ -203,7 +286,7 @@ namespace XianXia.Tests
             Assert.IsTrue(politics.IsSuccess, politics.IsFailure ? politics.Error.ToString() : "");
             CollectionAssert.AreEqual(b.World.Strategic.TerritoryClaims.Claims.Select(c => c.ClaimId + ":" + c.AcquiredOrder),
                 restored.Value.world.Strategic.TerritoryClaims.Claims.Select(c => c.ClaimId + ":" + c.AcquiredOrder));
-            CaptureObjectiveService.RebindControlCoreSites(restored.Value.world);
+            XianXia.Core.Settlement.SettlementAuthoritySync.Rebuild(restored.Value.world);
             return restored.Value.world;
         }
 

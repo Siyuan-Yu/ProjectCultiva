@@ -410,21 +410,17 @@ namespace XianXia.Core.Persistence
                 dto.RetreatingArmies.Add(rDto);
             }
 
-            foreach (var kv in world.Strategic.CaptureObjectives.All)
+            dto.HasControlCoreSnapshotAuthority = true;
+            foreach (var kv in world.ControlCores.All)
             {
-                var obj = kv.Value;
-                if (obj == null)
+                var core = kv.Value;
+                if (core == null)
                     continue;
-                dto.CaptureObjectives.Add(new CaptureObjectiveSnapshotDto
+                dto.ControlCores.Add(new ControlCoreRuntimeSnapshotDto
                 {
-                    ObjectiveId = obj.ObjectiveId,
-                    SiteId = obj.SiteId,
-                    WorkAreaId = obj.WorkAreaId,
-                    CurrentHp = obj.CurrentHp,
-                    MaxHp = obj.MaxHp,
-                    OccupyProgressSeconds = obj.OccupyProgressSeconds,
-                    OccupyHoldSeconds = obj.OccupyHoldSeconds,
-                    Completed = obj.Completed
+                    WorkAreaId = core.WorkAreaId,
+                    CurrentDurability = core.CurrentDurability,
+                    OccupyProgressSeconds = core.OccupyProgressSeconds
                 });
             }
 
@@ -523,7 +519,7 @@ namespace XianXia.Core.Persistence
             world.Strategic.Alliances.Clear();
             world.Strategic.Vassalages.Clear();
             world.Strategic.RetreatingArmies.Clear();
-            world.Strategic.CaptureObjectives.Clear();
+            world.ControlCores.PrepareRuntimeRestore();
 
             if (dto.HasSquadSnapshotAuthority && dto.Squads != null)
             {
@@ -799,24 +795,29 @@ namespace XianXia.Core.Persistence
                 }
             }
 
-            if (dto.CaptureObjectives != null)
+            if (dto.HasControlCoreSnapshotAuthority)
             {
-                for (var i = 0; i < dto.CaptureObjectives.Count; i++)
+                var cores = dto.ControlCores ?? new List<ControlCoreRuntimeSnapshotDto>();
+                var ids = new HashSet<string>(StringComparer.Ordinal);
+                for (var i = 0; i < cores.Count; i++)
                 {
-                    var c = dto.CaptureObjectives[i];
-                    if (c == null || string.IsNullOrEmpty(c.ObjectiveId))
-                        continue;
-                    world.Strategic.CaptureObjectives.Register(new CaptureObjectiveState
-                    {
-                        ObjectiveId = c.ObjectiveId,
-                        SiteId = c.SiteId ?? string.Empty,
-                        WorkAreaId = c.WorkAreaId ?? string.Empty,
-                        CurrentHp = c.CurrentHp,
-                        MaxHp = c.MaxHp,
-                        OccupyProgressSeconds = c.OccupyProgressSeconds,
-                        OccupyHoldSeconds = c.OccupyHoldSeconds,
-                        Completed = c.Completed
-                    });
+                    var c = cores[i];
+                    if (c == null || string.IsNullOrWhiteSpace(c.WorkAreaId) || !ids.Add(c.WorkAreaId))
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid or duplicate ControlCore runtime snapshot.", "Index=" + i);
+                    var restored = world.ControlCores.RestoreRuntimeState(
+                        c.WorkAreaId, c.CurrentDurability, c.OccupyProgressSeconds);
+                    if (restored.IsFailure) return restored;
+                }
+            }
+            else if (dto.LegacyCaptureObjectives != null)
+            {
+                for (var i = 0; i < dto.LegacyCaptureObjectives.Count; i++)
+                {
+                    var c = dto.LegacyCaptureObjectives[i];
+                    if (c == null || string.IsNullOrWhiteSpace(c.WorkAreaId)) continue;
+                    var restored = world.ControlCores.RestoreRuntimeState(
+                        c.WorkAreaId, c.CurrentHp, c.OccupyProgressSeconds, c.Completed);
+                    if (restored.IsFailure) return restored;
                 }
             }
 

@@ -245,7 +245,7 @@ CW-05A、CW-05B 与 CW-05 Closing Slice 正式 **Producer Accepted / Sealed**。
 
 ## 2026-09-15 CW-08 / CW-09：玩家 SiteCore 战争
 
-制作人授权规则见 [235](../40-process/235-sitecore-warfare-worldsite-takeover-2026-09-15.md)。固定核心由 `CoreIsRemovable=false` 判定，攻破后建筑仍存在，在原建筑交互范围持续占领；己方存活人物在场且没有存活敌方参战者争夺才计时，离开或争夺归零。占领仅经 `CaptureObjectiveService` → `WorldSiteTerritoryTransferService` 改同一 Site 的 Owner 并恢复核心满耐久。ClaimId、AcquiredOrder、农田 identity/crop、人物 faction/home/squad 均不改。
+制作人授权规则见 [235](../40-process/235-sitecore-warfare-worldsite-takeover-2026-09-15.md)／[236](../40-process/236-world-object-interaction-fixed-core-capture-closure-2026-09-15.md)。固定核心由 `CoreIsRemovable=false` 判定；`ControlCoreState` 保存建筑耐久、占领进度和 Content 派生的 Site identity binding。占领经 `WorldSiteCoreWarfareService` → `WorldSiteTerritoryTransferService` 只改同一 Site 的 Owner 并恢复核心满耐久；ClaimId、AcquiredOrder、农田 identity/crop、人物 faction/home/squad 均不改。TerritoryRegion／Hex 是派生 compatibility projection，不是 Capture transaction 前置 authority。
 
 `CoreIsRemovable=true` 的势力旗被击毁即移除物理旗、令原 Site inactive；保留原 Owner 与 Claim 历史，不占领、不自动变成己方旗。攻方通过正常建造建立新旗、新 Site 和新 Claim。资产继续存在，行政管理者由原 CW-05 查询动态接续。
 
