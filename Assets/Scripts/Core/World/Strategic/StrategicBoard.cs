@@ -169,6 +169,8 @@ namespace XianXia.Core.World.Strategic
         public TerritoryRegionBoard TerritoryRegions { get; } = new TerritoryRegionBoard();
         /// <summary>Site 行政范围的不可改写取得历史；Owner 仍由 WorldSite 提供。</summary>
         public TerritoryClaimBoard TerritoryClaims { get; } = new TerritoryClaimBoard();
+        /// <summary>SiteId-keyed public administrative resources; ownership remains on WorldSite.</summary>
+        public WorldSitePublicStockBoard SitePublicStocks { get; } = new WorldSitePublicStockBoard();
         public FactionFlagBoard FactionFlags { get; } = new FactionFlagBoard();
         public BattleOfferPending BattleOffer { get; } = new BattleOfferPending();
         public ArrivalNoticePending ArrivalNotice { get; } = new ArrivalNoticePending();

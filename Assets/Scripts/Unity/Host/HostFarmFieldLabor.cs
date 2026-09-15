@@ -168,6 +168,17 @@ namespace XianXia.Unity.Host
                 !HostFarmFieldRegistry.TryGetPlots(locationId, out _))
                 return false;
 
+            var world = bootstrap?.Session?.World;
+            var actingFactionId = world?.Strategic?.PlayerFactionId ?? string.Empty;
+            if (fromNpcSchedule)
+            {
+                if (world == null || !world.Entities.TryGet(id, out var npc) ||
+                    !npc.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var membership) ||
+                    !membership.IsAffiliated)
+                    return false;
+                actingFactionId = membership.FactionId;
+            }
+
             for (var i = 0; i < _workers.Count; i++)
             {
                 if (_workers[i].Id == id &&
@@ -177,12 +188,8 @@ namespace XianXia.Unity.Host
                         fromNpcSchedule || _workers[i].FromNpcSchedule;
                     _workers[i].FromPartyFollow =
                         fromPartyFollow || _workers[i].FromPartyFollow;
-                    if (!fromNpcSchedule)
-                    {
-                        _workers[i].RequiresAdministrativeAuthorization = true;
-                        _workers[i].ActingFactionId =
-                            bootstrap.Session.World.Strategic?.PlayerFactionId ?? string.Empty;
-                    }
+                    _workers[i].RequiresAdministrativeAuthorization = true;
+                    _workers[i].ActingFactionId = actingFactionId;
                     return true;
                 }
             }
@@ -198,10 +205,8 @@ namespace XianXia.Unity.Host
                 Phase = Phase.Idle,
                 FromNpcSchedule = fromNpcSchedule,
                 FromPartyFollow = fromPartyFollow,
-                RequiresAdministrativeAuthorization = !fromNpcSchedule,
-                ActingFactionId = !fromNpcSchedule
-                    ? bootstrap.Session.World.Strategic?.PlayerFactionId ?? string.Empty
-                    : string.Empty
+                RequiresAdministrativeAuthorization = true,
+                ActingFactionId = actingFactionId
             };
             _workers.Add(w);
             if (!AssignNextCell(w))
@@ -354,7 +359,8 @@ namespace XianXia.Unity.Host
             if (w.WorkLeft > 0f)
                 return;
 
-            ApplyJob(w);
+            if (!ApplyJob(w))
+                return;
             ReleaseReserve(w);
             w.Cell = null;
             if (!AssignNextCell(w))
@@ -401,8 +407,17 @@ namespace XianXia.Unity.Host
                 return true;
             if (cell == null || string.IsNullOrEmpty(cell.StableCellId))
                 return false;
+            var world = bootstrap?.Session?.World;
+            if (worker.FromNpcSchedule)
+            {
+                if (world == null || !world.Entities.TryGet(worker.Id, out var npc) ||
+                    !npc.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var membership) ||
+                    !membership.IsAffiliated)
+                    return false;
+                worker.ActingFactionId = membership.FactionId;
+            }
             var authorization = WorldAdministrativeAssetAuthorizationService.ResolveForFaction(
-                bootstrap?.Session?.World, cell.StableCellId, worker.ActingFactionId);
+                world, cell.StableCellId, worker.ActingFactionId);
             return authorization.IsAllowed;
         }
 
@@ -419,12 +434,17 @@ namespace XianXia.Unity.Host
             worker.Phase = Phase.Idle;
         }
 
-        void ApplyJob(Worker w)
+        bool ApplyJob(Worker w)
         {
             var cell = w.Cell;
             var world = bootstrap.Session.World;
             if (cell == null || !world.Entities.TryGet(w.Id, out var entity))
-                return;
+                return false;
+            if (!IsCellAuthorized(w, cell))
+            {
+                HandleAuthorizationLoss(w);
+                return false;
+            }
 
             var isNpc = (entity.Tags & EntityTag.Npc) != 0;
             var verb = HostFarmFieldRules.JobVerb(cell.CropStage);
@@ -450,9 +470,12 @@ namespace XianXia.Unity.Host
                 case OutdoorFarmCropStage.Mature:
                 {
                     var itemId = HostFarmFieldRules.HarvestItemId(cell);
-                    var added = GrantHarvest(world, entity, itemId);
-                    cell.SetCropStage(OutdoorFarmCropStage.Empty);
-                    cell.RefreshCropVisual();
+                    var added = GrantHarvest(world, entity, cell, itemId, w.FromNpcSchedule);
+                    if (added > 0)
+                    {
+                        cell.SetCropStage(OutdoorFarmCropStage.Empty);
+                        cell.RefreshCropVisual();
+                    }
                     Toast(w.Id,
                         added > 0 ? ("收获 · " + ShortItem(itemId)) : "收获失败",
                         new Color(0.95f, 0.85f, 0.4f));
@@ -466,31 +489,25 @@ namespace XianXia.Unity.Host
                         Toast(w.Id, "清理完毕", new Color(0.8f, 0.8f, 0.75f));
                     break;
             }
+            return true;
         }
 
         static int GrantHarvest(
             XianXia.Core.Simulation.SimulationWorld world,
             Entity entity,
-            string itemId)
+            HostMapPlotCell cell,
+            string itemId,
+            bool fromNpcSchedule)
         {
             if (world == null || string.IsNullOrEmpty(itemId))
                 return 0;
 
-            if (entity != null && (entity.Tags & EntityTag.Npc) != 0)
+            if (fromNpcSchedule)
             {
-                foreach (var kv in world.Settlements.All)
-                {
-                    var settlement = kv.Value;
-                    if (settlement == null)
-                        continue;
-                    settlement.AddStock(itemId, 1);
-                    world.Events.Publish(
-                        XianXia.Core.Events.EventType.SettlementStockChanged,
-                        world.Tick,
-                        actor: entity.Id,
-                        payload: settlement.Id + ":" + itemId + ":" + settlement.GetStock(itemId));
-                    return 1;
-                }
+                if (entity == null || cell == null || string.IsNullOrEmpty(cell.StableCellId)) return 0;
+                var added = WorldSiteFarmHarvestService.TryDepositNpcHarvest(
+                    world, entity.Id, cell.StableCellId, itemId);
+                return added.IsSuccess ? 1 : 0;
             }
 
             return world.Inventory != null ? world.Inventory.TryAdd(itemId, 1) : 0;

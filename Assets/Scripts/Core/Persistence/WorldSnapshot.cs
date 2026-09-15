@@ -123,6 +123,10 @@ namespace XianXia.Core.Persistence
         public List<ControlCoreRuntimeSnapshotDto> ControlCores { get; set; } = new List<ControlCoreRuntimeSnapshotDto>();
         /// <summary>旧 v6 migration input；新存档不写。</summary>
         public List<LegacyCaptureObjectiveSnapshotDto> LegacyCaptureObjectives { get; set; } = new List<LegacyCaptureObjectiveSnapshotDto>();
+        /// <summary>字段出现即表示所有 Site public stock runtime state 完整 authoritative。</summary>
+        public bool HasWorldSitePublicStockSnapshotAuthority { get; set; }
+        public List<WorldSitePublicStockSnapshotDto> WorldSitePublicStocks { get; set; } =
+            new List<WorldSitePublicStockSnapshotDto>();
         /// <summary>
         /// Phase 2C：PlayerParty 连续世界位置（可选；旧存档缺省时不恢复 motion）。
         /// </summary>
@@ -498,6 +502,19 @@ namespace XianXia.Core.Persistence
         public string WorkAreaId { get; set; }
         public int CurrentDurability { get; set; }
         public float OccupyProgressSeconds { get; set; }
+    }
+
+    public sealed class WorldSitePublicStockSnapshotDto
+    {
+        public string SiteId { get; set; } = string.Empty;
+        public List<WorldSitePublicStockEntrySnapshotDto> Entries { get; set; } =
+            new List<WorldSitePublicStockEntrySnapshotDto>();
+    }
+
+    public sealed class WorldSitePublicStockEntrySnapshotDto
+    {
+        public string ResourceId { get; set; } = string.Empty;
+        public int Amount { get; set; }
     }
 
     public sealed class LegacyCaptureObjectiveSnapshotDto

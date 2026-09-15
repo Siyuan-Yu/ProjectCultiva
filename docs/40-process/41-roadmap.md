@@ -1,14 +1,14 @@
 # 路线图
 
 
-> **当前唯一主线（2026-09-15）：** CW-U0～U4、CW-04、CW-04.5、CW-05A/B/Closing 均 Producer Accepted / Sealed；当前实施 [CW-08 / CW-09 SiteCore Warfare & WorldSite Takeover](235-sitecore-warfare-worldsite-takeover-2026-09-15.md) 及 [CW-09.5 World Object Interaction + Fixed Capture Closure](236-world-object-interaction-fixed-core-capture-closure-2026-09-15.md)。
+> **当前唯一主线（2026-09-15）：** CW-U0～U4、CW-04、CW-04.5、CW-05A/B/Closing、[CW-08 / CW-09](235-sitecore-warfare-worldsite-takeover-2026-09-15.md) 与 [CW-09.5](236-world-object-interaction-fixed-core-capture-closure-2026-09-15.md) 均 Producer Accepted / Sealed；当前实施 [CW-10 Site Economy / Automated Administration Migration](237-cw-10-site-economy-automated-administration-migration-2026-09-15.md)。
 
-> 状态：CW-08 / CW-09 Implementation Completed / Producer Acceptance Pending。保持既有编号，不重排 CW-06 / CW-07。
+> 状态：CW-10 Implementation Completed / Producer Acceptance Pending。保持既有编号，不重排 CW-06 / CW-07。
 
 ## 当前阶段说明
 
-- **当前产品：** 建筑页农田5木、reference NewGame20木、全 footprint Actual Control 授权、独立运行时物理资产、Streaming、存读档与正常农作闭环已实现。拆旗保留农田/自然生长，新己方旗接管后恢复组织劳动。
-- **下一步：** 制作人按 235 的固定据点接管与可拆旗摧毁两条正常玩法统一验收。Economy / Automated Settlement Production migration 尚未开始。
+- **当前产品：** SiteId 公库已替代旧 Settlement 原型；NPC 日程农作逐格消费实时行政授权，真实收获进入当前管理 Site 公库。固定接管、公库保留、可拆旗失效、同势力管理接续与存读档已贯通。
+- **下一步：** 制作人按 237 的正常玩法路线验收青石荒村接管前后 NPC 劳作、公库变化与 Save/Load。后续只记录更完整仓储物流、税赋、跨 Site 运输和离屏生产设计，不在本轮预实现。
 
 - **不阻塞 CW-05 的 backlog：** FormalArmy／BattleOffer／Hex support 深层清理；NPC Squad macro movement 去 FormalArmyWorldMotion；Level 2／3；Encounter 介入参数调优；飞舟；NPC 自动攻城与普通建筑战争。
 

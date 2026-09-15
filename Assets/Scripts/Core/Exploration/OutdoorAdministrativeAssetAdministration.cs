@@ -15,13 +15,15 @@ namespace XianXia.Core.Exploration
     public sealed class OutdoorAdministrativeAssetAnchor
     {
         public OutdoorAdministrativeAssetAnchor(
-            string stableAssetId, string surfaceId, float worldX, float worldY, string kind)
+            string stableAssetId, string surfaceId, float worldX, float worldY, string kind,
+            string boundLocationId = null)
         {
             StableAssetId = stableAssetId ?? string.Empty;
             SurfaceId = surfaceId ?? string.Empty;
             WorldX = worldX;
             WorldY = worldY;
             Kind = kind ?? string.Empty;
+            BoundLocationId = boundLocationId ?? string.Empty;
         }
 
         public string StableAssetId { get; }
@@ -29,6 +31,8 @@ namespace XianXia.Core.Exploration
         public float WorldX { get; }
         public float WorldY { get; }
         public string Kind { get; }
+        /// <summary>Physical/content grouping identity. Never a manager or owner.</summary>
+        public string BoundLocationId { get; }
     }
 
     /// <summary>Authored/runtime-placement-derived index. It is rebuilt after load and never persisted.</summary>
@@ -36,11 +40,22 @@ namespace XianXia.Core.Exploration
     {
         readonly Dictionary<string, OutdoorAdministrativeAssetAnchor> _anchors =
             new Dictionary<string, OutdoorAdministrativeAssetAnchor>(StringComparer.Ordinal);
+        readonly Dictionary<string, List<string>> _idsByLocation =
+            new Dictionary<string, List<string>>(StringComparer.Ordinal);
 
         public IReadOnlyDictionary<string, OutdoorAdministrativeAssetAnchor> Anchors => _anchors;
 
-        public void Clear() => _anchors.Clear();
-        public bool Remove(string stableAssetId) => _anchors.Remove(stableAssetId);
+        public void Clear() { _anchors.Clear(); _idsByLocation.Clear(); }
+        public bool Remove(string stableAssetId)
+        {
+            if (!_anchors.TryGetValue(stableAssetId, out var anchor) || !_anchors.Remove(stableAssetId)) return false;
+            if (!string.IsNullOrEmpty(anchor.BoundLocationId) && _idsByLocation.TryGetValue(anchor.BoundLocationId, out var ids))
+            {
+                ids.Remove(stableAssetId);
+                if (ids.Count == 0) _idsByLocation.Remove(anchor.BoundLocationId);
+            }
+            return true;
+        }
 
         public bool TryRegister(OutdoorAdministrativeAssetAnchor anchor)
         {
@@ -53,7 +68,25 @@ namespace XianXia.Core.Exploration
             if (_anchors.ContainsKey(anchor.StableAssetId))
                 return false;
             _anchors.Add(anchor.StableAssetId, anchor);
+            if (!string.IsNullOrEmpty(anchor.BoundLocationId))
+            {
+                if (!_idsByLocation.TryGetValue(anchor.BoundLocationId, out var ids))
+                { ids = new List<string>(); _idsByLocation.Add(anchor.BoundLocationId, ids); }
+                var index = ids.BinarySearch(anchor.StableAssetId, StringComparer.Ordinal);
+                ids.Insert(index < 0 ? ~index : index, anchor.StableAssetId);
+            }
             return true;
+        }
+
+        public bool TryGetByLocation(string locationId, out IReadOnlyList<OutdoorAdministrativeAssetAnchor> anchors)
+        {
+            anchors = null;
+            if (string.IsNullOrEmpty(locationId) || !_idsByLocation.TryGetValue(locationId, out var ids)) return false;
+            var result = new List<OutdoorAdministrativeAssetAnchor>(ids.Count);
+            for (var i = 0; i < ids.Count; i++)
+                if (_anchors.TryGetValue(ids[i], out var anchor)) result.Add(anchor);
+            anchors = result;
+            return result.Count > 0;
         }
 
         public bool TryGet(string stableAssetId, out OutdoorAdministrativeAssetAnchor anchor)

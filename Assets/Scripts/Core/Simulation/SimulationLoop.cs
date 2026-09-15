@@ -10,7 +10,6 @@ using XianXia.Core.Npc;
 using XianXia.Core.Orders;
 using XianXia.Core.Results;
 using XianXia.Core.Schedule;
-using XianXia.Core.Settlement;
 using XianXia.Core.Social;
 using XianXia.Core.Combat;
 using XianXia.Core.World;
@@ -54,7 +53,6 @@ namespace XianXia.Core.Simulation
                 _dayBoundaryHandlers = new List<IDayBoundaryHandler>
                 {
                     new QuotaConsequenceHandler(),
-                    new SettlementProductionHandler()
                 };
             }
         }

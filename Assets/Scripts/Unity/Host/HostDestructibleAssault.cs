@@ -293,7 +293,7 @@ namespace XianXia.Unity.Host
             if (added > 0)
             {
                 world.Events.Publish(
-                    XianXia.Core.Events.EventType.SettlementStockChanged,
+                    XianXia.Core.Events.EventType.PartyInventoryChanged,
                     world.Tick,
                     payload: "bag:" + id + ":" + added + ":chopTree");
                 QuestProgressRefresh.AfterWorldChange(world, EntityId.None);

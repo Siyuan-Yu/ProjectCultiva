@@ -1,6 +1,8 @@
 # CW-08 / CW-09：SiteCore Warfare & WorldSite Takeover
 
-> 状态：Implementation Completed / Producer Acceptance Pending｜优先级：P0｜最后更新：2026-09-15
+> 状态：Producer Accepted / Sealed｜优先级：P0｜最后更新：2026-09-15
+
+Subsequently Producer Accepted after normal gameplay validation. 早期记录的非 Unity 验证与当时 Pending 状态作为实施历史保留。
 
 制作人授权在当前工作树完成玩家发起的 SiteCore 战争；保持 CW-08 / CW-09 既有编号，不重排 CW-06 / CW-07。不创建提交。
 

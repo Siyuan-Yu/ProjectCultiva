@@ -42,7 +42,7 @@ namespace XianXia.Core.Content
 
             StoryFlagService.Set(world, flag, subject);
             world.Events.Publish(
-                EventType.SettlementStockChanged,
+                EventType.PartyInventoryChanged,
                 world.Tick,
                 target: subject,
                 payload: "bag:" + itemId.Trim() + ":+" + added + ";loot:" + lootSpotId.Trim());

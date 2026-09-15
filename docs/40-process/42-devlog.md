@@ -1,5 +1,13 @@
 # 开发日志
 
+## 2026-09-15 — CW-10 Site Economy / Automated Administration Migration
+
+- CW-08／CW-09 与 CW-09.5 已经制作人正常玩法验收，235／236 正式 **Producer Accepted / Sealed**；保留早期仅离线验证和当时 Pending 的历史记录。Subsequently Producer Accepted after normal gameplay validation.
+- SiteId 公库取代旧 Settlement stock：Content `worldSiteEconomy` 为青石荒村配置粗木10、灵草2、粮食0、敛息草3；固定易主与可拆旗失效保留同一历史 Site 公库，新旗新 Site 从空公库开始。议政厅／旗 Inspect 实时显示公库。
+- NPC Labor + farm WorkArea 只接受真实 affiliated Character/NPC 与至少一个实时获准的 farm cell；选格、移动、劳动和提交均重新授权。NPC 收获进入当前 Managing Site 公库，玩家手工收获仍进 Party Inventory；自然生长不生成资源，Capture 不改 NPC membership。
+- Snapshot v6 additive 保存完整确定性 `worldSitePublicStocks` authority；旧档缺字段幂等套 authored defaults，新格式损坏拒绝。删除旧 Settlement/Facility/WorkAssignment/AssignWork 正常原型与 Content，保留住房／课表 `SettlementAuthority` bridge、ManualBattleSettlement 和独立 Demo Runtime work-spot 指令。
+- 状态 **Implementation Completed / Producer Acceptance Pending**。实现、验证与五步正常玩法路线见 [237](237-cw-10-site-economy-automated-administration-migration-2026-09-15.md)。未创建提交。
+
 ## 2026-09-15 — CW-09.5 世界物件交互统一与 Fixed Capture authority 收口
 
 - 制作人已通过固定／可拆 SiteCore 和 CharacterEncounter 主链，后续发现占领后的议政厅菜单仍无条件显示攻击；根因是 Presentation 未实时消费绑定 Site Owner，且左／右键重复维护对象拾取。新增统一 `HostWorldObjectPicker`／`WorldObjectInteractionTarget`：左键写入同一个 Inspect，右键按同一 identity 提供 Core／Flag／Farm／Tree 等正式行为。议政厅菜单实时按 Owner 区分敌我；Flag、Farm 与 territorial destructible 详情补齐。

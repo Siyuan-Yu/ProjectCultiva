@@ -1,7 +1,5 @@
 using UnityEngine;
-using XianXia.Core.Domain.Ids;
 using XianXia.Core.Input;
-using XianXia.Core.Settlement;
 
 namespace XianXia.Unity.Host
 {
@@ -85,13 +83,6 @@ namespace XianXia.Unity.Host
                     _status = "当前无交战";
             }
 
-            if (Button(x, ref y, w, "分工·劳动"))
-                IssueAssign(WorkRoleKind.Labor);
-            if (Button(x, ref y, w, "分工·采集"))
-                IssueAssign(WorkRoleKind.Gather);
-            if (Button(x, ref y, w, "分工·修炼"))
-                IssueAssign(WorkRoleKind.Cultivate);
-
             GUI.Label(new Rect(x, y + 8f, w, 40f), _status);
         }
 
@@ -123,19 +114,5 @@ namespace XianXia.Unity.Host
             _status = kind + " ×" + ok;
         }
 
-        void IssueAssign(WorkRoleKind role)
-        {
-            var session = bootstrap.Session;
-            if (selectionController == null || selectionController.State.Count == 0)
-            {
-                _status = "未选中角色";
-                return;
-            }
-
-            var id = selectionController.State.SelectedIds[0];
-            var r = session.Port.Submit(new PlayerCommandRequest(
-                id, PlayerCommandKind.AssignWork, 1, EntityId.None, role));
-            _status = r.IsSuccess ? "分工 " + role : r.Error.ToString();
-        }
     }
 }

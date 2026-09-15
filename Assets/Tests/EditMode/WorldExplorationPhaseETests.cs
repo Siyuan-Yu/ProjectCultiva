@@ -4,7 +4,6 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Exploration;
 using XianXia.Core.Input;
 using XianXia.Core.Opportunity;
-using XianXia.Core.Settlement;
 using XianXia.Data.Bootstrap;
 using XianXia.Data.Content;
 using CoreEventType = XianXia.Core.Events.EventType;
@@ -55,12 +54,10 @@ namespace XianXia.Tests
             var port = started.Value.Port;
             var world = started.Value.World;
 
-            Assert.IsTrue(world.Settlements.TryGetPrimary(out var settlement));
-            var herbBefore = settlement.GetStock("base:resource_spirit_herb");
+            var herbBefore = world.Inventory.GetCount("base:resource_spirit_herb");
 
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(
-                actor, PlayerCommandKind.Travel, 1, EntityId.None, WorkRoleKind.None,
-                "base:loc_cave_mouth")).IsSuccess);
+                actor, PlayerCommandKind.Travel, 1, EntityId.None, "base:loc_cave_mouth")).IsSuccess);
 
             Assert.AreEqual(
                 "base:loc_cave_mouth",
@@ -77,20 +74,17 @@ namespace XianXia.Tests
 
             // Content Ready: herb_slope enterConditions require explored village_edge
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(
-                actor, PlayerCommandKind.Travel, 1, EntityId.None, WorkRoleKind.None,
-                "base:loc_labor_camp")).IsSuccess);
+                actor, PlayerCommandKind.Travel, 1, EntityId.None, "base:loc_labor_camp")).IsSuccess);
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(
-                actor, PlayerCommandKind.Travel, 1, EntityId.None, WorkRoleKind.None,
-                "base:loc_village_edge")).IsSuccess);
+                actor, PlayerCommandKind.Travel, 1, EntityId.None, "base:loc_village_edge")).IsSuccess);
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(
                 actor, PlayerCommandKind.Explore, 1)).IsSuccess);
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(
-                actor, PlayerCommandKind.Travel, 1, EntityId.None, WorkRoleKind.None,
-                "base:loc_herb_slope")).IsSuccess);
+                actor, PlayerCommandKind.Travel, 1, EntityId.None, "base:loc_herb_slope")).IsSuccess);
             Assert.IsTrue(port.Submit(new PlayerCommandRequest(
                 actor, PlayerCommandKind.Explore, 1)).IsSuccess);
             // explore +2；scout quest reward +1（Content Ready 骨架）
-            Assert.AreEqual(herbBefore + 3, settlement.GetStock("base:resource_spirit_herb"));
+            Assert.AreEqual(herbBefore + 3, world.Inventory.GetCount("base:resource_spirit_herb"));
 
             var events = world.Events.Drain();
             Assert.IsTrue(events.Exists(ev => ev.Type == CoreEventType.LocationChanged));

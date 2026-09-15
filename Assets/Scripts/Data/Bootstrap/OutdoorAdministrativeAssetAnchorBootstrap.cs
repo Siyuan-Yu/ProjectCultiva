@@ -32,7 +32,8 @@ namespace XianXia.Data.Bootstrap
                     {
                         if (!Register(board, placement.StableId, surface.SurfaceId, placement.Kind,
                                 placement.WorldX + placement.WorldWidth * .5f,
-                                placement.WorldY + placement.WorldHeight * .5f))
+                                placement.WorldY + placement.WorldHeight * .5f,
+                                placement.BoundLocationId))
                             return Invalid(placement, "duplicate or invalid centered asset anchor");
                         continue;
                     }
@@ -47,7 +48,8 @@ namespace XianXia.Data.Bootstrap
                         var stableId = OutdoorStatefulObjectId.ForCell(placement.StableId, x, y);
                         if (!Register(board, stableId, surface.SurfaceId, placement.Kind,
                                 placement.WorldX + (x + .5f) * cellWidth,
-                                placement.WorldY + (y + .5f) * cellHeight))
+                                placement.WorldY + (y + .5f) * cellHeight,
+                                placement.BoundLocationId))
                             return Invalid(placement, "duplicate or invalid per-cell asset anchor: " + stableId);
                     }
                 }
@@ -69,9 +71,10 @@ namespace XianXia.Data.Bootstrap
             string surfaceId,
             string kind,
             float worldX,
-            float worldY) =>
+            float worldY,
+            string boundLocationId) =>
             board.TryRegister(new OutdoorAdministrativeAssetAnchor(
-                stableId, surfaceId, worldX, worldY, kind));
+                stableId, surfaceId, worldX, worldY, kind, boundLocationId));
 
         static Result Invalid(OutdoorSurfacePlacementDefinition placement, string reason) =>
             Result.Failure(

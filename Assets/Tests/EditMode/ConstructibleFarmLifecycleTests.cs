@@ -7,6 +7,7 @@ using XianXia.Core.Domain.Ids;
 using XianXia.Core.Exploration;
 using XianXia.Core.Persistence;
 using XianXia.Core.Simulation;
+using XianXia.Core.Social;
 using XianXia.Core.World.Strategic;
 using XianXia.Core.World.Surface;
 using XianXia.Data.Bootstrap;
@@ -193,6 +194,52 @@ namespace XianXia.Tests
             scenario.StartingInventory.Add(new OpeningStartingInventoryEntry { ItemId = Wood, Count = 20 });
             Assert.IsTrue(OpeningInventoryBootstrap.Apply(w, scenario).IsFailure);
             Assert.AreEqual(98, w.Inventory.GetCount(Wood));
+        }
+
+        [Test]
+        public void NpcHarvestReauthorizesAndDepositsIntoCurrentManagingSiteOnly()
+        {
+            const string grain = "base:resource_grain";
+            var w = World();
+            var a = Site(w, "A", 12, 20);
+            Assert.IsTrue(ConstructionService.TryConstructFarmField(
+                w, Farm, Faction, Surface, 10, 10, out var farmId).IsSuccess);
+            var cellId = OutdoorStatefulObjectId.ForCell(farmId, 0, 0);
+            var npc = w.Entities.CreateNpc(new DefinitionId("test", "real_farmer"), "Farmer").Value;
+            npc.Get<FactionMembershipComponent>().Assign(Faction, FactionRoleKind.Member);
+
+            var first = WorldSiteFarmHarvestService.TryDepositNpcHarvest(w, npc.Id, cellId, grain);
+            Assert.IsTrue(first.IsSuccess, first.IsFailure ? first.Error.ToString() : "");
+            Assert.AreEqual(1, WorldSitePublicStockService.GetCount(w, a.SiteId, grain));
+            Assert.AreEqual(0, w.Inventory.GetCount(grain), "NPC schedule harvest never enters Party Inventory.");
+
+            var b = Site(w, "B", 12, 20);
+            a.IsCoreActive = false;
+            var second = WorldSiteFarmHarvestService.TryDepositNpcHarvest(w, npc.Id, cellId, grain);
+            Assert.IsTrue(second.IsSuccess, second.IsFailure ? second.Error.ToString() : "");
+            Assert.AreEqual(1, WorldSitePublicStockService.GetCount(w, a.SiteId, grain));
+            Assert.AreEqual(1, WorldSitePublicStockService.GetCount(w, b.SiteId, grain));
+
+            b.OwnerFactionId = "test:foreign";
+            Assert.IsTrue(WorldSiteFarmHarvestService.TryDepositNpcHarvest(
+                w, npc.Id, cellId, grain).IsFailure);
+            Assert.AreEqual(Faction, npc.Get<FactionMembershipComponent>().FactionId);
+            Assert.AreEqual(1, WorldSitePublicStockService.GetCount(w, b.SiteId, grain));
+        }
+
+        [Test]
+        public void WorldTickGrowsCropWithoutPhantomPublicStockProduction()
+        {
+            const string grain = "base:resource_grain";
+            var w = World();
+            Site(w, "A", 12, 20);
+            Assert.IsTrue(ConstructionService.TryConstructFarmField(
+                w, Farm, Faction, Surface, 10, 10, out var farmId).IsSuccess);
+            var cellId = OutdoorStatefulObjectId.ForCell(farmId, 0, 0);
+            w.OutdoorStatefulObjects.SetFarmPlot(cellId, "crop_grain", OutdoorFarmCropStage.Growing, .25f);
+            Assert.IsTrue(new SimulationLoop(w).TickOnce().IsSuccess);
+            Assert.Greater(w.OutdoorStatefulObjects.FarmPlots[cellId].Growth, .25f);
+            Assert.AreEqual(0, WorldSitePublicStockService.GetCount(w, "A", grain));
         }
 
         [Test]

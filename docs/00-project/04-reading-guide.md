@@ -1,8 +1,8 @@
 # 文档通读指南
 
-> **当前主线入口：** [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md) → [26 Territory Management](../20-systems/26-territory-management.md) → [223～229 CW-04](../40-process/223-cw-04-territory-claim-administrative-control-2026-09-14.md) → [231 CW-04.5 封板](../40-process/231-cw-04-5-faction-territory-visual-union-2026-09-14.md) → [232 CW-05A](../40-process/232-cw-05a-asset-administrative-context-outdoor-stateful-succession-2026-09-14.md) → [233 CW-05B](../40-process/233-cw-05b-farm-administrative-labor-authorization-2026-09-14.md) → [234 CW-05 Closing](../40-process/234-cw-05c-constructible-farm-administrative-lifecycle-2026-09-14.md)。
+> **当前主线入口：** [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md) → [26 Territory Management](../20-systems/26-territory-management.md) → [223～229 CW-04](../40-process/223-cw-04-territory-claim-administrative-control-2026-09-14.md) → [232～234 CW-05](../40-process/234-cw-05c-constructible-farm-administrative-lifecycle-2026-09-14.md) → [235／236 CW-08～09.5](../40-process/235-sitecore-warfare-worldsite-takeover-2026-09-15.md) → [237 CW-10 Site Economy](../40-process/237-cw-10-site-economy-automated-administration-migration-2026-09-15.md)。
 
-> 状态：现行 | 最后更新：2026-09-14
+> 状态：现行 | 最后更新：2026-09-15
 > 上级：[`00-overview.md`](00-overview.md)
 > **本页说明怎么读整套策划／架构文档。** 正文仍以各专题页为准；本地 Markdown 与飞书同步页一一对应。
 
@@ -31,7 +31,7 @@
 
 | 目的 | 读什么 |
 |------|--------|
-| **当前阶段与下一阶段** | [234 CW-05 Closing](../40-process/234-cw-05c-constructible-farm-administrative-lifecycle-2026-09-14.md) 已封板；[235 SiteCore Warfare](../40-process/235-sitecore-warfare-worldsite-takeover-2026-09-15.md) 为当前 CW-08 / CW-09 实施与验收记录，后续经济迁移未开始 |
+| **当前阶段与下一阶段** | [235 SiteCore Warfare](../40-process/235-sitecore-warfare-worldsite-takeover-2026-09-15.md) 与 [236 CW-09.5](../40-process/236-world-object-interaction-fixed-core-capture-closure-2026-09-15.md) 已封板；[237 CW-10](../40-process/237-cw-10-site-economy-automated-administration-migration-2026-09-15.md) 为当前 Site Economy 实施与验收记录 |
 | **CW-04 已封板范围** | [223](../40-process/223-cw-04-territory-claim-administrative-control-2026-09-14.md)～[229](../40-process/229-cw-04-flag-placement-player-camp-retirement-2026-09-14.md)（Producer Accepted / Sealed） |
 | **本轮最终规则、状态、替代矩阵与迁移依赖** | [216 文档对齐](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md) |
 | **SiteCore／实际行政与建设范围** | [24](../20-systems/24-world-and-settlements.md) + [26](../20-systems/26-territory-management.md) + [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md) |

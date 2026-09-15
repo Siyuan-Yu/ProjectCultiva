@@ -39,7 +39,7 @@ namespace XianXia.Core.Content
                 return learned;
 
             world.Events.Publish(
-                EventType.SettlementStockChanged,
+                EventType.PartyInventoryChanged,
                 world.Tick,
                 target: learner,
                 payload: "bag:" + itemId + ":0:learnManual");

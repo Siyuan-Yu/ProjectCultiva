@@ -11,7 +11,6 @@
           "entityKind": "character",
           "bindSchedule": true,
           "bindDailyTask": true,
-          "workRole": "Labor",
           "scheduleId": "base:schedule_mortal_day",
           "aiRole": "Mortal"
         },
@@ -20,7 +19,6 @@
           "entityKind": "character",
           "bindSchedule": true,
           "bindDailyTask": true,
-          "workRole": "Gather",
           "scheduleId": "base:schedule_mortal_day",
           "aiRole": "Mortal"
         },
@@ -29,7 +27,6 @@
           "entityKind": "character",
           "bindSchedule": true,
           "bindDailyTask": true,
-          "workRole": "Labor",
           "scheduleId": "base:schedule_mortal_day",
           "aiRole": "Mortal"
         },

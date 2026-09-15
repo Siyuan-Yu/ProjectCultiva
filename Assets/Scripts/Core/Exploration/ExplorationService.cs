@@ -115,7 +115,7 @@ namespace XianXia.Core.Exploration
                 if (added > 0)
                 {
                     world.Events.Publish(
-                        EventType.SettlementStockChanged,
+                        EventType.PartyInventoryChanged,
                         world.Tick,
                         target: subject,
                         payload: "bag:" + location.ResourceOnExploreId + ":+" + added);

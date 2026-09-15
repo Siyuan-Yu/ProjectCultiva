@@ -1253,6 +1253,33 @@ namespace XianXia.Data.Serialization
                 }
             }
 
+            var worldSitePublicStocks = new List<JsonValue>();
+            if (strategic.WorldSitePublicStocks != null)
+            {
+                for (var i = 0; i < strategic.WorldSitePublicStocks.Count; i++)
+                {
+                    var stock = strategic.WorldSitePublicStocks[i];
+                    if (stock == null) continue;
+                    var entries = new List<JsonValue>();
+                    if (stock.Entries != null)
+                        for (var e = 0; e < stock.Entries.Count; e++)
+                        {
+                            var entry = stock.Entries[e];
+                            if (entry == null) continue;
+                            entries.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                            {
+                                ["resourceId"] = JsonValue.FromString(entry.ResourceId ?? string.Empty),
+                                ["amount"] = JsonValue.FromNumber(entry.Amount)
+                            }));
+                        }
+                    worldSitePublicStocks.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                    {
+                        ["siteId"] = JsonValue.FromString(stock.SiteId ?? string.Empty),
+                        ["entries"] = JsonValue.FromArray(entries)
+                    }));
+                }
+            }
+
             var root = new Dictionary<string, JsonValue>
             {
                 ["playerFactionId"] = JsonValue.FromString(strategic.PlayerFactionId ?? string.Empty),
@@ -1272,7 +1299,8 @@ namespace XianXia.Data.Serialization
                 ["alliances"] = JsonValue.FromArray(alliances),
                 ["vassalages"] = JsonValue.FromArray(vassalages),
                 ["retreatingArmies"] = JsonValue.FromArray(retreating),
-                ["controlCores"] = JsonValue.FromArray(controlCores)
+                ["controlCores"] = JsonValue.FromArray(controlCores),
+                ["worldSitePublicStocks"] = JsonValue.FromArray(worldSitePublicStocks)
             };
             if (strategic.HasTerritoryClaimSnapshotAuthority)
                 root["territoryClaims"] = JsonValue.FromArray(territoryClaims);
@@ -1730,6 +1758,32 @@ namespace XianXia.Data.Serialization
                         CurrentDurability = (int)durability.Number,
                         OccupyProgressSeconds = (float)occupyProgress.Number
                     });
+                }
+            }
+
+            if (strategic.TryGetProperty("worldSitePublicStocks", out var stocks))
+            {
+                if (stocks.Kind != JsonValueKind.Array)
+                    throw new System.FormatException("strategic.worldSitePublicStocks must be an array.");
+                dto.HasWorldSitePublicStockSnapshotAuthority = true;
+                foreach (var stockNode in stocks.Array)
+                {
+                    if (stockNode.Kind != JsonValueKind.Object ||
+                        !stockNode.TryGetProperty("siteId", out var siteId) || siteId.Kind != JsonValueKind.String ||
+                        !stockNode.TryGetProperty("entries", out var entries) || entries.Kind != JsonValueKind.Array)
+                        throw new System.FormatException("Invalid worldSitePublicStocks entry.");
+                    var stock = new WorldSitePublicStockSnapshotDto { SiteId = siteId.String };
+                    foreach (var entryNode in entries.Array)
+                    {
+                        if (entryNode.Kind != JsonValueKind.Object ||
+                            !entryNode.TryGetProperty("resourceId", out var resourceId) || resourceId.Kind != JsonValueKind.String ||
+                            !entryNode.TryGetProperty("amount", out var amount) || amount.Kind != JsonValueKind.Number ||
+                            amount.Number != System.Math.Truncate(amount.Number))
+                            throw new System.FormatException("Invalid WorldSite public stock resource entry.");
+                        stock.Entries.Add(new WorldSitePublicStockEntrySnapshotDto
+                        { ResourceId = resourceId.String, Amount = (int)amount.Number });
+                    }
+                    dto.WorldSitePublicStocks.Add(stock);
                 }
             }
 

@@ -214,7 +214,7 @@ namespace XianXia.Core.Npc
             world.HousingAssignments.SetOwner(workAreaId, newOwner);
 
             world.Events.Publish(
-                EventType.WorkAssignmentChanged,
+                EventType.HousingAssignmentChanged,
                 world.Tick,
                 actor: newOwner,
                 payload: "housing=" + workAreaId + ";prevHome=" + (previousHome ?? string.Empty));

@@ -4,6 +4,7 @@ using XianXia.Core.Content;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Results;
 using XianXia.Core.Social;
+using XianXia.Core.World.Strategic;
 using XianXia.Data.Bootstrap;
 
 namespace XianXia.Data.Content
@@ -46,6 +47,7 @@ namespace XianXia.Data.Content
             ValidateOutdoorSurfaceSitePlaceIdentities(registry, report);
             ValidateOutdoorControlCores(registry, report);
             ValidateFactionFlagSiteCores(registry, report);
+            ValidateWorldSiteEconomies(registry, report);
             ValidateQuests(registry, locations, producedFlags, consumedFlags, report);
             ValidateContentEvents(registry, locations, producedFlags, consumedFlags, report);
             ValidateChapters(registry, locations, producedFlags, consumedFlags, report);
@@ -414,7 +416,6 @@ namespace XianXia.Data.Content
                         (!registry.Resources.ContainsKey(itemId) && !registry.Items.ContainsKey(itemId)))
                         report.Add(ErrorCode.InvalidArgument, "Invalid startingInventory item/count.", ctx);
 
-                RequireDef(registry, s.OpeningSettlementId, "settlement", ctx + ".openingSettlementId", report);
                 RequireDef(registry, s.OpeningWorldRegionId, "worldRegion", ctx + ".openingWorldRegionId", report);
                 RequireDef(registry, s.OpeningLocalPlaceSetId, "localPlaceSet", ctx + ".openingLocalPlaceSetId", report);
                 RequireDef(registry, s.OpeningHexWorldId, "hexWorld", ctx + ".openingHexWorldId", report);
@@ -1388,6 +1389,47 @@ namespace XianXia.Data.Content
             return false;
         }
 
+        static void ValidateWorldSiteEconomies(DefinitionRegistry registry, ValidationReport report)
+        {
+            var siteIds = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var worldPair in registry.HexWorldContents)
+            {
+                var hexWorld = worldPair.Value;
+                if (hexWorld?.Sites != null)
+                    for (var i = 0; i < hexWorld.Sites.Count; i++)
+                        if (!string.IsNullOrWhiteSpace(hexWorld.Sites[i]?.SiteId)) siteIds.Add(hexWorld.Sites[i].SiteId);
+                if (hexWorld?.FactionFlags != null)
+                    for (var i = 0; i < hexWorld.FactionFlags.Count; i++)
+                    {
+                        var flag = hexWorld.FactionFlags[i];
+                        if (flag != null && flag.CreatesWorldSite && !string.IsNullOrWhiteSpace(flag.FlagId))
+                            siteIds.Add(FactionFlagService.SiteIdForCoreFlag(flag.FlagId));
+                    }
+            }
+            var boundSites = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var pair in registry.WorldSiteEconomies)
+            {
+                var economy = pair.Value;
+                var context = pair.Key.ToString();
+                if (economy == null || string.IsNullOrWhiteSpace(economy.SiteId) || !siteIds.Contains(economy.SiteId))
+                    report.Add(ErrorCode.NotFound, "worldSiteEconomy.siteId must reference an authored WorldSite.", context);
+                else if (!boundSites.Add(economy.SiteId))
+                    report.Add(ErrorCode.DuplicateDefinitionId, "WorldSite has duplicate economy definitions.", economy.SiteId);
+                var resources = new HashSet<string>(StringComparer.Ordinal);
+                if (economy?.InitialPublicStock == null) continue;
+                for (var i = 0; i < economy.InitialPublicStock.Count; i++)
+                {
+                    var entry = economy.InitialPublicStock[i];
+                    if (entry == null || entry.Amount < 0 || string.IsNullOrWhiteSpace(entry.ResourceId) ||
+                        !DefinitionId.TryParse(entry.ResourceId, out var resourceId) ||
+                        !registry.Resources.ContainsKey(resourceId))
+                        report.Add(ErrorCode.InvalidArgument, "Invalid worldSiteEconomy stock resource/amount.", context + "[" + i + "]");
+                    else if (!resources.Add(entry.ResourceId))
+                        report.Add(ErrorCode.DuplicateDefinitionId, "Duplicate worldSiteEconomy resource.", context + ":" + entry.ResourceId);
+                }
+            }
+        }
+
         static void RequireDef(
             DefinitionRegistry registry,
             string idText,
@@ -1430,9 +1472,6 @@ namespace XianXia.Data.Content
                 case "localPlaceSet":
                     ok = registry.LocalPlaceSets.ContainsKey(id);
                     break;
-                case "settlement":
-                    ok = registry.Settlements.ContainsKey(id);
-                    break;
                 case "job":
                     ok = registry.Jobs.ContainsKey(id);
                     break;
@@ -1453,9 +1492,6 @@ namespace XianXia.Data.Content
                     break;
                 case "combatArt":
                     ok = registry.CombatArts.ContainsKey(id);
-                    break;
-                case "facility":
-                    ok = registry.Facilities.ContainsKey(id);
                     break;
                 case "item":
                     ok = registry.Items.ContainsKey(id);

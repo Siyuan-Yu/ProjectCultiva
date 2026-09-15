@@ -35,7 +35,7 @@ public static class SchemaFields
         },
         ["openingScenario"] = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "scheduleId", "openingFactionId", "openingSettlementId",
+            "id", "type", "name", "scheduleId", "openingFactionId",
             "openingWorldRegionId", "openingChapterId", "spawns", "openingRelations"
         },
         ["characterRoster"] = new HashSet<string>(StringComparer.Ordinal)
@@ -46,14 +46,9 @@ public static class SchemaFields
         {
             "id", "type", "name", "nameKey", "tags"
         },
-        ["facility"] = new HashSet<string>(StringComparer.Ordinal)
+        ["worldSiteEconomy"] = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "laborResourceId", "laborAmountPerWorker",
-            "gatherResourceId", "gatherAmountPerWorker", "cultivateProgressBonusPerWorker", "tags"
-        },
-        ["settlement"] = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "id", "type", "name", "initialStock", "facilities"
+            "id", "type", "siteId", "initialPublicStock"
         },
         ["worldRegion"] = new HashSet<string>(StringComparer.Ordinal)
         {

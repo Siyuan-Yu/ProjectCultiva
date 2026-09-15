@@ -5,7 +5,6 @@ using XianXia.Core.Domain.Time;
 using XianXia.Core.Input;
 using XianXia.Core.Results;
 using XianXia.Core.Exploration;
-using XianXia.Core.Settlement;
 using XianXia.Core.World;
 
 namespace XianXia.Unity.Host
@@ -180,7 +179,6 @@ namespace XianXia.Unity.Host
                     PlayerCommandKind.EnterLocalMap,
                     1,
                     EntityId.None,
-                    WorkRoleKind.None,
                     entranceLocationId));
             if (result.IsSuccess)
             {
@@ -279,7 +277,6 @@ namespace XianXia.Unity.Host
                     PlayerCommandKind.SurveyEntrance,
                     1,
                     EntityId.None,
-                    WorkRoleKind.None,
                     presentationHint ?? string.Empty));
             if (result.IsSuccess)
             {
@@ -320,67 +317,6 @@ namespace XianXia.Unity.Host
             _lastFailureCount = 1;
             _lastStatus = "Pickup FAIL " + FormatError(result);
             return 0;
-        }
-
-        public int IssueAssignWork(WorkRoleKind role)
-        {
-            if (selectionController == null)
-            {
-                _lastStatus = "No selection controller";
-                _lastSuccessCount = 0;
-                _lastFailureCount = 0;
-                return 0;
-            }
-
-            return IssueAssignWorkTo(selectionController.State.SelectedIds, role);
-        }
-
-        public int IssueAssignWorkTo(IReadOnlyList<EntityId> targets, WorkRoleKind role)
-        {
-            _lastSuccessCount = 0;
-            _lastFailureCount = 0;
-
-            if (_session == null || !_session.IsInitialized || _session.Port == null)
-            {
-                _lastStatus = "Session／Port not ready";
-                return 0;
-            }
-
-            if (targets == null || targets.Count == 0)
-            {
-                _lastStatus = "Empty selection";
-                return 0;
-            }
-
-            var active = ResolveActiveCharacter();
-            var allowed = BuildAllowedSet(_session.CharacterIds);
-            for (var i = 0; i < targets.Count; i++)
-            {
-                var id = targets[i];
-                if (id.IsNone || !allowed.Contains(id.Value))
-                {
-                    _lastFailureCount++;
-                    continue;
-                }
-
-                if (!active.IsNone && id != active)
-                {
-                    _lastFailureCount++;
-                    continue;
-                }
-
-                var result = _session.Port.Submit(
-                    new PlayerCommandRequest(id, PlayerCommandKind.AssignWork, 1, EntityId.None, role));
-                if (result.IsSuccess)
-                    _lastSuccessCount++;
-                else
-                    _lastFailureCount++;
-            }
-
-            _lastStatus = "AssignWork=" + role +
-                          " ok=" + _lastSuccessCount +
-                          " fail=" + _lastFailureCount;
-            return _lastSuccessCount;
         }
 
         /// <summary>Issue labor-style command to Active Character only (Phase 1 RPG-First).</summary>
@@ -548,7 +484,6 @@ namespace XianXia.Unity.Host
                     PlayerCommandKind.ResolveContentChoice,
                     1,
                     EntityId.None,
-                    WorkRoleKind.None,
                     null,
                     choiceId.Trim(),
                     null));
@@ -608,7 +543,6 @@ namespace XianXia.Unity.Host
                     kind,
                     1,
                     EntityId.None,
-                    WorkRoleKind.None,
                     null,
                     null,
                     questId.Trim()));

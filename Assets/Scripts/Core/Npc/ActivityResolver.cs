@@ -5,6 +5,7 @@ using XianXia.Core.Schedule;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 using XianXia.Core.World;
+using XianXia.Core.World.Strategic;
 
 namespace XianXia.Core.Npc
 {
@@ -196,6 +197,11 @@ namespace XianXia.Core.Npc
                     continue;
                 if (!EntityMayUseArea(entity, area, activity))
                     continue;
+                if (activity == ScheduleActivity.Labor && IsFarmArea(area) &&
+                    (!TryGetFaction(entity, out var factionId) ||
+                     !WorldAdministrativeFarmWorkAreaAuthorizationService.HasAllowedFarmCell(
+                         world, area.LocationId, factionId)))
+                    continue;
                 if (!WorkAreaAvailability.IsAvailable(world, area, activity, entity))
                     continue;
                 // Continuous Outdoor 中，已 materialize 的 AtSite NPC 只能选择同一已加载
@@ -308,6 +314,23 @@ namespace XianXia.Core.Npc
             if (area.AllowedActivities == null || area.AllowedActivities.Count == 0)
                 return true;
             return ContainsActivity(area.AllowedActivities, activity);
+        }
+
+        static bool IsFarmArea(WorkAreaDefinition area)
+        {
+            if (area?.Tags == null) return false;
+            for (var i = 0; i < area.Tags.Count; i++)
+                if (string.Equals(area.Tags[i], "farm", System.StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
+
+        static bool TryGetFaction(Entity entity, out string factionId)
+        {
+            factionId = string.Empty;
+            if (entity == null || !entity.TryGet<FactionMembershipComponent>(out var membership) ||
+                !membership.IsAffiliated) return false;
+            factionId = membership.FactionId;
+            return true;
         }
 
         static bool ContainsActivity(IList<string> names, ScheduleActivity activity)

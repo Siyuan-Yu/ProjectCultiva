@@ -98,7 +98,7 @@ namespace XianXia.Core.Actions
                 return;
             world.LocationLabor.AddHarvest(entity.DefinitionId.ToString(), loc.LocationId, added);
             world.Events.Publish(
-                EventType.SettlementStockChanged,
+                EventType.PartyInventoryChanged,
                 world.Tick,
                 actor: entity.Id,
                 payload: "bag:" + location.ResourceOnExploreId + ":" +

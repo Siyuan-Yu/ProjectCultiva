@@ -5,7 +5,6 @@ using XianXia.Core.Domain.Time;
 using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.Results;
-using XianXia.Core.Settlement;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 
@@ -188,16 +187,6 @@ namespace XianXia.Core.Content
 
                 if (entity.TryGet<EntityLocationComponent>(out var loc))
                     sb.Append("location=").Append(loc.LocationId).Append('\n');
-                if (entity.TryGet<WorkAssignmentComponent>(out var work))
-                    sb.Append("work=").Append(work.Role).Append('@').Append(work.SettlementId).Append('\n');
-            }
-
-            if (world.Settlements.TryGetPrimary(out var settlement))
-            {
-                sb.Append("settlement=").Append(settlement.Name)
-                    .Append(" wood=").Append(settlement.GetStock("base:resource_rough_wood"))
-                    .Append(" herb=").Append(settlement.GetStock("base:resource_spirit_herb"))
-                    .Append('\n');
             }
 
             return sb.ToString();

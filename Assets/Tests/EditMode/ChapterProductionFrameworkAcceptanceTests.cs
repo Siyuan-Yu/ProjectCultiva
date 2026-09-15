@@ -46,13 +46,11 @@ namespace XianXia.Tests
 
             // 推完探坡任务 → day2 条件 beat
             Assert.IsTrue(started.Value.Port.Submit(new PlayerCommandRequest(
-                subject, PlayerCommandKind.Travel, 1, EntityId.None, WorkRoleKind.None,
-                "base:loc_village_edge")).IsSuccess);
+                subject, PlayerCommandKind.Travel, 1, EntityId.None, "base:loc_village_edge")).IsSuccess);
             Assert.IsTrue(started.Value.Port.Submit(new PlayerCommandRequest(
                 subject, PlayerCommandKind.Explore, 1)).IsSuccess);
             Assert.IsTrue(started.Value.Port.Submit(new PlayerCommandRequest(
-                subject, PlayerCommandKind.Travel, 1, EntityId.None, WorkRoleKind.None,
-                "base:loc_herb_slope")).IsSuccess);
+                subject, PlayerCommandKind.Travel, 1, EntityId.None, "base:loc_herb_slope")).IsSuccess);
             Assert.IsTrue(started.Value.Port.Submit(new PlayerCommandRequest(
                 subject, PlayerCommandKind.Explore, 1)).IsSuccess);
             Assert.IsTrue(world.Flags.Has("quest:scout_herb_done"));

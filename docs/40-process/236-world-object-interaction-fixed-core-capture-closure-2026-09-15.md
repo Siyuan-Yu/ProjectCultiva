@@ -1,6 +1,8 @@
 # CW-09.5：World Object Interaction Unification + Fixed SiteCore Capture Authority Closure
 
-> 状态：Implementation Completed / Producer Acceptance Pending｜优先级：P0｜最后更新：2026-09-15
+> 状态：Producer Accepted / Sealed｜优先级：P0｜最后更新：2026-09-15
+
+Subsequently Producer Accepted after normal gameplay validation. 早期记录的非 Unity 验证与当时 Pending 状态作为实施历史保留。
 
 ## 问题与正式边界
 

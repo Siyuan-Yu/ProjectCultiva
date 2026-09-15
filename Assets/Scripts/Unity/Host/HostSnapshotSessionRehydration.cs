@@ -94,6 +94,9 @@ namespace XianXia.Unity.Host
                 var political = StrategicSnapshotHelper.RestoreHexPoliticalState(world, politicalSnapshot);
                 if (political.IsFailure)
                     return political;
+                var economy = WorldSiteEconomyBootstrap.ApplyLegacySaveFallback(world, registry);
+                if (economy.IsFailure)
+                    return economy;
                 // Political overlay does not replace the canonical static placement binding.
                 SettlementAuthoritySync.Rebuild(world);
 

@@ -15,7 +15,7 @@ using XianXia.Data.Content;
 namespace XianXia.Tests
 {
     /// <summary>
-    /// Chapter 01 Reference Level：模板关卡内容／AI／区域门禁／觉醒弧闭环�?
+    /// Chapter 01 Reference Level：模板关卡内容／AI／区域门禁／觉醒弧闭环�?
     /// </summary>
     public sealed class Chapter01ReferenceLevelAcceptanceTests
     {
@@ -111,7 +111,7 @@ namespace XianXia.Tests
 
             ResolveIfActive(port, subject, world, "accept_yoke");
 
-            // 开局在农田：勘察同时收粮，完成巡�?
+            // 开局在农田：勘察同时收粮，完成巡�?
             Assert.IsTrue(Explore(port, subject));
             AssertQuest(port, subject, world, "base:quest_ch01_ref_inspect_yard", QuestStatus.Completed);
 
@@ -153,7 +153,7 @@ namespace XianXia.Tests
                 subject, PlayerCommandKind.Cultivate, 4)).IsSuccess);
             Assert.IsTrue(protagonist.Get<CultivationComponent>().HasLearnedManual);
 
-            // Cultivate 学诀后需�?Explore／Travel 才会 Evaluate 任务�?
+            // Cultivate 学诀后需�?Explore／Travel 才会 Evaluate 任务�?
             Assert.IsTrue(Explore(port, subject));
             ResolveIfActive(port, subject, world, "begin_dark");
             AssertQuest(port, subject, world, "base:quest_ch01_ref_first_manual", QuestStatus.Completed);
@@ -228,7 +228,6 @@ namespace XianXia.Tests
                         PlayerCommandKind.ClaimQuestRewards,
                         1,
                         EntityId.None,
-                        WorkRoleKind.None,
                         null,
                         null,
                         questId)).IsSuccess,
@@ -241,15 +240,14 @@ namespace XianXia.Tests
 
         static bool Travel(IPlayerInputPort port, EntityId subject, string locationId) =>
             port.Submit(new PlayerCommandRequest(
-                subject, PlayerCommandKind.Travel, 1, EntityId.None, WorkRoleKind.None, locationId)).IsSuccess;
+                subject, PlayerCommandKind.Travel, 1, EntityId.None, locationId)).IsSuccess;
 
         static bool Explore(IPlayerInputPort port, EntityId subject) =>
             port.Submit(new PlayerCommandRequest(subject, PlayerCommandKind.Explore, 1)).IsSuccess;
 
         static bool Resolve(IPlayerInputPort port, EntityId subject, string choiceId) =>
             port.Submit(new PlayerCommandRequest(
-                subject, PlayerCommandKind.ResolveContentChoice, 1, EntityId.None, WorkRoleKind.None,
-                null, choiceId, null)).IsSuccess;
+                subject, PlayerCommandKind.ResolveContentChoice, 1, EntityId.None, null, choiceId, null)).IsSuccess;
 
         static void ResolveIfActive(
             IPlayerInputPort port,

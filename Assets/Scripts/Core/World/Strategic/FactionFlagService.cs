@@ -313,6 +313,7 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidOperation,
                     "新建势力旗未能取得自身核心中心的实际行政控制。", invariant.Error.Message);
             }
+            world.Strategic.SitePublicStocks.GetOrCreate(site.SiteId);
             return Result.Success();
         }
 

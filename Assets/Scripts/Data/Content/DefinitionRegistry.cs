@@ -32,10 +32,8 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, CharacterRosterDefinition>();
         readonly Dictionary<DefinitionId, ResourceDefinition> _resources =
             new Dictionary<DefinitionId, ResourceDefinition>();
-        readonly Dictionary<DefinitionId, FacilityDefinition> _facilities =
-            new Dictionary<DefinitionId, FacilityDefinition>();
-        readonly Dictionary<DefinitionId, SettlementDefinition> _settlements =
-            new Dictionary<DefinitionId, SettlementDefinition>();
+        readonly Dictionary<DefinitionId, WorldSiteEconomyDefinition> _worldSiteEconomies =
+            new Dictionary<DefinitionId, WorldSiteEconomyDefinition>();
         readonly Dictionary<DefinitionId, WorldRegionDefinition> _worldRegions =
             new Dictionary<DefinitionId, WorldRegionDefinition>();
         readonly Dictionary<DefinitionId, QuestDefinition> _quests =
@@ -78,8 +76,7 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, OpeningScenarioDefinition> OpeningScenarios => _openingScenarios;
         public IReadOnlyDictionary<DefinitionId, CharacterRosterDefinition> CharacterRosters => _characterRosters;
         public IReadOnlyDictionary<DefinitionId, ResourceDefinition> Resources => _resources;
-        public IReadOnlyDictionary<DefinitionId, FacilityDefinition> Facilities => _facilities;
-        public IReadOnlyDictionary<DefinitionId, SettlementDefinition> Settlements => _settlements;
+        public IReadOnlyDictionary<DefinitionId, WorldSiteEconomyDefinition> WorldSiteEconomies => _worldSiteEconomies;
         public IReadOnlyDictionary<DefinitionId, WorldRegionDefinition> WorldRegions => _worldRegions;
         public IReadOnlyDictionary<DefinitionId, QuestDefinition> Quests => _quests;
         public IReadOnlyDictionary<DefinitionId, ContentEventDefinition> ContentEvents => _contentEvents;
@@ -108,8 +105,7 @@ namespace XianXia.Data.Content
             _openingScenarios.ContainsKey(id) ||
             _characterRosters.ContainsKey(id) ||
             _resources.ContainsKey(id) ||
-            _facilities.ContainsKey(id) ||
-            _settlements.ContainsKey(id) ||
+            _worldSiteEconomies.ContainsKey(id) ||
             _worldRegions.ContainsKey(id) ||
             _quests.ContainsKey(id) ||
             _contentEvents.ContainsKey(id) ||
@@ -190,18 +186,11 @@ namespace XianXia.Data.Content
             return Register(_resources, definition, definition.Id);
         }
 
-        public Result RegisterFacility(FacilityDefinition definition)
+        public Result RegisterWorldSiteEconomy(WorldSiteEconomyDefinition definition)
         {
             if (definition == null)
-                return Result.Failure(ErrorCode.InvalidArgument, "FacilityDefinition is null.");
-            return Register(_facilities, definition, definition.Id);
-        }
-
-        public Result RegisterSettlement(SettlementDefinition definition)
-        {
-            if (definition == null)
-                return Result.Failure(ErrorCode.InvalidArgument, "SettlementDefinition is null.");
-            return Register(_settlements, definition, definition.Id);
+                return Result.Failure(ErrorCode.InvalidArgument, "WorldSiteEconomyDefinition is null.");
+            return Register(_worldSiteEconomies, definition, definition.Id);
         }
 
         public Result RegisterWorldRegion(WorldRegionDefinition definition)
@@ -349,11 +338,8 @@ namespace XianXia.Data.Content
         public bool TryGetResource(DefinitionId id, out ResourceDefinition definition) =>
             _resources.TryGetValue(id, out definition);
 
-        public bool TryGetFacility(DefinitionId id, out FacilityDefinition definition) =>
-            _facilities.TryGetValue(id, out definition);
-
-        public bool TryGetSettlement(DefinitionId id, out SettlementDefinition definition) =>
-            _settlements.TryGetValue(id, out definition);
+        public bool TryGetWorldSiteEconomy(DefinitionId id, out WorldSiteEconomyDefinition definition) =>
+            _worldSiteEconomies.TryGetValue(id, out definition);
 
         public bool TryGetWorldRegion(DefinitionId id, out WorldRegionDefinition definition) =>
             _worldRegions.TryGetValue(id, out definition);

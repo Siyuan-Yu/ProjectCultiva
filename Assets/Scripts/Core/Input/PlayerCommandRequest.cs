@@ -1,5 +1,4 @@
 using XianXia.Core.Domain.Ids;
-using XianXia.Core.Settlement;
 
 namespace XianXia.Core.Input
 {
@@ -18,7 +17,7 @@ namespace XianXia.Core.Input
             PlayerCommandKind kind,
             ulong durationTicks,
             EntityId target)
-            : this(subject, kind, durationTicks, target, WorkRoleKind.None, null)
+            : this(subject, kind, durationTicks, target, null)
         {
         }
 
@@ -27,19 +26,8 @@ namespace XianXia.Core.Input
             PlayerCommandKind kind,
             ulong durationTicks,
             EntityId target,
-            WorkRoleKind workRole)
-            : this(subject, kind, durationTicks, target, workRole, null)
-        {
-        }
-
-        public PlayerCommandRequest(
-            EntityId subject,
-            PlayerCommandKind kind,
-            ulong durationTicks,
-            EntityId target,
-            WorkRoleKind workRole,
             string targetLocationId)
-            : this(subject, kind, durationTicks, target, workRole, targetLocationId, null, null)
+            : this(subject, kind, durationTicks, target, targetLocationId, null, null)
         {
         }
 
@@ -48,7 +36,6 @@ namespace XianXia.Core.Input
             PlayerCommandKind kind,
             ulong durationTicks,
             EntityId target,
-            WorkRoleKind workRole,
             string targetLocationId,
             string choiceId,
             string questId)
@@ -57,7 +44,6 @@ namespace XianXia.Core.Input
             Kind = kind;
             DurationTicks = durationTicks;
             Target = target;
-            WorkRole = workRole;
             TargetLocationId = targetLocationId ?? string.Empty;
             ChoiceId = choiceId ?? string.Empty;
             QuestId = questId ?? string.Empty;
@@ -70,8 +56,6 @@ namespace XianXia.Core.Input
         public PlayerCommandKind Kind { get; }
 
         public ulong DurationTicks { get; }
-
-        public WorkRoleKind WorkRole { get; }
 
         /// <summary>VS0.9: used when Kind == Travel.</summary>
         public string TargetLocationId { get; }
@@ -86,8 +70,6 @@ namespace XianXia.Core.Input
             Kind == PlayerCommandKind.Help ||
             Kind == PlayerCommandKind.Slight ||
             Kind == PlayerCommandKind.Recruit;
-
-        public bool IsSettlementIntent => Kind == PlayerCommandKind.AssignWork;
 
         public bool IsExplorationIntent =>
             Kind == PlayerCommandKind.Explore ||

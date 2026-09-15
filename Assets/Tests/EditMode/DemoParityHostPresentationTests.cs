@@ -59,12 +59,11 @@ namespace XianXia.Tests
                 Assert.IsTrue(bootstrap.Session.World.Entities.TryGet(id, out var entity));
                 Assert.IsTrue(entity.TryGet<XianXia.Core.Exploration.EntityLocationComponent>(out var loc));
                 loc.LocationId = "base:loc_ref_forest";
-                Assert.IsTrue(bootstrap.Session.World.Settlements.TryGetPrimary(out var s));
-                var before = s.GetStock("base:resource_rough_wood");
+                var before = bootstrap.Session.World.Inventory.GetCount("base:resource_rough_wood");
                 Assert.AreEqual(1, bootstrap.CommandBridge.IssueTo(new[] { id }, PlayerCommandKind.Labor));
                 for (var i = 0; i < (int)HostCommandBridge.DefaultDurationTicks; i++)
                     Assert.IsTrue(bootstrap.Session.TickOnce().IsSuccess);
-                Assert.Greater(s.GetStock("base:resource_rough_wood"), before);
+                Assert.Greater(bootstrap.Session.World.Inventory.GetCount("base:resource_rough_wood"), before);
             }
             finally
             {
@@ -82,13 +81,12 @@ namespace XianXia.Tests
                 Assert.IsTrue(bootstrap.Session.World.Entities.TryGet(id, out var entity));
                 var risk = entity.Get<XianXia.Core.Concealment.PersonalConcealmentRiskComponent>();
                 risk.Value = 40;
-                Assert.IsTrue(bootstrap.Session.World.Settlements.TryGetPrimary(out var s));
-                Assert.GreaterOrEqual(s.GetStock("base:resource_conceal_grass"), 1);
+                Assert.GreaterOrEqual(bootstrap.Session.World.Inventory.GetCount("base:resource_conceal_grass"), 1);
                 Assert.AreEqual(
                     1,
                     bootstrap.CommandBridge.IssueTo(new[] { id }, PlayerCommandKind.UseConcealGrass, 0));
                 Assert.AreEqual(25, risk.Value);
-                Assert.AreEqual(2, s.GetStock("base:resource_conceal_grass"));
+                Assert.AreEqual(2, bootstrap.Session.World.Inventory.GetCount("base:resource_conceal_grass"));
             }
             finally
             {

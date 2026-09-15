@@ -30,12 +30,10 @@ namespace XianXia.Core.Events
         RelationshipChanged = 16,
         /// <summary>VS0.5: Faction membership joined／left (thin Alpha mark).</summary>
         FactionMembershipChanged = 17,
-        /// <summary>VS0.8: Settlement stock changed (session; not Snapshot).</summary>
-        SettlementStockChanged = 18,
-        /// <summary>VS0.8: Work role assignment changed.</summary>
-        WorkAssignmentChanged = 19,
-        /// <summary>VS0.8: Day-end settlement production resolved.</summary>
-        SettlementProductionResolved = 20,
+        /// <summary>Party inventory changed.</summary>
+        PartyInventoryChanged = 18,
+        /// <summary>Housing assignment changed.</summary>
+        HousingAssignmentChanged = 19,
         /// <summary>VS0.9: Entity moved to another abstract location.</summary>
         LocationChanged = 21,
         /// <summary>VS0.9: Explore resolved at current location.</summary>
@@ -75,7 +73,9 @@ namespace XianXia.Core.Events
         SocialCharacterHelped = 40,
         SocialCharacterRescued = 41,
         SocialReaction = 42,
-        SocialBondChanged = 43
+        SocialBondChanged = 43,
+        /// <summary>WorldSite public administrative stock changed.</summary>
+        WorldSitePublicStockChanged = 44
     }
 }
 

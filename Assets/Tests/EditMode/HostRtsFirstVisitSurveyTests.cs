@@ -27,22 +27,21 @@ namespace XianXia.Tests
                 Assert.IsFalse(session.World.Flags.Has(
                     ContentConditionEvaluator.ExploredFlag("base:loc_ref_forest")));
 
-                session.World.Settlements.TryGetPrimary(out var settlement);
-                var woodBefore = settlement.GetStock("base:resource_rough_wood");
+                var woodBefore = session.World.Inventory.GetCount("base:resource_rough_wood");
 
                 HostMoveController.ApplyPresentationArrival(
                     session, subject, "base:loc_ref_forest", bootstrap);
 
                 Assert.IsTrue(session.World.Flags.Has(
                     ContentConditionEvaluator.ExploredFlag("base:loc_ref_forest")));
-                Assert.Greater(settlement.GetStock("base:resource_rough_wood"), woodBefore);
+                Assert.Greater(session.World.Inventory.GetCount("base:resource_rough_wood"), woodBefore);
 
-                var woodAfterFirst = settlement.GetStock("base:resource_rough_wood");
+                var woodAfterFirst = session.World.Inventory.GetCount("base:resource_rough_wood");
                 HostMoveController.ApplyPresentationArrival(
                     session, subject, "base:loc_ref_labor_yard", bootstrap);
                 HostMoveController.ApplyPresentationArrival(
                     session, subject, "base:loc_ref_forest", bootstrap);
-                Assert.AreEqual(woodAfterFirst, settlement.GetStock("base:resource_rough_wood"));
+                Assert.AreEqual(woodAfterFirst, session.World.Inventory.GetCount("base:resource_rough_wood"));
             }
             finally
             {

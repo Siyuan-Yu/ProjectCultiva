@@ -76,6 +76,10 @@ namespace XianXia.Core.Persistence
             if (claims.IsFailure)
                 return claims;
 
+            var publicStocks = RestoreWorldSitePublicStocks(world, dto);
+            if (publicStocks.IsFailure)
+                return publicStocks;
+
             // Legacy TerritoryRegionControllers are intentionally ignored. Region/Hex control is
             // a pure projection rebuilt from Site Owner + exact administrative Claim authority.
             StrategicTerritoryCoverageResolver.Rebuild(world);
@@ -422,6 +426,23 @@ namespace XianXia.Core.Persistence
                     CurrentDurability = core.CurrentDurability,
                     OccupyProgressSeconds = core.OccupyProgressSeconds
                 });
+            }
+
+            dto.HasWorldSitePublicStockSnapshotAuthority = true;
+            var stockSiteIds = new List<string>(world.Strategic.Sites.Sites.Keys);
+            stockSiteIds.Sort(StringComparer.Ordinal);
+            for (var i = 0; i < stockSiteIds.Count; i++)
+            {
+                var state = world.Strategic.SitePublicStocks.GetOrCreate(stockSiteIds[i]);
+                var stockDto = new WorldSitePublicStockSnapshotDto { SiteId = state.SiteId };
+                var resourceIds = new List<string>(state.Resources.Keys);
+                resourceIds.Sort(StringComparer.Ordinal);
+                for (var r = 0; r < resourceIds.Count; r++)
+                    stockDto.Entries.Add(new WorldSitePublicStockEntrySnapshotDto
+                    {
+                        ResourceId = resourceIds[r], Amount = state.Resources[resourceIds[r]]
+                    });
+                dto.WorldSitePublicStocks.Add(stockDto);
             }
 
             var motion = world.PlayerPartyTravel;
@@ -911,6 +932,40 @@ namespace XianXia.Core.Persistence
                     flag.FactionId = site.OwnerFactionId;
                 }
             }
+            return Result.Success();
+        }
+
+        static Result RestoreWorldSitePublicStocks(SimulationWorld world, StrategicSnapshotDto dto)
+        {
+            var board = world.Strategic.SitePublicStocks;
+            board.Clear();
+            if (!dto.HasWorldSitePublicStockSnapshotAuthority) return Result.Success();
+            var siteIds = new HashSet<string>(StringComparer.Ordinal);
+            var source = dto.WorldSitePublicStocks ?? new List<WorldSitePublicStockSnapshotDto>();
+            for (var i = 0; i < source.Count; i++)
+            {
+                var item = source[i];
+                if (item == null || string.IsNullOrWhiteSpace(item.SiteId) || !siteIds.Add(item.SiteId) ||
+                    !world.Strategic.Sites.TryGet(item.SiteId, out _))
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid/duplicate public stock SiteId.", "Index=" + i);
+                var resources = new HashSet<string>(StringComparer.Ordinal);
+                if (item.Entries == null) continue;
+                for (var r = 0; r < item.Entries.Count; r++)
+                {
+                    var entry = item.Entries[r];
+                    if (entry == null || string.IsNullOrWhiteSpace(entry.ResourceId) || entry.Amount < 0 ||
+                        !resources.Add(entry.ResourceId) || !world.InventoryCatalog.TryGet(entry.ResourceId, out _))
+                        return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid/duplicate public stock entry.", item.SiteId + "[" + r + "]");
+                    var set = WorldSitePublicStockService.SetInitial(world, item.SiteId, entry.ResourceId, entry.Amount);
+                    if (set.IsFailure) return Result.Failure(ErrorCode.SnapshotInvalid, set.Error.Message, set.Error.Detail);
+                }
+                board.GetOrCreate(item.SiteId);
+            }
+            if (siteIds.Count != world.Strategic.Sites.Sites.Count)
+                return Result.Failure(ErrorCode.SnapshotInvalid,
+                    "Authoritative public stock set must contain every WorldSite.");
+            board.HasSnapshotAuthority = true;
+            board.DefaultsInitialized = true;
             return Result.Success();
         }
 

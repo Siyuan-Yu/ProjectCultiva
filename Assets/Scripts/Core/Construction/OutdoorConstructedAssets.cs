@@ -30,7 +30,7 @@ namespace XianXia.Core.Construction
                 yield return new OutdoorAdministrativeAssetAnchor(
                     OutdoorStatefulObjectId.ForCell(StableAssetId, x, y), SurfaceId,
                     WorldX + (x + .5f) * WorldWidth / CellsW,
-                    WorldY + (y + .5f) * WorldHeight / CellsH, Kind);
+                    WorldY + (y + .5f) * WorldHeight / CellsH, Kind, BoundLocationId);
         }
 
         public bool IsValid => !string.IsNullOrWhiteSpace(StableAssetId) && !string.IsNullOrWhiteSpace(BuildingId) &&

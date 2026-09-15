@@ -74,11 +74,10 @@ namespace XianXia.Tests
                 Assert.AreEqual(1, bootstrap.CommandBridge.IssueTo(new[] { b }, PlayerCommandKind.Labor));
                 Assert.AreEqual(1, bootstrap.CommandBridge.IssueTo(new[] { c }, PlayerCommandKind.Cultivate));
 
-                Assert.IsTrue(bootstrap.Session.World.Settlements.TryGetPrimary(out var s));
-                var woodBefore = s.GetStock("base:resource_rough_wood");
+                var woodBefore = bootstrap.Session.World.Inventory.GetCount("base:resource_rough_wood");
                 for (var i = 0; i < (int)HostCommandBridge.DefaultDurationTicks; i++)
                     Assert.IsTrue(bootstrap.Session.TickOnce().IsSuccess);
-                Assert.Greater(s.GetStock("base:resource_rough_wood"), woodBefore);
+                Assert.Greater(bootstrap.Session.World.Inventory.GetCount("base:resource_rough_wood"), woodBefore);
             }
             finally
             {

@@ -105,4 +105,23 @@ namespace XianXia.Core.World.Strategic
             new AdministrativeAssetAuthorization(
                 status, actingFactionId, anchor, managingSite, winningClaim);
     }
+
+    /// <summary>Resolves whether a faction may use at least one real farm cell in a WorkArea location.</summary>
+    public static class WorldAdministrativeFarmWorkAreaAuthorizationService
+    {
+        public static bool HasAllowedFarmCell(SimulationWorld world, string locationId, string actingFactionId)
+        {
+            if (world?.OutdoorAdministrativeAssetAnchors == null || string.IsNullOrWhiteSpace(locationId) ||
+                string.IsNullOrWhiteSpace(actingFactionId) ||
+                !world.OutdoorAdministrativeAssetAnchors.TryGetByLocation(locationId, out var anchors)) return false;
+            for (var i = 0; i < anchors.Count; i++)
+            {
+                var anchor = anchors[i];
+                if (anchor == null || !OutdoorStatefulObjectSemantics.IsFarmPlotKind(anchor.Kind)) continue;
+                if (WorldAdministrativeAssetAuthorizationService.ResolveForFaction(
+                        world, anchor.StableAssetId, actingFactionId).IsAllowed) return true;
+            }
+            return false;
+        }
+    }
 }

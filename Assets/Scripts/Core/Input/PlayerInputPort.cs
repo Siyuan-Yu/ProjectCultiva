@@ -3,7 +3,6 @@ using XianXia.Core.Content;
 using XianXia.Core.Cultivation;
 using XianXia.Core.Exploration;
 using XianXia.Core.Results;
-using XianXia.Core.Settlement;
 using XianXia.Core.Simulation;
 using XianXia.Core.Social;
 
@@ -19,7 +18,6 @@ namespace XianXia.Core.Input
         readonly CultivationAttemptGate _cultivationGate;
         readonly SocialInteractionService _social;
         readonly RecruitService _recruit;
-        readonly SettlementService _settlement;
         readonly ExplorationService _exploration;
         readonly ContentEventService _contentEvents;
         readonly QuestService _quests;
@@ -30,7 +28,6 @@ namespace XianXia.Core.Input
             CultivationAttemptGate cultivationGate = null,
             SocialInteractionService social = null,
             RecruitService recruit = null,
-            SettlementService settlement = null,
             ExplorationService exploration = null)
         {
             _loop = loop ?? throw new System.ArgumentNullException(nameof(loop));
@@ -38,7 +35,6 @@ namespace XianXia.Core.Input
             _cultivationGate = cultivationGate ?? new CultivationAttemptGate();
             _social = social ?? new SocialInteractionService();
             _recruit = recruit ?? new RecruitService();
-            _settlement = settlement ?? new SettlementService();
             _exploration = exploration ?? new ExplorationService();
             _contentEvents = new ContentEventService();
             _quests = new QuestService();
@@ -54,9 +50,6 @@ namespace XianXia.Core.Input
 
             if (request.IsInstantUtilityIntent)
                 return SubmitUtility(request);
-
-            if (request.IsSettlementIntent)
-                return _settlement.AssignWork(_loop.World, request.Subject, request.WorkRole);
 
             if (request.IsExplorationIntent)
                 return SubmitExploration(request);

@@ -148,7 +148,7 @@ namespace XianXia.Core.Cultivation
             arts.SetMastery(artId, SkillMasteryState.CreateEntry(profile));
             QuestProgressRefresh.AfterWorldChange(world, subject);
             world.Events.Publish(
-                EventType.SettlementStockChanged,
+                EventType.PartyInventoryChanged,
                 world.Tick,
                 target: subject,
                 payload: "bag:" + itemId + ":0:learnArt");

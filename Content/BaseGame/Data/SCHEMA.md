@@ -31,10 +31,8 @@ Content/BaseGame/
       level_tester_roster.json
     Resources/                 # type = resource
       resources.json
-    Facilities/                # type = facility
-      facilities.json
-    Settlements/               # type = settlement
-      settlements.json
+    SiteEconomies/             # type = worldSiteEconomy
+      site_economies.json
     Regions/                   # type = worldRegion
       world_regions.json
       ch01_reference_region.json
@@ -95,7 +93,7 @@ Allowed file-level fields: `definitions`, `schemaVersion`.
 
 ### type 一览
 
-`character`｜`cultivation`｜`combatArt`｜`realmLadder`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`facility`｜`settlement`｜`worldRegion`｜`localPlaceSet`｜`worldGraph`｜`mapLayout`｜`spawnTable`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`｜`formalArmy`｜`hexWorld`｜`strategicFaction`
+`character`｜`cultivation`｜`combatArt`｜`realmLadder`｜`item`｜`opportunitySite`｜`openingScenario`｜`characterRoster`｜`resource`｜`worldSiteEconomy`｜`worldRegion`｜`localPlaceSet`｜`worldGraph`｜`mapLayout`｜`spawnTable`｜`quest`｜`contentEvent`｜`chapter`｜`workArea`｜`job`｜`formalArmy`｜`hexWorld`｜`strategicFaction`
 
 ## type = hexWorld
 
@@ -241,7 +239,6 @@ Runtime SiteId 必须由 `FactionFlagService.SiteIdForCoreFlag(flagId)` 确定�
 | Field | Notes |
 |---|---|
 | `scheduleId`／`openingFactionId` | 开局日程／势力（`openingFactionId` 仅 Legacy 兼容，正式 JSON 不写；新势力规则见 spawn entry） |
-| `openingSettlementId` | VS0.8 据点定义 |
 | `openingWorldRegionId` | VS0.9 区域定义 |
 | `openingChapterId` | Chapter Production：开局激活章节 |
 | `spawns[]` | 见下 |
@@ -283,7 +280,7 @@ Runtime SiteId 必须由 `FactionFlagService.SiteIdForCoreFlag(flagId)` 确定�
 
 ### spawn entry
 
-`definitionId`、`entityKind`（character＝可控制／进 CharacterIds｜npc）、`displayName`、`factionMode`、`factionId`、`factionRole`、`bindSchedule`、`bindDailyTask`、`recruitable`、`workRole`（Labor｜Gather｜Cultivate）、`scheduleId`、`aiRole`。人物「可控制」与 `entityKind` 对齐。不再使用职业式 `jobId`。
+`definitionId`、`entityKind`（character＝可控制／进 CharacterIds｜npc）、`displayName`、`factionMode`、`factionId`、`factionRole`、`bindSchedule`、`bindDailyTask`、`recruitable`、`scheduleId`、`aiRole`。人物「可控制」与 `entityKind` 对齐。不再使用职业式 `jobId`。
 
 势力归属三模式（`factionMode` 缺省 = CharacterDefault，正常 Spawn 不写）：
 - `CharacterDefault`（缺省）：继承人物 `defaultFaction*`；Spawn 自己不得带 `factionId`／`factionRole`。
@@ -310,13 +307,9 @@ Runtime 安装链：`ContentPackageLoader.Load` 成功 → `StrategicFactionCont
 
 `name`／`nameKey`
 
-## type = facility（VS0.8）
+## type = worldSiteEconomy（CW-10）
 
-`laborResourceId`／`laborAmountPerWorker`、`gatherResourceId`／`gatherAmountPerWorker`、`cultivateProgressBonusPerWorker`
-
-## type = settlement（VS0.8）
-
-`initialStock[]`（resourceId／amount）、`facilities[]`（facility id 字符串）
+`siteId` 指向真实 WorldSite；`initialPublicStock[]` 为 `{ resourceId, amount }`。初始值仅在 NewGame 或缺少公库 authority 的旧档迁移时应用一次。运行时公库以 SiteId 为身份，易主与核心失效都不重建或清空。
 
 ## type = localPlaceSet（村内地点表 · 正式）
 
@@ -537,7 +530,7 @@ QuestStarted／Completed → 任务提醒弹层（读 `name`／`description`）�
 - `base:character_protagonist`／`companion_a`／`companion_b`／`village_recruit`／`herb_gatherer`
 - `base:cultivation_qingyun_manual`／`wood_whisper`
 - `base:scenario_playable_day`
-- `base:settlement_qingshi_cave`／`facility_meditation_mat`
+- `base:economy_site_huangcun`
 - `base:region_qingshi`／`loc_labor_camp`／`loc_cave_mouth`／…
 - `base:site_abandoned_cave`／`resource_rough_wood`／`resource_spirit_herb`
 - `base:quest_scout_herb_slope`／`quest_listen_herb_whisper`

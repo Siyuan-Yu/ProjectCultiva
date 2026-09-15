@@ -610,9 +610,9 @@ namespace XianXia.Unity.Host
             var owner = site?.OwnerFactionId ?? string.Empty;
             var friendly = !string.IsNullOrEmpty(owner) &&
                            string.Equals(owner, session.World.Strategic.PlayerFactionId, System.StringComparison.Ordinal);
-            DrawInspectShell(206f, "议政厅 · " + core.Name, () =>
+            DrawInspectShell(250f, "议政厅 · " + core.Name, () =>
             {
-                var r = new Rect(Pad, TopH + 42f, 320f, 206f);
+                var r = new Rect(Pad, TopH + 42f, 320f, 250f);
                 GUI.Label(new Rect(r.x + 10f, r.y + 34f, r.width - 20f, 20f),
                     "所属据点：" + (site?.DisplayName ?? "未绑定") + " · Lv." + (site?.CoreLevel ?? 1), _body);
                 DrawInlineMeter(
@@ -642,6 +642,8 @@ namespace XianXia.Unity.Host
                         "权限：" + string.Join("、", privileges),
                         _body);
                 }
+                GUI.Label(new Rect(r.x + 10f, r.y + 184f, r.width - 20f, 54f),
+                    FormatSitePublicStock(session, site), _body);
             });
         }
 
@@ -660,9 +662,9 @@ namespace XianXia.Unity.Host
                 ? linked : null;
             var friendly = string.Equals(flag.FactionId, session.World.Strategic.PlayerFactionId,
                 System.StringComparison.Ordinal);
-            DrawInspectShell(190f, "势力控制建筑", () =>
+            DrawInspectShell(236f, "势力控制建筑", () =>
             {
-                var r = new Rect(Pad, TopH + 42f, 320f, 190f);
+                var r = new Rect(Pad, TopH + 42f, 320f, 236f);
                 DrawInlineMeter(r.x + 10f, r.y + 38f, r.width - 20f, "耐久",
                     flag.CurrentHp, flag.MaxHp, new Color(.85f, .32f, .28f));
                 GUI.Label(new Rect(r.x + 10f, r.y + 66f, r.width - 20f, 20f),
@@ -675,7 +677,24 @@ namespace XianXia.Unity.Host
                     "\n核心：" + (site?.IsCoreActive == true ? "有效" : "失效"), _body);
                 GUI.Label(new Rect(r.x + 10f, r.y + 154f, r.width - 20f, 22f),
                     "状态：" + (friendly ? "己方前哨" : "他方前哨"), _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 178f, r.width - 20f, 48f),
+                    FormatSitePublicStock(session, site), _body);
             });
+        }
+
+        static string FormatSitePublicStock(PlayableHostSession session, WorldSite site)
+        {
+            if (session?.World == null || site == null)
+                return "据点公库：—";
+            if (!session.World.Strategic.SitePublicStocks.TryGet(site.SiteId, out var stock) ||
+                stock.Resources.Count == 0)
+                return "据点公库：空";
+            var ids = new List<string>(stock.Resources.Keys);
+            ids.Sort(System.StringComparer.Ordinal);
+            var parts = new List<string>(ids.Count);
+            for (var i = 0; i < ids.Count; i++)
+                parts.Add(session.World.InventoryCatalog.GetName(ids[i]) + " " + stock.Resources[ids[i]]);
+            return "据点公库：" + string.Join(" · ", parts);
         }
 
         void DrawInspectHousing(PlayableHostSession session, string areaId)

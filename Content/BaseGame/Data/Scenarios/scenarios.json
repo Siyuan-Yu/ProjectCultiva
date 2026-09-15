@@ -6,7 +6,6 @@
       "type": "openingScenario",
       "name": "可玩日开局",
       "scheduleId": "base:playable_labor_day",
-      "openingSettlementId": "base:settlement_qingshi_cave",
       "openingWorldRegionId": "base:region_qingshi",
       "openingChapterId": "base:chapter_scaffold_01",
       "strategicOpening": {
@@ -39,22 +38,19 @@
           "definitionId": "base:character_protagonist",
           "entityKind": "character",
           "bindSchedule": true,
-          "bindDailyTask": true,
-          "workRole": "Labor"
+          "bindDailyTask": true
         },
         {
           "definitionId": "base:character_companion_a",
           "entityKind": "character",
           "bindSchedule": true,
-          "bindDailyTask": true,
-          "workRole": "Gather"
+          "bindDailyTask": true
         },
         {
           "definitionId": "base:character_companion_b",
           "entityKind": "character",
           "bindSchedule": true,
-          "bindDailyTask": true,
-          "workRole": "Cultivate"
+          "bindDailyTask": true
         },
         {
           "definitionId": "base:character_village_recruit",
@@ -94,7 +90,6 @@
       "type": "openingScenario",
       "name": "第一章生存 Harness",
       "scheduleId": "base:playable_labor_day",
-      "openingSettlementId": "base:settlement_qingshi_cave",
       "openingWorldRegionId": "base:region_qingshi",
       "openingChapterId": "base:chapter_ch01_shell",
       "strategicOpening": {
@@ -122,22 +117,19 @@
           "definitionId": "base:character_protagonist",
           "entityKind": "character",
           "bindSchedule": true,
-          "bindDailyTask": true,
-          "workRole": "Labor"
+          "bindDailyTask": true
         },
         {
           "definitionId": "base:character_companion_a",
           "entityKind": "character",
           "bindSchedule": true,
-          "bindDailyTask": true,
-          "workRole": "Gather"
+          "bindDailyTask": true
         },
         {
           "definitionId": "base:character_companion_b",
           "entityKind": "character",
           "bindSchedule": true,
-          "bindDailyTask": true,
-          "workRole": "Cultivate"
+          "bindDailyTask": true
         },
         {
           "definitionId": "base:character_village_recruit",
@@ -178,7 +170,6 @@
       "type": "openingScenario",
       "name": "第一章参考关开局",
       "scheduleId": "base:playable_labor_day",
-      "openingSettlementId": "base:settlement_qingshi_cave",
       "openingLocalPlaceSetId": "base:places_ch01_reference",
       "openingHexWorldId": "base:hex_world_travel_mvp_30x15",
       "openingChapterId": "base:chapter_ch01_reference",
@@ -221,7 +212,6 @@
           "entityKind": "character",
           "bindSchedule": true,
           "bindDailyTask": true,
-          "workRole": "Labor",
           "scheduleId": "base:schedule_mortal_day",
           "aiRole": "Mortal"
         },
@@ -230,7 +220,6 @@
           "entityKind": "character",
           "bindSchedule": true,
           "bindDailyTask": true,
-          "workRole": "Gather",
           "scheduleId": "base:schedule_mortal_day",
           "aiRole": "Mortal"
         },
@@ -239,7 +228,6 @@
           "entityKind": "character",
           "bindSchedule": true,
           "bindDailyTask": true,
-          "workRole": "Labor",
           "scheduleId": "base:schedule_mortal_day",
           "aiRole": "Mortal"
         },

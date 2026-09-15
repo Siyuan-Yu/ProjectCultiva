@@ -23,7 +23,7 @@ namespace XianXia.Data.Content
 
         public static readonly HashSet<string> OpeningScenarioFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "scheduleId", "openingFactionId", "openingSettlementId",
+            "id", "type", "name", "scheduleId", "openingFactionId",
             "openingWorldRegionId", "openingLocalPlaceSetId", "openingHexWorldId", "openingChapterId", "spawns", "openingRelations", "openingBonds",
             "initialFormalArmyIds", "strategicOpening", "startingInventory"
         };
@@ -242,7 +242,7 @@ namespace XianXia.Data.Content
         public static readonly HashSet<string> OpeningSpawnFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "definitionId", "entityKind", "displayName", "assignOpeningFaction", "factionMode", "factionId", "factionRole",
-            "bindSchedule", "bindDailyTask", "recruitable", "workRole", "scheduleId", "aiRole", "jobId",
+            "bindSchedule", "bindDailyTask", "recruitable", "scheduleId", "aiRole", "jobId",
             "worldSiteId", "localLocationId", "localPosition"
         };
 
@@ -268,18 +268,12 @@ namespace XianXia.Data.Content
             "id", "type", "name", "nameKey", "tags"
         };
 
-        public static readonly HashSet<string> FacilityFields = new HashSet<string>(StringComparer.Ordinal)
+        public static readonly HashSet<string> WorldSiteEconomyFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "id", "type", "name", "laborResourceId", "laborAmountPerWorker",
-            "gatherResourceId", "gatherAmountPerWorker", "cultivateProgressBonusPerWorker", "tags"
+            "id", "type", "siteId", "initialPublicStock"
         };
 
-        public static readonly HashSet<string> SettlementFields = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "id", "type", "name", "initialStock", "facilities"
-        };
-
-        public static readonly HashSet<string> SettlementStockFields = new HashSet<string>(StringComparer.Ordinal)
+        public static readonly HashSet<string> WorldSiteEconomyStockFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "resourceId", "amount"
         };

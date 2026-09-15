@@ -46,7 +46,7 @@ namespace XianXia.Core.Content
             var profile = SkillMasteryLookup.EnsureOrDefaultArt(art);
             arts.SetMastery(artId, SkillMasteryState.CreateEntry(profile));
             world.Events.Publish(
-                EventType.SettlementStockChanged,
+                EventType.PartyInventoryChanged,
                 world.Tick,
                 target: learner,
                 payload: "bag:" + itemId + ":0:learnArt:" + artId);

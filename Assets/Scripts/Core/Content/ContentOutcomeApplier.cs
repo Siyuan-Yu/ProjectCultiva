@@ -53,7 +53,7 @@ namespace XianXia.Core.Content
                     if (added <= 0)
                         return Result.Failure(ErrorCode.InvalidOperation, "Party bag full.", o.Id);
                     world.Events.Publish(
-                        EventType.SettlementStockChanged,
+                        EventType.PartyInventoryChanged,
                         world.Tick,
                         target: subject,
                         payload: "bag:" + o.Id + ":+" + added);

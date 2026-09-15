@@ -39,8 +39,6 @@ namespace XianXia.Data.Content
         public string ScheduleId { get; set; }
         /// <summary>[Legacy Content compatibility] 旧 spawn 未显式 factionId 时的回退势力。新 Content 禁止写入。</summary>
         public string OpeningFactionId { get; set; }
-        /// <summary>VS0.8: optional opening settlement definition id.</summary>
-        public string OpeningSettlementId { get; set; }
         /// <summary>VS0.9: optional opening world region（旧 VS；正式 Ch01 用 localPlaceSet）。</summary>
         public string OpeningWorldRegionId { get; set; }
         /// <summary>村内地点表（绑 mapLayout）。</summary>
@@ -96,8 +94,6 @@ namespace XianXia.Data.Content
         public bool BindSchedule { get; set; } = true;
         public bool BindDailyTask { get; set; } = true;
         public bool Recruitable { get; set; }
-        /// <summary>VS0.8: Labor | Gather | Cultivate (optional).</summary>
-        public string WorkRole { get; set; }
         /// <summary>Optional per-spawn schedule override (Reference Level AI).</summary>
         public string ScheduleId { get; set; }
         /// <summary>Mortal | Cultivator | Supervisor (Reference Level AI archetype).</summary>

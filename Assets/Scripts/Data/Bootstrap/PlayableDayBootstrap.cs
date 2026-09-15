@@ -153,10 +153,6 @@ namespace XianXia.Data.Bootstrap
             if (applied.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(applied.Error);
 
-            var settlement = SettlementBootstrap.ApplyOpening(world, registry, scenario, lookup);
-            if (settlement.IsFailure)
-                return Result.Fail<PlayableDayBootstrapResult>(settlement.Error);
-
             var region = WorldRegionBootstrap.ApplyOpening(
                 world, registry, scenario, lookup, spawnEntries);
             if (region.IsFailure)
@@ -178,6 +174,10 @@ namespace XianXia.Data.Bootstrap
             var content = ContentRuntimeBootstrap.Apply(world, registry, scenario);
             if (content.IsFailure)
                 return Result.Fail<PlayableDayBootstrapResult>(content.Error);
+
+            var economy = WorldSiteEconomyBootstrap.ApplyNewGame(world, registry);
+            if (economy.IsFailure)
+                return Result.Fail<PlayableDayBootstrapResult>(economy.Error);
 
             // §5：所有会 spawn entity 的 opening bootstrap 结束之后，统一补一次 presence 归一化。
             // 只补「完全没有 WorldPresence」的实体，不覆盖任何已有 authority（含 FormalArmy）。

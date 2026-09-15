@@ -17,8 +17,7 @@
 | `Items/` | item | `items.json` |
 | `Sites/` | opportunitySite | `sites.json` |
 | `Resources/` | resource | `resources.json` |
-| `Facilities/` | facility | `facilities.json` |
-| `Settlements/` | settlement | `settlements.json` |
+| `SiteEconomies/` | worldSiteEconomy | `site_economies.json` |
 | `WorkAreas/` | workArea | `work_areas.json` |
 | `Jobs/` | job | `jobs.json` |
 | `Schedules/` | schedule | `schedules.json` |
