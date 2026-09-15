@@ -103,7 +103,7 @@ namespace XianXia.Unity.Host
         public void RequestWorldSiteAssault(EntityId attacker, EntityId defender, string siteId, Action onEntered)
         {
             if (HasPending) return;
-            Request(attacker, defender, onEntered: onEntered, allowPendingCancel: false);
+            Request(attacker, defender, onEntered: onEntered, allowPendingCancel: true);
             _assaultSiteId = siteId;
         }
 
@@ -310,6 +310,7 @@ namespace XianXia.Unity.Host
         public void CancelPending()
         {
             if (!CanCancel) return;
+            var cancelledSiteAssault = !string.IsNullOrEmpty(_assaultSiteId);
             Debug.Log("[CharacterEncounter] cancel phase=" + Phase);
             if (_entryRoutine != null) StopCoroutine(_entryRoutine);
             _entryRoutine = null;
@@ -320,6 +321,8 @@ namespace XianXia.Unity.Host
             _preparedField = null; _failure = ""; _progress = string.Empty; Phase = PresentationPhase.None;
             HostInputGate.EncounterModalLock = false;
             _host.Session.ReleaseModalPause(PauseOwner);
+            if (cancelledSiteAssault)
+                _host.StrategicInterrupt?.ShowTransientToast("已撤回本次攻击；战争状态不变。");
         }
 
         public void SetTarget(EntityId attacker, EntityId target)

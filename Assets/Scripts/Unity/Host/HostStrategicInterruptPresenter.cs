@@ -790,6 +790,8 @@ namespace XianXia.Unity.Host
             _toastUntil = Time.unscaledTime + 4f;
         }
 
+        public void ShowTransientToast(string message) => ShowToast(message);
+
         void DrawCharacterEncounterOffer(PlayableHostSession session, HostCharacterEncounter coordinator)
         {
             var world = session.World;

@@ -49,7 +49,9 @@ WorldSnapshot 仍为 v6；CharacterEncounter 子格式升为 2，包含完整 ob
 
 现统一为 Host presentation 状态：`Pending → Preparing → ReadyToCommit → ReadyToStart → Active → ReadyToEnd`。`ReadyToStart` 不进入 Core enum 或 Snapshot；此时 Core CharacterEncounter 已为 `Active`、独立场地和人物 View 已 materialize，但具名 pause 与 Encounter input lock 继续持有，Host Update 也显式禁止战术推进。顶部只显示“战场已就绪／已恢复 · 当前全场暂停”和“开始战斗”，不再遮住场地。
 
-Site assault 有守军路径现只提交 `RequestWorldSiteAssault`，停在 Pending；政治战争已经成立，因此该 Pending 不显示取消主动攻击，也不回滚外交。玩家点击手动战斗后完成场地构建，再点击开始战斗才原子消费 staged attacker/target 和一次性 callback：设置初始人物目标、记录人物攻击、切 Host Active、执行原 SiteCore assault intent、清 staging、明确 `ManualPaused=false`，最后释放 `CharacterEncounterUI` pause 与输入锁。普通人物攻击和自动接触选择手动战斗后共用同一 start gate。
+Site assault 有守军路径现只提交 `RequestWorldSiteAssault`，停在 Pending，并与普通主动人物攻击共用同一“取消主动攻击”入口。取消仅撤回本次战术攻击并执行既有 Pending 清理；政治确认已经提交的 War 不回滚，界面以“已撤回本次攻击；战争状态不变。”明确反馈。玩家点击手动战斗后完成场地构建，再点击开始战斗才原子消费 staged attacker/target 和一次性 callback：设置初始人物目标、记录人物攻击、切 Host Active、执行原 SiteCore assault intent、清 staging、明确 `ManualPaused=false`，最后释放 `CharacterEncounterUI` pause 与输入锁。普通人物攻击和自动接触选择手动战斗后共用同一 start gate。
+
+Producer acceptance follow-up：此前 `RequestWorldSiteAssault` 显式传入 `allowPendingCancel=false`，导致同一个 `DrawCharacterEncounterOffer` 对 SiteCore assault 隐藏“取消主动攻击”。现统一为 player-initiated CharacterEncounter Pending 均可撤回当前主动攻击；SiteCore assault 在政治确认之后取消只终止 tactical assault，不撤销已经成立的 War。CW-08/CW-09 状态仍为 **Implementation Completed / Producer Acceptance Pending**。
 
 恢复 Core `Active` 的 CharacterEncounter 也在 materialize 后停入 ReadyToStart；未解决 Site objective 的恢复攻击只保存为一次性 on-start action。恢复 Core `ReadyToEnd` 保持现有战后路径。已经处于同一 CharacterEncounter 时追加 Site objective／守军仍直接绑定当前场，不重新出现手动确认、加载或开始门；无守军 SiteCore 继续直接攻击。
 

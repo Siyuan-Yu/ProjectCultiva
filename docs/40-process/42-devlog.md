@@ -4,7 +4,7 @@
 
 - 制作人验收确认：Site assault 的守军入口在 `Request` 后同栈 `BeginConfirmed`，导致手动战斗窗闪退；普通 CharacterEncounter 场地 commit 后立即设置目标、释放 pause 并执行 callback，导致加载完成即开打。
 - Host 新增非持久化 `ReadyToStart`：新建或恢复 Active 独立战场完整 materialize 后继续由 `CharacterEncounterUI` 持有 ModalHardPause 与输入锁，Host Update 显式不推进战术。顶部小条显示“开始战斗”；点击后才一次性设置目标、执行普通攻击／SiteCore intent、清 staging、解除 ManualPaused 并释放具名 pause。Core phase 与 CharacterEncounter JSON format 均未修改。
-- 有守军 Site assault 政治确认后只进入 Pending 人物遭遇，不再自动确认；因战争已提交，该 Pending 不提供外交回滚式取消。恢复 ReadyToEnd、同场追加 objective、无守军直接攻 Core 的现有分支保持。新增纯 Host start-gate 定向用例覆盖身份、world/field/domain/pause/input 前置条件及 callback 单次消费；状态仍为 **Implementation Completed / Producer Acceptance Pending**，未创建提交。
+- 有守军 Site assault 政治确认后只进入 Pending 人物遭遇，不再自动确认；该 Pending 与普通主动人物攻击共用“取消主动攻击”。取消完整清理当前战术请求并提示战争状态不变，不回滚此前已提交的 War。恢复 ReadyToEnd、同场追加 objective、无守军直接攻 Core 的现有分支保持。新增纯 Host start-gate 定向用例覆盖身份、world/field/domain/pause/input 前置条件及 callback 单次消费；状态仍为 **Implementation Completed / Producer Acceptance Pending**，未创建提交。
 
 ## 2026-09-15 — CharacterEncounter 返回 Continuous Active View blocker
 
