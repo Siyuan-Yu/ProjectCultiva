@@ -96,7 +96,7 @@ namespace XianXia.Core.Persistence
                 }
             }
 #endif
-            return Result.Success();
+            return CharacterEncounterService.ValidateObjectiveWorldState(world);
         }
 
         public static StrategicSnapshotDto Capture(SimulationWorld world, PlayerPartyRuntime party = null)

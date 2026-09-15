@@ -913,3 +913,14 @@ CombatPower 算法：**本轮不重新设计**；沿用／参考现有自动战�
 **Prototype 回归例外：** Ch01 对 Bandit 的自动 `DeclareWar` 仅允许存在于 `Ch01ScenarioStrategicSetup.ApplyPrototypeRegressionDiplomacy`（非正式剧情战争）。
 
 **Cross-ref：** `152` §1.7 presence-based friendly node；`Ch01ScenarioArmyFormationPolicy`（Scenario Adapter only）。
+
+
+## 2026-09-15 CW-08 / CW-09：玩家 SiteCore 战争
+
+制作人授权规则见 [235](../40-process/235-sitecore-warfare-worldsite-takeover-2026-09-15.md)。固定核心由 `CoreIsRemovable=false` 判定，攻破后建筑仍存在，在原建筑交互范围持续占领；己方存活人物在场且没有存活敌方参战者争夺才计时，离开或争夺归零。占领仅经 `CaptureObjectiveService` → `WorldSiteTerritoryTransferService` 改同一 Site 的 Owner 并恢复核心满耐久。ClaimId、AcquiredOrder、农田 identity/crop、人物 faction/home/squad 均不改。
+
+`CoreIsRemovable=true` 的势力旗被击毁即移除物理旗、令原 Site inactive；保留原 Owner 与 Claim 历史，不占领、不自动变成己方旗。攻方通过正常建造建立新旗、新 Site 和新 Claim。资产继续存在，行政管理者由原 CW-05 查询动态接续。
+
+正常玩家入口统一为 SiteCore Warfare → real Character/Squad → CharacterEncounter，退出两条旧 Siege/BattleOffer 编排。按精确 Surface/WorldPosition、目标 Site 等级范围和 War side 选守军，最近者优先、EntityId 升序打破平局。战中目标仍限定同一 frozen range，最多一个未完成 Site 目标；新守军追加原 roster，不回血、不重置冷却或候选。
+
+目标捕获或摧毁完成可 ReadyToEnd；击倒敌人也可 ReadyToEnd，但不自动占地。ReadyToEnd 仍可攻击与占领当前目标。仅玩家发起 SiteCore 战争属于本轮；NPC 自动攻城、普通建筑战争、产权及居民政治后果延期。

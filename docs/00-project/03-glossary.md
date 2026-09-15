@@ -318,3 +318,13 @@
 | `[新增概念先登记在这里]` | 待定 |
 
 > 早前版本曾登记过「周天调息」「灵气锻体」「灵力灌注」「丹相」以及炼气四候选能力等提案词。以最新境界／修炼文档为准；未确认者勿当既定设计使用。
+
+
+## 2026-09-15 SiteCore Warfare
+
+| 术语 | 正式含义 |
+|---|---|
+| WorldSiteCoreTarget | 只读的 Site/核心资产身份、类型、当前 Owner、Surface 与精确核心位置描述；类型由 CoreIsRemovable 判定 |
+| WorldSiteCoreWarfareService | 玩家 SiteCore 战争统一领域入口；真实守军查询、目标约束、占领争夺与原政治服务交接 |
+| SiteCoreEncounterObjective | CharacterEncounter 内最多一个未完成的战略核心目标；FixedSiteCoreCapture 或 RemovableFactionFlagDestruction，保存目标身份与结果，不复制物理或政治权威 |
+| ObjectiveDefenderSquads | 当前遭遇因战略目标追加的真实防守小队事实；独立于被冻结的关系候选，不重置原 roster |

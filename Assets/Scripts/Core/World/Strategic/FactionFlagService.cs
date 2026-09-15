@@ -387,6 +387,7 @@ namespace XianXia.Core.World.Strategic
                 site.IsCoreActive = false;
             // 不删除 TerritoryClaim：核心失效后历史保留，但 resolver 会忽略该 Site。
             StrategicTerritoryCoverageResolver.Rebuild(world);
+            CharacterEncounterService.NotifyStrategicObjectiveResolved(world, flag.SiteId, flag.FlagId);
             return Result.Success();
         }
 

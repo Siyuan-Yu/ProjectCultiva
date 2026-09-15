@@ -85,12 +85,15 @@ namespace XianXia.Unity.Host
                     return Result.Failure(ErrorCode.ContentLoadFailed,
                         "HexWorld snapshot shell rehydrate failed.", hex.Error.ToString());
 
-                ContentRuntimeBootstrap.RebindPresetWorldSiteCoreMetadata(world, registry);
+                var fixedCores = ContentRuntimeBootstrap.RebindPresetWorldSiteCoreMetadata(world, registry);
+                if (fixedCores.IsFailure)
+                    return Result.Failure(ErrorCode.ContentLoadFailed,
+                        "Preset SiteCore snapshot shell rehydrate failed.", fixedCores.Error.ToString());
 
                 var political = StrategicSnapshotHelper.RestoreHexPoliticalState(world, politicalSnapshot);
                 if (political.IsFailure)
                     return political;
-                // Political overlay 后才让 ControlCore／权限读取最终 Owner。
+                // Political overlay does not replace the canonical static placement binding.
                 CaptureObjectiveService.RebindControlCoreSites(world);
 
                 var motions = StrategicSnapshotHelper.RestoreFormalArmyMotions(world, politicalSnapshot);

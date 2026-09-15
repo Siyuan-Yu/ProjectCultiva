@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Data.Content;
 using XianXia.Core.Exploration;
@@ -861,7 +862,9 @@ namespace XianXia.Unity.Host
             {
                 var id = new EntityId(p.CharacterId);
                 _bootstrap.MoveController.CancelPresentationMovementPublic(id);
-                if (world.Entities.TryGet(id, out var entity) && entity.TryGet<EntityLocationComponent>(out var location))
+                if (world.Entities.TryGet(id, out var entity) &&
+                    !CombatLifeStateService.ShouldHideFromSpawn(entity) &&
+                    entity.TryGet<EntityLocationComponent>(out var location))
                 {
                     _mapper.WorldToPresentation(p.OriginX, p.OriginY, out var x, out var y);
                     location.SetPresentationOverride(x, y);

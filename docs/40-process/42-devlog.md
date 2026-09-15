@@ -1,5 +1,30 @@
 # 开发日志
 
+## 2026-09-15 — CharacterEncounter 统一 ReadyToStart 入场门
+
+- 制作人验收确认：Site assault 的守军入口在 `Request` 后同栈 `BeginConfirmed`，导致手动战斗窗闪退；普通 CharacterEncounter 场地 commit 后立即设置目标、释放 pause 并执行 callback，导致加载完成即开打。
+- Host 新增非持久化 `ReadyToStart`：新建或恢复 Active 独立战场完整 materialize 后继续由 `CharacterEncounterUI` 持有 ModalHardPause 与输入锁，Host Update 显式不推进战术。顶部小条显示“开始战斗”；点击后才一次性设置目标、执行普通攻击／SiteCore intent、清 staging、解除 ManualPaused 并释放具名 pause。Core phase 与 CharacterEncounter JSON format 均未修改。
+- 有守军 Site assault 政治确认后只进入 Pending 人物遭遇，不再自动确认；因战争已提交，该 Pending 不提供外交回滚式取消。恢复 ReadyToEnd、同场追加 objective、无守军直接攻 Core 的现有分支保持。新增纯 Host start-gate 定向用例覆盖身份、world/field/domain/pause/input 前置条件及 callback 单次消费；状态仍为 **Implementation Completed / Producer Acceptance Pending**，未创建提交。
+
+## 2026-09-15 — CharacterEncounter 返回 Continuous Active View blocker
+
+- 制作人结束独立 CharacterEncounter 时实测 `ActiveCharacter EntityView missing`。返回调用顺序证明启动校验在同一帧早于下一次 PlayerParty Controller 更新；Encounter authority 清除后仍可能读取战中留下的过期 Active/ControlState。
+- 返回链现于 `CommitAndReturn` 成功、Continuous Surface 重建之前同步刷新正式 Active control，使可接任队员参与本次 materialization。启动不变量允许 `TemporarilyUnavailable/AllMembersDead` 合法无 Active，同时继续硬查正常 Active 的 Entity、lifecycle、visibility、materialization、View 与 grid；漏建诊断不再只有无上下文的通用字符串。
+- `Removed` 参与者不再被离场表现适配重新写坐标；弥留与可见尸体规则未改。未运行 Unity、Test Runner、batchmode 或 Bake；实现仍为 **Producer Acceptance Pending**，未创建提交。
+
+## 2026-09-15 — CW-08 / CW-09 第一次 Unity 验收 blocker：固定 SiteCore canonical binding
+
+- 制作人实测青石荒村议政厅菜单可见但点击攻击无后续。根因确认是 `CaptureObjectiveService` 仍从当前 `WorldRegion/LocalMapId` 猜固定 Core 所属 Site；Continuous Outdoor 正常路径没有可靠满足该旧前提，Host 解析失败后静默关闭。
+- 新游戏与读档静态壳现从 outdoor controlCore placement 的 `SiteId + StableId + BoundLocationId` 建立 `WorldSite ↔ CaptureObjective/WorkArea` 双向正式绑定。Board 事务维护反向索引；Content runtime/strict validator 拒绝缺字段、缺 Core、类型和一对多冲突。正常攻城预检、首击 Owner、占领和 Site→Core 查询均只读该绑定，legacy LocalMap 推断不再有正常玩家消费者。
+- Host 对绑定、战争提交、遭遇准备和接近点失败增加可见反馈。真实青石荒村回归在清空 WorldRegion 后完成无战争预检、宣战后首击及 Save/Load 同一绑定；SiteCoreWarfareTests 10/10 通过，全部离线程序集 0 error。通用 ContentPackageTests 另有 4 项在 Loader 前受现成 Unity `Application.dataPath`/Mono ECall 环境限制失败，5 项纯校验通过；定向真实 BaseGame strict load 已通过。未运行 Unity、Test Runner、batchmode 或 Bake；仍为 **Implementation Completed / Producer Acceptance Pending**，未创建提交。
+
+## 2026-09-15 — CW-05 正式封板；CW-08 / CW-09 SiteCore Warfare
+
+- 制作人通过 CW-05 可建农田、管理接续、拆旗保留、重新管理与 Save/Load 正常玩法验收；232/233/234 正式 Producer Accepted / Sealed。Subsequently Producer Accepted after normal gameplay validation. 原非 Unity 验证历史不改。
+- 玩家 SiteCore 攻击由两条 Siege/BattleOffer 改为统一 WorldSiteCoreWarfareService + CharacterEncounter。Fixed Core 攻破后争夺占领，只转同一 Site Owner；Removable Flag 摧毁后原 Site inactive，Owner/Claim 不变。保留原 HP、伤害、占领秒数与 CW-05 资产权威。
+- 同场目标和真实守军增援保留伤势、冷却、时间及候选；目标完成提供 ReadyToEnd，击倒守军不自动 Capture。Encounter 子格式 2 严格保存目标，政治 overlay 后检查 Site 关联。正常 Content 复用青石荒村议政厅、荒村驻军、原农田和荒村西北前哨。
+- 全部离线程序集编译通过、Content strict 通过，8 项 SiteCore + 8 项原农田 headless 定向验证通过，git diff --check 通过。未运行 Unity。状态 **Implementation Completed / Producer Acceptance Pending**；验证与两条人工验收路线见 [235](235-sitecore-warfare-worldsite-takeover-2026-09-15.md)。本轮不自动提交，未开始 NPC 自动攻城、普通建筑战争或人物政治后果。
+
 ## 2026-09-14 — CW-05 Closing：Constructible Farm + Administrative Asset Lifecycle
 
 - 正常建筑页新增农田（grainField，5×4 Surface cells，粗木5），仅 reference scenario 的 NewGame startingInventory 配粗木20；schema/loader/reference validator 严格校验，开局容量失败回滚含部分入包，读档不重发。

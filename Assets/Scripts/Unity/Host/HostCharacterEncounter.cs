@@ -14,17 +14,19 @@ namespace XianXia.Unity.Host
     public sealed class HostCharacterEncounter : MonoBehaviour
     {
         const string PauseOwner = "CharacterEncounterUI";
-        public enum PresentationPhase { None, Pending, Preparing, ReadyToCommit, Active, ReadyToEnd, Report, Failed }
+        public enum PresentationPhase { None, Pending, Preparing, ReadyToCommit, ReadyToStart, Active, ReadyToEnd, Report, Failed }
         PlayableHostBootstrap _host;
         SimulationWorld _world;
         EntityId _pendingAttacker, _pendingTarget;
         string _failure = "";
         Action _onEntered;
+        string _assaultSiteId;
+        readonly CharacterEncounterStartGate _startGate = new CharacterEncounterStartGate();
         readonly SpiritVeilService _veil = new SpiritVeilService();
         readonly MeleeCombatService _melee = new MeleeCombatService();
         Coroutine _entryRoutine;
         ContinuousOutdoorSurfaceRuntime.PreparedIndependentField _preparedField;
-        bool _automaticRequest;
+        bool _allowPendingCancel;
         string _progress = string.Empty;
         CharacterEncounterState _restoreState;
         readonly List<EntityId> _previewFriendly = new List<EntityId>();
@@ -42,22 +44,35 @@ namespace XianXia.Unity.Host
                 ? _host.ContinuousOutdoorSurfaceRuntime.IndependentPreparationProgress : _progress;
         public EntityId PendingAttacker => _pendingAttacker;
         public EntityId PendingTarget => _pendingTarget;
-        public bool CanCancel => HasPending && !_automaticRequest;
+        public bool ReadyToStartIsRestore => _startGate.IsRestore;
+        public bool CanCancel => HasPending && _allowPendingCancel;
+        public static bool CanAdvanceTacticalPresentation(PresentationPhase phase, bool isPaused) =>
+            phase != PresentationPhase.ReadyToStart && !isPaused;
         public void Bind(PlayableHostBootstrap host) { _host = host; _world = host.Session.World; }
         public bool HasPending => !_pendingTarget.IsNone;
 
-        public void Request(EntityId attacker, EntityId target, bool automatic = false, Action onEntered = null)
+        public void Request(
+            EntityId attacker,
+            EntityId target,
+            bool automatic = false,
+            Action onEntered = null,
+            bool allowPendingCancel = true)
         {
             if (_host?.Session?.World == null) return;
             if (_host.Session.World.Strategic.CharacterEncounter != null)
-            { SetTarget(attacker, target); return; }
+            {
+                if (Phase == PresentationPhase.Active || Phase == PresentationPhase.ReadyToEnd)
+                    SetTarget(attacker, target);
+                return;
+            }
             if (HasPending) return;
+            _assaultSiteId = null;
             var requestWorld = _host.Session.World;
             if (automatic && CharacterEncounterService.IsContactSuppressed(requestWorld, attacker, target)) return;
             if (!automatic) requestWorld.Strategic.SuppressedCharacterContacts.Remove(CharacterEncounterService.ContactKey(attacker, target));
             _world = _host.Session.World;
             _pendingAttacker = attacker; _pendingTarget = target; _failure = ""; _progress = "等待确认"; _onEntered = onEntered;
-            _automaticRequest = automatic;
+            _allowPendingCancel = allowPendingCancel && !automatic;
             _requestId = "request:" + (++_requestSequence);
             _previewFriendly.Clear(); _previewEnemy.Clear();
             if (requestWorld.Strategic.Squads.TryGetForCharacter(attacker, out var a) &&
@@ -85,6 +100,13 @@ namespace XianXia.Unity.Host
             else { friendly.AddRange(_previewFriendly); enemy.AddRange(_previewEnemy); }
         }
 
+        public void RequestWorldSiteAssault(EntityId attacker, EntityId defender, string siteId, Action onEntered)
+        {
+            if (HasPending) return;
+            Request(attacker, defender, onEntered: onEntered, allowPendingCancel: false);
+            _assaultSiteId = siteId;
+        }
+
         void LogStage(string stage)
         {
             var session = _host.Session;
@@ -102,12 +124,14 @@ namespace XianXia.Unity.Host
             { RestoreField(_restoreState); return; }
             if (!HasPending || Phase == PresentationPhase.Preparing || _entryRoutine != null) return;
             _failure = string.Empty;
+            Phase = PresentationPhase.Preparing;
             _entryRoutine = StartCoroutine(RunEntry(PrepareAndEnter(_pendingAttacker, _pendingTarget)));
         }
 
         public bool RestoreField(CharacterEncounterState state)
         {
             if (state == null || _entryRoutine != null) return false;
+            ClearStartStaging();
             _world = _host.Session.World;
             _restoreState = state;
             _failure = string.Empty;
@@ -129,9 +153,25 @@ namespace XianXia.Unity.Host
             yield return surface.CommitPreparedIndependentField(_preparedField, r => result = r, domainAlreadyBound: true);
             if (result.IsFailure) { Fail(result.Error.Message); yield break; }
             _preparedField = null; _restoreState = null;
-            Phase = state.Phase == CharacterEncounterPhase.ReadyToEnd ? PresentationPhase.ReadyToEnd : PresentationPhase.Active;
-            _host.Session.ReleaseModalPause(PauseOwner);
-            HostInputGate.EncounterModalLock = false;
+            _requestId = state.EncounterId;
+            if (state.Phase == CharacterEncounterPhase.ReadyToEnd)
+            {
+                Phase = PresentationPhase.ReadyToEnd;
+                _host.Session.ReleaseModalPause(PauseOwner);
+                HostInputGate.EncounterModalLock = false;
+                LogStage("ReadyToEndRestored");
+                yield break;
+            }
+
+            Action onStart = null;
+            if (state.Objective != null && !state.Objective.Resolved &&
+                state.Find(_host.Session.PlayerParty.ActiveCharacterId.Value)?.TargetId == ulong.MaxValue)
+                onStart = () => HostWorldSiteCoreWarfare.ContinueAssault(_host, state.Objective.SiteId);
+            _startGate.Stage(_world, state.EncounterId, EntityId.None, EntityId.None, onStart, isRestore: true,
+                recordCharacterAttack: false);
+            Phase = PresentationPhase.ReadyToStart;
+            _progress = "战场已恢复 · 当前全场暂停";
+            LogStage("ReadyToStartRestored");
         }
 
         // Own all nested iterators in one coroutine: stopping the request stops its children,
@@ -172,7 +212,10 @@ namespace XianXia.Unity.Host
             var surface = _host.ContinuousOutdoorSurfaceRuntime;
             if (surface == null || !surface.IsActive) { Fail("Continuous source is unavailable."); yield break; }
             surface.CaptureCurrentPersonalPlacements();
-            var prepared = CharacterEncounterService.Prepare(world, attacker, target, surface.ActiveSurfaceId, out var state);
+            CharacterEncounterState state;
+            var prepared = _assaultSiteId == null
+                ? CharacterEncounterService.Prepare(world, attacker, target, surface.ActiveSurfaceId, out state)
+                : CharacterEncounterService.PrepareForWorldSiteAssault(world, attacker, target, _assaultSiteId, out state);
             if (prepared.IsFailure) { Fail(prepared.Error.Message); yield break; }
             _requestId = state.EncounterId;
             Result prepResult = default;
@@ -189,19 +232,67 @@ namespace XianXia.Unity.Host
                 yield break;
             }
             _host.GetComponent<HostNpcMeleeAssault>()?.Clear();
-            new XianXia.Core.Social.SocialEventService().RecordCharacterAttacked(world, attacker, target);
-            SetTarget(attacker, target);
+            _startGate.Stage(world, state.EncounterId, attacker, target, _onEntered, isRestore: false,
+                recordCharacterAttack: true);
+            _onEntered = null;
             _pendingAttacker = _pendingTarget = EntityId.None;
-            _preparedField = null; _entryRoutine = null; Phase = PresentationPhase.Active; _progress = "战术接管完成";
-            HostInputGate.EncounterModalLock = false;
-            _host.Session.ReleaseModalPause(PauseOwner);
+            _preparedField = null; Phase = PresentationPhase.ReadyToStart; _progress = "战场已就绪 · 当前全场暂停";
             _loggedTacticalClock = false;
-            LogStage("Active");
-            Debug.Log("[CharacterEncounter] Active Id=" + state.EncounterId +
+            LogStage("ReadyToStart");
+            Debug.Log("[CharacterEncounter] ReadyToStart Id=" + state.EncounterId +
                 " manualPaused=" + _host.Session.ManualPaused + " paused=" + _host.Session.IsPaused +
                 " inputBlocked=" + HostInputGate.BlockWorldInteraction);
-            var action = _onEntered; _onEntered = null;
+        }
+
+        public bool StartBattle()
+        {
+            if (Phase != PresentationPhase.ReadyToStart)
+                return false;
+            var session = _host?.Session;
+            var world = session?.World;
+            var state = world?.Strategic?.CharacterEncounter;
+            var validation = _startGate.ValidateStart(
+                world,
+                state,
+                _host?.ContinuousOutdoorSurfaceRuntime?.IndependentFieldId,
+                session != null && session.HasModalPauseOwner(PauseOwner),
+                HostInputGate.EncounterModalLock);
+            if (validation.IsFailure)
+            {
+                _failure = "无法开始战斗：" + validation.Error.Message;
+                _progress = _failure;
+                session?.AcquireModalPause(PauseOwner);
+                HostInputGate.EncounterModalLock = true;
+                Debug.LogError("[CharacterEncounter] " + _failure, this);
+                return false;
+            }
+
+            var attacker = _startGate.Attacker;
+            var target = _startGate.Target;
+            if (!attacker.IsNone && !target.IsNone)
+            {
+                // ValidateStart already proved both characters belong to opposing sides. Assign
+                // the staged initial target here instead of opening public SetTarget during the
+                // ReadyToStart input lock.
+                state.Find(attacker.Value).TargetId = target.Value;
+                if (_startGate.RecordCharacterAttack)
+                    new XianXia.Core.Social.SocialEventService().RecordCharacterAttacked(world, attacker, target);
+            }
+
+            var action = _startGate.TakeStartAction();
+            Phase = PresentationPhase.Active;
             action?.Invoke();
+            _startGate.Clear();
+            _assaultSiteId = null;
+            _allowPendingCancel = false;
+            _failure = string.Empty;
+            _progress = "战斗进行中";
+            session.ManualPaused = false;
+            session.ReleaseModalPause(PauseOwner);
+            HostInputGate.EncounterModalLock = false;
+            _loggedTacticalClock = false;
+            LogStage("Active");
+            return true;
         }
 
         void Fail(string message)
@@ -212,6 +303,8 @@ namespace XianXia.Unity.Host
             _host?.ContinuousOutdoorSurfaceRuntime?.CancelPreparedIndependentField();
             LogStage("Failed");
             Debug.LogError("[CharacterEncounter] phase=" + Phase + " error=" + _failure);
+            if (!string.IsNullOrEmpty(_assaultSiteId))
+                HostWorldSiteCoreWarfare.Feedback(_host, "据点守军接战准备失败：" + _failure);
         }
 
         public void CancelPending()
@@ -222,7 +315,8 @@ namespace XianXia.Unity.Host
             _entryRoutine = null;
             _host.ContinuousOutdoorSurfaceRuntime.CancelPreparedIndependentField();
             _host.Session.World.Strategic.SuppressedCharacterContacts.Add(CharacterEncounterService.ContactKey(_pendingAttacker, _pendingTarget));
-            _pendingAttacker = _pendingTarget = EntityId.None; _onEntered = null; _automaticRequest = false;
+            _pendingAttacker = _pendingTarget = EntityId.None; _onEntered = null;
+            _allowPendingCancel = false; _assaultSiteId = null; _startGate.Clear();
             _preparedField = null; _failure = ""; _progress = string.Empty; Phase = PresentationPhase.None;
             HostInputGate.EncounterModalLock = false;
             _host.Session.ReleaseModalPause(PauseOwner);
@@ -230,6 +324,8 @@ namespace XianXia.Unity.Host
 
         public void SetTarget(EntityId attacker, EntityId target)
         {
+            if (Phase == PresentationPhase.ReadyToStart)
+                return;
             var world = _host?.Session?.World;
             var state = world?.Strategic?.CharacterEncounter;
             if (state == null || !state.Opposing(attacker.Value, target.Value)) return;
@@ -264,7 +360,9 @@ namespace XianXia.Unity.Host
                 _entryRoutine = null; _preparedField = null;
                 _restoreState = null;
                 _readyToEndEncounterId = string.Empty;
-                _world = world; _pendingAttacker = _pendingTarget = EntityId.None; _onEntered = null; Phase = PresentationPhase.None;
+                _world = world; _pendingAttacker = _pendingTarget = EntityId.None; _onEntered = null;
+                _assaultSiteId = null; _allowPendingCancel = false; _startGate.Clear();
+                Phase = PresentationPhase.None;
                 _host.Session.ReleaseModalPause(PauseOwner);
                 HostInputGate.EncounterModalLock = false;
             }
@@ -279,6 +377,10 @@ namespace XianXia.Unity.Host
             if (state == null) return;
             // Restored domain state is stable, but its presentation must finish before tactics/end.
             if (_restoreState != null) return;
+            // Domain Active means the field is legally bound. Host ReadyToStart still owns the
+            // tactical start gate, so no target selection, elapsed time, intervention or damage
+            // may advance even if another system accidentally changes the effective pause.
+            if (Phase == PresentationPhase.ReadyToStart) return;
             if (state.Phase == CharacterEncounterPhase.Committed) { Phase = PresentationPhase.Report; return; }
             if (state.Phase == CharacterEncounterPhase.ReadyToEnd)
             {
@@ -296,7 +398,7 @@ namespace XianXia.Unity.Host
                 _host.DispatchDrainedEvents();
                 return;
             }
-            if (_host.Session.IsPaused) return;
+            if (!CanAdvanceTacticalPresentation(Phase, _host.Session.IsPaused)) return;
             _host.ContinuousOutdoorSurfaceRuntime.CaptureIndependentField();
             if (state.Phase == CharacterEncounterPhase.Active)
             {
@@ -362,6 +464,7 @@ namespace XianXia.Unity.Host
             for (var i = 0; i < state.Participants.Count; i++)
             {
                 var participant = state.Participants[i];
+                if (participant.TargetId == ulong.MaxValue && state.Objective != null && !state.Objective.Resolved) continue;
                 participant.TargetId = 0;
                 _host.MoveController.CancelPresentationMovementPublic(
                     new EntityId(participant.CharacterId));
@@ -418,7 +521,8 @@ namespace XianXia.Unity.Host
             _host?.Session?.ReleaseModalPause(PauseOwner);
             HostInputGate.EncounterModalLock = false;
             _pendingAttacker = _pendingTarget = EntityId.None; _onEntered = null; _entryRoutine = null; _preparedField = null;
-            _restoreState = null; Phase = PresentationPhase.None;
+            _restoreState = null; _assaultSiteId = null; _allowPendingCancel = false;
+            _startGate.Clear(); Phase = PresentationPhase.None;
         }
 
         void OnDisable() => CancelPreparation();
@@ -434,6 +538,11 @@ namespace XianXia.Unity.Host
             if (anchors.IsFailure) { _failure = anchors.Error.Message; return false; }
             var result = CharacterEncounterService.CommitAndReturn(world);
             if (result.IsFailure) { _failure = result.Error.Message; return false; }
+            // CommitAndReturn clears the encounter-owned participant scope. Re-evaluate Active
+            // control in that ordinary scope before Continuous startup asks for its EntityView;
+            // waiting for the next HostPlayerPartyController.Update leaves a one-frame stale
+            // ActiveCharacterId/ControlState and makes the synchronous startup invariant fail.
+            _host.GetComponent<HostPlayerPartyController>()?.RefreshActiveControlAfterLifeStateChange();
             _host.ContinuousOutdoorSurfaceRuntime.LeaveIndependentField(state);
             Phase = PresentationPhase.Report;
             return true;
@@ -447,7 +556,17 @@ namespace XianXia.Unity.Host
             _host.GetComponent<HostCombatSkillBar>()?.RestoreEncounterCooldowns(state);
             CharacterEncounterService.CloseReport(world);
             _readyToEndEncounterId = string.Empty;
+            ClearStartStaging();
             Phase = PresentationPhase.None; _progress = string.Empty;
+        }
+
+        void ClearStartStaging()
+        {
+            _startGate.Clear();
+            _pendingAttacker = _pendingTarget = EntityId.None;
+            _onEntered = null;
+            _assaultSiteId = null;
+            _allowPendingCancel = false;
         }
     }
 }

@@ -77,6 +77,9 @@ namespace XianXia.Unity.Host
         public bool ModalHardPaused => _legacyModalPauseDepth > 0 || _modalPauseOwners.Count > 0;
         public string ModalPauseDiagnostics => string.Join(",", _modalPauseOwners) + ";legacyDepth=" + _legacyModalPauseDepth;
 
+        public bool HasModalPauseOwner(string owner) =>
+            !string.IsNullOrWhiteSpace(owner) && _modalPauseOwners.Contains(owner);
+
         public void PushModalPause() => _legacyModalPauseDepth++;
 
         public void PopModalPause()

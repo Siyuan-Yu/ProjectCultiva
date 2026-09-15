@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using XianXia.Core.Content;
 using XianXia.Core.Construction;
@@ -5,6 +6,7 @@ using XianXia.Core.Inventory;
 using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World.Surface;
+using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 
 namespace XianXia.Data.Bootstrap
@@ -25,7 +27,9 @@ namespace XianXia.Data.Bootstrap
             if (assetAnchors.IsFailure)
                 return assetAnchors;
             RehydrateConstructionCatalog(world, registry);
-            RebindPresetWorldSiteCoreMetadata(world, registry);
+            var fixedCores = RebindPresetWorldSiteCoreMetadata(world, registry);
+            if (fixedCores.IsFailure)
+                return fixedCores;
             var flagSites = XianXia.Core.World.Strategic.FactionFlagSiteCoreBootstrap
                 .EnsureAuthoredSiteCores(world, true, ErrorCode.ContentLoadFailed);
             if (flagSites.IsFailure)
@@ -197,23 +201,85 @@ namespace XianXia.Data.Bootstrap
                 .RebindPendingSurfaceRoutes(world);
         }
 
-        public static void RebindPresetWorldSiteCoreMetadata(
+        public static Result RebindPresetWorldSiteCoreMetadata(
             SimulationWorld world, DefinitionRegistry registry)
         {
-            if (world?.Strategic?.Sites == null || registry == null) return;
+            if (world?.Strategic?.Sites == null || registry == null)
+                return Result.Failure(ErrorCode.InvalidArgument, "Preset SiteCore binding requires world and registry.");
+
+            var rows = new List<PresetControlCoreBinding>();
+            var sites = new HashSet<string>(StringComparer.Ordinal);
+            var workAreas = new HashSet<string>(StringComparer.Ordinal);
             foreach (var pair in registry.OutdoorSurfaces)
             {
                 var surface = pair.Value;
-                if (surface?.SitePlacements == null) continue;
+                if (surface?.SitePlacements == null || surface.AcceptanceOnly) continue;
                 for (var i = 0; i < surface.SitePlacements.Count; i++)
                 {
                     var placement = surface.SitePlacements[i];
                     if (placement == null ||
-                        !string.Equals(placement.Kind, "controlCore", System.StringComparison.OrdinalIgnoreCase) ||
-                        string.IsNullOrWhiteSpace(placement.SiteId) ||
-                        !world.Strategic.Sites.TryGet(placement.SiteId, out var site) || site == null ||
-                        site.IsRuntimeCreated || !string.IsNullOrEmpty(site.CoreAssetId))
+                        !string.Equals(placement.Kind, "controlCore", StringComparison.OrdinalIgnoreCase))
                         continue;
+
+                    var context = "Surface=" + (surface.SurfaceId ?? string.Empty) + " Placement=" +
+                                  (placement.StableId ?? string.Empty);
+                    if (string.IsNullOrWhiteSpace(placement.StableId) ||
+                        string.IsNullOrWhiteSpace(placement.SiteId) ||
+                        string.IsNullOrWhiteSpace(placement.BoundLocationId))
+                        return Result.Failure(ErrorCode.ContentLoadFailed,
+                            "Outdoor controlCore requires stableId, siteId and boundLocationId.", context);
+                    if (!world.Strategic.Sites.TryGet(placement.SiteId, out var site) || site == null || site.IsRuntimeCreated)
+                        return Result.Failure(ErrorCode.ContentLoadFailed,
+                            "Outdoor controlCore references an unavailable authored WorldSite.", context);
+                    if (site.CoreIsRemovable)
+                        return Result.Failure(ErrorCode.ContentLoadFailed,
+                            "Outdoor controlCore cannot bind a removable WorldSite.", context);
+                    if (!world.ControlCores.TryGetByLocation(placement.BoundLocationId, out var core) || core == null)
+                        return Result.Failure(ErrorCode.ContentLoadFailed,
+                            "Outdoor controlCore boundLocationId has no ControlCore WorkArea.", context);
+                    if (!sites.Add(site.SiteId))
+                        return Result.Failure(ErrorCode.ContentLoadFailed,
+                            "Authored fixed WorldSite has more than one controlCore placement.", site.SiteId);
+                    if (!workAreas.Add(core.WorkAreaId))
+                        return Result.Failure(ErrorCode.ContentLoadFailed,
+                            "ControlCore WorkArea is bound by more than one authored WorldSite.", core.WorkAreaId);
+                    if ((!string.IsNullOrEmpty(site.CoreAssetId) &&
+                         !string.Equals(site.CoreAssetId, placement.StableId, StringComparison.Ordinal)) ||
+                        (!string.IsNullOrEmpty(site.CoreSurfaceId) &&
+                         !string.Equals(site.CoreSurfaceId, surface.SurfaceId, StringComparison.Ordinal)))
+                        return Result.Failure(ErrorCode.ContentLoadFailed,
+                            "Authored WorldSite core metadata conflicts with its controlCore placement.", context);
+                    var binding = CaptureObjectiveService.ValidateControlCoreWorldSiteBinding(
+                        world, core.WorkAreaId, site.SiteId);
+                    if (binding.IsFailure)
+                        return Result.Failure(ErrorCode.ContentLoadFailed,
+                            "Outdoor controlCore canonical binding is invalid.", binding.Error.ToString());
+                    try
+                    {
+                        registry.SpatialRules.ResolveLevel(world, 1, surface.SurfaceId);
+                    }
+                    catch (Exception e)
+                    {
+                        return Result.Failure(ErrorCode.ContentLoadFailed,
+                            "Outdoor controlCore range cannot be resolved.", context + " " + e.Message);
+                    }
+                    rows.Add(new PresetControlCoreBinding(surface, placement, site, core.WorkAreaId));
+                }
+            }
+
+            // All content relationships and spatial ranges were validated above. From here each
+            // mutation is deterministic and cannot depend on the current WorldRegion/LocalMap.
+            for (var i = 0; i < rows.Count; i++)
+            {
+                var row = rows[i];
+                var bound = CaptureObjectiveService.BindControlCoreToWorldSite(
+                    world, row.WorkAreaId, row.Site.SiteId);
+                if (bound.IsFailure)
+                    return Result.Failure(ErrorCode.ContentLoadFailed,
+                        "Outdoor controlCore canonical binding failed.", bound.Error.ToString());
+                var placement = row.Placement;
+                var site = row.Site;
+                var surface = row.Surface;
                     site.CoreAssetId = placement.StableId ?? string.Empty;
                     site.CoreSurfaceId = surface.SurfaceId ?? string.Empty;
                     site.HasCoreWorldPosition = true;
@@ -223,8 +289,19 @@ namespace XianXia.Data.Bootstrap
                     registry.SpatialRules.Bind(world, site);
                     site.IsCoreActive = true;
                     site.CoreIsRemovable = false;
-                }
             }
+            return Result.Success();
+        }
+
+        sealed class PresetControlCoreBinding
+        {
+            public PresetControlCoreBinding(OutdoorWorldSurfaceDefinition surface,
+                OutdoorSurfacePlacementDefinition placement, WorldSite site, string workAreaId)
+            { Surface = surface; Placement = placement; Site = site; WorkAreaId = workAreaId; }
+            public OutdoorWorldSurfaceDefinition Surface { get; }
+            public OutdoorSurfacePlacementDefinition Placement { get; }
+            public WorldSite Site { get; }
+            public string WorkAreaId { get; }
         }
 
         static void AppendHeuristicTags(string id, List<string> tags)

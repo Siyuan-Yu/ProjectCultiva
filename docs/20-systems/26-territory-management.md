@@ -1,6 +1,6 @@
 # 领地经营
 
-> 状态：SiteCore 行政管理最终设计已确认；CW-04／CW-04.5 Producer Accepted / Sealed；CW-05A/B/Closing 已实现、统一待制作人验收 | 优先级：P0 | 最后更新：2026-09-14
+> 状态：SiteCore 行政管理最终设计已确认；CW-04／CW-04.5 Producer Accepted / Sealed；CW-05A/B/Closing Producer Accepted / Sealed | 优先级：P0 | 最后更新：2026-09-14
 > 上级：`docs/00-project/00-overview.md`
 > 关联：`25-cultivation-and-breakthrough.md`、`24-world-and-settlements.md`、`27-characters-and-population.md`、`22-realms-and-abilities.md`、**[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**
 > **Hex Territory / TerritoryRegion / Capture 后整块易主：** 正式规则见 **[2J](2J-hex-territory-worldsites-and-dynamic-bandits.md)**（2026-08-24）。本文 §2「Strategic Node」术语在 Pure Hex 下对应 **Fixed WorldSite + TerritoryRegion**。
@@ -32,7 +32,7 @@
 
 WorldMap 正常产品势力范围直接绘制 Actual Administrative Control 的 world-space 矩形片段及真实边界，不再从 `HexCell.ControlFactionId`／`TerritoryRegion.Hexes` 反推轮廓。CW-04.5 已实现并封板按 Faction 的只读视觉 union：同势力相邻 Site 不画内部政治边界，断开的领土仍是独立 pieces；Site identity、Claim 与唯一 Actual Manager 保持独立，内部 Site 边界继续由 per-Site builder 和 diagnostics 查询。Strategic Hex Projection 仅保留作旧系统兼容、摘要统计和显式 debug。
 
-CW-05A 明确 **Stateful World Object != Administrative Asset**。tree／wall／farm 都可有持久 identity 与 physical-natural state，但当前只有 Farm Plot 显式进入 Administrative Asset semantics。Farm 管理锚点从 checked-in Continuous Surface placement 的 StableId、SurfaceId 和 cell center 派生；当前 managing `WorldSite` 每次经 `WorldSiteAdministrativeControlResolver` 查询，不保存 Site/Faction owner。核心失效只改变 manager 查询结果，CropStage、Growth 与 StableId 不变；无 manager 是合法状态。树墙仍保存 HP/Destroyed，但附近 Site 只能提供 Territorial Context，不是 Tree/Wall Administrative Manager。Physical Asset Identity、Property Ownership、Administrative Manager 相互独立，本轮未实现产权。无人管理不等于时间停止：Growing 作物由 Core WorldTick 推进，即使 chunk 未加载仍生长。CW-05B 已让玩家下达的整片农作按真实 farm cell `StableCellId` 消费该动态行政管理结果，并在逐格选工、开工与完成前复核；NPC schedule、Settlement production 与 generic construction 延后 Economy / Automated Settlement Production migration。CW-05A/B 的验收并入 CW-05 Closing 正常建田闭环，两者均未标记 Producer Accepted。
+CW-05A 明确 **Stateful World Object != Administrative Asset**。tree／wall／farm 都可有持久 identity 与 physical-natural state，但当前只有 Farm Plot 显式进入 Administrative Asset semantics。Farm 管理锚点从 checked-in Continuous Surface placement 的 StableId、SurfaceId 和 cell center 派生；当前 managing `WorldSite` 每次经 `WorldSiteAdministrativeControlResolver` 查询，不保存 Site/Faction owner。核心失效只改变 manager 查询结果，CropStage、Growth 与 StableId 不变；无 manager 是合法状态。树墙仍保存 HP/Destroyed，但附近 Site 只能提供 Territorial Context，不是 Tree/Wall Administrative Manager。Physical Asset Identity、Property Ownership、Administrative Manager 相互独立，本轮未实现产权。无人管理不等于时间停止：Growing 作物由 Core WorldTick 推进，即使 chunk 未加载仍生长。CW-05B 已让玩家下达的整片农作按真实 farm cell `StableCellId` 消费该动态行政管理结果，并在逐格选工、开工与完成前复核；NPC schedule、Settlement production 与 generic construction 延后 Economy / Automated Settlement Production migration。CW-05A/B 与 CW-05 Closing 已通过统一正常玩法验收，2026-09-15 Producer Accepted / Sealed。
 
 ## 20. 历史战略 Node 占领（2026-08-22）
 
@@ -236,4 +236,19 @@ Resident Character 是否响应或跨区行动取决于职责、动机、发现�
 
 `OutdoorConstructedAssetBoard` 保存稳定 root ID、建筑/kind、SurfaceId、精确左下角矩形、格数和独立 BoundLocationId；每格复用 `OutdoorStatefulObjectId.ForCell`。Snapshot v6 optional additive `outdoorConstructedAssets`＋`nextOutdoorConstructedAssetSequence` 保存物理资产和序列，crop state 继续走原 FarmPlots；旧档缺字段为空，新格式损坏报错。当前 manager 不进资产或 Snapshot，由 authored＋runtime anchors 动态派生；拆旗不删除田和作物，新 Site 接管立即恢复组织权限。读档内容壳绝不执行 OpeningInventoryBootstrap。
 
-Streaming 复用现有农田 stamping；建造立即局部补齐，卸载只销毁表现，重载恢复相同 cell IDs/crop。CW-05A Probe UI 已移除。CW-05A/B 与 Closing 全部 Implementation Completed、Producer Acceptance Pending；NPC schedule economy、SettlementProduction、generic house/workshop、产权、建筑战争和农田拆除继续延期。
+Streaming 复用现有农田 stamping；建造立即局部补齐，卸载只销毁表现，重载恢复相同 cell IDs/crop。CW-05A Probe UI 已移除。CW-05A/B 与 Closing 已于 2026-09-15 Producer Accepted / Sealed；NPC schedule economy、SettlementProduction、generic house/workshop、产权和农田拆除继续延期；玩家 SiteCore 战争转入 CW-08 / CW-09。
+
+
+## 2026-09-15 制作人封板
+
+CW-05A、CW-05B 与 CW-05 Closing Slice 正式 **Producer Accepted / Sealed**。制作人已通过正常可建农田、管理接续、拆旗保留资产、重新取得管理及 Save/Load 验收。Subsequently Producer Accepted after normal gameplay validation. 历史记录中当时未运行 Unity 验证的事实保持不变。
+
+## 2026-09-15 CW-08 / CW-09：玩家 SiteCore 战争
+
+制作人授权规则见 [235](../40-process/235-sitecore-warfare-worldsite-takeover-2026-09-15.md)。固定核心由 `CoreIsRemovable=false` 判定，攻破后建筑仍存在，在原建筑交互范围持续占领；己方存活人物在场且没有存活敌方参战者争夺才计时，离开或争夺归零。占领仅经 `CaptureObjectiveService` → `WorldSiteTerritoryTransferService` 改同一 Site 的 Owner 并恢复核心满耐久。ClaimId、AcquiredOrder、农田 identity/crop、人物 faction/home/squad 均不改。
+
+`CoreIsRemovable=true` 的势力旗被击毁即移除物理旗、令原 Site inactive；保留原 Owner 与 Claim 历史，不占领、不自动变成己方旗。攻方通过正常建造建立新旗、新 Site 和新 Claim。资产继续存在，行政管理者由原 CW-05 查询动态接续。
+
+正常玩家入口统一为 SiteCore Warfare → real Character/Squad → CharacterEncounter，退出两条旧 Siege/BattleOffer 编排。按精确 Surface/WorldPosition、目标 Site 等级范围和 War side 选守军，最近者优先、EntityId 升序打破平局。战中目标仍限定同一 frozen range，最多一个未完成 Site 目标；新守军追加原 roster，不回血、不重置冷却或候选。
+
+目标捕获或摧毁完成可 ReadyToEnd；击倒敌人也可 ReadyToEnd，但不自动占地。ReadyToEnd 仍可攻击与占领当前目标。仅玩家发起 SiteCore 战争属于本轮；NPC 自动攻城、普通建筑战争、产权及居民政治后果延期。

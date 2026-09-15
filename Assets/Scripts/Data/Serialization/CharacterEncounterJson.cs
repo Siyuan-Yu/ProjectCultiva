@@ -9,6 +9,8 @@ namespace XianXia.Data.Serialization
         {
             if (state == null) return JsonValue.FromObject(new Dictionary<string, JsonValue>());
             var participants = new List<JsonValue>();
+            var objectiveSquads = new List<JsonValue>();
+            foreach (var id in state.ObjectiveDefenderSquads) objectiveSquads.Add(JsonValue.FromString(id));
             foreach (var p in state.Participants)
                 participants.Add(WritePerson(p));
             var candidates = new List<JsonValue>();
@@ -30,6 +32,8 @@ namespace XianXia.Data.Serialization
             return JsonValue.FromObject(new Dictionary<string, JsonValue>
             {
                 ["version"] = JsonValue.FromNumber(state.Version),
+                ["objective"] = WriteObjective(state.Objective),
+                ["objectiveDefenderSquads"] = JsonValue.FromArray(objectiveSquads),
                 ["id"] = JsonValue.FromString(state.EncounterId),
                 ["sourceSurfaceId"] = JsonValue.FromString(state.SourceSurfaceId),
                 ["sourceSiteId"] = JsonValue.FromString(state.SourceSiteId),
@@ -57,6 +61,8 @@ namespace XianXia.Data.Serialization
                 "elapsedSeconds", "decayAccumulator", "phase", "playerWon", "rosterVersion", "continuationUsed",
                 "decisionAt", "arrivalDelay", "relationThreshold", "chanceBasisPoints", "participants", "candidates");
             if (!value.TryGetProperty("version", out _)) throw new FormatException("Independent encounter version missing.");
+            var format = value.GetNumber("version", 0);
+            if (format != 1 && format != CharacterEncounterState.Format) throw new FormatException("Unsupported encounter format.");
             var state = new CharacterEncounterState
             {
                 DecisionAt = (float)value.GetNumber("decisionAt", -1),
@@ -78,6 +84,34 @@ namespace XianXia.Data.Serialization
                 RosterVersion = (int)value.GetNumber("rosterVersion", 0),
                 ContinuationUsed = value.GetBool("continuationUsed", false),
             };
+            if (state.Version == 1)
+            {
+                if (value.TryGetProperty("objective", out _) || value.TryGetProperty("objectiveDefenderSquads", out _))
+                    throw new FormatException("Legacy encounter contains new objective fields.");
+                state.Version = CharacterEncounterState.Format;
+            }
+            else if (state.Version == CharacterEncounterState.Format)
+            {
+                if (!value.TryGetProperty("objective", out var objective) || objective.Kind != JsonValueKind.Object ||
+                    !value.TryGetProperty("objectiveDefenderSquads", out var squads) || squads.Kind != JsonValueKind.Array)
+                    throw new FormatException("Encounter objective fields missing.");
+                if (objective.Object.Count > 0)
+                {
+                    RequireFields(objective, "kind", "siteId", "assetId", "attackerFactionId", "defenderFactionId", "resolved");
+                    var kind = objective.GetNumber("kind", -1);
+                    if (kind != 1 && kind != 2) throw new FormatException("Invalid objective kind.");
+                    state.Objective = new SiteCoreEncounterObjective { Kind = (SiteCoreObjectiveKind)kind,
+                        SiteId = objective.GetString("siteId", ""), AssetId = objective.GetString("assetId", ""),
+                        AttackerFactionId = objective.GetString("attackerFactionId", ""), DefenderFactionId = objective.GetString("defenderFactionId", ""),
+                        Resolved = objective.GetBool("resolved", false) };
+                }
+                foreach (var squad in squads.Array)
+                {
+                    if (squad.Kind != JsonValueKind.String) throw new FormatException("Invalid objective squad id.");
+                    state.ObjectiveDefenderSquads.Add(squad.String);
+                }
+            }
+            else throw new FormatException("Unsupported encounter format.");
             if (!value.TryGetProperty("participants", out var rows) || rows.Kind != JsonValueKind.Array)
                 throw new FormatException("Independent encounter participant list missing.");
             foreach (var row in rows.Array)
@@ -144,6 +178,21 @@ namespace XianXia.Data.Serialization
                 EntryMaxHp = (int)row.GetNumber("entryMaxHp", 0),
                 };
         }
+        static JsonValue WriteObjective(SiteCoreEncounterObjective o)
+        {
+            var fields = new Dictionary<string, JsonValue>();
+            if (o != null)
+            {
+                fields["kind"] = JsonValue.FromNumber((int)o.Kind);
+                fields["siteId"] = JsonValue.FromString(o.SiteId);
+                fields["assetId"] = JsonValue.FromString(o.AssetId);
+                fields["attackerFactionId"] = JsonValue.FromString(o.AttackerFactionId);
+                fields["defenderFactionId"] = JsonValue.FromString(o.DefenderFactionId);
+                fields["resolved"] = JsonValue.FromBool(o.Resolved);
+            }
+            return JsonValue.FromObject(fields);
+        }
+
         static JsonValue WriteCooldowns(float[] cooldowns)
         {
             var result = new List<JsonValue>();
@@ -175,8 +224,10 @@ namespace XianXia.Data.Serialization
                 switch (field)
                 {
                     case "id": case "characterId": case "targetId": case "squadId": case "sourceSurfaceId": case "sourceSiteId":
+                    case "siteId": case "assetId": case "attackerFactionId": case "defenderFactionId":
                         expected = JsonValueKind.String; break;
                     case "enemy": case "playerWon": case "continuationUsed": case "entryHpAvailable":
+                    case "resolved":
                         expected = JsonValueKind.Boolean; break;
                     case "participants": case "candidates": case "members": case "artCooldowns":
                         expected = JsonValueKind.Array; break;

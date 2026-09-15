@@ -733,6 +733,11 @@ namespace XianXia.Unity.Host
 
         void NotifyDestructibleDisengageForMove(EntityId id)
         {
+            if (bootstrap?.Session?.PlayerParty?.ActiveCharacterId == id)
+            {
+                bootstrap.GetComponent<HostControlCoreAssault>()?.Clear();
+                bootstrap.GetComponent<HostFactionFlagAssault>()?.Clear();
+            }
             var chop = bootstrap != null
                 ? bootstrap.GetComponent<HostDestructibleAssault>()
                 : GetComponent<HostDestructibleAssault>();

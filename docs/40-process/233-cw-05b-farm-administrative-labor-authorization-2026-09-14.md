@@ -1,6 +1,6 @@
 # CW-05B：Farm Administrative Labor Authorization
 
-> 状态：Implementation Complete. Producer acceptance intentionally folded into the CW-05 closing product slice.
+> 状态：Producer Accepted / Sealed（2026-09-15 正常玩法人工验收）
 > 日期：2026-09-14
 > 前置：CW-05A Implementation Complete / Acceptance Folded Into CW-05 Closing
 > 范围：Player-issued organized farm labor；不进入 NPC schedule、Settlement production 或 generic construction
@@ -59,3 +59,8 @@ Passive growth 仍只由 `SimulationLoop.TickOnce → OutdoorFarmGrowthService.A
 ## 制作人验收已合并
 
 统一执行 [CW-05 Closing 的五步正常玩法路线](234-cw-05c-constructible-farm-administrative-lifecycle-2026-09-14.md)。CW-05A、CW-05B 和 Closing Slice 均由制作人验收后才能一起封板。
+
+
+## 2026-09-15 制作人封板
+
+CW-05A、CW-05B 与 CW-05 Closing Slice 正式 **Producer Accepted / Sealed**。制作人已通过正常可建农田、管理接续、拆旗保留资产、重新取得管理及 Save/Load 验收。Subsequently Producer Accepted after normal gameplay validation. 历史记录中当时未运行 Unity 验证的事实保持不变。

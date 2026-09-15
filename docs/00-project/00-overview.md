@@ -1,15 +1,15 @@
 # 修仙游戏策划案总览
 
-> 状态：概念框架 v0.9｜Architecture Freeze v0.2＋2026-09-12 定向补丁｜当前阶段 CW-05 Closing | 最后更新：2026-09-14
+> 状态：概念框架 v0.9｜Architecture Freeze v0.2＋2026-09-12 定向补丁｜当前阶段 CW-08 / CW-09 SiteCore Warfare | 最后更新：2026-09-14
 > **本页只放最高层大纲。** 细节进专题页；**怎么读整套文档**见 [通读指南](04-reading-guide.md)。
 > 本地 Markdown 与飞书文档一一对应（真源在本地，飞书为阅读层）。
 
 ## 〇、当前项目阶段
 
-**Design: Confirmed｜Documentation: Updated｜Implementation: Continuous Outdoor 主体、统一 Squad／CharacterEncounter 正式主线已落地；CW-04 与 CW-04.5 Producer Accepted / Sealed；CW-05A/B 与 CW-05 Closing 均已实现，统一 Producer Acceptance Pending。**
+**Design: Confirmed｜Documentation: Updated｜Implementation: Continuous Outdoor 主体、统一 Squad／CharacterEncounter 正式主线已落地；CW-04 与 CW-04.5 Producer Accepted / Sealed；CW-05A/B 与 CW-05 Closing Producer Accepted / Sealed；CW-08 / CW-09 玩家 SiteCore Warfare Implementation Completed / Producer Acceptance Pending。**
 Continuous Outdoor、SiteCore、同源独立遭遇、人物／建筑冲突、控制继承和飞舟运输由 [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md)～[0034](../40-process/43-decisions/ADR-0034-conflict-control-succession-and-airship-role.md) 定向修订 Freeze v0.2。旧阶段人工验收继续有效，但不证明新目标已经实现或验收。
 当前文档落地与后续依赖见 [216](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md)。该记录不是代码开工授权。
-当前代码、Content、存档、兼容层与制作人反馈的统一状态见 [230](../40-process/230-recent-development-alignment-and-handoff-2026-09-14.md)；Faction 领土视觉 union 封板见 [231](../40-process/231-cw-04-5-faction-territory-visual-union-2026-09-14.md)；Outdoor 资产行政接续见 [232](../40-process/232-cw-05a-asset-administrative-context-outdoor-stateful-succession-2026-09-14.md)，农作授权见 [233](../40-process/233-cw-05b-farm-administrative-labor-authorization-2026-09-14.md)，当前可建造农田生命周期闭环见 [234](../40-process/234-cw-05c-constructible-farm-administrative-lifecycle-2026-09-14.md)。飞舟、建筑战争／Site takeover 等仍属 future，未冒称完成。
+当前代码、Content、存档、兼容层与制作人反馈的统一状态见 [230](../40-process/230-recent-development-alignment-and-handoff-2026-09-14.md)；Faction 领土视觉 union 封板见 [231](../40-process/231-cw-04-5-faction-territory-visual-union-2026-09-14.md)；Outdoor 资产行政接续见 [232](../40-process/232-cw-05a-asset-administrative-context-outdoor-stateful-succession-2026-09-14.md)，农作授权见 [233](../40-process/233-cw-05b-farm-administrative-labor-authorization-2026-09-14.md)，当前可建造农田生命周期闭环见 [234](../40-process/234-cw-05c-constructible-farm-administrative-lifecycle-2026-09-14.md)。当前玩家 SiteCore 战争与接管见 [235](../40-process/235-sitecore-warfare-worldsite-takeover-2026-09-15.md)，飞舟和 NPC 自动攻城仍延期。
 
 **建议先读：** [通读指南](04-reading-guide.md) → [33 定向补丁](../30-tech/33-architecture-core-rules-freeze-v0.2.md) → [ADR-0032～0034](../40-process/43-decisions/README.md) → [24 世界](../20-systems/24-world-and-settlements.md)／[23 战斗](../20-systems/23-combat.md)／[2K 控制](../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)。
 

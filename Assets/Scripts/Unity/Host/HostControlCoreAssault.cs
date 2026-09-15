@@ -3,6 +3,7 @@ using UnityEngine;
 using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Npc;
+using XianXia.Core.World.Strategic;
 using XianXia.Data.Content;
 
 namespace XianXia.Unity.Host
@@ -23,6 +24,8 @@ namespace XianXia.Unity.Host
 
         string _targetWorkAreaId = string.Empty;
         float _meleeCooldown;
+        bool _contested;
+        XianXia.Core.Simulation.SimulationWorld _world;
 
         public string TargetWorkAreaId => _targetWorkAreaId;
 
@@ -44,6 +47,7 @@ namespace XianXia.Unity.Host
         {
             _targetWorkAreaId = workAreaId ?? string.Empty;
             _meleeCooldown = 0f;
+            _world = bootstrap?.Session?.World;
         }
 
         public void Clear()
@@ -54,12 +58,20 @@ namespace XianXia.Unity.Host
 
         void Update()
         {
+            var objective = bootstrap?.Session?.World?.Strategic?.CharacterEncounter?.Objective;
+            if (string.IsNullOrEmpty(_targetWorkAreaId) && objective != null && !objective.Resolved &&
+                objective.Kind == SiteCoreObjectiveKind.FixedSiteCoreCapture &&
+                WorldSiteCoreWarfareService.TryGetFixedCore(bootstrap.Session.World, objective.SiteId, out var occupying) && occupying.CaptureAvailable)
+            { _targetWorkAreaId = occupying.WorkAreaId; _world = bootstrap.Session.World; }
             if (string.IsNullOrEmpty(_targetWorkAreaId) || bootstrap?.Session?.World == null)
                 return;
             if (bootstrap.Session.IsPaused)
                 return;
 
             var world = bootstrap.Session.World;
+            if (!ReferenceEquals(_world, world)) { Clear(); return; }
+            var encounter = world.Strategic.CharacterEncounter;
+            if (encounter != null && encounter.Phase == CharacterEncounterPhase.Committed) { Clear(); return; }
             if (!world.ControlCores.TryGet(_targetWorkAreaId, out var core))
             {
                 Clear();
@@ -72,10 +84,12 @@ namespace XianXia.Unity.Host
                 MapLayoutPick.TryGet(bootstrap.Session, out layout);
 
             CollectAssaultPresentationPoints();
+            if (!core.CaptureAvailable && encounter != null && encounter.Find(bootstrap.Session.PlayerParty.ActiveCharacterId.Value)?.TargetId != ulong.MaxValue)
+            { Clear(); return; }
             var near = HostControlCoreQuery.IsAnyPointNear(
                 world, layout, bootstrap.ContinuousOutdoorSurfaceRuntime, core, _partyPoints);
 
-            if (!near)
+            if (!near && !core.CaptureAvailable)
             {
                 world.ControlCores.ResetOccupyProgress(_targetWorkAreaId);
                 return;
@@ -84,10 +98,13 @@ namespace XianXia.Unity.Host
             var dt = bootstrap.PresentationDeltaTime;
             if (core.CurrentDurability > 0)
             {
-                _meleeCooldown -= dt;
+                var combatActor = encounter?.Find(bootstrap.Session.PlayerParty.ActiveCharacterId.Value);
+                if (combatActor != null) _meleeCooldown = combatActor.Cooldown;
+                else _meleeCooldown -= dt;
                 if (_meleeCooldown <= 0f)
                 {
                     _meleeCooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
+                    if (combatActor != null) combatActor.Cooldown = _meleeCooldown;
                     var attacker = ResolveAttacker();
                     if (attacker.IsNone)
                         return;
@@ -100,7 +117,7 @@ namespace XianXia.Unity.Host
                         PlayStrikeAtCore(attacker, layout, after);
                         Toast(attacker, "-" + dmg, new Color(1f, 0.45f, 0.3f));
                         if (after.CaptureAvailable)
-                            Toast(attacker, "破门·站立占领", new Color(0.55f, 1f, 0.45f));
+                            Toast(attacker, "核心已攻破 · 进入范围持续占领", new Color(0.55f, 1f, 0.45f));
                     }
                     else if (hit.IsFailure)
                     {
@@ -114,7 +131,19 @@ namespace XianXia.Unity.Host
                 return;
             }
 
-            ControlCoreService.TickOccupy(world, _targetWorkAreaId, dt, true);
+            if (encounter != null) bootstrap.ContinuousOutdoorSurfaceRuntime.CaptureIndependentField();
+            else bootstrap.ContinuousOutdoorSurfaceRuntime.CaptureCurrentPersonalPlacements();
+            HostControlCoreQuery.TryGetFootprint(world, layout, bootstrap.ContinuousOutdoorSurfaceRuntime, core,
+                out var minX, out var maxX, out var minY, out var maxY, out _, out _);
+            bool InOccupyArea(float x, float y)
+            {
+                bootstrap.ContinuousOutdoorSurfaceRuntime.Mapper.WorldToPresentation(x, y, out var px, out var py);
+                return px >= minX - HostControlCoreQuery.MeleeMargin && px <= maxX + HostControlCoreQuery.MeleeMargin &&
+                    py >= minY - HostControlCoreQuery.MeleeMargin && py <= maxY + HostControlCoreQuery.MeleeMargin;
+            }
+            WorldSiteCoreWarfareService.TickOccupation(world, _targetWorkAreaId, dt, out var contested, InOccupyArea);
+            if (contested && !_contested) Toast(bootstrap.Session.PlayerParty.ActiveCharacterId, "占领被守军阻断", new Color(1f, .6f, .3f));
+            _contested = contested;
             if (world.ControlCores.TryGet(_targetWorkAreaId, out core) && !core.CaptureAvailable && core.CurrentDurability > 0)
             {
                 if (_actorScratch.Count > 0)
@@ -185,6 +214,7 @@ namespace XianXia.Unity.Host
 
         void AddActorPoint(EntityViewSpawner spawner, EntityId id)
         {
+            if (!CharacterEncounterService.IsLiving(bootstrap.Session.World, id.Value)) return;
             if (id.IsNone || !spawner.Registry.TryGet(id, out var view) || view == null)
                 return;
             var p = HostPresentationSpace.ToPresentation(view.transform.position);

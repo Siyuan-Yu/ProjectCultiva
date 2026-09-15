@@ -31,7 +31,7 @@
 
 | 目的 | 读什么 |
 |------|--------|
-| **当前阶段与下一阶段** | [234 CW-05 Closing](../40-process/234-cw-05c-constructible-farm-administrative-lifecycle-2026-09-14.md) 五步正常玩法验收；CW-05A/B/Closing 均已实现待验收，后续经济迁移未开始 |
+| **当前阶段与下一阶段** | [234 CW-05 Closing](../40-process/234-cw-05c-constructible-farm-administrative-lifecycle-2026-09-14.md) 已封板；[235 SiteCore Warfare](../40-process/235-sitecore-warfare-worldsite-takeover-2026-09-15.md) 为当前 CW-08 / CW-09 实施与验收记录，后续经济迁移未开始 |
 | **CW-04 已封板范围** | [223](../40-process/223-cw-04-territory-claim-administrative-control-2026-09-14.md)～[229](../40-process/229-cw-04-flag-placement-player-camp-retirement-2026-09-14.md)（Producer Accepted / Sealed） |
 | **本轮最终规则、状态、替代矩阵与迁移依赖** | [216 文档对齐](../40-process/216-continuous-world-final-design-documentation-alignment-2026-09-12.md) |
 | **SiteCore／实际行政与建设范围** | [24](../20-systems/24-world-and-settlements.md) + [26](../20-systems/26-territory-management.md) + [ADR-0032](../40-process/43-decisions/ADR-0032-sitecore-administrative-and-construction-range.md) |

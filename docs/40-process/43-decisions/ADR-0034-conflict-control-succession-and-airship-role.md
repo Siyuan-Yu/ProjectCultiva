@@ -31,3 +31,18 @@
 
 全员弥留的既有安全出口、控制顺序持久性、最强角色稳定平局、舟中主控与旧 Army 任务兼容、无政治势力剧情的有效 Owner／外交主体，都须在实现前定向核查。设计已经确认，运行时迁移和制作人验收尚未完成。
 
+
+
+## 2026-09-15 CW-08 / CW-09：玩家 SiteCore 战争
+
+制作人授权规则见 [235](../235-sitecore-warfare-worldsite-takeover-2026-09-15.md)。固定核心由 `CoreIsRemovable=false` 判定，攻破后建筑仍存在，在原建筑交互范围持续占领；己方存活人物在场且没有存活敌方参战者争夺才计时，离开或争夺归零。占领仅经 `CaptureObjectiveService` → `WorldSiteTerritoryTransferService` 改同一 Site 的 Owner 并恢复核心满耐久。ClaimId、AcquiredOrder、农田 identity/crop、人物 faction/home/squad 均不改。
+
+`CoreIsRemovable=true` 的势力旗被击毁即移除物理旗、令原 Site inactive；保留原 Owner 与 Claim 历史，不占领、不自动变成己方旗。攻方通过正常建造建立新旗、新 Site 和新 Claim。资产继续存在，行政管理者由原 CW-05 查询动态接续。
+
+正常玩家入口统一为 SiteCore Warfare → real Character/Squad → CharacterEncounter，退出两条旧 Siege/BattleOffer 编排。按精确 Surface/WorldPosition、目标 Site 等级范围和 War side 选守军，最近者优先、EntityId 升序打破平局。战中目标仍限定同一 frozen range，最多一个未完成 Site 目标；新守军追加原 roster，不回血、不重置冷却或候选。
+
+目标捕获或摧毁完成可 ReadyToEnd；击倒敌人也可 ReadyToEnd，但不自动占地。ReadyToEnd 仍可攻击与占领当前目标。仅玩家发起 SiteCore 战争属于本轮；NPC 自动攻城、普通建筑战争、产权及居民政治后果延期。
+
+### Encounter Snapshot 定向扩展
+
+沿用 WorldSnapshot v6；CharacterEncounter 子格式从 1 升为 2，保存 SiteCoreEncounterObjective 与 ObjectiveDefenderSquads（同场目标增援事实）。只保存目标身份/类型、攻守势力与完成事实，不复制 HP/Owner/Claim。明确旧子格式 1 可迁移为空目标；格式 2 缺字段或损坏必须失败。实体恢复阶段验证结构，正式 Site/Claim 政治 overlay 完成后验证目标的 Site/Asset/种类、冻结范围与结果，防止普通遭遇成功而战略目标丢失。

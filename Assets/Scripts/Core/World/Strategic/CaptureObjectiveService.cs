@@ -15,18 +15,13 @@ namespace XianXia.Core.World.Strategic
             if (world?.Strategic?.CaptureObjectives == null || core == null)
                 return;
 
-            // WorkArea 注册可能早于 WorldRegion；此时允许暂时无 Site，后续重绑与行动入口会懒解析。
-            if (string.IsNullOrEmpty(siteId))
-                TryResolveControlCoreSite(world, core, out siteId);
-
             var objectiveId = "capture:" + core.WorkAreaId;
             var hasRestoredObjective = world.Strategic.CaptureObjectives.TryGet(objectiveId, out var existingObjective) &&
                                        existingObjective != null;
             if (hasRestoredObjective)
             {
-                existingObjective.SiteId = string.IsNullOrEmpty(siteId)
-                    ? existingObjective.SiteId ?? string.Empty
-                    : siteId;
+                if (!string.IsNullOrEmpty(siteId))
+                    world.Strategic.CaptureObjectives.BindSite(objectiveId, siteId);
                 // 旧 Completed=true 表示一次性模型曾占领过；Owner 只以 Strategic Site Snapshot 为准。
                 // 迁移后立即成为完好的可重复争夺建筑，且本次运行不再传播 Completed。
                 if (existingObjective.Completed)
@@ -78,7 +73,9 @@ namespace XianXia.Core.World.Strategic
             if (!world.ControlCores.TryGet(workAreaId, out var core))
                 return Result.Failure(ErrorCode.NotFound, "Control core not found.", workAreaId);
 
-            var siteOwner = ResolveSiteOwnerForCore(world, core);
+            if (!TryGetBoundSiteForControlCore(world, workAreaId, out var boundSite))
+                return Result.Failure(ErrorCode.NotFound, "Control core canonical WorldSite binding missing.", workAreaId);
+            var siteOwner = boundSite.OwnerFactionId ?? string.Empty;
             if (!string.IsNullOrEmpty(siteOwner) &&
                 string.Equals(attackerFactionId, siteOwner, StringComparison.Ordinal))
                 return Result.Failure(ErrorCode.InvalidOperation, "Already controlled by attacker faction.");
@@ -107,11 +104,14 @@ namespace XianXia.Core.World.Strategic
                 objective == null)
                 return Result.Failure(ErrorCode.NotFound, "Capture objective missing.", workAreaId);
 
-            if (!TryResolveControlCoreSite(world, core, out var resolvedSiteId))
-                return Result.Failure(ErrorCode.NotFound, "Control core WorldSite unresolved.", workAreaId);
-            objective.SiteId = resolvedSiteId;
+            if (!TryGetBoundSiteForControlCore(world, workAreaId, out var targetSite))
+                return Result.Failure(ErrorCode.NotFound, "Control core canonical WorldSite binding missing.", workAreaId);
+            var resolvedSiteId = targetSite.SiteId;
 
-            var siteOwner = ResolveSiteOwnerForCore(world, core);
+            if (targetSite.CoreIsRemovable)
+                return Result.Failure(ErrorCode.InvalidOperation, "可拆核心只能摧毁，不能占领。");
+
+            var siteOwner = targetSite.OwnerFactionId ?? string.Empty;
             if (!string.IsNullOrEmpty(siteOwner) &&
                 string.Equals(attackerFactionId, siteOwner, StringComparison.Ordinal))
                 return Result.Failure(ErrorCode.InvalidOperation, "Already controlled by attacker faction.");
@@ -130,7 +130,7 @@ namespace XianXia.Core.World.Strategic
             // Transfer 是唯一政治写入；它失败前绝不改变 Core／Objective 的物理状态。
             var oldOwnerFactionId = siteOwner;
             var transfer = WorldSiteTerritoryTransferService.Transfer(
-                world, objective.SiteId, attackerFactionId);
+                world, resolvedSiteId, attackerFactionId);
             if (transfer.IsFailure)
                 return transfer;
 
@@ -146,9 +146,10 @@ namespace XianXia.Core.World.Strategic
             SettlementAuthoritySync.Rebuild(world);
             world.Flags.Clear("control_core_capture_available");
 
-            world.Flags.Set("site_captured:" + objective.SiteId);
+            world.Flags.Set("site_captured:" + resolvedSiteId);
             ScenarioProgressionHooks.NotifyWorldSiteCaptured(
-                world, objective.SiteId, oldOwnerFactionId, attackerFactionId, workAreaId);
+                world, resolvedSiteId, oldOwnerFactionId, attackerFactionId, workAreaId);
+            CharacterEncounterService.NotifyStrategicObjectiveResolved(world, targetSite.SiteId, targetSite.CoreAssetId);
 
             return Result.Success();
         }
@@ -169,11 +170,9 @@ namespace XianXia.Core.World.Strategic
         }
 
         /// <summary>
-        /// 将 ControlCore 的工作地点解析回正式 WorldSite。
-        /// 优先保留已经验证存在的 Objective SiteId；否则经 WorldRegion Location 的 LocalMapId 匹配 Site。
-        /// 成功时回填 CaptureObjective，避免 LocalMap session 壳丢失政治目标身份。
+        /// 仅供旧存档／旧地图迁移使用的 LocalMap 猜测。正常运行时不得调用。
         /// </summary>
-        public static bool TryResolveControlCoreSite(
+        public static bool TryResolveControlCoreSiteLegacyCompatibilityFallback(
             SimulationWorld world,
             ControlCoreState core,
             out string siteId)
@@ -181,17 +180,6 @@ namespace XianXia.Core.World.Strategic
             siteId = string.Empty;
             if (world?.Strategic?.Sites == null || core == null)
                 return false;
-
-            if (world.Strategic.CaptureObjectives != null &&
-                world.Strategic.CaptureObjectives.TryGet("capture:" + core.WorkAreaId, out var objective) &&
-                objective != null &&
-                !string.IsNullOrEmpty(objective.SiteId) &&
-                world.Strategic.Sites.TryGet(objective.SiteId, out var objectiveSite) &&
-                objectiveSite != null)
-            {
-                siteId = objectiveSite.SiteId;
-                return true;
-            }
 
             if (string.IsNullOrEmpty(core.LocationId) ||
                 world.WorldRegion == null ||
@@ -213,35 +201,87 @@ namespace XianXia.Core.World.Strategic
                     continue;
 
                 siteId = site.SiteId;
-                if (world.Strategic.CaptureObjectives.TryGet("capture:" + core.WorkAreaId, out objective) &&
-                    objective != null)
-                    objective.SiteId = siteId;
                 return true;
             }
 
             return false;
         }
 
-        /// <summary>WorldRegion 切换完成后重绑已注册 ControlCore；未命中的核心继续由行动入口懒解析。</summary>
+        public static Result ValidateControlCoreWorldSiteBinding(
+            SimulationWorld world, string workAreaId, string siteId)
+        {
+            if (world?.Strategic?.CaptureObjectives == null || string.IsNullOrWhiteSpace(workAreaId) ||
+                string.IsNullOrWhiteSpace(siteId))
+                return Result.Failure(ErrorCode.InvalidArgument, "ControlCore binding requires WorkAreaId and SiteId.");
+            if (!world.ControlCores.TryGet(workAreaId, out var core) || core == null)
+                return Result.Failure(ErrorCode.NotFound, "ControlCore binding target is missing.", workAreaId);
+            if (!world.Strategic.Sites.TryGet(siteId, out var site) || site == null)
+                return Result.Failure(ErrorCode.NotFound, "ControlCore binding WorldSite is missing.", siteId);
+            if (site.CoreIsRemovable)
+                return Result.Failure(ErrorCode.InvalidOperation, "Removable WorldSite cannot bind a fixed ControlCore.", siteId);
+            var objectiveId = "capture:" + workAreaId;
+            if (!world.Strategic.CaptureObjectives.TryGet(objectiveId, out var objective) || objective == null ||
+                !string.Equals(objective.WorkAreaId, workAreaId, StringComparison.Ordinal))
+                return Result.Failure(ErrorCode.NotFound, "ControlCore capture objective is missing.", workAreaId);
+            if (!string.IsNullOrEmpty(objective.SiteId) &&
+                !string.Equals(objective.SiteId, siteId, StringComparison.Ordinal))
+                return Result.Failure(ErrorCode.InvalidOperation, "ControlCore is already bound to another WorldSite.",
+                    workAreaId + " -> " + objective.SiteId);
+            var ids = world.Strategic.CaptureObjectives.GetObjectiveIdsForSite(siteId);
+            for (var i = 0; i < ids.Count; i++)
+                if (!string.Equals(ids[i], objectiveId, StringComparison.Ordinal))
+                    return Result.Failure(ErrorCode.InvalidOperation, "Fixed WorldSite already has another ControlCore.",
+                        siteId + " -> " + ids[i]);
+            return Result.Success();
+        }
+
+        public static Result BindControlCoreToWorldSite(
+            SimulationWorld world, string workAreaId, string siteId)
+        {
+            var validation = ValidateControlCoreWorldSiteBinding(world, workAreaId, siteId);
+            if (validation.IsFailure) return validation;
+            if (!world.Strategic.CaptureObjectives.BindSite("capture:" + workAreaId, siteId))
+                return Result.Failure(ErrorCode.InvalidOperation, "ControlCore binding transaction failed.", workAreaId);
+            SettlementAuthoritySync.Rebuild(world);
+            return Result.Success();
+        }
+
+        public static bool TryGetBoundSiteForControlCore(
+            SimulationWorld world, string workAreaId, out WorldSite site)
+        {
+            site = null;
+            if (world?.Strategic?.CaptureObjectives == null || string.IsNullOrEmpty(workAreaId) ||
+                !world.ControlCores.TryGet(workAreaId, out _) ||
+                !world.Strategic.CaptureObjectives.TryGet("capture:" + workAreaId, out var objective) || objective == null ||
+                !string.Equals(objective.WorkAreaId, workAreaId, StringComparison.Ordinal) ||
+                string.IsNullOrEmpty(objective.SiteId) ||
+                !world.Strategic.Sites.TryGet(objective.SiteId, out site) || site == null || site.CoreIsRemovable)
+            { site = null; return false; }
+            return true;
+        }
+
+        public static bool TryGetBoundControlCoreForSite(
+            SimulationWorld world, string siteId, out ControlCoreState core)
+        {
+            core = null;
+            if (world?.Strategic?.CaptureObjectives == null || string.IsNullOrEmpty(siteId) ||
+                !world.Strategic.Sites.TryGet(siteId, out var site) || site == null || site.CoreIsRemovable)
+                return false;
+            var ids = world.Strategic.CaptureObjectives.GetObjectiveIdsForSite(siteId);
+            if (ids.Count != 1 || !world.Strategic.CaptureObjectives.TryGet(ids[0], out var objective) ||
+                objective == null || !string.Equals(objective.SiteId, siteId, StringComparison.Ordinal) ||
+                !world.ControlCores.TryGet(objective.WorkAreaId, out core) || core == null)
+            { core = null; return false; }
+            return true;
+        }
+
+        /// <summary>静态壳或政治 overlay 后刷新派生权限；不再从当前 WorldRegion 猜 Site。</summary>
         public static void RebindControlCoreSites(SimulationWorld world)
         {
             if (world?.ControlCores == null)
                 return;
 
-            foreach (var pair in world.ControlCores.All)
-                TryResolveControlCoreSite(world, pair.Value, out _);
             SettlementAuthoritySync.Rebuild(world);
-        }
-
-        static string ResolveSiteOwnerForCore(SimulationWorld world, ControlCoreState core)
-        {
-            if (world == null || core == null)
-                return string.Empty;
-
-            if (TryResolveControlCoreSite(world, core, out var siteId))
-                return WorldSiteOwnershipService.GetOwner(world, siteId);
-
-            return string.Empty;
         }
 
         public static bool TryResolveCurrentOwner(
@@ -251,8 +291,11 @@ namespace XianXia.Core.World.Strategic
             out string ownerFactionId)
         {
             ownerFactionId = string.Empty;
-            if (!TryResolveControlCoreSite(world, core, out siteId))
+            if (!TryGetBoundSiteForControlCore(world, core.WorkAreaId, out var site))
+            { siteId = string.Empty;
                 return false;
+            }
+            siteId = site.SiteId;
             ownerFactionId = WorldSiteOwnershipService.GetOwner(world, siteId);
             return true;
         }

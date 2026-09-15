@@ -1,6 +1,6 @@
 # CW-05 Closing：可建造农田与行政资产生命周期
 
-> 状态：Implementation Completed / Producer Acceptance Pending
+> 状态：Producer Accepted / Sealed（2026-09-15 正常玩法人工验收）
 > 日期：2026-09-14
 > 授权：制作人 CW-05 Closing Slice，基于当前未提交工作树继续；禁止自动提交。
 
@@ -60,3 +60,8 @@ OpeningInventoryBootstrap 仅由 NewGame ContentRuntimeBootstrap.Apply 接收已
 
 No commit created.
 Changes remain uncommitted for producer review.
+
+
+## 2026-09-15 制作人封板
+
+CW-05A、CW-05B 与 CW-05 Closing Slice 正式 **Producer Accepted / Sealed**。制作人已通过正常可建农田、管理接续、拆旗保留资产、重新取得管理及 Save/Load 验收。Subsequently Producer Accepted after normal gameplay validation. 历史记录中当时未运行 Unity 验证的事实保持不变。

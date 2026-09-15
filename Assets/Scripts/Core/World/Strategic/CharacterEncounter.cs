@@ -44,7 +44,7 @@ namespace XianXia.Core.World.Strategic
 
     public sealed class CharacterEncounterState
     {
-        public const int Format = 1;
+        public const int Format = 2;
         public int Version = Format;
         public string EncounterId = "";
         public string SourceSurfaceId = "";
@@ -53,6 +53,8 @@ namespace XianXia.Core.World.Strategic
         public float ElapsedSeconds, DecayAccumulator;
         public CharacterEncounterPhase Phase;
         public bool PlayerWon;
+        public SiteCoreEncounterObjective Objective;
+        public readonly List<string> ObjectiveDefenderSquads = new List<string>();
         public int RosterVersion = 1;
         public bool ContinuationUsed;
         public float DecisionAt, ArrivalDelay;
@@ -121,6 +123,23 @@ namespace XianXia.Core.World.Strategic
 
         public static Result Prepare(SimulationWorld world, EntityId attacker, EntityId target,
             string surfaceId, out CharacterEncounterState prepared)
+            => PrepareInternal(world, attacker, target, surfaceId, null, out prepared);
+
+        public static Result PrepareForWorldSiteAssault(SimulationWorld world, EntityId attacker, EntityId defender,
+            string targetSiteId, out CharacterEncounterState prepared)
+        {
+            prepared = null;
+            var resolved = WorldSiteCoreWarfareService.Resolve(world, targetSiteId, out var target);
+            if (resolved.IsFailure) return resolved;
+            var valid = WorldSiteCoreWarfareService.Validate(world, attacker, target);
+            if (valid.IsFailure) return valid;
+            var result = PrepareInternal(world, attacker, defender, target.SurfaceId, targetSiteId, out prepared);
+            if (result.IsSuccess) prepared.Objective = WorldSiteCoreWarfareService.DescribeObjective(world, target);
+            return result;
+        }
+
+        static Result PrepareInternal(SimulationWorld world, EntityId attacker, EntityId target,
+            string surfaceId, string explicitSiteId, out CharacterEncounterState prepared)
         {
             prepared = null;
             if (world?.Strategic?.SpatialRules == null || world.Strategic.CharacterEncounter != null ||
@@ -145,8 +164,10 @@ namespace XianXia.Core.World.Strategic
                 Height = wildernessRange.HeightWorld,
                 Phase = CharacterEncounterPhase.Preparing
             };
-            if (WorldSiteAdministrativeControlResolver.TryResolve(
-                    world, surfaceId, contact.X, contact.Y, out var site, out _))
+            WorldSite site = null;
+            if (explicitSiteId != null) world.Strategic.Sites.TryGet(explicitSiteId, out site);
+            else WorldSiteAdministrativeControlResolver.TryResolve(world, surfaceId, contact.X, contact.Y, out site, out _);
+            if (site != null)
             {
                 state.SourceSiteId = site.SiteId;
                 state.CenterX = site.CoreWorldX; state.CenterY = site.CoreWorldY;
@@ -269,11 +290,99 @@ namespace XianXia.Core.World.Strategic
                             actual.OriginX != m.OriginX || actual.OriginY != m.OriginY || actual.JoinedAt <= 0)
                             return Fail("Joined candidate/roster mismatch.");
                     }
-                    else if (actual != null) return Fail("Unjoined candidate in actual roster.");
+                    else if (actual != null && !state.ObjectiveDefenderSquads.Contains(c.SquadId)) return Fail("Unjoined candidate in actual roster.");
                 }
             }
-            if (state.RosterVersion != 1 + joined) return Fail("Encounter roster version mismatch.");
+            if (state.RosterVersion != 1 + joined + state.ObjectiveDefenderSquads.Count) return Fail("Encounter roster version mismatch.");
+            var objectiveSquads = new HashSet<string>();
+            if (state.Objective == null && state.ObjectiveDefenderSquads.Count > 0) return Fail("Objective defender history lacks objective.");
+            foreach (var squad in state.ObjectiveDefenderSquads)
+                if (string.IsNullOrEmpty(squad) || !objectiveSquads.Add(squad) || !state.Participants.Exists(p => p.SquadId == squad && p.Enemy))
+                    return Fail("Invalid objective defender squad.");
+            if (state.Objective != null)
+            {
+                var o = state.Objective;
+                if ((o.Kind != SiteCoreObjectiveKind.FixedSiteCoreCapture && o.Kind != SiteCoreObjectiveKind.RemovableFactionFlagDestruction) ||
+                    string.IsNullOrEmpty(o.AssetId) || string.IsNullOrEmpty(o.AttackerFactionId) || string.IsNullOrEmpty(o.DefenderFactionId) ||
+                    o.AttackerFactionId == o.DefenderFactionId || string.IsNullOrWhiteSpace(o.SiteId) ||
+                    (o.Resolved && state.Phase != CharacterEncounterPhase.ReadyToEnd)) return Fail("Invalid SiteCore objective snapshot.");
+            }
             return friendly > 0 && enemy > 0 ? Result.Success() : Fail("Encounter lacks two sides.");
+        }
+
+        // Political Sites are restored after the static Content shell, not during entity RestoreJson.
+        public static Result ValidateObjectiveWorldState(SimulationWorld world)
+        {
+            var state = world.Strategic.CharacterEncounter;
+            var o = state?.Objective;
+            if (o == null) return Result.Success();
+            if (!world.Strategic.Sites.TryGet(o.SiteId, out var site) || site.CoreAssetId != o.AssetId ||
+                site.CoreIsRemovable != (o.Kind == SiteCoreObjectiveKind.RemovableFactionFlagDestruction) ||
+                site.CoreSurfaceId != state.SourceSurfaceId || !state.Contains(site.CoreWorldX, site.CoreWorldY) ||
+                (!o.Resolved && (!site.IsCoreActive || site.OwnerFactionId != o.DefenderFactionId)) ||
+                (o.Resolved && (site.CoreIsRemovable ? site.IsCoreActive || site.OwnerFactionId != o.DefenderFactionId : site.OwnerFactionId != o.AttackerFactionId)))
+                return Fail("Invalid SiteCore objective world link.");
+            return Result.Success();
+        }
+
+        public static Result TryJoinObjectiveDefenderSquad(SimulationWorld world, EntityId defender,
+            Func<EncounterCandidate, bool> preparePlacement = null)
+        {
+            var state = world?.Strategic?.CharacterEncounter;
+            if (state == null || (state.Phase != CharacterEncounterPhase.Active && state.Phase != CharacterEncounterPhase.ReadyToEnd) ||
+                state.Objective == null || state.Objective.Resolved ||
+                !world.Strategic.Squads.TryGetForCharacter(defender, out var squad)) return Fail("Objective defender cannot join.");
+            if (!world.Entities.TryGet(defender, out var defendingEntity) || !IsLiving(world, defender.Value) ||
+                !defendingEntity.TryGet<XianXia.Core.Social.FactionMembershipComponent>(out var membership) || !membership.IsAffiliated ||
+                !WorldSiteDefenseCharacterQuery.IsDefenderSide(world, membership.FactionId, state.Objective.AttackerFactionId, state.Objective.DefenderFactionId))
+                return Fail("人物不属于目标战争防守侧。");
+            if (state.Participants.Exists(p => p.SquadId == squad.SquadId))
+                return state.Participants.Exists(p => p.SquadId == squad.SquadId && !p.Enemy) ? Fail("该小队已经在本场友方参战。") : Result.Success();
+            var joining = new EncounterCandidate { SquadId = squad.SquadId, Enemy = true };
+            foreach (var raw in squad.MemberCharacterIds)
+            {
+                var id = new EntityId(raw);
+                if (!IsLiving(world, raw)) continue;
+                if (state.Find(raw) != null || world.Strategic.Participants.FindByEntity(id) != null ||
+                    !CharacterPersonalSpaceQuery.TryResolveContinuous(world, id, state.SourceSurfaceId, out var point, out _) ||
+                    !state.Contains(point.X, point.Y)) return Fail("守军小队成员不在当前战场范围内。");
+                world.WorldPresence.TryGet(id, out var presence);
+                joining.Members.Add(new EncounterCharacter { CharacterId = raw, SquadId = squad.SquadId, Enemy = true,
+                    SourceMode = (int)presence.Mode, SourceSiteId = presence.SiteId, OriginX = point.X, OriginY = point.Y,
+                    TacticalX = point.X, TacticalY = point.Y, JoinedAt = state.ElapsedSeconds });
+            }
+            if (joining.Members.Count == 0 || (preparePlacement != null && !preparePlacement(joining))) return Fail("守军无法进入当前战场。");
+            foreach (var member in joining.Members)
+            {
+                world.Entities.TryGet(new EntityId(member.CharacterId), out var entity);
+                CombatDamageRules.EnsureVitals(entity);
+                ManualBattleReportBuilder.CaptureState(world, new EntityId(member.CharacterId), out member.EntryCondition,
+                    out member.EntryHpAvailable, out member.EntryHp, out member.EntryMaxHp);
+            }
+            state.Participants.AddRange(joining.Members);
+            state.ObjectiveDefenderSquads.Add(squad.SquadId);
+            state.RosterVersion++;
+            state.Phase = CharacterEncounterPhase.Active;
+            BindRuntime(world);
+            return Result.Success();
+        }
+
+        public static void NotifyStrategicObjectiveResolved(SimulationWorld world, string siteId, string assetId)
+        {
+            var state = world?.Strategic?.CharacterEncounter;
+            if (state?.Objective == null || state.Objective.SiteId != siteId || state.Objective.AssetId != assetId ||
+                (state.Phase != CharacterEncounterPhase.Active && state.Phase != CharacterEncounterPhase.ReadyToEnd)) return;
+            if (!world.Strategic.Sites.TryGet(siteId, out var site) || site.CoreAssetId != assetId) return;
+            if (site.CoreIsRemovable)
+            {
+                if (site.IsCoreActive || world.Strategic.FactionFlags.Flags.ContainsKey(assetId) ||
+                    state.Objective.Kind != SiteCoreObjectiveKind.RemovableFactionFlagDestruction) return;
+            }
+            else if (site.OwnerFactionId != state.Objective.AttackerFactionId || state.Objective.Kind != SiteCoreObjectiveKind.FixedSiteCoreCapture) return;
+            state.Objective.Resolved = true;
+            state.PlayerWon = true;
+            state.Phase = CharacterEncounterPhase.ReadyToEnd;
+            world.Strategic.ClockFreeze.Reason = StrategicClockFreezeReason.PostBattle;
         }
 
         public static void BindRuntime(SimulationWorld world)
@@ -347,7 +456,8 @@ namespace XianXia.Core.World.Strategic
                 if (IsLiving(world, p.CharacterId)) { if (p.Enemy) enemy = true; else friendly = true; }
             if (!friendly || !enemy)
             {
-                var pendingArrival = state.Candidates.Exists(c => c.Phase == EncounterCandidatePhase.Announced);
+                var pendingArrival = state.Candidates.Exists(c => c.Phase == EncounterCandidatePhase.Announced &&
+                    !state.ObjectiveDefenderSquads.Contains(c.SquadId));
                 if (pendingArrival)
                 {
                     // One bounded continuation; announced arrivals all expire at their saved deadline.
@@ -482,7 +592,7 @@ namespace XianXia.Core.World.Strategic
                 var friendly = 0; var enemy = 0;
                 foreach (var initial in state.Participants)
                 {
-                    if (initial.JoinedAt > 0f) continue; // No recursive relationship cascade.
+                    if (initial.JoinedAt > 0f || state.ObjectiveDefenderSquads.Contains(initial.SquadId)) continue; // No recursive relationship cascade.
                     var affinity = world.Relationships.Score(new EntityId(member.CharacterId), new EntityId(initial.CharacterId));
                     if (initial.Enemy) enemy = Math.Max(enemy, affinity); else friendly = Math.Max(friendly, affinity);
                 }
@@ -503,6 +613,7 @@ namespace XianXia.Core.World.Strategic
         {
             foreach (var candidate in state.Candidates)
             {
+                if (state.ObjectiveDefenderSquads.Contains(candidate.SquadId)) continue;
                 if (candidate.Phase == EncounterCandidatePhase.Undecided && state.ElapsedSeconds >= state.DecisionAt)
                     DecideCandidate(world, candidate);
                 if (candidate.Phase != EncounterCandidatePhase.Announced || state.ElapsedSeconds < candidate.ArriveAt) continue;

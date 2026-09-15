@@ -1,11 +1,11 @@
 # CW-05A：Asset Administrative Context + Outdoor Stateful Asset Succession
 
-> 状态：Implementation Complete. Producer acceptance intentionally folded into the CW-05 closing product slice.
+> 状态：Producer Accepted / Sealed（2026-09-15 正常玩法人工验收）
 > 日期：2026-09-14
 > 前置：CW-04／CW-04.5 Producer Accepted / Sealed
 > 范围：Farm Plot administrative manager、Outdoor stateful object 存续与 farm WorldTick；不进入 CW-05B
 
-> 验收处理：底层 Probe 路线已退役；当前 authority 由 [CW-05 Closing 正常建田闭环](234-cw-05c-constructible-farm-administrative-lifecycle-2026-09-14.md)验收，未标记 Producer Accepted。
+> 验收处理：底层 Probe 路线已退役；当前 authority 由 [CW-05 Closing 正常建田闭环](234-cw-05c-constructible-farm-administrative-lifecycle-2026-09-14.md)完成正常玩法验收并封板。
 
 ## 目标与 authority
 
@@ -74,3 +74,8 @@ CW-05A 阶段专用 ID 输入、最近资产查询、复制管理诊断、Growin
 ## 后续延期
 
 玩家组织农作授权已由 CW-05B 实现，可建造农田与其建设权限已由 Closing 实现。NPC schedule economy、SettlementProduction、public stock routing、普通房屋/工坊与产权仍归后续 Economy / Automated Settlement Production migration。
+
+
+## 2026-09-15 制作人封板
+
+CW-05A、CW-05B 与 CW-05 Closing Slice 正式 **Producer Accepted / Sealed**。制作人已通过正常可建农田、管理接续、拆旗保留资产、重新取得管理及 Save/Load 验收。Subsequently Producer Accepted after normal gameplay validation. 历史记录中当时未运行 Unity 验证的事实保持不变。

@@ -3369,6 +3369,8 @@
         },
         {
           "flagId": "base:flag_q1_r10",
+          "siteDisplayName": "荒村西北前哨",
+          "siteType": "Outpost",
           "factionId": "base:sect_huangcun_labor",
           "anchorQ": 1,
           "anchorR": 10,

@@ -1,16 +1,16 @@
 # 路线图
 
 
-> **当前唯一主线（2026-09-14）：** CW-U0～U4、CW-04、CW-04.5 已封板；CW-05A/B 已实现，验收统一并入 [CW-05 Closing](234-cw-05c-constructible-farm-administrative-lifecycle-2026-09-14.md)。
+> **当前唯一主线（2026-09-15）：** CW-U0～U4、CW-04、CW-04.5、CW-05A/B/Closing 均 Producer Accepted / Sealed；当前实施 [CW-08 / CW-09 SiteCore Warfare & WorldSite Takeover](235-sitecore-warfare-worldsite-takeover-2026-09-15.md)。
 
-> 状态：CW-05 Closing Implementation Completed / Producer Acceptance Pending；CW-05A/B acceptance folded into closing product slice。
+> 状态：CW-08 / CW-09 Implementation Completed / Producer Acceptance Pending。保持既有编号，不重排 CW-06 / CW-07。
 
 ## 当前阶段说明
 
 - **当前产品：** 建筑页农田5木、reference NewGame20木、全 footprint Actual Control 授权、独立运行时物理资产、Streaming、存读档与正常农作闭环已实现。拆旗保留农田/自然生长，新己方旗接管后恢复组织劳动。
-- **下一步：** 制作人按 [234](234-cw-05c-constructible-farm-administrative-lifecycle-2026-09-14.md) 五步正常玩法统一验收；通过后才能将 CW-05A/B/Closing 一起封板。Economy / Automated Settlement Production migration 尚未开始。
+- **下一步：** 制作人按 235 的固定据点接管与可拆旗摧毁两条正常玩法统一验收。Economy / Automated Settlement Production migration 尚未开始。
 
-- **不阻塞 CW-05 的 backlog：** FormalArmy／BattleOffer／Hex support 深层清理；NPC Squad macro movement 去 FormalArmyWorldMotion；Level 2／3；Encounter 介入参数调优；飞舟；建筑战争／Site takeover（排在 CW-05 后）。
+- **不阻塞 CW-05 的 backlog：** FormalArmy／BattleOffer／Hex support 深层清理；NPC Squad macro movement 去 FormalArmyWorldMotion；Level 2／3；Encounter 介入参数调优；飞舟；NPC 自动攻城与普通建筑战争。
 
 - **2026-09-13 历史状态：** CW-U0 的设计收口与多人落点修复已由制作人验收并封板；范围见 [220](220-cw-u0-design-and-manual-entry-placement-2026-09-13.md)。CW-U1 当时已完成统一 Squad 成员权威、正常加入／离队、现有共同移动适配、近场观察与正式存读档接线。
 

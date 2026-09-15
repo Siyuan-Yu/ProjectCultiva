@@ -613,15 +613,14 @@ namespace XianXia.Unity.Host
                     new Color(0.85f, 0.32f, 0.28f));
 
                 string status;
-                if (XianXia.Core.World.Strategic.CaptureObjectiveService.TryResolveCurrentOwner(
+                if (core.CaptureAvailable)
+                    status = "已攻破 · 占领 " + core.OccupyProgressSeconds.ToString("0.0") + " / " +
+                             core.OccupyHoldSeconds.ToString("0.0") + " 秒";
+                else if (XianXia.Core.World.Strategic.CaptureObjectiveService.TryResolveCurrentOwner(
                         session.World, core, out _, out var ownerFactionId) &&
                     !string.IsNullOrEmpty(ownerFactionId))
                     status = "当前控制者：" +
                              StrategicAcceptanceInspector.ResolveOwnerDisplay(ownerFactionId);
-                else if (core.CaptureAvailable)
-                    status = "状态：已破门 · 站立占领 " +
-                             core.OccupyProgressSeconds.ToString("0.0") + "/" +
-                             core.OccupyHoldSeconds.ToString("0") + " 秒";
                 else
                     status = "状态：防守中（选中己方→右键攻击拆耐久）";
 

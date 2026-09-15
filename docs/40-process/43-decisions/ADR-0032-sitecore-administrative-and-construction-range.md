@@ -1,6 +1,6 @@
 # ADR-0032：SiteCore、实际行政控制与建设范围
 
-> 状态：已采纳（CW-04／CW-04.5 已封板；CW-05A/B/Closing 已实现、统一待制作人验收）
+> 状态：已采纳（CW-04／CW-04.5 已封板；CW-05A/B/Closing Producer Accepted / Sealed）
 > 日期：2026-09-12
 > 关联：[24](../../20-systems/24-world-and-settlements.md)、[26](../../20-systems/26-territory-management.md)、[2J](../../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)、[2L](../../20-systems/2L-local-map-construction-v1.md)、[ADR-0029](ADR-0029-construction-content-runtime-and-snapshot-boundary.md)、[ADR-0031](ADR-0031-continuous-outdoor-world-surface-architecture.md)
 
@@ -45,4 +45,19 @@ Continuous Outdoor World Surface 已确定为普通户外的物理世界，但�
 
 `OutdoorConstructedAssetBoard` 保存稳定 root ID、建筑/kind、SurfaceId、精确左下角矩形、格数和独立 BoundLocationId；每格复用 `OutdoorStatefulObjectId.ForCell`。Snapshot v6 optional additive `outdoorConstructedAssets`＋`nextOutdoorConstructedAssetSequence` 保存物理资产和序列，crop state 继续走原 FarmPlots；旧档缺字段为空，新格式损坏报错。当前 manager 不进资产或 Snapshot，由 authored＋runtime anchors 动态派生；拆旗不删除田和作物，新 Site 接管立即恢复组织权限。读档内容壳绝不执行 OpeningInventoryBootstrap。
 
-Streaming 复用现有农田 stamping；建造立即局部补齐，卸载只销毁表现，重载恢复相同 cell IDs/crop。CW-05A Probe UI 已移除。CW-05A/B 与 Closing 全部 Implementation Completed、Producer Acceptance Pending；NPC schedule economy、SettlementProduction、generic house/workshop、产权、建筑战争和农田拆除继续延期。
+Streaming 复用现有农田 stamping；建造立即局部补齐，卸载只销毁表现，重载恢复相同 cell IDs/crop。CW-05A Probe UI 已移除。CW-05A/B 与 Closing 已于 2026-09-15 Producer Accepted / Sealed；NPC schedule economy、SettlementProduction、generic house/workshop、产权和农田拆除继续延期；玩家 SiteCore 战争转入 CW-08 / CW-09。
+
+
+## 2026-09-15 制作人封板
+
+CW-05A、CW-05B 与 CW-05 Closing Slice 正式 **Producer Accepted / Sealed**。制作人已通过正常可建农田、管理接续、拆旗保留资产、重新取得管理及 Save/Load 验收。Subsequently Producer Accepted after normal gameplay validation. 历史记录中当时未运行 Unity 验证的事实保持不变。
+
+## 2026-09-15 CW-08 / CW-09：玩家 SiteCore 战争
+
+制作人授权规则见 [235](../235-sitecore-warfare-worldsite-takeover-2026-09-15.md)。固定核心由 `CoreIsRemovable=false` 判定，攻破后建筑仍存在，在原建筑交互范围持续占领；己方存活人物在场且没有存活敌方参战者争夺才计时，离开或争夺归零。占领仅经 `CaptureObjectiveService` → `WorldSiteTerritoryTransferService` 改同一 Site 的 Owner 并恢复核心满耐久。ClaimId、AcquiredOrder、农田 identity/crop、人物 faction/home/squad 均不改。
+
+`CoreIsRemovable=true` 的势力旗被击毁即移除物理旗、令原 Site inactive；保留原 Owner 与 Claim 历史，不占领、不自动变成己方旗。攻方通过正常建造建立新旗、新 Site 和新 Claim。资产继续存在，行政管理者由原 CW-05 查询动态接续。
+
+正常玩家入口统一为 SiteCore Warfare → real Character/Squad → CharacterEncounter，退出两条旧 Siege/BattleOffer 编排。按精确 Surface/WorldPosition、目标 Site 等级范围和 War side 选守军，最近者优先、EntityId 升序打破平局。战中目标仍限定同一 frozen range，最多一个未完成 Site 目标；新守军追加原 roster，不回血、不重置冷却或候选。
+
+目标捕获或摧毁完成可 ReadyToEnd；击倒敌人也可 ReadyToEnd，但不自动占地。ReadyToEnd 仍可攻击与占领当前目标。仅玩家发起 SiteCore 战争属于本轮；NPC 自动攻城、普通建筑战争、产权及居民政治后果延期。

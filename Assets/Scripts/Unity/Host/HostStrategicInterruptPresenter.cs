@@ -180,7 +180,9 @@ namespace XianXia.Unity.Host
                     if (_manualBattleReport != null) AcquireManualBattleReportPause(session);
                 }
                 if (_manualBattleReport != null) { DrawManualBattleReport(session); return; }
-                if (characterState != null && characterState.Phase == CharacterEncounterPhase.ReadyToEnd &&
+                if (character != null && character.Phase == HostCharacterEncounter.PresentationPhase.ReadyToStart)
+                    DrawCharacterEncounterStartBar(session, character);
+                else if (characterState != null && characterState.Phase == CharacterEncounterPhase.ReadyToEnd &&
                     character != null && !character.IsRestoring)
                     DrawManualPostBattleBar(session);
                 else if (character != null && character.Phase != HostCharacterEncounter.PresentationPhase.Active)
@@ -827,6 +829,28 @@ namespace XianXia.Unity.Host
             };
             if (coordinator.CanCancel) specs.Add(new ButtonSpec("取消主动攻击", coordinator.CancelPending));
             DrawOfferActions(box, box.yMax - 48f, specs);
+        }
+
+        void DrawCharacterEncounterStartBar(
+            PlayableHostSession session,
+            HostCharacterEncounter coordinator)
+        {
+            GUI.depth = -95;
+            const float width = 420f;
+            const float height = 92f;
+            var box = new Rect((Screen.width - width) * .5f, 82f, width, height);
+            Fill(box, Parchment);
+            DrawFrame(box, ParchmentDark);
+            HostUiHitTest.Block(box);
+            var message = coordinator.ReadyToStartIsRestore
+                ? "战场已恢复 · 当前全场暂停"
+                : "战场已就绪 · 当前全场暂停";
+            GUI.Label(new Rect(box.x + 14f, box.y + 10f, box.width - 28f, 26f), message, _title);
+            if (!string.IsNullOrEmpty(coordinator.Failure))
+                GUI.Label(new Rect(box.x + 14f, box.y + 36f, box.width - 152f, 42f), coordinator.Failure, _body);
+            if (GUI.Button(new Rect(box.xMax - 132f, box.yMax - 42f, 116f, 32f), "开始战斗") &&
+                !coordinator.StartBattle())
+                ShowToast(coordinator.Failure);
         }
 
         static int SumCharacterPower(SimulationWorld world, List<EntityId> ids)

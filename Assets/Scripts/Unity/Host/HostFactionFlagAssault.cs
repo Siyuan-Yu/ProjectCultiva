@@ -18,6 +18,7 @@ namespace XianXia.Unity.Host
         readonly List<EntityId> _actors = new List<EntityId>(8);
         string _flagId = string.Empty;
         float _cooldown;
+        XianXia.Core.Simulation.SimulationWorld _world;
 
         public void Bind(PlayableHostBootstrap host)
         {
@@ -31,6 +32,7 @@ namespace XianXia.Unity.Host
         {
             _flagId = flagId ?? string.Empty;
             _cooldown = 0f;
+            _world = _bootstrap?.Session?.World;
         }
 
         public void Clear() { _flagId = string.Empty; _cooldown = 0f; }
@@ -41,6 +43,10 @@ namespace XianXia.Unity.Host
             var world = session?.World;
             if (string.IsNullOrEmpty(_flagId) || world == null || session.IsPaused)
                 return;
+            if (!ReferenceEquals(_world, world)) { Clear(); return; }
+            var encounter = world.Strategic.CharacterEncounter;
+            if (encounter != null && (encounter.Phase == CharacterEncounterPhase.Committed ||
+                encounter.Find(session.PlayerParty.ActiveCharacterId.Value)?.TargetId != ulong.MaxValue)) { Clear(); return; }
             if (!world.Strategic.FactionFlags.Flags.TryGetValue(_flagId, out var flag) || flag == null)
             {
                 Clear();
@@ -58,10 +64,13 @@ namespace XianXia.Unity.Host
                 : HostFactionFlagQuery.IsAnyPointNear(flag, layout, _points);
             if (!near)
                 return;
-            _cooldown -= _bootstrap.PresentationDeltaTime;
+            var combatActor = encounter?.Find(session.PlayerParty.ActiveCharacterId.Value);
+            if (combatActor != null) _cooldown = combatActor.Cooldown;
+            else _cooldown -= _bootstrap.PresentationDeltaTime;
             if (_cooldown > 0f || _actors.Count == 0)
                 return;
             _cooldown = MeleeCombatService.DefaultMeleeIntervalSeconds;
+            if (combatActor != null) combatActor.Cooldown = _cooldown;
             var attacker = _actors[0];
             var hit = FactionFlagService.ApplyStrikeFromAttacker(
                 world, session.PlayerParty, world.Strategic.PlayerFactionId, _flagId, attacker, out var damage);
@@ -82,7 +91,7 @@ namespace XianXia.Unity.Host
             Toast(attacker, "-" + damage, new Color(1f, .45f, .3f));
             if (!world.Strategic.FactionFlags.Flags.ContainsKey(_flagId))
             {
-                Toast(attacker, "阵营旗已拆除", new Color(1f, .75f, .3f));
+                Toast(attacker, "敌方势力旗已摧毁。", new Color(1f, .75f, .3f));
                 Clear();
                 _bootstrap.RefreshFactionFlagWalkGrid();
             }
@@ -103,6 +112,7 @@ namespace XianXia.Unity.Host
 
         void Add(EntityId id, EntityViewSpawner spawner)
         {
+            if (!CharacterEncounterService.IsLiving(_bootstrap.Session.World, id.Value)) return;
             if (id.IsNone || spawner == null || !spawner.Registry.TryGet(id, out var view) || view == null)
                 return;
             var p = HostPresentationSpace.ToPresentation(view.transform.position);

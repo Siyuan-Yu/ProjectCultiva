@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Stopwatch = System.Diagnostics.Stopwatch;
+using XianXia.Core.Combat;
 using XianXia.Core.Domain.Ids;
 using XianXia.Core.Entities;
 using XianXia.Core.Navigation;
@@ -2555,9 +2556,33 @@ namespace XianXia.Unity.Host
 
             var party = session?.PlayerParty;
             EntityView activeView = null;
-            if (party == null || party.ActiveCharacterId.IsNone || _bootstrap?.ViewSpawner?.Registry == null ||
-                !_bootstrap.ViewSpawner.Registry.TryGet(party.ActiveCharacterId, out activeView) || activeView == null)
-                failures.Add("ActiveCharacter EntityView missing");
+            if (party == null)
+                failures.Add("PlayerParty missing");
+            else if (party.ActiveCharacterId.IsNone)
+            {
+                // TemporarilyUnavailable and AllMembersDead deliberately have no Active identity.
+                // Their visible downed/corpse party members are still reconciled normally; an
+                // Active EntityView is not a valid startup requirement for either state.
+                if (party.ControlState == PlayerPartyControlState.Active)
+                    failures.Add("ActiveCharacter identity missing while ControlState=Active");
+            }
+            else if (world == null || !world.Entities.TryGet(party.ActiveCharacterId, out var activeEntity) ||
+                     activeEntity == null)
+                failures.Add("ActiveCharacter entity missing: " + party.ActiveCharacterId.Value);
+            else if (CombatLifeStateService.ShouldHideFromSpawn(activeEntity))
+                failures.Add("ActiveCharacter points to Removed entity: " + party.ActiveCharacterId.Value);
+            else if (_bootstrap?.ViewSpawner?.Registry == null ||
+                     !_bootstrap.ViewSpawner.Registry.TryGet(party.ActiveCharacterId, out activeView) ||
+                     activeView == null)
+            {
+                LocalMapVisibility.EvaluateContinuousMaterializedVisibility(
+                    world, party.ActiveCharacterId, out var visibilityReason);
+                failures.Add(
+                    "ActiveCharacter EntityView missing: " + party.ActiveCharacterId.Value +
+                    " Visibility=" + visibilityReason +
+                    " Materialized=" + world.ContinuousOutdoorMaterialization.IsMaterialized(
+                        party.ActiveCharacterId));
+            }
             else if (_compositeWalkGrid == null || !_compositeWalkGrid.TryWorldToCell(
                          activeView.transform.position.x, activeView.transform.position.y, out _, out _))
                 failures.Add("ActiveCharacter outside CompositeWalkGrid");

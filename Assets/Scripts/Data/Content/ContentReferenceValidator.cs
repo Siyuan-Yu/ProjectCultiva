@@ -82,6 +82,14 @@ namespace XianXia.Data.Content
         static void ValidateOutdoorControlCores(DefinitionRegistry registry, ValidationReport report)
         {
             var knownSites = new HashSet<string>(StringComparer.Ordinal);
+            var controlCoreLocationCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var pair in registry.WorkAreas)
+                if (pair.Value != null && pair.Value.IsControlCore &&
+                    !string.IsNullOrWhiteSpace(pair.Value.LocationId))
+                {
+                    controlCoreLocationCounts.TryGetValue(pair.Value.LocationId, out var count);
+                    controlCoreLocationCounts[pair.Value.LocationId] = count + 1;
+                }
             foreach (var pair in registry.HexWorldContents)
                 if (pair.Value?.Sites != null)
                     for (var i = 0; i < pair.Value.Sites.Count; i++)
@@ -91,7 +99,7 @@ namespace XianXia.Data.Content
             foreach (var pair in registry.OutdoorSurfaces)
             {
                 var surface = pair.Value;
-                if (surface?.SitePlacements == null) continue;
+                if (surface?.SitePlacements == null || surface.AcceptanceOnly) continue;
                 var coreSites = new HashSet<string>(StringComparer.Ordinal);
                 var chunks = new HashSet<XianXia.Core.World.Surface.SurfaceChunkCoord>();
                 if (surface.Chunks != null)
@@ -103,6 +111,20 @@ namespace XianXia.Data.Content
                     if (placement == null ||
                         !string.Equals(placement.Kind, "controlCore", StringComparison.OrdinalIgnoreCase)) continue;
                     var context = surface.SurfaceId + ".controlCore[" + i + "]";
+                    if (string.IsNullOrWhiteSpace(placement.StableId))
+                        report.Add(ErrorCode.MissingRequiredField,
+                            "Outdoor controlCore.stableId required.", context);
+                    if (string.IsNullOrWhiteSpace(placement.SiteId))
+                        report.Add(ErrorCode.MissingRequiredField,
+                            "Outdoor controlCore.siteId required.", context);
+                    if (string.IsNullOrWhiteSpace(placement.BoundLocationId))
+                        report.Add(ErrorCode.MissingRequiredField,
+                            "Outdoor controlCore.boundLocationId required.", context);
+                    else if (!controlCoreLocationCounts.TryGetValue(placement.BoundLocationId, out var coreCount) ||
+                             coreCount != 1)
+                        report.Add(ErrorCode.NotFound,
+                            "Outdoor controlCore.boundLocationId must reference exactly one ControlCore WorkArea.",
+                            context + ":" + placement.BoundLocationId);
                     if (!coreSites.Add(placement.SiteId ?? string.Empty))
                         report.Add(ErrorCode.DuplicateDefinitionId,
                             "Outdoor WorldSite has more than one authored controlCore.", context);

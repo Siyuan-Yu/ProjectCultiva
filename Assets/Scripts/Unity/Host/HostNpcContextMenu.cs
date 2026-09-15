@@ -50,6 +50,7 @@ namespace XianXia.Unity.Host
         string _aggressionDefenderFactionId = string.Empty;
         string _dismantleStatus = string.Empty;
         bool _holdingDismantlePause;
+        const string AggressionPauseOwner = "SiteCoreAggressionConfirmation";
         /// <summary>一次 LocalCharacter 攻击确认的 one-shot token：approach 后重新 classify 时不再二次确认。</summary>
         EntityId _confirmedLocalAttackTargetId = EntityId.None;
         Vector2 _menuScreen;
@@ -396,11 +397,11 @@ namespace XianXia.Unity.Host
 
         void DrawControlCoreMenu()
         {
-            const float w = 168f;
+            const float w = 220f;
             const float itemH = 30f;
             var session = bootstrap?.Session;
             var world = session?.World;
-            var h = itemH + 34f;
+            var h = itemH + 58f;
             var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
             _menuGuiRect = new Rect(guiX, guiY, w, h);
@@ -411,8 +412,9 @@ namespace XianXia.Unity.Host
 
             GUI.Label(new Rect(guiX + 10f, guiY + 6f, w - 20f, 22f), _targetLabel, _label);
             var y = guiY + 30f;
-            if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "攻击", _button))
+            if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), "攻击据点核心", _button))
                 BeginControlCoreAttack();
+            GUI.Label(new Rect(guiX + 10f, y + itemH, w - 20f, 22f), "攻破后可占领该据点。", _label);
             TryDismissOnOutsideClick(_menuGuiRect);
         }
 
@@ -495,7 +497,7 @@ namespace XianXia.Unity.Host
 
         void DrawFactionFlagMenu()
         {
-            const float w = 188f;
+            const float w = 300f;
             const float itemH = 30f;
             var world = bootstrap?.Session?.World;
             if (world == null || !world.Strategic.FactionFlags.Flags.TryGetValue(_targetFactionFlagId, out var flag) || flag == null)
@@ -506,7 +508,7 @@ namespace XianXia.Unity.Host
             var friendly = string.Equals(flag.FactionId, world.Strategic.PlayerFactionId, System.StringComparison.Ordinal);
             var linkedSite = !string.IsNullOrEmpty(flag.SiteId) &&
                              world.Strategic.Sites.TryGet(flag.SiteId, out var site) ? site : null;
-            var h = itemH + (linkedSite != null ? 100f : 54f);
+            var h = itemH + (linkedSite != null ? 144f : 98f);
             var guiX = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
             var guiY = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
             _menuGuiRect = new Rect(guiX, guiY, w, h);
@@ -528,11 +530,13 @@ namespace XianXia.Unity.Host
                 actionY += 46f;
             }
             if (!friendly && GUI.Button(new Rect(guiX + 8f, actionY, w - 16f, itemH - 4f),
-                    "攻击阵营旗", _button))
+                    "攻击势力旗", _button))
                 BeginFactionFlagAttack();
             if (friendly && GUI.Button(new Rect(guiX + 8f, actionY, w - 16f, itemH - 4f),
                     "拆除", _button))
                 BeginFactionFlagDismantle();
+            if (!friendly) GUI.Label(new Rect(guiX + 10f, actionY + itemH, w - 20f, 42f),
+                "摧毁后前哨失去控制；\n不会自动成为己方据点。", _label);
             TryDismissOnOutsideClick(_menuGuiRect);
         }
 
@@ -617,49 +621,20 @@ namespace XianXia.Unity.Host
                 CloseAll();
                 return;
             }
+            if (!HostWorldSiteCoreWarfare.ValidateTarget(bootstrap, _actor, flag.SiteId)) { CloseAll(); return; }
             BeginStrategicAggressionIfNeeded(
                 world.Strategic.PlayerFactionId, flag.FactionId, BeginFactionFlagAttackAfterAggression);
         }
 
         void BeginFactionFlagAttackAfterAggression()
         {
-            var session = bootstrap?.Session;
-            var world = session?.World;
-            var flagId = _targetFactionFlagId;
-            if (world == null || !world.Strategic.FactionFlags.Flags.TryGetValue(flagId, out var flag) || flag == null)
-            {
-                CloseAll();
-                return;
-            }
-            var siege = FactionFlagSiegeService.TryBegin(world, session.PlayerParty, flagId);
-            if (siege.IsFailure)
-            {
-                Debug.LogWarning("[Host] 阵营旗攻城未开始：" + siege.Error.Message);
-                CloseAll();
-                return;
-            }
-            if (siege.Value == FactionFlagAttackStartKind.BattleOffer)
-            {
-                CloseAll();
-                return;
-            }
-            MapLayoutDefinition layout = null;
-            if (bootstrap.ContinuousOutdoorSurfaceRuntime == null ||
-                !bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive)
-                MapLayoutPick.TryGet(session, out layout);
-            var continuous = bootstrap.ContinuousOutdoorSurfaceRuntime;
-            var hasApproach = continuous != null && continuous.IsActive
-                ? HostFactionFlagQuery.TryGetApproachPoint(flag, continuous, moveController?.WalkGrid, out var approach)
-                : HostFactionFlagQuery.TryGetApproachPoint(flag, layout, moveController?.WalkGrid, out approach);
-            if (hasApproach)
-                moveController?.OrderPartyToPointPublic(approach);
-            var assault = bootstrap.GetComponent<HostFactionFlagAssault>();
-            if (assault != null)
-                assault.Begin(flagId);
-            else
-                Debug.LogWarning("[Host] HostFactionFlagAssault 未挂载。");
-            ResumeTime();
+            var world = bootstrap?.Session?.World;
+            if (world == null || !world.Strategic.FactionFlags.Flags.TryGetValue(_targetFactionFlagId, out var flag)) { CloseAll(); return; }
+            var siteId = flag.SiteId;
+            var actor = _actor;
             CloseAll();
+            ResumeTime();
+            HostWorldSiteCoreWarfare.BeginConfirmed(bootstrap, actor, siteId);
         }
 
         void DrawAttackConfirm(string title, string body, string okLabel, System.Action onOk, System.Action onCancel)
@@ -693,80 +668,32 @@ namespace XianXia.Unity.Host
             }
 
             var playerFaction = world.Strategic?.PlayerFactionId ?? string.Empty;
-            if (!CaptureObjectiveService.TryResolveControlCoreSite(world, core, out var siteId) ||
-                !world.Strategic.Sites.TryGet(siteId, out var site) || site == null)
+            if (!CaptureObjectiveService.TryGetBoundSiteForControlCore(world, core.WorkAreaId, out var site))
             {
+                HostWorldSiteCoreWarfare.Feedback(bootstrap, "议政厅缺少正式据点绑定，无法发起攻击。");
                 CloseAll();
                 return;
             }
+            var siteId = site.SiteId;
+            if (!HostWorldSiteCoreWarfare.ValidateTarget(bootstrap, _actor, siteId)) { CloseAll(); return; }
             BeginStrategicAggressionIfNeeded(playerFaction, site.OwnerFactionId, BeginControlCoreAttackAfterAggression);
             return;
         }
 
         void BeginControlCoreAttackAfterAggression()
         {
-            var session = bootstrap?.Session;
-            var world = session?.World;
-            var coreId = _targetControlCoreWorkAreaId;
-            if (world == null || string.IsNullOrEmpty(coreId) || !world.ControlCores.TryGet(coreId, out var core))
+            var world = bootstrap?.Session?.World;
+            if (world == null || !world.ControlCores.TryGet(_targetControlCoreWorkAreaId, out var core) ||
+                !CaptureObjectiveService.TryGetBoundSiteForControlCore(world, core.WorkAreaId, out var site))
             {
-                CloseAll();
-                return;
+                HostWorldSiteCoreWarfare.Feedback(bootstrap, "议政厅的正式据点绑定已失效，攻击已取消。");
+                CloseAll(); return;
             }
-            var siege = WorldSiteSiegeService.TryBegin(world, session.PlayerParty, coreId);
-            if (siege.IsFailure)
-            {
-                Debug.LogWarning("[Host] 议政厅攻城未开始：" + siege.Error.Message);
-                CloseAll();
-                return;
-            }
-            if (siege.Value == WorldSiteSiegeStartKind.BattleOffer)
-            {
-                CloseAll();
-                return;
-            }
-            var assaultPreflight = CaptureObjectiveService.TryBeginMilitaryAssault(world, world.Strategic?.PlayerFactionId ?? string.Empty, coreId);
-            if (assaultPreflight.IsFailure)
-            {
-                Debug.LogWarning("[Host] 议政厅突击被战争门槛拒绝：" + assaultPreflight.Error.Message);
-                CloseAll();
-                return;
-            }
-
-            MapLayoutDefinition layout = null;
-            if (bootstrap.ContinuousOutdoorSurfaceRuntime == null ||
-                !bootstrap.ContinuousOutdoorSurfaceRuntime.IsActive)
-                MapLayoutPick.TryGet(session, out layout);
-            if (HostControlCoreQuery.TryGetApproachPoint(
-                    world, layout, bootstrap.ContinuousOutdoorSurfaceRuntime, core, out var approach) &&
-                moveController != null)
-                moveController.OrderPartyToPointPublic(approach);
-
-            var housing = bootstrap.GetComponent<HostHousingAreaSelection>();
-            housing?.SelectControlCore(coreId);
-
-            var assault = bootstrap.GetComponent<HostControlCoreAssault>();
-            if (assault != null)
-                assault.Begin(coreId);
-            else
-                Debug.LogWarning("[Host] HostControlCoreAssault 未挂载。");
-
-            var overlay = bootstrap.GetComponent<HostFeedbackOverlay>();
-            if (overlay != null && !_actor.IsNone)
-            {
-                overlay.SpawnAtEntity(
-                    bootstrap.ViewSpawner,
-                    _actor,
-                    "突击 " + _targetLabel,
-                    new Color(1f, 0.45f, 0.35f, 1f));
-            }
-
-            Debug.Log(
-                "[Host] 开始突击议政厅：靠近后按近战节奏／攻击力拆耐久；破门后站满 " +
-                core.OccupyHoldSeconds + " 秒占领。");
-
-            ResumeTime();
+            var siteId = site.SiteId;
+            var actor = _actor;
             CloseAll();
+            ResumeTime();
+            HostWorldSiteCoreWarfare.BeginConfirmed(bootstrap, actor, siteId);
         }
 
         /// <summary>F8 等非右键入口复用完全相同的议政厅攻城请求与政治确认链。</summary>
@@ -1017,6 +944,7 @@ namespace XianXia.Unity.Host
                     world, attackerFactionId, defenderFactionId, out var preview, out var reason))
             {
                 Debug.LogWarning("[Host] 军事侵略预览失败：" + reason);
+                HostWorldSiteCoreWarfare.Feedback(bootstrap, "无法确认攻击：" + reason);
                 CloseAll();
                 return false;
             }
@@ -1030,6 +958,7 @@ namespace XianXia.Unity.Host
             _aggressionDefenderFactionId = defenderFactionId;
             _confirmCallback = afterCommit;
             _phase = Phase.StrategicAggressionConfirm;
+            bootstrap.Session.AcquireModalPause(AggressionPauseOwner);
             HostInputGate.BlockWorldInteraction = true;
             return false;
         }
@@ -1050,6 +979,7 @@ namespace XianXia.Unity.Host
                     world, _aggressionAttackerFactionId, _aggressionDefenderFactionId, out var reason))
             {
                 Debug.LogWarning("[Host] 军事侵略提交失败：" + reason);
+                HostWorldSiteCoreWarfare.Feedback(bootstrap, "宣战失败：" + reason);
                 CloseAll();
                 return;
             }
@@ -1161,6 +1091,7 @@ namespace XianXia.Unity.Host
 
         void CloseAll()
         {
+            bootstrap?.Session?.ReleaseModalPause(AggressionPauseOwner);
             _phase = Phase.Closed;
             _targetNpc = EntityId.None;
             _actor = EntityId.None;
@@ -1183,6 +1114,7 @@ namespace XianXia.Unity.Host
 
         void OnDisable()
         {
+            bootstrap?.Session?.ReleaseModalPause(AggressionPauseOwner);
             if (_holdingDismantlePause && bootstrap?.Session != null)
                 bootstrap.Session.ReleaseModalPause(DismantlePauseOwner);
             _holdingDismantlePause = false;

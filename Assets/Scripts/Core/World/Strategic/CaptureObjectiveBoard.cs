@@ -30,17 +30,34 @@ namespace XianXia.Core.World.Strategic
         {
             if (objective == null || string.IsNullOrEmpty(objective.ObjectiveId))
                 return;
+
+            if (_byObjectiveId.TryGetValue(objective.ObjectiveId, out var previous) && previous != null)
+                RemoveReverse(previous.SiteId, objective.ObjectiveId);
             _byObjectiveId[objective.ObjectiveId] = objective;
-            if (string.IsNullOrEmpty(objective.SiteId))
-                return;
-            if (!_siteObjectives.TryGetValue(objective.SiteId, out var list))
+            AddReverse(objective.SiteId, objective.ObjectiveId);
+        }
+
+        /// <summary>
+        /// CaptureObjective 与 WorldSite 的唯一写入口。正向字段和反向索引在同一调用内更新。
+        /// 空 SiteId 用于恢复尚未完成静态 Content 重绑的 Objective。
+        /// </summary>
+        public bool BindSite(string objectiveId, string siteId)
+        {
+            if (string.IsNullOrEmpty(objectiveId) ||
+                !_byObjectiveId.TryGetValue(objectiveId, out var objective) || objective == null)
+                return false;
+
+            siteId = siteId ?? string.Empty;
+            if (string.Equals(objective.SiteId ?? string.Empty, siteId, StringComparison.Ordinal))
             {
-                list = new List<string>(2);
-                _siteObjectives[objective.SiteId] = list;
+                AddReverse(siteId, objectiveId);
+                return true;
             }
 
-            if (!list.Contains(objective.ObjectiveId))
-                list.Add(objective.ObjectiveId);
+            RemoveReverse(objective.SiteId, objectiveId);
+            objective.SiteId = siteId;
+            AddReverse(siteId, objectiveId);
+            return true;
         }
 
         public bool TryGet(string objectiveId, out CaptureObjectiveState objective) =>
@@ -73,6 +90,25 @@ namespace XianXia.Core.World.Strategic
         {
             _byObjectiveId.Clear();
             _siteObjectives.Clear();
+        }
+
+        void AddReverse(string siteId, string objectiveId)
+        {
+            if (string.IsNullOrEmpty(siteId)) return;
+            if (!_siteObjectives.TryGetValue(siteId, out var list))
+            {
+                list = new List<string>(2);
+                _siteObjectives[siteId] = list;
+            }
+            if (!list.Contains(objectiveId)) list.Add(objectiveId);
+        }
+
+        void RemoveReverse(string siteId, string objectiveId)
+        {
+            if (string.IsNullOrEmpty(siteId) ||
+                !_siteObjectives.TryGetValue(siteId, out var list)) return;
+            list.Remove(objectiveId);
+            if (list.Count == 0) _siteObjectives.Remove(siteId);
         }
     }
 }
