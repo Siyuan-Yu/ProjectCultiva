@@ -56,9 +56,11 @@ namespace XianXia.Data.Bootstrap
             }
             foreach (var asset in world.OutdoorConstructedAssets.Assets.Values)
             {
-                var physical = XianXia.Core.Construction.OutdoorAdministrativeConstructionAuthorizationService.ValidatePhysicalPlacement(world, asset);
+                if (!OutdoorAdministrativeAssetSemantics.IsAdministrativeAssetKind(asset.Kind))
+                    continue;
+                var physical = XianXia.Core.Construction.OutdoorFactionConstructionAuthorizationService.ValidatePhysicalPlacement(world, asset);
                 if (physical.IsFailure) return physical;
-                foreach (var anchor in asset.CellAnchors())
+                foreach (var anchor in asset.AdministrativeCellAnchors())
                     if (!board.TryRegister(anchor))
                         return Result.Failure(ErrorCode.ContentLoadFailed, "Runtime farm anchor collision.", anchor.StableAssetId);
             }

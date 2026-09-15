@@ -31,6 +31,10 @@ namespace XianXia.Unity.Host
                     var farmPresenter = _bootstrap.GetComponent<HostFarmFieldConstructionPresenter>();
                     return farmPresenter != null ? farmPresenter.BeginConstructionPlacement(buildingId) :
                         Result.Failure(ErrorCode.InvalidOperation, "农田放置器未就绪。");
+                case ConstructionPlacementKind.RecoverySpot:
+                    var recoveryPresenter = _bootstrap.GetComponent<HostRecoverySpotConstructionPresenter>();
+                    return recoveryPresenter != null ? recoveryPresenter.BeginConstructionPlacement(buildingId) :
+                        Result.Failure(ErrorCode.InvalidOperation, "恢复处放置器未就绪。");
                 default:
                     return Result.Failure(ErrorCode.InvalidOperation, "未知建筑放置类型。", buildingId);
             }

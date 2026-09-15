@@ -11,7 +11,8 @@ namespace XianXia.Unity.Host
         /// <summary>洞口等：走到后探索／发现，不自动打坐。</summary>
         Explore = 2,
         /// <summary>地表／洞内可拾取物。</summary>
-        Loot = 3
+        Loot = 3,
+        Recovery = 4
     }
 
     /// <summary>表现层可交互点（多点／同地点）；不进 Core Freeze。</summary>

@@ -4610,4 +4610,13 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 - 当前 Main Wilderness 为646个1.4×1.4 world chunk、cellSize .028、50×50 cells/chunk、完整Surface约53.2×23.8 world。Site L1 150 cells为4.2 world；Wilderness Encounter 500 cells为14 world。
 - 已运行现成离线编译与 `git diff --check`；未启动 Unity，未运行自动测试、Bake 或 batchmode。运行时响应性、视觉与完整交互仍待制作人人工验收。
 
+## 2026-09-15 — 恢复处与玩家队伍战斗数值作弊
+
+- 新增正式 `recoverySpot` Building/MapKind：2×2、粗木 5、不创建 WorldSite；荒村 Surface JSON 增加西/中/东三个 authored 恢复处。
+- 将运行时室外建造资产由 farm-only 泛化为 grainField/recoverySpot 共用的稳定物理 board、全局序列、Actual Control footprint 授权与 snapshot；农田仍单独产生行政锚点，恢复处不进入农田或 Site Economy。
+- 新增 `Recover` Command/Order、`RecoveryAction` 和 `CombatRecoveryService`。角色抵达恢复处后持续 6 WorldTicks，完成才将 HP/SP 当前池恢复至当前上限；取消、弥留、死亡、战斗冻结和已满状态均不会启动或回满。普通 Rest 与突破逻辑未改。
+- 左键沿用统一 Inspect Shell，右键沿用统一 Context Menu；authored 与 runtime 恢复处共用 MapKind、Picker、移动和 Action 路径。
+- LevelTester 战斗页增加只遍历 `PlayerParty.Members` 的攻击 +10、最大生命 +50 并回满、生命/灵力回满按钮，死亡成员跳过且不复活，敌人不在目标集合。
+- 添加小型离线定向测试，覆盖恢复、取消、生命周期拒绝、上限变化、建造权限、持久化、严格 Content 与作弊目标隔离；未运行 Unity Test Runner、PlayMode、batchmode 或 Bake。
+
 ---

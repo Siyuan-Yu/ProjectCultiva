@@ -5,6 +5,7 @@ using XianXia.Core.Domain.Time;
 using XianXia.Core.Input;
 using XianXia.Core.Results;
 using XianXia.Core.Exploration;
+using XianXia.Core.Actions;
 using XianXia.Core.World;
 
 namespace XianXia.Unity.Host
@@ -369,6 +370,36 @@ namespace XianXia.Unity.Host
             }
 
             return IssueTo(new[] { subject }, kind, ResolveDuration(kind, durationTicks));
+        }
+
+        public int IssueRecovery(EntityId subject, string recoverySpotId,
+            ulong durationTicks = RecoveryAction.DefaultDurationTicks)
+        {
+            _lastSuccessCount = 0;
+            _lastFailureCount = 0;
+            if (_session == null || !_session.IsInitialized || _session.Port == null ||
+                subject.IsNone || string.IsNullOrWhiteSpace(recoverySpotId) || durationTicks == 0)
+            {
+                _lastFailureCount = 1;
+                _lastStatus = "恢复指令参数无效。";
+                return 0;
+            }
+            _session.Loop.StopSubject(subject);
+            var result = _session.Port.Submit(new PlayerCommandRequest(
+                subject, PlayerCommandKind.Recover, durationTicks, EntityId.None, recoverySpotId));
+            if (result.IsFailure)
+            {
+                _lastFailureCount = 1;
+                _lastStatus = FormatError(result);
+                feedbackOverlay?.SpawnAtEntity(viewSpawner, subject, _lastStatus,
+                    new Color(1f, .65f, .3f, 1f));
+                return 0;
+            }
+            _lastSuccessCount = 1;
+            _lastStatus = "开始恢复（30分钟）";
+            feedbackOverlay?.SpawnAtEntity(viewSpawner, subject, _lastStatus,
+                new Color(.35f, .95f, .85f, 1f));
+            return 1;
         }
 
         bool IssueSocialAs(EntityId actor, PlayerCommandKind kind)

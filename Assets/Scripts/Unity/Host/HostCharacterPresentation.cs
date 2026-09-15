@@ -131,6 +131,7 @@ namespace XianXia.Unity.Host
             if (action is LaborAction) return "工作中";
             if (action is CultivateAction) return "修炼中";
             if (action is RestAction) return "休息中";
+            if (action is RecoveryAction) return "恢复中";
             if (action is ObserveAction) return "观察中";
             return "行动中";
         }

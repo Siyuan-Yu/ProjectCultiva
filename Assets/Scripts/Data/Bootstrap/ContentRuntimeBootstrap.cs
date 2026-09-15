@@ -132,6 +132,7 @@ namespace XianXia.Data.Bootstrap
                     continue;
                 var placementKind = definition.PlacementKind == "factionFlag" ? ConstructionPlacementKind.FactionFlag :
                     definition.PlacementKind == "farmField" ? ConstructionPlacementKind.FarmField :
+                    definition.PlacementKind == "recoverySpot" ? ConstructionPlacementKind.RecoverySpot :
                     throw new System.InvalidOperationException("Unknown construction placementKind: " + definition.PlacementKind);
                 var spec = new BuildingConstructionSpec
                 {

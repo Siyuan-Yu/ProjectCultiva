@@ -290,6 +290,11 @@ namespace XianXia.Core.Persistence
                 else if (action is CultivateAction) kind = "Cultivate";
                 else if (action is LaborAction) kind = "Labor";
                 else if (action is RestAction) kind = "Rest";
+                else if (action is RecoveryAction recovery)
+                {
+                    kind = "Recover";
+                    targetRef = recovery.RecoverySpotId;
+                }
                 else if (action is ObserveAction) kind = "Observe";
                 else if (action is MoveAction move)
                 {
@@ -791,6 +796,17 @@ namespace XianXia.Core.Persistence
                     rest.Restore((ActionStatus)a.Status, new ActionClock(a.TotalTicks, a.RemainingTicks));
                     world.ActiveActions[rest.Id] = rest;
                 }
+                else if (a.Kind == "Recover")
+                {
+                    var recovery = new RecoveryAction(
+                        new ActionId(a.Id),
+                        new EntityId(a.SubjectId),
+                        new OrderId(a.SourceOrderId),
+                        a.TotalTicks,
+                        a.TargetRef ?? string.Empty);
+                    recovery.Restore((ActionStatus)a.Status, new ActionClock(a.TotalTicks, a.RemainingTicks));
+                    world.ActiveActions[recovery.Id] = recovery;
+                }
                 else if (a.Kind == "Observe")
                 {
                     var observe = new ObserveAction(
@@ -940,10 +956,10 @@ namespace XianXia.Core.Persistence
         {
             world.OutdoorConstructedAssets.Clear();
             if (snap.OutdoorConstructedAssets == null)
-                return Result.Failure(ErrorCode.SnapshotInvalid, "Runtime farm list is null.");
+                return Result.Failure(ErrorCode.SnapshotInvalid, "Runtime constructed asset list is null.");
             foreach (var dto in snap.OutdoorConstructedAssets)
             {
-                if (dto == null) return Result.Failure(ErrorCode.SnapshotInvalid, "Runtime farm is null.");
+                if (dto == null) return Result.Failure(ErrorCode.SnapshotInvalid, "Runtime constructed asset is null.");
                 var asset = new XianXia.Core.Construction.OutdoorConstructedAssetState {
                     StableAssetId = dto.StableAssetId,
                     BuildingId = dto.BuildingId,
@@ -957,10 +973,10 @@ namespace XianXia.Core.Persistence
                     CellsH = dto.CellsH,
                     BoundLocationId = dto.BoundLocationId };
                 if (!world.OutdoorConstructedAssets.TryRegister(asset))
-                    return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid or duplicate runtime farm.", dto.StableAssetId);
+                    return Result.Failure(ErrorCode.SnapshotInvalid, "Invalid or duplicate runtime constructed asset.", dto.StableAssetId);
             }
             return world.OutdoorConstructedAssets.RestoreSequence(snap.NextOutdoorConstructedAssetSequence)
-                ? Result.Success() : Result.Failure(ErrorCode.SnapshotInvalid, "Invalid runtime farm sequence.");
+                ? Result.Success() : Result.Failure(ErrorCode.SnapshotInvalid, "Invalid runtime constructed asset sequence.");
         }
 
         static void RestoreOutdoorStatefulObjects(SimulationWorld world, WorldSnapshot snap)

@@ -839,6 +839,8 @@ namespace XianXia.Unity.Host
                 gameObject.AddComponent<HostConstructionController>();
             if (GetComponent<HostFarmFieldConstructionPresenter>() == null)
                 gameObject.AddComponent<HostFarmFieldConstructionPresenter>();
+            if (GetComponent<HostRecoverySpotConstructionPresenter>() == null)
+                gameObject.AddComponent<HostRecoverySpotConstructionPresenter>();
             if (GetComponent<HostFactionFlagPresenter>() == null)
                 gameObject.AddComponent<HostFactionFlagPresenter>();
             if (GetComponent<HostPartyPathPreview>() == null)

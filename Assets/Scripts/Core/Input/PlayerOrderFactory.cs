@@ -50,6 +50,17 @@ namespace XianXia.Core.Input
                         OrderSource.Player,
                         waitTicks: request.DurationTicks));
 
+                case PlayerCommandKind.Recover:
+                    if (string.IsNullOrWhiteSpace(request.TargetLocationId))
+                        return Result.Fail<Order>(ErrorCode.InvalidArgument, "Recovery spot id required.");
+                    return Result.Ok(new Order(
+                        id,
+                        request.Subject,
+                        OrderType.Recover,
+                        OrderSource.Player,
+                        waitTicks: request.DurationTicks,
+                        targetRef: request.TargetLocationId));
+
                 default:
                     return Result.Fail<Order>(ErrorCode.InvalidArgument, "Unknown PlayerCommandKind.", request.Kind.ToString());
             }

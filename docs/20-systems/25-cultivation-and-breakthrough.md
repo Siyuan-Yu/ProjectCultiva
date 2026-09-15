@@ -136,6 +136,10 @@
 
 ## 7. 突破基本原则
 
+### 当前资源池规则（2026-09-15）
+
+突破奖励可以提高 `AttributeId.MaxHp` 与 `AttributeId.SpiritPower` 上限，但突破本身不会自动填充 `CombatVitalsComponent.CurrentHp`／`CurrentSpiritPower`；既有同步只负责首次初始化和越界 clamp。玩家若要恢复到新上限，需在 Continuous Outdoor 的正式恢复处完成 6 WorldTicks（游戏内 30 分钟）的恢复行动。普通 Rest 与 NPC Schedule Rest 仍只有时间语义，不提供无条件回血回灵。
+
 突破不是“达到经验值后自动升级”。
 
 角色修为达到当前阶段要求后，只获得**突破资格**。玩家必须主动选择突破，并为此寻找合适地点、调整角色状态、选择时机，然后进入突破事件。

@@ -74,6 +74,12 @@ namespace XianXia.Core.Orders
                     return Result.Ok<IAction>(new WorkAction(
                         actionId, order.Subject, order.Id, order.WaitTicks, activity, order.TargetRef, order.SlotIndex));
 
+                case OrderType.Recover:
+                    if (order.WaitTicks == 0 || string.IsNullOrWhiteSpace(order.TargetRef))
+                        return Result.Fail<IAction>(ErrorCode.InvalidArgument, "Recovery duration and TargetRef required.");
+                    return Result.Ok<IAction>(new RecoveryAction(
+                        actionId, order.Subject, order.Id, order.WaitTicks, order.TargetRef));
+
                 default:
                     return Result.Fail<IAction>(ErrorCode.InvalidOperation, "Unsupported order type.");
             }

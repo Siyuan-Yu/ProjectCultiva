@@ -247,3 +247,11 @@
 - 上一个里程碑的完成标准没达到，不进下一个。
 - 每完成一项，在 `42-devlog.md` 追加一条记录。
 - 里程碑本身可以改，但改动要写进 devlog 并说明原因。
+
+## 2026-09-15 — Recovery Spot + Player Party Combat Cheats
+
+- [x] 新增 2×2、粗木 5 的正式恢复处建筑，并在荒村 authored Content 预放三处。
+- [x] 恢复处建造复用 Actual Control footprint authority、Continuous materialization 与通用室外建造资产快照。
+- [x] 新增独立 `RecoveryAction`：30 分钟后恢复当前生命/灵力到现有上限；普通 Rest 与突破不回满。
+- [x] LevelTester 战斗页增加 PlayerParty 攻击 +10、最大生命 +50 并回满、生命/灵力回满。
+- [ ] 制作人 Unity 人工验收建造预览、左右键交互、角色接近、6 ticks 进度、Save/Load 与 HUD 即时刷新。

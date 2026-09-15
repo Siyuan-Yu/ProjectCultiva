@@ -696,7 +696,7 @@ namespace XianXia.Core.Persistence
         public int Status { get; set; }
         public ulong TotalTicks { get; set; }
         public ulong RemainingTicks { get; set; }
-        /// <summary>Soft additive: WorkArea id for Move／Work.</summary>
+        /// <summary>Soft additive: WorkArea id for Move／Work，或恢复处稳定 ID。</summary>
         public string TargetRef { get; set; }
         /// <summary>Soft additive: ScheduleActivity int; 0 = unset.</summary>
         public int Activity { get; set; }

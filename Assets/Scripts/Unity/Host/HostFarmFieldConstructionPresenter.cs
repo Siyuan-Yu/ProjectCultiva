@@ -21,21 +21,31 @@ namespace XianXia.Unity.Host
         int _releaseInputFrame = -1;
         string _status = string.Empty;
         OutdoorConstructedAssetState _candidate;
+        ConstructionPlacementKind _placementKind;
+        string _displayName = "农田";
 
         void Awake() => _bootstrap = GetComponent<PlayableHostBootstrap>();
         void OnDisable() => CancelPlacement();
         void OnDestroy() { CancelPlacement(); if (_sprite != null) Destroy(_sprite); }
 
         public Result BeginConstructionPlacement(string buildingId)
+            => BeginOutdoorPlacement(buildingId, ConstructionPlacementKind.FarmField, "农田");
+
+        public Result BeginRecoveryPlacement(string buildingId)
+            => BeginOutdoorPlacement(buildingId, ConstructionPlacementKind.RecoverySpot, "恢复处");
+
+        Result BeginOutdoorPlacement(string buildingId, ConstructionPlacementKind placementKind, string displayName)
         {
             var world = _bootstrap?.Session?.World;
             if (world == null || !world.ConstructionCatalog.TryGet(buildingId, out var spec) ||
-                spec.PlacementKind != ConstructionPlacementKind.FarmField)
-                return Result.Failure(ErrorCode.InvalidArgument, "农田建筑定义无效。");
+                spec.PlacementKind != placementKind)
+                return Result.Failure(ErrorCode.InvalidArgument, displayName + "建筑定义无效。");
             CancelPlacement();
             _bootstrap.GetComponent<HostFactionFlagPresenter>()?.CancelPlacement();
             _world = world;
             _spec = spec;
+            _placementKind = placementKind;
+            _displayName = displayName;
             _placing = true;
             _beganFrame = Time.frameCount;
             _status = "移动鼠标选择位置；左键建造，Esc／右键取消。";
@@ -82,8 +92,11 @@ namespace XianXia.Unity.Host
             if (Time.frameCount <= _beganFrame || !Input.GetMouseButtonDown(0) || !_legal) return;
             // Recompute both geometry and authority at confirmation time.
             if (!Prepare(point, out _candidate, out _status)) { _legal = false; return; }
-            var result = ConstructionService.TryConstructFarmField(_world, _spec.BuildingId,
-                _world.Strategic.PlayerFactionId, _candidate.SurfaceId, _candidate.WorldX, _candidate.WorldY, out _);
+            var result = _placementKind == ConstructionPlacementKind.RecoverySpot
+                ? ConstructionService.TryConstructRecoverySpot(_world, _spec.BuildingId,
+                    _world.Strategic.PlayerFactionId, _candidate.SurfaceId, _candidate.WorldX, _candidate.WorldY, out _)
+                : ConstructionService.TryConstructFarmField(_world, _spec.BuildingId,
+                    _world.Strategic.PlayerFactionId, _candidate.SurfaceId, _candidate.WorldX, _candidate.WorldY, out _);
             if (result.IsFailure) { _status = result.Error.Message; _legal = false; return; }
             _bootstrap.ContinuousOutdoorSurfaceRuntime.RefreshRuntimeConstructedPlacementsForLoadedChunks();
             FinishInputGesture();
@@ -92,7 +105,7 @@ namespace XianXia.Unity.Host
         bool Prepare(Vector3 point, out OutdoorConstructedAssetState candidate, out string reason)
         {
             candidate = null;
-            reason = "当前空间或战斗阶段不允许建造农田。";
+            reason = "当前空间或战斗阶段不允许建造" + _displayName + "。";
             var continuous = _bootstrap.ContinuousOutdoorSurfaceRuntime;
             if (continuous == null || !continuous.IsActive || _world.LocalMap.IsInInterior ||
                 _world.PlayerPartyTravel.LocationKind != PlayerPartyLocationKind.AtWorldPosition ||
@@ -102,21 +115,23 @@ namespace XianXia.Unity.Host
             var x = metric.OriginWorldX + (float)Math.Floor((wx - metric.OriginWorldX) / metric.CellSize - _spec.FootprintCellsW * .5f + .5f) * metric.CellSize;
             var y = metric.OriginWorldY + (float)Math.Floor((wy - metric.OriginWorldY) / metric.CellSize - _spec.FootprintCellsH * .5f + .5f) * metric.CellSize;
             candidate = new OutdoorConstructedAssetState {
-                StableAssetId = _world.OutdoorConstructedAssets.NextId, BuildingId = _spec.BuildingId,
+                StableAssetId = _world.OutdoorConstructedAssets.NextIdForKind(_spec.OutdoorKind), BuildingId = _spec.BuildingId,
                 Kind = _spec.OutdoorKind, SurfaceId = continuous.ActiveSurfaceId,
                 WorldX = x, WorldY = y, WorldWidth = _spec.FootprintCellsW * metric.CellSize,
                 WorldHeight = _spec.FootprintCellsH * metric.CellSize,
                 CellsW = _spec.FootprintCellsW, CellsH = _spec.FootprintCellsH,
-                BoundLocationId = "location:runtime:farm:" + _world.OutdoorConstructedAssets.NextId
+                BoundLocationId = "location:runtime:" +
+                    (_placementKind == ConstructionPlacementKind.RecoverySpot ? "recovery:" : "farm:") +
+                    _world.OutdoorConstructedAssets.NextIdForKind(_spec.OutdoorKind)
             };
-            var permission = OutdoorAdministrativeConstructionAuthorizationService.Validate(
+            var permission = OutdoorFactionConstructionAuthorizationService.Validate(
                 _world, _world.Strategic.PlayerFactionId, candidate);
             if (permission.IsFailure) { reason = permission.Error.Message; return false; }
             if (!ConstructionService.HasRequiredMaterials(_world, _spec, out _))
             { reason = "建造材料不足。"; return false; }
             if (!continuous.TryGetCompositeWalkGrid(out var grid))
             { reason = "超出当前已加载区域。"; return false; }
-            foreach (var cell in candidate.CellAnchors())
+            foreach (var cell in candidate.EnumerateGridCells())
             {
                 if (!continuous.IsWorldPositionLoaded(candidate.SurfaceId, cell.WorldX, cell.WorldY))
                 { reason = "超出当前已加载区域。"; return false; }
@@ -143,7 +158,7 @@ namespace XianXia.Unity.Host
                 if (OutdoorConstructedAssetBoard.Overlaps(existing, candidate))
                 { reason = "此处已有农田。"; return false; }
             // Flag footprints also contribute to the composite grid above.
-            reason = "此处可以建造农田。";
+            reason = "此处可以建造" + _displayName + "。";
             return true;
         }
 
@@ -163,7 +178,7 @@ namespace XianXia.Unity.Host
             if (_preview == null)
             {
                 if (_sprite == null) _sprite = Sprite.Create(Texture2D.whiteTexture, new Rect(0, 0, Texture2D.whiteTexture.width, Texture2D.whiteTexture.height), new Vector2(.5f, .5f), Texture2D.whiteTexture.width);
-                _preview = new GameObject("FarmPlacementPreview");
+                _preview = new GameObject(_displayName + "PlacementPreview");
                 _preview.transform.SetParent(transform, false);
                 _renderer = _preview.AddComponent<SpriteRenderer>();
                 _renderer.sprite = _sprite;
@@ -183,7 +198,7 @@ namespace XianXia.Unity.Host
             if (!_placing) return;
             var rect = new Rect(Screen.width - 350f, Screen.height - 150f, 338f, 136f);
             HostUiHitTest.Block(rect);
-            GUI.Box(rect, "农田 · " + _spec.FootprintCellsW + " × " + _spec.FootprintCellsH);
+            GUI.Box(rect, _displayName + " · " + _spec.FootprintCellsW + " × " + _spec.FootprintCellsH);
             GUI.Label(new Rect(rect.x + 12f, rect.y + 28f, rect.width - 24f, 38f), "左键建造　Esc／右键取消");
             GUI.color = _legal ? Color.green : new Color(1f, .45f, .4f);
             GUI.Label(new Rect(rect.x + 12f, rect.y + 65f, rect.width - 24f, 60f), (_legal ? "✓ " : "✕ ") + _status);

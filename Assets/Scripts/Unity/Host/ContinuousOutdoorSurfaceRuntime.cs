@@ -1601,7 +1601,8 @@ namespace XianXia.Unity.Host
 
         void BuildRuntimeConstructedOutdoorPlacements(SurfaceChunkCoord chunk)
         {
-            var assets = _bootstrap?.Session?.World?.OutdoorConstructedAssets;
+            var world = _bootstrap?.Session?.World;
+            var assets = world?.OutdoorConstructedAssets;
             if (assets == null) return;
             foreach (var asset in assets.Assets.Values)
             {
@@ -1611,7 +1612,10 @@ namespace XianXia.Unity.Host
                     WorldX = asset.WorldX, WorldY = asset.WorldY,
                     WorldWidth = asset.WorldWidth, WorldHeight = asset.WorldHeight,
                     SourceCellsW = asset.CellsW, SourceCellsH = asset.CellsH,
-                    BoundLocationId = asset.BoundLocationId, BlocksMovement = false, Label = "农田"
+                    BoundLocationId = asset.BoundLocationId, BlocksMovement = false,
+                    Label = world.ConstructionCatalog.TryGet(asset.BuildingId, out var spec)
+                        ? spec.DisplayName
+                        : string.Equals(asset.Kind, "recoverySpot", StringComparison.Ordinal) ? "恢复处" : "农田"
                 };
                 if (!PlacementTouchesChunk(placement, chunk)) continue;
                 var owner = SitePlacementOwnerKey(chunk, "runtime:" + asset.StableAssetId);

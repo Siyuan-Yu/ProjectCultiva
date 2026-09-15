@@ -159,7 +159,8 @@ namespace XianXia.Core.Simulation
 
                 if (action.Status == ActionStatus.Completed)
                 {
-                    _world.Events.Publish(EventType.ActionCompleted, _world.Tick, action.Subject, action.Subject, action.Id.ToString());
+                    _world.Events.Publish(EventType.ActionCompleted, _world.Tick, action.Subject, action.Subject,
+                        action is RecoveryAction ? "生命与灵力已恢复。" : action.Id.ToString());
                     ClearActive(action);
                     TryStartNext(action.Subject);
                 }

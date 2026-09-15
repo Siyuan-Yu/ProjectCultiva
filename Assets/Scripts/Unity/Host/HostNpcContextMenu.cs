@@ -74,6 +74,8 @@ namespace XianXia.Unity.Host
         bool IsLeaveInteriorTarget => _leaveInteriorTarget;
         bool IsDestructibleTarget =>
             _targetDestructible != null && !_targetDestructible.IsDestroyed;
+        bool IsRecoverySpotTarget => _worldObjectTarget.Kind == WorldObjectTargetKind.RecoverySpot &&
+                                     _worldObjectTarget.Plot != null;
         bool IsReadOnlyWorldObjectTarget =>
             _worldObjectTarget.Kind == WorldObjectTargetKind.Housing ||
             _worldObjectTarget.Kind == WorldObjectTargetKind.WorkArea;
@@ -247,6 +249,8 @@ namespace XianXia.Unity.Host
                         DrawFactionFlagMenu();
                     else if (IsDestructibleTarget)
                         DrawDestructibleMenu();
+                    else if (IsRecoverySpotTarget)
+                        DrawRecoverySpotMenu();
                     else if (IsReadOnlyWorldObjectTarget)
                         DrawReadOnlyWorldObjectMenu();
                     else
@@ -407,6 +411,113 @@ namespace XianXia.Unity.Host
             if (GUI.Button(new Rect(guiX + 8f, y, w - 16f, itemH - 4f), verb, _button))
                 BeginDestructibleAttack();
             TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        void DrawRecoverySpotMenu()
+        {
+            const float w = 184f;
+            const float itemH = 30f;
+            var h = itemH * 2f + 34f;
+            var x = Mathf.Clamp(_menuScreen.x, 4f, Screen.width - w - 4f);
+            var y = Mathf.Clamp(Screen.height - _menuScreen.y, 4f, Screen.height - h - 4f);
+            _menuGuiRect = new Rect(x, y, w, h);
+            HostUiHitTest.Block(_menuGuiRect);
+            Fill(_menuGuiRect, Panel);
+            DrawFrame(_menuGuiRect, Border);
+            GUI.Label(new Rect(x + 10f, y + 6f, w - 20f, 22f), "恢复处", _label);
+            if (GUI.Button(new Rect(x + 8f, y + 30f, w - 16f, itemH - 4f), "查看详情", _button))
+                ShowWorldObjectDetails();
+            if (GUI.Button(new Rect(x + 8f, y + 60f, w - 16f, itemH - 4f), "休息恢复", _button))
+                BeginRecoverySpot();
+            TryDismissOnOutsideClick(_menuGuiRect);
+        }
+
+        void BeginRecoverySpot()
+        {
+            var actor = _actor;
+            var plot = _worldObjectTarget.Plot;
+            var stableId = plot != null ? plot.StableCellId : string.Empty;
+            var destination = plot != null ? plot.transform.position : Vector3.zero;
+            var message = string.Empty;
+            CloseAll();
+            if (actor.IsNone || string.IsNullOrWhiteSpace(stableId) || !CanBeginRecovery(actor, out message))
+            {
+                ShowRecoveryFeedback(actor, string.IsNullOrEmpty(message) ? "恢复处不可用。" : message, false);
+                return;
+            }
+            if (bootstrap.ViewSpawner != null && bootstrap.ViewSpawner.Registry.TryGet(actor, out var view) &&
+                view != null && Vector3.Distance(view.transform.position, destination) > 1.5f)
+            {
+                if (moveController == null || !moveController.OrderEntityToWorldPointPublic(actor, destination,
+                        () => CompleteRecoverySpotApproach(actor, stableId)))
+                    ShowRecoveryFeedback(actor, "无法前往恢复处。", false);
+                return;
+            }
+            CompleteRecoverySpotApproach(actor, stableId);
+        }
+
+        void CompleteRecoverySpotApproach(EntityId actor, string stableId)
+        {
+            var message = string.Empty;
+            if (!TryFindRecoverySpot(stableId, out _) || !CanBeginRecovery(actor, out message))
+            {
+                ShowRecoveryFeedback(actor, string.IsNullOrEmpty(message) ? "恢复处已不可用。" : message, false);
+                return;
+            }
+            var issued = bootstrap.CommandBridge != null &&
+                         bootstrap.CommandBridge.IssueRecovery(actor, stableId) > 0;
+            if (!issued)
+            {
+                ShowRecoveryFeedback(actor, bootstrap.CommandBridge?.LastStatus ?? "恢复指令失败。", false);
+                return;
+            }
+            if (bootstrap.Session.ManualPaused && !bootstrap.Session.ModalHardPaused)
+                bootstrap.Session.ManualPaused = false;
+            ShowRecoveryFeedback(actor, "开始恢复（30分钟）", true);
+        }
+
+        bool CanBeginRecovery(EntityId actor, out string message)
+        {
+            message = string.Empty;
+            var world = bootstrap?.Session?.World;
+            if (world == null || world.Strategic.CharacterEncounter?.Phase == CharacterEncounterPhase.Active ||
+                world.Strategic.ClockFreeze.Reason != StrategicClockFreezeReason.None)
+            {
+                message = "战斗中不可使用。";
+                return false;
+            }
+            if (!world.Entities.TryGet(actor, out var entity))
+            {
+                message = "恢复角色不存在。";
+                return false;
+            }
+            var can = CombatRecoveryService.CanRecover(entity);
+            if (can.IsFailure) message = can.Error.Message;
+            return can.IsSuccess;
+        }
+
+        static bool TryFindRecoverySpot(string stableId, out HostMapPlotCell plot)
+        {
+            plot = null;
+            var plots = HostMapObjectRegistry.AllPlots;
+            for (var i = 0; i < plots.Count; i++)
+                if (plots[i] != null && plots[i].IsRecoverySpot &&
+                    string.Equals(plots[i].StableCellId, stableId, System.StringComparison.Ordinal))
+                {
+                    plot = plots[i];
+                    return true;
+                }
+            return false;
+        }
+
+        void ShowRecoveryFeedback(EntityId actor, string message, bool success)
+        {
+            var overlay = bootstrap != null ? bootstrap.GetComponent<HostFeedbackOverlay>() : null;
+            if (overlay != null)
+                overlay.SpawnAtEntity(bootstrap.ViewSpawner, actor, message,
+                    success ? new Color(.35f, .95f, .85f, 1f) : new Color(1f, .65f, .3f, 1f));
+            else
+                Debug.Log("[RecoverySpot] " + message);
         }
 
         void DrawContextMenu()

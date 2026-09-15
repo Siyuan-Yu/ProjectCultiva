@@ -19,6 +19,8 @@ namespace XianXia.Core.Orders
         /// <summary>NPC Simulation: travel to WorkArea／Location.</summary>
         Move = 6,
         /// <summary>NPC Simulation: on-site schedule work after Move.</summary>
-        Work = 7
+        Work = 7,
+        /// <summary>在恢复处将生命与灵力恢复至当前上限。</summary>
+        Recover = 8
     }
 }

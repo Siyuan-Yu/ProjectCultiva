@@ -1,6 +1,8 @@
 using System.Text;
 using UnityEngine;
 using XianXia.Core.Combat;
+using XianXia.Core.Attributes;
+using XianXia.Core.Entities;
 using XianXia.Core.Exploration;
 using XianXia.Core.World.Strategic;
 
@@ -54,6 +56,7 @@ namespace XianXia.Unity.Host
         bool _resetConfirmPending;
         string _sessionStatus = string.Empty;
         string _snapshotStatus = string.Empty;
+        string _partyCombatCheatStatus = string.Empty;
         Vector2 _tabScroll;
         Rect _panelRect;
         bool _panelRectInitialized;
@@ -301,6 +304,22 @@ namespace XianXia.Unity.Host
 
         void DrawBattleTab(float x, float y, float width)
         {
+            GUI.Label(new Rect(x, y, width, 22f), "我方角色数值作弊", _title);
+            y += 26f;
+            var buttonWidth = (width - 12f) / 3f;
+            if (GUI.Button(new Rect(x, y, buttonWidth, 24f), "我方全员攻击 +10"))
+                ApplyPartyAttributeCheat(AttributeId.Attack, 10, refill: false);
+            if (GUI.Button(new Rect(x + buttonWidth + 6f, y, buttonWidth, 24f), "最大生命 +50 并回满"))
+                ApplyPartyAttributeCheat(AttributeId.MaxHp, 50, refill: true);
+            if (GUI.Button(new Rect(x + (buttonWidth + 6f) * 2f, y, buttonWidth, 24f), "生命／灵力回满"))
+                RefillPartyCombatPools();
+            y += 28f;
+            if (!string.IsNullOrEmpty(_partyCombatCheatStatus))
+            {
+                GUI.Label(new Rect(x, y, width, 22f), _partyCombatCheatStatus, _body);
+                y += 26f;
+            }
+
             var forceSolo = AutoBattleCasualtyService.DebugForceSoloAutoBattleIncapacitated;
             var next = GUI.Toggle(
                 new Rect(x, y, width, 22f),
@@ -339,6 +358,27 @@ namespace XianXia.Unity.Host
                 var summary = BattleEngagementAuthorityDebug.BuildSummary(world);
                 GUI.Label(new Rect(x, y, width, 360f), summary, _body);
             }
+        }
+
+        void ApplyPartyAttributeCheat(AttributeId attribute, int delta, bool refill)
+        {
+            var world = bootstrap?.Session?.World;
+            var members = bootstrap?.Session?.PlayerParty?.Members;
+            var result = attribute == AttributeId.Attack
+                ? LevelTesterPartyCombatCheats.AddAttack(world, members)
+                : LevelTesterPartyCombatCheats.AddMaxHpAndRefill(world, members);
+            _partyCombatCheatStatus = "上次数值作弊：" +
+                (attribute == AttributeId.Attack ? "攻击 +10" : "最大生命 +50 并回满") +
+                "　成功 " + result.Succeeded + " / 跳过 " + result.Skipped;
+        }
+
+        void RefillPartyCombatPools()
+        {
+            var world = bootstrap?.Session?.World;
+            var members = bootstrap?.Session?.PlayerParty?.Members;
+            var result = LevelTesterPartyCombatCheats.Refill(world, members);
+            _partyCombatCheatStatus = "上次数值作弊：生命／灵力回满　成功 " +
+                                      result.Succeeded + " / 跳过 " + result.Skipped;
         }
 
         void DrawDiagnosticsTab(float x, float y, float width)

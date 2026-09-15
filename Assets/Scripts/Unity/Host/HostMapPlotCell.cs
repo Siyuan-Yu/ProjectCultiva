@@ -42,6 +42,10 @@ namespace XianXia.Unity.Host
             string.Equals(kind, "herbField", System.StringComparison.OrdinalIgnoreCase) ||
             string.Equals(kind, "grainField", System.StringComparison.OrdinalIgnoreCase);
 
+        public bool IsRecoverySpot =>
+            interactKind == HostInteractSpotKind.Recovery ||
+            string.Equals(kind, "recoverySpot", System.StringComparison.OrdinalIgnoreCase);
+
         public void Configure(
             SimulationWorld world,
             string stableId,
@@ -145,6 +149,8 @@ namespace XianXia.Unity.Host
 
         public void RefreshCropVisual()
         {
+            if (!IsPlantableField)
+                return;
             var sr = GetComponentInChildren<SpriteRenderer>();
             if (sr == null)
                 return;
@@ -230,6 +236,7 @@ namespace XianXia.Unity.Host
             {
                 case "herbField": return "药田格";
                 case "grainField": return "农田格";
+                case "recoveryspot": return "恢复处";
                 case "loot": return "地上物";
                 case "cushion": return "蒲团";
                 case "ore":

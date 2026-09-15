@@ -553,4 +553,6 @@ QuestStarted／Completed → 任务提醒弹层（读 `name`／`description`）�
 
 `placementKind = "factionFlag"` 的势力控制建筑沿用 `costs[]` 与 `dismantleRefundRate`。当 `createsWorldSite = true` 时，它是新建 WorldSite 的唯一核心，并必须同时配置：`createdSiteName`、`createdSiteType`、正整数 `initialSiteLevel`、正数 `siteRangeWidth`／`siteRangeHeight`。范围数值使用 Continuous World 世界单位，由 Content loader 验证并映射到 `ConstructionCatalog`；运行时不得另用硬编码 Hex 圈替代。
 
+`placementKind = "recoverySpot"` 表示 2×2 室外恢复处：`createsWorldSite` 必须为 `false`，`outdoorKind` 必须为 `recoverySpot`，且 `footprintCellsW/H` 必须为 `2`。恢复处只保存稳定物理身份，不创建行政资产锚点；使用它不要求所属势力，但建造时整个 footprint 必须位于玩家势力的 Actual Control 内。
+
 BaseGame 当前一级新建据点范围为 `4.2 × 2.8` 世界单位，属于 CW-03 的可调内容参数，不是所有 Site／等级的永久常量。

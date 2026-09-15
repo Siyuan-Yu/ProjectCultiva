@@ -36,6 +36,8 @@ namespace XianXia.Core.Input
         /// <summary>Leave current LocalMap interior back to overworld.</summary>
         LeaveLocalMap = 18,
         /// <summary>勘查洞口（TargetLocationId＝入口地点）。</summary>
-        SurveyEntrance = 19
+        SurveyEntrance = 19,
+        /// <summary>在指定恢复处完成定时恢复（TargetLocationId＝恢复处稳定 ID）。</summary>
+        Recover = 20
     }
 }

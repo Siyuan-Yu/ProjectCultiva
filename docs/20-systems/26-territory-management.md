@@ -249,6 +249,12 @@ CW-05A、CW-05B 与 CW-05 Closing Slice 正式 **Producer Accepted / Sealed**。
 
 `CoreIsRemovable=true` 的势力旗被击毁即移除物理旗、令原 Site inactive；保留原 Owner 与 Claim 历史，不占领、不自动变成己方旗。攻方通过正常建造建立新旗、新 Site 和新 Claim。资产继续存在，行政管理者由原 CW-05 查询动态接续。
 
+## 2026-09-15：恢复处 Utility Building
+
+`base:building_recovery_spot` 是正式 2×2 Continuous Outdoor 普通建筑，成本为粗木 5，`createsWorldSite=false`。玩家建造时整个 footprint 必须落在玩家势力当前 Actual Control 内；可跨两个同势力 Site 的管理边界，但无主或敌方管理格会拒绝。恢复处没有行政锚点，也不进入农田状态与 Site Economy。
+
+恢复处建成后通过通用 `OutdoorConstructedAssetBoard` 保留稳定物理身份，立即参与当前已加载 chunk 的 materialization，并沿用同一 snapshot DTO 保存。使用恢复处不检查所属势力：玩家右键选择“休息恢复”，抵达中心后执行 6 WorldTicks（游戏内 30 分钟）的 `RecoveryAction`，完成时把当前生命与当前灵力写到角色现有上限；弥留、死亡、Removed 或战斗冻结期间不可使用。本轮不提供恢复处拆除、床位、收费、NPC 自动使用或医疗系统。
+
 正常玩家入口统一为 SiteCore Warfare → real Character/Squad → CharacterEncounter，退出两条旧 Siege/BattleOffer 编排。按精确 Surface/WorldPosition、目标 Site 等级范围和 War side 选守军，最近者优先、EntityId 升序打破平局。战中目标仍限定同一 frozen range，最多一个未完成 Site 目标；新守军追加原 roster，不回血、不重置冷却或候选。
 
 目标捕获或摧毁完成可 ReadyToEnd；击倒敌人也可 ReadyToEnd，但不自动占地。ReadyToEnd 仍可攻击与占领当前目标。仅玩家发起 SiteCore 战争属于本轮；NPC 自动攻城、普通建筑战争、产权及居民政治后果延期。

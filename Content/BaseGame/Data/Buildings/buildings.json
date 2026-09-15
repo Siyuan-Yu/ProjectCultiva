@@ -38,6 +38,25 @@
           "count": 5
         }
       ]
+    },
+    {
+      "id": "base:building_recovery_spot",
+      "type": "building",
+      "name": "恢复处",
+      "description": "在此休息一段时间，可将生命与灵力恢复至当前上限。",
+      "unlockedByDefault": true,
+      "placementKind": "recoverySpot",
+      "createsWorldSite": false,
+      "outdoorKind": "recoverySpot",
+      "footprintCellsW": 2,
+      "footprintCellsH": 2,
+      "dismantleRefundRate": 0.0,
+      "costs": [
+        {
+          "itemId": "base:resource_rough_wood",
+          "count": 5
+        }
+      ]
     }
   ]
 }

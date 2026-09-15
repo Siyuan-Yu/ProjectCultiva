@@ -6,7 +6,8 @@ namespace XianXia.Core.Construction
     public enum ConstructionPlacementKind
     {
         FactionFlag = 0,
-        FarmField = 1
+        FarmField = 1,
+        RecoverySpot = 2
     }
 
     public sealed class ConstructionMaterialCost

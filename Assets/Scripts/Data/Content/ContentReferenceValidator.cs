@@ -785,13 +785,18 @@ namespace XianXia.Data.Content
                 var building = kv.Value;
                 if (building == null)
                     continue;
-                if (building.PlacementKind != "factionFlag" && building.PlacementKind != "farmField")
+                if (building.PlacementKind != "factionFlag" && building.PlacementKind != "farmField" &&
+                    building.PlacementKind != "recoverySpot")
                     report.Add(ErrorCode.InvalidArgument, "Unknown building placementKind.",
                         building.Id + ".placementKind:" + building.PlacementKind);
                 if (building.PlacementKind == "farmField" && (building.CreatesWorldSite ||
                     !XianXia.Core.Exploration.OutdoorAdministrativeAssetSemantics.IsAdministrativeAssetKind(building.OutdoorKind) ||
                     building.FootprintCellsW <= 0 || building.FootprintCellsH <= 0))
                     report.Add(ErrorCode.InvalidArgument, "Invalid farmField kind, dimensions or createsWorldSite.", building.Id.ToString());
+                if (building.PlacementKind == "recoverySpot" && (building.CreatesWorldSite ||
+                    !string.Equals(building.OutdoorKind, "recoverySpot", StringComparison.Ordinal) ||
+                    building.FootprintCellsW != 2 || building.FootprintCellsH != 2))
+                    report.Add(ErrorCode.InvalidArgument, "Invalid recoverySpot kind, 2x2 dimensions or createsWorldSite.", building.Id.ToString());
                 if (building.Costs == null)
                     continue;
                 for (var i = 0; i < building.Costs.Count; i++)

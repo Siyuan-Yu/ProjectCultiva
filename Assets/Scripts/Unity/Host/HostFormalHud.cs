@@ -575,6 +575,9 @@ namespace XianXia.Unity.Host
                 case WorldObjectInspectKind.Plot:
                     DrawInspectPlot(session, inspect.Plot);
                     break;
+                case WorldObjectInspectKind.RecoverySpot:
+                    DrawInspectRecoverySpot(session, inspect.Plot);
+                    break;
                 case WorldObjectInspectKind.Destructible:
                     DrawInspectDestructible(inspect.Destructible);
                     break;
@@ -781,6 +784,22 @@ namespace XianXia.Unity.Host
                         (string.IsNullOrEmpty(plot.Label) ? "" : " · " + plot.Label),
                         _body);
                 }
+            });
+        }
+
+        void DrawInspectRecoverySpot(PlayableHostSession session, HostMapPlotCell plot)
+        {
+            if (plot == null) return;
+            var blocked = session?.World?.Strategic?.CharacterEncounter?.Phase ==
+                          XianXia.Core.World.Strategic.CharacterEncounterPhase.Active;
+            DrawInspectShell(154f, "恢复处", () =>
+            {
+                var r = new Rect(Pad, TopH + 42f, 320f, 154f);
+                GUI.Label(new Rect(r.x + 10f, r.y + 36f, r.width - 20f, 42f),
+                    "休息30分钟后恢复生命与灵力至当前上限。", _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 80f, r.width - 20f, 20f), "耗时：30分钟", _body);
+                GUI.Label(new Rect(r.x + 10f, r.y + 104f, r.width - 20f, 20f),
+                    blocked ? "战斗中不可使用" : "可使用", _body);
             });
         }
 
@@ -2142,6 +2161,7 @@ namespace XianXia.Unity.Host
             if (action is LaborAction) return "工作中";
             if (action is CultivateAction) return "修炼中";
             if (action is RestAction) return "休息中";
+            if (action is RecoveryAction) return "恢复中";
             if (action is ObserveAction) return "观察中";
             if (action is WaitAction) return "待命";
             return "行动中";

@@ -57,7 +57,7 @@ namespace XianXia.Core.Input
 
         public ulong DurationTicks { get; }
 
-        /// <summary>VS0.9: used when Kind == Travel.</summary>
+        /// <summary>Travel 的地点 ID，或有目标世界交互的稳定引用（例如恢复处 ID）。</summary>
         public string TargetLocationId { get; }
 
         /// <summary>Content Ready: used when Kind == ResolveContentChoice.</summary>

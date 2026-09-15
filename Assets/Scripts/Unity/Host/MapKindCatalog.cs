@@ -130,6 +130,8 @@ namespace XianXia.Unity.Host
                 new UnityEngine.Color(0.30f, 0.62f, 0.38f)),
             new("grainField", Farm, StampMode.PerCell, 16, 12, true, HostInteractSpotKind.Work,
                 new UnityEngine.Color(0.72f, 0.66f, 0.28f)),
+            new("recoverySpot", Cushion, StampMode.SingleCentered, 2, 2, false, HostInteractSpotKind.Recovery,
+                new UnityEngine.Color(0.18f, 0.78f, 0.78f)),
             new("road", Road, StampMode.PerCell, RoadFootprint, RoadFootprint, false, null,
                 new UnityEngine.Color(0.55f, 0.45f, 0.32f)),
             new("wall", Wall, StampMode.PerCell, DefaultWallLen, DefaultWallThickness, false, null,
