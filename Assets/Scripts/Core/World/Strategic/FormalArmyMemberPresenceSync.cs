@@ -81,11 +81,21 @@ namespace XianXia.Core.World.Strategic
             if (motion.LocationKind == FormalArmyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(motion.SiteId))
             {
-                world.WorldPresence.SetAtSiteWithAnchor(memberId, motion.SiteId, motion.WorldPosition);
+                var siteSurface = motion.SurfaceId;
+                if (string.IsNullOrEmpty(siteSurface) &&
+                    world.SurfaceGround.TryResolveSiteArrival(motion.SiteId, out var resolvedSurface, out _))
+                    siteSurface = resolvedSurface;
+                world.WorldPresence.SetAtSiteWithAnchor(memberId, motion.SiteId,
+                    motion.WorldPosition, siteSurface);
                 return;
             }
 
-            world.WorldPresence.SetAtWorldPosition(memberId, motion.WorldPosition, motion.CurrentHex);
+            var worldSurface = motion.SurfaceId;
+            if (string.IsNullOrEmpty(worldSurface) &&
+                world.SurfaceGround.TryResolveContaining(motion.WorldPosition, out var navigation))
+                worldSurface = navigation.SurfaceId;
+            world.WorldPresence.SetAtWorldPosition(memberId, motion.WorldPosition,
+                motion.CurrentHex, worldSurface);
         }
 
         /// <summary>

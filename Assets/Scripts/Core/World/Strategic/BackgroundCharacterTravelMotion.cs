@@ -12,6 +12,7 @@ namespace XianXia.Core.World.Strategic
     public sealed class BackgroundCharacterTravelMotion
     {
         readonly List<HexCoord> _hexPath = new List<HexCoord>(32);
+        readonly List<WorldVec2> _surfacePath = new List<WorldVec2>(64);
         ReadOnlyCollection<HexCoord> _hexPathView;
 
         public BackgroundCharacterTravelMovementKind MovementKind { get; private set; } =
@@ -20,6 +21,10 @@ namespace XianXia.Core.World.Strategic
         public HexTravelMode TravelMode { get; private set; } = HexTravelMode.Ground;
         public HexCoord DestinationHex { get; private set; }
         public string DestinationSiteId { get; private set; } = string.Empty;
+        public bool IsSurfaceRoute => _surfacePath.Count > 0 && IsMoving;
+        public IReadOnlyList<WorldVec2> SurfacePath => _surfacePath;
+        public string SurfaceId { get; private set; } = string.Empty;
+        public WorldVec2 SurfaceDestination { get; private set; }
         public int SegmentIndex { get; private set; }
         public float SegmentProgress { get; private set; }
 
@@ -47,6 +52,9 @@ namespace XianXia.Core.World.Strategic
         public void ClearTravel()
         {
             _hexPath.Clear();
+            _surfacePath.Clear();
+            SurfaceId = string.Empty;
+            SurfaceDestination = default;
             SegmentIndex = 0;
             SegmentProgress = 0f;
             LastProcessedWorldTick = 0;
@@ -76,6 +84,8 @@ namespace XianXia.Core.World.Strategic
             HexTravelMode mode)
         {
             TravelMode = mode;
+            _surfacePath.Clear();
+            SurfaceId = string.Empty;
             DestinationHex = destinationHex;
             DestinationSiteId = destinationSiteId ?? string.Empty;
             _hexPath.Clear();
@@ -94,6 +104,27 @@ namespace XianXia.Core.World.Strategic
             }
 
             MovementKind = BackgroundCharacterTravelMovementKind.Traveling;
+        }
+
+        public void BeginSurfaceTravel(IReadOnlyList<WorldVec2> route,
+            string surfaceId, WorldVec2 destination, string destinationSiteId)
+        {
+            ClearTravel();
+            if (route == null || route.Count < 1) return;
+            for (var i = 0; i < route.Count; i++) _surfacePath.Add(route[i]);
+            SurfaceId = surfaceId ?? string.Empty;
+            SurfaceDestination = destination;
+            DestinationSiteId = destinationSiteId ?? string.Empty;
+            SegmentIndex = _surfacePath.Count > 1 ? 1 : 0;
+            MovementKind = BackgroundCharacterTravelMovementKind.Traveling;
+        }
+
+        public bool TryGetSurfaceWaypoint(out WorldVec2 waypoint)
+        {
+            waypoint = default;
+            if (!IsSurfaceRoute || SegmentIndex >= _surfacePath.Count) return false;
+            waypoint = _surfacePath[SegmentIndex];
+            return true;
         }
 
         public void BeginSiteDepartureTravel(

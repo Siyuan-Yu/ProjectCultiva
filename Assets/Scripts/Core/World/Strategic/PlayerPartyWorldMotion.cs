@@ -32,7 +32,7 @@ namespace XianXia.Core.World.Strategic
 
     /// <summary>
     /// PlayerParty 世界位置 + 移动状态真源（Phase 2C）。
-    /// WorldPosition 为开世界真源；CurrentHex 由 WorldToHex 派生；AtWorldSite 时投影 PresenceHex。
+    /// WorldPosition 为开世界真源；CurrentHex 只是在 HexWorld 存在时派生的 compatibility metadata。
     /// </summary>
     public sealed class PlayerPartyWorldMotion
     {
@@ -403,12 +403,6 @@ namespace XianXia.Core.World.Strategic
             IReadOnlyList<WorldVec2> surfaceRoute)
         {
             LoadAutoTravelPlan(path, destinationHex, destinationSiteId, mode);
-            if (_hexPath.Count < 1)
-            {
-                CompleteMove();
-                return;
-            }
-
             HasContinuousPhysicalDestination = true;
             ContinuousPhysicalDestination = physicalDestination;
             ContinuousPhysicalArrivalRadius = Math.Max(0.001f, physicalArrivalRadius);

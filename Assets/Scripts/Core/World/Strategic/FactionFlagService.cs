@@ -146,7 +146,8 @@ namespace XianXia.Core.World.Strategic
                         return Result.Failure(ErrorCode.InvalidOperation,
                             "此位置已存在另一个核心实体。");
                 }
-                else if (!site.HasContinuousCore && site.OccupiesHex(request.StrategicAnchor))
+                else if (!ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                         !site.HasContinuousCore && site.OccupiesHex(request.StrategicAnchor))
                     return Result.Failure(ErrorCode.InvalidOperation, "此处属于现有预设据点，不能建立第二核心。");
             }
 
@@ -156,6 +157,10 @@ namespace XianXia.Core.World.Strategic
                 !string.Equals(manager.OwnerFactionId, factionId, StringComparison.Ordinal))
                 return Result.Failure(ErrorCode.InvalidOperation,
                     "敌对/其它势力实际控制范围内不能建立势力旗。");
+            // Hex coverage is only a compatibility/debug summary for a normal continuous
+            // placement; it is not a legality prerequisite or an identity source.
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+                return Result.Success();
             var probe = new WorldSite
             {
                 AnchorHex = request.StrategicAnchor,
@@ -193,8 +198,9 @@ namespace XianXia.Core.World.Strategic
         public static string NextRuntimeFlagId(SimulationWorld world, string factionId, HexCoord anchor)
         {
             var owner = string.IsNullOrEmpty(factionId) ? "unknown" : factionId.Replace(':', '_');
-            var stem = "flag:runtime:" + owner + ":" + anchor.Q.ToString(CultureInfo.InvariantCulture) +
-                       ":" + anchor.R.ToString(CultureInfo.InvariantCulture) + ":";
+            // MAP-03: new runtime identities never encode a derived Hex coordinate.  The
+            // retained argument preserves legacy callers and old snapshot identifiers.
+            var stem = "flag:runtime:" + owner + ":";
             var suffix = world?.Entities?.Ids.Next().Value ?? 1UL;
             while (world?.Strategic != null &&
                    world.Strategic.FactionFlags.Flags.ContainsKey(stem + suffix.ToString(CultureInfo.InvariantCulture)))
@@ -229,12 +235,16 @@ namespace XianXia.Core.World.Strategic
             if (valid.IsFailure) return valid;
             if (string.IsNullOrEmpty(siteId) || initialLevel < 1)
                 return Result.Failure(ErrorCode.InvalidArgument, "新据点身份或等级无效。");
+            // Compatibility topology is derived from the canonical Surface point. Never trust
+            // a caller-provided StrategicAnchor in normal Continuous Outdoor placement.
+            var compatibilityAnchor = ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world)
+                ? HexMath.WorldToHex(request.WorldPosition.X, request.WorldPosition.Y,
+                    world.HexWorld?.HexSize > 0f ? world.HexWorld.HexSize : 1f)
+                : request.StrategicAnchor;
             var site = new WorldSite
             {
                 SiteId = siteId,
-                DisplayName = (string.IsNullOrWhiteSpace(displayName) ? "新建据点" : displayName.Trim()) +
-                              "（" + request.StrategicAnchor.Q.ToString(CultureInfo.InvariantCulture) + "," +
-                              request.StrategicAnchor.R.ToString(CultureInfo.InvariantCulture) + "）",
+                DisplayName = string.IsNullOrWhiteSpace(displayName) ? "新建据点" : displayName.Trim(),
                 SiteType = string.IsNullOrWhiteSpace(siteType) ? "Outpost" : siteType.Trim(),
                 OwnerFactionId = factionId,
                 ControlEstablishedOrder = establishedOrder,
@@ -250,11 +260,11 @@ namespace XianXia.Core.World.Strategic
                 CoreRangeHeight = controlRange.HeightWorld,
                 IsCoreActive = true,
                 CoreIsRemovable = true,
-                AnchorHex = request.StrategicAnchor,
-                PresenceHex = request.StrategicAnchor,
+                AnchorHex = compatibilityAnchor,
+                PresenceHex = compatibilityAnchor,
                 LocalMapId = string.Empty
             };
-            site.SetFootprint(new[] { request.StrategicAnchor });
+            site.SetFootprint(new[] { compatibilityAnchor });
             try { world.Strategic.Sites.Register(site); }
             catch (Exception ex)
             {
@@ -264,7 +274,7 @@ namespace XianXia.Core.World.Strategic
             {
                 FlagId = flagId,
                 FactionId = factionId,
-                AnchorHex = request.StrategicAnchor,
+                AnchorHex = compatibilityAnchor,
                 EstablishedOrder = establishedOrder,
                 CurrentHp = 100,
                 MaxHp = 100,

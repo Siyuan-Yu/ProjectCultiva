@@ -583,6 +583,18 @@ namespace XianXia.Core.World.Strategic
             // so Auto never falls back to legacy ExplicitEncounterMap lifecycle.
             participants.LocalMapResolutionKind = mapResolution.Kind;
 
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+            {
+                if (!string.IsNullOrEmpty(participants.AttackerArmyId) &&
+                    world.Strategic.FormalArmies.TryGet(participants.AttackerArmyId, out var attacker) &&
+                    attacker?.WorldMotion?.HasPosition == true)
+                    ArmyHexBattleAnchorService.TrySetWorldAnchor(
+                        world, participants, attacker.WorldMotion.WorldPosition);
+                else if (world.PlayerPartyTravel?.HasPosition == true)
+                    ArmyHexBattleAnchorService.TrySetWorldAnchor(
+                        world, participants, world.PlayerPartyTravel.WorldPosition);
+            }
+
             PromoteInRangeIncapacitatedToMandatory(world, participants);
             var selected = participants.CollectSelectedFriendly();
             offer.SetPlayerParty(selected);
@@ -688,6 +700,20 @@ namespace XianXia.Core.World.Strategic
                     world, snap, snap.AttackerArmyId, playerParty);
             }
 
+            // A normal outdoor encounter freezes its actual contact point. The Hex anchor
+            // above remains a legacy/derived value, not the return or residual authority.
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+            {
+                if (!string.IsNullOrEmpty(snap.AttackerArmyId) &&
+                    world.Strategic.FormalArmies.TryGet(snap.AttackerArmyId, out var contactArmy) &&
+                    contactArmy?.WorldMotion?.HasPosition == true)
+                    ArmyHexBattleAnchorService.TrySetWorldAnchor(
+                        world, snap, contactArmy.WorldMotion.WorldPosition);
+                else if (world.PlayerPartyTravel?.HasPosition == true)
+                    ArmyHexBattleAnchorService.TrySetWorldAnchor(
+                        world, snap, world.PlayerPartyTravel.WorldPosition);
+            }
+
             // 残留再进：半径内我方弥留一律强制参战、不可勾�?
             PromoteInRangeIncapacitatedToMandatory(world, snap);
             // 必须用本场残�?Hex（如 H1），禁止被最新场 H2 顶掉
@@ -763,13 +789,23 @@ namespace XianXia.Core.World.Strategic
                     continue;
                 if ((ent.Tags & EntityTag.Npc) != 0)
                     continue;
-                if (!ArmyHexBattleAnchorService.TryGetBattleAnchorHex(snap, out var anchorHex))
-                    continue;
-                if (!ReinforcementRangeService.IsWithinReinforcementRange(
-                        world,
-                        wp,
-                        anchorHex))
-                    continue;
+                if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                    snap.HasBattleAnchorWorldPosition)
+                {
+                    if (!wp.HasContinuousWorldPosition ||
+                        !string.Equals(wp.PersonalSurfaceId, snap.BattleAnchorSurfaceId,
+                            StringComparison.Ordinal) ||
+                        WorldVec2.Distance(wp.ContinuousWorldPosition,
+                            new WorldVec2(snap.BattleAnchorWorldX, snap.BattleAnchorWorldY)) >
+                        ReinforcementRangeService.GetWorldRadius(world))
+                        continue;
+                }
+                else
+                {
+                    if (!ArmyHexBattleAnchorService.TryGetBattleAnchorHex(snap, out var anchorHex) ||
+                        !ReinforcementRangeService.IsWithinReinforcementRange(world, wp, anchorHex))
+                        continue;
+                }
                 if (snap.FindByEntity(id) != null)
                     continue;
 
@@ -864,6 +900,10 @@ namespace XianXia.Core.World.Strategic
             dst.OfferId = src.OfferId;
             dst.BattleAnchorHexQ = src.BattleAnchorHexQ;
             dst.BattleAnchorHexR = src.BattleAnchorHexR;
+            dst.HasBattleAnchorWorldPosition = src.HasBattleAnchorWorldPosition;
+            dst.BattleAnchorWorldX = src.BattleAnchorWorldX;
+            dst.BattleAnchorWorldY = src.BattleAnchorWorldY;
+            dst.BattleAnchorSurfaceId = src.BattleAnchorSurfaceId;
             dst.PrimaryEnemyStackId = src.PrimaryEnemyStackId;
             dst.AttackerArmyId = src.AttackerArmyId;
             dst.DefenderArmyId = src.DefenderArmyId;

@@ -133,6 +133,18 @@ namespace XianXia.Data.Bootstrap
             // 位置权威（它保留给 old save / legacy LocalMap / migration tooling）。
             if (site != null && WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site))
             {
+                // MAP-03 normal opening authority is the checked-in continuous anchor.  A
+                // LocalMap presentation coordinate remains a legacy migration input only.
+                if (registry != null &&
+                    ContinuousOutdoorStartupPlanner.TryResolveSurfaceForSite(
+                        registry, site.SiteId, out var surface, out _) &&
+                    world.OpeningSpawnIdentities.TryGetSpawnKey(entityId, out var spawnKey) &&
+                    ContinuousOutdoorOpeningAnchorResolver.TryGetBakedEntityAnchor(
+                        surface, site.SiteId, spawnKey, out var continuousAnchor))
+                {
+                    world.WorldPresence.SetAtSiteWithAnchor(entityId, site.SiteId, continuousAnchor);
+                    return;
+                }
                 world.WorldPresence.SetAtSite(entityId, site.SiteId);
                 return;
             }

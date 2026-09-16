@@ -13,6 +13,7 @@ namespace XianXia.Core.World.Strategic
         public const string ReasonMissingInitiatorHex = "MissingInitiatorHex";
         public const string ReasonMissingDefenderBattleArea = "MissingDefenderBattleArea";
         public const string ReasonAdjacentToBattleArea = "AdjacentToBattleArea";
+        public const string ReasonWorldContact = "ContinuousWorldContact";
 
         public static bool CanTriggerEngagement(
             SimulationWorld world,
@@ -23,6 +24,28 @@ namespace XianXia.Core.World.Strategic
             triggerReason = string.Empty;
             if (world?.Strategic == null)
                 return false;
+
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                world.Strategic.FormalArmies.TryGet(initiatorFormalArmyId, out var surfaceInitiator) &&
+                world.Strategic.FormalArmies.TryGet(defenderFormalArmyId, out var surfaceDefender) &&
+                ((surfaceInitiator?.WorldMotion?.HasPosition == true &&
+                  world.SurfaceGround.TryResolveContaining(
+                      surfaceInitiator.WorldMotion.WorldPosition, out _)) ||
+                 (surfaceDefender?.WorldMotion?.HasPosition == true &&
+                  world.SurfaceGround.TryResolveContaining(
+                      surfaceDefender.WorldMotion.WorldPosition, out _))))
+            {
+                if (!world.Strategic.FormalArmies.TryGet(initiatorFormalArmyId, out var initiator) ||
+                    !world.Strategic.FormalArmies.TryGet(defenderFormalArmyId, out var defender) ||
+                    initiator?.WorldMotion?.HasPosition != true ||
+                    defender?.WorldMotion?.HasPosition != true)
+                {
+                    triggerReason = ReasonMissingDefenderBattleArea;
+                    return false;
+                }
+                return TryWorldContact(world, initiator.WorldMotion.WorldPosition,
+                    defender.WorldMotion.WorldPosition, out triggerReason);
+            }
 
             if (!BattleEngagementSpatialQuery.TryGetCommittedArmyHex(
                     world, initiatorFormalArmyId, out var initiatorHex))
@@ -54,6 +77,26 @@ namespace XianXia.Core.World.Strategic
                 return false;
             }
 
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                ((world.PlayerPartyTravel?.HasPosition == true &&
+                  world.SurfaceGround.TryResolveContaining(
+                      world.PlayerPartyTravel.WorldPosition, out _)) ||
+                 (world.Strategic.FormalArmies.TryGet(defenderFormalArmyId, out var surfaceDefender) &&
+                  surfaceDefender?.WorldMotion?.HasPosition == true &&
+                  world.SurfaceGround.TryResolveContaining(
+                      surfaceDefender.WorldMotion.WorldPosition, out _))))
+            {
+                if (world.PlayerPartyTravel?.HasPosition != true ||
+                    !world.Strategic.FormalArmies.TryGet(defenderFormalArmyId, out var defender) ||
+                    defender?.WorldMotion?.HasPosition != true)
+                {
+                    triggerReason = ReasonMissingDefenderBattleArea;
+                    return false;
+                }
+                return TryWorldContact(world, world.PlayerPartyTravel.WorldPosition,
+                    defender.WorldMotion.WorldPosition, out triggerReason);
+            }
+
             if (!BattleEngagementSpatialQuery.TryGetCommittedPartyHex(world, party, out var playerHex))
             {
                 triggerReason = ReasonMissingInitiatorHex;
@@ -61,6 +104,17 @@ namespace XianXia.Core.World.Strategic
             }
 
             return CanTriggerFromCommittedHex(world, playerHex, defenderFormalArmyId, out triggerReason);
+        }
+
+        static bool TryWorldContact(SimulationWorld world, WorldVec2 a, WorldVec2 b,
+            out string reason)
+        {
+            reason = ReasonInitiatorNotAdjacentToBattleArea;
+            if (!world.SurfaceGround.TryResolveShared(a, b, out _)) return false;
+            if (WorldVec2.Distance(a, b) > ReinforcementRangeService.GetWorldRadius(world))
+                return false;
+            reason = ReasonWorldContact;
+            return true;
         }
 
         /// <summary>

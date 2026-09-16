@@ -456,7 +456,14 @@ namespace XianXia.Core.Persistence
                     WorldX = motion.WorldPosition.X,
                     WorldY = motion.WorldPosition.Y,
                     CurrentHexQ = motion.CurrentHex.Q,
-                    CurrentHexR = motion.CurrentHex.R
+                    CurrentHexR = motion.CurrentHex.R,
+                    IsMoving = motion.IsMoving,
+                    HasContinuousPhysicalDestination = motion.HasContinuousPhysicalDestination,
+                    DestinationWorldX = motion.ContinuousPhysicalDestination.X,
+                    DestinationWorldY = motion.ContinuousPhysicalDestination.Y,
+                    ArrivalRadius = motion.ContinuousPhysicalArrivalRadius,
+                    DestinationSiteId = motion.DestinationSiteId ?? string.Empty,
+                    ExecutionMode = (int)motion.ExecutionMode
                 };
             }
 
@@ -475,6 +482,10 @@ namespace XianXia.Core.Persistence
                     var snap = new BackgroundCharacterTravelSnapshotDto
                     {
                         CharacterId = id.Value,
+                        IsSurfaceRoute = kv.Value.IsSurfaceRoute,
+                        SurfaceId = kv.Value.SurfaceId ?? string.Empty,
+                        SurfaceDestinationX = kv.Value.SurfaceDestination.X,
+                        SurfaceDestinationY = kv.Value.SurfaceDestination.Y,
                         LocationKind = (int)kind,
                         SiteId = siteId ?? string.Empty,
                         WorldX = pos.X,
@@ -867,7 +878,8 @@ namespace XianXia.Core.Persistence
                     string.IsNullOrWhiteSpace(item.SurfaceId) || !item.HasWorldPosition ||
                     !IsFinite(item.WorldX) || !IsFinite(item.WorldY) || item.CoreLevel < 1 ||
                     item.ControlEstablishedOrder <= 0 ||
-                    world.HexWorld == null || !world.HexWorld.IsInBounds(item.AnchorQ, item.AnchorR) ||
+                    (!ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                     (world.HexWorld == null || !world.HexWorld.IsInBounds(item.AnchorQ, item.AnchorR))) ||
                     !ids.Add(item.SiteId) || !coreIds.Add(item.CoreAssetId))
                     return Result.Failure(ErrorCode.SnapshotInvalid,
                         "Invalid runtime WorldSite snapshot entry.", "Index=" + i);
@@ -890,7 +902,10 @@ namespace XianXia.Core.Persistence
             for (var i = 0; i < source.Count; i++)
             {
                 var item = source[i];
-                var anchor = new HexCoord(item.AnchorQ, item.AnchorR);
+                var anchor = ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world)
+                    ? HexMath.WorldToHex(item.WorldX, item.WorldY,
+                        world.HexWorld?.HexSize > 0f ? world.HexWorld.HexSize : 1f)
+                    : new HexCoord(item.AnchorQ, item.AnchorR);
                 ResolvedWorldSpatialRange controlRange;
                 try { controlRange = world.Strategic.SpatialRules.ResolveLevel(world, item.CoreLevel, item.SurfaceId); }
                 catch (Exception ex) { return Result.Failure(ErrorCode.SnapshotInvalid, "Site core level missing from Content.", ex.Message); }
@@ -1330,7 +1345,7 @@ namespace XianXia.Core.Persistence
                     world.WorldPresence.SetAtWorldPosition(id, pos, derived);
                 }
 
-                if (!t.IsTraveling || t.HexPath == null || t.HexPath.Count < 2)
+                if (t.IsSurfaceRoute || !t.IsTraveling || t.HexPath == null || t.HexPath.Count < 2)
                     continue;
 
                 var path = new List<HexCoord>(t.HexPath.Count);
@@ -1357,7 +1372,22 @@ namespace XianXia.Core.Persistence
             }
         }
 
-        static void RestorePlayerPartyTravel(SimulationWorld world, PlayerPartyTravelSnapshotDto travel)
+        public static void RestoreBackgroundSurfaceTravels(
+            SimulationWorld world, List<BackgroundCharacterTravelSnapshotDto> travels)
+        {
+            if (world == null || travels == null ||
+                !ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world)) return;
+            for (var i = 0; i < travels.Count; i++)
+            {
+                var item = travels[i];
+                if (item == null || !item.IsTraveling || !item.IsSurfaceRoute ||
+                    item.CharacterId == 0 || string.IsNullOrEmpty(item.DestinationSiteId)) continue;
+                BackgroundCharacterTravelService.BeginTravelToWorldSite(
+                    world, new EntityId(item.CharacterId), item.DestinationSiteId);
+            }
+        }
+
+        public static void RestorePlayerPartyTravel(SimulationWorld world, PlayerPartyTravelSnapshotDto travel)
         {
             if (world?.PlayerPartyTravel == null || travel == null || !travel.HasPosition)
                 return;
@@ -1375,6 +1405,14 @@ namespace XianXia.Core.Persistence
                     travel.SiteId,
                     new WorldVec2(travel.WorldX, travel.WorldY),
                     new HexCoord(travel.CurrentHexQ, travel.CurrentHexR));
+                if (travel.IsMoving && travel.HasContinuousPhysicalDestination &&
+                    ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+                {
+                    motion.SetAtWorldPosition(motion.WorldPosition, motion.CurrentHex);
+                    PlayerPartySurfaceTravelService.TryResumeAfterRestore(
+                        world, new WorldVec2(travel.DestinationWorldX, travel.DestinationWorldY),
+                        travel.DestinationSiteId, travel.ArrivalRadius);
+                }
                 return;
             }
 
@@ -1384,6 +1422,13 @@ namespace XianXia.Core.Persistence
                 : 1f;
             var derived = HexMath.WorldToHex(pos.X, pos.Y, hexSize);
             motion.SetAtWorldPosition(pos, derived);
+            if (travel.IsMoving && travel.HasContinuousPhysicalDestination)
+            {
+                // Route is deliberately recomputed from canonical position + exact intent.
+                PlayerPartySurfaceTravelService.TryResumeAfterRestore(
+                    world, new WorldVec2(travel.DestinationWorldX, travel.DestinationWorldY),
+                    travel.DestinationSiteId, travel.ArrivalRadius);
+            }
         }
     }
 }

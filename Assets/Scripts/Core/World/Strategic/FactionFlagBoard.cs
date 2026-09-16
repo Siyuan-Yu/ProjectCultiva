@@ -37,6 +37,8 @@ namespace XianXia.Core.World.Strategic
     public sealed class FactionFlagBoard
     {
         readonly Dictionary<string, FactionFlagState> _byId = new Dictionary<string, FactionFlagState>();
+        // Derived compatibility index only. Normal continuous callers resolve by FlagId / SiteId
+        // and exact SurfaceId + WorldPosition; no lifecycle operation requires this map.
         readonly Dictionary<HexCoord, List<string>> _anchorIds =
             new Dictionary<HexCoord, List<string>>();
         public IReadOnlyDictionary<string, FactionFlagState> Flags => _byId;

@@ -1489,7 +1489,8 @@ namespace XianXia.Unity.Host
                           world.HexWorld.HasGrid;
             if (_showArmyMarkers)
             {
-                DrawResidualMarkers(mapRect, world, hexMode: true, hexProjection: projection);
+                DrawResidualMarkers(mapRect, world,
+                    hexMode: !IsSurfaceMode(world), hexProjection: projection);
                 DrawFormalArmyAvatars(mapRect, world);
                 DrawArmyStacks(mapRect, world);
                 DrawAvatars(mapRect, world, hexMode: true, hexProjection: projection);
@@ -1601,10 +1602,12 @@ namespace XianXia.Unity.Host
             HexMapViewportProjection hexProjection = default)
         {
             _residualMarkerRects.Clear();
-            if (world == null || !hexMode || world.HexWorld == null || !world.HexWorld.HasGrid)
+            if (world == null || (hexMode && (world.HexWorld == null || !world.HexWorld.HasGrid)))
                 return;
 
-            var groups = StrategicResidualPresentationQuery.Query(world);
+            var groups = hexMode
+                ? StrategicResidualPresentationQuery.Query(world)
+                : StrategicResidualPresentationQuery.QueryContinuous(world);
             if (groups.Count == 0)
                 return;
 
@@ -1612,7 +1615,7 @@ namespace XianXia.Unity.Host
             groups.Sort((a, b) => a.VisualPriority.CompareTo(b.VisualPriority));
 
             var markerSize = 20f;
-            var hexSize = world.HexWorld.HexSize;
+            var hexSize = world.HexWorld?.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             var edgeAnchorX = hexSize * 0.42f;
             var edgeAnchorY = hexSize * 0.48f;
             const float stackStep = 7f;
@@ -1623,20 +1626,30 @@ namespace XianXia.Unity.Host
                 var group = groups[i];
                 if (group == null || group.Count <= 0)
                     continue;
-                if (!world.HexWorld.Contains(group.Hex))
+                if (hexMode && !world.HexWorld.Contains(group.Hex))
                     continue;
 
-                HexMath.ToWorldPosition(group.Hex, hexSize, out var wx, out var wy);
-                wx += edgeAnchorX;
-                wy += edgeAnchorY;
+                float wx, wy;
+                if (hexMode)
+                {
+                    HexMath.ToWorldPosition(group.Hex, hexSize, out wx, out wy);
+                    wx += edgeAnchorX;
+                    wy += edgeAnchorY;
+                    var hexKey = group.Hex.Q + ":" + group.Hex.R;
+                    slotByHex.TryGetValue(hexKey, out var slot);
+                    slotByHex[hexKey] = slot + 1;
+                    wx += slot * stackStep * 0.55f;
+                    wy += slot * stackStep;
+                }
+                else
+                {
+                    if (!group.HasWorldPosition ||
+                        !world.SurfaceGround.TryGet(group.SurfaceId, out _)) continue;
+                    wx = group.WorldX;
+                    wy = group.WorldY;
+                }
 
-                var hexKey = group.Hex.Q + ":" + group.Hex.R;
-                slotByHex.TryGetValue(hexKey, out var slot);
-                slotByHex[hexKey] = slot + 1;
-                wx += slot * stackStep * 0.55f;
-                wy += slot * stackStep;
-
-                var p = hexProjection.ProjectWorld(wx, wy);
+                var p = hexMode ? hexProjection.ProjectWorld(wx, wy) : Project(mapRect, wx, wy);
                 var rect = new Rect(
                     p.x - markerSize * 0.5f,
                     p.y - markerSize * 0.5f,
@@ -2512,10 +2525,6 @@ namespace XianXia.Unity.Host
             if (nav == null) return false;
             if (!nav.Contains(point.x, point.y)) return false;
             var goal = new WorldVec2(point.x, point.y);
-            var size = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
-            var hex = HexMath.WorldToHex(goal.X, goal.Y, size);
-            if (!IsSurfaceMode(world) && world.Strategic.Sites.TryGetAtHex(hex, out var authoredSite) && authoredSite != null)
-                return false; // Site marker/footprint retains authored arrival semantics.
             if (!nav.IsWalkable(goal.X, goal.Y))
             {
                 _status = "不可步行到达的地面目标";
@@ -2525,8 +2534,8 @@ namespace XianXia.Unity.Host
             var party = bootstrap?.Session?.PlayerParty;
             if (party == null || !party.HasActive) return false;
             PlayerPartyHexPursuitService.CancelPursuit(world, party);
-            var move = PlayerPartyHexTravelService.BeginContinuousSurfaceTravel(
-                world, party, hex, string.Empty, goal, nav.CellSize * .75f);
+            var move = PlayerPartySurfaceTravelService.BeginTravel(
+                world, party, goal, string.Empty, nav.CellSize * .75f);
             if (move.IsFailure)
             {
                 _status = FormatFail(move);
@@ -2718,7 +2727,21 @@ namespace XianXia.Unity.Host
 
             Result move;
             var continuous = bootstrap?.ContinuousOutdoorSurfaceRuntime;
-            if (continuous != null && continuous.IsActive)
+            if (IsSurfaceMode(world) &&
+                world.Strategic.Sites.TryGet(cmd.TargetSiteId, out var surfaceSite) &&
+                WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(surfaceSite))
+            {
+                if (string.IsNullOrEmpty(cmd.TargetSiteId) ||
+                    !world.SurfaceGround.TryResolveSiteArrival(cmd.TargetSiteId, out _, out var surfaceGoal))
+                {
+                    status = "目标缺少正式 Surface 到达点";
+                    return true;
+                }
+                move = PlayerPartySurfaceTravelService.BeginTravel(
+                    world, party, surfaceGoal, cmd.TargetSiteId,
+                    world.SurfaceGround.Active.CellSize * .75f);
+            }
+            else if (continuous != null && continuous.IsActive)
             {
                 if (!continuous.TryResolveContinuousAutoTravelGoal(
                         cmd.DestinationHex, cmd.TargetSiteId ?? string.Empty,
@@ -2852,7 +2875,21 @@ namespace XianXia.Unity.Host
             PlayerPartyHexPursuitService.CancelPursuit(world, party);
             Result move;
             var continuous = bootstrap?.ContinuousOutdoorSurfaceRuntime;
-            if (continuous != null && continuous.IsActive)
+            if (IsSurfaceMode(world) &&
+                world.Strategic.Sites.TryGet(_gatewayConfirmSiteId, out var gatewaySite) &&
+                WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(gatewaySite))
+            {
+                if (!world.SurfaceGround.TryResolveSiteArrival(
+                        _gatewayConfirmSiteId, out _, out var surfaceGoal))
+                {
+                    _status = "Gateway 缺少正式 Surface 到达点";
+                    return;
+                }
+                move = PlayerPartySurfaceTravelService.BeginTravel(
+                    world, party, surfaceGoal, _gatewayConfirmSiteId,
+                    world.SurfaceGround.Active.CellSize * .75f);
+            }
+            else if (continuous != null && continuous.IsActive)
             {
                 if (!continuous.TryResolveContinuousAutoTravelGoal(
                         _gatewayConfirmApproachHex, _gatewayConfirmSiteId,

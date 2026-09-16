@@ -18,6 +18,10 @@ namespace XianXia.Core.World.Strategic
     public sealed class ResidualMarkerGroupView
     {
         public HexCoord Hex { get; set; }
+        public bool HasWorldPosition { get; set; }
+        public float WorldX { get; set; }
+        public float WorldY { get; set; }
+        public string SurfaceId { get; set; } = string.Empty;
         public StrategicRelationBucket Relation { get; set; }
         public ResidualStateBucket State { get; set; }
         public int Count => Characters?.Count ?? 0;
@@ -81,6 +85,43 @@ namespace XianXia.Core.World.Strategic
     /// <summary>纯派生 Presentation Query：Hex × Relation × ResidualState。</summary>
     public static class StrategicResidualPresentationQuery
     {
+        public static List<ResidualMarkerGroupView> QueryContinuous(SimulationWorld world)
+        {
+            var result = new List<ResidualMarkerGroupView>();
+            if (world?.Entities == null) return result;
+            foreach (var entity in world.Entities.All)
+            {
+                if (entity == null || !StrategicResidualPresenceService.IsStrategicResidualCandidate(
+                        world, entity.Id) ||
+                    !ResidualSpatialAuthorityService.TryResolveStableResidualSpatialAuthority(
+                        world, entity.Id, out var spatial) ||
+                    !spatial.HasPrecisePosition || string.IsNullOrEmpty(spatial.SurfaceId))
+                    continue;
+                ResidualStateBucket state;
+                if (LingeringBattlefieldPartyService.IsIncapacitated(world, entity.Id))
+                    state = ResidualStateBucket.Downed;
+                else if (LingeringBattlefieldPartyService.IsVisibleCorpse(world, entity.Id))
+                    state = ResidualStateBucket.Dead;
+                else continue;
+                var factionId = ArmyService.ResolveCharacterFactionId(world, entity.Id);
+                var group = new ResidualMarkerGroupView
+                {
+                    Hex = HexMath.WorldToHex(spatial.WorldPosition.X, spatial.WorldPosition.Y,
+                        world.HexWorld?.HexSize > 0f ? world.HexWorld.HexSize : 1f),
+                    HasWorldPosition = true,
+                    WorldX = spatial.WorldPosition.X,
+                    WorldY = spatial.WorldPosition.Y,
+                    SurfaceId = spatial.SurfaceId,
+                    Relation = StrategicRelationQuery.GetRelationToPlayer(world, factionId),
+                    State = state
+                };
+                group.Characters.Add(BuildRow(world, entity, state));
+                result.Add(group);
+            }
+            result.Sort(CompareByPriorityAscending);
+            return result;
+        }
+
         public static List<ResidualMarkerGroupView> Query(SimulationWorld world)
         {
             var groups = new Dictionary<string, ResidualMarkerGroupView>(32);

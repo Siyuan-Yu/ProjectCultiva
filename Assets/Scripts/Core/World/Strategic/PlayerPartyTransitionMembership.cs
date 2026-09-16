@@ -76,13 +76,23 @@ namespace XianXia.Core.World.Strategic
 
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition)
             {
-                world.WorldPresence.SetAtWorldPosition(id, motion.WorldPosition, motion.CurrentHex);
+                world.SurfaceGround.TryResolveContaining(motion.WorldPosition, out var navigation);
+                world.WorldPresence.SetAtWorldPosition(id, motion.WorldPosition,
+                    motion.CurrentHex, navigation?.SurfaceId ?? string.Empty);
                 return;
             }
 
             if (motion.LocationKind == PlayerPartyLocationKind.AtWorldSite &&
                 !string.IsNullOrEmpty(motion.SiteId))
-                world.WorldPresence.SetAtSite(id, motion.SiteId);
+            {
+                if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                    world.SurfaceGround.TryResolveSiteArrival(
+                        motion.SiteId, out var surfaceId, out _))
+                    world.WorldPresence.SetAtSiteWithAnchor(id, motion.SiteId,
+                        motion.WorldPosition, surfaceId);
+                else
+                    world.WorldPresence.SetAtSite(id, motion.SiteId);
+            }
         }
 
         /// <summary>
@@ -100,6 +110,10 @@ namespace XianXia.Core.World.Strategic
             if (world == null || world.WorldPresence == null || id.IsNone)
                 return;
 
+            if (string.IsNullOrEmpty(surfaceId) &&
+                world.SurfaceGround.TryResolveContaining(preciseWorldPosition, out var surface))
+                surfaceId = surface.SurfaceId;
+
             WorldSite site;
             var resolved = !string.IsNullOrEmpty(surfaceId)
                 ? WorldSiteAdministrativeControlResolver.TryResolve(
@@ -113,7 +127,8 @@ namespace XianXia.Core.World.Strategic
                     : WorldSitePhysicalRegionQuery.ResolveSiteIdOrEmpty(world, preciseWorldPosition));
             if (!string.IsNullOrEmpty(siteId))
             {
-                world.WorldPresence.SetAtSiteWithAnchor(id, siteId, preciseWorldPosition);
+                world.WorldPresence.SetAtSiteWithAnchor(id, siteId, preciseWorldPosition,
+                    surfaceId);
                 return;
             }
 
@@ -121,7 +136,8 @@ namespace XianXia.Core.World.Strategic
                 ? world.HexWorld.HexSize
                 : HexWorldScale.DefaultHexOuterRadius;
             world.WorldPresence.SetAtWorldPosition(
-                id, preciseWorldPosition, HexMath.WorldToHex(preciseWorldPosition.X, preciseWorldPosition.Y, hexSize));
+                id, preciseWorldPosition, HexMath.WorldToHex(preciseWorldPosition.X, preciseWorldPosition.Y, hexSize),
+                surfaceId);
         }
 
         public static void LogPartyTransition(
@@ -228,6 +244,23 @@ namespace XianXia.Core.World.Strategic
                         motion.LocationKind == PlayerPartyLocationKind.AtWorldPosition;
             if (!atSite && !atHex)
                 return;
+
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                world.SurfaceGround.TryResolveContaining(motion.WorldPosition, out var navigation))
+            {
+                for (var i = 0; i < party.Members.Count; i++)
+                {
+                    var id = party.Members[i];
+                    if (id.IsNone || !ShouldMemberTransitionWithParty(world, party, id)) continue;
+                    if (atSite)
+                        world.WorldPresence.SetAtSiteWithAnchor(id, motion.SiteId,
+                            motion.WorldPosition, navigation.SurfaceId);
+                    else
+                        world.WorldPresence.SetAtWorldPosition(id, motion.WorldPosition,
+                            motion.CurrentHex, navigation.SurfaceId);
+                }
+                return;
+            }
 
             for (var i = 0; i < party.Members.Count; i++)
             {

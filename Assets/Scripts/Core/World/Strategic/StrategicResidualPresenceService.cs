@@ -103,7 +103,8 @@ namespace XianXia.Core.World.Strategic
         {
             if (world == null || characterId.IsNone || snap == null)
                 return false;
-            if (!ArmyHexBattleAnchorService.IsHexAnchorMode(world))
+            if (snap.HasBattleAnchorWorldPosition ||
+                !ArmyHexBattleAnchorService.IsHexAnchorMode(world))
                 return false;
             if (!TryResolveEncounterHex(world, snap, out var hex))
                 return false;
@@ -172,9 +173,12 @@ namespace XianXia.Core.World.Strategic
             if (!IsResidualLifeCandidate(world, characterId))
                 return false;
             // Squad/legacy Army identity does not authorize moving an incapacitated body.
-            if (!TryGetResidualHex(world, characterId, out _))
-                return false;
-            return true;
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                ResidualSpatialAuthorityService.TryResolveStableResidualSpatialAuthority(
+                    world, characterId, out var authority) && authority.HasPrecisePosition &&
+                !string.IsNullOrEmpty(authority.SurfaceId))
+                return true;
+            return TryGetResidualHex(world, characterId, out _);
         }
 
         public static bool IsRetreatingArmyMember(SimulationWorld world, EntityId characterId)

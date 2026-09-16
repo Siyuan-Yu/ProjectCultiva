@@ -40,7 +40,12 @@ namespace XianXia.Core.World.Strategic
             site.EnsurePresenceHexValid();
             var hexSize = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             army.UsesHexStrategicPosition = true;
-            army.WorldMotion.SetAtWorldSite(siteId, site.AnchorHex, hexSize);
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                world.SurfaceGround.TryResolveSiteArrival(siteId, out _, out var arrival))
+                army.WorldMotion.SetAtWorldSitePreservingWorldPosition(siteId, arrival,
+                    HexMath.WorldToHex(arrival.X, arrival.Y, hexSize));
+            else
+                army.WorldMotion.SetAtWorldSite(siteId, site.AnchorHex, hexSize);
             army.SyncLegacyFromWorldMotion();
             army.State = FormalArmyState.Idle;
             FormalArmyMemberPresenceSync.SyncAll(world, army);
@@ -73,8 +78,6 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidArgument, "Invalid army travel.");
             if (!world.Strategic.FormalArmies.TryGet(armyId, out var army) || army == null)
                 return Result.Failure(ErrorCode.NotFound, "Army not found.", armyId);
-            if (!world.HexWorld.HasGrid)
-                return Result.Failure(ErrorCode.InvalidOperation, "Hex grid not loaded.");
             if (army.State == FormalArmyState.Garrisoned)
                 return Result.Failure(ErrorCode.InvalidOperation, "Army is garrisoned.");
 
@@ -87,6 +90,45 @@ namespace XianXia.Core.World.Strategic
             FormalArmyOrderReplaceTrace.Capture replaceTrace = default;
             if (isReplace)
                 replaceTrace = FormalArmyOrderReplaceTrace.CaptureBeforeReplace(motion);
+
+            // Normal Site orders resolve their physical arrival first. The Site's legacy
+            // AnchorHex/footprint is a derived index, never a route prerequisite.
+            var normalOutdoorSite = ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                                    !string.IsNullOrEmpty(destinationSiteId) &&
+                                    world.Strategic.Sites.TryGet(destinationSiteId, out var siteTarget) &&
+                                    WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(siteTarget);
+            if (normalOutdoorSite &&
+                world.SurfaceGround.TryResolveSiteArrival(
+                    destinationSiteId, out _, out var continuousArrival))
+            {
+                if (!world.SurfaceGround.TryResolveShared(
+                        startWorld, continuousArrival, out var siteNavigation))
+                    return Result.Failure(ErrorCode.InvalidOperation,
+                        "No shared Continuous Surface for army Site travel.");
+                SurfacePathScratch.Clear();
+                var siteStatus = siteNavigation.TryFindRoute(
+                    startWorld, continuousArrival, SurfacePathScratch);
+                if (siteStatus != SurfaceGroundRouteStatus.Found)
+                    return Result.Failure(ErrorCode.InvalidOperation,
+                        "Surface army Site route unavailable: " + siteStatus + ".");
+                var hexSizeForIndex = world.HexWorld?.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+                var derivedGoal = HexMath.WorldToHex(
+                    continuousArrival.X, continuousArrival.Y, hexSizeForIndex);
+                motion.BeginSurfaceTravel(orderKind, SurfacePathScratch, continuousArrival,
+                    derivedGoal, destinationSiteId, siteNavigation.SurfaceId,
+                    siteNavigation.SourceRevision, siteNavigation.SourceHash);
+                motion.ClearOrderTarget();
+                motion.LastProcessedWorldTick = world.Tick.Value;
+                army.State = FormalArmyState.Moving;
+                army.SyncLegacyFromWorldMotion();
+                FormalArmyMemberPresenceSync.SyncAll(world, army);
+                if (isReplace && world.Strategic.Squads.TryGet(army.SquadId, out var command))
+                    command.SetCommand(SquadCommandKind.FormalArmyWorldMotion);
+                return Result.Success();
+            }
+            if (normalOutdoorSite)
+                return Result.Failure(ErrorCode.InvalidOperation,
+                    "Army Site has no authored Continuous Surface arrival.");
 
             destinationSiteId = TryCanonicalizeFootprintHexDestination(
                 world, destinationHex, destinationSiteId, out _);
@@ -126,6 +168,9 @@ namespace XianXia.Core.World.Strategic
                     replacedCommand.SetCommand(SquadCommandKind.FormalArmyWorldMotion);
                 return Result.Success();
             }
+
+            if (!world.HexWorld.HasGrid)
+                return Result.Failure(ErrorCode.InvalidOperation, "Hex grid not loaded for legacy army travel.");
 
             var startInKnownSurface = world.SurfaceGround.TryResolveContaining(startWorld, out _);
             var goalInKnownSurface = world.SurfaceGround.TryResolveContaining(goalWorld, out _);

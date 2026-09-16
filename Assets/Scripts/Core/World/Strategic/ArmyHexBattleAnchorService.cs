@@ -13,6 +13,19 @@ namespace XianXia.Core.World.Strategic
         public static bool IsHexAnchorMode(SimulationWorld world) =>
             ArmyHexCommandService.IsHexStrategicActive(world);
 
+        public static bool TrySetWorldAnchor(
+            SimulationWorld world, BattleParticipantSnapshot snap, WorldVec2 position)
+        {
+            if (world?.SurfaceGround == null || snap == null ||
+                !world.SurfaceGround.TryResolveContaining(position, out var navigation))
+                return false;
+            snap.HasBattleAnchorWorldPosition = true;
+            snap.BattleAnchorWorldX = position.X;
+            snap.BattleAnchorWorldY = position.Y;
+            snap.BattleAnchorSurfaceId = navigation.SurfaceId;
+            return true;
+        }
+
         public static bool HasBattleAnchorHex(BattleParticipantSnapshot snap) =>
             snap != null && snap.BattleAnchorHexQ != InvalidHexComponent &&
             snap.BattleAnchorHexR != InvalidHexComponent;
@@ -53,9 +66,14 @@ namespace XianXia.Core.World.Strategic
             if (ArmyStackAdapter.TryGetFormalArmy(world, stack, out var formal) && formal != null &&
                 formal.UsesHexStrategicPosition)
             {
+                TrySetWorldAnchor(world, snap, formal.WorldMotion.WorldPosition);
                 SetBattleAnchorHex(snap, formal.CurrentHex);
                 return;
             }
+
+            if (world?.Strategic?.Sites?.TryGet(stack.SiteId, out var site) == true &&
+                site != null && site.HasContinuousCore)
+                TrySetWorldAnchor(world, snap, new WorldVec2(site.CoreWorldX, site.CoreWorldY));
 
             if (TryResolveHexForSite(world, stack.SiteId, out var nodeHex))
                 SetBattleAnchorHex(snap, nodeHex);
@@ -74,6 +92,7 @@ namespace XianXia.Core.World.Strategic
                 return;
             }
 
+            TrySetWorldAnchor(world, snap, army.WorldMotion.WorldPosition);
             SetBattleAnchorHex(snap, army.CurrentHex);
         }
 

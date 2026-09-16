@@ -764,8 +764,13 @@ namespace XianXia.Core.World.Strategic
         {
             if (world == null || snap == null)
                 return;
-            if (!ArmyHexBattleAnchorService.TryGetBattleAnchorHex(snap, out var anchorHex))
+            var worldAnchor = ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                              snap.HasBattleAnchorWorldPosition;
+            if (!worldAnchor &&
+                !ArmyHexBattleAnchorService.TryGetBattleAnchorHex(snap, out _))
                 return;
+            var anchorHex = new XianXia.Core.World.Hex.HexCoord(
+                snap.BattleAnchorHexQ, snap.BattleAnchorHexR);
 
             for (var i = 0; i < snap.Records.Count; i++)
             {
@@ -792,8 +797,14 @@ namespace XianXia.Core.World.Strategic
                 if (!world.WorldPresence.TryGet(rec.EntityId, out var wp) || wp == null)
                     continue;
                 System.Diagnostics.Debug.Assert(
-                    wp.Mode == PartyWorldPresenceMode.AtHex && wp.ResidualHex.Equals(anchorHex),
-                    "WORLD_COMBAT residual not anchored at BattleAnchorHex: " + rec.EntityId.Value);
+                    worldAnchor
+                        ? wp.HasContinuousWorldPosition &&
+                          string.Equals(wp.PersonalSurfaceId, snap.BattleAnchorSurfaceId,
+                              System.StringComparison.Ordinal) &&
+                          WorldVec2.Distance(wp.ContinuousWorldPosition,
+                              new WorldVec2(snap.BattleAnchorWorldX, snap.BattleAnchorWorldY)) < .001f
+                        : wp.Mode == PartyWorldPresenceMode.AtHex && wp.ResidualHex.Equals(anchorHex),
+                    "WORLD_COMBAT residual not anchored at battle world position: " + rec.EntityId.Value);
             }
         }
 #endif
@@ -845,6 +856,15 @@ namespace XianXia.Core.World.Strategic
         {
             if (wp == null || snap == null)
                 return;
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                snap.HasBattleAnchorWorldPosition)
+            {
+                wp.SetAtWorldPosition(
+                    new WorldVec2(snap.BattleAnchorWorldX, snap.BattleAnchorWorldY),
+                    new XianXia.Core.World.Hex.HexCoord(snap.BattleAnchorHexQ, snap.BattleAnchorHexR),
+                    snap.BattleAnchorSurfaceId);
+                return;
+            }
             if (ArmyHexBattleAnchorService.IsHexAnchorMode(world))
             {
                 if (StrategicResidualPresenceService.TryResolveEncounterHex(world, snap, out var hex))

@@ -211,6 +211,10 @@ namespace XianXia.Core.Persistence
         public string ParticipantPrimaryEnemyStackId { get; set; } = string.Empty;
         public int ParticipantBattleAnchorHexQ { get; set; }
         public int ParticipantBattleAnchorHexR { get; set; }
+        public bool ParticipantHasBattleAnchorWorldPosition { get; set; }
+        public float ParticipantBattleAnchorWorldX { get; set; }
+        public float ParticipantBattleAnchorWorldY { get; set; }
+        public string ParticipantBattleAnchorSurfaceId { get; set; } = string.Empty;
         /// <summary>ParticipantSnapshot 冻结的 LocalMap 决议（Auto/Manual 语义 authority）。</summary>
         public string ParticipantEncounterLocalMapId { get; set; } = string.Empty;
         public int ParticipantLocalMapResolutionKind { get; set; }
@@ -238,12 +242,20 @@ namespace XianXia.Core.Persistence
         public int PreBattleHexR { get; set; } = int.MinValue;
         public string PreBattleFollowStackId { get; set; } = string.Empty;
         public string PreBattleCombatPursuitStackId { get; set; } = string.Empty;
+        public bool PreBattleHasWorldPosition { get; set; }
+        public float PreBattleWorldX { get; set; }
+        public float PreBattleWorldY { get; set; }
+        public string PreBattleSurfaceId { get; set; } = string.Empty;
     }
 
     /// <summary>Phase 2D：Background Character 旅行快照（WorldLocation + route progress）。</summary>
     public sealed class BackgroundCharacterTravelSnapshotDto
     {
         public ulong CharacterId { get; set; }
+        public bool IsSurfaceRoute { get; set; }
+        public string SurfaceId { get; set; } = string.Empty;
+        public float SurfaceDestinationX { get; set; }
+        public float SurfaceDestinationY { get; set; }
         public int LocationKind { get; set; }
         public string SiteId { get; set; } = string.Empty;
         public float WorldX { get; set; }
@@ -270,6 +282,13 @@ namespace XianXia.Core.Persistence
         public float WorldY { get; set; }
         public int CurrentHexQ { get; set; }
         public int CurrentHexR { get; set; }
+        public bool IsMoving { get; set; }
+        public bool HasContinuousPhysicalDestination { get; set; }
+        public float DestinationWorldX { get; set; }
+        public float DestinationWorldY { get; set; }
+        public float ArrivalRadius { get; set; }
+        public string DestinationSiteId { get; set; } = string.Empty;
+        public int ExecutionMode { get; set; }
     }
 
     /// <summary>PlayerParty Runtime 成员快照（Host Session 层；Domain Character 仍存 entities）。</summary>

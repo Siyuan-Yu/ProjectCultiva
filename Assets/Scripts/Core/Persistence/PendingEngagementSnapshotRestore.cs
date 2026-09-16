@@ -94,6 +94,10 @@ namespace XianXia.Core.Persistence
                 snap.ParticipantPrimaryEnemyStackId = participants.PrimaryEnemyStackId;
                 snap.ParticipantBattleAnchorHexQ = participants.BattleAnchorHexQ;
                 snap.ParticipantBattleAnchorHexR = participants.BattleAnchorHexR;
+                snap.ParticipantHasBattleAnchorWorldPosition = participants.HasBattleAnchorWorldPosition;
+                snap.ParticipantBattleAnchorWorldX = participants.BattleAnchorWorldX;
+                snap.ParticipantBattleAnchorWorldY = participants.BattleAnchorWorldY;
+                snap.ParticipantBattleAnchorSurfaceId = participants.BattleAnchorSurfaceId ?? string.Empty;
                 snap.ParticipantEncounterLocalMapId = participants.EncounterLocalMapId ?? string.Empty;
                 snap.ParticipantLocalMapResolutionKind = (int)participants.LocalMapResolutionKind;
                 snap.HasParticipantLocalMapResolutionKind = true;
@@ -122,6 +126,10 @@ namespace XianXia.Core.Persistence
                         rec.PreBattleHexR = r.PreBattle.HexR;
                         rec.PreBattleFollowStackId = r.PreBattle.FollowStackId ?? string.Empty;
                         rec.PreBattleCombatPursuitStackId = r.PreBattle.CombatPursuitStackId ?? string.Empty;
+                        rec.PreBattleHasWorldPosition = r.PreBattle.HasWorldPosition;
+                        rec.PreBattleWorldX = r.PreBattle.WorldX;
+                        rec.PreBattleWorldY = r.PreBattle.WorldY;
+                        rec.PreBattleSurfaceId = r.PreBattle.SurfaceId ?? string.Empty;
                     }
 
                     snap.ParticipantRecords.Add(rec);
@@ -246,6 +254,10 @@ namespace XianXia.Core.Persistence
             participants.PrimaryEnemyStackId = src.ParticipantPrimaryEnemyStackId ?? string.Empty;
             participants.BattleAnchorHexQ = src.ParticipantBattleAnchorHexQ;
             participants.BattleAnchorHexR = src.ParticipantBattleAnchorHexR;
+            participants.HasBattleAnchorWorldPosition = src.ParticipantHasBattleAnchorWorldPosition;
+            participants.BattleAnchorWorldX = src.ParticipantBattleAnchorWorldX;
+            participants.BattleAnchorWorldY = src.ParticipantBattleAnchorWorldY;
+            participants.BattleAnchorSurfaceId = src.ParticipantBattleAnchorSurfaceId ?? string.Empty;
             // Phase 5S Persistence：frozen participant LocalMap 决议以持久化为准（Auto 不得
             // 因缺字段回退 ExplicitEncounterMap）。ParticipantEncounterLocalMapId 优先，
             // 旧 snapshot 缺省时回退 offer 级 EncounterLocalMapId。
@@ -288,7 +300,11 @@ namespace XianXia.Core.Persistence
                             HexQ = r.PreBattleHexQ,
                             HexR = r.PreBattleHexR,
                             FollowStackId = r.PreBattleFollowStackId ?? string.Empty,
-                            CombatPursuitStackId = r.PreBattleCombatPursuitStackId ?? string.Empty
+                            CombatPursuitStackId = r.PreBattleCombatPursuitStackId ?? string.Empty,
+                            HasWorldPosition = r.PreBattleHasWorldPosition,
+                            WorldX = r.PreBattleWorldX,
+                            WorldY = r.PreBattleWorldY,
+                            SurfaceId = r.PreBattleSurfaceId ?? string.Empty
                         }
                         : null
                 });

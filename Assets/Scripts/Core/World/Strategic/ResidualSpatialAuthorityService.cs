@@ -107,9 +107,9 @@ namespace XianXia.Core.World.Strategic
                     return true;
 
                 case PartyWorldPresenceMode.AtHex:
-                    if (!hasHex)
+                    if (!hasHex && !hasPrecise)
                         return false;
-                    authority = Build(presence, hasPrecise, true,
+                    authority = Build(presence, hasPrecise, hasHex,
                         hasPrecise ? "PreciseResidualHex" : "LegacyResidualHex");
                     return true;
 

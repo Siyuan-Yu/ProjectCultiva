@@ -948,15 +948,31 @@ namespace XianXia.Core.World.Strategic
                 return Result.Failure(ErrorCode.InvalidOperation, "Final arrival requires LocalVisible.");
             if (motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
                 return Result.Failure(ErrorCode.InvalidOperation, "Final arrival requires wilderness position.");
-            if (!motion.CurrentHex.Equals(motion.DestinationHex))
+            if (!motion.HasContinuousPhysicalDestination && !motion.CurrentHex.Equals(motion.DestinationHex))
                 return Result.Failure(ErrorCode.InvalidOperation, "Not at destination hex yet.");
             var destHex = motion.DestinationHex;
+            var wasContinuousSurfaceTravel = motion.HasContinuousPhysicalDestination;
+
+            if (motion.HasContinuousPhysicalDestination &&
+                WorldSitePhysicalRegionQuery.TryResolve(world, motion.WorldPosition, out var surfaceSite))
+                motion.SetCurrentOutdoorWorldSiteContext(surfaceSite.SiteId);
 
             // 只结束 AutoTravel：保留 WorldPosition / LocalMap / Occupants / Presentation。
             motion.CancelAutoTravelPreservePosition();
 
             // Presence 保持当前目标 Wilderness Hex（不 ClearPartyWorldPresentationCacheForOpenWorld）。
-            ApplyTravelingMembersAtHex(world, destHex);
+            if (motion.HasPosition && wasContinuousSurfaceTravel)
+            {
+                world.SurfaceGround.TryResolveContaining(motion.WorldPosition, out var navigation);
+                for (var i = 0; i < motion.TravelingMembers.Count; i++)
+                    world.WorldPresence.SetAtWorldPosition(
+                        motion.TravelingMembers[i], motion.WorldPosition, motion.CurrentHex,
+                        navigation?.SurfaceId ?? string.Empty);
+            }
+            else
+            {
+                ApplyTravelingMembersAtHex(world, destHex);
+            }
 
             return Result.Success();
         }
@@ -1067,6 +1083,22 @@ namespace XianXia.Core.World.Strategic
             var moving = world.PlayerPartyTravel != null && world.PlayerPartyTravel.IsMoving;
             if (moving && !allowWhileTraveling)
                 return Result.Failure(ErrorCode.InvalidOperation, "Stop travel before entering local view.");
+
+            var normalMotion = world.PlayerPartyTravel;
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                normalMotion?.HasPosition == true &&
+                world.SurfaceGround.TryResolveContaining(normalMotion.WorldPosition, out _) &&
+                (normalMotion.LocationKind != PlayerPartyLocationKind.AtWorldSite ||
+                 (world.Strategic.Sites.TryGet(normalMotion.SiteId, out var outdoorSite) &&
+                  WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(outdoorSite))))
+            {
+                world.PartyWorld.LocalMapId = string.Empty;
+                world.LocalMap.ActiveMapLayoutId = string.Empty;
+                world.LocalMap.OverworldMapLayoutId = string.Empty;
+                world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
+                world.PartyWorld.SiteId = string.Empty;
+                return Result.Success();
+            }
 
             if (moving && allowWhileTraveling)
                 return EnterLocalViewPreservingAutoTravel(world, party);
@@ -1476,12 +1508,20 @@ namespace XianXia.Core.World.Strategic
             if (world?.WorldPresence == null || world.PlayerPartyTravel == null)
                 return;
             var members = world.PlayerPartyTravel.TravelingMembers;
+            XianXia.Core.World.Surface.SurfaceGroundNavigation navigation = null;
+            var normalSurface = ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                                world.SurfaceGround.TryResolveContaining(
+                                    world.PlayerPartyTravel.WorldPosition, out navigation);
             for (var i = 0; i < members.Count; i++)
             {
                 var id = members[i];
                 if (id.IsNone)
                     continue;
-                world.WorldPresence.SetAtHex(id, hex);
+                if (normalSurface)
+                    world.WorldPresence.SetAtWorldPosition(id,
+                        world.PlayerPartyTravel.WorldPosition, hex, navigation.SurfaceId);
+                else
+                    world.WorldPresence.SetAtHex(id, hex);
             }
         }
 
@@ -1490,12 +1530,19 @@ namespace XianXia.Core.World.Strategic
             if (world?.WorldPresence == null || world.PlayerPartyTravel == null || string.IsNullOrEmpty(siteId))
                 return;
             var members = world.PlayerPartyTravel.TravelingMembers;
+            var surfaceId = string.Empty;
+            var normalSurface = ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                                world.SurfaceGround.TryResolveSiteArrival(siteId, out surfaceId, out _);
             for (var i = 0; i < members.Count; i++)
             {
                 var id = members[i];
                 if (id.IsNone)
                     continue;
-                world.WorldPresence.SetAtSite(id, siteId);
+                if (normalSurface)
+                    world.WorldPresence.SetAtSiteWithAnchor(id, siteId,
+                        world.PlayerPartyTravel.WorldPosition, surfaceId);
+                else
+                    world.WorldPresence.SetAtSite(id, siteId);
             }
         }
 

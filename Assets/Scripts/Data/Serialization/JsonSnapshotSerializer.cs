@@ -1324,6 +1324,37 @@ namespace XianXia.Data.Serialization
                 }));
             if (strategic.HasFactionFlagSnapshotAuthority) root["factionFlags"] = JsonValue.FromArray(flagValues);
 
+            // Additive NPC travel intent. Legacy Hex paths remain readable; Surface paths are
+            // recomputed from exact WorldPosition and authored Site arrival after shell rehydrate.
+            var backgroundTravels = new List<JsonValue>();
+            foreach (var travel in strategic.BackgroundCharacterTravels)
+            {
+                if (travel == null) continue;
+                backgroundTravels.Add(JsonValue.FromObject(new Dictionary<string, JsonValue>
+                {
+                    ["characterId"] = U(travel.CharacterId),
+                    ["locationKind"] = JsonValue.FromNumber(travel.LocationKind),
+                    ["siteId"] = JsonValue.FromString(travel.SiteId ?? string.Empty),
+                    ["worldX"] = JsonValue.FromNumber(travel.WorldX),
+                    ["worldY"] = JsonValue.FromNumber(travel.WorldY),
+                    ["currentHexQ"] = JsonValue.FromNumber(travel.CurrentHexQ),
+                    ["currentHexR"] = JsonValue.FromNumber(travel.CurrentHexR),
+                    ["isTraveling"] = JsonValue.FromBool(travel.IsTraveling),
+                    ["destinationHexQ"] = JsonValue.FromNumber(travel.DestinationHexQ),
+                    ["destinationHexR"] = JsonValue.FromNumber(travel.DestinationHexR),
+                    ["destinationSiteId"] = JsonValue.FromString(travel.DestinationSiteId ?? string.Empty),
+                    ["segmentIndex"] = JsonValue.FromNumber(travel.SegmentIndex),
+                    ["segmentProgress"] = JsonValue.FromNumber(travel.SegmentProgress),
+                    ["lastProcessedWorldTick"] = U(travel.LastProcessedWorldTick),
+                    ["hexPath"] = JsonValue.FromArray(SerializeHexPath(travel.HexPath)),
+                    ["isSurfaceRoute"] = JsonValue.FromBool(travel.IsSurfaceRoute),
+                    ["surfaceId"] = JsonValue.FromString(travel.SurfaceId ?? string.Empty),
+                    ["surfaceDestinationX"] = JsonValue.FromNumber(travel.SurfaceDestinationX),
+                    ["surfaceDestinationY"] = JsonValue.FromNumber(travel.SurfaceDestinationY)
+                }));
+            }
+            root["backgroundCharacterTravels"] = JsonValue.FromArray(backgroundTravels);
+
             if (strategic.PlayerPartyTravel != null && strategic.PlayerPartyTravel.HasPosition)
             {
                 var p = strategic.PlayerPartyTravel;
@@ -1335,7 +1366,14 @@ namespace XianXia.Data.Serialization
                     ["worldX"] = JsonValue.FromNumber(p.WorldX),
                     ["worldY"] = JsonValue.FromNumber(p.WorldY),
                     ["currentHexQ"] = JsonValue.FromNumber(p.CurrentHexQ),
-                    ["currentHexR"] = JsonValue.FromNumber(p.CurrentHexR)
+                    ["currentHexR"] = JsonValue.FromNumber(p.CurrentHexR),
+                    ["isMoving"] = JsonValue.FromBool(p.IsMoving),
+                    ["hasContinuousPhysicalDestination"] = JsonValue.FromBool(p.HasContinuousPhysicalDestination),
+                    ["destinationWorldX"] = JsonValue.FromNumber(p.DestinationWorldX),
+                    ["destinationWorldY"] = JsonValue.FromNumber(p.DestinationWorldY),
+                    ["arrivalRadius"] = JsonValue.FromNumber(p.ArrivalRadius),
+                    ["destinationSiteId"] = JsonValue.FromString(p.DestinationSiteId ?? string.Empty),
+                    ["executionMode"] = JsonValue.FromNumber(p.ExecutionMode)
                 });
             }
 
@@ -1812,6 +1850,39 @@ namespace XianXia.Data.Serialization
                 }
             }
 
+            if (strategic.TryGetProperty("backgroundCharacterTravels", out var backgroundTravels) &&
+                backgroundTravels.Kind == JsonValueKind.Array)
+            {
+                foreach (var node in backgroundTravels.Array)
+                {
+                    if (node.Kind != JsonValueKind.Object) continue;
+                    var travel = new BackgroundCharacterTravelSnapshotDto
+                    {
+                        CharacterId = ReadU(node, "characterId"),
+                        LocationKind = (int)node.GetNumber("locationKind"),
+                        SiteId = node.GetString("siteId", string.Empty),
+                        WorldX = (float)node.GetNumber("worldX"),
+                        WorldY = (float)node.GetNumber("worldY"),
+                        CurrentHexQ = (int)node.GetNumber("currentHexQ"),
+                        CurrentHexR = (int)node.GetNumber("currentHexR"),
+                        IsTraveling = node.GetBool("isTraveling"),
+                        DestinationHexQ = (int)node.GetNumber("destinationHexQ"),
+                        DestinationHexR = (int)node.GetNumber("destinationHexR"),
+                        DestinationSiteId = node.GetString("destinationSiteId", string.Empty),
+                        SegmentIndex = (int)node.GetNumber("segmentIndex"),
+                        SegmentProgress = (float)node.GetNumber("segmentProgress"),
+                        LastProcessedWorldTick = ReadU(node, "lastProcessedWorldTick"),
+                        IsSurfaceRoute = node.GetBool("isSurfaceRoute"),
+                        SurfaceId = node.GetString("surfaceId", string.Empty),
+                        SurfaceDestinationX = (float)node.GetNumber("surfaceDestinationX"),
+                        SurfaceDestinationY = (float)node.GetNumber("surfaceDestinationY")
+                    };
+                    if (node.TryGetProperty("hexPath", out var path))
+                        travel.HexPath = ReadHexPath(path);
+                    dto.BackgroundCharacterTravels.Add(travel);
+                }
+            }
+
             if (strategic.TryGetProperty("playerPartyTravel", out var partyTravel) &&
                 partyTravel.Kind == JsonValueKind.Object)
             {
@@ -1824,7 +1895,14 @@ namespace XianXia.Data.Serialization
                     WorldX = partyTravel.TryGetProperty("worldX", out var wx) ? (float)wx.Number : 0f,
                     WorldY = partyTravel.TryGetProperty("worldY", out var wy) ? (float)wy.Number : 0f,
                     CurrentHexQ = partyTravel.TryGetProperty("currentHexQ", out var cq) ? (int)cq.Number : 0,
-                    CurrentHexR = partyTravel.TryGetProperty("currentHexR", out var cr) ? (int)cr.Number : 0
+                    CurrentHexR = partyTravel.TryGetProperty("currentHexR", out var cr) ? (int)cr.Number : 0,
+                    IsMoving = partyTravel.TryGetProperty("isMoving", out var moving) && moving.Kind == JsonValueKind.Boolean && moving.Bool,
+                    HasContinuousPhysicalDestination = partyTravel.TryGetProperty("hasContinuousPhysicalDestination", out var hasDestination) && hasDestination.Kind == JsonValueKind.Boolean && hasDestination.Bool,
+                    DestinationWorldX = partyTravel.TryGetProperty("destinationWorldX", out var dwx) ? (float)dwx.Number : 0f,
+                    DestinationWorldY = partyTravel.TryGetProperty("destinationWorldY", out var dwy) ? (float)dwy.Number : 0f,
+                    ArrivalRadius = partyTravel.TryGetProperty("arrivalRadius", out var radius) ? (float)radius.Number : 0f,
+                    DestinationSiteId = partyTravel.GetString("destinationSiteId", string.Empty),
+                    ExecutionMode = partyTravel.TryGetProperty("executionMode", out var execution) ? (int)execution.Number : 0
                 };
             }
 
@@ -1948,7 +2026,11 @@ namespace XianXia.Data.Serialization
                         ["preBattleHexQ"] = JsonValue.FromNumber(r.PreBattleHexQ),
                         ["preBattleHexR"] = JsonValue.FromNumber(r.PreBattleHexR),
                         ["preBattleFollowStackId"] = JsonValue.FromString(r.PreBattleFollowStackId ?? string.Empty),
-                        ["preBattleCombatPursuitStackId"] = JsonValue.FromString(r.PreBattleCombatPursuitStackId ?? string.Empty)
+                        ["preBattleCombatPursuitStackId"] = JsonValue.FromString(r.PreBattleCombatPursuitStackId ?? string.Empty),
+                        ["preBattleHasWorldPosition"] = JsonValue.FromBool(r.PreBattleHasWorldPosition),
+                        ["preBattleWorldX"] = JsonValue.FromNumber(r.PreBattleWorldX),
+                        ["preBattleWorldY"] = JsonValue.FromNumber(r.PreBattleWorldY),
+                        ["preBattleSurfaceId"] = JsonValue.FromString(r.PreBattleSurfaceId ?? string.Empty)
                     }));
                 }
             }
@@ -1961,6 +2043,10 @@ namespace XianXia.Data.Serialization
                 ["primaryEnemyStackId"] = JsonValue.FromString(p.ParticipantPrimaryEnemyStackId ?? string.Empty),
                 ["battleAnchorHexQ"] = JsonValue.FromNumber(p.ParticipantBattleAnchorHexQ),
                 ["battleAnchorHexR"] = JsonValue.FromNumber(p.ParticipantBattleAnchorHexR),
+                ["hasBattleAnchorWorldPosition"] = JsonValue.FromBool(p.ParticipantHasBattleAnchorWorldPosition),
+                ["battleAnchorWorldX"] = JsonValue.FromNumber(p.ParticipantBattleAnchorWorldX),
+                ["battleAnchorWorldY"] = JsonValue.FromNumber(p.ParticipantBattleAnchorWorldY),
+                ["battleAnchorSurfaceId"] = JsonValue.FromString(p.ParticipantBattleAnchorSurfaceId ?? string.Empty),
                 ["encounterLocalMapId"] = JsonValue.FromString(p.ParticipantEncounterLocalMapId ?? string.Empty),
                 ["localMapResolutionKind"] = JsonValue.FromNumber(p.ParticipantLocalMapResolutionKind),
                 ["hasLocalMapResolutionKind"] = JsonValue.FromBool(p.HasParticipantLocalMapResolutionKind),
@@ -2136,6 +2222,10 @@ namespace XianXia.Data.Serialization
                 p.ParticipantPrimaryEnemyStackId = snapNode.GetString("primaryEnemyStackId", string.Empty);
                 p.ParticipantBattleAnchorHexQ = (int)snapNode.GetNumber("battleAnchorHexQ");
                 p.ParticipantBattleAnchorHexR = (int)snapNode.GetNumber("battleAnchorHexR");
+                p.ParticipantHasBattleAnchorWorldPosition = snapNode.GetBool("hasBattleAnchorWorldPosition");
+                p.ParticipantBattleAnchorWorldX = (float)snapNode.GetNumber("battleAnchorWorldX");
+                p.ParticipantBattleAnchorWorldY = (float)snapNode.GetNumber("battleAnchorWorldY");
+                p.ParticipantBattleAnchorSurfaceId = snapNode.GetString("battleAnchorSurfaceId", string.Empty);
                 p.ParticipantEncounterLocalMapId = snapNode.GetString("encounterLocalMapId", string.Empty);
                 p.ParticipantLocalMapResolutionKind = (int)snapNode.GetNumber("localMapResolutionKind");
                 p.HasParticipantLocalMapResolutionKind =
@@ -2164,7 +2254,11 @@ namespace XianXia.Data.Serialization
                             PreBattleHexQ = (int)r.GetNumber("preBattleHexQ", int.MinValue),
                             PreBattleHexR = (int)r.GetNumber("preBattleHexR", int.MinValue),
                             PreBattleFollowStackId = r.GetString("preBattleFollowStackId", string.Empty),
-                            PreBattleCombatPursuitStackId = r.GetString("preBattleCombatPursuitStackId", string.Empty)
+                            PreBattleCombatPursuitStackId = r.GetString("preBattleCombatPursuitStackId", string.Empty),
+                            PreBattleHasWorldPosition = r.GetBool("preBattleHasWorldPosition"),
+                            PreBattleWorldX = (float)r.GetNumber("preBattleWorldX"),
+                            PreBattleWorldY = (float)r.GetNumber("preBattleWorldY"),
+                            PreBattleSurfaceId = r.GetString("preBattleSurfaceId", string.Empty)
                         };
                         p.ParticipantRecords.Add(rec);
                     }

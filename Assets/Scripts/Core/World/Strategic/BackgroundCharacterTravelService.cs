@@ -6,6 +6,7 @@ using XianXia.Core.Results;
 using XianXia.Core.Simulation;
 using XianXia.Core.World;
 using XianXia.Core.World.Hex;
+using XianXia.Core.World.Surface;
 
 namespace XianXia.Core.World.Strategic
 {
@@ -16,6 +17,7 @@ namespace XianXia.Core.World.Strategic
     {
         static readonly List<HexCoord> PathScratch = new List<HexCoord>(64);
         static readonly List<HexCoord> FullPathScratch = new List<HexCoord>(64);
+        static readonly List<WorldVec2> SurfacePathScratch = new List<WorldVec2>(128);
 
         public static Result BeginTravelToHex(
             SimulationWorld world,
@@ -50,9 +52,6 @@ namespace XianXia.Core.World.Strategic
         {
             if (world?.BackgroundCharacterTravel == null)
                 return Result.Failure(ErrorCode.InvalidOperation, "Background travel board missing.");
-            if (!world.HexWorld.HasGrid)
-                return Result.Failure(ErrorCode.InvalidOperation, "Hex grid not loaded.");
-
             var canStart = debugOverrideLocalOccupant
                 ? CharacterWorldMovementAuthorityQuery.CanStartBackgroundTravelDebug(
                     world, characterId, party, out var authErr)
@@ -63,6 +62,32 @@ namespace XianXia.Core.World.Strategic
 
             if (!TryResolveCharacterWorldLocation(world, characterId, out var startKind, out var startSiteId, out var startPos, out var startHex))
                 return Result.Failure(ErrorCode.InvalidOperation, "Character has no world location.");
+
+            var normalOutdoorSite = ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                                    !string.IsNullOrEmpty(destinationSiteId) &&
+                                    world.Strategic.Sites.TryGet(destinationSiteId, out var siteTarget) &&
+                                    WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(siteTarget);
+            if (normalOutdoorSite &&
+                world.SurfaceGround.TryResolveSiteArrival(destinationSiteId, out _, out var arrival))
+            {
+                if (!world.SurfaceGround.TryResolveShared(startPos, arrival, out var navigation))
+                    return Result.Failure(ErrorCode.InvalidOperation, "No shared Surface for NPC Site travel.");
+                SurfacePathScratch.Clear();
+                var route = navigation.TryFindRoute(startPos, arrival, SurfacePathScratch);
+                if (route != SurfaceGroundRouteStatus.Found)
+                    return Result.Failure(ErrorCode.InvalidOperation, "NPC Surface route unavailable: " + route);
+                var surfaceMotion = world.BackgroundCharacterTravel.GetOrCreate(characterId);
+                surfaceMotion.BeginSurfaceTravel(SurfacePathScratch, navigation.SurfaceId,
+                    arrival, destinationSiteId);
+                surfaceMotion.LastProcessedWorldTick = world.Tick.Value;
+                world.WorldPresence.SetAtWorldPosition(characterId, startPos, startHex, navigation.SurfaceId);
+                return Result.Success();
+            }
+            if (normalOutdoorSite)
+                return Result.Failure(ErrorCode.InvalidOperation,
+                    "NPC Site has no authored Continuous Surface arrival.");
+            if (!world.HexWorld.HasGrid)
+                return Result.Failure(ErrorCode.InvalidOperation, "Hex grid not loaded.");
 
             var requestedHex = destinationHex;
             destinationSiteId = TryCanonicalizeFootprintHexDestination(
@@ -357,6 +382,55 @@ namespace XianXia.Core.World.Strategic
             BackgroundSimulationScheduler.AdvanceTravelBatch(world, (ulong)ticks);
         }
 
+        static void AdvanceSurfaceDistanceBudget(
+            SimulationWorld world, EntityId characterId,
+            BackgroundCharacterTravelMotion motion, float budget)
+        {
+            if (!world.WorldPresence.TryGet(characterId, out var presence) ||
+                presence == null || !presence.HasContinuousWorldPosition)
+                return;
+            if (world.Entities.TryGet(characterId, out var entity) &&
+                !CombatLifeStateService.CanFight(entity))
+            {
+                CancelTravelIfAny(world, characterId);
+                return;
+            }
+            var position = presence.ContinuousWorldPosition;
+            var guard = 0;
+            while (budget > 0.0001f && motion.TryGetSurfaceWaypoint(out var waypoint) && guard++ < 128)
+            {
+                var distance = WorldVec2.Distance(position, waypoint);
+                if (distance <= budget + 0.0001f)
+                {
+                    position = waypoint;
+                    budget -= distance;
+                    motion.IncrementPathIndex();
+                }
+                else
+                {
+                    var t = budget / distance;
+                    position = new WorldVec2(position.X + (waypoint.X - position.X) * t,
+                        position.Y + (waypoint.Y - position.Y) * t);
+                    budget = 0f;
+                }
+            }
+            var hexSize = world.HexWorld?.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+            var derived = HexMath.WorldToHex(position.X, position.Y, hexSize);
+            if (!motion.TryGetSurfaceWaypoint(out _))
+            {
+                position = motion.SurfaceDestination;
+                var siteId = motion.DestinationSiteId;
+                var surfaceId = motion.SurfaceId;
+                world.BackgroundCharacterTravel.Remove(characterId);
+                if (!string.IsNullOrEmpty(siteId))
+                    world.WorldPresence.SetAtSiteWithAnchor(characterId, siteId, position, surfaceId);
+                else
+                    world.WorldPresence.SetAtWorldPosition(characterId, position, derived, surfaceId);
+                return;
+            }
+            world.WorldPresence.SetAtWorldPosition(characterId, position, derived, motion.SurfaceId);
+        }
+
         public static void AdvanceDistanceBudget(
             SimulationWorld world,
             EntityId characterId,
@@ -367,6 +441,11 @@ namespace XianXia.Core.World.Strategic
                 return;
             if (!world.BackgroundCharacterTravel.TryGet(characterId, out var motion) || motion == null || !motion.IsMoving)
                 return;
+            if (motion.IsSurfaceRoute)
+            {
+                AdvanceSurfaceDistanceBudget(world, characterId, motion, distanceBudget);
+                return;
+            }
             if (!TryResolveSiteDepartureTravelPosition(
                     world,
                     characterId,
@@ -716,6 +795,12 @@ namespace XianXia.Core.World.Strategic
             {
                 kind = BackgroundCharacterLocationKind.AtWorldSite;
                 siteId = presence.SiteId;
+                if (presence.HasContinuousWorldPosition)
+                {
+                    worldPos = presence.ContinuousWorldPosition;
+                    derivedHex = HexMath.WorldToHex(worldPos.X, worldPos.Y, hexSize);
+                    return true;
+                }
                 if (world.Strategic.Sites.TryResolveSitePresenceHex(siteId, out derivedHex))
                 {
                     worldPos = HexCenter(derivedHex, hexSize);
@@ -732,7 +817,8 @@ namespace XianXia.Core.World.Strategic
                 worldPos = presence.ContinuousWorldPosition;
                 derivedHex = HexMath.WorldToHex(worldPos.X, worldPos.Y, hexSize);
                 if (derivedHex != presence.DerivedHexFromWorldPosition)
-                    world.WorldPresence.SetAtWorldPosition(characterId, worldPos, derivedHex);
+                    world.WorldPresence.SetAtWorldPosition(characterId, worldPos, derivedHex,
+                        presence.PersonalSurfaceId);
                 return true;
             }
 

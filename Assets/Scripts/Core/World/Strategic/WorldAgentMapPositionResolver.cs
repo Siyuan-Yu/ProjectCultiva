@@ -17,20 +17,23 @@ namespace XianXia.Core.World.Strategic
             out float worldY)
         {
             worldX = worldY = 0f;
-            if (world == null || presence == null || !world.HexWorld.HasGrid)
+            if (world == null || presence == null)
+                return false;
+
+            // MAP-03 normal authority: a precise continuous position is sufficient.  Do this
+            // before consulting HexWorld so NPC/residual presentation survives without a grid.
+            if (presence.HasContinuousWorldPosition)
+            {
+                worldX = presence.WorldPosX;
+                worldY = presence.WorldPosY;
+                return true;
+            }
+
+            if (world.HexWorld == null || !world.HexWorld.HasGrid)
                 return false;
 
             if (presence.UsesHexPresence)
             {
-                if (presence.HasContinuousWorldPosition)
-                {
-                    // precise world position（Local Combat 倒下时保存）：LocalMap 与 WorldMap
-                    // 用同一 physical truth，而非 Hex 中心。
-                    worldX = presence.WorldPosX;
-                    worldY = presence.WorldPosY;
-                    return true;
-                }
-
                 HexMath.ToWorldPosition(presence.ResidualHex, world.HexWorld.HexSize, out worldX, out worldY);
                 return true;
             }

@@ -1731,9 +1731,12 @@ namespace XianXia.Unity.Host
             if (hasSurfaceWaypoint && world.SurfaceGround != null)
                 bakedAuthority = world.SurfaceGround.TryOverrideHexCompatibility(
                     motion.WorldPosition, routeWaypoint, out bakedLegal);
-            if (surface.IsAutoTravelPathBlocked(nextHex) ||
+            // A MAP-03 Surface route is complete on its own.  Hex leg legality remains only
+            // for legacy plans that did not supply an exact Surface waypoint.
+            if ((!hasSurfaceWaypoint && surface.IsAutoTravelPathBlocked(nextHex)) ||
                 (bakedAuthority ? !bakedLegal :
-                    !ContinuousSurfacePrototypeGroundLegality.CanCross(world.HexWorld, motion.CurrentHex, nextHex)))
+                    (!hasSurfaceWaypoint &&
+                     !ContinuousSurfacePrototypeGroundLegality.CanCross(world.HexWorld, motion.CurrentHex, nextHex))))
             {
                 surface.ReportLegalityBlocked();
                 LastTransitionStatus = ContinuousSurfacePrototypeGroundLegality.BlockedDiagnostic;
@@ -2206,7 +2209,8 @@ namespace XianXia.Unity.Host
                 return;
             if (motion.LocationKind != PlayerPartyLocationKind.AtWorldPosition)
                 return; // WorldSite：不在此范围。
-            if (!motion.CurrentHex.Equals(motion.DestinationHex))
+            if (!motion.HasContinuousPhysicalDestination &&
+                !motion.CurrentHex.Equals(motion.DestinationHex))
                 return; // 尚未跨入目标 Hex。
 
             var active = Party != null ? Party.ActiveCharacterId : EntityId.None;

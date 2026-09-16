@@ -43,8 +43,6 @@ namespace XianXia.Core.Persistence
                 var anchor = new HexCoord(item.AnchorQ, item.AnchorR);
                 if (string.IsNullOrWhiteSpace(item.FlagId)) return Invalid(i, item, "FlagId is empty");
                 if (string.IsNullOrWhiteSpace(item.FactionId)) return Invalid(i, item, "FactionId is empty");
-                if (world.HexWorld == null || !world.HexWorld.IsInBounds(anchor.Q, anchor.R))
-                    return Invalid(i, item, "anchor is out of bounds");
                 if (!ids.Add(item.FlagId)) return Invalid(i, item, "duplicate FlagId");
                 if (item.EstablishedOrder <= 0) return Invalid(i, item, "EstablishedOrder must be positive");
                 if (!orders.Add(item.EstablishedOrder)) return Invalid(i, item, "duplicate EstablishedOrder");
@@ -79,6 +77,17 @@ namespace XianXia.Core.Persistence
                                    !string.Equals(siteId, FactionFlagService.SiteIdForCoreFlag(item.FlagId),
                                        StringComparison.Ordinal)))
                     return Invalid(i, item, "Site-Core identity requires precise position, Surface, and stable SiteId");
+                if (isSiteCore && world.SurfaceSpatial != null &&
+                    (!world.SurfaceSpatial.TryGet(surfaceId, out var surface) || surface == null ||
+                     !surface.ContainsWorldPosition(worldX, worldY)))
+                    return Invalid(i, item, "Site-Core world position is outside its Surface");
+                if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) && isSiteCore)
+                {
+                    var size = world.HexWorld?.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+                    anchor = HexMath.WorldToHex(worldX, worldY, size);
+                }
+                else if (world.HexWorld == null || !world.HexWorld.IsInBounds(anchor.Q, anchor.R))
+                    return Invalid(i, item, "anchor is out of bounds");
                 if (item.SiteCoreFormat == 1 && authored != null && !isSiteCore)
                     return Invalid(i, item, "authored Site-Core flag is disabled by an authoritative snapshot entry");
 

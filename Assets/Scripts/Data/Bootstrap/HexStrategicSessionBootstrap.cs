@@ -56,7 +56,24 @@ namespace XianXia.Data.Bootstrap
             // authored opening spawns have had first claim; WorldMotion remains the authority.
             RestoreMissingFormalArmyMemberPresence(world);
 
-            if (world.Strategic.Sites.TryResolveSitePresenceHex(startSiteId, out var presenceHex))
+            WorldAgentPresence openingPresence = null;
+            var hasContinuousOpening =
+                WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site) &&
+                openingCharacters.Count > 0 &&
+                world.WorldPresence.TryGet(openingCharacters[0], out openingPresence) &&
+                openingPresence != null && openingPresence.HasContinuousWorldPosition;
+            if (hasContinuousOpening)
+            {
+                var openingPoint = openingPresence.ContinuousWorldPosition;
+                var size = world.HexWorld != null && world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
+                var derived = XianXia.Core.World.Hex.HexMath.WorldToHex(openingPoint.X, openingPoint.Y, size);
+                world.PlayerPartyTravel.SetAtWorldPosition(openingPoint, derived);
+                world.PlayerPartyTravel.TrySetAtWorldSitePreservingWorldPosition(startSiteId, openingPoint);
+                world.PlayerPartyTravel.CaptureTravelingMembers(
+                    CollectOpeningTravelSyncMemberIds(openingCharacters));
+                world.PartyWorld.Mode = PartyWorldPresenceMode.AtWorldPosition;
+            }
+            else if (world.Strategic.Sites.TryResolveSitePresenceHex(startSiteId, out var presenceHex))
             {
                 var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
                     ? world.HexWorld.HexSize
@@ -68,13 +85,17 @@ namespace XianXia.Data.Bootstrap
                     CollectOpeningTravelSyncMemberIds(openingCharacters));
             }
 
-            var enter = WorldTravelService.EnterWorldSiteScene(world, startSiteId, string.Empty);
-            if (enter.IsFailure)
-                return enter;
+            if (!hasContinuousOpening)
+            {
+                var enter = WorldTravelService.EnterWorldSiteScene(world, startSiteId, string.Empty);
+                if (enter.IsFailure)
+                    return enter;
+            }
 
             WorldTravelService.SyncPartyFocus(world);
             // 确保 Travel 与 PartyWorld 同为 AtWorldSite（EnterWorldSiteScene 不改 Travel）。
-            if (world.Strategic.Sites.TryResolveSitePresenceHex(startSiteId, out var presenceAgain))
+            if (!hasContinuousOpening &&
+                world.Strategic.Sites.TryResolveSitePresenceHex(startSiteId, out var presenceAgain))
             {
                 var hexSize = world.HexWorld != null && world.HexWorld.HexSize > 0f
                     ? world.HexWorld.HexSize

@@ -105,6 +105,20 @@ namespace XianXia.Core.Persistence
                 if (!world.Strategic.Sites.TryGet(wp.SiteId, out var site) || site == null)
                     return false;
 
+                if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                    WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site))
+                {
+                    resolved = new Resolved
+                    {
+                        HasValue = true, LocalMapId = string.Empty, SiteId = site.SiteId,
+                        PartyWorldMode = PartyWorldPresenceMode.AtSite,
+                        WildernessHex = site.PresenceHex,
+                        WorldLocationLabel = "ContinuousSite(" + site.SiteId + ")",
+                        Source = "ActiveWorldPresence.ContinuousSite"
+                    };
+                    return true;
+                }
+
                 resolved = new Resolved
                 {
                     HasValue = true,
@@ -116,6 +130,21 @@ namespace XianXia.Core.Persistence
                     Source = "ActiveWorldPresence.AtSite"
                 };
                 return !string.IsNullOrEmpty(resolved.LocalMapId);
+            }
+
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                wp.HasContinuousWorldPosition &&
+                world.SurfaceGround.TryResolveContaining(wp.ContinuousWorldPosition, out _))
+            {
+                resolved = new Resolved
+                {
+                    HasValue = true, LocalMapId = string.Empty,
+                    PartyWorldMode = PartyWorldPresenceMode.AtHex,
+                    WildernessHex = wp.ResidualHex,
+                    WorldLocationLabel = "ContinuousWorldPosition",
+                    Source = "ActiveWorldPresence.ContinuousSurface"
+                };
+                return true;
             }
 
             if (wp.Mode == PartyWorldPresenceMode.AtHex && wp.UsesHexPresence)
@@ -173,17 +202,34 @@ namespace XianXia.Core.Persistence
 
             if (motionResolved.LocationKind == PlayerPartyLocationKind.AtWorldSite)
             {
+                var continuousSite = ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                                     world.Strategic.Sites.TryGet(motionResolved.SiteId, out var site) &&
+                                     WorldSiteOutdoorMigrationPolicy.UsesContinuousOutdoorSurface(site);
                 resolved = new Resolved
                 {
                     HasValue = true,
-                    LocalMapId = motionResolved.ResolvedLocalMapId ?? string.Empty,
+                    LocalMapId = continuousSite ? string.Empty : motionResolved.ResolvedLocalMapId ?? string.Empty,
                     SiteId = motionResolved.SiteId ?? string.Empty,
                     PartyWorldMode = PartyWorldPresenceMode.AtSite,
                     WildernessHex = motionResolved.DerivedHex,
                     WorldLocationLabel = "AtWorldSite(" + (motionResolved.SiteId ?? string.Empty) + ")",
                     Source = "PlayerPartyTravel.AtWorldSite(active=" + activeId.Value + ")"
                 };
-                return !string.IsNullOrEmpty(resolved.LocalMapId);
+                return continuousSite || !string.IsNullOrEmpty(resolved.LocalMapId);
+            }
+
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world) &&
+                world.SurfaceGround.TryResolveContaining(motionResolved.WorldPosition, out _))
+            {
+                resolved = new Resolved
+                {
+                    HasValue = true, LocalMapId = string.Empty,
+                    PartyWorldMode = PartyWorldPresenceMode.AtHex,
+                    WildernessHex = motionResolved.DerivedHex,
+                    WorldLocationLabel = "ContinuousWorldPosition",
+                    Source = "PlayerPartyTravel.ContinuousSurface"
+                };
+                return true;
             }
 
             resolved = new Resolved

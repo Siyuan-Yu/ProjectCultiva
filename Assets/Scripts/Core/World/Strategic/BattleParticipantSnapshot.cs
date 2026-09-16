@@ -16,6 +16,10 @@ namespace XianXia.Core.World.Strategic
         public int HexR { get; set; } = WorldAgentPresence.InvalidHexComponent;
         public string FollowStackId { get; set; } = string.Empty;
         public string CombatPursuitStackId { get; set; } = string.Empty;
+        public bool HasWorldPosition { get; set; }
+        public float WorldX { get; set; }
+        public float WorldY { get; set; }
+        public string SurfaceId { get; set; } = string.Empty;
 
         public static PreBattleWorldPresence Capture(WorldAgentPresence p)
         {
@@ -28,7 +32,11 @@ namespace XianXia.Core.World.Strategic
                 HexQ = p.HexQ,
                 HexR = p.HexR,
                 FollowStackId = p.FollowStackId ?? string.Empty,
-                CombatPursuitStackId = p.CombatPursuitStackId ?? string.Empty
+                CombatPursuitStackId = p.CombatPursuitStackId ?? string.Empty,
+                HasWorldPosition = p.HasContinuousWorldPosition,
+                WorldX = p.WorldPosX,
+                WorldY = p.WorldPosY,
+                SurfaceId = p.PersonalSurfaceId ?? string.Empty
             };
         }
 
@@ -42,6 +50,10 @@ namespace XianXia.Core.World.Strategic
             p.HexR = HexR;
             p.FollowStackId = FollowStackId ?? string.Empty;
             p.CombatPursuitStackId = CombatPursuitStackId ?? string.Empty;
+            p.HasContinuousWorldPosition = HasWorldPosition;
+            p.WorldPosX = WorldX;
+            p.WorldPosY = WorldY;
+            p.PersonalSurfaceId = SurfaceId ?? string.Empty;
         }
     }
 
@@ -162,6 +174,10 @@ namespace XianXia.Core.World.Strategic
         public string OfferId { get; set; } = string.Empty;
         public int BattleAnchorHexQ { get; set; } = ArmyHexBattleAnchorService.InvalidHexComponent;
         public int BattleAnchorHexR { get; set; } = ArmyHexBattleAnchorService.InvalidHexComponent;
+        public bool HasBattleAnchorWorldPosition { get; set; }
+        public float BattleAnchorWorldX { get; set; }
+        public float BattleAnchorWorldY { get; set; }
+        public string BattleAnchorSurfaceId { get; set; } = string.Empty;
         public string PrimaryEnemyStackId { get; set; } = string.Empty;
         public string AttackerArmyId { get; set; } = string.Empty;
         public string DefenderArmyId { get; set; } = string.Empty;
@@ -186,6 +202,9 @@ namespace XianXia.Core.World.Strategic
             OfferId = string.Empty;
             BattleAnchorHexQ = ArmyHexBattleAnchorService.InvalidHexComponent;
             BattleAnchorHexR = ArmyHexBattleAnchorService.InvalidHexComponent;
+            HasBattleAnchorWorldPosition = false;
+            BattleAnchorWorldX = BattleAnchorWorldY = 0f;
+            BattleAnchorSurfaceId = string.Empty;
             PrimaryEnemyStackId = string.Empty;
             AttackerArmyId = string.Empty;
             DefenderArmyId = string.Empty;
@@ -299,6 +318,10 @@ namespace XianXia.Core.World.Strategic
             OfferId = src.OfferId;
             BattleAnchorHexQ = src.BattleAnchorHexQ;
             BattleAnchorHexR = src.BattleAnchorHexR;
+            HasBattleAnchorWorldPosition = src.HasBattleAnchorWorldPosition;
+            BattleAnchorWorldX = src.BattleAnchorWorldX;
+            BattleAnchorWorldY = src.BattleAnchorWorldY;
+            BattleAnchorSurfaceId = src.BattleAnchorSurfaceId;
             PrimaryEnemyStackId = src.PrimaryEnemyStackId;
             AttackerArmyId = src.AttackerArmyId;
             DefenderArmyId = src.DefenderArmyId;
@@ -331,7 +354,11 @@ namespace XianXia.Core.World.Strategic
                             HexQ = r.PreBattle.HexQ,
                             HexR = r.PreBattle.HexR,
                             FollowStackId = r.PreBattle.FollowStackId,
-                            CombatPursuitStackId = r.PreBattle.CombatPursuitStackId
+                            CombatPursuitStackId = r.PreBattle.CombatPursuitStackId,
+                            HasWorldPosition = r.PreBattle.HasWorldPosition,
+                            WorldX = r.PreBattle.WorldX,
+                            WorldY = r.PreBattle.WorldY,
+                            SurfaceId = r.PreBattle.SurfaceId
                         }
                 });
             }

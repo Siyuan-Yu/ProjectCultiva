@@ -53,7 +53,15 @@ namespace XianXia.Core.World.Strategic
             out WorldSite site)
         {
             site = null;
-            if (world?.HexWorld == null || world.Strategic?.Sites == null)
+            if (world?.Strategic?.Sites == null)
+                return false;
+            // MAP-03 normal authority: registered continuous Site geometry/control wins.  The
+            // footprint lookup below is intentionally legacy-only fallback.
+            if (ContinuousOutdoorGameplayPolicy.IsNormalContinuousOutdoor(world))
+                return WorldSiteAdministrativeControlResolver.TryResolveOnRegisteredSurface(
+                           world, worldPosition.X, worldPosition.Y, out _, out site, out _) &&
+                       site != null;
+            if (world.HexWorld == null)
                 return false;
             var size = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             var hex = HexMath.WorldToHex(worldPosition.X, worldPosition.Y, size);

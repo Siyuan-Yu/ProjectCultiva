@@ -48,6 +48,20 @@ namespace XianXia.Unity.Host
             var politicalSnapshot = session.PendingRestoredStrategicSnapshot;
             if (politicalSnapshot == null)
                 return Result.Failure(ErrorCode.SnapshotInvalid, "Pending strategic snapshot is missing.");
+            // Snapshot DTO restoration precedes content-shell registration of Surface navigation.
+            // Rebuild the saved exact travel intent now that the authored route is available.
+            if (politicalSnapshot.PlayerPartyTravel?.IsMoving == true &&
+                politicalSnapshot.PlayerPartyTravel.HasContinuousPhysicalDestination)
+            {
+                PlayerPartyTransitionMembership.CaptureTravelingMembersForPartyTransition(
+                    world, session.PlayerParty);
+                StrategicSnapshotHelper.RestorePlayerPartyTravel(
+                    world, politicalSnapshot.PlayerPartyTravel);
+                PlayerPartyTransitionMembership.ReconcilePlayerPartyMemberWorldPresenceFromMotion(
+                    world, session.PlayerParty, "SnapshotSurfaceTravelResume");
+            }
+            StrategicSnapshotHelper.RestoreBackgroundSurfaceTravels(
+                world, politicalSnapshot.BackgroundCharacterTravels);
 
             var encounter = world.Strategic.CharacterEncounter;
             if (encounter != null)
