@@ -4739,4 +4739,13 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 - 首次文档与预览初始化推迟到窗口 Loaded 后；WorldComposer preview 的 clone、region、后台计算与 WriteableBitmap 更新全部纳入异常边界，预览失败只降级为空画布和状态栏错误。
 - 未修改 Content、Gameplay 或 Legacy Migration；未启动 Unity，也未运行 Unity Test 或完整测试套件。
 
+## 2026-09-17 — MAP-03 制作人验收热修（待重新验收）
+
+- Continuous Outdoor 的玩家拾取排除抽象 WorkArea/Housing，NPC WorkTarget 和旧 LocalMap 逻辑保留。
+- Surface WorldMap 修正按视口宽高比的全图 fit 与归中，地图世界层统一裁剪并置于固定 UI 下方。
+- 连续 Site/旗帜标记使用 Core 精确位置；Surface 左右键标记、Actual Control、正交坐标网格和情报文案完成热修。第一次热修未改 Gameplay 或 Content；后续固定议政厅迁移见下条。
+- 制作人后续反馈要求将正常 Surface marker 进一步收紧到真实 SiteCore，并改成固定顶部、全宽地图、按需情报浮层；地图渲染改用组内局部坐标，网格删除坐标数字。
+- 青石镇、青石关、灵地、林间、庄院的 Prototype 树按原连续中心迁成五处固定议政厅；各自新增唯一 ControlCore WorkArea 与 SitePlace。BaseGame Content 加载与兼容候选核对通过，制作人验收仍待进行。
+- 制作人纠正战略 marker 尺寸语义：房屋与旗帜以精确 Core/Flag 世界位置为中心，采用稳定的 Surface Cell 展示尺寸，随地图 zoom 一起缩放；Site 名称字号、相对位移和命中矩形同样跟随世界投影。独立旗帜保留左键检视；世界地形和 Actual Control 仍保持世界比例，Header／底部控制条／情报浮层保持屏幕固定尺寸。
+
 ---

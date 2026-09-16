@@ -18,11 +18,16 @@ using XianXia.Data.Content;
 namespace XianXia.Unity.Host
 {
     /// <summary>
-    /// Hex 战略大地图全屏页：头像标位、点选、右Hex 下令；可缩放平移
+    /// 连续世界大地图与旧 Hex 战略地图共用的全屏视图；Surface 坐标是正常路径的表现真源。
     /// </summary>
     public sealed class HostWorldMapPanel : MonoBehaviour
     {
         const float AvatarSize = 40f;
+        const float CouncilHallMarkerCells = 28f;
+        const float FactionFlagMarkerCells = 28f;
+        const float SurfaceMarkerLabelGapCells = 8f;
+        const float SurfaceMarkerLabelWidthCells = 196f;
+        const float SurfaceMarkerLabelHeightCells = 28f;
         const float NodeHitW = 128f;
         const float NodeHitH = 44f;
         /// <summary>敌军栈默认吸附（屏幕像素，圆形半径外延）。偏小以免抢道路右键移动/summary>
@@ -55,7 +60,7 @@ namespace XianXia.Unity.Host
         /// <summary>底部支援半径滑块条高度/summary>
         const float BottomBarH = 36f;
         /// <summary>右侧选中信息面板宽度/summary>
-        const float InfoPanelW = 300f;
+        const float InspectFlyoutW = 320f;
         const float ReinforceRadiusMin = 0.25f;
         const float ReinforceRadiusMax = 4f;
         /// <summary>Debug：大地图绘制支援半径圈。底栏滑块不受此开关影响/summary>
@@ -87,6 +92,7 @@ namespace XianXia.Unity.Host
         /// <summary>WorldMap 图层开关：显示势力范围（Territory overlay）。纯 UI preference，不写 SaveGame；panel hide/show 不重置。</summary>
         bool _showTerritoryOverlay = true;
         bool _showSurfaceGeography = true;
+        bool _showSurfaceGrid = true;
         /// <summary>WorldMap 军队表现层；默认 ON，不写入存档。</summary>
         bool _showArmyMarkers = true;
         float _lastMapViewportWidth = 800f;
@@ -96,10 +102,13 @@ namespace XianXia.Unity.Host
         HexCoord? _lastHoverHex;
         readonly HashSet<ulong> _selected = new HashSet<ulong>();
         readonly Dictionary<ulong, Rect> _avatarRects = new Dictionary<ulong, Rect>();
+        Rect _playerPartyRect;
         readonly List<(ResidualMarkerGroupView group, Rect rect)> _residualMarkerRects =
             new List<(ResidualMarkerGroupView, Rect)>(16);
         ResidualMarkerGroupView _selectedResidualGroup;
         readonly List<(string nodeId, Rect rect)> _nodeRects = new List<(string, Rect)>(64);
+        readonly List<(string flagId, Rect rect)> _flagRects = new List<(string, Rect)>(8);
+        string _inspectFlagId = string.Empty;
         readonly Dictionary<string, int> _slotAtSiteKey = new Dictionary<string, int>();
         readonly Dictionary<string, int> _countAtSiteKey = new Dictionary<string, int>();
 
@@ -144,6 +153,9 @@ namespace XianXia.Unity.Host
         string _inspectSiteId = string.Empty;
         string _selectedWorldSiteId = string.Empty;
         Vector2 _inspectScroll;
+        bool _inspectFlyoutOpen;
+        bool _inspectPlayerParty;
+        string _surfacePointInspectText = string.Empty;
 
         string _status = string.Empty;
         bool _wasBlockingInput;
@@ -163,6 +175,7 @@ namespace XianXia.Unity.Host
         GUIStyle _body;
         GUIStyle _nodeLabel;
         GUIStyle _avatarLabel;
+        readonly Dictionary<int, GUIStyle> _siteMarkerLabelStyles = new Dictionary<int, GUIStyle>();
         GUIStyle _layerToggle;
         Texture2D _px;
         readonly HostSurfaceWorldMapRenderer _surfaceRenderer = new HostSurfaceWorldMapRenderer();
@@ -242,6 +255,9 @@ namespace XianXia.Unity.Host
             bootstrap?.ConstructionPanel?.Close();
             bootstrap?.QuestJournal?.Close();
             open = true;
+            _inspectFlyoutOpen = false;
+            _inspectPlayerParty = false;
+            _surfacePointInspectText = string.Empty;
             _requestClose = false;
             if (bootstrap?.Session != null && bootstrap.Session.IsInitialized)
             {
@@ -424,7 +440,12 @@ namespace XianXia.Unity.Host
             CloseGatewayConfirm();
             _inspectSiteId = string.Empty;
             _selectedWorldSiteId = string.Empty;
+            _inspectFlagId = string.Empty;
+            _flagRects.Clear();
             _inspectScroll = Vector2.zero;
+            _inspectFlyoutOpen = false;
+            _inspectPlayerParty = false;
+            _surfacePointInspectText = string.Empty;
         }
 
         bool _requestClose;
@@ -593,10 +614,31 @@ namespace XianXia.Unity.Host
                 ref _viewCx,
                 ref _viewCy);
         }
-        void ClampSurfaceCamera(float w,float h,SimulationWorld world)
+        void ClampSurfaceCamera(float w, float h, SimulationWorld world)
         {
-            if (IsSurfaceMode(world)) { var nav=world.SurfaceGround.Active; var scale=Mathf.Min(w,h)/(2f*Mathf.Max(.001f,_viewHalf)); var halfX=w/(2f*scale); var halfY=h/(2f*scale); _viewCx=Mathf.Clamp(_viewCx,nav.OriginX+halfX,nav.MaxX-halfX); _viewCy=Mathf.Clamp(_viewCy,nav.OriginY+halfY,nav.MaxY-halfY); return; }
-            ClampHexCamera(w,h,world);
+            if (!IsSurfaceMode(world)) { ClampHexCamera(w, h, world); return; }
+            var nav = world.SurfaceGround.Active;
+            var centerX = (nav.OriginX + nav.MaxX) * .5f;
+            var centerY = (nav.OriginY + nav.MaxY) * .5f;
+            if (_viewHalf >= _fullHalf - .0001f)
+            {
+                _viewCx = centerX; _viewCy = centerY;
+                return;
+            }
+            var scale = Mathf.Min(w, h) / (2f * Mathf.Max(.001f, _viewHalf));
+            var halfX = w / (2f * scale);
+            var halfY = h / (2f * scale);
+            _viewCx = halfX >= (nav.MaxX - nav.OriginX) * .5f - .0001f
+                ? centerX : Mathf.Clamp(_viewCx, nav.OriginX + halfX, nav.MaxX - halfX);
+            _viewCy = halfY >= (nav.MaxY - nav.OriginY) * .5f - .0001f
+                ? centerY : Mathf.Clamp(_viewCy, nav.OriginY + halfY, nav.MaxY - halfY);
+        }
+
+        static float ComputeSurfaceFitViewHalf(SurfaceGroundNavigation nav, float viewportWidth, float viewportHeight)
+        {
+            var shortest = Mathf.Min(viewportWidth, viewportHeight);
+            return Mathf.Max((nav.MaxX - nav.OriginX) * shortest / (2f * viewportWidth),
+                (nav.MaxY - nav.OriginY) * shortest / (2f * viewportHeight));
         }
 
         static void ComputeFullHalf(
@@ -605,7 +647,12 @@ namespace XianXia.Unity.Host
             float mapViewportHeight,
             out float fullHalf)
         {
-            if (world?.SurfaceGround?.Active != null) { var nav=world.SurfaceGround.Active; fullHalf=Mathf.Max((nav.MaxX-nav.OriginX)*.5f,(nav.MaxY-nav.OriginY)*.5f); return; }
+            if (world?.SurfaceGround?.Active != null)
+            {
+                fullHalf = Mathf.Max(ResolveMinViewHalf(world),
+                    ComputeSurfaceFitViewHalf(world.SurfaceGround.Active, mapViewportWidth, mapViewportHeight));
+                return;
+            }
             if (ArmyHexCommandService.IsHexStrategicActive(world) && world?.HexWorld != null && world.HexWorld.HasGrid)
             {
                 var fitHalf = HexWorldLayout.ComputeFitViewHalf(
@@ -641,102 +688,47 @@ namespace XianXia.Unity.Host
             HostUiHitTest.BlockSelectionWholeScreen();
 
             var prev = GUI.color;
+            GUI.depth = -50;
             GUI.color = new Color(0.08f, 0.09f, 0.11f, 0.97f);
             GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), _px);
             GUI.color = prev;
+            GUI.depth = -80;
 
-            const float titleY = 10f;
-            const float toolbarY = 42f;
-            const float statusY = 74f;
             const float mapTop = 104f;
             const float pad = 16f;
 
             var world = bootstrap.Session.World;
 
-            var title = "世界地图（左键查看｜右键规划玩家小队前往｜M关闭）";
-            GUI.Label(
-                new Rect(pad, titleY, Screen.width - 380f, 28f),
-                title, _title);
-
-            // 产品默认显示 actual-control world geometry；关闭仅影响 presentation。
-            var showTerritory = GUI.Toggle(
-                new Rect(Screen.width - 350f, titleY + 4f, 116f, 26f),
-                _showTerritoryOverlay,
-                "显示势力范围",
-                _layerToggle);
-            if (showTerritory != _showTerritoryOverlay)
-            {
-                _showTerritoryOverlay = showTerritory;
-                HostHexWorldRenderer.SetTerritoryOverlayVisible(showTerritory);
-            }
-
-            _showSurfaceGeography = GUI.Toggle(
-                new Rect(Screen.width - 480f, titleY + 4f, 122f, 26f),
-                _showSurfaceGeography,
-                "显示地理层",
-                _layerToggle);
-
-            var showArmies = GUI.Toggle(
-                new Rect(Screen.width - 226f, titleY + 4f, 108f, 26f),
-                _showArmyMarkers,
-                "显示 NPC 小队",
-                _layerToggle);
-            if (showArmies != _showArmyMarkers)
-                SetArmyLayerVisible(showArmies);
-
-            if (GUI.Button(new Rect(Screen.width - 100f, titleY, 84f, 32f), "关闭"))
-                CloseWithLocalMapTakeover();
-
-            DrawMapToolbar(pad, toolbarY, world);
-
             if (!IsSurfaceMode(world) && (!ArmyHexCommandService.IsHexStrategicActive(world) ||
                 world?.HexWorld == null ||
                 !world.HexWorld.HasGrid))
             {
-                GUI.Label(new Rect(pad, toolbarY, Screen.width - pad * 2f, 40f), "Hex 战略地图未加载。", _body);
+                DrawFixedHeader(world, pad, mapTop);
+                GUI.Label(new Rect(pad, mapTop + 10f, Screen.width - pad * 2f, 40f),
+                    "Hex 战略地图未加载。", _body);
                 return;
             }
 
-            _lastMapViewportWidth = Screen.width - pad * 2f - InfoPanelW - 8f;
+            _lastMapViewportWidth = Screen.width - pad * 2f;
             _lastMapViewportHeight = Screen.height - mapTop - pad - BottomBarH;
             EnsureView(world, _lastMapViewportWidth, _lastMapViewportHeight);
-
-            var focusName = world.PartyWorld.SiteId;
-            if (world.Strategic.Sites.TryGet(world.PartyWorld.SiteId, out var focusSite) &&
-                focusSite != null &&
-                !string.IsNullOrEmpty(focusSite.DisplayName))
-                focusName = focusSite.DisplayName;
-
-            var zoomPct = Mathf.Approximately(_fullHalf, MinViewHalfExtent)
-                ? 100
-                : Mathf.RoundToInt(100f * (1f - (_viewHalf - MinViewHalfExtent) / (_fullHalf - MinViewHalfExtent)));
-
-            GUI.Label(
-                new Rect(pad, statusY, Screen.width - pad * 2f - InfoPanelW - 8f, 22f),
-                "镜头：" + focusName +
-                "　已选 " + FormatSelectionSummary() +
-                "　缩放 " + zoomPct + "%（最大：邻站铺满屏／最小：全图）" +
-                (string.IsNullOrEmpty(_status) ? "" : "　｜　" + _status),
-                _body);
 
             var mapRect = new Rect(
                 pad,
                 mapTop,
                 _lastMapViewportWidth,
                 _lastMapViewportHeight);
-            var infoRect = new Rect(
-                mapRect.xMax + 8f,
-                mapTop,
-                InfoPanelW,
-                mapRect.height);
             var hexGutterActive = !IsSurfaceMode(world) && ArmyHexCommandService.IsHexStrategicActive(world) &&
                                   world?.HexWorld != null &&
                                   world.HexWorld.HasGrid;
+            var chromeDepth = GUI.depth;
+            GUI.depth = -60;
             GUI.color = hexGutterActive
                 ? HostHexWorldRenderer.ResolveGutterColor()
                 : new Color(0.93f, 0.89f, 0.78f, 1f);
             GUI.DrawTexture(mapRect, _px);
             GUI.color = Color.white;
+            GUI.depth = chromeDepth;
 
             HexMapViewportProjection hexProjection = default;
             if (ArmyHexCommandService.IsHexStrategicActive(world) &&
@@ -749,28 +741,132 @@ namespace XianXia.Unity.Host
             if (!IsSurfaceMode(world)) RefreshHexPresentation(hexProjection, world); else RefreshRoutePreview(world);
             // 与 panel toggle 保持一致的 overlay 图层状态（唯一入口；防御性同步）。
             HostHexWorldRenderer.SetTerritoryOverlayVisible(_showTerritoryOverlay);
-            DrawGraph(mapRect, hexProjection, world);
-            DrawMapUnitOverlays(mapRect, hexProjection, world);
+            // World renderers receive only group-local coordinates. Convert hit rectangles to
+            // screen coordinates once after leaving the clip; camera/input stay screen-space.
+            var localMapRect = new Rect(0f, 0f, mapRect.width, mapRect.height);
+            var localHexProjection = !IsSurfaceMode(world) ? BuildHexProjection(localMapRect, world) : default;
+            var worldDepth = GUI.depth;
+            GUI.depth = -70;
+            GUI.BeginGroup(mapRect);
+            DrawGraph(localMapRect, localHexProjection, world);
+            DrawMapUnitOverlays(localMapRect, localHexProjection, world);
             if (ShowReinforcementRadiusDebug)
-                DrawReinforcementRadiusOverlay(mapRect, world);
+                DrawReinforcementRadiusOverlay(localMapRect, world);
+            GUI.EndGroup();
+            GUI.depth = worldDepth;
+            OffsetMapHitRects(mapRect.position);
 
-            DrawGatewayConfirm(world);
-            DrawAvatarContextMenu(world);
-            DrawInspectPanel(infoRect, world);
+            DrawFixedHeader(world, pad, mapTop);
             DrawReinforcementRadiusSlider(pad, world);
             DrawStrategicRosterPanels(world);
+            DrawInspectFlyout(mapRect, world);
+            DrawGatewayConfirm(world);
+            DrawAvatarContextMenu(world);
             TryDismissContextMenusOnOutsideClick();
             if (Event.current != null && Event.current.type == EventType.Used)
                 return;
             // 菜单仍开着（点在菜单内）时不处理地图下令；外侧点击已在上面关掉菜单且不吞事
             if (_nodeMenuOpen || _avatarMenuOpen || _gatewayConfirmOpen)
                 return;
+            var openInspectOnClick = Event.current != null && Event.current.type == EventType.MouseDown &&
+                                     Event.current.button == 0 && mapRect.Contains(Event.current.mousePosition);
+            if (openInspectOnClick)
+            {
+                _surfacePointInspectText = string.Empty;
+                _inspectPlayerParty = false;
+                _inspectFlagId = string.Empty;
+            }
             HandleMapInput(mapRect, hexProjection, world);
+            if (openInspectOnClick && Event.current != null && Event.current.type == EventType.Used)
+                _inspectFlyoutOpen = true;
             HandleCameraInput(mapRect, world);
             HostUiHitTest.EndFrame();
             // 进入场景可能在本OnGUI 中途关掉；立刻停画，避免同帧再盖一
             if (!open)
                 return;
+        }
+
+        void DrawFixedHeader(SimulationWorld world, float pad, float headerHeight)
+        {
+            const float titleY = 10f;
+            const float toolbarY = 42f;
+            const float statusY = 74f;
+            HostUiHitTest.Block(new Rect(0f, 0f, Screen.width, headerHeight));
+            var old = GUI.color;
+            GUI.color = new Color(.08f, .09f, .11f, .98f);
+            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, headerHeight), _px);
+            GUI.color = old;
+
+            GUI.Label(new Rect(pad, titleY, Mathf.Max(160f, Screen.width - 650f), 28f),
+                "世界地图（左键查看｜右键规划玩家小队前往｜M关闭）", _title);
+            var showTerritory = GUI.Toggle(new Rect(Screen.width - 350f, titleY + 4f, 116f, 26f),
+                _showTerritoryOverlay, "显示势力范围", _layerToggle);
+            if (showTerritory != _showTerritoryOverlay)
+            {
+                _showTerritoryOverlay = showTerritory;
+                HostHexWorldRenderer.SetTerritoryOverlayVisible(showTerritory);
+            }
+            _showSurfaceGeography = GUI.Toggle(new Rect(Screen.width - 610f, titleY + 4f, 122f, 26f),
+                _showSurfaceGeography, "显示地理层", _layerToggle);
+            if (IsSurfaceMode(world))
+                _showSurfaceGrid = GUI.Toggle(new Rect(Screen.width - 480f, titleY + 4f, 122f, 26f),
+                    _showSurfaceGrid, "显示坐标网格", _layerToggle);
+            var showArmies = GUI.Toggle(new Rect(Screen.width - 226f, titleY + 4f, 108f, 26f),
+                _showArmyMarkers, "显示 NPC 小队", _layerToggle);
+            if (showArmies != _showArmyMarkers) SetArmyLayerVisible(showArmies);
+            if (GUI.Button(new Rect(Screen.width - 100f, titleY, 84f, 32f), "关闭"))
+                CloseWithLocalMapTakeover();
+
+            DrawMapToolbar(pad, toolbarY, world);
+            var focusName = world.PartyWorld.SiteId;
+            if (world.Strategic.Sites.TryGet(world.PartyWorld.SiteId, out var focusSite) &&
+                focusSite != null && !string.IsNullOrEmpty(focusSite.DisplayName))
+                focusName = focusSite.DisplayName;
+            var zoomPct = Mathf.Approximately(_fullHalf, MinViewHalfExtent) ? 100 :
+                Mathf.RoundToInt(100f * (1f - (_viewHalf - MinViewHalfExtent) /
+                                              (_fullHalf - MinViewHalfExtent)));
+            GUI.Label(new Rect(pad, statusY, Screen.width - pad * 2f, 22f),
+                "镜头：" + focusName + "　已选 " + FormatSelectionSummary() +
+                "　缩放 " + zoomPct + "%（最大：邻站铺满屏／最小：全图）" +
+                (string.IsNullOrEmpty(_status) ? "" : "　｜　" + _status), _body);
+        }
+
+        static Rect OffsetRect(Rect rect, Vector2 offset) =>
+            new Rect(rect.x + offset.x, rect.y + offset.y, rect.width, rect.height);
+
+        void OffsetMapHitRects(Vector2 offset)
+        {
+            for (var i = 0; i < _nodeRects.Count; i++)
+                _nodeRects[i] = (_nodeRects[i].nodeId, OffsetRect(_nodeRects[i].rect, offset));
+            for (var i = 0; i < _flagRects.Count; i++)
+                _flagRects[i] = (_flagRects[i].flagId, OffsetRect(_flagRects[i].rect, offset));
+            for (var i = 0; i < _residualMarkerRects.Count; i++)
+                _residualMarkerRects[i] = (_residualMarkerRects[i].group,
+                    OffsetRect(_residualMarkerRects[i].rect, offset));
+            foreach (var id in new List<ulong>(_avatarRects.Keys))
+                _avatarRects[id] = OffsetRect(_avatarRects[id], offset);
+            foreach (var id in new List<string>(_formalArmyRects.Keys))
+                _formalArmyRects[id] = OffsetRect(_formalArmyRects[id], offset);
+            foreach (var id in new List<string>(_armyStackRects.Keys))
+                _armyStackRects[id] = OffsetRect(_armyStackRects[id], offset);
+            if (_playerPartyRect.width > 0f) _playerPartyRect = OffsetRect(_playerPartyRect, offset);
+        }
+
+        void DrawInspectFlyout(Rect mapRect, SimulationWorld world)
+        {
+            if (!_inspectFlyoutOpen) return;
+            var e = Event.current;
+            if (e != null && e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape)
+            {
+                _inspectFlyoutOpen = false;
+                e.Use();
+                return;
+            }
+            var width = Mathf.Min(InspectFlyoutW, mapRect.width - 28f);
+            var rect = new Rect(mapRect.xMax - width - 14f, mapRect.y + 14f,
+                width, Mathf.Min(520f, mapRect.height - 28f));
+            if (rect.width <= 0f || rect.height <= 0f) return;
+            DrawInspectPanel(rect, world);
         }
 
         void HandleCameraInput(Rect mapRect, XianXia.Core.Simulation.SimulationWorld world)
@@ -790,7 +886,8 @@ namespace XianXia.Unity.Host
                 return;
 
             var minHalf = ResolveMinViewHalf(world);
-            var hexMode = ArmyHexCommandService.IsHexStrategicActive(world) && world?.HexWorld != null && world.HexWorld.HasGrid;
+            var hexMode = !IsSurfaceMode(world) && ArmyHexCommandService.IsHexStrategicActive(world) &&
+                          world?.HexWorld != null && world.HexWorld.HasGrid;
             var projection = hexMode ? BuildHexProjection(mapRect, world) : default;
 
             if (e.type == EventType.ScrollWheel && mapRect.Contains(e.mousePosition))
@@ -1314,8 +1411,16 @@ namespace XianXia.Unity.Host
                 ContinuousSurfaceWorldMapDefinition cache = null;
                 if (bootstrap?.Session?.Registry != null)
                     bootstrap.Session.Registry.TryGetContinuousSurfaceWorldMap(nav.SurfaceId, out cache);
-                _surfaceRenderer.Draw(mapRect, BuildSurfaceProjection(mapRect), cache, nav);
-                DrawSurfaceGeography(mapRect, world); DrawSurfaceSiteMarkers(mapRect, world); DrawContinuousSurfaceRoutePreview(mapRect, world); return;
+                var surfaceProjection = BuildSurfaceProjection(mapRect);
+                _surfaceRenderer.Draw(mapRect, surfaceProjection, cache, nav);
+                if (_showSurfaceGrid)
+                    HostSurfaceWorldMapGridRenderer.Draw(mapRect, surfaceProjection, nav, _px);
+                if (_showSurfaceGeography) DrawSurfaceGeography(mapRect, world);
+                if (_showTerritoryOverlay)
+                    HostSurfaceActualControlRenderer.Draw(world, nav.SurfaceId, surfaceProjection, _px);
+                DrawSurfaceSiteMarkers(mapRect, world);
+                DrawContinuousSurfaceRoutePreview(mapRect, world);
+                return;
             }
             if (world?.HexWorld != null && world.HexWorld.HasGrid)
             {
@@ -1341,15 +1446,87 @@ namespace XianXia.Unity.Host
 
         void DrawSurfaceSiteMarkers(Rect mapRect, SimulationWorld world)
         {
-            var projection=BuildSurfaceProjection(mapRect);
+            var projection = BuildSurfaceProjection(mapRect);
+            var nav = world.SurfaceGround.Active;
+            var surfaceId = nav.SurfaceId;
+            var representedFlags = new HashSet<string>(StringComparer.Ordinal);
+            _flagRects.Clear();
             foreach (var pair in world.Strategic.Sites.Sites)
             {
-                var site=pair.Value; if(site==null || !world.SurfaceGround.TryResolveSiteArrival(site.SiteId,out _,out var point)) continue;
-                var screen=projection.ProjectWorld(point.X,point.Y); if(!mapRect.Contains(screen)) continue;
-                var rect=new Rect(screen.x-6f,screen.y-6f,12f,12f); var old=GUI.color; GUI.color=Color.white; GUI.DrawTexture(rect,_px); GUI.color=old;
-                GUI.Label(new Rect(screen.x+8f,screen.y-11f,140f,20f),string.IsNullOrEmpty(site.DisplayName)?site.SiteId:site.DisplayName,_avatarLabel);
-                _nodeRects.Add((site.SiteId,rect));
+                var site = pair.Value;
+                if (!TryResolveSurfaceSitePosition(world, site, out var point)) continue;
+                FactionFlagState flag = null;
+                var isFlag = site.CoreIsRemovable &&
+                    FactionFlagSiteCoreQuery.TryResolveFlagForSite(world, site, out flag);
+                if (site.CoreIsRemovable && !isFlag) continue;
+                var markerWorldSize = nav.CellSize * (isFlag ? FactionFlagMarkerCells : CouncilHallMarkerCells);
+                var rect = SurfaceMarkerRect(projection, point.X, point.Y, markerWorldSize);
+                if (!rect.Overlaps(mapRect)) continue;
+                var screen = projection.ProjectWorld(point.X, point.Y);
+                if (isFlag)
+                {
+                    FactionFlagWorldMapPresentation.DrawFlagMarker(screen, rect.width, flag.FactionId, _px);
+                    representedFlags.Add(flag.FlagId);
+                }
+                else
+                    WorldSitePresentationLayer.DrawFootprintHouse(screen, rect.width, _px);
+                DrawSurfaceMarkerLabel(projection, point.X, point.Y, markerWorldSize, nav.CellSize,
+                    string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName);
+                _nodeRects.Add((site.SiteId, rect));
             }
+            foreach (var pair in world.Strategic.FactionFlags.Flags)
+            {
+                var flag = pair.Value;
+                if (flag == null || flag.IsSiteCore || !flag.HasWorldPosition || flag.IsWorldMapDebugOnly ||
+                    !string.Equals(flag.SurfaceId, surfaceId, StringComparison.Ordinal) ||
+                    representedFlags.Contains(flag.FlagId)) continue;
+                var markerWorldSize = nav.CellSize * FactionFlagMarkerCells;
+                var rect = SurfaceMarkerRect(projection, flag.WorldX, flag.WorldY, markerWorldSize);
+                if (!rect.Overlaps(mapRect)) continue;
+                var screen = projection.ProjectWorld(flag.WorldX, flag.WorldY);
+                FactionFlagWorldMapPresentation.DrawFlagMarker(screen, rect.width, flag.FactionId, _px);
+                DrawSurfaceMarkerLabel(projection, flag.WorldX, flag.WorldY, markerWorldSize, nav.CellSize,
+                    StrategicFactionCatalog.DisplayName(flag.FactionId));
+                _flagRects.Add((flag.FlagId, rect));
+            }
+        }
+
+        static Rect SurfaceMarkerRect(SurfaceWorldMapViewportProjection projection,
+            float worldX, float worldY, float worldSize) => projection.ProjectWorldRect(
+            new Rect(worldX - worldSize * .5f, worldY - worldSize * .5f, worldSize, worldSize));
+
+        void DrawSurfaceMarkerLabel(SurfaceWorldMapViewportProjection projection,
+            float worldX, float worldY, float markerWorldSize, float cellSize, string label)
+        {
+            var labelWorldHeight = SurfaceMarkerLabelHeightCells * cellSize;
+            var labelWorldX = worldX + markerWorldSize * .5f + SurfaceMarkerLabelGapCells * cellSize;
+            var rect = projection.ProjectWorldRect(new Rect(labelWorldX,
+                worldY - labelWorldHeight * .5f,
+                SurfaceMarkerLabelWidthCells * cellSize, labelWorldHeight));
+            var fontSize = Mathf.Max(1, Mathf.RoundToInt(rect.height * 13f / 20f));
+            if (!_siteMarkerLabelStyles.TryGetValue(fontSize, out var style))
+            {
+                style = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = fontSize,
+                    fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleLeft,
+                    wordWrap = false
+                };
+                _siteMarkerLabelStyles.Add(fontSize, style);
+            }
+            GUI.Label(rect, label, style);
+        }
+
+        static bool TryResolveSurfaceSitePosition(SimulationWorld world, WorldSite site, out WorldVec2 point)
+        {
+            point = default;
+            var nav = world?.SurfaceGround?.Active;
+            if (site == null || nav == null || !site.IsCoreActive || !site.HasContinuousCore ||
+                !string.Equals(site.CoreSurfaceId, nav.SurfaceId, StringComparison.Ordinal))
+                return false;
+            point = new WorldVec2(site.CoreWorldX, site.CoreWorldY);
+            return nav.Contains(point.X, point.Y);
         }
 
         void DrawSurfaceGeography(Rect mapRect, SimulationWorld world)
@@ -1483,17 +1660,15 @@ namespace XianXia.Unity.Host
             XianXia.Core.Simulation.SimulationWorld world)
         {
             var prevDepth = GUI.depth;
-            GUI.depth = -100;
-            var hexMode = ArmyHexCommandService.IsHexStrategicActive(world) &&
-                          world?.HexWorld != null &&
-                          world.HexWorld.HasGrid;
+            GUI.depth = -70;
             if (_showArmyMarkers)
             {
                 DrawResidualMarkers(mapRect, world,
                     hexMode: !IsSurfaceMode(world), hexProjection: projection);
                 DrawFormalArmyAvatars(mapRect, world);
-                DrawArmyStacks(mapRect, world);
-                DrawAvatars(mapRect, world, hexMode: true, hexProjection: projection);
+                if (!IsSurfaceMode(world)) DrawArmyStacks(mapRect, world);
+                else _armyStackRects.Clear();
+                DrawAvatars(mapRect, world, hexMode: !IsSurfaceMode(world), hexProjection: projection);
             }
             else
             {
@@ -1503,7 +1678,7 @@ namespace XianXia.Unity.Host
                 _avatarRects.Clear();
             }
             DrawPlayerPartyMarker(mapRect, world, projection);
-            BattleEngagementWorldMapDebug.Draw(projection, world);
+            if (!IsSurfaceMode(world)) BattleEngagementWorldMapDebug.Draw(projection, world);
 
             GUI.depth = prevDepth;
         }
@@ -1818,7 +1993,7 @@ namespace XianXia.Unity.Host
             if (string.IsNullOrEmpty(playerFaction))
                 return;
 
-            var hexMode = ArmyHexCommandService.IsHexStrategicActive(world);
+            var hexMode = !IsSurfaceMode(world) && ArmyHexCommandService.IsHexStrategicActive(world);
             var avatarSize = hexMode ? 22f : AvatarSize;
 
             _countAtSiteKey.Clear();
@@ -2074,7 +2249,13 @@ namespace XianXia.Unity.Host
             var world = bootstrap.Session.World;
             if (!world.Strategic.Sites.TryGet(nodeId, out var site) || site == null)
                 return;
-            HexMath.ToWorldPosition(site.AnchorHex, world.HexWorld.HexSize, out var wx, out var wy);
+            float wx, wy;
+            if (IsSurfaceMode(world))
+            {
+                if (!TryResolveSurfaceSitePosition(world, site, out var point)) return;
+                wx = point.X; wy = point.Y;
+            }
+            else HexMath.ToWorldPosition(site.AnchorHex, world.HexWorld.HexSize, out wx, out wy);
             FocusCameraOnWorldPoint(wx, wy);
             _inspectSiteId = nodeId;
             _status = "已定位节点 " + HostStrategicRosterQueries.ResolveNodeLabel(world, nodeId);
@@ -2305,14 +2486,29 @@ namespace XianXia.Unity.Host
             {
                 if (IsSurfaceMode(world))
                 {
-                    var point = BuildSurfaceProjection(mapRect).ScreenToWorld(mouse);
-                    for (var i=0;i<_nodeRects.Count;i++) if (_nodeRects[i].rect.Contains(mouse)) { _selectedWorldSiteId=_nodeRects[i].nodeId; _inspectSiteId=_selectedWorldSiteId; _status="已选择地点："+_selectedWorldSiteId; e.Use(); return; }
-                    var nav = world.SurfaceGround.Active;
-                    _selectedHex = null; _hoverHex = null; _selectedWorldSiteId = string.Empty;
-                    _status = nav.TryGetCell(point.x, point.y, out var kind)
-                        ? "世界坐标：(" + point.x.ToString("0.000") + "," + point.y.ToString("0.000") + ")｜" + ((kind & SurfaceGroundCellKind.Water) != 0 ? "水域" : (kind & SurfaceGroundCellKind.Road) != 0 ? "道路" : "平原")
-                        : "世界坐标：(" + point.x.ToString("0.000") + "," + point.y.ToString("0.000") + ")";
-                    e.Use(); return;
+                    for (var i = 0; i < _nodeRects.Count; i++)
+                        if (_nodeRects[i].rect.Contains(mouse))
+                        {
+                            _selectedWorldSiteId = _nodeRects[i].nodeId;
+                            _inspectSiteId = _selectedWorldSiteId;
+                            _selected.Clear();
+                            _selectedStackId = string.Empty;
+                            ClearFormalArmySelection();
+                            ClearResidualSelection();
+                            _status = "已选择地点：" + _selectedWorldSiteId;
+                            e.Use(); return;
+                        }
+                    for (var i = 0; i < _flagRects.Count; i++)
+                        if (_flagRects[i].rect.Contains(mouse))
+                        {
+                            _inspectFlagId = _flagRects[i].flagId;
+                            _inspectSiteId = string.Empty;
+                            _selectedWorldSiteId = string.Empty;
+                            _selected.Clear(); _selectedStackId = string.Empty;
+                            ClearFormalArmySelection(); ClearResidualSelection();
+                            _status = "已选择势力旗：" + _inspectFlagId;
+                            e.Use(); return;
+                        }
                 }
                 if (TryHitFormalArmy(mouse, out var hitArmyId, FormalArmyMarkerHitPad))
                 {
@@ -2449,7 +2645,7 @@ namespace XianXia.Unity.Host
                 }
 
                 if (ArmyHexCommandService.IsHexStrategicActive(world) &&
-                    TryHandleHexLeftClick(projection, world, mouse, e))
+                    !IsSurfaceMode(world) && TryHandleHexLeftClick(projection, world, mouse, e))
                 {
                     WorldMapArmyMarkerDiagnostics.LogWorldMapPointerDispatch(
                         mouse,
@@ -2459,6 +2655,52 @@ namespace XianXia.Unity.Host
                         handledBy: "Hex",
                         mapInputExecuted: true);
                     return;
+                }
+
+                if (IsSurfaceMode(world))
+                {
+                    if (_playerPartyRect.Contains(mouse) && _playerPartyRect.width > 0f)
+                    {
+                        _worldMapSelection.SelectPlayerParty();
+                        _inspectPlayerParty = true;
+                        _selected.Clear(); _selectedStackId = string.Empty;
+                        ClearFormalArmySelection(); ClearResidualSelection();
+                        _inspectSiteId = string.Empty; _selectedWorldSiteId = string.Empty;
+                        _status = "已选择玩家小队";
+                        e.Use(); return;
+                    }
+                    var point = BuildSurfaceProjection(mapRect).ScreenToWorld(mouse);
+                    var nav = world.SurfaceGround.Active;
+                    _selected.Clear(); _selectedStackId = string.Empty;
+                    ClearFormalArmySelection(); ClearResidualSelection();
+                    _inspectSiteId = string.Empty; _selectedWorldSiteId = string.Empty;
+                    _selectedHex = null; _hoverHex = null;
+                    _status = nav.TryGetCell(point.x, point.y, out var kind)
+                        ? "世界坐标：(" + point.x.ToString("0.000") + "," + point.y.ToString("0.000") + ")｜" +
+                          ((kind & SurfaceGroundCellKind.Water) != 0 ? "水域" :
+                           (kind & SurfaceGroundCellKind.Road) != 0 ? "道路" : "平原")
+                        : "世界坐标：(" + point.x.ToString("0.000") + "," + point.y.ToString("0.000") + ")";
+                    var terrain = (kind & SurfaceGroundCellKind.Water) != 0 ? "水域" : "平原";
+                    var forest = false;
+                    if (bootstrap?.Session?.Registry != null &&
+                        bootstrap.Session.Registry.TryGetContinuousSurfaceWorldMap(nav.SurfaceId, out var preview) &&
+                        preview != null)
+                    {
+                        var cellX = Mathf.FloorToInt((point.x - nav.OriginX) / nav.CellSize);
+                        var cellY = Mathf.FloorToInt((point.y - nav.OriginY) / nav.CellSize);
+                        if (cellX >= 0 && cellY >= 0 && cellX < preview.WidthCells && cellY < preview.HeightCells)
+                        {
+                            terrain = preview.BaseTerrainRows[cellY][cellX] == 'M' ? "山地" :
+                                preview.BaseTerrainRows[cellY][cellX] == 'W' ? "水域" : "平原";
+                            forest = preview.ForestRows[cellY][cellX] != '0';
+                        }
+                    }
+                    _surfacePointInspectText = "世界坐标：( " + point.x.ToString("0.000") + ", " +
+                        point.y.ToString("0.000") + " )\n地形：" + terrain +
+                        (forest ? "\n地貌：森林" : string.Empty) +
+                        ((kind & SurfaceGroundCellKind.Bridge) != 0 ? "\n桥" : string.Empty) +
+                        ((kind & SurfaceGroundCellKind.Road) != 0 ? "\n道路" : string.Empty);
+                    e.Use(); return;
                 }
 
                 if (!e.shift)
@@ -2480,7 +2722,16 @@ namespace XianXia.Unity.Host
 
             if (IsSurfaceMode(world))
             {
-                var point=BuildSurfaceProjection(mapRect).ScreenToWorld(mouse);
+                for (var i = 0; i < _nodeRects.Count; i++)
+                    if (_nodeRects[i].rect.Contains(mouse) &&
+                        world.Strategic.Sites.TryGet(_nodeRects[i].nodeId, out var site) &&
+                        TryResolveSurfaceSitePosition(world, site, out var sitePoint))
+                    {
+                        TryHandleSurfaceGroundCommand(new Vector2(sitePoint.X, sitePoint.Y),
+                            world, mouse, e, site.SiteId);
+                        return;
+                    }
+                var point = BuildSurfaceProjection(mapRect).ScreenToWorld(mouse);
                 TryHandleSurfaceGroundCommand(point, world, mouse, e);
                 return;
             }
@@ -2518,7 +2769,8 @@ namespace XianXia.Unity.Host
             Vector2 point,
             SimulationWorld world,
             Vector2 mouse,
-            Event e)
+            Event e,
+            string targetSiteId = "")
         {
             if (_worldMapSelection.Kind != HostWorldMapSelectionKind.PlayerParty) return false;
             var nav = world?.SurfaceGround?.Active;
@@ -2535,7 +2787,7 @@ namespace XianXia.Unity.Host
             if (party == null || !party.HasActive) return false;
             PlayerPartyHexPursuitService.CancelPursuit(world, party);
             var move = PlayerPartySurfaceTravelService.BeginTravel(
-                world, party, goal, string.Empty, nav.CellSize * .75f);
+                world, party, goal, targetSiteId, nav.CellSize * .75f);
             if (move.IsFailure)
             {
                 _status = FormatFail(move);
@@ -2544,8 +2796,8 @@ namespace XianXia.Unity.Host
             }
             PlayerPartyHexTravelService.HoldForLocalVisibleExecution(world);
             RefreshPlayerPartyPathPreview(world);
-            _status = "已规划前往精确地面点 (" + goal.X.ToString("0.00") + "," +
-                      goal.Y.ToString("0.00") + ")｜关闭大地图后出发";
+            _status = (string.IsNullOrEmpty(targetSiteId) ? "已规划前往精确地面点 " : "已规划前往地点 " + targetSiteId + " ") +
+                      "(" + goal.X.ToString("0.00") + "," + goal.Y.ToString("0.00") + ")｜关闭大地图后出发";
             e.Use();
             return true;
         }
@@ -2783,6 +3035,7 @@ namespace XianXia.Unity.Host
             XianXia.Core.Simulation.SimulationWorld world,
             HexMapViewportProjection projection)
         {
+            _playerPartyRect = default;
             var party = bootstrap?.Session?.PlayerParty;
             if (party == null || !party.HasActive)
                 return;
@@ -2796,6 +3049,8 @@ namespace XianXia.Unity.Host
             var rect = new Rect(screen.x - size * 0.5f, screen.y - size * 0.5f, size, size);
             if (!rect.Overlaps(mapRect))
                 return;
+
+            _playerPartyRect = rect;
 
             var old = GUI.color;
             GUI.color = new Color(0.95f, 0.72f, 0.22f, 0.92f);
@@ -3234,7 +3489,7 @@ namespace XianXia.Unity.Host
         {
             HostUiHitTest.Block(panelRect);
             var prev = GUI.color;
-            GUI.color = new Color(0.96f, 0.93f, 0.86f, 0.98f);
+            GUI.color = new Color(0.96f, 0.93f, 0.86f, 0.89f);
             GUI.DrawTexture(panelRect, _px);
             GUI.color = new Color(0.62f, 0.54f, 0.42f, 1f);
             GUI.DrawTexture(new Rect(panelRect.x, panelRect.y, 2f, panelRect.height), _px);
@@ -3244,14 +3499,16 @@ namespace XianXia.Unity.Host
             var inspectBody = HostImguiStyles.InkLabel(13, wordWrap: true, ink: new Color(0.28f, 0.24f, 0.18f));
 
             GUI.Label(
-                new Rect(panelRect.x + 12f, panelRect.y + 10f, panelRect.width - 24f, 22f),
+                new Rect(panelRect.x + 12f, panelRect.y + 10f, panelRect.width - 60f, 22f),
                 "情报",
                 inspectTitle);
+            if (GUI.Button(new Rect(panelRect.xMax - 35f, panelRect.y + 8f, 26f, 25f), "×"))
+                _inspectFlyoutOpen = false;
 
             var body = BuildInspectBody(world);
-            var legendReserve = ArmyHexCommandService.IsHexStrategicActive(world) && world?.HexWorld != null && world.HexWorld.HasGrid
-                ? 92f
-                : 0f;
+            var legendReserve = IsSurfaceMode(world) ? 154f :
+                ArmyHexCommandService.IsHexStrategicActive(world) && world?.HexWorld != null && world.HexWorld.HasGrid
+                    ? 92f : 0f;
             var textRect = new Rect(
                 panelRect.x + 12f,
                 panelRect.y + 38f,
@@ -3268,10 +3525,11 @@ namespace XianXia.Unity.Host
             GUI.EndScrollView();
 
             if (legendReserve > 0f)
-                DrawTerrainLegend(new Rect(panelRect.x + 8f, panelRect.yMax - legendReserve + 4f, panelRect.width - 16f, legendReserve - 8f));
+                DrawTerrainLegend(new Rect(panelRect.x + 8f, panelRect.yMax - legendReserve + 4f,
+                    panelRect.width - 16f, legendReserve - 8f), IsSurfaceMode(world));
         }
 
-        void DrawTerrainLegend(Rect rect)
+        void DrawTerrainLegend(Rect rect, bool surfaceMode)
         {
             var headerStyle = HostImguiStyles.InkLabel(12, bold: true, ink: new Color(0.24f, 0.20f, 0.14f));
             var entryStyle = HostImguiStyles.InkLabel(11, ink: new Color(0.30f, 0.26f, 0.18f));
@@ -3286,6 +3544,25 @@ namespace XianXia.Unity.Host
             var y = rect.y + 22f;
             var swatch = 12f;
             var gap = 4f;
+            if (surfaceMode)
+            {
+                var labels = new[] { "平原", "山地", "水域", "森林", "道路", "桥" };
+                var colors = new[] {
+                    new Color32(157,177,100,255), new Color32(116,111,101,255),
+                    new Color32(51,118,181,255), new Color32(51,111,62,255),
+                    new Color32(199,150,77,255), new Color32(163,102,41,255) };
+                for (var i = 0; i < labels.Length; i++)
+                {
+                    var prev = GUI.color;
+                    GUI.color = colors[i];
+                    GUI.DrawTexture(new Rect(rect.x + 4f, y + 2f, swatch, swatch), _px);
+                    GUI.color = prev;
+                    GUI.Label(new Rect(rect.x + swatch + gap + 6f, y,
+                        rect.width - swatch - 10f, 16f), labels[i], entryStyle);
+                    y += 18f;
+                }
+                return;
+            }
             foreach (var entry in HexTerrainPresentation.LegendEntries)
             {
                 var color = new Color(entry.Color.R, entry.Color.G, entry.Color.B, 1f);
@@ -3308,7 +3585,7 @@ namespace XianXia.Unity.Host
                 world.Strategic.FormalArmies.TryGet(_inspectedLegacySquadArmyId, out var formalArmy) &&
                 formalArmy != null)
                 return BuildFormalArmyInspect(world, formalArmy);
-            if (_selectedHex.HasValue && ArmyHexCommandService.IsHexStrategicActive(world))
+            if (!IsSurfaceMode(world) && _selectedHex.HasValue && ArmyHexCommandService.IsHexStrategicActive(world))
             {
                 if (!string.IsNullOrEmpty(_selectedWorldSiteId) &&
                     world.Strategic.Sites.TryGet(_selectedWorldSiteId, out var selectedSite) &&
@@ -3326,14 +3603,45 @@ namespace XianXia.Unity.Host
             if (!string.IsNullOrEmpty(_inspectSiteId) &&
                 world.Strategic.Sites.TryGet(_inspectSiteId, out var inspectSite) &&
                 inspectSite != null)
-                return BuildSiteInspect(world, inspectSite);
+                return IsSurfaceMode(world) ? BuildSurfaceSiteInspect(world, inspectSite) : BuildSiteInspect(world, inspectSite);
 
+            if (!string.IsNullOrEmpty(_inspectFlagId) &&
+                world.Strategic.FactionFlags.Flags.TryGetValue(_inspectFlagId, out var inspectFlag))
+                return "势力旗\n旗帜 ID：" + inspectFlag.FlagId +
+                       "\n势力：" + StrategicFactionCatalog.DisplayName(inspectFlag.FactionId) +
+                       "\n世界坐标：(" + inspectFlag.WorldX.ToString("0.###") + ", " +
+                       inspectFlag.WorldY.ToString("0.###") + ")";
+
+            if (_inspectPlayerParty && bootstrap?.Session?.PlayerParty != null &&
+                PlayerPartyWorldLocationQuery.TryResolve(world, bootstrap.Session.PlayerParty, out var partyLocation))
+                return "玩家小队\n当前主控：" +
+                       EntityLabel(world, bootstrap.Session.PlayerParty.ActiveCharacterId) +
+                       "\n世界坐标：(" + partyLocation.WorldPosition.X.ToString("0.###") + ", " +
+                       partyLocation.WorldPosition.Y.ToString("0.###") + ")";
+
+            if (IsSurfaceMode(world))
+                return !string.IsNullOrEmpty(_surfacePointInspectText) ? _surfacePointInspectText :
+                    "左键点选地点、角色、NPC 小队或残留标记查看详情。\n\n" +
+                       "· 左键空白地面：查看世界坐标与地形\n" +
+                       "· 右键可通行地面：规划玩家小队前往";
             return "左键点选 Hex、角色、NPC 小队或残留标记，在此查看详情。\n\n" +
                    "· Hex：地形／道路／地点\n" +
                    "· 我方：境界／生命／弥留·尸体倒计时\n" +
                    "· 残留：弥留／阵亡聚合名单（含倒计时）\n" +
                    "· NPC 小队：势力／人数／战力／成员倒计时（只读）\n" +
                    "· Ctrl+左键：切换道路（编辑）";
+        }
+
+        static string BuildSurfaceSiteInspect(SimulationWorld world, WorldSite site)
+        {
+            var name = string.IsNullOrEmpty(site.DisplayName) ? site.SiteId : site.DisplayName;
+            var body = "地点：" + name + "\n地点 ID：" + site.SiteId;
+            if (TryResolveSurfaceSitePosition(world, site, out var point))
+                body += "\n连续世界坐标：(" + point.X.ToString("0.###") + ", " +
+                        point.Y.ToString("0.###") + ")";
+            if (!string.IsNullOrEmpty(site.OwnerFactionId))
+                body += "\n所属势力：" + StrategicFactionCatalog.DisplayName(site.OwnerFactionId);
+            return body;
         }
 
         static string FormatResidualGroupTitle(ResidualMarkerGroupView group)
@@ -3367,10 +3675,13 @@ namespace XianXia.Unity.Host
         {
             var sb = new StringBuilder(480);
             sb.Append('\u3010').Append(FormatResidualGroupTitle(group)).Append("\u3011\n");
-            sb.Append("地图格：").Append(group.Hex).Append('\n');
-            var siteName = ResolveHexSiteName(world, group.Hex);
-            if (!string.IsNullOrEmpty(siteName))
-                sb.Append("地点：").Append(siteName).Append('\n');
+            if (!IsSurfaceMode(world))
+            {
+                sb.Append("地图格：").Append(group.Hex).Append('\n');
+                var siteName = ResolveHexSiteName(world, group.Hex);
+                if (!string.IsNullOrEmpty(siteName))
+                    sb.Append("地点：").Append(siteName).Append('\n');
+            }
             sb.Append("数量：").Append(group.Count).Append("\n\n");
             sb.Append("角色：\n");
             for (var i = 0; i < group.Characters.Count; i++)
@@ -3379,8 +3690,8 @@ namespace XianXia.Unity.Host
                 if (row == null)
                     continue;
                 sb.Append(row.DisplayName).Append('\n');
-                sb.Append("  Faction：").Append(row.FactionDisplayName).Append('\n');
-                sb.Append("  State：").Append(row.LifeStateLabel).Append('\n');
+                sb.Append("  势力：").Append(row.FactionDisplayName).Append('\n');
+                sb.Append("  状态：").Append(row.LifeStateLabel).Append('\n');
                 if (world != null &&
                     !row.CharacterId.IsNone &&
                     world.Entities.TryGet(row.CharacterId, out var ent) &&

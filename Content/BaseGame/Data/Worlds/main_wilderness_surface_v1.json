@@ -3934,89 +3934,84 @@
       ],
       "sitePlacements": [
         {
-          "stableId": "base:site_chengzhen:marker_chengzhen",
+          "stableId": "base:site_chengzhen:core_council_hall",
           "siteId": "base:site_chengzhen",
           "chunkX": 15,
           "chunkY": 9,
-          "worldX": 20.4815,
-          "worldY": 12.51,
-          "worldWidth": 0.0433,
-          "worldHeight": 0.07,
-          "kind": "treeM",
-          "blocksMovement": false,
-          "label": "青石镇·右上树（Prototype 标记）",
-          "sourceGridX": 186,
-          "sourceGridY": 86,
-          "sourceCellsW": 2,
-          "sourceCellsH": 2
+          "worldX": 20.416545,
+          "worldY": 12.405,
+          "worldWidth": 0.17321,
+          "worldHeight": 0.28,
+          "kind": "controlCore",
+          "blocksMovement": true,
+          "sourceCellsW": 8,
+          "sourceCellsH": 8,
+          "boundLocationId": "base:loc_site_chengzhen_core",
+          "label": "青石镇·议政厅"
         },
         {
-          "stableId": "base:site_guanai:marker_guanai",
+          "stableId": "base:site_guanai:core_council_hall",
           "siteId": "base:site_guanai",
           "chunkX": 16,
           "chunkY": 13,
-          "worldX": 21.04442,
-          "worldY": 16.9,
-          "worldWidth": 0.01732,
-          "worldHeight": 0.04,
-          "kind": "treeM",
-          "blocksMovement": false,
-          "label": "青石关·偏左上树（Prototype 标记）",
-          "sourceGridX": 30,
-          "sourceGridY": 70,
-          "sourceCellsW": 2,
-          "sourceCellsH": 2
+          "worldX": 20.966475,
+          "worldY": 16.78,
+          "worldWidth": 0.17321,
+          "worldHeight": 0.28,
+          "kind": "controlCore",
+          "blocksMovement": true,
+          "sourceCellsW": 8,
+          "sourceCellsH": 8,
+          "boundLocationId": "base:loc_site_guanai_core",
+          "label": "青石关·议政厅"
         },
         {
-          "stableId": "base:site_lingdi:marker_lingdi",
+          "stableId": "base:site_lingdi:core_council_hall",
           "siteId": "base:site_lingdi",
           "chunkX": 28,
           "chunkY": 7,
-          "worldX": 38.71134,
-          "worldY": 8.6,
-          "worldWidth": 0.02598,
-          "worldHeight": 0.06,
-          "kind": "treeL",
-          "blocksMovement": false,
-          "label": "灵地·标记大树（Prototype 标记）",
-          "sourceGridX": 170,
-          "sourceGridY": 30,
-          "sourceCellsW": 3,
-          "sourceCellsH": 3
+          "worldX": 38.637725,
+          "worldY": 8.49,
+          "worldWidth": 0.17321,
+          "worldHeight": 0.28,
+          "kind": "controlCore",
+          "blocksMovement": true,
+          "sourceCellsW": 8,
+          "sourceCellsH": 8,
+          "boundLocationId": "base:loc_site_lingdi_core",
+          "label": "灵地·议政厅"
         },
         {
-          "stableId": "base:site_linjian:marker_linjian",
+          "stableId": "base:site_linjian:core_council_hall",
           "siteId": "base:site_linjian",
           "chunkX": 9,
           "chunkY": 6,
-          "worldX": 12.29756,
-          "worldY": 7.7,
-          "worldWidth": 0.01732,
-          "worldHeight": 0.04,
-          "kind": "treeM",
-          "blocksMovement": false,
-          "label": "林间·标记树2（Prototype 标记）",
-          "sourceGridX": 20,
-          "sourceGridY": 60,
-          "sourceCellsW": 2,
-          "sourceCellsH": 2
+          "worldX": 12.219615,
+          "worldY": 7.58,
+          "worldWidth": 0.17321,
+          "worldHeight": 0.28,
+          "kind": "controlCore",
+          "blocksMovement": true,
+          "sourceCellsW": 8,
+          "sourceCellsH": 8,
+          "boundLocationId": "base:loc_site_linjian_core",
+          "label": "林间·议政厅"
         },
         {
-          "stableId": "base:site_zhuangyuan:marker_zhuangyuan",
+          "stableId": "base:site_zhuangyuan:core_council_hall",
           "siteId": "base:site_zhuangyuan",
           "chunkX": 21,
           "chunkY": 4,
-          "worldX": 29.01185,
-          "worldY": 5.28,
-          "worldWidth": 0.0433,
-          "worldHeight": 0.07,
-          "kind": "treeM",
-          "blocksMovement": false,
-          "label": "庄院·标记树14（Prototype 标记）",
-          "sourceGridX": 100,
-          "sourceGridY": 8,
-          "sourceCellsW": 2,
-          "sourceCellsH": 2
+          "worldX": 28.946895,
+          "worldY": 5.175,
+          "worldWidth": 0.17321,
+          "worldHeight": 0.28,
+          "kind": "controlCore",
+          "blocksMovement": true,
+          "sourceCellsW": 8,
+          "sourceCellsH": 8,
+          "boundLocationId": "base:loc_site_zhuangyuan_core",
+          "label": "庄院·议政厅"
         },
         {
           "stableId": "base:site_huangcun:block_supervisor_mansion",
@@ -5421,6 +5416,96 @@
         }
       ],
       "sitePlaces": [
+        {
+          "siteId": "base:site_chengzhen",
+          "locationId": "base:loc_site_chengzhen_core",
+          "worldX": 20.50315,
+          "worldY": 12.545,
+          "name": "青石镇·议政厅",
+          "kind": "Settlement",
+          "adjacentIds": [],
+          "tags": [
+            "site",
+            "controlCore",
+            "chengzhen"
+          ],
+          "allowedActivities": [
+            "Inspect",
+            "Patrol"
+          ]
+        },
+        {
+          "siteId": "base:site_guanai",
+          "locationId": "base:loc_site_guanai_core",
+          "worldX": 21.05308,
+          "worldY": 16.92,
+          "name": "青石关·议政厅",
+          "kind": "Settlement",
+          "adjacentIds": [],
+          "tags": [
+            "site",
+            "controlCore",
+            "guanai"
+          ],
+          "allowedActivities": [
+            "Inspect",
+            "Patrol"
+          ]
+        },
+        {
+          "siteId": "base:site_lingdi",
+          "locationId": "base:loc_site_lingdi_core",
+          "worldX": 38.72433,
+          "worldY": 8.63,
+          "name": "灵地·议政厅",
+          "kind": "Settlement",
+          "adjacentIds": [],
+          "tags": [
+            "site",
+            "controlCore",
+            "lingdi"
+          ],
+          "allowedActivities": [
+            "Inspect",
+            "Patrol"
+          ]
+        },
+        {
+          "siteId": "base:site_linjian",
+          "locationId": "base:loc_site_linjian_core",
+          "worldX": 12.30622,
+          "worldY": 7.72,
+          "name": "林间·议政厅",
+          "kind": "Settlement",
+          "adjacentIds": [],
+          "tags": [
+            "site",
+            "controlCore",
+            "linjian"
+          ],
+          "allowedActivities": [
+            "Inspect",
+            "Patrol"
+          ]
+        },
+        {
+          "siteId": "base:site_zhuangyuan",
+          "locationId": "base:loc_site_zhuangyuan_core",
+          "worldX": 29.0335,
+          "worldY": 5.315,
+          "name": "庄院·议政厅",
+          "kind": "Settlement",
+          "adjacentIds": [],
+          "tags": [
+            "site",
+            "controlCore",
+            "zhuangyuan"
+          ],
+          "allowedActivities": [
+            "Inspect",
+            "Patrol"
+          ]
+        },
         {
           "siteId": "base:site_chengzhen",
           "locationId": "base:loc_site_chengzhen_start",

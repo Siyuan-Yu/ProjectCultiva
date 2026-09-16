@@ -109,7 +109,7 @@ namespace XianXia.Unity.Host
             return true;
         }
 
-        static void DrawFootprintHouse(Vector2 center, float size, Texture2D pixel)
+        public static void DrawFootprintHouse(Vector2 center, float size, Texture2D pixel)
         {
             var tex = pixel != null ? pixel : Texture2D.whiteTexture;
             var prev = GUI.color;

@@ -13,6 +13,8 @@ namespace XianXia.Unity.Host
         Destructible = 4, Housing = 5, WorkArea = 6, RecoverySpot = 7, StorageRoom = 8
     }
 
+    public enum WorldObjectPickPurpose { PlayerInteraction, WorkTarget }
+
     /// <summary>一次拾取得到的 persistent world-object identity；左键检视与右键行为共用。</summary>
     public readonly struct WorldObjectInteractionTarget
     {
@@ -43,7 +45,7 @@ namespace XianXia.Unity.Host
         }
 
         public static bool TryPickAtWorldPoint(PlayableHostBootstrap host, Vector3 point,
-            out WorldObjectInteractionTarget target)
+            out WorldObjectInteractionTarget target, WorldObjectPickPurpose purpose = WorldObjectPickPurpose.PlayerInteraction)
         {
             target = default;
             var world = host?.Session?.World;
@@ -95,6 +97,11 @@ namespace XianXia.Unity.Host
                     destructible: destructible, displayLabel: destructible.DisplayName);
                 return true;
             }
+
+            // Logical schedule anchors have no physical presentation on the continuous map.
+            // NPC work selection may still resolve them; legacy LocalMap keeps its click behavior.
+            if (continuous != null && continuous.IsActive && purpose == WorldObjectPickPurpose.PlayerInteraction)
+                return false;
 
             if (TryPickWorkArea(world, point, 6.5f, housing: true, out var workAreaId))
             {

@@ -34,9 +34,13 @@ namespace XianXia.Unity.Host
             Vector2 center, float size, string factionId, Texture2D pixel)
         {
             StrategicFactionCatalog.MapTint(factionId, out var r, out var g, out var b);
-            Fill(new Rect(center.x - 1f, center.y - size * .6f, 2f, size * 1.4f),
+            // The caller projects a stable world-space marker size around the exact anchor.
+            var half = size * .5f;
+            var poleX = center.x - half * .8f;
+            var poleWidth = size * .1f;
+            Fill(new Rect(poleX, center.y - half, poleWidth, size),
                 new Color(.25f, .2f, .12f, 1f), pixel);
-            Fill(new Rect(center.x, center.y - size * .6f, size * .85f, size * .5f),
+            Fill(new Rect(poleX + poleWidth, center.y - half, size * .8f - poleWidth, size * .44f),
                 new Color(r, g, b, 1f), pixel);
         }
 

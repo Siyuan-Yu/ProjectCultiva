@@ -6,8 +6,8 @@ using XianXia.Core.World.Hex;
 namespace XianXia.Core.World.Strategic
 {
     /// <summary>
-    /// 战略世界地点（城镇、宗门、遗迹等）。Hex 才是空间基础单位；
-    /// <see cref="AnchorHex"/> 仅用于 UI / 镜头 / LocalMap 入口。
+    /// 战略世界地点（城镇、宗门、遗迹等）。正常室外位置以 Continuous Surface
+    /// 的精确世界坐标与 SiteCore 为准；Hex 字段仅供旧内容和兼容索引使用。
     /// </summary>
     public sealed class WorldSite
     {

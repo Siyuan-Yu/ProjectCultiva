@@ -84,7 +84,8 @@ namespace XianXia.Unity.Host
                 return false;
 
             var world = bootstrap.Session.World;
-            if (HostWorldObjectPicker.TryPickAtWorldPoint(bootstrap, point, out var target) &&
+            if (HostWorldObjectPicker.TryPickAtWorldPoint(bootstrap, point, out var target,
+                    WorldObjectPickPurpose.WorkTarget) &&
                 TryHandleContextTarget(target)) return true;
 
             if (TryFindWorkInteractAt(point, world, out var work))
@@ -209,7 +210,8 @@ namespace XianXia.Unity.Host
             }
 
             var world = bootstrap.Session.World;
-            if (HostWorldObjectPicker.TryPickAtWorldPoint(bootstrap, point, out var target) &&
+            if (HostWorldObjectPicker.TryPickAtWorldPoint(bootstrap, point, out var target,
+                    WorldObjectPickPurpose.WorkTarget) &&
                 target.Kind == WorldObjectTargetKind.FarmPlot)
             {
                 var authorization = ResolveFarmAuthorization(target.Plot);

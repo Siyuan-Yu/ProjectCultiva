@@ -239,6 +239,136 @@
       "capacity": 3,
       "offsetX": 2,
       "offsetZ": 1
+    },
+    {
+      "id": "base:workarea_core_chengzhen",
+      "type": "workArea",
+      "name": "青石镇·议政厅",
+      "locationId": "base:loc_site_chengzhen_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_guanai",
+      "type": "workArea",
+      "name": "青石关·议政厅",
+      "locationId": "base:loc_site_guanai_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_lingdi",
+      "type": "workArea",
+      "name": "灵地·议政厅",
+      "locationId": "base:loc_site_lingdi_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_linjian",
+      "type": "workArea",
+      "name": "林间·议政厅",
+      "locationId": "base:loc_site_linjian_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
+    },
+    {
+      "id": "base:workarea_core_zhuangyuan",
+      "type": "workArea",
+      "name": "庄院·议政厅",
+      "locationId": "base:loc_site_zhuangyuan_core",
+      "tags": [
+        "controlCore",
+        "hub",
+        "defense"
+      ],
+      "allowedActivities": [
+        "Inspect",
+        "Patrol"
+      ],
+      "isControlCore": true,
+      "maxDurability": 100,
+      "defense": 0,
+      "capacity": 4,
+      "offsetX": 0,
+      "offsetZ": 0,
+      "occupyHoldSeconds": 10,
+      "grantsPrivileges": [
+        "manageHousing",
+        "manageSchedules"
+      ]
     }
   ]
 }

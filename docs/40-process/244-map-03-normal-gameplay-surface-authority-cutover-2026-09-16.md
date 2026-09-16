@@ -32,6 +32,24 @@
 
 ## 验证与制作人验收
 
+### Producer Acceptance Hotfix（待重新验收）
+
+- Continuous Outdoor 的玩家交互拾取只命中实际物理对象；抽象 WorkArea/Housing anchor 不再以 6.5 world units 半径从空地触发详情。NPC 的 WorkTarget 解析仍可使用逻辑 WorkArea；旧 LocalMap 点击行为保留。
+- Surface WorldMap 全图缩放按视口宽高比与当前投影公式计算 fit half；轴向可见范围达到世界半宽时归中，全图状态固定中心。世界绘制进入裁剪组，固定标题、工具栏、情报栏和底栏保持屏幕坐标。
+- Surface Site 标记使用同 Surface 的 active Core 精确坐标，不凭 Site arrival 或 Hex 锚点伪造房屋。固定 Core 用房屋、FactionFlag Core 与独立旗帜用旗帜标记；标记命中与右键目标共用该位置。Surface 左键先选标记/单位/角色，再检查空地；右键 Site 传精确位置和 TargetSiteId。
+- Surface 势力范围只读 `WorldSiteActualControlOverlayBuilder.BuildFactionUnion(world)` 的当前 Claim union；图层开关在 Surface 和 Legacy 模式均生效。装饰性正交坐标网格按缩放选择 1/2/5×10^N Surface Cell 间隔，不进入存档、寻路或拾取。Surface 情报默认文案及地形图例改用连续世界语义。
+- 状态仍为 **Implementation Complete / Producer Acceptance Pending**；等待制作人在 Unity 人工复验。
+- 热修仅运行 Core/Data/Unity Host 离线编译与 `git diff --check`；没有运行 Unity、PlayMode、Test Runner、batchmode 或大型自动化测试。
+
+### Producer Acceptance Hotfix：WorldMap 布局与固定 SiteCore
+
+- WorldMap 分成固定顶部操作区、占满可用宽度的地图视口、按需出现的右侧情报浮层；底部支援控制条仍固定。地图渲染统一使用 `BeginGroup(mapRect)` 内的局部 `Rect(0,0,width,height)` 投影；组结束后只将 marker 命中区域转成屏幕坐标一次。移除永久右栏和 `GUI.matrix` 平移抵消，详情开关不改变视口尺寸或镜头。浮层可点 X、按 Esc 关闭；空白 Surface 的坐标与地形也在浮层显示。坐标网格仅留稀疏线，删除 X/Y 数字。
+- Surface 战略房屋严格代表同 Surface、active、不可拆卸的真实 Continuous Council Hall Core；可拆卸 Site 只有在解析到对应 FactionFlag 时画旗。Site arrival 只承担旅行抵达，不再补画假房屋；无 Core 的 Legacy Site 不在正常 Surface Map 伪造 marker。房屋和旗采用独立于实际建筑占地的稳定世界空间展示尺寸，随地图缩放。
+- 青石镇、青石关、灵地、林间、庄院原先只有 Prototype 树。五棵树各自原有连续世界中心被用作固定议政厅 Core 中心：青石镇 `(20.50315,12.545)`、青石关 `(21.05308,16.92)`、灵地 `(38.72433,8.63)`、林间 `(12.30622,7.72)`、庄院 `(29.0335,5.315)`。每处建立独立 `controlCore` 放置、`base:loc_site_<站点>_core` SitePlace 和 `base:workarea_core_<站点>` ControlCore WorkArea；原 siteRegion arrival 保留且均在建筑阻挡范围之外。
+- WorldComposer 兼容候选导出以当前运行时主世界为模板，只重建黄村放置。实际执行一次候选导出后，核对五个新 Core 及 SitePlace 全部保留；WorkArea 数据文件不由兼容发布替换。现有 `RebindPresetWorldSiteCoreMetadata` 负责给固定 Site 绑定 Core 和默认一级范围，继续使用既有 baseline Claim 初始化；Surface Actual Control 仍消费当前 Claim union。
+- 本次运行 Core/Data/Unity Host 离线编译、BaseGame Content 加载校验、五个 Core/WorkArea/SitePlace 唯一性与边界静态校验、兼容候选 round-trip 核对及 `git diff --check`。没有打开 Unity 或运行 Unity Test。状态仍为 **Implementation Complete / Producer Acceptance Pending**。
+- 战略 marker 的房屋与旗帜以精确 Core／独立旗帜世界坐标为中心，使用固定 28 Surface Cells 的世界空间展示宽高，经 Surface 投影得到随 zoom 缩放的屏幕矩形；这不是实体建筑占地。名称从图标右侧 8 Surface Cells 起排，字号按投影后的标签高度缩放并按字号缓存样式。命中区域直接使用投影后的图标矩形，在退出地图裁剪组后一次转换成屏幕坐标。Actual Control、道路、河流、地形及路线继续按世界空间投影；Header、底部控制条和情报浮层保持固定屏幕尺寸。制作人需在 Unity 中复验缩放、平移及点击一致性。
+
 离线最小编译：`XianXia.Core`、`XianXia.Data`、`XianXia.Unity` 均通过，0 error；5 条既有 warning。`git diff --check` 通过。未运行 Unity、PlayMode、Test Runner、batchmode 或大型自动测试。
 
 请制作人重点复验：开局主控坐标；WorldMap 规划/关闭与旅行中 Save→Load→续行；连续 Site 出入不装 Outdoor LocalMap；建旗、存档、破坏/重建；NPC 与 FormalArmy 到 Site；接触战斗的锚点和战后原位；弥留→尸体以及 WorldMap 残留标记；Interior/Cave 仍可进入。
