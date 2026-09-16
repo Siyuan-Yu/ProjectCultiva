@@ -1,15 +1,15 @@
 # ADR-0036：连续世界制作与去 Hex 化产品方向
 
 > 日期：2026-09-15
-> 状态：**Accepted Design Direction / Not Implemented（已采纳设计方向／尚未实现）**
+> 状态：**Accepted Direction；MAP-01 / MAP-02 已 Producer Accepted / Sealed；MAP-03 / MAP-04 Pending**
 > 决策者：制作人
 > 关联：[ADR-0031](ADR-0031-continuous-outdoor-world-surface-architecture.md)、[ADR-0027](ADR-0027-canonical-world-surface-position-and-worldsite-spatial-mapping.md)、[2N 连续世界制作与合成](../../20-systems/2N-continuous-surface-world-authoring-and-composition.md)、[24 世界与据点](../../20-systems/24-world-and-settlements.md)、[2J Hex Territory](../../20-systems/2J-hex-territory-worldsites-and-dynamic-bandits.md)、[2K RPG-First](../../20-systems/2K-rpg-first-character-control-playerparty-and-continuous-hex-world.md)
 
 ## Context
 
-Continuous Outdoor runtime、Surface Cell、Chunk streaming、Canonical WorldPosition 与 world-space Actual Control 已经存在或正在使用；但 WorldMap 仍有 HexWorld shell，玩家旅行、WorldSite、FormalArmy 与既有 Content 仍保有 Hex compatibility，Surface geography authoring 也仍是早期 W2A baker/JSON 路线。当前大量 chunk 仍使用 wilderness fallback。
+Continuous Outdoor runtime、Surface Cell、Chunk streaming、Canonical WorldPosition 与 world-space Actual Control 已经存在或正在使用。MAP-01 已完成 Composer/FineEditor 与兼容发布，MAP-02 已将主 Surface WorldMap 切到同源的 strategic Surface view；玩家旅行、WorldSite、FormalArmy 与既有 Content 仍保有 Hex compatibility，当前大量 chunk 仍使用 wilderness fallback。
 
-这不是“当前所有世界地图制作和战略空间都已经迁移”的声明。本 ADR 只锁定下一代世界制作、烘焙与产品空间语义；不授权本轮代码、Content、存档或运行时修改。
+这不是“当前所有世界地图制作和战略空间都已经迁移”的声明。MAP-01/MAP-02 的已验收范围由 [242](../242-map-01-worldcomposer-fineeditor-production-v1-2026-09-16.md) 与 [243](../243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md) 记录；其余 consumer 迁移仍须单独授权。
 
 ## Decision
 
@@ -85,7 +85,7 @@ Fine Editor 专注 Site Blueprint 与 Detail Patch 的 Surface Cell 级编辑；
 |---|---|---|
 | 户外运行时 | Continuous Surface、Surface Cell、Chunk streaming 已存在；部分 surface chunk 仍 fallback | Final Continuous Surface 是普通户外唯一运行时地理真源 |
 | 世界位置 | WorldPosition 已大体是正常产品 authority | WorldMap / target / travel 都以 exact Surface WorldPosition 对齐 |
-| WorldMap | 仍为 HexWorld shell，含 Hex compatibility | 同一 Final Surface 的 LOD / strategic zoom |
+| WorldMap | 主 Surface 已为同一 Final Surface 的 LOD / strategic zoom；未迁出 world 保留 Hex compatibility | 所有产品 consumer 完成 exact world-space 收口 |
 | Site / 行政控制 | Actual Control 已是 world-space；现有 Site authoring 有 LocalMap/Hex bridge | Blueprint bake 到 Surface；一 SiteId/一 WorldSite/一 SiteCore |
 | 制作 | 早期 W2A baker/JSON、legacy LocalMap/Hex compatibility | Composer + Fine Editor + deterministic composition/bake |
 | Hex | 仍支撑多个现有兼容消费者 | 禁止进入新 authority；逐 consumer 迁出 |

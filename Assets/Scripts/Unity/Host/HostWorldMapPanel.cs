@@ -38,6 +38,8 @@ namespace XianXia.Unity.Host
 
         static float ResolveMinViewHalf(SimulationWorld world)
         {
+            if (world?.SurfaceGround?.Active != null)
+                return MinViewHalfExtent;
             if (world != null && ArmyHexCommandService.IsHexStrategicActive(world) && world.HexWorld.HasGrid)
             {
                 return HexWorldScale.ViewHalfForHexesAcross(
@@ -163,6 +165,10 @@ namespace XianXia.Unity.Host
         GUIStyle _avatarLabel;
         GUIStyle _layerToggle;
         Texture2D _px;
+        readonly HostSurfaceWorldMapRenderer _surfaceRenderer = new HostSurfaceWorldMapRenderer();
+
+        bool IsSurfaceMode(SimulationWorld world) => world?.SurfaceGround?.Active != null;
+        SurfaceWorldMapViewportProjection BuildSurfaceProjection(Rect rect) => new SurfaceWorldMapViewportProjection(rect, _viewCx, _viewCy, _viewHalf);
 
         public bool IsOpen => open;
 
@@ -541,11 +547,12 @@ namespace XianXia.Unity.Host
             if (_viewReady)
             {
                 _viewHalf = Mathf.Clamp(_viewHalf, ResolveMinViewHalf(world), _fullHalf);
-                ClampHexCamera(mapViewportWidth, mapViewportHeight, world);
+                ClampSurfaceCamera(mapViewportWidth, mapViewportHeight, world);
                 return;
             }
 
-            var hexMode = ArmyHexCommandService.IsHexStrategicActive(world) && world.HexWorld.HasGrid;
+            var surfaceMode = IsSurfaceMode(world);
+            var hexMode = !surfaceMode && ArmyHexCommandService.IsHexStrategicActive(world) && world.HexWorld.HasGrid;
             _viewHalf = hexMode
                 ? HexWorldScale.ViewHalfForHexesAcross(
                     HexWorldScale.DefaultHexesAcross,
@@ -560,8 +567,14 @@ namespace XianXia.Unity.Host
                 if (ArmyHexBattleAnchorService.TryResolveHexForSite(world, focusId, out var focusHex))
                     HexMath.ToWorldPosition(focusHex, world.HexWorld.HexSize, out _viewCx, out _viewCy);
             }
+            else if (surfaceMode)
+            {
+                var nav = world.SurfaceGround.Active;
+                _viewCx = nav.OriginX + (nav.MaxX-nav.OriginX)*.5f; _viewCy = nav.OriginY + (nav.MaxY-nav.OriginY)*.5f;
+                if (bootstrap?.Session?.PlayerParty != null && PlayerPartyWorldLocationQuery.TryResolve(world, bootstrap.Session.PlayerParty, out var party)) { _viewCx=party.WorldPosition.X; _viewCy=party.WorldPosition.Y; }
+            }
 
-            ClampHexCamera(mapViewportWidth, mapViewportHeight, world);
+            ClampSurfaceCamera(mapViewportWidth, mapViewportHeight, world);
             _viewReady = true;
         }
 
@@ -580,6 +593,11 @@ namespace XianXia.Unity.Host
                 ref _viewCx,
                 ref _viewCy);
         }
+        void ClampSurfaceCamera(float w,float h,SimulationWorld world)
+        {
+            if (IsSurfaceMode(world)) { var nav=world.SurfaceGround.Active; var scale=Mathf.Min(w,h)/(2f*Mathf.Max(.001f,_viewHalf)); var halfX=w/(2f*scale); var halfY=h/(2f*scale); _viewCx=Mathf.Clamp(_viewCx,nav.OriginX+halfX,nav.MaxX-halfX); _viewCy=Mathf.Clamp(_viewCy,nav.OriginY+halfY,nav.MaxY-halfY); return; }
+            ClampHexCamera(w,h,world);
+        }
 
         static void ComputeFullHalf(
             SimulationWorld world,
@@ -587,6 +605,7 @@ namespace XianXia.Unity.Host
             float mapViewportHeight,
             out float fullHalf)
         {
+            if (world?.SurfaceGround?.Active != null) { var nav=world.SurfaceGround.Active; fullHalf=Mathf.Max((nav.MaxX-nav.OriginX)*.5f,(nav.MaxY-nav.OriginY)*.5f); return; }
             if (ArmyHexCommandService.IsHexStrategicActive(world) && world?.HexWorld != null && world.HexWorld.HasGrid)
             {
                 var fitHalf = HexWorldLayout.ComputeFitViewHalf(
@@ -670,9 +689,9 @@ namespace XianXia.Unity.Host
 
             DrawMapToolbar(pad, toolbarY, world);
 
-            if (!ArmyHexCommandService.IsHexStrategicActive(world) ||
+            if (!IsSurfaceMode(world) && (!ArmyHexCommandService.IsHexStrategicActive(world) ||
                 world?.HexWorld == null ||
-                !world.HexWorld.HasGrid)
+                !world.HexWorld.HasGrid))
             {
                 GUI.Label(new Rect(pad, toolbarY, Screen.width - pad * 2f, 40f), "Hex 战略地图未加载。", _body);
                 return;
@@ -710,7 +729,7 @@ namespace XianXia.Unity.Host
                 mapTop,
                 InfoPanelW,
                 mapRect.height);
-            var hexGutterActive = ArmyHexCommandService.IsHexStrategicActive(world) &&
+            var hexGutterActive = !IsSurfaceMode(world) && ArmyHexCommandService.IsHexStrategicActive(world) &&
                                   world?.HexWorld != null &&
                                   world.HexWorld.HasGrid;
             GUI.color = hexGutterActive
@@ -727,7 +746,7 @@ namespace XianXia.Unity.Host
                 hexProjection = BuildHexProjection(mapRect, world);
             }
 
-            RefreshHexPresentation(hexProjection, world);
+            if (!IsSurfaceMode(world)) RefreshHexPresentation(hexProjection, world); else RefreshRoutePreview(world);
             // 与 panel toggle 保持一致的 overlay 图层状态（唯一入口；防御性同步）。
             HostHexWorldRenderer.SetTerritoryOverlayVisible(_showTerritoryOverlay);
             DrawGraph(mapRect, hexProjection, world);
@@ -795,8 +814,7 @@ namespace XianXia.Unity.Host
                     _viewCy += (worldPoint.y - _viewCy) * t;
                 }
 
-                if (hexMode)
-                    ClampHexCamera(mapRect.width, mapRect.height, world);
+                ClampSurfaceCamera(mapRect.width, mapRect.height, world);
 
                 e.Use();
                 return;
@@ -817,8 +835,7 @@ namespace XianXia.Unity.Host
                 var scale = hexMode ? projection.Scale : MapScale(mapRect);
                 _viewCx -= delta.x / scale;
                 _viewCy += delta.y / scale;
-                if (hexMode)
-                    ClampHexCamera(mapRect.width, mapRect.height, world);
+                ClampSurfaceCamera(mapRect.width, mapRect.height, world);
                 e.Use();
                 return;
             }
@@ -870,6 +887,7 @@ namespace XianXia.Unity.Host
 
         Vector2 ProjectHex(Rect mapRect, XianXia.Core.Simulation.SimulationWorld world, float wx, float wy)
         {
+            if (IsSurfaceMode(world)) return BuildSurfaceProjection(mapRect).ProjectWorld(wx, wy);
             if (ArmyHexCommandService.IsHexStrategicActive(world) && world?.HexWorld != null && world.HexWorld.HasGrid)
                 return BuildHexProjection(mapRect, world).ProjectWorld(wx, wy);
             return Project(mapRect, wx, wy);
@@ -1289,6 +1307,16 @@ namespace XianXia.Unity.Host
             HexMapViewportProjection projection,
             XianXia.Core.Simulation.SimulationWorld world)
         {
+            if (IsSurfaceMode(world))
+            {
+                _nodeRects.Clear();
+                var nav = world.SurfaceGround.Active;
+                ContinuousSurfaceWorldMapDefinition cache = null;
+                if (bootstrap?.Session?.Registry != null)
+                    bootstrap.Session.Registry.TryGetContinuousSurfaceWorldMap(nav.SurfaceId, out cache);
+                _surfaceRenderer.Draw(mapRect, BuildSurfaceProjection(mapRect), cache, nav);
+                DrawSurfaceGeography(mapRect, world); DrawSurfaceSiteMarkers(mapRect, world); DrawContinuousSurfaceRoutePreview(mapRect, world); return;
+            }
             if (world?.HexWorld != null && world.HexWorld.HasGrid)
             {
                 _nodeRects.Clear();
@@ -1308,6 +1336,19 @@ namespace XianXia.Unity.Host
                     DrawSurfaceGeography(mapRect, world);
                 DrawContinuousSurfaceRoutePreview(mapRect, world);
                 return;
+            }
+        }
+
+        void DrawSurfaceSiteMarkers(Rect mapRect, SimulationWorld world)
+        {
+            var projection=BuildSurfaceProjection(mapRect);
+            foreach (var pair in world.Strategic.Sites.Sites)
+            {
+                var site=pair.Value; if(site==null || !world.SurfaceGround.TryResolveSiteArrival(site.SiteId,out _,out var point)) continue;
+                var screen=projection.ProjectWorld(point.X,point.Y); if(!mapRect.Contains(screen)) continue;
+                var rect=new Rect(screen.x-6f,screen.y-6f,12f,12f); var old=GUI.color; GUI.color=Color.white; GUI.DrawTexture(rect,_px); GUI.color=old;
+                GUI.Label(new Rect(screen.x+8f,screen.y-11f,140f,20f),string.IsNullOrEmpty(site.DisplayName)?site.SiteId:site.DisplayName,_avatarLabel);
+                _nodeRects.Add((site.SiteId,rect));
             }
         }
 
@@ -2249,6 +2290,17 @@ namespace XianXia.Unity.Host
             // —左键：只负责选中（永不弹攻击／进入指令菜单）—
             if (e.button == 0)
             {
+                if (IsSurfaceMode(world))
+                {
+                    var point = BuildSurfaceProjection(mapRect).ScreenToWorld(mouse);
+                    for (var i=0;i<_nodeRects.Count;i++) if (_nodeRects[i].rect.Contains(mouse)) { _selectedWorldSiteId=_nodeRects[i].nodeId; _inspectSiteId=_selectedWorldSiteId; _status="已选择地点："+_selectedWorldSiteId; e.Use(); return; }
+                    var nav = world.SurfaceGround.Active;
+                    _selectedHex = null; _hoverHex = null; _selectedWorldSiteId = string.Empty;
+                    _status = nav.TryGetCell(point.x, point.y, out var kind)
+                        ? "世界坐标：(" + point.x.ToString("0.000") + "," + point.y.ToString("0.000") + ")｜" + ((kind & SurfaceGroundCellKind.Water) != 0 ? "水域" : (kind & SurfaceGroundCellKind.Road) != 0 ? "道路" : "平原")
+                        : "世界坐标：(" + point.x.ToString("0.000") + "," + point.y.ToString("0.000") + ")";
+                    e.Use(); return;
+                }
                 if (TryHitFormalArmy(mouse, out var hitArmyId, FormalArmyMarkerHitPad))
                 {
                     WorldMapArmyMarkerDiagnostics.LogWorldMapPointerDispatch(
@@ -2413,10 +2465,17 @@ namespace XianXia.Unity.Host
             if (e.button != 1)
                 return;
 
+            if (IsSurfaceMode(world))
+            {
+                var point=BuildSurfaceProjection(mapRect).ScreenToWorld(mouse);
+                TryHandleSurfaceGroundCommand(point, world, mouse, e);
+                return;
+            }
+
             var hexStrategicActive = ArmyHexCommandService.IsHexStrategicActive(world);
             if (hexStrategicActive)
             {
-                if (TryHandleSurfaceGroundCommand(projection, world, mouse, e))
+                if (TryHandleSurfaceGroundCommand(projection.ScreenToWorld(mouse), world, mouse, e))
                     return;
                 if (TryHandleHexMapCommand(projection, world, mouse, e))
                     return;
@@ -2443,7 +2502,7 @@ namespace XianXia.Unity.Host
         }
 
         bool TryHandleSurfaceGroundCommand(
-            HexMapViewportProjection projection,
+            Vector2 point,
             SimulationWorld world,
             Vector2 mouse,
             Event e)
@@ -2451,12 +2510,11 @@ namespace XianXia.Unity.Host
             if (_worldMapSelection.Kind != HostWorldMapSelectionKind.PlayerParty) return false;
             var nav = world?.SurfaceGround?.Active;
             if (nav == null) return false;
-            var point = projection.ScreenToWorld(mouse);
             if (!nav.Contains(point.x, point.y)) return false;
             var goal = new WorldVec2(point.x, point.y);
             var size = world.HexWorld.HexSize > 0f ? world.HexWorld.HexSize : 1f;
             var hex = HexMath.WorldToHex(goal.X, goal.Y, size);
-            if (world.Strategic.Sites.TryGetAtHex(hex, out var authoredSite) && authoredSite != null)
+            if (!IsSurfaceMode(world) && world.Strategic.Sites.TryGetAtHex(hex, out var authoredSite) && authoredSite != null)
                 return false; // Site marker/footprint retains authored arrival semantics.
             if (!nav.IsWalkable(goal.X, goal.Y))
             {

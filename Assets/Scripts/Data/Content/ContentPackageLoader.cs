@@ -262,6 +262,9 @@ namespace XianXia.Data.Content
                     case "outdoorSurfaceGeography":
                         LoadOutdoorSurfaceGeography(item, parsed.Value, registry, report);
                         break;
+                    case "continuousSurfaceWorldMap":
+                        LoadContinuousSurfaceWorldMap(item, parsed.Value, registry, report);
+                        break;
                     case "spawnTable":
                         LoadSpawnTable(item, parsed.Value, registry, report);
                         break;
@@ -1938,6 +1941,40 @@ namespace XianXia.Data.Content
             var reg = registry.RegisterSpawnTable(table);
             if (reg.IsFailure)
                 report.Add(reg.Error);
+        }
+
+        static void LoadContinuousSurfaceWorldMap(JsonValue item, DefinitionId id, DefinitionRegistry registry, ValidationReport report)
+        {
+            var compositionId = item.GetString("compositionId", string.Empty);
+            var surfaceId = item.GetString("surfaceId", string.Empty);
+            var hash = item.GetString("sourceHash", string.Empty);
+            var originX = ReadFloat(item, "originWorldX", 0f); var originY = ReadFloat(item, "originWorldY", 0f);
+            var cell = ReadFloat(item, "cellSize", 0f); var width = ReadInt(item, "widthCells", 0); var height = ReadInt(item, "heightCells", 0);
+            if (string.IsNullOrWhiteSpace(compositionId) || string.IsNullOrWhiteSpace(surfaceId) || string.IsNullOrWhiteSpace(hash) || cell <= 0f || width <= 0 || height <= 0 ||
+                !item.TryGetProperty("baseTerrainRows", out var baseRows) || baseRows.Kind != JsonValueKind.Array || baseRows.Array.Count != height ||
+                !item.TryGetProperty("forestRows", out var forestRows) || forestRows.Kind != JsonValueKind.Array || forestRows.Array.Count != height)
+            { report.Add(ErrorCode.InvalidArgument, "Invalid continuousSurfaceWorldMap metadata.", id.ToString()); return; }
+            var definition = new ContinuousSurfaceWorldMapDefinition { Id=id, CompositionId=compositionId, SurfaceId=surfaceId, SourceHash=hash, OriginWorldX=originX, OriginWorldY=originY, CellSize=cell, WidthCells=width, HeightCells=height };
+            for (var row=0; row<height; row++)
+            {
+                var terrain=baseRows.Array[row]; var forest=forestRows.Array[row];
+                if (terrain.Kind != JsonValueKind.String || forest.Kind != JsonValueKind.String || terrain.String.Length != width || forest.String.Length != width || HasInvalidWorldMapTerrain(terrain.String) || HasInvalidWorldMapForest(forest.String))
+                { report.Add(ErrorCode.InvalidArgument, "Invalid continuousSurfaceWorldMap raster row.", id + ".rows[" + row + "]"); return; }
+                definition.BaseTerrainRows.Add(terrain.String); definition.ForestRows.Add(forest.String);
+            }
+            var registered=registry.RegisterContinuousSurfaceWorldMap(definition); if (registered.IsFailure) report.Add(registered.Error);
+        }
+
+        static bool HasInvalidWorldMapTerrain(string row)
+        {
+            for (var i = 0; i < row.Length; i++) if (row[i] != 'P' && row[i] != 'M' && row[i] != 'W') return true;
+            return false;
+        }
+
+        static bool HasInvalidWorldMapForest(string row)
+        {
+            for (var i = 0; i < row.Length; i++) if (row[i] < '0' || row[i] > '9') return true;
+            return false;
         }
 
         static void LoadOutdoorSurfaceGeography(

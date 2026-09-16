@@ -1,5 +1,10 @@
 # 开发日志
 
+## 2026-09-16 — MAP-02 Continuous Surface WorldMap
+
+- MAP-02 开始将主产品地图切换到 Surface Mode：新增不依赖 Hex 的 `SurfaceWorldMapViewportProjection`，镜头 bounds / fit / clamp 直接使用 `SurfaceGroundNavigation` 的 Origin、Max、CellSize 与尺寸；Surface 存在时不再绘制或拾取 Hex grid，左键显示 exact world coordinate，右键直接提交 continuous physical destination，水域/solid 继续由 `SurfaceGroundNavigation.IsWalkable` 拒绝。
+- Compatibility Publish 新增第三份原子 staging artifact：`Content/BaseGame/Data/Worlds/main_world_surface_map_v1.json`。其为 presentation-only 的 compact `baseTerrainRows`（P/M/W）与 `forestRows`（0..9）缓存，1900×850 栅格不产生逐 Cell JSON object；Gameplay navigation 仍只读既有 geography / `SurfaceGroundNavigation`。HostSurfaceWorldMapRenderer 只在 cache identity 改变时构建一次 Texture2D，正常缩放/平移仅 DrawTexture。
+
 ## 2026-09-16 — MAP-01 Continuous Surface Authoring：交互收口与 Compatibility Publish
 
 - Compatibility Publish 的 Huangcun Blueprint object geometry round-trip 修正：旧导入曾把所有 `sitePlacements` 包络为整数 Surface Cell，导致不足一格宽的墙体被扩大并封死门洞。`BlueprintObjectPlacement` 现以 `double` Surface Cell 保存对象的位置与尺寸，Terrain / FineEditor 地形格仍严格为整数 1×1；Huangcun 从 v3 升级至 v4 后，71 个未人工编辑对象均根据 legacy exact world rect 恢复 sub-cell geometry，0 个对象因人工编辑而保留整数包络。
@@ -4718,6 +4723,8 @@ NPC 不只是任务发布器。样板案例：砍柴人曾是低资质修士，�
 - 严格 Content 与定向离线测试 4/4 通过；离线编译 0 error、18 条既有 warning，`git diff --check` 通过；未运行 Unity、PlayMode、batchmode 或 Bake。
 
 ## 2026-09-16 — MAP-01 Authoring 语义收口与 Legacy Migration Bridge
+
+**状态更新（2026-09-16）：** MAP-01 与 MAP-02 均已由制作人验收通过并封板；MAP-02 的正式记录见 [243](243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md)。
 
 - Continuous Surface Authoring source 升级到 schema v3：基础地形收口为 Plain/Mountain/Water，Feature 只保留可通行 Forest；旧 v1/v2 值在反序列化前迁移。River 最终解析为 Water，并增加显式 WorldObjectPlacement 与桥绑定。
 - WorldComposer 主工具收口为九项，选项按当前工具显示，并补齐中文动态操作提示；FineEditor 同步收口地形选项、森林水域约束与中文提示。

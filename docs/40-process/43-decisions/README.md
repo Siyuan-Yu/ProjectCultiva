@@ -53,8 +53,8 @@
 | [0033](ADR-0033-source-faithful-independent-encounter-and-world-anchor-return.md) | 同源独立遭遇、停表与战前锚点回归 | 已采纳／待迁移 | 当前地形建筑；各回战前位置；真实战果保留；部分替代 0023 |
 | [0034](ADR-0034-conflict-control-succession-and-airship-role.md) | 冲突、控制继承与飞舟职责 | 已采纳／待迁移 | 人物攻击≠宣战；建筑战争确认；顺序接替／最强继承；飞舟只运输 |
 | [0035](ADR-0035-unified-squads-and-encounter-scope.md) | 统一小队与固定范围独立遭遇 | 已采纳／迁移中 | 小队唯一组织；独立遭遇范围与入场规则 |
-| [0036](ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) | 连续世界制作与去 Hex 产品方向 | **已采纳设计方向／未实现** | Final Surface、Composer/Fine Editor、WorldMap LOD、逐步迁出 Hex authority |
-| [0037](ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) | External Content Authoring 工具链与旧地图 Content 迁移方向 | **已采纳设计方向／未实现** | 唯一 Build All + Apps 平铺输出 + staging 替换 + Editor manifest／生命周期；Authoring Source ≠ Runtime Content；mapLayout／localPlaceSet／hexWorld／worldRegion／W2A／fallback 迁移分类与 MAP 分期 |
+| [0036](ADR-0036-continuous-surface-world-authoring-and-de-hex-product-direction.md) | 连续世界制作与去 Hex 产品方向 | **MAP-01 / MAP-02 已验收；MAP-03/04 Pending** | Final Surface、Composer/Fine Editor、WorldMap LOD、逐步迁出 Hex authority；验收见 [243](../243-map-02-continuous-surface-worldmap-acceptance-2026-09-16.md) |
+| [0037](ADR-0037-external-content-authoring-toolchain-and-legacy-map-content-migration-direction.md) | External Content Authoring 工具链与旧地图 Content 迁移方向 | **MAP-01 / MAP-02 已验收；后续迁移 Pending** | Authoring Source ≠ Runtime Content；mapLayout／localPlaceSet／hexWorld／worldRegion／W2A／fallback 迁移分类与 MAP 分期 |
 
 战略接战时间纪律另见 **[ADR-0023](ADR-0023-manual-encounter-freezes-worldtick.md)**（2026-08-21）。
 

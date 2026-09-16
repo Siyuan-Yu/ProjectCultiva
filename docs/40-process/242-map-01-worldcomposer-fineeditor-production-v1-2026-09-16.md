@@ -1,7 +1,7 @@
 # MAP-01 — WorldComposer + FineEditor Production V1
 
 > 日期：2026-09-16  
-> 状态：**Implementation Completed / Producer Acceptance Pending**  
+> 状态：**Producer Accepted / Sealed（2026-09-16）**
 > 范围：External Content Authoring 工具与 authoring/bake schema；未迁移 Content，未接入 Gameplay/Runtime。
 
 ## 1. 交付能力

@@ -66,6 +66,8 @@ namespace XianXia.Data.Content
             new Dictionary<DefinitionId, OutdoorWorldSurfaceDefinition>();
         readonly Dictionary<DefinitionId, OutdoorSurfaceGeographyDefinition> _outdoorSurfaceGeographies =
             new Dictionary<DefinitionId, OutdoorSurfaceGeographyDefinition>();
+        readonly Dictionary<DefinitionId, ContinuousSurfaceWorldMapDefinition> _continuousSurfaceWorldMaps =
+            new Dictionary<DefinitionId, ContinuousSurfaceWorldMapDefinition>();
 
         public IReadOnlyDictionary<DefinitionId, CharacterDefinition> Characters => _characters;
         public IReadOnlyDictionary<DefinitionId, CultivationDefinition> Cultivations => _cultivations;
@@ -93,6 +95,7 @@ namespace XianXia.Data.Content
         public IReadOnlyDictionary<DefinitionId, StrategicFactionDefinition> StrategicFactions => _strategicFactions;
         public IReadOnlyDictionary<DefinitionId, OutdoorWorldSurfaceDefinition> OutdoorSurfaces => _outdoorSurfaces;
         public IReadOnlyDictionary<DefinitionId, OutdoorSurfaceGeographyDefinition> OutdoorSurfaceGeographies => _outdoorSurfaceGeographies;
+        public IReadOnlyDictionary<DefinitionId, ContinuousSurfaceWorldMapDefinition> ContinuousSurfaceWorldMaps => _continuousSurfaceWorldMaps;
 
         public bool ContainsId(DefinitionId id) =>
             (SpatialRules != null && SpatialRules.Id == id.ToString()) ||
@@ -121,7 +124,8 @@ namespace XianXia.Data.Content
             _formalArmies.ContainsKey(id) ||
             _strategicFactions.ContainsKey(id) ||
             _outdoorSurfaces.ContainsKey(id) ||
-            _outdoorSurfaceGeographies.ContainsKey(id);
+            _outdoorSurfaceGeographies.ContainsKey(id) ||
+            _continuousSurfaceWorldMaps.ContainsKey(id);
 
         public Result RegisterCharacter(CharacterDefinition definition)
         {
@@ -305,6 +309,13 @@ namespace XianXia.Data.Content
             return Register(_outdoorSurfaceGeographies, definition, definition.Id);
         }
 
+        public Result RegisterContinuousSurfaceWorldMap(ContinuousSurfaceWorldMapDefinition definition)
+        {
+            if (definition == null || definition.Id.Equals(default(DefinitionId)) || string.IsNullOrWhiteSpace(definition.SurfaceId))
+                return Result.Failure(ErrorCode.InvalidArgument, "ContinuousSurfaceWorldMapDefinition is invalid.");
+            return Register(_continuousSurfaceWorldMaps, definition, definition.Id);
+        }
+
         /// <summary>覆盖已有 mapLayout（Level Tester 热换地图文件）。</summary>
         public Result UpsertMapLayout(MapLayoutDefinition definition)
         {
@@ -396,6 +407,14 @@ namespace XianXia.Data.Content
                     return true;
                 }
             }
+            definition = null;
+            return false;
+        }
+
+        public bool TryGetContinuousSurfaceWorldMap(string surfaceId, out ContinuousSurfaceWorldMapDefinition definition)
+        {
+            foreach (var entry in _continuousSurfaceWorldMaps)
+                if (string.Equals(entry.Value.SurfaceId, surfaceId, System.StringComparison.Ordinal)) { definition = entry.Value; return true; }
             definition = null;
             return false;
         }

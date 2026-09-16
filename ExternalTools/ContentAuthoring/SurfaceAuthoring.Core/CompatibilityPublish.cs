@@ -15,6 +15,7 @@ public sealed record CompatibilityPublishSummary(
     int HuangcunObjectCount,
     string MainRuntimePath,
     string GeographyRuntimePath,
+    string WorldMapRuntimePath,
     string BackupRoot);
 
 /// <summary>Stages the same bytes created by candidate export, validates them, then replaces both legacy runtime files together.</summary>
@@ -26,6 +27,7 @@ public static class CompatibilityPublisher
         var binding = composition.LegacyMigration!;
         var main = RuntimePath(contentRoot, binding.MainSurfaceRelativePath);
         var geography = RuntimePath(contentRoot, binding.GeographyRelativePath);
+        var worldMap = Path.Combine(contentRoot, "BaseGame", "Data", "Worlds", "main_world_surface_map_v1.json");
         var engine = new CompositionEngine(composition, linked);
         var water = 0;
         for (var y = 0; y < composition.SurfaceHeightCells; y++)
@@ -35,7 +37,7 @@ public static class CompatibilityPublisher
         return new(composition.CompositionId, composition.SurfaceWidthCells, composition.SurfaceHeightCells,
             composition.SurfaceWidthCells / 50 * (composition.SurfaceHeightCells / 50), water, composition.Rivers.Count,
             composition.Roads.Count, composition.WorldObjectPlacements.Count(x => x.KindId == "bridge"),
-            composition.WorldObjectPlacements.Count, huangcun, main, geography,
+            composition.WorldObjectPlacements.Count, huangcun, main, geography, worldMap,
             Path.Combine(contentRoot, "BaseGame", "_backups", "continuous-surface-authoring"));
     }
 
@@ -47,15 +49,17 @@ public static class CompatibilityPublisher
         try
         {
             var candidates = LegacyWorldMigration.ExportCompatibilityCandidates(composition, linked, contentRoot, stage);
-            VerifyCandidate(candidates[0]); VerifyCandidate(candidates[1]);
+            VerifyCandidate(candidates[0]); VerifyCandidate(candidates[1]); VerifyCandidate(candidates[2]);
             var original = Path.Combine(summary.BackupRoot, "original");
             var previous = Path.Combine(summary.BackupRoot, "previous");
             Directory.CreateDirectory(original); Directory.CreateDirectory(previous);
             BackupOnce(summary.MainRuntimePath, Path.Combine(original, Path.GetFileName(summary.MainRuntimePath)));
             BackupOnce(summary.GeographyRuntimePath, Path.Combine(original, Path.GetFileName(summary.GeographyRuntimePath)));
+            if (File.Exists(summary.WorldMapRuntimePath)) BackupOnce(summary.WorldMapRuntimePath, Path.Combine(original, Path.GetFileName(summary.WorldMapRuntimePath)));
             File.Copy(summary.MainRuntimePath, Path.Combine(previous, Path.GetFileName(summary.MainRuntimePath)), true);
             File.Copy(summary.GeographyRuntimePath, Path.Combine(previous, Path.GetFileName(summary.GeographyRuntimePath)), true);
-            ReplacePair(candidates[0], summary.MainRuntimePath, candidates[1], summary.GeographyRuntimePath, stage);
+            if (File.Exists(summary.WorldMapRuntimePath)) File.Copy(summary.WorldMapRuntimePath, Path.Combine(previous, Path.GetFileName(summary.WorldMapRuntimePath)), true);
+            ReplaceTriple(candidates[0], summary.MainRuntimePath, candidates[1], summary.GeographyRuntimePath, candidates[2], summary.WorldMapRuntimePath, stage);
             return summary;
         }
         finally { if (Directory.Exists(stage)) Directory.Delete(stage, true); }
@@ -167,6 +171,13 @@ public static class CompatibilityPublisher
             File.Copy(rollbackB, targetB, true);
             throw;
         }
+    }
+
+    private static void ReplaceTriple(string sourceA,string targetA,string sourceB,string targetB,string sourceC,string targetC,string stage)
+    {
+        var a=Path.Combine(stage,"rollback-a.json");var b=Path.Combine(stage,"rollback-b.json");var c=Path.Combine(stage,"rollback-c.json");var hadC=File.Exists(targetC);File.Copy(targetA,a,true);File.Copy(targetB,b,true);if(hadC)File.Copy(targetC,c,true);
+        try { Replace(sourceA,targetA);Replace(sourceB,targetB);Replace(sourceC,targetC); }
+        catch { File.Copy(a,targetA,true);File.Copy(b,targetB,true);if(hadC)File.Copy(c,targetC,true);else if(File.Exists(targetC))File.Delete(targetC);throw; }
     }
 
     private static void Replace(string source, string target)
