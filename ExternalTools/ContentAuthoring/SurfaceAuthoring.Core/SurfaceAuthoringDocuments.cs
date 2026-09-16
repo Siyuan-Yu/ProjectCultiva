@@ -138,10 +138,11 @@ public sealed class BlueprintObjectPlacement
     public string KindId { get; set; } = string.Empty;
     public string? ContentRef { get; set; }
     public string? AssetRef { get; set; }
-    public int LocalSurfaceX { get; set; }
-    public int LocalSurfaceY { get; set; }
-    public int WidthCells { get; set; } = 1;
-    public int HeightCells { get; set; } = 1;
+    // Object geometry is measured in Surface Cells, but is not terrain and must retain sub-cell legacy dimensions.
+    public double LocalSurfaceX { get; set; }
+    public double LocalSurfaceY { get; set; }
+    public double WidthCells { get; set; } = 1;
+    public double HeightCells { get; set; } = 1;
     public int RotationQuarterTurns { get; set; }
     public SortedDictionary<string, string> Metadata { get; set; } = new(StringComparer.Ordinal);
 }
@@ -173,7 +174,7 @@ public sealed class WorldCompositionDocument
 
 public sealed class WorldSiteBlueprintDocument
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public string BlueprintId { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
@@ -223,16 +224,16 @@ public static class SurfaceAuthoringValidation
 
     public static IReadOnlyList<SurfaceAuthoringValidationIssue> Validate(WorldSiteBlueprintDocument d)
     {
-        var issues = Fine(d.SchemaVersion, d.BlueprintId, d.DisplayName, d.WidthCells, d.HeightCells, "WorldSiteBlueprint");
+        var issues = Fine(d.SchemaVersion, d.BlueprintId, d.DisplayName, d.WidthCells, d.HeightCells, "WorldSiteBlueprint", WorldSiteBlueprintDocument.CurrentSchemaVersion, allowPreviousVersion: true);
         Duplicates(issues, d.ObjectPlacements.Select(x => x.PlacementId));
         ValidateFineCells(issues,d.FineTerrainSources,d.WidthCells,d.HeightCells);
         foreach (var o in d.ObjectPlacements) { if(string.IsNullOrWhiteSpace(o.PlacementId)||string.IsNullOrWhiteSpace(o.KindId))Error(issues,"对象放置必须提供 placementId 和 kindId。");if(o.RotationQuarterTurns is <0 or >3)Error(issues,$"对象 {o.PlacementId} 的 rotationQuarterTurns 必须为 0 到 3。");if (o.WidthCells <= 0 || o.HeightCells <= 0 || o.LocalSurfaceX < 0 || o.LocalSurfaceY < 0 || o.LocalSurfaceX + o.WidthCells > d.WidthCells || o.LocalSurfaceY + o.HeightCells > d.HeightCells) Error(issues, $"对象 {o.PlacementId} 的范围无效或超出文档。"); }
         return issues;
     }
-    public static IReadOnlyList<SurfaceAuthoringValidationIssue> Validate(DetailPatchDocument d) {var issues=Fine(d.SchemaVersion,d.PatchId,d.DisplayName,d.WidthCells,d.HeightCells,"DetailPatch");ValidateFineCells(issues,d.FineTerrainOverrides,d.WidthCells,d.HeightCells);return issues;}
+    public static IReadOnlyList<SurfaceAuthoringValidationIssue> Validate(DetailPatchDocument d) {var issues=Fine(d.SchemaVersion,d.PatchId,d.DisplayName,d.WidthCells,d.HeightCells,"DetailPatch",DetailPatchDocument.CurrentSchemaVersion);ValidateFineCells(issues,d.FineTerrainOverrides,d.WidthCells,d.HeightCells);return issues;}
 
     private static List<SurfaceAuthoringValidationIssue> Identity(string id, string name) { var r = new List<SurfaceAuthoringValidationIssue>(); if (string.IsNullOrWhiteSpace(id)) Error(r, "文档技术 ID 不能为空。"); if (string.IsNullOrWhiteSpace(name)) Error(r, "文档名称不能为空。"); return r; }
-    private static List<SurfaceAuthoringValidationIssue> Fine(int version, string id, string name, int w, int h, string label) { var r = Identity(id, name); if (version != 3) Error(r, $"不支持此 {label} schemaVersion。"); if (w <= 0 || h <= 0) Error(r, "连续世界格尺寸必须为正数。"); return r; }
+    private static List<SurfaceAuthoringValidationIssue> Fine(int version, string id, string name, int w, int h, string label, int currentVersion, bool allowPreviousVersion = false) { var r = Identity(id, name); if (version != currentVersion && (!allowPreviousVersion || version != currentVersion - 1)) Error(r, $"不支持此 {label} schemaVersion。"); if (w <= 0 || h <= 0) Error(r, "连续世界格尺寸必须为正数。"); return r; }
     private static void ValidatePath(List<SurfaceAuthoringValidationIssue> r, string id, double width, List<PathControlPoint> points, WorldCompositionDocument d) { if (string.IsNullOrWhiteSpace(id)) Error(r, "路径 ID 不能为空。"); if (width <= 0) Error(r, $"路径 {id} 的宽度必须为正数。"); if (points.Count < 2) Error(r, $"路径 {id} 至少需要两个控制点。"); foreach (var p in points) if (p.X < 0 || p.Y < 0 || p.X > d.SurfaceWidthCells || p.Y > d.SurfaceHeightCells) Error(r, $"路径 {id} 存在超出世界范围的控制点。"); }
     private static void ValidateFineCells(List<SurfaceAuthoringValidationIssue> r,List<FineTerrainSourceCell> cells,int width,int height){foreach(var group in cells.GroupBy(x=>(x.SurfaceCellX,x.SurfaceCellY)).Where(x=>x.Count()>1))Error(r,$"连续世界格 ({group.Key.SurfaceCellX},{group.Key.SurfaceCellY}) 存在重复精修地形源。");foreach(var c in cells){if(c.SurfaceCellX<0||c.SurfaceCellY<0||c.SurfaceCellX>=width||c.SurfaceCellY>=height)Error(r,$"连续世界格 ({c.SurfaceCellX},{c.SurfaceCellY}) 的精修地形源超出文档范围。");if(c.FeatureDensity is <0 or >1)Error(r,$"连续世界格 ({c.SurfaceCellX},{c.SurfaceCellY}) 的特征密度必须在 0 到 1 之间。");if(c.CompatibilityGlyph!=null&&c.CompatibilityGlyph is not ("=" or "B" or "#"))Error(r,$"连续世界格 ({c.SurfaceCellX},{c.SurfaceCellY}) 的兼容栅格标记无效。");}}
     private static void Duplicates(List<SurfaceAuthoringValidationIssue> r, IEnumerable<string> ids) { foreach (var id in ids.Where(x => !string.IsNullOrWhiteSpace(x)).GroupBy(x => x, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => g.Key)) Error(r, $"技术 ID 重复：{id}"); }

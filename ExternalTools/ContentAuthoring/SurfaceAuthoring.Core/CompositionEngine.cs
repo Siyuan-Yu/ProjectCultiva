@@ -21,6 +21,11 @@ public static class LinkedSourceLoader
         foreach (var p in composition.WorldSiteBlueprintPlacements.OrderBy(x => x.PlacementId, StringComparer.Ordinal))
         {
             Load(p.SourcePath, root, p.PlacementId, path => SurfaceAuthoringJson.LoadWorldSiteBlueprint(path), d => d.BlueprintId == p.BlueprintId, result.Blueprints, result.Issues);
+            if (composition.RuntimeSurface != null && result.Blueprints.TryGetValue(p.PlacementId, out var blueprint))
+            {
+                var migration = BlueprintGeometryMigration.RestoreLegacyExactGeometry(composition, p, blueprint);
+                foreach (var warning in migration.Warnings) result.Issues.Add(new(ValidationSeverity.Warning, warning));
+            }
         }
         foreach (var p in composition.DetailPatchPlacements.OrderBy(x => x.PlacementId, StringComparer.Ordinal))
         {

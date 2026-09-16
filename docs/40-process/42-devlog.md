@@ -1,5 +1,15 @@
 # 开发日志
 
+## 2026-09-16 — MAP-01 Continuous Surface Authoring：交互收口与 Compatibility Publish
+
+- Compatibility Publish 的 Huangcun Blueprint object geometry round-trip 修正：旧导入曾把所有 `sitePlacements` 包络为整数 Surface Cell，导致不足一格宽的墙体被扩大并封死门洞。`BlueprintObjectPlacement` 现以 `double` Surface Cell 保存对象的位置与尺寸，Terrain / FineEditor 地形格仍严格为整数 1×1；Huangcun 从 v3 升级至 v4 后，71 个未人工编辑对象均根据 legacy exact world rect 恢复 sub-cell geometry，0 个对象因人工编辑而保留整数包络。
+- Legacy Import 直接写 exact sub-cell object geometry；FineEditor / WorldComposer preview、命中、拖动、复制、旋转、Inspector 和 bake 均保留小数对象矩形。Compatibility Publish 在 staging candidate 对所有 `legacyGeometryState=exact` 对象逐项以 `1e-6` 校验 world rect，任何偏移都会取消发布；本次 71/71 通过。`zoneForest` 继续是 Forest Coverage，未作为对象回写。
+- Compatibility Publish 首次实际使用发现 `Chunk/global geography bake mismatch`：发布器曾将 global `rows` 与 `chunkRows` 采用相反的 Y 行序，纯地块未暴露、含河流的 chunk 则被 Runtime 严格校验拒绝。现改为与既有 `W2ASurfaceGeographyBaker` 和 Loader 完全相同的升序 Y 行契约；发布前读回验证也新增逐 chunk、逐行的 global slice 对照，候选不一致时不能替换 Runtime JSON。
+- WorldComposer / FineEditor 正式缩放改为 Alt + 滚轮（Ctrl 仅保留隐藏兼容）；Space+拖动与中键平移保持。WorldComposer 新增 10 格步长的四角锚点尺寸调整：完整移动 coarse terrain、forest、path/crossing、world object、Blueprint/Detail Patch placement，并按锚点校正 RuntimeSurface origin；越界 shrink 拒绝且整次 resize 进入单一 Undo。
+- Composer 去除内部 dirty-preview 白框；笔刷只反馈实际影响的 10×10 World Editor Cells。选择工具支持路径线段和道路/河流 crossing marker 命中；Inspector 改为上下文面板，未选择时不再显示无效动作，路径/控制点/placement/crossing 各显示对应操作及中文反馈。
+- Compatibility Candidate 与正式 Publish 共用同一生成器：从 WorldComposition 输出现有 main surface 与 W2A geography schema，按当前尺寸重建 50×50 chunk registry、完整 global rows / chunkRows / coverageChunks、mapPrimitives，并仅替换 Huangcun 的 sitePlacements；未修改 Unity loader 或 Gameplay。
+- Publish 先 staging、candidate read-back，再创建 original（仅首次）/ previous backup 并整体替换两个 Runtime JSON；第二文件失败会回滚第一文件。恢复上一次或首次版本同样采用双文件 staging/确认/整体替换。未打开 Unity，未自动发布 Runtime Data，修改保持未提交等待制作人人工验收。
+
 ## 2026-09-16 — MAP-01.5 WorldComposer / FineEditor Production Usability Hardening
 
 - **WorldComposer 性能收口**：移除 `DrawSurface()` 内逐帧 `CompositionEngine` 构造和逐 Surface Cell WPF Rectangle；默认 1900×850 世界改为后台生成 `1 cell = 1 pixel` 的 `WriteableBitmap`，WPF render 只做缓存位图缩放/平移及路径、选择、hover、grid 等轻量 overlay。连续修改使用 revision/cancellation，旧计算不能覆盖新 source。

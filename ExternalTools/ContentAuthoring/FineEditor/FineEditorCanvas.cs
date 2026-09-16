@@ -39,7 +39,7 @@ public sealed class FineEditorCanvas:SurfaceCanvasBase
     private bool _editing,_terrainMutation,_mutationChanged;
     private (int X,int Y)? _last,_rectStart;
     private (int X,int Y) _hover=(-1,-1);
-    private (BlueprintObjectPlacement Item,int Dx,int Dy)? _drag;
+    private (BlueprintObjectPlacement Item,double Dx,double Dy)? _drag;
     private PixelRect? _dirty;
     private WriteableBitmap? _preview;
 
@@ -50,9 +50,9 @@ public sealed class FineEditorCanvas:SurfaceCanvasBase
     public void SetDocument(object document){var changed=!ReferenceEquals(Document,document)||SurfaceWidth!=Size(document).W||SurfaceHeight!=Size(document).H;Document=document;var size=Size();SetSurfaceSize(size.W,size.H);if(changed){SelectedObject=null;Selection=null;RebuildIndex();BuildFullPreview();}InvalidateVisual();}
     public void Cancel(){PendingObject=null;_editing=false;_drag=null;InvalidateVisual();}
     public void DeleteSelected(){if(SelectedObject==null||Objects==null)return;Start(false);_mutationChanged=Objects.Remove(SelectedObject);SelectedObject=null;Finish();ObjectSelectionChanged?.Invoke(null);}
-    public void DuplicateSelected(){if(SelectedObject==null||Objects==null)return;Start(false);var c=SurfaceAuthoringJson.Clone(SelectedObject);c.PlacementId=Unique(c.PlacementId+"_copy",Objects.Select(x=>x.PlacementId));c.LocalSurfaceX=Math.Min(SurfaceWidth-c.WidthCells,c.LocalSurfaceX+1);c.LocalSurfaceY=Math.Min(SurfaceHeight-c.HeightCells,c.LocalSurfaceY+1);Objects.Add(c);SelectedObject=c;_mutationChanged=true;Finish();ObjectSelectionChanged?.Invoke(c);}
-    public void RotateSelected(){if(SelectedObject==null)return;Start(false);SelectedObject.RotationQuarterTurns=(SelectedObject.RotationQuarterTurns+1)%4;(SelectedObject.WidthCells,SelectedObject.HeightCells)=(SelectedObject.HeightCells,SelectedObject.WidthCells);_mutationChanged=true;Finish();}
-    public void ApplyObjectProperties(string kind,string?content,string?asset,int x,int y,int w,int h){if(SelectedObject==null)return;Start(false);var before=SurfaceAuthoringJson.Serialize(SelectedObject);SelectedObject.KindId=kind;SelectedObject.ContentRef=Blank(content);SelectedObject.AssetRef=Blank(asset);SelectedObject.LocalSurfaceX=x;SelectedObject.LocalSurfaceY=y;SelectedObject.WidthCells=w;SelectedObject.HeightCells=h;_mutationChanged=before!=SurfaceAuthoringJson.Serialize(SelectedObject);Finish();}
+    public void DuplicateSelected(){if(SelectedObject==null||Objects==null)return;Start(false);var c=SurfaceAuthoringJson.Clone(SelectedObject);c.PlacementId=Unique(c.PlacementId+"_copy",Objects.Select(x=>x.PlacementId));c.LocalSurfaceX=Math.Min(SurfaceWidth-c.WidthCells,c.LocalSurfaceX+1);c.LocalSurfaceY=Math.Min(SurfaceHeight-c.HeightCells,c.LocalSurfaceY+1);c.Metadata["legacyGeometryState"]="edited";Objects.Add(c);SelectedObject=c;_mutationChanged=true;Finish();ObjectSelectionChanged?.Invoke(c);}
+    public void RotateSelected(){if(SelectedObject==null)return;Start(false);SelectedObject.RotationQuarterTurns=(SelectedObject.RotationQuarterTurns+1)%4;(SelectedObject.WidthCells,SelectedObject.HeightCells)=(SelectedObject.HeightCells,SelectedObject.WidthCells);MarkGeometryEdited(SelectedObject);_mutationChanged=true;Finish();}
+    public void ApplyObjectProperties(string kind,string?content,string?asset,double x,double y,double w,double h){if(SelectedObject==null)return;Start(false);var before=SurfaceAuthoringJson.Serialize(SelectedObject);var geometryChanged=SelectedObject.LocalSurfaceX!=x||SelectedObject.LocalSurfaceY!=y||SelectedObject.WidthCells!=w||SelectedObject.HeightCells!=h;SelectedObject.KindId=kind;SelectedObject.ContentRef=Blank(content);SelectedObject.AssetRef=Blank(asset);SelectedObject.LocalSurfaceX=x;SelectedObject.LocalSurfaceY=y;SelectedObject.WidthCells=w;SelectedObject.HeightCells=h;if(geometryChanged)MarkGeometryEdited(SelectedObject);_mutationChanged=before!=SurfaceAuthoringJson.Serialize(SelectedObject);Finish();}
     public void FillSelectionOrRegion(){var targets=Selection.HasValue?SelectedCells():Flood(_hover.X,_hover.Y);if(targets.Count==0)return;Start(true);foreach(var p in targets)Paint(p.X,p.Y);Finish();}
     public void ClearSelection(){Selection=null;InvalidateVisual();}
 
@@ -72,7 +72,7 @@ public sealed class FineEditorCanvas:SurfaceCanvasBase
         var x=(int)Math.Floor(w.X);var y=(int)Math.Floor(w.Y);var hoverChanged=_hover!=(x,y);_hover=(x,y);var visualChanged=false;
         if(_editing&&e.LeftButton==MouseButtonState.Pressed&&Tool is FineTool.BaseTerrainBrush or FineTool.FeatureBrush or FineTool.Eraser){Stroke(x,y);visualChanged=true;}
         if(_editing&&_rectStart.HasValue&&e.LeftButton==MouseButtonState.Pressed){var a=_rectStart.Value;var next=new Rect(Math.Min(a.X,x),Math.Min(a.Y,y),Math.Abs(x-a.X)+1,Math.Abs(y-a.Y)+1);if(Selection!=next){Selection=next;visualChanged=true;}}
-        if(_drag.HasValue&&e.LeftButton==MouseButtonState.Pressed){var d=_drag.Value;var nx=Math.Clamp(x-d.Dx,0,Math.Max(0,SurfaceWidth-d.Item.WidthCells));var ny=Math.Clamp(y-d.Dy,0,Math.Max(0,SurfaceHeight-d.Item.HeightCells));if(d.Item.LocalSurfaceX!=nx||d.Item.LocalSurfaceY!=ny){d.Item.LocalSurfaceX=nx;d.Item.LocalSurfaceY=ny;_mutationChanged=true;visualChanged=true;}}
+        if(_drag.HasValue&&e.LeftButton==MouseButtonState.Pressed){var d=_drag.Value;var nx=Math.Clamp(Math.Round(x-d.Dx),0,Math.Max(0,SurfaceWidth-d.Item.WidthCells));var ny=Math.Clamp(Math.Round(y-d.Dy),0,Math.Max(0,SurfaceHeight-d.Item.HeightCells));if(d.Item.LocalSurfaceX!=nx||d.Item.LocalSurfaceY!=ny){d.Item.LocalSurfaceX=nx;d.Item.LocalSurfaceY=ny;MarkGeometryEdited(d.Item);_mutationChanged=true;visualChanged=true;}}
         if(hoverChanged&&Tool is FineTool.BaseTerrainBrush or FineTool.FeatureBrush or FineTool.Eraser)visualChanged=true;
         if(visualChanged)InvalidateVisual();
     }
@@ -109,6 +109,7 @@ public sealed class FineEditorCanvas:SurfaceCanvasBase
     private static PixelRect Union(PixelRect a,PixelRect b){var x=Math.Min(a.X,b.X);var y=Math.Min(a.Y,b.Y);var right=Math.Max(a.X+a.Width,b.X+b.Width);var top=Math.Max(a.Y+a.Height,b.Y+b.Height);return new(x,y,right-x,top-y);}
     private static long Key(int x,int y)=>((long)y<<32)|(uint)x;
     private static string? Blank(string?s)=>string.IsNullOrWhiteSpace(s)?null:s;
+    private static void MarkGeometryEdited(BlueprintObjectPlacement item){if(item.Metadata.ContainsKey("legacyGeometryState"))item.Metadata["legacyGeometryState"]="edited";}
     private static string Unique(string p,IEnumerable<string>ids){var set=ids.ToHashSet(StringComparer.Ordinal);if(!set.Contains(p))return p;for(var i=2;;i++)if(!set.Contains(p+"_"+i))return p+"_"+i;}
     private static Brush FrozenBrush(Color color){var b=new SolidColorBrush(color);b.Freeze();return b;}
     private static Pen FrozenPen(Brush brush,double width){var p=new Pen(brush,width);p.Freeze();return p;}

@@ -27,7 +27,7 @@ public sealed class BakeRun
     public RoadClass? Road { get; set; }
 }
 public sealed class BakedBlueprintInstance { public string PlacementId { get; set; } = string.Empty; public string BlueprintId { get; set; } = string.Empty; public int SurfaceCellX { get; set; } public int SurfaceCellY { get; set; } public int RotationQuarterTurns { get; set; } }
-public sealed class BakedObjectPlacement { public string BlueprintPlacementId { get; set; } = string.Empty; public string PlacementId { get; set; } = string.Empty; public string KindId { get; set; } = string.Empty; public string? ContentRef { get; set; } public string? AssetRef { get; set; } public int WorldSurfaceX { get; set; } public int WorldSurfaceY { get; set; } public int WidthCells { get; set; } public int HeightCells { get; set; } public int RotationQuarterTurns { get; set; } public SortedDictionary<string,string> Metadata { get; set; } = new(StringComparer.Ordinal); }
+public sealed class BakedObjectPlacement { public string BlueprintPlacementId { get; set; } = string.Empty; public string PlacementId { get; set; } = string.Empty; public string KindId { get; set; } = string.Empty; public string? ContentRef { get; set; } public string? AssetRef { get; set; } public double WorldSurfaceX { get; set; } public double WorldSurfaceY { get; set; } public double WidthCells { get; set; } public double HeightCells { get; set; } public int RotationQuarterTurns { get; set; } public SortedDictionary<string,string> Metadata { get; set; } = new(StringComparer.Ordinal); }
 
 public static class ContinuousSurfaceBaker
 {
@@ -53,7 +53,7 @@ public static class ContinuousSurfaceBaker
         {
             bake.BlueprintInstances.Add(new(){PlacementId=p.PlacementId,BlueprintId=p.BlueprintId,SurfaceCellX=p.SurfaceCellX,SurfaceCellY=p.SurfaceCellY,RotationQuarterTurns=p.RotationQuarterTurns});
             if(!linked.Blueprints.TryGetValue(p.PlacementId,out var b))continue;
-            foreach(var o in b.ObjectPlacements.OrderBy(x=>x.PlacementId,StringComparer.Ordinal)){var xy=Rotate(o.LocalSurfaceX,o.LocalSurfaceY,b.WidthCells,b.HeightCells,p.RotationQuarterTurns);bake.ObjectPlacements.Add(new(){BlueprintPlacementId=p.PlacementId,PlacementId=o.PlacementId,KindId=o.KindId,ContentRef=o.ContentRef,AssetRef=o.AssetRef,WorldSurfaceX=p.SurfaceCellX+xy.X,WorldSurfaceY=p.SurfaceCellY+xy.Y,WidthCells=o.WidthCells,HeightCells=o.HeightCells,RotationQuarterTurns=(o.RotationQuarterTurns+p.RotationQuarterTurns)%4,Metadata=new(o.Metadata,StringComparer.Ordinal)});}
+            foreach(var o in b.ObjectPlacements.OrderBy(x=>x.PlacementId,StringComparer.Ordinal)){var rect=Rotate(o.LocalSurfaceX,o.LocalSurfaceY,o.WidthCells,o.HeightCells,b.WidthCells,b.HeightCells,p.RotationQuarterTurns);bake.ObjectPlacements.Add(new(){BlueprintPlacementId=p.PlacementId,PlacementId=o.PlacementId,KindId=o.KindId,ContentRef=o.ContentRef,AssetRef=o.AssetRef,WorldSurfaceX=p.SurfaceCellX+rect.X,WorldSurfaceY=p.SurfaceCellY+rect.Y,WidthCells=rect.Width,HeightCells=rect.Height,RotationQuarterTurns=(o.RotationQuarterTurns+p.RotationQuarterTurns)%4,Metadata=new(o.Metadata,StringComparer.Ordinal)});}
         }
         foreach(var o in source.WorldObjectPlacements.OrderBy(x=>x.PlacementId,StringComparer.Ordinal))bake.ObjectPlacements.Add(new(){BlueprintPlacementId=string.Empty,PlacementId=o.PlacementId,KindId=o.KindId,WorldSurfaceX=o.WorldSurfaceX,WorldSurfaceY=o.WorldSurfaceY,WidthCells=o.WidthCells,HeightCells=o.HeightCells,RotationQuarterTurns=o.RotationQuarterTurns,Metadata=new(o.Metadata,StringComparer.Ordinal)});
         return bake;
@@ -63,5 +63,5 @@ public static class ContinuousSurfaceBaker
     {
         var text=new System.Text.StringBuilder(SurfaceAuthoringJson.Serialize(source)); foreach(var x in linked.Blueprints)text.Append('\n').Append(x.Key).Append('\n').Append(SurfaceAuthoringJson.Serialize(x.Value));foreach(var x in linked.Patches)text.Append('\n').Append(x.Key).Append('\n').Append(SurfaceAuthoringJson.Serialize(x.Value));return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text.ToString()))).ToLowerInvariant();
     }
-    private static (int X,int Y) Rotate(int x,int y,int w,int h,int q)=>(((q%4)+4)%4) switch{1=>(h-1-y,x),2=>(w-1-x,h-1-y),3=>(y,w-1-x),_=>(x,y)};
+    private static (double X,double Y,double Width,double Height) Rotate(double x,double y,double width,double height,int blueprintWidth,int blueprintHeight,int q)=>(((q%4)+4)%4) switch{1=>(blueprintHeight-y-height,x,height,width),2=>(blueprintWidth-x-width,blueprintHeight-y-height,width,height),3=>(y,blueprintWidth-x-width,height,width),_=>(x,y,width,height)};
 }

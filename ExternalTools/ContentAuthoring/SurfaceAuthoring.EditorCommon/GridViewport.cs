@@ -54,7 +54,8 @@ public sealed class GridViewport : FrameworkElement
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {
-        if ((Keyboard.Modifiers & ModifierKeys.Control) == 0) return;
+        var modifiers = Keyboard.Modifiers;
+        if ((modifiers & ModifierKeys.Alt) == 0 && (modifiers & ModifierKeys.Control) == 0) return;
         ZoomAt(e.GetPosition(this), e.Delta > 0 ? 1.15d : 1d / 1.15d);
         e.Handled = true;
     }

@@ -22,7 +22,7 @@ public partial class MainWindow:Window
     private readonly Slider _density=new(){Minimum=0,Maximum=1,Value=.75,TickFrequency=.1,IsSnapToTickEnabled=true};
     private readonly TextBox _riverWidth=new(){Text="5"};
     private readonly ComboBox _worldObject=Combo(ObjectChoices);
-    private readonly StackPanel _toolOptions=new();
+    private readonly StackPanel _toolOptions=new(),_inspector=new();
     private readonly Stack<string> _undo=[],_redo=[];
     private WorldCompositionDocument _document=NewDocument();
     private LinkedSourceSet _linked=new();
@@ -49,12 +49,12 @@ public partial class MainWindow:Window
     private UIElement BuildUi()
     {
         var root=new DockPanel{Background=new SolidColorBrush(Color.FromRgb(47,51,58))};
-        var top=new WrapPanel{Margin=new(8)};Add(top,"新建",New);Add(top,"打开",Open);Add(top,"保存",Save);Add(top,"另存为",SaveAs);Add(top,"撤销",Undo);Add(top,"重做",Redo);Add(top,"检查问题",Validate);Add(top,"烘焙连续世界",Bake);Add(top,"导入当前项目世界…",ImportCurrentWorld);Add(top,"导出运行时兼容候选包…",ExportCandidate);Add(top,"刷新引用资源",RefreshLinks);Add(top,"在精细编辑器中打开",OpenInFineEditor);Add(top,"放大",_canvas.ZoomIn);Add(top,"缩小",_canvas.ZoomOut);Add(top,"100%",_canvas.ActualSize);Add(top,"适应窗口",_canvas.Fit);DockPanel.SetDock(top,Dock.Top);root.Children.Add(top);
+        var top=new WrapPanel{Margin=new(8)};Add(top,"新建",New);Add(top,"打开",Open);Add(top,"保存",Save);Add(top,"另存为",SaveAs);Add(top,"调整世界尺寸…",ResizeWorld);Add(top,"撤销",Undo);Add(top,"重做",Redo);Add(top,"检查问题",Validate);Add(top,"烘焙连续世界",Bake);Add(top,"导入当前项目世界…",ImportCurrentWorld);Add(top,"导出运行时兼容候选包…",ExportCandidate);Add(top,"发布到当前项目（兼容模式）…",PublishCompatibility);Add(top,"恢复上一次运行时发布…",()=>RestoreCompatibility(false));Add(top,"恢复首次迁移前版本…",()=>RestoreCompatibility(true));Add(top,"刷新引用资源",RefreshLinks);Add(top,"在精细编辑器中打开",OpenInFineEditor);Add(top,"放大",_canvas.ZoomIn);Add(top,"缩小",_canvas.ZoomOut);Add(top,"100%",_canvas.ActualSize);Add(top,"适应窗口",_canvas.Fit);DockPanel.SetDock(top,Dock.Top);root.Children.Add(top);
         var bottom=new Border{Padding=new(8),Child=_status,Background=Brushes.Black};_status.Foreground=Brushes.White;DockPanel.SetDock(bottom,Dock.Bottom);root.Children.Add(bottom);
         var columns=new Grid();columns.ColumnDefinitions.Add(new(){Width=new(190)});columns.ColumnDefinitions.Add(new(){Width=new GridLength(1,GridUnitType.Star)});columns.ColumnDefinitions.Add(new(){Width=new(290)});root.Children.Add(columns);
         var left=new StackPanel{Margin=new(8)};Grid.SetColumn(left,0);columns.Children.Add(left);left.Children.Add(Header("工具"));foreach(var t in Enum.GetValues<ComposerTool>()){var captured=t;Add(left,ToolText(captured),()=>SelectTool(captured));}left.Children.Add(Header("当前工具说明"));left.Children.Add(_help);left.Children.Add(Header("工具选项"));left.Children.Add(_toolOptions);
         Grid.SetColumn(_canvas,1);columns.Children.Add(_canvas);
-        var right=new StackPanel{Margin=new(8)};Grid.SetColumn(right,2);columns.Children.Add(right);right.Children.Add(Header("图层 / 属性"));var showGrid=new CheckBox{Content="显示大地图编辑网格",IsChecked=true,Foreground=Brushes.White};showGrid.Checked+=(_,_)=>{_canvas.ShowEditorGrid=true;_canvas.InvalidateVisual();};showGrid.Unchecked+=(_,_)=>{_canvas.ShowEditorGrid=false;_canvas.InvalidateVisual();};right.Children.Add(showGrid);var chunks=new CheckBox{Content="显示运行块（仅调试）",Foreground=Brushes.White};chunks.Checked+=(_,_)=>{_canvas.ShowRuntimeChunkOverlay=true;_canvas.InvalidateVisual();};chunks.Unchecked+=(_,_)=>{_canvas.ShowRuntimeChunkOverlay=false;_canvas.InvalidateVisual();};right.Children.Add(chunks);right.Children.Add(_info);Add(right,"应用精确世界坐标…",ApplySelectedPosition);Add(right,"应用路径宽度 / 道路等级",ApplySelectedPath);Add(right,"插入控制点",_canvas.InsertControlPoint);Add(right,"删除控制点",_canvas.RemoveSelectedControlPoint);Add(right,"顺时针旋转 90°",_canvas.RotateSelected);Add(right,"删除所选项",_canvas.DeleteSelected);Add(right,"将首个未处理交叉口设为桥",()=>_canvas.ResolveFirstCrossing(CrossingResolution.Bridge));Add(right,"将首个未处理交叉口设为浅滩",()=>_canvas.ResolveFirstCrossing(CrossingResolution.Ford));right.Children.Add(Header("问题"));right.Children.Add(new ScrollViewer{Content=_problems,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,Height=230});return root;
+        var right=new StackPanel{Margin=new(8)};Grid.SetColumn(right,2);columns.Children.Add(right);right.Children.Add(Header("图层 / 上下文属性"));var showGrid=new CheckBox{Content="显示大地图编辑网格",IsChecked=true,Foreground=Brushes.White};showGrid.Checked+=(_,_)=>{_canvas.ShowEditorGrid=true;_canvas.InvalidateVisual();};showGrid.Unchecked+=(_,_)=>{_canvas.ShowEditorGrid=false;_canvas.InvalidateVisual();};right.Children.Add(showGrid);var chunks=new CheckBox{Content="显示运行块（仅调试）",Foreground=Brushes.White};chunks.Checked+=(_,_)=>{_canvas.ShowRuntimeChunkOverlay=true;_canvas.InvalidateVisual();};chunks.Unchecked+=(_,_)=>{_canvas.ShowRuntimeChunkOverlay=false;_canvas.InvalidateVisual();};right.Children.Add(chunks);right.Children.Add(_info);right.Children.Add(_inspector);right.Children.Add(Header("问题"));right.Children.Add(new ScrollViewer{Content=_problems,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,Height=230});return root;
     }
 
     private void SelectTool(ComposerTool tool){SyncTools();if(_canvas.Tool is ComposerTool.River or ComposerTool.Road&&_canvas.Tool!=tool)_canvas.CancelOperation();_canvas.ActiveBaseLayer=tool==ComposerTool.Terrain;_canvas.EraseMode=false;_canvas.Tool=tool;BuildToolOptions(tool);_help.Text=ToolHelp(tool);_status.Text="当前工具："+ToolText(tool);}
@@ -72,9 +72,62 @@ public partial class MainWindow:Window
         else if(tool==ComposerTool.RectangleSelect)Add(_toolOptions,"清除选区",_canvas.ClearSelection);
     }
     private void Refresh(bool fit=false){SyncTools();_canvas.SetDocument(_document,_linked);if(fit)Dispatcher.BeginInvoke(_canvas.Fit);RefreshInspector();UpdateTitle();}
-    private void RefreshInspector(){_info.Foreground=Brushes.White;var selected=SelectedType(_canvas.SelectedItem);var detail=_canvas.SelectedItem switch{WorldObjectPlacement o=>$"\n放置 ID：{o.PlacementId}\n物件类型：{ObjectText(o.KindId)}\n世界坐标：{o.WorldSurfaceX}, {o.WorldSurfaceY}\n尺寸：{o.WidthCells}×{o.HeightCells}\n旋转：{o.RotationQuarterTurns*90}°",WorldSiteBlueprintPlacement b=>$"\n放置 ID：{b.PlacementId}\n世界坐标：{b.SurfaceCellX}, {b.SurfaceCellY}\n旋转：{b.RotationQuarterTurns*90}°",DetailPatchPlacement p=>$"\n放置 ID：{p.PlacementId}\n世界坐标：{p.SurfaceCellX}, {p.SurfaceCellY}",RiverPathSource r=>$"\n路径 ID：{r.PathId}\n河流宽度：{r.WidthCells:0.##}\n控制点数量：{r.ControlPoints.Count}",RoadPathSource r=>$"\n路径 ID：{r.PathId}\n道路等级：{RoadText(r.RoadClass)}\n控制点数量：{r.ControlPoints.Count}",_=>""};_info.Text=$"\n连续世界：{_document.SurfaceWidthCells}×{_document.SurfaceHeightCells} 格\n大地图编辑网格：{_document.WorldEditorGridWidth}×{_document.WorldEditorGridHeight}\n1 个大地图编辑格 = 10×10 连续世界格\n世界种子：{_document.WorldSeed}\n世界物件：{_document.WorldObjectPlacements.Count}\n\n当前选择：{selected}{detail}";}
+    private void RefreshInspector()
+    {
+        _info.Foreground=Brushes.White;
+        _info.Text=$"\n连续世界：{_document.SurfaceWidthCells}×{_document.SurfaceHeightCells} 格\n大地图编辑网格：{_document.WorldEditorGridWidth}×{_document.WorldEditorGridHeight}\n1 个大地图编辑格 = 10×10 连续世界格\n世界种子：{_document.WorldSeed}\n世界物件：{_document.WorldObjectPlacements.Count}";
+        _inspector.Children.Clear();
+        if(_canvas.SelectedCrossing is { } crossing)
+        {
+            _inspector.Children.Add(Text($"当前选择：道路/河流交叉口\n河流：{crossing.RiverPathId}\n道路：{crossing.RoadPathId}\n世界坐标：{crossing.X:0.##}, {crossing.Y:0.##}\n当前状态：{CrossingText(crossing.Resolution)}"));
+            Add(_inspector,"设为桥",()=>_canvas.ResolveSelectedCrossing(CrossingResolution.Bridge));
+            Add(_inspector,"设为浅滩",()=>_canvas.ResolveSelectedCrossing(CrossingResolution.Ford));
+            Add(_inspector,"设为未处理",()=>_canvas.ResolveSelectedCrossing(CrossingResolution.Unresolved));
+            return;
+        }
+        switch(_canvas.SelectedItem)
+        {
+            case RiverPathSource river:
+                _inspector.Children.Add(Text($"当前选择：河流\n路径 ID：{river.PathId}\n河流宽度：{river.WidthCells:0.##}\n控制点数量：{river.ControlPoints.Count}"));
+                Add(_inspector,"应用河流宽度",ApplySelectedPath);
+                Add(_inspector,"插入控制点",_canvas.InsertControlPoint);
+                if(_canvas.CanRemoveSelectedControlPoint) Add(_inspector,"删除控制点",_canvas.RemoveSelectedControlPoint);
+                if(_canvas.SelectedControlPoint!=null) Add(_inspector,"应用控制点坐标",ApplySelectedControlPoint);
+                Add(_inspector,"删除河流",_canvas.DeleteSelected);
+                break;
+            case RoadPathSource road:
+                _inspector.Children.Add(Text($"当前选择：道路\n路径 ID：{road.PathId}\n道路等级：{RoadText(road.RoadClass)}\n控制点数量：{road.ControlPoints.Count}"));
+                Add(_inspector,"应用道路等级",ApplySelectedPath);
+                Add(_inspector,"插入控制点",_canvas.InsertControlPoint);
+                if(_canvas.CanRemoveSelectedControlPoint) Add(_inspector,"删除控制点",_canvas.RemoveSelectedControlPoint);
+                if(_canvas.SelectedControlPoint!=null) Add(_inspector,"应用控制点坐标",ApplySelectedControlPoint);
+                Add(_inspector,"删除道路",_canvas.DeleteSelected);
+                break;
+            case WorldObjectPlacement item:
+                PlacementInspector($"世界物件\n放置 ID：{item.PlacementId}\n类型：{ObjectText(item.KindId)}\n坐标：{item.WorldSurfaceX}, {item.WorldSurfaceY}\n尺寸：{item.WidthCells}×{item.HeightCells}",true,false);
+                break;
+            case WorldSiteBlueprintPlacement item:
+                PlacementInspector($"据点蓝图\n放置 ID：{item.PlacementId}\n蓝图：{item.BlueprintId}\n坐标：{item.SurfaceCellX}, {item.SurfaceCellY}",true,true);
+                break;
+            case DetailPatchPlacement item:
+                PlacementInspector($"精修块\n放置 ID：{item.PlacementId}\n精修块：{item.PatchId}\n坐标：{item.SurfaceCellX}, {item.SurfaceCellY}",false,true);
+                break;
+            default:
+                _inspector.Children.Add(Text("当前选择：无\n使用“选择”工具点击道路、河流、世界物件、据点蓝图或精修块进行编辑。"));
+                break;
+        }
+    }
+    private void PlacementInspector(string text,bool rotatable,bool canOpenFine)
+    {
+        _inspector.Children.Add(Text("当前选择："+text));
+        Add(_inspector,"应用精确世界坐标…",ApplySelectedPosition);
+        if(rotatable)Add(_inspector,"顺时针旋转 90°",_canvas.RotateSelected);
+        if(canOpenFine)Add(_inspector,"在精细编辑器中打开",OpenInFineEditor);
+        Add(_inspector,"删除",_canvas.DeleteSelected);
+    }
     private void ApplySelectedPosition(){try{var current=_canvas.SelectedItem switch{WorldObjectPlacement o=>(o.WorldSurfaceX,o.WorldSurfaceY),WorldSiteBlueprintPlacement b=>(b.SurfaceCellX,b.SurfaceCellY),DetailPatchPlacement p=>(p.SurfaceCellX,p.SurfaceCellY),_=>(int.MinValue,int.MinValue)};if(current.Item1==int.MinValue){MessageBox.Show("请先选择世界物件、据点蓝图或精修块。","WorldComposer");return;}var values=Prompt("精确世界坐标",("连续世界格 X",current.Item1.ToString()),("连续世界格 Y",current.Item2.ToString()));if(values!=null)_canvas.ApplySelectedPlacement(Integer(values[0]),Integer(values[1]));}catch(Exception ex){Error(ex);}}
-    private void ApplySelectedPath(){try{SyncTools();if(_canvas.SelectedItem is RiverPathSource river){var values=Prompt("河流属性",("河流宽度",river.WidthCells.ToString(System.Globalization.CultureInfo.InvariantCulture)));if(values==null)return;if(!double.TryParse(values[0],System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out var width)||width<=0)throw new InvalidDataException("河流宽度必须是正数。");_canvas.ApplySelectedPath(width,_canvas.RoadClass);}else if(_canvas.SelectedItem is RoadPathSource)_canvas.ApplySelectedPath(_canvas.RiverWidth,_canvas.RoadClass);else MessageBox.Show("请先选择河流或道路。","WorldComposer");}catch(Exception ex){Error(ex);}}
+    private void ApplySelectedPath(){try{if(_canvas.SelectedItem is RiverPathSource river){var values=Prompt("河流属性",("河流宽度",river.WidthCells.ToString(System.Globalization.CultureInfo.InvariantCulture)));if(values==null)return;if(!double.TryParse(values[0],System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out var width)||width<=0)throw new InvalidDataException("河流宽度必须是正数。");_canvas.ApplySelectedPath(width,RoadClass.SmallRoad);}else if(_canvas.SelectedItem is RoadPathSource road){var values=Prompt("道路等级",("道路等级（Trail / SmallRoad / Road / MajorRoad）",road.RoadClass.ToString()));if(values==null)return;if(!Enum.TryParse<RoadClass>(values[0],true,out var value))throw new InvalidDataException("道路等级无效。可用：Trail、SmallRoad、Road、MajorRoad。");_canvas.ApplySelectedPath(0,value);}else MessageBox.Show("请先选择河流或道路。","WorldComposer");}catch(Exception ex){Error(ex);}}
+    private void ApplySelectedControlPoint(){try{if(_canvas.SelectedControlPoint is not { } point){MessageBox.Show("请先选择一个控制点。","WorldComposer");return;}var values=Prompt("精确控制点坐标",("连续世界格 X",point.X.ToString(System.Globalization.CultureInfo.InvariantCulture)),("连续世界格 Y",point.Y.ToString(System.Globalization.CultureInfo.InvariantCulture)));if(values==null)return;if(!double.TryParse(values[0],System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out var x)||!double.TryParse(values[1],System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out var y))throw new InvalidDataException("控制点坐标必须是数字。");_canvas.ApplySelectedControlPoint(x,y);}catch(Exception ex){Error(ex);}}
     private void MarkDirty(){_dirty=true;UpdateTitle();}
     private void UpdateTitle()=>Title=$"WorldComposer · 大世界拼装编辑器 · {_document.DisplayName}{(_dirty?" *":"")}";
     private static WorldCompositionDocument NewDocument()=>new(){CompositionId="main_continent",DisplayName="主大陆"};
@@ -89,6 +142,44 @@ public partial class MainWindow:Window
     {
         if(_path==null){MessageBox.Show("导出前请先保存世界组合。","WorldComposer");return;}var contentRoot=FindContentRoot(_path);if(contentRoot==null){MessageBox.Show("无法从当前世界组合路径定位 Content 根目录。","WorldComposer");return;}var dialog=new OpenFolderDialog{Title="选择独立的候选输出目录"};if(dialog.ShowDialog()!=true)return;
         try{_linked=LinkedSourceLoader.Load(_document,_path);var files=LegacyWorldMigration.ExportCompatibilityCandidates(_document,_linked,contentRoot,dialog.FolderName);MessageBox.Show("兼容候选已写入独立目录，未修改运行时 Data。\n"+string.Join("\n",files),"导出兼容候选");}catch(Exception ex){Error(ex);}
+    }
+    private void PublishCompatibility()
+    {
+        try
+        {
+            if(_path==null||_dirty){MessageBox.Show("发布前请先保存当前 WorldComposition。","WorldComposer");return;}
+            var contentRoot=FindContentRoot(_path);if(contentRoot==null){MessageBox.Show("无法从当前世界组合路径定位 Content 根目录。","WorldComposer");return;}
+            _linked=LinkedSourceLoader.Load(_document,_path);var summary=CompatibilityPublisher.Prepare(_document,_linked,contentRoot);
+            var message=$"当前 Composition：{summary.CompositionId}\nSurface 尺寸：{summary.WidthCells}×{summary.HeightCells}\nChunk 数量：{summary.ChunkCount}\nWater 格：{summary.WaterCells}\nRiver：{summary.RiverCount}\nRoad：{summary.RoadCount}\nBridge：{summary.BridgeCount}\nWorldObject：{summary.WorldObjectCount}\nHuangcun Blueprint 对象：{summary.HuangcunObjectCount}\n\n将替换：\n{summary.MainRuntimePath}\n{summary.GeographyRuntimePath}\n\n备份位置：\n{summary.BackupRoot}\n\n确认发布到当前项目旧 Runtime schema？";
+            if(MessageBox.Show(message,"发布到当前项目（兼容模式）",MessageBoxButton.OKCancel,MessageBoxImage.Warning)!=MessageBoxResult.OK)return;
+            CompatibilityPublisher.Publish(_document,_linked,contentRoot);
+            MessageBox.Show("兼容发布完成。当前 Unity Runtime schema 未改变。","WorldComposer");
+        }catch(Exception ex){Error(ex);}
+    }
+    private void RestoreCompatibility(bool original)
+    {
+        try
+        {
+            if(_path==null||_document.LegacyMigration==null){MessageBox.Show("恢复要求已保存且带 LegacyMigration binding 的 WorldComposition。","WorldComposer");return;}
+            var contentRoot=FindContentRoot(_path);if(contentRoot==null){MessageBox.Show("无法从当前世界组合路径定位 Content 根目录。","WorldComposer");return;}
+            var label=original?"首次迁移前版本":"上一次运行时发布";
+            if(MessageBox.Show($"将恢复{label}的两个 Runtime JSON。此操作会覆盖当前运行时文件，是否继续？","恢复运行时发布",MessageBoxButton.YesNo,MessageBoxImage.Warning)!=MessageBoxResult.Yes)return;
+            if(MessageBox.Show("请再次确认：将整体恢复 main surface 与 geography 两个文件。","恢复运行时发布",MessageBoxButton.YesNo,MessageBoxImage.Warning)!=MessageBoxResult.Yes)return;
+            CompatibilityPublisher.Restore(contentRoot,_document.LegacyMigration,original);
+            MessageBox.Show($"已恢复{label}。","WorldComposer");
+        }catch(Exception ex){Error(ex);}
+    }
+    private void ResizeWorld()
+    {
+        try
+        {
+            var request=ShowResizeDialog(_document.SurfaceWidthCells,_document.SurfaceHeightCells);
+            if(request==null)return;
+            var result=WorldCompositionResize.TryResize(_document,_linked,request.Value.Width,request.Value.Height,request.Value.Anchor);
+            if(!result.Succeeded){MessageBox.Show("无法调整世界尺寸：\n"+string.Join("\n",result.BlockingReasons),"WorldComposer",MessageBoxButton.OK,MessageBoxImage.Warning);return;}
+            _undo.Push(SurfaceAuthoringJson.Serialize(_document));_redo.Clear();_document=result.Document!;MarkDirty();Refresh(true);
+            _status.Text=$"世界已调整为 {_document.SurfaceWidthCells}×{_document.SurfaceHeightCells} 格。";
+        }catch(Exception ex){Error(ex);}
     }
     private void Save(){if(_path==null){SaveAs();return;}SaveTo(_path);}
     private void SaveAs(){var dialog=new SaveFileDialog{Filter="世界组合|*.worldcomposition.json",FileName=_document.CompositionId+SurfaceAuthoringJson.WorldCompositionExtension};if(dialog.ShowDialog()==true){_path=dialog.FileName;SaveTo(_path);}}
@@ -109,10 +200,11 @@ public partial class MainWindow:Window
     private void LoadArgs(){var args=Environment.GetCommandLineArgs();if(args.Length>1&&File.Exists(args[1]))try{_document=SurfaceAuthoringJson.LoadWorldComposition(args[1]);_path=args[1];_linked=LinkedSourceLoader.Load(_document,_path);}catch(Exception ex){Error(ex);}}
 
     private static string ToolText(ComposerTool tool)=>tool switch{ComposerTool.Select=>"选择",ComposerTool.Terrain=>"地形",ComposerTool.Forest=>"森林",ComposerTool.River=>"河流",ComposerTool.Road=>"道路",ComposerTool.WorldObject=>"世界物件",ComposerTool.Blueprint=>"据点蓝图",ComposerTool.DetailPatch=>"精修块",ComposerTool.RectangleSelect=>"矩形选择",_=>"未知工具"};
-    private static string ToolHelp(ComposerTool tool)=>tool switch{ComposerTool.Select=>"单击道路、河流、蓝图或世界物件进行编辑；拖动控制点或放置项移动。",ComposerTool.Terrain=>"按住左键拖动绘制。滚轮缩放，空格+拖动平移。Ctrl+Z 撤销。",ComposerTool.Forest=>"左键绘制森林范围；森林可以通行。调整密度控制树林茂盛程度。",ComposerTool.River=>"单击增加河道控制点，双击或 Enter 完成；选择河流后可拖动控制点。",ComposerTool.Road=>"单击增加路线控制点，双击或 Enter 完成。",ComposerTool.WorldObject=>"选择物件类型后，在连续世界格上单击放置。",ComposerTool.Blueprint=>"选择已有据点蓝图，然后在连续世界中放置。",ComposerTool.DetailPatch=>"先用矩形选择范围，再创建并链接精修块。",ComposerTool.RectangleSelect=>"拖动框选范围，可供填充或创建精修块使用。",_=>string.Empty};
+    private static string ToolHelp(ComposerTool tool)=>tool switch{ComposerTool.Select=>"单击道路、河流、蓝图或世界物件进行编辑；拖动控制点或放置项移动。",ComposerTool.Terrain=>"按住左键拖动绘制。Alt + 滚轮缩放，空格+拖动或中键平移。Ctrl+Z 撤销。",ComposerTool.Forest=>"左键绘制森林范围；森林可以通行。调整密度控制树林茂盛程度。",ComposerTool.River=>"单击增加河道控制点，双击或 Enter 完成；选择河流后可拖动控制点。",ComposerTool.Road=>"单击增加路线控制点，双击或 Enter 完成。",ComposerTool.WorldObject=>"选择物件类型后，在连续世界格上单击放置。",ComposerTool.Blueprint=>"选择已有据点蓝图，然后在连续世界中放置。",ComposerTool.DetailPatch=>"先用矩形选择范围，再创建并链接精修块。",ComposerTool.RectangleSelect=>"拖动框选范围，可供填充或创建精修块使用。",_=>string.Empty};
     private static string SelectedType(object? item)=>item switch{WorldObjectPlacement=>"世界物件",WorldSiteBlueprintPlacement=>"据点蓝图",DetailPatchPlacement=>"精修块",RiverPathSource=>"河流",RoadPathSource=>"道路",null=>"无",_=>"未知项"};
     private static string ObjectText(string kind)=>ObjectChoices.FirstOrDefault(x=>x.Value==kind)?.Text??kind;
     private static string RoadText(RoadClass value)=>RoadChoices.First(x=>x.Value.Equals(value)).Text;
+    private static string CrossingText(CrossingResolution value)=>value switch{CrossingResolution.Bridge=>"桥",CrossingResolution.Ford=>"浅滩",_=>"未处理"};
     private static string SeverityText(ValidationSeverity value)=>value==ValidationSeverity.Error?"错误":"警告";
     private static T Selected<T>(ComboBox combo,T fallback)=>combo.SelectedValue is T value?value:fallback;
     private static ComboBox Combo<T>(IEnumerable<Choice<T>> values)=>new(){ItemsSource=values,DisplayMemberPath=nameof(Choice<T>.Text),SelectedValuePath=nameof(Choice<T>.Value)};
@@ -123,8 +215,23 @@ public partial class MainWindow:Window
     private static ulong Seed(string value)=>ulong.TryParse(value,out var parsed)?parsed:throw new InvalidDataException("世界种子必须是非负整数。");
     private static void Error(Exception ex)=>MessageBox.Show(ex is InvalidDataException?ex.Message:"操作失败。请检查文件路径、权限和文档内容。","WorldComposer · 操作失败",MessageBoxButton.OK,MessageBoxImage.Error);
     private static TextBlock Header(string text)=>new(){Text=text,Foreground=Brushes.LightSkyBlue,FontWeight=FontWeights.Bold,Margin=new(0,8,0,5)};
+    private static TextBlock Text(string text)=>new(){Text=text,Foreground=Brushes.White,TextWrapping=TextWrapping.Wrap,Margin=new(0,6,0,6)};
     private static TextBlock Label(string text)=>new(){Text=text,Foreground=Brushes.White,Margin=new(0,6,0,2)};
     private static void Add(Panel panel,string text,Action action){var button=new Button{Content=text,Margin=new(0,0,5,5),Padding=new(7,3,7,3)};button.Click+=(_,_)=>action();panel.Children.Add(button);}
     private static string[]? Prompt(string title,params(string Label,string Value)[] fields){var window=new Window{Title=title,Width=400,SizeToContent=SizeToContent.Height,WindowStartupLocation=WindowStartupLocation.CenterScreen};var panel=new StackPanel{Margin=new(12)};var boxes=new List<TextBox>();foreach(var field in fields){panel.Children.Add(new TextBlock{Text=field.Label});var box=new TextBox{Text=field.Value,Margin=new(0,2,0,7)};boxes.Add(box);panel.Children.Add(box);}var ok=new Button{Content="确定",IsDefault=true,Width=70,HorizontalAlignment=HorizontalAlignment.Right};ok.Click+=(_,_)=>window.DialogResult=true;panel.Children.Add(ok);window.Content=panel;return window.ShowDialog()==true?boxes.Select(x=>x.Text.Trim()).ToArray():null;}
+    private static (int Width,int Height,WorldResizeAnchor Anchor)? ShowResizeDialog(int currentWidth,int currentHeight)
+    {
+        var window=new Window{Title="调整世界尺寸",Width=360,SizeToContent=SizeToContent.Height,WindowStartupLocation=WindowStartupLocation.CenterOwner};
+        var panel=new StackPanel{Margin=new(14)};panel.Children.Add(new TextBlock{Text=$"当前：{currentWidth} × {currentHeight}",FontWeight=FontWeights.Bold});
+        panel.Children.Add(new TextBlock{Text="新宽度（10 格整数倍）"});var width=new TextBox{Text=currentWidth.ToString(),Margin=new(0,2,0,7)};panel.Children.Add(width);
+        panel.Children.Add(new TextBlock{Text="新高度（10 格整数倍）"});var height=new TextBox{Text=currentHeight.ToString(),Margin=new(0,2,0,7)};panel.Children.Add(height);
+        panel.Children.Add(new TextBlock{Text="锚点",Margin=new(0,4,0,2)});
+        var anchors=new Grid();anchors.ColumnDefinitions.Add(new ColumnDefinition());anchors.ColumnDefinitions.Add(new ColumnDefinition());var leftTop=new RadioButton{Content="左上固定",GroupName="anchor"};var rightTop=new RadioButton{Content="右上固定",GroupName="anchor"};var leftBottom=new RadioButton{Content="左下固定",GroupName="anchor",IsChecked=true};var rightBottom=new RadioButton{Content="右下固定",GroupName="anchor"};Grid.SetRow(leftTop,0);Grid.SetColumn(leftTop,0);Grid.SetColumn(rightTop,1);Grid.SetRow(leftBottom,1);Grid.SetColumn(leftBottom,0);Grid.SetRow(rightBottom,1);Grid.SetColumn(rightBottom,1);anchors.RowDefinitions.Add(new RowDefinition());anchors.RowDefinitions.Add(new RowDefinition());anchors.Children.Add(leftTop);anchors.Children.Add(rightTop);anchors.Children.Add(leftBottom);anchors.Children.Add(rightBottom);panel.Children.Add(anchors);
+        var ok=new Button{Content="调整",IsDefault=true,Width=80,HorizontalAlignment=HorizontalAlignment.Right,Margin=new(0,12,0,0)};ok.Click+=(_,_)=>window.DialogResult=true;panel.Children.Add(ok);window.Content=panel;
+        if(window.ShowDialog()!=true)return null;
+        if(!int.TryParse(width.Text,out var w)||!int.TryParse(height.Text,out var h))throw new InvalidDataException("世界尺寸必须是整数。");
+        var anchor=leftBottom.IsChecked==true?WorldResizeAnchor.LeftBottom:rightBottom.IsChecked==true?WorldResizeAnchor.RightBottom:leftTop.IsChecked==true?WorldResizeAnchor.LeftTop:WorldResizeAnchor.RightTop;
+        return(w,h,anchor);
+    }
     private sealed record Choice<T>(T Value,string Text);
 }

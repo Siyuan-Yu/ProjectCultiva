@@ -30,7 +30,7 @@ public abstract class SurfaceCanvasBase : FrameworkElement
     protected virtual bool BeginEdit(MouseButtonEventArgs e,(double X,double Y) world)=>false;
     protected virtual void ContinueEdit(MouseEventArgs e,(double X,double Y) world){}
     protected virtual void EndEdit(MouseButtonEventArgs e,(double X,double Y) world){}
-    protected override void OnMouseWheel(MouseWheelEventArgs e){if((Keyboard.Modifiers&ModifierKeys.Control)==0)return;ZoomAt(e.GetPosition(this),e.Delta>0?1.15:1/1.15);e.Handled=true;}
+    protected override void OnMouseWheel(MouseWheelEventArgs e){var modifiers=Keyboard.Modifiers;if((modifiers&ModifierKeys.Alt)==0&&(modifiers&ModifierKeys.Control)==0)return;ZoomAt(e.GetPosition(this),e.Delta>0?1.15:1/1.15);e.Handled=true;}
     protected override void OnMouseDown(MouseButtonEventArgs e){Focus();_last=e.GetPosition(this);if(e.ChangedButton==MouseButton.Middle||(e.ChangedButton==MouseButton.Left&&Keyboard.IsKeyDown(Key.Space))){_panning=true;CaptureMouse();e.Handled=true;return;}var w=ScreenToWorld(_last);if(BeginEdit(e,w)){CaptureMouse();e.Handled=true;}}
     protected override void OnMouseMove(MouseEventArgs e){var p=e.GetPosition(this);if(_panning){Offset+=p-_last;_last=p;InvalidateVisual();return;}var w=ScreenToWorld(p);var x=(int)Math.Floor(w.X);var y=(int)Math.Floor(w.Y);var next=x>=0&&y>=0&&x<SurfaceWidth&&y<SurfaceHeight?(x,y):(-1,-1);if(next!=_lastCursor){_lastCursor=next;CursorCellChanged?.Invoke(next.Item1,next.Item2);}ContinueEdit(e,w);}
     protected override void OnMouseUp(MouseButtonEventArgs e){var w=ScreenToWorld(e.GetPosition(this));if(_panning){_panning=false;ReleaseMouseCapture();e.Handled=true;return;}EndEdit(e,w);if(IsMouseCaptured)ReleaseMouseCapture();}
